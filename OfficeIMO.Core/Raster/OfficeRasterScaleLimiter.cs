@@ -86,7 +86,8 @@ public static class OfficeRasterScaleLimiter {
     internal static double CeilingPixels(double value) {
         if (double.IsNaN(value) || double.IsInfinity(value)) return value;
         double nearest = Math.Round(value);
-        return Math.Abs(value - nearest) <= 1e-9D * Math.Max(1D, Math.Abs(value)) ? nearest : Math.Ceiling(value);
+        double spacing = Math.Abs(BitConverter.Int64BitsToDouble(BitConverter.DoubleToInt64Bits(value) + 1L) - value);
+        return Math.Abs(value - nearest) <= 2D * spacing ? nearest : Math.Ceiling(value);
     }
 
     private static void ValidatePositive(double value, string name) {

@@ -24,7 +24,7 @@ internal sealed partial class PdfTrueTypeFontProgram {
     internal string SubsetFontName {
         get {
             int[]? glyphOrder = GetCompactSubsetGlyphOrder();
-            return glyphOrder == null ? FontName : PdfSubsetTag.Apply(FontName, glyphOrder);
+            return glyphOrder == null ? FontName : PdfSubsetTag.Apply(FontName, glyphOrder, _data);
         }
     }
 

@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using System;
 
 namespace OfficeIMO.Drawing;
@@ -64,7 +65,7 @@ public sealed partial class OfficeDrawing {
     }
 
     /// <summary>Keeps editable logical text while the raster path paints the PDF glyph names.</summary>
-    internal void SetLastTextOutlineStroke(OfficeColor color, double width, bool fillSuppressed) {
+    internal void SetLastTextOutlineStroke(OfficeColor color, double width, bool fillSuppressed, IReadOnlyList<double>? dashPattern = null, double dashOffset = 0D) {
         if (Elements.Count == 0) return;
         OfficeDrawingElement last = Elements[Elements.Count - 1];
         if (last is OfficeDrawingGroup group && group.InnerDrawing.Elements.Count > 0)
@@ -73,6 +74,8 @@ public sealed partial class OfficeDrawing {
         text.OutlineStrokeColor = color;
         text.OutlineStrokeWidth = width;
         text.FillSuppressed = fillSuppressed;
+        text.OutlineStrokeDashPattern = dashPattern;
+        text.OutlineStrokeDashOffset = dashOffset;
     }
 
     internal void SetLastTextPaintedProjection(string logicalText, string paintedText) {

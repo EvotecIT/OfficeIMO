@@ -17,7 +17,7 @@ internal interface IPdfGlyphTextPinner {
 /// <remarks>
 /// A glyph reachable through the font cmap maps to its lowest printable scalar (logical Arabic,
 /// decomposed Latin ligature), independent of usage order. Other glyphs (ligatures, contextual
-/// forms) keep the first emitted text. When fonts map several characters to one glyph, every other
+/// forms) retain ActualText so independent contexts cannot assign conflicting meanings. When fonts map several characters to one glyph, every other
 /// character can use an alias code (glyph count + scalar) whose CIDToGIDMap entry selects that
 /// nominal glyph. Codes are a pure function of the character, so independent document contexts
 /// that share one font resource never disagree.
@@ -42,7 +42,10 @@ internal sealed class PdfGlyphTextPins : IPdfGlyphTextPinner {
         unicodeText = OfficeArabicTextShaper.ToLogicalText(unicodeText);
         lock (_lock) {
             if (!_pins.TryGetValue(glyphId, out string? pinned)) {
-                pinned = _canonical.TryGet(glyphId, out string canonical) ? canonical : unicodeText;
+                // Non-cmap glyphs can mean different source strings in separate option contexts.
+                // Keep ActualText for those commands rather than committing a context-local meaning.
+                if (!_canonical.TryGet(glyphId, out string canonical)) return false;
+                pinned = canonical;
                 _pins.Add(glyphId, pinned);
             }
             if (string.Equals(pinned, unicodeText, StringComparison.Ordinal)) return true;
@@ -157,12 +160,17 @@ internal sealed class PdfCanonicalGlyphText {
 
     // Presentation forms describe how text is drawn; extraction should recover the source letters.
     private static string ToSourceText(int scalar) {
-        string text = char.ConvertFromUtf32(scalar);
-        if (scalar >= 0xFB00 && scalar <= 0xFB06) {
-            string decomposed = text.Normalize(System.Text.NormalizationForm.FormKD);
-            if (decomposed.Length > 1) return decomposed;
-        }
-        return OfficeArabicTextShaper.ToLogicalText(text);
+        // These seven Unicode compatibility decompositions are fixed. FormKD is unavailable
+        // in browser globalization and must not make an otherwise usable font fail to load.
+        return scalar switch {
+            0xFB00 => "ff",
+            0xFB01 => "fi",
+            0xFB02 => "fl",
+            0xFB03 => "ffi",
+            0xFB04 => "ffl",
+            0xFB05 or 0xFB06 => "st",
+            _ => OfficeArabicTextShaper.ToLogicalText(char.ConvertFromUtf32(scalar))
+        };
     }
 
     private static bool IsTextScalar(int scalar) =>

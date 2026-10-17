@@ -12,6 +12,48 @@ namespace OfficeIMO.Tests.Pdf;
 
 /// <summary>Default text output: pair kerning, run-level show operators, compact subsets, bidi and line breaking.</summary>
 public class PdfTextQualityTests {
+    [Theory]
+    [InlineData(0xFB00, "ff")]
+    [InlineData(0xFB01, "fi")]
+    [InlineData(0xFB02, "fl")]
+    [InlineData(0xFB03, "ffi")]
+    [InlineData(0xFB04, "ffl")]
+    [InlineData(0xFB05, "st")]
+    [InlineData(0xFB06, "st")]
+    public void CanonicalLigatureGlyphTextRetainsItsSourceLetters(int scalar, string expected) {
+        var canonical = new PdfCanonicalGlyphText(new System.Collections.Generic.Dictionary<int, int> { [scalar] = 1 });
+        Assert.True(canonical.TryGet(1, out string text));
+        Assert.Equal(expected, text);
+    }
+
+    [Fact]
+    public void HardBreaksResolveEachParagraphDirectionIndependently() {
+        const string later = "123 - abc";
+        byte[] font = ManagedTextShapingTestAssets.CreateFontWithDistinctGlyphs("אבג".Concat(later).Select(character => (int)character).Distinct().ToArray());
+        byte[] Create(string text) => PdfDocument.Create(new PdfOptions().UseFontFamily(new PdfEmbeddedFontFamily("Bidi", font)))
+            .Paragraph(paragraph => paragraph.Text(text)).ToBytes();
+        var combined = PdfReadDocument.Open(Create("אבג\n" + later)).Pages[0].GetTextSpans();
+        var standalone = PdfReadDocument.Open(Create(later)).Pages[0].GetTextSpans();
+        PdfTextSpan word = Assert.Single(combined, span => span.Text.Contains("abc", StringComparison.Ordinal));
+        PdfTextSpan expected = Assert.Single(standalone, span => span.Text.Contains("abc", StringComparison.Ordinal));
+        Assert.Equal(expected.X, word.X, 5);
+    }
+
+    [Fact]
+    public void ScalarRightToLeftOutputHasTheSamePaintOrderWithAndWithoutFontUnitLayout() {
+        const string text = "אבג";
+        byte[] font = ManagedTextShapingTestAssets.CreateFontWithDistinctGlyphs(text.Select(character => (int)character).ToArray());
+        byte[] Glyphs(bool fontUnits) {
+            byte[] pdf = PdfDocument.Create(new PdfOptions { UseFontUnitTextLayout = fontUnits, TextShapingMode = PdfTextShapingMode.UnicodeScalar }
+                    .UseFontFamily(new PdfEmbeddedFontFamily("RTL", font)))
+                .Paragraph(paragraph => paragraph.Text(text)).ToBytes();
+            return PdfReadDocument.Open(pdf).Pages[0].GetTextSpans().SelectMany(span => span.GlyphBytes ?? Array.Empty<byte[]>()).SelectMany(bytes => bytes).ToArray();
+        }
+        byte[] expected = Glyphs(true);
+        Assert.NotEmpty(expected);
+        Assert.Equal(expected, Glyphs(false));
+    }
+
     [Fact]
     public void StandardFontTextUsesAfmPairKerningUnlessDisabled() {
         double Width(bool kerning) {
@@ -102,7 +144,7 @@ public class PdfTextQualityTests {
         // Logical first word stays first in content order but is painted to the right.
         Assert.True(first.X > second.X);
         Assert.True(Array.IndexOf(spans, first) < Array.IndexOf(spans, second));
-        Assert.DoesNotContain("/ActualText", Encoding.ASCII.GetString(pdf), StringComparison.Ordinal);
+        Assert.DoesNotContain("/ActualText", PdfTestContentText.ReadDecoded(pdf), StringComparison.Ordinal);
         // Joined (contextual) forms replace the isolated letters.
         var program = PdfTrueTypeFontProgram.Parse(File.ReadAllBytes(fontPath!));
         Assert.True(program.TryGetGlyphId(0x0645, out int isolatedMeem));

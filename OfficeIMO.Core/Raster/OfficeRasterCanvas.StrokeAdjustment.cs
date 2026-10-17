@@ -28,19 +28,19 @@ public sealed partial class OfficeRasterCanvas {
         return (Math.Floor(device + 1e-6D) - device) / CoordinateScaleY;
     }
 
-    private (OfficeColor Color, double Width, bool FillSuppressed)? _textOutlineStroke;
+    private (OfficeColor Color, double Width, bool FillSuppressed, IReadOnlyList<double>? Pattern, double Offset)? _textOutlineStroke;
 
     /// <summary>Strokes the outlines of glyphs drawn within the scope, optionally without filling them.</summary>
-    internal IDisposable PushTextOutlineStroke(OfficeColor color, double width, bool fillSuppressed) {
+    internal IDisposable PushTextOutlineStroke(OfficeColor color, double width, bool fillSuppressed, IReadOnlyList<double>? pattern = null, double offset = 0D) {
         var previous = _textOutlineStroke;
-        _textOutlineStroke = (color, width, fillSuppressed);
+        _textOutlineStroke = (color, width, fillSuppressed, pattern, offset);
         return new TextOutlineStrokeScope(this, previous);
     }
 
     private sealed class TextOutlineStrokeScope : IDisposable {
         private OfficeRasterCanvas? _canvas;
-        private readonly (OfficeColor Color, double Width, bool FillSuppressed)? _previous;
-        internal TextOutlineStrokeScope(OfficeRasterCanvas canvas, (OfficeColor Color, double Width, bool FillSuppressed)? previous) { _canvas = canvas; _previous = previous; }
+        private readonly (OfficeColor Color, double Width, bool FillSuppressed, IReadOnlyList<double>? Pattern, double Offset)? _previous;
+        internal TextOutlineStrokeScope(OfficeRasterCanvas canvas, (OfficeColor Color, double Width, bool FillSuppressed, IReadOnlyList<double>? Pattern, double Offset)? previous) { _canvas = canvas; _previous = previous; }
         public void Dispose() { if (_canvas != null) { _canvas._textOutlineStroke = _previous; _canvas = null; } }
     }
 
@@ -56,7 +56,7 @@ public sealed partial class OfficeRasterCanvas {
         if (outlines.Count == 0) return;
         OfficeColor strokeColor = stroke.Color;
         StrokeContours(outlines, stroke.Width > 0D ? stroke.Width : 1E-9D, OfficeStrokeLineCap.Butt, OfficeStrokeLineJoin.Miter, 10D,
-            null, 0D, (_, _) => strokeColor, hairline: stroke.Width <= 0D);
+            stroke.Pattern, stroke.Offset, (_, _) => strokeColor, hairline: stroke.Width <= 0D);
     }
 
     private double DevicePixelsPerLogicalUnit => Math.Sqrt(Math.Abs(CoordinateScaleX * CoordinateScaleY));
@@ -87,23 +87,33 @@ public sealed partial class OfficeRasterCanvas {
     /// is not axis-aligned in device space, so the caller uses the general stroker.
     /// </summary>
     private bool TryStrokeAdjustedContours(IReadOnlyList<OfficeFlattenedPathContour> contours, double width,
-        OfficeStrokeLineCap cap, IReadOnlyList<double>? pattern, OfficeTransform transform,
+        OfficeStrokeLineCap cap, OfficeStrokeLineJoin join, double miterLimit, IReadOnlyList<double>? pattern, OfficeTransform transform,
         Func<double, double, OfficeColor> paint) {
-        if (!StrokeAdjustment || pattern is { Count: > 0 } || width <= 0D || !IsFinite(width)) return false;
+        if (!StrokeAdjustment || pattern is { Count: > 0 } || width <= 0D || !IsFinite(width) ||
+            cap == OfficeStrokeLineCap.Round) return false;
         double sx = CoordinateScaleX, sy = CoordinateScaleY;
         if (sx <= 0D || sy <= 0D) return false;
         var rectangles = new List<(double Left, double Top, double Right, double Bottom)>();
         foreach (OfficeFlattenedPathContour contour in contours) {
             IReadOnlyList<OfficePoint> points = contour.Points;
             int count = points.Count;
+            if ((contour.Closed || count > 2) && (join != OfficeStrokeLineJoin.Miter || miterLimit < Math.Sqrt(2D))) return false;
             if (contour.Closed && count > 1 && points[0].X == points[count - 1].X && points[0].Y == points[count - 1].Y) count--;
+            // A reversal has no square miter extension; preserve it through the general stroker.
+            for (int vertex = contour.Closed ? 0 : 1; vertex < (contour.Closed ? count : count - 1); vertex++) {
+                OfficePoint prior = points[(vertex + count - 1) % count], current = points[vertex], next = points[(vertex + 1) % count];
+                double inX = current.X - prior.X, inY = current.Y - prior.Y;
+                double outX = next.X - current.X, outY = next.Y - current.Y;
+                if (Math.Abs(inX * outY - inY * outX) <= AxisAlignmentTolerance && inX * outX + inY * outY < 0D) return false;
+            }
             int segments = contour.Closed ? count : count - 1;
             for (int index = 0; index < segments; index++) {
                 OfficePoint start = points[index];
                 OfficePoint end = points[(index + 1) % count];
                 double dx = end.X - start.X, dy = end.Y - start.Y;
                 double length = Math.Sqrt(dx * dx + dy * dy);
-                if (length <= 0D) continue;
+                // The general stroker deduplicates vertices before constructing joins and caps.
+                if (length <= 0D) return false;
                 double ux = dx / length * width / 2D, uy = dy / length * width / 2D;
                 // Device offsets of the half-width normal and of the half-width extension along the segment.
                 OfficePoint normal = Linear(transform, -uy, ux, sx, sy);

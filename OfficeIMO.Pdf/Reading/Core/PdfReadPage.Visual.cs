@@ -151,7 +151,7 @@ public sealed partial class PdfReadPage {
         cancellationToken.ThrowIfCancellationRequested();
         var registeredFonts = new Dictionary<(string Family, OfficeFontStyle Style), PdfFontResource>();
         Dictionary<(string Family, OfficeFontStyle Style), PaintedGlyphMap> paintedGlyphMaps = pageContentBudget.PaintedGlyphMaps;
-        RegisterEmbeddedFonts(drawing, ResolveDictionary(GetInheritedValue("Resources")), new HashSet<PdfStream>(), 0, registeredFonts);
+        RegisterEmbeddedFonts(drawing, ResolveDictionary(GetInheritedValue("Resources")), new HashSet<PdfStream>(), 0, registeredFonts, cancellationToken: cancellationToken);
         ConfigureDrawingFonts(drawing, registeredFonts, pageContentBudget);
 
         cancellationToken.ThrowIfCancellationRequested();
@@ -395,11 +395,12 @@ public sealed partial class PdfReadPage {
 
     private void RegisterEmbeddedFonts(OfficeDrawing drawing, PdfDictionary? resources, HashSet<PdfStream> activeForms, int depth,
         Dictionary<(string Family, OfficeFontStyle Style), PdfFontResource>? registeredFonts = null,
-        bool preserveExistingFaces = false) {
+        bool preserveExistingFaces = false, CancellationToken cancellationToken = default) {
+        cancellationToken.ThrowIfCancellationRequested();
         EnsureContentNestingBudget(depth);
         if (resources == null) return;
 
-        foreach (PdfFontResource font in _fontResourceCache.GetFonts(resources, _objects).Values)
+        foreach (PdfFontResource font in _fontResourceCache.GetFonts(resources, _objects, forDrawing: true, cancellationToken).Values)
             RegisterEmbeddedFont(drawing, font, registeredFonts, preserveExistingFaces);
 
         PdfDictionary? xObjects = ResolveDictionary(resources.Items.TryGetValue("XObject", out PdfObject? xObjectValue) ? xObjectValue : null);
@@ -410,7 +411,7 @@ public sealed partial class PdfReadPage {
                 !activeForms.Add(form)) continue;
             try {
                 PdfDictionary? formResources = ResolveDictionary(form.Dictionary.Items.TryGetValue("Resources", out PdfObject? formResourceValue) ? formResourceValue : null) ?? resources;
-                RegisterEmbeddedFonts(drawing, formResources, activeForms, depth + 1, registeredFonts, preserveExistingFaces);
+                RegisterEmbeddedFonts(drawing, formResources, activeForms, depth + 1, registeredFonts, preserveExistingFaces, cancellationToken);
             } finally {
                 activeForms.Remove(form);
             }
@@ -1015,11 +1016,11 @@ public sealed partial class PdfReadPage {
         type3GlyphBudget ??= new Type3GlyphBudget(_limits.MaxType3GlyphInvocationsPerPage);
         PdfPageInvokedResourceNames invokedResources = invokedResourceNames ?? GetInvokedResourceNames(
             content, resources, pageContentBudget.CancellationToken.ThrowIfCancellationRequested);
-        PdfFontResourceSet fontResources = inheritedFontResources ?? _fontResourceCache.GetOrCreate(resources, _objects);
+        PdfFontResourceSet fontResources = inheritedFontResources ?? _fontResourceCache.GetOrCreate(resources, _objects, forDrawing: true, pageContentBudget.CancellationToken);
         Dictionary<string, PdfFontResource> fonts = fontResources.Fonts;
         Dictionary<string, Func<byte[], double>> widthProviders = fontResources.WidthProviders;
         Dictionary<string, PdfPageGraphicsStateResource> graphicsStateResources =
-            GetGraphicsStateResources(resources, fontResources.Decoders, widthProviders, fonts);
+            GetGraphicsStateResources(resources, pageContentBudget, fontResources.Decoders, widthProviders, fonts);
         PdfPageOptionalContentVisibility? optionalContentVisibility = GetOptionalContentVisibility(resources);
         Dictionary<string, PdfPageColorSpace> colorSpaceResources = GetColorSpaceResources(resources, invokedResources.ColorSpaces, pageContentBudget);
         Dictionary<string, PdfPageColorSpace> patternBaseColorSpaces = GetPatternBaseColorSpaceResources(resources, invokedResources.ColorSpaces, pageContentBudget);
@@ -1427,7 +1428,7 @@ public sealed partial class PdfReadPage {
                 string decodedFormContent = PdfEncoding.Latin1GetString(pageContentBudget.Decode(formStream));
                 string formContent = WrapFormContentWithBoundingBoxClip(decodedFormContent, formDictionary);
                 PdfFontResourceSet formFonts = CreateInheritedFormFontResources(fontResources, formResources,
-                    invocation.TextState, out PdfTextStateSnapshot formTextState);
+                    invocation.TextState, out PdfTextStateSnapshot formTextState, pageContentBudget.CancellationToken);
                 if (!requireSupportedType3Content && type3GroupVisitor != null &&
                     formOrderPrefix != null && IsSupportedOrdinaryTransparencyGroup(formDictionary)) {
                     OfficeDrawing group = CreateOrdinaryTransparencyGroupDrawing(formContent, formResources, formTransform,
@@ -2135,7 +2136,7 @@ public sealed partial class PdfReadPage {
         value < 0D ? 0D : value > 1D ? 1D : value;
 
     private Dictionary<string, PdfPageGraphicsStateResource> GetGraphicsStateResources(
-        PdfDictionary? resources,
+        PdfDictionary? resources, PageContentBudget? pageContentBudget,
         Dictionary<string, Func<byte[], int, string>>? decoders = null,
         Dictionary<string, Func<byte[], double>>? widthProviders = null,
         Dictionary<string, PdfFontResource>? fonts = null) {
@@ -2191,7 +2192,7 @@ public sealed partial class PdfReadPage {
                 HasInvalidStrictNumber(state, "ML", static value => value >= 1D) ||
                 !HasExactlyRepresentableStrokeDash(state);
             bool? softMaskEnabled = ReadSoftMaskEnabled(state);
-            PdfPageSoftMaskResource? softMask = softMaskEnabled == true ? ReadSoftMask(state, resources) : null;
+            PdfPageSoftMaskResource? softMask = softMaskEnabled == true ? ReadSoftMask(state, resources, pageContentBudget) : null;
             bool unsupportedSoftMask = softMaskEnabled == true && softMask == null;
             bool unsupportedTextRestampEffect = hasInvalidRenderingIntent || hasInvalidFont || HasUnsupportedTextRestampEffect(state);
             PdfPageImagePaintEffectOverrides imagePaintEffectOverrides = ReadImagePaintEffectOverrides(state);
@@ -2471,7 +2472,7 @@ public sealed partial class PdfReadPage {
             content,
             Matrix2D.Identity,
             pageSize.Height,
-            GetGraphicsStateResources(resources),
+            GetGraphicsStateResources(resources, pageContentBudget: null),
             placeholders,
             GetOptionalContentVisibility(resources),
             maxOperations: _limits.MaxContentOperations,
@@ -2799,7 +2800,7 @@ public sealed partial class PdfReadPage {
         paintedGlyphMaps ??= pageContentBudget.PaintedGlyphMaps;
         Dictionary<string, Func<byte[], int, string>> pageDecoders = ResourceResolver.GetBudgetedFontDecoders(_pageDict, _objects);
         Dictionary<string, Func<byte[], double>> pageWidthProviders = ResourceResolver.GetFontWidthProviders(_pageDict, _objects);
-        Dictionary<string, PdfFontResource> pageFonts = ResourceResolver.GetFontsForResources(pageResources, _objects);
+        Dictionary<string, PdfFontResource> pageFonts = _fontResourceCache.GetFonts(pageResources, _objects, forDrawing: true, cancellationToken);
         var activeForms = new HashSet<PdfStream>();
         // Collect all appearance aliases before rebuilding the root font. Otherwise a page with
         // many distinct annotation glyphs rebuilds the entire cmap once per appearance.
@@ -2812,13 +2813,13 @@ public sealed partial class PdfReadPage {
             if (annotation == null ||
                 !TryReadRectangle(annotation.Items.TryGetValue("Rect", out PdfObject? rectangleObject) ? rectangleObject : null, out (double X1, double Y1, double X2, double Y2) rectangle) ||
                 IsHiddenAnnotation(annotation) ||
-                !TryGetRenderableAnnotationAppearanceStream(annotation, out PdfStream appearanceStream, out _)) {
+                !TryGetRenderableAnnotationAppearanceStream(annotation, out PdfStream appearanceStream, out _, cancellationToken)) {
                 continue;
             }
 
             PdfDictionary? appearanceResources = ResolveDictionary(appearanceStream.Dictionary.Items.TryGetValue("Resources", out PdfObject? resourcesObject) ? resourcesObject : null) ?? pageResources;
             RegisterEmbeddedFonts(drawing, appearanceResources, new HashSet<PdfStream>(), 0, registeredFonts,
-                preserveExistingFaces: true);
+                preserveExistingFaces: true, cancellationToken: cancellationToken);
             cancellationToken.ThrowIfCancellationRequested();
             string appearanceContent = WrapFormContentWithBoundingBoxClip(PdfEncoding.Latin1GetString(pageContentBudget.Decode(appearanceStream)), appearanceStream.Dictionary);
             if (appearanceContent.Length == 0 ||
@@ -2862,7 +2863,7 @@ public sealed partial class PdfReadPage {
                 pageDecoders,
                 ResourceResolver.GetBudgetedFontDecodersForForm(appearanceStream.Dictionary, _objects));
             Dictionary<string, Func<byte[], double>> appearanceWidthProviders = MergeWidthProviders(pageWidthProviders, ResourceResolver.GetFontWidthProviders(appearanceStream.Dictionary, _objects));
-            Dictionary<string, PdfFontResource> appearanceFonts = MergeFonts(pageFonts, ResourceResolver.GetFontsForResources(appearanceResources, _objects));
+            Dictionary<string, PdfFontResource> appearanceFonts = MergeFonts(pageFonts, _fontResourceCache.GetFonts(appearanceResources, _objects, forDrawing: true, cancellationToken));
             string transformedAppearanceContent = WrapContentWithTransform(appearanceContent, appearanceTransform, out int transformedAppearanceContentOffset);
             CollectTextAndForms(
                 transformedAppearanceContent,
@@ -2958,13 +2959,14 @@ public sealed partial class PdfReadPage {
     private bool TryGetRenderableAnnotationAppearanceStream(
         PdfDictionary annotation,
         out PdfStream stream,
-        out bool synthesized) {
+        out bool synthesized, CancellationToken cancellationToken) {
         bool isWidget = string.Equals(annotation.Get<PdfName>("Subtype")?.Name, "Widget", StringComparison.Ordinal);
         PdfDictionary? acroForm = isWidget ? GetAcroForm() : null;
         // NeedAppearances asks viewers to regenerate variable-text widget appearances from the field values.
         if (acroForm != null && ResolveObject(acroForm.Items.TryGetValue("NeedAppearances", out PdfObject? needAppearances) ? needAppearances : null) is PdfBoolean { Value: true } &&
             PdfFormFiller.IsVariableTextWidget(_objects, annotation) &&
-            PdfFormFiller.TryCreateTransientWidgetAppearance(_objects, annotation, acroForm, out stream)) {
+            PdfFormFiller.TryCreateTransientWidgetAppearance(_objects, annotation, acroForm, out stream,
+                _limits.MaxDecodedStreamBytes, cancellationToken)) {
             synthesized = true;
             return true;
         }
@@ -2977,7 +2979,8 @@ public sealed partial class PdfReadPage {
         // A widget whose appearance dictionary lacks the current state intentionally paints nothing.
         if (isWidget) {
             synthesized = !annotation.Items.ContainsKey("AP") &&
-                PdfFormFiller.TryCreateTransientWidgetAppearance(_objects, annotation, acroForm, out stream);
+                PdfFormFiller.TryCreateTransientWidgetAppearance(_objects, annotation, acroForm, out stream,
+                    _limits.MaxDecodedStreamBytes, cancellationToken);
             return synthesized;
         }
 
@@ -3100,7 +3103,7 @@ public sealed partial class PdfReadPage {
         PdfDictionary? pageResources = ResolveDictionary(GetInheritedValue("Resources"));
         Dictionary<string, Func<byte[], int, string>> pageDecoders = ResourceResolver.GetBudgetedFontDecoders(_pageDict, _objects);
         Dictionary<string, Func<byte[], double>> pageWidthProviders = ResourceResolver.GetFontWidthProviders(_pageDict, _objects);
-        Dictionary<string, PdfFontResource> pageFonts = ResourceResolver.GetFontsForResources(pageResources, _objects);
+        Dictionary<string, PdfFontResource> pageFonts = _fontResourceCache.GetFonts(pageResources, _objects);
         var activeForms = new HashSet<PdfStream>();
 
         string content = GetContentStreamContent(pageContentBudget);

@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using System;
 
 namespace OfficeIMO.Drawing;
@@ -302,6 +303,8 @@ public sealed class OfficeDrawingText : OfficeDrawingElement {
         ClipToFrame = ClipToFrame,
         OutlineStrokeColor = OutlineStrokeColor,
         OutlineStrokeWidth = OutlineStrokeWidth,
+        OutlineStrokeDashPattern = OutlineStrokeDashPattern,
+        OutlineStrokeDashOffset = OutlineStrokeDashOffset,
         FillSuppressed = FillSuppressed
     };
 
@@ -313,6 +316,8 @@ public sealed class OfficeDrawingText : OfficeDrawingElement {
 
     /// <summary>Glyph-outline stroke width in drawing units; zero paints the thinnest device line.</summary>
     internal double OutlineStrokeWidth { get; set; }
+    internal IReadOnlyList<double>? OutlineStrokeDashPattern { get; set; }
+    internal double OutlineStrokeDashOffset { get; set; }
 
     /// <summary>True when only the outline stroke paints (PDF modes 1 and 5); <see cref="Color"/> then names the stroke.</summary>
     internal bool FillSuppressed { get; set; }

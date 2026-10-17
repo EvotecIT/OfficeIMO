@@ -100,12 +100,12 @@ public class PdfTrueTypeCharacterCodeTests {
     }
 
     [Fact]
-    public void UnmappedGlyphKeepsItsFirstPinnedText() {
+    public void UnmappedGlyphRequiresActualTextAcrossIndependentOptionContexts() {
         var program = PdfTrueTypeFontProgram.Parse(ManagedTextShapingTestAssets.CreateFontWithEmptyGlyphs(4, 'A'));
-        Assert.True(program.TextPinner.TryResolveCode(3, "fi", out int code));
-        Assert.Equal(3, code);
-        Assert.True(program.TextPinner.TryResolveCode(3, "fi", out _));
-        Assert.False(program.TextPinner.TryResolveCode(3, "fl", out _));
+        var fork = program.ForkForDocument();
+        Assert.False(program.TextPinner.TryResolveCode(3, "fi", out _));
+        Assert.False(fork.TextPinner.TryResolveCode(3, "fl", out _));
         Assert.False(program.TextPinner.TryResolveCode(3, string.Empty, out _));
+        Assert.True(program.TextPinner.TryResolveCode(1, "A", out _));
     }
 }

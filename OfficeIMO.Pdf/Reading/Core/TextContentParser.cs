@@ -408,6 +408,7 @@ internal static partial class TextContentParser {
         int strokeLineJoin = initialStrokeLineJoin;
         double miterLimit = initialMiterLimit;
         string strokeDashIdentity = initialStrokeDashIdentity;
+        var outlineDashCache = new Dictionary<(string Identity, double Scale), (IReadOnlyList<double>? Pattern, double Phase)>();
         if (fillColorSelection != null) {
             fillColorResolved = fillColorSelection.TryConvert(renderingIntent, out OfficeColor selectedFillColor);
             if (fillColorResolved) {
@@ -1316,8 +1317,14 @@ internal static partial class TextContentParser {
                 }
                 if (usesVisibleStroke && ApplyTextOpacity(strokeColor, true).A > 3) {
                     // Text strokes use the user-space line width of the CTM, not the text matrix.
-                    span.SetOutlineStroke(ApplyTextOpacity(strokeColor, true),
-                        Math.Abs(strokeWidth) * Math.Sqrt(Math.Abs((ctm.A * ctm.D) - (ctm.B * ctm.C))));
+                    double strokeScale = Math.Sqrt(Math.Abs((ctm.A * ctm.D) - (ctm.B * ctm.C)));
+                    var dashKey = (strokeDashIdentity, strokeScale);
+                    if (outlineDashCache.TryGetValue(dashKey, out var dash) ||
+                        TryReadOutlineDash(strokeDashIdentity, strokeScale, out dash.Pattern, out dash.Phase)) {
+                        if (outlineDashCache.Count < 64) outlineDashCache[dashKey] = dash;
+                        span.SetOutlineStroke(ApplyTextOpacity(strokeColor, true), Math.Abs(strokeWidth) * strokeScale,
+                            dash.Pattern, dash.Phase);
+                    }
                     double scaleEnvelope = Math.Max(Math.Abs(ctm.A) + Math.Abs(ctm.C), Math.Abs(ctm.B) + Math.Abs(ctm.D));
                     double joinEnvelope = strokeLineJoin == 0 ? Math.Max(1D, miterLimit) : 1D;
                     span.SetVisibleStrokePadding(Math.Max(0.5D, Math.Abs(strokeWidth)) * scaleEnvelope * joinEnvelope / 2D);

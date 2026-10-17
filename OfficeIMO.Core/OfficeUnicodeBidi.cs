@@ -463,8 +463,9 @@ internal static class OfficeUnicodeBidi {
             if (!OfficeUnicodeTextData.TryGetPairedBracket(scalar, out int pair, out bool opening)) continue;
             if (opening) {
                 if (stack.Count == MaximumBracketPairs) {
-                    stack.Clear();
-                    break;
+                    // UAX #9 BD16: overflow returns an empty pair list for the
+                    // entire isolating run sequence, including previously found pairs.
+                    return;
                 }
                 stack.Add((CanonicalBracket(pair), index));
             } else {

@@ -81,13 +81,17 @@ public sealed class PdfRendererQualityGateTests {
         }
     }
 
-    [Fact]
-    public void UnsupportedJbig2SegmentsReportTheOmittedImage() {
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void UnsupportedJbig2SegmentsReportTheOmittedImage(bool asciiHexPrefix) {
         var jbig2 = new MemoryStream();
         // Page information (type 48), then a halftone region (type 22), which the decoder does not implement.
-        jbig2.Write(new byte[] { 0, 0, 0, 0, 48, 0, 1, 0, 0, 0, 19, 0, 0, 0, 8, 0, 0, 0, 8, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 });
-        jbig2.Write(new byte[] { 0, 0, 0, 1, 22, 0, 1, 0, 0, 0, 0 });
-        byte[] pdf = BuildImagePdf(jbig2.ToArray(), "/Filter /JBIG2Decode");
+        WriteBytes(jbig2, new byte[] { 0, 0, 0, 0, 48, 0, 1, 0, 0, 0, 19, 0, 0, 0, 8, 0, 0, 0, 8, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 });
+        WriteBytes(jbig2, new byte[] { 0, 0, 0, 1, 22, 0, 1, 0, 0, 0, 0 });
+        byte[] data = jbig2.ToArray();
+        if (asciiHexPrefix) data = Encoding.ASCII.GetBytes(BitConverter.ToString(data).Replace("-", string.Empty) + ">");
+        byte[] pdf = BuildImagePdf(data, asciiHexPrefix ? "/Filter [/ASCIIHexDecode /JBIG2Decode]" : "/Filter /JBIG2Decode");
 
         PdfPageRenderResult result = Assert.Single(PdfPageImageRenderer.RenderPages(pdf));
         Assert.Contains(result.CapabilityDiagnostics, static diagnostic =>
@@ -99,16 +103,18 @@ public sealed class PdfRendererQualityGateTests {
             .Where(stream => stream.Dictionary.Get<PdfName>("Subtype")?.Name == "Image" &&
                 stream.Dictionary.Get<PdfName>("Filter")?.Name == "JBIG2Decode");
 
+    private static void WriteBytes(Stream stream, byte[] bytes) => stream.Write(bytes, 0, bytes.Length);
+
     private static byte[] BuildImagePdf(byte[] imageData, string filter) {
         using var pdf = new MemoryStream();
-        void Ascii(string text) => pdf.Write(Encoding.ASCII.GetBytes(text));
+        void Ascii(string text) { byte[] bytes = Encoding.ASCII.GetBytes(text); pdf.Write(bytes, 0, bytes.Length); }
         const string content = "q 80 0 0 80 20 20 cm /Im1 Do Q";
         Ascii("%PDF-1.4\n1 0 obj\n<< /Type /Catalog /Pages 2 0 R >>\nendobj\n");
         Ascii("2 0 obj\n<< /Type /Pages /Count 1 /Kids [3 0 R] /MediaBox [0 0 120 120] >>\nendobj\n");
         Ascii("3 0 obj\n<< /Type /Page /Parent 2 0 R /Resources << /XObject << /Im1 5 0 R >> >> /Contents 4 0 R >>\nendobj\n");
         Ascii($"4 0 obj\n<< /Length {content.Length} >>\nstream\n{content}\nendstream\nendobj\n");
         Ascii($"5 0 obj\n<< /Type /XObject /Subtype /Image /Width 8 /Height 8 /ColorSpace /DeviceGray /BitsPerComponent 1 {filter} /Length {imageData.Length} >>\nstream\n");
-        pdf.Write(imageData);
+        pdf.Write(imageData, 0, imageData.Length);
         Ascii("\nendstream\nendobj\ntrailer\n<< /Root 1 0 R >>\n%%EOF\n");
         return pdf.ToArray();
     }

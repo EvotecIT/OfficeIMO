@@ -55,7 +55,7 @@ internal sealed class PdfFunctionShading {
     internal double[]? PaintBounds {
         get {
             double[]? bounds = _bounds;
-            double[]? sampled = _sampler?.PaintBounds;
+            double[]? sampled = _background == null ? _sampler?.PaintBounds : null;
             if (_sampler == null && !double.IsInfinity(_domain[0])) {
                 var corners = new[] {
                     _forward.TransformPoint(new OfficePoint(_domain[0], _domain[2])), _forward.TransformPoint(new OfficePoint(_domain[1], _domain[2])),
@@ -83,7 +83,7 @@ internal sealed class PdfFunctionShading {
             input.Length < 2 || components.Length < ComponentCount) return false;
         if (_bounds != null && (x < _bounds[0] || y < _bounds[1] || x > _bounds[2] || y > _bounds[3])) return true;
         if (_sampler != null) {
-            if (!_consumeWork(_evaluationCost)) return false;
+            if (!_consumeWork(_sampler.GetEvaluationCost(x, y))) return false;
             if (!_sampler.TrySampleComponents(x, y, input, components)) {
                 if (_background == null) return true;
                 Array.Copy(_background, components, Math.Min(_background.Length, components.Length));

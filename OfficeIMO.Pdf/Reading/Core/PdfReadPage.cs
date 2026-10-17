@@ -891,7 +891,7 @@ public sealed partial class PdfReadPage {
     // Differences give; ToUnicode does not select what is painted. Symbolic fonts use built-in encodings
     // except where an explicit Difference replaces a code's glyph.
     private static bool PaintsSubstitutedEncodingGlyphs(PdfFontResource font) {
-        if (!font.HasToUnicode || font.EmbeddedTrueTypeFont != null ||
+        if (!font.HasToUnicode || font.EmbeddedTrueTypeFont != null || font.HasDeferredDrawing ||
             font.DrawingFontFamily != null || font.Type3 != null ||
             string.Equals(font.FontSubtype, "Type0", StringComparison.Ordinal)) return false;
         if (font.IsSymbolicSubstitute) return font.Differences is { Count: > 0 };
@@ -1030,7 +1030,7 @@ public sealed partial class PdfReadPage {
         PdfPageInvokedResourceNames invokedResources = invokedResourceNames ?? GetInvokedResourceNames(
             content, resources, cancellationCheck ?? (Action)pageContentBudget.CancellationToken.ThrowIfCancellationRequested);
         Dictionary<string, PdfPageGraphicsStateResource> graphicsStates =
-            GetGraphicsStateResources(resources, decoders, widthProviders, fonts);
+            GetGraphicsStateResources(resources, pageContentBudget, decoders, widthProviders, fonts);
         var actualTextForms = new Dictionary<int, TextContentParser.MarkedContentState>();
         spans.AddRange(TextContentParser.Parse(
             content,
@@ -1287,7 +1287,7 @@ public sealed partial class PdfReadPage {
                      content,
                      baseTransform,
                      pageHeight,
-                     GetGraphicsStateResources(resources),
+                     GetGraphicsStateResources(resources, pageContentBudget),
                      GetColorSpaceResources(resources, invokedResources.ColorSpaces, pageContentBudget),
                      optionalContentVisibility,
                      initialFillColor,

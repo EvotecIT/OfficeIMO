@@ -13,8 +13,8 @@ public sealed partial class PdfReadPage {
         bool malformed = false;
         string? fontName = null;
         var fontStack = new Stack<string?>();
-        Dictionary<string, PdfFontResource> fonts = ResourceResolver.GetFontsForResources(resources, _objects);
-        Dictionary<string, PdfPageGraphicsStateResource> graphicsStates = GetGraphicsStateResources(resources);
+        Dictionary<string, PdfFontResource> fonts = _fontResourceCache.GetFonts(resources, _objects, forDrawing: true, pageContentBudget.CancellationToken);
+        Dictionary<string, PdfPageGraphicsStateResource> graphicsStates = GetGraphicsStateResources(resources, pageContentBudget);
         _ = PdfPageContentVisualParser.Parse(
             content,
             1D,

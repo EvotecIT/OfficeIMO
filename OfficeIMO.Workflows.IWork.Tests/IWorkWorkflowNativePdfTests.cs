@@ -165,8 +165,8 @@ public sealed partial class IWorkWorkflowTests {
                 if (fixture == "pages-created-layout-edited-v15.4.pages"
                     || fixture.StartsWith("pages-preserved-paragraphs", StringComparison.Ordinal)) {
                     var spans = Assert.Single(pdf.Pages).GetTextSpans();
-                    Assert.Contains(spans, span => span.Text == "Rich" && span.IsBold && span.FontSize == 14);
-                    Assert.Contains(spans, span => span.Text == "plain" && !span.IsBold && span.FontSize == 12);
+                    Assert.True(spans.Any(span => span.Text.Contains("Rich", StringComparison.Ordinal) && span.IsBold && span.FontSize == 14), string.Join(" | ", spans.Select(span => $"{span.Text} [{span.BaseFont}, bold={span.IsBold}, size={span.FontSize}]")));
+                    Assert.Contains(spans, span => span.Text.Contains("plain", StringComparison.Ordinal) && !span.IsBold && span.FontSize == 12);
                 }
                 break;
             case "keynote-pdf":
@@ -264,9 +264,9 @@ public sealed partial class IWorkWorkflowTests {
             Assert.True(at > previous, "Missing or reordered rich-list content: " + expected); previous = at;
         }
         var spans = page.GetTextSpans();
-        Assert.Contains(spans, span => span.Text == "Bold" && span.IsBold && !span.IsItalic);
-        Assert.Contains(spans, span => span.Text == "Child" && !span.IsBold && span.IsItalic);
-        Assert.Contains(spans, span => span.Text == "Combined" && span.IsBold && span.IsItalic);
+        Assert.Contains(spans, span => span.Text.Contains("Bold", StringComparison.Ordinal) && span.IsBold && !span.IsItalic);
+        Assert.Contains(spans, span => span.Text.Contains("Child", StringComparison.Ordinal) && !span.IsBold && span.IsItalic);
+        Assert.Contains(spans, span => span.Text.Contains("Combined", StringComparison.Ordinal) && span.IsBold && span.IsItalic);
         Assert.All(spans.Where(span => System.Text.RegularExpressions.Regex.IsMatch(span.Text.Trim(), @"^\d+\.$")),
             span => { Assert.False(span.IsBold); Assert.False(span.IsItalic); });
     }

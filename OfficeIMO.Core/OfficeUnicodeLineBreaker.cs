@@ -17,7 +17,7 @@ internal static class OfficeUnicodeLineBreaker {
     /// Returns the action at each boundary: element <c>i</c> describes the boundary before scalar
     /// <c>i</c>. Element 0 (start of text) is always prohibited; the end of text is not included.
     /// </summary>
-    internal static BreakAction[] Analyze(int[] scalars) {
+    internal static BreakAction[] Analyze(int[] scalars, System.Threading.CancellationToken cancellationToken = default) {
         int count = scalars.Length;
         var actions = new BreakAction[count];
         if (count == 0) return actions;
@@ -25,7 +25,10 @@ internal static class OfficeUnicodeLineBreaker {
         var raw = new OfficeLineBreakClass[count];
         var classes = new OfficeLineBreakClass[count];
         var attached = new bool[count];
-        for (int index = 0; index < count; index++) raw[index] = ResolveLb1(scalars[index]);
+        for (int index = 0; index < count; index++) {
+            if ((index & 1023) == 0) cancellationToken.ThrowIfCancellationRequested();
+            raw[index] = ResolveLb1(scalars[index]);
+        }
         for (int index = 0; index < count; index++) {
             OfficeLineBreakClass type = raw[index];
             if (type is OfficeLineBreakClass.CM or OfficeLineBreakClass.ZWJ) {
@@ -42,7 +45,10 @@ internal static class OfficeUnicodeLineBreaker {
         }
 
         var context = new Context(scalars, raw, classes, attached);
-        for (int index = 1; index < count; index++) actions[index] = context.Resolve(index);
+        for (int index = 1; index < count; index++) {
+            if ((index & 1023) == 0) cancellationToken.ThrowIfCancellationRequested();
+            actions[index] = context.Resolve(index);
+        }
         return actions;
     }
 
@@ -78,12 +84,19 @@ internal static class OfficeUnicodeLineBreaker {
         private readonly OfficeLineBreakClass[] _raw;
         private readonly OfficeLineBreakClass[] _classes;
         private readonly bool[] _attached;
+        private readonly int[] _regionalCounts;
 
         internal Context(int[] scalars, OfficeLineBreakClass[] raw, OfficeLineBreakClass[] classes, bool[] attached) {
             _scalars = scalars;
             _raw = raw;
             _classes = classes;
             _attached = attached;
+            _regionalCounts = new int[classes.Length];
+            int regional = 0;
+            for (int index = 0; index < classes.Length; index++) {
+                if (!attached[index]) regional = classes[index] == OfficeLineBreakClass.RI ? regional + 1 : 0;
+                _regionalCounts[index] = regional;
+            }
         }
 
         // Previous position that is not part of an earlier position's combining sequence.
@@ -245,9 +258,7 @@ internal static class OfficeUnicodeLineBreaker {
                 after is OfficeLineBreakClass.AL or OfficeLineBreakClass.HL or OfficeLineBreakClass.NU) return BreakAction.Prohibited;
             // LB30a
             if (before == OfficeLineBreakClass.RI && after == OfficeLineBreakClass.RI) {
-                int regional = 0;
-                for (int position = b; position >= 0 && _classes[position] == OfficeLineBreakClass.RI; position = Previous(position)) regional++;
-                if ((regional & 1) == 1) return BreakAction.Prohibited;
+                if ((_regionalCounts[b] & 1) == 1) return BreakAction.Prohibited;
             }
             // LB30b
             if (after == OfficeLineBreakClass.EM) {

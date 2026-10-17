@@ -30,6 +30,7 @@ internal static partial class PdfTrueTypeUnicodeCmap {
             codeToGlyph = cid => GlyphForCid(cidToGlyphMap, cid, glyphCount);
         } else if (glyphForCode != null) {
             mappings = CreateCodeMappings(font, glyphForCode, glyphCount, isEmptyGlyph);
+            if (mappings.Count == 0) mappings = SeedMapping(glyphCount, isEmptyGlyph);
             codeToGlyph = code => code is < 0 or > 255 ? 0 : glyphForCode(code);
         } else {
             return null;
@@ -47,7 +48,7 @@ internal static partial class PdfTrueTypeUnicodeCmap {
         for (int glyph = 1; glyph < glyphCount; glyph++) {
             if (!isEmptyGlyph(glyph)) return new SortedDictionary<int, int> { [0xE000] = glyph };
         }
-        return null;
+        return glyphCount > 0 ? new SortedDictionary<int, int> { [0xE000] = 0 } : null;
     }
 
     private static SortedDictionary<int, int> CreateCodeMappings(PdfFontResource font, Func<int, int> glyphForCode, int glyphCount,
@@ -62,7 +63,7 @@ internal static partial class PdfTrueTypeUnicodeCmap {
             string text;
             try {
                 text = decodeText(new[] { (byte)code }, 8);
-            } catch (PdfReadLimitException) {
+            } catch (Exception exception) when (exception is PdfReadLimitException or PdfUnsupportedTextMappingException) {
                 continue;
             }
             if (!TryGetSingleScalar(text, out int scalar) || mappings.ContainsKey(scalar) ||

@@ -136,7 +136,7 @@ internal static partial class PdfWriter {
 
         double backgroundYOffset = 0D;
         double xOrigin = xOverride ?? opts.MarginLeft;
-        int? bidiParagraphLevel = ResolveRichParagraphBidiLevel(lines);
+        int?[] bidiParagraphLevels = ResolveRichParagraphBidiLevels(lines);
         for (int li = 0; li < lines.Count; li++) {
             var segs = lines[li];
             bool hasLineBackground = false;
@@ -179,7 +179,7 @@ internal static partial class PdfWriter {
             else if (lineAlign == PdfAlign.Right) dx = Math.Max(0, lineWidthUsed - lineWForAlign);
 
             double xCursor = dx;
-            BidiLineLayout? backgroundBidi = bidiParagraphLevel.HasValue ? CreateBidiLineLayout(segs, bidiParagraphLevel.Value, wordSpacing) : null;
+            BidiLineLayout? backgroundBidi = bidiParagraphLevels[li].HasValue ? CreateBidiLineLayout(segs, bidiParagraphLevels[li]!.Value, wordSpacing) : null;
             for (int si = 0; si < segs.Count; si++) {
                 var s = segs[si];
                 double leadingAdvance = 0D;
@@ -278,7 +278,7 @@ internal static partial class PdfWriter {
             double wordSpacing = justify ? (lineWidthUsed - baseLineW) / gapsCount : 0;
             // Tw applies only to single-byte code 32. Composite-font lines are positioned
             // explicitly, and several readers misapply Tw to the two-byte code 0x0020.
-            double pdfWordSpacing = wordSpacing != 0D && !segs.Any(seg => UsesSimpleFontText(seg, opts)) ? 0D : wordSpacing;
+            double pdfWordSpacing = wordSpacing != 0D && !segs.All(seg => UsesSimpleFontText(seg, opts)) ? 0D : wordSpacing;
 
             double lineWForAlign = justify ? lineWidthUsed : baseLineW;
             double dx = 0;
@@ -290,7 +290,7 @@ internal static partial class PdfWriter {
 
             double xCursor = dx;
             // Right-to-left text keeps logical content order; words move to their UAX #9 positions.
-            BidiLineLayout? bidi = bidiParagraphLevel.HasValue ? CreateBidiLineLayout(segs, bidiParagraphLevel.Value, wordSpacing) : null;
+            BidiLineLayout? bidi = bidiParagraphLevels[li].HasValue ? CreateBidiLineLayout(segs, bidiParagraphLevels[li]!.Value, wordSpacing) : null;
             double currentTextRise = 0;
             for (int si = 0; si < segs.Count; si++) {
                 var s = segs[si];

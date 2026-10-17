@@ -273,9 +273,9 @@ internal static partial class StreamDecoder {
         out byte[] decoded,
         out PdfReadLimitException? limitException,
         Dictionary<int, PdfIndirectObject>? objects,
-        CancellationToken cancellationToken) {
+        CancellationToken cancellationToken, int stopBeforeFilter = int.MaxValue) {
         stream.GetDataSegment(out byte[] data, out int offset, out int length);
-        return TryDecodeCore(stream.Dictionary, data, offset, length, maxOutputBytes, out decoded, out limitException, objects, cancellationToken);
+        return TryDecodeCore(stream.Dictionary, data, offset, length, maxOutputBytes, out decoded, out limitException, objects, cancellationToken, stopBeforeFilter);
     }
 
     private static bool TryDecodeCore(
@@ -287,7 +287,7 @@ internal static partial class StreamDecoder {
         out byte[] decoded,
         out PdfReadLimitException? limitException,
         Dictionary<int, PdfIndirectObject>? objects,
-        CancellationToken cancellationToken) {
+        CancellationToken cancellationToken, int stopBeforeFilter = int.MaxValue) {
         cancellationToken.ThrowIfCancellationRequested();
         decoded = Array.Empty<byte>();
         limitException = null;
@@ -322,7 +322,7 @@ internal static partial class StreamDecoder {
         }
 
         byte[]? current = null;
-        for (int filterIndex = 0; filterIndex < filterNames.Count; filterIndex++) {
+        for (int filterIndex = 0; filterIndex < filterNames.Count && filterIndex < stopBeforeFilter; filterIndex++) {
             cancellationToken.ThrowIfCancellationRequested();
             string filterName = filterNames[filterIndex];
             try {

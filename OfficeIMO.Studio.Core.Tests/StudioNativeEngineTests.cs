@@ -840,7 +840,7 @@ public sealed class StudioNativeEngineTests : IDisposable {
             Assert.Equal(route, result.Route);
             Assert.Equal(new FileInfo(output).Length, result.OutputBytes);
             using StudioNativeDocument converted = await StudioNativeDocument.OpenAsync(output, null, default);
-            Assert.True((await converted.SearchAsync("quarterly", default)).Hits.Count > 0, route);
+            Assert.True((await converted.SearchAsync("quarterly", default)).Hits.Count > 0, route + ": " + OfficeIMO.Pdf.PdfReadDocument.Open(File.ReadAllBytes(output)).ExtractText());
         }
     }
 

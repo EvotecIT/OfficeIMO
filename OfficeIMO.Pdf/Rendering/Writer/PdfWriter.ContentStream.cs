@@ -404,7 +404,10 @@ internal sealed partial class ContentStreamBuilder {
         }
 
         SyncTextState();
-        if (!suppressActualText && command.LogicalGlyphs is { } logicalGlyphs) {
+        if (!suppressActualText && command.IsScalarBidi && command.LogicalGlyphs is { } scalarGlyphs && command.ActualText is { } scalarText) {
+            if (TryWriteScalarBidiGlyphs(scalarGlyphs, scalarText, command, fontSize, currentTextRise)) return this;
+        }
+        if (!suppressActualText && !command.IsScalarBidi && command.LogicalGlyphs is { } logicalGlyphs) {
             if (command.IsolatedRightToLeft) _showEnd = -1;
             WriteLogicalGlyphs(logicalGlyphs, command, fontSize, currentTextRise);
             if (command.IsolatedRightToLeft) _showEnd = -1;

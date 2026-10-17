@@ -10,7 +10,7 @@ namespace OfficeIMO.Pdf;
 /// as hint-free Type 2 outlines.
 /// </summary>
 /// <remarks>Adobe Type 1 Font Format and Technical Note 5176. All work is bounded for untrusted input.</remarks>
-internal static class PdfType1FontConverter {
+internal static partial class PdfType1FontConverter {
     private const int MaximumGlyphs = 4096;
     private const int MaximumSubroutines = 65535;
     private const int MaximumOperations = 20_000;
@@ -42,13 +42,13 @@ internal static class PdfType1FontConverter {
     }
 
     private static Result? Convert(byte[] program) {
-        byte[] data = StripPfbHeaders(program);
+        byte[] data = StripPfbHeaders(program, out int binaryStart);
         int eexec = IndexOf(data, "eexec", 0);
         if (eexec < 0) return null;
         string clearText = Encoding.ASCII.GetString(data, 0, eexec);
-        int encryptedStart = eexec + 5;
-        while (encryptedStart < data.Length && IsWhitespace(data[encryptedStart])) encryptedStart++;
-        byte[] encrypted = ExtractEncrypted(data, encryptedStart);
+        int encryptedStart = binaryStart >= 0 ? binaryStart : eexec + 5;
+        if (binaryStart < 0) while (encryptedStart < data.Length && IsWhitespace(data[encryptedStart])) encryptedStart++;
+        byte[] encrypted = ExtractEncrypted(data, encryptedStart, binaryStart >= 0);
         byte[] privatePart = Decrypt(encrypted, 55665, 4);
 
         double[] fontMatrix = ReadNumberArray(clearText, "/FontMatrix", 6) ?? new[] { 0.001D, 0D, 0D, 0.001D, 0D, 0D };
@@ -92,26 +92,30 @@ internal static class PdfType1FontConverter {
         return new Result(BuildCff(fontName, names, outlines, fontMatrix, fontBBox), builtinEncoding);
     }
 
-    private static byte[] StripPfbHeaders(byte[] data) {
+    private static byte[] StripPfbHeaders(byte[] data) => StripPfbHeaders(data, out _);
+
+    private static byte[] StripPfbHeaders(byte[] data, out int binaryStart) {
+        binaryStart = -1;
         if (data.Length < 6 || data[0] != 0x80) return data;
         using var output = new MemoryStream(data.Length);
         int cursor = 0;
         while (cursor + 2 <= data.Length && data[cursor] == 0x80) {
             int type = data[cursor + 1];
             if (type == 3) break;
-            if (cursor + 6 > data.Length) break;
+            if (type is not (1 or 2) || cursor + 6 > data.Length) throw new InvalidDataException("Invalid PFB segment header.");
             int length = data[cursor + 2] | (data[cursor + 3] << 8) | (data[cursor + 4] << 16) | (data[cursor + 5] << 24);
             cursor += 6;
-            if (length < 0 || length > data.Length - cursor) length = data.Length - cursor;
+            if (length < 0 || length > data.Length - cursor) throw new InvalidDataException("Truncated PFB segment.");
+            if (type == 2 && binaryStart < 0) binaryStart = checked((int)output.Position);
             output.Write(data, cursor, length);
             cursor += length;
         }
         return output.ToArray();
     }
 
-    private static byte[] ExtractEncrypted(byte[] data, int start) {
+    private static byte[] ExtractEncrypted(byte[] data, int start, bool declaredBinary) {
         // Binary eexec sections are the norm in PDF; a hexadecimal section starts with four hex digits.
-        bool hex = start + 4 <= data.Length;
+        bool hex = !declaredBinary && start + 4 <= data.Length;
         for (int index = start; hex && index < start + 4; index++) hex = IsHexDigit(data[index]);
         if (!hex) {
             var binary = new byte[data.Length - start];
@@ -173,48 +177,6 @@ internal static class PdfType1FontConverter {
         int end = start + 1;
         while (end < text.Length && !char.IsWhiteSpace(text[end]) && text[end] is not ('/' or '[' or '{' or '(' or '<')) end++;
         return end > start + 1 ? text.Substring(start + 1, end - start - 1) : null;
-    }
-
-    private static string?[] ReadEncoding(string text) {
-        string?[] encoding = new string?[256];
-        int at = text.IndexOf("/Encoding", StringComparison.Ordinal);
-        if (at < 0) return encoding;
-        int cursor = at + 9;
-        while (cursor < text.Length && char.IsWhiteSpace(text[cursor])) cursor++;
-        if (string.CompareOrdinal(text, cursor, "StandardEncoding", 0, 16) == 0) {
-            string?[] standard = PdfFontEncodingNames.Get("StandardEncoding")!;
-            Array.Copy(standard, encoding, 256);
-            return encoding;
-        }
-        int end = text.IndexOf("readonly def", cursor, StringComparison.Ordinal);
-        if (end < 0) end = text.Length;
-        int search = cursor;
-        while (true) {
-            int dup = text.IndexOf("dup ", search, StringComparison.Ordinal);
-            if (dup < 0 || dup > end) break;
-            int position = dup + 4;
-            while (position < text.Length && char.IsWhiteSpace(text[position])) position++;
-            int numberStart = position;
-            int code = 0;
-            while (position < text.Length && text[position] >= '0' && text[position] <= '9' && position - numberStart < 4) {
-                code = code * 10 + (text[position] - '0');
-                position++;
-            }
-            if (position == numberStart) {
-                search = dup + 4;
-                continue;
-            }
-            while (position < text.Length && char.IsWhiteSpace(text[position])) position++;
-            if (position >= text.Length || text[position] != '/') {
-                search = dup + 4;
-                continue;
-            }
-            int nameStart = ++position;
-            while (position < text.Length && !char.IsWhiteSpace(text[position]) && text[position] is not ('/' or '[' or '{' or '(' or '<')) position++;
-            if (code >= 0 && code < 256 && position > nameStart) encoding[code] = text.Substring(nameStart, position - nameStart);
-            search = position;
-        }
-        return encoding;
     }
 
     private static Dictionary<int, byte[]> ReadSubrs(byte[] data, int limit, int lenIv) {
@@ -477,6 +439,7 @@ internal static class PdfType1FontConverter {
                 case 17: Push(_postScriptStack.Count > 0 ? _postScriptStack.Pop() : 0D); return false; // pop
                 case 33: { // setcurrentpoint
                     double x = Arg(0), y = Arg(1);
+                    _stack.Clear();
                     _x = x; _y = y;
                     return false;
                 }

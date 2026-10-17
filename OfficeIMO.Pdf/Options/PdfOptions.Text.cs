@@ -104,7 +104,7 @@ public sealed partial class PdfOptions {
     /// </summary>
     public PdfTextHyphenationCallback? TextHyphenationCallback {
         get => _textHyphenationCallback;
-        set => _textHyphenationCallback = value;
+        set { _automaticHyphenation = false; _textHyphenationCallback = value; }
     }
 
     /// <summary>
@@ -186,7 +186,7 @@ public sealed partial class PdfOptions {
     /// </summary>
     /// <param name="callback">Callback returning UTF-16 break indexes for a token, or null to disable the hook.</param>
     public PdfOptions SetTextHyphenation(PdfTextHyphenationCallback? callback) {
-        _textHyphenationCallback = callback;
+        TextHyphenationCallback = callback;
         return this;
     }
 
@@ -196,6 +196,8 @@ public sealed partial class PdfOptions {
     /// <param name="language">A supported tag such as <c>en-US</c> or <c>de-DE</c>; null uses <see cref="Language"/> at layout time.</param>
     /// <remarks>Unsupported languages produce no hyphenation. Words still wrap at Unicode line-break opportunities.</remarks>
     public PdfOptions UseAutomaticHyphenation(string? language = null) {
+        _automaticHyphenation = true;
+        _automaticHyphenationLanguage = language;
         _textHyphenationCallback = token => OfficeTextHyphenationPatterns.GetBreakpoints(token, language ?? Language);
         return this;
     }
@@ -203,7 +205,7 @@ public sealed partial class PdfOptions {
     /// <summary>Uses or clears an immutable first-party word hyphenation dictionary.</summary>
     /// <param name="dictionary">Dictionary whose breakpoints should be used, or null to clear hyphenation.</param>
     public PdfOptions UseTextHyphenationDictionary(PdfHyphenationLexicon? dictionary) {
-        _textHyphenationCallback = dictionary?.AsCallback();
+        TextHyphenationCallback = dictionary?.AsCallback();
         return this;
     }
 
@@ -224,6 +226,9 @@ public sealed partial class PdfOptions {
         TextShapingMode = mode;
         return this;
     }
+
+    private bool _automaticHyphenation;
+    private string? _automaticHyphenationLanguage;
 
     // Passing the RecordProviderShapedTextRun method group as an Action allocates a new delegate on
     // every call site invocation; the text-show path hits it per drawn run. Memoize one delegate.

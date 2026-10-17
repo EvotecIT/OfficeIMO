@@ -1,3 +1,5 @@
+using OfficeIMO.Drawing;
+
 namespace OfficeIMO.Pdf;
 
 /// <summary>
@@ -19,7 +21,7 @@ internal sealed class PdfCffFontProgram {
     private readonly Dictionary<int, int>? _glyphByCid;
 
     private PdfCffFontProgram(byte[] data, CffIndex charStrings, bool isCidKeyed, string[]? glyphNames, int[]? cids,
-        int[] builtinEncoding, double[] fontMatrix, double[] fontBBox, byte[]? fdSelect, double[] defaultWidths, double[] nominalWidths) {
+        int[] builtinEncoding, double[] fontMatrix, double[] fontBBox, byte[]? fdSelect, double[] defaultWidths, double[] nominalWidths, bool hasUniformFontMatrix) {
         Data = data;
         _charStrings = charStrings;
         IsCidKeyed = isCidKeyed;
@@ -27,6 +29,7 @@ internal sealed class PdfCffFontProgram {
         Cids = cids;
         BuiltinEncoding = builtinEncoding;
         FontMatrix = fontMatrix;
+        HasUniformFontMatrix = hasUniformFontMatrix;
         FontBBox = fontBBox;
         _fdSelect = fdSelect;
         _defaultWidths = defaultWidths;
@@ -61,6 +64,9 @@ internal sealed class PdfCffFontProgram {
     /// <summary>Effective glyph-space to text-space matrix.</summary>
     internal double[] FontMatrix { get; }
 
+    /// <summary>All glyph-selected font dictionaries share the effective matrix.</summary>
+    internal bool HasUniformFontMatrix { get; }
+
     internal double[] FontBBox { get; }
 
     internal bool TryGetGlyph(string name, out int glyph) {
@@ -81,7 +87,7 @@ internal sealed class PdfCffFontProgram {
     internal static PdfCffFontProgram? TryParse(byte[] data) {
         try {
             return Parse(data);
-        } catch (Exception exception) when (exception is InvalidDataException or IndexOutOfRangeException or ArgumentException or OverflowException) {
+        } catch (Exception exception) when (exception is InvalidDataException or IndexOutOfRangeException or ArgumentException or OverflowException or NotSupportedException) {
             return null;
         }
     }
@@ -245,21 +251,31 @@ internal sealed class PdfCffFontProgram {
         double[] nominalWidths;
         byte[]? fdSelect = null;
         double[] effectiveMatrix = topMatrix;
+        bool hasUniformFontMatrix = true;
         if (isCidKeyed) {
             int fdArrayOffset = RequireOffset(top, 1236, data.Length);
             CffIndex fdArray = CffIndex.ReadAt(data, fdArrayOffset);
             if (fdArray.Count < 1 || fdArray.Count > MaximumFontDicts) throw new InvalidDataException("Invalid CFF FDArray.");
             defaultWidths = new double[fdArray.Count];
             nominalWidths = new double[fdArray.Count];
+            var matrices = new double[fdArray.Count][];
             for (int index = 0; index < fdArray.Count; index++) {
                 Dictionary<int, double[]> fontDict = ParseDict(fdArray[index]);
                 ReadPrivateWidths(data, fontDict, out defaultWidths[index], out nominalWidths[index]);
-                if (index == 0 && fontDict.TryGetValue(1207, out double[]? fdMatrix) && fdMatrix.Length == 6) {
-                    effectiveMatrix = top.ContainsKey(1207) ? Multiply(fdMatrix, topMatrix) : fdMatrix;
-                }
+                matrices[index] = fontDict.TryGetValue(1207, out double[]? fdMatrix) && fdMatrix.Length == 6
+                    ? top.ContainsKey(1207) ? Multiply(fdMatrix, topMatrix) : fdMatrix : topMatrix;
             }
             if (top.TryGetValue(1237, out double[]? fdSelectValue) && fdSelectValue.Length > 0) {
                 fdSelect = ReadFdSelect(data, CheckedInt(fdSelectValue[0]), glyphCount);
+            }
+            int first = fdSelect == null ? 0 : fdSelect[0];
+            if (first >= matrices.Length) throw new InvalidDataException("Invalid CFF font dictionary selection.");
+            effectiveMatrix = matrices[first];
+            for (int glyph = 0; glyph < glyphCount; glyph++) {
+                int selected = fdSelect == null ? 0 : fdSelect[glyph];
+                if (selected >= matrices.Length) throw new InvalidDataException("Invalid CFF font dictionary selection.");
+                for (int term = 0; term < 6; term++)
+                    if (matrices[selected][term] != effectiveMatrix[term]) hasUniformFontMatrix = false;
             }
         } else {
             defaultWidths = new double[1];
@@ -273,13 +289,24 @@ internal sealed class PdfCffFontProgram {
             cids = charset;
         } else {
             glyphNames = new string[glyphCount];
-            for (int glyph = 0; glyph < glyphCount; glyph++) glyphNames[glyph] = ResolveString(strings, charset[glyph]);
+            var decodedNames = new Dictionary<int, string>();
+            long decodedCharacters = 0;
+            for (int glyph = 0; glyph < glyphCount; glyph++) {
+                int sid = charset[glyph];
+                if (!decodedNames.TryGetValue(sid, out string? name)) {
+                    name = ResolveString(strings, sid);
+                    decodedCharacters += name.Length;
+                    if (decodedCharacters > 1024 * 1024) throw new InvalidDataException("CFF glyph names exceed the decoded-name budget.");
+                    decodedNames.Add(sid, name);
+                }
+                glyphNames[glyph] = name;
+            }
         }
         int[] builtinEncoding = new int[256];
         if (!isCidKeyed) ReadEncoding(data, top, charset, glyphNames!, builtinEncoding);
         if (!IsUsableMatrix(effectiveMatrix)) throw new InvalidDataException("The CFF font matrix is singular.");
         return new PdfCffFontProgram(data, charStrings, isCidKeyed, glyphNames, cids, builtinEncoding, effectiveMatrix, bbox,
-            fdSelect, defaultWidths, nominalWidths);
+            fdSelect, defaultWidths, nominalWidths, hasUniformFontMatrix);
     }
 
     private static bool IsUsableMatrix(double[] matrix) {
@@ -325,41 +352,12 @@ internal sealed class PdfCffFontProgram {
         int index = sid - PdfCffStandardStrings.Count;
         if (index >= strings.Count) return "sid" + sid.ToString(System.Globalization.CultureInfo.InvariantCulture);
         CffSlice slice = strings[index];
+        if (slice.Length > 1024 * 1024) throw new InvalidDataException("CFF glyph name exceeds the decoded-name budget.");
         return System.Text.Encoding.ASCII.GetString(slice.Data, slice.Offset, slice.Length);
     }
 
-    private static int[] ReadCharset(byte[] data, int offset, int glyphCount) {
-        var result = new int[glyphCount];
-        if (offset == 0) {
-            // ISOAdobe: SIDs 1..228 are glyphs 1..228 in order.
-            for (int glyph = 1; glyph < glyphCount; glyph++) result[glyph] = glyph <= 228 ? glyph : 0;
-            return result;
-        }
-        if (offset == 1 || offset == 2) return result; // Expert charsets name no PDF-encoded glyphs.
-        if (offset < 0 || offset >= data.Length) throw new InvalidDataException("Invalid CFF charset offset.");
-        int cursor = offset;
-        int format = data[cursor++];
-        int gid = 1;
-        if (format == 0) {
-            for (; gid < glyphCount; gid++) {
-                if (cursor + 2 > data.Length) throw new InvalidDataException("Truncated CFF charset.");
-                result[gid] = ReadUInt16(data, cursor);
-                cursor += 2;
-            }
-        } else if (format == 1 || format == 2) {
-            while (gid < glyphCount) {
-                int rangeSize = format == 1 ? 3 : 4;
-                if (cursor + rangeSize > data.Length) throw new InvalidDataException("Truncated CFF charset.");
-                int first = ReadUInt16(data, cursor);
-                int left = format == 1 ? data[cursor + 2] : ReadUInt16(data, cursor + 2);
-                cursor += rangeSize;
-                for (int index = 0; index <= left && gid < glyphCount; index++) result[gid++] = first + index;
-            }
-        } else {
-            throw new InvalidDataException("Unsupported CFF charset format.");
-        }
-        return result;
-    }
+    private static int[] ReadCharset(byte[] data, int offset, int glyphCount) =>
+        OfficeCffCharset.ReadSids(data, 0, data.Length, offset, glyphCount).Select(static sid => (int)sid).ToArray();
 
     private static byte[] ReadFdSelect(byte[] data, int offset, int glyphCount) {
         if (offset <= 0 || offset >= data.Length) throw new InvalidDataException("Invalid CFF FDSelect offset.");
@@ -388,12 +386,8 @@ internal sealed class PdfCffFontProgram {
     private static void ReadEncoding(byte[] data, Dictionary<int, double[]> top, int[] charset, string[] glyphNames, int[] encoding) {
         int offset = top.TryGetValue(16, out double[]? value) && value.Length > 0 ? CheckedInt(value[0]) : 0;
         if (offset == 0 || offset == 1) {
-            string?[] names = PdfFontEncodingNames.Get("StandardEncoding")!;
-            var glyphByName = new Dictionary<string, int>(StringComparer.Ordinal);
-            for (int glyph = glyphNames.Length - 1; glyph > 0; glyph--) glyphByName[glyphNames[glyph]] = glyph;
-            for (int code = 0; code < 256; code++) {
-                if (names[code] is string name && glyphByName.TryGetValue(name, out int glyph)) encoding[code] = glyph;
-            }
+            int[] map = OfficeCffCharset.BuildEncodingGlyphMap(charset.Select(static sid => (ushort)sid).ToArray(), offset == 1);
+            for (int code = 0; code < encoding.Length; code++) if (map[code] > 0) encoding[code] = map[code];
             return;
         }
         if (offset < 0 || offset >= data.Length) return;

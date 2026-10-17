@@ -23,6 +23,18 @@ internal static partial class PdfWriter {
     }
 
     // The paragraph level (P2–P3) of a rich paragraph with right-to-left text, else null.
+    private static int?[] ResolveRichParagraphBidiLevels(List<List<RichSeg>> lines) {
+        var levels = new int?[lines.Count];
+        for (int start = 0; start < lines.Count;) {
+            int end = start;
+            while (end + 1 < lines.Count && !lines[end].Any(segment => segment.EndsWithHardBreak)) end++;
+            int? level = ResolveRichParagraphBidiLevel(lines.GetRange(start, end - start + 1));
+            for (int index = start; index <= end; index++) levels[index] = level;
+            start = end + 1;
+        }
+        return levels;
+    }
+
     private static int? ResolveRichParagraphBidiLevel(List<List<RichSeg>> lines) {
         bool rightToLeft = false;
         var text = new StringBuilder();

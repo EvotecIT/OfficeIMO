@@ -835,7 +835,7 @@ public partial class PdfFormFillerTests {
     }
 
     [Fact]
-    public void FillFields_LimitsInheritedCidWidthRangeExpansion() {
+    public void FillFields_UsesInheritedWidthsAcrossTheBoundedCidDomain() {
         byte[] filled = PdfFormFiller.FillFields(BuildType0TextWidgetFormPdfWithWideCidWidths(), new Dictionary<string, string> {
             ["Name"] = "B"
         });
@@ -846,8 +846,10 @@ public partial class PdfFormFillerTests {
         Assert.Equal("B", field.Value);
         Assert.Contains("/Subtype /Type0", output, StringComparison.Ordinal);
         Assert.Contains("<1388> Tj", output, StringComparison.Ordinal);
-        Assert.Contains("185 12.64 Td <1388> Tj", output, StringComparison.Ordinal);
-        Assert.DoesNotContain("194 12.64 Td <1388> Tj", output, StringComparison.Ordinal);
+        // CID 5000 has width 250 in /W. The bounded shared width map retains this
+        // declaration instead of silently substituting /DW beyond an expansion prefix.
+        Assert.Contains("194 12.64 Td <1388> Tj", output, StringComparison.Ordinal);
+        Assert.DoesNotContain("185 12.64 Td <1388> Tj", output, StringComparison.Ordinal);
     }
 
     [Fact]

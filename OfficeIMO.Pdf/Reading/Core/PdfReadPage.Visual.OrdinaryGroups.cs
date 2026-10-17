@@ -91,7 +91,7 @@ public sealed partial class PdfReadPage {
         var drawing = new OfficeDrawing(width, height);
         var registeredFonts = new Dictionary<(string Family, OfficeFontStyle Style), PdfFontResource>();
         foreach (PdfFontResource font in fonts.Fonts.Values) RegisterEmbeddedFont(drawing, font, registeredFonts);
-        RegisterEmbeddedFonts(drawing, resources, new HashSet<PdfStream>(), nestingDepth + 1, registeredFonts);
+        RegisterEmbeddedFonts(drawing, resources, new HashSet<PdfStream>(), nestingDepth + 1, registeredFonts, cancellationToken: budget.CancellationToken);
         ConfigureDrawingFonts(drawing, registeredFonts, budget);
         AddPaintedGlyphMappings(drawing, registeredFonts, elements, budget.PaintedGlyphMaps, budget, budget.CancellationToken);
         var masks = new Dictionary<(PdfStream Group, PdfDictionary? ParentResources, OfficeSoftMaskMode Mode, OfficeColor Backdrop, Matrix2D Transform, double Width, double Height, OfficeIccRenderingIntent Intent), OfficeDrawingSoftMask>();
@@ -110,8 +110,8 @@ public sealed partial class PdfReadPage {
     }
 
     private PdfFontResourceSet CreateInheritedFormFontResources(PdfFontResourceSet parent, PdfDictionary? resources,
-        PdfTextStateSnapshot inherited, out PdfTextStateSnapshot state) {
-        PdfFontResourceSet local = _fontResourceCache.GetOrCreate(resources, _objects);
+        PdfTextStateSnapshot inherited, out PdfTextStateSnapshot state, System.Threading.CancellationToken cancellationToken) {
+        PdfFontResourceSet local = _fontResourceCache.GetOrCreate(resources, _objects, forDrawing: true, cancellationToken);
         var decoders = MergeDecoders(parent.Decoders, local.Decoders);
         var widths = MergeWidthProviders(parent.WidthProviders, local.WidthProviders);
         var fonts = MergeFonts(parent.Fonts, local.Fonts);

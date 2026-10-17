@@ -9,7 +9,7 @@ namespace OfficeIMO.Pdf.Filters;
 /// arithmetic-coded symbol dictionaries and text regions. Huffman-coded dictionaries and regions and halftone regions
 /// are rejected with <see cref="NotSupportedException"/>.
 /// </summary>
-internal static class Jbig2Decoder {
+internal static partial class Jbig2Decoder {
     private const int MaximumSegments = 100_000;
     private const int MaximumSymbols = 1_000_000;
     private const long MaximumBitmapPixels = 256L * 1024 * 1024;
@@ -19,14 +19,15 @@ internal static class Jbig2Decoder {
         if (width <= 0 || height <= 0) throw new InvalidDataException("JBIG2 images require positive dimensions.");
         long stride = ((long)width + 7) / 8;
         if (stride * height > maximumBytes || (long)width * height > MaximumBitmapPixels) throw new InvalidDataException("JBIG2 image exceeds the decoded byte limit.");
-        var context = new DecodingContext(width, height, cancellationToken);
+        var context = new DecodingContext(width, height, maximumBytes, cancellationToken);
         if (globals != null && globals.Length > 0) context.ProcessSegments(globals);
         context.ProcessSegments(data);
-        Bitmap page = context.Page ?? new Bitmap(width, height);
+        Bitmap page = context.Page ?? context.CreateBitmap(width, height);
         var output = new byte[stride * height];
         for (int y = 0; y < height; y++) {
             cancellationToken.ThrowIfCancellationRequested();
             for (int x = 0; x < width; x++) {
+                    if ((x & 1023) == 0) cancellationToken.ThrowIfCancellationRequested();
                 bool black = x < page.Width && y < page.Height && page.Get(x, y) != 0;
                 if (!black) output[y * stride + x / 8] |= (byte)(0x80 >> (x & 7));
             }
@@ -38,12 +39,14 @@ internal static class Jbig2Decoder {
     /// Scans segment headers without decoding and names the first feature <see cref="Decode"/> rejects:
     /// "halftone", "huffman", "malformed" or "segment-N"; null when every segment is supported.
     /// </summary>
-    internal static string? FindUnsupportedFeature(byte[] data) {
+    internal static string? FindUnsupportedFeature(byte[] data, CancellationToken cancellationToken = default) {
+        cancellationToken.ThrowIfCancellationRequested();
         try {
             int position = 0, count = 0;
             while (position < data.Length) {
+                cancellationToken.ThrowIfCancellationRequested();
                 if (++count > MaximumSegments) return "malformed";
-                Segment segment = DecodingContext.ReadSegmentHeader(data, ref position);
+                Segment segment = DecodingContext.ReadSegmentHeader(data, ref position, cancellationToken: cancellationToken);
                 switch (segment.Type) {
                     case 51: return null;
                     case 16: case 20: case 22: case 23: return "halftone";
@@ -67,186 +70,6 @@ internal static class Jbig2Decoder {
     private static bool HasHuffmanFlag(Segment segment, int flagsOffset) =>
         segment.DataEnd - segment.DataStart >= flagsOffset + 2 && (segment.Data[segment.DataStart + flagsOffset + 1] & 1) != 0;
 
-    private sealed class Bitmap {
-        private readonly byte[] _pixels;
-
-        internal Bitmap(int width, int height) {
-            if (width < 0 || height < 0 || (long)width * height > MaximumBitmapPixels) throw new InvalidDataException("JBIG2 bitmap exceeds the pixel limit.");
-            Width = width;
-            Height = height;
-            _pixels = new byte[width * height];
-        }
-
-        internal int Width { get; }
-        internal int Height { get; }
-
-        internal int Get(int x, int y) => (uint)x < (uint)Width && (uint)y < (uint)Height ? _pixels[y * Width + x] : 0;
-
-        internal void Set(int x, int y, int value) => _pixels[y * Width + x] = (byte)value;
-
-        internal void Fill(int value) {
-            for (int index = 0; index < _pixels.Length; index++) _pixels[index] = (byte)value;
-        }
-
-        internal void CopyRow(int from, int to) => Buffer.BlockCopy(_pixels, from * Width, _pixels, to * Width, Width);
-
-        // Combination operators (7.4.3.1.1): 0 OR, 1 AND, 2 XOR, 3 XNOR, 4 REPLACE.
-        internal void Compose(Bitmap source, int left, int top, int operation) {
-            for (int y = 0; y < source.Height; y++) {
-                int targetY = top + y;
-                if ((uint)targetY >= (uint)Height) continue;
-                for (int x = 0; x < source.Width; x++) {
-                    int targetX = left + x;
-                    if ((uint)targetX >= (uint)Width) continue;
-                    int s = source._pixels[y * source.Width + x];
-                    int index = targetY * Width + targetX;
-                    int d = _pixels[index];
-                    _pixels[index] = (byte)(operation switch { 0 => d | s, 1 => d & s, 2 => d ^ s, 3 => 1 - (d ^ s), _ => s });
-                }
-            }
-        }
-    }
-
-    // MQ arithmetic decoder (T.88 Annex E, the INITDEC, DECODE, RENORMD and BYTEIN procedures).
-    private sealed class ArithmeticDecoder {
-        private static readonly ushort[] Qe = {
-            0x5601, 0x3401, 0x1801, 0x0AC1, 0x0521, 0x0221, 0x5601, 0x5401, 0x4801, 0x3801, 0x3001, 0x2401, 0x1C01, 0x1601,
-            0x5601, 0x5401, 0x5101, 0x4801, 0x3801, 0x3401, 0x3001, 0x2801, 0x2401, 0x2201, 0x1C01, 0x1801, 0x1601, 0x1401,
-            0x1201, 0x1101, 0x0AC1, 0x09C1, 0x08A1, 0x0521, 0x0441, 0x02A1, 0x0221, 0x0141, 0x0111, 0x0085, 0x0049, 0x0025,
-            0x0015, 0x0009, 0x0005, 0x0001, 0x5601
-        };
-        private static readonly byte[] NextMps = {
-            1, 2, 3, 4, 5, 38, 7, 8, 9, 10, 11, 12, 13, 29, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32,
-            33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 45, 46
-        };
-        private static readonly byte[] NextLps = {
-            1, 6, 9, 12, 29, 33, 6, 14, 14, 14, 17, 18, 20, 21, 14, 14, 15, 16, 17, 18, 19, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29,
-            30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 46
-        };
-        private static readonly byte[] Switch = {
-            1, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-            0, 0, 0, 0, 0, 0, 0
-        };
-
-        private readonly byte[] _data;
-        private readonly int _end;
-        private int _position;
-        private uint _c;
-        private uint _a;
-        private int _ct;
-
-        internal ArithmeticDecoder(byte[] data, int start, int end) {
-            _data = data;
-            _end = end;
-            _position = start;
-            _c = (uint)(ByteAt(_position) ^ 0xFF) << 16;
-            ByteIn();
-            _c <<= 7;
-            _ct -= 7;
-            _a = 0x8000;
-        }
-
-        private int ByteAt(int position) => position < _end ? _data[position] : 0xFF;
-
-        private void ByteIn() {
-            if (ByteAt(_position) == 0xFF) {
-                int next = ByteAt(_position + 1);
-                if (next > 0x8F) {
-                    _ct = 8;
-                } else {
-                    _position++;
-                    _c += 0xFE00u - ((uint)ByteAt(_position) << 9);
-                    _ct = 7;
-                }
-            } else {
-                _position++;
-                _c += 0xFF00u - ((uint)ByteAt(_position) << 8);
-                _ct = 8;
-            }
-        }
-
-        // Contexts store (index << 1) | mps. DECODE with the inverted code register of T.88 E.3.2: the MPS
-        // sub-interval lies below A.
-        internal int Decode(byte[] contexts, int context) {
-            int state = contexts[context] >> 1;
-            int mps = contexts[context] & 1;
-            uint qe = Qe[state];
-            int decision;
-            _a -= qe;
-            if ((_c >> 16) < _a) {
-                if ((_a & 0x8000) != 0) return mps;
-                if (_a < qe) {
-                    decision = 1 - mps;
-                    if (Switch[state] == 1) mps = 1 - mps;
-                    state = NextLps[state];
-                } else {
-                    decision = mps;
-                    state = NextMps[state];
-                }
-            } else {
-                _c -= _a << 16;
-                if (_a < qe) {
-                    decision = mps;
-                    state = NextMps[state];
-                } else {
-                    decision = 1 - mps;
-                    if (Switch[state] == 1) mps = 1 - mps;
-                    state = NextLps[state];
-                }
-                _a = qe;
-            }
-            do {
-                if (_ct == 0) ByteIn();
-                _a <<= 1;
-                _c <<= 1;
-                _ct--;
-            } while ((_a & 0x8000) == 0);
-            contexts[context] = (byte)((state << 1) | mps);
-            return decision;
-        }
-
-        // Integer decoding procedure (Annex A.2); null is OOB.
-        internal int? DecodeInteger(byte[] contexts) {
-            int previous = 1;
-            int ReadBits(int count) {
-                int value = 0;
-                for (int index = 0; index < count; index++) {
-                    int bit = Decode(contexts, previous);
-                    previous = previous < 256 ? (previous << 1) | bit : (((previous << 1) | bit) & 511) | 256;
-                    value = (value << 1) | bit;
-                }
-                return value;
-            }
-            int sign = ReadBits(1);
-            long magnitude = ReadBits(1) == 0 ? ReadBits(2)
-                : ReadBits(1) == 0 ? ReadBits(4) + 4L
-                : ReadBits(1) == 0 ? ReadBits(6) + 20L
-                : ReadBits(1) == 0 ? ReadBits(8) + 84L
-                : ReadBits(1) == 0 ? ReadBits(12) + 340L
-                : (uint)ReadBits(32) + 4436L;
-            if (sign == 0) return magnitude > int.MaxValue ? throw new InvalidDataException("JBIG2 integer overflow.") : (int)magnitude;
-            if (magnitude == 0) return null;
-            return magnitude > int.MaxValue ? throw new InvalidDataException("JBIG2 integer overflow.") : -(int)magnitude;
-        }
-
-        // IAID decoding procedure (Annex A.3).
-        internal int DecodeId(byte[] contexts, int codeLength) {
-            int previous = 1;
-            for (int index = 0; index < codeLength; index++) previous = (previous << 1) | Decode(contexts, previous);
-            return previous - (1 << codeLength);
-        }
-    }
-
-    private sealed class IntegerContexts {
-        private readonly Dictionary<string, byte[]> _contexts = new(StringComparer.Ordinal);
-        internal byte[] this[string name] {
-            get {
-                if (!_contexts.TryGetValue(name, out byte[]? contexts)) _contexts[name] = contexts = new byte[512];
-                return contexts;
-            }
-        }
-    }
-
     private sealed class Segment {
         internal int Number;
         internal int Type;
@@ -264,8 +87,39 @@ internal static class Jbig2Decoder {
         private int _segmentCount;
         private int _pageDefaultCombination;
         private long _work;
+        private long _allocated;
+        private readonly int _maximumBytes;
+        private readonly long _maximumWork;
 
-        internal DecodingContext(int width, int height, CancellationToken cancellationToken) {
+        internal Bitmap CreateBitmap(int width, int height) {
+            long pixels = (long)width * height;
+            if (width < 0 || height < 0) throw new InvalidDataException("JBIG2 bitmap dimensions are invalid.");
+            ReserveBytes(pixels);
+            Charge(pixels);
+            return new Bitmap(width, height, Charge, _cancellationToken);
+        }
+
+        private void ReserveBytes(long bytes) {
+            _cancellationToken.ThrowIfCancellationRequested();
+            if (bytes < 0 || bytes > _maximumBytes - _allocated)
+                throw new InvalidDataException("JBIG2 storage exceeds the decoded byte budget.");
+            _allocated += bytes;
+        }
+
+        private byte[] CreateContexts(int count) {
+            ReserveBytes(count);
+            return new byte[count];
+        }
+
+        private List<Bitmap> CreateSymbolList(int count) {
+            if ((uint)count > MaximumSymbols) throw new InvalidDataException("JBIG2 symbol list is too large.");
+            ReserveBytes(64L + (long)count * IntPtr.Size);
+            return new List<Bitmap>(count);
+        }
+
+        internal DecodingContext(int width, int height, int maximumBytes, CancellationToken cancellationToken) {
+            _maximumBytes = maximumBytes;
+            _maximumWork = Math.Min(MaximumBitmapPixels * 4, Math.Max(1_000_000L, maximumBytes * 32L));
             _width = width;
             _height = height;
             _cancellationToken = cancellationToken;
@@ -274,8 +128,9 @@ internal static class Jbig2Decoder {
         internal Bitmap? Page { get; private set; }
 
         internal void Charge(long pixels) {
+            _cancellationToken.ThrowIfCancellationRequested();
+            if (pixels < 0 || pixels > _maximumWork - _work) throw new InvalidDataException("JBIG2 decoding exceeds its work budget.");
             _work += pixels;
-            if (_work > MaximumBitmapPixels * 4) throw new InvalidDataException("JBIG2 decoding exceeds its work budget.");
         }
 
         internal void ProcessSegments(byte[] data) {
@@ -283,14 +138,16 @@ internal static class Jbig2Decoder {
             while (position < data.Length) {
                 _cancellationToken.ThrowIfCancellationRequested();
                 if (++_segmentCount > MaximumSegments) throw new InvalidDataException("JBIG2 stream has too many segments.");
-                Segment segment = ReadSegmentHeader(data, ref position);
+                Segment segment = ReadSegmentHeader(data, ref position, ReserveBytes, _cancellationToken);
                 if (segment.Type == 51) break; // end of file
                 ProcessSegment(segment);
             }
         }
 
         // Segment header syntax (7.2).
-        internal static Segment ReadSegmentHeader(byte[] data, ref int position) {
+        internal static Segment ReadSegmentHeader(byte[] data, ref int position, Action<long>? reserveBytes = null,
+            CancellationToken cancellationToken = default) {
+            cancellationToken.ThrowIfCancellationRequested();
             var segment = new Segment { Data = data };
             segment.Number = (int)ReadUInt32(data, ref position);
             int flags = ReadByte(data, ref position);
@@ -305,8 +162,10 @@ internal static class Jbig2Decoder {
                 position += (referredCount + 8) / 8;
             }
             int referenceSize = segment.Number <= 256 ? 1 : segment.Number <= 65536 ? 2 : 4;
+            reserveBytes?.Invoke((long)referredCount * sizeof(int));
             segment.Referred = new int[referredCount];
             for (int index = 0; index < referredCount; index++) {
+                if ((index & 1023) == 0) cancellationToken.ThrowIfCancellationRequested();
                 segment.Referred[index] = referenceSize == 1 ? ReadByte(data, ref position)
                     : referenceSize == 2 ? (ReadByte(data, ref position) << 8) | ReadByte(data, ref position)
                     : (int)ReadUInt32(data, ref position);
@@ -315,20 +174,26 @@ internal static class Jbig2Decoder {
             uint length = ReadUInt32(data, ref position);
             if (position > data.Length) throw new InvalidDataException("Truncated JBIG2 segment header.");
             segment.DataStart = position;
-            segment.DataEnd = length == 0xFFFFFFFF ? FindUnknownLengthEnd(data, position) : (int)Math.Min(data.Length, position + (long)length);
+            if (length == uint.MaxValue && segment.Type is not (38 or 39))
+                throw new InvalidDataException("Unknown JBIG2 segment lengths require an immediate generic region.");
+            segment.DataEnd = length == 0xFFFFFFFF ? FindUnknownLengthEnd(data, position, cancellationToken) : (int)Math.Min(data.Length, position + (long)length);
             if (length != 0xFFFFFFFF && position + (long)length > data.Length) throw new InvalidDataException("Truncated JBIG2 segment data.");
             position = segment.DataEnd;
             return segment;
         }
 
         // An immediate generic region of unknown length ends with 0xFFAC or 0x0000 followed by a four-byte row count (7.2.7).
-        private static int FindUnknownLengthEnd(byte[] data, int start) {
-            int flags = start + 17 < data.Length ? data[start + 17] : 0;
+        private static int FindUnknownLengthEnd(byte[] data, int start, CancellationToken cancellationToken) {
+            if (start > data.Length - 18) throw new InvalidDataException("Truncated JBIG2 generic region.");
+            int flags = data[start + 17];
             bool mmr = (flags & 1) != 0;
-            for (int index = start + 18; index + 5 < data.Length; index++) {
+            int template = (flags >> 1) & 3;
+            int encodedStart = start + 18 + (mmr ? 0 : template == 0 ? 8 : 2);
+            for (int index = encodedStart; index + 5 < data.Length; index++) {
+                if ((index & 1023) == 0) cancellationToken.ThrowIfCancellationRequested();
                 if (mmr ? data[index] == 0 && data[index + 1] == 0 : data[index] == 0xFF && data[index + 1] == 0xAC) return index + 6;
             }
-            return data.Length;
+            throw new InvalidDataException("JBIG2 unknown-length region has no complete terminator and row count.");
         }
 
         private void ProcessSegment(Segment segment) {
@@ -347,12 +212,12 @@ internal static class Jbig2Decoder {
 
         private void ProcessPageInformation(Segment segment) {
             int position = segment.DataStart;
-            int width = (int)ReadUInt32(segment.Data, ref position);
-            uint heightValue = ReadUInt32(segment.Data, ref position);
+            int width = (int)ReadUInt32(segment.Data, ref position, segment.DataEnd);
+            uint heightValue = ReadUInt32(segment.Data, ref position, segment.DataEnd);
             position += 8;
-            int flags = ReadByte(segment.Data, ref position);
+            int flags = ReadByte(segment.Data, ref position, segment.DataEnd);
             int height = heightValue == 0xFFFFFFFF ? _height : (int)Math.Min(heightValue, (uint)_height * 2);
-            Page = new Bitmap(Math.Min(Math.Max(width, 0), _width * 2), Math.Max(height, 0));
+            Page = CreateBitmap(Math.Min(Math.Max(width, 0), _width * 2), Math.Max(height, 0));
             Charge((long)Page.Width * Page.Height);
             Page.Fill((flags >> 2) & 1);
             _pageDefaultCombination = (flags >> 3) & 3;
@@ -360,21 +225,21 @@ internal static class Jbig2Decoder {
 
         private Bitmap EnsurePage() {
             if (Page == null) {
-                Page = new Bitmap(_width, _height);
+                Page = CreateBitmap(_width, _height);
                 Charge((long)_width * _height);
             }
             return Page;
         }
 
         private static (int Width, int Height, int X, int Y, int Operator) ReadRegionInfo(Segment segment, ref int position) {
-            int width = (int)ReadUInt32(segment.Data, ref position);
-            uint height = ReadUInt32(segment.Data, ref position);
-            int x = (int)ReadUInt32(segment.Data, ref position);
-            int y = (int)ReadUInt32(segment.Data, ref position);
-            int flags = ReadByte(segment.Data, ref position);
+            int width = (int)ReadUInt32(segment.Data, ref position, segment.DataEnd);
+            uint height = ReadUInt32(segment.Data, ref position, segment.DataEnd);
+            int x = (int)ReadUInt32(segment.Data, ref position, segment.DataEnd);
+            int y = (int)ReadUInt32(segment.Data, ref position, segment.DataEnd);
+            int flags = ReadByte(segment.Data, ref position, segment.DataEnd);
             if (height == 0xFFFFFFFF) {
                 int end = segment.DataEnd - 4;
-                height = ReadUInt32(segment.Data, ref end);
+                height = ReadUInt32(segment.Data, ref end, segment.DataEnd);
             }
             if (width < 0 || height > int.MaxValue || (long)width * height > MaximumBitmapPixels) throw new InvalidDataException("JBIG2 region is too large.");
             return (width, (int)height, x, y, flags & 7);
@@ -391,29 +256,31 @@ internal static class Jbig2Decoder {
         private void ProcessGenericRegion(Segment segment) {
             int position = segment.DataStart;
             var info = ReadRegionInfo(segment, ref position);
-            int flags = ReadByte(segment.Data, ref position);
+            int flags = ReadByte(segment.Data, ref position, segment.DataEnd);
             bool mmr = (flags & 1) != 0;
             int template = (flags >> 1) & 3;
             bool typicalPrediction = (flags & 8) != 0;
             sbyte[] at = Array.Empty<sbyte>();
-            if (!mmr) at = ReadAt(segment.Data, ref position, template == 0 ? 4 : 1);
+            if (!mmr) at = ReadAt(segment.Data, ref position, template == 0 ? 4 : 1, segment.DataEnd);
             Charge((long)info.Width * info.Height);
             Bitmap region;
             if (mmr) {
                 int end = segment.DataEnd;
+                ReserveBytes(end - (long)position);
                 var encoded = new byte[Math.Max(0, end - position)];
                 Buffer.BlockCopy(segment.Data, position, encoded, 0, encoded.Length);
                 region = DecodeMmr(encoded, info.Width, info.Height);
             } else {
-                var decoder = new ArithmeticDecoder(segment.Data, position, segment.DataEnd);
-                region = DecodeGeneric(decoder, new byte[1 << 16], info.Width, info.Height, template, typicalPrediction, at);
+                var decoder = new ArithmeticDecoder(segment.Data, position, segment.DataEnd, Charge);
+                region = DecodeGeneric(decoder, CreateContexts(1 << 16), info.Width, info.Height, template, typicalPrediction, at);
             }
             Place(segment, region, info);
         }
 
         private Bitmap DecodeMmr(byte[] encoded, int width, int height) {
-            var region = new Bitmap(width, height);
+            var region = CreateBitmap(width, height);
             if (width == 0 || height == 0) return region;
+            ReserveBytes(((long)width + 7) / 8 * height);
             byte[] rows = OfficeFaxDecoder.Decode(encoded, width, height, -1, endOfLine: false, byteAligned: false, blackIsOne: true,
                 endOfBlock: false, maximumBytes: checked((int)(((long)width + 7) / 8 * height)), _cancellationToken);
             int stride = (width + 7) / 8;
@@ -423,9 +290,9 @@ internal static class Jbig2Decoder {
             return region;
         }
 
-        private static sbyte[] ReadAt(byte[] data, ref int position, int pairs) {
+        private static sbyte[] ReadAt(byte[] data, ref int position, int pairs, int end) {
             var at = new sbyte[pairs * 2];
-            for (int index = 0; index < at.Length; index++) at[index] = (sbyte)ReadByte(data, ref position);
+            for (int index = 0; index < at.Length; index++) at[index] = (sbyte)ReadByte(data, ref position, end);
             return at;
         }
 
@@ -446,13 +313,14 @@ internal static class Jbig2Decoder {
         // Generic region decoding procedure (6.2.5). The context lists template and adaptive pixels sorted by row,
         // then column, most significant first.
         private Bitmap DecodeGeneric(ArithmeticDecoder decoder, byte[] contexts, int width, int height, int template, bool typicalPrediction, sbyte[] at) {
-            var region = new Bitmap(width, height);
+            var region = CreateBitmap(width, height);
             // Adaptive pixels keep the context bit positions of their nominal locations (6.2.5.3).
             var pixels = new List<(int X, int Y, int At)>();
             foreach ((int X, int Y) pixel in GenericTemplates[template]) pixels.Add((pixel.X, pixel.Y, -1));
             (int X, int Y)[] nominal = DefaultGenericAt[template];
             for (int index = 0; index < nominal.Length; index++) pixels.Add((nominal[index].X, nominal[index].Y, index));
             pixels.Sort(static (left, right) => left.Y != right.Y ? left.Y.CompareTo(right.Y) : left.X.CompareTo(right.X));
+            Charge((long)width * height * pixels.Count);
             var offsets = new (int X, int Y)[pixels.Count];
             for (int index = 0; index < offsets.Length; index++) {
                 int slot = pixels[index].At;
@@ -469,6 +337,7 @@ internal static class Jbig2Decoder {
                     }
                 }
                 for (int x = 0; x < width; x++) {
+                    if ((x & 1023) == 0) _cancellationToken.ThrowIfCancellationRequested();
                     int context = 0;
                     for (int index = 0; index < offsets.Length; index++) context = (context << 1) | region.Get(x + offsets[index].X, y + offsets[index].Y);
                     if (decoder.Decode(contexts, context) != 0) region.Set(x, y, 1);
@@ -490,13 +359,14 @@ internal static class Jbig2Decoder {
         private Bitmap DecodeRefinement(ArithmeticDecoder decoder, byte[] contexts, int width, int height, int template, Bitmap reference,
             int referenceDx, int referenceDy, bool typicalPrediction, sbyte[] at) {
             Charge((long)width * height);
-            var region = new Bitmap(width, height);
+            var region = CreateBitmap(width, height);
             var coding = new List<(int X, int Y)>(RefinementCoding[template]);
             var referencePixels = new List<(int X, int Y)>(RefinementReference[template]);
             if (template == 0 && at.Length >= 4) {
                 coding.Add((at[0], at[1]));
                 referencePixels.Add((at[2], at[3]));
             }
+            Charge((long)width * height * (coding.Count + referencePixels.Count));
             // The typical-prediction context is the one whose only set pixel is the reference centre (6.3.5.6).
             int typicalContext = 1 << (referencePixels.Count - 1 - RefinementReference[template].ToList().IndexOf((0, 0)));
             bool lineTypical = false;
@@ -504,6 +374,7 @@ internal static class Jbig2Decoder {
                 _cancellationToken.ThrowIfCancellationRequested();
                 if (typicalPrediction) lineTypical ^= decoder.Decode(contexts, typicalContext) != 0;
                 for (int x = 0; x < width; x++) {
+                    if ((x & 1023) == 0) _cancellationToken.ThrowIfCancellationRequested();
                     int rx = x - referenceDx, ry = y - referenceDy;
                     if (lineTypical) {
                         int value = reference.Get(rx, ry);
@@ -528,29 +399,41 @@ internal static class Jbig2Decoder {
         private void ProcessRefinementRegion(Segment segment) {
             int position = segment.DataStart;
             var info = ReadRegionInfo(segment, ref position);
-            int flags = ReadByte(segment.Data, ref position);
+            int flags = ReadByte(segment.Data, ref position, segment.DataEnd);
             int template = flags & 1;
             bool typicalPrediction = (flags & 2) != 0;
-            sbyte[] at = template == 0 ? ReadAt(segment.Data, ref position, 2) : Array.Empty<sbyte>();
+            sbyte[] at = template == 0 ? ReadAt(segment.Data, ref position, 2, segment.DataEnd) : Array.Empty<sbyte>();
             Bitmap reference;
             if (segment.Referred.Length > 0 && _regions.TryGetValue(segment.Referred[0], out Bitmap? referred)) {
                 reference = referred;
             } else {
                 // Without a referred region the reference is the page area the region covers (7.4.7.5).
                 Bitmap page = EnsurePage();
-                reference = new Bitmap(info.Width, info.Height);
-                for (int y = 0; y < info.Height; y++) for (int x = 0; x < info.Width; x++) reference.Set(x, y, page.Get(info.X + x, info.Y + y));
+                reference = CreateBitmap(info.Width, info.Height);
+                for (int y = 0; y < info.Height; y++) {
+                    _cancellationToken.ThrowIfCancellationRequested();
+                    for (int x = 0; x < info.Width; x++) {
+                        if ((x & 1023) == 0) _cancellationToken.ThrowIfCancellationRequested();
+                        reference.Set(x, y, page.Get(info.X + x, info.Y + y));
+                    }
+                }
             }
-            var decoder = new ArithmeticDecoder(segment.Data, position, segment.DataEnd);
-            Bitmap region = DecodeRefinement(decoder, new byte[1 << 14], info.Width, info.Height, template, reference, 0, 0, typicalPrediction, at);
+            var decoder = new ArithmeticDecoder(segment.Data, position, segment.DataEnd, Charge);
+            Bitmap region = DecodeRefinement(decoder, CreateContexts(1 << 14), info.Width, info.Height, template, reference, 0, 0, typicalPrediction, at);
             Place(segment, region, info);
         }
 
         private List<Bitmap> ReferredSymbols(Segment segment) {
-            var symbols = new List<Bitmap>();
+            int count = 0;
             foreach (int referred in segment.Referred) {
-                if (_symbols.TryGetValue(referred, out List<Bitmap>? exported)) symbols.AddRange(exported);
+                Charge(1L);
+                if (!_symbols.TryGetValue(referred, out List<Bitmap>? exported)) continue;
+                if (exported.Count > MaximumSymbols - count) throw new InvalidDataException("JBIG2 symbol references exceed the symbol limit.");
+                count += exported.Count;
             }
+            var symbols = CreateSymbolList(count);
+            foreach (int referred in segment.Referred)
+                if (_symbols.TryGetValue(referred, out List<Bitmap>? exported)) { Charge(exported.Count); symbols.AddRange(exported); }
             return symbols;
         }
 
@@ -563,26 +446,27 @@ internal static class Jbig2Decoder {
         // Symbol dictionary segment (7.4.2) and decoding procedure (6.5.5), arithmetic coding only.
         private void ProcessSymbolDictionary(Segment segment) {
             int position = segment.DataStart;
-            int flags = (ReadByte(segment.Data, ref position) << 8) | ReadByte(segment.Data, ref position);
+            int flags = (ReadByte(segment.Data, ref position, segment.DataEnd) << 8) | ReadByte(segment.Data, ref position, segment.DataEnd);
             bool huffman = (flags & 1) != 0;
             bool refinementAggregate = (flags & 2) != 0;
             int template = (flags >> 10) & 3;
             int refinementTemplate = (flags >> 12) & 1;
             if (huffman) throw new NotSupportedException("Huffman-coded JBIG2 symbol dictionaries are not supported.");
-            sbyte[] at = ReadAt(segment.Data, ref position, template == 0 ? 4 : 1);
-            sbyte[] refinementAt = refinementAggregate && refinementTemplate == 0 ? ReadAt(segment.Data, ref position, 2) : Array.Empty<sbyte>();
-            int exportedCount = (int)ReadUInt32(segment.Data, ref position);
-            int newCount = (int)ReadUInt32(segment.Data, ref position);
+            sbyte[] at = ReadAt(segment.Data, ref position, template == 0 ? 4 : 1, segment.DataEnd);
+            sbyte[] refinementAt = refinementAggregate && refinementTemplate == 0 ? ReadAt(segment.Data, ref position, 2, segment.DataEnd) : Array.Empty<sbyte>();
+            int exportedCount = (int)ReadUInt32(segment.Data, ref position, segment.DataEnd);
+            int newCount = (int)ReadUInt32(segment.Data, ref position, segment.DataEnd);
             List<Bitmap> input = ReferredSymbols(segment);
             if (newCount < 0 || exportedCount < 0 || (long)newCount + input.Count > MaximumSymbols) throw new InvalidDataException("JBIG2 symbol dictionary is too large.");
 
-            var decoder = new ArithmeticDecoder(segment.Data, position, segment.DataEnd);
-            var integers = new IntegerContexts();
-            var genericContexts = new byte[1 << 16];
-            var refinementContexts = new byte[1 << 14];
+            var decoder = new ArithmeticDecoder(segment.Data, position, segment.DataEnd, Charge);
+            var integers = new IntegerContexts(CreateContexts);
+            var genericContexts = CreateContexts(1 << 16);
+            var refinementContexts = CreateContexts(1 << 14);
             int codeLength = CodeLength(input.Count + newCount);
-            var idContexts = new byte[1 << (codeLength + 1)];
-            var symbols = new List<Bitmap>(input);
+            var idContexts = CreateContexts(1 << (codeLength + 1));
+            var symbols = CreateSymbolList(input.Count + newCount);
+            symbols.AddRange(input);
             int heightClass = 0;
             int decoded = 0;
             while (decoded < newCount) {
@@ -621,16 +505,24 @@ internal static class Jbig2Decoder {
                 }
             }
             // Export flags (6.5.10) select from input then new symbols.
-            var exported = new List<Bitmap>(Math.Min(exportedCount, symbols.Count));
+            if (exportedCount > symbols.Count) throw new InvalidDataException("JBIG2 exported symbol count is invalid.");
+            var exported = CreateSymbolList(exportedCount);
             bool exporting = false;
             int index = 0;
             while (index < symbols.Count) {
                 int run = decoder.DecodeInteger(integers["IAEX"]) ?? throw new InvalidDataException("JBIG2 export run is out of band.");
                 if (run < 0 || run > symbols.Count - index) throw new InvalidDataException("JBIG2 export run is invalid.");
-                if (exporting) exported.AddRange(symbols.GetRange(index, run));
+                if (exporting) {
+                    if (run > exportedCount - exported.Count) throw new InvalidDataException("JBIG2 export runs exceed the declared count.");
+                    for (int exportedIndex = index; exportedIndex < index + run; exportedIndex++) {
+                        Charge(1L);
+                        exported.Add(symbols[exportedIndex]);
+                    }
+                }
                 index += run;
                 exporting = !exporting;
             }
+            if (exported.Count != exportedCount) throw new InvalidDataException("JBIG2 export runs do not match the declared count.");
             _symbols[segment.Number] = exported;
         }
 
@@ -638,7 +530,7 @@ internal static class Jbig2Decoder {
         private void ProcessTextRegion(Segment segment) {
             int position = segment.DataStart;
             var info = ReadRegionInfo(segment, ref position);
-            int flags = (ReadByte(segment.Data, ref position) << 8) | ReadByte(segment.Data, ref position);
+            int flags = (ReadByte(segment.Data, ref position, segment.DataEnd) << 8) | ReadByte(segment.Data, ref position, segment.DataEnd);
             bool huffman = (flags & 1) != 0;
             bool refine = (flags & 2) != 0;
             int stripLog = (flags >> 2) & 3;
@@ -650,14 +542,14 @@ internal static class Jbig2Decoder {
             if ((dsOffset & 0x10) != 0) dsOffset -= 32;
             int refinementTemplate = (flags >> 15) & 1;
             if (huffman) throw new NotSupportedException("Huffman-coded JBIG2 text regions are not supported.");
-            sbyte[] refinementAt = refine && refinementTemplate == 0 ? ReadAt(segment.Data, ref position, 2) : Array.Empty<sbyte>();
-            int instances = (int)ReadUInt32(segment.Data, ref position);
+            sbyte[] refinementAt = refine && refinementTemplate == 0 ? ReadAt(segment.Data, ref position, 2, segment.DataEnd) : Array.Empty<sbyte>();
+            int instances = (int)ReadUInt32(segment.Data, ref position, segment.DataEnd);
             if (instances < 0 || instances > MaximumSymbols * 4) throw new InvalidDataException("JBIG2 text region has too many instances.");
             List<Bitmap> symbols = ReferredSymbols(segment);
             int codeLength = CodeLength(symbols.Count);
-            var decoder = new ArithmeticDecoder(segment.Data, position, segment.DataEnd);
+            var decoder = new ArithmeticDecoder(segment.Data, position, segment.DataEnd, Charge);
             Charge((long)info.Width * info.Height);
-            Bitmap region = DecodeTextRegion(decoder, new IntegerContexts(), new byte[1 << (codeLength + 1)], new byte[1 << 14],
+            Bitmap region = DecodeTextRegion(decoder, new IntegerContexts(CreateContexts), CreateContexts(1 << (codeLength + 1)), CreateContexts(1 << 14),
                 info.Width, info.Height, instances, symbols, codeLength, stripLog, referenceCorner, transposed, combination, defaultPixel,
                 dsOffset, refine, refinementTemplate, refinementAt);
             Place(segment, region, info);
@@ -667,7 +559,7 @@ internal static class Jbig2Decoder {
         private Bitmap DecodeTextRegion(ArithmeticDecoder decoder, IntegerContexts integers, byte[] idContexts, byte[] refinementContexts,
             int width, int height, int instances, List<Bitmap> symbols, int codeLength, int stripLog, int referenceCorner, bool transposed,
             int combination, int defaultPixel, int dsOffset, bool refine, int refinementTemplate, sbyte[] refinementAt) {
-            var region = new Bitmap(width, height);
+            var region = CreateBitmap(width, height);
             if (defaultPixel != 0) region.Fill(1);
             int strips = 1 << stripLog;
             int stripT = -(decoder.DecodeInteger(integers["IADT"]) ?? 0) * strips;
@@ -725,13 +617,13 @@ internal static class Jbig2Decoder {
             return region;
         }
 
-        private static int ReadByte(byte[] data, ref int position) {
-            if (position >= data.Length) throw new InvalidDataException("Truncated JBIG2 data.");
+        private static int ReadByte(byte[] data, ref int position, int end = -1) {
+            if (position < 0 || position >= (end < 0 ? data.Length : end)) throw new InvalidDataException("Truncated JBIG2 data.");
             return data[position++];
         }
 
-        private static uint ReadUInt32(byte[] data, ref int position) {
-            if (position + 4 > data.Length) throw new InvalidDataException("Truncated JBIG2 data.");
+        private static uint ReadUInt32(byte[] data, ref int position, int end = -1) {
+            if (position < 0 || position > (end < 0 ? data.Length : end) - 4) throw new InvalidDataException("Truncated JBIG2 data.");
             uint value = ((uint)data[position] << 24) | ((uint)data[position + 1] << 16) | ((uint)data[position + 2] << 8) | data[position + 3];
             position += 4;
             return value;

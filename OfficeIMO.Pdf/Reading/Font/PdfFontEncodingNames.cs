@@ -2,6 +2,20 @@ namespace OfficeIMO.Pdf;
 
 /// <summary>Glyph names of the PDF simple-font encodings (ISO 32000-1, Annex D).</summary>
 internal static class PdfFontEncodingNames {
+    private static readonly Lazy<string?[]> IsoLatin1 = new(CreateIsoLatin1);
+
+    // PostScript Language Reference, ISOLatin1Encoding (including the TN5085 corrections).
+    // Reuse the standard ASCII and ISO-8859-1 glyph facts from the existing vectors.
+    private static string?[] CreateIsoLatin1() {
+        var names = new string?[256];
+        Array.Copy(Standard, names, 128);
+        Array.Copy(WinAnsi, 160, names, 160, 96);
+        names[45] = "minus";
+        string?[] accents = { "dotlessi", "grave", "acute", "circumflex", "tilde", "macron", "breve", "dotaccent",
+            "dieresis", null, "ring", "cedilla", null, "hungarumlaut", "ogonek", "caron" };
+        Array.Copy(accents, 0, names, 144, accents.Length);
+        return names;
+    }
     private static readonly string?[] Standard = {
         null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null,
         null, null, null, null, null, null, null, null, null, null, null, null, null, null, "space", "exclam",
@@ -490,6 +504,7 @@ internal static class PdfFontEncodingNames {
     /// <summary>Returns the 256 glyph names of a named encoding, or null for an unknown name.</summary>
     internal static string?[]? Get(string? encodingName) => encodingName switch {
         "StandardEncoding" => Standard,
+        "ISOLatin1Encoding" => IsoLatin1.Value,
         "WinAnsiEncoding" => WinAnsi,
         "MacRomanEncoding" => MacRoman,
         "SymbolEncoding" => Symbol,
@@ -498,6 +513,8 @@ internal static class PdfFontEncodingNames {
     };
 
     /// <summary>Returns the Unicode scalar of a Symbol or ZapfDingbats glyph name that the standard glyph list lacks.</summary>
+    internal static bool TryGetSymbolUnicode(string glyphName, out int scalar) => SymbolUnicode.TryGetValue(glyphName, out scalar);
+
     internal static bool TryGetSymbolicUnicode(string glyphName, out int scalar) =>
         SymbolUnicode.TryGetValue(glyphName, out scalar) || ZapfDingbatsUnicode.TryGetValue(glyphName, out scalar);
 }

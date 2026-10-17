@@ -287,7 +287,7 @@ internal static partial class PdfWriter {
                         pendingFont.Font,
                         PdfFontDiagnostics.AnalyzeOpenTypeCffCompactEmbedding(cffFontProgram, "embedded-font:" + pendingFont.Font, compactFontFile));
                     string cffSubsetName = compactFontFile.CharStringSubset?.IsSubset == true
-                        ? PdfSubsetTag.Apply(cffFontProgram.FontName, cffFontProgram.GetUsedGlyphIds()) : cffFontProgram.FontName;
+                        ? PdfSubsetTag.Apply(cffFontProgram.FontName, cffFontProgram.GetUsedGlyphIds(), compactFontFile.Data) : cffFontProgram.FontName;
                     int fontFileId = AddOpenTypeCffFontFileObject(objects, cffFontProgram, compactFontFile,
                         opts.CompressEmbeddedFonts, pendingFont.Options, "embedded-font:" + pendingFont.Font, cancellationToken);
                     int descriptorId = AddObject(objects, PdfStandardFontDictionaryBuilder.BuildOpenTypeCffFontDescriptorObject(cffFontProgram, fontFileId, cffSubsetName));
@@ -325,7 +325,7 @@ internal static partial class PdfWriter {
                         PdfStandardFont.Helvetica,
                         PdfFontDiagnostics.AnalyzeOpenTypeCffCompactEmbedding(cffFontProgram, "named-font:" + pendingFont.Font.FaceKey, compactFontFile));
                     string cffSubsetName = compactFontFile.CharStringSubset?.IsSubset == true
-                        ? PdfSubsetTag.Apply(cffFontProgram.FontName, cffFontProgram.GetUsedGlyphIds()) : cffFontProgram.FontName;
+                        ? PdfSubsetTag.Apply(cffFontProgram.FontName, cffFontProgram.GetUsedGlyphIds(), compactFontFile.Data) : cffFontProgram.FontName;
                     int fontFileId = AddOpenTypeCffFontFileObject(objects, cffFontProgram, compactFontFile,
                         opts.CompressEmbeddedFonts, pendingFont.Options, "named-font:" + pendingFont.Font.FaceKey, cancellationToken);
                     int descriptorId = AddObject(objects, PdfStandardFontDictionaryBuilder.BuildOpenTypeCffFontDescriptorObject(cffFontProgram, fontFileId, cffSubsetName));
