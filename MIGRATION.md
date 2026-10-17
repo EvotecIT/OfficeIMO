@@ -1,5 +1,9 @@
 # Upgrading OfficeIMO
 
+## Verified archive copying
+
+`ArchiveInspection.CopyTo` stages ZIP, CAB and embedded MSI cabinet members in private temporary storage before writing verified content to the destination. Set `ArchiveInspectionOptions.MaxTemporaryBytes` when copying members larger than the default 256 MiB staging allowance. Raising `MaxEntryBytes` alone does not raise this disk limit. Input snapshots retain their separate `MaxInputBytes` policy.
+
 ## Studio native interface and protected copies
 
 The native engine ABI is version 3. Redaction `apply` requests must include `revision`: use the revision returned by `find`, or the document facts revision on which drawn areas were reviewed. Requests without a revision or with a stale revision are rejected. After editing, reordering, undoing or redoing the document, find or mark the content again before applying redaction. Rebuild native hosts against the matching engine header and check `officeimo_abi_version()` at startup.

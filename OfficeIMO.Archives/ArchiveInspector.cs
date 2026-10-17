@@ -93,6 +93,8 @@ public static class ArchiveInspector {
             MaxPathLength = requested.MaxPathLength
         });
         if (requested.MaxDirectoryRecords < 1) throw new ArgumentOutOfRangeException(nameof(requested.MaxDirectoryRecords));
+        if (requested.MaxTemporaryBytes < 0) throw new ArgumentOutOfRangeException(nameof(requested.MaxTemporaryBytes));
+        limits.TemporaryBytes = requested.MaxTemporaryBytes;
         return limits;
     }
 

@@ -121,3 +121,30 @@ is outside the measured region. Reports retain the input hash, runtime, package
 identity, member hashes, decoded-byte/work charges and per-thread read allocations.
 This is opt-in allocation evidence, not a timing or peak-memory benchmark. The
 synthetic producer does not establish native CAB compatibility.
+
+## Verified CAB/MSI copy evidence
+
+Use `--cab-copy-evidence <task-owned CAB> <JSON report>` with the packed consumer
+on .NET 8 or .NET 10. Run in a process with isolated `TMPDIR` or `TEMP`, without
+parallel consumers. If the CAB is absent, the runner creates a reproducible
+32 MiB LZX workload whose first member spans the complete folder. It compares
+`OpenRead` and `CopyTo` through a hashing sink, verifies equal complete payloads,
+and records per-thread allocation outside input inventory. Destination I/O and
+cancellation probes check private-file cleanup and caller stream ownership.
+This is opt-in allocation evidence, not a timing or peak-memory benchmark.
+
+The Windows archive CI lane also packs unsigned candidates into an isolated
+feed and runs the consumer on .NET 8, .NET 10 and the net472 target. It compares
+all 106 payloads of the pinned 7-Zip MSI against the retained independent hash
+manifest, checks native makecab content, and exercises verified copying.
+
+`Invoke-WindowsQualification.ps1` accepts `-OutputPath`, `-FeedPath` and
+`-Version` to perform the same Windows qualification against a fresh scratch
+directory and explicit private candidate. It uses Windows Shell's compressed-folder handler to
+produce a Polish-filename ZIP and records Windows, Explorer/zipfldr versions,
+input hashes, raw name bytes and the exact admitted encoding policy. The fixture
+and runtime reports are uploaded as `archives-windows-qualification`. Shell COM
+production is separate from interactive Explorer UI acceptance; a missing or
+failed producer report is an explicit qualification gap. Neither installers nor
+extracted executables run. Optional allocation probes are excluded from net472;
+the ordinary packed-consumer contracts run on that target.

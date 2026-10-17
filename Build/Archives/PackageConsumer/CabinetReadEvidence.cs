@@ -48,7 +48,7 @@ namespace OfficeIMO.Archives.Qualification {
         private static string Hash(Stream stream) => Convert.ToHexString(SHA256.HashData(stream)).ToLowerInvariant();
 
         // Reproducible synthetic selection workload, not an independent CAB producer or product writer.
-        private static void CreateInput(string path) {
+        internal static void CreateInput(string path) {
             const int frameBytes = 32768, frameCount = 1024, dataOffset = 95;
             using var file = new FileStream(path, FileMode.CreateNew, FileAccess.Write);
             using var writer = new BinaryWriter(file);

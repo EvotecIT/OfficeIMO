@@ -61,6 +61,9 @@ namespace OfficeIMO.Archives.Tests {
             Assert.Equal(5, inspection.PlanRead(new[] { 0 }).DecodedBytes);
             Assert.Throws<InvalidDataException>(() => inspection.OpenRead(0));
             Assert.Throws<InvalidDataException>(() => inspection.ReadMembers(new[] { 0 }, 4));
+            using var destination = new MemoryStream(); destination.WriteByte(42);
+            Assert.Throws<InvalidDataException>(() => inspection.CopyTo(0, destination));
+            Assert.Equal(new byte[] { 42 }, destination.ToArray());
             using var fixture = new ArchiveFixtures();
             Assert.Throws<InvalidDataException>(() => ArchiveExtractor.Extract(fixture.Package(input), fixture.Destination));
             Assert.False(Directory.Exists(fixture.Destination));

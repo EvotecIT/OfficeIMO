@@ -4,6 +4,11 @@ using OfficeIMO.Archives;
 using OfficeIMO.Reader;
 using OfficeIMO.Reader.Zip;
 
+#if NET8_0_OR_GREATER
+if (args.Length > 0 && args[0] == "--cab-staging-failure-evidence")
+    return OfficeIMO.Archives.Qualification.CabinetCopyEvidence.RunStagingFailure(args.Skip(1).ToArray());
+if (args.Length > 0 && args[0] == "--cab-copy-evidence")
+    return OfficeIMO.Archives.Qualification.CabinetCopyEvidence.Run(args.Skip(1).ToArray());
 if (args.Length > 0 && args[0] == "--large-input-evidence")
     return OfficeIMO.Archives.Qualification.LargeInputEvidence.Run(args.Skip(1).ToArray());
 if (args.Length > 0 && args[0] == "--cab-read-evidence")
@@ -12,6 +17,7 @@ if (args.Length > 0 && args[0] == "--reader-snapshot-evidence")
     return OfficeIMO.Archives.Qualification.ReaderSnapshotEvidence.Run(args.Skip(1).ToArray());
 if (args.Length > 0 && args[0] == "--snapshot-restore-evidence")
     return OfficeIMO.Archives.Qualification.ReaderSnapshotEvidence.RunRestoreFailure(args.Skip(1).ToArray());
+#endif
 
 // Opt-in consumer of packed public APIs. It does not download or execute archive contents.
 if (args.Length < 3) throw new ArgumentException("Expected: <ZIP corpus> <fresh output directory> <JSON report> [MSI] [independent MSI payload directory] [makecab CAB] [original member]");
@@ -68,18 +74,28 @@ if (args.Length >= 5) {
     using var msi = ArchiveInspector.Open(args[3]);
     using var batch = msi.ReadMembers(msi.Entries.Select(e => e.Ordinal).ToArray(), 128L * 1024 * 1024);
     var actual = batch.Members.Select(m => HashStream(m.Content)).OrderBy(h => h, StringComparer.Ordinal).ToArray();
-    var expected = Directory.GetFiles(args[4], "*", SearchOption.AllDirectories).Select(p => Hash(File.ReadAllBytes(p))).OrderBy(h => h, StringComparer.Ordinal).ToArray();
+    var expected = ExpectedMsiHashes(args[4]);
     Require(actual.SequenceEqual(expected), "MSI payload differs from independent extraction");
+    foreach (var entry in msi.Entries) {
+        using var copied = new MemoryStream(); msi.CopyTo(entry.Ordinal, copied); copied.Position = 0;
+        Require(HashStream(copied) == actualHash(entry.Ordinal), "Verified MSI copy mismatch");
+    }
     var extracted = ArchiveExtractor.Extract(args[3], Path.Combine(output, "msi"));
     var published = extracted.Files.Select(f => Hash(File.ReadAllBytes(Path.Combine(output, "msi", f.RelativePath)))).OrderBy(h => h, StringComparer.Ordinal);
     Require(published.SequenceEqual(expected), "Published MSI payload mismatch");
     results.Add(new { file = Path.GetFileName(args[3]), sha256 = Hash(File.ReadAllBytes(args[3])), members = actual.Length, verified = true });
+    string actualHash(int ordinal) {
+        batch.Members[ordinal].Content.Position = 0;
+        return HashStream(batch.Members[ordinal].Content);
+    }
 }
 if (args.Length >= 7) {
     using var cab = ArchiveInspector.Open(args[5]);
     using var member = cab.OpenRead(0);
     Require(HashStream(member) == Hash(File.ReadAllBytes(args[6])), "Native makecab member mismatch");
     Require(cab.Verify(new[] { 0 }).Members.All(m => m.Status == ArchiveVerificationStatus.Verified), "Native CAB verification failed");
+    using var copied = new MemoryStream(); cab.CopyTo(0, copied);
+    Require(Hash(copied.ToArray()) == Hash(File.ReadAllBytes(args[6])), "Native CAB verified copy mismatch");
     results.Add(new { file = Path.GetFileName(args[5]), sha256 = Hash(File.ReadAllBytes(args[5])), verified = true });
 }
 File.WriteAllText(args[2], JsonSerializer.Serialize(new {
@@ -90,6 +106,14 @@ File.WriteAllText(args[2], JsonSerializer.Serialize(new {
 Console.WriteLine($"Qualified {results.Count} packed-consumer scenarios.");
 return 0;
 
-static string Hash(byte[] bytes) => Convert.ToHexString(SHA256.HashData(bytes)).ToLowerInvariant();
-static string HashStream(Stream stream) => Convert.ToHexString(SHA256.HashData(stream)).ToLowerInvariant();
+static string Hash(byte[] bytes) { using var sha = SHA256.Create(); return Hex(sha.ComputeHash(bytes)); }
+static string HashStream(Stream stream) { using var sha = SHA256.Create(); return Hex(sha.ComputeHash(stream)); }
+static string Hex(byte[] bytes) => BitConverter.ToString(bytes).Replace("-", "").ToLowerInvariant();
+static string[] ExpectedMsiHashes(string path) {
+    if (!File.Exists(path)) return Directory.GetFiles(path, "*", SearchOption.AllDirectories)
+        .Select(p => Hash(File.ReadAllBytes(p))).OrderBy(h => h, StringComparer.Ordinal).ToArray();
+    using var manifest = JsonDocument.Parse(File.ReadAllText(path));
+    return manifest.RootElement.GetProperty("members").EnumerateArray().Select(m => m.GetProperty("sha256").GetString()!)
+        .OrderBy(h => h, StringComparer.Ordinal).ToArray();
+}
 static void Require(bool value, string message) { if (!value) throw new InvalidDataException(message); }

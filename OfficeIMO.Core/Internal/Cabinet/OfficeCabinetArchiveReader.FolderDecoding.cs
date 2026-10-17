@@ -1,9 +1,30 @@
 using System;
 using System.Collections.Generic;
+using System.IO;
 
 namespace OfficeIMO.Core.Internal.Cabinet {
     internal static partial class OfficeCabinetArchiveReader {
         private sealed partial class Reader {
+            /// <summary>Streams a range into private staging; final folder framing is checked before returning.</summary>
+            internal void CopyFolderMember(FolderHeader folderHeader, int reserve, FileHeader file,
+                Stream staging, long maxExpandedBytes) {
+                FolderData folder = ReadFolderFrames(folderHeader, reserve, maxExpandedBytes);
+                long end = (long)file.FolderOffset + file.Length;
+                if (end > folder.ExpandedBytes) throw Error("CAB_ENTRY_RANGE", "A CAB member extends beyond its decoded folder.");
+                long written = 0;
+                DecodeFolder(folder, (buffer, offset, count, frameOffset) => {
+                    _cancellationToken.ThrowIfCancellationRequested();
+                    long start = Math.Max(frameOffset, file.FolderOffset);
+                    long stop = Math.Min(frameOffset + count, end);
+                    if (stop <= start) return;
+                    int length = checked((int)(stop - start));
+                    staging.Write(buffer, offset + checked((int)(start - frameOffset)), length);
+                    written += length;
+                });
+                _cancellationToken.ThrowIfCancellationRequested();
+                if (written != file.Length) throw Error("CAB_ENTRY_SIZE", "Decoded CAB member length differs from its declared size.");
+            }
+
             /// <summary>Verifies the complete folder while retaining only the requested member ranges.</summary>
             internal byte[][] ReadFolderMembers(FolderHeader folder, int dataReserve,
                 IReadOnlyList<FileHeader> files, long maxExpandedBytes) =>

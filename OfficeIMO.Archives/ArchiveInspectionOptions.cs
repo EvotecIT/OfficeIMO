@@ -16,6 +16,10 @@ public sealed class ArchiveInspectionOptions {
     public int MaxCabinetCount { get; set; } = 256;
     /// <summary>Maximum declared size of a file member or bytes returned by one storage-stream read.</summary>
     public long MaxEntryBytes { get; set; } = 256L * 1024 * 1024;
+    /// <summary>Maximum decoded bytes staged privately by one CopyTo operation, across ZIP, CAB and MSI.
+    /// Defaults to 256 MiB; zero permits only empty members. Checked before creating a spool or charging reads.
+    /// Excludes input snapshots and filesystem extraction. This is a disk bound, not a process-memory bound.</summary>
+    public long MaxTemporaryBytes { get; set; } = 256L * 1024 * 1024;
     /// <summary>Maximum declared aggregate CAB folder/file expansion at inventory time, and cumulative
     /// decoded folder or raw storage-stream bytes across subsequent reads. A grouped read charges each selected folder once;
     /// reading it in another call consumes this budget again.</summary>

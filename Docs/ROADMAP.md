@@ -446,6 +446,8 @@ Qualify complete script-free HtmlForgeX reports through the shared HTML scene an
 
 ## Archive containers
 
+- [ ] Qualify verified CAB/MSI copying through private staging under `MaxTemporaryBytes`, including complete-folder corruption after selected ranges, resource-limit and failure cleanup, packed Windows .NET 8/10/net472 consumers, and retained native Windows Shell ZIP producer evidence. Keep interactive Explorer UI acceptance distinct.
+
 - [ ] Qualify a native Windows Explorer archive containing Polish filenames, retaining the producer/Windows version, input hash, raw encoding policy and complete expected member bytes. Keep this distinct from the existing Windows-labelled ASCII corpus and CPython CP1250 fixtures.
 - [ ] Run the packed archive consumer and correctness suite on Windows, including .NET Framework 4.7.2, and extend named native MSI/CAB producer profiles. Retain exact package/fixture hashes and distinguish runtime execution from portable compilation and macOS native-producer checks.
 

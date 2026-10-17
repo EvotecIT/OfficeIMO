@@ -82,20 +82,25 @@ public sealed partial class ArchiveInspection : IDisposable {
             ArchiveInspectionEntry entry = Entries[ordinal];
             if (entry.Diagnostic != null) throw new NotSupportedException(entry.Diagnostic.Code + ": " + entry.Diagnostic.Message);
             if (Format == ArchiveFormat.Zip) return OpenZipMember(ordinal, cancellationToken);
-            string key = entry.CabinetName == null ? string.Empty : entry.CabinetName.Substring(1);
-            OfficeCabinetArchiveReader.Inspection cabinet = _cabinets[key];
-            long bytes = entry.FolderExpandedBytes!.Value;
-            long remaining = _limits.Expanded - _readBytes;
-            if (bytes > remaining) throw ArchiveLimits.Exceeded("MaxExpandedBytes", _limits.Expanded);
-            _limits.Operation.Select(entry.Length);
-            // Reserve the full attempted decode, including gaps and sibling files, before invoking the decoder.
-            ArchiveLimits.Add(ref _readBytes, bytes, _limits.Expanded, "MaxExpandedBytes");
+            var cabinet = ReserveCabinetRead(entry, out long remaining);
             try {
                 byte[] payload = cabinet.ReadMember(entry.CabinetOrdinal!.Value, remaining, _limits.DecompressionWork, cancellationToken);
                 if (payload.LongLength != entry.Length) throw new InvalidDataException("Member length differs from its declared complete size.");
                 return new MemoryStream(payload, writable: false);
             } catch (OfficeCabinetException exception) { throw _limits.Translate(exception, remaining, directoryMaximum: _directoryRecords); }
         }
+    }
+
+    private OfficeCabinetArchiveReader.Inspection ReserveCabinetRead(ArchiveInspectionEntry entry, out long remaining) {
+        string key = entry.CabinetName == null ? string.Empty : entry.CabinetName.Substring(1);
+        var cabinet = _cabinets[key];
+        long bytes = entry.FolderExpandedBytes!.Value;
+        remaining = _limits.Expanded - _readBytes;
+        if (bytes > remaining) throw ArchiveLimits.Exceeded("MaxExpandedBytes", _limits.Expanded);
+        _limits.Operation.Select(entry.Length);
+        // Reserve the full attempted decode, including gaps and siblings, before invoking the decoder.
+        ArchiveLimits.Add(ref _readBytes, bytes, _limits.Expanded, "MaxExpandedBytes");
+        return cabinet;
     }
 
     /// <summary>Returns all bytes of one inert raw MSI stream, without interpreting or executing its content.

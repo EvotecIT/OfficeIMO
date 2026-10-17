@@ -56,6 +56,19 @@ jobs:
           dotnet-version: ${{ env.DOTNET_VERSION }}
       - name: Test bounded Cabinet and passive MSI extraction
         run: dotnet test OfficeIMO.Archives.Tests/OfficeIMO.Archives.Tests.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --framework ${{ matrix.framework }} --artifacts-path "${{ runner.temp }}/officeimo-archives/artifacts" -m:1 --filter 'Category!=Performance' --logger 'trx;LogFileName=archives.trx' --results-directory "${{ runner.temp }}/officeimo-archives/results"
+      - name: Qualify unsigned archive packages on Windows
+        if: matrix.os == 'windows-latest' && matrix.framework == 'net10.0'
+        shell: pwsh
+        run: |
+          $root = Join-Path $env:RUNNER_TEMP 'officeimo-archives'
+          $feed = Join-Path $root 'feed'
+          $null = New-Item -ItemType Directory -Force -Path $feed
+          $version = '3.5.1.9999' # Private CI candidate; isolated below and never published.
+          foreach ($project in @('OfficeIMO.Core', 'OfficeIMO.Archives', 'OfficeIMO.Reader.Core', 'OfficeIMO.Reader.Zip')) {
+              dotnet pack "$project/$project.csproj" -c Release --artifacts-path "$root/artifacts" --output $feed "-p:Version=$version" -m:1
+              if ($LASTEXITCODE -ne 0) { throw "Candidate pack failed: $project" }
+          }
+          & Build/Archives/Invoke-WindowsQualification.ps1 -OutputPath "$root/qualification" -FeedPath $feed -Version $version
       - name: Upload test results
         if: always()
         uses: actions/upload-artifact@v7
@@ -64,6 +77,14 @@ jobs:
           path: ${{ runner.temp }}/officeimo-archives/results
           if-no-files-found: ignore
           retention-days: 7
+      - name: Upload Windows archive qualification
+        if: always() && matrix.os == 'windows-latest' && matrix.framework == 'net10.0'
+        uses: actions/upload-artifact@v7
+        with:
+          name: archives-windows-qualification
+          path: ${{ runner.temp }}/officeimo-archives/qualification/reports
+          if-no-files-found: error
+          retention-days: 14
 
   chm-contracts:
     name: 'CHM archive and conversion contracts / ${{ matrix.os }} / ${{ matrix.framework }}'

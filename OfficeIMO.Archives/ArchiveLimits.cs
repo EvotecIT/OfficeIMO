@@ -40,6 +40,7 @@ internal sealed partial class ArchiveLimits {
     internal int Entries { get; }
     internal int Cabinets { get; }
     internal long Entry { get; }
+    internal long TemporaryBytes { get; set; }
     internal long Expanded { get; }
     internal OfficeCabinetWorkBudget DecompressionWork { get; }
     internal long Metadata { get; }
