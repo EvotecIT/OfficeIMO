@@ -12,6 +12,7 @@ public sealed partial class HtmlRenderingTests {
             + "@page{@top-center{content:'ł';font:16px Arial}}body{margin:0}</style><div>Body</div>";
         HtmlConversionDocument document = HtmlConversionDocument.Parse(html);
         var options = new HtmlToPdfOptions { MaxLayoutOperations = 10_000 };
+        options.ResourcePolicy.AllowDocumentFontEmbedding = false;
 
         HtmlDomLimitException error = Assert.Throws<HtmlDomLimitException>(() =>
             HtmlPdfRenderedConverter.Convert(document, options));
