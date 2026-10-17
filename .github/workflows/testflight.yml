@@ -1,0 +1,29 @@
+name: TestFlight
+
+on:
+  workflow_dispatch:
+    inputs:
+      operation:
+        description: Build latest qualified master, or change automatic TestFlight builds
+        type: choice
+        required: true
+        default: Build now
+        options:
+          - Build now
+          - 'Automatic: Off'
+          - 'Automatic: Selected PRs'
+          - 'Automatic: Every merged PR'
+      pull_request:
+        description: Optional merged PR number; builds latest qualified master containing it
+        type: string
+        required: false
+
+permissions:
+  contents: read
+
+jobs:
+  request:
+    uses: EvotecIT/PSPublishModule/.github/workflows/powerforge-apple-testflight-request.yml@4df0e1cb243c884b08a92a141fd248aafb71d7bf
+    with:
+      operation: ${{ inputs.operation }}
+      pull_request: ${{ inputs.pull_request }}

@@ -1,0 +1,19 @@
+name: Studio Apple monitor
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '23 7 * * *'
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  doctor:
+    uses: EvotecIT/PSPublishModule/.github/workflows/powerforge-apple-monitor.yml@4df0e1cb243c884b08a92a141fd248aafb71d7bf
+    with:
+      source_ref: ${{ github.sha }}
+      config_path: Build/Studio/Apple/powerforge.release.json
+      powerforge_ref: 4df0e1cb243c884b08a92a141fd248aafb71d7bf
+      issue_title: Studio Apple release monitor detected a failure

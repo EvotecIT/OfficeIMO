@@ -19,7 +19,8 @@
     "GovernanceConfigPath": "Build/Studio/Apple/appstoreconnect-governance.json",
     "AppInfoConfigPath": "Build/Studio/Apple/appstoreconnect-app-info.json",
     "MetadataConfigPaths": [
-      "Build/Studio/Apple/appstoreconnect-metadata-macos.json"
+      "Build/Studio/Apple/appstoreconnect-metadata-macos.json",
+      "Build/Studio/Apple/appstoreconnect-metadata-ios.json"
     ],
     "Apps": [
       {
@@ -27,12 +28,34 @@
         "BundleId": "com.evotec.officeimo.studio",
         "Platform": "macOS",
         "DistributionRoute": "AppStore",
-        "ProjectPath": "Build/Studio/Apple/powerforge.dotnetpublish.json",
-        "DotNetPublishInstallerId": "OfficeIMO.Studio.macOS.AppStore",
-        "Scheme": "OfficeIMO Studio",
+        "ProductRole": "PrimaryApp",
+        "TestFlightPolicy": "Internal",
+        "ProjectPath": "Apple/OfficeIMOStudio/OfficeIMOStudio.xcodeproj",
+        "Scheme": "OfficeIMOStudio-macOS",
         "AppStoreConnectAppId": "6818096229",
-        "MarketingVersion": "1.0",
-        "BuildNumber": "1"
+        "Capabilities": [
+          "AppIntents"
+        ],
+        "RequiredPrivacyUsageDescriptionKeys": [],
+        "ProductName": "OfficeIMO Studio"
+      },
+      {
+        "Name": "OfficeIMO Studio iOS",
+        "BundleId": "com.evotec.officeimo.studio",
+        "Platform": "iOS",
+        "DistributionRoute": "AppStore",
+        "ProductRole": "PrimaryApp",
+        "TestFlightPolicy": "Internal",
+        "ProjectPath": "Apple/OfficeIMOStudio/OfficeIMOStudio.xcodeproj",
+        "Scheme": "OfficeIMOStudio-iOS",
+        "AppStoreConnectAppId": "6818096229",
+        "Capabilities": [
+          "AppIntents"
+        ],
+        "RequiredPrivacyUsageDescriptionKeys": [
+          "NSCameraUsageDescription"
+        ],
+        "ProductName": "OfficeIMO Studio"
       }
     ],
     "ArchiveRoot": "Artifacts/Studio/Apple/archives",
@@ -41,7 +64,21 @@
       "ReceiptPath": "Artifacts/Studio/Apple/release-receipt.json",
       "PlanReceiptPath": "Artifacts/Studio/Apple/release-plan.json",
       "ReceiptHistoryPath": "Artifacts/Studio/Apple/receipts",
-      "LockPath": "Artifacts/Studio/Apple/release.lock"
-    }
+      "LockPath": "Artifacts/Studio/Apple/release.lock",
+      "VersionSourcePath": "Apple/OfficeIMOStudio/Version.xcconfig",
+      "MarketingVersionPattern": "1.X",
+      "Resume": true,
+      "WaitForProcessing": true,
+      "ProcessingTimeoutSeconds": 1800,
+      "PollIntervalSeconds": 20,
+      "MinimumFreeSpaceGB": 20
+    },
+    "CreateMissingTestFlightTesters": false,
+    "TestFlightBetaGroupIds": [
+      "ccc42f25-6b4a-4cf9-aa32-5628016a4852"
+    ],
+    "TestFlightBetaGroupNames": [
+      "Studio Internal"
+    ]
   }
 }

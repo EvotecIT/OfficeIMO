@@ -4,15 +4,18 @@ The native Swift app for the Mac, iPad and iPhone, built on the shared C# engine
 
 ## Build
 
-The app links `OfficeIMOStudioEngine.xcframework`, which is built from source and kept out of the repository. On a Mac with Xcode and the .NET SDK selected by `global.json`, from the repository root:
+Open `OfficeIMOStudio.xcodeproj` and run the `OfficeIMOStudio-macOS` or `OfficeIMOStudio-iOS` scheme. Both targets use the local [engine package](../OfficeIMOStudioEngine/Package.swift), which downloads the versioned OfficeIMO NativeAOT XCFramework and verifies its SHA-256. No separate local engine copy or symlink is needed. The apps require macOS, iPadOS or iOS 26; the framework includes Intel and Apple silicon Mac slices, arm64 iOS, and the arm64 iOS simulator.
+
+The Swift UI calls the existing OfficeIMO engine through its C interface. Packaging the engine separately changes build delivery, not document behavior or the native interface. The package also embeds the engine's MIT and third-party license notices.
+
+To produce an updated engine from the repository root on a Mac with Xcode and the SDK selected by `global.json`:
 
 ```sh
 pwsh OfficeIMO.Studio.Native/Build-AppleEngine.ps1 -OutputDirectory <build-folder>/engine
-mkdir -p Apple/OfficeIMOStudio/Engine
-ln -sfn <build-folder>/engine/OfficeIMOStudioEngine.xcframework Apple/OfficeIMOStudio/Engine/OfficeIMOStudioEngine.xcframework
+pwsh Build/Studio/Apple/Pack-StudioAppleEngine.ps1 -EngineDirectory <build-folder>/engine -OutputDirectory <build-folder>/package -PowerForgeCli <PowerForge.Cli.dll> -SourceCommit <engine-source-commit> -Version <x.y.z>
 ```
 
-Then open `OfficeIMOStudio.xcodeproj` and run the `OfficeIMOStudio-macOS` or `OfficeIMOStudio-iOS` scheme. The apps require macOS, iPadOS or iOS 26 and run in the arm64 iOS simulator. The framework's module map links the system libraries and frameworks the engine needs, so the targets only link the XCFramework.
+The packer uses PowerForge's exact dependency notice validation and archive builder. Its `Publish` option uses PowerForge's GitHub release publisher and the private `GITHUB_TOKEN` environment variable. Update the package's immutable URL, checksum and generated license resources together for a new engine artifact. See [Apple distribution](../../Build/Studio/Apple/README.md) for release entrypoints.
 
 ## Layout
 

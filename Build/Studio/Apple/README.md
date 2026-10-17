@@ -1,11 +1,8 @@
-# Apple distribution channels
+# Apple distribution
 
-OfficeIMO Studio keeps direct macOS distribution and the Mac App Store as separate product channels. Users can choose either channel; Store preparation must not remove the signed and notarized direct download.
+OfficeIMO Studio uses the native Swift app for the Mac App Store and the iPhone/iPad App Store. Both targets call the shared OfficeIMO C# document engine through its NativeAOT C interface. The current supported features are listed on the [Studio page](https://officeimo.com/studio/#features); the Apple release does not require the Windows/Linux interface or feature set.
 
-## Store identity and onboarding
-
-OfficeIMO Studio uses one App Store Connect record for the native macOS app and
-the iPhone/iPad app:
+## Store identity
 
 | Setting | Value |
 | --- | --- |
@@ -16,44 +13,63 @@ the iPhone/iPad app:
 | SKU | `officeimo-studio` |
 | Primary language | English (U.S.) |
 | Store price | Free |
-| Country availability | All current App Store countries and regions, including new regions added by Apple |
 
-iPadOS uses the iOS store entry. The Mac entry is a separate native application
-binary under the same record. An iPhone app running on Apple silicon does not
-qualify the native Mac product.
+The iOS target includes iPhone and iPad. The native Mac target is a separate binary under the same App Store Connect record. `powerforge.release.json` selects both Xcode schemes and reads their shared identity from `Apple/OfficeIMOStudio/Version.xcconfig`. Action flags stay false in Git; named PowerForge actions select the transition to execute.
 
-`powerforge.store-onboarding.json` owns remote setup without build targets.
-`powerforge.release.json` selects the native .NET Mac App Store archive target;
-its `DotNetPublishInstallerId` routes through PowerForge's shared MacApp packager.
-The selected `powerforge.dotnetpublish.json` builds a self-contained Apple silicon
-single-file host with native libraries kept outside the executable for signing.
-No GUI adaptation or mobile placeholder host is part of this configuration.
+## Engine artifact and notices
 
-Load the existing App Store Connect environment from the trusted builder, then
-use the shared engine for the supported governance operations:
+The local [Swift package](../../../Apple/OfficeIMOStudioEngine/Package.swift) pins the versioned XCFramework by URL and SHA-256. The engine stays MIT licensed and uses the existing OfficeIMO libraries. Its notice resource target carries the first-party license files and exact dependency inventories for all four native runtime slices.
+
+Build an engine with `OfficeIMO.Studio.Native/Build-AppleEngine.ps1`, then package it with `Pack-StudioAppleEngine.ps1` as shown in the [native app guide](../../../Apple/OfficeIMOStudio/README.md#build). The packer uses PowerForge for dependency notice validation, archive creation, provenance metadata and optional GitHub release publication. `third-party-notices.json` binds reviewed texts to exact package versions; missing coverage fails packaging. Keep the artifact URL, checksum and generated package licenses together when updating the engine.
+
+## Local native development
+
+Use PowerForge's native deployment entrypoint with the release configuration:
 
 ```text
-powerforge apple-governance validate --config Build/Studio/Apple/appstoreconnect-governance.json
-powerforge apple-governance plan --config Build/Studio/Apple/appstoreconnect-governance.json --release-config Build/Studio/Apple/powerforge.store-onboarding.json --receipt Artifacts/Studio/Apple/governance-plan.json --fail-on-drift --summary --output json
+powerforge apple-deploy --config Build/Studio/Apple/powerforge.release.json --platform macOS --target "OfficeIMO Studio macOS"
+powerforge apple-deploy --config Build/Studio/Apple/powerforge.release.json --platform iOS --target "OfficeIMO Studio iOS" --device-id <device-id>
 ```
 
-Apply a reviewed full plan with `apple-governance apply --reviewed-plan ...
---confirm`, then replan. The committed declaration owns only its populated
-sections. Empty accessibility, encryption, and subscription arrays carry no
-claims and do not erase remote resources. Availability is declared separately
-from price; a free price does not make an unpublished app available.
+The native Mac app uses the App Sandbox, user-selected document access and the system print panel. iPhone and iPad use the system document browser, photo picker and document camera. Document processing and OCR run on the device. These targets do not ship the Avalonia assistant or its remote-provider account flow.
 
-The app-information and macOS metadata files are submission inputs, not proof
-of a qualified Store build. Publish the linked privacy policy before syncing its
-URL. Check every feature against the final sandbox build before syncing the
-description. Mobile descriptions and screenshots must come from the mobile
-product rather than desktop capabilities. Upload, review, and release actions
-remain disabled in the onboarding configuration.
+## TestFlight and App Review
 
-Open implementation and qualification work belongs in
-[the Studio roadmap](../../../Docs/ROADMAP.md#desktop-studio).
+Load App Store Connect credentials from the trusted builder's private profile. Keep keys, provisioning profiles, worker policy and durable receipts outside Git. Use the same PowerForge release owner for both platforms:
 
-## Local macOS development
+```text
+powerforge apple-release Doctor --config Build/Studio/Apple/powerforge.release.json --summary --output json
+powerforge apple-release Version --config Build/Studio/Apple/powerforge.release.json --plan --summary --output json
+powerforge apple-release Version --config Build/Studio/Apple/powerforge.release.json --confirm-apple-action --summary --output json
+powerforge apple-release Advance --config Build/Studio/Apple/powerforge.release.json --plan --summary --output json
+powerforge apple-release Advance --config Build/Studio/Apple/powerforge.release.json --confirm-apple-action --summary --output json
+powerforge apple-release SubmitAppReview --config Build/Studio/Apple/powerforge.release.json --plan --summary --output json
+powerforge apple-release SubmitAppReview --config Build/Studio/Apple/powerforge.release.json --confirm-apple-action --summary --output json
+```
+
+Commit the shared version change before archiving. Review each plan and use the exact-source release mode for signed candidates. `Advance` prepares builds, store metadata and the configured internal `Studio Internal` TestFlight group. Submission to public App Review is a separate action. The same Store-eligible binary can serve internal testing and App Review; do not export it as TestFlight Internal Only.
+
+The two metadata files describe each native platform's supported scope. Screenshots must show the corresponding native product and use reviewed byte manifests. Qualify open/save, markup, page organization, form filling, scan/conversion, recovery and accessibility on the actual candidates. Simulator proof does not establish physical-device acceptance. Open work belongs in [the Studio roadmap](../../../Docs/ROADMAP.md#desktop-studio).
+
+## Store declarations
+
+`powerforge.store-onboarding.json` owns remote setup without archive targets. `appstoreconnect-governance.json` declares free pricing, worldwide availability and the reviewed encryption facts. Empty accessibility and subscription arrays make no claims and erase nothing. Plan and apply governance through PowerForge, retaining the exact reviewed plan.
+
+The native privacy manifest records required-reason APIs used by document recovery, selected files, preferences and timing. The public policy is maintained in `OfficeIMO.Studio/PRIVACY.md` and [the website privacy page](https://officeimo.com/studio/privacy/). Review the native app's actual behavior when answering Apple's privacy questionnaire.
+
+The bundled engine implements PDF encryption and certificate signatures. MIT/public source does not establish export exemption. Apple's declaration and any required documents must be accepted before the relevant review gate; do not infer readiness from a locally generated manifest.
+
+## TestFlight automation
+
+The **TestFlight** GitHub workflow provides **Build now**, **Automatic: Off**, **Automatic: Selected PRs**, and **Automatic: Every merged PR**. It records a request for the trusted PowerForge worker; GitHub does not receive Apple signing credentials. The worker qualifies the exact `master` commit with **Native Apple qualification** and deploys both native targets to the configured internal group. Automatic builds start disabled. Private worker enrollment and operator paths stay outside this public repository.
+
+The **Studio Apple monitor** runs the shared read-only Doctor daily and retains its receipt. Its incident is updated only when the observed release state changes. The worker and monitor use the same pinned PowerForge source.
+
+## Open-source distribution
+
+The first-party software remains MIT licensed. Store pricing is a separate product choice. Apple distribution does not replace the copyright notices, permission grants or third-party license obligations. See [open-source notices](../../../OfficeIMO.Studio/OPEN_SOURCE.md).
+
+## Avalonia Mac development
 
 Use the certificate-signed development build for everyday file access:
 
@@ -95,7 +111,7 @@ Development signatures are for local use; this build does not publish, notarize,
 or create a Store submission. See Apple's
 [code identity guidance](https://developer.apple.com/documentation/technotes/tn3127-inside-code-signing-requirements).
 
-## Direct download
+## Avalonia direct download
 
 The [direct-download configuration](../powerforge.dotnetpublish.json) produces architecture-specific, multi-file self-contained `.app` bundles and `ditto` ZIP archives. PowerForge signs the native libraries in place instead of relying on single-file extraction. `Direct.entitlements` grants only the JIT permission required by the current non-NativeAOT .NET runtime.
 
@@ -107,123 +123,3 @@ A public artifact requires all of the following on a trusted macOS builder:
 2. Secure timestamps remain enabled.
 3. PowerForge submits the exact signed artifact for notarization, staples the ticket, and verifies it with `codesign` and Gatekeeper.
 4. The release record binds the source commit, artifact SHA-256, signing identity, and notarization result.
-
-## Mac App Store
-
-`AppStore.entitlements` enables the App Sandbox, user-selected document read/write,
-app-scoped bookmarks, outbound connections, a loopback listener for the ChatGPT sign-in
-callback, and JIT support. Store builds use
-`OfficeIMOStudioDistribution=MacAppStore`: app data stays in the Apple container,
-external Tesseract discovery and printer command execution are blocked with a
-contextual explanation. In-process document conversions and print-PDF preparation
-remain available. Document conversions do not require external office
-applications or converters.
-
-The shared packager places the host and native code in `Contents/MacOS`, notices
-and data in `Contents/Resources`, signs nested Mach-O code before the app, and
-creates a signed `.pkg` with `productbuild`. It checks the app's distribution
-team, installer signature, and the expanded installer payload. Runtime code must
-use bundle resource paths for external content; Store data is not beside the host.
-
-Use the PowerForge CLI built from the shared source containing this backend:
-
-```text
-powerforge apple-release Archive --config Build/Studio/Apple/powerforge.release.json --plan --summary --output json
-powerforge apple-release Archive --config Build/Studio/Apple/powerforge.release.json --summary --output json
-powerforge apple-release Rehearse --config Build/Studio/Apple/powerforge.release.json --plan --summary --output json
-powerforge apple-release Rehearse --config Build/Studio/Apple/powerforge.release.json --summary --output json
-```
-
-The second command creates a signed package and `.xcarchive` locally. It requires
-an Apple distribution application identity and a Mac installer distribution
-identity for team `8ZPGZ79T7J`. A development certificate can qualify sandbox
-behavior but cannot produce a Store installer. Install credentials on the trusted
-builder; never commit private keys, certificates, keychains, or provisioning
-profiles.
-
-Create a Mac App Store Connect profile for `com.evotec.officeimo.studio` using the
-application distribution certificate installed on the builder. Set
-`OFFICEIMO_MAC_STORE_PROFILE` to the downloaded profile's absolute path, then
-stage it at the ignored path selected by `ProvisioningProfilePath`:
-
-```sh
-mkdir -p Artifacts/Studio/Apple/signing
-cp "$OFFICEIMO_MAC_STORE_PROFILE" Artifacts/Studio/Apple/signing/OfficeIMO-Studio-MacAppStore.provisionprofile
-```
-
-The committed entitlements bind the app to that bundle and team. The packager
-rejects expired, wrong-team, wrong-bundle and development profiles. Renew the
-profile when its certificate changes or the profile expires.
-
-Keep marketing version and build number identical in the release target and
-MacApp configuration. This backend uses explicit versions; Xcode project
-generation, automatic version mutation, and the Swift exact-package snapshot
-mode do not apply. `Archive` prepares the signed app and installer. `Rehearse`
-also runs Xcode's local App Store export and retains the exported package without
-uploading it. Local export does not prove Apple ingestion; verify the exact build
-reaches `VALID` after an authorized upload. Upload, metadata synchronization,
-review submission and release are disabled in this configuration.
-
-Use a development-signed sandbox build for local interaction checks and
-TestFlight for the Store-distributed build. Apple does not support reliably
-launching an App Store distribution-signed app directly, especially with
-restricted entitlements; a production-profile launch rejection is not runtime
-qualification. See [Apple's certificate guidance](https://developer.apple.com/documentation/technotes/tn3161-inside-code-signing-certificates).
-
-Before submission, qualify user-selected open/save, retained bookmarks after
-relaunch, recovery and recent documents, network features, clean install/update,
-and accessibility on the final Store-signed build. Capture screenshots from that
-build. Store builds use Apple's update channel.
-
-The privacy policy is maintained in `OfficeIMO.Studio/PRIVACY.md` and the public
-website page `Website/content/pages/studio-privacy.md`. Publish the policy before
-syncing its URL. Local document processing, container diagnostics and settings
-must be distinguished from optional remote assistance: the selected provider
-receives questions and document evidence, and its account and retention terms
-apply. Review provider behavior and Apple's optional-collection exceptions before
-answering the privacy questionnaire; do not infer a blanket "data not collected"
-answer from local processing.
-
-Apple's [required-reason API guidance](https://developer.apple.com/documentation/bundleresources/describing-use-of-required-reason-api)
-covers iOS, iPadOS, tvOS, visionOS and watchOS. Assess the actual mobile host and
-its SDKs before declaring reasons. Studio uses file timestamps for container
-recovery/signatures and selected-document thumbnail invalidation. Avalonia's
-native macOS storage provider creates and resolves security-scoped bookmarks.
-These observations are inputs to qualification, not a completed mobile manifest.
-
-Studio's protected-PDF features use application-level cryptography, including
-BouncyCastle. Assess that exact graph for export compliance; do not set
-`ITSAppUsesNonExemptEncryption=false` merely because network requests use HTTPS.
-Derive required-reason privacy manifests from the final runtime and native
-dependencies. An empty manifest or an unverified "data not collected" answer is
-not a privacy audit, especially when remote document assistance is enabled.
-
-## Open-source distribution
-
-The app publishes the repository MIT license, WebM/libvpx license and patent grant,
-sRGB profile terms, and
-[the open-source explanation](../../../OfficeIMO.Studio/OPEN_SOURCE.md) under
-`Licenses/`. Store packages retain these files in
-`Contents/Resources/Licenses/`, alongside generated `THIRD_PARTY_NOTICES.txt` and
-`runtime-package-inventory.json`. `third-party-notices.json` binds reviewed
-license text hashes to exact published package versions. Dependency upgrades
-require refreshed coverage; unknown versions fail packaging.
-Review every managed and native dependency in the exact published artifact and
-include its required notices before distribution. The website dependency
-inventory identifies packages; it does not prove notice coverage for a binary.
-
-The first-party software stays MIT licensed. The free store price is a product
-choice, separate from the license. Do not add a store-only source license,
-subscription tier, license server, or source-disclosure requirement. Apple’s
-standard store terms do not replace notices for the included open-source code.
-
-## Future iPhone and iPad apps
-
-An iOS or iPadOS product is not another runtime identifier for the desktop executable. It should reuse the OfficeIMO document engines, workflow contracts, preferences/localization abstractions, and portable view models where appropriate, while owning a mobile interaction shell, document-picker and security-scoped storage adapters, lifecycle behavior, and platform-specific packaging in an Apple target.
-
-The iPhone/iPad host uses `com.evotec.officeimo.studio` and the existing iOS
-record. It needs a real .NET iOS application host and device-family declaration,
-AOT-compatible engine dependencies, document-picker and permission adapters,
-and signed physical-device proof. Avoid a blank placeholder app or a Swift
-shell that duplicates the C# document engines. GUI adaptation follows the mobile
-feasibility criteria in the roadmap.
