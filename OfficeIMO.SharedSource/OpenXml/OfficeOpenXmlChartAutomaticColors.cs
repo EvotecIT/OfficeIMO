@@ -104,7 +104,7 @@ internal static class OfficeOpenXmlChartAutomaticColors {
     }
 
     /// <summary>Resolves the automatic colour of one series element from its chart's style and theme.</summary>
-    internal static OfficeColor? ResolveSeries(OpenXmlCompositeElement series, A.ColorScheme? scheme,
+    internal static OfficeColor? ResolveSeries(OpenXmlElement series, A.ColorScheme? scheme,
         bool useSpreadsheetDefaultTheme = false) {
         C.ChartSpace? chartSpace = series.Ancestors<C.ChartSpace>().FirstOrDefault();
         uint index = series.GetFirstChild<C.Index>()?.Val?.Value ?? 0U;

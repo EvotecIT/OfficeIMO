@@ -133,6 +133,27 @@ internal static class OfficeOpenXmlChartPointStyles {
             outlineWidth: style.OutlineWidth, showOutline: style.ShowOutline, outlineJoin: style.OutlineJoin);
     }
 
+    /// <summary>Projects qualified ribbon paint into the shared flat stroke without confusing its fill and border.</summary>
+    internal static (OfficeChartPointStyle Paint, OfficeColor? Color, bool Automatic) ReadRibbonPaint(
+        OpenXmlElement series, A.ColorScheme? scheme, bool useSpreadsheetDefaultTheme = false) {
+        var native = ReadStyle(series.GetFirstChild<C.ChartShapeProperties>(), scheme);
+        var inherited = ReadSeriesStyle(series, scheme);
+        bool fill = native?.NoFill != true, outline = native?.ShowOutline != false;
+        OfficeColor? automatic = (fill && native?.FillColor == null || outline && native?.OutlineColor == null)
+            ? OfficeOpenXmlChartAutomaticColors.ResolveSeries(series, scheme, useSpreadsheetDefaultTheme) : null;
+        OfficeColor? body = native?.FillColor ?? (fill ? automatic : null);
+        OfficeColor? border = native?.OutlineColor ?? (outline ? automatic : null);
+        bool visibleFill = fill && (!body.HasValue || body.Value.A > 0);
+        bool visibleOutline = outline && (!border.HasValue || border.Value.A > 0);
+        OfficeColor? color = visibleFill ? body : visibleOutline ? border : body ?? border;
+        bool automaticColor = OfficeOpenXmlChartAutomaticColors.HasAutomaticSeriesColor(series) ||
+            (visibleFill ? native?.FillColor == null : visibleOutline && native?.OutlineColor == null);
+        var paint = new OfficeChartPointStyle(inherited?.FillColor, native?.NoFill ?? false,
+            inherited?.Hatch, inherited?.HatchColor, automaticColor ? null : color,
+            native?.OutlineWidth, visibleFill || visibleOutline, native?.OutlineJoin);
+        return (paint, color, automaticColor);
+    }
+
     internal static OfficeChartPointStyle? ReadStyle(C.ChartShapeProperties? properties, A.ColorScheme? scheme) {
         if (properties == null) return null;
         OfficeColor? fill = OfficeOpenXmlThemeColorResolver.ResolveColor(properties.GetFirstChild<A.SolidFill>(), scheme);
@@ -250,6 +271,10 @@ internal static class OfficeOpenXmlChartPointStyles {
             if (style.ShowOutline == false || style.OutlineColor.HasValue) {
                 outline.RemoveAllChildren<A.NoFill>();
                 outline.RemoveAllChildren<A.SolidFill>();
+                outline.RemoveAllChildren<A.GradientFill>();
+                outline.RemoveAllChildren<A.PatternFill>();
+                outline.RemoveAllChildren<A.BlipFill>();
+                outline.RemoveAllChildren<A.GroupFill>();
             } else if (style.ShowOutline == true) outline.RemoveAllChildren<A.NoFill>();
             if (style.OutlineJoin.HasValue) {
                 outline.RemoveAllChildren<A.Round>();

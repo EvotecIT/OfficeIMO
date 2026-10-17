@@ -406,7 +406,8 @@ namespace OfficeIMO.Word {
         
 
         /// <summary>
-        /// Sets the color of a specific series by its zero-based index across supported chart types.
+        /// Sets the base fill of a filled cartesian, filled radar, bubble or 3-D line series, or the connecting
+        /// stroke of a 2-D line, scatter or unfilled radar series. Explicit point and marker overrides are retained.
         /// </summary>
         public WordChart SetSeriesColor(uint index, OfficeIMO.Drawing.OfficeColor color) {
             if (_chart == null) return this;
@@ -420,22 +421,27 @@ namespace OfficeIMO.Word {
                 .Concat(plot.Elements<AreaChart>().SelectMany(ch => ch.Elements<AreaChartSeries>()))
                 .Concat(plot.Elements<Area3DChart>().SelectMany(ch => ch.Elements<AreaChartSeries>()))
                 .Concat(plot.Elements<RadarChart>().SelectMany(ch => ch.Elements<RadarChartSeries>()))
-                .Concat(plot.Elements<ScatterChart>().SelectMany(ch => ch.Elements<ScatterChartSeries>()));
+                .Concat(plot.Elements<ScatterChart>().SelectMany(ch => ch.Elements<ScatterChartSeries>()))
+                .Concat(plot.Elements<BubbleChart>().SelectMany(ch => ch.Elements<BubbleChartSeries>()));
 
             foreach (var s in allSeries) {
                 var idx = s.GetFirstChild<DocumentFormat.OpenXml.Drawing.Charts.Index>()?.Val?.Value ?? 999999U;
                 if (idx != index) continue;
-                OfficeIMO.OpenXml.Internal.OfficeOpenXmlChartAutomaticColors.ClearAutomaticSeriesColor(s);
-                var spPr = s.GetFirstChild<ChartShapeProperties>();
-                if (spPr == null) { spPr = AddShapeProperties(color); s.Append(spPr); }
-                else {
-                    spPr.RemoveAllChildren<DocumentFormat.OpenXml.Drawing.SolidFill>();
-                    spPr.Append(new DocumentFormat.OpenXml.Drawing.SolidFill(
-                        new DocumentFormat.OpenXml.Drawing.RgbColorModelHex() { Val = color.ToRgbHex() }));
-                }
+                ApplyNativeSeriesColor(s, color);
                 break;
             }
             return this;
+        }
+
+        private static void ApplyNativeSeriesColor(OpenXmlCompositeElement series, OfficeIMO.Drawing.OfficeColor color) {
+            OfficeIMO.OpenXml.Internal.OfficeOpenXmlChartAutomaticColors.ClearAutomaticSeriesColor(series);
+            var properties = series.GetFirstChild<ChartShapeProperties>();
+            if (properties == null) { properties = new ChartShapeProperties(); series.AddChild(properties, true); }
+            bool line = series is LineChartSeries && series.Parent is not Line3DChart || series is ScatterChartSeries ||
+                series is RadarChartSeries && (series.Parent as RadarChart)?.RadarStyle?.Val?.Value != RadarStyleValues.Filled;
+            var paint = line ? new OfficeIMO.Drawing.OfficeChartPointStyle(outlineColor: color)
+                : new OfficeIMO.Drawing.OfficeChartPointStyle(fillColor: color);
+            OfficeIMO.OpenXml.Internal.OfficeOpenXmlChartPointStyles.ApplySeriesPaint(properties, paint);
         }
 
         /// <summary>
@@ -542,13 +548,7 @@ namespace OfficeIMO.Word {
                         ? sem
                         : palette[idxPal++ % palette.Length];
 
-                    var spPr = s.GetFirstChild<ChartShapeProperties>();
-                    if (spPr == null) { spPr = AddShapeProperties(c); s.Append(spPr); }
-                    else {
-                        spPr.RemoveAllChildren<DocumentFormat.OpenXml.Drawing.SolidFill>();
-                        spPr.Append(new DocumentFormat.OpenXml.Drawing.SolidFill(
-                            new DocumentFormat.OpenXml.Drawing.RgbColorModelHex() { Val = c.ToRgbHex() }));
-                    }
+                    ApplyNativeSeriesColor(s, c);
                 }
             }
 
@@ -560,6 +560,7 @@ namespace OfficeIMO.Word {
             colorSeries(plot.Elements<Area3DChart>().SelectMany(ch => ch.Elements<AreaChartSeries>()));
             colorSeries(plot.Elements<RadarChart>().SelectMany(ch => ch.Elements<RadarChartSeries>()));
             colorSeries(plot.Elements<ScatterChart>().SelectMany(ch => ch.Elements<ScatterChartSeries>()));
+            colorSeries(plot.Elements<BubbleChart>().SelectMany(ch => ch.Elements<BubbleChartSeries>()));
             return this;
         }
     }

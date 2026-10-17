@@ -125,6 +125,8 @@ fill, including point overrides where supported. Bottom-aligned table text also 
 named font's final descent when its line advance is shorter than its font box, preventing
 spreadsheet glyphs from being clipped at a cell or worksheet boundary.
 
+`WordChart.SetSeriesColor` and series palettes replace the base fill on filled cartesian, filled radar, bubble and 3-D line series, and the connecting stroke on 2-D line, scatter and unfilled radar charts. They replace an existing no-fill choice and preserve independent outlines on filled series. Code inspecting line-chart XML should read the colour from `a:ln/a:solidFill`.
+
 Word, Excel and PowerPoint charts whose series or slices store no colour now render with the colours Office gives them, instead of being skipped (PowerPoint, Word images) or drawn with OfficeIMO's fallback palette (Excel, Word PDF). The colour comes from the classic `c:style` number (2 when absent) and the theme accents; from the seventh series on, Office's darker and lighter variations apply. Charts authored through OfficeIMO APIs that store no series colour change colour accordingly. A palette passed in `PowerPointToPdfOptions.ChartStyle` or `ExcelToPdfOptions.ChartStyle` still replaces these automatic colours.
 
 Office does not consult the `cs:chartStyle` and `cs:colorStyle` parts when it draws a chart, so they no longer prevent Word charts from rendering and no longer change exported colours. An `ExcelChartStylePreset` colour style no longer reorders the exported automatic pie palette.
@@ -139,6 +141,8 @@ Other native chart geometry now follows Office, so chart renders and baselines c
 - Charts that set `c:plotVisOnly` but carry no workbook at all render from their cached values, as Office does. Charts whose workbook link is external or unresolved still return `false`.
 
 3-D, pie-of-pie and surface charts still render as flat 2-D projections, and now say so: PowerPoint PDF and image export report `chart-projected`, Word PDF reports `NativeBodyChartSimplified`, and Excel PDF reports `chart-approximation`. Excel PDF export now draws stock and surface charts this way instead of skipping them. A skipped PowerPoint chart's `unsupported-chart` warning names the actual reason. Reading a chart snapshot no longer hides unexpected exceptions; only document content that cannot be projected returns `false`.
+
+Flat 3-D line projections use the visible ribbon fill before its border colour. An outline-only ribbon retains its outline colour; disabling both fill and outline leaves the series invisible. Caller palettes still replace automatic ribbon colours.
 
 PowerPoint SmartArt now renders from the drawing Office caches with the diagram (`ppt/diagrams/drawing*.xml`), so producer layouts keep their shapes, colours and text positions in PDF and image export. When that drawing is missing or no longer matches the diagram text, the existing semantic layout is used; if neither applies, `unsupported-smartart` names both reasons. Worksheet SmartArt is reported as `WorksheetSmartArt` in Excel PDF export instead of being omitted silently.
 

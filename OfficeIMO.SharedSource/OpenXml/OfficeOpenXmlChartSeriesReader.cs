@@ -205,6 +205,7 @@ namespace OfficeIMO.OpenXml.Internal {
             if (ribbon) inheritedMarkers = false;
             bool showMarkers = markerShape.HasValue && markerShape != OfficeChartMarkerShape.Auto
                 ? markerShape != OfficeChartMarkerShape.None : inheritedMarkers;
+            if (ribbon && !forDataUpdate) showMarkers = false;
             bool connectLine = ribbon || outline?.GetFirstChild<A.NoFill>() == null && scatterStyle != C.ScatterStyleValues.Marker;
             if (ribbon) {
                 stroke ??= fill;
@@ -215,7 +216,7 @@ namespace OfficeIMO.OpenXml.Internal {
                 markerShape = OfficeOpenXmlChartAutomaticColors.ResolveMarker(element.GetFirstChild<C.Index>()?.Val?.Value ?? (uint)fallbackIndex);
                 markerSize ??= OfficeOpenXmlChartAutomaticColors.AutomaticMarkerSize;
             }
-            Reject(markerShape == OfficeChartMarkerShape.Picture, "picture markers");
+            Reject(showMarkers && markerShape == OfficeChartMarkerShape.Picture, "picture markers");
             Reject(connectLine && outline?.GetFirstChild<A.PresetDash>() != null && ReadDash(outline) == null,
                 "a line dash pattern");
             bool area = kind == OfficeChartKind.Area || kind == OfficeChartKind.AreaStacked || kind == OfficeChartKind.AreaStacked100;
@@ -229,7 +230,9 @@ namespace OfficeIMO.OpenXml.Internal {
             Reject(connectLine && curved && !ribbon, "smoothed lines");
             Reject(showMarkers && marker?.ChartShapeProperties?.GetFirstChild<A.NoFill>() != null, "unfilled markers");
             Reject(showMarkers && markerOutline?.GetFirstChild<A.NoFill>() != null, "markers without outlines");
-            OfficeColor? seriesColor = filled ? fill : !connectLine && showMarkers ? markerFill ?? stroke ?? fill : stroke ?? fill;
+            bool ribbonHasFill = ribbon && properties?.GetFirstChild<A.NoFill>() == null;
+            OfficeColor? seriesColor = ribbon ? ribbonHasFill ? fill : stroke :
+                filled ? fill : !connectLine && showMarkers ? markerFill ?? stroke ?? fill : stroke ?? fill;
             bool automaticColor = OfficeOpenXmlChartAutomaticColors.HasAutomaticSeriesColor(element);
             if (!forDataUpdate && seriesColor == null && kind is not OfficeChartKind.Pie and not OfficeChartKind.Doughnut) {
                 // Office colours series without a stored colour from the chart style and theme.
@@ -247,8 +250,10 @@ namespace OfficeIMO.OpenXml.Internal {
             if (ribbon && !forDataUpdate) {
                 // A 3-D ribbon projects its fill into a flat line. Its native edge's
                 // no-fill controls the ribbon border, not visibility of that projection.
-                seriesPaint = new OfficeChartPointStyle(outlineColor: stroke ?? fill,
-                    outlineWidth: width, showOutline: true);
+                var projection = OfficeOpenXmlChartPointStyles.ReadRibbonPaint(element, scheme);
+                seriesColor = projection.Color;
+                seriesPaint = projection.Paint;
+                automaticColor = projection.Automatic;
             }
             bool unsupportedPoints = pointOverrides.Any(point => point.Index?.Val?.Value is uint index && index < values.Count &&
                 (OfficeOpenXmlChartPointStyles.HasUnsupportedPointContent(point) || point.ChartShapeProperties != null &&

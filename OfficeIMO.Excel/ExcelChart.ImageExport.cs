@@ -465,6 +465,15 @@ namespace OfficeIMO.Excel {
                         throw new NotSupportedException("The native pie or doughnut point explosion cannot be rendered.");
                     style.PointExplosions = explosions;
                 }
+                if (series.Parent is C.Line3DChart) {
+                    var ribbon = OfficeOpenXmlChartPointStyles.ReadRibbonPaint(series,
+                        workbookPart.ThemePart?.Theme?.ThemeElements?.ColorScheme, useSpreadsheetDefaultTheme: true);
+                    style.SeriesStyle = ribbon.Paint;
+                    style.SeriesColorArgb = ribbon.Color?.ToRgbHex();
+                    style.AutomaticColor = ribbon.Automatic;
+                    style.ShowMarkers = false;
+                    style.ConnectLine = ribbon.Paint.ShowOutline != false;
+                }
 
                 if (style.HasAny && !styles.ContainsKey(index)) {
                     styles.Add(index, style);

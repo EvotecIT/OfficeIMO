@@ -18,6 +18,7 @@ public static partial class OfficeChartDrawingRenderer {
         bool clipped = plotBounds.HasValue && valueRange.HasValue;
         ChartPlotBounds bounds = plotBounds.GetValueOrDefault();
         ValueRange range = valueRange.GetValueOrDefault();
+        List<OfficePoint> boundary = areaPoints;
         if (clipped)
             areaPoints = ClipValuePolygon(areaPoints, range, bounds);
         OfficeColor? outline = paint?.ShowOutline == false || !showStroke ? null : paint?.OutlineColor ?? color;
@@ -29,7 +30,10 @@ public static partial class OfficeChartDrawingRenderer {
             AddStyledPointPolygon(drawing, areaPoints, color, fillPaint, null, 0);
         }
         if (outline.HasValue) {
-            if (clipped) {
+            if (paint?.OutlineJoin is OfficeStrokeLineJoin join) {
+                AddJoinedSeriesOutline(drawing, boundary, outline.Value, width, dashStyle, join,
+                    closed: true, plotBounds: clipped ? bounds : null, valueRange: clipped ? range : null);
+            } else if (clipped) {
                 AddClippedValueLine(drawing, topPoints, outline.Value, width, dashStyle, range, bounds);
                 AddClippedValueLine(drawing, bottomPoints, outline.Value, paint?.OutlineWidth ?? 0.5D, OfficeStrokeDashStyle.Solid,
                     range, bounds);

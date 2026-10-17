@@ -98,7 +98,13 @@ public static partial class OfficeChartDrawingRenderer {
 
     private static void AddScatterPlotLine(OfficeDrawing drawing, System.Collections.Generic.IReadOnlyList<OfficePoint> points,
         OfficeColor color, double strokeWidth, OfficeStrokeDashStyle dashStyle, bool clipPlot,
-        ValueRange xRange, ValueRange yRange, ChartPlotBounds bounds) {
+        ValueRange xRange, ValueRange yRange, ChartPlotBounds bounds, OfficeStrokeLineJoin? join = null) {
+        if (join.HasValue) {
+            AddJoinedSeriesOutline(drawing, points, color, strokeWidth, dashStyle, join.Value,
+                plotBounds: clipPlot ? bounds : null, valueRange: clipPlot ? yRange : null,
+                xRange: clipPlot ? xRange : null);
+            return;
+        }
         if (!clipPlot) {
             AddPointLine(drawing, points, color, strokeWidth, dashStyle);
             return;
