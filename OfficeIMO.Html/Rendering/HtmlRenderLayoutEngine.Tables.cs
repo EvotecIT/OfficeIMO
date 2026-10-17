@@ -212,6 +212,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
         if (caption != null && caption.Side == "top") AppendTableCaption(visuals, caption, style.MarginLeft, style.MarginTop);
         bool paintSeparateBorders = style.BorderCollapse != "collapse";
         AddBoxPaint(visuals, style, style.MarginLeft, tableY, tableWidth, tableHeight, table, paintSeparateBorders);
+        int rowBackgroundStart = visuals.Count;
+        var rowBackgroundLayers = new List<TableRowBackgroundLayer>();
         double contentX = style.MarginLeft + style.BorderLeftWidth + style.PaddingLeft;
         double rowY = tableY + style.BorderTopWidth + style.PaddingTop + verticalSpacing;
         double headerStart = rowY;
@@ -244,11 +246,17 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 }
                 groupHeight += verticalSpacing * Math.Max(0, groupRowCount - 1);
                 string groupSource = HtmlRenderStyleResolver.DescribeSource(row.GroupElement!);
-                AddBoxBackground(rowVisuals, row.GroupStyle, rowPaintX, rowY, rowPaintWidth, groupHeight, 0D, row.GroupElement!, groupSource, groupSource);
+                var groupBackground = new List<HtmlRenderVisual>();
+                AddBoxBackground(groupBackground, row.GroupStyle, rowPaintX, rowY, rowPaintWidth, groupHeight, 0D, row.GroupElement!, groupSource, groupSource);
+                if (groupBackground.Count > 0)
+                    rowBackgroundLayers.Add(new TableRowBackgroundLayer(groupBackground, true, row.IsHeader, row.IsFooter));
                 AddElementNamedDestination(navigationDestinations, row.GroupElement!, rowPaintX, rowY, navigationDestinations.Count);
             }
             string rowSource = HtmlRenderStyleResolver.DescribeSource(row.Element);
-            AddBoxBackground(rowVisuals, row.Style, rowPaintX, rowY, rowPaintWidth, row.Height, 0D, row.Element, rowSource, rowSource);
+            var rowBackground = new List<HtmlRenderVisual>();
+            AddBoxBackground(rowBackground, row.Style, rowPaintX, rowY, rowPaintWidth, row.Height, 0D, row.Element, rowSource, rowSource);
+            if (rowBackground.Count > 0)
+                rowBackgroundLayers.Add(new TableRowBackgroundLayer(rowBackground, false, row.IsHeader, row.IsFooter));
             if (!row.Anonymous) AddElementNamedDestination(navigationDestinations, row.Element, rowPaintX, rowY, navigationDestinations.Count);
             foreach (TableCellLayout cell in row.Cells) {
                 double logicalCellX = horizontalSpacing + columnOffsets[cell.Column] + horizontalSpacing * cell.Column;
@@ -349,6 +357,11 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 }
             }
         }
+        InsertTableRowBackgroundLayers(visuals, rowBackgroundLayers, rowBackgroundStart, 0D);
+        InsertTableRowBackgroundLayers(continuationVisuals,
+            rowBackgroundLayers.Where(layer => layer.IsHeader), 0, -headerStart);
+        InsertTableRowBackgroundLayers(trailingVisuals,
+            rowBackgroundLayers.Where(layer => layer.IsFooter), 0, -trailingStart);
         if (style.BorderCollapse == "collapse") {
             int borderVisualStart = visuals.Count;
             AddCollapsedTableBorders(visuals, table, style, fragmentBorders, rowLayouts, columnWidths, columnOffsets, contentX, tableY + style.BorderTopWidth + style.PaddingTop);
