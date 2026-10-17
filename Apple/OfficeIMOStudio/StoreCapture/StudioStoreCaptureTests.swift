@@ -1,4 +1,5 @@
 import XCTest
+import ImageIO
 #if os(macOS)
 import AppKit
 import ApplicationServices
@@ -40,11 +41,7 @@ final class StudioStoreCaptureTests: XCTestCase {
 
         let page = app.descendants(matching: .any).matching(identifier: "Page 1 of 1").firstMatch
         XCTAssertTrue(page.waitForExistence(timeout: 30), app.debugDescription)
-        let rendered = XCTNSPredicateExpectation(predicate: NSPredicate { _, _ in
-            app.progressIndicators.count == 0
-        }, object: nil)
-        XCTAssertEqual(XCTWaiter.wait(for: [rendered], timeout: 30), .completed)
-        capture(app, name: "studio-dashboard-" + role)
+        try capture(app, name: "studio-dashboard-" + role)
 
         // Compact iPhone chrome has its own layout. Its full-page capture is
         // sufficient; search captures use the visible regular-width search UI.
@@ -54,17 +51,53 @@ final class StudioStoreCaptureTests: XCTestCase {
             search.clickOrTap()
             search.typeText("Quarterly\n")
             XCTAssertTrue(app.staticTexts["1 of 1"].waitForExistence(timeout: 30), app.debugDescription)
-            capture(app, name: "studio-search-" + role)
+            try capture(app, name: "studio-search-" + role)
         }
     }
 
-    private func capture(_ app: XCUIApplication, name: String) {
+    private func snapshot(_ app: XCUIApplication) -> XCUIScreenshot {
         #if os(macOS)
         let path = ProcessInfo.processInfo.environment["STUDIO_CAPTURE_DOCUMENT_PATH"]!
-        let screenshot = app.windows[URL(fileURLWithPath: path).lastPathComponent].screenshot()
+        return app.windows[URL(fileURLWithPath: path).lastPathComponent].screenshot()
         #else
-        let screenshot = app.screenshot()
+        return app.screenshot()
         #endif
+    }
+
+    private func capture(_ app: XCUIApplication, name: String) throws {
+        var previousPixels: Data?
+        var stableSince: TimeInterval?
+        var accepted: XCUIScreenshot?
+        var lastError = "The public dashboard has not rendered."
+        let rendered = XCTNSPredicateExpectation(predicate: NSPredicate { _, _ in
+            guard app.progressIndicators.count == 0, app.alerts.count == 0 else {
+                stableSince = nil
+                return false
+            }
+            let screenshot = self.snapshot(app)
+            do {
+                guard let source = CGImageSourceCreateWithData(screenshot.pngRepresentation as CFData, nil),
+                      let image = CGImageSourceCreateImageAtIndex(source, 0, nil) else {
+                    throw StudioCapturePageReadiness.Failure.missingDashboard
+                }
+                let pixels = try StudioCapturePageReadiness.pagePixels(from: image)
+                let now = ProcessInfo.processInfo.systemUptime
+                if pixels != previousPixels || stableSince == nil {
+                    previousPixels = pixels
+                    stableSince = now
+                    return false
+                }
+                guard now - stableSince! >= 2 else { return false }
+                accepted = screenshot
+                return true
+            } catch {
+                stableSince = nil
+                lastError = String(describing: error)
+                return false
+            }
+        }, object: nil)
+        XCTAssertEqual(XCTWaiter.wait(for: [rendered], timeout: 45), .completed, lastError)
+        let screenshot = try XCTUnwrap(accepted, lastError)
         let attachment = XCTAttachment(screenshot: screenshot)
         attachment.name = name
         attachment.lifetime = .keepAlways

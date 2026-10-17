@@ -10,9 +10,11 @@
 		08F465566326AAB23F406995 /* OfficeIMOStudioEngine.xcframework in Frameworks */ = {isa = PBXBuildFile; productRef = 5A1C0DE00000000000000005 /* OfficeIMOStudioEngine */; };
 		341288CBAD235131DA9317A8 /* StudioStoreCaptureTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1E8B3EA5561DA60B2944628B /* StudioStoreCaptureTests.swift */; };
 		538629D397907399E1A3DC21 /* OfficeIMOStudioEngine.xcframework in Frameworks */ = {isa = PBXBuildFile; productRef = 5A1C0DE00000000000000006 /* OfficeIMOStudioEngine */; };
+		6927505F4DCE1C422A0691A5 /* StudioCapturePageReadiness.swift in Sources */ = {isa = PBXBuildFile; fileRef = 23418735527A4AE879485584 /* StudioCapturePageReadiness.swift */; };
 		6E42C6365CF7857B3D1AEE09 /* openpreserve-high-resolution-image.pdf in Resources */ = {isa = PBXBuildFile; fileRef = 4CEF581811D5DF1947C9AAA3 /* openpreserve-high-resolution-image.pdf */; };
 		809D2665E287F2BC99EFBAC9 /* StudioStoreCaptureTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1E8B3EA5561DA60B2944628B /* StudioStoreCaptureTests.swift */; };
 		8DC83AFE80180208022E0D02 /* openpreserve-high-resolution-image.pdf in Resources */ = {isa = PBXBuildFile; fileRef = 4CEF581811D5DF1947C9AAA3 /* openpreserve-high-resolution-image.pdf */; };
+		D1503065DE8691D708AA9343 /* StudioCapturePageReadiness.swift in Sources */ = {isa = PBXBuildFile; fileRef = 23418735527A4AE879485584 /* StudioCapturePageReadiness.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -37,6 +39,7 @@
 		1D3D4698741A1FBD4A08E396 /* OfficeIMOStudio-iOS.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = "OfficeIMOStudio-iOS.app"; sourceTree = BUILT_PRODUCTS_DIR; };
 		1D9367C71980B27D5F168EDC /* OfficeIMOStudio-macOS.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "OfficeIMOStudio-macOS.app"; sourceTree = BUILT_PRODUCTS_DIR; };
 		1E8B3EA5561DA60B2944628B /* StudioStoreCaptureTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = StudioStoreCaptureTests.swift; sourceTree = "<group>"; };
+		23418735527A4AE879485584 /* StudioCapturePageReadiness.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = StudioCapturePageReadiness.swift; sourceTree = "<group>"; };
 		4CEF581811D5DF1947C9AAA3 /* openpreserve-high-resolution-image.pdf */ = {isa = PBXFileReference; lastKnownFileType = image.pdf; name = "openpreserve-high-resolution-image.pdf"; path = "../../OfficeIMO.Pdf.Tests/Pdf/Fixtures/Interoperability/openpreserve-high-resolution-image.pdf"; sourceTree = "<group>"; };
 		5A1C0DE00000000000000002 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		5A1C0DE00000000000000003 /* Version.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Version.xcconfig; sourceTree = "<group>"; };
@@ -108,6 +111,7 @@
 			isa = PBXGroup;
 			children = (
 				1E8B3EA5561DA60B2944628B /* StudioStoreCaptureTests.swift */,
+				23418735527A4AE879485584 /* StudioCapturePageReadiness.swift */,
 			);
 			name = StoreCapture;
 			path = StoreCapture;
@@ -306,6 +310,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				341288CBAD235131DA9317A8 /* StudioStoreCaptureTests.swift in Sources */,
+				6927505F4DCE1C422A0691A5 /* StudioCapturePageReadiness.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -321,6 +326,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				809D2665E287F2BC99EFBAC9 /* StudioStoreCaptureTests.swift in Sources */,
+				D1503065DE8691D708AA9343 /* StudioCapturePageReadiness.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
