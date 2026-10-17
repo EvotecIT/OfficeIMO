@@ -18,9 +18,15 @@ foreach (var fixture in manifest.RootElement.GetProperty("fixtures").EnumerateAr
     string inputHash = Hash(File.ReadAllBytes(path));
     Require(inputHash == fixture.GetProperty("sha256").GetString(), "Fixture hash mismatch: " + name);
     int? codePage = fixture.GetProperty("legacyCodePage").ValueKind == JsonValueKind.Null ? null : fixture.GetProperty("legacyCodePage").GetInt32();
+    if (codePage.HasValue) {
+        try { ArchiveReader.TraverseZip(path); throw new InvalidDataException("Unflagged non-ASCII name accepted without a policy"); }
+        catch (NotSupportedException) { }
+    }
+    var traversal = ArchiveReader.TraverseZip(path, new() { ZipLegacyCodePage = codePage });
     using var inspection = ArchiveInspector.Open(path, new() { ZipLegacyCodePage = codePage });
     var entries = fixture.GetProperty("entries").EnumerateArray().ToArray();
     Require(entries.Length == inspection.Entries.Count, "Entry count mismatch");
+    Require(traversal.Entries.Select(e => e.RawFullName).SequenceEqual(entries.Select(e => e.GetProperty("name").GetString())), "Traversal name mismatch");
     using var batch = inspection.ReadMembers(inspection.Entries.Select(e => e.Ordinal).ToArray(), 64L * 1024 * 1024);
     for (int i = 0; i < entries.Length; i++) {
         var expected = entries[i];
@@ -32,10 +38,20 @@ foreach (var fixture in manifest.RootElement.GetProperty("fixtures").EnumerateAr
     Require(inspection.Verify().Members.All(m => m.Status == ArchiveVerificationStatus.Verified), "Verification failed");
     var read = ArchiveReader.ReadZip(File.ReadAllBytes(path), new() { ZipLegacyCodePage = codePage });
     Require(read.Count == entries.Length, "Memory read count mismatch");
+    for (int i = 0; i < entries.Length; i++) {
+        Require(read[i].RelativePath == entries[i].GetProperty("name").GetString(), "Memory read name mismatch");
+        Require(Hash(read[i].Data) == entries[i].GetProperty("sha256").GetString(), "Memory read payload mismatch");
+    }
     var reader = new OfficeDocumentReaderBuilder().AddPlainTextHandlers().AddZipHandler(new() { ZipLegacyCodePage = codePage }).Build();
     var chunks = reader.Read(path, new() { ComputeHashes = false }).ToArray();
     Require(chunks.Any(c => c.Text.Contains("Zażółć")) && chunks.All(c => !(c.Warnings?.Any() ?? false)), "Reader payload mismatch");
     var extracted = ArchiveExtractor.Extract(path, Path.Combine(output, name), new() { ZipLegacyCodePage = codePage });
+    Require(extracted.Files.Count == entries.Length, "Extracted count mismatch");
+    foreach (var expected in entries) {
+        string relative = expected.GetProperty("name").GetString()!;
+        Require(extracted.Files.Any(f => f.RelativePath == relative), "Extracted name mismatch");
+        Require(Hash(File.ReadAllBytes(Path.Combine(output, name, relative))) == expected.GetProperty("sha256").GetString(), "Extracted payload mismatch");
+    }
     // Legacy fixtures require the same explicit policy for filesystem publication.
     results.Add(new { file = name, sha256 = inputHash, members = entries.Length, encoding = codePage, verified = true });
 }

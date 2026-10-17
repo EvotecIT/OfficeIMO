@@ -446,15 +446,12 @@ Qualify complete script-free HtmlForgeX reports through the shared HTML scene an
 
 ## Archive containers
 
-The active delivery combines verified ingestion, one inspection workflow and producer qualification. `OfficeIMO.Archives` owns container mechanics; `OfficeIMO.Reader.Zip` owns document selection and ingestion. Keep raw names and duplicate source ordinals in passive inspection, and enforce portable paths and collisions when publishing files.
+The current [Archives API](../OfficeIMO.Archives/README.md) owns ZIP/CAB/MSI inspection, verified selected reads, structured verification, cumulative operation budgets, explicit legacy ZIP names and bounded ZIP copying. [Reader ZIP ingestion](../OfficeIMO.Reader.Zip/README.md) uses that verified payload path for ordinary and nested archives. Current qualification and limits belong in the [support matrix](../OfficeIMO.Archives/SUPPORT.md); the [packed consumer](../Build/Archives/README.md) exercises public package APIs.
 
-- [ ] Route ordinary and nested Reader ZIP payload reads through Archives' complete length, Deflate framing and CRC verification. Reject damaged or falsely shortened members before document dispatch; preserve actionable warnings and terminal resource failures.
-- [ ] Extend the existing inspection and grouped selected-member workflow to ZIP alongside CAB and MSI. Add verification without extraction, structured per-member outcomes and resource-usage reports; preserve detached stream ownership, source identity, cancellation and no-partial-batch guarantees.
-- [ ] Share a cumulative operation budget across nested inspection, reads and extraction for admitted input, physical entries, decoded expansion, selected payloads, processing work and depth. Count repeated and failed attempts and unavoidable unselected solid-folder work; retain existing per-container limits and Reader document budgets.
-- [ ] Qualify independent ZIP64 and streaming-descriptor ZIPs, legacy and UTF-8 Polish names, solid LZX CABs and ordinary MSI payloads. Add an explicit caller-selected legacy ZIP encoding with strict defaults and portable collision checks. Validate packed public APIs in a real consumer and distinguish local, native-producer, supported-runtime and package evidence.
-- [ ] Assess bounded verified copying or spooling for a demonstrated larger-input workflow. Include it in this delivery only if verification, cancellation, destination ownership and partial-output behavior stay small and explicit; otherwise retain it as follow-on work. Lazy streams require a separate lifetime and verification contract.
+- [ ] Qualify a native Windows Explorer archive containing Polish filenames, retaining the producer/Windows version, input hash, raw encoding policy and complete expected member bytes. Keep this distinct from the existing Windows-labelled ASCII corpus and CPython CP1250 fixtures.
+- [ ] Run the packed archive consumer and correctness suite on Windows, including .NET Framework 4.7.2, and extend named native MSI/CAB producer profiles. Retain exact package/fixture hashes and distinguish runtime execution from portable compilation and macOS native-producer checks.
 
-TAR/GZip, archive creation, deterministic bundles, encryption, RAR/7z, split archives and installer execution are outside this delivery. Reassess format expansion only for an identified consumer workflow, with compatibility and dependency approval.
+TAR/GZip, archive creation, deterministic bundles, encryption, RAR/7z, split archives and installer execution remain deferred. Reassess format expansion only for an identified consumer workflow, with compatibility and dependency approval. Input snapshots and CAB/MSI decoding remain buffered within their documented bounds; lazy streams and broader memory work need a separate lifetime and verification contract.
 
 ## Email artifacts and archives
 

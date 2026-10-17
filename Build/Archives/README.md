@@ -57,3 +57,8 @@ families and Windows runtime execution remain distinct qualification outcomes.
 Compilation for `net472`, macOS execution, a package signature and green managed
 fixtures must not be reported as those outcomes. Keep current coverage in
 `OfficeIMO.Archives/SUPPORT.md` and open acceptance work in `Docs/ROADMAP.md`.
+
+The [2026-10-17 qualification record](Evidence/2026-10-17.json) records the
+independent input identities, private package hashes, executed runtimes and
+remaining acceptance gaps. The [verified-copy benchmark](../../OfficeIMO.Archives.Benchmarks/README.md#verified-member-copying)
+is opt-in and checks equal payload hashes before reporting allocations or time.
