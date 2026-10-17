@@ -1,30 +1,30 @@
 {
-  "sourceHead": "df1a61c0489cd600affb37e88e14841f66aae910",
-  "checkoutCommit": "b20437767bbe57428aef441bdebbada67394c11a",
-  "packageVersion": "3.5.1.9999",
-  "runUrl": "https://github.com/EvotecIT/OfficeIMO/actions/runs/39066914961",
-  "boundary": "Unsigned private package runtime proof; Windows Shell ZIP producer, not interactive Explorer UI automation. No installer or extracted executable run.",
   "packages": [
     {
-      "bytes": 8487560,
-      "sha256": "81a56183b9351947b368fa30141895e748feb21c4a062be5df78b52c2c382ee6",
-      "file": "OfficeIMO.Core.3.5.1.9999.nupkg"
+      "bytes": 8487562,
+      "file": "OfficeIMO.Core.3.5.1.9999.nupkg",
+      "sha256": "8d897eb3cc5bf269fc732b2a5a14718f674e70fcd6121876449a57a148c814a0"
     },
     {
-      "bytes": 251474,
-      "sha256": "5298a1a9366f38b1629dc85d563814e9465f96b45e84a749fdd433393141bd58",
-      "file": "OfficeIMO.Archives.3.5.1.9999.nupkg"
+      "bytes": 251587,
+      "file": "OfficeIMO.Archives.3.5.1.9999.nupkg",
+      "sha256": "2a6bc7e29c2bd40f4643122f81f6da0de0f44f38f09da69354f4b6747c871bc8"
     },
     {
-      "bytes": 1583506,
-      "sha256": "db25c93f21f098cdfc9bb6499bcd9ffe61d6188b4c209cbebca8f4b77be74a97",
-      "file": "OfficeIMO.Reader.Core.3.5.1.9999.nupkg"
+      "bytes": 1583501,
+      "file": "OfficeIMO.Reader.Core.3.5.1.9999.nupkg",
+      "sha256": "7cb0da9bcc7abf460ba8b1a14cc194b9331dde0bd8121ab0526aa14ca4e8f843"
     },
     {
-      "bytes": 70529,
-      "sha256": "fe6fec28d6212df1cb180fe49606c6a36a4041bd0da10340d324e8648e80bea6",
-      "file": "OfficeIMO.Reader.Zip.3.5.1.9999.nupkg"
+      "bytes": 70602,
+      "file": "OfficeIMO.Reader.Zip.3.5.1.9999.nupkg",
+      "sha256": "19a6bb6e4be3a67763cbe63e464f99ceb495e3f8a3634ba1a0b5c80bcfb23c1e"
     }
   ],
-  "os": "Microsoft Windows NT 10.0.26100.0"
+  "sourceHead": "4253fb04e9eb4ea4334eda666b65cc8eeb473df1",
+  "os": "Microsoft Windows NT 10.0.26100.0",
+  "boundary": "Unsigned private package runtime proof; Windows Shell ZIP producer, not interactive Explorer UI automation. No installer or extracted executable run.",
+  "packageVersion": "3.5.1.9999",
+  "checkoutCommit": "86956eaf99f7e165c9819788cfc419c0963eac94",
+  "runUrl": "https://github.com/EvotecIT/OfficeIMO/actions/runs/39069501418"
 }

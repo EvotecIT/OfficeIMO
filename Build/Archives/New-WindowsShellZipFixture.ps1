@@ -18,7 +18,7 @@ $null = New-Item -ItemType Directory -Path $source
 $names = @('Zażółć-gęślą-jaźń.txt', 'Łódź.txt')
 $payload = [Text.Encoding]::UTF8.GetBytes('Zażółć gęślą jaźń — native Windows Shell ZIP')
 foreach ($name in $names) { [IO.File]::WriteAllBytes((Join-Path $source $name), $payload) }
-$ansiCodePage = [WindowsZipCodePage]::GetACP()
+$ansiCodePage = [int][WindowsZipCodePage]::GetACP()
 [Text.Encoding]::RegisterProvider([Text.CodePagesEncodingProvider]::Instance)
 $ansi = [Text.Encoding]::GetEncoding($ansiCodePage, [Text.EncoderExceptionFallback]::new(), [Text.DecoderExceptionFallback]::new())
 $representable = $true

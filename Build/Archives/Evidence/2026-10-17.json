@@ -1102,10 +1102,10 @@
     "boundary": "Per-thread allocation excludes input inventory; not peak/RSS or time. Packed copies also match all106 independent MSI hashes and native makecab bytes on both runtimes."
   },
   "windowsPackedQualification": {
-    "status": "Seven packed scenarios passed on each Windows target; native Shell producer timed out",
+    "status": "Seven packed scenarios including Reader timestamp oracle passed each target; native helper stopped before COM due unsigned-codepage overload",
     "context": "2026-10-17-windows/context.json",
-    "sourceHead": "df1a61c0489cd600affb37e88e14841f66aae910",
-    "runUrl": "https://github.com/EvotecIT/OfficeIMO/actions/runs/39066914961",
+    "sourceHead": "4253fb04e9eb4ea4334eda666b65cc8eeb473df1",
+    "runUrl": "https://github.com/EvotecIT/OfficeIMO/actions/runs/39069501418",
     "reports": {
       "net8.0": "2026-10-17-windows/net8.0.json",
       "net10.0": "2026-10-17-windows/net10.0.json",
@@ -1124,11 +1124,11 @@
       "Native makecab full payload, verification and CopyTo"
     ],
     "nativeProducer": {
-      "status": "Timeout after60seconds; no fixture or native consumer report accepted",
-      "jobUrl": "https://github.com/EvotecIT/OfficeIMO/actions/runs/39066914961/job/117498079028",
-      "boundary": "Actual Shell COM production remains unqualified; interactive Explorer UI and installed Framework4.7.2 are distinct unexercised boundaries."
+      "status": "4253helper GetEncoding selected string overload for uint32 ACP1252; fixed by converting the native value to Int32. Earlierdf1Shell production timedout60s. No accepted nativefixture.",
+      "jobUrl": "https://github.com/EvotecIT/OfficeIMO/actions/runs/39069501418/job/117504334430",
+      "boundary": "NativeShellCOM/interactiveExplorerUI and installedFramework4.7.2 remain unqualified. Next actualWindowsrun required."
     },
-    "qualificationBoundary": "Later Reader timestamp repair and native-helper diagnostics require their own current-head CI; unchanged cabinet copy/runtime contracts retain this evidence."
+    "qualificationBoundary": "Current Reader timestamp repair and unchanged verifiedcopy contracts covered by these Windows reports. Native helper integer-conversion fix remains subject to next Windows run."
   },
   "readerTimestampCompatibility": {
     "sourceCandidate": "54cf307f10bf2253c8b321043112b307edfe24e5",
