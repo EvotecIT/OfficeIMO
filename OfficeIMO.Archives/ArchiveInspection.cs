@@ -78,7 +78,7 @@ public sealed partial class ArchiveInspection : IDisposable {
             OfficeCabinetArchiveReader.Inspection cabinet = _cabinets[key];
             long bytes = entry.FolderExpandedBytes!.Value;
             long remaining = _limits.Expanded - _readBytes;
-            ArchiveLimits.Check(bytes, remaining, "MaxExpandedBytes");
+            if (bytes > remaining) throw ArchiveLimits.Exceeded("MaxExpandedBytes", _limits.Expanded);
             _limits.Operation.Select(entry.Length);
             // Reserve the full attempted decode, including gaps and sibling files, before invoking the decoder.
             ArchiveLimits.Add(ref _readBytes, bytes, _limits.Expanded, "MaxExpandedBytes");
