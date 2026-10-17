@@ -14,10 +14,10 @@ public sealed partial class HtmlRenderingTests {
         Assert.False(options.ResourcePolicy.AllowRemoteResourceResolution);
         Assert.True(options.ResourcePolicy.AllowDataUris);
         Assert.True(options.ResourcePolicy.AllowEmbeddedPackageResources);
-        Assert.False(options.Clone().ResourcePolicy.AllowDocumentFontEmbedding);
+        Assert.False(options.ClonePdf().ResourcePolicy.AllowDocumentFontEmbedding);
 
         options.ResourcePolicy.AllowDocumentFontEmbedding = true;
-        Assert.True(options.Clone().ResourcePolicy.AllowDocumentFontEmbedding);
+        Assert.True(options.ClonePdf().ResourcePolicy.AllowDocumentFontEmbedding);
         Assert.False(new HtmlToPdfOptions().ResourcePolicy.AllowDocumentFontEmbedding);
     }
 
