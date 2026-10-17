@@ -21,7 +21,7 @@ public sealed class HtmlToPdfOptions : HtmlRenderOptions {
     private int _maxOutlinedTextCharactersPerRun = 16_384;
     private int _maxOutlinedTextPathCommands = 1_000_000;
     private double? _printLayoutWidthCssPixels;
-    private PdfCore.PdfResourcePolicy _resourcePolicy = PdfCore.PdfResourcePolicy.CreateDefault();
+    private PdfCore.PdfResourcePolicy _resourcePolicy = PdfCore.PdfResourcePolicy.CreateLibraryFontDefault();
     private PdfCore.PdfOptions _documentOptions = new PdfCore.PdfOptions {
         CompressContentStreams = true
     }.EnableTaggedPdfCatalogMarkers();

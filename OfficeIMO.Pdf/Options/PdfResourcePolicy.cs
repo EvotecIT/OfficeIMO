@@ -17,6 +17,16 @@ public sealed class PdfResourcePolicy {
     };
 
     /// <summary>
+    /// Allows library-selected installed fonts and bounded in-source resources, while document-selected
+    /// host fonts, arbitrary local files and remote resources remain disabled.
+    /// </summary>
+    public static PdfResourcePolicy CreateLibraryFontDefault() => new PdfResourcePolicy {
+        AllowSystemFontEmbedding = true,
+        AllowDataUris = true,
+        AllowEmbeddedPackageResources = true
+    };
+
+    /// <summary>
     /// Creates the portable deterministic policy. Host fonts, local files, and remote resources are disabled;
     /// bounded in-document data resources remain available.
     /// </summary>
