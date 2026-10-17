@@ -136,9 +136,7 @@ internal static partial class HtmlPdfRenderedConverter {
             ? PlanNamedFaceStyleRuns(text, family, bold, italic, options)
             : new[] { new NamedFaceStyleRun(text, bold, italic,
                 NamedFontCoversText(options, family, text, bold, italic)) };
-        double ascent = 0D;
-        double descent = 0D;
-        double lineGap = 0D;
+        var metricsByFace = new List<HtmlTextFaceMetrics>();
         foreach (NamedFaceStyleRun run in runs) {
             if (!run.Covered || !options.TryResolveNamedFontFace(family, run.Bold, run.Italic,
                     out PdfCore.PdfNamedFontFace face)) return null;
@@ -152,12 +150,14 @@ internal static partial class HtmlPdfRenderedConverter {
                 return null;
             }
         }
-        return ascent > 0D ? new HtmlTextFaceMetrics(ascent + descent, ascent, ascent + descent + lineGap) : null;
+        return HtmlTextFaceMetrics.Combine(metricsByFace);
 
         void AddMetrics(OfficeOpenTypeLineMetrics? metrics, double fallbackAscent, double fallbackDescent) {
-            ascent = System.Math.Max(ascent, metrics?.HheaAscentRatio * fontSize ?? fallbackAscent);
-            descent = System.Math.Max(descent, metrics?.HheaDescentRatio * fontSize ?? fallbackDescent);
-            lineGap = System.Math.Max(lineGap, metrics?.HheaLineGapRatio * fontSize ?? 0D);
+            double faceAscent = metrics?.HheaAscentRatio * fontSize ?? fallbackAscent;
+            double faceDescent = metrics?.HheaDescentRatio * fontSize ?? fallbackDescent;
+            double gap = metrics?.HheaLineGapRatio * fontSize ?? 0D;
+            metricsByFace.Add(new HtmlTextFaceMetrics(faceAscent + faceDescent, faceAscent,
+                faceAscent + faceDescent + gap));
         }
     }
 }

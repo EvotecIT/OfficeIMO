@@ -6,6 +6,19 @@ using Xunit;
 namespace OfficeIMO.Tests;
 
 public sealed class DrawingFontStyleSelectionTests {
+    [Fact]
+    public void SameFamilyStyledGlyphFallbackKeepsTheSelectedFacesDuringMeasurement() {
+        var fonts = new OfficeFontFaceCollection()
+            .Add("Scoped", FontWithAdvance(600, 'A', 'B'))
+            .Add("Scoped", FontWithAdvance(900, 'A', 'C'), OfficeFontStyle.Bold);
+
+        Assert.True(fonts.TryMeasureText("ABA", 20D, "Scoped", OfficeFontStyle.Bold, out double width));
+        Assert.Equal(48D, width, 6); // Bold A18 + regular B12 + bold A18.
+        Assert.True(fonts.TryMeasureTextElements("ABA", new[] { "A", "B", "A" }, 20D,
+            "Scoped", OfficeFontStyle.Bold, out IReadOnlyList<double> elements));
+        Assert.Equal(new[] { 18D, 12D, 18D }, elements);
+    }
+
     [Theory]
     [InlineData(OfficeFontStyle.Regular, 400, 200, OfficeFontSlant.Normal)]
     [InlineData(OfficeFontStyle.Bold, 700, 800, OfficeFontSlant.Normal)]
@@ -68,8 +81,9 @@ public sealed class DrawingFontStyleSelectionTests {
         Assert.Equal(OfficeIMO.OfficeConversionLossKind.Approximation, diagnostic.LossKind);
     }
 
-    private static byte[] FontWithAdvance(ushort advance) {
-        byte[] font = ManagedTextShapingTestAssets.CreateFont('A');
+    private static byte[] FontWithAdvance(ushort advance, params int[] scalars) {
+        byte[] font = scalars.Length == 0 ? ManagedTextShapingTestAssets.CreateFont('A')
+            : ManagedTextShapingTestAssets.CreateFontWithDistinctGlyphs(scalars);
         int count = BinaryPrimitives.ReadUInt16BigEndian(font.AsSpan(4));
         for (int index = 0; index < count; index++) {
             int record = 12 + index * 16;
