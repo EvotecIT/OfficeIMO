@@ -79,7 +79,7 @@ public sealed partial class OfficeConicGradient {
                     width, height, centerX, centerY, cornerRadius, endpointRegionAllowance, out int chargedRegions);
                 // Every endpoint and additional sample fan spends a skipped
                 // flat cell, retaining the original partition's maximum number
-                // of single-fan refinements.
+                // of refinement fans.
                 endpointRegionAllowance -= chargedRegions;
                 continue;
             }
@@ -119,9 +119,9 @@ public sealed partial class OfficeConicGradient {
             if (first.Offset != start || last.Offset <= start) continue;
             if (last.Offset - start > 0.25D || first.Color == last.Color) break;
 
-            bool anchorAtEnd = HasAdjacentFlatSpan(index, after: true);
-            if (anchorAtEnd || HasAdjacentFlatSpan(index - 1, after: false)) {
-                span = new ConicRefinementSpan(start, last.Offset, first.Color, last.Color, anchorAtEnd);
+            bool anchorAtEnd = TryGetPlateauContinuation(index, after: true, out double continuation);
+            if (anchorAtEnd || TryGetPlateauContinuation(index - 1, after: false, out continuation)) {
+                span = new ConicRefinementSpan(start, last.Offset, first.Color, last.Color, anchorAtEnd, continuation);
                 return true;
             }
             break;
@@ -130,21 +130,27 @@ public sealed partial class OfficeConicGradient {
         return false;
     }
 
-    private bool HasAdjacentFlatSpan(int stopIndex, bool after) {
+    /// <summary>Finds an interior continuation within the adjacent authored equal-color span, clear of its far boundary.</summary>
+    private bool TryGetPlateauContinuation(int stopIndex, bool after, out double continuation) {
         OfficeGradientStop endpoint = Stops[stopIndex];
+        continuation = endpoint.Offset;
         if (IsHardColorBoundary(endpoint.Offset)) return false;
         int step = after ? 1 : -1;
         for (int index = stopIndex + step; index >= 0 && index < Stops.Count; index += step) {
             OfficeGradientStop next = Stops[index];
             if (next.Color != endpoint.Color) return false;
-            if (next.Offset != endpoint.Offset) return true;
+            if (next.Offset != endpoint.Offset) {
+                double extent = next.Offset - endpoint.Offset;
+                continuation += Math.Sign(extent) * Math.Min(Math.Abs(extent) / 2D, 0.25D);
+                return true;
+            }
         }
         return false;
     }
 
     /// <summary>
     /// Uses midpoint cell boundaries over the existing nodes or a bounded
-    /// color-adaptive minimum. Both fields share the same single-fan regions.
+    /// color-adaptive minimum. Both fields share the same bounded fan regions.
     /// </summary>
     private int AddAnchoredRefinement(ConicPaintRun run, ConicRefinementSpan span, IReadOnlyList<double> ordered,
         int firstNode, double width, double height, double centerX, double centerY, double cornerRadius,
@@ -170,20 +176,34 @@ public sealed partial class OfficeConicGradient {
             chargedRegions = additionalRegions;
         }
         double radius = cornerRadius / Math.Cos(Math.PI / 4D) * 1.000001D;
+        double endpointStart = span.AnchorAtEnd
+            ? (sampleNodes[lastSampleNode - 1] + sampleNodes[lastSampleNode]) / 2D
+            : span.Continuation;
+        double endpointEnd = span.AnchorAtEnd
+            ? span.Continuation
+            : (sampleNodes[firstSampleNode] + sampleNodes[firstSampleNode + 1]) / 2D;
+        int additionalEndpointFans = GetAnchoredRegionFanCount(endpointStart, endpointEnd) - 1;
+        bool continueEndpoint = additionalEndpointFans <= endpointRegionAllowance - chargedRegions;
+        if (continueEndpoint) chargedRegions += additionalEndpointFans;
 
+        // Only the final endpoint color continues into its own plateau. The
+        // earlier colors retain their authored extent, and the new edge lies
+        // inside equal paint rather than on the plateau's far hard boundary.
         AddAnchoredRegion(run, span.Start, span.End, span.AnchorAtEnd ? span.First : span.Last,
             width, height, centerX, centerY, radius);
         if (span.AnchorAtEnd) {
             for (int node = firstSampleNode + 1; node <= lastSampleNode; node++) {
                 double start = (sampleNodes[node - 1] + sampleNodes[node]) / 2D;
                 OfficeColor color = node == lastSampleNode ? span.Last : Sample(sampleNodes[node]);
-                AddAnchoredRegion(run, start, span.End, color, width, height, centerX, centerY, radius);
+                double end = continueEndpoint && node == lastSampleNode ? span.Continuation : span.End;
+                AddAnchoredRegion(run, start, end, color, width, height, centerX, centerY, radius);
             }
         } else {
             for (int node = lastSampleNode - 1; node >= firstSampleNode; node--) {
                 double end = (sampleNodes[node] + sampleNodes[node + 1]) / 2D;
                 OfficeColor color = node == firstSampleNode ? span.First : Sample(sampleNodes[node]);
-                AddAnchoredRegion(run, span.Start, end, color, width, height, centerX, centerY, radius);
+                double start = continueEndpoint && node == firstSampleNode ? span.Continuation : span.Start;
+                AddAnchoredRegion(run, start, end, color, width, height, centerX, centerY, radius);
             }
         }
         run.Complete();
@@ -202,21 +222,32 @@ public sealed partial class OfficeConicGradient {
 
     private void AddAnchoredRegion(ConicPaintRun run, double start, double end, OfficeColor color,
         double width, double height, double centerX, double centerY, double radius) {
-        double first = ToRadians(StartAngle + start * 360D) - Math.PI / 2D;
-        double second = ToRadians(StartAngle + end * 360D) - Math.PI / 2D;
-        List<OfficePoint> points = ClipTriangleToRectangle(new OfficePoint(centerX, centerY),
-            new OfficePoint(centerX + Math.Cos(first) * radius, centerY + Math.Sin(first) * radius),
-            new OfficePoint(centerX + Math.Cos(second) * radius, centerY + Math.Sin(second) * radius), width, height);
-        if (HasPolygonArea(points)) run.Add(points, color);
+        int fans = GetAnchoredRegionFanCount(start, end);
+        for (int fan = 0; fan < fans; fan++) {
+            double firstOffset = start + (end - start) * fan / fans;
+            double secondOffset = fan == fans - 1 ? end : start + (end - start) * (fan + 1) / fans;
+            double first = ToRadians(StartAngle + firstOffset * 360D) - Math.PI / 2D;
+            double second = ToRadians(StartAngle + secondOffset * 360D) - Math.PI / 2D;
+            List<OfficePoint> points = ClipTriangleToRectangle(new OfficePoint(centerX, centerY),
+                new OfficePoint(centerX + Math.Cos(first) * radius, centerY + Math.Sin(first) * radius),
+                new OfficePoint(centerX + Math.Cos(second) * radius, centerY + Math.Sin(second) * radius), width, height);
+            if (HasPolygonArea(points)) run.Add(points, color);
+        }
     }
 
+    // Count every constructed fan before clipping. A shared paint run unions
+    // these contours, so the subdivision does not add an antialiased paint edge.
+    private static int GetAnchoredRegionFanCount(double start, double end) =>
+        Math.Max(1, (int)Math.Ceiling((end - start) * 4D));
+
     private readonly struct ConicRefinementSpan {
-        internal ConicRefinementSpan(double start, double end, OfficeColor first, OfficeColor last, bool anchorAtEnd) {
+        internal ConicRefinementSpan(double start, double end, OfficeColor first, OfficeColor last, bool anchorAtEnd, double continuation) {
             Start = start;
             End = end;
             First = first;
             Last = last;
             AnchorAtEnd = anchorAtEnd;
+            Continuation = continuation;
         }
 
         internal double Start { get; }
@@ -224,6 +255,7 @@ public sealed partial class OfficeConicGradient {
         internal OfficeColor First { get; }
         internal OfficeColor Last { get; }
         internal bool AnchorAtEnd { get; }
+        internal double Continuation { get; }
     }
 
     /// <summary>
