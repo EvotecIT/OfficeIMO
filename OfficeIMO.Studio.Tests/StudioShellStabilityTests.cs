@@ -68,6 +68,24 @@ public sealed class StudioShellStabilityTests {
     }
 
     [Fact]
+    public async Task Client_that_disconnects_mid_message_does_not_stop_the_listener() {
+        string name = UniqueInstanceName();
+        using StudioSingleInstance primary = StudioSingleInstance.Acquire(name);
+        var received = new TaskCompletionSource<IReadOnlyList<string>>(TaskCreationOptions.RunContinuationsAsynchronously);
+        primary.StartListening(paths => received.TrySetResult(paths));
+        using (var interrupted = new NamedPipeClientStream(".", name, PipeDirection.InOut, PipeOptions.CurrentUserOnly)) {
+            interrupted.Connect(5000);
+            interrupted.Write(BitConverter.GetBytes(128));
+            interrupted.WriteByte(1);
+            interrupted.Flush();
+        }
+        using StudioSingleInstance later = AcquireFromAnotherLaunch(name);
+        string document = Path.Combine(Path.GetTempPath(), "after-interrupted.pdf");
+        Assert.True(later.TryForward([document], TimeSpan.FromSeconds(5)));
+        Assert.Equal(new[] { document }, await received.Task.WaitAsync(TimeSpan.FromSeconds(5)));
+    }
+
+    [Fact]
     public void Listener_takes_the_next_launch_while_an_earlier_batch_is_still_opening() {
         string name = UniqueInstanceName();
         using StudioSingleInstance primary = StudioSingleInstance.Acquire(name);
@@ -79,6 +97,52 @@ public sealed class StudioShellStabilityTests {
         Assert.True(second.TryForward([Path.Combine(Path.GetTempPath(), "slow.pdf")], TimeSpan.FromSeconds(5)));
         Assert.True(third.TryForward([Path.Combine(Path.GetTempPath(), "next.pdf")], TimeSpan.FromSeconds(5)));
         Assert.Equal(2, batches.Count);
+    }
+
+    [Fact]
+    public async Task Listener_keeps_a_launch_queued_before_the_previous_reply() {
+        string name = UniqueInstanceName();
+        using StudioSingleInstance primary = StudioSingleInstance.Acquire(name);
+        var firstReceived = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        using var releaseReply = new ManualResetEventSlim();
+        var batches = new System.Collections.Concurrent.ConcurrentQueue<IReadOnlyList<string>>();
+        string firstPath = Path.Combine(Path.GetTempPath(), "first.pdf");
+        string nextPath = Path.Combine(Path.GetTempPath(), "queued.pdf");
+        primary.StartListening(paths => {
+            batches.Enqueue(paths);
+            if (paths.Contains(firstPath)) {
+                firstReceived.TrySetResult();
+                Assert.True(releaseReply.Wait(TimeSpan.FromSeconds(5)));
+            }
+            return true;
+        });
+        using StudioSingleInstance second = AcquireFromAnotherLaunch(name);
+        Task<bool> first = Task.Run(() => second.TryForward([firstPath], TimeSpan.FromSeconds(5)));
+        using var deadline = new CancellationTokenSource(TimeSpan.FromSeconds(5));
+        await using var queued = new NamedPipeClientStream(".", name, PipeDirection.InOut,
+            PipeOptions.Asynchronous | PipeOptions.CurrentUserOnly);
+        try {
+            await firstReceived.Task.WaitAsync(deadline.Token);
+            Task connecting = queued.ConnectAsync(deadline.Token);
+            // Unix can connect to the socket backlog while the current request is active.
+            // Windows completes its connection after the current instance disconnects.
+            if (!OperatingSystem.IsWindows()) await connecting;
+            releaseReply.Set();
+            Assert.True(await first);
+            await connecting;
+            byte[] payload = System.Text.Json.JsonSerializer.SerializeToUtf8Bytes(new { Version = 1, Paths = new[] { nextPath } });
+            byte[] length = new byte[4];
+            System.Buffers.Binary.BinaryPrimitives.WriteInt32LittleEndian(length, payload.Length);
+            await queued.WriteAsync(length, deadline.Token);
+            await queued.WriteAsync(payload, deadline.Token);
+            await queued.FlushAsync(deadline.Token);
+            byte[] reply = new byte[1];
+            Assert.Equal(1, await queued.ReadAsync(reply, deadline.Token));
+            Assert.Equal(1, reply[0]);
+            Assert.Equal(new[] { firstPath, nextPath }, batches.SelectMany(paths => paths));
+        } finally {
+            releaseReply.Set();
+        }
     }
 
     [Fact]
