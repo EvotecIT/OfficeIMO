@@ -22,7 +22,8 @@ internal static partial class PdfFormFiller {
 
         string? fieldType = null, defaultAppearance = null;
         PdfObject? value = null;
-        PdfArray? choiceOptions = null;
+        PdfArray? choiceOptions = null, choiceIndices = null;
+        int? choiceTopIndex = null;
         PdfDictionary? defaultResources = null;
         int? flags = null, quadding = null, maxLength = null;
         var visited = new HashSet<PdfDictionary>();
@@ -30,6 +31,10 @@ internal static partial class PdfFormFiller {
         for (int depth = 0; field != null && depth < MaximumFieldInheritanceDepth && visited.Add(field); depth++) {
             fieldType ??= TryReadName(objects, field, "FT");
             choiceOptions ??= TryReadChoiceOptions(objects, field);
+            choiceIndices ??= ResolveObject(objects, field.Items.TryGetValue("I", out PdfObject? indicesObject) ? indicesObject : null) as PdfArray;
+            if (choiceTopIndex == null && TryReadNonNegativeFiniteNumber(objects,
+                    field.Items.TryGetValue("TI", out PdfObject? topObject) ? topObject : new PdfNumber(-1), out double top) &&
+                    top <= int.MaxValue && top == Math.Truncate(top)) choiceTopIndex = (int)top;
             defaultAppearance ??= TryReadText(objects, field, "DA");
             defaultResources ??= TryReadDefaultResources(objects, field);
             if (value == null && field.Items.TryGetValue("V", out PdfObject? valueObject)) value = ResolveObject(objects, valueObject);
@@ -58,6 +63,12 @@ internal static partial class PdfFormFiller {
             switch (fieldType) {
                 case "Tx":
                 case "Ch":
+                    if (fieldType == "Ch" && (fieldFlags & ComboChoiceFlag) == 0 && choiceOptions != null) {
+                        if (!TryBuildTransientChoiceAppearance(objects, defaultAppearance, defaultResources, width, height,
+                                choiceOptions, value, choiceIndices, choiceTopIndex ?? 0, fieldFlags, style,
+                                out content, out resources, maximumDecodedBytes, cancellationToken)) return false;
+                        break;
+                    }
                     string text = ReadDisplayedFieldText(objects, value);
                     if (fieldType == "Ch" && choiceOptions != null) {
                         var lookup = ChoiceOptionLookup.Create(objects, choiceOptions);
@@ -113,7 +124,7 @@ internal static partial class PdfFormFiller {
         return false;
     }
 
-    // Choice fields show their first selected value on one line.
+    // Text and combo widgets show one value; list widgets use their option rows.
     private static string ReadDisplayedFieldText(Dictionary<int, PdfIndirectObject> objects, PdfObject? value) => value switch {
         PdfStringObj text => text.Value ?? string.Empty,
         PdfName name => name.Name,

@@ -62,7 +62,9 @@ namespace OfficeIMO.Excel.Pdf {
         private static PdfCore.PdfCellIconKind GetLegacyConditionalIconShape(OfficeConditionalIconKind kind) => kind switch {
             OfficeConditionalIconKind.GreenUpArrow => PdfCore.PdfCellIconKind.TriangleUp,
             OfficeConditionalIconKind.RedDownArrow => PdfCore.PdfCellIconKind.TriangleDown,
-            OfficeConditionalIconKind.YellowSideArrow or OfficeConditionalIconKind.YellowUpArrow or OfficeConditionalIconKind.YellowDownArrow => PdfCore.PdfCellIconKind.TriangleRight,
+            OfficeConditionalIconKind.YellowUpArrow => PdfCore.PdfCellIconKind.TriangleUp,
+            OfficeConditionalIconKind.YellowDownArrow => PdfCore.PdfCellIconKind.TriangleDown,
+            OfficeConditionalIconKind.YellowSideArrow => PdfCore.PdfCellIconKind.TriangleRight,
             OfficeConditionalIconKind.RedCross => PdfCore.PdfCellIconKind.Diamond,
             OfficeConditionalIconKind.YellowExclamation => PdfCore.PdfCellIconKind.TriangleUp,
             _ => PdfCore.PdfCellIconKind.Circle

@@ -52,6 +52,8 @@ PowerPoint PDF and PNG/JPEG/SVG exports share one slide layout. Existing `ToPng`
 
 `PowerPointImageExportOptions.LayoutOptions` supplies the shared `PowerPointToPdfOptions`, including font policy. Image diagnostics now include the PDF conversion and rendering diagnostics. Code that filters the former image-only diagnostic codes should use the canonical codes, such as `text-box-overflow` and `small-caps-approximation`. `CreateVisualSnapshot().Drawing` contains the PDF page scene, including glyph paths; use the snapshot's `TextSpans` for text and geometry instead of assuming `OfficeDrawingText` or `OfficeDrawingRichText` elements.
 
+PowerPoint page-image batches retain zero-based `SequenceIndex` and the selected batch's `SequenceCount`, alongside the original slide identity. Snapshot creation enforces `RenderTimeout` through the shared image-export deadline and reports `OfficeImageExportTimeoutException`.
+
 DrawingML normal autofit applies stored font scaling and line-spacing reduction, or computes shrinking when the scale is absent. Shape autofit grows the exported frame. Fixed frames retain overflowing text without ellipses and report overflow; the slide edge clips visible painting. Tables use PowerPoint cell insets and grow rows for content. Image output therefore changes from the former preview renderer. Embedded-image byte limits also apply to the PDF layout; the aggregate limit covers the selected conversion, rather than resetting for each rendered image.
 
 PDF-to-PowerPoint extension-call syntax is unchanged. Static calls move from `PowerPointPdfConverterExtensions.ToPowerPointPresentation*` and `.SaveAsPowerPoint*` to `PdfPowerPointConverterExtensions`, which remains in `OfficeIMO.PowerPoint.Pdf`.
@@ -111,7 +113,7 @@ PDF page rendering to PNG, JPEG, WebP, TIFF and Drawing follows PDF viewer conve
 - Text render modes 1, 2, 5 and 6 stroke glyph outlines. Text clipping modes 4–7 still do not clip later painting.
 - Function-based (type 1) and mesh (types 4–7) shadings render. Axial and radial shadings without `/Extend` leave their ends unpainted.
 - Images with 1, 2, 4 or 16 bits per component, resized or non-8-bit soft masks, `/Matte`, and JBIG2 images render. Soft masks with a `/TR` transfer function apply it. Undecodable images report `render.resource.image-unsupported` instead of being omitted silently, and knockout groups report `render.resource.knockout-group-simplified`.
-- Widgets without appearance streams, and text and choice widgets under `/NeedAppearances`, render a transient synthesized appearance reported as `render.annotation.appearance-synthesized` instead of `render.resource.annotation-appearance-missing`. The source document is not changed.
+- Widgets without appearance streams, and text and choice widgets under `/NeedAppearances`, render a transient synthesized appearance reported as `render.annotation.appearance-synthesized` instead of `render.resource.annotation-appearance-missing`. The source document is not changed. List boxes retain visible `/Opt` rows, export/display labels, all selected highlights, and `/TI` scrolling; combo boxes retain their single selected display value. Filling and incremental appearance regeneration use the same list-row paint and clear selection without hiding the options. Incremental text and choice appearances preserve inherited Type0 glyph encoding and apply the caller's decoded-stream limit while reading their font maps.
 
 `OfficeColorSpaceConverter.FromCmyk` interpolates between SWOP process-colour solids instead of computing `255 × (1 − c) × (1 − k)`. Pure cyan becomes RGB (0, 173, 239) and 100% black becomes (35, 31, 32). Update code that compares exact DeviceCMYK conversion results.
 
@@ -304,7 +306,7 @@ Worksheet-canvas PDF export includes supported drawing shapes and text boxes.
 Visual snapshots retain `OfficeConditionalIconKind.None` for custom `NoIcons`
 rules so value suppression survives without painted artwork or reserved icon space.
 Feature preflight accepts renderable shapes; unsupported objects and drawing
-hyperlinks remain reported. The flow-table profile reports omitted shapes.
+hyperlinks remain reported. The flow-table profile reports omitted shapes. Its compact conditional-arrow indicators preserve upward, downward and sideways directions for yellow arrows.
 
 Fit-to-page planning includes retained drawing extents before choosing page
 breaks. Wide banners can therefore reduce the print scale and page count.

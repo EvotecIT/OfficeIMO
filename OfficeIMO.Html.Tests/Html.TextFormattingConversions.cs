@@ -92,8 +92,8 @@ public class HtmlTextFormattingConversionTests {
         Assert.True(nested.BaselineOffset < single.BaselineOffset);
 
         string svg = Encoding.UTF8.GetString(HtmlConversionDocument.Parse(html).ExportImage(OfficeImageExportFormat.Svg).Bytes);
-        Assert.Contains("Raised", svg, StringComparison.Ordinal);
-        Assert.Contains("Lowered", svg, StringComparison.Ordinal);
+        Assert.Contains("Raised", SvgPaintedText.Read(svg), StringComparison.Ordinal);
+        Assert.Contains("Lowered", SvgPaintedText.Read(svg), StringComparison.Ordinal);
     }
 
     [Fact]

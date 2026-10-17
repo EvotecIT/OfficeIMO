@@ -20,14 +20,15 @@ internal static partial class PdfFormFiller {
         PdfDictionary? widgetAppearanceResources,
         PdfDictionary? widgetPageResources,
         string displayValue,
-        out TextAppearanceFontPlan? fontPlan) {
+        out TextAppearanceFontPlan? fontPlan, int maximumDecodedBytes = PdfReadLimits.DefaultMaxDecodedStreamBytes,
+        CancellationToken cancellationToken = default) {
         fontPlan = null;
         if (string.IsNullOrEmpty(displayValue)) {
             return false;
         }
 
         foreach (PdfDictionary resources in EnumerateCandidateTextAppearanceResources(defaultResources, widgetAppearanceResources, widgetPageResources)) {
-            if (TryCreateInheritedTextAppearanceFontPlan(objects, resources, displayValue, out fontPlan)) {
+            if (TryCreateInheritedTextAppearanceFontPlan(objects, resources, displayValue, out fontPlan, maximumDecodedBytes, cancellationToken)) {
                 return true;
             }
         }
@@ -39,7 +40,8 @@ internal static partial class PdfFormFiller {
         Dictionary<int, PdfIndirectObject> objects,
         PdfDictionary? defaultResources,
         string displayValue,
-        out TextAppearanceFontPlan? fontPlan) {
+        out TextAppearanceFontPlan? fontPlan, int maximumDecodedBytes = PdfReadLimits.DefaultMaxDecodedStreamBytes,
+        CancellationToken cancellationToken = default) {
         fontPlan = null;
         if (string.IsNullOrEmpty(displayValue) || defaultResources is null) {
             return false;
@@ -51,14 +53,14 @@ internal static partial class PdfFormFiller {
         }
 
         if (fonts.Items.TryGetValue(DefaultAppearanceFontName, out PdfObject? defaultFontResourceObject) &&
-            TryCreateInheritedTextAppearanceFontPlan(objects, DefaultAppearanceFontName, defaultFontResourceObject, displayValue, out fontPlan)) {
+            TryCreateInheritedTextAppearanceFontPlan(objects, DefaultAppearanceFontName, defaultFontResourceObject, displayValue, out fontPlan, maximumDecodedBytes, cancellationToken)) {
             return true;
         }
 
         foreach (string fontResourceName in fonts.Items.Keys
             .Where(name => !string.Equals(name, DefaultAppearanceFontName, StringComparison.Ordinal))
             .OrderBy(name => name, StringComparer.Ordinal)) {
-            if (TryCreateInheritedTextAppearanceFontPlan(objects, fontResourceName, fonts.Items[fontResourceName], displayValue, out fontPlan)) {
+            if (TryCreateInheritedTextAppearanceFontPlan(objects, fontResourceName, fonts.Items[fontResourceName], displayValue, out fontPlan, maximumDecodedBytes, cancellationToken)) {
                 return true;
             }
         }

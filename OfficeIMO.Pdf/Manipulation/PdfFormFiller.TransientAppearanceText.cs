@@ -10,8 +10,23 @@ internal static partial class PdfFormFiller {
         content = string.Empty;
         resources = null;
         string displayedText = PdfAcroFormDictionaryBuilder.GetTextFieldAppearanceDisplayValue(text, style);
-        string fontName = "Helv";
-        TextAppearanceFontPlan? plan = null;
+        if (!TryPrepareTransientTextFont(objects, defaultAppearance, defaultResources, displayedText,
+                out string fontName, out TextAppearanceFontPlan? plan, out resources, maximumDecodedBytes, cancellationToken)) return false;
+        double fontSize = ReadWidgetAppearanceFontSize(defaultAppearance, height);
+        content = PdfAcroFormDictionaryBuilder.BuildTextFieldAppearanceContent(width, height, text, fontSize, style,
+            encodedTextHex: plan?.EncodedTextHex, fontResourceName: fontName,
+            encodeTextSegmentHex: plan?.EncodeTextSegmentHex, measureTextSegmentWidth: plan?.MeasureTextSegmentWidth,
+            singleLineBaseline: Math.Max(2D, height / 2D - fontSize * 0.4D));
+        return true;
+    }
+
+    private static bool TryPrepareTransientTextFont(Dictionary<int, PdfIndirectObject> objects,
+        string? defaultAppearance, PdfDictionary? defaultResources, string displayedText,
+        out string fontName, out TextAppearanceFontPlan? plan, out PdfDictionary? resources,
+        int maximumDecodedBytes, CancellationToken cancellationToken) {
+        resources = null;
+        fontName = "Helv";
+        plan = null;
         if (PdfDefaultAppearanceParser.TryReadFontResourceName(defaultAppearance, out string selectedName) &&
             defaultResources != null && ResolveDictionary(objects,
                 defaultResources.Items.TryGetValue("Font", out PdfObject? fontsObject) ? fontsObject : null) is PdfDictionary fonts &&
@@ -29,11 +44,6 @@ internal static partial class PdfFormFiller {
         }
         if (plan == null && !PdfWinAnsiEncoding.CanEncode(displayedText, out _, cancellationToken)) return false;
         resources ??= CreateAppearanceResources();
-        double fontSize = ReadWidgetAppearanceFontSize(defaultAppearance, height);
-        content = PdfAcroFormDictionaryBuilder.BuildTextFieldAppearanceContent(width, height, text, fontSize, style,
-            encodedTextHex: plan?.EncodedTextHex, fontResourceName: fontName,
-            encodeTextSegmentHex: plan?.EncodeTextSegmentHex, measureTextSegmentWidth: plan?.MeasureTextSegmentWidth,
-            singleLineBaseline: Math.Max(2D, height / 2D - fontSize * 0.4D));
         return true;
     }
 

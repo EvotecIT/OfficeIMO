@@ -1322,8 +1322,8 @@ public sealed partial class HtmlRenderingTests {
         Assert.DoesNotContain(rendered.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.PageSelectorPending);
 
         IReadOnlyList<OfficeImageExportResult> svgPages = HtmlConversionDocument.Parse(html).ExportImages(OfficeImageExportFormat.Svg, options);
-        Assert.Contains("FirstPage", Encoding.UTF8.GetString(svgPages[0].Bytes), StringComparison.Ordinal);
-        Assert.Contains("L2", Encoding.UTF8.GetString(svgPages[1].Bytes), StringComparison.Ordinal);
+        Assert.Contains("FirstPage", SvgPaintedText.Read(Encoding.UTF8.GetString(svgPages[0].Bytes)), StringComparison.Ordinal);
+        Assert.Contains("L2", SvgPaintedText.Read(Encoding.UTF8.GetString(svgPages[1].Bytes)), StringComparison.Ordinal);
         Assert.Contains("R3", Encoding.UTF8.GetString(svgPages[2].Bytes), StringComparison.Ordinal);
 
         HtmlToPdfOptions pdfOptions = new HtmlToPdfOptions();
@@ -1753,7 +1753,7 @@ public sealed partial class HtmlRenderingTests {
         Assert.DoesNotContain(rendered.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.PageMarginPositionUnsupported);
 
         string svg = Encoding.UTF8.GetString(Assert.Single(HtmlConversionDocument.Parse(html).ExportImages(OfficeImageExportFormat.Svg, options)).Bytes);
-        foreach (string marker in markers) Assert.Contains(marker, svg, StringComparison.Ordinal);
+        foreach (string marker in markers) Assert.Contains(marker, SvgPaintedText.Read(svg), StringComparison.Ordinal);
 
         HtmlToPdfOptions pdfOptions = new HtmlToPdfOptions();
         pdfOptions = new HtmlToPdfOptions(options);
@@ -1812,6 +1812,7 @@ public sealed partial class HtmlRenderingTests {
         Assert.Empty(rendered.Diagnostics);
 
         HtmlToPdfOptions pdfOptions = new HtmlToPdfOptions(options);
+        pdfOptions.FontFamily = SvgPaintedText.CreatePinnedFamily();
         pdfOptions.PdfOptions.CompressContentStreams = false;
         byte[] pdf = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToPdfBytes(pdfOptions);
         string raw = Encoding.ASCII.GetString(pdf);
@@ -2137,7 +2138,7 @@ public sealed partial class HtmlRenderingTests {
         Assert.Equal(png.Height, pngInfo.Height);
         string svgText = Encoding.UTF8.GetString(svg.Bytes);
         Assert.Contains("<svg", svgText, StringComparison.Ordinal);
-        Assert.Contains("Image", svgText, StringComparison.Ordinal);
+        Assert.Contains("Image", SvgPaintedText.Read(svgText), StringComparison.Ordinal);
         Assert.Contains("output", svgText, StringComparison.Ordinal);
         Assert.Contains("Alpha", svgText, StringComparison.Ordinal);
         OfficeRasterImage svgRaster = RasterizeHtmlImageSvg(svgText);

@@ -127,39 +127,16 @@ internal static partial class PdfWriter {
         int maximumTopIndex = Math.Max(0, options.Count - visibleRows);
         topIndex = selectedIndices.Count == 0 ? 0 : Math.Min(selectedIndices[0], maximumTopIndex);
         var resources = new List<(string Name, int Id)>();
-        var sb = new StringBuilder("q\n");
-        sb.Append(PdfAcroFormDictionaryBuilder.BuildFormFieldBackgroundAppearanceContent(width, height, style));
-        if (style.BorderColor.HasValue && style.BorderWidth > 0D) {
-            sb.Append(PdfAcroFormDictionaryBuilder.BuildRectangularBorderAppearanceContent(width, height, style));
-        }
-
-        int lastIndex = Math.Min(options.Count, topIndex.Value + visibleRows);
-        for (int optionIndex = topIndex.Value; optionIndex < lastIndex; optionIndex++) {
-            int visibleIndex = optionIndex - topIndex.Value;
-            double rowBottom = Math.Max(2D, height - 2D - (visibleIndex + 1D) * rowHeight);
-            bool isSelected = selectedIndices.Contains(optionIndex);
-            PdfFormFieldStyle textStyle = style;
-            if (isSelected) {
-                sb.Append("0.153 0.392 0.8 rg 2 ")
-                    .Append(FormatAppearanceNumber(rowBottom))
-                    .Append(' ')
-                    .Append(FormatAppearanceNumber(Math.Max(0D, width - 4D)))
-                    .Append(' ')
-                    .Append(FormatAppearanceNumber(Math.Min(rowHeight, Math.Max(0D, height - rowBottom - 2D))))
-                    .Append(" re f\n");
-                textStyle = style.Clone();
-                textStyle.TextColor = PdfColor.White;
-            }
-
-            IReadOnlyList<RichSeg> segments = BuildFormAppearanceSegments(options[optionIndex].DisplayText, field.FontSize, textStyle, formOptions);
-            EnsureCanWriteFormAppearanceLine(segments, formOptions);
-            double baseline = rowBottom + Math.Max(2D, (rowHeight - field.FontSize) / 2D + field.FontSize * 0.72D);
-            AppendFormAppearanceSegments(sb, segments, 3D, baseline, textStyle.TextColor, formOptions, ensureFont, resources);
-        }
-
-        sb.Append("Q\n");
+        IReadOnlyList<PdfFormFieldOption> optionsForAppearance = options;
+        string content = PdfAcroFormDictionaryBuilder.BuildChoiceListAppearanceContent(
+            width, height, options.Count, topIndex.Value, selectedIndices, field.FontSize, style,
+            (sb, optionIndex, baseline, textStyle) => {
+                IReadOnlyList<RichSeg> segments = BuildFormAppearanceSegments(optionsForAppearance[optionIndex].DisplayText, field.FontSize, textStyle, formOptions);
+                EnsureCanWriteFormAppearanceLine(segments, formOptions);
+                AppendFormAppearanceSegments(sb, segments, 3D, baseline, textStyle.TextColor, formOptions, ensureFont, resources);
+            });
         fontResources = resources;
-        return sb.ToString();
+        return content;
     }
 
     private static (IReadOnlyList<int> Indices, IReadOnlyList<string> Values) SortChoiceSelections(

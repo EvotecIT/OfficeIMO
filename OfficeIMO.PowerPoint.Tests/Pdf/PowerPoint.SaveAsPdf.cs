@@ -1556,7 +1556,7 @@ public partial class PowerPointSaveAsPdfTests {
         });
 
         string raw = PdfOperatorSearchText.From(bytes);
-        AssertRawPdfContainsAnyBaseFont(raw, "Times");
+        AssertRawPdfContainsAnyBaseFont(raw, "Times", "LiberationSerif");
         Assert.DoesNotContain("Georgia", raw, StringComparison.OrdinalIgnoreCase);
 
         using var pdf = PdfPigDocument.Open(new MemoryStream(bytes));
@@ -1586,7 +1586,7 @@ public partial class PowerPointSaveAsPdfTests {
         });
 
         string raw = PdfOperatorSearchText.From(bytes);
-        AssertRawPdfContainsAnyBaseFont(raw, "Times");
+        AssertRawPdfContainsAnyBaseFont(raw, "Times", "LiberationSerif");
         Assert.DoesNotContain("Georgia", raw, StringComparison.OrdinalIgnoreCase);
 
         using var pdf = PdfPigDocument.Open(new MemoryStream(bytes));
@@ -1616,7 +1616,7 @@ public partial class PowerPointSaveAsPdfTests {
         });
 
         string raw = PdfOperatorSearchText.From(bytes);
-        AssertRawPdfContainsAnyBaseFont(raw, "Times");
+        AssertRawPdfContainsAnyBaseFont(raw, "Times", "LiberationSerif");
         AssertRawPdfContainsAnyBaseFont(raw, "Georgia");
 
         using var pdf = PdfPigDocument.Open(new MemoryStream(bytes));
@@ -1641,7 +1641,7 @@ public partial class PowerPointSaveAsPdfTests {
         });
 
         string raw = PdfOperatorSearchText.From(bytes);
-        AssertRawPdfContainsAnyBaseFont(raw, "Times");
+        AssertRawPdfContainsAnyBaseFont(raw, "Times", "LiberationSerif");
     }
 
     [Fact]

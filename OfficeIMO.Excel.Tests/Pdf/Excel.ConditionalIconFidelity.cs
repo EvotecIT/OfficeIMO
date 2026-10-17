@@ -12,6 +12,47 @@ namespace OfficeIMO.Tests;
 
 public sealed class ExcelConditionalIconFidelityTests {
     [Theory]
+    [InlineData(ExcelIconSet.FourArrows, 4)]
+    [InlineData(ExcelIconSet.FiveArrows, 5)]
+    public void FlowTable_YellowArrowDirectionsMatchTheirConditionalValues(ExcelIconSet iconSet, int count) {
+        using var document = ExcelDocument.Create(new MemoryStream());
+        ExcelSheet sheet = document.AddWorksheet("Directions");
+        for (int row = 1; row <= count; row++) {
+            sheet.CellValue(row, 1, row - 1);
+            sheet.SetRowHeight(row, 30);
+        }
+        sheet.AddConditionalIconSet("A1:A" + count, iconSet, showValue: false, reverseIconOrder: false,
+            percentThresholds: null, numberThresholds: Enumerable.Range(0, count).Select(value => (double)value).ToArray());
+        byte[] bytes = document.ToPdfBytes(new ExcelToPdfOptions {
+            WorksheetLayout = ExcelPdfWorksheetLayoutMode.FlowTable, IncludeSheetHeadings = false, HeaderRowCount = 0,
+            PageSize = new PdfCore.PageSize(360, 360), Margins = PdfCore.PageMargins.Uniform(0)
+        });
+        var yellow = PdfCore.PdfReadDocument.Open(bytes).Pages[0].GetIdentityVisualPrimitives()
+            .Where(item => item.FillColor is OfficeColor color && color.R == 255 && color.G == 192 && color.B == 0)
+            .OrderBy(item => item.Y).ToArray();
+        Assert.Equal(count - 2, yellow.Length);
+        for (int index = 0; index < yellow.Length; index++) {
+            var points = yellow[index].PathCommands.Where(command => command.Kind is OfficePathCommandKind.MoveTo or OfficePathCommandKind.LineTo)
+                .Select(command => command.Point).ToArray();
+            Assert.Equal(3, points.Length);
+            double minY = points.Min(point => point.Y), maxY = points.Max(point => point.Y);
+            double minX = points.Min(point => point.X), maxX = points.Max(point => point.X);
+            // Ascending values select down, sideways, and (five-arrow only) up.
+            if (index == 0) {
+                Assert.Single(points, point => Math.Abs(point.Y - maxY) < 0.001D);
+                Assert.Equal(2, points.Count(point => Math.Abs(point.Y - minY) < 0.001D));
+            } else if (count == 5 && index == yellow.Length - 1) {
+                Assert.Single(points, point => Math.Abs(point.Y - minY) < 0.001D);
+                Assert.Equal(2, points.Count(point => Math.Abs(point.Y - maxY) < 0.001D));
+            } else {
+                Assert.Single(points, point => Math.Abs(point.X - maxX) < 0.001D);
+                Assert.Equal(2, points.Count(point => Math.Abs(point.X - minX) < 0.001D));
+            }
+            Assert.True(maxX > minX && maxY > minY);
+        }
+    }
+
+    [Theory]
     [InlineData(100, true)]
     [InlineData(50, true)]
     [InlineData(100, false)]

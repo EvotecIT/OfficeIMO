@@ -42,31 +42,31 @@ internal static class PowerPointPageImageExport {
             result => {
                 // The PDF exporter emits in page order, which is the presentation's original slide order.
                 int number = selectedNumbers[outputIndex++];
-                consumer(new OfficeImageExportResult(result.Format, result.Width, result.Height, result.Bytes,
-                    "Slide " + number, "PowerPoint slide " + number, result.Diagnostics));
+                consumer(result.WithIdentity("Slide " + number, "PowerPoint slide " + number));
             }, initialDiagnostics: null,
             () => PdfCore.PdfImageExportEngine.MapConversionDiagnostics(conversion!), cancellationToken);
     }
 
     internal static PowerPointSlideVisualSnapshot CreateSnapshot(PowerPointSlide slide, PowerPointImageExportOptions options) {
-        using OfficeImageExportExecutionScope execution = OfficeImageExportExecutionScope.Start(options.RenderTimeout, CancellationToken.None);
-        PowerPointPresentation presentation = GetPresentation(slide);
-        int number = GetSlideNumber(presentation, slide);
-        PowerPointToPdfOptions layout = CreateLayout(options, true);
-        layout.SelectedSlides = new HashSet<PowerPointSlide> { slide };
-        PdfCore.PdfDocumentConversionResult conversion = presentation.ToPdfDocumentResult(layout, execution.Token);
-        PdfCore.PdfReadDocument document = PdfCore.PdfReadDocument.Open(conversion.ToBytes(execution.Token), options: null, cancellationToken: execution.Token);
-        PdfCore.PdfReadPage page = document.Pages[0];
-        var size = page.GetPageSize();
-        OfficeDrawing drawing = page.ToDrawing(execution.Token, scene => scene.ApplyImageExportOptions(options),
-            options.GetEffectiveScale(size.Width, size.Height), options.MaximumRasterPixels);
-        var diagnostics = new List<OfficeImageExportDiagnostic>(PdfCore.PdfImageExportEngine.MapConversionDiagnostics(conversion));
-        foreach (PdfCore.PdfRenderCapabilityDiagnostic diagnostic in page.GetRenderCapabilityDiagnostics(cancellationToken: execution.Token))
-            diagnostics.Add(new OfficeImageExportDiagnostic(
-                diagnostic.SupportLevel == PdfCore.PdfRenderSupportLevel.Supported ? OfficeImageExportDiagnosticSeverity.Info : OfficeImageExportDiagnosticSeverity.Warning,
-                diagnostic.Code, diagnostic.Message, "PowerPoint slide " + number, diagnostic.LossKind));
-        drawing.AppendFontDiagnostics(diagnostics, "PowerPoint slide " + number);
-        return new PowerPointSlideVisualSnapshot(drawing, diagnostics.AsReadOnly(), page.GetTextSpans(includeArtifactText: true, execution.Token));
+        return OfficeImageExportExecutionScope.Run(options, CancellationToken.None, token => {
+            PowerPointPresentation presentation = GetPresentation(slide);
+            int number = GetSlideNumber(presentation, slide);
+            PowerPointToPdfOptions layout = CreateLayout(options, true);
+            layout.SelectedSlides = new HashSet<PowerPointSlide> { slide };
+            PdfCore.PdfDocumentConversionResult conversion = presentation.ToPdfDocumentResult(layout, token);
+            PdfCore.PdfReadDocument document = PdfCore.PdfReadDocument.Open(conversion.ToBytes(token), options: null, cancellationToken: token);
+            PdfCore.PdfReadPage page = document.Pages[0];
+            var size = page.GetPageSize();
+            OfficeDrawing drawing = page.ToDrawing(token, scene => scene.ApplyImageExportOptions(options),
+                options.GetEffectiveScale(size.Width, size.Height), options.MaximumRasterPixels);
+            var diagnostics = new List<OfficeImageExportDiagnostic>(PdfCore.PdfImageExportEngine.MapConversionDiagnostics(conversion));
+            foreach (PdfCore.PdfRenderCapabilityDiagnostic diagnostic in page.GetRenderCapabilityDiagnostics(cancellationToken: token))
+                diagnostics.Add(new OfficeImageExportDiagnostic(
+                    diagnostic.SupportLevel == PdfCore.PdfRenderSupportLevel.Supported ? OfficeImageExportDiagnosticSeverity.Info : OfficeImageExportDiagnosticSeverity.Warning,
+                    diagnostic.Code, diagnostic.Message, "PowerPoint slide " + number, diagnostic.LossKind));
+            drawing.AppendFontDiagnostics(diagnostics, "PowerPoint slide " + number);
+            return new PowerPointSlideVisualSnapshot(drawing, diagnostics.AsReadOnly(), page.GetTextSpans(includeArtifactText: true, token));
+        });
     }
 
     private static PowerPointToPdfOptions CreateLayout(PowerPointImageExportOptions options, bool includeHiddenSlides) {

@@ -1,6 +1,6 @@
 namespace OfficeIMO.Pdf;
 
-internal static class PdfAcroFormDictionaryBuilder {
+internal static partial class PdfAcroFormDictionaryBuilder {
     private static readonly double[] DefaultBorderDashPattern = { 3D };
 
     private static readonly char[] TextFieldLineSeparators = { '\n' };
