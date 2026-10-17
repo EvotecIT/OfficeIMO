@@ -63,6 +63,7 @@ namespace OfficeIMO.OpenXml.Internal {
                 var data = OfficeChartSeries.CreateBubble(name, x, y, sizes, fill,
                     ReadBubblePointColors(element, x.Count, colorScheme, maximumPointOverrides), markerOutlineColor: stroke,
                     markerOutlineWidth: width, showMarkerOutline: outline?.GetFirstChild<NoFill>() == null)
+                    .WithSeriesStyle(OfficeOpenXmlChartPointStyles.ReadStyle(properties, colorScheme))
                     .WithPointStyles(forDataUpdate ? null : OfficeOpenXmlChartPointStyles.Read(
                         OfficeOpenXmlChartPointStyles.GetBoundedPoints(element, maximumPointOverrides), x.Count, colorScheme));
                 series.Add(new Series(element.GetFirstChild<C.Index>()?.Val?.Value ?? (uint)index,
@@ -73,7 +74,7 @@ namespace OfficeIMO.OpenXml.Internal {
 
         private static bool HasUnsupportedFill(C.ChartShapeProperties? properties) =>
             properties?.ChildElements.Any(child =>
-                child is NoFill or GradientFill or PatternFill or BlipFill or GroupFill) == true;
+                child is GradientFill or PatternFill or BlipFill or GroupFill) == true;
 
         private static bool HasUnsupportedEffects(C.ChartShapeProperties? properties) =>
             properties?.GetFirstChild<EffectList>()?.ChildElements.Count > 0 ||
@@ -110,9 +111,10 @@ namespace OfficeIMO.OpenXml.Internal {
 
         private static bool HasUnresolvedSeriesColor(
             C.ChartShapeProperties? properties, ColorScheme? colorScheme) {
-            if (OfficeOpenXmlThemeColorResolver.HasUnsupportedTransforms(properties?.GetFirstChild<SolidFill>()) ||
+            if (properties?.GetFirstChild<NoFill>() == null &&
+                (OfficeOpenXmlThemeColorResolver.HasUnsupportedTransforms(properties?.GetFirstChild<SolidFill>()) ||
                 !OfficeOpenXmlThemeColorResolver.ResolveColor(
-                    properties?.GetFirstChild<SolidFill>(), colorScheme).HasValue) {
+                    properties?.GetFirstChild<SolidFill>(), colorScheme).HasValue)) {
                 return true;
             }
 

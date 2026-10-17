@@ -247,15 +247,13 @@ namespace OfficeIMO.OpenXml.Internal {
             // Unsupported appearance blocks static export, but update-only readers still need
             // the cached series. Native formatting remains in the source XML for the writer.
             var styles = unsupportedPoints ? null : OfficeOpenXmlChartPointStyles.Read(pointOverrides, values.Count, scheme, flatThreeDimensional);
-            if (filled && kind != OfficeChartKind.Area && kind != OfficeChartKind.AreaStacked && kind != OfficeChartKind.AreaStacked100)
-                styles = InheritFilledOutline(styles, values.Count, outline, stroke, width);
-            else Reject(filled && stroke.HasValue && stroke != fill, "an area outline coloured unlike its fill");
             var data = new OfficeChartSeries(name, values, xValues, seriesColor,
                 pointColors, showMarkers: showMarkers,
                 connectLine: connectLine,
                 markerSize: markerSize, markerShape: markerShape,
                 markerOutlineColor: markerOutlineColor, markerOutlineWidth: markerOutlineWidth,
                 strokeWidth: width, strokeDashStyle: ReadDash(outline), renderKind: kind, axisGroup: axisGroup)
+                .WithSeriesStyle(OfficeOpenXmlChartPointStyles.ReadStyle(properties, scheme))
                 .WithPointStyles(styles);
             if (kind is OfficeChartKind.Pie or OfficeChartKind.Doughnut) {
                 if (OfficeOpenXmlChartExplosions.TryRead(element, pointOverrides, values.Count,

@@ -115,6 +115,14 @@ PDF page rendering to PNG, JPEG, WebP, TIFF and Drawing follows PDF viewer conve
 
 ## Native chart and SmartArt rendering
 
+Series fill and outline paint are independent in shared chart snapshots. Use
+`OfficeChartSeries.WithSeriesStyle(OfficeChartPointStyle)` when an unfilled series must retain
+an outline; a transparent `Color` is no longer needed for no-fill. Word, PowerPoint and Excel
+PDF and image exports preserve explicit area, bubble and column outlines independently of
+fill, including point overrides where supported. Bottom-aligned table text also reserves the
+named font's final descent when its line advance is shorter than its font box, preventing
+spreadsheet glyphs from being clipped at a cell or worksheet boundary.
+
 Word, Excel and PowerPoint charts whose series or slices store no colour now render with the colours Office gives them, instead of being skipped (PowerPoint, Word images) or drawn with OfficeIMO's fallback palette (Excel, Word PDF). The colour comes from the classic `c:style` number (2 when absent) and the theme accents; from the seventh series on, Office's darker and lighter variations apply. Charts authored through OfficeIMO APIs that store no series colour change colour accordingly. A palette passed in `PowerPointToPdfOptions.ChartStyle` or `ExcelToPdfOptions.ChartStyle` still replaces these automatic colours.
 
 Office does not consult the `cs:chartStyle` and `cs:colorStyle` parts when it draws a chart, so they no longer prevent Word charts from rendering and no longer change exported colours. An `ExcelChartStylePreset` colour style no longer reorders the exported automatic pie palette.

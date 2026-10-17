@@ -408,7 +408,7 @@ namespace OfficeIMO.Excel {
                 ExcelChartSeries current = data.Series[i];
                 if (styles.TryGetValue(i, out ImageExportSeriesStyle? style)) {
                     series.Add(current.WithImageExportStyle(style.SeriesColorArgb, style.SeriesLineWidth, style.SeriesLineDashStyle, style.PointColorArgb, style.ShowMarkers, style.ConnectLine, style.MarkerSize, style.MarkerShape, style.MarkerOutlineColorArgb, style.MarkerOutlineWidth, style.AutomaticColor)
-                        .WithPointStyles(style.PointStyles).WithPointExplosions(style.PointExplosions));
+                        .WithSeriesStyle(style.SeriesStyle).WithPointStyles(style.PointStyles).WithPointExplosions(style.PointExplosions));
                     changed = true;
                 } else {
                     series.Add(current);
@@ -435,6 +435,7 @@ namespace OfficeIMO.Excel {
 
                 C.ChartShapeProperties? properties = series.GetFirstChild<C.ChartShapeProperties>();
                 if (properties != null) {
+                    style.SeriesStyle = OfficeOpenXmlChartPointStyles.ReadStyle(properties, workbookPart.ThemePart?.Theme?.ThemeElements?.ColorScheme);
                     style.SeriesColorArgb = GetImageExportSeriesColor(properties, workbookPart);
                     style.SeriesLineWidth = GetImageExportSeriesLineWidth(properties);
                     style.SeriesLineDashStyle = GetImageExportSeriesLineDashStyle(properties);
@@ -1587,6 +1588,8 @@ namespace OfficeIMO.Excel {
 
             internal IReadOnlyList<string?>? PointColorArgb { get; set; }
 
+            internal OfficeChartPointStyle? SeriesStyle { get; set; }
+
             internal IReadOnlyList<OfficeChartPointStyle?>? PointStyles { get; set; }
 
             internal IReadOnlyList<int>? PointExplosions { get; set; }
@@ -1603,7 +1606,7 @@ namespace OfficeIMO.Excel {
 
             internal double? MarkerOutlineWidth { get; set; }
 
-            internal bool HasAny => PointStyles != null || PointExplosions != null || SeriesColorArgb != null || SeriesLineWidth != null || SeriesLineDashStyle != null || PointColorArgb != null || !ShowMarkers || ConnectLine.HasValue || MarkerSize != null || MarkerShape != null || MarkerOutlineColorArgb != null || MarkerOutlineWidth != null;
+            internal bool HasAny => SeriesStyle != null || PointStyles != null || PointExplosions != null || SeriesColorArgb != null || SeriesLineWidth != null || SeriesLineDashStyle != null || PointColorArgb != null || !ShowMarkers || ConnectLine.HasValue || MarkerSize != null || MarkerShape != null || MarkerOutlineColorArgb != null || MarkerOutlineWidth != null;
         }
     }
 }

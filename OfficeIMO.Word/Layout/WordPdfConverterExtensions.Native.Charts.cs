@@ -292,6 +292,7 @@ namespace OfficeIMO.Word.Pdf {
                     !IsNativeWordLineLikeChart(chartKind) || !HasNativeDrawingOutlineNoFill(seriesElement.GetFirstChild<ChartShapeProperties>()),
                     markerSize: GetNativeWordChartMarkerSize(seriesElement, chartElement, chartKind),
                     markerShape: GetNativeWordChartMarkerShape(seriesElement, chartElement, chartKind))
+                    .WithSeriesStyle(OfficeIMO.OpenXml.Internal.OfficeOpenXmlChartPointStyles.ReadStyle(seriesElement.GetFirstChild<ChartShapeProperties>(), pointColorScheme))
                     .WithPointStyles(OfficeIMO.OpenXml.Internal.OfficeOpenXmlChartPointStyles.Read(pointOverrides, values.Count,
                         pointColorScheme, seriesElement.Parent?.LocalName.EndsWith("3DChart", StringComparison.Ordinal) == true));
                 if (IsNativeWordPieLikeChart(chartKind)) {

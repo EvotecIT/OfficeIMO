@@ -214,6 +214,16 @@ public sealed class OfficeChartSeries {
     /// <summary>Optional source-defined colors aligned with individual series values.</summary>
     public IReadOnlyList<OfficeColor?>? PointColors { get; }
 
+    /// <summary>Optional series fill and outline overrides, independent of the legacy palette colour.</summary>
+    public OfficeChartPointStyle? SeriesStyle { get; private set; }
+
+    /// <summary>Returns a copy with independent series fill and outline paint. Null restores inherited paint.</summary>
+    public OfficeChartSeries WithSeriesStyle(OfficeChartPointStyle? style) {
+        var copy = CopyWithPresentation(PointStyles, PointExplosions, ShowInLegend);
+        copy.SeriesStyle = style;
+        return copy;
+    }
+
     /// <summary>Optional point styles aligned with the values; explicit fills override PointColors.</summary>
     public IReadOnlyList<OfficeChartPointStyle?>? PointStyles { get; private set; }
 
@@ -255,6 +265,7 @@ public sealed class OfficeChartSeries {
         return new OfficeChartSeries(Name, Values, XValues, BubbleSizes, Color, PointColors,
             ShowMarkers, showInLegend, ConnectLine, MarkerSize, MarkerShape, MarkerOutlineColor,
             MarkerOutlineWidth, StrokeWidth, StrokeDashStyle, RenderKind, AxisGroup, ShowMarkerOutline) {
+            SeriesStyle = SeriesStyle,
             PointStyles = styles,
             PointExplosions = explosions
         };

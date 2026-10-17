@@ -7,6 +7,7 @@ internal static partial class PdfWriter {
     private sealed class RichLine : List<RichSeg> {
         internal double BaselineOffset { get; set; }
         internal double? FrameFitHeight { get; set; }
+        internal double MinimumContentHeight { get; set; }
     }
 
     private static double ResolveRichLineBaselineOffset(

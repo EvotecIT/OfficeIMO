@@ -765,6 +765,12 @@ internal static partial class PdfWriter {
             runKerning.Apply(line);
             foreach (RichSeg segment in line) segment.LineAlignmentRise = ResolveRichRunLineAlignmentRise(segment, options, lineSpacing);
             line.BaselineOffset = ResolveRichLineBaselineOffset(line, baseFont, fontSize, options, lineSpacing);
+            if (lineSpacing == null) {
+                // A short baseline advance may overlap subsequent lines, but bottom-aligned
+                // table content must still reserve the last line's descent before its clip.
+                GetRichLineInkMetrics(line, options ?? new PdfOptions(), out _, out double descent);
+                line.MinimumContentHeight = line.BaselineOffset + descent;
+            }
             if (lineSpacing?.FontLineBoxMultiplier != null && lineSpacing.Rule == PdfLineSpacingRule.Multiple)
                 line.FrameFitHeight = ResolveImportedLineFrameFitHeight(line, baseFont, fontSize, options, lineSpacing);
         }
