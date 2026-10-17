@@ -7,12 +7,12 @@ using OfficeIMO.Core.Internal;
 namespace OfficeIMO.Archives;
 
 public sealed partial class ArchiveInspection {
-    private MemoryStream? _zipSource;
+    private Stream? _zipSource;
     private List<OfficeArchiveSafety.ZipCentralDirectoryRecord>? _zipRecords;
     private long _zipWorkBytes;
 
-    private IReadOnlyList<ArchiveInspectionEntry> ReadZipInventory(byte[] input, CancellationToken token) {
-        _zipSource = new MemoryStream(input, writable: false);
+    private IReadOnlyList<ArchiveInspectionEntry> ReadZipInventory(Stream input, CancellationToken token) {
+        _zipSource = input;
         _zipRecords = ZipArchiveContent.ReadDirectory(_zipSource, _limits, token);
         var entries = new List<ArchiveInspectionEntry>(_zipRecords.Count);
         long total = 0;

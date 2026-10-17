@@ -2,6 +2,23 @@ namespace OfficeIMO.Archives.Tests;
 
 public sealed class ArchiveOperationBudgetTests {
     [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void CabinetExtractionRejectsTheEntireSelectionBeforeDecoding(bool msi) {
+        byte[] bytes = msi ? ArchiveFixtures.Msi() : ArchiveFixtures.StoredCab(("a", new byte[3]), ("b", new byte[3]));
+        var budget = new ArchiveOperationBudget(new() { MaxSelectedBytes = 4 });
+        using var fixture = new ArchiveFixtures();
+        var error = Assert.Throws<OfficeInspectionResourceLimitException>(() => ArchiveExtractor.Extract(
+            fixture.Package(bytes), fixture.Destination, new() { OperationBudget = budget }));
+        Assert.Equal("Operation.MaxSelectedBytes", error.LimitName);
+        Assert.Equal(0, budget.Usage.SelectedBytes);
+        Assert.Equal(0, budget.Usage.ExpandedBytes);
+        Assert.Equal(0, budget.Usage.DecompressionWorkBytes);
+        Assert.False(Directory.Exists(fixture.Destination));
+        Assert.Empty(Directory.GetDirectories(fixture.Root, ".officeimo-archive-*"));
+    }
+
+    [Theory]
     [InlineData("MaxSelectedBytes")]
     [InlineData("MaxExpandedBytes")]
     [InlineData("MaxDecompressionWorkBytes")]

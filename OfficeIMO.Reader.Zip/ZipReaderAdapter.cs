@@ -475,7 +475,7 @@ internal static partial class ZipReaderAdapter {
             using var source = archive.OpenRead(entry.Ordinal, cancellationToken);
             using var output = new MemoryStream(checked((int)entry.Length));
             source.CopyTo(output);
-            byte[] payload = output.ToArray();
+            byte[] payload = output.GetBuffer();
             ReaderNestedContent.MarkReservedPayload(payload);
             return payload;
         } catch (OfficeIMO.OfficeInspectionResourceLimitException error) {

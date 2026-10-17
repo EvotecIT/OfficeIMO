@@ -59,7 +59,7 @@ public static partial class ArchiveReader {
         var effective = Normalize(options);
         using Stream snapshot = CreateBoundedSnapshot(zipStream, effective.MaxArchiveBytes, cancellationToken);
         ValidateZipSource(snapshot, effective, cancellationToken);
-        using var inspection = ArchiveInspector.Open(snapshot, new ArchiveInspectionOptions {
+        using var inspection = ArchiveInspector.OpenZipSnapshot(snapshot, new ArchiveInspectionOptions {
             OperationBudget = effective.OperationBudget, ZipLegacyCodePage = effective.ZipLegacyCodePage,
             MaxInputBytes = effective.MaxArchiveBytes, MaxEntryCount = effective.MaxPhysicalEntries,
             MaxEntryBytes = long.MaxValue, MaxExpandedBytes = long.MaxValue

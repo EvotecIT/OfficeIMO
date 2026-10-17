@@ -20,8 +20,8 @@ internal static class ArchiveZipNames {
 #if NET8_0_OR_GREATER
             Encoding? encoding = CodePagesEncodingProvider.Instance.GetEncoding(codePage,
                 EncoderFallback.ExceptionFallback, DecoderFallback.ExceptionFallback);
-            if (encoding != null) return encoding.GetString(bytes);
-            throw new NotSupportedException("Unsupported ZIP filename code page: " + codePage);
+            encoding ??= Encoding.GetEncoding(codePage, EncoderFallback.ExceptionFallback, DecoderFallback.ExceptionFallback);
+            return encoding.GetString(bytes);
 #else
             if (codePage == 1252 || codePage == 1250 || codePage == 437 || codePage == 850 || codePage == 10000)
                 return OfficeLegacySingleByteEncoding.Decode(bytes, 0, bytes.Length, codePage);

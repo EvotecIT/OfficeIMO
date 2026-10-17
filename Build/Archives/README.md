@@ -9,7 +9,9 @@ OfficeIMO does not install, ship or invoke them.
 
 Use the candidate version and an isolated NuGet package cache when testing a local
 feed. Keep the feed, cache, build artifacts and output directory under the configured
-scratch root. The fourth version segment used by local qualification is private
+scratch root. An unconfigured restore is inert so repository-wide dependency discovery can scan this opt-in project. Building or running it still requires `OfficeIMOQualificationVersion`; no public default or placeholder package version is used.
+
+The fourth version segment used by local qualification is private
 build identity; it is not a public dependency pin or release version.
 
 ```sh

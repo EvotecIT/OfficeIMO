@@ -115,13 +115,16 @@ internal static partial class OfficeCabinetArchiveReader {
             int fileTableEnd = directory.FileTableEnd;
             var folderMembers = new List<int>?[folders.Length];
             var selected = new bool[files.Length];
+            long selectedBytes = 0;
             for (int index = 0; index < files.Length; index++) {
                 _cancellationToken.ThrowIfCancellationRequested();
                 FileHeader file = files[index];
                 (folderMembers[file.FolderIndex] ?? (folderMembers[file.FolderIndex] = new List<int>())).Add(index);
                 entryValidator?.Invoke(file.Name, file.Length);
                 selected[index] = entryFilter == null || entryFilter(file.Name);
+                if (selected[index]) selectedBytes = checked(selectedBytes + file.Length);
             }
+            _workBudget.Select(selectedBytes);
             var decodedEntries = new OfficeCabinetEntry?[files.Length];
             for (int folderIndex = 0; folderIndex < folders.Length; folderIndex++) {
                 _cancellationToken.ThrowIfCancellationRequested();
@@ -138,7 +141,6 @@ internal static partial class OfficeCabinetArchiveReader {
                     FileHeader file = files[index];
                     if ((long)file.FolderOffset + file.Length > source.LongLength) throw Error("CAB_ENTRY_RANGE", "A CAB entry extends past its folder.");
                     if (!selected[index]) continue;
-                    _workBudget.Select(file.Length);
                     var bytes = new byte[(int)file.Length];
                     if (bytes.Length > 0) Buffer.BlockCopy(source, (int)file.FolderOffset, bytes, 0, bytes.Length);
                     decodedEntries[index] = new OfficeCabinetEntry(file.Name, bytes);

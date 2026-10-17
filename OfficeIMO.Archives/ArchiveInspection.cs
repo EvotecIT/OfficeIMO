@@ -22,10 +22,10 @@ public sealed partial class ArchiveInspection : IDisposable {
         _limits = limits; _directoryRecords = directoryRecords; InputLength = input.LongLength;
         using var source = new MemoryStream(input, writable: false);
         Format = ArchiveExtractor.Detect(source, token);
-                StorageStreams = Array.Empty<ArchiveStorageStream>();
+        StorageStreams = Array.Empty<ArchiveStorageStream>();
         try {
             var budget = new OfficeCabinetDirectoryBudget(directoryRecords);
-            if (Format == ArchiveFormat.Zip) Entries = ReadZipInventory(input, token);
+            if (Format == ArchiveFormat.Zip) Entries = ReadZipInventory(new MemoryStream(input, writable: false), token);
             else if (Format == ArchiveFormat.Cab) {
                 var cabinet = OfficeCabinetArchiveReader.Inspect(input, limits.Expanded, limits.Entry, limits.Entries, budget, token);
                 _limits.Operation.AdmitEntries(cabinet.Members.Count);
@@ -42,6 +42,14 @@ public sealed partial class ArchiveInspection : IDisposable {
         catch { Dispose(); throw; }
     }
 
+    /// <summary>Takes ownership of an immutable, seekable ZIP snapshot without rematerializing its bytes.</summary>
+    internal ArchiveInspection(Stream zipSnapshot, ArchiveLimits limits, int directoryRecords, CancellationToken token) {
+        _limits = limits; _directoryRecords = directoryRecords; InputLength = zipSnapshot.Length;
+        Format = ArchiveFormat.Zip; StorageStreams = Array.Empty<ArchiveStorageStream>();
+        try { Entries = ReadZipInventory(zipSnapshot, token); token.ThrowIfCancellationRequested(); }
+        catch { Dispose(); throw; }
+    }
+
     /// <summary>Snapshot of cumulative resource charges for this inspection and related containers.</summary>
     public ArchiveResourceUsage ResourceUsage => _limits.Operation.Usage;
     /// <summary>The shared operation budget. Pass CreateNested() when opening a member as another container.</summary>
@@ -52,9 +60,9 @@ public sealed partial class ArchiveInspection : IDisposable {
     public long InputLength { get; }
     /// <summary>Authored ZIP/CAB records or MSI File rows in source order, including aliases and unsupported source profiles.</summary>
     public IReadOnlyList<ArchiveInspectionEntry> Entries { get; }
-    /// <summary>Inert raw MSI storage streams in compound directory traversal order; empty for CAB.</summary>
+    /// <summary>Inert raw MSI storage streams in compound directory traversal order; empty for ZIP/CAB.</summary>
     public IReadOnlyList<ArchiveStorageStream> StorageStreams { get; private set; }
-    /// <summary>Cumulative charged expanded folder and raw stream bytes, including attempted reads that fail.</summary>
+    /// <summary>Cumulative charged ZIP member, CAB folder and raw stream bytes, including attempted reads that fail.</summary>
     public long ReadBytes { get { lock (_gate) return _readBytes; } }
     /// <summary>Cumulative CAB frame or ZIP processing work charged across member reads, including failed attempts after charging.
     /// Units bound frame setup and processing rather than exact CPU time or expanded payload size.</summary>

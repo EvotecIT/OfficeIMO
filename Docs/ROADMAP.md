@@ -446,8 +446,6 @@ Qualify complete script-free HtmlForgeX reports through the shared HTML scene an
 
 ## Archive containers
 
-The current [Archives API](../OfficeIMO.Archives/README.md) owns ZIP/CAB/MSI inspection, verified selected reads, structured verification, cumulative operation budgets, explicit legacy ZIP names and bounded ZIP copying. [Reader ZIP ingestion](../OfficeIMO.Reader.Zip/README.md) uses that verified payload path for ordinary and nested archives. Current qualification and limits belong in the [support matrix](../OfficeIMO.Archives/SUPPORT.md); the [packed consumer](../Build/Archives/README.md) exercises public package APIs.
-
 - [ ] Qualify a native Windows Explorer archive containing Polish filenames, retaining the producer/Windows version, input hash, raw encoding policy and complete expected member bytes. Keep this distinct from the existing Windows-labelled ASCII corpus and CPython CP1250 fixtures.
 - [ ] Run the packed archive consumer and correctness suite on Windows, including .NET Framework 4.7.2, and extend named native MSI/CAB producer profiles. Retain exact package/fixture hashes and distinguish runtime execution from portable compilation and macOS native-producer checks.
 

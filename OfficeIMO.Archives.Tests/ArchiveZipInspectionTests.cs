@@ -4,6 +4,19 @@ namespace OfficeIMO.Archives.Tests;
 
 public sealed class ArchiveZipInspectionTests {
     [Fact]
+    public void BuiltInLegacyEncodingWorksAcrossZipRoutesWithoutProviderRegistration() {
+        byte[] bytes = Zip(("e.txt", "complete"));
+        bytes[30] = bytes[Central(bytes) + 46] = 0xe9;
+        using var inspection = ArchiveInspector.Open(new MemoryStream(bytes), new() { ZipLegacyCodePage = 28591 });
+        Assert.Equal("é.txt", Assert.Single(inspection.Entries).RawName);
+        Assert.Equal("é.txt", Assert.Single(ArchiveReader.ReadZip(bytes, new() { ZipLegacyCodePage = 28591 })).RelativePath);
+        Assert.Equal("é.txt", Assert.Single(ArchiveReader.TraverseZip(new MemoryStream(bytes), new() { ZipLegacyCodePage = 28591 }).Entries).FullName);
+        using var fixture = new ArchiveFixtures();
+        var extracted = ArchiveExtractor.Extract(fixture.Package(bytes), fixture.Destination, new() { ZipLegacyCodePage = 28591 });
+        Assert.Equal("complete", File.ReadAllText(Path.Combine(fixture.Destination, Assert.Single(extracted.Files).RelativePath)));
+    }
+
+    [Fact]
     public void TraversalRetainsThePlatformDosTimeInterpretationAcrossInputOverloads() {
         using var source = new MemoryStream();
         var wallTime = new DateTime(2024, 1, 2, 3, 4, 6, DateTimeKind.Unspecified);
