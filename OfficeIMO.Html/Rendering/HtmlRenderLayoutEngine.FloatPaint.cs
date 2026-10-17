@@ -40,6 +40,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
 
     private static bool ContainsDeferredFlowPaint(HtmlRenderVisual visual) =>
         visual.PaintPhase is HtmlRenderPaintPhase.Float or HtmlRenderPaintPhase.Outline
+        || visual is HtmlRenderShape { IsCollapsedTableBorder: true }
         || visual.PaintPhase == HtmlRenderPaintPhase.Content && visual.StackingContext == null
             && GetFlowPaintChildren(visual)?.Any(ContainsDeferredFlowPaint) == true;
 
@@ -82,6 +83,25 @@ internal sealed partial class HtmlRenderLayoutEngine {
     private static HtmlRenderFlowBlock OrderBoxFlowPaint(HtmlRenderFlowBlock block) {
         IEnumerable<HtmlRenderVisual> ordered = OrderFloatPaint(block.Visuals);
         return ReferenceEquals(ordered, block.Visuals) ? block : block.WithVisuals(ordered);
+    }
+
+    /// <summary>Recombines the paint phases of one source block's body and repeated table groups.</summary>
+    private static IEnumerable<HtmlRenderVisual> OrderRepeatedTableFragmentPaint(IReadOnlyList<HtmlRenderVisual> visuals) {
+        var roots = new List<HtmlRenderVisual>(visuals.Count);
+        foreach (HtmlRenderVisual visual in visuals) {
+            // A block's root envelope is atomic relative to outside siblings.
+            // Here all roots belong to that same block; its nested independent
+            // formatting/effect/stacking contexts retain their existing order.
+            if (visual.PaintPhase == HtmlRenderPaintPhase.Atomic && visual.StackingContext == null
+                && GetFlowPaintChildren(visual) is { } children) {
+                HtmlRenderVisual root = CloneGroupWithChildren(visual, children);
+                root.PaintPhase = HtmlRenderPaintPhase.Content;
+                roots.Add(root);
+            } else {
+                roots.Add(visual);
+            }
+        }
+        return OrderFloatPaint(roots);
     }
 
     private static List<HtmlRenderVisual> OrderPageFloatPaint(List<HtmlRenderVisual> visuals) {

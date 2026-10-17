@@ -62,6 +62,25 @@ internal sealed partial class HtmlRenderLayoutEngine {
             DecrementOccupancy(occupancy);
         }
 
+        // Rows and tracks contribute only at cell edges. Their declarations
+        // must not draw grid lines through a spanning cell's interior.
+        foreach (CollapsedTableCellPlacement cell in placements.Values) {
+            for (int boundary = cell.RowIndex + 1; boundary < cell.RowIndex + cell.RowSpan; boundary++) {
+                for (int segment = cell.Column; segment < cell.Column + cell.Span; segment++) {
+                    CheckCancellation();
+                    ChargeLayoutOperation("collapsed-table-span-edge");
+                    winners.Remove(new CollapsedBorderKey(true, boundary, segment));
+                }
+            }
+            for (int boundary = cell.Column + 1; boundary < cell.Column + cell.Span; boundary++) {
+                for (int segment = cell.RowIndex; segment < cell.RowIndex + cell.RowSpan; segment++) {
+                    CheckCancellation();
+                    ChargeLayoutOperation("collapsed-table-span-edge");
+                    winners.Remove(new CollapsedBorderKey(false, boundary, segment));
+                }
+            }
+        }
+
         var cellInsets = new Dictionary<TableFormattingCell, HtmlRenderBorderInsets>();
         foreach (KeyValuePair<TableFormattingCell, CollapsedTableCellPlacement> entry in placements) {
             CheckCancellation();

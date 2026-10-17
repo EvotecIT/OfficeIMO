@@ -63,6 +63,15 @@ internal sealed partial class HtmlRenderLayoutEngine {
                     continue;
                 }
 
+                if (visual is HtmlRenderShape { IsCollapsedTableBorder: true } border
+                    && border.Height < 0.001D
+                    && (Math.Abs(border.Y - start) <= 0.0001D || Math.Abs(border.Y - end) <= 0.0001D)) {
+                    // A safe grid-boundary cut keeps the complete shared rule.
+                    // Arbitrary cuts through a row still use the normal clip.
+                    fragment.Add(visual.Translate(0D, -start, fragment.Count));
+                    continue;
+                }
+
                 if (visual is HtmlRenderClipGroup clipGroup) {
                     IReadOnlyList<HtmlRenderVisual> children = SliceVisuals(clipGroup.Visuals, start, end, includeEndAnchor, fragmentBackgroundEnd);
                     if (children.Count > 0) {

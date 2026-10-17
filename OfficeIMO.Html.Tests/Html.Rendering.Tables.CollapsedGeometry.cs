@@ -267,7 +267,59 @@ public sealed partial class HtmlRenderingTests {
                 text.Where(item => item.Text.StartsWith("Body", StringComparison.Ordinal)).Select(item => item.Text));
         }
         Assert.Equal(new[] { "After" }, CollapsedGeometryPageVisuals(rendered.Pages[3]).OfType<HtmlRenderText>().Select(item => item.Text));
+        IReadOnlyList<OfficeImageExportResult> png = HtmlConversionDocument.Parse(CollapsedGeometrySource(html))
+            .ExportImages(OfficeImageExportFormat.Png, options);
+        Assert.True(OfficePngReader.TryDecode(png[2].Bytes, out OfficeRasterImage? raster));
+        Assert.Equal(OfficeColor.Red, raster!.GetPixel(285, 48));
+        Assert.Equal(OfficeColor.Black, raster.GetPixel(285, 44));
+        Assert.Equal(OfficeColor.Black, raster.GetPixel(285, 45));
+        Assert.Equal(OfficeColor.White, raster.GetPixel(7, 44));
+        Assert.Equal(OfficeColor.White, raster.GetPixel(292, 44));
         rendered.RequireNoLoss();
+    }
+
+    [Fact]
+    public void HtmlCollapsedGeometry_RowAndColumnRulesDoNotCrossSpanningCellInteriors() {
+        const string body = "<table style='width:280px;table-layout:fixed;border-collapse:collapse'>"
+            + "<col><col style='border-right:12px solid blue'><col><tbody>"
+            + "<tr style='border-bottom:12px solid red'><td rowspan='2' style='background:white'>"
+            + "<div class='probe'>Span</div></td><td colspan='2'><div class='probe'>Wide</div></td></tr>"
+            + "<tr><td><div class='probe'>Lower</div></td><td><div class='probe'>Cell</div></td></tr></tbody></table>";
+        Assert.True(OfficePngReader.TryDecode(HtmlConversionDocument.Parse(CollapsedGeometrySource(body))
+            .ToPng(CollapsedGeometryOptions()), out OfficeRasterImage? raster));
+
+        Assert.Equal(OfficeColor.White, raster!.GetPixel(40, 34));
+        Assert.Equal(OfficeColor.Lime, raster.GetPixel(190, 15));
+        Assert.Equal(OfficeColor.Red, raster.GetPixel(250, 34));
+        Assert.Equal(OfficeColor.Blue, raster.GetPixel(190, 55));
+    }
+
+    [Theory]
+    [InlineData("fixed", "200px")]
+    [InlineData("auto", "auto")]
+    public void HtmlCollapsedGeometry_ColumnHintsExcludeColumnPaddingAndKeepBorderWinners(string layout, string width) {
+        string Table(bool columns) => "<table id='grid' style='table-layout:" + layout + ";width:" + width
+            + ";border-collapse:collapse'><col style='width:80px;" + (columns ? "padding:17px;border:10px solid red" : "")
+            + "'><col style='width:120px;" + (columns ? "padding:17px;border:10px solid blue" : "") + "'><tbody><tr>"
+            + "<td id='a' style='" + (columns ? "" : "border:10px solid red") + "'><div id='a-probe' class='probe'>Left</div></td>"
+            + "<td id='b' style='" + (columns ? "" : "border:10px solid blue") + "'><div id='b-probe' class='probe'>Right</div></td>"
+            + "</tr></tbody></table>" + CollapsedGeometryFollowing;
+        HtmlRenderDocument actual = RenderCollapsedGeometry(Table(true));
+        AssertCollapsedGeometryEquivalent(RenderCollapsedGeometry(Table(false)), actual,
+            "table#grid", "td#a", "td#b", "div#a-probe", "div#b-probe", "div#after");
+        Assert.Equal(210D, TableGeometryShape(actual, "table#grid").Width, 3);
+        Assert.Equal(80D, TableGeometryShape(actual, "td#a").Width, 3);
+        Assert.Equal(120D, TableGeometryShape(actual, "td#b").Width, 3);
+    }
+
+    [Fact]
+    public void HtmlCollapsedGeometry_FirstRowContentWidthHintUsesWinningInsets() {
+        string Table(string neighbor) => "<table id='grid' style='width:200px;table-layout:fixed;border-collapse:collapse'><tr>"
+            + "<td id='a' style='width:80px;border-right:10px solid red'><div id='a-probe' class='probe'>Left</div></td>"
+            + "<td id='b' style='border-left:" + neighbor + "'><div id='b-probe' class='probe'>Right</div></td></tr></table>"
+            + CollapsedGeometryFollowing;
+        AssertCollapsedGeometryEquivalent(RenderCollapsedGeometry(Table("10px solid red")),
+            RenderCollapsedGeometry(Table("2px solid blue")), "table#grid", "td#a", "td#b", "div#a-probe", "div#b-probe", "div#after");
     }
 
     private const string CollapsedGeometryFollowing = "<div id='after' style='height:10px;background:red'>After</div>";

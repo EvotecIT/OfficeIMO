@@ -138,28 +138,39 @@ internal sealed partial class HtmlRenderLayoutEngine {
                     double trailingHeight = plan.FooterHeight;
                     double available = plan.Available;
                     double fragmentEnd = plan.End;
+                    var fragmentVisuals = new List<HtmlRenderVisual>();
 
                     ReportSharedTableRepetitionLoss(block, fragmentEnd);
                     if (repeatContinuation) {
-                        AddTranslatedVisuals(visuals, continuationGroup!.Visuals, pageGeometry.Margins.Left, y, block);
+                        foreach (HtmlRenderVisual visual in continuationGroup!.Visuals) {
+                            fragmentVisuals.Add(visual.Translate(0D, y, fragmentVisuals.Count));
+                        }
                         y += continuationHeight;
                     }
 
                     IReadOnlyList<HtmlRenderVisual> fragment = SliceBlockVisuals(block, blockOffset, fragmentEnd,
                         fragmentEnd < block.Height - 0.0001D ? blockOffset + available : null);
-                    AddTranslatedVisuals(visuals, fragment, pageGeometry.Margins.Left, y, block);
+                    foreach (HtmlRenderVisual visual in fragment) {
+                        fragmentVisuals.Add(visual.Translate(0D, y, fragmentVisuals.Count));
+                    }
                     RecordRunningStringAssignments(block, blockOffset, fragmentEnd, y);
                     y += fragmentEnd - blockOffset;
                     blockOffset = fragmentEnd;
                     bool finishedTableFooter = false;
                     if (repeatTrailing) {
-                        AddTranslatedVisuals(visuals, trailingGroup!.Visuals, pageGeometry.Margins.Left, y, block);
+                        foreach (HtmlRenderVisual visual in trailingGroup!.Visuals) {
+                            fragmentVisuals.Add(visual.Translate(0D, y, fragmentVisuals.Count));
+                        }
                         y += trailingHeight;
                         if (blockOffset >= trailingGroup.ContentEndsAt - 0.0001D) {
                             blockOffset = trailingGroup.SourceEndsAt;
                             finishedTableFooter = true;
                         }
                     }
+
+                    AddTranslatedVisuals(visuals, repeatContinuation || repeatTrailing
+                        ? OrderRepeatedTableFragmentPaint(fragmentVisuals) : fragmentVisuals,
+                        pageGeometry.Margins.Left, 0D, block);
 
                     if (blockOffset < block.Height - 0.0001D) {
                         // A wrapper can contain content after the completed table.
