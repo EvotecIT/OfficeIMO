@@ -267,7 +267,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         SetActivePageGeometry(initialGeometry);
         double surfaceWidth = initialGeometry.Width;
         double contentWidth = initialGeometry.ContentWidth;
-        HtmlRenderBoxStyle rootStyle = _styleResolver.Resolve(root, contentWidth);
+        HtmlRenderBoxStyle rootStyle = ResolveRootStyle(root, contentWidth);
         _layoutStyles[root] = rootStyle.Clone();
         ConfigureRootSurface(root, rootStyle, contentWidth);
 
@@ -281,7 +281,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 ResetLayoutPassState();
                 SetActivePageGeometry(namedGeometry);
                 contentWidth = namedGeometry.ContentWidth;
-                rootStyle = _styleResolver.Resolve(root, contentWidth);
+                rootStyle = ResolveRootStyle(root, contentWidth);
                 _layoutStyles[root] = rootStyle.Clone();
                 ConfigureRootSurface(root, rootStyle, contentWidth);
                 blocks = rootStyle.Display == "none"
@@ -668,14 +668,14 @@ internal sealed partial class HtmlRenderLayoutEngine {
         }
         IElement root = _document.Body ?? _document.DocumentElement ?? block.OwnerElement;
         if (ReferenceEquals(block.OwnerElement, root)) {
-            HtmlRenderBoxStyle bodyStyle = _styleResolver.Resolve(root, geometry.ContentWidth);
+            HtmlRenderBoxStyle bodyStyle = ResolveRootStyle(root, geometry.ContentWidth);
             return LayoutRootElement(root, geometry.ContentWidth, bodyStyle);
         }
         if (!ReferenceEquals(block.OwnerElement.ParentElement, root)) {
             ReportPageContinuationReflowPending(block, geometry);
             return block;
         }
-        HtmlRenderBoxStyle rootStyle = _styleResolver.Resolve(root, geometry.ContentWidth);
+        HtmlRenderBoxStyle rootStyle = ResolveRootStyle(root, geometry.ContentWidth);
         HtmlRenderBoxStyle style = _styleResolver.Resolve(block.OwnerElement, geometry.ContentWidth, rootStyle);
         return LayoutElement(block.OwnerElement, geometry.ContentWidth, style, rootStyle, 1);
     }
@@ -726,14 +726,14 @@ internal sealed partial class HtmlRenderLayoutEngine {
         if (source.OwnerElement == null || continuation.OwnerElement == null) return false;
         IElement root = _document.Body ?? _document.DocumentElement ?? source.OwnerElement;
         if (ReferenceEquals(source.OwnerElement, root) && ContainsElementOrSelf(root, continuation.OwnerElement)) {
-            HtmlRenderBoxStyle bodyStyle = _styleResolver.Resolve(root, geometry.ContentWidth);
+            HtmlRenderBoxStyle bodyStyle = ResolveRootStyle(root, geometry.ContentWidth);
             reflowed = LayoutRootElement(root, geometry.ContentWidth, bodyStyle,
                 continuation.OwnerElement, continuation.LogicalCharacters);
             return true;
         }
         if (!ReferenceEquals(source.OwnerElement.ParentElement, root)) return false;
         if (!ContainsElementOrSelf(source.OwnerElement, continuation.OwnerElement)) return false;
-        HtmlRenderBoxStyle rootStyle = _styleResolver.Resolve(root, geometry.ContentWidth);
+        HtmlRenderBoxStyle rootStyle = ResolveRootStyle(root, geometry.ContentWidth);
         HtmlRenderBoxStyle style = _styleResolver.Resolve(source.OwnerElement, geometry.ContentWidth, rootStyle);
         reflowed = LayoutElement(
             source.OwnerElement,

@@ -90,7 +90,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         IElement root = _document.Body ?? _document.DocumentElement ?? owner;
         bool isRoot = ReferenceEquals(owner, root);
         if (!isRoot && !ReferenceEquals(owner.ParentElement, root)) return false;
-        HtmlRenderBoxStyle rootStyle = _styleResolver.Resolve(root, geometry.ContentWidth);
+        HtmlRenderBoxStyle rootStyle = ResolveRootStyle(root, geometry.ContentWidth);
         HtmlRenderBoxStyle style = isRoot ? rootStyle : _styleResolver.Resolve(owner, geometry.ContentWidth, rootStyle);
         double leading = isRoot ? 0D : block.LeadingFlowAdjustment;
         var boundary = new PagedFloatBoundary(offset + available + leading, pageHeight, offset + leading);

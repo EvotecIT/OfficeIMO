@@ -3,6 +3,14 @@ using AngleSharp.Dom;
 namespace OfficeIMO.Html;
 
 internal sealed partial class HtmlRenderLayoutEngine {
+    /// <summary>Resolves a body layout root against its document element's inherited used values.</summary>
+    private HtmlRenderBoxStyle ResolveRootStyle(IElement root, double contentWidth) {
+        HtmlRenderBoxStyle? parentStyle = root.ParentElement == null
+            ? null
+            : _styleResolver.Resolve(root.ParentElement, contentWidth);
+        return _styleResolver.Resolve(root, contentWidth, parentStyle);
+    }
+
     private void ConfigureRootSurface(IElement root, HtmlRenderBoxStyle rootStyle, double contentWidth) {
         _surfaceRootElement = root;
         _surfaceRootStyle = rootStyle;

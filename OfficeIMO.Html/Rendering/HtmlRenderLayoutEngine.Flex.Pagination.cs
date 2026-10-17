@@ -155,7 +155,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         IElement root = _document.Body ?? _document.DocumentElement ?? block.OwnerElement;
         bool isRoot = ReferenceEquals(block.OwnerElement, root);
         if (!isRoot && !ReferenceEquals(block.OwnerElement.ParentElement, root)) return false;
-        HtmlRenderBoxStyle rootStyle = _styleResolver.Resolve(root, geometry.ContentWidth);
+        HtmlRenderBoxStyle rootStyle = ResolveRootStyle(root, geometry.ContentWidth);
         HtmlRenderBoxStyle style = isRoot
             ? rootStyle
             : _styleResolver.Resolve(block.OwnerElement, geometry.ContentWidth, rootStyle);
