@@ -79,6 +79,10 @@
     ],
     "TestFlightBetaGroupNames": [
       "Studio Internal"
+    ],
+    "ScreenshotConfigPaths": [
+      "Build/Studio/Apple/appstoreconnect-screenshots-macos.json",
+      "Build/Studio/Apple/appstoreconnect-screenshots-ios.json"
     ]
   }
 }

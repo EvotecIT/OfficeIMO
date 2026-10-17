@@ -49,7 +49,7 @@ powerforge apple-release SubmitAppReview --config Build/Studio/Apple/powerforge.
 
 Commit the shared version change before archiving. Review each plan and use the exact-source release mode for signed candidates. `Advance` prepares builds, store metadata and the configured internal `Studio Internal` TestFlight group. Submission to public App Review is a separate action. The same Store-eligible binary can serve internal testing and App Review; do not export it as TestFlight Internal Only.
 
-The two metadata files describe each native platform's supported scope. Screenshots must show the corresponding native product and use reviewed byte manifests. Qualify open/save, markup, page organization, form filling, scan/conversion, recovery and accessibility on the actual candidates. Simulator proof does not establish physical-device acceptance. Open work belongs in [the Studio roadmap](../../../Docs/ROADMAP.md#desktop-studio).
+The two metadata files describe each native platform's supported scope. The two screenshot mappings select native Mac, iPhone and iPad PNGs under ignored `Artifacts/Studio/Apple/screenshots`. Keep those captures and their source-bound `approval-macOS.json` / `approval-iOS.json` manifests private until review. Screenshots must show the corresponding native product and use reviewed byte manifests. Qualify open/save, markup, page organization, form filling, scan/conversion, recovery and accessibility on the actual candidates. Simulator proof does not establish physical-device acceptance. Open work belongs in [the Studio roadmap](../../../Docs/ROADMAP.md#desktop-studio).
 
 ## Store declarations
 

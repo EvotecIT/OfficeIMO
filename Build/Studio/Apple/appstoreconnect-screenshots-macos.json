@@ -1,0 +1,30 @@
+{
+  "appId": "6818096229",
+  "versionString": "1.0",
+  "useReleaseVersion": true,
+  "locale": "en-US",
+  "platform": "macOS",
+  "screenshotSets": [
+    {
+      "screenshotDisplayType": "APP_DESKTOP",
+      "path": "../../../Artifacts/Studio/Apple/screenshots/macOS/en-US",
+      "filter": "*.png",
+      "maxCount": 10,
+      "allowedDimensions": [
+        "1280x800",
+        "1440x900",
+        "2560x1600",
+        "2880x1800"
+      ]
+    }
+  ],
+  "quality": {
+    "enabled": true,
+    "rejectDuplicates": true,
+    "requireConsistentDimensions": true,
+    "minimumFileBytes": 4096,
+    "minimumKilobytesPerMegapixel": 12,
+    "requireApprovalManifest": true,
+    "approvalManifestPath": "../../../Artifacts/Studio/Apple/screenshots/approval-macOS.json"
+  }
+}
