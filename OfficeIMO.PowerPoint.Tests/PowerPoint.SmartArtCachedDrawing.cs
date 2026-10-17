@@ -52,28 +52,72 @@ public sealed class PowerPointSmartArtCachedDrawingTests {
     }
 
     [Theory]
-    [InlineData(false)]
-    [InlineData(true)]
-    public void EditedSmartArtKeepsWhitespaceAndNodePositionsAfterReopen(bool swap) {
+    [InlineData(false, false)]
+    [InlineData(true, false)]
+    [InlineData(false, true)]
+    [InlineData(true, true)]
+    public void EditedSmartArtKeepsWhitespaceAndNodePositionsAfterReopen(bool swap, bool embeddedFont) {
         using var original = PowerPointPresentation.Load(RoadmapPath);
-        PowerPointSmartArt smartArt = original.Slides.SelectMany(slide => slide.Shapes).OfType<PowerPointSmartArt>().Single();
-        smartArt.SetNodeText(0, swap ? "Represent" : "Dis cover");
-        if (swap) smartArt.SetNodeText(1, "Discover");
+        PowerPointSlide originalSlide = original.Slides.Single(item => item.Shapes.OfType<PowerPointSmartArt>().Any());
+        PowerPointSmartArt smartArt = originalSlide.Shapes.OfType<PowerPointSmartArt>().Single();
+        Assert.True(smartArt.TryCreateCachedDrawing(out PowerPointGroupShape originalGroup, out string? current), current);
+        var originalLabels = originalSlide.GetGroupChildren(originalGroup).OfType<PowerPointTextBox>()
+            .Where(item => !string.IsNullOrWhiteSpace(item.Text)).OrderBy(item => item.LeftPoints).ToArray();
+        string[] modelIds = ReadSmartArtModelIds(originalSlide.SlidePart);
+        string[] expected = { swap ? "Represent" : "Dis cover", swap ? "Discover" : "Represent", "Round-trip", "Validate" };
+        smartArt.SetNodeText(0, expected[0]);
+        if (swap) smartArt.SetNodeText(1, expected[1]);
         using var stream = new MemoryStream();
         original.Save(stream);
         stream.Position = 0;
         using var reopened = PowerPointPresentation.Load(stream);
         PowerPointSlide slide = reopened.Slides.Single(item => item.Shapes.OfType<PowerPointSmartArt>().Any());
         PowerPointSmartArt edited = slide.Shapes.OfType<PowerPointSmartArt>().Single();
+        Assert.Equal(modelIds, ReadSmartArtModelIds(slide.SlidePart));
+        Assert.Equal(expected, edited.GetNodeTexts());
         Assert.True(edited.TryCreateCachedDrawing(out PowerPointGroupShape group, out string? reason), reason);
         var labels = slide.GetGroupChildren(group).OfType<PowerPointTextBox>()
             .Where(item => !string.IsNullOrWhiteSpace(item.Text)).OrderBy(item => item.LeftPoints).ToArray();
-        Assert.Equal(swap ? "Represent" : "Dis cover", labels[0].Text.Trim());
-        Assert.Equal(swap ? "Discover" : "Represent", labels[1].Text.Trim());
-        PdfDocumentConversionResult result = reopened.ToPdfDocumentResult();
+        Assert.Equal(expected, labels.Select(item => item.Text));
+        Assert.Equal((originalGroup.LeftPoints, originalGroup.TopPoints, originalGroup.WidthPoints, originalGroup.HeightPoints),
+            (group.LeftPoints, group.TopPoints, group.WidthPoints, group.HeightPoints));
+        Assert.Equal(originalLabels.Select(item => (item.LeftPoints, item.TopPoints, item.WidthPoints, item.HeightPoints)),
+            labels.Select(item => (item.LeftPoints, item.TopPoints, item.WidthPoints, item.HeightPoints)));
+
+        // Resolve fonts explicitly: neither case depends on fonts installed on the test host.
+        var pdfOptions = new PdfOptions { DefaultFont = PdfStandardFont.Helvetica };
+        if (embeddedFont) pdfOptions.UseFontFamily(new PdfEmbeddedFontFamily("SmartArtFixture",
+            OfficeIMO.TestAssets.PdfTestFontAssets.LoadBundledOpenTypeCffFont()));
+        PdfDocumentConversionResult result = reopened.ToPdfDocumentResult(new PowerPointToPdfOptions {
+            PdfOptions = pdfOptions,
+            ResourcePolicy = PdfResourcePolicy.CreatePortableDeterministic()
+        });
         Assert.DoesNotContain(result.Warnings, warning => warning.Code == "unsupported-smartart");
-        Assert.Contains(swap ? "Represent" : "Dis cover", PdfReadDocument.Open(result.ToBytes()).ExtractText(), StringComparison.Ordinal);
+        using var pdf = UglyToad.PdfPig.PdfDocument.Open(result.ToBytes());
+        var page = pdf.GetPage(reopened.Slides.ToList().IndexOf(slide) + 1);
+        for (int index = 0; index < labels.Length; index++) {
+            PowerPointTextBox label = labels[index];
+            double left = group.LeftPoints + label.LeftPoints;
+            double top = (double)page.Height - group.TopPoints - label.TopPoints;
+            // The cached group has unscaled child coordinates. Read each label's glyphs in
+            // content order: font metrics may wrap a word across lines, and page-wide text
+            // extraction interleaves adjacent nodes. Preserve actual spaces without normalization.
+            var letters = page.Letters.Where(letter => letter.StartBaseLine.X >= left
+                && letter.StartBaseLine.X <= left + label.WidthPoints
+                && letter.StartBaseLine.Y <= top
+                && letter.StartBaseLine.Y >= top - label.HeightPoints).ToArray();
+            Assert.Equal(expected[index], string.Concat(letters.Select(letter => letter.Value)));
+            Assert.All(letters, letter => Assert.Contains(embeddedFont ? "SmartArtFixture" : "Helvetica", letter.FontName,
+                StringComparison.Ordinal));
+        }
     }
+
+    private static string[] ReadSmartArtModelIds(SlidePart slide) => slide.DiagramDataParts.Cast<OpenXmlPart>()
+        .Concat(slide.Parts.Select(item => item.OpenXmlPart).OfType<DiagramPersistLayoutPart>())
+        .SelectMany(part => {
+            using Stream stream = part.GetStream(FileMode.Open, FileAccess.Read);
+            return XDocument.Load(stream).Descendants().Attributes("modelId").Select(item => item.Value).ToArray();
+        }).ToArray();
 
     [Theory]
     [InlineData(false)]

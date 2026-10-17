@@ -37,6 +37,7 @@ namespace OfficeIMO.Word.Pdf {
                 operation.CancellationToken.ThrowIfCancellationRequested();
             }
             PdfCore.PdfDocument pdf;
+            using IDisposable runPaintScope = WordRunFormatting.BeginConversionScope(cancellationToken);
             using IDisposable storyScope = WordHeaderFooterResolutionSnapshot.Begin(document, cancellationToken);
             using (WordComplexFieldRunVisibility.BeginConversionScope())
                 pdf = CreateOfficeIMOPdfDocument(document, operation);

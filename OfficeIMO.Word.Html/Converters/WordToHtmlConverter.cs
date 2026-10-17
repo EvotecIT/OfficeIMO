@@ -29,6 +29,7 @@ namespace OfficeIMO.Word.Html {
                     IReadOnlyList<WordFieldInfo>? fieldInfo = options.FieldPolicy == WordFieldExportPolicy.VisibleResultWithReviewMetadata && exportInspection.HasFields
                         ? document.InspectFields().Where(field => IsSelectedFieldLocation(field.LocationKind, options)).ToArray()
                         : null;
+                    using (WordRunFormatting.BeginConversionScope())
                     using (WordComplexFieldRunVisibility.BeginConversionScope())
                         return ConvertPrepared(document, options, reviewInfo, fieldInfo, exportInspection);
                 } finally {
@@ -791,6 +792,12 @@ namespace OfficeIMO.Word.Html {
             }
 
             bool TryAppendPlainParagraph(IElement parent, WordParagraph para) {
+                // No direct rPr does not imply plain paint: default styles and docDefaults can supply a background.
+                if (options.IncludeRunHighlightStyles &&
+                    ((WordRunFormatting.ResolveRunHighlight(para) is HighlightColorValues highlight && highlight != HighlightColorValues.None) ||
+                    WordRunFormatting.ResolveRunShadingFillColorHex(para) != null)) {
+                    return false;
+                }
                 if (options.IncludeFontStyles && !string.IsNullOrEmpty(options.FontFamily)) {
                     return false;
                 }

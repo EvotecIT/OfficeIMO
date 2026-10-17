@@ -11,7 +11,7 @@ using A = DocumentFormat.OpenXml.Drawing;
 namespace OfficeIMO.Word;
 
 /// <summary>Resolves inherited Word run backgrounds without performing page layout or rendering.</summary>
-internal static class WordRunFormatting {
+internal static partial class WordRunFormatting {
     /// <summary>Resolves run shading, including theme colors and a blended fill for shading patterns.</summary>
     internal static string? ResolveRunShadingFillColorHex(WordParagraph paragraph) {
         A.ColorScheme? colorScheme = paragraph._document.MainDocumentPartRoot.ThemePart?.Theme?.ThemeElements?.ColorScheme;
@@ -20,30 +20,27 @@ internal static class WordRunFormatting {
             : null;
     }
 
-    /// <summary>Resolves direct, character-style, then paragraph-style highlighting, preserving explicit off values.</summary>
-    internal static HighlightColorValues? ResolveRunHighlight(WordParagraph paragraph) {
-        RunProperties? directProperties = GetDirectRunProperties(paragraph);
-        if (directProperties?.Highlight != null) {
-            return directProperties.Highlight.Val?.Value;
+    /// <summary>Resolves direct and styled highlighting, then table style and document defaults; explicit none stops inheritance.</summary>
+    internal static HighlightColorValues? ResolveRunHighlight(WordParagraph paragraph, HighlightColorValues? tableStyleHighlight = null) {
+        foreach (OpenXmlCompositeElement properties in EnumerateRunPropertySources(paragraph, includeDocumentDefaults: false)) {
+            HighlightColorValues? highlight = ReadRunHighlight(properties);
+            if (highlight.HasValue) return highlight;
         }
+        return tableStyleHighlight ?? ReadRunHighlight(GetDocumentDefaultRunProperties(paragraph));
+    }
 
-        foreach (StyleRunProperties properties in EnumerateRunStyleProperties(paragraph)) {
-            Highlight? highlight = properties.GetFirstChild<Highlight>();
-            if (highlight != null) {
-                return highlight.Val?.Value;
-            }
-        }
-
-        return null;
+    /// <summary>Reads typed or unknown SDK highlight elements after a style/default run-property round trip.</summary>
+    internal static HighlightColorValues? ReadRunHighlight(OpenXmlCompositeElement? properties) {
+        OpenXmlElement? highlight = properties?.ChildElements.FirstOrDefault(child =>
+            child.LocalName == "highlight" && child.NamespaceUri == properties.NamespaceUri);
+        if (highlight == null) return null;
+        string? value = highlight.GetAttributes().FirstOrDefault(attribute =>
+            attribute.LocalName == "val" && attribute.NamespaceUri == highlight.NamespaceUri).Value;
+        return string.IsNullOrEmpty(value) ? null : new HighlightColorValues(value!);
     }
 
     private static Shading? ResolveRunShading(WordParagraph paragraph) {
-        RunProperties? directProperties = GetDirectRunProperties(paragraph);
-        if (directProperties?.Shading != null) {
-            return directProperties.Shading;
-        }
-
-        foreach (StyleRunProperties properties in EnumerateRunStyleProperties(paragraph)) {
+        foreach (OpenXmlCompositeElement properties in EnumerateRunPropertySources(paragraph)) {
             Shading? shading = properties.GetFirstChild<Shading>();
             if (shading != null) {
                 return shading;
@@ -57,6 +54,29 @@ internal static class WordRunFormatting {
         paragraph.IsHyperLink
             ? paragraph.Hyperlink?._runProperties
             : paragraph._runProperties;
+
+    /// <summary>Enumerates direct, character-style, paragraph-style, table-style, then document-default run properties.</summary>
+    private static IEnumerable<OpenXmlCompositeElement> EnumerateRunPropertySources(WordParagraph paragraph, bool includeDocumentDefaults = true) {
+        RunProperties? directProperties = GetDirectRunProperties(paragraph);
+        if (directProperties != null) {
+            yield return directProperties;
+        }
+
+        foreach (StyleRunProperties properties in EnumerateRunStyleProperties(paragraph)) {
+            yield return properties;
+        }
+
+        foreach (OpenXmlCompositeElement properties in EnumerateTableRunPropertySources(paragraph)) {
+            yield return properties;
+        }
+
+        RunPropertiesBaseStyle? defaults = includeDocumentDefaults ? GetDocumentDefaultRunProperties(paragraph) : null;
+        if (defaults != null) yield return defaults;
+    }
+
+    private static RunPropertiesBaseStyle? GetDocumentDefaultRunProperties(WordParagraph paragraph) =>
+        paragraph._document?._wordprocessingDocument?.MainDocumentPart?.StyleDefinitionsPart?.Styles?
+            .DocDefaults?.RunPropertiesDefault?.RunPropertiesBaseStyle;
 
     /// <summary>Enumerates character-style then paragraph-style run properties, each in override order.</summary>
     internal static IEnumerable<StyleRunProperties> EnumerateRunStyleProperties(WordParagraph paragraph) {

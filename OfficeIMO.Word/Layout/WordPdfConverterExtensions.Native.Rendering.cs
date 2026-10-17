@@ -1265,17 +1265,6 @@ namespace OfficeIMO.Word.Pdf {
             return true;
         }
 
-        private static bool TryGetNativeRunHighlight(W.RunProperties? runProperties, out PdfCore.PdfColor? color) {
-            W.Highlight? value = runProperties?.GetFirstChild<W.Highlight>();
-            if (value == null) {
-                color = null;
-                return false;
-            }
-
-            color = MapNativeHighlight(value.Val?.Value);
-            return true;
-        }
-
         private static void AddNativeRunText(PdfCore.PdfParagraphBuilder builder, string text, IReadOnlyList<WordTabStop> tabStops, ref int tabIndex) {
             int currentTabIndex = tabIndex;
             AddNativeTextSegments(

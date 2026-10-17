@@ -112,10 +112,14 @@ PDF page rendering to PNG, JPEG, WebP, TIFF and Drawing follows PDF viewer conve
 - Embedded CFF, Type1C, CIDFontType0C, OpenType/CFF and Type 1 fonts render from their own outlines instead of a substituted system font, so the `font-cff-substitution` and `font-substitution` diagnostics no longer appear for them. Text in the standard Symbol and ZapfDingbats fonts extracts as Greek, mathematical and dingbat characters rather than ASCII letters.
 - Text render modes 1, 2, 5 and 6 stroke glyph outlines. Text clipping modes 4–7 still do not clip later painting.
 - Function-based (type 1) and mesh (types 4–7) shadings render. Axial and radial shadings without `/Extend` leave their ends unpainted.
-- Images with 1, 2, 4 or 16 bits per component, resized or non-8-bit soft masks, `/Matte`, and JBIG2 images render. Soft masks with a `/TR` transfer function apply it. Undecodable images report `render.resource.image-unsupported` instead of being omitted silently, and knockout groups report `render.resource.knockout-group-simplified`.
+- Images with 1, 2, 4 or 16 bits per component, resized or non-8-bit soft masks, `/Matte`, and JBIG2 images render. JBIG2 direct regions honour the page combination policy, and arithmetic symbol dictionaries reuse retained generic and refinement bitmap contexts, including global dictionaries. Regenerate previews of these images that used the earlier context reset. Soft masks with a `/TR` transfer function apply it. Undecodable images report `render.resource.image-unsupported` instead of being omitted silently, and knockout groups report `render.resource.knockout-group-simplified`.
 - Widgets without appearance streams, and text and choice widgets under `/NeedAppearances`, render a transient synthesized appearance reported as `render.annotation.appearance-synthesized` instead of `render.resource.annotation-appearance-missing`. The source document is not changed. List boxes retain visible `/Opt` rows, export/display labels, all selected highlights, and `/TI` scrolling; combo boxes retain their single selected display value. Filling and incremental appearance regeneration use the same list-row paint and clear selection without hiding the options. Incremental text and choice appearances preserve inherited Type0 glyph encoding and apply the caller's decoded-stream limit while reading their font maps.
 
 `OfficeColorSpaceConverter.FromCmyk` interpolates between SWOP process-colour solids instead of computing `255 × (1 − c) × (1 − k)`. Pure cyan becomes RGB (0, 173, 239) and 100% black becomes (35, 31, 32). Update code that compares exact DeviceCMYK conversion results.
+
+## Word run backgrounds
+
+Word HTML and native PDF conversions inherit run highlighting and shading through direct formatting, character and paragraph styles, applicable table styles, and document defaults. Explicit highlight `none` and shading resets still take precedence. Dark-magenta highlights use `800080`; native PDF dark-yellow highlights use `808000`. Regenerate exports that omitted inherited backgrounds or used the earlier highlight colours.
 
 ## Native chart and SmartArt rendering
 

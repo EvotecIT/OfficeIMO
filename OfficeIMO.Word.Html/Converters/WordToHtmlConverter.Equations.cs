@@ -260,9 +260,8 @@ namespace OfficeIMO.Word.Html {
                 string? normalizedRunBackground = includeRunHighlightStyles
                     ? NormalizeSixDigitHexColor(WordRunFormatting.ResolveRunShadingFillColorHex(run))
                     : null;
-                string? highlightCss = includeRunHighlightStyles
-                    ? GetHighlightCss(WordRunFormatting.ResolveRunHighlight(run))
-                    : null;
+                HighlightColorValues? resolvedHighlight = WordRunFormatting.ResolveRunHighlight(run);
+                string? highlightCss = includeRunHighlightStyles ? GetHighlightCss(resolvedHighlight) : null;
                 bool isDefaultMarkHighlight = string.Equals(
                     highlightCss,
                     "#ffff00",
@@ -272,7 +271,7 @@ namespace OfficeIMO.Word.Html {
                     SetOutputAttribute(semanticNode, "style", $"background-color:{highlightCss}", "EquationSemanticFormatting:highlight");
                 } else if (normalizedRunBackground != null) {
                     SetOutputAttribute(semanticNode, "style", $"background-color:#{normalizedRunBackground}", "EquationSemanticFormatting:highlight");
-                } else if (run.Highlight == WordHighlightColor.None) {
+                } else if (resolvedHighlight == HighlightColorValues.None) {
                     SetOutputAttribute(semanticNode, "style", "background-color:transparent", "EquationSemanticFormatting:highlight");
                 }
             } else if (string.Equals(run.CharacterStyleId, "HtmlCite", StringComparison.OrdinalIgnoreCase)) {

@@ -103,7 +103,7 @@ namespace OfficeIMO.Word.Pdf {
                 allCaps = ReadNativeOnOff(runProperties?.GetFirstChild<W.Caps>()) ?? ReadNativeOnOff(runProperties?.GetFirstChild<W.SmallCaps>()) ?? allCaps;
                 baseline = runProperties?.GetFirstChild<W.VerticalTextAlignment>()?.Val?.Value ?? baseline;
                 colorHex = runProperties?.GetFirstChild<W.Color>()?.Val?.Value ?? colorHex;
-                highlight = runProperties?.GetFirstChild<W.Highlight>()?.Val?.Value ?? highlight;
+                highlight = WordRunFormatting.ReadRunHighlight(runProperties) ?? highlight;
 
                 W.StyleTableProperties? tableProperties = style.GetFirstChild<W.StyleTableProperties>();
                 preferredWidth = tableProperties?.GetFirstChild<W.TableWidth>() ?? preferredWidth;
@@ -299,7 +299,7 @@ namespace OfficeIMO.Word.Pdf {
                 OfficeTextDecorationStyle? strikeStyle = MapNativeStrikeStyle(runProperties);
                 bool? allCaps = ReadNativeOnOff(runProperties?.GetFirstChild<W.Caps>()) ?? ReadNativeOnOff(runProperties?.GetFirstChild<W.SmallCaps>());
                 W.VerticalPositionValues? baseline = runProperties?.GetFirstChild<W.VerticalTextAlignment>()?.Val?.Value;
-                W.HighlightColorValues? highlight = runProperties?.GetFirstChild<W.Highlight>()?.Val?.Value;
+                W.HighlightColorValues? highlight = WordRunFormatting.ReadRunHighlight(runProperties);
 
                 W.StyleParagraphProperties? paragraphProperties = properties.GetFirstChild<W.StyleParagraphProperties>();
                 W.SpacingBetweenLines? spacing = paragraphProperties?.GetFirstChild<W.SpacingBetweenLines>();

@@ -604,29 +604,7 @@ namespace OfficeIMO.Word.Pdf {
             return PdfCore.PdfColor.FromOfficeColor(color);
         }
 
-        private static PdfCore.PdfColor? MapNativeHighlight(W.HighlightColorValues? highlight) {
-            if (!highlight.HasValue || highlight.Value == W.HighlightColorValues.None) {
-                return null;
-            }
-
-            if (highlight.Value == W.HighlightColorValues.Black) return PdfCore.PdfColor.Black;
-            if (highlight.Value == W.HighlightColorValues.Blue) return PdfCore.PdfColor.FromRgb(0, 0, 255);
-            if (highlight.Value == W.HighlightColorValues.Cyan) return PdfCore.PdfColor.FromRgb(0, 255, 255);
-            if (highlight.Value == W.HighlightColorValues.Green) return PdfCore.PdfColor.FromRgb(0, 255, 0);
-            if (highlight.Value == W.HighlightColorValues.Magenta) return PdfCore.PdfColor.FromRgb(255, 0, 255);
-            if (highlight.Value == W.HighlightColorValues.Red) return PdfCore.PdfColor.FromRgb(255, 0, 0);
-            if (highlight.Value == W.HighlightColorValues.Yellow) return PdfCore.PdfColor.FromRgb(255, 255, 0);
-            if (highlight.Value == W.HighlightColorValues.White) return PdfCore.PdfColor.White;
-            if (highlight.Value == W.HighlightColorValues.DarkBlue) return PdfCore.PdfColor.FromRgb(0, 0, 139);
-            if (highlight.Value == W.HighlightColorValues.DarkCyan) return PdfCore.PdfColor.FromRgb(0, 139, 139);
-            if (highlight.Value == W.HighlightColorValues.DarkGreen) return PdfCore.PdfColor.FromRgb(0, 100, 0);
-            if (highlight.Value == W.HighlightColorValues.DarkMagenta) return PdfCore.PdfColor.FromRgb(139, 0, 139);
-            if (highlight.Value == W.HighlightColorValues.DarkRed) return PdfCore.PdfColor.FromRgb(139, 0, 0);
-            if (highlight.Value == W.HighlightColorValues.DarkYellow) return PdfCore.PdfColor.FromRgb(184, 134, 11);
-            if (highlight.Value == W.HighlightColorValues.LightGray) return PdfCore.PdfColor.FromRgb(211, 211, 211);
-            if (highlight.Value == W.HighlightColorValues.DarkGray) return PdfCore.PdfColor.FromRgb(169, 169, 169);
-
-            return null;
-        }
+        private static PdfCore.PdfColor? MapNativeHighlight(W.HighlightColorValues? highlight) =>
+            ParseNativeColor(WordRunFormatting.GetHighlightColorHex(highlight));
     }
 }

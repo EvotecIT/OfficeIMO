@@ -79,13 +79,15 @@ internal static partial class Jbig2Decoder {
         internal byte[] Data = Array.Empty<byte>();
     }
 
-    private sealed class DecodingContext {
+    private sealed partial class DecodingContext {
         private readonly int _width, _height;
         private readonly CancellationToken _cancellationToken;
         private readonly Dictionary<int, List<Bitmap>> _symbols = new();
+        private readonly Dictionary<int, SymbolBitmapContexts> _retainedSymbolContexts = new();
         private readonly Dictionary<int, Bitmap> _regions = new();
         private int _segmentCount;
         private int _pageDefaultCombination;
+        private bool _pageCombinationOverrideAllowed;
         private long _work;
         private long _allocated;
         private readonly int _maximumBytes;
@@ -221,6 +223,7 @@ internal static partial class Jbig2Decoder {
             Charge((long)Page.Width * Page.Height);
             Page.Fill((flags >> 2) & 1);
             _pageDefaultCombination = (flags >> 3) & 3;
+            _pageCombinationOverrideAllowed = (flags & 0x40) != 0;
         }
 
         private Bitmap EnsurePage() {
@@ -250,7 +253,10 @@ internal static partial class Jbig2Decoder {
                 _regions[segment.Number] = region;
                 return;
             }
-            EnsurePage().Compose(region, info.X, info.Y, info.Operator);
+            // Refinement regions retain their external operator, including REPLACE against the page (7.4.7.5).
+            int operation = segment.Type is 42 or 43 || _pageCombinationOverrideAllowed
+                ? info.Operator : _pageDefaultCombination;
+            EnsurePage().Compose(region, info.X, info.Y, operation);
         }
 
         private void ProcessGenericRegion(Segment segment) {
@@ -461,8 +467,9 @@ internal static partial class Jbig2Decoder {
 
             var decoder = new ArithmeticDecoder(segment.Data, position, segment.DataEnd, Charge);
             var integers = new IntegerContexts(CreateContexts);
-            var genericContexts = CreateContexts(1 << 16);
-            var refinementContexts = CreateContexts(1 << 14);
+            SymbolBitmapContexts bitmapContexts = CreateSymbolBitmapContexts(segment, flags, at, refinementAt);
+            byte[] genericContexts = bitmapContexts.Generic;
+            byte[] refinementContexts = bitmapContexts.Refinement;
             int codeLength = CodeLength(input.Count + newCount);
             var idContexts = CreateContexts(1 << (codeLength + 1));
             var symbols = CreateSymbolList(input.Count + newCount);
@@ -524,6 +531,7 @@ internal static partial class Jbig2Decoder {
             }
             if (exported.Count != exportedCount) throw new InvalidDataException("JBIG2 export runs do not match the declared count.");
             _symbols[segment.Number] = exported;
+            if ((flags & 0x200) != 0) _retainedSymbolContexts[segment.Number] = bitmapContexts;
         }
 
         // Text region segment (7.4.3), arithmetic coding only.
