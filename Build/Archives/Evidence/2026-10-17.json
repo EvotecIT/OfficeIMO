@@ -1,17 +1,17 @@
 {
   "date": "2026-10-17",
-  "sourceCandidate": "ad821012327",
+  "sourceCandidate": "74ff494394afa874d8a5f2318fb46e2e46901b77",
   "sdk": "10.0.113",
   "host": "macOS 27.0.1 arm64, Apple M4",
   "correctness": [
     {
       "framework": "net8.0",
-      "passed": 616,
+      "passed": 637,
       "failed": 0
     },
     {
       "framework": "net10.0",
-      "passed": 616,
+      "passed": 637,
       "failed": 0
     }
   ],
@@ -30,7 +30,9 @@
       512,
       4000
     ],
-    "verdict": "Exact projection and hash agreement with platform traversal, including DOS timestamp interpretation."
+    "verdict": "Exact projection and hash agreement with platform traversal, including DOS timestamp interpretation.",
+    "sourceCandidate": "ad821012327",
+    "qualificationBoundary": "Retained earlier measurement/proof; not repeated for the CAB/snapshot cleanup milestone."
   },
   "zipCorpus": "../../../OfficeIMO.Archives.Tests/Fixtures/IndependentZip/manifest.json",
   "nativeMsi": {
@@ -99,7 +101,9 @@
         "Allocated": "520.75 KB"
       }
     ],
-    "boundary": "Uncontrolled host load; elapsed samples are noisy and establish no speed claim. Managed allocation is not peak or resident memory."
+    "boundary": "Uncontrolled host load; elapsed samples are noisy and establish no speed claim. Managed allocation is not peak or resident memory.",
+    "sourceCandidate": "ad821012327",
+    "qualificationBoundary": "Retained earlier measurement/proof; not repeated for the CAB/snapshot cleanup milestone."
   },
   "gaps": [
     "Windows runtime execution including net472",
@@ -112,13 +116,13 @@
     "net472": "Reader.Zip and transitive Archives/Core graph compiled successfully, zero warnings and errors; not executed"
   },
   "packages": {
-    "privateVersion": "3.5.1.903",
+    "privateVersion": "3.5.1.907",
     "signed": false,
     "artifacts": [
       {
-        "file": "OfficeIMO.Archives.3.5.1.903.nupkg",
-        "sha256": "337ef812f82c6d2633c40875b5796f4641f991882e53438ff55f46450abaf7f7",
-        "bytes": 188531,
+        "file": "OfficeIMO.Archives.3.5.1.907.nupkg",
+        "sha256": "1275206e094ae671506b2cd844e60e8f7ecb3223275842a8b42aa30f9602ff3b",
+        "bytes": 193552,
         "assets": [
           "lib/net10.0/OfficeIMO.Archives.dll",
           "lib/net8.0/OfficeIMO.Archives.dll",
@@ -127,25 +131,25 @@
         "dependencies": [
           {
             "id": "OfficeIMO.Core",
-            "version": "3.5.1.903",
+            "version": "3.5.1.907",
             "exclude": "Build,Analyzers"
           },
           {
             "id": "OfficeIMO.Core",
-            "version": "3.5.1.903",
+            "version": "3.5.1.907",
             "exclude": "Build,Analyzers"
           },
           {
             "id": "OfficeIMO.Core",
-            "version": "3.5.1.903",
+            "version": "3.5.1.907",
             "exclude": "Build,Analyzers"
           }
         ]
       },
       {
-        "file": "OfficeIMO.Core.3.5.1.903.nupkg",
-        "sha256": "581b336aeb2f88f6b94bc20c3089f40491d8469637aff26423f21e5c63cd1911",
-        "bytes": 6357084,
+        "file": "OfficeIMO.Core.3.5.1.907.nupkg",
+        "sha256": "b7f2e9b39ddb27cb14519f7e381d4de480adba29e19db4dd709088ddc17f1999",
+        "bytes": 6362380,
         "assets": [
           "lib/net10.0/OfficeIMO.Core.dll",
           "lib/net8.0/OfficeIMO.Core.dll",
@@ -154,9 +158,9 @@
         "dependencies": []
       },
       {
-        "file": "OfficeIMO.Reader.Core.3.5.1.903.nupkg",
-        "sha256": "970f08baf6d96dfd8c1f15dce4d1fb7b95ad3c5ac813e6e0aa54a57cb7faf66d",
-        "bytes": 1189026,
+        "file": "OfficeIMO.Reader.Core.3.5.1.907.nupkg",
+        "sha256": "23ffad91ca750f78e6a5bb842fdcb9edaa9ad7a355fd3040ea631a3a673b8787",
+        "bytes": 1189108,
         "assets": [
           "lib/net10.0/OfficeIMO.Reader.Core.dll",
           "lib/net8.0/OfficeIMO.Reader.Core.dll",
@@ -171,9 +175,9 @@
         ]
       },
       {
-        "file": "OfficeIMO.Reader.Zip.3.5.1.903.nupkg",
-        "sha256": "b01c860bfecf45921176e2e458d36e7a3591ed5ec66c4a7984b3163cc6074ca4",
-        "bytes": 53807,
+        "file": "OfficeIMO.Reader.Zip.3.5.1.907.nupkg",
+        "sha256": "db01e19ba7a03615ab4666eee137ce6ddb1935b37c34a31f4ee36c638c9f18d5",
+        "bytes": 53938,
         "assets": [
           "lib/net10.0/OfficeIMO.Reader.Zip.dll",
           "lib/net8.0/OfficeIMO.Reader.Zip.dll",
@@ -182,32 +186,32 @@
         "dependencies": [
           {
             "id": "OfficeIMO.Archives",
-            "version": "3.5.1.903",
+            "version": "3.5.1.907",
             "exclude": "Build,Analyzers"
           },
           {
             "id": "OfficeIMO.Reader.Core",
-            "version": "3.5.1.903",
+            "version": "3.5.1.907",
             "exclude": "Build,Analyzers"
           },
           {
             "id": "OfficeIMO.Archives",
-            "version": "3.5.1.903",
+            "version": "3.5.1.907",
             "exclude": "Build,Analyzers"
           },
           {
             "id": "OfficeIMO.Reader.Core",
-            "version": "3.5.1.903",
+            "version": "3.5.1.907",
             "exclude": "Build,Analyzers"
           },
           {
             "id": "OfficeIMO.Archives",
-            "version": "3.5.1.903",
+            "version": "3.5.1.907",
             "exclude": "Build,Analyzers"
           },
           {
             "id": "OfficeIMO.Reader.Core",
-            "version": "3.5.1.903",
+            "version": "3.5.1.907",
             "exclude": "Build,Analyzers"
           }
         ]
@@ -217,7 +221,7 @@
       {
         "runtime": ".NET 8.0.23",
         "os": "Darwin 27.0.0 Darwin Kernel Version 27.0.0: Tue Aug 11 21:02:57 PDT 2026; root:xnu-13432.1.9~1/RELEASE_ARM64_T8132",
-        "assembly": "3.5.1.903",
+        "assembly": "3.5.1.907",
         "results": [
           {
             "file": "7zip-utf8.zip",
@@ -255,7 +259,7 @@
             "verified": true
           },
           {
-            "file": "7z-x64.msi",
+            "file": "7z2604-x64.msi",
             "sha256": "0b01334a418654293513449f61d6bfc99e5196ca371e3c3dc961eda57cd535c6",
             "members": 106,
             "verified": true
@@ -270,7 +274,7 @@
       {
         "runtime": ".NET 10.0.13",
         "os": "macOS 27.0.1",
-        "assembly": "3.5.1.903",
+        "assembly": "3.5.1.907",
         "results": [
           {
             "file": "7zip-utf8.zip",
@@ -308,7 +312,7 @@
             "verified": true
           },
           {
-            "file": "7z-x64.msi",
+            "file": "7z2604-x64.msi",
             "sha256": "0b01334a418654293513449f61d6bfc99e5196ca371e3c3dc961eda57cd535c6",
             "members": 106,
             "verified": true
@@ -330,7 +334,19 @@
       "candidate": "ad821012327",
       "reviewer": "Independent read-only local agent",
       "scope": "New stream-backed ZIP snapshot ownership/lifetime and CAB selection admission; excludes earlier unchanged reviewed contracts",
-      "verdict": "No actionable findings; accept as shaped. Runtime cleanup was subsequently exercised by the opt-in probe."
+      "verdict": "No actionable findings; accept as shaped. Runtime cleanup was subsequently exercised by the opt-in probe.",
+      "laterExternalFinding": "Duplicate archive-sized Reader snapshot missed by the original source pass; borrowed snapshot handoff fixed and directly observed in packed consumers.",
+      "targetedClosure": {
+        "candidate": "c352682802428c968c95de784887a8b943620e6a",
+        "verdict": "Borrowed ownership design accepted. One pre-existing P2 sibling cleanup gap found when caller Position restoration throws in synchronous/async Reader and traversal; fixed in 74ff494394 and directly proven against the leaking .906 package and final .907 on both runtimes.",
+        "allowance": "Full pass and single targeted confirmation used; no new full review for SHA changes."
+      }
+    },
+    "solidFolderPacket": {
+      "candidate": "cbee30d689f1b99082c8b57b7cb573974355dd04",
+      "finding": "P1: removed shared LZX array API remained in use by CHM outside the initial sparse checkout. Reproduced CS0117; restored over the same frame decoder with CHM reset-group completion semantics.",
+      "confirmationCandidate": "cb3cd0eaf9e2f83a2bd2baf189d50becf51d9cec",
+      "verdict": "Targeted confirmation accepted the fix; no remaining actionable finding. Actual CHM project and native hash oracle also qualified."
     }
   },
   "largeInputEvidence": {
@@ -369,24 +385,24 @@
         "Cancellation: source restored/open, private snapshot removed"
       ],
       "runtime": ".NET 10.0.13",
-      "assembly": "3.5.1.903",
+      "assembly": "3.5.1.907",
       "inputBytes": 67109088,
       "inputSha256": "7a29a89d36673f9d6534970ac788712bd53978cbe41d7e1fcee822bf82ea48a0",
       "results": [
         {
           "name": "Inspection",
           "count": 2,
-          "allocatedBytes": 239336
+          "allocatedBytes": 239584
         },
         {
           "name": "Traversal",
           "count": 2,
-          "allocatedBytes": 365224
+          "allocatedBytes": 365432
         },
         {
           "name": "Reader",
           "count": 1,
-          "allocatedBytes": 613256
+          "allocatedBytes": 457960
         }
       ],
       "boundary": "Opt-in per-thread managed allocation, not peak/RSS or timing qualification"
@@ -397,24 +413,24 @@
         "Cancellation: source restored/open, private snapshot removed"
       ],
       "runtime": ".NET 8.0.23",
-      "assembly": "3.5.1.903",
+      "assembly": "3.5.1.907",
       "inputBytes": 67109088,
       "inputSha256": "7a29a89d36673f9d6534970ac788712bd53978cbe41d7e1fcee822bf82ea48a0",
       "results": [
         {
           "name": "Inspection",
           "count": 2,
-          "allocatedBytes": 271912
+          "allocatedBytes": 272160
         },
         {
           "name": "Traversal",
           "count": 2,
-          "allocatedBytes": 364008
+          "allocatedBytes": 370408
         },
         {
           "name": "Reader",
           "count": 1,
-          "allocatedBytes": 613536
+          "allocatedBytes": 458248
         }
       ],
       "boundary": "Opt-in per-thread managed allocation, not peak/RSS or timing qualification"
@@ -425,5 +441,418 @@
     "unconfiguredRestore": "Passed with no qualification PackageReferences; no placeholder/default version",
     "unconfiguredBuild": "Fails with the explicit candidate-version guard before compilation",
     "configuredRestoreAndRun": "Both runtimes pass seven packed-consumer scenarios"
+  },
+  "solidFolderReadEvidence": {
+    "runner": "Build/Archives/PackageConsumer --cab-read-evidence <CAB/MSI> <JSON>",
+    "beforeNet8": {
+      "runtime": ".NET 8.0.23",
+      "assembly": "3.5.1.903",
+      "inputSha256": "86fc8c81c9b91881f40e4551ed30933db1bc4bf20c2be95c6f0de08980518e10",
+      "inputBytes": 33579103,
+      "results": [
+        {
+          "operation": "OpenRead",
+          "ordinals": [
+            0,
+            1
+          ],
+          "hashes": [
+            "7e6fd68e3ea9584e66b15b5d347e4b69e5b8042224a1103a7b17e99400bd76e1",
+            "ace1ecfc15c88008d481be3b28941fc7b28a91b3763f81f40f4daabdd04abe3a"
+          ],
+          "allocatedBytes": 134455920,
+          "decodedBytes": 67108864,
+          "workBytes": 67158016
+        },
+        {
+          "operation": "ReadMembers",
+          "ordinals": [
+            0,
+            1
+          ],
+          "hashes": [
+            "7e6fd68e3ea9584e66b15b5d347e4b69e5b8042224a1103a7b17e99400bd76e1",
+            "ace1ecfc15c88008d481be3b28941fc7b28a91b3763f81f40f4daabdd04abe3a"
+          ],
+          "allocatedBytes": 67234880,
+          "decodedBytes": 33554432,
+          "workBytes": 33579008
+        }
+      ],
+      "boundary": "Per-thread read allocation excludes input inventory; not peak/RSS or timing qualification"
+    },
+    "beforeNet10": {
+      "runtime": ".NET 10.0.13",
+      "assembly": "3.5.1.903",
+      "inputSha256": "86fc8c81c9b91881f40e4551ed30933db1bc4bf20c2be95c6f0de08980518e10",
+      "inputBytes": 33579103,
+      "results": [
+        {
+          "operation": "OpenRead",
+          "ordinals": [
+            0,
+            1
+          ],
+          "hashes": [
+            "7e6fd68e3ea9584e66b15b5d347e4b69e5b8042224a1103a7b17e99400bd76e1",
+            "ace1ecfc15c88008d481be3b28941fc7b28a91b3763f81f40f4daabdd04abe3a"
+          ],
+          "allocatedBytes": 134452720,
+          "decodedBytes": 67108864,
+          "workBytes": 67158016
+        },
+        {
+          "operation": "ReadMembers",
+          "ordinals": [
+            0,
+            1
+          ],
+          "hashes": [
+            "7e6fd68e3ea9584e66b15b5d347e4b69e5b8042224a1103a7b17e99400bd76e1",
+            "ace1ecfc15c88008d481be3b28941fc7b28a91b3763f81f40f4daabdd04abe3a"
+          ],
+          "allocatedBytes": 67224936,
+          "decodedBytes": 33554432,
+          "workBytes": 33579008
+        }
+      ],
+      "boundary": "Per-thread read allocation excludes input inventory; not peak/RSS or timing qualification"
+    },
+    "afterNet8": {
+      "runtime": ".NET 8.0.23",
+      "assembly": "3.5.1.907",
+      "inputSha256": "86fc8c81c9b91881f40e4551ed30933db1bc4bf20c2be95c6f0de08980518e10",
+      "inputBytes": 33579103,
+      "results": [
+        {
+          "operation": "OpenRead",
+          "ordinals": [
+            0,
+            1
+          ],
+          "hashes": [
+            "7e6fd68e3ea9584e66b15b5d347e4b69e5b8042224a1103a7b17e99400bd76e1",
+            "ace1ecfc15c88008d481be3b28941fc7b28a91b3763f81f40f4daabdd04abe3a"
+          ],
+          "allocatedBytes": 316488,
+          "decodedBytes": 67108864,
+          "workBytes": 67158016
+        },
+        {
+          "operation": "ReadMembers",
+          "ordinals": [
+            0,
+            1
+          ],
+          "hashes": [
+            "7e6fd68e3ea9584e66b15b5d347e4b69e5b8042224a1103a7b17e99400bd76e1",
+            "ace1ecfc15c88008d481be3b28941fc7b28a91b3763f81f40f4daabdd04abe3a"
+          ],
+          "allocatedBytes": 160752,
+          "decodedBytes": 33554432,
+          "workBytes": 33579008
+        }
+      ],
+      "boundary": "Per-thread read allocation excludes input inventory; not peak/RSS or timing qualification"
+    },
+    "afterNet10": {
+      "runtime": ".NET 10.0.13",
+      "assembly": "3.5.1.907",
+      "inputSha256": "86fc8c81c9b91881f40e4551ed30933db1bc4bf20c2be95c6f0de08980518e10",
+      "inputBytes": 33579103,
+      "results": [
+        {
+          "operation": "OpenRead",
+          "ordinals": [
+            0,
+            1
+          ],
+          "hashes": [
+            "7e6fd68e3ea9584e66b15b5d347e4b69e5b8042224a1103a7b17e99400bd76e1",
+            "ace1ecfc15c88008d481be3b28941fc7b28a91b3763f81f40f4daabdd04abe3a"
+          ],
+          "allocatedBytes": 315344,
+          "decodedBytes": 67108864,
+          "workBytes": 67158016
+        },
+        {
+          "operation": "ReadMembers",
+          "ordinals": [
+            0,
+            1
+          ],
+          "hashes": [
+            "7e6fd68e3ea9584e66b15b5d347e4b69e5b8042224a1103a7b17e99400bd76e1",
+            "ace1ecfc15c88008d481be3b28941fc7b28a91b3763f81f40f4daabdd04abe3a"
+          ],
+          "allocatedBytes": 156648,
+          "decodedBytes": 33554432,
+          "workBytes": 33579008
+        }
+      ],
+      "boundary": "Per-thread read allocation excludes input inventory; not peak/RSS or timing qualification"
+    },
+    "boundary": "Identical reproducible synthetic 32MiB LZX folder and selected hashes; per-thread read allocation excludes input inventory. Not a peak/RSS, timing or native-producer claim. Existing makecab windows 15-21 E8 cases pass separately."
+  },
+  "readerSnapshotEvidence": {
+    "runner": "Build/Archives/PackageConsumer --reader-snapshot-evidence <ZIP> <JSON> <copies>",
+    "before": {
+      "runtime": ".NET 10.0.13",
+      "assembly": "3.5.1.905",
+      "inputBytes": 67109088,
+      "inputSha256": "7a29a89d36673f9d6534970ac788712bd53978cbe41d7e1fcee822bf82ea48a0",
+      "results": [
+        {
+          "streamInput": false,
+          "outcome": "complete",
+          "copies": 2,
+          "snapshotBytes": 134218184,
+          "cleanedUp": true
+        },
+        {
+          "streamInput": false,
+          "outcome": "cancel",
+          "copies": 2,
+          "snapshotBytes": 134218184,
+          "cleanedUp": true
+        },
+        {
+          "streamInput": false,
+          "outcome": "handler-error",
+          "copies": 2,
+          "snapshotBytes": 134218184,
+          "cleanedUp": true
+        },
+        {
+          "streamInput": true,
+          "outcome": "complete",
+          "copies": 2,
+          "snapshotBytes": 134218184,
+          "cleanedUp": true
+        },
+        {
+          "streamInput": true,
+          "outcome": "cancel",
+          "copies": 2,
+          "snapshotBytes": 134218184,
+          "cleanedUp": true
+        },
+        {
+          "streamInput": true,
+          "outcome": "handler-error",
+          "copies": 2,
+          "snapshotBytes": 134218184,
+          "cleanedUp": true
+        }
+      ],
+      "boundary": "Live private snapshot bytes observed inside a custom leaf handler; isolated opt-in process"
+    },
+    "afterNet8": {
+      "runtime": ".NET 8.0.23",
+      "assembly": "3.5.1.907",
+      "inputBytes": 67109088,
+      "inputSha256": "7a29a89d36673f9d6534970ac788712bd53978cbe41d7e1fcee822bf82ea48a0",
+      "results": [
+        {
+          "streamInput": false,
+          "outcome": "complete",
+          "copies": 1,
+          "snapshotBytes": 67109096,
+          "cleanedUp": true
+        },
+        {
+          "streamInput": false,
+          "outcome": "cancel",
+          "copies": 1,
+          "snapshotBytes": 67109096,
+          "cleanedUp": true
+        },
+        {
+          "streamInput": false,
+          "outcome": "handler-error",
+          "copies": 1,
+          "snapshotBytes": 67109096,
+          "cleanedUp": true
+        },
+        {
+          "streamInput": true,
+          "outcome": "complete",
+          "copies": 1,
+          "snapshotBytes": 67109096,
+          "cleanedUp": true
+        },
+        {
+          "streamInput": true,
+          "outcome": "cancel",
+          "copies": 1,
+          "snapshotBytes": 67109096,
+          "cleanedUp": true
+        },
+        {
+          "streamInput": true,
+          "outcome": "handler-error",
+          "copies": 1,
+          "snapshotBytes": 67109096,
+          "cleanedUp": true
+        }
+      ],
+      "boundary": "Live private snapshot bytes observed inside a custom leaf handler; isolated opt-in process"
+    },
+    "afterNet10": {
+      "runtime": ".NET 10.0.13",
+      "assembly": "3.5.1.907",
+      "inputBytes": 67109088,
+      "inputSha256": "7a29a89d36673f9d6534970ac788712bd53978cbe41d7e1fcee822bf82ea48a0",
+      "results": [
+        {
+          "streamInput": false,
+          "outcome": "complete",
+          "copies": 1,
+          "snapshotBytes": 67109096,
+          "cleanedUp": true
+        },
+        {
+          "streamInput": false,
+          "outcome": "cancel",
+          "copies": 1,
+          "snapshotBytes": 67109096,
+          "cleanedUp": true
+        },
+        {
+          "streamInput": false,
+          "outcome": "handler-error",
+          "copies": 1,
+          "snapshotBytes": 67109096,
+          "cleanedUp": true
+        },
+        {
+          "streamInput": true,
+          "outcome": "complete",
+          "copies": 1,
+          "snapshotBytes": 67109096,
+          "cleanedUp": true
+        },
+        {
+          "streamInput": true,
+          "outcome": "cancel",
+          "copies": 1,
+          "snapshotBytes": 67109096,
+          "cleanedUp": true
+        },
+        {
+          "streamInput": true,
+          "outcome": "handler-error",
+          "copies": 1,
+          "snapshotBytes": 67109096,
+          "cleanedUp": true
+        }
+      ],
+      "boundary": "Live private snapshot bytes observed inside a custom leaf handler; isolated opt-in process"
+    },
+    "boundary": "Observer executes inside a custom text handler while the parent inspection is alive. Both path and stream forms use one input-sized snapshot; completion, cancellation and handler failure release it and retain caller ownership/position. Built-in ZIP dispatch materializes; this probe makes no parent-iterator early-disposal claim."
+  },
+  "restoreFailureCleanupEvidence": {
+    "runner": "Build/Archives/PackageConsumer --snapshot-restore-evidence <ZIP> <JSON> <leaks>",
+    "before": {
+      "runtime": ".NET 10.0.13",
+      "assembly": "3.5.1.906",
+      "results": [
+        {
+          "route": "ReaderSync",
+          "leakedSnapshots": 1,
+          "leakedBytes": 67108864
+        },
+        {
+          "route": "ReaderAsync",
+          "leakedSnapshots": 1,
+          "leakedBytes": 67108864
+        },
+        {
+          "route": "Traversal",
+          "leakedSnapshots": 1,
+          "leakedBytes": 67109088
+        }
+      ],
+      "boundary": "Opt-in isolated process, successful copy followed by caller Position restoration failure"
+    },
+    "afterNet8": {
+      "runtime": ".NET 8.0.23",
+      "assembly": "3.5.1.907",
+      "results": [
+        {
+          "route": "ReaderSync",
+          "leakedSnapshots": 0,
+          "leakedBytes": 0
+        },
+        {
+          "route": "ReaderAsync",
+          "leakedSnapshots": 0,
+          "leakedBytes": 0
+        },
+        {
+          "route": "Traversal",
+          "leakedSnapshots": 0,
+          "leakedBytes": 0
+        }
+      ],
+      "boundary": "Opt-in isolated process, successful copy followed by caller Position restoration failure"
+    },
+    "afterNet10": {
+      "runtime": ".NET 10.0.13",
+      "assembly": "3.5.1.907",
+      "results": [
+        {
+          "route": "ReaderSync",
+          "leakedSnapshots": 0,
+          "leakedBytes": 0
+        },
+        {
+          "route": "ReaderAsync",
+          "leakedSnapshots": 0,
+          "leakedBytes": 0
+        },
+        {
+          "route": "Traversal",
+          "leakedSnapshots": 0,
+          "leakedBytes": 0
+        }
+      ],
+      "boundary": "Opt-in isolated process, successful copy followed by caller Position restoration failure"
+    }
+  },
+  "readPlanConsumer": {
+    "privateVersion": "3.5.1.907",
+    "runtimes": [
+      ".NET 8.0.23",
+      ".NET 10.0.13"
+    ],
+    "scope": "Public README example compiled and executed for independent ZIP, native makecab CAB and all 106 native MSI members in reverse order. No read/work charges from planning; planned selection/decoded/work totals equal successful grouped reads; plan remains detached after inspection disposal.",
+    "boundary": "Declared costs, not verification, budget reservation, elapsed-time or memory estimates."
+  },
+  "sharedChmCompatibility": {
+    "file": "OfficeIMO.Chm.Tests/Fixtures/svnbook-ms-htmlhelp.chm",
+    "sha256": "6fef835e8822a46642eedfc61f0821aed4a4cbc5d59dca9b641b4bc5a409f94d",
+    "oracleManifestSha256": "0c0b1f6dd7cdb34f1c9254a7b1065c5a4bfba4c61eb424c07a3d2c4487135e36",
+    "members": 226,
+    "producer": "Microsoft HTML Help; unchanged pinned Apache Tika fixture",
+    "oracle": "Existing CHMLib comparison manifest; product has no CHMLib dependency",
+    "sourceCandidate": "cb3cd0eaf9e2f83a2bd2baf189d50becf51d9cec",
+    "runtimes": [
+      ".NET 8.0.23",
+      ".NET 10.0.13"
+    ],
+    "verifiedMemberHashes": 226,
+    "semanticCounts": {
+      "topics": 181,
+      "contentsRoots": 16,
+      "indexRoots": 15
+    },
+    "compiledFrameworks": [
+      "netstandard2.0",
+      "net8.0",
+      "net10.0",
+      "net472"
+    ],
+    "boundary": "CHM native input and existing CHMLib manifest; shared LZX unchanged by later Reader lifetime fixes. net472 compiled, not executed."
   }
 }
