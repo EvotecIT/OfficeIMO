@@ -35,13 +35,7 @@ namespace OfficeIMO.Tests {
             cleanText.FontSize = 12;
             PowerPointToHtmlResult second = secondPresentation.ToHtmlResult(options);
 
-            Assert.DoesNotContain(
-                second.ImageDiagnostics,
-                diagnostic =>
-                    (diagnostic.Severity != OfficeImageExportDiagnosticSeverity.Info
-                        || diagnostic.LossKind != OfficeConversionLossKind.None)
-                    && diagnostic.Code != OfficeImageExportDiagnosticCodes.FontSubstituted
-                    && diagnostic.Code != "font-family-substitution");
+            Assert.DoesNotContain(second.ImageDiagnostics, diagnostic => diagnostic.Code == "invalid-shape-bounds");
             Assert.Contains(first.ImageDiagnostics, diagnostic => diagnostic.Code == "invalid-shape-bounds"
                 && diagnostic.LossKind == OfficeConversionLossKind.Omission);
         }

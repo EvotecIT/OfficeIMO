@@ -381,10 +381,12 @@ Zażółć gęślą jaźń
             string workbookPath = Path.Combine(directory, "opentype.xlsx");
             using ExcelDocument document = ExcelDocument.Create(workbookPath, "Report");
             document.Sheets[0].Cell(1, 1, "office cafe\u0301");
+            document.Sheets[0].CellAt(1, 1).SetFontName(FamilyName);
             document.Save();
 
             var options = new ExcelToPdfOptions {
-                PdfOptions = CreateOpenTypePdfOptions(fontPath, scalar),
+                PdfOptions = CreateOpenTypePdfOptions(fontPath, scalar)
+                    .RegisterNamedFontFamily(PdfCore.PdfEmbeddedFontFamily.FromFiles(FamilyName, fontPath)),
                 IncludeSheetHeadings = false
             };
             PdfCore.PdfDocumentConversionResult result = document.ToPdfDocumentResult(options);

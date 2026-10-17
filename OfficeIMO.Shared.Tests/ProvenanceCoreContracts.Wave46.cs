@@ -40,8 +40,8 @@ public sealed partial class ProvenanceCoreContracts {
     [InlineData(true)]
     public void ApngProvenanceBudgetUsesSecondaryFrameDimensions(bool translucent) {
         OfficeColor color = translucent ? OfficeColor.FromRgba(255, 0, 0, 128) : OfficeColor.Red;
-        byte[] canvas = OfficePngWriter.Encode(new OfficeRasterImage(200, 200, color));
-        byte[] small = OfficePngWriter.Encode(new OfficeRasterImage(1, 1, color));
+        byte[] canvas = OfficePngWriter.Encode(new OfficeRasterImage(200, 200, color), OfficePngCompression.Fastest);
+        byte[] small = OfficePngWriter.Encode(new OfficeRasterImage(1, 1, color), OfficePngCompression.Fastest);
         byte[] firstControl = new byte[26], secondControl = new byte[26];
         firstControl[7] = firstControl[11] = 200;
         secondControl[3] = 1;

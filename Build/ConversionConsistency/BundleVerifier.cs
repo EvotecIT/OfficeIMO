@@ -27,7 +27,8 @@ internal static class BundleVerifier {
             var errors = new List<string>();
             if ((!item.Contract.ComparePdfPixels || !item.Contract.RequireSearchablePdf) && item.Contract.Limitations.Count == 0)
                 errors.Add("Reduced PDF coverage requires an explicit limitation in the source contract.");
-            foreach (string diagnostic in item.Diagnostics.Except(item.Contract.AllowedDiagnostics))
+            // Font payload size is informational evidence, not a fidelity loss. Keep it in the bundle.
+            foreach (string diagnostic in item.Diagnostics.Except(item.Contract.AllowedDiagnostics).Where(code => code != "font-embedding-cost"))
                 errors.Add("Unaccepted diagnostic: " + diagnostic);
             string pdf = CheckedArtifact(output, item.PdfPath, item.PdfSha256);
             using var parsed = PdfPigDocument.Open(pdf);
@@ -68,7 +69,10 @@ internal static class BundleVerifier {
                     OfficeRasterImage raster;
                     if (artifact.Format == "Svg") {
                         XDocument svg = XDocument.Load(path);
-                        CheckText("SVG", string.Concat(svg.Descendants().Where(node => node.Name.LocalName == "text").Select(node => node.Value)), expected, pageErrors);
+                        CheckText("SVG", string.Concat(svg.Descendants().Where(node =>
+                            (node.Name.LocalName == "text" || node.Attribute("aria-label") != null) &&
+                            !node.Ancestors().Any(parent => parent.Attribute("aria-label") != null))
+                            .Select(node => node.Attribute("aria-label")?.Value ?? node.Value)), expected, pageErrors);
                         double cssWidth = expected.Width * 96D / bundle.Dpi;
                         double cssHeight = expected.Height * 96D / bundle.Dpi;
                         string width = cssWidth.ToString(CultureInfo.InvariantCulture) + "px";
