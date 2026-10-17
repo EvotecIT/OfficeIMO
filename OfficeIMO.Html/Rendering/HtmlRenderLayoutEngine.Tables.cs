@@ -89,13 +89,25 @@ internal sealed partial class HtmlRenderLayoutEngine {
         }
 
         int columnCount = Math.Max(rowColumnCount, DetermineDeclaredColumnCount(table));
+        CollapsedTableBorderLayout? sourceBorders = ResolveCollapsedTableBorderLayout(table, style, sizingRows,
+            columnCount, contentWidth, legacyBorderWidth);
+        if (sourceBorders != null) {
+            style.TableCollapsedBorderInsets = sourceBorders.TableInsets;
+            tableWidth = ResolveBoxWidth(availableWidth, style);
+            contentWidth = Math.Max(1D, tableWidth - style.HorizontalInsets);
+        }
+        IReadOnlyList<TableFormattingRow> fragmentRows = skippedBodyRows > 0
+            ? rows.Where((_, index) => index < headerRows.Count || index >= headerRows.Count + skippedBodyRows).ToArray()
+            : rows;
+        CollapsedTableBorderLayout? fragmentBorders = fragmentRows.SequenceEqual(sizingRows) ? sourceBorders
+            : ResolveCollapsedTableBorderLayout(table, style, fragmentRows, columnCount, contentWidth, legacyBorderWidth);
         double horizontalSpacing = style.BorderCollapse == "collapse" ? 0D : style.BorderSpacingX;
         double verticalSpacing = style.BorderCollapse == "collapse" ? 0D : style.BorderSpacingY;
         double trackWidth = Math.Max(0.01D, contentWidth - horizontalSpacing * (columnCount + 1));
         double captionMinimumWidth = Math.Max(0D,
             MeasureTableCaptionMinimumWidth(formatting.Caption, contentWidth, style)
             - style.HorizontalInsets - horizontalSpacing * (columnCount + 1));
-        IReadOnlyList<double> columnWidths = ResolveTableColumnWidths(sizingRows, table, columnCount, trackWidth, captionMinimumWidth, style, depth, legacyBorderWidth, out double usedTrackWidth);
+        IReadOnlyList<double> columnWidths = ResolveTableColumnWidths(sizingRows, table, columnCount, trackWidth, captionMinimumWidth, style, depth, legacyBorderWidth, sourceBorders, out double usedTrackWidth);
         if ((!style.ExplicitWidth.HasValue && style.TableLayout != "fixed") || usedTrackWidth > trackWidth + 0.0001D) {
             contentWidth = usedTrackWidth + horizontalSpacing * (columnCount + 1);
             tableWidth = contentWidth + style.HorizontalInsets;
@@ -128,6 +140,11 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 double cellOuterWidth = SumColumnWidths(columnWidths, column, columnSpan) + horizontalSpacing * (columnSpan - 1);
                 HtmlRenderBoxStyle cellStyle = ResolveFormattingCellStyle(cell, cellOuterWidth);
                 ApplyTableCellFallbackInsets(cellStyle, legacyBorderWidth);
+                if (fragmentBorders?.CellInsets.TryGetValue(cell, out HtmlRenderBorderInsets collapsedInsets) == true) {
+                    cellStyle.TableCollapsedBorderInsets = collapsedInsets;
+                } else if (sourceBorders?.CellInsets.TryGetValue(cell, out HtmlRenderBorderInsets sourceInsets) == true) {
+                    cellStyle.TableCollapsedBorderInsets = sourceInsets;
+                }
                 if (rowSpan == 1) cellStyle = PrepareTablePercentageHeight(cellStyle, style);
                 else if (style.ExplicitHeight.HasValue && cellStyle.TablePercentageHeight.Length > 0) {
                     ReportTablePercentageHeightFallback(cell.Element, cellStyle, "percentage rowspan height");
@@ -333,7 +350,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         }
         if (style.BorderCollapse == "collapse") {
             int borderVisualStart = visuals.Count;
-            AddCollapsedTableBorders(visuals, table, style, rowLayouts, columnWidths, columnOffsets, contentX, tableY + style.BorderTopWidth + style.PaddingTop);
+            AddCollapsedTableBorders(visuals, table, style, fragmentBorders, rowLayouts, columnWidths, columnOffsets, contentX, tableY + style.BorderTopWidth + style.PaddingTop);
             IReadOnlyList<HtmlRenderVisual> collapsedBorders = visuals.Skip(borderVisualStart).ToArray();
             if (continuationVisuals.Count > 0) {
                 AppendRepeatedCollapsedBorders(continuationVisuals, collapsedBorders,
@@ -343,6 +360,18 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 AppendRepeatedCollapsedBorders(trailingVisuals, collapsedBorders,
                     trailingStart, trailingStart + trailingHeight);
             }
+        }
+        double continuationSourceEnd = headerStart + continuationHeight;
+        if (style.BorderCollapse == "collapse") {
+            // Repeated row groups start at grid centerlines. Reserve the outside
+            // halves too, so their paint and following content stay in the page.
+            if (continuationVisuals.Count > 0) {
+                for (int index = 0; index < continuationVisuals.Count; index++) {
+                    continuationVisuals[index] = continuationVisuals[index].Translate(0D, style.BorderTopWidth, index);
+                }
+                continuationHeight += style.BorderTopWidth;
+            }
+            if (trailingVisuals.Count > 0) trailingHeight += style.BorderBottomWidth;
         }
         AddBoxOutlinePaint(visuals, style, style.MarginLeft, tableY, tableWidth, tableHeight, table);
         if (caption != null && caption.Side == "bottom") AppendTableCaption(visuals, caption, style.MarginLeft, tableY + tableHeight);
@@ -412,7 +441,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
             trailingGroups: trailingGroups,
             continuationVisuals: semanticContinuationVisuals,
             continuationHeight: continuationHeight,
-            continuationStartsAfter: headerStart + continuationHeight,
+            continuationStartsAfter: continuationSourceEnd,
             pageName: style.PageName,
             runningStringAssignments: runningStringAssignments,
             inlineBreakProgress: continuationBreakProgress,
@@ -422,6 +451,10 @@ internal sealed partial class HtmlRenderLayoutEngine {
 
     /// <summary>Applies table border fallback and removes provisional auto-margin placement before measuring columns.</summary>
     private static int PrepareTableBoxStyleForSizing(IElement table, HtmlRenderBoxStyle style, bool anonymous) {
+        style.TableCollapsedBorderInsets = null;
+        if (style.BorderCollapse == "collapse") {
+            style.PaddingTop = style.PaddingRight = style.PaddingBottom = style.PaddingLeft = 0D;
+        }
         int legacyBorderWidth = !anonymous && table.LocalName == "table" ? ReadLegacyTableBorderWidth(table) : 0;
         if (legacyBorderWidth > 0 && !style.BorderDeclared) {
             style.Borders = HtmlRenderBorderEdges.Uniform(legacyBorderWidth, "solid", OfficeColor.FromRgb(128, 128, 128));

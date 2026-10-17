@@ -5,13 +5,13 @@ namespace OfficeIMO.Html;
 internal sealed partial class HtmlRenderLayoutEngine {
     /// <summary>Resolves fixed tracks once; absolute declarations enlarge the used table instead of being compressed.</summary>
     private IReadOnlyList<double> ResolveFixedTableColumnWidths(IReadOnlyList<TableFormattingRow> rows, IElement table,
-        int columnCount, double contentWidth, HtmlRenderBoxStyle tableStyle, out double usedWidth) {
+        int columnCount, double contentWidth, HtmlRenderBoxStyle tableStyle, CollapsedTableBorderLayout? collapsedBorders, out double usedWidth) {
         var widths = new double[columnCount];
         var declaredColumns = new bool[columnCount];
         var percentageWidths = new bool[columnCount];
         ApplyDeclaredColumnWidths(table, contentWidth, tableStyle, widths, widths,
             declaredWidths: declaredColumns, percentageWidths: percentageWidths);
-        ApplyFirstRowAuthoredWidths(rows, widths, declaredColumns, percentageWidths, contentWidth,
+        ApplyFirstRowAuthoredWidths(rows, widths, declaredColumns, percentageWidths, contentWidth, collapsedBorders,
             tableStyle.BorderCollapse == "collapse" ? 0D : tableStyle.BorderSpacingX);
         double absoluteMinimum = 0D;
         int flexibleTracks = 0;
@@ -28,7 +28,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
     /// <summary>Uses the same fixed-track constraints for nested atomic measurement and subsequent paint.</summary>
     private double ResolveFixedTableIntrinsicOuterWidth(IElement table, HtmlRenderBoxStyle style, double availableWidth, int depth) {
         style = style.Clone();
-        PrepareTableBoxStyleForSizing(table, style, anonymous: false);
+        int legacyBorderWidth = PrepareTableBoxStyleForSizing(table, style, anonymous: false);
         double tableWidth = ResolveBoxWidth(Math.Max(1D, availableWidth - style.MarginLeft - style.MarginRight), style);
         double contentWidth = Math.Max(1D, tableWidth - style.HorizontalInsets);
         TableFormattingStructure formatting = BuildTableFormattingStructure(table, contentWidth, style, depth);
@@ -37,8 +37,15 @@ internal sealed partial class HtmlRenderLayoutEngine {
         // it declares columns; its intrinsic contribution must use that width.
         if (rowColumnCount > 0) {
             int columnCount = Math.Max(rowColumnCount, DetermineDeclaredColumnCount(table));
+            CollapsedTableBorderLayout? collapsedBorders = ResolveCollapsedTableBorderLayout(table, style,
+                formatting.SizingRows, columnCount, contentWidth, legacyBorderWidth);
+            if (collapsedBorders != null) {
+                style.TableCollapsedBorderInsets = collapsedBorders.TableInsets;
+                tableWidth = ResolveBoxWidth(Math.Max(1D, availableWidth - style.MarginLeft - style.MarginRight), style);
+                contentWidth = Math.Max(1D, tableWidth - style.HorizontalInsets);
+            }
             double spacing = style.BorderCollapse == "collapse" ? 0D : style.BorderSpacingX * (columnCount + 1);
-            ResolveFixedTableColumnWidths(formatting.SizingRows, table, columnCount, Math.Max(0.01D, contentWidth - spacing), style,
+            ResolveFixedTableColumnWidths(formatting.SizingRows, table, columnCount, Math.Max(0.01D, contentWidth - spacing), style, collapsedBorders,
                 out double usedTrackWidth);
             tableWidth = Math.Max(tableWidth, usedTrackWidth + spacing + style.HorizontalInsets);
         }
@@ -47,13 +54,16 @@ internal sealed partial class HtmlRenderLayoutEngine {
 
     /// <summary>First-row hints fill only tracks without a column declaration; internal spacing is counted once.</summary>
     private void ApplyFirstRowAuthoredWidths(IReadOnlyList<TableFormattingRow> rows, double[] widths,
-        IReadOnlyList<bool> declaredColumns, bool[] percentageWidths, double contentWidth, double spacing) {
+        IReadOnlyList<bool> declaredColumns, bool[] percentageWidths, double contentWidth, CollapsedTableBorderLayout? collapsedBorders, double spacing) {
         if (rows.Count == 0) return;
         int column = 0;
         foreach (TableFormattingCell cell in rows[0].Cells) {
             int span = Math.Min(cell.ColumnSpan, widths.Length - column);
             if (span <= 0) break;
             HtmlRenderBoxStyle style = ResolveFormattingCellStyle(cell, contentWidth);
+            if (collapsedBorders?.CellInsets.TryGetValue(cell, out HtmlRenderBorderInsets collapsedInsets) == true) {
+                style.TableCollapsedBorderInsets = collapsedInsets;
+            }
             if (style.ExplicitWidth.HasValue) {
                 double authored = style.ExplicitWidth.Value + (style.BorderBox ? 0D : style.HorizontalInsets);
                 double share = Math.Max(0D, authored - spacing * (span - 1)) / span;

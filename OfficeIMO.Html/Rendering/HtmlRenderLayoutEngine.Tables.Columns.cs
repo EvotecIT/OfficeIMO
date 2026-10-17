@@ -3,12 +3,12 @@ using AngleSharp.Dom;
 namespace OfficeIMO.Html;
 
 internal sealed partial class HtmlRenderLayoutEngine {
-    private IReadOnlyList<double> ResolveTableColumnWidths(IReadOnlyList<TableFormattingRow> rows, IElement table, int columnCount, double contentWidth, double captionMinimumWidth, HtmlRenderBoxStyle tableStyle, int depth, int legacyBorderWidth, out double usedWidth) {
+    private IReadOnlyList<double> ResolveTableColumnWidths(IReadOnlyList<TableFormattingRow> rows, IElement table, int columnCount, double contentWidth, double captionMinimumWidth, HtmlRenderBoxStyle tableStyle, int depth, int legacyBorderWidth, CollapsedTableBorderLayout? collapsedBorders, out double usedWidth) {
         if (tableStyle.TableLayout == "fixed") {
-            return ResolveFixedTableColumnWidths(rows, table, columnCount, contentWidth, tableStyle, out usedWidth);
+            return ResolveFixedTableColumnWidths(rows, table, columnCount, contentWidth, tableStyle, collapsedBorders, out usedWidth);
         }
 
-        ResolveAutoTableColumnContributions(rows, table, columnCount, contentWidth, tableStyle, depth, legacyBorderWidth,
+        ResolveAutoTableColumnContributions(rows, table, columnCount, contentWidth, tableStyle, depth, legacyBorderWidth, collapsedBorders,
             out double[] minimums, out double[] preferred, out bool[] authoredWidths, out double[] percentages,
             out double[] contentMinimums, out bool hasSpanningPercentageWidths);
         double minimumAllowed = tableStyle.MinWidth.HasValue
@@ -28,7 +28,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
 
     /// <summary>Collects column constraints once for both table layout and non-paint intrinsic sizing.</summary>
     private void ResolveAutoTableColumnContributions(IReadOnlyList<TableFormattingRow> rows, IElement table,
-        int columnCount, double contentWidth, HtmlRenderBoxStyle tableStyle, int depth, int legacyBorderWidth,
+        int columnCount, double contentWidth, HtmlRenderBoxStyle tableStyle, int depth, int legacyBorderWidth, CollapsedTableBorderLayout? collapsedBorders,
         out double[] minimums, out double[] preferred, out bool[] authoredWidths, out double[] percentages,
         out double[] contentMinimums, out bool hasSpanningPercentageWidths) {
         minimums = new double[columnCount];
@@ -54,6 +54,9 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 int span = Math.Max(1, Math.Min(requestedSpan, columnCount - column));
                 HtmlRenderBoxStyle cellStyle = ResolveFormattingCellStyle(cell, contentWidth);
                 ApplyTableCellFallbackInsets(cellStyle, legacyBorderWidth);
+                if (collapsedBorders?.CellInsets.TryGetValue(cell, out HtmlRenderBorderInsets collapsedInsets) == true) {
+                    cellStyle.TableCollapsedBorderInsets = collapsedInsets;
+                }
                 if (span == 1 && cellStyle.ExplicitWidth.HasValue) {
                     if (cellStyle.ExplicitWidthUsesPercentage) {
                         percentages[column] = Math.Max(percentages[column], cellStyle.ExplicitWidth.Value / Math.Max(0.01D, contentWidth));
@@ -104,21 +107,24 @@ internal sealed partial class HtmlRenderLayoutEngine {
     private (double Minimum, double Maximum) ResolveIntrinsicTableOuterWidths(IElement table,
         HtmlRenderBoxStyle style, double availableWidth, int depth) {
         EnsureDepth(depth, table);
-        style = _styleResolver.ResolveIntrinsicMeasurementStyle(table, style);
+        style = _styleResolver.ResolveIntrinsicMeasurementStyle(table, style).Clone();
+        int legacyBorderWidth = PrepareTableBoxStyleForSizing(table, style, anonymous: false);
         if (style.TableLayout == "fixed" && style.ExplicitWidth.HasValue && !style.ExplicitWidthUsesPercentage) {
             double fixedWidth = ResolveFixedTableIntrinsicOuterWidth(table, style, availableWidth, depth);
             return (fixedWidth, fixedWidth);
         }
+        TableFormattingStructure formatting = BuildTableFormattingStructure(table, availableWidth, style, depth);
+        int columnCount = Math.Max(DetermineColumnCount(formatting.SizingRows), DetermineDeclaredColumnCount(table));
+        CollapsedTableBorderLayout? collapsedBorders = ResolveCollapsedTableBorderLayout(table, style,
+            formatting.SizingRows, columnCount, availableWidth, legacyBorderWidth);
+        if (collapsedBorders != null) style.TableCollapsedBorderInsets = collapsedBorders.TableInsets;
         if (!style.HasIntrinsicWidths && style.ExplicitWidth.HasValue && !style.ExplicitWidthUsesPercentage
             && TryResolveDefiniteGridContribution(new FlexItem(table, style, 0), availableWidth, out double definite)) return (definite, definite);
-        TableFormattingStructure formatting = BuildTableFormattingStructure(table, availableWidth, style, depth);
-        int columnCount = Math.Max(DetermineColumnCount(formatting.Rows), DetermineDeclaredColumnCount(table));
         double captionMinimum = Math.Max(0D, MeasureTableCaptionMinimumWidth(formatting.Caption, availableWidth, style) - style.HorizontalInsets);
         double minimum = captionMinimum;
         double maximum = captionMinimum;
         if (columnCount > 0) {
-            int legacyBorderWidth = table.LocalName == "table" ? ReadLegacyTableBorderWidth(table) : 0;
-            ResolveAutoTableColumnContributions(formatting.Rows, table, columnCount, availableWidth, style, depth, legacyBorderWidth,
+            ResolveAutoTableColumnContributions(formatting.SizingRows, table, columnCount, availableWidth, style, depth, legacyBorderWidth, collapsedBorders,
                 out double[] minimums, out double[] preferred, out _, out double[] percentages, out double[] contentMinimums, out _);
             double spacing = style.BorderCollapse == "collapse" ? 0D : style.BorderSpacingX * (columnCount + 1);
             minimum = Math.Max(minimum, (percentages.Any(value => value > 0D) ? contentMinimums : minimums).Sum() + spacing);
@@ -150,7 +156,9 @@ internal sealed partial class HtmlRenderLayoutEngine {
             if (span <= 0) break;
             HtmlRenderBoxStyle style = _styleResolver.Resolve(element, contentWidth, tableStyle);
             if (style.ExplicitWidth.HasValue) {
-                double width = Math.Max(1D, style.ExplicitWidth.Value + (style.BorderBox ? 0D : style.HorizontalInsets));
+                // Column width hints describe the track; column borders enter
+                // the shared collapsed edges rather than enlarging that hint.
+                double width = Math.Max(1D, style.ExplicitWidth.Value);
                 for (int offset = 0; offset < span; offset++) {
                     // A col span repeats this column's declaration; unlike a
                     // cell colspan, its width is not shared across the tracks.

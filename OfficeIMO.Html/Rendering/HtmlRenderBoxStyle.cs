@@ -103,12 +103,14 @@ internal sealed class HtmlRenderBoxStyle {
         get => Borders.IsUniform ? Borders.Top.Style : "mixed";
         set => Borders = Borders.WithUniformStyle(value);
     }
-    internal double BorderTopWidth => Borders.Top.LayoutWidth;
-    internal double BorderRightWidth => Borders.Right.LayoutWidth;
-    internal double BorderBottomWidth => Borders.Bottom.LayoutWidth;
-    internal double BorderLeftWidth => Borders.Left.LayoutWidth;
-    internal bool HasBorderLayout => Borders.HasLayout;
-    internal HtmlRenderBorderInsets BorderInsets => Borders.Insets;
+    /// <summary>Used half-width winning edges for collapsed tables; authored borders remain available for conflict resolution.</summary>
+    internal HtmlRenderBorderInsets? TableCollapsedBorderInsets;
+    internal double BorderTopWidth => BorderInsets.Top;
+    internal double BorderRightWidth => BorderInsets.Right;
+    internal double BorderBottomWidth => BorderInsets.Bottom;
+    internal double BorderLeftWidth => BorderInsets.Left;
+    internal bool HasBorderLayout => BorderInsets.Horizontal > 0D || BorderInsets.Vertical > 0D;
+    internal HtmlRenderBorderInsets BorderInsets => TableCollapsedBorderInsets ?? Borders.Insets;
     internal bool BorderDeclared;
     internal string UnsupportedBorderPaint = string.Empty;
     internal string BorderRadius = "0";
