@@ -1,17 +1,17 @@
 {
   "date": "2026-10-17",
-  "sourceCandidate": "bd5264edb7",
+  "sourceCandidate": "ad821012327",
   "sdk": "10.0.113",
   "host": "macOS 27.0.1 arm64, Apple M4",
   "correctness": [
     {
       "framework": "net8.0",
-      "passed": 609,
+      "passed": 616,
       "failed": 0
     },
     {
       "framework": "net10.0",
-      "passed": 609,
+      "passed": 616,
       "failed": 0
     }
   ],
@@ -112,13 +112,13 @@
     "net472": "Reader.Zip and transitive Archives/Core graph compiled successfully, zero warnings and errors; not executed"
   },
   "packages": {
-    "privateVersion": "3.5.1.902",
+    "privateVersion": "3.5.1.903",
     "signed": false,
     "artifacts": [
       {
-        "file": "OfficeIMO.Archives.3.5.1.902.nupkg",
-        "sha256": "3c514b80de52ceda64cf0e97a9105242a6e9878070a96110e49de07d464e6ccd",
-        "bytes": 186731,
+        "file": "OfficeIMO.Archives.3.5.1.903.nupkg",
+        "sha256": "337ef812f82c6d2633c40875b5796f4641f991882e53438ff55f46450abaf7f7",
+        "bytes": 188531,
         "assets": [
           "lib/net10.0/OfficeIMO.Archives.dll",
           "lib/net8.0/OfficeIMO.Archives.dll",
@@ -127,25 +127,25 @@
         "dependencies": [
           {
             "id": "OfficeIMO.Core",
-            "version": "3.5.1.902",
+            "version": "3.5.1.903",
             "exclude": "Build,Analyzers"
           },
           {
             "id": "OfficeIMO.Core",
-            "version": "3.5.1.902",
+            "version": "3.5.1.903",
             "exclude": "Build,Analyzers"
           },
           {
             "id": "OfficeIMO.Core",
-            "version": "3.5.1.902",
+            "version": "3.5.1.903",
             "exclude": "Build,Analyzers"
           }
         ]
       },
       {
-        "file": "OfficeIMO.Core.3.5.1.902.nupkg",
-        "sha256": "afa276f135ba35cbf63e4977a4fe034ee60a52a7b746b2a0a27400860a61bea2",
-        "bytes": 6357130,
+        "file": "OfficeIMO.Core.3.5.1.903.nupkg",
+        "sha256": "581b336aeb2f88f6b94bc20c3089f40491d8469637aff26423f21e5c63cd1911",
+        "bytes": 6357084,
         "assets": [
           "lib/net10.0/OfficeIMO.Core.dll",
           "lib/net8.0/OfficeIMO.Core.dll",
@@ -154,9 +154,9 @@
         "dependencies": []
       },
       {
-        "file": "OfficeIMO.Reader.Core.3.5.1.902.nupkg",
-        "sha256": "52c0f3dfa94a24b3663f29f1970a0752dc50d6c9949c9ffc8d1f3039d07d9977",
-        "bytes": 1189025,
+        "file": "OfficeIMO.Reader.Core.3.5.1.903.nupkg",
+        "sha256": "970f08baf6d96dfd8c1f15dce4d1fb7b95ad3c5ac813e6e0aa54a57cb7faf66d",
+        "bytes": 1189026,
         "assets": [
           "lib/net10.0/OfficeIMO.Reader.Core.dll",
           "lib/net8.0/OfficeIMO.Reader.Core.dll",
@@ -171,9 +171,9 @@
         ]
       },
       {
-        "file": "OfficeIMO.Reader.Zip.3.5.1.902.nupkg",
-        "sha256": "490f89747b683ac7f63522382dc4aba88beb8527aca2e75379f159a98fe328a7",
-        "bytes": 53706,
+        "file": "OfficeIMO.Reader.Zip.3.5.1.903.nupkg",
+        "sha256": "b01c860bfecf45921176e2e458d36e7a3591ed5ec66c4a7984b3163cc6074ca4",
+        "bytes": 53807,
         "assets": [
           "lib/net10.0/OfficeIMO.Reader.Zip.dll",
           "lib/net8.0/OfficeIMO.Reader.Zip.dll",
@@ -182,32 +182,32 @@
         "dependencies": [
           {
             "id": "OfficeIMO.Archives",
-            "version": "3.5.1.902",
+            "version": "3.5.1.903",
             "exclude": "Build,Analyzers"
           },
           {
             "id": "OfficeIMO.Reader.Core",
-            "version": "3.5.1.902",
+            "version": "3.5.1.903",
             "exclude": "Build,Analyzers"
           },
           {
             "id": "OfficeIMO.Archives",
-            "version": "3.5.1.902",
+            "version": "3.5.1.903",
             "exclude": "Build,Analyzers"
           },
           {
             "id": "OfficeIMO.Reader.Core",
-            "version": "3.5.1.902",
+            "version": "3.5.1.903",
             "exclude": "Build,Analyzers"
           },
           {
             "id": "OfficeIMO.Archives",
-            "version": "3.5.1.902",
+            "version": "3.5.1.903",
             "exclude": "Build,Analyzers"
           },
           {
             "id": "OfficeIMO.Reader.Core",
-            "version": "3.5.1.902",
+            "version": "3.5.1.903",
             "exclude": "Build,Analyzers"
           }
         ]
@@ -217,7 +217,7 @@
       {
         "runtime": ".NET 8.0.23",
         "os": "Darwin 27.0.0 Darwin Kernel Version 27.0.0: Tue Aug 11 21:02:57 PDT 2026; root:xnu-13432.1.9~1/RELEASE_ARM64_T8132",
-        "assembly": "3.5.1.902",
+        "assembly": "3.5.1.903",
         "results": [
           {
             "file": "7zip-utf8.zip",
@@ -270,7 +270,7 @@
       {
         "runtime": ".NET 10.0.13",
         "os": "macOS 27.0.1",
-        "assembly": "3.5.1.902",
+        "assembly": "3.5.1.903",
         "results": [
           {
             "file": "7zip-utf8.zip",
@@ -325,6 +325,105 @@
   "independentReview": {
     "candidate": "322ce8993f",
     "findings": "Two P2 findings reproduced and fixed: strict traversal decoding and rejected raw MSI read accounting. Read-only targeted confirmation accepted both fixes.",
-    "laterCompatibilityProof": "DOS traversal timestamp interpretation subsequently fixed and verified by a focused regression plus the existing three-scale metadata oracle."
+    "laterCompatibilityProof": "DOS traversal timestamp interpretation subsequently fixed and verified by a focused regression plus the existing three-scale metadata oracle.",
+    "newStreamSnapshotPacket": {
+      "candidate": "ad821012327",
+      "reviewer": "Independent read-only local agent",
+      "scope": "New stream-backed ZIP snapshot ownership/lifetime and CAB selection admission; excludes earlier unchanged reviewed contracts",
+      "verdict": "No actionable findings; accept as shaped. Runtime cleanup was subsequently exercised by the opt-in probe."
+    }
+  },
+  "largeInputEvidence": {
+    "runner": "Build/Archives/PackageConsumer --large-input-evidence <ZIP> <JSON>",
+    "before": {
+      "failureCleanup": [
+        "I/O failure: source restored/open, private snapshot removed",
+        "Cancellation: source restored/open, private snapshot removed"
+      ],
+      "runtime": ".NET 10.0.13",
+      "assembly": "3.5.1.902",
+      "inputBytes": 67109088,
+      "inputSha256": "7a29a89d36673f9d6534970ac788712bd53978cbe41d7e1fcee822bf82ea48a0",
+      "results": [
+        {
+          "name": "Inspection",
+          "count": 2,
+          "allocatedBytes": 67198680
+        },
+        {
+          "name": "Traversal",
+          "count": 2,
+          "allocatedBytes": 67470488
+        },
+        {
+          "name": "Reader",
+          "count": 1,
+          "allocatedBytes": 67566968
+        }
+      ],
+      "boundary": "Opt-in per-thread managed allocation, not peak/RSS or timing qualification"
+    },
+    "afterNet10": {
+      "failureCleanup": [
+        "I/O failure: source restored/open, private snapshot removed",
+        "Cancellation: source restored/open, private snapshot removed"
+      ],
+      "runtime": ".NET 10.0.13",
+      "assembly": "3.5.1.903",
+      "inputBytes": 67109088,
+      "inputSha256": "7a29a89d36673f9d6534970ac788712bd53978cbe41d7e1fcee822bf82ea48a0",
+      "results": [
+        {
+          "name": "Inspection",
+          "count": 2,
+          "allocatedBytes": 239336
+        },
+        {
+          "name": "Traversal",
+          "count": 2,
+          "allocatedBytes": 365224
+        },
+        {
+          "name": "Reader",
+          "count": 1,
+          "allocatedBytes": 613256
+        }
+      ],
+      "boundary": "Opt-in per-thread managed allocation, not peak/RSS or timing qualification"
+    },
+    "afterNet8": {
+      "failureCleanup": [
+        "I/O failure: source restored/open, private snapshot removed",
+        "Cancellation: source restored/open, private snapshot removed"
+      ],
+      "runtime": ".NET 8.0.23",
+      "assembly": "3.5.1.903",
+      "inputBytes": 67109088,
+      "inputSha256": "7a29a89d36673f9d6534970ac788712bd53978cbe41d7e1fcee822bf82ea48a0",
+      "results": [
+        {
+          "name": "Inspection",
+          "count": 2,
+          "allocatedBytes": 271912
+        },
+        {
+          "name": "Traversal",
+          "count": 2,
+          "allocatedBytes": 364008
+        },
+        {
+          "name": "Reader",
+          "count": 1,
+          "allocatedBytes": 613536
+        }
+      ],
+      "boundary": "Opt-in per-thread managed allocation, not peak/RSS or timing qualification"
+    },
+    "boundary": "Same input hash on both candidates. Three distinct workflows, compared before/after individually. Per-thread managed allocations; no peak/RSS or timing claim. Full public >2GiB snapshot copying is not exercised; internal owned-snapshot indexing and selected read are tested above Int32.MaxValue."
+  },
+  "dependencyDiscovery": {
+    "unconfiguredRestore": "Passed with no qualification PackageReferences; no placeholder/default version",
+    "unconfiguredBuild": "Fails with the explicit candidate-version guard before compilation",
+    "configuredRestoreAndRun": "Both runtimes pass seven packed-consumer scenarios"
   }
 }

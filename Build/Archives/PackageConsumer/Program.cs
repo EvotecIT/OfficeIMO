@@ -4,6 +4,9 @@ using OfficeIMO.Archives;
 using OfficeIMO.Reader;
 using OfficeIMO.Reader.Zip;
 
+if (args.Length > 0 && args[0] == "--large-input-evidence")
+    return OfficeIMO.Archives.Qualification.LargeInputEvidence.Run(args.Skip(1).ToArray());
+
 // Opt-in consumer of packed public APIs. It does not download or execute archive contents.
 if (args.Length < 3) throw new ArgumentException("Expected: <ZIP corpus> <fresh output directory> <JSON report> [MSI] [independent MSI payload directory] [makecab CAB] [original member]");
 string corpus = Path.GetFullPath(args[0]);
@@ -79,6 +82,7 @@ File.WriteAllText(args[2], JsonSerializer.Serialize(new {
     assembly = typeof(ArchiveInspector).Assembly.GetName().Version?.ToString(), results
 }, new JsonSerializerOptions { WriteIndented = true }));
 Console.WriteLine($"Qualified {results.Count} packed-consumer scenarios.");
+return 0;
 
 static string Hash(byte[] bytes) => Convert.ToHexString(SHA256.HashData(bytes)).ToLowerInvariant();
 static string HashStream(Stream stream) => Convert.ToHexString(SHA256.HashData(stream)).ToLowerInvariant();

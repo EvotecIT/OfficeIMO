@@ -64,3 +64,23 @@ The [2026-10-17 qualification record](Evidence/2026-10-17.json) records the
 independent input identities, private package hashes, executed runtimes and
 remaining acceptance gaps. The [verified-copy benchmark](../../OfficeIMO.Archives.Benchmarks/README.md#verified-member-copying)
 is opt-in and checks equal payload hashes before reporting allocations or time.
+
+## Large ZIP input evidence
+
+The package consumer also provides an opt-in allocation probe. It creates a ZIP
+slightly above 64 MiB if the input path is absent, then checks inspection,
+metadata traversal and Reader ingestion of the same small text member. It
+records per-thread managed allocations separately for each workflow. Synthetic
+source I/O failure and cancellation check private snapshot cleanup, source
+position restoration and caller ownership.
+
+After restoring the chosen candidate as above, replace the consumer's positional
+arguments with:
+
+```text
+--large-input-evidence <task-owned ZIP path> <JSON report>
+```
+
+Reuse the identical ZIP input when comparing candidates. The report retains its
+SHA-256, runtime and assembly version. The probe is outside normal correctness
+CI; allocation totals are neither peak/RSS measurements nor timing guarantees.
