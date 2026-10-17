@@ -6,6 +6,22 @@ namespace OfficeIMO.Tests;
 
 public sealed partial class HtmlRenderingTests {
     [Fact]
+    public void HtmlPdf_DefaultFontPolicyRetainsLibrarySelectionAndCallerOverrides() {
+        var options = new HtmlToPdfOptions();
+        Assert.True(options.ResourcePolicy.AllowSystemFontEmbedding);
+        Assert.False(options.ResourcePolicy.AllowDocumentFontEmbedding);
+        Assert.False(options.ResourcePolicy.AllowLocalFileAccess);
+        Assert.False(options.ResourcePolicy.AllowRemoteResourceResolution);
+        Assert.True(options.ResourcePolicy.AllowDataUris);
+        Assert.True(options.ResourcePolicy.AllowEmbeddedPackageResources);
+        Assert.False(options.Clone().ResourcePolicy.AllowDocumentFontEmbedding);
+
+        options.ResourcePolicy.AllowDocumentFontEmbedding = true;
+        Assert.True(options.Clone().ResourcePolicy.AllowDocumentFontEmbedding);
+        Assert.False(new HtmlToPdfOptions().ResourcePolicy.AllowDocumentFontEmbedding);
+    }
+
+    [Fact]
     public void HtmlPdf_PageFontDiscoverySharesTheLayoutOperationLimit() {
         string html = "<style>" + string.Concat(Enumerable.Range(0, 2000)
             .Select(index => "@page p" + index + "{margin-top:60px}"))
