@@ -32,10 +32,11 @@ public sealed partial class PdfReadPage {
         double width = frame.Width;
         double rawX = frame.X;
         double rawY = frame.Y;
-        // Glyph paint bounds describe resolved positioned glyphs. Whole-run fallback
+        // Paint bounds describe resolved positioned runs. Whole-run fallback
         // uses a different layout contract and retains its existing frame handling.
-        bool positionedGlyph = measuredPaint.HasValue || span.Text.Length == 1 && TryGetSafePositionedAdvance(span, out _);
-        var paint = measuredPaint ?? (positionedGlyph
+        bool transformed = HasReflectedTextMatrix(span) || span.RotationDegrees % 360D != 0D;
+        bool positionedText = measuredPaint.HasValue || (span.Text.Length == 1 || transformed) && TryGetSafePositionedAdvance(span, out _);
+        var paint = measuredPaint ?? (positionedText
             ? GetTextPaintBounds(drawing, span, frame, pageHeight - span.Y, pageContentBudget)
             : (Left: rawX, Top: rawY, Right: rawX + width, Bottom: rawY + height));
         if (!HasVisibleOverlap(paint.Left, paint.Top, paint.Right - paint.Left, paint.Bottom - paint.Top, drawing.Width, drawing.Height)) {
@@ -48,7 +49,7 @@ public sealed partial class PdfReadPage {
         double x = rawX;
         double y = rawY;
         double baselineY = pageHeight - span.Y;
-        if (!positionedGlyph) {
+        if (!positionedText) {
             x = Clamp(rawX, 0D, drawing.Width);
             y = Clamp(rawY, 0D, drawing.Height);
             baselineY = Clamp(baselineY, 0D, drawing.Height);
