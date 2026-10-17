@@ -1,0 +1,878 @@
+{
+  "schema": "officeimo.html.normal-font-line-metrics-qualification",
+  "qualifiedUtc": "2026-10-17T09:33:25.889484+00:00",
+  "source": {
+    "base": "5294ccf9f6911646143548d390db1073f86e963b",
+    "productionHead": "9c94285f31394989ea798ac67800ef1596367a66",
+    "sdk": "10.0.113",
+    "ownerInputs": 3181,
+    "ownerInputSealSha256": "6f226043450d76ebb57a59f5889fbc5b29e7c100592d595ecbff49f0972e0404",
+    "runtimeProviderForksIncluded": false
+  },
+  "implemented": [
+    "Ordinary horizontal normal line height from selected-face ascent, descent and line gap; authored and explicit default leading preserved.",
+    "Approved library-selected default font frozen before authoritative pagination and print fitting, with shared resources, diagnostics, cancellation and cumulative budget.",
+    "Declared literal page-margin Unicode included through the existing effective cascade and bounded rule visits.",
+    "Table cell fragmentation uses actual line endings; Browser tables have no invented outer margin.",
+    "Shared Core fallback runs preserve same-family selected faces across glyphs and mapped/synthesized EM-space graphemes.",
+    "HTML, Email and EPUB premium raster baselines inspected and updated; Word, PowerPoint and OneNote pixels unchanged.",
+    "Shared PDF library-font preset keeps HTML document-selected host fonts disabled by default under the newer PDF owner; explicit caller overrides survive typed cloning."
+  ],
+  "native": {
+    "reference": "Microsoft Edge155 via HtmlTinkerX3.0.4",
+    "sameFontHeightControls": [
+      {
+        "profile": "PrintPaged",
+        "subject": "normal-13",
+        "engineHeight": 34,
+        "edgeHeight": 34
+      },
+      {
+        "profile": "PrintPaged",
+        "subject": "normal-16",
+        "engineHeight": 38,
+        "edgeHeight": 38
+      },
+      {
+        "profile": "PrintPaged",
+        "subject": "normal-small",
+        "engineHeight": 26,
+        "edgeHeight": 26
+      },
+      {
+        "profile": "PrintPaged",
+        "subject": "number-12",
+        "engineHeight": 31.96875,
+        "edgeHeight": 31.96875
+      },
+      {
+        "profile": "PrintPaged",
+        "subject": "length-20",
+        "engineHeight": 40,
+        "edgeHeight": 40
+      },
+      {
+        "profile": "PrintPaged",
+        "subject": "mixed-size",
+        "engineHeight": 34,
+        "edgeHeight": 34
+      },
+      {
+        "profile": "PrintPaged",
+        "subject": "mixed-bold",
+        "engineHeight": 38,
+        "edgeHeight": 38
+      },
+      {
+        "profile": "PrintPaged",
+        "subject": "empty-strut",
+        "engineHeight": 48,
+        "edgeHeight": 48
+      },
+      {
+        "profile": "PrintPaged",
+        "subject": "table",
+        "engineHeight": 147,
+        "edgeHeight": 147
+      },
+      {
+        "profile": "PrintPaged",
+        "subject": "gap-13",
+        "engineHeight": 30,
+        "edgeHeight": 30
+      },
+      {
+        "profile": "PrintPaged",
+        "subject": "gap-16",
+        "engineHeight": 36,
+        "edgeHeight": 36
+      },
+      {
+        "profile": "PrintPaged",
+        "subject": "cff-16",
+        "engineHeight": 40,
+        "edgeHeight": 40
+      },
+      {
+        "profile": "ScreenMediaPaged",
+        "subject": "normal-13",
+        "engineHeight": 34,
+        "edgeHeight": 34
+      },
+      {
+        "profile": "ScreenMediaPaged",
+        "subject": "normal-16",
+        "engineHeight": 38,
+        "edgeHeight": 38
+      },
+      {
+        "profile": "ScreenMediaPaged",
+        "subject": "normal-small",
+        "engineHeight": 26,
+        "edgeHeight": 26
+      },
+      {
+        "profile": "ScreenMediaPaged",
+        "subject": "number-12",
+        "engineHeight": 31.96875,
+        "edgeHeight": 31.96875
+      },
+      {
+        "profile": "ScreenMediaPaged",
+        "subject": "length-20",
+        "engineHeight": 40,
+        "edgeHeight": 40
+      },
+      {
+        "profile": "ScreenMediaPaged",
+        "subject": "mixed-size",
+        "engineHeight": 34,
+        "edgeHeight": 34
+      },
+      {
+        "profile": "ScreenMediaPaged",
+        "subject": "mixed-bold",
+        "engineHeight": 38,
+        "edgeHeight": 38
+      },
+      {
+        "profile": "ScreenMediaPaged",
+        "subject": "empty-strut",
+        "engineHeight": 48,
+        "edgeHeight": 48
+      },
+      {
+        "profile": "ScreenMediaPaged",
+        "subject": "table",
+        "engineHeight": 147,
+        "edgeHeight": 147
+      },
+      {
+        "profile": "ScreenMediaPaged",
+        "subject": "gap-13",
+        "engineHeight": 30,
+        "edgeHeight": 30
+      },
+      {
+        "profile": "ScreenMediaPaged",
+        "subject": "gap-16",
+        "engineHeight": 36,
+        "edgeHeight": 36
+      },
+      {
+        "profile": "ScreenMediaPaged",
+        "subject": "cff-16",
+        "engineHeight": 40,
+        "edgeHeight": 40
+      },
+      {
+        "profile": "ScreenFullPage",
+        "subject": "normal-13",
+        "engineHeight": 34,
+        "edgeHeight": 34
+      },
+      {
+        "profile": "ScreenFullPage",
+        "subject": "normal-16",
+        "engineHeight": 38,
+        "edgeHeight": 38
+      },
+      {
+        "profile": "ScreenFullPage",
+        "subject": "normal-small",
+        "engineHeight": 26,
+        "edgeHeight": 26
+      },
+      {
+        "profile": "ScreenFullPage",
+        "subject": "number-12",
+        "engineHeight": 31.96875,
+        "edgeHeight": 31.96875
+      },
+      {
+        "profile": "ScreenFullPage",
+        "subject": "length-20",
+        "engineHeight": 40,
+        "edgeHeight": 40
+      },
+      {
+        "profile": "ScreenFullPage",
+        "subject": "mixed-size",
+        "engineHeight": 34,
+        "edgeHeight": 34
+      },
+      {
+        "profile": "ScreenFullPage",
+        "subject": "mixed-bold",
+        "engineHeight": 38,
+        "edgeHeight": 38
+      },
+      {
+        "profile": "ScreenFullPage",
+        "subject": "empty-strut",
+        "engineHeight": 48,
+        "edgeHeight": 48
+      },
+      {
+        "profile": "ScreenFullPage",
+        "subject": "table",
+        "engineHeight": 147,
+        "edgeHeight": 147
+      },
+      {
+        "profile": "ScreenFullPage",
+        "subject": "gap-13",
+        "engineHeight": 30,
+        "edgeHeight": 30
+      },
+      {
+        "profile": "ScreenFullPage",
+        "subject": "gap-16",
+        "engineHeight": 36,
+        "edgeHeight": 36
+      },
+      {
+        "profile": "ScreenFullPage",
+        "subject": "cff-16",
+        "engineHeight": 40,
+        "edgeHeight": 40
+      },
+      {
+        "profile": "ScreenSnapshotPaged",
+        "subject": "normal-13",
+        "engineHeight": 34,
+        "edgeHeight": 34
+      },
+      {
+        "profile": "ScreenSnapshotPaged",
+        "subject": "normal-16",
+        "engineHeight": 38,
+        "edgeHeight": 38
+      },
+      {
+        "profile": "ScreenSnapshotPaged",
+        "subject": "normal-small",
+        "engineHeight": 26,
+        "edgeHeight": 26
+      },
+      {
+        "profile": "ScreenSnapshotPaged",
+        "subject": "number-12",
+        "engineHeight": 31.96875,
+        "edgeHeight": 31.96875
+      },
+      {
+        "profile": "ScreenSnapshotPaged",
+        "subject": "length-20",
+        "engineHeight": 40,
+        "edgeHeight": 40
+      },
+      {
+        "profile": "ScreenSnapshotPaged",
+        "subject": "mixed-size",
+        "engineHeight": 34,
+        "edgeHeight": 34
+      },
+      {
+        "profile": "ScreenSnapshotPaged",
+        "subject": "mixed-bold",
+        "engineHeight": 38,
+        "edgeHeight": 38
+      },
+      {
+        "profile": "ScreenSnapshotPaged",
+        "subject": "empty-strut",
+        "engineHeight": 48,
+        "edgeHeight": 48
+      },
+      {
+        "profile": "ScreenSnapshotPaged",
+        "subject": "table",
+        "engineHeight": 147,
+        "edgeHeight": 147
+      },
+      {
+        "profile": "ScreenSnapshotPaged",
+        "subject": "gap-13",
+        "engineHeight": 30,
+        "edgeHeight": 30
+      },
+      {
+        "profile": "ScreenSnapshotPaged",
+        "subject": "gap-16",
+        "engineHeight": 36,
+        "edgeHeight": 36
+      },
+      {
+        "profile": "ScreenSnapshotPaged",
+        "subject": "cff-16",
+        "engineHeight": 40,
+        "edgeHeight": 40
+      }
+    ],
+    "inputSha256": "f6d24497f258a528c2f23d0953d04a4f05b1f4f104feecc64a415f64a03f5438",
+    "regularSha256": "00aca2988771998ff27738ff97c2cc8e71eb3013f206de5f205986b7de326af3",
+    "boldSha256": "20bb7ad2e23beb5020313119f46fbc50a5ded598aaa1be4df719d3c017914b6c",
+    "fontAssets": [
+      {
+        "file": "inputs/regular.ttf",
+        "sha256": "00aca2988771998ff27738ff97c2cc8e71eb3013f206de5f205986b7de326af3",
+        "bytes": 105592
+      },
+      {
+        "file": "inputs/bold.ttf",
+        "sha256": "20bb7ad2e23beb5020313119f46fbc50a5ded598aaa1be4df719d3c017914b6c",
+        "bytes": 120288
+      },
+      {
+        "file": "inputs/gap.ttf",
+        "sha256": "525979822591a3447cfc49d943d6f7683508e25543407871c0ed8fed05fd2bd9",
+        "bytes": 773236
+      },
+      {
+        "file": "inputs/cff.otf",
+        "sha256": "e9eefd0655161b5558b4caf1a0667b3931c55ef8e06b58b034e8955190261d99",
+        "bytes": 234960
+      }
+    ],
+    "invoice": {
+      "pages": 2,
+      "edgePages": 2,
+      "itemRows": [
+        [
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9,
+          10,
+          11,
+          12,
+          13,
+          14,
+          15,
+          16,
+          17,
+          18
+        ],
+        [
+          19,
+          20,
+          21
+        ]
+      ],
+      "edgeRowSplit": [
+        18,
+        3
+      ],
+      "inputSha256": "cbbe7bf0c1c38a4578c66966df148c28a8c2302d5ea41283222259f219b3c9df",
+      "pdfSha256": "dc5e5deed452af093baef4a8bff5edff1ffff3eb936e3bcaa43e76883f22ffa7",
+      "all21RowsRetained": true,
+      "parity": [
+        {
+          "route": "direct/PDF",
+          "format": 0,
+          "pages": 2,
+          "byteIdentical": true
+        },
+        {
+          "route": "direct/PDF",
+          "format": 2,
+          "pages": 2,
+          "byteIdentical": true
+        },
+        {
+          "route": "direct/PDF",
+          "format": 1,
+          "pages": 2,
+          "byteIdentical": true
+        },
+        {
+          "route": "retained/PDF",
+          "format": 0,
+          "pages": 2,
+          "byteIdentical": true
+        },
+        {
+          "route": "async/PDF",
+          "format": 0,
+          "pages": 2,
+          "byteIdentical": true
+        },
+        {
+          "route": "archive/PDF",
+          "format": 0,
+          "pages": 2,
+          "byteIdentical": true
+        },
+        {
+          "route": "site-bundle/PDF",
+          "format": 0,
+          "pages": 2,
+          "byteIdentical": true
+        }
+      ],
+      "arabicContextForms": 9,
+      "diagnosticCodes": [
+        "HtmlRenderOpenTypeFeatureUnsupported",
+        "unsupported-bidirectional-text-layout",
+        "unsupported-complex-script-shaping"
+      ],
+      "record": {
+        "file": "qualified-invoice-policy/summary.json",
+        "sha256": "ed75cbfaa9bd2214cad1b727e63426c0401e649dde263b0736d177c9a4e97991",
+        "bytes": 835186
+      }
+    },
+    "tableLineFragmentation": {
+      "printAndScreenPagedPages": 2,
+      "linesPerPage": [
+        2,
+        1
+      ],
+      "record": {
+        "file": "qualified-table-lines-policy/summary.json",
+        "sha256": "66e2cc7921456508fa281f012d9b43179fca01e8f28a4713c039641993001008",
+        "bytes": 4393
+      }
+    },
+    "marginOnly": {
+      "automaticAndExplicitFontHeight": 19.2,
+      "automaticAndExplicitFontY": 20.4,
+      "record": {
+        "file": "qualified-owners-policy/summary.json",
+        "sha256": "9f5375eb41ed783e04e4c7338f354bd7e3c56fb2eadd78bfa27de808792cd119",
+        "bytes": 2884
+      }
+    },
+    "inspection": [
+      "Both invoice pages against frozen Edge print pages.",
+      "Natural line controls, premium card and affected Email/EPUB previews.",
+      "Final PDF raster and native Unicode page header."
+    ],
+    "browserSessionsReleased": true
+  },
+  "managed": [
+    {
+      "name": "OfficeIMO.Html.Tests-policy-net10.0",
+      "selection": "Category!=Performance",
+      "passed": 6590,
+      "failed": 0,
+      "skipped": 0,
+      "total": 6590,
+      "file": "trx/OfficeIMO.Html.Tests-policy-net10.0/_evomini_2026-10-17_11_22_19.trx",
+      "sha256": "593a8e2d94b2e14b9a4ca31f610404d6c14b984f0e71f3ece74815bf9ce972e4",
+      "bytes": 10062901
+    },
+    {
+      "name": "OfficeIMO.Pdf.Tests-policy-net10.0",
+      "selection": "(FullyQualifiedName~Font|FullyQualifiedName~TextFallback|FullyQualifiedName~PdfPageImageRendererTests|FullyQualifiedName~ResourcePolicy)&Category!=Performance",
+      "passed": 1528,
+      "failed": 0,
+      "skipped": 0,
+      "total": 1528,
+      "file": "trx/OfficeIMO.Pdf.Tests-policy-net10.0/_evomini_2026-10-17_11_24_45.trx",
+      "sha256": "d6e1999ca5ee32a2a4ce472c25a326d75d492218427f52699b866d8350604356",
+      "bytes": 2331245
+    },
+    {
+      "name": "OfficeIMO.Html.Tests-policy-net8.0",
+      "selection": "Category!=Performance",
+      "passed": 6590,
+      "failed": 0,
+      "skipped": 0,
+      "total": 6590,
+      "file": "trx/OfficeIMO.Html.Tests-policy-net8.0/_evomini_2026-10-17_11_27_10.trx",
+      "sha256": "6dc9ab2f3cb2b036644334b03b9a3de3e8b855ca32ffa8be7aadfeed51e1025d",
+      "bytes": 10049720
+    },
+    {
+      "name": "OfficeIMO.Pdf.Tests-policy-net8.0",
+      "selection": "(FullyQualifiedName~Font|FullyQualifiedName~TextFallback|FullyQualifiedName~PdfPageImageRendererTests|FullyQualifiedName~ResourcePolicy)&Category!=Performance",
+      "passed": 1528,
+      "failed": 0,
+      "skipped": 0,
+      "total": 1528,
+      "file": "trx/OfficeIMO.Pdf.Tests-policy-net8.0/_evomini_2026-10-17_11_29_22.trx",
+      "sha256": "f8f1ada5fbb49c7a9b636214c42b5585344078f13ca11c4697fdbb2161fe7358",
+      "bytes": 2328188
+    },
+    {
+      "name": "OfficeIMO.Drawing.Tests-qualified-net10.0",
+      "selection": "(FullyQualifiedName~Font|FullyQualifiedName~Text|FullyQualifiedName~Typography|FullyQualifiedName~Math|FullyQualifiedName~Svg)&Category!=Performance",
+      "passed": 1912,
+      "failed": 0,
+      "skipped": 0,
+      "total": 1912,
+      "file": "trx/OfficeIMO.Drawing.Tests-qualified-net10.0/_evomini_2026-10-17_10_38_46.trx",
+      "sha256": "490f74f4a0a8ac554bba72f9aaed95fbf796071f1d5019ab3523c7fc5a97b79c",
+      "bytes": 2886588
+    },
+    {
+      "name": "OfficeIMO.Drawing.Tests-qualified-net8.0",
+      "selection": "(FullyQualifiedName~Font|FullyQualifiedName~Text|FullyQualifiedName~Typography|FullyQualifiedName~Math|FullyQualifiedName~Svg)&Category!=Performance",
+      "passed": 1912,
+      "failed": 0,
+      "skipped": 0,
+      "total": 1912,
+      "file": "trx/OfficeIMO.Drawing.Tests-qualified-net8.0/_evomini_2026-10-17_10_45_04.trx",
+      "sha256": "9e7d1f73d0e684acb2c69c0d0983d19f5028e4eaa36aeff1bd560e4bdc54edd7",
+      "bytes": 2882763
+    }
+  ],
+  "unchangedCoreProof": {
+    "testedHead": "7bcbc16e218975584ae4b41ba639dbdd7a65a5af",
+    "finalHead": "9c94285f31394989ea798ac67800ef1596367a66",
+    "coreTree": "adfdc643eab15b28da11c0ca2a211512f06dd1a5",
+    "identical": true,
+    "reason": "Only shared PDF resource-policy preset, HTML default wiring, clone assertions and policy docs changed; Core source tree unchanged."
+  },
+  "review": {
+    "fullReadOnlyPass": "normal_metrics_independent_review at f6efdfb4d9; reproduced report/gap/page-admission findings remediated",
+    "oneTargetedConfirmation": "Original fixes confirmed; mapped EM and page-margin-only Unicode siblings reproduced and remediated",
+    "boundedOwnerClosure": "normal_font_metric_diagnosis; same-family synthesized EM-plus-accent reproduced68vs62 and corrected; declared margin selectors/cascade and rule-visit budget closed",
+    "printFitConcern": "15 proposed glyph/count controls did not reproduce stale fitting; pre-pagination preparation removes inheritance of provisional fit",
+    "policyBoundaryPass": "normal_metrics_independent_review; production preset and explicit override wiring accepted; typed ClonePdf test compile issue corrected before final suites",
+    "knownUnresolvedValidatedInScopeP0P2": 0
+  },
+  "pdfTextIntegration": {
+    "pr": "https://github.com/EvotecIT/OfficeIMO/pull/3105",
+    "upstreamCandidate": "fc2c29e55cc8060f528e91327e9f17cd9f61edf2",
+    "localValidationHead": "84a5c85a1b302874ba3b99ee3f4300c7bb20daa6",
+    "threePagedProfileCffPdfImageComparisons": "byte identical",
+    "record": {
+      "file": "qualified-cff-integration-policy/summary.json",
+      "sha256": "38e917901b35f3a6f28d7501d572a9a698c229ca4501de77a3a0704d3cef923f",
+      "bytes": 56513
+    },
+    "managedFocused": [
+      {
+        "name": "integration-html-policy-focused",
+        "passed": 41,
+        "file": "trx/integration-html-policy-focused/_evomini_2026-10-17_11_21_09.trx",
+        "sha256": "3c27a539f5e8b11148eeee3d7962c45846173033cdd137061231b02059c61a18",
+        "bytes": 66091
+      }
+    ],
+    "budgetTestPolicy": "Explicit library-selected policy protects the bounded page-rule preflight; HTML also keeps that policy by default while the generic PDF default is unchanged.",
+    "updatedBudgetFixturePackedNet8AndNet10": "pass on the pre-policy package with the same explicit library-only policy",
+    "invoice": {
+      "pages": 2,
+      "itemRows": [
+        [
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9,
+          10,
+          11,
+          12,
+          13,
+          14,
+          15,
+          16,
+          17,
+          18
+        ],
+        [
+          19,
+          20,
+          21
+        ]
+      ],
+      "parity": [
+        {
+          "route": "direct/PDF",
+          "format": 0,
+          "pages": 2,
+          "byteIdentical": true
+        },
+        {
+          "route": "direct/PDF",
+          "format": 2,
+          "pages": 2,
+          "byteIdentical": true
+        },
+        {
+          "route": "direct/PDF",
+          "format": 1,
+          "pages": 2,
+          "byteIdentical": true
+        },
+        {
+          "route": "retained/PDF",
+          "format": 0,
+          "pages": 2,
+          "byteIdentical": true
+        },
+        {
+          "route": "async/PDF",
+          "format": 0,
+          "pages": 2,
+          "byteIdentical": true
+        },
+        {
+          "route": "archive/PDF",
+          "format": 0,
+          "pages": 2,
+          "byteIdentical": true
+        },
+        {
+          "route": "site-bundle/PDF",
+          "format": 0,
+          "pages": 2,
+          "byteIdentical": true
+        }
+      ],
+      "record": {
+        "file": "qualified-integration-invoice-policy/summary.json",
+        "sha256": "e69cefc494692952442b647780bf0d7a865993a7ed391ad953dda58f8d7d8736",
+        "bytes": 869494
+      }
+    },
+    "conflictResolution": "Retain upstream fallback-run registration metadata and upstream preview baselines; apply selected-face boundary and spacing fixes."
+  },
+  "packages": {
+    "artifacts": [
+      {
+        "file": "OfficeIMO.Html.Pdf.99.0.0-html-metrics-policy.nupkg",
+        "bytes": 207723,
+        "sha256": "578031fb1c434d9ecd3da3864cd6db8e7e8491fae6b5a365953f3691832b46b8",
+        "assets": [
+          "lib/net10.0/OfficeIMO.Html.Pdf.dll",
+          "lib/net472/OfficeIMO.Html.Pdf.dll",
+          "lib/net8.0/OfficeIMO.Html.Pdf.dll",
+          "lib/netstandard2.0/OfficeIMO.Html.Pdf.dll"
+        ]
+      },
+      {
+        "file": "OfficeIMO.Html.Core.99.0.0-html-metrics-policy.nupkg",
+        "bytes": 325018,
+        "sha256": "e28192a09460f3008fc7afcb04a1d1314e327ee3e26bfce70e610efd71eda658",
+        "assets": [
+          "lib/net10.0/OfficeIMO.Html.Core.dll",
+          "lib/net472/OfficeIMO.Html.Core.dll",
+          "lib/net8.0/OfficeIMO.Html.Core.dll",
+          "lib/netstandard2.0/OfficeIMO.Html.Core.dll"
+        ]
+      },
+      {
+        "file": "OfficeIMO.Html.99.0.0-html-metrics-policy.nupkg",
+        "bytes": 4245749,
+        "sha256": "7214505317aef76be19eaa15eb332bb51a32a656ca2f68028dda63bb571038da",
+        "assets": [
+          "lib/net10.0/OfficeIMO.Html.dll",
+          "lib/net472/OfficeIMO.Html.dll",
+          "lib/net8.0/OfficeIMO.Html.dll",
+          "lib/netstandard2.0/OfficeIMO.Html.dll"
+        ]
+      },
+      {
+        "file": "OfficeIMO.Pdf.99.0.0-html-metrics-policy.nupkg",
+        "bytes": 13041177,
+        "sha256": "873744e0d45cc3165ae579eb47faca48f774dc453762afe03099e5d9bfe9fc67",
+        "assets": [
+          "lib/net10.0/OfficeIMO.Pdf.dll",
+          "lib/net472/OfficeIMO.Pdf.dll",
+          "lib/net8.0/OfficeIMO.Pdf.dll",
+          "lib/netstandard2.0/OfficeIMO.Pdf.dll"
+        ]
+      },
+      {
+        "file": "OfficeIMO.Html.AngleSharp.99.0.0-html-metrics-policy.nupkg",
+        "bytes": 103912,
+        "sha256": "7ccd9d5e068ad26fb4aed43e368edb2f059ccefcec3d427203d269d80251cf1e",
+        "assets": [
+          "lib/net10.0/OfficeIMO.Html.AngleSharp.dll",
+          "lib/net472/OfficeIMO.Html.AngleSharp.dll",
+          "lib/net8.0/OfficeIMO.Html.AngleSharp.dll",
+          "lib/netstandard2.0/OfficeIMO.Html.AngleSharp.dll"
+        ]
+      },
+      {
+        "file": "OfficeIMO.Core.99.0.0-html-metrics-policy.nupkg",
+        "bytes": 8441619,
+        "sha256": "d705cb76357a60bcda99924bdfc422eca4fa30b48276d9f14e20833c5164c631",
+        "assets": [
+          "lib/net10.0/OfficeIMO.Core.dll",
+          "lib/net472/OfficeIMO.Core.dll",
+          "lib/net8.0/OfficeIMO.Core.dll",
+          "lib/netstandard2.0/OfficeIMO.Core.dll"
+        ]
+      }
+    ],
+    "isolatedConsumerCache": "/Volumes/Samsung/Development/Scratch/html-normal-line-metrics/package-qualification-v2/packages",
+    "executedConsumers": 4,
+    "compileFrameworks": [
+      "netstandard2.0",
+      "net8.0",
+      "net10.0",
+      "net472"
+    ]
+  },
+  "nativeAot": {
+    "rid": "osx-arm64",
+    "framework": "net10.0",
+    "publish": "pass",
+    "run": "pass",
+    "record": {
+      "file": "logs/aot-policy-run.log",
+      "sha256": "f1483e7cb5e17a0f4d08a4e4a7f9cd5da047405294119c8ca102ac2b5701c67d",
+      "bytes": 39
+    },
+    "retainedExecutable": {
+      "file": "retained-aot-policy/OfficeIMO.Html.AotSmoke",
+      "bytes": 32623368,
+      "sha256": "4134065dd979a7b44b2574b9a29aa36ecc872cf5694785a999fcba0242c683ae",
+      "runLog": "logs/aot-policy-run.log"
+    }
+  },
+  "limits": [
+    "Native agreement is bounded to these controls, full invoice content and18/3 row split; automatic table column allocation and some block geometry still differ.",
+    "Mixed-font, bidi/vertical baseline combinations and dynamic page-margin strings/elements require further qualification; margin normal line height remains separate.",
+    "Standalone PDF reading still lacks the CFF replay fix owned by3105; all three paged CFF comparisons pass on the recorded integration candidate.",
+    "OpenType numeric-feature approximations and conservative script/provider diagnostics remain explicit; no full browser typography claim.",
+    "No Windows profiling, cross-platform timing, package publication, PR publication or external CI qualification for this checkpoint."
+  ],
+  "publication": {
+    "branch": "fix/html-normal-line-metrics",
+    "pr": "not authorized for this audit batch",
+    "runtimeProviderBranch": "feature/html-engine",
+    "windowsProfiling": "deferred"
+  },
+  "evidenceRoot": "/Volumes/Samsung/Development/Scratch/html-normal-line-metrics",
+  "runtimeBindings": {
+    "record": {
+      "file": "sealed-policy-test-runtime-identity.json",
+      "sha256": "f66dd3c84348aa65e728cbbaa83fca5e48e89776a3a3ce0fe6878e09436e9568",
+      "bytes": 3755
+    },
+    "archive": {
+      "file": "sealed-policy-test-runtimes.zip",
+      "sha256": "64f8ea5835455eb36e1b5ebda09678f43c80bbc2f7f503537b13582d347e282d",
+      "bytes": 22161933
+    },
+    "standaloneAndCombinedProbeArchive": {
+      "file": "retained-policy-runtimes.zip",
+      "sha256": "6bf8332445b519e026a1c6acebb1ca1a5a072d1b959030f9497cc32d4874dbf7",
+      "bytes": 58155226
+    }
+  },
+  "actualTrxArchive": {
+    "record": {
+      "file": "actual-trx-archive-receipt.json",
+      "sha256": "e8a06bbad2d0e24c21bbcaec3bb95b9e302a931506599b31c1fd242695e317fb",
+      "bytes": 6286
+    },
+    "archive": {
+      "file": "actual-trx.zip",
+      "sha256": "53f40dcfb52ec9535472143efe5d3940f7f47b9d05dfddadb6108ae3bf7c645e",
+      "bytes": 14421150
+    }
+  },
+  "visualEvidence": {
+    "inspectedUtc": "2026-10-17T09:29:34.913776+00:00",
+    "sourceHead": "9c94285f31394989ea798ac67800ef1596367a66",
+    "integrationHead": "84a5c85a1b302874ba3b99ee3f4300c7bb20daa6",
+    "upstreamPdfHead": "fc2c29e55cc8060f528e91327e9f17cd9f61edf2",
+    "reference": [
+      {
+        "path": "/Volumes/Samsung/Development/Scratch/html-invoice-static-rendering/native-edge/edge-96-page-1.png",
+        "sha256": "8f0a1fdfada7d7b2b5b4844369096e3a299c950a1302d3e4e39777983df92412",
+        "bytes": 199097
+      },
+      {
+        "path": "/Volumes/Samsung/Development/Scratch/html-invoice-static-rendering/native-edge/edge-96-page-2.png",
+        "sha256": "6798a26059cf5e3c75c2fa72abb9c26c5099bcb51e109be063fc56167cd551ba",
+        "bytes": 86923
+      }
+    ],
+    "combined": [
+      {
+        "path": "/Volumes/Samsung/Development/Scratch/html-normal-line-metrics/qualified-integration-invoice-policy/image-png/page-01.png",
+        "sha256": "4b0ee220cfa3cce253bee0d8b436174698d939ce94bdeb2e8d512d23a2703c3c",
+        "bytes": 227223
+      },
+      {
+        "path": "/Volumes/Samsung/Development/Scratch/html-normal-line-metrics/qualified-integration-invoice-policy/image-png/page-02.png",
+        "sha256": "fe2f8915c95ac89cb750fcdc835995840fb8df2cc51b2f72b7386a257fdcf312",
+        "bytes": 103583
+      }
+    ],
+    "observed": [
+      "Two pages,21 complete item rows split18/3; repeated table header and page margin invoice number/counters present",
+      "Totals table remains intrinsic-width and has only authored rules",
+      "CJK has painted glyphs and Arabic is connected; multilingual logical text and nine contextual forms retained by executable probe",
+      "Automatic table columns and some block spacing differ from Edge; no whole-page pixel equality claim",
+      "Final combined PDF page2 independently rasterized by Poppler and visually inspected; CJK, connected Arabic and page margin counters remain painted."
+    ],
+    "sessions": "No new browser or UI sessions opened; retained exact-input native reference reused",
+    "independentPdfRaster": [
+      {
+        "path": "/Volumes/Samsung/Development/Scratch/html-normal-line-metrics/qualified-integration-invoice-policy/poppler-page-1.png",
+        "sha256": "d1b7795966b2c0c4dc947dc2aee9e9a5db6d936940b07d693a266ae5385701fd"
+      },
+      {
+        "path": "/Volumes/Samsung/Development/Scratch/html-normal-line-metrics/qualified-integration-invoice-policy/poppler-page-2.png",
+        "sha256": "c4dc578d6c3a850fabc7979f703e33c8fd4073e0f9afe409d906c0a5da8f94fa"
+      }
+    ]
+  },
+  "standaloneFinalImageStability": [
+    {
+      "route": "image-png/page-01.png",
+      "identicalToPrePolicyQualifiedInvoice": true,
+      "sha256": "4914a774a090ff5b353ba8744a23114171aa185b39d84c8bf9e9c12e34d36ae0"
+    },
+    {
+      "route": "image-png/page-02.png",
+      "identicalToPrePolicyQualifiedInvoice": true,
+      "sha256": "7cb03fd73bfde8244f18f096c6711fb46e017ad55088d43a35334ff2d904b103"
+    },
+    {
+      "route": "image-jpeg/page-01.jpg",
+      "identicalToPrePolicyQualifiedInvoice": true,
+      "sha256": "9601cd6aa278751a867b9bdd0088ec5f123b700c179f12c9dfefeee2bf16db65"
+    },
+    {
+      "route": "image-jpeg/page-02.jpg",
+      "identicalToPrePolicyQualifiedInvoice": true,
+      "sha256": "dfdbeae844256fe5e9d6a49cb4437ed4c55722f5885986594a33fe55901cab15"
+    },
+    {
+      "route": "image-svg/page-01.svg",
+      "identicalToPrePolicyQualifiedInvoice": true,
+      "sha256": "8db445ce008e7b6e9137794cb2285c9a88568841b35e977a3fb6b0d2e8b7092f"
+    },
+    {
+      "route": "image-svg/page-02.svg",
+      "identicalToPrePolicyQualifiedInvoice": true,
+      "sha256": "ee7816e27df0d3a956ab0065a173f0c892f00fa2583e989332e3426988802b4e"
+    }
+  ],
+  "storage": {
+    "removedLogicalBytes": 11088648239,
+    "retainedLogicalBytes": 449556099,
+    "retainedRoot": "/Volumes/Samsung/Development/Scratch/html-normal-line-metrics",
+    "reason": "Exact native inputs, renders, packages, executable runtimes, AOT and actual TRX; generated graphs and isolated caches removed",
+    "record": {
+      "file": "final-policy-cleanup-receipt.json",
+      "sha256": "7f9c6d479abc2853bc23fd0584ab84f8dff2c85591b154434145e92bc4da141a",
+      "bytes": 4653
+    }
+  },
+  "finalQualificationReceipt": {
+    "file": "policy-final-receipt.json",
+    "sha256": "30932aa7bea816c78f51783aec1afb2905f9713fce9086ddaff20cb88bd3f5a6",
+    "bytes": 15406
+  }
+}
