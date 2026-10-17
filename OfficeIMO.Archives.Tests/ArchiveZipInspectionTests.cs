@@ -3,6 +3,22 @@ using System.IO.Compression;
 namespace OfficeIMO.Archives.Tests;
 
 public sealed class ArchiveZipInspectionTests {
+    [Theory]
+    [InlineData(null)]
+    [InlineData(1250)]
+    public void TraversalRejectsMalformedDeclaredUtf8WithOrWithoutALegacyPolicy(int? codePage) {
+        byte[] bytes = Zip(("ab", "content"));
+        int central = Central(bytes);
+        Set16(bytes, 6, 0x0800); Set16(bytes, central + 8, 0x0800);
+        bytes[30] = bytes[central + 46] = 0xc3;
+        bytes[31] = bytes[central + 47] = 0x28;
+        var options = new ArchiveTraversalOptions { ZipLegacyCodePage = codePage };
+        using var source = new MemoryStream(bytes);
+        Assert.Throws<InvalidDataException>(() => ArchiveReader.TraverseZip(source, options));
+        using var fixture = new ArchiveFixtures();
+        Assert.Throws<InvalidDataException>(() => ArchiveReader.TraverseZip(fixture.Package(bytes), options));
+    }
+
     [Fact]
     public void NonseekableInspectionConsumesOnlyTheRemainingInputAndLeavesItOpen() {
         using var input = new NonseekableInput(Zip(("member", "complete")));

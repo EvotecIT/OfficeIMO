@@ -23,11 +23,11 @@ public sealed class ArchiveOperationBudget {
     } }
     internal void AdmitEntries(long count) { lock (_state) Add(ref _state.Entries, count, _state.EntryLimit, "MaxEntryCount"); }
     internal void Select(long bytes) { lock (_state) Add(ref _state.Selected, bytes, _state.SelectedLimit, "MaxSelectedBytes"); }
-    internal void ReadZip(long selected, long expanded, long work) { lock (_state) {
-        CheckZipRead(selected, expanded, work);
+    internal void ReserveRead(long selected, long expanded, long work) { lock (_state) {
+        CheckRead(selected, expanded, work);
         _state.Selected += selected; _state.Expanded += expanded; _state.Work += work;
     } }
-    internal void CheckZipRead(long selected, long expanded, long work) { lock (_state) {
+    internal void CheckRead(long selected, long expanded, long work) { lock (_state) {
         Check(selected, _state.SelectedLimit - _state.Selected, "MaxSelectedBytes", _state.SelectedLimit);
         Check(expanded, _state.ExpandedLimit - _state.Expanded, "MaxExpandedBytes", _state.ExpandedLimit);
         Check(work, _state.WorkLimit - _state.Work, "MaxDecompressionWorkBytes", _state.WorkLimit);

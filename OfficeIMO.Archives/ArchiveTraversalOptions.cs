@@ -10,7 +10,8 @@ public sealed class ArchiveTraversalOptions {
     /// An already-opened ZipArchive charges only entries; an existing inspection retains its own original budget.</summary>
     public ArchiveOperationBudget? OperationBudget { get; set; }
     /// <summary>Explicit code page for unflagged non-ASCII ZIP names. Null retains strict ASCII/UTF-8 admission;
-    /// the UTF-8 flag always takes precedence. No host-locale inference occurs.</summary>
+    /// the UTF-8 flag always takes precedence. No host-locale inference occurs. Applies to stream/path input;
+    /// already-opened ZipArchive and ArchiveInspection instances retain their owner's decoding policy.</summary>
     public int? ZipLegacyCodePage { get; set; }
 
     /// <summary>

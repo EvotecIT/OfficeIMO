@@ -11,7 +11,13 @@ public sealed class ArchiveIndependentProducerTests {
         string path = Path.Combine(AppContext.BaseDirectory, "Fixtures", "IndependentZip", fixture);
         byte[] bytes = File.ReadAllBytes(path);
         int? encoding = codePage == 0 ? null : codePage;
-        if (codePage != 0) Assert.Throws<NotSupportedException>(() => ArchiveReader.ReadZip(bytes));
+        if (codePage != 0) {
+            Assert.Throws<NotSupportedException>(() => ArchiveReader.ReadZip(bytes));
+            Assert.Throws<NotSupportedException>(() => ArchiveReader.TraverseZip(path));
+            Assert.Throws<NotSupportedException>(() => ArchiveReader.TraverseZip(new MemoryStream(bytes)));
+        }
+        Assert.Equal("zażółć-gęślą-jaźń.txt", Assert.Single(ArchiveReader.TraverseZip(path,
+            new() { ZipLegacyCodePage = encoding }).Entries).FullName);
         using var inspection = ArchiveInspector.Open(path, new() { ZipLegacyCodePage = encoding });
         var entry = Assert.Single(inspection.Entries);
         Assert.Equal("zażółć-gęślą-jaźń.txt", entry.RawName);

@@ -59,27 +59,24 @@ public static partial class ArchiveReader {
         var effective = Normalize(options);
         using Stream snapshot = CreateBoundedSnapshot(zipStream, effective.MaxArchiveBytes, cancellationToken);
         ValidateZipSource(snapshot, effective, cancellationToken);
-        if (effective.ZipLegacyCodePage.HasValue) {
-            using var inspection = ArchiveInspector.Open(snapshot, new ArchiveInspectionOptions {
-                OperationBudget = effective.OperationBudget, ZipLegacyCodePage = effective.ZipLegacyCodePage,
-                MaxInputBytes = effective.MaxArchiveBytes, MaxEntryCount = effective.MaxPhysicalEntries,
-                MaxEntryBytes = long.MaxValue, MaxExpandedBytes = long.MaxValue
-            }, cancellationToken);
-            return TraverseZip(inspection, effective, cancellationToken);
-        }
-        effective.OperationBudget?.AdmitInput(snapshot.Length);
-        using var archive = new ZipArchive(snapshot, ZipArchiveMode.Read, leaveOpen: true);
-        return TraverseZipCore(archive, effective, cancellationToken);
+        using var inspection = ArchiveInspector.Open(snapshot, new ArchiveInspectionOptions {
+            OperationBudget = effective.OperationBudget, ZipLegacyCodePage = effective.ZipLegacyCodePage,
+            MaxInputBytes = effective.MaxArchiveBytes, MaxEntryCount = effective.MaxPhysicalEntries,
+            MaxEntryBytes = long.MaxValue, MaxExpandedBytes = long.MaxValue
+        }, cancellationToken);
+        return TraverseZip(inspection, effective, cancellationToken);
     }
 
     /// <summary>
     /// Traverses ZIP entries from an already opened archive and returns accepted entries with warnings.
+    /// Names are already decoded by its owner; raw filename encoding cannot be validated or changed by this overload.
     /// </summary>
     public static ArchiveTraversalResult TraverseZip(ZipArchive archive, ArchiveTraversalOptions? options = null) {
         return TraverseZip(archive, options, CancellationToken.None);
     }
 
-    /// <summary>Traverses an opened archive with bounded metadata processing and cooperative cancellation.</summary>
+    /// <summary>Traverses an opened archive with bounded metadata processing and cooperative cancellation.
+    /// Names retain the decoding policy applied when the archive was opened.</summary>
     public static ArchiveTraversalResult TraverseZip(ZipArchive archive, ArchiveTraversalOptions? options,
         CancellationToken cancellationToken) {
         if (archive == null) throw new ArgumentNullException(nameof(archive));

@@ -1,6 +1,39 @@
 namespace OfficeIMO.Archives.Tests;
 
 public sealed class ArchiveOperationBudgetTests {
+    [Theory]
+    [InlineData("MaxSelectedBytes")]
+    [InlineData("MaxExpandedBytes")]
+    [InlineData("MaxDecompressionWorkBytes")]
+    public void RawMsiReadRefusalDoesNotChargeAnyReadCounterOrPreventASmallerRead(string limit) {
+        byte[] bytes = ArchiveFixtures.Msi();
+        using var inventory = ArchiveInspector.Open(new MemoryStream(bytes));
+        var large = inventory.StorageStreams.Single(stream => stream.RawName == MsiPackageReader.EncodeStreamName("payload.cab", false));
+        var small = inventory.StorageStreams.Where(stream => stream.Length > 0 && stream.Length < large.Length)
+            .OrderBy(stream => stream.Length).First();
+        var limits = new ArchiveOperationLimits();
+        if (limit == "MaxSelectedBytes") limits.MaxSelectedBytes = large.Length - 1;
+        if (limit == "MaxExpandedBytes") limits.MaxExpandedBytes = large.Length - 1;
+        if (limit == "MaxDecompressionWorkBytes") limits.MaxDecompressionWorkBytes = large.Length - 1;
+        var budget = new ArchiveOperationBudget(limits);
+        using var inspection = ArchiveInspector.Open(new MemoryStream(bytes),
+            new() { OperationBudget = budget, MaxExpandedBytes = large.Length });
+        for (int attempt = 0; attempt < 2; attempt++) {
+            var error = Assert.Throws<OfficeInspectionResourceLimitException>(() => inspection.OpenStorageStream(large.Ordinal));
+            Assert.Equal("Operation." + limit, error.LimitName);
+            Assert.Equal(0, inspection.ReadBytes);
+            Assert.Equal(0, budget.Usage.SelectedBytes);
+            Assert.Equal(0, budget.Usage.ExpandedBytes);
+            Assert.Equal(0, budget.Usage.DecompressionWorkBytes);
+        }
+        using var payload = inspection.OpenStorageStream(small.Ordinal);
+        Assert.Equal(small.Length, payload.Length);
+        Assert.Equal(small.Length, inspection.ReadBytes);
+        Assert.Equal(small.Length, budget.Usage.SelectedBytes);
+        Assert.Equal(small.Length, budget.Usage.ExpandedBytes);
+        Assert.Equal(small.Length, budget.Usage.DecompressionWorkBytes);
+    }
+
     [Fact]
     public void GroupedZipAdmissionRefusesTheWholeSelectionBeforeAnyPayloadDecode() {
         var budget = new ArchiveOperationBudget(new() { MaxSelectedBytes = 4 });

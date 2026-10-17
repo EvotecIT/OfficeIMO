@@ -99,9 +99,9 @@ public sealed partial class ArchiveInspection : IDisposable {
             ArchiveStorageStream entry = StorageStreams[ordinal];
             _limits.CheckEntry(entry.Length);
             ArchiveLimits.Check(entry.Length, Math.Min(_limits.Entry, int.MaxValue), "MaxEntryBytes");
+            ArchiveLimits.Check(entry.Length, _limits.Expanded - _readBytes, "MaxExpandedBytes");
+            _limits.Operation.ReserveRead(entry.Length, entry.Length, entry.Length);
             ArchiveLimits.Add(ref _readBytes, entry.Length, _limits.Expanded, "MaxExpandedBytes");
-            _limits.Operation.Select(entry.Length);
-            _limits.Operation.Decode(entry.Length, entry.Length);
             using Stream source = _database!.OpenRawStream(entry.RawName, cancellationToken);
             byte[] payload = OfficeArchiveSafety.ReadEntryBytes(source, entry.Length, _limits.Entry, cancellationToken);
             if (payload.LongLength != entry.Length) throw new InvalidDataException("MSI raw stream length differs from its declared complete size.");

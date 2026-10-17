@@ -77,7 +77,7 @@ internal static class ZipArchiveContent {
     }
 
     internal static void Charge(OfficeArchiveSafety.ZipCentralDirectoryRecord record, ArchiveLimits limits) {
-        limits.Operation.ReadZip(record.UncompressedSize, record.UncompressedSize, Work(record));
+        limits.Operation.ReserveRead(record.UncompressedSize, record.UncompressedSize, Work(record));
     }
 
     internal static long Work(OfficeArchiveSafety.ZipCentralDirectoryRecord record) =>

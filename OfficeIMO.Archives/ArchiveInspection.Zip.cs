@@ -73,7 +73,7 @@ public sealed partial class ArchiveInspection {
             selected[index] = ordinal;
         }
         ArchiveLimits.Check(bytes, _limits.Expanded - _readBytes, "MaxExpandedBytes");
-        _limits.Operation.CheckZipRead(bytes, bytes, work);
+        _limits.Operation.CheckRead(bytes, bytes, work);
         long before = _readBytes;
         long workBefore = _zipWorkBytes;
         var members = new List<ArchiveReadMember>(selected.Length);
