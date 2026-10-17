@@ -72,8 +72,8 @@ internal static class BundleVerifier {
                         string[] fragments = svg.Descendants().Where(node => node.Name.LocalName == "text" ||
                             node.Attribute("aria-label") != null && !node.Descendants().Any(child =>
                                 child.Name.LocalName == "text" || child.Attribute("aria-label") != null))
-                            .Select(node => (node.Attribute("aria-label")?.Value ?? node.Value).Trim()).ToArray();
-                        string adjacent = string.Concat(fragments), words = string.Join(" ", fragments);
+                            .Select(node => node.Attribute("aria-label")?.Value ?? node.Value).ToArray();
+                        string adjacent = string.Concat(fragments), words = string.Join(" ", fragments.Select(fragment => fragment.Trim()));
                         foreach (string label in expected.Text)
                             if (!adjacent.Contains(label, StringComparison.Ordinal) && !words.Contains(label, StringComparison.Ordinal))
                                 pageErrors.Add("SVG is missing labelled text: " + label);

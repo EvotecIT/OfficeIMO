@@ -2,6 +2,7 @@ namespace OfficeIMO.Html;
 
 public static partial class HtmlComputedStyleEngine {
     private const string BorderDeclarationSentinelPrefix = "-officeimo-internal-border-declaration-";
+    private const string BoxShadowDeclarationSentinelPrefix = "-officeimo-internal-box-shadow-declaration-";
     private static readonly HashSet<string> BorderDeclarationNames = new(StringComparer.Ordinal) {
         "border", "border-width", "border-style", "border-color",
         "border-top", "border-right", "border-bottom", "border-left",
@@ -15,6 +16,7 @@ public static partial class HtmlComputedStyleEngine {
             ? FontDeclarationSentinelPrefix
             : name.StartsWith(LayoutDeclarationSentinelPrefix, StringComparison.OrdinalIgnoreCase) ? LayoutDeclarationSentinelPrefix
             : name.StartsWith(BorderDeclarationSentinelPrefix, StringComparison.OrdinalIgnoreCase) ? BorderDeclarationSentinelPrefix
+            : name.StartsWith(BoxShadowDeclarationSentinelPrefix, StringComparison.OrdinalIgnoreCase) ? BoxShadowDeclarationSentinelPrefix
             : name.StartsWith(BackgroundDeclarationSentinelPrefix, StringComparison.OrdinalIgnoreCase) ? BackgroundDeclarationSentinelPrefix : null;
         if (prefix == null) return name;
         string suffix = name.Substring(prefix.Length);
@@ -24,7 +26,7 @@ public static partial class HtmlComputedStyleEngine {
 
     // Keep authored order and values where parser expansion loses font syntax,
     // intrinsic dimensions, subgrid tracks, row/column gap order, grid placement shorthands, or
-    // border, background and text-decoration components. Preserve the whole family: mixing preserved variables
+    // border, background, box-shadow and text-decoration components. Preserve the whole family: mixing preserved variables
     // with parser-collapsed ordinary declarations loses their relative order.
     // A colour-only override must not reset the authored width and style.
     private static string PreserveManagedDeclarations(string css, OfficeIMO.Html.Css.HtmlCssStyleSheet sheet) {
@@ -43,6 +45,8 @@ public static partial class HtmlComputedStyleEngine {
                 ? FontDeclarationSentinelPrefix
                 : LayoutDeclarationNames.Contains(name) || DimensionDeclarationNames.Contains(name) ? LayoutDeclarationSentinelPrefix
                 : BorderDeclarationNames.Contains(name) ? BorderDeclarationSentinelPrefix
+                // Zero blur is positional: dropping it turns the spread into a blur radius.
+                : name == "box-shadow" ? BoxShadowDeclarationSentinelPrefix
                 : name == "background" || BackgroundLonghands.Contains(name) ? BackgroundDeclarationSentinelPrefix : null;
             if (prefix == null) continue;
             result.Append(css, copied, index - copied).Append(prefix).Append(declarationId++).Append('-').Append(name);

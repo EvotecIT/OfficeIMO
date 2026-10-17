@@ -654,6 +654,8 @@ Image export uses the PDF writer's glyph-coverage contract. An uncovered charact
 
 Tables with `break-inside:auto` can split at legal row boundaries even when the entire table would fit on a new page. Author `break-inside:avoid` on the table when keeping it together is required.
 
+CSS `box-shadow` retains authored zero blur and spread values. Sharp inset shadows, including table rows and generated content, no longer become blurred during style normalization. Regenerate image baselines that captured that blur.
+
 ## Static HTML rendering and capability profiles
 
 Existing `ToPdfBytes()` calls retain print-paged output. Use `HtmlRenderRequest.Create()` with `PrintPaged`, `ScreenMediaPaged`, or `ScreenSnapshotPaged` when selecting a layout contract explicitly. The API and `officeimo html convert --profile` use the same request; `officeimo html render` writes selected PNG or SVG pages and their manifest to an archive. MHTML and site-bundle inputs retain bounded archive resources without permitting network or local-file reads by default. See the [HTML package](OfficeIMO.Html/README.md) and [PDF adapter](OfficeIMO.Html.Pdf/README.md) for examples and profile limits.
