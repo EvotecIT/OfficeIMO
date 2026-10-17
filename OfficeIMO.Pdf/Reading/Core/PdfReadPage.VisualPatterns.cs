@@ -167,7 +167,7 @@ public sealed partial class PdfReadPage {
         double padding = strokeHalf;
         OfficeStrokeLineJoin join = primitive.StrokeLineJoin ?? OfficeStrokeLineJoin.Miter;
         if (join == OfficeStrokeLineJoin.Miter) {
-            padding = strokeHalf * 10D;
+            padding = strokeHalf * PdfInitialStrokeMiterLimit;
         } else if (join == OfficeStrokeLineJoin.Bevel) {
             padding = strokeHalf * Math.Sqrt(2D);
         }
@@ -222,6 +222,7 @@ public sealed partial class PdfReadPage {
         ApplyExactStrokeDash(shape, primitive);
         shape.StrokeLineCap = primitive.StrokeLineCap;
         shape.StrokeLineJoin = primitive.StrokeLineJoin;
+        shape.StrokeMiterLimit = PdfInitialStrokeMiterLimit;
         var source = new OfficeDrawing(sourceWidth, sourceHeight);
         source.AddShape(shape, 0D, 0D);
         rawMask.AddDrawingForClippedRendering(source, primitive.X - fitted.X, primitive.Y - fitted.Y, null);

@@ -4,6 +4,8 @@ using System.Threading;
 namespace OfficeIMO.Pdf;
 
 public sealed partial class PdfReadPage {
+    private const double PdfInitialStrokeMiterLimit = 10D;
+
     private readonly object _rootInvokedResourceNamesSync = new();
     private PdfPageInvokedResourceNames? _rootInvokedResourceNames;
     private bool _rootInvokedResourceNamesInitialized;
@@ -665,6 +667,7 @@ public sealed partial class PdfReadPage {
         ApplyExactStrokeDash(shape, primitive);
         shape.StrokeLineCap = primitive.StrokeLineCap;
         shape.StrokeLineJoin = primitive.StrokeLineJoin;
+        shape.StrokeMiterLimit = PdfInitialStrokeMiterLimit;
         shape.FillOpacity = primitive.FillOpacity;
         shape.StrokeOpacity = primitive.StrokeOpacity;
         shape.FillRule = primitive.FillRule;
@@ -698,6 +701,7 @@ public sealed partial class PdfReadPage {
         ApplyExactStrokeDash(shape, primitive);
         shape.StrokeLineCap = primitive.StrokeLineCap;
         shape.StrokeLineJoin = primitive.StrokeLineJoin;
+        shape.StrokeMiterLimit = PdfInitialStrokeMiterLimit;
         shape.StrokeOpacity = primitive.StrokeOpacity;
         PdfPageClipPath? clipPath = GetEffectivePageClip(primitive.ClipPath, left - strokeHalf, top - strokeHalf, right - left + (strokeHalf * 2D), bottom - top + (strokeHalf * 2D), drawing.Width, drawing.Height);
         if (TryAddClippedShape(drawing, shape, left, top, clipPath, allowRedundantPageClipRemoval)) {
@@ -726,6 +730,7 @@ public sealed partial class PdfReadPage {
         ApplyExactStrokeDash(shape, primitive);
         shape.StrokeLineCap = primitive.StrokeLineCap;
         shape.StrokeLineJoin = primitive.StrokeLineJoin;
+        shape.StrokeMiterLimit = PdfInitialStrokeMiterLimit;
         shape.FillOpacity = primitive.FillOpacity;
         shape.StrokeOpacity = primitive.StrokeOpacity;
         shape.FillRule = primitive.FillRule;

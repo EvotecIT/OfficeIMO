@@ -125,7 +125,7 @@ public sealed class PdfStrokeContractTests {
     [InlineData(0)]
     [InlineData(1)]
     [InlineData(2)]
-    public void ExplicitMiterLimitSurvivesPdfPaintingOfOpenMarkers(int placement) {
+    public void OpenMarkerMiterLimitIsEmittedAndReaderSimplificationIsReported(int placement) {
         var shape = OfficeShape.Line(0, 0, 60, 0);
         shape.StrokeColor = OfficeColor.Red; shape.StrokeWidth = 2;
         shape.StrokeLineJoin = OfficeStrokeLineJoin.Miter;
@@ -134,9 +134,11 @@ public sealed class PdfStrokeContractTests {
             MarginLeft = 10, MarginRight = 10, MarginTop = 20, MarginBottom = 20, HeaderOffsetY = 0, FooterOffsetY = 0 };
         byte[] bytes = PaintAtPlacement(options, shape, placement);
         Assert.Contains("4 M", Encoding.ASCII.GetString(bytes));
-        var strokes = Shapes(PdfReadDocument.Open(bytes).Pages[0].ToDrawing()).Where(item => item.Shape.StrokeColor == OfficeColor.Red).ToArray();
+        PdfReadPage page = PdfReadDocument.Open(bytes).Pages[0];
+        Assert.Contains(page.GetRenderCapabilityDiagnostics(), diagnostic => diagnostic.Code == PdfRenderCapabilities.MiterLimitId);
+        var strokes = Shapes(page.ToDrawing()).Where(item => item.Shape.StrokeColor == OfficeColor.Red).ToArray();
         Assert.True(strokes.Length >= 2);
-        Assert.All(strokes, item => Assert.Equal(4, item.Shape.StrokeMiterLimit));
+        Assert.All(strokes, item => Assert.Equal(10D, item.Shape.StrokeMiterLimit));
     }
 
     private static byte[] Running(PdfOptions options, OfficeShape shape, bool footer) => PdfDocument.Create(options).Compose(compose => compose.Page(page => {

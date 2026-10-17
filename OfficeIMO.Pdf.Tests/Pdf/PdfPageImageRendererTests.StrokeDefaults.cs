@@ -5,6 +5,84 @@ using Xunit;
 namespace OfficeIMO.Tests.Pdf;
 
 public partial class PdfPageImageRendererTests {
+    [Theory]
+    [InlineData(1, OfficeStrokeLineJoin.Round)]
+    [InlineData(2, OfficeStrokeLineJoin.Bevel)]
+    public void RenderPage_StrokeDefaults_RestoresImplicitJoinAfterAuthoredJoin(int join, OfficeStrokeLineJoin expected) {
+        const string path = "10 60 m 30 100 l 50 60 l S";
+        byte[] pdf = BuildSingleStreamPdf(FormattableString.Invariant(
+            $"0 J 10 w 1 0 0 RG {path} q {join} j 1 0 0 1 70 0 cm {path} Q q 1 0 0 1 140 0 cm {path} Q"));
+        OfficeDrawing drawing = PdfPageImageRenderer.RenderPage(pdf);
+        OfficeRasterImage raster = OfficeDrawingRasterRenderer.Render(drawing, background: OfficeColor.White);
+
+        Assert.Collection(drawing.Shapes,
+            first => Assert.Equal(OfficeStrokeLineJoin.Miter, first.Shape.StrokeLineJoin),
+            authored => Assert.Equal(expected, authored.Shape.StrokeLineJoin),
+            restored => Assert.Equal(OfficeStrokeLineJoin.Miter, restored.Shape.StrokeLineJoin));
+        Assert.Equal(OfficeColor.Red, raster.GetPixel(30, 92));
+        Assert.Equal(OfficeColor.White, raster.GetPixel(100, 92));
+        Assert.Equal(OfficeColor.Red, raster.GetPixel(170, 92));
+    }
+
+    [Theory]
+    [InlineData("", OfficeStrokeLineJoin.Miter)]
+    [InlineData("2 j", OfficeStrokeLineJoin.Bevel)]
+    public void RenderPage_StrokeDefaults_PreservesFormCallerJoins(string callerJoin, OfficeStrokeLineJoin expected) {
+        const string stroke = "0 J 20 w 1 0 0 RG 40 60 m 100 140 l 160 60 l S";
+        const string resources = "<< /XObject << /Fm1 5 0 R >> >>";
+        const string dictionary = "<< /Type /XObject /Subtype /Form /BBox [0 0 240 200] /Resources << >>";
+        byte[] inherited = BuildSingleStreamPdf(callerJoin + " /Fm1 Do", resources,
+            BuildStreamObject(5, dictionary, stroke));
+        byte[] local = BuildSingleStreamPdf("/Fm1 Do", resources,
+            BuildStreamObject(5, dictionary, FormattableString.Invariant($"{(int)expected} j ") + stroke));
+        OfficeRasterImage inheritedRaster = OfficeDrawingRasterRenderer.Render(
+            PdfPageImageRenderer.RenderPage(inherited), background: OfficeColor.White);
+        OfficeRasterImage localRaster = OfficeDrawingRasterRenderer.Render(
+            PdfPageImageRenderer.RenderPage(local), background: OfficeColor.White);
+
+        Assert.Equal(expected == OfficeStrokeLineJoin.Miter ? OfficeColor.Red : OfficeColor.White,
+            inheritedRaster.GetPixel(100, 46));
+        Assert.Equal(OfficePngWriter.Encode(localRaster), OfficePngWriter.Encode(inheritedRaster));
+    }
+
+    [Fact]
+    public void RenderPage_StrokeDefaults_UsesPdfInitialMiterLimitForPatternStrokeMask() {
+        byte[] pdf = BuildSingleStreamPdf("0 J 0 j /Pattern CS /P1 SCN 20 w 80 20 m 100 120 l 120 20 l S",
+            "<< /Pattern << /P1 5 0 R >> >>",
+            BuildStreamObject(5,
+                "<< /Type /Pattern /PatternType 1 /PaintType 1 /TilingType 1 /BBox [0 0 20 20] /XStep 20 /YStep 20 /Resources << >>",
+                "1 0 0 rg 0 0 20 20 re f"));
+        OfficeRasterImage raster = OfficeDrawingRasterRenderer.Render(
+            PdfPageImageRenderer.RenderPage(pdf), background: OfficeColor.White);
+
+        Assert.Equal(OfficeColor.Red, raster.GetPixel(100, 40));
+        Assert.Equal(OfficeColor.White, raster.GetPixel(100, 20));
+    }
+
+    [Fact]
+    public void RenderPage_StrokeDefaults_UsesPdfInitialMiterLimitForAcutePath() {
+        byte[] pdf = BuildSingleStreamPdf("0 J 0 j 20 w 1 0 0 RG 80 20 m 100 120 l 120 20 l S");
+        OfficeDrawing drawing = PdfPageImageRenderer.RenderPage(pdf);
+        OfficeRasterImage raster = OfficeDrawingRasterRenderer.Render(drawing, background: OfficeColor.White);
+
+        Assert.Equal(OfficeColor.Red, raster.GetPixel(100, 40));
+        Assert.Equal(OfficeColor.White, raster.GetPixel(100, 20));
+        Assert.Equal(10D, Assert.Single(drawing.Shapes).Shape.StrokeMiterLimit);
+    }
+
+    [Fact]
+    public void RenderPage_StrokeDefaults_UsesPdfDefaultMiterJoinWhenOperatorOmitted() {
+        const string stroke = "0 J 20 w 1 0 0 RG 40 60 m 100 140 l 160 60 l S";
+        OfficeDrawing drawing = PdfPageImageRenderer.RenderPage(BuildSingleStreamPdf(stroke));
+        OfficeRasterImage implicitJoin = OfficeDrawingRasterRenderer.Render(drawing, background: OfficeColor.White);
+        OfficeRasterImage explicitJoin = OfficeDrawingRasterRenderer.Render(
+            PdfPageImageRenderer.RenderPage(BuildSingleStreamPdf("0 j " + stroke)), background: OfficeColor.White);
+
+        Assert.Equal(OfficeColor.Red, implicitJoin.GetPixel(100, 46));
+        Assert.Equal(OfficePngWriter.Encode(explicitJoin), OfficePngWriter.Encode(implicitJoin));
+        Assert.Equal(OfficeStrokeLineJoin.Miter, Assert.Single(drawing.Shapes).Shape.StrokeLineJoin);
+    }
+
     [Fact]
     public void RenderPage_UsesPdfDefaultButtCapWhenJOmitted() {
         const string stroke = "20 w 1 0 0 RG 40 100 m 120 100 l S";
