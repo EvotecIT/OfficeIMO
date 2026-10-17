@@ -47,13 +47,16 @@ namespace OfficeIMO.Excel {
             => new(name, values, xValues: null, chartType, axisGroup, seriesColorArgb: null, seriesLineWidth: null, seriesLineDashStyle: null, pointColorArgb: null, showMarkers: true, connectLine: true, markerSize: null, markerShape: null, markerOutlineColorArgb: null, markerOutlineWidth: null, ownsValues: true);
 
         internal ExcelChartSeries WithXValues(IReadOnlyList<double>? xValues) =>
-            new(Name, Values, xValues, ChartType, AxisGroup, SeriesColorArgb, SeriesLineWidth, SeriesLineDashStyle, PointColorArgb, ShowMarkers, ConnectLine, MarkerSize, MarkerShape, MarkerOutlineColorArgb, MarkerOutlineWidth, ownsValues: false, bubbleSizes: BubbleSizes);
+            new(Name, Values, xValues, ChartType, AxisGroup, SeriesColorArgb, SeriesLineWidth, SeriesLineDashStyle, PointColorArgb, ShowMarkers, ConnectLine, MarkerSize, MarkerShape, MarkerOutlineColorArgb, MarkerOutlineWidth, ownsValues: false, bubbleSizes: BubbleSizes) { SeriesStyle = SeriesStyle, PointStyles = PointStyles, PointExplosions = PointExplosions, HasAutomaticColor = HasAutomaticColor };
 
         internal ExcelChartSeries WithValuesAndXValues(IReadOnlyList<double> values, IReadOnlyList<double>? xValues) =>
-            new(Name, values, xValues, ChartType, AxisGroup, SeriesColorArgb, SeriesLineWidth, SeriesLineDashStyle, PointColorArgb, ShowMarkers, ConnectLine, MarkerSize, MarkerShape, MarkerOutlineColorArgb, MarkerOutlineWidth, ownsValues: false, bubbleSizes: BubbleSizes);
+            new(Name, values, xValues, ChartType, AxisGroup, SeriesColorArgb, SeriesLineWidth, SeriesLineDashStyle, PointColorArgb, ShowMarkers, ConnectLine, MarkerSize, MarkerShape, MarkerOutlineColorArgb, MarkerOutlineWidth, ownsValues: false, bubbleSizes: BubbleSizes) { SeriesStyle = SeriesStyle, PointStyles = PointStyles?.Count == values.Count ? PointStyles : null, PointExplosions = PointExplosions?.Count == values.Count ? PointExplosions : null, HasAutomaticColor = HasAutomaticColor };
 
         internal ExcelChartSeries WithImageExportStyle(string? seriesColorArgb, double? seriesLineWidth, OfficeStrokeDashStyle? seriesLineDashStyle, IReadOnlyList<string?>? pointColorArgb, bool showMarkers, bool? connectLine, int? markerSize, OfficeChartMarkerShape? markerShape, string? markerOutlineColorArgb, double? markerOutlineWidth, bool automaticColor = false) =>
             new(Name, Values, XValues, ChartType, AxisGroup, seriesColorArgb ?? SeriesColorArgb, seriesLineWidth ?? SeriesLineWidth, seriesLineDashStyle ?? SeriesLineDashStyle, pointColorArgb ?? PointColorArgb, showMarkers, connectLine ?? ConnectLine, markerSize ?? MarkerSize, markerShape ?? MarkerShape, markerOutlineColorArgb ?? MarkerOutlineColorArgb, markerOutlineWidth ?? MarkerOutlineWidth, ownsValues: false, bubbleSizes: BubbleSizes) {
+                SeriesStyle = SeriesStyle,
+                PointStyles = PointStyles,
+                PointExplosions = PointExplosions,
                 HasAutomaticColor = automaticColor && seriesColorArgb != null
             };
 
@@ -66,6 +69,14 @@ namespace OfficeIMO.Excel {
         /// </summary>
         public string Name { get; }
 
+        internal OfficeChartPointStyle? SeriesStyle { get; private set; }
+
+        internal ExcelChartSeries WithSeriesStyle(OfficeChartPointStyle? style) {
+            var copy = WithPointStyles(PointStyles);
+            copy.SeriesStyle = style;
+            return copy;
+        }
+
         internal IReadOnlyList<OfficeChartPointStyle?>? PointStyles { get; private set; }
         internal IReadOnlyList<int>? PointExplosions { get; private set; }
 
@@ -73,6 +84,7 @@ namespace OfficeIMO.Excel {
             new ExcelChartSeries(Name, Values, XValues, ChartType, AxisGroup, SeriesColorArgb,
                 SeriesLineWidth, SeriesLineDashStyle, PointColorArgb, ShowMarkers, ConnectLine,
                 MarkerSize, MarkerShape, MarkerOutlineColorArgb, MarkerOutlineWidth, ownsValues: false, bubbleSizes: BubbleSizes) {
+                SeriesStyle = SeriesStyle,
                 PointStyles = styles,
                 PointExplosions = PointExplosions,
                 HasAutomaticColor = HasAutomaticColor
@@ -82,6 +94,7 @@ namespace OfficeIMO.Excel {
             new ExcelChartSeries(Name, Values, XValues, ChartType, AxisGroup, SeriesColorArgb,
                 SeriesLineWidth, SeriesLineDashStyle, PointColorArgb, ShowMarkers, ConnectLine,
                 MarkerSize, MarkerShape, MarkerOutlineColorArgb, MarkerOutlineWidth, ownsValues: false, bubbleSizes: BubbleSizes) {
+                SeriesStyle = SeriesStyle,
                 PointStyles = PointStyles,
                 PointExplosions = explosions,
                 HasAutomaticColor = HasAutomaticColor
@@ -104,6 +117,7 @@ namespace OfficeIMO.Excel {
             new ExcelChartSeries(Name, Values, XValues, ChartType, AxisGroup, SeriesColorArgb,
                 SeriesLineWidth, SeriesLineDashStyle, PointColorArgb, ShowMarkers, ConnectLine,
                 MarkerSize, MarkerShape, MarkerOutlineColorArgb, MarkerOutlineWidth, ownsValues: false, bubbleSizes: sizes) {
+                SeriesStyle = SeriesStyle,
                 PointStyles = PointStyles,
                 PointExplosions = PointExplosions,
                 HasAutomaticColor = HasAutomaticColor

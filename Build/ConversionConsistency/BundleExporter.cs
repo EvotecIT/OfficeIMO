@@ -37,7 +37,7 @@ internal static class BundleExporter {
             File.WriteAllBytes(ArtifactPaths.Resolve(output, pdfPath), exported.Pdf);
             var images = new List<ImageArtifact>();
             var diagnostics = new List<string>(exported.Diagnostics);
-            var diagnosticDetails = new HashSet<string>(StringComparer.Ordinal);
+            var diagnosticDetails = new HashSet<string>(exported.DiagnosticDetails, StringComparer.Ordinal);
             foreach (OfficeImageExportFormat format in ComparedImageFormats.All) {
                 int page = 0;
                 foreach (OfficeImageExportResult image in exported.Images(format)) {
@@ -62,7 +62,9 @@ internal static class BundleExporter {
     }
 }
 
-internal sealed record NativeExport(byte[] Pdf, Func<OfficeImageExportFormat, IReadOnlyList<OfficeImageExportResult>> Images, List<string> Diagnostics, string PdfRoute = "native");
+internal sealed record NativeExport(byte[] Pdf, Func<OfficeImageExportFormat, IReadOnlyList<OfficeImageExportResult>> Images, List<string> Diagnostics, string PdfRoute = "native") {
+    internal IReadOnlyList<string> DiagnosticDetails { get; init; } = Array.Empty<string>();
+}
 
 internal static partial class NativeAdapters {
     internal static NativeExport Export(ConsistencyCase contract, string source, ConsistencySuite suite, OfficeRenderingProfile profile, CancellationToken cancellationToken) {

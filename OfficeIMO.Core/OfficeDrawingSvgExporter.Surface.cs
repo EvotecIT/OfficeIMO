@@ -86,14 +86,15 @@ public static partial class OfficeDrawingSvgExporter {
             .Append(Format(drawing.Height))
             .Append("\" role=\"img\">");
 
+        var requiredFontFamilies = new System.Collections.Generic.HashSet<string>(StringComparer.OrdinalIgnoreCase);
         int gradientId = 0;
         int clipPathId = 0;
         var tilingExpansionBudget = new SvgTilingExpansionBudget();
         OfficeRasterCanvas textMetrics = OfficeDrawingTextLayout.CreateMetrics(drawing, cancellationToken);
-        AppendElements(builder, drawing.Elements, imageCodec, idPrefix, ref gradientId, ref clipPathId, cancellationToken, tilingExpansionBudget, textMetrics, drawing.SvgTextAsPaths);
+        AppendElements(builder, drawing.Elements, imageCodec, idPrefix, ref gradientId, ref clipPathId, cancellationToken, tilingExpansionBudget, textMetrics, drawing.SvgTextAsPaths, requiredFontFamilies);
         if (drawing.Fonts.Faces.Count > 0) {
             AppendEmbeddedFonts(builder, drawing.Fonts, cancellationToken, idPrefix,
-                CollectSvgTextFontFamilies(builder.ToString() + "</svg>", cancellationToken));
+                requiredFontFamilies);
         }
         builder.Append("</svg>");
         cancellationToken.ThrowIfCancellationRequested();

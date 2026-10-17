@@ -674,7 +674,12 @@ public partial class PdfDocumentVisualQualityTests {
         Assert.Contains("/FontFile2", raw, StringComparison.Ordinal);
         AssertSubsetLength1(raw, fontData.Length);
         Assert.Contains("/Filter /FlateDecode", raw, StringComparison.Ordinal);
-        Assert.DoesNotContain("/Filter /FlateDecode", rawUncompressed, StringComparison.Ordinal);
+        // Content and ToUnicode streams may still be compressed. The option controls font payloads only.
+        string fontObject = Regex.Match(rawUncompressed, @"/FontFile2\s+(\d+)\s+0\s+R").Groups[1].Value;
+        Assert.NotEmpty(fontObject);
+        Match fontStream = Regex.Match(rawUncompressed, @"(?:^|\n)" + fontObject + @" 0 obj\s*<<(?<dictionary>.*?)>>\s*stream", RegexOptions.Singleline);
+        Assert.True(fontStream.Success);
+        Assert.DoesNotContain("/FlateDecode", fontStream.Groups["dictionary"].Value, StringComparison.Ordinal);
         Assert.Contains("/W [", raw, StringComparison.Ordinal);
         Assert.Contains("/ToUnicode", raw, StringComparison.Ordinal);
         Assert.Contains("Embedded font Cafe é and Euro", text, StringComparison.Ordinal);

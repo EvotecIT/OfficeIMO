@@ -136,7 +136,7 @@ public partial class Excel {
         Assert.Contains("SecondSerif", text);
 
         string rawPdf = PdfOperatorSearchText.From(bytes);
-        AssertRawPdfContainsAnyBaseFont(rawPdf, "Times");
+        AssertRawPdfContainsAnyBaseFont(rawPdf, "Times", "LiberationSerif");
         AssertRawPdfContainsAnyBaseFont(rawPdf, "Georgia");
     }
 

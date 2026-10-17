@@ -157,7 +157,7 @@ public class PdfOfficeDefaultFontPolicyTests {
                 .FirstOrDefault(candidate => PdfEmbeddedFontFamily.TryFromSystem(candidate, out _));
             if (expected != null) {
                 Assert.Contains(report.Warnings, warning => warning.Code == "font-embedding-cost" &&
-                    warning.Details["fontName"].StartsWith(expected, StringComparison.Ordinal));
+                    warning.Details["fontName"].Replace(" ", string.Empty).StartsWith(expected.Replace(" ", string.Empty), StringComparison.Ordinal));
                 using var reopened = UglyToad.PdfPig.PdfDocument.Open(bytes);
                 Assert.All(reopened.GetPage(1).Letters, letter =>
                     Assert.Contains(expected.Replace(" ", string.Empty), letter.FontName.Replace(" ", string.Empty), StringComparison.Ordinal));

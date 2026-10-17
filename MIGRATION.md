@@ -32,6 +32,8 @@ Authored-layout reports now include glyph and inline paint overhang, rotated and
 
 Supported SVG images embedded in drawings retain vector paths, gradients, clipping and text. Tiling patterns use reusable PDF pattern cells. Expanded link annotations count against a shared generation budget derived from the existing pattern `maximumTileCount` limits, including nested and running content. Canvas gradients interpolate premultiplied colour channels, avoiding dark fringes beside transparent stops; imported SVG/XPS gradients retain their producer's separate colour/alpha interpolation. Regenerate image baselines that relied on the earlier rasterized SVG or canvas-gradient appearance.
 
+PDF page images and SVG exports retain horizontal and vertical text reflection, including inside clips. Regenerate previews of mirrored text that previously disappeared or used only its baseline rotation.
+
 ## Image encoding defaults
 
 PNG and lossless WebP now default to `OfficeImageEncodingEffort.Balanced`. This replaces exhaustive candidate searches with bounded heuristics and one main compression plan. Set `RasterEncoding.Png.Effort` or `RasterEncoding.Webp.Effort` to `Smallest` to select the exhaustive compressor, or to `Fast` for lower encode cost. Direct codec option objects expose the same `Effort` property. Pixels remain lossless at every level; compressed bytes and sizes can change. PNG effort applies to `Compression = Optimal`; explicit `Fastest` and `Stored` compression retain their existing contracts. Lossy WebP quality remains separate.
@@ -115,6 +117,16 @@ PDF page rendering to PNG, JPEG, WebP, TIFF and Drawing follows PDF viewer conve
 
 ## Native chart and SmartArt rendering
 
+Series fill and outline paint are independent in shared chart snapshots. Use
+`OfficeChartSeries.WithSeriesStyle(OfficeChartPointStyle)` when an unfilled series must retain
+an outline; a transparent `Color` is no longer needed for no-fill. Word, PowerPoint and Excel
+PDF and image exports preserve explicit area, bubble and column outlines independently of
+fill, including point overrides where supported. Bottom-aligned table text also reserves the
+named font's final descent when its line advance is shorter than its font box, preventing
+spreadsheet glyphs from being clipped at a cell or worksheet boundary.
+
+`WordChart.SetSeriesColor` and series palettes replace the base fill on filled cartesian, filled radar, bubble and 3-D line series, and the connecting stroke on 2-D line, scatter and unfilled radar charts. They replace an existing no-fill choice and preserve independent outlines on filled series. Code inspecting line-chart XML should read the colour from `a:ln/a:solidFill`.
+
 Word, Excel and PowerPoint charts whose series or slices store no colour now render with the colours Office gives them, instead of being skipped (PowerPoint, Word images) or drawn with OfficeIMO's fallback palette (Excel, Word PDF). The colour comes from the classic `c:style` number (2 when absent) and the theme accents; from the seventh series on, Office's darker and lighter variations apply. Charts authored through OfficeIMO APIs that store no series colour change colour accordingly. A palette passed in `PowerPointToPdfOptions.ChartStyle` or `ExcelToPdfOptions.ChartStyle` still replaces these automatic colours.
 
 Office does not consult the `cs:chartStyle` and `cs:colorStyle` parts when it draws a chart, so they no longer prevent Word charts from rendering and no longer change exported colours. An `ExcelChartStylePreset` colour style no longer reorders the exported automatic pie palette.
@@ -129,6 +141,8 @@ Other native chart geometry now follows Office, so chart renders and baselines c
 - Charts that set `c:plotVisOnly` but carry no workbook at all render from their cached values, as Office does. Charts whose workbook link is external or unresolved still return `false`.
 
 3-D, pie-of-pie and surface charts still render as flat 2-D projections, and now say so: PowerPoint PDF and image export report `chart-projected`, Word PDF reports `NativeBodyChartSimplified`, and Excel PDF reports `chart-approximation`. Excel PDF export now draws stock and surface charts this way instead of skipping them. A skipped PowerPoint chart's `unsupported-chart` warning names the actual reason. Reading a chart snapshot no longer hides unexpected exceptions; only document content that cannot be projected returns `false`.
+
+Flat 3-D line projections use the visible ribbon fill before its border colour. An outline-only ribbon retains its outline colour; disabling both fill and outline leaves the series invisible. Caller palettes still replace automatic ribbon colours.
 
 PowerPoint SmartArt now renders from the drawing Office caches with the diagram (`ppt/diagrams/drawing*.xml`), so producer layouts keep their shapes, colours and text positions in PDF and image export. When that drawing is missing or no longer matches the diagram text, the existing semantic layout is used; if neither applies, `unsupported-smartart` names both reasons. Worksheet SmartArt is reported as `WorksheetSmartArt` in Excel PDF export instead of being omitted silently.
 
@@ -647,6 +661,8 @@ HTML-to-PDF types and extensions now live in the `OfficeIMO.Html` assembly and r
 Image export uses the PDF writer's glyph-coverage contract. An uncovered character fails with a structured encoding diagnostic; `AllowDiagnosedLoss` does not override that failure. Supply complete fonts through `Fonts`, a fallback pack or `@font-face`, and a shaping provider for scripts outside the managed subset. Installed-font fallback remains platform-dependent.
 
 Tables with `break-inside:auto` can split at legal row boundaries even when the entire table would fit on a new page. Author `break-inside:avoid` on the table when keeping it together is required.
+
+CSS `box-shadow` retains authored zero blur and spread values. Sharp inset shadows, including table rows and generated content, no longer become blurred during style normalization. Regenerate image baselines that captured that blur.
 
 ## Static HTML rendering and capability profiles
 

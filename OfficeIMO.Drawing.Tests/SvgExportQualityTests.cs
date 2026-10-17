@@ -102,6 +102,25 @@ public sealed class SvgExportQualityTests {
         if (!suppressFill) Assert.Equal("0", text.Attribute("fill-opacity")?.Value);
     }
 
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void TextOutlineDashSurvivesBothRetainedTextAndGlyphPaths(bool paths) {
+        var drawing = new OfficeDrawing(100, 40);
+        drawing.Fonts.Add("FixtureFont", ManagedTextShapingTestAssets.CreateFont('A'));
+        drawing.AddText("A", 2, 2, 90, 30, new OfficeFontInfo("FixtureFont", 14), wrapText: false);
+        drawing.SetLastTextOutlineStroke(OfficeColor.Blue, 2, false);
+        OfficeDrawingText text = Assert.Single(drawing.Elements.OfType<OfficeDrawingText>());
+        text.OutlineStrokeDashPattern = new[] { 3D, 2D };
+        text.OutlineStrokeDashOffset = 1.5D;
+        drawing.SvgTextAsPaths = paths;
+        XElement svg = XElement.Parse(OfficeDrawingSvgExporter.ToSvg(drawing));
+        XElement paint = Assert.Single(svg.Descendants().Where(element =>
+            element.Name.LocalName == (paths ? "path" : "text")));
+        Assert.Equal("3 2", paint.Attribute("stroke-dasharray")?.Value);
+        Assert.Equal("1.5", paint.Attribute("stroke-dashoffset")?.Value);
+    }
+
     [Fact]
     public void PaintedGlyphTextFallbackRetainsLogicalAccessibilityLabel() {
         var drawing = new OfficeDrawing(100, 40);
@@ -235,6 +254,25 @@ public sealed class SvgExportQualityTests {
         Assert.Equal(1650, result.Height);
         Assert.Equal("1275px", svg.Attribute("width")?.Value);
         Assert.Equal("1650px", svg.Attribute("height")?.Value);
+    }
+
+    [Fact]
+    public void UserFontDiscoveryIncludesNestedFoldersAndObservesCancellation() {
+        string root = Path.Combine(Path.GetTempPath(), "OfficeIMO-user-fonts-" + Guid.NewGuid().ToString("N"));
+        string vendor = Path.Combine(root, "truetype", "vendor");
+        Directory.CreateDirectory(vendor);
+        try {
+            string fontPath = Path.Combine(vendor, "FixtureFont.ttf");
+            File.WriteAllBytes(fontPath, ManagedTextShapingTestAssets.CreateFont('A'));
+            Assert.Contains(vendor, OfficeTrueTypeFont.EnumerateUserFontDirectories(root));
+            Assert.NotNull(OfficeTrueTypeFont.TryLoad(fontPath));
+            using var canceled = new CancellationTokenSource();
+            canceled.Cancel();
+            Assert.Throws<OperationCanceledException>(() =>
+                OfficeTrueTypeFont.EnumerateUserFontDirectories(root, canceled.Token).ToArray());
+        } finally {
+            Directory.Delete(root, recursive: true);
+        }
     }
 
     [Fact]

@@ -69,8 +69,11 @@ public sealed class WordChartSeriesAppearanceReadbackTests {
         native.ChartShapeProperties!.GetFirstChild<A.SolidFill>()!.RgbColorModelHex!.Val = "00FF00";
         if (appearance == 1) native.Symbol!.Val = C.MarkerStyleValues.None;
         if (appearance == 3) ((C.ScatterChart)native.Parent!.Parent!).ScatterStyle!.Val = C.ScatterStyleValues.Marker;
-        Assert.Equal(appearance >= 2, chart.TryGetSnapshot(out var snapshot));
-        if (appearance >= 2) Assert.Equal(OfficeColor.Parse("#00FF00"), snapshot.Data.Series.Single().ToOfficeSeries().Color);
+        Assert.True(chart.TryGetSnapshot(out var snapshot));
+        var series = snapshot.Data.Series.Single().ToOfficeSeries();
+        Assert.Equal(appearance != 1, series.ShowMarkers);
+        if (appearance >= 2) Assert.Equal(OfficeColor.Parse("#00FF00"), series.Color);
+        else if (appearance == 0) Assert.All(series.PointColors!, color => Assert.Equal(OfficeColor.Parse("#00FF00"), color));
     }
 
     [Theory]
@@ -120,7 +123,6 @@ public sealed class WordChartSeriesAppearanceReadbackTests {
 
     [Theory]
     [InlineData(0)]
-    [InlineData(1)]
     [InlineData(2)]
     public void Snapshot_RejectsUnqualifiedAppearanceAndAllowsAnExplicitStyleReplacement(int appearance) {
         using var document = WordDocument.Create();
@@ -131,8 +133,7 @@ public sealed class WordChartSeriesAppearanceReadbackTests {
         if (appearance == 0) native.AddChild(new C.Smooth { Val = true }, true);
         else {
             var markerProperties = native.GetFirstChild<C.Marker>()!.ChartShapeProperties!;
-            if (appearance == 1) markerProperties.GetFirstChild<A.SolidFill>()!.RgbColorModelHex!.Val = "FF0000";
-            else markerProperties.AddChild(new A.Outline(new A.NoFill()), true);
+            markerProperties.AddChild(new A.Outline(new A.NoFill()), true);
         }
         Assert.False(chart.TryGetSnapshot(out _));
         chart.SetData(OfficeChartKind.Line, data);

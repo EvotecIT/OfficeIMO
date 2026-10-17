@@ -281,17 +281,28 @@ namespace OfficeIMO.Word.Pdf {
                     seriesColor = pieLikeSeriesColor;
                 }
 
+                bool showMarkers = !IsNativeWordChartSeriesMarkerHidden(seriesElement);
+                bool connectLine = !IsNativeWordLineLikeChart(chartKind) || !HasNativeDrawingOutlineNoFill(seriesElement.GetFirstChild<ChartShapeProperties>());
+                var seriesPaint = OfficeIMO.OpenXml.Internal.OfficeOpenXmlChartPointStyles.ReadSeriesStyle(seriesElement, pointColorScheme);
+                if (seriesElement.Parent is Line3DChart) {
+                    var ribbon = OfficeIMO.OpenXml.Internal.OfficeOpenXmlChartPointStyles.ReadRibbonPaint(seriesElement, pointColorScheme);
+                    seriesPaint = ribbon.Paint;
+                    seriesColor = ribbon.Color;
+                    showMarkers = false;
+                    connectLine = ribbon.Paint.ShowOutline != false;
+                }
                 OfficeChartSeries projected = new OfficeChartSeries(
                     GetNativeWordChartSeriesName(seriesElement, seriesIndex),
                     values,
                     xValues,
                     seriesColor,
                     pointColors,
-                    !IsNativeWordChartSeriesMarkerHidden(seriesElement),
+                    showMarkers,
                     !hiddenLegendIndexes.Contains((uint)originalSeriesIndex),
-                    !IsNativeWordLineLikeChart(chartKind) || !HasNativeDrawingOutlineNoFill(seriesElement.GetFirstChild<ChartShapeProperties>()),
+                    connectLine,
                     markerSize: GetNativeWordChartMarkerSize(seriesElement, chartElement, chartKind),
                     markerShape: GetNativeWordChartMarkerShape(seriesElement, chartElement, chartKind))
+                    .WithSeriesStyle(seriesPaint)
                     .WithPointStyles(OfficeIMO.OpenXml.Internal.OfficeOpenXmlChartPointStyles.Read(pointOverrides, values.Count,
                         pointColorScheme, seriesElement.Parent?.LocalName.EndsWith("3DChart", StringComparison.Ordinal) == true));
                 if (IsNativeWordPieLikeChart(chartKind)) {

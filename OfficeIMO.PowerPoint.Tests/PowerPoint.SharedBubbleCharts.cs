@@ -1227,7 +1227,8 @@ namespace OfficeIMO.Tests {
                 nativeSeries.AppendChild(new C.ChartShapeProperties());
             seriesProperties.RemoveAllChildren<DocumentFormat.OpenXml.Drawing.SolidFill>();
             seriesProperties.PrependChild(new DocumentFormat.OpenXml.Drawing.NoFill());
-            Assert.False(chart.TryGetOfficeSnapshot(out _));
+            Assert.True(chart.TryGetOfficeSnapshot(out var noSeriesFill));
+            Assert.True(noSeriesFill.Data.Series[0].SeriesStyle!.NoFill);
 
             seriesProperties.RemoveAllChildren<DocumentFormat.OpenXml.Drawing.NoFill>();
             seriesProperties.PrependChild(

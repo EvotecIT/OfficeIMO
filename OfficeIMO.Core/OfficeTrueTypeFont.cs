@@ -1389,7 +1389,7 @@ public sealed partial class OfficeTrueTypeFont : IOfficeBoundedFontProgram, IOff
     }
 
     private static IEnumerable<string> CandidateFontDirectoryPaths(string key, CancellationToken cancellationToken = default) {
-        foreach (string directory in CandidateFontDirectories()) {
+        foreach (string directory in CandidateFontDirectories(cancellationToken)) {
             cancellationToken.ThrowIfCancellationRequested();
             if (!Directory.Exists(directory)) {
                 continue;
@@ -1405,30 +1405,6 @@ public sealed partial class OfficeTrueTypeFont : IOfficeBoundedFontProgram, IOff
             }
         }
         foreach (string path in OfficeCloudFontFiles.GetFamilyFiles(key, cancellationToken)) yield return path;
-    }
-
-    private static IEnumerable<string> SafeEnumerateFontFiles(string directory) {
-        string[] files;
-        try {
-            files = Directory.GetFiles(directory, "*.*", SearchOption.TopDirectoryOnly);
-        } catch (IOException) {
-            yield break;
-        } catch (UnauthorizedAccessException) {
-            yield break;
-        } catch (ArgumentException) {
-            yield break;
-        } catch (NotSupportedException) {
-            yield break;
-        }
-
-        foreach (string file in files) {
-            string extension = Path.GetExtension(file);
-            if (string.Equals(extension, ".ttf", StringComparison.OrdinalIgnoreCase) ||
-                string.Equals(extension, ".otf", StringComparison.OrdinalIgnoreCase) ||
-                string.Equals(extension, ".ttc", StringComparison.OrdinalIgnoreCase)) {
-                yield return file;
-            }
-        }
     }
 
     private static string NormalizeFontFamilyKey(string family) {

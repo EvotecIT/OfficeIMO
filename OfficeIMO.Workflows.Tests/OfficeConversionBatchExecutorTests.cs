@@ -94,7 +94,9 @@ public sealed class OfficeConversionBatchExecutorTests {
         Assert.Equal(1, (await new OfficeWorkflowRunner().RunBatchAsync(request, resumed)).Reused);
         foreach (var diagnostic in first.Item.Diagnostics.Where(item =>
                      item.Details.TryGetValue("lossKind", out string? kind) && kind != "None")) {
-            var restored = Assert.Single(resumed.Item!.Diagnostics, item => item.Code == diagnostic.Code && item.Stage == diagnostic.Stage);
+            var restored = Assert.Single(resumed.Item!.Diagnostics, item => item.Code == diagnostic.Code && item.Stage == diagnostic.Stage &&
+                item.Details.TryGetValue("location", out string? location) == diagnostic.Details.ContainsKey("location") &&
+                location == (diagnostic.Details.TryGetValue("location", out string? expectedLocation) ? expectedLocation : null));
             Assert.Equal(diagnostic.Details["lossKind"], restored.Details["lossKind"]);
             Assert.Equal(diagnostic.Details["source"], restored.Details["source"]);
         }

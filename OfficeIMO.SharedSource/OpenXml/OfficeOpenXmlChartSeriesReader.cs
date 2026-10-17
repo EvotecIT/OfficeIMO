@@ -205,6 +205,7 @@ namespace OfficeIMO.OpenXml.Internal {
             if (ribbon) inheritedMarkers = false;
             bool showMarkers = markerShape.HasValue && markerShape != OfficeChartMarkerShape.Auto
                 ? markerShape != OfficeChartMarkerShape.None : inheritedMarkers;
+            if (ribbon && !forDataUpdate) showMarkers = false;
             bool connectLine = ribbon || outline?.GetFirstChild<A.NoFill>() == null && scatterStyle != C.ScatterStyleValues.Marker;
             if (ribbon) {
                 stroke ??= fill;
@@ -215,30 +216,44 @@ namespace OfficeIMO.OpenXml.Internal {
                 markerShape = OfficeOpenXmlChartAutomaticColors.ResolveMarker(element.GetFirstChild<C.Index>()?.Val?.Value ?? (uint)fallbackIndex);
                 markerSize ??= OfficeOpenXmlChartAutomaticColors.AutomaticMarkerSize;
             }
-            Reject(markerShape == OfficeChartMarkerShape.Picture, "picture markers");
+            Reject(showMarkers && markerShape == OfficeChartMarkerShape.Picture, "picture markers");
             Reject(connectLine && outline?.GetFirstChild<A.PresetDash>() != null && ReadDash(outline) == null,
                 "a line dash pattern");
             bool area = kind == OfficeChartKind.Area || kind == OfficeChartKind.AreaStacked || kind == OfficeChartKind.AreaStacked100;
             Reject(!IsSupportedSeriesShape(properties, scheme, filled, area, connectLine, flatThreeDimensional),
                 "a series fill, line or effect");
             Reject(showMarkers && !IsSupportedSeriesShape(marker?.ChartShapeProperties, scheme, true), "a marker fill or effect");
-            // The shared model has one series colour and straight connecting lines.
-            // Reject appearance that would otherwise be silently flattened in an export.
+            // Curves still require a separate projection contract.
             C.Smooth? smoothing = element.GetFirstChild<C.Smooth>() ?? element.Parent?.GetFirstChild<C.Smooth>();
             bool curved = smoothing != null ? smoothing.Val?.Value != false :
                 scatterStyle == C.ScatterStyleValues.Smooth || scatterStyle == C.ScatterStyleValues.SmoothMarker;
             Reject(connectLine && curved && !ribbon, "smoothed lines");
             Reject(showMarkers && marker?.ChartShapeProperties?.GetFirstChild<A.NoFill>() != null, "unfilled markers");
             Reject(showMarkers && markerOutline?.GetFirstChild<A.NoFill>() != null, "markers without outlines");
-            Reject(!filled && connectLine && markerFill.HasValue &&
-                (!stroke.HasValue || showMarkers && stroke.Value != markerFill.Value), "markers coloured unlike their line");
-            OfficeColor? seriesColor = filled ? fill : !connectLine && showMarkers ? markerFill ?? stroke ?? fill : stroke ?? fill;
-            bool automaticColor = OfficeOpenXmlChartWriter.HasAutomaticSeriesColor(element);
+            bool ribbonHasFill = ribbon && properties?.GetFirstChild<A.NoFill>() == null;
+            OfficeColor? seriesColor = ribbon ? ribbonHasFill ? fill : stroke :
+                filled ? fill : !connectLine && showMarkers ? markerFill ?? stroke ?? fill : stroke ?? fill;
+            bool automaticColor = OfficeOpenXmlChartAutomaticColors.HasAutomaticSeriesColor(element);
             if (!forDataUpdate && seriesColor == null && kind is not OfficeChartKind.Pie and not OfficeChartKind.Doughnut) {
                 // Office colours series without a stored colour from the chart style and theme.
                 seriesColor = OfficeOpenXmlChartAutomaticColors.ResolveSeries(element, scheme);
                 Reject(seriesColor == null, "an automatic colour whose theme colours cannot be resolved");
                 automaticColor = true;
+            }
+            if (!filled && showMarkers && markerFill.HasValue && markerFill != seriesColor) {
+                // Keep native marker fill separate from the connecting stroke. Existing
+                // point fills take precedence over the series marker's inherited fill.
+                pointColors ??= new OfficeColor?[values.Count];
+                for (int index = 0; index < pointColors.Length; index++) pointColors[index] ??= markerFill;
+            }
+            OfficeChartPointStyle? seriesPaint = OfficeOpenXmlChartPointStyles.ReadSeriesStyle(element, scheme);
+            if (ribbon && !forDataUpdate) {
+                // A 3-D ribbon projects its fill into a flat line. Its native edge's
+                // no-fill controls the ribbon border, not visibility of that projection.
+                var projection = OfficeOpenXmlChartPointStyles.ReadRibbonPaint(element, scheme);
+                seriesColor = projection.Color;
+                seriesPaint = projection.Paint;
+                automaticColor = projection.Automatic;
             }
             bool unsupportedPoints = pointOverrides.Any(point => point.Index?.Val?.Value is uint index && index < values.Count &&
                 (OfficeOpenXmlChartPointStyles.HasUnsupportedPointContent(point) || point.ChartShapeProperties != null &&
@@ -247,15 +262,13 @@ namespace OfficeIMO.OpenXml.Internal {
             // Unsupported appearance blocks static export, but update-only readers still need
             // the cached series. Native formatting remains in the source XML for the writer.
             var styles = unsupportedPoints ? null : OfficeOpenXmlChartPointStyles.Read(pointOverrides, values.Count, scheme, flatThreeDimensional);
-            if (filled && kind != OfficeChartKind.Area && kind != OfficeChartKind.AreaStacked && kind != OfficeChartKind.AreaStacked100)
-                styles = InheritFilledOutline(styles, values.Count, outline, stroke, width);
-            else Reject(filled && stroke.HasValue && stroke != fill, "an area outline coloured unlike its fill");
             var data = new OfficeChartSeries(name, values, xValues, seriesColor,
                 pointColors, showMarkers: showMarkers,
                 connectLine: connectLine,
                 markerSize: markerSize, markerShape: markerShape,
                 markerOutlineColor: markerOutlineColor, markerOutlineWidth: markerOutlineWidth,
                 strokeWidth: width, strokeDashStyle: ReadDash(outline), renderKind: kind, axisGroup: axisGroup)
+                .WithSeriesStyle(seriesPaint)
                 .WithPointStyles(styles);
             if (kind is OfficeChartKind.Pie or OfficeChartKind.Doughnut) {
                 if (OfficeOpenXmlChartExplosions.TryRead(element, pointOverrides, values.Count,

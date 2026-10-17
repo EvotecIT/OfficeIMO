@@ -12,8 +12,13 @@ public static partial class OfficeChartDrawingRenderer {
             (style.NoFill || style.FillColor.HasValue || style.Hatch.HasValue || style.OutlineColor.HasValue ||
                 style.OutlineWidth.HasValue || style.ShowOutline.HasValue || style.OutlineJoin.HasValue)) == true);
 
-    private static OfficeChartPointStyle? GetPointStyle(OfficeChartSeries series, int index) =>
-        GetPointStyle(series.PointStyles, index);
+    private static OfficeChartPointStyle? GetPointStyle(OfficeChartSeries series, int index) {
+        var point = GetPointStyle(series.PointStyles, index);
+        if (series.PointColors != null && index >= 0 && index < series.PointColors.Count &&
+            series.PointColors[index] is OfficeColor color)
+            point = OfficeChartPointStyle.Inherit(point, new OfficeChartPointStyle(fillColor: color));
+        return OfficeChartPointStyle.Inherit(point, series.SeriesStyle);
+    }
 
     private static OfficeChartPointStyle? GetPointStyle(IReadOnlyList<OfficeChartPointStyle?>? styles, int index) =>
         styles != null && index >= 0 && index < styles.Count ? styles[index] : null;

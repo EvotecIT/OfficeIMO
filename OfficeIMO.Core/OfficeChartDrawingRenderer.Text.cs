@@ -96,7 +96,7 @@ public static partial class OfficeChartDrawingRenderer {
             int seriesIndex = legendIndexes[i];
             double rowY = startY + i * rowHeight;
             double swatchOffset = Math.Max(0D, (rowHeight - layout.LegendSwatchSize) / 2D);
-            AddShape(drawing, OfficeShape.Rectangle(layout.LegendSwatchSize, layout.LegendSwatchSize), x, rowY + swatchOffset, GetSeriesColor(style, series, seriesIndex), null, 0D);
+            AddPointSwatch(drawing, x, rowY + swatchOffset, layout.LegendSwatchSize, GetSeriesColor(style, series, seriesIndex), series[seriesIndex].SeriesStyle);
             string name = string.IsNullOrWhiteSpace(series[seriesIndex].Name) ? "Series " + (seriesIndex + 1).ToString(CultureInfo.InvariantCulture) : series[seriesIndex].Name;
             double textOffset = layout.LegendSwatchSize + layout.LegendTextGap;
             AddChartText(drawing, name, x + textOffset, rowY, width - textOffset, rowHeight, layout.LegendFontSize, legendTextColor, OfficeTextAlignment.Left, style, layout.LegendFontFamily, layout.LegendFontStyle);
@@ -205,7 +205,8 @@ public static partial class OfficeChartDrawingRenderer {
             width,
             style,
             layout,
-            legendIndexes.Select(index => (OfficeColor?)GetSeriesColor(style, series, index)).ToList());
+            legendIndexes.Select(index => (OfficeColor?)GetSeriesColor(style, series, index)).ToList(),
+            legendIndexes.Select(index => series[index].SeriesStyle).ToList());
     }
 
     private static List<int> GetLegendSeriesIndexes(IReadOnlyList<OfficeChartSeries> series) {

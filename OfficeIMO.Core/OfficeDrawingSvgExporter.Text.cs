@@ -10,7 +10,15 @@ public static partial class OfficeDrawingSvgExporter {
         OfficeRasterCanvas textMetrics,
         string idPrefix,
         ref int clipPathId,
-        bool textAsPaths) {
+        bool textAsPaths, System.Collections.Generic.ISet<string> requiredFontFamilies) {
+        var fragment = new StringBuilder(Math.Min(256, sb.MaxCapacity - sb.Length), sb.MaxCapacity - sb.Length);
+        AppendTextCore(fragment, text, textMetrics, idPrefix, ref clipPathId, textAsPaths);
+        CollectSvgTextFontFamilies(fragment.ToString(), requiredFontFamilies, textMetrics.CancellationToken);
+        sb.Append(fragment);
+    }
+
+    private static void AppendTextCore(StringBuilder sb, OfficeDrawingText text, OfficeRasterCanvas textMetrics,
+        string idPrefix, ref int clipPathId, bool textAsPaths) {
         using var metricScope = textMetrics.PushFontMetricScale(text.FontMetricScale);
         using var faceScope = textMetrics.PushTextFace(text.Font.Face);
         if (TryAppendGlyphPaths(sb, text, textMetrics, textAsPaths)) return;
@@ -209,7 +217,15 @@ public static partial class OfficeDrawingSvgExporter {
             decorationColor: text.DecorationColor);
     }
 
-    private static void AppendRichText(StringBuilder sb, OfficeDrawingRichText text, OfficeRasterCanvas textMetrics) {
+    private static void AppendRichText(StringBuilder sb, OfficeDrawingRichText text, OfficeRasterCanvas textMetrics,
+        System.Collections.Generic.ISet<string> requiredFontFamilies) {
+        var fragment = new StringBuilder(Math.Min(256, sb.MaxCapacity - sb.Length), sb.MaxCapacity - sb.Length);
+        AppendRichTextCore(fragment, text, textMetrics);
+        CollectSvgTextFontFamilies(fragment.ToString(), requiredFontFamilies, textMetrics.CancellationToken);
+        sb.Append(fragment);
+    }
+
+    private static void AppendRichTextCore(StringBuilder sb, OfficeDrawingRichText text, OfficeRasterCanvas textMetrics) {
         bool useFrameTransform = text.FlipHorizontal || text.FlipVertical;
         if (useFrameTransform) {
             AppendRichTextFrameGroupStart(sb, text);

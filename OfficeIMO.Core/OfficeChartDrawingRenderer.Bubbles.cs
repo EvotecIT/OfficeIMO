@@ -79,18 +79,13 @@ public static partial class OfficeChartDrawingRenderer {
         double maximum = 0D;
         for (int seriesIndex = 0; seriesIndex < series.Count; seriesIndex++) {
             OfficeChartSeries item = series[seriesIndex];
-            if (item.BubbleSizes != null && item.PointStyles != null)
-                for (int pointIndex = 0; pointIndex < Math.Min(item.BubbleSizes.Count, item.PointStyles.Count); pointIndex++) {
-                    if (item.BubbleSizes[pointIndex] <= 0D) continue;
-                    OfficeChartPointStyle? pointStyle = item.PointStyles[pointIndex];
-                    if (pointStyle?.ShowOutline != false)
-                        maximum = Math.Max(maximum, pointStyle?.OutlineWidth ?? 0);
-                }
-            if (!item.ShowMarkerOutline || item.BubbleSizes == null ||
-                !item.BubbleSizes.Any(size => size > 0D)) {
-                continue;
+            if (item.BubbleSizes == null) continue;
+            for (int pointIndex = 0; pointIndex < item.BubbleSizes.Count; pointIndex++) {
+                if (item.BubbleSizes[pointIndex] <= 0D) continue;
+                var paint = GetPointStyle(item, pointIndex);
+                bool visible = paint?.ShowOutline ?? item.ShowMarkerOutline;
+                if (visible) maximum = Math.Max(maximum, paint?.OutlineWidth ?? item.MarkerOutlineWidth ?? 1D);
             }
-            maximum = Math.Max(maximum, item.MarkerOutlineWidth ?? 1D);
         }
         return maximum;
     }

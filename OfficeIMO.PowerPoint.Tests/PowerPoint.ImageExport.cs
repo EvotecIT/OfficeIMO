@@ -310,7 +310,7 @@ namespace OfficeIMO.Tests {
             rectangle.OutlineColor = "114433";
             rectangle.OutlineWidthPoints = 1D;
 
-            PowerPointTextBox textBox = slide.AddTextBoxPoints("Shared renderer", 24, 54, 100, 24);
+            PowerPointTextBox textBox = slide.AddTextBoxPoints("Shared renderer", 24, 54, 150, 36);
             textBox.FontSize = 12;
             textBox.Color = "111111";
 
@@ -846,7 +846,9 @@ namespace OfficeIMO.Tests {
             // These tests qualify slide content and geometry, not host font cost or optional GSUB features.
             // Keep omissions, failures, and other approximations visible.
             OfficeImageExportDiagnostic[] unexpected = diagnostics.Where(diagnostic => {
-                if (diagnostic.Code == OfficeImageExportDiagnosticCodes.FontSubstituted) return false;
+                if ((diagnostic.Code == OfficeImageExportDiagnosticCodes.FontSubstituted || diagnostic.Code == "font-family-substitution")
+                    && diagnostic.Severity == OfficeImageExportDiagnosticSeverity.Warning
+                    && diagnostic.LossKind == OfficeConversionLossKind.Approximation) return false;
                 if (diagnostic.Code == "font-embedding-cost"
                     && diagnostic.Severity == OfficeImageExportDiagnosticSeverity.Info
                     && diagnostic.LossKind == OfficeConversionLossKind.None) return false;

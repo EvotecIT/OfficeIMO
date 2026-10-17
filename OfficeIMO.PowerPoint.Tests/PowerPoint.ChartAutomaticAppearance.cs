@@ -60,6 +60,64 @@ public sealed class PowerPointChartAutomaticAppearanceTests {
         Assert.Equal(OfficeColor.Parse("#156082"), snapshot.Data.Series.Single().Color);
     }
 
+    [Theory]
+    [InlineData(true, true)]
+    [InlineData(true, false)]
+    [InlineData(false, true)]
+    [InlineData(false, false)]
+    public void FlatRibbonUsesItsBodyPaintAndRetainsAnInvisibleNativeSeries(bool fill, bool outline) {
+        using var presentation = PowerPointPresentation.Load(RoadmapPath);
+        var slide = presentation.Slides.First(item => item.SlidePart.ChartParts.Any(part => part.ChartSpace!.Descendants<C.Line3DChart>().Any()));
+        var part = slide.SlidePart.ChartParts.First(item => item.ChartSpace!.Descendants<C.Line3DChart>().Any());
+        foreach (var native in part.ChartSpace!.Descendants<C.Line3DChart>().SelectMany(layer => layer.Elements<C.LineChartSeries>())) {
+            native.RemoveAllChildren<C.Marker>();
+            native.AddChild(new C.Marker(new C.Symbol { Val = C.MarkerStyleValues.Circle }), true);
+            var properties = native.GetFirstChild<C.ChartShapeProperties>()!;
+            properties.RemoveAllChildren<A.SolidFill>(); properties.RemoveAllChildren<A.NoFill>();
+            properties.AddChild(fill ? (DocumentFormat.OpenXml.OpenXmlElement)new A.SolidFill(new A.RgbColorModelHex { Val = "0000FF" }) : new A.NoFill(), true);
+            var line = properties.GetFirstChild<A.Outline>() ?? new A.Outline();
+            line.RemoveAllChildren<A.SolidFill>(); line.RemoveAllChildren<A.NoFill>(); line.Width = 38100;
+            line.AddChild(outline ? (DocumentFormat.OpenXml.OpenXmlElement)new A.SolidFill(new A.RgbColorModelHex { Val = "FF0000" }) : new A.NoFill(), true);
+            if (line.Parent == null) properties.AddChild(line, true);
+        }
+        var chart = slide.Charts.Single(item => item.InspectImportedContent().Family == "line3DChart");
+        Assert.True(chart.TryGetSnapshot(out var nativeSnapshot, out var reason), reason);
+        var snapshot = PowerPointChartSnapshotMapper.ToOfficeSnapshot(nativeSnapshot, 640, 360);
+        Assert.All(snapshot.Data.Series, series => {
+            Assert.False(series.ShowMarkers);
+            Assert.Equal(!fill, series.SeriesStyle!.NoFill);
+            Assert.Equal(fill || outline, series.SeriesStyle.ShowOutline);
+            if (fill || outline) Assert.Equal(fill ? OfficeColor.Blue : OfficeColor.Red, series.Color);
+        });
+        var drawing = OfficeChartDrawingRenderer.Render(snapshot);
+        Assert.Equal(fill || outline, drawing.Shapes.Any(shape => shape.Shape.StrokeWidth == 3 &&
+            shape.Shape.StrokeColor == (fill ? OfficeColor.Blue : OfficeColor.Red) &&
+            shape.Shape.Kind is OfficeShapeKind.Line or OfficeShapeKind.Path));
+    }
+
+    [Fact]
+    public void FlatRibbonAutomaticBodyAcceptsCallerPaletteIndependentlyOfItsNativeBorder() {
+        using var presentation = PowerPointPresentation.Load(RoadmapPath);
+        var slide = presentation.Slides.First(item => item.SlidePart.ChartParts.Any(part => part.ChartSpace!.Descendants<C.Line3DChart>().Any()));
+        var part = slide.SlidePart.ChartParts.First(item => item.ChartSpace!.Descendants<C.Line3DChart>().Any());
+        foreach (var native in part.ChartSpace!.Descendants<C.Line3DChart>().SelectMany(layer => layer.Elements<C.LineChartSeries>())) {
+            var properties = native.GetFirstChild<C.ChartShapeProperties>()!;
+            properties.RemoveAllChildren<A.SolidFill>(); properties.RemoveAllChildren<A.NoFill>();
+            var line = properties.GetFirstChild<A.Outline>() ?? new A.Outline();
+            line.RemoveAllChildren<A.SolidFill>(); line.RemoveAllChildren<A.NoFill>(); line.Width = 38100;
+            line.AddChild(new A.SolidFill(new A.RgbColorModelHex { Val = "FF0000" }), true);
+            if (line.Parent == null) properties.AddChild(line, true);
+        }
+        var chart = slide.Charts.Single(item => item.InspectImportedContent().Family == "line3DChart");
+        Assert.True(chart.TryGetSnapshot(out var nativeSnapshot, out var reason), reason);
+        Assert.All(nativeSnapshot.Data.Series, series => Assert.True(series.HasAutomaticSeriesColor));
+        var snapshot = PowerPointChartSnapshotMapper.ToOfficeSnapshot(nativeSnapshot, 640, 360,
+            new OfficeChartStyle(palette: new[] { OfficeColor.Green }));
+        Assert.Contains(OfficeChartDrawingRenderer.Render(snapshot).Shapes,
+            shape => shape.Shape.StrokeWidth == 3 && shape.Shape.StrokeColor == OfficeColor.Green &&
+                shape.Shape.Kind is OfficeShapeKind.Line or OfficeShapeKind.Path);
+    }
+
     [Fact]
     public void SkippedChartWarningNamesTheUnsupportedAppearance() {
         using PowerPointPresentation presentation = PowerPointPresentation.Create();
@@ -96,6 +154,11 @@ public sealed class PowerPointChartAutomaticAppearanceTests {
             Assert.True(series.SharedAppearance!.ConnectLine);
             Assert.False(series.SharedAppearance.ShowMarkers);
         });
+        OfficeChartSnapshot flatRibbon = PowerPointChartSnapshotMapper.ToOfficeSnapshot(line, 640, 360);
+        OfficeDrawing ribbonDrawing = OfficeChartDrawingRenderer.Render(flatRibbon);
+        foreach (OfficeChartSeries projectedSeries in flatRibbon.Data.Series)
+            Assert.Contains(ribbonDrawing.Shapes, shape => shape.Shape.Kind == OfficeShapeKind.Line &&
+                shape.Shape.StrokeColor == projectedSeries.Color);
         PowerPointChartSnapshot stock = Snapshot(charts, "stockChart");
         Assert.True(stock.Layout.ShowHighLowLines);
         Assert.All(Snapshot(charts, "surfaceChart").Data.Series, series => Assert.False(series.SharedAppearance!.ShowMarkers));

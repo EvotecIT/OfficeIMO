@@ -115,7 +115,7 @@ namespace OfficeIMO.Excel.Pdf {
                 strokeDashStyle: series.SeriesLineDashStyle,
                 renderKind: renderKind,
                 axisGroup: series.AxisGroup)
-                .WithPointStyles(series.PointStyles)
+                .WithSeriesStyle(series.SeriesStyle).WithPointStyles(series.PointStyles)
                 .WithPointExplosions(series.PointExplosions);
         }
 

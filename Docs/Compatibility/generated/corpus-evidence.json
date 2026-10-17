@@ -101,7 +101,7 @@
       "id": "pdf-interoperability",
       "owner": "OfficeIMO.Pdf",
       "manifest": "OfficeIMO.Pdf.Tests/Pdf/Fixtures/Interoperability/corpus-manifest.json",
-      "manifestSha256": "ccf5a37feb9902de541671ae4dab3d7ac224d99fb21e7eb6764fecf50c0cb683",
+      "manifestSha256": "d15f15bebb98d086d4cf761c84ff8fbf30c5c1732ad364c3ca39d547e220bea8",
       "recordCount": 15,
       "diffPolicy": {
         "kind": "package-and-semantic",

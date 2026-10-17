@@ -48,6 +48,28 @@ public sealed class PdfEmptyColumnPageBreakTests {
         Assert.InRange(marker.BoundingBox.Left, 39.9, 40.1);
     }
 
+    [Theory]
+    [InlineData(false, false)]
+    [InlineData(true, false)]
+    [InlineData(true, true)]
+    public void ExplicitBreakPreservesASpacingOnlyBodyPage(bool columns, bool nextColumn) {
+        var document = PdfDocument.Create(new PdfOptions { CompressContentStreams = false });
+        document.Compose(builder => builder.Page(page => page.Content(body => {
+            void Content(PdfContentBuilder content) {
+                content.Spacer(12);
+                if (nextColumn) content.ColumnBreak();
+                content.PageBreak(preserveEmptyPage: false);
+                content.Paragraph(paragraph => paragraph.Text("AFTER"));
+            }
+            if (columns) body.Columns(Content, new PdfMultiColumnOptions { ColumnCount = 2, BalanceLastPage = false });
+            else Content(body);
+        })));
+        using var pdf = PdfPigDocument.Open(document.ToBytes());
+        Assert.Equal(2, pdf.NumberOfPages);
+        Assert.Empty(pdf.GetPage(1).Letters);
+        Assert.Contains("AFTER", pdf.GetPage(2).Text);
+    }
+
     private static byte[] Render(int columns, int breaks, bool header, bool preserve) {
         var document = PdfDocument.Create(new PdfOptions {
             PageWidth = 500, PageHeight = 400, MarginLeft = 40, MarginRight = 40,

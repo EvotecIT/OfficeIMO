@@ -23,6 +23,20 @@ namespace OfficeIMO.OpenXml.Internal;
 /// <c>OfficeIMO.TestAssets/Documents/Charts/AutomaticColors</c> pin these rules to Office exports.
 /// </remarks>
 internal static class OfficeOpenXmlChartAutomaticColors {
+    internal const string AutomaticSeriesColorExtensionUri = "urn:officeimo:chart:auto-series-color:1";
+
+    internal static bool HasAutomaticSeriesColor(OpenXmlElement element) =>
+        element.ChildElements.Where(child => child.LocalName == "extLst")
+            .SelectMany(list => list.ChildElements)
+            .Any(extension => extension.GetAttribute("uri", string.Empty).Value == AutomaticSeriesColorExtensionUri);
+
+    internal static void ClearAutomaticSeriesColor(OpenXmlElement element) {
+        foreach (var extension in element.ChildElements.Where(child => child.LocalName == "extLst")
+            .SelectMany(list => list.ChildElements).Where(child =>
+                child.GetAttribute("uri", string.Empty).Value == AutomaticSeriesColorExtensionUri).ToArray())
+            extension.Remove();
+    }
+
     private const string Chart2010Namespace = "http://schemas.microsoft.com/office/drawing/2007/8/2/chart";
     private static readonly double[] GreyscaleTints = { 0.88D, 0.55D, 0.78D, 0.92D, 0.70D, 0.30D };
     private static readonly OfficeChartMarkerShape[] AutomaticMarkers = {
@@ -90,7 +104,7 @@ internal static class OfficeOpenXmlChartAutomaticColors {
     }
 
     /// <summary>Resolves the automatic colour of one series element from its chart's style and theme.</summary>
-    internal static OfficeColor? ResolveSeries(OpenXmlCompositeElement series, A.ColorScheme? scheme,
+    internal static OfficeColor? ResolveSeries(OpenXmlElement series, A.ColorScheme? scheme,
         bool useSpreadsheetDefaultTheme = false) {
         C.ChartSpace? chartSpace = series.Ancestors<C.ChartSpace>().FirstOrDefault();
         uint index = series.GetFirstChild<C.Index>()?.Val?.Value ?? 0U;

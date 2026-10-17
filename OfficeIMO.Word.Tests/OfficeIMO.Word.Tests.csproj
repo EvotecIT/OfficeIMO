@@ -83,6 +83,7 @@
     <None Include="..\OfficeIMO.TestAssets\Documents\**" Link="Documents\%(RecursiveDir)%(Filename)%(Extension)" CopyToOutputDirectory="Always" />
     <None Include="..\OfficeIMO.TestAssets\Images\**" Link="Images\%(RecursiveDir)%(Filename)%(Extension)" CopyToOutputDirectory="Always" />
     <None Include="..\OfficeIMO.Pdf.Tests\Pdf\ReferenceBaselines\*.docx" Link="WordLayoutFixtures\%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="..\Assets\PowerPointTemplates\PowerPointAdvancedRoadmap.pptx" Link="Documents\Charts\SeriesPaint\advanced-ribbon.pptx" CopyToOutputDirectory="PreserveNewest" />
     <EmbeddedResource Include="..\OfficeIMO.TestAssets\Images\Kulek.jpg" Link="Images\Kulek.jpg" LogicalName="OfficeIMO.Tests.Images.Kulek.jpg" />
   </ItemGroup>
 

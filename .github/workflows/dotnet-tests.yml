@@ -452,6 +452,7 @@ jobs:
           New-Item -ItemType Directory -Force -Path $feed | Out-Null
           $projects = @(
             'OfficeIMO.Core/OfficeIMO.Core.csproj',
+            'OfficeIMO.Pdf/OfficeIMO.Pdf.csproj',
             'OfficeIMO.Markdown/OfficeIMO.Markdown.csproj',
             'OfficeIMO.Rtf/OfficeIMO.Rtf.csproj',
             'OfficeIMO.Email/OfficeIMO.Email.csproj',

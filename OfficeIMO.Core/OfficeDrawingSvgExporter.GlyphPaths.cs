@@ -103,16 +103,26 @@ public static partial class OfficeDrawingSvgExporter {
         output.Append('"').AppendAttribute("fill-rule", "nonzero");
         if (text.FillSuppressed) output.AppendAttribute("fill", "none");
         else output.AppendPaintAttribute("fill", text.Color ?? OfficeColor.Black);
-        if (text.OutlineStrokeColor is OfficeColor stroke) AppendTextStrokeAttributes(output, stroke, text.OutlineStrokeWidth);
+        if (text.OutlineStrokeColor is OfficeColor stroke) AppendTextStrokeAttributes(output, stroke, text.OutlineStrokeWidth, text.OutlineStrokeDashPattern, text.OutlineStrokeDashOffset);
         output.Append("/></g>");
         return true;
     }
 
-    private static void AppendTextStrokeAttributes(StringBuilder output, OfficeColor color, double width) {
+    private static void AppendTextStrokeAttributes(StringBuilder output, OfficeColor color, double width,
+        IReadOnlyList<double>? dashPattern, double dashOffset) {
         output.AppendPaintAttribute("stroke", color)
             .AppendNumberAttribute("stroke-width", width > 0D ? width : 1D)
             .AppendAttribute("stroke-linejoin", "miter")
             .AppendNumberAttribute("stroke-miterlimit", 10D);
+        if (dashPattern is { Count: > 0 }) {
+            output.Append(" stroke-dasharray=\"");
+            for (int index = 0; index < dashPattern.Count; index++) {
+                if (index > 0) output.Append(' ');
+                output.Append(Format(dashPattern[index]));
+            }
+            output.Append('"');
+        }
+        if (dashOffset != 0D) output.AppendNumberAttribute("stroke-dashoffset", dashOffset);
         if (width <= 0D) output.AppendAttribute("vector-effect", "non-scaling-stroke");
     }
 
@@ -125,7 +135,7 @@ public static partial class OfficeDrawingSvgExporter {
     private static void AppendStrokedSvgText(StringBuilder output, string fragment, OfficeDrawingText text, CancellationToken token) {
         var root = XElement.Parse("<g>" + fragment + "</g>", LoadOptions.PreserveWhitespace);
         var attributes = new StringBuilder("<g");
-        AppendTextStrokeAttributes(attributes, text.OutlineStrokeColor!.Value, text.OutlineStrokeWidth);
+        AppendTextStrokeAttributes(attributes, text.OutlineStrokeColor!.Value, text.OutlineStrokeWidth, text.OutlineStrokeDashPattern, text.OutlineStrokeDashOffset);
         var paint = XElement.Parse(attributes.Append("/>").ToString());
         foreach (XElement element in root.Descendants().Where(e => e.Name.LocalName is "text" or "tspan")) {
             token.ThrowIfCancellationRequested();
@@ -142,15 +152,15 @@ public static partial class OfficeDrawingSvgExporter {
         foreach (XNode node in root.Nodes()) output.Append(node.ToString(SaveOptions.DisableFormatting));
     }
 
-    private static ISet<string> CollectSvgTextFontFamilies(string svg, CancellationToken token) {
-        var families = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-        var root = XElement.Parse(svg, LoadOptions.PreserveWhitespace);
+    private static void CollectSvgTextFontFamilies(string fragment, ISet<string> families, CancellationToken token) {
+        token.ThrowIfCancellationRequested();
+        if (fragment.Length == 0) return;
+        var root = XElement.Parse("<g>" + fragment + "</g>", LoadOptions.PreserveWhitespace);
         foreach (XElement element in root.Descendants().Where(e => e.Name.LocalName is "text" or "tspan")) {
             token.ThrowIfCancellationRequested();
             string? value = element.Attribute("font-family")?.Value;
             if (value == null) continue;
             foreach (string family in OfficeFontFamilyParser.Parse(value)) families.Add(family);
         }
-        return families;
     }
 }

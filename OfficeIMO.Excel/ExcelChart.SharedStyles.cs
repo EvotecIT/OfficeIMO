@@ -92,7 +92,7 @@ namespace OfficeIMO.Excel {
             bool hasShapeStyle = !string.IsNullOrWhiteSpace(style.SeriesColorArgb) ||
                                  style.SeriesLineWidth.HasValue || style.SeriesLineDashStyle.HasValue ||
                                  !style.ConnectLine || reenableLine;
-            if (!hasShapeStyle) return;
+            if (!hasShapeStyle && style.SeriesStyle == null) return;
 
             C.ChartShapeProperties properties = EnsureChartShapeProperties(series);
             if (reenableLine) properties.GetFirstChild<A.Outline>()!.RemoveAllChildren<A.NoFill>();
@@ -110,6 +110,7 @@ namespace OfficeIMO.Excel {
                 outline.Append(new A.PresetDash { Val = MapDashStyle(style.SeriesLineDashStyle.Value) });
             }
             if (!style.ConnectLine) ApplyNoLine(properties);
+            if (style.SeriesStyle != null) OfficeIMO.OpenXml.Internal.OfficeOpenXmlChartPointStyles.ApplySeriesPaint(properties, style.SeriesStyle);
         }
 
         private static C.MarkerStyleValues MapMarkerStyle(OfficeChartMarkerShape? shape) {
