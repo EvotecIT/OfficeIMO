@@ -322,6 +322,51 @@ public sealed partial class HtmlRenderingTests {
             RenderCollapsedGeometry(Table("2px solid blue")), "table#grid", "td#a", "td#b", "div#a-probe", "div#b-probe", "div#after");
     }
 
+    [Fact]
+    public void HtmlCollapsedGeometry_DoublePaintStaysInsideTheWinningHalfWidthBand() {
+        const string body = "<table id='grid' style='width:280px;table-layout:fixed;border-collapse:collapse'><tr>"
+            + "<td style='border:9px double black;padding:4px;background:white'><div class='probe'>Cell</div></td></tr></table>"
+            + "<div id='after' style='height:10px;background:orange'>After</div>";
+        string source = CollapsedGeometrySource(body);
+        HtmlRenderOptions options = CollapsedGeometryOptions();
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(source, options);
+        Assert.Equal(46D, TableGeometryShape(rendered, "table#grid").Height, 3);
+        Assert.True(OfficePngReader.TryDecode(HtmlConversionDocument.Parse(source).ToPng(options), out OfficeRasterImage? raster));
+        foreach (int y in new[] { 1, 7, 38, 44 }) Assert.Equal(OfficeColor.Black, raster!.GetPixel(200, y));
+        Assert.Equal(OfficeColor.White, raster!.GetPixel(200, 4));
+        Assert.Equal(OfficeColor.Orange, raster.GetPixel(200, 46));
+    }
+
+    [Theory]
+    [InlineData("double", 9, 48, 54)]
+    [InlineData("groove", 8, 48, 52)]
+    [InlineData("ridge", 8, 48, 52)]
+    public void HtmlCollapsedGeometry_MultiStrokeRulesKeepBothComponentsAtSafePageCuts(string style, int width, int upper, int lower) {
+        string border = "border:" + width + "px " + style + " black;padding:4px;background:white";
+        string rows = string.Concat(Enumerable.Range(1, 12).Select(index => "<tr style='break-inside:avoid'><td style='"
+            + border + "'><div class='probe'>Body" + index + "<br>Detail</div></td></tr>"));
+        string body = "<style>@page{size:320px 220px;margin:10px}</style><div style='height:66px'></div>"
+            + "<table style='width:280px;table-layout:fixed;border-collapse:collapse'><thead><tr><th style='" + border
+            + ";border-color:red'><div class='probe'>Header<br>Detail</div></th></tr></thead><tbody>" + rows
+            + "</tbody><tfoot><tr><td style='" + border + ";border-color:blue'><div class='probe'>Footer<br>Detail</div>"
+            + "</td></tr></tfoot></table>";
+        HtmlRenderOptions options = CollapsedGeometryOptions();
+        options.Mode = HtmlRenderMode.Paged;
+        IReadOnlyList<OfficeImageExportResult> pages = HtmlConversionDocument.Parse(CollapsedGeometrySource(body))
+            .ExportImages(OfficeImageExportFormat.Png, options);
+        Assert.True(pages.Count >= 3);
+        Assert.True(OfficePngReader.TryDecode(pages[2].Bytes, out OfficeRasterImage? raster));
+        Assert.NotEqual(OfficeColor.White, raster!.GetPixel(270, upper));
+        Assert.NotEqual(OfficeColor.White, raster.GetPixel(270, lower));
+        if (style == "double") {
+            Assert.Equal(OfficeColor.Black, raster.GetPixel(270, upper));
+            Assert.Equal(OfficeColor.Black, raster.GetPixel(270, lower));
+            Assert.Equal(OfficeColor.White, raster.GetPixel(270, 51));
+        } else {
+            Assert.NotEqual(raster.GetPixel(270, upper), raster.GetPixel(270, lower));
+        }
+    }
+
     private const string CollapsedGeometryFollowing = "<div id='after' style='height:10px;background:red'>After</div>";
 
     private static string CollapsedGeometrySource(string body) => TableGeometrySource("<style>body{font:9px/10px Witness}"

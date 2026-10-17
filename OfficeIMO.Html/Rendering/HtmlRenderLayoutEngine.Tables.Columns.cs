@@ -179,16 +179,6 @@ internal sealed partial class HtmlRenderLayoutEngine {
 
     private void ResolveTableCellIntrinsicWidths(TableFormattingCell cell, HtmlRenderBoxStyle style, double containingWidth,
         int depth, out double minimum, out double preferred, out double contentMinimum, out double contentPreferred) {
-        if (cell.Nodes == null && IsSpecializedTableCell(cell.Element)) {
-            preferred = IsReplacedImageElement(cell.Element) || IsInputType(cell.Element, "image")
-                ? ResolveIntrinsicReplacedImageBoxWidth(cell.Element, style)
-                : ResolveFormControlIntrinsicOuterWidth(cell.Element, style, containingWidth);
-            minimum = style.ExplicitWidthUsesPercentage || style.MaxWidthUsesPercentage
-                ? ResolveCompressibleReplacedMinimumWidth(style) : preferred;
-            contentMinimum = minimum;
-            contentPreferred = preferred;
-            return;
-        }
         IReadOnlyList<IntrinsicTextRun> runs;
         if (cell.Nodes == null) {
             runs = ResolveInFlowIntrinsicTextRuns(new FlexItem(cell.Element, style, 0), containingWidth, depth,

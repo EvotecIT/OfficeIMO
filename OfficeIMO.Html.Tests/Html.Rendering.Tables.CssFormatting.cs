@@ -280,7 +280,7 @@ public sealed partial class HtmlRenderingTests {
     [InlineData("img")]
     [InlineData("input")]
     [InlineData("input-image")]
-    public void HtmlCssTable_ReplacedCellUsesOnlyWinningCollapsedBordersAndOneOutline(string kind) {
+    public void HtmlCssTable_ReplacedInternalDisplayKeepsItsOwnBordersInsideAnAnonymousCell(string kind) {
         const string image = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAusB9Wl4xd4AAAAASUVORK5CYII=";
         string tag = kind == "img" ? "img" : "input";
         string attributes = kind == "input" ? " value='CellValue'" : " src='" + image + "'";
@@ -291,14 +291,14 @@ public sealed partial class HtmlRenderingTests {
             + "<div style='display:table-cell;border-left:6px solid blue'>Sibling</div></div></div>";
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, CssTableOptions());
         HtmlRenderShape[] shapes = rendered.Pages[0].Visuals.OfType<HtmlRenderShape>().ToArray();
-        Assert.DoesNotContain(shapes, shape => shape.Shape.StrokeColor == OfficeColor.FromRgb(0, 128, 0));
+        Assert.Contains(shapes, shape => shape.Shape.StrokeColor == OfficeColor.FromRgb(0, 128, 0));
         HtmlRenderShape shared = Assert.Single(shapes, shape => shape.Source == "div#table:collapsed-border-v-1-0");
         Assert.Equal(OfficeColor.Blue, shared.Shape.StrokeColor);
         Assert.Equal(6D, shared.Shape.StrokeWidth, 3);
         Assert.Single(shapes, shape => shape.Source == tag + "#replaced:outline");
         Assert.Contains(shapes, shape => shape.Source == tag + "#replaced" && shape.Shape.FillColor == OfficeColor.White);
-        if (kind == "input") Assert.Equal(5D, Assert.Single(rendered.Pages[0].Visuals.OfType<HtmlRenderText>(), text => text.Text == "CellValue").X, 3);
-        else Assert.Equal(5D, Assert.Single(rendered.Pages[0].Visuals.OfType<HtmlRenderImage>()).X, 3);
+        if (kind == "input") Assert.Equal(9D, Assert.Single(rendered.Pages[0].Visuals.OfType<HtmlRenderText>(), text => text.Text == "CellValue").X, 3);
+        else Assert.Equal(9D, Assert.Single(rendered.Pages[0].Visuals.OfType<HtmlRenderImage>()).X, 3);
         Assert.False(rendered.HasLoss);
     }
 

@@ -743,7 +743,7 @@ internal sealed partial class HtmlRenderStyleResolver {
                 ? "block"
                 : "flex";
         }
-        if (!string.IsNullOrWhiteSpace(value)) return value.Trim().ToLowerInvariant();
+        if (!string.IsNullOrWhiteSpace(value)) return ResolveReplacedInternalDisplay(element, value.Trim().ToLowerInvariant());
         if (tag == "math" && string.Equals(element.GetAttribute("display"), "block", StringComparison.OrdinalIgnoreCase)) return "block";
         if (tag == "li") return "list-item";
         if (tag == "table") return "table";

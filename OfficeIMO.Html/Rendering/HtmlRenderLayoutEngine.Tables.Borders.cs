@@ -280,11 +280,11 @@ internal sealed partial class HtmlRenderLayoutEngine {
             AddCollapsedBorderStroke(
                 visuals, horizontal, horizontal ? x : x - offset, horizontal ? y - offset : y, length,
                 ResolveThreeDimensionalColor(border.Color, border.Style, edge, inner: false),
-                threeDimensionalStrokeWidth, "solid", source + "-outer");
+                threeDimensionalStrokeWidth, "solid", source + "-outer", y);
             AddCollapsedBorderStroke(
                 visuals, horizontal, horizontal ? x : x + offset, horizontal ? y + offset : y, length,
                 ResolveThreeDimensionalColor(border.Color, border.Style, edge, inner: true),
-                threeDimensionalStrokeWidth, "solid", source + "-inner");
+                threeDimensionalStrokeWidth, "solid", source + "-inner", y);
             return;
         }
         if (border.Style != "double") {
@@ -292,9 +292,11 @@ internal sealed partial class HtmlRenderLayoutEngine {
             return;
         }
         double strokeWidth = Math.Max(0.01D, border.Width / 3D);
-        AddCollapsedBorderStroke(visuals, horizontal, x, y, length, border.Color, strokeWidth, "solid", source + "-outer");
-        double inset = border.Width * 2D / 3D;
-        AddCollapsedBorderStroke(visuals, horizontal, horizontal ? x : x + inset, horizontal ? y + inset : y, length, border.Color, strokeWidth, "solid", source + "-inner");
+        double doubleOffset = border.Width / 3D;
+        AddCollapsedBorderStroke(visuals, horizontal, horizontal ? x : x - doubleOffset, horizontal ? y - doubleOffset : y,
+            length, border.Color, strokeWidth, "solid", source + "-outer", y);
+        AddCollapsedBorderStroke(visuals, horizontal, horizontal ? x : x + doubleOffset, horizontal ? y + doubleOffset : y,
+            length, border.Color, strokeWidth, "solid", source + "-inner", y);
     }
 
     private static void AddCollapsedBorderStroke(
@@ -306,7 +308,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
         OfficeColor color,
         double width,
         string style,
-        string source) {
+        string source,
+        double? horizontalBoundaryY = null) {
         OfficeShape shape = horizontal
             ? OfficeShape.Line(0D, 0D, length, 0.0001D)
             : OfficeShape.Line(0D, 0D, 0.0001D, length);
@@ -320,7 +323,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
         double layoutHeight = horizontal ? Math.Max(0.01D, width) : shape.Height;
         double layoutY = horizontal ? y - layoutHeight / 2D : y;
         visuals.Add(new HtmlRenderShape(shape, x, y, visuals.Count, source: source,
-            layoutY: layoutY, layoutHeight: layoutHeight, isCollapsedTableBorder: true));
+            layoutY: layoutY, layoutHeight: layoutHeight, isCollapsedTableBorder: true,
+            collapsedBorderBoundaryY: horizontal ? horizontalBoundaryY ?? y : null));
     }
 
     private enum CollapsedBorderOrigin {

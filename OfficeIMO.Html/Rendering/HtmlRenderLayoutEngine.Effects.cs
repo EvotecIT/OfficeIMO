@@ -292,7 +292,9 @@ internal sealed partial class HtmlRenderLayoutEngine {
         InlineContainingRect bounds,
         IReadOnlyList<HtmlRenderVisual> content,
         ICollection<HtmlRenderVisual>? deferredOutlines = null) {
-        if (!HasInlineBoxPaint(style) || bounds.Fragments.Count == 0) return content;
+        // Replaced images already own their full border box in LayoutImage.
+        // Inline envelopes still apply effects, but must not paint a second box.
+        if (IsReplacedImageElement(element) || !HasInlineBoxPaint(style) || bounds.Fragments.Count == 0) return content;
 
         var backgroundsAndBorders = new List<HtmlRenderVisual>();
         var outlines = new List<HtmlRenderVisual>();

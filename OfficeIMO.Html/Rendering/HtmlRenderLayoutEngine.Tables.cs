@@ -159,7 +159,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                     contentStyle = cellStyle.Clone();
                     contentStyle.ExplicitHeight = null;
                 }
-                HtmlInlineLayout inline = LayoutTableCellContent(cell, cellContentWidth, contentStyle, depth + 1, style.BorderCollapse != "collapse");
+                HtmlInlineLayout inline = LayoutTableCellContent(cell, cellContentWidth, contentStyle, depth + 1);
                 if (percentageContent != null) percentageContent.LogicalTextOrderCount = _nextLogicalTextOrder - percentageContent.LogicalTextOrderStart;
                 double cellHeight = ResolveTableCellMinimumHeight(cellStyle, inline);
                 if (rowSpan == 1) rowHeight = Math.Max(rowHeight, cellHeight);
@@ -187,7 +187,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         ResolveTableBaselines(rowLayouts);
         ResolveSpanningRowHeights(rowLayouts, verticalSpacing);
         ApplyTableMinimumHeight(rowLayouts, style, verticalSpacing);
-        ResolveTableCellPercentageContent(rowLayouts, verticalSpacing, depth + 1, style.BorderCollapse != "collapse");
+        ResolveTableCellPercentageContent(rowLayouts, verticalSpacing, depth + 1);
         ResolveTableCellContentOffsets(rowLayouts, verticalSpacing);
         if (skippedBodyRows > 0) rowLayouts.RemoveRange(headerRows.Count, skippedBodyRows);
 
@@ -253,8 +253,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 double cellX = contentX + (style.Direction == "rtl" ? contentWidth - logicalCellX - cell.Width : logicalCellX);
                 double cellHeight = GetSpanningHeight(rowLayouts, rowIndex, cell.RowSpan, verticalSpacing);
                 var cellVisuals = new List<HtmlRenderVisual>();
-                bool specializedCell = !cell.Anonymous && IsSpecializedTableCell(cell.Element);
-                if (!specializedCell) AddBoxPaint(cellVisuals, cell.Style, cellX, rowY, cell.Width, cellHeight, cell.Element, paintSeparateBorders);
+                AddBoxPaint(cellVisuals, cell.Style, cellX, rowY, cell.Width, cellHeight, cell.Element, paintSeparateBorders);
                 if (!cell.Anonymous) AddElementNamedDestination(navigationDestinations, cell.Element, cellX, rowY, navigationDestinations.Count);
                 double textX = cellX + cell.Style.BorderLeftWidth + cell.Style.PaddingLeft;
                 double textY = rowY + cell.ContentOffsetY;
@@ -266,7 +265,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 foreach (HtmlCssRunningStringAssignment assignment in cell.Inline.RunningStringAssignments) {
                     runningStringAssignments.Add(assignment.Translate(textY));
                 }
-                if (!specializedCell) AddBoxOutlinePaint(cellVisuals, cell.Style, cellX, rowY, cell.Width, cellHeight, cell.Element);
+                AddBoxOutlinePaint(cellVisuals, cell.Style, cellX, rowY, cell.Width, cellHeight, cell.Element);
                 bool headerCell = formatting.SemanticTable && !cell.Anonymous && HasHeaderCellSemantics(cell.Element);
                 HtmlRenderSemanticGroupRole cellRole = formatting.SemanticTable && (cell.Anonymous || HasCellSemantics(cell.Element))
                     ? headerCell ? HtmlRenderSemanticGroupRole.TableHeaderCell : HtmlRenderSemanticGroupRole.TableCell

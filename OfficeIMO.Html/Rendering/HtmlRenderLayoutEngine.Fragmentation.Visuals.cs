@@ -36,6 +36,14 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 } else if (visual is HtmlRenderClipGroup { ClipVertical: false } visibleVerticalClip) {
                     visualBottom = Math.Max(visualBottom, MaximumScrollBottom(visibleVerticalClip.Visuals));
                 }
+                if (visual is HtmlRenderShape { CollapsedBorderBoundaryY: double boundary }
+                    && (Math.Abs(boundary - start) <= 0.0001D || Math.Abs(boundary - end) <= 0.0001D)) {
+                    // A safe grid cut retains every component of a shared rule,
+                    // including strokes wholly on the other side of its center.
+                    fragment.Add(visual.Translate(0D, -start, fragment.Count));
+                    continue;
+                }
+
                 double intersectionTop = Math.Max(start, visualTop);
                 double intersectionBottom = Math.Min(end, visualBottom);
                 if (intersectionBottom <= intersectionTop + 0.0001D && !containsFlowAnchor) continue;
@@ -59,15 +67,6 @@ internal sealed partial class HtmlRenderLayoutEngine {
 
                 bool fullyContained = visualTop >= start - 0.0001D && visualBottom <= end + 0.0001D;
                 if (fullyContained && !containsFlowAnchor) {
-                    fragment.Add(visual.Translate(0D, -start, fragment.Count));
-                    continue;
-                }
-
-                if (visual is HtmlRenderShape { IsCollapsedTableBorder: true } border
-                    && border.Height < 0.001D
-                    && (Math.Abs(border.Y - start) <= 0.0001D || Math.Abs(border.Y - end) <= 0.0001D)) {
-                    // A safe grid-boundary cut keeps the complete shared rule.
-                    // Arbitrary cuts through a row still use the normal clip.
                     fragment.Add(visual.Translate(0D, -start, fragment.Count));
                     continue;
                 }
