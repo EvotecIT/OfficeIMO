@@ -360,6 +360,12 @@
       "finding": "P2: asynchronous native Shell ZIP poll must retry InvalidDataException as well as IOException. Fixed and directly caught against incomplete ZIP on macOS.",
       "confirmationCandidate": "47de514cd3e92d3a57bd1150fe435e39e13b7b4d",
       "verdict": "Targeted read-only confirmation accepted; no remaining actionable finding. Windows runtime/native producer remain externally held, not inferred from syntax."
+    },
+    "metadataClosure": {
+      "candidate": "ef14a509de2153ca4e004e3c3f2c27a83e7d58c9",
+      "scope": "Reader ZIP metadata source-time owner/sibling paths and changed native Shell producer/report boundary, after third material external wave",
+      "verdict": "One fresh read-only closure accepted; no actionableP0-P3. No new public API or production dependency.",
+      "boundary": "Actual current-head Windows callback pump/native producer and installed Framework4.7.2 remain unqualified. Unchanged ZIP/snapshot/decoder/staging reviews retained; no SHA-only re-review."
     }
   },
   "largeInputEvidence": {
@@ -1133,6 +1139,140 @@
       "America/New_York": "5 focused tests net10",
       "UTC": "5 focused tests net10"
     },
-    "contract": "Reuse canonical traversal LastWriteUtc for all child and warning metadata; raw inspection wall-time contract unchanged."
+    "contract": "Reuse canonical traversal LastWriteUtc for all child and warning metadata; raw inspection wall-time contract unchanged.",
+    "packed": {
+      "privateVersion": "3.5.1.910",
+      "sourceCandidate": "54cf307f10bf2253c8b321043112b307edfe24e5",
+      "signed": false,
+      "artifacts": [
+        {
+          "file": "OfficeIMO.Archives.3.5.1.910.nupkg",
+          "bytes": 194832,
+          "sha256": "a64a186fd2aa97178b9e7ad45255657cb273e85714f5f7c9b67f3735ef1d388b",
+          "assets": [
+            "lib/net10.0/OfficeIMO.Archives.dll",
+            "lib/net8.0/OfficeIMO.Archives.dll",
+            "lib/netstandard2.0/OfficeIMO.Archives.dll"
+          ]
+        },
+        {
+          "file": "OfficeIMO.Core.3.5.1.910.nupkg",
+          "bytes": 6364142,
+          "sha256": "a7da848355216ccfbba1faa2ab929fbe1a63f450e2378522e26442ae94d5f6a3",
+          "assets": [
+            "lib/net10.0/OfficeIMO.Core.dll",
+            "lib/net8.0/OfficeIMO.Core.dll",
+            "lib/netstandard2.0/OfficeIMO.Core.dll"
+          ]
+        },
+        {
+          "file": "OfficeIMO.Reader.Core.3.5.1.910.nupkg",
+          "bytes": 1189100,
+          "sha256": "0a2f1883c89597d3651ad09c5fd574e273b09b098f124b8e7963f21e2a7ab5c9",
+          "assets": [
+            "lib/net10.0/OfficeIMO.Reader.Core.dll",
+            "lib/net8.0/OfficeIMO.Reader.Core.dll",
+            "lib/netstandard2.0/OfficeIMO.Reader.Core.dll"
+          ]
+        },
+        {
+          "file": "OfficeIMO.Reader.Zip.3.5.1.910.nupkg",
+          "bytes": 53964,
+          "sha256": "a37af0b6f497c2c7bef567b42ebd57de03b4f38ef1565c4717b2ce6c3f173371",
+          "assets": [
+            "lib/net10.0/OfficeIMO.Reader.Zip.dll",
+            "lib/net8.0/OfficeIMO.Reader.Zip.dll",
+            "lib/netstandard2.0/OfficeIMO.Reader.Zip.dll"
+          ]
+        }
+      ],
+      "runtimeReports": [
+        {
+          "runtime": ".NET 8.0.23",
+          "os": "Darwin 27.0.0 Darwin Kernel Version 27.0.0: Tue Aug 11 21:02:57 PDT 2026; root:xnu-13432.1.9~1/RELEASE_ARM64_T8132",
+          "assembly": "3.5.1.910",
+          "results": [
+            {
+              "file": "7zip-utf8.zip",
+              "sha256": "3331c79451dfae4c73712991d5f2fe49468fdec5f85b17222cad6bfc1e5e67ca",
+              "members": 1,
+              "encoding": null,
+              "verified": true
+            },
+            {
+              "file": "python-streaming.zip",
+              "sha256": "fce71581b4e5902922e75709d6d153e9a8d2fd9967a4cb3b272aa7ad453522a1",
+              "members": 1,
+              "encoding": null,
+              "verified": true
+            },
+            {
+              "file": "python-streaming-zip64.zip",
+              "sha256": "241d6e262111cbc6aa6072e3fcebf335e73fc49c7a5f95f4b0db929039a69482",
+              "members": 1,
+              "encoding": null,
+              "verified": true
+            },
+            {
+              "file": "7zip-unflagged-utf8.zip",
+              "sha256": "e0545d79ecab4bfb57e3d3abad375493f9387c1d3ef2f9c3147b39409296eaf8",
+              "members": 1,
+              "encoding": 65001,
+              "verified": true
+            },
+            {
+              "file": "python-cp1250.zip",
+              "sha256": "9df59c1300eed632e718bf82639faa2aa35c37ba4992f0da8b023814980cf26d",
+              "members": 1,
+              "encoding": 1250,
+              "verified": true
+            }
+          ]
+        },
+        {
+          "runtime": ".NET 10.0.13",
+          "os": "macOS 27.0.1",
+          "assembly": "3.5.1.910",
+          "results": [
+            {
+              "file": "7zip-utf8.zip",
+              "sha256": "3331c79451dfae4c73712991d5f2fe49468fdec5f85b17222cad6bfc1e5e67ca",
+              "members": 1,
+              "encoding": null,
+              "verified": true
+            },
+            {
+              "file": "python-streaming.zip",
+              "sha256": "fce71581b4e5902922e75709d6d153e9a8d2fd9967a4cb3b272aa7ad453522a1",
+              "members": 1,
+              "encoding": null,
+              "verified": true
+            },
+            {
+              "file": "python-streaming-zip64.zip",
+              "sha256": "241d6e262111cbc6aa6072e3fcebf335e73fc49c7a5f95f4b0db929039a69482",
+              "members": 1,
+              "encoding": null,
+              "verified": true
+            },
+            {
+              "file": "7zip-unflagged-utf8.zip",
+              "sha256": "e0545d79ecab4bfb57e3d3abad375493f9387c1d3ef2f9c3147b39409296eaf8",
+              "members": 1,
+              "encoding": 65001,
+              "verified": true
+            },
+            {
+              "file": "python-cp1250.zip",
+              "sha256": "9df59c1300eed632e718bf82639faa2aa35c37ba4992f0da8b023814980cf26d",
+              "members": 1,
+              "encoding": 1250,
+              "verified": true
+            }
+          ]
+        }
+      ],
+      "boundary": "All5 ZIP scenarios and per-member platform timestamp comparisons passed under Europe/Warsaw, including source-file fallback when1980 DOS fields convert into1979 UTC. Unchanged cabinet/MSI contracts retain earlier native comparisons."
+    }
   }
 }
