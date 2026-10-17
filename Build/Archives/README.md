@@ -85,6 +85,21 @@ Reuse the identical ZIP input when comparing candidates. The report retains its
 SHA-256, runtime and assembly version. The probe is outside normal correctness
 CI; allocation totals are neither peak/RSS measurements nor timing guarantees.
 
+To measure Reader's live temporary storage, use:
+
+```text
+--reader-snapshot-evidence <same large ZIP> <JSON report> 1
+```
+
+Run this probe in a process with an isolated `TMPDIR` (or `TEMP` on Windows),
+without parallel consumers. A custom text handler observes private snapshot files
+while the outer ZIP inspection is alive. The report checks one input-sized
+snapshot for path and stream dispatch, caller stream ownership and position,
+and cleanup after completion, early disposal, cancellation and handler failure.
+The final argument is the expected number of input copies, allowing the same
+probe to reproduce an earlier candidate with two copies. This is opt-in disk
+usage evidence outside correctness CI.
+
 ## Solid-folder read evidence
 
 Use `--cab-read-evidence <task-owned CAB/MSI path> <JSON report>` after the same

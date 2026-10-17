@@ -484,7 +484,9 @@ internal static partial class ZipReaderAdapter {
     }
 
     private static ArchiveInspection OpenInspection(Stream source, ArchiveInspectionOptions options, CancellationToken token) {
-        try { return ArchiveInspector.Open(source, options, token); }
+        // Every caller holds either Reader's private snapshot or a verified nested member's immutable
+        // bytes until inspection is disposed. Borrow that source instead of making a second snapshot.
+        try { return ArchiveInspector.OpenZipSnapshot(source, options, token, leaveOpen: true); }
         catch (OfficeIMO.OfficeInspectionResourceLimitException error) {
             throw new ReaderResourceLimitException(error.LimitName, error.Maximum, error);
         }

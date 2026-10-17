@@ -42,6 +42,64 @@ namespace OfficeIMO.Archives.Tests {
             Assert.False(source.CanRead);
         }
 
+        [Fact]
+        public void BorrowedZipSnapshotPreservesPositionAndLifetimeWithoutCopyingItsPadding() {
+            using var source = new PaddedZipInput((long)int.MaxValue + 4096);
+            source.Position = 7;
+            var inspection = ArchiveInspector.OpenZipSnapshot(source,
+                new() { MaxInputBytes = source.Length }, CancellationToken.None, leaveOpen: true);
+            Assert.Equal(7, source.Position);
+            Assert.Equal(source.Length, inspection.ResourceUsage.InputBytes);
+            Assert.Single(ArchiveReader.TraverseZip(inspection).Entries);
+            using var payload = inspection.OpenRead(0);
+            Assert.Equal(7, source.Position);
+            inspection.Dispose();
+            Assert.True(source.CanRead);
+            Assert.Equal(7, source.Position);
+            Assert.Equal("complete", ArchiveZipInspectionTests.Text(payload));
+        }
+
+        [Fact]
+        public void BorrowedZipSnapshotKeepsItsSourceOnInventoryAndAdmissionFailure() {
+            using var malformed = new MemoryStream(new byte[22]);
+            malformed.Position = 3;
+            Assert.Throws<InvalidDataException>(() => ArchiveInspector.OpenZipSnapshot(malformed, new(),
+                CancellationToken.None, leaveOpen: true));
+            Assert.True(malformed.CanRead);
+            Assert.Equal(3, malformed.Position);
+            using var source = new PaddedZipInput(4096);
+            source.Position = 7;
+            Assert.Throws<OfficeInspectionResourceLimitException>(() => ArchiveInspector.OpenZipSnapshot(source,
+                new() { MaxInputBytes = 4095 }, CancellationToken.None, leaveOpen: true));
+            Assert.True(source.CanRead);
+            Assert.Equal(7, source.Position);
+        }
+
+        [Fact]
+        public void BorrowedZipSnapshotKeepsItsSourceOnCancellationAndReadFailure() {
+            using var source = new MemoryStream(ArchiveZipInspectionTests.Zip(("member.txt", "complete")));
+            source.Position = 7;
+            using var cancellation = new CancellationTokenSource();
+            cancellation.Cancel();
+            Assert.Throws<OperationCanceledException>(() => ArchiveInspector.OpenZipSnapshot(source, new(),
+                cancellation.Token, leaveOpen: true));
+            Assert.True(source.CanRead);
+            Assert.Equal(7, source.Position);
+            using var faulting = new FaultingInput(source.ToArray());
+            faulting.Position = 7;
+            Assert.Throws<IOException>(() => ArchiveInspector.OpenZipSnapshot(faulting, new(),
+                CancellationToken.None, leaveOpen: true));
+            Assert.True(faulting.CanRead);
+            Assert.Equal(7, faulting.Position);
+        }
+
+        private sealed class FaultingInput(byte[] bytes) : MemoryStream(bytes) {
+            public override int Read(byte[] buffer, int offset, int count) {
+                base.Read(buffer, offset, count);
+                throw new IOException("Synthetic borrowed source failure");
+            }
+        }
+
         private sealed class ForwardOnlyInput(byte[] bytes) : MemoryStream(bytes) {
             public override bool CanSeek => false;
         }

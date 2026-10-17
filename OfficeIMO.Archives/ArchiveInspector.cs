@@ -1,6 +1,7 @@
 using System;
 using System.IO;
 using System.Threading;
+using OfficeIMO.Core.Internal;
 
 namespace OfficeIMO.Archives;
 
@@ -69,13 +70,16 @@ public static class ArchiveInspector {
         }
     }
 
-    /// <summary>Indexes a caller-owned immutable ZIP snapshot and takes ownership on success.
-    /// The caller disposes it on admission failure. Used by traversal's existing private file snapshot.</summary>
-    internal static ArchiveInspection OpenZipSnapshot(Stream snapshot, ArchiveInspectionOptions options, CancellationToken token) {
+    /// <summary>Indexes an existing immutable ZIP snapshot without copying it. By default inspection takes ownership;
+    /// the caller disposes it on admission failure. With leaveOpen, the caller must retain the snapshot unchanged
+    /// throughout inspection; a non-owning view preserves its position and lifetime, including on failure.</summary>
+    internal static ArchiveInspection OpenZipSnapshot(Stream snapshot, ArchiveInspectionOptions options, CancellationToken token,
+        bool leaveOpen = false) {
         var limits = CreateLimits(options);
         ArchiveLimits.Check(snapshot.Length, limits.Input, nameof(options.MaxInputBytes));
         limits.Operation.AdmitInput(snapshot.Length);
-        return new ArchiveInspection(snapshot, limits, options.MaxDirectoryRecords, token);
+        Stream input = leaveOpen ? new SeekableReadWindowStream(snapshot, 0, snapshot.Length, preserveSourcePosition: true) : snapshot;
+        return new ArchiveInspection(input, limits, options.MaxDirectoryRecords, token);
     }
 
     private static ArchiveLimits CreateLimits(ArchiveInspectionOptions requested) {
