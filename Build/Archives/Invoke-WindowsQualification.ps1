@@ -7,13 +7,15 @@ param(
 
 $ErrorActionPreference = 'Stop'
 if (-not $IsWindows) { throw 'This qualification requires Windows.' }
+$repo = Split-Path (Split-Path $PSScriptRoot -Parent) -Parent
+$checkoutCommit = & git -C $repo rev-parse --verify HEAD
+if ($LASTEXITCODE -ne 0 -or $checkoutCommit -notmatch '^[0-9a-f]{40}$') { throw 'Cannot identify the qualification checkout commit.' }
 $OutputPath = [IO.Path]::GetFullPath($OutputPath)
 if (Test-Path -LiteralPath $OutputPath) { throw 'Use a fresh task-owned output directory.' }
 $reports = Join-Path $OutputPath 'reports'
 $null = New-Item -ItemType Directory -Path $reports
 $env:TEMP = Join-Path $OutputPath 'tmp'; $env:TMP = $env:TEMP
 $null = New-Item -ItemType Directory -Path $env:TEMP
-$repo = Split-Path (Split-Path $PSScriptRoot -Parent) -Parent
 $project = Join-Path $PSScriptRoot 'PackageConsumer/PackageConsumer.csproj'
 $corpus = Join-Path $repo 'OfficeIMO.Archives.Tests/Fixtures/IndependentZip'
 $msi = Join-Path $OutputPath '7z2604-x64.msi'
@@ -21,7 +23,13 @@ Invoke-WebRequest -Uri 'https://github.com/ip7z/7zip/releases/download/26.04/7z2
 if ((Get-FileHash $msi -Algorithm SHA256).Hash -ne '0b01334a418654293513449f61d6bfc99e5196ca371e3c3dc961eda57cd535c6') { throw 'Pinned MSI hash mismatch.' }
 $cache = Join-Path $OutputPath 'private-package-cache'
 $artifacts = Join-Path $OutputPath 'consumer-artifacts'
-dotnet restore $project "-p:OfficeIMOQualificationVersion=$Version" --source $FeedPath --source https://api.nuget.org/v3/index.json --packages $cache --artifacts-path $artifacts
+$configDirectory = Join-Path $OutputPath 'nuget'
+dotnet new nugetconfig --output $configDirectory
+if ($LASTEXITCODE -ne 0) { throw 'Private NuGet configuration creation failed.' }
+$configPath = Join-Path $configDirectory 'nuget.config'
+dotnet nuget add source $FeedPath --name OfficeIMOQualification --configfile $configPath
+if ($LASTEXITCODE -ne 0) { throw 'Private package source configuration failed.' }
+dotnet restore $project "-p:OfficeIMOQualificationVersion=$Version" --configfile $configPath --packages $cache --artifacts-path $artifacts
 if ($LASTEXITCODE -ne 0) { throw 'Private package restore failed.' }
 dotnet build $project -c Release --no-restore "-p:OfficeIMOQualificationVersion=$Version" "-p:RestorePackagesPath=$cache" --artifacts-path $artifacts -m:1
 if ($LASTEXITCODE -ne 0) { throw 'Packed consumer build failed.' }
@@ -35,7 +43,7 @@ foreach ($framework in @('net8.0', 'net10.0', 'net472')) {
     else { & dotnet "$binary.dll" @arguments }
     if ($LASTEXITCODE -ne 0) { throw "Packed consumer failed: $framework" }
 }
-@{ checkoutCommit = (& git -C $repo rev-parse HEAD); sourceHead = $env:OFFICEIMO_QUALIFICATION_HEAD
+@{ checkoutCommit = $checkoutCommit; sourceHead = $env:OFFICEIMO_QUALIFICATION_HEAD
     runUrl = "https://github.com/$env:GITHUB_REPOSITORY/actions/runs/$env:GITHUB_RUN_ID"
     packageVersion = $Version; os = [Environment]::OSVersion.VersionString
     packages = @(@('OfficeIMO.Core', 'OfficeIMO.Archives', 'OfficeIMO.Reader.Core', 'OfficeIMO.Reader.Zip') | ForEach-Object {
