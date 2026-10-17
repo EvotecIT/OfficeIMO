@@ -134,11 +134,12 @@ internal sealed class PdfTextShowCommand {
         _glyphHex = run.PreserveGlyphUnicode ? null : run.ToGlyphHex();
     }
 
-    internal PdfTextShowCommand(string glyphHex, IReadOnlyList<PdfGlyphInfo>? positionedGlyphs = null, string? actualText = null, IReadOnlyList<PdfGlyphInfo>? logicalGlyphs = null, double? advanceWidth1000 = null, int wordSpaceCount = 0, IReadOnlyList<PdfGlyphInfo>? visualGlyphs = null, OfficeOpenTypeTracking? tracking = null, int unitsPerEm = 1000, bool[]? trackingBoundaries = null, bool negativeTracking = false, double fontMetricScale = 1D, int? glyphCount = null, int[]? simpleFontKerning = null, bool isScalarBidi = false) {
+    internal PdfTextShowCommand(string glyphHex, IReadOnlyList<PdfGlyphInfo>? positionedGlyphs = null, string? actualText = null, IReadOnlyList<PdfGlyphInfo>? logicalGlyphs = null, double? advanceWidth1000 = null, int wordSpaceCount = 0, IReadOnlyList<PdfGlyphInfo>? visualGlyphs = null, OfficeOpenTypeTracking? tracking = null, int unitsPerEm = 1000, bool[]? trackingBoundaries = null, bool negativeTracking = false, double fontMetricScale = 1D, int? glyphCount = null, int[]? simpleFontKerning = null, bool isScalarBidi = false, bool isolatedRightToLeft = false) {
         if (fontMetricScale <= 0D || double.IsNaN(fontMetricScale) || double.IsInfinity(fontMetricScale))
             throw new ArgumentOutOfRangeException(nameof(fontMetricScale));
         SimpleFontKerning = simpleFontKerning;
         IsScalarBidi = isScalarBidi;
+        IsolatedRightToLeft = isolatedRightToLeft;
         LogicalGlyphs = logicalGlyphs; AdvanceWidth1000 = advanceWidth1000; WordSpaceCount = wordSpaceCount;
         VisualGlyphs = visualGlyphs;
         _glyphHex = glyphHex ?? throw new ArgumentNullException(nameof(glyphHex));
