@@ -5,7 +5,7 @@ using System.Threading;
 namespace OfficeIMO;
 
 /// <summary>
-/// Decodes the Cabinet LZX stream carried by a sequence of CFDATA records.
+/// Decodes LZX frames from Cabinet folders and materialized CHM reset groups.
 /// The implementation follows the LZX block, tree, match, and E8-translation
 /// structures published in Microsoft Open Specifications MS-PATCH and MS-CAB.
 /// </summary>
@@ -48,7 +48,7 @@ internal sealed class OfficeLzxDecoder {
 
     /// <summary>Keeps untranslated history in a circular window, independently of the reusable output frame.</summary>
     internal OfficeLzxDecoder(int outputLength, int windowBits, CancellationToken cancellationToken) {
-        if (outputLength < 1) throw new ArgumentOutOfRangeException(nameof(outputLength));
+        if (outputLength < 0) throw new ArgumentOutOfRangeException(nameof(outputLength));
         if (windowBits < 15 || windowBits > 21) {
             throw Error("LZX_WINDOW", "The CAB uses an unsupported LZX window size.");
         }
@@ -64,20 +64,48 @@ internal sealed class OfficeLzxDecoder {
         _cancellationToken = cancellationToken;
     }
 
-    /// <summary>Requires the final CFDATA frame to finish its LZX block and any byte padding.</summary>
-    internal void Complete() {
+    /// <summary>Returns a complete materialized reset group for CHM using the same frame decoder.
+    /// CHM reset groups can end inside an LZX block; CAB callers require complete final blocks instead.</summary>
+    internal static byte[] Decompress(IReadOnlyList<byte[]> chunks, IReadOnlyList<int> sizes, int windowBits,
+        long maxOutputBytes, CancellationToken cancellationToken = default, bool requireCompleteBlocks = true) {
+        if (chunks == null) throw new ArgumentNullException(nameof(chunks));
+        if (sizes == null) throw new ArgumentNullException(nameof(sizes));
+        if (chunks.Count != sizes.Count) throw Error("LZX_BLOCKS", "LZX block metadata is inconsistent.");
+        if (maxOutputBytes < 1) throw new ArgumentOutOfRangeException(nameof(maxOutputBytes));
+        long total = 0;
+        for (int index = 0; index < sizes.Count; index++) {
+            cancellationToken.ThrowIfCancellationRequested();
+            if (chunks[index] == null || sizes[index] < 0 || total > maxOutputBytes - sizes[index])
+                throw Error("EXPANDED_LIMIT", "The expanded LZX reset group exceeds the configured size limit.");
+            total += sizes[index];
+        }
+        if (total > int.MaxValue) throw Error("EXPANDED_LIMIT", "The expanded LZX reset group is too large to materialize.");
+        var decoder = new OfficeLzxDecoder((int)total, windowBits, cancellationToken);
+        var result = new byte[(int)total];
+        int offset = 0;
+        for (int index = 0; index < chunks.Count; index++) {
+            byte[] frame = decoder.DecodeFrame(chunks[index], 0, chunks[index].Length, sizes[index]);
+            Buffer.BlockCopy(frame, 0, result, offset, sizes[index]);
+            offset += sizes[index];
+        }
+        decoder.Complete(requireCompleteBlocks);
+        return result;
+    }
+
+    /// <summary>Validates declared output and, for CAB, complete final blocks and byte padding.</summary>
+    internal void Complete(bool requireCompleteBlocks = true) {
         _cancellationToken.ThrowIfCancellationRequested();
-        if (_outputOffset != _expectedOutputBytes || _blockBytesRemaining != 0) {
+        if (_outputOffset != _expectedOutputBytes || (requireCompleteBlocks && _blockBytesRemaining != 0)) {
             throw Error("LZX_CORRUPT", "The LZX stream does not describe the expected expanded size.");
         }
-        if (_uncompressedPaddingPending)
+        if (requireCompleteBlocks && _uncompressedPaddingPending)
             throw Error("LZX_TRUNCATED", "The final LZX uncompressed-block padding byte is missing.");
     }
 
     /// <summary>Decodes one complete CFDATA frame. The returned buffer is valid only until the next call.
     /// E8 reversal affects output only; later dictionary matches see untranslated history.</summary>
     internal byte[] DecodeFrame(byte[] data, int offset, int count, int expandedSize) {
-        if (expandedSize < 1 || expandedSize > _frame.Length) throw new ArgumentOutOfRangeException(nameof(expandedSize));
+        if (expandedSize < 0 || expandedSize > _frame.Length) throw new ArgumentOutOfRangeException(nameof(expandedSize));
         _cancellationToken.ThrowIfCancellationRequested();
         _frameStart = _outputOffset;
         int frameEnd = checked(_outputOffset + expandedSize);

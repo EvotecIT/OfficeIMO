@@ -77,6 +77,16 @@ namespace OfficeIMO.Archives.Tests {
             Assert.Throws<OperationCanceledException>(() => decoder.Complete());
         }
 
+        [Fact]
+        public void ChmResetGroupsCanEndInsideABlockWhileCabinetFoldersRequireItsEnd() {
+            byte[] frame = ArchiveFixtures.LzxRawFrame(Encoding.ASCII.GetBytes("ABCD"), true);
+            // Advertise an eight-byte block, with this four-byte CHM reset group ending partway through it.
+            frame[2] = 0x80; frame[3] = 0;
+            byte[] decoded = OfficeLzxDecoder.Decompress(new[] { frame }, new[] { 4 }, 15, 4, requireCompleteBlocks: false);
+            Assert.Equal("ABCD", Encoding.ASCII.GetString(decoded));
+            Assert.Throws<OfficeLzxException>(() => OfficeLzxDecoder.Decompress(new[] { frame }, new[] { 4 }, 15, 4));
+        }
+
         [Theory]
         [InlineData(15)]
         [InlineData(16)]
