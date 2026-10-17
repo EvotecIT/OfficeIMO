@@ -11,7 +11,7 @@ public partial class HtmlRenderOptions : OfficeImageExportOptions {
     /// <summary>CSS reference pixel density used for physical page conversion.</summary>
     public const double CssPixelsPerInch = 96D;
 
-    /// <summary>Creates the default continuous render configuration.</summary>
+    /// <summary>Creates the default paged render configuration.</summary>
     public HtmlRenderOptions() {
         PageSize = OfficePageSizes.A4;
         Margins = HtmlRenderMargins.All(48D);
@@ -75,8 +75,20 @@ public partial class HtmlRenderOptions : OfficeImageExportOptions {
     // The same selected fallback face supplies CSS line-box metrics when it is not a document font.
     internal Func<string, OfficeFontInfo, OfficeFontFaceDescriptor, HtmlTextFaceMetrics?>? FallbackTextFaceMetrics { get; set; }
 
-    /// <summary>Default line-height multiplier.</summary>
-    public double DefaultLineHeight { get; set; } = 1.2D;
+    private double _defaultLineHeight = 1.2D;
+    private bool _hasExplicitDefaultLineHeight;
+
+    /// <summary>
+    /// Fallback line-height multiplier when selected font metrics are unavailable.
+    /// Assign explicitly to override missing or normal CSS line height with this multiplier.
+    /// Authored numeric, length and percentage line heights retain precedence.
+    /// </summary>
+    public double DefaultLineHeight {
+        get => _defaultLineHeight;
+        set { _defaultLineHeight = value; _hasExplicitDefaultLineHeight = true; }
+    }
+
+    internal bool HasExplicitDefaultLineHeight => _hasExplicitDefaultLineHeight;
 
     /// <summary>
     /// Bounded user-agent style defaults applied before authored CSS.
@@ -271,7 +283,8 @@ public partial class HtmlRenderOptions : OfficeImageExportOptions {
         target.AllowSystemFontFallback = AllowSystemFontFallback;
         target.MathOnlySystemFontFallback = MathOnlySystemFontFallback;
         target.FallbackTextFaceMetrics = FallbackTextFaceMetrics;
-        target.DefaultLineHeight = DefaultLineHeight;
+        target._defaultLineHeight = _defaultLineHeight;
+        target._hasExplicitDefaultLineHeight = _hasExplicitDefaultLineHeight;
         target.UserAgentStyles = UserAgentStyles;
         target.TextHyphenationCallback = TextHyphenationCallback;
         target.MediaFeatures = (MediaFeatures ?? new HtmlRenderMediaFeatures()).Clone();

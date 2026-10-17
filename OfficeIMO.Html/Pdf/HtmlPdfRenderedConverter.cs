@@ -132,6 +132,10 @@ internal static partial class HtmlPdfRenderedConverter {
         measurementOptions.TextShapingLanguageOverride = options.TextShapingLanguage;
         measurementOptions.SetTextShapingMode(options.TextShapingMode).SetTextShapingProvider(options.TextShapingProvider);
         if (options.FontFamily != null) measurementOptions.RegisterFontFamily(PdfCore.PdfStandardFont.Helvetica, options.FontFamily);
+        if (renderOptions.LibrarySelectedDefaultFontFamily != null) {
+            measurementOptions.RegisterFontFamily(PdfCore.PdfStandardFont.Helvetica,
+                renderOptions.LibrarySelectedDefaultFontFamily);
+        }
         renderOptions.AllowSystemFontFallback = renderOptions.AllowSystemFontFallback
             && options.ResourcePolicy.AllowSystemFontEmbedding;
         renderOptions.MathOnlySystemFontFallback = renderOptions.MathOnlySystemFontFallback
@@ -197,6 +201,7 @@ internal static partial class HtmlPdfRenderedConverter {
         target.TextFallbacks = source.TextFallbacks;
         target.TextShapingMode = source.TextShapingMode;
         target.FontFamily = source.FontFamily;
+        target.LibrarySelectedDefaultFontFamily = source.LibrarySelectedDefaultFontFamily;
         target.InteractiveFormControls = source.InteractiveFormControls;
         target.MathMlSourceModificationDate = source.MathMlSourceModificationDate;
         target.PrintLayoutWidthCssPixels = source.PrintLayoutWidthCssPixels;
@@ -292,12 +297,14 @@ internal static partial class HtmlPdfRenderedConverter {
             if (options.ResourcePolicy.AllowDocumentFontEmbedding) {
                 RegisterUsedSystemFontFamilies(pdf, rendered, activeWebFontFamilies,
                     reservedFontSlots, cancellationToken);
-            } else if (activeTextFallbacks != PdfCore.PdfTextFallbackFeatures.None && options.FontFamily == null) {
+            } else if ((activeTextFallbacks != PdfCore.PdfTextFallbackFeatures.None
+                    || options.LibrarySelectedDefaultFontFamily != null) && options.FontFamily == null) {
                 RegisterLibrarySelectedDefaultSystemFontFamily(
                     pdf,
                     rendered,
                     activeWebFontFamilies,
                     reservedFontSlots,
+                    options.LibrarySelectedDefaultFontFamily,
                     cancellationToken);
             }
         }

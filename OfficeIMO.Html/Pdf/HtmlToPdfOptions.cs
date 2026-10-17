@@ -29,6 +29,8 @@ public sealed class HtmlToPdfOptions : HtmlRenderOptions {
     internal HtmlRenderResourceResolver? EmbeddedPackageResourceResolver { get; set; }
     internal HtmlUrlPolicy? EmbeddedPackageHostResourceUrlPolicy { get; set; }
     internal DrawingCore.OfficePageSize? PrintOutputPageSize { get; set; }
+    // One approved library-selected face snapshot supplies both layout and PDF paint.
+    internal PdfCore.PdfEmbeddedFontFamily? LibrarySelectedDefaultFontFamily { get; set; }
     /// <summary>Creates direct paged HTML-to-PDF options using the standard defaults.</summary>
     public HtmlToPdfOptions() {
         Mode = HtmlRenderMode.Paged;
@@ -162,6 +164,7 @@ public sealed class HtmlToPdfOptions : HtmlRenderOptions {
         TextFallbacks = source.TextFallbacks;
         TextShapingMode = source.TextShapingMode;
         FontFamily = source.FontFamily;
+        LibrarySelectedDefaultFontFamily = source.LibrarySelectedDefaultFontFamily;
         InteractiveFormControls = source.InteractiveFormControls;
         MathMlSourceModificationDate = source.MathMlSourceModificationDate;
         PrintLayoutWidthCssPixels = source.PrintLayoutWidthCssPixels;

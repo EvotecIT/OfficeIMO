@@ -577,9 +577,11 @@ internal sealed partial class HtmlRenderLayoutEngine {
         var candidates = new SortedSet<double>();
         foreach (TableCellLayout cell in row.Cells) {
             double contentTop = cell.ContentOffsetY;
-            double finalSafeOffset = cell.Inline.Height - cell.Style.LineHeight + 0.0001D;
             foreach (double offset in cell.Inline.BreakOffsets) {
-                if (offset <= finalSafeOffset) candidates.Add(contentTop + offset);
+                // These offsets already end actual laid-out lines. Subtracting
+                // computed CSS leading can discard the penultimate line when
+                // its selected font has a different used normal advance.
+                if (offset < cell.Inline.Height - 0.0001D) candidates.Add(contentTop + offset);
             }
         }
 
