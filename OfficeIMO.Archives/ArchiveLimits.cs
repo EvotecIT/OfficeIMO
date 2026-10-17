@@ -13,12 +13,19 @@ internal sealed partial class ArchiveLimits {
                 if (format != ArchiveFormat.Cab && format != ArchiveFormat.Msi && format != ArchiveFormat.Zip)
                     throw new ArgumentOutOfRangeException(nameof(options.AllowedFormats));
         }
+        if (options.ZipLegacyCodePage <= 0) throw new ArgumentOutOfRangeException(nameof(options.ZipLegacyCodePage));
+        ZipLegacyCodePage = options.ZipLegacyCodePage;
+        Operation = options.OperationBudget ?? new ArchiveOperationBudget(new ArchiveOperationLimits {
+            MaxInputBytes = long.MaxValue, MaxEntryCount = long.MaxValue, MaxExpandedBytes = long.MaxValue,
+            MaxSelectedBytes = long.MaxValue, MaxDecompressionWorkBytes = long.MaxValue, MaxDepth = int.MaxValue
+        });
         Input = Positive(options.MaxInputBytes, nameof(options.MaxInputBytes));
         Entries = checked((int)Positive(options.MaxEntryCount, nameof(options.MaxEntryCount)));
         Cabinets = checked((int)Positive(options.MaxCabinetCount, nameof(options.MaxCabinetCount)));
         Entry = Positive(options.MaxEntryBytes, nameof(options.MaxEntryBytes));
         Expanded = Positive(options.MaxExpandedBytes, nameof(options.MaxExpandedBytes));
-        DecompressionWork = new OfficeCabinetWorkBudget(Positive(options.MaxDecompressionWorkBytes, nameof(options.MaxDecompressionWorkBytes)));
+        DecompressionWork = new OfficeCabinetWorkBudget(Positive(options.MaxDecompressionWorkBytes, nameof(options.MaxDecompressionWorkBytes)),
+            (work, expanded) => Operation.Decode(expanded, work), bytes => Operation.Select(bytes));
         Metadata = Positive(options.MaxMetadataBytes, nameof(options.MaxMetadataBytes));
         Rows = checked((int)Positive(options.MaxTableRows, nameof(options.MaxTableRows)));
         Strings = checked((int)Positive(options.MaxStringPoolEntries, nameof(options.MaxStringPoolEntries)));
@@ -26,6 +33,8 @@ internal sealed partial class ArchiveLimits {
         PathLength = checked((int)Positive(options.MaxPathLength, nameof(options.MaxPathLength)));
         Include = options.IncludeFile;
     }
+    internal ArchiveOperationBudget Operation { get; }
+    internal int? ZipLegacyCodePage { get; }
     internal long Input { get; }
     internal HashSet<ArchiveFormat>? AllowedFormats { get; }
     internal int Entries { get; }

@@ -336,7 +336,7 @@ internal static partial class OfficeArchiveSafety {
                         records.Add(new ZipCentralDirectoryRecord(ReadZipUInt16(header, 8),
                             ReadZipUInt16(header, 10), ReadZipUInt32(header, 16),
                             (long)coordinates.Compressed, (long)coordinates.Expanded, name,
-                            checked(originalPosition + (long)coordinates.Offset), checked(originalPosition + (long)centralDirectoryOffset), coordinates.Zip64));
+                            checked(originalPosition + (long)coordinates.Offset), checked(originalPosition + (long)centralDirectoryOffset), coordinates.Zip64, ReadZipUInt16(header, 12), ReadZipUInt16(header, 14)));
                     }
                     cursor += recordLength;
                 } else if (signature == CentralDirectoryDigitalSignature) {
@@ -523,7 +523,7 @@ internal static partial class OfficeArchiveSafety {
     /// Size and offset fields include resolved ZIP64 values.</summary>
     internal readonly struct ZipCentralDirectoryRecord {
         internal ZipCentralDirectoryRecord(ushort flags, ushort compressionMethod, uint crc32,
-            long compressedSize, long uncompressedSize, byte[] nameBytes, long localHeaderOffset, long payloadUpperBound, bool usesZip64) {
+            long compressedSize, long uncompressedSize, byte[] nameBytes, long localHeaderOffset, long payloadUpperBound, bool usesZip64, ushort dosTime = 0, ushort dosDate = 0) {
             Flags = flags;
             CompressionMethod = compressionMethod;
             Crc32 = crc32;
@@ -532,6 +532,7 @@ internal static partial class OfficeArchiveSafety {
             NameBytes = nameBytes;
             LocalHeaderOffset = localHeaderOffset;
             PayloadUpperBound = payloadUpperBound;
+            DosTime = dosTime; DosDate = dosDate;
             UsesZip64 = usesZip64;
         }
 
@@ -543,6 +544,8 @@ internal static partial class OfficeArchiveSafety {
         internal byte[] NameBytes { get; }
         internal long LocalHeaderOffset { get; }
         internal long PayloadUpperBound { get; }
+        internal ushort DosTime { get; }
+        internal ushort DosDate { get; }
         internal bool UsesZip64 { get; }
     }
 

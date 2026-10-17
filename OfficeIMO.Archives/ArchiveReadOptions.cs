@@ -4,6 +4,12 @@ namespace OfficeIMO.Archives;
 
 /// <summary>Finite limits for verified, in-memory ZIP member reads.</summary>
 public sealed class ArchiveReadOptions {
+    /// <summary>Optional cumulative budget shared with related and nested archive operations.</summary>
+    public ArchiveOperationBudget? OperationBudget { get; set; }
+    /// <summary>Explicit code page for unflagged non-ASCII ZIP names. Null retains strict ASCII/UTF-8 admission;
+    /// the UTF-8 flag always takes precedence. No host-locale inference occurs.</summary>
+    public int? ZipLegacyCodePage { get; set; }
+
     /// <summary>Maximum compressed input bytes, including unselected members. Defaults to 64 MiB. Stream snapshots are also bounded by Int32.MaxValue.</summary>
     public long MaxInputBytes { get; set; } = 64L * 1024 * 1024;
     /// <summary>Maximum physical members, including directories and unselected files.</summary>
@@ -21,7 +27,7 @@ public sealed class ArchiveReadOptions {
     public Func<string, bool>? IncludeFile { get; set; }
 
     internal ArchiveLimits Limits() => new(new ArchiveExtractionOptions {
-        MaxInputBytes = MaxInputBytes, MaxEntryCount = MaxEntryCount, MaxEntryBytes = MaxEntryBytes,
+        OperationBudget = OperationBudget, ZipLegacyCodePage = ZipLegacyCodePage, MaxInputBytes = MaxInputBytes, MaxEntryCount = MaxEntryCount, MaxEntryBytes = MaxEntryBytes,
         MaxExpandedBytes = MaxExpandedBytes, MaxPathDepth = MaxPathDepth, MaxPathLength = MaxPathLength,
         IncludeFile = IncludeFile
     });

@@ -12,6 +12,7 @@ public static partial class ArchiveExtractor {
         ref long total, CancellationToken token) {
         using var database = new MsiPackageReader(source, limits, token);
         IReadOnlyList<MsiPayloadFile> payload = database.ReadFiles(out IReadOnlyList<string> cabinets);
+        limits.Operation.AdmitEntries(payload.Count);
         var groups = payload.ToLookup(file => file.Cabinet, StringComparer.Ordinal);
         ArchiveLimits.Check(cabinets.Count, limits.Cabinets, "MaxCabinetCount");
         long cabinetInputBytes = 0;
@@ -35,6 +36,7 @@ public static partial class ArchiveExtractor {
             try {
                 entries = OfficeCabinetArchiveReader.Read(cabinet, limits.Input,
                 decodedBudget, limits.Entry, Math.Max(1, expected.Count), out decodedBytes, token, memberName => {
+                    limits.Operation.AdmitEntries(1);
                     if (!expected.TryGetValue(memberName, out MsiPayloadFile? file))
                         throw new InvalidDataException("MSI cabinet contains a member absent from its File/Media mapping.");
                     if (!found.Add(memberName)) throw new InvalidDataException("MSI cabinet repeats a File identifier.");

@@ -22,13 +22,13 @@ public sealed partial class ArchiveInspection : IDisposable {
         _limits = limits; _directoryRecords = directoryRecords; InputLength = input.LongLength;
         using var source = new MemoryStream(input, writable: false);
         Format = ArchiveExtractor.Detect(source, token);
-        if (Format != ArchiveFormat.Cab && Format != ArchiveFormat.Msi)
-            throw new NotSupportedException("Passive archive inspection supports Cabinet and Windows Installer containers.");
-        StorageStreams = Array.Empty<ArchiveStorageStream>();
+                StorageStreams = Array.Empty<ArchiveStorageStream>();
         try {
             var budget = new OfficeCabinetDirectoryBudget(directoryRecords);
-            if (Format == ArchiveFormat.Cab) {
+            if (Format == ArchiveFormat.Zip) Entries = ReadZipInventory(input, token);
+            else if (Format == ArchiveFormat.Cab) {
                 var cabinet = OfficeCabinetArchiveReader.Inspect(input, limits.Expanded, limits.Entry, limits.Entries, budget, token);
+                _limits.Operation.AdmitEntries(cabinet.Members.Count);
                 _cabinets.Add(string.Empty, cabinet);
                 var entries = new List<ArchiveInspectionEntry>(cabinet.Members.Count);
                 foreach (OfficeCabinetMemberInfo member in cabinet.Members) {
@@ -42,19 +42,23 @@ public sealed partial class ArchiveInspection : IDisposable {
         catch { Dispose(); throw; }
     }
 
+    /// <summary>Snapshot of cumulative resource charges for this inspection and related containers.</summary>
+    public ArchiveResourceUsage ResourceUsage => _limits.Operation.Usage;
+    /// <summary>The shared operation budget. Pass CreateNested() when opening a member as another container.</summary>
+    public ArchiveOperationBudget OperationBudget => _limits.Operation;
     /// <summary>The detected container format.</summary>
     public ArchiveFormat Format { get; }
     /// <summary>Complete input snapshot size.</summary>
     public long InputLength { get; }
-    /// <summary>Authored CAB records or MSI File rows in source order, including aliases and unsupported source profiles.</summary>
+    /// <summary>Authored ZIP/CAB records or MSI File rows in source order, including aliases and unsupported source profiles.</summary>
     public IReadOnlyList<ArchiveInspectionEntry> Entries { get; }
     /// <summary>Inert raw MSI storage streams in compound directory traversal order; empty for CAB.</summary>
     public IReadOnlyList<ArchiveStorageStream> StorageStreams { get; private set; }
     /// <summary>Cumulative charged expanded folder and raw stream bytes, including attempted reads that fail.</summary>
     public long ReadBytes { get { lock (_gate) return _readBytes; } }
-    /// <summary>Cumulative CAB frame-processing work charged across member reads, including failed attempts after charging.
+    /// <summary>Cumulative CAB frame or ZIP processing work charged across member reads, including failed attempts after charging.
     /// Units bound frame setup and processing rather than exact CPU time or expanded payload size.</summary>
-    public long DecompressionWorkBytes { get { lock (_gate) return _limits.DecompressionWork.ConsumedBytes; } }
+    public long DecompressionWorkBytes { get { lock (_gate) return _limits.DecompressionWork.ConsumedBytes + _zipWorkBytes; } }
 
     /// <summary>Returns a read-only stream containing one complete length-validated member. Every nonzero CAB frame checksum
     /// in its containing folder is checked; absent checksums do not establish authenticity. The source ordinal selects duplicate names
@@ -69,10 +73,13 @@ public sealed partial class ArchiveInspection : IDisposable {
             if (ordinal < 0 || ordinal >= Entries.Count) throw new ArgumentOutOfRangeException(nameof(ordinal));
             ArchiveInspectionEntry entry = Entries[ordinal];
             if (entry.Diagnostic != null) throw new NotSupportedException(entry.Diagnostic.Code + ": " + entry.Diagnostic.Message);
+            if (Format == ArchiveFormat.Zip) return OpenZipMember(ordinal, cancellationToken);
             string key = entry.CabinetName == null ? string.Empty : entry.CabinetName.Substring(1);
             OfficeCabinetArchiveReader.Inspection cabinet = _cabinets[key];
             long bytes = entry.FolderExpandedBytes!.Value;
             long remaining = _limits.Expanded - _readBytes;
+            ArchiveLimits.Check(bytes, remaining, "MaxExpandedBytes");
+            _limits.Operation.Select(entry.Length);
             // Reserve the full attempted decode, including gaps and sibling files, before invoking the decoder.
             ArchiveLimits.Add(ref _readBytes, bytes, _limits.Expanded, "MaxExpandedBytes");
             try {
@@ -91,9 +98,11 @@ public sealed partial class ArchiveInspection : IDisposable {
             if (ordinal < 0 || ordinal >= StorageStreams.Count) throw new ArgumentOutOfRangeException(nameof(ordinal));
             ArchiveStorageStream entry = StorageStreams[ordinal];
             _limits.CheckEntry(entry.Length);
-            ArchiveLimits.Add(ref _readBytes, entry.Length, _limits.Expanded, "MaxExpandedBytes");
-            using Stream source = _database!.OpenRawStream(entry.RawName, cancellationToken);
             ArchiveLimits.Check(entry.Length, Math.Min(_limits.Entry, int.MaxValue), "MaxEntryBytes");
+            ArchiveLimits.Add(ref _readBytes, entry.Length, _limits.Expanded, "MaxExpandedBytes");
+            _limits.Operation.Select(entry.Length);
+            _limits.Operation.Decode(entry.Length, entry.Length);
+            using Stream source = _database!.OpenRawStream(entry.RawName, cancellationToken);
             byte[] payload = OfficeArchiveSafety.ReadEntryBytes(source, entry.Length, _limits.Entry, cancellationToken);
             if (payload.LongLength != entry.Length) throw new InvalidDataException("MSI raw stream length differs from its declared complete size.");
             cancellationToken.ThrowIfCancellationRequested();
@@ -107,6 +116,7 @@ public sealed partial class ArchiveInspection : IDisposable {
             if (_disposed) return;
             _disposed = true; _database?.Dispose(); _databaseSource?.Dispose();
             _database = null; _databaseSource = null; _cabinets.Clear();
+            _zipSource?.Dispose(); _zipSource = null; _zipRecords = null;
         }
     }
     private void ThrowIfDisposed() { if (_disposed) throw new ObjectDisposedException(nameof(ArchiveInspection)); }
@@ -116,7 +126,7 @@ public sealed partial class ArchiveInspection : IDisposable {
         ArchiveCompression compression = method == 0 ? ArchiveCompression.Store : method == 1 ? ArchiveCompression.MsZip
             : method == 2 ? ArchiveCompression.Quantum : method == 3 ? ArchiveCompression.Lzx : ArchiveCompression.Unknown;
         var diagnostic = member.UnsupportedCode == null ? null : new ArchiveInspectionDiagnostic(member.UnsupportedCode,
-            "The declared CAB folder compression or its parameters are unsupported.");
+            "The declared ZIP member or CAB folder compression or its parameters are unsupported.");
         return new ArchiveInspectionEntry(ordinal, member.Name, rawFileName, path, member.Length, cabinet,
             member.Ordinal, sequence, compression, member.Compression, member.FolderOrdinal,
             member.FolderCompressedBytes, member.FolderExpandedBytes, member.FolderFrameCount, member.FolderChecksumFrameCount, diagnostic);

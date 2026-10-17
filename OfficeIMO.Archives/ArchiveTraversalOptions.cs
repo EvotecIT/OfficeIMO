@@ -6,6 +6,13 @@ namespace OfficeIMO.Archives;
 /// Controls safe ZIP traversal behavior.
 /// </summary>
 public sealed class ArchiveTraversalOptions {
+    /// <summary>Optional cumulative budget for input and physical entries. Preflight alone does not charge it.
+    /// An already-opened ZipArchive charges only entries; an existing inspection retains its own original budget.</summary>
+    public ArchiveOperationBudget? OperationBudget { get; set; }
+    /// <summary>Explicit code page for unflagged non-ASCII ZIP names. Null retains strict ASCII/UTF-8 admission;
+    /// the UTF-8 flag always takes precedence. No host-locale inference occurs.</summary>
+    public int? ZipLegacyCodePage { get; set; }
+
     /// <summary>
     /// Maximum number of entries to emit.
     /// </summary>

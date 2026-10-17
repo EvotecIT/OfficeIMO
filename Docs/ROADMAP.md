@@ -446,10 +446,15 @@ Qualify complete script-free HtmlForgeX reports through the shared HTML scene an
 
 ## Archive containers
 
-- [ ] Assess lazy entry streams only against a real workflow, with explicit owner and disposal contracts; keep application selection in thin consumers.
-- [ ] Add structured verification diagnostics and reported resource usage. Use one cumulative budget for nested containers across inspection, reading and extraction.
-- [ ] Extend independent producer fixtures for ZIP64, streaming descriptors, CAB and MSI across supported runtimes. Define an explicit legacy filename-encoding policy and qualify Polish names from Windows Explorer and 7-Zip without guessing the host code page.
-- [ ] Qualify TAR/GZip when a concrete cross-platform ingestion workflow requires them. Assess archive creation, deterministic bundles, encryption and additional compression providers separately against actual consumers, compatibility and dependency approval.
+The active delivery combines verified ingestion, one inspection workflow and producer qualification. `OfficeIMO.Archives` owns container mechanics; `OfficeIMO.Reader.Zip` owns document selection and ingestion. Keep raw names and duplicate source ordinals in passive inspection, and enforce portable paths and collisions when publishing files.
+
+- [ ] Route ordinary and nested Reader ZIP payload reads through Archives' complete length, Deflate framing and CRC verification. Reject damaged or falsely shortened members before document dispatch; preserve actionable warnings and terminal resource failures.
+- [ ] Extend the existing inspection and grouped selected-member workflow to ZIP alongside CAB and MSI. Add verification without extraction, structured per-member outcomes and resource-usage reports; preserve detached stream ownership, source identity, cancellation and no-partial-batch guarantees.
+- [ ] Share a cumulative operation budget across nested inspection, reads and extraction for admitted input, physical entries, decoded expansion, selected payloads, processing work and depth. Count repeated and failed attempts and unavoidable unselected solid-folder work; retain existing per-container limits and Reader document budgets.
+- [ ] Qualify independent ZIP64 and streaming-descriptor ZIPs, legacy and UTF-8 Polish names, solid LZX CABs and ordinary MSI payloads. Add an explicit caller-selected legacy ZIP encoding with strict defaults and portable collision checks. Validate packed public APIs in a real consumer and distinguish local, native-producer, supported-runtime and package evidence.
+- [ ] Assess bounded verified copying or spooling for a demonstrated larger-input workflow. Include it in this delivery only if verification, cancellation, destination ownership and partial-output behavior stay small and explicit; otherwise retain it as follow-on work. Lazy streams require a separate lifetime and verification contract.
+
+TAR/GZip, archive creation, deterministic bundles, encryption, RAR/7z, split archives and installer execution are outside this delivery. Reassess format expansion only for an identified consumer workflow, with compatibility and dependency approval.
 
 ## Email artifacts and archives
 

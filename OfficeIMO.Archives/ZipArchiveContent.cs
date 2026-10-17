@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
-using System.Text;
 using System.Threading;
 using OfficeIMO.Core.Internal;
 using OfficeIMO.Drawing;
@@ -9,20 +8,13 @@ using OfficeIMO.Drawing;
 namespace OfficeIMO.Archives;
 
 internal static class ZipArchiveContent {
-    private const ushort ZipUtf8NameFlag = 0x0800;
     private const ushort ZipStored = 0;
     private const ushort ZipDeflate = 8;
-    private static readonly Encoding StrictUtf8 = new UTF8Encoding(encoderShouldEmitUTF8Identifier: false, throwOnInvalidBytes: true);
 
     internal static void Read(Stream source, ArchiveLimits limits, Action<string, Stream, long> consume, CancellationToken token) {
         // Scan metadata before opening payloads. Raw compressed windows avoid runtime-specific decoded-size clamps;
         // WriteStream proves decoded EOF and the declared length, and CRC binds the emitted bytes to the record.
-        var records = new List<OfficeArchiveSafety.ZipCentralDirectoryRecord>();
-        source.Position = 0;
-        OfficeArchiveSafety.ZipCentralDirectoryScanResult scan =
-            OfficeArchiveSafety.ScanZipCentralDirectoryForExtraction(source, source.Length, limits.Entries, records, token);
-        if (scan.LimitExceeded) throw ArchiveLimits.Exceeded(nameof(ArchiveExtractionOptions.MaxEntryCount), limits.Entries);
-        if (!scan.IsValid) throw new InvalidDataException(scan.Error ?? "The ZIP central directory is malformed.");
+        var records = ReadDirectory(source, limits, token);
         foreach (OfficeArchiveSafety.ZipCentralDirectoryRecord record in records) {
             if (record.CompressionMethod != ZipStored && record.CompressionMethod != ZipDeflate)
                 throw new NotSupportedException("ZIP members must be stored or Deflate-compressed.");
@@ -37,9 +29,10 @@ internal static class ZipArchiveContent {
         foreach (OfficeArchiveSafety.ZipCentralDirectoryRecord record in records) {
             token.ThrowIfCancellationRequested();
             long length = record.UncompressedSize;
-            string name = DecodeName(record);
+            string name = ArchiveZipNames.Decode(record, limits.ZipLegacyCodePage);
             if (name.EndsWith("/", StringComparison.Ordinal) || name.EndsWith("\\", StringComparison.Ordinal)) {
                 if (length != 0) throw new InvalidDataException("A ZIP directory member has content: " + name);
+                Charge(record, limits);
                 using (var payload = new Crc32ReadStream(OfficeArchiveSafety.OpenEntryPayload(source, record, token), record.UncompressedSize, token)) {
                     if (payload.Read(new byte[1], 0, 1) != 0 || payload.Crc32 != record.Crc32)
                         throw new InvalidDataException("A ZIP directory member has invalid empty content: " + name);
@@ -56,6 +49,7 @@ internal static class ZipArchiveContent {
         }
         foreach (var item in selected) {
             token.ThrowIfCancellationRequested();
+            Charge(item.Record, limits);
             using var payload = new Crc32ReadStream(OfficeArchiveSafety.OpenEntryPayload(source, item.Record, token), item.Record.UncompressedSize, token);
             consume(item.Path, payload, item.Record.UncompressedSize);
             payload.VerifyComplete();
@@ -63,20 +57,60 @@ internal static class ZipArchiveContent {
         }
     }
 
-    // Unflagged names decode through a host- or runtime-dependent code page, so they are accepted only as ASCII.
-    // Flagged names must be well-formed UTF-8 rather than silently gaining replacement characters.
-    private static string DecodeName(OfficeArchiveSafety.ZipCentralDirectoryRecord record) {
-        byte[] bytes = record.NameBytes;
-        if ((record.Flags & ZipUtf8NameFlag) != 0) {
-            try {
-                return StrictUtf8.GetString(bytes);
-            } catch (DecoderFallbackException exception) {
-                throw new InvalidDataException("A ZIP member name flagged as UTF-8 is not valid UTF-8.", exception);
-            }
+    internal static List<OfficeArchiveSafety.ZipCentralDirectoryRecord> ReadDirectory(Stream source, ArchiveLimits limits, CancellationToken token) {
+        var records = new List<OfficeArchiveSafety.ZipCentralDirectoryRecord>();
+        source.Position = 0;
+        OfficeArchiveSafety.ZipCentralDirectoryScanResult scan =
+            OfficeArchiveSafety.ScanZipCentralDirectoryForExtraction(source, source.Length, limits.Entries, records, token);
+        if (scan.LimitExceeded) throw ArchiveLimits.Exceeded(nameof(ArchiveExtractionOptions.MaxEntryCount), limits.Entries);
+        if (!scan.IsValid) throw new InvalidDataException(scan.Error ?? "The ZIP central directory is malformed.");
+        limits.Operation.AdmitEntries(records.Count);
+        return records;
+    }
+
+    internal static ArchiveInspectionDiagnostic? Unsupported(OfficeArchiveSafety.ZipCentralDirectoryRecord record) {
+        if (record.CompressionMethod != ZipStored && record.CompressionMethod != ZipDeflate)
+            return new ArchiveInspectionDiagnostic("ZIP_COMPRESSION", "The ZIP member compression method is unsupported.");
+        if (!OfficeArchiveSafety.HasSupportedZipFlags(record.Flags, record.CompressionMethod))
+            return new ArchiveInspectionDiagnostic("ZIP_FLAGS", "The ZIP member uses encryption or unsupported flags.");
+        return null;
+    }
+
+    internal static void Charge(OfficeArchiveSafety.ZipCentralDirectoryRecord record, ArchiveLimits limits) {
+        limits.Operation.ReadZip(record.UncompressedSize, record.UncompressedSize, Work(record));
+    }
+
+    internal static long Work(OfficeArchiveSafety.ZipCentralDirectoryRecord record) =>
+        record.UncompressedSize > (long.MaxValue - record.CompressedSize) / 2
+            ? long.MaxValue : record.CompressedSize + 2 * record.UncompressedSize;
+
+    internal static void CopyVerified(Stream source, OfficeArchiveSafety.ZipCentralDirectoryRecord record,
+        Stream destination, CancellationToken token) {
+        using var payload = new Crc32ReadStream(OfficeArchiveSafety.OpenEntryPayload(source, record, token), record.UncompressedSize, token);
+        var buffer = new byte[65536];
+        while (true) {
+            token.ThrowIfCancellationRequested();
+            int read = payload.Read(buffer, 0, buffer.Length);
+            if (read == 0) break;
+            destination.Write(buffer, 0, read);
         }
-        foreach (byte value in bytes)
-            if (value > 0x7f) throw new NotSupportedException("ZIP member names with non-ASCII characters must be flagged as UTF-8.");
-        return Encoding.ASCII.GetString(bytes);
+        payload.VerifyComplete();
+        if (payload.Crc32 != record.Crc32) throw new InvalidDataException("ZIP member checksum does not match.");
+    }
+
+    internal static byte[] ReadVerified(Stream source, OfficeArchiveSafety.ZipCentralDirectoryRecord record, CancellationToken token) {
+        if (record.UncompressedSize > int.MaxValue) throw ArchiveLimits.Exceeded("MaxEntryBytes", int.MaxValue);
+        using var payload = new Crc32ReadStream(OfficeArchiveSafety.OpenEntryPayload(source, record, token), record.UncompressedSize, token);
+        var result = new byte[(int)record.UncompressedSize];
+        for (int offset = 0; offset < result.Length;) {
+            token.ThrowIfCancellationRequested();
+            int read = payload.Read(result, offset, Math.Min(65536, result.Length - offset));
+            if (read == 0) throw new InvalidDataException("ZIP member is shorter than its declared length.");
+            offset += read;
+        }
+        payload.VerifyComplete();
+        if (payload.Crc32 != record.Crc32) throw new InvalidDataException("ZIP member checksum does not match.");
+        return result;
     }
 
     /// <summary>Forwards reads while accumulating the ZIP (IEEE) CRC-32 shared with PNG.</summary>

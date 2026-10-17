@@ -7,8 +7,11 @@ internal sealed class OfficeCabinetWorkBudget {
     internal const long DefaultMaximumBytes = 2L * 1024 * 1024 * 1024;
     private readonly long _maximumBytes;
     private long _remainingBytes;
+    private readonly Action<long, long>? _consumeFrame;
+    private readonly Action<long>? _select;
 
-    internal OfficeCabinetWorkBudget(long maximumBytes = DefaultMaximumBytes) {
+    internal OfficeCabinetWorkBudget(long maximumBytes = DefaultMaximumBytes, Action<long, long>? consumeFrame = null, Action<long>? select = null) {
+        _consumeFrame = consumeFrame; _select = select;
         if (maximumBytes < 1) throw new ArgumentOutOfRangeException(nameof(maximumBytes));
         _maximumBytes = maximumBytes;
         _remainingBytes = maximumBytes;
@@ -17,6 +20,8 @@ internal sealed class OfficeCabinetWorkBudget {
     /// <summary>Frame-processing work actually charged, including attempts that fail after charging.</summary>
     internal long ConsumedBytes => _maximumBytes - _remainingBytes;
     internal long MaximumBytes => _maximumBytes;
+
+    internal void Select(long bytes) => _select?.Invoke(bytes);
 
     /// <summary>Charges a frame before checksumming, buffering or decoding it. The 32 KiB
     /// minimum bounds frame setup; input bytes and MSZIP dictionary replay can increase the charge.
@@ -28,6 +33,7 @@ internal sealed class OfficeCabinetWorkBudget {
         if (workBytes > _remainingBytes) {
             throw new OfficeCabinetException("CAB_WORK_LIMIT", "CAB frame processing exceeds the configured aggregate decompression-work byte limit.", offset);
         }
+        _consumeFrame?.Invoke(workBytes, expandedLength);
         _remainingBytes -= workBytes;
     }
 }

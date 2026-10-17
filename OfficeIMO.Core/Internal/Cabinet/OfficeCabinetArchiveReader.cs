@@ -138,6 +138,7 @@ internal static partial class OfficeCabinetArchiveReader {
                     FileHeader file = files[index];
                     if ((long)file.FolderOffset + file.Length > source.LongLength) throw Error("CAB_ENTRY_RANGE", "A CAB entry extends past its folder.");
                     if (!selected[index]) continue;
+                    _workBudget.Select(file.Length);
                     var bytes = new byte[(int)file.Length];
                     if (bytes.Length > 0) Buffer.BlockCopy(source, (int)file.FolderOffset, bytes, 0, bytes.Length);
                     decodedEntries[index] = new OfficeCabinetEntry(file.Name, bytes);

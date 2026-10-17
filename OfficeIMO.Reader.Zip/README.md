@@ -113,3 +113,9 @@ The adapter checks compressed size and every physical ZIP entry before opening t
 - **OfficeIMO:** `OfficeIMO.Reader.Core` and `OfficeIMO.Archives` own safe traversal, nested-archive limits, extraction projection, and warnings.
 
 See the [complete OfficeIMO package map](../README.md) for related formats and conversion paths.
+
+## Verified payloads and cumulative archive limits
+
+Reader opens ZIP inventory through `OfficeIMO.Archives` and dispatches a member only after complete length, exact Deflate framing and CRC checks pass. Corrupt ordinary or nested members produce warnings instead of document content. Archive quota exhaustion is translated to the terminal `ReaderResourceLimitException` with its native exception preserved; it is not downgraded to a parse warning.
+
+Every read creates a cumulative archive budget shared with nested ZIPs. Set `ArchiveTraversalOptions.OperationBudget` to supply explicit tree limits or share them with related archive operations. The existing Reader document/chunk budgets continue to apply. Input snapshots and returned verified members consume additional memory beyond logical byte limits. Pass `ZipLegacyCodePage` only when the producer's encoding is known; strict ASCII/flagged-UTF-8 admission is the default, and UTF-8 declarations take precedence.
