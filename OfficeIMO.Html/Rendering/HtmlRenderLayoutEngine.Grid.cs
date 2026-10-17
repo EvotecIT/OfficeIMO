@@ -152,7 +152,6 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 items.Select(item => item.Item.Style));
         if (parallelTables && TryProjectParallelTableItems(element, contentWidth,
             items.Select(item => item.Block!).ToArray(),
-            pageBoundary?.Shift(style.MarginTop + style.BorderTopWidth + style.PaddingTop),
             out IReadOnlyList<HtmlRenderFlowBlock> projectedItems)) {
             for (int item = 0; item < projectedItems.Count; item++) items[item].Block = projectedItems[item];
             rowSizes[0] = projectedItems.Max(item => item.Height);

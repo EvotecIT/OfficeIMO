@@ -98,15 +98,24 @@ public sealed partial class HtmlRenderingTests {
     }
 
     [Theory]
-    [InlineData("flex", 40, 5)]
-    [InlineData("grid", 40, 5)]
-    [InlineData("flex", -10, 7)]
-    [InlineData("grid", -10, 7)]
-    public void HtmlTables_ParallelBandsUseTheCollapsedMarginOrigin(string display, int margin, int firstPageRows) {
+    [InlineData("flex", 40, 5, 0)]
+    [InlineData("grid", 40, 5, 0)]
+    [InlineData("flex", 40, 5, 1)]
+    [InlineData("grid", 40, 5, 1)]
+    [InlineData("flex", 40, 5, 2)]
+    [InlineData("grid", 40, 5, 2)]
+    [InlineData("flex", -10, 7, 0)]
+    [InlineData("grid", -10, 7, 0)]
+    [InlineData("flex", -10, 7, 2)]
+    [InlineData("grid", -10, 7, 2)]
+    public void HtmlTables_ParallelBandsUseTheCollapsedMarginOrigin(
+        string display, int margin, int firstPageRows, int wrapperDepth) {
+        string open = string.Concat(Enumerable.Repeat("<section style='margin:0;width:auto'>", wrapperDepth));
+        string close = string.Concat(Enumerable.Repeat("</section>", wrapperDepth));
         string html = ParallelReportStyle(display) + "<style>.intro{margin-bottom:" + margin
-            + "px}.columns{margin-top:" + margin + "px}</style><div class='intro'>Start</div>"
-            + "<div class='columns'>" + ParallelReportTable("Left", 18) + ParallelReportTable("Right", 27)
-            + "</div><div>End</div>";
+            + "px}.columns{margin-top:" + margin + "px}</style><main><div class='intro'>Start</div>"
+            + open + "<div class='columns'>" + ParallelReportTable("Left", 18) + ParallelReportTable("Right", 27)
+            + "</div>" + close + "<div>End</div></main>";
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, new HtmlRenderOptions { Mode = HtmlRenderMode.Paged });
 
         Assert.Equal(4, rendered.Pages.Count);

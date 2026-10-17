@@ -42,15 +42,15 @@ internal sealed partial class HtmlRenderLayoutEngine {
     }
 
     private bool TryProjectParallelTableItems(IElement element, double width,
-        IReadOnlyList<HtmlRenderFlowBlock> blocks, PagedFloatBoundary? boundary,
+        IReadOnlyList<HtmlRenderFlowBlock> blocks,
         out IReadOnlyList<HtmlRenderFlowBlock> projected) {
         projected = blocks;
         bool retained = _parallelTableProjections.TryGetValue(element, out ParallelTableProjectionContext? context);
         if (!retained) {
             ParallelTableProjectionAttempt? attempt = _parallelTableProjectionAttempt;
-            if (attempt == null || !ReferenceEquals(attempt.Element, element) || !boundary.HasValue
-                || boundary.Value.RemainingHeight <= 0.0001D || boundary.Value.FragmentStart > 0.0001D) return false;
-            context = new ParallelTableProjectionContext(boundary.Value, attempt.PageNumber,
+            if (attempt == null || !ReferenceEquals(attempt.Element, element)
+                || attempt.Boundary.RemainingHeight <= 0.0001D || attempt.Boundary.FragmentStart > 0.0001D) return false;
+            context = new ParallelTableProjectionContext(attempt.Boundary, attempt.PageNumber,
                 attempt.Geometry, attempt.PageHeight, width, attempt.PageName);
         }
         if (Math.Abs(context!.Width - width) > 0.0001D
@@ -66,6 +66,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         if (block.OwnerElement == null || HasInternalForcedBreak(block) || available <= 0.0001D) return false;
         IElement owner = block.OwnerElement;
         IElement? target = null;
+        double targetContentStart = 0D;
         foreach (KeyValuePair<IElement, HtmlRenderFlowBlock> entry in _parallelTableRegions) {
             CheckCancellation();
             ChargeLayoutOperation("parallel table boundary discovery");
@@ -73,13 +74,18 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 || !ContainsElementOrSelf(owner, entry.Key)
                 || !_layoutStyles.TryGetValue(entry.Key, out HtmlRenderBoxStyle? entryStyle)) continue;
             double start;
-            if (ReferenceEquals(owner, entry.Key)) start = 0D;
-            else if (TryResolveContentOrigin(entry.Key, owner, out PositionedPoint origin))
-                start = origin.Y - entryStyle.MarginTop - entryStyle.BorderTopWidth - entryStyle.PaddingTop;
-            else continue;
+            double contentStart;
+            if (ReferenceEquals(owner, entry.Key)) {
+                start = 0D;
+                contentStart = entryStyle.MarginTop + entryStyle.BorderTopWidth + entryStyle.PaddingTop;
+            } else if (TryResolveContentOrigin(entry.Key, owner, out PositionedPoint origin)) {
+                contentStart = origin.Y;
+                start = contentStart - entryStyle.MarginTop - entryStyle.BorderTopWidth - entryStyle.PaddingTop;
+            } else continue;
             if (start < offset - 0.0001D || start >= offset + available - 0.0001D
                 || start + entry.Value.Height <= offset + available + 0.0001D) continue;
             target = entry.Key;
+            targetContentStart = contentStart;
             break;
         }
         if (target == null) return false;
@@ -94,7 +100,11 @@ internal sealed partial class HtmlRenderLayoutEngine {
         HtmlRenderBoxStyle style = isRoot ? rootStyle : _styleResolver.Resolve(owner, geometry.ContentWidth, rootStyle);
         double leading = isRoot ? 0D : block.LeadingFlowAdjustment;
         var boundary = new PagedFloatBoundary(offset + available + leading, pageHeight, offset + leading);
-        var attempt = new ParallelTableProjectionAttempt(target, pageNumber, geometry, pageHeight, block.PageName);
+        // The completed normal-flow placements include margins collapsed through
+        // ordinary wrappers. A child's incoming boundary is computed earlier
+        // and cannot supply this final source origin.
+        var targetBoundary = boundary.Shift(targetContentStart);
+        var attempt = new ParallelTableProjectionAttempt(target, pageNumber, geometry, pageHeight, block.PageName, targetBoundary);
         _parallelTableProjectionAttempt = attempt;
         try {
             HtmlRenderFlowBlock candidate = isRoot
@@ -117,18 +127,21 @@ internal sealed partial class HtmlRenderLayoutEngine {
         HtmlCssPageGeometry Geometry, double PageHeight, double Width, string? PageName);
 
     private sealed class ParallelTableProjectionAttempt {
-        internal ParallelTableProjectionAttempt(IElement element, int pageNumber, HtmlCssPageGeometry geometry, double pageHeight, string? pageName) {
+        internal ParallelTableProjectionAttempt(IElement element, int pageNumber, HtmlCssPageGeometry geometry,
+            double pageHeight, string? pageName, PagedFloatBoundary boundary) {
             Element = element;
             PageNumber = pageNumber;
             Geometry = geometry;
             PageHeight = pageHeight;
             PageName = pageName;
+            Boundary = boundary;
         }
         internal IElement Element { get; }
         internal int PageNumber { get; }
         internal HtmlCssPageGeometry Geometry { get; }
         internal double PageHeight { get; }
         internal string? PageName { get; }
+        internal PagedFloatBoundary Boundary { get; }
         internal ParallelTableProjectionContext? Projection { get; set; }
     }
 }
