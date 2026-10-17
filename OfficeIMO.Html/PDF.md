@@ -173,7 +173,7 @@ format check does not establish visual equivalence to a browser or source applic
 
 Keep data binding outside the renderer. Build finalized, encoded HTML with Razor, Scriban, Handlebars, or the template system already used by the application, then pass that HTML to `HtmlConversionDocument.Parse`. OfficeIMO does not execute JavaScript or template expressions while rendering.
 
-In paged output, table cells measure and wrap through the shared layout engine. A leading `<thead>` and a trailing `<tfoot>` repeat on each table fragment. Use `<tfoot>` for a genuine repeating table footer; put a subtotal or grand-total card that must appear once after the table and give it `break-inside: avoid`.
+In paged output, table cells measure and wrap through the shared layout engine. A leading `<thead>` and a trailing `<tfoot>` repeat on each table fragment. Use `<tfoot>` for a genuine repeating table footer; put a subtotal or grand-total card that must appear once after the table and give it `break-inside: avoid`. Top-aligned, auto-height tables in one horizontal flex row or one ordinary auto grid row can continue independently, including their repeated groups and following content. See the [parallel-table contract and limits](README.md) before using more complex fragmenting containers.
 
 ```html
 <table>
