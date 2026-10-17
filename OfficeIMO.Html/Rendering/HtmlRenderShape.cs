@@ -8,11 +8,12 @@ namespace OfficeIMO.Html;
 public sealed class HtmlRenderShape : HtmlRenderVisual {
     private readonly OfficeShape _shape;
 
-    internal HtmlRenderShape(OfficeShape shape, double x, double y, int paintOrder, string? linkUri = null, string? source = null, double? layoutY = null, double? layoutHeight = null, bool isAtomicReplacedPlaceholder = false, bool canExtendFragmentBackground = false, bool isCollapsedTableBorder = false, double? collapsedBorderBoundaryY = null)
+    internal HtmlRenderShape(OfficeShape shape, double x, double y, int paintOrder, string? linkUri = null, string? source = null, double? layoutY = null, double? layoutHeight = null, bool isAtomicReplacedPlaceholder = false, bool canExtendFragmentBackground = false, bool isCollapsedTableBorder = false, double? collapsedBorderBoundaryY = null, HtmlRenderBorderEdges? fragmentTableBorders = null)
         : base(HtmlRenderVisualKind.Shape, x, y, shape?.Width ?? 0D, shape?.Height ?? 0D, paintOrder, linkUri, source, layoutY, layoutHeight) {
         _shape = shape?.Clone() ?? throw new ArgumentNullException(nameof(shape));
         IsAtomicReplacedPlaceholder = isAtomicReplacedPlaceholder;
         CanExtendFragmentBackground = canExtendFragmentBackground;
+        FragmentTableBorders = fragmentTableBorders;
         IsCollapsedTableBorder = isCollapsedTableBorder;
         CollapsedBorderBoundaryY = collapsedBorderBoundaryY;
     }
@@ -21,6 +22,9 @@ public sealed class HtmlRenderShape : HtmlRenderVisual {
 
     /// <summary>Plain auto-height box paint that may cover unused space in a continuing page fragment.</summary>
     internal bool CanExtendFragmentBackground { get; }
+
+    /// <summary>Own separate-table sides accompanying an eligible background through page slack.</summary>
+    internal HtmlRenderBorderEdges? FragmentTableBorders { get; }
 
     /// <summary>Grid paint that follows cell backgrounds and retains full strokes at row-boundary cuts.</summary>
     internal bool IsCollapsedTableBorder { get; }
@@ -34,8 +38,8 @@ public sealed class HtmlRenderShape : HtmlRenderVisual {
     internal OfficeShape InnerShape => _shape;
 
     internal override HtmlRenderVisual TranslateCore(double offsetX, double offsetY, int paintOrder) =>
-        new HtmlRenderShape(_shape, X + offsetX, Y + offsetY, paintOrder, LinkUri, Source, LayoutY + offsetY, LayoutHeight, IsAtomicReplacedPlaceholder, CanExtendFragmentBackground, IsCollapsedTableBorder, CollapsedBorderBoundaryY + offsetY);
+        new HtmlRenderShape(_shape, X + offsetX, Y + offsetY, paintOrder, LinkUri, Source, LayoutY + offsetY, LayoutHeight, IsAtomicReplacedPlaceholder, CanExtendFragmentBackground, IsCollapsedTableBorder, CollapsedBorderBoundaryY + offsetY, FragmentTableBorders);
 
     internal override HtmlRenderVisual TranslatePaintCore(double offsetX, double offsetY, int paintOrder) =>
-        new HtmlRenderShape(_shape, X + offsetX, Y + offsetY, paintOrder, LinkUri, Source, LayoutY, LayoutHeight, IsAtomicReplacedPlaceholder, CanExtendFragmentBackground, IsCollapsedTableBorder, CollapsedBorderBoundaryY);
+        new HtmlRenderShape(_shape, X + offsetX, Y + offsetY, paintOrder, LinkUri, Source, LayoutY, LayoutHeight, IsAtomicReplacedPlaceholder, CanExtendFragmentBackground, IsCollapsedTableBorder, CollapsedBorderBoundaryY, FragmentTableBorders);
 }

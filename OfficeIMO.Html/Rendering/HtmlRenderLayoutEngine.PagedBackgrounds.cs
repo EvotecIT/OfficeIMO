@@ -5,15 +5,45 @@ namespace OfficeIMO.Html;
 
 internal sealed partial class HtmlRenderLayoutEngine {
     private static bool CanExtendBoxBackgroundThroughFragmentSlack(HtmlRenderBoxStyle style, OfficeShape fill) =>
-        style.Display is "block" or "flex" or "grid" or "flow-root"
+        (style.Display is "block" or "flex" or "grid" or "flow-root" or "table")
         // Flex/grid stretch records a used height; the authored auto-height box still fragments.
         && (!style.ExplicitHeight.HasValue || style.AutoHeightLayoutStretch) && !style.AspectRatio.HasValue
         && style.Position == "static" && style.FloatSide == "none"
         && style.Opacity >= 1D && fill.FillColor?.A == byte.MaxValue
-        && fill.Kind == OfficeShapeKind.Rectangle && !style.HasBorderLayout
+        && fill.Kind == OfficeShapeKind.Rectangle && (!style.HasBorderLayout || style.Display == "table")
         && style.BoxShadowLayerCount == 0 && !style.HasDeclaredBackgroundImage
         && style.BackgroundColorClip == "border-box" && style.ClipPath == "none"
         && style.UsedTransform == "none" && style.UsedIndividualScale == "none";
+
+    /// <summary>
+    /// Continues only the table's own solid side bands beside its background. Cell and collapsed
+    /// grid rules retain the source row cut; neither a closing rule nor flow height is added.
+    /// </summary>
+    private static void AppendFragmentTableSides(
+        ICollection<HtmlRenderVisual> fragment,
+        HtmlRenderShape background,
+        double fragmentStart,
+        double contentEnd,
+        double backgroundEnd) {
+        if (background.FragmentTableBorders is not HtmlRenderBorderEdges borders) return;
+        AddSide(borders.Left, left: true);
+        AddSide(borders.Right, left: false);
+
+        void AddSide(HtmlRenderBorderSide side, bool left) {
+            if (!side.IsPainted || side.Style != "solid") return;
+            double width = Math.Min(background.Width, side.Width);
+            OfficeShape band = OfficeShape.Rectangle(width, backgroundEnd - contentEnd);
+            band.FillColor = side.Color;
+            band.StrokeWidth = 0D;
+            HtmlRenderShape visual = background.CopyStackingContextTo(new HtmlRenderShape(band,
+                left ? background.X : background.X + background.Width - width,
+                contentEnd, background.PaintOrder,
+                source: background.Source + (left ? ":fragment-border-left" : ":fragment-border-right"),
+                layoutY: background.LayoutY, layoutHeight: background.LayoutHeight));
+            fragment.Add(CreateVerticallyClippedVisualFragment(visual, fragmentStart,
+                contentEnd, backgroundEnd, fragment.Count));
+        }
+    }
 
     private void ExtendPagedBodyBackgroundThroughFragmentSlack(
         HtmlRenderFlowBlock block,

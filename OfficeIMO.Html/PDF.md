@@ -175,6 +175,8 @@ Keep data binding outside the renderer. Build finalized, encoded HTML with Razor
 
 In paged output, table cells measure and wrap through the shared layout engine. A leading `<thead>` and a trailing `<tfoot>` repeat on each table fragment. Use `<tfoot>` for a genuine repeating table footer; put a subtotal or grand-total card that must appear once after the table and give it `break-inside: avoid`. Top-aligned, auto-height tables in one horizontal flex row or one ordinary auto grid row can continue independently, including their repeated groups and following content. See the [parallel-table contract and limits](README.md) before using more complex fragmenting containers.
 
+Rectangular, fully opaque table backgrounds with automatic height continue through unused space after a safe row cut. Separate tables carry their own solid side borders through that space; collapsed grid rules stay with their rows. Table, row-group, row and cell colors retain their paint order, and the final fragment ends at the table's content. Background continuation uses static, untransformed boxes without background images, shadows or additional clipping.
+
 ```html
 <table>
   <thead><tr><th>Item</th><th>Qty</th><th>Amount</th></tr></thead>

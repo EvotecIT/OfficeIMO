@@ -62,6 +62,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                         layoutY: background.LayoutY, layoutHeight: background.LayoutHeight));
                     fragment.Add(CreateVerticallyClippedVisualFragment(extended, start,
                         intersectionTop, fragmentBackgroundEnd.Value, fragment.Count));
+                    AppendFragmentTableSides(fragment, background, start, end, fragmentBackgroundEnd.Value);
                     continue;
                 }
 
