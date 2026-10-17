@@ -8,6 +8,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         double containingWidth,
         HtmlRenderBoxStyle style,
         int depth,
+        PagedFloatBoundary? pageBoundary,
         out HtmlRenderFlowBlock block) {
         block = null!;
         if (!TryCollectFlexItems(element, containingWidth, style, depth, captureRunningElements: true, out List<FlexItem> formattingItems, out List<HtmlCssRunningStringAssignment> runningElementAssignments)) return false;
@@ -143,6 +144,26 @@ internal sealed partial class HtmlRenderLayoutEngine {
         }
         ResolveGridVerticalOffsets(items, style, rows);
 
+        bool parallelTables = rowCount == 1 && !usesRowSubgrid && !declaredContentHeight.HasValue
+            && style.GridTemplateRows is "none" or "auto" && style.GridAutoRows == "auto"
+            && items.All(item => item.Row == 0 && item.RowSpan == 1 && Math.Abs(item.OffsetY) <= 0.0001D
+                && !item.HasExplicitHeight)
+            && CanProjectParallelTableItems(element, style, items.Select(item => item.Block!).ToArray(),
+                items.Select(item => item.Item.Style));
+        if (parallelTables && TryProjectParallelTableItems(element, contentWidth,
+            items.Select(item => item.Block!).ToArray(),
+            pageBoundary?.Shift(style.MarginTop + style.BorderTopWidth + style.PaddingTop),
+            out IReadOnlyList<HtmlRenderFlowBlock> projectedItems)) {
+            for (int item = 0; item < projectedItems.Count; item++) items[item].Block = projectedItems[item];
+            rowSizes[0] = projectedItems.Max(item => item.Height);
+            naturalContentHeight = rowSizes[0];
+            boxHeight = ResolveBoxHeight(naturalContentHeight, boxWidth, style);
+            contentHeight = Math.Max(0D, boxHeight - style.VerticalInsets);
+            rows = ResolveGridAxisLayout(rowTracks, rowSizes, contentHeight, rowGap, style.AlignContent, source, "align-content");
+            RecordGridPositionedContainingRects(element, style, contentWidth, contentHeight, columns, rows,
+                columnLineNames, rowLineNames, explicitColumnCount, explicitRowCount, leadingColumnCount, leadingRowCount);
+        }
+
         double outerHeight = Math.Max(0.01D, style.MarginTop + boxHeight + style.MarginBottom);
         var visuals = new List<HtmlRenderVisual>();
         var positionedRunningStringAssignments = new List<HtmlCssRunningStringAssignment>();
@@ -230,6 +251,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                         layer.Block.RunningStringAssignments.Select(assignment => assignment.Translate(layer.Y))))
                     .Concat(positionedRunningStringAssignments),
                 outerHeight));
+        if (parallelTables) _parallelTableRegions[element] = block;
         return true;
     }
 

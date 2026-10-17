@@ -144,6 +144,22 @@ internal sealed partial class HtmlRenderLayoutEngine {
             }
         }
 
+        bool parallelTables = style.FlexWrap == "nowrap" && style.FlexDirection == "row" && lines.Count == 1
+            && Math.Abs(lines[0].CrossOffset) <= 0.0001D
+            && lines[0].Items.All(item => Math.Abs(item.CrossOffset) <= 0.0001D && !item.HasExplicitCrossSize)
+            && CanProjectParallelTableItems(element, style, lines[0].Items.Select(item => item.Block!).ToArray(),
+                lines[0].Items.Select(item => item.Style));
+        if (parallelTables && TryProjectParallelTableItems(element, contentWidth,
+            lines[0].Items.Select(item => item.Block!).ToArray(),
+            pageBoundary?.Shift(style.MarginTop + style.BorderTopWidth + style.PaddingTop),
+            out IReadOnlyList<HtmlRenderFlowBlock> projectedItems)) {
+            for (int item = 0; item < projectedItems.Count; item++) lines[0].Items[item].Block = projectedItems[item];
+            lines[0].CrossSize = projectedItems.Max(item => item.Height);
+            naturalCrossSize = lines[0].CrossSize;
+            crossSize = ResolveFlexCrossSize(style, naturalCrossSize);
+            ResolveFlexLineOffsets(lines, style, crossSize, rowGap, HtmlRenderStyleResolver.DescribeSource(element));
+        }
+
         if (pageBoundary.HasValue && style.FlexWrap == "nowrap" && lines.Count == 1
             && CanAlignPagedRowFlex(element, style, lines[0])
             && TryAlignPagedRowFlexItems(lines[0], pageBoundary.Value.Shift(
@@ -297,6 +313,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
             pagedPaintExtent: pagedPaintExtent);
         if (_options.Mode == HtmlRenderMode.Paged) {
             _pagedRowFlexBlocks[element] = block;
+            if (parallelTables) _parallelTableRegions[element] = block;
             if (style.FlexWrap == "nowrap" && lines.Count == 1 && CanAlignPagedRowFlex(element, style, lines[0])) {
                 _pagedRowFlexEligibleElements.Add(element);
                 _pagedRowFlexLines[element] = lines[0];

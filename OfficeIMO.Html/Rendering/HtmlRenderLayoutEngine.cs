@@ -462,6 +462,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         && Math.Abs(left.Margins.Bottom - right.Margins.Bottom) <= 0.0001D;
 
     private void ResetLayoutPassState() {
+        ResetParallelTablePagination();
         _pagedRowFlexElements.Clear();
         _pagedRowFlexEligibleElements.Clear();
         _pagedRowFlexBlocks.Clear();

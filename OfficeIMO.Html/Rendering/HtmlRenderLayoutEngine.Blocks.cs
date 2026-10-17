@@ -74,7 +74,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
             flexBlock = ApplyElementSemantics(flexBlock, element, style);
             return StampViewport(AttachElementMargins(ApplyElementPositioning(ApplyOverflowToSpecializedBlock(flexBlock, style, element, containingWidth), style, containingWidth, containingHeight, element), style, element));
         }
-        if (style.Display == "grid" && TryLayoutGridContainer(element, containingWidth, style, depth, out HtmlRenderFlowBlock gridBlock)) {
+        if (style.Display == "grid" && TryLayoutGridContainer(element, containingWidth, style, depth, pageBoundary, out HtmlRenderFlowBlock gridBlock)) {
             gridBlock = ApplyElementSemantics(gridBlock, element, style);
             return StampViewport(AttachElementMargins(ApplyElementPositioning(ApplyOverflowToSpecializedBlock(gridBlock, style, element, containingWidth), style, containingWidth, containingHeight, element), style, element));
         }
