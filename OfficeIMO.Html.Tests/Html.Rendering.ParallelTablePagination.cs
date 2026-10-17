@@ -5,6 +5,43 @@ namespace OfficeIMO.Tests;
 
 public sealed partial class HtmlRenderingTests {
     [Theory]
+    [InlineData("flex", "region")]
+    [InlineData("grid", "region")]
+    [InlineData("flex", "item")]
+    [InlineData("grid", "item")]
+    [InlineData("flex", "ancestor")]
+    [InlineData("grid", "ancestor")]
+    public void HtmlTables_ParallelOpacityKeepsProjectedGroupsInsideTheirPaintOwner(string display, string scope) {
+        string html = ParallelReportStyle(display) + "<div style='" + (scope == "ancestor" ? "opacity:.5" : string.Empty)
+            + "'><div class='columns' style='" + (scope == "region" ? "opacity:.5" : string.Empty)
+            + "'><section style='" + (scope == "item" ? "opacity:.5" : string.Empty) + "'>"
+            + ParallelReportTable("Left", 18) + "</section><section>" + ParallelReportTable("Right", 27)
+            + "</section></div></div>";
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, new HtmlRenderOptions { Mode = HtmlRenderMode.Paged });
+        string[] text = rendered.Pages.SelectMany(page => EnumerateRenderVisuals(page.Scene))
+            .OfType<HtmlRenderText>().Select(item => item.Text).ToArray();
+        foreach (string name in new[] { "Left", "Right" }) {
+            foreach (int row in Enumerable.Range(0, name == "Left" ? 18 : 27))
+                Assert.Single(text, item => item == name + row.ToString("D2"));
+        }
+        if (scope == "item") {
+            Assert.Single(text, item => item == "LeftHeader");
+            Assert.Single(text, item => item == "LeftFooter");
+            Assert.Contains(rendered.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.TableHeaderRepeatSuppressed
+                && diagnostic.Detail?.StartsWith("effect-table-repetition;", StringComparison.Ordinal) == true);
+            Assert.Throws<HtmlConversionException>(() => rendered.RequireNoLoss());
+        } else {
+            Assert.True(text.Count(item => item == "LeftHeader") > 1);
+            Assert.DoesNotContain(rendered.Diagnostics, diagnostic => diagnostic.Detail?.StartsWith("effect-table-repetition;", StringComparison.Ordinal) == true);
+        }
+        foreach (HtmlRenderPage page in rendered.Pages.Where(page => EnumerateRenderVisuals(page.Scene)
+            .OfType<HtmlRenderText>().Any(item => item.Text == "LeftHeader"))) {
+            Assert.Contains(EnumerateRenderVisuals(page.Scene).OfType<HtmlRenderEffectGroup>(), effect => effect.Opacity == .5D
+                && EnumerateRenderVisuals(effect.Visuals).OfType<HtmlRenderText>().Any(item => item.Text == "LeftHeader"));
+        }
+    }
+
+    [Theory]
     [InlineData("flex")]
     [InlineData("grid")]
     public void HtmlTables_ParallelFlowsRepeatTheirOwnSectionsAndMatchNativeRowPages(string display) {

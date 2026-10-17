@@ -105,6 +105,43 @@ public sealed partial class HtmlRenderingTests {
         Assert.Equal(OfficeColor.White, last.GetPixel(180, 299));
     }
 
+    [Theory]
+    [InlineData("collapse", "opacity:.5")]
+    [InlineData("separate", "opacity:.5")]
+    [InlineData("collapse", "opacity:0")]
+    [InlineData("collapse", "transform:translateX(4px)")]
+    [InlineData("collapse", "width:200px;overflow:hidden")]
+    public void HtmlTables_PagedEffectsRetainSourceGroupsAndReportUnsharedRepetition(string borderModel, string ancestorStyle) {
+        HtmlRenderDocument rendered = RenderRowSpanBackgrounds(borderModel, repeated: true, ancestorStyle: ancestorStyle);
+        Assert.True(rendered.Pages.Count > 1);
+        AssertRowSpanBackgroundLabels(rendered, "HEADER", "FOOTER", "SPAN-1", "FIRST-1", "SECOND-1", "SPAN-2", "FIRST-2", "SECOND-2");
+        foreach (string code in new[] { HtmlRenderDiagnosticCodes.TableHeaderRepeatSuppressed, HtmlRenderDiagnosticCodes.TableFooterRepeatSuppressed }) {
+            Assert.Contains(rendered.Diagnostics, diagnostic => diagnostic.Code == code
+                && diagnostic.Detail?.StartsWith("effect-table-repetition;", StringComparison.Ordinal) == true
+                && diagnostic.LossKind == OfficeConversionLossKind.Approximation);
+        }
+        Assert.Throws<HtmlConversionException>(() => rendered.RequireNoLoss());
+        if (ancestorStyle.StartsWith("opacity", StringComparison.Ordinal)) {
+            OfficeRasterImage first = OfficeDrawingRasterRenderer.Render(rendered.Pages[0].CreateDrawing(), 1D, OfficeColor.White);
+            Assert.True(first.GetPixel(250, 30).R > 120); // No opaque navy repeated header can escape the owner.
+        }
+        HtmlRenderDocument unfragmented = RenderRowSpanBackgrounds(borderModel, repeated: true,
+            ancestorStyle: ancestorStyle, pageHeight: 1000);
+        Assert.Single(unfragmented.Pages);
+        Assert.DoesNotContain(unfragmented.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.TableHeaderRepeatSuppressed
+            || diagnostic.Code == HtmlRenderDiagnosticCodes.TableFooterRepeatSuppressed);
+    }
+
+    [Fact]
+    public void HtmlTables_PathClipRetainsSourceTextOnceAndReportsUnsharedRepetition() {
+        HtmlRenderDocument rendered = RenderRowSpanBackgrounds("collapse", repeated: true, ancestorStyle: "clip-path:inset(0)");
+        Assert.True(rendered.Pages.Count > 1);
+        Assert.Contains(rendered.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.TableHeaderRepeatSuppressed
+            && diagnostic.Detail?.StartsWith("effect-table-repetition;", StringComparison.Ordinal) == true);
+        AssertRowSpanBackgroundLabels(rendered, "HEADER", "FOOTER", "SPAN-1", "FIRST-1", "SECOND-1", "SPAN-2", "FIRST-2", "SECOND-2");
+        Assert.Throws<HtmlConversionException>(() => rendered.RequireNoLoss());
+    }
+
     private static HtmlRenderSemanticGroup RowSpanBackgroundCell(HtmlRenderDocument rendered, string source) =>
         rendered.Pages.SelectMany(page => EnumerateRenderVisuals(page.Scene))
             .OfType<HtmlRenderSemanticGroup>().First(group => group.Role == HtmlRenderSemanticGroupRole.TableCell
@@ -118,13 +155,13 @@ public sealed partial class HtmlRenderingTests {
 
     private static HtmlRenderDocument RenderRowSpanBackgrounds(
         string borderModel, bool nested = false, bool repeated = false, string laterColor = "lime",
-        bool formattingWrapper = false, bool transparentSections = false) {
+        bool formattingWrapper = false, bool transparentSections = false, string? ancestorStyle = null, int pageHeight = 320) {
         string inner = "<table class='inner'><tbody><tr><td id='inner-a'>INNER-A</td></tr>"
             + "<tr><td id='inner-b'>INNER-B</td></tr></tbody></table>";
         string Pair(int index) => "<tbody style='background:cyan'><tr><td id='span-" + index
             + "' class='span' rowspan='2'>" + (nested ? inner : "SPAN-" + index)
             + "</td><td>FIRST-" + index + "</td></tr><tr class='later'><td>SECOND-" + index + "</td></tr></tbody>";
-        string html = "<style>@page{size:400px 320px;margin:20px}html,body{margin:0;background:white;font:14px/18px Arial}"
+        string html = "<style>@page{size:400px " + pageHeight + "px;margin:20px}html,body{margin:0;background:white;font:14px/18px Arial}"
             + "table{width:300px;table-layout:fixed;border-collapse:" + borderModel + ";border-spacing:0;background:#6bb7e6}"
             + "tbody>tr{height:60px;background:#f5d47a}td,th{border:2px solid #172033;padding:4px}"
             + "tr.later{background:" + laterColor + "}td.span{background:red}.inner{width:100px}.inner td{background:blue}"
@@ -132,13 +169,15 @@ public sealed partial class HtmlRenderingTests {
             + (transparentSections ? string.Empty : "thead{background:#23395d;color:white}tfoot{background:#ddd}")
             + (repeated ? "tbody{break-inside:avoid}" : string.Empty)
             + "</style>" + (formattingWrapper ? "<div style='display:flow-root;background:white'>" : string.Empty)
+            + (ancestorStyle == null ? string.Empty : "<div style='" + ancestorStyle + "'>")
             + (nested ? "<div class='scope'>" : string.Empty) + "<table class='outer'>"
             + (repeated ? "<thead><tr><th colspan='2'>HEADER</th></tr></thead>" : string.Empty)
             + Pair(1) + (repeated ? Pair(2) + "<tfoot><tr><td id='footer' colspan='2'>FOOTER</td></tr></tfoot>" : string.Empty)
-            + "</table>" + (nested ? "</div>" : string.Empty) + (formattingWrapper ? "</div>" : string.Empty);
+            + "</table>" + (nested ? "</div>" : string.Empty) + (ancestorStyle == null ? string.Empty : "</div>")
+            + (formattingWrapper ? "</div>" : string.Empty);
         return HtmlRenderTestDriver.Render(html, new HtmlRenderOptions {
             Mode = HtmlRenderMode.Paged, HonorCssPageRules = true,
-            ViewportWidth = 400D, ViewportHeight = 320D, Margins = HtmlRenderMargins.All(0D)
+            ViewportWidth = 400D, ViewportHeight = pageHeight, Margins = HtmlRenderMargins.All(0D)
         });
     }
 }

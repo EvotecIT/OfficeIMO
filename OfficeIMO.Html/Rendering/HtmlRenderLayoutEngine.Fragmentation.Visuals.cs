@@ -212,10 +212,9 @@ internal sealed partial class HtmlRenderLayoutEngine {
                     continue;
                 }
 
-                if (visual is HtmlRenderPathClipGroup pathClip && containsFlowAnchor) {
-                    // Atomic paint clipping keeps the complete child tree on
-                    // each page. Source points must instead belong only to
-                    // their fragment; retain the same path and outer paint clip.
+                if (visual is HtmlRenderPathClipGroup pathClip) {
+                    // Keep one source occurrence of text and flow anchors while
+                    // retaining the authored path in its original coordinates.
                     IReadOnlyList<HtmlRenderVisual> children = SliceVisuals(pathClip.Visuals, start, end, includeEndAnchor);
                     if (children.Count > 0) {
                         var slicedPath = new HtmlRenderPathClipGroup(pathClip.ClipX, pathClip.ClipY - start,
@@ -232,7 +231,6 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 if (visual is HtmlRenderImage
                     || visual is HtmlRenderDrawing
                     || visual is HtmlRenderImagePattern
-                    || visual is HtmlRenderPathClipGroup
                     || visual is HtmlRenderShape
                     || visual is HtmlRenderAnchorFragment) {
                     fragment.Add(CreateVerticallyClippedVisualFragment(visual, start, intersectionTop, intersectionBottom, fragment.Count));
