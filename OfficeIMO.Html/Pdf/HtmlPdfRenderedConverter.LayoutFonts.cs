@@ -9,6 +9,7 @@ internal static partial class HtmlPdfRenderedConverter {
     /// pagination; the caller reuses its resources and budget for one further layout.
     /// </summary>
     internal static bool TryPrepareLibraryFontMetrics(IEnumerable<HtmlRenderVisual> flow,
+        IEnumerable<(string Text, OfficeFontInfo Font)> marginRequirements,
         OfficeFontFaceCollection fonts,
         HtmlToPdfOptions options, CancellationToken cancellationToken) {
         if (options.LibrarySelectedDefaultFontFamily != null || options.FontFamily != null
@@ -18,7 +19,7 @@ internal static partial class HtmlPdfRenderedConverter {
 
         var webFamilies = new HashSet<string>(fonts.Faces.Where(face => face.CanEmbedAsStaticPdfFont)
             .Select(face => face.ResourceFamilyName), StringComparer.OrdinalIgnoreCase);
-        var textRuns = EnumerateUsedText(flow)
+        var textRuns = EnumerateUsedText(flow).Concat(marginRequirements)
             .Where(text => !EnumerateFamilies(text.Font.FamilyName).Any(webFamilies.Contains)).ToList();
         if (!textRuns.Any(text => RequiresUnicodeFont(text.Text))) return false;
         PdfCore.PdfEmbeddedFontFamily? family = SelectLibraryDefaultSystemFontFamily(cancellationToken);

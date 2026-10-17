@@ -14,12 +14,39 @@ internal sealed partial class HtmlRenderLayoutEngine {
         rendered = null!;
         if (_options is not Pdf.HtmlToPdfOptions pdfOptions
             || !Pdf.HtmlPdfRenderedConverter.TryPrepareLibraryFontMetrics(
-                blocks.SelectMany(block => block.Visuals), _fonts, pdfOptions, _cancellationToken)) return false;
+                blocks.SelectMany(block => block.Visuals), EnumerateMarginFontRequirements(blocks),
+                _fonts, pdfOptions, _cancellationToken)) return false;
         CheckCancellation();
         _fontLayoutRebuilt = true;
         rendered = new HtmlRenderLayoutEngine(_document, _computedStyles, _options,
             _diagnostics, _resources, _pageRules, _fonts, _limits,
             _initialLogicalTextOrder, _initialSemanticNodeId, _operationBudget, _cancellationToken, _fontUsage).Render();
         return true;
+    }
+
+    /// <summary>
+    /// Includes declared repeated page text before pagination. First, left and
+    /// later right pages cover the supported page selectors; counters need only
+    /// representative values for font coverage. Actual margin layout still owns
+    /// page counts, running strings, clipping and diagnostics.
+    /// </summary>
+    private IEnumerable<(string Text, OfficeFontInfo Font)> EnumerateMarginFontRequirements(
+        IReadOnlyList<HtmlRenderFlowBlock> blocks) {
+        if (_options.Mode != HtmlRenderMode.Paged) yield break;
+        foreach (string? pageName in blocks.Select(block => block.PageName)
+                     .Concat(blocks.SelectMany(block => block.ForcedBreaks.Select(item => item.PageName)))
+                     .Concat(new string?[] { null }).Distinct(StringComparer.Ordinal)) {
+            for (int pageNumber = 1; pageNumber <= 3; pageNumber++) {
+                CheckCancellation();
+                HtmlCssPageGeometry geometry = _pageRules.ResolveGeometry(pageNumber, pageName, _options);
+                foreach (HtmlCssPageMarginTemplate box in _pageRules.ResolveMarginBoxes(
+                             pageNumber, pageName, geometry, _options).Values) {
+                    if (box.Content.ContainsRunningElement) continue;
+                    ChargeLayoutOperations(box.Content.GetRenderedLength(pageNumber, 3, null), "page-margin font requirements");
+                    string text = box.Content.Render(pageNumber, 3, null);
+                    if (text.Length > 0) yield return (text, box.Font);
+                }
+            }
+        }
     }
 }
