@@ -211,7 +211,10 @@ internal sealed partial class HtmlRenderLayoutEngine {
         IReadOnlyList<bool> canBreakAfterRows = ResolveRowBreakAvailability(rowLayouts);
         if (caption != null && caption.Side == "top") AppendTableCaption(visuals, caption, style.MarginLeft, style.MarginTop);
         bool paintSeparateBorders = style.BorderCollapse != "collapse";
+        int tablePaintStart = visuals.Count;
         AddBoxPaint(visuals, style, style.MarginLeft, tableY, tableWidth, tableHeight, table, paintSeparateBorders);
+        HtmlRenderShape? tableBackdrop = visuals.Skip(tablePaintStart).OfType<HtmlRenderShape>()
+            .FirstOrDefault(visual => visual.CanExtendFragmentBackground);
         int rowBackgroundStart = visuals.Count;
         var rowBackgroundLayers = new List<TableRowBackgroundLayer>();
         double contentX = style.MarginLeft + style.BorderLeftWidth + style.PaddingLeft;
@@ -427,6 +430,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 structureElementKey: structureKey)
         };
         semanticVisuals.AddRange(navigationDestinations);
+        PrependRepeatedTableBackdrop(continuationVisuals, tableBackdrop, continuationHeight);
         IReadOnlyList<HtmlRenderVisual> semanticContinuationVisuals = continuationVisuals.Count == 0
             ? Array.Empty<HtmlRenderVisual>()
             : new[] {

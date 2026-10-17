@@ -55,6 +55,16 @@ public abstract partial class HtmlRenderVisual {
 
     internal HtmlRenderPaintPhase PaintPhase { get; set; }
 
+    // A repeated table fragment reopens only its enclosing formatting context.
+    // Remember this closure's immediate phase, including an already-atomic
+    // nested box, instead of guessing from the visual's shape or children.
+    internal HtmlRenderPaintPhase? AtomicSourcePaintPhase { get; private set; }
+
+    internal void CloseFlowPaint() {
+        AtomicSourcePaintPhase = PaintPhase;
+        PaintPhase = HtmlRenderPaintPhase.Atomic;
+    }
+
     /// <summary>Normal-flow height used for fragmentation, independent of paint overhang.</summary>
     internal double LayoutHeight { get; }
 
@@ -78,6 +88,7 @@ public abstract partial class HtmlRenderVisual {
 
     internal T CopyStackingContextTo<T>(T result) where T : HtmlRenderVisual {
         result.PaintPhase = PaintPhase;
+        result.AtomicSourcePaintPhase = AtomicSourcePaintPhase;
         result.StackingContext = StackingContext;
         result.PaintProjectionIdentity = PaintProjectionIdentity;
         result.RelativePaintOffsetY = RelativePaintOffsetY;

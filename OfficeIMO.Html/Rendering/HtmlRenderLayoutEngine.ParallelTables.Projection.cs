@@ -52,7 +52,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                     }
                     double sourceStart = cursor.Offset;
                     IReadOnlyList<HtmlRenderVisual> body = SliceBlockVisuals(cursor.Block, sourceStart, fragment.End,
-                        fragment.End < cursor.Block.Height - 0.0001D ? sourceStart + fragment.Available : null);
+                        ResolvePagedBackgroundWindow(sourceStart, fragment));
                     AppendParallelTablePaint(cursor, body, bandStart + used);
                     foreach (HtmlCssRunningStringAssignment assignment in cursor.Block.RunningStringAssignments) {
                         ChargeLayoutOperation("parallel table running-string projection");

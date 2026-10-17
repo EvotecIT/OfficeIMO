@@ -56,6 +56,22 @@ public sealed partial class HtmlRenderingTests {
         Assert.Equal(OfficeColor.FromRgb(0x6b, 0xb7, 0xe6), first.GetPixel(180, 280));
     }
 
+    [Theory]
+    [InlineData("collapse")]
+    [InlineData("separate")]
+    public void HtmlTables_RepeatedHeaderPaintStaysAboveAuthoredBodyBackground(string borderModel) {
+        HtmlRenderDocument rendered = RenderTableFragmentBackground(borderModel,
+            "outline:1px solid blue;", "background:white;");
+        Assert.Equal(2, rendered.Pages.Count);
+        foreach (HtmlRenderPage page in rendered.Pages) {
+            OfficeRasterImage image = OfficeDrawingRasterRenderer.Render(page.CreateDrawing(), 1D, OfficeColor.White);
+            Assert.Equal(OfficeColor.FromRgb(0x23, 0x39, 0x5d), image.GetPixel(100, 30));
+            Assert.Equal(OfficeColor.FromRgb(0xe7, 0xa7, 0xcf), image.GetPixel(345, 70));
+        }
+        OfficeRasterImage first = OfficeDrawingRasterRenderer.Render(rendered.Pages[0].CreateDrawing(), 1D, OfficeColor.White);
+        Assert.Equal(OfficeColor.FromRgb(0x6b, 0xb7, 0xe6), first.GetPixel(180, 280));
+    }
+
     [Fact]
     public void HtmlRender_BorderedOrdinaryBoxDoesNotAcquireTableSlackPaint() {
         const string html = """
@@ -86,13 +102,13 @@ public sealed partial class HtmlRenderingTests {
             Assert.Single(text, item => item.Text == label);
     }
 
-    private static HtmlRenderDocument RenderTableFragmentBackground(string borderModel, string tableStyle = "") {
+    private static HtmlRenderDocument RenderTableFragmentBackground(string borderModel, string tableStyle = "", string bodyStyle = "") {
         string Row(int index) => "<tr" + (index is 3 or 6 ? " class='row-color'" : string.Empty)
             + "><td>R" + index.ToString("00") + "</td><td>BASE-" + index.ToString("00")
             + "</td><td>ROW-" + index.ToString("00") + "</td><td class='cell-color'>CELL-"
             + index.ToString("00") + "</td></tr>";
         string html = "<style>@page{size:400px 320px;margin:20px}html{background:#eef2f6}"
-            + "body{margin:0;color:#172033;font:14px/18px Arial}"
+            + "body{margin:0;color:#172033;font:14px/18px Arial;" + bodyStyle + "}"
             + "table{width:336px;table-layout:fixed;border-collapse:" + borderModel
             + ";border-spacing:0;border:2px solid #172033;background:#6bb7e6;" + tableStyle + "}"
             + "thead{display:table-header-group;background:#23395d;color:white}"

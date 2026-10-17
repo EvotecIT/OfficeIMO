@@ -136,7 +136,6 @@ internal sealed partial class HtmlRenderLayoutEngine {
                     bool repeatTrailing = trailingGroup != null;
                     double continuationHeight = plan.HeaderHeight;
                     double trailingHeight = plan.FooterHeight;
-                    double available = plan.Available;
                     double fragmentEnd = plan.End;
                     var fragmentVisuals = new List<HtmlRenderVisual>();
 
@@ -149,7 +148,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                     }
 
                     IReadOnlyList<HtmlRenderVisual> fragment = SliceBlockVisuals(block, blockOffset, fragmentEnd,
-                        fragmentEnd < block.Height - 0.0001D ? blockOffset + available : null);
+                        ResolvePagedBackgroundWindow(blockOffset, plan));
                     foreach (HtmlRenderVisual visual in fragment) {
                         fragmentVisuals.Add(visual.Translate(0D, y, fragmentVisuals.Count));
                     }

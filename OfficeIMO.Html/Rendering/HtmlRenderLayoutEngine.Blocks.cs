@@ -503,7 +503,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
             pagedPaintExtent: pagedPaintExtent);
         if (ownsFloatContext) block = OrderBoxFlowPaint(block);
         block = ApplyElementSemantics(block, element, style);
-        if (ownsFloatContext) foreach (HtmlRenderVisual visual in block.Visuals) visual.PaintPhase = HtmlRenderPaintPhase.Atomic;
+        if (ownsFloatContext) CloseBoxFlowPaint(block);
         bool collapsesThrough = CanCollapseThroughEmptyBlock(style, usesBlockFormatting, children,
             contentVisuals, contentHeight, inlineLayout?.HasInFlowLineBoxes == true);
         HtmlRenderFlowBlock completed = StampViewport(AttachElementMargins(ApplyElementPositioning(block, style, containingWidth, containingHeight, element),

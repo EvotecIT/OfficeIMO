@@ -4,6 +4,44 @@ using OfficeIMO.Drawing;
 namespace OfficeIMO.Html;
 
 internal sealed partial class HtmlRenderLayoutEngine {
+    /// <summary>
+    /// Paint-only page window, including repeated groups. A completed table's backdrop
+    /// stops after its final footer; a longer ancestor can still continue to the page edge.
+    /// </summary>
+    private readonly record struct PagedBackgroundWindow(
+        double End, double? CompletedSourceEnd, double CompletedPaintEnd) {
+        internal double ResolveEnd(double sourceBottom) => CompletedSourceEnd.HasValue
+            && sourceBottom <= CompletedSourceEnd.Value + 0.0001D
+                ? Math.Min(End, CompletedPaintEnd) : End;
+    }
+
+    private static PagedBackgroundWindow ResolvePagedBackgroundWindow(double sourceStart, PagedBlockFragment plan) =>
+        new(sourceStart + plan.Available + plan.FooterHeight,
+            plan.Footer != null && plan.End >= plan.Footer.ContentEndsAt - 0.0001D
+                ? plan.Footer.SourceEndsAt : null,
+            plan.End + plan.FooterHeight);
+
+    /// <summary>Retains the table's own plain backdrop beneath a detached repeated header.</summary>
+    private static void PrependRepeatedTableBackdrop(
+        List<HtmlRenderVisual> visuals, HtmlRenderShape? background, double height) {
+        if (background == null || visuals.Count == 0 || height <= 0.0001D) return;
+        OfficeShape fill = OfficeShape.Rectangle(background.Width, height);
+        fill.FillColor = background.InnerShape.FillColor;
+        fill.StrokeWidth = 0D;
+        HtmlRenderShape repeated = background.CopyStackingContextTo(new HtmlRenderShape(fill,
+            background.X, 0D, 0, source: background.Source,
+            fragmentTableBorders: background.FragmentTableBorders));
+        var ordered = new List<HtmlRenderVisual> { repeated };
+        AppendFragmentTableSides(ordered, repeated, 0D, 0D, height);
+        foreach (HtmlRenderVisual visual in visuals) {
+            ordered.Add(visual is HtmlRenderSemanticGroup group
+                ? visual.CopyStackingContextTo(group.ProjectPaint(group.Visuals, 0D, 0D, ordered.Count))
+                : visual.Translate(0D, 0D, ordered.Count));
+        }
+        visuals.Clear();
+        visuals.AddRange(ordered);
+    }
+
     private static bool CanExtendBoxBackgroundThroughFragmentSlack(HtmlRenderBoxStyle style, OfficeShape fill) =>
         (style.Display is "block" or "flex" or "grid" or "flow-root" or "table")
         // Flex/grid stretch records a used height; the authored auto-height box still fragments.
