@@ -105,7 +105,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 : declaredHeight ?? (style.ColumnFill == "auto" && !(maximumHeight.HasValue && naturalHeight > maximumHeight.Value)
                     ? plan.UsedHeight : Math.Max(targetHeight, plan.UsedHeight));
         double boxHeight = ResolveBoxHeight(contentHeight, boxWidth, style);
-        if (columnPageBreaks.Count > 0) boxHeight = Math.Max(boxHeight, contentHeight + style.VerticalInsets);
+        if (columnPageBreaks.Count > 0 && (reservedColumnContent || style.IntrinsicColumnHeightAllocation))
+            boxHeight = Math.Max(boxHeight, contentHeight + style.VerticalInsets);
         double outerHeight = Math.Max(0.01D, style.MarginTop + boxHeight + style.MarginBottom);
         var visuals = new List<HtmlRenderVisual>();
         double contentY = style.MarginTop + style.BorderTopWidth + style.PaddingTop;
@@ -141,7 +142,9 @@ internal sealed partial class HtmlRenderLayoutEngine {
             positionedRunningStringAssignments);
         AddBoxOutlinePaint(visuals, style, style.MarginLeft, style.MarginTop, boxWidth, boxHeight, element);
 
-        IReadOnlyList<double> breakOffsets = ResolveMultiColumnBreakOffsets(plan, contentY, outerHeight);
+        double pagedPaintExtent = _options.Mode == HtmlRenderMode.Paged && style.OverflowY == "visible"
+            ? Math.Max(outerHeight, contentY + plan.UsedHeight) : outerHeight;
+        IReadOnlyList<double> breakOffsets = ResolveMultiColumnBreakOffsets(plan, contentY, pagedPaintExtent);
 
         block = new HtmlRenderFlowBlock(
             containingWidth,
@@ -154,6 +157,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
             breakOffsets,
             lineBreakGroups: EnumerateMultiColumnLineBreakGroups(plan, contentY),
             pageName: style.PageName,
+            pagedPaintExtent: pagedPaintExtent,
             forcedBreaks: columnPageBreaks.Select(offset => new HtmlRenderForcedBreak(contentY + offset, HtmlPageBreakTarget.Page)),
             avoidBreakRanges: ResolveColumnReservationKeepRanges(element, columnPageBreaks, contentY, contentHeight)
                 .Concat(EnumerateMultiColumnAvoidBreakRanges(plan, contentY)),
@@ -268,7 +272,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                     return new MultiColumnPlan(fragments, column + 1, usedHeight);
                 }
                 double columnHeight = pageBands?.Height(column) ?? targetHeight;
-                double freshHeight = pageBands?.FreshHeight ?? targetHeight;
+                double freshHeight = pageBands?.FreshHeightForColumn(column) ?? targetHeight;
                 double available = columnHeight - (notes?.Reserved(column) ?? 0D) - (floats?.Bottom(column) ?? 0D) - y;
                 double remaining = child.Height - start;
                 if (available <= 0.0001D) {

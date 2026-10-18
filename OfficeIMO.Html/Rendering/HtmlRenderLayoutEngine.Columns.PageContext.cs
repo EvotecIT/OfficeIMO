@@ -49,7 +49,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
             } else continue;
             if (start < offset - 0.0001D || start >= offset + available - 0.0001D
                 || ResolveDeclaredColumnContentHeight(entryStyle).HasValue
-                    && start + entry.Value.Height <= offset + available + 0.0001D) continue;
+                    && start + entry.Value.PagedPaintExtent <= offset + available + 0.0001D) continue;
             // Let an earlier authored page or page-name break establish the
             // destination before capturing this region's pagination context.
             // Synthetic overflow breaks inside the region remain eligible.

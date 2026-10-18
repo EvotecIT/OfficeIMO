@@ -49,6 +49,9 @@ internal sealed partial class HtmlRenderLayoutEngine {
             Boundary = new PagedFloatBoundary(remaining, ownerContext.PageHeight),
             PageNumber = ownerContext.PageNumber + pageAdvance
         };
-        return new ColumnPageBands(this, context, count, sourceHeight, HtmlRenderStyleResolver.DescribeSource(owner));
+        double? declared = ResolveDeclaredColumnContentHeight(style);
+        return new ColumnPageBands(this, context, count, sourceHeight, HtmlRenderStyleResolver.DescribeSource(owner),
+            declared.HasValue && !style.IntrinsicColumnHeightAllocation
+                ? Math.Max(0.01D, declared.Value - precedingHeight) : null);
     }
 }

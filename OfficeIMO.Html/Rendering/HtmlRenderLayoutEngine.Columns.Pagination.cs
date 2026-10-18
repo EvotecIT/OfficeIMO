@@ -25,17 +25,19 @@ internal sealed partial class HtmlRenderLayoutEngine {
         foreach (MultiColumnFragment fragment in plan.Fragments) {
             CheckCancellation();
             ChargeLayoutOperation("paged column continuation");
-            int row = fragment.Column / requestedCount;
+            int row = pageBands?.BandForColumn(fragment.Column) ?? fragment.Column / requestedCount;
             double y = (pageBands?.Start(row) ?? row * columnHeight) + fragment.Y;
             fragments.Add(new MultiColumnFragment(fragment.Block, fragment.Start, fragment.End,
-                fragment.Column % requestedCount, y));
+                pageBands?.ColumnInBand(fragment.Column) ?? fragment.Column % requestedCount, y));
             usedHeight = Math.Max(usedHeight, y + fragment.Height);
         }
-        int rows = (plan.ColumnCount + requestedCount - 1) / requestedCount;
+        int rows = (pageBands?.BandForColumn(plan.ColumnCount - 1)
+            ?? (plan.ColumnCount - 1) / requestedCount) + 1;
         pageBreakOffsets = Enumerable.Range(1, rows - 1)
             .Select(row => pageBands?.Start(row) ?? row * columnHeight)
             .Concat(pageBands is { DeferredFirstBand: true } ? new[] { 0D } : Array.Empty<double>())
             .OrderBy(offset => offset).ToArray();
-        return new MultiColumnPlan(fragments, requestedCount, usedHeight);
+        return new MultiColumnPlan(fragments,
+            Math.Max(requestedCount, fragments.Select(fragment => fragment.Column + 1).DefaultIfEmpty(1).Max()), usedHeight);
     }
 }

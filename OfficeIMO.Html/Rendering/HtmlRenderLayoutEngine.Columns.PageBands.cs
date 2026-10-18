@@ -52,8 +52,11 @@ internal sealed partial class HtmlRenderLayoutEngine {
             || !intrinsicAllocation && declaredHeight.HasValue && declaredHeight.Value < context.PageHeight - 0.0001D) return null;
         if (_columnEdgeFloatEntries.Values.Any(entry => ReferenceEquals(entry.Owner, element)
             && entry.Body.Height >= context.PageHeight - 0.0001D)) return null;
+        bool reservations = _footnoteEntries.Values.Any(entry => ReferenceEquals(entry.ColumnOwner, element))
+            || _columnEdgeFloatEntries.Values.Any(entry => ReferenceEquals(entry.Owner, element));
         return new ColumnPageBands(this, context, requestedCount, sourceHeight,
-            HtmlRenderStyleResolver.DescribeSource(element));
+            HtmlRenderStyleResolver.DescribeSource(element),
+            !intrinsicAllocation && !reservations ? declaredHeight : null);
     }
 
     /// <summary>
@@ -65,15 +68,17 @@ internal sealed partial class HtmlRenderLayoutEngine {
         private readonly int _count;
         private readonly double _sourceHeight;
         private readonly string _source;
+        private readonly double? _declaredExtent;
         private readonly HashSet<int> _validated = new();
 
         internal ColumnPageBands(HtmlRenderLayoutEngine engine, ColumnPaginationContext context, int count,
-            double sourceHeight, string source) {
+            double sourceHeight, string source, double? declaredExtent = null) {
             _engine = engine;
             Context = context;
             _count = count;
             _sourceHeight = sourceHeight;
             _source = source;
+            _declaredExtent = declaredExtent;
             FirstHeight = Math.Min(context.PageHeight, context.Boundary.RemainingHeight);
         }
 
@@ -90,18 +95,40 @@ internal sealed partial class HtmlRenderLayoutEngine {
         }
 
         internal double Height(int column) {
-            int band = column / _count;
+            int band = BandForColumn(column);
             ValidateBand(band);
-            return !Supported ? _sourceHeight : band == 0 ? FirstHeight : FreshHeight;
+            double physical = band == 0 ? FirstHeight : FreshHeight;
+            return !Supported ? _sourceHeight : _declaredExtent.HasValue
+                ? Math.Max(0.01D, Math.Min(physical, _declaredExtent.Value - Start(band))) : physical;
         }
 
-        internal double Start(int band) => band == 0 ? 0D : FirstHeight + (band - 1D) * FreshHeight;
+        private double LastBand => _declaredExtent.HasValue
+            ? Math.Max(0D, Math.Ceiling((_declaredExtent.Value - FirstHeight - 0.0001D) / FreshHeight))
+            : double.PositiveInfinity;
+
+        internal int BandForColumn(int column) => (int)Math.Min(column / _count, LastBand);
+        internal int ColumnInBand(int column) => column - BandForColumn(column) * _count;
+
+        internal double Start(int band) {
+            band = (int)Math.Min(band, LastBand);
+            return band == 0 ? 0D : FirstHeight + (band - 1D) * FreshHeight;
+        }
+
+        // A finite final fragment has no later full-height column to defer to.
+        // Oversized atomic content must still make progress in that fragment.
+        internal double FreshHeightForColumn(int column) {
+            if (!_declaredExtent.HasValue) return FreshHeight;
+            int band = BandForColumn(column);
+            double later = band < LastBand
+                ? Math.Min(FreshHeight, _declaredExtent.Value - Start(band + 1)) : 0D;
+            return Math.Max(Height(column), later);
+        }
 
         // Entering another column consumes the preceding column's available
         // height, including line-fitting slack. Following siblings cannot use
         // that slack as though the column set ended at its final painted line.
-        internal double MinimumBoxExtent(int columns) => (columns - 1) % _count > 0
-            ? Start((columns - 1) / _count) + Height(columns - 1) : 0D;
+        internal double MinimumBoxExtent(int columns) => ColumnInBand(columns - 1) > 0
+            ? Start(BandForColumn(columns - 1)) + Height(columns - 1) : 0D;
 
         internal void ValidateExtent(double height) {
             int bands = (int)Math.Min(_engine._options.MaxPageCount,

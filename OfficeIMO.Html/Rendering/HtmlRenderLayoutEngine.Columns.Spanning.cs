@@ -113,6 +113,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
             positionedRunningStringAssignments);
         double contentX = style.MarginLeft + style.BorderLeftWidth + style.PaddingLeft;
         double contentY = style.MarginTop + style.BorderTopWidth + style.PaddingTop;
+        double pagedPaintExtent = _options.Mode == HtmlRenderMode.Paged && style.OverflowY == "visible"
+            ? Math.Max(outerHeight, contentY + contentHeight) : outerHeight;
         double safeContentHeight = columnContext != null
             ? Math.Max(contentHeight, boxHeight - style.VerticalInsets) : contentHeight;
         if (safeContentHeight > contentHeight)
@@ -146,6 +148,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
             breakOffsets,
             lineBreakGroups: contentLineBreakGroups.Select(group => group.Translate(contentY)),
             pageName: style.PageName,
+            pagedPaintExtent: pagedPaintExtent,
             forcedBreaks: contentForcedBreaks.Select(item => item.Translate(contentY)),
             avoidBreakRanges: contentAvoidBreakRanges.Select(range => range.Translate(contentY)),
             runningStringAssignments: runningStringAssignments
@@ -154,7 +157,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 .OrderBy(assignment => assignment.OrderOffset),
             safeBreakRanges: ConstrainParallelPaintBreakRanges(
                 ProjectColumnTerminalSafeBreakRanges(
-                    contentSafeBreakRanges, safeContentHeight, contentY, outerHeight).ToArray(), visuals));
+                    contentSafeBreakRanges, safeContentHeight, contentY, pagedPaintExtent).ToArray(), visuals));
         block.UnfragmentedHeight = columnContext?.UnfragmentedHeight;
         if (columnContext != null && _columnPaginationAttempt is { } attempt
             && ReferenceEquals(attempt.Element, element)) attempt.Context = columnContext;
