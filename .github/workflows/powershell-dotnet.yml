@@ -26,7 +26,7 @@ jobs:
   test-windows:
     name: 'Windows'
     runs-on: windows-latest
-    timeout-minutes: 10
+    timeout-minutes: 20
     steps:
       - name: Checkout code
         uses: actions/checkout@v7
@@ -43,7 +43,7 @@ jobs:
         run: dotnet build PowerShell/PSWriteOffice/Sources/PSWriteOffice.sln --configuration ${{ env.BUILD_CONFIGURATION }} --no-restore
 
       - name: Run tests
-        run: dotnet test PowerShell/PSWriteOffice/Sources/PSWriteOffice.sln --configuration ${{ env.BUILD_CONFIGURATION }} --no-build --verbosity normal --logger trx --collect:"XPlat Code Coverage"
+        run: dotnet test PowerShell/PSWriteOffice/Sources/PSWriteOffice.sln --configuration ${{ env.BUILD_CONFIGURATION }} --no-build --verbosity normal --logger trx --collect:"XPlat Code Coverage" --settings PowerShell/PSWriteOffice/Sources/PSWriteOffice.Tests/coverage.runsettings
 
       - name: Upload test results
         uses: actions/upload-artifact@v7
@@ -67,7 +67,7 @@ jobs:
   test-ubuntu:
     name: 'Ubuntu'
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 20
     steps:
       - name: Checkout code
         uses: actions/checkout@v7
@@ -84,7 +84,7 @@ jobs:
         run: dotnet build PowerShell/PSWriteOffice/Sources/PSWriteOffice.sln --configuration ${{ env.BUILD_CONFIGURATION }} --no-restore
 
       - name: Run tests
-        run: dotnet test PowerShell/PSWriteOffice/Sources/PSWriteOffice.sln --configuration ${{ env.BUILD_CONFIGURATION }} --no-build --verbosity normal --logger trx --collect:"XPlat Code Coverage"
+        run: dotnet test PowerShell/PSWriteOffice/Sources/PSWriteOffice.sln --configuration ${{ env.BUILD_CONFIGURATION }} --no-build --verbosity normal --logger trx --collect:"XPlat Code Coverage" --settings PowerShell/PSWriteOffice/Sources/PSWriteOffice.Tests/coverage.runsettings
 
       - name: Upload test results
         uses: actions/upload-artifact@v7
@@ -107,7 +107,7 @@ jobs:
   test-macos:
     name: 'macOS'
     runs-on: macos-latest
-    timeout-minutes: 10
+    timeout-minutes: 20
     steps:
       - name: Checkout code
         uses: actions/checkout@v7
@@ -124,7 +124,7 @@ jobs:
         run: dotnet build PowerShell/PSWriteOffice/Sources/PSWriteOffice.sln --configuration ${{ env.BUILD_CONFIGURATION }} --no-restore
 
       - name: Run tests
-        run: dotnet test PowerShell/PSWriteOffice/Sources/PSWriteOffice.sln --configuration ${{ env.BUILD_CONFIGURATION }} --no-build --verbosity normal --logger trx --collect:"XPlat Code Coverage"
+        run: dotnet test PowerShell/PSWriteOffice/Sources/PSWriteOffice.sln --configuration ${{ env.BUILD_CONFIGURATION }} --no-build --verbosity normal --logger trx --collect:"XPlat Code Coverage" --settings PowerShell/PSWriteOffice/Sources/PSWriteOffice.Tests/coverage.runsettings
 
       - name: Upload test results
         uses: actions/upload-artifact@v7

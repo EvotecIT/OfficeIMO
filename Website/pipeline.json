@@ -6,19 +6,8 @@
   "profilePath": "./_temp/pipeline-profile.json",
   "steps": [
     {
-      "task": "sources-sync",
-      "id": "sync-sources",
-      "config": "./site.json",
-      "lockMode": "verify",
-      "lockPath": "./.powerforge/git-sync-lock.json",
-      "writeManifest": true
-    },
-    {
       "task": "exec",
       "id": "prepare-powershell-tooling",
-      "dependsOn": [
-        "sync-sources"
-      ],
       "command": "pwsh",
       "argsList": [
         "-NoLogo",
@@ -797,7 +786,6 @@
       "task": "build",
       "id": "build-site",
       "dependsOn": [
-        "sync-sources",
         "test-documentation-contracts",
         "build-api-net8-0-optional",
         "build-release-hub",
