@@ -56,10 +56,20 @@ enum StudioCapturePageReadiness {
     }
 
     private static func recognize(_ image: CGImage) throws -> [String] {
+        // Cropped CGImages can retain a larger parent's stride and an offset.
+        // Give Vision its own contiguous raster instead of that provider view.
+        guard let context = CGContext(data: nil, width: image.width, height: image.height,
+                                      bitsPerComponent: 8, bytesPerRow: image.width * 4,
+                                      space: CGColorSpaceCreateDeviceRGB(),
+                                      bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue) else {
+            throw Failure.unreadablePixels
+        }
+        context.draw(image, in: CGRect(x: 0, y: 0, width: image.width, height: image.height))
+        guard let raster = context.makeImage() else { throw Failure.unreadablePixels }
         let request = VNRecognizeTextRequest()
         request.recognitionLevel = .accurate
         request.recognitionLanguages = ["en-US"]
-        try VNImageRequestHandler(cgImage: image).perform([request])
+        try VNImageRequestHandler(cgImage: raster).perform([request])
         return (request.results ?? []).compactMap { $0.topCandidates(1).first?.string.lowercased() }
     }
 }
