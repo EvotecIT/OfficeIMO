@@ -348,6 +348,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
 
         HtmlRenderFlowBlock? projectedContent = null;
         double pagedEntryGap = 0D;
+        double forcedFollowingMinimum = 0D;
         if (projectionScope.CanProject && pageBoundary.HasValue) {
             // A first child's synthetic entry is before this owner's content,
             // rather than an interval consumed by its authored height. Rebuild
@@ -380,7 +381,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
             projectedContent = ProjectOrdinaryContent(source,
                 pageBoundary.Value.Shift(style.MarginTop + style.BorderTopWidth + style.PaddingTop),
                 entryRelayout?.AllowsInteriorRelayout == true ? childPaintLayers : null,
-                out pagedEntryGap, out interiorGap);
+                out pagedEntryGap, out interiorGap, out forcedFollowingMinimum);
             if (interiorGap != null) return source;
             if (pagedEntryGap > 0.0001D && entryRelayout != null
                 && TryRelayoutConstrainedEntry(element, containingWidth, parentStyle, depth,
@@ -512,6 +513,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
         if (!usesVerticalBlockFormatting) {
             pagedPaintExtent = ResolveConstrainedBlockPaintExtent(style, retainsConstrainedPaint, pagedPaintExtent,
                 contentYForBreaks, contentHeight, inlineLayout, childPaintLayers);
+            if (projectedContent != null)
+                pagedPaintExtent = Math.Max(pagedPaintExtent, contentYForBreaks + projectedContent.PagedPaintExtent);
             AppendConstrainedBlockAllocationTail(style, ownsConstrainedSource && hasOrdinaryFragmentSource
                 && !contentFloats.HasFloats && !visuals.Any(ContainsPositionedFlowPaint), boxHeight, contentYForBreaks,
                 contentHeight, childPaintLayers, contentSafeBreakRanges,
@@ -631,6 +634,15 @@ internal sealed partial class HtmlRenderLayoutEngine {
             contentVisuals, contentHeight, inlineLayout?.HasInFlowLineBoxes == true);
         HtmlRenderFlowBlock completed = StampViewport(AttachElementMargins(ApplyElementPositioning(block, style, containingWidth, containingHeight, element),
             style, element, collapsesThrough, collapsedTopGroup, collapsedBottomGroup));
+        if (forcedFollowingMinimum > 0.0001D) {
+            // Authored after controls carry following flow to their realized
+            // page boundary even when the CSS box has a constrained height.
+            // Before controls leave that independent authored advance intact.
+            double minimumAdvance = contentYForBreaks + forcedFollowingMinimum
+                + style.PaddingBottom + style.BorderBottomWidth + style.MarginBottom;
+            if (minimumAdvance > completed.NormalFlowAdvance + 0.0001D)
+                completed = completed.AdjustTrailingFlowSpace(completed.NormalFlowAdvance - minimumAdvance);
+        }
         if (pagedEntryGap > 0.0001D) {
             completed = completed.AdjustLeadingFlowSpace(-pagedEntryGap);
             completed.PagedSourceEntryGap = pagedEntryGap;

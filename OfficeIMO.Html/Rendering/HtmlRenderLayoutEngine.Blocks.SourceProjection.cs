@@ -52,8 +52,11 @@ internal sealed partial class HtmlRenderLayoutEngine {
         double pageHeight, int pageNumber, HtmlCssPageGeometry geometry, out HtmlRenderFlowBlock reflowed) {
         reflowed = block;
         IElement? owner = block.OwnerElement;
+        CheckCancellation();
+        ChargeLayoutOperations(block.ForcedBreaks.Count, "constrained source forced-entry eligibility");
         if (owner == null || available <= 0.0001D || pageHeight <= 0D
-            || block.Height <= available + 0.0001D || _projectedConstrainedOwners.Contains(owner)) return false;
+            || (block.Height <= available + 0.0001D && !block.ForcedBreaks.Any(item => IsForcedPageBreak(item.Target)))
+            || _projectedConstrainedOwners.Contains(owner)) return false;
         CheckCancellation();
         ChargeLayoutOperations(_constrainedOverflowElements.Count, "constrained source owner selection");
         IElement[] targets = _constrainedOverflowElements.Where(element => ContainsElementOrSelf(owner, element)).ToArray();
@@ -66,7 +69,10 @@ internal sealed partial class HtmlRenderLayoutEngine {
             ? "table-formatting-source-owner" : ResolveConstrainedProjectionBoundary(owner);
         // Specialized owners retain their established planner and state. Do not
         // enter a speculative rebuild and then restore only part of its caches.
-        boundary ??= HasInternalForcedBreak(block) ? "internal-forced-source-break" : null;
+        ChargeLayoutOperations(block.ForcedBreaks.Count, "constrained source forced-boundary qualification");
+        boundary ??= block.ForcedBreaks.Any(item => item.ChangesPageName
+            || item.Target is HtmlPageBreakTarget.Left or HtmlPageBreakTarget.Right)
+                ? "internal-forced-source-break" : null;
         if (boundary != null) {
             ChargeLayoutOperations(targets.Length, "constrained overflow boundary qualification");
             if (targets.Any(_constrainedPaintOverflowElements.Contains))
@@ -164,9 +170,11 @@ internal sealed partial class HtmlRenderLayoutEngine {
 
     /// <summary>Uses the canonical fragment planner; inserted gaps occupy destination space, not extra CSS height.</summary>
     private HtmlRenderFlowBlock ProjectOrdinaryContent(HtmlRenderFlowBlock source, PagedFloatBoundary boundary,
-        IReadOnlyList<FlowPaintLayer>? childSources, out double entryGap, out ConstrainedInteriorGap? interiorGap) {
+        IReadOnlyList<FlowPaintLayer>? childSources, out double entryGap, out ConstrainedInteriorGap? interiorGap,
+        out double forcedFollowingMinimum) {
         entryGap = 0D;
         interiorGap = null;
+        forcedFollowingMinimum = 0D;
         ConstrainedSourceProjection? context = _constrainedSourceProjection;
         if (context == null || context.FailedReason != null || source.PagedPaintExtent <= 0.0001D) return source;
         double available = boundary.RemainingHeight;
@@ -193,20 +201,24 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 return source;
             }
             double remaining = projected.PagedPaintExtent - cursor;
-            if (remaining <= available + 0.0001D) break;
+            bool hasForcedBoundary = TryGetNextForcedBreak(projected.ForcedBreaks, cursor, out HtmlRenderForcedBreak? forcedBreak)
+                && (forcedBreak!.Offset < projected.PagedPaintExtent - 0.0001D
+                    || forcedBreak!.IsAfter && !forcedBreak.Projected);
+            if (remaining <= available + 0.0001D && !hasForcedBoundary) break;
             HtmlRenderFlowBlock paged = projected.ForPagination();
             bool movesOwnKeep = cursor <= 0.0001D && source.AvoidBreakInside
+                && !hasForcedBoundary
                 && source.PagedPaintExtent <= context.PageHeight + 0.0001D
                 && remaining > available + 0.0001D;
             PagedBlockFragment? plan = movesOwnKeep ? null
                 : PlanPagedFragment(paged, cursor, available, context.PageHeight,
                     canForceFragment: available >= context.PageHeight - 0.0001D);
-            if (plan?.Forced == true || plan?.Header != null || plan?.Footer != null
-                || HasInternalForcedBreak(projected)) {
+            if (plan?.Forced == true || plan?.Header != null || plan?.Footer != null) {
                 context.FailedReason = "forced-or-repeated-source-fragment";
                 return source;
             }
             double cut = plan?.End ?? cursor;
+            bool projectsForcedBoundary = hasForcedBoundary && Math.Abs(forcedBreak!.Offset - cut) <= 0.0001D;
             double gap = available - (cut - cursor);
             if (gap > 0.0001D) {
                 context.NeedsProjection = true;
@@ -232,14 +244,24 @@ internal sealed partial class HtmlRenderLayoutEngine {
                     }
                     double advance = cut < projected.Height - 0.0001D ? gap : 0D;
                     projected = InsertPagedSourceBreakGap(projected, cut, gap, false, advance,
-                        plan == null ? null : ResolvePagedBackgroundWindow(cursor, plan));
+                        plan == null ? null : ResolvePagedBackgroundWindow(cursor, plan), projectsForcedBoundary);
                     cut += gap;
                 }
+                context.Changed = true;
+            } else if (projectsForcedBoundary && !forcedBreak!.Projected) {
+                projected = projected.WithVisuals(projected.Visuals, forcedBreaks: projected.ForcedBreaks.Select(item =>
+                    Math.Abs(item.Offset - cut) <= 0.0001D && IsForcedPageBreak(item.Target)
+                        ? item.ProjectAt(item.Offset) : item));
                 context.Changed = true;
             }
             cursor = cut;
             available = context.PageHeight;
             pageNumber++;
+        }
+        foreach (HtmlRenderForcedBreak item in projected.ForcedBreaks) {
+            CheckCancellation();
+            ChargeLayoutOperation("constrained authored following-flow boundary");
+            if (item.IsAfter && item.Projected) forcedFollowingMinimum = Math.Max(forcedFollowingMinimum, item.Offset);
         }
         return projected;
     }

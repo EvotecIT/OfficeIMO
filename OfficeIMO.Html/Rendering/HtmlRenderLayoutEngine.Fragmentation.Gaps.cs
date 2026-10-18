@@ -3,7 +3,8 @@ namespace OfficeIMO.Html;
 internal sealed partial class HtmlRenderLayoutEngine {
     /// <summary>Maps one source gap without changing unrelated paint or source owners.</summary>
     private HtmlRenderFlowBlock InsertPagedSourceBreakGap(HtmlRenderFlowBlock block, double cut, double gap,
-        bool absorbInStretchTail, double? flowAdvanceDelta = null, PagedBackgroundWindow? backgroundWindow = null) {
+        bool absorbInStretchTail, double? flowAdvanceDelta = null, PagedBackgroundWindow? backgroundWindow = null,
+        bool projectForcedBoundary = false) {
         CheckCancellation();
         ChargeLayoutOperations(1L + block.Visuals.Count + block.BreakOffsets.Count
             + block.SafeBreakRanges.Count + block.LineBreakGroups.Count + block.AvoidBreakRanges.Count
@@ -42,7 +43,9 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 Shift(group.StartsAfter), Shift(group.EndsAt), group.Height, group.Visuals)),
             trailingGroups: block.TrailingGroups.Select(group => new HtmlRenderTrailingGroup(
                 Shift(group.StartsAt), Shift(group.ContentEndsAt), Shift(group.SourceEndsAt), group.Height, group.Visuals)),
-            forcedBreaks: block.ForcedBreaks.Select(item => item.Translate(Shift(item.Offset) - item.Offset)),
+            forcedBreaks: block.ForcedBreaks.Select(item => projectForcedBoundary
+                && Math.Abs(item.Offset - cut) <= 0.0001D && IsForcedPageBreak(item.Target)
+                    ? item.ProjectAt(Shift(item.Offset)) : item.Translate(Shift(item.Offset) - item.Offset)),
             pageName: block.PageName,
             stackingZIndex: block.StackingZIndex,
             stackingSourceOrder: block.StackingSourceOrder,
@@ -77,7 +80,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 PagedSourceEntryGap = block.PagedSourceEntryGap,
                 UnfragmentedHeight = block.UnfragmentedHeight,
                 ColumnOverflowContent = block.ColumnOverflowContent == null ? null
-                    : InsertPagedSourceBreakGap(block.ColumnOverflowContent, cut, gap, absorbInStretchTail, flowAdvanceDelta, backgroundWindow)
+                    : InsertPagedSourceBreakGap(block.ColumnOverflowContent, cut, gap, absorbInStretchTail, flowAdvanceDelta, backgroundWindow, projectForcedBoundary)
             };
     }
 

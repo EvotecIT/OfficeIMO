@@ -322,7 +322,8 @@ internal sealed class HtmlRenderFlowBlock {
 
     internal HtmlRenderFlowBlock WithVisuals(IEnumerable<HtmlRenderVisual> visuals, double? pagedPaintExtent = null,
         double pagedBreakTranslation = 0D, IEnumerable<HtmlRenderContinuationGroup>? continuationGroups = null,
-        IEnumerable<HtmlRenderTrailingGroup>? trailingGroups = null, double? width = null, double? height = null) =>
+        IEnumerable<HtmlRenderTrailingGroup>? trailingGroups = null, double? width = null, double? height = null,
+        IEnumerable<HtmlRenderForcedBreak>? forcedBreaks = null) =>
         CopyLayoutFacts(new HtmlRenderFlowBlock(
             width ?? Width,
             height ?? Height,
@@ -353,7 +354,7 @@ internal sealed class HtmlRenderFlowBlock {
             inlineBreakProgress: InlineBreakProgress,
             inlineContinuationStart: InlineContinuationStart,
             supportsInlineContinuationReflow: SupportsInlineContinuationReflow,
-            forcedBreaks: ForcedBreaks,
+            forcedBreaks: forcedBreaks ?? ForcedBreaks,
             layoutViewportWidth: LayoutViewportWidth,
             layoutViewportHeight: LayoutViewportHeight,
             leadingFlowAdjustment: LeadingFlowAdjustment,
@@ -579,13 +580,16 @@ internal readonly record struct HtmlRenderAvoidBreakRange(double Start, double E
 
 internal sealed class HtmlRenderForcedBreak {
     internal HtmlRenderForcedBreak(double offset, HtmlPageBreakTarget target, string? pageName = null, bool changesPageName = false,
-        object? boundary = null, HtmlRenderBreakEdge edge = HtmlRenderBreakEdge.Interior) {
+        object? boundary = null, HtmlRenderBreakEdge edge = HtmlRenderBreakEdge.Interior,
+        bool isAfter = false, bool projected = false) {
         Offset = offset;
         Target = target;
         PageName = pageName;
         ChangesPageName = changesPageName;
         Boundary = boundary ?? new object();
         Edge = edge;
+        IsAfter = isAfter;
+        Projected = projected;
     }
 
     internal double Offset { get; }
@@ -595,10 +599,17 @@ internal sealed class HtmlRenderForcedBreak {
     // Distinct empty siblings can share an offset; their flow boundaries cannot.
     internal object Boundary { get; }
     internal HtmlRenderBreakEdge Edge { get; }
+    /// <summary>Retains authored after provenance when before and after controls share a sibling boundary.</summary>
+    internal bool IsAfter { get; }
+    /// <summary>The source offset already includes the page-entry spacing for this event.</summary>
+    internal bool Projected { get; }
 
-    internal HtmlRenderForcedBreak Translate(double offset) => new HtmlRenderForcedBreak(Offset + offset, Target, PageName, ChangesPageName, Boundary, Edge);
+    internal HtmlRenderForcedBreak Translate(double offset) => new HtmlRenderForcedBreak(Offset + offset, Target, PageName, ChangesPageName, Boundary, Edge, IsAfter, Projected);
     internal HtmlRenderForcedBreak AtBoundary(double offset, object boundary, HtmlRenderBreakEdge edge) =>
-        new HtmlRenderForcedBreak(offset, Target, PageName, ChangesPageName, boundary, edge);
+        new HtmlRenderForcedBreak(offset, Target, PageName, ChangesPageName, boundary, edge, IsAfter, Projected);
+    /// <summary>Marks an authored boundary whose destination spacing is now represented in the retained source.</summary>
+    internal HtmlRenderForcedBreak ProjectAt(double offset) =>
+        new HtmlRenderForcedBreak(offset, Target, PageName, ChangesPageName, Boundary, Edge, IsAfter, projected: true);
 }
 
 internal enum HtmlRenderBreakEdge { Interior, Leading, Trailing }
