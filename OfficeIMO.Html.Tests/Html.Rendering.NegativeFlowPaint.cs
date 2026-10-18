@@ -39,7 +39,7 @@ public sealed partial class HtmlRenderingTests {
         HtmlRenderShape background = Assert.Single(visuals.OfType<HtmlRenderShape>(), shape =>
             shape.Source == "div#cover" && shape.Shape.FillColor == green);
         Assert.Equal(columns ? 15D : 25D, background.Y, 4);
-        Assert.Equal(columns ? 40D : 50D, tail.Y, 4);
+        Assert.Equal(first.Y + 20D, tail.Y, 4);
         Assert.Equal("#tail", first.LinkUri);
         Assert.Equal(OfficeColor.Red, first.Color);
         Assert.Equal(OfficeColor.Blue, over.Color);
