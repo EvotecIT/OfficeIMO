@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<title>spanner-keep-before-avoid-page</title>
+<style>
+@font-face{font-family:Witness;src:url(regular.ttf);font-weight:400}
+@font-face{font-family:Witness;src:url(bold.ttf);font-weight:700}
+@page{size:700px 140px;margin:20px}
+html,body{margin:0;background:white;font:14px/20px Witness}
+p{margin:0;orphans:1;widows:1}
+.columns{width:300px;column-count:2;column-gap:20px}
+.spanner{column-span:all;margin:0;font-weight:700;background:#eeeeee}
+</style>
+<p id="kbpag-e01">KBPAG-E01</p>
+<p id="kbpag-e02">KBPAG-E02</p>
+<section id="columns" class="columns" style="column-fill:auto">
+<p id="kbpag-p01">KBPAG-P01</p>
+<p id="kbpag-p02">KBPAG-P02</p>
+<p id="kbpag-p03">KBPAG-P03</p>
+<p id="kbpag-p04">KBPAG-P04</p>
+<div id="kbpag-spanner" class="spanner" style="break-before:avoid-page">
+<p id="kbpag-s01">KBPAG-S01</p>
+<p id="kbpag-s02">KBPAG-S02</p>
+</div>
+<p id="kbpag-t01">KBPAG-T01</p>
+<p id="kbpag-t02">KBPAG-T02</p>
+<p id="kbpag-t03">KBPAG-T03</p>
+<p id="kbpag-t04">KBPAG-T04</p>
+</section>
+<p id="after">KBPAG-AFTER</p>
+</html>

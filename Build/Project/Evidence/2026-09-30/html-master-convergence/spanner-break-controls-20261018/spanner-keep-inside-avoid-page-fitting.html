@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<title>spanner-keep-inside-avoid-page-fitting</title>
+<style>
+@font-face{font-family:Witness;src:url(regular.ttf);font-weight:400}
+@font-face{font-family:Witness;src:url(bold.ttf);font-weight:700}
+@page{size:700px 140px;margin:20px}
+html,body{margin:0;background:white;font:14px/20px Witness}
+p{margin:0;orphans:1;widows:1}
+.columns{width:300px;column-count:2;column-gap:20px}
+.spanner{column-span:all;margin:0;font-weight:700;background:#eeeeee}
+</style>
+<p id="kipag-e01">KIPAG-E01</p>
+<p id="kipag-e02">KIPAG-E02</p>
+<section id="columns" class="columns" style="column-fill:auto">
+<p id="kipag-p01">KIPAG-P01</p>
+<p id="kipag-p02">KIPAG-P02</p>
+<p id="kipag-p03">KIPAG-P03</p>
+<p id="kipag-p04">KIPAG-P04</p>
+<div id="kipag-spanner" class="spanner" style="break-inside:avoid-page">
+<p id="kipag-s01">KIPAG-S01</p>
+<p id="kipag-s02">KIPAG-S02</p>
+<p id="kipag-s03">KIPAG-S03</p>
+</div>
+<p id="kipag-t01">KIPAG-T01</p>
+<p id="kipag-t02">KIPAG-T02</p>
+</section>
+<p id="after">KIPAG-AFTER</p>
+</html>
