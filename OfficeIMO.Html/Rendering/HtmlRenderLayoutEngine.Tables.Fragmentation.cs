@@ -9,7 +9,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
     /// inspected once rather than walking its visual tree at every later row.
     /// </summary>
     private IReadOnlyList<bool> ResolveRowBreakAvailability(
-        IReadOnlyList<TableRowLayout> rows, double spacing, double rowStart,
+        IReadOnlyList<TableRowLayout> rows, double spacing, double rowStart, double freshRowCapacity,
         out IReadOnlyList<bool> hasSpanningCellsAfterRows,
         out IReadOnlyList<HtmlRenderBreakRange> safeBreakRanges) {
         var result = new bool[rows.Count];
@@ -18,6 +18,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
         var avoidedRows = new int[rows.Count + 1];
         var rowStarts = new double[rows.Count + 1];
         var contentOwnersDelta = new int[rows.Count + 1];
+        var spanOwnersDelta = new int[rows.Count + 1];
+        int spanOwners = 0;
         int contentOwners = 0;
         var allowed = new List<HtmlRenderBreakRange>();
         var forbidden = new List<HtmlRenderBreakRange>();
@@ -36,7 +38,11 @@ internal sealed partial class HtmlRenderLayoutEngine {
                     lastRow, rowY + cell.ContentOffsetY,
                     !row.IsHeader && !row.IsFooter
                         && avoidedRows[rowIndex + cell.RowSpan] == avoidedRows[rowIndex]);
-                if (cell.RowSpan > 1) active.Add(safety);
+                if (cell.RowSpan > 1) {
+                    active.Add(safety);
+                    spanOwnersDelta[rowIndex]++;
+                    spanOwnersDelta[lastRow + 1]--;
+                }
                 if (safety.ContentHeight > 0.0001D) {
                     contentOwnersDelta[rowIndex]++;
                     contentOwnersDelta[lastRow + 1]--;
@@ -52,9 +58,14 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 }
             }
             contentOwners += contentOwnersDelta[rowIndex];
+            spanOwners += spanOwnersDelta[rowIndex];
             // Empty rows retain their existing discrete boundary. Splitting a
             // background-only row can detach it from a deferred neighboring float.
-            if (contentOwners > 0 && !row.IsHeader && !row.IsFooter
+            // Prefer the existing boundary of an ordinary row that fits a
+            // fresh body slot. Native pagination leaves that row whole; spans
+            // and oversized rows need source-interior progress instead.
+            if (contentOwners > 0 && (spanOwners > 0 || row.Height + spacing > freshRowCapacity + 0.0001D)
+                && !row.IsHeader && !row.IsFooter
                 && !row.Style.AvoidBreakInside && row.GroupStyle?.AvoidBreakInside != true)
                 allowed.Add(new HtmlRenderBreakRange(rowY, rowY + row.Height + spacing));
 
@@ -160,6 +171,16 @@ internal sealed partial class HtmlRenderLayoutEngine {
         return low == 0 || relative >= span.UnsafeRanges[low - 1].End - 0.0001D;
     }
 
+    private static bool HasTableContentCutsInRow(IReadOnlyList<HtmlRenderBreakRange> ranges, double rowY, double height) {
+        int low = 0, high = ranges.Count;
+        while (low < high) {
+            int middle = low + ((high - low) >> 1);
+            if (ranges[middle].Start < rowY + height - 0.0001D) low = middle + 1;
+            else high = middle;
+        }
+        return low > 0 && ranges[low - 1].End > rowY + 0.0001D;
+    }
+
     /// <summary>Projects the cell's paragraph constraints into the shared table source coordinates.</summary>
     private void AppendTableCellLineBreakGroups(
         ICollection<HtmlRenderLineBreakGroup> groups, TableCellLayout cell, double contentY) {
@@ -183,4 +204,33 @@ internal sealed partial class HtmlRenderLayoutEngine {
         int LastRow, double ContentY, double ContentHeight, IReadOnlyList<double> BreakOffsets,
         IReadOnlyList<HtmlRenderAvoidBreakRange> UnsafeRanges, bool Supported);
 
+    private static void AddTableRowInternalBreakOffsets(ICollection<double> breakOffsets, TableRowLayout row, double rowY) {
+        var candidates = new SortedSet<double>();
+        foreach (TableCellLayout cell in row.Cells) {
+            double contentTop = cell.ContentOffsetY;
+            foreach (double offset in cell.Inline.BreakOffsets) {
+                // These offsets already end actual laid-out lines. Subtracting
+                // computed CSS leading can discard the penultimate line when
+                // its selected font has a different used normal advance.
+                if (offset < cell.Inline.Height - 0.0001D) candidates.Add(contentTop + offset);
+            }
+        }
+
+        foreach (double candidate in candidates) {
+            bool safeForEveryCell = true;
+            foreach (TableCellLayout cell in row.Cells) {
+                double contentTop = cell.ContentOffsetY;
+                double relative = candidate - contentTop;
+                if (relative <= 0.0001D) continue;
+                if (relative >= cell.Inline.Height - 0.0001D) continue;
+                if (!cell.Inline.BreakOffsets.Any(offset => Math.Abs(offset - relative) <= 0.0001D)) {
+                    safeForEveryCell = false;
+                    break;
+                }
+            }
+            if (safeForEveryCell && candidate > 0.0001D && candidate < row.Height - 0.0001D) {
+                breakOffsets.Add(rowY + candidate);
+            }
+        }
+    }
 }

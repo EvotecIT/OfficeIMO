@@ -22,6 +22,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
         var contentVisuals = new List<HtmlRenderVisual>();
         var contentBreakOffsets = new SortedSet<double>();
         var contentSafeBreakRanges = new List<HtmlRenderBreakRange>();
+        var contentLineBreakGroups = new List<HtmlRenderLineBreakGroup>();
+        var contentAvoidBreakRanges = new List<HtmlRenderAvoidBreakRange>();
         var runningStringAssignments = new List<HtmlCssRunningStringAssignment>();
         double contentHeight = 0D;
         for (int index = 0; index < partitions.Count; index++) {
@@ -45,6 +47,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 contentVisuals,
                 contentBreakOffsets,
                 contentSafeBreakRanges,
+                contentLineBreakGroups,
+                contentAvoidBreakRanges,
                 runningStringAssignments,
                 out double partitionHeight);
             contentHeight += partitionHeight;
@@ -60,6 +64,9 @@ internal sealed partial class HtmlRenderLayoutEngine {
             }
             contentSafeBreakRanges.AddRange(HtmlRenderBreakRange.Normalize(spanner.SafeBreakRanges, spanner.Height)
                 .Select(range => range.Translate(contentHeight)));
+            contentLineBreakGroups.AddRange(SliceColumnLineBreakGroups(
+                spanner.LineBreakGroups, 0D, spanner.Height, contentHeight));
+            contentAvoidBreakRanges.AddRange(SliceColumnAvoidBreakRanges(spanner, 0D, spanner.Height, contentHeight));
             foreach (HtmlCssRunningStringAssignment assignment in spanner.RunningStringAssignments) {
                 runningStringAssignments.Add(assignment.Translate(contentHeight));
             }
@@ -109,7 +116,9 @@ internal sealed partial class HtmlRenderLayoutEngine {
             style.AvoidBreakInside,
             source,
             breakOffsets,
+            lineBreakGroups: contentLineBreakGroups.Select(group => group.Translate(contentY)),
             pageName: style.PageName,
+            avoidBreakRanges: contentAvoidBreakRanges.Select(range => range.Translate(contentY)),
             runningStringAssignments: runningStringAssignments
                 .Select(assignment => assignment.Translate(contentY))
                 .Concat(positionedRunningStringAssignments)
@@ -162,6 +171,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
         ICollection<HtmlRenderVisual> visuals,
         ISet<double> breakOffsets,
         ICollection<HtmlRenderBreakRange> safeBreakRanges,
+        ICollection<HtmlRenderLineBreakGroup> lineBreakGroups,
+        ICollection<HtmlRenderAvoidBreakRange> avoidBreakRanges,
         ICollection<HtmlCssRunningStringAssignment> runningStringAssignments,
         out double partitionHeight) {
         if (children.Count == 0) {
@@ -188,6 +199,12 @@ internal sealed partial class HtmlRenderLayoutEngine {
         }
         foreach (HtmlRenderBreakRange range in ResolveMultiColumnSafeBreakRanges(plan)) {
             safeBreakRanges.Add(range.Translate(offsetY));
+        }
+        foreach (HtmlRenderLineBreakGroup group in EnumerateMultiColumnLineBreakGroups(plan, offsetY)) {
+            lineBreakGroups.Add(group);
+        }
+        foreach (HtmlRenderAvoidBreakRange range in EnumerateMultiColumnAvoidBreakRanges(plan, offsetY)) {
+            avoidBreakRanges.Add(range);
         }
         foreach (HtmlCssRunningStringAssignment assignment in EnumerateMultiColumnRunningStringAssignments(plan, offsetY)) {
             runningStringAssignments.Add(assignment);

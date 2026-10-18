@@ -152,7 +152,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
             pageName: blocks.FirstOrDefault()?.PageName, runningStringAssignments: assignments, forcedBreaks: forced,
             layoutViewportWidth: ActiveSurfaceWidth, layoutViewportHeight: _activePageGeometry.Height,
             pagedPaintExtent: paintExtent, avoidBreakRanges: keeps,
-            safeBreakRanges: safeBreakRanges);
+            safeBreakRanges: ConstrainParallelPaintBreakRanges(
+                HtmlRenderBreakRange.Normalize(safeBreakRanges, paintExtent), painted));
         aggregate.HasZeroHeightOrdinaryContent = height == 0D && hasInlineLineBoxes
             && blocks.All(block => block.Height == 0D);
         return new HtmlInlineLayout(painted, height, breaks, assignments, interruptedFlow: aggregate,

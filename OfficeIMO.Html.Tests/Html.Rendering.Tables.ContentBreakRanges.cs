@@ -109,6 +109,36 @@ public sealed partial class HtmlRenderingTests {
         }
     }
 
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void HtmlTables_ContentBreakRangesKeepParagraphWidowsThroughColumns(bool columns) {
+        string lines = string.Join("<br>", Enumerable.Range(1, 8).Select(i => "LONG-" + i));
+        string table = "<table><tbody><tr style='height:150px'><td rowspan='2'><div style='line-height:20px;orphans:4;widows:4'>"
+            + lines + "</div></td></tr><tr style='height:150px'></tr></tbody></table>";
+        string body = columns ? "<div style='column-count:2;column-fill:auto;column-gap:60px;height:400px'>" + table + "</div>" : table;
+        HtmlRenderDocument rendered = RenderContentRangeTable(body, 140, pageWidth: 700);
+
+        AssertContentRangeMarkers(rendered, Enumerable.Range(1, 8).Select(i => "LONG-" + i));
+        Assert.Equal(new[] { "LONG-1", "LONG-2", "LONG-3", "LONG-4" },
+            rendered.Pages[0].Visuals.OfType<HtmlRenderText>().Where(t => t.Text.StartsWith("LONG-", StringComparison.Ordinal)).Select(t => t.Text));
+        Assert.Equal(new[] { "LONG-5", "LONG-6", "LONG-7", "LONG-8" },
+            rendered.Pages[1].Visuals.OfType<HtmlRenderText>().Where(t => t.Text.StartsWith("LONG-", StringComparison.Ordinal)).Select(t => t.Text));
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void HtmlTables_ContentBreakRangesCannotCutFollowingTextOverVisibleOverflow(bool inlineLink) {
+        string labels = string.Join("<br>", Enumerable.Range(1, 20).Select(i => "OVER-" + i.ToString("D2")));
+        string body = "<div style='display:flex;height:0;align-items:flex-start'><table><tr style='height:300px'><td>TABLE-TOP</td></tr></table></div>"
+            + "<p style='padding-top:9px;line-height:20px;orphans:1;widows:1'>" + labels + "</p>";
+        body = inlineLink ? "<a href='#after'>" + body + "</a>" : "<div>" + body + "</div>";
+        HtmlRenderDocument rendered = RenderContentRangeTable(body, 140);
+
+        AssertContentRangeMarkers(rendered, Enumerable.Range(1, 20).Select(i => "OVER-" + i.ToString("D2")).Append("TABLE-TOP"));
+    }
+
     private static readonly string[] ContentRangeLines = { "LINE-A", "LINE-B", "LINE-C", "LINE-D" };
     private const string ContentRangeFooterMarkup = "<tfoot><tr><td id='footer' colspan='2'>FOOTER</td></tr></tfoot>";
 

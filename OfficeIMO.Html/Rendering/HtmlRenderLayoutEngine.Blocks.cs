@@ -458,6 +458,13 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 : HtmlRenderBreakRange.Exclude(safeBreakRanges,
                     atomicRanges.Select(range => new HtmlRenderBreakRange(range.Top, range.Bottom)));
         }
+        if (contentSafeBreakRanges.Count > 0) {
+            // A short fixed-height child can paint over later normal-flow
+            // siblings without extending this wrapper's final flow height.
+            // Its blank source interval cannot cut those sibling carriers.
+            safeBreakRanges = ConstrainParallelPaintBreakRanges(
+                HtmlRenderBreakRange.Normalize(safeBreakRanges, pagedPaintExtent), visuals);
+        }
         if (children.Count == 0 && contentVisuals.Count == 0) {
             breakOffsets = breakOffsets.Concat(CollectPositionedContainerBreakOffsets(
                 element,

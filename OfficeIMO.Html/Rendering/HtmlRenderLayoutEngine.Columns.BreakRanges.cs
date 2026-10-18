@@ -42,6 +42,86 @@ internal sealed partial class HtmlRenderLayoutEngine {
         HtmlRenderBreakRange.Intersect(ranges, new[] { new HtmlRenderBreakRange(start, end) })
             .Select(range => range.Translate(-start));
 
+    /// <summary>Retains paragraph constraints for the physical lines present in each column fragment.</summary>
+    private IEnumerable<HtmlRenderLineBreakGroup> EnumerateMultiColumnLineBreakGroups(MultiColumnPlan plan, double offsetY) {
+        foreach (MultiColumnFragment fragment in plan.Fragments) {
+            CheckCancellation();
+            ChargeLayoutOperation("column paragraph projection");
+            foreach (HtmlRenderLineBreakGroup group in SliceColumnLineBreakGroups(
+                         fragment.Block.LineBreakGroups, fragment.Start, fragment.End, offsetY + fragment.Y)) {
+                yield return group;
+            }
+        }
+    }
+
+    /// <summary>
+    /// Clips a paragraph to actual source-fragment lines. A final included line
+    /// becomes the fragment's implicit final line, so later columns cannot
+    /// inflate its widow count or prevent finishing its complete content.
+    /// </summary>
+    private IEnumerable<HtmlRenderLineBreakGroup> SliceColumnLineBreakGroups(
+        IEnumerable<HtmlRenderLineBreakGroup> groups, double start, double end, double offsetY) {
+        const double tolerance = 0.0001D;
+        if (end <= start + tolerance) yield break;
+        double translation = offsetY - start;
+        foreach (HtmlRenderLineBreakGroup group in groups) {
+            CheckCancellation();
+            ChargeLayoutOperations((long)group.Offsets.Count + 1L, "column paragraph line projection");
+            if (group.End <= start + tolerance || group.Start >= end - tolerance) continue;
+            if (group.Start >= start && group.End <= end) {
+                yield return group.WithInteriorBreaks().Translate(translation);
+                continue;
+            }
+
+            var presentOffsets = group.Offsets.Where(value => value > start + tolerance && value <= end + tolerance)
+                .Select(value => Math.Min(end, value)).ToList();
+            bool hasFinalLine = group.HasImplicitFinalLine;
+            double groupEnd = Math.Min(group.End, end);
+            bool hasOriginalEnd = group.End <= end + tolerance;
+            if (!hasOriginalEnd) {
+                if (presentOffsets.Count == 0) continue;
+                groupEnd = presentOffsets[presentOffsets.Count - 1];
+                presentOffsets.RemoveAt(presentOffsets.Count - 1);
+                hasFinalLine = true;
+            }
+            yield return new HtmlRenderLineBreakGroup(
+                presentOffsets.Select(value => value + translation), group.Orphans, group.Widows,
+                hasFinalLine, Math.Max(group.Start, start) + translation, groupEnd + translation,
+                checkInteriorBreaks: true, finalLineMarginBreak: hasOriginalEnd && group.FinalLineMarginBreak);
+        }
+    }
+
+    /// <summary>Preserves source keeps that remain whole in an actual column fragment.</summary>
+    private IEnumerable<HtmlRenderAvoidBreakRange> EnumerateMultiColumnAvoidBreakRanges(MultiColumnPlan plan, double offsetY) {
+        foreach (MultiColumnFragment fragment in plan.Fragments) {
+            CheckCancellation();
+            ChargeLayoutOperation("column keep projection");
+            foreach (HtmlRenderAvoidBreakRange range in SliceColumnAvoidBreakRanges(
+                         fragment.Block, fragment.Start, fragment.End, offsetY + fragment.Y)) {
+                yield return range;
+            }
+        }
+    }
+
+    /// <summary>
+    /// Projects whole keeps only. A keep already split by the source column
+    /// planner must not become a smaller, newly fitting keep on the outer page.
+    /// </summary>
+    private static IEnumerable<HtmlRenderAvoidBreakRange> SliceColumnAvoidBreakRanges(
+        HtmlRenderFlowBlock block, double start, double end, double offsetY) {
+        const double tolerance = 0.0001D;
+        double translation = offsetY - start;
+        if (block.AvoidBreakInside && start <= tolerance && end >= block.Height - tolerance) {
+            yield return new HtmlRenderAvoidBreakRange(Math.Max(start, 0D) + translation,
+                Math.Min(end, block.Height) + translation);
+        }
+        foreach (HtmlRenderAvoidBreakRange range in block.AvoidBreakRanges) {
+            if (range.Start < start - tolerance || range.End > end + tolerance) continue;
+            yield return new HtmlRenderAvoidBreakRange(
+                Math.Max(start, range.Start) + translation, Math.Min(end, range.End) + translation, range.Soft);
+        }
+    }
+
     /// <summary>
     /// Preserves the wrapper's final-break projection without widening an
     /// imported interval through trailing padding, margin, or marker geometry.

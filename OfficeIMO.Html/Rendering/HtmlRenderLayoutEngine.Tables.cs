@@ -211,6 +211,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
         bool collectingLeadingHeaders = true;
         IReadOnlyList<bool> canBreakAfterRows = ResolveRowBreakAvailability(rowLayouts, verticalSpacing,
             tableY + style.BorderTopWidth + style.PaddingTop + verticalSpacing,
+            Math.Max(0D, _activePageGeometry.ContentHeight - style.VerticalInsets
+                - rowLayouts.Where(row => row.IsHeader || row.IsFooter).Sum(row => row.Height + verticalSpacing)),
             out IReadOnlyList<bool> hasSpanningCellsAfterRows,
             out IReadOnlyList<HtmlRenderBreakRange> safeBreakRanges);
         foreach (HtmlRenderBreakRange range in safeBreakRanges) {
@@ -278,7 +280,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 if (!cell.Anonymous) AddElementNamedDestination(navigationDestinations, cell.Element, cellX, rowY, navigationDestinations.Count);
                 double textX = cellX + cell.Style.BorderLeftWidth + cell.Style.PaddingLeft;
                 double textY = rowY + cell.ContentOffsetY;
-                if (!row.IsHeader && !row.IsFooter)
+                if (!row.IsHeader && !row.IsFooter
+                    && (cell.RowSpan > 1 || HasTableContentCutsInRow(safeBreakRanges, rowY, row.Height)))
                     AppendTableCellLineBreakGroups(lineBreakGroups, cell, textY);
                 foreach (HtmlRenderVisual visual in cell.Inline.Visuals) {
                     cellVisuals.Add(visual.Translate(textX, textY, cellVisuals.Count));
@@ -318,6 +321,18 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 visuals.Count,
                 HtmlRenderStyleResolver.DescribeSource(row.Element),
                 structureElementKey: row.StructureKey ?? GetTableStructureElementKey(row.Element)));
+
+            bool rowIndependent = !row.IsHeader
+                && !row.IsFooter
+                && !hasSpanningCellsAfterRows[rowIndex]
+                && (rowIndex == 0 || !hasSpanningCellsAfterRows[rowIndex - 1])
+                && canBreakAfterRows[rowIndex]
+                && (rowIndex == 0 || canBreakAfterRows[rowIndex - 1]);
+            if (rowIndependent
+                && !row.Style.AvoidBreakInside
+                && row.GroupStyle?.AvoidBreakInside != true) {
+                AddTableRowInternalBreakOffsets(breakOffsets, row, rowY);
+            }
 
             if (collectingLeadingHeaders && row.IsHeader) {
                 for (int visualIndex = rowVisualStart; visualIndex < visuals.Count; visualIndex++) {

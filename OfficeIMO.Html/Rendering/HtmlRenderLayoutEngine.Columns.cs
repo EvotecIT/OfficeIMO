@@ -105,9 +105,11 @@ internal sealed partial class HtmlRenderLayoutEngine {
             style.AvoidBreakInside,
             source,
             breakOffsets,
+            lineBreakGroups: EnumerateMultiColumnLineBreakGroups(plan, contentY),
             pageName: style.PageName,
             forcedBreaks: columnPageBreaks.Select(offset => new HtmlRenderForcedBreak(contentY + offset, HtmlPageBreakTarget.Page)),
-            avoidBreakRanges: ResolveColumnReservationKeepRanges(element, columnPageBreaks, contentY, contentHeight),
+            avoidBreakRanges: ResolveColumnReservationKeepRanges(element, columnPageBreaks, contentY, contentHeight)
+                .Concat(EnumerateMultiColumnAvoidBreakRanges(plan, contentY)),
             runningStringAssignments: EnumerateMultiColumnRunningStringAssignments(plan, contentY)
                 .Concat(positionedRunningStringAssignments)
                 .OrderBy(assignment => assignment.OrderOffset),
