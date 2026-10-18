@@ -315,6 +315,9 @@ if (-not $sourceBundle.Valid) {
     throw "The current OfficeIMO PowerShell API bundle is invalid: $($sourceBundle.Reason)."
 }
 Sync-DirectoryContents -Source $websiteArtifactsRoot -Destination $targetRoot
+# The module help uses a lowercase suffix; the website's API input has a
+# canonical uppercase suffix that must also exist on case-sensitive filesystems.
+Rename-Item -LiteralPath (Join-Path $targetRoot 'PSWriteOffice-help.xml') -NewName 'PSWriteOffice-Help.xml'
 $summary.sourceCommit = $sourceHead
 $summary.helpSource = $resolvedHelpPath
 $summary.helpUpdated = $true

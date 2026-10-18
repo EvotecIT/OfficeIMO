@@ -520,14 +520,19 @@ if ($apiBundle.schemaVersion -ne 1 -or $apiBundle.moduleName -cne 'PSWriteOffice
     $apiBundle.sourceCommit -cne $psWriteOfficeSource[0].Ref) {
     Add-Failure 'The PowerShell API bundle provenance must identify the imported release.'
 }
+$apiSnapshotFileNames = @(Get-ChildItem -LiteralPath $apiSnapshotRoot -File | ForEach-Object Name)
 foreach ($component in @(
     @{ Key = 'manifest'; File = 'PSWriteOffice.psd1' },
     @{ Key = 'help'; File = 'PSWriteOffice-Help.xml' },
     @{ Key = 'metadata'; File = 'command-metadata.json' }
 )) {
     $path = Join-Path $apiSnapshotRoot $component.File
+    $file = Get-Item -LiteralPath $path
+    if ($apiSnapshotFileNames -cnotcontains $component.File) {
+        Add-Failure "The PowerShell API $($component.Key) filename must use the canonical casing '$($component.File)'."
+    }
     $evidence = $apiBundle.components.($component.Key)
-    if ($null -eq $evidence -or (Get-Item -LiteralPath $path).Length -ne $evidence.bytes -or
+    if ($null -eq $evidence -or $file.Length -ne $evidence.bytes -or
         (Get-FileHash -LiteralPath $path -Algorithm SHA256).Hash -ine $evidence.sha256) {
         Add-Failure "The PowerShell API $($component.Key) must match its release fingerprint."
     }

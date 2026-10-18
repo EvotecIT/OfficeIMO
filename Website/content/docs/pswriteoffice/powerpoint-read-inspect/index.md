@@ -21,4 +21,4 @@ Close-OfficePowerPoint -Presentation $presentation
 
 The inspection family covers slides, shapes, placeholders, notes, themes, layouts, sections, transitions, charts, tables, and presentation metadata. Start with a summary, then query the structures relevant to the job.
 
-The [inspect-deck recipe](https://github.com/EvotecIT/OfficeIMO/blob/890cc048905baff13fdad58f49044947e55976b0/PowerShell/PSWriteOffice/Examples/PowerPoint/Recipe-PowerPoint-InspectDeck.ps1) creates a representative deck and reports title, shape, and note counts per slide.
+The [inspect-deck recipe](https://github.com/EvotecIT/OfficeIMO/blob/e3bbbc2674cdd221531f8757d93596c5180d7691/PowerShell/PSWriteOffice/Examples/PowerPoint/Recipe-PowerPoint-InspectDeck.ps1) creates a representative deck and reports title, shape, and note counts per slide.
