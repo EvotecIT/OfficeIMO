@@ -102,6 +102,29 @@ final class StudioStoreCaptureTests: XCTestCase {
         // The application's union can include the document browser's old
         // portrait bounds after rotation. Capture the visible document window.
         try capture(app.windows.firstMatch, page: page, expectedPID: nil, name: "studio-navigation-ipad-landscape")
+
+        selectTask("Pages", from: "Read", in: app)
+        XCTAssertTrue(sidebar.waitForNonExistence(timeout: 5), app.debugDescription)
+        selectTask("Read", from: "Pages", in: app)
+        XCTAssertTrue(page.waitForExistence(timeout: 10), app.debugDescription)
+        XCTAssertTrue(sidebar.waitForExistence(timeout: 5), app.debugDescription)
+
+        selectTask("Markup", from: "Read", in: app)
+        let done = app.buttons["Done"]
+        XCTAssertTrue(done.waitForExistence(timeout: 5), app.debugDescription)
+        assertSingleDocumentBar(app)
+        done.tap()
+        XCTAssertTrue(app.descendants(matching: .any).matching(identifier: "Task: Read").firstMatch.waitForExistence(timeout: 5), app.debugDescription)
+        XCTAssertTrue(page.waitForExistence(timeout: 10), app.debugDescription)
+    }
+
+    private func selectTask(_ next: String, from current: String, in app: XCUIApplication) {
+        let menu = app.descendants(matching: .any).matching(identifier: "Task: " + current).firstMatch
+        XCTAssertTrue(menu.waitForExistence(timeout: 5), app.debugDescription)
+        menu.tap()
+        let choice = app.descendants(matching: .any).matching(identifier: next).firstMatch
+        XCTAssertTrue(choice.waitForExistence(timeout: 5), app.debugDescription)
+        choice.tap()
     }
 
     /// Uses Files' own hierarchy, including a browser restored inside an earlier
