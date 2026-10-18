@@ -24,6 +24,7 @@ function Get-ComponentCategory {
     param([string] $Name)
 
     switch -Regex ($Name) {
+        '^PSWriteOffice$' { return 'PowerShell automation' }
         '^OfficeIMO\.Reader' { return 'Extraction and ingestion' }
         '^OfficeIMO\.(Word|Excel|PowerPoint)' { return 'Office documents' }
         '^OfficeIMO\.MarkdownRenderer' { return 'Rendering surfaces' }
@@ -39,6 +40,7 @@ function Get-DocumentationUrl {
     param([string] $Name)
 
     switch -Regex ($Name) {
+        '^PSWriteOffice$' { return '/docs/pswriteoffice/' }
         '^OfficeIMO\.(?:IWork|Reader\.IWork|Word\.IWork|Excel\.IWork|PowerPoint\.IWork)$' { return '/docs/iwork/' }
         '^OfficeIMO\.Word' { return '/docs/word/' }
         '^OfficeIMO\.Excel' { return '/docs/excel/' }

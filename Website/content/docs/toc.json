@@ -640,6 +640,21 @@
         "title": "Validate and Repair Excel Workbooks",
         "path": "pswriteoffice/excel-validation-repair/index.md",
         "href": "/docs/pswriteoffice/excel-validation-repair/"
+      },
+      {
+        "title": "Choose a conversion route",
+        "path": "pswriteoffice/conversion-routes/index.md",
+        "href": "/docs/pswriteoffice/conversion-routes/"
+      },
+      {
+        "title": "Create reports from HTML and Windows events",
+        "path": "pswriteoffice/report-integrations/index.md",
+        "href": "/docs/pswriteoffice/report-integrations/"
+      },
+      {
+        "title": "Readable document layouts",
+        "path": "pswriteoffice/document-layout/index.md",
+        "href": "/docs/pswriteoffice/document-layout/"
       }
     ]
   },

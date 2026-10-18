@@ -15,9 +15,24 @@
     },
     {
       "task": "exec",
-      "id": "sync-pswriteoffice-content",
+      "id": "prepare-powershell-tooling",
       "dependsOn": [
         "sync-sources"
+      ],
+      "command": "pwsh",
+      "argsList": [
+        "-NoLogo",
+        "-NoProfile",
+        "-Command",
+        "if (-not (Get-Module -ListAvailable PSPublishModule | Where-Object Version -ge ([version]'3.0.170'))) { Install-Module PSPublishModule -MinimumVersion 3.0.170 -Repository PSGallery -Scope CurrentUser -Force -AllowClobber -ErrorAction Stop }"
+      ],
+      "workingDirectory": "."
+    },
+    {
+      "task": "exec",
+      "id": "sync-pswriteoffice-content",
+      "dependsOn": [
+        "prepare-powershell-tooling"
       ],
       "command": "pwsh",
       "argsList": [
@@ -216,7 +231,7 @@
     },
     {
       "task": "exec",
-      "id": "prepare-showcase-test-module",
+      "id": "test-showcase-generation-evidence",
       "dependsOn": [
         "test-api-cross-links"
       ],
@@ -225,22 +240,7 @@
         "-NoLogo",
         "-NoProfile",
         "-Command",
-        "$version = [string](Import-PowerShellDataFile ./data/apidocs/powershell/PSWriteOffice.psd1).ModuleVersion; if (-not (Get-Module -ListAvailable -FullyQualifiedName @{ModuleName='PSWriteOffice';RequiredVersion=$version})) { if (-not (Get-PSRepository -Name PSGallery -ErrorAction SilentlyContinue)) { Register-PSRepository -Default -ErrorAction Stop | Out-Null }; Install-Module PSWriteOffice -RequiredVersion $version -Repository PSGallery -Scope CurrentUser -Force -AllowClobber -ErrorAction Stop }"
-      ],
-      "workingDirectory": "."
-    },
-    {
-      "task": "exec",
-      "id": "test-showcase-generation-evidence",
-      "dependsOn": [
-        "prepare-showcase-test-module"
-      ],
-      "command": "pwsh",
-      "argsList": [
-        "-NoLogo",
-        "-NoProfile",
-        "-File",
-        "./scripts/Test-ShowcaseGenerationEvidence.ps1"
+        "$ErrorActionPreference = 'Stop'; $env:PSModulePath = (Resolve-Path ../PowerShell/PSWriteOffice/Artefacts/Unpacked/Modules).Path + [IO.Path]::PathSeparator + $env:PSModulePath; & ./scripts/Test-ShowcaseGenerationEvidence.ps1"
       ],
       "workingDirectory": "."
     },

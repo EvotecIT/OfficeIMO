@@ -107,18 +107,14 @@ if (-not $ListScenarios.IsPresent -and
 $requiresPSWriteOffice = -not $ListScenarios.IsPresent -and (@($Engine) -contains 'PSWriteOffice')
 if ($requiresPSWriteOffice) {
     if ([string]::IsNullOrWhiteSpace($OfficeIMORoot)) {
-        $OfficeIMORoot = $env:OfficeIMORoot
-    }
-    if ([string]::IsNullOrWhiteSpace($OfficeIMORoot)) {
-        throw 'OfficeIMORoot is required for PSWriteOffice performance comparisons. Benchmarks must build against the current OfficeIMO source tree, not a published package.'
+        $OfficeIMORoot = (Resolve-Path (Join-Path $PSScriptRoot '../../..')).Path
     }
 
     $OfficeIMORoot = Resolve-OfficeIMOSourceRoot -Path $OfficeIMORoot
     $env:OfficeIMORoot = $OfficeIMORoot
-    $env:UseOfficeIMOProjectReferences = 'true'
 
     if (-not $SkipPSWriteOfficeBuild.IsPresent) {
-        & dotnet build $projectPath -c $PSWriteOfficeConfiguration -v:minimal "-p:OfficeIMORoot=$OfficeIMORoot" '-p:UseOfficeIMOProjectReferences=true'
+        & dotnet build $projectPath -c $PSWriteOfficeConfiguration -v:minimal "-p:OfficeIMORoot=$OfficeIMORoot"
         if ($LASTEXITCODE -ne 0) {
             throw "dotnet build failed for PSWriteOffice ($PSWriteOfficeConfiguration)."
         }

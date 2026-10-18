@@ -84,7 +84,6 @@ PSWriteOffice includes a PowerForge benchmark matrix that runs comparable engine
 These numbers are evidence for the recorded environment and exact scenarios, not a universal ranking. ExcelFast write lanes are limited to equivalent text-only shapes in the current suite, while mixed typed writes are excluded because the compared output is not equivalent. Repeat the benchmark on the deployment hardware and preserve workbook validation:
 
 ```powershell
-$env:OfficeIMORoot = (Resolve-Path '..\OfficeIMO').Path
 
 pwsh -NoProfile -File .\Benchmarks\Compare-ExcelPerformance.ps1 `
     -Suite Standard `

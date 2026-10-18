@@ -16,7 +16,7 @@ $services | Export-OfficeExcel -Path '.\Services.xlsx' -WorksheetName 'Services'
 
 This is the closest fit for inventory exports, query results, and data passed from modules such as DbaClientX. Start here unless the workbook needs several sheets, formulas, charts, or carefully placed content.
 
-The same object boundary works for operational modules. The [PSEventViewer report recipe](https://github.com/EvotecIT/PSWriteOffice/blob/v3.0.8/Examples/Integrations/Recipe-PSEventViewer-OfficeReport.ps1) queries typed events once, projects stable report columns, and creates both Excel and Word deliverables without requiring either module to know about the other's internals.
+The same object boundary works for operational modules. The [PSEventViewer report recipe](https://github.com/EvotecIT/OfficeIMO/blob/d4fcbdea73c67015acc256bc639cee9197f9d29c/PowerShell/PSWriteOffice/Examples/Integrations/Recipe-PSEventViewer-OfficeReport.ps1) accepts a supplied snapshot or queries events once, projects stable report columns, and creates Excel, Word and PDF deliverables without requiring either module to know about the other's internals.
 
 ## Incremental jobs: keep the document object
 
@@ -36,14 +36,23 @@ The same model works for Excel:
 
 ```powershell
 $workbook = New-OfficeExcel -Path '.\Projects.xlsx' -NoSave
-$sheet = $workbook | Add-OfficeExcelSheet -Name 'Projects' -PassThru
-$sheet | Set-OfficeExcelCell -Address A1 -Value 'Delivery portfolio'
-Add-OfficeExcelTable -Worksheet $sheet -InputObject $projects -StartRow 3 -TableName 'Projects' -AutoFit
-$workbook | Save-OfficeExcel
-$workbook | Close-OfficeExcel
+try {
+    $sheet = $workbook | Add-OfficeExcelSheet -Name 'Projects' -PassThru
+    $sheet | Set-OfficeExcelCell -Address A1 -Value 'Delivery portfolio'
+    Add-OfficeExcelTable -Worksheet $sheet -InputObject $projects -StartRow 3 -TableName 'Projects' -AutoFit
+    $sheet | Set-OfficeExcelColumn -ColumnName C -Width 48
+    $sheet | Set-OfficeExcelRow -Row 4 -WrapText $true -AutoFit
+    $workbook | Save-OfficeExcel
+} finally {
+    $workbook | Close-OfficeExcel
+}
 ```
 
-PowerPoint and Markdown also expose explicit presentation or document targets. See the [Word](https://github.com/EvotecIT/PSWriteOffice/blob/v3.0.8/Examples/Word/Recipe-Word-ObjectComposition.ps1), [Excel](https://github.com/EvotecIT/PSWriteOffice/blob/v3.0.8/Examples/Excel/Recipe-Excel-ObjectComposition.ps1), [PowerPoint](https://github.com/EvotecIT/PSWriteOffice/blob/v3.0.8/Examples/PowerPoint/Recipe-PowerPoint-ObjectComposition.ps1), and [Markdown](https://github.com/EvotecIT/PSWriteOffice/blob/v3.0.8/Examples/Markdown/Recipe-Markdown-ObjectComposition.ps1) object recipes for complete scripts.
+Cells, rows, and columns accept the worksheet directly, so layout changes fit ordinary PowerShell loops. Numbers, Boolean values, and dates retain their Excel types: `Set-OfficeExcelCell -Worksheet $sheet -Address B4 -Value 1250.50 -NumberFormat '#,##0.00'` writes a number; a string such as `'00123'` remains text. Row and column commands are quiet by default; `-PassThru` returns the worksheet when another command needs it. To select a worksheet from a workbook, use `$workbook | Set-OfficeExcelRow -Sheet 'Projects' -Row 4 -Height 36`, or use the zero-based `-SheetIndex`. Use one selector at a time. Apply changes before saving, and close the workbook in `finally` so errors also release the file.
+
+The [readable review recipe](https://github.com/EvotecIT/OfficeIMO/blob/d4fcbdea73c67015acc256bc639cee9197f9d29c/PowerShell/PSWriteOffice/Examples/Excel/Recipe-Excel-ReadableReview.ps1) creates a workbook with fixed column widths, wrapped notes, fitted row heights, and an optional PDF copy using only public commands.
+
+PowerPoint and Markdown also expose explicit presentation or document targets. See the [Word](https://github.com/EvotecIT/OfficeIMO/blob/d4fcbdea73c67015acc256bc639cee9197f9d29c/PowerShell/PSWriteOffice/Examples/Word/Recipe-Word-ObjectComposition.ps1), [Excel](https://github.com/EvotecIT/OfficeIMO/blob/d4fcbdea73c67015acc256bc639cee9197f9d29c/PowerShell/PSWriteOffice/Examples/Excel/Recipe-Excel-ObjectComposition.ps1), [PowerPoint](https://github.com/EvotecIT/OfficeIMO/blob/d4fcbdea73c67015acc256bc639cee9197f9d29c/PowerShell/PSWriteOffice/Examples/PowerPoint/Recipe-PowerPoint-ObjectComposition.ps1), and [Markdown](https://github.com/EvotecIT/OfficeIMO/blob/d4fcbdea73c67015acc256bc639cee9197f9d29c/PowerShell/PSWriteOffice/Examples/Markdown/Recipe-Markdown-ObjectComposition.ps1) object recipes for complete scripts.
 
 ## Complete authored documents: use the DSL
 

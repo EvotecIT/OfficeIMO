@@ -26,7 +26,7 @@ if ($RunMode -eq 'Publish' -and (-not $IncludePackages -or -not $SignModule)) {
 if ($RunMode -eq 'Publish' -and [Environment]::OSVersion.Platform -ne [PlatformID]::Win32NT) {
     throw 'Publish requires Windows so the module includes both PowerShell 7 and Windows PowerShell 5.1 payloads.'
 }
-Import-Module PSPublishModule -MinimumVersion 3.0.168 -Force -ErrorAction Stop
+Import-Module PSPublishModule -MinimumVersion 3.0.170 -Force -ErrorAction Stop
 
 Build-Module -ModuleName 'PSWriteOffice' -Path "$PSScriptRoot/../.." -RunMode $RunMode {
     # Usual defaults as per standard module
@@ -38,7 +38,7 @@ Build-Module -ModuleName 'PSWriteOffice' -Path "$PSScriptRoot/../.." -RunMode $R
         # ID used to uniquely identify this module
         GUID                   = 'd75a279d-30c2-4c2d-ae0d-12f1f3bf4d39'
         # Version number of this module.
-        ModuleVersion          = '3.0.X'
+        ModuleVersion          = '3.5.X'
         # Author of this module
         Author                 = 'Przemyslaw Klys'
         # Company or vendor of this module
@@ -59,7 +59,7 @@ Build-Module -ModuleName 'PSWriteOffice' -Path "$PSScriptRoot/../.." -RunMode $R
     New-ConfigurationManifest @Manifest
 
     if ($IncludePackages) {
-        New-ConfigurationProjectBuild -ConfigPath '../../Build/project.build.json' -BuildBeforeModule -UseAsReleaseVersionSource -UpdateVersions:($RunMode -eq 'Publish') `
+        New-ConfigurationProjectBuild -ConfigPath '../../Build/project.build.json' -BuildBeforeModule -UseAsReleaseVersionSource `
             -SignAssemblies:$SignModule -SignPackages:$SignModule
         New-ConfigurationRelease -VersionSource ProjectBuild -PrimaryProject 'OfficeIMO.Word' -SynchronizeModuleVersion `
             -BuildOrder Packages, Module -PublishOrder NuGet, PowerShellGallery, GitHub -ResumeIncompleteRelease:$ResumeIncompleteRelease

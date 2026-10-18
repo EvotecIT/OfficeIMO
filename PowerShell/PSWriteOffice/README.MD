@@ -13,8 +13,8 @@ PowerShell-first document automation for Office, PDF, iWork, OneNote, OpenDocume
 
 🛠️ Project
 
-[![Test PowerShell](https://github.com/EvotecIT/OfficeIMO/actions/workflows/powershell-tests.yml/badge.svg?branch=main)](https://github.com/EvotecIT/OfficeIMO/actions/workflows/powershell-tests.yml)
-[![Test .NET Libraries](https://github.com/EvotecIT/OfficeIMO/actions/workflows/powershell-dotnet.yml/badge.svg?branch=main)](https://github.com/EvotecIT/OfficeIMO/actions/workflows/powershell-dotnet.yml)
+[![Test PowerShell](https://github.com/EvotecIT/OfficeIMO/actions/workflows/powershell-tests.yml/badge.svg?branch=master)](https://github.com/EvotecIT/OfficeIMO/actions/workflows/powershell-tests.yml)
+[![Test .NET Libraries](https://github.com/EvotecIT/OfficeIMO/actions/workflows/powershell-dotnet.yml/badge.svg?branch=master)](https://github.com/EvotecIT/OfficeIMO/actions/workflows/powershell-dotnet.yml)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 
 ## Why PSWriteOffice ✨

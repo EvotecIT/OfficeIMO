@@ -9,7 +9,7 @@ writes to ArtifactsRoot; the native build still regenerates Docs. BuildOutputRoo
 the retained build staging directory. Command metadata uses a clean child process of the
 same PowerShell host. BuildOutputRoot and custom ArtifactsRoot must be outside the
 source checkout. The default WebsiteArtifacts target refreshes the tracked snapshot;
-commit that output before another export. Requires PSPublishModule 3.0.168 or newer.
+commit that output before another export. Requires PSPublishModule 3.0.170 or newer.
 .EXAMPLE
 ./Build/Export-WebsiteArtifacts.ps1 -RepositoryRoot ./release-source -ArtifactsRoot ../website-api -BuildOutputRoot ../website-builds -ArtifactsOnly
 #>

@@ -3,7 +3,7 @@
 OfficeIMO contains the document engines and the PSWriteOffice PowerShell module.
 The module source, tests, examples, and command documentation live in
 [`PowerShell/PSWriteOffice`](../PowerShell/PSWriteOffice/README.MD).
-Builds use the SDK selected by `global.json` and PSPublishModule 3.0.168 or newer.
+Builds use the SDK selected by `global.json` and PSPublishModule 3.0.170 or newer.
 
 ## Local validation
 

@@ -40,7 +40,6 @@ source checkout. With sibling PSWriteOffice and OfficeIMO checkouts, set the
 source root once for the current shell:
 
 ```powershell
-$env:OfficeIMORoot = (Resolve-Path ..\OfficeIMO).Path
 ```
 
 ```powershell
@@ -203,7 +202,6 @@ CSV in the same benchmark matrix. The native baseline uses `GZipStream` with
 CSV runs that include PSWriteOffice use the same direct OfficeIMO source root:
 
 ```powershell
-$env:OfficeIMORoot = (Resolve-Path ..\OfficeIMO).Path
 ```
 
 ### CSV Capability Coverage
@@ -359,16 +357,13 @@ development binaries when a selected run includes `PSWriteOffice`. Use
 when reusing an existing local build. Quick and focused runs leave this
 README unchanged unless `-UpdateReadme` is specified.
 
-PSWriteOffice benchmark lanes require the current OfficeIMO source tree. Pass
-`-OfficeIMORoot`, or set the `OfficeIMORoot` environment variable, so the build
-uses direct project references. The wrappers stop instead of falling back to a
-published OfficeIMO package when the source path is missing:
+PSWriteOffice benchmark lanes use the engines in the same OfficeIMO checkout.
+Pass `-OfficeIMORoot` only when comparing an explicitly selected alternate engine
+checkout. A missing source tree fails validation instead of selecting a public
+package.
 
 ```powershell
-$evotecRoot = if ($env:EVOTEC_GITHUB_ROOT) { $env:EVOTEC_GITHUB_ROOT } else { 'C:\Support\GitHub' }
-pwsh -NoLogo -NoProfile -ExecutionPolicy Bypass -File .\Benchmarks\Compare-ExcelPerformance.ps1 `
-    -Suite Standard `
-    -OfficeIMORoot (Join-Path $evotecRoot 'OfficeIMO')
+pwsh -NoLogo -NoProfile -File ./Benchmarks/Compare-ExcelPerformance.ps1 -Suite Standard
 ```
 
 ## Output
