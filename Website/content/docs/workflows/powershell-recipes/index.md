@@ -35,7 +35,7 @@ New-OfficeWord -Path '.\Change-Report.docx' -PdfPath '.\Change-Report.pdf' {
 }
 ```
 
-The {{< pswriteoffice-source kind="blob" path="Examples/Pdf/Example-OfficePdfSidecars.ps1" label="PDF sidecar example" >}} also shows Markdown-to-PDF output. Keep the editable source and delivery PDF together when both are part of the workflow contract.
+The {{< pswriteoffice-source kind="blob" path="Examples/Pdf/Example-OfficePdfExports.ps1" label="PDF export example" >}} also shows Markdown-to-PDF output. Keep the editable source and delivery PDF together when both are part of the workflow contract.
 
 ## Build a PDF report directly
 

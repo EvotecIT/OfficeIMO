@@ -38,7 +38,9 @@ Build-Module -ModuleName 'PSWriteOffice' -Path "$PSScriptRoot/../.." -RunMode $R
         # ID used to uniquely identify this module
         GUID                   = 'd75a279d-30c2-4c2d-ae0d-12f1f3bf4d39'
         # Version number of this module.
-        ModuleVersion          = '3.5.X'
+        ModuleVersion          = if ($IncludePackages) { '3.5.X' } else {
+            (Import-PowerShellDataFile "$PSScriptRoot/../PSWriteOffice.psd1").ModuleVersion
+        }
         # Author of this module
         Author                 = 'Przemyslaw Klys'
         # Company or vendor of this module
