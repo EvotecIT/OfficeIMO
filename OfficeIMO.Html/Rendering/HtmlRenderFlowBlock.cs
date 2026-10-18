@@ -604,16 +604,16 @@ internal sealed class HtmlRenderForcedBreak {
     internal bool IsAfter { get; }
     /// <summary>The source offset already includes the page-entry spacing for this event.</summary>
     internal bool Projected { get; }
-    /// <summary>A realized after boundary belongs to a nonempty source allocation or ordinary content.</summary>
+    /// <summary>A realized after boundary must advance constrained following flow.</summary>
     internal bool AdvancesFollowingFlow { get; }
 
     internal HtmlRenderForcedBreak Translate(double offset) => new HtmlRenderForcedBreak(Offset + offset, Target, PageName, ChangesPageName, Boundary, Edge, IsAfter, Projected, AdvancesFollowingFlow);
     internal HtmlRenderForcedBreak AtBoundary(double offset, object boundary, HtmlRenderBreakEdge edge) =>
         new HtmlRenderForcedBreak(offset, Target, PageName, ChangesPageName, boundary, edge, IsAfter, Projected, AdvancesFollowingFlow);
     /// <summary>Marks an authored boundary whose destination spacing is now represented in the retained source.</summary>
-    internal HtmlRenderForcedBreak ProjectAt(double offset) =>
+    internal HtmlRenderForcedBreak ProjectAt(double offset, bool forceFollowingFlow = false) =>
         new HtmlRenderForcedBreak(offset, Target, PageName, ChangesPageName, Boundary, Edge, IsAfter, projected: true,
-            advancesFollowingFlow: AdvancesFollowingFlow);
+            advancesFollowingFlow: AdvancesFollowingFlow || forceFollowingFlow);
 }
 
 internal enum HtmlRenderBreakEdge { Interior, Leading, Trailing }

@@ -1,3 +1,5 @@
+using AngleSharp.Dom;
+
 namespace OfficeIMO.Html;
 
 internal sealed partial class HtmlRenderLayoutEngine {
@@ -20,21 +22,31 @@ internal sealed partial class HtmlRenderLayoutEngine {
         HtmlRenderFlowBlock child = children[index];
         HtmlRenderBreakEdge before = index == 0 ? HtmlRenderBreakEdge.Leading : HtmlRenderBreakEdge.Interior;
         HtmlRenderBreakEdge after = index == children.Count - 1 ? HtmlRenderBreakEdge.Trailing : HtmlRenderBreakEdge.Interior;
+        double beforeEntryGap = child.PagedSourceEntryGap;
+        double afterEntryGap = index + 1 < children.Count ? children[index + 1].PagedSourceEntryGap : 0D;
         if (child.BreakBefore != HtmlPageBreakTarget.None)
-            result.Add(new HtmlRenderForcedBreak(start, child.BreakBefore, boundary: boundaries[index], edge: before));
+            result.Add(new HtmlRenderForcedBreak(start + beforeEntryGap, child.BreakBefore,
+                boundary: boundaries[index], edge: before, projected: beforeEntryGap > 0.0001D));
         foreach (HtmlRenderForcedBreak item in child.ForcedBreaks) {
             CheckCancellation();
             ChargeLayoutOperation("forced flow boundary propagation");
             result.Add(item.Edge switch {
-                HtmlRenderBreakEdge.Leading => item.AtBoundary(start, boundaries[index], before),
-                HtmlRenderBreakEdge.Trailing => item.AtBoundary(start + child.NormalFlowAdvance, boundaries[index + 1], after),
+                HtmlRenderBreakEdge.Leading => BindEntry(item, start + beforeEntryGap, boundaries[index], before, beforeEntryGap),
+                HtmlRenderBreakEdge.Trailing => BindEntry(item, start + child.NormalFlowAdvance + afterEntryGap,
+                    boundaries[index + 1], after, afterEntryGap),
                 _ => item.Translate(start)
             });
         }
         if (child.BreakAfter != HtmlPageBreakTarget.None)
-            result.Add(new HtmlRenderForcedBreak(start + child.NormalFlowAdvance, child.BreakAfter,
-                boundary: boundaries[index + 1], edge: after, isAfter: true,
+            result.Add(new HtmlRenderForcedBreak(start + child.NormalFlowAdvance + afterEntryGap, child.BreakAfter,
+                boundary: boundaries[index + 1], edge: after, isAfter: true, projected: afterEntryGap > 0.0001D,
                 advancesFollowingFlow: child.NormalFlowAdvance > 0.0001D || child.Visuals.Any(HasOrdinaryFragmentSource)));
+
+        static HtmlRenderForcedBreak BindEntry(HtmlRenderForcedBreak item, double offset, object boundary,
+            HtmlRenderBreakEdge edge, double entryGap) {
+            HtmlRenderForcedBreak rebound = item.AtBoundary(offset, boundary, edge);
+            return entryGap > 0.0001D && IsForcedPageBreak(item.Target) ? rebound.ProjectAt(offset) : rebound;
+        }
     }
 
     private object[] CreateFlowBoundaries(IReadOnlyList<HtmlRenderFlowBlock> children) {
@@ -44,7 +56,17 @@ internal sealed partial class HtmlRenderLayoutEngine {
         CheckCancellation();
         ChargeLayoutOperations((long)count + 1L, "forced sibling boundaries");
         var boundaries = new object[count + 1];
-        for (int index = 0; index < boundaries.Length; index++) boundaries[index] = new object();
+        for (int index = 0; index < boundaries.Length; index++) {
+            HtmlRenderFlowBlock? preceding = index > 0 ? children[index - 1] : null;
+            boundaries[index] = new OrdinaryFlowBoundary(index < count ? children[index].OwnerElement : null,
+                preceding != null && preceding.PagedPaintExtent > preceding.NormalFlowAdvance + 0.0001D);
+        }
         return boundaries;
+    }
+
+    /// <summary>Retains the real following child when a source boundary crosses its preceding sibling's visible overflow.</summary>
+    private sealed class OrdinaryFlowBoundary(IElement? followingElement, bool precedingPaintOverhang) {
+        internal IElement? FollowingElement { get; } = followingElement;
+        internal bool PrecedingPaintOverhang { get; } = precedingPaintOverhang;
     }
 }

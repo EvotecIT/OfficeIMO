@@ -130,4 +130,73 @@ public sealed partial class HtmlRenderingTests {
             rendered.RequireNoLoss();
         }
     }
+
+    [Theory]
+    [InlineData(1, false)]
+    [InlineData(2, false)]
+    [InlineData(1, true)]
+    public void HtmlConstrainedForcedBreak_InitialEmptyRunMovesOnceWithoutOwnerEntryRecursion(
+        int emptySiblings, bool followingBefore) {
+        string empty = string.Concat(Enumerable.Repeat(
+            "<div style='break-before:page;break-after:page'></div>", emptySiblings));
+        string html = FixedHeightOverflowSource("<div style='height:20px'>" + empty
+            + "<p style='" + (followingBefore ? "break-before:page" : "") + "'>INITIAL-ONE</p>"
+            + "<p>INITIAL-TWO</p></div><p style='padding-left:300px'>INITIAL-AFTER</p>");
+
+        foreach (HtmlRenderIntentProfile profile in new[] {
+            HtmlRenderIntentProfile.PrintPaged, HtmlRenderIntentProfile.ScreenMediaPaged }) {
+            HtmlRenderDocument rendered = HtmlRenderEngine.Execute(HtmlConversionDocument.Parse(html),
+                HtmlRenderRequest.Create(profile, HtmlRenderEncoder.DisplayList, FixedHeightOverflowOptions())).Document;
+
+            Assert.Equal(2, rendered.Pages.Count);
+            Assert.Empty(rendered.Pages[0].Visuals.OfType<HtmlRenderText>());
+            AssertDescendantSpannerSourceOnce(rendered, "INITIAL-ONE", "INITIAL-TWO", "INITIAL-AFTER");
+            AssertFixedHeightOverflowPlacement(rendered, "INITIAL-ONE", 2, 0D);
+            AssertFixedHeightOverflowPlacement(rendered, "INITIAL-TWO", 2, 20D);
+            AssertFixedHeightOverflowPlacement(rendered, "INITIAL-AFTER", 2, 0D);
+            rendered.RequireNoLoss();
+        }
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void HtmlConstrainedForcedBreak_ZeroHeightPrecedingPaintSurvivesItsAuthoredAfterBoundary(
+        bool followingBefore) {
+        string html = FixedHeightOverflowSource("<div style='height:20px'>"
+            + "<p style='height:0;break-after:page'>VISIBLE-ONE</p>"
+            + "<p style='" + (followingBefore ? "break-before:page" : "") + "'>VISIBLE-TWO</p>"
+            + "<p>VISIBLE-THREE</p></div><p style='padding-left:300px'>VISIBLE-AFTER</p>");
+
+        foreach (HtmlRenderIntentProfile profile in new[] {
+            HtmlRenderIntentProfile.PrintPaged, HtmlRenderIntentProfile.ScreenMediaPaged }) {
+            HtmlRenderDocument rendered = HtmlRenderEngine.Execute(HtmlConversionDocument.Parse(html),
+                HtmlRenderRequest.Create(profile, HtmlRenderEncoder.DisplayList, FixedHeightOverflowOptions())).Document;
+
+            Assert.Equal(2, rendered.Pages.Count);
+            AssertDescendantSpannerSourceOnce(rendered, "VISIBLE-ONE", "VISIBLE-TWO", "VISIBLE-THREE", "VISIBLE-AFTER");
+            AssertFixedHeightOverflowPlacement(rendered, "VISIBLE-ONE", 1, 0D);
+            AssertFixedHeightOverflowPlacement(rendered, "VISIBLE-TWO", 2, 0D);
+            AssertFixedHeightOverflowPlacement(rendered, "VISIBLE-THREE", 2, 20D);
+            AssertFixedHeightOverflowPlacement(rendered, "VISIBLE-AFTER", 2, 0D);
+            rendered.RequireNoLoss();
+        }
+    }
+
+    [Fact]
+    public void HtmlConstrainedForcedBreak_InteriorSideAtZeroRetainsDiagnosedFallback() {
+        string html = FixedHeightOverflowSource("<div style='height:20px'>"
+            + "<div style='break-after:left'></div><p>SIDE-ONE</p><p>SIDE-TWO</p></div>"
+            + "<p style='padding-left:300px'>SIDE-AFTER</p>");
+
+        foreach (HtmlRenderIntentProfile profile in new[] {
+            HtmlRenderIntentProfile.PrintPaged, HtmlRenderIntentProfile.ScreenMediaPaged }) {
+            HtmlRenderDocument rendered = HtmlRenderEngine.Execute(HtmlConversionDocument.Parse(html),
+                HtmlRenderRequest.Create(profile, HtmlRenderEncoder.DisplayList, FixedHeightOverflowOptions())).Document;
+
+            Assert.Contains(rendered.Diagnostics,
+                diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.ConstrainedOverflowPaginationPending);
+            Assert.Throws<HtmlConversionException>(() => rendered.RequireNoLoss());
+        }
+    }
 }

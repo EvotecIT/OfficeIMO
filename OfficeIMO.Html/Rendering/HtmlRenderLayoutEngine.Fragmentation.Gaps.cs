@@ -4,7 +4,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
     /// <summary>Maps one source gap without changing unrelated paint or source owners.</summary>
     private HtmlRenderFlowBlock InsertPagedSourceBreakGap(HtmlRenderFlowBlock block, double cut, double gap,
         bool absorbInStretchTail, double? flowAdvanceDelta = null, PagedBackgroundWindow? backgroundWindow = null,
-        object? projectedForcedBoundary = null) {
+        object? projectedForcedBoundary = null, bool projectInitialEmptyRun = false) {
         CheckCancellation();
         ChargeLayoutOperations(1L + block.Visuals.Count + block.BreakOffsets.Count
             + block.SafeBreakRanges.Count + block.LineBreakGroups.Count + block.AvoidBreakRanges.Count
@@ -22,6 +22,13 @@ internal sealed partial class HtmlRenderLayoutEngine {
         double Shift(double offset) => offset >= cut - 0.0001D ? offset + gap : offset;
         HtmlRenderForcedBreak MapForcedBreak(HtmlRenderForcedBreak item) {
             if (projectedForcedBoundary != null && Math.Abs(item.Offset - cut) <= 0.0001D) {
+                if (projectInitialEmptyRun) {
+                    // The owner's real leading control was already applied.
+                    // Coincident empty interior boundaries form one initial move.
+                    if (item.Edge == HtmlRenderBreakEdge.Leading) return item;
+                    if (item.Target == HtmlPageBreakTarget.Page && !item.ChangesPageName)
+                        return item.ProjectAt(item.Offset + gap, forceFollowingFlow: item.IsAfter);
+                }
                 // A prior empty boundary already owns the preceding page edge.
                 // Later distinct boundaries at this offset still move with their source.
                 if (item.Projected) return item;
@@ -87,7 +94,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 PagedSourceEntryGap = block.PagedSourceEntryGap,
                 UnfragmentedHeight = block.UnfragmentedHeight,
                 ColumnOverflowContent = block.ColumnOverflowContent == null ? null
-                    : InsertPagedSourceBreakGap(block.ColumnOverflowContent, cut, gap, absorbInStretchTail, flowAdvanceDelta, backgroundWindow, projectedForcedBoundary)
+                    : InsertPagedSourceBreakGap(block.ColumnOverflowContent, cut, gap, absorbInStretchTail, flowAdvanceDelta, backgroundWindow,
+                        projectedForcedBoundary, projectInitialEmptyRun)
             };
     }
 

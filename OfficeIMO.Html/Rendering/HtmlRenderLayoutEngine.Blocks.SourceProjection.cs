@@ -73,7 +73,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
         // The outer paginator has already applied side controls at the source
         // entry. Interior side events still require their existing fallback.
         boundary ??= block.ForcedBreaks.Any(item => item.ChangesPageName
-            || item.Offset > 0.0001D && (item.Target is HtmlPageBreakTarget.Left or HtmlPageBreakTarget.Right))
+            || (item.Target is HtmlPageBreakTarget.Left or HtmlPageBreakTarget.Right)
+                && (item.Offset > 0.0001D || item.Edge != HtmlRenderBreakEdge.Leading))
                 ? "internal-forced-source-break" : null;
         if (boundary != null) {
             ChargeLayoutOperations(targets.Length, "constrained overflow boundary qualification");
@@ -172,7 +173,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
 
     /// <summary>Uses the canonical fragment planner; inserted gaps occupy destination space, not extra CSS height.</summary>
     private HtmlRenderFlowBlock ProjectOrdinaryContent(HtmlRenderFlowBlock source, PagedFloatBoundary boundary,
-        IReadOnlyList<FlowPaintLayer>? childSources, out double entryGap, out ConstrainedInteriorGap? interiorGap,
+        IReadOnlyList<FlowPaintLayer>? childSources, bool allowsInteriorRelayout,
+        out double entryGap, out ConstrainedInteriorGap? interiorGap,
         out double forcedFollowingMinimum) {
         entryGap = 0D;
         interiorGap = null;
@@ -223,6 +225,11 @@ internal sealed partial class HtmlRenderLayoutEngine {
             }
             double cut = plan?.End ?? cursor;
             object? projectedForcedBoundary = plan?.AuthoredBreak?.Boundary;
+            OrdinaryFlowBoundary? overlapBoundary = projectedForcedBoundary is OrdinaryFlowBoundary { PrecedingPaintOverhang: true } owned
+                ? owned : null;
+            bool initialEmptyRun = cursor <= 0.0001D && cut <= 0.0001D
+                && plan?.AuthoredBreak is { Target: HtmlPageBreakTarget.Page, Edge: HtmlRenderBreakEdge.Interior,
+                    IsAfter: true, AdvancesFollowingFlow: false };
             double gap = available - (cut - cursor);
             if (gap > 0.0001D) {
                 context.NeedsProjection = true;
@@ -230,18 +237,19 @@ internal sealed partial class HtmlRenderLayoutEngine {
                     context.FailedReason = context.UnsupportedBoundary;
                     return source;
                 }
-                if (cursor <= 0.0001D && cut <= 0.0001D) {
+                if (cursor <= 0.0001D && cut <= 0.0001D && !initialEmptyRun && overlapBoundary == null) {
                     // No content entered this box. The gap belongs before the
                     // complete CSS box and therefore advances its following flow.
                     entryGap += gap;
                 } else {
-                    if (childSources != null) {
+                    if (!initialEmptyRun && childSources != null && (allowsInteriorRelayout || overlapBoundary != null)) {
                         foreach (FlowPaintLayer child in childSources) {
                             CheckCancellation();
                             ChargeLayoutOperation("constrained interior child-entry ownership");
                             if (child.Block.OwnerElement is { } entry
                                 && child.Block.PagedPaintExtent > 0.0001D
-                                && Math.Abs(child.Y - cut) <= 0.0001D) {
+                                && (overlapBoundary != null ? ReferenceEquals(entry, overlapBoundary.FollowingElement)
+                                    : Math.Abs(child.Y - cut) <= 0.0001D)) {
                                 interiorGap = new ConstrainedInteriorGap(entry, gap);
                                 return source;
                             }
@@ -249,7 +257,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                     }
                     double advance = cut < projected.Height - 0.0001D ? gap : 0D;
                     projected = InsertPagedSourceBreakGap(projected, cut, gap, false, advance,
-                        plan == null ? null : ResolvePagedBackgroundWindow(cursor, plan), projectedForcedBoundary);
+                        plan == null ? null : ResolvePagedBackgroundWindow(cursor, plan), projectedForcedBoundary, initialEmptyRun);
                     cut += gap;
                 }
                 context.Changed = true;
