@@ -207,6 +207,42 @@ public sealed partial class HtmlRenderingTests {
         AssertColumnBreaksQualified(rendered);
     }
 
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void HtmlPagedMedia_InapplicableColumnForceDoesNotMaskTableRowPageBreak(bool tableEntry) {
+        HtmlRenderOptions options = ColumnPageBandOptions();
+        options.Mode = HtmlRenderMode.Paged;
+        options.HonorCssPageRules = false;
+        options.PageSize = new OfficePageSize(400D / HtmlRenderOptions.CssPixelsPerInch,
+            200D / HtmlRenderOptions.CssPixelsPerInch);
+        string table = tableEntry
+            ? "<table style='break-before:column'><tr style='break-before:page'><td>BREAK-ONE</td></tr><tr>"
+            : "<table><tr style='break-after:column'><td>BREAK-ONE</td></tr><tr style='break-before:page'>";
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(ColumnBreakSource(
+            "<p>BREAK-LEAD</p>" + table + "<td>BREAK-TWO</td></tr></table>"), options);
+
+        Assert.Equal(2, rendered.Pages.Count);
+        Assert.Single(ColumnPageBandText(rendered.Pages[0]), item => item.Text == "BREAK-LEAD");
+        Assert.Single(ColumnPageBandText(rendered.Pages[tableEntry ? 1 : 0]), item => item.Text == "BREAK-ONE");
+        Assert.Single(ColumnPageBandText(rendered.Pages[1]), item => item.Text == "BREAK-TWO");
+        AssertColumnBreaksQualified(rendered);
+    }
+
+    [Theory]
+    [InlineData("<div style='display:flex'><div style='break-before:column'>BREAK-TWO</div></div>")]
+    [InlineData("<div style='display:grid'><div style='break-before:column'>BREAK-TWO</div></div>")]
+    [InlineData("<div style='column-count:2;font-size:8px'><p style='break-before:column'>BREAK-TWO</p></div>")]
+    [InlineData("<p style='break-before:column'>BREAK-TWO</p><div style='column-span:all'>BREAK-SPAN</div>")]
+    [InlineData("<table><tr style='break-before:column'><td>BREAK-TWO</td></tr></table>")]
+    public void HtmlColumns_UnqualifiedBreakContextsReportLoss(string body) {
+        HtmlRenderDocument rendered = RenderColumnBreaks("<p>BREAK-ONE</p>" + body);
+
+        Assert.Single(rendered.Pages.SelectMany(ColumnPageBandText), item => item.Text == "BREAK-TWO");
+        Assert.Contains(rendered.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.MultiColumnValueUnsupported);
+        Assert.Throws<HtmlConversionException>(() => rendered.RequireNoLoss());
+    }
+
     private static HtmlRenderDocument RenderColumnBreaks(string body, string columnStyle = "column-fill:auto") {
         HtmlRenderOptions options = ColumnPageBandOptions();
         options.Mode = HtmlRenderMode.Continuous;

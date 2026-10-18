@@ -127,6 +127,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
             IElement? rowGroupElement = row.GroupElement;
             HtmlRenderBoxStyle? rowGroupStyle = row.GroupStyle;
             HtmlRenderBoxStyle rowStyle = PrepareTablePercentageHeight(row.Style, style);
+            if (_columnContentDepth > 0 && rowStyle.UnsupportedColumnBreaks.Length > 0)
+                ReportUnsupportedMultiColumnValues(row.Element, rowStyle);
             var cellLayouts = new List<TableCellLayout>();
             int column = 0;
             double rowHeight = Math.Max(0D, rowStyle.ExplicitHeight ?? 0D);
@@ -139,6 +141,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
 
                 double cellOuterWidth = SumColumnWidths(columnWidths, column, columnSpan) + horizontalSpacing * (columnSpan - 1);
                 HtmlRenderBoxStyle cellStyle = ResolveFormattingCellStyle(cell, cellOuterWidth);
+                if (_columnContentDepth > 0 && cellStyle.UnsupportedColumnBreaks.Length > 0)
+                    ReportUnsupportedMultiColumnValues(cell.Element, cellStyle);
                 ApplyTableCellFallbackInsets(cellStyle, legacyBorderWidth);
                 // Repeated groups change fragment paint topology, not the source cell's
                 // authored neighbors or the insets used to size its content.
@@ -353,9 +357,9 @@ internal sealed partial class HtmlRenderLayoutEngine {
             }
 
             rowY += row.Height + verticalSpacing;
-            HtmlPageBreakTarget forcedTarget = row.Style.BreakAfter;
+            HtmlPageBreakTarget forcedTarget = ApplicableForcedFlowBreak(row.Style.BreakAfter);
             if (forcedTarget == HtmlPageBreakTarget.None && rowIndex + 1 < rowLayouts.Count) {
-                forcedTarget = rowLayouts[rowIndex + 1].Style.BreakBefore;
+                forcedTarget = ApplicableForcedFlowBreak(rowLayouts[rowIndex + 1].Style.BreakBefore);
             }
             if (forcedTarget != HtmlPageBreakTarget.None && canBreakAfterRows[rowIndex]) {
                 forcedBreaks.Add(new HtmlRenderForcedBreak(rowY, forcedTarget));
@@ -480,9 +484,9 @@ internal sealed partial class HtmlRenderLayoutEngine {
         IEnumerable<HtmlRenderTrailingGroup> trailingGroups = trailingVisuals.Count > 0 && trailingHeight > 0D
             ? new[] { new HtmlRenderTrailingGroup(0D, trailingStart, trailingSourceEnd, trailingHeight, semanticTrailingVisuals) }
             : Array.Empty<HtmlRenderTrailingGroup>();
-        HtmlPageBreakTarget effectiveBreakBefore = style.BreakBefore;
+        HtmlPageBreakTarget effectiveBreakBefore = ApplicableForcedFlowBreak(style.BreakBefore);
         if (effectiveBreakBefore == HtmlPageBreakTarget.None && rowLayouts.Count > 0) {
-            effectiveBreakBefore = rowLayouts[0].Style.BreakBefore;
+            effectiveBreakBefore = ApplicableForcedFlowBreak(rowLayouts[0].Style.BreakBefore);
         }
         return new HtmlRenderFlowBlock(
             style.Display == "inline-table" ? tableWidth + style.MarginLeft + style.MarginRight : containingWidth,

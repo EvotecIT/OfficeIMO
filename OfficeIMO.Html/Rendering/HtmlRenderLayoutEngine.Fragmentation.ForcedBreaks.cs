@@ -4,6 +4,9 @@ internal sealed partial class HtmlRenderLayoutEngine {
     private static bool IsForcedPageBreak(HtmlPageBreakTarget target) =>
         target is HtmlPageBreakTarget.Page or HtmlPageBreakTarget.Left or HtmlPageBreakTarget.Right;
 
+    private HtmlPageBreakTarget ApplicableForcedFlowBreak(HtmlPageBreakTarget target) =>
+        target == HtmlPageBreakTarget.Column && _columnContentDepth == 0 ? HtmlPageBreakTarget.None : target;
+
     private static bool IsForcedBreakForScope(HtmlPageBreakTarget target, HtmlFragmentationScope scope) =>
         IsForcedPageBreak(target) || target == HtmlPageBreakTarget.Column && (scope & HtmlFragmentationScope.Column) != 0;
 

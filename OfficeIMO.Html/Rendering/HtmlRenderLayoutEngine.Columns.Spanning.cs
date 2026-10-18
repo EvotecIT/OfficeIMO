@@ -35,7 +35,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 style,
                 depth,
                 includeGeneratedBefore: index == 0,
-                includeGeneratedAfter: index == partitions.Count - 1);
+                includeGeneratedAfter: index == partitions.Count - 1,
+                ordinaryColumnBreaks: false);
             AppendMultiColumnPartition(
                 children,
                 requestedCount,

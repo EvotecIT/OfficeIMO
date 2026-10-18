@@ -4,6 +4,7 @@ namespace OfficeIMO.Html;
 
 internal sealed partial class HtmlRenderLayoutEngine {
     private int _columnContentDepth;
+    private int _columnBreakFallbackDepth;
 
     private IReadOnlyList<HtmlRenderFlowBlock> BuildMultiColumnChildBlocks(
         IElement element,
@@ -12,20 +13,25 @@ internal sealed partial class HtmlRenderLayoutEngine {
         HtmlRenderBoxStyle style,
         int depth,
         bool includeGeneratedBefore = true,
-        bool includeGeneratedAfter = true) {
+        bool includeGeneratedAfter = true,
+        bool ordinaryColumnBreaks = true) {
+        bool hasFloats = ContainsFloatingDescendant(element, width, style, depth);
+        bool fallback = !ordinaryColumnBreaks || hasFloats;
         _columnContentDepth++;
+        if (fallback) _columnBreakFallbackDepth++;
         try {
             return BuildMultiColumnChildBlocksCore(element, nodes, width, style, depth,
-                includeGeneratedBefore, includeGeneratedAfter);
+                includeGeneratedBefore, includeGeneratedAfter, hasFloats);
         } finally {
+            if (fallback) _columnBreakFallbackDepth--;
             _columnContentDepth--;
         }
     }
 
     private IReadOnlyList<HtmlRenderFlowBlock> BuildMultiColumnChildBlocksCore(
         IElement element, IEnumerable<INode> nodes, double width, HtmlRenderBoxStyle style, int depth,
-        bool includeGeneratedBefore, bool includeGeneratedAfter) {
-        if (!ContainsFloatingDescendant(element, width, style, depth)) {
+        bool includeGeneratedBefore, bool includeGeneratedAfter, bool hasFloats) {
+        if (!hasFloats) {
             return BuildChildBlocks(element, nodes, width, style, depth,
                 includeGeneratedBefore, includeGeneratedAfter);
         }

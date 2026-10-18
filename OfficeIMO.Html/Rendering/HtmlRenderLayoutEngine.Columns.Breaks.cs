@@ -61,7 +61,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
             if (item.Target == HtmlPageBreakTarget.Column) boundary.Column = true;
             else if (IsForcedPageBreak(item.Target)) boundary.Page = true;
         }
-        return new ColumnFlowBreaks(metrics, columnKeeps, events.OrderBy(item => item.Offset).ThenBy(item => item.ChildIndex).ToArray());
+        return new ColumnFlowBreaks(metrics, columnKeeps, events.OrderBy(item => item.Offset).ThenBy(item => item.ChildIndex).ToArray(),
+            forced.Any(item => IsForcedPageBreak(item.Target)));
     }
 
     private double ResolveNaturalColumnRunHeight(IReadOnlyList<HtmlRenderFlowBlock> children) {
@@ -109,11 +110,13 @@ internal sealed partial class HtmlRenderLayoutEngine {
 
     private sealed class ColumnFlowBreaks {
         internal ColumnFlowBreaks(HtmlRenderFlowBlock metrics, IReadOnlyList<HtmlRenderAvoidBreakRange> columnKeeps,
-            IReadOnlyList<ColumnForcedBoundary> forced) {
+            IReadOnlyList<ColumnForcedBoundary> forced, bool hasPageBreaks) {
+            HasPageBreaks = hasPageBreaks;
             Metrics = metrics;
             ColumnKeeps = columnKeeps;
             Forced = forced;
         }
+        internal bool HasPageBreaks { get; }
         internal HtmlRenderFlowBlock Metrics { get; }
         internal IReadOnlyList<HtmlRenderAvoidBreakRange> ColumnKeeps { get; }
         internal IReadOnlyList<ColumnForcedBoundary> Forced { get; }

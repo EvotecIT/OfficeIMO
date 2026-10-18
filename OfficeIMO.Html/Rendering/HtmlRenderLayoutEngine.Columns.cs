@@ -38,7 +38,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         bool pagedColumnRegion = CanPaginateColumnRegion(element, style);
         IReadOnlyList<HtmlRenderFlowBlock> children = BuildColumnChildren(
             element, columnWidth, style, depth);
-        if (BuildColumnFlowBreaks(children).Forced.Any(boundary => boundary.Page)) {
+        if (BuildColumnFlowBreaks(children).HasPageBreaks) {
             _diagnostics.Add(ComponentName, HtmlRenderDiagnosticCodes.MultiColumnValueUnsupported,
                 "Authored page breaks inside multi-column content retain the source-flow fallback.",
                 HtmlDiagnosticSeverity.Warning, source, "page breaks in column content");
@@ -477,6 +477,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
     }
 
     private bool HasOrdinaryColumnBreakContext(IElement element, HtmlRenderBoxStyle style) {
+        if (_columnContentDepth > 1 || _columnBreakFallbackDepth > 0) return false;
         for (IElement? current = element; current != null; current = current.ParentElement) {
             HtmlRenderBoxStyle currentStyle;
             if (ReferenceEquals(current, element)) currentStyle = style;
