@@ -520,6 +520,8 @@ The ordinary final auto-fill set after direct spanners uses the same physical pa
 
 An authored height limits the final physical band. Additional columns overflow inline in that band, including when the owner occupies exactly one page. A maximum height constrains normal flow without discarding visible overflow paint. Following content retains its normal-flow position even when it overlaps that overflow. Ordinary column owners use the same finite-band and paint-extent rules; measured flex/grid allocations and reserved column notes or figures retain their separate continuation contracts.
 
+In physical page bands, column rules extend through that band's allocated column height and appear between adjacent occupied columns. Extra inline columns in the final band do not add rules to earlier pages, and a single-column continuation has no rule.
+
 Balanced spanning sets that overflow the requested columns across physical pages retain an approximation for overflowing paint and following flow. For example, a short maximum-height owner can finish in normal flow before its overflow finishes painting. This combination reports `HtmlRenderMultiColumnValueUnsupported`; `RequireNoLoss` rejects it.
 
 Ordinary horizontal column content honors `break-before:column` and `break-after:column` at sibling boundaries, including propagation through ordinary decorated wrappers. A boundary authored on both sides advances once; distinct empty siblings retain distinct boundaries. A first-child before value or last-child after value alone does not add an empty column. Balanced filling respects forced runs even when they require more columns than requested.

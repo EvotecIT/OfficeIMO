@@ -269,7 +269,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
             // advance to another column consumes the complete physical band.
             partitionHeight = Math.Max(minimumExtent, plan.UsedHeight);
         }
-        AddColumnRuleVisuals(visuals, style, 0D, offsetY, columnWidth, gap, Math.Max(requestedCount, plan.ColumnCount), partitionHeight, source);
+        AddColumnRuleVisuals(visuals, style, 0D, offsetY, columnWidth, gap,
+            Math.Max(requestedCount, plan.ColumnCount), partitionHeight, source, plan.RuleBands);
         foreach (MultiColumnFragment fragment in plan.Fragments) {
             double x = fragment.Column * (columnWidth + gap);
             double y = offsetY + fragment.Y;

@@ -1,9 +1,63 @@
 using OfficeIMO.Html;
+using OfficeIMO.Drawing;
 using Xunit;
 
 namespace OfficeIMO.Tests;
 
 public sealed partial class HtmlRenderingTests {
+    [Theory]
+    [InlineData(false, HtmlRenderIntentProfile.PrintPaged)]
+    [InlineData(true, HtmlRenderIntentProfile.PrintPaged)]
+    [InlineData(false, HtmlRenderIntentProfile.ScreenMediaPaged)]
+    [InlineData(true, HtmlRenderIntentProfile.ScreenMediaPaged)]
+    public void HtmlColumns_FinitePageRulesUseOnlyTheColumnsOccupiedInEachBand(
+        bool spanning, HtmlRenderIntentProfile profile) {
+        string before = spanning ? "<p>P1</p><p>P2</p><p style='column-span:all'>SPAN</p>" : string.Empty;
+        string html = ColumnBreakSource("<style>@page{size:700px 140px;margin:20px}</style>"
+            + "<section style='width:300px;height:160px;column-count:2;column-gap:20px;"
+            + "column-fill:auto;column-rule:1px solid blue'>" + before
+            + string.Concat(Enumerable.Range(1, 18).Select(index => "<p>" + FiniteSpanningTailLabel(index) + "</p>"))
+            + "</section><p>AFTER</p>");
+        HtmlRenderDocument rendered = HtmlRenderEngine.Execute(HtmlConversionDocument.Parse(html),
+            HtmlRenderRequest.Create(profile, HtmlRenderEncoder.DisplayList, ColumnPageBandOptions())).Document;
+
+        Assert.Equal(2, rendered.Pages.Count);
+        AssertColumnPageBandTextOnce(rendered, Enumerable.Range(1, 18).Select(FiniteSpanningTailLabel).Append("AFTER")
+            .Concat(spanning ? new[] { "P1", "P2", "SPAN" } : Array.Empty<string>()));
+        OfficeRasterImage first = OfficeDrawingRasterRenderer.Render(rendered.Pages[0].CreateDrawing());
+        OfficeRasterImage last = OfficeDrawingRasterRenderer.Render(rendered.Pages[1].CreateDrawing());
+        AssertFiniteColumnRulePixel(first.GetPixel(170, 70));
+        Assert.Equal(OfficeColor.White, first.GetPixel(330, 70));
+        Assert.Equal(OfficeColor.White, first.GetPixel(490, 70));
+        AssertFiniteColumnRulePixel(last.GetPixel(170, 40));
+        AssertFiniteColumnRulePixel(last.GetPixel(330, 40));
+        if (spanning) AssertFiniteColumnRulePixel(last.GetPixel(490, 40));
+        else Assert.Equal(OfficeColor.White, last.GetPixel(490, 40));
+        Assert.Equal(OfficeColor.White, last.GetPixel(170, 90));
+        AssertColumnBreaksQualified(rendered);
+    }
+
+    [Theory]
+    [InlineData(HtmlRenderIntentProfile.PrintPaged)]
+    [InlineData(HtmlRenderIntentProfile.ScreenMediaPaged)]
+    public void HtmlColumns_SingleColumnContinuationDoesNotPaintAColumnRule(HtmlRenderIntentProfile profile) {
+        string html = ColumnBreakSource("<style>@page{size:700px 140px;margin:20px}</style>"
+            + "<section style='width:300px;max-height:100px;column-count:2;column-gap:20px;"
+            + "column-fill:auto;column-rule:1px solid blue'>"
+            + string.Concat(Enumerable.Range(1, 14).Select(index => "<p>" + FiniteSpanningTailLabel(index) + "</p>"))
+            + "</section><p>AFTER</p>");
+        HtmlRenderDocument rendered = HtmlRenderEngine.Execute(HtmlConversionDocument.Parse(html),
+            HtmlRenderRequest.Create(profile, HtmlRenderEncoder.DisplayList, ColumnPageBandOptions())).Document;
+
+        Assert.Equal(2, rendered.Pages.Count);
+        AssertColumnPageBandTextOnce(rendered, Enumerable.Range(1, 14).Select(FiniteSpanningTailLabel).Append("AFTER"));
+        OfficeRasterImage first = OfficeDrawingRasterRenderer.Render(rendered.Pages[0].CreateDrawing());
+        OfficeRasterImage last = OfficeDrawingRasterRenderer.Render(rendered.Pages[1].CreateDrawing());
+        AssertFiniteColumnRulePixel(first.GetPixel(170, 40));
+        Assert.Equal(OfficeColor.White, last.GetPixel(170, 40));
+        AssertColumnBreaksQualified(rendered);
+    }
+
     [Theory]
     [InlineData(8, HtmlRenderIntentProfile.PrintPaged)]
     [InlineData(12, HtmlRenderIntentProfile.PrintPaged)]
@@ -117,6 +171,12 @@ public sealed partial class HtmlRenderingTests {
         int tailCount, string sizing, HtmlRenderIntentProfile profile) =>
         HtmlRenderEngine.Execute(HtmlConversionDocument.Parse(FiniteSpanningSource(tailCount, sizing)),
             HtmlRenderRequest.Create(profile, HtmlRenderEncoder.DisplayList, ColumnPageBandOptions())).Document;
+
+    private static void AssertFiniteColumnRulePixel(OfficeColor pixel) {
+        // A one-pixel rule straddles device pixels in the direct scene renderer.
+        Assert.Equal(255, pixel.B);
+        Assert.True(pixel.R < 200 && pixel.G < 200);
+    }
 
     private static string FiniteSpanningSource(int tailCount, string sizing) =>
         ColumnBreakSource("<style>@page{size:700px 140px;margin:20px}</style>"

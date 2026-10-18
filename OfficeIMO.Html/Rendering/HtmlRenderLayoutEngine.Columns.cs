@@ -122,7 +122,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
             visuals,
             positionedRunningStringAssignments);
         double contentX = style.MarginLeft + style.BorderLeftWidth + style.PaddingLeft;
-        AddColumnRuleVisuals(visuals, style, contentX, contentY, columnWidth, gap, Math.Max(requestedCount, plan.ColumnCount), contentHeight, source);
+        AddColumnRuleVisuals(visuals, style, contentX, contentY, columnWidth, gap,
+            Math.Max(requestedCount, plan.ColumnCount), contentHeight, source, plan.RuleBands);
         foreach (MultiColumnFragment fragment in plan.Fragments) {
             double x = contentX + fragment.Column * (columnWidth + gap);
             double y = contentY + fragment.Y;
@@ -520,14 +521,17 @@ internal sealed partial class HtmlRenderLayoutEngine {
     }
 
     private sealed class MultiColumnPlan {
-        internal MultiColumnPlan(IReadOnlyList<MultiColumnFragment> fragments, int columnCount, double usedHeight) {
+        internal MultiColumnPlan(IReadOnlyList<MultiColumnFragment> fragments, int columnCount, double usedHeight,
+            IReadOnlyList<ColumnRuleBand>? ruleBands = null) {
             Fragments = fragments;
             ColumnCount = columnCount;
             UsedHeight = usedHeight;
+            RuleBands = ruleBands;
         }
         internal IReadOnlyList<MultiColumnFragment> Fragments { get; }
         internal int ColumnCount { get; }
         internal double UsedHeight { get; }
+        internal IReadOnlyList<ColumnRuleBand>? RuleBands { get; }
     }
 
     private sealed class MultiColumnFragment {
