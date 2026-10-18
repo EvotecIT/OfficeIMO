@@ -17,7 +17,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         return true;
     }
 
-    private ColumnPageBands? ResolveColumnPageBands(IElement element, double width, double? declaredHeight, int requestedCount) {
+    private ColumnPageBands? ResolveColumnPageBands(IElement element, double width, double? declaredHeight, int requestedCount, double sourceHeight) {
         ColumnPaginationContext? context;
         if (!_pagedColumnContexts.TryGetValue(element, out context)) {
             ColumnPaginationAttempt? attempt = _columnPaginationAttempt;
@@ -30,7 +30,10 @@ internal sealed partial class HtmlRenderLayoutEngine {
         // Their inline overflow is independent of the physical page fragment.
         if (Math.Abs(context.Width - width) > 0.0001D
             || declaredHeight.HasValue && declaredHeight.Value < context.PageHeight - 0.0001D) return null;
-        return new ColumnPageBands(this, context, requestedCount);
+        if (_columnEdgeFloatEntries.Values.Any(entry => ReferenceEquals(entry.Owner, element)
+            && entry.Body.Height >= context.PageHeight - 0.0001D)) return null;
+        return new ColumnPageBands(this, context, requestedCount, sourceHeight,
+            HtmlRenderStyleResolver.DescribeSource(element));
     }
 
     /// <summary>
@@ -40,12 +43,17 @@ internal sealed partial class HtmlRenderLayoutEngine {
     private sealed class ColumnPageBands {
         private readonly HtmlRenderLayoutEngine _engine;
         private readonly int _count;
+        private readonly double _sourceHeight;
+        private readonly string _source;
         private readonly HashSet<int> _validated = new();
 
-        internal ColumnPageBands(HtmlRenderLayoutEngine engine, ColumnPaginationContext context, int count) {
+        internal ColumnPageBands(HtmlRenderLayoutEngine engine, ColumnPaginationContext context, int count,
+            double sourceHeight, string source) {
             _engine = engine;
             Context = context;
             _count = count;
+            _sourceHeight = sourceHeight;
+            _source = source;
             FirstHeight = Math.Min(context.PageHeight, context.Boundary.RemainingHeight);
         }
 
@@ -64,7 +72,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         internal double Height(int column) {
             int band = column / _count;
             ValidateBand(band);
-            return band == 0 ? FirstHeight : FreshHeight;
+            return !Supported ? _sourceHeight : band == 0 ? FirstHeight : FreshHeight;
         }
 
         internal double Start(int band) => band == 0 ? 0D : FirstHeight + (band - 1D) * FreshHeight;
@@ -81,9 +89,13 @@ internal sealed partial class HtmlRenderLayoutEngine {
             _engine.ChargeLayoutOperation("column physical page geometry");
             int pageNumber = Context.PageNumber + band + (DeferredFirstBand ? 1 : 0);
             HtmlCssPageGeometry geometry = _engine._pageRules.ResolveGeometry(pageNumber, Context.PageName, _engine._options);
-            if (!SamePageGeometry(Context.Geometry, geometry)
-                || Math.Abs(FreshHeight - _engine.ResolvePageBodyContentHeight(pageNumber, geometry)) > 0.0001D)
+            if (Supported && (!SamePageGeometry(Context.Geometry, geometry)
+                || Math.Abs(FreshHeight - _engine.ResolvePageBodyContentHeight(pageNumber, geometry)) > 0.0001D)) {
                 Supported = false;
+                _engine._diagnostics.Add(ComponentName, HtmlRenderDiagnosticCodes.PagePseudoGeometryPending,
+                    "Multi-column pagination retains its source layout because subsequent page geometry or reserved body space differs.",
+                    HtmlDiagnosticSeverity.Warning, _source);
+            }
         }
     }
 }

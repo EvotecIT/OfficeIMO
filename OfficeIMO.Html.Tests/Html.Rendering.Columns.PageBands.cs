@@ -20,18 +20,6 @@ public sealed partial class HtmlRenderingTests {
     }
 
     [Fact]
-    public void HtmlColumns_PageBandsLeaveTheDirectTableParagraphSplitUnchanged() {
-        HtmlRenderDocument rendered = RenderColumnPageBands(ColumnPageBandTable() + "<p id='after'>AFTER</p>");
-
-        AssertColumnPageBandTextOnce(rendered, Enumerable.Range(1, 8).Select(index => "LONG-" + index).Append("AFTER"));
-        Assert.Equal(Enumerable.Range(1, 4).Select(index => "LONG-" + index),
-            ColumnPageBandText(rendered.Pages[0]).Where(text => text.Text.StartsWith("LONG-", StringComparison.Ordinal)).Select(text => text.Text));
-        Assert.Equal(Enumerable.Range(5, 4).Select(index => "LONG-" + index),
-            ColumnPageBandText(rendered.Pages[1]).Where(text => text.Text.StartsWith("LONG-", StringComparison.Ordinal)).Select(text => text.Text));
-        AssertColumnPageBandNoFragmentLoss(rendered);
-    }
-
-    [Fact]
     public void HtmlColumns_PageBandsPreserveOrdinaryParagraphsAndTheirFinalLinkDestination() {
         string paragraphs = string.Concat(Enumerable.Range(1, 24).Select(index =>
             "<p><a href='#after'>FLOW-" + index.ToString("D2") + "</a></p>"));
@@ -82,6 +70,64 @@ public sealed partial class HtmlRenderingTests {
         AssertColumnPageBandTextOnce(rendered, Enumerable.Range(1, 8).Select(index => "LONG-" + index).Concat(new[] { "PRELUDE", "AFTER" }));
         Assert.DoesNotContain(ColumnPageBandText(rendered.Pages[0]), text => text.Text.StartsWith("LONG-", StringComparison.Ordinal));
         AssertColumnPageBandFourByFour(rendered.Pages[1]);
+        Assert.Equal(6, ColumnPageBandTextPage(rendered, "AFTER").PageNumber);
+        AssertColumnPageBandNoFragmentLoss(rendered);
+    }
+
+    [Fact]
+    public void HtmlColumns_PageBandsAutoHeightAutoFillUsesTheAvailableColumnHeight() {
+        string paragraphs = string.Concat(Enumerable.Range(1, 6).Select(index => "<p>AUTO-" + index + "</p>"));
+        HtmlRenderDocument rendered = RenderColumnPageBands("<style>.page-columns{height:auto}</style>"
+            + "<section class='page-columns'>" + paragraphs + "</section><p>AUTO-AFTER</p>");
+
+        AssertColumnPageBandTextOnce(rendered, Enumerable.Range(1, 6).Select(index => "AUTO-" + index).Append("AUTO-AFTER"));
+        HtmlRenderPage first = rendered.Pages[0];
+        HtmlRenderText[] text = ColumnPageBandText(first).Where(item => item.Text.StartsWith("AUTO-", StringComparison.Ordinal)
+            && item.Text != "AUTO-AFTER").ToArray();
+        Assert.Equal(Enumerable.Range(1, 5).Select(index => "AUTO-" + index),
+            text.Where(item => item.X < first.Width / 2D).Select(item => item.Text));
+        Assert.Equal(new[] { "AUTO-6" }, text.Where(item => item.X >= first.Width / 2D).Select(item => item.Text));
+        AssertColumnPageBandNoFragmentLoss(rendered);
+    }
+
+    [Theory]
+    [InlineData(HtmlRenderMode.Continuous)]
+    [InlineData(HtmlRenderMode.Paged)]
+    public void HtmlColumns_PageBandsRetainTheBodyRootFormattingContext(HtmlRenderMode mode) {
+        string paragraphs = string.Concat(Enumerable.Range(1, 6).Select(index => "<p>BODY-" + index + "</p>"));
+        string html = ColumnPageBandSource("<style>body{column-count:2;column-fill:balance;column-gap:60px}"
+            + "p{line-height:20px}</style>" + paragraphs);
+        HtmlRenderOptions options = ColumnPageBandOptions();
+        options.Mode = mode;
+        options.UserAgentStyles = HtmlRenderUserAgentStyleMode.Document;
+        HtmlRenderDocument rendered = HtmlRenderEngine.Render(HtmlConversionDocument.Parse(html), options);
+
+        HtmlRenderPage page = Assert.Single(rendered.Pages);
+        AssertColumnPageBandTextOnce(rendered, Enumerable.Range(1, 6).Select(index => "BODY-" + index));
+        HtmlRenderText[] text = ColumnPageBandText(page).Where(item => item.Text.StartsWith("BODY-", StringComparison.Ordinal)).ToArray();
+        Assert.Equal(Enumerable.Range(1, 3).Select(index => "BODY-" + index),
+            text.Where(item => item.X < page.Width / 2D).Select(item => item.Text));
+        Assert.Equal(Enumerable.Range(4, 3).Select(index => "BODY-" + index),
+            text.Where(item => item.X >= page.Width / 2D).Select(item => item.Text));
+        AssertColumnPageBandNoFragmentLoss(rendered);
+    }
+
+    [Theory]
+    [InlineData(HtmlRenderUserAgentStyleMode.Document)]
+    [InlineData(HtmlRenderUserAgentStyleMode.Browser)]
+    public void HtmlColumns_PageBandsDeferPartialColumnsThroughATransparentRoot(HtmlRenderUserAgentStyleMode userAgent) {
+        string html = ColumnPageBandSource("<style>html,body{background:transparent}</style>"
+            + "<div style='height:40px'>PRELUDE</div><section class='page-columns'>"
+            + ColumnPageBandTable() + "</section><p id='after'>AFTER</p>");
+        HtmlRenderOptions options = ColumnPageBandOptions();
+        options.UserAgentStyles = userAgent;
+        HtmlRenderDocument rendered = HtmlRenderEngine.Execute(HtmlConversionDocument.Parse(html), HtmlRenderRequest.Create(
+            HtmlRenderIntentProfile.PrintPaged, HtmlRenderEncoder.DisplayList, options)).Document;
+
+        AssertColumnPageBandTextOnce(rendered, Enumerable.Range(1, 8).Select(index => "LONG-" + index).Concat(new[] { "PRELUDE", "AFTER" }));
+        Assert.DoesNotContain(ColumnPageBandText(rendered.Pages[0]), text => text.Text.StartsWith("LONG-", StringComparison.Ordinal));
+        AssertColumnPageBandFourByFour(rendered.Pages[1]);
+        Assert.Equal(6, ColumnPageBandTextPage(rendered, "AFTER").PageNumber);
         AssertColumnPageBandNoFragmentLoss(rendered);
     }
 

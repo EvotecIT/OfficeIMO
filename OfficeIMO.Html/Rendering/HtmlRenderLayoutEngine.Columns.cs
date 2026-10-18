@@ -49,7 +49,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         targetHeight = Math.Max(0.01D, targetHeight);
 
         ColumnPageBands? pageBands = pagedColumnRegion
-            ? ResolveColumnPageBands(element, contentWidth, declaredHeight, requestedCount) : null;
+            ? ResolveColumnPageBands(element, contentWidth, declaredHeight, requestedCount, targetHeight) : null;
         MultiColumnPlan plan = BuildMultiColumnPlan(children, targetHeight, _options.MaxColumnCount,
             throwOnLimit: true, pageBands: pageBands);
         plan = ResolveColumnReservedLayout(element, children, plan, columnWidth, targetHeight, pageBands);

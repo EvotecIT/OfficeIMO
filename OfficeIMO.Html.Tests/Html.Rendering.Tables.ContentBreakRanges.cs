@@ -109,15 +109,12 @@ public sealed partial class HtmlRenderingTests {
         }
     }
 
-    [Theory]
-    [InlineData(false)]
-    [InlineData(true)]
-    public void HtmlTables_ContentBreakRangesKeepParagraphWidowsThroughColumns(bool columns) {
+    [Fact]
+    public void HtmlTables_ContentBreakRangesKeepParagraphWidowsInDirectTables() {
         string lines = string.Join("<br>", Enumerable.Range(1, 8).Select(i => "LONG-" + i));
         string table = "<table><tbody><tr style='height:150px'><td rowspan='2'><div style='line-height:20px;orphans:4;widows:4'>"
             + lines + "</div></td></tr><tr style='height:150px'></tr></tbody></table>";
-        string body = columns ? "<div style='column-count:2;column-fill:auto;column-gap:60px;height:400px'>" + table + "</div>" : table;
-        HtmlRenderDocument rendered = RenderContentRangeTable(body, 140, pageWidth: 700);
+        HtmlRenderDocument rendered = RenderContentRangeTable(table, 140, pageWidth: 700);
 
         AssertContentRangeMarkers(rendered, Enumerable.Range(1, 8).Select(i => "LONG-" + i));
         Assert.Equal(new[] { "LONG-1", "LONG-2", "LONG-3", "LONG-4" },

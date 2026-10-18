@@ -96,6 +96,26 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 block = RelayoutTopLevelBlockForPage(block, pageGeometry).ForPagination();
             }
 
+            // Auto-height columns need the physical capacity even when their
+            // initial balanced source box fits. Run after whole-block keep
+            // decisions so the mapping starts on the page that owns the box.
+            bool columnAware = false;
+            while (TryRelayoutBlockForColumns(block, 0D,
+                ResolvePageBodyBottom(pages.Count + 1, pageGeometry) - y, contentHeight,
+                pages.Count + 1, pageGeometry, out HtmlRenderFlowBlock columnBlock)) {
+                block = columnBlock.ForPagination();
+                columnAware = true;
+            }
+            if (columnAware && hasPageContent) {
+                HtmlPageBreakTarget columnBreak = ResolveForcedBreakAt(block.ForcedBreaks, 0D);
+                if (columnBreak != HtmlPageBreakTarget.None) {
+                    ApplyBreakBefore(columnBreak, pages, ref visuals, ref y, ref pageGeometry, currentPageName);
+                    pageWidth = pageGeometry.Width;
+                    pageHeight = pageGeometry.Height;
+                    contentHeight = ResolvePageBodyContentHeight(pages.Count + 1, pageGeometry);
+                }
+            }
+
             if (block.Height <= ResolvePageBodyBottom(pages.Count + 1, pageGeometry) - y && !HasInternalForcedBreak(block)) {
                 AddTranslatedVisuals(visuals, block.Visuals, pageGeometry.Margins.Left, y, block);
                 RecordRunningStringAssignments(block, 0D, block.Height, y);
