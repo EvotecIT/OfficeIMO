@@ -9,6 +9,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
     /// <param name="rawAvailable">The remaining destination height before repeat reservations.</param>
     /// <param name="fullPageHeight">The usable body height of an empty page.</param>
     /// <param name="canForceFragment">Allows repeat suppression and forced fragmentation when the caller cannot move to a page with more room.</param>
+    /// <param name="consumedBoundaries">Optional source-projection cursor retaining distinct authored boundaries at the same offset.</param>
     /// <returns>Null when no safe progress fits and the caller should start another page.</returns>
     /// <remarks>The returned end covers body source only; the caller consumes the original footer after painting its final repetition.</remarks>
     private PagedBlockFragment? PlanPagedFragment(
@@ -16,7 +17,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
         double start,
         double rawAvailable,
         double fullPageHeight,
-        bool canForceFragment) {
+        bool canForceFragment,
+        ISet<object>? consumedBoundaries = null) {
         CheckCancellation();
         ChargeLayoutOperations((long)block.ContinuationGroups.Count + block.TrailingGroups.Count,
             "page fragment repeat-group planning");
@@ -30,7 +32,9 @@ internal sealed partial class HtmlRenderLayoutEngine {
         bool suppressedHeader = false;
         bool suppressedFooter = false;
         bool forced = false;
-        bool forcedBreakFits = TryGetNextForcedBreak(block.ForcedBreaks, start, out HtmlRenderForcedBreak? forcedBreak)
+        if (consumedBoundaries != null)
+            ChargeLayoutOperations(block.ForcedBreaks.Count, "page fragment authored-boundary cursor");
+        bool forcedBreakFits = TryGetNextForcedBreak(block.ForcedBreaks, start, out HtmlRenderForcedBreak? forcedBreak, consumedBoundaries)
             && forcedBreak!.Offset <= fragmentLimit + 0.0001D
             && forcedBreak.Offset <= start + available + 0.0001D;
         double fragmentEnd = forcedBreakFits
@@ -38,7 +42,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
             : available > 0.0001D
                 ? FindFragmentEnd(block, start, available, fragmentLimit, fullPageHeight, repeatTrailing ? trailingGroup : null)
                 : start;
-        if (fragmentEnd <= start + 0.0001D) {
+        if (fragmentEnd <= start + 0.0001D && !forcedBreakFits) {
             if (!canForceFragment) return null;
 
             bool originalContinuation = repeatContinuation;
@@ -108,7 +112,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
             available,
             suppressedHeader,
             suppressedFooter,
-            forced);
+            forced,
+            forcedBreakFits ? forcedBreak : null);
     }
 
     /// <summary>Reports the fallback losses of a fragment after its page plan has been accepted.</summary>
@@ -133,7 +138,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
         double Available,
         bool SuppressedHeader,
         bool SuppressedFooter,
-        bool Forced) {
+        bool Forced,
+        HtmlRenderForcedBreak? AuthoredBreak) {
         internal double HeaderHeight => Header?.Height ?? 0D;
         internal double FooterHeight => Footer?.Height ?? 0D;
     }

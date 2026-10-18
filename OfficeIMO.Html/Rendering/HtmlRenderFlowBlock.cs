@@ -581,7 +581,7 @@ internal readonly record struct HtmlRenderAvoidBreakRange(double Start, double E
 internal sealed class HtmlRenderForcedBreak {
     internal HtmlRenderForcedBreak(double offset, HtmlPageBreakTarget target, string? pageName = null, bool changesPageName = false,
         object? boundary = null, HtmlRenderBreakEdge edge = HtmlRenderBreakEdge.Interior,
-        bool isAfter = false, bool projected = false) {
+        bool isAfter = false, bool projected = false, bool advancesFollowingFlow = false) {
         Offset = offset;
         Target = target;
         PageName = pageName;
@@ -590,6 +590,7 @@ internal sealed class HtmlRenderForcedBreak {
         Edge = edge;
         IsAfter = isAfter;
         Projected = projected;
+        AdvancesFollowingFlow = advancesFollowingFlow;
     }
 
     internal double Offset { get; }
@@ -603,13 +604,16 @@ internal sealed class HtmlRenderForcedBreak {
     internal bool IsAfter { get; }
     /// <summary>The source offset already includes the page-entry spacing for this event.</summary>
     internal bool Projected { get; }
+    /// <summary>A realized after boundary belongs to a nonempty source allocation or ordinary content.</summary>
+    internal bool AdvancesFollowingFlow { get; }
 
-    internal HtmlRenderForcedBreak Translate(double offset) => new HtmlRenderForcedBreak(Offset + offset, Target, PageName, ChangesPageName, Boundary, Edge, IsAfter, Projected);
+    internal HtmlRenderForcedBreak Translate(double offset) => new HtmlRenderForcedBreak(Offset + offset, Target, PageName, ChangesPageName, Boundary, Edge, IsAfter, Projected, AdvancesFollowingFlow);
     internal HtmlRenderForcedBreak AtBoundary(double offset, object boundary, HtmlRenderBreakEdge edge) =>
-        new HtmlRenderForcedBreak(offset, Target, PageName, ChangesPageName, boundary, edge, IsAfter, Projected);
+        new HtmlRenderForcedBreak(offset, Target, PageName, ChangesPageName, boundary, edge, IsAfter, Projected, AdvancesFollowingFlow);
     /// <summary>Marks an authored boundary whose destination spacing is now represented in the retained source.</summary>
     internal HtmlRenderForcedBreak ProjectAt(double offset) =>
-        new HtmlRenderForcedBreak(offset, Target, PageName, ChangesPageName, Boundary, Edge, IsAfter, projected: true);
+        new HtmlRenderForcedBreak(offset, Target, PageName, ChangesPageName, Boundary, Edge, IsAfter, projected: true,
+            advancesFollowingFlow: AdvancesFollowingFlow);
 }
 
 internal enum HtmlRenderBreakEdge { Interior, Leading, Trailing }

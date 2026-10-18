@@ -188,6 +188,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         }
         int pageNumber = context.PageNumber + (int)pageOffset;
         HtmlRenderFlowBlock projected = source;
+        var consumedBoundaries = new HashSet<object>();
         double cursor = 0D;
         while (cursor < projected.PagedPaintExtent - 0.0001D) {
             CheckCancellation();
@@ -201,7 +202,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 return source;
             }
             double remaining = projected.PagedPaintExtent - cursor;
-            bool hasForcedBoundary = TryGetNextForcedBreak(projected.ForcedBreaks, cursor, out HtmlRenderForcedBreak? forcedBreak)
+            ChargeLayoutOperations(projected.ForcedBreaks.Count, "constrained authored-boundary cursor");
+            bool hasForcedBoundary = TryGetNextForcedBreak(projected.ForcedBreaks, cursor, out HtmlRenderForcedBreak? forcedBreak, consumedBoundaries)
                 && (forcedBreak!.Offset < projected.PagedPaintExtent - 0.0001D
                     || forcedBreak!.IsAfter && !forcedBreak.Projected);
             if (remaining <= available + 0.0001D && !hasForcedBoundary) break;
@@ -212,13 +214,13 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 && remaining > available + 0.0001D;
             PagedBlockFragment? plan = movesOwnKeep ? null
                 : PlanPagedFragment(paged, cursor, available, context.PageHeight,
-                    canForceFragment: available >= context.PageHeight - 0.0001D);
+                    canForceFragment: available >= context.PageHeight - 0.0001D, consumedBoundaries: consumedBoundaries);
             if (plan?.Forced == true || plan?.Header != null || plan?.Footer != null) {
                 context.FailedReason = "forced-or-repeated-source-fragment";
                 return source;
             }
             double cut = plan?.End ?? cursor;
-            bool projectsForcedBoundary = hasForcedBoundary && Math.Abs(forcedBreak!.Offset - cut) <= 0.0001D;
+            object? projectedForcedBoundary = plan?.AuthoredBreak?.Boundary;
             double gap = available - (cut - cursor);
             if (gap > 0.0001D) {
                 context.NeedsProjection = true;
@@ -236,6 +238,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                             CheckCancellation();
                             ChargeLayoutOperation("constrained interior child-entry ownership");
                             if (child.Block.OwnerElement is { } entry
+                                && child.Block.PagedPaintExtent > 0.0001D
                                 && Math.Abs(child.Y - cut) <= 0.0001D) {
                                 interiorGap = new ConstrainedInteriorGap(entry, gap);
                                 return source;
@@ -244,16 +247,17 @@ internal sealed partial class HtmlRenderLayoutEngine {
                     }
                     double advance = cut < projected.Height - 0.0001D ? gap : 0D;
                     projected = InsertPagedSourceBreakGap(projected, cut, gap, false, advance,
-                        plan == null ? null : ResolvePagedBackgroundWindow(cursor, plan), projectsForcedBoundary);
+                        plan == null ? null : ResolvePagedBackgroundWindow(cursor, plan), projectedForcedBoundary);
                     cut += gap;
                 }
                 context.Changed = true;
-            } else if (projectsForcedBoundary && !forcedBreak!.Projected) {
+            } else if (projectedForcedBoundary != null) {
                 projected = projected.WithVisuals(projected.Visuals, forcedBreaks: projected.ForcedBreaks.Select(item =>
-                    Math.Abs(item.Offset - cut) <= 0.0001D && IsForcedPageBreak(item.Target)
+                    ReferenceEquals(item.Boundary, projectedForcedBoundary)
                         ? item.ProjectAt(item.Offset) : item));
                 context.Changed = true;
             }
+            if (projectedForcedBoundary != null) consumedBoundaries.Add(projectedForcedBoundary);
             cursor = cut;
             available = context.PageHeight;
             pageNumber++;
@@ -261,7 +265,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
         foreach (HtmlRenderForcedBreak item in projected.ForcedBreaks) {
             CheckCancellation();
             ChargeLayoutOperation("constrained authored following-flow boundary");
-            if (item.IsAfter && item.Projected) forcedFollowingMinimum = Math.Max(forcedFollowingMinimum, item.Offset);
+            if (item.IsAfter && item.Projected && item.AdvancesFollowingFlow)
+                forcedFollowingMinimum = Math.Max(forcedFollowingMinimum, item.Offset);
         }
         return projected;
     }

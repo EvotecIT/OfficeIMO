@@ -203,17 +203,24 @@ internal sealed partial class HtmlRenderLayoutEngine {
     private static bool TryGetNextForcedBreak(
         IReadOnlyList<HtmlRenderForcedBreak> forcedBreaks,
         double offset,
-        out HtmlRenderForcedBreak? forcedBreak) {
+        out HtmlRenderForcedBreak? forcedBreak,
+        ISet<object>? consumedBoundaries = null) {
         int low = 0;
         int high = forcedBreaks.Count;
-        double target = offset + 0.0001D;
+        double target = offset + (consumedBoundaries == null ? 0.0001D : -0.0001D);
         while (low < high) {
             int middle = low + ((high - low) >> 1);
             if (forcedBreaks[middle].Offset <= target) low = middle + 1;
             else high = middle;
         }
 
-        while (low < forcedBreaks.Count && !IsForcedPageBreak(forcedBreaks[low].Target)) low++;
+        while (low < forcedBreaks.Count) {
+            HtmlRenderForcedBreak item = forcedBreaks[low];
+            if (IsForcedPageBreak(item.Target)
+                && (consumedBoundaries == null || !item.Projected && !consumedBoundaries.Contains(item.Boundary)
+                    && !(item.Edge == HtmlRenderBreakEdge.Leading && item.Offset <= 0.0001D))) break;
+            low++;
+        }
         forcedBreak = low < forcedBreaks.Count ? forcedBreaks[low] : null;
         return forcedBreak != null;
     }

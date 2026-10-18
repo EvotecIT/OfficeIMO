@@ -33,7 +33,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
         }
         if (child.BreakAfter != HtmlPageBreakTarget.None)
             result.Add(new HtmlRenderForcedBreak(start + child.NormalFlowAdvance, child.BreakAfter,
-                boundary: boundaries[index + 1], edge: after, isAfter: true));
+                boundary: boundaries[index + 1], edge: after, isAfter: true,
+                advancesFollowingFlow: child.NormalFlowAdvance > 0.0001D || child.Visuals.Any(HasOrdinaryFragmentSource)));
     }
 
     private object[] CreateFlowBoundaries(IReadOnlyList<HtmlRenderFlowBlock> children) {
