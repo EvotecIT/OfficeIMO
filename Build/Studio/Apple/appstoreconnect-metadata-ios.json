@@ -1,0 +1,13 @@
+{
+  "appId": "6818096229",
+  "versionString": "1.0",
+  "platform": "iOS",
+  "locale": "en-US",
+  "metadata": {
+    "description": "Read and work with PDFs on iPhone and iPad. Open documents from Files and keep your work with the system document browser.\n\nSearch and select text, add notes and markup, fill supported form fields, organize pages, and save or share your work. Convert supported documents to PDF, make scans searchable with on-device text recognition, and prepare password-protected or redacted copies.\n\nDocument processing runs on your device. OfficeIMO Studio is free and open source under the MIT License. Source code and community support are available at https://github.com/EvotecIT/OfficeIMO.",
+    "keywords": "pdf,reader,documents,annotation,forms,scan,convert,open source",
+    "marketingUrl": "https://officeimo.com/studio/",
+    "supportUrl": "https://github.com/EvotecIT/OfficeIMO/issues"
+  },
+  "useReleaseVersion": true
+}
