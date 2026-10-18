@@ -69,7 +69,14 @@ internal sealed partial class HtmlRenderLayoutEngine {
             ChargeLayoutOperations((long)group.Offsets.Count + 1L, "column paragraph line projection");
             if (group.End <= start + tolerance || group.Start >= end - tolerance) continue;
             if (group.Start >= start && group.End <= end) {
-                yield return group.WithInteriorBreaks().Translate(translation);
+                // A completed paragraph's final line can precede its discarded
+                // margin. Project that line as final, rather than an interior
+                // break whose missing widows would defer it on the outer page.
+                yield return group.FinalLineMarginBreak && !group.HasImplicitFinalLine
+                    ? new HtmlRenderLineBreakGroup(group.Offsets.Where(value => value < group.End - tolerance),
+                        group.Orphans, group.Widows, hasImplicitFinalLine: true, group.Start, group.End,
+                        checkInteriorBreaks: true).Translate(translation)
+                    : group.WithInteriorBreaks().Translate(translation);
                 continue;
             }
 

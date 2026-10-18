@@ -255,6 +255,23 @@ public sealed partial class HtmlRenderingTests {
             ("BREAK-TWO", 0D, 60D), ("BREAK-THREE", 0D, 80D), ("BREAK-FOUR", 160D, 0D),
             ("BREAK-AFTER", 0D, 100D));
         AssertColumnBreaksQualified(rendered);
+
+        foreach (HtmlRenderIntentProfile profile in new[] {
+                     HtmlRenderIntentProfile.PrintPaged, HtmlRenderIntentProfile.ScreenMediaPaged }) {
+            string html = ColumnBreakSource("<style>@page{size:700px 140px;margin:20px}</style>"
+                + "<section style='width:300px;column-count:2;column-gap:20px;column-fill:auto;height:100px'>"
+                + body + "</section><p>BREAK-AFTER</p>");
+            HtmlRenderDocument paged = HtmlRenderEngine.Execute(HtmlConversionDocument.Parse(html),
+                HtmlRenderRequest.Create(profile, HtmlRenderEncoder.DisplayList, ColumnPageBandOptions())).Document;
+
+            Assert.Equal(2, paged.Pages.Count);
+            AssertColumnBreakPlacements(paged, ("BREAK-LEAD", 20D, 20D), ("BREAK-ONE", 20D, 60D),
+                ("BREAK-TWO", 20D, 80D), ("BREAK-THREE", 20D, 100D), ("BREAK-FOUR", 180D, 20D),
+                ("BREAK-AFTER", 20D, 20D));
+            Assert.Equal(1, ColumnPageBandTextPage(paged, "BREAK-THREE").PageNumber);
+            Assert.Equal(2, ColumnPageBandTextPage(paged, "BREAK-AFTER").PageNumber);
+            AssertColumnBreaksQualified(paged);
+        }
     }
 
     [Fact]
