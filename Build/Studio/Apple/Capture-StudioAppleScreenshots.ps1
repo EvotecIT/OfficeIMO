@@ -156,11 +156,15 @@ try {
             Start-Sleep -Milliseconds 100
         } while ($true)
     }
+    # Mac captures include the cold document accessibility tree and both
+    # dashboard/search windows. The per-image render deadline stays unchanged.
+    $testAllowance = if ($Role -eq 'macos') { '300' } else { '120' }
+    $maximumAllowance = if ($Role -eq 'macos') { '360' } else { '150' }
     Invoke-CaptureXcode -LogPath (Join-Path $WorkRoot "capture-$Role.log") -Arguments @(
         'test-without-building', '-xctestrun', $testManifest, '-destination', $destination, '-resultBundlePath', $result,
         '-only-testing', "$target/StudioStoreCaptureTests/testCapturePublicDashboard", '-parallel-testing-enabled', 'NO',
         '-collect-test-diagnostics', 'never', '-test-timeouts-enabled', 'YES',
-        '-default-test-execution-time-allowance', '120', '-maximum-test-execution-time-allowance', '150')
+        '-default-test-execution-time-allowance', $testAllowance, '-maximum-test-execution-time-allowance', $maximumAllowance)
     if ($Role -ne 'macos') {
         $after = (& xcrun simctl get_app_container $device com.evotec.officeimo.studio data).Trim()
         if ($LASTEXITCODE -ne 0 -or $after -ne $container -or -not (Test-Path -LiteralPath $document -PathType Leaf)) {
