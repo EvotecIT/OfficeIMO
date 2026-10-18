@@ -429,8 +429,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
 
         ReportUnsupportedLayout(element, style);
         double contentYForBreaks = contentY;
-        // Propagate only a child's explicit paged overhang. Ordinary child
-        // geometry in a zero-height panel must not enlarge its print flow.
+        // Auto-height wrappers import explicit overhang. An authored height
+        // constraint also retains its in-flow content beyond the used box.
         double pagedPaintExtent = _options.Mode == HtmlRenderMode.Paged && style.OverflowY == "visible"
             && childPaintLayers.Any(layer => layer.Block.PagedPaintExtent > layer.Block.Height + 0.0001D)
             ? childPaintLayers.Aggregate(outerHeight, (extent, layer) =>
@@ -441,6 +441,13 @@ internal sealed partial class HtmlRenderLayoutEngine {
         if (_options.Mode == HtmlRenderMode.Paged && style.OverflowY == "visible" && inlineLayout != null
             && inlineLayout.PagedPaintExtent > inlineLayout.Height + 0.0001D) {
             pagedPaintExtent = Math.Max(pagedPaintExtent, contentYForBreaks + inlineLayout.PagedPaintExtent);
+        }
+        if (!usesVerticalBlockFormatting) {
+            pagedPaintExtent = ResolveConstrainedBlockPaintExtent(style, pagedPaintExtent,
+                contentYForBreaks, contentHeight, inlineLayout, childPaintLayers);
+            AppendConstrainedBlockAllocationTail(style, boxHeight, contentYForBreaks,
+                contentHeight, childPaintLayers, contentSafeBreakRanges,
+                pageBoundary?.PageHeight ?? _activePageGeometry.ContentHeight);
         }
         double columnOverflowExtent = outerHeight;
         if (_columnContentDepth > 0 && style.OverflowY == "visible" && !usesVerticalBlockFormatting) {
