@@ -11,6 +11,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         int depth,
         IElement? continuationTarget = null,
         TableFormattingStructure? formatting = null) {
+        using OrdinaryPageSourceScope pageSourceScope = EnterTablePageSource();
         int legacyBorderWidth = PrepareTableBoxStyleForSizing(table, style, formatting?.Anonymous == true);
         double availableWidth = Math.Max(1D, containingWidth - style.MarginLeft - style.MarginRight);
         double tableWidth = ResolveBoxWidth(availableWidth, style);

@@ -4,21 +4,32 @@ namespace OfficeIMO.Html;
 
 internal sealed partial class HtmlRenderLayoutEngine {
     private readonly HashSet<IElement> _constrainedOverflowElements = new();
+    private readonly HashSet<IElement> _constrainedPaintOverflowElements = new();
     private readonly HashSet<IElement> _projectedConstrainedOwners = new();
     private ConstrainedSourceProjection? _constrainedSourceProjection;
     private int _specializedPageSourceDepth;
+    private int _tablePageSourceDepth = -1;
 
     private void ResetConstrainedSourceProjection() {
         _constrainedOverflowElements.Clear();
+        _constrainedPaintOverflowElements.Clear();
         _projectedConstrainedOwners.Clear();
         _constrainedSourceProjection = null;
         _specializedPageSourceDepth = 0;
+        _tablePageSourceDepth = -1;
     }
 
     private void RememberConstrainedOverflow(IElement element, bool ownsConstrainedSource, HtmlRenderFlowBlock block) {
-        if (_constrainedSourceProjection == null && _options.Mode == HtmlRenderMode.Paged
-            && ownsConstrainedSource)
-            _constrainedOverflowElements.Add(element);
+        if (_constrainedSourceProjection != null || _options.Mode != HtmlRenderMode.Paged) return;
+        ChargeLayoutOperation("constrained source registration");
+        if (!ownsConstrainedSource) {
+            _constrainedOverflowElements.Remove(element);
+            _constrainedPaintOverflowElements.Remove(element);
+            return;
+        }
+        _constrainedOverflowElements.Add(element);
+        if (block.PagedPaintExtent > block.Height + 0.0001D) _constrainedPaintOverflowElements.Add(element);
+        else _constrainedPaintOverflowElements.Remove(element);
     }
 
     private static bool HasOrdinaryFragmentSource(HtmlRenderVisual visual) => !visual.IsOutOfFlowPaint
@@ -32,6 +43,9 @@ internal sealed partial class HtmlRenderLayoutEngine {
     private OrdinaryPageSourceScope EnterOrdinaryPageSource(HtmlRenderBoxStyle style) => new(this,
         style.Display is "flex" or "inline-flex" or "grid" or "inline-grid" or "table" or "inline-table"
         || HasMultiColumnLayout(style) || style.FloatSide != "none" || ShouldExtractOutOfFlow(style));
+
+    /// <summary>Leaves table cuts with their canonical owner while retaining visible cell-content extents.</summary>
+    private OrdinaryPageSourceScope EnterTablePageSource() => new(this, specialized: true, tableOwner: true);
 
     /// <summary>Rebuilds independent ordinary sources against the physical page bands before flattening paint.</summary>
     private bool TryRelayoutConstrainedOverflow(HtmlRenderFlowBlock block, double available,
@@ -48,10 +62,17 @@ internal sealed partial class HtmlRenderLayoutEngine {
         bool isRoot = ReferenceEquals(owner, root);
         if (!isRoot && !ReferenceEquals(owner.ParentElement, root)) return false;
         _projectedConstrainedOwners.Add(owner);
-        string? boundary = ResolveConstrainedProjectionBoundary(owner, targets);
+        string? boundary = ContainsParallelRangeTable(block.Visuals)
+            ? "table-formatting-source-owner" : ResolveConstrainedProjectionBoundary(owner, targets);
         // Specialized owners retain their established planner and state. Do not
         // enter a speculative rebuild and then restore only part of its caches.
-        if (boundary != null || HasInternalForcedBreak(block)) return false;
+        boundary ??= HasInternalForcedBreak(block) ? "internal-forced-source-break" : null;
+        if (boundary != null) {
+            ChargeLayoutOperations(targets.Length, "constrained overflow boundary qualification");
+            if (targets.Any(_constrainedPaintOverflowElements.Contains))
+                ReportConstrainedProjectionBoundary(block, boundary);
+            return false;
+        }
         var context = new ConstrainedSourceProjection(targets, geometry, pageNumber, pageHeight,
             block.PageName, boundary);
         double leading = isRoot ? 0D : block.LeadingFlowAdjustment;
@@ -73,10 +94,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 : LayoutElement(owner, geometry.ContentWidth, style, rootStyle, 1, pageBoundary: physical)
                     .AdjustLeadingFlowSpace(leading);
             if (context.FailedReason != null) {
-                if (context.NeedsProjection) _diagnostics.Add(ComponentName,
-                    HtmlRenderDiagnosticCodes.ConstrainedOverflowPaginationPending,
-                    "Overlapping constrained content retained its shared source pagination outside the supported independent ordinary-flow projection.",
-                    HtmlDiagnosticSeverity.Warning, block.Source, context.FailedReason);
+                if (context.NeedsProjection) ReportConstrainedProjectionBoundary(block, context.FailedReason);
                 return false;
             }
             if (!context.Changed) return false;
@@ -106,6 +124,11 @@ internal sealed partial class HtmlRenderLayoutEngine {
             }
         }
     }
+
+    private void ReportConstrainedProjectionBoundary(HtmlRenderFlowBlock block, string reason) =>
+        _diagnostics.Add(ComponentName, HtmlRenderDiagnosticCodes.ConstrainedOverflowPaginationPending,
+            "Constrained overflow retained shared pagination outside the qualified independent ordinary-flow projection.",
+            HtmlDiagnosticSeverity.Warning, block.Source, reason);
 
     private string? ResolveConstrainedProjectionBoundary(IElement owner, IReadOnlyList<IElement> targets) {
         foreach (KeyValuePair<IElement, HtmlRenderBoxStyle> item in _layoutStyles) {
@@ -251,14 +274,25 @@ internal sealed partial class HtmlRenderLayoutEngine {
     private sealed class OrdinaryPageSourceScope : IDisposable {
         private readonly HtmlRenderLayoutEngine _engine;
         private readonly bool _specialized;
-        internal OrdinaryPageSourceScope(HtmlRenderLayoutEngine engine, bool specialized) {
+        private readonly bool _tableOwner;
+        private readonly int _previousTableDepth;
+        internal OrdinaryPageSourceScope(HtmlRenderLayoutEngine engine, bool specialized, bool tableOwner = false) {
             _engine = engine;
             _specialized = specialized;
+            _tableOwner = tableOwner;
+            _previousTableDepth = engine._tablePageSourceDepth;
             if (specialized) engine._specializedPageSourceDepth++;
+            if (tableOwner) engine._tablePageSourceDepth = engine._specializedPageSourceDepth;
             IsOrdinary = engine._specializedPageSourceDepth == 0;
+            // A nested flex/grid/float/column owner must not inherit permission
+            // from its enclosing table. A nested table establishes its own cuts.
+            RetainsConstrainedPaint = IsOrdinary
+                || engine._tablePageSourceDepth == engine._specializedPageSourceDepth;
         }
         internal bool IsOrdinary { get; }
+        internal bool RetainsConstrainedPaint { get; }
         public void Dispose() {
+            if (_tableOwner) _engine._tablePageSourceDepth = _previousTableDepth;
             if (_specialized) _engine._specializedPageSourceDepth--;
         }
     }

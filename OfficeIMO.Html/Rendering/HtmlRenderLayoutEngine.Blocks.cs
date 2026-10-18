@@ -391,8 +391,9 @@ internal sealed partial class HtmlRenderLayoutEngine {
             allowZeroHeight: contentHeight <= 0D && (style.Display == "block"
                 || style.Display == "flow-root" && hasZeroHeightOrdinaryContent));
         bool hasOrdinaryFragmentSource = contentVisuals.Any(HasOrdinaryFragmentSource);
-        bool ownsConstrainedSource = pageSourceScope.IsOrdinary && _columnContentDepth == 0
+        bool retainsConstrainedPaint = pageSourceScope.RetainsConstrainedPaint && _columnContentDepth == 0
             && !IsAtomicPaginationOwner(style) && HasEffectiveConstrainedBlockHeight(style, boxHeight, contentHeight);
+        bool ownsConstrainedSource = pageSourceScope.IsOrdinary && retainsConstrainedPaint;
         if (_inlineFloatOverhangs.TryGetValue(element, out double inlineOverhang)) {
             double normalFlowBoxHeight = ResolveBoxHeight(Math.Max(0D, contentHeight - inlineOverhang), boxWidth, style);
             double floatBottom = style.BorderTopWidth + style.PaddingTop + contentHeight;
@@ -486,7 +487,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
             pagedPaintExtent = Math.Max(pagedPaintExtent, contentYForBreaks + inlineLayout.PagedPaintExtent);
         }
         if (!usesVerticalBlockFormatting) {
-            pagedPaintExtent = ResolveConstrainedBlockPaintExtent(style, ownsConstrainedSource, pagedPaintExtent,
+            pagedPaintExtent = ResolveConstrainedBlockPaintExtent(style, retainsConstrainedPaint, pagedPaintExtent,
                 contentYForBreaks, contentHeight, inlineLayout, childPaintLayers);
             AppendConstrainedBlockAllocationTail(style, ownsConstrainedSource && hasOrdinaryFragmentSource
                 && !contentFloats.HasFloats && !visuals.Any(ContainsPositionedFlowPaint), boxHeight, contentYForBreaks,

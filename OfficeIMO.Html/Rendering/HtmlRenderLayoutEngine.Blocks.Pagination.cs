@@ -2,11 +2,11 @@ namespace OfficeIMO.Html;
 
 internal sealed partial class HtmlRenderLayoutEngine {
     /// <summary>Retains constrained in-flow source without changing the used CSS box or sibling advance.</summary>
-    private double ResolveConstrainedBlockPaintExtent(HtmlRenderBoxStyle style, bool ownsConstrainedSource, double extent,
+    private double ResolveConstrainedBlockPaintExtent(HtmlRenderBoxStyle style, bool retainsConstrainedPaint, double extent,
         double contentY, double contentHeight, HtmlInlineLayout? inline,
         IReadOnlyList<FlowPaintLayer> children) {
         if (_options.Mode != HtmlRenderMode.Paged || style.OverflowY != "visible"
-            || !ownsConstrainedSource) return extent;
+            || !retainsConstrainedPaint) return extent;
 
         double contentExtent = Math.Max(contentHeight, inline?.PagedPaintExtent ?? 0D);
         foreach (FlowPaintLayer child in children) {
