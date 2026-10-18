@@ -63,7 +63,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         if (!isRoot && !ReferenceEquals(owner.ParentElement, root)) return false;
         _projectedConstrainedOwners.Add(owner);
         string? boundary = ContainsParallelRangeTable(block.Visuals)
-            ? "table-formatting-source-owner" : ResolveConstrainedProjectionBoundary(owner, targets);
+            ? "table-formatting-source-owner" : ResolveConstrainedProjectionBoundary(owner);
         // Specialized owners retain their established planner and state. Do not
         // enter a speculative rebuild and then restore only part of its caches.
         boundary ??= HasInternalForcedBreak(block) ? "internal-forced-source-break" : null;
@@ -73,7 +73,16 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 ReportConstrainedProjectionBoundary(block, boundary);
             return false;
         }
-        var context = new ConstrainedSourceProjection(targets, geometry, pageNumber, pageHeight,
+        var targetAncestors = new HashSet<IElement>();
+        foreach (IElement target in targets) {
+            for (IElement? parent = target.ParentElement; parent != null; parent = parent.ParentElement) {
+                CheckCancellation();
+                ChargeLayoutOperation("constrained source ancestor ownership");
+                targetAncestors.Add(parent);
+                if (ReferenceEquals(parent, owner)) break;
+            }
+        }
+        var context = new ConstrainedSourceProjection(targetAncestors, geometry, pageNumber, pageHeight,
             block.PageName, boundary);
         double leading = isRoot ? 0D : block.LeadingFlowAdjustment;
         HtmlRenderBoxStyle rootStyle = ResolveRootStyle(root, geometry.ContentWidth);
@@ -130,7 +139,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
             "Constrained overflow retained shared pagination outside the qualified independent ordinary-flow projection.",
             HtmlDiagnosticSeverity.Warning, block.Source, reason);
 
-    private string? ResolveConstrainedProjectionBoundary(IElement owner, IReadOnlyList<IElement> targets) {
+    private string? ResolveConstrainedProjectionBoundary(IElement owner) {
         foreach (KeyValuePair<IElement, HtmlRenderBoxStyle> item in _layoutStyles) {
             CheckCancellation();
             ChargeLayoutOperation("constrained projection formatting boundary");
@@ -147,20 +156,11 @@ internal sealed partial class HtmlRenderLayoutEngine {
             ChargeLayoutOperation("constrained projection positioned ownership");
             if (ContainsElementOrSelf(owner, element)) return "positioned-source-owner";
         }
-        var selected = new HashSet<IElement>(targets);
-        foreach (IElement target in targets) {
-            for (IElement? parent = target.ParentElement; parent != null; parent = parent.ParentElement) {
-                CheckCancellation();
-                ChargeLayoutOperation("constrained projection ancestor ownership");
-                if (selected.Contains(parent)) return "nested-independent-constrained-overflow";
-                if (ReferenceEquals(parent, owner)) break;
-            }
-        }
         return null;
     }
 
-    private ConstrainedProjectionScope EnterConstrainedProjection(IElement element, HtmlRenderBoxStyle style) =>
-        new(_constrainedSourceProjection, element, IsAtomicPaginationOwner(style));
+    private ConstrainedProjectionScope EnterConstrainedProjection(HtmlRenderBoxStyle style) =>
+        new(_constrainedSourceProjection, IsAtomicPaginationOwner(style));
 
     /// <summary>Uses the canonical fragment planner; inserted gaps occupy destination space, not extra CSS height.</summary>
     private HtmlRenderFlowBlock ProjectOrdinaryContent(HtmlRenderFlowBlock source, PagedFloatBoundary boundary,
@@ -233,22 +233,23 @@ internal sealed partial class HtmlRenderLayoutEngine {
     }
 
     private sealed class ConstrainedSourceProjection {
-        internal ConstrainedSourceProjection(IEnumerable<IElement> targets, HtmlCssPageGeometry geometry,
+        internal ConstrainedSourceProjection(HashSet<IElement> targetAncestors, HtmlCssPageGeometry geometry,
             int pageNumber, double pageHeight, string? pageName, string? unsupportedBoundary) {
-            Targets = new HashSet<IElement>(targets);
+            TargetAncestors = targetAncestors;
             Geometry = geometry;
             PageNumber = pageNumber;
             PageHeight = pageHeight;
             PageName = pageName;
             UnsupportedBoundary = unsupportedBoundary;
         }
-        internal HashSet<IElement> Targets { get; }
+        internal HashSet<IElement> TargetAncestors { get; }
+        internal HashSet<IElement> EntryRelayoutOwners { get; } = new();
         internal HtmlCssPageGeometry Geometry { get; }
         internal int PageNumber { get; }
         internal double PageHeight { get; }
         internal string? PageName { get; }
         internal string? UnsupportedBoundary { get; }
-        internal int ConstrainedDepth { get; set; }
+        internal int AtomicDepth { get; set; }
         internal bool Changed { get; set; }
         internal bool NeedsProjection { get; set; }
         internal string? FailedReason { get; set; }
@@ -256,18 +257,21 @@ internal sealed partial class HtmlRenderLayoutEngine {
 
     private sealed class ConstrainedProjectionScope : IDisposable {
         private readonly ConstrainedSourceProjection? _context;
-        private readonly bool _containsSource;
-        internal ConstrainedProjectionScope(ConstrainedSourceProjection? context, IElement element, bool atomic) {
+        private readonly bool _atomic;
+        internal ConstrainedProjectionScope(ConstrainedSourceProjection? context, bool atomic) {
             _context = context;
-            CanProject = context != null && context.ConstrainedDepth == 0 && !atomic;
-            CanProjectAtomic = context != null && context.ConstrainedDepth == 0 && atomic;
-            _containsSource = context != null && (atomic || context.Targets.Contains(element));
-            if (_containsSource) context!.ConstrainedDepth++;
+            _atomic = context != null && atomic;
+            // Each ordinary child establishes its own physical entry before
+            // its ancestor imports the child's source. This keeps an overflow
+            // stream independent of a later sibling's page-entry spacing.
+            CanProject = context != null && context.AtomicDepth == 0 && !atomic;
+            CanProjectAtomic = context != null && context.AtomicDepth == 0 && atomic;
+            if (_atomic) context!.AtomicDepth++;
         }
         internal bool CanProject { get; }
         internal bool CanProjectAtomic { get; }
         public void Dispose() {
-            if (_containsSource) _context!.ConstrainedDepth--;
+            if (_atomic) _context!.AtomicDepth--;
         }
     }
 

@@ -56,6 +56,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 RetainsZeroHeightFlowCarrier = positioned.RetainsZeroHeightFlowCarrier,
                 KnownNoInFlowLineBoxes = positioned.KnownNoInFlowLineBoxes,
                 HasZeroHeightOrdinaryContent = positioned.HasZeroHeightOrdinaryContent,
+                PagedSourceEntryGap = gap,
                 UnfragmentedHeight = positioned.UnfragmentedHeight,
                 ColumnOverflowContent = positioned.ColumnOverflowContent
             };

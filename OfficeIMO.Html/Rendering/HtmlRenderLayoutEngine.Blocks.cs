@@ -90,7 +90,9 @@ internal sealed partial class HtmlRenderLayoutEngine {
             return StampViewport(AttachElementMargins(ApplyElementPositioning(ApplyOverflowToSpecializedBlock(columnsBlock, style, element, containingWidth), style, containingWidth, containingHeight, element), style, element));
         }
 
-        using ConstrainedProjectionScope projectionScope = EnterConstrainedProjection(element, style);
+        using ConstrainedProjectionScope projectionScope = EnterConstrainedProjection(style);
+        ConstrainedEntryRelayoutState? entryRelayout = CaptureConstrainedEntryRelayout(
+            element, style, projectionScope, pageBoundary);
         double availableWidth = Math.Max(1D, containingWidth - style.MarginLeft - style.MarginRight);
         double boxWidth = ResolveBoxWidth(availableWidth, style);
         double contentWidth = Math.Max(1D, boxWidth - style.HorizontalInsets);
@@ -261,7 +263,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
 
                 contentHeight += child.NormalFlowAdvance;
                 if (child.AvoidBreakInsideScope != HtmlFragmentationScope.None)
-                    contentAvoidBreakRanges.Add(new HtmlRenderAvoidBreakRange(childStart, contentHeight, Scope: child.AvoidBreakInsideScope));
+                    contentAvoidBreakRanges.Add(new HtmlRenderAvoidBreakRange(
+                        childStart + child.PagedSourceEntryGap, contentHeight, Scope: child.AvoidBreakInsideScope));
                 contentAvoidBreakRanges.AddRange(child.AvoidBreakRanges.Select(range => range.Translate(childStart)));
                 contentSafeBreakRanges.AddRange(child.SafeBreakRanges.Select(range => range.Translate(childStart)));
                 foreach (double offset in child.BreakOffsets) {
@@ -364,6 +367,11 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 pagedPaintExtent: sourceExtent, safeBreakRanges: contentSafeBreakRanges);
             projectedContent = ProjectOrdinaryContent(source,
                 pageBoundary.Value.Shift(style.MarginTop + style.BorderTopWidth + style.PaddingTop), out pagedEntryGap);
+            if (pagedEntryGap > 0.0001D && entryRelayout != null
+                && TryRelayoutConstrainedEntry(element, containingWidth, parentStyle, depth,
+                    continuationTarget, continuationLogicalCharacters, pageBoundary.Value,
+                    inheritedFloats, emittedFloats, surroundingFloats, pagedEntryGap, entryRelayout,
+                    out HtmlRenderFlowBlock entryReflowed)) return entryReflowed;
             contentVisuals.Clear(); contentVisuals.AddRange(projectedContent.Visuals);
             contentHeight = projectedContent.NormalFlowAdvance;
             contentBreakOffsets.Clear(); contentBreakOffsets.AddRange(projectedContent.BreakOffsets);
@@ -608,7 +616,10 @@ internal sealed partial class HtmlRenderLayoutEngine {
             contentVisuals, contentHeight, inlineLayout?.HasInFlowLineBoxes == true);
         HtmlRenderFlowBlock completed = StampViewport(AttachElementMargins(ApplyElementPositioning(block, style, containingWidth, containingHeight, element),
             style, element, collapsesThrough, collapsedTopGroup, collapsedBottomGroup));
-        if (pagedEntryGap > 0.0001D) completed = completed.AdjustLeadingFlowSpace(-pagedEntryGap);
+        if (pagedEntryGap > 0.0001D) {
+            completed = completed.AdjustLeadingFlowSpace(-pagedEntryGap);
+            completed.PagedSourceEntryGap = pagedEntryGap;
+        }
         if (projectionScope.CanProjectAtomic && pageBoundary.HasValue)
             completed = ProjectAtomicOrdinaryBlock(completed, pageBoundary.Value,
                 style.MarginTop, style.MarginTop + boxHeight);

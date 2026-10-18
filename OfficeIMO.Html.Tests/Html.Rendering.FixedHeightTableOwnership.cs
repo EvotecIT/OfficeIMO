@@ -42,20 +42,7 @@ public sealed partial class HtmlRenderingTests {
     }
 
     [Fact]
-    public void HtmlFixedHeightOverflow_NestedConstrainedSourceReportsTheUnsupportedProjectionBoundary() {
-        string html = FixedHeightOverflowSource("<section style='height:200px'>"
-            + "<div style='height:60px'>KEEP-LEAD</div><div style='height:20px'><p>KEEP-INNER</p>"
-            + "<p style='break-inside:avoid;orphans:1;widows:1'>KEEP-ONE<br>KEEP-TWO<br>KEEP-THREE</p></div>"
-            + "<p style='padding-left:300px'>KEEP-AFTER</p></section>");
-        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, FixedHeightOverflowOptions());
-
-        AssertDescendantSpannerSourceOnce(rendered,
-            "KEEP-LEAD", "KEEP-INNER", "KEEP-ONE", "KEEP-TWO", "KEEP-THREE", "KEEP-AFTER");
-        Assert.Contains(rendered.Diagnostics, diagnostic =>
-            diagnostic.Code == HtmlRenderDiagnosticCodes.ConstrainedOverflowPaginationPending);
-        Assert.True(rendered.HasLoss);
-        Assert.Throws<HtmlConversionException>(() => rendered.RequireNoLoss());
-
+    public void HtmlFixedHeightOverflow_NestedAllocationOnlySourceDoesNotReportAnOverflowBoundary() {
         HtmlRenderDocument allocationOnly = HtmlRenderTestDriver.Render(FixedHeightOverflowSource(
             "<section style='height:200px'><div style='height:80px'><p>ALLOCATION-ONLY</p></div></section>"),
             FixedHeightOverflowOptions());

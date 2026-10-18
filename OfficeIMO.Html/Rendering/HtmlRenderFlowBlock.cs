@@ -179,6 +179,8 @@ internal sealed class HtmlRenderFlowBlock {
     internal double LayoutViewportWidth { get; }
     internal double LayoutViewportHeight { get; }
     internal double LeadingFlowAdjustment { get; }
+    /// <summary>Destination-only space inserted before this source, excluded from its authored keep.</summary>
+    internal double PagedSourceEntryGap { get; set; }
     // Stamped on the final ordinary LayoutElement result, for its immediate inline
     // consumer. Derived/specialized blocks remain unqualified rather than guessed empty.
     internal bool KnownNoInFlowLineBoxes { get; set; }
@@ -197,6 +199,7 @@ internal sealed class HtmlRenderFlowBlock {
         block.AvoidBreakInsideScope = AvoidBreakInsideScope;
         block.RetainsZeroHeightFlowCarrier = RetainsZeroHeightFlowCarrier;
         block.HasZeroHeightOrdinaryContent = HasZeroHeightOrdinaryContent;
+        block.PagedSourceEntryGap = PagedSourceEntryGap;
         block.UnfragmentedHeight = UnfragmentedHeight.HasValue
             ? Math.Max(0D, UnfragmentedHeight.Value + unfragmentedAdjustment) : null;
         if (ColumnOverflowContent is { } overflow) {

@@ -51,7 +51,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
             AppendChildForcedBreaks(blocks, index, advance, forced, boundaries);
             AppendKeepWithNextRange(blocks, index, advance, keeps);
             if (block.AvoidBreakInsideScope != HtmlFragmentationScope.None)
-                keeps.Add(new HtmlRenderAvoidBreakRange(advance, advance + block.Height,
+                keeps.Add(new HtmlRenderAvoidBreakRange(advance + block.PagedSourceEntryGap, advance + block.Height,
                     Scope: block.AvoidBreakInsideScope));
             layers.Add(new FlowPaintLayer(block, 0D, advance, layers.Count));
             foreach (double offset in block.BreakOffsets) offsets.Add(advance + offset);
