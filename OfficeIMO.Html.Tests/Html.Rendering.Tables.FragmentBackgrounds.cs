@@ -73,7 +73,7 @@ public sealed partial class HtmlRenderingTests {
     }
 
     [Fact]
-    public void HtmlRender_BorderedOrdinaryBoxDoesNotAcquireTableSlackPaint() {
+    public void HtmlRender_BorderedOrdinarySliceBoxPaintsThroughFragmentSlack() {
         const string html = """
             <style>
             @page { size:240px 240px; margin:0 }
@@ -94,8 +94,14 @@ public sealed partial class HtmlRenderingTests {
         Assert.Equal(2, rendered.Pages.Count);
         OfficeRasterImage first = OfficeDrawingRasterRenderer.Render(rendered.Pages[0].CreateDrawing(), 1D, OfficeColor.White);
         Assert.Equal(OfficeColor.Blue, first.GetPixel(100, 120));
-        Assert.Equal(OfficeColor.White, first.GetPixel(100, 200));
-        Assert.Equal(OfficeColor.White, first.GetPixel(0, 200));
+        // Edge retains the continuing slice's background and sides through
+        // the physical page tail while its closing edge stays source-owned.
+        Assert.Equal(OfficeColor.Blue, first.GetPixel(100, 200));
+        Assert.Equal(OfficeColor.Red, first.GetPixel(0, 200));
+        Assert.Equal(OfficeColor.Red, first.GetPixel(239, 200));
+        OfficeRasterImage last = OfficeDrawingRasterRenderer.Render(rendered.Pages[1].CreateDrawing(), 1D, OfficeColor.White);
+        Assert.Equal(OfficeColor.Red, last.GetPixel(100, 140));
+        Assert.Equal(OfficeColor.White, last.GetPixel(0, 200));
         HtmlRenderText[] text = rendered.Pages.SelectMany(page => EnumerateRenderVisuals(page.Scene))
             .OfType<HtmlRenderText>().ToArray();
         foreach (string label in new[] { "LEADING", "START", "KEPT", "AFTER" })
