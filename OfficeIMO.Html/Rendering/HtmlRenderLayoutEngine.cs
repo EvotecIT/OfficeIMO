@@ -304,6 +304,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         HtmlRenderBoxStyle rootStyle) {
         if (rootStyle.Display == "none") return Array.Empty<HtmlRenderFlowBlock>();
         if (rootStyle.Display == "contents") return BuildChildBlocks(root, contentWidth, rootStyle, 0);
+        if (HasMultiColumnLayout(rootStyle)) return new[] { LayoutRootElement(root, contentWidth, rootStyle) };
         bool pagedColumnBody = _options.Mode == HtmlRenderMode.Paged
             && (rootStyle.Display == "flex" || rootStyle.Display == "inline-flex")
             && rootStyle.FlexDirection == "column"
@@ -462,6 +463,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         && Math.Abs(left.Margins.Bottom - right.Margins.Bottom) <= 0.0001D;
 
     private void ResetLayoutPassState() {
+        ResetColumnPagination();
         ResetParallelTablePagination();
         _pagedRowFlexElements.Clear();
         _pagedRowFlexEligibleElements.Clear();

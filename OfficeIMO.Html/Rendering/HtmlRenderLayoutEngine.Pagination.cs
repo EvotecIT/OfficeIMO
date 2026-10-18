@@ -106,6 +106,11 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 while (blockOffset < block.Height - 0.0001D) {
                     CheckCancellation();
                     double flexAvailable = ResolvePageBodyBottom(pages.Count + 1, pageGeometry) - y;
+                    if (TryRelayoutBlockForColumns(block, blockOffset, flexAvailable, contentHeight,
+                        pages.Count + 1, pageGeometry, out HtmlRenderFlowBlock columnBlock)) {
+                        block = QualifySharedTableRepetition(columnBlock.ForPagination());
+                        continue;
+                    }
                     if (TryRelayoutBlockForParallelTables(block, blockOffset, flexAvailable, contentHeight,
                         pages.Count + 1, pageGeometry, out HtmlRenderFlowBlock parallelBlock)) {
                         block = QualifySharedTableRepetition(parallelBlock.ForPagination());
