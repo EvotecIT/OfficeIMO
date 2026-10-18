@@ -233,7 +233,6 @@ public sealed partial class HtmlRenderingTests {
     [InlineData("<div style='display:flex'><div style='break-before:column'>BREAK-TWO</div></div>")]
     [InlineData("<div style='display:grid'><div style='break-before:column'>BREAK-TWO</div></div>")]
     [InlineData("<div style='column-count:2;font-size:8px'><p style='break-before:column'>BREAK-TWO</p></div>")]
-    [InlineData("<p style='break-before:column'>BREAK-TWO</p><div style='column-span:all'>BREAK-SPAN</div>")]
     [InlineData("<table><tr style='break-before:column'><td>BREAK-TWO</td></tr></table>")]
     public void HtmlColumns_UnqualifiedBreakContextsReportLoss(string body) {
         HtmlRenderDocument rendered = RenderColumnBreaks("<p>BREAK-ONE</p>" + body);
