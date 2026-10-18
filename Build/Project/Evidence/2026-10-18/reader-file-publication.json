@@ -1,0 +1,194 @@
+{
+  "schema_version": 1,
+  "qualified_utc": "2026-10-18T08:51:45.227144+00:00",
+  "purpose": "Preserve the sole successful publisher when Reader directory exports race with overwrite disabled",
+  "source": {
+    "base": "bdd96cf645919234989c4a4965ebea3e2642d88f",
+    "qualified_commit": "f8cc49ec497f96c43274412d3d9b762d7542110d",
+    "sealed_inputs": 33045,
+    "trees": {
+      "OfficeIMO.Core": "8dbf515e68e0763aea73ec5e6480586d99ffe963",
+      "OfficeIMO.Reader.Core": "dfb9d2c434d0330c33b43771f497bb549e75bf7d",
+      "OfficeIMO.SharedSource": "378654d27e9ba94a6143859f718ed6c9ef1facb2"
+    },
+    "new_public_api": false,
+    "new_production_dependencies": false
+  },
+  "implementation": {
+    "canonical_owner": "OfficeIMO.SharedSource/IO/OfficeFileCommitClaim.cs",
+    "consumers": [
+      "OfficeIMO.Core",
+      "OfficeIMO.Reader.Core"
+    ],
+    "reader_no_overwrite": "Final existence check and move occur while the shared destination claim is held",
+    "preserved": [
+      "Early existing-file skips",
+      "Late collision exceptions",
+      "Explicit overwrite behavior",
+      "Staging cleanup",
+      "Core permissions and retry policy",
+      "Core Windows deletion semantics"
+    ],
+    "ownership": "Source-linked internal namespaces preserve the Reader package dependency graph"
+  },
+  "before_after": [
+    {
+      "route": "public",
+      "bursts": 64,
+      "writers_per_burst": 12,
+      "before_failed_bursts": 17,
+      "after_failed_bursts": 0,
+      "before_subject_sha256": "AA7652E0E3A06712FF4C7AF1A5E44102FDF1EC82BF05474F6ADF6B60983EB49A",
+      "after_subject_sha256": "2F5A3E8765C609172CE307D33A8AB121C30C2AC988435012E88F7E39DDF7B823",
+      "runtime": ".NET 10.0.13",
+      "producer_scope": "Actual public asset materialization"
+    },
+    {
+      "route": "owner",
+      "bursts": 64,
+      "writers_per_burst": 12,
+      "before_failed_bursts": 41,
+      "after_failed_bursts": 0,
+      "before_subject_sha256": "AA7652E0E3A06712FF4C7AF1A5E44102FDF1EC82BF05474F6ADF6B60983EB49A",
+      "after_subject_sha256": "2F5A3E8765C609172CE307D33A8AB121C30C2AC988435012E88F7E39DDF7B823",
+      "runtime": ".NET 10.0.13",
+      "producer_scope": "Actual internal ReaderFileCommit through existing test friend grant; no production hooks"
+    }
+  ],
+  "framework_tests": [
+    {
+      "suite": "owner-frozen-net8",
+      "passed": 44,
+      "failed": 0,
+      "skipped": 0,
+      "actual_TRX_sha256": "715ca69d35aecf92792947058ea811bb6f7c274ab4aa3fffad3ca345e4841473"
+    },
+    {
+      "suite": "owner-frozen-net10",
+      "passed": 44,
+      "failed": 0,
+      "skipped": 0,
+      "actual_TRX_sha256": "feae93b354b64a597af82f6311d17ff7f6af4a1f5e630e38d9079d96bc2ade7c"
+    },
+    {
+      "suite": "reader-full-net8",
+      "passed": 1854,
+      "failed": 0,
+      "skipped": 0,
+      "actual_TRX_sha256": "48cc83a8d68d2bb678e4ac75ee73510ee403b3fa660d6a6d9e6b1d07678112c4"
+    },
+    {
+      "suite": "reader-full-net10",
+      "passed": 1854,
+      "failed": 0,
+      "skipped": 0,
+      "actual_TRX_sha256": "ee48109c67d0a0c47ec56000def95fef191413e27738f83079b42b590460f55c"
+    },
+    {
+      "suite": "image-export-net8.0",
+      "passed": 60,
+      "failed": 0,
+      "skipped": 0,
+      "actual_TRX_sha256": "86f81795e3ab8570633438f6fe903489f781a852217d5191ed85431585ed914c"
+    },
+    {
+      "suite": "image-export-net10.0",
+      "passed": 60,
+      "failed": 0,
+      "skipped": 0,
+      "actual_TRX_sha256": "20b7870a4613791057c4e47a7df93ddbe5828693bd1f4ed54d752a10ba409cbb"
+    }
+  ],
+  "scope_notes": [
+    "Focused owner44 checks overlap some full Reader/image-export cases; suite counts are reported separately",
+    "Image-export60 affected cases selected from44current methods; unchanged codec tests are not relabeled as a fresh full Drawing run"
+  ],
+  "package": {
+    "version": "3.5.1-reader-qualified",
+    "private_unsigned_qualification_only": true,
+    "packages": [
+      {
+        "name": "OfficeIMO.Core",
+        "sha256": "e952bfa7ee2ab801a7a186f50683ac15e032977f7e7ac33ac91d8f550abc48d5",
+        "assets": [
+          "lib/net10.0/OfficeIMO.Core.dll",
+          "lib/net472/OfficeIMO.Core.dll",
+          "lib/net8.0/OfficeIMO.Core.dll",
+          "lib/netstandard2.0/OfficeIMO.Core.dll"
+        ],
+        "new_Core_dependency": false
+      },
+      {
+        "name": "OfficeIMO.Reader.Core",
+        "sha256": "ab511932f8499b4f37c1b54e238c56ac56921b21bec89ecc0096b5487bc092f8",
+        "assets": [
+          "lib/net10.0/OfficeIMO.Reader.Core.dll",
+          "lib/net472/OfficeIMO.Reader.Core.dll",
+          "lib/net8.0/OfficeIMO.Reader.Core.dll",
+          "lib/netstandard2.0/OfficeIMO.Reader.Core.dll"
+        ],
+        "new_Core_dependency": false
+      }
+    ],
+    "reader_has_no_Core_package_dependency": true,
+    "consumers": [
+      {
+        "framework": "net8.0",
+        "native_aot": null,
+        "concurrent_attempts": 224,
+        "control_attempts": 20,
+        "passed": true,
+        "actual_log_sha256": "1a365c136440f54b99abefa29610e5f2cace1dd63c4483e50ba35edea12f2f51"
+      },
+      {
+        "framework": "net10.0",
+        "native_aot": null,
+        "concurrent_attempts": 224,
+        "control_attempts": 20,
+        "passed": true,
+        "actual_log_sha256": "48c6cfee1fe6984130c080c661a73e424f336a282419b3a644dbe823e8623518"
+      },
+      {
+        "framework": "net10.0",
+        "native_aot": "osx-arm64",
+        "concurrent_attempts": 224,
+        "control_attempts": 20,
+        "passed": true,
+        "actual_log_sha256": "d5e9a2d2098a20938f1159d876c33592fb16c5ee8b8b84001e4e0b3ffae4be08"
+      }
+    ],
+    "lanes": [
+      "PNG assets",
+      "CSV table sidecars",
+      "Markdown table sidecars",
+      "JSON table sidecars",
+      "Mermaid visual payloads",
+      "JSON visual sidecars",
+      "Mixed Core image and Reader PNG publishers"
+    ],
+    "controls": [
+      "Initial publication",
+      "Existing-file skip/refusal",
+      "Explicit replacement",
+      "Winning payload exact bytes",
+      "No staging/probe/claim residue"
+    ]
+  },
+  "review": {
+    "independent_full_passes": 1,
+    "targeted_confirmations": 0,
+    "actionable_findings": 0,
+    "disposition": "accept as shaped"
+  },
+  "limits": [
+    "Runtime execution is macOS arm64 on.NET8.0.23 and.NET10.0.13",
+    "net472/netstandard2.0 assets compile and pack; older-runtime execution is unqualified",
+    "Windows live-claim contention exception shape was not executed; Windows profiling remains deferred",
+    "No universal claim for unsupported/disabled advisory locks,LinuxNFSreadfallback,or non-cooperating writers"
+  ],
+  "retention": {
+    "actual_test_producer_modules_and_complete_TRX": true,
+    "before_after_outputs_and_package_consumers": true,
+    "regenerable_logical_bytes_removed": 3201963507
+  }
+}
