@@ -16,7 +16,7 @@ namespace OfficeIMO.Shared.Tests {
             string root = Path.Combine(Path.GetTempPath(), "officeimo-stale-claim-" + Guid.NewGuid().ToString("N"));
             Directory.CreateDirectory(root);
             string target = Path.Combine(root, "artifact.bin");
-            string claim = OfficeFileCommit.CreateClaimPath(target);
+            string claim = OfficeIMO.Core.Internal.IO.OfficeFileCommitClaim.CreatePath(target);
             byte[] payload = { 1, 2, 3 };
             try {
                 File.WriteAllText(claim, "orphaned");
