@@ -6,6 +6,33 @@ namespace OfficeIMO.Tests;
 
 public sealed partial class HtmlRenderingTests {
     [Theory]
+    [InlineData(null, 20D, 40D)]
+    [InlineData(20, 20D, 40D)]
+    [InlineData(25, 25D, 45D)]
+    public void HtmlNestedConstrainedOverflow_FirstContentDeferralAdvancesTheAuthoredBoxBeforeNegativeFollowingFlow(
+        int? firstParagraphHeight, double secondTop, double thirdTop) {
+        string firstParagraph = "<p" + (firstParagraphHeight.HasValue
+            ? " style='height:" + firstParagraphHeight.Value + "px'" : "") + ">ENTRY-ONE</p>";
+        string html = FixedHeightOverflowSource("<div style='height:1081px'>ENTRY-LEAD</div>"
+            + "<div style='height:25px;margin-bottom:-45px;background:#00aa00'>"
+            + firstParagraph + "<p>ENTRY-TWO</p><p>ENTRY-THREE</p></div><p>ENTRY-AFTER</p>");
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, FixedHeightOverflowOptions());
+
+        Assert.Equal(12, rendered.Pages.Count);
+        AssertDescendantSpannerSourceOnce(rendered,
+            "ENTRY-LEAD", "ENTRY-ONE", "ENTRY-TWO", "ENTRY-THREE", "ENTRY-AFTER");
+        AssertFixedHeightOverflowPlacement(rendered, "ENTRY-ONE", 12, 0D);
+        AssertFixedHeightOverflowPlacement(rendered, "ENTRY-TWO", 12, secondTop);
+        AssertFixedHeightOverflowPlacement(rendered, "ENTRY-THREE", 12, thirdTop);
+        // The first line's 19px deferral moves the whole 25px box. Its signed
+        // -20px following advance therefore begins at 1100px, not 1081px.
+        AssertFixedHeightOverflowPlacement(rendered, "ENTRY-AFTER", 11, 80D);
+        OfficeRasterImage preceding = OfficeDrawingRasterRenderer.Render(rendered.Pages[10].CreateDrawing());
+        Assert.Equal(OfficeColor.White, preceding.GetPixel(500, 90));
+        rendered.RequireNoLoss();
+    }
+
+    [Theory]
     [InlineData("height:200px")]
     [InlineData("height:80px")]
     [InlineData("max-height:80px")]

@@ -349,6 +349,15 @@ internal sealed partial class HtmlRenderLayoutEngine {
         HtmlRenderFlowBlock? projectedContent = null;
         double pagedEntryGap = 0D;
         if (projectionScope.CanProject && pageBoundary.HasValue) {
+            // A first child's synthetic entry is before this owner's content,
+            // rather than an interval consumed by its authored height. Rebuild
+            // the whole owner there so later descendants discard stale gaps.
+            if (entryRelayout != null && _constrainedOverflowElements.Contains(element)
+                && childPaintLayers.Count > 0 && childPaintLayers[0].Block.PagedSourceEntryGap > 0.0001D
+                && TryRelayoutConstrainedEntry(element, containingWidth, parentStyle, depth,
+                    continuationTarget, continuationLogicalCharacters, pageBoundary.Value,
+                    inheritedFloats, emittedFloats, surroundingFloats, childPaintLayers[0].Block.PagedSourceEntryGap,
+                    entryRelayout, out HtmlRenderFlowBlock firstEntryReflowed)) return firstEntryReflowed;
             double sourceExtent = Math.Max(contentHeight, inlineLayout?.PagedPaintExtent ?? 0D);
             foreach (FlowPaintLayer child in childPaintLayers) {
                 CheckCancellation();

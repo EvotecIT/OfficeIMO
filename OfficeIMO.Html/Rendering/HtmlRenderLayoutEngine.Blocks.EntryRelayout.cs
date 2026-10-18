@@ -10,13 +10,17 @@ internal sealed partial class HtmlRenderLayoutEngine {
         ConstrainedSourceProjection? context = _constrainedSourceProjection;
         if (!scope.CanProject || !boundary.HasValue || context == null) return null;
         bool siblingKeep = usesBlockFormatting && HasConstrainedSiblingPageKeep(element);
-        if (!context.TargetAncestors.Contains(element) && !(style.AvoidBreakInside && usesBlockFormatting)
+        bool constrainedOwner = usesBlockFormatting && _constrainedOverflowElements.Contains(element);
+        if (!context.TargetAncestors.Contains(element)
+            && !constrainedOwner && !(style.AvoidBreakInside && usesBlockFormatting)
             && !siblingKeep) return null;
         double available = boundary.Value.RemainingHeight
             - style.MarginTop - style.BorderTopWidth - style.PaddingTop;
         if (available <= 0.0001D)
             available += (Math.Floor(-available / context.PageHeight) + 1D) * context.PageHeight;
-        if (available >= context.PageHeight - 0.0001D && !siblingKeep) return null;
+        // An authored first-child margin can defer its source even when this
+        // owner's own box begins at an otherwise empty page.
+        if (available >= context.PageHeight - 0.0001D && !siblingKeep && !constrainedOwner) return null;
         CheckCancellation();
         ChargeLayoutOperations(1L + _normalFlowPlacements.Count + _layoutStyles.Count
             + _inlineFloatOverhangs.Count + _semanticNodeIds.Count,
