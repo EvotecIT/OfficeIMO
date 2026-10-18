@@ -109,8 +109,14 @@ public sealed partial class HtmlRenderingTests {
         Assert.Equal(CssTableShape(rendered, "div#b").X, CssTableShape(rendered, "div#d").X, 3);
         HtmlRenderSemanticGroup[] tables = EnumerateTablePaginationScene(rendered.Pages[0].Scene)
             .OfType<HtmlRenderSemanticGroup>().Where(item => item.Role == HtmlRenderSemanticGroupRole.Table).ToArray();
-        Assert.Equal(dataRoles ? 2 : 1, tables.Length);
+        int expectedTables = dataRoles ? 2 : 1;
+        Assert.All(tables, item => Assert.False(string.IsNullOrEmpty(item.StructureElementKey)));
+        Assert.Equal(expectedTables, tables.Select(item => item.StructureElementKey)
+            .Distinct(StringComparer.Ordinal).Count());
         Assert.Contains(tables, item => item.Source == "table#nested");
+        PdfCore.PdfReadDocument pdf = PdfCore.PdfReadDocument.Open(HtmlConversionDocument.Parse(html)
+            .ToPdfBytes(new HtmlToPdfOptions(CssTableOptions())));
+        Assert.Equal(expectedTables, pdf.TaggedContent!.StructureElements.Count(item => item.StructureType == "Table"));
         Assert.False(rendered.HasLoss);
     }
 

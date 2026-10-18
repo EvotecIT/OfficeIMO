@@ -21,7 +21,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         foreach (HtmlRenderVisual visual in visuals) {
             // Existing positioned layers retain their order relative to normal
             // phases. A descendant context also keeps its enclosing clip intact.
-            if (HasNestedStackingContext(visual)) {
+            if (HasNestedStackingContext(visual) || ContainsPositionedFlowPaint(visual)) {
                 FlushNormal();
                 result.Add(visual.Translate(0D, 0D, result.Count));
             } else {
@@ -37,6 +37,14 @@ internal sealed partial class HtmlRenderLayoutEngine {
     private static bool ContainsInFlowPaint(HtmlRenderVisual visual) =>
         !visual.IsOutOfFlowPaint && (visual.PaintChildren is not { Count: > 0 } children
             || children.Any(ContainsInFlowPaint));
+
+    // Local positioned layers already belong to their host's ordered bands.
+    // Transparent envelopes retain those bands; independent boxes keep their
+    // positioned descendants inside their own atomic or float paint phase.
+    private static bool ContainsPositionedFlowPaint(HtmlRenderVisual visual) =>
+        visual.IsOutOfFlowPaint
+        || visual.PaintPhase == HtmlRenderPaintPhase.Content
+            && GetFlowPaintChildren(visual)?.Any(ContainsPositionedFlowPaint) == true;
 
     private static bool ContainsDeferredFlowPaint(HtmlRenderVisual visual) =>
         visual.PaintPhase is HtmlRenderPaintPhase.BlockBackground or HtmlRenderPaintPhase.Float or HtmlRenderPaintPhase.Outline

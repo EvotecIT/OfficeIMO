@@ -186,6 +186,9 @@ public sealed partial class HtmlRenderingTests {
         Assert.True(Array.IndexOf(sources, "div#positive") < Array.IndexOf(sources, "div#relative-positive"));
         Assert.True(Array.IndexOf(sources, "div#relative-negative") < Array.IndexOf(sources, "div#after::after"));
         Assert.True(Array.IndexOf(sources, "div#after::after") < Array.IndexOf(sources, "div#second-flow"));
+        OfficeRasterImage raster = OfficeDrawingRasterRenderer.Render(rendered.Pages[0].CreateDrawing());
+        Assert.Equal(OfficeColor.FromRgb(255, 0, 255), raster.GetPixel(20, 20));
+        Assert.Equal(OfficeColor.Lime, raster.GetPixel(20, 60));
         Assert.DoesNotContain(rendered.Diagnostics, diagnostic =>
             diagnostic.Code == HtmlRenderDiagnosticCodes.PositioningModeUnsupported
             && (diagnostic.Source == "div#before::before" || diagnostic.Source == "div#after::after"));

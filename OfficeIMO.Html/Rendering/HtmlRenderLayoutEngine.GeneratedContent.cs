@@ -193,7 +193,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         double x = left ?? containingWidth - (right ?? 0D) - block.Width;
         double y = top ?? containingHeight - (bottom ?? 0D) - block.Height;
         foreach (HtmlRenderVisual visual in block.Visuals) {
-            visuals.Add(visual.Translate(originX + x, originY + y, visuals.Count));
+            visuals.Add(visual.Translate(originX + x, originY + y, visuals.Count).IdentifyOutOfFlowPaint());
         }
     }
 
