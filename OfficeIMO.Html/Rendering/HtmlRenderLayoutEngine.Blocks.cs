@@ -91,8 +91,6 @@ internal sealed partial class HtmlRenderLayoutEngine {
         }
 
         using ConstrainedProjectionScope projectionScope = EnterConstrainedProjection(style);
-        ConstrainedEntryRelayoutState? entryRelayout = CaptureConstrainedEntryRelayout(
-            element, style, projectionScope, pageBoundary);
         double availableWidth = Math.Max(1D, containingWidth - style.MarginLeft - style.MarginRight);
         double boxWidth = ResolveBoxWidth(availableWidth, style);
         double contentWidth = Math.Max(1D, boxWidth - style.HorizontalInsets);
@@ -120,6 +118,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
         HtmlInlineLayout? inlineLayout = null;
         double contentHeight = 0D;
         bool usesBlockFormatting = HasBlockChildren(element, contentWidth, style, depth);
+        ConstrainedEntryRelayoutState? entryRelayout = CaptureConstrainedEntryRelayout(
+            element, style, projectionScope, pageBoundary, usesBlockFormatting);
         IElement? descendantContinuationTarget = continuationTarget != null && !ReferenceEquals(element, continuationTarget)
             ? continuationTarget
             : null;

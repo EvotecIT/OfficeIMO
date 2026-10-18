@@ -70,6 +70,44 @@ public sealed partial class HtmlRenderingTests {
         rendered.RequireNoLoss();
     }
 
+    [Fact]
+    public void HtmlNestedConstrainedOverflow_AvoidedAutoWrapperRebuildsOrdinaryChildrenAtItsFreshEntry() {
+        string html = FixedHeightOverflowSource("<div style='height:60px'>KEEP-LEAD</div>"
+            + "<section style='height:200px'><div style='break-inside:avoid'><p>KEEP-INNER</p>"
+            + "<p style='break-inside:avoid'>KEEP-ONE<br>KEEP-TWO<br>KEEP-THREE</p></div>"
+            + "<p style='padding-left:300px'>KEEP-AFTER</p></section>");
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, FixedHeightOverflowOptions());
+
+        // The third page is the genuine outer allocation, rather than moved text.
+        Assert.Equal(3, rendered.Pages.Count);
+        AssertDescendantSpannerSourceOnce(rendered,
+            "KEEP-LEAD", "KEEP-INNER", "KEEP-ONE", "KEEP-TWO", "KEEP-THREE", "KEEP-AFTER");
+        AssertFixedHeightOverflowPlacement(rendered, "KEEP-INNER", 2, 0D);
+        AssertFixedHeightOverflowPlacement(rendered, "KEEP-ONE", 2, 20D);
+        AssertFixedHeightOverflowPlacement(rendered, "KEEP-TWO", 2, 40D);
+        AssertFixedHeightOverflowPlacement(rendered, "KEEP-THREE", 2, 60D);
+        AssertFixedHeightOverflowPlacement(rendered, "KEEP-AFTER", 2, 80D);
+        rendered.RequireNoLoss();
+    }
+
+    [Fact]
+    public void HtmlNestedConstrainedOverflow_CollapsedAuthoredMarginDoesNotReduceTheSourceEntryGap() {
+        string html = FixedHeightOverflowSource("<section style='height:200px'>"
+            + "<div style='height:40px;margin-bottom:20px'>KEEP-LEAD</div>"
+            + "<p style='margin-top:20px;break-inside:avoid'>KEEP-ONE<br>KEEP-TWO<br>KEEP-THREE</p>"
+            + "<p style='padding-left:300px'>KEEP-AFTER</p></section>");
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, FixedHeightOverflowOptions());
+
+        Assert.Equal(2, rendered.Pages.Count);
+        AssertDescendantSpannerSourceOnce(rendered,
+            "KEEP-LEAD", "KEEP-ONE", "KEEP-TWO", "KEEP-THREE", "KEEP-AFTER");
+        AssertFixedHeightOverflowPlacement(rendered, "KEEP-ONE", 2, 0D);
+        AssertFixedHeightOverflowPlacement(rendered, "KEEP-TWO", 2, 20D);
+        AssertFixedHeightOverflowPlacement(rendered, "KEEP-THREE", 2, 40D);
+        AssertFixedHeightOverflowPlacement(rendered, "KEEP-AFTER", 2, 60D);
+        rendered.RequireNoLoss();
+    }
+
     [Theory]
     [InlineData("hidden")]
     [InlineData("clip")]

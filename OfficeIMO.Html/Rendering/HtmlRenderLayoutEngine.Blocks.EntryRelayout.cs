@@ -5,10 +5,11 @@ namespace OfficeIMO.Html;
 internal sealed partial class HtmlRenderLayoutEngine {
     /// <summary>Retains the ordinary owner state needed if its entry keep moves already projected descendants.</summary>
     private ConstrainedEntryRelayoutState? CaptureConstrainedEntryRelayout(IElement element,
-        HtmlRenderBoxStyle style, ConstrainedProjectionScope scope, PagedFloatBoundary? boundary) {
+        HtmlRenderBoxStyle style, ConstrainedProjectionScope scope, PagedFloatBoundary? boundary,
+        bool usesBlockFormatting) {
         ConstrainedSourceProjection? context = _constrainedSourceProjection;
         if (!scope.CanProject || !boundary.HasValue || context == null
-            || !context.TargetAncestors.Contains(element)) return null;
+            || !context.TargetAncestors.Contains(element) && !(style.AvoidBreakInside && usesBlockFormatting)) return null;
         double available = boundary.Value.RemainingHeight
             - style.MarginTop - style.BorderTopWidth - style.PaddingTop;
         if (available <= 0.0001D)
