@@ -52,6 +52,9 @@ final class StudioStoreCaptureTests: XCTestCase {
         let page = viewport.descendants(matching: .any).matching(identifier: "Page 1 of 1").firstMatch
         XCTAssertTrue(page.waitForExistence(timeout: 30), viewport.debugDescription)
         try capture(viewport, page: page, expectedPID: expectedPID, name: "studio-dashboard-" + role)
+        #if os(iOS)
+        assertSingleDocumentBar(app)
+        #endif
 
         // Compact iPhone chrome has its own layout. Its full-page capture is
         // sufficient; search captures use the visible regular-width search UI.
@@ -63,9 +66,44 @@ final class StudioStoreCaptureTests: XCTestCase {
             XCTAssertTrue(viewport.staticTexts["1 of 1"].waitForExistence(timeout: 30), viewport.debugDescription)
             try capture(viewport, page: page, expectedPID: expectedPID, name: "studio-search-" + role)
         }
+        #if os(iOS)
+        if role == "ipad" { try verifyRegularDocumentNavigation(app, page: page) }
+        #endif
     }
 
     #if os(iOS)
+    /// The document host supplies one bar in both compact and regular layouts.
+    private func assertSingleDocumentBar(_ app: XCUIApplication) {
+        let bars = app.navigationBars.allElementsBoundByIndex.filter { $0.isHittable }
+        XCTAssertEqual(bars.count, 1, app.debugDescription)
+    }
+
+    /// Keep sidebar, inspector and search usable after removing nested navigation.
+    private func verifyRegularDocumentNavigation(_ app: XCUIApplication, page: XCUIElement) throws {
+        let sidebar = app.segmentedControls.firstMatch
+        XCTAssertTrue(sidebar.waitForExistence(timeout: 5), app.debugDescription)
+        let toggle = app.buttons["Sidebar"]
+        toggle.tap()
+        XCTAssertTrue(sidebar.waitForNonExistence(timeout: 5), app.debugDescription)
+        assertSingleDocumentBar(app)
+        toggle.tap()
+        XCTAssertTrue(sidebar.waitForExistence(timeout: 5), app.debugDescription)
+
+        let inspector = app.buttons["Inspector"]
+        inspector.tap()
+        XCTAssertTrue(app.staticTexts["File Size"].waitForExistence(timeout: 5), app.debugDescription)
+        inspector.tap()
+        XCTAssertTrue(app.staticTexts["File Size"].waitForNonExistence(timeout: 5), app.debugDescription)
+
+        XCUIDevice.shared.orientation = .landscapeLeft
+        defer { XCUIDevice.shared.orientation = .portrait }
+        XCTAssertTrue(page.waitForExistence(timeout: 10), app.debugDescription)
+        assertSingleDocumentBar(app)
+        // The application's union can include the document browser's old
+        // portrait bounds after rotation. Capture the visible document window.
+        try capture(app.windows.firstMatch, page: page, expectedPID: nil, name: "studio-navigation-ipad-landscape")
+    }
+
     /// Uses Files' own hierarchy, including a browser restored inside an earlier
     /// input folder. Scope Browse to its tab bar so a breadcrumb cannot match it.
     private func openPhoneDocument(_ app: XCUIApplication, input: URL) {

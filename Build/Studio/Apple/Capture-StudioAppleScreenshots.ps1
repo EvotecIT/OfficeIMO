@@ -156,7 +156,7 @@ try {
     if ($LASTEXITCODE -ne 0) { throw 'Cannot write the capture test environment.' }
     $result = Join-Path $WorkRoot "$Role.xcresult"
     if ($Role -eq 'macos') {
-        if (@(Get-Process -Name 'OfficeIMO Studio' -ErrorAction SilentlyContinue | Where-Object { $_.Path -ceq $macExecutable }).Count) {
+        if (@(Get-Process -ErrorAction SilentlyContinue | Where-Object { $_.Path -ceq $macExecutable }).Count) {
             throw 'The capture app is already running; preserve that session.'
         }
         & /usr/bin/open -n -a $appPath --env "TMPDIR=$($test.EnvironmentVariables.STUDIO_CAPTURE_NATIVE_TMPDIR)" $document `
@@ -164,12 +164,12 @@ try {
         if ($LASTEXITCODE -ne 0) { throw 'Cannot launch the exact Mac capture app with its public input.' }
         $launchDeadline = [DateTime]::UtcNow.AddSeconds(15)
         do {
-            $matches = @(Get-Process -Name 'OfficeIMO Studio' -ErrorAction SilentlyContinue | Where-Object { $_.Path -ceq $macExecutable })
-            if ($matches.Count -eq 1) {
-                $ownedMacProcess = @{ Id = $matches[0].Id; StartTime = $matches[0].StartTime }
+            $launched = @(Get-Process -ErrorAction SilentlyContinue | Where-Object { $_.Path -ceq $macExecutable })
+            if ($launched.Count -eq 1) {
+                $ownedMacProcess = @{ Id = $launched[0].Id; StartTime = $launched[0].StartTime }
                 break
             }
-            if ($matches.Count -gt 1 -or [DateTime]::UtcNow -ge $launchDeadline) {
+            if ($launched.Count -gt 1 -or [DateTime]::UtcNow -ge $launchDeadline) {
                 $preserveMacInput = $true
                 throw 'Cannot uniquely identify the launched Mac capture process; preserve its input and inspect the session.'
             }
