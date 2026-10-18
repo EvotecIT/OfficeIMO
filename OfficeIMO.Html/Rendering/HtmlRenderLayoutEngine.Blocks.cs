@@ -257,7 +257,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 childPaintLayers.Add(new FlowPaintLayer(child, 0D, childStart, childPaintLayers.Count));
                 AppendKeepWithNextRange(children, childIndex, childStart, contentAvoidBreakRanges);
 
-                contentHeight += child.Height;
+                contentHeight += child.NormalFlowAdvance;
                 if (child.AvoidBreakInsideScope != HtmlFragmentationScope.None)
                     contentAvoidBreakRanges.Add(new HtmlRenderAvoidBreakRange(childStart, contentHeight, Scope: child.AvoidBreakInsideScope));
                 contentAvoidBreakRanges.AddRange(child.AvoidBreakRanges.Select(range => range.Translate(childStart)));
@@ -361,13 +361,9 @@ internal sealed partial class HtmlRenderLayoutEngine {
             else _inlineFloatOverhangs.Remove(element);
         }
         double unclampedOuterHeight = style.MarginTop + boxHeight + style.MarginBottom;
-        double outerHeight = unclampedOuterHeight;
-        // Truly empty boxes need no flow epsilon. Keep the specialized carrier
-        // for existing line/float/specialized content and its pagination policy.
-        bool hasContentCarrier = contentVisuals.Any(ContainsInFlowPaint) || inlineLayout?.HasInFlowLineBoxes == true
-            || inlineLayout?.FloatExclusions.Count > 0 || hasLocallyPositionedPseudo;
-        if (outerHeight < 0D || outerHeight == 0D && (boxHeight > 0D
-                || hasContentCarrier && !hasZeroHeightOrdinaryContent)) outerHeight = 0.01D;
+        // Margins change normal progression, not the nonnegative allocation
+        // used by the fragment planner. Retain the signed value separately.
+        double outerHeight = Math.Max(0D, unclampedOuterHeight);
         var visuals = new List<HtmlRenderVisual>();
         var overflowContent = new List<HtmlRenderVisual>();
         var positionedRunningStringAssignments = new List<HtmlCssRunningStringAssignment>();
@@ -432,6 +428,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
             ? childPaintLayers.Aggregate(outerHeight, (extent, layer) =>
                 Math.Max(extent, contentYForBreaks + layer.Y + layer.Block.PagedPaintExtent))
             : outerHeight;
+        if (style.MarginBottom < 0D)
+            pagedPaintExtent = Math.Max(pagedPaintExtent, style.MarginTop + boxHeight);
         if (_options.Mode == HtmlRenderMode.Paged && style.OverflowY == "visible" && inlineLayout != null
             && inlineLayout.PagedPaintExtent > inlineLayout.Height + 0.0001D) {
             pagedPaintExtent = Math.Max(pagedPaintExtent, contentYForBreaks + inlineLayout.PagedPaintExtent);

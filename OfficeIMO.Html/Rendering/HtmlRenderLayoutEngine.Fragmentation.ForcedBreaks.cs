@@ -27,12 +27,12 @@ internal sealed partial class HtmlRenderLayoutEngine {
             ChargeLayoutOperation("forced flow boundary propagation");
             result.Add(item.Edge switch {
                 HtmlRenderBreakEdge.Leading => item.AtBoundary(start, boundaries[index], before),
-                HtmlRenderBreakEdge.Trailing => item.AtBoundary(start + child.Height, boundaries[index + 1], after),
+                HtmlRenderBreakEdge.Trailing => item.AtBoundary(start + child.NormalFlowAdvance, boundaries[index + 1], after),
                 _ => item.Translate(start)
             });
         }
         if (child.BreakAfter != HtmlPageBreakTarget.None)
-            result.Add(new HtmlRenderForcedBreak(start + child.Height, child.BreakAfter,
+            result.Add(new HtmlRenderForcedBreak(start + child.NormalFlowAdvance, child.BreakAfter,
                 boundary: boundaries[index + 1], edge: after));
     }
 

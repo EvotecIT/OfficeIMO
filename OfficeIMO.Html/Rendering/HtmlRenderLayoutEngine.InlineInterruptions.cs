@@ -140,13 +140,13 @@ internal sealed partial class HtmlRenderLayoutEngine {
             foreach (HtmlRenderContinuationGroup group in block.ContinuationGroups) continuations.Add(group.Translate(offsetX, offsetY));
             foreach (HtmlRenderTrailingGroup group in block.TrailingGroups) trailing.Add(group.Translate(offsetX, offsetY));
             foreach (HtmlCssRunningStringAssignment assignment in block.RunningStringAssignments) assignments.Add(assignment.Translate(offsetY));
-            height = vertical ? Math.Max(height, block.Height) : height + block.Height;
+            height = vertical ? Math.Max(height, block.Height) : height + block.NormalFlowAdvance;
             if (vertical && block.BreakAfter != HtmlPageBreakTarget.None)
                 forced.Add(new HtmlRenderForcedBreak(height, block.BreakAfter));
         }
         IReadOnlyList<HtmlRenderVisual> painted = ComposeInlinePositionedVisuals(
             combined.Visuals, combined.Owned, combined.Bounds, formattingContainer, isInlineContinuation: false, paintChunks: paintChunks);
-        var aggregate = new HtmlRenderFlowBlock(width, height, painted,
+        var aggregate = new HtmlRenderFlowBlock(width, Math.Max(0D, height), painted,
             HtmlPageBreakTarget.None, HtmlPageBreakTarget.None, false,
             formattingContainer == null ? "anonymous-block" : HtmlRenderStyleResolver.DescribeSource(formattingContainer),
             breaks, lineBreakGroups: lines, continuationGroups: continuations, trailingGroups: trailing,
@@ -157,7 +157,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
             collapsesThrough: blocks.Count > 0 && blocks.All(block => block.CollapsesThrough),
             pageName: blocks.FirstOrDefault()?.PageName, runningStringAssignments: assignments, forcedBreaks: forced,
             layoutViewportWidth: ActiveSurfaceWidth, layoutViewportHeight: _activePageGeometry.Height,
-            pagedPaintExtent: paintExtent, avoidBreakRanges: keeps,
+            pagedPaintExtent: paintExtent, unclampedHeight: height, avoidBreakRanges: keeps,
             safeBreakRanges: ConstrainParallelPaintBreakRanges(
                 HtmlRenderBreakRange.Normalize(safeBreakRanges, paintExtent), painted));
         aggregate.HasZeroHeightOrdinaryContent = height == 0D && hasInlineLineBoxes

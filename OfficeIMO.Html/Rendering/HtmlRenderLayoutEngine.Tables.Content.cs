@@ -34,7 +34,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 if (translated > 0D) breakOffsets.Add(translated);
             }
             safeBreakRanges.AddRange(block.SafeBreakRanges.Select(range => range.Translate(blockStart)));
-            height += block.Height;
+            height += block.NormalFlowAdvance;
             if (block.AvoidBreakInsideScope != HtmlFragmentationScope.None)
                 avoidBreakRanges.Add(new HtmlRenderAvoidBreakRange(blockStart, height, Scope: block.AvoidBreakInsideScope));
             foreach (HtmlRenderAvoidBreakRange range in block.AvoidBreakRanges) {

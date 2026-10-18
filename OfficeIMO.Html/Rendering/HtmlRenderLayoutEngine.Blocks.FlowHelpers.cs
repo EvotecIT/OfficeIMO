@@ -132,7 +132,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         nodes.Clear();
         if (inline.InterruptedFlow != null) {
             blocks.Add(inline.InterruptedFlow);
-            return inline.Height;
+            return inline.InterruptedFlow.NormalFlowAdvance;
         }
         if (inline.Visuals.Count == 0 && !hasInFlowLineBoxes) return 0D;
         // A floated sibling does not consume normal-flow height before the

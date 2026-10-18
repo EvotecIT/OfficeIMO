@@ -32,8 +32,10 @@ internal sealed partial class HtmlRenderLayoutEngine {
         IElement element, IEnumerable<INode> nodes, double width, HtmlRenderBoxStyle style, int depth,
         bool includeGeneratedBefore, bool includeGeneratedAfter, bool hasFloats) {
         if (!hasFloats) {
-            return BuildChildBlocks(element, nodes, width, style, depth,
+            IReadOnlyList<HtmlRenderFlowBlock> ordinary = BuildChildBlocks(element, nodes, width, style, depth,
                 includeGeneratedBefore, includeGeneratedAfter);
+            return HasSignedFlowAllocation(ordinary)
+                ? new[] { BuildNormalFlowSurface(ordinary, width, element) } : ordinary;
         }
 
         // Share the ordinary float exclusions between sibling paragraphs. The
@@ -43,7 +45,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
         IReadOnlyList<HtmlRenderFlowBlock> children = BuildChildBlocks(
             element, nodes, width, style, depth, includeGeneratedBefore, includeGeneratedAfter,
             emittedFloats: exclusions);
-        if (exclusions.Count == 0) return children;
+        if (exclusions.Count == 0) return HasSignedFlowAllocation(children)
+            ? new[] { BuildNormalFlowSurface(children, width, element) } : children;
 
         var visuals = new List<HtmlRenderVisual>();
         var layers = new List<FlowPaintLayer>();
@@ -85,7 +88,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
             AppendChildForcedBreaks(children, index, height, forcedBreaks, childBoundaries);
             continuationGroups.AddRange(child.ContinuationGroups.Select(group => group.Translate(0D, height)));
             trailingGroups.AddRange(child.TrailingGroups.Select(group => group.Translate(0D, height)));
-            height += child.Height;
+            height += child.NormalFlowAdvance;
         }
         AppendFlowPaintLayers(visuals, layers);
         height = Math.Max(height, exclusions.Max(item => item.Bottom));

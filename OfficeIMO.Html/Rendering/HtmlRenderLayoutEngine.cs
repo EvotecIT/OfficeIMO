@@ -303,7 +303,11 @@ internal sealed partial class HtmlRenderLayoutEngine {
         double contentWidth,
         HtmlRenderBoxStyle rootStyle) {
         if (rootStyle.Display == "none") return Array.Empty<HtmlRenderFlowBlock>();
-        if (rootStyle.Display == "contents") return BuildChildBlocks(root, contentWidth, rootStyle, 0);
+        if (rootStyle.Display == "contents") {
+            IReadOnlyList<HtmlRenderFlowBlock> children = BuildChildBlocks(root, contentWidth, rootStyle, 0);
+            return _options.Mode == HtmlRenderMode.Paged && HasSignedFlowAllocation(children)
+                ? new[] { BuildNormalFlowSurface(children, contentWidth, root) } : children;
+        }
         if (HasMultiColumnLayout(rootStyle)) return new[] { LayoutRootElement(root, contentWidth, rootStyle) };
         bool pagedColumnBody = _options.Mode == HtmlRenderMode.Paged
             && (rootStyle.Display == "flex" || rootStyle.Display == "inline-flex")
@@ -330,7 +334,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
             // Overflowing top-level siblings must share one positioned paint
             // surface; paginating them separately would move later siblings.
             if (_options.Mode == HtmlRenderMode.Paged
-                && children.Any(child => child.PagedPaintExtent > child.Height + 0.0001D)) {
+                && (HasSignedFlowAllocation(children)
+                    || children.Any(child => child.PagedPaintExtent > child.Height + 0.0001D))) {
                 return new[] { LayoutRootElement(root, contentWidth, rootStyle) };
             }
             return children;
@@ -543,7 +548,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         foreach (HtmlRenderFlowBlock block in blocks) {
             CheckCancellation();
             placements.Add(new FlowPaintLayer(block, _options.Margins.Left, y, placements.Count));
-            y += block.Height;
+            y += block.NormalFlowAdvance;
         }
 
         if (!_options.ClipContinuousSurfaceToViewport) {
@@ -559,8 +564,17 @@ internal sealed partial class HtmlRenderLayoutEngine {
         double height = y + _options.Margins.Bottom;
         if (_options.ClipContinuousSurfaceToViewport) {
             height = _options.ViewportHeight ?? throw new InvalidOperationException("A bounded viewport requires an explicit height.");
-        } else if (_options.ViewportHeight.HasValue) {
-            height = Math.Max(height, _options.ViewportHeight.Value);
+        } else {
+            // A negative margin can move the final flow cursor above an earlier
+            // painted tail. Size the full-page surface from that retained paint
+            // as well, respecting the same clipping owner as positioned content.
+            foreach (FlowPaintLayer placement in placements) {
+                CheckCancellation();
+                height = Math.Max(height, placement.Y
+                    + MaximumScrollBottom(placement.Block.Visuals) + _options.Margins.Bottom);
+            }
+            if (_options.ViewportHeight.HasValue)
+                height = Math.Max(height, _options.ViewportHeight.Value);
         }
         height = Math.Max(1D, height);
         double viewportHeight = _options.ViewportHeight ?? height;

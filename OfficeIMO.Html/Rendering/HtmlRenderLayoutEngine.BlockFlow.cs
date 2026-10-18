@@ -54,7 +54,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         IElement? continuationChild = FindDirectChildContaining(container, continuationTarget);
         bool seekingContinuation = continuationChild != null;
         if (includeGeneratedBefore && !seekingContinuation) AddGeneratedContentBlock(blocks, container, HtmlPseudoElementKind.Before, width, parentStyle);
-        double flowHeight = blocks.Sum(block => block.Height);
+        double flowHeight = blocks.Sum(block => block.NormalFlowAdvance);
         var adjoiningMargins = new AdjoiningMarginState();
         var inlineNodes = new List<INode>();
         List<HtmlFloatExclusion>? activeFloats = pageBoundary.HasValue || emittedFloats != null
@@ -77,7 +77,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 TableFormattingStructure formatting = BuildTableFormattingStructure(container, width, tableStyle, depth, entry.TableNodes);
                 HtmlRenderFlowBlock tableBlock = LayoutTable(container, width, tableStyle, depth, continuationTarget, formatting);
                 blocks.Add(tableBlock);
-                flowHeight += tableBlock.Height;
+                flowHeight += tableBlock.NormalFlowAdvance;
                 if (continuationTarget != null && formatting.Rows.Any(row => row.Contains(continuationTarget))) {
                     continuationTarget = null;
                     continuationLogicalCharacters = 0;
@@ -160,7 +160,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                     }
                     foreach (HtmlRenderFlowBlock flattenedBlock in ApplyFlattenedElementSemantics(flattenedBlocks, flattenedSemanticBoundary!)) {
                         blocks.Add(flattenedBlock);
-                        flowHeight += flattenedBlock.Height;
+                        flowHeight += flattenedBlock.NormalFlowAdvance;
                     }
                     if (carriesContinuation) {
                         continuationTarget = null;
@@ -207,7 +207,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
                             ? ResolveFixedTableIntrinsicOuterWidth(element, childStyle, width, depth + 1)
                             : null;
                     if (activeFloats == null) {
-                        double blockY = Math.Max(flowHeight, floatContext.Clearance(childStyle.ClearSide));
+                        double blockY = childStyle.ClearSide == "none" || !floatContext.HasFloats
+                            ? flowHeight : Math.Max(flowHeight, floatContext.Clearance(childStyle.ClearSide));
                         childStyle = PlaceIndependentBlockBesideFloats(childStyle, width, floatContext, ref blockY, tableMinimumOuterWidth);
                         if (blockY > flowHeight) {
                             blocks.Add(CreateFloatClearanceBlock(width, blockY - flowHeight));
@@ -292,7 +293,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                     }
                     RecordNormalFlowPlacement(element, container, 0D, flowHeight - marginAdjustment, placementStyle);
                     blocks.Add(childBlock);
-                    flowHeight += childBlock.Height;
+                    flowHeight += childBlock.NormalFlowAdvance;
                     if (!childBlock.HasCollapsibleMargins) {
                         adjoiningMargins.Clear();
                     } else if (childBlock.CollapsesThrough) {
@@ -305,7 +306,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                         if (Math.Abs(trailingAdjustment) > 0.0001D) {
                             HtmlRenderFlowBlock adjusted = childBlock.AdjustTrailingFlowSpace(trailingAdjustment);
                             blocks[blocks.Count - 1] = adjusted;
-                            flowHeight += adjusted.Height - childBlock.Height;
+                            flowHeight += adjusted.NormalFlowAdvance - childBlock.NormalFlowAdvance;
                             childBlock = adjusted;
                         }
                         adjoiningMargins.SetAllocated(collapsed);

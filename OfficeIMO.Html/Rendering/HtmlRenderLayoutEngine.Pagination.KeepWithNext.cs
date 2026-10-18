@@ -18,7 +18,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         HtmlRenderFlowBlock current = children[childIndex];
         HtmlFragmentationScope scope = ResolveAvoidBreakBetweenScope(previous, current);
         if (scope == HtmlFragmentationScope.None) return;
-        double previousStart = previousFlowStart ?? Math.Max(0D, childStart - previous.Height);
+        double previousStart = previousFlowStart ?? Math.Max(0D, childStart - previous.NormalFlowAdvance);
         if ((scope & HtmlFragmentationScope.Page) != 0)
             Append(HtmlFragmentationScope.Page, previousStart);
         if ((scope & HtmlFragmentationScope.Column) != 0)

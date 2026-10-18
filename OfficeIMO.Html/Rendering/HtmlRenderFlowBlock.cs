@@ -130,9 +130,15 @@ internal sealed class HtmlRenderFlowBlock {
 
     internal double Width { get; }
     internal double Height { get; }
-    // CSS flow advances by Height; visible painted overflow may need later print pages.
+    // Fragment allocation remains nonnegative even when normal flow moves back.
     internal double PagedPaintExtent { get; }
     internal double UnclampedHeight { get; }
+    /// <summary>
+    /// Signed distance to the following normal-flow sibling. Negative margins
+    /// can move that sibling above this block's entry without making its paint
+    /// or fragmentation allocation negative.
+    /// </summary>
+    internal double NormalFlowAdvance => UnclampedHeight;
     internal IReadOnlyList<HtmlRenderVisual> Visuals { get; }
     internal HtmlPageBreakTarget BreakBefore { get; }
     internal HtmlPageBreakTarget BreakAfter { get; }
@@ -389,8 +395,9 @@ internal sealed class HtmlRenderFlowBlock {
     internal HtmlRenderFlowBlock AdjustLeadingFlowSpace(double adjustment) {
         if (Math.Abs(adjustment) <= 0.0001D) return this;
         double adjustedUnclampedHeight = UnclampedHeight - adjustment;
-        double adjustedHeight = HasZeroHeightOrdinaryContent && adjustedUnclampedHeight == 0D
-            ? 0D : Math.Max(0.01D, adjustedUnclampedHeight);
+        double adjustedHeight = Math.Max(0D, adjustedUnclampedHeight);
+        double adjustedPaintExtent = PagedPaintExtent > Math.Max(0D, UnclampedHeight) + 0.0001D
+            ? Math.Max(adjustedHeight, PagedPaintExtent - adjustment) : adjustedHeight;
         return CopyLayoutFacts(new HtmlRenderFlowBlock(
             Width,
             adjustedHeight,
@@ -424,7 +431,7 @@ internal sealed class HtmlRenderFlowBlock {
             collapsibleMarginBottomGroup: CollapsibleMarginBottomGroup,
             avoidBreakRanges: AvoidBreakRanges.Select(range =>
                 new HtmlRenderAvoidBreakRange(Math.Max(0D, range.Start - adjustment), range.End - adjustment, range.Soft, range.Scope)),
-            pagedPaintExtent: Math.Max(adjustedHeight, PagedPaintExtent - adjustment),
+            pagedPaintExtent: adjustedPaintExtent,
             safeBreakRanges: SafeBreakRanges.Select(range => range.Translate(-adjustment))), -adjustment,
             columnOverflowLeadingAdjustment: adjustment);
     }
@@ -507,9 +514,12 @@ internal sealed class HtmlRenderFlowBlock {
     internal HtmlRenderFlowBlock AdjustTrailingFlowSpace(double adjustment) {
         if (Math.Abs(adjustment) <= 0.0001D) return this;
         double adjustedUnclampedHeight = UnclampedHeight - adjustment;
-        double adjustedHeight = HasZeroHeightOrdinaryContent && adjustedUnclampedHeight == 0D
-            ? 0D : Math.Max(0.01D, adjustedUnclampedHeight);
-        double adjustedPaintExtent = Math.Max(adjustedHeight, PagedPaintExtent - adjustment);
+        double adjustedHeight = Math.Max(0D, adjustedUnclampedHeight);
+        // Removing a trailing margin changes advance without translating paint.
+        // A retained overhang therefore keeps its original painted endpoint.
+        double adjustedPaintExtent = PagedPaintExtent > Math.Max(0D, UnclampedHeight) + 0.0001D
+            ? Math.Max(adjustedHeight, PagedPaintExtent)
+            : Math.Max(adjustedHeight, PagedPaintExtent - adjustment);
         return CopyLayoutFacts(new HtmlRenderFlowBlock(
             Width,
             adjustedHeight,
