@@ -110,13 +110,17 @@ internal sealed partial class HtmlRenderLayoutEngine {
     private double FlushInlineNodes(ICollection<HtmlRenderFlowBlock> blocks, List<INode> nodes, double width, HtmlRenderBoxStyle style, IElement sourceElement, int depth, out bool hasInFlowLineBoxes, PagedFloatBoundary? pageBoundary = null, ICollection<HtmlFloatExclusion>? activeFloats = null, ICollection<HtmlFloatExclusion>? emittedFloats = null, double flowOffset = 0D, InlineFloatContext? floatContext = null) {
         hasInFlowLineBoxes = false;
         if (nodes.Count == 0) return 0D;
+        INode sourceEntry = nodes[0];
+        double entryGap = TakeConstrainedScheduledEntryGap(sourceEntry);
+        double physicalFlowOffset = flowOffset + entryGap;
+        InlineFloatContext? physicalFloats = entryGap > 0.0001D ? floatContext?.At(width, 0D, entryGap) : floatContext;
         HtmlInlineLayout inline = LayoutInlineNodes(nodes, width, style, depth + 1, null, null,
-            pageBoundary: pageBoundary,
-            inheritedFloats: activeFloats?.Count > 0 ? activeFloats.Select(item => item.Shift(0D, -flowOffset)).ToArray() : null,
-            applyTextIndent: blocks.Count == 0, floatContext: floatContext);
+            pageBoundary: pageBoundary?.Shift(entryGap),
+            inheritedFloats: activeFloats?.Count > 0 ? activeFloats.Select(item => item.Shift(0D, -physicalFlowOffset)).ToArray() : null,
+            applyTextIndent: blocks.Count == 0, floatContext: physicalFloats);
         if (activeFloats != null) {
             foreach (HtmlFloatExclusion exclusion in inline.FloatExclusions) {
-                HtmlFloatExclusion positioned = exclusion.Shift(0D, flowOffset);
+                HtmlFloatExclusion positioned = exclusion.Shift(0D, physicalFlowOffset);
                 activeFloats.Add(positioned);
                 emittedFloats?.Add(positioned);
             }
@@ -131,8 +135,10 @@ internal sealed partial class HtmlRenderLayoutEngine {
             || inline.InterruptedFlow?.HasZeroHeightOrdinaryContent == true;
         nodes.Clear();
         if (inline.InterruptedFlow != null) {
-            blocks.Add(inline.InterruptedFlow);
-            return inline.InterruptedFlow.NormalFlowAdvance;
+            inline.InterruptedFlow.SourceEntryNode = sourceEntry;
+            HtmlRenderFlowBlock interrupted = ApplyConstrainedScheduledEntryGap(inline.InterruptedFlow, entryGap);
+            blocks.Add(interrupted);
+            return interrupted.NormalFlowAdvance;
         }
         if (inline.Visuals.Count == 0 && !hasInFlowLineBoxes) return 0D;
         // A floated sibling does not consume normal-flow height before the
@@ -164,6 +170,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
             avoidBreakRanges: inline.AvoidBreakRanges,
             safeBreakRanges: inline.SafeBreakRanges);
         block.HasZeroHeightOrdinaryContent = flowHeight == 0D && inline.HasInFlowLineBoxes == true;
+        block.SourceEntryNode = sourceEntry;
+        block = ApplyConstrainedScheduledEntryGap(block, entryGap);
         blocks.Add(block);
         return block.Height;
     }

@@ -13,17 +13,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         PagedFloatBoundary? pageBoundary = null, IReadOnlyList<HtmlFloatExclusion>? inheritedFloats = null,
         ICollection<HtmlFloatExclusion>? emittedFloats = null, InlineFloatContext? surroundingFloats = null) {
         ConstrainedSourceProjection? context = _constrainedSourceProjection;
-        double entryGap = 0D;
-        if (context != null && context.AtomicDepth == 0) {
-            foreach (ConstrainedInteriorRelayoutFrame ancestor in context.InteriorRelayoutFrames) {
-                CheckCancellation();
-                ChargeLayoutOperation("constrained planned entry lookup");
-                if (!ancestor.EntryGaps.TryGetValue(element, out ConstrainedScheduledEntry? entry) || entry.Applied) continue;
-                entry.Applied = true;
-                entryGap = entry.Gap;
-                break;
-            }
-        }
+        double entryGap = TakeConstrainedScheduledEntryGap(element);
         PagedFloatBoundary? physical = pageBoundary?.Shift(entryGap);
         var frame = context == null ? null : new ConstrainedInteriorRelayoutFrame();
         if (frame != null) context!.InteriorRelayoutFrames.Push(frame);
@@ -44,20 +34,14 @@ internal sealed partial class HtmlRenderLayoutEngine {
                     if (frame != null) ChargeLayoutOperations(frame.EntryGaps.Count, "constrained child-entry progress");
                     if (frame != null && frame.EntryGaps.Values.Any(entry => !entry.Applied))
                         context!.FailedReason = "constrained-interior-entry-owner-not-rebuilt";
-                    if (entryGap > 0.0001D) {
-                        result = result.AdjustLeadingFlowSpace(-entryGap);
-                        result.PagedSourceEntryGap += entryGap;
-                        context!.Changed = true;
-                        context.NeedsProjection = true;
-                    }
-                    return result;
+                    return ApplyConstrainedScheduledEntryGap(result, entryGap);
                 }
                 ChargeLayoutOperation("constrained interior owner relayout");
-                if (checkpoint == null || frame == null || frame.EntryGaps.ContainsKey(gap.Element)) {
+                if (checkpoint == null || frame == null || frame.EntryGaps.ContainsKey(gap.SourceEntry)) {
                     context.FailedReason = "constrained-interior-entry-without-source-progress";
                     return result;
                 }
-                frame.EntryGaps.Add(gap.Element, new ConstrainedScheduledEntry(gap.Gap));
+                frame.EntryGaps.Add(gap.SourceEntry, new ConstrainedScheduledEntry(gap.Gap));
                 RestoreConstrainedEntryState(checkpoint, context);
                 style = checkpoint.Style.Clone();
             }
@@ -66,10 +50,35 @@ internal sealed partial class HtmlRenderLayoutEngine {
         }
     }
 
-    private sealed record ConstrainedInteriorGap(IElement Element, double Gap);
+    /// <summary>Consumes one planned source entry by original DOM identity, including anonymous text runs.</summary>
+    private double TakeConstrainedScheduledEntryGap(INode sourceEntry) {
+        ConstrainedSourceProjection? context = _constrainedSourceProjection;
+        if (context == null || context.AtomicDepth != 0) return 0D;
+        foreach (ConstrainedInteriorRelayoutFrame ancestor in context.InteriorRelayoutFrames) {
+            CheckCancellation();
+            ChargeLayoutOperation("constrained planned entry lookup");
+            if (!ancestor.EntryGaps.TryGetValue(sourceEntry, out ConstrainedScheduledEntry? entry) || entry.Applied) continue;
+            entry.Applied = true;
+            return entry.Gap;
+        }
+        return 0D;
+    }
+
+    /// <summary>Represents a consumed entry before its source without adding to authored content height.</summary>
+    private HtmlRenderFlowBlock ApplyConstrainedScheduledEntryGap(HtmlRenderFlowBlock block, double entryGap) {
+        if (entryGap <= 0.0001D) return block;
+        HtmlRenderFlowBlock result = block.AdjustLeadingFlowSpace(-entryGap);
+        result.PagedSourceEntryGap += entryGap;
+        ConstrainedSourceProjection context = _constrainedSourceProjection!;
+        context.Changed = true;
+        context.NeedsProjection = true;
+        return result;
+    }
+
+    private sealed record ConstrainedInteriorGap(INode SourceEntry, double Gap);
 
     private sealed class ConstrainedInteriorRelayoutFrame {
-        internal Dictionary<IElement, ConstrainedScheduledEntry> EntryGaps { get; } = new();
+        internal Dictionary<INode, ConstrainedScheduledEntry> EntryGaps { get; } = new();
     }
 
     private sealed class ConstrainedScheduledEntry {

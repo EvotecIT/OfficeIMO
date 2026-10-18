@@ -246,9 +246,9 @@ internal sealed partial class HtmlRenderLayoutEngine {
                         foreach (FlowPaintLayer child in childSources) {
                             CheckCancellation();
                             ChargeLayoutOperation("constrained interior child-entry ownership");
-                            if (child.Block.OwnerElement is { } entry
+                            if ((child.Block.SourceEntryNode ?? child.Block.OwnerElement) is { } entry
                                 && child.Block.PagedPaintExtent > 0.0001D
-                                && (overlapBoundary != null ? ReferenceEquals(entry, overlapBoundary.FollowingElement)
+                                && (overlapBoundary != null ? ReferenceEquals(entry, overlapBoundary.FollowingSourceEntry)
                                     : Math.Abs(child.Y - cut) <= 0.0001D)) {
                                 interiorGap = new ConstrainedInteriorGap(entry, gap);
                                 return source;

@@ -92,6 +92,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 KnownNoInFlowLineBoxes = block.KnownNoInFlowLineBoxes,
                 HasZeroHeightOrdinaryContent = block.HasZeroHeightOrdinaryContent,
                 PagedSourceEntryGap = block.PagedSourceEntryGap,
+                SourceEntryNode = block.SourceEntryNode,
                 UnfragmentedHeight = block.UnfragmentedHeight,
                 ColumnOverflowContent = block.ColumnOverflowContent == null ? null
                     : InsertPagedSourceBreakGap(block.ColumnOverflowContent, cut, gap, absorbInStretchTail, flowAdvanceDelta, backgroundWindow,

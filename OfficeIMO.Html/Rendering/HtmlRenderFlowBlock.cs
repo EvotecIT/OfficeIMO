@@ -171,6 +171,8 @@ internal sealed class HtmlRenderFlowBlock {
     internal HtmlCollapsedMargin CollapsibleMarginTopGroup { get; }
     internal HtmlCollapsedMargin CollapsibleMarginBottomGroup { get; }
     internal IElement? OwnerElement { get; }
+    /// <summary>Stable first DOM node for an anonymous ordinary source replay; element boxes retain their real owner.</summary>
+    internal INode? SourceEntryNode { get; set; }
     internal bool CollapsesThrough { get; }
     internal IReadOnlyList<HtmlCssRunningStringAssignment> RunningStringAssignments { get; }
     internal IReadOnlyList<HtmlInlineBreakProgress> InlineBreakProgress { get; }
@@ -200,6 +202,7 @@ internal sealed class HtmlRenderFlowBlock {
         block.RetainsZeroHeightFlowCarrier = RetainsZeroHeightFlowCarrier;
         block.HasZeroHeightOrdinaryContent = HasZeroHeightOrdinaryContent;
         block.PagedSourceEntryGap = PagedSourceEntryGap;
+        block.SourceEntryNode = SourceEntryNode;
         block.UnfragmentedHeight = UnfragmentedHeight.HasValue
             ? Math.Max(0D, UnfragmentedHeight.Value + unfragmentedAdjustment) : null;
         if (ColumnOverflowContent is { } overflow) {

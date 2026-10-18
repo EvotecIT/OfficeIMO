@@ -58,15 +58,16 @@ internal sealed partial class HtmlRenderLayoutEngine {
         var boundaries = new object[count + 1];
         for (int index = 0; index < boundaries.Length; index++) {
             HtmlRenderFlowBlock? preceding = index > 0 ? children[index - 1] : null;
-            boundaries[index] = new OrdinaryFlowBoundary(index < count ? children[index].OwnerElement : null,
+            boundaries[index] = new OrdinaryFlowBoundary(index < count
+                ? children[index].SourceEntryNode ?? children[index].OwnerElement : null,
                 preceding != null && preceding.PagedPaintExtent > preceding.NormalFlowAdvance + 0.0001D);
         }
         return boundaries;
     }
 
     /// <summary>Retains the real following child when a source boundary crosses its preceding sibling's visible overflow.</summary>
-    private sealed class OrdinaryFlowBoundary(IElement? followingElement, bool precedingPaintOverhang) {
-        internal IElement? FollowingElement { get; } = followingElement;
+    private sealed class OrdinaryFlowBoundary(INode? followingSourceEntry, bool precedingPaintOverhang) {
+        internal INode? FollowingSourceEntry { get; } = followingSourceEntry;
         internal bool PrecedingPaintOverhang { get; } = precedingPaintOverhang;
     }
 }

@@ -199,4 +199,29 @@ public sealed partial class HtmlRenderingTests {
             Assert.Throws<HtmlConversionException>(() => rendered.RequireNoLoss());
         }
     }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void HtmlConstrainedForcedBreak_AnonymousFollowingRunReplaysByOriginalNodeIdentity(bool inlineElement) {
+        string following = inlineElement ? "<span>ANONYMOUS-TWO</span>" : "ANONYMOUS-TWO";
+        string html = FixedHeightOverflowSource("<div style='height:20px'>"
+            + "<p style='height:0;break-after:page'>ANONYMOUS-ONE</p>" + following
+            + "<p>ANONYMOUS-THREE</p></div><p style='padding-left:300px'>ANONYMOUS-AFTER</p>");
+
+        foreach (HtmlRenderIntentProfile profile in new[] {
+            HtmlRenderIntentProfile.PrintPaged, HtmlRenderIntentProfile.ScreenMediaPaged }) {
+            HtmlRenderDocument rendered = HtmlRenderEngine.Execute(HtmlConversionDocument.Parse(html),
+                HtmlRenderRequest.Create(profile, HtmlRenderEncoder.DisplayList, FixedHeightOverflowOptions())).Document;
+
+            Assert.Equal(2, rendered.Pages.Count);
+            AssertDescendantSpannerSourceOnce(rendered,
+                "ANONYMOUS-ONE", "ANONYMOUS-TWO", "ANONYMOUS-THREE", "ANONYMOUS-AFTER");
+            AssertFixedHeightOverflowPlacement(rendered, "ANONYMOUS-ONE", 1, 0D);
+            AssertFixedHeightOverflowPlacement(rendered, "ANONYMOUS-TWO", 2, 0D);
+            AssertFixedHeightOverflowPlacement(rendered, "ANONYMOUS-THREE", 2, 20D);
+            AssertFixedHeightOverflowPlacement(rendered, "ANONYMOUS-AFTER", 2, 0D);
+            rendered.RequireNoLoss();
+        }
+    }
 }
