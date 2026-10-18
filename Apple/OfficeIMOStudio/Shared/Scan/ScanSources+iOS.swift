@@ -35,14 +35,20 @@ enum ScanSources {
     /// Presents a picker over the frontmost screen once any sheet or menu on its way out has gone, as UIKit ignores a
     /// presentation that starts during another's dismissal; false when it could not be shown.
     static func present(_ controller: UIViewController) async -> Bool {
+        var presenter: UIViewController?
         for _ in 0..<30 {
+            // UIKit can attach the presentation after present() returns. Request it once and
+            // observe that controller instead of trying to present it again from itself.
+            if controller.presentingViewController != nil || presenter?.presentedViewController === controller ||
+                controller.viewIfLoaded?.window != nil { return true }
             let scenes = UIApplication.shared.connectedScenes.compactMap { $0 as? UIWindowScene }
             let window = scenes.flatMap(\.windows).first { $0.isKeyWindow } ?? scenes.first?.windows.first
             guard var top = window?.rootViewController else { return false }
             while let presented = top.presentedViewController, !presented.isBeingDismissed { top = presented }
-            if top.presentedViewController == nil, top.transitionCoordinator == nil {
+            if presenter == nil, top.presentedViewController == nil, top.transitionCoordinator == nil,
+               !top.isBeingDismissed, top.viewIfLoaded?.window != nil {
+                presenter = top
                 top.present(controller, animated: true)
-                if controller.presentingViewController != nil { return true }
             }
             try? await Task.sleep(for: .milliseconds(100))
         }
@@ -52,17 +58,19 @@ enum ScanSources {
 
 @MainActor
 private final class CameraSession: NSObject, @preconcurrency VNDocumentCameraViewControllerDelegate {
-    private var continuation: CheckedContinuation<VNDocumentCameraScan?, any Error>?
+    private var continuation: CheckedContinuation<Void, any Error>?
     private var keepAlive: CameraSession?
+    private var scan: VNDocumentCameraScan?
 
     func run() async throws -> VNDocumentCameraScan? {
-        try await withCheckedThrowingContinuation { continuation in
+        try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, any Error>) in
             self.continuation = continuation
             let camera = VNDocumentCameraViewController()
             camera.delegate = self
             keepAlive = self
             Task { if !(await ScanSources.present(camera)) { self.finish(.failure(CocoaError(.featureUnsupported)), from: nil) } }
         }
+        return scan
     }
 
     func documentCameraViewController(_ controller: VNDocumentCameraViewController, didFinishWith scan: VNDocumentCameraScan) {
@@ -79,7 +87,11 @@ private final class CameraSession: NSObject, @preconcurrency VNDocumentCameraVie
 
     private func finish(_ result: Result<VNDocumentCameraScan?, any Error>, from controller: UIViewController?) {
         controller?.dismiss(animated: true)
-        continuation?.resume(with: result)
+        // UIKit values stay on this actor; only completion crosses the continuation.
+        switch result {
+        case .success(let scan): self.scan = scan; continuation?.resume()
+        case .failure(let error): continuation?.resume(throwing: error)
+        }
         continuation = nil
         keepAlive = nil
     }
@@ -87,11 +99,12 @@ private final class CameraSession: NSObject, @preconcurrency VNDocumentCameraVie
 
 @MainActor
 private final class PhotosSession: NSObject, PHPickerViewControllerDelegate {
-    private var continuation: CheckedContinuation<[NSItemProvider]?, any Error>?
+    private var continuation: CheckedContinuation<Void, any Error>?
     private var keepAlive: PhotosSession?
+    private var providers: [NSItemProvider]?
 
     func run() async throws -> [NSItemProvider]? {
-        try await withCheckedThrowingContinuation { continuation in
+        try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, any Error>) in
             self.continuation = continuation
             var configuration = PHPickerConfiguration()
             configuration.filter = .images
@@ -102,6 +115,7 @@ private final class PhotosSession: NSObject, PHPickerViewControllerDelegate {
             keepAlive = self
             Task { if !(await ScanSources.present(picker)) { self.finish(.failure(CocoaError(.featureUnsupported))) } }
         }
+        return providers
     }
 
     func picker(_ picker: PHPickerViewController, didFinishPicking results: [PHPickerResult]) {
@@ -111,7 +125,11 @@ private final class PhotosSession: NSObject, PHPickerViewControllerDelegate {
     }
 
     private func finish(_ result: Result<[NSItemProvider]?, any Error>) {
-        continuation?.resume(with: result)
+        // Item providers remain main-actor state until ScanBuilder consumes them.
+        switch result {
+        case .success(let providers): self.providers = providers; continuation?.resume()
+        case .failure(let error): continuation?.resume(throwing: error)
+        }
         continuation = nil
         keepAlive = nil
     }

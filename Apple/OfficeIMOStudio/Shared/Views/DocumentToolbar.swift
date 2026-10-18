@@ -59,6 +59,14 @@ struct DocumentToolbar: ToolbarContent {
             inspectorToggle
         }
         #else
+        if !isCompact {
+            ToolbarItem(placement: .topBarLeading) {
+                Button("Sidebar", systemImage: "sidebar.left") {
+                    session.isPageListShown = !(session.isPageListShown ?? true)
+                }
+                .disabled(session.task == .pages)
+            }
+        }
         if session.task == .markup {
             // The system tool picker takes the bottom of the screen, so Markup's commands sit at the top.
             ToolbarItemGroup(placement: .topBarTrailing) {
