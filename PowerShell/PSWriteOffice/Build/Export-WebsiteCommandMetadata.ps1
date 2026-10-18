@@ -27,8 +27,8 @@ function Get-RelativeFilePath {
     }
 
     $targetFullPath = [System.IO.Path]::GetFullPath($Path)
-    $baseUri = [System.Uri] $baseFullPath
-    $targetUri = [System.Uri] $targetFullPath
+    $baseUri = [System.Uri]::new($baseFullPath, [System.UriKind]::Absolute)
+    $targetUri = [System.Uri]::new($targetFullPath, [System.UriKind]::Absolute)
     if (-not [string]::Equals($baseUri.Scheme, $targetUri.Scheme, [System.StringComparison]::OrdinalIgnoreCase)) {
         return $targetFullPath
     }
