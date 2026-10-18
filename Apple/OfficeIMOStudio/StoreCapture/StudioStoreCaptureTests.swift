@@ -52,13 +52,34 @@ final class StudioStoreCaptureTests: XCTestCase {
         try resizePublicWindow(app: app, appURL: appURL, title: URL(fileURLWithPath: path).lastPathComponent)
         #else
         if role == "iphone" {
-            // Establish the native browser before delivering a document while
-            // retaining the language selected by the normal app launch.
+            // The compact launch scene ignores a URL sent while it is running.
+            // Open the copied input through its normal native document browser.
             let browse = app.buttons["Browse"]
             XCTAssertTrue(browse.waitForExistence(timeout: 30), app.debugDescription)
             browse.tap()
+            let input = URL(fileURLWithPath: path)
+            let folder = app.cells.containing(.staticText, identifier: input.deletingLastPathComponent().lastPathComponent).firstMatch
+            if !folder.waitForExistence(timeout: 3) {
+                let local = app.cells.containing(.staticText, identifier: "On My iPhone").firstMatch
+                if local.exists {
+                    local.tap()
+                } else {
+                    let back = app.buttons["On My iPhone"]
+                    XCTAssertTrue(back.waitForExistence(timeout: 10), app.debugDescription)
+                    back.tap()
+                }
+                let studio = app.cells.containing(.staticText, identifier: "OfficeIMO Studio").firstMatch
+                XCTAssertTrue(studio.waitForExistence(timeout: 10), app.debugDescription)
+                studio.tap()
+            }
+            XCTAssertTrue(folder.waitForExistence(timeout: 10), app.debugDescription)
+            folder.tap()
+            let document = app.cells.containing(.staticText, identifier: input.deletingPathExtension().lastPathComponent).firstMatch
+            XCTAssertTrue(document.waitForExistence(timeout: 10), app.debugDescription)
+            document.tap()
+        } else {
+            app.open(URL(fileURLWithPath: path))
         }
-        app.open(URL(fileURLWithPath: path))
         #endif
 
         let page = app.descendants(matching: .any).matching(identifier: "Page 1 of 1").firstMatch

@@ -99,7 +99,7 @@ try {
         if ($LASTEXITCODE -ne 0) { throw 'Cannot install the exact capture build.' }
         $container = (& xcrun simctl get_app_container $device com.evotec.officeimo.studio data).Trim()
         if ($LASTEXITCODE -ne 0) { throw 'Cannot locate the capture app document container.' }
-        $ownedDocumentDirectory = Join-Path $container ('Documents/StudioStoreCapture-' + [Guid]::NewGuid().ToString('N'))
+        $ownedDocumentDirectory = Join-Path $container ('Documents/00 Studio Capture-' + [Guid]::NewGuid().ToString('N'))
         $null = New-Item -ItemType Directory -Path $ownedDocumentDirectory
         $document = Join-Path $ownedDocumentDirectory 'Northwind Q3 Review.pdf'
         Copy-Item -LiteralPath $fixture -Destination $document
