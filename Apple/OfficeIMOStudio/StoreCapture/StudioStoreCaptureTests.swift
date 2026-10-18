@@ -59,6 +59,11 @@ final class StudioStoreCaptureTests: XCTestCase {
             browse.tap()
             let input = URL(fileURLWithPath: path)
             let folder = app.cells.containing(.staticText, identifier: input.deletingLastPathComponent().lastPathComponent).firstMatch
+            if !folder.waitForExistence(timeout: 3), app.buttons["OfficeIMO Studio"].exists {
+                // A preceding capture may have left the browser in its now
+                // removed input folder. Return through the native breadcrumb.
+                app.buttons["OfficeIMO Studio"].tap()
+            }
             if !folder.waitForExistence(timeout: 3) {
                 let local = app.cells.containing(.staticText, identifier: "On My iPhone").firstMatch
                 if local.exists {
