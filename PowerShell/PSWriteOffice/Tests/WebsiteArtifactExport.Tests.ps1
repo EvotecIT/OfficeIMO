@@ -77,6 +77,16 @@ Describe 'Website API source build qualification' {
         Test-Path $outputRoot | Should -BeFalse
     }
 
+    It 'rejects untracked engine source included by SDK compile globs' {
+        $untrackedEngine = Join-Path (Split-Path $engineInput) 'UntrackedEngine.cs'
+        try {
+            'public class UntrackedEngine { }' | Set-Content $untrackedEngine
+            { & $exportScript -RepositoryRoot $sourceRoot -ArtifactsRoot $outputRoot -BuildOutputRoot $buildRoot } |
+                Should -Throw '*does not match the selected API and build inputs*'
+            Test-Path $outputRoot | Should -BeFalse
+        } finally { Remove-Item -LiteralPath $untrackedEngine }
+    }
+
     It 'rejects staged source changes even if the working file has been changed back' {
         'public class Changed { }' | Set-Content $sourceInput
         & git -C $sourceRoot add -- Sources/Example.cs

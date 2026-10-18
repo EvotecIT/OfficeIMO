@@ -147,7 +147,8 @@ function Set-PSWriteOfficeDocumentationSnapshot {
     # previously pinned. Historical links in guide prose are handled separately.
     $examplesPattern = '^(?<prefix>https://github\.com/' + $repository +
         '/tree/)[^/]+(?=/PowerShell/PSWriteOffice/Examples(?:[/#?]|$))'
-    $catalogChanged = $false
+    $catalogChanged = $catalog.sourceCommit -cne $Source.Ref
+    $catalog | Add-Member -NotePropertyName sourceCommit -NotePropertyValue $Source.Ref -Force
     foreach ($family in @($catalog.families)) {
         $examplesUrl = [regex]::Replace([string] $family.examplesUrl, $examplesPattern, $replacement)
         if ($examplesUrl -cne $family.examplesUrl) {

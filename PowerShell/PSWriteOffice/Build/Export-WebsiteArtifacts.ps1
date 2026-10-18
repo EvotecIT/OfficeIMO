@@ -202,14 +202,19 @@ function Get-QualifiedSourceRevision {
     }
     # The module now compiles the engines from the same checkout. Their source and
     # shared build settings are part of its provenance, even outside the module folder.
+    $engineInputs = @('OfficeIMO.*', 'Directory.Build.*', 'Directory.Packages.*', 'global.json', 'NuGet.Config', 'nuget.config', 'Build')
     foreach ($arguments in @(
         @('diff', '--quiet', 'HEAD', '--'),
         @('diff', '--cached', '--quiet', 'HEAD', '--')
     )) {
-        & git -C $topLevel[0] @arguments 'OfficeIMO.*' 'Directory.Build.*' 'global.json' 'Build'
+        & git -C $topLevel[0] @arguments @engineInputs
         if ($LASTEXITCODE -ne 0) {
             throw 'The module bundle source does not match the selected API and build inputs. Commit the engine and shared build inputs first.'
         }
+    }
+    $untrackedEngineInputs = @(& git -C $topLevel[0] ls-files --others --exclude-standard -- @engineInputs)
+    if ($LASTEXITCODE -ne 0 -or $untrackedEngineInputs.Count -gt 0) {
+        throw 'The module bundle source does not match the selected API and build inputs. Commit the engine and shared build inputs first.'
     }
     [PSCustomObject]@{ SourceCommit = [string]$head[0]; PackageSourceCommit = [string]$packageCommits[0] }
 }
