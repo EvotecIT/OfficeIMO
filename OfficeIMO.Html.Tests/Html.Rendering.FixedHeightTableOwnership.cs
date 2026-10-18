@@ -34,7 +34,9 @@ public sealed partial class HtmlRenderingTests {
 
         PdfCore.PdfReadDocument pdf = PdfCore.PdfReadDocument.Open(output.ToBytes());
         Assert.Equal(2, pdf.Pages.Count);
-        string[] words = pdf.ExtractText().Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries);
+        // Following flow deliberately overlaps T2. Spatial extraction need not insert a word separator.
+        string[] words = pdf.Pages.SelectMany(page => page.GetTextSpans())
+            .SelectMany(span => span.Text.Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries)).ToArray();
         Assert.Equal(new[] { "LEAD", "T1", "T2", "T3", "AFTER" }.OrderBy(word => word, StringComparer.Ordinal),
             words.OrderBy(word => word, StringComparer.Ordinal));
     }
