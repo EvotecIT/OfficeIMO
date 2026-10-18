@@ -27,8 +27,8 @@ final class StudioStoreCaptureTests: XCTestCase {
         // Skip earlier document restoration for this capture launch without
         // deleting documents from an interactive session.
         app.launchArguments += ["-ApplePersistenceIgnoreState", "YES"]
-        #endif
         app.launch()
+        #endif
         defer { app.terminate() }
 
         #if os(macOS)
@@ -51,6 +51,7 @@ final class StudioStoreCaptureTests: XCTestCase {
         XCTAssertTrue(window.waitForExistence(timeout: 30), app.debugDescription)
         try resizePublicWindow(app: app, appURL: appURL, title: URL(fileURLWithPath: path).lastPathComponent)
         #else
+        // open is the document URL launch; do not launch a separate browser first.
         app.open(URL(fileURLWithPath: path))
         #endif
 
