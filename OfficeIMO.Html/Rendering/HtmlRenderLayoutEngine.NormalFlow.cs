@@ -75,7 +75,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
             && layers.Any(layer => layer.Block.ColumnOverflowContent != null);
         double columnOverflowExtent = hasColumnOverflow
             ? AppendColumnChildOverflowFacts(layers, 0D, extent, offsets, safe, keeps, forced) : extent;
-        var block = new HtmlRenderFlowBlock(width, height, visuals,
+        var surface = new HtmlRenderFlowBlock(width, height, visuals,
             HtmlPageBreakTarget.None, HtmlPageBreakTarget.None, false,
             HtmlRenderStyleResolver.DescribeSource(owner), offsets,
             lineBreakGroups: lines, continuationGroups: continuations, trailingGroups: trailing,
@@ -88,10 +88,10 @@ internal sealed partial class HtmlRenderLayoutEngine {
             safeBreakRanges: ConstrainParallelPaintBreakRanges(
                 HtmlRenderBreakRange.Normalize(safe, columnOverflowExtent), visuals));
         if (hasColumnOverflow && columnOverflowExtent > height + 0.0001D) {
-            HtmlRenderFlowBlock overflow = block.ForPagination();
-            block = block.WithVisuals(block.Visuals, pagedPaintExtent: extent);
-            block.ColumnOverflowContent = overflow;
+            HtmlRenderFlowBlock overflow = surface.ForPagination();
+            surface = surface.WithVisuals(surface.Visuals, pagedPaintExtent: extent);
+            surface.ColumnOverflowContent = overflow;
         }
-        return block;
+        return surface;
     }
 }
