@@ -468,6 +468,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
     private void ResetLayoutPassState() {
         ResetColumnPagination();
         ResetParallelTablePagination();
+        ResetConstrainedSourceProjection();
         _pagedRowFlexElements.Clear();
         _pagedRowFlexEligibleElements.Clear();
         _pagedRowFlexBlocks.Clear();

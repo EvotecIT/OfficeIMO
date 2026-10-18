@@ -89,6 +89,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
             return StampViewport(AttachElementMargins(ApplyElementPositioning(ApplyOverflowToSpecializedBlock(columnsBlock, style, element, containingWidth), style, containingWidth, containingHeight, element), style, element));
         }
 
+        using ConstrainedProjectionScope projectionScope = EnterConstrainedProjection(element);
         double availableWidth = Math.Max(1D, containingWidth - style.MarginLeft - style.MarginRight);
         double boxWidth = ResolveBoxWidth(availableWidth, style);
         double contentWidth = Math.Max(1D, boxWidth - style.HorizontalInsets);
@@ -338,6 +339,39 @@ internal sealed partial class HtmlRenderLayoutEngine {
 
         if (ownsFloatContext) contentHeight = Math.Max(contentHeight, contentFloats.Bottom);
 
+        HtmlRenderFlowBlock? projectedContent = null;
+        double pagedEntryGap = 0D;
+        if (projectionScope.CanProject && pageBoundary.HasValue) {
+            double sourceExtent = Math.Max(contentHeight, inlineLayout?.PagedPaintExtent ?? 0D);
+            foreach (FlowPaintLayer child in childPaintLayers) {
+                CheckCancellation();
+                ChargeLayoutOperation("ordinary source projection extent");
+                sourceExtent = Math.Max(sourceExtent, child.Y + ResolveNormalFlowPaintExtent(child.Block));
+            }
+            var source = new HtmlRenderFlowBlock(contentWidth, Math.Max(0D, contentHeight), contentVisuals,
+                HtmlPageBreakTarget.None, HtmlPageBreakTarget.None, style.AvoidBreakInside,
+                HtmlRenderStyleResolver.DescribeSource(element), contentBreakOffsets, lineBreakOffsets,
+                style.Orphans, style.Widows, lineBreakGroups, continuationGroups, trailingGroups,
+                unclampedHeight: contentHeight, runningStringAssignments: runningStringAssignments,
+                inlineBreakProgress: inlineLayout?.BreakProgress ?? continuationBreakProgress,
+                forcedBreaks: forcedBreaks, avoidBreakRanges: contentAvoidBreakRanges,
+                pagedPaintExtent: sourceExtent, safeBreakRanges: contentSafeBreakRanges);
+            projectedContent = ProjectOrdinaryContent(source,
+                pageBoundary.Value.Shift(style.MarginTop + style.BorderTopWidth + style.PaddingTop), out pagedEntryGap);
+            contentVisuals.Clear(); contentVisuals.AddRange(projectedContent.Visuals);
+            contentHeight = projectedContent.NormalFlowAdvance;
+            contentBreakOffsets.Clear(); contentBreakOffsets.AddRange(projectedContent.BreakOffsets);
+            contentSafeBreakRanges.Clear(); contentSafeBreakRanges.AddRange(projectedContent.SafeBreakRanges);
+            contentAvoidBreakRanges.Clear(); contentAvoidBreakRanges.AddRange(projectedContent.AvoidBreakRanges);
+            lineBreakOffsets.Clear();
+            lineBreakGroups.Clear(); lineBreakGroups.AddRange(projectedContent.LineBreakGroups);
+            continuationGroups.Clear(); continuationGroups.AddRange(projectedContent.ContinuationGroups);
+            trailingGroups.Clear(); trailingGroups.AddRange(projectedContent.TrailingGroups);
+            runningStringAssignments.Clear(); runningStringAssignments.AddRange(projectedContent.RunningStringAssignments);
+            continuationBreakProgress.Clear(); continuationBreakProgress.AddRange(projectedContent.InlineBreakProgress);
+            forcedBreaks.Clear(); forcedBreaks.AddRange(projectedContent.ForcedBreaks);
+        }
+
         if (contentHeight <= 0D && style.ExplicitHeight == null && style.BackgroundColor == null && !style.HasBorderLayout) {
             contentHeight = tag == "div" || tag == "section" || tag == "article" ? 0D : style.LineHeight;
         }
@@ -542,7 +576,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 .Select(assignment => assignment.Translate(contentYForBreaks))
                 .Concat(positionedRunningStringAssignments)
                 .OrderBy(assignment => assignment.OrderOffset),
-            inlineBreakProgress: (inlineLayout?.BreakProgress ?? continuationBreakProgress).Select(progress =>
+            inlineBreakProgress: (projectedContent?.InlineBreakProgress ?? inlineLayout?.BreakProgress ?? continuationBreakProgress).Select(progress =>
                 new HtmlInlineBreakProgress(contentYForBreaks + progress.Offset, progress.LogicalCharacters, progress.OwnerElement, progress.IsBlockEntry, progress.PageStartDiscardableMargin, progress.IsBlockExit, progress.IsFlexGap)),
             inlineContinuationStart: ReferenceEquals(element, continuationTarget) ? continuationLogicalCharacters : 0,
             supportsInlineContinuationReflow: inlineLayout?.SupportsContinuationReflow == true
@@ -563,6 +597,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
             contentVisuals, contentHeight, inlineLayout?.HasInFlowLineBoxes == true);
         HtmlRenderFlowBlock completed = StampViewport(AttachElementMargins(ApplyElementPositioning(block, style, containingWidth, containingHeight, element),
             style, element, collapsesThrough, collapsedTopGroup, collapsedBottomGroup));
+        if (pagedEntryGap > 0.0001D) completed = completed.AdjustLeadingFlowSpace(-pagedEntryGap);
+        RememberConstrainedOverflow(element, style, completed);
         if (columnOverflowExtent > completed.Height + 0.0001D) {
             HtmlRenderFlowBlock overflow = completed.ForPagination();
             completed = completed.WithVisuals(completed.Visuals, pagedPaintExtent: pagedPaintExtent);

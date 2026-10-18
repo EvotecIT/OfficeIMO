@@ -96,6 +96,11 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 block = RelayoutTopLevelBlockForPage(block, pageGeometry).ForPagination();
             }
 
+            if (TryRelayoutConstrainedOverflow(block,
+                ResolvePageBodyBottom(pages.Count + 1, pageGeometry) - y, contentHeight,
+                pages.Count + 1, pageGeometry, out HtmlRenderFlowBlock constrainedBlock))
+                block = constrainedBlock.ForPagination();
+
             // Auto-height columns need the physical capacity even when their
             // initial balanced source box fits. Run after whole-block keep
             // decisions so the mapping starts on the page that owns the box.
