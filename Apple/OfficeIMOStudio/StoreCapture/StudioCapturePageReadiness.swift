@@ -22,16 +22,19 @@ enum StudioCapturePageReadiness {
         func missingPhrase() -> String? {
             phrases.first { phrase in !lines.contains { $0.contains(phrase) } }
         }
-        // Overlapping crops preserve small PDF text when Vision downsamples a
-        // tall viewport. Every phrase must still occur in this same screenshot.
+        // Overlapping crops also isolate small table text in compact views.
+        // Every phrase must still occur in this same unmodified screenshot.
         if missingPhrase() != nil {
-            let height = (image.height * 2 + 2) / 3
-            for y in [0, image.height - height] {
-                guard let tile = image.cropping(to: CGRect(x: 0, y: y, width: image.width, height: height)) else {
-                    throw Failure.unreadablePixels
+            let width = (image.width * 2 + 2) / 3
+            let height = (image.height * 2 + 4) / 5
+            tiles: for y in [0, (image.height - height) / 2, image.height - height] {
+                for x in [0, image.width - width] {
+                    guard let tile = image.cropping(to: CGRect(x: x, y: y, width: width, height: height)) else {
+                        throw Failure.unreadablePixels
+                    }
+                    lines += try recognize(tile)
+                    if missingPhrase() == nil { break tiles }
                 }
-                lines += try recognize(tile)
-                if missingPhrase() == nil { break }
             }
         }
         if let phrase = missingPhrase() {
