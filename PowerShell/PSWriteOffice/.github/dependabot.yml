@@ -1,0 +1,32 @@
+version: 2
+updates:
+- package-ecosystem: nuget
+  directory: /Sources
+  schedule:
+    interval: daily
+  cooldown:
+    default-days: 7
+    include:
+    - '*'
+  open-pull-requests-limit: 1
+  groups:
+    all-dependencies:
+      patterns:
+      - '*'
+  ignore:
+  - dependency-name: Microsoft.PowerShell.SDK
+    versions:
+    - '>=7.5.0'
+- package-ecosystem: github-actions
+  directory: /
+  schedule:
+    interval: daily
+  cooldown:
+    default-days: 7
+    include:
+    - '*'
+  open-pull-requests-limit: 1
+  groups:
+    all-dependencies:
+      patterns:
+      - '*'

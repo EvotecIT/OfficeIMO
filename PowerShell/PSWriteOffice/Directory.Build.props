@@ -1,0 +1,7 @@
+<Project>
+  <PropertyGroup Condition="'$(OS)' == 'Unix'">
+    <RestorePackagesPath>$(MSBuildThisFileDirectory).nuget/packages</RestorePackagesPath>
+    <RestoreFallbackFolders></RestoreFallbackFolders>
+    <RestoreAdditionalProjectFallbackFolders></RestoreAdditionalProjectFallbackFolders>
+  </PropertyGroup>
+</Project>

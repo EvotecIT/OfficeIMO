@@ -1,0 +1,13 @@
+SUPPORT HANDOVER NOTES
+Synthetic example | 30 September 2026
+
+Primary contact: Service desk
+Escalation owner: Operations lead
+Review required: Weekend support rota
+
+Checks before acceptance
+1. Confirm the rota owner and escalation window.
+2. Review the recovery instructions with the service owner.
+3. Record the acceptance decision in the editable source.
+
+These notes are literal text. Keep the original source with the reviewed PDF.

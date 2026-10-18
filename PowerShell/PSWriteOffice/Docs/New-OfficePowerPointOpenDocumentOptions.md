@@ -1,0 +1,140 @@
+---
+external help file: PSWriteOffice-help.xml
+Module Name: PSWriteOffice
+online version: https://github.com/EvotecIT/PSWriteOffice
+schema: 2.0.0
+---
+# New-OfficePowerPointOpenDocumentOptions
+## SYNOPSIS
+Creates PowerPoint/OpenDocument conversion settings.
+
+## SYNTAX
+### __AllParameterSets
+```powershell
+New-OfficePowerPointOpenDocumentOptions [-LossPolicy <OdfConversionLossPolicy>] [-IncludeImages] [-IncludeSpeakerNotes] [-IncludeBasicFormatting] [-MaxTableRows <Int32>] [-MaxTableColumns <Int32>] [<CommonParameters>]
+```
+
+## DESCRIPTION
+Creates PowerPoint/OpenDocument conversion settings.
+
+## EXAMPLES
+
+### EXAMPLE 1
+```powershell
+PS> $options = New-OfficePowerPointOpenDocumentOptions -IncludeImages -IncludeSpeakerNotes -IncludeBasicFormatting
+ConvertTo-OfficeOpenDocument -Path .\Deck.pptx -OutputPath .\Deck.odp -PowerPointOptions $options
+```
+
+
+## PARAMETERS
+
+### -IncludeBasicFormatting
+Copy common fills, outlines, and text-run formatting.
+
+```yaml
+Type: SwitchParameter
+Parameter Sets: __AllParameterSets
+Aliases: None
+Possible values:
+
+Required: False
+Position: named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -IncludeImages
+Copy supported embedded images.
+
+```yaml
+Type: SwitchParameter
+Parameter Sets: __AllParameterSets
+Aliases: None
+Possible values:
+
+Required: False
+Position: named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -IncludeSpeakerNotes
+Copy plain speaker-note text.
+
+```yaml
+Type: SwitchParameter
+Parameter Sets: __AllParameterSets
+Aliases: None
+Possible values:
+
+Required: False
+Position: named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -LossPolicy
+Whether conversion loss is reported or rejected.
+
+```yaml
+Type: OdfConversionLossPolicy
+Parameter Sets: __AllParameterSets
+Aliases: None
+Possible values: ReportOnly, ThrowOnSkippedOrUnsupported, ThrowOnAnyLoss
+
+Required: False
+Position: named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -MaxTableColumns
+Maximum columns in converted presentation tables.
+
+```yaml
+Type: Int32
+Parameter Sets: __AllParameterSets
+Aliases: None
+Possible values:
+
+Required: False
+Position: named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -MaxTableRows
+Maximum rows in converted presentation tables.
+
+```yaml
+Type: Int32
+Parameter Sets: __AllParameterSets
+Aliases: None
+Possible values:
+
+Required: False
+Position: named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### CommonParameters
+This cmdlet supports the common parameters: -Debug, -ErrorAction, -ErrorVariable, -InformationAction, -InformationVariable, -OutVariable, -OutBuffer, -PipelineVariable, -Verbose, -WarningAction, and -WarningVariable. For more information, see [about_CommonParameters](http://go.microsoft.com/fwlink/?LinkID=113216).
+
+## INPUTS
+
+- `None`
+
+## OUTPUTS
+
+- `OfficeIMO.PowerPoint.OpenDocument.PowerPointOpenDocumentConversionOptions`
+
+## RELATED LINKS
+
+- None
