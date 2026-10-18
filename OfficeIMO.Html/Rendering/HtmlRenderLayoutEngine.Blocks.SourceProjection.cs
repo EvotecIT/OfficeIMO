@@ -70,8 +70,10 @@ internal sealed partial class HtmlRenderLayoutEngine {
         // Specialized owners retain their established planner and state. Do not
         // enter a speculative rebuild and then restore only part of its caches.
         ChargeLayoutOperations(block.ForcedBreaks.Count, "constrained source forced-boundary qualification");
+        // The outer paginator has already applied side controls at the source
+        // entry. Interior side events still require their existing fallback.
         boundary ??= block.ForcedBreaks.Any(item => item.ChangesPageName
-            || item.Target is HtmlPageBreakTarget.Left or HtmlPageBreakTarget.Right)
+            || item.Offset > 0.0001D && (item.Target is HtmlPageBreakTarget.Left or HtmlPageBreakTarget.Right))
                 ? "internal-forced-source-break" : null;
         if (boundary != null) {
             ChargeLayoutOperations(targets.Length, "constrained overflow boundary qualification");

@@ -47,6 +47,38 @@ public sealed partial class HtmlRenderingTests {
     }
 
     [Theory]
+    [InlineData("right", 0)]
+    [InlineData("left", 1)]
+    public void HtmlNestedConstrainedOverflow_PreservesAlreadyAppliedLeadingSideControl(
+        string leadingSide, int leadingBlankPages) {
+        string html = FixedHeightOverflowSource("<section style='height:200px'>"
+            + NestedConstrainedKeepContent(leadingSide) + "</section>");
+
+        foreach (HtmlRenderIntentProfile profile in new[] {
+            HtmlRenderIntentProfile.PrintPaged, HtmlRenderIntentProfile.ScreenMediaPaged }) {
+            HtmlRenderDocument rendered = HtmlRenderEngine.Execute(HtmlConversionDocument.Parse(html),
+                HtmlRenderRequest.Create(profile, HtmlRenderEncoder.DisplayList, FixedHeightOverflowOptions())).Document;
+
+            // Preserve the canonical outer paginator's first-page side policy.
+            // Its leading-left blank page is an established source contract;
+            // native producers can choose different initial-page parity.
+            Assert.Equal(2 + leadingBlankPages, rendered.Pages.Count);
+            AssertDescendantSpannerSourceOnce(rendered,
+                "KEEP-LEAD", "KEEP-INNER", "KEEP-ONE", "KEEP-TWO", "KEEP-THREE", "KEEP-AFTER");
+            AssertFixedHeightOverflowPlacement(rendered, "KEEP-LEAD", leadingBlankPages + 1, 0D);
+            AssertFixedHeightOverflowPlacement(rendered, "KEEP-INNER", leadingBlankPages + 1, 60D);
+            AssertFixedHeightOverflowPlacement(rendered, "KEEP-AFTER", leadingBlankPages + 1, 80D);
+            AssertFixedHeightOverflowPlacement(rendered, "KEEP-ONE", leadingBlankPages + 2, 0D);
+            AssertFixedHeightOverflowPlacement(rendered, "KEEP-TWO", leadingBlankPages + 2, 20D);
+            AssertFixedHeightOverflowPlacement(rendered, "KEEP-THREE", leadingBlankPages + 2, 40D);
+            if (leadingBlankPages > 0) Assert.Empty(rendered.Pages[0].Visuals.OfType<HtmlRenderText>());
+            Assert.DoesNotContain(rendered.Diagnostics, diagnostic =>
+                diagnostic.Code == HtmlRenderDiagnosticCodes.ConstrainedOverflowPaginationPending);
+            rendered.RequireNoLoss();
+        }
+    }
+
+    [Theory]
     [InlineData("<article>", "</article>")]
     [InlineData("<article style='height:200px'>", "</article>")]
     public void HtmlNestedConstrainedOverflow_ImportsNestedSourcesThroughOrdinaryWrappers(string before, string after) {
@@ -251,7 +283,8 @@ public sealed partial class HtmlRenderingTests {
         Assert.Equal(OfficeColor.White, second.GetPixel(500, 10));
     }
 
-    private static string NestedConstrainedKeepContent() => "<div style='height:60px'>KEEP-LEAD</div>"
+    private static string NestedConstrainedKeepContent(string? leadingSide = null) => "<div style='height:60px"
+        + (leadingSide == null ? "" : ";break-before:" + leadingSide) + "'>KEEP-LEAD</div>"
         + "<div style='height:20px'><p>KEEP-INNER</p>"
         + "<p style='break-inside:avoid;orphans:1;widows:1'>KEEP-ONE<br>KEEP-TWO<br>KEEP-THREE</p></div>"
         + "<p style='padding-left:300px'>KEEP-AFTER</p>";
