@@ -34,30 +34,34 @@ final class StudioStoreCaptureTests: XCTestCase {
         app.activate()
         XCTAssertEqual(NSWorkspace.shared.frontmostApplication?.processIdentifier, running.processIdentifier)
         XCTAssertEqual(NSWorkspace.shared.frontmostApplication?.bundleURL?.standardizedFileURL, appURL.standardizedFileURL)
-        let window = app.windows[URL(fileURLWithPath: path).lastPathComponent]
-        XCTAssertTrue(window.waitForExistence(timeout: 30), app.debugDescription)
-        try resizePublicWindow(app: app, appURL: appURL, title: URL(fileURLWithPath: path).lastPathComponent)
+        let window = app.windows.matching(identifier: URL(fileURLWithPath: path).lastPathComponent).firstMatch
+        XCTAssertTrue(window.waitForExistence(timeout: 30), "The public dashboard window did not appear.")
+        try resizePublicWindow(window: window, appURL: appURL, title: URL(fileURLWithPath: path).lastPathComponent)
+        let viewport: XCUIElement = window
+        let expectedPID: Int32? = running.processIdentifier
         #else
         if role == "iphone" {
             openPhoneDocument(app, input: URL(fileURLWithPath: path))
         } else {
             app.open(URL(fileURLWithPath: path))
         }
+        let viewport: XCUIElement = app
+        let expectedPID: Int32? = nil
         #endif
 
-        let page = app.descendants(matching: .any).matching(identifier: "Page 1 of 1").firstMatch
-        XCTAssertTrue(page.waitForExistence(timeout: 30), app.debugDescription)
-        try capture(app, page: page, name: "studio-dashboard-" + role)
+        let page = viewport.descendants(matching: .any).matching(identifier: "Page 1 of 1").firstMatch
+        XCTAssertTrue(page.waitForExistence(timeout: 30), viewport.debugDescription)
+        try capture(viewport, page: page, expectedPID: expectedPID, name: "studio-dashboard-" + role)
 
         // Compact iPhone chrome has its own layout. Its full-page capture is
         // sufficient; search captures use the visible regular-width search UI.
         if role != "iphone" {
-            let search = app.searchFields.firstMatch
-            XCTAssertTrue(search.waitForExistence(timeout: 30), app.debugDescription)
+            let search = viewport.searchFields.firstMatch
+            XCTAssertTrue(search.waitForExistence(timeout: 30), viewport.debugDescription)
             search.clickOrTap()
             search.typeText("Quarterly\n")
-            XCTAssertTrue(app.staticTexts["1 of 1"].waitForExistence(timeout: 30), app.debugDescription)
-            try capture(app, page: page, name: "studio-search-" + role)
+            XCTAssertTrue(viewport.staticTexts["1 of 1"].waitForExistence(timeout: 30), viewport.debugDescription)
+            try capture(viewport, page: page, expectedPID: expectedPID, name: "studio-search-" + role)
         }
     }
 
@@ -89,16 +93,7 @@ final class StudioStoreCaptureTests: XCTestCase {
     }
     #endif
 
-    private func snapshot(_ app: XCUIApplication) -> XCUIScreenshot {
-        #if os(macOS)
-        let path = ProcessInfo.processInfo.environment["STUDIO_CAPTURE_DOCUMENT_PATH"]!
-        return app.windows[URL(fileURLWithPath: path).lastPathComponent].screenshot()
-        #else
-        return app.screenshot()
-        #endif
-    }
-
-    private func capture(_ app: XCUIApplication, page: XCUIElement, name: String) throws {
+    private func capture(_ viewport: XCUIElement, page: XCUIElement, expectedPID: Int32?, name: String) throws {
         var previousPixels: Data?
         var stableSince: TimeInterval?
         var accepted: XCUIScreenshot?
@@ -109,10 +104,19 @@ final class StudioStoreCaptureTests: XCTestCase {
             // Sample serially: an expectation callback performing OCR can still
             // be running when its waiter times out and the app is terminated.
             Thread.sleep(forTimeInterval: 0.25)
-            let screenshot = snapshot(app)
+            let screenshot = viewport.screenshot()
             lastSampled = screenshot
-            guard app.progressIndicators.count == 0, app.alerts.count == 0,
-                  app.sheets.count == 0, app.dialogs.count == 0 else {
+            #if os(macOS)
+            // Keep queries inside the captured window. A full application tree
+            // also populates Open Recent and touches unrelated document paths.
+            guard NSWorkspace.shared.frontmostApplication?.processIdentifier == expectedPID else {
+                stableSince = nil
+                lastError = "The capture app is not in the foreground."
+                continue
+            }
+            #endif
+            guard viewport.progressIndicators.count == 0, viewport.alerts.count == 0,
+                  viewport.sheets.count == 0, viewport.dialogs.count == 0 else {
                 stableSince = nil
                 lastError = "A progress indicator or modal dialog is visible."
                 continue
@@ -122,20 +126,15 @@ final class StudioStoreCaptureTests: XCTestCase {
                       let image = CGImageSourceCreateImageAtIndex(source, 0, nil) else {
                     throw StudioCapturePageReadiness.Failure.unreadablePixels
                 }
-                #if os(macOS)
-                let path = ProcessInfo.processInfo.environment["STUDIO_CAPTURE_DOCUMENT_PATH"]!
-                let viewport = app.windows[URL(fileURLWithPath: path).lastPathComponent].frame
-                #else
-                let viewport = app.frame
-                #endif
-                let visible = page.frame.intersection(viewport)
-                guard viewport.width > 0, viewport.height > 0, !visible.isNull, !visible.isEmpty else {
+                let viewportFrame = viewport.frame
+                let visible = page.frame.intersection(viewportFrame)
+                guard viewportFrame.width > 0, viewportFrame.height > 0, !visible.isNull, !visible.isEmpty else {
                     throw StudioCapturePageReadiness.Failure.unreadablePixels
                 }
-                let scaleX = CGFloat(image.width) / viewport.width
-                let scaleY = CGFloat(image.height) / viewport.height
-                let contentBounds = CGRect(x: (visible.minX - viewport.minX) * scaleX,
-                                           y: (visible.minY - viewport.minY) * scaleY,
+                let scaleX = CGFloat(image.width) / viewportFrame.width
+                let scaleY = CGFloat(image.height) / viewportFrame.height
+                let contentBounds = CGRect(x: (visible.minX - viewportFrame.minX) * scaleX,
+                                           y: (visible.minY - viewportFrame.minY) * scaleY,
                                            width: visible.width * scaleX, height: visible.height * scaleY)
                 let pixels = try StudioCapturePageReadiness.pagePixels(from: image, contentBounds: contentBounds)
                 lastError = "The public PDF is recognized; waiting for stable pixels in \(contentBounds)."
@@ -172,9 +171,8 @@ final class StudioStoreCaptureTests: XCTestCase {
     #if os(macOS)
     /// Accepts the required window size or uses existing Accessibility trust to
     /// resize only this app's public document window. It never requests permissions.
-    private func resizePublicWindow(app: XCUIApplication, appURL: URL, title: String) throws {
+    private func resizePublicWindow(window documentWindow: XCUIElement, appURL: URL, title: String) throws {
         let desired = CGSize(width: 1280, height: 800)
-        let documentWindow = app.windows[title]
         if documentWindow.frame.size == desired { return }
         guard AXIsProcessTrusted() else {
             // An operator may prepare this window with an already authorized
