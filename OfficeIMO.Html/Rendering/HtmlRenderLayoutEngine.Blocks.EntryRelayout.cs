@@ -11,23 +11,27 @@ internal sealed partial class HtmlRenderLayoutEngine {
         if (!scope.CanProject || !boundary.HasValue || context == null) return null;
         bool siblingKeep = usesBlockFormatting && HasConstrainedSiblingPageKeep(element);
         bool constrainedOwner = usesBlockFormatting && _constrainedOverflowElements.Contains(element);
-        if (!context.TargetAncestors.Contains(element)
-            && !constrainedOwner && !(style.AvoidBreakInside && usesBlockFormatting)
-            && !siblingKeep) return null;
+        // A first-content snapshot alone must not rebuild later leaf entries:
+        // their shared fragments still own page-start margin discard.
+        bool allowsInteriorRelayout = context.TargetAncestors.Contains(element)
+            || style.AvoidBreakInside && usesBlockFormatting || siblingKeep;
+        if (!allowsInteriorRelayout && !constrainedOwner) return null;
         double available = boundary.Value.RemainingHeight
             - style.MarginTop - style.BorderTopWidth - style.PaddingTop;
         if (available <= 0.0001D)
             available += (Math.Floor(-available / context.PageHeight) + 1D) * context.PageHeight;
         // An authored first-child margin can defer its source even when this
         // owner's own box begins at an otherwise empty page.
-        if (available >= context.PageHeight - 0.0001D && !siblingKeep && !constrainedOwner) return null;
+        if (available >= context.PageHeight - 0.0001D && !siblingKeep) allowsInteriorRelayout = false;
+        if (!allowsInteriorRelayout && !constrainedOwner) return null;
         CheckCancellation();
         ChargeLayoutOperations(1L + _normalFlowPlacements.Count + _layoutStyles.Count
             + _inlineFloatOverhangs.Count + _semanticNodeIds.Count,
             "constrained entry relayout state");
         return new ConstrainedEntryRelayoutState(style.Clone(), _normalFlowPlacements.ToArray(),
             _layoutStyles.ToArray(), _inlineFloatOverhangs.ToArray(), _semanticNodeIds.ToArray(),
-            _nextSemanticNodeId, _nextLogicalTextOrder, context.Changed, context.NeedsProjection);
+            _nextSemanticNodeId, _nextLogicalTextOrder, context.Changed, context.NeedsProjection,
+            allowsInteriorRelayout);
     }
 
     /// <summary>Only ordinary sibling page keeps can request an interior child-entry rebuild.</summary>
@@ -112,5 +116,6 @@ internal sealed partial class HtmlRenderLayoutEngine {
         KeyValuePair<IElement, HtmlRenderBoxStyle>[] Styles,
         KeyValuePair<IElement, double>[] FloatOverhangs,
         KeyValuePair<IElement, int>[] SemanticNodes,
-        int SemanticOrder, int LogicalOrder, bool Changed, bool NeedsProjection);
+        int SemanticOrder, int LogicalOrder, bool Changed, bool NeedsProjection,
+        bool AllowsInteriorRelayout);
 }

@@ -379,7 +379,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 pagedPaintExtent: sourceExtent, safeBreakRanges: contentSafeBreakRanges);
             projectedContent = ProjectOrdinaryContent(source,
                 pageBoundary.Value.Shift(style.MarginTop + style.BorderTopWidth + style.PaddingTop),
-                entryRelayout == null ? null : childPaintLayers, out pagedEntryGap, out interiorGap);
+                entryRelayout?.AllowsInteriorRelayout == true ? childPaintLayers : null,
+                out pagedEntryGap, out interiorGap);
             if (interiorGap != null) return source;
             if (pagedEntryGap > 0.0001D && entryRelayout != null
                 && TryRelayoutConstrainedEntry(element, containingWidth, parentStyle, depth,

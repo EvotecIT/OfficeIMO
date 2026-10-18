@@ -78,6 +78,18 @@ public sealed partial class HtmlRenderingTests {
     }
 
     [Fact]
+    public void HtmlNestedConstrainedOverflow_InteriorMarginAtThePageBoundaryKeepsItsSharedSourceDiscard() {
+        string html = FixedHeightOverflowSource("<section style='height:200px'>"
+            + "<div style='height:60px'>KEEP-LEAD</div><div style='height:20px'>"
+            + "<p>KEEP-INNER</p><p style='margin-top:20px;break-inside:avoid'>"
+            + "KEEP-ONE<br>KEEP-TWO<br>KEEP-THREE</p></div>"
+            + "<p style='padding-left:300px'>KEEP-AFTER</p></section>");
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, FixedHeightOverflowOptions());
+
+        AssertNestedConstrainedKeep(rendered);
+    }
+
+    [Fact]
     public void HtmlNestedConstrainedOverflow_AncestorEntryMoveRebuildsItsDescendantsAtTheNewPageOrigin() {
         string html = FixedHeightOverflowSource("<div style='height:60px'>KEEP-LEAD</div>"
             + "<section style='height:80px;break-inside:avoid'>"
