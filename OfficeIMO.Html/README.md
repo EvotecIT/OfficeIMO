@@ -542,7 +542,7 @@ In ordinary horizontal flow, non-replaced inline and `display:contents` wrappers
 
 For ordinary horizontal text, missing CSS line height and `line-height: normal` use the selected face's ascent, descent and line gap. Mixed sizes and empty inline struts contribute to the same line box, including inside table cells. Authored numeric, length and percentage line heights keep their own CSS rules. Explicitly set `DefaultLineHeight` to retain a fixed fallback multiplier; leaving it unset uses font metrics when available and the 1.2 multiplier otherwise. Browser style mode gives tables no default outer margin; document style mode retains its spacing defaults.
 
-Ordinary horizontal block flow retains signed top and bottom margins, including when a block's net advance is negative. Following content can move above that block's start while its visible paint retains its own clipping and pagination extent. Full-page image height includes retained visible overflow.
+Ordinary horizontal block flow retains signed top and bottom margins, including when a block's net advance is negative. Following content can move above that block's start while its visible paint retains its own clipping and pagination extent. Full-page image height includes retained visible overflow. Browser-equivalent page fragmentation of tall fixed-height boxes remains outside this qualification.
 
 Ordinary horizontal LTR inline margins, padding and borders participate in intrinsic contributions and line placement. Signed margins affect the advance without producing negative paint widths. Token fitting includes opening and closing edges; wrapping, emergency breaks, tabs and ellipsis use the same advances. With `box-decoration-break:slice`, only the first and last fragments consume the outer edges. With `clone`, each fragment consumes its own padding and borders. Empty decorated spans retain their box advances.
 
@@ -689,7 +689,7 @@ Horizontal block flow shares float exclusions across ordinary nested and sibling
 blocks. Side-specific `clear` advances the following block; independent formatting
 contexts fit beside a float or move below it when their width cannot fit. Block
 backgrounds paint below floats, and normal text paints above them. Float paint
-metadata survives page fragmentation without repeating its text label.
+metadata survives page fragmentation without repeating its text label. A float can move whole to the next page; browser-style float splitting and placement beside adjacent tables are not qualified.
 
 ## Dependency footprint
 

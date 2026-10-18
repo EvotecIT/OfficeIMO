@@ -39,7 +39,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
             || children.Any(ContainsInFlowPaint));
 
     private static bool ContainsDeferredFlowPaint(HtmlRenderVisual visual) =>
-        visual.PaintPhase is HtmlRenderPaintPhase.Float or HtmlRenderPaintPhase.Outline
+        visual.PaintPhase is HtmlRenderPaintPhase.BlockBackground or HtmlRenderPaintPhase.Float or HtmlRenderPaintPhase.Outline
         || visual is HtmlRenderShape { IsCollapsedTableBorder: true }
         || visual.PaintPhase == HtmlRenderPaintPhase.Content && visual.StackingContext == null
             && GetFlowPaintChildren(visual)?.Any(ContainsDeferredFlowPaint) == true;
