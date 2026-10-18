@@ -32,12 +32,21 @@ final class StudioStoreCaptureTests: XCTestCase {
         defer { app.terminate() }
 
         #if os(macOS)
-        // Use the app's File > Open panel. Opening a URL through Launch Services
-        // can select another installed product with the same bundle identifier.
-        app.typeKey("o", modifierFlags: .command)
-        app.typeKey("g", modifierFlags: [.command, .shift])
-        app.typeText(path + "\n")
-        app.typeKey(.return, modifierFlags: [])
+        // Target this exact built app through the normal document-open route.
+        // The Open panel can restore an unrelated removable-volume location;
+        // bundle-only URL dispatch can instead choose another installed build.
+        let running = try XCTUnwrap(NSRunningApplication.runningApplications(withBundleIdentifier: "com.evotec.officeimo.studio")
+            .first { $0.bundleURL?.standardizedFileURL == appURL.standardizedFileURL })
+        let expectedPID = running.processIdentifier
+        let opened = expectation(description: "The exact capture app receives the public PDF")
+        NSWorkspace.shared.open([URL(fileURLWithPath: path)], withApplicationAt: appURL,
+                                configuration: NSWorkspace.OpenConfiguration()) { application, error in
+            XCTAssertNil(error)
+            XCTAssertEqual(application?.bundleURL?.standardizedFileURL, appURL.standardizedFileURL)
+            XCTAssertEqual(application?.processIdentifier, expectedPID)
+            opened.fulfill()
+        }
+        wait(for: [opened], timeout: 15)
         let window = app.windows[URL(fileURLWithPath: path).lastPathComponent]
         XCTAssertTrue(window.waitForExistence(timeout: 30), app.debugDescription)
         try resizePublicWindow(app: app, appURL: appURL, title: URL(fileURLWithPath: path).lastPathComponent)
@@ -74,6 +83,7 @@ final class StudioStoreCaptureTests: XCTestCase {
         var previousPixels: Data?
         var stableSince: TimeInterval?
         var accepted: XCUIScreenshot?
+        var lastSampled: XCUIScreenshot?
         var lastError = "The public dashboard has not rendered."
         let rendered = XCTNSPredicateExpectation(predicate: NSPredicate { _, _ in
             guard app.progressIndicators.count == 0, app.alerts.count == 0,
@@ -83,6 +93,7 @@ final class StudioStoreCaptureTests: XCTestCase {
                 return false
             }
             let screenshot = self.snapshot(app)
+            lastSampled = screenshot
             do {
                 guard let source = CGImageSourceCreateWithData(screenshot.pngRepresentation as CFData, nil),
                       let image = CGImageSourceCreateImageAtIndex(source, 0, nil) else {
@@ -121,8 +132,10 @@ final class StudioStoreCaptureTests: XCTestCase {
             }
         }, object: nil)
         let status = XCTWaiter.wait(for: [rendered], timeout: 45)
-        if status != .completed {
-            let rejected = XCTAttachment(screenshot: snapshot(app))
+        if status != .completed, let lastSampled {
+            // Keep the actual last sample. A fresh AX request after a waiter's
+            // timeout can itself be interrupted and obscure the rejection reason.
+            let rejected = XCTAttachment(screenshot: lastSampled)
             rejected.name = name + "-rejected"
             rejected.lifetime = .keepAlways
             add(rejected)
