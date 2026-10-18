@@ -296,6 +296,26 @@ public sealed partial class HtmlRenderingTests {
         Assert.DoesNotContain(text, item => item.Text.Contains("cont.", StringComparison.Ordinal));
     }
 
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void HtmlColumns_DiscardedMarginRetainsOneAdvanceBeforeFollowingSmallBlock(bool forced) {
+        string body = "<p style='height:30px'>BREAK-LEAD</p><p style='margin-bottom:20px;orphans:2;widows:2;"
+            + (forced ? "break-after:column" : "") + "'>BREAK-ONE<br>BREAK-TWO<br>BREAK-THREE</p>"
+            + "<div id='break-spacer' style='height:5px;background:#174b72;font-size:0'></div><p>BREAK-FOUR</p>";
+
+        HtmlRenderDocument rendered = RenderColumnBreaks(body, "column-fill:auto;height:100px");
+
+        AssertColumnBreakPlacements(rendered, ("BREAK-LEAD", 0D, 0D), ("BREAK-ONE", 0D, 30D),
+            ("BREAK-TWO", 0D, 50D), ("BREAK-THREE", 0D, 70D), ("BREAK-FOUR", 160D, 5D),
+            ("BREAK-AFTER", 0D, 100D));
+        HtmlRenderShape spacer = FindColumnShape(rendered, "div#break-spacer");
+        Assert.Equal(160D, spacer.X, 3);
+        Assert.Equal(0D, spacer.Y, 3);
+        Assert.Equal(5D, spacer.Height, 3);
+        AssertColumnBreaksQualified(rendered);
+    }
+
     private static HtmlRenderDocument RenderColumnBreaks(string body, string columnStyle = "column-fill:auto") {
         HtmlRenderOptions options = ColumnPageBandOptions();
         options.Mode = HtmlRenderMode.Continuous;

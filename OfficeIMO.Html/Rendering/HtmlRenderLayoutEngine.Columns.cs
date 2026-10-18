@@ -235,12 +235,18 @@ internal sealed partial class HtmlRenderLayoutEngine {
         ColumnFlowBreaks source = BuildColumnFlowBreaks(blocks);
         int forcedIndex = 0;
         double childSourceStart = 0D;
+        bool pendingNaturalAdvance = false;
         int column = 0;
         double y = floats?.Top(0) ?? 0D;
         double usedHeight = 0D;
         for (int childIndex = 0; childIndex < blocks.Count; childIndex++) {
             HtmlRenderFlowBlock child = blocks[childIndex];
-            ApplyForcedColumnBoundaries(childSourceStart, childIndex);
+            bool forcedAdvance = ApplyForcedColumnBoundaries(childSourceStart, childIndex);
+            if (pendingNaturalAdvance && !forcedAdvance) {
+                column++;
+                y = floats?.Top(column) ?? 0D;
+            }
+            pendingNaturalAdvance = false;
             if (column + 1 > maximumGeneratedColumns) {
                 if (throwOnLimit) EnsureMultiColumnLimit(column + 1);
                 return new MultiColumnPlan(fragments, column + 1, usedHeight);
@@ -327,7 +333,10 @@ internal sealed partial class HtmlRenderLayoutEngine {
                         y = floats?.Top(column) ?? 0D;
                         continue;
                     }
-                    if (notes != null) end = RestrictFragmentBeforeDeferredColumnCall(child, start, end, column, freshHeight, notes);
+                    if (notes != null) {
+                        end = RestrictFragmentBeforeDeferredColumnCall(child, start, end, column, freshHeight, notes);
+                        forcedEnd = Math.Abs(childSourceStart + end - nextForced) <= 0.0001D;
+                    }
                     if (end <= start + 0.0001D) {
                         EnsureMultiColumnLimit(column + 2);
                         column++;
@@ -345,7 +354,10 @@ internal sealed partial class HtmlRenderLayoutEngine {
                     // A natural cut discards only a proven unpainted margin.
                     // Consume it before advancing so a following forced sibling
                     // boundary does not create a second empty column.
+                    double beforeMargin = start;
                     start = SkipUnpaintedLeadingMarginAtPageStart(child, start, HtmlFragmentationScope.Column);
+                    if (start > beforeMargin + 0.0001D && start >= child.Height - 0.0001D)
+                        pendingNaturalAdvance = true;
                 }
                 if (start < child.Height - 0.0001D && !forcedEnd) {
                     if (column + 2 > maximumGeneratedColumns) {
@@ -366,7 +378,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
             return forcedIndex < source.Forced.Count ? source.Forced[forcedIndex].Offset : double.PositiveInfinity;
         }
 
-        void ApplyForcedColumnBoundaries(double offset, int childIndex) {
+        bool ApplyForcedColumnBoundaries(double offset, int childIndex) {
+            int originalColumn = column;
             while (NextForcedColumnBoundary() <= offset + 0.0001D
                 && source.Forced[forcedIndex].ChildIndex <= childIndex) {
                 CheckCancellation();
@@ -376,6 +389,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 y = floats?.Top(column) ?? 0D;
                 forcedIndex++;
             }
+            return column != originalColumn;
         }
     }
 
