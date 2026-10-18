@@ -169,13 +169,18 @@ internal sealed class HtmlRenderFlowBlock {
     // positive. Preserve that fact through margin removal and paint grouping.
     internal bool HasZeroHeightOrdinaryContent { get; set; }
 
-    private HtmlRenderFlowBlock CopyOrdinaryContentFact(HtmlRenderFlowBlock block) {
+    /// <summary>Outer block advance before physical column-page projection, when available.</summary>
+    internal double? UnfragmentedHeight { get; set; }
+
+    private HtmlRenderFlowBlock CopyLayoutFacts(HtmlRenderFlowBlock block, double unfragmentedAdjustment = 0D) {
         block.HasZeroHeightOrdinaryContent = HasZeroHeightOrdinaryContent;
+        block.UnfragmentedHeight = UnfragmentedHeight.HasValue
+            ? Math.Max(0D, UnfragmentedHeight.Value + unfragmentedAdjustment) : null;
         return block;
     }
 
     internal HtmlRenderFlowBlock WithLayoutViewport(double width, double height) =>
-        CopyOrdinaryContentFact(new HtmlRenderFlowBlock(
+        CopyLayoutFacts(new HtmlRenderFlowBlock(
             Width,
             Height,
             Visuals,
@@ -211,7 +216,7 @@ internal sealed class HtmlRenderFlowBlock {
             safeBreakRanges: SafeBreakRanges));
 
     internal HtmlRenderFlowBlock TranslateRelativePaint(double offsetX, double offsetY) =>
-        CopyOrdinaryContentFact(new HtmlRenderFlowBlock(
+        CopyLayoutFacts(new HtmlRenderFlowBlock(
             Width,
             Height,
             Visuals.Select(visual => visual.TranslateRelativePaint(offsetX, offsetY, visual.PaintOrder)),
@@ -248,7 +253,7 @@ internal sealed class HtmlRenderFlowBlock {
 
     internal HtmlRenderFlowBlock WithStacking(int zIndex, int sourceOrder) {
         var context = new HtmlRenderStackingContext(zIndex, sourceOrder);
-        return CopyOrdinaryContentFact(new HtmlRenderFlowBlock(
+        return CopyLayoutFacts(new HtmlRenderFlowBlock(
             Width,
             Height,
             Visuals.Select(visual => visual.WithStackingContext(context)),
@@ -287,7 +292,7 @@ internal sealed class HtmlRenderFlowBlock {
     internal HtmlRenderFlowBlock WithVisuals(IEnumerable<HtmlRenderVisual> visuals, double? pagedPaintExtent = null,
         double pagedBreakTranslation = 0D, IEnumerable<HtmlRenderContinuationGroup>? continuationGroups = null,
         IEnumerable<HtmlRenderTrailingGroup>? trailingGroups = null, double? width = null, double? height = null) =>
-        CopyOrdinaryContentFact(new HtmlRenderFlowBlock(
+        CopyLayoutFacts(new HtmlRenderFlowBlock(
             width ?? Width,
             height ?? Height,
             visuals,
@@ -333,7 +338,7 @@ internal sealed class HtmlRenderFlowBlock {
 
     internal HtmlRenderFlowBlock ForPagination() {
         if (PagedPaintExtent <= Height + 0.0001D) return this;
-        return CopyOrdinaryContentFact(new HtmlRenderFlowBlock(
+        return CopyLayoutFacts(new HtmlRenderFlowBlock(
             Width,
             PagedPaintExtent,
             Visuals,
@@ -373,7 +378,7 @@ internal sealed class HtmlRenderFlowBlock {
         double adjustedUnclampedHeight = UnclampedHeight - adjustment;
         double adjustedHeight = HasZeroHeightOrdinaryContent && adjustedUnclampedHeight == 0D
             ? 0D : Math.Max(0.01D, adjustedUnclampedHeight);
-        return CopyOrdinaryContentFact(new HtmlRenderFlowBlock(
+        return CopyLayoutFacts(new HtmlRenderFlowBlock(
             Width,
             adjustedHeight,
             Visuals.Select((visual, index) => visual.Translate(0D, -adjustment, index)),
@@ -407,12 +412,12 @@ internal sealed class HtmlRenderFlowBlock {
             avoidBreakRanges: AvoidBreakRanges.Select(range =>
                 new HtmlRenderAvoidBreakRange(Math.Max(0D, range.Start - adjustment), range.End - adjustment, range.Soft)),
             pagedPaintExtent: Math.Max(adjustedHeight, PagedPaintExtent - adjustment),
-            safeBreakRanges: SafeBreakRanges.Select(range => range.Translate(-adjustment))));
+            safeBreakRanges: SafeBreakRanges.Select(range => range.Translate(-adjustment))), -adjustment);
     }
 
     internal HtmlRenderFlowBlock WithCollapsibleMargins(double top, double bottom, IElement ownerElement,
         bool collapsesThrough = false, HtmlCollapsedMargin? topGroup = null, HtmlCollapsedMargin? bottomGroup = null) =>
-        CopyOrdinaryContentFact(new HtmlRenderFlowBlock(
+        CopyLayoutFacts(new HtmlRenderFlowBlock(
             Width,
             Height,
             Visuals,
@@ -450,7 +455,7 @@ internal sealed class HtmlRenderFlowBlock {
             safeBreakRanges: SafeBreakRanges));
 
     internal HtmlRenderFlowBlock WithRunningStringAssignments(IEnumerable<HtmlCssRunningStringAssignment> assignments) =>
-        CopyOrdinaryContentFact(new HtmlRenderFlowBlock(
+        CopyLayoutFacts(new HtmlRenderFlowBlock(
             Width,
             Height,
             Visuals,
@@ -491,7 +496,7 @@ internal sealed class HtmlRenderFlowBlock {
         double adjustedHeight = HasZeroHeightOrdinaryContent && adjustedUnclampedHeight == 0D
             ? 0D : Math.Max(0.01D, adjustedUnclampedHeight);
         double adjustedPaintExtent = Math.Max(adjustedHeight, PagedPaintExtent - adjustment);
-        return CopyOrdinaryContentFact(new HtmlRenderFlowBlock(
+        return CopyLayoutFacts(new HtmlRenderFlowBlock(
             Width,
             adjustedHeight,
             Visuals,
@@ -524,7 +529,7 @@ internal sealed class HtmlRenderFlowBlock {
             collapsibleMarginBottomGroup: CollapsibleMarginBottomGroup,
             avoidBreakRanges: AvoidBreakRanges.Select(range => range.WithEnd(Math.Min(range.End, adjustedPaintExtent))),
             pagedPaintExtent: adjustedPaintExtent,
-            safeBreakRanges: SafeBreakRanges));
+            safeBreakRanges: SafeBreakRanges), -adjustment);
     }
 }
 

@@ -3,6 +3,8 @@ using AngleSharp.Dom;
 namespace OfficeIMO.Html;
 
 internal sealed partial class HtmlRenderLayoutEngine {
+    private int _columnContentDepth;
+
     private IReadOnlyList<HtmlRenderFlowBlock> BuildMultiColumnChildBlocks(
         IElement element,
         IEnumerable<INode> nodes,
@@ -11,6 +13,18 @@ internal sealed partial class HtmlRenderLayoutEngine {
         int depth,
         bool includeGeneratedBefore = true,
         bool includeGeneratedAfter = true) {
+        _columnContentDepth++;
+        try {
+            return BuildMultiColumnChildBlocksCore(element, nodes, width, style, depth,
+                includeGeneratedBefore, includeGeneratedAfter);
+        } finally {
+            _columnContentDepth--;
+        }
+    }
+
+    private IReadOnlyList<HtmlRenderFlowBlock> BuildMultiColumnChildBlocksCore(
+        IElement element, IEnumerable<INode> nodes, double width, HtmlRenderBoxStyle style, int depth,
+        bool includeGeneratedBefore, bool includeGeneratedAfter) {
         if (!ContainsFloatingDescendant(element, width, style, depth)) {
             return BuildChildBlocks(element, nodes, width, style, depth,
                 includeGeneratedBefore, includeGeneratedAfter);

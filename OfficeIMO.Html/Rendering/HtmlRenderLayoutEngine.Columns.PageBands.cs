@@ -42,12 +42,14 @@ internal sealed partial class HtmlRenderLayoutEngine {
             if (attempt == null || !ReferenceEquals(attempt.Element, element)
                 || attempt.Boundary.RemainingHeight <= 0.0001D || attempt.Boundary.FragmentStart > 0.0001D) return null;
             context = new ColumnPaginationContext(attempt.Boundary, attempt.PageNumber, attempt.Geometry,
-                attempt.PageHeight, width, attempt.PageName);
+                attempt.PageHeight, width, attempt.PageName, attempt.UnfragmentedHeight);
         }
         // Short fixed-height sets retain their established overflow contract.
         // Their inline overflow is independent of the physical page fragment.
+        bool intrinsicAllocation = _layoutStyles.TryGetValue(element, out HtmlRenderBoxStyle? style)
+            && style.IntrinsicColumnHeightAllocation;
         if (Math.Abs(context.Width - width) > 0.0001D
-            || declaredHeight.HasValue && declaredHeight.Value < context.PageHeight - 0.0001D) return null;
+            || !intrinsicAllocation && declaredHeight.HasValue && declaredHeight.Value < context.PageHeight - 0.0001D) return null;
         if (_columnEdgeFloatEntries.Values.Any(entry => ReferenceEquals(entry.Owner, element)
             && entry.Body.Height >= context.PageHeight - 0.0001D)) return null;
         return new ColumnPageBands(this, context, requestedCount, sourceHeight,

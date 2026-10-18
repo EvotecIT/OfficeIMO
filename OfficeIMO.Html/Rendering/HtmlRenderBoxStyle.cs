@@ -165,6 +165,9 @@ internal sealed class HtmlRenderBoxStyle {
     internal string TablePercentageHeight = string.Empty;
     // Flex/grid stretching supplies a used height without changing the authored auto-height contract.
     internal bool AutoHeightLayoutStretch;
+    // A flex/grid allocation equal to the intrinsic column height still needs
+    // its definite percentage basis, but may fragment at physical page bands.
+    internal bool IntrinsicColumnHeightAllocation;
     internal double? MinWidth;
     internal double? MinWidthWithIndefiniteReference;
     internal double? MaxWidth;
@@ -248,6 +251,7 @@ internal sealed class HtmlRenderBoxStyle {
     internal bool AvoidBreakInside;
     internal bool AvoidBreakBefore;
     internal bool AvoidBreakAfter;
+    internal string UnsupportedColumnBreaks = string.Empty;
     internal int Orphans = 2;
     internal int Widows = 2;
     internal string? PageName;

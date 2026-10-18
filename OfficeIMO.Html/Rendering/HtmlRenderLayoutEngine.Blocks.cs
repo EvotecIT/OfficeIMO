@@ -521,6 +521,12 @@ internal sealed partial class HtmlRenderLayoutEngine {
             avoidBreakRanges: contentAvoidBreakRanges.Select(range => range.Translate(contentYForBreaks)),
             pagedPaintExtent: pagedPaintExtent,
             safeBreakRanges: safeBreakRanges);
+        if (!usesVerticalBlockFormatting && children.Any(child => child.UnfragmentedHeight.HasValue)) {
+            double sourceContentHeight = children.Sum(child => child.UnfragmentedHeight ?? child.Height);
+            if (ownsFloatContext) sourceContentHeight = Math.Max(sourceContentHeight, contentFloats.Bottom);
+            block.UnfragmentedHeight = Math.Max(0D, style.MarginTop + style.MarginBottom
+                + ResolveBoxHeight(sourceContentHeight, boxWidth, style));
+        }
         if (ownsFloatContext) block = OrderBoxFlowPaint(block);
         block = ApplyElementSemantics(block, element, style);
         if (ownsFloatContext) CloseBoxFlowPaint(block);

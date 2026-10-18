@@ -3,6 +3,25 @@ using OfficeIMO.Drawing;
 namespace OfficeIMO.Html;
 
 internal sealed partial class HtmlRenderLayoutEngine {
+    /// <summary>Imports known blank allocation tails left by projected column items.</summary>
+    private IEnumerable<HtmlRenderBreakRange> EnumerateUnfragmentedAllocationBreakRanges(
+        IEnumerable<FlowPaintLayer> layers, double extent, bool includeContainerTail = false) {
+        double lastEnd = 0D;
+        foreach (FlowPaintLayer layer in layers) {
+            CheckCancellation();
+            ChargeLayoutOperation("unfragmented allocation intervals");
+            HtmlRenderFlowBlock block = layer.Block;
+            foreach (HtmlRenderBreakRange range in block.SafeBreakRanges) yield return range.Translate(layer.Y);
+            double paintedEnd = layer.Y + block.PagedPaintExtent;
+            lastEnd = Math.Max(lastEnd, paintedEnd);
+            if (block.UnfragmentedHeight is double allocated && allocated > block.PagedPaintExtent + 0.0001D) {
+                yield return new HtmlRenderBreakRange(paintedEnd, Math.Min(extent, layer.Y + allocated));
+            }
+        }
+        if (includeContainerTail && lastEnd < extent - 0.0001D)
+            yield return new HtmlRenderBreakRange(lastEnd, extent);
+    }
+
     /// <summary>
     /// Imports source intervals only where every overlapping item permits the
     /// same cut. Paragraph groups remain on the container for fragment-relative

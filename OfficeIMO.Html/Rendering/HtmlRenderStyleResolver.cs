@@ -1204,6 +1204,10 @@ internal sealed partial class HtmlRenderStyleResolver {
         style.BreakAfter = ResolvePageBreakTarget(after);
         style.AvoidBreakBefore = IsAvoidPageBreak(before);
         style.AvoidBreakAfter = IsAvoidPageBreak(after);
+        if (before is "column" or "avoid-column") style.UnsupportedColumnBreaks = "break-before=" + before;
+        if (after is "column" or "avoid-column") style.UnsupportedColumnBreaks += ";break-after=" + after;
+        if (string.Equals(inside, "avoid-column", StringComparison.OrdinalIgnoreCase))
+            style.UnsupportedColumnBreaks += ";break-inside=avoid-column";
         style.AvoidBreakInside = string.Equals(inside, "avoid", StringComparison.OrdinalIgnoreCase)
             || string.Equals(inside, "avoid-page", StringComparison.OrdinalIgnoreCase)
             // Scroll containers establish an independent formatting context. Keep a

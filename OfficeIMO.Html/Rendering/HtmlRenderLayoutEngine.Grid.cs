@@ -227,7 +227,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
             return ranges.Select(range => range.Translate(contentY + rows.Positions[item.Row] + item.OffsetY));
         });
         IReadOnlyList<HtmlRenderBreakRange> safeBreakRanges = CollectSafeParallelBreakRanges(
-            itemPaintLayers.Select(layer => (layer.Block, layer.Y)), outerHeight);
+            itemPaintLayers.Select(layer => (layer.Block, layer.Y)), outerHeight,
+            sourceRanges: EnumerateUnfragmentedAllocationBreakRanges(itemPaintLayers, outerHeight));
         // Unprojected grid items do not lend repeat reservations to this shared
         // cursor. Keep those table arrangements on their discrete fallback.
         safeBreakRanges = HtmlRenderBreakRange.Exclude(safeBreakRanges, itemPaintLayers
@@ -417,7 +418,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         double? declaredContentHeight) {
         var sizes = tracks.Select(track => track.Kind == GridTrackKind.Fixed ? Math.Max(track.Value, track.Minimum) : track.Minimum).ToList();
         foreach (GridItem item in items.OrderBy(item => item.RowSpan)) {
-            double required = item.Block!.Height;
+            double required = item.Block!.UnfragmentedHeight ?? item.Block.Height;
             double current = sizes.Skip(item.Row).Take(item.RowSpan).Sum() + gap * Math.Max(0, item.RowSpan - 1);
             double deficit = Math.Max(0D, required - current);
             if (deficit <= 0D) continue;
@@ -454,6 +455,12 @@ internal sealed partial class HtmlRenderLayoutEngine {
         if (vertical == "stretch" && !item.HasExplicitHeight && !HasVerticalAutoMargin(style)) {
             double targetBoxHeight = Math.Max(0.01D, cellHeight - style.MarginTop - style.MarginBottom);
             style.AutoHeightLayoutStretch = true;
+            double naturalBoxHeight = (item.Block!.UnfragmentedHeight ?? item.Block.Height)
+                - style.MarginTop - style.MarginBottom;
+            // An unchanged intrinsic column set retains auto height for page
+            // planning. A different track allocation remains a real constraint.
+            style.IntrinsicColumnHeightAllocation = HasMultiColumnLayout(style)
+                && Math.Abs(targetBoxHeight - naturalBoxHeight) <= 0.0001D;
             style.ExplicitHeight = style.BorderBox ? targetBoxHeight : Math.Max(0.01D, targetBoxHeight - style.VerticalInsets);
         }
         item.Item.Style = style;

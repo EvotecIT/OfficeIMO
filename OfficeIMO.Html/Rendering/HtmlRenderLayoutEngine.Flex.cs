@@ -91,7 +91,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 item.Block = LayoutFlexItem(item, Math.Max(1D, item.MainSize), style, depth + 1);
             }
 
-            line.CrossSize = line.Items.Count == 0 ? 0D : line.Items.Max(item => item.Block!.Height);
+            line.CrossSize = line.Items.Count == 0 ? 0D : line.Items.Max(item => item.Block!.UnfragmentedHeight ?? item.Block.Height);
         }
 
         double rowGap = lines.Count > 1 ? style.RowGap : 0D;
@@ -124,10 +124,10 @@ internal sealed partial class HtmlRenderLayoutEngine {
                         item.Block = LayoutFlexItem(item, Math.Max(1D, item.MainSize), style, depth + 1,
                             pageBoundary.Value.Shift(contentYForBoundary + line.CrossOffset + item.CrossOffset));
                     }
-                    line.CrossSize = line.Items.Count == 0 ? 0D : line.Items.Max(item => item.Block!.Height);
+                    line.CrossSize = line.Items.Count == 0 ? 0D : line.Items.Max(item => item.Block!.UnfragmentedHeight ?? item.Block.Height);
                     RestretchRowFlexSiblings(line.Items, style, line.CrossSize, depth,
                         pageBoundary.Value.Shift(contentYForBoundary + line.CrossOffset));
-                    line.CrossSize = line.Items.Count == 0 ? 0D : line.Items.Max(item => item.Block!.Height);
+                    line.CrossSize = line.Items.Count == 0 ? 0D : line.Items.Max(item => item.Block!.UnfragmentedHeight ?? item.Block.Height);
                 }
                 naturalCrossSize = lines.Sum(line => line.CrossSize) + rowGap * Math.Max(0, lines.Count - 1);
                 crossSize = ResolveFlexCrossSize(style, naturalCrossSize);
@@ -400,7 +400,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
             ? item.Style.MarginTop + item.Style.MarginBottom
             : item.Style.MarginLeft + item.Style.MarginRight));
 
-    private static double ClampFlexMainSize(FlexItem item, double value, bool vertical) {
+    private static double ClampFlexMainSize(FlexItem item, double value, bool vertical, double? automaticMinimum = null) {
         HtmlRenderBoxStyle style = item.Style;
         double insets = vertical ? style.VerticalInsets : style.HorizontalInsets;
         double margins = vertical
@@ -410,7 +410,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         double? declaredMinimum = vertical ? style.MinHeight : style.MinWidth;
         double? declaredMaximum = vertical ? style.MaxHeight : style.MaxWidth;
         double minimum = declaredMinimum.HasValue ? declaredMinimum.Value + nonContent
-            : vertical ? 0D : item.AutomaticMinimumMainSize;
+            : automaticMinimum ?? item.AutomaticMinimumMainSize;
         double maximum = declaredMaximum.HasValue ? declaredMaximum.Value + nonContent : double.PositiveInfinity;
         // Border-box dimensions cannot shrink below their padding and borders.
         return Math.Max(insets + margins, Math.Max(minimum, Math.Min(maximum, Math.Max(0D, value))));
@@ -430,6 +430,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
             double targetBoxHeight = Math.Max(0.01D, crossSize - item.Style.MarginTop - item.Style.MarginBottom);
             var stretchedStyle = item.Style.Clone();
             stretchedStyle.AutoHeightLayoutStretch = true;
+            stretchedStyle.IntrinsicColumnHeightAllocation = HasMultiColumnLayout(item.Style)
+                && Math.Abs(crossSize - (item.Block!.UnfragmentedHeight ?? item.Block.Height)) <= 0.0001D;
             stretchedStyle.ExplicitHeight = stretchedStyle.BorderBox
                 ? targetBoxHeight
                 : Math.Max(0.01D, targetBoxHeight - stretchedStyle.VerticalInsets);
@@ -448,6 +450,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
             double targetBoxHeight = Math.Max(0.01D, crossSize - item.Style.MarginTop - item.Style.MarginBottom);
             HtmlRenderBoxStyle stretchedStyle = item.Style.Clone();
             stretchedStyle.AutoHeightLayoutStretch = true;
+            stretchedStyle.IntrinsicColumnHeightAllocation = HasMultiColumnLayout(item.Style)
+                && Math.Abs(crossSize - (item.Block!.UnfragmentedHeight ?? item.Block.Height)) <= 0.0001D;
             stretchedStyle.ExplicitHeight = stretchedStyle.BorderBox
                 ? targetBoxHeight
                 : Math.Max(0.01D, targetBoxHeight - stretchedStyle.VerticalInsets);

@@ -39,12 +39,21 @@ internal sealed partial class HtmlRenderLayoutEngine {
         IReadOnlyList<HtmlRenderFlowBlock> children = BuildColumnChildren(
             element, columnWidth, style, depth);
         double? declaredHeight = ResolveDeclaredColumnContentHeight(style);
+        double? maximumHeight = style.MaxHeight.HasValue
+            ? Math.Max(0.01D, Math.Max(style.MaxHeight.Value, style.MinHeight ?? 0D)
+                - (style.BorderBox ? style.VerticalInsets : 0D)) : null;
+        double naturalHeight = children.Sum(child => child.Height);
         double targetHeight;
-        if (declaredHeight.HasValue && style.ColumnFill == "auto") {
-            targetHeight = declaredHeight.Value;
+        if (style.ColumnFill == "auto") {
+            // Without a block-size constraint, sequential filling has no
+            // reason to advance to another column. Measure at column width;
+            // physical page bands can still supply a smaller capacity below.
+            targetHeight = declaredHeight ?? Math.Max(0.01D,
+                ResolveBoxHeight(naturalHeight, boxWidth, style) - style.VerticalInsets);
         } else {
             double balanced = ResolveBalancedColumnHeight(children, requestedCount, element, columnWidth);
             targetHeight = declaredHeight.HasValue ? Math.Min(declaredHeight.Value, balanced) : balanced;
+            if (maximumHeight.HasValue) targetHeight = Math.Min(targetHeight, maximumHeight.Value);
         }
         targetHeight = Math.Max(0.01D, targetHeight);
 
@@ -81,7 +90,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
             ? Math.Max(minimumColumnBoxExtent, Math.Max(declaredHeight ?? 0D, plan.UsedHeight))
             : columnPageBreaks.Count > 0
                 ? Math.Max(declaredHeight ?? targetHeight, plan.UsedHeight)
-                : declaredHeight ?? Math.Max(targetHeight, plan.UsedHeight);
+                : declaredHeight ?? (style.ColumnFill == "auto" && !(maximumHeight.HasValue && naturalHeight > maximumHeight.Value)
+                    ? plan.UsedHeight : Math.Max(targetHeight, plan.UsedHeight));
         double boxHeight = ResolveBoxHeight(contentHeight, boxWidth, style);
         if (columnPageBreaks.Count > 0) boxHeight = Math.Max(boxHeight, contentHeight + style.VerticalInsets);
         double outerHeight = Math.Max(0.01D, style.MarginTop + boxHeight + style.MarginBottom);
@@ -144,6 +154,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                         ? new[] { new HtmlRenderBreakRange(plan.UsedHeight, contentHeight) }
                         : Array.Empty<HtmlRenderBreakRange>())
                     .Select(range => range.Translate(contentY)).ToArray(), visuals));
+        block.UnfragmentedHeight = pageBands?.Context.UnfragmentedHeight;
         if (pagedColumnRegion) _pagedColumnRegions[element] = block;
         return true;
     }
@@ -388,6 +399,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
         if (style.UnsupportedColumnFill.Length > 0) details.Add("column-fill=" + style.UnsupportedColumnFill);
         if (style.UnsupportedColumnSpan.Length > 0) details.Add("column-span=" + style.UnsupportedColumnSpan);
         if (style.UnsupportedColumnRule.Length > 0) details.Add(style.UnsupportedColumnRule);
+        if (_columnContentDepth > 0 && style.UnsupportedColumnBreaks.Length > 0)
+            details.Add(style.UnsupportedColumnBreaks.TrimStart(';'));
         if (details.Count == 0) return;
         _diagnostics.Add(
             ComponentName,

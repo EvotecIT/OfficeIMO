@@ -29,6 +29,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         IElement? target = null;
         double targetContentStart = 0D;
         double targetStart = double.PositiveInfinity;
+        double unfragmentedHeight = 0D;
         foreach (KeyValuePair<IElement, HtmlRenderFlowBlock> entry in _pagedColumnRegions) {
             CheckCancellation();
             ChargeLayoutOperation("column page-boundary discovery");
@@ -58,6 +59,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
             target = entry.Key;
             targetContentStart = contentStart;
             targetStart = start;
+            unfragmentedHeight = entry.Value.UnfragmentedHeight ?? entry.Value.Height;
         }
         if (target == null) return false;
 
@@ -73,7 +75,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         double leading = isRoot ? 0D : block.LeadingFlowAdjustment;
         var boundary = new PagedFloatBoundary(offset + available + leading, pageHeight, offset + leading);
         var attempt = new ColumnPaginationAttempt(target, pageNumber, geometry, pageHeight,
-            block.PageName, boundary.Shift(targetContentStart));
+            block.PageName, boundary.Shift(targetContentStart), unfragmentedHeight);
         _columnPaginationAttempt = attempt;
         try {
             HtmlRenderFlowBlock candidate = isRoot
@@ -94,17 +96,18 @@ internal sealed partial class HtmlRenderLayoutEngine {
     }
 
     private sealed record ColumnPaginationContext(PagedFloatBoundary Boundary, int PageNumber,
-        HtmlCssPageGeometry Geometry, double PageHeight, double Width, string? PageName);
+        HtmlCssPageGeometry Geometry, double PageHeight, double Width, string? PageName, double UnfragmentedHeight);
 
     private sealed class ColumnPaginationAttempt {
         internal ColumnPaginationAttempt(IElement element, int pageNumber, HtmlCssPageGeometry geometry,
-            double pageHeight, string? pageName, PagedFloatBoundary boundary) {
+            double pageHeight, string? pageName, PagedFloatBoundary boundary, double unfragmentedHeight) {
             Element = element;
             PageNumber = pageNumber;
             Geometry = geometry;
             PageHeight = pageHeight;
             PageName = pageName;
             Boundary = boundary;
+            UnfragmentedHeight = unfragmentedHeight;
         }
         internal IElement Element { get; }
         internal int PageNumber { get; }
@@ -112,6 +115,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         internal double PageHeight { get; }
         internal string? PageName { get; }
         internal PagedFloatBoundary Boundary { get; }
+        internal double UnfragmentedHeight { get; }
         internal ColumnPaginationContext? Context { get; set; }
     }
 }
