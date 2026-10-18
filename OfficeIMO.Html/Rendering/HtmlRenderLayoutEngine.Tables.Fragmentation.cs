@@ -219,8 +219,21 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 end: cell.Inline.Height) };
         }
         foreach (HtmlRenderLineBreakGroup group in source) {
-            ChargeLayoutOperation("table rowspan paragraph constraints");
-            groups.Add(group.WithInteriorBreaks().Translate(contentY));
+            ChargeLayoutOperations((long)group.Offsets.Count + 1L, "table rowspan paragraph constraints");
+            HtmlRenderLineBreakGroup projected = group;
+            if (!group.HasImplicitFinalLine && group.Offsets.Count > 0
+                && cell.Inline.PagedPaintExtent > cell.Inline.Height + 0.0001D
+                && group.End > cell.Inline.Height + 0.0001D
+                && group.End <= cell.Inline.PagedPaintExtent + 0.0001D
+                && Math.Abs(group.Offsets[group.Offsets.Count - 1] - group.End) <= 0.0001D) {
+                // The content's final line is complete even when the box's
+                // background continues beyond the row's normal end. Retain that
+                // paint tail without requiring widows after a finished paragraph.
+                projected = new HtmlRenderLineBreakGroup(group.Offsets.Take(group.Offsets.Count - 1),
+                    group.Orphans, group.Widows, hasImplicitFinalLine: true, group.Start, group.End,
+                    checkInteriorBreaks: true, finalLineMarginBreak: group.FinalLineMarginBreak);
+            }
+            groups.Add(projected.WithInteriorBreaks().Translate(contentY));
         }
     }
 

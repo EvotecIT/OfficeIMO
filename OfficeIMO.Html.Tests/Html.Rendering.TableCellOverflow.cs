@@ -19,11 +19,16 @@ public sealed partial class HtmlRenderingTests {
             HtmlRenderDocument rendered = RenderNegativeFlow(content, mode, HtmlRenderUserAgentStyleMode.Browser,
                 ClippedTableCellCss);
             HtmlRenderPage page = Assert.Single(rendered.Pages);
-            HtmlRenderClipGroup clip = Assert.Single(EnumerateRenderVisuals(page.Scene).OfType<HtmlRenderClipGroup>(),
-                group => group.Source == "td#cell");
-            Assert.Equal(decorated ? 2D : 0D, clip.ClipX, 4);
-            Assert.Equal(decorated ? 2D : 0D, clip.ClipY, 4);
-            Assert.Equal(decorated ? 90D : 80D, clip.ClipHeight, 4);
+            HtmlRenderClipGroup[] clips = EnumerateRenderVisuals(page.Scene).OfType<HtmlRenderClipGroup>()
+                .Where(group => group.Source == "td#cell").ToArray();
+            Assert.NotEmpty(clips);
+            Assert.All(clips, clip => {
+                Assert.True(clip.ClipHorizontal && clip.ClipVertical);
+                Assert.Equal(decorated ? 2D : 0D, clip.ClipX, 4);
+                Assert.Equal(decorated ? 2D : 0D, clip.ClipY, 4);
+                Assert.Equal(decorated ? 116D : 120D, clip.ClipWidth, 4);
+                Assert.Equal(decorated ? 90D : 80D, clip.ClipHeight, 4);
+            });
             Assert.Equal(decorated ? 67D : 60D, NegativeFlowShape(rendered, "div#after").Y, 4);
             OfficeRasterImage image = OfficeDrawingRasterRenderer.Render(page.CreateDrawing());
             Assert.Equal(OfficeColor.Blue, image.GetPixel(70, decorated ? 77 : 70));
@@ -53,9 +58,10 @@ public sealed partial class HtmlRenderingTests {
             HtmlRenderDocument rendered = RenderNegativeFlow(content, mode, HtmlRenderUserAgentStyleMode.Browser,
                 ClippedTableCellCss);
             HtmlRenderPage page = Assert.Single(rendered.Pages);
-            HtmlRenderClipGroup clip = Assert.Single(EnumerateRenderVisuals(page.Scene).OfType<HtmlRenderClipGroup>(),
-                group => group.Source == "td#cell");
-            Assert.Equal(80D, clip.ClipHeight, 4);
+            HtmlRenderClipGroup[] clips = EnumerateRenderVisuals(page.Scene).OfType<HtmlRenderClipGroup>()
+                .Where(group => group.Source == "td#cell").ToArray();
+            Assert.NotEmpty(clips);
+            Assert.All(clips, clip => Assert.Equal(80D, clip.ClipHeight, 4));
             Assert.Equal(60D, NegativeFlowShape(rendered, "div#after").Y, 4);
             Assert.Equal(OfficeColor.Blue, OfficeDrawingRasterRenderer.Render(page.CreateDrawing()).GetPixel(70, 70));
             AssertDescendantSpannerSourceOnce(rendered, "FIRST", "OVER", "TAIL");
