@@ -8,13 +8,14 @@ internal sealed partial class HtmlRenderLayoutEngine {
     /// </summary>
     private IReadOnlyList<HtmlRenderBreakRange> ResolveMultiColumnSafeBreakRanges(MultiColumnPlan plan) {
         IReadOnlyList<HtmlRenderBreakRange> candidates = HtmlRenderBreakRange.Normalize(
-            plan.Fragments.SelectMany(fragment => SliceColumnSafeBreakRanges(
+            plan.PaintFragments.Where(fragment => fragment.CarriesSourceFlow).SelectMany(fragment => SliceColumnSafeBreakRanges(
                 fragment.Block.SafeBreakRanges, fragment.Start, fragment.End)
-                .Select(range => range.Translate(fragment.Y))), plan.UsedHeight);
+                .Select(range => range.Translate(fragment.Y))), plan.PaintExtent);
         if (candidates.Count == 0) return candidates;
 
-        var domain = new[] { new HtmlRenderBreakRange(0D, plan.UsedHeight) };
-        foreach (MultiColumnFragment fragment in plan.Fragments) {
+        var domain = new[] { new HtmlRenderBreakRange(0D, plan.PaintExtent) };
+        foreach (MultiColumnFragment fragment in plan.PaintFragments) {
+            if (!fragment.CarriesSourceFlow) continue;
             CheckCancellation();
             ChargeLayoutOperation("column safe break intersection");
             // Source-only anchors do not occupy a vertical content interval.
@@ -44,7 +45,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
 
     /// <summary>Retains paragraph constraints for the physical lines present in each column fragment.</summary>
     private IEnumerable<HtmlRenderLineBreakGroup> EnumerateMultiColumnLineBreakGroups(MultiColumnPlan plan, double offsetY) {
-        foreach (MultiColumnFragment fragment in plan.Fragments) {
+        foreach (MultiColumnFragment fragment in plan.PaintFragments) {
+            if (!fragment.CarriesSourceFlow) continue;
             CheckCancellation();
             ChargeLayoutOperation("column paragraph projection");
             foreach (HtmlRenderLineBreakGroup group in SliceColumnLineBreakGroups(
@@ -100,7 +102,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
 
     /// <summary>Preserves source keeps that remain whole in an actual column fragment.</summary>
     private IEnumerable<HtmlRenderAvoidBreakRange> EnumerateMultiColumnAvoidBreakRanges(MultiColumnPlan plan, double offsetY) {
-        foreach (MultiColumnFragment fragment in plan.Fragments) {
+        foreach (MultiColumnFragment fragment in plan.PaintFragments) {
+            if (!fragment.CarriesSourceFlow) continue;
             CheckCancellation();
             ChargeLayoutOperation("column keep projection");
             foreach (HtmlRenderAvoidBreakRange range in SliceColumnAvoidBreakRanges(

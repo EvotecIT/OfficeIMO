@@ -93,6 +93,7 @@ public abstract partial class HtmlRenderVisual {
         result.PaintProjectionIdentity = PaintProjectionIdentity;
         result.RelativePaintOffsetY = RelativePaintOffsetY;
         result.IsOutOfFlowPaint = IsOutOfFlowPaint;
+        result.FollowsColumnStaticPosition = FollowsColumnStaticPosition;
         return result;
     }
 

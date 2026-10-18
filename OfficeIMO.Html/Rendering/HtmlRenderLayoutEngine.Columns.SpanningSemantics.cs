@@ -38,7 +38,9 @@ internal sealed partial class HtmlRenderLayoutEngine {
 
     /// <summary>Split ancestor pieces are composited together after their column projection.</summary>
     private HtmlRenderBoxStyle ColumnFragmentPaintStyle(IElement element, HtmlRenderBoxStyle style) {
-        if (!TryGetColumnSourceFragment(element, out _) || !HasColumnSourceOpacity(style)) return style;
+        if ((!TryGetColumnSourceFragment(element, out _)
+            && _columnSourceFlowContext?.OpacityOwners.ContainsKey(element) != true)
+            || !HasColumnSourceOpacity(style)) return style;
         HtmlRenderBoxStyle paint = style.Clone();
         paint.Opacity = 1D;
         paint.OpacityWasSpecified = false;
@@ -46,20 +48,48 @@ internal sealed partial class HtmlRenderLayoutEngine {
     }
 
     private static bool HasColumnSourceOpacity(HtmlRenderBoxStyle style) =>
-        style.OpacityWasSpecified && style.UnsupportedOpacity.Length == 0 && style.Opacity < 1D;
+        style.Display != "contents" && style.OpacityWasSpecified
+        && style.UnsupportedOpacity.Length == 0 && style.Opacity < 1D;
+
+    /// <summary>Defers one finite overflow owner's opacity until its paint has been routed through columns.</summary>
+    private void RegisterColumnOverflowOpacity(IElement element, HtmlRenderBoxStyle style, int depth) {
+        if (_columnSourceFlowContext == null || !HasColumnSourceOpacity(style)) return;
+        CheckCancellation();
+        ChargeLayoutOperation("column overflow opacity owner");
+        _columnSourceFlowContext.OpacityOwners[element] = new ColumnSourceOpacityOwner(element, style.Clone(), depth);
+    }
+
+    private sealed class ColumnSourceOpacityOwner {
+        internal ColumnSourceOpacityOwner(IElement element, HtmlRenderBoxStyle style, int depth) {
+            Element = element;
+            Style = style;
+            Depth = depth;
+        }
+        internal IElement Element { get; }
+        internal HtmlRenderBoxStyle Style { get; }
+        internal int Depth { get; }
+    }
 
     private HtmlRenderFlowBlock ApplyColumnSourceOpacity(HtmlRenderFlowBlock content,
-        IReadOnlyList<MultiColumnSpanPartition> partitions) {
-        var ancestors = new Dictionary<IElement, ColumnSpannerAncestor>();
-        foreach (MultiColumnSpanPartition partition in partitions) {
+        IReadOnlyList<MultiColumnSpanPartition>? partitions = null) {
+        var ancestors = new Dictionary<IElement, ColumnSourceOpacityOwner>();
+        if (_columnSourceFlowContext != null) {
+            foreach (ColumnSourceOpacityOwner owner in _columnSourceFlowContext.OpacityOwners.Values) {
+                CheckCancellation();
+                ChargeLayoutOperation("column overflow opacity discovery");
+                ancestors[owner.Element] = owner;
+            }
+        }
+        foreach (MultiColumnSpanPartition partition in partitions ?? Array.Empty<MultiColumnSpanPartition>()) {
             foreach (ColumnSpannerAncestor ancestor in partition.SpannerAncestors) {
                 CheckCancellation();
                 ChargeLayoutOperation("column ancestor opacity discovery");
-                if (HasColumnSourceOpacity(ancestor.Style)) ancestors[ancestor.Element] = ancestor;
+                if (HasColumnSourceOpacity(ancestor.Style)) ancestors[ancestor.Element] =
+                    new ColumnSourceOpacityOwner(ancestor.Element, ancestor.Style, ancestor.Depth);
             }
         }
         IReadOnlyList<HtmlRenderVisual> visuals = content.Visuals;
-        foreach (ColumnSpannerAncestor ancestor in ancestors.Values.OrderByDescending(item => item.Depth)) {
+        foreach (ColumnSourceOpacityOwner ancestor in ancestors.Values.OrderByDescending(item => item.Depth)) {
             string key = ColumnSourceStructureKey(ancestor.Element, ancestor.Style);
             var inside = new List<HtmlRenderVisual>();
             var outside = new List<HtmlRenderVisual>();
@@ -75,9 +105,12 @@ internal sealed partial class HtmlRenderLayoutEngine {
             if (inside.Count == 0) continue;
             IReadOnlyList<HtmlRenderVisual> painted = ReplaceDescendantFormFieldsForPaintEffect(inside,
                 "ancestor-opacity=" + ancestor.Style.Opacity.ToString(System.Globalization.CultureInfo.InvariantCulture));
-            outside.Insert(insertion, new HtmlRenderEffectGroup(0D, 0D, content.Width, content.Height,
+            outside.Insert(insertion, new HtmlRenderEffectGroup(0D, 0D, content.Width, content.PagedPaintExtent,
                 OfficeTransform.Identity, ancestor.Style.Opacity, painted, insertion,
-                HtmlRenderStyleResolver.DescribeSource(ancestor.Element)));
+                HtmlRenderStyleResolver.DescribeSource(ancestor.Element)).WithStackingContext(
+                    new HtmlRenderStackingContext(ancestor.Style.Position is "relative" or "sticky"
+                        ? ResolvePositionedZIndex(ancestor.Element, ancestor.Style) : 0,
+                        GetPositionedSourceOrder(ancestor.Element))));
             visuals = outside.Select((visual, index) => visual.Translate(0D, 0D, index)).ToArray();
         }
         return content.WithVisuals(visuals);

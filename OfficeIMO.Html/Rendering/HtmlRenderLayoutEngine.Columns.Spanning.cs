@@ -18,6 +18,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
         block = null!;
         IReadOnlyList<MultiColumnSpanPartition> partitions = ResolveMultiColumnSpanPartitions(element, contentWidth, style, columnWidth, depth);
         if (partitions.Count <= 1) return false;
+        using IDisposable sourceFlow = EnterColumnSourceFlow();
+        PrepareColumnSourcePositionedRequests(partitions);
 
         var pieces = new List<HtmlRenderFlowBlock>();
         bool pagedColumnRegion = _columnContentDepth == 0 && CanPaginateColumnRegion(element, style);
@@ -70,9 +72,10 @@ internal sealed partial class HtmlRenderLayoutEngine {
             }
 
             if (partition.Spanner == null || partition.SpannerStyle == null) continue;
+            RegisterColumnSpannerContainingOwner(partition.Spanner, element);
             RecordNormalFlowPlacement(partition.Spanner, element, 0D, contentHeight, partition.SpannerStyle);
             HtmlRenderFlowBlock spanner = LayoutColumnSpanner(partition.Spanner, contentWidth,
-                partition.SpannerStyle, partition.SpannerParentStyle, partition.SpannerDepth);
+                partition.SpannerStyle, style, partition.SpannerDepth);
             spanner = ApplyColumnSpannerAncestorSemantics(spanner, partition.SpannerAncestors);
             hasPrecedingSpanner = true;
             if (!directSpanners && (spanner.ForcedBreaks.Any(item => IsForcedPageBreak(item.Target))
@@ -115,7 +118,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         double contentX = style.MarginLeft + style.BorderLeftWidth + style.PaddingLeft;
         double contentY = style.MarginTop + style.BorderTopWidth + style.PaddingTop;
         double pagedPaintExtent = _options.Mode == HtmlRenderMode.Paged && style.OverflowY == "visible"
-            ? Math.Max(outerHeight, contentY + contentHeight) : outerHeight;
+            ? Math.Max(outerHeight, contentY + content.PagedPaintExtent) : outerHeight;
         double safeContentHeight = columnContext != null
             ? Math.Max(contentHeight, boxHeight - style.VerticalInsets) : contentHeight;
         if (safeContentHeight > contentHeight)
@@ -135,7 +138,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         AddBoxOutlinePaint(visuals, style, style.MarginLeft, style.MarginTop, boxWidth, boxHeight, element);
 
         IEnumerable<double> breakOffsets = contentBreakOffsets
-            .Where(offset => offset > 0.0001D && offset < contentHeight - 0.0001D)
+            .Where(offset => offset > 0.0001D && offset < content.PagedPaintExtent - 0.0001D)
             .Select(offset => contentY + offset)
             .Concat(new[] { outerHeight });
         block = new HtmlRenderFlowBlock(
@@ -225,13 +228,21 @@ internal sealed partial class HtmlRenderLayoutEngine {
         ColumnPageBands? pageBands = finalPartition && pagedColumnRegion
             ? ResolveSpanningColumnPageBands(owner, contentWidth, style, requestedCount, targetHeight, offsetY, prefix, out columnContext)
             : null;
+        bool hadPhysicalColumnBands = pageBands != null;
         MultiColumnPlan plan = BuildMultiColumnPlan(children, targetHeight, _options.MaxColumnCount,
-            throwOnLimit: true, pageBands: pageBands);
+            throwOnLimit: true, pageBands: pageBands,
+            balanceVisibleOverflow: !finalPartition || style.ColumnFill != "auto");
+        if (pageBands != null)
+            plan = ProjectMultiColumnPaintOverflow(plan, targetHeight, pageBands);
         if (pageBands is { Supported: false }) {
             pageBands = null;
             columnContext = null;
-            plan = BuildMultiColumnPlan(children, targetHeight, _options.MaxColumnCount, throwOnLimit: true);
+            plan = BuildMultiColumnPlan(children, targetHeight, _options.MaxColumnCount, throwOnLimit: true,
+                balanceVisibleOverflow: !finalPartition || style.ColumnFill != "auto");
         }
+        if (pageBands == null && (hadPhysicalColumnBands || ResolveDeclaredColumnContentHeight(style).HasValue
+            || !finalPartition || style.ColumnFill != "auto"))
+            plan = ProjectMultiColumnPaintOverflow(plan, targetHeight, pageBands);
         EnsureMultiColumnLimit(plan.ColumnCount);
         if (_options.Mode == HtmlRenderMode.Paged && plan.ColumnCount > requestedCount
             && (!finalPartition || style.ColumnFill != "auto")) {
@@ -254,9 +265,9 @@ internal sealed partial class HtmlRenderLayoutEngine {
             partitionHeight = Math.Max(minimumExtent, plan.UsedHeight);
         }
         AddColumnRuleVisuals(visuals, style, 0D, 0D, columnWidth, gap,
-            Math.Max(requestedCount, plan.ColumnCount), partitionHeight, source, plan.RuleBands,
+            Math.Max(requestedCount, plan.PaintColumnCount), partitionHeight, source, plan.RuleBands,
             extendToForcedPageEnd: extendRuleToForcedPageEnd);
-        foreach (MultiColumnFragment fragment in plan.Fragments) {
+        foreach (MultiColumnFragment fragment in plan.PaintFragments) {
             double x = fragment.Column * (columnWidth + gap);
             double y = fragment.Y;
             IReadOnlyList<HtmlRenderVisual> fragmentVisuals = SliceColumnFragmentVisuals(fragment);
@@ -265,7 +276,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
             }
         }
 
-        foreach (double offset in ResolveMultiColumnBreakOffsets(plan, 0D, partitionHeight)) {
+        foreach (double offset in ResolveMultiColumnBreakOffsets(plan, 0D, plan.PaintExtent)) {
             breakOffsets.Add(offset);
         }
         foreach (HtmlRenderBreakRange range in ResolveMultiColumnSafeBreakRanges(plan)) {
@@ -286,7 +297,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
             HtmlPageBreakTarget.None, HtmlPageBreakTarget.None, false, source, breakOffsets,
             lineBreakGroups: lineBreakGroups, forcedBreaks: forcedBreaks,
             avoidBreakRanges: avoidBreakRanges, safeBreakRanges: safeBreakRanges,
-            runningStringAssignments: runningStringAssignments);
+            runningStringAssignments: runningStringAssignments,
+            pagedPaintExtent: Math.Max(partitionHeight, plan.PaintExtent));
     }
 
 }

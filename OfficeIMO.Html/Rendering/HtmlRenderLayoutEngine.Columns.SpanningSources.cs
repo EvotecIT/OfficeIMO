@@ -17,12 +17,12 @@ internal sealed partial class HtmlRenderLayoutEngine {
         int count = ResolveRequestedColumnCount(parentStyle, contentWidth, gap);
         double sourceWidth = columnWidth ?? Math.Max(0.01D,
             (contentWidth - gap * Math.Max(0, count - 1)) / count);
-        return SplitColumnSourceNodes(element, sourceWidth, contentWidth, parentStyle, depth);
+        return SplitColumnSourceNodes(element, sourceWidth, contentWidth, parentStyle, parentStyle, depth);
     }
 
     private IReadOnlyList<MultiColumnSpanPartition> SplitColumnSourceNodes(
         IElement container, double sourceWidth, double spanningWidth,
-        HtmlRenderBoxStyle parentStyle, int depth) {
+        HtmlRenderBoxStyle parentStyle, HtmlRenderBoxStyle multicolStyle, int depth) {
         EnsureDepth(depth, container);
         var partitions = new List<MultiColumnSpanPartition>();
         var nodes = new List<INode>();
@@ -38,8 +38,11 @@ internal sealed partial class HtmlRenderLayoutEngine {
             HtmlRenderBoxStyle childStyle = ForwardContainingHeightBasis(child,
                 _styleResolver.Resolve(child, sourceWidth, parentStyle), parentStyle);
             if (IsColumnSourceSpanner(child, childStyle)) {
+                HtmlRenderBoxStyle spanningParent = parentStyle.Clone();
+                spanningParent.HasForwardedContainingHeight = true;
+                spanningParent.ForwardedContainingHeight = ResolveContainingBlockHeight(multicolStyle);
                 HtmlRenderBoxStyle spanningStyle = ForwardContainingHeightBasis(child,
-                    _styleResolver.Resolve(child, spanningWidth, parentStyle), parentStyle);
+                    _styleResolver.Resolve(child, spanningWidth, spanningParent), spanningParent);
                 partitions.Add(new MultiColumnSpanPartition(nodes, child, spanningStyle,
                     selection, Array.Empty<ColumnSpannerAncestor>(), parentStyle, depth + 1));
                 nodes = new List<INode>();
@@ -60,8 +63,17 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 childWidth = Math.Max(1D, boxWidth - childStyle.HorizontalInsets);
             }
             IReadOnlyList<MultiColumnSpanPartition> descendants = SplitColumnSourceNodes(
-                child, childWidth, spanningWidth, childStyle, depth + 1);
+                child, childWidth, spanningWidth, childStyle, multicolStyle, depth + 1);
             if (descendants.Count == 0) {
+                nodes.Add(node);
+                continue;
+            }
+
+            if (childStyle.Display != "contents" && childStyle.ClipPath != "none") {
+                _diagnostics.Add(ComponentName, HtmlRenderDiagnosticCodes.MultiColumnValueUnsupported,
+                    "A clipped ancestor containing a column spanner retains its original source-flow layout.",
+                    HtmlDiagnosticSeverity.Warning, HtmlRenderStyleResolver.DescribeSource(child),
+                    "descendant spanner ancestor clip-path");
                 nodes.Add(node);
                 continue;
             }
@@ -157,8 +169,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
             result.AvoidBreakAfter = false;
             result.AvoidBreakAfterScope = HtmlFragmentationScope.None;
         }
-        if (result.BoxDecorationBreak == "clone") return result;
-        if (!fragment.FirstFragment) {
+        if (result.BoxDecorationBreak != "clone" && !fragment.FirstFragment) {
             result.MarginTop = 0D;
             result.MarginTopAuto = false;
             result.PaddingTop = 0D;
@@ -167,7 +178,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
             result.BorderTopLeftRadius = "0";
             result.BorderTopRightRadius = "0";
         }
-        if (!fragment.LastFragment) {
+        if (result.BoxDecorationBreak != "clone" && !fragment.LastFragment) {
             result.MarginBottom = 0D;
             result.MarginBottomAuto = false;
             result.PaddingBottom = 0D;
@@ -176,7 +187,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
             result.BorderBottomLeftRadius = "0";
             result.BorderBottomRightRadius = "0";
         }
-        return result;
+        return ResolveColumnSourceFragmentSize(fragment, result);
     }
 
     /// <summary>One immutable view of an original ancestor between successive extracted spanners.</summary>

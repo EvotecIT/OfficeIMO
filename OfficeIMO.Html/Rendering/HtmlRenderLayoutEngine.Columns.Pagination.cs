@@ -12,7 +12,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         out IReadOnlyList<double> pageBreakOffsets,
         ColumnPageBands? pageBands = null) {
         pageBreakOffsets = Array.Empty<double>();
-        if (_options.Mode != HtmlRenderMode.Paged || pageBands == null && plan.ColumnCount <= requestedCount) return plan;
+        if (_options.Mode != HtmlRenderMode.Paged || pageBands == null && plan.PaintColumnCount <= requestedCount) return plan;
 
         // Continuous multicol overflow advances inline. Paged overflow instead
         // resumes the requested column set in the next fragmentainer. Keep the
@@ -38,6 +38,24 @@ internal sealed partial class HtmlRenderLayoutEngine {
             }
             usedHeight = Math.Max(usedHeight, y + fragment.Height);
         }
+        List<MultiColumnFragment>? paintFragments = null;
+        if (plan.HasPaintOverflow) {
+            paintFragments = new List<MultiColumnFragment>(plan.PaintFragments.Count);
+            foreach (MultiColumnFragment fragment in plan.PaintFragments) {
+                CheckCancellation();
+                ChargeLayoutOperation("paged column paint-only continuation");
+                int row = pageBands?.BandForColumn(fragment.Column) ?? fragment.Column / requestedCount;
+                int column = pageBands?.ColumnInBand(fragment.Column) ?? fragment.Column % requestedCount;
+                double y = (pageBands?.Start(row) ?? row * columnHeight) + fragment.Y;
+                paintFragments.Add(new MultiColumnFragment(fragment.Block, fragment.Start, fragment.End, column, y,
+                    fragment.CarriesSourceFlow));
+                if (pageBands != null) {
+                    if (!occupiedColumns.TryGetValue(row, out HashSet<int>? occupied))
+                        occupiedColumns.Add(row, occupied = new HashSet<int>());
+                    occupied.Add(column);
+                }
+            }
+        }
         int rows = (pageBands?.BandForColumn(plan.ColumnCount - 1)
             ?? (plan.ColumnCount - 1) / requestedCount) + 1;
         pageBreakOffsets = Enumerable.Range(1, rows - 1)
@@ -52,6 +70,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                     .Where(column => column > 0 && band.Value.Contains(column - 1))
                     .OrderBy(column => column).ToArray())).ToArray();
         return new MultiColumnPlan(fragments,
-            Math.Max(requestedCount, fragments.Select(fragment => fragment.Column + 1).DefaultIfEmpty(1).Max()), usedHeight, ruleBands);
+            Math.Max(requestedCount, fragments.Select(fragment => fragment.Column + 1).DefaultIfEmpty(1).Max()),
+            usedHeight, ruleBands, paintFragments: paintFragments);
     }
 }

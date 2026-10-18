@@ -436,6 +436,30 @@ internal sealed partial class HtmlRenderLayoutEngine {
             && inlineLayout.PagedPaintExtent > inlineLayout.Height + 0.0001D) {
             pagedPaintExtent = Math.Max(pagedPaintExtent, contentYForBreaks + inlineLayout.PagedPaintExtent);
         }
+        double columnOverflowExtent = outerHeight;
+        if (_columnContentDepth > 0 && style.OverflowY == "visible" && !usesVerticalBlockFormatting) {
+            columnOverflowExtent = Math.Max(columnOverflowExtent, ResolveColumnStaticPositionPaintExtent(visuals));
+            if (style.ExplicitHeight.HasValue || style.MaxHeight.HasValue || style.AspectRatio.HasValue)
+                columnOverflowExtent = Math.Max(columnOverflowExtent, contentYForBreaks + contentHeight);
+            foreach (FlowPaintLayer layer in childPaintLayers) {
+                if (layer.Block.ColumnOverflowContent is not { } overflow) continue;
+                CheckCancellation();
+                ChargeLayoutOperation("column descendant overflow metrics");
+                ChargeLayoutOperations((long)overflow.BreakOffsets.Count + overflow.SafeBreakRanges.Count
+                    + overflow.AvoidBreakRanges.Count + overflow.ForcedBreaks.Count,
+                    "column descendant overflow source constraints");
+                columnOverflowExtent = Math.Max(columnOverflowExtent,
+                    contentYForBreaks + layer.Y + overflow.Height);
+                contentBreakOffsets.AddRange(overflow.BreakOffsets.Select(offset => layer.Y + offset));
+                contentSafeBreakRanges.AddRange(overflow.SafeBreakRanges.Select(range => range.Translate(layer.Y)));
+                contentAvoidBreakRanges.AddRange(overflow.AvoidBreakRanges
+                    .Where(range => range.End > layer.Block.PagedPaintExtent + 0.0001D)
+                    .Select(range => range.Translate(layer.Y)));
+                forcedBreaks.AddRange(overflow.ForcedBreaks
+                    .Where(item => item.Offset > layer.Block.PagedPaintExtent + 0.0001D)
+                    .Select(item => item.Translate(layer.Y)));
+            }
+        }
         double? sourceContentHeight = !usesVerticalBlockFormatting && children.Any(child => child.UnfragmentedHeight.HasValue)
             ? children.Sum(child => child.UnfragmentedHeight ?? child.Height) : null;
         if (sourceContentHeight.HasValue && ownsFloatContext)
@@ -469,7 +493,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
             // siblings without extending this wrapper's final flow height.
             // Its blank source interval cannot cut those sibling carriers.
             safeBreakRanges = ConstrainParallelPaintBreakRanges(
-                HtmlRenderBreakRange.Normalize(safeBreakRanges, pagedPaintExtent), visuals);
+                HtmlRenderBreakRange.Normalize(safeBreakRanges, Math.Max(pagedPaintExtent, columnOverflowExtent)), visuals);
         }
         if (children.Count == 0 && contentVisuals.Count == 0) {
             breakOffsets = breakOffsets.Concat(CollectPositionedContainerBreakOffsets(
@@ -497,6 +521,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
             pageName = children[0].PageName;
         }
 
+        if (columnOverflowExtent > outerHeight + 0.0001D)
+            RegisterColumnOverflowOpacity(element, style, depth);
         var block = new HtmlRenderFlowBlock(
             containingWidth,
             outerHeight,
@@ -525,7 +551,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 || continuationBreakProgress.Any(progress => !progress.IsBlockExit && progress.OwnerElement != null),
             forcedBreaks: forcedBreaks.Select(item => item.Translate(contentYForBreaks)),
             avoidBreakRanges: contentAvoidBreakRanges.Select(range => range.Translate(contentYForBreaks)),
-            pagedPaintExtent: pagedPaintExtent,
+            pagedPaintExtent: Math.Max(pagedPaintExtent, columnOverflowExtent),
             safeBreakRanges: safeBreakRanges);
         if (sourceContentHeight.HasValue) {
             block.UnfragmentedHeight = Math.Max(0D, style.MarginTop + style.MarginBottom
@@ -538,8 +564,14 @@ internal sealed partial class HtmlRenderLayoutEngine {
             contentVisuals, contentHeight, inlineLayout?.HasInFlowLineBoxes == true);
         HtmlRenderFlowBlock completed = StampViewport(AttachElementMargins(ApplyElementPositioning(block, style, containingWidth, containingHeight, element),
             style, element, collapsesThrough, collapsedTopGroup, collapsedBottomGroup));
+        if (columnOverflowExtent > completed.Height + 0.0001D) {
+            HtmlRenderFlowBlock overflow = completed.ForPagination();
+            completed = completed.WithVisuals(completed.Visuals, pagedPaintExtent: pagedPaintExtent);
+            completed.ColumnOverflowContent = overflow;
+        }
         completed.KnownNoInFlowLineBoxes = !usesBlockFormatting && inlineLayout?.HasInFlowLineBoxes == false;
         completed.HasZeroHeightOrdinaryContent = hasZeroHeightOrdinaryContent;
+        RecordColumnSourceFragmentSize(element, completed, style);
         return completed;
     }
 

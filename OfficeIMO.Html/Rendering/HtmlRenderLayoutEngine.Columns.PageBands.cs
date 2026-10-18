@@ -141,6 +141,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
             _engine.CheckCancellation();
             _engine.ChargeLayoutOperation("column physical page geometry");
             int pageNumber = Context.PageNumber + band + (DeferredFirstBand ? 1 : 0);
+            if (pageNumber > _engine._options.MaxPageCount)
+                throw new InvalidOperationException("HTML rendering exceeded the configured maximum page count.");
             HtmlCssPageGeometry geometry = _engine._pageRules.ResolveGeometry(pageNumber, Context.PageName, _engine._options);
             if (Supported && (!SamePageGeometry(Context.Geometry, geometry)
                 || Math.Abs(FreshHeight - _engine.ResolvePageBodyContentHeight(pageNumber, geometry)) > 0.0001D)) {

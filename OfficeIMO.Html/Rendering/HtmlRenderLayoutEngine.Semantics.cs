@@ -36,7 +36,9 @@ internal sealed partial class HtmlRenderLayoutEngine {
             // Each flex container supplies the parent scope for item source indices.
             // Independent untagged rows must not interleave their logical children.
             if (style.Display == "flex" || style.Display == "inline-flex") role = HtmlRenderSemanticGroupRole.Division;
-            else if (TryGetColumnSourceFragment(element, out _)) role = HtmlRenderSemanticGroupRole.Division;
+            else if (TryGetColumnSourceFragment(element, out _)
+                || _columnSourceFlowContext?.OpacityOwners.ContainsKey(element) == true)
+                role = HtmlRenderSemanticGroupRole.Division;
             else return WrapEditableLayoutRegion(listBlock, element, style);
         }
         HtmlRenderFlowBlock semanticBlock = WrapSemanticBlock(listBlock, role,

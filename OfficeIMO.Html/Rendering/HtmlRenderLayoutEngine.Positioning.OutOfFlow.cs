@@ -111,7 +111,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
 
         double referenceWidth = Math.Max(1D, ActiveSurfaceWidth - ActiveMargins.Left - ActiveMargins.Right);
         bool flattenedFlexOrGridChild = directParentStyle.Display == "contents";
-        for (IElement? ancestor = directParent.ParentElement; ancestor != null; ancestor = ancestor.ParentElement) {
+        for (IElement? ancestor = ResolveColumnContainingParent(directParent); ancestor != null;
+            ancestor = ResolveColumnContainingParent(ancestor)) {
             if (ReferenceEquals(ancestor, root)) return root;
             HtmlRenderBoxStyle ancestorStyle = _styleResolver.Resolve(ancestor, referenceWidth);
             if (ancestorStyle.Position != "static" || EstablishesTransformedContainingBlock(ancestorStyle)) return ancestor;
@@ -198,6 +199,9 @@ internal sealed partial class HtmlRenderLayoutEngine {
         double originY,
         ICollection<HtmlRenderVisual> visuals,
         ICollection<HtmlCssRunningStringAssignment> runningStringAssignments) {
+        if (!IsColumnPositionedRequestSelected(request)) return;
+        if (TryGetColumnSourceFragment(request.ContainingBlock, out _)
+            && _columnSourceFlowContext != null && !_columnSourceFlowContext.PaintedRequests.Add(request)) return;
         bool hasRect = _positionedContainingRects.TryGetValue(request.Element, out PositionedContainingRect? rect);
         double requestWidth = hasRect ? rect!.Width : containingWidth;
         double requestHeight = hasRect ? rect!.Height : containingHeight;
@@ -205,9 +209,12 @@ internal sealed partial class HtmlRenderLayoutEngine {
         double requestOriginY = hasRect ? rect!.Y : 0D;
         PositionedLayer layer = request.Resolve(this, requestWidth, requestHeight);
         IReadOnlyList<HtmlRenderVisual> clipEnvelopes = ResolveLocalFixedAncestorClips(request, containingWidth, containingHeight, originX, originY);
+        bool followsColumnStaticPosition = _columnContentDepth > 0 && request.Style.Position == "absolute"
+            && IsAutoInset(request.Style.Top) && IsAutoInset(request.Style.Bottom);
         foreach (HtmlRenderVisual visual in layer.Block.Visuals) {
             HtmlRenderVisual painted = visual.Translate(originX + requestOriginX + layer.X, originY + requestOriginY + layer.Y, visuals.Count);
-            visuals.Add(ApplyFixedLegacyClipEnvelopes(painted, clipEnvelopes).IdentifyOutOfFlowPaint());
+            visuals.Add(ApplyFixedLegacyClipEnvelopes(painted, clipEnvelopes)
+                .IdentifyOutOfFlowPaint(followsColumnStaticPosition));
         }
         foreach (HtmlCssRunningStringAssignment assignment in layer.Block.RunningStringAssignments) {
             runningStringAssignments.Add(assignment.Translate(originY + requestOriginY + layer.Y));
@@ -219,6 +226,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         // to this same transformed containing block. Finish discovery before sorting.
         for (int index = 0; index < requests.Count; index++) {
             PositionedElementRequest request = requests[index];
+            if (!IsColumnPositionedRequestSelected(request)) continue;
             bool hasRect = _positionedContainingRects.TryGetValue(request.Element, out PositionedContainingRect? rect);
             request.Resolve(this, hasRect ? rect!.Width : width, hasRect ? rect!.Height : height);
         }

@@ -19,6 +19,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         var assignments = new List<HtmlCssRunningStringAssignment>();
         object[] boundaries = CreateFlowBoundaries(pieces);
         double height = 0D;
+        double paintExtent = 0D;
         for (int index = 0; index < pieces.Count; index++) {
             CheckCancellation();
             HtmlRenderFlowBlock piece = pieces[index];
@@ -51,12 +52,13 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 keeps.AddRange(piece.AvoidBreakRanges.Select(range => range.Translate(height)));
             }
             assignments.AddRange(piece.RunningStringAssignments.Select(item => item.Translate(height)));
+            paintExtent = Math.Max(paintExtent, height + piece.PagedPaintExtent);
             height += piece.Height;
         }
         return new HtmlRenderFlowBlock(width, height, visuals, HtmlPageBreakTarget.None,
             HtmlPageBreakTarget.None, false, source, offsets, lineBreakGroups: lines,
             forcedBreaks: forced, avoidBreakRanges: keeps, safeBreakRanges: safe,
-            runningStringAssignments: assignments);
+            runningStringAssignments: assignments, pagedPaintExtent: Math.Max(height, paintExtent));
     }
 
     private bool IsSpanningSourceBlock(HtmlRenderFlowBlock block) => block.OwnerElement != null

@@ -135,6 +135,14 @@ public sealed class HtmlRenderDocument : global::OfficeIMO.IOfficeConversionRepo
     }
 
     private static int? ResolveLogicalTextOrder(HtmlRenderVisual visual, out bool containsText) {
+        // Cached positioned paint can precede discovery of its in-flow siblings.
+        // It must not pull the whole containing group ahead of those siblings.
+        // Text enumeration still includes it; an out-of-flow-only group keeps
+        // the ordinary paint-order fallback.
+        if (visual.IsOutOfFlowPaint) {
+            containsText = false;
+            return null;
+        }
         if (visual is HtmlRenderSemanticGroup { Role: HtmlRenderSemanticGroupRole.Artifact }) {
             containsText = false;
             return null;

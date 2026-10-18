@@ -175,11 +175,20 @@ internal sealed class HtmlRenderFlowBlock {
     /// <summary>Outer block advance before physical column-page projection, when available.</summary>
     internal double? UnfragmentedHeight { get; set; }
 
-    private HtmlRenderFlowBlock CopyLayoutFacts(HtmlRenderFlowBlock block, double unfragmentedAdjustment = 0D) {
+    /// <summary>Full in-flow paint metrics for visible column overflow, independent of this box's normal advance.</summary>
+    internal HtmlRenderFlowBlock? ColumnOverflowContent { get; set; }
+
+    private HtmlRenderFlowBlock CopyLayoutFacts(HtmlRenderFlowBlock block, double unfragmentedAdjustment = 0D,
+        double? columnOverflowLeadingAdjustment = null) {
         block.AvoidBreakInsideScope = AvoidBreakInsideScope;
         block.HasZeroHeightOrdinaryContent = HasZeroHeightOrdinaryContent;
         block.UnfragmentedHeight = UnfragmentedHeight.HasValue
             ? Math.Max(0D, UnfragmentedHeight.Value + unfragmentedAdjustment) : null;
+        if (ColumnOverflowContent is { } overflow) {
+            HtmlRenderFlowBlock adjusted = columnOverflowLeadingAdjustment.HasValue
+                ? overflow.AdjustLeadingFlowSpace(columnOverflowLeadingAdjustment.Value) : overflow;
+            block.ColumnOverflowContent = adjusted.WithVisuals(block.Visuals);
+        }
         return block;
     }
 
@@ -416,7 +425,8 @@ internal sealed class HtmlRenderFlowBlock {
             avoidBreakRanges: AvoidBreakRanges.Select(range =>
                 new HtmlRenderAvoidBreakRange(Math.Max(0D, range.Start - adjustment), range.End - adjustment, range.Soft, range.Scope)),
             pagedPaintExtent: Math.Max(adjustedHeight, PagedPaintExtent - adjustment),
-            safeBreakRanges: SafeBreakRanges.Select(range => range.Translate(-adjustment))), -adjustment);
+            safeBreakRanges: SafeBreakRanges.Select(range => range.Translate(-adjustment))), -adjustment,
+            columnOverflowLeadingAdjustment: adjustment);
     }
 
     internal HtmlRenderFlowBlock WithCollapsibleMargins(double top, double bottom, IElement ownerElement,

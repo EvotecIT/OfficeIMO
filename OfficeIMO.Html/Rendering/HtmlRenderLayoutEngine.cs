@@ -489,6 +489,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         _inlineStackingElements.Clear();
         _suppressedEditableLayoutRegionMarkers.Clear();
         _layoutStyles.Clear();
+        _columnSpannerContainingOwners.Clear();
         _containsInFlowFloatCache.Clear();
         _inlineFloatOverhangs.Clear();
         _rootStackingPaintOrders.Clear();
