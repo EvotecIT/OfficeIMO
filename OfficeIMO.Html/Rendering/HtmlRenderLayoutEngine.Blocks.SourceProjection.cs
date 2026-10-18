@@ -6,20 +6,32 @@ internal sealed partial class HtmlRenderLayoutEngine {
     private readonly HashSet<IElement> _constrainedOverflowElements = new();
     private readonly HashSet<IElement> _projectedConstrainedOwners = new();
     private ConstrainedSourceProjection? _constrainedSourceProjection;
+    private int _specializedPageSourceDepth;
 
     private void ResetConstrainedSourceProjection() {
         _constrainedOverflowElements.Clear();
         _projectedConstrainedOwners.Clear();
         _constrainedSourceProjection = null;
+        _specializedPageSourceDepth = 0;
     }
 
-    private void RememberConstrainedOverflow(IElement element, HtmlRenderBoxStyle style, HtmlRenderFlowBlock block) {
+    private void RememberConstrainedOverflow(IElement element, bool ownsConstrainedSource, HtmlRenderFlowBlock block) {
         if (_constrainedSourceProjection == null && _options.Mode == HtmlRenderMode.Paged
-            && HasConstrainedBlockHeight(style) && style.OverflowY == "visible"
-            && (block.PagedPaintExtent > block.Height + 0.0001D
-                || block.Visuals.Any(ContainsInFlowPaint)))
+            && ownsConstrainedSource)
             _constrainedOverflowElements.Add(element);
     }
+
+    private static bool HasOrdinaryFragmentSource(HtmlRenderVisual visual) => !visual.IsOutOfFlowPaint
+        && (visual is HtmlRenderText or HtmlRenderImage or HtmlRenderDrawing or HtmlRenderFormField
+            or HtmlRenderShape { IsAtomicReplacedPlaceholder: true }
+            || GetGroupChildren(visual) is { } children && children.Any(HasOrdinaryFragmentSource));
+
+    private static bool IsAtomicPaginationOwner(HtmlRenderBoxStyle style) =>
+        style.OverflowY != "visible" || style.ClipPath != "none" || style.Clip != "auto";
+
+    private OrdinaryPageSourceScope EnterOrdinaryPageSource(HtmlRenderBoxStyle style) => new(this,
+        style.Display is "flex" or "inline-flex" or "grid" or "inline-grid" or "table" or "inline-table"
+        || HasMultiColumnLayout(style) || style.FloatSide != "none" || ShouldExtractOutOfFlow(style));
 
     /// <summary>Rebuilds independent ordinary sources against the physical page bands before flattening paint.</summary>
     private bool TryRelayoutConstrainedOverflow(HtmlRenderFlowBlock block, double available,
@@ -28,6 +40,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
         IElement? owner = block.OwnerElement;
         if (owner == null || available <= 0.0001D || pageHeight <= 0D
             || block.Height <= available + 0.0001D || _projectedConstrainedOwners.Contains(owner)) return false;
+        CheckCancellation();
+        ChargeLayoutOperations(_constrainedOverflowElements.Count, "constrained source owner selection");
         IElement[] targets = _constrainedOverflowElements.Where(element => ContainsElementOrSelf(owner, element)).ToArray();
         if (targets.Length == 0) return false;
         IElement root = _document.Body ?? _document.DocumentElement ?? owner;
@@ -35,6 +49,9 @@ internal sealed partial class HtmlRenderLayoutEngine {
         if (!isRoot && !ReferenceEquals(owner.ParentElement, root)) return false;
         _projectedConstrainedOwners.Add(owner);
         string? boundary = ResolveConstrainedProjectionBoundary(owner, targets);
+        // Specialized owners retain their established planner and state. Do not
+        // enter a speculative rebuild and then restore only part of its caches.
+        if (boundary != null || HasInternalForcedBreak(block)) return false;
         var context = new ConstrainedSourceProjection(targets, geometry, pageNumber, pageHeight,
             block.PageName, boundary);
         double leading = isRoot ? 0D : block.LeadingFlowAdjustment;
@@ -91,12 +108,6 @@ internal sealed partial class HtmlRenderLayoutEngine {
     }
 
     private string? ResolveConstrainedProjectionBoundary(IElement owner, IReadOnlyList<IElement> targets) {
-        foreach (IElement target in targets) {
-            CheckCancellation();
-            ChargeLayoutOperations(targets.Count, "constrained projection ownership");
-            if (targets.Any(other => !ReferenceEquals(other, target) && ContainsElementOrSelf(target, other)))
-                return "nested-independent-constrained-overflow";
-        }
         foreach (KeyValuePair<IElement, HtmlRenderBoxStyle> item in _layoutStyles) {
             CheckCancellation();
             ChargeLayoutOperation("constrained projection formatting boundary");
@@ -108,11 +119,25 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 || style.UsedTransform != "none" || style.UsedIndividualScale != "none")
                 return "independent-formatting-or-positioned-source-owner";
         }
+        foreach (IElement element in _registeredAbsoluteElements.Concat(_registeredFixedElements)) {
+            CheckCancellation();
+            ChargeLayoutOperation("constrained projection positioned ownership");
+            if (ContainsElementOrSelf(owner, element)) return "positioned-source-owner";
+        }
+        var selected = new HashSet<IElement>(targets);
+        foreach (IElement target in targets) {
+            for (IElement? parent = target.ParentElement; parent != null; parent = parent.ParentElement) {
+                CheckCancellation();
+                ChargeLayoutOperation("constrained projection ancestor ownership");
+                if (selected.Contains(parent)) return "nested-independent-constrained-overflow";
+                if (ReferenceEquals(parent, owner)) break;
+            }
+        }
         return null;
     }
 
-    private ConstrainedProjectionScope EnterConstrainedProjection(IElement element) =>
-        new(_constrainedSourceProjection, element);
+    private ConstrainedProjectionScope EnterConstrainedProjection(IElement element, HtmlRenderBoxStyle style) =>
+        new(_constrainedSourceProjection, element, IsAtomicPaginationOwner(style));
 
     /// <summary>Uses the canonical fragment planner; inserted gaps occupy destination space, not extra CSS height.</summary>
     private HtmlRenderFlowBlock ProjectOrdinaryContent(HtmlRenderFlowBlock source, PagedFloatBoundary boundary,
@@ -171,7 +196,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
                     entryGap += gap;
                 } else {
                     double advance = cut < projected.Height - 0.0001D ? gap : 0D;
-                    projected = InsertPagedSourceBreakGap(projected, cut, gap, false, advance);
+                    projected = InsertPagedSourceBreakGap(projected, cut, gap, false, advance,
+                        plan == null ? null : ResolvePagedBackgroundWindow(cursor, plan));
                     cut += gap;
                 }
                 context.Changed = true;
@@ -208,15 +234,32 @@ internal sealed partial class HtmlRenderLayoutEngine {
     private sealed class ConstrainedProjectionScope : IDisposable {
         private readonly ConstrainedSourceProjection? _context;
         private readonly bool _containsSource;
-        internal ConstrainedProjectionScope(ConstrainedSourceProjection? context, IElement element) {
+        internal ConstrainedProjectionScope(ConstrainedSourceProjection? context, IElement element, bool atomic) {
             _context = context;
-            CanProject = context != null && context.ConstrainedDepth == 0;
-            _containsSource = context?.Targets.Contains(element) == true;
+            CanProject = context != null && context.ConstrainedDepth == 0 && !atomic;
+            CanProjectAtomic = context != null && context.ConstrainedDepth == 0 && atomic;
+            _containsSource = context != null && (atomic || context.Targets.Contains(element));
             if (_containsSource) context!.ConstrainedDepth++;
         }
         internal bool CanProject { get; }
+        internal bool CanProjectAtomic { get; }
         public void Dispose() {
             if (_containsSource) _context!.ConstrainedDepth--;
+        }
+    }
+
+    private sealed class OrdinaryPageSourceScope : IDisposable {
+        private readonly HtmlRenderLayoutEngine _engine;
+        private readonly bool _specialized;
+        internal OrdinaryPageSourceScope(HtmlRenderLayoutEngine engine, bool specialized) {
+            _engine = engine;
+            _specialized = specialized;
+            if (specialized) engine._specializedPageSourceDepth++;
+            IsOrdinary = engine._specializedPageSourceDepth == 0;
+        }
+        internal bool IsOrdinary { get; }
+        public void Dispose() {
+            if (_specialized) _engine._specializedPageSourceDepth--;
         }
     }
 }

@@ -2,11 +2,11 @@ namespace OfficeIMO.Html;
 
 internal sealed partial class HtmlRenderLayoutEngine {
     /// <summary>Retains constrained in-flow source without changing the used CSS box or sibling advance.</summary>
-    private double ResolveConstrainedBlockPaintExtent(HtmlRenderBoxStyle style, double extent,
+    private double ResolveConstrainedBlockPaintExtent(HtmlRenderBoxStyle style, bool ownsConstrainedSource, double extent,
         double contentY, double contentHeight, HtmlInlineLayout? inline,
         IReadOnlyList<FlowPaintLayer> children) {
         if (_options.Mode != HtmlRenderMode.Paged || style.OverflowY != "visible"
-            || !HasConstrainedBlockHeight(style)) return extent;
+            || !ownsConstrainedSource) return extent;
 
         double contentExtent = Math.Max(contentHeight, inline?.PagedPaintExtent ?? 0D);
         foreach (FlowPaintLayer child in children) {
@@ -18,10 +18,10 @@ internal sealed partial class HtmlRenderLayoutEngine {
     }
 
     /// <summary>Exposes only the known trailing allocation space of an authored height constraint.</summary>
-    private void AppendConstrainedBlockAllocationTail(HtmlRenderBoxStyle style, double boxHeight,
+    private void AppendConstrainedBlockAllocationTail(HtmlRenderBoxStyle style, bool ownsAllocationTail, double boxHeight,
         double contentY, double contentHeight, IReadOnlyList<FlowPaintLayer> children,
         ICollection<HtmlRenderBreakRange> ranges, double fullPageHeight) {
-        if (_options.Mode != HtmlRenderMode.Paged || !HasConstrainedBlockHeight(style)) return;
+        if (_options.Mode != HtmlRenderMode.Paged || !ownsAllocationTail || boxHeight <= fullPageHeight + 0.0001D) return;
         double boxEnd = style.MarginTop + boxHeight;
         double contentEnd = contentY + Math.Max(0D, contentHeight);
         if (boxEnd <= contentEnd + 0.0001D) return;
@@ -36,9 +36,10 @@ internal sealed partial class HtmlRenderLayoutEngine {
         foreach (HtmlRenderBreakRange range in safe) ranges.Add(range);
     }
 
-    private static bool HasConstrainedBlockHeight(HtmlRenderBoxStyle style) =>
-        style.ExplicitHeight.HasValue || style.MinHeight.HasValue
-        || style.MaxHeight.HasValue || style.AspectRatio.HasValue;
+    private static bool HasEffectiveConstrainedBlockHeight(HtmlRenderBoxStyle style, double boxHeight, double contentHeight) =>
+        !style.AutoHeightLayoutStretch && (style.ExplicitHeight.HasValue || style.AspectRatio.HasValue
+            || style.MaxHeight.HasValue && boxHeight < contentHeight + style.VerticalInsets - 0.0001D
+            || style.MinHeight is > 0D && boxHeight > contentHeight + style.VerticalInsets + 0.0001D);
 
     private static HtmlRenderAvoidBreakRange? ResolveTrailingBoxKeepRange(HtmlRenderBoxStyle style,
         double contentHeight, double outerHeight, double contentY, IEnumerable<double> breakOffsets,

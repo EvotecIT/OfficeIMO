@@ -61,6 +61,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         ReportUnsupportedOverflowValues(element, style);
         ReportUnsupportedMultiColumnValues(element, style);
         RememberColumnSourceStyle(element, style);
+        using OrdinaryPageSourceScope pageSourceScope = EnterOrdinaryPageSource(style);
         string tag = element.TagName.ToLowerInvariant();
         double? containingHeight = ResolveContainingBlockHeight(parentStyle);
         if (IsReplacedImageElementTag(tag)) return StampViewport(AttachElementMargins(ApplyElementPositioning(ApplyOverflowToSpecializedBlock(ApplySpecializedElementSemantics(LayoutImage(element, containingWidth, style), element, style), style, element, containingWidth), style, containingWidth, containingHeight, element), style, element));
@@ -89,7 +90,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
             return StampViewport(AttachElementMargins(ApplyElementPositioning(ApplyOverflowToSpecializedBlock(columnsBlock, style, element, containingWidth), style, containingWidth, containingHeight, element), style, element));
         }
 
-        using ConstrainedProjectionScope projectionScope = EnterConstrainedProjection(element);
+        using ConstrainedProjectionScope projectionScope = EnterConstrainedProjection(element, style);
         double availableWidth = Math.Max(1D, containingWidth - style.MarginLeft - style.MarginRight);
         double boxWidth = ResolveBoxWidth(availableWidth, style);
         double contentWidth = Math.Max(1D, boxWidth - style.HorizontalInsets);
@@ -348,6 +349,11 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 ChargeLayoutOperation("ordinary source projection extent");
                 sourceExtent = Math.Max(sourceExtent, child.Y + ResolveNormalFlowPaintExtent(child.Block));
             }
+            ChargeLayoutOperations(1L + contentVisuals.Count + contentBreakOffsets.Count + lineBreakOffsets.Count
+                + lineBreakGroups.Count + continuationGroups.Count + trailingGroups.Count
+                + runningStringAssignments.Count + continuationBreakProgress.Count + forcedBreaks.Count
+                + contentAvoidBreakRanges.Count + contentSafeBreakRanges.Count,
+                "ordinary source projection metadata");
             var source = new HtmlRenderFlowBlock(contentWidth, Math.Max(0D, contentHeight), contentVisuals,
                 HtmlPageBreakTarget.None, HtmlPageBreakTarget.None, style.AvoidBreakInside,
                 HtmlRenderStyleResolver.DescribeSource(element), contentBreakOffsets, lineBreakOffsets,
@@ -384,6 +390,9 @@ internal sealed partial class HtmlRenderLayoutEngine {
         double boxHeight = zeroHeightCollapsible ? 0D : ResolveBoxHeight(contentHeight, boxWidth, style,
             allowZeroHeight: contentHeight <= 0D && (style.Display == "block"
                 || style.Display == "flow-root" && hasZeroHeightOrdinaryContent));
+        bool hasOrdinaryFragmentSource = contentVisuals.Any(HasOrdinaryFragmentSource);
+        bool ownsConstrainedSource = pageSourceScope.IsOrdinary && _columnContentDepth == 0
+            && !IsAtomicPaginationOwner(style) && HasEffectiveConstrainedBlockHeight(style, boxHeight, contentHeight);
         if (_inlineFloatOverhangs.TryGetValue(element, out double inlineOverhang)) {
             double normalFlowBoxHeight = ResolveBoxHeight(Math.Max(0D, contentHeight - inlineOverhang), boxWidth, style);
             double floatBottom = style.BorderTopWidth + style.PaddingTop + contentHeight;
@@ -477,9 +486,10 @@ internal sealed partial class HtmlRenderLayoutEngine {
             pagedPaintExtent = Math.Max(pagedPaintExtent, contentYForBreaks + inlineLayout.PagedPaintExtent);
         }
         if (!usesVerticalBlockFormatting) {
-            pagedPaintExtent = ResolveConstrainedBlockPaintExtent(style, pagedPaintExtent,
+            pagedPaintExtent = ResolveConstrainedBlockPaintExtent(style, ownsConstrainedSource, pagedPaintExtent,
                 contentYForBreaks, contentHeight, inlineLayout, childPaintLayers);
-            AppendConstrainedBlockAllocationTail(style, boxHeight, contentYForBreaks,
+            AppendConstrainedBlockAllocationTail(style, ownsConstrainedSource && hasOrdinaryFragmentSource
+                && !contentFloats.HasFloats && !visuals.Any(ContainsPositionedFlowPaint), boxHeight, contentYForBreaks,
                 contentHeight, childPaintLayers, contentSafeBreakRanges,
                 pageBoundary?.PageHeight ?? _activePageGeometry.ContentHeight);
         }
@@ -598,7 +608,10 @@ internal sealed partial class HtmlRenderLayoutEngine {
         HtmlRenderFlowBlock completed = StampViewport(AttachElementMargins(ApplyElementPositioning(block, style, containingWidth, containingHeight, element),
             style, element, collapsesThrough, collapsedTopGroup, collapsedBottomGroup));
         if (pagedEntryGap > 0.0001D) completed = completed.AdjustLeadingFlowSpace(-pagedEntryGap);
-        RememberConstrainedOverflow(element, style, completed);
+        if (projectionScope.CanProjectAtomic && pageBoundary.HasValue)
+            completed = ProjectAtomicOrdinaryBlock(completed, pageBoundary.Value,
+                style.MarginTop, style.MarginTop + boxHeight);
+        RememberConstrainedOverflow(element, ownsConstrainedSource && hasOrdinaryFragmentSource, completed);
         if (columnOverflowExtent > completed.Height + 0.0001D) {
             HtmlRenderFlowBlock overflow = completed.ForPagination();
             completed = completed.WithVisuals(completed.Visuals, pagedPaintExtent: pagedPaintExtent);

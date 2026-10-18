@@ -3,14 +3,14 @@ namespace OfficeIMO.Html;
 internal sealed partial class HtmlRenderLayoutEngine {
     /// <summary>Maps one source gap without changing unrelated paint or source owners.</summary>
     private HtmlRenderFlowBlock InsertPagedSourceBreakGap(HtmlRenderFlowBlock block, double cut, double gap,
-        bool absorbInStretchTail, double? flowAdvanceDelta = null) {
+        bool absorbInStretchTail, double? flowAdvanceDelta = null, PagedBackgroundWindow? backgroundWindow = null) {
         CheckCancellation();
         ChargeLayoutOperations(1L + block.Visuals.Count + block.BreakOffsets.Count
             + block.SafeBreakRanges.Count + block.LineBreakGroups.Count + block.AvoidBreakRanges.Count
             + block.ContinuationGroups.Count + block.TrailingGroups.Count + block.ForcedBreaks.Count
             + block.InlineBreakProgress.Count + block.RunningStringAssignments.Count, "paged source gap mapping");
         double advanceDelta = absorbInStretchTail ? 0D : flowAdvanceDelta ?? gap;
-        IReadOnlyList<HtmlRenderVisual> before = SliceVisuals(block.Visuals, 0D, cut);
+        IReadOnlyList<HtmlRenderVisual> before = SliceVisuals(block.Visuals, 0D, cut, backgroundWindow: backgroundWindow);
         IReadOnlyList<HtmlRenderVisual> after = SliceVisuals(block.Visuals, cut, block.PagedPaintExtent, includeEndAnchor: true);
         List<HtmlRenderVisual> visuals = before
             .Concat(after.Select((visual, index) => visual.Translate(0D, cut + gap, before.Count + index)))
@@ -69,21 +69,22 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 range.End > cut + 0.0001D ? range.End + gap : range.End,
                 range.Soft, range.Scope)),
             pagedPaintExtent: extent,
-            safeBreakRanges: SplitPagedSourceBreakRangesAtGap(block.SafeBreakRanges, cut, gap, extent)) {
+            safeBreakRanges: SplitPagedSourceBreakRangesAtGap(block.SafeBreakRanges, cut, gap, extent, backgroundWindow.HasValue)) {
                 AvoidBreakInsideScope = block.AvoidBreakInsideScope,
                 RetainsZeroHeightFlowCarrier = block.RetainsZeroHeightFlowCarrier,
                 KnownNoInFlowLineBoxes = block.KnownNoInFlowLineBoxes,
                 HasZeroHeightOrdinaryContent = block.HasZeroHeightOrdinaryContent,
                 UnfragmentedHeight = block.UnfragmentedHeight,
                 ColumnOverflowContent = block.ColumnOverflowContent == null ? null
-                    : InsertPagedSourceBreakGap(block.ColumnOverflowContent, cut, gap, absorbInStretchTail, flowAdvanceDelta)
+                    : InsertPagedSourceBreakGap(block.ColumnOverflowContent, cut, gap, absorbInStretchTail, flowAdvanceDelta, backgroundWindow)
             };
     }
 
     /// <summary>Maps each side of the retained source independently; inserted spacing is not a source interval.</summary>
     private IReadOnlyList<HtmlRenderBreakRange> SplitPagedSourceBreakRangesAtGap(
-        IReadOnlyList<HtmlRenderBreakRange> ranges, double cut, double gap, double extent) {
-        var result = new List<HtmlRenderBreakRange> { new HtmlRenderBreakRange(cut, cut + gap) };
+        IReadOnlyList<HtmlRenderBreakRange> ranges, double cut, double gap, double extent, bool includeGap) {
+        var result = new List<HtmlRenderBreakRange>();
+        if (includeGap) result.Add(new HtmlRenderBreakRange(cut, cut + gap));
         foreach (HtmlRenderBreakRange range in ranges) {
             CheckCancellation();
             ChargeLayoutOperation("paged source break interval gap mapping");
