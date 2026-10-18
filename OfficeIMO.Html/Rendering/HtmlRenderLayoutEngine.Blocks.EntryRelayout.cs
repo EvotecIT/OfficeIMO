@@ -31,7 +31,13 @@ internal sealed partial class HtmlRenderLayoutEngine {
         foreach (IElement child in element.Children) {
             CheckCancellation();
             ChargeLayoutOperation("constrained sibling keep ownership");
-            if (!_layoutStyles.TryGetValue(child, out HtmlRenderBoxStyle? style)) continue;
+            if (!_layoutStyles.TryGetValue(child, out HtmlRenderBoxStyle? style)) {
+                // Transparent wrappers have no normal-flow placement. Their
+                // semantic boundary retains the same resolved style used to
+                // flatten their children, including stylesheet/inherited display.
+                if (!_flattenedSemanticBoundaries.TryGetValue(child, out FlattenedSemanticBoundary? boundary)) continue;
+                style = boundary.Style;
+            }
             if (((style.AvoidBreakBeforeScope | style.AvoidBreakAfterScope) & HtmlFragmentationScope.Page) != 0)
                 return true;
             if (style.Display == "contents" && HasConstrainedSiblingPageKeep(child)) return true;

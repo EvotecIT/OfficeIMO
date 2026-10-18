@@ -134,6 +134,39 @@ public sealed partial class HtmlRenderingTests {
         rendered.RequireNoLoss();
     }
 
+    [Theory]
+    [InlineData("inline", false)]
+    [InlineData("stylesheet", false)]
+    [InlineData("nested", false)]
+    [InlineData("inherit", false)]
+    [InlineData("stylesheet", true)]
+    public void HtmlNestedConstrainedOverflow_TransparentWrappersPreserveTheirResolvedSiblingKeeps(
+        string route, bool avoidBefore) {
+        string kept = "<p style='" + (avoidBefore ? "" : "break-after:avoid") + "'>KEEP-INNER</p>"
+            + "<p style='break-inside:avoid;" + (avoidBefore ? "break-before:avoid" : "") + "'>"
+            + "KEEP-ONE<br>KEEP-TWO<br>KEEP-THREE</p>";
+        string wrapped = route switch {
+            "stylesheet" => "<style>.transparent{display:contents}</style><div class='transparent'>" + kept + "</div>",
+            "nested" => "<div style='display:contents'><div style='display:contents'>" + kept + "</div></div>",
+            "inherit" => "<div style='display:contents'><div style='display:inherit'>" + kept + "</div></div>",
+            _ => "<div style='display:contents'>" + kept + "</div>"
+        };
+        string html = FixedHeightOverflowSource("<section style='height:200px'>"
+            + "<div style='height:60px'>KEEP-LEAD</div>" + wrapped
+            + "<p style='padding-left:300px'>KEEP-AFTER</p></section>");
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, FixedHeightOverflowOptions());
+
+        Assert.Equal(2, rendered.Pages.Count);
+        AssertDescendantSpannerSourceOnce(rendered,
+            "KEEP-LEAD", "KEEP-INNER", "KEEP-ONE", "KEEP-TWO", "KEEP-THREE", "KEEP-AFTER");
+        AssertFixedHeightOverflowPlacement(rendered, "KEEP-INNER", 2, 0D);
+        AssertFixedHeightOverflowPlacement(rendered, "KEEP-ONE", 2, 20D);
+        AssertFixedHeightOverflowPlacement(rendered, "KEEP-TWO", 2, 40D);
+        AssertFixedHeightOverflowPlacement(rendered, "KEEP-THREE", 2, 60D);
+        AssertFixedHeightOverflowPlacement(rendered, "KEEP-AFTER", 2, 80D);
+        rendered.RequireNoLoss();
+    }
+
     [Fact]
     public void HtmlNestedConstrainedOverflow_TwoSiblingKeepsAdvanceThroughDistinctInteriorEntries() {
         string html = FixedHeightOverflowSource("<section style='height:400px'>"
