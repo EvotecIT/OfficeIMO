@@ -22,6 +22,11 @@ namespace OfficeIMO.Excel {
             _sharedStringTableDirty = false;
             _tableNameCache = null;
             _nextTableId = null;
+            // Rollback replaces Workbook/Worksheet DOM roots while retaining their package parts.
+            // Every live alias must resolve the restored metadata and discard cached old DOM nodes.
+            _cachedSheets = null;
+            _sheetCacheDirty = true;
+            RebindSheetWrappersAfterPackageReload(CaptureActiveSheetPartsForReload(), packageWasSaved: false);
         }
 
         internal SharedStringTablePart SharedStringTablePart {

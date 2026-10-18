@@ -481,8 +481,6 @@ namespace OfficeIMO.Excel {
         }
 
         private void ReinitializePackageBoundHelpers() {
-            BuiltinDocumentProperties = new ExcelBuiltinDocumentProperties(this);
-            ApplicationProperties = new ExcelApplicationProperties(this);
             CustomDocumentProperties.SetChangeHandler(MarkCustomDocumentPropertiesChanged);
             LoadCustomDocumentProperties();
             ExcelChartAxisIdGenerator.Initialize(_spreadSheetDocument);

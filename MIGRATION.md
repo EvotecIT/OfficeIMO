@@ -717,6 +717,8 @@ Excel HTML export reports classify omitted native named-table definitions as los
 
 Live `ExcelSheet` handles remain associated with their worksheet when a save reloads the workbook package or changes its type. Existing handles can continue editing, exporting and inspecting tables after saving or adding VBA; reacquiring from `document.Sheets` is optional. Fresh workbooks preserve unsaved workbook metadata when first saved as templates or macro-enabled packages. Removed worksheet handles remain invalid and cannot attach to replacement worksheets that reuse their IDs. Picture handles and captured mutation plans keep their separate package-lifetime checks. Workbook exports and `document.GetTables()` use the current package directly.
 
+Core and application property wrappers and custom-property values also remain associated with the workbook across saves. Retained custom properties detach when explicitly removed or replaced. Transaction rollback refreshes live worksheet handles to the restored metadata, so later name and visibility edits persist.
+
 ## Excel and iWork TEXTJOIN formulas
 
 Numbers `TEXTJOIN` expressions with qualified operands now retain editable XLSX formulas and typed caches. The shared Excel writer stores authored `TEXTJOIN` calls as `_xlfn.TEXTJOIN`, including nested calls. Code comparing exact formula strings from `GetFormulaText` must account for this prefix. Existing prefixes, string literals, quoted worksheet names and structured references retain their text. Formula-prefix expansion that exceeds the 8,192-character storage limit raises an argument error for direct Excel authoring; iWork conversion uses its destination fallback policy instead of truncating the expression.
