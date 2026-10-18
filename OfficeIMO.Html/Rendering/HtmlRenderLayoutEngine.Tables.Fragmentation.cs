@@ -55,6 +55,19 @@ internal sealed partial class HtmlRenderLayoutEngine {
                         ChargeLayoutOperation("table content break ranges");
                         forbidden.Add(new HtmlRenderBreakRange(range.Start + safety.ContentY, range.End + safety.ContentY));
                     }
+                    // A negative margin can leave visible paint beyond the
+                    // row's normal end. Qualify that tail with the same cell
+                    // carrier/keep exclusions, without enlarging the row.
+                    if (cell.Style.OverflowY == "visible" && !row.Style.AvoidBreakInside
+                        && row.GroupStyle?.AvoidBreakInside != true
+                        && cell.Inline.PagedPaintExtent > cell.Inline.Height + 0.0001D) {
+                        double tailStart = Math.Max(rowStarts[lastRow + 1], safety.ContentY + cell.Inline.Height);
+                        double tailEnd = safety.ContentY + safety.ContentHeight;
+                        if (tailEnd > tailStart + 0.0001D) {
+                            ChargeLayoutOperation("table visible content tail cuts");
+                            allowed.Add(new HtmlRenderBreakRange(tailStart, tailEnd));
+                        }
+                    }
                 }
             }
             contentOwners += contentOwnersDelta[rowIndex];
@@ -106,9 +119,19 @@ internal sealed partial class HtmlRenderLayoutEngine {
         var ranges = new List<HtmlRenderAvoidBreakRange>(cell.Inline.AvoidBreakRanges
             .Where(range => (range.Scope & HtmlFragmentationScope.Page) != 0));
         bool supported = ordinaryBody && !cell.Style.AvoidBreakInside && !IsVerticalWritingMode(cell.Style.WritingMode);
-        if (!supported) return new TableCellCutSafety(lastRow, contentY, cell.Inline.Height,
+        if (!supported) return new TableCellCutSafety(lastRow, contentY, cell.Inline.PagedPaintExtent,
             cell.Inline.BreakOffsets, Array.Empty<HtmlRenderAvoidBreakRange>(), false);
         foreach (HtmlRenderVisual visual in cell.Inline.Visuals) Collect(visual);
+        if (cell.Style.OverflowY != "visible") {
+            // Source text and links remain retained under the cell's paint clip.
+            // Their hidden carriers must not reserve pages beyond that same edge.
+            CheckCancellation();
+            ChargeLayoutOperations(ranges.Count, "table clipped content carrier ranges");
+            ranges = ranges.Where(range => range.Start < cell.Inline.PagedPaintExtent
+                    && range.End > 0D)
+                .Select(range => new HtmlRenderAvoidBreakRange(Math.Max(0D, range.Start),
+                    Math.Min(cell.Inline.PagedPaintExtent, range.End), range.Soft, range.Scope)).ToList();
+        }
         var merged = new List<HtmlRenderAvoidBreakRange>();
         foreach (HtmlRenderAvoidBreakRange range in ranges.OrderBy(range => range.Start).ThenBy(range => range.End)) {
             ChargeLayoutOperation("table rowspan cut ranges");
@@ -121,7 +144,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 merged.Add(range);
             }
         }
-        return new TableCellCutSafety(lastRow, contentY, cell.Inline.Height,
+        return new TableCellCutSafety(lastRow, contentY, cell.Inline.PagedPaintExtent,
             cell.Inline.BreakOffsets, merged, supported);
 
         void Collect(HtmlRenderVisual visual) {

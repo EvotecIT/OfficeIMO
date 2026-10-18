@@ -22,6 +22,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         var avoidBreakRanges = new List<HtmlRenderAvoidBreakRange>();
         var lineBreakGroups = new List<HtmlRenderLineBreakGroup>();
         double height = 0D;
+        double paintExtent = 0D;
         for (int index = 0; index < blocks.Count; index++) {
             CheckCancellation();
             ChargeLayoutOperation("table cell fragmentation metadata");
@@ -34,6 +35,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 if (translated > 0D) breakOffsets.Add(translated);
             }
             safeBreakRanges.AddRange(block.SafeBreakRanges.Select(range => range.Translate(blockStart)));
+            paintExtent = Math.Max(paintExtent, blockStart + ResolveNormalFlowPaintExtent(block));
             height += block.NormalFlowAdvance;
             if (block.AvoidBreakInsideScope != HtmlFragmentationScope.None)
                 avoidBreakRanges.Add(new HtmlRenderAvoidBreakRange(blockStart, height, Scope: block.AvoidBreakInsideScope));
@@ -56,6 +58,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 layer.Block.RunningStringAssignments.Select(assignment => assignment.Translate(layer.Y))),
             lineBreakGroups: lineBreakGroups,
             avoidBreakRanges: avoidBreakRanges,
+            pagedPaintExtent: paintExtent,
             safeBreakRanges: safeBreakRanges);
     }
 }

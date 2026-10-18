@@ -362,8 +362,16 @@ internal sealed partial class HtmlRenderLayoutEngine {
         }
         double unclampedOuterHeight = style.MarginTop + boxHeight + style.MarginBottom;
         // Margins change normal progression, not the nonnegative allocation
-        // used by the fragment planner. Retain the signed value separately.
+        // used by the fragment planner. Keep existing paint/float carriers while
+        // retaining the signed normal advance independently.
+        bool hasContentCarrier = contentVisuals.Any(ContainsInFlowPaint) || inlineLayout?.HasInFlowLineBoxes == true
+            || inlineLayout?.FloatExclusions.Count > 0 || hasLocallyPositionedPseudo;
         double outerHeight = Math.Max(0D, unclampedOuterHeight);
+        // A float-only zero-height box retains its existing pagination carrier.
+        // A real box cancelled by negative margins has no such allocation.
+        bool retainsZeroHeightFlowCarrier = unclampedOuterHeight == 0D && boxHeight == 0D
+            && hasContentCarrier && !hasZeroHeightOrdinaryContent;
+        if (retainsZeroHeightFlowCarrier) outerHeight = HtmlRenderFlowBlock.ZeroHeightFlowCarrierAdvance;
         var visuals = new List<HtmlRenderVisual>();
         var overflowContent = new List<HtmlRenderVisual>();
         var positionedRunningStringAssignments = new List<HtmlCssRunningStringAssignment>();
@@ -439,24 +447,9 @@ internal sealed partial class HtmlRenderLayoutEngine {
             columnOverflowExtent = Math.Max(columnOverflowExtent, ResolveColumnStaticPositionPaintExtent(visuals));
             if (style.ExplicitHeight.HasValue || style.MaxHeight.HasValue || style.AspectRatio.HasValue)
                 columnOverflowExtent = Math.Max(columnOverflowExtent, contentYForBreaks + contentHeight);
-            foreach (FlowPaintLayer layer in childPaintLayers) {
-                if (layer.Block.ColumnOverflowContent is not { } overflow) continue;
-                CheckCancellation();
-                ChargeLayoutOperation("column descendant overflow metrics");
-                ChargeLayoutOperations((long)overflow.BreakOffsets.Count + overflow.SafeBreakRanges.Count
-                    + overflow.AvoidBreakRanges.Count + overflow.ForcedBreaks.Count,
-                    "column descendant overflow source constraints");
-                columnOverflowExtent = Math.Max(columnOverflowExtent,
-                    contentYForBreaks + layer.Y + overflow.Height);
-                contentBreakOffsets.AddRange(overflow.BreakOffsets.Select(offset => layer.Y + offset));
-                contentSafeBreakRanges.AddRange(overflow.SafeBreakRanges.Select(range => range.Translate(layer.Y)));
-                contentAvoidBreakRanges.AddRange(overflow.AvoidBreakRanges
-                    .Where(range => range.End > layer.Block.PagedPaintExtent + 0.0001D)
-                    .Select(range => range.Translate(layer.Y)));
-                forcedBreaks.AddRange(overflow.ForcedBreaks
-                    .Where(item => item.Offset > layer.Block.PagedPaintExtent + 0.0001D)
-                    .Select(item => item.Translate(layer.Y)));
-            }
+            columnOverflowExtent = AppendColumnChildOverflowFacts(childPaintLayers, contentYForBreaks,
+                columnOverflowExtent, contentBreakOffsets, contentSafeBreakRanges,
+                contentAvoidBreakRanges, forcedBreaks);
         }
         double? sourceContentHeight = !usesVerticalBlockFormatting && children.Any(child => child.UnfragmentedHeight.HasValue)
             ? children.Sum(child => child.UnfragmentedHeight ?? child.Height) : null;
@@ -551,6 +544,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
             avoidBreakRanges: contentAvoidBreakRanges.Select(range => range.Translate(contentYForBreaks)),
             pagedPaintExtent: Math.Max(pagedPaintExtent, columnOverflowExtent),
             safeBreakRanges: safeBreakRanges);
+        block.RetainsZeroHeightFlowCarrier = retainsZeroHeightFlowCarrier;
         if (sourceContentHeight.HasValue) {
             block.UnfragmentedHeight = Math.Max(0D, style.MarginTop + style.MarginBottom
                 + ResolveBoxHeight(sourceContentHeight.Value, boxWidth, style));

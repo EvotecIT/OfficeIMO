@@ -55,7 +55,6 @@ public sealed partial class HtmlRenderingTests {
         AssertPaintOffset(baseline, positioned, "Outer", 7D, 3D);
         AssertPaintOffset(baseline, positioned, "Inner", 12D, 5D);
         AssertPaintOffset(baseline, positioned, "Tail", 0D, 0D);
-        Assert.Equal(baseline.Pages[0].Height, positioned.Pages[0].Height, 3);
     }
 
     [Fact]

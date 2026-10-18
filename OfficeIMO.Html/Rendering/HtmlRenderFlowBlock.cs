@@ -3,6 +3,8 @@ using AngleSharp.Dom;
 namespace OfficeIMO.Html;
 
 internal sealed class HtmlRenderFlowBlock {
+    internal const double ZeroHeightFlowCarrierAdvance = 0.01D;
+
     internal HtmlRenderFlowBlock(
         double width,
         double height,
@@ -138,7 +140,13 @@ internal sealed class HtmlRenderFlowBlock {
     /// can move that sibling above this block's entry without making its paint
     /// or fragmentation allocation negative.
     /// </summary>
-    internal double NormalFlowAdvance => UnclampedHeight;
+    internal double NormalFlowAdvance => RetainsZeroHeightFlowCarrier && UnclampedHeight == 0D
+        ? ZeroHeightFlowCarrierAdvance : UnclampedHeight;
+    /// <summary>
+    /// Retains the established dispatch slot of a zero-height float/specialized
+    /// paint carrier. This role is never inferred for a real box cancelled by margins.
+    /// </summary>
+    internal bool RetainsZeroHeightFlowCarrier { get; set; }
     internal IReadOnlyList<HtmlRenderVisual> Visuals { get; }
     internal HtmlPageBreakTarget BreakBefore { get; }
     internal HtmlPageBreakTarget BreakAfter { get; }
@@ -187,6 +195,7 @@ internal sealed class HtmlRenderFlowBlock {
     private HtmlRenderFlowBlock CopyLayoutFacts(HtmlRenderFlowBlock block, double unfragmentedAdjustment = 0D,
         double? columnOverflowLeadingAdjustment = null) {
         block.AvoidBreakInsideScope = AvoidBreakInsideScope;
+        block.RetainsZeroHeightFlowCarrier = RetainsZeroHeightFlowCarrier;
         block.HasZeroHeightOrdinaryContent = HasZeroHeightOrdinaryContent;
         block.UnfragmentedHeight = UnfragmentedHeight.HasValue
             ? Math.Max(0D, UnfragmentedHeight.Value + unfragmentedAdjustment) : null;
@@ -395,7 +404,8 @@ internal sealed class HtmlRenderFlowBlock {
     internal HtmlRenderFlowBlock AdjustLeadingFlowSpace(double adjustment) {
         if (Math.Abs(adjustment) <= 0.0001D) return this;
         double adjustedUnclampedHeight = UnclampedHeight - adjustment;
-        double adjustedHeight = Math.Max(0D, adjustedUnclampedHeight);
+        double adjustedHeight = RetainsZeroHeightFlowCarrier && adjustedUnclampedHeight == 0D
+            ? ZeroHeightFlowCarrierAdvance : Math.Max(0D, adjustedUnclampedHeight);
         double adjustedPaintExtent = PagedPaintExtent > Math.Max(0D, UnclampedHeight) + 0.0001D
             ? Math.Max(adjustedHeight, PagedPaintExtent - adjustment) : adjustedHeight;
         return CopyLayoutFacts(new HtmlRenderFlowBlock(
@@ -514,7 +524,8 @@ internal sealed class HtmlRenderFlowBlock {
     internal HtmlRenderFlowBlock AdjustTrailingFlowSpace(double adjustment) {
         if (Math.Abs(adjustment) <= 0.0001D) return this;
         double adjustedUnclampedHeight = UnclampedHeight - adjustment;
-        double adjustedHeight = Math.Max(0D, adjustedUnclampedHeight);
+        double adjustedHeight = RetainsZeroHeightFlowCarrier && adjustedUnclampedHeight == 0D
+            ? ZeroHeightFlowCarrierAdvance : Math.Max(0D, adjustedUnclampedHeight);
         // Removing a trailing margin changes advance without translating paint.
         // A retained overhang therefore keeps its original painted endpoint.
         double adjustedPaintExtent = PagedPaintExtent > Math.Max(0D, UnclampedHeight) + 0.0001D

@@ -6,6 +6,11 @@ internal sealed partial class HtmlRenderLayoutEngine {
     private static bool HasSignedFlowAllocation(IReadOnlyList<HtmlRenderFlowBlock> blocks) =>
         blocks.Any(block => Math.Abs(block.NormalFlowAdvance - block.Height) > 0.0001D);
 
+    /// <summary>Imports explicit paint overhang without turning a flow carrier's allocation into painted space.</summary>
+    private static double ResolveNormalFlowPaintExtent(HtmlRenderFlowBlock block) =>
+        block.PagedPaintExtent > block.Height + 0.0001D
+            ? block.PagedPaintExtent : Math.Max(0D, block.NormalFlowAdvance);
+
     /// <summary>
     /// Shares one source and paint surface when overlapping siblings cannot be
     /// represented by consecutive nonnegative fragment allocations. Children
@@ -13,7 +18,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
     /// only the enclosing fragmentable extent is nonnegative.
     /// </summary>
     private HtmlRenderFlowBlock BuildNormalFlowSurface(
-        IReadOnlyList<HtmlRenderFlowBlock> blocks, double width, IElement owner) {
+        IReadOnlyList<HtmlRenderFlowBlock> blocks, double width, IElement owner,
+        bool retainsRootReflow = false) {
         var visuals = new List<HtmlRenderVisual>();
         var layers = new List<FlowPaintLayer>();
         var offsets = new SortedSet<double>();
@@ -58,21 +64,34 @@ internal sealed partial class HtmlRenderLayoutEngine {
             progress.AddRange(block.InlineBreakProgress.Select(item => new HtmlInlineBreakProgress(
                 advance + item.Offset, item.LogicalCharacters, item.OwnerElement,
                 item.IsBlockEntry, item.PageStartDiscardableMargin, item.IsBlockExit, item.IsFlexGap)));
-            extent = Math.Max(extent, advance + block.PagedPaintExtent);
+            extent = Math.Max(extent, advance + ResolveNormalFlowPaintExtent(block));
             advance += block.NormalFlowAdvance;
             offsets.Add(advance);
         }
         AppendFlowPaintLayers(visuals, layers);
         double height = Math.Max(0D, advance);
         extent = Math.Max(height, extent);
-        return new HtmlRenderFlowBlock(width, height, visuals,
+        bool hasColumnOverflow = _columnContentDepth > 0
+            && layers.Any(layer => layer.Block.ColumnOverflowContent != null);
+        double columnOverflowExtent = hasColumnOverflow
+            ? AppendColumnChildOverflowFacts(layers, 0D, extent, offsets, safe, keeps, forced) : extent;
+        var block = new HtmlRenderFlowBlock(width, height, visuals,
             HtmlPageBreakTarget.None, HtmlPageBreakTarget.None, false,
             HtmlRenderStyleResolver.DescribeSource(owner), offsets,
             lineBreakGroups: lines, continuationGroups: continuations, trailingGroups: trailing,
             pageName: blocks.FirstOrDefault()?.PageName, unclampedHeight: advance,
+            ownerElement: retainsRootReflow ? owner : null,
             runningStringAssignments: assignments, inlineBreakProgress: progress,
-            forcedBreaks: forced, avoidBreakRanges: keeps, pagedPaintExtent: extent,
+            supportsInlineContinuationReflow: blocks.Any(child => child.SupportsInlineContinuationReflow),
+            layoutViewportWidth: ActiveSurfaceWidth, layoutViewportHeight: _activePageGeometry.Height,
+            forcedBreaks: forced, avoidBreakRanges: keeps, pagedPaintExtent: columnOverflowExtent,
             safeBreakRanges: ConstrainParallelPaintBreakRanges(
-                HtmlRenderBreakRange.Normalize(safe, extent), visuals));
+                HtmlRenderBreakRange.Normalize(safe, columnOverflowExtent), visuals));
+        if (hasColumnOverflow && columnOverflowExtent > height + 0.0001D) {
+            HtmlRenderFlowBlock overflow = block.ForPagination();
+            block = block.WithVisuals(block.Visuals, pagedPaintExtent: extent);
+            block.ColumnOverflowContent = overflow;
+        }
+        return block;
     }
 }

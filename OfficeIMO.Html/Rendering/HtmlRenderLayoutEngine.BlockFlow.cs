@@ -87,9 +87,10 @@ internal sealed partial class HtmlRenderLayoutEngine {
             }
             INode node = entry.Node!;
             CheckCancellation();
-            for (int index = (activeFloats?.Count ?? 0) - 1; index >= 0; index--) {
-                if (activeFloats![index].Bottom <= flowHeight + 0.0001D) activeFloats.RemoveAt(index);
-            }
+            ChargeLayoutOperations(activeFloats?.Count ?? 0, "active float exclusion history");
+            // Later negative margins can return normal flow to an earlier float
+            // band. Keep the exclusions; their consumers filter intersections at
+            // the current position rather than assuming this cursor is monotone.
             if (IsClosedDisclosureChild(node)) continue;
             if (seekingContinuation) {
                 if (node is not IElement candidate || !ReferenceEquals(candidate, continuationChild)) continue;

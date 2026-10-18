@@ -306,7 +306,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         if (rootStyle.Display == "contents") {
             IReadOnlyList<HtmlRenderFlowBlock> children = BuildChildBlocks(root, contentWidth, rootStyle, 0);
             return _options.Mode == HtmlRenderMode.Paged && HasSignedFlowAllocation(children)
-                ? new[] { BuildNormalFlowSurface(children, contentWidth, root) } : children;
+                ? new[] { BuildNormalFlowSurface(children, contentWidth, root, retainsRootReflow: true) } : children;
         }
         if (HasMultiColumnLayout(rootStyle)) return new[] { LayoutRootElement(root, contentWidth, rootStyle) };
         bool pagedColumnBody = _options.Mode == HtmlRenderMode.Paged

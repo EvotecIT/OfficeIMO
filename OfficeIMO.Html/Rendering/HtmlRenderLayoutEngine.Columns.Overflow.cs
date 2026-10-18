@@ -1,6 +1,29 @@
 namespace OfficeIMO.Html;
 
 internal sealed partial class HtmlRenderLayoutEngine {
+    /// <summary>Retains descendant overflow facts at their original signed sibling positions.</summary>
+    private double AppendColumnChildOverflowFacts(IReadOnlyList<FlowPaintLayer> layers,
+        double contentOffsetY, double extent, ICollection<double> offsets,
+        ICollection<HtmlRenderBreakRange> safe, ICollection<HtmlRenderAvoidBreakRange> keeps,
+        ICollection<HtmlRenderForcedBreak> forced) {
+        foreach (FlowPaintLayer layer in layers) {
+            if (layer.Block.ColumnOverflowContent is not { } overflow) continue;
+            CheckCancellation();
+            ChargeLayoutOperation("column descendant overflow metrics");
+            ChargeLayoutOperations((long)overflow.BreakOffsets.Count + overflow.SafeBreakRanges.Count
+                + overflow.AvoidBreakRanges.Count + overflow.ForcedBreaks.Count,
+                "column descendant overflow source constraints");
+            extent = Math.Max(extent, contentOffsetY + layer.Y + overflow.Height);
+            foreach (double offset in overflow.BreakOffsets) offsets.Add(layer.Y + offset);
+            foreach (HtmlRenderBreakRange range in overflow.SafeBreakRanges) safe.Add(range.Translate(layer.Y));
+            foreach (HtmlRenderAvoidBreakRange range in overflow.AvoidBreakRanges)
+                if (range.End > layer.Block.PagedPaintExtent + 0.0001D) keeps.Add(range.Translate(layer.Y));
+            foreach (HtmlRenderForcedBreak item in overflow.ForcedBreaks)
+                if (item.Offset > layer.Block.PagedPaintExtent + 0.0001D) forced.Add(item.Translate(layer.Y));
+        }
+        return extent;
+    }
+
     /// <summary>
     /// Reuses column fragmentation for a finite box's visible contents without
     /// consuming the space in which following normal-flow siblings are placed.

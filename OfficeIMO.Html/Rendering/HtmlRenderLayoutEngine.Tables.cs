@@ -195,6 +195,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         ApplyTableMinimumHeight(rowLayouts, style, verticalSpacing);
         ResolveTableCellPercentageContent(rowLayouts, verticalSpacing, depth + 1);
         ResolveTableCellContentOffsets(rowLayouts, verticalSpacing);
+        ApplyTableCellContentOverflow(rowLayouts, verticalSpacing);
         if (skippedBodyRows > 0) rowLayouts.RemoveRange(headerRows.Count, skippedBodyRows);
 
         double rowsHeight = verticalSpacing * (rowLayouts.Count + 1);
@@ -233,6 +234,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         var rowBackgroundLayers = new List<TableRowBackgroundLayer>();
         double contentX = style.MarginLeft + style.BorderLeftWidth + style.PaddingLeft;
         double rowY = tableY + style.BorderTopWidth + style.PaddingTop + verticalSpacing;
+        double contentPaintExtent = rowY;
         double headerStart = rowY;
         var hasBodyAfter = new bool[rowLayouts.Count];
         bool bodySeen = false;
@@ -284,8 +286,10 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 if (!cell.Anonymous) AddElementNamedDestination(navigationDestinations, cell.Element, cellX, rowY, navigationDestinations.Count);
                 double textX = cellX + cell.Style.BorderLeftWidth + cell.Style.PaddingLeft;
                 double textY = rowY + cell.ContentOffsetY;
+                contentPaintExtent = Math.Max(contentPaintExtent, textY + cell.Inline.PagedPaintExtent);
                 if (!row.IsHeader && !row.IsFooter
-                    && (cell.RowSpan > 1 || HasTableContentCutsInRow(safeBreakRanges, rowY, row.Height)))
+                    && (cell.RowSpan > 1 || HasTableContentCutsInRow(safeBreakRanges, rowY, row.Height)
+                        || cell.Inline.PagedPaintExtent > cell.Inline.Height + 0.0001D))
                     AppendTableCellLineBreakGroups(lineBreakGroups, cell, textY);
                 foreach (HtmlRenderVisual visual in cell.Inline.Visuals) {
                     cellVisuals.Add(visual.Translate(textX, textY, cellVisuals.Count));
@@ -507,6 +511,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
             inlineBreakProgress: continuationBreakProgress,
             supportsInlineContinuationReflow: continuationBreakProgress.Count > 0,
             forcedBreaks: forcedBreaks,
+            pagedPaintExtent: Math.Max(outerHeight, contentPaintExtent),
             safeBreakRanges: safeBreakRanges);
     }
 
