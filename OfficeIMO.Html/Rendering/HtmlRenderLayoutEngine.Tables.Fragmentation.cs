@@ -56,7 +56,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
     private TableSpanCutSafety CreateTableSpanCutSafety(
         TableCellLayout cell, int lastRow, double contentY, bool ordinaryBody) {
         var ranges = new List<HtmlRenderAvoidBreakRange>(cell.Inline.AvoidBreakRanges);
-        bool supported = ordinaryBody && !cell.Style.AvoidBreakInside;
+        bool supported = ordinaryBody && !cell.Style.AvoidBreakInside && !IsVerticalWritingMode(cell.Style.WritingMode);
         if (!supported) return new TableSpanCutSafety(lastRow, contentY, cell.Inline.Height,
             cell.Inline.BreakOffsets, Array.Empty<HtmlRenderAvoidBreakRange>(), false);
         foreach (HtmlRenderVisual visual in cell.Inline.Visuals) Collect(visual);

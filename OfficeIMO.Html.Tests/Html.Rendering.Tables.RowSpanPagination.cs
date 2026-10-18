@@ -69,6 +69,37 @@ public sealed partial class HtmlRenderingTests {
         AssertRowSpanPaginationContent(rendered, "SPAN-1", "LINE-A", "LINE-B", "LINE-C", "LINE-D");
     }
 
+    [Theory]
+    [InlineData("break-after", false)]
+    [InlineData("break-before", false)]
+    [InlineData("break-after", true)]
+    [InlineData("break-before", true)]
+    public void HtmlTables_RowSpanPreservesKeepsBetweenCellBlocks(string property, bool inlineLink) {
+        string first = "<div style='line-height:20px;orphans:1;widows:1;"
+            + (property == "break-after" ? "break-after:avoid" : string.Empty) + "'>LINE-A<br>LINE-B<br>LINE-C</div>";
+        string last = "<div style='line-height:20px;orphans:1;widows:1;"
+            + (property == "break-before" ? "break-before:avoid" : string.Empty) + "'>LINE-D</div>";
+        HtmlRenderDocument rendered = RenderRowSpanPagination("separate", secondSpan:
+            inlineLink ? "<a href='#after'>" + first + last + "</a>" : first + last,
+            additionalCss: "td,th{border:0;padding:0;orphans:1;widows:1}");
+
+        Assert.DoesNotContain(rendered.Pages[0].Visuals.OfType<HtmlRenderText>(), text => text.Text == "FIRST-2");
+        AssertRowSpanPaginationContent(rendered, "SPAN-1", "LINE-A", "LINE-B", "LINE-C", "LINE-D");
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void HtmlTables_RowSpanPreservesNestedBlockConstraintsThroughInlineLinks(bool avoidInside) {
+        string style = "line-height:20px;" + (avoidInside ? "orphans:1;widows:1;break-inside:avoid" : "orphans:2;widows:2");
+        HtmlRenderDocument rendered = RenderRowSpanPagination("separate", secondSpan:
+            "<a href='#after'><div style='" + style + "'>LINE-A<br>LINE-B<br>LINE-C<br>LINE-D</div></a>",
+            additionalCss: "td,th{border:0;padding:0;orphans:1;widows:1}");
+
+        Assert.DoesNotContain(rendered.Pages[0].Visuals.OfType<HtmlRenderText>(), text => text.Text == "FIRST-2");
+        AssertRowSpanPaginationContent(rendered, "SPAN-1", "LINE-A", "LINE-B", "LINE-C", "LINE-D");
+    }
+
     [Fact]
     public void HtmlTables_RowSpanKeepsItsOriginWhenFollowingPageGeometryChanges() {
         HtmlRenderDocument rendered = RenderRowSpanPagination("collapse", secondSpan:

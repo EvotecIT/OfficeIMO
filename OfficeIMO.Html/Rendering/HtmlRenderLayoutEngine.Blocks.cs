@@ -329,6 +329,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
             runningStringAssignments.AddRange(inline.RunningStringAssignments);
             forcedBreaks.AddRange(inline.ForcedBreaks);
             lineBreakGroups.AddRange(inline.LineBreakGroups);
+            contentAvoidBreakRanges.AddRange(inline.AvoidBreakRanges);
             continuationGroups.AddRange(inline.ContinuationGroups);
             trailingGroups.AddRange(inline.TrailingGroups);
         }
@@ -666,7 +667,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
             forcedBreaks: inline.ForcedBreaks,
             layoutViewportWidth: ActiveSurfaceWidth,
             layoutViewportHeight: _activePageGeometry.Height,
-            pagedPaintExtent: inline.PagedPaintExtent);
+            pagedPaintExtent: inline.PagedPaintExtent,
+            avoidBreakRanges: inline.AvoidBreakRanges);
         block.HasZeroHeightOrdinaryContent = flowHeight == 0D && inline.HasInFlowLineBoxes == true;
         blocks.Add(block);
         return block.Height;

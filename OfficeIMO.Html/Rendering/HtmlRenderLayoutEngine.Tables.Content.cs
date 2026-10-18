@@ -21,10 +21,12 @@ internal sealed partial class HtmlRenderLayoutEngine {
         var avoidBreakRanges = new List<HtmlRenderAvoidBreakRange>();
         var lineBreakGroups = new List<HtmlRenderLineBreakGroup>();
         double height = 0D;
-        foreach (HtmlRenderFlowBlock block in blocks) {
+        for (int index = 0; index < blocks.Count; index++) {
             CheckCancellation();
             ChargeLayoutOperation("table cell fragmentation metadata");
+            HtmlRenderFlowBlock block = blocks[index];
             double blockStart = height;
+            AppendKeepWithNextRange(blocks, index, blockStart, avoidBreakRanges);
             paintLayers.Add(new FlowPaintLayer(block, 0D, blockStart, paintLayers.Count));
             foreach (double offset in block.BreakOffsets) {
                 double translated = blockStart + offset;

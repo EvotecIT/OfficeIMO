@@ -37,7 +37,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 trailingGroups: inline.TrailingGroups, forcedBreaks: inline.ForcedBreaks,
                 pageName: paragraphStyle.PageName, runningStringAssignments: inline.RunningStringAssignments,
                 layoutViewportWidth: ActiveSurfaceWidth, layoutViewportHeight: _activePageGeometry.Height,
-                pagedPaintExtent: inline.PagedPaintExtent);
+                pagedPaintExtent: inline.PagedPaintExtent, avoidBreakRanges: inline.AvoidBreakRanges);
             inlineBlock.HasZeroHeightOrdinaryContent = inline.Height == 0D && inline.HasInFlowLineBoxes == true;
             blocks.Add(inlineBlock);
         }
@@ -76,6 +76,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         var lines = new List<HtmlRenderLineBreakGroup>();
         var continuations = new List<HtmlRenderContinuationGroup>();
         var trailing = new List<HtmlRenderTrailingGroup>();
+        var keeps = new List<HtmlRenderAvoidBreakRange>();
         double height = 0D;
         double paintExtent = 0D;
         bool rightToLeft = paragraphStyle.WritingMode == "vertical-rl" || paragraphStyle.WritingMode == "sideways-rl";
@@ -100,6 +101,14 @@ internal sealed partial class HtmlRenderLayoutEngine {
             }
             double offsetX = 0D;
             double offsetY = vertical ? 0D : height;
+            if (!vertical) {
+                AppendKeepWithNextRange(blocks, index, offsetY, keeps);
+                if (block.AvoidBreakInside) keeps.Add(new HtmlRenderAvoidBreakRange(offsetY, offsetY + block.Height));
+                foreach (HtmlRenderAvoidBreakRange range in block.AvoidBreakRanges) {
+                    ChargeLayoutOperation("interrupted inline keep ranges");
+                    keeps.Add(range.Translate(offsetY));
+                }
+            }
             if (vertical) {
                 VerticalBlockBounds bounds = ResolveVerticalBlockBounds(block, paragraphStyle.LineHeight);
                 offsetX = rightToLeft ? cursor - bounds.Right : cursor - bounds.Left;
@@ -139,10 +148,11 @@ internal sealed partial class HtmlRenderLayoutEngine {
             collapsesThrough: blocks.Count > 0 && blocks.All(block => block.CollapsesThrough),
             pageName: blocks.FirstOrDefault()?.PageName, runningStringAssignments: assignments, forcedBreaks: forced,
             layoutViewportWidth: ActiveSurfaceWidth, layoutViewportHeight: _activePageGeometry.Height,
-            pagedPaintExtent: paintExtent);
+            pagedPaintExtent: paintExtent, avoidBreakRanges: keeps);
         aggregate.HasZeroHeightOrdinaryContent = height == 0D && hasInlineLineBoxes
             && blocks.All(block => block.Height == 0D);
         return new HtmlInlineLayout(painted, height, breaks, assignments, interruptedFlow: aggregate,
+            lineBreakGroups: aggregate.LineBreakGroups, avoidBreakRanges: aggregate.AvoidBreakRanges,
             pagedPaintExtent: paintExtent, hasInFlowLineBoxes: hasInlineLineBoxes ? true : (bool?)null);
     }
 

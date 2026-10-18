@@ -108,7 +108,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
             lineBreakGroups: body.LineBreakGroups,
             continuationGroups: body.ContinuationGroups,
             trailingGroups: body.TrailingGroups,
-            pagedPaintExtent: Math.Max(marker.Height, body.PagedPaintExtent));
+            pagedPaintExtent: Math.Max(marker.Height, body.PagedPaintExtent),
+            avoidBreakRanges: body.AvoidBreakRanges);
     }
 
     private static HtmlInlineRun CreateListMarkerRun(HtmlListMarker marker, IElement? owner) =>
