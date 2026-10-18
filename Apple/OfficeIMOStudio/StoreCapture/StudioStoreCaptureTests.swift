@@ -17,6 +17,7 @@ final class StudioStoreCaptureTests: XCTestCase {
         #if os(macOS)
         let appURL = URL(fileURLWithPath: try XCTUnwrap(environment["STUDIO_CAPTURE_APP_PATH"]))
         let app = XCUIApplication(url: appURL)
+        app.launchEnvironment["TMPDIR"] = try XCTUnwrap(environment["STUDIO_CAPTURE_NATIVE_TMPDIR"])
         #else
         XCUIDevice.shared.orientation = .portrait
         let app = XCUIApplication(bundleIdentifier: "com.evotec.officeimo.studio")
@@ -39,14 +40,14 @@ final class StudioStoreCaptureTests: XCTestCase {
         app.typeKey(.return, modifierFlags: [])
         let window = app.windows[URL(fileURLWithPath: path).lastPathComponent]
         XCTAssertTrue(window.waitForExistence(timeout: 30), app.debugDescription)
-        try resizePublicWindow(appURL: appURL, title: URL(fileURLWithPath: path).lastPathComponent)
+        try resizePublicWindow(app: app, appURL: appURL, title: URL(fileURLWithPath: path).lastPathComponent)
         #else
         app.open(URL(fileURLWithPath: path))
         #endif
 
         let page = app.descendants(matching: .any).matching(identifier: "Page 1 of 1").firstMatch
         XCTAssertTrue(page.waitForExistence(timeout: 30), app.debugDescription)
-        try capture(app, name: "studio-dashboard-" + role)
+        try capture(app, page: page, name: "studio-dashboard-" + role)
 
         // Compact iPhone chrome has its own layout. Its full-page capture is
         // sufficient; search captures use the visible regular-width search UI.
@@ -56,7 +57,7 @@ final class StudioStoreCaptureTests: XCTestCase {
             search.clickOrTap()
             search.typeText("Quarterly\n")
             XCTAssertTrue(app.staticTexts["1 of 1"].waitForExistence(timeout: 30), app.debugDescription)
-            try capture(app, name: "studio-search-" + role)
+            try capture(app, page: page, name: "studio-search-" + role)
         }
     }
 
@@ -69,14 +70,16 @@ final class StudioStoreCaptureTests: XCTestCase {
         #endif
     }
 
-    private func capture(_ app: XCUIApplication, name: String) throws {
+    private func capture(_ app: XCUIApplication, page: XCUIElement, name: String) throws {
         var previousPixels: Data?
         var stableSince: TimeInterval?
         var accepted: XCUIScreenshot?
         var lastError = "The public dashboard has not rendered."
         let rendered = XCTNSPredicateExpectation(predicate: NSPredicate { _, _ in
-            guard app.progressIndicators.count == 0, app.alerts.count == 0 else {
+            guard app.progressIndicators.count == 0, app.alerts.count == 0,
+                  app.sheets.count == 0, app.dialogs.count == 0 else {
                 stableSince = nil
+                lastError = "A progress indicator or modal dialog is visible."
                 return false
             }
             let screenshot = self.snapshot(app)
@@ -85,7 +88,23 @@ final class StudioStoreCaptureTests: XCTestCase {
                       let image = CGImageSourceCreateImageAtIndex(source, 0, nil) else {
                     throw StudioCapturePageReadiness.Failure.unreadablePixels
                 }
-                let pixels = try StudioCapturePageReadiness.pagePixels(from: image)
+                #if os(macOS)
+                let path = ProcessInfo.processInfo.environment["STUDIO_CAPTURE_DOCUMENT_PATH"]!
+                let viewport = app.windows[URL(fileURLWithPath: path).lastPathComponent].frame
+                #else
+                let viewport = app.frame
+                #endif
+                let visible = page.frame.intersection(viewport)
+                guard viewport.width > 0, viewport.height > 0, !visible.isNull, !visible.isEmpty else {
+                    throw StudioCapturePageReadiness.Failure.unreadablePixels
+                }
+                let scaleX = CGFloat(image.width) / viewport.width
+                let scaleY = CGFloat(image.height) / viewport.height
+                let contentBounds = CGRect(x: (visible.minX - viewport.minX) * scaleX,
+                                           y: (visible.minY - viewport.minY) * scaleY,
+                                           width: visible.width * scaleX, height: visible.height * scaleY)
+                let pixels = try StudioCapturePageReadiness.pagePixels(from: image, contentBounds: contentBounds)
+                lastError = "The public PDF is recognized; waiting for stable pixels in \(contentBounds)."
                 let now = ProcessInfo.processInfo.systemUptime
                 if pixels != previousPixels || stableSince == nil {
                     previousPixels = pixels
@@ -117,11 +136,23 @@ final class StudioStoreCaptureTests: XCTestCase {
     }
 
     #if os(macOS)
-    /// Uses existing Accessibility trust and touches only the exact capture app's
-    /// public document window. It never requests or changes system permissions.
-    private func resizePublicWindow(appURL: URL, title: String) throws {
-        XCTAssertTrue(AXIsProcessTrusted(), "The capture runner needs existing Accessibility access.")
-        guard AXIsProcessTrusted() else { throw CaptureError.windowUnavailable }
+    /// Accepts the required window size or uses existing Accessibility trust to
+    /// resize only this app's public document window. It never requests permissions.
+    private func resizePublicWindow(app: XCUIApplication, appURL: URL, title: String) throws {
+        let desired = CGSize(width: 1280, height: 800)
+        let documentWindow = app.windows[title]
+        if documentWindow.frame.size == desired { return }
+        guard AXIsProcessTrusted() else {
+            // An operator may prepare this window with an already authorized
+            // resize tool. The same dimensions remain mandatory for the capture.
+            let sized = XCTNSPredicateExpectation(predicate: NSPredicate { _, _ in
+                documentWindow.frame.size == desired
+            }, object: nil)
+            let status = XCTWaiter.wait(for: [sized], timeout: 30)
+            XCTAssertEqual(status, .completed, "Prepare the 1280x800 document window or use a runner with existing Accessibility access.")
+            guard status == .completed else { throw CaptureError.windowUnavailable }
+            return
+        }
         let matches = NSRunningApplication.runningApplications(withBundleIdentifier: "com.evotec.officeimo.studio")
             .filter { $0.bundleURL?.standardizedFileURL == appURL.standardizedFileURL }
         let running = try XCTUnwrap(matches.count == 1 ? matches.first : nil)
@@ -135,8 +166,8 @@ final class StudioStoreCaptureTests: XCTestCase {
                 (value as? String) == title
         }
         let window = try XCTUnwrap(documents.count == 1 ? documents.first : nil)
-        var desired = CGSize(width: 1280, height: 800)
-        let value = try XCTUnwrap(AXValueCreate(.cgSize, &desired))
+        var requested = desired
+        let value = try XCTUnwrap(AXValueCreate(.cgSize, &requested))
         guard AXUIElementSetAttributeValue(window, kAXSizeAttribute as CFString, value) == .success,
               AXUIElementCopyAttributeValue(window, kAXSizeAttribute as CFString, &raw) == .success,
               let actual = raw, CFGetTypeID(actual) == AXValueGetTypeID() else { throw CaptureError.windowUnavailable }

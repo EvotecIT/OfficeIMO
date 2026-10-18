@@ -77,10 +77,19 @@ if ($original.Count -ne 1) { throw 'Expected exactly one capture test manifest f
 $appPath = Join-Path $products $(if ($Role -eq 'macos') { 'Release/OfficeIMO Studio.app' } else { 'Release-iphonesimulator/OfficeIMO Studio.app' })
 $document = $fixture
 $ownedDocumentDirectory = $null
+$ownedMacFixtureDirectory = $null
 $destination = 'platform=macOS'
 try {
     if ($Role -eq 'macos') {
-        $document = Join-Path $WorkRoot 'Northwind Q3 Review.pdf'
+        # Keep this small public input off removable storage; large products and
+        # diagnostics remain in WorkRoot. Do not grant the app volume-wide access.
+        $nativeTemp = (& getconf DARWIN_USER_TEMP_DIR).Trim()
+        if ($LASTEXITCODE -ne 0 -or -not (Test-Path -LiteralPath $nativeTemp -PathType Container)) {
+            throw 'Cannot locate the native user temporary directory.'
+        }
+        $ownedMacFixtureDirectory = Join-Path $nativeTemp ('OfficeIMOStudioCapture-' + [Guid]::NewGuid().ToString('N'))
+        $null = New-Item -ItemType Directory -Path $ownedMacFixtureDirectory
+        $document = Join-Path $ownedMacFixtureDirectory 'Northwind Q3 Review.pdf'
         Copy-Item -LiteralPath $fixture -Destination $document
     } else {
         $devices = $env:POWERFORGE_CAPTURE_SIMULATORS | ConvertFrom-Json -AsHashtable
@@ -111,6 +120,11 @@ try {
     $test.EnvironmentVariables.STUDIO_CAPTURE_DOCUMENT_PATH = $document
     $test.EnvironmentVariables.STUDIO_CAPTURE_ROLE = $Role
     $test.EnvironmentVariables.STUDIO_CAPTURE_APP_PATH = $appPath
+    if ($Role -eq 'macos') {
+        # Native app scratch belongs in its own sandbox, not the development
+        # process's external TMPDIR. This does not change machine settings.
+        $test.EnvironmentVariables.STUDIO_CAPTURE_NATIVE_TMPDIR = Join-Path $HOME 'Library/Containers/com.evotec.officeimo.studio/Data/tmp'
+    }
     $testManifest = Join-Path $products "StudioStoreCapture-$Role.xctestrun"
     $manifest | ConvertTo-Json -Depth 40 | & plutil -convert xml1 -o $testManifest -
     if ($LASTEXITCODE -ne 0) { throw 'Cannot write the capture test environment.' }
@@ -135,6 +149,9 @@ try {
         Copy-Item -LiteralPath (Join-Path $export $selected[0].exportedFileName) -Destination (Join-Path $output "$name.png")
     }
 } finally {
+    if ($ownedMacFixtureDirectory) {
+        Remove-Item -LiteralPath $ownedMacFixtureDirectory -Recurse -ErrorAction Stop
+    }
     if ($ownedDocumentDirectory) {
         & xcrun simctl terminate $device com.evotec.officeimo.studio 2>$null
         Remove-Item -LiteralPath $ownedDocumentDirectory -Recurse -ErrorAction Stop
