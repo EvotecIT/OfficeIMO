@@ -90,14 +90,14 @@ final class StudioStoreCaptureTests: XCTestCase {
             // Sample serially: an expectation callback performing OCR can still
             // be running when its waiter times out and the app is terminated.
             Thread.sleep(forTimeInterval: 0.25)
+            let screenshot = snapshot(app)
+            lastSampled = screenshot
             guard app.progressIndicators.count == 0, app.alerts.count == 0,
                   app.sheets.count == 0, app.dialogs.count == 0 else {
                 stableSince = nil
                 lastError = "A progress indicator or modal dialog is visible."
                 continue
             }
-            let screenshot = snapshot(app)
-            lastSampled = screenshot
             do {
                 guard let source = CGImageSourceCreateWithData(screenshot.pngRepresentation as CFData, nil),
                       let image = CGImageSourceCreateImageAtIndex(source, 0, nil) else {
