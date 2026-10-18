@@ -85,14 +85,18 @@ final class StudioStoreCaptureTests: XCTestCase {
         var accepted: XCUIScreenshot?
         var lastSampled: XCUIScreenshot?
         var lastError = "The public dashboard has not rendered."
-        let rendered = XCTNSPredicateExpectation(predicate: NSPredicate { _, _ in
+        let deadline = ProcessInfo.processInfo.systemUptime + 45
+        while ProcessInfo.processInfo.systemUptime < deadline {
+            // Sample serially: an expectation callback performing OCR can still
+            // be running when its waiter times out and the app is terminated.
+            Thread.sleep(forTimeInterval: 0.25)
             guard app.progressIndicators.count == 0, app.alerts.count == 0,
                   app.sheets.count == 0, app.dialogs.count == 0 else {
                 stableSince = nil
                 lastError = "A progress indicator or modal dialog is visible."
-                return false
+                continue
             }
-            let screenshot = self.snapshot(app)
+            let screenshot = snapshot(app)
             lastSampled = screenshot
             do {
                 guard let source = CGImageSourceCreateWithData(screenshot.pngRepresentation as CFData, nil),
@@ -120,27 +124,25 @@ final class StudioStoreCaptureTests: XCTestCase {
                 if pixels != previousPixels || stableSince == nil {
                     previousPixels = pixels
                     stableSince = now
-                    return false
+                    continue
                 }
-                guard now - stableSince! >= 2 else { return false }
+                guard now - stableSince! >= 2 else { continue }
                 accepted = screenshot
-                return true
+                break
             } catch {
                 stableSince = nil
                 lastError = String(describing: error)
-                return false
+                continue
             }
-        }, object: nil)
-        let status = XCTWaiter.wait(for: [rendered], timeout: 45)
-        if status != .completed, let lastSampled {
-            // Keep the actual last sample. A fresh AX request after a waiter's
-            // timeout can itself be interrupted and obscure the rejection reason.
+        }
+        if accepted == nil, let lastSampled {
+            // Keep the actual last sample without issuing another UI request
+            // after the capture deadline.
             let rejected = XCTAttachment(screenshot: lastSampled)
             rejected.name = name + "-rejected"
             rejected.lifetime = .keepAlways
             add(rejected)
         }
-        XCTAssertEqual(status, .completed, lastError)
         let screenshot = try XCTUnwrap(accepted, lastError)
         let attachment = XCTAttachment(screenshot: screenshot)
         attachment.name = name
