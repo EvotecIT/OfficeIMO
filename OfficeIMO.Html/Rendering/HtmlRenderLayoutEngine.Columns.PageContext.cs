@@ -6,12 +6,14 @@ internal sealed partial class HtmlRenderLayoutEngine {
     private readonly Dictionary<IElement, HtmlRenderFlowBlock> _pagedColumnRegions = new();
     private readonly Dictionary<IElement, ColumnPaginationContext> _pagedColumnContexts = new();
     private readonly HashSet<IElement> _retainedSourceColumnRegions = new();
+    private readonly HashSet<IElement> _deferredColumnWrappers = new();
     private ColumnPaginationAttempt? _columnPaginationAttempt;
 
     private void ResetColumnPagination() {
         _pagedColumnRegions.Clear();
         _pagedColumnContexts.Clear();
         _retainedSourceColumnRegions.Clear();
+        _deferredColumnWrappers.Clear();
         _columnPaginationAttempt = null;
     }
 
@@ -74,8 +76,15 @@ internal sealed partial class HtmlRenderLayoutEngine {
         HtmlRenderBoxStyle style = isRoot ? rootStyle : _styleResolver.Resolve(owner, geometry.ContentWidth, rootStyle);
         double leading = isRoot ? 0D : block.LeadingFlowAdjustment;
         var boundary = new PagedFloatBoundary(offset + available + leading, pageHeight, offset + leading);
-        var attempt = new ColumnPaginationAttempt(target, pageNumber, geometry, pageHeight,
-            block.PageName, boundary.Shift(targetContentStart), unfragmentedHeight);
+        PagedFloatBoundary columnBoundary = boundary.Shift(targetContentStart);
+        int columnPageNumber = pageNumber;
+        if (TryDeferLeadingColumnWrapper(target, owner, offset, columnBoundary, pageNumber, geometry,
+                block.PageName, out double freshContentHeight)) {
+            columnBoundary = new PagedFloatBoundary(freshContentHeight, pageHeight);
+            columnPageNumber++;
+        }
+        var attempt = new ColumnPaginationAttempt(target, columnPageNumber, geometry, pageHeight,
+            block.PageName, columnBoundary, unfragmentedHeight);
         _columnPaginationAttempt = attempt;
         try {
             HtmlRenderFlowBlock candidate = isRoot
@@ -93,6 +102,40 @@ internal sealed partial class HtmlRenderLayoutEngine {
         } finally {
             _columnPaginationAttempt = null;
         }
+    }
+
+    /// <summary>
+    /// Carries an unconsumed ordinary wrapper's leading decoration with its first
+    /// column content, instead of leaving that decoration before a synthetic break.
+    /// </summary>
+    private bool TryDeferLeadingColumnWrapper(IElement target, IElement owner, double consumed,
+        PagedFloatBoundary boundary, int pageNumber, HtmlCssPageGeometry geometry, string? pageName,
+        out double freshContentHeight) {
+        freshContentHeight = 0D;
+        if (!_normalFlowPlacements.TryGetValue(target, out NormalFlowPlacement? placement)
+            || Math.Abs(placement.Y) > 0.0001D
+            || !_layoutStyles.TryGetValue(target, out HtmlRenderBoxStyle? targetStyle)
+            || targetStyle.ExplicitHeight.HasValue
+            || Math.Abs(targetStyle.MarginTop) > 0.0001D
+            || targetStyle.BorderTopWidth + targetStyle.PaddingTop > 0.0001D
+            || !_layoutStyles.TryGetValue(placement.Parent, out HtmlRenderBoxStyle? wrapper)
+            || wrapper.Display is not ("block" or "flow-root")
+            || wrapper.ExplicitHeight.HasValue && !wrapper.AutoHeightLayoutStretch
+            || IsRootLayoutContainer(placement.Parent)
+            || !TryResolveContentOrigin(placement.Parent, owner, out PositionedPoint origin)) return false;
+        double inset = wrapper.BorderTopWidth + wrapper.PaddingTop;
+        double start = origin.Y - wrapper.MarginTop - inset;
+        freshContentHeight = boundary.PageHeight - inset;
+        if (start < consumed - 0.0001D || inset <= 0.0001D && Math.Abs(wrapper.MarginTop) <= 0.0001D
+            || freshContentHeight <= 0.0001D
+            || !_pagedColumnRegions.TryGetValue(target, out HtmlRenderFlowBlock? source)
+            || FindFragmentEnd(source, 0D, boundary.RemainingHeight, fullPageHeight: boundary.PageHeight) > 0.0001D
+            || FindFragmentEnd(source, 0D, freshContentHeight, fullPageHeight: boundary.PageHeight) <= 0.0001D) return false;
+        HtmlCssPageGeometry next = _pageRules.ResolveGeometry(pageNumber + 1, pageName, _options);
+        if (!SamePageGeometry(geometry, next)
+            || Math.Abs(ResolvePageBodyContentHeight(pageNumber + 1, next) - boundary.PageHeight) > 0.0001D) return false;
+        _deferredColumnWrappers.Add(placement.Parent);
+        return true;
     }
 
     private sealed record ColumnPaginationContext(PagedFloatBoundary Boundary, int PageNumber,

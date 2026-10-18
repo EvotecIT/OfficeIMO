@@ -33,6 +33,12 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 : block;
         EnsureDepth(depth, element);
         ChargeLayoutOperation(HtmlRenderStyleResolver.DescribeSource(element));
+        if (_deferredColumnWrappers.Contains(element)) {
+            // This resolved style belongs to the current element's layout pass.
+            // Keep its flex/grid placement and its painted entry in agreement.
+            style.MarginTop = 0D;
+            style.BreakBefore = HtmlPageBreakTarget.Page;
+        }
         bool continuesThisBox = continuationTarget != null
             && ContainsElementOrSelf(element, continuationTarget)
             && (!ReferenceEquals(element, continuationTarget) || continuationLogicalCharacters > 0);
@@ -437,7 +443,14 @@ internal sealed partial class HtmlRenderLayoutEngine {
             && inlineLayout.PagedPaintExtent > inlineLayout.Height + 0.0001D) {
             pagedPaintExtent = Math.Max(pagedPaintExtent, contentYForBreaks + inlineLayout.PagedPaintExtent);
         }
-        HtmlRenderAvoidBreakRange? trailingBoxKeep = ResolveTrailingBoxKeepRange(style, contentHeight,
+        double? sourceContentHeight = !usesVerticalBlockFormatting && children.Any(child => child.UnfragmentedHeight.HasValue)
+            ? children.Sum(child => child.UnfragmentedHeight ?? child.Height) : null;
+        if (sourceContentHeight.HasValue && ownsFloatContext)
+            sourceContentHeight = Math.Max(sourceContentHeight.Value, contentFloats.Bottom);
+        // A projected column set can leave a retained source-allocation tail.
+        // Its last painted line need not travel with the wrapper's bottom edge.
+        HtmlRenderAvoidBreakRange? trailingBoxKeep = ResolveTrailingBoxKeepRange(style,
+            Math.Max(contentHeight, sourceContentHeight ?? 0D),
             outerHeight, contentYForBreaks, contentBreakOffsets, continuationBreakProgress);
         if (trailingBoxKeep.HasValue) contentAvoidBreakRanges.Add(trailingBoxKeep.Value);
         IEnumerable<double> breakOffsets = contentBreakOffsets.Select(offset => contentYForBreaks + offset)
@@ -521,11 +534,9 @@ internal sealed partial class HtmlRenderLayoutEngine {
             avoidBreakRanges: contentAvoidBreakRanges.Select(range => range.Translate(contentYForBreaks)),
             pagedPaintExtent: pagedPaintExtent,
             safeBreakRanges: safeBreakRanges);
-        if (!usesVerticalBlockFormatting && children.Any(child => child.UnfragmentedHeight.HasValue)) {
-            double sourceContentHeight = children.Sum(child => child.UnfragmentedHeight ?? child.Height);
-            if (ownsFloatContext) sourceContentHeight = Math.Max(sourceContentHeight, contentFloats.Bottom);
+        if (sourceContentHeight.HasValue) {
             block.UnfragmentedHeight = Math.Max(0D, style.MarginTop + style.MarginBottom
-                + ResolveBoxHeight(sourceContentHeight, boxWidth, style));
+                + ResolveBoxHeight(sourceContentHeight.Value, boxWidth, style));
         }
         if (ownsFloatContext) block = OrderBoxFlowPaint(block);
         block = ApplyElementSemantics(block, element, style);

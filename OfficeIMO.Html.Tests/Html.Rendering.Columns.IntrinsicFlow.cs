@@ -30,10 +30,12 @@ public sealed partial class HtmlRenderingTests {
         AssertColumnPageBandNoFragmentLoss(rendered);
     }
 
-    [Fact]
-    public void HtmlColumns_GridLongFirstRowRetainsItsContentHeightBeforeFollowingRows() {
+    [Theory]
+    [InlineData("display:grid;grid-template-columns:1fr;align-items:stretch")]
+    [InlineData("display:flex;flex-direction:column;align-items:stretch")]
+    public void HtmlColumns_LongFirstItemRetainsItsContentHeightBeforeFollowingItems(string containerStyle) {
         string body = ColumnIntrinsicFlowBody(
-            "display:grid;grid-template-columns:1fr;align-items:stretch", bCount: 12,
+            containerStyle, bCount: 12,
             leading: "<p>LEADING</p>");
         HtmlRenderDocument continuous = RenderContinuousColumnIntrinsicFlow(body);
         Assert.Equal(240D, FindColumnShape(continuous, "section#intrinsic-b").Height, 3);
@@ -43,8 +45,86 @@ public sealed partial class HtmlRenderingTests {
 
         AssertColumnIntrinsicFlowText(paged, 4, 12);
         AssertColumnPageBandTextOnce(paged, new[] { "LEADING" });
+        Assert.Equal(3, ColumnPageBandTextPage(paged, "A-01").PageNumber);
+        Assert.Equal(80D, Assert.Single(ColumnPageBandText(paged.Pages[2]), text => text.Text == "A-01").LayoutY, 3);
+        Assert.Equal(80D, Assert.Single(ColumnPageBandText(paged.Pages[2]), text => text.Text == "A-03").LayoutY, 3);
+        Assert.True(Assert.Single(ColumnPageBandText(paged.Pages[2]), text => text.Text == "A-03").X > 350D);
         AssertColumnIntrinsicAfter(paged, 4, 60D);
         AssertColumnPageBandNoFragmentLoss(paged);
+    }
+
+    [Fact]
+    public void HtmlColumns_DefiniteColumnFlexHeightRetainsItsAutoBasisDuringProjection() {
+        HtmlRenderDocument rendered = RenderColumnPageBands(ColumnIntrinsicFlowBody(
+            "display:flex;flex-direction:column;height:200px;align-items:stretch"));
+
+        AssertColumnIntrinsicFlowText(rendered, 4, 4);
+        Assert.Equal(1, ColumnPageBandTextPage(rendered, "A-02").PageNumber);
+        HtmlRenderText second = Assert.Single(ColumnPageBandText(rendered.Pages[0]), text => text.Text == "A-02");
+        Assert.True(second.X > 350D);
+        Assert.Equal(100D, second.LayoutY, 3);
+        Assert.Equal(2, ColumnPageBandTextPage(rendered, "A-03").PageNumber);
+        AssertColumnIntrinsicAfter(rendered, 3, 20D);
+        AssertColumnPageBandNoFragmentLoss(rendered);
+    }
+
+    [Theory]
+    [InlineData("start", 2)]
+    [InlineData("stretch", 3)]
+    public void HtmlColumns_RowFlexSeparatesProjectedCrossHeightFromStretchAllocation(string alignment, int afterPage) {
+        string body = ColumnIntrinsicFlowBody("display:flex;align-items:" + alignment, aCount: 12,
+            itemStyle: "flex:1 1 0;min-width:0");
+        HtmlRenderDocument continuous = RenderContinuousColumnIntrinsicFlow(body);
+        AssertColumnIntrinsicAfter(continuous, 1, 240D);
+
+        HtmlRenderDocument paged = RenderColumnPageBands(body);
+
+        AssertColumnIntrinsicFlowText(paged, 12, 4);
+        AssertColumnIntrinsicAfter(paged, afterPage, 60D);
+        AssertColumnPageBandNoFragmentLoss(paged);
+    }
+
+    [Theory]
+    [InlineData(false, false, true)]
+    [InlineData(false, true, true)]
+    [InlineData(true, false, true)]
+    [InlineData(false, true, false)]
+    public void HtmlColumns_DeferredFirstContentCarriesItsOrdinaryWrapperInsets(bool grid, bool signedMargins, bool insets) {
+        string html = "<style>.page-columns{height:auto}p{line-height:20px}</style>"
+            + "<main style='" + (grid ? "display:grid;grid-template-columns:1fr" : "display:flex;flex-direction:column") + "'>"
+            + "<div style='" + (insets ? "border:1px solid #335;padding:4px;" : "") + "order:2;"
+            + (signedMargins ? "margin-top:-6px;margin-bottom:8px" : "margin:0")
+            + "'><section class='page-columns'>" + ColumnIntrinsicParagraphs("A", 4) + "</section></div>"
+            + "<div style='" + (insets ? "border:1px solid #335;padding:4px;" : "") + "order:1;"
+            + (signedMargins ? "margin-top:4px;margin-bottom:6px" : "margin:0")
+            + "'><section class='page-columns'>" + ColumnIntrinsicParagraphs("B", 4) + "</section></div></main><p>AFTER</p>";
+
+        HtmlRenderDocument rendered = RenderColumnPageBands(html);
+
+        AssertColumnIntrinsicFlowText(rendered, 4, 4);
+        Assert.Equal(2, ColumnPageBandTextPage(rendered, "A-01").PageNumber);
+        Assert.Equal(insets ? 25D : 20D, Assert.Single(ColumnPageBandText(rendered.Pages[1]), text => text.Text == "A-01").LayoutY, 3);
+        Assert.Equal(insets ? 85D : 80D, Assert.Single(ColumnPageBandText(rendered.Pages[1]), text => text.Text == "A-04").LayoutY, 3);
+        AssertColumnIntrinsicAfter(rendered, 3, 20D);
+        AssertColumnPageBandNoFragmentLoss(rendered);
+    }
+
+    [Fact]
+    public void HtmlColumns_WrapperBottomDecorationDoesNotMoveTheLastPaintedColumnLineAcrossItsAllocationTail() {
+        string body = "<style>.page-columns{height:auto}p{line-height:20px}#intrinsic-a p{line-height:19px}</style>"
+            + "<main style='display:flex;flex-direction:column;align-items:stretch'>"
+            + "<div style='border:1px solid #335;padding:4px;order:2'>"
+            + "<section id='intrinsic-a' class='page-columns'>" + ColumnIntrinsicParagraphs("A", 6) + "</section></div>"
+            + "<div style='border:1px solid #335;padding:4px;order:1'>"
+            + "<section class='page-columns'>" + ColumnIntrinsicParagraphs("B", 4) + "</section></div></main><p>AFTER</p>";
+
+        HtmlRenderDocument rendered = RenderColumnPageBands(body);
+
+        AssertColumnIntrinsicFlowText(rendered, 6, 4);
+        Assert.Equal(101D, Assert.Single(ColumnPageBandText(rendered.Pages[1]), text => text.Text == "A-05").LayoutY, 3);
+        Assert.Equal(25D, Assert.Single(ColumnPageBandText(rendered.Pages[1]), text => text.Text == "A-06").LayoutY, 3);
+        AssertColumnIntrinsicAfter(rendered, 3, 44D);
+        AssertColumnPageBandNoFragmentLoss(rendered);
     }
 
     [Theory]

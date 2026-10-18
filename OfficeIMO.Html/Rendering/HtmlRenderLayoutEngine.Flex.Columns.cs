@@ -37,14 +37,16 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 try {
                     item.Style = specified.Clone();
                     item.Style.ExplicitHeight = null;
-                    contentMinimum = LayoutFlexItem(item, Math.Max(1D, initialCrossSize), style, depth + 1).Height;
+                    HtmlRenderFlowBlock measured = LayoutFlexItem(item, Math.Max(1D, initialCrossSize), style, depth + 1);
+                    contentMinimum = measured.UnfragmentedHeight ?? measured.Height;
                 } finally {
                     item.Style = specified;
                 }
             }
             item.Block = LayoutFlexItem(item, Math.Max(1D, initialCrossSize), style, depth + 1);
+            double sourceHeight = item.Block.UnfragmentedHeight ?? item.Block.Height;
             item.AutomaticMinimumMainSize = item.Style.OverflowY is "visible" or "clip"
-                ? Math.Min(contentMinimum ?? item.Block.Height, item.Block.Height) : 0D;
+                ? Math.Min(contentMinimum ?? sourceHeight, sourceHeight) : 0D;
         }
 
         bool hasDefiniteHeight = style.ExplicitHeight.HasValue;
@@ -56,14 +58,6 @@ internal sealed partial class HtmlRenderLayoutEngine {
         double mainGap = orderedItems.Count > 1 ? style.RowGap : 0D;
         double naturalContentHeight = orderedItems.Sum(item => ClampFlexMainSize(item, item.Basis, vertical: true))
             + mainGap * Math.Max(0, orderedItems.Count - 1);
-        double unfragmentedContentHeight = orderedItems.Sum(item => {
-            double sourceHeight = item.Block!.UnfragmentedHeight ?? item.Block.Height;
-            double basis = ResolveColumnFlexBasis(item, heightReference, hasDefiniteHeight, sourceHeight);
-            double minimum = item.Style.OverflowY is "visible" or "clip"
-                ? (item.Style.ExplicitHeight.HasValue ? item.AutomaticMinimumMainSize : sourceHeight) : 0D;
-            return ClampFlexMainSize(item, basis, vertical: true,
-                automaticMinimum: minimum);
-        }) + mainGap * Math.Max(0, orderedItems.Count - 1);
         double boxHeight = ResolveBoxHeight(naturalContentHeight, boxWidth, style);
         double contentHeight = Math.Max(0D, boxHeight - style.VerticalInsets);
         string effectiveWrap = wrapping && hasDefiniteHeight ? style.FlexWrap : "nowrap";
@@ -74,6 +68,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
             ResolveFlexMainSizes(line.Items, availableForItems, vertical: true);
             line.CrossSize = line.Items.Count == 0 ? 0D : line.Items.Max(item => item.CrossBasis);
         }
+        double allocatedContentHeight = orderedItems.Sum(item => item.MainSize)
+            + mainGap * Math.Max(0, orderedItems.Count - 1);
 
         string source = HtmlRenderStyleResolver.DescribeSource(element);
         double crossGap = lines.Count > 1 ? style.ColumnGap : 0D;
@@ -144,7 +140,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 : lines[0].Items.Max(item => item.MainOffset + item.Block!.Height);
             // Projection can shorten the painted column set without shrinking
             // the flex container's original allocation. Retain its blank tail.
-            contentHeight = Math.Max(unfragmentedContentHeight, usedContentHeight);
+            contentHeight = Math.Max(allocatedContentHeight, usedContentHeight);
             boxHeight = ResolveBoxHeight(contentHeight, boxWidth, style);
         }
         double outerHeight = Math.Max(0.01D, style.MarginTop + boxHeight + style.MarginBottom);
@@ -270,17 +266,17 @@ internal sealed partial class HtmlRenderLayoutEngine {
         return Math.Max(1D, Math.Min(contentWidth, outer));
     }
 
-    private double ResolveColumnFlexBasis(FlexItem item, double heightReference, bool hasDefiniteHeight,
-        double? measuredHeight = null) {
+    private double ResolveColumnFlexBasis(FlexItem item, double heightReference, bool hasDefiniteHeight) {
         string basis = item.Style.FlexBasis;
-        if (basis == "auto" || !hasDefiniteHeight && basis.IndexOf('%') >= 0) return measuredHeight ?? item.Block!.Height;
+        double measuredHeight = item.Block!.UnfragmentedHeight ?? item.Block.Height;
+        if (basis == "auto" || !hasDefiniteHeight && basis.IndexOf('%') >= 0) return measuredHeight;
         if (TryResolveLength(basis, heightReference, item.Style, out double resolved)) {
             double boxBasis = Math.Max(0D, resolved) + (item.Style.BorderBox ? 0D : item.Style.VerticalInsets);
             return boxBasis + item.Style.MarginTop + item.Style.MarginBottom;
         }
 
         ReportUnsupportedFlexValue(item, "flex-basis=" + basis);
-        return measuredHeight ?? item.Block!.Height;
+        return measuredHeight;
     }
 
     private static void ApplyColumnFlexCrossSize(FlexItem item, double targetOuterWidth) {
