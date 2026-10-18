@@ -20,16 +20,15 @@ final class StudioStoreCaptureTests: XCTestCase {
         app.launchEnvironment["TMPDIR"] = try XCTUnwrap(environment["STUDIO_CAPTURE_NATIVE_TMPDIR"])
         #else
         XCUIDevice.shared.orientation = .portrait
-        // Use the configured target so URL launches inherit Xcode's test locale.
-        let app = XCUIApplication()
+        let app = XCUIApplication(bundleIdentifier: "com.evotec.officeimo.studio")
         #endif
         app.launchArguments = ["-AppleLanguages", "(en)", "-AppleLocale", "en_US"]
         #if os(macOS)
         // Skip earlier document restoration for this capture launch without
         // deleting documents from an interactive session.
         app.launchArguments += ["-ApplePersistenceIgnoreState", "YES"]
-        app.launch()
         #endif
+        app.launch()
         defer { app.terminate() }
 
         #if os(macOS)
@@ -52,7 +51,13 @@ final class StudioStoreCaptureTests: XCTestCase {
         XCTAssertTrue(window.waitForExistence(timeout: 30), app.debugDescription)
         try resizePublicWindow(app: app, appURL: appURL, title: URL(fileURLWithPath: path).lastPathComponent)
         #else
-        // open is the document URL launch; do not launch a separate browser first.
+        if role == "iphone" {
+            // Establish the native browser before delivering a document while
+            // retaining the language selected by the normal app launch.
+            let browse = app.buttons["Browse"]
+            XCTAssertTrue(browse.waitForExistence(timeout: 30), app.debugDescription)
+            browse.tap()
+        }
         app.open(URL(fileURLWithPath: path))
         #endif
 

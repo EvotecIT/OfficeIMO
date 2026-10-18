@@ -107,14 +107,14 @@ try {
     $manifest = (& plutil -convert json -o - $original[0].FullName) | ConvertFrom-Json -AsHashtable
     if ($LASTEXITCODE -ne 0 -or -not $manifest.ContainsKey($target)) { throw 'Unexpected Xcode capture manifest.' }
     $test = $manifest[$target]
-    # URL launches also need Xcode's locale, not just app launch arguments.
+    # Keep the capture runner and normal app launch in the intended locale.
     $test.TestLanguage = 'en'
     $test.TestRegion = 'US'
     if ($Role -ne 'macos') {
         # The exact app is already installed and holds the public PDF. Installing
         # it again through Xcode replaces its container and invalidates that URL.
         $test.UseUITargetAppProvidedByTests = $true
-        # Retain target metadata for Xcode's application and locale configuration.
+        $test.Remove('UITargetAppPath')
         $test.DependentProductPaths = @($test.DependentProductPaths | Where-Object {
             [IO.Path]::GetFileName($_) -ne [IO.Path]::GetFileName($appPath)
         })
@@ -137,6 +137,12 @@ try {
         '-only-testing', "$target/StudioStoreCaptureTests/testCapturePublicDashboard", '-parallel-testing-enabled', 'NO',
         '-collect-test-diagnostics', 'never', '-test-timeouts-enabled', 'YES',
         '-default-test-execution-time-allowance', '120', '-maximum-test-execution-time-allowance', '150')
+    if ($Role -ne 'macos') {
+        $after = (& xcrun simctl get_app_container $device com.evotec.officeimo.studio data).Trim()
+        if ($LASTEXITCODE -ne 0 -or $after -ne $container -or -not (Test-Path -LiteralPath $document -PathType Leaf)) {
+            throw 'The capture app document container changed during the native test.'
+        }
+    }
     $export = Join-Path $WorkRoot "$Role-attachments"
     & xcrun xcresulttool export attachments --path $result --output-path $export
     if ($LASTEXITCODE -ne 0) { throw 'Cannot export the native capture attachments.' }
