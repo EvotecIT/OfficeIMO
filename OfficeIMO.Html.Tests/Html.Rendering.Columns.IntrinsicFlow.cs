@@ -113,7 +113,7 @@ public sealed partial class HtmlRenderingTests {
     public void HtmlColumns_WrapperBottomDecorationDoesNotMoveTheLastPaintedColumnLineAcrossItsAllocationTail() {
         string body = "<style>.page-columns{height:auto}p{line-height:20px}#intrinsic-a p{line-height:19px}</style>"
             + "<main style='display:flex;flex-direction:column;align-items:stretch'>"
-            + "<div style='border:1px solid #335;padding:4px;order:2'>"
+            + "<div id='allocated-wrapper' style='border:1px solid #335;padding:4px;order:2'>"
             + "<section id='intrinsic-a' class='page-columns'>" + ColumnIntrinsicParagraphs("A", 6) + "</section></div>"
             + "<div style='border:1px solid #335;padding:4px;order:1'>"
             + "<section class='page-columns'>" + ColumnIntrinsicParagraphs("B", 4) + "</section></div></main><p>AFTER</p>";
@@ -123,6 +123,9 @@ public sealed partial class HtmlRenderingTests {
         AssertColumnIntrinsicFlowText(rendered, 6, 4);
         Assert.Equal(101D, Assert.Single(ColumnPageBandText(rendered.Pages[1]), text => text.Text == "A-05").LayoutY, 3);
         Assert.Equal(25D, Assert.Single(ColumnPageBandText(rendered.Pages[1]), text => text.Text == "A-06").LayoutY, 3);
+        HtmlRenderShape border = Assert.Single(EnumerateRenderVisuals(rendered.Pages[1].Scene)
+            .OfType<HtmlRenderShape>(), shape => shape.Source == "div#allocated-wrapper" && shape.Shape.StrokeWidth > 0D);
+        Assert.Equal(124D, border.Height, 3);
         AssertColumnIntrinsicAfter(rendered, 3, 44D);
         AssertColumnPageBandNoFragmentLoss(rendered);
     }

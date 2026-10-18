@@ -92,9 +92,17 @@ internal sealed partial class HtmlRenderLayoutEngine {
                         && (!hasDefiniteHeight || mainSizeWasDefinite);
                     bool unchangedAutoColumns = !mainSizeWasDefinite && HasMultiColumnLayout(item.Style)
                         && Math.Abs(item.MainSize - (item.Block!.UnfragmentedHeight ?? item.Block.Height)) <= 0.0001D;
+                    bool unchangedProjectedWrapper = !mainSizeWasDefinite && !HasMultiColumnLayout(item.Style)
+                        && item.Block!.UnfragmentedHeight is double sourceHeight
+                        && Math.Abs(item.MainSize - sourceHeight) <= 0.0001D;
                     if (unchangedAutoColumns && hasDefiniteHeight) {
                         ApplyColumnFlexMainSize(item);
                         item.Style.IntrinsicColumnHeightAllocation = true;
+                    } else if (unchangedProjectedWrapper) {
+                        // Its columns may use less paint height after projection,
+                        // but the flex allocation still owns the wrapper edges.
+                        ApplyColumnFlexMainSize(item);
+                        item.Style.AutoHeightLayoutStretch = true;
                     }
                     ApplyColumnFlexCrossSize(item, targetCrossSize);
                     // Reusing an unchanged intrinsic block does not make its
