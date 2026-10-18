@@ -10,6 +10,31 @@ enum StudioCapturePageReadiness {
         case unreadablePixels
     }
 
+    #if os(macOS)
+    /// Window screenshots can include system alerts drawn above the app. Check
+    /// front-to-back window metadata without reading unrelated window titles.
+    static func isWindowUnoccluded(processIdentifier: Int32, frame: CGRect,
+                                   windows: [[String: Any]]) -> Bool {
+        func bounds(_ window: [String: Any]) -> CGRect? {
+            guard let dictionary = window[kCGWindowBounds as String] as? [String: Any] else { return nil }
+            return CGRect(dictionaryRepresentation: dictionary as CFDictionary)
+        }
+        func visible(_ window: [String: Any]) -> Bool {
+            (window[kCGWindowAlpha as String] as? NSNumber)?.doubleValue != 0
+        }
+        guard processIdentifier > 0, !frame.isEmpty,
+              let target = windows.firstIndex(where: {
+                  ($0[kCGWindowOwnerPID as String] as? NSNumber)?.int32Value == processIdentifier &&
+                      bounds($0)?.integral == frame.integral && visible($0)
+              }) else { return false }
+        for window in windows.prefix(target) where visible(window) {
+            guard let rectangle = bounds(window) else { return false }
+            if rectangle.intersects(frame) { return false }
+        }
+        return true
+    }
+    #endif
+
     static func pagePixels(from source: CGImage, contentBounds: CGRect? = nil) throws -> Data {
         let bounds = CGRect(x: 0, y: 0, width: source.width, height: source.height)
         let visible = (contentBounds ?? bounds).integral.intersection(bounds)

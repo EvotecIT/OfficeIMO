@@ -114,6 +114,14 @@ final class StudioStoreCaptureTests: XCTestCase {
                 lastError = "The capture app is not in the foreground."
                 continue
             }
+            guard let processIdentifier = expectedPID,
+                  let windows = CGWindowListCopyWindowInfo([.optionOnScreenOnly, .excludeDesktopElements], kCGNullWindowID) as? [[String: Any]],
+                  StudioCapturePageReadiness.isWindowUnoccluded(processIdentifier: processIdentifier,
+                      frame: viewport.frame, windows: windows) else {
+                stableSince = nil
+                lastError = "The capture window is covered or its visibility could not be verified."
+                continue
+            }
             #endif
             guard viewport.progressIndicators.count == 0, viewport.alerts.count == 0,
                   viewport.sheets.count == 0, viewport.dialogs.count == 0 else {
