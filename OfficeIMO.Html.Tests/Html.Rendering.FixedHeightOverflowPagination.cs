@@ -52,7 +52,7 @@ public sealed partial class HtmlRenderingTests {
     [Theory]
     [InlineData("height:20px")]
     [InlineData("max-height:20px")]
-    [InlineData("aspect-ratio:8")]
+    [InlineData("aspect-ratio:8;min-height:0")]
     public void HtmlFixedHeightOverflow_ConstrainedBlockRetainsItsOverflowWithoutGrowingFollowingFlow(string constraint) {
         string html = FixedHeightOverflowSource("<div style='height:60px'>FLOW-LEAD</div>"
             + "<div style='width:160px;" + constraint + "'><p>FLOW-X01</p><p>FLOW-X02</p><p>FLOW-X03</p></div>"
