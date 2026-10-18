@@ -17,41 +17,23 @@ final class StudioStoreCaptureTests: XCTestCase {
         #if os(macOS)
         let appURL = URL(fileURLWithPath: try XCTUnwrap(environment["STUDIO_CAPTURE_APP_PATH"]))
         let app = XCUIApplication(url: appURL)
-        app.launchEnvironment["TMPDIR"] = try XCTUnwrap(environment["STUDIO_CAPTURE_NATIVE_TMPDIR"])
         #else
         XCUIDevice.shared.orientation = .portrait
         let app = XCUIApplication(bundleIdentifier: "com.evotec.officeimo.studio")
-        #endif
         app.launchArguments = ["-AppleLanguages", "(en)", "-AppleLocale", "en_US"]
-        #if os(macOS)
-        // Skip earlier document restoration for this capture launch without
-        // deleting documents from an interactive session.
-        app.launchArguments += ["-ApplePersistenceIgnoreState", "YES"]
-        #endif
-        #if !os(macOS)
         app.launch()
         #endif
         defer { app.terminate() }
 
         #if os(macOS)
-        // Target this exact built app through the normal document-open route.
-        // The Open panel can restore an unrelated removable-volume location;
-        // bundle-only URL dispatch can instead choose another installed build.
-        XCTAssertTrue(NSRunningApplication.runningApplications(withBundleIdentifier: "com.evotec.officeimo.studio")
-            .allSatisfy { $0.bundleURL?.standardizedFileURL != appURL.standardizedFileURL })
-        let configuration = NSWorkspace.OpenConfiguration()
-        configuration.arguments = app.launchArguments
-        configuration.environment = app.launchEnvironment
-        configuration.allowsRunningApplicationSubstitution = false
-        let opened = expectation(description: "The exact capture app receives the public PDF")
-        NSWorkspace.shared.open([URL(fileURLWithPath: path)], withApplicationAt: appURL,
-                                configuration: configuration) { application, error in
-            XCTAssertNil(error)
-            XCTAssertEqual(application?.bundleURL?.standardizedFileURL, appURL.standardizedFileURL)
-            XCTAssertGreaterThan(application?.processIdentifier ?? 0, 0)
-            opened.fulfill()
-        }
-        wait(for: [opened], timeout: 15)
+        // The host launches this exact app with its PDF and language arguments.
+        // NSWorkspace ignores those arguments inside the sandboxed test runner.
+        let matches = NSRunningApplication.runningApplications(withBundleIdentifier: "com.evotec.officeimo.studio")
+            .filter { $0.bundleURL?.standardizedFileURL == appURL.standardizedFileURL }
+        let running = try XCTUnwrap(matches.count == 1 ? matches.first : nil)
+        app.activate()
+        XCTAssertEqual(NSWorkspace.shared.frontmostApplication?.processIdentifier, running.processIdentifier)
+        XCTAssertEqual(NSWorkspace.shared.frontmostApplication?.bundleURL?.standardizedFileURL, appURL.standardizedFileURL)
         let window = app.windows[URL(fileURLWithPath: path).lastPathComponent]
         XCTAssertTrue(window.waitForExistence(timeout: 30), app.debugDescription)
         try resizePublicWindow(app: app, appURL: appURL, title: URL(fileURLWithPath: path).lastPathComponent)

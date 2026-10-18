@@ -75,9 +75,13 @@ $target = "OfficeIMOStudioCapture-$platform"
 $original = @(Get-ChildItem -LiteralPath $products -Filter "$($target)_*.xctestrun")
 if ($original.Count -ne 1) { throw 'Expected exactly one capture test manifest from the native build.' }
 $appPath = Join-Path $products $(if ($Role -eq 'macos') { 'Release/OfficeIMO Studio.app' } else { 'Release-iphonesimulator/OfficeIMO Studio.app' })
+$appPath = (& /bin/realpath $appPath).Trim()
+if ($LASTEXITCODE -ne 0) { throw 'Cannot resolve the exact native capture app.' }
 $document = $fixture
 $ownedDocumentDirectory = $null
 $ownedMacFixtureDirectory = $null
+$macLaunchedAt = $null
+$macExecutable = Join-Path $appPath 'Contents/MacOS/OfficeIMO Studio'
 $destination = 'platform=macOS'
 try {
     if ($Role -eq 'macos') {
@@ -110,15 +114,13 @@ try {
     # Keep the capture runner and normal app launch in the intended locale.
     $test.TestLanguage = 'en'
     $test.TestRegion = 'US'
-    if ($Role -ne 'macos') {
-        # The exact app is already installed and holds the public PDF. Installing
-        # it again through Xcode replaces its container and invalidates that URL.
-        $test.UseUITargetAppProvidedByTests = $true
-        $test.Remove('UITargetAppPath')
-        $test.DependentProductPaths = @($test.DependentProductPaths | Where-Object {
-            [IO.Path]::GetFileName($_) -ne [IO.Path]::GetFileName($appPath)
-        })
-    }
+    # The exact app is provided by this driver. Do not replace an iOS document
+    # container or the Mac instance already opened with its language and PDF.
+    $test.UseUITargetAppProvidedByTests = $true
+    $test.Remove('UITargetAppPath')
+    $test.DependentProductPaths = @($test.DependentProductPaths | Where-Object {
+        [IO.Path]::GetFileName($_) -ne [IO.Path]::GetFileName($appPath)
+    })
     if (-not $test.ContainsKey('EnvironmentVariables')) { $test.EnvironmentVariables = @{} }
     $test.EnvironmentVariables.STUDIO_CAPTURE_DOCUMENT_PATH = $document
     $test.EnvironmentVariables.STUDIO_CAPTURE_ROLE = $Role
@@ -132,6 +134,15 @@ try {
     $manifest | ConvertTo-Json -Depth 40 | & plutil -convert xml1 -o $testManifest -
     if ($LASTEXITCODE -ne 0) { throw 'Cannot write the capture test environment.' }
     $result = Join-Path $WorkRoot "$Role.xcresult"
+    if ($Role -eq 'macos') {
+        if (@(Get-Process -Name 'OfficeIMO Studio' -ErrorAction SilentlyContinue | Where-Object { $_.Path -ceq $macExecutable }).Count) {
+            throw 'The capture app is already running; preserve that session.'
+        }
+        $macLaunchedAt = [DateTime]::UtcNow
+        & /usr/bin/open -n -a $appPath --env "TMPDIR=$($test.EnvironmentVariables.STUDIO_CAPTURE_NATIVE_TMPDIR)" $document `
+            --args -AppleLanguages '(en)' -AppleLocale en_US -ApplePersistenceIgnoreState YES
+        if ($LASTEXITCODE -ne 0) { throw 'Cannot launch the exact Mac capture app with its public input.' }
+    }
     Invoke-CaptureXcode -LogPath (Join-Path $WorkRoot "capture-$Role.log") -Arguments @(
         'test-without-building', '-xctestrun', $testManifest, '-destination', $destination, '-resultBundlePath', $result,
         '-only-testing', "$target/StudioStoreCaptureTests/testCapturePublicDashboard", '-parallel-testing-enabled', 'NO',
@@ -158,6 +169,16 @@ try {
         Copy-Item -LiteralPath (Join-Path $export $selected[0].exportedFileName) -Destination (Join-Path $output "$name.png")
     }
 } finally {
+    if ($macLaunchedAt) {
+        foreach ($process in @(Get-Process -Name 'OfficeIMO Studio' -ErrorAction SilentlyContinue)) {
+            if ($process.Path -ceq $macExecutable -and $process.StartTime.ToUniversalTime() -ge $macLaunchedAt) {
+                & /bin/kill -TERM $process.Id
+                if ($LASTEXITCODE -ne 0 -or -not $process.WaitForExit(5000)) {
+                    throw 'The owned Mac capture app did not terminate; preserve its input for inspection.'
+                }
+            }
+        }
+    }
     if ($ownedMacFixtureDirectory) {
         Remove-Item -LiteralPath $ownedMacFixtureDirectory -Recurse -ErrorAction Stop
     }
