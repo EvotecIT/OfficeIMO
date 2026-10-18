@@ -1,6 +1,6 @@
 ---
 title: "Choose a conversion route"
-description: "Inspect format pairs, fidelity limits, owning APIs, and batch PDF support before converting documents."
+description: "Use PSWriteOffice to inspect supported format pairs, conversion fidelity, owning APIs, known limitations, and batch PDF support in your host."
 layout: docs
 ---
 

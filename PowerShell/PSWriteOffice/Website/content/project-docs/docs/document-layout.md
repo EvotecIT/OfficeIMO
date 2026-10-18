@@ -1,6 +1,6 @@
 ---
 title: "Readable document layouts"
-description: "Use paragraph spacing, table-cell padding and clear chart units in PSWriteOffice reports."
+description: "Build readable PSWriteOffice reports with paragraph spacing, table-cell padding, consistent colours, clear chart units, and page-aware layouts."
 layout: docs
 ---
 
