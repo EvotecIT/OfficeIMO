@@ -13,6 +13,7 @@ PSWriteOffice is the PowerShell surface for OfficeIMO. Use these guides to choos
 - [Choose a workflow](/docs/pswriteoffice/choosing-a-workflow/)
 - [Pipeline, object, and DSL workflows](/docs/pswriteoffice/object-workflows/)
 - [Use-case index](/docs/pswriteoffice/use-case-index/)
+- [HTML, event and email report integrations](/docs/pswriteoffice/report-integrations/)
 - [DSL cookbook](/docs/pswriteoffice/dsl-cookbook/)
 - [Command families](/docs/pswriteoffice/command-families/)
 - [PSWriteOffice vs ImportExcel vs ExcelFast](/docs/pswriteoffice/compare-importexcel-excelfast/)
@@ -39,6 +40,7 @@ PSWriteOffice is the PowerShell surface for OfficeIMO. Use these guides to choos
 - [Reader, extraction, and OCR](/docs/pswriteoffice/reader/)
   - [Search a mixed document corpus](/docs/pswriteoffice/reader-search-corpus/)
   - [Extract chunks, tables, and assets](/docs/pswriteoffice/reader-chunks-tables/)
+- [Choose a conversion route](/docs/pswriteoffice/conversion-routes/)
 - [Confluence Cloud publishing](/docs/pswriteoffice/confluence/)
 - [Visio diagrams](/docs/pswriteoffice/visio/)
 - [Markdown, RTF, CSV, OpenDocument, email, AsciiDoc, and LaTeX](/docs/pswriteoffice/open-text-formats/)
@@ -50,10 +52,10 @@ PSWriteOffice is the PowerShell surface for OfficeIMO. Use these guides to choos
 - [Migrate from PSWriteWord](/docs/pswriteoffice/migrate-from-pswriteword/)
 - [Migrate from PSWriteExcel](/docs/pswriteoffice/migrate-from-pswriteexcel/)
 - [Migrate from PSWritePDF](/docs/pswriteoffice/migrate-from-pswritepdf/)
-- [PSWriteOffice product overview](/products/pswriteoffice/)
+- [PSWriteOffice project hub](https://evotec.xyz/projects/pswriteoffice/)
 
 ## Notes
 
 - The [command reference](/api/powershell/) is generated from the module manifest and external help.
-- The [scenario-driven example library](https://github.com/EvotecIT/PSWriteOffice/blob/v3.0.8/Examples/README.md) maps practical recipes and larger showcases to each format.
+- The [scenario-driven example library](https://github.com/EvotecIT/OfficeIMO/blob/b856f18f91a4e6014ee913ad195536ecca96feb4/PowerShell/PSWriteOffice/Examples/README.md) maps practical recipes and larger showcases to each format.
 - The family totals shown on the site come from `PSWriteOffice.psd1`; documentation validation fails if an exported command is left uncategorized.

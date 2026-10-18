@@ -1,0 +1,217 @@
+name: PowerShell module contracts
+
+on:
+  push:
+    branches:
+      - master
+      - main
+    paths-ignore:
+      - '*.md'
+      - 'Docs/**'
+      - 'Examples/**'
+      - '.gitignore'
+  pull_request:
+    branches:
+      - master
+      - main
+  workflow_dispatch:
+
+env:
+  DOTNET_VERSION: |
+    8.0.426
+    10.0.113
+  BUILD_CONFIGURATION: 'Debug'
+
+defaults:
+  run:
+    working-directory: PowerShell/PSWriteOffice
+
+jobs:
+  test-windows-ps5:
+    name: 'Windows PowerShell 5.1'
+    runs-on: windows-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v7
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v6
+        with:
+          dotnet-version: ${{ env.DOTNET_VERSION }}
+
+      - name: Install PowerShell modules
+        shell: powershell
+        run: |
+          Write-Host "PowerShell Version: $($PSVersionTable.PSVersion)"
+          if (-not (Get-PSRepository -Name PSGallery -ErrorAction SilentlyContinue)) {
+            Register-PSRepository -Default
+          }
+          Install-Module -Name Pester -Repository PSGallery -Force -SkipPublisherCheck -AllowClobber
+          Install-Module -Name PSWriteColor -Repository PSGallery -Force -SkipPublisherCheck -AllowClobber
+
+      - name: Build .NET solution
+        run: |
+          dotnet restore Sources/PSWriteOffice.sln
+          dotnet build Sources/PSWriteOffice.sln --configuration ${{ env.BUILD_CONFIGURATION }} --no-restore
+
+      - name: Run PowerShell tests
+        shell: powershell
+        run: .\PSWriteOffice.Tests.ps1
+
+  test-windows-ps7:
+    name: 'Windows PowerShell 7'
+    runs-on: windows-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v7
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v6
+        with:
+          dotnet-version: ${{ env.DOTNET_VERSION }}
+
+      - name: Install PowerShell modules
+        shell: pwsh
+        run: |
+          Write-Host "PowerShell Version: $($PSVersionTable.PSVersion)"
+          if (-not (Get-PSRepository -Name PSGallery -ErrorAction SilentlyContinue)) {
+            Register-PSRepository -Default
+          }
+          Install-Module -Name Pester -Repository PSGallery -Force -SkipPublisherCheck -AllowClobber
+          Install-Module -Name PSWriteColor -Repository PSGallery -Force -SkipPublisherCheck -AllowClobber
+          Install-Module -Name PSPublishModule -Repository PSGallery -Force -SkipPublisherCheck -AllowClobber
+
+      - name: Build .NET solution
+        run: |
+          dotnet restore Sources/PSWriteOffice.sln
+          dotnet build Sources/PSWriteOffice.sln --configuration ${{ env.BUILD_CONFIGURATION }} --no-restore
+
+      - name: Run PowerShell tests
+        shell: pwsh
+        run: .\PSWriteOffice.Tests.ps1
+
+      - name: Upload packaged artefacts
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: packaged-artefacts-windows-ps7
+          path: |
+            PowerShell/PSWriteOffice/Artefacts/Packed/**
+            PowerShell/PSWriteOffice/Artefacts/Reports/**
+            PowerShell/PSWriteOffice/Artefacts/Unpacked/**
+
+  packaged-alc-conflict:
+    name: 'Windows Packaged ALC conflict'
+    runs-on: windows-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v7
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v6
+        with:
+          dotnet-version: ${{ env.DOTNET_VERSION }}
+
+      - name: Install PowerShell modules
+        shell: pwsh
+        run: |
+          if (-not (Get-PSRepository -Name PSGallery -ErrorAction SilentlyContinue)) {
+            Register-PSRepository -Default
+          }
+          Install-Module -Name Pester -Repository PSGallery -Force -SkipPublisherCheck -AllowClobber
+          Install-Module -Name PSWriteColor -Repository PSGallery -Force -SkipPublisherCheck -AllowClobber
+          Install-Module -Name PSPublishModule -Repository PSGallery -Force -SkipPublisherCheck -AllowClobber
+
+      - name: Prepare default-context Open XML conflict
+        shell: pwsh
+        run: |
+          $conflictRoot = Join-Path $env:RUNNER_TEMP 'pswriteoffice-conflict'
+          $packagePath = Join-Path $conflictRoot 'DocumentFormat.OpenXml.2.20.0.nupkg'
+          $extractPath = Join-Path $conflictRoot 'DocumentFormat.OpenXml.2.20.0'
+          New-Item -Path $conflictRoot -ItemType Directory -Force | Out-Null
+          Invoke-WebRequest -Uri 'https://www.nuget.org/api/v2/package/DocumentFormat.OpenXml/2.20.0' -OutFile $packagePath -ConnectionTimeoutSeconds 30 -OperationTimeoutSeconds 120
+          Expand-Archive -LiteralPath $packagePath -DestinationPath $extractPath -Force
+          $openXmlPath = Join-Path $extractPath 'lib\netstandard2.0\DocumentFormat.OpenXml.dll'
+          if (-not (Test-Path -LiteralPath $openXmlPath)) {
+            throw "Conflict Open XML assembly not found: $openXmlPath"
+          }
+          "PSWRITEOFFICE_CONFLICT_OPENXML_PATH=$openXmlPath" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+
+      - name: Build packaged module with ALC
+        shell: pwsh
+        run: |
+          ./Build/Build-Module.ps1 -RunMode Build -IncludePackages:$false -SignModule:$false -SkipInstall
+
+      - name: Run packaged ALC conflict test
+        env:
+          PSWRITEOFFICE_REQUIRE_ALC_SMOKE: 'true'
+        shell: pwsh
+        run: |
+          Import-Module Pester -Force
+          $config = [PesterConfiguration]::Default
+          $config.Run.Path = 'Tests/AssemblyLoadContext.Conflict.Tests.ps1'
+          $config.Run.Exit = $true
+          $config.Output.Verbosity = 'Detailed'
+          Invoke-Pester -Configuration $config
+
+  test-ubuntu:
+    name: 'Ubuntu PowerShell 7'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v7
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v6
+        with:
+          dotnet-version: ${{ env.DOTNET_VERSION }}
+
+      - name: Install PowerShell modules
+        shell: pwsh
+        run: |
+          Write-Host "PowerShell Version: $($PSVersionTable.PSVersion)"
+          if (-not (Get-PSRepository -Name PSGallery -ErrorAction SilentlyContinue)) {
+            Register-PSRepository -Default
+          }
+          Install-Module -Name Pester -Repository PSGallery -Force -SkipPublisherCheck -AllowClobber
+          Install-Module -Name PSWriteColor -Repository PSGallery -Force -SkipPublisherCheck -AllowClobber
+
+      - name: Build .NET solution
+        run: |
+          dotnet restore Sources/PSWriteOffice.sln
+          dotnet build Sources/PSWriteOffice.sln --configuration ${{ env.BUILD_CONFIGURATION }} --no-restore
+
+      - name: Run PowerShell tests
+        shell: pwsh
+        run: ./PSWriteOffice.Tests.ps1
+
+  test-macos:
+    name: 'macOS PowerShell 7'
+    runs-on: macos-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v7
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v6
+        with:
+          dotnet-version: ${{ env.DOTNET_VERSION }}
+
+      - name: Install PowerShell modules
+        shell: pwsh
+        run: |
+          Write-Host "PowerShell Version: $($PSVersionTable.PSVersion)"
+          if (-not (Get-PSRepository -Name PSGallery -ErrorAction SilentlyContinue)) {
+            Register-PSRepository -Default
+          }
+          Install-Module -Name Pester -Repository PSGallery -Force -SkipPublisherCheck -AllowClobber
+          Install-Module -Name PSWriteColor -Repository PSGallery -Force -SkipPublisherCheck -AllowClobber
+
+      - name: Build .NET solution
+        run: |
+          dotnet restore Sources/PSWriteOffice.sln
+          dotnet build Sources/PSWriteOffice.sln --configuration ${{ env.BUILD_CONFIGURATION }} --no-restore
+
+      - name: Run PowerShell tests
+        shell: pwsh
+        run: ./PSWriteOffice.Tests.ps1

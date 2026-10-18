@@ -2,14 +2,14 @@
   "schemaVersion": 1,
   "format": "officeimo.documentation-catalog",
   "repository": {
-    "projectCount": 307,
-    "productionComponentCount": 153,
-    "testProjectCount": 60,
+    "projectCount": 310,
+    "productionComponentCount": 154,
+    "testProjectCount": 61,
     "benchmarkProjectCount": 36,
-    "validationProjectCount": 59,
+    "validationProjectCount": 60,
     "apiReferenceCount": 122,
-    "conceptualPageCount": 129,
-    "conceptualWordCount": 58573
+    "conceptualPageCount": 132,
+    "conceptualWordCount": 60153
   },
   "categories": [
     {
@@ -139,6 +139,13 @@
         146,
         147,
         148
+      ]
+    },
+    {
+      "name": "PowerShell automation",
+      "componentCount": 1,
+      "componentIndexes": [
+        153
       ]
     },
     {
@@ -456,7 +463,7 @@
       "description": "Shared zero-dependency document, security, drawing, color, image, and font primitives for OfficeIMO projects.",
       "kind": "package",
       "projectPath": "OfficeIMO.Core/OfficeIMO.Core.csproj",
-      "sourceFileCount": 1096,
+      "sourceFileCount": 1097,
       "referencingTestProjectCount": 12,
       "docsUrl": "/docs/capabilities/packages/",
       "apiUrl": "/api/core/",
@@ -638,7 +645,7 @@
       "description": "Open-source, cross-platform .NET library for creating, reading, editing, and converting Microsoft Excel XLS, XLSX, XLSB, XLSM, and XLTX workbooks without Microsoft Office; legacy XLT templates are supported for classification and import.",
       "kind": "package",
       "projectPath": "OfficeIMO.Excel/OfficeIMO.Excel.csproj",
-      "sourceFileCount": 1164,
+      "sourceFileCount": 1166,
       "referencingTestProjectCount": 12,
       "docsUrl": "/docs/excel/",
       "apiUrl": "/api/excel/",
@@ -781,7 +788,7 @@
       "description": "HTML parsing, resource policy, CSS layout, diagnostics, and direct rendering for OfficeIMO converters.",
       "kind": "package",
       "projectPath": "OfficeIMO.Html/OfficeIMO.Html.csproj",
-      "sourceFileCount": 471,
+      "sourceFileCount": 479,
       "referencingTestProjectCount": 6,
       "docsUrl": "/docs/html/",
       "apiUrl": "/api/html/",
@@ -820,7 +827,7 @@
       "description": "Direct HTML-to-PDF rendering and PDF-to-HTML conversion for OfficeIMO.",
       "kind": "package",
       "projectPath": "OfficeIMO.Html.Pdf/OfficeIMO.Html.Pdf.csproj",
-      "sourceFileCount": 43,
+      "sourceFileCount": 44,
       "referencingTestProjectCount": 4,
       "docsUrl": "/docs/html/",
       "apiUrl": "/api/html-pdf/",
@@ -2203,6 +2210,19 @@
       "docsUrl": "/docs/capabilities/packages/",
       "apiUrl": null,
       "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Xps.Pdf"
+    },
+    {
+      "name": "PSWriteOffice",
+      "packageId": "PSWriteOffice",
+      "category": "PowerShell automation",
+      "description": "PSWriteOffice is a focused component in the OfficeIMO managed document platform.",
+      "kind": "library",
+      "projectPath": "PowerShell/PSWriteOffice/Sources/PSWriteOffice/PSWriteOffice.csproj",
+      "sourceFileCount": 670,
+      "referencingTestProjectCount": 1,
+      "docsUrl": "/docs/pswriteoffice/",
+      "apiUrl": null,
+      "packageUrl": null
     }
   ]
 }

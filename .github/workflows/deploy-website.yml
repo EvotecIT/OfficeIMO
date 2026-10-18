@@ -9,6 +9,9 @@ on:
     branches: [master]
     paths:
       - "Website/**"
+      - "PowerShell/PSWriteOffice/**"
+      - "Build/Build-Module.ps1"
+      - "Build/Build-Release.ps1"
       - "OfficeIMO.*/**"
       - "Directory.Build.*"
       - "global.json"

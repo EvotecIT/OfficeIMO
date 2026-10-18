@@ -4,17 +4,9 @@
       "name": "OfficeIMO",
       "slug": "EvotecIT/OfficeIMO",
       "url": "https://github.com/EvotecIT/OfficeIMO",
-      "description": ".NET libraries, CLI, Studio and browser tools",
+      "description": ".NET libraries, PowerShell module, CLI, Studio and browser tools",
       "stars": 557,
       "forks": 75
-    },
-    {
-      "name": "PSWriteOffice",
-      "slug": "EvotecIT/PSWriteOffice",
-      "url": "https://github.com/EvotecIT/PSWriteOffice",
-      "description": "PowerShell module",
-      "stars": 162,
-      "forks": 15
     }
   ],
   "links": [

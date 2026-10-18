@@ -75,6 +75,11 @@ $nativeDrivers = @(
 )
 $nonNativeValidated = @(
     [ordered]@{
+        name = 'PSWriteOffice'
+        classification = 'managed-cross-platform'
+        evidence = 'The compiled PowerShell module is qualified through packaged PowerShell 7 and Windows PowerShell 5.1 contracts. It runs inside the managed PowerShell host and does not claim NativeAOT support.'
+    }
+    [ordered]@{
         name = 'OfficeIMO.Archives'
         classification = 'managed-cross-platform'
         evidence = 'Cabinet and passive MSI extraction uses managed .NET and is qualified through bounded extraction and malformed-input contracts; no NativeAOT qualification host is claimed.'

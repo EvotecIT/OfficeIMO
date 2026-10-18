@@ -15,15 +15,7 @@
   "TemplateExports": [
     { "Name": "documentation-shell", "SourceRoute": "/docs/", "Layout": "documentation-shell" }
   ],
-  "Sources": [
-    {
-      "Repo": "EvotecIT/PSWriteOffice",
-      "Ref": "c7a9d408e711859c7c71e8d498687086a4143f2f",
-      "Slug": "pswriteoffice",
-      "Destination": "./projects/pswriteoffice",
-      "Clean": true
-    }
-  ],
+  "Sources": [],
   "StaticAssets": [
     { "Source": "static" },
     { "Source": "data/pdf_corpus_report.json", "Destination": "data/corpus/pdf-quality-windows.json" },
@@ -225,7 +217,7 @@
     "OrganizationLogo": "https://evotec.xyz/favicon.svg",
     "OrganizationSameAs": [
       "https://github.com/EvotecIT/OfficeIMO",
-      "https://github.com/EvotecIT/PSWriteOffice",
+      "https://github.com/EvotecIT/OfficeIMO/tree/master/PowerShell/PSWriteOffice",
       "https://evotec.xyz",
       "https://evo.yt/discord"
     ],
@@ -951,7 +943,7 @@
         },
         {
           "Title": "GitHub (PSWriteOffice)",
-          "Url": "https://github.com/EvotecIT/PSWriteOffice",
+          "Url": "https://github.com/EvotecIT/OfficeIMO/tree/master/PowerShell/PSWriteOffice",
           "External": true
         },
         {

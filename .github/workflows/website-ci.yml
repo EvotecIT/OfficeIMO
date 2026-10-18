@@ -4,6 +4,9 @@ on:
   pull_request:
     paths:
       - "Website/**"
+      - "PowerShell/PSWriteOffice/**"
+      - "Build/Build-Module.ps1"
+      - "Build/Build-Release.ps1"
       - "OfficeIMO.*/**"
       - "Directory.Build.*"
       - "global.json"

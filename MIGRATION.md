@@ -1,5 +1,22 @@
 # Upgrading OfficeIMO
 
+## PSWriteOffice repository and coordinated releases
+
+PSWriteOffice is maintained in [OfficeIMO](https://github.com/EvotecIT/OfficeIMO),
+under [`PowerShell/PSWriteOffice`](PowerShell/PSWriteOffice/README.MD). File issues
+and submit pull requests in OfficeIMO for both the engines and the PowerShell
+module. Existing module installations continue to use `Install-Module PSWriteOffice`
+and `Import-Module PSWriteOffice`; this move does not rename commands or aliases.
+
+Contributors should use an OfficeIMO checkout. The PowerShell projects reference
+the engines in that checkout, and the [combined release flow](Docs/building-and-releasing.md)
+publishes matching OfficeIMO and PSWriteOffice versions. The former engine-only
+publish switches on `Build/Build-Project.ps1` now invoke the coordinated release.
+
+PSWriteWord and PSWriteExcel remain historical modules. Their scripts may require
+API changes when moving to PSWriteOffice; repository consolidation does not make
+their old commands interchangeable with the current module.
+
 ## Studio native interface and protected copies
 
 The native engine ABI is version 3. Redaction `apply` requests must include `revision`: use the revision returned by `find`, or the document facts revision on which drawn areas were reviewed. Requests without a revision or with a stale revision are rejected. After editing, reordering, undoing or redoing the document, find or mark the content again before applying redaction. Rebuild native hosts against the matching engine header and check `officeimo_abi_version()` at startup.

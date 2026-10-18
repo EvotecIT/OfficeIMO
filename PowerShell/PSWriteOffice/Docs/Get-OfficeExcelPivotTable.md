@@ -1,0 +1,132 @@
+---
+external help file: PSWriteOffice-help.xml
+Module Name: PSWriteOffice
+online version: https://github.com/EvotecIT/OfficeIMO
+schema: 2.0.0
+---
+# Get-OfficeExcelPivotTable
+## SYNOPSIS
+Gets pivot tables defined in a workbook.
+
+## SYNTAX
+### Path (Default)
+```powershell
+Get-OfficeExcelPivotTable [-Path] <string> [-Name <string>] [-Sheet <string>] [-SheetIndex <Int32>] [<CommonParameters>]
+```
+
+### Document
+```powershell
+Get-OfficeExcelPivotTable -Document <ExcelDocument> [-Name <string>] [-Sheet <string>] [-SheetIndex <Int32>] [<CommonParameters>]
+```
+
+## DESCRIPTION
+Gets pivot tables defined in a workbook.
+
+## EXAMPLES
+
+### EXAMPLE 1
+```powershell
+PS> $pivots = Get-OfficeExcelPivotTable -Path .\report.xlsx -Sheet Summary
+$pivots |
+    Select-Object -Property Name, Sheet, SourceRange, RowFields, DataFields |
+    Format-List
+```
+
+Returns pivot table metadata so generated reports can prove the pivot source and layout.
+
+## PARAMETERS
+
+### -Document
+Workbook to inspect.
+
+```yaml
+Type: ExcelDocument
+Parameter Sets: Document
+Aliases: None
+Possible values:
+
+Required: True
+Position: named
+Default value: None
+Accept pipeline input: True (ByValue)
+Accept wildcard characters: False
+```
+
+### -Name
+Optional pivot table name filter.
+
+```yaml
+Type: String
+Parameter Sets: Path, Document
+Aliases: None
+Possible values:
+
+Required: False
+Position: named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -Path
+Path to the workbook.
+
+```yaml
+Type: String
+Parameter Sets: Path
+Aliases: InputPath, FilePath
+Possible values:
+
+Required: True
+Position: 0
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -Sheet
+Optional sheet name filter.
+
+```yaml
+Type: String
+Parameter Sets: Path, Document
+Aliases: None
+Possible values:
+
+Required: False
+Position: named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -SheetIndex
+Optional sheet index (0-based) filter.
+
+```yaml
+Type: Int32
+Parameter Sets: Path, Document
+Aliases: None
+Possible values:
+
+Required: False
+Position: named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### CommonParameters
+This cmdlet supports the common parameters: -Debug, -ErrorAction, -ErrorVariable, -InformationAction, -InformationVariable, -OutVariable, -OutBuffer, -PipelineVariable, -Verbose, -WarningAction, and -WarningVariable. For more information, see [about_CommonParameters](http://go.microsoft.com/fwlink/?LinkID=113216).
+
+## INPUTS
+
+- `OfficeIMO.Excel.ExcelDocument`
+
+## OUTPUTS
+
+- `System.Management.Automation.PSObject`
+
+## RELATED LINKS
+
+- None
