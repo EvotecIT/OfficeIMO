@@ -3231,7 +3231,7 @@
         "../OfficeIMO.Word.Pdf/OfficeIMO.Word.Pdf.csproj",
         "../OfficeIMO.Word.Rtf/OfficeIMO.Word.Rtf.csproj",
         "../OfficeIMO.Archives/OfficeIMO.Archives.csproj",
-        "./projects/pswriteoffice/PSWriteOffice.psd1"
+        "../PowerShell/PSWriteOffice/PSWriteOffice.psd1"
       ],
       "quickstart": "./data/llms-quickstart.cs",
       "discovery": "./data/llms-discovery.md",

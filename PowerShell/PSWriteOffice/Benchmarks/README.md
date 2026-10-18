@@ -35,12 +35,8 @@ not equivalent and remain excluded. The ExcelFast write comparison uses the
 text-only default shape, while read lanes use the same PSWriteOffice-produced
 typed workbook fixture as every other reader.
 
-Runs that include PSWriteOffice build directly against a complete OfficeIMO
-source checkout. With sibling PSWriteOffice and OfficeIMO checkouts, set the
-source root once for the current shell:
-
-```powershell
-```
+Runs that include PSWriteOffice build the module and OfficeIMO engines from this
+checkout.
 
 ```powershell
 pwsh -NoLogo -NoProfile -ExecutionPolicy Bypass -File .\Benchmarks\Compare-ExcelPerformance.ps1 -Suite Smoke
