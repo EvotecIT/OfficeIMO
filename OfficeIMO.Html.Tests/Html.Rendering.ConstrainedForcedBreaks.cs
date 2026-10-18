@@ -224,4 +224,57 @@ public sealed partial class HtmlRenderingTests {
             rendered.RequireNoLoss();
         }
     }
+
+    [Theory]
+    [InlineData(1)]
+    [InlineData(8)]
+    public void HtmlConstrainedForcedBreak_TerminalAfterRetainsOwnedPaintAndIndependentFollowingAllocation(int lines) {
+        string[] labels = Enumerable.Range(1, lines).Select(index => "TERMINAL-" + index).ToArray();
+        string html = FixedHeightOverflowSource("<div style='height:20px'>"
+            + "<p style='height:0;break-after:page'>" + string.Join("<br>", labels)
+            + "</p></div><p style='padding-left:300px'>TERMINAL-AFTER</p>");
+
+        foreach (HtmlRenderIntentProfile profile in new[] {
+            HtmlRenderIntentProfile.PrintPaged, HtmlRenderIntentProfile.ScreenMediaPaged }) {
+            HtmlRenderDocument rendered = HtmlRenderEngine.Execute(HtmlConversionDocument.Parse(html),
+                HtmlRenderRequest.Create(profile, HtmlRenderEncoder.DisplayList, FixedHeightOverflowOptions())).Document;
+
+            Assert.Equal(2, rendered.Pages.Count);
+            AssertDescendantSpannerSourceOnce(rendered, labels.Concat(new[] { "TERMINAL-AFTER" }).ToArray());
+            for (int index = 0; index < labels.Length; index++)
+                AssertFixedHeightOverflowPlacement(rendered, labels[index], index / 5 + 1, index % 5 * 20D);
+            // The after boundary belongs to the first destination edge even
+            // when independent visible overflow continues farther down page two.
+            AssertFixedHeightOverflowPlacement(rendered, "TERMINAL-AFTER", 2, 0D);
+            rendered.RequireNoLoss();
+        }
+    }
+
+    [Theory]
+    [InlineData(HtmlRenderUserAgentStyleMode.Document, false)]
+    [InlineData(HtmlRenderUserAgentStyleMode.Document, true)]
+    [InlineData(HtmlRenderUserAgentStyleMode.Browser, false)]
+    [InlineData(HtmlRenderUserAgentStyleMode.Browser, true)]
+    public void HtmlConstrainedForcedBreak_FittingEntryControlKeepsOneSharedFollowingFlow(
+        HtmlRenderUserAgentStyleMode userAgent, bool transparentRoot) {
+        string html = FixedHeightOverflowSource("<body" + (transparentRoot ? " style='display:contents'" : "") + ">"
+            + "<div style='height:20px'>PREFIX</div><div style='height:20px'>"
+            + "<div style='break-after:page'></div><p>ENTRY-ONE</p></div>"
+            + "<p style='padding-left:300px'>ENTRY-AFTER</p></body>").Replace(";background:white", "");
+
+        foreach (HtmlRenderIntentProfile profile in new[] {
+            HtmlRenderIntentProfile.PrintPaged, HtmlRenderIntentProfile.ScreenMediaPaged }) {
+            HtmlRenderOptions options = FixedHeightOverflowOptions();
+            options.UserAgentStyles = userAgent;
+            HtmlRenderDocument rendered = HtmlRenderEngine.Execute(HtmlConversionDocument.Parse(html),
+                HtmlRenderRequest.Create(profile, HtmlRenderEncoder.DisplayList, options)).Document;
+
+            Assert.Equal(2, rendered.Pages.Count);
+            AssertDescendantSpannerSourceOnce(rendered, "PREFIX", "ENTRY-ONE", "ENTRY-AFTER");
+            AssertFixedHeightOverflowPlacement(rendered, "PREFIX", 1, 0D);
+            AssertFixedHeightOverflowPlacement(rendered, "ENTRY-ONE", 2, 0D);
+            AssertFixedHeightOverflowPlacement(rendered, "ENTRY-AFTER", 2, 0D);
+            rendered.RequireNoLoss();
+        }
+    }
 }

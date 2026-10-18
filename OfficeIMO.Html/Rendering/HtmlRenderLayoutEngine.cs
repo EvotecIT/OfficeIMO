@@ -305,7 +305,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
         if (rootStyle.Display == "none") return Array.Empty<HtmlRenderFlowBlock>();
         if (rootStyle.Display == "contents") {
             IReadOnlyList<HtmlRenderFlowBlock> children = BuildChildBlocks(root, contentWidth, rootStyle, 0);
-            return _options.Mode == HtmlRenderMode.Paged && HasSignedFlowAllocation(children)
+            return _options.Mode == HtmlRenderMode.Paged
+                && (HasSignedFlowAllocation(children) || RequiresConstrainedEntryProjectionSurface(children))
                 ? new[] { BuildNormalFlowSurface(children, contentWidth, root, retainsRootReflow: true) } : children;
         }
         if (HasMultiColumnLayout(rootStyle)) return new[] { LayoutRootElement(root, contentWidth, rootStyle) };
@@ -335,7 +336,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
             // surface; paginating them separately would move later siblings.
             if (_options.Mode == HtmlRenderMode.Paged
                 && (HasSignedFlowAllocation(children)
-                    || children.Any(child => child.PagedPaintExtent > child.Height + 0.0001D))) {
+                    || children.Any(child => child.PagedPaintExtent > child.Height + 0.0001D)
+                    || RequiresConstrainedEntryProjectionSurface(children))) {
                 return new[] { LayoutRootElement(root, contentWidth, rootStyle) };
             }
             return children;

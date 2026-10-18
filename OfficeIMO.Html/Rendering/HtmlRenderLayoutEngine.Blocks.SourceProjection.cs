@@ -32,6 +32,23 @@ internal sealed partial class HtmlRenderLayoutEngine {
         else _constrainedPaintOverflowElements.Remove(element);
     }
 
+    /// <summary>Keeps constrained entry controls with their following-flow allocation before root blocks paginate separately.</summary>
+    private bool RequiresConstrainedEntryProjectionSurface(IReadOnlyList<HtmlRenderFlowBlock> children) {
+        foreach (HtmlRenderFlowBlock child in children) {
+            CheckCancellation();
+            ChargeLayoutOperations(1L + child.ForcedBreaks.Count, "constrained root-entry source selection");
+            if (child.OwnerElement is not { } owner || !child.ForcedBreaks.Any(item =>
+                item.Target == HtmlPageBreakTarget.Page && !item.ChangesPageName
+                    && item.Edge == HtmlRenderBreakEdge.Interior && Math.Abs(item.Offset) <= 0.0001D)) continue;
+            ChargeLayoutOperations(_constrainedOverflowElements.Count, "constrained root-entry owner selection");
+            foreach (IElement constrained in _constrainedOverflowElements) {
+                CheckCancellation();
+                if (ContainsElementOrSelf(owner, constrained)) return true;
+            }
+        }
+        return false;
+    }
+
     private static bool HasOrdinaryFragmentSource(HtmlRenderVisual visual) => !visual.IsOutOfFlowPaint
         && (visual is HtmlRenderText or HtmlRenderImage or HtmlRenderDrawing or HtmlRenderFormField
             or HtmlRenderShape { IsAtomicReplacedPlaceholder: true }
@@ -230,6 +247,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
             bool initialEmptyRun = cursor <= 0.0001D && cut <= 0.0001D
                 && plan?.AuthoredBreak is { Target: HtmlPageBreakTarget.Page, Edge: HtmlRenderBreakEdge.Interior,
                     IsAfter: true, AdvancesFollowingFlow: false };
+            bool terminalOwnedAfter = overlapBoundary is { FollowingSourceEntry: null }
+                && plan?.AuthoredBreak is { Target: HtmlPageBreakTarget.Page, Edge: HtmlRenderBreakEdge.Trailing, IsAfter: true };
             double gap = available - (cut - cursor);
             if (gap > 0.0001D) {
                 context.NeedsProjection = true;
@@ -237,7 +256,20 @@ internal sealed partial class HtmlRenderLayoutEngine {
                     context.FailedReason = context.UnsupportedBoundary;
                     return source;
                 }
-                if (cursor <= 0.0001D && cut <= 0.0001D && !initialEmptyRun && overlapBoundary == null) {
+                if (terminalOwnedAfter) {
+                    // No following child needs translation. Keep the terminal
+                    // source's paint and line facts at their owned positions;
+                    // only its after boundary advances following normal flow.
+                    double destination = cursor + available;
+                    ChargeLayoutOperations(projected.ForcedBreaks.Count, "constrained terminal after-boundary projection");
+                    projected = projected.WithVisuals(projected.Visuals,
+                        pagedPaintExtent: Math.Max(projected.PagedPaintExtent, destination),
+                        forcedBreaks: projected.ForcedBreaks.Select(item => {
+                            CheckCancellation();
+                            return ReferenceEquals(item.Boundary, projectedForcedBoundary) ? item.ProjectAt(destination) : item;
+                        }));
+                    cut = destination;
+                } else if (cursor <= 0.0001D && cut <= 0.0001D && !initialEmptyRun && overlapBoundary == null) {
                     // No content entered this box. The gap belongs before the
                     // complete CSS box and therefore advances its following flow.
                     entryGap += gap;
