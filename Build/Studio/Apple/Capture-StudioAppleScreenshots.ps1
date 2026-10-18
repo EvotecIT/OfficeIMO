@@ -11,9 +11,29 @@ $project = Join-Path $sourceRoot 'Apple/OfficeIMOStudio/OfficeIMOStudio.xcodepro
 $captureRoot = Join-Path $sourceRoot 'Artifacts/Studio/Apple/screenshots'
 $fixture = Join-Path $sourceRoot 'Website/static/downloads/showcase/pdf/showcase-dashboard.pdf'
 
-function Invoke-CaptureXcode([string[]] $Arguments, [string] $LogPath) {
-    & xcodebuild @Arguments *> $LogPath
-    if ($LASTEXITCODE -ne 0) { throw "Native capture failed. See $LogPath" }
+function Invoke-CaptureXcode([string[]] $Arguments, [string] $LogPath, [int] $TimeoutSeconds = 1800) {
+    # The existing pinned PowerForge runner owns the process group and timeout,
+    # including Xcode teardown. Return here so the role's finally can close its app.
+    $validation = @{
+        SchemaVersion = 1
+        Commands = @(@{
+            Name = 'Studio native capture'
+            FileName = '/bin/sh'
+            Arguments = @('-c', 'exec xcodebuild "$@" > "$STUDIO_CAPTURE_XCODE_LOG" 2>&1', 'studio-capture') + $Arguments
+            WorkingDirectory = $sourceRoot
+            TimeoutSeconds = $TimeoutSeconds
+            Environment = @{ STUDIO_CAPTURE_XCODE_LOG = $LogPath }
+        })
+    }
+    $config = "$LogPath.validation.json"
+    $validation | ConvertTo-Json -Depth 8 | Set-Content -LiteralPath $config -Encoding utf8
+    & $env:POWERFORGE_DOTNET $env:POWERFORGE_SIMULATOR_CLI validate-release --config $config --project-root $sourceRoot --output json `
+        > "$LogPath.validation-result.json"
+    if ($LASTEXITCODE -ne 0) { throw "Native capture failed or timed out. See $LogPath and its validation-result.json." }
+}
+
+foreach ($name in 'POWERFORGE_DOTNET', 'POWERFORGE_SIMULATOR_CLI') {
+    if (-not [Environment]::GetEnvironmentVariable($name)) { throw "The pinned capture workflow must supply $name." }
 }
 
 if ($Role -eq 'all') {
@@ -160,7 +180,8 @@ try {
     # dashboard/search windows. The per-image render deadline stays unchanged.
     $testAllowance = if ($Role -eq 'macos') { '300' } else { '120' }
     $maximumAllowance = if ($Role -eq 'macos') { '360' } else { '150' }
-    Invoke-CaptureXcode -LogPath (Join-Path $WorkRoot "capture-$Role.log") -Arguments @(
+    $processTimeout = if ($Role -eq 'macos') { 420 } else { 240 }
+    Invoke-CaptureXcode -LogPath (Join-Path $WorkRoot "capture-$Role.log") -TimeoutSeconds $processTimeout -Arguments @(
         'test-without-building', '-xctestrun', $testManifest, '-destination', $destination, '-resultBundlePath', $result,
         '-only-testing', "$target/StudioStoreCaptureTests/testCapturePublicDashboard", '-parallel-testing-enabled', 'NO',
         '-collect-test-diagnostics', 'never', '-test-timeouts-enabled', 'YES',
