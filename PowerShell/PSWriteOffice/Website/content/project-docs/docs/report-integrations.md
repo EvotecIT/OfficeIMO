@@ -9,12 +9,12 @@ Use a collector to obtain the data, then pass ordinary objects or files to the n
 | Task | Start with | Deliverables |
 | --- | --- | --- |
 | Compare supplier prices and delivery times from HTML | [HTML supplier review](https://github.com/EvotecIT/OfficeIMO/blob/master/PowerShell/PSWriteOffice/Examples/Integrations/Recipe-HtmlSupplierReview.ps1) | Spaced Word report, PDF review copy and numeric Excel table |
-| Assign investigation from a Windows event snapshot | [Event incident brief](https://github.com/EvotecIT/OfficeIMO/blob/master/PowerShell/PSWriteOffice/Examples/Integrations/Recipe-PSEventViewer-OfficeReport.ps1) | Word/PDF brief and Excel register with full messages |
+| Assign investigation from a Windows event snapshot | [Event incident brief recipe](https://github.com/EvotecIT/OfficeIMO/blob/master/PowerShell/PSWriteOffice/Examples/Integrations/Recipe-PSEventViewer-OfficeReport.ps1) | Word/PDF brief and Excel register with full messages |
 | Review report attachments before distribution | [Mailozaurr report package](https://github.com/EvotecIT/OfficeIMO/blob/master/PowerShell/PSWriteOffice/Examples/Integrations/Recipe-Mailozaurr-PdfDelivery.ps1) | Local EML with attached reports |
 
 The first two recipes run with synthetic data by default. The mail recipe saves an EML locally; sending is an explicit `-Send` operation with your SMTP settings.
 
-Open the worked examples to inspect the generated files before adapting the scripts: [supplier offer review](/docs/integrations/supplier-review/), [event incident brief](/docs/integrations/event-brief/) and [email review package](/docs/integrations/report-email/).
+Open the worked examples to inspect the generated files before adapting the scripts: [supplier offer review](/docs/integrations/supplier-review/), [event incident brief walkthrough](/docs/integrations/event-brief/) and [email review package](/docs/integrations/report-email/).
 
 ```powershell
 ./Examples/Integrations/Recipe-HtmlSupplierReview.ps1 -OutputDirectory ./Output/SupplierReview
