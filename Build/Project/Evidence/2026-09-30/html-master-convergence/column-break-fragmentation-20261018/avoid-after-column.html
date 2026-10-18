@@ -1,0 +1,21 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<title>avoid-after-column</title>
+<style>
+@font-face{font-family:Witness;src:url(regular.ttf);font-weight:400}
+@font-face{font-family:Witness;src:url(bold.ttf);font-weight:700}
+@page{size:700px 140px;margin:20px}
+html,body{margin:0;background:white;font:14px/20px Witness}
+p{margin:0;orphans:1;widows:1}
+.columns{width:300px;column-count:2;column-gap:20px}
+</style>
+<section id="columns" class="columns" style="column-fill:auto;height:60px">
+<p id="larix-01">LARIX-01</p>
+<p id="larix-02">LARIX-02</p>
+<p id="larix-03" style="break-after:avoid-column">LARIX-03</p>
+<p id="larix-04">LARIX-04</p>
+<p id="larix-05">LARIX-05</p>
+</section>
+<p id="after">LARIX-AFTER</p>
+</html>

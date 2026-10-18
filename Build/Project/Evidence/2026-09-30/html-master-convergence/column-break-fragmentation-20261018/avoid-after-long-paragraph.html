@@ -1,0 +1,19 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<title>avoid-after-long-paragraph</title>
+<style>
+@font-face{font-family:Witness;src:url(regular.ttf);font-weight:400}
+@font-face{font-family:Witness;src:url(bold.ttf);font-weight:700}
+@page{size:700px 140px;margin:20px}
+html,body{margin:0;background:white;font:14px/20px Witness}
+p{margin:0;orphans:1;widows:1}
+.columns{width:300px;column-count:2;column-gap:20px}
+</style>
+<section id="columns" class="columns" style="column-fill:auto;height:80px">
+<p id="velia-lead">VELIA-LEAD</p>
+<p id="velia-a" style="break-after:avoid-column"><span id="velia-a01">VELIA-A01</span><br><span id="velia-a02">VELIA-A02</span><br><span id="velia-a03">VELIA-A03</span></p>
+<p id="velia-b"><span id="velia-b01">VELIA-B01</span><br><span id="velia-b02">VELIA-B02</span><br><span id="velia-b03">VELIA-B03</span></p>
+</section>
+<p id="after">VELIA-AFTER</p>
+</html>

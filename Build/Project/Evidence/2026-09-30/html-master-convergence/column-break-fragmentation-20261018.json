@@ -1,0 +1,5071 @@
+{
+  "schema": "officeimo.html.column-break-fragmentation-qualification/v1",
+  "status": "qualified-bounded-static-branch-checkpoint",
+  "recordedUtc": "2026-10-18T06:05:35.520614+00:00",
+  "milestone": "Authored column breaks, scoped avoidance and paragraph progression in ordinary horizontal column flow",
+  "baseHead": "963177d7d43a437ef5446f981c458d2395f6c01c",
+  "qualifiedSourceHead": "298a02a0e87039c236e22e3e006e69962293a1db",
+  "sourceTrees": {
+    "OfficeIMO.Html": "3f1597034b3af37531d1329729cc9f3b81faeac8",
+    "OfficeIMO.Html.Core": "3804952eb46a7eb05a8976bb7f421fc8aa619d5e",
+    "OfficeIMO.Html.AngleSharp": "2b7f2b16754df243579efea6e88a9c35e0dce3a6",
+    "OfficeIMO.Core": "525d802ec173c3c71a40862ced43308f2b5fe779",
+    "OfficeIMO.Pdf": "b1b316ace5b668ccbc8e61cc5cb8ba59e32de68a",
+    "OfficeIMO.SharedSource": "dd1c89e2b292f90ebbf3107b130d377a8512306f",
+    "OfficeIMO.Html.Tests": "59c0fdb9026d554c6542aea7c0a333b81ee4880a"
+  },
+  "publication": "Branch checkpoint scope only. No PR, merge, signing, package publication or deployment for this batch. Runtime/provider forks remain on feature/html-engine.",
+  "implementation": {
+    "owner": "OfficeIMO.Html shared fragmentation facts and column planner; ordinary block, interrupted-inline, table-page, note and figure consumers retain their canonical owners.",
+    "publicApiChange": false,
+    "productionDependencyChange": false,
+    "changes": [
+      "Ordinary sibling break-before:column and break-after:column propagate through ordinary wrappers and share one logical boundary when authored on both sides.",
+      "Distinct empty sibling boundaries survive, while first-child before and last-child after values alone do not create empty columns.",
+      "Indefinite auto-fill sizes its longest forced run; balanced filling permits unavoidable authored overflow and forced boundaries override keeps.",
+      "Column-scoped keeps retain fitting content and paragraph boundary fragments; oversized keeps start fresh before relaxing for bounded progress.",
+      "Page and column avoidance remain scoped, inapplicable column values do not mask ordinary table-row page directives, and unsupported contexts retain typed losses.",
+      "Paragraph margin discard retains a pending natural advance which coalesces with an authored force; note and figure reservation paths retain their physical projection.",
+      "Completed paragraph line groups keep their completed status across outer-page projection, avoiding a false widow deferral while retaining final unpainted margin ownership."
+    ]
+  },
+  "inputs": [
+    {
+      "case": "control-auto",
+      "fixture": "column-break-fragmentation-20261018/control-auto.html",
+      "bytes": 696,
+      "sha256": "ae3ef38077d281ef3c3671440dac95202f60d676f3c81030364d3f972c57b1ef"
+    },
+    {
+      "case": "control-balance",
+      "fixture": "column-break-fragmentation-20261018/control-balance.html",
+      "bytes": 715,
+      "sha256": "e1e8de4ec541beb94412bf055c23a4bc4a1e0bc74d34dcb6bac98c3478ae31ef"
+    },
+    {
+      "case": "before-column-auto",
+      "fixture": "column-break-fragmentation-20261018/before-column-auto.html",
+      "bytes": 713,
+      "sha256": "dc489ec9a8b8910cfe733251f22a0af085d9988639457875e6dbf5ad1e4219db"
+    },
+    {
+      "case": "after-column-auto",
+      "fixture": "column-break-fragmentation-20261018/after-column-auto.html",
+      "bytes": 711,
+      "sha256": "7043bd50ba7cc77aea7dcca218af92a197a1e504b800076a798b1ebb51f06f53"
+    },
+    {
+      "case": "before-column-balance",
+      "fixture": "column-break-fragmentation-20261018/before-column-balance.html",
+      "bytes": 719,
+      "sha256": "05a74612839aa0bcd9ad40bb90494ae8f528eceaeaee82a13ffa31b861f3d536"
+    },
+    {
+      "case": "before-column-definite",
+      "fixture": "column-break-fragmentation-20261018/before-column-definite.html",
+      "bytes": 729,
+      "sha256": "351d169ddd38085312c7214597a4bb4ffad04c317cb11ab4b22d5c07fe7c6417"
+    },
+    {
+      "case": "leading-empty-column",
+      "fixture": "column-break-fragmentation-20261018/leading-empty-column.html",
+      "bytes": 749,
+      "sha256": "0e1f596532d903d74f6d5e3b5ec61e03e539e3af3753b2a302dca58726b03185"
+    },
+    {
+      "case": "trailing-empty-column",
+      "fixture": "column-break-fragmentation-20261018/trailing-empty-column.html",
+      "bytes": 750,
+      "sha256": "8b8d2dbd6e4c612f8864c33e80c8715df18d411525d3cb7544c46c3e6735210d"
+    },
+    {
+      "case": "first-last-forced-column",
+      "fixture": "column-break-fragmentation-20261018/first-last-forced-column.html",
+      "bytes": 746,
+      "sha256": "b098ce01e156be22ecc92c42b27628d6dbe65f60e815627d3e199ec18233dc8b"
+    },
+    {
+      "case": "adjacent-column-forces",
+      "fixture": "column-break-fragmentation-20261018/adjacent-column-forces.html",
+      "bytes": 744,
+      "sha256": "9f0e10f7df25b45acccb843eb40049a4c7924b66d2ac501c843baa24e5f8ea83"
+    },
+    {
+      "case": "avoid-before-column",
+      "fixture": "column-break-fragmentation-20261018/avoid-before-column.html",
+      "bytes": 732,
+      "sha256": "80a5a3528b4541e4077f578335a22405d11af3f269e206e5f9606f508a87f579"
+    },
+    {
+      "case": "avoid-after-column",
+      "fixture": "column-break-fragmentation-20261018/avoid-after-column.html",
+      "bytes": 730,
+      "sha256": "ee59c579bb12d95e7a779ce359af5567b797b1060d3447d35eec0ec70d87bcac"
+    },
+    {
+      "case": "avoid-inside-fit",
+      "fixture": "column-break-fragmentation-20261018/avoid-inside-fit.html",
+      "bytes": 758,
+      "sha256": "69aaa79ea37af3d6490cf9e8dc170cfe268c4afe2d4c982d892f36219d42abfa"
+    },
+    {
+      "case": "avoid-inside-oversized",
+      "fixture": "column-break-fragmentation-20261018/avoid-inside-oversized.html",
+      "bytes": 799,
+      "sha256": "8019ef5bd94605687fda01799d31c5a685588c37b79d2c38aabce1b6454947ad"
+    },
+    {
+      "case": "paged-forced-rollover",
+      "fixture": "column-break-fragmentation-20261018/paged-forced-rollover.html",
+      "bytes": 800,
+      "sha256": "3caf55f3616e47adc56e8d4baee4e72afa81d7692c40e38a874e6e05c9465989"
+    },
+    {
+      "case": "nested-before-column",
+      "fixture": "column-break-fragmentation-20261018/nested-before-column.html",
+      "bytes": 777,
+      "sha256": "757ed3081aa80c60e154cd5ef973d2166e2521f9e3400222311af8ecc0a6d920"
+    },
+    {
+      "case": "after-column-before-page",
+      "fixture": "column-break-fragmentation-20261018/after-column-before-page.html",
+      "bytes": 744,
+      "sha256": "ed7ea9a6a547a87e92a026155f297495b34352a78979bba361b3cd4151f4cf2b"
+    },
+    {
+      "case": "after-page-before-column",
+      "fixture": "column-break-fragmentation-20261018/after-page-before-column.html",
+      "bytes": 744,
+      "sha256": "fe2c3ad44b7c5f66220a917132abe8885410b0494465fd73d000276cb8324d3f"
+    },
+    {
+      "case": "auto-forced-runs-20-40-100",
+      "fixture": "column-break-fragmentation-20261018/auto-forced-runs-20-40-100.html",
+      "bytes": 978,
+      "sha256": "42afef31f7131f60c9fcdca3d5a9bc222f77efb1aa85ea1d4b8336af64d0fe70"
+    },
+    {
+      "case": "balance-forced-runs-100-90-10",
+      "fixture": "column-break-fragmentation-20261018/balance-forced-runs-100-90-10.html",
+      "bytes": 1550,
+      "sha256": "1d5d6a28253eb59acc11747ca510e46c006bb3ec76be85a3e5bc0fd4e70ef5e9"
+    },
+    {
+      "case": "consecutive-empty-forced-columns",
+      "fixture": "column-break-fragmentation-20261018/consecutive-empty-forced-columns.html",
+      "bytes": 739,
+      "sha256": "d5648aa5c25ecf35b83bb229d1108761b026080e73cbcfc77c8cd60112a79a19"
+    },
+    {
+      "case": "avoid-after-long-paragraph",
+      "fixture": "column-break-fragmentation-20261018/avoid-after-long-paragraph.html",
+      "bytes": 902,
+      "sha256": "0501e08346ab21a66d14d85541e3a50661e991f65ea66df4edde082ec8519d33"
+    },
+    {
+      "case": "avoid-page-group-120-after-120",
+      "fixture": "column-break-fragmentation-20261018/avoid-page-group-120-after-120.html",
+      "bytes": 1135,
+      "sha256": "567a2e20a2568746ada56f32b8f3088334af3b2417f4d0c7931529908acb98c5"
+    },
+    {
+      "case": "avoid-column-group-120-after-120",
+      "fixture": "column-break-fragmentation-20261018/avoid-column-group-120-after-120.html",
+      "bytes": 1139,
+      "sha256": "8c45efb89efcc8d0e1bb423a3d2271088a6221e3aaadd3cfc9e63eef6d0d8abd"
+    },
+    {
+      "case": "forced-column-inside-avoided-ancestor",
+      "fixture": "column-break-fragmentation-20261018/forced-column-inside-avoided-ancestor.html",
+      "bytes": 794,
+      "sha256": "23177bfbfa649cfd005cf6bca7397f0044f91288a2b2c3d96c4e9821a6802252"
+    },
+    {
+      "case": "decorated-wrapper-first-child-forced",
+      "fixture": "column-break-fragmentation-20261018/decorated-wrapper-first-child-forced.html",
+      "bytes": 768,
+      "sha256": "6d2fb98a11a8157bdd74e744ca3f881e070599273a6609b2c15fafa3dd654500"
+    },
+    {
+      "case": "pure-before-page-in-columns",
+      "fixture": "column-break-fragmentation-20261018/pure-before-page-in-columns.html",
+      "bytes": 720,
+      "sha256": "61ead751fd17d1e028db8cef80803f67a657566e0045299e7b07e6da3178df89"
+    },
+    {
+      "case": "avoid-after-ample-room",
+      "fixture": "column-break-fragmentation-20261018/avoid-after-ample-room.html",
+      "bytes": 899,
+      "sha256": "6117e648d60d0075ecfd70e8cc80e22aad311edbd3f4ebd622ffecd6d7004ccd"
+    },
+    {
+      "case": "avoid-overlapping-boundary-chain",
+      "fixture": "column-break-fragmentation-20261018/avoid-overlapping-boundary-chain.html",
+      "bytes": 787,
+      "sha256": "d0349ae828ea8bc8e5fd7c549b61311bd9ea79a8e9f7a548995f9226f63839bd"
+    },
+    {
+      "case": "outside-column-row-page-boundary",
+      "fixture": "column-break-fragmentation-20261018/outside-column-row-page-boundary.html",
+      "bytes": 703,
+      "sha256": "702f732c68a3bb77971f1454666ffe82707f47d78e99c25db1b4648e7d2a3bea"
+    },
+    {
+      "case": "outside-column-table-page-entry",
+      "fixture": "column-break-fragmentation-20261018/outside-column-table-page-entry.html",
+      "bytes": 704,
+      "sha256": "7c8f02dc10206616917441c736acdcb5861c0e49764d53fcff981c6c2f0828de"
+    },
+    {
+      "case": "paragraph-margin-progression",
+      "fixture": "column-break-fragmentation-20261018/paragraph-margin-progression.html",
+      "bytes": 829,
+      "sha256": "430e3472855e6f2e9b5755b0d769f2c7af87ef4a3b31cde7593ef840ab2fb89a"
+    },
+    {
+      "case": "interrupted-inline-adjacent-forces",
+      "fixture": "column-break-fragmentation-20261018/interrupted-inline-adjacent-forces.html",
+      "bytes": 698,
+      "sha256": "296259b92f9a157b2048ef31e6bc6407d49e0f529d1cce23dad932137f4ebd20"
+    },
+    {
+      "case": "paragraph-margin-slack",
+      "fixture": "column-break-fragmentation-20261018/paragraph-margin-slack.html",
+      "bytes": 909,
+      "sha256": "c45b5f91f579860ec797d4fc1f9d8a20cdf87d017f9744c6cebfcd6984d5c4ae"
+    },
+    {
+      "case": "paragraph-margin-slack-forced",
+      "fixture": "column-break-fragmentation-20261018/paragraph-margin-slack-forced.html",
+      "bytes": 928,
+      "sha256": "ccf2e189115456a8cf2a19469b1482da849394c77c3b2cf0b9947672f33044c1"
+    }
+  ],
+  "assetMap": {
+    "regular.ttf": {
+      "repositoryPath": "OfficeIMO.TestAssets/Fonts/OfficeIMOBaselineSans-Regular.ttf",
+      "bytes": 105592,
+      "sha256": "00aca2988771998ff27738ff97c2cc8e71eb3013f206de5f205986b7de326af3"
+    },
+    "bold.ttf": {
+      "repositoryPath": "OfficeIMO.TestAssets/Fonts/OfficeIMOBaselineSans-Bold.ttf",
+      "bytes": 120288,
+      "sha256": "20bb7ad2e23beb5020313119f46fbc50a5ded598aaa1be4df719d3c017914b6c"
+    }
+  },
+  "publicPath": "HtmlSiteBundle.Load -> bundle.CreateRenderRequest(HtmlRenderRequest.Create) -> HtmlRenderEngine.Execute / bundle.RenderToPdfResult -> ExportImages; Browser UA, exact bundled Witness fonts, no external resources or product browser dependency.",
+  "frameworks": {
+    "status": "passed",
+    "focused": {
+      "status": "passed",
+      "sourceHead": "298a02a0e87039c236e22e3e006e69962293a1db",
+      "passed": 216,
+      "failed": 0,
+      "actualTrx": {
+        "path": "retained-producers/qualification-final-298a02a0e870/trx/focused-net10.trx",
+        "bytes": 333349,
+        "sha256": "db99c4ff0c9bdcc10214dedf21de854f99af0ca941da3293643551742b438bd2"
+      }
+    },
+    "evidence": {
+      "path": "qualification-final-298a02a0e870-results.json",
+      "bytes": 84857,
+      "sha256": "91157b07e82478cd55a770916415be721a836922fe2872fb2628b7ceaa152406"
+    },
+    "results": [
+      {
+        "framework": "net10.0",
+        "passed": 6851,
+        "failed": 0,
+        "actualTrx": {
+          "path": "retained-producers/qualification-final-298a02a0e870/trx/net10.0/full-net10.0.trx",
+          "bytes": 10921900,
+          "sha256": "3a0a4351c05d572df0eb9b7c844793ba92915ee372e62bc2dda74f300195025c"
+        },
+        "subjectModules": 36
+      },
+      {
+        "framework": "net8.0",
+        "passed": 6851,
+        "failed": 0,
+        "actualTrx": {
+          "path": "retained-producers/qualification-final-298a02a0e870/trx/net8.0/full-net8.0.trx",
+          "bytes": 10908197,
+          "sha256": "953393dcf2dca82dd5346f1c7569346220ef7ba193e7ae2551eee25322eeccb9"
+        },
+        "subjectModules": 36
+      }
+    ],
+    "retainedSubjects": "retained-producers/qualification-final-298a02a0e870",
+    "boundary": "Complete Category!=Performance suites pass on .NET 8 and .NET 10. The 216 focused checks passed on the same committed source bytes before full qualification. Actual subject modules and complete TRX files are retained as evidence, rather than standalone test hosts."
+  },
+  "review": {
+    "status": "candidate-reviewed-with-primary-remediation-closure",
+    "reviewedHead": "57e060bbb3e158ec28e585b9058b87a6506bda57",
+    "base": "963177d7d43a437ef5446f981c458d2395f6c01c",
+    "fullPasses": 1,
+    "targetedConfirmations": 1,
+    "remediationHead": "298a02a0e87039c236e22e3e006e69962293a1db",
+    "unresolvedValidatedInScopeFindings": 0,
+    "findings": [
+      {
+        "priority": "P1",
+        "issue": "Short definite set incorrectly skipped reserved note/figure projection",
+        "classification": "introduced",
+        "resolution": "2a33af602a restores physical reservation projection; existing three full-suite failing regressions now in focused passing bundle"
+      },
+      {
+        "priority": "P2",
+        "issue": "Combined metrics lost paragraph margin/progress facts",
+        "classification": "introduced with a pre-existing margin truncation companion",
+        "resolution": "2a33af602a retains facts and canonical unpainted-margin consumption; exact native paragraph reproduction included"
+      },
+      {
+        "priority": "P2",
+        "issue": "Interrupted inline aggregation did not preserve logical forced-boundary identity",
+        "classification": "introduced",
+        "resolution": "2a33af602a reuses canonical helper and edge provenance; exact native pair included"
+      },
+      {
+        "priority": "P2",
+        "issue": "Page-only avoid range leaked into column note-call height",
+        "classification": "reachable sibling found by primary",
+        "resolution": "2a33af602a filters scope; public auto/avoid-page call pair passes"
+      },
+      {
+        "priority": "P2",
+        "issue": "Final discarded margin could consume following short block before natural column advance",
+        "classification": "remediation-introduced",
+        "resolution": "0ee65c20e0 retains one pending natural advance and coalesces matching forced boundary; public forced/unforced pair passes and final exact EdgePDF positions match"
+      },
+      {
+        "priority": "P2",
+        "issue": "Completed paragraph final-line margin break remained an interior offset in the outer-page projection, causing false widows when its last line touched the page end",
+        "classification": "Introduced during the first paragraph remediation; the complete 35-case native check exposed the paged regression.",
+        "resolution": "298a02a0e8 projects the completed final line as implicit. The existing regression now covers both paged intents; all three margin controls match both native PDF profiles."
+      }
+    ],
+    "boundary": "One fresh read-only full pass and one targeted confirmation are complete. Primary owner closure covers both the targeted small-following-block margin-slack finding and the later paged completed-paragraph false-widow regression; final native/full/framework proof must record that closure. No additional independent review loop is required solely for the corrected head.",
+    "productApiDisposition": "Reviewer accepted the internal owner shape after correction and decisive proof; no public API or production dependency expansion.",
+    "validationGaps": [
+      "No hosted PRCI/review, Windows timing or public release is claimed.",
+      "Three page-force controls and specialized column contexts retain explicit loss boundaries."
+    ],
+    "ownerClosureEvidence": {
+      "path": "local-review-disposition.json",
+      "bytes": 5047,
+      "sha256": "5f7625ab24246c993e8f851abe5ad4d30be9219bd341bf7bd6a825c9365d130c"
+    }
+  },
+  "directRenderChecks": {
+    "status": "passed",
+    "sourceHead": "298a02a0e87039c236e22e3e006e69962293a1db",
+    "cases": 35,
+    "profiles": 140,
+    "pngEqualsIndependentPdfReplayProfiles": 105,
+    "evidence": {
+      "path": "qualified-renderer-binding.json",
+      "bytes": 20950,
+      "sha256": "2a2930b4c30e476f0663f2f553f1144533e2304ca0caf7025ae3da54b609a19c"
+    },
+    "boundary": "Capture all 35 cases in PrintPaged, ScreenMediaPaged, ScreenFullPage and ScreenSnapshotPaged. Canonical PNG is compared with independent reopening and replay of the separately exported PDF for the three paged profiles. The continuous direct-scene PNG is a distinct raster route. Check source labels once in the two layout-paged PDFs and continuous scene; flattened snapshot scenes are not evidence of searchable text."
+  },
+  "native": {
+    "status": "qualified-selected-native-subset-with-explicit-page-force-boundaries",
+    "engine": "Microsoft Edge through HtmlTinkerX 3.0.4 and its existing Playwright driver. Fresh SVG captures report Edg/155.0.0.0; the 35 original PDF/DOM oracle and lifecycle bytes are retained unchanged.",
+    "qualifiedCases": [
+      {
+        "case": "control-auto",
+        "profiles": {
+          "PrintPaged": {
+            "nativePages": 2,
+            "candidatePages": 2,
+            "nativeCounts": {
+              "ALBA-01": 1,
+              "ALBA-02": 1,
+              "ALBA-03": 1,
+              "ALBA-04": 1,
+              "ALBA-05": 1,
+              "ALBA-06": 1,
+              "ALBA-AFTER": 1
+            },
+            "candidateCounts": {
+              "ALBA-01": 1,
+              "ALBA-02": 1,
+              "ALBA-03": 1,
+              "ALBA-04": 1,
+              "ALBA-05": 1,
+              "ALBA-06": 1,
+              "ALBA-AFTER": 1
+            },
+            "missingLabels": [],
+            "extraOrDuplicateLabels": [],
+            "labelCountsMatch": true,
+            "pageMismatchLabelCount": 0,
+            "coordinateMismatchLabelCount": 0,
+            "maxAbsXErrorPx": 6.533333333891278e-05,
+            "maxAbsYErrorPx": 0.002082666666680666,
+            "matchesNative": true,
+            "nativePageSizesCssPx": [
+              [
+                700.16,
+                139.839996
+              ],
+              [
+                700.16,
+                139.839996
+              ]
+            ],
+            "candidatePageSizesCssPx": [
+              [
+                700.0,
+                140.0
+              ],
+              [
+                700.0,
+                140.0
+              ]
+            ],
+            "nativePdfSha256": "5683c5792918fae268937d11413742ce5261dd7be1cc1feb765a85bfcbda9eb0",
+            "candidatePdfSha256": "a1a8323460027890b5dccd5cbddd940caa1459bd72881019fef83429d2f9f9dc"
+          },
+          "ScreenMediaPaged": {
+            "nativePages": 2,
+            "candidatePages": 2,
+            "nativeCounts": {
+              "ALBA-01": 1,
+              "ALBA-02": 1,
+              "ALBA-03": 1,
+              "ALBA-04": 1,
+              "ALBA-05": 1,
+              "ALBA-06": 1,
+              "ALBA-AFTER": 1
+            },
+            "candidateCounts": {
+              "ALBA-01": 1,
+              "ALBA-02": 1,
+              "ALBA-03": 1,
+              "ALBA-04": 1,
+              "ALBA-05": 1,
+              "ALBA-06": 1,
+              "ALBA-AFTER": 1
+            },
+            "missingLabels": [],
+            "extraOrDuplicateLabels": [],
+            "labelCountsMatch": true,
+            "pageMismatchLabelCount": 0,
+            "coordinateMismatchLabelCount": 0,
+            "maxAbsXErrorPx": 6.533333333891278e-05,
+            "maxAbsYErrorPx": 0.002082666666680666,
+            "matchesNative": true,
+            "nativePageSizesCssPx": [
+              [
+                700.16,
+                139.839996
+              ],
+              [
+                700.16,
+                139.839996
+              ]
+            ],
+            "candidatePageSizesCssPx": [
+              [
+                700.0,
+                140.0
+              ],
+              [
+                700.0,
+                140.0
+              ]
+            ],
+            "nativePdfSha256": "de7fb924531352b9a5d2679de2ba90770a6894fd43986cf84b29f3adda328467",
+            "candidatePdfSha256": "a1a8323460027890b5dccd5cbddd940caa1459bd72881019fef83429d2f9f9dc"
+          },
+          "ScreenFullPage": {
+            "nativePages": 1,
+            "candidatePages": 1,
+            "nativeCounts": {
+              "ALBA-01": 1,
+              "ALBA-02": 1,
+              "ALBA-03": 1,
+              "ALBA-04": 1,
+              "ALBA-05": 1,
+              "ALBA-06": 1,
+              "ALBA-AFTER": 1
+            },
+            "candidateCounts": {
+              "ALBA-01": 1,
+              "ALBA-02": 1,
+              "ALBA-03": 1,
+              "ALBA-04": 1,
+              "ALBA-05": 1,
+              "ALBA-06": 1,
+              "ALBA-AFTER": 1
+            },
+            "missingLabels": [],
+            "extraOrDuplicateLabels": [],
+            "labelCountsMatch": true,
+            "pageMismatchLabelCount": 0,
+            "coordinateMismatchLabelCount": 0,
+            "maxAbsXErrorPx": 0,
+            "maxAbsYErrorPx": 0,
+            "matchesNative": true
+          }
+        }
+      },
+      {
+        "case": "control-balance",
+        "profiles": {
+          "PrintPaged": {
+            "nativePages": 1,
+            "candidatePages": 1,
+            "nativeCounts": {
+              "BRUMA-01": 1,
+              "BRUMA-02": 1,
+              "BRUMA-03": 1,
+              "BRUMA-AFTER": 1,
+              "BRUMA-04": 1,
+              "BRUMA-05": 1,
+              "BRUMA-06": 1
+            },
+            "candidateCounts": {
+              "BRUMA-01": 1,
+              "BRUMA-02": 1,
+              "BRUMA-03": 1,
+              "BRUMA-AFTER": 1,
+              "BRUMA-04": 1,
+              "BRUMA-05": 1,
+              "BRUMA-06": 1
+            },
+            "missingLabels": [],
+            "extraOrDuplicateLabels": [],
+            "labelCountsMatch": true,
+            "pageMismatchLabelCount": 0,
+            "coordinateMismatchLabelCount": 0,
+            "maxAbsXErrorPx": 5.466666664233344e-05,
+            "maxAbsYErrorPx": 0.0020813333333293826,
+            "matchesNative": true,
+            "nativePageSizesCssPx": [
+              [
+                700.16,
+                139.839996
+              ]
+            ],
+            "candidatePageSizesCssPx": [
+              [
+                700.0,
+                140.0
+              ]
+            ],
+            "nativePdfSha256": "5738f1335ca89ee31cb667b6f48688477759180c8e839fc1c5d76f5a10bf804c",
+            "candidatePdfSha256": "d2952dea861ead424d6ceafa4674e03824d60b2468cde7e6f15de0147fc9158d"
+          },
+          "ScreenMediaPaged": {
+            "nativePages": 1,
+            "candidatePages": 1,
+            "nativeCounts": {
+              "BRUMA-01": 1,
+              "BRUMA-02": 1,
+              "BRUMA-03": 1,
+              "BRUMA-AFTER": 1,
+              "BRUMA-04": 1,
+              "BRUMA-05": 1,
+              "BRUMA-06": 1
+            },
+            "candidateCounts": {
+              "BRUMA-01": 1,
+              "BRUMA-02": 1,
+              "BRUMA-03": 1,
+              "BRUMA-AFTER": 1,
+              "BRUMA-04": 1,
+              "BRUMA-05": 1,
+              "BRUMA-06": 1
+            },
+            "missingLabels": [],
+            "extraOrDuplicateLabels": [],
+            "labelCountsMatch": true,
+            "pageMismatchLabelCount": 0,
+            "coordinateMismatchLabelCount": 0,
+            "maxAbsXErrorPx": 5.466666664233344e-05,
+            "maxAbsYErrorPx": 0.0020813333333293826,
+            "matchesNative": true,
+            "nativePageSizesCssPx": [
+              [
+                700.16,
+                139.839996
+              ]
+            ],
+            "candidatePageSizesCssPx": [
+              [
+                700.0,
+                140.0
+              ]
+            ],
+            "nativePdfSha256": "535d0b336703b1c3f7af9585185b58630b7d638356fb75b06d82b81a57f7b781",
+            "candidatePdfSha256": "d2952dea861ead424d6ceafa4674e03824d60b2468cde7e6f15de0147fc9158d"
+          },
+          "ScreenFullPage": {
+            "nativePages": 1,
+            "candidatePages": 1,
+            "nativeCounts": {
+              "BRUMA-01": 1,
+              "BRUMA-02": 1,
+              "BRUMA-03": 1,
+              "BRUMA-04": 1,
+              "BRUMA-05": 1,
+              "BRUMA-06": 1,
+              "BRUMA-AFTER": 1
+            },
+            "candidateCounts": {
+              "BRUMA-01": 1,
+              "BRUMA-02": 1,
+              "BRUMA-03": 1,
+              "BRUMA-04": 1,
+              "BRUMA-05": 1,
+              "BRUMA-06": 1,
+              "BRUMA-AFTER": 1
+            },
+            "missingLabels": [],
+            "extraOrDuplicateLabels": [],
+            "labelCountsMatch": true,
+            "pageMismatchLabelCount": 0,
+            "coordinateMismatchLabelCount": 0,
+            "maxAbsXErrorPx": 0,
+            "maxAbsYErrorPx": 3.5762786865234375e-06,
+            "matchesNative": true
+          }
+        }
+      },
+      {
+        "case": "before-column-auto",
+        "profiles": {
+          "PrintPaged": {
+            "nativePages": 2,
+            "candidatePages": 2,
+            "nativeCounts": {
+              "CEDRA-01": 1,
+              "CEDRA-02": 1,
+              "CEDRA-03": 1,
+              "CEDRA-04": 1,
+              "CEDRA-05": 1,
+              "CEDRA-AFTER": 1
+            },
+            "candidateCounts": {
+              "CEDRA-01": 1,
+              "CEDRA-02": 1,
+              "CEDRA-03": 1,
+              "CEDRA-04": 1,
+              "CEDRA-05": 1,
+              "CEDRA-AFTER": 1
+            },
+            "missingLabels": [],
+            "extraOrDuplicateLabels": [],
+            "labelCountsMatch": true,
+            "pageMismatchLabelCount": 0,
+            "coordinateMismatchLabelCount": 0,
+            "maxAbsXErrorPx": 7.600000003549212e-05,
+            "maxAbsYErrorPx": 0.0020813333333293826,
+            "matchesNative": true,
+            "nativePageSizesCssPx": [
+              [
+                700.16,
+                139.839996
+              ],
+              [
+                700.16,
+                139.839996
+              ]
+            ],
+            "candidatePageSizesCssPx": [
+              [
+                700.0,
+                140.0
+              ],
+              [
+                700.0,
+                140.0
+              ]
+            ],
+            "nativePdfSha256": "1f7714e12cf1db43d671094e8f42e54b9e8e5d49f3807cdeca2f98eaaa346eee",
+            "candidatePdfSha256": "11107806388ffc45fe3ab9d4baff7013fbcf2fb9c966048205ee62de1d7cc1ff"
+          },
+          "ScreenMediaPaged": {
+            "nativePages": 2,
+            "candidatePages": 2,
+            "nativeCounts": {
+              "CEDRA-01": 1,
+              "CEDRA-02": 1,
+              "CEDRA-03": 1,
+              "CEDRA-04": 1,
+              "CEDRA-05": 1,
+              "CEDRA-AFTER": 1
+            },
+            "candidateCounts": {
+              "CEDRA-01": 1,
+              "CEDRA-02": 1,
+              "CEDRA-03": 1,
+              "CEDRA-04": 1,
+              "CEDRA-05": 1,
+              "CEDRA-AFTER": 1
+            },
+            "missingLabels": [],
+            "extraOrDuplicateLabels": [],
+            "labelCountsMatch": true,
+            "pageMismatchLabelCount": 0,
+            "coordinateMismatchLabelCount": 0,
+            "maxAbsXErrorPx": 7.600000003549212e-05,
+            "maxAbsYErrorPx": 0.0020813333333293826,
+            "matchesNative": true,
+            "nativePageSizesCssPx": [
+              [
+                700.16,
+                139.839996
+              ],
+              [
+                700.16,
+                139.839996
+              ]
+            ],
+            "candidatePageSizesCssPx": [
+              [
+                700.0,
+                140.0
+              ],
+              [
+                700.0,
+                140.0
+              ]
+            ],
+            "nativePdfSha256": "1f7714e12cf1db43d671094e8f42e54b9e8e5d49f3807cdeca2f98eaaa346eee",
+            "candidatePdfSha256": "11107806388ffc45fe3ab9d4baff7013fbcf2fb9c966048205ee62de1d7cc1ff"
+          },
+          "ScreenFullPage": {
+            "nativePages": 1,
+            "candidatePages": 1,
+            "nativeCounts": {
+              "CEDRA-01": 1,
+              "CEDRA-02": 1,
+              "CEDRA-03": 1,
+              "CEDRA-04": 1,
+              "CEDRA-05": 1,
+              "CEDRA-AFTER": 1
+            },
+            "candidateCounts": {
+              "CEDRA-01": 1,
+              "CEDRA-02": 1,
+              "CEDRA-03": 1,
+              "CEDRA-04": 1,
+              "CEDRA-05": 1,
+              "CEDRA-AFTER": 1
+            },
+            "missingLabels": [],
+            "extraOrDuplicateLabels": [],
+            "labelCountsMatch": true,
+            "pageMismatchLabelCount": 0,
+            "coordinateMismatchLabelCount": 0,
+            "maxAbsXErrorPx": 0,
+            "maxAbsYErrorPx": 0,
+            "matchesNative": true
+          }
+        }
+      },
+      {
+        "case": "after-column-auto",
+        "profiles": {
+          "PrintPaged": {
+            "nativePages": 2,
+            "candidatePages": 2,
+            "nativeCounts": {
+              "DAINA-01": 1,
+              "DAINA-02": 1,
+              "DAINA-03": 1,
+              "DAINA-04": 1,
+              "DAINA-05": 1,
+              "DAINA-AFTER": 1
+            },
+            "candidateCounts": {
+              "DAINA-01": 1,
+              "DAINA-02": 1,
+              "DAINA-03": 1,
+              "DAINA-04": 1,
+              "DAINA-05": 1,
+              "DAINA-AFTER": 1
+            },
+            "missingLabels": [],
+            "extraOrDuplicateLabels": [],
+            "labelCountsMatch": true,
+            "pageMismatchLabelCount": 0,
+            "coordinateMismatchLabelCount": 0,
+            "maxAbsXErrorPx": 3.9999999984274837e-05,
+            "maxAbsYErrorPx": 0.0020813333333293826,
+            "matchesNative": true,
+            "nativePageSizesCssPx": [
+              [
+                700.16,
+                139.839996
+              ],
+              [
+                700.16,
+                139.839996
+              ]
+            ],
+            "candidatePageSizesCssPx": [
+              [
+                700.0,
+                140.0
+              ],
+              [
+                700.0,
+                140.0
+              ]
+            ],
+            "nativePdfSha256": "38d9b5353e0d5af0f83f7c89cfc4c5418b73c4559d298e2eb2a41ef1a2ede241",
+            "candidatePdfSha256": "4a955b8437d179cef853c5071e0403484c9de446827093cc204188fbb2493300"
+          },
+          "ScreenMediaPaged": {
+            "nativePages": 2,
+            "candidatePages": 2,
+            "nativeCounts": {
+              "DAINA-01": 1,
+              "DAINA-02": 1,
+              "DAINA-03": 1,
+              "DAINA-04": 1,
+              "DAINA-05": 1,
+              "DAINA-AFTER": 1
+            },
+            "candidateCounts": {
+              "DAINA-01": 1,
+              "DAINA-02": 1,
+              "DAINA-03": 1,
+              "DAINA-04": 1,
+              "DAINA-05": 1,
+              "DAINA-AFTER": 1
+            },
+            "missingLabels": [],
+            "extraOrDuplicateLabels": [],
+            "labelCountsMatch": true,
+            "pageMismatchLabelCount": 0,
+            "coordinateMismatchLabelCount": 0,
+            "maxAbsXErrorPx": 3.9999999984274837e-05,
+            "maxAbsYErrorPx": 0.0020813333333293826,
+            "matchesNative": true,
+            "nativePageSizesCssPx": [
+              [
+                700.16,
+                139.839996
+              ],
+              [
+                700.16,
+                139.839996
+              ]
+            ],
+            "candidatePageSizesCssPx": [
+              [
+                700.0,
+                140.0
+              ],
+              [
+                700.0,
+                140.0
+              ]
+            ],
+            "nativePdfSha256": "38d9b5353e0d5af0f83f7c89cfc4c5418b73c4559d298e2eb2a41ef1a2ede241",
+            "candidatePdfSha256": "4a955b8437d179cef853c5071e0403484c9de446827093cc204188fbb2493300"
+          },
+          "ScreenFullPage": {
+            "nativePages": 1,
+            "candidatePages": 1,
+            "nativeCounts": {
+              "DAINA-01": 1,
+              "DAINA-02": 1,
+              "DAINA-03": 1,
+              "DAINA-04": 1,
+              "DAINA-05": 1,
+              "DAINA-AFTER": 1
+            },
+            "candidateCounts": {
+              "DAINA-01": 1,
+              "DAINA-02": 1,
+              "DAINA-03": 1,
+              "DAINA-04": 1,
+              "DAINA-05": 1,
+              "DAINA-AFTER": 1
+            },
+            "missingLabels": [],
+            "extraOrDuplicateLabels": [],
+            "labelCountsMatch": true,
+            "pageMismatchLabelCount": 0,
+            "coordinateMismatchLabelCount": 0,
+            "maxAbsXErrorPx": 0,
+            "maxAbsYErrorPx": 0,
+            "matchesNative": true
+          }
+        }
+      },
+      {
+        "case": "before-column-balance",
+        "profiles": {
+          "PrintPaged": {
+            "nativePages": 1,
+            "candidatePages": 1,
+            "nativeCounts": {
+              "ELARA-01": 1,
+              "ELARA-02": 1,
+              "ELARA-AFTER": 1,
+              "ELARA-03": 1,
+              "ELARA-04": 1,
+              "ELARA-05": 1
+            },
+            "candidateCounts": {
+              "ELARA-01": 1,
+              "ELARA-02": 1,
+              "ELARA-AFTER": 1,
+              "ELARA-03": 1,
+              "ELARA-04": 1,
+              "ELARA-05": 1
+            },
+            "missingLabels": [],
+            "extraOrDuplicateLabels": [],
+            "labelCountsMatch": true,
+            "pageMismatchLabelCount": 0,
+            "coordinateMismatchLabelCount": 0,
+            "maxAbsXErrorPx": 4.399999997417581e-05,
+            "maxAbsYErrorPx": 0.0020813333333293826,
+            "matchesNative": true,
+            "nativePageSizesCssPx": [
+              [
+                700.16,
+                139.839996
+              ]
+            ],
+            "candidatePageSizesCssPx": [
+              [
+                700.0,
+                140.0
+              ]
+            ],
+            "nativePdfSha256": "847ead8a9809a16c611efc1aa6b3a34432da0d2709a05bdc5fbe3f4869704e75",
+            "candidatePdfSha256": "322626b28edc541903da6fb4055e65ded5f257424c25e90b14570be05a6d95a1"
+          },
+          "ScreenMediaPaged": {
+            "nativePages": 1,
+            "candidatePages": 1,
+            "nativeCounts": {
+              "ELARA-01": 1,
+              "ELARA-02": 1,
+              "ELARA-AFTER": 1,
+              "ELARA-03": 1,
+              "ELARA-04": 1,
+              "ELARA-05": 1
+            },
+            "candidateCounts": {
+              "ELARA-01": 1,
+              "ELARA-02": 1,
+              "ELARA-AFTER": 1,
+              "ELARA-03": 1,
+              "ELARA-04": 1,
+              "ELARA-05": 1
+            },
+            "missingLabels": [],
+            "extraOrDuplicateLabels": [],
+            "labelCountsMatch": true,
+            "pageMismatchLabelCount": 0,
+            "coordinateMismatchLabelCount": 0,
+            "maxAbsXErrorPx": 4.399999997417581e-05,
+            "maxAbsYErrorPx": 0.0020813333333293826,
+            "matchesNative": true,
+            "nativePageSizesCssPx": [
+              [
+                700.16,
+                139.839996
+              ]
+            ],
+            "candidatePageSizesCssPx": [
+              [
+                700.0,
+                140.0
+              ]
+            ],
+            "nativePdfSha256": "847ead8a9809a16c611efc1aa6b3a34432da0d2709a05bdc5fbe3f4869704e75",
+            "candidatePdfSha256": "322626b28edc541903da6fb4055e65ded5f257424c25e90b14570be05a6d95a1"
+          },
+          "ScreenFullPage": {
+            "nativePages": 1,
+            "candidatePages": 1,
+            "nativeCounts": {
+              "ELARA-01": 1,
+              "ELARA-02": 1,
+              "ELARA-03": 1,
+              "ELARA-04": 1,
+              "ELARA-05": 1,
+              "ELARA-AFTER": 1
+            },
+            "candidateCounts": {
+              "ELARA-01": 1,
+              "ELARA-02": 1,
+              "ELARA-03": 1,
+              "ELARA-04": 1,
+              "ELARA-05": 1,
+              "ELARA-AFTER": 1
+            },
+            "missingLabels": [],
+            "extraOrDuplicateLabels": [],
+            "labelCountsMatch": true,
+            "pageMismatchLabelCount": 0,
+            "coordinateMismatchLabelCount": 0,
+            "maxAbsXErrorPx": 0,
+            "maxAbsYErrorPx": 0,
+            "matchesNative": true
+          }
+        }
+      },
+      {
+        "case": "before-column-definite",
+        "profiles": {
+          "PrintPaged": {
+            "nativePages": 1,
+            "candidatePages": 1,
+            "nativeCounts": {
+              "FAGUS-01": 1,
+              "FAGUS-02": 1,
+              "FAGUS-AFTER": 1,
+              "FAGUS-03": 1,
+              "FAGUS-04": 1,
+              "FAGUS-05": 1
+            },
+            "candidateCounts": {
+              "FAGUS-01": 1,
+              "FAGUS-02": 1,
+              "FAGUS-AFTER": 1,
+              "FAGUS-03": 1,
+              "FAGUS-04": 1,
+              "FAGUS-05": 1
+            },
+            "missingLabels": [],
+            "extraOrDuplicateLabels": [],
+            "labelCountsMatch": true,
+            "pageMismatchLabelCount": 0,
+            "coordinateMismatchLabelCount": 0,
+            "maxAbsXErrorPx": 6.400000000894579e-05,
+            "maxAbsYErrorPx": 0.0020813333333293826,
+            "matchesNative": true,
+            "nativePageSizesCssPx": [
+              [
+                700.16,
+                139.839996
+              ]
+            ],
+            "candidatePageSizesCssPx": [
+              [
+                700.0,
+                140.0
+              ]
+            ],
+            "nativePdfSha256": "eb45a5e8dc1e22cbf659861f43cf308eb9e01962444a60332abc7d315f394851",
+            "candidatePdfSha256": "575b294ae0cb83c3efe0e501c94cc8bbe536c31e364fe71a7d9030a536e7100d"
+          },
+          "ScreenMediaPaged": {
+            "nativePages": 1,
+            "candidatePages": 1,
+            "nativeCounts": {
+              "FAGUS-01": 1,
+              "FAGUS-02": 1,
+              "FAGUS-AFTER": 1,
+              "FAGUS-03": 1,
+              "FAGUS-04": 1,
+              "FAGUS-05": 1
+            },
+            "candidateCounts": {
+              "FAGUS-01": 1,
+              "FAGUS-02": 1,
+              "FAGUS-AFTER": 1,
+              "FAGUS-03": 1,
+              "FAGUS-04": 1,
+              "FAGUS-05": 1
+            },
+            "missingLabels": [],
+            "extraOrDuplicateLabels": [],
+            "labelCountsMatch": true,
+            "pageMismatchLabelCount": 0,
+            "coordinateMismatchLabelCount": 0,
+            "maxAbsXErrorPx": 6.400000000894579e-05,
+            "maxAbsYErrorPx": 0.0020813333333293826,
+            "matchesNative": true,
+            "nativePageSizesCssPx": [
+              [
+                700.16,
+                139.839996
+              ]
+            ],
+            "candidatePageSizesCssPx": [
+              [
+                700.0,
+                140.0
+              ]
+            ],
+            "nativePdfSha256": "eb45a5e8dc1e22cbf659861f43cf308eb9e01962444a60332abc7d315f394851",
+            "candidatePdfSha256": "575b294ae0cb83c3efe0e501c94cc8bbe536c31e364fe71a7d9030a536e7100d"
+          },
+          "ScreenFullPage": {
+            "nativePages": 1,
+            "candidatePages": 1,
+            "nativeCounts": {
+              "FAGUS-01": 1,
+              "FAGUS-02": 1,
+              "FAGUS-03": 1,
+              "FAGUS-04": 1,
+              "FAGUS-05": 1,
+              "FAGUS-AFTER": 1
+            },
+            "candidateCounts": {
+              "FAGUS-01": 1,
+              "FAGUS-02": 1,
+              "FAGUS-03": 1,
+              "FAGUS-04": 1,
+              "FAGUS-05": 1,
+              "FAGUS-AFTER": 1
+            },
+            "missingLabels": [],
+            "extraOrDuplicateLabels": [],
+            "labelCountsMatch": true,
+            "pageMismatchLabelCount": 0,
+            "coordinateMismatchLabelCount": 0,
+            "maxAbsXErrorPx": 0,
+            "maxAbsYErrorPx": 0,
+            "matchesNative": true
+          }
+        }
+      },
+      {
+        "case": "leading-empty-column",
+        "profiles": {
+          "PrintPaged": {
+            "nativePages": 2,
+            "candidatePages": 2,
+            "nativeCounts": {
+              "GAVIA-01": 1,
+              "GAVIA-02": 1,
+              "GAVIA-03": 1,
+              "GAVIA-04": 1,
+              "GAVIA-05": 1,
+              "GAVIA-AFTER": 1
+            },
+            "candidateCounts": {
+              "GAVIA-01": 1,
+              "GAVIA-02": 1,
+              "GAVIA-03": 1,
+              "GAVIA-04": 1,
+              "GAVIA-05": 1,
+              "GAVIA-AFTER": 1
+            },
+            "missingLabels": [],
+            "extraOrDuplicateLabels": [],
+            "labelCountsMatch": true,
+            "pageMismatchLabelCount": 0,
+            "coordinateMismatchLabelCount": 0,
+            "maxAbsXErrorPx": 8.000000001118224e-06,
+            "maxAbsYErrorPx": 0.002082666666680666,
+            "matchesNative": true,
+            "nativePageSizesCssPx": [
+              [
+                700.16,
+                139.839996
+              ],
+              [
+                700.16,
+                139.839996
+              ]
+            ],
+            "candidatePageSizesCssPx": [
+              [
+                700.0,
+                140.0
+              ],
+              [
+                700.0,
+                140.0
+              ]
+            ],
+            "nativePdfSha256": "649b2aeaedd75022962570fc524cc5974ba71c83673f469a8a00842263e5b419",
+            "candidatePdfSha256": "d814ad58872dd9c5fb4cb1b57c4504098fd953a384fa0a2d6c9ef2b2c45eda29"
+          },
+          "ScreenMediaPaged": {
+            "nativePages": 2,
+            "candidatePages": 2,
+            "nativeCounts": {
+              "GAVIA-01": 1,
+              "GAVIA-02": 1,
+              "GAVIA-03": 1,
+              "GAVIA-04": 1,
+              "GAVIA-05": 1,
+              "GAVIA-AFTER": 1
+            },
+            "candidateCounts": {
+              "GAVIA-01": 1,
+              "GAVIA-02": 1,
+              "GAVIA-03": 1,
+              "GAVIA-04": 1,
+              "GAVIA-05": 1,
+              "GAVIA-AFTER": 1
+            },
+            "missingLabels": [],
+            "extraOrDuplicateLabels": [],
+            "labelCountsMatch": true,
+            "pageMismatchLabelCount": 0,
+            "coordinateMismatchLabelCount": 0,
+            "maxAbsXErrorPx": 8.000000001118224e-06,
+            "maxAbsYErrorPx": 0.002082666666680666,
+            "matchesNative": true,
+            "nativePageSizesCssPx": [
+              [
+                700.16,
+                139.839996
+              ],
+              [
+                700.16,
+                139.839996
+              ]
+            ],
+            "candidatePageSizesCssPx": [
+              [
+                700.0,
+                140.0
+              ],
+              [
+                700.0,
+                140.0
+              ]
+            ],
+            "nativePdfSha256": "649b2aeaedd75022962570fc524cc5974ba71c83673f469a8a00842263e5b419",
+            "candidatePdfSha256": "d814ad58872dd9c5fb4cb1b57c4504098fd953a384fa0a2d6c9ef2b2c45eda29"
+          },
+          "ScreenFullPage": {
+            "nativePages": 1,
+            "candidatePages": 1,
+            "nativeCounts": {
+              "GAVIA-01": 1,
+              "GAVIA-02": 1,
+              "GAVIA-03": 1,
+              "GAVIA-04": 1,
+              "GAVIA-05": 1,
+              "GAVIA-AFTER": 1
+            },
+            "candidateCounts": {
+              "GAVIA-01": 1,
+              "GAVIA-02": 1,
+              "GAVIA-03": 1,
+              "GAVIA-04": 1,
+              "GAVIA-05": 1,
+              "GAVIA-AFTER": 1
+            },
+            "missingLabels": [],
+            "extraOrDuplicateLabels": [],
+            "labelCountsMatch": true,
+            "pageMismatchLabelCount": 0,
+            "coordinateMismatchLabelCount": 0,
+            "maxAbsXErrorPx": 0,
+            "maxAbsYErrorPx": 0,
+            "matchesNative": true
+          }
+        }
+      },
+      {
+        "case": "trailing-empty-column",
+        "profiles": {
+          "PrintPaged": {
+            "nativePages": 2,
+            "candidatePages": 2,
+            "nativeCounts": {
+              "HEDRA-01": 1,
+              "HEDRA-02": 1,
+              "HEDRA-03": 1,
+              "HEDRA-04": 1,
+              "HEDRA-05": 1,
+              "HEDRA-AFTER": 1
+            },
+            "candidateCounts": {
+              "HEDRA-01": 1,
+              "HEDRA-02": 1,
+              "HEDRA-03": 1,
+              "HEDRA-04": 1,
+              "HEDRA-05": 1,
+              "HEDRA-AFTER": 1
+            },
+            "missingLabels": [],
+            "extraOrDuplicateLabels": [],
+            "labelCountsMatch": true,
+            "pageMismatchLabelCount": 0,
+            "coordinateMismatchLabelCount": 0,
+            "maxAbsXErrorPx": 8.000000001118224e-06,
+            "maxAbsYErrorPx": 0.002082666666680666,
+            "matchesNative": true,
+            "nativePageSizesCssPx": [
+              [
+                700.16,
+                139.839996
+              ],
+              [
+                700.16,
+                139.839996
+              ]
+            ],
+            "candidatePageSizesCssPx": [
+              [
+                700.0,
+                140.0
+              ],
+              [
+                700.0,
+                140.0
+              ]
+            ],
+            "nativePdfSha256": "ba406903c3705de4f8922303872dee3607c143048db6246db025669526bb288b",
+            "candidatePdfSha256": "1f0c8253b4ba85b852cc64c6ea28884260e5daeeabae271f963bc9335973d558"
+          },
+          "ScreenMediaPaged": {
+            "nativePages": 2,
+            "candidatePages": 2,
+            "nativeCounts": {
+              "HEDRA-01": 1,
+              "HEDRA-02": 1,
+              "HEDRA-03": 1,
+              "HEDRA-04": 1,
+              "HEDRA-05": 1,
+              "HEDRA-AFTER": 1
+            },
+            "candidateCounts": {
+              "HEDRA-01": 1,
+              "HEDRA-02": 1,
+              "HEDRA-03": 1,
+              "HEDRA-04": 1,
+              "HEDRA-05": 1,
+              "HEDRA-AFTER": 1
+            },
+            "missingLabels": [],
+            "extraOrDuplicateLabels": [],
+            "labelCountsMatch": true,
+            "pageMismatchLabelCount": 0,
+            "coordinateMismatchLabelCount": 0,
+            "maxAbsXErrorPx": 8.000000001118224e-06,
+            "maxAbsYErrorPx": 0.002082666666680666,
+            "matchesNative": true,
+            "nativePageSizesCssPx": [
+              [
+                700.16,
+                139.839996
+              ],
+              [
+                700.16,
+                139.839996
+              ]
+            ],
+            "candidatePageSizesCssPx": [
+              [
+                700.0,
+                140.0
+              ],
+              [
+                700.0,
+                140.0
+              ]
+            ],
+            "nativePdfSha256": "ba406903c3705de4f8922303872dee3607c143048db6246db025669526bb288b",
+            "candidatePdfSha256": "1f0c8253b4ba85b852cc64c6ea28884260e5daeeabae271f963bc9335973d558"
+          },
+          "ScreenFullPage": {
+            "nativePages": 1,
+            "candidatePages": 1,
+            "nativeCounts": {
+              "HEDRA-01": 1,
+              "HEDRA-02": 1,
+              "HEDRA-03": 1,
+              "HEDRA-04": 1,
+              "HEDRA-05": 1,
+              "HEDRA-AFTER": 1
+            },
+            "candidateCounts": {
+              "HEDRA-01": 1,
+              "HEDRA-02": 1,
+              "HEDRA-03": 1,
+              "HEDRA-04": 1,
+              "HEDRA-05": 1,
+              "HEDRA-AFTER": 1
+            },
+            "missingLabels": [],
+            "extraOrDuplicateLabels": [],
+            "labelCountsMatch": true,
+            "pageMismatchLabelCount": 0,
+            "coordinateMismatchLabelCount": 0,
+            "maxAbsXErrorPx": 0,
+            "maxAbsYErrorPx": 0,
+            "matchesNative": true
+          }
+        }
+      },
+      {
+        "case": "first-last-forced-column",
+        "profiles": {
+          "PrintPaged": {
+            "nativePages": 2,
+            "candidatePages": 2,
+            "nativeCounts": {
+              "ILARA-01": 1,
+              "ILARA-02": 1,
+              "ILARA-03": 1,
+              "ILARA-04": 1,
+              "ILARA-05": 1,
+              "ILARA-AFTER": 1
+            },
+            "candidateCounts": {
+              "ILARA-01": 1,
+              "ILARA-02": 1,
+              "ILARA-03": 1,
+              "ILARA-04": 1,
+              "ILARA-05": 1,
+              "ILARA-AFTER": 1
+            },
+            "missingLabels": [],
+            "extraOrDuplicateLabels": [],
+            "labelCountsMatch": true,
+            "pageMismatchLabelCount": 0,
+            "coordinateMismatchLabelCount": 0,
+            "maxAbsXErrorPx": 9.333333334637928e-06,
+            "maxAbsYErrorPx": 0.002082666666680666,
+            "matchesNative": true,
+            "nativePageSizesCssPx": [
+              [
+                700.16,
+                139.839996
+              ],
+              [
+                700.16,
+                139.839996
+              ]
+            ],
+            "candidatePageSizesCssPx": [
+              [
+                700.0,
+                140.0
+              ],
+              [
+                700.0,
+                140.0
+              ]
+            ],
+            "nativePdfSha256": "760beaeac3a86c165dccc766584ceef0862bc7d60f4f696f08c4937b7bba958b",
+            "candidatePdfSha256": "7ab0f13d6a63b9d417b0e92220426a27e20dde93c80a59b943a60d4e18b01b1f"
+          },
+          "ScreenMediaPaged": {
+            "nativePages": 2,
+            "candidatePages": 2,
+            "nativeCounts": {
+              "ILARA-01": 1,
+              "ILARA-02": 1,
+              "ILARA-03": 1,
+              "ILARA-04": 1,
+              "ILARA-05": 1,
+              "ILARA-AFTER": 1
+            },
+            "candidateCounts": {
+              "ILARA-01": 1,
+              "ILARA-02": 1,
+              "ILARA-03": 1,
+              "ILARA-04": 1,
+              "ILARA-05": 1,
+              "ILARA-AFTER": 1
+            },
+            "missingLabels": [],
+            "extraOrDuplicateLabels": [],
+            "labelCountsMatch": true,
+            "pageMismatchLabelCount": 0,
+            "coordinateMismatchLabelCount": 0,
+            "maxAbsXErrorPx": 9.333333334637928e-06,
+            "maxAbsYErrorPx": 0.002082666666680666,
+            "matchesNative": true,
+            "nativePageSizesCssPx": [
+              [
+                700.16,
+                139.839996
+              ],
+              [
+                700.16,
+                139.839996
+              ]
+            ],
+            "candidatePageSizesCssPx": [
+              [
+                700.0,
+                140.0
+              ],
+              [
+                700.0,
+                140.0
+              ]
+            ],
+            "nativePdfSha256": "760beaeac3a86c165dccc766584ceef0862bc7d60f4f696f08c4937b7bba958b",
+            "candidatePdfSha256": "7ab0f13d6a63b9d417b0e92220426a27e20dde93c80a59b943a60d4e18b01b1f"
+          },
+          "ScreenFullPage": {
+            "nativePages": 1,
+            "candidatePages": 1,
+            "nativeCounts": {
+              "ILARA-01": 1,
+              "ILARA-02": 1,
+              "ILARA-03": 1,
+              "ILARA-04": 1,
+              "ILARA-05": 1,
+              "ILARA-AFTER": 1
+            },
+            "candidateCounts": {
+              "ILARA-01": 1,
+              "ILARA-02": 1,
+              "ILARA-03": 1,
+              "ILARA-04": 1,
+              "ILARA-05": 1,
+              "ILARA-AFTER": 1
+            },
+            "missingLabels": [],
+            "extraOrDuplicateLabels": [],
+            "labelCountsMatch": true,
+            "pageMismatchLabelCount": 0,
+            "coordinateMismatchLabelCount": 0,
+            "maxAbsXErrorPx": 0,
+            "maxAbsYErrorPx": 0,
+            "matchesNative": true
+          }
+        }
+      },
+      {
+        "case": "adjacent-column-forces",
+        "profiles": {
+          "PrintPaged": {
+            "nativePages": 2,
+            "candidatePages": 2,
+            "nativeCounts": {
+              "JUNIA-01": 1,
+              "JUNIA-02": 1,
+              "JUNIA-03": 1,
+              "JUNIA-04": 1,
+              "JUNIA-05": 1,
+              "JUNIA-AFTER": 1
+            },
+            "candidateCounts": {
+              "JUNIA-01": 1,
+              "JUNIA-02": 1,
+              "JUNIA-03": 1,
+              "JUNIA-04": 1,
+              "JUNIA-05": 1,
+              "JUNIA-AFTER": 1
+            },
+            "missingLabels": [],
+            "extraOrDuplicateLabels": [],
+            "labelCountsMatch": true,
+            "pageMismatchLabelCount": 0,
+            "coordinateMismatchLabelCount": 0,
+            "maxAbsXErrorPx": 5.466666664233344e-05,
+            "maxAbsYErrorPx": 0.0020813333333293826,
+            "matchesNative": true,
+            "nativePageSizesCssPx": [
+              [
+                700.16,
+                139.839996
+              ],
+              [
+                700.16,
+                139.839996
+              ]
+            ],
+            "candidatePageSizesCssPx": [
+              [
+                700.0,
+                140.0
+              ],
+              [
+                700.0,
+                140.0
+              ]
+            ],
+            "nativePdfSha256": "95b5bf6fd51c0412a019206c1b5e6916a5d37f0aa01282e75df6e5d0c998e4fb",
+            "candidatePdfSha256": "5a7c739b053bac831dae671f96ccb138398c7f1d70478a7f497c70f44e53b5c4"
+          },
+          "ScreenMediaPaged": {
+            "nativePages": 2,
+            "candidatePages": 2,
+            "nativeCounts": {
+              "JUNIA-01": 1,
+              "JUNIA-02": 1,
+              "JUNIA-03": 1,
+              "JUNIA-04": 1,
+              "JUNIA-05": 1,
+              "JUNIA-AFTER": 1
+            },
+            "candidateCounts": {
+              "JUNIA-01": 1,
+              "JUNIA-02": 1,
+              "JUNIA-03": 1,
+              "JUNIA-04": 1,
+              "JUNIA-05": 1,
+              "JUNIA-AFTER": 1
+            },
+            "missingLabels": [],
+            "extraOrDuplicateLabels": [],
+            "labelCountsMatch": true,
+            "pageMismatchLabelCount": 0,
+            "coordinateMismatchLabelCount": 0,
+            "maxAbsXErrorPx": 5.466666664233344e-05,
+            "maxAbsYErrorPx": 0.0020813333333293826,
+            "matchesNative": true,
+            "nativePageSizesCssPx": [
+              [
+                700.16,
+                139.839996
+              ],
+              [
+                700.16,
+                139.839996
+              ]
+            ],
+            "candidatePageSizesCssPx": [
+              [
+                700.0,
+                140.0
+              ],
+              [
+                700.0,
+                140.0
+              ]
+            ],
+            "nativePdfSha256": "95b5bf6fd51c0412a019206c1b5e6916a5d37f0aa01282e75df6e5d0c998e4fb",
+            "candidatePdfSha256": "5a7c739b053bac831dae671f96ccb138398c7f1d70478a7f497c70f44e53b5c4"
+          },
+          "ScreenFullPage": {
+            "nativePages": 1,
+            "candidatePages": 1,
+            "nativeCounts": {
+              "JUNIA-01": 1,
+              "JUNIA-02": 1,
+              "JUNIA-03": 1,
+              "JUNIA-04": 1,
+              "JUNIA-05": 1,
+              "JUNIA-AFTER": 1
+            },
+            "candidateCounts": {
+              "JUNIA-01": 1,
+              "JUNIA-02": 1,
+              "JUNIA-03": 1,
+              "JUNIA-04": 1,
+              "JUNIA-05": 1,
+              "JUNIA-AFTER": 1
+            },
+            "missingLabels": [],
+            "extraOrDuplicateLabels": [],
+            "labelCountsMatch": true,
+            "pageMismatchLabelCount": 0,
+            "coordinateMismatchLabelCount": 0,
+            "maxAbsXErrorPx": 0,
+            "maxAbsYErrorPx": 0,
+            "matchesNative": true
+          }
+        }
+      },
+      {
+        "case": "avoid-before-column",
+        "profiles": {
+          "PrintPaged": {
+            "nativePages": 1,
+            "candidatePages": 1,
+            "nativeCounts": {
+              "KALMA-01": 1,
+              "KALMA-02": 1,
+              "KALMA-AFTER": 1,
+              "KALMA-03": 1,
+              "KALMA-04": 1,
+              "KALMA-05": 1
+            },
+            "candidateCounts": {
+              "KALMA-01": 1,
+              "KALMA-02": 1,
+              "KALMA-AFTER": 1,
+              "KALMA-03": 1,
+              "KALMA-04": 1,
+              "KALMA-05": 1
+            },
+            "missingLabels": [],
+            "extraOrDuplicateLabels": [],
+            "labelCountsMatch": true,
+            "pageMismatchLabelCount": 0,
+            "coordinateMismatchLabelCount": 0,
+            "maxAbsXErrorPx": 9.733333334338568e-05,
+            "maxAbsYErrorPx": 0.0020813333333293826,
+            "matchesNative": true,
+            "nativePageSizesCssPx": [
+              [
+                700.16,
+                139.839996
+              ]
+            ],
+            "candidatePageSizesCssPx": [
+              [
+                700.0,
+                140.0
+              ]
+            ],
+            "nativePdfSha256": "f2b2b9708c40825e572019e3d3e9cc743d6d357f0fdca99020acca18f4badef5",
+            "candidatePdfSha256": "fea49b13cdd19b6324a244636870d1dc219ada746897672739ea603fbb2a5496"
+          },
+          "ScreenMediaPaged": {
+            "nativePages": 1,
+            "candidatePages": 1,
+            "nativeCounts": {
+              "KALMA-01": 1,
+              "KALMA-02": 1,
+              "KALMA-AFTER": 1,
+              "KALMA-03": 1,
+              "KALMA-04": 1,
+              "KALMA-05": 1
+            },
+            "candidateCounts": {
+              "KALMA-01": 1,
+              "KALMA-02": 1,
+              "KALMA-AFTER": 1,
+              "KALMA-03": 1,
+              "KALMA-04": 1,
+              "KALMA-05": 1
+            },
+            "missingLabels": [],
+            "extraOrDuplicateLabels": [],
+            "labelCountsMatch": true,
+            "pageMismatchLabelCount": 0,
+            "coordinateMismatchLabelCount": 0,
+            "maxAbsXErrorPx": 9.733333334338568e-05,
+            "maxAbsYErrorPx": 0.0020813333333293826,
+            "matchesNative": true,
+            "nativePageSizesCssPx": [
+              [
+                700.16,
+                139.839996
+              ]
+            ],
+            "candidatePageSizesCssPx": [
+              [
+                700.0,
+                140.0
+              ]
+            ],
+            "nativePdfSha256": "f2b2b9708c40825e572019e3d3e9cc743d6d357f0fdca99020acca18f4badef5",
+            "candidatePdfSha256": "fea49b13cdd19b6324a244636870d1dc219ada746897672739ea603fbb2a5496"
+          },
+          "ScreenFullPage": {
+            "nativePages": 1,
+            "candidatePages": 1,
+            "nativeCounts": {
+              "KALMA-01": 1,
+              "KALMA-02": 1,
+              "KALMA-03": 1,
+              "KALMA-04": 1,
+              "KALMA-05": 1,
+              "KALMA-AFTER": 1
+            },
+            "candidateCounts": {
+              "KALMA-01": 1,
+              "KALMA-02": 1,
+              "KALMA-03": 1,
+              "KALMA-04": 1,
+              "KALMA-05": 1,
+              "KALMA-AFTER": 1
+            },
+            "missingLabels": [],
+            "extraOrDuplicateLabels": [],
+            "labelCountsMatch": true,
+            "pageMismatchLabelCount": 0,
+            "coordinateMismatchLabelCount": 0,
+            "maxAbsXErrorPx": 0,
+            "maxAbsYErrorPx": 0,
+            "matchesNative": true
+          }
+        }
+      },
+      {
+        "case": "avoid-after-column",
+        "profiles": {
+          "PrintPaged": {
+            "nativePages": 1,
+            "candidatePages": 1,
+            "nativeCounts": {
+              "LARIX-01": 1,
+              "LARIX-02": 1,
+              "LARIX-AFTER": 1,
+              "LARIX-03": 1,
+              "LARIX-04": 1,
+              "LARIX-05": 1
+            },
+            "candidateCounts": {
+              "LARIX-01": 1,
+              "LARIX-02": 1,
+              "LARIX-AFTER": 1,
+              "LARIX-03": 1,
+              "LARIX-04": 1,
+              "LARIX-05": 1
+            },
+            "missingLabels": [],
+            "extraOrDuplicateLabels": [],
+            "labelCountsMatch": true,
+            "pageMismatchLabelCount": 0,
+            "coordinateMismatchLabelCount": 0,
+            "maxAbsXErrorPx": 3.4666666692828585e-05,
+            "maxAbsYErrorPx": 0.0020813333333293826,
+            "matchesNative": true,
+            "nativePageSizesCssPx": [
+              [
+                700.16,
+                139.839996
+              ]
+            ],
+            "candidatePageSizesCssPx": [
+              [
+                700.0,
+                140.0
+              ]
+            ],
+            "nativePdfSha256": "0135505f84e48ae7126c145d94d9f5c63bf9b3b1c5c6ce09620cced6cfc3cdf1",
+            "candidatePdfSha256": "62205558e5d8029a1828b0594174a93b2e7bc38632a3b300a27c6e482495c1a8"
+          },
+          "ScreenMediaPaged": {
+            "nativePages": 1,
+            "candidatePages": 1,
+            "nativeCounts": {
+              "LARIX-01": 1,
+              "LARIX-02": 1,
+              "LARIX-AFTER": 1,
+              "LARIX-03": 1,
+              "LARIX-04": 1,
+              "LARIX-05": 1
+            },
+            "candidateCounts": {
+              "LARIX-01": 1,
+              "LARIX-02": 1,
+              "LARIX-AFTER": 1,
+              "LARIX-03": 1,
+              "LARIX-04": 1,
+              "LARIX-05": 1
+            },
+            "missingLabels": [],
+            "extraOrDuplicateLabels": [],
+            "labelCountsMatch": true,
+            "pageMismatchLabelCount": 0,
+            "coordinateMismatchLabelCount": 0,
+            "maxAbsXErrorPx": 3.4666666692828585e-05,
+            "maxAbsYErrorPx": 0.0020813333333293826,
+            "matchesNative": true,
+            "nativePageSizesCssPx": [
+              [
+                700.16,
+                139.839996
+              ]
+            ],
+            "candidatePageSizesCssPx": [
+              [
+                700.0,
+                140.0
+              ]
+            ],
+            "nativePdfSha256": "0135505f84e48ae7126c145d94d9f5c63bf9b3b1c5c6ce09620cced6cfc3cdf1",
+            "candidatePdfSha256": "62205558e5d8029a1828b0594174a93b2e7bc38632a3b300a27c6e482495c1a8"
+          },
+          "ScreenFullPage": {
+            "nativePages": 1,
+            "candidatePages": 1,
+            "nativeCounts": {
+              "LARIX-01": 1,
+              "LARIX-02": 1,
+              "LARIX-03": 1,
+              "LARIX-04": 1,
+              "LARIX-05": 1,
+              "LARIX-AFTER": 1
+            },
+            "candidateCounts": {
+              "LARIX-01": 1,
+              "LARIX-02": 1,
+              "LARIX-03": 1,
+              "LARIX-04": 1,
+              "LARIX-05": 1,
+              "LARIX-AFTER": 1
+            },
+            "missingLabels": [],
+            "extraOrDuplicateLabels": [],
+            "labelCountsMatch": true,
+            "pageMismatchLabelCount": 0,
+            "coordinateMismatchLabelCount": 0,
+            "maxAbsXErrorPx": 0,
+            "maxAbsYErrorPx": 0,
+            "matchesNative": true
+          }
+        }
+      },
+      {
+        "case": "avoid-inside-fit",
+        "profiles": {
+          "PrintPaged": {
+            "nativePages": 1,
+            "candidatePages": 1,
+            "nativeCounts": {
+              "MALVA-01": 1,
+              "MALVA-02": 1,
+              "MALVA-AFTER": 1,
+              "MALVA-03": 1,
+              "MALVA-04": 1,
+              "MALVA-05": 1
+            },
+            "candidateCounts": {
+              "MALVA-01": 1,
+              "MALVA-02": 1,
+              "MALVA-AFTER": 1,
+              "MALVA-03": 1,
+              "MALVA-04": 1,
+              "MALVA-05": 1
+            },
+            "missingLabels": [],
+            "extraOrDuplicateLabels": [],
+            "labelCountsMatch": true,
+            "pageMismatchLabelCount": 0,
+            "coordinateMismatchLabelCount": 0,
+            "maxAbsXErrorPx": 3.999999989900971e-06,
+            "maxAbsYErrorPx": 0.0020813333333293826,
+            "matchesNative": true,
+            "nativePageSizesCssPx": [
+              [
+                700.16,
+                139.839996
+              ]
+            ],
+            "candidatePageSizesCssPx": [
+              [
+                700.0,
+                140.0
+              ]
+            ],
+            "nativePdfSha256": "428f9d121c78595a48d259905b60537138b83ce446d4fe8f3a04aee77592ef10",
+            "candidatePdfSha256": "3762f4085f1314b1faf20c19e260c76294145a0eb4ec388d7f50081b14622363"
+          },
+          "ScreenMediaPaged": {
+            "nativePages": 1,
+            "candidatePages": 1,
+            "nativeCounts": {
+              "MALVA-01": 1,
+              "MALVA-02": 1,
+              "MALVA-AFTER": 1,
+              "MALVA-03": 1,
+              "MALVA-04": 1,
+              "MALVA-05": 1
+            },
+            "candidateCounts": {
+              "MALVA-01": 1,
+              "MALVA-02": 1,
+              "MALVA-AFTER": 1,
+              "MALVA-03": 1,
+              "MALVA-04": 1,
+              "MALVA-05": 1
+            },
+            "missingLabels": [],
+            "extraOrDuplicateLabels": [],
+            "labelCountsMatch": true,
+            "pageMismatchLabelCount": 0,
+            "coordinateMismatchLabelCount": 0,
+            "maxAbsXErrorPx": 3.999999989900971e-06,
+            "maxAbsYErrorPx": 0.0020813333333293826,
+            "matchesNative": true,
+            "nativePageSizesCssPx": [
+              [
+                700.16,
+                139.839996
+              ]
+            ],
+            "candidatePageSizesCssPx": [
+              [
+                700.0,
+                140.0
+              ]
+            ],
+            "nativePdfSha256": "428f9d121c78595a48d259905b60537138b83ce446d4fe8f3a04aee77592ef10",
+            "candidatePdfSha256": "3762f4085f1314b1faf20c19e260c76294145a0eb4ec388d7f50081b14622363"
+          },
+          "ScreenFullPage": {
+            "nativePages": 1,
+            "candidatePages": 1,
+            "nativeCounts": {
+              "MALVA-01": 1,
+              "MALVA-02": 1,
+              "MALVA-03": 1,
+              "MALVA-04": 1,
+              "MALVA-05": 1,
+              "MALVA-AFTER": 1
+            },
+            "candidateCounts": {
+              "MALVA-01": 1,
+              "MALVA-02": 1,
+              "MALVA-03": 1,
+              "MALVA-04": 1,
+              "MALVA-05": 1,
+              "MALVA-AFTER": 1
+            },
+            "missingLabels": [],
+            "extraOrDuplicateLabels": [],
+            "labelCountsMatch": true,
+            "pageMismatchLabelCount": 0,
+            "coordinateMismatchLabelCount": 0,
+            "maxAbsXErrorPx": 0,
+            "maxAbsYErrorPx": 0,
+            "matchesNative": true
+          }
+        }
+      },
+      {
+        "case": "avoid-inside-oversized",
+        "profiles": {
+          "PrintPaged": {
+            "nativePages": 1,
+            "candidatePages": 1,
+            "nativeCounts": {
+              "NERIA-01": 1,
+              "NERIA-AFTER": 1,
+              "NERIA-02": 1,
+              "NERIA-03": 1,
+              "NERIA-04": 1,
+              "NERIA-05": 1,
+              "NERIA-06": 1
+            },
+            "candidateCounts": {
+              "NERIA-01": 1,
+              "NERIA-AFTER": 1,
+              "NERIA-02": 1,
+              "NERIA-03": 1,
+              "NERIA-04": 1,
+              "NERIA-05": 1,
+              "NERIA-06": 1
+            },
+            "missingLabels": [],
+            "extraOrDuplicateLabels": [],
+            "labelCountsMatch": true,
+            "pageMismatchLabelCount": 0,
+            "coordinateMismatchLabelCount": 0,
+            "maxAbsXErrorPx": 5.866666663223441e-05,
+            "maxAbsYErrorPx": 0.0020813333333293826,
+            "matchesNative": true,
+            "nativePageSizesCssPx": [
+              [
+                700.16,
+                139.839996
+              ]
+            ],
+            "candidatePageSizesCssPx": [
+              [
+                700.0,
+                140.0
+              ]
+            ],
+            "nativePdfSha256": "aa545be8587c18883ddb28f2c1129e058893271b12ba3388299357b5ca324fe4",
+            "candidatePdfSha256": "0fad7c6200beffd23d081821eaccdc072efc6577d0a63dafee9b4cbe5fac9893"
+          },
+          "ScreenMediaPaged": {
+            "nativePages": 1,
+            "candidatePages": 1,
+            "nativeCounts": {
+              "NERIA-01": 1,
+              "NERIA-AFTER": 1,
+              "NERIA-02": 1,
+              "NERIA-03": 1,
+              "NERIA-04": 1,
+              "NERIA-05": 1,
+              "NERIA-06": 1
+            },
+            "candidateCounts": {
+              "NERIA-01": 1,
+              "NERIA-AFTER": 1,
+              "NERIA-02": 1,
+              "NERIA-03": 1,
+              "NERIA-04": 1,
+              "NERIA-05": 1,
+              "NERIA-06": 1
+            },
+            "missingLabels": [],
+            "extraOrDuplicateLabels": [],
+            "labelCountsMatch": true,
+            "pageMismatchLabelCount": 0,
+            "coordinateMismatchLabelCount": 0,
+            "maxAbsXErrorPx": 5.866666663223441e-05,
+            "maxAbsYErrorPx": 0.0020813333333293826,
+            "matchesNative": true,
+            "nativePageSizesCssPx": [
+              [
+                700.16,
+                139.839996
+              ]
+            ],
+            "candidatePageSizesCssPx": [
+              [
+                700.0,
+                140.0
+              ]
+            ],
+            "nativePdfSha256": "aa545be8587c18883ddb28f2c1129e058893271b12ba3388299357b5ca324fe4",
+            "candidatePdfSha256": "0fad7c6200beffd23d081821eaccdc072efc6577d0a63dafee9b4cbe5fac9893"
+          },
+          "ScreenFullPage": {
+            "nativePages": 1,
+            "candidatePages": 1,
+            "nativeCounts": {
+              "NERIA-01": 1,
+              "NERIA-02": 1,
+              "NERIA-03": 1,
+              "NERIA-04": 1,
+              "NERIA-05": 1,
+              "NERIA-06": 1,
+              "NERIA-AFTER": 1
+            },
+            "candidateCounts": {
+              "NERIA-01": 1,
+              "NERIA-02": 1,
+              "NERIA-03": 1,
+              "NERIA-04": 1,
+              "NERIA-05": 1,
+              "NERIA-06": 1,
+              "NERIA-AFTER": 1
+            },
+            "missingLabels": [],
+            "extraOrDuplicateLabels": [],
+            "labelCountsMatch": true,
+            "pageMismatchLabelCount": 0,
+            "coordinateMismatchLabelCount": 0,
+            "maxAbsXErrorPx": 0,
+            "maxAbsYErrorPx": 0,
+            "matchesNative": true
+          }
+        }
+      },
+      {
+        "case": "paged-forced-rollover",
+        "profiles": {
+          "PrintPaged": {
+            "nativePages": 3,
+            "candidatePages": 3,
+            "nativeCounts": {
+              "ORINA-01": 1,
+              "ORINA-02": 1,
+              "ORINA-03": 1,
+              "ORINA-04": 1,
+              "ORINA-05": 1,
+              "ORINA-AFTER": 1
+            },
+            "candidateCounts": {
+              "ORINA-01": 1,
+              "ORINA-02": 1,
+              "ORINA-03": 1,
+              "ORINA-04": 1,
+              "ORINA-05": 1,
+              "ORINA-AFTER": 1
+            },
+            "missingLabels": [],
+            "extraOrDuplicateLabels": [],
+            "labelCountsMatch": true,
+            "pageMismatchLabelCount": 0,
+            "coordinateMismatchLabelCount": 0,
+            "maxAbsXErrorPx": 1.4666666686480312e-05,
+            "maxAbsYErrorPx": 0.002080000000006521,
+            "matchesNative": true,
+            "nativePageSizesCssPx": [
+              [
+                700.16,
+                139.839996
+              ],
+              [
+                700.16,
+                139.839996
+              ],
+              [
+                700.16,
+                139.839996
+              ]
+            ],
+            "candidatePageSizesCssPx": [
+              [
+                700.0,
+                140.0
+              ],
+              [
+                700.0,
+                140.0
+              ],
+              [
+                700.0,
+                140.0
+              ]
+            ],
+            "nativePdfSha256": "7fd9a636457492f79005ea756972b6b9ec39a51b7d27195ec382be0fe92241e6",
+            "candidatePdfSha256": "eaf1275791c3ad3b97f710ecf6e3ebb77a1c862d7bb81804fa43a620fd00f253"
+          },
+          "ScreenMediaPaged": {
+            "nativePages": 3,
+            "candidatePages": 3,
+            "nativeCounts": {
+              "ORINA-01": 1,
+              "ORINA-02": 1,
+              "ORINA-03": 1,
+              "ORINA-04": 1,
+              "ORINA-05": 1,
+              "ORINA-AFTER": 1
+            },
+            "candidateCounts": {
+              "ORINA-01": 1,
+              "ORINA-02": 1,
+              "ORINA-03": 1,
+              "ORINA-04": 1,
+              "ORINA-05": 1,
+              "ORINA-AFTER": 1
+            },
+            "missingLabels": [],
+            "extraOrDuplicateLabels": [],
+            "labelCountsMatch": true,
+            "pageMismatchLabelCount": 0,
+            "coordinateMismatchLabelCount": 0,
+            "maxAbsXErrorPx": 1.4666666686480312e-05,
+            "maxAbsYErrorPx": 0.002080000000006521,
+            "matchesNative": true,
+            "nativePageSizesCssPx": [
+              [
+                700.16,
+                139.839996
+              ],
+              [
+                700.16,
+                139.839996
+              ],
+              [
+                700.16,
+                139.839996
+              ]
+            ],
+            "candidatePageSizesCssPx": [
+              [
+                700.0,
+                140.0
+              ],
+              [
+                700.0,
+                140.0
+              ],
+              [
+                700.0,
+                140.0
+              ]
+            ],
+            "nativePdfSha256": "7fd9a636457492f79005ea756972b6b9ec39a51b7d27195ec382be0fe92241e6",
+            "candidatePdfSha256": "eaf1275791c3ad3b97f710ecf6e3ebb77a1c862d7bb81804fa43a620fd00f253"
+          },
+          "ScreenFullPage": {
+            "nativePages": 1,
+            "candidatePages": 1,
+            "nativeCounts": {
+              "ORINA-01": 1,
+              "ORINA-02": 1,
+              "ORINA-03": 1,
+              "ORINA-04": 1,
+              "ORINA-05": 1,
+              "ORINA-AFTER": 1
+            },
+            "candidateCounts": {
+              "ORINA-01": 1,
+              "ORINA-02": 1,
+              "ORINA-03": 1,
+              "ORINA-04": 1,
+              "ORINA-05": 1,
+              "ORINA-AFTER": 1
+            },
+            "missingLabels": [],
+            "extraOrDuplicateLabels": [],
+            "labelCountsMatch": true,
+            "pageMismatchLabelCount": 0,
+            "coordinateMismatchLabelCount": 0,
+            "maxAbsXErrorPx": 0,
+            "maxAbsYErrorPx": 0,
+            "matchesNative": true
+          }
+        }
+      },
+      {
+        "case": "nested-before-column",
+        "profiles": {
+          "PrintPaged": {
+            "nativePages": 2,
+            "candidatePages": 2,
+            "nativeCounts": {
+              "PAVIA-01": 1,
+              "PAVIA-02": 1,
+              "PAVIA-03": 1,
+              "PAVIA-04": 1,
+              "PAVIA-05": 1,
+              "PAVIA-AFTER": 1
+            },
+            "candidateCounts": {
+              "PAVIA-01": 1,
+              "PAVIA-02": 1,
+              "PAVIA-03": 1,
+              "PAVIA-04": 1,
+              "PAVIA-05": 1,
+              "PAVIA-AFTER": 1
+            },
+            "missingLabels": [],
+            "extraOrDuplicateLabels": [],
+            "labelCountsMatch": true,
+            "pageMismatchLabelCount": 0,
+            "coordinateMismatchLabelCount": 0,
+            "maxAbsXErrorPx": 4.933333335088719e-05,
+            "maxAbsYErrorPx": 0.0020813333333293826,
+            "matchesNative": true,
+            "nativePageSizesCssPx": [
+              [
+                700.16,
+                139.839996
+              ],
+              [
+                700.16,
+                139.839996
+              ]
+            ],
+            "candidatePageSizesCssPx": [
+              [
+                700.0,
+                140.0
+              ],
+              [
+                700.0,
+                140.0
+              ]
+            ],
+            "nativePdfSha256": "1834a7c6b70539075f7654a1b61e7f0570b842aa1bff07c78dce1f9098884bea",
+            "candidatePdfSha256": "14ab61a8764b9301607eb4e859940f10a80d2f5ab9902a50e52e2b572ddaeb2b"
+          },
+          "ScreenMediaPaged": {
+            "nativePages": 2,
+            "candidatePages": 2,
+            "nativeCounts": {
+              "PAVIA-01": 1,
+              "PAVIA-02": 1,
+              "PAVIA-03": 1,
+              "PAVIA-04": 1,
+              "PAVIA-05": 1,
+              "PAVIA-AFTER": 1
+            },
+            "candidateCounts": {
+              "PAVIA-01": 1,
+              "PAVIA-02": 1,
+              "PAVIA-03": 1,
+              "PAVIA-04": 1,
+              "PAVIA-05": 1,
+              "PAVIA-AFTER": 1
+            },
+            "missingLabels": [],
+            "extraOrDuplicateLabels": [],
+            "labelCountsMatch": true,
+            "pageMismatchLabelCount": 0,
+            "coordinateMismatchLabelCount": 0,
+            "maxAbsXErrorPx": 4.933333335088719e-05,
+            "maxAbsYErrorPx": 0.0020813333333293826,
+            "matchesNative": true,
+            "nativePageSizesCssPx": [
+              [
+                700.16,
+                139.839996
+              ],
+              [
+                700.16,
+                139.839996
+              ]
+            ],
+            "candidatePageSizesCssPx": [
+              [
+                700.0,
+                140.0
+              ],
+              [
+                700.0,
+                140.0
+              ]
+            ],
+            "nativePdfSha256": "1834a7c6b70539075f7654a1b61e7f0570b842aa1bff07c78dce1f9098884bea",
+            "candidatePdfSha256": "14ab61a8764b9301607eb4e859940f10a80d2f5ab9902a50e52e2b572ddaeb2b"
+          },
+          "ScreenFullPage": {
+            "nativePages": 1,
+            "candidatePages": 1,
+            "nativeCounts": {
+              "PAVIA-01": 1,
+              "PAVIA-02": 1,
+              "PAVIA-03": 1,
+              "PAVIA-04": 1,
+              "PAVIA-05": 1,
+              "PAVIA-AFTER": 1
+            },
+            "candidateCounts": {
+              "PAVIA-01": 1,
+              "PAVIA-02": 1,
+              "PAVIA-03": 1,
+              "PAVIA-04": 1,
+              "PAVIA-05": 1,
+              "PAVIA-AFTER": 1
+            },
+            "missingLabels": [],
+            "extraOrDuplicateLabels": [],
+            "labelCountsMatch": true,
+            "pageMismatchLabelCount": 0,
+            "coordinateMismatchLabelCount": 0,
+            "maxAbsXErrorPx": 0,
+            "maxAbsYErrorPx": 0,
+            "matchesNative": true
+          }
+        }
+      },
+      {
+        "case": "auto-forced-runs-20-40-100",
+        "profiles": {
+          "PrintPaged": {
+            "nativePages": 3,
+            "candidatePages": 3,
+            "nativeCounts": {
+              "SALIX-A01": 1,
+              "SALIX-B01": 1,
+              "SALIX-B02": 1,
+              "SALIX-C01": 1,
+              "SALIX-C02": 1,
+              "SALIX-C03": 1,
+              "SALIX-C04": 1,
+              "SALIX-C05": 1,
+              "SALIX-AFTER": 1
+            },
+            "candidateCounts": {
+              "SALIX-A01": 1,
+              "SALIX-B01": 1,
+              "SALIX-B02": 1,
+              "SALIX-C01": 1,
+              "SALIX-C02": 1,
+              "SALIX-C03": 1,
+              "SALIX-C04": 1,
+              "SALIX-C05": 1,
+              "SALIX-AFTER": 1
+            },
+            "missingLabels": [],
+            "extraOrDuplicateLabels": [],
+            "labelCountsMatch": true,
+            "pageMismatchLabelCount": 0,
+            "coordinateMismatchLabelCount": 0,
+            "maxAbsXErrorPx": 7.600000000707041e-05,
+            "maxAbsYErrorPx": 0.002082666666680666,
+            "matchesNative": true,
+            "nativePageSizesCssPx": [
+              [
+                700.16,
+                139.839996
+              ],
+              [
+                700.16,
+                139.839996
+              ],
+              [
+                700.16,
+                139.839996
+              ]
+            ],
+            "candidatePageSizesCssPx": [
+              [
+                700.0,
+                140.0
+              ],
+              [
+                700.0,
+                140.0
+              ],
+              [
+                700.0,
+                140.0
+              ]
+            ],
+            "nativePdfSha256": "545c9ac268fdd6977e236d1a7a2f6d4eac5e474135851586a232b0e319245ce7",
+            "candidatePdfSha256": "8ee466ebfede7013f9190d5df2766d9e8fce50a69cd56f7b35e5f6d6c752e46a"
+          },
+          "ScreenMediaPaged": {
+            "nativePages": 3,
+            "candidatePages": 3,
+            "nativeCounts": {
+              "SALIX-A01": 1,
+              "SALIX-B01": 1,
+              "SALIX-B02": 1,
+              "SALIX-C01": 1,
+              "SALIX-C02": 1,
+              "SALIX-C03": 1,
+              "SALIX-C04": 1,
+              "SALIX-C05": 1,
+              "SALIX-AFTER": 1
+            },
+            "candidateCounts": {
+              "SALIX-A01": 1,
+              "SALIX-B01": 1,
+              "SALIX-B02": 1,
+              "SALIX-C01": 1,
+              "SALIX-C02": 1,
+              "SALIX-C03": 1,
+              "SALIX-C04": 1,
+              "SALIX-C05": 1,
+              "SALIX-AFTER": 1
+            },
+            "missingLabels": [],
+            "extraOrDuplicateLabels": [],
+            "labelCountsMatch": true,
+            "pageMismatchLabelCount": 0,
+            "coordinateMismatchLabelCount": 0,
+            "maxAbsXErrorPx": 7.600000000707041e-05,
+            "maxAbsYErrorPx": 0.002082666666680666,
+            "matchesNative": true,
+            "nativePageSizesCssPx": [
+              [
+                700.16,
+                139.839996
+              ],
+              [
+                700.16,
+                139.839996
+              ],
+              [
+                700.16,
+                139.839996
+              ]
+            ],
+            "candidatePageSizesCssPx": [
+              [
+                700.0,
+                140.0
+              ],
+              [
+                700.0,
+                140.0
+              ],
+              [
+                700.0,
+                140.0
+              ]
+            ],
+            "nativePdfSha256": "545c9ac268fdd6977e236d1a7a2f6d4eac5e474135851586a232b0e319245ce7",
+            "candidatePdfSha256": "8ee466ebfede7013f9190d5df2766d9e8fce50a69cd56f7b35e5f6d6c752e46a"
+          },
+          "ScreenFullPage": {
+            "nativePages": 1,
+            "candidatePages": 1,
+            "nativeCounts": {
+              "SALIX-A01": 1,
+              "SALIX-B01": 1,
+              "SALIX-B02": 1,
+              "SALIX-C01": 1,
+              "SALIX-C02": 1,
+              "SALIX-C03": 1,
+              "SALIX-C04": 1,
+              "SALIX-C05": 1,
+              "SALIX-AFTER": 1
+            },
+            "candidateCounts": {
+              "SALIX-A01": 1,
+              "SALIX-B01": 1,
+              "SALIX-B02": 1,
+              "SALIX-C01": 1,
+              "SALIX-C02": 1,
+              "SALIX-C03": 1,
+              "SALIX-C04": 1,
+              "SALIX-C05": 1,
+              "SALIX-AFTER": 1
+            },
+            "missingLabels": [],
+            "extraOrDuplicateLabels": [],
+            "labelCountsMatch": true,
+            "pageMismatchLabelCount": 0,
+            "coordinateMismatchLabelCount": 0,
+            "maxAbsXErrorPx": 0,
+            "maxAbsYErrorPx": 0,
+            "matchesNative": true
+          }
+        }
+      },
+      {
+        "case": "balance-forced-runs-100-90-10",
+        "profiles": {
+          "PrintPaged": {
+            "nativePages": 2,
+            "candidatePages": 2,
+            "nativeCounts": {
+              "TERNA-A01": 1,
+              "TERNA-A02": 1,
+              "TERNA-A03": 1,
+              "TERNA-A04": 1,
+              "TERNA-A05": 1,
+              "TERNA-A06": 1,
+              "TERNA-A07": 1,
+              "TERNA-A08": 1,
+              "TERNA-A09": 1,
+              "TERNA-A10": 1,
+              "TERNA-B01": 1,
+              "TERNA-B02": 1,
+              "TERNA-B03": 1,
+              "TERNA-B04": 1,
+              "TERNA-B05": 1,
+              "TERNA-B06": 1,
+              "TERNA-B07": 1,
+              "TERNA-B08": 1,
+              "TERNA-B09": 1,
+              "TERNA-C01": 1,
+              "TERNA-AFTER": 1
+            },
+            "candidateCounts": {
+              "TERNA-A01": 1,
+              "TERNA-A02": 1,
+              "TERNA-A03": 1,
+              "TERNA-A04": 1,
+              "TERNA-A05": 1,
+              "TERNA-A06": 1,
+              "TERNA-A07": 1,
+              "TERNA-A08": 1,
+              "TERNA-A09": 1,
+              "TERNA-A10": 1,
+              "TERNA-B01": 1,
+              "TERNA-B02": 1,
+              "TERNA-B03": 1,
+              "TERNA-B04": 1,
+              "TERNA-B05": 1,
+              "TERNA-B06": 1,
+              "TERNA-B07": 1,
+              "TERNA-B08": 1,
+              "TERNA-B09": 1,
+              "TERNA-C01": 1,
+              "TERNA-AFTER": 1
+            },
+            "missingLabels": [],
+            "extraOrDuplicateLabels": [],
+            "labelCountsMatch": true,
+            "pageMismatchLabelCount": 0,
+            "coordinateMismatchLabelCount": 0,
+            "maxAbsXErrorPx": 4.400000000259752e-05,
+            "maxAbsYErrorPx": 0.0020799999999994156,
+            "matchesNative": true,
+            "nativePageSizesCssPx": [
+              [
+                700.16,
+                139.839996
+              ],
+              [
+                700.16,
+                139.839996
+              ]
+            ],
+            "candidatePageSizesCssPx": [
+              [
+                700.0,
+                140.0
+              ],
+              [
+                700.0,
+                140.0
+              ]
+            ],
+            "nativePdfSha256": "10c87f6c07663e366c0b8ab78b6d2e654c0506b5e5c44fdb4f8b614cb6a2a32a",
+            "candidatePdfSha256": "2caefbd5c537bfe734dc0f3d13be83ad0b5fe7e6c2b755719ad6117fa9b174b3"
+          },
+          "ScreenMediaPaged": {
+            "nativePages": 2,
+            "candidatePages": 2,
+            "nativeCounts": {
+              "TERNA-A01": 1,
+              "TERNA-A02": 1,
+              "TERNA-A03": 1,
+              "TERNA-A04": 1,
+              "TERNA-A05": 1,
+              "TERNA-A06": 1,
+              "TERNA-A07": 1,
+              "TERNA-A08": 1,
+              "TERNA-A09": 1,
+              "TERNA-A10": 1,
+              "TERNA-B01": 1,
+              "TERNA-B02": 1,
+              "TERNA-B03": 1,
+              "TERNA-B04": 1,
+              "TERNA-B05": 1,
+              "TERNA-B06": 1,
+              "TERNA-B07": 1,
+              "TERNA-B08": 1,
+              "TERNA-B09": 1,
+              "TERNA-C01": 1,
+              "TERNA-AFTER": 1
+            },
+            "candidateCounts": {
+              "TERNA-A01": 1,
+              "TERNA-A02": 1,
+              "TERNA-A03": 1,
+              "TERNA-A04": 1,
+              "TERNA-A05": 1,
+              "TERNA-A06": 1,
+              "TERNA-A07": 1,
+              "TERNA-A08": 1,
+              "TERNA-A09": 1,
+              "TERNA-A10": 1,
+              "TERNA-B01": 1,
+              "TERNA-B02": 1,
+              "TERNA-B03": 1,
+              "TERNA-B04": 1,
+              "TERNA-B05": 1,
+              "TERNA-B06": 1,
+              "TERNA-B07": 1,
+              "TERNA-B08": 1,
+              "TERNA-B09": 1,
+              "TERNA-C01": 1,
+              "TERNA-AFTER": 1
+            },
+            "missingLabels": [],
+            "extraOrDuplicateLabels": [],
+            "labelCountsMatch": true,
+            "pageMismatchLabelCount": 0,
+            "coordinateMismatchLabelCount": 0,
+            "maxAbsXErrorPx": 4.400000000259752e-05,
+            "maxAbsYErrorPx": 0.0020799999999994156,
+            "matchesNative": true,
+            "nativePageSizesCssPx": [
+              [
+                700.16,
+                139.839996
+              ],
+              [
+                700.16,
+                139.839996
+              ]
+            ],
+            "candidatePageSizesCssPx": [
+              [
+                700.0,
+                140.0
+              ],
+              [
+                700.0,
+                140.0
+              ]
+            ],
+            "nativePdfSha256": "10c87f6c07663e366c0b8ab78b6d2e654c0506b5e5c44fdb4f8b614cb6a2a32a",
+            "candidatePdfSha256": "2caefbd5c537bfe734dc0f3d13be83ad0b5fe7e6c2b755719ad6117fa9b174b3"
+          },
+          "ScreenFullPage": {
+            "nativePages": 1,
+            "candidatePages": 1,
+            "nativeCounts": {
+              "TERNA-A01": 1,
+              "TERNA-A02": 1,
+              "TERNA-A03": 1,
+              "TERNA-A04": 1,
+              "TERNA-A05": 1,
+              "TERNA-A06": 1,
+              "TERNA-A07": 1,
+              "TERNA-A08": 1,
+              "TERNA-A09": 1,
+              "TERNA-A10": 1,
+              "TERNA-B01": 1,
+              "TERNA-B02": 1,
+              "TERNA-B03": 1,
+              "TERNA-B04": 1,
+              "TERNA-B05": 1,
+              "TERNA-B06": 1,
+              "TERNA-B07": 1,
+              "TERNA-B08": 1,
+              "TERNA-B09": 1,
+              "TERNA-C01": 1,
+              "TERNA-AFTER": 1
+            },
+            "candidateCounts": {
+              "TERNA-A01": 1,
+              "TERNA-A02": 1,
+              "TERNA-A03": 1,
+              "TERNA-A04": 1,
+              "TERNA-A05": 1,
+              "TERNA-A06": 1,
+              "TERNA-A07": 1,
+              "TERNA-A08": 1,
+              "TERNA-A09": 1,
+              "TERNA-A10": 1,
+              "TERNA-B01": 1,
+              "TERNA-B02": 1,
+              "TERNA-B03": 1,
+              "TERNA-B04": 1,
+              "TERNA-B05": 1,
+              "TERNA-B06": 1,
+              "TERNA-B07": 1,
+              "TERNA-B08": 1,
+              "TERNA-B09": 1,
+              "TERNA-C01": 1,
+              "TERNA-AFTER": 1
+            },
+            "missingLabels": [],
+            "extraOrDuplicateLabels": [],
+            "labelCountsMatch": true,
+            "pageMismatchLabelCount": 0,
+            "coordinateMismatchLabelCount": 0,
+            "maxAbsXErrorPx": 0,
+            "maxAbsYErrorPx": 0,
+            "matchesNative": true
+          }
+        }
+      },
+      {
+        "case": "consecutive-empty-forced-columns",
+        "profiles": {
+          "PrintPaged": {
+            "nativePages": 2,
+            "candidatePages": 2,
+            "nativeCounts": {
+              "ULMUS-LEAD": 1,
+              "ULMUS-TAIL": 1,
+              "ULMUS-AFTER": 1
+            },
+            "candidateCounts": {
+              "ULMUS-LEAD": 1,
+              "ULMUS-TAIL": 1,
+              "ULMUS-AFTER": 1
+            },
+            "missingLabels": [],
+            "extraOrDuplicateLabels": [],
+            "labelCountsMatch": true,
+            "pageMismatchLabelCount": 0,
+            "coordinateMismatchLabelCount": 0,
+            "maxAbsXErrorPx": 5.333333334078816e-06,
+            "maxAbsYErrorPx": 0.002080000000006521,
+            "matchesNative": true,
+            "nativePageSizesCssPx": [
+              [
+                700.16,
+                139.839996
+              ],
+              [
+                700.16,
+                139.839996
+              ]
+            ],
+            "candidatePageSizesCssPx": [
+              [
+                700.0,
+                140.0
+              ],
+              [
+                700.0,
+                140.0
+              ]
+            ],
+            "nativePdfSha256": "e2a4b289d10545f7c47b12e07808e125917c89ab970d2a7d704b3a6ea1a91829",
+            "candidatePdfSha256": "8ac8e5643b40de6673355948fa13dcfee617c043f99aae30ada68cdc5268ce2e"
+          },
+          "ScreenMediaPaged": {
+            "nativePages": 2,
+            "candidatePages": 2,
+            "nativeCounts": {
+              "ULMUS-LEAD": 1,
+              "ULMUS-TAIL": 1,
+              "ULMUS-AFTER": 1
+            },
+            "candidateCounts": {
+              "ULMUS-LEAD": 1,
+              "ULMUS-TAIL": 1,
+              "ULMUS-AFTER": 1
+            },
+            "missingLabels": [],
+            "extraOrDuplicateLabels": [],
+            "labelCountsMatch": true,
+            "pageMismatchLabelCount": 0,
+            "coordinateMismatchLabelCount": 0,
+            "maxAbsXErrorPx": 5.333333334078816e-06,
+            "maxAbsYErrorPx": 0.002080000000006521,
+            "matchesNative": true,
+            "nativePageSizesCssPx": [
+              [
+                700.16,
+                139.839996
+              ],
+              [
+                700.16,
+                139.839996
+              ]
+            ],
+            "candidatePageSizesCssPx": [
+              [
+                700.0,
+                140.0
+              ],
+              [
+                700.0,
+                140.0
+              ]
+            ],
+            "nativePdfSha256": "e2a4b289d10545f7c47b12e07808e125917c89ab970d2a7d704b3a6ea1a91829",
+            "candidatePdfSha256": "8ac8e5643b40de6673355948fa13dcfee617c043f99aae30ada68cdc5268ce2e"
+          },
+          "ScreenFullPage": {
+            "nativePages": 1,
+            "candidatePages": 1,
+            "nativeCounts": {
+              "ULMUS-LEAD": 1,
+              "ULMUS-TAIL": 1,
+              "ULMUS-AFTER": 1
+            },
+            "candidateCounts": {
+              "ULMUS-LEAD": 1,
+              "ULMUS-TAIL": 1,
+              "ULMUS-AFTER": 1
+            },
+            "missingLabels": [],
+            "extraOrDuplicateLabels": [],
+            "labelCountsMatch": true,
+            "pageMismatchLabelCount": 0,
+            "coordinateMismatchLabelCount": 0,
+            "maxAbsXErrorPx": 0,
+            "maxAbsYErrorPx": 0,
+            "matchesNative": true
+          }
+        }
+      },
+      {
+        "case": "avoid-after-long-paragraph",
+        "profiles": {
+          "PrintPaged": {
+            "nativePages": 1,
+            "candidatePages": 1,
+            "nativeCounts": {
+              "VELIA-LEAD": 1,
+              "VELIA-A01": 1,
+              "VELIA-A02": 1,
+              "VELIA-AFTER": 1,
+              "VELIA-A03": 1,
+              "VELIA-B01": 1,
+              "VELIA-B02": 1,
+              "VELIA-B03": 1
+            },
+            "candidateCounts": {
+              "VELIA-LEAD": 1,
+              "VELIA-A01": 1,
+              "VELIA-A02": 1,
+              "VELIA-AFTER": 1,
+              "VELIA-A03": 1,
+              "VELIA-B01": 1,
+              "VELIA-B02": 1,
+              "VELIA-B03": 1
+            },
+            "missingLabels": [],
+            "extraOrDuplicateLabels": [],
+            "labelCountsMatch": true,
+            "pageMismatchLabelCount": 0,
+            "coordinateMismatchLabelCount": 0,
+            "maxAbsXErrorPx": 4.533333333256451e-05,
+            "maxAbsYErrorPx": 0.002082666666680666,
+            "matchesNative": true,
+            "nativePageSizesCssPx": [
+              [
+                700.16,
+                139.839996
+              ]
+            ],
+            "candidatePageSizesCssPx": [
+              [
+                700.0,
+                140.0
+              ]
+            ],
+            "nativePdfSha256": "1985dfd381f5873543a2c3da26f2071c912b143756743c55dd6f2b0dddcc085e",
+            "candidatePdfSha256": "8cc8eec1b00e33c5f7be99fb0bf2e742011873089926cf00e0d83b1b59bd4fb5"
+          },
+          "ScreenMediaPaged": {
+            "nativePages": 1,
+            "candidatePages": 1,
+            "nativeCounts": {
+              "VELIA-LEAD": 1,
+              "VELIA-A01": 1,
+              "VELIA-A02": 1,
+              "VELIA-AFTER": 1,
+              "VELIA-A03": 1,
+              "VELIA-B01": 1,
+              "VELIA-B02": 1,
+              "VELIA-B03": 1
+            },
+            "candidateCounts": {
+              "VELIA-LEAD": 1,
+              "VELIA-A01": 1,
+              "VELIA-A02": 1,
+              "VELIA-AFTER": 1,
+              "VELIA-A03": 1,
+              "VELIA-B01": 1,
+              "VELIA-B02": 1,
+              "VELIA-B03": 1
+            },
+            "missingLabels": [],
+            "extraOrDuplicateLabels": [],
+            "labelCountsMatch": true,
+            "pageMismatchLabelCount": 0,
+            "coordinateMismatchLabelCount": 0,
+            "maxAbsXErrorPx": 4.533333333256451e-05,
+            "maxAbsYErrorPx": 0.002082666666680666,
+            "matchesNative": true,
+            "nativePageSizesCssPx": [
+              [
+                700.16,
+                139.839996
+              ]
+            ],
+            "candidatePageSizesCssPx": [
+              [
+                700.0,
+                140.0
+              ]
+            ],
+            "nativePdfSha256": "1985dfd381f5873543a2c3da26f2071c912b143756743c55dd6f2b0dddcc085e",
+            "candidatePdfSha256": "8cc8eec1b00e33c5f7be99fb0bf2e742011873089926cf00e0d83b1b59bd4fb5"
+          },
+          "ScreenFullPage": {
+            "nativePages": 1,
+            "candidatePages": 1,
+            "nativeCounts": {
+              "VELIA-LEAD": 1,
+              "VELIA-A01": 1,
+              "VELIA-A02": 1,
+              "VELIA-A03": 1,
+              "VELIA-B01": 1,
+              "VELIA-B02": 1,
+              "VELIA-B03": 1,
+              "VELIA-AFTER": 1
+            },
+            "candidateCounts": {
+              "VELIA-LEAD": 1,
+              "VELIA-A01": 1,
+              "VELIA-A02": 1,
+              "VELIA-A03": 1,
+              "VELIA-B01": 1,
+              "VELIA-B02": 1,
+              "VELIA-B03": 1,
+              "VELIA-AFTER": 1
+            },
+            "missingLabels": [],
+            "extraOrDuplicateLabels": [],
+            "labelCountsMatch": true,
+            "pageMismatchLabelCount": 0,
+            "coordinateMismatchLabelCount": 0,
+            "maxAbsXErrorPx": 0,
+            "maxAbsYErrorPx": 0,
+            "matchesNative": true
+          }
+        }
+      },
+      {
+        "case": "avoid-page-group-120-after-120",
+        "profiles": {
+          "PrintPaged": {
+            "nativePages": 2,
+            "candidatePages": 2,
+            "nativeCounts": {
+              "WILDA-L01": 1,
+              "WILDA-L02": 1,
+              "WILDA-L03": 1,
+              "WILDA-L04": 1,
+              "WILDA-L05": 1,
+              "WILDA-L06": 1,
+              "WILDA-G01": 1,
+              "WILDA-G02": 1,
+              "WILDA-G03": 1,
+              "WILDA-G04": 1,
+              "WILDA-G05": 1,
+              "WILDA-G06": 1,
+              "WILDA-AFTER": 1
+            },
+            "candidateCounts": {
+              "WILDA-L01": 1,
+              "WILDA-L02": 1,
+              "WILDA-L03": 1,
+              "WILDA-L04": 1,
+              "WILDA-L05": 1,
+              "WILDA-L06": 1,
+              "WILDA-G01": 1,
+              "WILDA-G02": 1,
+              "WILDA-G03": 1,
+              "WILDA-G04": 1,
+              "WILDA-G05": 1,
+              "WILDA-G06": 1,
+              "WILDA-AFTER": 1
+            },
+            "missingLabels": [],
+            "extraOrDuplicateLabels": [],
+            "labelCountsMatch": true,
+            "pageMismatchLabelCount": 0,
+            "coordinateMismatchLabelCount": 0,
+            "maxAbsXErrorPx": 6.26666666789788e-05,
+            "maxAbsYErrorPx": 0.002082666666680666,
+            "matchesNative": true,
+            "nativePageSizesCssPx": [
+              [
+                700.16,
+                139.839996
+              ],
+              [
+                700.16,
+                139.839996
+              ]
+            ],
+            "candidatePageSizesCssPx": [
+              [
+                700.0,
+                140.0
+              ],
+              [
+                700.0,
+                140.0
+              ]
+            ],
+            "nativePdfSha256": "5e449c0ae77d4ce807e3449be2d2ff7d47c238d4a03c5982d3e64669377beb24",
+            "candidatePdfSha256": "2c0466bbd6d5a7229f5f6ffdb7061d084287f34c213d4f68fe0de4cbb118cd20"
+          },
+          "ScreenMediaPaged": {
+            "nativePages": 2,
+            "candidatePages": 2,
+            "nativeCounts": {
+              "WILDA-L01": 1,
+              "WILDA-L02": 1,
+              "WILDA-L03": 1,
+              "WILDA-L04": 1,
+              "WILDA-L05": 1,
+              "WILDA-L06": 1,
+              "WILDA-G01": 1,
+              "WILDA-G02": 1,
+              "WILDA-G03": 1,
+              "WILDA-G04": 1,
+              "WILDA-G05": 1,
+              "WILDA-G06": 1,
+              "WILDA-AFTER": 1
+            },
+            "candidateCounts": {
+              "WILDA-L01": 1,
+              "WILDA-L02": 1,
+              "WILDA-L03": 1,
+              "WILDA-L04": 1,
+              "WILDA-L05": 1,
+              "WILDA-L06": 1,
+              "WILDA-G01": 1,
+              "WILDA-G02": 1,
+              "WILDA-G03": 1,
+              "WILDA-G04": 1,
+              "WILDA-G05": 1,
+              "WILDA-G06": 1,
+              "WILDA-AFTER": 1
+            },
+            "missingLabels": [],
+            "extraOrDuplicateLabels": [],
+            "labelCountsMatch": true,
+            "pageMismatchLabelCount": 0,
+            "coordinateMismatchLabelCount": 0,
+            "maxAbsXErrorPx": 6.26666666789788e-05,
+            "maxAbsYErrorPx": 0.002082666666680666,
+            "matchesNative": true,
+            "nativePageSizesCssPx": [
+              [
+                700.16,
+                139.839996
+              ],
+              [
+                700.16,
+                139.839996
+              ]
+            ],
+            "candidatePageSizesCssPx": [
+              [
+                700.0,
+                140.0
+              ],
+              [
+                700.0,
+                140.0
+              ]
+            ],
+            "nativePdfSha256": "5e449c0ae77d4ce807e3449be2d2ff7d47c238d4a03c5982d3e64669377beb24",
+            "candidatePdfSha256": "2c0466bbd6d5a7229f5f6ffdb7061d084287f34c213d4f68fe0de4cbb118cd20"
+          },
+          "ScreenFullPage": {
+            "nativePages": 1,
+            "candidatePages": 1,
+            "nativeCounts": {
+              "WILDA-L01": 1,
+              "WILDA-L02": 1,
+              "WILDA-L03": 1,
+              "WILDA-L04": 1,
+              "WILDA-L05": 1,
+              "WILDA-L06": 1,
+              "WILDA-G01": 1,
+              "WILDA-G02": 1,
+              "WILDA-G03": 1,
+              "WILDA-G04": 1,
+              "WILDA-G05": 1,
+              "WILDA-G06": 1,
+              "WILDA-AFTER": 1
+            },
+            "candidateCounts": {
+              "WILDA-L01": 1,
+              "WILDA-L02": 1,
+              "WILDA-L03": 1,
+              "WILDA-L04": 1,
+              "WILDA-L05": 1,
+              "WILDA-L06": 1,
+              "WILDA-G01": 1,
+              "WILDA-G02": 1,
+              "WILDA-G03": 1,
+              "WILDA-G04": 1,
+              "WILDA-G05": 1,
+              "WILDA-G06": 1,
+              "WILDA-AFTER": 1
+            },
+            "missingLabels": [],
+            "extraOrDuplicateLabels": [],
+            "labelCountsMatch": true,
+            "pageMismatchLabelCount": 0,
+            "coordinateMismatchLabelCount": 0,
+            "maxAbsXErrorPx": 0,
+            "maxAbsYErrorPx": 0,
+            "matchesNative": true
+          }
+        }
+      },
+      {
+        "case": "avoid-column-group-120-after-120",
+        "profiles": {
+          "PrintPaged": {
+            "nativePages": 3,
+            "candidatePages": 3,
+            "nativeCounts": {
+              "XENIA-L01": 1,
+              "XENIA-L02": 1,
+              "XENIA-L03": 1,
+              "XENIA-L04": 1,
+              "XENIA-L05": 1,
+              "XENIA-L06": 1,
+              "XENIA-G01": 1,
+              "XENIA-G02": 1,
+              "XENIA-G03": 1,
+              "XENIA-G04": 1,
+              "XENIA-G05": 1,
+              "XENIA-G06": 1,
+              "XENIA-AFTER": 1
+            },
+            "candidateCounts": {
+              "XENIA-L01": 1,
+              "XENIA-L02": 1,
+              "XENIA-L03": 1,
+              "XENIA-L04": 1,
+              "XENIA-L05": 1,
+              "XENIA-L06": 1,
+              "XENIA-G01": 1,
+              "XENIA-G02": 1,
+              "XENIA-G03": 1,
+              "XENIA-G04": 1,
+              "XENIA-G05": 1,
+              "XENIA-G06": 1,
+              "XENIA-AFTER": 1
+            },
+            "missingLabels": [],
+            "extraOrDuplicateLabels": [],
+            "labelCountsMatch": true,
+            "pageMismatchLabelCount": 0,
+            "coordinateMismatchLabelCount": 0,
+            "maxAbsXErrorPx": 8.800000000519503e-05,
+            "maxAbsYErrorPx": 0.002082666666680666,
+            "matchesNative": true,
+            "nativePageSizesCssPx": [
+              [
+                700.16,
+                139.839996
+              ],
+              [
+                700.16,
+                139.839996
+              ],
+              [
+                700.16,
+                139.839996
+              ]
+            ],
+            "candidatePageSizesCssPx": [
+              [
+                700.0,
+                140.0
+              ],
+              [
+                700.0,
+                140.0
+              ],
+              [
+                700.0,
+                140.0
+              ]
+            ],
+            "nativePdfSha256": "820b20e34522a7b03c84c39d7d878d194f6a048af719cff4287b8381cc7424d3",
+            "candidatePdfSha256": "69ea3f100b31e3e4b1d9362b69f9afda5fa3d956ec0471f7eea5a48d4aba965a"
+          },
+          "ScreenMediaPaged": {
+            "nativePages": 3,
+            "candidatePages": 3,
+            "nativeCounts": {
+              "XENIA-L01": 1,
+              "XENIA-L02": 1,
+              "XENIA-L03": 1,
+              "XENIA-L04": 1,
+              "XENIA-L05": 1,
+              "XENIA-L06": 1,
+              "XENIA-G01": 1,
+              "XENIA-G02": 1,
+              "XENIA-G03": 1,
+              "XENIA-G04": 1,
+              "XENIA-G05": 1,
+              "XENIA-G06": 1,
+              "XENIA-AFTER": 1
+            },
+            "candidateCounts": {
+              "XENIA-L01": 1,
+              "XENIA-L02": 1,
+              "XENIA-L03": 1,
+              "XENIA-L04": 1,
+              "XENIA-L05": 1,
+              "XENIA-L06": 1,
+              "XENIA-G01": 1,
+              "XENIA-G02": 1,
+              "XENIA-G03": 1,
+              "XENIA-G04": 1,
+              "XENIA-G05": 1,
+              "XENIA-G06": 1,
+              "XENIA-AFTER": 1
+            },
+            "missingLabels": [],
+            "extraOrDuplicateLabels": [],
+            "labelCountsMatch": true,
+            "pageMismatchLabelCount": 0,
+            "coordinateMismatchLabelCount": 0,
+            "maxAbsXErrorPx": 8.800000000519503e-05,
+            "maxAbsYErrorPx": 0.002082666666680666,
+            "matchesNative": true,
+            "nativePageSizesCssPx": [
+              [
+                700.16,
+                139.839996
+              ],
+              [
+                700.16,
+                139.839996
+              ],
+              [
+                700.16,
+                139.839996
+              ]
+            ],
+            "candidatePageSizesCssPx": [
+              [
+                700.0,
+                140.0
+              ],
+              [
+                700.0,
+                140.0
+              ],
+              [
+                700.0,
+                140.0
+              ]
+            ],
+            "nativePdfSha256": "820b20e34522a7b03c84c39d7d878d194f6a048af719cff4287b8381cc7424d3",
+            "candidatePdfSha256": "69ea3f100b31e3e4b1d9362b69f9afda5fa3d956ec0471f7eea5a48d4aba965a"
+          },
+          "ScreenFullPage": {
+            "nativePages": 1,
+            "candidatePages": 1,
+            "nativeCounts": {
+              "XENIA-L01": 1,
+              "XENIA-L02": 1,
+              "XENIA-L03": 1,
+              "XENIA-L04": 1,
+              "XENIA-L05": 1,
+              "XENIA-L06": 1,
+              "XENIA-G01": 1,
+              "XENIA-G02": 1,
+              "XENIA-G03": 1,
+              "XENIA-G04": 1,
+              "XENIA-G05": 1,
+              "XENIA-G06": 1,
+              "XENIA-AFTER": 1
+            },
+            "candidateCounts": {
+              "XENIA-L01": 1,
+              "XENIA-L02": 1,
+              "XENIA-L03": 1,
+              "XENIA-L04": 1,
+              "XENIA-L05": 1,
+              "XENIA-L06": 1,
+              "XENIA-G01": 1,
+              "XENIA-G02": 1,
+              "XENIA-G03": 1,
+              "XENIA-G04": 1,
+              "XENIA-G05": 1,
+              "XENIA-G06": 1,
+              "XENIA-AFTER": 1
+            },
+            "missingLabels": [],
+            "extraOrDuplicateLabels": [],
+            "labelCountsMatch": true,
+            "pageMismatchLabelCount": 0,
+            "coordinateMismatchLabelCount": 0,
+            "maxAbsXErrorPx": 0,
+            "maxAbsYErrorPx": 0,
+            "matchesNative": true
+          }
+        }
+      },
+      {
+        "case": "forced-column-inside-avoided-ancestor",
+        "profiles": {
+          "PrintPaged": {
+            "nativePages": 1,
+            "candidatePages": 1,
+            "nativeCounts": {
+              "YARDA-LEAD": 1,
+              "YARDA-ONE": 1,
+              "YARDA-AFTER": 1,
+              "YARDA-TWO": 1,
+              "YARDA-THREE": 1
+            },
+            "candidateCounts": {
+              "YARDA-LEAD": 1,
+              "YARDA-ONE": 1,
+              "YARDA-AFTER": 1,
+              "YARDA-TWO": 1,
+              "YARDA-THREE": 1
+            },
+            "missingLabels": [],
+            "extraOrDuplicateLabels": [],
+            "labelCountsMatch": true,
+            "pageMismatchLabelCount": 0,
+            "coordinateMismatchLabelCount": 0,
+            "maxAbsXErrorPx": 3.9999999984274837e-05,
+            "maxAbsYErrorPx": 0.002082666666680666,
+            "matchesNative": true,
+            "nativePageSizesCssPx": [
+              [
+                700.16,
+                139.839996
+              ]
+            ],
+            "candidatePageSizesCssPx": [
+              [
+                700.0,
+                140.0
+              ]
+            ],
+            "nativePdfSha256": "7cfd812d2f318b1f449828bb4ed4956cf34660c680567ef4ddcd62b80028112a",
+            "candidatePdfSha256": "288b0feff22b2185afdcf7f4ab5cd83537cb21e41d03f8488bba30293167c31d"
+          },
+          "ScreenMediaPaged": {
+            "nativePages": 1,
+            "candidatePages": 1,
+            "nativeCounts": {
+              "YARDA-LEAD": 1,
+              "YARDA-ONE": 1,
+              "YARDA-AFTER": 1,
+              "YARDA-TWO": 1,
+              "YARDA-THREE": 1
+            },
+            "candidateCounts": {
+              "YARDA-LEAD": 1,
+              "YARDA-ONE": 1,
+              "YARDA-AFTER": 1,
+              "YARDA-TWO": 1,
+              "YARDA-THREE": 1
+            },
+            "missingLabels": [],
+            "extraOrDuplicateLabels": [],
+            "labelCountsMatch": true,
+            "pageMismatchLabelCount": 0,
+            "coordinateMismatchLabelCount": 0,
+            "maxAbsXErrorPx": 3.9999999984274837e-05,
+            "maxAbsYErrorPx": 0.002082666666680666,
+            "matchesNative": true,
+            "nativePageSizesCssPx": [
+              [
+                700.16,
+                139.839996
+              ]
+            ],
+            "candidatePageSizesCssPx": [
+              [
+                700.0,
+                140.0
+              ]
+            ],
+            "nativePdfSha256": "7cfd812d2f318b1f449828bb4ed4956cf34660c680567ef4ddcd62b80028112a",
+            "candidatePdfSha256": "288b0feff22b2185afdcf7f4ab5cd83537cb21e41d03f8488bba30293167c31d"
+          },
+          "ScreenFullPage": {
+            "nativePages": 1,
+            "candidatePages": 1,
+            "nativeCounts": {
+              "YARDA-LEAD": 1,
+              "YARDA-ONE": 1,
+              "YARDA-TWO": 1,
+              "YARDA-THREE": 1,
+              "YARDA-AFTER": 1
+            },
+            "candidateCounts": {
+              "YARDA-LEAD": 1,
+              "YARDA-ONE": 1,
+              "YARDA-TWO": 1,
+              "YARDA-THREE": 1,
+              "YARDA-AFTER": 1
+            },
+            "missingLabels": [],
+            "extraOrDuplicateLabels": [],
+            "labelCountsMatch": true,
+            "pageMismatchLabelCount": 0,
+            "coordinateMismatchLabelCount": 0,
+            "maxAbsXErrorPx": 0,
+            "maxAbsYErrorPx": 0,
+            "matchesNative": true
+          }
+        }
+      },
+      {
+        "case": "decorated-wrapper-first-child-forced",
+        "profiles": {
+          "PrintPaged": {
+            "nativePages": 1,
+            "candidatePages": 1,
+            "nativeCounts": {
+              "ZELIA-LEAD": 1,
+              "ZELIA-AFTER": 1,
+              "ZELIA-ONE": 1,
+              "ZELIA-TWO": 1
+            },
+            "candidateCounts": {
+              "ZELIA-LEAD": 1,
+              "ZELIA-AFTER": 1,
+              "ZELIA-ONE": 1,
+              "ZELIA-TWO": 1
+            },
+            "missingLabels": [],
+            "extraOrDuplicateLabels": [],
+            "labelCountsMatch": true,
+            "pageMismatchLabelCount": 0,
+            "coordinateMismatchLabelCount": 0,
+            "maxAbsXErrorPx": 8.133333335536008e-05,
+            "maxAbsYErrorPx": 0.002082666666680666,
+            "matchesNative": true,
+            "nativePageSizesCssPx": [
+              [
+                700.16,
+                139.839996
+              ]
+            ],
+            "candidatePageSizesCssPx": [
+              [
+                700.0,
+                140.0
+              ]
+            ],
+            "nativePdfSha256": "75ecf7a0a363ea2dc6cbb940ac85c6b3150030e75ae938c2555bf367feacf19c",
+            "candidatePdfSha256": "d3ebb0bbb6860e60bf952af34bc011e182c3d214a47a8cadb2307feb4d173fa3"
+          },
+          "ScreenMediaPaged": {
+            "nativePages": 1,
+            "candidatePages": 1,
+            "nativeCounts": {
+              "ZELIA-LEAD": 1,
+              "ZELIA-AFTER": 1,
+              "ZELIA-ONE": 1,
+              "ZELIA-TWO": 1
+            },
+            "candidateCounts": {
+              "ZELIA-LEAD": 1,
+              "ZELIA-AFTER": 1,
+              "ZELIA-ONE": 1,
+              "ZELIA-TWO": 1
+            },
+            "missingLabels": [],
+            "extraOrDuplicateLabels": [],
+            "labelCountsMatch": true,
+            "pageMismatchLabelCount": 0,
+            "coordinateMismatchLabelCount": 0,
+            "maxAbsXErrorPx": 8.133333335536008e-05,
+            "maxAbsYErrorPx": 0.002082666666680666,
+            "matchesNative": true,
+            "nativePageSizesCssPx": [
+              [
+                700.16,
+                139.839996
+              ]
+            ],
+            "candidatePageSizesCssPx": [
+              [
+                700.0,
+                140.0
+              ]
+            ],
+            "nativePdfSha256": "75ecf7a0a363ea2dc6cbb940ac85c6b3150030e75ae938c2555bf367feacf19c",
+            "candidatePdfSha256": "d3ebb0bbb6860e60bf952af34bc011e182c3d214a47a8cadb2307feb4d173fa3"
+          },
+          "ScreenFullPage": {
+            "nativePages": 1,
+            "candidatePages": 1,
+            "nativeCounts": {
+              "ZELIA-LEAD": 1,
+              "ZELIA-ONE": 1,
+              "ZELIA-TWO": 1,
+              "ZELIA-AFTER": 1
+            },
+            "candidateCounts": {
+              "ZELIA-LEAD": 1,
+              "ZELIA-ONE": 1,
+              "ZELIA-TWO": 1,
+              "ZELIA-AFTER": 1
+            },
+            "missingLabels": [],
+            "extraOrDuplicateLabels": [],
+            "labelCountsMatch": true,
+            "pageMismatchLabelCount": 0,
+            "coordinateMismatchLabelCount": 0,
+            "maxAbsXErrorPx": 0,
+            "maxAbsYErrorPx": 0,
+            "matchesNative": true
+          }
+        }
+      },
+      {
+        "case": "avoid-after-ample-room",
+        "profiles": {
+          "PrintPaged": {
+            "nativePages": 2,
+            "candidatePages": 2,
+            "nativeCounts": {
+              "BOREA-LEAD": 1,
+              "BOREA-A01": 1,
+              "BOREA-A02": 1,
+              "BOREA-A03": 1,
+              "BOREA-B01": 1,
+              "BOREA-B02": 1,
+              "BOREA-B03": 1,
+              "BOREA-AFTER": 1
+            },
+            "candidateCounts": {
+              "BOREA-LEAD": 1,
+              "BOREA-A01": 1,
+              "BOREA-A02": 1,
+              "BOREA-A03": 1,
+              "BOREA-B01": 1,
+              "BOREA-B02": 1,
+              "BOREA-B03": 1,
+              "BOREA-AFTER": 1
+            },
+            "missingLabels": [],
+            "extraOrDuplicateLabels": [],
+            "labelCountsMatch": true,
+            "pageMismatchLabelCount": 0,
+            "coordinateMismatchLabelCount": 0,
+            "maxAbsXErrorPx": 2.9333333316117205e-05,
+            "maxAbsYErrorPx": 0.002082666666680666,
+            "matchesNative": true,
+            "nativePageSizesCssPx": [
+              [
+                700.16,
+                139.839996
+              ],
+              [
+                700.16,
+                139.839996
+              ]
+            ],
+            "candidatePageSizesCssPx": [
+              [
+                700.0,
+                140.0
+              ],
+              [
+                700.0,
+                140.0
+              ]
+            ],
+            "nativePdfSha256": "1b807ba9e63db99c6b13c93de79177a5ac5f20332ecedb4ec6419d1fdea9684c",
+            "candidatePdfSha256": "1d579738ffdb3becefa8e18aab97aede692701cbdc228eb6a51d57b5c0bdcb43"
+          },
+          "ScreenMediaPaged": {
+            "nativePages": 2,
+            "candidatePages": 2,
+            "nativeCounts": {
+              "BOREA-LEAD": 1,
+              "BOREA-A01": 1,
+              "BOREA-A02": 1,
+              "BOREA-A03": 1,
+              "BOREA-B01": 1,
+              "BOREA-B02": 1,
+              "BOREA-B03": 1,
+              "BOREA-AFTER": 1
+            },
+            "candidateCounts": {
+              "BOREA-LEAD": 1,
+              "BOREA-A01": 1,
+              "BOREA-A02": 1,
+              "BOREA-A03": 1,
+              "BOREA-B01": 1,
+              "BOREA-B02": 1,
+              "BOREA-B03": 1,
+              "BOREA-AFTER": 1
+            },
+            "missingLabels": [],
+            "extraOrDuplicateLabels": [],
+            "labelCountsMatch": true,
+            "pageMismatchLabelCount": 0,
+            "coordinateMismatchLabelCount": 0,
+            "maxAbsXErrorPx": 2.9333333316117205e-05,
+            "maxAbsYErrorPx": 0.002082666666680666,
+            "matchesNative": true,
+            "nativePageSizesCssPx": [
+              [
+                700.16,
+                139.839996
+              ],
+              [
+                700.16,
+                139.839996
+              ]
+            ],
+            "candidatePageSizesCssPx": [
+              [
+                700.0,
+                140.0
+              ],
+              [
+                700.0,
+                140.0
+              ]
+            ],
+            "nativePdfSha256": "1b807ba9e63db99c6b13c93de79177a5ac5f20332ecedb4ec6419d1fdea9684c",
+            "candidatePdfSha256": "1d579738ffdb3becefa8e18aab97aede692701cbdc228eb6a51d57b5c0bdcb43"
+          },
+          "ScreenFullPage": {
+            "nativePages": 1,
+            "candidatePages": 1,
+            "nativeCounts": {
+              "BOREA-LEAD": 1,
+              "BOREA-A01": 1,
+              "BOREA-A02": 1,
+              "BOREA-A03": 1,
+              "BOREA-B01": 1,
+              "BOREA-B02": 1,
+              "BOREA-B03": 1,
+              "BOREA-AFTER": 1
+            },
+            "candidateCounts": {
+              "BOREA-LEAD": 1,
+              "BOREA-A01": 1,
+              "BOREA-A02": 1,
+              "BOREA-A03": 1,
+              "BOREA-B01": 1,
+              "BOREA-B02": 1,
+              "BOREA-B03": 1,
+              "BOREA-AFTER": 1
+            },
+            "missingLabels": [],
+            "extraOrDuplicateLabels": [],
+            "labelCountsMatch": true,
+            "pageMismatchLabelCount": 0,
+            "coordinateMismatchLabelCount": 0,
+            "maxAbsXErrorPx": 0,
+            "maxAbsYErrorPx": 0,
+            "matchesNative": true
+          }
+        }
+      },
+      {
+        "case": "avoid-overlapping-boundary-chain",
+        "profiles": {
+          "PrintPaged": {
+            "nativePages": 1,
+            "candidatePages": 1,
+            "nativeCounts": {
+              "CORSO-LEAD01": 1,
+              "CORSO-LEAD02": 1,
+              "CORSO-AFTER": 1,
+              "CORSO-A": 1,
+              "CORSO-B": 1,
+              "CORSO-C": 1
+            },
+            "candidateCounts": {
+              "CORSO-LEAD01": 1,
+              "CORSO-LEAD02": 1,
+              "CORSO-AFTER": 1,
+              "CORSO-A": 1,
+              "CORSO-B": 1,
+              "CORSO-C": 1
+            },
+            "missingLabels": [],
+            "extraOrDuplicateLabels": [],
+            "labelCountsMatch": true,
+            "pageMismatchLabelCount": 0,
+            "coordinateMismatchLabelCount": 0,
+            "maxAbsXErrorPx": 4.400000000259752e-05,
+            "maxAbsYErrorPx": 0.002082666666680666,
+            "matchesNative": true,
+            "nativePageSizesCssPx": [
+              [
+                700.16,
+                139.839996
+              ]
+            ],
+            "candidatePageSizesCssPx": [
+              [
+                700.0,
+                140.0
+              ]
+            ],
+            "nativePdfSha256": "63064c8fd6548b7d027fab5cf29dce9c576dba2e9236b8ffb03a028cf9c10964",
+            "candidatePdfSha256": "169d173faf2d60626e9c71f67a3a442119ffaba3020997f366fdf1ebe11612d1"
+          },
+          "ScreenMediaPaged": {
+            "nativePages": 1,
+            "candidatePages": 1,
+            "nativeCounts": {
+              "CORSO-LEAD01": 1,
+              "CORSO-LEAD02": 1,
+              "CORSO-AFTER": 1,
+              "CORSO-A": 1,
+              "CORSO-B": 1,
+              "CORSO-C": 1
+            },
+            "candidateCounts": {
+              "CORSO-LEAD01": 1,
+              "CORSO-LEAD02": 1,
+              "CORSO-AFTER": 1,
+              "CORSO-A": 1,
+              "CORSO-B": 1,
+              "CORSO-C": 1
+            },
+            "missingLabels": [],
+            "extraOrDuplicateLabels": [],
+            "labelCountsMatch": true,
+            "pageMismatchLabelCount": 0,
+            "coordinateMismatchLabelCount": 0,
+            "maxAbsXErrorPx": 4.400000000259752e-05,
+            "maxAbsYErrorPx": 0.002082666666680666,
+            "matchesNative": true,
+            "nativePageSizesCssPx": [
+              [
+                700.16,
+                139.839996
+              ]
+            ],
+            "candidatePageSizesCssPx": [
+              [
+                700.0,
+                140.0
+              ]
+            ],
+            "nativePdfSha256": "63064c8fd6548b7d027fab5cf29dce9c576dba2e9236b8ffb03a028cf9c10964",
+            "candidatePdfSha256": "169d173faf2d60626e9c71f67a3a442119ffaba3020997f366fdf1ebe11612d1"
+          },
+          "ScreenFullPage": {
+            "nativePages": 1,
+            "candidatePages": 1,
+            "nativeCounts": {
+              "CORSO-LEAD01": 1,
+              "CORSO-LEAD02": 1,
+              "CORSO-A": 1,
+              "CORSO-B": 1,
+              "CORSO-C": 1,
+              "CORSO-AFTER": 1
+            },
+            "candidateCounts": {
+              "CORSO-LEAD01": 1,
+              "CORSO-LEAD02": 1,
+              "CORSO-A": 1,
+              "CORSO-B": 1,
+              "CORSO-C": 1,
+              "CORSO-AFTER": 1
+            },
+            "missingLabels": [],
+            "extraOrDuplicateLabels": [],
+            "labelCountsMatch": true,
+            "pageMismatchLabelCount": 0,
+            "coordinateMismatchLabelCount": 0,
+            "maxAbsXErrorPx": 0,
+            "maxAbsYErrorPx": 0,
+            "matchesNative": true
+          }
+        }
+      },
+      {
+        "case": "outside-column-row-page-boundary",
+        "profiles": {
+          "PrintPaged": {
+            "nativePages": 2,
+            "candidatePages": 2,
+            "nativeCounts": {
+              "DORIA-LEAD": 1,
+              "DORIA-ONE": 1,
+              "DORIA-TWO": 1,
+              "DORIA-AFTER": 1
+            },
+            "candidateCounts": {
+              "DORIA-LEAD": 1,
+              "DORIA-ONE": 1,
+              "DORIA-TWO": 1,
+              "DORIA-AFTER": 1
+            },
+            "missingLabels": [],
+            "extraOrDuplicateLabels": [],
+            "labelCountsMatch": true,
+            "pageMismatchLabelCount": 0,
+            "coordinateMismatchLabelCount": 0,
+            "maxAbsXErrorPx": 9.333333334637928e-06,
+            "maxAbsYErrorPx": 0.002080000000006521,
+            "matchesNative": true,
+            "nativePageSizesCssPx": [
+              [
+                700.16,
+                139.839996
+              ],
+              [
+                700.16,
+                139.839996
+              ]
+            ],
+            "candidatePageSizesCssPx": [
+              [
+                700.0,
+                140.0
+              ],
+              [
+                700.0,
+                140.0
+              ]
+            ],
+            "nativePdfSha256": "29ec926effb3b48f5f93e6788e4299e2514ae875243fc87624748b9962922a33",
+            "candidatePdfSha256": "5ccfb4273481dec21136505d65fb74248082196c755e47f161e54ffd0be46b40"
+          },
+          "ScreenMediaPaged": {
+            "nativePages": 2,
+            "candidatePages": 2,
+            "nativeCounts": {
+              "DORIA-LEAD": 1,
+              "DORIA-ONE": 1,
+              "DORIA-TWO": 1,
+              "DORIA-AFTER": 1
+            },
+            "candidateCounts": {
+              "DORIA-LEAD": 1,
+              "DORIA-ONE": 1,
+              "DORIA-TWO": 1,
+              "DORIA-AFTER": 1
+            },
+            "missingLabels": [],
+            "extraOrDuplicateLabels": [],
+            "labelCountsMatch": true,
+            "pageMismatchLabelCount": 0,
+            "coordinateMismatchLabelCount": 0,
+            "maxAbsXErrorPx": 9.333333334637928e-06,
+            "maxAbsYErrorPx": 0.002080000000006521,
+            "matchesNative": true,
+            "nativePageSizesCssPx": [
+              [
+                700.16,
+                139.839996
+              ],
+              [
+                700.16,
+                139.839996
+              ]
+            ],
+            "candidatePageSizesCssPx": [
+              [
+                700.0,
+                140.0
+              ],
+              [
+                700.0,
+                140.0
+              ]
+            ],
+            "nativePdfSha256": "29ec926effb3b48f5f93e6788e4299e2514ae875243fc87624748b9962922a33",
+            "candidatePdfSha256": "5ccfb4273481dec21136505d65fb74248082196c755e47f161e54ffd0be46b40"
+          },
+          "ScreenFullPage": {
+            "nativePages": 1,
+            "candidatePages": 1,
+            "nativeCounts": {
+              "DORIA-LEAD": 1,
+              "DORIA-ONE": 1,
+              "DORIA-TWO": 1,
+              "DORIA-AFTER": 1
+            },
+            "candidateCounts": {
+              "DORIA-LEAD": 1,
+              "DORIA-ONE": 1,
+              "DORIA-TWO": 1,
+              "DORIA-AFTER": 1
+            },
+            "missingLabels": [],
+            "extraOrDuplicateLabels": [],
+            "labelCountsMatch": true,
+            "pageMismatchLabelCount": 0,
+            "coordinateMismatchLabelCount": 0,
+            "maxAbsXErrorPx": 0,
+            "maxAbsYErrorPx": 0,
+            "matchesNative": true
+          }
+        }
+      },
+      {
+        "case": "outside-column-table-page-entry",
+        "profiles": {
+          "PrintPaged": {
+            "nativePages": 2,
+            "candidatePages": 2,
+            "nativeCounts": {
+              "ESTRA-LEAD": 1,
+              "ESTRA-ONE": 1,
+              "ESTRA-TWO": 1,
+              "ESTRA-AFTER": 1
+            },
+            "candidateCounts": {
+              "ESTRA-LEAD": 1,
+              "ESTRA-ONE": 1,
+              "ESTRA-TWO": 1,
+              "ESTRA-AFTER": 1
+            },
+            "missingLabels": [],
+            "extraOrDuplicateLabels": [],
+            "labelCountsMatch": true,
+            "pageMismatchLabelCount": 0,
+            "coordinateMismatchLabelCount": 0,
+            "maxAbsXErrorPx": 9.333333334637928e-06,
+            "maxAbsYErrorPx": 0.0020813333333293826,
+            "matchesNative": true,
+            "nativePageSizesCssPx": [
+              [
+                700.16,
+                139.839996
+              ],
+              [
+                700.16,
+                139.839996
+              ]
+            ],
+            "candidatePageSizesCssPx": [
+              [
+                700.0,
+                140.0
+              ],
+              [
+                700.0,
+                140.0
+              ]
+            ],
+            "nativePdfSha256": "6f0de6ba8732967e09820ed370a0345caf49394af497548bb2758a215395a1bd",
+            "candidatePdfSha256": "3f40bb28452a498d7968746d3e1a7712b65275d8f671edd94af8177e34130041"
+          },
+          "ScreenMediaPaged": {
+            "nativePages": 2,
+            "candidatePages": 2,
+            "nativeCounts": {
+              "ESTRA-LEAD": 1,
+              "ESTRA-ONE": 1,
+              "ESTRA-TWO": 1,
+              "ESTRA-AFTER": 1
+            },
+            "candidateCounts": {
+              "ESTRA-LEAD": 1,
+              "ESTRA-ONE": 1,
+              "ESTRA-TWO": 1,
+              "ESTRA-AFTER": 1
+            },
+            "missingLabels": [],
+            "extraOrDuplicateLabels": [],
+            "labelCountsMatch": true,
+            "pageMismatchLabelCount": 0,
+            "coordinateMismatchLabelCount": 0,
+            "maxAbsXErrorPx": 9.333333334637928e-06,
+            "maxAbsYErrorPx": 0.0020813333333293826,
+            "matchesNative": true,
+            "nativePageSizesCssPx": [
+              [
+                700.16,
+                139.839996
+              ],
+              [
+                700.16,
+                139.839996
+              ]
+            ],
+            "candidatePageSizesCssPx": [
+              [
+                700.0,
+                140.0
+              ],
+              [
+                700.0,
+                140.0
+              ]
+            ],
+            "nativePdfSha256": "6f0de6ba8732967e09820ed370a0345caf49394af497548bb2758a215395a1bd",
+            "candidatePdfSha256": "3f40bb28452a498d7968746d3e1a7712b65275d8f671edd94af8177e34130041"
+          },
+          "ScreenFullPage": {
+            "nativePages": 1,
+            "candidatePages": 1,
+            "nativeCounts": {
+              "ESTRA-LEAD": 1,
+              "ESTRA-ONE": 1,
+              "ESTRA-TWO": 1,
+              "ESTRA-AFTER": 1
+            },
+            "candidateCounts": {
+              "ESTRA-LEAD": 1,
+              "ESTRA-ONE": 1,
+              "ESTRA-TWO": 1,
+              "ESTRA-AFTER": 1
+            },
+            "missingLabels": [],
+            "extraOrDuplicateLabels": [],
+            "labelCountsMatch": true,
+            "pageMismatchLabelCount": 0,
+            "coordinateMismatchLabelCount": 0,
+            "maxAbsXErrorPx": 0,
+            "maxAbsYErrorPx": 0,
+            "matchesNative": true
+          }
+        }
+      },
+      {
+        "case": "paragraph-margin-progression",
+        "profiles": {
+          "PrintPaged": {
+            "nativePages": 2,
+            "candidatePages": 2,
+            "nativeCounts": {
+              "MARGIN-LEAD": 1,
+              "MARGIN-ONE": 1,
+              "MARGIN-TWO": 1,
+              "MARGIN-THREE": 1,
+              "MARGIN-FOUR": 1,
+              "MARGIN-AFTER": 1
+            },
+            "candidateCounts": {
+              "MARGIN-LEAD": 1,
+              "MARGIN-ONE": 1,
+              "MARGIN-TWO": 1,
+              "MARGIN-THREE": 1,
+              "MARGIN-FOUR": 1,
+              "MARGIN-AFTER": 1
+            },
+            "missingLabels": [],
+            "extraOrDuplicateLabels": [],
+            "labelCountsMatch": true,
+            "pageMismatchLabelCount": 0,
+            "coordinateMismatchLabelCount": 0,
+            "maxAbsXErrorPx": 2.7999999986150215e-05,
+            "maxAbsYErrorPx": 0.002082666666680666,
+            "matchesNative": true,
+            "nativePageSizesCssPx": [
+              [
+                700.16,
+                139.839996
+              ],
+              [
+                700.16,
+                139.839996
+              ]
+            ],
+            "candidatePageSizesCssPx": [
+              [
+                700.0,
+                140.0
+              ],
+              [
+                700.0,
+                140.0
+              ]
+            ],
+            "nativePdfSha256": "c154ee88e44828074822b1ae6bda8760961b82ce378f947c7087e2612042fede",
+            "candidatePdfSha256": "dcf6961b00995c906024cb612eaa599fbfe6bd7b0124086577b1b406e6b21190"
+          },
+          "ScreenMediaPaged": {
+            "nativePages": 2,
+            "candidatePages": 2,
+            "nativeCounts": {
+              "MARGIN-LEAD": 1,
+              "MARGIN-ONE": 1,
+              "MARGIN-TWO": 1,
+              "MARGIN-THREE": 1,
+              "MARGIN-FOUR": 1,
+              "MARGIN-AFTER": 1
+            },
+            "candidateCounts": {
+              "MARGIN-LEAD": 1,
+              "MARGIN-ONE": 1,
+              "MARGIN-TWO": 1,
+              "MARGIN-THREE": 1,
+              "MARGIN-FOUR": 1,
+              "MARGIN-AFTER": 1
+            },
+            "missingLabels": [],
+            "extraOrDuplicateLabels": [],
+            "labelCountsMatch": true,
+            "pageMismatchLabelCount": 0,
+            "coordinateMismatchLabelCount": 0,
+            "maxAbsXErrorPx": 2.7999999986150215e-05,
+            "maxAbsYErrorPx": 0.002082666666680666,
+            "matchesNative": true,
+            "nativePageSizesCssPx": [
+              [
+                700.16,
+                139.839996
+              ],
+              [
+                700.16,
+                139.839996
+              ]
+            ],
+            "candidatePageSizesCssPx": [
+              [
+                700.0,
+                140.0
+              ],
+              [
+                700.0,
+                140.0
+              ]
+            ],
+            "nativePdfSha256": "c154ee88e44828074822b1ae6bda8760961b82ce378f947c7087e2612042fede",
+            "candidatePdfSha256": "dcf6961b00995c906024cb612eaa599fbfe6bd7b0124086577b1b406e6b21190"
+          },
+          "ScreenFullPage": {
+            "nativePages": 1,
+            "candidatePages": 1,
+            "nativeCounts": {
+              "MARGIN-LEAD": 1,
+              "MARGIN-ONE": 1,
+              "MARGIN-TWO": 1,
+              "MARGIN-THREE": 1,
+              "MARGIN-FOUR": 1,
+              "MARGIN-AFTER": 1
+            },
+            "candidateCounts": {
+              "MARGIN-LEAD": 1,
+              "MARGIN-ONE": 1,
+              "MARGIN-TWO": 1,
+              "MARGIN-THREE": 1,
+              "MARGIN-FOUR": 1,
+              "MARGIN-AFTER": 1
+            },
+            "missingLabels": [],
+            "extraOrDuplicateLabels": [],
+            "labelCountsMatch": true,
+            "pageMismatchLabelCount": 0,
+            "coordinateMismatchLabelCount": 0,
+            "maxAbsXErrorPx": 0,
+            "maxAbsYErrorPx": 0,
+            "matchesNative": true
+          }
+        }
+      },
+      {
+        "case": "interrupted-inline-adjacent-forces",
+        "profiles": {
+          "PrintPaged": {
+            "nativePages": 2,
+            "candidatePages": 2,
+            "nativeCounts": {
+              "INTERRA-A": 1,
+              "INTERRA-B": 1,
+              "INTERRA-AFTER": 1
+            },
+            "candidateCounts": {
+              "INTERRA-A": 1,
+              "INTERRA-B": 1,
+              "INTERRA-AFTER": 1
+            },
+            "missingLabels": [],
+            "extraOrDuplicateLabels": [],
+            "labelCountsMatch": true,
+            "pageMismatchLabelCount": 0,
+            "coordinateMismatchLabelCount": 0,
+            "maxAbsXErrorPx": 6.666666666887977e-05,
+            "maxAbsYErrorPx": 0.0020786666666694487,
+            "matchesNative": true,
+            "nativePageSizesCssPx": [
+              [
+                700.16,
+                139.839996
+              ],
+              [
+                700.16,
+                139.839996
+              ]
+            ],
+            "candidatePageSizesCssPx": [
+              [
+                700.0,
+                140.0
+              ],
+              [
+                700.0,
+                140.0
+              ]
+            ],
+            "nativePdfSha256": "8acb41d7ff2c57b56a5e919b7d1410782a5721e059e2148406e2cece60774f06",
+            "candidatePdfSha256": "aa7509633b52b5f3c7f0be1f319e45f5d08b79c813f1541d152a2bbe5538ae24"
+          },
+          "ScreenMediaPaged": {
+            "nativePages": 2,
+            "candidatePages": 2,
+            "nativeCounts": {
+              "INTERRA-A": 1,
+              "INTERRA-B": 1,
+              "INTERRA-AFTER": 1
+            },
+            "candidateCounts": {
+              "INTERRA-A": 1,
+              "INTERRA-B": 1,
+              "INTERRA-AFTER": 1
+            },
+            "missingLabels": [],
+            "extraOrDuplicateLabels": [],
+            "labelCountsMatch": true,
+            "pageMismatchLabelCount": 0,
+            "coordinateMismatchLabelCount": 0,
+            "maxAbsXErrorPx": 6.666666666887977e-05,
+            "maxAbsYErrorPx": 0.0020786666666694487,
+            "matchesNative": true,
+            "nativePageSizesCssPx": [
+              [
+                700.16,
+                139.839996
+              ],
+              [
+                700.16,
+                139.839996
+              ]
+            ],
+            "candidatePageSizesCssPx": [
+              [
+                700.0,
+                140.0
+              ],
+              [
+                700.0,
+                140.0
+              ]
+            ],
+            "nativePdfSha256": "8acb41d7ff2c57b56a5e919b7d1410782a5721e059e2148406e2cece60774f06",
+            "candidatePdfSha256": "aa7509633b52b5f3c7f0be1f319e45f5d08b79c813f1541d152a2bbe5538ae24"
+          },
+          "ScreenFullPage": {
+            "nativePages": 1,
+            "candidatePages": 1,
+            "nativeCounts": {
+              "INTERRA-A": 1,
+              "INTERRA-B": 1,
+              "INTERRA-AFTER": 1
+            },
+            "candidateCounts": {
+              "INTERRA-A": 1,
+              "INTERRA-B": 1,
+              "INTERRA-AFTER": 1
+            },
+            "missingLabels": [],
+            "extraOrDuplicateLabels": [],
+            "labelCountsMatch": true,
+            "pageMismatchLabelCount": 0,
+            "coordinateMismatchLabelCount": 0,
+            "maxAbsXErrorPx": 0,
+            "maxAbsYErrorPx": 0,
+            "matchesNative": true
+          }
+        }
+      },
+      {
+        "case": "paragraph-margin-slack",
+        "profiles": {
+          "PrintPaged": {
+            "nativePages": 2,
+            "candidatePages": 2,
+            "nativeCounts": {
+              "MARGIN-LEAD": 1,
+              "MARGIN-ONE": 1,
+              "MARGIN-TWO": 1,
+              "MARGIN-THREE": 1,
+              "MARGIN-FOUR": 1,
+              "MARGIN-AFTER": 1
+            },
+            "candidateCounts": {
+              "MARGIN-LEAD": 1,
+              "MARGIN-ONE": 1,
+              "MARGIN-TWO": 1,
+              "MARGIN-THREE": 1,
+              "MARGIN-FOUR": 1,
+              "MARGIN-AFTER": 1
+            },
+            "missingLabels": [],
+            "extraOrDuplicateLabels": [],
+            "labelCountsMatch": true,
+            "pageMismatchLabelCount": 0,
+            "coordinateMismatchLabelCount": 0,
+            "maxAbsXErrorPx": 2.7999999986150215e-05,
+            "maxAbsYErrorPx": 0.002081333333350699,
+            "matchesNative": true,
+            "nativePageSizesCssPx": [
+              [
+                700.16,
+                139.839996
+              ],
+              [
+                700.16,
+                139.839996
+              ]
+            ],
+            "candidatePageSizesCssPx": [
+              [
+                700.0,
+                140.0
+              ],
+              [
+                700.0,
+                140.0
+              ]
+            ],
+            "nativePdfSha256": "8328d9ecccb5c812530f249155ae05e55fc3f602c703d1ac0414509df350f4e1",
+            "candidatePdfSha256": "e37a8733e912b4824495cd19bccc990eccfd5db15ec94b6fdc9388ec9ddda4d9"
+          },
+          "ScreenMediaPaged": {
+            "nativePages": 2,
+            "candidatePages": 2,
+            "nativeCounts": {
+              "MARGIN-LEAD": 1,
+              "MARGIN-ONE": 1,
+              "MARGIN-TWO": 1,
+              "MARGIN-THREE": 1,
+              "MARGIN-FOUR": 1,
+              "MARGIN-AFTER": 1
+            },
+            "candidateCounts": {
+              "MARGIN-LEAD": 1,
+              "MARGIN-ONE": 1,
+              "MARGIN-TWO": 1,
+              "MARGIN-THREE": 1,
+              "MARGIN-FOUR": 1,
+              "MARGIN-AFTER": 1
+            },
+            "missingLabels": [],
+            "extraOrDuplicateLabels": [],
+            "labelCountsMatch": true,
+            "pageMismatchLabelCount": 0,
+            "coordinateMismatchLabelCount": 0,
+            "maxAbsXErrorPx": 2.7999999986150215e-05,
+            "maxAbsYErrorPx": 0.002081333333350699,
+            "matchesNative": true,
+            "nativePageSizesCssPx": [
+              [
+                700.16,
+                139.839996
+              ],
+              [
+                700.16,
+                139.839996
+              ]
+            ],
+            "candidatePageSizesCssPx": [
+              [
+                700.0,
+                140.0
+              ],
+              [
+                700.0,
+                140.0
+              ]
+            ],
+            "nativePdfSha256": "8328d9ecccb5c812530f249155ae05e55fc3f602c703d1ac0414509df350f4e1",
+            "candidatePdfSha256": "e37a8733e912b4824495cd19bccc990eccfd5db15ec94b6fdc9388ec9ddda4d9"
+          },
+          "ScreenFullPage": {
+            "nativePages": 1,
+            "candidatePages": 1,
+            "nativeCounts": {
+              "MARGIN-LEAD": 1,
+              "MARGIN-ONE": 1,
+              "MARGIN-TWO": 1,
+              "MARGIN-THREE": 1,
+              "MARGIN-FOUR": 1,
+              "MARGIN-AFTER": 1
+            },
+            "candidateCounts": {
+              "MARGIN-LEAD": 1,
+              "MARGIN-ONE": 1,
+              "MARGIN-TWO": 1,
+              "MARGIN-THREE": 1,
+              "MARGIN-FOUR": 1,
+              "MARGIN-AFTER": 1
+            },
+            "missingLabels": [],
+            "extraOrDuplicateLabels": [],
+            "labelCountsMatch": true,
+            "pageMismatchLabelCount": 0,
+            "coordinateMismatchLabelCount": 0,
+            "maxAbsXErrorPx": 0,
+            "maxAbsYErrorPx": 0,
+            "matchesNative": true
+          }
+        }
+      },
+      {
+        "case": "paragraph-margin-slack-forced",
+        "profiles": {
+          "PrintPaged": {
+            "nativePages": 2,
+            "candidatePages": 2,
+            "nativeCounts": {
+              "MARGIN-LEAD": 1,
+              "MARGIN-ONE": 1,
+              "MARGIN-TWO": 1,
+              "MARGIN-THREE": 1,
+              "MARGIN-FOUR": 1,
+              "MARGIN-AFTER": 1
+            },
+            "candidateCounts": {
+              "MARGIN-LEAD": 1,
+              "MARGIN-ONE": 1,
+              "MARGIN-TWO": 1,
+              "MARGIN-THREE": 1,
+              "MARGIN-FOUR": 1,
+              "MARGIN-AFTER": 1
+            },
+            "missingLabels": [],
+            "extraOrDuplicateLabels": [],
+            "labelCountsMatch": true,
+            "pageMismatchLabelCount": 0,
+            "coordinateMismatchLabelCount": 0,
+            "maxAbsXErrorPx": 2.7999999986150215e-05,
+            "maxAbsYErrorPx": 0.002081333333350699,
+            "matchesNative": true,
+            "nativePageSizesCssPx": [
+              [
+                700.16,
+                139.839996
+              ],
+              [
+                700.16,
+                139.839996
+              ]
+            ],
+            "candidatePageSizesCssPx": [
+              [
+                700.0,
+                140.0
+              ],
+              [
+                700.0,
+                140.0
+              ]
+            ],
+            "nativePdfSha256": "575cfc6c1c2b6739214e5ea1cc215dfe9fa0c7dd58403560066d70772be7abf2",
+            "candidatePdfSha256": "e37a8733e912b4824495cd19bccc990eccfd5db15ec94b6fdc9388ec9ddda4d9"
+          },
+          "ScreenMediaPaged": {
+            "nativePages": 2,
+            "candidatePages": 2,
+            "nativeCounts": {
+              "MARGIN-LEAD": 1,
+              "MARGIN-ONE": 1,
+              "MARGIN-TWO": 1,
+              "MARGIN-THREE": 1,
+              "MARGIN-FOUR": 1,
+              "MARGIN-AFTER": 1
+            },
+            "candidateCounts": {
+              "MARGIN-LEAD": 1,
+              "MARGIN-ONE": 1,
+              "MARGIN-TWO": 1,
+              "MARGIN-THREE": 1,
+              "MARGIN-FOUR": 1,
+              "MARGIN-AFTER": 1
+            },
+            "missingLabels": [],
+            "extraOrDuplicateLabels": [],
+            "labelCountsMatch": true,
+            "pageMismatchLabelCount": 0,
+            "coordinateMismatchLabelCount": 0,
+            "maxAbsXErrorPx": 2.7999999986150215e-05,
+            "maxAbsYErrorPx": 0.002081333333350699,
+            "matchesNative": true,
+            "nativePageSizesCssPx": [
+              [
+                700.16,
+                139.839996
+              ],
+              [
+                700.16,
+                139.839996
+              ]
+            ],
+            "candidatePageSizesCssPx": [
+              [
+                700.0,
+                140.0
+              ],
+              [
+                700.0,
+                140.0
+              ]
+            ],
+            "nativePdfSha256": "575cfc6c1c2b6739214e5ea1cc215dfe9fa0c7dd58403560066d70772be7abf2",
+            "candidatePdfSha256": "e37a8733e912b4824495cd19bccc990eccfd5db15ec94b6fdc9388ec9ddda4d9"
+          },
+          "ScreenFullPage": {
+            "nativePages": 1,
+            "candidatePages": 1,
+            "nativeCounts": {
+              "MARGIN-LEAD": 1,
+              "MARGIN-ONE": 1,
+              "MARGIN-TWO": 1,
+              "MARGIN-THREE": 1,
+              "MARGIN-FOUR": 1,
+              "MARGIN-AFTER": 1
+            },
+            "candidateCounts": {
+              "MARGIN-LEAD": 1,
+              "MARGIN-ONE": 1,
+              "MARGIN-TWO": 1,
+              "MARGIN-THREE": 1,
+              "MARGIN-FOUR": 1,
+              "MARGIN-AFTER": 1
+            },
+            "missingLabels": [],
+            "extraOrDuplicateLabels": [],
+            "labelCountsMatch": true,
+            "pageMismatchLabelCount": 0,
+            "coordinateMismatchLabelCount": 0,
+            "maxAbsXErrorPx": 0,
+            "maxAbsYErrorPx": 0,
+            "matchesNative": true
+          }
+        }
+      }
+    ],
+    "analysis": {
+      "path": "qualified-png-native-analysis/observations.json",
+      "bytes": 4240421,
+      "sha256": "4a5f45e84f4e6ae9b0e28b41ca7be06a9701a449fc9bf9bfce10faddb4b7ceb8"
+    },
+    "findings": [],
+    "pageComparisons": 124,
+    "boundaryCases": [
+      {
+        "case": "after-column-before-page",
+        "classification": "documented-native-observation-boundary",
+        "requiredDiagnostic": "HtmlRenderMultiColumnValueUnsupported",
+        "reason": "Authored page directives inside columns retain an explicit approximation. Edge behavior on these pure/mixed page-force cases is an observation, not proof of normative CSS forced-page conformance."
+      },
+      {
+        "case": "after-page-before-column",
+        "classification": "documented-native-observation-boundary",
+        "requiredDiagnostic": "HtmlRenderMultiColumnValueUnsupported",
+        "reason": "Authored page directives inside columns retain an explicit approximation. Edge behavior on these pure/mixed page-force cases is an observation, not proof of normative CSS forced-page conformance."
+      },
+      {
+        "case": "pure-before-page-in-columns",
+        "classification": "documented-native-observation-boundary",
+        "requiredDiagnostic": "HtmlRenderMultiColumnValueUnsupported",
+        "reason": "Authored page directives inside columns retain an explicit approximation. Edge behavior on these pure/mixed page-force cases is an observation, not proof of normative CSS forced-page conformance."
+      }
+    ],
+    "continuousDomEvidence": {
+      "path": "qualified-native-comparison.json",
+      "bytes": 372776,
+      "sha256": "6fa6c22f6c2ab0770f1c9796858af897a0b07f4727b27499d4df8252fee1231c"
+    },
+    "method": "Compare Edge and product PDF glyph xMin/yMin and page counts with a 0.05 CSS px tolerance; continuous DOM line origins use the declared font calibration. These numerical checks do not compare full glyph bounds. Unmasked rasters cover 124 physical page pairs. The primary inspected all 19 original-resolution contact sheets; raster error metrics remain descriptive.",
+    "svg": {
+      "status": "qualified-six-selected-exact-byte-controls",
+      "evidence": {
+        "path": "qualified-svg-analysis/results.json",
+        "bytes": 3047851,
+        "sha256": "20094db4aa496dae2e1d9389b236c7a87c6f722c1bf4fc9d9daa04c5e8eca6c8"
+      },
+      "boundary": "Six declared representatives replay exact emitted SVG bytes in the independent browser consumer at intrinsic size. No ID rewriting, substitution, rescaling or reconstructed SVG.",
+      "cases": [
+        "before-column-auto",
+        "before-column-definite",
+        "avoid-inside-fit",
+        "avoid-after-long-paragraph",
+        "paged-forced-rollover",
+        "decorated-wrapper-first-child-forced"
+      ],
+      "svgImagePages": 18,
+      "allExactSvgBytesVerified": true,
+      "allSearchableTextAndPageGeometryAccepted": true,
+      "failedPages": [],
+      "maxTextBboxDeltaCssPx": 0.013766666666683136,
+      "contactSheetsInspected": 6,
+      "sourcePagesPerProfile": 9
+    },
+    "wrapperPaint": {
+      "status": "observed-selected-controls",
+      "boundary": "The selected decorated wrapper and 5px margin spacer were inspected against actual Edge pages. This does not qualify general CSS painting."
+    },
+    "visualInspection": {
+      "status": "inspected-original-resolution",
+      "evidence": {
+        "path": "visual-inspection.json",
+        "bytes": 5546,
+        "sha256": "3379b9dc4d22ad8ee0488a1240fbbc955b61a6001c3938884c77d7cc23acb196"
+      },
+      "nativePngContacts": 13,
+      "svgContacts": 6,
+      "unresolvedObservedDefects": []
+    },
+    "oracleReuse": {
+      "path": "native-oracle-reuse.json",
+      "bytes": 429600,
+      "sha256": "f2e299e5436ba99ca07929e3d0e4317d203c8e3bcce3be66a2e9af11c9204bc7"
+    },
+    "observedCounts": {
+      "nativeGeometryMatches": 35,
+      "qualifiedNativeWitnesses": 32,
+      "nativePageDirectiveBoundaries": 3
+    },
+    "physicalProfileAggregates": {
+      "PrintPaged": {
+        "observedPhysicalPagePairs": 62,
+        "pixelComparedPages": 62,
+        "unavailablePixelComparisons": 0,
+        "comparedPixels": 6084680,
+        "weightedRgbMae": 1.4501196447471354,
+        "fractionPixelsDifferent": 0.01638344169290743,
+        "fractionPixelsOver10": 0.0141557156662306,
+        "automaticFidelityAcceptance": null
+      },
+      "ScreenMediaPaged": {
+        "observedPhysicalPagePairs": 62,
+        "pixelComparedPages": 62,
+        "unavailablePixelComparisons": 0,
+        "comparedPixels": 6084680,
+        "weightedRgbMae": 1.4501196447471354,
+        "fractionPixelsDifferent": 0.01638344169290743,
+        "fractionPixelsOver10": 0.0141557156662306,
+        "automaticFidelityAcceptance": null
+      }
+    },
+    "comparisonDocumentPairs": 70,
+    "maxPdfGlyphOriginDeltaCssPx": 0.002082666666680666
+  },
+  "packages": {
+    "status": "passed-four-assets-three-executed-consumers",
+    "qualificationOnly": true,
+    "publicRelease": false,
+    "sourceHead": "298a02a0e87039c236e22e3e006e69962293a1db",
+    "frameworkAssets": [
+      "net472",
+      "netstandard2.0",
+      "net8.0",
+      "net10.0"
+    ],
+    "packedHtml": {
+      "package": {
+        "path": "package-proof-final/feed/OfficeIMO.Html.3.5.1.nupkg",
+        "bytes": 4450078,
+        "sha256": "fbd5c6e660b5f82d448558ec7d4123bea085a644b1e17014eaa99238414dadc1"
+      },
+      "assets": {
+        "lib/net472/OfficeIMO.Html.dll": "86e7c2716044ecf24bb363e10835641ddcf3bcdf425075dc1400afaf35db5119",
+        "lib/netstandard2.0/OfficeIMO.Html.dll": "313e7ff5bc90d3efdde202f8f61f3936c3442948d2a7a26bf643b340a2deb42f",
+        "lib/net8.0/OfficeIMO.Html.dll": "58e5a417071208d9a1caacc642aa777e6cdacaa33e9960eb5552b4f6835f49d6",
+        "lib/net10.0/OfficeIMO.Html.dll": "f6530d5460fac8122e459a29414c92c0afd252067cfbc3b0e4a662fe0b8b5ae8"
+      },
+      "sha512": "AqAIx2mu0VPm3DSQw4+HXlnYzrP8Mxy9/1fdqMQS66rbbEc+NmQ4kEhscefdni07/Ht2/GvQMCF56jdnSoPOIw=="
+    },
+    "sourceSeal": {
+      "path": "package-proof-final/source-seal.json",
+      "bytes": 1063460,
+      "sha256": "dfe16269ed18988d7fa81c1154a28473486be5d3382b0fbaa26776ee94ed85d3"
+    },
+    "binding": {
+      "path": "package-proof-final/package-binding.json",
+      "bytes": 5257,
+      "sha256": "7fd7df84139766fd92c8e79a9b3b2bd306961af812979d9abc853d04c7de7b2e"
+    },
+    "consumerBinding": {
+      "path": "package-proof-final/consumer-binding.json",
+      "bytes": 481299,
+      "sha256": "fdf5fba450c0e0e9c67900ab26c8f60055d06f43c0977def0b1b8a081dc529a5"
+    },
+    "consumers": [
+      {
+        "consumer": "net8",
+        "framework": ".NET 8.0.23",
+        "architecture": "Arm64",
+        "inputCaseCount": 35,
+        "caseProfilePairs": 70,
+        "result": {
+          "path": "package-proof-final/results/net8/result.json",
+          "bytes": 128883,
+          "sha256": "ae4d09a056aca6f29935fa0644e59938aee4f9d9d1c125bbd9972cd27d1b6dbb"
+        },
+        "packageResolution": {
+          "path": "package-proof-final/retained-resolution/net8/project.assets.json",
+          "bytes": 11757,
+          "sha256": "e01ddf6f86a12e803a6f7cf81c928727ce517ff0264673b697950032bfe7fa83"
+        },
+        "executable": {
+          "path": "package-proof-final/out/net8/ColumnFragmentPackagenet8.dll",
+          "bytes": 29184,
+          "sha256": "9a69ddf13cae31a3693671f9786389fec84bcef7df88083b824067d6dcb086c0"
+        }
+      },
+      {
+        "consumer": "net10",
+        "framework": ".NET 10.0.13",
+        "architecture": "Arm64",
+        "inputCaseCount": 35,
+        "caseProfilePairs": 70,
+        "result": {
+          "path": "package-proof-final/results/net10/result.json",
+          "bytes": 128891,
+          "sha256": "105cfaff4405c7a493d757bc4ac4aa33f2cfe4ece2188697d9c9a20857eee704"
+        },
+        "packageResolution": {
+          "path": "package-proof-final/retained-resolution/net10/project.assets.json",
+          "bytes": 29894,
+          "sha256": "98d3d6649dd07f97956c2082e960e3e95efaeb05ec4226acfc93dc3d4339239c"
+        },
+        "executable": {
+          "path": "package-proof-final/out/net10/ColumnFragmentPackagenet10.dll",
+          "bytes": 29184,
+          "sha256": "da3b3b8bd976d2de2297a09fdc91dec0b9f08f39986f6fd2dace62547adb954f"
+        }
+      },
+      {
+        "consumer": "aot",
+        "framework": ".NET 10.0.13",
+        "architecture": "Arm64",
+        "inputCaseCount": 35,
+        "caseProfilePairs": 70,
+        "result": {
+          "path": "package-proof-final/results/aot/result.json",
+          "bytes": 127451,
+          "sha256": "0945eab269f5d3a3b412e4e6aaadb696c20c0d0a5b6a284b98fed7d84d37c81c"
+        },
+        "packageResolution": {
+          "path": "package-proof-final/retained-resolution/aot/project.assets.json",
+          "bytes": 39021,
+          "sha256": "d5810887015f2dc765c0703f47f2b994e2c00bd62c094227ddaaa8641b8675c7"
+        },
+        "executable": {
+          "path": "package-proof-final/out/aot/ColumnFragmentPackageaot",
+          "bytes": 33153656,
+          "sha256": "7ae047f475b5288c5080d2a14651e51c896d8b835ab3bdf2d330af822f67e711"
+        }
+      }
+    ],
+    "retainedResolutionGraphs": [
+      {
+        "consumer": "net8",
+        "original": {
+          "path": "package-proof-final/graphs/net8/obj/Consumer/project.assets.json",
+          "bytes": 11757,
+          "sha256": "e01ddf6f86a12e803a6f7cf81c928727ce517ff0264673b697950032bfe7fa83"
+        },
+        "retained": {
+          "path": "package-proof-final/retained-resolution/net8/project.assets.json",
+          "bytes": 11757,
+          "sha256": "e01ddf6f86a12e803a6f7cf81c928727ce517ff0264673b697950032bfe7fa83"
+        }
+      },
+      {
+        "consumer": "net10",
+        "original": {
+          "path": "package-proof-final/graphs/net10/obj/Consumer/project.assets.json",
+          "bytes": 29894,
+          "sha256": "98d3d6649dd07f97956c2082e960e3e95efaeb05ec4226acfc93dc3d4339239c"
+        },
+        "retained": {
+          "path": "package-proof-final/retained-resolution/net10/project.assets.json",
+          "bytes": 29894,
+          "sha256": "98d3d6649dd07f97956c2082e960e3e95efaeb05ec4226acfc93dc3d4339239c"
+        }
+      },
+      {
+        "consumer": "aot",
+        "original": {
+          "path": "package-proof-final/graphs/aot/obj/Consumer/project.assets.json",
+          "bytes": 39021,
+          "sha256": "d5810887015f2dc765c0703f47f2b994e2c00bd62c094227ddaaa8641b8675c7"
+        },
+        "retained": {
+          "path": "package-proof-final/retained-resolution/aot/project.assets.json",
+          "bytes": 39021,
+          "sha256": "d5810887015f2dc765c0703f47f2b994e2c00bd62c094227ddaaa8641b8675c7"
+        }
+      }
+    ],
+    "retainedPackageAndRuntimeArchive": {
+      "privatePackages": "package-proof-final/feed",
+      "executedConsumers": [
+        "package-proof-final/out/net8",
+        "package-proof-final/out/net10",
+        "package-proof-final/out/aot"
+      ],
+      "binding": {
+        "path": "package-proof-final/actual-subject-retention.json",
+        "bytes": 2098,
+        "sha256": "ecfc3418fbcf60c9f46be1afb71d931c8630eb23f5481f57c17c4d124bb24a01"
+      }
+    },
+    "reusedOwnerSourceHead": "dee9e3856e609e6891646ba5f5ea9080fe70bf4f",
+    "reusedOwners": [
+      "OfficeIMO.Core",
+      "OfficeIMO.Pdf",
+      "OfficeIMO.Html.Core",
+      "OfficeIMO.Html.AngleSharp"
+    ],
+    "boundary": "Four HTML framework assets compile. Package-only .NET 8, .NET 10 and macOS arm64 NativeAOT consumers each pass 35 inputs in both paged profiles: native-derived placement, exact complete PDF labels, PDF page assignment and byte-identical PNG/PDF replay. Unchanged Core, PDF and parser packages are reused after source-tree and common package-input checks. Legacy assets receive compile proof only. These unsigned private packages do not establish public publication or Windows execution.",
+    "acceptance": {
+      "path": "package-acceptance-corrected.json",
+      "bytes": 124683,
+      "sha256": "49188e7d2c798e72b73592cb57fae9220d08be504b0e190a21b641edb7c5e061"
+    },
+    "caseProfilePairs": 210,
+    "qualificationCorrections": [
+      {
+        "path": "package-acceptance-correction.json",
+        "bytes": 909,
+        "sha256": "e14b057ad920858c3aaf8b9eb85cb77e4936706bbed4e8c6d576135269a0e21e"
+      },
+      {
+        "path": "package-label-correction.json",
+        "bytes": 438,
+        "sha256": "e1547f53ee4053f988bdd7f14162f2df86225d072b65291e71f66630090eebd4"
+      }
+    ]
+  },
+  "broaderReports": {
+    "status": "passed",
+    "sourceHead": "298a02a0e87039c236e22e3e006e69962293a1db",
+    "cases": 4,
+    "profiles": 16,
+    "pngPages": 81,
+    "pngAndOrderedScenesUnchanged": true,
+    "evidence": {
+      "path": "report-regression-298a02a0e870-comparison.json",
+      "bytes": 417238,
+      "sha256": "722539c9ff0553dec35e999379b8a39f940aa0492e0934ac9649f9cf6345d074"
+    },
+    "binding": {
+      "path": "report-regression-298a02a0e870-captures.json",
+      "bytes": 10973,
+      "sha256": "ddbd1a54c2f8646ec61065d9df7294f9fdf833d673840fa923e100529dd6e4c5"
+    },
+    "boundary": "Four retained reports preserve ordered scenes, diagnostic sequences and PNG hashes across 16 profiles and 81 pages against the actual prior qualified producer. This comparison provides no new native report evidence."
+  },
+  "remainingBoundary": [
+    "The three named pure/mixed page-force controls retain diagnosed fallback. A browser match does not establish normative page/column forced-break combinations.",
+    "Specialized formatting, spanning partitions, nested column owners, floating content, changing page geometry and height-dependent alignment remain outside this ordinary authored column-break qualification.",
+    "The selected native controls do not newly qualify tall column notes or edge figures. Their reservation and source/navigation regressions retain focused/full managed validation and their existing separate contracts.",
+    "There is no new independent native raster oracle for ScreenFullPage or ScreenSnapshotPaged; continuous DOM geometry, paged PDF glyph geometry, managed output bindings and PDF/PNG equivalence are separate evidence.",
+    "Historical native capture receipts do not independently hash every font byte at acquisition. Current exact repository/fixture font mappings, reused input hashes and original native outputs remain retained; unused bold faces are not claimed loaded.",
+    "Native glyph antialiasing, arbitrary unfamiliar pages, manual accessibility, cross-platform timing and wider runtime/provider adoption remain distinct open gates."
+  ],
+  "windowsProfiling": "Deferred by explicit user instruction.",
+  "storage": {
+    "status": "scoped-cleanup-complete",
+    "logicalBytesRemoved": 6919742896,
+    "retainedApproximateBytes": 1042529456,
+    "evidence": {
+      "path": "storage-result.json",
+      "bytes": 4059,
+      "sha256": "0d567cd5ae28032fce0212709393b42b4587333ed69e2bb04bcd5ea571815d92"
+    },
+    "reason": "Retain exact source/fixture seals, native oracles, decisive failures and corrections, actual TRX/modules, qualified producers, private packages and consumer/report/SVG evidence. Preserve prior protected milestone roots and shared caches.",
+    "nextReview": "2026-10-25",
+    "retainedEvidenceRoots": [
+      {
+        "root": "html-column-break-fragmentation",
+        "approximateLogicalBytes": 408571052,
+        "reason": "Decisivebaseline/failure/remediationreproductionsandactualsubjects; no regenerable buildgraphs retained"
+      },
+      {
+        "root": "html-column-break-fragmentation-qualified",
+        "approximateLogicalBytes": 95617822,
+        "reason": "Decisivebaseline/failure/remediationreproductionsandactualsubjects; no regenerable buildgraphs retained"
+      },
+      {
+        "root": "html-column-break-fragmentation-final",
+        "approximateLogicalBytes": 538340582,
+        "reason": "Qualifiedexactsource/native/framework/package/AOT/report/visualevidence"
+      }
+    ]
+  },
+  "machineEvidence": {
+    "root": "Machine-local scratch: html-column-break-fragmentation-final under the configured development scratch root. Superseded failed candidates remain retained in sibling html-column-break-fragmentation and html-column-break-fragmentation-qualified.",
+    "sourceSeal": {
+      "path": "qualified-source.json",
+      "bytes": 712267,
+      "sha256": "a6200ae3965a2b479b0045633eb6197ebaf6fe2ef5d046f35deba657c080e5db",
+      "sourceInputs": 3726,
+      "fixtures": 35
+    },
+    "fixtureManifest": {
+      "path": "fixture-matrix.json",
+      "bytes": 39122,
+      "sha256": "bdf3656c70d7a40e5f2d14578f292e3da63ad3f3fb901f36cabaa944a2dc935a"
+    },
+    "qualificationPath": "HtmlTinkerX browser oracle and OfficeIMO public API probes; no product browser/runtime dependency added.",
+    "actualRenderer": {
+      "path": "qualified-renderer-binding.json",
+      "bytes": 20950,
+      "sha256": "2a2930b4c30e476f0663f2f553f1144533e2304ca0caf7025ae3da54b609a19c"
+    },
+    "failedCandidateEvidence": [
+      {
+        "evidenceRoot": "html-column-break-fragmentation",
+        "sourceHead": "57e060bbb3e158ec28e585b9058b87a6506bda57",
+        "boundary": "Actual failed full-framework evidence and decisive review reproductions are retained; this candidate is not the final qualification."
+      },
+      {
+        "evidenceRoot": "html-column-break-fragmentation-qualified",
+        "sourceHead": "0ee65c20e048090eaff06d03212976367677c23c",
+        "boundary": "Actual 35-case capture and renderer preserve the paged paragraph-margin-progression false-widow failure; continuous-only success did not qualify the paged route."
+      }
+    ],
+    "matrixGeneration": {
+      "path": "final-matrix-binding.json",
+      "bytes": 554,
+      "sha256": "d9ce5489b4f1edcf61604ae557401f7f01618f052e3ce17b96d8de95e026eb8f"
+    },
+    "reviewDisposition": {
+      "path": "local-review-disposition.json",
+      "bytes": 5047,
+      "sha256": "5f7625ab24246c993e8f851abe5ad4d30be9219bd341bf7bd6a825c9365d130c"
+    }
+  },
+  "reproduction": {
+    "fixtures": "Copy one selected checked-in HTML fixture and the two exact repository fonts from assetMap into a temporary directory as index.html, regular.ttf and bold.ttf. Serve over loopback for native capture or load those three entries into HtmlSiteBundle for managed execution.",
+    "managedProfiles": [
+      "PrintPaged",
+      "ScreenMediaPaged",
+      "ScreenFullPage",
+      "ScreenSnapshotPaged"
+    ],
+    "managedConfiguration": "Browser UA; exact bundled Witness regular/bold fonts; no host font fallback or external resources; ViewportWidth=800, ViewportHeight=1000; HonorCssPageRules; CSS page size 700 x 140 px with 20 px margins. Individual fixtures override their declared line/column dimensions.",
+    "nativeConfiguration": "Existing HtmlTinkerX BrowserProbe with Microsoft Edge; document.fonts/image readiness, print and screen-media CSS-paged PDFs and ID-based DOM geometry at 800 x 1000. Check retained browser/server lifecycle receipts and error arrays.",
+    "pixelPolicy": "Poppler at 96 dpi; point-to-CSS-pixel conversion once; full unmasked raw RGB comparison. Native glyph geometry tolerance is 0.05 CSS px. A right/bottom white pad of at most one raster pixel accounts only for native page rounding; no crop, mask or scale. Glyph antialiasing remains consumer dependent."
+  },
+  "integratedMaster": "479670095ea9efb1e38681c8d244150551220db6"
+}

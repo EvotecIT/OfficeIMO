@@ -1,0 +1,22 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<title>forced-column-inside-avoided-ancestor</title>
+<style>
+@font-face{font-family:Witness;src:url(regular.ttf);font-weight:400}
+@font-face{font-family:Witness;src:url(bold.ttf);font-weight:700}
+@page{size:700px 140px;margin:20px}
+html,body{margin:0;background:white;font:14px/20px Witness}
+p{margin:0;orphans:1;widows:1}
+.columns{width:300px;column-count:2;column-gap:20px}
+</style>
+<section id="columns" class="columns" style="column-fill:auto;height:80px">
+<p id="yarda-lead">YARDA-LEAD</p>
+<div id="yarda-avoided" style="break-inside:avoid-column">
+<p id="yarda-one">YARDA-ONE</p>
+<p id="yarda-two" style="break-before:column">YARDA-TWO</p>
+<p id="yarda-three">YARDA-THREE</p>
+</div>
+</section>
+<p id="after">YARDA-AFTER</p>
+</html>

@@ -1,0 +1,21 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<title>paged-forced-rollover</title>
+<style>
+@font-face{font-family:Witness;src:url(regular.ttf);font-weight:400}
+@font-face{font-family:Witness;src:url(bold.ttf);font-weight:700}
+@page{size:700px 140px;margin:20px}
+html,body{margin:0;background:white;font:14px/20px Witness}
+p{margin:0;orphans:1;widows:1}
+.columns{width:300px;column-count:2;column-gap:20px}
+</style>
+<section id="columns" class="columns" style="column-fill:auto">
+<p id="orina-01">ORINA-01</p>
+<p id="orina-02" style="break-before:column">ORINA-02</p>
+<p id="orina-03" style="break-before:column">ORINA-03</p>
+<p id="orina-04" style="break-before:column">ORINA-04</p>
+<p id="orina-05" style="break-before:column">ORINA-05</p>
+</section>
+<p id="after">ORINA-AFTER</p>
+</html>
