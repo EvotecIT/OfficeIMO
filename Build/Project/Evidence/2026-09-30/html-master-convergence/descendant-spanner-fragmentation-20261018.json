@@ -1,7 +1,7 @@
 {
   "schema": "officeimo.html.descendant-spanner-fragmentation-qualification/v1",
   "status": "qualified-bounded-static-branch-checkpoint",
-  "recordedUtc": "2026-10-18T13:53:41.794385+00:00",
+  "recordedUtc": "2026-10-18T14:17:26.941703+00:00",
   "qualifiedSourceHead": "e757f0c55061e8d6f09ef82a54f388c2545df298",
   "repositoryReceiptPath": "Build/Project/Evidence/2026-09-30/html-master-convergence/descendant-spanner-fragmentation-20261018.json",
   "implementation": {
@@ -254,7 +254,8 @@
     "intentionalPaintDeltaCases": 8,
     "rawDifferenceCount": 77,
     "sourceCountsUnchanged": true,
-    "pdfPageTextGlyphBoundsUnchanged": true,
+    "pdfPageTextWordBoundsUnchanged": true,
+    "individualEncodedGlyphInspection": false,
     "rawComparisons": [
       {
         "cases": 106,
@@ -270,8 +271,8 @@
     ],
     "classification": {
       "path": "regression-proof/settled-delta-acceptance.json",
-      "bytes": 154568,
-      "sha256": "15544b4755c254de799ee10f8ae11297b297fa31d854763d708c665acc1459db"
+      "bytes": 156647,
+      "sha256": "4935c40672c359ea562926bc34067c8cc38cbee3f881450cb847c04c88a0a0f8"
     },
     "acceptedPaintDifferences": [
       {
@@ -280,7 +281,7 @@
         "contract": "exact-file-bytes",
         "artifact": "ScreenFullPage-01-scene.png",
         "classification": "native-confirmed-terminal-single-column-rule-removal",
-        "reason": "One stale blue terminal rule is removed from each continuous/snapshot SVG and corresponding PNGs. Exact-input Edge captures and current output omit the rule; source and PDF page/text/glyph geometry are unchanged.",
+        "reason": "One stale blue terminal rule is removed from each continuous/snapshot SVG and corresponding PNGs. Exact-input Edge captures and current output omit the rule; source and PDF page/text/word boxes and public text-run geometry are unchanged.",
         "evidence": [
           {
             "path": "regression-proof/terminal-rule-root-acceptance.json",
@@ -310,7 +311,7 @@
         "contract": "exact-file-bytes",
         "artifact": "ScreenFullPage-01.png",
         "classification": "native-confirmed-terminal-single-column-rule-removal",
-        "reason": "One stale blue terminal rule is removed from each continuous/snapshot SVG and corresponding PNGs. Exact-input Edge captures and current output omit the rule; source and PDF page/text/glyph geometry are unchanged.",
+        "reason": "One stale blue terminal rule is removed from each continuous/snapshot SVG and corresponding PNGs. Exact-input Edge captures and current output omit the rule; source and PDF page/text/word boxes and public text-run geometry are unchanged.",
         "evidence": [
           {
             "path": "regression-proof/terminal-rule-root-acceptance.json",
@@ -340,7 +341,7 @@
         "contract": "exact-file-bytes",
         "artifact": "ScreenFullPage-01.svg",
         "classification": "native-confirmed-terminal-single-column-rule-removal",
-        "reason": "One stale blue terminal rule is removed from each continuous/snapshot SVG and corresponding PNGs. Exact-input Edge captures and current output omit the rule; source and PDF page/text/glyph geometry are unchanged.",
+        "reason": "One stale blue terminal rule is removed from each continuous/snapshot SVG and corresponding PNGs. Exact-input Edge captures and current output omit the rule; source and PDF page/text/word boxes and public text-run geometry are unchanged.",
         "evidence": [
           {
             "path": "regression-proof/terminal-rule-root-acceptance.json",
@@ -370,7 +371,7 @@
         "contract": "exact-file-bytes",
         "artifact": "ScreenSnapshotPaged-01-scene.png",
         "classification": "native-confirmed-terminal-single-column-rule-removal",
-        "reason": "One stale blue terminal rule is removed from each continuous/snapshot SVG and corresponding PNGs. Exact-input Edge captures and current output omit the rule; source and PDF page/text/glyph geometry are unchanged.",
+        "reason": "One stale blue terminal rule is removed from each continuous/snapshot SVG and corresponding PNGs. Exact-input Edge captures and current output omit the rule; source and PDF page/text/word boxes and public text-run geometry are unchanged.",
         "evidence": [
           {
             "path": "regression-proof/terminal-rule-root-acceptance.json",
@@ -400,7 +401,7 @@
         "contract": "exact-file-bytes",
         "artifact": "ScreenSnapshotPaged-01.png",
         "classification": "native-confirmed-terminal-single-column-rule-removal",
-        "reason": "One stale blue terminal rule is removed from each continuous/snapshot SVG and corresponding PNGs. Exact-input Edge captures and current output omit the rule; source and PDF page/text/glyph geometry are unchanged.",
+        "reason": "One stale blue terminal rule is removed from each continuous/snapshot SVG and corresponding PNGs. Exact-input Edge captures and current output omit the rule; source and PDF page/text/word boxes and public text-run geometry are unchanged.",
         "evidence": [
           {
             "path": "regression-proof/terminal-rule-root-acceptance.json",
@@ -430,7 +431,7 @@
         "contract": "exact-file-bytes",
         "artifact": "ScreenSnapshotPaged-01.svg",
         "classification": "native-confirmed-terminal-single-column-rule-removal",
-        "reason": "One stale blue terminal rule is removed from each continuous/snapshot SVG and corresponding PNGs. Exact-input Edge captures and current output omit the rule; source and PDF page/text/glyph geometry are unchanged.",
+        "reason": "One stale blue terminal rule is removed from each continuous/snapshot SVG and corresponding PNGs. Exact-input Edge captures and current output omit the rule; source and PDF page/text/word boxes and public text-run geometry are unchanged.",
         "evidence": [
           {
             "path": "regression-proof/terminal-rule-root-acceptance.json",
@@ -460,7 +461,7 @@
         "contract": "exact-file-bytes",
         "artifact": "ScreenFullPage-01-scene.png",
         "classification": "native-confirmed-terminal-single-column-rule-removal",
-        "reason": "One stale blue terminal rule is removed from each continuous/snapshot SVG and corresponding PNGs. Exact-input Edge captures and current output omit the rule; source and PDF page/text/glyph geometry are unchanged.",
+        "reason": "One stale blue terminal rule is removed from each continuous/snapshot SVG and corresponding PNGs. Exact-input Edge captures and current output omit the rule; source and PDF page/text/word boxes and public text-run geometry are unchanged.",
         "evidence": [
           {
             "path": "regression-proof/terminal-rule-root-acceptance.json",
@@ -490,7 +491,7 @@
         "contract": "exact-file-bytes",
         "artifact": "ScreenFullPage-01.png",
         "classification": "native-confirmed-terminal-single-column-rule-removal",
-        "reason": "One stale blue terminal rule is removed from each continuous/snapshot SVG and corresponding PNGs. Exact-input Edge captures and current output omit the rule; source and PDF page/text/glyph geometry are unchanged.",
+        "reason": "One stale blue terminal rule is removed from each continuous/snapshot SVG and corresponding PNGs. Exact-input Edge captures and current output omit the rule; source and PDF page/text/word boxes and public text-run geometry are unchanged.",
         "evidence": [
           {
             "path": "regression-proof/terminal-rule-root-acceptance.json",
@@ -520,7 +521,7 @@
         "contract": "exact-file-bytes",
         "artifact": "ScreenFullPage-01.svg",
         "classification": "native-confirmed-terminal-single-column-rule-removal",
-        "reason": "One stale blue terminal rule is removed from each continuous/snapshot SVG and corresponding PNGs. Exact-input Edge captures and current output omit the rule; source and PDF page/text/glyph geometry are unchanged.",
+        "reason": "One stale blue terminal rule is removed from each continuous/snapshot SVG and corresponding PNGs. Exact-input Edge captures and current output omit the rule; source and PDF page/text/word boxes and public text-run geometry are unchanged.",
         "evidence": [
           {
             "path": "regression-proof/terminal-rule-root-acceptance.json",
@@ -550,7 +551,7 @@
         "contract": "exact-file-bytes",
         "artifact": "ScreenSnapshotPaged-01-scene.png",
         "classification": "native-confirmed-terminal-single-column-rule-removal",
-        "reason": "One stale blue terminal rule is removed from each continuous/snapshot SVG and corresponding PNGs. Exact-input Edge captures and current output omit the rule; source and PDF page/text/glyph geometry are unchanged.",
+        "reason": "One stale blue terminal rule is removed from each continuous/snapshot SVG and corresponding PNGs. Exact-input Edge captures and current output omit the rule; source and PDF page/text/word boxes and public text-run geometry are unchanged.",
         "evidence": [
           {
             "path": "regression-proof/terminal-rule-root-acceptance.json",
@@ -580,7 +581,7 @@
         "contract": "exact-file-bytes",
         "artifact": "ScreenSnapshotPaged-01.png",
         "classification": "native-confirmed-terminal-single-column-rule-removal",
-        "reason": "One stale blue terminal rule is removed from each continuous/snapshot SVG and corresponding PNGs. Exact-input Edge captures and current output omit the rule; source and PDF page/text/glyph geometry are unchanged.",
+        "reason": "One stale blue terminal rule is removed from each continuous/snapshot SVG and corresponding PNGs. Exact-input Edge captures and current output omit the rule; source and PDF page/text/word boxes and public text-run geometry are unchanged.",
         "evidence": [
           {
             "path": "regression-proof/terminal-rule-root-acceptance.json",
@@ -610,7 +611,7 @@
         "contract": "exact-file-bytes",
         "artifact": "ScreenSnapshotPaged-01.svg",
         "classification": "native-confirmed-terminal-single-column-rule-removal",
-        "reason": "One stale blue terminal rule is removed from each continuous/snapshot SVG and corresponding PNGs. Exact-input Edge captures and current output omit the rule; source and PDF page/text/glyph geometry are unchanged.",
+        "reason": "One stale blue terminal rule is removed from each continuous/snapshot SVG and corresponding PNGs. Exact-input Edge captures and current output omit the rule; source and PDF page/text/word boxes and public text-run geometry are unchanged.",
         "evidence": [
           {
             "path": "regression-proof/terminal-rule-root-acceptance.json",
@@ -640,7 +641,7 @@
         "contract": "exact-file-bytes",
         "artifact": "ScreenFullPage-01-scene.png",
         "classification": "native-confirmed-terminal-single-column-rule-removal",
-        "reason": "One stale blue terminal rule is removed from each continuous/snapshot SVG and corresponding PNGs. Exact-input Edge captures and current output omit the rule; source and PDF page/text/glyph geometry are unchanged.",
+        "reason": "One stale blue terminal rule is removed from each continuous/snapshot SVG and corresponding PNGs. Exact-input Edge captures and current output omit the rule; source and PDF page/text/word boxes and public text-run geometry are unchanged.",
         "evidence": [
           {
             "path": "regression-proof/terminal-rule-root-acceptance.json",
@@ -670,7 +671,7 @@
         "contract": "exact-file-bytes",
         "artifact": "ScreenFullPage-01.png",
         "classification": "native-confirmed-terminal-single-column-rule-removal",
-        "reason": "One stale blue terminal rule is removed from each continuous/snapshot SVG and corresponding PNGs. Exact-input Edge captures and current output omit the rule; source and PDF page/text/glyph geometry are unchanged.",
+        "reason": "One stale blue terminal rule is removed from each continuous/snapshot SVG and corresponding PNGs. Exact-input Edge captures and current output omit the rule; source and PDF page/text/word boxes and public text-run geometry are unchanged.",
         "evidence": [
           {
             "path": "regression-proof/terminal-rule-root-acceptance.json",
@@ -700,7 +701,7 @@
         "contract": "exact-file-bytes",
         "artifact": "ScreenFullPage-01.svg",
         "classification": "native-confirmed-terminal-single-column-rule-removal",
-        "reason": "One stale blue terminal rule is removed from each continuous/snapshot SVG and corresponding PNGs. Exact-input Edge captures and current output omit the rule; source and PDF page/text/glyph geometry are unchanged.",
+        "reason": "One stale blue terminal rule is removed from each continuous/snapshot SVG and corresponding PNGs. Exact-input Edge captures and current output omit the rule; source and PDF page/text/word boxes and public text-run geometry are unchanged.",
         "evidence": [
           {
             "path": "regression-proof/terminal-rule-root-acceptance.json",
@@ -730,7 +731,7 @@
         "contract": "exact-file-bytes",
         "artifact": "ScreenSnapshotPaged-01-scene.png",
         "classification": "native-confirmed-terminal-single-column-rule-removal",
-        "reason": "One stale blue terminal rule is removed from each continuous/snapshot SVG and corresponding PNGs. Exact-input Edge captures and current output omit the rule; source and PDF page/text/glyph geometry are unchanged.",
+        "reason": "One stale blue terminal rule is removed from each continuous/snapshot SVG and corresponding PNGs. Exact-input Edge captures and current output omit the rule; source and PDF page/text/word boxes and public text-run geometry are unchanged.",
         "evidence": [
           {
             "path": "regression-proof/terminal-rule-root-acceptance.json",
@@ -760,7 +761,7 @@
         "contract": "exact-file-bytes",
         "artifact": "ScreenSnapshotPaged-01.png",
         "classification": "native-confirmed-terminal-single-column-rule-removal",
-        "reason": "One stale blue terminal rule is removed from each continuous/snapshot SVG and corresponding PNGs. Exact-input Edge captures and current output omit the rule; source and PDF page/text/glyph geometry are unchanged.",
+        "reason": "One stale blue terminal rule is removed from each continuous/snapshot SVG and corresponding PNGs. Exact-input Edge captures and current output omit the rule; source and PDF page/text/word boxes and public text-run geometry are unchanged.",
         "evidence": [
           {
             "path": "regression-proof/terminal-rule-root-acceptance.json",
@@ -790,7 +791,7 @@
         "contract": "exact-file-bytes",
         "artifact": "ScreenSnapshotPaged-01.svg",
         "classification": "native-confirmed-terminal-single-column-rule-removal",
-        "reason": "One stale blue terminal rule is removed from each continuous/snapshot SVG and corresponding PNGs. Exact-input Edge captures and current output omit the rule; source and PDF page/text/glyph geometry are unchanged.",
+        "reason": "One stale blue terminal rule is removed from each continuous/snapshot SVG and corresponding PNGs. Exact-input Edge captures and current output omit the rule; source and PDF page/text/word boxes and public text-run geometry are unchanged.",
         "evidence": [
           {
             "path": "regression-proof/terminal-rule-root-acceptance.json",
@@ -820,7 +821,7 @@
         "contract": "exact-file-bytes",
         "artifact": "ScreenFullPage-01-scene.png",
         "classification": "native-confirmed-terminal-single-column-rule-removal",
-        "reason": "One stale blue terminal rule is removed from each continuous/snapshot SVG and corresponding PNGs. Exact-input Edge captures and current output omit the rule; source and PDF page/text/glyph geometry are unchanged.",
+        "reason": "One stale blue terminal rule is removed from each continuous/snapshot SVG and corresponding PNGs. Exact-input Edge captures and current output omit the rule; source and PDF page/text/word boxes and public text-run geometry are unchanged.",
         "evidence": [
           {
             "path": "regression-proof/terminal-rule-root-acceptance.json",
@@ -850,7 +851,7 @@
         "contract": "exact-file-bytes",
         "artifact": "ScreenFullPage-01.png",
         "classification": "native-confirmed-terminal-single-column-rule-removal",
-        "reason": "One stale blue terminal rule is removed from each continuous/snapshot SVG and corresponding PNGs. Exact-input Edge captures and current output omit the rule; source and PDF page/text/glyph geometry are unchanged.",
+        "reason": "One stale blue terminal rule is removed from each continuous/snapshot SVG and corresponding PNGs. Exact-input Edge captures and current output omit the rule; source and PDF page/text/word boxes and public text-run geometry are unchanged.",
         "evidence": [
           {
             "path": "regression-proof/terminal-rule-root-acceptance.json",
@@ -880,7 +881,7 @@
         "contract": "exact-file-bytes",
         "artifact": "ScreenFullPage-01.svg",
         "classification": "native-confirmed-terminal-single-column-rule-removal",
-        "reason": "One stale blue terminal rule is removed from each continuous/snapshot SVG and corresponding PNGs. Exact-input Edge captures and current output omit the rule; source and PDF page/text/glyph geometry are unchanged.",
+        "reason": "One stale blue terminal rule is removed from each continuous/snapshot SVG and corresponding PNGs. Exact-input Edge captures and current output omit the rule; source and PDF page/text/word boxes and public text-run geometry are unchanged.",
         "evidence": [
           {
             "path": "regression-proof/terminal-rule-root-acceptance.json",
@@ -910,7 +911,7 @@
         "contract": "exact-file-bytes",
         "artifact": "ScreenSnapshotPaged-01-scene.png",
         "classification": "native-confirmed-terminal-single-column-rule-removal",
-        "reason": "One stale blue terminal rule is removed from each continuous/snapshot SVG and corresponding PNGs. Exact-input Edge captures and current output omit the rule; source and PDF page/text/glyph geometry are unchanged.",
+        "reason": "One stale blue terminal rule is removed from each continuous/snapshot SVG and corresponding PNGs. Exact-input Edge captures and current output omit the rule; source and PDF page/text/word boxes and public text-run geometry are unchanged.",
         "evidence": [
           {
             "path": "regression-proof/terminal-rule-root-acceptance.json",
@@ -940,7 +941,7 @@
         "contract": "exact-file-bytes",
         "artifact": "ScreenSnapshotPaged-01.png",
         "classification": "native-confirmed-terminal-single-column-rule-removal",
-        "reason": "One stale blue terminal rule is removed from each continuous/snapshot SVG and corresponding PNGs. Exact-input Edge captures and current output omit the rule; source and PDF page/text/glyph geometry are unchanged.",
+        "reason": "One stale blue terminal rule is removed from each continuous/snapshot SVG and corresponding PNGs. Exact-input Edge captures and current output omit the rule; source and PDF page/text/word boxes and public text-run geometry are unchanged.",
         "evidence": [
           {
             "path": "regression-proof/terminal-rule-root-acceptance.json",
@@ -970,7 +971,7 @@
         "contract": "exact-file-bytes",
         "artifact": "ScreenSnapshotPaged-01.svg",
         "classification": "native-confirmed-terminal-single-column-rule-removal",
-        "reason": "One stale blue terminal rule is removed from each continuous/snapshot SVG and corresponding PNGs. Exact-input Edge captures and current output omit the rule; source and PDF page/text/glyph geometry are unchanged.",
+        "reason": "One stale blue terminal rule is removed from each continuous/snapshot SVG and corresponding PNGs. Exact-input Edge captures and current output omit the rule; source and PDF page/text/word boxes and public text-run geometry are unchanged.",
         "evidence": [
           {
             "path": "regression-proof/terminal-rule-root-acceptance.json",
@@ -999,7 +1000,7 @@
         "cohort": "reports",
         "contract": "complete-observed-summary",
         "classification": "authored-slice-backdrop-and-solid-side-continuation",
-        "reason": "Only auto-height rectangular panel backdrops and authored solid side bands continue through physical fragment slack. All source, tables, links, destinations, diagnostics, PDF page/text/glyph bounds and PNG/PDF replay remain unchanged. The blue header source box crosses the safe cut; its two backdrops end at the physical window within their own source bounds. All changed pixels are accounted by these fills, with an explicit1px antialiasing allowance. This uses the native ordinary blue-panel class control; full report native equivalence is not claimed.",
+        "reason": "Only auto-height rectangular panel backdrops and authored solid side bands continue through physical fragment slack. All source, tables, links, destinations, diagnostics, PDF page/text/word boxes and public text-run geometry and PNG/PDF replay remain unchanged. The blue header source box crosses the safe cut; its two backdrops end at the physical window within their own source bounds. All changed pixels are accounted by these fills, with an explicit1px antialiasing allowance. This uses the native ordinary blue-panel class control; full report native equivalence is not claimed.",
         "evidence": [
           {
             "path": "regression-proof/report-paint-analysis/report.json",
@@ -1034,7 +1035,7 @@
         "contract": "exact-file-bytes",
         "artifact": "PrintPaged-01.png",
         "classification": "authored-slice-backdrop-and-solid-side-continuation",
-        "reason": "Only auto-height rectangular panel backdrops and authored solid side bands continue through physical fragment slack. All source, tables, links, destinations, diagnostics, PDF page/text/glyph bounds and PNG/PDF replay remain unchanged. The blue header source box crosses the safe cut; its two backdrops end at the physical window within their own source bounds. All changed pixels are accounted by these fills, with an explicit1px antialiasing allowance. This uses the native ordinary blue-panel class control; full report native equivalence is not claimed.",
+        "reason": "Only auto-height rectangular panel backdrops and authored solid side bands continue through physical fragment slack. All source, tables, links, destinations, diagnostics, PDF page/text/word boxes and public text-run geometry and PNG/PDF replay remain unchanged. The blue header source box crosses the safe cut; its two backdrops end at the physical window within their own source bounds. All changed pixels are accounted by these fills, with an explicit1px antialiasing allowance. This uses the native ordinary blue-panel class control; full report native equivalence is not claimed.",
         "evidence": [
           {
             "path": "regression-proof/report-paint-analysis/report.json",
@@ -1069,7 +1070,7 @@
         "contract": "exact-file-bytes",
         "artifact": "PrintPaged-02.png",
         "classification": "authored-slice-backdrop-and-solid-side-continuation",
-        "reason": "Only auto-height rectangular panel backdrops and authored solid side bands continue through physical fragment slack. All source, tables, links, destinations, diagnostics, PDF page/text/glyph bounds and PNG/PDF replay remain unchanged. The blue header source box crosses the safe cut; its two backdrops end at the physical window within their own source bounds. All changed pixels are accounted by these fills, with an explicit1px antialiasing allowance. This uses the native ordinary blue-panel class control; full report native equivalence is not claimed.",
+        "reason": "Only auto-height rectangular panel backdrops and authored solid side bands continue through physical fragment slack. All source, tables, links, destinations, diagnostics, PDF page/text/word boxes and public text-run geometry and PNG/PDF replay remain unchanged. The blue header source box crosses the safe cut; its two backdrops end at the physical window within their own source bounds. All changed pixels are accounted by these fills, with an explicit1px antialiasing allowance. This uses the native ordinary blue-panel class control; full report native equivalence is not claimed.",
         "evidence": [
           {
             "path": "regression-proof/report-paint-analysis/report.json",
@@ -1104,7 +1105,7 @@
         "contract": "exact-file-bytes",
         "artifact": "PrintPaged-03.png",
         "classification": "authored-slice-backdrop-and-solid-side-continuation",
-        "reason": "Only auto-height rectangular panel backdrops and authored solid side bands continue through physical fragment slack. All source, tables, links, destinations, diagnostics, PDF page/text/glyph bounds and PNG/PDF replay remain unchanged. The blue header source box crosses the safe cut; its two backdrops end at the physical window within their own source bounds. All changed pixels are accounted by these fills, with an explicit1px antialiasing allowance. This uses the native ordinary blue-panel class control; full report native equivalence is not claimed.",
+        "reason": "Only auto-height rectangular panel backdrops and authored solid side bands continue through physical fragment slack. All source, tables, links, destinations, diagnostics, PDF page/text/word boxes and public text-run geometry and PNG/PDF replay remain unchanged. The blue header source box crosses the safe cut; its two backdrops end at the physical window within their own source bounds. All changed pixels are accounted by these fills, with an explicit1px antialiasing allowance. This uses the native ordinary blue-panel class control; full report native equivalence is not claimed.",
         "evidence": [
           {
             "path": "regression-proof/report-paint-analysis/report.json",
@@ -1139,7 +1140,7 @@
         "contract": "exact-file-bytes",
         "artifact": "PrintPaged-04.png",
         "classification": "authored-slice-backdrop-and-solid-side-continuation",
-        "reason": "Only auto-height rectangular panel backdrops and authored solid side bands continue through physical fragment slack. All source, tables, links, destinations, diagnostics, PDF page/text/glyph bounds and PNG/PDF replay remain unchanged. The blue header source box crosses the safe cut; its two backdrops end at the physical window within their own source bounds. All changed pixels are accounted by these fills, with an explicit1px antialiasing allowance. This uses the native ordinary blue-panel class control; full report native equivalence is not claimed.",
+        "reason": "Only auto-height rectangular panel backdrops and authored solid side bands continue through physical fragment slack. All source, tables, links, destinations, diagnostics, PDF page/text/word boxes and public text-run geometry and PNG/PDF replay remain unchanged. The blue header source box crosses the safe cut; its two backdrops end at the physical window within their own source bounds. All changed pixels are accounted by these fills, with an explicit1px antialiasing allowance. This uses the native ordinary blue-panel class control; full report native equivalence is not claimed.",
         "evidence": [
           {
             "path": "regression-proof/report-paint-analysis/report.json",
@@ -1174,7 +1175,7 @@
         "contract": "exact-file-bytes",
         "artifact": "PrintPaged-05.png",
         "classification": "authored-slice-backdrop-and-solid-side-continuation",
-        "reason": "Only auto-height rectangular panel backdrops and authored solid side bands continue through physical fragment slack. All source, tables, links, destinations, diagnostics, PDF page/text/glyph bounds and PNG/PDF replay remain unchanged. The blue header source box crosses the safe cut; its two backdrops end at the physical window within their own source bounds. All changed pixels are accounted by these fills, with an explicit1px antialiasing allowance. This uses the native ordinary blue-panel class control; full report native equivalence is not claimed.",
+        "reason": "Only auto-height rectangular panel backdrops and authored solid side bands continue through physical fragment slack. All source, tables, links, destinations, diagnostics, PDF page/text/word boxes and public text-run geometry and PNG/PDF replay remain unchanged. The blue header source box crosses the safe cut; its two backdrops end at the physical window within their own source bounds. All changed pixels are accounted by these fills, with an explicit1px antialiasing allowance. This uses the native ordinary blue-panel class control; full report native equivalence is not claimed.",
         "evidence": [
           {
             "path": "regression-proof/report-paint-analysis/report.json",
@@ -1209,7 +1210,7 @@
         "contract": "exact-file-bytes",
         "artifact": "ScreenMediaPaged-01.png",
         "classification": "authored-slice-backdrop-and-solid-side-continuation",
-        "reason": "Only auto-height rectangular panel backdrops and authored solid side bands continue through physical fragment slack. All source, tables, links, destinations, diagnostics, PDF page/text/glyph bounds and PNG/PDF replay remain unchanged. The blue header source box crosses the safe cut; its two backdrops end at the physical window within their own source bounds. All changed pixels are accounted by these fills, with an explicit1px antialiasing allowance. This uses the native ordinary blue-panel class control; full report native equivalence is not claimed.",
+        "reason": "Only auto-height rectangular panel backdrops and authored solid side bands continue through physical fragment slack. All source, tables, links, destinations, diagnostics, PDF page/text/word boxes and public text-run geometry and PNG/PDF replay remain unchanged. The blue header source box crosses the safe cut; its two backdrops end at the physical window within their own source bounds. All changed pixels are accounted by these fills, with an explicit1px antialiasing allowance. This uses the native ordinary blue-panel class control; full report native equivalence is not claimed.",
         "evidence": [
           {
             "path": "regression-proof/report-paint-analysis/report.json",
@@ -1244,7 +1245,7 @@
         "contract": "exact-file-bytes",
         "artifact": "ScreenMediaPaged-02.png",
         "classification": "authored-slice-backdrop-and-solid-side-continuation",
-        "reason": "Only auto-height rectangular panel backdrops and authored solid side bands continue through physical fragment slack. All source, tables, links, destinations, diagnostics, PDF page/text/glyph bounds and PNG/PDF replay remain unchanged. The blue header source box crosses the safe cut; its two backdrops end at the physical window within their own source bounds. All changed pixels are accounted by these fills, with an explicit1px antialiasing allowance. This uses the native ordinary blue-panel class control; full report native equivalence is not claimed.",
+        "reason": "Only auto-height rectangular panel backdrops and authored solid side bands continue through physical fragment slack. All source, tables, links, destinations, diagnostics, PDF page/text/word boxes and public text-run geometry and PNG/PDF replay remain unchanged. The blue header source box crosses the safe cut; its two backdrops end at the physical window within their own source bounds. All changed pixels are accounted by these fills, with an explicit1px antialiasing allowance. This uses the native ordinary blue-panel class control; full report native equivalence is not claimed.",
         "evidence": [
           {
             "path": "regression-proof/report-paint-analysis/report.json",
@@ -1279,7 +1280,7 @@
         "contract": "exact-file-bytes",
         "artifact": "ScreenMediaPaged-03.png",
         "classification": "authored-slice-backdrop-and-solid-side-continuation",
-        "reason": "Only auto-height rectangular panel backdrops and authored solid side bands continue through physical fragment slack. All source, tables, links, destinations, diagnostics, PDF page/text/glyph bounds and PNG/PDF replay remain unchanged. The blue header source box crosses the safe cut; its two backdrops end at the physical window within their own source bounds. All changed pixels are accounted by these fills, with an explicit1px antialiasing allowance. This uses the native ordinary blue-panel class control; full report native equivalence is not claimed.",
+        "reason": "Only auto-height rectangular panel backdrops and authored solid side bands continue through physical fragment slack. All source, tables, links, destinations, diagnostics, PDF page/text/word boxes and public text-run geometry and PNG/PDF replay remain unchanged. The blue header source box crosses the safe cut; its two backdrops end at the physical window within their own source bounds. All changed pixels are accounted by these fills, with an explicit1px antialiasing allowance. This uses the native ordinary blue-panel class control; full report native equivalence is not claimed.",
         "evidence": [
           {
             "path": "regression-proof/report-paint-analysis/report.json",
@@ -1314,7 +1315,7 @@
         "contract": "exact-file-bytes",
         "artifact": "ScreenMediaPaged-04.png",
         "classification": "authored-slice-backdrop-and-solid-side-continuation",
-        "reason": "Only auto-height rectangular panel backdrops and authored solid side bands continue through physical fragment slack. All source, tables, links, destinations, diagnostics, PDF page/text/glyph bounds and PNG/PDF replay remain unchanged. The blue header source box crosses the safe cut; its two backdrops end at the physical window within their own source bounds. All changed pixels are accounted by these fills, with an explicit1px antialiasing allowance. This uses the native ordinary blue-panel class control; full report native equivalence is not claimed.",
+        "reason": "Only auto-height rectangular panel backdrops and authored solid side bands continue through physical fragment slack. All source, tables, links, destinations, diagnostics, PDF page/text/word boxes and public text-run geometry and PNG/PDF replay remain unchanged. The blue header source box crosses the safe cut; its two backdrops end at the physical window within their own source bounds. All changed pixels are accounted by these fills, with an explicit1px antialiasing allowance. This uses the native ordinary blue-panel class control; full report native equivalence is not claimed.",
         "evidence": [
           {
             "path": "regression-proof/report-paint-analysis/report.json",
@@ -1349,7 +1350,7 @@
         "contract": "exact-file-bytes",
         "artifact": "ScreenMediaPaged-05.png",
         "classification": "authored-slice-backdrop-and-solid-side-continuation",
-        "reason": "Only auto-height rectangular panel backdrops and authored solid side bands continue through physical fragment slack. All source, tables, links, destinations, diagnostics, PDF page/text/glyph bounds and PNG/PDF replay remain unchanged. The blue header source box crosses the safe cut; its two backdrops end at the physical window within their own source bounds. All changed pixels are accounted by these fills, with an explicit1px antialiasing allowance. This uses the native ordinary blue-panel class control; full report native equivalence is not claimed.",
+        "reason": "Only auto-height rectangular panel backdrops and authored solid side bands continue through physical fragment slack. All source, tables, links, destinations, diagnostics, PDF page/text/word boxes and public text-run geometry and PNG/PDF replay remain unchanged. The blue header source box crosses the safe cut; its two backdrops end at the physical window within their own source bounds. All changed pixels are accounted by these fills, with an explicit1px antialiasing allowance. This uses the native ordinary blue-panel class control; full report native equivalence is not claimed.",
         "evidence": [
           {
             "path": "regression-proof/report-paint-analysis/report.json",
@@ -1383,7 +1384,7 @@
         "cohort": "reports",
         "contract": "complete-observed-summary",
         "classification": "authored-slice-backdrop-and-solid-side-continuation",
-        "reason": "Only auto-height rectangular panel backdrops and authored solid side bands continue through physical fragment slack. All source, tables, links, destinations, diagnostics, PDF page/text/glyph bounds and PNG/PDF replay remain unchanged. The blue header source box crosses the safe cut; its two backdrops end at the physical window within their own source bounds. All changed pixels are accounted by these fills, with an explicit1px antialiasing allowance. This uses the native ordinary blue-panel class control; full report native equivalence is not claimed.",
+        "reason": "Only auto-height rectangular panel backdrops and authored solid side bands continue through physical fragment slack. All source, tables, links, destinations, diagnostics, PDF page/text/word boxes and public text-run geometry and PNG/PDF replay remain unchanged. The blue header source box crosses the safe cut; its two backdrops end at the physical window within their own source bounds. All changed pixels are accounted by these fills, with an explicit1px antialiasing allowance. This uses the native ordinary blue-panel class control; full report native equivalence is not claimed.",
         "evidence": [
           {
             "path": "regression-proof/report-paint-analysis/report.json",
@@ -1418,7 +1419,7 @@
         "contract": "exact-file-bytes",
         "artifact": "PrintPaged-01.png",
         "classification": "authored-slice-backdrop-and-solid-side-continuation",
-        "reason": "Only auto-height rectangular panel backdrops and authored solid side bands continue through physical fragment slack. All source, tables, links, destinations, diagnostics, PDF page/text/glyph bounds and PNG/PDF replay remain unchanged. The blue header source box crosses the safe cut; its two backdrops end at the physical window within their own source bounds. All changed pixels are accounted by these fills, with an explicit1px antialiasing allowance. This uses the native ordinary blue-panel class control; full report native equivalence is not claimed.",
+        "reason": "Only auto-height rectangular panel backdrops and authored solid side bands continue through physical fragment slack. All source, tables, links, destinations, diagnostics, PDF page/text/word boxes and public text-run geometry and PNG/PDF replay remain unchanged. The blue header source box crosses the safe cut; its two backdrops end at the physical window within their own source bounds. All changed pixels are accounted by these fills, with an explicit1px antialiasing allowance. This uses the native ordinary blue-panel class control; full report native equivalence is not claimed.",
         "evidence": [
           {
             "path": "regression-proof/report-paint-analysis/report.json",
@@ -1453,7 +1454,7 @@
         "contract": "exact-file-bytes",
         "artifact": "PrintPaged-02.png",
         "classification": "authored-slice-backdrop-and-solid-side-continuation",
-        "reason": "Only auto-height rectangular panel backdrops and authored solid side bands continue through physical fragment slack. All source, tables, links, destinations, diagnostics, PDF page/text/glyph bounds and PNG/PDF replay remain unchanged. The blue header source box crosses the safe cut; its two backdrops end at the physical window within their own source bounds. All changed pixels are accounted by these fills, with an explicit1px antialiasing allowance. This uses the native ordinary blue-panel class control; full report native equivalence is not claimed.",
+        "reason": "Only auto-height rectangular panel backdrops and authored solid side bands continue through physical fragment slack. All source, tables, links, destinations, diagnostics, PDF page/text/word boxes and public text-run geometry and PNG/PDF replay remain unchanged. The blue header source box crosses the safe cut; its two backdrops end at the physical window within their own source bounds. All changed pixels are accounted by these fills, with an explicit1px antialiasing allowance. This uses the native ordinary blue-panel class control; full report native equivalence is not claimed.",
         "evidence": [
           {
             "path": "regression-proof/report-paint-analysis/report.json",
@@ -1488,7 +1489,7 @@
         "contract": "exact-file-bytes",
         "artifact": "PrintPaged-03.png",
         "classification": "authored-slice-backdrop-and-solid-side-continuation",
-        "reason": "Only auto-height rectangular panel backdrops and authored solid side bands continue through physical fragment slack. All source, tables, links, destinations, diagnostics, PDF page/text/glyph bounds and PNG/PDF replay remain unchanged. The blue header source box crosses the safe cut; its two backdrops end at the physical window within their own source bounds. All changed pixels are accounted by these fills, with an explicit1px antialiasing allowance. This uses the native ordinary blue-panel class control; full report native equivalence is not claimed.",
+        "reason": "Only auto-height rectangular panel backdrops and authored solid side bands continue through physical fragment slack. All source, tables, links, destinations, diagnostics, PDF page/text/word boxes and public text-run geometry and PNG/PDF replay remain unchanged. The blue header source box crosses the safe cut; its two backdrops end at the physical window within their own source bounds. All changed pixels are accounted by these fills, with an explicit1px antialiasing allowance. This uses the native ordinary blue-panel class control; full report native equivalence is not claimed.",
         "evidence": [
           {
             "path": "regression-proof/report-paint-analysis/report.json",
@@ -1523,7 +1524,7 @@
         "contract": "exact-file-bytes",
         "artifact": "PrintPaged-04.png",
         "classification": "authored-slice-backdrop-and-solid-side-continuation",
-        "reason": "Only auto-height rectangular panel backdrops and authored solid side bands continue through physical fragment slack. All source, tables, links, destinations, diagnostics, PDF page/text/glyph bounds and PNG/PDF replay remain unchanged. The blue header source box crosses the safe cut; its two backdrops end at the physical window within their own source bounds. All changed pixels are accounted by these fills, with an explicit1px antialiasing allowance. This uses the native ordinary blue-panel class control; full report native equivalence is not claimed.",
+        "reason": "Only auto-height rectangular panel backdrops and authored solid side bands continue through physical fragment slack. All source, tables, links, destinations, diagnostics, PDF page/text/word boxes and public text-run geometry and PNG/PDF replay remain unchanged. The blue header source box crosses the safe cut; its two backdrops end at the physical window within their own source bounds. All changed pixels are accounted by these fills, with an explicit1px antialiasing allowance. This uses the native ordinary blue-panel class control; full report native equivalence is not claimed.",
         "evidence": [
           {
             "path": "regression-proof/report-paint-analysis/report.json",
@@ -1558,7 +1559,7 @@
         "contract": "exact-file-bytes",
         "artifact": "PrintPaged-05.png",
         "classification": "authored-slice-backdrop-and-solid-side-continuation",
-        "reason": "Only auto-height rectangular panel backdrops and authored solid side bands continue through physical fragment slack. All source, tables, links, destinations, diagnostics, PDF page/text/glyph bounds and PNG/PDF replay remain unchanged. The blue header source box crosses the safe cut; its two backdrops end at the physical window within their own source bounds. All changed pixels are accounted by these fills, with an explicit1px antialiasing allowance. This uses the native ordinary blue-panel class control; full report native equivalence is not claimed.",
+        "reason": "Only auto-height rectangular panel backdrops and authored solid side bands continue through physical fragment slack. All source, tables, links, destinations, diagnostics, PDF page/text/word boxes and public text-run geometry and PNG/PDF replay remain unchanged. The blue header source box crosses the safe cut; its two backdrops end at the physical window within their own source bounds. All changed pixels are accounted by these fills, with an explicit1px antialiasing allowance. This uses the native ordinary blue-panel class control; full report native equivalence is not claimed.",
         "evidence": [
           {
             "path": "regression-proof/report-paint-analysis/report.json",
@@ -1593,7 +1594,7 @@
         "contract": "exact-file-bytes",
         "artifact": "PrintPaged-06.png",
         "classification": "authored-slice-backdrop-and-solid-side-continuation",
-        "reason": "Only auto-height rectangular panel backdrops and authored solid side bands continue through physical fragment slack. All source, tables, links, destinations, diagnostics, PDF page/text/glyph bounds and PNG/PDF replay remain unchanged. The blue header source box crosses the safe cut; its two backdrops end at the physical window within their own source bounds. All changed pixels are accounted by these fills, with an explicit1px antialiasing allowance. This uses the native ordinary blue-panel class control; full report native equivalence is not claimed.",
+        "reason": "Only auto-height rectangular panel backdrops and authored solid side bands continue through physical fragment slack. All source, tables, links, destinations, diagnostics, PDF page/text/word boxes and public text-run geometry and PNG/PDF replay remain unchanged. The blue header source box crosses the safe cut; its two backdrops end at the physical window within their own source bounds. All changed pixels are accounted by these fills, with an explicit1px antialiasing allowance. This uses the native ordinary blue-panel class control; full report native equivalence is not claimed.",
         "evidence": [
           {
             "path": "regression-proof/report-paint-analysis/report.json",
@@ -1628,7 +1629,7 @@
         "contract": "exact-file-bytes",
         "artifact": "ScreenMediaPaged-01.png",
         "classification": "authored-slice-backdrop-and-solid-side-continuation",
-        "reason": "Only auto-height rectangular panel backdrops and authored solid side bands continue through physical fragment slack. All source, tables, links, destinations, diagnostics, PDF page/text/glyph bounds and PNG/PDF replay remain unchanged. The blue header source box crosses the safe cut; its two backdrops end at the physical window within their own source bounds. All changed pixels are accounted by these fills, with an explicit1px antialiasing allowance. This uses the native ordinary blue-panel class control; full report native equivalence is not claimed.",
+        "reason": "Only auto-height rectangular panel backdrops and authored solid side bands continue through physical fragment slack. All source, tables, links, destinations, diagnostics, PDF page/text/word boxes and public text-run geometry and PNG/PDF replay remain unchanged. The blue header source box crosses the safe cut; its two backdrops end at the physical window within their own source bounds. All changed pixels are accounted by these fills, with an explicit1px antialiasing allowance. This uses the native ordinary blue-panel class control; full report native equivalence is not claimed.",
         "evidence": [
           {
             "path": "regression-proof/report-paint-analysis/report.json",
@@ -1663,7 +1664,7 @@
         "contract": "exact-file-bytes",
         "artifact": "ScreenMediaPaged-02.png",
         "classification": "authored-slice-backdrop-and-solid-side-continuation",
-        "reason": "Only auto-height rectangular panel backdrops and authored solid side bands continue through physical fragment slack. All source, tables, links, destinations, diagnostics, PDF page/text/glyph bounds and PNG/PDF replay remain unchanged. The blue header source box crosses the safe cut; its two backdrops end at the physical window within their own source bounds. All changed pixels are accounted by these fills, with an explicit1px antialiasing allowance. This uses the native ordinary blue-panel class control; full report native equivalence is not claimed.",
+        "reason": "Only auto-height rectangular panel backdrops and authored solid side bands continue through physical fragment slack. All source, tables, links, destinations, diagnostics, PDF page/text/word boxes and public text-run geometry and PNG/PDF replay remain unchanged. The blue header source box crosses the safe cut; its two backdrops end at the physical window within their own source bounds. All changed pixels are accounted by these fills, with an explicit1px antialiasing allowance. This uses the native ordinary blue-panel class control; full report native equivalence is not claimed.",
         "evidence": [
           {
             "path": "regression-proof/report-paint-analysis/report.json",
@@ -1698,7 +1699,7 @@
         "contract": "exact-file-bytes",
         "artifact": "ScreenMediaPaged-03.png",
         "classification": "authored-slice-backdrop-and-solid-side-continuation",
-        "reason": "Only auto-height rectangular panel backdrops and authored solid side bands continue through physical fragment slack. All source, tables, links, destinations, diagnostics, PDF page/text/glyph bounds and PNG/PDF replay remain unchanged. The blue header source box crosses the safe cut; its two backdrops end at the physical window within their own source bounds. All changed pixels are accounted by these fills, with an explicit1px antialiasing allowance. This uses the native ordinary blue-panel class control; full report native equivalence is not claimed.",
+        "reason": "Only auto-height rectangular panel backdrops and authored solid side bands continue through physical fragment slack. All source, tables, links, destinations, diagnostics, PDF page/text/word boxes and public text-run geometry and PNG/PDF replay remain unchanged. The blue header source box crosses the safe cut; its two backdrops end at the physical window within their own source bounds. All changed pixels are accounted by these fills, with an explicit1px antialiasing allowance. This uses the native ordinary blue-panel class control; full report native equivalence is not claimed.",
         "evidence": [
           {
             "path": "regression-proof/report-paint-analysis/report.json",
@@ -1733,7 +1734,7 @@
         "contract": "exact-file-bytes",
         "artifact": "ScreenMediaPaged-04.png",
         "classification": "authored-slice-backdrop-and-solid-side-continuation",
-        "reason": "Only auto-height rectangular panel backdrops and authored solid side bands continue through physical fragment slack. All source, tables, links, destinations, diagnostics, PDF page/text/glyph bounds and PNG/PDF replay remain unchanged. The blue header source box crosses the safe cut; its two backdrops end at the physical window within their own source bounds. All changed pixels are accounted by these fills, with an explicit1px antialiasing allowance. This uses the native ordinary blue-panel class control; full report native equivalence is not claimed.",
+        "reason": "Only auto-height rectangular panel backdrops and authored solid side bands continue through physical fragment slack. All source, tables, links, destinations, diagnostics, PDF page/text/word boxes and public text-run geometry and PNG/PDF replay remain unchanged. The blue header source box crosses the safe cut; its two backdrops end at the physical window within their own source bounds. All changed pixels are accounted by these fills, with an explicit1px antialiasing allowance. This uses the native ordinary blue-panel class control; full report native equivalence is not claimed.",
         "evidence": [
           {
             "path": "regression-proof/report-paint-analysis/report.json",
@@ -1768,7 +1769,7 @@
         "contract": "exact-file-bytes",
         "artifact": "ScreenMediaPaged-05.png",
         "classification": "authored-slice-backdrop-and-solid-side-continuation",
-        "reason": "Only auto-height rectangular panel backdrops and authored solid side bands continue through physical fragment slack. All source, tables, links, destinations, diagnostics, PDF page/text/glyph bounds and PNG/PDF replay remain unchanged. The blue header source box crosses the safe cut; its two backdrops end at the physical window within their own source bounds. All changed pixels are accounted by these fills, with an explicit1px antialiasing allowance. This uses the native ordinary blue-panel class control; full report native equivalence is not claimed.",
+        "reason": "Only auto-height rectangular panel backdrops and authored solid side bands continue through physical fragment slack. All source, tables, links, destinations, diagnostics, PDF page/text/word boxes and public text-run geometry and PNG/PDF replay remain unchanged. The blue header source box crosses the safe cut; its two backdrops end at the physical window within their own source bounds. All changed pixels are accounted by these fills, with an explicit1px antialiasing allowance. This uses the native ordinary blue-panel class control; full report native equivalence is not claimed.",
         "evidence": [
           {
             "path": "regression-proof/report-paint-analysis/report.json",
@@ -1803,7 +1804,7 @@
         "contract": "exact-file-bytes",
         "artifact": "ScreenMediaPaged-06.png",
         "classification": "authored-slice-backdrop-and-solid-side-continuation",
-        "reason": "Only auto-height rectangular panel backdrops and authored solid side bands continue through physical fragment slack. All source, tables, links, destinations, diagnostics, PDF page/text/glyph bounds and PNG/PDF replay remain unchanged. The blue header source box crosses the safe cut; its two backdrops end at the physical window within their own source bounds. All changed pixels are accounted by these fills, with an explicit1px antialiasing allowance. This uses the native ordinary blue-panel class control; full report native equivalence is not claimed.",
+        "reason": "Only auto-height rectangular panel backdrops and authored solid side bands continue through physical fragment slack. All source, tables, links, destinations, diagnostics, PDF page/text/word boxes and public text-run geometry and PNG/PDF replay remain unchanged. The blue header source box crosses the safe cut; its two backdrops end at the physical window within their own source bounds. All changed pixels are accounted by these fills, with an explicit1px antialiasing allowance. This uses the native ordinary blue-panel class control; full report native equivalence is not claimed.",
         "evidence": [
           {
             "path": "regression-proof/report-paint-analysis/report.json",
@@ -1837,7 +1838,7 @@
         "cohort": "reports",
         "contract": "complete-observed-summary",
         "classification": "authored-slice-backdrop-and-solid-side-continuation",
-        "reason": "Only auto-height rectangular panel backdrops and authored solid side bands continue through physical fragment slack. All source, tables, links, destinations, diagnostics, PDF page/text/glyph bounds and PNG/PDF replay remain unchanged. The blue header source box crosses the safe cut; its two backdrops end at the physical window within their own source bounds. All changed pixels are accounted by these fills, with an explicit1px antialiasing allowance. This uses the native ordinary blue-panel class control; full report native equivalence is not claimed.",
+        "reason": "Only auto-height rectangular panel backdrops and authored solid side bands continue through physical fragment slack. All source, tables, links, destinations, diagnostics, PDF page/text/word boxes and public text-run geometry and PNG/PDF replay remain unchanged. The blue header source box crosses the safe cut; its two backdrops end at the physical window within their own source bounds. All changed pixels are accounted by these fills, with an explicit1px antialiasing allowance. This uses the native ordinary blue-panel class control; full report native equivalence is not claimed.",
         "evidence": [
           {
             "path": "regression-proof/report-paint-analysis/report.json",
@@ -1872,7 +1873,7 @@
         "contract": "exact-file-bytes",
         "artifact": "PrintPaged-01.png",
         "classification": "authored-slice-backdrop-and-solid-side-continuation",
-        "reason": "Only auto-height rectangular panel backdrops and authored solid side bands continue through physical fragment slack. All source, tables, links, destinations, diagnostics, PDF page/text/glyph bounds and PNG/PDF replay remain unchanged. The blue header source box crosses the safe cut; its two backdrops end at the physical window within their own source bounds. All changed pixels are accounted by these fills, with an explicit1px antialiasing allowance. This uses the native ordinary blue-panel class control; full report native equivalence is not claimed.",
+        "reason": "Only auto-height rectangular panel backdrops and authored solid side bands continue through physical fragment slack. All source, tables, links, destinations, diagnostics, PDF page/text/word boxes and public text-run geometry and PNG/PDF replay remain unchanged. The blue header source box crosses the safe cut; its two backdrops end at the physical window within their own source bounds. All changed pixels are accounted by these fills, with an explicit1px antialiasing allowance. This uses the native ordinary blue-panel class control; full report native equivalence is not claimed.",
         "evidence": [
           {
             "path": "regression-proof/report-paint-analysis/report.json",
@@ -1907,7 +1908,7 @@
         "contract": "exact-file-bytes",
         "artifact": "PrintPaged-02.png",
         "classification": "authored-slice-backdrop-and-solid-side-continuation",
-        "reason": "Only auto-height rectangular panel backdrops and authored solid side bands continue through physical fragment slack. All source, tables, links, destinations, diagnostics, PDF page/text/glyph bounds and PNG/PDF replay remain unchanged. The blue header source box crosses the safe cut; its two backdrops end at the physical window within their own source bounds. All changed pixels are accounted by these fills, with an explicit1px antialiasing allowance. This uses the native ordinary blue-panel class control; full report native equivalence is not claimed.",
+        "reason": "Only auto-height rectangular panel backdrops and authored solid side bands continue through physical fragment slack. All source, tables, links, destinations, diagnostics, PDF page/text/word boxes and public text-run geometry and PNG/PDF replay remain unchanged. The blue header source box crosses the safe cut; its two backdrops end at the physical window within their own source bounds. All changed pixels are accounted by these fills, with an explicit1px antialiasing allowance. This uses the native ordinary blue-panel class control; full report native equivalence is not claimed.",
         "evidence": [
           {
             "path": "regression-proof/report-paint-analysis/report.json",
@@ -1942,7 +1943,7 @@
         "contract": "exact-file-bytes",
         "artifact": "PrintPaged-03.png",
         "classification": "authored-slice-backdrop-and-solid-side-continuation",
-        "reason": "Only auto-height rectangular panel backdrops and authored solid side bands continue through physical fragment slack. All source, tables, links, destinations, diagnostics, PDF page/text/glyph bounds and PNG/PDF replay remain unchanged. The blue header source box crosses the safe cut; its two backdrops end at the physical window within their own source bounds. All changed pixels are accounted by these fills, with an explicit1px antialiasing allowance. This uses the native ordinary blue-panel class control; full report native equivalence is not claimed.",
+        "reason": "Only auto-height rectangular panel backdrops and authored solid side bands continue through physical fragment slack. All source, tables, links, destinations, diagnostics, PDF page/text/word boxes and public text-run geometry and PNG/PDF replay remain unchanged. The blue header source box crosses the safe cut; its two backdrops end at the physical window within their own source bounds. All changed pixels are accounted by these fills, with an explicit1px antialiasing allowance. This uses the native ordinary blue-panel class control; full report native equivalence is not claimed.",
         "evidence": [
           {
             "path": "regression-proof/report-paint-analysis/report.json",
@@ -1977,7 +1978,7 @@
         "contract": "exact-file-bytes",
         "artifact": "PrintPaged-04.png",
         "classification": "authored-slice-backdrop-and-solid-side-continuation",
-        "reason": "Only auto-height rectangular panel backdrops and authored solid side bands continue through physical fragment slack. All source, tables, links, destinations, diagnostics, PDF page/text/glyph bounds and PNG/PDF replay remain unchanged. The blue header source box crosses the safe cut; its two backdrops end at the physical window within their own source bounds. All changed pixels are accounted by these fills, with an explicit1px antialiasing allowance. This uses the native ordinary blue-panel class control; full report native equivalence is not claimed.",
+        "reason": "Only auto-height rectangular panel backdrops and authored solid side bands continue through physical fragment slack. All source, tables, links, destinations, diagnostics, PDF page/text/word boxes and public text-run geometry and PNG/PDF replay remain unchanged. The blue header source box crosses the safe cut; its two backdrops end at the physical window within their own source bounds. All changed pixels are accounted by these fills, with an explicit1px antialiasing allowance. This uses the native ordinary blue-panel class control; full report native equivalence is not claimed.",
         "evidence": [
           {
             "path": "regression-proof/report-paint-analysis/report.json",
@@ -2012,7 +2013,7 @@
         "contract": "exact-file-bytes",
         "artifact": "PrintPaged-05.png",
         "classification": "authored-slice-backdrop-and-solid-side-continuation",
-        "reason": "Only auto-height rectangular panel backdrops and authored solid side bands continue through physical fragment slack. All source, tables, links, destinations, diagnostics, PDF page/text/glyph bounds and PNG/PDF replay remain unchanged. The blue header source box crosses the safe cut; its two backdrops end at the physical window within their own source bounds. All changed pixels are accounted by these fills, with an explicit1px antialiasing allowance. This uses the native ordinary blue-panel class control; full report native equivalence is not claimed.",
+        "reason": "Only auto-height rectangular panel backdrops and authored solid side bands continue through physical fragment slack. All source, tables, links, destinations, diagnostics, PDF page/text/word boxes and public text-run geometry and PNG/PDF replay remain unchanged. The blue header source box crosses the safe cut; its two backdrops end at the physical window within their own source bounds. All changed pixels are accounted by these fills, with an explicit1px antialiasing allowance. This uses the native ordinary blue-panel class control; full report native equivalence is not claimed.",
         "evidence": [
           {
             "path": "regression-proof/report-paint-analysis/report.json",
@@ -2047,7 +2048,7 @@
         "contract": "exact-file-bytes",
         "artifact": "PrintPaged-06.png",
         "classification": "authored-slice-backdrop-and-solid-side-continuation",
-        "reason": "Only auto-height rectangular panel backdrops and authored solid side bands continue through physical fragment slack. All source, tables, links, destinations, diagnostics, PDF page/text/glyph bounds and PNG/PDF replay remain unchanged. The blue header source box crosses the safe cut; its two backdrops end at the physical window within their own source bounds. All changed pixels are accounted by these fills, with an explicit1px antialiasing allowance. This uses the native ordinary blue-panel class control; full report native equivalence is not claimed.",
+        "reason": "Only auto-height rectangular panel backdrops and authored solid side bands continue through physical fragment slack. All source, tables, links, destinations, diagnostics, PDF page/text/word boxes and public text-run geometry and PNG/PDF replay remain unchanged. The blue header source box crosses the safe cut; its two backdrops end at the physical window within their own source bounds. All changed pixels are accounted by these fills, with an explicit1px antialiasing allowance. This uses the native ordinary blue-panel class control; full report native equivalence is not claimed.",
         "evidence": [
           {
             "path": "regression-proof/report-paint-analysis/report.json",
@@ -2082,7 +2083,7 @@
         "contract": "exact-file-bytes",
         "artifact": "PrintPaged-07.png",
         "classification": "authored-slice-backdrop-and-solid-side-continuation",
-        "reason": "Only auto-height rectangular panel backdrops and authored solid side bands continue through physical fragment slack. All source, tables, links, destinations, diagnostics, PDF page/text/glyph bounds and PNG/PDF replay remain unchanged. The blue header source box crosses the safe cut; its two backdrops end at the physical window within their own source bounds. All changed pixels are accounted by these fills, with an explicit1px antialiasing allowance. This uses the native ordinary blue-panel class control; full report native equivalence is not claimed.",
+        "reason": "Only auto-height rectangular panel backdrops and authored solid side bands continue through physical fragment slack. All source, tables, links, destinations, diagnostics, PDF page/text/word boxes and public text-run geometry and PNG/PDF replay remain unchanged. The blue header source box crosses the safe cut; its two backdrops end at the physical window within their own source bounds. All changed pixels are accounted by these fills, with an explicit1px antialiasing allowance. This uses the native ordinary blue-panel class control; full report native equivalence is not claimed.",
         "evidence": [
           {
             "path": "regression-proof/report-paint-analysis/report.json",
@@ -2117,7 +2118,7 @@
         "contract": "exact-file-bytes",
         "artifact": "ScreenMediaPaged-01.png",
         "classification": "authored-slice-backdrop-and-solid-side-continuation",
-        "reason": "Only auto-height rectangular panel backdrops and authored solid side bands continue through physical fragment slack. All source, tables, links, destinations, diagnostics, PDF page/text/glyph bounds and PNG/PDF replay remain unchanged. The blue header source box crosses the safe cut; its two backdrops end at the physical window within their own source bounds. All changed pixels are accounted by these fills, with an explicit1px antialiasing allowance. This uses the native ordinary blue-panel class control; full report native equivalence is not claimed.",
+        "reason": "Only auto-height rectangular panel backdrops and authored solid side bands continue through physical fragment slack. All source, tables, links, destinations, diagnostics, PDF page/text/word boxes and public text-run geometry and PNG/PDF replay remain unchanged. The blue header source box crosses the safe cut; its two backdrops end at the physical window within their own source bounds. All changed pixels are accounted by these fills, with an explicit1px antialiasing allowance. This uses the native ordinary blue-panel class control; full report native equivalence is not claimed.",
         "evidence": [
           {
             "path": "regression-proof/report-paint-analysis/report.json",
@@ -2152,7 +2153,7 @@
         "contract": "exact-file-bytes",
         "artifact": "ScreenMediaPaged-02.png",
         "classification": "authored-slice-backdrop-and-solid-side-continuation",
-        "reason": "Only auto-height rectangular panel backdrops and authored solid side bands continue through physical fragment slack. All source, tables, links, destinations, diagnostics, PDF page/text/glyph bounds and PNG/PDF replay remain unchanged. The blue header source box crosses the safe cut; its two backdrops end at the physical window within their own source bounds. All changed pixels are accounted by these fills, with an explicit1px antialiasing allowance. This uses the native ordinary blue-panel class control; full report native equivalence is not claimed.",
+        "reason": "Only auto-height rectangular panel backdrops and authored solid side bands continue through physical fragment slack. All source, tables, links, destinations, diagnostics, PDF page/text/word boxes and public text-run geometry and PNG/PDF replay remain unchanged. The blue header source box crosses the safe cut; its two backdrops end at the physical window within their own source bounds. All changed pixels are accounted by these fills, with an explicit1px antialiasing allowance. This uses the native ordinary blue-panel class control; full report native equivalence is not claimed.",
         "evidence": [
           {
             "path": "regression-proof/report-paint-analysis/report.json",
@@ -2187,7 +2188,7 @@
         "contract": "exact-file-bytes",
         "artifact": "ScreenMediaPaged-04.png",
         "classification": "authored-slice-backdrop-and-solid-side-continuation",
-        "reason": "Only auto-height rectangular panel backdrops and authored solid side bands continue through physical fragment slack. All source, tables, links, destinations, diagnostics, PDF page/text/glyph bounds and PNG/PDF replay remain unchanged. The blue header source box crosses the safe cut; its two backdrops end at the physical window within their own source bounds. All changed pixels are accounted by these fills, with an explicit1px antialiasing allowance. This uses the native ordinary blue-panel class control; full report native equivalence is not claimed.",
+        "reason": "Only auto-height rectangular panel backdrops and authored solid side bands continue through physical fragment slack. All source, tables, links, destinations, diagnostics, PDF page/text/word boxes and public text-run geometry and PNG/PDF replay remain unchanged. The blue header source box crosses the safe cut; its two backdrops end at the physical window within their own source bounds. All changed pixels are accounted by these fills, with an explicit1px antialiasing allowance. This uses the native ordinary blue-panel class control; full report native equivalence is not claimed.",
         "evidence": [
           {
             "path": "regression-proof/report-paint-analysis/report.json",
@@ -2222,7 +2223,7 @@
         "contract": "exact-file-bytes",
         "artifact": "ScreenMediaPaged-05.png",
         "classification": "authored-slice-backdrop-and-solid-side-continuation",
-        "reason": "Only auto-height rectangular panel backdrops and authored solid side bands continue through physical fragment slack. All source, tables, links, destinations, diagnostics, PDF page/text/glyph bounds and PNG/PDF replay remain unchanged. The blue header source box crosses the safe cut; its two backdrops end at the physical window within their own source bounds. All changed pixels are accounted by these fills, with an explicit1px antialiasing allowance. This uses the native ordinary blue-panel class control; full report native equivalence is not claimed.",
+        "reason": "Only auto-height rectangular panel backdrops and authored solid side bands continue through physical fragment slack. All source, tables, links, destinations, diagnostics, PDF page/text/word boxes and public text-run geometry and PNG/PDF replay remain unchanged. The blue header source box crosses the safe cut; its two backdrops end at the physical window within their own source bounds. All changed pixels are accounted by these fills, with an explicit1px antialiasing allowance. This uses the native ordinary blue-panel class control; full report native equivalence is not claimed.",
         "evidence": [
           {
             "path": "regression-proof/report-paint-analysis/report.json",
@@ -2257,7 +2258,7 @@
         "contract": "exact-file-bytes",
         "artifact": "ScreenMediaPaged-06.png",
         "classification": "authored-slice-backdrop-and-solid-side-continuation",
-        "reason": "Only auto-height rectangular panel backdrops and authored solid side bands continue through physical fragment slack. All source, tables, links, destinations, diagnostics, PDF page/text/glyph bounds and PNG/PDF replay remain unchanged. The blue header source box crosses the safe cut; its two backdrops end at the physical window within their own source bounds. All changed pixels are accounted by these fills, with an explicit1px antialiasing allowance. This uses the native ordinary blue-panel class control; full report native equivalence is not claimed.",
+        "reason": "Only auto-height rectangular panel backdrops and authored solid side bands continue through physical fragment slack. All source, tables, links, destinations, diagnostics, PDF page/text/word boxes and public text-run geometry and PNG/PDF replay remain unchanged. The blue header source box crosses the safe cut; its two backdrops end at the physical window within their own source bounds. All changed pixels are accounted by these fills, with an explicit1px antialiasing allowance. This uses the native ordinary blue-panel class control; full report native equivalence is not claimed.",
         "evidence": [
           {
             "path": "regression-proof/report-paint-analysis/report.json",
@@ -2292,7 +2293,7 @@
         "contract": "exact-file-bytes",
         "artifact": "ScreenMediaPaged-07.png",
         "classification": "authored-slice-backdrop-and-solid-side-continuation",
-        "reason": "Only auto-height rectangular panel backdrops and authored solid side bands continue through physical fragment slack. All source, tables, links, destinations, diagnostics, PDF page/text/glyph bounds and PNG/PDF replay remain unchanged. The blue header source box crosses the safe cut; its two backdrops end at the physical window within their own source bounds. All changed pixels are accounted by these fills, with an explicit1px antialiasing allowance. This uses the native ordinary blue-panel class control; full report native equivalence is not claimed.",
+        "reason": "Only auto-height rectangular panel backdrops and authored solid side bands continue through physical fragment slack. All source, tables, links, destinations, diagnostics, PDF page/text/word boxes and public text-run geometry and PNG/PDF replay remain unchanged. The blue header source box crosses the safe cut; its two backdrops end at the physical window within their own source bounds. All changed pixels are accounted by these fills, with an explicit1px antialiasing allowance. This uses the native ordinary blue-panel class control; full report native equivalence is not claimed.",
         "evidence": [
           {
             "path": "regression-proof/report-paint-analysis/report.json",
@@ -2326,7 +2327,7 @@
         "cohort": "reports",
         "contract": "complete-observed-summary",
         "classification": "authored-slice-backdrop-and-solid-side-continuation",
-        "reason": "Only auto-height rectangular panel backdrops and authored solid side bands continue through physical fragment slack. All source, tables, links, destinations, diagnostics, PDF page/text/glyph bounds and PNG/PDF replay remain unchanged. The blue header source box crosses the safe cut; its two backdrops end at the physical window within their own source bounds. All changed pixels are accounted by these fills, with an explicit1px antialiasing allowance. This uses the native ordinary blue-panel class control; full report native equivalence is not claimed.",
+        "reason": "Only auto-height rectangular panel backdrops and authored solid side bands continue through physical fragment slack. All source, tables, links, destinations, diagnostics, PDF page/text/word boxes and public text-run geometry and PNG/PDF replay remain unchanged. The blue header source box crosses the safe cut; its two backdrops end at the physical window within their own source bounds. All changed pixels are accounted by these fills, with an explicit1px antialiasing allowance. This uses the native ordinary blue-panel class control; full report native equivalence is not claimed.",
         "evidence": [
           {
             "path": "regression-proof/report-paint-analysis/report.json",
@@ -2361,7 +2362,7 @@
         "contract": "exact-file-bytes",
         "artifact": "PrintPaged-01.png",
         "classification": "authored-slice-backdrop-and-solid-side-continuation",
-        "reason": "Only auto-height rectangular panel backdrops and authored solid side bands continue through physical fragment slack. All source, tables, links, destinations, diagnostics, PDF page/text/glyph bounds and PNG/PDF replay remain unchanged. The blue header source box crosses the safe cut; its two backdrops end at the physical window within their own source bounds. All changed pixels are accounted by these fills, with an explicit1px antialiasing allowance. This uses the native ordinary blue-panel class control; full report native equivalence is not claimed.",
+        "reason": "Only auto-height rectangular panel backdrops and authored solid side bands continue through physical fragment slack. All source, tables, links, destinations, diagnostics, PDF page/text/word boxes and public text-run geometry and PNG/PDF replay remain unchanged. The blue header source box crosses the safe cut; its two backdrops end at the physical window within their own source bounds. All changed pixels are accounted by these fills, with an explicit1px antialiasing allowance. This uses the native ordinary blue-panel class control; full report native equivalence is not claimed.",
         "evidence": [
           {
             "path": "regression-proof/report-paint-analysis/report.json",
@@ -2396,7 +2397,7 @@
         "contract": "exact-file-bytes",
         "artifact": "PrintPaged-02.png",
         "classification": "authored-slice-backdrop-and-solid-side-continuation",
-        "reason": "Only auto-height rectangular panel backdrops and authored solid side bands continue through physical fragment slack. All source, tables, links, destinations, diagnostics, PDF page/text/glyph bounds and PNG/PDF replay remain unchanged. The blue header source box crosses the safe cut; its two backdrops end at the physical window within their own source bounds. All changed pixels are accounted by these fills, with an explicit1px antialiasing allowance. This uses the native ordinary blue-panel class control; full report native equivalence is not claimed.",
+        "reason": "Only auto-height rectangular panel backdrops and authored solid side bands continue through physical fragment slack. All source, tables, links, destinations, diagnostics, PDF page/text/word boxes and public text-run geometry and PNG/PDF replay remain unchanged. The blue header source box crosses the safe cut; its two backdrops end at the physical window within their own source bounds. All changed pixels are accounted by these fills, with an explicit1px antialiasing allowance. This uses the native ordinary blue-panel class control; full report native equivalence is not claimed.",
         "evidence": [
           {
             "path": "regression-proof/report-paint-analysis/report.json",
@@ -2431,7 +2432,7 @@
         "contract": "exact-file-bytes",
         "artifact": "PrintPaged-03.png",
         "classification": "authored-slice-backdrop-and-solid-side-continuation",
-        "reason": "Only auto-height rectangular panel backdrops and authored solid side bands continue through physical fragment slack. All source, tables, links, destinations, diagnostics, PDF page/text/glyph bounds and PNG/PDF replay remain unchanged. The blue header source box crosses the safe cut; its two backdrops end at the physical window within their own source bounds. All changed pixels are accounted by these fills, with an explicit1px antialiasing allowance. This uses the native ordinary blue-panel class control; full report native equivalence is not claimed.",
+        "reason": "Only auto-height rectangular panel backdrops and authored solid side bands continue through physical fragment slack. All source, tables, links, destinations, diagnostics, PDF page/text/word boxes and public text-run geometry and PNG/PDF replay remain unchanged. The blue header source box crosses the safe cut; its two backdrops end at the physical window within their own source bounds. All changed pixels are accounted by these fills, with an explicit1px antialiasing allowance. This uses the native ordinary blue-panel class control; full report native equivalence is not claimed.",
         "evidence": [
           {
             "path": "regression-proof/report-paint-analysis/report.json",
@@ -2466,7 +2467,7 @@
         "contract": "exact-file-bytes",
         "artifact": "PrintPaged-04.png",
         "classification": "authored-slice-backdrop-and-solid-side-continuation",
-        "reason": "Only auto-height rectangular panel backdrops and authored solid side bands continue through physical fragment slack. All source, tables, links, destinations, diagnostics, PDF page/text/glyph bounds and PNG/PDF replay remain unchanged. The blue header source box crosses the safe cut; its two backdrops end at the physical window within their own source bounds. All changed pixels are accounted by these fills, with an explicit1px antialiasing allowance. This uses the native ordinary blue-panel class control; full report native equivalence is not claimed.",
+        "reason": "Only auto-height rectangular panel backdrops and authored solid side bands continue through physical fragment slack. All source, tables, links, destinations, diagnostics, PDF page/text/word boxes and public text-run geometry and PNG/PDF replay remain unchanged. The blue header source box crosses the safe cut; its two backdrops end at the physical window within their own source bounds. All changed pixels are accounted by these fills, with an explicit1px antialiasing allowance. This uses the native ordinary blue-panel class control; full report native equivalence is not claimed.",
         "evidence": [
           {
             "path": "regression-proof/report-paint-analysis/report.json",
@@ -2501,7 +2502,7 @@
         "contract": "exact-file-bytes",
         "artifact": "PrintPaged-06.png",
         "classification": "authored-slice-backdrop-and-solid-side-continuation",
-        "reason": "Only auto-height rectangular panel backdrops and authored solid side bands continue through physical fragment slack. All source, tables, links, destinations, diagnostics, PDF page/text/glyph bounds and PNG/PDF replay remain unchanged. The blue header source box crosses the safe cut; its two backdrops end at the physical window within their own source bounds. All changed pixels are accounted by these fills, with an explicit1px antialiasing allowance. This uses the native ordinary blue-panel class control; full report native equivalence is not claimed.",
+        "reason": "Only auto-height rectangular panel backdrops and authored solid side bands continue through physical fragment slack. All source, tables, links, destinations, diagnostics, PDF page/text/word boxes and public text-run geometry and PNG/PDF replay remain unchanged. The blue header source box crosses the safe cut; its two backdrops end at the physical window within their own source bounds. All changed pixels are accounted by these fills, with an explicit1px antialiasing allowance. This uses the native ordinary blue-panel class control; full report native equivalence is not claimed.",
         "evidence": [
           {
             "path": "regression-proof/report-paint-analysis/report.json",
@@ -2536,7 +2537,7 @@
         "contract": "exact-file-bytes",
         "artifact": "PrintPaged-07.png",
         "classification": "authored-slice-backdrop-and-solid-side-continuation",
-        "reason": "Only auto-height rectangular panel backdrops and authored solid side bands continue through physical fragment slack. All source, tables, links, destinations, diagnostics, PDF page/text/glyph bounds and PNG/PDF replay remain unchanged. The blue header source box crosses the safe cut; its two backdrops end at the physical window within their own source bounds. All changed pixels are accounted by these fills, with an explicit1px antialiasing allowance. This uses the native ordinary blue-panel class control; full report native equivalence is not claimed.",
+        "reason": "Only auto-height rectangular panel backdrops and authored solid side bands continue through physical fragment slack. All source, tables, links, destinations, diagnostics, PDF page/text/word boxes and public text-run geometry and PNG/PDF replay remain unchanged. The blue header source box crosses the safe cut; its two backdrops end at the physical window within their own source bounds. All changed pixels are accounted by these fills, with an explicit1px antialiasing allowance. This uses the native ordinary blue-panel class control; full report native equivalence is not claimed.",
         "evidence": [
           {
             "path": "regression-proof/report-paint-analysis/report.json",
@@ -2571,7 +2572,7 @@
         "contract": "exact-file-bytes",
         "artifact": "ScreenMediaPaged-01.png",
         "classification": "authored-slice-backdrop-and-solid-side-continuation",
-        "reason": "Only auto-height rectangular panel backdrops and authored solid side bands continue through physical fragment slack. All source, tables, links, destinations, diagnostics, PDF page/text/glyph bounds and PNG/PDF replay remain unchanged. The blue header source box crosses the safe cut; its two backdrops end at the physical window within their own source bounds. All changed pixels are accounted by these fills, with an explicit1px antialiasing allowance. This uses the native ordinary blue-panel class control; full report native equivalence is not claimed.",
+        "reason": "Only auto-height rectangular panel backdrops and authored solid side bands continue through physical fragment slack. All source, tables, links, destinations, diagnostics, PDF page/text/word boxes and public text-run geometry and PNG/PDF replay remain unchanged. The blue header source box crosses the safe cut; its two backdrops end at the physical window within their own source bounds. All changed pixels are accounted by these fills, with an explicit1px antialiasing allowance. This uses the native ordinary blue-panel class control; full report native equivalence is not claimed.",
         "evidence": [
           {
             "path": "regression-proof/report-paint-analysis/report.json",
@@ -2606,7 +2607,7 @@
         "contract": "exact-file-bytes",
         "artifact": "ScreenMediaPaged-02.png",
         "classification": "authored-slice-backdrop-and-solid-side-continuation",
-        "reason": "Only auto-height rectangular panel backdrops and authored solid side bands continue through physical fragment slack. All source, tables, links, destinations, diagnostics, PDF page/text/glyph bounds and PNG/PDF replay remain unchanged. The blue header source box crosses the safe cut; its two backdrops end at the physical window within their own source bounds. All changed pixels are accounted by these fills, with an explicit1px antialiasing allowance. This uses the native ordinary blue-panel class control; full report native equivalence is not claimed.",
+        "reason": "Only auto-height rectangular panel backdrops and authored solid side bands continue through physical fragment slack. All source, tables, links, destinations, diagnostics, PDF page/text/word boxes and public text-run geometry and PNG/PDF replay remain unchanged. The blue header source box crosses the safe cut; its two backdrops end at the physical window within their own source bounds. All changed pixels are accounted by these fills, with an explicit1px antialiasing allowance. This uses the native ordinary blue-panel class control; full report native equivalence is not claimed.",
         "evidence": [
           {
             "path": "regression-proof/report-paint-analysis/report.json",
@@ -2641,7 +2642,7 @@
         "contract": "exact-file-bytes",
         "artifact": "ScreenMediaPaged-03.png",
         "classification": "authored-slice-backdrop-and-solid-side-continuation",
-        "reason": "Only auto-height rectangular panel backdrops and authored solid side bands continue through physical fragment slack. All source, tables, links, destinations, diagnostics, PDF page/text/glyph bounds and PNG/PDF replay remain unchanged. The blue header source box crosses the safe cut; its two backdrops end at the physical window within their own source bounds. All changed pixels are accounted by these fills, with an explicit1px antialiasing allowance. This uses the native ordinary blue-panel class control; full report native equivalence is not claimed.",
+        "reason": "Only auto-height rectangular panel backdrops and authored solid side bands continue through physical fragment slack. All source, tables, links, destinations, diagnostics, PDF page/text/word boxes and public text-run geometry and PNG/PDF replay remain unchanged. The blue header source box crosses the safe cut; its two backdrops end at the physical window within their own source bounds. All changed pixels are accounted by these fills, with an explicit1px antialiasing allowance. This uses the native ordinary blue-panel class control; full report native equivalence is not claimed.",
         "evidence": [
           {
             "path": "regression-proof/report-paint-analysis/report.json",
@@ -2676,7 +2677,7 @@
         "contract": "exact-file-bytes",
         "artifact": "ScreenMediaPaged-04.png",
         "classification": "authored-slice-backdrop-and-solid-side-continuation",
-        "reason": "Only auto-height rectangular panel backdrops and authored solid side bands continue through physical fragment slack. All source, tables, links, destinations, diagnostics, PDF page/text/glyph bounds and PNG/PDF replay remain unchanged. The blue header source box crosses the safe cut; its two backdrops end at the physical window within their own source bounds. All changed pixels are accounted by these fills, with an explicit1px antialiasing allowance. This uses the native ordinary blue-panel class control; full report native equivalence is not claimed.",
+        "reason": "Only auto-height rectangular panel backdrops and authored solid side bands continue through physical fragment slack. All source, tables, links, destinations, diagnostics, PDF page/text/word boxes and public text-run geometry and PNG/PDF replay remain unchanged. The blue header source box crosses the safe cut; its two backdrops end at the physical window within their own source bounds. All changed pixels are accounted by these fills, with an explicit1px antialiasing allowance. This uses the native ordinary blue-panel class control; full report native equivalence is not claimed.",
         "evidence": [
           {
             "path": "regression-proof/report-paint-analysis/report.json",
@@ -2711,7 +2712,7 @@
         "contract": "exact-file-bytes",
         "artifact": "ScreenMediaPaged-05.png",
         "classification": "authored-slice-backdrop-and-solid-side-continuation",
-        "reason": "Only auto-height rectangular panel backdrops and authored solid side bands continue through physical fragment slack. All source, tables, links, destinations, diagnostics, PDF page/text/glyph bounds and PNG/PDF replay remain unchanged. The blue header source box crosses the safe cut; its two backdrops end at the physical window within their own source bounds. All changed pixels are accounted by these fills, with an explicit1px antialiasing allowance. This uses the native ordinary blue-panel class control; full report native equivalence is not claimed.",
+        "reason": "Only auto-height rectangular panel backdrops and authored solid side bands continue through physical fragment slack. All source, tables, links, destinations, diagnostics, PDF page/text/word boxes and public text-run geometry and PNG/PDF replay remain unchanged. The blue header source box crosses the safe cut; its two backdrops end at the physical window within their own source bounds. All changed pixels are accounted by these fills, with an explicit1px antialiasing allowance. This uses the native ordinary blue-panel class control; full report native equivalence is not claimed.",
         "evidence": [
           {
             "path": "regression-proof/report-paint-analysis/report.json",
@@ -2746,7 +2747,7 @@
         "contract": "exact-file-bytes",
         "artifact": "ScreenMediaPaged-06.png",
         "classification": "authored-slice-backdrop-and-solid-side-continuation",
-        "reason": "Only auto-height rectangular panel backdrops and authored solid side bands continue through physical fragment slack. All source, tables, links, destinations, diagnostics, PDF page/text/glyph bounds and PNG/PDF replay remain unchanged. The blue header source box crosses the safe cut; its two backdrops end at the physical window within their own source bounds. All changed pixels are accounted by these fills, with an explicit1px antialiasing allowance. This uses the native ordinary blue-panel class control; full report native equivalence is not claimed.",
+        "reason": "Only auto-height rectangular panel backdrops and authored solid side bands continue through physical fragment slack. All source, tables, links, destinations, diagnostics, PDF page/text/word boxes and public text-run geometry and PNG/PDF replay remain unchanged. The blue header source box crosses the safe cut; its two backdrops end at the physical window within their own source bounds. All changed pixels are accounted by these fills, with an explicit1px antialiasing allowance. This uses the native ordinary blue-panel class control; full report native equivalence is not claimed.",
         "evidence": [
           {
             "path": "regression-proof/report-paint-analysis/report.json",
@@ -2781,7 +2782,7 @@
         "contract": "exact-file-bytes",
         "artifact": "ScreenMediaPaged-07.png",
         "classification": "authored-slice-backdrop-and-solid-side-continuation",
-        "reason": "Only auto-height rectangular panel backdrops and authored solid side bands continue through physical fragment slack. All source, tables, links, destinations, diagnostics, PDF page/text/glyph bounds and PNG/PDF replay remain unchanged. The blue header source box crosses the safe cut; its two backdrops end at the physical window within their own source bounds. All changed pixels are accounted by these fills, with an explicit1px antialiasing allowance. This uses the native ordinary blue-panel class control; full report native equivalence is not claimed.",
+        "reason": "Only auto-height rectangular panel backdrops and authored solid side bands continue through physical fragment slack. All source, tables, links, destinations, diagnostics, PDF page/text/word boxes and public text-run geometry and PNG/PDF replay remain unchanged. The blue header source box crosses the safe cut; its two backdrops end at the physical window within their own source bounds. All changed pixels are accounted by these fills, with an explicit1px antialiasing allowance. This uses the native ordinary blue-panel class control; full report native equivalence is not claimed.",
         "evidence": [
           {
             "path": "regression-proof/report-paint-analysis/report.json",
@@ -2816,7 +2817,7 @@
         "contract": "exact-file-bytes",
         "artifact": "ScreenMediaPaged-08.png",
         "classification": "authored-slice-backdrop-and-solid-side-continuation",
-        "reason": "Only auto-height rectangular panel backdrops and authored solid side bands continue through physical fragment slack. All source, tables, links, destinations, diagnostics, PDF page/text/glyph bounds and PNG/PDF replay remain unchanged. The blue header source box crosses the safe cut; its two backdrops end at the physical window within their own source bounds. All changed pixels are accounted by these fills, with an explicit1px antialiasing allowance. This uses the native ordinary blue-panel class control; full report native equivalence is not claimed.",
+        "reason": "Only auto-height rectangular panel backdrops and authored solid side bands continue through physical fragment slack. All source, tables, links, destinations, diagnostics, PDF page/text/word boxes and public text-run geometry and PNG/PDF replay remain unchanged. The blue header source box crosses the safe cut; its two backdrops end at the physical window within their own source bounds. All changed pixels are accounted by these fills, with an explicit1px antialiasing allowance. This uses the native ordinary blue-panel class control; full report native equivalence is not claimed.",
         "evidence": [
           {
             "path": "regression-proof/report-paint-analysis/report.json",
@@ -2846,7 +2847,7 @@
         ]
       }
     ],
-    "boundary": "The raw comparison remains unchanged. Explicit native-qualified paint corrections are distinct from exact byte/observation identity; raw PDF byte identity is not implied by equal PDF page/text/glyph observations."
+    "boundary": "The raw comparison remains unchanged. Explicit native-qualified paint corrections are distinct from exact byte/observation identity. The legacy raw comparator calls its Poppler -bbox signature glyph bounds; it actually compares word boxes. Complete public summaries separately compare text-run geometry. No individual encoded-glyph inspection or raw PDF byte identity is claimed."
   },
   "svgHost": {
     "surfaces": 26,
