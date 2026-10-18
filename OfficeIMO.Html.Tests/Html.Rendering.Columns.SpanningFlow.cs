@@ -5,6 +5,35 @@ namespace OfficeIMO.Tests;
 
 public sealed partial class HtmlRenderingTests {
     [Theory]
+    [InlineData("auto")]
+    [InlineData("balance")]
+    public void HtmlColumns_SpanningShortMaximumPreservesContinuousInlineOverflow(string fill) {
+        HtmlRenderDocument rendered = RenderColumnBreaks(
+            "<p>P1</p><p>P2</p><p style='column-span:all'>SPAN</p>"
+            + "<p>T1</p><p>T2</p><p>T3</p><p>T4</p>", "column-fill:" + fill + ";max-height:60px");
+
+        AssertColumnBreakPlacements(rendered, ("SPAN", 0D, 20D), ("T1", 0D, 40D),
+            ("T2", 160D, 40D), ("T3", 320D, 40D), ("T4", 480D, 40D), ("BREAK-AFTER", 0D, 60D));
+        AssertColumnBreaksQualified(rendered);
+    }
+
+    [Theory]
+    [InlineData(HtmlRenderIntentProfile.PrintPaged)]
+    [InlineData(HtmlRenderIntentProfile.ScreenMediaPaged)]
+    public void HtmlColumns_BalancedSpanningOverflowPreservesContentAndReportsPhysicalFlowLoss(HtmlRenderIntentProfile profile) {
+        string html = ColumnBreakSource("<style>@page{size:700px 140px;margin:20px}</style>"
+            + "<section style='width:300px;max-height:60px;column-count:2;column-gap:20px'>"
+            + "<p>P1</p><p>P2</p><p style='column-span:all'>SPAN</p>"
+            + "<p>T1</p><p>T2</p><p>T3</p><p>T4</p></section><p>AFTER</p>");
+        HtmlRenderDocument rendered = HtmlRenderEngine.Execute(HtmlConversionDocument.Parse(html),
+            HtmlRenderRequest.Create(profile, HtmlRenderEncoder.DisplayList, ColumnPageBandOptions())).Document;
+
+        AssertColumnPageBandTextOnce(rendered, new[] { "P1", "P2", "SPAN", "T1", "T2", "T3", "T4", "AFTER" });
+        Assert.Contains(rendered.Diagnostics, item => item.Code == HtmlRenderDiagnosticCodes.MultiColumnValueUnsupported);
+        Assert.Throws<HtmlConversionException>(() => rendered.RequireNoLoss());
+    }
+
+    [Theory]
     [InlineData("column-fill:auto;max-height:100px", 0D, 80D, 160D, 40D, 100D)]
     [InlineData("column-fill:balance;max-height:100px", 160D, 40D, 160D, 60D, 80D)]
     [InlineData("column-fill:auto;min-height:100px", 0D, 80D, 0D, 100D, 120D)]

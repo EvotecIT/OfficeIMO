@@ -26,7 +26,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         var contentAvoidBreakRanges = new List<HtmlRenderAvoidBreakRange>();
         var contentForcedBreaks = new List<HtmlRenderForcedBreak>();
         var runningStringAssignments = new List<HtmlCssRunningStringAssignment>();
-        bool pagedColumnRegion = CanPaginateColumnRegion(element, style);
+        bool pagedColumnRegion = _columnContentDepth == 0 && CanPaginateColumnRegion(element, style);
         ColumnPaginationContext? columnContext = null;
         double contentHeight = 0D;
         for (int index = 0; index < partitions.Count; index++) {
@@ -246,6 +246,12 @@ internal sealed partial class HtmlRenderLayoutEngine {
             plan = BuildMultiColumnPlan(children, targetHeight, _options.MaxColumnCount, throwOnLimit: true);
         }
         EnsureMultiColumnLimit(plan.ColumnCount);
+        if (_options.Mode == HtmlRenderMode.Paged && plan.ColumnCount > requestedCount
+            && (!finalPartition || style.ColumnFill != "auto")) {
+            _diagnostics.Add(ComponentName, HtmlRenderDiagnosticCodes.MultiColumnValueUnsupported,
+                "Balanced spanning-set overflow across physical pages retains the source-flow fallback.",
+                HtmlDiagnosticSeverity.Warning, source, "balanced spanning-set overflow");
+        }
         double minimumExtent = pageBands?.MinimumBoxExtent(plan.ColumnCount) ?? 0D;
         IReadOnlyList<double> pageBreaks = Array.Empty<double>();
         double? declaredHeight = ResolveDeclaredColumnContentHeight(style);
