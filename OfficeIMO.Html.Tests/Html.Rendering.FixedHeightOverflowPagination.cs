@@ -131,6 +131,28 @@ public sealed partial class HtmlRenderingTests {
             diagnostic.Code == HtmlRenderDiagnosticCodes.ForcedFragment);
     }
 
+    [Theory]
+    [InlineData(80, 40D)]
+    [InlineData(100, 60D)]
+    public void HtmlFixedHeightOverflow_InteriorKeepGapCountsTowardTheAuthoredHeight(int height, double followingTop) {
+        string html = FixedHeightOverflowSource("<div style='height:60px'>KEEP-LEAD</div>"
+            + "<div style='height:" + height + "px'><p>KEEP-INNER</p>"
+            + "<p style='break-inside:avoid;orphans:1;widows:1'>KEEP-ONE<br>KEEP-TWO<br>KEEP-THREE</p></div>"
+            + "<p style='padding-left:300px'>KEEP-AFTER</p>");
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, FixedHeightOverflowOptions());
+
+        Assert.Equal(2, rendered.Pages.Count);
+        AssertDescendantSpannerSourceOnce(rendered,
+            "KEEP-LEAD", "KEEP-INNER", "KEEP-ONE", "KEEP-TWO", "KEEP-THREE", "KEEP-AFTER");
+        AssertFixedHeightOverflowPlacement(rendered, "KEEP-INNER", 1, 60D);
+        AssertFixedHeightOverflowPlacement(rendered, "KEEP-ONE", 2, 0D);
+        AssertFixedHeightOverflowPlacement(rendered, "KEEP-TWO", 2, 20D);
+        AssertFixedHeightOverflowPlacement(rendered, "KEEP-THREE", 2, 40D);
+        AssertFixedHeightOverflowPlacement(rendered, "KEEP-AFTER", 2, followingTop);
+        Assert.DoesNotContain(rendered.Diagnostics, diagnostic =>
+            diagnostic.Code == HtmlRenderDiagnosticCodes.ForcedFragment);
+    }
+
     private static string FixedHeightOverflowSource(string content) => "<!doctype html><style>"
         + "html,body,p{margin:0;padding:0}html,body{font:14px/20px Arial;background:white}"
         + "p{font:inherit;orphans:1;widows:1}</style>" + content;
