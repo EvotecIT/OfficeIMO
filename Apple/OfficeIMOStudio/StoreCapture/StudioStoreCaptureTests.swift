@@ -28,22 +28,27 @@ final class StudioStoreCaptureTests: XCTestCase {
         // deleting documents from an interactive session.
         app.launchArguments += ["-ApplePersistenceIgnoreState", "YES"]
         #endif
+        #if !os(macOS)
         app.launch()
+        #endif
         defer { app.terminate() }
 
         #if os(macOS)
         // Target this exact built app through the normal document-open route.
         // The Open panel can restore an unrelated removable-volume location;
         // bundle-only URL dispatch can instead choose another installed build.
-        let running = try XCTUnwrap(NSRunningApplication.runningApplications(withBundleIdentifier: "com.evotec.officeimo.studio")
-            .first { $0.bundleURL?.standardizedFileURL == appURL.standardizedFileURL })
-        let expectedPID = running.processIdentifier
+        XCTAssertTrue(NSRunningApplication.runningApplications(withBundleIdentifier: "com.evotec.officeimo.studio")
+            .allSatisfy { $0.bundleURL?.standardizedFileURL != appURL.standardizedFileURL })
+        let configuration = NSWorkspace.OpenConfiguration()
+        configuration.arguments = app.launchArguments
+        configuration.environment = app.launchEnvironment
+        configuration.allowsRunningApplicationSubstitution = false
         let opened = expectation(description: "The exact capture app receives the public PDF")
         NSWorkspace.shared.open([URL(fileURLWithPath: path)], withApplicationAt: appURL,
-                                configuration: NSWorkspace.OpenConfiguration()) { application, error in
+                                configuration: configuration) { application, error in
             XCTAssertNil(error)
             XCTAssertEqual(application?.bundleURL?.standardizedFileURL, appURL.standardizedFileURL)
-            XCTAssertEqual(application?.processIdentifier, expectedPID)
+            XCTAssertGreaterThan(application?.processIdentifier ?? 0, 0)
             opened.fulfill()
         }
         wait(for: [opened], timeout: 15)
@@ -52,36 +57,7 @@ final class StudioStoreCaptureTests: XCTestCase {
         try resizePublicWindow(app: app, appURL: appURL, title: URL(fileURLWithPath: path).lastPathComponent)
         #else
         if role == "iphone" {
-            // The compact launch scene ignores a URL sent while it is running.
-            // Open the copied input through its normal native document browser.
-            let browse = app.buttons["Browse"]
-            XCTAssertTrue(browse.waitForExistence(timeout: 30), app.debugDescription)
-            browse.tap()
-            let input = URL(fileURLWithPath: path)
-            let folder = app.cells.containing(.staticText, identifier: input.deletingLastPathComponent().lastPathComponent).firstMatch
-            if !folder.waitForExistence(timeout: 3), app.buttons["OfficeIMO Studio"].exists {
-                // A preceding capture may have left the browser in its now
-                // removed input folder. Return through the native breadcrumb.
-                app.buttons["OfficeIMO Studio"].tap()
-            }
-            if !folder.waitForExistence(timeout: 3) {
-                let local = app.cells.containing(.staticText, identifier: "On My iPhone").firstMatch
-                if local.exists {
-                    local.tap()
-                } else {
-                    let back = app.buttons["On My iPhone"]
-                    XCTAssertTrue(back.waitForExistence(timeout: 10), app.debugDescription)
-                    back.tap()
-                }
-                let studio = app.cells.containing(.staticText, identifier: "OfficeIMO Studio").firstMatch
-                XCTAssertTrue(studio.waitForExistence(timeout: 10), app.debugDescription)
-                studio.tap()
-            }
-            XCTAssertTrue(folder.waitForExistence(timeout: 10), app.debugDescription)
-            folder.tap()
-            let document = app.cells.containing(.staticText, identifier: input.deletingPathExtension().lastPathComponent).firstMatch
-            XCTAssertTrue(document.waitForExistence(timeout: 10), app.debugDescription)
-            document.tap()
+            openPhoneDocument(app, input: URL(fileURLWithPath: path))
         } else {
             app.open(URL(fileURLWithPath: path))
         }
@@ -102,6 +78,34 @@ final class StudioStoreCaptureTests: XCTestCase {
             try capture(app, page: page, name: "studio-search-" + role)
         }
     }
+
+    #if os(iOS)
+    /// Uses Files' own hierarchy, including a browser restored inside an earlier
+    /// input folder. Scope Browse to its tab bar so a breadcrumb cannot match it.
+    private func openPhoneDocument(_ app: XCUIApplication, input: URL) {
+        let browse = app.tabBars["DOC.browsingModeTabBar"].buttons["Browse"]
+        XCTAssertTrue(browse.waitForExistence(timeout: 30), app.debugDescription)
+        browse.tap()
+        let folder = app.cells.containing(.staticText, identifier: input.deletingLastPathComponent().lastPathComponent).firstMatch
+        let studio = app.cells.containing(.staticText, identifier: "OfficeIMO Studio").firstMatch
+        let local = app.cells.containing(.staticText, identifier: "On My iPhone").firstMatch
+        for _ in 0..<4 {
+            if folder.waitForExistence(timeout: 2) { break }
+            if studio.exists { studio.tap() }
+            else if local.exists { local.tap() }
+            else {
+                let back = app.navigationBars["FullDocumentManagerViewControllerNavigationBar"].buttons["BackButton"]
+                XCTAssertTrue(back.exists, app.debugDescription)
+                back.tap()
+            }
+        }
+        XCTAssertTrue(folder.waitForExistence(timeout: 10), app.debugDescription)
+        folder.tap()
+        let document = app.cells.containing(.staticText, identifier: input.deletingPathExtension().lastPathComponent).firstMatch
+        XCTAssertTrue(document.waitForExistence(timeout: 10), app.debugDescription)
+        document.tap()
+    }
+    #endif
 
     private func snapshot(_ app: XCUIApplication) -> XCUIScreenshot {
         #if os(macOS)
