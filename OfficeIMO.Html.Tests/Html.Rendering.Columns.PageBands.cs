@@ -90,6 +90,70 @@ public sealed partial class HtmlRenderingTests {
         AssertColumnPageBandNoFragmentLoss(rendered);
     }
 
+    [Fact]
+    public void HtmlColumns_PageBandsReserveTheFullHeightAfterEnteringTheSecondColumn() {
+        string paragraphs = string.Concat(Enumerable.Range(1, 6).Select(index => "<p>AUTO-" + index + "</p>"));
+        HtmlRenderDocument rendered = RenderColumnPageBands("<style>.page-columns{height:auto}</style>"
+            + "<section class='page-columns'>" + paragraphs + "</section><p style='font-size:5px;line-height:5px'>AFTER</p>");
+
+        AssertColumnPageBandTextOnce(rendered, Enumerable.Range(1, 6).Select(index => "AUTO-" + index).Append("AFTER"));
+        Assert.Equal(2, ColumnPageBandTextPage(rendered, "AFTER").PageNumber);
+        AssertColumnPageBandNoFragmentLoss(rendered);
+    }
+
+    [Fact]
+    public void HtmlColumns_PageBandsDiscoverTheNextSetAfterADeferredFullHeightSet() {
+        string lines = string.Join("<br>", Enumerable.Range(1, 8).Select(index => "DEFER-" + index));
+        string following = string.Concat(Enumerable.Range(1, 5).Select(index => "<p>NEXT-" + index + "</p>"));
+        HtmlRenderDocument rendered = RenderColumnPageBands("<style>.page-columns{height:auto}"
+            + ".short{font-size:10px;line-height:10px}</style><main><div style='height:40px'>PRELUDE</div>"
+            + "<section class='page-columns'><p style='line-height:20px;orphans:4;widows:4'>" + lines + "</p></section>"
+            + "<section class='page-columns short'>" + following + "</section><p>AFTER</p></main>");
+
+        AssertColumnPageBandTextOnce(rendered, Enumerable.Range(1, 8).Select(index => "DEFER-" + index)
+            .Concat(Enumerable.Range(1, 5).Select(index => "NEXT-" + index)).Concat(new[] { "PRELUDE", "AFTER" }));
+        Assert.All(Enumerable.Range(1, 8), index => Assert.Equal(2, ColumnPageBandTextPage(rendered, "DEFER-" + index).PageNumber));
+        Assert.All(Enumerable.Range(1, 5), index => Assert.Equal(3, ColumnPageBandTextPage(rendered, "NEXT-" + index).PageNumber));
+        AssertColumnPageBandNoFragmentLoss(rendered);
+    }
+
+    [Fact]
+    public void HtmlColumns_PageBandsDiscoverReorderedFlexItemsInTheirCompletedFlowOrder() {
+        string first = string.Concat(Enumerable.Range(1, 4).Select(index => "<p>FIRST-" + index + "</p>"));
+        string second = string.Concat(Enumerable.Range(1, 4).Select(index => "<p>SECOND-" + index + "</p>"));
+        HtmlRenderDocument rendered = RenderColumnPageBands("<style>.page-columns{height:auto}p{line-height:20px}</style>"
+            + "<main style='display:flex;flex-direction:column;align-items:stretch'>"
+            + "<section class='page-columns' style='order:2'>" + second + "</section>"
+            + "<section class='page-columns' style='order:1'>" + first + "</section></main><p>AFTER</p>");
+
+        AssertColumnPageBandTextOnce(rendered, Enumerable.Range(1, 4).Select(index => "FIRST-" + index)
+            .Concat(Enumerable.Range(1, 4).Select(index => "SECOND-" + index)).Append("AFTER"));
+        HtmlRenderPage firstPage = rendered.Pages[0];
+        Assert.All(ColumnPageBandText(firstPage).Where(text => text.Text.StartsWith("FIRST-", StringComparison.Ordinal)),
+            text => Assert.True(text.X < firstPage.Width / 2D));
+        Assert.Equal(1, ColumnPageBandTextPage(rendered, "SECOND-1").PageNumber);
+        Assert.Equal(1, ColumnPageBandTextPage(rendered, "SECOND-2").PageNumber);
+        Assert.Equal(2, ColumnPageBandTextPage(rendered, "SECOND-3").PageNumber);
+        Assert.Equal(2, ColumnPageBandTextPage(rendered, "SECOND-4").PageNumber);
+        Assert.True(Assert.Single(ColumnPageBandText(firstPage), text => text.Text == "SECOND-2").X >= firstPage.Width / 2D);
+        AssertColumnPageBandNoFragmentLoss(rendered);
+    }
+
+    [Theory]
+    [InlineData("flex", "center")]
+    [InlineData("flex", "end")]
+    [InlineData("grid", "center")]
+    public void HtmlColumns_PageBandsDiagnoseHeightDependentVerticalAlignment(string display, string alignment) {
+        string paragraphs = string.Concat(Enumerable.Range(1, 12).Select(index => "<p>ALIGNED-" + index + "</p>"));
+        HtmlRenderDocument rendered = RenderColumnPageBands("<style>.page-columns{height:auto;width:300px}"
+            + "p{line-height:20px}</style><main style='display:" + display + ";align-items:" + alignment + "'>"
+            + "<section class='page-columns'>" + paragraphs + "</section><div style='height:80px'>SIBLING</div></main>");
+
+        AssertColumnPageBandTextOnce(rendered, Enumerable.Range(1, 12).Select(index => "ALIGNED-" + index).Append("SIBLING"));
+        Assert.Contains(rendered.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.PagePseudoGeometryPending
+            && diagnostic.Message.Contains("vertical alignment", StringComparison.Ordinal));
+    }
+
     [Theory]
     [InlineData(HtmlRenderMode.Continuous)]
     [InlineData(HtmlRenderMode.Paged)]

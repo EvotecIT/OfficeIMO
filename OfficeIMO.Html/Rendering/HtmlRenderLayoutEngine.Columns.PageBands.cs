@@ -9,10 +9,28 @@ internal sealed partial class HtmlRenderLayoutEngine {
             || style.ColumnFill != "auto" || style.WritingMode != "horizontal-tb"
             || style.OverflowX != "visible" || style.OverflowY != "visible"
             || EstablishesTransformedContainingBlock(style)) return false;
+        HtmlRenderBoxStyle childStyle = style;
         for (IElement? parent = element.ParentElement; parent != null; parent = parent.ParentElement) {
-            if (_layoutStyles.TryGetValue(parent, out HtmlRenderBoxStyle? ancestor)
-                && (ancestor.WritingMode != "horizontal-tb" || ancestor.OverflowY != "visible"
-                    || EstablishesTransformedContainingBlock(ancestor))) return false;
+            if (!_layoutStyles.TryGetValue(parent, out HtmlRenderBoxStyle? ancestor)) continue;
+            if (ancestor.WritingMode != "horizontal-tb" || ancestor.OverflowY != "visible"
+                || EstablishesTransformedContainingBlock(ancestor)) return false;
+            bool columnFlex = (ancestor.Display == "flex" || ancestor.Display == "inline-flex")
+                && (ancestor.FlexDirection == "column" || ancestor.FlexDirection == "column-reverse");
+            bool flexOrGrid = ancestor.Display == "flex" || ancestor.Display == "inline-flex"
+                || ancestor.Display == "grid" || ancestor.Display == "inline-grid";
+            string alignment = columnFlex ? ancestor.JustifyContent
+                : ResolveFlexAlignment(childStyle.AlignSelf, ancestor.AlignItems);
+            bool startsAtStableEdge = alignment == "normal" || alignment == "start" || alignment == "flex-start"
+                || !columnFlex && alignment == "stretch";
+            if (flexOrGrid && (childStyle.MarginTopAuto || childStyle.MarginBottomAuto
+                || columnFlex && (ancestor.FlexDirection != "column" || ancestor.FlexWrap != "nowrap")
+                || !startsAtStableEdge)) {
+                _diagnostics.Add(ComponentName, HtmlRenderDiagnosticCodes.PagePseudoGeometryPending,
+                    "Multi-column pagination retains its source layout inside a container whose vertical alignment can move when column height changes.",
+                    HtmlDiagnosticSeverity.Warning, HtmlRenderStyleResolver.DescribeSource(element));
+                return false;
+            }
+            childStyle = ancestor;
         }
         return true;
     }
@@ -76,6 +94,12 @@ internal sealed partial class HtmlRenderLayoutEngine {
         }
 
         internal double Start(int band) => band == 0 ? 0D : FirstHeight + (band - 1D) * FreshHeight;
+
+        // Entering another column consumes the preceding column's available
+        // height, including line-fitting slack. Following siblings cannot use
+        // that slack as though the column set ended at its final painted line.
+        internal double MinimumBoxExtent(int columns) => (columns - 1) % _count > 0
+            ? Start((columns - 1) / _count) + Height(columns - 1) : 0D;
 
         internal void ValidateExtent(double height) {
             int bands = (int)Math.Min(_engine._options.MaxPageCount,

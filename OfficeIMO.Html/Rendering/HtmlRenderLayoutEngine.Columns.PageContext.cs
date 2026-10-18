@@ -26,6 +26,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         IElement owner = block.OwnerElement;
         IElement? target = null;
         double targetContentStart = 0D;
+        double targetStart = double.PositiveInfinity;
         foreach (KeyValuePair<IElement, HtmlRenderFlowBlock> entry in _pagedColumnRegions) {
             CheckCancellation();
             ChargeLayoutOperation("column page-boundary discovery");
@@ -48,9 +49,12 @@ internal sealed partial class HtmlRenderLayoutEngine {
             // Synthetic overflow breaks inside the region remain eligible.
             if (TryGetNextForcedBreak(block.ForcedBreaks, offset, out HtmlRenderForcedBreak? precedingBreak)
                 && precedingBreak!.Offset <= start + 0.0001D) continue;
+            // CSS order and grid placement need not follow registration order.
+            // Project earlier flows before capturing a later flow's capacity.
+            if (start >= targetStart) continue;
             target = entry.Key;
             targetContentStart = contentStart;
-            break;
+            targetStart = start;
         }
         if (target == null) return false;
 

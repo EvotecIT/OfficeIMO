@@ -70,7 +70,10 @@ internal sealed partial class HtmlRenderLayoutEngine {
                         && Math.Abs(item.MainSize - item.Block!.Height) <= 0.0001D
                         && (!hasDefiniteHeight || mainSizeWasDefinite);
                     ApplyColumnFlexCrossSize(item, targetCrossSize);
-                    if (!pageBoundary.HasValue || hasDefiniteHeight || item.Style.ExplicitHeight.HasValue) ApplyColumnFlexMainSize(item);
+                    // Reusing an unchanged intrinsic block does not make its
+                    // auto height definite. Preserve that basis for pagination.
+                    if ((!canReuseInitialLayout || hasDefiniteHeight || mainSizeWasDefinite)
+                        && (!pageBoundary.HasValue || hasDefiniteHeight || item.Style.ExplicitHeight.HasValue)) ApplyColumnFlexMainSize(item);
                     if (!canReuseInitialLayout || pageBoundary.HasValue) {
                         PagedFloatBoundary? itemBoundary = pageBoundary?.Shift(contentY + item.MainOffset);
                         if (itemBoundary.HasValue && item.Element != null

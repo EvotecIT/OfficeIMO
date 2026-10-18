@@ -72,12 +72,13 @@ internal sealed partial class HtmlRenderLayoutEngine {
         if (pageBands != null && _columnPaginationAttempt is { } attempt
             && ReferenceEquals(attempt.Element, element)) attempt.Context = pageBands.Context;
         EnsureMultiColumnLimit(plan.ColumnCount);
+        double minimumColumnBoxExtent = pageBands?.MinimumBoxExtent(plan.ColumnCount) ?? 0D;
         IReadOnlyList<double> columnPageBreaks = Array.Empty<double>();
         if (style.OverflowX == "visible" && style.OverflowY == "visible") {
             plan = ResolvePagedColumnOverflow(plan, requestedCount, targetHeight, out columnPageBreaks, pageBands);
         }
         double contentHeight = pageBands != null
-            ? Math.Max(declaredHeight ?? 0D, plan.UsedHeight)
+            ? Math.Max(minimumColumnBoxExtent, Math.Max(declaredHeight ?? 0D, plan.UsedHeight))
             : columnPageBreaks.Count > 0
                 ? Math.Max(declaredHeight ?? targetHeight, plan.UsedHeight)
                 : declaredHeight ?? Math.Max(targetHeight, plan.UsedHeight);
