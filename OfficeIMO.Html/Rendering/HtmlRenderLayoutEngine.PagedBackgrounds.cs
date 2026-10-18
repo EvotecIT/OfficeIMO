@@ -30,9 +30,9 @@ internal sealed partial class HtmlRenderLayoutEngine {
         fill.StrokeWidth = 0D;
         HtmlRenderShape repeated = background.CopyStackingContextTo(new HtmlRenderShape(fill,
             background.X, 0D, 0, source: background.Source,
-            fragmentTableBorders: background.FragmentTableBorders));
+            fragmentSideBorders: background.FragmentSideBorders));
         var ordered = new List<HtmlRenderVisual> { repeated };
-        AppendFragmentTableSides(ordered, repeated, 0D, 0D, height);
+        AppendFragmentSideBorders(ordered, repeated, 0D, 0D, height);
         foreach (HtmlRenderVisual visual in visuals) {
             ordered.Add(visual is HtmlRenderSemanticGroup group
                 ? visual.CopyStackingContextTo(group.ProjectPaint(group.Visuals, 0D, 0D, ordered.Count))
@@ -48,22 +48,23 @@ internal sealed partial class HtmlRenderLayoutEngine {
         && (!style.ExplicitHeight.HasValue || style.AutoHeightLayoutStretch) && !style.AspectRatio.HasValue
         && style.Position == "static" && style.FloatSide == "none"
         && style.Opacity >= 1D && fill.FillColor?.A == byte.MaxValue
-        && fill.Kind == OfficeShapeKind.Rectangle && (!style.HasBorderLayout || style.Display == "table")
+        && fill.Kind == OfficeShapeKind.Rectangle && (!style.HasBorderLayout || style.Display == "table"
+            || CanExtendOrdinarySliceSides(style))
         && style.BoxShadowLayerCount == 0 && !style.HasDeclaredBackgroundImage
         && style.BackgroundColorClip == "border-box" && style.ClipPath == "none"
         && style.UsedTransform == "none" && style.UsedIndividualScale == "none";
 
     /// <summary>
-    /// Continues only the table's own solid side bands beside its background. Cell and collapsed
-    /// grid rules retain the source row cut; neither a closing rule nor flow height is added.
+    /// Continues only a box's own solid side bands beside its background. Closing
+    /// edges and collapsed grid rules retain their source cut and normal flow.
     /// </summary>
-    private static void AppendFragmentTableSides(
+    private static void AppendFragmentSideBorders(
         ICollection<HtmlRenderVisual> fragment,
         HtmlRenderShape background,
         double fragmentStart,
         double contentEnd,
         double backgroundEnd) {
-        if (background.FragmentTableBorders is not HtmlRenderBorderEdges borders) return;
+        if (background.FragmentSideBorders is not HtmlRenderBorderEdges borders) return;
         AddSide(borders.Left, left: true);
         AddSide(borders.Right, left: false);
 
@@ -82,6 +83,11 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 contentEnd, backgroundEnd, fragment.Count));
         }
     }
+
+    private static bool CanExtendOrdinarySliceSides(HtmlRenderBoxStyle style) =>
+        style.Display != "table" && style.BoxDecorationBreak == "slice"
+        && (!style.Borders.Left.IsPainted || style.Borders.Left.Style == "solid")
+        && (!style.Borders.Right.IsPainted || style.Borders.Right.Style == "solid");
 
     private void ExtendPagedBodyBackgroundThroughFragmentSlack(
         HtmlRenderFlowBlock block,

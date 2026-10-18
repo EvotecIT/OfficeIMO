@@ -14,7 +14,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         double height,
         string source,
         IReadOnlyList<ColumnRuleBand>? bands = null,
-        bool extendToForcedPageEnd = false) {
+        bool extendToPageFragmentEnd = false) {
         if (columnCount <= 1 || height <= 0.0001D || style.ColumnRuleWidth <= 0D
             || style.ColumnRuleStyle == "none" || style.ColumnRuleStyle == "hidden") return;
         OfficeColor color = style.ColumnRuleColor ?? style.Color;
@@ -34,13 +34,13 @@ internal sealed partial class HtmlRenderLayoutEngine {
             if (style.ColumnRuleStyle == "double") {
                 double strokeWidth = Math.Max(0.01D, style.ColumnRuleWidth / 3D);
                 double separation = style.ColumnRuleWidth / 3D;
-                AddColumnRuleVisual(visuals, centerX - separation, y, extent, color, strokeWidth, OfficeStrokeDashStyle.Solid, source, extendToForcedPageEnd);
-                AddColumnRuleVisual(visuals, centerX + separation, y, extent, color, strokeWidth, OfficeStrokeDashStyle.Solid, source, extendToForcedPageEnd);
+                AddColumnRuleVisual(visuals, centerX - separation, y, extent, color, strokeWidth, OfficeStrokeDashStyle.Solid, source, extendToPageFragmentEnd);
+                AddColumnRuleVisual(visuals, centerX + separation, y, extent, color, strokeWidth, OfficeStrokeDashStyle.Solid, source, extendToPageFragmentEnd);
             } else {
                 OfficeStrokeDashStyle dashStyle = style.ColumnRuleStyle == "dashed"
                     ? OfficeStrokeDashStyle.Dash
                     : style.ColumnRuleStyle == "dotted" ? OfficeStrokeDashStyle.Dot : OfficeStrokeDashStyle.Solid;
-                AddColumnRuleVisual(visuals, centerX, y, extent, color, style.ColumnRuleWidth, dashStyle, source, extendToForcedPageEnd);
+                AddColumnRuleVisual(visuals, centerX, y, extent, color, style.ColumnRuleWidth, dashStyle, source, extendToPageFragmentEnd);
             }
         }
     }
@@ -66,13 +66,13 @@ internal sealed partial class HtmlRenderLayoutEngine {
         double width,
         OfficeStrokeDashStyle dashStyle,
         string source,
-        bool extendToForcedPageEnd) {
+        bool extendToPageFragmentEnd) {
         OfficeShape shape = OfficeShape.Line(0D, 0D, 0.0001D, height);
         shape.StrokeColor = color;
         shape.StrokeWidth = width;
         shape.StrokeDashStyle = dashStyle;
         visuals.Add(new HtmlRenderShape(shape, x, y, visuals.Count, source: source + "::column-rule",
-            canExtendFragmentColumnRule: extendToForcedPageEnd));
+            canExtendFragmentColumnRule: extendToPageFragmentEnd));
     }
 
     /// <summary>Extends only owned rule paint; its original source interval still controls fragment membership.</summary>

@@ -17,7 +17,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
             if (fragment.Start <= 0.0001D && fragment.Block.ColumnOverflowContent is { } overflow
                 && overflow.Height > fragment.Block.Height + 0.0001D) {
                 MultiColumnPlan paint = BuildMultiColumnPlan(new[] { overflow }, targetHeight,
-                    _options.MaxColumnCount, throwOnLimit: true, pageBands: pageBands,
+                    _options.MaxColumnCount, throwOnLimit: true, notes: plan.Notes,
+                    floats: plan.Floats, pageBands: pageBands,
                     initialColumn: fragment.Column, initialY: fragment.Y);
                 bool ownsMetrics = true;
                 foreach (ColumnOverflowPaintPiece piece in SplitColumnOverflowPaint(overflow.Visuals)) {
@@ -39,7 +40,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
                             CheckCancellation();
                             ChargeLayoutOperations(selectedNodeCount, "column overflow selected materialization");
                             painted.Add(new MultiColumnFragment(selected, item.Start, item.End,
-                                item.Column, item.Y, carriesSourceFlow: ownsMetrics));
+                                item.Column, item.Y, carriesSourceFlow: ownsMetrics,
+                                backgroundWindowEnd: item.BackgroundWindowEnd));
                         }
                         ownsMetrics = false;
                     }
@@ -51,7 +53,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
             }
         }
         return !changed ? plan : new MultiColumnPlan(plan.Fragments, plan.ColumnCount,
-            plan.UsedHeight, plan.RuleBands, plan.BalanceExtent, painted);
+            plan.UsedHeight, plan.RuleBands, plan.BalanceExtent, painted, plan.Notes, plan.Floats);
     }
 
     /// <summary>Overlapping source paint permits a cut only when each crossing fragment permits it.</summary>

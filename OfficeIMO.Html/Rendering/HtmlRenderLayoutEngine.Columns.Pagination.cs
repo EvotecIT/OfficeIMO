@@ -30,7 +30,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
             int column = pageBands?.ColumnInBand(fragment.Column) ?? fragment.Column % requestedCount;
             double y = (pageBands?.Start(row) ?? row * columnHeight) + fragment.Y;
             fragments.Add(new MultiColumnFragment(fragment.Block, fragment.Start, fragment.End,
-                column, y));
+                column, y, fragment.CarriesSourceFlow, fragment.BackgroundWindowEnd));
             if (pageBands != null) {
                 if (!occupiedColumns.TryGetValue(row, out HashSet<int>? occupied))
                     occupiedColumns.Add(row, occupied = new HashSet<int>());
@@ -48,7 +48,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 int column = pageBands?.ColumnInBand(fragment.Column) ?? fragment.Column % requestedCount;
                 double y = (pageBands?.Start(row) ?? row * columnHeight) + fragment.Y;
                 paintFragments.Add(new MultiColumnFragment(fragment.Block, fragment.Start, fragment.End, column, y,
-                    fragment.CarriesSourceFlow));
+                    fragment.CarriesSourceFlow, fragment.BackgroundWindowEnd));
                 if (pageBands != null) {
                     if (!occupiedColumns.TryGetValue(row, out HashSet<int>? occupied))
                         occupiedColumns.Add(row, occupied = new HashSet<int>());
@@ -71,6 +71,6 @@ internal sealed partial class HtmlRenderLayoutEngine {
                     .OrderBy(column => column).ToArray())).ToArray();
         return new MultiColumnPlan(fragments,
             Math.Max(requestedCount, fragments.Select(fragment => fragment.Column + 1).DefaultIfEmpty(1).Max()),
-            usedHeight, ruleBands, paintFragments: paintFragments);
+            usedHeight, ruleBands, paintFragments: paintFragments, notes: plan.Notes, floats: plan.Floats);
     }
 }

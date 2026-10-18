@@ -61,7 +61,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
             ColumnNotePlan nextNotes = PlanColumnNotes(body, entries, width, height, notes, nextFloats, pageBands);
             if (nextNotes.EquivalentTo(notes) && nextFloats.EquivalentTo(floats)) {
                 body = AppendColumnNoteFragments(body, nextNotes, width, height, pageBands);
-                return AppendColumnEdgeFloatFragments(body, nextFloats, nextNotes, height, pageBands);
+                return AppendColumnEdgeFloatFragments(body, nextFloats, nextNotes, height, pageBands)
+                    .WithReservations(nextNotes, nextFloats);
             }
             notes = nextNotes;
             floats = nextFloats;

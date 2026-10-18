@@ -53,7 +53,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                     && backgroundWindow is { } ruleWindow
                     && Math.Abs(visualBottom - end) <= 0.0001D
                     && ruleWindow.End > end + 0.0001D) {
-                    // The authored page break ends this column set, while its
+                    // A page break before the next spanner ends this column set, while its
                     // rule reaches the physical page edge. Keep the source cut
                     // so the extended paint cannot recur beside the next spanner.
                     HtmlRenderShape extended = ExtendFragmentColumnRule(rule, ruleWindow.End);
@@ -78,7 +78,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                             layoutY: background.LayoutY, layoutHeight: background.LayoutHeight));
                         fragment.Add(CreateVerticallyClippedVisualFragment(extended, start,
                             intersectionTop, paintBottom, fragment.Count));
-                        AppendFragmentTableSides(fragment, background, start, intersectionBottom, paintBottom);
+                        AppendFragmentSideBorders(fragment, background, start, intersectionBottom, paintBottom);
                         continue;
                     }
                 }

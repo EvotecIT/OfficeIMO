@@ -93,7 +93,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 bool canExtend = CanExtendBoxBackgroundThroughFragmentSlack(style, fill);
                 visuals.Add(new HtmlRenderShape(fill, colorBox.X, colorBox.Y, visuals.Count, source: visualSourceDescription,
                     canExtendFragmentBackground: canExtend,
-                    fragmentTableBorders: canExtend && style.Display == "table" && style.BorderCollapse == "separate"
+                    fragmentSideBorders: canExtend && (style.Display == "table" && style.BorderCollapse == "separate"
+                        || CanExtendOrdinarySliceSides(style))
                         ? style.Borders : null));
             }
         }

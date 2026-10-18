@@ -130,7 +130,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
             positionedRunningStringAssignments);
         double contentX = style.MarginLeft + style.BorderLeftWidth + style.PaddingLeft;
         AddColumnRuleVisuals(visuals, style, contentX, contentY, columnWidth, gap,
-            Math.Max(requestedCount, plan.PaintColumnCount), contentHeight, source, plan.RuleBands);
+            plan.PaintColumnCount, contentHeight, source, plan.RuleBands);
         foreach (MultiColumnFragment fragment in plan.PaintFragments) {
             double x = contentX + fragment.Column * (columnWidth + gap);
             double y = contentY + fragment.Y;
@@ -382,7 +382,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 }
 
                 double height = Math.Max(0.01D, end - start);
-                fragments.Add(new MultiColumnFragment(child, start, end, column, y));
+                fragments.Add(new MultiColumnFragment(child, start, end, column, y,
+                    backgroundWindowEnd: start + available));
                 balanceExtent = Math.Max(balanceExtent, y + (start <= 0.0001D
                     && end >= child.Height - 0.0001D ? childContentExtent : height));
                 y += height;
@@ -435,7 +436,9 @@ internal sealed partial class HtmlRenderLayoutEngine {
     private IReadOnlyList<HtmlRenderVisual> SliceColumnFragmentVisuals(MultiColumnFragment fragment) =>
         fragment.Start <= 0.0001D && fragment.End >= fragment.Block.Height - 0.0001D
             ? fragment.Block.Visuals
-            : SliceBlockVisuals(fragment.Block, fragment.Start, fragment.End);
+            : SliceBlockVisuals(fragment.Block, fragment.Start, fragment.End,
+                fragment.BackgroundWindowEnd is { } backgroundEnd
+                    ? new PagedBackgroundWindow(backgroundEnd, null, fragment.End) : null);
 
     /// <summary>Measures unshifted in-flow content without turning decoration or positioned paint into column size.</summary>
     private double ResolveColumnInFlowExtent(HtmlRenderFlowBlock block) {
@@ -589,7 +592,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
     private sealed class MultiColumnPlan {
         internal MultiColumnPlan(IReadOnlyList<MultiColumnFragment> fragments, int columnCount, double usedHeight,
             IReadOnlyList<ColumnRuleBand>? ruleBands = null, double? balanceExtent = null,
-            IReadOnlyList<MultiColumnFragment>? paintFragments = null) {
+            IReadOnlyList<MultiColumnFragment>? paintFragments = null,
+            ColumnNotePlan? notes = null, ColumnEdgeFloatPlan? floats = null) {
             Fragments = fragments;
             ColumnCount = columnCount;
             UsedHeight = usedHeight;
@@ -597,6 +601,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
             BalanceExtent = balanceExtent ?? usedHeight;
             PaintFragments = paintFragments ?? fragments;
             HasPaintOverflow = paintFragments != null;
+            Notes = notes;
+            Floats = floats;
             PaintColumnCount = Math.Max(columnCount, PaintFragments.Select(fragment => fragment.Column + 1)
                 .DefaultIfEmpty(1).Max());
             PaintExtent = paintFragments == null ? usedHeight : Math.Max(usedHeight,
@@ -611,17 +617,24 @@ internal sealed partial class HtmlRenderLayoutEngine {
         internal int PaintColumnCount { get; }
         internal double PaintExtent { get; }
         internal IReadOnlyList<ColumnRuleBand>? RuleBands { get; }
+        internal ColumnNotePlan? Notes { get; }
+        internal ColumnEdgeFloatPlan? Floats { get; }
+
+        internal MultiColumnPlan WithReservations(ColumnNotePlan notes, ColumnEdgeFloatPlan floats) =>
+            new(Fragments, ColumnCount, UsedHeight, RuleBands, BalanceExtent,
+                HasPaintOverflow ? PaintFragments : null, notes, floats);
     }
 
     private sealed class MultiColumnFragment {
         internal MultiColumnFragment(HtmlRenderFlowBlock block, double start, double end, int column, double y,
-            bool carriesSourceFlow = true) {
+            bool carriesSourceFlow = true, double? backgroundWindowEnd = null) {
             Block = block;
             Start = start;
             End = end;
             Column = column;
             Y = y;
             CarriesSourceFlow = carriesSourceFlow;
+            BackgroundWindowEnd = backgroundWindowEnd;
         }
         internal HtmlRenderFlowBlock Block { get; }
         internal double Start { get; }
@@ -629,6 +642,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
         internal int Column { get; }
         internal double Y { get; }
         internal bool CarriesSourceFlow { get; }
+        /// <summary>Source-coordinate paint capacity after all canonical column reservations.</summary>
+        internal double? BackgroundWindowEnd { get; }
         internal double Height => Math.Max(0.01D, End - Start);
     }
 }
