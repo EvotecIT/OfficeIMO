@@ -107,6 +107,9 @@ try {
     $manifest = (& plutil -convert json -o - $original[0].FullName) | ConvertFrom-Json -AsHashtable
     if ($LASTEXITCODE -ne 0 -or -not $manifest.ContainsKey($target)) { throw 'Unexpected Xcode capture manifest.' }
     $test = $manifest[$target]
+    # URL launches also need Xcode's locale, not just app launch arguments.
+    $test.TestLanguage = 'en'
+    $test.TestRegion = 'US'
     if ($Role -ne 'macos') {
         # The exact app is already installed and holds the public PDF. Installing
         # it again through Xcode replaces its container and invalidates that URL.
