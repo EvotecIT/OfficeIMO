@@ -62,7 +62,7 @@ internal sealed class HtmlRenderVisualProjector {
         }
         if (visual is HtmlRenderPathClipGroup pathClipGroup) {
             return ProjectClipped(pathClipGroup.Visuals,
-                new ProjectionClip(pathClipGroup.ClipX, pathClipGroup.ClipY, pathClipGroup.Width, pathClipGroup.Height,
+                new ProjectionClip(pathClipGroup.ClipX, pathClipGroup.ClipY, pathClipGroup.ClipPath.Width, pathClipGroup.ClipPath.Height,
                     true, true, transform),
                 children => pathClipGroup.ProjectPaint(children, offsetX, offsetY, paintOrder));
         }
