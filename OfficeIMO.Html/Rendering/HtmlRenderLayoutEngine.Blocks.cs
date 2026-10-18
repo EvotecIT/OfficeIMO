@@ -224,6 +224,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 : childPaintLayers);
         } else if (usesBlockFormatting) {
             string? childPageName = children.Count > 0 ? children[0].PageName : null;
+            object[] childBoundaries = CreateFlowBoundaries(children);
             for (int childIndex = 0; childIndex < children.Count; childIndex++) {
                 HtmlRenderFlowBlock child = children[childIndex];
                 double childStart = contentHeight;
@@ -231,12 +232,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                     forcedBreaks.Add(new HtmlRenderForcedBreak(childStart, HtmlPageBreakTarget.Page, child.PageName, changesPageName: true));
                 }
                 childPageName = child.PageName;
-                if (child.BreakBefore != HtmlPageBreakTarget.None) {
-                    forcedBreaks.Add(new HtmlRenderForcedBreak(childStart, child.BreakBefore));
-                }
-                foreach (HtmlRenderForcedBreak forcedBreak in child.ForcedBreaks) {
-                    forcedBreaks.Add(forcedBreak.Translate(childStart));
-                }
+                AppendChildForcedBreaks(children, childIndex, childStart, forcedBreaks, childBoundaries);
                 if (child.HasCollapsibleMargins && child.CollapsibleMarginBottom > 0.0001D
                     && child.Height > child.CollapsibleMarginBottom + 0.0001D && child.OwnerElement != null) {
                     // A break after the child's last painted line may leave only
@@ -262,11 +258,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 AppendKeepWithNextRange(children, childIndex, childStart, contentAvoidBreakRanges);
 
                 contentHeight += child.Height;
-                if (child.BreakAfter != HtmlPageBreakTarget.None) {
-                    forcedBreaks.Add(new HtmlRenderForcedBreak(contentHeight, child.BreakAfter));
-                }
-                if (child.AvoidBreakInside)
-                    contentAvoidBreakRanges.Add(new HtmlRenderAvoidBreakRange(childStart, contentHeight));
+                if (child.AvoidBreakInsideScope != HtmlFragmentationScope.None)
+                    contentAvoidBreakRanges.Add(new HtmlRenderAvoidBreakRange(childStart, contentHeight, Scope: child.AvoidBreakInsideScope));
                 contentAvoidBreakRanges.AddRange(child.AvoidBreakRanges.Select(range => range.Translate(childStart)));
                 contentSafeBreakRanges.AddRange(child.SafeBreakRanges.Select(range => range.Translate(childStart)));
                 foreach (double offset in child.BreakOffsets) {
@@ -568,6 +561,9 @@ internal sealed partial class HtmlRenderLayoutEngine {
         bool collapsesThrough = false, HtmlCollapsedMargin? topGroup = null, HtmlCollapsedMargin? bottomGroup = null) {
         HtmlRenderFlowBlock attached = block.WithCollapsibleMargins(style.MarginTop, style.MarginBottom, element,
             collapsesThrough, topGroup, bottomGroup);
+        attached.AvoidBreakInsideScope = style.AvoidBreakInsideScope != HtmlFragmentationScope.None
+            ? style.AvoidBreakInsideScope
+            : style.AvoidBreakInside ? HtmlFragmentationScope.All : HtmlFragmentationScope.None;
         IReadOnlyList<HtmlCssRunningStringAssignment> ownAssignments =
             ResolveRunningStringAssignments(element, style, 0D);
         return ownAssignments.Count == 0

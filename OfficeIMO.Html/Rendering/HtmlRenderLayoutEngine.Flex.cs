@@ -270,7 +270,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
             ? lines.SelectMany(line => line.Items.SelectMany(item => {
                 HtmlRenderFlowBlock itemBlock = item.Block!;
                 IEnumerable<HtmlRenderAvoidBreakRange> ranges = itemBlock.AvoidBreakRanges;
-                if (itemBlock.AvoidBreakInside) ranges = ranges.Append(new HtmlRenderAvoidBreakRange(0D, itemBlock.Height));
+                if (itemBlock.AvoidBreakInsideScope != HtmlFragmentationScope.None)
+                    ranges = ranges.Append(new HtmlRenderAvoidBreakRange(0D, itemBlock.Height, Scope: itemBlock.AvoidBreakInsideScope));
                 return ranges.Select(range => range.Translate(contentY + line.CrossOffset + item.CrossOffset));
             }))
             : Array.Empty<HtmlRenderAvoidBreakRange>();

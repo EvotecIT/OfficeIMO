@@ -105,7 +105,9 @@ internal sealed partial class HtmlRenderLayoutEngine {
             ownerElement: cursor.Block.OwnerElement,
             runningStringAssignments: cursor.Assignments,
             layoutViewportWidth: cursor.Block.LayoutViewportWidth,
-            layoutViewportHeight: cursor.Block.LayoutViewportHeight)).ToArray();
+            layoutViewportHeight: cursor.Block.LayoutViewportHeight) {
+                AvoidBreakInsideScope = cursor.Block.AvoidBreakInsideScope
+            }).ToArray();
         return true;
     }
 

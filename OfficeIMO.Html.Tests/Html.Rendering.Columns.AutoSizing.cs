@@ -27,32 +27,6 @@ public sealed partial class HtmlRenderingTests {
     }
 
     [Theory]
-    [InlineData("break-before:column")]
-    [InlineData("break-after:column")]
-    [InlineData("break-before:avoid-column")]
-    [InlineData("break-after:avoid-column")]
-    [InlineData("break-inside:avoid-column")]
-    public void HtmlColumns_UnsupportedColumnBreaksPreserveSourceAndReportTypedLoss(string declaration) {
-        string html = ColumnAutoSizingSource("column-fill:auto", thirdBlockStyle: declaration);
-        foreach (HtmlRenderMode mode in new[] { HtmlRenderMode.Continuous, HtmlRenderMode.Paged }) {
-            HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html),
-                new HtmlRenderOptions { Mode = mode, ViewportWidth = 340D, Margins = HtmlRenderMargins.All(0D) });
-
-            for (int index = 0; index < 4; index++) {
-                Assert.Equal(20D, FindColumnShape(rendered, "div#sizing-" + index).Height, 3);
-            }
-            HtmlDiagnostic[] diagnostics = rendered.Diagnostics.Where(
-                item => item.Code == HtmlRenderDiagnosticCodes.MultiColumnValueUnsupported).ToArray();
-            Assert.NotEmpty(diagnostics);
-            Assert.All(diagnostics, diagnostic => {
-                Assert.Equal("div#sizing-2", diagnostic.Source);
-                Assert.Contains(declaration.Replace(':', '='), diagnostic.Detail);
-            });
-            Assert.Throws<HtmlConversionException>(() => rendered.RequireNoLoss());
-        }
-    }
-
-    [Theory]
     [InlineData("content-box", 3, 160D, 324D, 84D)]
     [InlineData("border-box", 1, 148D, 300D, 60D)]
     public void HtmlColumns_AutoMaximumHeightUsesTheDeclaredBoxSizingForColumnCapacity(

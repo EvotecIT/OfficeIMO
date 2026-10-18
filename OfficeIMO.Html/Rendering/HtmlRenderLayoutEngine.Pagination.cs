@@ -48,7 +48,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
 
             if (!hasPageContent) currentPageName = block.PageName;
             HtmlPageBreakTarget breakBefore = ResolveForcedBreakAt(block.ForcedBreaks, 0D);
-            if (breakBefore == HtmlPageBreakTarget.None) breakBefore = block.BreakBefore;
+            if (breakBefore == HtmlPageBreakTarget.None && IsForcedPageBreak(block.BreakBefore)) breakBefore = block.BreakBefore;
             if (breakBefore != HtmlPageBreakTarget.None) {
                 ApplyBreakBefore(breakBefore, pages, ref visuals, ref y, ref pageGeometry, currentPageName);
                 pageWidth = pageGeometry.Width;
@@ -235,7 +235,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
             }
 
             HtmlPageBreakTarget breakAfter = ResolveForcedBreakAt(block.ForcedBreaks, block.Height);
-            if (block.BreakAfter != HtmlPageBreakTarget.None) breakAfter = block.BreakAfter;
+            if (IsForcedPageBreak(block.BreakAfter)) breakAfter = block.BreakAfter;
             if (breakAfter != HtmlPageBreakTarget.None && index < blocks.Count - 1) {
                 CommitPage(pages, visuals, pageGeometry, currentPageName);
                 BeginPage(currentPageName);

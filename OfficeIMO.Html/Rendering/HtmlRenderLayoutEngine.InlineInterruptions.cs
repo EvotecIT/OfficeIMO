@@ -105,7 +105,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
             double offsetY = vertical ? 0D : height;
             if (!vertical) {
                 AppendKeepWithNextRange(blocks, index, offsetY, keeps);
-                if (block.AvoidBreakInside) keeps.Add(new HtmlRenderAvoidBreakRange(offsetY, offsetY + block.Height));
+                if (block.AvoidBreakInsideScope != HtmlFragmentationScope.None)
+                    keeps.Add(new HtmlRenderAvoidBreakRange(offsetY, offsetY + block.Height, Scope: block.AvoidBreakInsideScope));
                 foreach (HtmlRenderAvoidBreakRange range in block.AvoidBreakRanges) {
                     ChargeLayoutOperation("interrupted inline keep ranges");
                     keeps.Add(range.Translate(offsetY));

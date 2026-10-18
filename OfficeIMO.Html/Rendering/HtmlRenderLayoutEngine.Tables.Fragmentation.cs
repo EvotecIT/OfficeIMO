@@ -103,7 +103,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
 
     private TableCellCutSafety CreateTableCellCutSafety(
         TableCellLayout cell, int lastRow, double contentY, bool ordinaryBody) {
-        var ranges = new List<HtmlRenderAvoidBreakRange>(cell.Inline.AvoidBreakRanges);
+        var ranges = new List<HtmlRenderAvoidBreakRange>(cell.Inline.AvoidBreakRanges
+            .Where(range => (range.Scope & HtmlFragmentationScope.Page) != 0));
         bool supported = ordinaryBody && !cell.Style.AvoidBreakInside && !IsVerticalWritingMode(cell.Style.WritingMode);
         if (!supported) return new TableCellCutSafety(lastRow, contentY, cell.Inline.Height,
             cell.Inline.BreakOffsets, Array.Empty<HtmlRenderAvoidBreakRange>(), false);

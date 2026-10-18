@@ -19,7 +19,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         if (discardableMargin <= 0.0001D) return start;
 
         double afterMargin = Math.Min(block.Height, start + discardableMargin);
-        if (block.ForcedBreaks.Any(item => item.Offset > start + 0.0001D && item.Offset <= afterMargin + 0.0001D)
+        if (block.ForcedBreaks.Any(item => IsForcedPageBreak(item.Target) && item.Offset > start + 0.0001D && item.Offset <= afterMargin + 0.0001D)
             || block.RunningStringAssignments.Any(item => item.Offset >= start - 0.0001D && item.Offset < afterMargin - 0.0001D)
             || SliceBlockVisuals(block, start, afterMargin).Any(visual =>
                 ContainsPageStartMarginContent(visual, block))) {
@@ -63,7 +63,9 @@ internal sealed partial class HtmlRenderLayoutEngine {
     }
 
     private static double FindFragmentEnd(HtmlRenderFlowBlock block, double start, double available, double? maximumEnd = null,
-        double fullPageHeight = 0D, HtmlRenderTrailingGroup? reservedFooter = null) {
+        double fullPageHeight = 0D, HtmlRenderTrailingGroup? reservedFooter = null,
+        HtmlFragmentationScope fragmentationScope = HtmlFragmentationScope.Page,
+        bool isFreshFragmentainer = true) {
         double limit = Math.Min(maximumEnd ?? block.Height, Math.Min(block.Height, start + available));
         IReadOnlyList<double> offsets = block.BreakOffsets;
         if (block.SafeBreakRanges.Count > 0) {
@@ -75,7 +77,9 @@ internal sealed partial class HtmlRenderLayoutEngine {
             // Keeps and paragraph constraints can reject the available limit.
             // Their endpoints are the only additional positions where that
             // decision changes within a content-free interval.
-            foreach (HtmlRenderAvoidBreakRange range in block.AvoidBreakRanges) Add(range.Start);
+            foreach (HtmlRenderAvoidBreakRange range in block.AvoidBreakRanges) {
+                if ((range.Scope & fragmentationScope) != 0) Add(range.Start);
+            }
             foreach (HtmlRenderLineBreakGroup group in block.LineBreakGroups) {
                 Add(group.Start);
                 Add(group.End);
@@ -103,7 +107,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
             double consumedEnd = reservedFooter != null && Math.Abs(offset - reservedFooter.ContentEndsAt) <= 0.0001D
                 ? reservedFooter.SourceEndsAt : offset;
             if (IsAllowedLineBreak(block, start, offset)
-                && !BreaksAvoidedRangeThatFitsPage(block, start, consumedEnd, fullPageHeight, limit)) return offset;
+                && !BreaksAvoidedRangeThatFitsPage(block, start, consumedEnd, fullPageHeight, limit,
+                    fragmentationScope, isFreshFragmentainer)) return offset;
         }
 
         return start;
@@ -111,13 +116,23 @@ internal sealed partial class HtmlRenderLayoutEngine {
 
     // Keep authored ranges intact. A synthetic flex-row keep is weaker when
     // moving the whole row would leave more than half the page unused.
-    private static bool BreaksAvoidedRangeThatFitsPage(HtmlRenderFlowBlock block, double start, double candidate, double fullPageHeight, double pageLimit) =>
-        fullPageHeight > 0D && block.AvoidBreakRanges.Any(range =>
-            start <= range.Start + 0.0001D
-            && candidate > range.Start + 0.0001D
-            && candidate < range.End - 0.0001D
-            && range.End - range.Start <= fullPageHeight + 0.0001D
-            && !(range.Soft && pageLimit - range.Start > fullPageHeight * 0.5D + 0.0001D));
+    private static bool BreaksAvoidedRangeThatFitsPage(HtmlRenderFlowBlock block, double start, double candidate,
+        double fullPageHeight, double pageLimit, HtmlFragmentationScope fragmentationScope = HtmlFragmentationScope.Page,
+        bool isFreshFragmentainer = true) =>
+        fullPageHeight > 0D
+        && (((fragmentationScope & HtmlFragmentationScope.Column) != 0
+                && (block.AvoidBreakInsideScope & HtmlFragmentationScope.Column) != 0
+                && start <= 0.0001D && candidate > 0.0001D && candidate < block.Height - 0.0001D
+                && (block.Height <= fullPageHeight + 0.0001D || !isFreshFragmentainer))
+            || block.AvoidBreakRanges.Any(range =>
+                (range.Scope & fragmentationScope) != 0
+                && start <= range.Start + 0.0001D
+                && candidate > range.Start + 0.0001D
+                && candidate < range.End - 0.0001D
+                && (range.End - range.Start <= fullPageHeight + 0.0001D
+                    || (range.Scope & fragmentationScope & HtmlFragmentationScope.Column) != 0
+                        && (!isFreshFragmentainer || range.Start > start + 0.0001D))
+                && !(range.Soft && pageLimit - range.Start > fullPageHeight * 0.5D + 0.0001D)));
 
     private static HtmlRenderTrailingGroup? ResolveTrailingGroup(HtmlRenderFlowBlock block, double start, double available, double fullPageHeight, out double fragmentLimit) {
         HtmlRenderTrailingGroup? active = block.TrailingGroups.FirstOrDefault(group => group.AppliesAt(start));
@@ -197,6 +212,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
             else high = middle;
         }
 
+        while (low < forcedBreaks.Count && !IsForcedPageBreak(forcedBreaks[low].Target)) low++;
         forcedBreak = low < forcedBreaks.Count ? forcedBreaks[low] : null;
         return forcedBreak != null;
     }
@@ -206,7 +222,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         foreach (HtmlRenderForcedBreak forcedBreak in forcedBreaks) {
             if (forcedBreak.Offset < offset - 0.0001D) continue;
             if (forcedBreak.Offset > offset + 0.0001D) break;
-            target = forcedBreak.Target;
+            if (IsForcedPageBreak(forcedBreak.Target)) target = forcedBreak.Target;
         }
         return target;
     }

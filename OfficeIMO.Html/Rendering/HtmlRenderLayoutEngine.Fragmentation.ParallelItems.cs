@@ -26,7 +26,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
         // and atomic visuals remain intact.
         if (!keepsAlreadyQualified && ((item.AvoidBreakInside && (fullPageHeight <= 0D || item.PagedPaintExtent <= fullPageHeight + 0.0001D))
             || item.AvoidBreakRanges.Any(range =>
-                offset > range.Start + 0.0001D && offset < range.End - 0.0001D
+                (range.Scope & HtmlFragmentationScope.Page) != 0
+                && offset > range.Start + 0.0001D && offset < range.End - 0.0001D
                 && (fullPageHeight <= 0D || range.End - range.Start <= fullPageHeight + 0.0001D)))) return false;
         if (!atomicVisualRanges.TryGetValue(item, out IReadOnlyList<(double Top, double Bottom)>? ranges)) {
             ranges = CollectAtomicParallelVisualRanges(item.Visuals);

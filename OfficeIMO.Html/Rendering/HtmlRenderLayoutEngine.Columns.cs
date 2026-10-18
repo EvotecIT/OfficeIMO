@@ -38,6 +38,11 @@ internal sealed partial class HtmlRenderLayoutEngine {
         bool pagedColumnRegion = CanPaginateColumnRegion(element, style);
         IReadOnlyList<HtmlRenderFlowBlock> children = BuildColumnChildren(
             element, columnWidth, style, depth);
+        if (BuildColumnFlowBreaks(children).Forced.Any(boundary => boundary.Page)) {
+            _diagnostics.Add(ComponentName, HtmlRenderDiagnosticCodes.MultiColumnValueUnsupported,
+                "Authored page breaks inside multi-column content retain the source-flow fallback.",
+                HtmlDiagnosticSeverity.Warning, source, "page breaks in column content");
+        }
         double? declaredHeight = ResolveDeclaredColumnContentHeight(style);
         double? maximumHeight = style.MaxHeight.HasValue
             ? Math.Max(0.01D, Math.Max(style.MaxHeight.Value, style.MinHeight ?? 0D)
@@ -49,7 +54,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
             // reason to advance to another column. Measure at column width;
             // physical page bands can still supply a smaller capacity below.
             targetHeight = declaredHeight ?? Math.Max(0.01D,
-                ResolveBoxHeight(naturalHeight, boxWidth, style) - style.VerticalInsets);
+                ResolveBoxHeight(ResolveNaturalColumnRunHeight(children), boxWidth, style) - style.VerticalInsets);
         } else {
             double balanced = ResolveBalancedColumnHeight(children, requestedCount, element, columnWidth);
             targetHeight = declaredHeight.HasValue ? Math.Min(declaredHeight.Value, balanced) : balanced;
@@ -83,7 +88,9 @@ internal sealed partial class HtmlRenderLayoutEngine {
         EnsureMultiColumnLimit(plan.ColumnCount);
         double minimumColumnBoxExtent = pageBands?.MinimumBoxExtent(plan.ColumnCount) ?? 0D;
         IReadOnlyList<double> columnPageBreaks = Array.Empty<double>();
-        if (style.OverflowX == "visible" && style.OverflowY == "visible") {
+        bool shortDefiniteColumns = declaredHeight.HasValue && pageBands == null
+            && declaredHeight.Value < _activePageGeometry.ContentHeight - 0.0001D;
+        if (style.OverflowX == "visible" && style.OverflowY == "visible" && !shortDefiniteColumns) {
             plan = ResolvePagedColumnOverflow(plan, requestedCount, targetHeight, out columnPageBreaks, pageBands);
         }
         double contentHeight = pageBands != null
@@ -178,8 +185,10 @@ internal sealed partial class HtmlRenderLayoutEngine {
         IElement? owner = null, double width = 0D) {
         ColumnEdgeFloatEntry[] floats = _columnEdgeFloatEntries.Values.Where(e => ReferenceEquals(e.Owner, owner)).ToArray();
         double totalHeight = blocks.Sum(block => block.Height) + floats.Sum(e => e.Body.Height);
-        double lower = Math.Max(0.01D, totalHeight / requestedCount);
-        double upper = Math.Max(lower, totalHeight);
+        double upper = Math.Max(0.01D, ResolveNaturalColumnRunHeight(blocks) + floats.Sum(entry => entry.Body.Height));
+        double lower = Math.Max(0.01D, Math.Min(upper, totalHeight / requestedCount));
+        int fittingColumnCount = Math.Max(requestedCount,
+            BuildMultiColumnPlan(blocks, upper, _options.MaxColumnCount, throwOnLimit: true).ColumnCount);
         if (floats.Length > 0) {
             MultiColumnPlan initial = BuildMultiColumnPlan(blocks, Math.Max(0.01D, upper), _options.MaxColumnCount, throwOnLimit: true);
             foreach (ColumnEdgeFloatEntry entry in floats) {
@@ -191,7 +200,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         if (totalHeight <= 0.01D || requestedCount <= 1) return Math.Max(0.01D, upper);
         for (int iteration = 0; iteration < 24; iteration++) {
             double candidate = (lower + upper) / 2D;
-            MultiColumnPlan plan = BuildMultiColumnPlan(blocks, candidate, requestedCount, throwOnLimit: false);
+            MultiColumnPlan plan = BuildMultiColumnPlan(blocks, candidate, fittingColumnCount, throwOnLimit: false);
             if (floats.Length > 0) {
                 try {
                     plan = BuildMultiColumnPlan(blocks, candidate, _options.MaxColumnCount, throwOnLimit: true);
@@ -204,7 +213,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                     continue;
                 }
             }
-            bool fits = plan.ColumnCount <= requestedCount && plan.UsedHeight <= candidate + 0.0001D;
+            bool fits = plan.ColumnCount <= fittingColumnCount && plan.UsedHeight <= candidate + 0.0001D;
             if (fits) upper = candidate;
             else lower = candidate;
         }
@@ -218,10 +227,19 @@ internal sealed partial class HtmlRenderLayoutEngine {
         bool throwOnLimit,
         ColumnNotePlan? notes = null, ColumnEdgeFloatPlan? floats = null, ColumnPageBands? pageBands = null) {
         var fragments = new List<MultiColumnFragment>();
+        ColumnFlowBreaks source = BuildColumnFlowBreaks(blocks);
+        int forcedIndex = 0;
+        double childSourceStart = 0D;
         int column = 0;
         double y = floats?.Top(0) ?? 0D;
         double usedHeight = 0D;
-        foreach (HtmlRenderFlowBlock child in blocks) {
+        for (int childIndex = 0; childIndex < blocks.Count; childIndex++) {
+            HtmlRenderFlowBlock child = blocks[childIndex];
+            ApplyForcedColumnBoundaries(childSourceStart, childIndex);
+            if (column + 1 > maximumGeneratedColumns) {
+                if (throwOnLimit) EnsureMultiColumnLimit(column + 1);
+                return new MultiColumnPlan(fragments, column + 1, usedHeight);
+            }
             if (child.Height <= 0.0001D) {
                 // Zero-advance figure anchors still participate in column
                 // ownership; dropping their blocks loses the reservation owner.
@@ -233,6 +251,11 @@ internal sealed partial class HtmlRenderLayoutEngine {
             while (start < child.Height - 0.0001D) {
                 CheckCancellation();
                 ChargeLayoutOperation("column body fragmentation");
+                ApplyForcedColumnBoundaries(childSourceStart + start, childIndex);
+                if (column + 1 > maximumGeneratedColumns) {
+                    if (throwOnLimit) EnsureMultiColumnLimit(column + 1);
+                    return new MultiColumnPlan(fragments, column + 1, usedHeight);
+                }
                 double columnHeight = pageBands?.Height(column) ?? targetHeight;
                 double freshHeight = pageBands?.FreshHeight ?? targetHeight;
                 double available = columnHeight - (notes?.Reserved(column) ?? 0D) - (floats?.Bottom(column) ?? 0D) - y;
@@ -247,11 +270,29 @@ internal sealed partial class HtmlRenderLayoutEngine {
                     continue;
                 }
 
+                double sourceStart = childSourceStart + start;
+                double maximumEnd = childSourceStart + child.Height;
+                double nextForced = NextForcedColumnBoundary();
+                bool forcedEnd = nextForced <= maximumEnd + 0.0001D
+                    && nextForced <= sourceStart + available + 0.0001D;
+                bool freshColumn = y <= (floats?.Top(column) ?? 0D) + 0.0001D
+                    && columnHeight >= freshHeight - 0.0001D;
                 double end;
-                if (remaining <= available + 0.0001D) {
+                if (forcedEnd) {
+                    // A forced class-A boundary takes precedence over keeps and
+                    // paragraph constraints. It must be consumed even when the
+                    // remainder would otherwise fit this column whole.
+                    end = nextForced - childSourceStart;
+                } else if (remaining <= available + 0.0001D
+                    && !ColumnKeepRequiresBacktracking(source, sourceStart, maximumEnd,
+                        sourceStart + available, freshHeight, freshColumn)) {
                     end = child.Height;
                 } else {
-                    end = FindFragmentEnd(child, start, available, child.Height, fullPageHeight: freshHeight);
+                    ChargeLayoutOperations((long)source.Metrics.LineBreakGroups.Count
+                        + source.Metrics.AvoidBreakRanges.Count, "column source constraints");
+                    end = FindFragmentEnd(source.Metrics, sourceStart, available,
+                        Math.Min(maximumEnd, nextForced), fullPageHeight: freshHeight,
+                        fragmentationScope: HtmlFragmentationScope.Column, isFreshFragmentainer: freshColumn) - childSourceStart;
                     if (end <= start + 0.0001D
                         && (y > 0.0001D || columnHeight < freshHeight - 0.0001D)) {
                         if (column + 2 > maximumGeneratedColumns) {
@@ -263,6 +304,10 @@ internal sealed partial class HtmlRenderLayoutEngine {
                         continue;
                     }
                     if (end <= start + 0.0001D) end = FindNextColumnBreak(child, start);
+                    if (childSourceStart + end >= nextForced - 0.0001D) {
+                        end = nextForced - childSourceStart;
+                        forcedEnd = true;
+                    }
                 }
 
                 if (notes != null || floats != null) {
@@ -291,7 +336,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 y += height;
                 usedHeight = Math.Max(usedHeight, y);
                 start = end;
-                if (start < child.Height - 0.0001D) {
+                if (start < child.Height - 0.0001D && !forcedEnd) {
                     if (column + 2 > maximumGeneratedColumns) {
                         if (throwOnLimit) EnsureMultiColumnLimit(column + 2);
                         return new MultiColumnPlan(fragments, column + 2, usedHeight);
@@ -300,8 +345,27 @@ internal sealed partial class HtmlRenderLayoutEngine {
                     y = floats?.Top(column) ?? 0D;
                 }
             }
+            childSourceStart += child.Height;
         }
         return new MultiColumnPlan(fragments, fragments.Count == 0 ? 1 : column + 1, usedHeight);
+
+        double NextForcedColumnBoundary() {
+            while (forcedIndex < source.Forced.Count
+                && (!source.Forced[forcedIndex].Column || source.Forced[forcedIndex].Page)) forcedIndex++;
+            return forcedIndex < source.Forced.Count ? source.Forced[forcedIndex].Offset : double.PositiveInfinity;
+        }
+
+        void ApplyForcedColumnBoundaries(double offset, int childIndex) {
+            while (NextForcedColumnBoundary() <= offset + 0.0001D
+                && source.Forced[forcedIndex].ChildIndex <= childIndex) {
+                CheckCancellation();
+                ChargeLayoutOperation("authored column advance");
+                column++;
+                if (throwOnLimit) EnsureMultiColumnLimit(column + 1);
+                y = floats?.Top(column) ?? 0D;
+                forcedIndex++;
+            }
+        }
     }
 
     private IReadOnlyList<HtmlRenderVisual> SliceColumnFragmentVisuals(MultiColumnFragment fragment) =>
@@ -399,7 +463,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
         if (style.UnsupportedColumnFill.Length > 0) details.Add("column-fill=" + style.UnsupportedColumnFill);
         if (style.UnsupportedColumnSpan.Length > 0) details.Add("column-span=" + style.UnsupportedColumnSpan);
         if (style.UnsupportedColumnRule.Length > 0) details.Add(style.UnsupportedColumnRule);
-        if (_columnContentDepth > 0 && style.UnsupportedColumnBreaks.Length > 0)
+        if (_columnContentDepth > 0 && style.UnsupportedColumnBreaks.Length > 0
+            && !HasOrdinaryColumnBreakContext(element, style))
             details.Add(style.UnsupportedColumnBreaks.TrimStart(';'));
         if (details.Count == 0) return;
         _diagnostics.Add(
@@ -409,6 +474,19 @@ internal sealed partial class HtmlRenderLayoutEngine {
             HtmlDiagnosticSeverity.Warning,
             HtmlRenderStyleResolver.DescribeSource(element),
             string.Join(";", details));
+    }
+
+    private bool HasOrdinaryColumnBreakContext(IElement element, HtmlRenderBoxStyle style) {
+        for (IElement? current = element; current != null; current = current.ParentElement) {
+            HtmlRenderBoxStyle currentStyle;
+            if (ReferenceEquals(current, element)) currentStyle = style;
+            else if (!_layoutStyles.TryGetValue(current, out currentStyle!)) continue;
+            if (!ReferenceEquals(current, element) && HasMultiColumnLayout(currentStyle)) return true;
+            if (currentStyle.Display is "flex" or "inline-flex" or "grid" or "inline-grid" or "table" or "inline-table"
+                || currentStyle.WritingMode != "horizontal-tb" || currentStyle.ColumnSpan == "all"
+                || currentStyle.FloatSide != "none" || HasMultiColumnLayout(currentStyle)) return false;
+        }
+        return false;
     }
 
     private sealed class MultiColumnPlan {

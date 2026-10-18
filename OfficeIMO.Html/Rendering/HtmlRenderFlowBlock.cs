@@ -55,6 +55,7 @@ internal sealed class HtmlRenderFlowBlock {
         BreakBefore = breakBefore;
         BreakAfter = breakAfter;
         AvoidBreakInside = avoidBreakInside;
+        AvoidBreakInsideScope = avoidBreakInside ? HtmlFragmentationScope.All : HtmlFragmentationScope.None;
         Source = source;
         var offsets = new SortedSet<double> { 0D, PagedPaintExtent };
         if (breakOffsets != null) {
@@ -136,6 +137,8 @@ internal sealed class HtmlRenderFlowBlock {
     internal HtmlPageBreakTarget BreakBefore { get; }
     internal HtmlPageBreakTarget BreakAfter { get; }
     internal bool AvoidBreakInside { get; }
+    /// <summary>Retains column-only keeps independently of the page-effective legacy flag.</summary>
+    internal HtmlFragmentationScope AvoidBreakInsideScope { get; set; }
     internal string Source { get; }
     internal IReadOnlyList<double> BreakOffsets { get; }
     /// <summary>Closed source-coordinate intervals that can supply page-break candidates.</summary>
@@ -173,6 +176,7 @@ internal sealed class HtmlRenderFlowBlock {
     internal double? UnfragmentedHeight { get; set; }
 
     private HtmlRenderFlowBlock CopyLayoutFacts(HtmlRenderFlowBlock block, double unfragmentedAdjustment = 0D) {
+        block.AvoidBreakInsideScope = AvoidBreakInsideScope;
         block.HasZeroHeightOrdinaryContent = HasZeroHeightOrdinaryContent;
         block.UnfragmentedHeight = UnfragmentedHeight.HasValue
             ? Math.Max(0D, UnfragmentedHeight.Value + unfragmentedAdjustment) : null;
@@ -410,7 +414,7 @@ internal sealed class HtmlRenderFlowBlock {
             collapsibleMarginTopGroup: CollapsibleMarginTopGroup,
             collapsibleMarginBottomGroup: CollapsibleMarginBottomGroup,
             avoidBreakRanges: AvoidBreakRanges.Select(range =>
-                new HtmlRenderAvoidBreakRange(Math.Max(0D, range.Start - adjustment), range.End - adjustment, range.Soft)),
+                new HtmlRenderAvoidBreakRange(Math.Max(0D, range.Start - adjustment), range.End - adjustment, range.Soft, range.Scope)),
             pagedPaintExtent: Math.Max(adjustedHeight, PagedPaintExtent - adjustment),
             safeBreakRanges: SafeBreakRanges.Select(range => range.Translate(-adjustment))), -adjustment);
     }
@@ -533,26 +537,37 @@ internal sealed class HtmlRenderFlowBlock {
     }
 }
 
-internal readonly record struct HtmlRenderAvoidBreakRange(double Start, double End, bool Soft = false) {
-    internal HtmlRenderAvoidBreakRange Translate(double offset) => new HtmlRenderAvoidBreakRange(Start + offset, End + offset, Soft);
-    internal HtmlRenderAvoidBreakRange WithEnd(double end) => new HtmlRenderAvoidBreakRange(Start, end, Soft);
+internal readonly record struct HtmlRenderAvoidBreakRange(double Start, double End, bool Soft = false,
+    HtmlFragmentationScope Scope = HtmlFragmentationScope.All) {
+    internal HtmlRenderAvoidBreakRange Translate(double offset) => new HtmlRenderAvoidBreakRange(Start + offset, End + offset, Soft, Scope);
+    internal HtmlRenderAvoidBreakRange WithEnd(double end) => new HtmlRenderAvoidBreakRange(Start, end, Soft, Scope);
 }
 
 internal sealed class HtmlRenderForcedBreak {
-    internal HtmlRenderForcedBreak(double offset, HtmlPageBreakTarget target, string? pageName = null, bool changesPageName = false) {
+    internal HtmlRenderForcedBreak(double offset, HtmlPageBreakTarget target, string? pageName = null, bool changesPageName = false,
+        object? boundary = null, HtmlRenderBreakEdge edge = HtmlRenderBreakEdge.Interior) {
         Offset = offset;
         Target = target;
         PageName = pageName;
         ChangesPageName = changesPageName;
+        Boundary = boundary ?? new object();
+        Edge = edge;
     }
 
     internal double Offset { get; }
     internal HtmlPageBreakTarget Target { get; }
     internal string? PageName { get; }
     internal bool ChangesPageName { get; }
+    // Distinct empty siblings can share an offset; their flow boundaries cannot.
+    internal object Boundary { get; }
+    internal HtmlRenderBreakEdge Edge { get; }
 
-    internal HtmlRenderForcedBreak Translate(double offset) => new HtmlRenderForcedBreak(Offset + offset, Target, PageName, ChangesPageName);
+    internal HtmlRenderForcedBreak Translate(double offset) => new HtmlRenderForcedBreak(Offset + offset, Target, PageName, ChangesPageName, Boundary, Edge);
+    internal HtmlRenderForcedBreak AtBoundary(double offset, object boundary, HtmlRenderBreakEdge edge) =>
+        new HtmlRenderForcedBreak(offset, Target, PageName, ChangesPageName, boundary, edge);
 }
+
+internal enum HtmlRenderBreakEdge { Interior, Leading, Trailing }
 
 internal sealed class HtmlRenderContinuationGroup {
     internal HtmlRenderContinuationGroup(double startsAfter, double endsAt, double height, IEnumerable<HtmlRenderVisual> visuals) {

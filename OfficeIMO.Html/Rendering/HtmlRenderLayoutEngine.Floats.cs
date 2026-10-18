@@ -119,7 +119,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
                     double available = pageBoundary.Value.RemainingHeight - y;
                     if (!floatingBlock.AvoidBreakInside
                         && floatingBlock.AvoidBreakRanges.Any(range =>
-                            range.Start < available - 0.0001D && range.End > available + 0.0001D)
+                            (range.Scope & HtmlFragmentationScope.Page) != 0
+                            && range.Start < available - 0.0001D && range.End > available + 0.0001D)
                         && FindFragmentEnd(floatingBlock, 0D, available,
                             fullPageHeight: pageBoundary.Value.PageHeight) <= 0.01D + 0.0001D) {
                         context.ReserveOriginatingPageExclusion(deferred, y, pageBoundary.Value.RemainingHeight);

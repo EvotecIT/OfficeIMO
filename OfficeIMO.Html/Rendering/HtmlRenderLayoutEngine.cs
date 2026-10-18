@@ -353,7 +353,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         foreach (IElement element in root.QuerySelectorAll("*")) {
             CheckCancellation();
             if (!_computedStyles.Elements.TryGetValue(element, out HtmlComputedStyle? computed)) continue;
-            if (IsPageDirective(computed.GetValue("page"))
+            if (IsPageDirective(computed.GetValue("page"), namedPage: true)
                 || IsPageDirective(computed.GetValue("break-before"))
                 || IsPageDirective(computed.GetValue("page-break-before"))
                 || IsPageDirective(computed.GetValue("break-after"))
@@ -362,11 +362,9 @@ internal sealed partial class HtmlRenderLayoutEngine {
         return false;
     }
 
-    private static bool IsPageDirective(string value) =>
-        !string.IsNullOrWhiteSpace(value)
-        && !string.Equals(value, "auto", StringComparison.OrdinalIgnoreCase)
-        && !string.Equals(value, "avoid", StringComparison.OrdinalIgnoreCase)
-        && !string.Equals(value, "avoid-page", StringComparison.OrdinalIgnoreCase);
+    private static bool IsPageDirective(string value, bool namedPage = false) =>
+        namedPage ? !string.IsNullOrWhiteSpace(value) && !string.Equals(value, "auto", StringComparison.OrdinalIgnoreCase)
+            : value.Trim().ToLowerInvariant() is "page" or "always" or "left" or "right" or "recto" or "verso";
 
     private bool HasAuthoredRootBoxGeometry(IElement root, HtmlRenderBoxStyle style) {
         bool effectiveGeometry = style.ExplicitWidth.HasValue

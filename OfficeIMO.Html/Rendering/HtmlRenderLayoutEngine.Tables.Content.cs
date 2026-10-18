@@ -35,7 +35,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
             }
             safeBreakRanges.AddRange(block.SafeBreakRanges.Select(range => range.Translate(blockStart)));
             height += block.Height;
-            if (block.AvoidBreakInside) avoidBreakRanges.Add(new HtmlRenderAvoidBreakRange(blockStart, height));
+            if (block.AvoidBreakInsideScope != HtmlFragmentationScope.None)
+                avoidBreakRanges.Add(new HtmlRenderAvoidBreakRange(blockStart, height, Scope: block.AvoidBreakInsideScope));
             foreach (HtmlRenderAvoidBreakRange range in block.AvoidBreakRanges) {
                 ChargeLayoutOperation("table cell keep ranges");
                 avoidBreakRanges.Add(range.Translate(blockStart));

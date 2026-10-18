@@ -1204,6 +1204,9 @@ internal sealed partial class HtmlRenderStyleResolver {
         style.BreakAfter = ResolvePageBreakTarget(after);
         style.AvoidBreakBefore = IsAvoidPageBreak(before);
         style.AvoidBreakAfter = IsAvoidPageBreak(after);
+        style.AvoidBreakBeforeScope = ResolveAvoidBreakScope(before);
+        style.AvoidBreakAfterScope = ResolveAvoidBreakScope(after);
+        style.AvoidBreakInsideScope = ResolveAvoidBreakScope(inside);
         if (before is "column" or "avoid-column") style.UnsupportedColumnBreaks = "break-before=" + before;
         if (after is "column" or "avoid-column") style.UnsupportedColumnBreaks += ";break-after=" + after;
         if (string.Equals(inside, "avoid-column", StringComparison.OrdinalIgnoreCase))
@@ -1214,6 +1217,8 @@ internal sealed partial class HtmlRenderStyleResolver {
             // page-sized one intact when paginating, as Chromium does for WAI cards.
             || style.OverflowX is "auto" or "scroll"
             || style.OverflowY is "auto" or "scroll";
+        if (style.OverflowX is "auto" or "scroll" || style.OverflowY is "auto" or "scroll")
+            style.AvoidBreakInsideScope = HtmlFragmentationScope.All;
         style.Orphans = ReadPositiveInteger(computed.GetValue("orphans"), style.Orphans);
         style.Widows = ReadPositiveInteger(computed.GetValue("widows"), style.Widows);
         style.PageName = ResolvePageName(computed.GetValue("page"));
@@ -1222,6 +1227,14 @@ internal sealed partial class HtmlRenderStyleResolver {
     private static bool IsAvoidPageBreak(string value) =>
         string.Equals(value, "avoid", StringComparison.OrdinalIgnoreCase)
         || string.Equals(value, "avoid-page", StringComparison.OrdinalIgnoreCase);
+
+    /// <summary>Keeps page-specific and column-specific avoid values distinct during layout.</summary>
+    private static HtmlFragmentationScope ResolveAvoidBreakScope(string value) => value.Trim().ToLowerInvariant() switch {
+        "avoid" => HtmlFragmentationScope.All,
+        "avoid-page" => HtmlFragmentationScope.Page,
+        "avoid-column" => HtmlFragmentationScope.Column,
+        _ => HtmlFragmentationScope.None
+    };
 
     private static void ApplyPositioning(HtmlComputedStyle computed, HtmlRenderBoxStyle style) {
         string position = computed.GetValue("position");
@@ -1504,6 +1517,7 @@ internal sealed partial class HtmlRenderStyleResolver {
     private static double? ResolveDefiniteContentHeight(HtmlRenderBoxStyle? style) => style?.DefiniteContentHeight;
 
     private static HtmlPageBreakTarget ResolvePageBreakTarget(string value) {
+        if (value == "column") return HtmlPageBreakTarget.Column;
         if (value == "left" || value == "verso") return HtmlPageBreakTarget.Left;
         if (value == "right" || value == "recto") return HtmlPageBreakTarget.Right;
         if (value == "page" || value == "always") return HtmlPageBreakTarget.Page;

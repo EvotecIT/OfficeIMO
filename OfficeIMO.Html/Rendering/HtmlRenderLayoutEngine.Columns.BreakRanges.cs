@@ -111,14 +111,16 @@ internal sealed partial class HtmlRenderLayoutEngine {
         HtmlRenderFlowBlock block, double start, double end, double offsetY) {
         const double tolerance = 0.0001D;
         double translation = offsetY - start;
-        if (block.AvoidBreakInside && start <= tolerance && end >= block.Height - tolerance) {
+        if ((block.AvoidBreakInsideScope & HtmlFragmentationScope.Page) != 0
+            && start <= tolerance && end >= block.Height - tolerance) {
             yield return new HtmlRenderAvoidBreakRange(Math.Max(start, 0D) + translation,
-                Math.Min(end, block.Height) + translation);
+                Math.Min(end, block.Height) + translation, Scope: HtmlFragmentationScope.Page);
         }
         foreach (HtmlRenderAvoidBreakRange range in block.AvoidBreakRanges) {
+            if ((range.Scope & HtmlFragmentationScope.Page) == 0) continue;
             if (range.Start < start - tolerance || range.End > end + tolerance) continue;
             yield return new HtmlRenderAvoidBreakRange(
-                Math.Max(start, range.Start) + translation, Math.Min(end, range.End) + translation, range.Soft);
+                Math.Max(start, range.Start) + translation, Math.Min(end, range.End) + translation, range.Soft, HtmlFragmentationScope.Page);
         }
     }
 

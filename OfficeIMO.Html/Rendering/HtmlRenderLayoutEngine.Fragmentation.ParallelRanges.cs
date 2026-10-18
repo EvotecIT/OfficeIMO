@@ -80,7 +80,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
         allowed = HtmlRenderBreakRange.Exclude(allowed,
             atomicRanges.Select(range => new HtmlRenderBreakRange(range.Top, range.Bottom)));
         IEnumerable<HtmlRenderBreakRange> keeps = block.AvoidBreakRanges
-            .Where(range => fullPageHeight <= 0D || range.End - range.Start <= fullPageHeight + 0.0001D)
+            .Where(range => (range.Scope & HtmlFragmentationScope.Page) != 0
+                && (fullPageHeight <= 0D || range.End - range.Start <= fullPageHeight + 0.0001D))
             .Select(range => new HtmlRenderBreakRange(range.Start, range.End));
         if (block.AvoidBreakInside && (fullPageHeight <= 0D || extent <= fullPageHeight + 0.0001D))
             keeps = keeps.Prepend(new HtmlRenderBreakRange(0D, extent));

@@ -251,6 +251,9 @@ internal sealed class HtmlRenderBoxStyle {
     internal bool AvoidBreakInside;
     internal bool AvoidBreakBefore;
     internal bool AvoidBreakAfter;
+    internal HtmlFragmentationScope AvoidBreakInsideScope;
+    internal HtmlFragmentationScope AvoidBreakBeforeScope;
+    internal HtmlFragmentationScope AvoidBreakAfterScope;
     internal string UnsupportedColumnBreaks = string.Empty;
     internal int Orphans = 2;
     internal int Widows = 2;

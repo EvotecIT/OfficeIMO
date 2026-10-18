@@ -95,7 +95,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
         for (int index = 0; index < items.Count; index++) {
             double start = contentY + items[index].MainOffset;
             HtmlRenderFlowBlock child = children[index];
-            if (child.AvoidBreakInside) ranges.Add(new HtmlRenderAvoidBreakRange(start, start + child.Height));
+            if (child.AvoidBreakInsideScope != HtmlFragmentationScope.None)
+                ranges.Add(new HtmlRenderAvoidBreakRange(start, start + child.Height, Scope: child.AvoidBreakInsideScope));
             ranges.AddRange(child.AvoidBreakRanges.Select(range => range.Translate(start)));
             AppendKeepWithNextRange(children, index, start, ranges,
                 index > 0 ? contentY + items[index - 1].MainOffset : null);
@@ -306,7 +307,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
                     item.BreakOffsets.Where(offset => offset < item.Height - 0.0001D).DefaultIfEmpty().Max(),
                     item.RunningStringAssignments.Select(assignment => assignment.Offset).DefaultIfEmpty().Max(),
                     item.InlineBreakProgress.Select(progress => progress.Offset).DefaultIfEmpty().Max(),
-                    item.AvoidBreakRanges.Select(range => range.End).DefaultIfEmpty().Max()
+                    item.AvoidBreakRanges.Where(range => (range.Scope & HtmlFragmentationScope.Page) != 0)
+                        .Select(range => range.End).DefaultIfEmpty().Max()
                 }.Max();
                 bool absorbInStretchTail = !line.Items[index].HasExplicitCrossSize
                     && line.Items[index].Style.ExplicitHeight.HasValue
@@ -346,8 +348,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
             HtmlPageBreakTarget.None, HtmlPageBreakTarget.None, false, "parallel-flex-breaks",
             lineBreakGroups: line.Items.SelectMany(item => item.Block!.LineBreakGroups.Select(group => group.WithInteriorBreaks())),
             avoidBreakRanges: line.Items.SelectMany(item => item.Block!.AvoidBreakRanges.Concat(
-                item.Block.AvoidBreakInside
-                    ? new[] { new HtmlRenderAvoidBreakRange(0D, item.Block.Height) }
+                item.Block.AvoidBreakInsideScope != HtmlFragmentationScope.None
+                    ? new[] { new HtmlRenderAvoidBreakRange(0D, item.Block.Height, Scope: item.Block.AvoidBreakInsideScope) }
                     : Array.Empty<HtmlRenderAvoidBreakRange>())),
             safeBreakRanges: ranges);
         return FindFragmentEnd(shared, cursor, available, fullPageHeight: pageHeight) > cursor + 0.0001D;
@@ -406,8 +408,10 @@ internal sealed partial class HtmlRenderLayoutEngine {
             avoidBreakRanges: block.AvoidBreakRanges.Select(range => new HtmlRenderAvoidBreakRange(
                 range.Start >= cut - 0.0001D ? range.Start + gap : range.Start,
                 range.End > cut + 0.0001D ? range.End + gap : range.End,
-                range.Soft)),
-            safeBreakRanges: SplitFlexBreakRangesAtGap(block.SafeBreakRanges, cut, gap, height));
+                range.Soft, range.Scope)),
+            safeBreakRanges: SplitFlexBreakRangesAtGap(block.SafeBreakRanges, cut, gap, height)) {
+                AvoidBreakInsideScope = block.AvoidBreakInsideScope
+            };
     }
 
     /// <summary>Maps each side of the retained source independently; inserted spacing is not a source interval.</summary>

@@ -46,7 +46,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 if (block.BreakOffsets.Count <= 2 && !HasInteriorSafeBreakRanges(block)
                     || (block.AvoidBreakInside && block.PagedPaintExtent <= fullPageHeight + 0.0001D)
                     || block.AvoidBreakRanges.Any(range =>
-                        localOffset > range.Start + 0.0001D && localOffset < range.End - 0.0001D
+                        (range.Scope & HtmlFragmentationScope.Page) != 0
+                        && localOffset > range.Start + 0.0001D && localOffset < range.End - 0.0001D
                         && range.End - range.Start <= fullPageHeight + 0.0001D)
                     || !IsSafeParallelItemBreak(block, localOffset, atomicBottoms, atomicRanges, fullPageHeight)) return true;
             }

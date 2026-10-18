@@ -34,7 +34,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                         Math.Min(columnHeight * 0.5D, Math.Max(12D, _options.DefaultFontSize * 1.5D)))) : 0D;
                 double capacity = Math.Max(0D, columnHeight - minimumBody - occupied - gap - (floats?.Reserved(column) ?? 0D));
                 if (capacity <= 0.01D) { column++; continue; }
-                double end = FindFragmentEnd(entry.Block, offset, capacity, fullPageHeight: freshHeight);
+                double end = FindFragmentEnd(entry.Block, offset, capacity, fullPageHeight: freshHeight, fragmentationScope: HtmlFragmentationScope.Column);
                 if (end <= offset + 0.0001D) {
                     if (column == callColumn || occupied > 0.0001D
                         || columnHeight < freshHeight - 0.0001D) { column++; continue; }
@@ -61,10 +61,10 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 .OfType<HtmlRenderNamedDestination>().FirstOrDefault(d => d.Name == callName);
             if (call == null) continue;
             double anchor = fragment.Start + call.LayoutY;
-            double before = FindFragmentEnd(fragment.Block, 0D, Math.Max(0D, anchor), anchor, fullPageHeight: height);
+            double before = FindFragmentEnd(fragment.Block, 0D, Math.Max(0D, anchor), anchor, fullPageHeight: height, fragmentationScope: HtmlFragmentationScope.Column);
             double after = FindNextColumnBreak(fragment.Block, anchor);
             callHeight = Math.Max(0D, after - before);
-            if (fragment.Block.AvoidBreakInside) callHeight = Math.Max(callHeight, fragment.Block.Height);
+            if ((fragment.Block.AvoidBreakInsideScope & HtmlFragmentationScope.Column) != 0) callHeight = Math.Max(callHeight, fragment.Block.Height);
             foreach (HtmlRenderAvoidBreakRange range in fragment.Block.AvoidBreakRanges) {
                 if (anchor >= range.Start && anchor < range.End && range.End - range.Start <= height)
                     callHeight = Math.Max(callHeight, range.End - range.Start);
@@ -82,7 +82,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
             if (!notes.MinimumCalls.TryGetValue(call.Name, out int minimum) || minimum <= column
                 || call.LayoutY < start - 0.0001D || call.LayoutY >= end - 0.0001D) continue;
             end = FindFragmentEnd(child, start, Math.Max(0D, call.LayoutY - start),
-                Math.Min(end, call.LayoutY), fullPageHeight: height);
+                Math.Min(end, call.LayoutY), fullPageHeight: height, fragmentationScope: HtmlFragmentationScope.Column);
         }
         return end;
     }

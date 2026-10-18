@@ -102,9 +102,9 @@ internal sealed partial class HtmlRenderLayoutEngine {
             if (anchor == null) continue;
             if (fragment.Block.Height > 0.0001D) {
                 double offset = fragment.Start + anchor.LayoutY;
-                double before = FindFragmentEnd(fragment.Block, 0D, Math.Max(0D, offset), offset, fullPageHeight: height);
+                double before = FindFragmentEnd(fragment.Block, 0D, Math.Max(0D, offset), offset, fullPageHeight: height, fragmentationScope: HtmlFragmentationScope.Column);
                 anchorHeight = Math.Max(0D, FindNextColumnBreak(fragment.Block, offset) - before);
-                if (fragment.Block.AvoidBreakInside) anchorHeight = Math.Max(anchorHeight, fragment.Block.Height);
+                if ((fragment.Block.AvoidBreakInsideScope & HtmlFragmentationScope.Column) != 0) anchorHeight = Math.Max(anchorHeight, fragment.Block.Height);
             }
             return fragment.Column;
         }
