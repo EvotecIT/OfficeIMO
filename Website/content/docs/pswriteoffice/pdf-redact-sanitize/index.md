@@ -19,12 +19,12 @@ ConvertTo-OfficePdfRedacted `
     -Text 'Secret account'
 ```
 
-The [redact-detected-text recipe](https://github.com/EvotecIT/OfficeIMO/blob/d4fcbdea73c67015acc256bc639cee9197f9d29c/PowerShell/PSWriteOffice/Examples/Pdf/Recipe-Pdf-RedactDetectedText.ps1) shows the same operation with a self-contained source PDF.
+The [redact-detected-text recipe](https://github.com/EvotecIT/OfficeIMO/blob/890cc048905baff13fdad58f49044947e55976b0/PowerShell/PSWriteOffice/Examples/Pdf/Recipe-Pdf-RedactDetectedText.ps1) shows the same operation with a self-contained source PDF.
 
 ## Prepare a delivery copy
 
 `ConvertTo-OfficePdfSanitized` writes a new sanitized file. `ConvertTo-OfficePdfOptimized -PassThruReport` reports the actions and size outcome. Neither should overwrite the only source copy in an auditable workflow.
 
-The [sanitize-and-optimize recipe](https://github.com/EvotecIT/OfficeIMO/blob/d4fcbdea73c67015acc256bc639cee9197f9d29c/PowerShell/PSWriteOffice/Examples/Pdf/Recipe-Pdf-SanitizeAndOptimize.ps1) keeps the source, sanitized copy, and optimized delivery file separate.
+The [sanitize-and-optimize recipe](https://github.com/EvotecIT/OfficeIMO/blob/890cc048905baff13fdad58f49044947e55976b0/PowerShell/PSWriteOffice/Examples/Pdf/Recipe-Pdf-SanitizeAndOptimize.ps1) keeps the source, sanitized copy, and optimized delivery file separate.
 
 Visual black boxes are not automatically secure redactions. Use the redaction command and verify extracted content rather than relying on a stamp or shape to hide text.
