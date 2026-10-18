@@ -112,7 +112,8 @@
     "qualificationBoundary": "Retained earlier measurement/proof; not repeated for the CAB/snapshot cleanup milestone."
   },
   "gaps": [
-    "Native Windows Explorer archive containing Polish filenames with producer version and raw encoding evidence",
+    "Native Windows Shell Polish-filename ZIP production on a suitable target, with producer provenance, raw encoding and complete payload hashes; interactive Explorer UI acceptance remains separate",
+    "Installed .NET Framework 4.7.2 runtime execution; net472 on Framework 4.8 is qualified",
     "Additional named MSI/CAB producer profiles"
   ],
   "releaseBoundary": "Unsigned private qualification packages only; no public release. Recorded CI evidence applies to its exact context source head and package hashes.",
@@ -1102,10 +1103,10 @@
     "boundary": "Per-thread allocation excludes input inventory; not peak/RSS or time. Packed copies also match all106 independent MSI hashes and native makecab bytes on both runtimes."
   },
   "windowsPackedQualification": {
-    "status": "Seven packed scenarios including Reader timestamp oracle passed each target; native helper stopped before COM due unsigned-codepage overload",
+    "status": "Seven packed scenarios passed on each Windows runtime target. Native Polish-filename production is deferred to a separate Windows qualification.",
     "context": "2026-10-17-windows/context.json",
-    "sourceHead": "4253fb04e9eb4ea4334eda666b65cc8eeb473df1",
-    "runUrl": "https://github.com/EvotecIT/OfficeIMO/actions/runs/39069501418",
+    "sourceHead": "0fec7c2e9292679ba2b1b317b986fe108d68c78e",
+    "runUrl": "https://github.com/EvotecIT/OfficeIMO/actions/runs/39072630103",
     "reports": {
       "net8.0": "2026-10-17-windows/net8.0.json",
       "net10.0": "2026-10-17-windows/net10.0.json",
@@ -1119,16 +1120,38 @@
     "os": "Windows 10.0.26100",
     "privatePackageVersion": "3.5.1.9999",
     "scenarios": [
-      "Five independent ZIP fixtures: inventory/read/grouped/verify/copy/extract/Reader",
-      "All106 pinned native MSI payload and verified-copy hashes against independent extraction",
+      "Five independent ZIP fixtures: inventory, read, grouped read, verification, copy, extraction, Reader and timestamp oracle",
+      "All 106 pinned native MSI payload and verified-copy hashes against independent extraction",
       "Native makecab full payload, verification and CopyTo"
     ],
     "nativeProducer": {
-      "status": "4253helper GetEncoding selected string overload for uint32 ACP1252; fixed by converting the native value to Int32. Earlierdf1Shell production timedout60s. No accepted nativefixture.",
-      "jobUrl": "https://github.com/EvotecIT/OfficeIMO/actions/runs/39069501418/job/117504334430",
-      "boundary": "NativeShellCOM/interactiveExplorerUI and installedFramework4.7.2 remain unqualified. Next actualWindowsrun required."
+      "status": "Unqualified and deferred; last hosted attempt timed out after 60 seconds with an empty 22-byte ZIP. No native consumer report accepted.",
+      "diagnostics": {
+        "namesRepresentableInSystemAnsi": false,
+        "apartment": "STA",
+        "expectedNames": [
+          "Zażółć-gęślą-jaźń.txt",
+          "Łódź.txt"
+        ],
+        "complete": false,
+        "userInteractive": true,
+        "systemAnsiCodePage": 1252,
+        "lastReadError": "System.IO.IOException",
+        "messagePump": true,
+        "windows": "Microsoft Windows NT 10.0.26100.0",
+        "powershell": "7.6.6",
+        "zipBytes": 22
+      },
+      "jobUrl": "https://github.com/EvotecIT/OfficeIMO/actions/runs/39072630103/job/117513455152",
+      "boundary": "Native Shell COM generation requires an opt-in run on a suitable Windows target. Interactive Explorer UI acceptance remains separate. Neither is established by runtime CI.",
+      "diagnosticsReport": "2026-10-17-windows/producer-attempt.json",
+      "partialZip": {
+        "bytes": 22,
+        "sha256": "8739c76e681f900923b900c9df0ef75cf421d39cabb54650c4b9ad19b6a76d85",
+        "acceptedFixture": false
+      }
     },
-    "qualificationBoundary": "Current Reader timestamp repair and unchanged verifiedcopy contracts covered by these Windows reports. Native helper integer-conversion fix remains subject to next Windows run."
+    "qualificationBoundary": "Windows runtime contracts passed on .NET 8.0.32, .NET 10.0.13 and the net472 target on Framework 4.8.9345.0. Native Polish-filename production and an installed Framework 4.7.2 runtime remain unqualified."
   },
   "readerTimestampCompatibility": {
     "sourceCandidate": "54cf307f10bf2253c8b321043112b307edfe24e5",

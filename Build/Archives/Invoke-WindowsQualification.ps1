@@ -2,7 +2,8 @@
 param(
     [Parameter(Mandatory)][string] $OutputPath,
     [Parameter(Mandatory)][string] $FeedPath,
-    [Parameter(Mandatory)][string] $Version
+    [Parameter(Mandatory)][string] $Version,
+    [switch] $IncludeNativeFixture
 )
 
 $ErrorActionPreference = 'Stop'
@@ -51,10 +52,16 @@ foreach ($framework in @('net8.0', 'net10.0', 'net472')) {
         @{ file = [IO.Path]::GetFileName($package); bytes = (Get-Item $package).Length
             sha256 = (Get-FileHash $package -Algorithm SHA256).Hash.ToLowerInvariant() }
     })
-    boundary = 'Unsigned private package runtime proof; Windows Shell ZIP producer, not interactive Explorer UI automation. No installer or extracted executable run.'
+    nativeFixtureRequested = [bool] $IncludeNativeFixture
+    boundary = 'Unsigned private package runtime proof. Native Windows Shell ZIP generation is opt-in and separate from interactive Explorer UI acceptance. No installer or extracted executable run.'
 } | ConvertTo-Json | Set-Content -LiteralPath (Join-Path $reports 'context.json') -Encoding utf8
 
-# Native Shell production is separate: a headless producer failure must not prevent the runtime proof above.
+if (-not $IncludeNativeFixture) {
+    Write-Host 'Packed Windows runtime qualification completed. Native Shell ZIP production was not requested; native filename qualification remains separate.'
+    return
+}
+
+# An explicitly requested native qualification must fail if production or any consumer fails.
 $native = Join-Path $OutputPath 'native'
 & pwsh -NoProfile -STA -File (Join-Path $PSScriptRoot 'New-WindowsShellZipFixture.ps1') -OutputPath $native
 $nativeExitCode = $LASTEXITCODE

@@ -446,7 +446,7 @@ Qualify complete script-free HtmlForgeX reports through the shared HTML scene an
 
 ## Archive containers
 
-- [ ] Qualify a native Windows Explorer archive containing Polish filenames, retaining the producer/Windows version, input hash, raw encoding policy and complete expected member bytes. Keep this distinct from the existing Windows-labelled ASCII corpus and CPython CP1250 fixtures.
+- [ ] Qualify native Windows Shell production of Polish-filename ZIPs on a suitable Windows target with the [opt-in qualification runner](../Build/Archives/README.md#verified-cabmsi-copy-evidence), retaining the fixture, producer/Windows version, input hash, raw encoding policy and complete expected member bytes. Qualify interactive Explorer UI behavior separately. Keep both distinct from required Windows runtime CI, the existing Windows-labelled ASCII corpus and CPython CP1250 fixtures.
 - [ ] Extend named native MSI/CAB producer profiles beyond the qualified makecab and 7-Zip MSI inputs, retaining exact package/fixture hashes and complete expected bytes. Keep installed .NET Framework 4.7.2 runtime evidence distinct from the net472 consumer qualified on .NET Framework 4.8.
 
 TAR/GZip, archive creation, deterministic bundles, encryption, RAR/7z, split archives and installer execution remain deferred. Reassess format expansion only for an identified consumer workflow, with compatibility and dependency approval. Lazy member streams and file-backed CAB/MSI input or selected output need a separate lifetime and verification contract.

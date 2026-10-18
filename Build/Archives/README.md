@@ -139,12 +139,35 @@ all 106 payloads of the pinned 7-Zip MSI against the retained independent hash
 manifest, checks native makecab content, and exercises verified copying.
 
 `Invoke-WindowsQualification.ps1` accepts `-OutputPath`, `-FeedPath` and
-`-Version` to perform the same Windows qualification against a fresh scratch
-directory and explicit private candidate. It uses Windows Shell's compressed-folder handler to
-produce a Polish-filename ZIP and records Windows, Explorer/zipfldr versions,
-input hashes, raw name bytes and the exact admitted encoding policy. The fixture
-and runtime reports are uploaded as `archives-windows-qualification`. Shell COM
-production is separate from interactive Explorer UI acceptance; a missing or
-failed producer report is an explicit qualification gap. Neither installers nor
-extracted executables run. Optional allocation probes are excluded from net472;
-the ordinary packed-consumer contracts run on that target.
+`-Version` to perform the same Windows runtime qualification against a fresh
+scratch directory and explicit private candidate. CI uploads the context and
+three runtime reports as `archives-windows-qualification`.
+
+On a suitable Windows machine, add `-IncludeNativeFixture` to also use Windows
+Shell's compressed-folder handler to produce a Polish-filename ZIP. For a local
+checkout of the exact candidate, set `$env:OFFICEIMO_QUALIFICATION_HEAD` to
+`git rev-parse HEAD` before invoking the script. For example, after packing the
+four candidate packages into a private feed, use that feed/version and set
+`$qualification_output` to a fresh directory under the configured scratch root:
+
+```powershell
+$env:OFFICEIMO_QUALIFICATION_HEAD = git rev-parse HEAD
+& Build/Archives/Invoke-WindowsQualification.ps1 -OutputPath $qualification_output -FeedPath $candidate_feed -Version $candidate_version -IncludeNativeFixture
+```
+
+The native run records Windows and Explorer/zipfldr versions, input hashes, raw
+name bytes and the exact admitted encoding policy, then runs the native fixture
+through all three packed consumers. Retain the complete `reports` directory,
+including `windows-producer.json`, the ZIP, `native-net8.0.json`,
+`native-net10.0.json`, `native-net472.json` and `context.json`. Check the source
+head, package hashes, authored names and complete payload hashes before accepting
+the fixture. Explicitly requested native production or consumer failures fail the
+run; partial ZIPs and `producer-attempt.json` are diagnostics only.
+
+Native production is not attempted by ordinary CI. The hosted ACP1252 runner's
+recorded attempt produced no members, so native Polish-filename qualification
+remains open for a suitable Windows target. Shell COM production and interactive
+Explorer UI acceptance are separate checks. Neither installers nor extracted
+executables run. Optional allocation probes are excluded from net472; the
+ordinary packed-consumer contracts run on that target. The net472 target on
+.NET Framework 4.8 does not establish execution on an installed 4.7.2 runtime.
