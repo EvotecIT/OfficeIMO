@@ -419,6 +419,7 @@ internal static partial class PdfWriter {
     }
 
     private sealed class PageShading {
+        public bool IsOpacityData { get; set; }
         public OfficeGradientColorInterpolation ColorInterpolation { get; set; }
         public string Name { get; set; } = string.Empty;
         public bool IsRadial { get; set; }
@@ -457,7 +458,9 @@ internal static partial class PdfWriter {
 
     private sealed class PageEffectGroup {
         public PdfPageContentHandle Content { get; set; }
-        public PageEffectGroup? AlphaMask { get; set; }
+        public PageEffectGroup? SoftMask { get; set; }
+        public OfficeSoftMaskMode SoftMaskMode { get; set; }
+        public bool IsOpacityData { get; set; }
         public string? MaskGraphicsStateName { get; set; }
         public string Token { get; set; } = string.Empty;
         public OfficeTransform Transform { get; set; } = OfficeTransform.Identity;
@@ -486,6 +489,7 @@ internal static partial class PdfWriter {
     }
 
     private sealed class PageImage {
+        public bool IsOpacityData { get; set; }
         public bool Interpolate { get; set; }
         public byte[] Data { get; set; } = System.Array.Empty<byte>();
         public OfficeImageInfo Info { get; set; } = new OfficeImageInfo(OfficeImageFormat.Unknown, 0, 0);

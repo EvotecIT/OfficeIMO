@@ -21,10 +21,10 @@ Bouncy Castle AES implementation. The embedded sRGB profile terms are in
 The embedded Adobe CJK character mappings use the BSD 3-Clause License. Their
 license texts and pinned source provenance are in `AdobeCMaps/`, and
 `OfficeIMO.Pdf-THIRD-PARTY-NOTICES.md` identifies their role in PDF text reading.
-Mac App Store packages also include `THIRD_PARTY_NOTICES.txt` and
+Apple packages also include `THIRD_PARTY_NOTICES.txt` and
 `runtime-package-inventory.json`, generated from the exact published dependency
 graph and reviewed license texts. Packaging fails when a runtime package version
-has no reviewed notice coverage. These files reside in `Contents/Resources/Licenses`. The repository’s
+has no reviewed notice coverage. The native Apple targets carry these files in the engine notices resource bundle; the Avalonia Mac package uses `Contents/Resources/Licenses`. The repository’s
 [dependency inventory](https://officeimo.com/third-party/) identifies package
 dependencies and upstream license information; it is not a substitute for the
 notices required by the exact binaries in a distribution.

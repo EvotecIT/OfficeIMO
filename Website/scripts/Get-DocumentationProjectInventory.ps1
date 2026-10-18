@@ -27,6 +27,7 @@ $validationProjects = @($allProjects | Where-Object {
         'OfficeIMO.Project.Verification',
         'OfficeIMO.Project.IndependentVerification',
         'OfficeIMO.Project.ReportVerification'
+        'PSWriteOffice.TestingGround'
     ) -or
     $relativeProjectPath -match '^Website/Apps/'
 })

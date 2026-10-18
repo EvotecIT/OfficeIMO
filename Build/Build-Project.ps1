@@ -21,6 +21,14 @@ if ($ValidateHtmlPdfRelease -and
 
 Import-Module PSPublishModule -Force -ErrorAction Stop
 
+if (($PublishNuget -eq $true -or $PublishGitHub -eq $true) -and $Plan -ne $true) {
+    if ($ConfigPath -ne "$PSScriptRoot\project.build.json") {
+        throw 'Use the canonical project configuration for a coordinated OfficeIMO release.'
+    }
+    & "$PSScriptRoot/Build-Release.ps1" -RunMode Publish -SignModule:$true
+    return
+}
+
 $invokeParams = @{
     ConfigPath = $ConfigPath
 }

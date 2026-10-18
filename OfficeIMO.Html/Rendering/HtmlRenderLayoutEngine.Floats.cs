@@ -81,7 +81,11 @@ internal sealed partial class HtmlRenderLayoutEngine {
         var placements = new List<InlineFloatPlacement>();
         var lines = new List<InlineLine>();
         double y = 0D;
-        InlineLine line = CreateFloatLine(context, ref y, paragraphStyle.LineHeight, paragraphStyle);
+        // Fit float bands with the same normal selected-face height that commits
+        // the line. Specialized leader and short-line routes retain their basis.
+        double defaultLineHeight = runs.Any(run => run.LeaderPattern != null)
+            ? paragraphStyle.LineHeight : ResolveTextLineMetrics(string.Empty, paragraphStyle).Height;
+        InlineLine line = CreateFloatLine(context, ref y, defaultLineHeight, paragraphStyle);
         bool previousWasCollapsibleSpace = false;
         int noWrapRangeStart = -1;
         int noWrapStrutStart = 0;
@@ -99,7 +103,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                         ref line,
                         ref y,
                         context,
-                        paragraphStyle.LineHeight,
+                        defaultLineHeight,
                         noWrapRangeStart,
                         noWrapStrutStart,
                         noWrapRangeStartedAfterContent);
@@ -130,16 +134,16 @@ internal sealed partial class HtmlRenderLayoutEngine {
                     && Math.Abs(floatBand.Width - line.AvailableWidth) <= 0.0001D
                     && line.Width + Math.Max(0.01D, floatingBlock.Width) <= floatBand.Width + 0.0001D;
                 if (!sharesCurrentLine && line.Segments.Count > 0) {
-                    CommitFloatLine(lines, ref line, ref y, context, paragraphStyle.LineHeight);
+                    CommitFloatLine(lines, ref line, ref y, context, defaultLineHeight);
                 }
                 InlineFloatPlacement placement = context.Place(run, y);
                 placements.Add(placement);
                 if (sharesCurrentLine) {
-                    InlineFloatBand remainingBand = context.ResolveBand(y, paragraphStyle.LineHeight);
+                    InlineFloatBand remainingBand = context.ResolveBand(y, defaultLineHeight);
                     line.Place(remainingBand.Left, y, remainingBand.Width);
                 } else {
                     IReadOnlyList<HtmlRenderBoxStyle> emptyStruts = line.EmptyInlineStrutStyles;
-                    line = CreateFloatLine(context, ref y, paragraphStyle.LineHeight, paragraphStyle);
+                    line = CreateFloatLine(context, ref y, defaultLineHeight, paragraphStyle);
                     line.RecordEmptyInlineStruts(emptyStruts);
                 }
                 if (!sharesCurrentLine) previousWasCollapsibleSpace = false;
@@ -152,7 +156,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                     ref line,
                     ref y,
                     context,
-                    paragraphStyle.LineHeight,
+                    defaultLineHeight,
                     noWrapRangeStart,
                     noWrapStrutStart,
                     noWrapRangeStartedAfterContent);
@@ -192,14 +196,14 @@ internal sealed partial class HtmlRenderLayoutEngine {
                     && !runPreventsWrapping
                     && line.HasFlowContent
                     && line.PreviewAdvance(run, atomicWidth) > line.AvailableWidth) {
-                    CommitFloatLine(lines, ref line, ref y, context, paragraphStyle.LineHeight);
+                    CommitFloatLine(lines, ref line, ref y, context, defaultLineHeight);
                 }
                 if (!line.HasFlowContent && line.PreviewAdvance(run, atomicWidth) > line.AvailableWidth + 0.0001D) {
                     IReadOnlyList<HtmlRenderBoxStyle> noWrapStruts = paragraphStyle.PreventTextWrapping
                         ? line.TakeEmptyInlineStruts(0)
                         : runPreventsWrapping ? line.TakeEmptyInlineStruts(noWrapStrutStart)
                             : Array.Empty<HtmlRenderBoxStyle>();
-                    MoveFloatLineBelowObstruction(ref line, ref y, context, paragraphStyle.LineHeight, line.PreviewAdvance(run, atomicWidth));
+                    MoveFloatLineBelowObstruction(ref line, ref y, context, defaultLineHeight, line.PreviewAdvance(run, atomicWidth));
                     line.RecordEmptyInlineStruts(noWrapStruts);
                 }
                 line.Add(new InlineSegment(string.Empty, atomicWidth, run));
@@ -225,12 +229,15 @@ internal sealed partial class HtmlRenderLayoutEngine {
                             ref line,
                             ref y,
                             context,
-                            paragraphStyle.LineHeight,
+                            defaultLineHeight,
                             noWrapRangeStart,
                             noWrapStrutStart,
                             noWrapRangeStartedAfterContent);
                     }
-                    CommitFloatLine(lines, ref line, ref y, context, paragraphStyle.LineHeight, includeEmpty: true);
+                    // Finalization can move a nowrap suffix; attach the break's
+                    // struts to the line that is actually being committed.
+                    line.Add(new InlineSegment(string.Empty, 0D, run, string.Empty));
+                    CommitFloatLine(lines, ref line, ref y, context, defaultLineHeight, includeEmpty: true);
                     previousWasCollapsibleSpace = false;
                     noWrapRangeStart = runPreventsWrapping ? 0 : -1;
                     noWrapStrutStart = 0;
@@ -261,12 +268,12 @@ internal sealed partial class HtmlRenderLayoutEngine {
                     paintToken += run.FirstLineHyphen;
                     double prefixWidth = MeasureInlineText(paintToken, run.Style);
                     if (line.HasFlowContent && line.PreviewAdvance(run, prefixWidth) > line.AvailableWidth + 0.0001D)
-                        CommitFloatLine(lines, ref line, ref y, context, paragraphStyle.LineHeight);
+                        CommitFloatLine(lines, ref line, ref y, context, defaultLineHeight);
                     if (!line.HasFlowContent && line.PreviewAdvance(run, prefixWidth) > line.AvailableWidth + 0.0001D)
-                        MoveFloatLineBelowObstruction(ref line, ref y, context, paragraphStyle.LineHeight, line.PreviewAdvance(run, prefixWidth));
+                        MoveFloatLineBelowObstruction(ref line, ref y, context, defaultLineHeight, line.PreviewAdvance(run, prefixWidth));
                     line.Add(new InlineSegment(paintToken, prefixWidth, run, hyphenation.LogicalText));
                     line.EndsWithHyphenation = run.FirstLineHyphen.Length > 0;
-                    CommitFloatLine(lines, ref line, ref y, context, paragraphStyle.LineHeight);
+                    CommitFloatLine(lines, ref line, ref y, context, defaultLineHeight);
                     continue;
                 }
                 bool preventTokenWrapping = paragraphStyle.PreventTextWrapping || runPreventsWrapping;
@@ -287,7 +294,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                         ref line,
                         ref y,
                         context,
-                        paragraphStyle.LineHeight,
+                        defaultLineHeight,
                         run,
                         hyphenation,
                         !HasRemainingInlineFlowContent(runs, runIndex, tokens, tokenIndex),
@@ -302,7 +309,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                         ref line,
                         ref y,
                         context,
-                        paragraphStyle.LineHeight,
+                        defaultLineHeight,
                         run,
                         hyphenation.PaintText,
                         hyphenation.LogicalText,
@@ -321,13 +328,13 @@ internal sealed partial class HtmlRenderLayoutEngine {
                     && (InlineLine.PreviewEmptyLineAdvance(run, measured) > line.AvailableWidth
                         || breakAllIntoRemainingSpace || continuationNeedsEmergencyBreak)) {
                     if (followsCollapsibleSpace && line.HasFlowContent && run.Style.WordBreak != "break-all") {
-                        CommitFloatLine(lines, ref line, ref y, context, paragraphStyle.LineHeight);
+                        CommitFloatLine(lines, ref line, ref y, context, defaultLineHeight);
                     }
-                    AddBrokenFloatToken(lines, ref line, ref y, context, paragraphStyle.LineHeight, run, paintToken);
+                    AddBrokenFloatToken(lines, ref line, ref y, context, defaultLineHeight, run, paintToken);
                     continue;
                 }
                 if (!preventTokenWrapping && canBreakBefore && line.HasFlowContent && previewAdvance > line.AvailableWidth) {
-                    CommitFloatLine(lines, ref line, ref y, context, paragraphStyle.LineHeight);
+                    CommitFloatLine(lines, ref line, ref y, context, defaultLineHeight);
                     if (whitespace && !preserveWhitespace) continue;
                 }
                 if (!preventTokenWrapping && !whitespace && canBreakBefore && !line.HasFlowContent) {
@@ -335,7 +342,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                         ? wordFitting.PreviewWithContinuation(line, run, sourceOffset, measured)
                         : line.PreviewAdvance(run, measured);
                     if (emptyAdvance > line.AvailableWidth) {
-                        MoveFloatLineBelowObstruction(ref line, ref y, context, paragraphStyle.LineHeight, emptyAdvance);
+                        MoveFloatLineBelowObstruction(ref line, ref y, context, defaultLineHeight, emptyAdvance);
                     }
                 }
                 if (hasTabs) {
@@ -352,7 +359,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 ref line,
                 ref y,
                 context,
-                paragraphStyle.LineHeight,
+                defaultLineHeight,
                 noWrapRangeStart,
                 noWrapStrutStart,
                 noWrapRangeStartedAfterContent);
@@ -452,7 +459,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
             double height = line.ResolveLineHeight(defaultLineHeight);
             if (line.ParagraphStyle != null
                 && !TryResolveEmptyInlineBlockLineMetrics(line, line.ParagraphStyle, ref height, out _)) {
-                TryResolveTextOnlyLineMetrics(line, line.ParagraphStyle, ref height, out _);
+                if (UsesNormalImageLineMetrics(line, line.ParagraphStyle)) ResolveInlineSharedBaseline(line, line.ParagraphStyle, ref height);
+                else TryResolveTextOnlyLineMetrics(line, line.ParagraphStyle, ref height, out _, out _);
             }
             y = line.Y + height;
             if (line.HasFlowContent || includeEmpty) context.FirstLineIndent = 0D;

@@ -555,7 +555,7 @@ namespace OfficeIMO.Excel {
 
         private void CloseSpreadsheetDocumentAfterNativeLegacyXlsSave() {
             if (_spreadSheetDocument != null) {
-                try { _spreadSheetDocument.Dispose(); } catch { }
+                ClosePackageForReload();
                 _spreadSheetDocument = null!;
             }
         }

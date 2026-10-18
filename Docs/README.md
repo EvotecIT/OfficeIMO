@@ -4,6 +4,9 @@ Use this index to find package guides, cross-package contracts, generated eviden
 
 ## Start here
 
+- [Build and release](building-and-releasing.md) — combined OfficeIMO/PSWriteOffice validation, publication, and website generation.
+- [PSWriteOffice](../PowerShell/PSWriteOffice/README.MD) — PowerShell installation, commands, and examples.
+
 - [Repository overview](../README.md) — package map, dependency model, supported formats, and platform coverage.
 - [Migration guide](../MIGRATION.md) — version-to-version package, API, and behavior changes.
 - [Examples](../OfficeIMO.Examples/README.md) — runnable examples across the package family.
@@ -83,6 +86,7 @@ The package README is the primary usage guide for its public API. These reposito
 
 - [Image export contract](officeimo.image-export.md)
 - [Image export capability matrix](officeimo.image-export-capability-matrix.md)
+- [Static rendering qualification](../Build/Project/Evidence/2026-09-30/html-master-convergence/static-rendering-integration-20261016.json) — font and box geometry, CSS paint, and SVG fill controls across HTML, PDF, SVG and raster output.
 - [Browser-local conversion performance and limits](officeimo.blazor-wasm-conversion-proof.md)
 
 ## Architecture

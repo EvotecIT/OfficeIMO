@@ -4,6 +4,9 @@ on:
   pull_request:
     paths:
       - "Website/**"
+      - "PowerShell/PSWriteOffice/**"
+      - "Build/Build-Module.ps1"
+      - "Build/Build-Release.ps1"
       - "OfficeIMO.*/**"
       - "Directory.Build.*"
       - "global.json"
@@ -26,7 +29,7 @@ permissions:
 
 jobs:
   website-build:
-    uses: EvotecIT/PSPublishModule/.github/workflows/powerforge-website-ci.yml@b53912c9f79e3b53b938a9ca8e94290461002a1b
+    uses: EvotecIT/PSPublishModule/.github/workflows/powerforge-website-ci.yml@9543c4aa0335598375df612dac262632e38f49e4
     with:
       website_root: Website
       authenticate_public_github_data: true

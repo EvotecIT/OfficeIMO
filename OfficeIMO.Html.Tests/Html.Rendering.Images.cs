@@ -566,7 +566,7 @@ public sealed partial class HtmlRenderingTests {
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html), options);
         HtmlRenderDrawing visual = Assert.Single(rendered.Pages[0].Visuals.OfType<HtmlRenderDrawing>());
         string exportedSvg = HtmlConversionDocument.Parse(html).ToSvg(options);
-        OfficeRasterImage raster = OfficeDrawingRasterRenderer.Render(visual.Drawing);
+        OfficeRasterImage raster = OfficeDrawingRasterRenderer.Render(rendered.Pages[0].CreateDrawing());
         PdfCore.PdfDocumentConversionResult pdfResult = HtmlConversionDocument.Parse(html)
             .ToPdfDocumentResult(new HtmlToPdfOptions(options));
         byte[] pdf = pdfResult.ToBytes();
@@ -575,8 +575,8 @@ public sealed partial class HtmlRenderingTests {
         Assert.Empty(visual.Drawing.Images);
         Assert.Contains("fill=\"#FF0000\"", exportedSvg, StringComparison.Ordinal);
         Assert.Contains("fill=\"#0000FF\"", exportedSvg, StringComparison.Ordinal);
-        Assert.True(raster.GetPixel(3, 3).B > 200, raster.GetPixel(3, 3).ToString());
-        Assert.True(raster.GetPixel(8, 5).R > raster.GetPixel(8, 5).B, raster.GetPixel(8, 5).ToString());
+        Assert.True(raster.GetPixel(35, 35).B > 200, raster.GetPixel(35, 35).ToString());
+        Assert.True(raster.GetPixel(80, 50).R > raster.GetPixel(80, 50).B, raster.GetPixel(80, 50).ToString());
         Assert.Empty(PdfCore.PdfImageExtractor.ExtractImages(pdf));
         Assert.DoesNotContain(pdfResult.Report.Warnings, warning => warning.Code == "HtmlPdfDrawingEffectRasterized");
     }
@@ -629,14 +629,14 @@ public sealed partial class HtmlRenderingTests {
 
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html), options);
         HtmlRenderDrawing visual = Assert.Single(rendered.Pages[0].Visuals.OfType<HtmlRenderDrawing>());
-        OfficeRasterImage raster = OfficeDrawingRasterRenderer.Render(visual.Drawing);
+        OfficeRasterImage raster = OfficeDrawingRasterRenderer.Render(rendered.Pages[0].CreateDrawing());
         string exportedSvg = HtmlConversionDocument.Parse(html).ToSvg(options);
         byte[] pdf = HtmlConversionDocument.Parse(html).ToPdfBytes(new HtmlToPdfOptions(options));
         string extracted = string.Concat(PdfCore.PdfReadDocument.Open(pdf).ExtractText().Where(character => !char.IsWhiteSpace(character)));
 
         Assert.DoesNotContain(rendered.Diagnostics, diagnostic => diagnostic.Code is HtmlRenderDiagnosticCodes.SvgContentUnsupported or HtmlRenderDiagnosticCodes.SvgRasterFallback);
         Assert.Empty(visual.Drawing.Images);
-        OfficeColor foreignBackground = raster.GetPixel(15, 9);
+        OfficeColor foreignBackground = raster.GetPixel(75, 45);
         Assert.True(foreignBackground.G > 100 && foreignBackground.G > foreignBackground.R && foreignBackground.G > foreignBackground.B, foreignBackground.ToString());
         Assert.Contains(">FX</text>", exportedSvg, StringComparison.Ordinal);
         Assert.Equal("FX", extracted);
@@ -806,15 +806,17 @@ public sealed partial class HtmlRenderingTests {
         byte[] pdf = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToPdfBytes(pdfOptions);
         string pdfText = string.Concat(PdfCore.PdfReadDocument.Open(pdf).ExtractText().Where(character => !char.IsWhiteSpace(character)));
 
-        OfficeLinearGradient first = Assert.IsType<OfficeLinearGradient>(visual.Drawing.Shapes[0].Shape.FillGradient);
-        OfficeLinearGradient second = Assert.IsType<OfficeLinearGradient>(visual.Drawing.Shapes[1].Shape.FillGradient);
+        OfficeDrawingShape[] shapes = DrawingTestTraversal.Elements(visual.Drawing).OfType<OfficeDrawingShape>().ToArray();
+        Assert.Equal(3, shapes.Length);
+        OfficeLinearGradient first = Assert.IsType<OfficeLinearGradient>(shapes[0].Shape.FillGradient);
+        OfficeLinearGradient second = Assert.IsType<OfficeLinearGradient>(shapes[1].Shape.FillGradient);
         Assert.Equal(0D, first.StartX, 8);
         Assert.Equal(1D, first.EndX, 8);
         Assert.Equal(0D, second.StartX, 8);
         Assert.Equal(1D, second.EndX, 8);
         Assert.True(first.Stops.Count > 2);
         Assert.True(second.Stops.Count > 2);
-        OfficeRadialGradient radial = Assert.IsType<OfficeRadialGradient>(visual.Drawing.Shapes[2].Shape.FillRadialGradient);
+        OfficeRadialGradient radial = Assert.IsType<OfficeRadialGradient>(shapes[2].Shape.FillRadialGradient);
         Assert.Equal(0.2D, radial.EndRadiusX);
         Assert.Equal(0.4D, radial.EndRadiusY);
         OfficeColor repeatStart = raster.GetPixel(3, 20);

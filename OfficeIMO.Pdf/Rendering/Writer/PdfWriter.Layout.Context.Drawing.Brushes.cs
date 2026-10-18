@@ -7,6 +7,7 @@ internal static partial class PdfWriter {
         private long _drawingTileCount;
         private int _drawingTileLimit;
         private bool _suppressDrawingLinks;
+        private bool _drawingIsOpacityData;
 
         private void DrawDrawingPatternAt(OfficeDrawingTilingPattern pattern, double originX, double originTopY, OfficeDrawingTextMetrics metrics) {
             if (pattern.Opacity <= 0D) return;
@@ -41,17 +42,25 @@ internal static partial class PdfWriter {
             PageEffectGroup? maskGroup = null;
             if (effect.SoftMask != null) {
                 OfficeDrawingSoftMask mask = effect.SoftMask;
-                if (mask.Mode != OfficeSoftMaskMode.Alpha || mask.BackdropColor.A != 0) {
-                    throw new NotSupportedException("PDF drawing masks require alpha mode and a transparent backdrop.");
+                if (mask.BackdropColor.A != 0) {
+                    throw new NotSupportedException("PDF drawing masks require a transparent backdrop.");
+                }
+                if (mask.Mode == OfficeSoftMaskMode.Luminosity &&
+                    mask.LuminosityStandard != OfficeSoftMaskLuminosityStandard.PdfDeviceRgb) {
+                    throw new NotSupportedException("PDF luminosity drawing masks require the PdfDeviceRgb luminosity standard.");
                 }
                 int start = sb.Length;
                 bool previousLinks = _suppressDrawingLinks;
                 _suppressDrawingLinks = true;
                 bool previousWrappers = _suppressCanvasAccessibilityWrappers;
                 bool previousText = _suppressCanvasActualTextChildren;
+                bool previousOpacityData = _drawingIsOpacityData;
                 OfficeTransform previousEffectToPage = _canvasEffectToPage;
                 _suppressCanvasAccessibilityWrappers = true;
                 _suppressCanvasActualTextChildren = true;
+                // Luminosity colors encode opacity, so all nested mask resources
+                // retain their numeric values instead of following print conversion.
+                _drawingIsOpacityData |= mask.Mode == OfficeSoftMaskMode.Luminosity;
                 _canvasEffectToPage = ConvertTopLeftCanvasTransform(transform, currentOpts.PageHeight).Then(previousEffectToPage);
                 try {
                     RenderEffectGroup(OfficeTransform.Identity, 1D, OfficeBlendMode.Normal, () =>
@@ -63,6 +72,7 @@ internal static partial class PdfWriter {
                     _suppressDrawingLinks = previousLinks;
                     _suppressCanvasAccessibilityWrappers = previousWrappers;
                     _suppressCanvasActualTextChildren = previousText;
+                    _drawingIsOpacityData = previousOpacityData;
                     _canvasEffectToPage = previousEffectToPage;
                 }
             }
@@ -71,7 +81,9 @@ internal static partial class PdfWriter {
                 maskGroup == null ? effect.BlendMode : OfficeBlendMode.Normal,
                 () => DrawDrawingElements(effect.InnerDrawing, originX, originTopY, metrics), forceForm: maskGroup != null);
             if (maskGroup != null) {
-                currentPage!.EffectGroups[currentPage.EffectGroups.Count - 1].AlphaMask = maskGroup;
+                PageEffectGroup contentGroup = currentPage!.EffectGroups[currentPage.EffectGroups.Count - 1];
+                contentGroup.SoftMask = maskGroup;
+                contentGroup.SoftMaskMode = effect.SoftMask!.Mode;
                 // Composite the completed masked result before applying group opacity.
                 // Sharing its alpha state with the mask invocation attenuates the mask
                 // as well as the result in PDF consumers.

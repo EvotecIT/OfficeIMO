@@ -80,8 +80,8 @@ jobs:
             throw 'When reusing a released VSIX, leave pre_release disabled; the artifact already owns its release channel.'
           }
 
-          if ($env:RELEASE_TAG -notmatch '^OfficeIMO-v\d{14}$') {
-            throw "OfficeIMO VS Code Marketplace publishing only accepts normal OfficeIMO release tags named OfficeIMO-vYYYYMMDDHHMMSS. Current tag: $env:RELEASE_TAG. Example: OfficeIMO-v20260507115122"
+          if ($env:RELEASE_TAG -notmatch '^OfficeIMO-v(?:\d{14}|\d+\.\d+\.\d+)$') {
+            throw "OfficeIMO extension publishing requires a coordinated version tag or a legacy timestamp tag. Current tag: $env:RELEASE_TAG."
           }
 
           git fetch origin master
@@ -134,23 +134,6 @@ jobs:
           IS_PRE_RELEASE: ${{ (github.event_name == 'release' && github.event.release.prerelease) || (github.event_name == 'workflow_dispatch' && inputs.pre_release) }}
           RELEASE_TAG: ${{ github.event.release.tag_name || inputs.release_tag }}
         run: |
-          function Convert-OfficeIMOReleaseTagToExtensionVersion {
-            param(
-              [Parameter(Mandatory)]
-              [string] $TagName
-            )
-
-            if ($TagName -match '^OfficeIMO-v(?<stamp>\d{14})$') {
-              $stamp = $Matches.stamp
-              $year = [int] $stamp.Substring(0, 4)
-              $monthDay = [int] $stamp.Substring(4, 4)
-              $time = [int] $stamp.Substring(8, 6)
-              return "$year.$monthDay.$time"
-            }
-
-            throw "OfficeIMO VS Code Marketplace publishing only accepts normal OfficeIMO release tags named OfficeIMO-vYYYYMMDDHHMMSS. Current tag: $TagName. Example: OfficeIMO-v20260507115122"
-          }
-
           function Set-ExtensionPackageVersion {
             param(
               [Parameter(Mandatory)]
@@ -187,7 +170,7 @@ jobs:
               throw 'Release publishing is only allowed from commits contained in origin/master.'
             }
 
-            $targetVersion = Convert-OfficeIMOReleaseTagToExtensionVersion -TagName $env:RELEASE_TAG
+            $targetVersion = & ./Build/Get-MarkupExtensionReleaseVersion.ps1 -TagName $env:RELEASE_TAG
             Set-ExtensionPackageVersion -Version $targetVersion | Out-Null
             Write-Host "Stamped OfficeIMO Markup extension version $targetVersion from release tag $env:RELEASE_TAG." -ForegroundColor Cyan
           }
@@ -232,8 +215,8 @@ jobs:
         env:
           RELEASE_TAG: ${{ github.event.release.tag_name || inputs.release_tag }}
         run: |
-          if ($env:RELEASE_TAG -notmatch '^OfficeIMO-v\d{14}$') {
-            throw "OfficeIMO VS Code Marketplace publishing only accepts normal OfficeIMO release tags named OfficeIMO-vYYYYMMDDHHMMSS. Current tag: $env:RELEASE_TAG. Example: OfficeIMO-v20260507115122"
+          if ($env:RELEASE_TAG -notmatch '^OfficeIMO-v(?:\d{14}|\d+\.\d+\.\d+)$') {
+            throw "OfficeIMO extension publishing requires a coordinated version tag or a legacy timestamp tag. Current tag: $env:RELEASE_TAG."
           }
 
           git fetch origin master
@@ -275,23 +258,6 @@ jobs:
           IS_PRE_RELEASE: ${{ (github.event_name == 'release' && github.event.release.prerelease) || (github.event_name == 'workflow_dispatch' && inputs.pre_release) }}
           RELEASE_TAG: ${{ github.event.release.tag_name || inputs.release_tag }}
         run: |
-          function Convert-OfficeIMOReleaseTagToExtensionVersion {
-            param(
-              [Parameter(Mandatory)]
-              [string] $TagName
-            )
-
-            if ($TagName -match '^OfficeIMO-v(?<stamp>\d{14})$') {
-              $stamp = $Matches.stamp
-              $year = [int] $stamp.Substring(0, 4)
-              $monthDay = [int] $stamp.Substring(4, 4)
-              $time = [int] $stamp.Substring(8, 6)
-              return "$year.$monthDay.$time"
-            }
-
-            throw "OfficeIMO VS Code Marketplace publishing only accepts normal OfficeIMO release tags named OfficeIMO-vYYYYMMDDHHMMSS. Current tag: $TagName. Example: OfficeIMO-v20260507115122"
-          }
-
           function Test-MarketplaceVersionExists {
             param(
               [Parameter(Mandatory)]
@@ -321,7 +287,11 @@ jobs:
           $package = Get-Content -LiteralPath 'OfficeIMO.Markup.VSCode/package.json' -Raw | ConvertFrom-Json
           $extensionVersion = $package.version
           if (-not [string]::IsNullOrWhiteSpace($env:RELEASE_TAG)) {
-            $extensionVersion = Convert-OfficeIMOReleaseTagToExtensionVersion -TagName $env:RELEASE_TAG
+            $sourceTime = & git show -s --format=%cI $env:RELEASE_TAG
+            if ($LASTEXITCODE -ne 0 -or [string]::IsNullOrWhiteSpace($sourceTime)) {
+              throw 'Cannot identify the selected release source time.'
+            }
+            $extensionVersion = & ./Build/Get-MarkupExtensionReleaseVersion.ps1 -TagName $env:RELEASE_TAG -SourceTime ([DateTimeOffset]::Parse($sourceTime))
           }
 
           $extensionId = "$($package.publisher).$($package.name)"

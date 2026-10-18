@@ -83,7 +83,10 @@ internal sealed partial class HtmlRenderLayoutEngine {
         OfficeDrawing drawing = OfficeMathRenderer.Render(expression, mathOptions, _cancellationToken);
         double intrinsicWidth = drawing.Width;
         double intrinsicHeight = drawing.Height;
-        ReplacedContentSize contentSize = ResolveReplacedContentSize(style, intrinsicWidth, intrinsicHeight, hasIntrinsicSize: true);
+        // Math owns a natural drawing canvas and baseline. Preserve those raw
+        // dimensions while using the shared authored-size/constraint solver.
+        ReplacedContentSize contentSize = ResolveReplacedContentSize(style, intrinsicWidth, intrinsicHeight,
+            hasIntrinsicSize: true, useLayoutUnits: false);
         double boxWidth = contentSize.Width + style.HorizontalInsets;
         double boxHeight = contentSize.Height + style.VerticalInsets;
         EnsureReplacedBoxSize(boxWidth, boxHeight);

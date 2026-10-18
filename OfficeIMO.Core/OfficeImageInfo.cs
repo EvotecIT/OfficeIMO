@@ -49,6 +49,9 @@ public sealed class OfficeImageInfo {
     /// <summary>Intrinsic width-to-height ratio when known independently of complete pixel dimensions.</summary>
     public double? AspectRatio { get; }
 
+    /// <summary>Whether the bounded SVG root probe found a valid viewBox.</summary>
+    internal bool HasSvgViewBox { get; set; }
+
     /// <summary>
     /// Component count declared by a JPEG frame header, or null when unavailable or not JPEG.
     /// Three components alone do not establish RGB, an ICC profile, or valid pixel data.

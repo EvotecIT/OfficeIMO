@@ -46,7 +46,7 @@ jobs:
           RELEASE_TAG: ${{ github.event.release.tag_name }}
         run: |
           version=$(python3 -c 'import json; print(json.load(open(".agents/plugins/officeimo-document-tools/plugin.json"))["version"])')
-          [[ "$RELEASE_TAG" =~ ^OfficeIMO-v[0-9]{14}$ || "$RELEASE_TAG" == "OfficeIMO.Tool-v$version" ]]
+          [[ "$RELEASE_TAG" =~ ^OfficeIMO-v[0-9]{14}$ || "$RELEASE_TAG" == "OfficeIMO-v$version" || "$RELEASE_TAG" == "OfficeIMO.Tool-v$version" ]]
           git merge-base --is-ancestor HEAD origin/master
       - name: Check out the shared packer
         uses: actions/checkout@v7

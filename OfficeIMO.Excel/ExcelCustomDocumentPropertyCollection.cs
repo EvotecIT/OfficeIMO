@@ -3,6 +3,7 @@ using System.Collections;
 namespace OfficeIMO.Excel {
     /// <summary>
     /// Tracks workbook custom document properties and marks the owning document dirty when callers mutate the collection directly.
+    /// Property values remain associated with the collection across saves until removed or replaced by the caller.
     /// </summary>
     public sealed class ExcelCustomDocumentPropertyCollection : IDictionary<string, ExcelCustomProperty>, IReadOnlyDictionary<string, ExcelCustomProperty> {
         private readonly Dictionary<string, ExcelCustomProperty> _properties;
@@ -20,13 +21,24 @@ namespace OfficeIMO.Excel {
         internal void ReplaceWith(IEnumerable<KeyValuePair<string, ExcelCustomProperty>> properties) {
             _suppressChangeTracking = true;
             try {
-                DetachAll();
-                _properties.Clear();
+                var refreshed = new List<KeyValuePair<string, ExcelCustomProperty>>();
                 foreach (var property in properties) {
                     string key = NormalizeKey(property.Key);
                     ExcelCustomProperty value = property.Value ?? throw new ArgumentNullException(nameof(properties));
+                    // Reload the saved values without detaching a caller's live property object.
+                    if (_properties.TryGetValue(key, out ExcelCustomProperty? existing)) {
+                        existing.Value = value.Value;
+                        existing.PropertyType = value.PropertyType;
+                        value = existing;
+                    }
+                    refreshed.Add(new KeyValuePair<string, ExcelCustomProperty>(key, value));
+                }
+                DetachAll();
+                _properties.Clear();
+                foreach (var property in refreshed) {
+                    ExcelCustomProperty value = property.Value;
                     Attach(value);
-                    _properties[key] = value;
+                    _properties[property.Key] = value;
                 }
             } finally {
                 _suppressChangeTracking = false;

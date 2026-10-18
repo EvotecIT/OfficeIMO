@@ -47,7 +47,7 @@ public static partial class HtmlRenderCapabilityCatalog {
         Provider(HtmlCapabilityProviderIds.OfficeIMOHtml, "OfficeIMO.Html", "3.4.4", HtmlCapabilityProviderOwnership.OfficeIMO),
         Provider(HtmlCapabilityProviderIds.OfficeIMOCore, "OfficeIMO.Core drawing and text", "3.4.4", HtmlCapabilityProviderOwnership.OfficeIMO),
         Provider(HtmlCapabilityProviderIds.AngleSharpHtml, "AngleSharp HTML parser adapter", "AngleSharp 1.8.3 / OfficeIMO.Html.AngleSharp 3.4.4", HtmlCapabilityProviderOwnership.ThirdParty),
-        Provider(HtmlCapabilityProviderIds.AngleSharpCss, "AngleSharp.Css parser", "1.1.2", HtmlCapabilityProviderOwnership.ThirdParty),
+        Provider(HtmlCapabilityProviderIds.AngleSharpCss, "AngleSharp.Css parser", "1.1.3", HtmlCapabilityProviderOwnership.ThirdParty),
         Provider(HtmlCapabilityProviderIds.CallerTextShaper, "Caller-selected text shaper", "caller-selected; optional", HtmlCapabilityProviderOwnership.Caller)
     };
 

@@ -292,14 +292,14 @@ public sealed partial class HtmlRenderingTests {
     }
 
     [Fact]
-    public void HtmlRender_DiagnosesDeterministicBackgroundFallbacks() {
+    public void HtmlRender_InvalidBackgroundSizeDoesNotReplaceAValidSize() {
         string imageData = Convert.ToBase64String(PdfPngTestImages.CreateRgbPng(2, 1));
         string source = "data:image/png;base64," + imageData;
         string html = "<div style=\"width:100px;height:100px;background-image:url('"
             + source
             + "'),url('"
             + source
-            + "');background-size:unsupported-size;background-repeat:no-repeat\"></div>";
+            + "');background-size:20px 10px;background-size:unsupported-size;background-repeat:no-repeat\"></div>";
 
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html), new HtmlRenderOptions {
             ViewportWidth = 160D,
@@ -308,10 +308,10 @@ public sealed partial class HtmlRenderingTests {
 
         IReadOnlyList<HtmlRenderImage> backgrounds = rendered.Pages[0].Visuals.OfType<HtmlRenderImage>().ToList();
         Assert.Equal(2, backgrounds.Count);
-        Assert.All(backgrounds, background => Assert.Equal(100D, background.Width, 3));
-        Assert.All(backgrounds, background => Assert.Equal(50D, background.Height, 3));
+        Assert.All(backgrounds, background => Assert.Equal(20D, background.Width, 3));
+        Assert.All(backgrounds, background => Assert.Equal(10D, background.Height, 3));
         Assert.DoesNotContain(rendered.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.BackgroundImageLayerLimit);
-        Assert.Contains(rendered.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.BackgroundImageValueUnsupported);
+        Assert.DoesNotContain(rendered.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.BackgroundImageValueUnsupported);
     }
 
     [Fact]
@@ -350,11 +350,11 @@ public sealed partial class HtmlRenderingTests {
     }
 
     [Fact]
-    public void HtmlRender_BoundsBackgroundLayersAndDiagnosesUnsupportedGradientFunctions() {
+    public void HtmlRender_BoundsBackgroundLayersIncludingNoneLayers() {
         string red = Convert.ToBase64String(PdfPngTestImages.CreateRgbPng(255, 0, 0));
         string blue = Convert.ToBase64String(PdfPngTestImages.CreateRgbPng(0, 0, 255));
         string green = Convert.ToBase64String(PdfPngTestImages.CreateRgbPng(0, 255, 0));
-        string html = "<div style=\"width:40px;height:40px;background-image:mesh-gradient(red,blue),url('data:image/png;base64,"
+        string html = "<div style=\"width:40px;height:40px;background-image:none,url('data:image/png;base64,"
             + red
             + "'),url('data:image/png;base64,"
             + blue
@@ -370,7 +370,6 @@ public sealed partial class HtmlRenderingTests {
 
         Assert.Single(rendered.Pages[0].Visuals.OfType<HtmlRenderImage>());
         Assert.Contains(rendered.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.BackgroundImageLayerLimit);
-        Assert.Contains(rendered.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.BackgroundImageValueUnsupported);
     }
 
     [Fact]

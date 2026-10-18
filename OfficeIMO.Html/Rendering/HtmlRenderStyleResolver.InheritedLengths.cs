@@ -4,14 +4,35 @@ using OfficeIMO.Drawing;
 namespace OfficeIMO.Html;
 
 internal sealed partial class HtmlRenderStyleResolver {
-    private double ResolveInheritedLineHeight(HtmlComputedStyle computed, double fontSize, HtmlRenderBoxStyle? parent) {
+    private double ResolveComputedLineHeight(HtmlComputedStyle computed, double fontSize, HtmlRenderBoxStyle? parent,
+        out double alignmentLineHeight) {
         string value = computed.GetValue("line-height").Trim();
         // Numbers and normal remain font-relative; explicit lengths and percentages
         // inherit their computed value, including across more than one font change.
         if (computed.IsInheritedValue("line-height") && parent != null
             && value.Length > 0 && !value.Equals("normal", StringComparison.OrdinalIgnoreCase)
-            && !double.TryParse(value, NumberStyles.Float, CultureInfo.InvariantCulture, out _)) return parent.LineHeight;
-        return ResolveLineHeight(value, fontSize);
+            && !double.TryParse(value, NumberStyles.Float, CultureInfo.InvariantCulture, out _)) {
+            alignmentLineHeight = parent.InlineAlignmentLineHeight
+                ?? HtmlRenderCssValues.ResolveInlineAlignmentLineHeight(parent.LineHeight, parent.Font.Size);
+            return parent.LineHeight;
+        }
+        double lineHeight = ResolveLineHeight(value, fontSize, out double? multiplier);
+        alignmentLineHeight = HtmlRenderCssValues.ResolveInlineAlignmentLineHeight(lineHeight, fontSize, multiplier);
+        return lineHeight;
+    }
+
+    private double ResolveLineHeight(string value, double fontSize, out double? multiplier) {
+        multiplier = _options.DefaultLineHeight;
+        if (value.Length == 0 || value.Equals("normal", StringComparison.OrdinalIgnoreCase)) return fontSize * multiplier.Value;
+        if (double.TryParse(value, NumberStyles.Float, CultureInfo.InvariantCulture, out double parsed) && parsed >= 0D) {
+            multiplier = parsed;
+            return fontSize * parsed;
+        }
+        if (TryResolveLength(value, fontSize, fontSize, _rootFontSize, out double lineHeight) && lineHeight >= 0D) {
+            multiplier = null;
+            return lineHeight;
+        }
+        return fontSize * multiplier.Value;
     }
 
     private static void ApplyInheritedTextShadows(HtmlComputedStyle computed, HtmlRenderBoxStyle style, HtmlRenderBoxStyle? parent) {

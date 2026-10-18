@@ -5,13 +5,17 @@ namespace OfficeIMO.Html;
 
 public static partial class HtmlComputedStyleEngine {
     private const string ManagedConicGradientUrlPrefix = "officeimo-managed-conic:";
+    private static readonly string[] ManagedBackgroundImageFunctions = {
+        "repeating-linear-gradient(", "linear-gradient(", "repeating-radial-gradient(", "radial-gradient(",
+        "image-set(", "-webkit-image-set(", "paint("
+    };
     private static readonly Regex ManagedConicGradientUrl = new Regex(
         @"url\(\s*['\""']?officeimo-managed-conic:(?<payload>[A-Za-z0-9+/=]+)['\""']?\s*\)",
         RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
 
-    private static string PreserveManagedGradientFunctions(string css) {
+    private static string PreserveManagedGradientFunctions(string css, bool preserveBackgroundImages = false) {
         if (string.IsNullOrEmpty(css)
-            || css.IndexOf("conic-gradient(", StringComparison.OrdinalIgnoreCase) < 0) {
+            || !preserveBackgroundImages && css.IndexOf("conic-gradient(", StringComparison.OrdinalIgnoreCase) < 0) {
             return css;
         }
 
@@ -38,9 +42,10 @@ public static partial class HtmlComputedStyleEngine {
                 index = commentEnd;
                 continue;
             }
-            if (TryGetManagedGradientFunctionLength(css, index, out int functionNameLength)
+            if (TryGetManagedGradientFunctionLength(css, index, out int functionNameLength, preserveBackgroundImages)
                 && TryFindFunctionEnd(css, index + functionNameLength - 1, out int functionEnd)) {
                 string function = css.Substring(index, functionEnd - index + 1);
+                if (preserveBackgroundImages && !IsSupportedBackgroundImageSyntax(function)) return string.Empty;
                 string payload = Convert.ToBase64String(Encoding.UTF8.GetBytes(function));
                 result.Append("url(\"").Append(ManagedConicGradientUrlPrefix).Append(payload).Append("\")");
                 index = functionEnd + 1;
@@ -62,7 +67,7 @@ public static partial class HtmlComputedStyleEngine {
             try {
                 byte[] bytes = Convert.FromBase64String(match.Groups["payload"].Value);
                 string function = Encoding.UTF8.GetString(bytes);
-                return TryGetManagedGradientFunctionLength(function, 0, out int functionNameLength)
+                return TryGetManagedGradientFunctionLength(function, 0, out int functionNameLength, preserveBackgroundImages: true)
                     && TryFindFunctionEnd(function, functionNameLength - 1, out int functionEnd)
                     && functionEnd == function.Length - 1
                         ? function
@@ -73,14 +78,21 @@ public static partial class HtmlComputedStyleEngine {
         });
     }
 
-    private static bool TryGetManagedGradientFunctionLength(string css, int index, out int length) {
+    private static bool TryGetManagedGradientFunctionLength(string css, int index, out int length, bool preserveBackgroundImages = false) {
         length = 0;
         if (index > 0 && IsCssIdentifierCharacter(css[index - 1])) return false;
         const string repeating = "repeating-conic-gradient(";
         const string conic = "conic-gradient(";
         if (MatchesAt(css, index, repeating)) length = repeating.Length;
         else if (MatchesAt(css, index, conic)) length = conic.Length;
-        else return false;
+        else if (preserveBackgroundImages) {
+            foreach (string name in ManagedBackgroundImageFunctions) {
+                if (!MatchesAt(css, index, name)) continue;
+                length = name.Length;
+                return true;
+            }
+            return false;
+        } else return false;
         return true;
     }
 

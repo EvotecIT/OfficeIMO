@@ -1,4 +1,5 @@
 using OfficeIMO.Drawing;
+using OfficeIMO.Html.Css;
 
 namespace OfficeIMO.Html;
 
@@ -74,8 +75,7 @@ internal static class HtmlCssRadialGradientParser {
             shape = circle ? HtmlCssRadialGradientShape.Circle : HtmlCssRadialGradientShape.Ellipse;
         } else if (parts.Count == 1
             && !ellipse
-            && parts[0].IndexOf('%') < 0
-            && IsNonNegativeLength(parts[0])) {
+            && IsNonNegativeLength(parts[0], allowPercentage: false)) {
             shape = HtmlCssRadialGradientShape.Circle;
             size = HtmlCssRadialGradientSize.Explicit;
             radiusX = parts[0];
@@ -126,9 +126,18 @@ internal static class HtmlCssRadialGradientParser {
         return found;
     }
 
-    private static bool IsLength(string value) =>
-        HtmlRenderCssValues.TryLength(value, 100D, 16D, 16D, 100D, 100D, out _);
-
-    private static bool IsNonNegativeLength(string value) =>
-        HtmlRenderCssValues.TryLength(value, 100D, 16D, 16D, 100D, 100D, out double length) && length >= 0D;
+    private static bool IsNonNegativeLength(string value, bool allowPercentage = true) {
+        try {
+            HtmlCssMathParseResult parsed = HtmlCssMathParser.ParseLengthPercentage(value);
+            if (!parsed.IsParsed || !allowPercentage && parsed.Expression!.Type != HtmlCssNumericType.Length) return false;
+            HtmlCssMathExpression expression = parsed.Expression!;
+            // Calculated ranges depend on the real font, viewport and box.
+            // The definition resolves them in that context during rendering.
+            return expression.IsCalculated || expression.Value >= 0D;
+        } catch (HtmlCssMathLimitException) {
+            return false;
+        } catch (HtmlCssTokenizationLimitException) {
+            return false;
+        }
+    }
 }

@@ -41,7 +41,10 @@ public sealed partial class HtmlRenderingTests {
         string content = containerStyle.StartsWith("display:grid", StringComparison.Ordinal)
             ? "<span>AAAA</span><span style='font-size:10px;line-height:12px'>BBBB</span>"
             : "<span>AAAA <span style='font-size:10px;line-height:12px'>BBBB</span>" + image + "</span>";
-        var document = HtmlConversionDocument.Parse("<div style='" + containerStyle + ";width:600px;font:40px/48px Pinned'>" + content + "</div>");
+        // Keep this alignment witness inside the page. Clipped text can have a
+        // local SVG y plus a group transform, which is not its global baseline.
+        var document = HtmlConversionDocument.Parse("<body style='margin:0;padding:24px'><div style='" + containerStyle
+            + ";width:600px;font:40px/48px Pinned'>" + content + "</div></body>");
         string svg = document.ToSvg(options);
         XElement[] text = XDocument.Parse(svg).Descendants().Where(node => node.Name.LocalName == "text").ToArray();
         XElement large = Assert.Single(text, node => node.Value.Trim() == "AAAA");

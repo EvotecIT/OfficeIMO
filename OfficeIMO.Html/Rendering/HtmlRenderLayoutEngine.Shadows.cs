@@ -25,7 +25,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
             double shadowWidth = width + layer.SpreadRadius * 2D;
             double shadowHeight = height + layer.SpreadRadius * 2D;
             if (shadowWidth <= 0.0001D || shadowHeight <= 0.0001D) continue;
-            HtmlResolvedBorderRadii shadowRadii = radii.Expand(layer.SpreadRadius, shadowWidth, shadowHeight);
+            HtmlResolvedBorderRadii shadowRadii = radii.ExpandShadow(layer.SpreadRadius, shadowWidth, shadowHeight);
             OfficeShape carrier = CreateBoxShape(shadowWidth, shadowHeight, shadowRadii);
             carrier.FillColor = null;
             carrier.StrokeColor = null;
@@ -47,31 +47,37 @@ internal sealed partial class HtmlRenderLayoutEngine {
         double y,
         double width,
         double height,
+        HtmlRenderBorderInsets borderInsets,
         HtmlResolvedBorderRadii radii,
         IElement source,
         string sourceDescription) {
+        if (width - borderInsets.Horizontal <= 0.0001D
+            || height - borderInsets.Vertical <= 0.0001D) return;
         if (!ValidateBoxShadows(style, source, sourceDescription)) return;
+
+        BackgroundPaintBox paddingBox = ResolveBackgroundBox(
+            "padding-box", x, y, width, height, borderInsets, style, radii);
 
         for (int index = style.BoxShadows.Count - 1; index >= 0; index--) {
             HtmlCssBoxShadow layer = style.BoxShadows[index];
             if (!layer.Inset || layer.Shadow.Opacity <= 0D) continue;
             IReadOnlyList<HtmlRenderVisual> layers = CreateInsetShadowLayers(
                 layer,
-                x,
-                y,
-                width,
-                height,
-                radii,
+                paddingBox.X,
+                paddingBox.Y,
+                paddingBox.Width,
+                paddingBox.Height,
+                paddingBox.Radii,
                 BoxShadowSource(sourceDescription, index, style.BoxShadowLayerCount, inset: true));
             if (layers.Count == 0) continue;
 
-            HtmlResolvedBorderRadii normalized = radii.Normalize(width, height);
+            HtmlResolvedBorderRadii normalized = paddingBox.Radii;
             if (normalized.IsZero) {
                 visuals.Add(new HtmlRenderClipGroup(
-                    x,
-                    y,
-                    width,
-                    height,
+                    paddingBox.X,
+                    paddingBox.Y,
+                    paddingBox.Width,
+                    paddingBox.Height,
                     clipHorizontal: true,
                     clipVertical: true,
                     layers,
@@ -79,9 +85,9 @@ internal sealed partial class HtmlRenderLayoutEngine {
                     source: BoxShadowSource(sourceDescription, index, style.BoxShadowLayerCount, inset: true)));
             } else {
                 visuals.Add(new HtmlRenderPathClipGroup(
-                    x,
-                    y,
-                    CreateBoxClipPath(width, height, normalized),
+                    paddingBox.X,
+                    paddingBox.Y,
+                    CreateBoxClipPath(paddingBox.Width, paddingBox.Height, normalized),
                     layers,
                     visuals.Count,
                     source: BoxShadowSource(sourceDescription, index, style.BoxShadowLayerCount, inset: true)));
@@ -171,7 +177,9 @@ internal sealed partial class HtmlRenderLayoutEngine {
         var commands = new List<OfficePathCommand>();
         AppendRoundedContour(commands, 0D, 0D, width, height, radii.Normalize(width, height));
         if (innerWidth > 0.0001D && innerHeight > 0.0001D) {
-            HtmlResolvedBorderRadii innerRadii = radii.Inset(inset, inset, inset, inset, innerWidth, innerHeight);
+            HtmlResolvedBorderRadii innerRadii = inset < 0D
+                ? radii.ExpandShadow(-inset, innerWidth, innerHeight)
+                : radii.Inset(inset, inset, inset, inset, innerWidth, innerHeight);
             AppendRoundedContour(commands, innerX, innerY, innerWidth, innerHeight, innerRadii);
         }
 

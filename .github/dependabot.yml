@@ -8,6 +8,9 @@ updates:
       default-days: 7
       include:
         - "*"
+    ignore:
+      - dependency-name: "Microsoft.PowerShell.SDK"
+        versions: [">=7.5.0"]
     open-pull-requests-limit: 1
     groups:
       all-dependencies:

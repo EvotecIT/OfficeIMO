@@ -123,7 +123,7 @@ namespace OfficeIMO.Excel {
             }
 
             if (_spreadSheetDocument.DocumentType != target.Value) {
-                _spreadSheetDocument.ChangeDocumentType(target.Value);
+                ChangeSpreadsheetDocumentType(target.Value);
                 MarkPackageDirty();
             }
         }

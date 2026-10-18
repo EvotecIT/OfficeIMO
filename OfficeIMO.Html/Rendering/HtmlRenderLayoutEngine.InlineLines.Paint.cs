@@ -40,7 +40,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 HtmlInlineRun run = placement.Run;
                 HtmlRenderFlowBlock block = run.FloatingBlock!;
                 RecordInlineOwnerGeometry(run, formattingContainer, placement.X, placement.Y, placement.Width, placement.Height, inlineBounds);
-                RecordInlineAnchorGeometry(run, formattingContainer, placement.X, placement.Y,
+                bool ownsAnchorFragment = AtomicRunOwnsAnchorFragment(run, block);
+                if (!ownsAnchorFragment) RecordInlineAnchorGeometry(run, formattingContainer, placement.X, placement.Y,
                     placement.Width, placement.Height, anchorBounds);
                 foreach (HtmlCssRunningStringAssignment assignment in block.RunningStringAssignments) {
                     runningStringAssignments.Add(assignment.Translate(placement.Y));
@@ -57,7 +58,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                             run.OwnerElement,
                             formattingContainer);
                     }
-                    if (run.LinkUri != null) {
+                    if (run.LinkUri != null && !ownsAnchorFragment) {
                         OfficeShape linkArea = OfficeShape.Rectangle(placement.Width, placement.Height);
                         linkArea.FillColor = null;
                         linkArea.StrokeWidth = 0D;
@@ -80,8 +81,9 @@ internal sealed partial class HtmlRenderLayoutEngine {
             bool alignTextBaseline = current.HasMixedTextSizes(paragraphStyle);
             bool emptyAtomicBaseline = TryResolveEmptyInlineBlockLineMetrics(current, paragraphStyle, ref lineHeight, out double resolvedEmptyBaseline);
             double resolvedTextBaseline = 0D;
+            bool ordinaryLineCarrier = false;
             bool textLineMetrics = !emptyAtomicBaseline
-                && TryResolveTextOnlyLineMetrics(current, paragraphStyle, ref lineHeight, out resolvedTextBaseline);
+                && TryResolveTextOnlyLineMetrics(current, paragraphStyle, ref lineHeight, out resolvedTextBaseline, out ordinaryLineCarrier);
             alignTextBaseline |= textLineMetrics;
             double baseline = emptyAtomicBaseline ? resolvedEmptyBaseline : textLineMetrics ? resolvedTextBaseline : alignTextBaseline || current.HasReplacedImage
                 ? ResolveInlineSharedBaseline(current, paragraphStyle, ref lineHeight)
@@ -192,6 +194,13 @@ internal sealed partial class HtmlRenderLayoutEngine {
                             AddInlineOwnedVisual(visuals, ownedVisuals, ApplyInlineElementSemantics(linkVisual, segment.Run), segment.Run.OwnerElement, formattingContainer);
                         }
                     }
+                } else if (segment.Text.Length == 0 && !segment.Run.IsFlowMarker) {
+                    // A forced break can be the only content of an inline
+                    // fragment. Retain its authored edges and owner paint while
+                    // boundary/control markers remain geometry-free.
+                    RecordInlineOwnerGeometry(segment.Run, formattingContainer, x, lineY, 0D, lineHeight, inlineBounds);
+                    RecordInlineAnchorGeometry(segment.Run, formattingContainer, x, lineY, 0D, lineHeight, anchorBounds);
+                    EnsureInlineStackingOwner(segment.Run.OwnerElement, formattingContainer, ownedVisuals);
                 } else if (segment.Text.Length > 0) {
                     double textLineHeight = current.HasReplacedImage || alignTextBaseline || emptyAtomicBaseline ? segment.Run.Style.LineHeight : lineHeight;
                     double paintLineHeight = textLineHeight;
@@ -203,12 +212,12 @@ internal sealed partial class HtmlRenderLayoutEngine {
                         if (!textLineMetrics) textLineHeight = paintLineHeight;
                     }
                     ResolveInlineTextVerticalPlacement(segment, current.HasReplacedImage || alignTextBaseline || emptyAtomicBaseline, lineY,
-                        paintLineHeight, baseline, out double textY, out double paintHeight,
+                        paintLineHeight, baseline, textLineMetrics, out double textY, out double paintHeight,
                         out double paintTopOverflow);
                     // A legal zero CSS line height still paints glyphs. Retain that
                     // metric while giving their fragmentation carrier the same
                     // positive minimum used by the containing line box.
-                    double textLayoutHeight = textLineMetrics ? lineHeight : textLineHeight == 0D ? 0.01D : textLineHeight;
+                    double textLayoutHeight = textLineMetrics ? Math.Max(0.01D, lineHeight) : textLineHeight == 0D ? 0.01D : textLineHeight;
                     RecordInlineOwnerGeometry(segment.Run, formattingContainer, x,
                         textY - paintTopOverflow, Math.Max(0.01D, segment.Width),
                         paintHeight + paintTopOverflow, inlineBounds);
@@ -216,7 +225,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                     double anchorHeight = lineHeight;
                     if (segment.Run.LinkUri != null && !string.IsNullOrWhiteSpace(segment.Text)) {
                         if (!current.HasReplacedImage) {
-                            ResolveInlineAnchorTextVerticalBounds(segment, lineY, lineHeight,
+                            ResolveInlineAnchorTextVerticalBounds(segment, lineY, lineHeight, textY,
                                 out anchorY, out anchorHeight);
                         }
                         RecordInlineAnchorGeometry(segment.Run, formattingContainer, x, anchorY,
@@ -270,7 +279,10 @@ internal sealed partial class HtmlRenderLayoutEngine {
                             fontDescriptor: segment.Run.Style.FontDescriptor,
                             paintTopOverflow: paintTopOverflow,
                             linkBounds: segment.Run.LinkUri == null ? null : new HtmlRenderRectangle(
-                                paintSegment.X, anchorY, Math.Max(0.01D, Math.Max(paintSegment.Width, paintSegment.Advance)), anchorHeight)));
+                                paintSegment.X, anchorY, Math.Max(0.01D, Math.Max(paintSegment.Width, paintSegment.Advance)), anchorHeight),
+                            ordinaryLineCarrier: ordinaryLineCarrier && segment.Run.Style.LineHeight >= segment.Run.Style.Font.Size
+                                && segment.Run.Style.Baseline == OfficeTextBaseline.Normal
+                                && segment.Run.Style.BaselineScale == 1D && segment.Run.Style.BaselineOffset == 0D));
                     }
                     HtmlRenderVisual textVisual = paintSegments.Count > 1 || segment.BidiResolved ||
                         !string.Equals(segment.Text, segment.LogicalText, StringComparison.Ordinal) ||
@@ -356,7 +368,9 @@ internal sealed partial class HtmlRenderLayoutEngine {
         }
         AppendInlineAnchorFragments(visuals, ownedVisuals, anchorBounds,
             formattingContainer, isInlineContinuation);
-        paintCapture?.Capture(visuals, ownedVisuals, inlineBounds);
+        paintCapture?.Capture(visuals, ownedVisuals, inlineBounds,
+            lines.Where(line => line.HasFlowContent || line.HasForcedBreak)
+                .All(line => CanUseOrdinaryInlineFontBoxes(line, paragraphStyle)));
         IReadOnlyList<HtmlRenderVisual> painted = paintCapture == null
             ? ComposeInlinePositionedVisuals(visuals, ownedVisuals, inlineBounds, formattingContainer, isInlineContinuation)
             : visuals.Concat(ownedVisuals.Values.SelectMany(items => items)).ToArray();

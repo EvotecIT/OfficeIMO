@@ -11,7 +11,7 @@ namespace OfficeIMO.Excel {
     /// Represents a single worksheet within an <see cref="ExcelDocument"/>.
     /// </summary>
     public partial class ExcelSheet : IDisposable {
-        private readonly Sheet _sheet;
+        private Sheet _sheet;
         internal Sheet SheetElement => _sheet;
 
         /// <summary>
@@ -25,8 +25,8 @@ namespace OfficeIMO.Excel {
                 _excelDocument.RenameWorksheet(this, value, ExcelSheetNameValidationMode.Strict);
             }
         }
-        private readonly UInt32Value _id;
-        private readonly WorksheetPart _worksheetPart;
+        private UInt32Value _id;
+        private WorksheetPart _worksheetPart;
         internal WorksheetPart WorksheetPart {
             get {
                 CaptureOriginalDynamicSpillFingerprintIfSafe();
@@ -37,7 +37,7 @@ namespace OfficeIMO.Excel {
             }
         }
         internal WorksheetPart DeferredMetadataWorksheetPart => _worksheetPart;
-        private readonly SpreadsheetDocument _spreadSheetDocument;
+        private SpreadsheetDocument _spreadSheetDocument;
         private readonly ExcelDocument _excelDocument;
         private bool _hasWorksheetMutations;
         private Row? _lastAccessedRow;

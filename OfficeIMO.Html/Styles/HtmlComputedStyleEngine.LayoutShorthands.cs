@@ -13,6 +13,7 @@ public static partial class HtmlComputedStyleEngine {
     private static readonly string[] GapLonghands = { "row-gap", "column-gap" };
 
     private static string[]? GetDeferredLayoutShorthandLonghands(string propertyName) => propertyName.ToLowerInvariant() switch {
+        "background" => BackgroundLonghands,
         "margin" => MarginLonghands,
         "padding" => PaddingLonghands,
         "border" => BorderWidthLonghands.Concat(BorderStyleLonghands).Concat(BorderColorLonghands).ToArray(),

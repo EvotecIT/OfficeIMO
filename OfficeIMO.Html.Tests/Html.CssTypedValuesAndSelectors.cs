@@ -207,7 +207,8 @@ public sealed class HtmlCssTypedValuesAndSelectorsTests {
         Assert.Equal("rgba(255, 0, 0, 1)", styles[document.Document.QuerySelector("#vector")!].GetValue("color"));
         Assert.Equal("provider \"Vector\"", styles[document.Document.QuerySelector("#vector")!].GetValue("string-set"));
         Assert.Equal("rgba(0, 0, 255, 1)", styles[document.Document.QuerySelector(".fallback")!].GetValue("color"));
-        Assert.Equal("rgba(255, 0, 0, 1)", styles[document.Document.QuerySelector(".fallback")!].GetValue("background-color"));
+        Assert.Equal(OfficeIMO.Drawing.OfficeColor.Red,
+            OfficeIMO.Drawing.OfficeColor.ParseCss(styles[document.Document.QuerySelector(".fallback")!].GetValue("background-color")));
     }
 
     [Fact]

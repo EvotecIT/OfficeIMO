@@ -15,7 +15,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
     private HtmlRenderBoxStyle PlaceIndependentBlockBesideFloats(HtmlRenderBoxStyle style, double width,
         InlineFloatContext context, ref double y, double? minimumOuterWidth = null) {
         if (!context.HasFloats || !EstablishesIndependentFloatContext(style)) return style;
-        double height = Math.Max(style.LineHeight, style.ExplicitHeight ?? 0D);
+        double height = Math.Max(ResolveTextLineMetrics(string.Empty, style).Height, style.ExplicitHeight ?? 0D);
         InlineFloatBand band = context.ResolveUsableBand(ref y, height);
         while (Math.Max(minimumOuterWidth ?? 0D,
             ResolveBoxWidth(Math.Max(1D, band.Width - style.MarginLeft - style.MarginRight), style)

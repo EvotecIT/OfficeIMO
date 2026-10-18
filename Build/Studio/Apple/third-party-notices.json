@@ -371,6 +371,132 @@
           "Source": "https://raw.githubusercontent.com/tmds/Tmds.DBus/b4a7fed0b878f74cb54f7cca84d2889af4e596ba/COPYING"
         }
       ]
+    },
+    {
+      "Package": "AngleSharp/1.8.3",
+      "License": "MIT",
+      "Authors": "AngleSharp",
+      "Files": [
+        {
+          "Path": "OfficeIMO.Studio/Licenses/ThirdParty/AngleSharp-1.7.1-LICENSE.txt",
+          "Sha256": "6da3ab781b570d2c45102e74b366c0be0eb758ed0205c3b23093d6ac2231d394",
+          "Source": "https://raw.githubusercontent.com/AngleSharp/AngleSharp/e1b55c551fc74b7dde7ba1ee50c2703608da4e7f/LICENSE"
+        }
+      ]
+    },
+    {
+      "Package": "AngleSharp.Css/1.1.3",
+      "License": "MIT",
+      "Authors": "AngleSharp.Css",
+      "Files": [
+        {
+          "Path": "OfficeIMO.Studio/Licenses/ThirdParty/AngleSharp.Css-1.0.1-LICENSE.txt",
+          "Sha256": "6da3ab781b570d2c45102e74b366c0be0eb758ed0205c3b23093d6ac2231d394",
+          "Source": "https://raw.githubusercontent.com/AngleSharp/AngleSharp.Css/fdf4a584fdfbb6e3657b920f4646f096960a673e/LICENSE"
+        }
+      ]
+    },
+    {
+      "Package": "System.Security.Cryptography.Pkcs/10.0.13",
+      "License": "MIT",
+      "Authors": "Microsoft",
+      "Files": [
+        {
+          "Path": "OfficeIMO.Studio/Licenses/ThirdParty/System.Security.Cryptography.Pkcs-10.0.13-THIRD-PARTY-NOTICES.TXT",
+          "Sha256": "6d15e10a101c6bfff2ab4429ed061bf76c456fc4b23ad6b03e0d0f8377148a21",
+          "Source": "System.Security.Cryptography.Pkcs/10.0.13/THIRD-PARTY-NOTICES.TXT"
+        },
+        {
+          "Path": "OfficeIMO.Studio/Licenses/ThirdParty/Microsoft.NETCore.App.Runtime.osx-arm64-10.0.12-LICENSE.TXT",
+          "Sha256": "cfc21f5e8bd655ae997eec916138b707b1d290b83272c02a95c9f821b8c87310",
+          "Source": "Microsoft.NETCore.App.Runtime.osx-arm64/10.0.13/LICENSE.TXT"
+        }
+      ]
+    },
+    {
+      "Package": "System.Security.Cryptography.Xml/10.0.13",
+      "License": "MIT",
+      "Authors": "Microsoft",
+      "Files": [
+        {
+          "Path": "OfficeIMO.Studio/Licenses/ThirdParty/System.Security.Cryptography.Xml-10.0.13-THIRD-PARTY-NOTICES.TXT",
+          "Sha256": "6d15e10a101c6bfff2ab4429ed061bf76c456fc4b23ad6b03e0d0f8377148a21",
+          "Source": "System.Security.Cryptography.Xml/10.0.13/THIRD-PARTY-NOTICES.TXT"
+        },
+        {
+          "Path": "OfficeIMO.Studio/Licenses/ThirdParty/Microsoft.NETCore.App.Runtime.osx-arm64-10.0.12-LICENSE.TXT",
+          "Sha256": "cfc21f5e8bd655ae997eec916138b707b1d290b83272c02a95c9f821b8c87310",
+          "Source": "Microsoft.NETCore.App.Runtime.osx-arm64/10.0.13/LICENSE.TXT"
+        }
+      ]
+    },
+    {
+      "Package": "Microsoft.NETCore.App.Runtime.osx-arm64/10.0.13",
+      "License": "MIT",
+      "Authors": "Microsoft",
+      "Files": [
+        {
+          "Path": "OfficeIMO.Studio/Licenses/ThirdParty/Microsoft.NETCore.App.Runtime.osx-arm64-10.0.12-THIRD-PARTY-NOTICES.TXT",
+          "Sha256": "66f1d4e44973185519bb4aa8a9718eb22fc7af2cc532e3ae9cfc4c127ee7fc54",
+          "Source": "Microsoft.NETCore.App.Runtime.osx-arm64/10.0.13/THIRD-PARTY-NOTICES.TXT"
+        },
+        {
+          "Path": "OfficeIMO.Studio/Licenses/ThirdParty/Microsoft.NETCore.App.Runtime.osx-arm64-10.0.12-LICENSE.TXT",
+          "Sha256": "cfc21f5e8bd655ae997eec916138b707b1d290b83272c02a95c9f821b8c87310",
+          "Source": "Microsoft.NETCore.App.Runtime.osx-arm64/10.0.13/LICENSE.TXT"
+        }
+      ]
+    },
+    {
+      "Package": "Microsoft.NETCore.App.Runtime.osx-x64/10.0.13",
+      "License": "MIT",
+      "Authors": "Microsoft",
+      "Files": [
+        {
+          "Path": "OfficeIMO.Studio/Licenses/ThirdParty/Microsoft.NETCore.App.Runtime.osx-arm64-10.0.12-THIRD-PARTY-NOTICES.TXT",
+          "Sha256": "66f1d4e44973185519bb4aa8a9718eb22fc7af2cc532e3ae9cfc4c127ee7fc54",
+          "Source": "Microsoft.NETCore.App.Runtime.osx-x64/10.0.13/THIRD-PARTY-NOTICES.TXT"
+        },
+        {
+          "Path": "OfficeIMO.Studio/Licenses/ThirdParty/Microsoft.NETCore.App.Runtime.osx-arm64-10.0.12-LICENSE.TXT",
+          "Sha256": "cfc21f5e8bd655ae997eec916138b707b1d290b83272c02a95c9f821b8c87310",
+          "Source": "Microsoft.NETCore.App.Runtime.osx-x64/10.0.13/LICENSE.TXT"
+        }
+      ]
+    },
+    {
+      "Package": "Microsoft.NETCore.App.Runtime.NativeAOT.ios-arm64/10.0.13",
+      "License": "MIT",
+      "Authors": "Microsoft",
+      "Files": [
+        {
+          "Path": "OfficeIMO.Studio/Licenses/ThirdParty/Microsoft.NETCore.App.Runtime.osx-arm64-10.0.12-THIRD-PARTY-NOTICES.TXT",
+          "Sha256": "66f1d4e44973185519bb4aa8a9718eb22fc7af2cc532e3ae9cfc4c127ee7fc54",
+          "Source": "Microsoft.NETCore.App.Runtime.NativeAOT.ios-arm64/10.0.13/THIRD-PARTY-NOTICES.TXT"
+        },
+        {
+          "Path": "OfficeIMO.Studio/Licenses/ThirdParty/Microsoft.NETCore.App.Runtime.osx-arm64-10.0.12-LICENSE.TXT",
+          "Sha256": "cfc21f5e8bd655ae997eec916138b707b1d290b83272c02a95c9f821b8c87310",
+          "Source": "Microsoft.NETCore.App.Runtime.NativeAOT.ios-arm64/10.0.13/LICENSE.TXT"
+        }
+      ]
+    },
+    {
+      "Package": "Microsoft.NETCore.App.Runtime.NativeAOT.iossimulator-arm64/10.0.13",
+      "License": "MIT",
+      "Authors": "Microsoft",
+      "Files": [
+        {
+          "Path": "OfficeIMO.Studio/Licenses/ThirdParty/Microsoft.NETCore.App.Runtime.osx-arm64-10.0.12-THIRD-PARTY-NOTICES.TXT",
+          "Sha256": "66f1d4e44973185519bb4aa8a9718eb22fc7af2cc532e3ae9cfc4c127ee7fc54",
+          "Source": "Microsoft.NETCore.App.Runtime.NativeAOT.iossimulator-arm64/10.0.13/THIRD-PARTY-NOTICES.TXT"
+        },
+        {
+          "Path": "OfficeIMO.Studio/Licenses/ThirdParty/Microsoft.NETCore.App.Runtime.osx-arm64-10.0.12-LICENSE.TXT",
+          "Sha256": "cfc21f5e8bd655ae997eec916138b707b1d290b83272c02a95c9f821b8c87310",
+          "Source": "Microsoft.NETCore.App.Runtime.NativeAOT.iossimulator-arm64/10.0.13/LICENSE.TXT"
+        }
+      ]
     }
   ]
 }

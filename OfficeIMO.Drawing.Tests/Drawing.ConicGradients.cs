@@ -25,7 +25,8 @@ public sealed class DrawingConicGradientTests {
         Assert.True(raster.GetPixel(20, 2).R > raster.GetPixel(20, 2).B);
         Assert.True(raster.GetPixel(37, 20).B > raster.GetPixel(37, 20).R);
         Assert.Contains("<clipPath", svg, StringComparison.Ordinal);
-        Assert.True(Count(svg, "<path") >= 72);
+        Assert.Contains("<path", svg, StringComparison.Ordinal);
+        Assert.DoesNotContain("<image", svg, StringComparison.Ordinal);
         Assert.Equal(gradient.Stops, gradient.Clone().Stops);
     }
 
@@ -118,13 +119,4 @@ public sealed class DrawingConicGradientTests {
         Assert.Equal(0, halfway.R);
     }
 
-    private static int Count(string value, string token) {
-        int count = 0;
-        int index = 0;
-        while ((index = value.IndexOf(token, index, StringComparison.Ordinal)) >= 0) {
-            count++;
-            index += token.Length;
-        }
-        return count;
-    }
 }

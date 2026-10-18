@@ -1,5 +1,22 @@
 # Upgrading OfficeIMO
 
+## PSWriteOffice repository and coordinated releases
+
+PSWriteOffice is maintained in [OfficeIMO](https://github.com/EvotecIT/OfficeIMO),
+under [`PowerShell/PSWriteOffice`](PowerShell/PSWriteOffice/README.MD). File issues
+and submit pull requests in OfficeIMO for both the engines and the PowerShell
+module. Existing module installations continue to use `Install-Module PSWriteOffice`
+and `Import-Module PSWriteOffice`; this move does not rename commands or aliases.
+
+Contributors should use an OfficeIMO checkout. The PowerShell projects reference
+the engines in that checkout, and the [combined release flow](Docs/building-and-releasing.md)
+publishes matching OfficeIMO and PSWriteOffice versions. The former engine-only
+publish switches on `Build/Build-Project.ps1` now invoke the coordinated release.
+
+PSWriteWord and PSWriteExcel remain historical modules. Their scripts may require
+API changes when moving to PSWriteOffice; repository consolidation does not make
+their old commands interchangeable with the current module.
+
 ## Studio native interface and protected copies
 
 The native engine ABI is version 3. Redaction `apply` requests must include `revision`: use the revision returned by `find`, or the document facts revision on which drawn areas were reviewed. Requests without a revision or with a stale revision are rejected. After editing, reordering, undoing or redoing the document, find or mark the content again before applying redaction. Rebuild native hosts against the matching engine header and check `officeimo_abi_version()` at startup.
@@ -699,7 +716,9 @@ The shared Excel evaluator preserves referenced cell types when calculating aggr
 
 Excel HTML export reports classify omitted native named-table definitions as loss, even when all worksheet cells are preserved. Callers requiring lossless conversion must account for table names, filters, styles and totals metadata that HTML does not restore.
 
-Worksheet exports and `ExcelSheet.GetTables()` require a handle belonging to the current workbook package. When a save reloads that package, reacquire the worksheet from `document.Sheets` before inspecting or exporting it; stale or removed handles raise `InvalidOperationException`. Workbook exports and `document.GetTables()` use the current package directly.
+Live `ExcelSheet` handles remain associated with their worksheet when a save reloads the workbook package or changes its type. Existing handles can continue editing, exporting and inspecting tables after saving or adding VBA; reacquiring from `document.Sheets` is optional. Fresh workbooks preserve unsaved workbook metadata when first saved as templates or macro-enabled packages. Removed worksheet handles remain invalid and cannot attach to replacement worksheets that reuse their IDs. Picture handles and captured mutation plans keep their separate package-lifetime checks. Workbook exports and `document.GetTables()` use the current package directly.
+
+Core and application property wrappers and custom-property values also remain associated with the workbook across saves. Retained custom properties detach when explicitly removed or replaced. Transaction rollback refreshes live worksheet handles to the restored metadata, so later name and visibility edits persist.
 
 ## Excel and iWork TEXTJOIN formulas
 

@@ -18,6 +18,7 @@ public static partial class HtmlComputedStyleEngine {
         string value,
         out IReadOnlyList<KeyValuePair<string, string>> longhands) {
         string normalizedName = propertyName.Trim().ToLowerInvariant();
+        if (normalizedName == "background") return TryExpandBackgroundShorthand(value, out longhands);
         if (normalizedName == "font") return TryExpandFontShorthand(value, out longhands);
         if (normalizedName == "text-decoration") return TryExpandTextDecorationShorthand(value, out longhands);
         if (normalizedName == "gap") return TryExpandGapShorthand(value, out longhands);

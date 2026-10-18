@@ -19,7 +19,8 @@
     "GovernanceConfigPath": "Build/Studio/Apple/appstoreconnect-governance.json",
     "AppInfoConfigPath": "Build/Studio/Apple/appstoreconnect-app-info.json",
     "MetadataConfigPaths": [
-      "Build/Studio/Apple/appstoreconnect-metadata-macos.json"
+      "Build/Studio/Apple/appstoreconnect-metadata-macos.json",
+      "Build/Studio/Apple/appstoreconnect-metadata-ios.json"
     ],
     "Apps": [],
     "Automation": {

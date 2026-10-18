@@ -42,4 +42,4 @@ This makes cleanup, CI artifact upload, and permissions easier to reason about t
 
 - [Choose a workflow](/docs/pswriteoffice/choosing-a-workflow/)
 - [Browse command families](/docs/pswriteoffice/command-families/)
-- [Open the example gallery](https://github.com/EvotecIT/PSWriteOffice/tree/v3.0.8/Examples)
+- [Open the example gallery](https://github.com/EvotecIT/OfficeIMO/tree/b856f18f91a4e6014ee913ad195536ecca96feb4/PowerShell/PSWriteOffice/Examples)

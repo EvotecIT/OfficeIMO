@@ -8,7 +8,7 @@ namespace OfficeIMO.Drawing;
 /// Backend-neutral conic gradient intent that can be expanded into a bounded vector drawing.
 /// Stop offsets cover one clockwise turn, and zero degrees points upward.
 /// </summary>
-public sealed class OfficeConicGradient {
+public sealed partial class OfficeConicGradient {
     /// <summary>Normalized horizontal center coordinate.</summary>
     public double CenterX { get; }
 
@@ -34,94 +34,6 @@ public sealed class OfficeConicGradient {
         CenterY = centerY;
         StartAngle = NormalizeDegrees(startAngle);
         Stops = ValidateStops(stops);
-    }
-
-    /// <summary>
-    /// Expands the gradient into clipped solid-color vector wedges shared by raster, SVG, and PDF exporters.
-    /// Authored stop boundaries are retained in addition to the uniform quality segments.
-    /// </summary>
-    public OfficeDrawing CreateDrawing(double width, double height, int qualitySegments = 360) {
-        ValidatePositive(width, nameof(width));
-        ValidatePositive(height, nameof(height));
-        if (qualitySegments < 12 || qualitySegments > 4096) {
-            throw new ArgumentOutOfRangeException(nameof(qualitySegments), "Conic gradient quality must be between 12 and 4096 segments.");
-        }
-
-        var boundaries = new SortedSet<double>();
-        for (int index = 0; index <= qualitySegments; index++) boundaries.Add((double)index / qualitySegments);
-        foreach (OfficeGradientStop stop in Stops) boundaries.Add(stop.Offset);
-        var ordered = new List<double>(boundaries);
-        double centerX = CenterX * width;
-        double centerY = CenterY * height;
-        double cornerRadius = Math.Max(
-            Math.Max(Distance(centerX, centerY, 0D, 0D), Distance(centerX, centerY, width, 0D)),
-            Math.Max(Distance(centerX, centerY, 0D, height), Distance(centerX, centerY, width, height)));
-        double segmentAngle = (Math.PI * 2D) / qualitySegments;
-        double overlap = Math.Min(
-            segmentAngle * 0.49D,
-            Math.Atan2(1.25D, Math.Max(1D, cornerRadius)));
-        double radius = cornerRadius / Math.Cos((Math.PI / qualitySegments) + overlap) * 1.000001D;
-        var content = new OfficeDrawing(width, height);
-        bool hasHardBoundary = IsHardColorBoundary(0D);
-        foreach (OfficeGradientStop stop in Stops) hasHardBoundary |= IsHardColorBoundary(stop.Offset);
-        for (int index = 1; index < ordered.Count; index++) {
-            double start = ordered[index - 1];
-            double end = ordered[index];
-            if (end <= start) continue;
-            // Wedge overlap hides tessellation cracks, but must not paint across
-            // an authored hard stop or the discontinuity at the start of a turn.
-            double startOverlap = IsHardColorBoundary(start) ? 0D : overlap;
-            double endOverlap = IsHardColorBoundary(end) ? 0D : overlap;
-            double startRadians = ToRadians(StartAngle + (start * 360D)) - (Math.PI / 2D) - startOverlap;
-            double endRadians = ToRadians(StartAngle + (end * 360D)) - (Math.PI / 2D) + endOverlap;
-            double firstX = centerX + (Math.Cos(startRadians) * radius);
-            double firstY = centerY + (Math.Sin(startRadians) * radius);
-            double secondX = centerX + (Math.Cos(endRadians) * radius);
-            double secondY = centerY + (Math.Sin(endRadians) * radius);
-            // Continuous gradients retain apex padding to hide tessellation cracks.
-            // At a hard color boundary that padding would paint into the adjacent sector.
-            double middleRadians = ToRadians(StartAngle + (((start + end) / 2D) * 360D)) - (Math.PI / 2D);
-            double apexPadding = hasHardBoundary ? 0D : 1.25D;
-            double apexX = centerX - (Math.Cos(middleRadians) * apexPadding);
-            double apexY = centerY - (Math.Sin(middleRadians) * apexPadding);
-            List<OfficePoint> clippedWedge = ClipTriangleToRectangle(
-                new OfficePoint(apexX, apexY),
-                new OfficePoint(firstX, firstY),
-                new OfficePoint(secondX, secondY),
-                width,
-                height);
-            if (clippedWedge.Count < 3) continue;
-
-            double wedgeX = clippedWedge[0].X;
-            double wedgeY = clippedWedge[0].Y;
-            var commands = new List<OfficePathCommand>(clippedWedge.Count + 1) {
-                OfficePathCommand.MoveTo(clippedWedge[0].X, clippedWedge[0].Y)
-            };
-            for (int pointIndex = 1; pointIndex < clippedWedge.Count; pointIndex++) {
-                OfficePoint point = clippedWedge[pointIndex];
-                if (point.X < wedgeX) wedgeX = point.X;
-                if (point.Y < wedgeY) wedgeY = point.Y;
-                commands.Add(OfficePathCommand.LineTo(point.X, point.Y));
-            }
-            commands.Add(OfficePathCommand.Close());
-            OfficeShape wedge = OfficeShape.Path(commands);
-            wedge.FillColor = Sample((start + end) / 2D);
-            wedge.StrokeWidth = 0D;
-            content.AddShape(wedge, wedgeX, wedgeY);
-        }
-
-        var drawing = new OfficeDrawing(width, height);
-        drawing.AddClippedDrawing(content, 0D, 0D, OfficeClipPath.Rectangle(width, height));
-        return drawing;
-    }
-
-    private bool IsHardColorBoundary(double offset) {
-        if (offset == 0D || offset == 1D) return Stops[0].Color != Stops[Stops.Count - 1].Color;
-        for (int index = 1; index < Stops.Count; index++) {
-            if (Stops[index].Offset == offset && Stops[index - 1].Offset == offset &&
-                Stops[index].Color != Stops[index - 1].Color) return true;
-        }
-        return false;
     }
 
     /// <summary>Creates a detached copy.</summary>
@@ -178,71 +90,6 @@ public sealed class OfficeConicGradient {
     private static double NormalizeDegrees(double value) {
         double normalized = value % 360D;
         return normalized < 0D ? normalized + 360D : normalized;
-    }
-
-    private static double ToRadians(double degrees) => degrees * Math.PI / 180D;
-
-    private static List<OfficePoint> ClipTriangleToRectangle(
-        OfficePoint first,
-        OfficePoint second,
-        OfficePoint third,
-        double width,
-        double height) {
-        var points = new List<OfficePoint> { first, second, third };
-        points = ClipAgainstVerticalBoundary(points, 0D, keepGreater: true);
-        points = ClipAgainstVerticalBoundary(points, width, keepGreater: false);
-        points = ClipAgainstHorizontalBoundary(points, 0D, keepGreater: true);
-        return ClipAgainstHorizontalBoundary(points, height, keepGreater: false);
-    }
-
-    private static double Distance(double x1, double y1, double x2, double y2) {
-        double x = x2 - x1;
-        double y = y2 - y1;
-        return Math.Sqrt((x * x) + (y * y));
-    }
-
-    private static List<OfficePoint> ClipAgainstVerticalBoundary(
-        IReadOnlyList<OfficePoint> input,
-        double boundary,
-        bool keepGreater) {
-        var output = new List<OfficePoint>(input.Count + 1);
-        if (input.Count == 0) return output;
-        OfficePoint previous = input[input.Count - 1];
-        bool previousInside = keepGreater ? previous.X >= boundary : previous.X <= boundary;
-        for (int index = 0; index < input.Count; index++) {
-            OfficePoint current = input[index];
-            bool currentInside = keepGreater ? current.X >= boundary : current.X <= boundary;
-            if (currentInside != previousInside) {
-                double ratio = (boundary - previous.X) / (current.X - previous.X);
-                output.Add(new OfficePoint(boundary, previous.Y + ((current.Y - previous.Y) * ratio)));
-            }
-            if (currentInside) output.Add(current);
-            previous = current;
-            previousInside = currentInside;
-        }
-        return output;
-    }
-
-    private static List<OfficePoint> ClipAgainstHorizontalBoundary(
-        IReadOnlyList<OfficePoint> input,
-        double boundary,
-        bool keepGreater) {
-        var output = new List<OfficePoint>(input.Count + 1);
-        if (input.Count == 0) return output;
-        OfficePoint previous = input[input.Count - 1];
-        bool previousInside = keepGreater ? previous.Y >= boundary : previous.Y <= boundary;
-        for (int index = 0; index < input.Count; index++) {
-            OfficePoint current = input[index];
-            bool currentInside = keepGreater ? current.Y >= boundary : current.Y <= boundary;
-            if (currentInside != previousInside) {
-                double ratio = (boundary - previous.Y) / (current.Y - previous.Y);
-                output.Add(new OfficePoint(previous.X + ((current.X - previous.X) * ratio), boundary));
-            }
-            if (currentInside) output.Add(current);
-            previous = current;
-            previousInside = currentInside;
-        }
-        return output;
     }
 
     private static void ValidateFinite(double value, string parameter) {
