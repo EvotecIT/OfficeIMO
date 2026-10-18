@@ -22,6 +22,11 @@ final class StudioStoreCaptureTests: XCTestCase {
         let app = XCUIApplication(bundleIdentifier: "com.evotec.officeimo.studio")
         #endif
         app.launchArguments = ["-AppleLanguages", "(en)", "-AppleLocale", "en_US"]
+        #if os(macOS)
+        // Skip earlier document restoration for this capture launch without
+        // deleting documents from an interactive session.
+        app.launchArguments += ["-ApplePersistenceIgnoreState", "YES"]
+        #endif
         app.launch()
         defer { app.terminate() }
 
@@ -78,7 +83,7 @@ final class StudioStoreCaptureTests: XCTestCase {
             do {
                 guard let source = CGImageSourceCreateWithData(screenshot.pngRepresentation as CFData, nil),
                       let image = CGImageSourceCreateImageAtIndex(source, 0, nil) else {
-                    throw StudioCapturePageReadiness.Failure.missingDashboard
+                    throw StudioCapturePageReadiness.Failure.unreadablePixels
                 }
                 let pixels = try StudioCapturePageReadiness.pagePixels(from: image)
                 let now = ProcessInfo.processInfo.systemUptime
@@ -96,7 +101,14 @@ final class StudioStoreCaptureTests: XCTestCase {
                 return false
             }
         }, object: nil)
-        XCTAssertEqual(XCTWaiter.wait(for: [rendered], timeout: 45), .completed, lastError)
+        let status = XCTWaiter.wait(for: [rendered], timeout: 45)
+        if status != .completed {
+            let rejected = XCTAttachment(screenshot: snapshot(app))
+            rejected.name = name + "-rejected"
+            rejected.lifetime = .keepAlways
+            add(rejected)
+        }
+        XCTAssertEqual(status, .completed, lastError)
         let screenshot = try XCTUnwrap(accepted, lastError)
         let attachment = XCTAttachment(screenshot: screenshot)
         attachment.name = name

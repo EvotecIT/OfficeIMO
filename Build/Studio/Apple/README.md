@@ -55,6 +55,8 @@ The **Studio Apple screenshots** workflow captures a qualified source commit thr
 
 The capture-only XCTest targets build the Release app, open the repository's public Northwind PDF through the normal document interface and retain native screenshots after recognizing the document's content and stable page pixels. The Mac capture opens the exact built bundle and uses its file chooser, so another installed Studio app cannot receive the document. PowerForge owns simulator boot and verified shutdown, then retains the PNG inventory and source provenance. Review the actual retained images before creating approval manifests. Capturing screenshots does not approve or upload them to Apple.
 
+The capture script installs the exact iOS app before copying the PDF. Its test manifest then uses `UseUITargetAppProvidedByTests` and excludes that app from Xcode's installation paths, preserving the document container. The Mac test skips persistent document restoration for its launch and requires Accessibility access for its own test runner before resizing the window.
+
 ## Store declarations
 
 `powerforge.store-onboarding.json` owns remote setup without archive targets. `appstoreconnect-governance.json` declares free pricing, worldwide availability and the reviewed encryption facts. Empty accessibility and subscription arrays make no claims and erase nothing. Plan and apply governance through PowerForge, retaining the exact reviewed plan.

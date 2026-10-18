@@ -98,6 +98,15 @@ try {
     $manifest = (& plutil -convert json -o - $original[0].FullName) | ConvertFrom-Json -AsHashtable
     if ($LASTEXITCODE -ne 0 -or -not $manifest.ContainsKey($target)) { throw 'Unexpected Xcode capture manifest.' }
     $test = $manifest[$target]
+    if ($Role -ne 'macos') {
+        # The exact app is already installed and holds the public PDF. Installing
+        # it again through Xcode replaces its container and invalidates that URL.
+        $test.UseUITargetAppProvidedByTests = $true
+        $null = $test.Remove('UITargetAppPath')
+        $test.DependentProductPaths = @($test.DependentProductPaths | Where-Object {
+            [IO.Path]::GetFileName($_) -ne [IO.Path]::GetFileName($appPath)
+        })
+    }
     if (-not $test.ContainsKey('EnvironmentVariables')) { $test.EnvironmentVariables = @{} }
     $test.EnvironmentVariables.STUDIO_CAPTURE_DOCUMENT_PATH = $document
     $test.EnvironmentVariables.STUDIO_CAPTURE_ROLE = $Role

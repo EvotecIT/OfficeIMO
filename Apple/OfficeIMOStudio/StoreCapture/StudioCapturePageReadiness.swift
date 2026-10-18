@@ -5,7 +5,10 @@ import Vision
 /// Capture-only recognition of the public fixture, followed by deterministic
 /// page-region pixels. Chrome, the clock and the search caret are outside it.
 enum StudioCapturePageReadiness {
-    enum Failure: Error { case missingDashboard, unreadablePixels }
+    enum Failure: Error {
+        case missingDashboard(phrase: String, recognized: [String])
+        case unreadablePixels
+    }
 
     static func pagePixels(from image: CGImage) throws -> Data {
         let request = VNRecognizeTextRequest()
@@ -20,7 +23,9 @@ enum StudioCapturePageReadiness {
         // A title bar, thumbnail, blank page or different sample is insufficient.
         let phrases = ["quarterly operations dashboard", "tickets resolved per month", "review the 37 open items"]
         let regions = try phrases.map { phrase in
-            guard let line = lines.first(where: { $0.0.contains(phrase) }) else { throw Failure.missingDashboard }
+            guard let line = lines.first(where: { $0.0.contains(phrase) }) else {
+                throw Failure.missingDashboard(phrase: phrase, recognized: Array(lines.prefix(20).map(\.0)))
+            }
             return line.1
         }
         let normalized = regions.dropFirst().reduce(regions[0]) { $0.union($1) }
