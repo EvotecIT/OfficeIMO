@@ -60,6 +60,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 contentWidth,
                 partition.Spanner == null,
                 pagedColumnRegion,
+                directSpanners && _options.Mode == HtmlRenderMode.Paged
+                    && partition.SpannerStyle != null && IsForcedPageBreak(partition.SpannerStyle.BreakBefore),
                 prefix,
                 out ColumnPaginationContext? partitionContext);
             columnContext ??= partitionContext;
@@ -230,6 +232,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         double contentWidth,
         bool finalPartition,
         bool pagedColumnRegion,
+        bool extendRuleToForcedPageEnd,
         HtmlRenderFlowBlock? prefix,
         out ColumnPaginationContext? columnContext) {
         columnContext = null;
@@ -276,7 +279,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
             partitionHeight = Math.Max(minimumExtent, plan.UsedHeight);
         }
         AddColumnRuleVisuals(visuals, style, 0D, 0D, columnWidth, gap,
-            Math.Max(requestedCount, plan.ColumnCount), partitionHeight, source, plan.RuleBands);
+            Math.Max(requestedCount, plan.ColumnCount), partitionHeight, source, plan.RuleBands,
+            extendToForcedPageEnd: extendRuleToForcedPageEnd);
         foreach (MultiColumnFragment fragment in plan.Fragments) {
             double x = fragment.Column * (columnWidth + gap);
             double y = fragment.Y;

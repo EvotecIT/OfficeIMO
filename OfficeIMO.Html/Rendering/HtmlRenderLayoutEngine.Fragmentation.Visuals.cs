@@ -48,6 +48,20 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 double intersectionBottom = Math.Min(end, visualBottom);
                 if (intersectionBottom <= intersectionTop + 0.0001D && !containsFlowAnchor) continue;
 
+                if (_options.Mode == HtmlRenderMode.Paged
+                    && visual is HtmlRenderShape { CanExtendFragmentColumnRule: true, LinkUri: null } rule
+                    && backgroundWindow is { } ruleWindow
+                    && Math.Abs(visualBottom - end) <= 0.0001D
+                    && ruleWindow.End > end + 0.0001D) {
+                    // The authored page break ends this column set, while its
+                    // rule reaches the physical page edge. Keep the source cut
+                    // so the extended paint cannot recur beside the next spanner.
+                    HtmlRenderShape extended = ExtendFragmentColumnRule(rule, ruleWindow.End);
+                    fragment.Add(CreateVerticallyClippedVisualFragment(extended, start,
+                        intersectionTop, ruleWindow.End, fragment.Count));
+                    continue;
+                }
+
                 if (visual is HtmlRenderShape { CanExtendFragmentBackground: true, LinkUri: null } background
                     && backgroundWindow is { } window) {
                     double paintBottom = visualBottom > end + 0.0001D

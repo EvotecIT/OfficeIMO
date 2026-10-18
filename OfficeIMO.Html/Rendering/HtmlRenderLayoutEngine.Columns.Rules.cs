@@ -13,7 +13,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
         int columnCount,
         double height,
         string source,
-        IReadOnlyList<ColumnRuleBand>? bands = null) {
+        IReadOnlyList<ColumnRuleBand>? bands = null,
+        bool extendToForcedPageEnd = false) {
         if (columnCount <= 1 || height <= 0.0001D || style.ColumnRuleWidth <= 0D
             || style.ColumnRuleStyle == "none" || style.ColumnRuleStyle == "hidden") return;
         OfficeColor color = style.ColumnRuleColor ?? style.Color;
@@ -33,13 +34,13 @@ internal sealed partial class HtmlRenderLayoutEngine {
             if (style.ColumnRuleStyle == "double") {
                 double strokeWidth = Math.Max(0.01D, style.ColumnRuleWidth / 3D);
                 double separation = style.ColumnRuleWidth / 3D;
-                AddColumnRuleVisual(visuals, centerX - separation, y, extent, color, strokeWidth, OfficeStrokeDashStyle.Solid, source);
-                AddColumnRuleVisual(visuals, centerX + separation, y, extent, color, strokeWidth, OfficeStrokeDashStyle.Solid, source);
+                AddColumnRuleVisual(visuals, centerX - separation, y, extent, color, strokeWidth, OfficeStrokeDashStyle.Solid, source, extendToForcedPageEnd);
+                AddColumnRuleVisual(visuals, centerX + separation, y, extent, color, strokeWidth, OfficeStrokeDashStyle.Solid, source, extendToForcedPageEnd);
             } else {
                 OfficeStrokeDashStyle dashStyle = style.ColumnRuleStyle == "dashed"
                     ? OfficeStrokeDashStyle.Dash
                     : style.ColumnRuleStyle == "dotted" ? OfficeStrokeDashStyle.Dot : OfficeStrokeDashStyle.Solid;
-                AddColumnRuleVisual(visuals, centerX, y, extent, color, style.ColumnRuleWidth, dashStyle, source);
+                AddColumnRuleVisual(visuals, centerX, y, extent, color, style.ColumnRuleWidth, dashStyle, source, extendToForcedPageEnd);
             }
         }
     }
@@ -64,11 +65,28 @@ internal sealed partial class HtmlRenderLayoutEngine {
         OfficeColor color,
         double width,
         OfficeStrokeDashStyle dashStyle,
-        string source) {
+        string source,
+        bool extendToForcedPageEnd) {
         OfficeShape shape = OfficeShape.Line(0D, 0D, 0.0001D, height);
         shape.StrokeColor = color;
         shape.StrokeWidth = width;
         shape.StrokeDashStyle = dashStyle;
-        visuals.Add(new HtmlRenderShape(shape, x, y, visuals.Count, source: source + "::column-rule"));
+        visuals.Add(new HtmlRenderShape(shape, x, y, visuals.Count, source: source + "::column-rule",
+            canExtendFragmentColumnRule: extendToForcedPageEnd));
+    }
+
+    /// <summary>Extends only owned rule paint; its original source interval still controls fragment membership.</summary>
+    private static HtmlRenderShape ExtendFragmentColumnRule(HtmlRenderShape rule, double paintEnd) {
+        OfficeShape original = rule.InnerShape;
+        OfficeShape line = OfficeShape.Line(0D, 0D, original.Width, paintEnd - rule.Y);
+        line.StrokeColor = original.StrokeColor;
+        line.StrokeWidth = original.StrokeWidth;
+        line.StrokeDashStyle = original.StrokeDashStyle;
+        line.StrokeLineCap = original.StrokeLineCap;
+        line.StrokeLineJoin = original.StrokeLineJoin;
+        line.StrokeMiterLimit = original.StrokeMiterLimit;
+        line.SetStrokeDashArray(original.StrokeDashArray, original.StrokeDashOffset);
+        return rule.CopyStackingContextTo(new HtmlRenderShape(line, rule.X, rule.Y,
+            rule.PaintOrder, source: rule.Source, layoutY: rule.LayoutY, layoutHeight: rule.LayoutHeight));
     }
 }
