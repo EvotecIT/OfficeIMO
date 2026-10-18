@@ -88,7 +88,12 @@ internal sealed partial class HtmlRenderLayoutEngine {
         EnsureMultiColumnLimit(plan.ColumnCount);
         double minimumColumnBoxExtent = pageBands?.MinimumBoxExtent(plan.ColumnCount) ?? 0D;
         IReadOnlyList<double> columnPageBreaks = Array.Empty<double>();
-        bool shortDefiniteColumns = declaredHeight.HasValue && pageBands == null
+        // Notes and edge figures own a source-preserving physical continuation
+        // contract. Ordinary short-box inline overflow must not clip their
+        // reserved fragments or navigation outside the exported page.
+        bool reservedColumnContent = _footnoteEntries.Values.Any(entry => ContainsElementOrSelf(element, entry.Element))
+            || _columnEdgeFloatEntries.Values.Any(entry => ReferenceEquals(entry.Owner, element));
+        bool shortDefiniteColumns = declaredHeight.HasValue && pageBands == null && !reservedColumnContent
             && declaredHeight.Value < _activePageGeometry.ContentHeight - 0.0001D;
         if (style.OverflowX == "visible" && style.OverflowY == "visible" && !shortDefiniteColumns) {
             plan = ResolvePagedColumnOverflow(plan, requestedCount, targetHeight, out columnPageBreaks, pageBands);
@@ -336,6 +341,12 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 y += height;
                 usedHeight = Math.Max(usedHeight, y);
                 start = end;
+                if (start < child.Height - 0.0001D && !forcedEnd) {
+                    // A natural cut discards only a proven unpainted margin.
+                    // Consume it before advancing so a following forced sibling
+                    // boundary does not create a second empty column.
+                    start = SkipUnpaintedLeadingMarginAtPageStart(child, start, HtmlFragmentationScope.Column);
+                }
                 if (start < child.Height - 0.0001D && !forcedEnd) {
                     if (column + 2 > maximumGeneratedColumns) {
                         if (throwOnLimit) EnsureMultiColumnLimit(column + 2);

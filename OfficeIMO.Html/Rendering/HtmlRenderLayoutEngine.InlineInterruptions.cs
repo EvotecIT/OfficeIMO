@@ -84,6 +84,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         bool rightToLeft = paragraphStyle.WritingMode == "vertical-rl" || paragraphStyle.WritingMode == "sideways-rl";
         double cursor = rightToLeft ? width : 0D;
         string? pageName = blocks.FirstOrDefault()?.PageName;
+        object[] flowBoundaries = CreateFlowBoundaries(blocks);
         for (int index = 0; index < blocks.Count; index++) {
             CheckCancellation();
             ChargeLayoutOperation("interrupted inline block capture");
@@ -129,15 +130,19 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 forced.Add(new HtmlRenderForcedBreak(offsetY, HtmlPageBreakTarget.Page, block.PageName, changesPageName: true));
             }
             pageName = block.PageName;
-            if (block.BreakBefore != HtmlPageBreakTarget.None) forced.Add(new HtmlRenderForcedBreak(offsetY, block.BreakBefore));
-            foreach (HtmlRenderForcedBreak item in block.ForcedBreaks) forced.Add(item.Translate(offsetY));
+            if (!vertical) AppendChildForcedBreaks(blocks, index, offsetY, forced, flowBoundaries);
+            else {
+                if (block.BreakBefore != HtmlPageBreakTarget.None) forced.Add(new HtmlRenderForcedBreak(offsetY, block.BreakBefore));
+                foreach (HtmlRenderForcedBreak item in block.ForcedBreaks) forced.Add(item.Translate(offsetY));
+            }
             foreach (double offset in block.BreakOffsets) breaks.Add(offsetY + offset);
             foreach (HtmlRenderLineBreakGroup group in block.LineBreakGroups) lines.Add(group.Translate(offsetY));
             foreach (HtmlRenderContinuationGroup group in block.ContinuationGroups) continuations.Add(group.Translate(offsetX, offsetY));
             foreach (HtmlRenderTrailingGroup group in block.TrailingGroups) trailing.Add(group.Translate(offsetX, offsetY));
             foreach (HtmlCssRunningStringAssignment assignment in block.RunningStringAssignments) assignments.Add(assignment.Translate(offsetY));
             height = vertical ? Math.Max(height, block.Height) : height + block.Height;
-            if (block.BreakAfter != HtmlPageBreakTarget.None) forced.Add(new HtmlRenderForcedBreak(height, block.BreakAfter));
+            if (vertical && block.BreakAfter != HtmlPageBreakTarget.None)
+                forced.Add(new HtmlRenderForcedBreak(height, block.BreakAfter));
         }
         IReadOnlyList<HtmlRenderVisual> painted = ComposeInlinePositionedVisuals(
             combined.Visuals, combined.Owned, combined.Bounds, formattingContainer, isInlineContinuation: false, paintChunks: paintChunks);

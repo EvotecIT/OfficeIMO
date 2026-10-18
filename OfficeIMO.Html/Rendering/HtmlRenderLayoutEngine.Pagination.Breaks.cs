@@ -1,25 +1,26 @@
 namespace OfficeIMO.Html;
 
 internal sealed partial class HtmlRenderLayoutEngine {
-    private double SkipUnpaintedLeadingMarginAtPageStart(HtmlRenderFlowBlock block, double start) {
+    private double SkipUnpaintedLeadingMarginAtPageStart(HtmlRenderFlowBlock block, double start,
+        HtmlFragmentationScope fragmentationScope = HtmlFragmentationScope.Page) {
         // Flex items do not collapse adjoining margins. A completed item's
         // bottom margin can be immediately followed by the next item's top
         // margin; truncate each unpainted interval without treating it as a
         // content continuation or crossing retained paint/metadata.
         while (start < block.Height - 0.0001D) {
-            double next = SkipOneUnpaintedLeadingMarginAtPageStart(block, start);
+            double next = SkipOneUnpaintedLeadingMarginAtPageStart(block, start, fragmentationScope);
             if (next <= start + 0.0001D) break;
             start = next;
         }
         return start;
     }
 
-    private double SkipOneUnpaintedLeadingMarginAtPageStart(HtmlRenderFlowBlock block, double start) {
+    private double SkipOneUnpaintedLeadingMarginAtPageStart(HtmlRenderFlowBlock block, double start, HtmlFragmentationScope fragmentationScope) {
         double discardableMargin = ResolvePageStartDiscardableMargin(block, start);
         if (discardableMargin <= 0.0001D) return start;
 
         double afterMargin = Math.Min(block.Height, start + discardableMargin);
-        if (block.ForcedBreaks.Any(item => IsForcedPageBreak(item.Target) && item.Offset > start + 0.0001D && item.Offset <= afterMargin + 0.0001D)
+        if (block.ForcedBreaks.Any(item => IsForcedBreakForScope(item.Target, fragmentationScope) && item.Offset > start + 0.0001D && item.Offset <= afterMargin + 0.0001D)
             || block.RunningStringAssignments.Any(item => item.Offset >= start - 0.0001D && item.Offset < afterMargin - 0.0001D)
             || SliceBlockVisuals(block, start, afterMargin).Any(visual =>
                 ContainsPageStartMarginContent(visual, block))) {

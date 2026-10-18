@@ -13,6 +13,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         var lines = new List<HtmlRenderLineBreakGroup>();
         var safe = new List<HtmlRenderBreakRange>();
         var forced = new List<HtmlRenderForcedBreak>();
+        var progress = new List<HtmlInlineBreakProgress>();
         object[] boundaries = CreateFlowBoundaries(children);
         var boundaryPositions = boundaries.Select((boundary, index) => (boundary, index))
             .ToDictionary(item => item.boundary, item => item.index);
@@ -31,6 +32,16 @@ internal sealed partial class HtmlRenderLayoutEngine {
             }
             keeps.AddRange(child.AvoidBreakRanges.Select(range => range.Translate(height)));
             lines.AddRange(child.LineBreakGroups.Select(group => group.Translate(height)));
+            foreach (HtmlInlineBreakProgress item in child.InlineBreakProgress) {
+                ChargeLayoutOperation("column source progress facts");
+                progress.Add(new HtmlInlineBreakProgress(height + item.Offset, item.LogicalCharacters, item.OwnerElement,
+                    item.IsBlockEntry, item.PageStartDiscardableMargin, item.IsBlockExit, item.IsFlexGap));
+            }
+            if (child.HasCollapsibleMargins && child.CollapsibleMarginBottom > 0.0001D
+                && child.Height > child.CollapsibleMarginBottom + 0.0001D && child.OwnerElement != null) {
+                progress.Add(new HtmlInlineBreakProgress(height + child.Height - child.CollapsibleMarginBottom,
+                    0, child.OwnerElement, pageStartDiscardableMargin: child.CollapsibleMarginBottom, isBlockExit: true));
+            }
             safe.AddRange(child.SafeBreakRanges.Select(range => range.Translate(height)));
             int forcedStart = forced.Count;
             AppendChildForcedBreaks(children, index, height, forced, boundaries);
@@ -41,7 +52,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         HtmlRenderAvoidBreakRange[] columnKeeps = MergeColumnKeeps(keeps);
         var metrics = new HtmlRenderFlowBlock(0D, height, Array.Empty<HtmlRenderVisual>(),
             HtmlPageBreakTarget.None, HtmlPageBreakTarget.None, false, "column source breaks", offsets,
-            lineBreakGroups: lines, avoidBreakRanges: columnKeeps.Concat(keeps
+            lineBreakGroups: lines, inlineBreakProgress: progress, avoidBreakRanges: columnKeeps.Concat(keeps
                 .Where(range => (range.Scope & HtmlFragmentationScope.Page) != 0)
                 .Select(range => range with { Scope = HtmlFragmentationScope.Page })), safeBreakRanges: safe);
         var events = new List<ColumnForcedBoundary>();

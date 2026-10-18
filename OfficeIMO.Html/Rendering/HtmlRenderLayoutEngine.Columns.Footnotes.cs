@@ -66,7 +66,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
             callHeight = Math.Max(0D, after - before);
             if ((fragment.Block.AvoidBreakInsideScope & HtmlFragmentationScope.Column) != 0) callHeight = Math.Max(callHeight, fragment.Block.Height);
             foreach (HtmlRenderAvoidBreakRange range in fragment.Block.AvoidBreakRanges) {
-                if (anchor >= range.Start && anchor < range.End && range.End - range.Start <= height)
+                if ((range.Scope & HtmlFragmentationScope.Column) != 0
+                    && anchor >= range.Start && anchor < range.End && range.End - range.Start <= height)
                     callHeight = Math.Max(callHeight, range.End - range.Start);
             }
             return fragment.Column;

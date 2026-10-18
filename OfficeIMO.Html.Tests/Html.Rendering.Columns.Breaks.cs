@@ -243,6 +243,59 @@ public sealed partial class HtmlRenderingTests {
         Assert.Throws<HtmlConversionException>(() => rendered.RequireNoLoss());
     }
 
+    [Fact]
+    public void HtmlColumns_ParagraphMarginCutPreservesFittingLinesAndDiscardsOnlyUnpaintedTail() {
+        const string body = "<p style='height:40px'>BREAK-LEAD</p>"
+            + "<p style='margin-bottom:20px;orphans:2;widows:2'>BREAK-ONE<br>BREAK-TWO<br>BREAK-THREE</p>"
+            + "<p>BREAK-FOUR</p>";
+
+        HtmlRenderDocument rendered = RenderColumnBreaks(body, "column-fill:auto;height:100px");
+
+        AssertColumnBreakPlacements(rendered, ("BREAK-LEAD", 0D, 0D), ("BREAK-ONE", 0D, 40D),
+            ("BREAK-TWO", 0D, 60D), ("BREAK-THREE", 0D, 80D), ("BREAK-FOUR", 160D, 0D),
+            ("BREAK-AFTER", 0D, 100D));
+        AssertColumnBreaksQualified(rendered);
+    }
+
+    [Fact]
+    public void HtmlColumns_InterruptedInlineBoundaryCoalescesBeforeAndAfterForces() {
+        const string body = "<span><span style='display:block;break-after:column'>BREAK-ONE</span>"
+            + "<span style='display:block;break-before:column'>BREAK-TWO</span></span>";
+
+        HtmlRenderDocument rendered = RenderColumnBreaks(body);
+
+        AssertColumnBreakPlacements(rendered, ("BREAK-ONE", 0D, 0D), ("BREAK-TWO", 160D, 0D),
+            ("BREAK-AFTER", 0D, 20D));
+        AssertColumnBreaksQualified(rendered);
+    }
+
+    [Fact]
+    public void HtmlColumnNotes_PageOnlyNestedKeepDoesNotEnlargeColumnCallReservation() {
+        HtmlRenderDocument Render(string inside) {
+            HtmlRenderOptions options = ColumnPageBandOptions();
+            options.Mode = HtmlRenderMode.Paged;
+            options.HonorCssPageRules = true;
+            return HtmlRenderTestDriver.Render(ColumnBreakSource(
+                "<style>@page{size:700px 140px;margin:20px}.note{float:footnote;float-reference:column;font-size:10px;line-height:12px}</style>"
+                + "<section style='width:300px;column-count:2;column-gap:20px;column-fill:auto;height:100px'>"
+                + "<div><div style='break-inside:" + inside + "'><p>CALL<span class='note'>NOTEONE<br>NOTETWO<br>NOTETHREE</span></p>"
+                + "<p>BODYTWO</p><p>BODYTHREE</p></div></div></section><p>AFTER</p>"), options);
+        }
+        static (int Page, string Text, double X, double Y)[] Placements(HtmlRenderDocument document) =>
+            document.Pages.SelectMany(page => ColumnPageBandText(page)
+                .Select(text => (page.PageNumber, text.Text, text.X, text.LayoutY))).ToArray();
+
+        HtmlRenderDocument control = Render("auto");
+        HtmlRenderDocument pageKeep = Render("avoid-page");
+
+        Assert.Equal(Placements(control), Placements(pageKeep));
+        HtmlRenderText[] text = pageKeep.Pages.SelectMany(ColumnPageBandText).ToArray();
+        Assert.Single(text, item => item.Text == "NOTEONE");
+        Assert.Single(text, item => item.Text == "NOTETWO");
+        Assert.Single(text, item => item.Text == "NOTETHREE");
+        Assert.DoesNotContain(text, item => item.Text.Contains("cont.", StringComparison.Ordinal));
+    }
+
     private static HtmlRenderDocument RenderColumnBreaks(string body, string columnStyle = "column-fill:auto") {
         HtmlRenderOptions options = ColumnPageBandOptions();
         options.Mode = HtmlRenderMode.Continuous;
