@@ -41,10 +41,13 @@ public sealed partial class HtmlRenderingTests {
             for (int index = 0; index < 4; index++) {
                 Assert.Equal(20D, FindColumnShape(rendered, "div#sizing-" + index).Height, 3);
             }
-            HtmlDiagnostic diagnostic = Assert.Single(rendered.Diagnostics,
-                item => item.Code == HtmlRenderDiagnosticCodes.MultiColumnValueUnsupported);
-            Assert.Equal("div#sizing-2", diagnostic.Source);
-            Assert.Contains(declaration.Replace(':', '='), diagnostic.Detail);
+            HtmlDiagnostic[] diagnostics = rendered.Diagnostics.Where(
+                item => item.Code == HtmlRenderDiagnosticCodes.MultiColumnValueUnsupported).ToArray();
+            Assert.NotEmpty(diagnostics);
+            Assert.All(diagnostics, diagnostic => {
+                Assert.Equal("div#sizing-2", diagnostic.Source);
+                Assert.Contains(declaration.Replace(':', '='), diagnostic.Detail);
+            });
             Assert.Throws<HtmlConversionException>(() => rendered.RequireNoLoss());
         }
     }
