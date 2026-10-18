@@ -80,7 +80,8 @@ if ($LASTEXITCODE -ne 0) { throw 'Cannot resolve the exact native capture app.' 
 $document = $fixture
 $ownedDocumentDirectory = $null
 $ownedMacFixtureDirectory = $null
-$macLaunchedAt = $null
+$ownedMacProcess = $null
+$preserveMacInput = $false
 $macExecutable = Join-Path $appPath 'Contents/MacOS/OfficeIMO Studio'
 $destination = 'platform=macOS'
 try {
@@ -138,10 +139,22 @@ try {
         if (@(Get-Process -Name 'OfficeIMO Studio' -ErrorAction SilentlyContinue | Where-Object { $_.Path -ceq $macExecutable }).Count) {
             throw 'The capture app is already running; preserve that session.'
         }
-        $macLaunchedAt = [DateTime]::UtcNow
         & /usr/bin/open -n -a $appPath --env "TMPDIR=$($test.EnvironmentVariables.STUDIO_CAPTURE_NATIVE_TMPDIR)" $document `
             --args -AppleLanguages '(en)' -AppleLocale en_US -ApplePersistenceIgnoreState YES
         if ($LASTEXITCODE -ne 0) { throw 'Cannot launch the exact Mac capture app with its public input.' }
+        $launchDeadline = [DateTime]::UtcNow.AddSeconds(15)
+        do {
+            $matches = @(Get-Process -Name 'OfficeIMO Studio' -ErrorAction SilentlyContinue | Where-Object { $_.Path -ceq $macExecutable })
+            if ($matches.Count -eq 1) {
+                $ownedMacProcess = @{ Id = $matches[0].Id; StartTime = $matches[0].StartTime }
+                break
+            }
+            if ($matches.Count -gt 1 -or [DateTime]::UtcNow -ge $launchDeadline) {
+                $preserveMacInput = $true
+                throw 'Cannot uniquely identify the launched Mac capture process; preserve its input and inspect the session.'
+            }
+            Start-Sleep -Milliseconds 100
+        } while ($true)
     }
     Invoke-CaptureXcode -LogPath (Join-Path $WorkRoot "capture-$Role.log") -Arguments @(
         'test-without-building', '-xctestrun', $testManifest, '-destination', $destination, '-resultBundlePath', $result,
@@ -169,17 +182,16 @@ try {
         Copy-Item -LiteralPath (Join-Path $export $selected[0].exportedFileName) -Destination (Join-Path $output "$name.png")
     }
 } finally {
-    if ($macLaunchedAt) {
-        foreach ($process in @(Get-Process -Name 'OfficeIMO Studio' -ErrorAction SilentlyContinue)) {
-            if ($process.Path -ceq $macExecutable -and $process.StartTime.ToUniversalTime() -ge $macLaunchedAt) {
-                & /bin/kill -TERM $process.Id
-                if ($LASTEXITCODE -ne 0 -or -not $process.WaitForExit(5000)) {
-                    throw 'The owned Mac capture app did not terminate; preserve its input for inspection.'
-                }
+    if ($ownedMacProcess) {
+        $process = Get-Process -Id $ownedMacProcess.Id -ErrorAction SilentlyContinue
+        if ($process -and $process.Path -ceq $macExecutable -and $process.StartTime -eq $ownedMacProcess.StartTime) {
+            & /bin/kill -TERM $process.Id
+            if ($LASTEXITCODE -ne 0 -or -not $process.WaitForExit(5000)) {
+                throw 'The owned Mac capture app did not terminate; preserve its input for inspection.'
             }
         }
     }
-    if ($ownedMacFixtureDirectory) {
+    if ($ownedMacFixtureDirectory -and -not $preserveMacInput) {
         Remove-Item -LiteralPath $ownedMacFixtureDirectory -Recurse -ErrorAction Stop
     }
     if ($ownedDocumentDirectory) {
