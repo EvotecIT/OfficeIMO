@@ -8,13 +8,15 @@ internal sealed partial class HtmlRenderLayoutEngine {
         HtmlRenderBoxStyle style, ConstrainedProjectionScope scope, PagedFloatBoundary? boundary,
         bool usesBlockFormatting) {
         ConstrainedSourceProjection? context = _constrainedSourceProjection;
-        if (!scope.CanProject || !boundary.HasValue || context == null
-            || !context.TargetAncestors.Contains(element) && !(style.AvoidBreakInside && usesBlockFormatting)) return null;
+        if (!scope.CanProject || !boundary.HasValue || context == null) return null;
+        bool siblingKeep = usesBlockFormatting && HasConstrainedSiblingPageKeep(element);
+        if (!context.TargetAncestors.Contains(element) && !(style.AvoidBreakInside && usesBlockFormatting)
+            && !siblingKeep) return null;
         double available = boundary.Value.RemainingHeight
             - style.MarginTop - style.BorderTopWidth - style.PaddingTop;
         if (available <= 0.0001D)
             available += (Math.Floor(-available / context.PageHeight) + 1D) * context.PageHeight;
-        if (available >= context.PageHeight - 0.0001D) return null;
+        if (available >= context.PageHeight - 0.0001D && !siblingKeep) return null;
         CheckCancellation();
         ChargeLayoutOperations(1L + _normalFlowPlacements.Count + _layoutStyles.Count
             + _inlineFloatOverhangs.Count + _semanticNodeIds.Count,
@@ -22,6 +24,19 @@ internal sealed partial class HtmlRenderLayoutEngine {
         return new ConstrainedEntryRelayoutState(style.Clone(), _normalFlowPlacements.ToArray(),
             _layoutStyles.ToArray(), _inlineFloatOverhangs.ToArray(), _semanticNodeIds.ToArray(),
             _nextSemanticNodeId, _nextLogicalTextOrder, context.Changed, context.NeedsProjection);
+    }
+
+    /// <summary>Only ordinary sibling page keeps can request an interior child-entry rebuild.</summary>
+    private bool HasConstrainedSiblingPageKeep(IElement element) {
+        foreach (IElement child in element.Children) {
+            CheckCancellation();
+            ChargeLayoutOperation("constrained sibling keep ownership");
+            if (!_layoutStyles.TryGetValue(child, out HtmlRenderBoxStyle? style)) continue;
+            if (((style.AvoidBreakBeforeScope | style.AvoidBreakAfterScope) & HtmlFragmentationScope.Page) != 0)
+                return true;
+            if (style.Display == "contents" && HasConstrainedSiblingPageKeep(child)) return true;
+        }
+        return false;
     }
 
     /// <summary>

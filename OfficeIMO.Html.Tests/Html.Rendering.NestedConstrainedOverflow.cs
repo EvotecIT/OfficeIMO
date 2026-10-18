@@ -109,6 +109,55 @@ public sealed partial class HtmlRenderingTests {
     }
 
     [Theory]
+    [InlineData(false, false)]
+    [InlineData(true, false)]
+    [InlineData(false, true)]
+    public void HtmlNestedConstrainedOverflow_SiblingKeepRebuildsProjectedChildrenAtItsInteriorCut(
+        bool avoidBefore, bool clippedPrevious) {
+        string previous = clippedPrevious
+            ? "<p style='height:20px;overflow:hidden;break-after:avoid'>KEEP-INNER</p>"
+            : "<p style='" + (avoidBefore ? "" : "break-after:avoid") + "'>KEEP-INNER</p>";
+        string html = FixedHeightOverflowSource("<section style='height:200px'>"
+            + "<div style='height:60px'>KEEP-LEAD</div>" + previous
+            + "<p style='break-inside:avoid;" + (avoidBefore ? "break-before:avoid" : "") + "'>"
+            + "KEEP-ONE<br>KEEP-TWO<br>KEEP-THREE</p><p>KEEP-AFTER</p></section>");
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, FixedHeightOverflowOptions());
+
+        Assert.Equal(2, rendered.Pages.Count);
+        AssertDescendantSpannerSourceOnce(rendered,
+            "KEEP-LEAD", "KEEP-INNER", "KEEP-ONE", "KEEP-TWO", "KEEP-THREE", "KEEP-AFTER");
+        AssertFixedHeightOverflowPlacement(rendered, "KEEP-INNER", 2, 0D);
+        AssertFixedHeightOverflowPlacement(rendered, "KEEP-ONE", 2, 20D);
+        AssertFixedHeightOverflowPlacement(rendered, "KEEP-TWO", 2, 40D);
+        AssertFixedHeightOverflowPlacement(rendered, "KEEP-THREE", 2, 60D);
+        AssertFixedHeightOverflowPlacement(rendered, "KEEP-AFTER", 2, 80D);
+        rendered.RequireNoLoss();
+    }
+
+    [Fact]
+    public void HtmlNestedConstrainedOverflow_TwoSiblingKeepsAdvanceThroughDistinctInteriorEntries() {
+        string html = FixedHeightOverflowSource("<section style='height:400px'>"
+            + "<div style='height:60px'>LEAD</div><p style='break-after:avoid'>PRE1</p>"
+            + "<p style='break-inside:avoid'>ONE1<br>TWO1<br>THREE1</p>"
+            + "<div style='height:60px'>BETWEEN</div><p style='break-after:avoid'>PRE2</p>"
+            + "<p style='break-inside:avoid'>ONE2<br>TWO2<br>THREE2</p><p>AFTER</p></section>");
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, FixedHeightOverflowOptions());
+
+        Assert.Equal(4, rendered.Pages.Count);
+        AssertDescendantSpannerSourceOnce(rendered,
+            "LEAD", "PRE1", "ONE1", "TWO1", "THREE1", "BETWEEN", "PRE2", "ONE2", "TWO2", "THREE2", "AFTER");
+        AssertFixedHeightOverflowPlacement(rendered, "PRE1", 2, 0D);
+        AssertFixedHeightOverflowPlacement(rendered, "ONE1", 2, 20D);
+        AssertFixedHeightOverflowPlacement(rendered, "BETWEEN", 2, 80D);
+        AssertFixedHeightOverflowPlacement(rendered, "PRE2", 4, 0D);
+        AssertFixedHeightOverflowPlacement(rendered, "ONE2", 4, 20D);
+        AssertFixedHeightOverflowPlacement(rendered, "TWO2", 4, 40D);
+        AssertFixedHeightOverflowPlacement(rendered, "THREE2", 4, 60D);
+        AssertFixedHeightOverflowPlacement(rendered, "AFTER", 4, 80D);
+        rendered.RequireNoLoss();
+    }
+
+    [Theory]
     [InlineData("hidden")]
     [InlineData("clip")]
     public void HtmlNestedConstrainedOverflow_AtomicSiblingRetainsItsVisibleViewport(string overflow) {

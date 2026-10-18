@@ -12,17 +12,20 @@ internal sealed partial class HtmlRenderLayoutEngine {
         _operationBudget.ChargeLayoutOperations(count, _options.MaxLayoutOperations, source);
     }
 
-    private HtmlRenderFlowBlock LayoutElement(
+    private HtmlRenderFlowBlock LayoutElementCore(
         IElement element,
         double containingWidth,
         HtmlRenderBoxStyle style,
         HtmlRenderBoxStyle parentStyle,
         int depth,
-        IElement? continuationTarget = null,
-        int continuationLogicalCharacters = 0,
-        PagedFloatBoundary? pageBoundary = null,
-        IReadOnlyList<HtmlFloatExclusion>? inheritedFloats = null,
-        ICollection<HtmlFloatExclusion>? emittedFloats = null, InlineFloatContext? surroundingFloats = null) {
+        IElement? continuationTarget,
+        int continuationLogicalCharacters,
+        PagedFloatBoundary? pageBoundary,
+        IReadOnlyList<HtmlFloatExclusion>? inheritedFloats,
+        ICollection<HtmlFloatExclusion>? emittedFloats, InlineFloatContext? surroundingFloats,
+        out ConstrainedEntryRelayoutState? entryRelayout, out ConstrainedInteriorGap? interiorGap) {
+        entryRelayout = null;
+        interiorGap = null;
         IElement? root = _document.Body ?? _document.DocumentElement;
         bool tracksPageViewport = _options.Mode == HtmlRenderMode.Paged
             && depth == 1
@@ -118,7 +121,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         HtmlInlineLayout? inlineLayout = null;
         double contentHeight = 0D;
         bool usesBlockFormatting = HasBlockChildren(element, contentWidth, style, depth);
-        ConstrainedEntryRelayoutState? entryRelayout = CaptureConstrainedEntryRelayout(
+        entryRelayout = CaptureConstrainedEntryRelayout(
             element, style, projectionScope, pageBoundary, usesBlockFormatting);
         IElement? descendantContinuationTarget = continuationTarget != null && !ReferenceEquals(element, continuationTarget)
             ? continuationTarget
@@ -366,7 +369,9 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 forcedBreaks: forcedBreaks, avoidBreakRanges: contentAvoidBreakRanges,
                 pagedPaintExtent: sourceExtent, safeBreakRanges: contentSafeBreakRanges);
             projectedContent = ProjectOrdinaryContent(source,
-                pageBoundary.Value.Shift(style.MarginTop + style.BorderTopWidth + style.PaddingTop), out pagedEntryGap);
+                pageBoundary.Value.Shift(style.MarginTop + style.BorderTopWidth + style.PaddingTop),
+                entryRelayout == null ? null : childPaintLayers, out pagedEntryGap, out interiorGap);
+            if (interiorGap != null) return source;
             if (pagedEntryGap > 0.0001D && entryRelayout != null
                 && TryRelayoutConstrainedEntry(element, containingWidth, parentStyle, depth,
                     continuationTarget, continuationLogicalCharacters, pageBoundary.Value,

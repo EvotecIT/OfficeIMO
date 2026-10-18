@@ -20,7 +20,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         if (scope == HtmlFragmentationScope.None) return;
         double previousStart = previousFlowStart ?? Math.Max(0D, childStart - previous.NormalFlowAdvance);
         if ((scope & HtmlFragmentationScope.Page) != 0)
-            Append(HtmlFragmentationScope.Page, previousStart);
+            Append(HtmlFragmentationScope.Page, previousStart + previous.PagedSourceEntryGap);
         if ((scope & HtmlFragmentationScope.Column) != 0)
             Append(HtmlFragmentationScope.Column,
                 previousStart + FinalKeptContentStart(previous, HtmlFragmentationScope.Column));
@@ -29,6 +29,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
             if (HasForcedBoundary(previous, current, target)) return;
             double firstContentBreak = FirstKeptContentExtent(current, target);
             if (HasForcedBreakBeforeKeptContent(current, firstContentBreak, target)) return;
+            if (target == HtmlFragmentationScope.Page)
+                firstContentBreak = Math.Max(0D, firstContentBreak - current.PagedSourceEntryGap);
             double keepEnd = childStart + firstContentBreak;
             if (keepEnd > keepStart + 0.0001D)
                 ranges.Add(new HtmlRenderAvoidBreakRange(keepStart, keepEnd, Scope: target));

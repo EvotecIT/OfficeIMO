@@ -164,8 +164,9 @@ internal sealed partial class HtmlRenderLayoutEngine {
 
     /// <summary>Uses the canonical fragment planner; inserted gaps occupy destination space, not extra CSS height.</summary>
     private HtmlRenderFlowBlock ProjectOrdinaryContent(HtmlRenderFlowBlock source, PagedFloatBoundary boundary,
-        out double entryGap) {
+        IReadOnlyList<FlowPaintLayer>? childSources, out double entryGap, out ConstrainedInteriorGap? interiorGap) {
         entryGap = 0D;
+        interiorGap = null;
         ConstrainedSourceProjection? context = _constrainedSourceProjection;
         if (context == null || context.FailedReason != null || source.PagedPaintExtent <= 0.0001D) return source;
         double available = boundary.RemainingHeight;
@@ -218,6 +219,17 @@ internal sealed partial class HtmlRenderLayoutEngine {
                     // complete CSS box and therefore advances its following flow.
                     entryGap += gap;
                 } else {
+                    if (childSources != null) {
+                        foreach (FlowPaintLayer child in childSources) {
+                            CheckCancellation();
+                            ChargeLayoutOperation("constrained interior child-entry ownership");
+                            if (child.Block.OwnerElement is { } entry
+                                && Math.Abs(child.Y - cut) <= 0.0001D) {
+                                interiorGap = new ConstrainedInteriorGap(entry, gap);
+                                return source;
+                            }
+                        }
+                    }
                     double advance = cut < projected.Height - 0.0001D ? gap : 0D;
                     projected = InsertPagedSourceBreakGap(projected, cut, gap, false, advance,
                         plan == null ? null : ResolvePagedBackgroundWindow(cursor, plan));
@@ -244,6 +256,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         }
         internal HashSet<IElement> TargetAncestors { get; }
         internal HashSet<IElement> EntryRelayoutOwners { get; } = new();
+        internal Stack<ConstrainedInteriorRelayoutFrame> InteriorRelayoutFrames { get; } = new();
         internal HtmlCssPageGeometry Geometry { get; }
         internal int PageNumber { get; }
         internal double PageHeight { get; }
