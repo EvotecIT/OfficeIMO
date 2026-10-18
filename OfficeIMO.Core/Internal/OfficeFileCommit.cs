@@ -649,16 +649,17 @@ namespace OfficeIMO.Core.Internal {
             FileStream? claim = null;
             for (int attempt = 0; ; attempt++) {
                 try {
+                    // Reuse abandoned claims through the exclusive open itself. A separate
+                    // existence/reclamation step can race with a newly created live claim.
                     claim = new FileStream(
                         claimPath,
-                        FileMode.CreateNew,
+                        FileMode.OpenOrCreate,
                         FileAccess.ReadWrite,
-                        FileShare.None);
+                        FileShare.None,
+                        4096,
+                        FileOptions.DeleteOnClose);
                     break;
                 } catch (Exception exception) when (IsExistingClaimContention(exception, claimPath)) {
-                    if (TryDeleteAbandonedClaim(claimPath)) {
-                        continue;
-                    }
                     if (!waitForClaim) return false;
                     if (attempt >= 9) throw;
                     Thread.Sleep(Math.Min(50 * (attempt + 1), 500));
@@ -683,38 +684,15 @@ namespace OfficeIMO.Core.Internal {
                     return false;
                 }
             } finally {
+                // DeleteOnClose removes this claim while its exclusive handle still owns it.
+                // Deleting the pathname after disposal can instead remove a successor's claim.
                 claim.Dispose();
-                DeleteIfExists(claimPath);
             }
         }
 
         private static bool IsExistingClaimContention(Exception exception, string claimPath) =>
             (exception is IOException || exception is UnauthorizedAccessException) &&
             File.Exists(claimPath);
-
-        /// <summary>Removes an abandoned commit claim only when no live committer holds it.</summary>
-        internal static bool TryDeleteAbandonedClaim(string claimPath) {
-            try {
-                // A live committer holds the claim with FileShare.None, so this open
-                // succeeds only after that owner exits or crashes.
-                using (var abandonedClaim = new FileStream(
-                           claimPath,
-                           FileMode.Open,
-                           FileAccess.Read,
-                           FileShare.Delete)) {
-                    File.Delete(claimPath);
-                }
-                return true;
-            } catch (FileNotFoundException) {
-                return true;
-            } catch (DirectoryNotFoundException) {
-                return true;
-            } catch (UnauthorizedAccessException) {
-                return false;
-            } catch (IOException) {
-                return false;
-            }
-        }
 
         /// <summary>Gets the exact coordination-file path used when committing a destination.</summary>
         internal static string CreateClaimPath(string targetPath) {
