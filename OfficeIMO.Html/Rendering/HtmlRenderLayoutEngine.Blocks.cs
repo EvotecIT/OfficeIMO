@@ -98,6 +98,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         var contentVisuals = new List<HtmlRenderVisual>();
         var childPaintLayers = new List<FlowPaintLayer>();
         var contentBreakOffsets = new List<double>();
+        var contentSafeBreakRanges = new List<HtmlRenderBreakRange>();
         var contentAvoidBreakRanges = new List<HtmlRenderAvoidBreakRange>();
         var forcedBreaks = new List<HtmlRenderForcedBreak>();
         var lineBreakOffsets = new List<double>();
@@ -261,6 +262,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 if (child.AvoidBreakInside)
                     contentAvoidBreakRanges.Add(new HtmlRenderAvoidBreakRange(childStart, contentHeight));
                 contentAvoidBreakRanges.AddRange(child.AvoidBreakRanges.Select(range => range.Translate(childStart)));
+                contentSafeBreakRanges.AddRange(child.SafeBreakRanges.Select(range => range.Translate(childStart)));
                 foreach (double offset in child.BreakOffsets) {
                     // A child's zero offset is its entry, not a break inside it. The
                     // preceding sibling already contributes that boundary; forwarding
@@ -325,6 +327,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
             contentVisuals.AddRange(inline.Visuals);
             contentHeight = inline.Height;
             contentBreakOffsets.AddRange(inline.BreakOffsets);
+            contentSafeBreakRanges.AddRange(inline.SafeBreakRanges);
             lineBreakOffsets.AddRange(inline.LineBreakOffsets);
             runningStringAssignments.AddRange(inline.RunningStringAssignments);
             forcedBreaks.AddRange(inline.ForcedBreaks);
@@ -439,13 +442,21 @@ internal sealed partial class HtmlRenderLayoutEngine {
         if (trailingBoxKeep.HasValue) contentAvoidBreakRanges.Add(trailingBoxKeep.Value);
         IEnumerable<double> breakOffsets = contentBreakOffsets.Select(offset => contentYForBreaks + offset)
             .Concat(new[] { outerHeight });
+        IEnumerable<HtmlRenderBreakRange> safeBreakRanges = contentSafeBreakRanges.Select(range => range.Translate(contentYForBreaks));
         bool hasPagedFloats = _options.Mode == HtmlRenderMode.Paged && contentFloats.HasFloats;
         if (pagedPaintExtent > outerHeight + 0.0001D || hasPagedFloats) {
             IReadOnlyList<(double Top, double Bottom)> atomicRanges = CollectAtomicParallelVisualRanges(visuals);
+            IReadOnlyList<InlineFloatPlacement> fragmentPlacements = hasPagedFloats
+                ? contentFloats.GetFragmentPlacements(contentYForBreaks) : Array.Empty<InlineFloatPlacement>();
             breakOffsets = hasPagedFloats
-                ? CollectSafeFloatBreaks(breakOffsets, contentFloats.GetFragmentPlacements(contentYForBreaks), atomicRanges,
+                ? CollectSafeFloatBreaks(breakOffsets, fragmentPlacements, atomicRanges,
                     pageBoundary?.PageHeight ?? _activePageGeometry.ContentHeight)
                 : breakOffsets.Where(offset => !CrossesAtomicParallelVisual(atomicRanges, offset));
+            safeBreakRanges = hasPagedFloats
+                ? CollectSafeFloatBreakRanges(safeBreakRanges, fragmentPlacements, atomicRanges,
+                    pageBoundary?.PageHeight ?? _activePageGeometry.ContentHeight)
+                : HtmlRenderBreakRange.Exclude(safeBreakRanges,
+                    atomicRanges.Select(range => new HtmlRenderBreakRange(range.Top, range.Bottom)));
         }
         if (children.Count == 0 && contentVisuals.Count == 0) {
             breakOffsets = breakOffsets.Concat(CollectPositionedContainerBreakOffsets(
@@ -501,7 +512,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 || continuationBreakProgress.Any(progress => !progress.IsBlockExit && progress.OwnerElement != null),
             forcedBreaks: forcedBreaks.Select(item => item.Translate(contentYForBreaks)),
             avoidBreakRanges: contentAvoidBreakRanges.Select(range => range.Translate(contentYForBreaks)),
-            pagedPaintExtent: pagedPaintExtent);
+            pagedPaintExtent: pagedPaintExtent,
+            safeBreakRanges: safeBreakRanges);
         if (ownsFloatContext) block = OrderBoxFlowPaint(block);
         block = ApplyElementSemantics(block, element, style);
         if (ownsFloatContext) CloseBoxFlowPaint(block);
@@ -668,7 +680,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
             layoutViewportWidth: ActiveSurfaceWidth,
             layoutViewportHeight: _activePageGeometry.Height,
             pagedPaintExtent: inline.PagedPaintExtent,
-            avoidBreakRanges: inline.AvoidBreakRanges);
+            avoidBreakRanges: inline.AvoidBreakRanges,
+            safeBreakRanges: inline.SafeBreakRanges);
         block.HasZeroHeightOrdinaryContent = flowHeight == 0D && inline.HasInFlowLineBoxes == true;
         blocks.Add(block);
         return block.Height;

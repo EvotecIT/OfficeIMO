@@ -66,6 +66,34 @@ internal sealed partial class HtmlRenderLayoutEngine {
         double fullPageHeight = 0D, HtmlRenderTrailingGroup? reservedFooter = null) {
         double limit = Math.Min(maximumEnd ?? block.Height, Math.Min(block.Height, start + available));
         IReadOnlyList<double> offsets = block.BreakOffsets;
+        if (block.SafeBreakRanges.Count > 0) {
+            var candidates = new SortedSet<double>(offsets.Where(offset => offset > start && offset <= limit));
+            foreach (HtmlRenderBreakRange range in block.SafeBreakRanges) {
+                Add(range.Start);
+                Add(Math.Min(limit, range.End));
+            }
+            // Keeps and paragraph constraints can reject the available limit.
+            // Their endpoints are the only additional positions where that
+            // decision changes within a content-free interval.
+            foreach (HtmlRenderAvoidBreakRange range in block.AvoidBreakRanges) Add(range.Start);
+            foreach (HtmlRenderLineBreakGroup group in block.LineBreakGroups) {
+                Add(group.Start);
+                Add(group.End);
+                foreach (double offset in group.Offsets) Add(offset);
+            }
+            offsets = candidates.ToArray();
+
+            void Add(double candidate) {
+                if (candidate <= start + 0.0001D || candidate > limit + 0.0001D) return;
+                int low = 0, high = block.SafeBreakRanges.Count;
+                while (low < high) {
+                    int middle = low + ((high - low) >> 1);
+                    if (block.SafeBreakRanges[middle].Start <= candidate) low = middle + 1;
+                    else high = middle;
+                }
+                if (low > 0 && candidate <= block.SafeBreakRanges[low - 1].End) candidates.Add(candidate);
+            }
+        }
         for (int index = UpperBound(offsets, limit + 0.0001D) - 1; index >= 0; index--) {
             double offset = offsets[index];
             if (offset <= start + 0.0001D) break;

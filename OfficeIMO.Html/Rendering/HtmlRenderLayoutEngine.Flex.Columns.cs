@@ -169,6 +169,10 @@ internal sealed partial class HtmlRenderLayoutEngine {
         IEnumerable<HtmlRenderTrailingGroup> trailingGroups = repeatLines.SelectMany(line => line.Items.SelectMany(item =>
             item.Block!.TrailingGroups.Select(group => group.Translate(
                 contentX + line.CrossOffset + item.CrossOffset, contentY + item.MainOffset))));
+        IReadOnlyList<HtmlRenderBreakRange> safeBreakRanges = lines.Count == 1 && style.FlexDirection == "column"
+            ? CollectSafeParallelBreakRanges(itemPaintLayers.Select(layer => (layer.Block, layer.Y)), outerHeight)
+            : Array.Empty<HtmlRenderBreakRange>();
+        safeBreakRanges = ConstrainParallelPaintBreakRanges(safeBreakRanges, visuals);
         block = new HtmlRenderFlowBlock(
             containingWidth,
             outerHeight,
@@ -203,7 +207,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
                     .Concat(itemPaintLayers.SelectMany(layer =>
                         layer.Block.RunningStringAssignments.Select(assignment => assignment.Translate(layer.Y))))
                     .Concat(positionedRunningStringAssignments),
-                outerHeight));
+                outerHeight),
+            safeBreakRanges: safeBreakRanges);
         return true;
     }
 

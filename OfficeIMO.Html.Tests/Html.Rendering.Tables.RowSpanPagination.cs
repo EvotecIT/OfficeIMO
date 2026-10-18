@@ -39,8 +39,21 @@ public sealed partial class HtmlRenderingTests {
         HtmlRenderDocument rendered = RenderRowSpanPagination("collapse", additionalCss: additionalCss, alignment: alignment);
 
         Assert.Equal(2, rendered.Pages.Count);
-        Assert.DoesNotContain(rendered.Pages[0].Visuals.OfType<HtmlRenderText>(), text => text.Text == "FIRST-2");
-        Assert.Contains(rendered.Pages[1].Visuals.OfType<HtmlRenderText>(), text => text.Text == "FIRST-2");
+        if (additionalCss.Length > 0) {
+            Assert.DoesNotContain(rendered.Pages[0].Visuals.OfType<HtmlRenderText>(), text => text.Text == "FIRST-2");
+            Assert.Contains(rendered.Pages[1].Visuals.OfType<HtmlRenderText>(), text => text.Text == "FIRST-2");
+        } else {
+            // Centered content can leave a safe cut before its line carrier;
+            // the neighboring cell does not have to move with that blank space.
+            int PageOf(string label) => Assert.Single(rendered.Pages,
+                page => page.Visuals.OfType<HtmlRenderText>().Any(text => text.Text == label)).PageNumber;
+            Assert.True(PageOf("FIRST-2") <= PageOf("SPAN-2"));
+            Assert.True(PageOf("SPAN-2") <= PageOf("SECOND-2"));
+            foreach (HtmlRenderPage page in rendered.Pages) {
+                Assert.All(page.Visuals.OfType<HtmlRenderText>(), text =>
+                    Assert.InRange(text.Y + text.Height, 20D, page.Height - 20D + 0.001D));
+            }
+        }
         AssertRowSpanPaginationContent(rendered, "SPAN-1", "SPAN-2");
     }
 
@@ -54,18 +67,23 @@ public sealed partial class HtmlRenderingTests {
             additionalCss: "td,th{border:0;padding:0}");
 
         Assert.Equal(2, rendered.Pages.Count);
-        Assert.Equal(!keep, rendered.Pages[0].Visuals.OfType<HtmlRenderText>().Any(text => text.Text == "FIRST-2"));
+        Assert.Contains(rendered.Pages[0].Visuals.OfType<HtmlRenderText>(), text => text.Text == "FIRST-2");
+        Assert.All(new[] { "LINE-A", "LINE-B", "LINE-C", "LINE-D" }, label =>
+            Assert.Contains(rendered.Pages[0].Visuals.OfType<HtmlRenderText>(), text => text.Text == label));
         AssertRowSpanPaginationContent(rendered, "SPAN-1", "LINE-A", "LINE-B", "LINE-C", "LINE-D");
     }
 
     [Fact]
-    public void HtmlTables_RowSpanHonorsParagraphWidowsAtAnAlignedRowCut() {
+    public void HtmlTables_RowSpanHonorsParagraphWidowsAtAnInteriorCut() {
         HtmlRenderDocument rendered = RenderRowSpanPagination("separate", secondSpan:
             "<div style='line-height:20px;orphans:2;widows:2'>LINE-A<br>LINE-B<br>LINE-C<br>LINE-D</div>",
-            additionalCss: "td,th{border:0;padding:0}");
+            additionalCss: "@page{size:400px 276px}td,th{border:0;padding:0}");
 
         Assert.Equal(2, rendered.Pages.Count);
-        Assert.DoesNotContain(rendered.Pages[0].Visuals.OfType<HtmlRenderText>(), text => text.Text == "FIRST-2");
+        Assert.All(new[] { "LINE-A", "LINE-B" }, label =>
+            Assert.Contains(rendered.Pages[0].Visuals.OfType<HtmlRenderText>(), text => text.Text == label));
+        Assert.All(new[] { "LINE-C", "LINE-D" }, label =>
+            Assert.Contains(rendered.Pages[1].Visuals.OfType<HtmlRenderText>(), text => text.Text == label));
         AssertRowSpanPaginationContent(rendered, "SPAN-1", "LINE-A", "LINE-B", "LINE-C", "LINE-D");
     }
 
@@ -78,13 +96,17 @@ public sealed partial class HtmlRenderingTests {
         string first = "<div style='line-height:20px;orphans:1;widows:1;"
             + (property == "break-after" ? "break-after:avoid" : string.Empty) + "'>LINE-A<br>LINE-B<br>LINE-C</div>";
         string last = "<div style='line-height:20px;orphans:1;widows:1;"
-            + (property == "break-before" ? "break-before:avoid" : string.Empty) + "'>LINE-D</div>";
+            + (property == "break-before" ? "break-before:avoid" : string.Empty) + "'>LINE-D<br>LINE-E</div>";
         HtmlRenderDocument rendered = RenderRowSpanPagination("separate", secondSpan:
             inlineLink ? "<a href='#after'>" + first + last + "</a>" : first + last,
             additionalCss: "td,th{border:0;padding:0;orphans:1;widows:1}");
 
-        Assert.DoesNotContain(rendered.Pages[0].Visuals.OfType<HtmlRenderText>(), text => text.Text == "FIRST-2");
-        AssertRowSpanPaginationContent(rendered, "SPAN-1", "LINE-A", "LINE-B", "LINE-C", "LINE-D");
+        // Keep-with-next includes the following block's first substantive line.
+        // It does not make that block's remaining lines an unbreakable keep.
+        Assert.All(new[] { "LINE-A", "LINE-B", "LINE-C", "LINE-D" }, label =>
+            Assert.Contains(rendered.Pages[0].Visuals.OfType<HtmlRenderText>(), text => text.Text == label));
+        Assert.Contains(rendered.Pages[1].Visuals.OfType<HtmlRenderText>(), text => text.Text == "LINE-E");
+        AssertRowSpanPaginationContent(rendered, "SPAN-1", "LINE-A", "LINE-B", "LINE-C", "LINE-D", "LINE-E");
     }
 
     [Theory]
@@ -96,7 +118,9 @@ public sealed partial class HtmlRenderingTests {
             "<a href='#after'><div style='" + style + "'>LINE-A<br>LINE-B<br>LINE-C<br>LINE-D</div></a>",
             additionalCss: "td,th{border:0;padding:0;orphans:1;widows:1}");
 
-        Assert.DoesNotContain(rendered.Pages[0].Visuals.OfType<HtmlRenderText>(), text => text.Text == "FIRST-2");
+        Assert.Contains(rendered.Pages[0].Visuals.OfType<HtmlRenderText>(), text => text.Text == "FIRST-2");
+        Assert.All(new[] { "LINE-A", "LINE-B", "LINE-C", "LINE-D" }, label =>
+            Assert.Contains(rendered.Pages[0].Visuals.OfType<HtmlRenderText>(), text => text.Text == label));
         AssertRowSpanPaginationContent(rendered, "SPAN-1", "LINE-A", "LINE-B", "LINE-C", "LINE-D");
     }
 

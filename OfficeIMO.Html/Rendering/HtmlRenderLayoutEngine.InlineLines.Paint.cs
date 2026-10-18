@@ -379,6 +379,11 @@ internal sealed partial class HtmlRenderLayoutEngine {
         IEnumerable<double> pageBreakOffsets = localFloatPageHeight > 0D && hasFloats
             ? CollectSafeFloatBreaks(breakOffsets, floatPlacements!, CollectAtomicParallelVisualRanges(painted), localFloatPageHeight)
             : breakOffsets;
+        IReadOnlyList<HtmlRenderBreakRange> safeBreakRanges = hasFloats
+            ? CollectSafeFloatBreakRanges(Array.Empty<HtmlRenderBreakRange>(), floatPlacements!,
+                CollectAtomicParallelVisualRanges(painted), localFloatPageHeight)
+            : Array.Empty<HtmlRenderBreakRange>();
+        safeBreakRanges = ConstrainParallelPaintBreakRanges(safeBreakRanges, painted);
         return new HtmlInlineLayout(
             painted,
             height,
@@ -396,7 +401,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
             continuationGroups: continuationGroups,
             trailingGroups: trailingGroups,
             pagedPaintExtent: hasFloats ? floatPlacements!.Max(placement => placement.Bottom) : height,
-            hasInFlowLineBoxes: lines.Any(line => line.HasFlowContent || line.HasForcedBreak));
+            hasInFlowLineBoxes: lines.Any(line => line.HasFlowContent || line.HasForcedBreak),
+            safeBreakRanges: safeBreakRanges);
     }
 
 }

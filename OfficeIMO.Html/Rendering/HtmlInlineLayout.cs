@@ -18,13 +18,15 @@ internal sealed class HtmlInlineLayout {
         IEnumerable<HtmlRenderTrailingGroup>? trailingGroups = null,
         double? pagedPaintExtent = null,
         bool? hasInFlowLineBoxes = null,
-        IEnumerable<HtmlRenderAvoidBreakRange>? avoidBreakRanges = null) {
+        IEnumerable<HtmlRenderAvoidBreakRange>? avoidBreakRanges = null,
+        IEnumerable<HtmlRenderBreakRange>? safeBreakRanges = null) {
         Visuals = new List<HtmlRenderVisual>(visuals);
         Height = height;
         NormalFlowHeight = normalFlowHeight ?? height;
         HasInFlowLineBoxes = hasInFlowLineBoxes;
         PagedPaintExtent = Math.Max(height, pagedPaintExtent ?? height);
         BreakOffsets = new List<double>(breakOffsets ?? Array.Empty<double>()).AsReadOnly();
+        SafeBreakRanges = HtmlRenderBreakRange.Normalize(safeBreakRanges ?? Array.Empty<HtmlRenderBreakRange>(), PagedPaintExtent);
         LineBreakOffsets = new List<double>(lineBreakOffsets ?? BreakOffsets).AsReadOnly();
         RunningStringAssignments = new List<HtmlCssRunningStringAssignment>(
             runningStringAssignments ?? Array.Empty<HtmlCssRunningStringAssignment>()).AsReadOnly();
@@ -49,6 +51,8 @@ internal sealed class HtmlInlineLayout {
     internal double PagedPaintExtent { get; }
     /// <summary>Page-break candidates; may exclude line ends inside a floated box.</summary>
     internal IReadOnlyList<double> BreakOffsets { get; }
+    /// <summary>Closed source-coordinate intervals that can supply page-break candidates.</summary>
+    internal IReadOnlyList<HtmlRenderBreakRange> SafeBreakRanges { get; }
     /// <summary>All line ends used to count widows and orphans, including lines beside floats.</summary>
     internal IReadOnlyList<double> LineBreakOffsets { get; }
     internal IReadOnlyList<HtmlCssRunningStringAssignment> RunningStringAssignments { get; }

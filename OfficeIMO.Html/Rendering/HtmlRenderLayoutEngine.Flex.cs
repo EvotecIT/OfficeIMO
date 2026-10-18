@@ -281,6 +281,15 @@ internal sealed partial class HtmlRenderLayoutEngine {
             && style.ExplicitHeight.HasValue && style.OverflowY == "visible"
             ? Math.Max(outerHeight, MaximumScrollBottom(visuals))
             : outerHeight;
+        IReadOnlyList<HtmlRenderBreakRange> safeBreakRanges = CollectSafeParallelBreakRanges(
+            itemPaintLayers.Select(layer => (layer.Block, layer.Y)), pagedPaintExtent);
+        // Only the selected item can lend repeated groups to the shared cursor.
+        // Preserve the discrete fallback for other repeated-table arrangements.
+        safeBreakRanges = HtmlRenderBreakRange.Exclude(safeBreakRanges, itemPaintLayers
+            .Where(layer => (layer.Block.ContinuationGroups.Count > 0 || layer.Block.TrailingGroups.Count > 0)
+                && !repeatingItems.Any(pair => ReferenceEquals(pair.Item.Block, layer.Block)))
+            .Select(layer => new HtmlRenderBreakRange(layer.Y, layer.Y + layer.Block.PagedPaintExtent)));
+        safeBreakRanges = ConstrainParallelPaintBreakRanges(safeBreakRanges, visuals);
 
         block = new HtmlRenderFlowBlock(
             containingWidth,
@@ -309,7 +318,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
             inlineBreakProgress: continuationBreakProgress,
             supportsInlineContinuationReflow: wrapLineProgress.Count > 0,
             avoidBreakRanges: lineKeepRanges.Concat(itemKeepRanges),
-            pagedPaintExtent: pagedPaintExtent);
+            pagedPaintExtent: pagedPaintExtent,
+            safeBreakRanges: safeBreakRanges);
         if (_options.Mode == HtmlRenderMode.Paged) {
             _pagedRowFlexBlocks[element] = block;
             if (parallelTables) _parallelTableRegions[element] = block;

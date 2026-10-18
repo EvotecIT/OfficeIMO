@@ -110,7 +110,9 @@ internal sealed partial class HtmlRenderLayoutEngine {
             avoidBreakRanges: ResolveColumnReservationKeepRanges(element, columnPageBreaks, contentY, contentHeight),
             runningStringAssignments: EnumerateMultiColumnRunningStringAssignments(plan, contentY)
                 .Concat(positionedRunningStringAssignments)
-                .OrderBy(assignment => assignment.OrderOffset));
+                .OrderBy(assignment => assignment.OrderOffset),
+            safeBreakRanges: ResolveMultiColumnSafeBreakRanges(plan)
+                .Select(range => range.Translate(contentY)));
         return true;
     }
 
@@ -261,7 +263,14 @@ internal sealed partial class HtmlRenderLayoutEngine {
 
     private static double FindNextColumnBreak(HtmlRenderFlowBlock block, double start) {
         double next = block.BreakOffsets.FirstOrDefault(offset => offset > start + 0.0001D);
-        return next > start + 0.0001D ? next : block.Height;
+        if (next <= start + 0.0001D) next = block.Height;
+        foreach (HtmlRenderBreakRange range in block.SafeBreakRanges) {
+            if (range.End <= start + 0.0001D) continue;
+            double candidate = range.Start > start + 0.0001D ? range.Start : range.End;
+            next = Math.Min(next, candidate);
+            break;
+        }
+        return next;
     }
 
     private static IReadOnlyList<double> ResolveMultiColumnBreakOffsets(MultiColumnPlan plan, double contentY, double outerHeight) {

@@ -125,7 +125,10 @@ internal sealed partial class HtmlRenderLayoutEngine {
             double[] breaks = note.Entry.Block.BreakOffsets.Where(cut => cut > note.Start && cut <= note.End)
                 .Select(cut => gap + cut - note.Start).Concat(new[] { blockHeight }).Distinct().OrderBy(cut => cut).ToArray();
             var block = new HtmlRenderFlowBlock(width, blockHeight, visuals, HtmlPageBreakTarget.None,
-                HtmlPageBreakTarget.None, false, HtmlRenderStyleResolver.DescribeSource(note.Entry.Element) + ":column-note", breaks);
+                HtmlPageBreakTarget.None, false, HtmlRenderStyleResolver.DescribeSource(note.Entry.Element) + ":column-note", breaks,
+                safeBreakRanges: ProjectColumnTerminalSafeBreakRanges(
+                    SliceColumnSafeBreakRanges(note.Entry.Block.SafeBreakRanges, note.Start, note.End),
+                    note.End - note.Start, gap, blockHeight));
             fragments.Add(new MultiColumnFragment(block, 0D, blockHeight, note.Column, cursor));
             cursors[note.Column] += blockHeight;
         }

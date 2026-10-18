@@ -210,7 +210,13 @@ internal sealed partial class HtmlRenderLayoutEngine {
         var navigationDestinations = new List<HtmlRenderVisual>();
         bool collectingLeadingHeaders = true;
         IReadOnlyList<bool> canBreakAfterRows = ResolveRowBreakAvailability(rowLayouts, verticalSpacing,
-            out IReadOnlyList<bool> hasSpanningCellsAfterRows);
+            tableY + style.BorderTopWidth + style.PaddingTop + verticalSpacing,
+            out IReadOnlyList<bool> hasSpanningCellsAfterRows,
+            out IReadOnlyList<HtmlRenderBreakRange> safeBreakRanges);
+        foreach (HtmlRenderBreakRange range in safeBreakRanges) {
+            breakOffsets.Add(range.Start);
+            breakOffsets.Add(range.End);
+        }
         if (caption != null && caption.Side == "top") AppendTableCaption(visuals, caption, style.MarginLeft, style.MarginTop);
         bool paintSeparateBorders = style.BorderCollapse != "collapse";
         int tablePaintStart = visuals.Count;
@@ -272,8 +278,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 if (!cell.Anonymous) AddElementNamedDestination(navigationDestinations, cell.Element, cellX, rowY, navigationDestinations.Count);
                 double textX = cellX + cell.Style.BorderLeftWidth + cell.Style.PaddingLeft;
                 double textY = rowY + cell.ContentOffsetY;
-                if (cell.RowSpan > 1 && !row.IsHeader && !row.IsFooter)
-                    AppendSpanningCellLineBreakGroups(lineBreakGroups, cell, textY);
+                if (!row.IsHeader && !row.IsFooter)
+                    AppendTableCellLineBreakGroups(lineBreakGroups, cell, textY);
                 foreach (HtmlRenderVisual visual in cell.Inline.Visuals) {
                     cellVisuals.Add(visual.Translate(textX, textY, cellVisuals.Count));
                 }
@@ -312,18 +318,6 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 visuals.Count,
                 HtmlRenderStyleResolver.DescribeSource(row.Element),
                 structureElementKey: row.StructureKey ?? GetTableStructureElementKey(row.Element)));
-
-            bool rowIndependent = !row.IsHeader
-                && !row.IsFooter
-                && !hasSpanningCellsAfterRows[rowIndex]
-                && (rowIndex == 0 || !hasSpanningCellsAfterRows[rowIndex - 1])
-                && canBreakAfterRows[rowIndex]
-                && (rowIndex == 0 || canBreakAfterRows[rowIndex - 1]);
-            if (rowIndependent
-                && !row.Style.AvoidBreakInside
-                && row.GroupStyle?.AvoidBreakInside != true) {
-                AddTableRowInternalBreakOffsets(breakOffsets, row, rowY);
-            }
 
             if (collectingLeadingHeaders && row.IsHeader) {
                 for (int visualIndex = rowVisualStart; visualIndex < visuals.Count; visualIndex++) {
@@ -493,7 +487,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
             runningStringAssignments: runningStringAssignments,
             inlineBreakProgress: continuationBreakProgress,
             supportsInlineContinuationReflow: continuationBreakProgress.Count > 0,
-            forcedBreaks: forcedBreaks);
+            forcedBreaks: forcedBreaks,
+            safeBreakRanges: safeBreakRanges);
     }
 
     /// <summary>Applies table border fallback and removes provisional auto-margin placement before measuring columns.</summary>

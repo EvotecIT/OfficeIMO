@@ -21,6 +21,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
 
         var contentVisuals = new List<HtmlRenderVisual>();
         var contentBreakOffsets = new SortedSet<double>();
+        var contentSafeBreakRanges = new List<HtmlRenderBreakRange>();
         var runningStringAssignments = new List<HtmlCssRunningStringAssignment>();
         double contentHeight = 0D;
         for (int index = 0; index < partitions.Count; index++) {
@@ -43,6 +44,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 contentHeight,
                 contentVisuals,
                 contentBreakOffsets,
+                contentSafeBreakRanges,
                 runningStringAssignments,
                 out double partitionHeight);
             contentHeight += partitionHeight;
@@ -56,6 +58,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
             foreach (double offset in spanner.BreakOffsets) {
                 contentBreakOffsets.Add(contentHeight + offset);
             }
+            contentSafeBreakRanges.AddRange(HtmlRenderBreakRange.Normalize(spanner.SafeBreakRanges, spanner.Height)
+                .Select(range => range.Translate(contentHeight)));
             foreach (HtmlCssRunningStringAssignment assignment in spanner.RunningStringAssignments) {
                 runningStringAssignments.Add(assignment.Translate(contentHeight));
             }
@@ -109,7 +113,9 @@ internal sealed partial class HtmlRenderLayoutEngine {
             runningStringAssignments: runningStringAssignments
                 .Select(assignment => assignment.Translate(contentY))
                 .Concat(positionedRunningStringAssignments)
-                .OrderBy(assignment => assignment.OrderOffset));
+                .OrderBy(assignment => assignment.OrderOffset),
+            safeBreakRanges: ProjectColumnTerminalSafeBreakRanges(
+                contentSafeBreakRanges, contentHeight, contentY, outerHeight));
         return true;
     }
 
@@ -155,6 +161,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         double offsetY,
         ICollection<HtmlRenderVisual> visuals,
         ISet<double> breakOffsets,
+        ICollection<HtmlRenderBreakRange> safeBreakRanges,
         ICollection<HtmlCssRunningStringAssignment> runningStringAssignments,
         out double partitionHeight) {
         if (children.Count == 0) {
@@ -178,6 +185,9 @@ internal sealed partial class HtmlRenderLayoutEngine {
 
         foreach (double offset in ResolveMultiColumnBreakOffsets(plan, 0D, partitionHeight)) {
             breakOffsets.Add(offsetY + offset);
+        }
+        foreach (HtmlRenderBreakRange range in ResolveMultiColumnSafeBreakRanges(plan)) {
+            safeBreakRanges.Add(range.Translate(offsetY));
         }
         foreach (HtmlCssRunningStringAssignment assignment in EnumerateMultiColumnRunningStringAssignments(plan, offsetY)) {
             runningStringAssignments.Add(assignment);

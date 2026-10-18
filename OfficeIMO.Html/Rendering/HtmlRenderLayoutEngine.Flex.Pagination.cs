@@ -323,10 +323,10 @@ internal sealed partial class HtmlRenderLayoutEngine {
         return changed;
     }
 
-    private static bool HasUnalignedSharedFlexRowBreak(FlexLine line, double cursor, double available, double pageHeight) {
+    private bool HasUnalignedSharedFlexRowBreak(FlexLine line, double cursor, double available, double pageHeight) {
         var atomicVisualBottoms = new Dictionary<HtmlRenderFlowBlock, double>();
         var atomicVisualRanges = new Dictionary<HtmlRenderFlowBlock, IReadOnlyList<(double Top, double Bottom)>>();
-        return line.Items.SelectMany(item => item.Block!.BreakOffsets)
+        bool discrete = line.Items.SelectMany(item => item.Block!.BreakOffsets)
             .Where(offset => offset > cursor + 0.0001D && offset <= cursor + available + 0.0001D)
             .Distinct()
             .Any(offset => line.Items.All(item => {
@@ -337,6 +337,20 @@ internal sealed partial class HtmlRenderLayoutEngine {
                         && offset > 0.0001D && offset < block.Height - 0.0001D)
                     && !BreaksAvoidedRangeThatFitsPage(block, cursor, offset, pageHeight, cursor + available);
             }));
+        if (discrete) return true;
+        double extent = line.Items.Max(item => item.Block!.PagedPaintExtent);
+        IReadOnlyList<HtmlRenderBreakRange> ranges = CollectSafeParallelBreakRanges(
+            line.Items.Select(item => (item.Block!, 0D)), extent, fullPageHeight: pageHeight);
+        if (ranges.Count == 0) return false;
+        var shared = new HtmlRenderFlowBlock(0D, extent, Array.Empty<HtmlRenderVisual>(),
+            HtmlPageBreakTarget.None, HtmlPageBreakTarget.None, false, "parallel-flex-breaks",
+            lineBreakGroups: line.Items.SelectMany(item => item.Block!.LineBreakGroups.Select(group => group.WithInteriorBreaks())),
+            avoidBreakRanges: line.Items.SelectMany(item => item.Block!.AvoidBreakRanges.Concat(
+                item.Block.AvoidBreakInside
+                    ? new[] { new HtmlRenderAvoidBreakRange(0D, item.Block.Height) }
+                    : Array.Empty<HtmlRenderAvoidBreakRange>())),
+            safeBreakRanges: ranges);
+        return FindFragmentEnd(shared, cursor, available, fullPageHeight: pageHeight) > cursor + 0.0001D;
     }
 
     private HtmlRenderFlowBlock InsertFlexItemBreakGap(HtmlRenderFlowBlock block, double cut, double gap,
@@ -392,6 +406,22 @@ internal sealed partial class HtmlRenderLayoutEngine {
             avoidBreakRanges: block.AvoidBreakRanges.Select(range => new HtmlRenderAvoidBreakRange(
                 range.Start >= cut - 0.0001D ? range.Start + gap : range.Start,
                 range.End > cut + 0.0001D ? range.End + gap : range.End,
-                range.Soft)));
+                range.Soft)),
+            safeBreakRanges: SplitFlexBreakRangesAtGap(block.SafeBreakRanges, cut, gap, height));
+    }
+
+    /// <summary>Maps each side of the retained source independently; inserted spacing is not a source interval.</summary>
+    private IReadOnlyList<HtmlRenderBreakRange> SplitFlexBreakRangesAtGap(
+        IReadOnlyList<HtmlRenderBreakRange> ranges, double cut, double gap, double extent) {
+        var result = new List<HtmlRenderBreakRange>();
+        foreach (HtmlRenderBreakRange range in ranges) {
+            CheckCancellation();
+            ChargeLayoutOperation("flex source break interval gap mapping");
+            if (range.Start <= cut && range.End >= 0D)
+                result.Add(new HtmlRenderBreakRange(range.Start, Math.Min(cut, range.End)));
+            if (range.End >= cut)
+                result.Add(new HtmlRenderBreakRange(Math.Max(cut, range.Start) + gap, range.End + gap));
+        }
+        return HtmlRenderBreakRange.Normalize(result, extent);
     }
 }

@@ -37,7 +37,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 trailingGroups: inline.TrailingGroups, forcedBreaks: inline.ForcedBreaks,
                 pageName: paragraphStyle.PageName, runningStringAssignments: inline.RunningStringAssignments,
                 layoutViewportWidth: ActiveSurfaceWidth, layoutViewportHeight: _activePageGeometry.Height,
-                pagedPaintExtent: inline.PagedPaintExtent, avoidBreakRanges: inline.AvoidBreakRanges);
+                pagedPaintExtent: inline.PagedPaintExtent, avoidBreakRanges: inline.AvoidBreakRanges,
+                safeBreakRanges: inline.SafeBreakRanges);
             inlineBlock.HasZeroHeightOrdinaryContent = inline.Height == 0D && inline.HasInFlowLineBoxes == true;
             blocks.Add(inlineBlock);
         }
@@ -71,6 +72,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         var paintChunks = ordinaryChunks ? new List<InlinePaintCapture>() : null;
         var combined = new InlinePaintCapture(this);
         var breaks = new List<double>();
+        var safeBreakRanges = new List<HtmlRenderBreakRange>();
         var assignments = new List<HtmlCssRunningStringAssignment>();
         var forced = new List<HtmlRenderForcedBreak>();
         var lines = new List<HtmlRenderLineBreakGroup>();
@@ -108,6 +110,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                     ChargeLayoutOperation("interrupted inline keep ranges");
                     keeps.Add(range.Translate(offsetY));
                 }
+                safeBreakRanges.AddRange(block.SafeBreakRanges.Select(range => range.Translate(offsetY)));
             }
             if (vertical) {
                 VerticalBlockBounds bounds = ResolveVerticalBlockBounds(block, paragraphStyle.LineHeight);
@@ -148,12 +151,14 @@ internal sealed partial class HtmlRenderLayoutEngine {
             collapsesThrough: blocks.Count > 0 && blocks.All(block => block.CollapsesThrough),
             pageName: blocks.FirstOrDefault()?.PageName, runningStringAssignments: assignments, forcedBreaks: forced,
             layoutViewportWidth: ActiveSurfaceWidth, layoutViewportHeight: _activePageGeometry.Height,
-            pagedPaintExtent: paintExtent, avoidBreakRanges: keeps);
+            pagedPaintExtent: paintExtent, avoidBreakRanges: keeps,
+            safeBreakRanges: safeBreakRanges);
         aggregate.HasZeroHeightOrdinaryContent = height == 0D && hasInlineLineBoxes
             && blocks.All(block => block.Height == 0D);
         return new HtmlInlineLayout(painted, height, breaks, assignments, interruptedFlow: aggregate,
             lineBreakGroups: aggregate.LineBreakGroups, avoidBreakRanges: aggregate.AvoidBreakRanges,
-            pagedPaintExtent: paintExtent, hasInFlowLineBoxes: hasInlineLineBoxes ? true : (bool?)null);
+            pagedPaintExtent: paintExtent, hasInFlowLineBoxes: hasInlineLineBoxes ? true : (bool?)null,
+            safeBreakRanges: aggregate.SafeBreakRanges);
     }
 
     private void CollapseInterruptedBlockMargins(List<HtmlRenderFlowBlock> blocks) {

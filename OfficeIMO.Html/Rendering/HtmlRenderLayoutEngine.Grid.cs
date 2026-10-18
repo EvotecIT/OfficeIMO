@@ -226,6 +226,14 @@ internal sealed partial class HtmlRenderLayoutEngine {
             if (itemBlock.AvoidBreakInside) ranges = ranges.Append(new HtmlRenderAvoidBreakRange(0D, itemBlock.Height));
             return ranges.Select(range => range.Translate(contentY + rows.Positions[item.Row] + item.OffsetY));
         });
+        IReadOnlyList<HtmlRenderBreakRange> safeBreakRanges = CollectSafeParallelBreakRanges(
+            itemPaintLayers.Select(layer => (layer.Block, layer.Y)), outerHeight);
+        // Unprojected grid items do not lend repeat reservations to this shared
+        // cursor. Keep those table arrangements on their discrete fallback.
+        safeBreakRanges = HtmlRenderBreakRange.Exclude(safeBreakRanges, itemPaintLayers
+            .Where(layer => layer.Block.ContinuationGroups.Count > 0 || layer.Block.TrailingGroups.Count > 0)
+            .Select(layer => new HtmlRenderBreakRange(layer.Y, layer.Y + layer.Block.PagedPaintExtent)));
+        safeBreakRanges = ConstrainParallelPaintBreakRanges(safeBreakRanges, visuals);
         block = new HtmlRenderFlowBlock(
             containingWidth,
             outerHeight,
@@ -249,7 +257,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
                     .Concat(itemPaintLayers.SelectMany(layer =>
                         layer.Block.RunningStringAssignments.Select(assignment => assignment.Translate(layer.Y))))
                     .Concat(positionedRunningStringAssignments),
-                outerHeight));
+                outerHeight),
+            safeBreakRanges: safeBreakRanges);
         if (parallelTables) _parallelTableRegions[element] = block;
         return true;
     }

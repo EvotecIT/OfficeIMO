@@ -18,6 +18,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         var visuals = new List<HtmlRenderVisual>();
         var paintLayers = new List<FlowPaintLayer>();
         var breakOffsets = new SortedSet<double>();
+        var safeBreakRanges = new List<HtmlRenderBreakRange>();
         var avoidBreakRanges = new List<HtmlRenderAvoidBreakRange>();
         var lineBreakGroups = new List<HtmlRenderLineBreakGroup>();
         double height = 0D;
@@ -32,6 +33,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 double translated = blockStart + offset;
                 if (translated > 0D) breakOffsets.Add(translated);
             }
+            safeBreakRanges.AddRange(block.SafeBreakRanges.Select(range => range.Translate(blockStart)));
             height += block.Height;
             if (block.AvoidBreakInside) avoidBreakRanges.Add(new HtmlRenderAvoidBreakRange(blockStart, height));
             foreach (HtmlRenderAvoidBreakRange range in block.AvoidBreakRanges) {
@@ -52,6 +54,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
             paintLayers.SelectMany(layer =>
                 layer.Block.RunningStringAssignments.Select(assignment => assignment.Translate(layer.Y))),
             lineBreakGroups: lineBreakGroups,
-            avoidBreakRanges: avoidBreakRanges);
+            avoidBreakRanges: avoidBreakRanges,
+            safeBreakRanges: safeBreakRanges);
     }
 }

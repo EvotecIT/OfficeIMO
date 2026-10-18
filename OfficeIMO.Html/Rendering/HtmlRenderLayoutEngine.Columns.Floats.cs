@@ -28,6 +28,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         var visuals = new List<HtmlRenderVisual>();
         var layers = new List<FlowPaintLayer>();
         var offsets = new SortedSet<double>();
+        var safeBreakRanges = new List<HtmlRenderBreakRange>();
         var lineGroups = new List<HtmlRenderLineBreakGroup>();
         var keeps = new List<HtmlRenderAvoidBreakRange>();
         var runningStrings = new List<HtmlCssRunningStringAssignment>();
@@ -48,6 +49,10 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 if (!isAnonymousFloatTail) offsets.Add(height + offset);
             }
             lineGroups.AddRange(child.LineBreakGroups.Select(group => group.Translate(height)));
+            // Painted float tails can overlap the next normal-flow child. They
+            // cannot carry that child's legal cuts into its content.
+            safeBreakRanges.AddRange(HtmlRenderBreakRange.Normalize(child.SafeBreakRanges, child.Height)
+                .Select(range => range.Translate(height)));
             AppendKeepWithNextRange(children, index, height, keeps);
             if (child.AvoidBreakInside) keeps.Add(new HtmlRenderAvoidBreakRange(height, height + child.Height));
             keeps.AddRange(child.AvoidBreakRanges.Select(range => range.Translate(height)));
@@ -74,7 +79,9 @@ internal sealed partial class HtmlRenderLayoutEngine {
             false, HtmlRenderStyleResolver.DescribeSource(element), offsets,
             lineBreakGroups: lineGroups, continuationGroups: continuationGroups,
             trailingGroups: trailingGroups, runningStringAssignments: runningStrings,
-            inlineBreakProgress: progress, forcedBreaks: forcedBreaks, avoidBreakRanges: keeps) };
+            inlineBreakProgress: progress, forcedBreaks: forcedBreaks, avoidBreakRanges: keeps,
+            safeBreakRanges: HtmlRenderBreakRange.Exclude(safeBreakRanges,
+                exclusions.Select(item => new HtmlRenderBreakRange(item.Y, item.Bottom)))) };
     }
 
     private void RemoveColumnBreaksInsideFloats(SortedSet<double> offsets, IReadOnlyList<HtmlFloatExclusion> exclusions) {
