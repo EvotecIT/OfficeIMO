@@ -9,6 +9,28 @@ namespace OfficeIMO.Shared.Tests {
     public sealed class OfficeFileCommitPermissionsTests {
 #if NET6_0_OR_GREATER
         [Theory]
+        [InlineData(false)]
+        [InlineData(true)]
+        public void ReadableNonWritableStaleClaimCanBeRecovered(bool replace) {
+            if (OperatingSystem.IsWindows()) return;
+            string root = Path.Combine(Path.GetTempPath(), "officeimo-stale-claim-" + Guid.NewGuid().ToString("N"));
+            Directory.CreateDirectory(root);
+            string target = Path.Combine(root, "artifact.bin");
+            string claim = OfficeFileCommit.CreateClaimPath(target);
+            byte[] payload = { 1, 2, 3 };
+            try {
+                File.WriteAllText(claim, "orphaned");
+                File.SetUnixFileMode(claim, UnixFileMode.UserRead | UnixFileMode.GroupRead | UnixFileMode.OtherRead);
+                OfficeFileCommit.WriteAllBytes(target, payload, replace
+                    ? OfficeFileCommit.ConflictPolicy.Replace : OfficeFileCommit.ConflictPolicy.FailIfExists);
+                Assert.Equal(payload, File.ReadAllBytes(target));
+                Assert.Equal(new[] { target }, Directory.GetFileSystemEntries(root));
+            } finally {
+                Directory.Delete(root, recursive: true);
+            }
+        }
+
+        [Theory]
         [InlineData(256U)] // 0400
         [InlineData(384U)] // 0600
         public void NativeUnixCreationUsesTheRequestedModeBeforeAnyPermissionRepair(uint mode) {
