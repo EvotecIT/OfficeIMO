@@ -114,7 +114,7 @@ try {
         # The exact app is already installed and holds the public PDF. Installing
         # it again through Xcode replaces its container and invalidates that URL.
         $test.UseUITargetAppProvidedByTests = $true
-        $null = $test.Remove('UITargetAppPath')
+        # Retain target metadata for Xcode's application and locale configuration.
         $test.DependentProductPaths = @($test.DependentProductPaths | Where-Object {
             [IO.Path]::GetFileName($_) -ne [IO.Path]::GetFileName($appPath)
         })

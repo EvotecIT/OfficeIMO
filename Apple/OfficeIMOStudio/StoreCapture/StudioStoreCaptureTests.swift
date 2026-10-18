@@ -20,7 +20,8 @@ final class StudioStoreCaptureTests: XCTestCase {
         app.launchEnvironment["TMPDIR"] = try XCTUnwrap(environment["STUDIO_CAPTURE_NATIVE_TMPDIR"])
         #else
         XCUIDevice.shared.orientation = .portrait
-        let app = XCUIApplication(bundleIdentifier: "com.evotec.officeimo.studio")
+        // Use the configured target so URL launches inherit Xcode's test locale.
+        let app = XCUIApplication()
         #endif
         app.launchArguments = ["-AppleLanguages", "(en)", "-AppleLocale", "en_US"]
         #if os(macOS)
