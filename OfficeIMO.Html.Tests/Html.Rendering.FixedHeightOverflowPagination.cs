@@ -132,6 +132,26 @@ public sealed partial class HtmlRenderingTests {
     }
 
     [Theory]
+    [InlineData("min-height:0")]
+    [InlineData("max-height:9999px")]
+    public void HtmlFixedHeightOverflow_NonbindingWrapperConstraintRetainsIndependentOverflowFlow(string constraint) {
+        string html = FixedHeightOverflowSource("<section style='" + constraint + "'>"
+            + "<div style='height:60px'>KEEP-LEAD</div><div style='height:20px'><p>KEEP-INNER</p>"
+            + "<p style='break-inside:avoid;orphans:1;widows:1'>KEEP-ONE<br>KEEP-TWO<br>KEEP-THREE</p></div>"
+            + "<p style='padding-left:300px'>KEEP-AFTER</p></section>");
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, FixedHeightOverflowOptions());
+
+        Assert.Equal(2, rendered.Pages.Count);
+        AssertDescendantSpannerSourceOnce(rendered,
+            "KEEP-LEAD", "KEEP-INNER", "KEEP-ONE", "KEEP-TWO", "KEEP-THREE", "KEEP-AFTER");
+        AssertFixedHeightOverflowPlacement(rendered, "KEEP-INNER", 1, 60D);
+        AssertFixedHeightOverflowPlacement(rendered, "KEEP-AFTER", 1, 80D);
+        AssertFixedHeightOverflowPlacement(rendered, "KEEP-ONE", 2, 0D);
+        AssertFixedHeightOverflowPlacement(rendered, "KEEP-TWO", 2, 20D);
+        AssertFixedHeightOverflowPlacement(rendered, "KEEP-THREE", 2, 40D);
+    }
+
+    [Theory]
     [InlineData(80, 40D)]
     [InlineData(100, 60D)]
     public void HtmlFixedHeightOverflow_InteriorKeepGapCountsTowardTheAuthoredHeight(int height, double followingTop) {
@@ -151,6 +171,69 @@ public sealed partial class HtmlRenderingTests {
         AssertFixedHeightOverflowPlacement(rendered, "KEEP-AFTER", 2, followingTop);
         Assert.DoesNotContain(rendered.Diagnostics, diagnostic =>
             diagnostic.Code == HtmlRenderDiagnosticCodes.ForcedFragment);
+    }
+
+    [Theory]
+    [InlineData(40, 20, 20)]
+    [InlineData(80, -20, -20)]
+    public void HtmlFixedHeightOverflow_CollapsedMarginsSetTheKeepProjectionOrigin(
+        int leadHeight, int precedingMargin, int followingMargin) {
+        string html = FixedHeightOverflowSource("<div style='height:" + leadHeight + "px;margin-bottom:"
+            + precedingMargin + "px'>KEEP-LEAD</div><div style='height:20px;margin-top:"
+            + followingMargin + "px'><p>KEEP-INNER</p>"
+            + "<p style='break-inside:avoid;orphans:1;widows:1'>KEEP-ONE<br>KEEP-TWO<br>KEEP-THREE</p></div>"
+            + "<p style='padding-left:300px'>KEEP-AFTER</p>");
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, FixedHeightOverflowOptions());
+
+        Assert.Equal(2, rendered.Pages.Count);
+        AssertDescendantSpannerSourceOnce(rendered,
+            "KEEP-LEAD", "KEEP-INNER", "KEEP-ONE", "KEEP-TWO", "KEEP-THREE", "KEEP-AFTER");
+        AssertFixedHeightOverflowPlacement(rendered, "KEEP-INNER", 1, 60D);
+        AssertFixedHeightOverflowPlacement(rendered, "KEEP-AFTER", 1, 80D);
+        AssertFixedHeightOverflowPlacement(rendered, "KEEP-ONE", 2, 0D);
+        AssertFixedHeightOverflowPlacement(rendered, "KEEP-TWO", 2, 20D);
+        AssertFixedHeightOverflowPlacement(rendered, "KEEP-THREE", 2, 40D);
+    }
+
+    [Fact]
+    public void HtmlFixedHeightOverflow_ParagraphBackgroundFillsTheGapBeforeItsNextFragment() {
+        string html = FixedHeightOverflowSource("<div style='height:70px'>PAINT-LEAD</div>"
+            + "<div style='height:20px'><p style='background:#00aa00'>PAINT-1<br>PAINT-2<br>PAINT-3</p></div>"
+            + "<p style='padding-left:300px'>PAINT-AFTER</p>");
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, FixedHeightOverflowOptions());
+
+        Assert.Equal(2, rendered.Pages.Count);
+        AssertDescendantSpannerSourceOnce(rendered,
+            "PAINT-LEAD", "PAINT-1", "PAINT-2", "PAINT-3", "PAINT-AFTER");
+        AssertFixedHeightOverflowPlacement(rendered, "PAINT-1", 1, 70D);
+        AssertFixedHeightOverflowPlacement(rendered, "PAINT-2", 2, 0D);
+        AssertFixedHeightOverflowPlacement(rendered, "PAINT-3", 2, 20D);
+        AssertFixedHeightOverflowPlacement(rendered, "PAINT-AFTER", 2, 0D);
+        OfficeRasterImage first = OfficeDrawingRasterRenderer.Render(rendered.Pages[0].CreateDrawing());
+        Assert.Equal(OfficeColor.FromRgb(0, 170, 0), first.GetPixel(500, 95));
+    }
+
+    [Fact]
+    public void HtmlFixedHeightOverflow_ParallelHiddenKeepRetainsItsOwnVisibleFragment() {
+        string html = FixedHeightOverflowSource("<div style='height:60px'>LEAD</div>"
+            + "<div style='height:20px'><p>X1</p><p>X2</p><p>X3</p></div>"
+            + "<div style='height:20px;overflow:hidden'><p style='background:#00aa00;break-inside:avoid;'>"
+            + "CLIP1<br>CLIP2<br>CLIP3</p></div><p>AFTER</p>");
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, FixedHeightOverflowOptions());
+
+        Assert.Equal(2, rendered.Pages.Count);
+        AssertFixedHeightOverflowPlacement(rendered, "X1", 1, 60D);
+        AssertFixedHeightOverflowPlacement(rendered, "X2", 1, 80D);
+        AssertFixedHeightOverflowPlacement(rendered, "X3", 2, 0D);
+        AssertFixedHeightOverflowPlacement(rendered, "CLIP1", 1, 80D);
+        AssertFixedHeightOverflowPlacement(rendered, "AFTER", 2, 0D);
+        string[] logical = rendered.Text.Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries);
+        foreach (string label in new[] { "LEAD", "X1", "X2", "X3", "CLIP1", "AFTER" })
+            Assert.Single(logical, word => word == label);
+        OfficeRasterImage first = OfficeDrawingRasterRenderer.Render(rendered.Pages[0].CreateDrawing());
+        OfficeRasterImage second = OfficeDrawingRasterRenderer.Render(rendered.Pages[1].CreateDrawing());
+        Assert.Equal(OfficeColor.FromRgb(0, 170, 0), first.GetPixel(500, 90));
+        Assert.Equal(OfficeColor.White, second.GetPixel(500, 10));
     }
 
     private static string FixedHeightOverflowSource(string content) => "<!doctype html><style>"
