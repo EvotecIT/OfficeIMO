@@ -5,11 +5,13 @@ namespace OfficeIMO.Html;
 internal sealed partial class HtmlRenderLayoutEngine {
     private readonly Dictionary<IElement, HtmlRenderFlowBlock> _pagedColumnRegions = new();
     private readonly Dictionary<IElement, ColumnPaginationContext> _pagedColumnContexts = new();
+    private readonly HashSet<IElement> _retainedSourceColumnRegions = new();
     private ColumnPaginationAttempt? _columnPaginationAttempt;
 
     private void ResetColumnPagination() {
         _pagedColumnRegions.Clear();
         _pagedColumnContexts.Clear();
+        _retainedSourceColumnRegions.Clear();
         _columnPaginationAttempt = null;
     }
 
@@ -30,7 +32,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
         foreach (KeyValuePair<IElement, HtmlRenderFlowBlock> entry in _pagedColumnRegions) {
             CheckCancellation();
             ChargeLayoutOperation("column page-boundary discovery");
-            if (_pagedColumnContexts.ContainsKey(entry.Key) || !ContainsElementOrSelf(owner, entry.Key)
+            if (_pagedColumnContexts.ContainsKey(entry.Key) || _retainedSourceColumnRegions.Contains(entry.Key)
+                || !ContainsElementOrSelf(owner, entry.Key)
                 || !_layoutStyles.TryGetValue(entry.Key, out HtmlRenderBoxStyle? entryStyle)) continue;
             double start;
             double contentStart;
@@ -77,8 +80,12 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 ? LayoutRootElement(root, geometry.ContentWidth, rootStyle, pageBoundary: boundary)
                 : LayoutElement(owner, geometry.ContentWidth, style, rootStyle, 1, pageBoundary: boundary)
                     .AdjustLeadingFlowSpace(leading);
-            if (attempt.Context == null) return false;
-            _pagedColumnContexts.Add(target, attempt.Context);
+            // A short fixed box or an unsupported geometry retains source
+            // layout. Keep the rebuilt owner and continue discovery so that
+            // this fallback cannot hide an eligible parallel sibling. Each
+            // retained region is attempted only once in this layout pass.
+            if (attempt.Context == null) _retainedSourceColumnRegions.Add(target);
+            else _pagedColumnContexts.Add(target, attempt.Context);
             reflowed = candidate;
             return true;
         } finally {

@@ -155,6 +155,29 @@ public sealed partial class HtmlRenderingTests {
     }
 
     [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void HtmlColumns_PageBandsRetainedSiblingDoesNotHideAProjectableRegion(bool changingGeometry) {
+        string retained = string.Concat(Enumerable.Range(1, 12).Select(index => "<p>RETAINED-" + index + "</p>"));
+        string projected = string.Concat(Enumerable.Range(1, 6).Select(index => "<p>PROJECTED-" + index + "</p>"));
+        string css = "<style>.page-columns{width:300px;height:auto;flex:none;column-gap:20px}p{line-height:20px}"
+            + (changingGeometry ? "@page:left{size:700px 160px;margin:20px}" : string.Empty) + "</style>";
+        HtmlRenderDocument rendered = RenderColumnPageBands(css + "<main style='display:flex;gap:60px;align-items:flex-start'>"
+            + "<section class='page-columns' style='height:" + (changingGeometry ? "400px" : "60px") + "'>" + retained
+            + "</section><section class='page-columns'>" + projected + "</section></main>");
+
+        AssertColumnPageBandTextOnce(rendered, Enumerable.Range(1, 12).Select(index => "RETAINED-" + index)
+            .Concat(Enumerable.Range(1, 6).Select(index => "PROJECTED-" + index)));
+        HtmlRenderText[] firstPage = ColumnPageBandText(rendered.Pages[0])
+            .Where(text => text.Text.StartsWith("PROJECTED-", StringComparison.Ordinal)).ToArray();
+        Assert.Equal(Enumerable.Range(1, 5).Select(index => "PROJECTED-" + index),
+            firstPage.Where(text => text.X < 500D).Select(text => text.Text));
+        Assert.Equal(new[] { "PROJECTED-6" }, firstPage.Where(text => text.X >= 500D).Select(text => text.Text));
+        if (changingGeometry) Assert.Contains(rendered.Diagnostics,
+            diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.PagePseudoGeometryPending);
+    }
+
+    [Theory]
     [InlineData(HtmlRenderMode.Continuous)]
     [InlineData(HtmlRenderMode.Paged)]
     public void HtmlColumns_PageBandsRetainTheBodyRootFormattingContext(HtmlRenderMode mode) {
