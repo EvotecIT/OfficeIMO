@@ -19,17 +19,16 @@ internal sealed partial class HtmlRenderLayoutEngine {
         IReadOnlyList<MultiColumnSpanPartition> partitions = ResolveMultiColumnSpanPartitions(element, contentWidth, style);
         if (partitions.Count <= 1) return false;
 
-        var contentVisuals = new List<HtmlRenderVisual>();
-        var contentBreakOffsets = new SortedSet<double>();
-        var contentSafeBreakRanges = new List<HtmlRenderBreakRange>();
-        var contentLineBreakGroups = new List<HtmlRenderLineBreakGroup>();
-        var contentAvoidBreakRanges = new List<HtmlRenderAvoidBreakRange>();
-        var contentForcedBreaks = new List<HtmlRenderForcedBreak>();
-        var runningStringAssignments = new List<HtmlCssRunningStringAssignment>();
+        var pieces = new List<HtmlRenderFlowBlock>();
         bool pagedColumnRegion = _columnContentDepth == 0 && CanPaginateColumnRegion(element, style);
+        bool directSpanners = _columnContentDepth == 0
+            && (_options.Mode != HtmlRenderMode.Paged || pagedColumnRegion);
+        bool hasSpannerPageControls = false;
         ColumnPaginationContext? columnContext = null;
         double contentHeight = 0D;
         for (int index = 0; index < partitions.Count; index++) {
+            CheckCancellation();
+            ChargeLayoutOperation("spanning column partition");
             MultiColumnSpanPartition partition = partitions[index];
             IReadOnlyList<HtmlRenderFlowBlock> children = BuildMultiColumnChildBlocks(
                 element,
@@ -39,12 +38,17 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 depth,
                 includeGeneratedBefore: index == 0,
                 includeGeneratedAfter: index == partitions.Count - 1);
-            if (BuildColumnFlowBreaks(children).HasPageBreaks) {
+            bool childPageBreaks = BuildColumnFlowBreaks(children).HasPageBreaks;
+            if (childPageBreaks) {
                 _diagnostics.Add(ComponentName, HtmlRenderDiagnosticCodes.MultiColumnValueUnsupported,
                     "Authored page breaks inside multi-column content retain the source-flow fallback.",
                     HtmlDiagnosticSeverity.Warning, source, "page breaks in column content");
             }
-            AppendMultiColumnPartition(
+            HtmlRenderFlowBlock? prefix = directSpanners && hasSpannerPageControls
+                && partition.Spanner == null && children.Count > 0 && !childPageBreaks
+                ? BuildSpanningFlowBlock(pieces.Concat(new[] { children[0] }).ToArray(), contentWidth, source, true)
+                : null;
+            HtmlRenderFlowBlock? columnSet = BuildMultiColumnPartition(
                 element,
                 children,
                 requestedCount,
@@ -56,46 +60,39 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 contentWidth,
                 partition.Spanner == null,
                 pagedColumnRegion,
-                contentVisuals,
-                contentBreakOffsets,
-                contentSafeBreakRanges,
-                contentLineBreakGroups,
-                contentAvoidBreakRanges,
-                contentForcedBreaks,
-                runningStringAssignments,
-                out double partitionHeight,
+                prefix,
                 out ColumnPaginationContext? partitionContext);
             columnContext ??= partitionContext;
-            contentHeight += partitionHeight;
+            if (columnSet != null) {
+                pieces.Add(columnSet);
+                contentHeight += columnSet.Height;
+            }
 
             if (partition.Spanner == null || partition.SpannerStyle == null) continue;
             RecordNormalFlowPlacement(partition.Spanner, element, 0D, contentHeight, partition.SpannerStyle);
             HtmlRenderFlowBlock spanner = LayoutColumnSpanner(partition.Spanner, contentWidth, partition.SpannerStyle, style, depth + 1);
-            if (IsForcedPageBreak(spanner.BreakBefore) || IsForcedPageBreak(spanner.BreakAfter)
-                || spanner.ForcedBreaks.Any(item => IsForcedPageBreak(item.Target))
-                || partition.SpannerStyle.AvoidBreakBeforeScope != HtmlFragmentationScope.None
-                || partition.SpannerStyle.AvoidBreakAfterScope != HtmlFragmentationScope.None) {
+            hasSpannerPageControls |= HasSpannerPageControls(spanner, partition.SpannerStyle);
+            if (spanner.ForcedBreaks.Any(item => IsForcedPageBreak(item.Target))
+                || !directSpanners && (IsForcedPageBreak(spanner.BreakBefore) || IsForcedPageBreak(spanner.BreakAfter)
+                    || partition.SpannerStyle.AvoidBreakBeforeScope != HtmlFragmentationScope.None
+                    || partition.SpannerStyle.AvoidBreakAfterScope != HtmlFragmentationScope.None)) {
                 _diagnostics.Add(ComponentName, HtmlRenderDiagnosticCodes.MultiColumnValueUnsupported,
                     "Authored fragmentation controls on a column spanner retain the source-flow fallback.",
                     HtmlDiagnosticSeverity.Warning, HtmlRenderStyleResolver.DescribeSource(partition.Spanner),
                     "fragmentation controls on column spanner");
             }
-            foreach (HtmlRenderVisual visual in spanner.Visuals) {
-                contentVisuals.Add(visual.Translate(0D, contentHeight, contentVisuals.Count));
-            }
-            foreach (double offset in spanner.BreakOffsets) {
-                contentBreakOffsets.Add(contentHeight + offset);
-            }
-            contentSafeBreakRanges.AddRange(HtmlRenderBreakRange.Normalize(spanner.SafeBreakRanges, spanner.Height)
-                .Select(range => range.Translate(contentHeight)));
-            contentLineBreakGroups.AddRange(SliceColumnLineBreakGroups(
-                spanner.LineBreakGroups, 0D, spanner.Height, contentHeight));
-            contentAvoidBreakRanges.AddRange(SliceColumnAvoidBreakRanges(spanner, 0D, spanner.Height, contentHeight));
-            foreach (HtmlCssRunningStringAssignment assignment in spanner.RunningStringAssignments) {
-                runningStringAssignments.Add(assignment.Translate(contentHeight));
-            }
+            pieces.Add(spanner);
             contentHeight += spanner.Height;
         }
+
+        HtmlRenderFlowBlock content = BuildSpanningFlowBlock(pieces, contentWidth, source, directSpanners);
+        IReadOnlyList<HtmlRenderVisual> contentVisuals = content.Visuals;
+        IReadOnlyList<double> contentBreakOffsets = content.BreakOffsets;
+        var contentSafeBreakRanges = new List<HtmlRenderBreakRange>(content.SafeBreakRanges);
+        IReadOnlyList<HtmlRenderLineBreakGroup> contentLineBreakGroups = content.LineBreakGroups;
+        IReadOnlyList<HtmlRenderAvoidBreakRange> contentAvoidBreakRanges = content.AvoidBreakRanges;
+        IReadOnlyList<HtmlRenderForcedBreak> contentForcedBreaks = content.ForcedBreaks;
+        IReadOnlyList<HtmlCssRunningStringAssignment> runningStringAssignments = content.RunningStringAssignments;
 
         double boxHeight = ResolveBoxHeight(contentHeight, boxWidth, style);
         double outerHeight = Math.Max(0.01D, style.MarginTop + boxHeight + style.MarginBottom);
@@ -168,6 +165,17 @@ internal sealed partial class HtmlRenderLayoutEngine {
     /// <summary>Retains loss reporting for column controls inside full-width spanners.</summary>
     private HtmlRenderFlowBlock LayoutColumnSpanner(IElement element, double width,
         HtmlRenderBoxStyle style, HtmlRenderBoxStyle parentStyle, int depth) {
+        // The spanner is outside its own column flow. A column-only control
+        // would target an outer multicol context, which is absent here.
+        if (_columnContentDepth == 0) {
+            style = style.Clone();
+            if (style.BreakBefore == HtmlPageBreakTarget.Column) style.BreakBefore = HtmlPageBreakTarget.None;
+            if (style.BreakAfter == HtmlPageBreakTarget.Column) style.BreakAfter = HtmlPageBreakTarget.None;
+            style.AvoidBreakBeforeScope &= ~HtmlFragmentationScope.Column;
+            style.AvoidBreakAfterScope &= ~HtmlFragmentationScope.Column;
+            style.AvoidBreakInsideScope &= ~HtmlFragmentationScope.Column;
+            style.UnsupportedColumnBreaks = string.Empty;
+        }
         _columnContentDepth++;
         _columnBreakFallbackDepth++;
         try {
@@ -210,7 +218,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         return partitions;
     }
 
-    private void AppendMultiColumnPartition(
+    private HtmlRenderFlowBlock? BuildMultiColumnPartition(
         IElement owner,
         IReadOnlyList<HtmlRenderFlowBlock> children,
         int requestedCount,
@@ -222,24 +230,22 @@ internal sealed partial class HtmlRenderLayoutEngine {
         double contentWidth,
         bool finalPartition,
         bool pagedColumnRegion,
-        ICollection<HtmlRenderVisual> visuals,
-        ISet<double> breakOffsets,
-        ICollection<HtmlRenderBreakRange> safeBreakRanges,
-        ICollection<HtmlRenderLineBreakGroup> lineBreakGroups,
-        ICollection<HtmlRenderAvoidBreakRange> avoidBreakRanges,
-        ICollection<HtmlRenderForcedBreak> forcedBreaks,
-        ICollection<HtmlCssRunningStringAssignment> runningStringAssignments,
-        out double partitionHeight,
+        HtmlRenderFlowBlock? prefix,
         out ColumnPaginationContext? columnContext) {
         columnContext = null;
-        if (children.Count == 0) {
-            partitionHeight = 0D;
-            return;
-        }
+        if (children.Count == 0) return null;
+
+        var visuals = new List<HtmlRenderVisual>();
+        var breakOffsets = new SortedSet<double>();
+        var safeBreakRanges = new List<HtmlRenderBreakRange>();
+        var lineBreakGroups = new List<HtmlRenderLineBreakGroup>();
+        var avoidBreakRanges = new List<HtmlRenderAvoidBreakRange>();
+        var forcedBreaks = new List<HtmlRenderForcedBreak>();
+        var runningStringAssignments = new List<HtmlCssRunningStringAssignment>();
 
         double targetHeight = ResolveSpanningColumnHeight(children, requestedCount, style, offsetY, finalPartition);
         ColumnPageBands? pageBands = finalPartition && pagedColumnRegion
-            ? ResolveSpanningColumnPageBands(owner, contentWidth, style, requestedCount, targetHeight, offsetY, out columnContext)
+            ? ResolveSpanningColumnPageBands(owner, contentWidth, style, requestedCount, targetHeight, offsetY, prefix, out columnContext)
             : null;
         MultiColumnPlan plan = BuildMultiColumnPlan(children, targetHeight, _options.MaxColumnCount,
             throwOnLimit: true, pageBands: pageBands);
@@ -262,18 +268,18 @@ internal sealed partial class HtmlRenderLayoutEngine {
             && declaredHeight.Value < _activePageGeometry.ContentHeight - 0.0001D;
         if (finalPartition && style.OverflowX == "visible" && style.OverflowY == "visible" && !shortDefiniteColumns)
             plan = ResolvePagedColumnOverflow(plan, requestedCount, targetHeight, out pageBreaks, pageBands);
-        foreach (double offset in pageBreaks) forcedBreaks.Add(new HtmlRenderForcedBreak(offsetY + offset, HtmlPageBreakTarget.Page));
-        partitionHeight = Math.Max(minimumExtent, Math.Max(targetHeight, plan.UsedHeight));
+        foreach (double offset in pageBreaks) forcedBreaks.Add(new HtmlRenderForcedBreak(offset, HtmlPageBreakTarget.Page));
+        double partitionHeight = Math.Max(minimumExtent, Math.Max(targetHeight, plan.UsedHeight));
         if (pageBands != null) {
             // A single sequential column can shrink to its painted extent. An
             // advance to another column consumes the complete physical band.
             partitionHeight = Math.Max(minimumExtent, plan.UsedHeight);
         }
-        AddColumnRuleVisuals(visuals, style, 0D, offsetY, columnWidth, gap,
+        AddColumnRuleVisuals(visuals, style, 0D, 0D, columnWidth, gap,
             Math.Max(requestedCount, plan.ColumnCount), partitionHeight, source, plan.RuleBands);
         foreach (MultiColumnFragment fragment in plan.Fragments) {
             double x = fragment.Column * (columnWidth + gap);
-            double y = offsetY + fragment.Y;
+            double y = fragment.Y;
             IReadOnlyList<HtmlRenderVisual> fragmentVisuals = SliceColumnFragmentVisuals(fragment);
             foreach (HtmlRenderVisual visual in fragmentVisuals) {
                 visuals.Add(visual.Translate(x, y, visuals.Count));
@@ -281,22 +287,27 @@ internal sealed partial class HtmlRenderLayoutEngine {
         }
 
         foreach (double offset in ResolveMultiColumnBreakOffsets(plan, 0D, partitionHeight)) {
-            breakOffsets.Add(offsetY + offset);
+            breakOffsets.Add(offset);
         }
         foreach (HtmlRenderBreakRange range in ResolveMultiColumnSafeBreakRanges(plan)) {
-            safeBreakRanges.Add(range.Translate(offsetY));
+            safeBreakRanges.Add(range);
         }
         if (pageBands != null && partitionHeight > plan.UsedHeight)
-            safeBreakRanges.Add(new HtmlRenderBreakRange(offsetY + plan.UsedHeight, offsetY + partitionHeight));
-        foreach (HtmlRenderLineBreakGroup group in EnumerateMultiColumnLineBreakGroups(plan, offsetY)) {
+            safeBreakRanges.Add(new HtmlRenderBreakRange(plan.UsedHeight, partitionHeight));
+        foreach (HtmlRenderLineBreakGroup group in EnumerateMultiColumnLineBreakGroups(plan, 0D)) {
             lineBreakGroups.Add(group);
         }
-        foreach (HtmlRenderAvoidBreakRange range in EnumerateMultiColumnAvoidBreakRanges(plan, offsetY)) {
+        foreach (HtmlRenderAvoidBreakRange range in EnumerateMultiColumnAvoidBreakRanges(plan, 0D)) {
             avoidBreakRanges.Add(range);
         }
-        foreach (HtmlCssRunningStringAssignment assignment in EnumerateMultiColumnRunningStringAssignments(plan, offsetY)) {
+        foreach (HtmlCssRunningStringAssignment assignment in EnumerateMultiColumnRunningStringAssignments(plan, 0D)) {
             runningStringAssignments.Add(assignment);
         }
+        return new HtmlRenderFlowBlock(contentWidth, partitionHeight, visuals,
+            HtmlPageBreakTarget.None, HtmlPageBreakTarget.None, false, source, breakOffsets,
+            lineBreakGroups: lineBreakGroups, forcedBreaks: forcedBreaks,
+            avoidBreakRanges: avoidBreakRanges, safeBreakRanges: safeBreakRanges,
+            runningStringAssignments: runningStringAssignments);
     }
 
     private sealed class MultiColumnSpanPartition {

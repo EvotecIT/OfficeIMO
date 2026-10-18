@@ -31,11 +31,26 @@ internal sealed partial class HtmlRenderLayoutEngine {
     /// </summary>
     private ColumnPageBands? ResolveSpanningColumnPageBands(IElement owner, double width,
         HtmlRenderBoxStyle style, int count, double sourceHeight, double precedingHeight,
+        HtmlRenderFlowBlock? prefix,
         out ColumnPaginationContext? ownerContext) {
         ColumnPageBands? ownerBands = ResolveColumnPageBands(owner, width,
             ResolveDeclaredColumnContentHeight(style), count, sourceHeight);
         ownerContext = ownerBands?.Context;
         if (ownerContext == null) return null;
+        if (prefix != null) {
+            if (!TryResolveSpanningPageOrigin(prefix, precedingHeight, ownerContext, out ColumnPaginationContext terminal)) {
+                _diagnostics.Add(ComponentName, HtmlRenderDiagnosticCodes.MultiColumnValueUnsupported,
+                    "Spanner page controls retain source column allocation because their physical origin could not be mapped safely.",
+                    HtmlDiagnosticSeverity.Warning, HtmlRenderStyleResolver.DescribeSource(owner),
+                    "spanner physical page origin");
+                ownerContext = null;
+                return null;
+            }
+            double? declaredExtent = ResolveDeclaredColumnContentHeight(style);
+            return new ColumnPageBands(this, terminal, count, sourceHeight, HtmlRenderStyleResolver.DescribeSource(owner),
+                declaredExtent.HasValue && !style.IntrinsicColumnHeightAllocation
+                    ? Math.Max(0.01D, declaredExtent.Value - precedingHeight) : null);
+        }
         double remaining = ownerBands!.FirstHeight - precedingHeight;
         int pageAdvance = 0;
         if (remaining <= 0.0001D) {

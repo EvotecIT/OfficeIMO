@@ -252,13 +252,8 @@ public sealed partial class HtmlRenderingTests {
     }
 
     [Theory]
-    [InlineData("before")]
-    [InlineData("after")]
     [InlineData("nested")]
-    [InlineData("before-column")]
-    [InlineData("after-column")]
     [InlineData("nested-column")]
-    [InlineData("before-avoid-page")]
     public void HtmlColumns_SpannerBreaksPreserveContentAndReportTheUnqualifiedCombination(string boundary) {
         bool nested = boundary.StartsWith("nested", StringComparison.Ordinal);
         string value = boundary.EndsWith("column", StringComparison.Ordinal) ? "column"
