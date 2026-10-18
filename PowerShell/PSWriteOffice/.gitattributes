@@ -1,0 +1,51 @@
+# Keep line endings explicit so Git does not guess differently per machine.
+* text=auto
+
+# Windows-native source and script files.
+*.cs text eol=crlf
+*.csproj text eol=crlf
+*.props text eol=crlf
+*.targets text eol=crlf
+*.sln text eol=crlf
+*.ps1 text eol=crlf
+*.psm1 text eol=crlf
+*.psd1 text eol=crlf
+*.ps1xml text eol=crlf
+*.pssc text eol=crlf
+*.psrc text eol=crlf
+
+# Downloaded integration recipes retain the same bytes as their website copies.
+Examples/Integrations/*.ps1 text eol=lf
+WebsiteArtifacts/apidocs/powershell/examples/Integrations/*.ps1 text eol=lf
+*.bat text eol=crlf
+*.cmd text eol=crlf
+
+# Cross-platform docs, config, and workflow files.
+*.md text eol=lf
+*.yml text eol=lf
+*.yaml text eol=lf
+*.json text eol=lf
+*.xml text eol=lf
+*.sh text eol=lf
+.editorconfig text eol=lf
+.gitattributes text eol=lf
+.gitignore text eol=lf
+
+# API exports carry fingerprints of the producer's exact component bytes.
+WebsiteArtifacts/apidocs/powershell/PSWriteOffice.psd1 -text -diff
+WebsiteArtifacts/apidocs/powershell/PSWriteOffice-help.xml -text -diff
+WebsiteArtifacts/apidocs/powershell/command-metadata.json -text -diff
+WebsiteArtifacts/apidocs/powershell/bundle-manifest.json text eol=lf
+Docs/Generated/PSWriteOffice-help.xml -text -diff
+
+# Office and archive formats are binary.
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.bmp binary
+*.ico binary
+*.zip binary
+*.docx binary
+*.xlsx binary
+*.pptx binary

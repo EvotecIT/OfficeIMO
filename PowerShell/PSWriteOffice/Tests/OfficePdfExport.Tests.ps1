@@ -1,0 +1,311 @@
+BeforeAll {
+    $ModuleManifest = if ($env:PSWRITEOFFICE_MODULE_MANIFEST) {
+        $env:PSWRITEOFFICE_MODULE_MANIFEST
+    } else {
+        Join-Path $PSScriptRoot '..\PSWriteOffice.psd1'
+    }
+    Import-Module $ModuleManifest -Global -ErrorAction Stop
+
+    function Get-OfficePrivateRegistryCount {
+        param(
+            [Parameter(Mandatory)]
+            [string] $TypeName,
+            [Parameter(Mandatory)]
+            [string] $FieldName
+        )
+
+        $type = [AppDomain]::CurrentDomain.GetAssemblies() |
+            ForEach-Object { $_.GetType($TypeName, $false) } |
+            Where-Object { $null -ne $_ } |
+            Select-Object -First 1
+        $field = $type.GetField($FieldName, [Reflection.BindingFlags]'NonPublic,Static')
+        $field.GetValue($null).Count
+    }
+}
+
+Describe 'Office document PDF exports' {
+    It 'preserves the caller font-embedding policy when constructing Word options' {
+        $balanced = New-OfficeWordPdfOptions
+        $balanced.ResourcePolicy.AllowSystemFontEmbedding | Should -BeTrue
+        $balanced.ResourcePolicy.AllowDocumentFontEmbedding | Should -BeFalse
+
+        $template = New-OfficeWordPdfOptions -AllowSystemFontEmbedding -AllowDocumentFontEmbedding
+        $template.ResourcePolicy.AllowSystemFontEmbedding | Should -BeTrue
+        $template.ResourcePolicy.AllowDocumentFontEmbedding | Should -BeTrue
+
+        $restricted = New-OfficeWordPdfOptions -AllowDocumentFontEmbedding -AllowSystemFontEmbedding:$false
+        $restricted.ResourcePolicy.AllowDocumentFontEmbedding | Should -BeTrue
+        $restricted.ResourcePolicy.AllowSystemFontEmbedding | Should -BeFalse
+    }
+
+    It 'builds every format-specific PDF option through ordinary PowerShell parameters' {
+        $word = New-OfficeWordPdfOptions `
+            -Title 'Service report' `
+            -IncludePageNumbers `
+            -DefaultTableBorders:$false
+        $word.GetType().FullName | Should -Be 'OfficeIMO.Word.Pdf.WordToPdfOptions'
+        $word.Title | Should -Be 'Service report'
+        $word.IncludePageNumbers | Should -BeTrue
+        $word.DefaultTableBorders | Should -BeFalse
+
+        $excel = New-OfficeExcelPdfOptions `
+            -SheetName Summary, Services `
+            -UseWorksheetCharts `
+            -UseWorksheetImages:$false `
+            -MaxRowsPerSheet 50
+        $excel.GetType().FullName | Should -Be 'OfficeIMO.Excel.Pdf.ExcelToPdfOptions'
+        @($excel.SheetNames) | Should -Be @('Summary', 'Services')
+        $excel.UseWorksheetCharts | Should -BeTrue
+        $excel.UseWorksheetImages | Should -BeFalse
+        $excel.MaxRowsPerSheet | Should -Be 50
+
+        $powerPoint = New-OfficePowerPointPdfOptions `
+            -PageLayout Handouts `
+            -HandoutSlidesPerPage 3 `
+            -IncludeSpeakerNotes `
+            -IncludeHiddenSlides:$false
+        $powerPoint.GetType().FullName | Should -Be 'OfficeIMO.PowerPoint.Pdf.PowerPointToPdfOptions'
+        $powerPoint.PageLayout.ToString() | Should -Be 'Handouts'
+        $powerPoint.HandoutSlidesPerPage | Should -Be 3
+        $powerPoint.IncludeSpeakerNotes | Should -BeTrue
+        $powerPoint.IncludeHiddenSlides | Should -BeFalse
+
+        $rtf = New-OfficeRtfPdfOptions `
+            -IncludeImages `
+            -IncludeTables:$false `
+            -MaximumSystemFontFamilies 32
+        $rtf.GetType().FullName | Should -Be 'OfficeIMO.Rtf.Pdf.RtfToPdfOptions'
+        $rtf.IncludeImages | Should -BeTrue
+        $rtf.IncludeTables | Should -BeFalse
+        $rtf.MaximumSystemFontFamilies | Should -Be 32
+    }
+
+    It 'builds Markdown PDF options through discoverable PowerShell parameters' {
+        $command = Get-Command New-OfficeMarkdownPdfOptions
+        foreach ($parameter in @(
+            'Theme',
+            'FontFamily',
+            'Title',
+            'Author',
+            'BaseDirectory',
+            'IncludeLocalImages',
+            'IncludeDataUriImages',
+            'FrontMatterRenderMode',
+            'CreateOutlineFromHeadings'
+        )) {
+            $command.Parameters.Keys | Should -Contain $parameter
+        }
+
+        $base = New-OfficeMarkdownPdfOptions -Title 'Base title' -IncludeLocalImages -IncludeDataUriImages:$false
+        $derived = $base | New-OfficeMarkdownPdfOptions -Author 'Evotec' -IncludeDataUriImages
+
+        $base.Title | Should -Be 'Base title'
+        $base.Author | Should -BeNullOrEmpty
+        $base.ResourcePolicy.AllowDataUris | Should -BeFalse
+        $derived.Title | Should -Be 'Base title'
+        $derived.Author | Should -Be 'Evotec'
+        $derived.ResourcePolicy.AllowLocalFileAccess | Should -BeTrue
+        $derived.ResourcePolicy.AllowDataUris | Should -BeTrue
+    }
+
+    It 'exports Markdown with builder options and exposes conversion evidence variables' {
+        $pdf = Join-Path $TestDrive 'markdown-options.pdf'
+        $document = Get-OfficeMarkdown -Text "# Builder options`n`nGenerated by PSWriteOffice."
+        $options = New-OfficeMarkdownPdfOptions `
+            -Title 'Builder options report' `
+            -Author 'Evotec' `
+            -UseFirstHeadingAsTitle:$false `
+            -CreateOutlineFromHeadings
+
+        $document | Export-OfficeDocumentPdf `
+            -Path $pdf `
+            -MarkdownOptions $options `
+            -PdfWarningVariable markdownPdfWarnings `
+            -PdfConversionReportVariable markdownPdfReport
+
+        Test-Path -LiteralPath $pdf | Should -BeTrue
+        Get-Variable -Name markdownPdfWarnings -ErrorAction Stop | Should -Not -BeNull
+        @($markdownPdfWarnings).Count | Should -Be 0
+        $markdownPdfReport | Should -Not -BeNull
+        @($markdownPdfReport.Warnings).Count | Should -Be 0
+    }
+
+    It 'resolves relative Markdown images from the source file directory' {
+        $sourceDirectory = Join-Path $TestDrive 'markdown-source'
+        $markdownPath = Join-Path $sourceDirectory 'report.md'
+        $imagePath = Join-Path $sourceDirectory 'relative-image.png'
+        $pdfPath = Join-Path $TestDrive 'markdown-relative-image.pdf'
+        New-Item -ItemType Directory -Path $sourceDirectory | Out-Null
+        Copy-Item -LiteralPath (Join-Path $PSScriptRoot 'Assets\CellImage.png') -Destination $imagePath
+        Set-Content -LiteralPath $markdownPath -Value '# Relative image', '![Local image](relative-image.png)'
+
+        $options = New-OfficeMarkdownPdfOptions -IncludeLocalImages
+        Export-OfficeDocumentPdf `
+            -InputPath $markdownPath `
+            -Path $pdfPath `
+            -MarkdownOptions $options `
+            -PdfWarningVariable markdownImageWarnings
+
+        Test-Path -LiteralPath $pdfPath | Should -BeTrue
+        @($markdownImageWarnings | Where-Object Code -Like 'LocalImage*').Count | Should -Be 0
+        $options.BaseDirectory | Should -BeNullOrEmpty
+    }
+
+    It 'exports saved native documents through one explicit command' {
+        $wordPath = Join-Path $TestDrive 'new-word.docx'
+        $wordPdf = Join-Path $TestDrive 'new-word.pdf'
+        New-OfficeWord -Path $wordPath {
+            WordSection {
+                WordParagraph -Text 'New Word PDF sidecar'
+            }
+        }
+        Export-OfficeDocumentPdf -InputPath $wordPath -Path $wordPdf
+
+        $excelPath = Join-Path $TestDrive 'new-excel.xlsx'
+        $excelPdf = Join-Path $TestDrive 'new-excel.pdf'
+        New-OfficeExcel -Path $excelPath {
+            ExcelSheet 'Data' {
+                ExcelCell -Address 'A1' -Value 'New Excel PDF sidecar'
+            }
+        }
+        Export-OfficeDocumentPdf -InputPath $excelPath -Path $excelPdf
+
+        $markdownPath = Join-Path $TestDrive 'new-markdown.md'
+        $markdownPdf = Join-Path $TestDrive 'new-markdown.pdf'
+        New-OfficeMarkdown -Path $markdownPath {
+            MarkdownHeading -Level 1 -Text 'New Markdown PDF sidecar'
+        }
+        Export-OfficeDocumentPdf -InputPath $markdownPath -Path $markdownPdf
+
+        $powerPointPath = Join-Path $TestDrive 'new-powerpoint.pptx'
+        $powerPointPdf = Join-Path $TestDrive 'new-powerpoint.pdf'
+        New-OfficePowerPoint -Path $powerPointPath {
+            PptSlide {
+                PptTitle -Title 'New PowerPoint PDF sidecar'
+            }
+        }
+        Export-OfficeDocumentPdf -InputPath $powerPointPath -Path $powerPointPdf
+
+        foreach ($path in @($wordPath, $wordPdf, $excelPath, $excelPdf, $markdownPath, $markdownPdf, $powerPointPath, $powerPointPdf)) {
+            Test-Path $path | Should -BeTrue
+        }
+
+        foreach ($path in @($wordPdf, $excelPdf, $markdownPdf, $powerPointPdf)) {
+            (Get-OfficePdfPreflight -Path $path).CanRead | Should -BeTrue
+        }
+    }
+
+    It 'exports an open Word document to PDF' {
+        $docx = Join-Path $TestDrive 'word-report.docx'
+        $pdf = Join-Path $TestDrive 'word-report.pdf'
+
+        New-OfficeWord -Path $docx {
+            WordSection {
+                WordParagraph -Text 'Word PDF export smoke'
+            }
+        }
+
+        $document = Get-OfficeWord -Path $docx
+        try {
+            $document | Export-OfficeDocumentPdf -Path $pdf
+        } finally {
+            Close-OfficeWord -Document $document
+        }
+
+        Test-Path $docx | Should -BeTrue
+        Test-Path $pdf | Should -BeTrue
+        (Get-OfficePdfPreflight -Path $pdf).CanRead | Should -BeTrue
+        Get-OfficePdfText -Path $pdf | Should -Match 'Word PDF export smoke'
+    }
+
+    It 'releases encrypted path sources through their owning document services' {
+        $password = 'pdf-export-secret'
+        $wordPath = Join-Path $TestDrive 'encrypted-word.docx'
+        $wordPdf = Join-Path $TestDrive 'encrypted-word.pdf'
+        $excelPath = Join-Path $TestDrive 'encrypted-excel.xlsx'
+        $excelPdf = Join-Path $TestDrive 'encrypted-excel.pdf'
+
+        New-OfficeWord -Path $wordPath -Password $password {
+            WordParagraph -Text 'Encrypted Word PDF export'
+        }
+        New-OfficeExcel -Path $excelPath -Password $password {
+            ExcelSheet 'Data' {
+                ExcelCell -Address A1 -Value 'Encrypted Excel PDF export'
+            }
+        }
+
+        $wordBefore = Get-OfficePrivateRegistryCount -TypeName 'PSWriteOffice.Services.Word.WordDocumentService' -FieldName 'EncryptedSourcePaths'
+        $excelBefore = Get-OfficePrivateRegistryCount -TypeName 'PSWriteOffice.Services.Excel.ExcelDocumentService' -FieldName 'EncryptedSourcePaths'
+
+        Export-OfficeDocumentPdf -InputPath $wordPath -Path $wordPdf -Password $password
+        Export-OfficeDocumentPdf -InputPath $excelPath -Path $excelPdf -Password $password
+
+        Get-OfficePrivateRegistryCount -TypeName 'PSWriteOffice.Services.Word.WordDocumentService' -FieldName 'EncryptedSourcePaths' | Should -Be $wordBefore
+        Get-OfficePrivateRegistryCount -TypeName 'PSWriteOffice.Services.Excel.ExcelDocumentService' -FieldName 'EncryptedSourcePaths' | Should -Be $excelBefore
+        Test-Path -LiteralPath $wordPdf | Should -BeTrue
+        Test-Path -LiteralPath $excelPdf | Should -BeTrue
+    }
+
+    It 'exports an open Excel workbook to PDF' {
+        $xlsx = Join-Path $TestDrive 'excel-report.xlsx'
+        $pdf = Join-Path $TestDrive 'excel-report.pdf'
+
+        New-OfficeExcel -Path $xlsx {
+            ExcelSheet 'Data' {
+                ExcelCell -Address 'A1' -Value 'Excel PDF export smoke'
+                ExcelCell -Address 'B1' -Value 42
+                ExcelAutoFit
+            }
+        }
+
+        $workbook = Get-OfficeExcel -Path $xlsx
+        try {
+            $workbook | Export-OfficeDocumentPdf -Path $pdf
+        } finally {
+            Close-OfficeExcel -Document $workbook
+        }
+
+        Test-Path $xlsx | Should -BeTrue
+        Test-Path $pdf | Should -BeTrue
+        (Get-OfficePdfPreflight -Path $pdf).CanRead | Should -BeTrue
+        Get-OfficePdfText -Path $pdf | Should -Match 'Excel PDF export smoke'
+    }
+
+    It 'exports a Markdown document to PDF' {
+        $md = Join-Path $TestDrive 'markdown-report.md'
+        $pdf = Join-Path $TestDrive 'markdown-pdf\markdown-report.pdf'
+        $document = Get-OfficeMarkdown -Text "# Markdown PDF export smoke`n`nGenerated by PSWriteOffice."
+
+        $document | Save-OfficeMarkdown -Path $md
+        $document | Export-OfficeDocumentPdf -Path $pdf
+
+        Test-Path $md | Should -BeTrue
+        Test-Path $pdf | Should -BeTrue
+        (Get-OfficePdfPreflight -Path $pdf).CanRead | Should -BeTrue
+        Get-OfficePdfText -Path $pdf | Should -Match 'Markdown PDF export smoke'
+    }
+
+    It 'exports an open PowerPoint presentation to PDF' {
+        $pptx = Join-Path $TestDrive 'deck-report.pptx'
+        $pdf = Join-Path $TestDrive 'deck-report.pdf'
+
+        New-OfficePowerPoint -Path $pptx {
+            PptSlide {
+                PptTitle -Title 'PowerPoint PDF export smoke'
+            }
+        }
+
+        $presentation = Get-OfficePowerPoint -Path $pptx
+        try {
+            $presentation | Export-OfficeDocumentPdf -Path $pdf
+        } finally {
+            $presentation | Close-OfficePowerPoint
+        }
+
+        Test-Path $pptx | Should -BeTrue
+        Test-Path $pdf | Should -BeTrue
+        $info = Get-OfficePdfInfo -Path $pdf
+        $info.PageCount | Should -BeGreaterOrEqual 1
+        (Get-OfficePdfPreflight -Path $pdf).CanRead | Should -BeTrue
+    }
+}

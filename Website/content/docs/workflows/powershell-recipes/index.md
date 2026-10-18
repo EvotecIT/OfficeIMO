@@ -35,7 +35,7 @@ New-OfficeWord -Path '.\Change-Report.docx' -PdfPath '.\Change-Report.pdf' {
 }
 ```
 
-The {{< pswriteoffice-source kind="blob" path="Examples/Pdf/Example-OfficePdfSidecars.ps1" label="PDF sidecar example" >}} also shows Markdown-to-PDF output. Keep the editable source and delivery PDF together when both are part of the workflow contract.
+The {{< pswriteoffice-source kind="blob" path="Examples/Pdf/Example-OfficePdfExports.ps1" label="PDF export example" >}} also shows Markdown-to-PDF output. Keep the editable source and delivery PDF together when both are part of the workflow contract.
 
 ## Build a PDF report directly
 
@@ -82,6 +82,6 @@ Use the normalized Reader commands for indexing, migration, classification, sear
 
 ## Create and review a presentation
 
-Start with the [CSV-driven service brief](https://github.com/EvotecIT/PSWriteOffice/blob/f28d09d2ff157925598d9396bf0f2c8ef19a2b25/Examples/Showcase/ServiceBrief.md) to review quarterly ticket demand, identify a location for follow-up and prepare dated actions in an editable eight-slide deck. The guide includes the sample CSV, input constraints and rerun instructions. See the {{< pswriteoffice-source kind="tree" path="Examples/PowerPoint" label="PowerPoint examples" >}} for focused charts, layouts, themes, transitions, imported slides, and HTML review.
+Start with the {{< pswriteoffice-source kind="blob" path="Examples/Showcase/ServiceBrief.md" label="CSV-driven service brief" >}} to review quarterly ticket demand, identify a location for follow-up and prepare dated actions in an editable eight-slide deck. The guide includes the sample CSV, input constraints and rerun instructions. See the {{< pswriteoffice-source kind="tree" path="Examples/PowerPoint" label="PowerPoint examples" >}} for focused charts, layouts, themes, transitions, imported slides, and HTML review.
 
 See the [PSWriteOffice command families](/docs/pswriteoffice/command-families/) for the current supported surface and use the package-specific examples below for concrete workflows.
