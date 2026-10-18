@@ -1,7 +1,7 @@
 ---
 external help file: PSWriteOffice-help.xml
 Module Name: PSWriteOffice
-online version: https://github.com/EvotecIT/PSWriteOffice
+online version: https://github.com/EvotecIT/OfficeIMO
 schema: 2.0.0
 ---
 # Set-OfficePowerPointTableCell

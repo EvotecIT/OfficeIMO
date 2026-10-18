@@ -1,25 +1,29 @@
-﻿BeforeAll {
+BeforeAll {
     $exportScript = Join-Path $PSScriptRoot '../Build/Export-WebsiteArtifacts.ps1'
-    $sourceRoot = Join-Path $TestDrive 'source'
+    $repositoryRoot = Join-Path $TestDrive 'source'
+    $sourceRoot = Join-Path $repositoryRoot 'PowerShell/PSWriteOffice'
     $outputRoot = Join-Path $TestDrive 'artifacts'
     $buildRoot = Join-Path $TestDrive 'builds'
     $sourceInput = Join-Path $sourceRoot 'Sources/Example.cs'
     $sourceManifest = Join-Path $sourceRoot 'PSWriteOffice.psd1'
+    $engineInput = Join-Path $repositoryRoot 'OfficeIMO.Word/Engine.cs'
+    $null = New-Item -ItemType Directory -Path (Split-Path $engineInput)
+    'public class Engine { }' | Set-Content $engineInput
     $null = New-Item -ItemType Directory -Path (Split-Path $sourceInput), (Join-Path $sourceRoot 'Build')
     $manifestText = "@{ ModuleVersion = '3.0.8'; RootModule = 'PSWriteOffice.psm1'; CmdletsToExport = @('Get-OfficeExample') }"
     $manifestText | Set-Content $sourceManifest
     'public class Example { }' | Set-Content $sourceInput
     '# Source module' | Set-Content (Join-Path $sourceRoot 'PSWriteOffice.psm1')
     @'
-param($RunMode, [bool]$SignModule, [switch]$SkipInstall, [switch]$PassThru, $StagingPath)
-if ($env:UseOfficeIMOProjectReferences -ne 'false') { throw 'External OfficeIMO project references reached the fixture build.' }
+param($RunMode, [bool]$SignModule, [bool]$IncludePackages, [switch]$SkipInstall, [switch]$PassThru, $StagingPath)
+if ($IncludePackages) { throw 'Website API generation must not run a product release.' }
 if ($RunMode -ne 'Build' -or $SignModule -or -not $SkipInstall -or -not $PassThru) { throw 'Unsafe fixture build options.' }
 if (Test-Path -LiteralPath $StagingPath) { throw 'Reused fixture staging directory.' }
 $null = New-Item -ItemType Directory -Path $StagingPath
 throw 'Fresh unsigned build reached without installation.'
 '@ | Set-Content (Join-Path $sourceRoot 'Build/Build-Module.ps1')
-    & git -C $sourceRoot init --quiet
-    & git -C $sourceRoot add -- .
+    & git -C $repositoryRoot init --quiet
+    & git -C $repositoryRoot add -- .
     $emptyHooks = Join-Path $TestDrive 'empty-git-hooks'
     $null = New-Item -ItemType Directory -Path $emptyHooks
     & git -C $sourceRoot -c user.name='Test Fixture' -c user.email='tests@example.invalid' -c commit.gpgsign=false -c core.hooksPath=$emptyHooks commit --quiet -m 'Create source fixture'
@@ -28,12 +32,14 @@ throw 'Fresh unsigned build reached without installation.'
 
 AfterAll {
     # Git marks loose objects read-only; let Pester remove only its own TestDrive.
-    Get-ChildItem -LiteralPath (Join-Path $sourceRoot '.git') -Recurse -Force -File |
+    Get-ChildItem -LiteralPath (Join-Path $repositoryRoot '.git') -Recurse -Force -File |
         ForEach-Object { $_.IsReadOnly = $false }
 }
 
 Describe 'Website API source build qualification' {
     BeforeEach {
+        'public class Engine { }' | Set-Content $engineInput
+        & git -C $repositoryRoot add -- OfficeIMO.Word/Engine.cs
         'public class Example { }' | Set-Content $sourceInput
         $manifestText | Set-Content $sourceManifest
         '# Source module' | Set-Content (Join-Path $sourceRoot 'PSWriteOffice.psm1')
@@ -57,18 +63,15 @@ Describe 'Website API source build qualification' {
         Test-Path (Join-Path $sourceRoot 'out') | Should -BeFalse
     }
 
-    It 'forces pinned package references and restores an inherited benchmark setting after build failure' {
-        $previous = $env:UseOfficeIMOProjectReferences
-        try {
-            $env:UseOfficeIMOProjectReferences = 'true'
-            { & $exportScript -RepositoryRoot $sourceRoot -ArtifactsRoot $outputRoot -BuildOutputRoot $buildRoot } |
-                Should -Throw '*Fresh unsigned build reached without installation*'
-            $env:UseOfficeIMOProjectReferences | Should -BeExactly 'true'
-        } finally { $env:UseOfficeIMOProjectReferences = $previous }
-    }
-
     It 'rejects changed source before running a build or importing a module' {
         'public class Changed { }' | Set-Content $sourceInput
+        { & $exportScript -RepositoryRoot $sourceRoot -ArtifactsRoot $outputRoot -BuildOutputRoot $buildRoot } |
+            Should -Throw '*does not match the selected API and build inputs*'
+        Test-Path $outputRoot | Should -BeFalse
+    }
+
+    It 'rejects uncommitted engine source outside the PowerShell module' {
+        'public class ChangedEngine { }' | Set-Content $engineInput
         { & $exportScript -RepositoryRoot $sourceRoot -ArtifactsRoot $outputRoot -BuildOutputRoot $buildRoot } |
             Should -Throw '*does not match the selected API and build inputs*'
         Test-Path $outputRoot | Should -BeFalse
@@ -77,6 +80,8 @@ Describe 'Website API source build qualification' {
     It 'rejects staged source changes even if the working file has been changed back' {
         'public class Changed { }' | Set-Content $sourceInput
         & git -C $sourceRoot add -- Sources/Example.cs
+        'public class Engine { }' | Set-Content $engineInput
+        & git -C $repositoryRoot add -- OfficeIMO.Word/Engine.cs
         'public class Example { }' | Set-Content $sourceInput
         { & $exportScript -RepositoryRoot $sourceRoot -ArtifactsRoot $outputRoot -BuildOutputRoot $buildRoot } |
             Should -Throw '*does not match the selected API and build inputs*'
@@ -110,12 +115,12 @@ Describe 'Website API source build qualification' {
         Test-Path $outputRoot | Should -BeFalse
     }
 
-    It 'requires an exact Git source root rather than a copied or nested directory' {
+    It 'requires the OfficeIMO module root rather than a copied or nested directory' {
         foreach ($root in @((Join-Path $TestDrive 'copied'), (Join-Path $sourceRoot 'nested'))) {
             $null = New-Item -ItemType Directory -Path $root
             Copy-Item $sourceManifest (Join-Path $root 'PSWriteOffice.psd1')
             { & $exportScript -RepositoryRoot $root -ArtifactsRoot $outputRoot -BuildOutputRoot $buildRoot } |
-                Should -Throw '*exact Git source root*'
+                Should -Throw '*OfficeIMO PowerShell module source root*'
         }
         Test-Path $outputRoot | Should -BeFalse
     }

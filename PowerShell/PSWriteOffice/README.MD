@@ -1,5 +1,8 @@
 # PSWriteOffice
 
+> [!IMPORTANT]
+> PSWriteOffice is the PowerShell module in **[OfficeIMO](https://github.com/EvotecIT/OfficeIMO)**. Report bugs and request features in [OfficeIMO issues](https://github.com/EvotecIT/OfficeIMO/issues), and submit pull requests to that repository.
+
 PowerShell-first document automation for Office, PDF, iWork, OneNote, OpenDocument, email, Markdown, AsciiDoc, LaTeX, CSV, Reader, and Visio, built on top of `OfficeIMO.*`.
 
 📦 PowerShell Gallery
@@ -10,8 +13,8 @@ PowerShell-first document automation for Office, PDF, iWork, OneNote, OpenDocume
 
 🛠️ Project
 
-[![Test PowerShell](https://github.com/EvotecIT/PSWriteOffice/actions/workflows/test-powershell.yml/badge.svg?branch=main)](https://github.com/EvotecIT/PSWriteOffice/actions/workflows/test-powershell.yml)
-[![Test .NET Libraries](https://github.com/EvotecIT/PSWriteOffice/actions/workflows/test-dotnet.yml/badge.svg?branch=main)](https://github.com/EvotecIT/PSWriteOffice/actions/workflows/test-dotnet.yml)
+[![Test PowerShell](https://github.com/EvotecIT/OfficeIMO/actions/workflows/powershell-tests.yml/badge.svg?branch=main)](https://github.com/EvotecIT/OfficeIMO/actions/workflows/powershell-tests.yml)
+[![Test .NET Libraries](https://github.com/EvotecIT/OfficeIMO/actions/workflows/powershell-dotnet.yml/badge.svg?branch=main)](https://github.com/EvotecIT/OfficeIMO/actions/workflows/powershell-dotnet.yml)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 
 ## Why PSWriteOffice ✨

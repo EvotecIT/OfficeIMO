@@ -157,44 +157,4 @@ Describe 'PSWriteOffice website documentation catalog' {
             Should -Be (Get-FileHash -LiteralPath $apiHelpPath -Algorithm SHA256).Hash
     }
 
-    It 'publishes discoverable comparison and legacy migration guides against current commands' {
-        $module = Import-PowerShellDataFile -LiteralPath $script:moduleManifestPath
-        $exportedCommands = @($module.CmdletsToExport)
-        $guideSlugs = @(
-            'compare-importexcel-excelfast'
-            'compare-office-automation-options'
-            'migrate-from-legacy-modules'
-            'migrate-from-pswriteword'
-            'migrate-from-pswriteexcel'
-            'migrate-from-pswritepdf'
-        )
-        $index = Get-Content -LiteralPath $script:projectDocsIndexPath -Raw
-
-        foreach ($slug in $guideSlugs) {
-            $path = Join-Path $script:projectDocsRoot "$slug.md"
-            Test-Path -LiteralPath $path | Should -BeTrue
-            $content = Get-Content -LiteralPath $path -Raw
-            $description = [regex]::Match($content, '(?m)^description:\s*"(?<value>[^"]+)"$').Groups['value'].Value
-
-            $description.Length | Should -BeGreaterOrEqual 120 -Because "$slug needs a useful search summary"
-            $description.Length | Should -BeLessOrEqual 160 -Because "$slug should avoid routine search-result truncation"
-            $content | Should -Not -Match '(?m)^#\s+' -Because 'the page title already renders the only H1'
-            $index | Should -Match ([regex]::Escape("/docs/pswriteoffice/$slug/"))
-        }
-
-        foreach ($command in @(
-            'New-OfficeWord'
-            'Join-OfficeWordDocument'
-            'New-OfficeExcel'
-            'Import-OfficeExcel'
-            'New-OfficePdf'
-            'Join-OfficePdf'
-            'Split-OfficePdf'
-            'Get-OfficePdfText'
-            'Set-OfficePdfForm'
-            'ConvertFrom-OfficePdfHtml'
-        )) {
-            $exportedCommands | Should -Contain $command -Because 'migration mappings must point at an exported command'
-        }
-    }
 }

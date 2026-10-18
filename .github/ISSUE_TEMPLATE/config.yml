@@ -1,0 +1,5 @@
+blank_issues_enabled: true
+contact_links:
+  - name: OfficeIMO and PSWriteOffice documentation
+    url: https://officeimo.com/docs/
+    about: Guides, examples, .NET API reference, and PowerShell command reference.

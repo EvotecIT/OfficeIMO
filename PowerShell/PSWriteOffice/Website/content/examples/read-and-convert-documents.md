@@ -53,7 +53,7 @@ Import-OfficeCsv -Path $csvPath
 
 ## Source
 
-- [Example-MarkdownDsl.ps1](https://github.com/EvotecIT/PSWriteOffice/blob/main/Examples/Markdown/Example-MarkdownDsl.ps1)
-- [Example-CsvBasic.ps1](https://github.com/EvotecIT/PSWriteOffice/blob/main/Examples/Csv/Example-CsvBasic.ps1)
-- [Example-WordMarkdownConvert.ps1](https://github.com/EvotecIT/PSWriteOffice/blob/main/Examples/Word/Example-WordMarkdownConvert.ps1)
-- [Example-RtfMarkdownRoundTrip.ps1](https://github.com/EvotecIT/PSWriteOffice/blob/main/Examples/Rtf/Example-RtfMarkdownRoundTrip.ps1)
+- [Example-MarkdownDsl.ps1](https://github.com/EvotecIT/OfficeIMO/blob/master/PowerShell/PSWriteOffice/Examples/Markdown/Example-MarkdownDsl.ps1)
+- [Example-CsvBasic.ps1](https://github.com/EvotecIT/OfficeIMO/blob/master/PowerShell/PSWriteOffice/Examples/Csv/Example-CsvBasic.ps1)
+- [Example-WordMarkdownConvert.ps1](https://github.com/EvotecIT/OfficeIMO/blob/master/PowerShell/PSWriteOffice/Examples/Word/Example-WordMarkdownConvert.ps1)
+- [Example-RtfMarkdownRoundTrip.ps1](https://github.com/EvotecIT/OfficeIMO/blob/master/PowerShell/PSWriteOffice/Examples/Rtf/Example-RtfMarkdownRoundTrip.ps1)

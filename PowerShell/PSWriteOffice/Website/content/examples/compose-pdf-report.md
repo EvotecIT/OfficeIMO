@@ -51,5 +51,5 @@ Get-OfficePdfText -Path $finalPath
 
 ## Source
 
-- [Example-PdfReportDsl.ps1](https://github.com/EvotecIT/PSWriteOffice/blob/main/Examples/Pdf/Example-PdfReportDsl.ps1)
-- [Example-PdfOperations.ps1](https://github.com/EvotecIT/PSWriteOffice/blob/main/Examples/Pdf/Example-PdfOperations.ps1)
+- [Example-PdfReportDsl.ps1](https://github.com/EvotecIT/OfficeIMO/blob/master/PowerShell/PSWriteOffice/Examples/Pdf/Example-PdfReportDsl.ps1)
+- [Example-PdfOperations.ps1](https://github.com/EvotecIT/OfficeIMO/blob/master/PowerShell/PSWriteOffice/Examples/Pdf/Example-PdfOperations.ps1)

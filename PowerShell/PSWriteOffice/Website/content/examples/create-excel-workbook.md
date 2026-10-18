@@ -38,4 +38,4 @@ New-OfficeExcel -Path $outputPath {
 
 ## Source
 
-- [Example-ExcelBasic.ps1](https://github.com/EvotecIT/PSWriteOffice/blob/main/Examples/Excel/Example-ExcelBasic.ps1)
+- [Example-ExcelBasic.ps1](https://github.com/EvotecIT/OfficeIMO/blob/master/PowerShell/PSWriteOffice/Examples/Excel/Example-ExcelBasic.ps1)

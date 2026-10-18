@@ -424,37 +424,15 @@ if (Test-Path -LiteralPath (Join-Path $SiteRoot 'data/apidocs/powershell/command
 if ([int] $catalog.repository.apiReferenceCount -ne $expectedApiReferenceCount) {
     Add-Failure 'The generated API reference total does not match the configured API sources.'
 }
-$psWriteOfficeSource = @($siteConfiguration.Sources | Where-Object Slug -eq 'pswriteoffice')
 $psWriteOfficeModule = Import-PowerShellDataFile -LiteralPath (Join-Path $SiteRoot 'data/apidocs/powershell/PSWriteOffice.psd1')
 $psWriteOfficeVersion = [string] $psWriteOfficeModule.ModuleVersion
-if ($psWriteOfficeSource.Count -ne 1 -or
-    $psWriteOfficeSource[0].Repo -ne 'EvotecIT/PSWriteOffice' -or
-    $psWriteOfficeSource[0].Clean -ne $true -or
+$apiEvidence = Get-Content -LiteralPath (Join-Path $SiteRoot 'data/apidocs/powershell/bundle-manifest.json') -Raw | ConvertFrom-Json
+$psWriteOfficeSource = @([pscustomobject]@{ Ref = $apiEvidence.sourceCommit })
+$moduleSource = Join-Path (Split-Path -Parent $SiteRoot) 'PowerShell/PSWriteOffice'
+if (-not (Test-Path -LiteralPath (Join-Path $moduleSource 'PSWriteOffice.psd1')) -or
     $psWriteOfficeVersion -notmatch '^\d+\.\d+\.\d+$' -or
-    $psWriteOfficeSource[0].Ref -cnotmatch '^[0-9a-f]{40}$') {
-    Add-Failure 'The PSWriteOffice source must use an exact commit and the imported module must have a three-part version.'
-}
-$sourceSyncStep = @($pipeline.steps | Where-Object id -eq 'sync-sources')
-if ($sourceSyncStep.Count -ne 1 -or
-    $sourceSyncStep[0].lockMode -ne 'verify' -or
-    $sourceSyncStep[0].writeManifest -ne $true -or
-    $sourceSyncStep[0].lockPath -cne './.powerforge/git-sync-lock.json') {
-    Add-Failure 'The default source sync must verify the committed PSWriteOffice source lock and record the resolved source manifest.'
-}
-$sourceLockPath = Join-Path $SiteRoot '.powerforge/git-sync-lock.json'
-if (-not (Test-Path -LiteralPath $sourceLockPath -PathType Leaf)) {
-    Add-Failure 'The committed PSWriteOffice source lock is missing.'
-} else {
-    $sourceLock = Get-Content -LiteralPath $sourceLockPath -Raw | ConvertFrom-Json
-    $lockedSources = @($sourceLock.entries | Where-Object {
-        $_.repoInput -ceq 'EvotecIT/PSWriteOffice' -and
-        $_.repo -ceq 'https://github.com/EvotecIT/PSWriteOffice.git' -and
-        $_.destination -ceq './projects/pswriteoffice' -and
-        $_.commit -ceq $psWriteOfficeSource[0].Ref
-    })
-    if ($sourceLock.entries.Count -ne 1 -or $lockedSources.Count -ne 1) {
-        Add-Failure 'The PSWriteOffice source lock must contain one exact commit for its configured destination.'
-    }
+    $apiEvidence.sourceCommit -cnotmatch '^[0-9a-f]{40}$') {
+    Add-Failure 'The PowerShell API must identify its OfficeIMO source revision and public module version.'
 }
 $expectedApiDocsHomes = [ordered]@{
     'build-apidocs-html-rtf' = '/docs/html/'
@@ -516,7 +494,7 @@ $powerShellCatalog = Get-Content -LiteralPath $powerShellCatalogPath -Raw | Conv
 if ($powerShellCatalog.module.version -cne $psWriteOfficeVersion) {
     Add-Failure 'The PSWriteOffice catalog version must match the imported module manifest.'
 }
-$examplesPrefix = "https://github.com/EvotecIT/PSWriteOffice/tree/v$psWriteOfficeVersion/Examples"
+$examplesPrefix = "https://github.com/EvotecIT/OfficeIMO/tree/$($psWriteOfficeSource[0].Ref)/PowerShell/PSWriteOffice/Examples"
 foreach ($family in @($powerShellCatalog.families)) {
     $examplesUrl = [string] $family.examplesUrl
     if ($examplesUrl -cne $examplesPrefix -and
@@ -573,7 +551,7 @@ if ($powerShellExample.Count -ne 1) {
 
     $commandMetadataPath = Join-Path $SiteRoot 'data\apidocs\powershell\command-metadata.json'
     $commandMetadata = Get-Content -LiteralPath $commandMetadataPath -Raw | ConvertFrom-Json
-    $sourcePrefix = "https://github.com/EvotecIT/PSWriteOffice/blob/v$psWriteOfficeVersion/"
+    $sourcePrefix = "https://github.com/EvotecIT/OfficeIMO/blob/$($psWriteOfficeSource[0].Ref)/PowerShell/PSWriteOffice/"
     foreach ($command in @($commandMetadata.commands | Where-Object sourcePath)) {
         $relativeSourcePath = (($command.sourcePath -replace '\\', '/') -split '/' |
             ForEach-Object { [Uri]::EscapeDataString($_) }) -join '/'

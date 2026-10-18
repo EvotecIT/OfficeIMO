@@ -43,4 +43,4 @@ New-OfficeWord -Path $outputPath {
 
 ## Source
 
-- [Example-WordBasic.ps1](https://github.com/EvotecIT/PSWriteOffice/blob/main/Examples/Word/Example-WordBasic.ps1)
+- [Example-WordBasic.ps1](https://github.com/EvotecIT/OfficeIMO/blob/master/PowerShell/PSWriteOffice/Examples/Word/Example-WordBasic.ps1)

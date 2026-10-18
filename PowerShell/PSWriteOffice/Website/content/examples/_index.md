@@ -6,7 +6,7 @@ layout: docs
 
 These PSWriteOffice examples focus on small document automation patterns rather than the full generated output set. Each page uses normal installed-module loading with `Import-Module PSWriteOffice`.
 
-For complete business scenarios, use the [repository example library](https://github.com/EvotecIT/PSWriteOffice/blob/main/Examples/README.md). It groups focused DSL recipes, larger showcases, conversions, inspection workflows, and one shared-data status pack that creates Markdown, Word, Excel, PowerPoint, and PDF output.
+For complete business scenarios, use the [repository example library](https://github.com/EvotecIT/OfficeIMO/blob/master/PowerShell/PSWriteOffice/Examples/README.md). It groups focused DSL recipes, larger showcases, conversions, inspection workflows, and one shared-data status pack that creates Markdown, Word, Excel, PowerPoint, and PDF output.
 
 ## Examples
 

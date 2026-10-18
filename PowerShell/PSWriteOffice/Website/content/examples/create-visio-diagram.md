@@ -42,4 +42,4 @@ ConvertTo-OfficeVisioPng -Path $visioPath -OutputPath $pngPath
 
 ## Source
 
-- [Example-Visio-StencilFlow.ps1](https://github.com/EvotecIT/PSWriteOffice/blob/main/Examples/Visio/Example-Visio-StencilFlow.ps1)
+- [Example-Visio-StencilFlow.ps1](https://github.com/EvotecIT/OfficeIMO/blob/master/PowerShell/PSWriteOffice/Examples/Visio/Example-Visio-StencilFlow.ps1)

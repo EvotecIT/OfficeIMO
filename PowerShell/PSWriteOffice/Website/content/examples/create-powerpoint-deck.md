@@ -40,5 +40,5 @@ Close-OfficePowerPoint -Presentation $deck -Save
 
 ## Source
 
-- [Example-PowerPointTransitionsAndSizing.ps1](https://github.com/EvotecIT/PSWriteOffice/blob/main/Examples/PowerPoint/Example-PowerPointTransitionsAndSizing.ps1)
-- [Example-PowerPointSectionsAndImport.ps1](https://github.com/EvotecIT/PSWriteOffice/blob/main/Examples/PowerPoint/Example-PowerPointSectionsAndImport.ps1)
+- [Example-PowerPointTransitionsAndSizing.ps1](https://github.com/EvotecIT/OfficeIMO/blob/master/PowerShell/PSWriteOffice/Examples/PowerPoint/Example-PowerPointTransitionsAndSizing.ps1)
+- [Example-PowerPointSectionsAndImport.ps1](https://github.com/EvotecIT/OfficeIMO/blob/master/PowerShell/PSWriteOffice/Examples/PowerPoint/Example-PowerPointSectionsAndImport.ps1)

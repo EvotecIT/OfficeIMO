@@ -2,18 +2,33 @@ param(
     [ValidateSet('Manifest', 'Build', 'Publish')]
     [string] $RunMode = 'Build',
 
-    [bool] $SignModule = $true,
+    [bool] $SignModule = $false,
+
+    [bool] $IncludePackages = $true,
+
+    [switch] $ResumeIncompleteRelease,
 
     [string] $StagingPath,
+
+    [switch] $JsonOnly,
+
+    [string] $JsonPath,
 
     [switch] $SkipInstall,
 
     [switch] $PassThru
 )
 
+$ErrorActionPreference = 'Stop'
+if ($RunMode -eq 'Publish' -and (-not $IncludePackages -or -not $SignModule)) {
+    throw 'Publish requires the coordinated package build and signing. Use Build for unsigned local validation.'
+}
+if ($RunMode -eq 'Publish' -and [Environment]::OSVersion.Platform -ne [PlatformID]::Win32NT) {
+    throw 'Publish requires Windows so the module includes both PowerShell 7 and Windows PowerShell 5.1 payloads.'
+}
 Import-Module PSPublishModule -MinimumVersion 3.0.168 -Force -ErrorAction Stop
 
-Build-Module -ModuleName 'PSWriteOffice' -RunMode $RunMode {
+Build-Module -ModuleName 'PSWriteOffice' -Path "$PSScriptRoot/../.." -RunMode $RunMode {
     # Usual defaults as per standard module
     $Manifest = [ordered] @{
         # Minimum version of the Windows PowerShell engine required by this module
@@ -35,13 +50,20 @@ Build-Module -ModuleName 'PSWriteOffice' -RunMode $RunMode {
         # Tags applied to this module. These help with module discovery in online galleries.
         Tags                   = @('officeimo', 'word', 'excel', 'powerpoint', 'pdf', 'iwork', 'pages', 'numbers', 'keynote', 'onenote', 'ocr', 'provenance', 'security', 'opendocument', 'email', 'markdown', 'asciidoc', 'latex', 'csv', 'confluence', 'adf', 'atlassian', 'docx', 'xlsx', 'pptx', 'openxml', 'windows', 'linux', 'macos')
         # A URL to the main website for this project.
-        ProjectUri             = 'https://github.com/EvotecIT/PSWriteOffice'
+        ProjectUri             = 'https://github.com/EvotecIT/OfficeIMO'
 
-        LicenseUri             = 'https://github.com/EvotecIT/PSWriteOffice/blob/master/License'
+        LicenseUri             = 'https://github.com/EvotecIT/OfficeIMO/blob/master/LICENSE'
 
         DotNetFrameworkVersion = '4.7.2'
     }
     New-ConfigurationManifest @Manifest
+
+    if ($IncludePackages) {
+        New-ConfigurationProjectBuild -ConfigPath '../../Build/project.build.json' -BuildBeforeModule -UseAsReleaseVersionSource -UpdateVersions:($RunMode -eq 'Publish') `
+            -SignAssemblies:$SignModule -SignPackages:$SignModule
+        New-ConfigurationRelease -VersionSource ProjectBuild -PrimaryProject 'OfficeIMO.Word' -SynchronizeModuleVersion `
+            -BuildOrder Packages, Module -PublishOrder NuGet, PowerShellGallery, GitHub -ResumeIncompleteRelease:$ResumeIncompleteRelease
+    }
 
     $ConfigurationFormat = [ordered] @{
         RemoveComments                              = $false
@@ -98,7 +120,7 @@ Build-Module -ModuleName 'PSWriteOffice' -RunMode $RunMode {
         ResolveBinaryConflictsName        = 'PSWriteOffice'
         NETProjectName                    = 'PSWriteOffice'
         NETConfiguration                  = 'Release'
-        NETFramework                      = 'net8.0', 'net472'
+        NETFramework                      = @('net8.0'; if ([Environment]::OSVersion.Platform -eq [PlatformID]::Win32NT) { 'net472' })
         NETHandleAssemblyWithSameName     = $true
         NETProjectPath                    = 'Sources\PSWriteOffice\PSWriteOffice.csproj'
         NETAssemblyLoadContext            = $true
@@ -116,5 +138,6 @@ Build-Module -ModuleName 'PSWriteOffice' -RunMode $RunMode {
 
     # global options for publishing to github/psgallery
     New-ConfigurationPublish -Type PowerShellGallery -FilePath 'C:\Support\Important\PowerShellGalleryAPI.txt' -Enabled:$true
-    New-ConfigurationPublish -Type GitHub -FilePath 'C:\Support\Important\GitHubAPI.txt' -UserName 'EvotecIT' -Enabled:$true -GenerateReleaseNotes
-} -StagingPath $StagingPath -SkipInstall:$SkipInstall -PassThru:$PassThru -ExitCode:(-not $PassThru)
+    New-ConfigurationPublish -Type GitHub -FilePath 'C:\Support\Important\GitHubAPI.txt' -UserName 'EvotecIT' -RepositoryName 'OfficeIMO' `
+        -OverwriteTagName 'OfficeIMO-v{ModuleVersion}' -ReuseExistingRelease -Enabled:$true -GenerateReleaseNotes
+} -StagingPath $StagingPath -JsonOnly:$JsonOnly -JsonPath $JsonPath -SkipInstall:$SkipInstall -PassThru:$PassThru -ExitCode:(-not $PassThru)

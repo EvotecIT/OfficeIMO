@@ -49,5 +49,5 @@ ConvertTo-OfficePowerPointHtml -Path $deckPath -Profile VisualReview -OutputPath
 
 ## Source
 
-- [Example-ExcelHtmlReview.ps1](https://github.com/EvotecIT/PSWriteOffice/blob/main/Examples/Excel/Example-ExcelHtmlReview.ps1)
-- [Example-PowerPointHtmlReview.ps1](https://github.com/EvotecIT/PSWriteOffice/blob/main/Examples/PowerPoint/Example-PowerPointHtmlReview.ps1)
+- [Example-ExcelHtmlReview.ps1](https://github.com/EvotecIT/OfficeIMO/blob/master/PowerShell/PSWriteOffice/Examples/Excel/Example-ExcelHtmlReview.ps1)
+- [Example-PowerPointHtmlReview.ps1](https://github.com/EvotecIT/OfficeIMO/blob/master/PowerShell/PSWriteOffice/Examples/PowerPoint/Example-PowerPointHtmlReview.ps1)

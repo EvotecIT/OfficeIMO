@@ -1,11 +1,4 @@
 {
   "generatedAtUtc": "2026-10-11T12:42:41.3437812Z",
-  "entries": [
-    {
-      "repoInput": "EvotecIT/PSWriteOffice",
-      "repo": "https://github.com/EvotecIT/PSWriteOffice.git",
-      "destination": "./projects/pswriteoffice",
-      "commit": "c7a9d408e711859c7c71e8d498687086a4143f2f"
-    }
-  ]
+  "entries": []
 }

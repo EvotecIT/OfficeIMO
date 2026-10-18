@@ -1,4 +1,4 @@
-﻿<#
+<#
 .SYNOPSIS
 Reads command metadata in a clean PowerShell process, without build-tool assemblies.
 #>
@@ -110,7 +110,7 @@ try {
         if ($sourcePath) {
             $entry.sourcePath = $sourcePath
             $entry.sourceLine = $sourceLine
-            $entry.sourceUrl = "https://github.com/EvotecIT/PSWriteOffice/blob/main/$sourcePath#L$sourceLine"
+            $entry.sourceUrl = "https://github.com/EvotecIT/OfficeIMO/blob/master/PowerShell/PSWriteOffice/$sourcePath#L$sourceLine"
         }
         $entry
     }

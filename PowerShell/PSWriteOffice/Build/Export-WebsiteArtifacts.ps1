@@ -1,4 +1,4 @@
-﻿<#
+<#
 .SYNOPSIS
 Exports the PowerShell API help, command metadata and examples for the website.
 .DESCRIPTION
@@ -128,10 +128,13 @@ function Get-QualifiedSourceRevision {
     $pathComparison = if ([Environment]::OSVersion.Platform -eq [PlatformID]::Win32NT) {
         [StringComparison]::OrdinalIgnoreCase
     } else { [StringComparison]::Ordinal }
+    $expectedModuleRoot = if ($topLevelResult.ExitCode -eq 0 -and $topLevel.Count -eq 1) {
+        Join-Path $topLevel[0] 'PowerShell/PSWriteOffice'
+    }
     if ($topLevelResult.ExitCode -ne 0 -or $topLevel.Count -ne 1 -or
-        -not [string]::Equals((Resolve-Path -LiteralPath $topLevel[0]).ProviderPath.TrimEnd('\', '/'),
+        -not [string]::Equals([IO.Path]::GetFullPath($expectedModuleRoot).TrimEnd('\', '/'),
             $RepositoryRoot.TrimEnd('\', '/'), $pathComparison)) {
-        throw 'Website API export requires an exact Git source root.'
+        throw 'Website API export requires the OfficeIMO PowerShell module source root.'
     }
     $headResult = Invoke-SourceGit @('rev-parse', '--verify', 'HEAD')
     $head = $headResult.Output
@@ -141,7 +144,8 @@ function Get-QualifiedSourceRevision {
 
     # Provenance starts with a fresh build from committed source. SDK metadata is
     # an additional consistency check, not evidence for an arbitrary input bundle.
-    $packageCommits = @(if ($BeforeBuild) { $head[0] } else { foreach ($hostDirectory in 'Core', 'Default') {
+    $hostDirectories = @('Core'; if ([Environment]::OSVersion.Platform -eq [PlatformID]::Win32NT) { 'Default' })
+    $packageCommits = @(if ($BeforeBuild) { $head[0] } else { foreach ($hostDirectory in $hostDirectories) {
         $assemblyPath = Join-Path $ModuleRoot "Lib/$hostDirectory/PSWriteOffice.dll"
         if (-not (Test-Path -LiteralPath $assemblyPath -PathType Leaf)) {
             throw "The module bundle lacks its $hostDirectory assembly source provenance."
@@ -163,7 +167,7 @@ function Get-QualifiedSourceRevision {
         throw "Package source revision $($packageCommits[0]) is unavailable locally. Fetch this revision or deepen the checkout before exporting."
     }
     foreach ($manifestRevision in @($packageCommits[0], $head[0], '') | Select-Object -Unique) {
-        $packageManifestResult = Invoke-SourceGit @('show', "${manifestRevision}:PSWriteOffice.psd1")
+        $packageManifestResult = Invoke-SourceGit @('show', "${manifestRevision}:${sourcePrefix}PSWriteOffice.psd1")
         if ($packageManifestResult.ExitCode -ne 0) { throw 'A recorded source revision lacks its module manifest.' }
         $parseErrors = $null
         $tokens = $null
@@ -196,21 +200,25 @@ function Get-QualifiedSourceRevision {
         $untrackedInputs.ExitCode -ne 0 -or $untrackedInputs.Output.Count -gt 0) {
         throw 'The module bundle source does not match the selected API and build inputs. Rebuild it from this checkout.'
     }
+    # The module now compiles the engines from the same checkout. Their source and
+    # shared build settings are part of its provenance, even outside the module folder.
+    foreach ($arguments in @(
+        @('diff', '--quiet', 'HEAD', '--'),
+        @('diff', '--cached', '--quiet', 'HEAD', '--')
+    )) {
+        & git -C $topLevel[0] @arguments 'OfficeIMO.*' 'Directory.Build.*' 'global.json' 'Build'
+        if ($LASTEXITCODE -ne 0) {
+            throw 'The module bundle source does not match the selected API and build inputs. Commit the engine and shared build inputs first.'
+        }
+    }
     [PSCustomObject]@{ SourceCommit = [string]$head[0]; PackageSourceCommit = [string]$packageCommits[0] }
 }
 
+$sourcePrefix = 'PowerShell/PSWriteOffice/'
 $sourceBeforeBuild = Get-QualifiedSourceRevision -BeforeBuild
 $stagingPath = Join-Path $buildRoot ('PSWriteOffice-website-export-' + [guid]::NewGuid().ToString('N'))
-# Benchmark workflows intentionally enable sibling project references. This export
-# qualifies the committed package pins, so do not inherit that process preference.
-$previousProjectReferences = $env:UseOfficeIMOProjectReferences
-try {
-    $env:UseOfficeIMOProjectReferences = 'false'
-    $buildResults = @(& (Join-Path $RepositoryRoot 'Build\Build-Module.ps1') `
-        -RunMode Build -SignModule $false -SkipInstall -PassThru -StagingPath $stagingPath)
-} finally {
-    $env:UseOfficeIMOProjectReferences = $previousProjectReferences
-}
+$buildResults = @(& (Join-Path $RepositoryRoot 'Build/Build-Module.ps1') `
+    -RunMode Build -SignModule $false -IncludePackages $false -SkipInstall -PassThru -StagingPath $stagingPath)
 if (-not $? -or $buildResults.Count -ne 1 -or -not $buildResults[0].BuildResult) {
     throw 'PSWriteOffice module build did not return one completed build result.'
 }

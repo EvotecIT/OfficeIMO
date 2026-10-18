@@ -4,7 +4,7 @@ description: "Create a patch compliance report with padded table cells, a separa
 layout: docs
 ---
 
-The [patch compliance recipe](https://github.com/EvotecIT/PSWriteOffice/blob/main/Examples/Word/Recipe-Word-PatchCompliance.ps1) turns sample inventory objects into a one-page Word report and PDF. It keeps the headline, per-site table, chart and next steps visually separate.
+The [patch compliance recipe](https://github.com/EvotecIT/OfficeIMO/blob/master/PowerShell/PSWriteOffice/Examples/Word/Recipe-Word-PatchCompliance.ps1) turns sample inventory objects into a one-page Word report and PDF. It keeps the headline, per-site table, chart and next steps visually separate.
 
 ```powershell
 ./Examples/Word/Recipe-Word-PatchCompliance.ps1 -OutputDirectory ./Output

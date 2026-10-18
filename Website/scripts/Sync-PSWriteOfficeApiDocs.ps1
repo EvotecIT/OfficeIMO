@@ -26,49 +26,15 @@ $ErrorActionPreference = 'Stop'
 . (Join-Path $PSScriptRoot 'PSWriteOfficeApiDocs.Documentation.ps1')
 
 function Resolve-RepoRoot {
-    param(
-        [string] $SiteRootPath,
-        [string] $RequestedRoot
-    )
-
-    if (-not [string]::IsNullOrWhiteSpace($RequestedRoot)) {
-        try {
-            $resolvedRequestedRoot = (Resolve-Path -LiteralPath $RequestedRoot -ErrorAction Stop).Path
-        } catch {
-            throw "The explicit PSWriteOffice repository root '$RequestedRoot' was not found."
-        }
-
-        if (-not (Test-Path -LiteralPath (Join-Path $resolvedRequestedRoot 'PSWriteOffice.psd1') -PathType Leaf)) {
-            throw "The explicit PSWriteOffice repository root '$resolvedRequestedRoot' does not contain PSWriteOffice.psd1."
-        }
-
-        return $resolvedRequestedRoot
+    param([string] $SiteRootPath, [string] $RequestedRoot)
+    $candidate = if ($RequestedRoot) { $RequestedRoot } else {
+        Join-Path (Split-Path -Parent $SiteRootPath) 'PowerShell/PSWriteOffice'
     }
-
-    $candidates = @(
-        (Join-Path $SiteRootPath 'projects\pswriteoffice'),
-        (Join-Path (Split-Path -Parent $SiteRootPath) 'PSWriteOffice'),
-        'C:\Support\GitHub\PSWriteOffice',
-        '/mnt/c/Support/GitHub/PSWriteOffice'
-    )
-
-    foreach ($candidate in ($candidates | Select-Object -Unique)) {
-        if ([string]::IsNullOrWhiteSpace($candidate)) {
-            continue
-        }
-
-        try {
-            $resolved = (Resolve-Path -LiteralPath $candidate -ErrorAction Stop).Path
-        } catch {
-            continue
-        }
-
-        if (Test-Path -LiteralPath (Join-Path $resolved 'PSWriteOffice.psd1') -PathType Leaf) {
-            return $resolved
-        }
+    $resolved = (Resolve-Path -LiteralPath $candidate -ErrorAction Stop).Path
+    if (-not (Test-Path -LiteralPath (Join-Path $resolved 'PSWriteOffice.psd1') -PathType Leaf)) {
+        throw 'The OfficeIMO checkout must contain PowerShell/PSWriteOffice.'
     }
-
-    return $null
+    return $resolved
 }
 
 function Sync-DirectoryContents {
@@ -218,19 +184,19 @@ function Set-PSWriteOfficeSourceLinks {
         [Parameter(Mandatory)] $Source
     )
 
-    if ($Source.Repo -cne 'EvotecIT/PSWriteOffice' -or [string]::IsNullOrWhiteSpace($Source.Ref)) {
+    if ($Source.Repo -cne 'EvotecIT/OfficeIMO' -or [string]::IsNullOrWhiteSpace($Source.Ref)) {
         throw 'PSWriteOffice API source links require the configured repository and a pinned source ref.'
     }
     $metadata = Get-Content -LiteralPath $MetadataPath -Raw | ConvertFrom-Json -Depth 40
     $module = Import-PowerShellDataFile -LiteralPath (Join-Path (Split-Path -Parent $MetadataPath) 'PSWriteOffice.psd1')
-    $publicRef = 'v' + [string] $module.ModuleVersion
+    $publicRef = $Source.Ref
     $sourcePrefix = "https://github.com/$($Source.Repo)/blob/$([Uri]::EscapeDataString($publicRef))/"
     $changed = $false
     foreach ($command in @($metadata.commands)) {
         if ([string]::IsNullOrWhiteSpace($command.sourcePath)) { continue }
         $sourcePath = (($command.sourcePath -replace '\\', '/') -split '/' |
             ForEach-Object { [Uri]::EscapeDataString($_) }) -join '/'
-        $sourceUrl = $sourcePrefix + $sourcePath
+        $sourceUrl = $sourcePrefix + 'PowerShell/PSWriteOffice/' + $sourcePath
         if ([int] $command.sourceLine -gt 0) { $sourceUrl += "#L$($command.sourceLine)" }
         if ($command.sourceUrl -cne $sourceUrl) {
             $command.sourceUrl = $sourceUrl
@@ -244,38 +210,15 @@ function Set-PSWriteOfficeSourceLinks {
 }
 
 $resolvedSiteRoot = (Resolve-Path -LiteralPath $SiteRoot).Path
-$siteConfiguration = Get-Content -LiteralPath (Join-Path $resolvedSiteRoot 'site.json') -Raw | ConvertFrom-Json
-$powerShellSource = @($siteConfiguration.Sources | Where-Object Slug -CEQ 'pswriteoffice')
-if ($powerShellSource.Count -ne 1) { throw 'The website must configure exactly one PSWriteOffice source.' }
 $resolvedRepoRoot = Resolve-RepoRoot -SiteRootPath $resolvedSiteRoot -RequestedRoot $PSWriteOfficeRoot
-if ($resolvedRepoRoot) {
-    $sourceHead = & git -C $resolvedRepoRoot rev-parse --verify HEAD 2>$null
-    $headExitCode = $LASTEXITCODE
-    $pinnedCommit = & git -C $resolvedRepoRoot rev-parse --verify "$($powerShellSource[0].Ref)^{commit}" 2>$null
-    $pinExitCode = $LASTEXITCODE
-    $syncManifestPath = Join-Path $resolvedSiteRoot '.powerforge/git-sync-manifest.json'
-    if ($pinExitCode -ne 0 -and (Test-Path -LiteralPath $syncManifestPath -PathType Leaf)) {
-        # PowerForge can fetch a release into FETCH_HEAD without creating a local tag.
-        $syncManifest = Get-Content -LiteralPath $syncManifestPath -Raw | ConvertFrom-Json
-        $syncedSource = @($syncManifest.entries | Where-Object {
-            $_.repo -ceq "https://github.com/$($powerShellSource[0].Repo).git" -and
-            $_.requestedRef -ceq $powerShellSource[0].Ref -and $_.destination -ceq $resolvedRepoRoot
-        })
-        if ($syncedSource.Count -eq 1 -and $syncedSource[0].resolvedRef -cmatch '^[0-9a-f]{7,64}$') {
-            $pinnedCommit = & git -C $resolvedRepoRoot rev-parse --verify "$($syncedSource[0].resolvedRef)^{commit}" 2>$null
-            $pinExitCode = $LASTEXITCODE
-        }
-    }
-    $sourceChanges = @(& git -C $resolvedRepoRoot status --porcelain --untracked-files=all 2>$null)
-    $statusExitCode = $LASTEXITCODE
-    if ($headExitCode -ne 0 -or $pinExitCode -ne 0 -or $statusExitCode -ne 0 -or
-        $sourceHead -cne $pinnedCommit -or $sourceChanges.Count -gt 0) {
-        if (-not [string]::IsNullOrWhiteSpace($PSWriteOfficeRoot)) {
-            throw "The explicit PSWriteOffice source must be clean and checked out at '$($powerShellSource[0].Ref)'."
-        }
-        Write-Host "The local PSWriteOffice source is not a clean '$($powerShellSource[0].Ref)' checkout. Keeping the checked-in release snapshot." -ForegroundColor Yellow
-        $resolvedRepoRoot = $null
-    }
+$sourceHead = (& git -C $resolvedRepoRoot rev-parse --verify HEAD).Trim()
+if ($LASTEXITCODE -ne 0) { throw 'Cannot identify the OfficeIMO source revision.' }
+$powerShellSource = @([pscustomobject]@{ Repo = 'EvotecIT/OfficeIMO'; Ref = $sourceHead })
+if (-not $ExportedArtifactsRoot) {
+    $outputRoot = Join-Path ([IO.Path]::GetTempPath()) ('officeimo-powershell-api-' + [guid]::NewGuid().ToString('N'))
+    $ExportedArtifactsRoot = Join-Path $outputRoot 'artifacts'
+    $null = & (Join-Path $resolvedRepoRoot 'Build/Export-WebsiteArtifacts.ps1') `
+        -RepositoryRoot $resolvedRepoRoot -ArtifactsRoot $ExportedArtifactsRoot -BuildOutputRoot $outputRoot -ArtifactsOnly
 }
 $targetRoot = Join-Path $resolvedSiteRoot 'data\apidocs\powershell'
 $targetHelpPath = Join-Path $targetRoot 'PSWriteOffice-Help.xml'
@@ -310,33 +253,6 @@ $summary = [ordered]@{
     apiSnapshotSource = 'checked-in'
     expectedCommandCount = $null
     sourceBundleStatus = $null
-}
-
-if (-not $resolvedRepoRoot) {
-    $snapshotCatalog = Get-Content -LiteralPath (Join-Path $resolvedSiteRoot 'data/pswriteoffice_command_catalog.json') -Raw | ConvertFrom-Json
-    $snapshotCommands = @(Get-ManifestCommandNames -Path $targetManifestPath)
-    $checkedInBundle = Test-ApiBundle -ManifestPath $targetManifestPath -HelpPath $targetHelpPath `
-        -MetadataPath $targetCommandMetadataPath -ExpectedCommands $snapshotCommands `
-        -ExpectedVersion ([version]$snapshotCatalog.module.version) -ExpectedSourceCommit $powerShellSource[0].Ref
-    if (-not $checkedInBundle.Valid -or $snapshotCommands.Count -ne $snapshotCatalog.module.commandCount) {
-        throw "The checked-in PowerShell API snapshot is invalid: $($checkedInBundle.Reason)."
-    }
-    $summary.expectedCommandCount = $snapshotCommands.Count
-    if (-not $SkipDocumentation) {
-        $catalogEvidence = Assert-DocumentationCatalogSnapshot -CatalogPath $targetCatalogPath -EvidencePath $catalogEvidencePath -SiteRootPath $resolvedSiteRoot `
-            -ExpectedSourceRef $powerShellSource[0].Ref -ExpectedVersion ([version]$snapshotCatalog.module.version) -ExpectedCommandCount $snapshotCommands.Count
-    }
-    $summary.commandMetadataUpdated = Set-PSWriteOfficeSourceLinks -MetadataPath $targetCommandMetadataPath -Source $powerShellSource[0]
-    if ($summary.commandMetadataUpdated) { Update-ApiBundleMetadataEvidence -ApiRoot $targetRoot }
-    if (-not $SkipDocumentation) {
-        $linkUpdates = Set-PSWriteOfficeDocumentationSnapshot -SiteRootPath $resolvedSiteRoot -Source $powerShellSource[0]
-        $summary.documentationCatalogUpdated = $linkUpdates.CatalogUpdated
-        $summary.documentationUpdated = $linkUpdates.DocumentationUpdated
-        Save-DocumentationCatalogEvidence -CatalogPath $targetCatalogPath -EvidencePath $catalogEvidencePath -SiteRootPath $resolvedSiteRoot -Evidence $catalogEvidence
-    }
-    Write-Host 'No matching PSWriteOffice release checkout found. Keeping checked-in PowerShell API snapshot.' -ForegroundColor Yellow
-    [PSCustomObject] $summary
-    return
 }
 
 # Source documents and examples are copied into publishable site content.
@@ -395,29 +311,19 @@ if (Test-Path -LiteralPath $gitDirectory) {
     $summary.sourceCommit = (& git -C $resolvedRepoRoot rev-parse HEAD 2>$null | Select-Object -First 1)
 }
 
-if ($sourceBundle.Valid) {
-    Copy-Item -LiteralPath $resolvedHelpPath -Destination $targetHelpPath -Force
-    $summary.helpSource = $resolvedHelpPath
-    $summary.helpUpdated = $true
-
-    Copy-Item -LiteralPath $resolvedManifestPath -Destination $targetManifestPath -Force
-    $summary.manifestSource = $resolvedManifestPath
-    $summary.manifestUpdated = $true
-
-    Copy-Item -LiteralPath $resolvedCommandMetadataPath -Destination $targetCommandMetadataPath -Force
-    Copy-Item -LiteralPath $resolvedBundleManifestPath -Destination $targetBundleManifestPath -Force
-    $summary.commandMetadataSource = $resolvedCommandMetadataPath
-    $summary.commandMetadataUpdated = $true
-    $summary.fallbackUsed = $false
-    $summary.apiSnapshotSource = 'source-bundle'
-} elseif ($checkedInBundle.Valid) {
-    Write-Host "PSWriteOffice WebsiteArtifacts are stale ($($sourceBundle.Reason)). Keeping the complete checked-in $($expectedCommands.Count)-command snapshot." -ForegroundColor Yellow
-    $summary.helpSource = $targetHelpPath
-    $summary.manifestSource = $targetManifestPath
-    $summary.commandMetadataSource = $targetCommandMetadataPath
-} else {
-    throw "No complete PSWriteOffice API snapshot is available. Source bundle: $($sourceBundle.Reason). Checked-in bundle: $($checkedInBundle.Reason)."
+if (-not $sourceBundle.Valid) {
+    throw "The current OfficeIMO PowerShell API bundle is invalid: $($sourceBundle.Reason)."
 }
+Sync-DirectoryContents -Source $websiteArtifactsRoot -Destination $targetRoot
+$summary.sourceCommit = $sourceHead
+$summary.helpSource = $resolvedHelpPath
+$summary.helpUpdated = $true
+$summary.manifestSource = $resolvedManifestPath
+$summary.manifestUpdated = $true
+$summary.commandMetadataSource = $resolvedCommandMetadataPath
+$summary.commandMetadataUpdated = $true
+$summary.fallbackUsed = $false
+$summary.apiSnapshotSource = 'current-source'
 
 $sourceLinksUpdated = Set-PSWriteOfficeSourceLinks -MetadataPath $targetCommandMetadataPath -Source $powerShellSource[0]
 if ($sourceLinksUpdated) { Update-ApiBundleMetadataEvidence -ApiRoot $targetRoot }
