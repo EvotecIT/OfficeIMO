@@ -11,9 +11,10 @@ enum StudioCapturePageReadiness {
     }
 
     #if os(macOS)
-    /// Window screenshots can include system alerts drawn above the app. Check
-    /// front-to-back window metadata without reading unrelated window titles.
-    static func isWindowUnoccluded(processIdentifier: Int32, frame: CGRect,
+    /// Rejects other window edges crossing the capture. Full-screen transparent
+    /// system surfaces also appear in this list; their geometry cannot establish
+    /// pixel occlusion. Content recognition and final image review remain required.
+    static func hasNoPartialWindowOverlap(processIdentifier: Int32, frame: CGRect,
                                    windows: [[String: Any]]) -> Bool {
         func bounds(_ window: [String: Any]) -> CGRect? {
             guard let dictionary = window[kCGWindowBounds as String] as? [String: Any] else { return nil }
@@ -29,7 +30,7 @@ enum StudioCapturePageReadiness {
               }) else { return false }
         for window in windows.prefix(target) where visible(window) {
             guard let rectangle = bounds(window) else { return false }
-            if rectangle.intersects(frame) { return false }
+            if rectangle.intersects(frame) && !rectangle.contains(frame) { return false }
         }
         return true
     }

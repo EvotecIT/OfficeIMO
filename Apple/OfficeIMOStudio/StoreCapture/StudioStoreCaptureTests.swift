@@ -114,12 +114,19 @@ final class StudioStoreCaptureTests: XCTestCase {
                 lastError = "The capture app is not in the foreground."
                 continue
             }
+            let windows = CGWindowListCopyWindowInfo([.optionOnScreenOnly, .excludeDesktopElements], kCGNullWindowID) as? [[String: Any]] ?? []
+            let captureFrame = viewport.frame
             guard let processIdentifier = expectedPID,
-                  let windows = CGWindowListCopyWindowInfo([.optionOnScreenOnly, .excludeDesktopElements], kCGNullWindowID) as? [[String: Any]],
-                  StudioCapturePageReadiness.isWindowUnoccluded(processIdentifier: processIdentifier,
-                      frame: viewport.frame, windows: windows) else {
+                  StudioCapturePageReadiness.hasNoPartialWindowOverlap(processIdentifier: processIdentifier,
+                      frame: captureFrame, windows: windows) else {
                 stableSince = nil
-                lastError = "The capture window is covered or its visibility could not be verified."
+                // Retain only geometry and process identity, never other window
+                // titles, so a rejected native run can explain its classification.
+                let keys = [kCGWindowOwnerPID, kCGWindowBounds, kCGWindowAlpha, kCGWindowLayer]
+                let metadata = windows.map { window in
+                    Dictionary(uniqueKeysWithValues: keys.map { ($0 as String, window[$0 as String] ?? NSNull()) })
+                }
+                lastError = "Another window crosses the capture, or the target window could not be verified. PID=\(expectedPID ?? -1), frame=\(captureFrame), window metadata=\(metadata)"
                 continue
             }
             #endif
