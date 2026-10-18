@@ -1,12 +1,14 @@
 using System;
 using System.IO;
+using OfficeIMO.Reader.Internal.IO;
 
 namespace OfficeIMO.Reader;
 
 /// <summary>
-/// Core-owned atomic file publication used by Reader materializers.
+/// Stages Reader materializations and coordinates publication through the shared destination claim.
 /// </summary>
 internal static class ReaderFileCommit {
+    /// <summary>Publishes completed bytes, preserving existing destinations when overwrite is disabled.</summary>
     internal static void WriteAllBytes(string path, byte[] bytes, bool overwrite = true) {
         if (path == null) throw new ArgumentNullException(nameof(path));
         if (bytes == null) throw new ArgumentNullException(nameof(bytes));
@@ -23,7 +25,14 @@ internal static class ReaderFileCommit {
             "." + Path.GetFileName(fullPath) + "." + Guid.NewGuid().ToString("N") + ".tmp");
         try {
             File.WriteAllBytes(temporaryPath, bytes);
-            if (overwrite && File.Exists(fullPath)) {
+            if (!overwrite) {
+                using (OfficeFileCommitClaim claim = OfficeFileCommitClaim.Acquire(fullPath)) {
+                    if (File.Exists(fullPath)) {
+                        throw new IOException("Destination file '" + fullPath + "' already exists.");
+                    }
+                    File.Move(temporaryPath, fullPath);
+                }
+            } else if (File.Exists(fullPath)) {
                 File.Replace(temporaryPath, fullPath, null);
             } else {
                 File.Move(temporaryPath, fullPath);
