@@ -203,12 +203,14 @@ internal sealed partial class HtmlRenderLayoutEngine {
         var runningStringAssignments = new List<HtmlCssRunningStringAssignment>();
         var continuationBreakProgress = new List<HtmlInlineBreakProgress>();
         var forcedBreaks = new List<HtmlRenderForcedBreak>();
+        var lineBreakGroups = new List<HtmlRenderLineBreakGroup>();
         double continuationHeight = 0D;
         double trailingStart = 0D;
         double trailingHeight = 0D;
         var navigationDestinations = new List<HtmlRenderVisual>();
         bool collectingLeadingHeaders = true;
-        IReadOnlyList<bool> canBreakAfterRows = ResolveRowBreakAvailability(rowLayouts);
+        IReadOnlyList<bool> canBreakAfterRows = ResolveRowBreakAvailability(rowLayouts, verticalSpacing,
+            out IReadOnlyList<bool> hasSpanningCellsAfterRows);
         if (caption != null && caption.Side == "top") AppendTableCaption(visuals, caption, style.MarginLeft, style.MarginTop);
         bool paintSeparateBorders = style.BorderCollapse != "collapse";
         int tablePaintStart = visuals.Count;
@@ -270,6 +272,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 if (!cell.Anonymous) AddElementNamedDestination(navigationDestinations, cell.Element, cellX, rowY, navigationDestinations.Count);
                 double textX = cellX + cell.Style.BorderLeftWidth + cell.Style.PaddingLeft;
                 double textY = rowY + cell.ContentOffsetY;
+                if (cell.RowSpan > 1 && !row.IsHeader && !row.IsFooter)
+                    AppendSpanningCellLineBreakGroups(lineBreakGroups, cell, textY);
                 foreach (HtmlRenderVisual visual in cell.Inline.Visuals) {
                     cellVisuals.Add(visual.Translate(textX, textY, cellVisuals.Count));
                 }
@@ -311,6 +315,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
 
             bool rowIndependent = !row.IsHeader
                 && !row.IsFooter
+                && !hasSpanningCellsAfterRows[rowIndex]
+                && (rowIndex == 0 || !hasSpanningCellsAfterRows[rowIndex - 1])
                 && canBreakAfterRows[rowIndex]
                 && (rowIndex == 0 || canBreakAfterRows[rowIndex - 1]);
             if (rowIndependent
@@ -355,7 +361,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                     nextBodyRow = candidate;
                     break;
                 }
-                if (nextBodyRow?.ContinuationElement != null) {
+                if (!hasSpanningCellsAfterRows[rowIndex] && nextBodyRow?.ContinuationElement != null) {
                     continuationBreakProgress.Add(new HtmlInlineBreakProgress(rowY, 0, nextBodyRow.ContinuationElement));
                 }
             }
@@ -478,6 +484,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
             style.AvoidBreakInside,
             source,
             breakOffsets,
+            lineBreakGroups: lineBreakGroups,
             trailingGroups: trailingGroups,
             continuationVisuals: semanticContinuationVisuals,
             continuationHeight: continuationHeight,
@@ -619,61 +626,6 @@ internal sealed partial class HtmlRenderLayoutEngine {
         }
         if (includedRows > 1) height += verticalSpacing * (includedRows - 1);
         return height;
-    }
-
-    private static IReadOnlyList<bool> ResolveRowBreakAvailability(IReadOnlyList<TableRowLayout> rows) {
-        var result = new bool[rows.Count];
-        int occupiedThrough = -1;
-        for (int rowIndex = 0; rowIndex < rows.Count; rowIndex++) {
-            foreach (TableCellLayout cell in rows[rowIndex].Cells) {
-                occupiedThrough = Math.Max(occupiedThrough, rowIndex + cell.RowSpan - 1);
-            }
-
-            result[rowIndex] = occupiedThrough <= rowIndex;
-        }
-
-        for (int rowIndex = 0; rowIndex + 1 < rows.Count; rowIndex++) {
-            TableRowLayout current = rows[rowIndex];
-            TableRowLayout next = rows[rowIndex + 1];
-            if (current.Style.AvoidBreakAfter || next.Style.AvoidBreakBefore) result[rowIndex] = false;
-            if (current.GroupElement != null
-                && ReferenceEquals(current.GroupElement, next.GroupElement)
-                && current.GroupStyle?.AvoidBreakInside == true) {
-                result[rowIndex] = false;
-            }
-        }
-
-        return result;
-    }
-
-    private static void AddTableRowInternalBreakOffsets(ICollection<double> breakOffsets, TableRowLayout row, double rowY) {
-        var candidates = new SortedSet<double>();
-        foreach (TableCellLayout cell in row.Cells) {
-            double contentTop = cell.ContentOffsetY;
-            foreach (double offset in cell.Inline.BreakOffsets) {
-                // These offsets already end actual laid-out lines. Subtracting
-                // computed CSS leading can discard the penultimate line when
-                // its selected font has a different used normal advance.
-                if (offset < cell.Inline.Height - 0.0001D) candidates.Add(contentTop + offset);
-            }
-        }
-
-        foreach (double candidate in candidates) {
-            bool safeForEveryCell = true;
-            foreach (TableCellLayout cell in row.Cells) {
-                double contentTop = cell.ContentOffsetY;
-                double relative = candidate - contentTop;
-                if (relative <= 0.0001D) continue;
-                if (relative >= cell.Inline.Height - 0.0001D) continue;
-                if (!cell.Inline.BreakOffsets.Any(offset => Math.Abs(offset - relative) <= 0.0001D)) {
-                    safeForEveryCell = false;
-                    break;
-                }
-            }
-            if (safeForEveryCell && candidate > 0.0001D && candidate < row.Height - 0.0001D) {
-                breakOffsets.Add(rowY + candidate);
-            }
-        }
     }
 
     private static bool IsTableCell(IElement element) => string.Equals(element.TagName, "td", StringComparison.OrdinalIgnoreCase) || string.Equals(element.TagName, "th", StringComparison.OrdinalIgnoreCase);
