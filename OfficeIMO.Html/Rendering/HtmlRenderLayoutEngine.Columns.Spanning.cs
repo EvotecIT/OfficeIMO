@@ -16,35 +16,34 @@ internal sealed partial class HtmlRenderLayoutEngine {
         string source,
         out HtmlRenderFlowBlock block) {
         block = null!;
-        IReadOnlyList<MultiColumnSpanPartition> partitions = ResolveMultiColumnSpanPartitions(element, contentWidth, style);
+        IReadOnlyList<MultiColumnSpanPartition> partitions = ResolveMultiColumnSpanPartitions(element, contentWidth, style, columnWidth, depth);
         if (partitions.Count <= 1) return false;
 
         var pieces = new List<HtmlRenderFlowBlock>();
         bool pagedColumnRegion = _columnContentDepth == 0 && CanPaginateColumnRegion(element, style);
         bool directSpanners = _columnContentDepth == 0
             && (_options.Mode != HtmlRenderMode.Paged || pagedColumnRegion);
-        bool hasSpannerPageControls = false;
+        bool hasPrecedingSpanner = false;
         ColumnPaginationContext? columnContext = null;
         double contentHeight = 0D;
         for (int index = 0; index < partitions.Count; index++) {
             CheckCancellation();
             ChargeLayoutOperation("spanning column partition");
             MultiColumnSpanPartition partition = partitions[index];
-            IReadOnlyList<HtmlRenderFlowBlock> children = BuildMultiColumnChildBlocks(
-                element,
-                partition.Nodes,
-                columnWidth,
-                style,
-                depth,
-                includeGeneratedBefore: index == 0,
-                includeGeneratedAfter: index == partitions.Count - 1);
+            IReadOnlyList<HtmlRenderFlowBlock> children;
+            using (EnterColumnSourcePartition(partition)) {
+                children = BuildMultiColumnChildBlocks(
+                    element, partition.Nodes, columnWidth, style, depth,
+                    includeGeneratedBefore: index == 0,
+                    includeGeneratedAfter: index == partitions.Count - 1);
+            }
             bool childPageBreaks = BuildColumnFlowBreaks(children).HasPageBreaks;
             if (childPageBreaks) {
                 _diagnostics.Add(ComponentName, HtmlRenderDiagnosticCodes.MultiColumnValueUnsupported,
                     "Authored page breaks inside multi-column content retain the source-flow fallback.",
                     HtmlDiagnosticSeverity.Warning, source, "page breaks in column content");
             }
-            HtmlRenderFlowBlock? prefix = directSpanners && hasSpannerPageControls
+            HtmlRenderFlowBlock? prefix = directSpanners && hasPrecedingSpanner
                 && partition.Spanner == null && children.Count > 0 && !childPageBreaks
                 ? BuildSpanningFlowBlock(pieces.Concat(new[] { children[0] }).ToArray(), contentWidth, source, true)
                 : null;
@@ -72,10 +71,12 @@ internal sealed partial class HtmlRenderLayoutEngine {
 
             if (partition.Spanner == null || partition.SpannerStyle == null) continue;
             RecordNormalFlowPlacement(partition.Spanner, element, 0D, contentHeight, partition.SpannerStyle);
-            HtmlRenderFlowBlock spanner = LayoutColumnSpanner(partition.Spanner, contentWidth, partition.SpannerStyle, style, depth + 1);
-            hasSpannerPageControls |= HasSpannerPageControls(spanner, partition.SpannerStyle);
-            if (spanner.ForcedBreaks.Any(item => IsForcedPageBreak(item.Target))
-                || !directSpanners && (IsForcedPageBreak(spanner.BreakBefore) || IsForcedPageBreak(spanner.BreakAfter)
+            HtmlRenderFlowBlock spanner = LayoutColumnSpanner(partition.Spanner, contentWidth,
+                partition.SpannerStyle, partition.SpannerParentStyle, partition.SpannerDepth);
+            spanner = ApplyColumnSpannerAncestorSemantics(spanner, partition.SpannerAncestors);
+            hasPrecedingSpanner = true;
+            if (!directSpanners && (spanner.ForcedBreaks.Any(item => IsForcedPageBreak(item.Target))
+                || IsForcedPageBreak(spanner.BreakBefore) || IsForcedPageBreak(spanner.BreakAfter)
                     || partition.SpannerStyle.AvoidBreakBeforeScope != HtmlFragmentationScope.None
                     || partition.SpannerStyle.AvoidBreakAfterScope != HtmlFragmentationScope.None)) {
                 _diagnostics.Add(ComponentName, HtmlRenderDiagnosticCodes.MultiColumnValueUnsupported,
@@ -87,7 +88,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
             contentHeight += spanner.Height;
         }
 
-        HtmlRenderFlowBlock content = BuildSpanningFlowBlock(pieces, contentWidth, source, directSpanners);
+        HtmlRenderFlowBlock content = ApplyColumnSourceOpacity(
+            BuildSpanningFlowBlock(pieces, contentWidth, source, directSpanners), partitions);
         IReadOnlyList<HtmlRenderVisual> contentVisuals = content.Visuals;
         IReadOnlyList<double> contentBreakOffsets = content.BreakOffsets;
         var contentSafeBreakRanges = new List<HtmlRenderBreakRange>(content.SafeBreakRanges);
@@ -188,38 +190,6 @@ internal sealed partial class HtmlRenderLayoutEngine {
         }
     }
 
-    private IReadOnlyList<MultiColumnSpanPartition> ResolveMultiColumnSpanPartitions(
-        IElement element,
-        double contentWidth,
-        HtmlRenderBoxStyle parentStyle) {
-        var partitions = new List<MultiColumnSpanPartition>();
-        var nodes = new List<INode>();
-        foreach (INode node in element.ChildNodes) {
-            if (node is not IElement child || ShouldSkipElement(child)) {
-                nodes.Add(node);
-                continue;
-            }
-
-            HtmlRenderBoxStyle childStyle = _styleResolver.Resolve(child, contentWidth, parentStyle);
-            bool isSpanner = childStyle.Display != "none"
-                && childStyle.ColumnSpan == "all"
-                && childStyle.FloatSide == "none"
-                && !ShouldExtractOutOfFlow(childStyle)
-                && HtmlRenderStyleResolver.IsBlockElement(child, childStyle);
-            if (!isSpanner) {
-                nodes.Add(node);
-                continue;
-            }
-
-            partitions.Add(new MultiColumnSpanPartition(nodes, child, childStyle));
-            nodes = new List<INode>();
-        }
-
-        if (partitions.Count == 0) return Array.Empty<MultiColumnSpanPartition>();
-        partitions.Add(new MultiColumnSpanPartition(nodes, null, null));
-        return partitions;
-    }
-
     private HtmlRenderFlowBlock? BuildMultiColumnPartition(
         IElement owner,
         IReadOnlyList<HtmlRenderFlowBlock> children,
@@ -237,6 +207,11 @@ internal sealed partial class HtmlRenderLayoutEngine {
         out ColumnPaginationContext? columnContext) {
         columnContext = null;
         if (children.Count == 0) return null;
+        // Empty ancestor fragments still carry source navigation and boundary
+        // facts. They do not allocate a minimum-height column set between two
+        // adjacent spanners, which could otherwise displace a fitting line.
+        if (children.All(child => child.Height == 0D))
+            return BuildSpanningFlowBlock(children, contentWidth, source, false);
 
         var visuals = new List<HtmlRenderVisual>();
         var breakOffsets = new SortedSet<double>();
@@ -314,15 +289,4 @@ internal sealed partial class HtmlRenderLayoutEngine {
             runningStringAssignments: runningStringAssignments);
     }
 
-    private sealed class MultiColumnSpanPartition {
-        internal MultiColumnSpanPartition(IEnumerable<INode> nodes, IElement? spanner, HtmlRenderBoxStyle? spannerStyle) {
-            Nodes = new List<INode>(nodes).AsReadOnly();
-            Spanner = spanner;
-            SpannerStyle = spannerStyle;
-        }
-
-        internal IReadOnlyList<INode> Nodes { get; }
-        internal IElement? Spanner { get; }
-        internal HtmlRenderBoxStyle? SpannerStyle { get; }
-    }
 }

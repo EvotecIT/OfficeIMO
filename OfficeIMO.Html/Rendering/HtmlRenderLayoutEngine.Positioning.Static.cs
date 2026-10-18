@@ -4,6 +4,7 @@ namespace OfficeIMO.Html;
 
 internal sealed partial class HtmlRenderLayoutEngine {
     private void RecordNormalFlowPlacement(IElement element, IElement parent, double x, double y, HtmlRenderBoxStyle style) {
+        if (!IsFirstColumnSourceFragment(element) && _normalFlowPlacements.ContainsKey(element)) return;
         _normalFlowPlacements[element] = new NormalFlowPlacement(parent, x, y, style.Clone());
         _layoutStyles[element] = style.Clone();
     }

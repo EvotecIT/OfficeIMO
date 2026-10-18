@@ -40,7 +40,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         if (prefix != null) {
             if (!TryResolveSpanningPageOrigin(prefix, precedingHeight, ownerContext, out ColumnPaginationContext terminal)) {
                 _diagnostics.Add(ComponentName, HtmlRenderDiagnosticCodes.MultiColumnValueUnsupported,
-                    "Spanner page controls retain source column allocation because their physical origin could not be mapped safely.",
+                    "Spanning column content retains source column allocation because its physical page origin could not be mapped safely.",
                     HtmlDiagnosticSeverity.Warning, HtmlRenderStyleResolver.DescribeSource(owner),
                     "spanner physical page origin");
                 ownerContext = null;

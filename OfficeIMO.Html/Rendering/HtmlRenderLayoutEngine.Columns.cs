@@ -493,6 +493,10 @@ internal sealed partial class HtmlRenderLayoutEngine {
         if (style.UnsupportedColumnFill.Length > 0) details.Add("column-fill=" + style.UnsupportedColumnFill);
         if (style.UnsupportedColumnSpan.Length > 0) details.Add("column-span=" + style.UnsupportedColumnSpan);
         if (style.UnsupportedColumnRule.Length > 0) details.Add(style.UnsupportedColumnRule);
+        if (_columnContentDepth > 0 && style.BoxDecorationBreak == "clone"
+            && HtmlRenderStyleResolver.IsBlockElement(element, style)
+            && (style.VerticalInsets > 0D || style.MarginTop != 0D || style.MarginBottom != 0D))
+            details.Add("block box-decoration-break=clone at column/page boundaries");
         if (_columnContentDepth > 0 && style.UnsupportedColumnBreaks.Length > 0
             && !HasOrdinaryColumnBreakContext(element, style))
             details.Add(style.UnsupportedColumnBreaks.TrimStart(';'));

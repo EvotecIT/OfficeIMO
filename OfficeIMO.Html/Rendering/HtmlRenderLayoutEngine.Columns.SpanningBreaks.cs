@@ -1,15 +1,11 @@
 namespace OfficeIMO.Html;
 
 internal sealed partial class HtmlRenderLayoutEngine {
-    private static bool HasSpannerPageControls(HtmlRenderFlowBlock block, HtmlRenderBoxStyle style) =>
-        IsForcedPageBreak(block.BreakBefore) || IsForcedPageBreak(block.BreakAfter)
-        || ((style.AvoidBreakBeforeScope | style.AvoidBreakAfterScope | style.AvoidBreakInsideScope)
-            & HtmlFragmentationScope.Page) != 0;
-
     /// <summary>
     /// Joins projected column sets and full-width source blocks without changing
-    /// their source coordinates. Only the direct spanner's own page controls are
-    /// promoted; its internal forced-break fallback remains diagnosed separately.
+    /// their source coordinates. Qualified direct spanners retain page breaks
+    /// through the ordinary sibling-boundary owner, including internal breaks.
+    /// Column-only controls have no enclosing column target outside their set.
     /// </summary>
     private HtmlRenderFlowBlock BuildSpanningFlowBlock(IReadOnlyList<HtmlRenderFlowBlock> pieces,
         double width, string source, bool directSpanners) {
@@ -19,6 +15,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         var lines = new List<HtmlRenderLineBreakGroup>();
         var keeps = new List<HtmlRenderAvoidBreakRange>();
         var forced = new List<HtmlRenderForcedBreak>();
+        var spannerForced = new List<HtmlRenderForcedBreak>();
         var assignments = new List<HtmlCssRunningStringAssignment>();
         object[] boundaries = CreateFlowBoundaries(pieces);
         double height = 0D;
@@ -38,13 +35,9 @@ internal sealed partial class HtmlRenderLayoutEngine {
             if (!spanner) {
                 AppendChildForcedBreaks(pieces, index, height, forced, boundaries);
             } else if (directSpanners) {
-                if (IsForcedPageBreak(piece.BreakBefore))
-                    forced.Add(new HtmlRenderForcedBreak(height, piece.BreakBefore, boundary: boundaries[index],
-                        edge: index == 0 ? HtmlRenderBreakEdge.Leading : HtmlRenderBreakEdge.Interior));
-                if (IsForcedPageBreak(piece.BreakAfter))
-                    forced.Add(new HtmlRenderForcedBreak(height + piece.Height, piece.BreakAfter,
-                        boundary: boundaries[index + 1],
-                        edge: index == pieces.Count - 1 ? HtmlRenderBreakEdge.Trailing : HtmlRenderBreakEdge.Interior));
+                spannerForced.Clear();
+                AppendChildForcedBreaks(pieces, index, height, spannerForced, boundaries);
+                forced.AddRange(spannerForced.Where(item => IsForcedPageBreak(item.Target)));
             }
             foreach (HtmlRenderVisual visual in piece.Visuals)
                 visuals.Add(visual.Translate(0D, height, visuals.Count));
@@ -72,12 +65,16 @@ internal sealed partial class HtmlRenderLayoutEngine {
 
     /// <summary>
     /// Uses the canonical fragment planner to locate the terminal set after
-    /// forced page jumps and fitting page keeps. The preview includes its first
-    /// source block so a spanner's keep-after can move the spanner too.
+    /// natural fragmentation, forced page jumps and fitting page keeps. The
+    /// preview includes its first source block so a spanner's keep-after can move
+    /// the spanner too, and a completed fragment cannot donate page slack to it.
     /// </summary>
     private bool TryResolveSpanningPageOrigin(HtmlRenderFlowBlock prefix, double terminalStart,
         ColumnPaginationContext owner, out ColumnPaginationContext terminal) {
         terminal = owner;
+        // The retained column mapping requires one stable page name and body
+        // geometry. Internal page breaks must not silently qualify named pages.
+        if (prefix.ForcedBreaks.Any(item => item.ChangesPageName)) return false;
         double start = 0D;
         double remaining = owner.Boundary.RemainingHeight;
         int page = owner.PageNumber;
@@ -87,12 +84,12 @@ internal sealed partial class HtmlRenderLayoutEngine {
             PagedBlockFragment? fragment = PlanPagedFragment(prefix, start, remaining, owner.PageHeight,
                 remaining >= owner.PageHeight - 0.0001D);
             if (fragment != null && (fragment.Forced || fragment.SuppressedHeader || fragment.SuppressedFooter)) return false;
-            if (fragment != null && fragment.End >= terminalStart - 0.0001D) {
+            if (fragment != null && fragment.End > terminalStart + 0.0001D) {
                 remaining -= terminalStart - start;
-                start = terminalStart;
-                if (remaining > 0.0001D
-                    && ResolveForcedBreakAt(prefix.ForcedBreaks, terminalStart) == HtmlPageBreakTarget.None) break;
+                break;
             } else if (fragment != null) {
+                // The outer paginator commits every unfinished source fragment,
+                // including one ending at terminalStart with unused body space.
                 start = fragment.End;
             }
             HtmlPageBreakTarget target = ResolveForcedBreakAt(prefix.ForcedBreaks, start);

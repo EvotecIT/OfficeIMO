@@ -254,19 +254,17 @@ public sealed partial class HtmlRenderingTests {
     [Theory]
     [InlineData("nested")]
     [InlineData("nested-column")]
-    public void HtmlColumns_SpannerBreaksPreserveContentAndReportTheUnqualifiedCombination(string boundary) {
-        bool nested = boundary.StartsWith("nested", StringComparison.Ordinal);
-        string value = boundary.EndsWith("column", StringComparison.Ordinal) ? "column"
-            : boundary.EndsWith("avoid-page", StringComparison.Ordinal) ? "avoid-page" : "page";
-        string spanner = nested
-            ? "<div style='column-span:all'><p>SPAN</p><p style='break-before:" + value + "'>NESTED</p></div>"
-            : "<p style='column-span:all;break-" + (boundary.StartsWith("after", StringComparison.Ordinal) ? "after" : "before")
-                + ":" + value + "'>SPAN</p>";
+    public void HtmlColumns_InternalSpannerControlsRetainOnlyTheUnqualifiedColumnBoundaryWarning(string boundary) {
+        bool column = boundary == "nested-column";
+        string spanner = "<div style='column-span:all'><p>SPAN</p><p style='break-before:"
+            + (column ? "column" : "page") + "'>NESTED</p></div>";
         HtmlRenderDocument rendered = RenderColumnBreaks("<p>P1</p>" + spanner + "<p>T1</p>");
 
         AssertColumnPageBandTextOnce(rendered, new[] { "P1", "SPAN", "T1", "BREAK-AFTER" });
-        if (nested) AssertColumnPageBandTextOnce(rendered, new[] { "NESTED" });
-        Assert.Contains(rendered.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.MultiColumnValueUnsupported);
-        Assert.Throws<HtmlConversionException>(() => rendered.RequireNoLoss());
+        AssertColumnPageBandTextOnce(rendered, new[] { "NESTED" });
+        if (column) {
+            Assert.Contains(rendered.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.MultiColumnValueUnsupported);
+            Assert.Throws<HtmlConversionException>(() => rendered.RequireNoLoss());
+        } else AssertColumnBreaksQualified(rendered);
     }
 }

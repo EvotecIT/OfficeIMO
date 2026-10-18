@@ -161,7 +161,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
         HtmlRenderBoxStyle parentStyle,
         out int zIndex) {
         zIndex = 0;
-        if (!_generatedContent.TryGetContent(element, kind, out _)
+        if (!IncludeColumnGeneratedContent(element, kind)
+            || !_generatedContent.TryGetContent(element, kind, out _)
             || !_styleResolver.TryResolvePseudo(element, kind, containingWidth, parentStyle, out HtmlRenderBoxStyle style)
             || !CanPositionGeneratedContentLocally(style, parentStyle)) return false;
         zIndex = ResolvePositionedZIndex(element, style);

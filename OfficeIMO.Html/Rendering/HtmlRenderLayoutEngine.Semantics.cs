@@ -6,10 +6,11 @@ internal sealed partial class HtmlRenderLayoutEngine {
     private HtmlRenderFlowBlock ApplyElementSemantics(HtmlRenderFlowBlock block, IElement element, HtmlRenderBoxStyle style) {
         RegisterBookmark(element, style);
         ReportUnsupportedSemanticTag(element, style);
-        block = AddTargetPageAnchor(block, element, Math.Max(0D, style.MarginTop));
+        if (IsFirstColumnSourceFragment(element))
+            block = AddTargetPageAnchor(block, element, Math.Max(0D, style.MarginTop));
         int nodeId = GetSemanticNodeId(element);
         string structureElementKey = "html-element:" + nodeId.ToString(System.Globalization.CultureInfo.InvariantCulture);
-        if (ShouldAssignNavigationNode(style) && !style.BookmarkSuppressed) {
+        if (IsFirstColumnSourceFragment(element) && ShouldAssignNavigationNode(style) && !style.BookmarkSuppressed) {
             string anchorText = ResolveBookmarkAnchorText(element, style);
             if (anchorText.Length > 0 && !ContainsBookmarkAnchor(block.Visuals, nodeId)) {
                 block = block.WithVisuals(block.Visuals.Concat(new HtmlRenderVisual[] {
@@ -35,6 +36,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
             // Each flex container supplies the parent scope for item source indices.
             // Independent untagged rows must not interleave their logical children.
             if (style.Display == "flex" || style.Display == "inline-flex") role = HtmlRenderSemanticGroupRole.Division;
+            else if (TryGetColumnSourceFragment(element, out _)) role = HtmlRenderSemanticGroupRole.Division;
             else return WrapEditableLayoutRegion(listBlock, element, style);
         }
         HtmlRenderFlowBlock semanticBlock = WrapSemanticBlock(listBlock, role,
@@ -243,6 +245,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         FlattenedSemanticBoundary boundary,
         bool firstFragment, int? logicalOrder = null) {
         double anchorTop = Math.Max(0D, block.CollapsibleMarginTop);
+        firstFragment &= IsFirstColumnSourceFragment(boundary.Element);
         if (firstFragment) block = AddTargetPageAnchor(block, boundary.Element, anchorTop);
         string anchorText = boundary.AnchorText.Length > 0
             ? boundary.AnchorText

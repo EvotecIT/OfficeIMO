@@ -15,7 +15,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         ICollection<HtmlFloatExclusion>? emittedFloats = null, InlineFloatContext? floatContext = null) =>
         BuildChildBlocks(
             container,
-            container.ChildNodes,
+            SelectedColumnChildNodes(container),
             width,
             parentStyle,
             depth,
@@ -41,6 +41,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
         IReadOnlyList<HtmlFloatExclusion>? inheritedFloats = null,
         ICollection<HtmlFloatExclusion>? emittedFloats = null, InlineFloatContext? floatContext = null) {
         EnsureDepth(depth, container);
+        includeGeneratedBefore &= IncludeColumnGeneratedContent(container, HtmlPseudoElementKind.Before);
+        includeGeneratedAfter &= IncludeColumnGeneratedContent(container, HtmlPseudoElementKind.After);
         bool ownsFloatContext = floatContext == null;
         floatContext ??= new InlineFloatContext(width, inheritedFloats);
         if (container.TagName.Equals("details", StringComparison.OrdinalIgnoreCase) && !container.HasAttribute("open")) {
@@ -99,7 +101,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 }
 
                 HtmlRenderBoxStyle childStyle = _styleResolver.Resolve(element, width, parentStyle);
-                childStyle = ForwardContainingHeightBasis(element, childStyle, parentStyle);
+                childStyle = ResolveColumnFragmentStyle(element,
+                    ForwardContainingHeightBasis(element, childStyle, parentStyle));
                 if (childStyle.Display == "none") {
                     continue;
                 }
