@@ -197,9 +197,33 @@ public sealed partial class HtmlRenderingTests {
             warning => warning.Code == HtmlRenderDiagnosticCodes.FormFieldTransformStaticFallback);
         Assert.Empty(PdfCore.PdfInspector.Inspect(pdf).FormFields);
         var root = SourceOrderRoot(pdf, out var elements);
-        var spans = Assert.Single(PdfCore.PdfReadDocument.Open(pdf).Pages).GetTextSpans();
         Assert.Equal(new[] { "Heading", "Before", "FieldValue", "After" },
-            root.ChildElementObjectNumbers.Select(id => OwnedText(elements[id])));
+            SourceOrderOwnedText(pdf, root, elements));
+    }
+
+    [Theory]
+    [InlineData("inline", "", "Div")]
+    [InlineData("inline-block", "", "Div")]
+    [InlineData("inline", "-officeimo-pdf-tag-type:section;", "Sect")]
+    public void HtmlPdf_TaggedSourceOrderScopesInlineFrameWithinParagraph(string display, string style, string frameRole) {
+        string html = SourceOrderStyles(400)
+            + "<section><h1>Heading</h1><p>Before<iframe style='display:" + display + ";" + style + "width:100px;height:60px'"
+            + " srcdoc='&lt;p&gt;Inside&lt;/p&gt;'></iframe>After</p></section>";
+        byte[] pdf = HtmlConversionDocument.Parse(html).ToPdfBytes(SourceOrderOptions());
+        var root = SourceOrderRoot(pdf, out var elements);
+        // Spatial extraction sees the frame's higher line first. Tagged reading
+        // follows the source owners around that independently positioned content.
+        Assert.Equal(new[] { "Heading", "BeforeInsideAfter" }, SourceOrderOwnedText(pdf, root, elements));
+        Assert.Equal(new[] { "H1", "P" }, root.ChildElementObjectNumbers.Select(id => elements[id].StructureType));
+        var paragraph = elements[root.ChildElementObjectNumbers[1]];
+        Assert.Equal(new[] { "Span", frameRole, "Span" },
+            paragraph.ChildElementObjectNumbers.Select(id => elements[id].StructureType));
+    }
+
+    private static string[] SourceOrderOwnedText(byte[] pdf, PdfCore.PdfStructureElementInfo root,
+        Dictionary<int, PdfCore.PdfStructureElementInfo> elements) {
+        var spans = Assert.Single(PdfCore.PdfReadDocument.Open(pdf).Pages).GetTextSpans();
+        return root.ChildElementObjectNumbers.Select(id => OwnedText(elements[id])).ToArray();
 
         string OwnedText(PdfCore.PdfStructureElementInfo item) =>
             string.Concat(item.MarkedContentReferences.SelectMany(reference =>

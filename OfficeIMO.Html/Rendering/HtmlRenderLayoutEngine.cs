@@ -120,6 +120,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
         _limits = (limits ?? HtmlConversionLimits.CreateUntrustedProfile()).Clone();
         _initialLogicalTextOrder = Math.Max(0, logicalTextOrderStart);
         _initialSemanticNodeId = Math.Max(0, semanticNodeIdStart);
+        _nextLogicalTextOrder = _initialLogicalTextOrder;
+        _nextSemanticNodeId = _initialSemanticNodeId;
         _operationBudget = operationBudget ?? new HtmlRenderOperationBudget();
         _computedStyles = computedStyles;
         InitializeSemanticSourceOrder(document);

@@ -248,6 +248,12 @@ internal sealed partial class HtmlRenderLayoutEngine {
             AddGeneratedInlineRun(element, HtmlPseudoElementKind.Before, width, containingHeight, style, link, paintOffsetX, paintOffsetY, targetRuns);
 
         if (IsReplacedImageElementTag(tag)) {
+            if (IsInlineFrameElement(element)) {
+                // The child document allocates logical text orders immediately.
+                // Reserve preceding inline text before entering that document.
+                AssignLogicalTextOrders(runs);
+                if (!ReferenceEquals(targetRuns, runs)) AssignLogicalTextOrders(targetRuns);
+            }
             AddInlineImageRun(element, style, link, paintOffsetX, paintOffsetY, targetRuns);
             AddUnicodeBidiBoundaryRun(style, element, opening: false, paintOffsetX, paintOffsetY, targetRuns);
             AppendSemanticInlineRuns(element, style, semanticRuns, runs, link, paintOffsetX, paintOffsetY);
