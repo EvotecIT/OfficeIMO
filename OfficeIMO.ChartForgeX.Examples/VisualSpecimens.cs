@@ -25,6 +25,7 @@ internal static class VisualSpecimens {
         var result = new List<VisualSpecimen>();
         foreach (var mode in new[] { VisualThemeMode.Light, VisualThemeMode.Dark }) {
             var chart = Chart.Create()
+                .WithXLabels("1", "2", "3", "4", "5", "6")
                 .AddLine("Observed", new[] { new ChartPoint(1, 42), new ChartPoint(2, 58), new ChartPoint(3, 73),
                     new ChartPoint(4, 91), new ChartPoint(5, 67), new ChartPoint(6, 82) })
                 .AddLine("Capacity", new[] { new ChartPoint(1, 100), new ChartPoint(2, 100), new ChartPoint(3, 100),
