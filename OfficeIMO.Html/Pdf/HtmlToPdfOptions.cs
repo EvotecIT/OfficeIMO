@@ -146,7 +146,7 @@ public sealed class HtmlToPdfOptions : HtmlRenderOptions {
         set => base.TextShapingProvider = value;
     }
 
-    /// <summary>Host-resource policy. Defaults to balanced conversion: system fonts and bounded in-source resources are allowed, while local and remote reads are denied.</summary>
+    /// <summary>Host-resource policy. Defaults to library-selected installed fonts and bounded in-source resources; document-selected host fonts, local files and remote reads are disabled.</summary>
     public PdfCore.PdfResourcePolicy ResourcePolicy {
         get => _resourcePolicy;
         set => _resourcePolicy = value ?? throw new ArgumentNullException(nameof(value));
