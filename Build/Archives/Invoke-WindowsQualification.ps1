@@ -12,6 +12,7 @@ $repo = Split-Path (Split-Path $PSScriptRoot -Parent) -Parent
 $checkoutCommit = & git -C $repo rev-parse --verify HEAD
 if ($LASTEXITCODE -ne 0 -or $checkoutCommit -notmatch '^[0-9a-f]{40}$') { throw 'Cannot identify the qualification checkout commit.' }
 $OutputPath = [IO.Path]::GetFullPath($OutputPath)
+$FeedPath = [IO.Path]::GetFullPath($FeedPath)
 if (Test-Path -LiteralPath $OutputPath) { throw 'Use a fresh task-owned output directory.' }
 $reports = Join-Path $OutputPath 'reports'
 $null = New-Item -ItemType Directory -Path $reports
