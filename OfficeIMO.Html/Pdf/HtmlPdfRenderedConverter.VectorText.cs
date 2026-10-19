@@ -280,13 +280,21 @@ internal static partial class HtmlPdfRenderedConverter {
             cursor += run.Advance;
         }
 
+        // A selected glyph such as a space can have advance and logical source
+        // without ink. Keep its admitted result and ActualText; absence of contours
+        // alone must not send it through a fresh text-shaping fallback.
+        bool retainedEmptyRun = allContours.Count == 0 && runs.All(run => run.PreparedShaping != null);
         if (!TryResolveContourBounds(
                 allContours,
                 out double minimumX,
                 out double minimumY,
                 out double maximumX,
                 out double maximumY)) {
-            return false;
+            if (!retainedEmptyRun) return false;
+            minimumX = textX;
+            minimumY = lineMetrics.TextTop;
+            maximumX = textX + resolvedAdvance;
+            maximumY = minimumY + Math.Max(0.01D, visual.Font.Size);
         }
         OutlinedTextFrame frame = ResolveOutlinedTextFrame(
             visual.X,
@@ -320,7 +328,7 @@ internal static partial class HtmlPdfRenderedConverter {
                 decorationThickness,
                 webFonts.OutlineBudget);
         }
-        if (paintGroups.Count == 0 && decorationCommands.Count == 0) return false;
+        if (paintGroups.Count == 0 && decorationCommands.Count == 0 && !retainedEmptyRun) return false;
 
         double drawingWidth = frame.Width;
         double drawingHeight = frame.Height;
@@ -346,15 +354,18 @@ internal static partial class HtmlPdfRenderedConverter {
         string? linkDestination = !suppressLink && IsFragmentLink(visual.LinkUri)
             ? MapNamedDestination(visual.LinkUri!.Substring(1))
             : null;
-        Action<PdfCore.PdfPageCanvas> addDrawing = target => target.Drawing(
-            drawing,
-            frame.X * PointsPerCssPixel,
-            frame.Y * PointsPerCssPixel,
-            drawingWidth * PointsPerCssPixel,
-            drawingHeight * PointsPerCssPixel,
-            style: new PdfCore.PdfDrawingStyle { Decorative = true },
-            linkUri: link,
-            linkContents: link == null ? null : visual.Text);
+        Action<PdfCore.PdfPageCanvas> addDrawing = target => {
+            if (drawing.Elements.Count == 0) return;
+            target.Drawing(
+                drawing,
+                frame.X * PointsPerCssPixel,
+                frame.Y * PointsPerCssPixel,
+                drawingWidth * PointsPerCssPixel,
+                drawingHeight * PointsPerCssPixel,
+                style: new PdfCore.PdfDrawingStyle { Decorative = true },
+                linkUri: link,
+                linkContents: link == null ? null : visual.Text);
+        };
         Action<PdfCore.PdfPageCanvas> addDrawingAndLink = target => {
             addDrawing(target);
             if (linkDestination != null) {
