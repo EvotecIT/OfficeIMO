@@ -33,20 +33,23 @@ public static partial class ArchiveReader {
         using var snapshot = new MemoryStream();
         long inputMaximum = Math.Min(limits.Input, int.MaxValue);
         var buffer = new byte[81920];
+        limits.Operation.AdmitInput(0);
         while (true) {
             cancellationToken.ThrowIfCancellationRequested();
             long remaining = inputMaximum - snapshot.Length;
             int read = source.Read(buffer, 0, remaining >= buffer.Length ? buffer.Length : (int)remaining + 1);
             if (read == 0) break;
             if (read > remaining) throw ArchiveLimits.Exceeded(nameof(ArchiveReadOptions.MaxInputBytes), inputMaximum);
+            limits.Operation.AdmitInput(read);
             snapshot.Write(buffer, 0, read);
         }
-        return Read(snapshot, limits, cancellationToken);
+        return Read(snapshot, limits, cancellationToken, inputAdmitted: true);
     }
 
-    private static IReadOnlyList<ArchiveEntryData> Read(Stream source, ArchiveLimits limits, CancellationToken token) {
+    private static IReadOnlyList<ArchiveEntryData> Read(Stream source, ArchiveLimits limits, CancellationToken token, bool inputAdmitted = false) {
         token.ThrowIfCancellationRequested();
         if (ArchiveExtractor.Detect(source, token) != ArchiveFormat.Zip) throw new NotSupportedException("A ZIP archive is required.");
+        if (!inputAdmitted) limits.Operation.AdmitInput(source.Length);
         var files = new List<ArchiveEntryData>();
         ZipArchiveContent.Read(source, limits, (path, payload, length) => {
             ArchiveLimits.Check(length, Math.Min(limits.Entry, int.MaxValue), nameof(ArchiveReadOptions.MaxEntryBytes));

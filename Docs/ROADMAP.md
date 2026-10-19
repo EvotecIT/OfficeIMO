@@ -446,10 +446,10 @@ Qualify complete script-free HtmlForgeX reports through the shared HTML scene an
 
 ## Archive containers
 
-- [ ] Assess lazy entry streams only against a real workflow, with explicit owner and disposal contracts; keep application selection in thin consumers.
-- [ ] Add structured verification diagnostics and reported resource usage. Use one cumulative budget for nested containers across inspection, reading and extraction.
-- [ ] Extend independent producer fixtures for ZIP64, streaming descriptors, CAB and MSI across supported runtimes. Define an explicit legacy filename-encoding policy and qualify Polish names from Windows Explorer and 7-Zip without guessing the host code page.
-- [ ] Qualify TAR/GZip when a concrete cross-platform ingestion workflow requires them. Assess archive creation, deterministic bundles, encryption and additional compression providers separately against actual consumers, compatibility and dependency approval.
+- [ ] Qualify native Windows Shell production of Polish-filename ZIPs on a suitable Windows target with the [opt-in qualification runner](../Build/Archives/README.md#verified-cabmsi-copy-evidence), retaining the fixture, producer/Windows version, input hash, raw encoding policy and complete expected member bytes. Qualify interactive Explorer UI behavior separately. Keep both distinct from required Windows runtime CI, the existing Windows-labelled ASCII corpus and CPython CP1250 fixtures.
+- [ ] Extend named native MSI/CAB producer profiles beyond the qualified makecab and 7-Zip MSI inputs, retaining exact package/fixture hashes and complete expected bytes. Keep installed .NET Framework 4.7.2 runtime evidence distinct from the net472 consumer qualified on .NET Framework 4.8.
+
+TAR/GZip, archive creation, deterministic bundles, encryption, RAR/7z, split archives and installer execution remain deferred. Reassess format expansion only for an identified consumer workflow, with compatibility and dependency approval. Lazy member streams and file-backed CAB/MSI input or selected output need a separate lifetime and verification contract.
 
 ## Email artifacts and archives
 

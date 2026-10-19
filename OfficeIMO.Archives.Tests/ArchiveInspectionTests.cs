@@ -23,11 +23,13 @@ public sealed class ArchiveInspectionTests {
     }
 
     [Fact]
-    public void ZipExtractionSupportDoesNotDispatchPassiveInspectionToTheMsiReader() {
+    public void EmptyZipInspectionPreservesTheCallerPositionAndOwnership() {
         using var source = new MemoryStream();
         using (var zip = new System.IO.Compression.ZipArchive(source, System.IO.Compression.ZipArchiveMode.Create, leaveOpen: true)) { }
         source.Position = 3;
-        Assert.Throws<NotSupportedException>(() => ArchiveInspector.Open(source));
+        using var inspection = ArchiveInspector.Open(source);
+        Assert.Equal(ArchiveFormat.Zip, inspection.Format);
+        Assert.Empty(inspection.Entries);
         Assert.Equal(3, source.Position);
         Assert.True(source.CanRead);
     }

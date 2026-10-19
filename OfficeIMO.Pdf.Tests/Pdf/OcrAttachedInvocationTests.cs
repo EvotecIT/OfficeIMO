@@ -22,8 +22,9 @@ public sealed class OcrAttachedInvocationTests {
             finally { cleaning.TrySetResult(true); await release.Task; }
             return new OcrResult();
         }, new OcrEngineCapabilities { SupportsConcurrentRequests = concurrent });
+        // Exercise cleanup after admission; allow worker startup on a loaded .NET Framework test host.
         Task<OcrResult> operation = OcrEngineRunner.CreateExecution(engine).RecognizeAttachedAsync(new(),
-            deadline ? TimeSpan.FromMilliseconds(250) : TimeSpan.FromSeconds(30), new(1, 1, 0), cancellation.Token);
+            deadline ? TimeSpan.FromSeconds(5) : TimeSpan.FromSeconds(30), new(1, 1, 0), cancellation.Token);
         try {
             Assert.Same(entered.Task, await Task.WhenAny(entered.Task, Task.Delay(TimeSpan.FromSeconds(10)))); await entered.Task;
             if (!deadline) cancellation.Cancel();

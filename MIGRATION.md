@@ -1,5 +1,9 @@
 # Upgrading OfficeIMO
 
+## Verified archive copying
+
+`ArchiveInspection.CopyTo` stages ZIP, CAB and embedded MSI cabinet members in private temporary storage before writing verified content to the destination. Set `ArchiveInspectionOptions.MaxTemporaryBytes` when copying members larger than the default 256 MiB staging allowance. Raising `MaxEntryBytes` alone does not raise this disk limit. Input snapshots retain their separate `MaxInputBytes` policy.
+
 ## PSWriteOffice repository and coordinated releases
 
 PSWriteOffice is maintained in [OfficeIMO](https://github.com/EvotecIT/OfficeIMO),

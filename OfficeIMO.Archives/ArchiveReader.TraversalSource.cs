@@ -4,8 +4,6 @@ using System.IO;
 using System.IO.Compression;
 using System.Linq;
 using OfficeIMO.Core.Internal;
-using System.Globalization;
-using System.Runtime.InteropServices;
 using System.Threading;
 
 namespace OfficeIMO.Archives;
@@ -53,34 +51,23 @@ public static partial class ArchiveReader {
         if (!source.CanSeek) return SnapshotCurrentPosition(source, maximumBytes, cancellationToken);
 
         long originalPosition = source.Position;
+        Stream? snapshot = null;
         try {
             if (source.Length > maximumBytes) {
                 throw new InvalidDataException($"ZIP source exceeds MaxArchiveBytes ({maximumBytes}).");
             }
             source.Position = 0;
-            return SnapshotCurrentPosition(source, maximumBytes, cancellationToken);
+            snapshot = SnapshotCurrentPosition(source, maximumBytes, cancellationToken);
+            return snapshot;
         } finally {
-            source.Position = originalPosition;
+            try { source.Position = originalPosition; }
+            catch { snapshot?.Dispose(); throw; }
         }
     }
 
     private static Stream SnapshotCurrentPosition(Stream source, long maximumBytes,
         CancellationToken cancellationToken) {
-        string directory = Path.Combine(Path.GetTempPath(),
-            "officeimo-zip-" + Guid.NewGuid().ToString("N"));
-        if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows)) {
-            Directory.CreateDirectory(directory);
-        } else if (CreatePrivateDirectoryUnix(directory, 0x1C0) != 0) {
-            throw new IOException("Unable to create private ZIP snapshot directory (OS error " +
-                Marshal.GetLastWin32Error().ToString(CultureInfo.InvariantCulture) + ").");
-        }
-        PrivateSnapshotFileStream output;
-        try {
-            output = new PrivateSnapshotFileStream(Path.Combine(directory, "source.tmp"), directory);
-        } catch {
-            TryDeleteSnapshotDirectory(directory);
-            throw;
-        }
+        var output = ArchiveTemporaryFile.Create();
         try {
             var buffer = new byte[81920];
             long total = 0;
@@ -102,34 +89,4 @@ public static partial class ArchiveReader {
         }
     }
 
-    private static void TryDeleteSnapshotDirectory(string directory) {
-        try {
-            Directory.Delete(directory, recursive: true);
-        } catch (IOException) {
-            // DeleteOnClose removes the source; directory cleanup is best effort.
-        } catch (UnauthorizedAccessException) {
-            // DeleteOnClose removes the source; directory cleanup is best effort.
-        }
-    }
-
-    private sealed class PrivateSnapshotFileStream : FileStream {
-        private readonly string _directory;
-
-        internal PrivateSnapshotFileStream(string path, string directory) : base(path,
-            FileMode.CreateNew, FileAccess.ReadWrite, FileShare.None, 81920,
-            FileOptions.DeleteOnClose | FileOptions.SequentialScan) {
-            _directory = directory;
-        }
-
-        protected override void Dispose(bool disposing) {
-            try {
-                base.Dispose(disposing);
-            } finally {
-                if (disposing) TryDeleteSnapshotDirectory(_directory);
-            }
-        }
-    }
-
-    [DllImport("libc", EntryPoint = "mkdir", SetLastError = true)]
-    private static extern int CreatePrivateDirectoryUnix(string path, uint mode);
 }

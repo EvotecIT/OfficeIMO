@@ -1,0 +1,76 @@
+{
+  "license": "CC0-1.0; original test text and generated fixture archives dedicated to the public domain. No producer binaries are included.",
+  "fixtures": [
+    {
+      "file": "7zip-utf8.zip",
+      "producer": "7-Zip 26.04 macOS arm64",
+      "command": "7zz a -tzip -mm=Deflate -mcu=on <output> zażółć-gęślą-jaźń.txt",
+      "legacyCodePage": null,
+      "entries": [
+        {
+          "name": "zażółć-gęślą-jaźń.txt",
+          "sha256": "8dd3fd133f46b851a92ba369df6329c69bced4753400b66a56694f9beccb6cd2",
+          "length": 57
+        }
+      ],
+      "sha256": "3331c79451dfae4c73712991d5f2fe49468fdec5f85b17222cad6bfc1e5e67ca"
+    },
+    {
+      "file": "python-streaming.zip",
+      "producer": "CPython 3.9.6 zipfile",
+      "command": "ZipFile(nonseekable, compression=ZIP_DEFLATED).open(name, w, force_zip64=False)",
+      "legacyCodePage": null,
+      "entries": [
+        {
+          "name": "zażółć-gęślą-jaźń.txt",
+          "sha256": "8dd3fd133f46b851a92ba369df6329c69bced4753400b66a56694f9beccb6cd2",
+          "length": 57
+        }
+      ],
+      "sha256": "fce71581b4e5902922e75709d6d153e9a8d2fd9967a4cb3b272aa7ad453522a1"
+    },
+    {
+      "file": "python-streaming-zip64.zip",
+      "producer": "CPython 3.9.6 zipfile",
+      "command": "ZipFile(nonseekable, compression=ZIP_DEFLATED).open(name, w, force_zip64=True)",
+      "legacyCodePage": null,
+      "entries": [
+        {
+          "name": "zażółć-gęślą-jaźń.txt",
+          "sha256": "8dd3fd133f46b851a92ba369df6329c69bced4753400b66a56694f9beccb6cd2",
+          "length": 57
+        }
+      ],
+      "sha256": "241d6e262111cbc6aa6072e3fcebf335e73fc49c7a5f95f4b0db929039a69482"
+    },
+    {
+      "file": "7zip-unflagged-utf8.zip",
+      "producer": "7-Zip 26.04 macOS arm64",
+      "command": "7zz a -tzip -mcl=on -mcp=1250 output.zip zażółć-gęślą-jaźń.txt",
+      "note": "POSIX local encoding is UTF-8 despite the requested numeric code page. Recorded bytes are unflagged UTF-8, not CP1250.",
+      "legacyCodePage": 65001,
+      "entries": [
+        {
+          "name": "zażółć-gęślą-jaźń.txt",
+          "sha256": "8dd3fd133f46b851a92ba369df6329c69bced4753400b66a56694f9beccb6cd2",
+          "length": 57
+        }
+      ],
+      "sha256": "e0545d79ecab4bfb57e3d3abad375493f9387c1d3ef2f9c3147b39409296eaf8"
+    },
+    {
+      "file": "python-cp1250.zip",
+      "producer": "CPython 3.9.6 zipfile with explicit CP1250 filename encoder",
+      "command": "ZipFile.writestr(ZipInfo subclass overriding _encodeFilenameFlags to cp1250, payload)",
+      "legacyCodePage": 1250,
+      "entries": [
+        {
+          "name": "zażółć-gęślą-jaźń.txt",
+          "sha256": "8dd3fd133f46b851a92ba369df6329c69bced4753400b66a56694f9beccb6cd2",
+          "length": 57
+        }
+      ],
+      "sha256": "9df59c1300eed632e718bf82639faa2aa35c37ba4992f0da8b023814980cf26d"
+    }
+  ]
+}

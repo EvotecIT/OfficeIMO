@@ -18,6 +18,7 @@ public sealed partial class ArchiveInspection {
         StorageStreams = Array.AsReadOnly(streams.Select((stream, index) =>
             new ArchiveStorageStream(index, stream.DirectoryOrder, stream.Name, stream.Size)).ToArray());
         IReadOnlyList<MsiPayloadFile> files = _database.ReadFiles(out IReadOnlyList<string> cabinetNames, inspection: true);
+        _limits.Operation.AdmitEntries(files.Count);
         ArchiveLimits.Check(cabinetNames.Count, _limits.Cabinets, "MaxCabinetCount");
         long declaredFileBytes = 0;
         foreach (MsiPayloadFile file in files) ArchiveLimits.Add(ref declaredFileBytes, file.Length, _limits.Expanded, "MaxExpandedBytes");
@@ -43,6 +44,7 @@ public sealed partial class ArchiveInspection {
             } catch (OfficeCabinetException error) {
                 throw _limits.Translate(error, remainingExpansion, remainingEntries, directoryRecords);
             }
+            _limits.Operation.AdmitEntries(cabinet.Members.Count);
             _cabinets.Add(name, cabinet);
             actualEntries = checked(actualEntries + cabinet.Members.Count);
             ArchiveLimits.Check(actualEntries, _limits.Entries, "MaxEntryCount");

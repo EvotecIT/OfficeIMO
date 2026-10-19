@@ -59,8 +59,8 @@ public sealed class ArchiveTypedBudgetContracts {
     [Theory]
     [InlineData(64L, 64L)]
     [InlineData(long.MaxValue, (long)int.MaxValue)]
-    public void InputCeilingPrecedesSnapshotAndReportsTheEffectiveManagedMaximum(long requested, long effective) {
-        using var source = new DeclaredLengthStream(requested == 64 ? 65 : (long)int.MaxValue + 1);
+    public void ConfiguredAndCabManagedInputCeilingsPrecedeSnapshotAllocation(long requested, long effective) {
+        using var source = new DeclaredLengthStream(requested == 64 ? 65 : (long)int.MaxValue + 1, cabHeader: requested != 64);
         AssertBudget(() => ArchiveInspector.Open(source, new ArchiveInspectionOptions { MaxInputBytes = requested }),
             "MaxInputBytes", effective);
         Assert.Equal(0, source.Position); Assert.True(source.CanRead);
@@ -128,8 +128,15 @@ public sealed class ArchiveTypedBudgetContracts {
 
     private sealed class DeclaredLengthStream : MemoryStream {
         private readonly long _length;
-        internal DeclaredLengthStream(long length) => _length = length;
+        private readonly bool _cabHeader;
+        internal DeclaredLengthStream(long length, bool cabHeader) : base(cabHeader
+            ? new byte[] { (byte)'M', (byte)'S', (byte)'C', (byte)'F', 0, 0, 0, 0 } : Array.Empty<byte>()) {
+            _length = length; _cabHeader = cabHeader;
+        }
         public override long Length => _length;
-        public override int Read(byte[] buffer, int offset, int count) => throw new InvalidOperationException("Limit must precede read.");
+        public override int Read(byte[] buffer, int offset, int count) {
+            if (_cabHeader && count <= 8 && Position + count <= 8) return base.Read(buffer, offset, count);
+            throw new InvalidOperationException("Limit must precede snapshot reads.");
+        }
     }
 }

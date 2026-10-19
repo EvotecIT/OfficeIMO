@@ -115,40 +115,43 @@ internal static partial class OfficeCabinetArchiveReader {
             int fileTableEnd = directory.FileTableEnd;
             var folderMembers = new List<int>?[folders.Length];
             var selected = new bool[files.Length];
+            long selectedBytes = 0;
             for (int index = 0; index < files.Length; index++) {
                 _cancellationToken.ThrowIfCancellationRequested();
                 FileHeader file = files[index];
                 (folderMembers[file.FolderIndex] ?? (folderMembers[file.FolderIndex] = new List<int>())).Add(index);
                 entryValidator?.Invoke(file.Name, file.Length);
                 selected[index] = entryFilter == null || entryFilter(file.Name);
+                if (selected[index]) selectedBytes = checked(selectedBytes + file.Length);
             }
+            _workBudget.Select(selectedBytes);
             var decodedEntries = new OfficeCabinetEntry?[files.Length];
             for (int folderIndex = 0; folderIndex < folders.Length; folderIndex++) {
                 _cancellationToken.ThrowIfCancellationRequested();
                 FolderHeader folder = folders[folderIndex];
                 if (folder.DataOffset < fileTableEnd) throw Error("CAB_DATA_OFFSET", "CAB folder data overlaps the file table.");
-                byte[] source = DecompressFolder(folder, dataReserve, _maxExpandedBytes - expandedBytes);
-                expandedBytes += source.LongLength;
-                // Release each expanded folder after its selected members have
-                // been copied instead of retaining every folder simultaneously.
+                FolderData frames = ReadFolderFrames(folder, dataReserve, _maxExpandedBytes - expandedBytes);
+                expandedBytes += frames.ExpandedBytes;
+                var selectedFiles = new List<FileHeader>();
+                var selectedIndexes = new List<int>();
                 List<int>? memberIndexes = folderMembers[folderIndex];
-                if (memberIndexes == null) continue;
-                foreach (int index in memberIndexes) {
+                if (memberIndexes != null) foreach (int index in memberIndexes) {
                     _cancellationToken.ThrowIfCancellationRequested();
                     FileHeader file = files[index];
-                    if ((long)file.FolderOffset + file.Length > source.LongLength) throw Error("CAB_ENTRY_RANGE", "A CAB entry extends past its folder.");
-                    if (!selected[index]) continue;
-                    var bytes = new byte[(int)file.Length];
-                    if (bytes.Length > 0) Buffer.BlockCopy(source, (int)file.FolderOffset, bytes, 0, bytes.Length);
-                    decodedEntries[index] = new OfficeCabinetEntry(file.Name, bytes);
+                    if ((long)file.FolderOffset + file.Length > frames.ExpandedBytes) throw Error("CAB_ENTRY_RANGE", "A CAB entry extends past its folder.");
+                    if (selected[index]) { selectedFiles.Add(file); selectedIndexes.Add(index); }
                 }
+                // Even an entirely excluded folder is decoded and verified, without retaining its expansion.
+                byte[][] payloads = ReadFolderMembers(frames, selectedFiles);
+                for (int index = 0; index < payloads.Length; index++)
+                    decodedEntries[selectedIndexes[index]] = new OfficeCabinetEntry(selectedFiles[index].Name, payloads[index]);
             }
             var entries = new List<OfficeCabinetEntry>(files.Length);
             foreach (OfficeCabinetEntry? entry in decodedEntries) if (entry != null) entries.Add(entry);
             return entries.AsReadOnly();
         }
 
-        internal byte[] DecompressFolder(FolderHeader folder, int dataReserve, long maxExpandedBytes) {
+        private FolderData ReadFolderFrames(FolderHeader folder, int dataReserve, long maxExpandedBytes) {
             if (folder.DataOffset > int.MaxValue) throw Error("CAB_DATA_OFFSET", "The CAB folder data offset is too large.");
             int offset = (int)folder.DataOffset;
             Ensure(offset, 0, "CAB folder data");
@@ -157,7 +160,6 @@ internal static partial class OfficeCabinetArchiveReader {
             if (unsupported != null) throw Error(unsupported, unsupported == "CAB_LZX_WINDOW"
                 ? "The CAB uses an unsupported LZX window size."
                 : "The CAB compression method or parameters are unsupported; Quantum is not supported.");
-            int windowBits = (folder.Compression >> 8) & 0x1F;
             var blocks = new BlockHeader[folder.BlockCount];
             long total = 0;
             for (int index = 0; index < blocks.Length; index++) {
@@ -189,38 +191,7 @@ internal static partial class OfficeCabinetArchiveReader {
                 offset = dataOffset + compressedLength;
             }
 
-            if (method == 3) {
-                if (blocks.Length == 0) return Array.Empty<byte>();
-                var chunks = new List<byte[]>(blocks.Length);
-                var sizes = new List<int>(blocks.Length);
-                foreach (BlockHeader block in blocks) {
-                    _cancellationToken.ThrowIfCancellationRequested();
-                    var chunk = new byte[block.CompressedLength];
-                    Buffer.BlockCopy(_data, block.DataOffset, chunk, 0, chunk.Length);
-                    chunks.Add(chunk);
-                    sizes.Add(block.ExpandedLength);
-                }
-                try {
-                    return global::OfficeIMO.OfficeLzxDecoder.Decompress(chunks, sizes,
-                        windowBits, maxExpandedBytes, _cancellationToken);
-                } catch (global::OfficeIMO.OfficeLzxException exception) {
-                    throw new OfficeCabinetException("CAB_" + exception.Code, exception.Message, null, exception);
-                }
-            }
-
-            var output = new byte[(int)total];
-            int outputOffset = 0;
-            foreach (BlockHeader block in blocks) {
-                _cancellationToken.ThrowIfCancellationRequested();
-                if (method == 0) {
-                    Buffer.BlockCopy(_data, block.DataOffset, output, outputOffset, block.ExpandedLength);
-                } else {
-                    OfficeMsZipDecoder.Decompress(_data, block.DataOffset, block.CompressedLength,
-                        output, outputOffset, block.ExpandedLength, _cancellationToken);
-                }
-                outputOffset += block.ExpandedLength;
-            }
-            return output;
+            return new FolderData(blocks, total, folder.Compression);
         }
 
         /// <summary>Checks cheap intrinsic frame facts without decoding or checksumming the payload.</summary>

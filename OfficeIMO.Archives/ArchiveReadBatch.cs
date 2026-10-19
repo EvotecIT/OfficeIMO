@@ -17,7 +17,7 @@ public sealed class ArchiveReadBatch : IDisposable {
     public long SelectedBytes { get; }
     /// <summary>Bytes decoded across the selected folders, each counted once, including unselected members and folder gaps.</summary>
     public long DecodedFolderBytes { get; }
-    /// <summary>CAB frame-processing work charged by this read, using the inspection's bounded work units rather than exact CPU time.</summary>
+    /// <summary>CAB frame or ZIP processing work charged by this read, using the inspection's bounded work units rather than exact CPU time.</summary>
     public long DecompressionWorkBytes { get; }
     /// <summary>Closes every member stream. Inspection disposal does not close these streams; this batch owns their lifetime.</summary>
     public void Dispose() {

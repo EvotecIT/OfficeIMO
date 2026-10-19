@@ -12,18 +12,22 @@ namespace OfficeIMO;
 /// </summary>
 internal sealed class OfficeLzxBitReader {
     private readonly byte[] _data;
+    private readonly int _end;
     private int _nextWordOffset;
     private ushort _word;
     private int _bitsRemaining;
 
-    internal OfficeLzxBitReader(byte[] data) {
+    internal OfficeLzxBitReader(byte[] data, int offset, int count) {
         _data = data ?? throw new ArgumentNullException(nameof(data));
+        if (offset < 0 || count < 0 || offset > data.Length - count) throw new ArgumentOutOfRangeException(nameof(offset));
+        _nextWordOffset = offset;
+        _end = offset + count;
     }
 
     internal int RemainingByteCount {
         get {
             EnsureByteAligned();
-            return _data.Length - _nextWordOffset;
+            return _end - _nextWordOffset;
         }
     }
 
@@ -58,7 +62,7 @@ internal sealed class OfficeLzxBitReader {
     /// <summary>Consumes only the permitted zero bits in the last word of a CFDATA frame.</summary>
     internal void ValidateFrameEnd() {
         ValidateZeroPadding();
-        if (_nextWordOffset != _data.Length)
+        if (_nextWordOffset != _end)
             throw new OfficeLzxException("LZX_CORRUPT", "The LZX frame contains trailing compressed bytes.");
         _bitsRemaining = 0;
     }
@@ -98,7 +102,7 @@ internal sealed class OfficeLzxBitReader {
     }
 
     private void LoadWord() {
-        if (_nextWordOffset > _data.Length - 2) {
+        if (_nextWordOffset > _end - 2) {
             throw new OfficeLzxException("LZX_TRUNCATED", "The LZX bitstream ended inside a 16-bit word.");
         }
         _word = (ushort)(_data[_nextWordOffset] | (_data[_nextWordOffset + 1] << 8));
@@ -113,7 +117,7 @@ internal sealed class OfficeLzxBitReader {
     }
 
     private void EnsureRawBytes(int count) {
-        if (count < 0 || _nextWordOffset > _data.Length - count) {
+        if (count < 0 || _nextWordOffset > _end - count) {
             throw new OfficeLzxException("LZX_TRUNCATED", "The LZX byte stream ended unexpectedly.");
         }
     }
