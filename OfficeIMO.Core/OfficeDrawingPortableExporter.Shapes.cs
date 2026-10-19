@@ -56,6 +56,7 @@ public static partial class OfficeDrawingPortableExporter {
                         commands.Add(OfficePathCommand.CubicBezierTo(Point(command.ControlPoint1, transform, location),
                             Point(command.ControlPoint2, transform, location), end)); break;
                     case OfficePathCommandKind.QuadraticBezierTo:
+                        Coordinate(command.ControlPoint1.X, location); Coordinate(command.ControlPoint1.Y, location);
                         var one = new OfficePoint(current.X + (command.ControlPoint1.X - current.X) * 2 / 3,
                             current.Y + (command.ControlPoint1.Y - current.Y) * 2 / 3);
                         var two = new OfficePoint(command.Point.X + (command.ControlPoint1.X - command.Point.X) * 2 / 3,
@@ -85,8 +86,10 @@ public static partial class OfficeDrawingPortableExporter {
 
     private static IReadOnlyList<OfficePathCommand> ShapeCommands(OfficeShape shape, string location) {
         if (shape.Kind == OfficeShapeKind.Path) return shape.PathCommands;
-        if (shape.Kind == OfficeShapeKind.Ellipse)
-            return OfficeShapePresets.CreateEllipsePath(shape.Width / 2, shape.Height / 2, shape.Width / 2, shape.Height / 2, true);
+        if (shape.Kind == OfficeShapeKind.Ellipse) {
+            double radiusX = Length(shape.Width, location) / 2, radiusY = Length(shape.Height, location) / 2;
+            return OfficeShapePresets.CreateEllipsePath(radiusX, radiusY, radiusX, radiusY, true);
+        }
         var commands = new List<OfficePathCommand>();
         if (shape.Kind == OfficeShapeKind.Line || shape.Kind == OfficeShapeKind.Polygon) {
             foreach (OfficePoint point in shape.Points)

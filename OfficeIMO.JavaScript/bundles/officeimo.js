@@ -6083,7 +6083,7 @@ _modules.set("2908c4b401414c852357df4b0792e2b68a1508c821a2aea6ee9772d6f94562a7",
 return _exports;
 })();
 
-const _m57 = _modules.get("7df977adafd05e4559baa1eefb02424581ca74f3bc5572327b937028900e3cab") ?? (() => {
+const _m57 = _modules.get("b1e1f3d342ca3d5dc027e85902b2f99a1e2f4edcb459126169cfda70ec4c4956") ?? (() => {
 const { NotSupportedError, OfficeIMOError } = _m2;
 
 const { checkAbort, pause, taskYieldDue } = _m4;
@@ -6115,8 +6115,8 @@ async function cooperate(settings) {
         await pause();
     checkAbort(settings.options.signal);
 }
-/** Preflight and snapshot before painting. The existing font owner retains glyph maps and subsets. */
-async function prepareDrawing(drawing, settings, fonts, used) {
+/** Take ownership of one bounded schema before any cooperative or font work can run caller code. */
+function captureDrawing(drawing, settings, used) {
     checkAbort(settings.options.signal);
     const root = record(drawing, ["version", "width", "height", "elements"], "drawing");
     if (root.version !== 1)
@@ -6124,13 +6124,14 @@ async function prepareDrawing(drawing, settings, fonts, used) {
     const width = positive(root.width, "Drawing width"), height = positive(root.height, "Drawing height");
     let commands = used.commands, elements = used.elements;
     const ancestors = new Set();
-    async function path(value) {
+    function path(value) {
         record(value, ["kind", "commands", "fill", "stroke", "strokeWidth", "fillRule", "lineCap", "lineJoin"], "drawing path");
         const source = value.commands;
         if (!Array.isArray(source))
             throw new TypeError("Drawing path commands must be an array.");
         if (commands + source.length > settings.limits.maxVectorCommands)
             throw new OfficeIMOError("RESOURCE_LIMIT", "maxVectorCommands exceeded.");
+        checkAbort(settings.options.signal);
         const snapshot = source.slice(), copied = [];
         let started = false;
         commands += snapshot.length;
@@ -6173,7 +6174,7 @@ async function prepareDrawing(drawing, settings, fonts, used) {
             else
                 throw new TypeError("Unsupported drawing path command.");
             if ((i & 1023) === 1023)
-                await cooperate(settings);
+                checkAbort(settings.options.signal);
         }
         if (!started)
             throw new TypeError("A drawing path needs at least one command.");
@@ -6181,7 +6182,7 @@ async function prepareDrawing(drawing, settings, fonts, used) {
                 String(["butt", "round", "square"].indexOf(lineCap ?? "butt")) + " J\n" + String(["miter", "round", "bevel"].indexOf(lineJoin ?? "miter")) + " j\n10 M\n",
             paint: (fill !== undefined && stroke !== undefined ? "B" : fill !== undefined ? "f" : "S") + (fill !== undefined && fillRule === "evenodd" ? "*" : "") + "\n" };
     }
-    async function text(value) {
+    function text(value) {
         record(value, ["kind", "text", "x", "y", "font", "fontSize", "color"], "drawing text");
         const snapshot = value.text, slot = value.font;
         if (typeof snapshot !== "string")
@@ -6192,26 +6193,18 @@ async function prepareDrawing(drawing, settings, fonts, used) {
             throw new NotSupportedError("Drawing text must be a single baseline without line breaks.");
         if (!["regular", "bold", "italic", "boldItalic"].includes(slot))
             throw new TypeError("Invalid drawing font slot.");
-        const font = fonts.select(slot === "bold" || slot === "boldItalic", slot === "italic" || slot === "boldItalic");
-        if (!font.program || font.syntheticBold || font.syntheticItalic)
-            throw new NotSupportedError("Drawing text requires its exact embedded font face; supply fonts." + slot + ".");
         const x = coordinate(value.x), y = coordinate(value.y), size = positive(value.fontSize, "Drawing font size"), foreground = color(value.color);
         settings.budget.cell(snapshot);
-        let count = 0;
-        for (const character of snapshot) {
-            font.width(character.codePointAt(0));
-            if ((++count & 1023) === 0)
-                await cooperate(settings);
-        }
-        return { kind: "text", text: snapshot, x, y, size, color: foreground, font };
+        return { kind: "text", text: snapshot, x, y, size, color: foreground, font: slot };
     }
-    async function children(input, depth) {
+    function children(input, depth) {
         if (!Array.isArray(input))
             throw new TypeError("Drawing elements must be an array.");
         if (depth > 32 && input.length)
             throw new RangeError("Drawing groups support at most 32 element levels.");
         if (elements + input.length > settings.limits.maxDrawingElements)
             throw new OfficeIMOError("RESOURCE_LIMIT", "maxDrawingElements exceeded.");
+        checkAbort(settings.options.signal);
         const snapshot = input.slice(), output = [];
         for (let i = 0; i < snapshot.length; i++) {
             if (++elements > settings.limits.maxDrawingElements)
@@ -6223,24 +6216,60 @@ async function prepareDrawing(drawing, settings, fonts, used) {
                 throw new TypeError("Drawing groups cannot contain cycles.");
             const kind = value.kind;
             if (kind === "path")
-                output.push(await path(value));
+                output.push(path(value));
             else if (kind === "text")
-                output.push(await text(value));
+                output.push(text(value));
             else if (kind === "group") {
                 record(value, ["kind", "clip", "elements"], "drawing group");
                 const clipValue = value.clip, clip = clipValue === undefined ? undefined : clipRectangle(clipValue);
                 ancestors.add(value);
-                output.push({ kind: "group", ...(clip ? { clip } : {}), children: await children(value.elements, depth + 1) });
+                output.push({ kind: "group", ...(clip ? { clip } : {}), children: children(value.elements, depth + 1) });
                 ancestors.delete(value);
             }
             else
                 throw new TypeError("Unsupported drawing element kind.");
             if ((i & 255) === 255)
-                await cooperate(settings);
+                checkAbort(settings.options.signal);
         }
         return output;
     }
-    const plan = await children(root.elements, 1);
+    const plan = children(root.elements, 1);
+    checkAbort(settings.options.signal);
+    return { width, height, plan, commands: commands - used.commands, elements: elements - used.elements };
+}
+/** Preflight and paint owned records. The existing font owner retains glyph maps and subsets. */
+async function prepareDrawing(drawing, settings, fonts, used) {
+    // A drawing's bounded capture is synchronous; yielding here would leave later caller records borrowed.
+    const captured = captureDrawing(drawing, settings, used), drawingFonts = new Map();
+    function fontFor(slot) {
+        const existing = drawingFonts.get(slot);
+        if (existing)
+            return existing;
+        const font = fonts.select(slot === "bold" || slot === "boldItalic", slot === "italic" || slot === "boldItalic");
+        if (!font.program || font.syntheticBold || font.syntheticItalic)
+            throw new NotSupportedError("Drawing text requires its exact embedded font face; supply fonts." + slot + ".");
+        drawingFonts.set(slot, font);
+        return font;
+    }
+    async function preflight(nodes) {
+        for (let i = 0; i < nodes.length; i++) {
+            const node = nodes[i];
+            if (node.kind === "group")
+                await preflight(node.children);
+            else if (node.kind === "text") {
+                const font = fontFor(node.font);
+                let count = 0;
+                for (const character of node.text) {
+                    font.width(character.codePointAt(0));
+                    if ((++count & 1023) === 0)
+                        await cooperate(settings);
+                }
+            }
+            if ((i & 255) === 255)
+                await cooperate(settings);
+        }
+    }
+    await preflight(captured.plan);
     const fragments = [];
     let bytes = 0;
     function add(fragment) {
@@ -6270,18 +6299,19 @@ async function prepareDrawing(drawing, settings, fonts, used) {
                 add(node.paint);
             }
             else {
-                add(node.color + " rg\nBT /" + node.font.name + " " + n(node.size) + " Tf 0 Tr 1 0 0 -1 " + n(node.x) + " " + n(node.y) + " Tm <");
+                const font = fontFor(node.font);
+                add(node.color + " rg\nBT /" + font.name + " " + n(node.size) + " Tf 0 Tr 1 0 0 -1 " + n(node.x) + " " + n(node.y) + " Tm <");
                 let chunk = "", count = 0;
                 for (const character of node.text) {
                     chunk += character;
                     if ((++count & 1023) === 0) {
-                        add(node.font.encode(chunk).slice(1, -1));
+                        add(font.encode(chunk).slice(1, -1));
                         chunk = "";
                         await cooperate(settings);
                     }
                 }
                 if (chunk)
-                    add(node.font.encode(chunk).slice(1, -1));
+                    add(font.encode(chunk).slice(1, -1));
                 add("> Tj ET\n");
             }
             add("Q\n");
@@ -6289,16 +6319,16 @@ async function prepareDrawing(drawing, settings, fonts, used) {
                 await cooperate(settings);
         }
     }
-    await paint(plan);
+    await paint(captured.plan);
     checkAbort(settings.options.signal);
-    return { width, height, content: fragments.join(""), commands: commands - used.commands, elements: elements - used.elements };
+    return { width: captured.width, height: captured.height, content: fragments.join(""), commands: captured.commands, elements: captured.elements };
 }
 const _exports = Object.freeze({ checkDrawingBlock: checkDrawingBlock, prepareDrawing: prepareDrawing });
-_modules.set("7df977adafd05e4559baa1eefb02424581ca74f3bc5572327b937028900e3cab", _exports);
+_modules.set("b1e1f3d342ca3d5dc027e85902b2f99a1e2f4edcb459126169cfda70ec4c4956", _exports);
 return _exports;
 })();
 
-const _m53 = _modules.get("4460cd2b254deb2c6cacc00a096c50f1391f3854becd227988083619cceafec2") ?? (() => {
+const _m53 = _modules.get("609c7062dc1afc8470ff6070d985e67d682a2a8d67cfb2a070acc55e6c18ef56") ?? (() => {
 const { BlobByteSink, withDestination } = _m3;
 
 const { beginTask, checkAbort, consumeRows, pause, taskYieldDue } = _m4;
@@ -6451,7 +6481,7 @@ function checkTableOptions(options) {
         throw new TypeError("Table options support columns, headings, footers, widths and presentation; document settings belong on writePdfDocument.");
 }
 const _exports = Object.freeze({ pdfTable: pdfTable, writePdfDocument: writePdfDocument, writePdfDocumentTo: writePdfDocumentTo });
-_modules.set("4460cd2b254deb2c6cacc00a096c50f1391f3854becd227988083619cceafec2", _exports);
+_modules.set("609c7062dc1afc8470ff6070d985e67d682a2a8d67cfb2a070acc55e6c18ef56", _exports);
 return _exports;
 })();
 
@@ -6495,17 +6525,17 @@ _modules.set("ed8eb038bc649a3b76f0797059ab082ebadd1b9a205b8cea7bda1f0c42ffe47b",
 return _exports;
 })();
 
-const _m35 = _modules.get("a958f03bd4ca0e6c4fc3245c1f3b32cc4d9851b46d1f2700229ba21a97e71479") ?? (() => {
+const _m35 = _modules.get("1bb39697796098729f53d3a6cb122c1c37a67eec71d1224f99970cecde452a53") ?? (() => {
 
 const _exports = Object.freeze({ writePdf: _m36.writePdf, writePdfTo: _m36.writePdfTo, writePdfDocument: _m53.writePdfDocument, writePdfDocumentTo: _m53.writePdfDocumentTo, pdfTable: _m53.pdfTable, PdfFont: _m42.PdfFont, preflightPdfText: _m58.preflightPdfText, ExportCell: _m5.ExportCell, saveBlob: _m1.saveBlob });
-_modules.set("a958f03bd4ca0e6c4fc3245c1f3b32cc4d9851b46d1f2700229ba21a97e71479", _exports);
+_modules.set("1bb39697796098729f53d3a6cb122c1c37a67eec71d1224f99970cecde452a53", _exports);
 return _exports;
 })();
 
-const _m0 = _modules.get("24f6d988bc5c6d2b55eb79ee402e3a8f10b330e1d0e2a22f16d7132ab4061879") ?? (() => {
+const _m0 = _modules.get("acbbc4224819f09750627ead8220e2fe72ad7cf4e802b61e78ac438a9c217229") ?? (() => {
 
 const _exports = Object.freeze({ core: _m1, zip: _m8, xml: _m11, opc: _m12, xlsx: _m15, csv: _m34, pdf: _m35, Workbook: _m15.Workbook, Worksheet: _m15.Worksheet, Cell: _m15.Cell, StyleRegistry: _m15.StyleRegistry, NumberFormats: _m15.NumberFormats, writeXlsx: _m15.writeXlsx, writeXlsxTo: _m15.writeXlsxTo, writeCsv: _m34.writeCsv, writeCsvTo: _m34.writeCsvTo, writePdf: _m35.writePdf, writePdfTo: _m35.writePdfTo, writePdfDocument: _m35.writePdfDocument, writePdfDocumentTo: _m35.writePdfDocumentTo, pdfTable: _m35.pdfTable, PdfFont: _m35.PdfFont, preflightPdfText: _m35.preflightPdfText, saveBlob: _m1.saveBlob, ExportCell: _m1.ExportCell });
-_modules.set("24f6d988bc5c6d2b55eb79ee402e3a8f10b330e1d0e2a22f16d7132ab4061879", _exports);
+_modules.set("acbbc4224819f09750627ead8220e2fe72ad7cf4e802b61e78ac438a9c217229", _exports);
 return _exports;
 })();
 Object.assign(officeimo, _m0);

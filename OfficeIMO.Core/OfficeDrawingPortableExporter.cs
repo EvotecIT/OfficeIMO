@@ -70,6 +70,7 @@ public static partial class OfficeDrawingPortableExporter {
                     Rect clip = Clip(group.ClipPath, group.X, group.Y, transform, path);
                     Coordinate(group.ContentOffsetX, path); Coordinate(group.ContentOffsetY, path);
                     var next = OfficeTransform.Translate(group.X + group.ContentOffsetX, group.Y + group.ContentOffsetY).Then(transform);
+                    ValidateTransform(next, path);
                     output.Add(new Element { Kind = "group", Clip = clip,
                         Children = Project(group.InnerDrawing, next, fonts, depth + 1, path + ".elements") });
                 } else if (item is OfficeDrawingShape shape) output.Add(ProjectShape(shape, transform, path));
@@ -105,6 +106,7 @@ public static partial class OfficeDrawingPortableExporter {
     }
     private static Rect Clip(OfficeClipPath clip, double x, double y, OfficeTransform transform, string location) {
         if (clip.Kind != OfficeClipPathKind.Rectangle) Fail("DRAWING_CLIP_UNSUPPORTED", "Only rectangular clip paths are supported.", location);
+        Length(clip.Width, location); Length(clip.Height, location);
         OfficePoint start = Point(new OfficePoint(x, y), transform, location);
         return new Rect(start.X, start.Y, Length(clip.Width * transform.M11, location), Length(clip.Height * transform.M11, location));
     }

@@ -1,6 +1,6 @@
 import { NotSupportedError, OfficeIMOError } from "../core/errors.js";
 import { checkAbort, pause, taskYieldDue } from "../core/iteration.js";
-import type { PdfDrawing, PdfDrawingElement, PdfDrawingPath, PdfDrawingText, PdfDrawingClip } from "./drawing-types.js";
+import type { PdfDrawing, PdfDrawingElement, PdfDrawingPath, PdfDrawingText, PdfDrawingClip, PdfDrawingFont } from "./drawing-types.js";
 import type { PdfFontResource, PdfFontResources } from "./font-resources.js";
 import { color, positive } from "./settings.js";
 import type { PdfSettings } from "./settings.js";
@@ -8,11 +8,12 @@ import { pdfNumber as n } from "./objects.js";
 import type { PdfPathCommand } from "./document-types.js";
 
 type PathPlan = { readonly kind: "path"; readonly commands: readonly PdfPathCommand[]; readonly style: string; readonly paint: string };
-type TextPlan = { readonly kind: "text"; readonly text: string; readonly x: number; readonly y: number; readonly size: number; readonly color: string; readonly font: PdfFontResource };
+type TextPlan = { readonly kind: "text"; readonly text: string; readonly x: number; readonly y: number; readonly size: number; readonly color: string; readonly font: PdfDrawingFont };
 type GroupPlan = { readonly kind: "group"; readonly clip?: PdfDrawingClip; readonly children: readonly Plan[] };
 type Plan = PathPlan | TextPlan | GroupPlan;
 export interface PdfDrawingUsage { readonly commands: number; readonly elements: number; }
 export interface PreparedPdfDrawing extends PdfDrawingUsage { readonly width: number; readonly height: number; readonly content: string; }
+interface CapturedDrawing extends PdfDrawingUsage { readonly width: number; readonly height: number; readonly plan: readonly Plan[]; }
 
 /** Portable drawings are an exact schema: unsupported data must never be silently discarded. */
 function record(value: unknown, keys: readonly string[], name: string): Record<string, unknown> {
@@ -37,20 +38,20 @@ async function cooperate(settings: PdfSettings): Promise<void> {
   checkAbort(settings.options.signal);
 }
 
-/** Preflight and snapshot before painting. The existing font owner retains glyph maps and subsets. */
-export async function prepareDrawing(drawing: PdfDrawing, settings: PdfSettings, fonts: PdfFontResources,
-  used: PdfDrawingUsage): Promise<PreparedPdfDrawing> {
+/** Take ownership of one bounded schema before any cooperative or font work can run caller code. */
+function captureDrawing(drawing: PdfDrawing, settings: PdfSettings, used: PdfDrawingUsage): CapturedDrawing {
   checkAbort(settings.options.signal);
   const root = record(drawing, ["version", "width", "height", "elements"], "drawing");
   if (root.version !== 1) throw new NotSupportedError("Only portable drawing version 1 is supported.");
   const width = positive(root.width as number, "Drawing width"), height = positive(root.height as number, "Drawing height");
   let commands = used.commands, elements = used.elements;
   const ancestors = new Set<object>();
-  async function path(value: PdfDrawingPath): Promise<PathPlan> {
+  function path(value: PdfDrawingPath): PathPlan {
     record(value, ["kind", "commands", "fill", "stroke", "strokeWidth", "fillRule", "lineCap", "lineJoin"], "drawing path");
     const source = value.commands;
     if (!Array.isArray(source)) throw new TypeError("Drawing path commands must be an array.");
     if (commands + source.length > settings.limits.maxVectorCommands) throw new OfficeIMOError("RESOURCE_LIMIT", "maxVectorCommands exceeded.");
+    checkAbort(settings.options.signal);
     const snapshot = source.slice(), copied: PdfPathCommand[] = []; let started = false;
     commands += snapshot.length;
     const fillValue = value.fill, strokeValue = value.stroke;
@@ -77,35 +78,29 @@ export async function prepareDrawing(drawing: PdfDrawing, settings: PdfSettings,
         record(c, ["op"], "drawing path command");
         if (!started) throw new TypeError("Cannot close an empty drawing path."); copied.push({ op: "close" });
       } else throw new TypeError("Unsupported drawing path command.");
-      if ((i & 1023) === 1023) await cooperate(settings);
+      if ((i & 1023) === 1023) checkAbort(settings.options.signal);
     }
     if (!started) throw new TypeError("A drawing path needs at least one command.");
     return { kind: "path", commands: copied, style: (fill === undefined ? "" : fill + " rg\n") + (stroke === undefined ? "" : stroke + " RG\n" + n(strokeWidth) + " w\n") +
       String(["butt", "round", "square"].indexOf(lineCap ?? "butt")) + " J\n" + String(["miter", "round", "bevel"].indexOf(lineJoin ?? "miter")) + " j\n10 M\n",
       paint: (fill !== undefined && stroke !== undefined ? "B" : fill !== undefined ? "f" : "S") + (fill !== undefined && fillRule === "evenodd" ? "*" : "") + "\n" };
   }
-  async function text(value: PdfDrawingText): Promise<TextPlan> {
+  function text(value: PdfDrawingText): TextPlan {
     record(value, ["kind", "text", "x", "y", "font", "fontSize", "color"], "drawing text");
     const snapshot = value.text, slot = value.font;
     if (typeof snapshot !== "string") throw new TypeError("Drawing text must be a string.");
     if (snapshot.length > settings.limits.maxCellCharacters) throw new OfficeIMOError("RESOURCE_LIMIT", "maxCellCharacters exceeded.");
     if (/[\r\n\u2028\u2029]/.test(snapshot)) throw new NotSupportedError("Drawing text must be a single baseline without line breaks.");
     if (!["regular", "bold", "italic", "boldItalic"].includes(slot)) throw new TypeError("Invalid drawing font slot.");
-    const font = fonts.select(slot === "bold" || slot === "boldItalic", slot === "italic" || slot === "boldItalic");
-    if (!font.program || font.syntheticBold || font.syntheticItalic) throw new NotSupportedError("Drawing text requires its exact embedded font face; supply fonts." + slot + ".");
     const x = coordinate(value.x), y = coordinate(value.y), size = positive(value.fontSize, "Drawing font size"), foreground = color(value.color);
     settings.budget.cell(snapshot);
-    let count = 0;
-    for (const character of snapshot) {
-      font.width(character.codePointAt(0)!);
-      if ((++count & 1023) === 0) await cooperate(settings);
-    }
-    return { kind: "text", text: snapshot, x, y, size, color: foreground, font };
+    return { kind: "text", text: snapshot, x, y, size, color: foreground, font: slot };
   }
-  async function children(input: readonly PdfDrawingElement[], depth: number): Promise<readonly Plan[]> {
+  function children(input: readonly PdfDrawingElement[], depth: number): readonly Plan[] {
     if (!Array.isArray(input)) throw new TypeError("Drawing elements must be an array.");
     if (depth > 32 && input.length) throw new RangeError("Drawing groups support at most 32 element levels.");
     if (elements + input.length > settings.limits.maxDrawingElements) throw new OfficeIMOError("RESOURCE_LIMIT", "maxDrawingElements exceeded.");
+    checkAbort(settings.options.signal);
     const snapshot = input.slice(), output: Plan[] = [];
     for (let i = 0; i < snapshot.length; i++) {
       if (++elements > settings.limits.maxDrawingElements) throw new OfficeIMOError("RESOURCE_LIMIT", "maxDrawingElements exceeded.");
@@ -113,20 +108,51 @@ export async function prepareDrawing(drawing: PdfDrawing, settings: PdfSettings,
       if (!value || typeof value !== "object") throw new TypeError("Invalid drawing element.");
       if (ancestors.has(value)) throw new TypeError("Drawing groups cannot contain cycles.");
       const kind = value.kind;
-      if (kind === "path") output.push(await path(value));
-      else if (kind === "text") output.push(await text(value));
+      if (kind === "path") output.push(path(value));
+      else if (kind === "text") output.push(text(value));
       else if (kind === "group") {
         record(value, ["kind", "clip", "elements"], "drawing group");
         const clipValue = value.clip, clip = clipValue === undefined ? undefined : clipRectangle(clipValue);
         ancestors.add(value);
-        output.push({ kind: "group", ...(clip ? { clip } : {}), children: await children(value.elements, depth + 1) });
+        output.push({ kind: "group", ...(clip ? { clip } : {}), children: children(value.elements, depth + 1) });
         ancestors.delete(value);
       } else throw new TypeError("Unsupported drawing element kind.");
-      if ((i & 255) === 255) await cooperate(settings);
+      if ((i & 255) === 255) checkAbort(settings.options.signal);
     }
     return output;
   }
-  const plan = await children(root.elements as readonly PdfDrawingElement[], 1);
+  const plan = children(root.elements as readonly PdfDrawingElement[], 1);
+  checkAbort(settings.options.signal);
+  return { width, height, plan, commands: commands - used.commands, elements: elements - used.elements };
+}
+
+/** Preflight and paint owned records. The existing font owner retains glyph maps and subsets. */
+export async function prepareDrawing(drawing: PdfDrawing, settings: PdfSettings, fonts: PdfFontResources,
+  used: PdfDrawingUsage): Promise<PreparedPdfDrawing> {
+  // A drawing's bounded capture is synchronous; yielding here would leave later caller records borrowed.
+  const captured = captureDrawing(drawing, settings, used), drawingFonts = new Map<PdfDrawingFont, PdfFontResource>();
+  function fontFor(slot: PdfDrawingFont): PdfFontResource {
+    const existing = drawingFonts.get(slot);
+    if (existing) return existing;
+    const font = fonts.select(slot === "bold" || slot === "boldItalic", slot === "italic" || slot === "boldItalic");
+    if (!font.program || font.syntheticBold || font.syntheticItalic) throw new NotSupportedError("Drawing text requires its exact embedded font face; supply fonts." + slot + ".");
+    drawingFonts.set(slot, font); return font;
+  }
+  async function preflight(nodes: readonly Plan[]): Promise<void> {
+    for (let i = 0; i < nodes.length; i++) {
+      const node = nodes[i]!;
+      if (node.kind === "group") await preflight(node.children);
+      else if (node.kind === "text") {
+        const font = fontFor(node.font); let count = 0;
+        for (const character of node.text) {
+          font.width(character.codePointAt(0)!);
+          if ((++count & 1023) === 0) await cooperate(settings);
+        }
+      }
+      if ((i & 255) === 255) await cooperate(settings);
+    }
+  }
+  await preflight(captured.plan);
   const fragments: string[] = []; let bytes = 0;
   function add(fragment: string): void {
     bytes += fragment.length;
@@ -149,19 +175,20 @@ export async function prepareDrawing(drawing: PdfDrawing, settings: PdfSettings,
         }
         add(node.paint);
       } else {
-        add(node.color + " rg\nBT /" + node.font.name + " " + n(node.size) + " Tf 0 Tr 1 0 0 -1 " + n(node.x) + " " + n(node.y) + " Tm <");
+        const font = fontFor(node.font);
+        add(node.color + " rg\nBT /" + font.name + " " + n(node.size) + " Tf 0 Tr 1 0 0 -1 " + n(node.x) + " " + n(node.y) + " Tm <");
         let chunk = "", count = 0;
         for (const character of node.text) {
           chunk += character;
-          if ((++count & 1023) === 0) { add(node.font.encode(chunk).slice(1, -1)); chunk = ""; await cooperate(settings); }
+          if ((++count & 1023) === 0) { add(font.encode(chunk).slice(1, -1)); chunk = ""; await cooperate(settings); }
         }
-        if (chunk) add(node.font.encode(chunk).slice(1, -1));
+        if (chunk) add(font.encode(chunk).slice(1, -1));
         add("> Tj ET\n");
       }
       add("Q\n");
       if ((i & 255) === 255) await cooperate(settings);
     }
   }
-  await paint(plan); checkAbort(settings.options.signal);
-  return { width, height, content: fragments.join(""), commands: commands - used.commands, elements: elements - used.elements };
+  await paint(captured.plan); checkAbort(settings.options.signal);
+  return { width: captured.width, height: captured.height, content: fragments.join(""), commands: captured.commands, elements: captured.elements };
 }

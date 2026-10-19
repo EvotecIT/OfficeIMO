@@ -136,7 +136,35 @@ async function runRichPdfContracts({ moduleBase, fixtures, drawingFont, classic 
   await rejected([{ ...drawingBlock, drawing: { ...drawing, opacity: 0.5 } }], drawingOptions, error => String(error).includes('drawing properties'), 'drawing-unsupported-schema');
   await rejected([drawingBlock], { ...drawingOptions, limits: { maxDrawingElements: 1 } }, error => error.code === 'RESOURCE_LIMIT', 'drawing-element-limit');
   await verifyCapturedPdfInputs({ writePdfDocument, PdfFont, inspect, save, rejected, require, bytes, drawingFont, configuration, checks });
-  return { checks, nativeInflater: typeof native === 'function', documents: 12, profile: classic ? 'classic' : 'esm' };
+  await verifyOwnedDrawingCapture({ writePdfDocument, PdfFont, inspect, save, require, bytes, drawingFont, configuration, checks });
+  return { checks, nativeInflater: typeof native === 'function', documents: 13, profile: classic ? 'classic' : 'esm' };
+}
+
+// A consumed drawing owns its entire typed tree before any task or microtask can mutate later records.
+async function verifyOwnedDrawingCapture({ writePdfDocument, PdfFont, inspect, save, require, bytes, drawingFont, configuration, checks }) {
+  const final = { op: 'line', x: 123, y: 45 };
+  const commands = [{ op: 'move', x: 0, y: 0 }, ...Array.from({ length: 1100 }, () => ({ op: 'line', x: 1, y: 1 })), final];
+  const label = { kind: 'text', text: 'Owned', x: 10, y: 25, font: 'regular', fontSize: 14, color: '000000' };
+  const clip = { x: 3, y: 4, width: 120, height: 50 }, children = [label];
+  const replacedGroup = { kind: 'group', elements: [{ ...label, text: 'Sibling' }] };
+  let mutated = false;
+  const first = { kind: 'path', stroke: '008000', get commands() {
+    queueMicrotask(() => {
+      mutated = true; final.x = 901; final.y = 902;
+      Object.assign(clip, { x: 70, y: 71, width: 72, height: 73 });
+      Object.assign(label, { text: 'Changed', x: 90, y: 91, font: 'bold', fontSize: 30, color: '0000FF' });
+      children.push({ ...label, text: 'Added' }); replacedGroup.elements = [];
+    });
+    return commands;
+  } };
+  const drawing = { version: 1, width: 200, height: 100, elements: [first, { kind: 'group', clip, elements: [{ kind: 'group', elements: children }] }, replacedGroup] };
+  const blob = await writePdfDocument([{ kind: 'drawing', drawing }], { ...configuration, fonts: { regular: new PdfFont(bytes(drawingFont)) } });
+  const pdf = await inspect(blob);
+  require(mutated, 'Drawing capture mutation did not run');
+  for (const token of ['123 45 l\nS','3 4 120 50 re W n','BT /F1 14 Tf 0 Tr 1 0 0 -1 10 25 Tm'])
+    require(pdf.text.includes(token), 'Drawing lost its owned command, nested clip or text: ' + token);
+  require(!pdf.text.includes('901 902 l'), 'Caller mutation replaced owned drawing coordinates');
+  await save('owned-drawing-capture', blob, ['Owned','Sibling']); checks.push('drawing-complete-tree-owned-before-cooperative-work');
 }
 
 // Changing public getters must not replace values already admitted by resource and schema checks.

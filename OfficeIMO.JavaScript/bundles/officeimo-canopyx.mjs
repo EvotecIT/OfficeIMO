@@ -6055,8 +6055,8 @@ async function cooperate(settings) {
         await pause();
     checkAbort(settings.options.signal);
 }
-/** Preflight and snapshot before painting. The existing font owner retains glyph maps and subsets. */
-async function prepareDrawing(drawing, settings, fonts, used) {
+/** Take ownership of one bounded schema before any cooperative or font work can run caller code. */
+function captureDrawing(drawing, settings, used) {
     checkAbort(settings.options.signal);
     const root = record(drawing, ["version", "width", "height", "elements"], "drawing");
     if (root.version !== 1)
@@ -6064,13 +6064,14 @@ async function prepareDrawing(drawing, settings, fonts, used) {
     const width = positive(root.width, "Drawing width"), height = positive(root.height, "Drawing height");
     let commands = used.commands, elements = used.elements;
     const ancestors = new Set();
-    async function path(value) {
+    function path(value) {
         record(value, ["kind", "commands", "fill", "stroke", "strokeWidth", "fillRule", "lineCap", "lineJoin"], "drawing path");
         const source = value.commands;
         if (!Array.isArray(source))
             throw new TypeError("Drawing path commands must be an array.");
         if (commands + source.length > settings.limits.maxVectorCommands)
             throw new OfficeIMOError("RESOURCE_LIMIT", "maxVectorCommands exceeded.");
+        checkAbort(settings.options.signal);
         const snapshot = source.slice(), copied = [];
         let started = false;
         commands += snapshot.length;
@@ -6113,7 +6114,7 @@ async function prepareDrawing(drawing, settings, fonts, used) {
             else
                 throw new TypeError("Unsupported drawing path command.");
             if ((i & 1023) === 1023)
-                await cooperate(settings);
+                checkAbort(settings.options.signal);
         }
         if (!started)
             throw new TypeError("A drawing path needs at least one command.");
@@ -6121,7 +6122,7 @@ async function prepareDrawing(drawing, settings, fonts, used) {
                 String(["butt", "round", "square"].indexOf(lineCap ?? "butt")) + " J\n" + String(["miter", "round", "bevel"].indexOf(lineJoin ?? "miter")) + " j\n10 M\n",
             paint: (fill !== undefined && stroke !== undefined ? "B" : fill !== undefined ? "f" : "S") + (fill !== undefined && fillRule === "evenodd" ? "*" : "") + "\n" };
     }
-    async function text(value) {
+    function text(value) {
         record(value, ["kind", "text", "x", "y", "font", "fontSize", "color"], "drawing text");
         const snapshot = value.text, slot = value.font;
         if (typeof snapshot !== "string")
@@ -6132,26 +6133,18 @@ async function prepareDrawing(drawing, settings, fonts, used) {
             throw new NotSupportedError("Drawing text must be a single baseline without line breaks.");
         if (!["regular", "bold", "italic", "boldItalic"].includes(slot))
             throw new TypeError("Invalid drawing font slot.");
-        const font = fonts.select(slot === "bold" || slot === "boldItalic", slot === "italic" || slot === "boldItalic");
-        if (!font.program || font.syntheticBold || font.syntheticItalic)
-            throw new NotSupportedError("Drawing text requires its exact embedded font face; supply fonts." + slot + ".");
         const x = coordinate(value.x), y = coordinate(value.y), size = positive(value.fontSize, "Drawing font size"), foreground = color(value.color);
         settings.budget.cell(snapshot);
-        let count = 0;
-        for (const character of snapshot) {
-            font.width(character.codePointAt(0));
-            if ((++count & 1023) === 0)
-                await cooperate(settings);
-        }
-        return { kind: "text", text: snapshot, x, y, size, color: foreground, font };
+        return { kind: "text", text: snapshot, x, y, size, color: foreground, font: slot };
     }
-    async function children(input, depth) {
+    function children(input, depth) {
         if (!Array.isArray(input))
             throw new TypeError("Drawing elements must be an array.");
         if (depth > 32 && input.length)
             throw new RangeError("Drawing groups support at most 32 element levels.");
         if (elements + input.length > settings.limits.maxDrawingElements)
             throw new OfficeIMOError("RESOURCE_LIMIT", "maxDrawingElements exceeded.");
+        checkAbort(settings.options.signal);
         const snapshot = input.slice(), output = [];
         for (let i = 0; i < snapshot.length; i++) {
             if (++elements > settings.limits.maxDrawingElements)
@@ -6163,24 +6156,60 @@ async function prepareDrawing(drawing, settings, fonts, used) {
                 throw new TypeError("Drawing groups cannot contain cycles.");
             const kind = value.kind;
             if (kind === "path")
-                output.push(await path(value));
+                output.push(path(value));
             else if (kind === "text")
-                output.push(await text(value));
+                output.push(text(value));
             else if (kind === "group") {
                 record(value, ["kind", "clip", "elements"], "drawing group");
                 const clipValue = value.clip, clip = clipValue === undefined ? undefined : clipRectangle(clipValue);
                 ancestors.add(value);
-                output.push({ kind: "group", ...(clip ? { clip } : {}), children: await children(value.elements, depth + 1) });
+                output.push({ kind: "group", ...(clip ? { clip } : {}), children: children(value.elements, depth + 1) });
                 ancestors.delete(value);
             }
             else
                 throw new TypeError("Unsupported drawing element kind.");
             if ((i & 255) === 255)
-                await cooperate(settings);
+                checkAbort(settings.options.signal);
         }
         return output;
     }
-    const plan = await children(root.elements, 1);
+    const plan = children(root.elements, 1);
+    checkAbort(settings.options.signal);
+    return { width, height, plan, commands: commands - used.commands, elements: elements - used.elements };
+}
+/** Preflight and paint owned records. The existing font owner retains glyph maps and subsets. */
+async function prepareDrawing(drawing, settings, fonts, used) {
+    // A drawing's bounded capture is synchronous; yielding here would leave later caller records borrowed.
+    const captured = captureDrawing(drawing, settings, used), drawingFonts = new Map();
+    function fontFor(slot) {
+        const existing = drawingFonts.get(slot);
+        if (existing)
+            return existing;
+        const font = fonts.select(slot === "bold" || slot === "boldItalic", slot === "italic" || slot === "boldItalic");
+        if (!font.program || font.syntheticBold || font.syntheticItalic)
+            throw new NotSupportedError("Drawing text requires its exact embedded font face; supply fonts." + slot + ".");
+        drawingFonts.set(slot, font);
+        return font;
+    }
+    async function preflight(nodes) {
+        for (let i = 0; i < nodes.length; i++) {
+            const node = nodes[i];
+            if (node.kind === "group")
+                await preflight(node.children);
+            else if (node.kind === "text") {
+                const font = fontFor(node.font);
+                let count = 0;
+                for (const character of node.text) {
+                    font.width(character.codePointAt(0));
+                    if ((++count & 1023) === 0)
+                        await cooperate(settings);
+                }
+            }
+            if ((i & 255) === 255)
+                await cooperate(settings);
+        }
+    }
+    await preflight(captured.plan);
     const fragments = [];
     let bytes = 0;
     function add(fragment) {
@@ -6210,18 +6239,19 @@ async function prepareDrawing(drawing, settings, fonts, used) {
                 add(node.paint);
             }
             else {
-                add(node.color + " rg\nBT /" + node.font.name + " " + n(node.size) + " Tf 0 Tr 1 0 0 -1 " + n(node.x) + " " + n(node.y) + " Tm <");
+                const font = fontFor(node.font);
+                add(node.color + " rg\nBT /" + font.name + " " + n(node.size) + " Tf 0 Tr 1 0 0 -1 " + n(node.x) + " " + n(node.y) + " Tm <");
                 let chunk = "", count = 0;
                 for (const character of node.text) {
                     chunk += character;
                     if ((++count & 1023) === 0) {
-                        add(node.font.encode(chunk).slice(1, -1));
+                        add(font.encode(chunk).slice(1, -1));
                         chunk = "";
                         await cooperate(settings);
                     }
                 }
                 if (chunk)
-                    add(node.font.encode(chunk).slice(1, -1));
+                    add(font.encode(chunk).slice(1, -1));
                 add("> Tj ET\n");
             }
             add("Q\n");
@@ -6229,9 +6259,9 @@ async function prepareDrawing(drawing, settings, fonts, used) {
                 await cooperate(settings);
         }
     }
-    await paint(plan);
+    await paint(captured.plan);
     checkAbort(settings.options.signal);
-    return { width, height, content: fragments.join(""), commands: commands - used.commands, elements: elements - used.elements };
+    return { width: captured.width, height: captured.height, content: fragments.join(""), commands: captured.commands, elements: captured.elements };
 }
 const _exports = Object.freeze({ checkDrawingBlock: checkDrawingBlock, prepareDrawing: prepareDrawing });
 return _exports;
