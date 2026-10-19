@@ -9,7 +9,7 @@ using System.Threading;
 
 namespace OfficeIMO.Excel.Xlsb {
     /// <summary>Reads workbook metadata and worksheet values from BIFF12 package parts.</summary>
-    internal static class XlsbWorkbookReader {
+    internal static partial class XlsbWorkbookReader {
         private const int BrtRowHdr = 0;
         private const int BrtCellBlank = 1;
         private const int BrtCellRk = 2;
@@ -106,23 +106,24 @@ namespace OfficeIMO.Excel.Xlsb {
             ParseWorkbookPart(parts.ReadPart(workbookPartName!, cancellationToken), workbookPartName!, resolved, workbook,
                 recordBudget);
 
-            if (workbook.Worksheets.Count == 0) {
+            if (workbook.Sheets.Count == 0) {
                 throw new InvalidDataException("The XLSB workbook contains no worksheet bundle records.");
             }
 
-            if (workbook.Worksheets.Count > resolved.MaxWorksheets) {
-                throw new InvalidDataException($"The XLSB workbook contains {workbook.Worksheets.Count} worksheets, exceeding the configured limit of {resolved.MaxWorksheets}.");
+            if (workbook.Sheets.Count > resolved.MaxWorksheets) {
+                throw new InvalidDataException($"The XLSB workbook contains {workbook.Sheets.Count} worksheets, exceeding the configured limit of {resolved.MaxWorksheets}.");
             }
 
             int totalCells = 0;
             int totalRowDefinitions = 0;
             int totalMergedRanges = 0;
             int totalHyperlinks = 0;
-            foreach (XlsbWorksheet worksheet in workbook.Worksheets) {
+            foreach (XlsbSheet worksheet in workbook.Sheets) {
                 cancellationToken.ThrowIfCancellationRequested();
                 if (!relationships.TryGetValue(worksheet.RelationshipId, out XlsbPackageRelationship? relationship)
                     || relationship.IsExternal
-                    || !relationship.Type.EndsWith(WorksheetRelationshipSuffix, StringComparison.Ordinal)) {
+                    || !(relationship.Type == "http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet"
+                        || relationship.Type == "http://schemas.openxmlformats.org/officeDocument/2006/relationships/chartsheet")) {
                     throw new InvalidDataException($"The XLSB worksheet '{worksheet.Name}' refers to missing or invalid relationship '{worksheet.RelationshipId}'.");
                 }
 
@@ -130,6 +131,11 @@ namespace OfficeIMO.Excel.Xlsb {
                 worksheet.PartName = sheetPartName;
                 IReadOnlyDictionary<string, XlsbPackageRelationship> worksheetRelationships = parts.ReadRelationships(sheetPartName, cancellationToken);
                 worksheet.Relationships = worksheetRelationships;
+                if (relationship.Type == "http://schemas.openxmlformats.org/officeDocument/2006/relationships/chartsheet") {
+                    worksheet.IsChartSheet = true;
+                    ReadChartSheet(parts, sheetPartName, worksheet, resolved, workbook, recordBudget);
+                    continue;
+                }
                 ParseWorksheetPart(
                     parts.ReadPart(sheetPartName, cancellationToken),
                     sheetPartName,
@@ -145,6 +151,7 @@ namespace OfficeIMO.Excel.Xlsb {
                     ref totalHyperlinks);
             }
 
+            ReadVbaProjectGraph(parts, workbookPartName!, relationships, resolved, workbook);
             workbook.SharedStringCount = sharedStrings.Count;
             if (workbook.PreservedRecords.Count > 0) {
                 workbook.AddDiagnostic(new XlsbImportDiagnostic(
@@ -187,7 +194,7 @@ namespace OfficeIMO.Excel.Xlsb {
                             throw new InvalidDataException($"The BrtBundleSh record at offset {record.Offset} does not contain a worksheet name and relationship id.");
                         }
 
-                        workbook.AddWorksheet(new XlsbWorksheet(name, relationshipId, tabId, state));
+                        workbook.AddWorksheet(new XlsbSheet(name, relationshipId, tabId, state));
                         break;
                     case BrtWbProp:
                         if (record.Data.Length < 4) {
@@ -196,6 +203,10 @@ namespace OfficeIMO.Excel.Xlsb {
 
                         var propertiesCursor = new XlsbBinaryCursor(record.Data);
                         workbook.Uses1904DateSystem = (propertiesCursor.ReadUInt32() & 0x01U) != 0;
+                        if (propertiesCursor.Remaining >= 4) {
+                            propertiesCursor.ReadUInt32(); // default theme version
+                            if (propertiesCursor.Remaining > 0) workbook.CodeName = propertiesCursor.ReadWideString(options.MaxStringCharacters);
+                        }
                         PreserveRecord(options, workbook, partName, record);
                         break;
                     case BrtCalcProp:
@@ -304,7 +315,7 @@ namespace OfficeIMO.Excel.Xlsb {
         private static void ResolveDefinedNames(XlsbImportOptions options, XlsbWorkbook workbook, string partName) {
             foreach (XlsbDefinedName definedName in workbook.DefinedNames) {
                 if (definedName.LocalSheetIndex != uint.MaxValue
-                    && definedName.LocalSheetIndex >= workbook.Worksheets.Count) {
+                    && definedName.LocalSheetIndex >= workbook.Sheets.Count) {
                     throw new InvalidDataException($"The XLSB defined name '{definedName.Name}' is scoped to missing sheet index {definedName.LocalSheetIndex}.");
                 }
 
@@ -312,7 +323,7 @@ namespace OfficeIMO.Excel.Xlsb {
                     definedName,
                     workbook.ExternalSheetReferences,
                     workbook.SelfSupportingLinks,
-                    workbook.Worksheets,
+                    workbook.Sheets,
                     out string? formulaText,
                     out string? reason)) {
                     definedName.FormulaText = formulaText;
@@ -465,7 +476,7 @@ namespace OfficeIMO.Excel.Xlsb {
         private static void ParseWorksheetPart(
             byte[] bytes,
             string partName,
-            XlsbWorksheet worksheet,
+            XlsbSheet worksheet,
             IReadOnlyDictionary<string, XlsbPackageRelationship> worksheetRelationships,
             IReadOnlyList<string> sharedStrings,
             XlsbImportOptions options,

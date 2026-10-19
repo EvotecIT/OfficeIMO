@@ -9,7 +9,7 @@ namespace OfficeIMO.Excel.Xlsb.NameRecords {
             XlsbDefinedName definedName,
             IReadOnlyList<XlsbExternalSheetReference> externalSheetReferences,
             IReadOnlyList<bool> selfSupportingLinks,
-            IReadOnlyList<XlsbWorksheet> worksheets,
+            IReadOnlyList<XlsbSheet> worksheets,
             out string? formulaText,
             out string? reason) {
             if (definedName == null) throw new ArgumentNullException(nameof(definedName));
@@ -43,7 +43,7 @@ namespace OfficeIMO.Excel.Xlsb.NameRecords {
             byte[] tokens,
             IReadOnlyList<XlsbExternalSheetReference> externalSheetReferences,
             IReadOnlyList<bool> selfSupportingLinks,
-            IReadOnlyList<XlsbWorksheet> worksheets,
+            IReadOnlyList<XlsbSheet> worksheets,
             out string? formulaText,
             out string? reason) {
             formulaText = null;
@@ -124,7 +124,7 @@ namespace OfficeIMO.Excel.Xlsb.NameRecords {
             bool isArea,
             IReadOnlyList<XlsbExternalSheetReference> externalSheetReferences,
             IReadOnlyList<bool> selfSupportingLinks,
-            IReadOnlyList<XlsbWorksheet> worksheets,
+            IReadOnlyList<XlsbSheet> worksheets,
             out string? reference,
             out string? reason) {
             reference = null;

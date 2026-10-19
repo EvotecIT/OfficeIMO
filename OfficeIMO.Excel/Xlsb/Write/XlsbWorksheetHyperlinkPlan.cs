@@ -24,7 +24,7 @@ namespace OfficeIMO.Excel.Xlsb.Write {
 
         internal IReadOnlyList<XlsbHyperlinkRelationship> Relationships { get; }
 
-        internal bool RelationshipsMatch(XlsbWorksheet sourceSheet) {
+        internal bool RelationshipsMatch(XlsbSheet sourceSheet) {
             if (sourceSheet == null) throw new ArgumentNullException(nameof(sourceSheet));
             XlsbHyperlink[] sourceRelationships = sourceSheet.Hyperlinks
                 .Where(hyperlink => hyperlink.IsExternal)

@@ -23,6 +23,7 @@ namespace OfficeIMO.Excel.Xlsb.Write {
             if (sourcePackageBytes == null) throw new ArgumentNullException(nameof(sourcePackageBytes));
             if (sourceWorkbook == null) throw new ArgumentNullException(nameof(sourceWorkbook));
 
+            document.ValidateNativeXlsbProjection();
             ThrowIfUnsupportedWorkbookMutation(document, sourceWorkbook, sourcePackageBytes);
             ExcelSheet[] sheets = document.Sheets.ToArray();
             var replacements = new Dictionary<string, byte[]>(StringComparer.OrdinalIgnoreCase);
@@ -44,7 +45,7 @@ namespace OfficeIMO.Excel.Xlsb.Write {
                 }
 
                 for (int index = 0; index < sheets.Length; index++) {
-                    XlsbWorksheet sourceSheet = sourceWorkbook.Worksheets[index];
+                    XlsbSheet sourceSheet = sourceWorkbook.Worksheets[index];
                     string partName = sourceSheet.PartName
                         ?? throw new InvalidDataException($"The source XLSB worksheet '{sourceSheet.Name}' has no resolved package part.");
                     ZipArchiveEntry sourceEntry = FindEntry(archive, partName)
@@ -136,7 +137,7 @@ namespace OfficeIMO.Excel.Xlsb.Write {
             }
 
             for (int index = 0; index < sheets.Length; index++) {
-                XlsbWorksheet sourceSheet = sourceWorkbook.Worksheets[index];
+                XlsbSheet sourceSheet = sourceWorkbook.Worksheets[index];
                 ExcelSheet currentSheet = sheets[index];
                 uint currentState = currentSheet.VeryHidden ? 2U : currentSheet.Hidden ? 1U : 0U;
                 if (!string.Equals(currentSheet.Name, sourceSheet.Name, StringComparison.Ordinal)
@@ -155,7 +156,7 @@ namespace OfficeIMO.Excel.Xlsb.Write {
         private static void ValidateWorkbookProperties(ExcelDocument document, XlsbWorkbook sourceWorkbook) {
             WorkbookProperties? properties = document.WorkbookRoot.GetFirstChild<WorkbookProperties>();
             if (properties == null) {
-                if (sourceWorkbook.Uses1904DateSystem) {
+                if (sourceWorkbook.Uses1904DateSystem || !string.IsNullOrEmpty(sourceWorkbook.CodeName)) {
                     throw new NotSupportedException("Native XLSB rewriting cannot change the workbook date system. Save the workbook as .xlsx.");
                 }
                 return;
@@ -163,10 +164,11 @@ namespace OfficeIMO.Excel.Xlsb.Write {
 
             bool hasOnlyProjectedDateSystem = !properties.HasChildren
                 && properties.GetAttributes().All(attribute =>
-                    string.Equals(attribute.LocalName, "date1904", StringComparison.Ordinal)
+                    (string.Equals(attribute.LocalName, "date1904", StringComparison.Ordinal) || string.Equals(attribute.LocalName, "codeName", StringComparison.Ordinal))
                     && string.Equals(attribute.NamespaceUri, string.Empty, StringComparison.Ordinal));
             bool uses1904 = properties.Date1904?.Value == true;
-            if (!hasOnlyProjectedDateSystem || uses1904 != sourceWorkbook.Uses1904DateSystem) {
+            if (!hasOnlyProjectedDateSystem || uses1904 != sourceWorkbook.Uses1904DateSystem
+                || !string.Equals(properties.CodeName?.Value ?? string.Empty, sourceWorkbook.CodeName ?? string.Empty, StringComparison.Ordinal)) {
                 throw new NotSupportedException("Native XLSB rewriting currently cannot change workbook properties or the workbook date system. Save the workbook as .xlsx.");
             }
         }

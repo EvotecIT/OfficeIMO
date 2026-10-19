@@ -421,7 +421,7 @@ namespace OfficeIMO.Excel {
             }
 
             XlsbWorkbook workbook = XlsbWorkbookReader.Load(bytes, importOptions);
-            ExcelDocument document = XlsbWorkbookProjector.ToExcelDocument(workbook);
+            ExcelDocument document = XlsbWorkbookProjector.ToExcelDocument(workbook, importOptions?.CancellationToken ?? default);
             if (readOnly) {
                 document = ReopenProjectedWorkbookReadOnly(document);
             }

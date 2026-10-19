@@ -1,6 +1,6 @@
 namespace OfficeIMO.Excel.Xlsb.Model {
     internal sealed class XlsbWorkbook {
-        private readonly List<XlsbWorksheet> _worksheets = new List<XlsbWorksheet>();
+        private readonly List<XlsbSheet> _worksheets = new List<XlsbSheet>();
         private readonly List<XlsbDefinedName> _definedNames = new List<XlsbDefinedName>();
         private readonly List<XlsbExternalSheetReference> _externalSheetReferences = new List<XlsbExternalSheetReference>();
         private readonly List<bool> _selfSupportingLinks = new List<bool>();
@@ -19,7 +19,15 @@ namespace OfficeIMO.Excel.Xlsb.Model {
 
         internal long MaxPackageBytes { get; }
 
-        internal IReadOnlyList<XlsbWorksheet> Worksheets => _worksheets;
+        internal IReadOnlyList<XlsbSheet> Sheets => _worksheets;
+
+        internal IReadOnlyList<XlsbSheet> Worksheets => _worksheets.Where(sheet => !sheet.IsChartSheet).ToArray();
+
+        internal string? CodeName { get; set; }
+
+        internal Dictionary<string, XlsbProjectedPart> RelatedParts { get; } = new(StringComparer.OrdinalIgnoreCase);
+
+        internal string? VbaProjectPartName { get; set; }
 
         internal IReadOnlyList<XlsbDefinedName> DefinedNames => _definedNames;
 
@@ -43,7 +51,7 @@ namespace OfficeIMO.Excel.Xlsb.Model {
 
         internal string? StylesheetPartName { get; set; }
 
-        internal void AddWorksheet(XlsbWorksheet worksheet) => _worksheets.Add(worksheet);
+        internal void AddWorksheet(XlsbSheet worksheet) => _worksheets.Add(worksheet);
 
         internal void AddDefinedName(XlsbDefinedName definedName) => _definedNames.Add(definedName);
 

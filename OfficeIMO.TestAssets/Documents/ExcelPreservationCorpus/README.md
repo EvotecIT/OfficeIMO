@@ -10,3 +10,13 @@ repair and saved the paired XLSB and XLS files with macros disabled.
 These files qualify a preservation cohort; they do not establish every legacy
 workbook feature, chart appearance, or macro execution behavior. Fixture tools
 are independent validation and are not product runtime requirements.
+
+The populated control adds a constant bar series to `b_chart`: Alpha 10, Beta 20,
+and Gamma 30. Native Excel displays these bars and encodes the paired
+`excel-populated-macro.xlsb` and `.xls` files. This makes visible chart
+preservation testable; the other chart sheets remain empty controls.
+
+`officeimo-populated-edited.xlsb` changes only `graphs2!A1`. All ZIP entries
+except the first worksheet binary part match the native source byte-for-byte.
+Excel reopened it without repair, displayed the edited text and the same populated
+bar chart, and kept macros disabled. VBA execution remains outside this proof.

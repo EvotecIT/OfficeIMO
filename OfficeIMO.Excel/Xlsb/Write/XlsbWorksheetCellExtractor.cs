@@ -12,7 +12,7 @@ namespace OfficeIMO.Excel.Xlsb.Write {
         internal static IReadOnlyList<XlsbWriteCell> Extract(
             ExcelDocument document,
             ExcelSheet sheet,
-            XlsbWorksheet sourceSheet,
+            XlsbSheet sourceSheet,
             int availableCellFormatCount) {
             if (document == null) throw new ArgumentNullException(nameof(document));
             if (sheet == null) throw new ArgumentNullException(nameof(sheet));
@@ -35,7 +35,7 @@ namespace OfficeIMO.Excel.Xlsb.Write {
         private static IReadOnlyList<XlsbWriteCell> ExtractCore(
             ExcelDocument document,
             ExcelSheet sheet,
-            XlsbWorksheet? sourceSheet,
+            XlsbSheet? sourceSheet,
             int? availableCellFormatCount) {
             var sourceCells = sourceSheet?.Cells.ToDictionary(cell => (cell.Row, cell.Column))
                 ?? new Dictionary<(int Row, int Column), XlsbCell>();
@@ -128,7 +128,7 @@ namespace OfficeIMO.Excel.Xlsb.Write {
             }
         }
 
-        private static void ThrowIfUnsupportedWorksheetMutation(ExcelSheet sheet, XlsbWorksheet sourceSheet) {
+        private static void ThrowIfUnsupportedWorksheetMutation(ExcelSheet sheet, XlsbSheet sourceSheet) {
             if (sheet.WorksheetPart.Parts.Any()
                 || sheet.WorksheetPart.ExternalRelationships.Any()) {
                 throw new NotSupportedException($"Native XLSB rewriting currently cannot modify relationship-backed worksheet content on worksheet '{sheet.Name}'; save as .xlsx to retain that change.");

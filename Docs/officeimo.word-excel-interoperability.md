@@ -122,6 +122,15 @@ workbooks can also be saved as `.xlsb` through the first-party writer. If the
 requested mutation or save-time transform is outside that writer's contract,
 OfficeIMO throws before creating mislabeled or partially rewritten output.
 
+Chart sheets and VBA projects retain their bounded related-part graphs, including
+external relationship metadata without activation. Supported worksheet edits
+preserve the original chart/VBA package parts and host identities. Native XLSB
+output rejects mutations to those parts or sheet bindings. Chart-sheet records
+that are not projected, such as view and print metadata, still require an
+explicit loss decision for conversion to another format. The
+[populated native controls](../OfficeIMO.TestAssets/Documents/ExcelPreservationCorpus/README.md)
+separate encoded-part preservation from chart appearance and macro execution.
+
 ## Import or convert DOC and XLS with an approved loss decision
 
 Use the normal `Load(...)` surface when you only need the projected model. Use

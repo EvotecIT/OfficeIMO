@@ -153,6 +153,7 @@ namespace OfficeIMO.Excel {
             _legacyXlsWasEncryptedSource = false;
             _openXmlOriginalPackageBytes = null;
             _xlsbAdvancedWorkbook = workbook;
+            _xlsbPreservationGuard = OfficeIMO.Excel.Xlsb.Write.XlsbProjectionPreservationGuard.Capture(this);
             _xlsbImportDiagnostics = workbook.Diagnostics.ToArray();
             _xlsbPreservedRecords = workbook.PreservedRecords.ToArray();
             _packageDirty = false;

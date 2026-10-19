@@ -5,7 +5,7 @@ using OfficeIMO.Excel.Xlsb.Model;
 namespace OfficeIMO.Excel.Xlsb.Projection {
     /// <summary>Projects and validates preservation-owned XLSB worksheet geometry.</summary>
     internal static class XlsbWorksheetGeometryProjector {
-        internal static void Apply(ExcelSheet targetSheet, XlsbWorksheet sourceSheet) {
+        internal static void Apply(ExcelSheet targetSheet, XlsbSheet sourceSheet) {
             if (targetSheet == null) throw new ArgumentNullException(nameof(targetSheet));
             if (sourceSheet == null) throw new ArgumentNullException(nameof(sourceSheet));
 
@@ -41,7 +41,7 @@ namespace OfficeIMO.Excel.Xlsb.Projection {
             worksheet.Save();
         }
 
-        internal static void ValidateUnchanged(ExcelSheet sheet, XlsbWorksheet sourceSheet) {
+        internal static void ValidateUnchanged(ExcelSheet sheet, XlsbSheet sourceSheet) {
             Worksheet worksheet = sheet.WorksheetPart.Worksheet
                 ?? throw new InvalidDataException($"Worksheet '{sheet.Name}' has no worksheet root.");
             OpenXmlElement? unsupportedChild = worksheet.ChildElements.FirstOrDefault(element =>
@@ -80,7 +80,7 @@ namespace OfficeIMO.Excel.Xlsb.Projection {
             return range == null ? null : new SheetDimension { Reference = range.ToA1Reference() };
         }
 
-        private static void ValidateDimension(Worksheet worksheet, XlsbWorksheet sourceSheet, ExcelSheet sheet) {
+        private static void ValidateDimension(Worksheet worksheet, XlsbSheet sourceSheet, ExcelSheet sheet) {
             SheetDimension[] dimensions = worksheet.Elements<SheetDimension>().ToArray();
             if (sourceSheet.UsedRange == null) {
                 if (dimensions.Length != 0) ThrowGeometryMutation(sheet, "worksheet dimension");
@@ -221,7 +221,7 @@ namespace OfficeIMO.Excel.Xlsb.Projection {
             return merges;
         }
 
-        private static SheetViews CreateSheetViews(XlsbWorksheet sourceSheet) {
+        private static SheetViews CreateSheetViews(XlsbSheet sourceSheet) {
             SheetViews views = ExcelSheet.CreateDefaultSheetViews();
             SheetView view = views.Elements<SheetView>().Single();
             if (sourceSheet.ShowGridLines == false) view.ShowGridLines = false;
@@ -265,7 +265,7 @@ namespace OfficeIMO.Excel.Xlsb.Projection {
             }
         }
 
-        private static void ValidateRows(SheetData? sheetData, XlsbWorksheet sourceSheet, ExcelSheet sheet) {
+        private static void ValidateRows(SheetData? sheetData, XlsbSheet sourceSheet, ExcelSheet sheet) {
             if (sheetData == null) {
                 if (sourceSheet.Rows.Count != 0 || sourceSheet.Cells.Count != 0) {
                     ThrowGeometryMutation(sheet, "row metadata");

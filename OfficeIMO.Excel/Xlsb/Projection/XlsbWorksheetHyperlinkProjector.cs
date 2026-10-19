@@ -6,7 +6,7 @@ using OfficeIMO.Excel.Xlsb.Model;
 namespace OfficeIMO.Excel.Xlsb.Projection {
     /// <summary>Projects XLSB worksheet hyperlinks and validates their preservation contract.</summary>
     internal static class XlsbWorksheetHyperlinkProjector {
-        internal static void Apply(ExcelSheet sheet, XlsbWorksheet sourceSheet) {
+        internal static void Apply(ExcelSheet sheet, XlsbSheet sourceSheet) {
             if (sheet == null) throw new ArgumentNullException(nameof(sheet));
             if (sourceSheet == null) throw new ArgumentNullException(nameof(sourceSheet));
             if (sourceSheet.Hyperlinks.Count == 0) return;
@@ -37,7 +37,7 @@ namespace OfficeIMO.Excel.Xlsb.Projection {
             worksheet.Save();
         }
 
-        internal static bool Matches(ExcelSheet sheet, XlsbWorksheet sourceSheet) {
+        internal static bool Matches(ExcelSheet sheet, XlsbSheet sourceSheet) {
             Worksheet worksheet = sheet.WorksheetPart.Worksheet
                 ?? throw new InvalidDataException($"Worksheet '{sheet.Name}' has no worksheet root.");
             Hyperlinks[] containers = worksheet.Elements<Hyperlinks>().ToArray();

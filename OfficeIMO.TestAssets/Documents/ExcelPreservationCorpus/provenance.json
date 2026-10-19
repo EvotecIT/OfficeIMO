@@ -7,6 +7,15 @@
   "files": {
     "inert-macro-control.xlsm": "eb07142b8e1f796a0bd16d4063141cbb44ed8e63fd5a4d2002c2b49182f1ffcd",
     "excel-inert-macro.xls": "39ce06f6896f2800c19a992cc2636188b7d64b0233dd39afe7db56c74ce6648b",
-    "excel-inert-macro.xlsb": "db6d83ff73820368416527df6f33c841a58aeef8ccc719bf520717f928654e38"
+    "excel-inert-macro.xlsb": "db6d83ff73820368416527df6f33c841a58aeef8ccc719bf520717f928654e38",
+    "populated-chart-control.xlsm": "7b38362823c38f792c7cd135a2977f109f5f681937605f62ef8688be8dc2998c",
+    "excel-populated-macro.xlsb": "bd906e36e15c82e793999ee7169e96bba606efd806dfe20b59976bf7daca30fe",
+    "excel-populated-macro.xls": "9e8d4df75a4dc02e85dd5c1e576c4677d6733d0e2df4547a11474e13635772a3",
+    "officeimo-populated-edited.xlsb": "91537d01d68ff7279eef8bd48e01594011c065e02421973c255d1334be17c685"
+  },
+  "populatedChartControl": {
+    "source": "populated-chart-control.xlsm extends the inert XLSM control with one constant bar series: Alpha=10, Beta=20, Gamma=30. The chart target was resolved from the drawing relationship; no source VBA was changed.",
+    "method": "Native Excel opened without repair and with macros disabled, displayed b_chart with three blue bars and category labels, then saved excel-populated-macro.xlsb and excel-populated-macro.xls. Saved URLs observed. Worksheet-edit readback qualification is recorded separately when completed.",
+    "editedReadback": "OfficeIMO changed graphs2!A1 to Edited inert preservation value and saved native XLSB. Only xl/worksheets/sheet1.bin changed; all other ZIP entry bytes match the native source. Excel reopened without repair with macros disabled, displayed the same b_chart bars Alpha=10/Beta=20/Gamma=30 and the edited A1 text. Navigation changes discarded; Excel quit and process absence verified."
   }
 }

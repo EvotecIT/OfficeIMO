@@ -366,6 +366,16 @@ unmodified package parts. Supported cell edits use a native preservation-aware
 rewrite. Unsupported mutations and save-time transforms fail before output is
 written, so `.xlsx` bytes are never disguised as `.xlsb`.
 
+Chart-sheet drawing/chart parts and linked VBA project parts are projected through
+their original relationships without executing macros or following external links.
+Native worksheet edits retain the original chart-sheet and VBA package bytes,
+including host identities. Changing those preserved parts or sheet bindings is
+rejected for native XLSB output; use macro-compatible Open XML output for such
+edits. Unprojected chart-sheet view, protection and print records remain visible
+in `XlsbPreservedRecords`; native preservation does not imply lossless conversion.
+`MaxRelatedParts` and `MaxRelationshipDepth` bound imported chart/VBA graphs in
+addition to the existing decompressed-part and package budgets.
+
 New XLSB workbooks use inline text cells by default. To deduplicate repeated
 text across worksheets, save with `new ExcelSaveOptions { XlsbUseSharedStrings = true }`.
 Set the option to `false` to select inline strings explicitly. Shared-string

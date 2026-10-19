@@ -7,6 +7,9 @@ using OfficeIMO.Excel.Xlsb.Write;
 
 namespace OfficeIMO.Excel {
     public partial class ExcelDocument {
+        private XlsbProjectionPreservationGuard? _xlsbPreservationGuard;
+
+        internal void ValidateNativeXlsbProjection() => _xlsbPreservationGuard?.Validate(this);
         private void EnsureXlsbFileTargetSupported(
             string path,
             ExcelSaveOptions? options,
@@ -47,8 +50,10 @@ namespace OfficeIMO.Excel {
         }
 
         private bool CanCopyUnchangedXlsb(ExcelSaveOptions? options) {
+            ValidateNativeXlsbProjection();
             return SourceFormat == ExcelFileFormat.Xlsb
                 && !_packageDirty
+                && _xlsbPreservationGuard?.HasWorksheetChanges(this) != true
                 && _xlsbOriginalPackageBytes != null
                 && !HasXlsbTransformSaveWork(options);
         }
@@ -263,6 +268,7 @@ namespace OfficeIMO.Excel {
             XlsbWorkbook workbook = XlsbWorkbookReader.Load(bytes);
             _xlsbOriginalPackageBytes = bytes;
             _xlsbAdvancedWorkbook = workbook;
+            _xlsbPreservationGuard = XlsbProjectionPreservationGuard.Capture(this);
             _xlsbImportDiagnostics = workbook.Diagnostics.ToArray();
             _xlsbPreservedRecords = workbook.PreservedRecords.ToArray();
             _packageDirty = false;

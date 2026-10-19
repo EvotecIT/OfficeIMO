@@ -1,19 +1,26 @@
 using OfficeIMO.Excel.Xlsb.Package;
 
 namespace OfficeIMO.Excel.Xlsb.Model {
-    internal sealed class XlsbWorksheet {
+    /// <summary>A workbook sheet bundle and its decoded worksheet or chart-sheet content.</summary>
+    internal sealed class XlsbSheet {
         private readonly List<XlsbCell> _cells = new List<XlsbCell>();
         private readonly List<XlsbRowInfo> _rows = new List<XlsbRowInfo>();
         private readonly List<XlsbColumnInfo> _columns = new List<XlsbColumnInfo>();
         private readonly List<XlsbCellRange> _mergedRanges = new List<XlsbCellRange>();
         private readonly List<XlsbHyperlink> _hyperlinks = new List<XlsbHyperlink>();
 
-        internal XlsbWorksheet(string name, string relationshipId, uint tabId, uint state) {
+        internal XlsbSheet(string name, string relationshipId, uint tabId, uint state) {
             Name = name;
             RelationshipId = relationshipId;
             TabId = tabId;
             State = state;
         }
+
+        internal bool IsChartSheet { get; set; }
+
+        internal string? ChartCodeName { get; set; }
+
+        internal string? DrawingRelationshipId { get; set; }
 
         internal string Name { get; }
 
