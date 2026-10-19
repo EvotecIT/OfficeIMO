@@ -138,18 +138,20 @@ export async function prepareDrawing(drawing: PdfDrawing, settings: PdfSettings,
     if (!font.program || font.syntheticBold || font.syntheticItalic) throw new NotSupportedError("Drawing text requires its exact embedded font face; supply fonts." + slot + ".");
     drawingFonts.set(slot, font); return font;
   }
+  // The work budget belongs to the drawing, including short runs in separate sibling groups.
+  let preflightCharacters = 0, preflightElements = 0;
   async function preflight(nodes: readonly Plan[]): Promise<void> {
     for (let i = 0; i < nodes.length; i++) {
       const node = nodes[i]!;
       if (node.kind === "group") await preflight(node.children);
       else if (node.kind === "text") {
-        const font = fontFor(node.font); let count = 0;
+        const font = fontFor(node.font);
         for (const character of node.text) {
           font.width(character.codePointAt(0)!);
-          if ((++count & 1023) === 0) await cooperate(settings);
+          if ((++preflightCharacters & 1023) === 0) await cooperate(settings);
         }
       }
-      if ((i & 255) === 255) await cooperate(settings);
+      if ((++preflightElements & 255) === 0) await cooperate(settings);
     }
   }
   await preflight(captured.plan);
@@ -159,6 +161,7 @@ export async function prepareDrawing(drawing: PdfDrawing, settings: PdfSettings,
     if (bytes > settings.limits.maxPageBytes - 256) throw new OfficeIMOError("RESOURCE_LIMIT", "maxPageBytes exceeded by drawing content.");
     fragments.push(fragment);
   }
+  let paintedCharacters = 0, paintedCommands = 0, paintedElements = 0;
   async function paint(nodes: readonly Plan[]): Promise<void> {
     for (let i = 0; i < nodes.length; i++) {
       const node = nodes[i]!; add("q\n");
@@ -171,22 +174,22 @@ export async function prepareDrawing(drawing: PdfDrawing, settings: PdfSettings,
           const c = node.commands[j]!;
           add(c.op === "move" || c.op === "line" ? n(c.x) + " " + n(c.y) + (c.op === "move" ? " m\n" : " l\n") :
             c.op === "cubic" ? [c.x1, c.y1, c.x2, c.y2, c.x, c.y].map(n).join(" ") + " c\n" : "h\n");
-          if ((j & 1023) === 1023) await cooperate(settings);
+          if ((++paintedCommands & 1023) === 0) await cooperate(settings);
         }
         add(node.paint);
       } else {
         const font = fontFor(node.font);
         add(node.color + " rg\nBT /" + font.name + " " + n(node.size) + " Tf 0 Tr 1 0 0 -1 " + n(node.x) + " " + n(node.y) + " Tm <");
-        let chunk = "", count = 0;
+        let chunk = "";
         for (const character of node.text) {
           chunk += character;
-          if ((++count & 1023) === 0) { add(font.encode(chunk).slice(1, -1)); chunk = ""; await cooperate(settings); }
+          if ((++paintedCharacters & 1023) === 0) { add(font.encode(chunk).slice(1, -1)); chunk = ""; await cooperate(settings); }
         }
         if (chunk) add(font.encode(chunk).slice(1, -1));
         add("> Tj ET\n");
       }
       add("Q\n");
-      if ((i & 255) === 255) await cooperate(settings);
+      if ((++paintedElements & 255) === 0) await cooperate(settings);
     }
   }
   await paint(captured.plan); checkAbort(settings.options.signal);

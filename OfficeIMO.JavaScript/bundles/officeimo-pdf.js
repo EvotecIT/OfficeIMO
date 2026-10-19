@@ -3048,7 +3048,7 @@ _modules.set("2908c4b401414c852357df4b0792e2b68a1508c821a2aea6ee9772d6f94562a7",
 return _exports;
 })();
 
-const _m33 = _modules.get("b1e1f3d342ca3d5dc027e85902b2f99a1e2f4edcb459126169cfda70ec4c4956") ?? (() => {
+const _m33 = _modules.get("248a60610bd5de6387f4245e79dc79cabeed41f91b8fc0f570d999305651d6a7") ?? (() => {
 const { NotSupportedError, OfficeIMOError } = _m4;
 
 const { checkAbort, pause, taskYieldDue } = _m3;
@@ -3216,6 +3216,8 @@ async function prepareDrawing(drawing, settings, fonts, used) {
         drawingFonts.set(slot, font);
         return font;
     }
+    // The work budget belongs to the drawing, including short runs in separate sibling groups.
+    let preflightCharacters = 0, preflightElements = 0;
     async function preflight(nodes) {
         for (let i = 0; i < nodes.length; i++) {
             const node = nodes[i];
@@ -3223,14 +3225,13 @@ async function prepareDrawing(drawing, settings, fonts, used) {
                 await preflight(node.children);
             else if (node.kind === "text") {
                 const font = fontFor(node.font);
-                let count = 0;
                 for (const character of node.text) {
                     font.width(character.codePointAt(0));
-                    if ((++count & 1023) === 0)
+                    if ((++preflightCharacters & 1023) === 0)
                         await cooperate(settings);
                 }
             }
-            if ((i & 255) === 255)
+            if ((++preflightElements & 255) === 0)
                 await cooperate(settings);
         }
     }
@@ -3243,6 +3244,7 @@ async function prepareDrawing(drawing, settings, fonts, used) {
             throw new OfficeIMOError("RESOURCE_LIMIT", "maxPageBytes exceeded by drawing content.");
         fragments.push(fragment);
     }
+    let paintedCharacters = 0, paintedCommands = 0, paintedElements = 0;
     async function paint(nodes) {
         for (let i = 0; i < nodes.length; i++) {
             const node = nodes[i];
@@ -3258,7 +3260,7 @@ async function prepareDrawing(drawing, settings, fonts, used) {
                     const c = node.commands[j];
                     add(c.op === "move" || c.op === "line" ? n(c.x) + " " + n(c.y) + (c.op === "move" ? " m\n" : " l\n") :
                         c.op === "cubic" ? [c.x1, c.y1, c.x2, c.y2, c.x, c.y].map(n).join(" ") + " c\n" : "h\n");
-                    if ((j & 1023) === 1023)
+                    if ((++paintedCommands & 1023) === 0)
                         await cooperate(settings);
                 }
                 add(node.paint);
@@ -3266,10 +3268,10 @@ async function prepareDrawing(drawing, settings, fonts, used) {
             else {
                 const font = fontFor(node.font);
                 add(node.color + " rg\nBT /" + font.name + " " + n(node.size) + " Tf 0 Tr 1 0 0 -1 " + n(node.x) + " " + n(node.y) + " Tm <");
-                let chunk = "", count = 0;
+                let chunk = "";
                 for (const character of node.text) {
                     chunk += character;
-                    if ((++count & 1023) === 0) {
+                    if ((++paintedCharacters & 1023) === 0) {
                         add(font.encode(chunk).slice(1, -1));
                         chunk = "";
                         await cooperate(settings);
@@ -3280,7 +3282,7 @@ async function prepareDrawing(drawing, settings, fonts, used) {
                 add("> Tj ET\n");
             }
             add("Q\n");
-            if ((i & 255) === 255)
+            if ((++paintedElements & 255) === 0)
                 await cooperate(settings);
         }
     }
@@ -3289,11 +3291,11 @@ async function prepareDrawing(drawing, settings, fonts, used) {
     return { width: captured.width, height: captured.height, content: fragments.join(""), commands: captured.commands, elements: captured.elements };
 }
 const _exports = Object.freeze({ checkDrawingBlock: checkDrawingBlock, prepareDrawing: prepareDrawing });
-_modules.set("b1e1f3d342ca3d5dc027e85902b2f99a1e2f4edcb459126169cfda70ec4c4956", _exports);
+_modules.set("248a60610bd5de6387f4245e79dc79cabeed41f91b8fc0f570d999305651d6a7", _exports);
 return _exports;
 })();
 
-const _m28 = _modules.get("609c7062dc1afc8470ff6070d985e67d682a2a8d67cfb2a070acc55e6c18ef56") ?? (() => {
+const _m28 = _modules.get("f595ec24cbf74d7d89f7a1ce5251e068a3e75e1ebf04d8d91787334c9b394b4e") ?? (() => {
 const { BlobByteSink, withDestination } = _m2;
 
 const { beginTask, checkAbort, consumeRows, pause, taskYieldDue } = _m3;
@@ -3446,7 +3448,7 @@ function checkTableOptions(options) {
         throw new TypeError("Table options support columns, headings, footers, widths and presentation; document settings belong on writePdfDocument.");
 }
 const _exports = Object.freeze({ pdfTable: pdfTable, writePdfDocument: writePdfDocument, writePdfDocumentTo: writePdfDocumentTo });
-_modules.set("609c7062dc1afc8470ff6070d985e67d682a2a8d67cfb2a070acc55e6c18ef56", _exports);
+_modules.set("f595ec24cbf74d7d89f7a1ce5251e068a3e75e1ebf04d8d91787334c9b394b4e", _exports);
 return _exports;
 })();
 
@@ -3537,10 +3539,10 @@ _modules.set("9e9621bba11170b44ed2da3db9d8769784402a320771933ef68ba6b9d9f10a31",
 return _exports;
 })();
 
-const _m0 = _modules.get("1bb39697796098729f53d3a6cb122c1c37a67eec71d1224f99970cecde452a53") ?? (() => {
+const _m0 = _modules.get("63a92f6dafb1949ed513c50b05c063012f67cdb80d47e66250de3d8badd4bae7") ?? (() => {
 
 const _exports = Object.freeze({ writePdf: _m1.writePdf, writePdfTo: _m1.writePdfTo, writePdfDocument: _m28.writePdfDocument, writePdfDocumentTo: _m28.writePdfDocumentTo, pdfTable: _m28.pdfTable, PdfFont: _m16.PdfFont, preflightPdfText: _m34.preflightPdfText, ExportCell: _m7.ExportCell, saveBlob: _m35.saveBlob });
-_modules.set("1bb39697796098729f53d3a6cb122c1c37a67eec71d1224f99970cecde452a53", _exports);
+_modules.set("63a92f6dafb1949ed513c50b05c063012f67cdb80d47e66250de3d8badd4bae7", _exports);
 return _exports;
 })();
 Object.assign(officeimo, _m0, { core: _m35, pdf: _m0 });

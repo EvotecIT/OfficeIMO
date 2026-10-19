@@ -137,7 +137,41 @@ async function runRichPdfContracts({ moduleBase, fixtures, drawingFont, classic 
   await rejected([drawingBlock], { ...drawingOptions, limits: { maxDrawingElements: 1 } }, error => error.code === 'RESOURCE_LIMIT', 'drawing-element-limit');
   await verifyCapturedPdfInputs({ writePdfDocument, PdfFont, inspect, save, rejected, require, bytes, drawingFont, configuration, checks });
   await verifyOwnedDrawingCapture({ writePdfDocument, PdfFont, inspect, save, require, bytes, drawingFont, configuration, checks });
+  await verifyDrawingCooperation({ writePdfDocumentTo, PdfFont, require, bytes, drawingFont, configuration, checks });
   return { checks, nativeInflater: typeof native === 'function', documents: 13, profile: classic ? 'classic' : 'esm' };
+}
+
+// Short runs must still let host tasks cancel aggregate work across groups, before any PDF bytes are accepted.
+async function verifyDrawingCooperation({ writePdfDocumentTo, PdfFont, require, bytes, drawingFont, configuration, checks }) {
+  const text = () => ({ kind: 'text', text: 'A'.repeat(1000), x: 0, y: 20, font: 'regular', fontSize: 10, color: '000000' });
+  const path = (count = 1000) => ({ kind: 'path', stroke: '000000', commands: [
+    { op: 'move', x: 0, y: 0 }, ...Array.from({ length: count - 1 }, () => ({ op: 'line', x: 1, y: 1 }))
+  ] });
+  const fonts = { regular: new PdfFont(bytes(drawingFont)) };
+  for (const [name, child, siblings, abortYield] of [['text', text, 2, 5], ['commands', path, 2, 2], ['elements', () => path(1), 200, 3]]) {
+    const now = Object.getOwnPropertyDescriptor(performance, 'now'), scheduler = Object.getOwnPropertyDescriptor(globalThis, 'scheduler');
+    const abort = new AbortController(), reason = Error('aggregate drawing cancelled');
+    let clock = 0, yields = 0, returned = 0, writes = 0;
+    const drawing = { version: 1, width: 200, height: 100, elements: Array.from({ length: 2 }, () => ({
+      kind: 'group', elements: Array.from({ length: siblings }, () => child())
+    })) };
+    function* source() { try { yield { kind: 'drawing', drawing }; } finally { returned++; } }
+    const destination = new WritableStream({ write() { writes++; } });
+    try {
+      Object.defineProperty(performance, 'now', { configurable: true, value: () => clock += 40 });
+      Object.defineProperty(globalThis, 'scheduler', { configurable: true, value: { postTask: callback => new Promise(resolve => {
+        setTimeout(() => { if (++yields === abortYield) abort.abort(reason); callback(); resolve(); }, 0);
+      }) } });
+      let caught;
+      try { await writePdfDocumentTo(source(), destination, { ...configuration, fonts, signal: abort.signal }); } catch (error) { caught = error; }
+      require(caught === reason && yields === abortYield, 'Aggregate drawing ' + name + ' did not yield to task cancellation');
+      require(writes === 0 && returned === 1 && !destination.locked, 'Aggregate drawing ' + name + ' cancellation lost output/source/destination ownership');
+      checks.push('drawing-aggregate-' + name + '-task-cancellation');
+    } finally {
+      if (now) Object.defineProperty(performance, 'now', now); else delete performance.now;
+      if (scheduler) Object.defineProperty(globalThis, 'scheduler', scheduler); else delete globalThis.scheduler;
+    }
+  }
 }
 
 // A consumed drawing owns its entire typed tree before any task or microtask can mutate later records.

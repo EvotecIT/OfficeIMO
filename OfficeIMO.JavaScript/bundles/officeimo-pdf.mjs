@@ -3179,6 +3179,8 @@ async function prepareDrawing(drawing, settings, fonts, used) {
         drawingFonts.set(slot, font);
         return font;
     }
+    // The work budget belongs to the drawing, including short runs in separate sibling groups.
+    let preflightCharacters = 0, preflightElements = 0;
     async function preflight(nodes) {
         for (let i = 0; i < nodes.length; i++) {
             const node = nodes[i];
@@ -3186,14 +3188,13 @@ async function prepareDrawing(drawing, settings, fonts, used) {
                 await preflight(node.children);
             else if (node.kind === "text") {
                 const font = fontFor(node.font);
-                let count = 0;
                 for (const character of node.text) {
                     font.width(character.codePointAt(0));
-                    if ((++count & 1023) === 0)
+                    if ((++preflightCharacters & 1023) === 0)
                         await cooperate(settings);
                 }
             }
-            if ((i & 255) === 255)
+            if ((++preflightElements & 255) === 0)
                 await cooperate(settings);
         }
     }
@@ -3206,6 +3207,7 @@ async function prepareDrawing(drawing, settings, fonts, used) {
             throw new OfficeIMOError("RESOURCE_LIMIT", "maxPageBytes exceeded by drawing content.");
         fragments.push(fragment);
     }
+    let paintedCharacters = 0, paintedCommands = 0, paintedElements = 0;
     async function paint(nodes) {
         for (let i = 0; i < nodes.length; i++) {
             const node = nodes[i];
@@ -3221,7 +3223,7 @@ async function prepareDrawing(drawing, settings, fonts, used) {
                     const c = node.commands[j];
                     add(c.op === "move" || c.op === "line" ? n(c.x) + " " + n(c.y) + (c.op === "move" ? " m\n" : " l\n") :
                         c.op === "cubic" ? [c.x1, c.y1, c.x2, c.y2, c.x, c.y].map(n).join(" ") + " c\n" : "h\n");
-                    if ((j & 1023) === 1023)
+                    if ((++paintedCommands & 1023) === 0)
                         await cooperate(settings);
                 }
                 add(node.paint);
@@ -3229,10 +3231,10 @@ async function prepareDrawing(drawing, settings, fonts, used) {
             else {
                 const font = fontFor(node.font);
                 add(node.color + " rg\nBT /" + font.name + " " + n(node.size) + " Tf 0 Tr 1 0 0 -1 " + n(node.x) + " " + n(node.y) + " Tm <");
-                let chunk = "", count = 0;
+                let chunk = "";
                 for (const character of node.text) {
                     chunk += character;
-                    if ((++count & 1023) === 0) {
+                    if ((++paintedCharacters & 1023) === 0) {
                         add(font.encode(chunk).slice(1, -1));
                         chunk = "";
                         await cooperate(settings);
@@ -3243,7 +3245,7 @@ async function prepareDrawing(drawing, settings, fonts, used) {
                 add("> Tj ET\n");
             }
             add("Q\n");
-            if ((i & 255) === 255)
+            if ((++paintedElements & 255) === 0)
                 await cooperate(settings);
         }
     }
