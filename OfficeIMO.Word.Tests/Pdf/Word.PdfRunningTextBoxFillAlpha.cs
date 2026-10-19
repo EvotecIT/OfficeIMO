@@ -14,6 +14,35 @@ public partial class Word {
     [Theory]
     [InlineData(false)]
     [InlineData(true)]
+    public void SaveAsPdf_TranslucentRunningTextBoxOutlineRetainsWarnedContent(bool footer) {
+        using WordDocument document = CreateCompactRunningTextBoxPaintControl();
+        WordHeaderFooter header = document.Sections[1].Header!.First!;
+        WordTextBox box = header.TextBoxes.Single();
+        Wps.ShapeProperties shape = box.Anchor!.Descendants<Wps.ShapeProperties>().Single();
+        shape.RemoveAllChildren<A.Outline>();
+        shape.AddChild(new A.Outline(new A.SolidFill(new A.RgbColorModelHex(
+            new A.Alpha { Val = 65000 }, new A.AlphaOffset { Val = -15000 }) { Val = "FF0000" })) {
+            Width = 25400
+        }, true);
+        if (footer) {
+            WordHeaderFooter target = document.Sections[1].Footer!.First!;
+            foreach (var child in target.ChildElements.ToArray()) child.Remove();
+            foreach (W.Paragraph source in header._header!.Elements<W.Paragraph>().ToArray()) {
+                source.Remove();
+                target._footer!.Append(source);
+            }
+            box.Anchor.VerticalPosition!.PositionOffset!.Text = "9271000";
+            box.Anchor.BehindDoc = true;
+            target.AddParagraph("FOOTER COUNT ").AddField(WordFieldType.SectionPages);
+        }
+        // The fixed running canvas has no border-alpha channel. It must retain the
+        // explicitly approximated route rather than silently paint an opaque border.
+        AssertRunningTextBoxPaintIsExplicitlyApproximated(document);
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
     public void SaveAsPdf_RunningTextBoxFillAlphaReachesHeaderAndFooterCanvasOnce(bool footer) {
         using WordDocument document = CreateCompactRunningTextBoxPaintControl();
         WordHeaderFooter header = document.Sections[1].Header!.First!;

@@ -40,7 +40,7 @@ internal static class WordPageImageExport {
             format,
             options.ToPdfImageOptions(),
             pages => ResolveSelection(options, pages.Pages.Count),
-            consumer,
+            result => consumer(result.WithIdentity(result.Name, "Word document")),
             initialDiagnostics: null,
             () => PdfCore.PdfImageExportEngine.MapConversionDiagnostics(conversion!),
             cancellationToken);

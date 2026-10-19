@@ -65,9 +65,16 @@ public sealed class WordSharedPageLayoutTests {
         var options = new WordImageExportOptions { PageIndex = 1, PageCount = 1, Scale = .3D };
         var page = Assert.Single(document.ExportImages(OfficeImageExportFormat.Png, options));
         Assert.Equal(page.Bytes, document.ToPng(options));
+        var single = document.ExportImage(OfficeImageExportFormat.Png, options);
+        AssertWordIdentity(single, 2, 0, 1);
+        AssertWordIdentity(page, 2, 0, 1);
         var delivered = new System.Collections.Generic.List<OfficeImageExportResult>();
         document.ExportImages(OfficeImageExportFormat.Png, delivered.Add, options);
         Assert.Equal(page.Bytes, Assert.Single(delivered).Bytes);
+        AssertWordIdentity(delivered[0], 2, 0, 1);
+        var selected = document.ExportImages(OfficeImageExportFormat.Svg, new WordImageExportOptions { PageIndex = 1, PageCount = 2 });
+        Assert.Equal(2, selected.Count);
+        for (int index = 0; index < selected.Count; index++) AssertWordIdentity(selected[index], index + 2, index, 2);
         Assert.Equal(1, Assert.Single(document.CreateVisualSnapshots(options)).PageIndex);
         Assert.Throws<ArgumentOutOfRangeException>(() => document.ToPng(new WordImageExportOptions { PageIndex = 999 }));
     }
@@ -117,6 +124,13 @@ public sealed class WordSharedPageLayoutTests {
 
     private static string Geometry(PdfTextSpan span) =>
         $"{span.Text}|{span.X:R}|{span.Y:R}|{span.Advance:R}|{span.FontSize:R}|{span.BaseFont}";
+
+    private static void AssertWordIdentity(OfficeImageExportResult result, int pageNumber, int sequenceIndex, int sequenceCount) {
+        Assert.Equal("Page " + pageNumber, result.Name);
+        Assert.Equal("Word document", result.Source);
+        Assert.Equal(sequenceIndex, result.SequenceIndex);
+        Assert.Equal(sequenceCount, result.SequenceCount);
+    }
 
     private static WordDocument CreateDocument() {
         WordDocument document = WordDocument.Create();

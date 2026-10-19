@@ -208,13 +208,11 @@ namespace OfficeIMO.Word.Pdf {
 
             PdfCore.PdfColor? stroke = hasDrawingStrokeColor ? PdfCore.PdfColor.FromOfficeColor(drawingStroke) : ParseNativeColor(wordShape.StrokeColorHex);
             nativeShape.StrokeColor = (stroke ?? PdfCore.PdfColor.Black).ToOfficeColor();
+            // Transfer the shared resolver's completed alpha once alongside RGB.
+            // Running text-box admission also relies on this separate-opacity contract.
+            if (hasDrawingStrokeColor) nativeShape.StrokeOpacity = drawingStroke.A / 255D;
             nativeShape.StrokeWidth = Math.Max(0D, wordShape.StrokeWeight ?? 1D);
             nativeShape.StrokeDashStyle = MapNativeDrawingPresetDash(drawingOutline);
-            if (TryGetNativeDrawingFillOpacity(drawingOutline, out double strokeOpacity)) {
-                nativeShape.StrokeOpacity = strokeOpacity;
-            } else if (hasDrawingStrokeColor && drawingStroke.A < byte.MaxValue) {
-                nativeShape.StrokeOpacity = drawingStroke.A / 255D;
-            }
         }
 
         private static OfficeStrokeDashStyle MapNativeDrawingPresetDash(A.Outline? outline) {

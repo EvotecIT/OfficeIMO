@@ -31,6 +31,8 @@ on:
       - 'Docs/pdf-conversion-scenarios.json'
       - 'Docs/officeimo.pdf*.md'
       - '.github/scripts/Assert-PdfComplianceProof.ps1'
+      - '.github/scripts/Validate-PdfStandardsProof.py'
+      - '.github/scripts/Validate-PdfOptimizerProof.py'
       - '.github/scripts/verapdf-cli-install.xml'
       - '.github/workflows/pdf-compliance-proof.yml'
   push:
@@ -65,6 +67,8 @@ on:
       - 'Docs/pdf-conversion-scenarios.json'
       - 'Docs/officeimo.pdf*.md'
       - '.github/scripts/Assert-PdfComplianceProof.ps1'
+      - '.github/scripts/Validate-PdfStandardsProof.py'
+      - '.github/scripts/Validate-PdfOptimizerProof.py'
       - '.github/scripts/verapdf-cli-install.xml'
       - '.github/workflows/pdf-compliance-proof.yml'
   workflow_dispatch:
@@ -204,8 +208,9 @@ jobs:
           "$validator" --version
           echo "OFFICEIMO_VERAPDF_CLI=$validator" >> "$GITHUB_ENV"
 
+      # Independent standards/optimizer checks always require this pinned JAR.
+      # The general proof generator may still use the dispatch executable/JAR override.
       - name: Prepare Mustang validator
-        if: github.event_name != 'workflow_dispatch' || inputs.mustang_path == ''
         shell: bash
         run: |
           set -euo pipefail
@@ -320,17 +325,16 @@ jobs:
         shell: bash
         env:
           VERAPDF_PATH: ${{ github.event_name == 'workflow_dispatch' && inputs.verapdf_path || '' }}
-          MUSTANG_PATH: ${{ github.event_name == 'workflow_dispatch' && inputs.mustang_path || '' }}
         run: |
           set -euo pipefail
           python .github/scripts/Validate-PdfStandardsProof.py \
             --proof "${PROOF_PATH}" \
             --verapdf "${VERAPDF_PATH:-${OFFICEIMO_VERAPDF_CLI:-}}" \
-            --mustang "${MUSTANG_PATH:-${OFFICEIMO_MUSTANG_JAR:-}}"
+            --mustang "${OFFICEIMO_MUSTANG_JAR}"
           python .github/scripts/Validate-PdfOptimizerProof.py \
             --proof "${PROOF_PATH}" \
             --verapdf "${VERAPDF_PATH:-${OFFICEIMO_VERAPDF_CLI:-}}" \
-            --mustang "${MUSTANG_PATH:-${OFFICEIMO_MUSTANG_JAR:-}}"
+            --mustang "${OFFICEIMO_MUSTANG_JAR}"
 
       - name: Validate browser PDF/A-2B profile externally
         shell: bash
