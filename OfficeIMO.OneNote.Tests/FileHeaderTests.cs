@@ -159,6 +159,27 @@ public sealed class FileHeaderTests {
     }
 
     [Fact]
+    public void FileNodeListAcrossFragmentsDoesNotCountChunkTerminators() {
+        // The transaction log commits three nodes; the first fragment ends with ChunkTerminatorFND after two of them.
+        byte[] first = FileNodeListFragment(0, new OneNoteFileChunkReference(48, 40),
+            OneNoteFileNodeId.ObjectGroupStart, OneNoteFileNodeId.GlobalIdTableStart2, OneNoteFileNodeId.ChunkTerminator);
+        byte[] second = FileNodeListFragment(1, new OneNoteFileChunkReference(ulong.MaxValue, 0), OneNoteFileNodeId.ObjectGroupEnd);
+        using (var stream = new MemoryStream(first.Concat(second).ToArray())) {
+            OneNoteFileNodeList list = OneNoteFileNodeListReader.Read(
+                stream,
+                new OneNoteFileChunkReference(0, (uint)first.Length),
+                (ulong)stream.Length,
+                new Dictionary<uint, int> { [0x10] = 3 },
+                new OneNoteReaderOptions());
+
+            Assert.Equal(
+                new[] { OneNoteFileNodeId.ObjectGroupStart, OneNoteFileNodeId.GlobalIdTableStart2, OneNoteFileNodeId.ObjectGroupEnd },
+                list.Nodes.Select(node => (OneNoteFileNodeId)node.RawId));
+            Assert.Equal(new[] { 3, 1 }, list.Fragments.Select(fragment => fragment.Nodes.Count));
+        }
+    }
+
+    [Fact]
     public void RevisionStoreReaderReconstructsPackageEncoding() {
         OneNoteRevisionStore store = OneNoteRevisionStoreReader.Read(FixturePath("testOneNoteFromOffice365.one"));
 
@@ -169,6 +190,22 @@ public sealed class FileHeaderTests {
     }
 
     private static string FixturePath(string fileName) => Path.Combine(AppContext.BaseDirectory, "Fixtures", fileName);
+
+    private static byte[] FileNodeListFragment(uint sequence, OneNoteFileChunkReference next, params OneNoteFileNodeId[] nodes) {
+        using (var stream = new MemoryStream())
+        using (var writer = new BinaryWriter(stream)) {
+            writer.Write(0xA4567AB1F5F7F4C4UL);
+            writer.Write(0x10U);
+            writer.Write(sequence);
+            // Four-byte inline nodes with the reserved bit set.
+            foreach (OneNoteFileNodeId id in nodes) writer.Write((uint)id | 4U << 10 | 0x80000000U);
+            writer.Write(next.Offset);
+            writer.Write(next.Length);
+            writer.Write(0x8BC215C38233BA4BUL);
+            writer.Flush();
+            return stream.ToArray();
+        }
+    }
 
     private static OneNoteFileNode Node(OneNoteFileNodeId id) =>
         new OneNoteFileNode((ushort)id, 4, 0, 0, OneNoteFileNodeBaseType.Inline, 0, null, Array.Empty<byte>());

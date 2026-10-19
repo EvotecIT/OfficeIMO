@@ -1,7 +1,7 @@
 import SwiftUI
 
-/// A document's window or scene. In regular width, and on the Mac, the page list is the split view's sidebar and the
-/// facts are the inspector; in compact width the page fills the screen and both are sheets, as the system presents them.
+/// A document's window or scene. Regular width places the page list beside the
+/// page; compact width presents it and the inspector as sheets.
 struct DocumentWindow: View {
     @State private var session: DocumentSession
     @State private var password = ""
@@ -162,12 +162,26 @@ struct DocumentWindow: View {
                     PageListSheet(session: session)
                 }
         } else {
+            #if os(iOS)
+            // DocumentGroup owns iOS navigation. A nested navigation split view
+            // repeats its document title and back button in regular width.
+            HStack(spacing: 0) {
+                if session.task != .pages && session.isPageListShown != false {
+                    PageSidebar(session: session)
+                        .frame(width: 180)
+                    Divider()
+                }
+                column
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+            }
+            #else
             NavigationSplitView(columnVisibility: columnVisibility) {
                 PageSidebar(session: session)
                     .navigationSplitViewColumnWidth(min: 150, ideal: 180, max: 260)
             } detail: {
                 column
             }
+            #endif
         }
     }
 
@@ -230,6 +244,7 @@ struct DocumentWindow: View {
         }
     }
 
+    #if os(macOS)
     /// The Pages task shows every page itself, so the page list steps aside while it is open.
     private var columnVisibility: Binding<NavigationSplitViewVisibility> {
         Binding {
@@ -238,6 +253,7 @@ struct DocumentWindow: View {
             if session.task == .read { session.isPageListShown = $0 != .detailOnly }
         }
     }
+    #endif
 
     private var pageListShown: Binding<Bool> {
         Binding { session.isPageListShown == true } set: { session.isPageListShown = $0 }

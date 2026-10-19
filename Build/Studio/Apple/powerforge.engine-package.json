@@ -1,0 +1,32 @@
+{
+  "$schema": "https://raw.githubusercontent.com/EvotecIT/PSPublishModule/main/Schemas/powerforge.dotnetpublish.schema.json",
+  "SchemaVersion": 1,
+  "DotNet": {
+    "ProjectRoot": "../../..",
+    "AllowOutputOutsideProjectRoot": true
+  },
+  "Targets": [
+    {
+      "Name": "Studio.Native.Engine",
+      "ProjectPath": "OfficeIMO.Studio.Native/OfficeIMO.Studio.Native.csproj",
+      "Publish": { "Framework": "net10.0", "Runtimes": ["osx-arm64"], "Style": "AotSize" }
+    }
+  ],
+  "Bundles": [
+    {
+      "Id": "Studio.Apple.Engine",
+      "PrepareFromTarget": "Studio.Native.Engine",
+      "OutputPath": "Artifacts/Studio/Apple/engine",
+      "PostProcess": {
+        "ArchiveDirectories": [
+          { "Path": "payload", "ArchiveNameTemplate": "OfficeIMOStudioEngine-{version}.zip", "DeleteSource": false }
+        ],
+        "Metadata": {
+          "Path": "engine-package.json",
+          "IncludeStandardProperties": false,
+          "Properties": { "sourceCommit": "{sourceCommit}", "version": "{version}", "archiveSha256": "{archiveSha256}" }
+        }
+      }
+    }
+  ]
+}

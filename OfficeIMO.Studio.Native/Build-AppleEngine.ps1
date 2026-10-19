@@ -55,13 +55,15 @@ $systemInputs = [ordered]@{}
 foreach ($rid in $RuntimeIdentifier) {
     Write-Host "Publishing $rid"
     $publish = Join-Path $publishRoot $rid
-    Invoke-Tool dotnet @('publish', $project, '-c', $Configuration, '-r', $rid, '-p:StudioEngineLibrary=Static', '-o', $publish)
+    Invoke-Tool dotnet @('publish', $project, '-c', $Configuration, '-r', $rid, '-p:StudioEngineLibrary=Static',
+        '--artifacts-path', (Join-Path $OutputDirectory 'dotnet'), '-o', $publish)
 
     $linkDirectory = Join-Path $publish 'link'
     $inputs = Get-Content (Join-Path $linkDirectory 'link-inputs.txt') | Where-Object { $_ }
     # Apple SDKs ship the C++ standard library as libc++; NativeAOT names it stdc++ for every Unix target.
     $inputs = $inputs | ForEach-Object { if ($_ -eq '-lstdc++') { '-lc++' } else { $_ } }
     Set-Content (Join-Path $inputsRoot "$rid.txt") (@("$name.a") + $inputs)
+    Copy-Item (Join-Path $publish "$name.deps.json") (Join-Path $inputsRoot "$rid.deps.json")
 
     # Object files such as the bootstrapper export nothing: they start the runtime from a static initializer. As
     # archive members the linker would never load them, so they are prelinked into the object that holds the exports,

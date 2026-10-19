@@ -1,0 +1,45 @@
+name: Studio Apple screenshots
+
+on:
+  workflow_dispatch:
+    inputs:
+      source_ref:
+        description: Exact qualified Studio source commit to capture
+        required: true
+        type: string
+      marketing_version:
+        description: App Store version represented by these screenshots
+        required: true
+        type: string
+      runner_labels_json:
+        description: JSON labels for the verified trusted Mac capture runner
+        required: true
+        type: string
+      simulator_devices_json:
+        description: JSON with owned available Shutdown iphone and ipad UUIDs in the default device set
+        required: true
+        type: string
+      runtime:
+        description: Exact macOS and iOS Simulator runtime versions on that runner
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  capture:
+    uses: EvotecIT/PSPublishModule/.github/workflows/powerforge-apple-screenshot-capture.yml@5ec7e30460de47b9a804127806a42fd654d89833
+    with:
+      source_ref: ${{ inputs.source_ref }}
+      marketing_version: ${{ inputs.marketing_version }}
+      capture_script: Build/Studio/Apple/Capture-StudioAppleScreenshots.ps1
+      capture_shell: pwsh
+      capture_artifact_path: Artifacts/Studio/Apple/screenshots
+      simulator_tool_ref: 5ec7e30460de47b9a804127806a42fd654d89833
+      simulator_devices_json: ${{ inputs.simulator_devices_json }}
+      runner_labels_json: ${{ inputs.runner_labels_json }}
+      runtime: ${{ inputs.runtime }}
+      device: Native Mac, portrait iPhone and iPad matching store screenshot mappings
+      theme: System appearance of the reviewed native capture runner
+      scenario: Public Northwind dashboard and PDF search

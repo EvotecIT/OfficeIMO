@@ -4,6 +4,9 @@ Use this index to find package guides, cross-package contracts, generated eviden
 
 ## Start here
 
+- [Build and release](building-and-releasing.md) — combined OfficeIMO/PSWriteOffice validation, publication, and website generation.
+- [PSWriteOffice](../PowerShell/PSWriteOffice/README.MD) — PowerShell installation, commands, and examples.
+
 - [Repository overview](../README.md) — package map, dependency model, supported formats, and platform coverage.
 - [Migration guide](../MIGRATION.md) — version-to-version package, API, and behavior changes.
 - [Examples](../OfficeIMO.Examples/README.md) — runnable examples across the package family.

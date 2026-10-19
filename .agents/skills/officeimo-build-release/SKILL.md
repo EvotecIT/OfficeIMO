@@ -11,6 +11,8 @@ Use this skill for OfficeIMO build, package, release, website, and downstream va
 
 1. Inspect the current branch and dirty state first.
 2. Prefer repo-standard entrypoints.
+   - Use `Build/Build-Release.ps1` for coordinated OfficeIMO/PSWriteOffice builds and publication; see `Docs/building-and-releasing.md`.
+   - Use `Build/Build-Module.ps1 -IncludePackages:$false` only for local unsigned module iteration.
    - Use solution and project builds for local compile evidence.
    - Use `Website/build.ps1` and website pipeline files for OfficeIMO.com changes.
    - Use shared PowerForge or PSPublishModule behavior when packaging logic is involved.

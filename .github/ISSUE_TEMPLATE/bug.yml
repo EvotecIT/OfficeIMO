@@ -1,0 +1,29 @@
+name: Bug report
+description: Report an OfficeIMO or PSWriteOffice problem.
+body:
+  - type: dropdown
+    id: surface
+    attributes:
+      label: Surface
+      options:
+        - .NET library
+        - PSWriteOffice PowerShell module
+        - CLI or MCP
+        - Website or browser tools
+        - Studio
+    validations:
+      required: true
+  - type: input
+    id: versions
+    attributes:
+      label: Package/module version and runtime
+      description: Include the affected package, operating system, and .NET or PowerShell version.
+    validations:
+      required: true
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Reproduction and expected result
+      description: Include a small script or code sample. Use synthetic documents and remove private data.
+    validations:
+      required: true

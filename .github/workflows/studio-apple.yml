@@ -1,0 +1,42 @@
+name: Studio Apple
+
+on:
+  pull_request:
+  push:
+    branches: [master]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: studio-apple-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  native:
+    name: Native Apple qualification
+    runs-on: xcode-27
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - name: Swift state contracts
+        run: >-
+          swift test --package-path Apple --scratch-path "$RUNNER_TEMP/studio-state"
+          --parallel --num-workers 1 --disable-swift-testing
+          --xunit-output "$RUNNER_TEMP/studio-state.xml"
+      - name: Compile native Mac and iOS release targets
+        shell: bash
+        run: |
+          set -euo pipefail
+          project=Apple/OfficeIMOStudio/OfficeIMOStudio.xcodeproj
+          xcodebuild -project "$project" -scheme OfficeIMOStudio-macOS -configuration Release \
+            -destination 'generic/platform=macOS' -derivedDataPath "$RUNNER_TEMP/studio-mac" CODE_SIGNING_ALLOWED=NO build
+          xcodebuild -project "$project" -scheme OfficeIMOStudio-iOS -configuration Release \
+            -destination 'generic/platform=iOS' -derivedDataPath "$RUNNER_TEMP/studio-ios" CODE_SIGNING_ALLOWED=NO build
+          xcodebuild -project "$project" -scheme OfficeIMOStudio-iOS -configuration Release \
+            -destination 'generic/platform=iOS Simulator' -derivedDataPath "$RUNNER_TEMP/studio-simulator" CODE_SIGNING_ALLOWED=NO build
+      - name: Preserve checked-in source
+        run: git diff --exit-code

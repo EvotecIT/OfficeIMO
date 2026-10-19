@@ -1,0 +1,95 @@
+name: Studio Apple engine
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: New immutable engine artifact version (x.y.z)
+        type: string
+        required: true
+
+permissions:
+  contents: read
+
+concurrency:
+  group: studio-apple-engine
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    if: github.ref == 'refs/heads/master'
+    runs-on: [self-hosted, macOS, ARM64]
+    timeout-minutes: 60
+    permissions:
+      contents: write
+    steps:
+      - name: Check build storage
+        shell: bash
+        run: |
+          set -euo pipefail
+          available_kb="$(df -Pk "$RUNNER_TEMP" | awk 'NR == 2 { print $4 }')"
+          if (( available_kb < 30 * 1024 * 1024 )); then
+            echo 'At least 30 GiB is required for the four-slice NativeAOT build.' >&2
+            exit 1
+          fi
+          echo "STUDIO_ENGINE_OUTPUT=$RUNNER_TEMP/studio-engine-$GITHUB_RUN_ID-$GITHUB_RUN_ATTEMPT" >> "$GITHUB_ENV"
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/checkout@v7
+        with:
+          repository: EvotecIT/PSPublishModule
+          ref: 5ec7e30460de47b9a804127806a42fd654d89833
+          path: .powerforge-engine-build
+          persist-credentials: false
+      - uses: actions/setup-dotnet@v6
+        with:
+          global-json-file: .powerforge-engine-build/global.json
+      - uses: actions/setup-dotnet@v6
+        with:
+          global-json-file: global.json
+      - name: Build pinned packaging CLI and publisher
+        working-directory: .powerforge-engine-build
+        shell: pwsh
+        run: |
+          dotnet build PowerForge.Cli/PowerForge.Cli.csproj -c Release -f net10.0
+          if ($LASTEXITCODE) { throw 'Pinned packaging CLI build failed.' }
+          dotnet build PSPublishModule/PSPublishModule.csproj -c Release -f net8.0
+          if ($LASTEXITCODE) { throw 'Pinned publisher module build failed.' }
+      - name: Build and publish the native engine
+        shell: pwsh
+        env:
+          ENGINE_VERSION: ${{ inputs.version }}
+          ENGINE_SOURCE: ${{ github.sha }}
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          $output = $env:STUDIO_ENGINE_OUTPUT
+          $cli = Join-Path $PWD '.powerforge-engine-build/PowerForge.Cli/bin/Release/net10.0/PowerForge.Cli.dll'
+          $publisher = Join-Path $PWD '.powerforge-engine-build/PSPublishModule/bin/Release/net8.0/PSPublishModule.dll'
+          ./OfficeIMO.Studio.Native/Build-AppleEngine.ps1 -OutputDirectory (Join-Path $output 'engine')
+          ./Build/Studio/Apple/Pack-StudioAppleEngine.ps1 -EngineDirectory (Join-Path $output 'engine') `
+            -OutputDirectory (Join-Path $output 'package') -PowerForgeCli $cli -PowerForgeModule $publisher `
+            -SourceCommit $env:ENGINE_SOURCE -Version $env:ENGINE_VERSION -Publish $true
+      - name: Retain package identity and dependency evidence
+        if: always() && env.STUDIO_ENGINE_OUTPUT != ''
+        uses: actions/upload-artifact@v7
+        with:
+          name: studio-engine-evidence
+          path: |
+            ${{ env.STUDIO_ENGINE_OUTPUT }}/package/engine-package.json
+            ${{ env.STUDIO_ENGINE_OUTPUT }}/package/*.sha256
+            ${{ env.STUDIO_ENGINE_OUTPUT }}/engine/link-inputs/
+          if-no-files-found: ignore
+      - name: Remove this run's engine intermediates
+        if: always() && env.STUDIO_ENGINE_OUTPUT != ''
+        shell: bash
+        run: |
+          set -euo pipefail
+          expected="$RUNNER_TEMP/studio-engine-$GITHUB_RUN_ID-$GITHUB_RUN_ATTEMPT"
+          test "$STUDIO_ENGINE_OUTPUT" = "$expected"
+          if [ -d "$expected" ]; then
+            test ! -L "$expected"
+            test -z "$(find "$expected" \( -type l -o -name .git \) -print -quit)"
+            rm -r "$expected"
+            test ! -e "$expected"
+          fi

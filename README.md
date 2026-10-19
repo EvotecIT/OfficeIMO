@@ -1,5 +1,7 @@
 # OfficeIMO — Office and document libraries for .NET
 
+**PowerShell:** [PSWriteOffice](PowerShell/PSWriteOffice/README.MD) is maintained in this repository. Use [OfficeIMO issues](https://github.com/EvotecIT/OfficeIMO/issues) for engine and module problems, feature requests, and contributions.
+
 [![CI](https://github.com/EvotecIT/OfficeIMO/actions/workflows/dotnet-tests.yml/badge.svg?branch=master)](https://github.com/EvotecIT/OfficeIMO/actions/workflows/dotnet-tests.yml)
 [![codecov](https://codecov.io/gh/EvotecIT/OfficeIMO/branch/master/graph/badge.svg)](https://codecov.io/gh/EvotecIT/OfficeIMO)
 [![license](https://img.shields.io/github/license/EvotecIT/OfficeIMO.svg)](LICENSE)
@@ -18,7 +20,7 @@ For existing Windows x64 applications that import through ODBC, [OfficeIMO.Odbc]
 
 Upgrading an existing application? The [OfficeIMO migration guide](MIGRATION.md) covers package, API, and behavior changes across every format. Release history and downloadable artifacts are published through [GitHub Releases](https://github.com/EvotecIT/OfficeIMO/releases).
 
-If OfficeIMO saves you time, please consider supporting the work through [GitHub Sponsors](https://github.com/sponsors/PrzemyslawKlys) or [PayPal](https://paypal.me/PrzemyslawKlys). PowerShell users should start with [PSWriteOffice](https://github.com/EvotecIT/PSWriteOffice).
+If OfficeIMO saves you time, please consider supporting the work through [GitHub Sponsors](https://github.com/sponsors/PrzemyslawKlys) or [PayPal](https://paypal.me/PrzemyslawKlys). PowerShell users should start with [PSWriteOffice](https://github.com/EvotecIT/OfficeIMO/tree/master/PowerShell/PSWriteOffice).
 
 ## Sponsors
 

@@ -143,3 +143,7 @@ carry either tool into Studio prerequisites, App Store restrictions, privacy
 claims, packaging, or feature gating without a reachable production call site.
 OCR's optional Tesseract process and printer queue delivery are separate
 capabilities; assess them from their own execution paths.
+
+## Integrated PowerShell source and releases
+
+PSWriteOffice lives in `PowerShell/PSWriteOffice` and references the engines in this checkout. Use `Build/Build-Release.ps1` for combined package/module builds and releases; `Docs/building-and-releasing.md` describes validation, publication order, and recovery. Keep cmdlets thin and include the PowerShell workflows when an engine contract changes. Preserve the imported PSWriteOffice ancestry by merging the consolidation with a merge commit.

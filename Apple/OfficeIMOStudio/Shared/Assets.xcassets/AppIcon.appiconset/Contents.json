@@ -1,7 +1,20 @@
 {
   "images": [
-    { "filename": "OfficeIMO.Studio.png", "idiom": "universal", "platform": "ios", "size": "1024x1024" },
-    { "filename": "OfficeIMO.Studio.png", "idiom": "mac", "size": "512x512", "scale": "2x" }
+    {
+      "filename": "OfficeIMO.Studio-iOS.png",
+      "idiom": "universal",
+      "platform": "ios",
+      "size": "1024x1024"
+    },
+    {
+      "filename": "OfficeIMO.Studio.png",
+      "idiom": "mac",
+      "size": "512x512",
+      "scale": "2x"
+    }
   ],
-  "info": { "author": "OfficeIMO", "version": 1 }
+  "info": {
+    "author": "OfficeIMO",
+    "version": 1
+  }
 }
