@@ -175,6 +175,21 @@ return _exports;
 })();
 
 const _m4 = (() => {
+/** @internal Notify synchronously; observe an accidental promise before rejecting its unsupported use. */
+function notifyProgress(callback, progress) {
+    if (!callback)
+        return;
+    const result = callback(progress);
+    if (result && typeof result.then === "function") {
+        void Promise.resolve(result).catch(() => { });
+        throw new TypeError("onProgress must be synchronous.");
+    }
+}
+const _exports = Object.freeze({ notifyProgress: notifyProgress });
+return _exports;
+})();
+
+const _m5 = (() => {
 const { checkAbort, consumeRows, withAbort, pause, taskYieldDue } = _m2;
 
 const { OfficeIMOError } = _m3;
@@ -282,7 +297,7 @@ const _exports = Object.freeze({ withDestination: withDestination, BlobByteSink:
 return _exports;
 })();
 
-const _m5 = (() => {
+const _m6 = (() => {
 const { OfficeIMOError } = _m3;
 
 /** @internal Check before accepting the next value or chunk. */
@@ -338,7 +353,7 @@ const _exports = Object.freeze({ ExportBudget: ExportBudget, boundedSink: bounde
 return _exports;
 })();
 
-const _m7 = (() => {
+const _m8 = (() => {
 const { OfficeIMOError } = _m3;
 
 /** Canonical absolute OPC part URI. ASCII URI spelling; Unicode must be UTF-8 percent encoded. */
@@ -385,10 +400,10 @@ const _exports = Object.freeze({ partUri: partUri, relationshipPartUri: relation
 return _exports;
 })();
 
-const _m9 = (() => {
+const _m10 = (() => {
 const { OfficeIMOError } = _m3;
 
-const { ChunkedTextSink } = _m4;
+const { ChunkedTextSink } = _m5;
 
 const xmlDeclaration = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>';
 /** XML 1.0 characters; Unicode mode retains valid surrogate pairs. */
@@ -466,12 +481,35 @@ const _exports = Object.freeze({ xmlDeclaration: xmlDeclaration, cleanXml: clean
 return _exports;
 })();
 
-const _m8 = (() => {
-const { escapeXml, xmlDeclaration } = _m9;
+const _m11 = (() => {
+/** @internal Recognize native Date values across iframe realms without trusting a string tag. */
+function isDate(value) {
+    if (value === null || typeof value !== "object")
+        return false;
+    try {
+        // Ordinary rows take the cheap negative path. A custom string tag can be an
+        // accessor: use the native brand check directly without reading that tag.
+        if (!(value instanceof Date) && !(Symbol.toStringTag in value) && Object.prototype.toString.call(value) !== "[object Date]")
+            return false;
+        Date.prototype.getTime.call(value);
+        return true;
+    }
+    catch {
+        return false;
+    }
+}
+const _exports = Object.freeze({ isDate: isDate });
+return _exports;
+})();
+
+const _m9 = (() => {
+const { escapeXml, xmlDeclaration } = _m10;
+
+const { isDate } = _m11;
 
 function corePropertiesXml(properties = {}, policy = "strip") {
     const created = properties.created ?? new Date(), modified = properties.modified ?? created;
-    if (!(created instanceof Date) || !(modified instanceof Date) || !Number.isFinite(created.getTime()) || !Number.isFinite(modified.getTime()))
+    if (!isDate(created) || !isDate(modified) || !Number.isFinite(created.getTime()) || !Number.isFinite(modified.getTime()))
         throw new TypeError("Invalid workbook property date.");
     return xmlDeclaration + '<cp:coreProperties xmlns:cp="http://schemas.openxmlformats.org/package/2006/metadata/core-properties"' +
         ' xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:dcterms="http://purl.org/dc/terms/" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">' +
@@ -489,19 +527,14 @@ const _exports = Object.freeze({ corePropertiesXml: corePropertiesXml, appProper
 return _exports;
 })();
 
-const _m11 = (() => {
-const { checkAbort, withAbort } = _m2;
-
-const { OfficeIMOError } = _m3;
-
-const zipLimit = 0xffffffff;
+const _m14 = (() => {
 const crcTable = new Uint32Array(256).map((_, index) => {
     let value = index;
     for (let bit = 0; bit < 8; bit++)
         value = value & 1 ? 0xedb88320 ^ (value >>> 1) : value >>> 1;
     return value >>> 0;
 });
-/** Incremental CRC-32/ISO-HDLC, also usable by a future reader. */
+/** Incremental CRC-32/ISO-HDLC shared by ZIP and PNG chunk validation. */
 class Crc32 {
     crc = 0xffffffff;
     update(bytes) {
@@ -512,6 +545,20 @@ class Crc32 {
     }
     get value() { return (this.crc ^ 0xffffffff) >>> 0; }
 }
+const _exports = Object.freeze({ Crc32: Crc32 });
+return _exports;
+})();
+
+const _m13 = (() => {
+const { checkAbort, withAbort } = _m2;
+
+const { OfficeIMOError } = _m3;
+
+const { Crc32 } = _m14;
+
+
+
+const zipLimit = 0xffffffff;
 function zipSize(value) {
     if (!Number.isSafeInteger(value) || value < 0 || value >= zipLimit)
         throw new OfficeIMOError("ZIP64_REQUIRED", "Classic ZIP entries and archives must stay below 4 GiB; ZIP64 is not supported yet.");
@@ -629,20 +676,20 @@ class EntryWriter {
         this.reader?.releaseLock();
     }
 }
-const _exports = Object.freeze({ zipLimit: zipLimit, Crc32: Crc32, zipSize: zipSize, EntryWriter: EntryWriter });
+const _exports = Object.freeze({ Crc32: _m14.Crc32, zipLimit: zipLimit, zipSize: zipSize, EntryWriter: EntryWriter });
 return _exports;
 })();
 
-const _m10 = (() => {
+const _m12 = (() => {
 
 
-const { EntryWriter, zipSize } = _m11;
+const { EntryWriter, zipSize } = _m13;
 
 const { checkAbort, withAbort, pause, taskYieldDue } = _m2;
 
 const { OfficeIMOError } = _m3;
 
-const { BlobByteSink, writeBytes } = _m4;
+const { BlobByteSink, writeBytes } = _m5;
 
 const encoder = new TextEncoder();
 function validateEntryName(name) {
@@ -864,26 +911,28 @@ class ZipWriter {
         return this.owned.toBlob(type);
     }
 }
-const _exports = Object.freeze({ Crc32: _m11.Crc32, validateEntryName: validateEntryName, ZipWriter: ZipWriter });
+const _exports = Object.freeze({ Crc32: _m13.Crc32, validateEntryName: validateEntryName, ZipWriter: ZipWriter });
 return _exports;
 })();
 
-const _m6 = (() => {
+const _m7 = (() => {
 
 
 
 
-const { partUri, relationshipPartUri, relativePartTarget } = _m7;
+const { partUri, relationshipPartUri, relativePartTarget } = _m8;
 
-const { corePropertiesXml, appPropertiesXml } = _m8;
+const { corePropertiesXml, appPropertiesXml } = _m9;
 
-const { ZipWriter } = _m10;
+const { ZipWriter } = _m12;
 
-const { ChunkedTextSink } = _m4;
+const { ChunkedTextSink } = _m5;
 
 const { OfficeIMOError } = _m3;
 
-const { escapeXml, xmlDeclaration } = _m9;
+const { escapeXml, xmlDeclaration } = _m10;
+
+const { checkAbort, pause, taskYieldDue } = _m2;
 
 const relationshipsNamespace = "http://schemas.openxmlformats.org/package/2006/relationships";
 const officeRelationshipsNamespace = "http://schemas.openxmlformats.org/officeDocument/2006/relationships";
@@ -986,6 +1035,7 @@ class OpcPackage {
         }
     }
     addRelationship(source, relationship) {
+        checkAbort(this.options.signal);
         this.open();
         source = source === "/" ? source : partUri(source);
         if (!/^[A-Za-z_][A-Za-z0-9_.-]*$/.test(relationship.id))
@@ -995,10 +1045,10 @@ class OpcPackage {
         const target = relationship.external ? relationship.target : partUri(relationship.target);
         if (relationship.external && (!target || /[\u0000-\u0020]/.test(target)))
             throw new TypeError("Invalid external relationship target.");
-        const key = source.toLowerCase(), list = this.relationships.get(key) ?? [];
-        if (list.some(r => r.id === relationship.id))
+        const key = source.toLowerCase(), list = this.relationships.get(key) ?? new Map();
+        if (list.has(relationship.id))
             throw new TypeError("Duplicate relationship id: " + relationship.id);
-        list.push({ ...relationship, target });
+        list.set(relationship.id, { ...relationship, target });
         this.relationships.set(key, list);
     }
     setProperties(core = {}, app = {}) {
@@ -1041,9 +1091,16 @@ class OpcPackage {
                 for (const [source, list] of this.relationships) {
                     if (source !== "/" && !this.parts.has(source))
                         throw new TypeError("Missing relationship source part: " + source);
-                    for (const rel of list)
+                    let checked = 0;
+                    for (const rel of list.values()) {
+                        checkAbort(this.options.signal);
                         if (!rel.external && !this.parts.has(rel.target.toLowerCase()))
                             throw new TypeError("Missing relationship target: " + rel.target);
+                        if ((++checked & 255) === 0 && taskYieldDue()) {
+                            await pause();
+                            checkAbort(this.options.signal);
+                        }
+                    }
                 }
                 for (const part of this.parts.values()) {
                     if ("written" in part)
@@ -1055,9 +1112,18 @@ class OpcPackage {
                 }
                 for (const [key, list] of this.relationships) {
                     const source = key === "/" ? "/" : this.parts.get(key).uri;
-                    const xml = xmlDeclaration + '<Relationships xmlns="' + relationshipsNamespace + '">' + list.map(r => '<Relationship Id="' + escapeXml(r.id) + '" Type="' + escapeXml(r.type) + '" Target="' +
-                        escapeXml(r.external ? r.target : relativePartTarget(source, r.target)) + '"' + (r.external ? ' TargetMode="External"' : "") + '/>').join("") + '</Relationships>';
-                    await zip.add(relationshipPartUri(source).slice(1), this.source(xml));
+                    await zip.add(relationshipPartUri(source).slice(1), async (sink) => {
+                        const text = new ChunkedTextSink(sink, this.options.signal);
+                        await text.write(xmlDeclaration + '<Relationships xmlns="' + relationshipsNamespace + '">');
+                        for (const r of list.values()) {
+                            const xml = '<Relationship Id="' + escapeXml(r.id) + '" Type="' + escapeXml(r.type) + '" Target="' +
+                                escapeXml(r.external ? r.target : relativePartTarget(source, r.target)) + '"' + (r.external ? ' TargetMode="External"' : "") + '/>';
+                            if (text.append(xml))
+                                await text.flush();
+                        }
+                        await text.write('</Relationships>');
+                        await text.close();
+                    });
                 }
                 await zip.add("[Content_Types].xml", this.source(this.types.toXml()));
                 await zip.finish();
@@ -1091,11 +1157,11 @@ class OpcPackage {
         await this.zip.discard(error);
     }
 }
-const _exports = Object.freeze({ partUri: _m7.partUri, relationshipPartUri: _m7.relationshipPartUri, relativePartTarget: _m7.relativePartTarget, corePropertiesXml: _m8.corePropertiesXml, appPropertiesXml: _m8.appPropertiesXml, relationshipsNamespace: relationshipsNamespace, officeRelationshipsNamespace: officeRelationshipsNamespace, contentTypesNamespace: contentTypesNamespace, relationshipTypes: relationshipTypes, ContentTypes: ContentTypes, OpcPackage: OpcPackage });
+const _exports = Object.freeze({ partUri: _m8.partUri, relationshipPartUri: _m8.relationshipPartUri, relativePartTarget: _m8.relativePartTarget, corePropertiesXml: _m9.corePropertiesXml, appPropertiesXml: _m9.appPropertiesXml, relationshipsNamespace: relationshipsNamespace, officeRelationshipsNamespace: officeRelationshipsNamespace, contentTypesNamespace: contentTypesNamespace, relationshipTypes: relationshipTypes, ContentTypes: ContentTypes, OpcPackage: OpcPackage });
 return _exports;
 })();
 
-const _m13 = (() => {
+const _m16 = (() => {
 function colorArgb(value) {
     if (typeof value !== "string" || !/^#?(?:[0-9a-f]{6}|[0-9a-f]{8})$/i.test(value))
         throw new TypeError("Color must be RGB or ARGB hex.");
@@ -1106,12 +1172,12 @@ const _exports = Object.freeze({ colorArgb: colorArgb });
 return _exports;
 })();
 
-const _m14 = (() => {
+const _m17 = (() => {
 const { OfficeIMOError } = _m3;
 
-const { cleanXml, escapeOoxmlAttribute } = _m9;
+const { cleanXml, escapeOoxmlAttribute } = _m10;
 
-const { colorArgb } = _m13;
+const { colorArgb } = _m16;
 
 /** @internal Reject unsupported properties rather than silently losing presentation. */
 function fields(value, allowed, label) {
@@ -1216,14 +1282,14 @@ const _exports = Object.freeze({ fields: fields, optionalBoolean: optionalBoolea
 return _exports;
 })();
 
-const _m12 = (() => {
-const { escapeOoxmlAttribute, cleanXml, xmlDeclaration } = _m9;
+const _m15 = (() => {
+const { escapeOoxmlAttribute, cleanXml, xmlDeclaration } = _m10;
 
 const { OfficeIMOError } = _m3;
 
-const { colorArgb } = _m13;
+const { colorArgb } = _m16;
 
-const { DifferentialStyles } = _m14;
+const { DifferentialStyles } = _m17;
 
 
 
@@ -1421,11 +1487,11 @@ class StyleRegistry {
         }).join("") + '</cellXfs><cellStyles count="1"><cellStyle name="Normal" xfId="0" builtinId="0"/></cellStyles>' + this.differential.toXml() + '</styleSheet>';
     }
 }
-const _exports = Object.freeze({ colorArgb: _m13.colorArgb, spreadsheetNamespace: spreadsheetNamespace, NumberFormats: NumberFormats, validateStylePatch: validateStylePatch, copyStylePatch: copyStylePatch, StyleRegistry: StyleRegistry });
+const _exports = Object.freeze({ colorArgb: _m16.colorArgb, spreadsheetNamespace: spreadsheetNamespace, NumberFormats: NumberFormats, validateStylePatch: validateStylePatch, copyStylePatch: copyStylePatch, StyleRegistry: StyleRegistry });
 return _exports;
 })();
 
-const _m17 = (() => {
+const _m20 = (() => {
 /** @internal One target policy shared by document writers and portable cells. */
 function copyExportLink(link) {
     if (!link || typeof link !== "object" || typeof link.target !== "string" ||
@@ -1442,8 +1508,10 @@ const _exports = Object.freeze({ copyExportLink: copyExportLink });
 return _exports;
 })();
 
-const _m16 = (() => {
-const { copyExportLink } = _m17;
+const _m19 = (() => {
+const { isDate } = _m11;
+
+const { copyExportLink } = _m20;
 
 const exportCellBrand = Symbol.for("@evotecit/officeimo/ExportCell");
 /** One resolved value/presentation decision that can be reused across exports. Strings remain literal data. */
@@ -1468,7 +1536,7 @@ class ExportCell {
 /** @internal Reject async formatters while observing their rejection immediately. */
 function assertScalar(value) {
     const kind = typeof value;
-    if (value == null || kind === "string" || kind === "number" || kind === "boolean" || value instanceof Date)
+    if (value == null || kind === "string" || kind === "number" || kind === "boolean" || isDate(value))
         return;
     if (typeof value.then === "function")
         void Promise.resolve(value).catch(() => { });
@@ -1484,10 +1552,12 @@ const _exports = Object.freeze({ ExportCell: ExportCell, assertScalar: assertSca
 return _exports;
 })();
 
-const _m15 = (() => {
-const { cleanXml, escapeXml } = _m9;
+const _m18 = (() => {
+const { cleanXml, escapeXml } = _m10;
 
-const { ExportCell, assertExportValue, assertScalar } = _m16;
+const { ExportCell, assertExportValue, assertScalar } = _m19;
+
+const { isDate } = _m11;
 
 /** A typed value plus a workbook-local style index. */
 class Cell {
@@ -1507,12 +1577,12 @@ function assertXlsxValue(value) {
 }
 /** @internal Buffered samples and footer definitions capture mutable Date values. */
 function copyValue(value) {
-    if (value instanceof Date)
-        return new Date(value);
-    if (value instanceof Cell && value.value instanceof Date)
-        return new Cell(new Date(value.value), value.style);
-    if (value instanceof ExportCell && value.value instanceof Date)
-        return new ExportCell(new Date(value.value), { ...(value.text === undefined ? {} : { text: value.text }), ...(value.presentation ? { presentation: value.presentation } : {}), ...(value.link ? { link: value.link } : {}) });
+    if (isDate(value))
+        return new Date(value.getTime());
+    if (value instanceof Cell && isDate(value.value))
+        return new Cell(new Date(value.value.getTime()), value.style);
+    if (value instanceof ExportCell && isDate(value.value))
+        return new ExportCell(new Date(value.value.getTime()), { ...(value.text === undefined ? {} : { text: value.text }), ...(value.presentation ? { presentation: value.presentation } : {}), ...(value.link ? { link: value.link } : {}) });
     return value;
 }
 function cellText(value, policy = "strip") {
@@ -1575,10 +1645,12 @@ const _exports = Object.freeze({ Cell: Cell, assertXlsxValue: assertXlsxValue, c
 return _exports;
 })();
 
-const _m19 = (() => {
-const { assertExportValue } = _m16;
+const _m22 = (() => {
+const { assertExportValue } = _m19;
 
 const { checkAbort } = _m2;
+
+const { isDate } = _m11;
 
 function createRowProjector(columns, worksheet, signal, validate = assertExportValue) {
     const getters = columns.some(column => column.value);
@@ -1590,7 +1662,7 @@ function createRowProjector(columns, worksheet, signal, validate = assertExportV
                 validate(value);
             return row;
         }
-        if (!row || typeof row !== "object" || row instanceof Date)
+        if (!row || typeof row !== "object" || isDate(row))
             throw new TypeError("A row must be an array or object.");
         if (Array.isArray(row) && row.length > columns.length && !columns.every(column => column.value))
             throw new RangeError("Project every column explicitly when selecting from a wider array row.");
@@ -1635,12 +1707,12 @@ const _exports = Object.freeze({ createRowProjector: createRowProjector, copyCol
 return _exports;
 })();
 
-const _m20 = (() => {
-const { cleanXml, escapeXml, escapeOoxmlAttribute, xmlDeclaration } = _m9;
+const _m23 = (() => {
+const { cleanXml, escapeXml, escapeOoxmlAttribute, xmlDeclaration } = _m10;
 
-const { copyExportLink } = _m17;
+const { copyExportLink } = _m20;
 
-const { officeRelationshipsNamespace } = _m6;
+const { officeRelationshipsNamespace } = _m7;
 
 function cellPosition(reference) {
     const match = typeof reference === "string" && /^([A-Z]{1,3})([1-9][0-9]{0,6})$/.exec(reference);
@@ -1696,10 +1768,10 @@ const _exports = Object.freeze({ cellPosition: cellPosition, copyHyperlink: copy
 return _exports;
 })();
 
-const _m22 = (() => {
+const _m25 = (() => {
 const { OfficeIMOError } = _m3;
 
-const { cellPosition } = _m20;
+const { cellPosition } = _m23;
 
 function indexRows(regions) {
     if (!regions.length)
@@ -1800,7 +1872,7 @@ const _exports = Object.freeze({ MergeRegions: MergeRegions });
 return _exports;
 })();
 
-const _m23 = (() => {
+const _m26 = (() => {
 class NumericAggregate {
     operation;
     count = 0;
@@ -1847,18 +1919,20 @@ const _exports = Object.freeze({ NumericAggregate: NumericAggregate, createTotal
 return _exports;
 })();
 
-const _m21 = (() => {
-const { ExportCell } = _m16;
+const _m24 = (() => {
+const { ExportCell } = _m19;
 
-const { Cell, cellText, columnName } = _m15;
+const { isDate } = _m11;
 
-const { escapeOoxmlAttribute } = _m9;
+const { Cell, cellText, columnName } = _m18;
 
-const { MergeRegions } = _m22;
+const { escapeOoxmlAttribute } = _m10;
+
+const { MergeRegions } = _m25;
 
 const { OfficeIMOError } = _m3;
 
-const { createTotals } = _m23;
+const { createTotals } = _m26;
 
 /** @internal A computed formula with a numeric cache; no public arbitrary-formula input. */
 class ComputedTotal {
@@ -1955,7 +2029,7 @@ class ReportLayout {
             if (!this.columns[i] || this.columns[i].width !== undefined)
                 return;
             const raw = value instanceof ExportCell ? value.text ?? value.value : value instanceof Cell ? value.value : value;
-            const text = raw instanceof Date ? Number.isFinite(raw.getTime()) ? raw.toISOString() : "" : raw == null ? "" : String(raw);
+            const text = isDate(raw) ? Number.isFinite(raw.getTime()) ? raw.toISOString() : "" : raw == null ? "" : String(raw);
             // Inspect at most a small prefix. A single long value cannot make a huge sampling allocation.
             const length = Math.max(0, ...text.slice(0, Math.ceil(max * 4)).split(/\r?\n/).map(line => [...line].length));
             this.widths[i] = Math.max(this.widths[i] ?? min, Math.min(max, length + 2));
@@ -2016,16 +2090,16 @@ const _exports = Object.freeze({ ComputedTotal: ComputedTotal, ReportLayout: Rep
 return _exports;
 })();
 
-const _m24 = (() => {
-const { cleanXml, escapeXml, escapeOoxmlAttribute } = _m9;
+const _m27 = (() => {
+const { cleanXml, escapeXml, escapeOoxmlAttribute } = _m10;
 
-const { cellPosition } = _m20;
+const { cellPosition } = _m23;
 
-const { columnName } = _m15;
+const { columnName } = _m18;
 
-const { colorArgb } = _m13;
+const { colorArgb } = _m16;
 
-const { fields, optionalBoolean, differentialXml } = _m14;
+const { fields, optionalBoolean, differentialXml } = _m17;
 
 function target(range, columns) {
     if (typeof range === "string") {
@@ -2181,35 +2255,44 @@ const _exports = Object.freeze({ prepareConditionalFormats: prepareConditionalFo
 return _exports;
 })();
 
-const _m18 = (() => {
+const _m21 = (() => {
 const { checkAbort, consumeRows, inputRows, pause, taskYieldDue } = _m2;
 
-const { ChunkedTextSink, BlobByteSink } = _m4;
+const { ChunkedTextSink, BlobByteSink } = _m5;
 
 const { NotSupportedError, OfficeIMOError } = _m3;
 
-const { copyColumns, createRowProjector } = _m19;
+const { notifyProgress } = _m4;
 
-const { EntryWriter } = _m11;
+const { copyColumns, createRowProjector } = _m22;
 
-const { xmlDeclaration } = _m9;
+const { EntryWriter } = _m13;
 
-const { officeRelationshipsNamespace } = _m6;
+const { xmlDeclaration } = _m10;
 
-const { Cell, cellText, columnName, inlineText, excelDate, copyValue } = _m15;
+const { officeRelationshipsNamespace } = _m7;
 
-const { spreadsheetNamespace, colorArgb, validateStylePatch, copyStylePatch } = _m12;
+const { Cell, cellText, columnName, inlineText, excelDate, copyValue } = _m18;
 
-const { copyHyperlink, copyImage, hyperlinksXml, cellPosition } = _m20;
+const { spreadsheetNamespace, colorArgb, validateStylePatch, copyStylePatch } = _m15;
 
-const { ExportCell, assertScalar } = _m16;
+const { copyHyperlink, copyImage, hyperlinksXml, cellPosition } = _m23;
 
-const { ReportLayout, ComputedTotal, printXml } = _m21;
+const { ExportCell, assertScalar } = _m19;
 
-const { cleanXml } = _m9;
+const { ReportLayout, ComputedTotal, printXml } = _m24;
 
-const { ConditionalFormats, prepareConditionalFormats } = _m24;
+const { cleanXml } = _m10;
 
+const { ConditionalFormats, prepareConditionalFormats } = _m27;
+
+const { isDate } = _m11;
+
+const maximumHyperlinks = 65530;
+function checkHyperlinkCount(count) {
+    if (count > maximumHyperlinks)
+        throw new RangeError("Excel supports at most 65,530 hyperlinks per worksheet; split the sheet.");
+}
 /** Worksheet rows are written once in order; the model retains compressed output rather than source data. */
 class Worksheet {
     book;
@@ -2295,6 +2378,7 @@ class Worksheet {
         if (options.hyperlinks !== undefined) {
             if (!Array.isArray(options.hyperlinks))
                 throw new TypeError("Hyperlinks must be an array.");
+            checkHyperlinkCount(options.hyperlinks.length);
             const seen = new Set();
             for (const requested of options.hyperlinks) {
                 const link = copyHyperlink(requested, book.settings.invalidCharacterPolicy);
@@ -2376,7 +2460,7 @@ class Worksheet {
                 throw new TypeError("A merged range would hide the value at " + col.letter + row + "; covered cells must be empty.");
             value = undefined; // An empty string in a covered typed column is an empty cell, not a type mismatch.
         }
-        const type = value instanceof Date ? "date" : typeof value;
+        const type = isDate(value) ? "date" : typeof value;
         if (!header && !footer && value != null && col.column.type && !this.book.writerFor(col.column.type) && col.column.type !== type)
             throw new TypeError("Cell " + col.letter + row + " does not match column type " + col.column.type + ".");
         let style = explicitStyle === undefined ? header ? col.headerStyle : total?.operation === "count" ? 0 : type === "date" ? col.dateStyle : col.style : this.book.styles.validateStyle(explicitStyle);
@@ -2416,6 +2500,8 @@ class Worksheet {
             const cell = col.letter + row;
             if (link || this.linkedCells.has(cell))
                 throw new TypeError("A text-preservation cell cannot also have an external hyperlink.");
+            checkHyperlinkCount(this.links.length + this.internalLinks.length + 1);
+            this.book.checkLinks(1);
             // Replace a generated cell's original reservation with its preview and overflow records.
             if (reservedCharacters !== undefined) {
                 this.book.budget.release(1, reservedCharacters);
@@ -2625,7 +2711,7 @@ class Worksheet {
         }
     }
     progress() { if (!this.preserved)
-        this.book.settings.onProgress?.({ phase: "rows", rows: this.book.rowCount, sheetRows: this.count, sheetName: this.name }); }
+        notifyProgress(this.book.settings.onProgress, { phase: "rows", rows: this.book.rowCount, sheetRows: this.count, sheetName: this.name }); }
     get rowCount() { return this.count; }
     /** @internal Preservation records are metadata, not report data rows. */
     get reportRowCount() { return this.preserved ? 0 : this.count; }
@@ -2636,6 +2722,8 @@ class Worksheet {
             throw new OfficeIMOError("INVALID_STATE", "Worksheet is closed.");
         if (this.failed)
             throw this.error;
+        if (image.data instanceof Uint8Array)
+            this.book.checkImage(image.data.length);
         const copied = copyImage(image, this.book.settings.invalidCharacterPolicy);
         this.book.retainImage(copied.data.length);
         this.pictures.push(copied);
@@ -2656,6 +2744,7 @@ class Worksheet {
             throw new TypeError("Hyperlinks cannot address a covered merged cell.");
         if (this.linkedCells.has(copied.cell))
             throw new TypeError("Duplicate hyperlink cell: " + copied.cell);
+        checkHyperlinkCount(this.links.length + this.internalLinks.length + 1);
         this.book.retainLink();
         this.links.push(copied);
         this.linkedCells.add(copied.cell);
@@ -2755,18 +2844,18 @@ const _exports = Object.freeze({ Worksheet: Worksheet });
 return _exports;
 })();
 
-const _m25 = (() => {
-const { escapeOoxmlAttribute, escapeXml, xmlDeclaration } = _m9;
+const _m28 = (() => {
+const { escapeOoxmlAttribute, escapeXml, xmlDeclaration } = _m10;
 
-const { cellText, columnName } = _m15;
+const { cellText, columnName } = _m18;
 
-const { spreadsheetNamespace } = _m12;
+const { spreadsheetNamespace } = _m15;
 
-const { ExportCell } = _m16;
+const { ExportCell } = _m19;
 
-const { Cell } = _m15;
+const { Cell } = _m18;
 
-const { totalFormula } = _m21;
+const { totalFormula } = _m24;
 
 function defineTable(id, options, columns, policy) {
     const name = options.name ?? "Table" + id;
@@ -2801,10 +2890,10 @@ const _exports = Object.freeze({ defineTable: defineTable, tableXml: tableXml })
 return _exports;
 })();
 
-const _m26 = (() => {
+const _m29 = (() => {
 const { OfficeIMOError } = _m3;
 
-const { cleanXml } = _m9;
+const { cleanXml } = _m10;
 
 /** @internal Overflow is deliberately bounded: ZIP worksheet entries cannot be interleaved. */
 class TextOverflow {
@@ -2869,31 +2958,33 @@ return _exports;
 })();
 
 const _m1 = (() => {
-const { beginTask, checkAbort } = _m2;
+const { beginTask, checkAbort, pause, taskYieldDue } = _m2;
 
 const { OfficeIMOError } = _m3;
 
-const { ChunkedTextSink } = _m4;
+const { notifyProgress } = _m4;
 
-const { ExportBudget } = _m5;
+const { ChunkedTextSink } = _m5;
 
-const { OpcPackage, officeRelationshipsNamespace, relationshipTypes, corePropertiesXml } = _m6;
+const { ExportBudget } = _m6;
 
-const { escapeOoxmlAttribute, cleanXml, xmlDeclaration } = _m9;
+const { OpcPackage, officeRelationshipsNamespace, relationshipTypes, corePropertiesXml } = _m7;
 
-const { StyleRegistry, spreadsheetNamespace } = _m12;
+const { escapeOoxmlAttribute, cleanXml, xmlDeclaration } = _m10;
 
-const { sheetName, assertXlsxValue } = _m15;
+const { StyleRegistry, spreadsheetNamespace } = _m15;
 
-const { assertExportValue } = _m16;
+const { sheetName, assertXlsxValue } = _m18;
 
-const { Worksheet } = _m18;
+const { assertExportValue } = _m19;
 
-const { defineTable, tableXml } = _m25;
+const { Worksheet } = _m21;
 
-const { drawingXml, drawingContentType } = _m20;
+const { defineTable, tableXml } = _m28;
 
-const { TextOverflow } = _m26;
+const { drawingXml, drawingContentType } = _m23;
+
+const { TextOverflow } = _m29;
 
 const xlsxMime = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
 const formatType = (name) => "application/vnd.openxmlformats-officedocument.spreadsheetml." + name + "+xml";
@@ -3016,9 +3107,13 @@ class Workbook {
     /** @internal Reserve a preflighted worksheet batch or one row hyperlink. */
     retainLink(count = 1) { this.checkLinks(count); this.links += count; }
     /** @internal */
-    retainImage(bytes) {
+    checkImage(bytes) {
         if (this.settings.limits?.maxImageBytes !== undefined && this.imageBytes + bytes > this.settings.limits.maxImageBytes)
             throw new OfficeIMOError("RESOURCE_LIMIT", "maxImageBytes exceeded.");
+    }
+    /** @internal Reserve only a validated image, after checking its budget before copying. */
+    retainImage(bytes) {
+        this.checkImage(bytes);
         this.imageBytes += bytes;
     }
     /** @internal Bound compressed worksheet retention in Blob mode before final packaging. */
@@ -3119,18 +3214,27 @@ class Workbook {
                         this.addXmlPart(tableUri, formatType("table"), () => tableXml(table, sheet.rowCount, this.settings.invalidCharacterPolicy, sheet.headerRowCount, sheet.footerSettings));
                         this.package.addRelationship(uri, { id: "table", type: officeRelationshipsNamespace + "/table", target: tableUri });
                     }
-                    for (let j = 0; j < sheet.hyperlinks.length; j++)
-                        this.package.addRelationship(uri, {
-                            id: "link" + (j + 1), type: officeRelationshipsNamespace + "/hyperlink", target: sheet.hyperlinks[j].target, external: true
-                        });
+                    for (let j = 0; j < sheet.hyperlinks.length; j++) {
+                        checkAbort(this.settings.signal);
+                        this.package.addRelationship(uri, { id: "link" + (j + 1), type: officeRelationshipsNamespace + "/hyperlink", target: sheet.hyperlinks[j].target, external: true });
+                        if ((j & 255) === 255 && taskYieldDue()) {
+                            await pause();
+                            checkAbort(this.settings.signal);
+                        }
+                    }
                     if (sheet.images.length) {
                         const drawingUri = "/xl/drawings/drawing" + (i + 1) + ".xml";
                         this.addXmlPart(drawingUri, drawingContentType, () => drawingXml(sheet.images, this.settings.invalidCharacterPolicy));
                         this.package.addRelationship(uri, { id: "drawing", type: officeRelationshipsNamespace + "/drawing", target: drawingUri });
                         for (let j = 0; j < sheet.images.length; j++) {
+                            checkAbort(this.settings.signal);
                             const imageUri = "/xl/media/sheet" + (i + 1) + "-image" + (j + 1) + ".png";
                             this.package.addPart({ uri: imageUri, contentType: "image/png", data: sheet.images[j].data });
                             this.package.addRelationship(drawingUri, { id: "image" + (j + 1), type: officeRelationshipsNamespace + "/image", target: imageUri });
+                            if ((j & 255) === 255 && taskYieldDue()) {
+                                await pause();
+                                checkAbort(this.settings.signal);
+                            }
                         }
                     }
                 }
@@ -3144,11 +3248,17 @@ class Workbook {
                     this.overflow.clear();
                 }
                 this.package.addRelationship("/", { id: "workbook", type: relationshipTypes.officeDocument, target: "/xl/workbook.xml" });
-                for (let i = 0; i < this.sheets.length; i++)
+                for (let i = 0; i < this.sheets.length; i++) {
+                    checkAbort(this.settings.signal);
                     this.package.addRelationship("/xl/workbook.xml", { id: "rId" + (i + 1), type: relationshipTypes.worksheet, target: "/xl/worksheets/sheet" + (i + 1) + ".xml" });
+                    if ((i & 255) === 255 && taskYieldDue()) {
+                        await pause();
+                        checkAbort(this.settings.signal);
+                    }
+                }
                 this.package.addRelationship("/xl/workbook.xml", { id: "styles", type: relationshipTypes.styles, target: "/xl/styles.xml" });
                 const bytes = await this.package.finish();
-                this.settings.onProgress?.({ phase: "complete", rows, bytes });
+                notifyProgress(this.settings.onProgress, { phase: "complete", rows, bytes });
                 checkAbort(this.settings.signal);
                 this.state = "complete";
                 return { rows, sheets: this.sheets.length, bytes };
@@ -3180,8 +3290,8 @@ const _exports = Object.freeze({ Workbook: Workbook });
 return _exports;
 })();
 
-const _m28 = (() => {
-const { ExportCell, assertScalar } = _m16;
+const _m31 = (() => {
+const { ExportCell, assertScalar } = _m19;
 
 function style(patch) {
     for (const component of ["font", "fill", "border", "numberFormat"])
@@ -3226,14 +3336,14 @@ const _exports = Object.freeze({ portableSheet: portableSheet, portableWorkbook:
 return _exports;
 })();
 
-const _m27 = (() => {
-const { withDestination } = _m4;
+const _m30 = (() => {
+const { withDestination } = _m5;
 
-const { copyColumns } = _m19;
+const { copyColumns } = _m22;
 
 const { Workbook } = _m1;
 
-const { portableSheet, portableWorkbook } = _m28;
+const { portableSheet, portableWorkbook } = _m31;
 
 function prepare(options) {
     const columns = copyColumns(options?.columns);
@@ -3279,7 +3389,7 @@ const _exports = Object.freeze({ writeXlsx: writeXlsx, writeXlsxTo: writeXlsxTo 
 return _exports;
 })();
 
-const _m29 = (() => {
+const _m32 = (() => {
 
 
 
@@ -3321,13 +3431,13 @@ function saveBlob(blob, fileName) {
         setTimeout(() => URL.revokeObjectURL(url), 30000);
     }
 }
-const _exports = Object.freeze({ OfficeIMOError: _m3.OfficeIMOError, NotSupportedError: _m3.NotSupportedError, BlobByteSink: _m4.BlobByteSink, ChunkedTextSink: _m4.ChunkedTextSink, writeBytes: _m4.writeBytes, ExportCell: _m16.ExportCell, checkAbort: _m2.checkAbort, withAbort: _m2.withAbort, inputRows: _m2.inputRows, pause: _m2.pause, detectFeatures: detectFeatures, saveBlob: saveBlob });
+const _exports = Object.freeze({ OfficeIMOError: _m3.OfficeIMOError, NotSupportedError: _m3.NotSupportedError, BlobByteSink: _m5.BlobByteSink, ChunkedTextSink: _m5.ChunkedTextSink, writeBytes: _m5.writeBytes, ExportCell: _m19.ExportCell, checkAbort: _m2.checkAbort, withAbort: _m2.withAbort, inputRows: _m2.inputRows, pause: _m2.pause, detectFeatures: detectFeatures, saveBlob: saveBlob });
 return _exports;
 })();
 
 const _m0 = (() => {
 
-const _exports = Object.freeze({ Workbook: _m1.Workbook, writeXlsx: _m27.writeXlsx, writeXlsxTo: _m27.writeXlsxTo, Worksheet: _m18.Worksheet, Cell: _m15.Cell, StyleRegistry: _m12.StyleRegistry, NumberFormats: _m12.NumberFormats, saveBlob: _m29.saveBlob, ExportCell: _m16.ExportCell });
+const _exports = Object.freeze({ Workbook: _m1.Workbook, writeXlsx: _m30.writeXlsx, writeXlsxTo: _m30.writeXlsxTo, Worksheet: _m21.Worksheet, Cell: _m18.Cell, StyleRegistry: _m15.StyleRegistry, NumberFormats: _m15.NumberFormats, saveBlob: _m32.saveBlob, ExportCell: _m19.ExportCell });
 return _exports;
 })();
 const { Workbook, writeXlsx, writeXlsxTo, Worksheet, Cell, StyleRegistry, NumberFormats, saveBlob, ExportCell } = _m0;

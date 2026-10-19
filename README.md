@@ -578,7 +578,7 @@ _Dependency footprint:_ only `OfficeIMO.Core`; external schemas are identified b
 
 _Dependency footprint:_ BCL compatibility packages only; no third-party CSV parser.
 
-#### [OfficeIMO.Browser](OfficeIMO.Browser/README.md)
+#### [OfficeIMO.JavaScript.Assets](OfficeIMO.JavaScript.Assets/README.md)
 
 - [x] Value-only tabular XLSX and CSV exports from synchronous or asynchronous JavaScript row iterables
 - [x] Current-view projection, multiple sheets, column styles, date formats, frozen headers and autofilters
@@ -586,7 +586,7 @@ _Dependency footprint:_ BCL compatibility packages only; no third-party CSV pars
 - [x] CSV formula protection with shared .NET/JavaScript byte vectors
 - [x] [Strict TypeScript library](OfficeIMO.JavaScript/README.md) under `@evotecit/officeimo`, compiled ES modules and generated declarations
 - [x] Public core, ZIP, XML, OPC, XLSX and CSV subpaths, reusable style registry, custom column writers and package parts
-- [x] Embedded .NET assets with content-hashed names and a [single-file/bundle example](OfficeIMO.Browser.Examples/README.md)
+- [x] Embedded .NET assets with content-hashed names and a [single-file/bundle example](OfficeIMO.JavaScript.Examples/README.md)
 
 _Dependency footprint:_ no JavaScript or third-party .NET runtime dependencies.
 

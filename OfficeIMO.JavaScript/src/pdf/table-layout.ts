@@ -8,7 +8,7 @@ import type { NumericAggregate } from "../internal/totals.js";
 import type { PdfFontResources, PdfFontResource } from "./font-resources.js";
 import type { PdfSettings } from "./settings.js";
 import { presentation, positive } from "./settings.js";
-import { displayText, wrapText } from "./text.js";
+import { displayText, wrapTextCooperatively } from "./text.js";
 import type { PdfTextLine } from "./text.js";
 
 export interface PdfLayoutCell {
@@ -64,9 +64,11 @@ export class PdfTableLayout {
     this.headings = headings;
     this.totals = createTotals(columns, options.footer?.totals);
   }
-  private cell(value: ExportValue, first: number, span: number, row: number, style: CellPresentation): PdfLayoutCell {
+  private async cell(value: ExportValue, first: number, span: number, row: number, style: CellPresentation): Promise<PdfLayoutCell> {
     const { options, padding, fontSize, budget, limits } = this.settings, column = options.columns[first]!;
     const own = value instanceof ExportCell ? value.presentation : undefined;
+    if (options.tagged && value instanceof ExportCell && value.link)
+      throw new TypeError("Tagged PDF link annotations are unsupported; use plain text cells.");
     const combined = presentation({ ...(column.alignment === undefined ? {} : { alignment: column.alignment }),
       ...(column.wrapText === undefined ? {} : { wrapText: column.wrapText }), ...style, ...own });
     const font = this.fonts.select(combined.bold, combined.italic), width = this.widths.slice(first, first + span).reduce((n, w) => n + w, 0);
@@ -74,28 +76,39 @@ export class PdfTableLayout {
     budget.cell(text);
     return { first, span, width, font, style: combined, lineHeight: font.lineHeight(fontSize),
       ...(value instanceof ExportCell && value.link ? { link: copyExportLink(value.link) } : {}),
-      lines: wrapText(text, font, fontSize, width - padding * 2, limits.maxCellCharacters, limits.maxRowLines, combined.wrapText !== false) };
+      lines: await wrapTextCooperatively(text, font, fontSize, width - padding * 2, limits.maxCellCharacters, limits.maxRowLines, combined.wrapText !== false, options.signal) };
   }
   private row(cells: readonly PdfLayoutCell[]): PdfLayoutRow {
     const lines = Math.max(1, ...cells.map(c => c.lines.length));
     const lineHeight = Math.max(this.lineHeight, ...cells.map(c => c.lineHeight));
     return { cells, lines, lineHeight, height: lines * lineHeight + this.settings.padding * 2 };
   }
-  headers(): readonly PdfLayoutRow[] {
+  async headers(): Promise<readonly PdfLayoutRow[]> {
     if (this.settings.options.headerRows) return this.block(this.settings.options.headerRows, this.settings.options.headerPresentation ?? {});
     const { formatValue: _format, ...options } = this.settings.options;
     // Header labels are already resolved text and never passed through a data-value formatter.
-    return this.headings.map(cells => this.row(cells.map(c => this.cell(new ExportCell(c.text, { text: c.text }), c.first, c.span, -1, options.headerPresentation ?? {}))));
+    const rows: PdfLayoutRow[] = [];
+    for (const heading of this.headings) {
+      const cells: PdfLayoutCell[] = [];
+      for (const c of heading) cells.push(await this.cell(new ExportCell(c.text, { text: c.text }), c.first, c.span, -1, options.headerPresentation ?? {}));
+      rows.push(this.row(cells));
+    }
+    return rows;
   }
-  block(matrix: TableSpanRows, style: CellPresentation): readonly PdfLayoutRow[] {
+  async block(matrix: TableSpanRows, style: CellPresentation): Promise<readonly PdfLayoutRow[]> {
     const anchors = tableSpans(matrix, this.settings.options.columns.length);
     const { formatValue: _format, ...literalOptions } = this.settings.options;
-    const cells = anchors.map(row => row.map(c => {
-      const value = c.value instanceof ExportCell ? c.value : new ExportCell(c.value);
-      const literal = new ExportCell(value.value, { text: displayText(value, literalOptions, { rowIndex: -1, columnIndex: c.first, column: literalOptions.columns[c.first]! }),
-        ...(value.presentation ? { presentation: value.presentation } : {}), ...(value.link ? { link: value.link } : {}) });
-      return { ...this.cell(literal, c.first, c.span, -1, style), rowSpan: c.rowSpan };
-    }));
+    const cells: (PdfLayoutCell & { readonly rowSpan: number })[][] = [];
+    for (const row of anchors) {
+      const laidOut: (PdfLayoutCell & { readonly rowSpan: number })[] = [];
+      for (const c of row) {
+        const value = c.value instanceof ExportCell ? c.value : new ExportCell(c.value);
+        const literal = new ExportCell(value.value, { text: displayText(value, literalOptions, { rowIndex: -1, columnIndex: c.first, column: literalOptions.columns[c.first]! }),
+          ...(value.presentation ? { presentation: value.presentation } : {}), ...(value.link ? { link: value.link } : {}) });
+        laidOut.push({ ...await this.cell(literal, c.first, c.span, -1, style), rowSpan: c.rowSpan });
+      }
+      cells.push(laidOut);
+    }
     const heights = cells.map(row => Math.max(this.lineHeight + this.settings.padding * 2, ...row.filter(c => c.rowSpan === 1).map(c => c.lines.length * c.lineHeight + this.settings.padding * 2)));
     cells.forEach((row, r) => row.forEach(c => {
       const existing = heights.slice(r, r + c.rowSpan).reduce((n, h) => n + h, 0), needed = c.lines.length * c.lineHeight + this.settings.padding * 2;
@@ -104,19 +117,21 @@ export class PdfTableLayout {
     return cells.map((row, r) => ({ cells: row.map(c => ({ ...c, height: heights.slice(r, r + c.rowSpan).reduce((n, h) => n + h, 0) })),
       lines: Math.max(1, Math.ceil((heights[r]! - this.settings.padding * 2) / this.lineHeight)), lineHeight: this.lineHeight, height: heights[r]!, structured: true }));
   }
-  data(values: readonly ExportValue[], index: number, footer = false): PdfLayoutRow {
+  async data(values: readonly ExportValue[], index: number, footer = false): Promise<PdfLayoutRow> {
     const { options } = this.settings;
-    return this.row(options.columns.map((_, column) => {
+    const cells: PdfLayoutCell[] = [];
+    for (let column = 0; column < options.columns.length; column++) {
       const value = values[column], raw = value instanceof ExportCell ? value.value : value;
       if (!footer) this.totals[column]!.accept(raw);
       const style = footer ? options.footerPresentation ?? {} : index % 2 && options.alternateRowColor ? { background: options.alternateRowColor } : {};
-      return this.cell(value, column, 1, index, style);
-    }));
+      cells.push(await this.cell(value, column, 1, index, style));
+    }
+    return this.row(cells);
   }
-  footer(index: number): readonly PdfLayoutRow[] | undefined {
+  async footer(index: number): Promise<readonly PdfLayoutRow[] | undefined> {
     if (!this.settings.options.footer) return undefined;
     if (this.settings.options.footer.rows) return this.block(this.settings.options.footer.rows, this.settings.options.footerPresentation ?? {});
     const values = this.totals.map((total, i) => total.operation ? total.value() : this.settings.options.footer?.values?.[i]);
-    return [this.data(values, index, true)];
+    return [await this.data(values, index, true)];
   }
 }

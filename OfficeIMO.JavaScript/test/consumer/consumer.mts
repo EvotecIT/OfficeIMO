@@ -1,11 +1,15 @@
-import { core, zip, xml, opc, xlsx, csv, ExportCell, writeXlsx, writeXlsxTo } from "@evotecit/officeimo";
+import { core, zip, xml, opc, xlsx, csv, ExportCell, writeXlsx, writeXlsxTo, preflightPdfText as rootPreflightPdfText } from "@evotecit/officeimo";
 import { BlobByteSink, ChunkedTextSink, detectFeatures, NotSupportedError } from "@evotecit/officeimo/core";
 import { ZipWriter, Crc32 } from "@evotecit/officeimo/zip";
 import { XmlWriter, escapeXml } from "@evotecit/officeimo/xml";
 import { OpcPackage, relationshipTypes, partUri, ContentTypes } from "@evotecit/officeimo/opc";
 import { Workbook, Worksheet, Cell, StyleRegistry, NumberFormats, saveBlob } from "@evotecit/officeimo/xlsx";
 import { writeCsv, writeCsvTo } from "@evotecit/officeimo/csv";
-import { writePdf, writePdfTo, PdfFont } from "@evotecit/officeimo/pdf";
+import { writePdf, writePdfTo, writePdfDocument, writePdfDocumentTo, pdfTable, PdfFont, preflightPdfText } from "@evotecit/officeimo/pdf";
+import type { PdfTextPreflightOptions, PdfTextPreflightResult, PdfTextIssueCode, PdfTaggedOptions } from "@evotecit/officeimo/pdf";
+import type { PdfDrawing, PdfDrawingBlock, PdfDrawingElement, PdfDrawingFont } from "@evotecit/officeimo/pdf";
+import type { PdfPngImage } from "@evotecit/officeimo/pdf";
+import type { PdfPngImage as RootPdfPngImage } from "@evotecit/officeimo";
 import type { Column, Rows } from "@evotecit/officeimo/core";
 import type { XlsxColumn } from "@evotecit/officeimo/xlsx";
 import type { ConditionalFormat } from "@evotecit/officeimo/xlsx";
@@ -61,6 +65,65 @@ async function exportPdf() {
   await writePdf([{nested:{x:1}}],{columns:[{header:'Nested',key:'nested'}]});
 }
 void exportPdf;
+
+const preflightOptions: PdfTextPreflightOptions = { bold: true };
+const textSupport: PdfTextPreflightResult = preflightPdfText("Report", preflightOptions);
+if (!textSupport.supported) {
+  const code: PdfTextIssueCode = textSupport.code;
+  const sourceIndex: number = textSupport.index;
+  const scalar: number | undefined = textSupport.scalar;
+  void [code, sourceIndex, scalar, textSupport.message];
+}
+rootPreflightPdfText("Report");
+// @ts-expect-error text preflight selects emphasis with boolean flags
+preflightPdfText("Report", { bold: "yes" });
+
+async function exportPdfDocument() {
+  const rows = [{ name: "Report", amount: 1 }];
+  const table = pdfTable(rows, { columns: [{ header: "Name", key: "name" }, { header: "Amount", value: row => row.amount }], footer: { totals: { Amount: "sum" } } });
+  const blocks = [{ kind: "paragraph", text: "Report", fontSize: 18 }, table,
+    { kind: "image", image: { format: "rgba", width: 1, height: 1, data: Uint8Array.of(10, 20, 30, 255) } },
+    { kind: "vector", width: 20, height: 20, fill: "008000", commands: [{ op: "move", x: 1, y: 1 }, { op: "line", x: 19, y: 19 }] },
+    { kind: "pageBreak" }] as const;
+  await writePdfDocument(blocks, { title: "Report", limits: { maxImageBytes: 100, maxVectorCommands: 10 } });
+  await writePdfDocumentTo(blocks, new WritableStream<Uint8Array>());
+  const drawingFont: PdfDrawingFont = "regular";
+  const drawingElements: readonly PdfDrawingElement[] = [
+    { kind: "path", stroke: "008000", lineCap: "round", lineJoin: "bevel", commands: [{ op: "move", x: -10, y: 0 }, { op: "line", x: 100, y: 50 }] },
+    { kind: "group", clip: { x: 0, y: 0, width: 100, height: 50 }, elements: [
+      { kind: "text", text: "Diagram", x: 5, y: 20, font: drawingFont, fontSize: 12, color: "111111" }
+    ] }
+  ];
+  const drawing: PdfDrawing = { version: 1, width: 100, height: 50, elements: drawingElements };
+  const drawingBlock: PdfDrawingBlock = { kind: "drawing", drawing, alternativeText: "Diagram" };
+  await writePdfDocument([drawingBlock], { fonts: { regular: new PdfFont(new Uint8Array()) }, limits: { maxDrawingElements: 100 } });
+  // @ts-expect-error portable drawings have one supported wire version
+  const unsupportedDrawing: PdfDrawing = { version: 2, width: 100, height: 50, elements: [] };
+  void unsupportedDrawing;
+  // @ts-expect-error portable text requires an explicit font slot
+  const incompleteDrawingText: PdfDrawingElement = { kind: "text", text: "Label", x: 0, y: 0, fontSize: 12, color: "000000" };
+  void incompleteDrawingText;
+  const png: PdfPngImage = { format: "png", data: new Uint8Array() };
+  const rootPng: RootPdfPngImage = png;
+  await writePdfDocument([{ kind: "image", image: rootPng }]);
+  const tagged: PdfTaggedOptions = { language: "en-US" };
+  await writePdfDocument([
+    { kind: "paragraph", text: "Sales report", headingLevel: 1, fontSize: 18, presentation: { bold: true } },
+    { kind: "paragraph", text: "Services sold this quarter." },
+    pdfTable([{ item: "Services", amount: 120 }], { columns: [{ header: "Item", key: "item" }, { header: "Amount", key: "amount" }] }),
+    { kind: "image", image: { format: "rgb", width: 1, height: 1, data: Uint8Array.of(0, 128, 200) }, alternativeText: "Blue square" },
+    { kind: "vector", width: 10, height: 10, commands: [{ op: "move", x: 0, y: 0 }, { op: "line", x: 10, y: 10 }], decorative: true }
+  ], { tagged, limits: { maxStructureElements: 100, maxMarkedContentReferences: 200 } });
+  // @ts-expect-error headings use levels from one through six
+  await writePdfDocument([{ kind: "paragraph", text: "Heading", headingLevel: 7 }], { tagged });
+  // @ts-expect-error table keys are checked against the inferred row type
+  pdfTable(rows, { columns: [{ header: "Name", key: "missing" }] });
+  // @ts-expect-error table getters must resolve a scalar or portable cell synchronously
+  pdfTable(rows, { columns: [{ header: "Name", value: async row => row.name }] });
+  // @ts-expect-error raw graphics do not accept arbitrary SVG markup
+  await writePdfDocument([{ kind: "vector", width: 20, height: 20, commands: [{ op: "svg", text: "<svg/>" }] }]);
+}
+void exportPdfDocument;
 
 interface RecordRow { readonly name: string; readonly seen: Date; }
 const columns = [{ header: "Name", key: "name" }, { header: "Seen", key: "seen", type: "date", format: "yyyy-mm-dd" }] as const satisfies readonly Column<RecordRow>[];

@@ -2,7 +2,7 @@ using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
 using HtmlTinkerX;
-using OfficeIMO.Browser;
+using OfficeIMO.JavaScript.Assets;
 
 /// <summary>Optional third-party grid interoperability through HtmlTinkerX-owned browser sessions.</summary>
 internal static class DataTablesInterop {
@@ -22,7 +22,7 @@ internal static class DataTablesInterop {
             });
             await session.Page.AddScriptTagAsync(new() { Content = File.ReadAllText(Path.Combine(repository, "Build", "BrowserExports", "datatables-contracts.js")) });
             await session.Page.AddScriptTagAsync(new() { Content = File.ReadAllText(Path.Combine(repository, "Build", "BrowserExports", "datatables-worker.js")) });
-            JsonElement result = await session.Page.EvaluateAsync<JsonElement>("script => runDataTablesContracts(script)", BrowserAssets.Script.Content);
+            JsonElement result = await session.Page.EvaluateAsync<JsonElement>("script => runDataTablesContracts(script)", JavaScriptAssets.Script.Content);
             foreach (string workbook in Directory.GetFiles(output, "*.xlsx")) WorkbookVerifier.Verify(workbook);
             if (errors.Count != 0) throw new InvalidDataException(string.Join("; ", errors));
             await session.Page.ScreenshotAsync(new() { Path = Path.Combine(output, "table-wide.png"), FullPage = true });
@@ -59,7 +59,7 @@ internal static class DataTablesInterop {
         try {
             foreach (JsonElement script in manifest.GetProperty("stacks").GetProperty(stack).GetProperty("scripts").EnumerateArray())
                 await session.Page.AddScriptTagAsync(new() { Path = Path.Combine(assets, script.GetString()!) });
-            await session.Page.AddScriptTagAsync(new() { Content = BrowserAssets.DataTablesScript.Content });
+            await session.Page.AddScriptTagAsync(new() { Content = JavaScriptAssets.DataTablesScript.Content });
             return session;
         } catch { await session.DisposeAsync(); throw; }
     }

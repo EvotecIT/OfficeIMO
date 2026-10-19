@@ -259,11 +259,118 @@ Lengths are points, with 72 points per inch. Defaults are A4 portrait, 36-point 
 
 Without supplied fonts, PDF uses standard Helvetica with WinAnsi text. For Polish, Greek, Cyrillic, CJK or other supported Unicode scalars, supply an embedding-permitted static TrueType font containing those glyphs. `PdfFont` copies and validates bytes once and can be reused. Optional `bold`, `italic` and `boldItalic` faces preserve their real glyphs; missing faces use synthetic emphasis. Used glyphs and composite dependencies are embedded as a subset, with Unicode extraction maps. Font permissions can require full embedding or prohibit embedding, which fails visibly. Collections, CFF/WOFF and variable fonts require conversion to static TrueType before use. The library neither fetches fonts nor reads installed fonts; font licensing belongs to the host.
 
-This writer handles scalar text layout for Latin, Greek, Cyrillic, Han, Hiragana, Katakana, precomposed Hangul and common symbols, including supplementary Unicode where the font provides it. It rejects missing glyphs, malformed surrogates, combining sequences, bidirectional text and other scripts requiring a shaping-capable writer. It does not provide general HTML/SVG rendering, images, tagged PDF or PDF/A. Long text is wrapped and continued across pages without truncation; CRLF/CR become line breaks and tabs expand to four spaces for display.
+Call `preflightPdfText(text, { fonts: { regular }, bold: true })` from `@evotecit/officeimo/pdf` to check a known text run before export. It returns `{ supported: true }` or the first issue with `code`, `message`, and a zero-based UTF-16 `index` in the original input; `scalar` identifies the original character and is absent for an unpaired surrogate. Codes distinguish `embedded-font-required`, `missing-glyph`, `unsupported-layout`, `unsupported-control` and `unpaired-surrogate`. The check uses the writer's font selection, line-break and tab rules. It checks only the supplied string, leaves row sources untouched, and does not establish wrapping, document resource limits or accessibility.
+
+This writer handles scalar text layout for Latin, Greek, Cyrillic, Han, Hiragana, Katakana, precomposed Hangul and common symbols, including supplementary Unicode where the font provides it. If a supplied TrueType font lacks U+202F (narrow no-break space) but provides an inkless U+2009 (thin space), the writer uses that thin-space glyph and its advance while preserving U+202F in the PDF's Unicode map. Other missing glyphs, malformed surrogates, combining sequences, bidirectional text and scripts requiring shaping fail explicitly. It does not provide general HTML/SVG rendering or PDF/A. Composed documents support the bounded image and vector contracts below. Long text is wrapped and continued across pages without truncation; CRLF/CR become line breaks and tabs expand to four spaces for display.
 
 `PdfLimits` includes shared row/cell/text/output ceilings plus `maxPages` (default 10,000), `maxColumns` (1,024), `maxCellCharacters` (1,000,000 UTF-16 units), `maxRowLines` (100,000), `maxFontBytes` (16 MiB across unique supplied fonts), `maxPageBytes` (8 MiB of drawing commands and link dictionaries), and `maxHyperlinks` (100,000 native annotations). A continued linked cell creates one annotation per page fragment; repeated linked headings also consume that limit. PDF cell/text budgets count rendered strings, headings, totals and page decorations; `maxRows` counts source rows. Resource failures never silently remove rows, columns or text. Native deflate compresses streams when available; `compression: false` or a missing native compressor produces valid uncompressed PDFs.
 
 Workers can call the same writers without a DOM. For a portable worker-to-page handoff, use `writePdfTo` and transfer byte chunks with acknowledgements; this also avoids WebKit worker Blob-read restrictions. Keep the row source and destination bridge bounded, and pass an `AbortSignal` to stop pending input or output. The caller owns disposal of partial bytes after failure, and the library releases borrowed stream locks without closing or aborting the destination.
+
+### Compose a PDF report
+
+`writePdfDocument` combines paragraphs, independently paginated tables, images, vector paths, portable drawings and explicit page breaks. `writePdfDocumentTo` writes the same blocks to a caller-owned destination. `pdfTable` checks each table's columns and getters against its row type.
+
+```ts
+import { writePdfDocument, pdfTable, saveBlob } from "@evotecit/officeimo";
+
+const columns = [
+  { header: "Item", key: "name" },
+  { header: "Amount", key: "amount", alignment: "right" }
+] as const;
+const badge = {
+  format: "rgba" as const, width: 2, height: 2,
+  data: Uint8Array.of(0, 128, 200, 255, 245, 160, 30, 255,
+                     0, 128, 200, 128, 245, 160, 30, 128)
+};
+const report = await writePdfDocument([
+  { kind: "paragraph", text: "Sales report", fontSize: 18,
+    presentation: { bold: true, color: "14532D" } },
+  { kind: "image", image: badge, width: 40, height: 40 },
+  { kind: "vector", width: 80, height: 30, fill: "217346", commands: [
+    { op: "move", x: 1, y: 29 }, { op: "line", x: 79, y: 29 },
+    { op: "line", x: 79, y: 1 }, { op: "close" }
+  ] },
+  pdfTable([{ name: "Services", amount: 120 }], {
+    columns, footer: { values: ["Total"], totals: { amount: "sum" } }
+  }),
+  { kind: "pageBreak" },
+  { kind: "paragraph", text: "Adjustments" },
+  pdfTable([{ name: "Credit", amount: -20 }], { columns })
+], { pageSize: "A4", pageFooter: "Sales report" });
+saveBlob(report, "sales-report.pdf");
+```
+
+Document options own page geometry, fonts, padding, decorations and limits. Each table owns its columns, repeated headings, widths, presentation, formatter and totals. Paragraphs support their own font size, bold, italic, text color and horizontal alignment. The existing font and supported-script rules apply to every block. `writePdf` and `writePdfTo` remain convenient entry points for one table.
+
+Images accept `{ format: "png", data }`, `{ format: "jpeg", data }` or decoded `{ format: "rgb" | "rgba", width, height, data }` pixels. Raw pixels are row-major, 8 bits per channel, without row padding or premultiplied alpha. JPEG accepts 8-bit grayscale/RGB baseline, sequential and progressive frames. CMYK, ICC profiles, EXIF metadata and other component layouts fail explicitly; normalize color and orientation before supplying those JPEGs.
+
+PNG intake accepts complete static, noninterlaced, 8-bit RGB/RGBA images with no color-profile metadata. It checks chunk CRCs, critical chunk order, scanline filters and the exact inflated byte length. RGB samples pass unchanged into the PDF's DeviceRGB image; straight alpha becomes a separate soft mask. Indexed/grayscale images, 16-bit samples, interlacing, animation, EXIF, `tRNS`, `sBIT`, and color/profile chunks (`sRGB`, `gAMA`, `cHRM`, `iCCP`, `cICP`, `mDCV`, `cLLI`) fail explicitly; normalize those inputs first. PNG decoding requires native `DecompressionStream("deflate")` and returns `code: "PLATFORM_UNAVAILABLE"` when unavailable. Arbitrary SVG bytes are not decoded.
+
+An image's optional display `width` and `height` use points. One omitted dimension preserves the intrinsic aspect ratio; omitting both uses 96 DPI. The writer scales an oversized graphic down to the printable page and moves it intact to the next page when necessary. Source bytes are copied when the image is first consumed. Reusing that image object shares its PDF resource. Keep source objects and byte arrays stable until their block has been consumed.
+
+Vector blocks use explicit top-left bounds and `move`, `line`, `cubic` and `close` commands. A block paints one path with optional six-digit RGB `fill` and `stroke`, `strokeWidth`, and `fillRule: "nonzero" | "evenodd"`. Coordinates must stay inside the declared bounds. Painting is clipped to those bounds. Images and vectors support `alignment: "left" | "center" | "right"`. This path contract does not interpret SVG markup, CSS, gradients, text or external resources.
+
+Blocks and table rows are consumed once in order, with destination backpressure and cancellation. Pass a fresh source for each export. The result's `rows` sums the data rows across all tables; `columns` is the widest table. Row, cell, rendered-text, page, font, output and hyperlink limits cover the whole document. Graphics add `maxImageBytes` (32 MiB across distinct source image objects), `maxImagePixels` (16,777,216 pixels per image), and `maxVectorCommands` (100,000 commands across all vector blocks). Caller-owned destinations retain their normal partial-output and disposal contract.
+
+### Portable drawings
+
+A `drawing` block paints an ordered collection of paths, fixed-baseline text and rectangular clip groups as one indivisible graphic. It uses the same page fitting, alignment and tagged-figure alternatives as images and vectors. `OfficeIMO.Drawing.OfficeDrawingPortableExporter.TryExportJson` produces this wire format from supported `OfficeDrawing` content. Pass the parsed JSON as the block's `drawing` value; failed producer exports return diagnostics and no partial drawing.
+
+```ts
+import { writePdfDocument } from "@evotecit/officeimo";
+import type { PdfDrawing } from "@evotecit/officeimo";
+
+const drawing: PdfDrawing = {
+  version: 1, width: 200, height: 100,
+  elements: [
+    { kind: "path", stroke: "555555", lineCap: "square", commands: [
+      { op: "move", x: 10, y: 10 }, { op: "line", x: 10, y: 90 },
+      { op: "line", x: 190, y: 90 }
+    ] },
+    { kind: "group", clip: { x: 10, y: 10, width: 180, height: 80 }, elements: [
+      { kind: "path", stroke: "217346", strokeWidth: 2, lineJoin: "round", commands: [
+        { op: "move", x: 0, y: 95 }, { op: "line", x: 80, y: 60 },
+        { op: "line", x: 200, y: 15 }
+      ] }
+    ] }
+  ]
+};
+const report = await writePdfDocument([
+  { kind: "drawing", drawing, alternativeText: "Sales increased through the quarter." }
+], { tagged: { language: "en-US" } });
+```
+
+Version 1 accepts `path`, `text` and `group` elements only. Paths use the existing `move`, `line`, `cubic` and `close` commands, RGB fills/strokes, positive `strokeWidth`, `fillRule`, `lineCap: "butt" | "round" | "square"`, and `lineJoin: "miter" | "round" | "bevel"`. The miter limit is 10. Groups contain ordered `elements` and an optional rectangular `clip`. Every drawing is also clipped to its own bounds. Coordinates use points from the top left; finite values from -1,000,000 through 1,000,000 allow geometry to extend beyond a clip. Drawing dimensions are positive and at most 14,400 points; rectangular clip dimensions may reach 1,000,000 points.
+
+Text elements declare `text`, `x`, `y`, `font`, `fontSize` and RGB `color`; `y` is the baseline. The font slot is `regular`, `bold`, `italic` or `boldItalic`, and that exact embedded static TrueType face must be supplied in the document's `fonts`. Use the same licensed static family in the .NET producer and the JavaScript writer. Missing faces and synthetic emphasis are rejected. Text stays at its authored position without wrapping or shaping; line breaks, control characters, unsupported scripts and missing glyphs fail explicitly under the existing scalar-text rules.
+
+The wire format rejects unknown properties, versions, commands and element kinds. It does not parse SVG/CSS or load fonts and external resources. `maxDrawingElements` (default 100,000) counts paths, text and groups across drawing blocks; nesting is limited to 32 element levels. Drawing path commands share `maxVectorCommands` with vector blocks. Text shares cell/character budgets with the rest of the document. Serialized drawing content obeys `maxPageBytes`, and preflight and serialization cooperate with cancellation. Keep the supplied drawing stable until its block is consumed.
+
+### Tagged PDF reports
+
+Set `tagged: { language: "en-US" }` on a PDF writer to emit a logical structure tree. The language must be a locale identifier accepted by `Intl.getCanonicalLocales`. Composed paragraphs use `P` by default; `headingLevel: 1` through `6` selects `H1` through `H6` without changing the visual presentation. The document-level `title` uses `H1`; top/bottom messages use `P`.
+
+```ts
+import { writePdfDocument, pdfTable } from "@evotecit/officeimo";
+
+const report = await writePdfDocument([
+  { kind: "paragraph", text: "Sales report", headingLevel: 1,
+    fontSize: 18, presentation: { bold: true } },
+  { kind: "paragraph", text: "Services sold this quarter." },
+  pdfTable([{ item: "Services", amount: 120 }], {
+    columns: [{ header: "Item", key: "item" }, { header: "Amount", key: "amount" }]
+  })
+], { tagged: { language: "en-US" } });
+```
+
+The supported table profile uses one leaf heading per column, tagged as `TH` with column scope. Empty heading cells use `TD`. Ordinary data and footer cells use `TD`. A table remains one `Table` with ordered `TR` and cell elements across pages; each continued paragraph or cell retains its logical identity. Repeated visual headings, table borders/backgrounds, page headers/footers and page numbers are artifacts. Grouped headings, `headerRows`, structured `footer.rows` and linked `ExportCell` values are rejected in tagged mode.
+
+Every image, vector or drawing block in tagged output requires either a nonempty `alternativeText` or `decorative: true`. Meaningful graphics become `Figure` elements with an alternative; decorative graphics are artifacts. Supplying both is an error. Figure alternatives count toward the cell/text budgets and obey `maxCellCharacters`. Choose alternatives and heading levels that express the report's meaning; the writer cannot infer them.
+
+`maxStructureElements` (default 1,000,000) bounds retained logical elements, including `Document`, tables, rows, cells and figures. `maxMarkedContentReferences` (2,000,000) bounds their references to painted content, including continued cell lines. These limits apply across the document. Untagged output remains the default.
+
+This profile provides structure for supported reports. It does not claim accessible PDF or PDF/UA conformance. Assistive-technology reading, navigation and author-supplied semantics require manual acceptance; see the [remaining accessibility work](../Docs/ROADMAP.md#officeimo-javascript).
 
 ## XLSX: workbook, worksheets and cells
 
@@ -301,7 +408,7 @@ Cells accept strings, numbers, booleans, `Date`, `null` and `undefined`. Declare
 
 Dates use Excel's 1900 system, including the fictitious leap day. `dateMode` defaults to local wall-clock fields; `"utc"` writes UTC clock fields. Cell dates carry no timezone. Property dates are UTC instants and are captured at construction. Valid cell date years are 1900 through 9999.
 
-Excel limits are enforced: 1,048,576 rows including headings and the footer, 16,384 columns, 32,767 UTF-16 code units per cell, 64,000 styles and widths from 0 through 255 characters. Names are trimmed, illegal characters become underscores, and names are shortened to 31 UTF-16 code units without splitting a surrogate pair. Blank names become `Sheet`, reserved `History` becomes `History_`, and case-insensitive duplicates receive a suffix.
+Excel limits are enforced: 1,048,576 rows including headings and the footer, 16,384 columns, 32,767 UTF-16 code units per cell, 65,530 hyperlinks per worksheet including oversized-text preservation links, 64,000 styles and widths from 0 through 255 characters. Names are trimmed, illegal characters become underscores, and names are shortened to 31 UTF-16 code units without splitting a surrogate pair. Blank names become `Sheet`, reserved `History` becomes `History_`, and case-insensitive duplicates receive a suffix.
 
 `invalidCharacterPolicy` defaults to `"strip"`. XML 1.0-invalid controls, lone surrogates, U+FFFE and U+FFFF are removed. `"reject"` throws an `OfficeIMOError` with `code: "INVALID_XML"` for names, cell/header text, property text, font names and number formats. CR, LF, tabs, emoji, Polish and right-to-left text are preserved.
 
@@ -323,7 +430,7 @@ async function exportSales(destination: WritableStream<Uint8Array>, signal: Abor
 }
 ```
 
-`writeCsvTo` has the same destination and completion contract. Pass the signal into paged fetching and destination I/O too; rejecting an export does not cancel application-owned I/O automatically. Node streams need a small `ByteSink` adapter that resolves each write after backpressure is satisfied. Native Web Streams need no adapter.
+`writeCsvTo` and `writePdfTo` have the same destination and completion contract. Pass the signal into paged fetching and destination I/O too; rejecting an export does not cancel application-owned I/O automatically. Native Web Streams need no adapter. For Node writable streams, use the platform's `Writable.toWeb` adapter as shown below.
 
 Select a caller-owned sink when constructing the workbook to deliver ZIP bytes during row production. Complete streamed worksheets in order: `close()` completes a worksheet explicitly, and starting the next worksheet closes its predecessor. Await each append before switching worksheets. A closed worksheet cannot receive more rows. `finish()` completes the ZIP directory and returns data-row, sheet and byte counts; repeated calls reuse the same result. The row count excludes headings, footers and preservation-sheet records. The sheet count includes the preservation sheet when present.
 
@@ -359,6 +466,35 @@ Both CSV and XLSX accept optional `limits`: `maxRows` counts data rows per works
 XLSX rejects oversized text by default. Set `oversizedText: "preserve"` to write a bounded preview with an internal link to the full value on a `Text overflow` worksheet. Each overflow record identifies the source sheet/cell, one-based part number, text and total part count. Concatenate its `Text` values in part order to reconstruct the complete XML-valid value. Chunks never split a supplementary Unicode character. The same strip/reject policy applies to invalid XML characters. Preserve mode does not replace an existing external link on that cell; that conflict throws.
 
 ZIP entries cannot interleave, so preservation retains a bounded text spool until the report worksheets finish. `maxOverflowCharacters` defaults to 4,000,000 UTF-16 units. Width sampling has separate defaults of 100,000 retained cells and 1,000,000 UTF-16 units of encoded row XML, including markup, configurable through `maxBufferedCells` and `maxBufferedCharacters`. Automatic width sampling stops within these budgets; an explicitly requested sample that exceeds them fails visibly. Full cell values are preserved in both cases. CSV retains long text directly and is an alternative when Excel's cell/storage constraints do not suit the data.
+
+### Node writable streams
+
+`Writable.toWeb` connects Node file or HTTP response streams to `writeXlsxTo`, `writeCsvTo` and `writePdfTo`, including backpressure. End the Node stream after a successful export and await `finished` before using the file. Destroy it on failure; the caller decides whether to remove a partial file.
+
+```ts
+import { createWriteStream } from "node:fs";
+import { Writable } from "node:stream";
+import { finished } from "node:stream/promises";
+import { writeXlsxTo } from "@evotecit/officeimo";
+
+async function exportSales(path: string, signal: AbortSignal) {
+  const output = createWriteStream(path, { signal });
+  const completion = finished(output);
+  void completion.catch(() => {}); // Observe I/O failures while the exporter is still writing.
+  try {
+    const result = await writeXlsxTo([{ customer: "Contoso", amount: 12.5 }], Writable.toWeb(output), {
+      columns: [{ header: "Customer", key: "customer" }, { header: "Amount", key: "amount" }], signal
+    });
+    output.end();
+    await completion;
+    return result;
+  } catch (error) {
+    output.destroy();
+    await completion.catch(() => {});
+    throw error;
+  }
+}
+```
 
 ## Workers and paged sources
 
@@ -682,7 +818,7 @@ The archive exports `@evotecit/officeimo/classic.js`, `/xlsx.js`, `/csv.js` and 
 
 The combined bundle exposes all seven namespaces on global `OfficeIMO` plus the established root helpers. The XLSX bundle exposes `core`, `zip`, `xml`, `opc`, `xlsx`; CSV exposes `core`, `csv`; PDF exposes `core`, `pdf`. The standalone bundles compose in either order. Classic scripts work from `file://` and in host-owned workers without a module loader. ES modules use normal import paths on HTTP(S) and in Node; browser local-file module policy can block `file://` imports.
 
-[OfficeIMO.Browser](../OfficeIMO.Browser/README.md) embeds the same committed TypeScript-built bundles in .NET. Its `BrowserAsset` API returns exact content and content-hashed filenames; consuming .NET applications require no Node tooling. Standalone `.mjs` assemblies preserve the asset package's module API. The npm subpaths remain genuine separate `tsc` modules with generated declarations.
+[OfficeIMO.JavaScript.Assets](../OfficeIMO.JavaScript.Assets/README.md) embeds the same committed TypeScript-built bundles in .NET. Its `JavaScriptAsset` API returns exact content and content-hashed filenames; consuming .NET applications require no Node tooling. Standalone `.mjs` assemblies preserve the asset package's module API. The npm subpaths remain genuine separate `tsc` modules with generated declarations.
 
 ## Build and validation
 
@@ -697,4 +833,4 @@ npm run sizes -- /path/to/evidence/sizes.json
 
 `npm test` compiles strictly, checks committed bundles and runs Node's built-in runner. `npm run check` fails when a bundle differs from the compiled graph. No bundler or minifier is used. On Windows, `npm --script-shell pwsh` can select PowerShell 7 when the machine's default npm shell cannot resolve its tools.
 
-The browser command uses the repository's existing isolated HtmlTinkerX/Playwright runner and pinned .NET SDK. It checks Chromium, Firefox and WebKit, classic `file://` scripts, ESM imports, workers, downloads and the shared corpus. [C# conformance tests](../OfficeIMO.Browser.Tests/JavaScriptConformanceTests.cs) independently open produced workbooks with OfficeIMO.Excel/OfficeIMO.Reader.Excel and validate them with the Open XML SDK. The [architecture guide](../Docs/officeimo.javascript-architecture.md) describes API stability, format ownership and adding a module.
+The browser command uses the repository's existing isolated HtmlTinkerX/Playwright runner and pinned .NET SDK. It checks Chromium, Firefox and WebKit, classic `file://` scripts, ESM imports, workers, downloads and the shared corpus. [C# conformance tests](../OfficeIMO.JavaScript.Assets.Tests/JavaScriptConformanceTests.cs) independently open produced workbooks with OfficeIMO.Excel/OfficeIMO.Reader.Excel and validate them with the Open XML SDK. The [architecture guide](../Docs/officeimo.javascript-architecture.md) describes API stability, format ownership and adding a module.

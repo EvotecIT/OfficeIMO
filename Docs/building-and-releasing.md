@@ -65,6 +65,55 @@ Retain the source candidate and the PowerForge checkpoint until release verifica
 finishes. Verify the actual NuGet packages, downloaded PSGallery module, GitHub
 assets, and deployed website before treating delivery as complete.
 
+## JavaScript npm delivery
+
+The `Publish coordinated npm package` workflow delivers `@evotecit/officeimo`
+from the same normal OfficeIMO GitHub release. It creates no separate npm release
+tag or GitHub release. `Build/project.build.json` binds the source package and
+lockfile versions to `OfficeIMO.JavaScript.Assets` when the native publisher updates versions.
+
+The workflow reads the actual version from the unique signed
+`OfficeIMO.JavaScript.Assets.<version>.nupkg` attached to the release. The release tag may
+contain the native publisher's earlier version metadata, so the runner stamps
+the package and lockfile before packing. Native publication builds the
+operator-selected working tree. Committing version metadata before that native
+publication remains an operator choice.
+The workflow waits up to ten minutes for the JavaScript asset because native
+publication creates the GitHub release before uploading its package assets.
+
+Before publication, the workflow runs the JavaScript contracts and isolated
+strict TypeScript, Node and worker consumers. It compares every bundled JavaScript
+and module asset with the signed JavaScript asset assembly's embedded resources. This
+proves runtime-byte equivalence between the npm and NuGet JavaScript bundles; it
+does not claim that every type source or native build input is identical. A
+runtime mismatch stops npm delivery and leaves the completed native publication
+intact.
+
+The shared PowerForge npm publisher uploads the same qualified archive and
+verifies registry identity, integrity and public-source provenance. This separate
+workflow has its own retries; it is outside the native PowerForge release
+checkpoint. Retry it on the original tag after diagnosing a delivery failure:
+
+```powershell
+gh workflow run npm-release.yml --ref OfficeIMO-v<version> -f publish=true
+```
+
+The original fourteen-digit `OfficeIMO-v<timestamp>` tags are also accepted.
+A successful master push `Test .NET Libraries` run must qualify the exact tagged commit.
+An existing npm version succeeds only when its bytes and provenance match the
+qualified archive; conflicting bytes stop publication rather than replacing it.
+
+Configure the `npm-release` GitHub environment with one deployment policy: type
+`tag`, name `OfficeIMO-v*`. Register npm Trusted Publishing for organization
+`EvotecIT`, repository `OfficeIMO`, calling workflow `npm-release.yml`, and that
+environment. Ordinary releases use OIDC and no persistent npm token. The first
+publication requires an operator-created environment secret named
+`NPM_BOOTSTRAP_TOKEN` and an explicit tag dispatch with `publish=true` and
+`bootstrap=true`. Remove that secret after verified bootstrap and configure the
+package's trusted publisher. The shared
+[npm publication guide](https://github.com/EvotecIT/PSPublishModule/blob/main/Docs/PowerForge.NpmPublishing.md)
+owns credential setup and registry recovery details.
+
 ## Website documentation
 
 The website reads the module from this checkout. Its PowerShell API step builds an

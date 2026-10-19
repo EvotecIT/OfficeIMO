@@ -1,12 +1,10 @@
 import { BlobByteSink, withDestination } from "../core/sinks.js";
 import { beginTask, checkAbort, consumeRows, pause, taskYieldDue } from "../core/iteration.js";
+import { notifyProgress } from "../core/progress.js";
 import type { ExportResult, OutputDestination, ExportValue } from "../core/index.js";
 import { createRowProjector } from "../internal/rows.js";
 import { settings } from "./settings.js";
-import { PdfObjects, unicodeHex } from "./objects.js";
-import { PdfFontResources } from "./font-resources.js";
-import { PdfTableLayout } from "./table-layout.js";
-import { PdfPages } from "./pages.js";
+import { PdfWriteSession } from "./session.js";
 import type { PdfOptions } from "./types.js";
 
 /** One table as a PDF Blob. Async sources are consumed once; call a source factory for each export. */
@@ -23,40 +21,31 @@ export async function writePdfTo(rows: Iterable<unknown> | AsyncIterable<unknown
   beginTask();
   checkAbort(options.signal);
   return withDestination(destination, async sink => {
-    const objects = new PdfObjects(sink, options.signal, options.limits?.maxOutputBytes), root = objects.reserve(), parent = objects.reserve(), resources = objects.reserve(), info = objects.reserve();
-    const fonts = new PdfFontResources(objects, options.fonts, prepared.limits.maxFontBytes), layout = new PdfTableLayout(prepared, fonts), pages = new PdfPages(objects, prepared, layout, parent, resources);
+    const session = new PdfWriteSession(sink, prepared, true), { objects, pages } = session, layout = session.layout!;
     const project = createRowProjector(options.columns, undefined, options.signal);
     let count = 0;
-    await objects.text("%PDF-1.7\n");
-    await objects.raw(Uint8Array.of(0x25, 0xe2, 0xe3, 0xcf, 0xd3, 0x0a));
-    await pages.start();
+    await session.start();
     const completed = (): void | Promise<void> => {
       count++;
       if (count % 256 === 0) {
-        options.onProgress?.({ phase: "rows", rows: count, bytes: objects.bytes });
+        notifyProgress(options.onProgress, { phase: "rows", rows: count, bytes: objects.bytes });
         if (taskYieldDue()) return pause().then(() => { checkAbort(options.signal); });
       }
       checkAbort(options.signal);
     };
-    await consumeRows(rows, options.signal, row => {
+    await consumeRows(rows, options.signal, async row => {
       budget.row(count + 1);
       const values = project(row, count) as readonly ExportValue[];
-      return pages.row(layout.data(values, count)).then(completed);
+      return pages.row(await layout.data(values, count)).then(completed);
     });
-    const footer = layout.footer(count);
+    const footer = await layout.footer(count);
     if (footer) {
       if (options.footer?.rows) await pages.block(footer);
       else await pages.row(footer[0]!);
     }
     if (options.messageBottom) await pages.paragraph(options.messageBottom);
-    await pages.finish();
-    for (const font of fonts.resources) await font.write(objects, options.compression !== false);
-    await objects.object(resources, "<< /Font " + fonts.dictionary() + pages.xobjects() + " >>");
-    await objects.object(parent, "<< /Type /Pages /Count " + pages.references.length + " /Kids [" + pages.references.map(id => id + " 0 R").join(" ") + "] >>");
-    await objects.object(root, "<< /Type /Catalog /Pages " + parent + " 0 R >>");
-    await objects.object(info, "<< /Producer (OfficeIMO.js)" + (options.title === undefined ? "" : " /Title <feff" + unicodeHex(options.title) + ">") + " >>");
-    await objects.finish(root, info);
-    options.onProgress?.({ phase: "complete", rows: count, bytes: objects.bytes });
+    await session.finish();
+    notifyProgress(options.onProgress, { phase: "complete", rows: count, bytes: objects.bytes });
     checkAbort(options.signal);
     return { rows: count, columns: options.columns.length, bytes: objects.bytes };
   });

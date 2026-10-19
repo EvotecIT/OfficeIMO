@@ -11,7 +11,7 @@
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="18.5.1" />
     <PackageReference Include="xunit" Version="2.9.3" />
     <PackageReference Include="xunit.runner.visualstudio" Version="3.1.5" PrivateAssets="all" />
-    <ProjectReference Include="../OfficeIMO.Browser/OfficeIMO.Browser.csproj" />
+    <ProjectReference Include="../OfficeIMO.JavaScript.Assets/OfficeIMO.JavaScript.Assets.csproj" />
     <None Include="../OfficeIMO.JavaScript/bundles/*.js;../OfficeIMO.JavaScript/bundles/*.mjs" Link="Assets/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
   <ItemGroup Condition="'$(TargetFramework)' == 'net8.0' or '$(TargetFramework)' == 'net10.0'">

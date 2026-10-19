@@ -4,19 +4,19 @@ using System.IO;
 using System.Security.Cryptography;
 using System.Text;
 
-namespace OfficeIMO.Browser;
+namespace OfficeIMO.JavaScript.Assets;
 
-/// <summary>A browser script whose content and immutable file name come from the same embedded resource.</summary>
-public sealed class BrowserAsset {
+/// <summary>A JavaScript asset whose content and immutable file name come from the same embedded resource.</summary>
+public sealed class JavaScriptAsset {
     private static readonly UTF8Encoding Encoding = new UTF8Encoding(false);
     private readonly Lazy<string> _content;
     private readonly Lazy<string> _hash;
 
-    internal BrowserAsset(string fileName) {
+    internal JavaScriptAsset(string fileName) {
         FileName = fileName;
         _content = new Lazy<string>(() => {
-            using Stream stream = typeof(BrowserAsset).Assembly.GetManifestResourceStream("OfficeIMO.Browser.Assets." + fileName)
-                ?? throw new InvalidOperationException("Missing embedded browser asset: " + fileName);
+            using Stream stream = typeof(JavaScriptAsset).Assembly.GetManifestResourceStream("OfficeIMO.JavaScript.Assets." + fileName)
+                ?? throw new InvalidOperationException("Missing embedded JavaScript asset: " + fileName);
             using var reader = new StreamReader(stream, Encoding, detectEncodingFromByteOrderMarks: false);
             return reader.ReadToEnd();
         });

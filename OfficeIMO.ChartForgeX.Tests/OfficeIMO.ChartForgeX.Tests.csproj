@@ -20,6 +20,7 @@
   <ItemGroup>
     <ProjectReference Include="..\OfficeIMO.ChartForgeX\OfficeIMO.ChartForgeX.csproj" />
     <PackageReference Include="ChartForgeX.Visuals" Version="2.0.0" />
+    <None Include="..\OfficeIMO.TestAssets\Fonts\OfficeIMOBaselineSans-*.ttf" Link="Fonts\%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
   <ItemGroup Condition="'$(ChartForgeXProjectPath)' != '' And Exists('$(ChartForgeXProjectPath)')">

@@ -38,6 +38,6 @@
   },
   "devDependencies": { "typescript": "5.9.3" },
   "engines": { "node": ">=18" },
-  "repository": { "type": "git", "url": "https://github.com/EvotecIT/OfficeIMO.git", "directory": "OfficeIMO.JavaScript" },
+  "repository": { "type": "git", "url": "git+https://github.com/EvotecIT/OfficeIMO.git", "directory": "OfficeIMO.JavaScript" },
   "keywords": ["officeimo", "xlsx", "csv", "pdf", "excel", "browser", "streaming", "typescript"]
 }

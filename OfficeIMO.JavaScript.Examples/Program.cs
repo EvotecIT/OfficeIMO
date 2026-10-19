@@ -1,6 +1,6 @@
 using System.Text;
 using HtmlForgeX;
-using OfficeIMO.Browser;
+using OfficeIMO.JavaScript.Assets;
 
 if (args.Length != 1) throw new ArgumentException("Pass the output directory for the two offline example pages.");
 string output = Path.GetFullPath(args[0]);
@@ -25,9 +25,9 @@ foreach (bool bundle in new[] { false, true }) {
     document.Body.Add(new HtmlTag("table").Value(table));
     document.Body.Add(new HtmlTag("p").Id("status").Attribute("role", "status").Attribute("aria-live", "polite").Value("Ready"));
     if (bundle) {
-        File.WriteAllText(Path.Combine(output, BrowserAssets.Script.HashedFileName), BrowserAssets.Script.Content, new UTF8Encoding(false));
-        document.Head.AddJsLink(BrowserAssets.Script.HashedFileName);
-    } else document.Head.AddJsInline(TrustedJavaScript.FromTrustedSource(BrowserAssets.Script.Content));
+        File.WriteAllText(Path.Combine(output, JavaScriptAssets.Script.HashedFileName), JavaScriptAssets.Script.Content, new UTF8Encoding(false));
+        document.Head.AddJsLink(JavaScriptAssets.Script.HashedFileName);
+    } else document.Head.AddJsInline(TrustedJavaScript.FromTrustedSource(JavaScriptAssets.Script.Content));
     document.Body.Add(new InlineScript(TrustedJavaScript.FromTrustedSource(script)));
     document.Save(Path.Combine(output, bundle ? "current-view-bundle.html" : "current-view.html"), openInBrowser: false);
 }

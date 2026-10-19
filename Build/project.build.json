@@ -12,7 +12,7 @@
     "OfficeIMO.AsciiDoc.Markdown": "3.5.X",
     "OfficeIMO.AsciiDoc.Pdf": "3.5.X",
     "OfficeIMO.Bibliography": "3.5.X",
-    "OfficeIMO.Browser": "3.5.X",
+    "OfficeIMO.JavaScript.Assets": "3.5.X",
     "OfficeIMO.CSV": "3.5.X",
     "OfficeIMO.ChartForgeX": "3.5.X",
     "OfficeIMO.ChartForgeX.Markdown": "3.5.X",
@@ -147,6 +147,21 @@
     "OfficeIMO.Workflows.IWork": "3.5.X"
   },
   "VersionBindings": [
+    {
+      "Path": "OfficeIMO.JavaScript/package.json",
+      "Project": "OfficeIMO.JavaScript.Assets",
+      "Pattern": "(?m)(?<=^  \"version\": \")\\d+\\.\\d+\\.\\d+(?:-[0-9A-Za-z.-]+)?"
+    },
+    {
+      "Path": "OfficeIMO.JavaScript/package-lock.json",
+      "Project": "OfficeIMO.JavaScript.Assets",
+      "Pattern": "(?m)(?<=^  \"version\": \")\\d+\\.\\d+\\.\\d+(?:-[0-9A-Za-z.-]+)?"
+    },
+    {
+      "Path": "OfficeIMO.JavaScript/package-lock.json",
+      "Project": "OfficeIMO.JavaScript.Assets",
+      "Pattern": "(?m)(?<=^      \"name\": \"@evotecit/officeimo\",\\r?\\n      \"version\": \")\\d+\\.\\d+\\.\\d+(?:-[0-9A-Za-z.-]+)?"
+    },
     {
       "Path": ".agents/plugins/officeimo-document-tools/plugin.json",
       "Project": "OfficeIMO.Tool",

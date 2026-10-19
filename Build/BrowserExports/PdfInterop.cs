@@ -1,6 +1,6 @@
 using System.Text.Json;
 using HtmlTinkerX;
-using OfficeIMO.Browser;
+using OfficeIMO.JavaScript.Assets;
 
 /// <summary>Opt-in PDF qualification using HtmlTinkerX-owned browsers and the independent managed reader.</summary>
 internal static class PdfInterop {
@@ -24,7 +24,7 @@ internal static class PdfInterop {
                 : await HtmlBrowser.OpenSessionAsync(new Uri(host).AbsoluteUri, new HtmlBrowserLaunchOptions { Browser = engine, Headless = true, Timeout = 120000 });
             var errors = new List<string>(); session.Page.PageError += (_, error) => errors.Add(error);
             var files = new List<object>(); long removedBytes = 0;
-            await session.Page.AddScriptTagAsync(new() { Content = BrowserAssets.Script.Content });
+            await session.Page.AddScriptTagAsync(new() { Content = JavaScriptAssets.Script.Content });
             await session.Page.ExposeFunctionAsync("writePdfFixture", (string name, string base64, string contract) => {
                 if (Path.GetFileName(name) != name || !name.EndsWith(".pdf", StringComparison.Ordinal)) throw new InvalidDataException("Invalid PDF fixture name.");
                 File.WriteAllBytes(Path.Combine(output, name), Convert.FromBase64String(base64));
@@ -38,9 +38,9 @@ internal static class PdfInterop {
             });
             await session.Page.AddScriptTagAsync(new() { Content = script });
             JsonElement result = await session.Page.EvaluateAsync<JsonElement>("args => runPdfContracts(args)",
-                new { regular, bold, symbols, japanese, workerScript = BrowserAssets.Script.Content, scale = args.Contains("--scale") });
+                new { regular, bold, symbols, japanese, workerScript = JavaScriptAssets.Script.Content, scale = args.Contains("--scale") });
             if (errors.Count != 0) throw new InvalidDataException(string.Join("; ", errors));
-            var report = new { engine = engine.ToString(), browser = session.Browser?.Version, stack, asset = BrowserAssets.Script.HashedFileName, result, files, removedBytes, errors };
+            var report = new { engine = engine.ToString(), browser = session.Browser?.Version, stack, asset = JavaScriptAssets.Script.HashedFileName, result, files, removedBytes, errors };
             reports.Add(report);
             File.WriteAllText(Path.Combine(output, "report.json"), JsonSerializer.Serialize(report, new JsonSerializerOptions { WriteIndented = true }));
             Console.WriteLine($"PDF passed {engine}: {files.Count} independent-reader-validated documents.");
