@@ -23,14 +23,15 @@ namespace OfficeIMO.Word.Pdf {
                     if (image._Image?.Inline != null && !image._Image.Ancestors<W.SdtRun>().Any(IsNativePictureControl) &&
                         ReferenceEquals(image._Image.Ancestors<W.TextBoxContent>().FirstOrDefault(),
                             paragraph._paragraph?.Ancestors<W.TextBoxContent>().FirstOrDefault()) &&
-                        TryCreateNativeBodyInlineImage(image, out PdfCore.PdfTextRun? inline))
+                        TryCreateNativeBodyInlineImage(image, out PdfCore.PdfTextRun? inline, options?.CancellationToken ?? default))
                         images[image._Image] = inline!;
                 }
             }
             return images;
         }
-        private static bool TryCreateNativeBodyInlineImage(WordImage image, out PdfCore.PdfTextRun? inline) {
-            try { return TryCreateNativeCellInlineImage(image, out inline); }
+        private static bool TryCreateNativeBodyInlineImage(WordImage image, out PdfCore.PdfTextRun? inline,
+            System.Threading.CancellationToken cancellationToken) {
+            try { return TryCreateNativeCellInlineImage(image, out inline, cancellationToken: cancellationToken); }
             catch (InvalidOperationException) {
                 // The ordinary image path owns unavailable/linked-image diagnostics.
                 inline = null;

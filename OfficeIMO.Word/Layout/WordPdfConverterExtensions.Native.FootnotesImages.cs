@@ -244,19 +244,7 @@ namespace OfficeIMO.Word.Pdf {
                 return false;
             }
 
-            if (!TryGetNativeBodyImageBytes(image, options, source, out byte[] bytes)) {
-                return false;
-            }
-
-            if (!TryPrepareNativePdfImageBytes(bytes, out byte[] preparedBytes, out string? unsupportedReason)) {
-                if (options != null) {
-                    AddNativeExportWarning(
-                        options,
-                        "NativeBodyImageUnsupported",
-                        source,
-                        "Word image was not exported because the shared PDF raster pipeline could not prepare it. " + unsupportedReason);
-                }
-
+            if (!TryPrepareNativeBodyImage(image, options, source, out byte[] preparedBytes)) {
                 return false;
             }
 
@@ -271,10 +259,18 @@ namespace OfficeIMO.Word.Pdf {
             return true;
         }
 
-        private static bool TryGetNativeBodyImageBytes(WordImage image, WordToPdfOptions? options, string source, out byte[] bytes) {
+        private static bool TryPrepareNativeBodyImage(WordImage image, WordToPdfOptions? options, string source, out byte[] bytes,
+            string unsupportedCode = "NativeBodyImageUnsupported", System.Threading.CancellationToken cancellationToken = default) {
             try {
-                bytes = ImageEmbedder.GetImageBytes(image);
-                return true;
+                cancellationToken = options?.CancellationToken ?? cancellationToken;
+                string? unsupportedReason = null;
+                foreach (byte[] candidate in image.GetRenderingImageCandidates(cancellationToken)) {
+                    if (TryPrepareNativePdfImageBytes(candidate, out bytes, out unsupportedReason, cancellationToken)) return true;
+                }
+                bytes = System.Array.Empty<byte>();
+                if (options != null) AddNativeExportWarning(options, unsupportedCode, source,
+                    "Word image was not exported because the shared PDF image pipeline could not prepare it. " + unsupportedReason);
+                return false;
             } catch (InvalidOperationException ex) {
                 bytes = System.Array.Empty<byte>();
                 if (options != null) {
@@ -292,9 +288,11 @@ namespace OfficeIMO.Word.Pdf {
         private static bool TryPrepareNativePdfImageBytes(
             byte[] bytes,
             out byte[] preparedBytes,
-            out string? unsupportedReason) =>
+            out string? unsupportedReason,
+            System.Threading.CancellationToken cancellationToken = default) =>
             PdfCore.PdfDocument.TryPrepareImageBytes(
                 bytes,
+                cancellationToken,
                 out preparedBytes,
                 out _,
                 out _,

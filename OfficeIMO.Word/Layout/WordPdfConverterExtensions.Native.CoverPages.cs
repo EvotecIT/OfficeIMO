@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using System.Globalization;
 using System.Text.RegularExpressions;
+using System.Threading;
 using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
 using OfficeIMO.Drawing;
@@ -23,7 +24,7 @@ namespace OfficeIMO.Word.Pdf {
             PdfCore.PageSize pageSize = GetNativePageSize(section, options);
             var rootFrame = new NativeVmlFrame(0D, 0D, pageSize.Width, pageSize.Height, pageSize.Width, pageSize.Height, 0D, 0D);
             bool rendered = false;
-            pdf.Canvas(canvas => rendered = RenderNativeVmlCoverChildren(canvas, document, content.ChildElements, rootFrame, pageSize.Width, pageSize.Height) || rendered);
+            pdf.Canvas(canvas => rendered = RenderNativeVmlCoverChildren(canvas, document, content.ChildElements, rootFrame, pageSize.Width, pageSize.Height, options?.CancellationToken ?? default) || rendered);
             return rendered;
         }
 
@@ -51,20 +52,21 @@ namespace OfficeIMO.Word.Pdf {
                    style.ContainsKey("top");
         }
 
-        private static bool RenderNativeVmlCoverChildren(PdfCore.PdfPageCanvas canvas, WordDocument document, IEnumerable<OpenXmlElement> children, NativeVmlFrame frame, double pageWidth, double pageHeight) {
+        private static bool RenderNativeVmlCoverChildren(PdfCore.PdfPageCanvas canvas, WordDocument document, IEnumerable<OpenXmlElement> children, NativeVmlFrame frame, double pageWidth, double pageHeight, CancellationToken cancellationToken) {
             bool rendered = false;
             foreach (OpenXmlElement child in OrderNativeVmlCoverChildren(children)) {
+                cancellationToken.ThrowIfCancellationRequested();
                 if (child.NamespaceUri == "urn:schemas-microsoft-com:vml") {
                     if (child.LocalName == "group") {
-                        rendered = RenderNativeVmlGroup(canvas, document, child, frame, pageWidth, pageHeight) || rendered;
+                        rendered = RenderNativeVmlGroup(canvas, document, child, frame, pageWidth, pageHeight, cancellationToken) || rendered;
                     } else if (child.LocalName == "shape" || child.LocalName == "rect" || child.LocalName == "line" || child.LocalName == "oval" || child.LocalName == "roundrect") {
-                        rendered = RenderNativeVmlShape(canvas, document, child, frame, pageWidth, pageHeight) || rendered;
+                        rendered = RenderNativeVmlShape(canvas, document, child, frame, pageWidth, pageHeight, cancellationToken) || rendered;
                     }
 
                     continue;
                 }
 
-                rendered = RenderNativeVmlCoverChildren(canvas, document, child.ChildElements, frame, pageWidth, pageHeight) || rendered;
+                rendered = RenderNativeVmlCoverChildren(canvas, document, child.ChildElements, frame, pageWidth, pageHeight, cancellationToken) || rendered;
             }
 
             return rendered;
@@ -140,20 +142,20 @@ namespace OfficeIMO.Word.Pdf {
             return style.TryGetValue("z-index", out string? value) ? ParseNativeVmlDouble(value) : null;
         }
 
-        private static bool RenderNativeVmlGroup(PdfCore.PdfPageCanvas canvas, WordDocument document, OpenXmlElement group, NativeVmlFrame parentFrame, double pageWidth, double pageHeight) {
+        private static bool RenderNativeVmlGroup(PdfCore.PdfPageCanvas canvas, WordDocument document, OpenXmlElement group, NativeVmlFrame parentFrame, double pageWidth, double pageHeight, CancellationToken cancellationToken) {
             if (group.Ancestors<V.Group>().Count() >= 32)
                 throw new InvalidDataException("Word shape group nesting exceeds the PDF export limit of 32 levels.");
             if (!TryGetNativeVmlBox(group, parentFrame, pageWidth, pageHeight, out NativeVmlBox box)) {
-                return RenderNativeVmlCoverChildren(canvas, document, group.ChildElements, parentFrame, pageWidth, pageHeight);
+                return RenderNativeVmlCoverChildren(canvas, document, group.ChildElements, parentFrame, pageWidth, pageHeight, cancellationToken);
             }
 
             (double coordWidth, double coordHeight) = GetNativeVmlCoordSize(group, box.Width, box.Height);
             (double coordOriginX, double coordOriginY) = GetNativeVmlCoordOrigin(group);
             var frame = new NativeVmlFrame(box.X, box.Y, box.Width, box.Height, coordWidth, coordHeight, coordOriginX, coordOriginY);
-            return RenderNativeVmlCoverChildren(canvas, document, group.ChildElements, frame, pageWidth, pageHeight);
+            return RenderNativeVmlCoverChildren(canvas, document, group.ChildElements, frame, pageWidth, pageHeight, cancellationToken);
         }
 
-        private static bool RenderNativeVmlShape(PdfCore.PdfPageCanvas canvas, WordDocument document, OpenXmlElement element, NativeVmlFrame frame, double pageWidth, double pageHeight) {
+        private static bool RenderNativeVmlShape(PdfCore.PdfPageCanvas canvas, WordDocument document, OpenXmlElement element, NativeVmlFrame frame, double pageWidth, double pageHeight, CancellationToken cancellationToken) {
             bool isLine = element.LocalName.Equals("line", StringComparison.OrdinalIgnoreCase);
             if (IsNativeVmlHidden(element) ||
                 !TryGetNativeVmlBox(element, frame, pageWidth, pageHeight, out NativeVmlBox box) ||
@@ -162,7 +164,7 @@ namespace OfficeIMO.Word.Pdf {
                 return false;
             }
 
-            bool renderedImage = TryRenderNativeVmlImage(canvas, document, element, box, pageWidth, pageHeight);
+            bool renderedImage = TryRenderNativeVmlImage(canvas, document, element, box, pageWidth, pageHeight, cancellationToken);
             bool rendered = renderedImage;
             if ((ShouldRenderNativeVmlShapeFallback(element) || renderedImage) &&
                 TryCreateNativeVmlShape(element, box.Width, box.Height, frame, out OfficeShape? shape) &&
@@ -194,13 +196,13 @@ namespace OfficeIMO.Word.Pdf {
 
         private static bool ShouldRenderNativeVmlShapeFallback(OpenXmlElement element) => element.GetFirstChild<V.ImageData>() == null;
 
-        private static bool TryRenderNativeVmlImage(PdfCore.PdfPageCanvas canvas, WordDocument document, OpenXmlElement element, NativeVmlBox box, double pageWidth, double pageHeight) {
+        private static bool TryRenderNativeVmlImage(PdfCore.PdfPageCanvas canvas, WordDocument document, OpenXmlElement element, NativeVmlBox box, double pageWidth, double pageHeight, CancellationToken cancellationToken) {
             V.ImageData? imageData = element.GetFirstChild<V.ImageData>();
             if (imageData == null ||
                 !IsNativeVmlBoxVisibleOnPage(box, pageWidth, pageHeight) ||
                 !TryGetNativeVmlImageBytes(document, element, imageData, out byte[]? imageBytes) ||
                 imageBytes == null ||
-                !TryPrepareNativePdfImageBytes(imageBytes, out byte[] preparedBytes, out _)) {
+                !TryPrepareNativePdfImageBytes(imageBytes, out byte[] preparedBytes, out _, cancellationToken)) {
                 return false;
             }
 

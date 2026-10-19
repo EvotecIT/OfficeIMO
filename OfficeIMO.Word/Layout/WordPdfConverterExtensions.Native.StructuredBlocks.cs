@@ -427,7 +427,7 @@ namespace OfficeIMO.Word.Pdf {
                 return null;
             }
 
-            if (!TryPrepareNativePdfImageBytes(bytes, out byte[] preparedBytes, out unsupportedReason)) {
+            if (!TryPrepareNativePdfImageBytes(bytes, out byte[] preparedBytes, out unsupportedReason, options?.CancellationToken ?? default)) {
                 if (options != null) {
                     AddNativeExportWarning(
                         options,
