@@ -8,6 +8,33 @@ using Xunit;
 namespace OfficeIMO.Tests;
 
 public sealed partial class HtmlRenderingTests {
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void HtmlDirectionalProvider_EmptyGlyphsKeepTextAndLinksInsideAPathClip(bool linked) {
+        const string text = "אבג";
+        const string uri = "https://example.test/empty-glyphs";
+        var options = new HtmlToPdfOptions {
+            AllowSystemFontFallback = false,
+            ResourcePolicy = PdfCore.PdfResourcePolicy.CreatePortableDeterministic(),
+            FidelityPolicy = HtmlRenderFidelityPolicy.RequireNoLoss,
+            TextShapingProvider = new ManagedTextShapingTestAssets.RecordingProvider()
+        };
+        options.Fonts.Add("Empty Glyphs", ManagedTextShapingTestAssets.CreateFontWithEmptyGlyphs(
+            2, text.Select(character => (int)character).ToArray()));
+        HtmlConversionDocument document = HtmlConversionDocument.Parse(
+            "<style>@page{size:180px 80px;margin:0}body,p{margin:0}"
+            + "p{font:20px/24px 'Empty Glyphs';clip-path:circle(100%)}"
+            + "a{text-decoration:none}</style><p dir='rtl'>"
+            + (linked ? "<a href='" + uri + "'>" + text + "</a>" : text) + "</p>");
+
+        PdfCore.PdfDocumentConversionResult pdf = document.ToPdfDocumentResult(options);
+        byte[] bytes = pdf.ToBytes();
+        pdf.RequireNoLoss();
+        Assert.Equal(text, PdfCore.PdfReadDocument.Open(bytes).ExtractText().Trim());
+        if (linked) Assert.NotEmpty(PdfCore.PdfDocumentReadResult.Load(bytes).GetLinksByUri(uri));
+    }
+
     [Fact]
     public void HtmlDirectionalProvider_EmptySpaceContoursRetainLogicalTextWithoutPdfLoss() {
         var options = new HtmlToPdfOptions {

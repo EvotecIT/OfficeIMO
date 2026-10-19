@@ -355,7 +355,16 @@ internal static partial class HtmlPdfRenderedConverter {
             ? MapNamedDestination(visual.LinkUri!.Substring(1))
             : null;
         Action<PdfCore.PdfPageCanvas> addDrawing = target => {
-            if (drawing.Elements.Count == 0) return;
+            if (drawing.Elements.Count == 0) {
+                // Logical groups still need a content item when the selected glyphs
+                // have no ink. The transparent frame also retains per-visual links.
+                OfficeShape area = OfficeShape.Rectangle(drawingWidth * PointsPerCssPixel, drawingHeight * PointsPerCssPixel);
+                area.FillColor = null;
+                area.StrokeColor = null;
+                target.Shape(area, frame.X * PointsPerCssPixel, frame.Y * PointsPerCssPixel,
+                    style: new PdfCore.PdfDrawingStyle { Decorative = true }, linkUri: link, linkContents: link == null ? null : visual.Text);
+                return;
+            }
             target.Drawing(
                 drawing,
                 frame.X * PointsPerCssPixel,

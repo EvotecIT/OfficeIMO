@@ -39,10 +39,12 @@ public sealed class HtmlImageFontCoverageTests {
     [InlineData(true, false)]
     [InlineData(false, true)]
     [InlineData(true, true)]
-    public async System.Threading.Tasks.Task HtmlImages_StrictPolicyRejectsAProviderThatDeclinesPdfPainting(bool pdfRoute, bool styled) {
+    public async System.Threading.Tasks.Task HtmlImages_StrictPolicyRetainsLayoutShapingWithoutAliasReshaping(bool pdfRoute, bool styled) {
         const string text = "ܫܠܡ";
+        string expectedText = styled ? text + " " + text : text;
         HtmlConversionDocument document = HtmlConversionDocument.Parse(
-            "<p dir='rtl' style=\"font-family:'OfficeIMO Shaping Test'\">"
+            "<style>@page{size:120px 60px;margin:0}body,p{margin:0}</style>"
+            + "<p dir='rtl' style=\"font-family:'OfficeIMO Shaping Test'\">"
             + (styled ? "<span style='color:red'>" + text + " </span><span>" + text + "</span>" : text) + "</p>");
         var provider = new LayoutOnlyShapingProvider();
         var options = new HtmlToPdfOptions {
@@ -55,21 +57,26 @@ public sealed class HtmlImageFontCoverageTests {
         options.Fonts.Add(ManagedTextShapingTestAssets.FamilyName,
             ManagedTextShapingTestAssets.CreateFontWithDistinctGlyphs((text + " ").Select(character => (int)character).ToArray()));
 
-        HtmlConversionException synchronous = Assert.Throws<HtmlConversionException>(() => {
-            if (pdfRoute) document.ToPdfBytes(options);
-            else document.ToPng(options);
-        });
-        HtmlConversionException asynchronous = await Assert.ThrowsAsync<HtmlConversionException>(async () => {
-            if (pdfRoute) await document.ToPdfBytesAsync(options);
-            else await document.ToPngAsync(options);
-        });
+        byte[] synchronous = pdfRoute ? document.ToPdfBytes(options) : document.ToPng(options);
+        byte[] asynchronous = pdfRoute ? await document.ToPdfBytesAsync(options) : await document.ToPngAsync(options);
 
-        foreach (HtmlConversionException failure in new[] { synchronous, asynchronous }) {
-            Assert.Contains(failure.Diagnostics, diagnostic => diagnostic.Code == "unsupported-complex-script-shaping"
-                && diagnostic.LossKind == OfficeConversionLossKind.Approximation);
+        Assert.NotEmpty(synchronous);
+        Assert.NotEmpty(asynchronous);
+        if (pdfRoute) {
+            foreach (byte[] bytes in new[] { synchronous, asynchronous }) {
+                Assert.Equal(expectedText, PdfCore.PdfReadDocument.Open(bytes).ExtractText().Trim());
+            }
+        } else {
+            Assert.Equal(synchronous, asynchronous);
+            PdfCore.PdfDocumentConversionResult pdf = document.ToPdfDocumentResult(options);
+            pdf.RequireNoLoss();
+            Assert.Equal(expectedText, PdfCore.PdfReadDocument.Open(pdf.ToBytes()).ExtractText().Trim());
+            OfficeImageExportResult replay = Assert.Single(PdfCore.PdfImageExportExtensions.ExportImages(
+                pdf, OfficeImageExportFormat.Png, new PdfCore.PdfImageExportOptions { Scale = 96D / 72D }));
+            Assert.Equal(replay.Bytes, synchronous);
         }
         Assert.True(provider.AcceptedLayout);
-        Assert.True(provider.DeclinedPainting);
+        Assert.False(provider.DeclinedAliasShaping);
     }
 
     [Theory]
@@ -90,8 +97,9 @@ public sealed class HtmlImageFontCoverageTests {
             TextShapingLanguage = "syr"
         };
         options.PdfOptions.Language = "en-GB";
-        options.Fonts.Add(ManagedTextShapingTestAssets.FamilyName,
-            ManagedTextShapingTestAssets.CreateFontWithDistinctGlyphs((text + " ").Select(character => (int)character).ToArray()));
+        byte[] fontData = ManagedTextShapingTestAssets.CreateFontWithDistinctGlyphs(
+            (text + " ").Select(character => (int)character).ToArray());
+        options.Fonts.Add(ManagedTextShapingTestAssets.FamilyName, fontData);
 
         PdfCore.PdfDocumentConversionResult pdf = document.ToPdfDocumentResult(options);
         OfficeImageExportResult png = document.ExportImage(OfficeImageExportFormat.Png, options);
@@ -99,12 +107,13 @@ public sealed class HtmlImageFontCoverageTests {
             pdf, OfficeImageExportFormat.Png, new PdfCore.PdfImageExportOptions { Scale = 96D / 72D }));
 
         Assert.Equal("en-GB", pdf.Value.Options.Language);
-        Assert.Contains(text, PdfCore.PdfReadDocument.Open(pdf.ToBytes()).ExtractText(), StringComparison.Ordinal);
+        Assert.Equal(styled ? text + " " + text : text,
+            PdfCore.PdfReadDocument.Open(pdf.ToBytes()).ExtractText().Trim());
         Assert.Equal(pdfPng.Bytes, png.Bytes);
         Assert.DoesNotContain(png.Diagnostics, item => item.Code == HtmlRenderDiagnosticCodes.ComplexTextShapingUnsupported);
-        Assert.Contains(provider.Requests, request => request.Text == text && request.Language == "syr");
-        Assert.Contains(provider.Requests, request => request.Text.Trim() == text
-            && request.FontName != ManagedTextShapingTestAssets.FamilyName && request.Language == "syr");
+        Assert.Contains(provider.Requests, request => request.Text.Contains(text, StringComparison.Ordinal)
+            && request.FontData.SequenceEqual(fontData) && request.Language == "syr"
+            && request.Direction == OfficeTextDirection.RightToLeft);
     }
 
     [Theory]
@@ -164,11 +173,11 @@ public sealed class HtmlImageFontCoverageTests {
     private sealed class LayoutOnlyShapingProvider : IOfficeTextShapingProvider {
         private readonly ManagedTextShapingTestAssets.RecordingProvider _layout = new();
         internal bool AcceptedLayout { get; private set; }
-        internal bool DeclinedPainting { get; private set; }
+        internal bool DeclinedAliasShaping { get; private set; }
 
         public OfficeTextShapingResult? ShapeText(OfficeTextShapingRequest request) {
             if (request.FontName != ManagedTextShapingTestAssets.FamilyName) {
-                DeclinedPainting = true;
+                DeclinedAliasShaping = true;
                 return null;
             }
             AcceptedLayout = true;
