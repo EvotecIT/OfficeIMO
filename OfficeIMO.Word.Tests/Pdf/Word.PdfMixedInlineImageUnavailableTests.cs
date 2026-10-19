@@ -21,7 +21,8 @@ namespace OfficeIMO.Tests {
             paragraph.AddText("After");
             var result = word.ToPdfDocumentResult();
             Assert.Contains(result.Report.Warnings, warning => warning.Code == "NativeBodyImageUnavailable");
-            var read = PdfReadDocument.Open(result.Value.ToBytes());
+            // Running headers are artifacts; include that paint when testing retained header content.
+            var read = PdfReadDocument.Open(result.Value.ToBytes(), new PdfLoadOptions { IncludeArtifactText = true });
             Assert.Contains("BeforeAfter", read.ExtractText());
             Assert.Empty(read.ExtractImages());
         }

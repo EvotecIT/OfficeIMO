@@ -228,7 +228,9 @@ public static class HtmlCapabilitySpecificationIds {
     public const string CssConditional = "css-conditional";
     /// <summary>CSS fonts.</summary>
     public const string CssFonts = "css-fonts";
-    /// <summary>Unicode 17 algorithms and data.</summary>
+    /// <summary>Unicode 16 algorithms and generated character data used by the current profiles.</summary>
+    public const string Unicode16 = "unicode-16";
+    /// <summary>Unicode 17 reference identifier; current layout profiles use Unicode 16 data.</summary>
     public const string Unicode17 = "unicode-17";
     /// <summary>SVG 2.</summary>
     public const string Svg2 = "svg-2";

@@ -22,7 +22,7 @@ public sealed partial class HtmlRenderingTests {
             + "<a href='https://example.test' style='color:revert-layer;text-decoration:revert-layer'>Layer reverted link</a>"
             + "<a>Anchor without href</a></div>";
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html,
-            new HtmlRenderOptions { ViewportWidth = 1600D });
+            new HtmlRenderOptions { Mode = HtmlRenderMode.Continuous, ViewportWidth = 1600D });
         HtmlRenderText[] text = rendered.Pages.SelectMany(page => EnumerateCorpusVisuals(page.Scene))
             .OfType<HtmlRenderText>().ToArray();
 
@@ -71,7 +71,7 @@ public sealed partial class HtmlRenderingTests {
         string html = "<div style='font-size:20px;line-height:" + lineHeight
             + "'><h1 style='font-size:100px;margin:0'>Heading</h1></div>";
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html,
-            new HtmlRenderOptions { ViewportWidth = 640D });
+            new HtmlRenderOptions { Mode = HtmlRenderMode.Continuous, ViewportWidth = 640D });
         HtmlRenderText heading = Assert.Single(rendered.Pages
             .SelectMany(page => EnumerateCorpusVisuals(page.Scene))
             .OfType<HtmlRenderText>(), item => item.Text == "Heading");
@@ -85,7 +85,7 @@ public sealed partial class HtmlRenderingTests {
             string html = "<div style='margin-top:100px;font-size:20px;line-height:"
                 + inheritedLineHeight + "'><h1 style='font-size:100px;margin:0'>Heading</h1></div>";
             HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html,
-                new HtmlRenderOptions { ViewportWidth = 640D });
+                new HtmlRenderOptions { Mode = HtmlRenderMode.Continuous, ViewportWidth = 640D });
             return Assert.Single(rendered.Pages.SelectMany(page => EnumerateCorpusVisuals(page.Scene))
                 .OfType<HtmlRenderText>(), item => item.Text == "Heading");
         }
@@ -106,8 +106,9 @@ public sealed partial class HtmlRenderingTests {
                 .SelectMany(page => EnumerateCorpusVisuals(page.Scene))
                 .OfType<HtmlRenderText>(), item => item.Text == "Heading");
 
-        HtmlRenderText fallback = RenderHeading(new HtmlRenderOptions { ViewportWidth = 640D });
+        HtmlRenderText fallback = RenderHeading(new HtmlRenderOptions { Mode = HtmlRenderMode.Continuous, ViewportWidth = 640D });
         HtmlRenderText selectedFace = RenderHeading(new HtmlRenderOptions {
+            Mode = HtmlRenderMode.Continuous,
             ViewportWidth = 640D,
             FallbackTextFaceMetrics = (_, _, _) => new HtmlTextFaceMetrics(114D, 93D)
         });
@@ -146,7 +147,7 @@ public sealed partial class HtmlRenderingTests {
     public void StaticRendererResolvesNormalFlowBlockAutoMargins(string margins, double expectedX) {
         string html = "<body style='margin:0'><div id='box' style='width:240px;height:20px;background:red;" + margins + "'></div></body>";
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html,
-            new HtmlRenderOptions { ViewportWidth = 300D, Margins = HtmlRenderMargins.All(0D) });
+            new HtmlRenderOptions { Mode = HtmlRenderMode.Continuous, ViewportWidth = 300D, Margins = HtmlRenderMargins.All(0D) });
 
         HtmlRenderShape box = Assert.Single(rendered.Pages[0].Visuals.OfType<HtmlRenderShape>(),
             shape => shape.Source == "div#box" && shape.Shape.FillColor == OfficeColor.Red);
@@ -200,7 +201,7 @@ public sealed partial class HtmlRenderingTests {
         string image = "data:image/png;base64," + Convert.ToBase64String(PdfPngTestImages.CreateRgbPng(40, 20));
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(
             "<body style='margin:0'><img src='" + image + "' style='display:block;margin:0 auto'></body>",
-            new HtmlRenderOptions { ViewportWidth = 100D, Margins = HtmlRenderMargins.All(0D) });
+            new HtmlRenderOptions { Mode = HtmlRenderMode.Continuous, ViewportWidth = 100D, Margins = HtmlRenderMargins.All(0D) });
 
         HtmlRenderImage visual = Assert.Single(rendered.Pages[0].Visuals.OfType<HtmlRenderImage>());
         Assert.Equal(30D, visual.X, 3);
@@ -212,7 +213,7 @@ public sealed partial class HtmlRenderingTests {
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(
             "<body style='margin:0'><picture style='display:block'><source srcset='data:image/png;base64,AQID 1x'>"
             + "<img id='picture' src='" + fallback + "' style='display:block;margin:0 auto'></picture></body>",
-            new HtmlRenderOptions { ViewportWidth = 400D, Margins = HtmlRenderMargins.All(0D) });
+            new HtmlRenderOptions { Mode = HtmlRenderMode.Continuous, ViewportWidth = 400D, Margins = HtmlRenderMargins.All(0D) });
 
         HtmlRenderImage image = Assert.Single(rendered.Pages[0].Visuals.OfType<HtmlRenderImage>(),
             visual => visual.Source == "img#picture");
@@ -249,7 +250,7 @@ public sealed partial class HtmlRenderingTests {
     public void StaticRendererAppliesBrowserHeadingAndEmphasisDefaultsWhenFontSizeIsImplicit() {
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(
             "<h1>Default heading</h1><p>Body <strong>strong text</strong></p>",
-            new HtmlRenderOptions { ViewportWidth = 640D });
+            new HtmlRenderOptions { Mode = HtmlRenderMode.Continuous, ViewportWidth = 640D });
         HtmlRenderText[] text = rendered.Pages
             .SelectMany(page => EnumerateCorpusVisuals(page.Scene))
             .OfType<HtmlRenderText>()
@@ -269,7 +270,7 @@ public sealed partial class HtmlRenderingTests {
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(
             "<body style='font-weight:normal'><h1>Default heading</h1><h2 style='font-weight:normal'>Plain heading</h2>"
             + "<p><strong>Default emphasis</strong><b>Default bold</b><strong style='font-weight:normal'>Plain emphasis</strong></p></body>",
-            new HtmlRenderOptions { ViewportWidth = 640D });
+            new HtmlRenderOptions { Mode = HtmlRenderMode.Continuous, ViewportWidth = 640D });
         HtmlRenderText[] text = rendered.Pages.SelectMany(page => EnumerateCorpusVisuals(page.Scene))
             .OfType<HtmlRenderText>().ToArray();
 
@@ -290,7 +291,7 @@ public sealed partial class HtmlRenderingTests {
             + "<h1>Light heading</h1><p>Light body</p>"
             + "<input placeholder='Light prompt'>";
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html,
-            new HtmlRenderOptions { ViewportWidth = 640D });
+            new HtmlRenderOptions { Mode = HtmlRenderMode.Continuous, ViewportWidth = 640D });
         HtmlRenderText[] text = rendered.Pages.SelectMany(page => EnumerateCorpusVisuals(page.Scene))
             .OfType<HtmlRenderText>().ToArray();
 

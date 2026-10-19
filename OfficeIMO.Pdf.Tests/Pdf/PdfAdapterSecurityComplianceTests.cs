@@ -63,9 +63,9 @@ public class PdfAdapterSecurityComplianceTests {
                 TextFallbacks = PdfCore.PdfTextFallbackFeatures.None
             });
 
-        Assert.False(new PdfCore.PdfOptions().CompressContentStreams);
-        Assert.Contains("/Filter /FlateDecode", Encoding.ASCII.GetString(compressed), StringComparison.Ordinal);
-        Assert.DoesNotContain("/Filter /FlateDecode", Encoding.ASCII.GetString(uncompressed), StringComparison.Ordinal);
+        Assert.True(new PdfCore.PdfOptions().CompressContentStreams);
+        AssertPageContentCompression(compressed, compressed: true);
+        AssertPageContentCompression(uncompressed, compressed: false);
         Assert.Contains("CONTENT-COMPRESSION-PROOF", PdfCore.PdfReadDocument.Open(compressed).ExtractText(), StringComparison.Ordinal);
         Assert.Contains("CONTENT-COMPRESSION-PROOF", PdfCore.PdfReadDocument.Open(uncompressed).ExtractText(), StringComparison.Ordinal);
     }
@@ -77,8 +77,8 @@ public class PdfAdapterSecurityComplianceTests {
         byte[] compressed = Convert(route, new PdfCore.PdfOptions { Language = "en-US" });
         byte[] uncompressed = Convert(route, new PdfCore.PdfOptions { CompressContentStreams = false });
 
-        Assert.Contains("/Filter /FlateDecode", Encoding.ASCII.GetString(compressed), StringComparison.Ordinal);
-        Assert.DoesNotContain("/Filter /FlateDecode", Encoding.ASCII.GetString(uncompressed), StringComparison.Ordinal);
+        AssertPageContentCompression(compressed, compressed: true);
+        AssertPageContentCompression(uncompressed, compressed: false);
         Assert.Contains(Marker(route), PdfCore.PdfReadDocument.Open(compressed).ExtractText(), StringComparison.Ordinal);
         Assert.Contains(Marker(route), PdfCore.PdfReadDocument.Open(uncompressed).ExtractText(), StringComparison.Ordinal);
     }
@@ -127,7 +127,7 @@ public class PdfAdapterSecurityComplianceTests {
         Assert.False(PdfCore.PdfInspector.Probe(pdf).HasEncryption);
         Assert.Contains("pdfaid:part>2<", raw, StringComparison.Ordinal);
         Assert.Contains("pdfaid:conformance>B<", raw, StringComparison.Ordinal);
-        Assert.Contains("/FontFile3 ", raw, StringComparison.Ordinal);
+        Assert.Matches(@"/FontFile[23]\s", raw);
         Assert.Contains(Marker(route), PdfCore.PdfReadDocument.Open(pdf).ExtractText(), StringComparison.Ordinal);
     }
 
@@ -163,6 +163,21 @@ public class PdfAdapterSecurityComplianceTests {
             Marker("html"),
             PdfCore.PdfReadDocument.Open(unlockedPdf.Pdf).ExtractText(),
             StringComparison.Ordinal);
+    }
+
+    private static void AssertPageContentCompression(byte[] bytes, bool compressed) {
+        // Font streams retain their own compression policy when content-stream compression is disabled.
+        var document = PdfCore.PdfReadDocument.Open(bytes);
+        foreach (var page in document.Pages) {
+            PdfCore.PdfObject contents = PdfCore.PdfObjectLookup.Resolve(document.Objects,
+                page.PageDictionary.Items["Contents"])!;
+            var streams = contents is PdfCore.PdfArray array
+                ? array.Items.Select(item => Assert.IsType<PdfCore.PdfStream>(PdfCore.PdfObjectLookup.Resolve(document.Objects, item))).ToArray()
+                : new[] { Assert.IsType<PdfCore.PdfStream>(contents) };
+            Assert.NotEmpty(streams);
+            Assert.All(streams, stream => Assert.Equal(compressed,
+                stream.Dictionary.Get<PdfCore.PdfName>("Filter")?.Name == "FlateDecode"));
+        }
     }
 
     private static PdfCore.PdfOptions CreatePdfA2BOptions() {

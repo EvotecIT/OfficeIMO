@@ -261,7 +261,7 @@ public partial class PdfDocumentComplianceAssessmentTests {
 
         string content = Encoding.ASCII.GetString(pdf);
 
-        Assert.Contains("/Artifact BMC", content, StringComparison.Ordinal);
+        Assert.Contains("/Artifact << /Type /Layout >> BDC", content, StringComparison.Ordinal);
         Assert.Contains("/TD << /MCID", content, StringComparison.Ordinal);
         Assert.Contains("/Type /StructElem /S /TD", content, StringComparison.Ordinal);
     }
@@ -288,7 +288,7 @@ public partial class PdfDocumentComplianceAssessmentTests {
 
         string content = Encoding.ASCII.GetString(pdf);
 
-        Assert.Contains("/Artifact BMC", content, StringComparison.Ordinal);
+        Assert.Contains("/Artifact << /Type /Layout >> BDC", content, StringComparison.Ordinal);
         Assert.Contains("/TD << /MCID", content, StringComparison.Ordinal);
         Assert.Contains("/Type /StructElem /S /TD", content, StringComparison.Ordinal);
     }
@@ -320,7 +320,7 @@ public partial class PdfDocumentComplianceAssessmentTests {
 
         string content = Encoding.ASCII.GetString(pdf);
 
-        Assert.Contains("/Artifact BMC", content, StringComparison.Ordinal);
+        Assert.Contains("/Artifact << /Type /Layout >> BDC", content, StringComparison.Ordinal);
         Assert.Contains("/TD << /MCID", content, StringComparison.Ordinal);
         Assert.Contains("/Type /StructElem /S /TD", content, StringComparison.Ordinal);
     }
@@ -345,8 +345,17 @@ public partial class PdfDocumentComplianceAssessmentTests {
 
         Assert.Contains("/TH << /MCID 0 >> BDC", content, StringComparison.Ordinal);
         Assert.Contains("/TD << /MCID 1 >> BDC", content, StringComparison.Ordinal);
-        Assert.Contains("/A << /O /Table /Scope /Column /ColSpan 2 >>", content, StringComparison.Ordinal);
-        Assert.Contains("/A << /O /Table /RowSpan 2 >>", content, StringComparison.Ordinal);
+        var elements = PdfReadDocument.Open(pdf).RawStructure().Objects.Where(item =>
+            item.Value.Kind == PdfRawValueKind.Dictionary && item.Value.Entries.TryGetValue("Type", out var type) &&
+            type.Text == "StructElem").ToArray();
+        var header = Assert.Single(elements, item => item.Value.Entries["S"].Text == "TH");
+        Assert.Equal("Column", header.Value.Entries["A"].Entries["Scope"].Text);
+        Assert.Equal(2D, header.Value.Entries["A"].Entries["ColSpan"].Number);
+        var merged = Assert.Single(elements, item => item.Value.Entries["S"].Text == "TD" &&
+            item.Value.Entries["A"].Entries.ContainsKey("RowSpan"));
+        Assert.Equal(2D, merged.Value.Entries["A"].Entries["RowSpan"].Number);
+        Assert.Equal(header.Value.Entries["ID"].Text,
+            Assert.Single(merged.Value.Entries["A"].Entries["Headers"].Items).Text);
     }
 
     [Fact]

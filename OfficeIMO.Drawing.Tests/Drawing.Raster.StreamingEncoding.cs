@@ -337,9 +337,14 @@ public sealed class DrawingRasterStreamingEncodingTests {
     }
 
     [Fact]
-    public void CancellationCanStopPngDuringPaethFilteringAfterAnUpPass() {
+    public void CancellationCanStopPngDuringLaterFilteringBlocks() {
         const int width = 8193;
-        OfficeRasterImage image = new OfficeRasterImage(width, 2, OfficeColor.CornflowerBlue);
+        // More than 256 colors and nonopaque alpha keep a wide RGBA row.
+        // Identical rows select Up, so cancellation reaches the filter application
+        // after row construction even when filter scoring samples the row.
+        OfficeRasterImage image = new OfficeRasterImage(width, 2);
+        for (int x = 0; x < width; x++) for (int y = 0; y < 2; y++)
+            image.SetPixel(x, y, OfficeColor.FromRgba((byte)x, (byte)(x >> 8), 19, (byte)(x % 251)));
         using var cancellation = new CancellationTokenSource();
         using var destination = new CountingWriteStream();
         int rowCount = 0;

@@ -158,7 +158,14 @@ public partial class PdfDocumentVisualQualityTests {
         Assert.Contains("/Type /OutputIntent /S /GTS_PDFA1", raw, StringComparison.Ordinal);
         Assert.Contains("/DestOutputProfile", raw, StringComparison.Ordinal);
         Assert.Contains("/N 3", raw, StringComparison.Ordinal);
-        Assert.Contains("/Length 3052", raw, StringComparison.Ordinal);
+        var (objects, _) = PdfSyntax.ParseObjects(bytes);
+        var intentDictionary = Assert.Single(objects.Values.Select(value => value.Value).OfType<PdfDictionary>(),
+            dictionary => dictionary.Get<PdfName>("Type")?.Name == "OutputIntent");
+        var profileReference = Assert.IsType<PdfReference>(intentDictionary.Items["DestOutputProfile"]);
+        var profileStream = Assert.IsType<PdfStream>(objects[profileReference.ObjectNumber].Value);
+        Assert.Equal(3D, Assert.IsType<PdfNumber>(profileStream.Dictionary.Items["N"]).Value);
+        Assert.Equal(PdfIccProfiles.SrgbIec6196621,
+            OfficeIMO.Pdf.Filters.StreamDecoder.Decode(profileStream.Dictionary, profileStream.Data, objects));
         Assert.Contains("<735247422049454336313936362D322E31>", raw, StringComparison.Ordinal);
         Assert.True(info.HasOutputIntents);
         Assert.True(preflight.Probe.HasOutputIntents);
@@ -520,7 +527,9 @@ public partial class PdfDocumentVisualQualityTests {
         Assert.Contains("/Subtype /text#2Fplain", raw, StringComparison.Ordinal);
         Assert.Contains("/Params << /Size 55 /CheckSum <83F5425DBE5CB56CCCFFC5F749EDCAD4> >>", raw, StringComparison.Ordinal);
         Assert.Contains("/Params << /Size 24 /CheckSum <C321A4BD26D4D3AF6F40C2FC4EDDF6AE> >>", raw, StringComparison.Ordinal);
-        Assert.Contains("CrossIndustryInvoice", raw, StringComparison.Ordinal);
+        IReadOnlyList<PdfExtractedAttachment> attachments = PdfAttachmentExtractor.ExtractAttachments(bytes);
+        Assert.Equal(invoiceXml, Assert.Single(attachments, attachment => attachment.FileName == "invoice.xml").Bytes);
+        Assert.Equal(sourceText, Assert.Single(attachments, attachment => attachment.FileName == "source.txt").Bytes);
 
         PdfDocumentInfo info = PdfInspector.Inspect(bytes);
         PdfDocumentPreflight preflight = PdfInspector.Preflight(bytes);
@@ -609,41 +618,6 @@ public partial class PdfDocumentVisualQualityTests {
         Assert.Contains("PDF compliance profile must be None", invalidException.Message, StringComparison.Ordinal);
     }
 
-    [Theory]
-    [InlineData(PdfComplianceProfile.PdfA2U, "PDF/A-2u", "Unicode text mapping", "veraPDF")]
-    [InlineData(PdfComplianceProfile.PdfA2A, "PDF/A-2a", "tagged PDF structure tree", "alternate text")]
-    [InlineData(PdfComplianceProfile.PdfA3U, "PDF/A-3u", "Unicode text mapping", "veraPDF")]
-    [InlineData(PdfComplianceProfile.PdfA3A, "PDF/A-3a", "tagged PDF structure tree", "alternate text")]
-    public void ComplianceProfile_RejectsUnsupportedFormalProfiles(PdfComplianceProfile profile, string displayName, string requirement, string validator) {
-        var exception = Assert.Throws<NotSupportedException>(() =>
-            PdfDocument.Create()
-                .Compliance(profile)
-                .Meta(title: "Compliance probe")
-                .Paragraph(p => p.Text("Body"))
-                .ToBytes());
-
-        Assert.Contains(displayName, exception.Message, StringComparison.Ordinal);
-        Assert.Contains("cannot yet generate certified", exception.Message, StringComparison.Ordinal);
-        Assert.Contains(requirement, exception.Message, StringComparison.Ordinal);
-        Assert.Contains(validator, exception.Message, StringComparison.Ordinal);
-        Assert.Contains(nameof(PdfComplianceProfile.None), exception.Message, StringComparison.Ordinal);
-    }
-
-    [Fact]
-    public void ComplianceProfile_PdfAAccessibilityMessageDoesNotRequirePdfUaSpecificMetadata() {
-        var exception = Assert.Throws<NotSupportedException>(() =>
-            PdfDocument.Create()
-                .Compliance(PdfComplianceProfile.PdfA3A)
-                .Paragraph(p => p.Text("Body"))
-                .ToBytes());
-
-        Assert.Contains("PDF/A-3a", exception.Message, StringComparison.Ordinal);
-        Assert.Contains("tagged PDF structure tree", exception.Message, StringComparison.Ordinal);
-        Assert.DoesNotContain("PDF/UA identification XMP", exception.Message, StringComparison.Ordinal);
-        Assert.DoesNotContain("document title metadata", exception.Message, StringComparison.Ordinal);
-        Assert.DoesNotContain("DisplayDocTitle", exception.Message, StringComparison.Ordinal);
-    }
-
     [Fact]
     public void EmbeddedStandardFonts_SnapshotDataAndRejectInvalidInputs() {
         var data = new byte[] { 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
@@ -694,13 +668,18 @@ public partial class PdfDocumentVisualQualityTests {
         Assert.True(bytes.Length < uncompressed.Length, $"Expected compressed embedded font PDF to be smaller. Compressed: {bytes.Length}, uncompressed: {uncompressed.Length}.");
         Assert.Contains("/Subtype /Type0", raw, StringComparison.Ordinal);
         Assert.Contains("/Subtype /CIDFontType2", raw, StringComparison.Ordinal);
-        Assert.Contains("/BaseFont /OfficeIMOEmbeddedArial", raw, StringComparison.Ordinal);
+        Assert.Matches(PdfTestContentText.BaseFontPattern("OfficeIMOEmbeddedArial"), raw);
         Assert.Contains("/Encoding /Identity-H", raw, StringComparison.Ordinal);
         Assert.Contains("/FontDescriptor", raw, StringComparison.Ordinal);
         Assert.Contains("/FontFile2", raw, StringComparison.Ordinal);
         AssertSubsetLength1(raw, fontData.Length);
         Assert.Contains("/Filter /FlateDecode", raw, StringComparison.Ordinal);
-        Assert.DoesNotContain("/Filter /FlateDecode", rawUncompressed, StringComparison.Ordinal);
+        // Content and ToUnicode streams may still be compressed. The option controls font payloads only.
+        string fontObject = Regex.Match(rawUncompressed, @"/FontFile2\s+(\d+)\s+0\s+R").Groups[1].Value;
+        Assert.NotEmpty(fontObject);
+        Match fontStream = Regex.Match(rawUncompressed, @"(?:^|\n)" + fontObject + @" 0 obj\s*<<(?<dictionary>.*?)>>\s*stream", RegexOptions.Singleline);
+        Assert.True(fontStream.Success);
+        Assert.DoesNotContain("/FlateDecode", fontStream.Groups["dictionary"].Value, StringComparison.Ordinal);
         Assert.Contains("/W [", raw, StringComparison.Ordinal);
         Assert.Contains("/ToUnicode", raw, StringComparison.Ordinal);
         Assert.Contains("Embedded font Cafe é and Euro", text, StringComparison.Ordinal);
@@ -735,9 +714,9 @@ public partial class PdfDocumentVisualQualityTests {
         Assert.Contains("/Subtype /Type0", raw, StringComparison.Ordinal);
         Assert.Contains("/Subtype /CIDFontType2", raw, StringComparison.Ordinal);
         Assert.Contains("/Encoding /Identity-H", raw, StringComparison.Ordinal);
-        Assert.Contains("/BaseFont /OfficeIMOPretty-Regular", raw, StringComparison.Ordinal);
-        Assert.Contains("/BaseFont /OfficeIMOPretty-Bold", raw, StringComparison.Ordinal);
-        Assert.Contains("/BaseFont /OfficeIMOPretty-Italic", raw, StringComparison.Ordinal);
+        Assert.Matches(PdfTestContentText.BaseFontPattern("OfficeIMOPretty-Regular"), raw);
+        Assert.Matches(PdfTestContentText.BaseFontPattern("OfficeIMOPretty-Bold"), raw);
+        Assert.Matches(PdfTestContentText.BaseFontPattern("OfficeIMOPretty-Italic"), raw);
         Assert.Contains("/FontFile2", raw, StringComparison.Ordinal);
         AssertSubsetLength1(raw, fontData.Length);
         Assert.Contains("Pretty regular pretty bold pretty italic", text, StringComparison.Ordinal);

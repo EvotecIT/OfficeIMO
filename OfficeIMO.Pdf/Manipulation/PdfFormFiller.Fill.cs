@@ -75,6 +75,13 @@ internal static partial class PdfFormFiller {
         }
 
         if (string.Equals(fieldType, "Ch", StringComparison.Ordinal)) {
+            ChoiceAppearanceData? ReadFilledChoiceAppearance() {
+                if ((fieldFlags & ComboChoiceFlag) != 0 || choiceOptions == null) return null;
+                PdfObject? selectedValue = ResolveObject(objects, field.Items.TryGetValue("V", out PdfObject? v) ? v : null);
+                PdfArray? indices = ResolveObject(objects, field.Items.TryGetValue("I", out PdfObject? i) ? i : null) as PdfArray;
+                int top = field.Get<PdfNumber>("TI") is PdfNumber number && number.Value >= 0 && number.Value <= int.MaxValue ? (int)number.Value : 0;
+                return ReadChoiceAppearanceData(objects, choiceOptions, selectedValue, indices, top, fieldFlags, cancellationToken);
+            }
             bool isMultiSelectChoice = (fieldFlags & MultiSelectChoiceFlag) != 0;
             if (values.Count > 1 && !isMultiSelectChoice) {
                 throw new ArgumentException("PDF scalar choice field cannot be filled with multiple values.", nameof(value));
@@ -87,7 +94,7 @@ internal static partial class PdfFormFiller {
             if (values.Count == 1 && values[0].Length == 0 && !selectsExplicitEmptyOption) {
                 field.Items["V"] = isMultiSelectChoice ? new PdfArray() : new PdfStringObj(string.Empty, useTextStringEncoding: true);
                 field.Items.Remove("I");
-                SetTextWidgetAppearances(objects, field, string.Empty, fieldName, fieldFlags, inheritedQuadding, inheritedMaxLength, inheritedDefaultResources, inheritedDefaultAppearance, isMultiSelectChoice, options, new HashSet<int>(), ref nextObjectNumber, cancellationToken);
+                SetTextWidgetAppearances(objects, field, string.Empty, fieldName, fieldFlags, inheritedQuadding, inheritedMaxLength, inheritedDefaultResources, inheritedDefaultAppearance, isMultiSelectChoice, options, new HashSet<int>(), ref nextObjectNumber, cancellationToken: cancellationToken, choiceAppearance: ReadFilledChoiceAppearance());
                 return;
             }
 
@@ -104,18 +111,18 @@ internal static partial class PdfFormFiller {
             SetChoiceSelectionIndices(field, fieldFlags, choiceValues);
             if (isMultiSelectChoice) {
                 field.Items["V"] = CreateStringArray(choiceValues.Select(item => item.ExportValue));
-                SetTextWidgetAppearances(objects, field, string.Join("\n", choiceValues.Select(item => item.DisplayValue)), fieldName, fieldFlags, inheritedQuadding, inheritedMaxLength, inheritedDefaultResources, inheritedDefaultAppearance, true, options, new HashSet<int>(), ref nextObjectNumber, cancellationToken);
+                SetTextWidgetAppearances(objects, field, string.Join("\n", choiceValues.Select(item => item.DisplayValue)), fieldName, fieldFlags, inheritedQuadding, inheritedMaxLength, inheritedDefaultResources, inheritedDefaultAppearance, true, options, new HashSet<int>(), ref nextObjectNumber, cancellationToken: cancellationToken, choiceAppearance: ReadFilledChoiceAppearance());
                 return;
             }
 
             ChoiceFillValue choiceValue = choiceValues[0];
             field.Items["V"] = new PdfStringObj(choiceValue.ExportValue, useTextStringEncoding: true);
-            SetTextWidgetAppearances(objects, field, choiceValue.DisplayValue, fieldName, fieldFlags, inheritedQuadding, inheritedMaxLength, inheritedDefaultResources, inheritedDefaultAppearance, false, options, new HashSet<int>(), ref nextObjectNumber, cancellationToken);
+            SetTextWidgetAppearances(objects, field, choiceValue.DisplayValue, fieldName, fieldFlags, inheritedQuadding, inheritedMaxLength, inheritedDefaultResources, inheritedDefaultAppearance, false, options, new HashSet<int>(), ref nextObjectNumber, cancellationToken: cancellationToken, choiceAppearance: ReadFilledChoiceAppearance());
             return;
         }
 
         field.Items["V"] = new PdfStringObj(firstValue, useTextStringEncoding: true);
-        SetTextWidgetAppearances(objects, field, firstValue, fieldName, fieldFlags, inheritedQuadding, inheritedMaxLength, inheritedDefaultResources, inheritedDefaultAppearance, false, options, new HashSet<int>(), ref nextObjectNumber, cancellationToken);
+        SetTextWidgetAppearances(objects, field, firstValue, fieldName, fieldFlags, inheritedQuadding, inheritedMaxLength, inheritedDefaultResources, inheritedDefaultAppearance, false, options, new HashSet<int>(), ref nextObjectNumber, cancellationToken: cancellationToken);
     }
 
     private static void SetChoiceSelectionIndices(PdfDictionary field, int fieldFlags, IReadOnlyList<ChoiceFillValue> values) {

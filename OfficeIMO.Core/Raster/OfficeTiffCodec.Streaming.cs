@@ -37,11 +37,13 @@ public static partial class OfficeTiffCodec {
                 PrepareTiffCompressionInput(pixels, image.Width, image.Height, effective, cancellationToken, checkpointObserver),
                 cancellationToken),
             OfficeTiffCompression.Lzw => EncodeTiffLzw(pixels, image.Width, image.Height, effective, cancellationToken, checkpointObserver),
+            OfficeTiffCompression.CcittGroup4 => OfficeFaxEncoder.EncodeGroup4(image, cancellationToken, checkpointObserver),
             _ => null
         };
         int stripLength = effective.Compression switch {
             OfficeTiffCompression.None => pixels.Length,
             OfficeTiffCompression.Lzw => compressed!.Length,
+            OfficeTiffCompression.CcittGroup4 => compressed!.Length,
             OfficeTiffCompression.PackBits =>
                 EncodePackBitsRows(pixels, image.Width * 4, image.Height, output: null, outputOffset: 0, cancellationToken, checkpointObserver),
             OfficeTiffCompression.Deflate => compressed!.Length,
@@ -52,7 +54,7 @@ public static partial class OfficeTiffCodec {
         OfficeRasterGuards.EnsureOutputBytes(
             checked((long)header.Length + stripLength),
             "The TIFF exceeds the encoded-size limit.");
-        long retainedStripBytes = effective.Compression is OfficeTiffCompression.Lzw or OfficeTiffCompression.Deflate
+        long retainedStripBytes = effective.Compression is OfficeTiffCompression.Lzw or OfficeTiffCompression.Deflate or OfficeTiffCompression.CcittGroup4
             ? stripLength
             : 0L;
         long retainedOutputBytes = OfficeRasterOutput.TryGetMemoryStream(destination, out _)
@@ -74,6 +76,7 @@ public static partial class OfficeTiffCodec {
                 }
                 break;
             case OfficeTiffCompression.Lzw:
+            case OfficeTiffCompression.CcittGroup4:
             case OfficeTiffCompression.Deflate:
                 destination.Write(compressed!, 0, compressed!.Length);
                 break;
@@ -99,11 +102,10 @@ public static partial class OfficeTiffCodec {
         OfficeTiffEncodeOptions options,
         int stripLength) {
         const int ifdOffset = 8;
-        bool writePredictor = UsesHorizontalPredictor(options);
-        int entryCount = BaseEntryCount - (options.WriteResolution ? 0 : 3) + (writePredictor ? 1 : 0);
+        int entryCount = GetEncodingEntryCount(options);
         int ifdLength = 2 + (entryCount * 12) + 4;
         int bitsPerSampleOffset = checked(ifdOffset + ifdLength);
-        int xResolutionOffset = checked(bitsPerSampleOffset + 8);
+        int xResolutionOffset = checked(bitsPerSampleOffset + GetEncodingSampleBytes(options));
         int yResolutionOffset = checked(xResolutionOffset + 8);
         int stripOffset = options.WriteResolution ? checked(yResolutionOffset + 8) : xResolutionOffset;
         var output = new byte[stripOffset];
@@ -112,38 +114,8 @@ public static partial class OfficeTiffCodec {
         output[1] = (byte)'I';
         WriteUInt16(output, 2, 42);
         WriteUInt32(output, 4, ifdOffset);
-        WriteUInt16(output, ifdOffset, entryCount);
-
-        int entry = ifdOffset + 2;
-        WriteEntry(output, ref entry, 256, 4, 1, image.Width);
-        WriteEntry(output, ref entry, 257, 4, 1, image.Height);
-        WriteEntry(output, ref entry, 258, 3, 4, bitsPerSampleOffset);
-        WriteShortEntry(output, ref entry, 259, (int)options.Compression);
-        WriteShortEntry(output, ref entry, 262, 2);
-        WriteEntry(output, ref entry, 273, 4, 1, stripOffset);
-        WriteShortEntry(output, ref entry, 274, 1);
-        WriteShortEntry(output, ref entry, 277, 4);
-        WriteEntry(output, ref entry, 278, 4, 1, image.Height);
-        WriteEntry(output, ref entry, 279, 4, 1, stripLength);
-        if (options.WriteResolution) {
-            WriteEntry(output, ref entry, 282, 5, 1, xResolutionOffset);
-            WriteEntry(output, ref entry, 283, 5, 1, yResolutionOffset);
-        }
-        WriteShortEntry(output, ref entry, 284, 1);
-        GetEncodingResolution(options, out double resolutionX, out double resolutionY, out int resolutionUnit);
-        if (options.WriteResolution) WriteShortEntry(output, ref entry, 296, resolutionUnit);
-        if (writePredictor) WriteShortEntry(output, ref entry, 317, (int)options.Predictor);
-        WriteShortEntry(output, ref entry, 338, 2);
-        WriteUInt32(output, entry, 0);
-
-        WriteUInt16(output, bitsPerSampleOffset, 8);
-        WriteUInt16(output, bitsPerSampleOffset + 2, 8);
-        WriteUInt16(output, bitsPerSampleOffset + 4, 8);
-        WriteUInt16(output, bitsPerSampleOffset + 6, 8);
-        if (options.WriteResolution) {
-            WriteRational(output, xResolutionOffset, resolutionX);
-            WriteRational(output, yResolutionOffset, resolutionY);
-        }
+        WritePageIfd(output, ifdOffset, image, options, stripOffset, stripLength,
+            bitsPerSampleOffset, xResolutionOffset, yResolutionOffset, nextIfdOffset: 0);
         return output;
     }
 

@@ -34,7 +34,12 @@ internal sealed partial class HtmlRenderLayoutEngine {
             return style.ExplicitWidth.Value + (style.BorderBox ? 0D : style.HorizontalInsets);
         }
 
-        if (tag == "table") return availableWidth;
+        if (item.Element != null && style.Display is "table" or "inline-table") {
+            // The table's source columns and caption determine its auto basis;
+            // flex allocation can then grow or shrink that border box normally.
+            double outerWidth = ResolveIntrinsicTableOuterWidths(item.Element, style, availableWidth, intrinsicDepth + 1).Maximum;
+            return Math.Max(0D, outerWidth - style.MarginLeft - style.MarginRight);
+        }
         if (item.Element != null
             && style.Display == "flex"
             && (style.FlexDirection == "row" || style.FlexDirection == "row-reverse")) {
@@ -108,6 +113,15 @@ internal sealed partial class HtmlRenderLayoutEngine {
         double minimum;
         if (IsReplacedImageElementTag(item.TagName) && item.Element != null) {
             minimum = ResolveReplacedImageBoxWidth(item.Element, style);
+        } else if (item.Element != null && style.Display is "table" or "inline-table") {
+            // Measure the content suggestion independently of an authored width.
+            // The ordinary specified-size cap below still permits a narrow table
+            // to shrink, while each source column contributes its own minimum.
+            HtmlRenderBoxStyle contentStyle = style.Clone();
+            contentStyle.ExplicitWidth = null;
+            contentStyle.ExplicitWidthUsesPercentage = false;
+            double outerMinimum = ResolveIntrinsicTableOuterWidths(item.Element, contentStyle, availableWidth, 1).Minimum;
+            minimum = Math.Max(0D, outerMinimum - contentStyle.MarginLeft - contentStyle.MarginRight);
         } else {
             IReadOnlyList<IntrinsicTextRun> runs = ResolveInFlowIntrinsicTextRuns(item, availableWidth);
             double content = runs.Count == 0 ? 0D : MeasureMinContentRuns(runs);

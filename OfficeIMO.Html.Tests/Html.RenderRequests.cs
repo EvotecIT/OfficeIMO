@@ -366,6 +366,7 @@ public sealed class HtmlRenderRequestTests {
     [Fact]
     public void ExplicitImageRequestAndLegacyEntryPointUseTheSameSceneAndEncoder() {
         var options = new HtmlRenderOptions {
+            Mode = HtmlRenderMode.Continuous,
             ViewportWidth = 320D,
             ViewportHeight = 180D,
             Margins = HtmlRenderMargins.All(0D)

@@ -110,7 +110,13 @@ SHA-256 and compiled locally with the included MIT-licensed Schematron compiler.
 The Peppol download names an immutable official source commit; a changed artifact is rejected by its pinned hash.
 
 Factur-X authoring and validation use release `FacturX_1_09_2_Zugferd_2_5_2`.
-The validator archive is pinned by commit and SHA-256. Independent producer
+The validator archive is pinned by commit and SHA-256. Its rules include the
+2.5.2 `CII-SR-470` creditor-account rule and EXTENDED's replacement item-attribute
+rules, optional VAT category on GROUP/INFORMATION lines, and rounded group subtotals.
+These are the [rules effective from 1 September 2026](https://www.ferd-net.de/publikationen-produkte/publikationen/detailseite/zugferd-252-english).
+The separate EN 16931, XRechnung and Peppol releases keep their own pinned rules;
+select the intended release explicitly when validating an older contract.
+Independent producer
 fixtures from AdVitam/facturx cover all five profiles. The checked-in corpus
 manifest also pins KoSIT XRechnung CII and UBL fixture hashes. XRechnung is the
 only national CIUS exposed by the validator; recognizing another guideline does

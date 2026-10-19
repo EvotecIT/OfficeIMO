@@ -129,7 +129,13 @@ public static class ExcelImageExportDiagnosticCodes {
     /// <summary>Worksheet chart could not be converted to a renderable snapshot.</summary>
     public const string ChartSnapshotUnavailable = "ExcelChartSnapshotUnavailable";
 
-    /// <summary>Chart kind is rendered through an approximate chart snapshot.</summary>
+    /// <summary>Requested negative-size bubbles cannot be painted by the shared renderer.</summary>
+    public const string ChartBubbleNegativeSizesUnsupported = "ExcelChartBubbleNegativeSizesUnsupported";
+
+    /// <summary>Unsupported or invalid bubble settings use an explicitly diagnosed fallback.</summary>
+    public const string ChartBubbleSettingsApproximated = "ExcelChartBubbleSettingsApproximated";
+
+    /// <summary>A chart family is rendered as an explicit projection.</summary>
     public const string ChartKindApproximated = "ExcelChartKindApproximated";
 
     /// <summary>Chart kind is not rendered by the dependency-free image exporter yet.</summary>

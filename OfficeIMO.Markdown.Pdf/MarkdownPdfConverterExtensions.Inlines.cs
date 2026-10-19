@@ -48,7 +48,10 @@ public static partial class MarkdownPdfConverterExtensions {
                 ApplyStyle(builder, style.With(background: PdfCore.PdfColor.FromRgb(254, 243, 199))).Text(highlight.Text);
                 break;
             case CodeSpanInline code:
-                ApplyStyle(builder, style.With(background: PdfCore.PdfColor.FromRgb(241, 245, 249), color: PdfCore.PdfColor.FromRgb(30, 41, 59))).Text(code.Text);
+                ApplyStyle(builder, style.With(font: PdfCore.PdfStandardFont.Courier, background: PdfCore.PdfColor.FromRgb(241, 245, 249), color: PdfCore.PdfColor.FromRgb(30, 41, 59))).Text(code.Text);
+                break;
+            case FootnoteRefInline reference:
+                AppendLinkInline(builder, new LinkInline(reference.Label, "#fn:" + reference.Label, null), style.With(baseline: PdfCore.PdfTextBaseline.Superscript));
                 break;
             case LinkInline link:
                 AppendLinkInline(builder, link, style);
@@ -178,7 +181,10 @@ public static partial class MarkdownPdfConverterExtensions {
                 runs.Add(CreateRun(highlight.Text, style.With(background: PdfCore.PdfColor.FromRgb(254, 243, 199))));
                 break;
             case CodeSpanInline code:
-                runs.Add(CreateRun(code.Text, style.With(background: PdfCore.PdfColor.FromRgb(241, 245, 249), color: PdfCore.PdfColor.FromRgb(30, 41, 59))));
+                runs.Add(CreateRun(code.Text, style.With(font: PdfCore.PdfStandardFont.Courier, background: PdfCore.PdfColor.FromRgb(241, 245, 249), color: PdfCore.PdfColor.FromRgb(30, 41, 59))));
+                break;
+            case FootnoteRefInline reference:
+                AddLinkRun(runs, new LinkInline(reference.Label, "#fn:" + reference.Label, null), style.With(baseline: PdfCore.PdfTextBaseline.Superscript));
                 break;
             case LinkInline link:
                 AddLinkRun(runs, link, style);

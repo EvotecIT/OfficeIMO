@@ -46,7 +46,8 @@ public static partial class MarkdownPdfConverterExtensions {
         options.Anchors = new AnchorContext(document, topLevelBlocks, options);
         ApplyMetadata(pdf, document, options);
         string? promotedFrontMatterTitle = GetPromotedFrontMatterTitle(document, options);
-        RenderBlocks(pdf, topLevelBlocks, document, options, visualTheme, promotedFrontMatterTitle);
+        RenderBlocks(pdf, topLevelBlocks.Where(block => !(block is FootnoteDefinitionBlock)), document, options, visualTheme, promotedFrontMatterTitle);
+        RenderBlocks(pdf, topLevelBlocks.OfType<FootnoteDefinitionBlock>(), document, options, visualTheme);
         if (topLevelBlocks.Count == 0) {
             pdf.Paragraph(paragraph => paragraph.Text(string.Empty));
         }

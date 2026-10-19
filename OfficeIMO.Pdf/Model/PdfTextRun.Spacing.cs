@@ -34,6 +34,7 @@ public sealed partial class PdfTextRun {
         CharacterSpacing = source.CharacterSpacing;
         ContributesLineBoxDescent = source.ContributesLineBoxDescent;
         IsLineBoxStrut = source.IsLineBoxStrut;
+        PreservesPaintedGlyphs = source.PreservesPaintedGlyphs;
         return this;
     }
 

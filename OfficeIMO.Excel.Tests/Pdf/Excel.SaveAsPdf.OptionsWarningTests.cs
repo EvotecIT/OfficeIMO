@@ -59,11 +59,14 @@ public partial class Excel {
             sheet.SetHeaderFooter(
                 headerCenter: "&U&\"Arial,Bold\"&14&KFF0000Styled &D &T &A",
                 footerRight: "Page &P of &N");
-            sheet.AddChartFromRange("A1:B3", row: 1, column: 4, widthPixels: 320, heightPixels: 180, type: ExcelChartType.Surface, title: "Unsupported Surface Chart");
+            sheet.AddBubbleChartFromRanges(new[] { new ExcelChartSeriesRange("Values", "B2:B3", "B2:B3", "B2:B3") },
+                row: 1, column: 4, widthPixels: 320, heightPixels: 180, title: "Unsupported Bubble Chart");
 
             ExcelChart chart = Assert.Single(sheet.Charts);
-            Assert.True(chart.TryGetSnapshot(out ExcelChartSnapshot snapshot));
-            Assert.Equal(ExcelChartType.Surface, snapshot.ChartType);
+            // Truncated producer data must remain an unreadable-chart diagnostic.
+            document.OpenXmlDocument.WorkbookPart!.WorksheetParts.Single().DrawingsPart!.ChartParts.Single()
+                .ChartSpace.Descendants<DocumentFormat.OpenXml.Drawing.Charts.BubbleSize>().Single().Remove();
+            Assert.False(chart.TryGetSnapshot(out _));
 
             document.Save();
 
@@ -81,12 +84,12 @@ public partial class Excel {
             Assert.Contains("Page 1 of", text);
             Assert.Contains("Alpha", text);
             Assert.DoesNotContain("Beta", text);
-            Assert.DoesNotContain("Unsupported Surface Chart", text);
+            Assert.DoesNotContain("Unsupported Bubble Chart", text);
         }
 
         Assert.Contains(result.Warnings, warning => warning.Source == "Warnings" && warning.Code == "WorksheetHeaderFooterFormatting");
         Assert.Contains(result.Warnings, warning => warning.Source == "Warnings" && warning.Code == "WorksheetRows");
-        Assert.Contains(result.Warnings, warning => warning.Source == "Warnings" && warning.Code == "WorksheetChart" && warning.Message.Contains("Surface", StringComparison.Ordinal));
+        Assert.Contains(result.Warnings, warning => warning.Source == "Warnings" && warning.Code == "WorksheetChart" && warning.Message.Contains("could not be read", StringComparison.Ordinal));
         Assert.True(saveResult.Succeeded);
         Assert.Contains(saveResult.Warnings, warning => warning.Source == "Warnings" && warning.Code == "WorksheetHeaderFooterFormatting");
         Assert.Contains(saveResult.Warnings, warning => warning.Source == "Warnings" && warning.Code == "WorksheetRows");

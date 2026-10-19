@@ -195,13 +195,18 @@ public sealed class PowerPointPdfTextFormattingTests {
         Assert.Single(conversion.Warnings, warning => warning.Code == "baseline-percent-approximation");
     }
 
-    [Fact]
-    public void TableRunFormattingResolvesParagraphListAndThemeDefaults() {
+    [Theory]
+    [InlineData("master", false)]
+    [InlineData("master", true)]
+    [InlineData("paragraph", true)]
+    [InlineData("list", true)]
+    public void TableRunFormattingResolvesParagraphListAndThemeDefaults(string colorSource, bool useTableStyle) {
         using PowerPointPresentation presentation = PowerPointPresentation.Create(
             new MemoryStream(), new PowerPointCreateOptions());
-        PowerPointTableCell cell = presentation.AddSlide()
-            .AddTablePoints(1, 1, 10, 10, 200, 60)
-            .GetCell(0, 0);
+        PowerPointTable table = presentation.AddSlide().AddTablePoints(1, 1, 10, 10, 200, 60);
+        table.StyleId = useTableStyle ? "{5C22544A-7EE6-4342-B048-85BDC9FD1C3A}" : null;
+        table.FirstRow = true;
+        PowerPointTableCell cell = table.GetCell(0, 0);
         cell.Text = "i";
         A.Paragraph paragraph = Assert.Single(cell.Cell.TextBody!.Elements<A.Paragraph>());
         paragraph.ParagraphProperties = new A.ParagraphProperties(
@@ -227,6 +232,14 @@ public sealed class PowerPointPdfTextFormattingTests {
         themeDefaults.FontSize = 1800;
         themeDefaults.Append(new A.LatinFont { Typeface = "+mn-lt" });
         themeDefaults.Append(new A.SolidFill(new A.SchemeColor { Val = A.SchemeColorValues.Accent1 }));
+        if (colorSource == "paragraph") {
+            paragraph.ParagraphProperties.GetFirstChild<A.DefaultRunProperties>()!.Append(
+                new A.SolidFill(new A.SchemeColor { Val = A.SchemeColorValues.Accent1 }));
+        } else if (colorSource == "list") {
+            cell.Cell.TextBody.ListStyle.GetFirstChild<A.Level1ParagraphProperties>()!
+                .GetFirstChild<A.DefaultRunProperties>()!.Append(
+                    new A.SolidFill(new A.SchemeColor { Val = A.SchemeColorValues.Accent1 }));
+        }
         A.ThemeElements theme = cell.SlidePart.SlideLayoutPart.SlideMasterPart.ThemePart!.Theme!.ThemeElements!;
         theme.FontScheme!.MinorFont!.LatinFont!.Typeface = "Theme Minor";
         cell.SlidePart.SlideLayoutPart.SlideMasterPart.SlideMaster!.ColorMap!.Accent1 = A.ColorSchemeIndexValues.Accent2;
@@ -256,7 +269,10 @@ public sealed class PowerPointPdfTextFormattingTests {
             Assert.Equal(PdfCore.PdfTextBaseline.Superscript, run.Baseline);
             Assert.Equal(18D, run.FontSize);
             Assert.Equal("Theme Minor", run.FontFamily);
-            Assert.Equal(PdfCore.PdfColor.FromRgb(18, 52, 86), run.Color);
+            // Local text formatting overrides table regions; the master is a
+            // fallback when an active table region supplies no text color.
+            Assert.Equal(useTableStyle && colorSource == "master" ? PdfCore.PdfColor.White
+                : PdfCore.PdfColor.FromRgb(18, 52, 86), run.Color);
         });
     }
 
@@ -310,15 +326,17 @@ public sealed class PowerPointPdfTextFormattingTests {
         });
     }
 
-    [Fact]
-    public void TableInheritedAndFieldFontsParticipateInPdfFontPreflight() {
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void TableInheritedAndFieldFontsParticipateInPdfFontPreflight(bool useTableStyle) {
         const string inheritedFamily = "OfficeIMO Missing Inherited Table Face";
         const string fieldFamily = "OfficeIMO Missing Field Face";
         using PowerPointPresentation presentation = PowerPointPresentation.Create(
             new MemoryStream(), new PowerPointCreateOptions());
-        PowerPointTableCell cell = presentation.AddSlide()
-            .AddTablePoints(1, 1, 10, 10, 200, 60)
-            .GetCell(0, 0);
+        PowerPointTable table = presentation.AddSlide().AddTablePoints(1, 1, 10, 10, 200, 60);
+        if (!useTableStyle) table.StyleId = null;
+        PowerPointTableCell cell = table.GetCell(0, 0);
         cell.Text = "Run";
         A.Paragraph paragraph = Assert.Single(cell.Cell.TextBody!.Elements<A.Paragraph>());
         P.OtherStyle otherStyle = cell.SlidePart!.SlideLayoutPart!.SlideMasterPart!
@@ -344,8 +362,10 @@ public sealed class PowerPointPdfTextFormattingTests {
                 ResourcePolicy = PdfCore.PdfResourcePolicy.CreatePortableDeterministic()
             });
 
-        Assert.Contains(result.Warnings, warning => warning.Code == "font-family-substitution"
-            && warning.Details.TryGetValue("fontFamily", out string? family) && family == inheritedFamily);
+        // A table font reference overrides the master fallback. Preflight must
+        // report the inherited face only when it actually participates in text.
+        Assert.Equal(!useTableStyle, result.Warnings.Any(warning => warning.Code == "font-family-substitution"
+            && warning.Details.TryGetValue("fontFamily", out string? family) && family == inheritedFamily));
         Assert.Contains(result.Warnings, warning => warning.Code == "font-family-substitution"
             && warning.Details.TryGetValue("fontFamily", out string? family) && family == fieldFamily);
     }

@@ -1,0 +1,44 @@
+{
+  "schemaVersion": 1,
+  "exports": [
+    {
+      "producer": "word",
+      "source": "series-paint.docx",
+      "sourceSha256": "3f6b9a6874dd36333c62ecf83ba35d31f621db462bdc86c2886045523614ab42",
+      "pdf": "microsoft-word-16.113-series-paint.pdf",
+      "pdfSha256": "4b40e710613eb63db8e4a6abf1b34acc350f48127cbb09f0d72fb57562594c68",
+      "qualifiedPaintCombinations": 16
+    },
+    {
+      "producer": "powerpoint",
+      "source": "series-paint.pptx",
+      "sourceSha256": "60f5c32df02f632d403af91ffc9349eba04aa07f0a0174a47cfc7a6806f97959",
+      "pdf": "microsoft-powerpoint-16.113-series-paint.pdf",
+      "pdfSha256": "1126945e74850ca52f557ebb963f6d1cb6646692f014bae6887a66e3098074cf",
+      "qualifiedPaintCombinations": 16
+    },
+    {
+      "producer": "excel",
+      "source": "series-paint.xlsx",
+      "sourceSha256": "24d754a71fb7107fcac1b30b01de36cf3c0972715e540d54d008313cd2d11ef2",
+      "pdf": "microsoft-excel-16.113-series-paint.pdf",
+      "pdfSha256": "246a3fbf14b005c96c0948e195112dbf6de21e072378c7cf59e9f4d50797fe77",
+      "qualifiedPaintCombinations": 16
+    }
+  ],
+  "producerEnvironment": {
+    "Word": {
+      "version": "16.113.4",
+      "build": "16.113.26100421"
+    },
+    "Excel": {
+      "version": "16.113.4",
+      "build": "16.113.26100421"
+    },
+    "PowerPoint": {
+      "version": "16.113.4",
+      "build": "16.113.26100421"
+    },
+    "macOS": "27.0.1"
+  }
+}

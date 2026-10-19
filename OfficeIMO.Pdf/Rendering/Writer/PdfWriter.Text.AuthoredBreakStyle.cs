@@ -7,5 +7,6 @@ internal static partial class PdfWriter {
         new(string.Empty, run.Bold, run.Italic, run.Underline, run.Strike, run.Color, run.BackgroundColor,
             null, null, null, font, fontSize, run.Baseline, 0D, endsWithHardBreak: true,
             namedFont: namedFont, underlineStyle: run.UnderlineStyle, strikeStyle: run.StrikeStyle,
-            decorationColor: run.DecorationColor, featureSettings: run.FeatureSettings, textDirection: run.TextDirection);
+            decorationColor: run.DecorationColor, featureSettings: run.FeatureSettings, textDirection: run.TextDirection,
+            preservesPaintedGlyphs: run.PreservesPaintedGlyphs);
 }

@@ -54,7 +54,7 @@ namespace OfficeIMO.Excel.Pdf {
             }
 
             var series = snapshot.Data.Series
-                .Select(item => CreateOfficeChartSeries(item, snapshot.ChartType, chartKind))
+                .Select(item => CreateOfficeChartSeries(item, snapshot.ChartType, chartKind, options.ChartStyle != null))
                 .ToList();
             var data = new OfficeChartData(snapshot.Data.Categories, series);
             return new OfficeChartSnapshot(
@@ -67,11 +67,21 @@ namespace OfficeIMO.Excel.Pdf {
                 options.ChartStyle ?? snapshot.Style,
                 options.ChartLayout ?? (preserveWorksheetLegend || chartKind is OfficeChartKind.Pie or OfficeChartKind.Doughnut
                     ? snapshot.Layout ?? new OfficeChartLayout()
-                    : DefaultExcelPdfChartLayout),
-                snapshot.RadialLayout);
+                    : WithNativeCategoryGeometry(DefaultExcelPdfChartLayout, snapshot.Layout)),
+                snapshot.BubbleScalePercent, snapshot.BubbleSizeMode, snapshot.RadialLayout);
         }
 
-        private static OfficeChartSeries CreateOfficeChartSeries(ExcelChartSeries series, ExcelChartType defaultType, OfficeChartKind defaultKind) {
+        // The PDF chart keeps its worksheet legend table, but bar spacing, point placement and
+        // high-low lines still come from the native chart.
+        private static OfficeChartLayout WithNativeCategoryGeometry(OfficeChartLayout layout, OfficeChartLayout? native) =>
+            native == null ? layout : layout
+                .WithBarGeometry(native.BarGapWidthPercent, native.BarOverlapPercent)
+                .WithCategoryPointsOnTickMarks(native.CategoryPointsOnTickMarks)
+                .WithHighLowLines(native.ShowHighLowLines, native.HighLowLineColor, native.HighLowLineWidth);
+
+        private static OfficeChartSeries CreateOfficeChartSeries(ExcelChartSeries series, ExcelChartType defaultType, OfficeChartKind defaultKind,
+            bool callerPalette = false) {
+            if (defaultType == ExcelChartType.Bubble) return ExcelRangeImageRenderer.CreateBubbleChartSeries(series, callerPalette);
             ExcelChartType effectiveType = series.ChartType ?? defaultType;
             OfficeChartKind? renderKind = null;
             if (effectiveType != defaultType) {
@@ -92,7 +102,8 @@ namespace OfficeIMO.Excel.Pdf {
                 series.Name,
                 series.Values,
                 series.XValues,
-                ExcelRangeImageRenderer.ResolveArgb(series.SeriesColorArgb),
+                // A caller palette replaces automatic colours, as it did before they were resolved.
+                callerPalette && series.HasAutomaticColor ? null : ExcelRangeImageRenderer.ResolveArgb(series.SeriesColorArgb),
                 ExcelRangeImageRenderer.ResolvePointColors(series.PointColorArgb),
                 series.ShowMarkers,
                 connectLine: series.ConnectLine,
@@ -104,7 +115,7 @@ namespace OfficeIMO.Excel.Pdf {
                 strokeDashStyle: series.SeriesLineDashStyle,
                 renderKind: renderKind,
                 axisGroup: series.AxisGroup)
-                .WithPointStyles(series.PointStyles)
+                .WithSeriesStyle(series.SeriesStyle).WithPointStyles(series.PointStyles)
                 .WithPointExplosions(series.PointExplosions);
         }
 
@@ -156,6 +167,9 @@ namespace OfficeIMO.Excel.Pdf {
                 case ExcelChartType.Area3DStacked100:
                     kind = OfficeChartKind.AreaStacked100;
                     return true;
+                case ExcelChartType.Bubble:
+                    kind = OfficeChartKind.Bubble;
+                    return true;
                 case ExcelChartType.Scatter:
                     kind = OfficeChartKind.Scatter;
                     return true;
@@ -170,6 +184,13 @@ namespace OfficeIMO.Excel.Pdf {
                     return true;
                 case ExcelChartType.Doughnut:
                     kind = OfficeChartKind.Doughnut;
+                    return true;
+                case ExcelChartType.Stock:
+                case ExcelChartType.Surface:
+                case ExcelChartType.SurfaceWireframe:
+                case ExcelChartType.SurfaceContour:
+                case ExcelChartType.SurfaceContourWireframe:
+                    kind = OfficeChartKind.Line;
                     return true;
                 default:
                     kind = default;

@@ -1,7 +1,5 @@
 using System;
 using System.Linq;
-using System.Xml;
-using System.Xml.Linq;
 using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
 using OfficeIMO.Drawing;
@@ -20,12 +18,14 @@ internal static class OfficeOpenXmlThemeColorResolver {
         "9BBB59", "8064A2", "4BACC6", "F79646", "0000FF", "800080"
     };
 
-    /// <summary>Reads a bounded radial palette from a modern color style or classic style 2.</summary>
+    /// <summary>Reads the automatic per-point palette of a radial chart that varies colours by point.</summary>
+    /// <remarks>Office derives the palette from the classic chart style and the theme; see
+    /// <see cref="OfficeOpenXmlChartAutomaticColors"/>.</remarks>
     internal static OfficeColor[]? ReadRadialPalette(ChartPart chartPart, OpenXmlCompositeElement series,
         int pointCount, A.ColorScheme? scheme, bool requireQualifiedPalette = false,
         bool useSpreadsheetDefaultTheme = false) {
         if (pointCount < 1 ||
-            series.Parent is not C.PieChart and not C.DoughnutChart ||
+            series.Parent is not C.PieChart and not C.DoughnutChart and not C.Pie3DChart and not C.OfPieChart ||
             series.Parent.GetFirstChild<C.VaryColors>() is not C.VaryColors varyColors ||
             varyColors.Val?.Value == false)
             return null;
@@ -33,48 +33,11 @@ internal static class OfficeOpenXmlThemeColorResolver {
         // An unsupported inherited palette is immaterial when every rendered ring has
         // an explicit appearance for every category.
         if (AllRadialPointsHaveExplicitFill((OpenXmlCompositeElement)series.Parent, pointCount)) return null;
-        if (scheme == null && !useSpreadsheetDefaultTheme) {
-            if (requireQualifiedPalette)
-                throw new NotSupportedException("The inherited native radial palette has no qualified theme colors.");
-            return null;
-        }
-        if (pointCount > 6)
-            throw new NotSupportedException("A native radial palette with more than six inherited point colours cannot be projected.");
-        OpenXmlElement? colorMap = ResolveChartColorMap(chartPart);
-        ChartColorStylePart? colorStylePart = chartPart.GetPartsOfType<ChartColorStylePart>().FirstOrDefault();
-        if (colorStylePart != null) {
-            ChartStylePart? stylePart = chartPart.GetPartsOfType<ChartStylePart>().FirstOrDefault();
-            if (stylePart == null || !HasAutomaticDataPointFill(stylePart))
-                throw new NotSupportedException("The modern chart style does not use the automatic data-point palette.");
-            bool multipleRings = series.Parent.Elements<C.PieChartSeries>().Skip(1).Any();
-            return ReadModernRadialPalette(colorStylePart, pointCount, scheme, multipleRings, colorMap,
-                useSpreadsheetDefaultTheme)
-                ?? throw new NotSupportedException("The modern radial color style cannot be projected.");
-        }
-        if (chartPart.GetPartsOfType<ChartStylePart>().Any()) {
-            if (requireQualifiedPalette)
-                throw new NotSupportedException("The modern chart style has no qualified radial color palette.");
-            return null;
-        }
-        C.Style? style = series.Ancestors<C.ChartSpace>().FirstOrDefault()?
-            .Descendants<C.Style>().FirstOrDefault();
-        if (style != null && style.Val?.Value != 2) {
-            if (requireQualifiedPalette)
-                throw new NotSupportedException("The classic chart style has no qualified radial color palette.");
-            return null;
-        }
-        var colors = new OfficeColor[pointCount];
-        for (int index = 0; index < pointCount; index++) {
-            string? token = MapSchemeColor("accent" + (index + 1), colorMap);
-            OfficeColor? color = ResolveSchemeColor(scheme, token) ??
-                (useSpreadsheetDefaultTheme ? ResolveDefaultSpreadsheetSchemeColor(token) : null);
-            if (!color.HasValue) {
-                if (requireQualifiedPalette)
-                    throw new NotSupportedException("The native radial palette contains an unresolved theme color.");
-                return null;
-            }
-            colors[index] = color.Value;
-        }
+        OfficeColor[]? colors = scheme == null && !useSpreadsheetDefaultTheme ? null :
+            OfficeOpenXmlChartAutomaticColors.ResolvePoints(chartPart.ChartSpace, pointCount, scheme,
+                useSpreadsheetDefaultTheme);
+        if (colors == null && requireQualifiedPalette)
+            throw new NotSupportedException("The automatic radial palette has no resolvable theme colours.");
         return colors;
     }
 
@@ -152,68 +115,6 @@ internal static class OfficeOpenXmlThemeColorResolver {
         return string.IsNullOrWhiteSpace(mapped) ? scheme : mapped!;
     }
 
-    private static bool HasAutomaticDataPointFill(ChartStylePart part) {
-        const string chartStyleNamespace = "http://schemas.microsoft.com/office/drawing/2012/chartStyle";
-        try {
-            using var stream = part.GetStream();
-            using var reader = XmlReader.Create(stream, new XmlReaderSettings {
-                DtdProcessing = DtdProcessing.Prohibit,
-                XmlResolver = null,
-                MaxCharactersInDocument = 131072
-            });
-            XElement? root = XDocument.Load(reader).Root;
-            XElement? dataPoint = root?.Element(XName.Get("dataPoint", chartStyleNamespace));
-            XElement? fill = dataPoint?.Element(XName.Get("fillRef", chartStyleNamespace));
-            XElement? color = fill?.Element(XName.Get("styleClr", chartStyleNamespace));
-            return root?.Name == XName.Get("chartStyle", chartStyleNamespace) &&
-                dataPoint != null && dataPoint.Element(XName.Get("spPr", chartStyleNamespace)) == null &&
-                fill?.Attribute("idx")?.Value == "1" &&
-                fill.Elements().Count() == 1 && color?.Attribute("val")?.Value == "auto" &&
-                !color.HasElements;
-        } catch (XmlException) {
-            return false;
-        }
-    }
-
-    private static OfficeColor[]? ReadModernRadialPalette(ChartColorStylePart part,
-        int pointCount, A.ColorScheme? scheme, bool multipleRings, OpenXmlElement? colorMap,
-        bool useSpreadsheetDefaultTheme) {
-        const string chartStyleNamespace = "http://schemas.microsoft.com/office/drawing/2012/chartStyle";
-        const string drawingNamespace = "http://schemas.openxmlformats.org/drawingml/2006/main";
-        try {
-            using var stream = part.GetStream();
-            using var reader = XmlReader.Create(stream, new XmlReaderSettings {
-                DtdProcessing = DtdProcessing.Prohibit,
-                XmlResolver = null,
-                MaxCharactersInDocument = 131072
-            });
-            XElement? root = XDocument.Load(reader).Root;
-            if (root?.Name != XName.Get("colorStyle", chartStyleNamespace) ||
-                (string?)root.Attribute("meth") != "cycle") return null;
-            XElement? firstVariation = root.Elements(XName.Get("variation", chartStyleNamespace)).FirstOrDefault();
-            if (firstVariation is { HasElements: true }) return null;
-            if (multipleRings && root.Elements(XName.Get("variation", chartStyleNamespace))
-                .Any(variation => variation.HasElements)) return null;
-            XElement[] entries = root.Elements().Where(element => element.Name.NamespaceName == drawingNamespace)
-                .Take(pointCount + 1).ToArray();
-            if (entries.Length < pointCount) return null;
-            var colors = new OfficeColor[pointCount];
-            for (int index = 0; index < pointCount; index++) {
-                XElement entry = entries[index];
-                if (entry.Name != XName.Get("schemeClr", drawingNamespace) || entry.HasElements) return null;
-                string? token = (string?)entry.Attribute("val");
-                string? mappedToken = token == null ? null : MapSchemeColor(token, colorMap);
-                OfficeColor? color = ResolveSchemeColor(scheme, mappedToken) ??
-                    (useSpreadsheetDefaultTheme ? ResolveDefaultSpreadsheetSchemeColor(mappedToken) : null);
-                if (!color.HasValue) return null;
-                colors[index] = color.Value;
-            }
-            return colors;
-        } catch (XmlException) {
-            return null;
-        }
-    }
-
     internal static OfficeColor? ResolveColor(
         OpenXmlElement? container,
         A.ColorScheme? colorScheme,
@@ -230,7 +131,8 @@ internal static class OfficeOpenXmlThemeColorResolver {
         foreach (OpenXmlElement transform in color.ChildElements) {
             if (transform.LocalName is "comp" or "inv" or "gray") continue;
             if (transform.LocalName is not ("alpha" or "alphaMod" or "alphaOff" or "tint" or "shade" or
-                "lumMod" or "lumOff" or "red" or "redMod" or "redOff" or "green" or "greenMod" or
+                "lumMod" or "lumOff" or "hueOff" or "hueMod" or "satOff" or "satMod" or
+                "red" or "redMod" or "redOff" or "green" or "greenMod" or
                 "greenOff" or "blue" or "blueMod" or "blueOff") || !TryReadTransformValue(transform, out _)) return true;
         }
         return false;
@@ -332,9 +234,7 @@ internal static class OfficeOpenXmlThemeColorResolver {
                 color = ResolveSchemeColor(colorScheme, scheme == null ? null : MapSchemeColor(scheme, colorMap));
             }
         } else if (colorElement is A.PresetColor presetColor) {
-            color = OfficeColor.TryParse(presetColor.Val?.Value.ToString(), out OfficeColor preset)
-                ? preset
-                : (OfficeColor?)null;
+            color = ParsePreset(presetColor.Val?.InnerText);
         } else {
             color = null;
         }
@@ -342,13 +242,39 @@ internal static class OfficeOpenXmlThemeColorResolver {
         return color.HasValue ? ApplyTransforms(color.Value, colorElement) : null;
     }
 
-    private static OfficeColor ApplyTransforms(OfficeColor color, OpenXmlElement colorElement) {
+    /// <summary>Applies DrawingML color transforms in child order, retaining each transform's alpha semantics.</summary>
+    /// <remarks>Tint and shade retain the specified input proportion in linear sRGB, independently of encoded-RGB helpers.</remarks>
+    internal static OfficeColor ApplyTransforms(OfficeColor color, OpenXmlElement colorElement) {
         OfficeColor resolved = color;
+        bool pendingHsl = false;
+        double hue = 0D, saturation = 0D, luminance = 0D;
         foreach (OpenXmlElement transform in colorElement.ChildElements) {
-            switch (transform.LocalName) {
-                case "comp":
-                    resolved = OfficeColorTransforms.Complement(resolved);
-                    continue;
+            string name = transform.LocalName;
+            if (name is "comp" or "lumMod" or "lumOff" or "hueOff" or "hueMod" or "satOff" or "satMod") {
+                double amount = 0D;
+                if (name != "comp" && !TryReadTransformValue(transform, out amount)) continue;
+                if (!pendingHsl) {
+                    OfficeColorTransforms.ToHsl(resolved, out hue, out saturation, out luminance);
+                    pendingHsl = true;
+                }
+                switch (name) {
+                    case "comp": hue = (hue + 180D) % 360D; break;
+                    case "lumMod": luminance = ClampUnit(luminance * Math.Max(0D, amount)); break;
+                    case "lumOff": luminance = ClampUnit(luminance + amount); break;
+                    case "hueOff": hue = ((hue + amount * 100000D / 60000D) % 360D + 360D) % 360D; break;
+                    case "hueMod": hue = hue * Math.Max(0D, amount) % 360D; break;
+                    case "satOff": saturation = ClampUnit(saturation + amount); break;
+                    case "satMod": saturation = ClampUnit(saturation * Math.Max(0D, amount)); break;
+                }
+                continue;
+            }
+            // Alpha does not change the HSL channels. Other color-space operations must
+            // observe the completed HSL sequence; do not round between HSL modifiers.
+            if (pendingHsl && name is not ("alpha" or "alphaMod" or "alphaOff")) {
+                resolved = OfficeColorTransforms.FromHsl(hue, saturation, luminance, resolved.A);
+                pendingHsl = false;
+            }
+            switch (name) {
                 case "inv":
                     resolved = OfficeColor.FromRgba(
                         (byte)(255 - resolved.R),
@@ -377,16 +303,14 @@ internal static class OfficeOpenXmlThemeColorResolver {
                     resolved = OfficeColorTransforms.OffsetAlpha(resolved, value);
                     break;
                 case "tint":
-                    resolved = OfficeColorTransforms.Tint(resolved, ClampUnit(value));
+                    resolved = OfficeGradientColors.Interpolate(
+                        OfficeColor.FromRgba(255, 255, 255, resolved.A), resolved,
+                        ClampUnit(value), OfficeGradientColorInterpolation.LinearRgb);
                     break;
                 case "shade":
-                    resolved = OfficeColorTransforms.Shade(resolved, ClampUnit(value));
-                    break;
-                case "lumMod":
-                    resolved = OfficeColorTransforms.ModulateLuminance(resolved, Math.Max(0D, value));
-                    break;
-                case "lumOff":
-                    resolved = OfficeColorTransforms.OffsetLuminance(resolved, value);
+                    resolved = OfficeGradientColors.Interpolate(
+                        OfficeColor.FromRgba(0, 0, 0, resolved.A), resolved,
+                        ClampUnit(value), OfficeGradientColorInterpolation.LinearRgb);
                     break;
                 case "red":
                     resolved = OfficeColor.FromRgba(ToChannel(255D * value), resolved.G, resolved.B, resolved.A);
@@ -418,7 +342,9 @@ internal static class OfficeOpenXmlThemeColorResolver {
             }
         }
 
-        return resolved;
+        return pendingHsl
+            ? OfficeColorTransforms.FromHsl(hue, saturation, luminance, resolved.A)
+            : resolved;
     }
 
     private static OpenXmlElement? FindColorElement(OpenXmlElement? container) {
@@ -446,6 +372,16 @@ internal static class OfficeOpenXmlThemeColorResolver {
 
         return ResolveColorElement(FindColorElement(colorElement),
             colorScheme: null, placeholderColor: null);
+    }
+
+    /// <summary>Reads the DrawingML token, whose dk/lt/med prefixes abbreviate CSS color names.</summary>
+    private static OfficeColor? ParsePreset(string? token) {
+        if (string.IsNullOrWhiteSpace(token)) return null;
+        string name = token!;
+        if (name.StartsWith("dk", StringComparison.OrdinalIgnoreCase)) name = "dark" + name.Substring(2);
+        else if (name.StartsWith("lt", StringComparison.OrdinalIgnoreCase)) name = "light" + name.Substring(2);
+        else if (name.StartsWith("med", StringComparison.OrdinalIgnoreCase)) name = "medium" + name.Substring(3);
+        return OfficeColor.TryParse(name, out OfficeColor color) ? color : (OfficeColor?)null;
     }
 
     private static OfficeColor? ParseRgb(string? value) =>
@@ -509,7 +445,7 @@ internal static class OfficeOpenXmlThemeColorResolver {
         string? attribute = schemeColor?.GetAttribute("val", string.Empty).Value;
         return !string.IsNullOrWhiteSpace(attribute)
             ? attribute
-            : schemeColor?.Val?.Value.ToString();
+            : schemeColor?.Val?.InnerText;
     }
 
     private static bool IsPlaceholderScheme(string? scheme) =>

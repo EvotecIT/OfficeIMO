@@ -276,7 +276,7 @@ public class PdfDocumentPngImageTests {
         Assert.Contains("/Subtype /Image", pdfContent);
         Assert.Contains("/Width 8 /Height 8", pdfContent);
         Assert.Contains("/SMask", pdfContent);
-        Assert.Contains("/ColorSpace /DeviceRGB", pdfContent);
+        Assert.Contains("/ColorSpace [/Indexed /DeviceRGB", pdfContent);
         Assert.Contains("/ColorSpace /DeviceGray", pdfContent);
 
         using var pdf = PdfPigDocument.Open(new MemoryStream(bytes));

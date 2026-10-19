@@ -589,7 +589,7 @@ public sealed class ReaderPageLocationTests {
     }
 
     [Fact]
-    public void WordReader_ComputesPageFragmentsForSearchAndMarkdown() {
+    public void WordReader_UsesSharedPageTextForSearchAndMarkdown() {
         using var stream = new MemoryStream();
         using (WordDocument word = WordDocument.Create(stream)) {
             word.AddParagraph("First page body.");
@@ -611,14 +611,6 @@ public sealed class ReaderPageLocationTests {
         Assert.Contains("page: 2/", document.ToPageMarkedMarkdown(), StringComparison.Ordinal);
         Assert.Contains("Needle on computed page two.", document.Pages[1].Blocks.Select(block => block.Text));
         Assert.NotNull(Assert.Single(search.Hits).Pages[0].Regions.Single());
-    }
-
-    [Fact]
-    public void WordMapping_DoesNotFallBackToSourceTextForBlankVisualFragments() {
-        string text = OfficeIMO.Reader.Word.WordRichMapping.CombineWordFragmentText(
-            new[] { string.Empty, "   " });
-
-        Assert.Equal(string.Empty, text);
     }
 
     private static OfficeDocumentPage Page(int number, OfficeDocumentBlock block) {

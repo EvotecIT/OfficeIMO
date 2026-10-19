@@ -29,9 +29,9 @@ public sealed partial class OfficeRasterCanvas {
                 if (measured <= 0D) return (left, top, right, bottom, false, true, false);
                 double cursor = ResolveTextX(x, Math.Max(.01D, width), advance, alignment);
                 foreach ((OfficeFontFallbackRun run, OfficeTextDirection runDirection) in PlanVisualFallbackRuns(text, fontInfo.FamilyName, fontInfo.Style, textDirection)) {
-                    double runAdvance = MeasurePositionedText(run.Text, size, run.FamilyName, fontInfo.Style, features, runDirection) * advance / measured;
+                    double runAdvance = MeasurePositionedText(run.Text, size, run.FamilyRequest, fontInfo.Style, features, runDirection) * advance / measured;
                     var bounds = MeasurePositionedTextBounds(run.Text, cursor, y, Math.Max(.01D, runAdvance), height,
-                        size, fontInfo.WithFamilyName(run.FamilyName), Math.Max(.01D, runAdvance),
+                        size, fontInfo.WithFamilyName(run.FamilyRequest), Math.Max(.01D, runAdvance),
                         OfficeTextAlignment.Left, features, palette, baselineSize, underlineStyle, strikethroughStyle,
                         runDirection, inkOnly, inkTransform, color, decorationColor, inkClips);
                     isMeasured &= bounds.IsMeasured;

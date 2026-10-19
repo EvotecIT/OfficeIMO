@@ -5,6 +5,7 @@ using OfficeIMO.Drawing;
 using System.Globalization;
 using System.Threading;
 using System.Threading.Tasks;
+using System.Xml;
 using System.Xml.Linq;
 
 namespace OfficeIMO.Excel {
@@ -221,7 +222,7 @@ namespace OfficeIMO.Excel {
             XDocument vmlDocument;
             try {
                 using Stream stream = vmlPart.GetStream(FileMode.Open, FileAccess.Read);
-                vmlDocument = LoadVmlXDocument(stream);
+                vmlDocument = LoadHeaderFooterVmlXDocument(stream);
             } catch {
                 return images;
             }
@@ -237,19 +238,36 @@ namespace OfficeIMO.Excel {
                     continue;
                 }
 
-                string? relationshipId = imageData.Attributes().FirstOrDefault(attribute =>
-                    string.Equals(attribute.Name.LocalName, "id", StringComparison.OrdinalIgnoreCase) ||
-                    string.Equals(attribute.Name.LocalName, "relid", StringComparison.OrdinalIgnoreCase))?.Value;
-                if (string.IsNullOrWhiteSpace(relationshipId)) {
-                    continue;
-                }
-
-                if (TryReadHeaderFooterImage(vmlPart, relationshipId!, shape.Attribute("style")?.Value, position, ref remainingSourceImageBytes, out ExcelHeaderFooterImageSnapshot? image)) {
-                    images[shapeId!] = image!;
+                // Imported VML can retain a stale r:id while o:relid points to the actual image.
+                foreach (string relationshipId in new[] {
+                    imageData.Attribute(HeaderFooterRelationshipNamespace + "id")?.Value,
+                    imageData.Attribute(HeaderFooterOfficeNamespace + "relid")?.Value
+                }.Where(value => !string.IsNullOrWhiteSpace(value)).Select(value => value!).Distinct(StringComparer.Ordinal)) {
+                    if (TryReadHeaderFooterImage(vmlPart, relationshipId, shape.Attribute("style")?.Value, position, ref remainingSourceImageBytes, out ExcelHeaderFooterImageSnapshot? image)) {
+                        images[shapeId!] = image!;
+                        break;
+                    }
                 }
             }
 
             return images;
+        }
+
+        /// <summary>
+        /// Reads header/footer VML with the standard relationship prefix available to legacy
+        /// producers that omit its declaration. Explicit namespace declarations still take precedence.
+        /// </summary>
+        private static XDocument LoadHeaderFooterVmlXDocument(Stream stream) {
+            if (stream.CanSeek && stream.Length > MaxVmlXmlPartBytes) {
+                throw new InvalidDataException($"Excel VML XML part exceeds {MaxVmlXmlPartBytes} bytes.");
+            }
+
+            var nameTable = new NameTable();
+            var namespaces = new XmlNamespaceManager(nameTable);
+            namespaces.AddNamespace("r", HeaderFooterRelationshipNamespace.NamespaceName);
+            var context = new XmlParserContext(nameTable, namespaces, null, XmlSpace.None);
+            using XmlReader reader = XmlReader.Create(stream, VmlXmlReaderSettings, context);
+            return XDocument.Load(reader, LoadOptions.None);
         }
 
         private static bool TryReadHeaderFooterImage(

@@ -4,7 +4,7 @@ namespace OfficeIMO.Drawing;
 
 /// <summary>Applies shared image-export configuration to Drawing scenes.</summary>
 public static class OfficeDrawingImageExportExtensions {
-    /// <summary>Applies caller-supplied fonts and text shaping from shared export options to a drawing.</summary>
+    /// <summary>Applies caller-supplied fonts, text shaping and SVG text policy from shared export options to a drawing.</summary>
     public static OfficeDrawing ApplyImageExportOptions(
         this OfficeDrawing drawing,
         OfficeImageExportOptions options) {
@@ -13,6 +13,7 @@ public static class OfficeDrawingImageExportExtensions {
         drawing.Fonts.AddRange(options.Fonts);
         drawing.TextShapingProvider = options.TextShapingProvider;
         drawing.TextShapingLanguage = options.TextShapingLanguage;
+        drawing.SvgTextAsPaths = options.SvgTextAsPaths;
         return drawing;
     }
 }

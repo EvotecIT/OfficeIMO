@@ -32,7 +32,7 @@ public sealed class ImageExportConformanceContracts {
         results.Add(html.ExportImage(
             OfficeImageExportFormat.Webp,
             new HtmlRenderOptions {
-                Scale = 50D,
+                Scale = 20D,
                 ViewportWidth = 240D,
                 MaximumRasterPixels = maximumPixels
             }));

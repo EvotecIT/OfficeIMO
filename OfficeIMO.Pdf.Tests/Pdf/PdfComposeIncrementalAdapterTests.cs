@@ -20,7 +20,7 @@ public class PdfDocumentBuilderIncrementalAdapterTests {
             .Paragraph(paragraph => paragraph.Text("IncrementalAdapterMarker"))));
 
         byte[] bytes = document.ToBytes();
-        string source = Encoding.ASCII.GetString(bytes);
+        string source = PdfTestContentText.ReadDecoded(bytes);
 
         Assert.Contains("/MediaBox [0 0 300 400]", source, StringComparison.Ordinal);
         Assert.Contains("0.941 0.973 1 rg\n0 0 300 400 re f", source, StringComparison.Ordinal);
@@ -60,7 +60,7 @@ public class PdfDocumentBuilderIncrementalAdapterTests {
             settings.IncludeStandardFontToUnicodeMaps = true;
         }));
 
-        string source = Encoding.ASCII.GetString(document.ToBytes());
+        string source = PdfTestContentText.ReadDecoded(document.ToBytes());
         Assert.Equal(1, callbackCount);
         Assert.Contains("/MediaBox [0 0 300 400]", source, StringComparison.Ordinal);
         Assert.DoesNotContain("/Filter /FlateDecode", source, StringComparison.Ordinal);

@@ -28,7 +28,8 @@ internal static partial class OfficeOpenXmlChartSeriesReader {
             if (flattenThreeDimensional && child is A.Shape3DType) continue;
             if (child is A.SolidFill && !OfficeOpenXmlThemeColorResolver.HasUnsupportedTransforms(child) &&
                 OfficeOpenXmlThemeColorResolver.ResolveColor(child, scheme).HasValue) continue;
-            if (child is A.NoFill && !filled) continue;
+            if (child is A.NoFill) continue;
+            if (child is A.PatternFill pattern && filled && OfficeOpenXmlChartPointStyles.IsSupportedPattern(pattern, scheme)) continue;
             if (child is not A.Outline outline) return false;
             // Marker-only series retain native line metadata that has no rendered
             // effect. Filled series still use the outline around their geometry.
@@ -36,7 +37,8 @@ internal static partial class OfficeOpenXmlChartSeriesReader {
             if (outline.Width?.Value == 0 && outline.GetFirstChild<A.NoFill>() == null) return false;
             if (OfficeOpenXmlChartPointStyles.HasUnsupportedLineAttributes(outline) || outline.Width?.Value < 0) return false;
             foreach (var lineChild in outline.ChildElements) {
-                if (lineChild is A.NoFill) continue;
+                if (lineChild is A.NoFill or A.Round or A.LineJoinBevel) continue;
+                if (lineChild is A.Miter miter && !miter.HasAttributes && !miter.HasChildren) continue;
                 if (lineChild is A.SolidFill && !OfficeOpenXmlThemeColorResolver.HasUnsupportedTransforms(lineChild) &&
                     OfficeOpenXmlThemeColorResolver.ResolveColor(lineChild, scheme).HasValue) continue;
                 if ((!filled || area) && lineChild is A.PresetDash && (!connectLine || ReadDash(outline).HasValue)) continue;
@@ -46,17 +48,4 @@ internal static partial class OfficeOpenXmlChartSeriesReader {
         return true;
     }
 
-    private static IReadOnlyList<OfficeChartPointStyle?>? InheritFilledOutline(
-        IReadOnlyList<OfficeChartPointStyle?>? styles, int count, A.Outline? outline, OfficeColor? color, double? width) {
-        if (outline == null || (!outline.HasChildren && !width.HasValue)) return styles;
-        bool visible = outline.GetFirstChild<A.NoFill>() == null;
-        var result = new OfficeChartPointStyle?[count];
-        for (int index = 0; index < count; index++) {
-            var point = styles?[index];
-            result[index] = new OfficeChartPointStyle(point?.FillColor, point?.NoFill ?? false,
-                point?.Hatch, point?.HatchColor, point?.OutlineColor ?? color,
-                point?.OutlineWidth ?? width, point?.ShowOutline ?? visible, point?.OutlineJoin);
-        }
-        return result;
-    }
 }

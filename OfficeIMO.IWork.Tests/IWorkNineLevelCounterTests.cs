@@ -36,9 +36,7 @@ public sealed partial class IWorkBoundaryTests {
         var paragraphs = Assert.Single(reopened.Slides[0].Tables).GetCell(0, 0).Paragraphs;
         Assert.Equal(NineLevelSourceLevels.Select(level => (int?)level), paragraphs.Select(p => p.Level));
         string[] expected = content.Paragraphs.Select(p => p.ListNumber + ". " + p.Text).ToArray();
-        Assert.Equal(expected, reopened.Slides[0].CreateVisualSnapshot().Drawing.Elements
-            .Select(element => element switch { OfficeDrawingRichText rich => rich.PlainText,
-                OfficeDrawingText plain => plain.Text, _ => null }).Where(text => text != null));
+        Assert.Equal(string.Concat(expected), DrawingText(reopened.Slides[0].CreateVisualSnapshot().Drawing));
     }
 
     [Theory]

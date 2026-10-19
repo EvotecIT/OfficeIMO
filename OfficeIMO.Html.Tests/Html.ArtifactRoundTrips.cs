@@ -38,11 +38,22 @@ public class HtmlArtifactRoundTrips {
         Assert.Contains(Marker, string.Join("\n", reopenedRtf.Document.Paragraphs.Select(paragraph => paragraph.ToPlainText())), StringComparison.Ordinal);
         Assert.Contains(Marker, markdown, StringComparison.Ordinal);
         Assert.Contains(Marker, PdfCore.PdfReadDocument.Open(pdf).ExtractText(), StringComparison.Ordinal);
-        Assert.Contains(Marker, svg, StringComparison.Ordinal);
+        // SVG can retain logical text on outlined groups or painted text elements.
+        string svgText = ReadSvgSemanticText(System.Xml.Linq.XDocument.Parse(svg).Root!);
+        Assert.Contains(string.Concat(Marker.Where(character => !char.IsWhiteSpace(character))),
+            string.Concat(svgText.Where(character => !char.IsWhiteSpace(character))), StringComparison.Ordinal);
         Assert.True(pdf.Length > 100);
         Assert.StartsWith("{\\rtf", rtf, StringComparison.Ordinal);
         Assert.True(wordResult.Succeeded);
         Assert.True(rtfResult.Succeeded);
+    }
+
+    private static string ReadSvgSemanticText(System.Xml.Linq.XElement element) {
+        string? label = element.Attribute("aria-label")?.Value;
+        if (!string.IsNullOrEmpty(label)
+            && (element.Name.LocalName == "text" || element.Attribute("role")?.Value == "img")) return label;
+        if (element.Name.LocalName == "text") return element.Value;
+        return string.Concat(element.Elements().Select(ReadSvgSemanticText));
     }
 
     [Fact]

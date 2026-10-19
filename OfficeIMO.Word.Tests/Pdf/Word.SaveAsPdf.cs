@@ -644,13 +644,14 @@ public partial class Word {
     }
 
     private static void AssertPdfUsesFont(string pdfPath, string expectedFontNamePart) {
+        string[] names = expectedFontNamePart == "Times"
+            ? new[] { "Times", "LiberationSerif" } : new[] { expectedFontNamePart };
         using PdfPigDocument pdf = PdfPigDocument.Open(pdfPath);
         Assert.Contains(pdf.GetPage(1).Letters, letter =>
-            letter.FontName != null &&
-            letter.FontName.Contains(expectedFontNamePart, StringComparison.OrdinalIgnoreCase));
-
+            letter.FontName != null && names.Any(name => letter.FontName.Contains(name, StringComparison.OrdinalIgnoreCase)));
         string pdfContent = PdfOperatorSearchText.From(File.ReadAllBytes(pdfPath));
-        Assert.Contains("/BaseFont /" + expectedFontNamePart, pdfContent, StringComparison.OrdinalIgnoreCase);
+        Assert.True(names.Any(name => Regex.IsMatch(pdfContent, @"/BaseFont /(?:[A-Z]{6}\+)?" + Regex.Escape(name),
+            RegexOptions.IgnoreCase)), "Expected the requested serif or its installed compatible substitute.");
     }
 
     private static void AssertPdfUsesAnyFont(string pdfPath, params string[] expectedFontNameParts) {

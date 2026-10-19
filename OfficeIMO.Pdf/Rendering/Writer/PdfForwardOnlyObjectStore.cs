@@ -35,6 +35,7 @@ internal sealed class PdfForwardOnlyObjectStore : IPdfObjectStore {
     internal long BytesWritten => _written;
     public int Count => _materialized.Count;
     public bool IsReadOnly => false;
+    public PdfVisualResourceCache VisualResources { get; } = new();
 
     public byte[] this[int index] {
         get => throw new NotSupportedException("Forward-only PDF objects cannot be read after emission.");

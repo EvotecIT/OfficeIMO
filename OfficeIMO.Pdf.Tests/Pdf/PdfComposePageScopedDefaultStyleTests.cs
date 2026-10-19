@@ -130,7 +130,7 @@ namespace OfficeIMO.Tests.Pdf {
             var page2 = pdf.GetPage(2);
             double pageOneSize = page1.Letters.Where(l => !char.IsWhiteSpace(l.Value[0])).Select(l => l.PointSize).First();
             double pageTwoSize = page2.Letters.Where(l => !char.IsWhiteSpace(l.Value[0])).Select(l => l.PointSize).First();
-            string rawPdf = Encoding.ASCII.GetString(bytes);
+            string rawPdf = PdfTestContentText.ReadDecoded(bytes);
 
             Assert.InRange(pageOneSize, 12.5, 13.5);
             Assert.InRange(pageTwoSize, 17.5, 18.5);
@@ -179,7 +179,7 @@ namespace OfficeIMO.Tests.Pdf {
             double pageTwoSize = page2.Letters.Where(l => !char.IsWhiteSpace(l.Value[0]) && l.Value != "•").Select(l => l.PointSize).First();
             double pageOneBulletX = page1.Letters.First(l => l.Value == "•").StartBaseLine.X;
             double pageTwoBulletX = page2.Letters.First(l => l.Value == "•").StartBaseLine.X;
-            string rawPdf = Encoding.ASCII.GetString(bytes);
+            string rawPdf = PdfTestContentText.ReadDecoded(bytes);
 
             Assert.InRange(pageOneSize, 12.5, 13.5);
             Assert.InRange(pageTwoSize, 9.5, 10.5);
@@ -230,7 +230,7 @@ namespace OfficeIMO.Tests.Pdf {
 
             double pageOneX = FindWordStartX(pdf.GetPage(1), "PageOnePanel");
             double pageTwoX = FindWordStartX(pdf.GetPage(2), "PageTwoPanel");
-            string rawPdf = Encoding.ASCII.GetString(bytes);
+            string rawPdf = PdfTestContentText.ReadDecoded(bytes);
 
             Assert.InRange(pageOneX, 105, 107);
             Assert.InRange(pageTwoX, 35, 37);
@@ -282,7 +282,7 @@ namespace OfficeIMO.Tests.Pdf {
 
             double pageOneY = FindWordStartY(pdf.GetPage(1), "PageOneRule");
             double pageTwoY = FindWordStartY(pdf.GetPage(2), "PageTwoRule");
-            string rawPdf = Encoding.ASCII.GetString(bytes);
+            string rawPdf = PdfTestContentText.ReadDecoded(bytes);
 
             Assert.True(pageTwoY - pageOneY >= 7, $"Expected the page-scoped rule style to push only page-one content down. Page one y: {pageOneY:0.##}, page two y: {pageTwoY:0.##}.");
             Assert.Contains("0.039 0.078 0.118 RG", rawPdf, StringComparison.Ordinal);
@@ -330,7 +330,7 @@ namespace OfficeIMO.Tests.Pdf {
 
             byte[] bytes = doc.ToBytes();
             using var pdf = PdfPigDocument.Open(new MemoryStream(bytes));
-            string rawPdf = Encoding.ASCII.GetString(bytes);
+            string rawPdf = PdfTestContentText.ReadDecoded(bytes);
             double pageOneY = FindWordStartY(pdf.GetPage(1), "PageOneImage");
             double pageTwoY = FindWordStartY(pdf.GetPage(2), "PageTwoImage");
 
@@ -381,7 +381,7 @@ namespace OfficeIMO.Tests.Pdf {
 
             byte[] bytes = doc.ToBytes();
             using var pdf = PdfPigDocument.Open(new MemoryStream(bytes));
-            string rawPdf = Encoding.ASCII.GetString(bytes);
+            string rawPdf = PdfTestContentText.ReadDecoded(bytes);
             double pageOneY = FindWordStartY(pdf.GetPage(1), "PageOneDrawing");
             double pageTwoY = FindWordStartY(pdf.GetPage(2), "PageTwoDrawing");
 

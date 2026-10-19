@@ -441,7 +441,7 @@ public static partial class MarkdownPdfConverterExtensions {
         string content = code.Content ?? string.Empty;
         string language = code.Language?.Trim() ?? string.Empty;
 
-        pdf.PanelParagraph(builder => {
+        pdf.Panel(contentBuilder => contentBuilder.Paragraph(builder => {
             if (language.Length > 0) {
                 builder.FontSize(visualTheme.CodeBlockLabelFontSizeSnapshot)
                     .Bold(language, visualTheme.CodeBlockLabelColorSnapshot)
@@ -452,7 +452,7 @@ public static partial class MarkdownPdfConverterExtensions {
                 .FontSize(visualTheme.CodeBlockFontSizeSnapshot)
                 .Color(visualTheme.CodeBlockTextColorSnapshot);
             AppendTextWithLineBreaks(builder, content);
-        }, visualTheme.CodeBlockPanelStyleSnapshot);
+        }, style: new PdfCore.PdfParagraphStyle { TextWhitespaceMode = PdfCore.PdfTextWhitespaceMode.Preformatted }), visualTheme.CodeBlockPanelStyleSnapshot);
 
         if (!string.IsNullOrWhiteSpace(code.Caption)) {
             pdf.Paragraph(builder => builder.Italic(code.Caption!), style: new PdfCore.PdfParagraphStyle { SpacingAfter = 8 });

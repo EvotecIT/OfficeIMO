@@ -4,7 +4,7 @@ using PptCore = OfficeIMO.PowerPoint;
 
 namespace OfficeIMO.PowerPoint.Pdf;
 
-public static partial class PowerPointPdfConverterExtensions {
+public static partial class PdfPowerPointConverterExtensions {
     private static double ScaleEditableFontSize(double fontSize, double scale) =>
         Math.Min(4000D, Math.Max(1D, fontSize * scale));
 

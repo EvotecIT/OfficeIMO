@@ -7,6 +7,32 @@
 
 If OfficeIMO saves you time, please consider supporting the work through [GitHub Sponsors](https://github.com/sponsors/PrzemyslawKlys) or [PayPal](https://paypal.me/PrzemyslawKlys). PowerShell users should use [PSWriteOffice](https://github.com/EvotecIT/PSWriteOffice) for the PowerShell-facing experience.
 
+Page content is Flate-compressed by default, including direct `PdfDocument.Create`
+authoring. `PdfOptions.CompressContentStreams = false` keeps page operators plain.
+ICC profiles, embedded files and widget appearances are compressed independently;
+XMP packets remain uncompressed. Identical graphics states, shadings, functions and
+untagged Form resources are shared within the document. Byte-identical page programs
+also share storage while retaining each page occurrence. Output keeps classic cross-reference
+tables; compact object/xref streams remain available through `Optimization`.
+
+Supported PNG/JPEG ICC profiles are retained as ICCBased image resources. Indexed PNGs
+keep their palette and transparency mask. EXIF rotation and mirroring use placement matrices, and layout uses the oriented
+dimensions. JPEG DCT payloads, PNG sample depth, profiles, transparency masks and
+repeated-image sharing survive orientation changes. Sixteen-bit PNG colour and alpha
+samples are retained with PDF 1.5+ output; PDF 1.4 rounds them to eight bits. Visible
+signature images use the same image-resource allocator and target-version rules.
+Managed display and PDF-to-drawing replay apply the PDF placement exactly once;
+image extraction retains the original JPEG bytes.
+
+Attach a `PdfConversionReport` through `ReportDiagnosticsTo(...)` to inspect authored
+overflow and clipping in rows, fixed boxes, paragraph frames, rotated and viewport
+cells, free-text annotations, and running content. Paint checks include glyph ink,
+decorations and inline elements. Standard-font checks use Adobe glyph bounds;
+embedded-font checks use the selected outlines. Reports distinguish preserved overflow from clipped
+paint. Bounded inspection reports unassessed geometry when its limits are exceeded
+or nominal standard-font bounds cannot prove loss through a partial path clip. These checks
+do not change layout or text emission.
+
 ## Header and footer content
 
 Headers and footers can contain the same bounded paragraph, table, image and drawing flow used by the document body. `Content`, `FirstPageContent` and `EvenPagesContent` select a story for each page and reserve body space from its measured height. Distances and the optional `bodyGap` are in points from the top or bottom page edge. Repeated image payloads are shared across pages and pagination passes. During layout, including pagination stabilization, running content retains at most 128 MiB of distinct encoded image bytes, prepared streams and image masks; exceeding this limit throws `InvalidDataException`. This bounds retained layout assets; transient callback/decoder allocations and opt-in image optimization or PDF/X conversion during serialization use their own policies.
@@ -257,7 +283,9 @@ best-effort pagination.
 
 Add `using OfficeIMO.Drawing;` when applying an `OfficeRenderingProfile`.
 `Managed` selects the dependency-light shaping provider for its documented
-Arabic-script/TrueType subset (core and extended Persian/Urdu letters). Supply a profile containing your embedded font family,
+Arabic-script subset (core and extended Persian/Urdu letters). Mark attachment and
+required lam-alef ligatures need a complete shaping provider; the bounded fallback
+reports approximation loss, so `RequireNoLoss()` rejects it. Supply a profile containing your embedded font family,
 fallbacks, language, and shaping provider when the document contract requires
 broader scripts or reproducible font selection.
 
@@ -299,6 +327,15 @@ including header and footer shapes. Gradient direction follows the same local co
 before and after an affine transform.
 Path and polygon fills preserve `OfficeShape.FillRule`, including even-odd holes,
 gradient clipping, affine transforms, and header and footer shapes.
+
+Embedded SVG drawing images retain supported vector paths, gradients, clipping and text.
+PDF tiling patterns store a reusable cell instead of a copy of every tile. Repeated link
+annotations share a generation-wide expansion budget derived from the patterns' existing
+`maximumTileCount` limits; nested patterns and running content consume the same budget.
+Paint that the SVG reader can import but the PDF vector writer cannot express uses raster fallback and
+reports `SvgImageRasterFallback`; incomplete SVG imports fail explicitly.
+Canvas gradients interpolate premultiplied channels, including linear-light RGB gradients.
+Imported SVG/XPS retains separate colour and alpha interpolation.
 
 Drawing export retains bounded vector tiling patterns, isolated group opacity and
 blend modes, and alpha or explicit `PdfDeviceRgb` luminosity soft masks with
@@ -402,7 +439,8 @@ content must fit a complete frame, including padding. Otherwise allow splitting.
 - Creates PDFs with page setup, headings, paragraphs, rich text, links, lists, reusable typed and page-aware components, tested report/invoice/label-sheet/ticket recipes, mixed inline images and boxes, dictionary-driven hyphenation, styled multipage containers, balanced block-flow columns, conditional/replayable flow, position capture, sections, generated TOCs, optional-content layers, tables, images, vector drawing, headers, footers, watermarks, metadata, portfolios, and form primitives. Raster inputs accepted by `OfficeIMO.Drawing` normalize once through the shared image owner before PDF embedding. Eight/sixteen-bit Huffman lossless JPEG inputs normalize to PNG before embedding; supported one/three-component eight-bit DCT JPEGs retain their compressed payload. Lossless JPEGs with embedded ICC profiles are rejected when normalization cannot retain their color contract.
 - Reads and inspects PDFs through text extraction, logical document objects, page metadata, links, images, attachments, portfolios, outlines, forms, bounded immutable raw-structure views, active-content diagnostics, and security/revision markers.
 - Manipulates existing PDFs with page extraction, split, merge, delete, duplicate, move, rotate, metadata editing, stamps, watermarks, and complete-page overlay/underlay while preserving source PDF header versions on shared rewrite paths.
-- Renders supported embedded TrueType and OpenType/CFF fonts with stable-glyph subsetting. `UseManagedTextShaping()` selects Drawing's dependency-light positioned-glyph provider for its proven Arabic-script/TrueType subset (core and extended Persian/Urdu letters). The shared `IOfficeTextShapingProvider` contract remains the extension point for broader scripts and shaping engines.
+- Renders supported embedded TrueType and OpenType/CFF fonts with stable-glyph subsetting. Generated text applies pair kerning by default, with automatic bounded bidirectional ordering and Arabic per-letter joining. Mark attachment and required lam-alef ligatures report approximation loss unless a complete shaping provider handles the run. `UseManagedTextShaping()` selects Drawing's dependency-light positioned-glyph provider explicitly. The shared `IOfficeTextShapingProvider` contract remains the extension point for Indic, Thai, and other complex scripts and for full shaping engines.
+- Renders embedded TrueType, CFF, Type1C, CIDFontType0C, OpenType/CFF, and Type 1 fonts from their own outlines when reading PDFs, with PDF viewer stroke defaults, one-device-pixel hairlines, filtered image downscaling, anti-aliased clipping, function-based and mesh shadings, and JBIG2 images. Arithmetic JBIG2 dictionaries retain and reuse generic and refinement bitmap contexts, including global dictionaries; direct regions follow the page combination policy and page refinements preserve their replacement operator. The [state fixtures](../OfficeIMO.Pdf.Tests/Pdf/Fixtures/Rendering/jbig2-state.json) record independently decoded pixels. Type 1 and CFF outline projection supports positive uniform font-matrix scales; rotated, sheared, translated, reflected, or unequal-scale font matrices use a mapped substitute with `render.resource.font-cff-substitution`. Unsupported images and knockout groups are reported as `render.resource.image-unsupported` and `render.resource.knockout-group-simplified`.
 - Projects authored annotation appearance streams into page images. When a supported free-text, text-markup, shape, line, ink, path, stamp, or caret annotation has no usable normal appearance, the renderer reuses the bounded annotation synthesizer and reports `render.annotation.appearance-synthesized` as an approximation.
 - Shares managed CMYK, Lab, XYZ, calibrated-color conversion, bounded sampled, exponential, stitching, and Type 4 calculator color functions, vector tiling fills, standard blend modes, and alpha/luminosity soft masks with `OfficeIMO.Drawing`. Catalog destination output profiles with supported RGB matrix/TRC or ICC mBA transforms soft-proof vector, text, form, pattern, and image colors through the same rendering-intent pipeline. ICC LUT-composed and output-profile-composed shadings remain fail-closed unless their final interpolation can be certified. Pages with explicit transparency retain authored colors and report `render.colorspace.icc-output-intent-transparency-simplified` until output conversion can run after composition. Color-managed DCT/JPEG images use the ICC, `/Decode`, Indexed-palette, and transparency pipeline, while simple DeviceGray/DeviceRGB JPEGs without required color management remain lossless pass-through payloads. DeviceCMYK JPEGs normalize through the PDF image pipeline so that Adobe markers cannot override authored or implicit identity `/Decode` polarity.
 - Bounds completed page/effect content and serialized-object retention with separate memory limits, temporary-file spillover, direct large-stream spooling, and chunked final assembly during stream saves. `PdfSaveResult.Serialization` records limits, peak retained bytes, spill decisions, final buffering, and passthrough without claiming forward-only layout. Per-page metadata and the authored block model remain proportional to document size, and `ToBytes()` buffers the final artifact.
@@ -434,6 +472,8 @@ string text = string.Join('\n', read.Pages.SelectMany(page => page.TextBlocks).S
 enforces the same `PdfLoadOptions` limits before buffering, snapshots caller
 input once, and reuses one parsed document across read, inspection, preflight,
 diagnostic, optimization, signature, and compliance operations.
+
+Lossless optimization through `document.Optimization.Apply(...)` keeps XMP packets uncompressed and unchanged, preserves embedded XML and its associated-file relationships, and retains output intents and ICC profiles. It preserves an absent Info dictionary for PDF/A-4. `MaximumCompression` uses object and cross-reference streams and rejects PDF/A-1; choose `Balanced`, `Archival` or `Web` for that profile. Filtered XMP inputs are rejected before writing output. Optimize before signing: a signed input is refused because a full rewrite would invalidate its signatures. The compliance fixture gate validates representative PDF/A-2b, PDF/A-3b with PDF/UA-1 invoices, PDF/A-4 and PDF/UA-2 before and after each optimizer profile; conformance claims still require validation of the exact output artifact.
 
 ### Read and edit named document JavaScript
 
@@ -768,6 +808,17 @@ that optional feature; the language system's required feature remains enabled.
 `LatinLigatures` remains available for the presentation-character
 substitutions supported by that mode.
 
+With `UnicodeScalar`, flat mixed-direction letter runs use separate directional
+text-show operations and ToUnicode mappings to preserve copying and extraction.
+Numeric, nested, and other ambiguous scalar contexts retain the logical source
+in `ActualText`; extraction order in third-party readers depends on their handling
+of bidi text and replacement text.
+
+Pair kerning is on by default for embedded fonts (OpenType GPOS or `kern`
+pairs) and for the standard Helvetica and Times fonts (Adobe AFM pairs). Set
+`PdfOptions.TextKerning = false` for nominal advances; runs with explicit
+feature settings keep their own `kern` value.
+
 See the [PDF font support contract](../Docs/officeimo.pdf.current-state.md#resources-fonts-and-trust)
 for supported substitutions and limits. Use `TextShapingProvider` when a full
 OpenType shaping provider is needed.
@@ -956,6 +1007,8 @@ PdfDocument.Create(pdf => pdf.Content(content => content
 ```
 
 Inline elements participate in normal line wrapping. In tagged output, image and box alternative text is carried into the structure tree.
+
+Lines wrap at Unicode line-break opportunities (UAX #14), including after hyphens and slashes and between CJK characters. For pattern-based hyphenation without a word list, use `new PdfOptions().UseAutomaticHyphenation("en-US")`. The embedded patterns cover US English (`en-US`) and reformed German (`de-DE`); other languages are not hyphenated. Automatic hyphenation and `UseTextHyphenationDictionary` share one hyphenation hook, so the last one configured applies.
 
 ### Logical text for positioned canvas paint
 
@@ -1994,6 +2047,19 @@ var cryptography = new PdfCmsSignatureCryptographyProvider(
 PdfSignatureValidationReport report = signed.ToDocument().Security.ValidateSignatures(cryptography);
 ```
 
+Set `SubFilter = PdfExternalSignatureSubFilter.CadesDetached` in the signature
+options for PAdES B-B. The built-in signer emits signing-certificate-v2 and omits
+CMS signing-time for that subfilter. Both RSA and ECDSA certificates are supported.
+For B-T, set `CmsSigningOptions.SignatureTimestampProvider` to an RFC 3161 token
+provider, such as `Rfc3161TimestampClient.GetTimestamp`; its transport and trust
+policy belong to the caller. Document timestamps use a separate RFC 3161 signer.
+
+Text appearances require an explicit `PdfVisibleSignatureAppearanceOptions.Font`
+containing an embedded TrueType font. Image-only appearances do not require it.
+`PdfLongTermValidationEnricher.EnrichAsync` can merge caller-supplied certificates,
+OCSP responses and CRLs with an optional caller-owned fetcher. DSS/VRI presence
+alone does not establish complete trusted B-LT validation.
+
 The PDF package owns byte ranges, incremental updates, signature dictionaries, and preservation policy. The optional
 provider owns CMS, timestamps, and certificate trust. A custom `IPdfExternalSigner` or
 `IPdfSignatureCryptographyProvider` remains valid without `OfficeIMO.Security`.
@@ -2458,6 +2524,29 @@ dash patterns. Creation generates supported appearances by default. Updates
 remove a stale appearance when visual properties change and can explicitly
 regenerate it with `RegenerateAppearance`.
 
+### Language and table structure in tagged output
+
+Create the document with `new PdfOptions().EnableTaggedPdfCatalogMarkers()` and
+set its default `Language`. Generated table headers have stable document-local
+IDs, and data cells reference the applicable row and column headers through
+`/Headers`. The ParentTree uses bounded number-tree nodes for larger documents.
+
+For positioned text in another language, set the language on a semantic span:
+
+```csharp
+document.Content.Canvas(canvas => canvas.Structure(
+    PdfCanvasStructureRole.Paragraph,
+    paragraph => paragraph.Structure(
+        PdfCanvasStructureRole.Span,
+        span => span.Text(new[] { PdfTextRun.Normal("Bonjour") },
+            PdfCanvasTextStructureRole.Span, 36, 36, 160, 24),
+        new PdfCanvasStructureOptions { Language = "fr-FR" })));
+```
+
+Descendants inherit the span language. Set `Language = "en-US"` on a nested span
+to return to the document language. PDF 2.0 structure elements declare the PDF 2.0
+namespace, including the single Document child of the structure root.
+
 ### Generate and assess validator-backed PDF/A
 
 ```csharp
@@ -2465,8 +2554,7 @@ using OfficeIMO.Pdf;
 
 var options = new PdfOptions()
     .UsePdfA(PdfComplianceProfile.PdfA2B)
-    .EmbedStandardFont(PdfStandardFont.Helvetica, "SourceSerif4-Regular.otf", "Source Serif 4")
-    .RequireCompliance(PdfComplianceProfile.PdfA2B);
+    .EmbedStandardFont(PdfStandardFont.Helvetica, "SourceSerif4-Regular.otf", "Source Serif 4");
 
 PdfComplianceArtifact artifact = PdfDocument.Create(pdf => pdf.Content(content => content
         .Paragraph(paragraph => paragraph.Text("This artifact is ready for external validation."))), options)
@@ -2496,7 +2584,7 @@ if (!proof.CanClaimConformance || !declaredClaims.CanClaimAllDeclaredConformance
 }
 ```
 
-Formal generation gates are available for PDF/A-2a/b/u, PDF/A-3a/b/u, PDF/A-4/4e/4f, PDF/UA-1, PDF/UA-2, PDF/X-1a:2003, PDF/X-4, Factur-X, and ZUGFeRD. `RequireCompliance(...)` rejects incomplete generation settings. PDF/X additionally inspects the complete serialized artifact before any bytes are returned or committed to a destination. A conformance claim still requires a passing external result for the same profile, SHA-256, and byte length; validators are build-time tools and are not runtime dependencies of `OfficeIMO.Pdf`.
+Formal generation gates are available for PDF/A-2a/b/u, PDF/A-3a/b/u, PDF/A-4/4e/4f, PDF/UA-1, PDF/UA-2, PDF/X-1a:2003, PDF/X-4, Factur-X, and ZUGFeRD. `UsePdfA(...)` and `UsePdfUa(...)` enable strict generation and saved-artifact checks. When combined, both declared profiles must pass those checks. `RequireCompliance(...)` selects a strict gate without configuring its prerequisites. For metadata-only preparation, use `ConfigurePdfAGroundwork(...)` or `ConfigurePdfUaGroundwork(...)`. PDF/A-4 stores document metadata in XMP and omits the trailer Info dictionary. PDF/A-4f requires an embedded file. A conformance claim still requires a passing external result for the same profile, SHA-256, and byte length; validators are build-time tools and are not runtime dependencies of `OfficeIMO.Pdf`.
 
 For an opened PDF, `pdf.AssessCompliance(profile, cancellationToken)` checks readback readiness and observes cancellation during inspection. Readiness does not replace external conformance validation.
 
@@ -2588,9 +2676,9 @@ result.Report.RequireNoErrorWarnings();
 result.Save("proposal.pdf");
 ```
 
-The Word, Excel, PowerPoint, Markdown, HTML, RTF, OneNote, AsciiDoc, and LaTeX PDF adapters use one `PdfResourcePolicy`; semantic-projection adapters expose it through their nested Markdown PDF options. The balanced default enables installed fonts and bounded data URI/package resources for document fidelity while denying arbitrary local files and remote resolver calls. Use `PdfResourcePolicy.CreatePortableDeterministic()` for reproducible or untrusted conversion, and `CreateTrustedHost()` only when both source and host are trusted. Profiles never grant resource access.
+The Word, Excel, PowerPoint, Markdown, HTML, RTF, OneNote, AsciiDoc, and LaTeX PDF adapters use one `PdfResourcePolicy`; semantic-projection adapters expose it through their nested Markdown PDF options. The balanced default enables installed fonts and bounded data URI/package resources for document fidelity while denying arbitrary local files and remote resolver calls. For Word, Excel and PowerPoint this includes embedding installed document-selected fonts, with installed substitutes preferred when a requested Office family is missing. `font-family-substitution` diagnostics identify replacements, and `font-embedding-cost` records actual font-program stream sizes, compression and subset/full-program status. These byte counts exclude font dictionaries and character maps. Use `PdfResourcePolicy.CreatePortableDeterministic()` for reproducible or untrusted conversion, and `CreateTrustedHost()` only when both source and host are trusted. Profiles never grant resource access.
 
-The text-capable adapters also expose `TextFallbacks`. `PdfTextFallbackFeatures.Default` enables document, monospace, symbol, and emoji groups. Add `PdfTextFallbackFeatures.MultilingualFonts` for CJK, Arabic, and other non-Latin family candidates; OneNote adds that candidate group unless fallbacks are `None`. Candidate selection does not read installed fonts unless the resource policy allows it.
+The text-capable adapters also expose `TextFallbacks`. `PdfTextFallbackFeatures.Default` enables document, monospace, symbol, emoji, and multilingual groups, including CJK, Arabic, and other non-Latin family candidates; OneNote adds that candidate group unless fallbacks are `None`. Candidate selection does not read installed fonts unless the resource policy allows it.
 
 On Windows, local font discovery includes fonts Office has already cached in its cloud-font folders. Numeric filenames are resolved through family folders and font metadata. The selected fonts follow the same resource and embedding rules.
 
@@ -2634,7 +2722,9 @@ PdfDocument.Create(pdf => pdf.Content(content => content
     .Save("invoice.pdf");
 ```
 
-The XML must be a valid EN 16931 CrossIndustryInvoice payload. The formal carrier gate checks the PDF/A-3 attachment, metadata, font, Unicode, and invoice rules before writing; exact-artifact PDF/A and invoice-validator results are still required before claiming conformance.
+Factur-X/ZUGFeRD hybrid containers support only PDF/A-3a, PDF/A-3b and PDF/A-3u, optionally with PDF/UA-1. PDF/A-4, PDF/A-4e and PDF/A-4f do not satisfy the invoice compliance profile; their general PDF generation and attachment capabilities follow their own profile requirements.
+
+The XML must be a valid CrossIndustryInvoice payload for its declared MINIMUM, BASIC WL, BASIC, EN 16931 or EXTENDED profile. The formal carrier gate checks the PDF/A-3 attachment, metadata, font, Unicode and profile-specific invoice rules before writing; exact-artifact PDF/A and invoice-validator results are still required before claiming conformance.
 
 #### Load and edit existing invoice XML
 

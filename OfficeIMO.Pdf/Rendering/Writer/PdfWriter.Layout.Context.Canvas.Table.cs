@@ -343,7 +343,8 @@ internal static partial class PdfWriter {
                 string orientedRole = rowIsHeader ? "TH" : "TD";
                 int? orientedId = RegisterTextStructureElement(orientedRole, _canvasStructureParentElement, rowIsHeader ? "Column" : string.Empty, cell.ColumnSpan, cell.RowSpan);
                 RenderOrientedTableCellContent(cell, style, rowIndex, columnIndex, contentFrame, cellX, cellTop, cellWidth, cellHeight,
-                    GetTableRowFont(currentOpts, rowUsesBold), fontSize, leading, runFontSizeScale, orientedParagraph, orientedRole, orientedId);
+                    GetTableRowFont(currentOpts, rowUsesBold), fontSize, leading, runFontSizeScale, orientedParagraph, orientedRole, orientedId,
+                    diagnosticTransform: CreateCanvasRotationTransform(item.X, currentOpts.PageHeight - item.Y - item.Height, item.Width, item.Height, item.RotationAngle));
                 MarkRichFonts(cell.Runs, forceBold: rowUsesBold);
                 AddTableCellNamedDestinationName(cell.NamedDestinationName, cellTop);
                 if (HasCellLinkTarget(cell.LinkUri, cell.LinkDestinationName))
@@ -383,6 +384,10 @@ internal static partial class PdfWriter {
                 }
             }
 
+            ReportFlowTableCellDiagnostics(style, cell, lines, rowIndex, 0, lineCount, lineCount,
+                cellX, cellTop, cellWidth, cellHeight, leading, innerWidth, verticalOffset, includeObjects: true,
+                assessPageBounds: item.RotationAngle == 0D);
+
             double firstBaseline = contentFrame.Top - padTop - verticalOffset - lines.TopSpacing - GetAscenderForOptions(cellFont, fontSize, currentOpts) + style.RowBaselineOffset;
             var visibleLines = SliceTableCellLines(lines, 0, lineCount);
             var visibleHeights = SliceTableCellLineHeights(lines, 0, lineCount, leading);
@@ -400,6 +405,17 @@ internal static partial class PdfWriter {
             PdfColor? textColor = rowIsHeader ? style.HeaderTextColor : rowIsFooter ? style.FooterTextColor : style.TextColor;
             var paragraph = new RichParagraphBlock(StripRunLinksWhenCellLinked(cell.Runs, linkUri, linkDestinationName), MapTableCellAlignment(align), textColor);
             TableCellContentFrame inkClip = GetTableCellInkClipFrame(style, rowIndex, columnIndex, cellX, cellTop, cellWidth, cellHeight);
+            if (cell.Viewport == null)
+                ReportFullyClippedFrameLine("TableCellContentClipped", "PdfTableCell[" + rowIndex + "," + columnIndex + "]",
+                    visibleLines, visibleHeights, firstBaseline, fontSize, leading, cellFont,
+                    inkClip.Top - inkClip.Height - textClipBleed, inkClip.Height + textClipBleed * 2D,
+                    cellX, cellTop, cellWidth, cellHeight);
+            ReportRichPaintDiagnostics("TableCell", "PdfTableCell[" + rowIndex + "," + columnIndex + "]", paragraph,
+                visibleLines, visibleHeights, firstBaseline, fontSize, leading, contentFrame.Left + padLeft, innerWidth,
+                new TableCellContentFrame(inkClip.Left - textClipBleed, inkClip.Top + textClipBleed,
+                    inkClip.Width + 2D * textClipBleed, inkClip.Height + 2D * textClipBleed),
+                alignments: visibleAlignments, offsets: visibleXOffsets, widths: visibleWidths, baselineFont: cellFont,
+                localTransform: CreateCanvasRotationTransform(item.X, currentOpts.PageHeight - item.Y - item.Height, item.Width, item.Height, item.RotationAngle));
             if (cell.Viewport != null || style.PreservePartialCellLines)
                 OmitInvisibleTableCellViewportLines(visibleLines, visibleHeights, visibleAlignments, visibleXOffsets, visibleWidths,
                     paragraph.Align, firstBaseline, contentFrame.Left + padLeft, innerWidth,

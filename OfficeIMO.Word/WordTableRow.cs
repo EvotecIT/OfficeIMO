@@ -251,7 +251,8 @@ namespace OfficeIMO.Word {
             return ReadOnOffValue(value.Val.InnerText);
         }
 
-        private static bool ReadOnOff(TableHeader value) {
+        /// <summary>Reads a repeat-header flag, treating an omitted value as enabled and explicit off forms as disabled.</summary>
+        internal static bool ReadOnOff(TableHeader value) {
             if (value.Val == null) {
                 return true;
             }

@@ -2,7 +2,7 @@ using OfficeIMO.Drawing;
 
 namespace OfficeIMO.Word {
     /// <summary>
-    /// Fluent image-export builder for a Word document page preview.
+    /// Fluent image-export builder for a Word document page.
     /// </summary>
     public sealed class WordDocumentImageExportBuilder : OfficeImageExportBuilder<WordDocumentImageExportBuilder, WordImageExportOptions> {
         internal WordDocumentImageExportBuilder(WordDocument document, WordImageExportOptions? options = null)
@@ -11,7 +11,7 @@ namespace OfficeIMO.Word {
                 (format, effective, cancellationToken) => document.ExportImage(format, effective, cancellationToken)) {
         }
 
-        /// <summary>Exports the first page preview.</summary>
+        /// <summary>Exports the first page.</summary>
         public WordDocumentImageExportBuilder FirstPage() => Page(0);
 
         /// <summary>Sets the zero-based page index to export.</summary>
@@ -23,15 +23,6 @@ namespace OfficeIMO.Word {
             Options.PageIndex = pageIndex;
             return this;
         }
-
-        /// <summary>Includes or excludes document body content.</summary>
-        public WordDocumentImageExportBuilder IncludeContent(bool include = true) {
-            Options.IncludeDocumentContent = include;
-            return this;
-        }
-
-        /// <summary>Excludes document body content.</summary>
-        public WordDocumentImageExportBuilder WithoutContent() => IncludeContent(false);
     }
 
     /// <summary>Fluent batch image export for Word document pages.</summary>
@@ -58,16 +49,10 @@ namespace OfficeIMO.Word {
             return this;
         }
 
-        /// <summary>Exports every estimated page from the beginning of the document.</summary>
+        /// <summary>Exports every page from the beginning of the document.</summary>
         public WordDocumentPageImageExportBuilder AllPages() {
             Options.PageIndex = 0;
             Options.PageCount = null;
-            return this;
-        }
-
-        /// <summary>Includes or excludes document body content.</summary>
-        public WordDocumentPageImageExportBuilder IncludeContent(bool include = true) {
-            Options.IncludeDocumentContent = include;
             return this;
         }
     }

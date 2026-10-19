@@ -79,7 +79,7 @@ public sealed partial class OfficeRasterCanvas {
         double scale = resolvedAdvance / measured;
         double cursor = textX;
         foreach ((OfficeFontFallbackRun run, OfficeTextDirection runDirection) in PlanVisualFallbackRuns(value, fontFamily, style, textDirection)) {
-            double runAdvance = MeasurePositionedText(run.Text, size, run.FamilyName, style, featureSettings, runDirection) * scale;
+            double runAdvance = MeasurePositionedText(run.Text, size, run.FamilyRequest, style, featureSettings, runDirection) * scale;
             DrawTextCore(
                 run.Text,
                 cursor,
@@ -90,7 +90,7 @@ public sealed partial class OfficeRasterCanvas {
                 size,
                 OfficeTextAlignment.Left,
                 style,
-                run.FamilyName,
+                run.FamilyRequest,
                 OfficeTextOverflowBehavior.Clip,
                 Math.Max(0.01D, runAdvance),
                 underlineStyle,
@@ -134,7 +134,7 @@ public sealed partial class OfficeRasterCanvas {
         double width = MeasureText(text, fontHeight, fontFamily, style);
         double cursor = ResolveAnchoredTextX(anchorX, width, alignment);
         foreach (OfficeFontFallbackRun run in runs) {
-            double runWidth = MeasureText(run.Text, fontHeight, run.FamilyName, style);
+            double runWidth = MeasureText(run.Text, fontHeight, run.FamilyRequest, style);
             DrawTextLine(
                 run.Text,
                 cursor,
@@ -149,7 +149,7 @@ public sealed partial class OfficeRasterCanvas {
                 rotationCenterY,
                 underline,
                 strikethrough,
-                run.FamilyName,
+                run.FamilyRequest,
                 flipHorizontal,
                 flipVertical,
                 underlineStyle,
@@ -182,7 +182,7 @@ public sealed partial class OfficeRasterCanvas {
         double width = MeasureText(text, fontHeight, fontFamily, style);
         double cursor = ResolveAnchoredTextX(anchorX, width, alignment);
         foreach (OfficeFontFallbackRun run in runs) {
-            double runWidth = MeasureText(run.Text, fontHeight, run.FamilyName, style);
+            double runWidth = MeasureText(run.Text, fontHeight, run.FamilyRequest, style);
             DrawTextLineTransformed(
                 run.Text,
                 cursor,
@@ -195,7 +195,7 @@ public sealed partial class OfficeRasterCanvas {
                 OfficeTextAlignment.Left,
                 underline,
                 strikethrough,
-                run.FamilyName);
+                run.FamilyRequest);
             cursor += runWidth;
         }
         return true;
@@ -206,10 +206,9 @@ public sealed partial class OfficeRasterCanvas {
         string? requestedFamilies) {
         if (runs.Count > 1) return true;
         if (runs.Count == 0) return false;
-        return !string.Equals(
-            runs[0].FamilyName,
-            requestedFamilies?.Trim() ?? string.Empty,
-            StringComparison.OrdinalIgnoreCase);
+        string requested = requestedFamilies?.Trim() ?? string.Empty;
+        return !string.Equals(runs[0].FamilyName, requested, StringComparison.OrdinalIgnoreCase)
+            && !string.Equals(runs[0].FamilyRequest, requested, StringComparison.OrdinalIgnoreCase);
     }
 
     private IReadOnlyList<(OfficeFontFallbackRun Run, OfficeTextDirection Direction)> PlanVisualFallbackRuns(

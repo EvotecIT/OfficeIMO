@@ -114,8 +114,9 @@ public sealed class HtmlRenderResult {
     private readonly ReadOnlyCollection<HtmlDiagnostic> _lossDiagnostics;
 
     internal HtmlRenderResult(HtmlRenderRequest request, HtmlRenderDocument document,
-        IEnumerable<HtmlRenderSurfaceResult> surfaces) {
+        IEnumerable<HtmlRenderSurfaceResult> surfaces, HtmlRenderOptions? resolvedOptions = null) {
         Request = request ?? throw new ArgumentNullException(nameof(request));
+        ResolvedOptions = (resolvedOptions ?? request.ResolveOptions()).Clone();
         Document = document ?? throw new ArgumentNullException(nameof(document));
         _surfaces = new List<HtmlRenderSurfaceResult>(surfaces ?? throw new ArgumentNullException(nameof(surfaces))).AsReadOnly();
         if (_surfaces.Count != document.Pages.Count) {
@@ -138,6 +139,7 @@ public sealed class HtmlRenderResult {
 
     /// <summary>Independent immutable request snapshot used for this operation.</summary>
     public HtmlRenderRequest Request { get; }
+    internal HtmlRenderOptions ResolvedOptions { get; }
     /// <summary>Selected, sliced, or stitched backend-neutral display list.</summary>
     public HtmlRenderDocument Document { get; }
     /// <summary>Ordered surface geometry and source mapping.</summary>
@@ -173,7 +175,7 @@ public sealed class HtmlRenderResult {
     /// </summary>
     public HtmlRenderResult WithAdditionalDiagnostics(IEnumerable<HtmlDiagnostic> diagnostics) {
         if (diagnostics == null) throw new ArgumentNullException(nameof(diagnostics));
-        return new HtmlRenderResult(Request, Document.WithAdditionalDiagnostics(diagnostics), _surfaces);
+        return new HtmlRenderResult(Request, Document.WithAdditionalDiagnostics(diagnostics), _surfaces, ResolvedOptions);
     }
 
     /// <summary>Throws with the complete report when the retained result is not lossless.</summary>

@@ -235,7 +235,7 @@ public class PdfImageExtractorTests {
         Assert.True(image.IsImageFile);
         AssertPngSignature(image.Bytes);
         Assert.Equal(2, ReadPngColorType(image.Bytes));
-        Assert.Equal(new byte[] { 0, 126, 125, 124 }, DecodeStoredPngIdat(image.Bytes));
+        Assert.Equal(new byte[] { 0, 143, 129, 125 }, DecodeStoredPngIdat(image.Bytes));
         Assert.True(OfficeImageReader.TryIdentify(image.Bytes, null, out var info));
         Assert.Equal(OfficeImageFormat.Png, info.Format);
     }
@@ -273,7 +273,7 @@ public class PdfImageExtractorTests {
         Assert.True(image.IsImageFile);
         AssertPngSignature(image.Bytes);
         Assert.Equal(2, ReadPngColorType(image.Bytes));
-        Assert.Equal(new byte[] { 0, 126, 125, 124 }, DecodeStoredPngIdat(image.Bytes));
+        Assert.Equal(new byte[] { 0, 143, 129, 125 }, DecodeStoredPngIdat(image.Bytes));
         Assert.True(OfficeImageReader.TryIdentify(image.Bytes, null, out var info));
         Assert.Equal(OfficeImageFormat.Png, info.Format);
     }
@@ -292,7 +292,7 @@ public class PdfImageExtractorTests {
         Assert.True(image.IsImageFile);
         AssertPngSignature(image.Bytes);
         Assert.Equal(2, ReadPngColorType(image.Bytes));
-        Assert.Equal(new byte[] { 0, 126, 125, 124 }, DecodeStoredPngIdat(image.Bytes));
+        Assert.Equal(new byte[] { 0, 143, 129, 125 }, DecodeStoredPngIdat(image.Bytes));
         Assert.True(OfficeImageReader.TryIdentify(image.Bytes, null, out var info));
         Assert.Equal(OfficeImageFormat.Png, info.Format);
     }
@@ -311,7 +311,7 @@ public class PdfImageExtractorTests {
         Assert.True(image.IsImageFile);
         AssertPngSignature(image.Bytes);
         Assert.Equal(6, ReadPngColorType(image.Bytes));
-        Assert.Equal(new byte[] { 0, 126, 125, 124, 126 }, DecodeStoredPngIdat(image.Bytes));
+        Assert.Equal(new byte[] { 0, 143, 129, 125, 126 }, DecodeStoredPngIdat(image.Bytes));
         Assert.True(OfficeImageReader.TryIdentify(image.Bytes, null, out var info));
         Assert.Equal(OfficeImageFormat.Png, info.Format);
     }
@@ -330,7 +330,7 @@ public class PdfImageExtractorTests {
         Assert.True(image.IsImageFile);
         AssertPngSignature(image.Bytes);
         Assert.Equal(6, ReadPngColorType(image.Bytes));
-        Assert.Equal(new byte[] { 0, 126, 125, 124, 126 }, DecodeStoredPngIdat(image.Bytes));
+        Assert.Equal(new byte[] { 0, 143, 129, 125, 126 }, DecodeStoredPngIdat(image.Bytes));
         Assert.True(OfficeImageReader.TryIdentify(image.Bytes, null, out var info));
         Assert.Equal(OfficeImageFormat.Png, info.Format);
     }

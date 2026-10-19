@@ -151,13 +151,11 @@ namespace OfficeIMO.Tests {
                 var series = line.Elements<LineChartSeries>().OrderBy(s => s.Index!.Val!.Value).ToList();
                 var s1 = series[1];
                 var hex = s1.GetFirstChild<ChartShapeProperties>()!
+                    .GetFirstChild<DocumentFormat.OpenXml.Drawing.Outline>()!
                     .GetFirstChild<DocumentFormat.OpenXml.Drawing.SolidFill>()!
                     .GetFirstChild<DocumentFormat.OpenXml.Drawing.RgbColorModelHex>()!.Val!;
                 Assert.Equal(Color.ParseHex("#d63939").ToRgbHex(), hex);
-
-                var validation = doc.ValidateDocument();
-                var chartErrors = validation.Where(v => v.Description.Contains("chart")).ToList();
-                Assert.True(chartErrors.Count == 0, Word.FormatValidationErrors(chartErrors));
+                Assert.Empty(doc.ValidateDocument());
             }
         }
     }

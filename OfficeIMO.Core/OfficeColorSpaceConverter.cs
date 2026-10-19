@@ -9,13 +9,42 @@ public static class OfficeColorSpaceConverter {
     private const double D65Y = 1D;
     private const double D65Z = 1.08883D;
 
+    // sRGB appearance of the 16 SWOP process solids and overprints, indexed by C*8 + M*4 + Y*2 + K. These are the
+    // published process-colour swatch values; interpolating between them approximates a press profile without ICC data.
+    private static readonly double[] ProcessSolids = {
+        255, 255, 255,  35, 31, 32,  255, 242, 0,  28, 26, 0,
+        236, 0, 140,  36, 0, 0,  237, 28, 36,  34, 0, 0,
+        0, 173, 239,  0, 15, 36,  0, 166, 80,  0, 19, 0,
+        46, 49, 146,  0, 0, 2,  54, 54, 57,  0, 0, 0
+    };
+
     /// <summary>Converts normalized subtractive device components to sRGB.</summary>
+    /// <remarks>
+    /// DeviceCMYK has no colorimetric definition. The conversion interpolates multilinearly between the sRGB
+    /// appearances of the sixteen SWOP process solids and overprints, so primaries and rich blacks keep their press
+    /// appearance (100% K is a soft black, not RGB 0) instead of the darker, oversaturated naive complement.
+    /// </remarks>
     public static OfficeColor FromCmyk(double cyan, double magenta, double yellow, double black) {
-        double c = Clamp01(cyan);
-        double m = Clamp01(magenta);
-        double y = Clamp01(yellow);
-        double k = Clamp01(black);
-        return OfficeColor.FromRgb(ToByte((1D - c) * (1D - k)), ToByte((1D - m) * (1D - k)), ToByte((1D - y) * (1D - k)));
+        CmykToRgb(Clamp01(cyan), Clamp01(magenta), Clamp01(yellow), Clamp01(black), out double red, out double green, out double blue);
+        return OfficeColor.FromRgb(ToByte(red / 255D), ToByte(green / 255D), ToByte(blue / 255D));
+    }
+
+    /// <summary>Converts 8-bit DeviceCMYK samples with <see cref="FromCmyk(double, double, double, double)"/>.</summary>
+    internal static void FromCmykBytes(byte cyan, byte magenta, byte yellow, byte black, out byte red, out byte green, out byte blue) {
+        CmykToRgb(cyan / 255D, magenta / 255D, yellow / 255D, black / 255D, out double r, out double g, out double b);
+        red = ToByte(r / 255D); green = ToByte(g / 255D); blue = ToByte(b / 255D);
+    }
+
+    private static void CmykToRgb(double c, double m, double y, double k, out double red, out double green, out double blue) {
+        red = green = blue = 0D;
+        for (int corner = 0; corner < 16; corner++) {
+            double weight = ((corner & 8) != 0 ? c : 1D - c) * ((corner & 4) != 0 ? m : 1D - m) *
+                ((corner & 2) != 0 ? y : 1D - y) * ((corner & 1) != 0 ? k : 1D - k);
+            if (weight == 0D) continue;
+            red += weight * ProcessSolids[corner * 3];
+            green += weight * ProcessSolids[corner * 3 + 1];
+            blue += weight * ProcessSolids[corner * 3 + 2];
+        }
     }
 
     /// <summary>Converts linear-light sRGB components to encoded sRGB.</summary>

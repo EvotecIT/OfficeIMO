@@ -16,6 +16,15 @@ public class PdfTextDirectionAnalysisTests {
     }
 
     [Fact]
+    public void RestoresRightToLeftWordsSeparatedByInteriorSpaces() {
+        string logical = PdfTextDirectionAnalysis.RestoreLogicalOrderFromGlyphPaintSequence(
+            "ملاعلاب ابحرم",
+            glyphSequenceProgressesLeftToRight: true);
+
+        Assert.Equal("مرحبا بالعالم", logical);
+    }
+
+    [Fact]
     public void PreservesRightToLeftTextWithoutGlyphOrderProvenance() {
         const string logicalText = "العربية";
 

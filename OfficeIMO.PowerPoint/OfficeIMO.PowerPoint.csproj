@@ -63,12 +63,15 @@
 
     <ItemGroup>
         <ProjectReference Include="..\OfficeIMO.Core\OfficeIMO.Core.csproj" />
+        <ProjectReference Include="..\OfficeIMO.Pdf\OfficeIMO.Pdf.csproj" />
         <Compile Include="..\OfficeIMO.SharedSource\OpenXml\OfficeVbaProjectPartEditor.cs" Link="SharedSource\OpenXml\OfficeVbaProjectPartEditor.cs" />
         <Compile Include="..\OfficeIMO.SharedSource\OpenXml\OfficeOpenXmlPackagePayload*.cs" Link="SharedSource\OpenXml\%(Filename)%(Extension)" />
     </ItemGroup>
 
     <ItemGroup>
         <Compile Include="..\OfficeIMO.SharedSource\OpenXml\OfficeOpenXmlThemeColorResolver.cs" Link="SharedSource\OpenXml\OfficeOpenXmlThemeColorResolver.cs" />
+        <Compile Include="..\OfficeIMO.SharedSource\OpenXml\OfficeOpenXmlChartAutomaticColors.cs" Link="SharedSource\OpenXml\OfficeOpenXmlChartAutomaticColors.cs" />
+        <Compile Include="..\OfficeIMO.SharedSource\OpenXml\OfficeOpenXmlChartCategoryGeometry.cs" Link="SharedSource\OpenXml\OfficeOpenXmlChartCategoryGeometry.cs" />
         <Compile Include="..\OfficeIMO.SharedSource\OpenXml\OfficeOpenXmlChartPointStyles.cs" Link="SharedSource\OpenXml\OfficeOpenXmlChartPointStyles.cs" />
         <Compile Include="..\OfficeIMO.SharedSource\OpenXml\OfficeOpenXmlChartExplosions.cs" Link="SharedSource\OpenXml\OfficeOpenXmlChartExplosions.cs" />
         <Compile Include="..\OfficeIMO.SharedSource\OpenXml\OfficeOpenXmlChartAxisGroups.cs" Link="SharedSource\OpenXml\OfficeOpenXmlChartAxisGroups.cs" />
@@ -99,6 +102,7 @@
         <Using Include="OfficeIMO.OpenXml.Internal" />
         <Using Include="DocumentFormat.OpenXml" />
     </ItemGroup>
+
 
     <ItemGroup>
         <InternalsVisibleTo Include="OfficeIMO.PowerPoint.Tests" />

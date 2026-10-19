@@ -15,7 +15,6 @@ internal static partial class PdfCiiDocumentHeaderInspector {
                 bool hasApplicableTradeTax = false;
                 bool hasTypeCode = false;
                 bool hasCategoryCode = false;
-                bool hasRateApplicablePercent = false;
                 bool hasBasisAmount = false;
                 bool hasCalculatedAmount = false;
                 var typeCodes = new List<string>();
@@ -36,7 +35,7 @@ internal static partial class PdfCiiDocumentHeaderInspector {
                     }
 
                     if (string.Equals(reader.LocalName, "ApplicableHeaderTradeSettlement", StringComparison.Ordinal)) {
-                        ReadHeaderTradeSettlementTaxBreakdown(reader, ref hasApplicableTradeTax, ref hasTypeCode, ref hasCategoryCode, ref hasRateApplicablePercent, ref hasBasisAmount, ref hasCalculatedAmount, typeCodes, missingTypeCodeBreakdowns, missingCategoryCodeBreakdowns);
+                        ReadHeaderTradeSettlementTaxBreakdown(reader, ref hasApplicableTradeTax, ref hasTypeCode, ref hasCategoryCode, ref hasBasisAmount, ref hasCalculatedAmount, typeCodes, missingTypeCodeBreakdowns, missingCategoryCodeBreakdowns);
                     }
                 }
 
@@ -45,7 +44,7 @@ internal static partial class PdfCiiDocumentHeaderInspector {
                     return false;
                 }
 
-                evidence = new PdfCiiTaxBreakdownEvidence(hasApplicableTradeTax, hasTypeCode && missingTypeCodeBreakdowns.Count == 0, hasCategoryCode && missingCategoryCodeBreakdowns.Count == 0, hasRateApplicablePercent, hasBasisAmount, hasCalculatedAmount, typeCodes, missingTypeCodeBreakdowns, missingCategoryCodeBreakdowns);
+                evidence = new PdfCiiTaxBreakdownEvidence(hasApplicableTradeTax, hasTypeCode && missingTypeCodeBreakdowns.Count == 0, hasCategoryCode && missingCategoryCodeBreakdowns.Count == 0, hasBasisAmount, hasCalculatedAmount, typeCodes, missingTypeCodeBreakdowns, missingCategoryCodeBreakdowns);
                 diagnostic = null;
                 return true;
             }
@@ -60,7 +59,6 @@ internal static partial class PdfCiiDocumentHeaderInspector {
         ref bool hasApplicableTradeTax,
         ref bool hasTypeCode,
         ref bool hasCategoryCode,
-        ref bool hasRateApplicablePercent,
         ref bool hasBasisAmount,
         ref bool hasCalculatedAmount,
         List<string> typeCodes,
@@ -77,7 +75,7 @@ internal static partial class PdfCiiDocumentHeaderInspector {
                 if (string.Equals(reader.LocalName, "ApplicableTradeTax", StringComparison.Ordinal)) {
                     hasApplicableTradeTax = true;
                     breakdownIndex++;
-                    ReadTradeTax(reader, breakdownIndex, ref hasTypeCode, ref hasCategoryCode, ref hasRateApplicablePercent, ref hasBasisAmount, ref hasCalculatedAmount, typeCodes, missingTypeCodeBreakdowns, missingCategoryCodeBreakdowns);
+                    ReadTradeTax(reader, breakdownIndex, ref hasTypeCode, ref hasCategoryCode, ref hasBasisAmount, ref hasCalculatedAmount, typeCodes, missingTypeCodeBreakdowns, missingCategoryCodeBreakdowns);
                     continue;
                 }
             }
@@ -95,7 +93,6 @@ internal static partial class PdfCiiDocumentHeaderInspector {
         int breakdownIndex,
         ref bool hasTypeCode,
         ref bool hasCategoryCode,
-        ref bool hasRateApplicablePercent,
         ref bool hasBasisAmount,
         ref bool hasCalculatedAmount,
         List<string> typeCodes,
@@ -127,11 +124,6 @@ internal static partial class PdfCiiDocumentHeaderInspector {
                     bool hasValue = !string.IsNullOrWhiteSpace(ReadElementText(reader));
                     hasCategoryCode = hasCategoryCode || hasValue;
                     tradeTaxHasCategoryCode = tradeTaxHasCategoryCode || hasValue;
-                    continue;
-                }
-
-                if (reader.Depth == depth + 1 && string.Equals(reader.LocalName, "RateApplicablePercent", StringComparison.Ordinal)) {
-                    hasRateApplicablePercent = hasRateApplicablePercent || !string.IsNullOrWhiteSpace(ReadElementText(reader));
                     continue;
                 }
 

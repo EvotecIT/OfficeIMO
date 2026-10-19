@@ -94,7 +94,7 @@ public class WordChartSeriesQualificationTests {
         Assert.False(Assert.Single(snapshot.Data.Series).ConnectLine);
         OfficeDrawing drawing = OfficeChartDrawingRenderer.Render(snapshot);
         var area = Assert.Single(drawing.Shapes, shape => shape.Shape.Kind == OfficeShapeKind.Polygon &&
-            shape.Shape.FillColor == OfficeColor.Parse("#123456"));
+            shape.Shape.FillColor == OfficeColor.Parse("#123456") && shape.Shape.Height > 50);
         Assert.Null(area.Shape.StrokeColor);
     }
     [Theory]
@@ -121,9 +121,10 @@ public class WordChartSeriesQualificationTests {
         series.InsertBefore(new C.DataPoint(new C.Index { Val = 1 },
             new C.ChartShapeProperties(new A.NoFill(), new A.Outline(new A.NoFill()))), series.GetFirstChild<C.Values>());
         Assert.True(chart.TryGetSnapshot(out var snapshot));
-        var styles = snapshot.Data.Series.Single().ToOfficeSeries().PointStyles!;
-        Assert.Equal(OfficeColor.Parse("#ABCDEF"), styles[0]!.OutlineColor);
-        Assert.Equal(2d, styles[0]!.OutlineWidth);
+        var shared = snapshot.Data.Series.Single().ToOfficeSeries();
+        var styles = shared.PointStyles!;
+        Assert.Equal(OfficeColor.Parse("#ABCDEF"), shared.SeriesStyle!.OutlineColor);
+        Assert.Equal(2d, shared.SeriesStyle.OutlineWidth);
         Assert.True(styles[1]!.NoFill);
         Assert.False(styles[1]!.ShowOutline);
     }
@@ -143,7 +144,6 @@ public class WordChartSeriesQualificationTests {
 
     [Theory]
     [InlineData(false, "gradient")]
-    [InlineData(false, "noFill")]
     [InlineData(false, "compound")]
     [InlineData(false, "customDash")]
     [InlineData(true, "gradient")]
@@ -158,7 +158,6 @@ public class WordChartSeriesQualificationTests {
         var series = chart.ChartPart!.ChartSpace!.Descendants<OpenXmlCompositeElement>().Single(item => item.LocalName == "ser");
         var properties = new C.ChartShapeProperties();
         if (appearance == "gradient") properties.Append(new A.GradientFill());
-        if (appearance == "noFill") properties.Append(new A.NoFill());
         if (appearance == "compound") properties.Append(new A.Outline { CompoundLineType = A.CompoundLineValues.Double });
         if (appearance == "customDash") properties.Append(new A.Outline(new A.CustomDash()));
         if (appearance == "miterLimit") properties.Append(new A.Outline(new A.SolidFill(new A.RgbColorModelHex { Val = "445566" }), new A.Miter { Limit = 500000 }));

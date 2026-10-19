@@ -45,7 +45,9 @@ public enum PdfCanvasStructureRole {
     /// <summary>Figure whose paint and optional text are supplied by the caller. Alternative text is optional; its absence does not establish accessibility conformance.</summary>
     Figure,
     /// <summary>Group of table body rows.</summary>
-    TableBody
+    TableBody,
+    /// <summary>Inline content sharing language or other structure metadata.</summary>
+    Span
 }
 
 /// <summary>Scope of a tagged table header cell.</summary>

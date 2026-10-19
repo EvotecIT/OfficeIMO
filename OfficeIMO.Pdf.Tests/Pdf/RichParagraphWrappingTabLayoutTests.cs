@@ -93,29 +93,15 @@ namespace OfficeIMO.Tests.Pdf {
         }
 
         [Fact]
-        public void WrapRichRuns_OffsetsExplicitTabStopsForFirstLineIndent() {
-            var method = typeof(PdfWriter).GetMethod("WrapRichRunsCoreWithFirstLineOrigin", BindingFlags.NonPublic | BindingFlags.Static);
-            Assert.NotNull(method);
-
-            var result = method!.Invoke(null, new object?[] {
-                new[] { new PdfTextRun("A\tB") },
-                180D,
-                12D,
-                PdfStandardFont.Helvetica,
-                16.8D,
-                156D,
-                24D,
-                36D,
-                null,
-                new[] { new PdfTabStop(90) },
-                null,
-                null,
-                null
-            })!;
-
-            var line = Assert.Single(ExtractLines(result));
-            Assert.Equal(new[] { "A", "B" }, line.ConvertAll(ExtractText).ToArray());
-            Assert.InRange(ExtractLeadingAdvance(line[1]), 57, 59);
+        public void ParagraphOffsetsExplicitTabStopsForFirstLineIndent() {
+            var style = new PdfParagraphStyle { FirstLineIndent = 24D };
+            style.AddTabStop(90D);
+            byte[] bytes = PdfDocument.Create(new PdfOptions { MarginLeft = 20D })
+                .Paragraph(paragraph => paragraph.Text("A\tB"), style: style).ToBytes();
+            using var pdf = UglyToad.PdfPig.PdfDocument.Open(bytes);
+            var letters = pdf.GetPage(1).Letters;
+            Assert.Equal(44D, letters[0].StartBaseLine.X, 3);
+            Assert.Equal(110D, letters.First(letter => letter.Value == "B").StartBaseLine.X, 3);
         }
 
         [Fact]

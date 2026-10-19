@@ -59,8 +59,8 @@ namespace OfficeIMO.Excel {
                 return;
             }
 
-            count += drawings.Count;
-            foreach (ExcelWorksheetDrawingObjectInfo drawing in drawings) {
+            foreach (ExcelWorksheetDrawingObjectInfo drawing in drawings.Where(drawing => !drawing.IsRenderable)) {
+                count++;
                 string source = drawing.CellReference == null ? sheetName : sheetName + "!" + drawing.CellReference;
                 details.Add($"{source}: {drawing.Name} ({drawing.Kind})");
             }
@@ -256,6 +256,11 @@ namespace OfficeIMO.Excel {
                 case ExcelChartType.PieOfPie:
                 case ExcelChartType.BarOfPie:
                 case ExcelChartType.Doughnut:
+                case ExcelChartType.Stock:
+                case ExcelChartType.Surface:
+                case ExcelChartType.SurfaceWireframe:
+                case ExcelChartType.SurfaceContour:
+                case ExcelChartType.SurfaceContourWireframe:
                     return true;
                 default:
                     return false;

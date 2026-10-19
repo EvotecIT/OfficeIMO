@@ -15,8 +15,10 @@ namespace OfficeIMO.OpenXml.Internal {
             // Literal cached charts have no workbook source whose hidden rows can affect plotting.
             if (chart.PlotArea?.Descendants<C.Formula>().Any(formula => !string.IsNullOrWhiteSpace(formula.Text)) != true) return false;
             try {
+                // Without any workbook reference the cache is the only source, and Office plots it
+                // as written. An unresolved or external workbook link still fails closed below.
                 var embedded = OfficeOpenXmlChartWriter.GetSharedEmbeddedWorkbook(part);
-                if (embedded == null) return true;
+                if (embedded == null) return false;
                 using var stream = embedded.GetStream(FileMode.Open, FileAccess.Read);
                 byte[] bytes = OfficeOpenXmlChartWorkbookSecurity.ReadAndValidate(stream);
                 using var workbookStream = new MemoryStream(bytes, writable: false);

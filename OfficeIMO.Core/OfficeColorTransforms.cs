@@ -70,6 +70,34 @@ public static class OfficeColorTransforms {
         return FromHsl(hue, saturation, ClampUnit(luminance + offset), color.A);
     }
 
+    /// <summary>Rotates the HSL hue by <paramref name="degrees"/>, as the DrawingML <c>hueOff</c> transform does.</summary>
+    public static OfficeColor OffsetHue(OfficeColor color, double degrees) {
+        ValidateFinite(degrees, nameof(degrees));
+        ToHsl(color, out double hue, out double saturation, out double luminance);
+        return FromHsl(hue + degrees, saturation, luminance, color.A);
+    }
+
+    /// <summary>Multiplies the HSL hue, as the DrawingML <c>hueMod</c> transform does.</summary>
+    public static OfficeColor ModulateHue(OfficeColor color, double factor) {
+        ValidateNonNegativeFinite(factor, nameof(factor));
+        ToHsl(color, out double hue, out double saturation, out double luminance);
+        return FromHsl(hue * factor, saturation, luminance, color.A);
+    }
+
+    /// <summary>Adds a normalized HSL saturation offset and clamps the result, as the DrawingML <c>satOff</c> transform does.</summary>
+    public static OfficeColor OffsetSaturation(OfficeColor color, double offset) {
+        ValidateFinite(offset, nameof(offset));
+        ToHsl(color, out double hue, out double saturation, out double luminance);
+        return FromHsl(hue, ClampUnit(saturation + offset), luminance, color.A);
+    }
+
+    /// <summary>Multiplies the HSL saturation and clamps the result, as the DrawingML <c>satMod</c> transform does.</summary>
+    public static OfficeColor ModulateSaturation(OfficeColor color, double factor) {
+        ValidateNonNegativeFinite(factor, nameof(factor));
+        ToHsl(color, out double hue, out double saturation, out double luminance);
+        return FromHsl(hue, ClampUnit(saturation * factor), luminance, color.A);
+    }
+
     /// <summary>Returns the HSL hue complement while preserving saturation, luminance, and alpha.</summary>
     public static OfficeColor Complement(OfficeColor color) {
         ToHsl(color, out double hue, out double saturation, out double luminance);
@@ -93,7 +121,8 @@ public static class OfficeColorTransforms {
         return FromHsl(hue, saturation, ClampUnit(transformed), color.A);
     }
 
-    private static void ToHsl(OfficeColor color, out double hue, out double saturation, out double luminance) {
+    /// <summary>Converts to HSL without a byte round trip between operations in shared format adapters.</summary>
+    internal static void ToHsl(OfficeColor color, out double hue, out double saturation, out double luminance) {
         double red = color.R / 255D;
         double green = color.G / 255D;
         double blue = color.B / 255D;
@@ -123,7 +152,8 @@ public static class OfficeColorTransforms {
         }
     }
 
-    private static OfficeColor FromHsl(double hue, double saturation, double luminance, byte alpha) {
+    /// <summary>Quantizes the completed HSL transform sequence to an RGBA color.</summary>
+    internal static OfficeColor FromHsl(double hue, double saturation, double luminance, byte alpha) {
         hue = ((hue % 360D) + 360D) % 360D;
         saturation = ClampUnit(saturation);
         luminance = ClampUnit(luminance);

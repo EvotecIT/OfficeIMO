@@ -39,6 +39,7 @@ public sealed partial class HtmlRenderingTests {
         byte[] imageBytes = PdfPngTestImages.CreateRgbPng(12, 8);
         var requested = new List<string>();
         var options = new HtmlRenderOptions {
+            Mode = HtmlRenderMode.Continuous,
             ViewportWidth = 300D,
             Margins = HtmlRenderMargins.All(8D),
             ResourceResolver = (request, cancellationToken) => {
@@ -85,6 +86,7 @@ public sealed partial class HtmlRenderingTests {
         byte[] blue = PdfPngTestImages.CreateRgbPng(0, 0, 255);
         var requested = new List<string>();
         var options = new HtmlRenderOptions {
+            Mode = HtmlRenderMode.Continuous,
             ViewportWidth = 100D,
             Margins = HtmlRenderMargins.All(8D),
             ResourceResolver = (request, cancellationToken) => {
@@ -162,7 +164,10 @@ public sealed partial class HtmlRenderingTests {
         Assert.Equal(30D, background.Width, 3);
         Assert.Equal(20D, background.Height, 3);
         Assert.Equal(new byte[] { 137, 80, 78, 71, 13, 10, 26, 10 }, png.Bytes.Take(8));
-        Assert.Contains("data:image/png;base64", Encoding.UTF8.GetString(svg.Bytes), StringComparison.Ordinal);
+        OfficeRasterImage svgRaster = RasterizeHtmlImageSvg(Encoding.UTF8.GetString(svg.Bytes));
+        OfficeRasterImage sceneRaster = OfficeDrawingRasterRenderer.Render(rendered.Pages[0].CreateDrawing());
+        Assert.Equal(sceneRaster.GetPixel(85, 55), svgRaster.GetPixel(85, 55));
+        Assert.NotEqual(OfficeColor.White, svgRaster.GetPixel(85, 55));
         string pdfText = PdfCore.PdfReadDocument.Open(pdf).ExtractText().Replace("\r", string.Empty).Replace("\n", string.Empty);
         Assert.Contains("BackgroundOutputMarker", pdfText, StringComparison.Ordinal);
         Assert.Contains(PdfCore.PdfImageExtractor.ExtractImages(pdf), image => image.IsImageFile && image.MimeType == "image/png");
@@ -254,8 +259,11 @@ public sealed partial class HtmlRenderingTests {
         Assert.Equal(OfficeColor.Red, raster.GetPixel(19, 9));
         Assert.Equal(OfficeColor.Red, raster.GetPixel(9, 19));
         Assert.DoesNotContain("data:image/svg+xml", svg, StringComparison.Ordinal);
-        Assert.Equal(1, CountBackgroundOccurrences(svg, "<g id=\"officeimo-pattern-tile-"));
-        Assert.True(CountBackgroundOccurrences(svg, "<use href=\"#officeimo-pattern-tile-") >= 4);
+        OfficeRasterImage svgRaster = RasterizeHtmlImageSvg(svg);
+        Assert.Equal(OfficeColor.Red, svgRaster.GetPixel(9, 9));
+        Assert.Equal(OfficeColor.Blue, svgRaster.GetPixel(14, 9));
+        Assert.Equal(OfficeColor.Red, svgRaster.GetPixel(19, 9));
+        Assert.Equal(OfficeColor.Red, svgRaster.GetPixel(9, 19));
         Assert.Contains("SvgBgPdf", pdfText, StringComparison.Ordinal);
         OfficeRasterImage pdfRaster = OfficeDrawingRasterRenderer.Render(pdfDrawing, scale: 4D / 3D);
         Assert.Equal(OfficeColor.Red, pdfRaster.GetPixel(9, 9));
@@ -302,6 +310,7 @@ public sealed partial class HtmlRenderingTests {
             + "');background-size:20px 10px;background-size:unsupported-size;background-repeat:no-repeat\"></div>";
 
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html), new HtmlRenderOptions {
+            Mode = HtmlRenderMode.Continuous,
             ViewportWidth = 160D,
             Margins = HtmlRenderMargins.All(8D)
         });
@@ -343,7 +352,9 @@ public sealed partial class HtmlRenderingTests {
         Assert.Equal(10D, layers[1].Width, 3);
         Assert.Equal(OfficeColor.Red, raster.GetPixel(8, 8));
         Assert.Equal(OfficeColor.Blue, raster.GetPixel(18, 18));
-        Assert.Equal(2, CountBackgroundOccurrences(svg, "data:image/png;base64,"));
+        OfficeRasterImage svgRaster = RasterizeHtmlImageSvg(svg);
+        Assert.Equal(OfficeColor.Red, svgRaster.GetPixel(9, 9));
+        Assert.Equal(OfficeColor.Blue, svgRaster.GetPixel(23, 23));
         Assert.Equal(2, PdfCore.PdfImageExtractor.ExtractImagePlacements(pdf).Count);
         Assert.Equal(2, PdfCore.PdfImageExtractor.ExtractImages(pdf).Count);
         Assert.DoesNotContain(rendered.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.BackgroundImageLayerLimit);
@@ -363,6 +374,7 @@ public sealed partial class HtmlRenderingTests {
             + "');background-repeat:no-repeat\"></div>";
 
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html), new HtmlRenderOptions {
+            Mode = HtmlRenderMode.Continuous,
             ViewportWidth = 80D,
             Margins = HtmlRenderMargins.All(8D),
             MaxBackgroundImageLayers = 2
@@ -380,6 +392,7 @@ public sealed partial class HtmlRenderingTests {
             + "');background-position:center;background-size:cover;background-repeat:no-repeat\"></div>";
 
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html), new HtmlRenderOptions {
+            Mode = HtmlRenderMode.Continuous,
             ViewportWidth = 140D,
             Margins = HtmlRenderMargins.All(8D)
         });
@@ -417,8 +430,13 @@ public sealed partial class HtmlRenderingTests {
         Assert.Equal(9L, pattern.Pattern.EstimatedTileCount);
         Assert.Single(drawing.ImagePatterns);
         Assert.Equal(new byte[] { 137, 80, 78, 71, 13, 10, 26, 10 }, png.Bytes.Take(8));
-        Assert.Contains("<pattern", svg, StringComparison.Ordinal);
-        Assert.Equal(1, CountBackgroundOccurrences(svg, "data:image/png;base64,"));
+        OfficeRasterImage svgRaster = RasterizeHtmlImageSvg(svg);
+        Assert.True(OfficePngReader.TryDecode(Convert.FromBase64String(imageData), out OfficeRasterImage? tile));
+        Assert.Equal(tile!.GetPixel(0, 0), svgRaster.GetPixel(9, 9));
+        Assert.Equal(tile.GetPixel(3, 1), svgRaster.GetPixel(15, 11));
+        Assert.Equal(svgRaster.GetPixel(9, 9), svgRaster.GetPixel(17, 9));
+        Assert.Equal(svgRaster.GetPixel(9, 9), svgRaster.GetPixel(25, 17));
+        Assert.Equal(OfficeColor.White, svgRaster.GetPixel(30, 15));
         Assert.Equal(9, PdfCore.PdfImageExtractor.ExtractImagePlacements(pdf).Count);
         Assert.Single(PdfCore.PdfImageExtractor.ExtractImages(pdf));
         Assert.DoesNotContain(rendered.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.BackgroundImageRepeatUnsupported);
@@ -451,8 +469,11 @@ public sealed partial class HtmlRenderingTests {
         Assert.Equal(OfficeColor.Red, raster.GetPixel(8, 9));
         Assert.NotEqual(OfficeColor.Red, raster.GetPixel(17, 9));
         Assert.Equal(OfficeColor.Red, raster.GetPixel(19, 9));
-        Assert.Contains("width=\"11\" height=\"8\"><image", svg, StringComparison.Ordinal);
-        Assert.Contains("width=\"8\" height=\"4\"", svg, StringComparison.Ordinal);
+        OfficeRasterImage svgRaster = RasterizeHtmlImageSvg(svg);
+        Assert.Equal(OfficeColor.Red, svgRaster.GetPixel(9, 9));
+        Assert.Equal(OfficeColor.White, svgRaster.GetPixel(17, 9));
+        Assert.Equal(OfficeColor.Red, svgRaster.GetPixel(20, 9));
+        Assert.Equal(OfficeColor.Red, svgRaster.GetPixel(31, 9));
         Assert.Equal(3, PdfCore.PdfImageExtractor.ExtractImagePlacements(pdf).Count);
         Assert.Single(PdfCore.PdfImageExtractor.ExtractImages(pdf));
         Assert.DoesNotContain(rendered.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.BackgroundImageRepeatUnsupported);
@@ -483,7 +504,9 @@ public sealed partial class HtmlRenderingTests {
         Assert.Equal(4L, pattern.Pattern.EstimatedTileCount);
         Assert.Equal(OfficeColor.Red, raster.GetPixel(8, 9));
         Assert.Equal(OfficeColor.Red, raster.GetPixel(37, 9));
-        Assert.Contains("width=\"7.5\"", svg, StringComparison.Ordinal);
+        OfficeRasterImage svgRaster = RasterizeHtmlImageSvg(svg);
+        foreach (int x in new[] { 11, 19, 26, 34, 37 }) Assert.Equal(OfficeColor.Red, svgRaster.GetPixel(x, 9));
+        Assert.Equal(OfficeColor.White, svgRaster.GetPixel(39, 9));
         Assert.Equal(4, PdfCore.PdfImageExtractor.ExtractImagePlacements(pdf).Count);
         Assert.Single(PdfCore.PdfImageExtractor.ExtractImages(pdf));
         Assert.DoesNotContain(rendered.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.BackgroundImageRepeatUnsupported);
@@ -497,6 +520,7 @@ public sealed partial class HtmlRenderingTests {
             + "');background-size:8px auto;background-repeat:round no-repeat\"></div>";
 
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html), new HtmlRenderOptions {
+            Mode = HtmlRenderMode.Continuous,
             ViewportWidth = 60D,
             Margins = HtmlRenderMargins.All(8D)
         });
@@ -514,6 +538,7 @@ public sealed partial class HtmlRenderingTests {
             + "');background-size:8px 4px;background-repeat:space no-repeat;background-position:right top\"></div>";
 
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html), new HtmlRenderOptions {
+            Mode = HtmlRenderMode.Continuous,
             ViewportWidth = 40D,
             Margins = HtmlRenderMargins.All(8D)
         });
@@ -532,6 +557,7 @@ public sealed partial class HtmlRenderingTests {
             + "');background-size:1px 1px;background-repeat:repeat\"></div>";
 
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html), new HtmlRenderOptions {
+            Mode = HtmlRenderMode.Continuous,
             ViewportWidth = 140D,
             Margins = HtmlRenderMargins.All(8D),
             MaxBackgroundImageTiles = 8
@@ -548,6 +574,7 @@ public sealed partial class HtmlRenderingTests {
     public void HtmlRender_PropagatesRootBackgroundToTheSurfaceBehindContent(double scale) {
         const string html = "<style>body{background-color:#123456}</style><p>RootCanvasMarker</p>";
         var options = new HtmlRenderOptions {
+            Mode = HtmlRenderMode.Continuous,
             ViewportWidth = 160D,
             Margins = HtmlRenderMargins.All(8D)
         };
@@ -644,6 +671,7 @@ public sealed partial class HtmlRenderingTests {
         const string html = "<style>html{background:#654321}body{background:#123456}</style><p>DocumentRootMarker</p>";
 
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html), new HtmlRenderOptions {
+            Mode = HtmlRenderMode.Continuous,
             ViewportWidth = 160D,
             Margins = HtmlRenderMargins.All(8D)
         });
@@ -659,6 +687,7 @@ public sealed partial class HtmlRenderingTests {
         const string html = "<style>html{background-image:none}body{background:#123456}</style><p>BodyCanvasMarker</p>";
 
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html), new HtmlRenderOptions {
+            Mode = HtmlRenderMode.Continuous,
             ViewportWidth = 160D,
             Margins = HtmlRenderMargins.All(8D)
         });
@@ -677,6 +706,7 @@ public sealed partial class HtmlRenderingTests {
             + "');background-repeat:no-repeat;background-size:16px 16px;background-position:center\">CellMarker</td></tr></table>";
 
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html), new HtmlRenderOptions {
+            Mode = HtmlRenderMode.Continuous,
             ViewportWidth = 180D,
             Margins = HtmlRenderMargins.All(8D)
         });

@@ -367,7 +367,10 @@ public sealed class HtmlPdfTests {
         Assert.DoesNotContain(password, raw, StringComparison.Ordinal);
         string passwordHex = BitConverter.ToString(Encoding.UTF8.GetBytes(password)).Replace("-", string.Empty);
         Assert.DoesNotContain(passwordHex, raw, StringComparison.OrdinalIgnoreCase);
-        Assert.Contains("<" + string.Concat(Enumerable.Repeat("2A", password.Length)) + "> Tj", raw, StringComparison.Ordinal);
+        string appearance = GetFieldAppearanceContent(pdf, field.Name);
+        Assert.DoesNotContain(password, appearance, StringComparison.Ordinal);
+        Assert.DoesNotContain(passwordHex, appearance, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("<" + string.Concat(Enumerable.Repeat("2A", password.Length)) + "> Tj", appearance, StringComparison.Ordinal);
     }
 
     [Fact]

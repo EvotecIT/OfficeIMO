@@ -128,7 +128,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                     double fragmentEnd = forcedBreakFits
                         ? forcedBreak!.Offset
                         : available > 0.0001D
-                            ? FindFragmentEnd(block, blockOffset, available, fragmentLimit, contentHeight)
+                            ? FindFragmentEnd(block, blockOffset, available, fragmentLimit, contentHeight, repeatTrailing ? trailingGroup : null)
                             : blockOffset;
                     if (fragmentEnd <= blockOffset + 0.0001D) {
                         if (y > ResolvePageBodyTop(pages.Count + 1, pageGeometry) + 0.0001D
@@ -145,7 +145,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                         if (originalContinuation) {
                             double candidateAvailable = rawAvailable - trailingHeight;
                             double candidateEnd = candidateAvailable > 0.0001D
-                                ? FindFragmentEnd(block, blockOffset, candidateAvailable, fragmentLimit, contentHeight)
+                                ? FindFragmentEnd(block, blockOffset, candidateAvailable, fragmentLimit, contentHeight, repeatTrailing ? trailingGroup : null)
                                 : blockOffset;
                             if (candidateEnd > blockOffset + 0.0001D) {
                                 repeatContinuation = false;

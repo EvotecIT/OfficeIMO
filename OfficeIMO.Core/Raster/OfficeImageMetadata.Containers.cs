@@ -215,7 +215,7 @@ public sealed partial class OfficeImageMetadata {
             string type = Encoding.ASCII.GetString(input, cursor + 4, 4);
             OfficeImageMetadataProfileKinds kind = type == "eXIf" ? OfficeImageMetadataProfileKinds.Exif : type == "iCCP" ? OfficeImageMetadataProfileKinds.Icc : IsPngXmp(input, cursor + 8, length, type) ? OfficeImageMetadataProfileKinds.Xmp : type == "caBX" ? OfficeImageMetadataProfileKinds.C2pa : OfficeImageMetadataProfileKinds.None;
             present |= kind;
-            bool skip = (replace & kind) != 0 || metadata != null && (type == "pHYs" || metadata._icc != null && type == "sRGB");
+            bool skip = (replace & kind) != 0 || metadata != null && (type == "pHYs" || metadata._icc != null && (type == "sRGB" || type == "gAMA" || type == "cHRM"));
             if (!skip) output.Write(input, cursor, length + 12);
             if (metadata != null && type == "IHDR") {
                 byte[]? exif = metadata.EncodeExifProfile(token); if (exif != null) WritePngChunk(output, "eXIf", exif);

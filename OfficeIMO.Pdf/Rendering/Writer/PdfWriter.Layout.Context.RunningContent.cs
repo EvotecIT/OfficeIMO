@@ -248,7 +248,8 @@ internal static partial class PdfWriter {
             }
             PdfOptions frame = GetRunningFrameOptions(source, definition.DistanceFromEdge, 0D);
             using var measure = new LayoutContext(frame, cancellationToken: cancellationToken,
-                sharedPageContents: pageContents, isRunningContent: true);
+                sharedPageContents: pageContents, isRunningContent: true,
+                drawingPatternAnnotations: drawingPatternAnnotations);
             measure.currentPage = currentPage;
             measure.width = width;
             measure.yStart = start;
@@ -270,7 +271,8 @@ internal static partial class PdfWriter {
             // floating-point ulp when the final paragraph is tested for available room.
             PdfOptions frame = GetRunningFrameOptions(source, source.PageHeight - start, Math.Max(0D, start - height - .001D));
             using var story = new LayoutContext(frame, cancellationToken: cancellationToken,
-                sharedPageContents: pageContents, isRunningContent: true);
+                sharedPageContents: pageContents, isRunningContent: true,
+                drawingPatternAnnotations: drawingPatternAnnotations);
             story.currentPage = currentPage;
             story.width = width;
             story.yStart = start;

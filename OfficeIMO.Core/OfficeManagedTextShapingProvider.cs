@@ -25,11 +25,24 @@ public sealed partial class OfficeManagedTextShapingProvider : IOfficeTextShapin
     public OfficeTextShapingBackend Backend => OfficeTextShapingBackend.Managed;
 
     /// <inheritdoc />
-    public OfficeTextShapingResult? ShapeText(OfficeTextShapingRequest request) {
+    public OfficeTextShapingResult? ShapeText(OfficeTextShapingRequest request) =>
+        ShapeTextCore(request, allowDiagnosedFallback: false);
+
+    /// <summary>Retains bounded joining and mark-cluster ordering after complete shaping is declined.</summary>
+    /// <remarks>Consumers retain approximation diagnostics and must not record provider success.</remarks>
+    internal OfficeTextShapingResult? ShapeDiagnosedFallback(OfficeTextShapingRequest request) {
+        if (request == null) throw new ArgumentNullException(nameof(request));
+        if (request.ApplyDefaultLatinLigatures ||
+            !OfficeTextElements.ContainsCombiningMark(request.Text) &&
+            !OfficeArabicTextShaper.RequiresLamAlefLigatureShaping(request.Text, request.FeatureSettings)) return null;
+        return ShapeTextCore(request, allowDiagnosedFallback: true);
+    }
+
+    private OfficeTextShapingResult? ShapeTextCore(OfficeTextShapingRequest request, bool allowDiagnosedFallback) {
         if (!TryShapeTokens(request, out IOfficeFontProgram font, out List<OfficeOpenTypeSubstitution.GlyphToken> tokens,
-            out OfficeTextDirection resolvedDirection)) return null;
-        bool kerningEnabled = request.FeatureSettings.TryGetValue("kern", out int kerningValue)
-            ? kerningValue != 0 : !request.ApplyDefaultLatinLigatures;
+            out OfficeTextDirection resolvedDirection, allowDiagnosedFallback)) return null;
+        // Pair kerning is a default OpenType feature; only an explicit kern=0 disables it.
+        bool kerningEnabled = !request.FeatureSettings.TryGetValue("kern", out int kerningValue) || kerningValue != 0;
         var glyphIds = new int[tokens.Count];
         var scalars = new int[tokens.Count];
         for (int index = 0; index < tokens.Count; index++) {

@@ -49,9 +49,14 @@ internal static partial class PdfCiiDocumentHeaderInspector {
             return;
         }
 
+        string? invoiceCurrency = null;
         int depth = reader.Depth;
         while (reader.Read()) {
             if (reader.NodeType == System.Xml.XmlNodeType.Element) {
+                if (reader.Depth == depth + 1 && reader.LocalName == "InvoiceCurrencyCode") {
+                    invoiceCurrency = ReadElementText(reader).Trim();
+                    continue;
+                }
                 if (reader.Depth == depth + 1 &&
                     string.Equals(reader.LocalName, "SpecifiedTradeAllowanceCharge", StringComparison.Ordinal)) {
                     ReadAmountConsistencyHeaderAllowanceCharge(
@@ -67,7 +72,7 @@ internal static partial class PdfCiiDocumentHeaderInspector {
                 if (reader.Depth == depth + 1 &&
                     string.Equals(reader.LocalName, "SpecifiedTradeSettlementHeaderMonetarySummation", StringComparison.Ordinal)) {
                     ReadAmountConsistencyHeaderMonetarySummation(
-                        reader,
+                        reader, invoiceCurrency,
                         ref allowanceTotalAmount,
                         ref chargeTotalAmount,
                         ref taxBasisTotalAmount,
@@ -141,7 +146,7 @@ internal static partial class PdfCiiDocumentHeaderInspector {
     }
 
     private static void ReadAmountConsistencyHeaderMonetarySummation(
-        System.Xml.XmlReader reader,
+        System.Xml.XmlReader reader, string? invoiceCurrency,
         ref decimal? allowanceTotalAmount,
         ref decimal? chargeTotalAmount,
         ref decimal? taxBasisTotalAmount,
@@ -155,6 +160,7 @@ internal static partial class PdfCiiDocumentHeaderInspector {
             return;
         }
 
+        var seenTaxCurrencies = new HashSet<string>(StringComparer.Ordinal);
         int depth = reader.Depth;
         while (reader.Read()) {
             if (reader.NodeType == System.Xml.XmlNodeType.Element &&
@@ -184,7 +190,7 @@ internal static partial class PdfCiiDocumentHeaderInspector {
                 }
 
                 if (string.Equals(reader.LocalName, "TaxTotalAmount", StringComparison.Ordinal)) {
-                    if (TryReadAmount(reader, "TaxTotalAmount", ref parseDiagnostic, out decimal? amount)) {
+                    if (TryReadInvoiceCurrencyTaxTotal(reader, invoiceCurrency, seenTaxCurrencies, ref parseDiagnostic, out decimal? amount)) {
                         taxTotalAmount = amount;
                     }
 

@@ -1,0 +1,11 @@
+{
+  "input": "picture-crop-rotation.pptx",
+  "input_sha256": "86935f3ebf92fe84a43276557d43071ab029cf5bdb7dee2247d277702303bf24",
+  "reference": "microsoft-powerpoint-16.113.4-picture-crop-rotation.pdf",
+  "reference_sha256": "0d5b1391be92ebc1343f1e46fa1a917ada8fcc59727cc488be520cb0f952dee7",
+  "producer": "Microsoft PowerPoint16.113.4 on macOS27.0.1",
+  "export": "Local print-quality PDF via native Save As; standard Finder document opener; no security/permission dialog clicked; no online Microsoft conversion.",
+  "captured": "2026-10-16",
+  "fixture": "OfficeIMO-authored three-slide control: asymmetric red/blue/yellow picture with25% left crop and90-degree clockwise rotation; SVG picture; glow.",
+  "crop_reference": "Page1, authored frame(40,50,60,30) points. Rotated visible frame(55,35,30,60). Red upper half, blue lower half. Poppler288dpi independently confirms frame and color order."
+}

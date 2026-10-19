@@ -496,7 +496,7 @@ public partial class PdfInspectorTests {
         Assert.NotNull(outputIntent.DestinationOutputProfileObjectNumber);
         Assert.Equal(3, outputIntent.DestinationOutputProfileColorComponents);
         Assert.Null(outputIntent.DestinationOutputProfileAlternateColorSpace);
-        Assert.Null(outputIntent.DestinationOutputProfileFilter);
+        Assert.Equal("FlateDecode", outputIntent.DestinationOutputProfileFilter);
         Assert.True(outputIntent.DestinationOutputProfileSizeBytes > 128);
         Assert.Equal(outputIntent.DestinationOutputProfileSizeBytes, outputIntent.DestinationOutputProfileDeclaredSizeBytes);
         Assert.Equal("RGB ", outputIntent.DestinationOutputProfileColorSpace);

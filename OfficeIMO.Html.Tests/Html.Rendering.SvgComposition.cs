@@ -15,7 +15,7 @@ public sealed partial class HtmlRenderingTests {
             + "<img src='data:image/svg+xml;base64," + Convert.ToBase64String(Encoding.UTF8.GetBytes(svg)) + "'>";
 
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html,
-            new HtmlRenderOptions { ViewportWidth = 200D, ResourceUrlPolicy = HtmlUrlPolicy.CreateEmbeddedResourceProfile() });
+            new HtmlRenderOptions { Mode = HtmlRenderMode.Continuous, ViewportWidth = 200D, ResourceUrlPolicy = HtmlUrlPolicy.CreateEmbeddedResourceProfile() });
         HtmlRenderDrawing image = Assert.Single(rendered.Pages[0].Visuals.OfType<HtmlRenderDrawing>());
         Assert.Equal(48D, image.Width, 3);
         Assert.Equal(40D, image.Height, 3);
@@ -113,7 +113,17 @@ public sealed partial class HtmlRenderingTests {
         Assert.True(OfficeRasterImageDecoder.TryDecode(png.Bytes, out OfficeRasterImage? reference));
         Assert.Equal(400, reference!.Width);
         Assert.Equal(240, reference.Height);
-        Assert.Empty(png.Diagnostics);
+        OfficeImageExportDiagnostic approximation = Assert.Single(png.Diagnostics);
+        Assert.Equal("HtmlPdfDrawingEffectRasterized", approximation.Code);
+        Assert.Equal(OfficeConversionLossKind.Approximation, approximation.LossKind);
+        Assert.Equal(OfficeImageExportDiagnosticSeverity.Warning, approximation.Severity);
+        HtmlRenderOptions strict = options.Clone();
+        strict.Policy.RequireNoLoss = true;
+        OfficeImageExportPolicyException strictFailure = Assert.Throws<OfficeImageExportPolicyException>(() =>
+            document.ExportImage(OfficeImageExportFormat.Png, strict));
+        Assert.Contains(strictFailure.Diagnostics, diagnostic =>
+            diagnostic.Code == "HtmlPdfDrawingEffectRasterized"
+            && diagnostic.LossKind == OfficeConversionLossKind.Approximation);
         Assert.Equal(OfficeColor.FromRgb(246, 161, 153), reference.GetPixel(165, 50));
         Assert.Equal(OfficeColor.White, reference.GetPixel(225, 25));
         Assert.Equal(OfficeColor.FromRgb(25, 135, 84), reference.GetPixel(280, 180));
@@ -130,6 +140,8 @@ public sealed partial class HtmlRenderingTests {
         }
         foreach (OfficeImageExportFormat format in new[] { OfficeImageExportFormat.Tiff, OfficeImageExportFormat.Webp }) {
             OfficeImageExportResult encoded = document.ExportImage(format, options);
+            Assert.Equal(png.Diagnostics.Select(diagnostic => (diagnostic.Code, diagnostic.LossKind)),
+                encoded.Diagnostics.Select(diagnostic => (diagnostic.Code, diagnostic.LossKind)));
             Assert.True(OfficeRasterImageDecoder.TryDecode(encoded.Bytes, out OfficeRasterImage? decoded));
             Assert.Equal(reference.Width, decoded!.Width);
             Assert.Equal(reference.Height, decoded.Height);

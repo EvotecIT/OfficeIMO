@@ -76,7 +76,8 @@ public class OfficeColorSpaceConverterTests {
         Assert.InRange(labRed.R, 245, 255);
         Assert.InRange(labRed.G, 0, 15);
         Assert.InRange(labRed.B, 0, 15);
-        Assert.Equal(OfficeColor.Red, cmykRed);
+        // DeviceCMYK follows the SWOP process-solid appearance: magenta plus yellow is press red.
+        Assert.Equal(OfficeColor.FromRgb(237, 28, 36), cmykRed);
     }
 
     [Fact]

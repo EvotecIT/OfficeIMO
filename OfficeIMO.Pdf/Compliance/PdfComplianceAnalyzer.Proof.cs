@@ -63,12 +63,19 @@ internal static partial class PdfComplianceAnalyzer {
         PdfComplianceReadinessReport artifactReadiness = AssessReadback(readiness.Profile, artifact, readOptions);
         PdfComplianceReadinessReport combinedReadiness = CombineReadiness(readiness, artifactReadiness);
         PdfExternalValidationResult[] validationSnapshot = SnapshotExternalValidations(externalValidations);
+        PdfComplianceProfile? invoiceArchivalProfile = null;
+        if (IsElectronicInvoice(readiness.Profile)) {
+            PdfXmpMetadataInfo? xmp = PdfInspector.Inspect(artifact, readOptions).XmpMetadata;
+            if (xmp?.PdfAPart is int part)
+                invoiceArchivalProfile = PdfDocument.MapPdfAProfile(part, xmp.PdfAConformance?.Trim().ToUpperInvariant() ?? string.Empty);
+        }
         return new PdfComplianceProofReport(
             combinedReadiness,
             GetRequiredExternalValidators(combinedReadiness.Profile),
             validationSnapshot,
             PdfArtifactFingerprint.ComputeSha256(artifact),
-            artifact.LongLength);
+            artifact.LongLength,
+            invoiceArchivalProfile);
     }
 
     private static PdfComplianceReadinessReport CombineReadiness(PdfComplianceReadinessReport generated, PdfComplianceReadinessReport artifact) {

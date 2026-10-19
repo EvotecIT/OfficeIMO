@@ -36,7 +36,7 @@ public partial class PdfDocumentVisualQualityTests {
             .Where(letter => !string.IsNullOrWhiteSpace(letter.Value))
             .Select(letter => letter.PointSize)
             .First();
-        string rawPdf = Encoding.ASCII.GetString(bytes);
+        string rawPdf = PdfTestContentText.ReadDecoded(bytes);
 
         Assert.InRange(pointSize, 15.5, 16.5);
         Assert.Contains("0.039 0.078 0.118 rg", rawPdf, StringComparison.Ordinal);
@@ -71,7 +71,7 @@ public partial class PdfDocumentVisualQualityTests {
             .Where(letter => !string.IsNullOrWhiteSpace(letter.Value))
             .Select(letter => letter.PointSize)
             .First();
-        string rawPdf = Encoding.ASCII.GetString(bytes);
+        string rawPdf = PdfTestContentText.ReadDecoded(bytes);
 
         Assert.InRange(pointSize, 15.5, 16.5);
         Assert.Contains("0.039 0.078 0.118 rg", rawPdf, StringComparison.Ordinal);
@@ -115,7 +115,7 @@ public partial class PdfDocumentVisualQualityTests {
         var headingLine = lines.Single(line => line.Text.Contains("StyledHeading", StringComparison.Ordinal));
         var bodyLine = lines.Single(line => line.Text.Contains("StyledBody", StringComparison.Ordinal));
         double baselineGap = headingLine.BaselineY - bodyLine.BaselineY;
-        string rawPdf = Encoding.ASCII.GetString(bytes);
+        string rawPdf = PdfTestContentText.ReadDecoded(bytes);
 
         Assert.InRange(pointSize, 11.5, 12.5);
         Assert.InRange(baselineGap, 28, 42);
@@ -457,7 +457,7 @@ public partial class PdfDocumentVisualQualityTests {
         double panelTextX = FindWordStartX(page, "DefaultPanel");
         double afterPanelY = FindWordStartY(page, "AfterPanel");
         double panelTextY = FindWordStartY(page, "DefaultPanel");
-        string rawPdf = Encoding.ASCII.GetString(bytes);
+        string rawPdf = PdfTestContentText.ReadDecoded(bytes);
 
         Assert.InRange(panelTextX, 103, 106);
         Assert.True(panelTextY - afterPanelY >= 28, $"Expected default panel spacing to leave visible rhythm. Panel y: {panelTextY:0.##}, after y: {afterPanelY:0.##}.");
@@ -495,7 +495,7 @@ public partial class PdfDocumentVisualQualityTests {
 
         using var pdf = PdfPigDocument.Open(new MemoryStream(bytes));
         var page = pdf.GetPage(1);
-        string rawPdf = Encoding.ASCII.GetString(bytes);
+        string rawPdf = PdfTestContentText.ReadDecoded(bytes);
         double ruleBottomY = 180 - 20 - 2;
         double paragraphTopY = FindWordStartY(page, "AfterDefaultRule") + fontSize * 0.74;
         double clearance = ruleBottomY - paragraphTopY;
@@ -535,7 +535,7 @@ public partial class PdfDocumentVisualQualityTests {
                                 .Paragraph(p => p.Text("ColumnDefaultRule")))))))
             .ToBytes();
 
-        string rawPdf = Encoding.ASCII.GetString(bytes);
+        string rawPdf = PdfTestContentText.ReadDecoded(bytes);
 
         Assert.Contains("0.039 0.078 0.118 RG", rawPdf, StringComparison.Ordinal);
         Assert.Contains("1.5 w", rawPdf, StringComparison.Ordinal);
@@ -599,7 +599,7 @@ public partial class PdfDocumentVisualQualityTests {
         double firstX = FindWordStartX(page, "ThemeFirst");
         double secondX = FindWordStartX(page, "ThemeSecond");
         double tableX = FindWordStartX(page, "ThemeTable");
-        string rawPdf = Encoding.ASCII.GetString(bytes);
+        string rawPdf = PdfTestContentText.ReadDecoded(bytes);
 
         Assert.InRange(pointSize, 15.5, 16.5);
         Assert.Contains("0.039 0.078 0.118 rg", rawPdf, StringComparison.Ordinal);
@@ -712,7 +712,7 @@ public partial class PdfDocumentVisualQualityTests {
         double bulletOneY = FindWordStartY(page, "WordLikeBulletOne");
         double bulletTwoY = FindWordStartY(page, "WordLikeBulletTwo");
         double panelY = FindWordStartY(page, "WordLikePanel");
-        string rawPdf = Encoding.ASCII.GetString(bytes);
+        string rawPdf = PdfTestContentText.ReadDecoded(bytes);
 
         Assert.InRange(bodyPointSize, 10.5, 11.5);
         Assert.True(headingY - bodyY >= 22, $"Expected Word-like heading/body rhythm. Gap: {headingY - bodyY:0.##}pt.");
@@ -748,7 +748,7 @@ public partial class PdfDocumentVisualQualityTests {
 
         using var pdf = PdfPigDocument.Open(new MemoryStream(bytes));
         var page = pdf.GetPage(1);
-        string rawPdf = Encoding.ASCII.GetString(bytes);
+        string rawPdf = PdfTestContentText.ReadDecoded(bytes);
         double headingY = FindWordStartY(page, "ReportThemeHeading");
         double sectionY = FindWordStartY(page, "ReportThemeSection");
         double bodyY = FindWordStartY(page, "ReportThemeBody");
@@ -807,7 +807,7 @@ public partial class PdfDocumentVisualQualityTests {
         double firstX = FindWordStartX(page, "OptionsThemeFirst");
         double secondX = FindWordStartX(page, "OptionsThemeSecond");
         double tableX = FindWordStartX(page, "OptionsTable");
-        string rawPdf = Encoding.ASCII.GetString(bytes);
+        string rawPdf = PdfTestContentText.ReadDecoded(bytes);
 
         Assert.InRange(pointSize, 15.5, 16.5);
         Assert.Contains("0.039 0.078 0.118 rg", rawPdf, StringComparison.Ordinal);

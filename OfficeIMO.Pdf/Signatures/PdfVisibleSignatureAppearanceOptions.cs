@@ -42,7 +42,10 @@ public sealed class PdfVisibleSignatureAppearanceOptions {
     /// <summary>Whether the appearance text is drawn. Defaults to true for compatibility.</summary>
     public bool ShowText { get; set; } = true;
 
-    /// <summary>Helvetica appearance font size in points.</summary>
+    /// <summary>Embedded TrueType font required when ShowText is true. Text appearances never use an unembedded fallback font.</summary>
+    public PdfEmbeddedFont? Font { get; set; }
+
+    /// <summary>Appearance font size in points.</summary>
     public double FontSize {
         get => _fontSize;
         set => _fontSize = ValidatePositive(value, nameof(value));

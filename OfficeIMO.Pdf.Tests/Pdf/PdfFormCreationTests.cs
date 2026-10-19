@@ -15,7 +15,7 @@ public class PdfFormCreationTests {
             .TextField("Person.Name", width: 180, height: 24, value: "Ada Lovelace", spacingAfter: 12)
             .ToBytes();
 
-        string raw = Encoding.ASCII.GetString(pdf);
+        string raw = PdfTestContentText.ReadDecoded(pdf);
         PdfDocumentInfo info = PdfInspector.Inspect(pdf);
         PdfDocumentPreflight preflight = PdfInspector.Preflight(pdf);
 
@@ -47,7 +47,7 @@ public class PdfFormCreationTests {
             ["Person.Name"] = "Created fill"
         });
 
-        string raw = Encoding.ASCII.GetString(flattened);
+        string raw = PdfTestContentText.ReadDecoded(flattened);
         PdfDocumentInfo info = PdfInspector.Inspect(flattened);
 
         Assert.False(info.HasReadableFormFields);
@@ -62,7 +62,7 @@ public class PdfFormCreationTests {
             .ToBytes();
 
         byte[] flattened = PdfFormFiller.FlattenFields(pdf);
-        string raw = Encoding.ASCII.GetString(flattened);
+        string raw = PdfTestContentText.ReadDecoded(flattened);
         PdfDocumentInfo info = PdfInspector.Inspect(flattened);
 
         Assert.False(info.HasReadableFormFields);
@@ -80,7 +80,7 @@ public class PdfFormCreationTests {
             .TextField("Person.Name", width: 180, height: 24, value: "Ada")
             .ToBytes();
 
-        string raw = Encoding.ASCII.GetString(pdf);
+        string raw = PdfTestContentText.ReadDecoded(pdf);
         PdfDocumentInfo info = PdfInspector.Inspect(pdf);
         PdfDocumentReadResult logical = PdfDocumentReadResult.Load(pdf);
         PdfFormField field = Assert.Single(info.FormFields);
@@ -106,7 +106,7 @@ public class PdfFormCreationTests {
             .CheckBox("AcceptTerms", isChecked: true, size: 16, spacingAfter: 12)
             .ToBytes();
 
-        string raw = Encoding.ASCII.GetString(pdf);
+        string raw = PdfTestContentText.ReadDecoded(pdf);
         PdfDocumentInfo info = PdfInspector.Inspect(pdf);
         PdfDocumentPreflight preflight = PdfInspector.Preflight(pdf);
 
@@ -143,7 +143,7 @@ public class PdfFormCreationTests {
             }, style: TableStyles.Light())
             .ToBytes();
 
-        string raw = Encoding.ASCII.GetString(pdf);
+        string raw = PdfTestContentText.ReadDecoded(pdf);
         PdfDocumentInfo info = PdfInspector.Inspect(pdf);
 
         Assert.Contains("/AcroForm", raw);
@@ -207,7 +207,7 @@ public class PdfFormCreationTests {
             }, style: TableStyles.Light())
             .ToBytes();
 
-        string raw = Encoding.ASCII.GetString(pdf);
+        string raw = PdfTestContentText.ReadDecoded(pdf);
         PdfDocumentInfo info = PdfInspector.Inspect(pdf);
 
         Assert.Contains("/AcroForm", raw);
@@ -244,7 +244,7 @@ public class PdfFormCreationTests {
         byte[] flattened = PdfFormFiller.FillAndFlattenFields(pdf, new Dictionary<string, string> {
             ["AcceptTerms"] = "Yes"
         });
-        string raw = Encoding.ASCII.GetString(flattened);
+        string raw = PdfTestContentText.ReadDecoded(flattened);
 
         Assert.False(PdfInspector.Inspect(flattened).HasReadableFormFields);
         Assert.DoesNotContain("/AcroForm", raw);
@@ -259,7 +259,7 @@ public class PdfFormCreationTests {
             .RadioButtonGroup("Payment.Method", new[] { "Card", "Cash", "Wire" }, value: "Cash", size: 16, gap: 5, spacingAfter: 12)
             .ToBytes();
 
-        string raw = Encoding.ASCII.GetString(pdf);
+        string raw = PdfTestContentText.ReadDecoded(pdf);
         PdfDocumentInfo info = PdfInspector.Inspect(pdf);
         PdfDocumentPreflight preflight = PdfInspector.Preflight(pdf);
 
@@ -309,7 +309,7 @@ public class PdfFormCreationTests {
         byte[] flattened = PdfFormFiller.FillAndFlattenFields(pdf, new Dictionary<string, string> {
             ["Payment.Method"] = "Wire"
         });
-        string raw = Encoding.ASCII.GetString(flattened);
+        string raw = PdfTestContentText.ReadDecoded(flattened);
 
         Assert.False(PdfInspector.Inspect(flattened).HasReadableFormFields);
         Assert.DoesNotContain("/AcroForm", raw);
@@ -350,7 +350,7 @@ public class PdfFormCreationTests {
             .RadioButtonGroup("Styled.Contact", new[] { "Email", "Phone" }, value: "Phone", style: style)
             .ToBytes();
 
-        string raw = Encoding.ASCII.GetString(pdf);
+        string raw = PdfTestContentText.ReadDecoded(pdf);
 
         Assert.Contains("/BC [0.118 0.251 0.686] /BG [0.933 0.949 1]", raw, StringComparison.Ordinal);
         Assert.Equal(5, CountOccurrences(raw, "/BS << /S /D /W 2 /D [6 2] >>"));
@@ -369,7 +369,7 @@ public class PdfFormCreationTests {
         byte[] filled = PdfFormFiller.FillFields(pdf, new Dictionary<string, string> {
             ["Styled.Name"] = "Filled"
         });
-        string filledRaw = Encoding.ASCII.GetString(filled);
+        string filledRaw = PdfTestContentText.ReadDecoded(filled);
 
         Assert.Contains("<46696C6C6564> Tj", filledRaw, StringComparison.Ordinal);
         Assert.Contains("0.118 0.251 0.686 RG 2 w [6 2] 0 d", filledRaw, StringComparison.Ordinal);
@@ -394,7 +394,7 @@ public class PdfFormCreationTests {
             .TextField("Styled.Underline", value: "Ada", style: style)
             .ToBytes();
 
-        string raw = Encoding.ASCII.GetString(pdf);
+        string raw = PdfTestContentText.ReadDecoded(pdf);
 
         Assert.Contains("/BS << /S /U /W 2 >>", raw, StringComparison.Ordinal);
         Assert.Contains("0.118 0.251 0.686 RG 2 w 0 1 m 180 1 l S", raw, StringComparison.Ordinal);
@@ -415,7 +415,7 @@ public class PdfFormCreationTests {
             .TextField("Styled.Beveled", value: "Ada", style: style)
             .ToBytes();
 
-        string raw = Encoding.ASCII.GetString(pdf);
+        string raw = PdfTestContentText.ReadDecoded(pdf);
 
         Assert.Contains("/BS << /S /B /W 2 >>", raw, StringComparison.Ordinal);
         Assert.Contains("0.55 0.55 0.55 RG 2 w 1 1 m 1 21 l 179 21 l S", raw, StringComparison.Ordinal);
@@ -439,7 +439,7 @@ public class PdfFormCreationTests {
             .ChoiceField("Styled.Country", new[] { "Poland", "Germany" }, value: "Poland")
             .ToBytes();
 
-        string raw = Encoding.ASCII.GetString(pdf);
+        string raw = PdfTestContentText.ReadDecoded(pdf);
 
         Assert.Contains("/Subtype /Type0", raw, StringComparison.Ordinal);
         Assert.Contains("/AcroForm", raw, StringComparison.Ordinal);
@@ -463,7 +463,7 @@ public class PdfFormCreationTests {
             .RadioButtonGroup("Accessible.Contact", new[] { "Email", "Phone" }, value: "Phone", style: style)
             .ToBytes();
 
-        string raw = Encoding.ASCII.GetString(pdf);
+        string raw = PdfTestContentText.ReadDecoded(pdf);
         PdfDocumentInfo info = PdfInspector.Inspect(pdf);
 
         Assert.Equal(6, CountOccurrences(raw, "/TU <41636365737369626C65206669656C64>"));
@@ -493,7 +493,7 @@ public class PdfFormCreationTests {
             .RadioButtonGroup("Flags.Contact", new[] { "Email", "Phone" }, value: "Email", style: style)
             .ToBytes();
 
-        string raw = Encoding.ASCII.GetString(pdf);
+        string raw = PdfTestContentText.ReadDecoded(pdf);
         PdfDocumentInfo info = PdfInspector.Inspect(pdf);
 
         Assert.Contains("/Ff 7", raw, StringComparison.Ordinal);
@@ -528,7 +528,7 @@ public class PdfFormCreationTests {
             .ChoiceField("Limited.Country", new[] { "Poland", "Germany" }, value: "Poland", style: style)
             .ToBytes();
 
-        string raw = Encoding.ASCII.GetString(pdf);
+        string raw = PdfTestContentText.ReadDecoded(pdf);
         PdfDocumentInfo info = PdfInspector.Inspect(pdf);
         PdfFormField text = Assert.Single(info.FormFields, field => field.Name == "Limited.Name");
         PdfFormField choice = Assert.Single(info.FormFields, field => field.Name == "Limited.Country");
@@ -555,7 +555,7 @@ public class PdfFormCreationTests {
             .TextField("Comb.Code", value: "AB12", width: 80, height: 22, style: style)
             .ToBytes();
 
-        string raw = Encoding.ASCII.GetString(pdf);
+        string raw = PdfTestContentText.ReadDecoded(pdf);
         PdfFormField field = Assert.Single(PdfInspector.Inspect(pdf).FormFields);
 
         Assert.True(field.IsComb);
@@ -584,7 +584,7 @@ public class PdfFormCreationTests {
             .CheckBox("TextFlags.Accept", isChecked: true, style: style)
             .ToBytes();
 
-        string raw = Encoding.ASCII.GetString(pdf);
+        string raw = PdfTestContentText.ReadDecoded(pdf);
         PdfDocumentInfo info = PdfInspector.Inspect(pdf);
         PdfFormField text = Assert.Single(info.FormFields, field => field.Name == "TextFlags.Secret");
         PdfFormField choice = Assert.Single(info.FormFields, field => field.Name == "TextFlags.Country");
@@ -630,7 +630,7 @@ public class PdfFormCreationTests {
                 style: new PdfFormFieldStyle { IsMultiline = true })
             .ToBytes();
 
-        string raw = Encoding.ASCII.GetString(pdf);
+        string raw = PdfTestContentText.ReadDecoded(pdf);
 
         Assert.Contains("<" + Hex("Alpha") + "> Tj", raw, StringComparison.Ordinal);
         Assert.Contains("<" + Hex("Beta") + "> Tj", raw, StringComparison.Ordinal);
@@ -647,7 +647,7 @@ public class PdfFormCreationTests {
             .TextField("Password.Secret", value: "Secret42", style: style)
             .ToBytes();
 
-        string raw = Encoding.ASCII.GetString(pdf);
+        string raw = PdfTestContentText.ReadDecoded(pdf);
         PdfFormField field = Assert.Single(PdfInspector.Inspect(pdf).FormFields);
 
         Assert.True(field.IsPassword);
@@ -658,7 +658,7 @@ public class PdfFormCreationTests {
         byte[] filled = PdfFormFiller.FillFields(pdf, new Dictionary<string, string> {
             ["Password.Secret"] = "Updated!"
         });
-        string filledRaw = Encoding.ASCII.GetString(filled);
+        string filledRaw = PdfTestContentText.ReadDecoded(filled);
         PdfFormField filledField = Assert.Single(PdfInspector.Inspect(filled).FormFields);
 
         Assert.True(filledField.IsPassword);
@@ -684,7 +684,7 @@ public class PdfFormCreationTests {
             .ChoiceField("TextFlags.Country", new[] { "Poland", "Germany" }, value: "Poland", style: combStyle)
             .ToBytes();
 
-        string raw = Encoding.ASCII.GetString(pdf);
+        string raw = PdfTestContentText.ReadDecoded(pdf);
         PdfDocumentInfo info = PdfInspector.Inspect(pdf);
         PdfFormField file = Assert.Single(info.FormFields, field => field.Name == "TextFlags.File");
         PdfFormField comb = Assert.Single(info.FormFields, field => field.Name == "TextFlags.Code");
@@ -737,7 +737,7 @@ public class PdfFormCreationTests {
             .TextField("ChoiceFlags.Text", value: "Ada", style: style)
             .ToBytes();
 
-        string raw = Encoding.ASCII.GetString(pdf);
+        string raw = PdfTestContentText.ReadDecoded(pdf);
         PdfDocumentInfo info = PdfInspector.Inspect(pdf);
         PdfFormField combo = Assert.Single(info.FormFields, field => field.Name == "ChoiceFlags.Combo");
         PdfFormField list = Assert.Single(info.FormFields, field => field.Name == "ChoiceFlags.List");
@@ -777,7 +777,7 @@ public class PdfFormCreationTests {
             .ChoiceField("Country", new[] { "Poland", "Germany", "United States" }, value: "Germany", width: 180, height: 24, spacingAfter: 12)
             .ToBytes();
 
-        string raw = Encoding.ASCII.GetString(pdf);
+        string raw = PdfTestContentText.ReadDecoded(pdf);
         PdfDocumentInfo info = PdfInspector.Inspect(pdf);
         PdfDocumentPreflight preflight = PdfInspector.Preflight(pdf);
 
@@ -816,12 +816,12 @@ public class PdfFormCreationTests {
 
         Assert.Equal("United States", filledField.Value);
         Assert.Equal("United States", Assert.Single(filledField.SelectedOptions).DisplayText);
-        Assert.Contains("<556E6974656420537461746573> Tj", Encoding.ASCII.GetString(filled), StringComparison.Ordinal);
+        Assert.Contains("<556E6974656420537461746573> Tj", PdfTestContentText.ReadDecoded(filled), StringComparison.Ordinal);
 
         byte[] flattened = PdfFormFiller.FillAndFlattenFields(pdf, new Dictionary<string, string> {
             ["Country"] = "United States"
         });
-        string raw = Encoding.ASCII.GetString(flattened);
+        string raw = PdfTestContentText.ReadDecoded(flattened);
 
         Assert.False(PdfInspector.Inspect(flattened).HasReadableFormFields);
         Assert.DoesNotContain("/AcroForm", raw);
@@ -836,7 +836,7 @@ public class PdfFormCreationTests {
             .MultiSelectChoiceField("Countries", new[] { "Poland", "Germany", "United States" }, values: new[] { "Poland", "United States" }, width: 190, height: 72)
             .ToBytes();
 
-        string raw = Encoding.ASCII.GetString(pdf);
+        string raw = PdfTestContentText.ReadDecoded(pdf);
         PdfDocumentInfo info = PdfInspector.Inspect(pdf);
         PdfDocumentPreflight preflight = PdfInspector.Preflight(pdf);
 
@@ -874,7 +874,7 @@ public class PdfFormCreationTests {
         Assert.Equal(new[] { "Germany", "United States" }, filledField.Values);
         Assert.Equal(new[] { 1, 2 }, filledField.SelectedIndices);
         Assert.Equal(new[] { "Germany", "United States" }, filledField.SelectedOptions.Select(option => option.DisplayText).ToArray());
-        string filledRaw = Encoding.ASCII.GetString(filled);
+        string filledRaw = PdfTestContentText.ReadDecoded(filled);
         Assert.Contains("<4765726D616E79> Tj", filledRaw, StringComparison.Ordinal);
         Assert.Contains("<556E6974656420537461746573> Tj", filledRaw, StringComparison.Ordinal);
         Assert.DoesNotContain("<4765726D616E792C20556E6974656420537461746573> Tj", filledRaw, StringComparison.Ordinal);
@@ -882,7 +882,7 @@ public class PdfFormCreationTests {
         byte[] scalarFilled = PdfFormFiller.FillFields(pdf, new Dictionary<string, string> {
             ["Countries"] = "Germany"
         });
-        string scalarRaw = Encoding.ASCII.GetString(scalarFilled);
+        string scalarRaw = PdfTestContentText.ReadDecoded(scalarFilled);
         PdfFormField scalarField = Assert.Single(PdfInspector.Inspect(scalarFilled).FormFields);
 
         Assert.Equal(new[] { "Germany" }, scalarField.Values);
@@ -893,7 +893,7 @@ public class PdfFormCreationTests {
         byte[] flattened = PdfFormFiller.FillAndFlattenFields(pdf, new Dictionary<string, PdfFormFieldValue> {
             ["Countries"] = PdfFormFieldValue.FromValues("Germany", "United States")
         });
-        string raw = Encoding.ASCII.GetString(flattened);
+        string raw = PdfTestContentText.ReadDecoded(flattened);
 
         Assert.False(PdfInspector.Inspect(flattened).HasReadableFormFields);
         Assert.DoesNotContain("/AcroForm", raw);
@@ -907,7 +907,7 @@ public class PdfFormCreationTests {
             .MultiSelectChoiceField("Countries", new[] { "Poland", "Germany" }, values: new[] { "Poland" })
             .ToBytes();
 
-        string raw = Encoding.ASCII.GetString(pdf);
+        string raw = PdfTestContentText.ReadDecoded(pdf);
         PdfFormField field = Assert.Single(PdfInspector.Inspect(pdf).FormFields);
 
         Assert.Equal(new[] { "Poland" }, field.Values);
@@ -972,7 +972,7 @@ public class PdfFormCreationTests {
         });
 
         PdfDocumentInfo flattenedInfo = PdfInspector.Inspect(flattened);
-        string raw = Encoding.ASCII.GetString(flattened);
+        string raw = PdfTestContentText.ReadDecoded(flattened);
 
         Assert.False(flattenedInfo.HasReadableFormFields);
         Assert.DoesNotContain("/AcroForm", raw);

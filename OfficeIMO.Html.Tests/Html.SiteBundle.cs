@@ -1,7 +1,6 @@
 using System.IO.Compression;
 using System.Threading;
 using System.Threading.Tasks;
-using System.Xml.Linq;
 using OfficeIMO.Html;
 using OfficeIMO.Html.Pdf;
 using OfficeIMO.Tests.Pdf;
@@ -12,9 +11,76 @@ namespace OfficeIMO.Tests;
 
 public sealed class HtmlSiteBundleTests {
     [Theory]
-    [InlineData(false)]
-    [InlineData(true)]
-    public async Task SiteBundleLoadsNestedCssAndImagesAndReopensSvgAndPdfWithoutHostAccess(bool asynchronous) {
+    [InlineData(false, HtmlRenderEncoder.DisplayList)]
+    [InlineData(true, HtmlRenderEncoder.DisplayList)]
+    [InlineData(false, HtmlRenderEncoder.Svg)]
+    [InlineData(true, HtmlRenderEncoder.Svg)]
+    [InlineData(false, HtmlRenderEncoder.Pdf)]
+    [InlineData(true, HtmlRenderEncoder.Pdf)]
+    public async Task PreparedBundleRespectsTightenedEmbeddedPolicy(bool asynchronous, HtmlRenderEncoder encoder) {
+        using MemoryStream zip = CreateBundle(
+            ("index.html", Utf8("<p>SAFE</p><img src='photo.png' width='2' height='2'>")),
+            ("photo.png", PdfPngTestImages.CreateRgbPng(2, 2)));
+        HtmlSiteBundle bundle = HtmlSiteBundle.Load(zip,
+            new HtmlSiteBundleOptions { ArchiveBaseUri = new Uri("https://archive.example.test/site/") });
+        HtmlRenderRequest prepared = bundle.CreateRenderRequest(HtmlRenderRequest.Create(
+            HtmlRenderIntentProfile.PrintPaged, HtmlRenderEncoder.Svg,
+            new HtmlToPdfOptions { ResourcePolicy = PdfCore.PdfResourcePolicy.CreatePortableDeterministic() }));
+        var options = (HtmlToPdfOptions)prepared.Options;
+        options.ResourcePolicy.AllowEmbeddedPackageResources = false;
+        HtmlRenderRequest request = prepared.WithOptions(options).WithEncoder(encoder);
+        HtmlRenderResult rendered;
+        if (encoder == HtmlRenderEncoder.Pdf) {
+            HtmlPdfRenderRequestResult result = asynchronous
+                ? await bundle.HtmlDocument.RenderToPdfResultAsync(request)
+                : bundle.HtmlDocument.RenderToPdfResult(request);
+            rendered = result.RenderResult;
+        } else {
+            rendered = asynchronous
+                ? await HtmlRenderEngine.ExecuteAsync(bundle.HtmlDocument, request)
+                : HtmlRenderEngine.Execute(bundle.HtmlDocument, request);
+        }
+        Assert.Empty(rendered.Document.Pages.SelectMany(page => page.Visuals).OfType<HtmlRenderImage>());
+        Assert.Contains(rendered.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.ResourceUnavailable
+            || !asynchronous && diagnostic.Code == HtmlRenderDiagnosticCodes.ExternalImagePending);
+    }
+
+    [Theory]
+    [InlineData(false, false)]
+    [InlineData(false, true)]
+    [InlineData(true, false)]
+    [InlineData(true, true)]
+    public async Task DisplayListWithPdfPolicyUsesArchivePermissionsWithoutHostAccess(bool asynchronous, bool allowEmbedded) {
+        using MemoryStream zip = CreateBundle(
+            ("index.html", Utf8("<link rel='stylesheet' href='site.css'><p>ARCHIVED</p>"
+                + "<img src='photo.png' width='2' height='2'><img src='https://outside.example.test/missing.png'>")),
+            ("site.css", Utf8("p{color:#123456}")),
+            ("photo.png", PdfPngTestImages.CreateRgbPng(2, 2)));
+        HtmlSiteBundle bundle = HtmlSiteBundle.Load(zip);
+        int hostCalls = 0;
+        var options = new HtmlToPdfOptions {
+            ResourcePolicy = PdfCore.PdfResourcePolicy.CreatePortableDeterministic(),
+            ResourceResolver = (resource, token) => { hostCalls++; return Task.FromResult<HtmlResolvedResource?>(null); }
+        };
+        options.ResourcePolicy.AllowEmbeddedPackageResources = allowEmbedded;
+        HtmlRenderRequest request = bundle.CreateRenderRequest(HtmlRenderRequest.Create(
+            HtmlRenderIntentProfile.PrintPaged, HtmlRenderEncoder.DisplayList, options));
+        HtmlRenderResult result = asynchronous
+            ? await HtmlRenderEngine.ExecuteAsync(bundle.HtmlDocument, request)
+            : HtmlRenderEngine.Execute(bundle.HtmlDocument, request);
+        Assert.Equal(0, hostCalls);
+        var visuals = result.Document.Pages.SelectMany(page => page.Visuals).ToArray();
+        Assert.Equal(allowEmbedded ? 1 : 0, visuals.OfType<HtmlRenderImage>().Count());
+        if (allowEmbedded) Assert.Contains(visuals.OfType<HtmlRenderText>(),
+            text => text.Text == "ARCHIVED" && text.Color == OfficeIMO.Drawing.OfficeColor.FromRgb(0x12, 0x34, 0x56));
+    }
+
+    [Theory]
+    [InlineData(false, false)]
+    [InlineData(true, false)]
+    [InlineData(false, true)]
+    [InlineData(true, true)]
+    public async Task SiteBundleLoadsNestedCssAndImagesAndReopensSvgAndPdfWithoutHostAccess(bool asynchronous, bool pdfPolicy) {
         using MemoryStream zip = CreateBundle(
             ("articles/index.html", Utf8("<link rel='stylesheet' href='../css/site.css?v=1'><p>ARCHIVED</p>"
                 + "<img src='../images/photo.png#frame' width='8' height='8'>")),
@@ -29,14 +95,20 @@ public sealed class HtmlSiteBundleTests {
         Assert.Equal("articles/index.html", bundle.EntryPath);
         Assert.Equal(new Uri("https://archive.example.test/site/articles/index.html"), bundle.BaseUri);
 
-        var options = new HtmlRenderOptions { Margins = HtmlRenderMargins.All(0) };
+        HtmlRenderOptions options = pdfPolicy
+            ? new HtmlToPdfOptions { ResourcePolicy = PdfCore.PdfResourcePolicy.CreatePortableDeterministic() }
+            : new HtmlRenderOptions();
+        options.Margins = HtmlRenderMargins.All(0);
         HtmlRenderRequest original = HtmlRenderRequest.Create(HtmlRenderIntentProfile.PrintPaged, HtmlRenderEncoder.Svg, options);
         HtmlRenderResult rendered = asynchronous
             ? await HtmlRenderEngine.ExecuteAsync(bundle.HtmlDocument, bundle.CreateRenderRequest(original))
             : HtmlRenderEngine.Execute(bundle.HtmlDocument, bundle.CreateRenderRequest(original));
         string svg = Encoding.UTF8.GetString(rendered.ExportImage().Bytes);
-        XDocument parsedSvg = XDocument.Parse(svg);
-        Assert.Single(parsedSvg.Descendants(), element => element.Name.LocalName == "image");
+        var svgDrawing = HtmlSvgPaintAssertions.Read(Encoding.UTF8.GetBytes(svg));
+        var imageVisual = Assert.Single(rendered.Document.Pages[0].Visuals.OfType<HtmlRenderImage>());
+        var raster = OfficeIMO.Drawing.OfficeDrawingRasterRenderer.Render(svgDrawing);
+        Assert.Equal(OfficeIMO.Drawing.OfficeColor.FromRgb(0x1F, 0x1D, 0x1E),
+            raster.GetPixel((int)imageVisual.X + 6, (int)imageVisual.Y + 6));
         Assert.Contains("#123456", svg, StringComparison.OrdinalIgnoreCase);
         Assert.DoesNotContain(rendered.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.ResourceUnavailable);
         Assert.Null(original.Options.ResourceResolver);
@@ -60,9 +132,11 @@ public sealed class HtmlSiteBundleTests {
     }
 
     [Theory]
-    [InlineData(false)]
-    [InlineData(true)]
-    public async Task PdfEmbeddedPolicyDeniesArchiveImagesAndDoesNotInvokeAHostResolver(bool asynchronous) {
+    [InlineData(false, false)]
+    [InlineData(true, false)]
+    [InlineData(false, true)]
+    [InlineData(true, true)]
+    public async Task PdfEmbeddedPolicyDeniesArchiveImagesAndDoesNotInvokeAHostResolver(bool asynchronous, bool image) {
         using MemoryStream zip = CreateBundle(
             ("index.html", Utf8("<p>TEXT</p><img src='photo.png' width='2' height='2'>")),
             ("photo.png", PdfPngTestImages.CreateRgbPng(2, 2)));
@@ -72,14 +146,24 @@ public sealed class HtmlSiteBundleTests {
             ResourceResolver = (request, token) => { hostCalls++; return Task.FromResult<HtmlResolvedResource?>(null); } };
         options.ResourcePolicy.AllowEmbeddedPackageResources = false;
         HtmlRenderRequest request = HtmlRenderRequest.Create(
-            HtmlRenderIntentProfile.PrintPaged, HtmlRenderEncoder.Pdf, options);
-        HtmlPdfRenderRequestResult result = asynchronous
-            ? await bundle.RenderToPdfResultAsync(request)
-            : bundle.RenderToPdfResult(request);
+            HtmlRenderIntentProfile.PrintPaged, image ? HtmlRenderEncoder.Svg : HtmlRenderEncoder.Pdf, options);
+        HtmlRenderResult rendered;
+        if (image) {
+            request = bundle.CreateRenderRequest(request);
+            rendered = asynchronous
+                ? await HtmlRenderEngine.ExecuteAsync(bundle.HtmlDocument, request)
+                : HtmlRenderEngine.Execute(bundle.HtmlDocument, request);
+            Assert.Empty(rendered.Document.Pages.SelectMany(page => page.Visuals).OfType<HtmlRenderImage>());
+        } else {
+            HtmlPdfRenderRequestResult result = asynchronous
+                ? await bundle.RenderToPdfResultAsync(request)
+                : bundle.RenderToPdfResult(request);
+            Assert.Empty(PdfCore.PdfReadDocument.Open(result.ToBytes()).Pages[0].GetImages());
+            rendered = result.RenderResult;
+        }
         Assert.Equal(0, hostCalls);
-        Assert.True(result.Output.HasLoss);
-        Assert.Empty(PdfCore.PdfReadDocument.Open(result.ToBytes()).Pages[0].GetImages());
-        Assert.Contains(result.RenderResult.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.ResourceUnavailable
+        Assert.True(rendered.HasLoss);
+        Assert.Contains(rendered.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.ResourceUnavailable
             || !asynchronous && diagnostic.Code == HtmlRenderDiagnosticCodes.ExternalImagePending);
     }
 

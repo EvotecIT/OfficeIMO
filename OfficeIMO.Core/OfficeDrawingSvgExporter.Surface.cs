@@ -43,33 +43,7 @@ public static partial class OfficeDrawingSvgExporter {
         IOfficeRasterImageCodec? imageCodec,
         string? resourceIdPrefix,
         CancellationToken cancellationToken) {
-        return ToSvg(
-            drawing,
-            scale,
-            sizeUnit,
-            imageCodec,
-            resourceIdPrefix,
-            cancellationToken,
-            new SvgNearestNeighborRectangleBudget());
-    }
-
-    internal static string ToSvg(
-        OfficeDrawing drawing,
-        double scale,
-        OfficeSvgSizeUnit sizeUnit,
-        IOfficeRasterImageCodec? imageCodec,
-        string? resourceIdPrefix,
-        CancellationToken cancellationToken,
-        SvgNearestNeighborRectangleBudget nearestNeighborRectangleBudget) {
-        return ToSvgCore(
-            drawing,
-            scale,
-            sizeUnit,
-            imageCodec,
-            resourceIdPrefix,
-            cancellationToken,
-            nearestNeighborRectangleBudget,
-            maximumCharacters: null);
+        return ToSvgCore(drawing, scale, sizeUnit, imageCodec, resourceIdPrefix, cancellationToken, maximumCharacters: null);
     }
 
     private static string ToSvgCore(
@@ -79,10 +53,8 @@ public static partial class OfficeDrawingSvgExporter {
         IOfficeRasterImageCodec? imageCodec,
         string? resourceIdPrefix,
         CancellationToken cancellationToken,
-        SvgNearestNeighborRectangleBudget nearestNeighborRectangleBudget,
         int? maximumCharacters) {
         if (drawing == null) throw new ArgumentNullException(nameof(drawing));
-        if (nearestNeighborRectangleBudget == null) throw new ArgumentNullException(nameof(nearestNeighborRectangleBudget));
         cancellationToken.ThrowIfCancellationRequested();
         if (double.IsNaN(scale) || double.IsInfinity(scale) || scale <= 0D) {
             throw new ArgumentOutOfRangeException(nameof(scale), "Scale must be a positive finite value.");
@@ -95,8 +67,8 @@ public static partial class OfficeDrawingSvgExporter {
         double width = drawing.Width * scale;
         double height = drawing.Height * scale;
         if (sizeUnit == OfficeSvgSizeUnit.Pixel) {
-            width = Math.Ceiling(width);
-            height = Math.Ceiling(height);
+            width = Math.Max(1D, OfficeRasterScaleLimiter.CeilingPixels(width));
+            height = Math.Max(1D, OfficeRasterScaleLimiter.CeilingPixels(height));
         }
         string unit = sizeUnit == OfficeSvgSizeUnit.Pixel ? "px" : "pt";
         var builder = maximumCharacters.HasValue
@@ -114,12 +86,16 @@ public static partial class OfficeDrawingSvgExporter {
             .Append(Format(drawing.Height))
             .Append("\" role=\"img\">");
 
-        AppendEmbeddedFonts(builder, drawing.Fonts, cancellationToken, idPrefix);
+        var requiredFontFamilies = new System.Collections.Generic.HashSet<string>(StringComparer.OrdinalIgnoreCase);
         int gradientId = 0;
         int clipPathId = 0;
         var tilingExpansionBudget = new SvgTilingExpansionBudget();
         OfficeRasterCanvas textMetrics = OfficeDrawingTextLayout.CreateMetrics(drawing, cancellationToken);
-        AppendElements(builder, drawing.Elements, imageCodec, idPrefix, ref gradientId, ref clipPathId, cancellationToken, tilingExpansionBudget, nearestNeighborRectangleBudget, textMetrics);
+        AppendElements(builder, drawing.Elements, imageCodec, idPrefix, ref gradientId, ref clipPathId, cancellationToken, tilingExpansionBudget, textMetrics, drawing.SvgTextAsPaths, requiredFontFamilies);
+        if (drawing.Fonts.Faces.Count > 0) {
+            AppendEmbeddedFonts(builder, drawing.Fonts, cancellationToken, idPrefix,
+                requiredFontFamilies);
+        }
         builder.Append("</svg>");
         cancellationToken.ThrowIfCancellationRequested();
         string svg = builder.ToString();
@@ -194,7 +170,6 @@ public static partial class OfficeDrawingSvgExporter {
                 imageCodec,
                 resourceIdPrefix,
                 cancellationToken,
-                new SvgNearestNeighborRectangleBudget(),
                 maximumCharacters);
         } catch (ArgumentOutOfRangeException) {
             throw new OfficeImageExportBatchLimitException(

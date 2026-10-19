@@ -29,7 +29,10 @@ public sealed class DrawingRasterOptionalCodecTests {
         var drawing = new OfficeDrawing(16, 16).AddImageWithInterpolation(bytes, "image/webp",
             new OfficeImageProjection(new OfficeImagePlacement(0, 0, 16, 16)), interpolate: false);
         string svg = OfficeDrawingSvgExporter.ToSvg(drawing, 1D, OfficeSvgSizeUnit.Pixel, imageCodec: svgCodec);
-        Assert.Contains("fill=\"#FF0000\"", svg);
+        var embedded = System.Xml.Linq.XElement.Parse(svg).Descendants()
+            .Single(element => element.Name.LocalName == "image").Attribute("href")!.Value;
+        Assert.True(OfficePngReader.TryDecode(Convert.FromBase64String(embedded.Split(',')[1]), out var svgPixels));
+        Assert.Equal(OfficeColor.Red, svgPixels!.GetPixel(8, 8));
         Assert.Equal(1, svgCodec.Calls);
         Assert.Equal(original, bytes);
     }
@@ -125,7 +128,10 @@ public sealed class DrawingRasterOptionalCodecTests {
         Assert.Contains(svgResult.Diagnostics, x => x.Code == OfficeImageExportDiagnosticCodes.SourceImageDecodeFallback
             && x.LossKind == OfficeConversionLossKind.Omission);
         Assert.DoesNotContain(svgResult.Diagnostics, x => x.Code == OfficeImageExportDiagnosticCodes.SourceImageDecodedByCallerCodec);
-        Assert.Contains("#BE4646", System.Text.Encoding.UTF8.GetString(svgResult.Bytes));
+        var embedded = System.Xml.Linq.XElement.Parse(System.Text.Encoding.UTF8.GetString(svgResult.Bytes))
+            .Descendants().Single(element => element.Name.LocalName == "image").Attribute("href")!.Value;
+        Assert.True(OfficePngReader.TryDecode(Convert.FromBase64String(embedded.Split(',')[1]), out var placeholder));
+        Assert.Equal(OfficeColor.FromRgb(190, 70, 70), placeholder!.GetPixel(placeholder.Width / 2, placeholder.Height / 2));
         if (svgCodec != null) Assert.Equal(1, svgCodec.Calls);
     }
 

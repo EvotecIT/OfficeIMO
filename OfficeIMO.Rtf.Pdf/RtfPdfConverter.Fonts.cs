@@ -75,6 +75,15 @@ internal static partial class RtfPdfConverter {
             }
         }
 
+        string requiredText = string.Join("\n", Writing.RtfDocumentWriter.EnumerateParagraphs(document).Select(paragraph => paragraph.ToPlainText()));
+        PdfCore.PdfTextFallbackFeatures fallbacks = PdfCore.PdfTextDiagnostics.ResolveRequiredFallbackFeatures(options.TextFallbacks, new[] { requiredText });
+        if (fallbacks != PdfCore.PdfTextFallbackFeatures.None) {
+            // Preserve authored and caller font slots; installed fallback faces only
+            // supply scalars missing from those faces under the host resource policy.
+            foreach (PdfCore.PdfStandardFont slot in fontSlots.Values) registeredFontSlots.Add(slot);
+            pdfOptions.UseTextFallbacks(fallbacks, registeredFontSlots,
+                options.ResourcePolicy.AllowSystemFontEmbedding, preserveConfiguredFontSlots: true, requiredText: requiredText);
+        }
         return fontSlots;
     }
 

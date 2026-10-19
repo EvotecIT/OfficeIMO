@@ -1,4 +1,3 @@
-using System.Globalization;
 using System.Xml.Linq;
 using OfficeIMO.Drawing;
 using OfficeIMO.Html;
@@ -19,7 +18,7 @@ public sealed class HtmlPositionedBaselineTests {
         var page = pdf.GetPage(1);
         foreach (XElement node in nodes) {
             var letter = Assert.Single(page.Letters, letter => letter.Value == node.Value);
-            double expected = double.Parse(node.Attribute("y")!.Value, CultureInfo.InvariantCulture);
+            double expected = HtmlSvgTestCoordinates.CssValue(node, "y");
             double actual = ((double)page.Height - letter.StartBaseLine.Y) / 0.75D;
             Assert.InRange(actual - expected, -0.02D, 0.02D);
         }

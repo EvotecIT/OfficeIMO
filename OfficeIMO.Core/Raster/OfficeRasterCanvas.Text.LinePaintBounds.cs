@@ -23,9 +23,9 @@ public sealed partial class OfficeRasterCanvas {
             if (ShouldUseFallbackRuns(runs, family)) {
                 double cursor = 0D;
                 foreach (OfficeFontFallbackRun run in runs) {
-                    var bounds = MeasureTextLineInkBounds(run.Text, size, run.FamilyName, style);
+                    var bounds = MeasureTextLineInkBounds(run.Text, size, run.FamilyRequest, style);
                     if (bounds.HasInk) Include(bounds.Left + cursor, bounds.Top, bounds.Right + cursor, bounds.Bottom);
-                    cursor += MeasureText(run.Text, size, run.FamilyName, style);
+                    cursor += MeasureText(run.Text, size, run.FamilyRequest, style);
                 }
                 return Store();
             }

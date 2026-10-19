@@ -47,6 +47,27 @@ File-based conversion uses the native Markdown lifecycle so a string path is not
 MarkdownDoc.Load("README.md").SaveAsPdf("README.pdf");
 ```
 
+## Code, notes, and multilingual text
+
+Fenced code retains leading and repeated spaces and tabs. Inline code and fenced code select Courier and share the configured monospace fallbacks. Footnote references are superscript links to definitions collected at the end of the document.
+
+Default text fallbacks include installed multilingual fonts. Their availability and `ResourcePolicy.AllowSystemFontEmbedding` govern character coverage; `TextFallbacks = PdfTextFallbackFeatures.None` selects exact standard-font output.
+
+## Page images
+
+Export PNG, JPEG, or SVG from the converted PDF document so images use its pagination, fonts, and layout:
+
+```csharp
+using OfficeIMO.Pdf;
+
+var conversion = document.ToPdfDocumentResult();
+conversion.ToImages().AsPng().SaveFiles("pages");
+conversion.ToImages().AsJpeg().SaveFiles("jpeg-pages");
+conversion.ToImages().AsSvg().SaveFiles("svg-pages");
+```
+
+SVG follows the PDF page renderer's vector and embedded-raster contract. Conversion warnings accompany the image export results.
+
 ## Examples
 
 ### Use front matter for metadata and theme selection
@@ -178,7 +199,7 @@ result.Report.RequireNoErrorWarnings();
 - Visual themes for readable document rhythm, page treatment, links, code blocks, panels, tables, and checklist rows.
 - Profile presets through `MarkdownToPdfOptions.UseProfile(...)`, plus shared `TextFallbacks` and `ResourcePolicy` controls. Profiles may disable images for lightweight/text-only output but never grant local, remote, or host-font access.
 - `IncludeImages` controls whether images participate at all. `PdfResourcePolicy` is the only trust gate for local files, data URIs, remote resolvers, and installed host fonts. Local-image containment resolves symlinks and junctions before reading.
-- `PdfTextFallbackFeatures.MultilingualFonts` selects additional fallback families. The balanced default permits installed-font discovery without granting local-file or remote-resource access; use `PdfResourcePolicy.CreatePortableDeterministic()` when host fonts must not be inspected.
+- `PdfTextFallbackFeatures.MultilingualFonts`, included in `Default`, selects multilingual fallback families. The balanced default permits installed-font discovery without granting local-file or remote-resource access; use `PdfResourcePolicy.CreatePortableDeterministic()` when host fonts must not be inspected.
 - Per-operation conversion warnings through `PdfDocumentConversionResult.Report` or `PdfSaveResult.Report`.
 
 ## Visual themes

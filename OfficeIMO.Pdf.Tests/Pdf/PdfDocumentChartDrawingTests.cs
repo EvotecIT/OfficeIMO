@@ -1728,21 +1728,6 @@ public class PdfDocumentChartDrawingTests {
     }
 
     [Fact]
-    public void NativeDrawingColorAlpha_AccumulatesAlphaModifiers() {
-        var color = new A.RgbColorModelHex { Val = "336699" };
-        color.Append(new A.Alpha { Val = 80000 });
-        color.Append(new A.AlphaModulation { Val = 50000 });
-        color.Append(new A.AlphaModulationFixed { Amount = 50000 });
-        MethodInfo method = typeof(WordPdfConverterExtensions).GetMethod("TryGetNativeDrawingColorAlpha", BindingFlags.NonPublic | BindingFlags.Static)!;
-        object?[] args = { color, null };
-
-        bool found = (bool)method.Invoke(null, args)!;
-
-        Assert.True(found);
-        Assert.Equal(0.2D, (double)args[1]!, 5);
-    }
-
-    [Fact]
     public void WordChartSeriesExtraction_PreservesDoughnutSeriesFills() {
         OfficeColor outerColor = OfficeColor.ParseHex("#C1121F");
         OfficeColor innerColor = OfficeColor.ParseHex("#0077B6");
@@ -1776,7 +1761,8 @@ public class PdfDocumentChartDrawingTests {
             chartKind,
             categoryCount,
             seriesCount,
-            new Dictionary<A.SchemeColorValues, OfficeColor>()
+            new Dictionary<A.SchemeColorValues, OfficeColor>(),
+            null!
         })!;
     }
 

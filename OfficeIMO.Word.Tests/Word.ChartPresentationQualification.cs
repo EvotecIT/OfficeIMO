@@ -414,7 +414,7 @@ public sealed class WordChartPresentationQualificationTests {
         using var document = WordDocument.Create();
         var chart = Create(document, OfficeChartKind.Pie);
         var color = new A.RgbColorModelHex { Val = "123456" };
-        color.Append(new A.HueOffset { Val = 60000 });
+        color.Append(new A.Gamma());
         var fill = new A.SolidFill(color);
         var shape = outline ? new C.ShapeProperties(new A.Outline(fill)) : new C.ShapeProperties(fill);
         chart.ChartPart!.ChartSpace!.AddChild(shape, true);

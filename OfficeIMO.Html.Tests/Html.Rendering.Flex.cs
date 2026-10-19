@@ -86,6 +86,7 @@ public sealed partial class HtmlRenderingTests {
         for (int index = 0; index < 24; index++) html.Append("</div>");
 
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html.ToString(), new HtmlRenderOptions {
+            Mode = HtmlRenderMode.Continuous,
             ViewportWidth = 200D,
             MaxLayoutOperations = 100
         });
@@ -267,6 +268,7 @@ public sealed partial class HtmlRenderingTests {
             + "' style='width:100%;max-width:100%;height:auto'><figcaption>Figure caption</figcaption></figure></div></div>";
 
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html), new HtmlRenderOptions {
+            Mode = HtmlRenderMode.Continuous,
             ViewportWidth = 600D,
             Margins = HtmlRenderMargins.All(0D),
             MaxSurfaceWidth = 650
@@ -1350,6 +1352,7 @@ public sealed partial class HtmlRenderingTests {
             <p style="margin:0">ColumnFlexPdfMarker</p>
             """;
         var options = new HtmlRenderOptions {
+            Mode = HtmlRenderMode.Continuous,
             ViewportWidth = 80D,
             Margins = HtmlRenderMargins.All(8D)
         };
@@ -1364,8 +1367,10 @@ public sealed partial class HtmlRenderingTests {
         Assert.Equal(OfficeColor.Red, raster.GetPixel(10, 10));
         Assert.Equal(OfficeColor.Blue, raster.GetPixel(10, 40));
         Assert.Equal(new byte[] { 137, 80, 78, 71, 13, 10, 26, 10 }, png.Bytes.Take(8));
-        Assert.Contains("<rect x=\"8\" y=\"8\" width=\"20\" height=\"20\"", svg, StringComparison.Ordinal);
-        Assert.Contains("<rect x=\"8\" y=\"38\" width=\"20\" height=\"20\"", svg, StringComparison.Ordinal);
+        OfficeRasterImage svgRaster = RasterizeHtmlImageSvg(svg);
+        Assert.Equal(OfficeColor.Red, svgRaster.GetPixel(10, 10));
+        Assert.Equal(OfficeColor.White, svgRaster.GetPixel(10, 33));
+        Assert.Equal(OfficeColor.Blue, svgRaster.GetPixel(10, 40));
         Assert.Contains("ColumnFlexPdfMarker", pdfText, StringComparison.Ordinal);
         Assert.DoesNotContain(OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToPdfDocumentResult(pdfOptions).Report.Warnings, warning => warning.Severity == PdfCore.PdfConversionWarningSeverity.Error);
     }
@@ -1504,6 +1509,7 @@ public sealed partial class HtmlRenderingTests {
             <p style="margin:0">FlexPdfMarker</p>
             """;
         var options = new HtmlRenderOptions {
+            Mode = HtmlRenderMode.Continuous,
             ViewportWidth = 100D,
             Margins = HtmlRenderMargins.All(8D)
         };
@@ -1518,8 +1524,10 @@ public sealed partial class HtmlRenderingTests {
         Assert.Equal(OfficeColor.Red, raster.GetPixel(10, 10));
         Assert.Equal(OfficeColor.Blue, raster.GetPixel(40, 10));
         Assert.Equal(new byte[] { 137, 80, 78, 71, 13, 10, 26, 10 }, png.Bytes.Take(8));
-        Assert.Contains("<rect x=\"8\" y=\"8\" width=\"20\" height=\"20\"", svg, StringComparison.Ordinal);
-        Assert.Contains("<rect x=\"38\" y=\"8\" width=\"20\" height=\"20\"", svg, StringComparison.Ordinal);
+        OfficeRasterImage svgRaster = RasterizeHtmlImageSvg(svg);
+        Assert.Equal(OfficeColor.Red, svgRaster.GetPixel(10, 10));
+        Assert.Equal(OfficeColor.White, svgRaster.GetPixel(33, 10));
+        Assert.Equal(OfficeColor.Blue, svgRaster.GetPixel(40, 10));
         Assert.Contains("FlexPdfMarker", pdfText, StringComparison.Ordinal);
         Assert.DoesNotContain(OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToPdfDocumentResult(pdfOptions).Report.Warnings, warning => warning.Severity == PdfCore.PdfConversionWarningSeverity.Error);
     }
@@ -1940,6 +1948,7 @@ public sealed partial class HtmlRenderingTests {
 
     private static HtmlRenderDocument RenderFlex(string html, double viewportWidth) =>
         HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html), new HtmlRenderOptions {
+            Mode = HtmlRenderMode.Continuous,
             ViewportWidth = viewportWidth,
             Margins = HtmlRenderMargins.All(0D)
         });

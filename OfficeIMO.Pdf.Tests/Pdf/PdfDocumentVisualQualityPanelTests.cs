@@ -119,7 +119,7 @@ public partial class PdfDocumentVisualQualityTests {
 
         using var pdf = PdfPigDocument.Open(new MemoryStream(bytes));
         double panelTextX = FindWordStartX(pdf.GetPage(1), "ColumnPanel");
-        string rawPdf = Encoding.ASCII.GetString(bytes);
+        string rawPdf = PdfTestContentText.ReadDecoded(bytes);
 
         Assert.InRange(panelTextX, 135, 138);
         Assert.Contains("0.941 0.973 1 rg", rawPdf, StringComparison.Ordinal);
@@ -561,7 +561,7 @@ public partial class PdfDocumentVisualQualityTests {
 
         byte[] bytes = doc.ToBytes();
 
-        string content = Encoding.ASCII.GetString(bytes);
+        string content = PdfTestContentText.ReadDecoded(bytes);
 
         Assert.Contains("0.102 0.2 0.302 rg", content);
         Assert.DoesNotContain("0.784 0.039 0.039 rg", content);

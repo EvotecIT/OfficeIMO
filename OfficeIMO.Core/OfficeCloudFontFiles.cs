@@ -69,7 +69,7 @@ internal static partial class OfficeCloudFontFiles {
         }
     }
 
-    private static IEnumerable<string> EnumerateChildren(string root, bool directories, int maximum) {
+    internal static IEnumerable<string> EnumerateChildren(string root, bool directories, int maximum) {
         if (!IsOrdinaryDirectory(root)) yield break;
         IEnumerator<string>? entries = null;
         try {

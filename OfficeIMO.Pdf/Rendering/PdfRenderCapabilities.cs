@@ -129,7 +129,6 @@ public static class PdfRenderCapabilities {
             !diagnostic.IsStandardFontSubstitution);
 
     internal const string UnknownOperatorId = "render.operator.unsupported";
-    internal const string MiterLimitId = "render.operator.miter-limit-simplified";
     internal const string RenderingIntentId = "render.operator.rendering-intent";
     internal const string FlatnessId = "render.operator.flatness-simplified";
     internal const string MarkedPointId = "render.operator.marked-point-simplified";
@@ -149,10 +148,12 @@ public static class PdfRenderCapabilities {
     internal const string UnsupportedShadingId = "render.resource.shading-unsupported";
     internal const string UnsupportedBlendModeId = "render.resource.blend-mode-unsupported";
     internal const string UnsupportedSoftMaskId = "render.resource.soft-mask-unsupported";
+    internal const string KnockoutGroupId = "render.resource.knockout-group-simplified";
     internal const string XObjectId = "render.resource.xobject-unsupported";
     internal const string SynthesizedAnnotationAppearanceId = "render.annotation.appearance-synthesized";
     internal const string AnnotationAppearanceId = "render.resource.annotation-appearance-missing";
     internal const string OptionalImageCodecId = "render.resource.image-codec-optional";
+    internal const string UnsupportedImageId = "render.resource.image-unsupported";
 
     private static readonly IReadOnlyList<PdfRenderCapability> Registry = BuildRegistry();
     private static readonly Dictionary<string, PdfRenderCapability> ById = Registry.ToDictionary(static entry => entry.Id, StringComparer.Ordinal);
@@ -166,7 +167,7 @@ public static class PdfRenderCapabilities {
     private static System.Collections.ObjectModel.ReadOnlyCollection<PdfRenderCapability> BuildRegistry() {
         var entries = new[] {
             Entry("render.annotation.appearance", "annotation", "Annotation appearance streams", PdfRenderSupportLevel.Supported, "Annotation appearance streams are projected when present."),
-            Entry(SynthesizedAnnotationAppearanceId, "annotation", "Synthesized annotation appearances", PdfRenderSupportLevel.Simplified, "A bounded appearance was synthesized from supported annotation geometry and style because the annotation did not provide a usable appearance stream."),
+            Entry(SynthesizedAnnotationAppearanceId, "annotation", "Synthesized annotation appearances", PdfRenderSupportLevel.Simplified, "A bounded appearance was synthesized from supported annotation geometry and style, or from a form field's value, default appearance and border colours, because the annotation did not provide a usable appearance stream or the AcroForm sets NeedAppearances."),
             Entry(AnnotationAppearanceId, "annotation", "Annotations without appearance streams", PdfRenderSupportLevel.Unsupported, "The annotation is skipped because it has no usable appearance stream."),
             Entry("render.colorspace.device", "color", "DeviceGray, DeviceRGB, and DeviceCMYK", PdfRenderSupportLevel.Supported, "Device color spaces are projected to shared Drawing colors."),
             Entry("render.colorspace.calibrated", "color", "CalGray, CalRGB, and Lab color spaces", PdfRenderSupportLevel.Simplified, "Calibrated colors are projected through managed device-color approximations."),
@@ -178,10 +179,10 @@ public static class PdfRenderCapabilities {
             Entry("render.colorspace.indexed-image", "color", "Indexed image color spaces", PdfRenderSupportLevel.Supported, "Indexed image palettes are decoded and projected through shared Drawing images."),
             Entry("render.colorspace.alternate", "color", "Separation, DeviceN, and NChannel alternate color spaces", PdfRenderSupportLevel.Supported, "Bounded exponential and identity calculator tint transforms are projected through their declared alternate color space."),
             Entry(ColorSpaceId, "color", "Unsupported or malformed content-paint color space", PdfRenderSupportLevel.Unsupported, "The selected content-paint color space cannot be projected within the managed renderer's bounded color contract."),
+            Entry("render.text.outline-stroke", "text", "Solid and dashed glyph-outline strokes", PdfRenderSupportLevel.Simplified, "Text rendering modes 1, 2, 5 and 6 retain glyph-outline stroke colors, widths, dash arrays and phase. Widths and dash distances use scalar CTM normalization; non-uniform affine text-stroke geometry remains approximate."),
             Entry("render.content.path", "operator", "Path construction, painting, clipping, and graphics-state operators", PdfRenderSupportLevel.Supported, "Core path and graphics-state operators are projected."),
             Entry(FlatnessId, "operator", "i flatness operator", PdfRenderSupportLevel.Simplified, "The flatness value is accepted but the shared Drawing renderer selects its own curve tolerance."),
             Entry(MarkedPointId, "operator", "MP and DP marked-point operators", PdfRenderSupportLevel.Simplified, "Marked-point metadata has no visual projection and is ignored."),
-            Entry(MiterLimitId, "operator", "M miter-limit operator", PdfRenderSupportLevel.Simplified, "The miter limit is accepted but the shared Drawing renderer uses its own miter behavior."),
             Entry(RenderingIntentId, "operator", "ri and image rendering intents", PdfRenderSupportLevel.Supported, "Perceptual, relative colorimetric, saturation, and absolute colorimetric intents select authored ICC transforms and propagate through graphics state, nested forms, text, color-managed DCT/JPEG and other normalized images, indexed palettes, output-intent soft proofing, shadings, tiling patterns, and soft-mask groups."),
             Entry(Type3MetricsId, "operator", "d0 and d1 Type 3 glyph metric operators", PdfRenderSupportLevel.Simplified, "Type 3 glyph metric operators are accepted inside bounded glyph programs; text advances use the font Widths contract."),
             Entry(UnknownOperatorId, "operator", "Unknown content-stream operator", PdfRenderSupportLevel.Unsupported, "The content-stream operator is not recognized by the managed renderer and is skipped."),
@@ -190,14 +191,16 @@ public static class PdfRenderCapabilities {
             Entry(UnsupportedBlendModeId, "resource", "Unknown ExtGState blend mode", PdfRenderSupportLevel.Unsupported, "The declared blend mode is not recognized by the managed renderer."),
             Entry("render.resource.embedded-truetype", "resource", "Embedded TrueType and TrueType-outline OpenType fonts", PdfRenderSupportLevel.Supported, "Supported embedded font programs are retained in the shared Drawing scene and used for managed glyph rendering."),
             Entry("render.resource.font-type3", "resource", "Type 3 vector, image, pattern, and isolated-group glyph programs", PdfRenderSupportLevel.Supported, "Bounded Type 3 vector, normalized raster-image, colored pattern, standard blend/soft-mask, and isolated non-knockout transparency-group programs with explicit DeviceRGB blending color spaces are projected with their font matrix, text transform, clipping, paint type, resources, and page paint order."),
-            Entry(CffFontSubstitutionId, "resource", "Embedded CFF, Type1C, and CIDFontType0C font programs", PdfRenderSupportLevel.Simplified, "Text is decoded and positioned, but the embedded CFF outlines are not executed and glyphs are rendered through a mapped system font."),
-            Entry(FontSubstitutionId, "resource", "Missing or unsupported PDF font programs", PdfRenderSupportLevel.Simplified, "Text is decoded and positioned, but glyph outlines are rendered through a mapped system font when no supported embedded TrueType program is available."),
+            Entry(CffFontSubstitutionId, "resource", "Unreadable or unsupported embedded Type 1 and CFF font programs", PdfRenderSupportLevel.Simplified, "Text is decoded and positioned through a mapped system font when a Type 1 or CFF program cannot be read or its FontMatrix includes rotation, shear, translation, reflection, or unequal axis scales. Embedded outline rendering supports positive uniform FontMatrix scales."),
+            Entry(FontSubstitutionId, "resource", "Missing or unsupported PDF font programs", PdfRenderSupportLevel.Simplified, "Text is decoded and positioned, but glyph outlines are rendered through a mapped system font when no readable embedded TrueType, CFF, or Type 1 program is available."),
             Entry(Type3FontSubstitutionId, "resource", "Malformed or unsupported Type 3 font glyph programs", PdfRenderSupportLevel.Simplified, "Text is decoded and positioned through a mapped system font when the Type 3 font dictionary or requested glyph program cannot be projected safely."),
             Entry(SoftMaskId, "resource", "ExtGState soft masks", PdfRenderSupportLevel.Supported, "Alpha and luminosity Form XObject soft masks are projected through shared Drawing vector masks."),
+            Entry(KnockoutGroupId, "resource", "Knockout transparency groups", PdfRenderSupportLevel.Simplified, "Knockout groups (/K true) are composited as ordinary groups: each element blends with the elements painted before it instead of only with the group's initial backdrop."),
             Entry(UnsupportedSoftMaskId, "resource", "Unsupported ExtGState soft mask", PdfRenderSupportLevel.Unsupported, "The soft mask does not contain a usable transparency-group Form XObject."),
             Entry("render.resource.form-xobject", "resource", "Form XObjects", PdfRenderSupportLevel.Supported, "Form XObjects are recursively projected with bounded nesting."),
             Entry("render.resource.image-xobject", "resource", "Image XObjects and inline images", PdfRenderSupportLevel.Supported, "Decoded image resources are projected through shared Drawing image elements."),
             Entry(OptionalImageCodecId, "resource", "JPEG 2000 and optional raster codecs", PdfRenderSupportLevel.Simplified, "JPEG 2000 image bytes require a caller-supplied IOfficeRasterImageCodec. Supported Gray/RGB images can be projected through that codec; unsupported masks, color normalization, or missing decoders prevent complete raster rendering."),
+            Entry(UnsupportedImageId, "resource", "Unsupported image encoding", PdfRenderSupportLevel.Unsupported, "The image uses a filter or encoded feature outside the managed decoders, such as JBIG2 halftone or Huffman-coded regions, or its JBIG2 segments are malformed; the image is omitted."),
             Entry("render.resource.shading-pattern", "resource", "Axial and radial shading patterns", PdfRenderSupportLevel.Supported, "Supported axial and radial shadings are projected to shared Drawing gradients."),
             Entry("render.resource.function-shading", "resource", "Direct function-based shading", PdfRenderSupportLevel.Supported, "Bounded two-input functions are sampled at the requested export resolution with page-wide pixel and evaluation-work limits. Function-based shading patterns are unsupported."),
             Entry(UnsupportedShadingId, "resource", "Unsupported shading", PdfRenderSupportLevel.Unsupported, "The invoked shading is malformed or uses a color or function contract outside the bounded managed renderer."),

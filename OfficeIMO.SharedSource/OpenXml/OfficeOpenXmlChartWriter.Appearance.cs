@@ -8,35 +8,24 @@ using C = DocumentFormat.OpenXml.Drawing.Charts;
 
 namespace OfficeIMO.OpenXml.Internal {
     internal static partial class OfficeOpenXmlChartWriter {
-        private const string AutomaticSeriesColorExtensionUri = "urn:officeimo:chart:auto-series-color:1";
-
-        internal static bool HasAutomaticSeriesColor(OpenXmlCompositeElement element) =>
-            element.ChildElements.Where(child => child.LocalName == "extLst")
-                .SelectMany(list => list.ChildElements)
-                .Any(extension => extension.GetAttribute("uri", string.Empty).Value ==
-                    AutomaticSeriesColorExtensionUri);
-
         private static void SetAutomaticSeriesColor(OpenXmlCompositeElement element, bool automatic) {
             OpenXmlCompositeElement? extensions = element.ChildElements
                 .OfType<OpenXmlCompositeElement>().FirstOrDefault(child => child.LocalName == "extLst");
-            foreach (OpenXmlElement extension in extensions?.ChildElements
-                .Where(child => child.GetAttribute("uri", string.Empty).Value ==
-                    AutomaticSeriesColorExtensionUri).ToArray() ?? Array.Empty<OpenXmlElement>())
-                extension.Remove();
+            OfficeOpenXmlChartAutomaticColors.ClearAutomaticSeriesColor(element);
             if (!automatic) return;
             OpenXmlCompositeElement? marker = element switch {
-                C.BarChartSeries => new C.BarSerExtension { Uri = AutomaticSeriesColorExtensionUri },
-                C.LineChartSeries => new C.LineSerExtension { Uri = AutomaticSeriesColorExtensionUri },
-                C.ScatterChartSeries => new C.ScatterSerExtension { Uri = AutomaticSeriesColorExtensionUri },
-                C.AreaChartSeries => new C.AreaSerExtension { Uri = AutomaticSeriesColorExtensionUri },
-                C.RadarChartSeries => new C.RadarSerExtension { Uri = AutomaticSeriesColorExtensionUri },
-                C.PieChartSeries => new C.PieSerExtension { Uri = AutomaticSeriesColorExtensionUri },
-                C.BubbleChartSeries => new C.BubbleSerExtension { Uri = AutomaticSeriesColorExtensionUri },
+                C.BarChartSeries => new C.BarSerExtension { Uri = OfficeOpenXmlChartAutomaticColors.AutomaticSeriesColorExtensionUri },
+                C.LineChartSeries => new C.LineSerExtension { Uri = OfficeOpenXmlChartAutomaticColors.AutomaticSeriesColorExtensionUri },
+                C.ScatterChartSeries => new C.ScatterSerExtension { Uri = OfficeOpenXmlChartAutomaticColors.AutomaticSeriesColorExtensionUri },
+                C.AreaChartSeries => new C.AreaSerExtension { Uri = OfficeOpenXmlChartAutomaticColors.AutomaticSeriesColorExtensionUri },
+                C.RadarChartSeries => new C.RadarSerExtension { Uri = OfficeOpenXmlChartAutomaticColors.AutomaticSeriesColorExtensionUri },
+                C.PieChartSeries => new C.PieSerExtension { Uri = OfficeOpenXmlChartAutomaticColors.AutomaticSeriesColorExtensionUri },
+                C.BubbleChartSeries => new C.BubbleSerExtension { Uri = OfficeOpenXmlChartAutomaticColors.AutomaticSeriesColorExtensionUri },
                 _ => null
             };
             if (marker == null) return;
             marker.Append(new OpenXmlUnknownElement("oi", "autoColor",
-                AutomaticSeriesColorExtensionUri));
+                OfficeOpenXmlChartAutomaticColors.AutomaticSeriesColorExtensionUri));
             extensions ??= element switch {
                 C.BarChartSeries => new C.BarSerExtensionList(),
                 C.LineChartSeries => new C.LineSerExtensionList(),

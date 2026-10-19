@@ -41,7 +41,8 @@ namespace OfficeIMO.Excel {
                     item.Color?.ToRgbHex(), item.StrokeWidth, item.StrokeDashStyle,
                     item.PointColors?.Select(color => color?.ToRgbHex()).ToList(), item.ShowMarkers,
                     item.ConnectLine, item.MarkerSize, item.MarkerShape, item.MarkerOutlineColor?.ToRgbHex(),
-                    item.MarkerOutlineWidth);
+                    item.MarkerOutlineWidth).WithSeriesStyle(item.SeriesStyle)
+                    .WithPointStyles(item.PointStyles).WithPointExplosions(item.PointExplosions);
                 series.Add(mapped);
             }
             return new ExcelChartData(data.Categories, series);

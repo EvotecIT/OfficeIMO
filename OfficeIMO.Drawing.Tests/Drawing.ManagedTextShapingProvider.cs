@@ -138,6 +138,44 @@ public class DrawingManagedTextShapingProviderTests {
         Assert.Equal(0, result.Glyphs[1].TextIndex);
     }
 
+    [Theory]
+    [InlineData("\u0644\u0622")]
+    [InlineData("\u0644\u0623")]
+    [InlineData("\u0644\u0625")]
+    [InlineData("\u0644\u0627")]
+    public void ManagedProvider_DeclinesUnimplementedRequiredLamAlefLigatures(string text) {
+        byte[] font = ManagedTextShapingTestAssets.CreateFont(0x0644, 0x0622, 0x0623, 0x0625, 0x0627,
+            0xFEDF, 0xFE82, 0xFE84, 0xFE88, 0xFE8E);
+        var request = new OfficeTextShapingRequest(text, ManagedTextShapingTestAssets.FamilyName,
+            font, isOpenTypeCff: false, unitsPerEm: 1000, direction: OfficeTextDirection.RightToLeft, language: "ar");
+
+        Assert.Null(OfficeManagedTextShapingProvider.Instance.ShapeText(request));
+    }
+
+    [Theory]
+    [InlineData("e\u0301")]
+    [InlineData("\u0627\u064E")]
+    [InlineData("\u05D0\u05B7")]
+    public void ManagedProvider_DeclinesUnpositionedMarkGlyphs(string text) {
+        byte[] font = ManagedTextShapingTestAssets.CreateFont('e', 0x0301, 0x0627, 0xFE8D, 0x064E, 0x05D0, 0x05B7);
+        var request = new OfficeTextShapingRequest(text, ManagedTextShapingTestAssets.FamilyName,
+            font, isOpenTypeCff: false, unitsPerEm: 1000);
+
+        Assert.Null(OfficeManagedTextShapingProvider.Instance.ShapeText(request));
+    }
+
+    [Theory]
+    [InlineData("e\u0301")]
+    [InlineData("\u0627\u064E")]
+    public void ManagedFallback_ClassifiesUnpositionedMarksAsIncomplete(string text) {
+        byte[] font = ManagedTextShapingTestAssets.CreateFont('e', 0x0301, 0x0627, 0xFE8D, 0x064E);
+
+        OfficeManagedTextFallback fallback = OfficeManagedTextShaper.Resolve(text, OfficeTrueTypeFont.TryLoad(font)!);
+
+        Assert.True(fallback.Used);
+        Assert.True(fallback.Incomplete);
+    }
+
     [Fact]
     public void ManagedProvider_DeclinesTopToBottomRunsWithoutVerticalAdvances() {
         byte[] font = ManagedTextShapingTestAssets.CreateFont(

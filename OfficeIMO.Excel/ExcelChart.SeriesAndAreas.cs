@@ -49,6 +49,7 @@ namespace OfficeIMO.Excel {
             bool applied = ApplySeriesByIndex(seriesIndex, series => {
                 C.ChartShapeProperties props = EnsureChartShapeProperties(series);
                 ApplySolidFill(props, NormalizeHexColor(color));
+                OfficeIMO.OpenXml.Internal.OfficeOpenXmlChartAutomaticColors.ClearAutomaticSeriesColor(series);
             });
 
             if (!applied) {
@@ -73,6 +74,7 @@ namespace OfficeIMO.Excel {
             bool applied = ApplySeriesByName(seriesName, ignoreCase, series => {
                 C.ChartShapeProperties props = EnsureChartShapeProperties(series);
                 ApplySolidFill(props, NormalizeHexColor(color));
+                OfficeIMO.OpenXml.Internal.OfficeOpenXmlChartAutomaticColors.ClearAutomaticSeriesColor(series);
             });
 
             if (!applied) {
@@ -98,6 +100,7 @@ namespace OfficeIMO.Excel {
             bool applied = ApplySeriesByIndex(seriesIndex, series => {
                 C.ChartShapeProperties props = EnsureChartShapeProperties(series);
                 ApplyLine(props, NormalizeHexColor(color), widthPoints);
+                OfficeIMO.OpenXml.Internal.OfficeOpenXmlChartAutomaticColors.ClearAutomaticSeriesColor(series);
             });
 
             if (!applied) {
@@ -123,6 +126,7 @@ namespace OfficeIMO.Excel {
             bool applied = ApplySeriesByName(seriesName, ignoreCase, series => {
                 C.ChartShapeProperties props = EnsureChartShapeProperties(series);
                 ApplyLine(props, NormalizeHexColor(color), widthPoints);
+                OfficeIMO.OpenXml.Internal.OfficeOpenXmlChartAutomaticColors.ClearAutomaticSeriesColor(series);
             });
 
             if (!applied) {

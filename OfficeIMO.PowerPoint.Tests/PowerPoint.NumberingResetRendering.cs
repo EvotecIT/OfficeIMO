@@ -21,9 +21,11 @@ public sealed class PowerPointNumberingResetRenderingTests {
         using var reopened = PowerPointPresentation.Load(saved);
         Assert.Empty(reopened.ValidateDocument());
         var snapshot = reopened.Slides[0].CreateVisualSnapshot();
-        var text = snapshot.Drawing.Elements.OfType<OfficeDrawingRichText>()
-            .Select(item => item.PlainText).ToArray();
-        Assert.Equal(ExpectedItems(), text);
+        string[] lines = snapshot.TextSpans.GroupBy(span => Math.Round(span.Y, 2))
+            .OrderByDescending(line => line.Key)
+            .Select(line => string.Concat(line.OrderBy(span => span.X).Select(span => span.Text)))
+            .ToArray();
+        Assert.Equal(ExpectedItems(), lines);
     }
 
     [Fact]
@@ -39,12 +41,7 @@ public sealed class PowerPointNumberingResetRenderingTests {
         var result = reopened.ToPdfDocumentResult();
         var pdf = PdfCore.PdfReadDocument.Open(result.Value.ToBytes());
         string text = pdf.ExtractText();
-        int previous = -1;
-        foreach (string item in ExpectedItems()) {
-            int position = text.IndexOf(item, StringComparison.Ordinal);
-            Assert.True(position > previous, "Missing or out-of-order numbered PDF table item: " + item + "\n" + text);
-            previous = position;
-        }
+        AssertNumberedItemsInOrder(text);
         Assert.Equal(OfficeConversionLossKind.Approximation,
             Assert.Single(result.Report.Warnings, warning => warning.Code == "table-list-layout-approximation").LossKind);
     }
@@ -67,16 +64,18 @@ public sealed class PowerPointNumberingResetRenderingTests {
         paragraph.SetBulletFont("Times New Roman").SetBulletSizePoints(11);
         using var saved = new MemoryStream(); presentation.Save(saved); saved.Position = 0;
         using var reopened = PowerPointPresentation.Load(saved);
-        var result = reopened.ToPdfDocumentResult();
-        var canvas = Assert.IsType<PdfCore.PdfCanvasBlock>(Assert.Single(result.Value.Blocks));
-        var table = Assert.Single(canvas.Items.OfType<PdfCore.PdfCanvasTableItem>()).Block;
-        var runs = Assert.Single(Assert.Single(table.Cells)).Runs.ToArray();
-        Assert.Equal(characterBullet ? "* " : "7. ", runs[0].Text);
-        Assert.Equal("Times New Roman", runs[0].FontFamily);
-        Assert.Equal(11, runs[0].FontSize);
-        Assert.Equal("Separate marker", runs[1].Text);
-        Assert.Equal("Arial", runs[1].FontFamily);
-        Assert.Equal(12, runs[1].FontSize);
+        var result = reopened.ToPdfDocumentResult(new PowerPointToPdfOptions {
+            ResourcePolicy = PdfCore.PdfResourcePolicy.CreatePortableDeterministic()
+        });
+        var spans = PdfCore.PdfReadDocument.Open(result.ToBytes()).Pages[0].GetTextSpans();
+        var marker = Assert.Single(spans, span => span.Text.TrimEnd() == (characterBullet ? "*" : "7."));
+        var body = Assert.Single(spans, span => span.Text == "Separate marker");
+        Assert.Contains("Times", marker.BaseFont ?? string.Empty, StringComparison.Ordinal);
+        Assert.Equal(11D, marker.FontSize);
+        Assert.Contains("Helvetica", body.BaseFont ?? string.Empty, StringComparison.Ordinal);
+        Assert.Equal(12D, body.FontSize);
+        Assert.NotEqual(marker.FontResource, body.FontResource);
+        Assert.True(marker.X < body.X);
     }
 
     [Theory]
@@ -95,12 +94,21 @@ public sealed class PowerPointNumberingResetRenderingTests {
         var options = new PowerPointToPdfOptions { PdfOptions = new PdfCore.PdfOptions {
             DefaultTableStyle = new PdfCore.PdfTableStyle { FontSize = 20, HeaderFontSize = 24, FooterFontSize = 28 }
         }};
-        var pdf = presentation.ToPdfDocument(options);
-        var canvas = Assert.IsType<PdfCore.PdfCanvasBlock>(Assert.Single(pdf.Blocks));
-        var marker = Assert.Single(Assert.Single(Assert.Single(
-            canvas.Items.OfType<PdfCore.PdfCanvasTableItem>()).Block.Cells)).Runs[0];
-        Assert.Equal("7. ", marker.Text);
-        Assert.Equal(expectedSize, marker.FontSize);
+        byte[] bytes = presentation.ToPdfBytes(options);
+        var spans = PdfCore.PdfReadDocument.Open(bytes).Pages[0].GetTextSpans();
+        var marker = Assert.Single(spans, span => span.Text.TrimEnd() == "7.");
+        Assert.Equal((double)expectedSize, marker.FontSize);
+        var body = Assert.Single(spans, span => span.Text == "Inherited body size");
+        Assert.Equal(expectedSize * 2D, body.FontSize);
+    }
+
+    private static void AssertNumberedItemsInOrder(string text) {
+        int previousEnd = 0;
+        foreach (string item in ExpectedItems()) {
+            int position = text.IndexOf(item, previousEnd, StringComparison.Ordinal);
+            Assert.True(position >= previousEnd, "Missing or out-of-order numbered PDF item: " + item + "\n" + text);
+            previousEnd = position + item.Length;
+        }
     }
 
     private static string[] ExpectedItems() => new[] { "7. Item 0", "1. Item 1", "1. Item 2",

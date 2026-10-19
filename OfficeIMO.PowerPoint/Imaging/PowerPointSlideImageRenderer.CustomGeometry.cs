@@ -95,7 +95,7 @@ namespace OfficeIMO.PowerPoint {
                     drawingShape.Glow = null;
                     drawingShape.Shadow = null;
                 }
-                ApplyShapeTransform(drawingShape, shape, width, height);
+                ApplyShapeTransformForExport(drawingShape, shape, width, height);
                 drawing.AddShape(drawingShape, left, top);
             }
             return true;

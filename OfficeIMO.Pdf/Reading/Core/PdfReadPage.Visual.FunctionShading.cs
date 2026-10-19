@@ -14,6 +14,20 @@ public sealed partial class PdfReadPage {
         if (path == null) return;
         var paint = primitive.FunctionPaint!;
         var field = paint.Resource;
+        // Rasterize only where the field can paint: its BBox, mesh extent or function domain.
+        if (field.PaintBounds is double[] bounds && paint.InverseTransform.TryInvert(out OfficeTransform toPage)) {
+            OfficePoint[] corners = {
+                toPage.TransformPoint(new OfficePoint(bounds[0], bounds[1])), toPage.TransformPoint(new OfficePoint(bounds[2], bounds[1])),
+                toPage.TransformPoint(new OfficePoint(bounds[0], bounds[3])), toPage.TransformPoint(new OfficePoint(bounds[2], bounds[3]))
+            };
+            double left = Math.Max(fitted.X, corners.Min(static p => p.X)), top = Math.Max(fitted.Y, corners.Min(static p => p.Y));
+            double right = Math.Min(fitted.X + fitted.Width, corners.Max(static p => p.X)), bottom = Math.Min(fitted.Y + fitted.Height, corners.Max(static p => p.Y));
+            if (!(right > left) || !(bottom > top)) return;
+            fitted = clippingBudget.ResolveActiveClip(fitted, PdfPageClipPath.Rectangle(left, top, right - left, bottom - top));
+            if (!TryFitClipToDrawing(fitted, drawing.Width, drawing.Height, out fitted)) return;
+            path = fitted.ToOfficeClipPath(fitted.X, fitted.Y);
+            if (path == null) return;
+        }
         double scale = field.RasterScale;
         if (!(scale > 0D) || double.IsInfinity(scale)) throw new InvalidOperationException("Function shading requires a positive finite raster scale.");
         // Align sampling with the output pixel grid even for clipped partial pixels.

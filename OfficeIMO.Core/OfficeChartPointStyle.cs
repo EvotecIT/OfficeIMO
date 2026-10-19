@@ -80,4 +80,16 @@ public sealed class OfficeChartPointStyle {
     public bool? ShowOutline { get; }
     /// <summary>Optional outline corner join.</summary>
     public OfficeStrokeLineJoin? OutlineJoin { get; }
+    /// <summary>Combines point overrides with series paint without turning an inherited fill into no-fill.</summary>
+    internal static OfficeChartPointStyle? Inherit(OfficeChartPointStyle? point, OfficeChartPointStyle? series) {
+        if (point == null) return series;
+        if (series == null) return point;
+        bool hasFill = point.NoFill || point.FillColor.HasValue || point.Hatch.HasValue;
+        return new OfficeChartPointStyle(hasFill ? point.FillColor : series.FillColor,
+            hasFill ? point.NoFill : series.NoFill,
+            hasFill ? point.Hatch : series.Hatch, hasFill ? point.HatchColor : series.HatchColor,
+            point.OutlineColor ?? series.OutlineColor, point.OutlineWidth ?? series.OutlineWidth,
+            point.ShowOutline ?? series.ShowOutline, point.OutlineJoin ?? series.OutlineJoin);
+    }
+
 }

@@ -540,6 +540,8 @@ namespace OfficeIMO.PowerPoint {
                 throw new ArgumentOutOfRangeException(nameof(index));
             }
 
+            bool updateCachedDrawing = TryPrepareCachedNodeTextEdit(xdoc, textBodies[index], normalizedText,
+                out DiagramPersistLayoutPart? persistPart, out XDocument? persistDocument);
             List<XElement> paragraphs = textBodies[index].Elements(ns.a + "p")
                 .ToList();
             XElement paragraph = paragraphs[0];
@@ -551,7 +553,8 @@ namespace OfficeIMO.PowerPoint {
                  paragraphIndex < paragraphs.Count; paragraphIndex++) {
                 paragraphs[paragraphIndex].Remove();
             }
-            SaveDiagramData(dataPart, xdoc);
+            if (updateCachedDrawing) SaveDiagramTopologyAtomically(dataPart, xdoc, persistPart!, persistDocument!);
+            else SaveDiagramData(dataPart, xdoc);
         }
 
         private (XDocument xdoc, (XNamespace dgm, XNamespace a) ns,

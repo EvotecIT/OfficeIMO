@@ -59,7 +59,8 @@ namespace OfficeIMO.Word {
             SetTableLookMask(tableLook, mask);
         }
 
-        private static int GetTableLookMask(TableLook tableLook) {
+        /// <summary>Resolves packed and expanded table-look flags; expanded values override the packed mask.</summary>
+        internal static int GetTableLookMask(TableLook tableLook) {
             var mask = 0;
             var value = tableLook.Val?.Value;
             if (!string.IsNullOrWhiteSpace(value)

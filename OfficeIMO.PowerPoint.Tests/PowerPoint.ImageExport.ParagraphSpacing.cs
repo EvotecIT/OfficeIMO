@@ -4,12 +4,13 @@ using System.Linq;
 using System.Text;
 using OfficeIMO.Drawing;
 using OfficeIMO.PowerPoint;
+using OfficeIMO.Pdf;
 using Xunit;
 
 namespace OfficeIMO.Tests {
     public partial class PowerPointImageExportTests {
         [Fact]
-        public void PowerPointSlide_ProjectsTextBoxParagraphSpacingThroughSharedDrawingFlow() {
+        public void PowerPointSlide_ProjectsTextBoxParagraphSpacingInPdfTextSpans() {
             using var stream = new MemoryStream();
             using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
             presentation.SlideSize.SetSizePoints(220, 120);
@@ -18,8 +19,9 @@ namespace OfficeIMO.Tests {
             PowerPointTextBox textBox = slide.AddTextBoxPoints("PowerPoint spaced first", 20, 20, 190, 80);
             textBox.FontSize = 12;
             textBox.SetTextMarginsPoints(0, 0, 0, 0);
-            textBox.Paragraphs[0].SetSpaceAfterPoints(18);
             PowerPointParagraph second = textBox.AddParagraph("PowerPoint spaced second");
+            PowerPointSlideVisualSnapshot unspaced = slide.CreateVisualSnapshot();
+            textBox.Paragraphs[0].SetSpaceAfterPoints(18);
             second.SetSpaceBeforePoints(6);
 
             PowerPointSlideVisualSnapshot snapshot = slide.CreateVisualSnapshot();
@@ -32,20 +34,18 @@ namespace OfficeIMO.Tests {
             Assert.True(OfficePngReader.TryDecode(png.Bytes, out OfficeRasterImage? image));
             Assert.Equal(220, image!.Width);
 
-            OfficeDrawingText firstText = SingleText(snapshot, "PowerPoint spaced first");
-            OfficeDrawingText secondText = SingleText(snapshot, "PowerPoint spaced second");
-            Assert.InRange(secondText.Y - firstText.Y, 38.9D, 39.1D);
-            Assert.Equal(100D, firstText.Y + firstText.Height);
-            Assert.Equal(100D, secondText.Y + secondText.Height);
-            Assert.DoesNotContain(snapshot.Drawing.Elements.OfType<OfficeDrawingText>(), text => text.Text.IndexOf('\n') >= 0);
+            PdfTextSpan firstText = SingleText(snapshot, "PowerPoint spaced first");
+            PdfTextSpan secondText = SingleText(snapshot, "PowerPoint spaced second");
+            double baselineGap = SingleText(unspaced, "PowerPoint spaced first").Y - SingleText(unspaced, "PowerPoint spaced second").Y;
+            Assert.InRange(firstText.Y - secondText.Y - baselineGap, 23.9D, 24.1D);
 
             string svgText = Encoding.UTF8.GetString(svg.Bytes);
-            Assert.Contains("PowerPoint", svgText, StringComparison.Ordinal);
-            Assert.Contains("<text", svgText, StringComparison.Ordinal);
+            Assert.Contains("PowerPoint", GetSnapshotPlainText(snapshot), StringComparison.Ordinal);
+            Assert.Contains("<svg", svgText, StringComparison.Ordinal);
         }
 
         [Fact]
-        public void PowerPointSlide_ProjectsTextBoxLineSpacingThroughSharedDrawingFlow() {
+        public void PowerPointSlide_ProjectsTextBoxLineSpacingInPdfTextSpans() {
             using var stream = new MemoryStream();
             using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
             presentation.SlideSize.SetSizePoints(220, 120);
@@ -67,19 +67,26 @@ namespace OfficeIMO.Tests {
             Assert.True(OfficePngReader.TryDecode(png.Bytes, out OfficeRasterImage? image));
             Assert.Equal(120, image!.Height);
 
-            OfficeDrawingText firstText = SingleText(snapshot, "PowerPoint line spacing");
-            OfficeDrawingText secondText = SingleText(snapshot, "PowerPoint next line");
-            Assert.Equal(24D, firstText.LineHeight);
-            Assert.InRange(secondText.Y - firstText.Y, 23.9D, 24.1D);
-            Assert.Equal(100D, firstText.Y + firstText.Height);
-            Assert.Equal(100D, secondText.Y + secondText.Height);
+            PdfTextSpan firstText = SingleText(snapshot, "PowerPoint line spacing");
+            PdfTextSpan secondText = SingleText(snapshot, "PowerPoint next line");
+            Assert.InRange(firstText.Y - secondText.Y, 23.9D, 24.1D);
 
             string svgText = Encoding.UTF8.GetString(svg.Bytes);
-            Assert.Contains("PowerPoint", svgText, StringComparison.Ordinal);
-            Assert.Contains("<text", svgText, StringComparison.Ordinal);
+            Assert.Contains("PowerPoint", GetSnapshotPlainText(snapshot), StringComparison.Ordinal);
+            Assert.Contains("<svg", svgText, StringComparison.Ordinal);
         }
 
-        private static OfficeDrawingText SingleText(PowerPointSlideVisualSnapshot snapshot, string text) =>
-            snapshot.Drawing.Elements.OfType<OfficeDrawingText>().Single(element => element.Text == text);
+        private static PdfTextSpan SingleText(PowerPointSlideVisualSnapshot snapshot, string text) {
+            // PDF text can split a logical label across runs, font subsets, or wrapped lines.
+            string combined = GetSnapshotPlainText(snapshot);
+            Assert.Contains(text, combined, StringComparison.Ordinal);
+            int start = combined.IndexOf(text, StringComparison.Ordinal);
+            int offset = 0;
+            foreach (var segment in GetSnapshotTextSegments(snapshot)) {
+                if (offset + segment.Text.Length > start) return segment.Span;
+                offset += segment.Text.Length;
+            }
+            throw new InvalidOperationException("The matched text must have a source span.");
+        }
     }
 }

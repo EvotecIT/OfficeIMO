@@ -14,7 +14,8 @@ public sealed class PdfRedactionInteroperabilityCorpusTests {
         byte[] source = File.ReadAllBytes(Path.Combine(FixtureRoot, fileName));
         PdfReadDocument readable = PdfReadDocument.Open(source);
         var target = readable.Pages
-            .SelectMany(static (page, index) => page.GetTextSpans().Select(span => new {
+            // Glyph-exact spans: logical extraction joins a producer's kerned array into one sentence.
+            .SelectMany(static (page, index) => page.GetTextSpansIncludingHiddenOptionalContent(requireMappedText: true).Select(span => new {
                 PageNumber = index + 1,
                 Span = span,
                 Bounds = PdfTextSpanGeometry.GetAxisAlignedBounds(span)

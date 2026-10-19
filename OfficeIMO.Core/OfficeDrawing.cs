@@ -1042,7 +1042,7 @@ public sealed partial class OfficeDrawing {
 
     /// <summary>Creates a detached copy of this drawing and all positioned elements.</summary>
     public OfficeDrawing Clone() {
-        var clone = new OfficeDrawing(Width, Height) { Fonts = Fonts.Clone(), TextShapingProvider = TextShapingProvider, TextShapingLanguage = TextShapingLanguage };
+        var clone = new OfficeDrawing(Width, Height) { Fonts = Fonts.Clone(), TextShapingProvider = TextShapingProvider, TextShapingLanguage = TextShapingLanguage, SvgTextAsPaths = SvgTextAsPaths };
         for (int i = 0; i < _elements.Count; i++) {
             OfficeDrawingElement element = _elements[i].CloneElement();
             element.SourceElementIds = _elements[i].SourceElementIds;

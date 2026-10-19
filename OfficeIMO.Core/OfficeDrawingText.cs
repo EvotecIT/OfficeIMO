@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using System;
 
 namespace OfficeIMO.Drawing;
@@ -299,8 +300,27 @@ public sealed class OfficeDrawingText : OfficeDrawingElement {
         PreservesPaintedGlyphs = PreservesPaintedGlyphs,
         RasterText = RasterText,
         FontMetricScale = FontMetricScale,
-        ClipToFrame = ClipToFrame
+        ClipToFrame = ClipToFrame,
+        OutlineStrokeColor = OutlineStrokeColor,
+        OutlineStrokeWidth = OutlineStrokeWidth,
+        OutlineStrokeDashPattern = OutlineStrokeDashPattern,
+        OutlineStrokeDashOffset = OutlineStrokeDashOffset,
+        FillSuppressed = FillSuppressed
     };
+
+    /// <summary>
+    /// Optional glyph-outline stroke paint (PDF text rendering modes 1, 2, 5 and 6). Raster renderers stroke the
+    /// same contours they fill; consumers without outline stroking keep the fill colour.
+    /// </summary>
+    internal OfficeColor? OutlineStrokeColor { get; set; }
+
+    /// <summary>Glyph-outline stroke width in drawing units; zero paints the thinnest device line.</summary>
+    internal double OutlineStrokeWidth { get; set; }
+    internal IReadOnlyList<double>? OutlineStrokeDashPattern { get; set; }
+    internal double OutlineStrokeDashOffset { get; set; }
+
+    /// <summary>True when only the outline stroke paints (PDF modes 1 and 5); <see cref="Color"/> then names the stroke.</summary>
+    internal bool FillSuppressed { get; set; }
 
     /// <summary>Whether a positioned run's layout frame is also an authored paint clip.</summary>
     internal bool ClipToFrame { get; set; } = true;

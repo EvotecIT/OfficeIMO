@@ -123,28 +123,32 @@ internal static partial class PdfWriter {
 
                     var markerLines = new System.Collections.Generic.List<string>(1) { marker };
                     int? labelMarkedContentId = RegisterTextStructureElement("Lbl", listItemElementIndex);
-                    if (markerNamedFont.HasValue) {
-                        currentPage!.UsedNamedFonts.Add(markerNamedFont.Value);
-                    } else {
-                        MarkSimpleFont(markerFont);
-                    }
+                    if (!WriteListMarkerFallback(preparedItem.MarkerFallback, currentOpts.MarginLeft + markerOffset,
+                            markerWidth, AdjustRichLineBaseline(baselineY, segmentLines[0], currentOpts, size),
+                            markerSize, leading, markerAlign, markerColor ?? color, labelMarkedContentId)) {
+                        if (markerNamedFont.HasValue) {
+                            currentPage!.UsedNamedFonts.Add(markerNamedFont.Value);
+                        } else {
+                            MarkSimpleFont(markerFont);
+                        }
 
-                    WriteLinesInternal(
-                        GetFontResourceName(markerFont, markerNamedFont, ChooseNormal(currentOpts.DefaultFont)),
-                        markerSize,
-                        leading,
-                        currentOpts.MarginLeft + markerOffset,
-                        markerWidth,
-                        AdjustRichLineBaseline(baselineY, segmentLines[0], currentOpts, size) +
-                            ResolveFontLineAlignmentRise(markerFont, markerNamedFont, markerSize, currentOpts, lineSpacing),
-                        markerLines,
-                        markerAlign,
-                        markerColor ?? color,
-                        applyBaselineTweak: true,
-                        structureType: "Lbl",
-                        markedContentId: labelMarkedContentId,
-                        namedFont: markerNamedFont,
-                        featureSettings: prepared.Style?.MarkerFeatureSettings);
+                        WriteLinesInternal(
+                            GetFontResourceName(markerFont, markerNamedFont, ChooseNormal(currentOpts.DefaultFont)),
+                            markerSize,
+                            leading,
+                            currentOpts.MarginLeft + markerOffset,
+                            markerWidth,
+                            AdjustRichLineBaseline(baselineY, segmentLines[0], currentOpts, size) +
+                                ResolveFontLineAlignmentRise(markerFont, markerNamedFont, markerSize, currentOpts, lineSpacing),
+                            markerLines,
+                            markerAlign,
+                            markerColor ?? color,
+                            applyBaselineTweak: true,
+                            structureType: "Lbl",
+                            markedContentId: labelMarkedContentId,
+                            namedFont: markerNamedFont,
+                            featureSettings: prepared.Style?.MarkerFeatureSettings);
+                    }
                 }
 
                 RecordFlowPlacement(y);

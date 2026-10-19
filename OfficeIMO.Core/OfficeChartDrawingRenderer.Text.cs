@@ -96,7 +96,7 @@ public static partial class OfficeChartDrawingRenderer {
             int seriesIndex = legendIndexes[i];
             double rowY = startY + i * rowHeight;
             double swatchOffset = Math.Max(0D, (rowHeight - layout.LegendSwatchSize) / 2D);
-            AddShape(drawing, OfficeShape.Rectangle(layout.LegendSwatchSize, layout.LegendSwatchSize), x, rowY + swatchOffset, GetSeriesColor(style, series, seriesIndex), null, 0D);
+            AddPointSwatch(drawing, x, rowY + swatchOffset, layout.LegendSwatchSize, GetSeriesColor(style, series, seriesIndex), series[seriesIndex].SeriesStyle);
             string name = string.IsNullOrWhiteSpace(series[seriesIndex].Name) ? "Series " + (seriesIndex + 1).ToString(CultureInfo.InvariantCulture) : series[seriesIndex].Name;
             double textOffset = layout.LegendSwatchSize + layout.LegendTextGap;
             AddChartText(drawing, name, x + textOffset, rowY, width - textOffset, rowHeight, layout.LegendFontSize, legendTextColor, OfficeTextAlignment.Left, style, layout.LegendFontFamily, layout.LegendFontStyle);
@@ -205,7 +205,8 @@ public static partial class OfficeChartDrawingRenderer {
             width,
             style,
             layout,
-            legendIndexes.Select(index => (OfficeColor?)GetSeriesColor(style, series, index)).ToList());
+            legendIndexes.Select(index => (OfficeColor?)GetSeriesColor(style, series, index)).ToList(),
+            legendIndexes.Select(index => series[index].SeriesStyle).ToList());
     }
 
     private static List<int> GetLegendSeriesIndexes(IReadOnlyList<OfficeChartSeries> series) {
@@ -326,7 +327,7 @@ public static partial class OfficeChartDrawingRenderer {
         return Math.Max(1, Math.Min(count, (int)Math.Floor(width / itemWidth)));
     }
 
-    private static void AddCategoryAxisLabels(OfficeDrawing drawing, IReadOnlyList<string> categories, double plotLeft, double labelY, double plotWidth, OfficeChartStyle style, OfficeChartLayout layout) {
+    private static void AddCategoryAxisLabels(OfficeDrawing drawing, IReadOnlyList<string> categories, double plotLeft, double labelY, double plotWidth, OfficeChartStyle style, OfficeChartLayout layout, bool onTickMarks = false) {
         if (categories.Count == 0) {
             return;
         }
@@ -345,7 +346,9 @@ public static partial class OfficeChartDrawingRenderer {
             }
 
             double labelWidth = Math.Min(layout.CategoryAxisLabelWidth, Math.Max(18D, slot * stride));
-            double centerX = GetCategorySlotCenterX(plotLeft, slot, i, categories.Count, layout);
+            double centerX = onTickMarks
+                ? GetCategoryPointX(plotLeft, categories.Count > 1 ? plotWidth / (categories.Count - 1) : 0D, i, categories.Count, layout)
+                : GetCategorySlotCenterX(plotLeft, slot, i, categories.Count, layout);
             AddChartText(drawing, label, centerX - labelWidth / 2D, labelY, labelWidth, GetAxisLabelBoxHeight(layout), layout.AxisLabelFontSize, style.MutedTextColor, OfficeTextAlignment.Center, style, layout.AxisTextFontFamily, layout.AxisTextFontStyle);
         }
     }
@@ -616,10 +619,84 @@ public static partial class OfficeChartDrawingRenderer {
             return label;
         }
 
-        return double.TryParse(label, NumberStyles.Float | NumberStyles.AllowThousands, CultureInfo.InvariantCulture, out double value) &&
-            TryFormatDataLabelValue(value, layout.CategoryAxisNumberFormat, out string? formatted)
+        if (!double.TryParse(label, NumberStyles.Float | NumberStyles.AllowThousands, CultureInfo.InvariantCulture, out double value))
+            return label;
+        if (TryFormatSerialDate(value, layout.CategoryAxisNumberFormat!, out string? date)) return date!;
+        return TryFormatDataLabelValue(value, layout.CategoryAxisNumberFormat, out string? formatted)
             ? formatted!
             : label;
+    }
+
+    // Date and time category axes cache spreadsheet serial numbers (1900 date system) and
+    // format them with an Excel date format such as m/d/yyyy.
+    private static bool TryFormatSerialDate(double serial, string numberFormat, out string? formatted) {
+        formatted = null;
+        if (serial < 0D || serial > 2958465D || numberFormat.Length > OfficeChartLayout.MaxNumberFormatLength) return false;
+        string section = numberFormat.Split(';')[0];
+        var pattern = new System.Text.StringBuilder();
+        bool hasDate = false, hasHours = false, twelveHour = section.IndexOf("AM/PM", StringComparison.OrdinalIgnoreCase) >= 0;
+        for (int i = 0; i < section.Length;) {
+            char c = section[i];
+            if (c == '"') {
+                int end = section.IndexOf('"', i + 1);
+                if (end < 0) return false;
+                AppendLiteral(pattern, section.Substring(i + 1, end - i - 1));
+                i = end + 1;
+                continue;
+            }
+            if (c == '\\' && i + 1 < section.Length) {
+                AppendLiteral(pattern, section[i + 1].ToString());
+                i += 2;
+                continue;
+            }
+            if (c == '[') {
+                int end = section.IndexOf(']', i);
+                if (end < 0) return false;
+                i = end + 1;
+                continue;
+            }
+            if (string.Compare(section, i, "AM/PM", 0, 5, StringComparison.OrdinalIgnoreCase) == 0) {
+                pattern.Append("tt");
+                i += 5;
+                continue;
+            }
+            char lower = char.ToLowerInvariant(c);
+            if (lower is 'y' or 'm' or 'd' or 'h' or 's') {
+                int run = 1;
+                while (i + run < section.Length && char.ToLowerInvariant(section[i + run]) == lower) run++;
+                switch (lower) {
+                    case 'y': pattern.Append(run <= 2 ? "yy" : "yyyy"); hasDate = true; break;
+                    case 'd': pattern.Append(run == 1 ? "d" : run == 2 ? "dd" : run == 3 ? "ddd" : "dddd"); hasDate = true; break;
+                    case 'h': pattern.Append(twelveHour ? (run == 1 ? "h" : "hh") : (run == 1 ? "H" : "HH")); hasHours = true; break;
+                    case 's': pattern.Append(run == 1 ? "s" : "ss"); break;
+                    default:
+                        // m after an hour or before seconds means minutes.
+                        string rest = section.Substring(i + run).TrimStart(':', ' ');
+                        bool minutes = hasHours && pattern.ToString().TrimEnd(':', ' ').EndsWith("H", StringComparison.OrdinalIgnoreCase) ||
+                            rest.StartsWith("s", StringComparison.OrdinalIgnoreCase);
+                        if (minutes) pattern.Append(run == 1 ? "m" : "mm");
+                        else {
+                            pattern.Append(run == 1 ? "M" : run == 2 ? "MM" : run == 3 ? "MMM" : "MMMM");
+                            hasDate = true;
+                        }
+                        break;
+                }
+                i += run;
+                continue;
+            }
+            if (c is '0' or '#' or '?' or '%' or 'E' or 'e' or '@') return false;
+            AppendLiteral(pattern, c.ToString());
+            i++;
+        }
+        if (!hasDate && !hasHours) return false;
+        // Excel counts 1900-02-29, so serials from 61 on are one day ahead of the calendar.
+        DateTime date = new DateTime(1899, 12, serial >= 61D ? 30 : 31).AddDays(serial);
+        formatted = date.ToString(pattern.ToString(), CultureInfo.InvariantCulture);
+        return true;
+    }
+
+    private static void AppendLiteral(System.Text.StringBuilder pattern, string text) {
+        foreach (char c in text) pattern.Append('\\').Append(c);
     }
 
     private static string FormatDataLabel(OfficeChartLayout layout, string category, OfficeChartSeries series,

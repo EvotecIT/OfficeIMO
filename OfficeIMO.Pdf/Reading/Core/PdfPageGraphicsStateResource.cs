@@ -22,7 +22,9 @@ internal readonly struct PdfPageGraphicsStateResource {
         string? fontResource = null,
         double? fontSize = null,
         bool hasUnsupportedImagePaintEffect = false,
-        PdfPageImagePaintEffectOverrides imagePaintEffectOverrides = default) {
+        PdfPageImagePaintEffectOverrides imagePaintEffectOverrides = default,
+        double? strokeMiterLimit = null) {
+        StrokeMiterLimit = strokeMiterLimit;
         FillOpacity = fillOpacity;
         StrokeOpacity = strokeOpacity;
         StrokeWidth = strokeWidth;
@@ -58,6 +60,9 @@ internal readonly struct PdfPageGraphicsStateResource {
     public OfficeStrokeLineCap? StrokeLineCap { get; }
 
     public OfficeStrokeLineJoin? StrokeLineJoin { get; }
+
+    /// <summary>ExtGState ML miter limit, or null to inherit.</summary>
+    public double? StrokeMiterLimit { get; }
 
     public OfficeIccRenderingIntent? RenderingIntent { get; }
 

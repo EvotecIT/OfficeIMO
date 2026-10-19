@@ -139,7 +139,7 @@ public sealed partial class HtmlRenderPage {
                     true, true, new[] { text }, text.PaintOrder, text.Source), surfaceWidth, surfaceHeight, fonts, cancellationToken);
                 return;
             }
-            string drawingText = text.BidiVisualOrderResolved
+            string drawingText = text.BidiVisualOrderResolved && !text.PreservesPaintedGlyphs
                 ? "\u202D" + text.Text + "\u202C"
                 : text.Text;
             if (text.TextAdvanceWidth.HasValue) {
@@ -201,6 +201,7 @@ public sealed partial class HtmlRenderPage {
             } else {
                 drawing.AddText(drawingText, text.X, text.Y, text.Width, text.Height, text.Font, text.Color, text.Alignment, text.PaintLineHeight);
             }
+            if (text.PreservesPaintedGlyphs) drawing.MarkLastTextAsPaintedGlyphs();
         } else if (visual is HtmlRenderImage image) {
             if (image.X >= surfaceWidth || image.X + image.Width <= 0D
                 || image.Y >= surfaceHeight || image.Y + image.Height <= 0D) return;

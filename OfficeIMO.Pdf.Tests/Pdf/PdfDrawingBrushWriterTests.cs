@@ -28,10 +28,18 @@ public sealed class PdfDrawingBrushWriterTests {
         var shape = OfficeShape.Rectangle(20, 20); shape.FillColor = OfficeColor.Blue;
         var tile = new OfficeDrawing(20, 20).AddShape(shape, 0, 0);
         var drawing = new OfficeDrawing(60, 60).AddTilingPattern(tile, new OfficeImagePlacement(5, 5, 50, 50), 10, 10, opacity: 0.5);
-        string pdf = Encoding.ASCII.GetString(Write(drawing));
+        byte[] bytes = Write(drawing);
+        string pdf = Encoding.ASCII.GetString(bytes);
         Assert.Contains("/Group << /S /Transparency /I true /K false >>", pdf);
         Assert.Contains("/ca 0.5 /CA 0.5", pdf);
-        Assert.Contains(" W n", pdf);
+        Assert.Contains("/PatternType 1", pdf);
+        Assert.Contains("/BBox [5 5 55 55]", pdf);
+        var raster = OfficeDrawingRasterRenderer.Render(PdfPageImageRenderer.RenderPage(bytes), background: OfficeColor.White);
+        Assert.Equal(OfficeColor.White, raster.GetPixel(2, 2));
+        OfficeColor overlap = raster.GetPixel(20, 20);
+        Assert.InRange(overlap.R, 120, 135);
+        Assert.InRange(overlap.G, 120, 135);
+        Assert.Equal(255, overlap.B);
     }
 
     [Fact]
@@ -48,13 +56,17 @@ public sealed class PdfDrawingBrushWriterTests {
     }
 
     [Fact]
-    public void NestedPatternsShareAnExportWideExpansionLimit() {
+    public void NestedPatternsRetainReusableCellsWithoutExpandingEveryTile() {
         var shape = OfficeShape.Rectangle(1, 1); shape.FillColor = OfficeColor.Red;
         var unit = new OfficeDrawing(1, 1).AddShape(shape, 0, 0);
         var tile = new OfficeDrawing(10, 1).AddTilingPattern(unit, new OfficeImagePlacement(0, 0, 10, 1), 1, 1, maximumTileCount: 16);
         var drawing = new OfficeDrawing(100, 1).AddTilingPattern(tile, new OfficeImagePlacement(0, 0, 100, 1), 10, 1, maximumTileCount: 16);
-        var error = Assert.Throws<InvalidOperationException>(() => Write(drawing));
-        Assert.Contains("aggregate expansion", error.Message);
+        byte[] bytes = Write(drawing);
+        Assert.Contains("/PatternType 1", Encoding.ASCII.GetString(bytes));
+        var raster = OfficeDrawingRasterRenderer.Render(PdfPageImageRenderer.RenderPage(bytes), background: OfficeColor.White);
+        Assert.Equal(OfficeColor.Red, raster.GetPixel(0, 0));
+        Assert.Equal(OfficeColor.Red, raster.GetPixel(50, 0));
+        Assert.Equal(OfficeColor.Red, raster.GetPixel(99, 0));
     }
 
     [Fact]

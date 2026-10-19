@@ -4,6 +4,16 @@ using Xunit;
 namespace OfficeIMO.Drawing.Tests;
 
 public class DrawingArabicTextShaperTests {
+    [Theory]
+    [InlineData("עברית", true)]
+    [InlineData("Latin العربية نص עברית", true)]
+    [InlineData("بـب עברית", true)]
+    [InlineData("العربية ܫܠܡ עברית", false)]
+    public void ArabicTextShaper_JoiningCapabilityIgnoresOtherRtlScripts(string text, bool supported) {
+        Assert.Equal(supported, OfficeArabicTextShaper.CanShapeAllJoiningCharacters(text));
+        Assert.Equal(text, OfficeArabicTextShaper.ToLogicalText(OfficeArabicTextShaper.Shape(text)));
+    }
+
     [Fact]
     public void ArabicTextShaper_AppliesContextualFormsAndRoundTripsLogicalText() {
         const string logical = "سلام";
@@ -14,6 +24,30 @@ public class DrawingArabicTextShaperTests {
         Assert.Equal(logical, OfficeArabicTextShaper.ToLogicalText(shaped));
         Assert.Equal(logical.Length, shaped.Length);
         Assert.True(OfficeArabicTextShaper.CanShapeAllJoiningCharacters(logical));
+    }
+
+    [Theory]
+    [InlineData("\u0644\u0622")]
+    [InlineData("\u0644\u0623")]
+    [InlineData("\u0644\u0625")]
+    [InlineData("\u0644\u0627")]
+    public void ArabicTextShaper_DistinguishesRequiredLigaturesFromPerLetterCoverage(string text) {
+        Assert.True(OfficeArabicTextShaper.CanShapeAllJoiningCharacters(text));
+        Assert.True(OfficeArabicTextShaper.RequiresLamAlefLigatureShaping(text));
+        Assert.True(OfficeArabicTextShaper.RequiresLamAlefLigatureShaping(OfficeArabicTextShaper.Shape(text)));
+    }
+
+    [Fact]
+    public void ArabicTextShaper_RequiredLigatureDetectionHonorsBarriersAndFeatureOverrides() {
+        Assert.False(OfficeArabicTextShaper.RequiresLamAlefLigatureShaping("\u0644\u200C\u0627"));
+        Assert.False(OfficeArabicTextShaper.RequiresLamAlefLigatureShaping("\u0644\u0640\u0627"));
+        Assert.False(OfficeArabicTextShaper.RequiresLamAlefLigatureShaping("\u0644 \u0627"));
+        Assert.False(OfficeArabicTextShaper.RequiresLamAlefLigatureShaping("\u0627\u0644"));
+        Assert.False(OfficeArabicTextShaper.RequiresLamAlefLigatureShaping("\uFEFB"));
+        Assert.False(OfficeArabicTextShaper.RequiresLamAlefLigatureShaping("\u0644\u0627",
+            OfficeTextFeatureSettings.Default.With("rlig", 0)));
+        Assert.True(OfficeArabicTextShaper.RequiresLamAlefLigatureShaping("\u0644\u0627",
+            OfficeTextFeatureSettings.Default.With("liga", 0)));
     }
 
     [Fact]

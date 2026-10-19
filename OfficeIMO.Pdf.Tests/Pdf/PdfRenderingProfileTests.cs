@@ -1060,8 +1060,8 @@ public sealed class PdfRenderingProfileTests {
             .ToBytes();
         string raw = System.Text.Encoding.ASCII.GetString(pdf);
 
-        Assert.Contains("/BaseFont /Caller-Regular", raw, StringComparison.Ordinal);
-        Assert.DoesNotContain("/BaseFont /Profile-Regular", raw, StringComparison.Ordinal);
+        Assert.Matches(OfficeIMO.Tests.Pdf.PdfTestContentText.BaseFontPattern("Caller-Regular"), raw);
+        Assert.DoesNotMatch(OfficeIMO.Tests.Pdf.PdfTestContentText.BaseFontPattern("Profile-Regular"), raw);
     }
 
     [Fact]

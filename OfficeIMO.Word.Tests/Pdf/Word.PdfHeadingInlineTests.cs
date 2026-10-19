@@ -58,9 +58,11 @@ public partial class Word {
         reopened.SaveAsPdf(output, new WordToPdfOptions { IncludePageNumbers = false });
         using var pdf = UglyToad.PdfPig.PdfDocument.Open(output);
         string text = string.Concat(pdf.GetPages().Select(page => page.Text));
-        PdfTextSpan[] spans = PdfReadDocument.Open(File.ReadAllBytes(output)).Pages.SelectMany(page => page.GetTextSpans()).ToArray();
-        PdfTextSpan marker = Assert.Single(spans, span => span.Text.Contains("HeadingNoteMarker"));
-        Assert.Equal(2, spans.Count(span => (span.Text == "1" || span.Text == "i") && span.Y > marker.Y && span.Y - marker.Y < marker.FontSize));
+        // The heading and its raised note references are located by letters: one line may share a show operator.
+        var letters = pdf.GetPages().First(page => page.Text.Contains("HeadingNoteMarker", StringComparison.Ordinal)).Letters;
+        var marker = letters.First(letter => letter.Value == "H");
+        Assert.Equal(2, letters.Count(letter => (letter.Value == "1" || letter.Value == "i") &&
+            letter.StartBaseLine.Y > marker.StartBaseLine.Y + 0.01D && letter.StartBaseLine.Y - marker.StartBaseLine.Y < marker.PointSize));
         Assert.Contains("FootnoteBodyMarker", text);
         Assert.Contains("EndnoteBodyMarker", text);
     }

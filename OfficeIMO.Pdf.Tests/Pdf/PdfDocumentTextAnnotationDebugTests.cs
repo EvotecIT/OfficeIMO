@@ -41,7 +41,7 @@ public partial class PdfDocumentVisualQualityTests {
                 .HighlightAnnotation("Canvas highlight", 72, 220, 120, 14, new PdfColor(1D, 0.9D, 0.1D)))
             .ToBytes();
 
-        string pdf = Encoding.ASCII.GetString(bytes);
+        string pdf = PdfTestContentText.ReadDecoded(bytes);
 
         Assert.Contains("/Annots [", pdf, StringComparison.Ordinal);
         Assert.Equal(2, CountTextAnnotationOccurrences(pdf));
@@ -60,9 +60,25 @@ public partial class PdfDocumentVisualQualityTests {
         Assert.Contains("/IC [0.95 0.98 1]", pdf, StringComparison.Ordinal);
         Assert.Contains("/QuadPoints [", pdf, StringComparison.Ordinal);
         Assert.Equal(4, CountOccurrences(pdf, "/AP << /N "));
-        Assert.Equal(2, CountOccurrences(pdf, "/OfficeIMOHighlightGs gs"));
-        Assert.Equal(2, CountOccurrences(pdf, "/BM /Multiply"));
-        Assert.Equal(2, CountOccurrences(pdf, "/ca 0.35"));
+        var (objects, _) = PdfSyntax.ParseObjects(bytes);
+        var highlightAnnotations = objects.Values.Select(value => value.Value).OfType<PdfDictionary>()
+            .Where(dictionary => dictionary.Get<PdfName>("Subtype")?.Name == "Highlight").ToArray();
+        Assert.Equal(2, highlightAnnotations.Length);
+        foreach (PdfDictionary annotation in highlightAnnotations) {
+            var appearance = Assert.IsType<PdfDictionary>(annotation.Items["AP"]);
+            var normal = Assert.IsType<PdfReference>(appearance.Items["N"]);
+            var form = Assert.IsType<PdfStream>(objects[normal.ObjectNumber].Value);
+            string paint = PdfEncoding.Latin1GetString(OfficeIMO.Pdf.Filters.StreamDecoder.Decode(form.Dictionary, form.Data, objects));
+            Assert.Contains("/OfficeIMOHighlightGs gs", paint, StringComparison.Ordinal);
+            var resources = Assert.IsType<PdfDictionary>(form.Dictionary.Items["Resources"]);
+            var states = Assert.IsType<PdfDictionary>(resources.Items["ExtGState"]);
+            PdfObject stateObject = states.Items["OfficeIMOHighlightGs"];
+            if (stateObject is PdfReference stateReference) stateObject = objects[stateReference.ObjectNumber].Value;
+            var state = Assert.IsType<PdfDictionary>(stateObject);
+            Assert.Equal("Multiply", Assert.IsType<PdfName>(state.Items["BM"]).Name);
+            Assert.Equal(0.35D, Assert.IsType<PdfNumber>(state.Items["ca"]).Value);
+            Assert.Equal(0.35D, Assert.IsType<PdfNumber>(state.Items["CA"]).Value);
+        }
         Assert.True(CountOccurrences(pdf, "BT\n/Helv") >= 4);
         Assert.Contains("/Subtype /Form /BBox [0 0 140 44]", pdf, StringComparison.Ordinal);
         Assert.Contains("/Subtype /Form /BBox [0 0 120 12]", pdf, StringComparison.Ordinal);
@@ -121,7 +137,7 @@ public partial class PdfDocumentVisualQualityTests {
             .HighlightAnnotation("Flattened highlight", width: 120, height: 14, color: new PdfColor(1D, 0.9D, 0.1D))
             .ToBytes();
 
-        string pdf = Encoding.ASCII.GetString(bytes);
+        string pdf = PdfTestContentText.ReadDecoded(bytes);
 
         Assert.True(options.Clone().FlattenVisualAnnotations);
         Assert.DoesNotContain("/Annots [", pdf, StringComparison.Ordinal);
@@ -164,7 +180,7 @@ public partial class PdfDocumentVisualQualityTests {
         Assert.Equal(2, CountOccurrences(Encoding.ASCII.GetString(annotated), "/AP << /N "));
 
         byte[] flattened = PdfAnnotationFlattener.FlattenVisualAnnotations(annotated);
-        string pdf = Encoding.ASCII.GetString(flattened);
+        string pdf = PdfTestContentText.ReadDecoded(flattened);
         PdfDocumentInfo after = PdfInspector.Inspect(flattened);
 
         Assert.False(after.HasAnnotations);
@@ -203,7 +219,7 @@ public partial class PdfDocumentVisualQualityTests {
         Assert.Equal(1, PdfInspector.Inspect(annotated).AnnotationCount);
 
         byte[] flattened = PdfAnnotationFlattener.FlattenVisualAnnotations(annotated);
-        string pdf = Encoding.ASCII.GetString(flattened);
+        string pdf = PdfTestContentText.ReadDecoded(flattened);
 
         Assert.Equal(0, PdfInspector.Inspect(flattened).AnnotationCount);
         Assert.DoesNotContain("/Annots [", pdf, StringComparison.Ordinal);
@@ -270,9 +286,9 @@ public partial class PdfDocumentVisualQualityTests {
         byte[] annotated = PdfDocument.Create(new PdfOptions { CompressContentStreams = false })
             .TextAnnotation("Unsupported icon", width: 18D, height: 18D, icon: PdfTextAnnotationIcon.Comment)
             .ToBytes();
-        string pdf = Encoding.ASCII.GetString(annotated);
+        string pdf = PdfEncoding.Latin1GetString(annotated);
         Assert.Contains("/Name /Comment", pdf, StringComparison.Ordinal);
-        byte[] unsupported = Encoding.ASCII.GetBytes(pdf.Replace("/Name /Comment", "/Name /Unknown"));
+        byte[] unsupported = PdfEncoding.Latin1GetBytes(pdf.Replace("/Name /Comment", "/Name /Unknown"));
 
         NotSupportedException exception = Assert.Throws<NotSupportedException>(() =>
             PdfAnnotationFlattener.FlattenVisualAnnotations(unsupported));
@@ -897,7 +913,7 @@ public partial class PdfDocumentVisualQualityTests {
     private static byte[] ConvertFirstNormalAppearanceToStateDictionary(byte[] source) {
         const string prefix = "/AP << /N ";
         const string suffix = " 0 R >>";
-        string pdf = Encoding.ASCII.GetString(source);
+        string pdf = PdfEncoding.Latin1GetString(source);
         int start = pdf.IndexOf(prefix, StringComparison.Ordinal);
         Assert.True(start >= 0);
         int objectNumberStart = start + prefix.Length;
@@ -914,7 +930,7 @@ public partial class PdfDocumentVisualQualityTests {
         string updated = pdf.Substring(0, start) +
             replacement +
             pdf.Substring(end + suffix.Length);
-        return Encoding.ASCII.GetBytes(updated);
+        return PdfEncoding.Latin1GetBytes(updated);
     }
 
     private static byte[] BuildVisualAnnotationPdfWithoutAppearances() {

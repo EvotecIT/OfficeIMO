@@ -1,4 +1,3 @@
-using System.Text;
 using OfficeIMO.Drawing;
 using OfficeIMO.Pdf;
 using Xunit;
@@ -45,7 +44,7 @@ public class PdfDrawingInteropTests {
 
         byte[] bytes = doc.ToBytes();
 
-        string pdfContent = Encoding.ASCII.GetString(bytes);
+        string pdfContent = PdfTestContentText.ReadDecoded(bytes);
         Assert.Contains("0.392 0.584 0.929 rg", pdfContent);
     }
 
@@ -75,7 +74,7 @@ public class PdfDrawingInteropTests {
 
         byte[] bytes = doc.ToBytes();
 
-        string pdfContent = Encoding.ASCII.GetString(bytes);
+        string pdfContent = PdfTestContentText.ReadDecoded(bytes);
         Assert.Contains("/ShadingType 2", pdfContent, StringComparison.Ordinal);
         Assert.Contains("/C0 [0.275 0.51 0.706] /C1 [0.961 0.961 0.961]", pdfContent, StringComparison.Ordinal);
         Assert.Contains("0.275 0.51 0.706 RG", pdfContent, StringComparison.Ordinal);
@@ -178,9 +177,26 @@ public class PdfDrawingInteropTests {
         style.Align = PdfAlign.Right;
         style.SpacingBefore = 0;
 
-        string pdfContent = Encoding.ASCII.GetString(bytes);
-        Assert.True(CountOccurrences(pdfContent, "100 140 40 20 re f") >= 2, "Expected top-level and row-column shapes to inherit centered drawing placement while suppressing spacing-before at fresh flow starts.");
-        Assert.DoesNotContain("20 140 40 20 re f", pdfContent, StringComparison.Ordinal);
+        var (objects, _) = PdfSyntax.ParseObjects(bytes);
+        string ReadPageProgram(PdfObject value) {
+            if (value is PdfReference reference) return ReadPageProgram(objects[reference.ObjectNumber].Value);
+            if (value is PdfStream stream) return PdfEncoding.Latin1GetString(
+                OfficeIMO.Pdf.Filters.StreamDecoder.Decode(stream.Dictionary, stream.Data, objects));
+            var parts = Assert.IsType<PdfArray>(value);
+            var content = new System.Text.StringBuilder();
+            foreach (PdfObject part in parts.Items) content.AppendLine(ReadPageProgram(part));
+            return content.ToString();
+        }
+
+        int centeredPlacements = 0;
+        foreach (PdfReadPage page in PdfReadDocument.Open(bytes).Pages) {
+            var dictionary = Assert.IsType<PdfDictionary>(objects[page.ObjectNumber].Value);
+            // Shared storage still executes once for each referencing page.
+            string pageContent = ReadPageProgram(dictionary.Items["Contents"]);
+            centeredPlacements += CountOccurrences(pageContent, "100 140 40 20 re f");
+            Assert.DoesNotContain("20 140 40 20 re f", pageContent, StringComparison.Ordinal);
+        }
+        Assert.Equal(2, centeredPlacements);
     }
 
     [Fact]
@@ -210,7 +226,7 @@ public class PdfDrawingInteropTests {
 
         byte[] bytes = doc.ToBytes();
 
-        string pdfContent = Encoding.ASCII.GetString(bytes);
+        string pdfContent = PdfTestContentText.ReadDecoded(bytes);
         Assert.Contains("0.961 0.961 0.961 rg", pdfContent, StringComparison.Ordinal);
         Assert.Contains("60 100 120 60 re f", pdfContent, StringComparison.Ordinal);
         Assert.DoesNotContain("1 0 0 rg", pdfContent, StringComparison.Ordinal);

@@ -35,7 +35,7 @@ public partial class PdfDocumentVisualQualityTests {
                 spacingAfter: 6)
             .ToBytes();
 
-        string content = Encoding.ASCII.GetString(bytes);
+        string content = PdfTestContentText.ReadDecoded(bytes);
 
         Assert.Contains("0.8 0.702 0.6 rg", content);
         Assert.Contains("0.102 0.2 0.302 RG", content);
@@ -69,7 +69,7 @@ public partial class PdfDocumentVisualQualityTests {
                 strokeDashStyle: OfficeStrokeDashStyle.Dash)
             .ToBytes();
 
-        string content = Encoding.ASCII.GetString(bytes);
+        string content = PdfTestContentText.ReadDecoded(bytes);
 
         Assert.Contains("0.2 0.4 0.6 RG", content);
         Assert.Contains("2 w", content);
@@ -101,7 +101,7 @@ public partial class PdfDocumentVisualQualityTests {
                 strokeLineJoin: OfficeStrokeLineJoin.Bevel)
             .ToBytes();
 
-        string content = Encoding.ASCII.GetString(bytes);
+        string content = PdfTestContentText.ReadDecoded(bytes);
 
         Assert.Contains("0.2 0.4 0.6 RG", content);
         Assert.Contains("3 w", content);
@@ -128,7 +128,7 @@ public partial class PdfDocumentVisualQualityTests {
             .Shape(shape, align: PdfAlign.Right)
             .ToBytes();
 
-        string content = Encoding.ASCII.GetString(bytes);
+        string content = PdfTestContentText.ReadDecoded(bytes);
 
         Assert.Contains("0.961 0.961 0.961 rg", content);
         Assert.Contains("0.275 0.51 0.706 RG", content);
@@ -155,7 +155,7 @@ public partial class PdfDocumentVisualQualityTests {
             .Shape(shape)
             .ToBytes();
 
-        string content = Encoding.ASCII.GetString(bytes);
+        string content = PdfTestContentText.ReadDecoded(bytes);
 
         Assert.Contains("q\n1 0 0 -1 40 125 cm", content);
         Assert.Contains("0.961 0.961 0.961 rg", content);
@@ -184,7 +184,7 @@ public partial class PdfDocumentVisualQualityTests {
             .Shape(shape)
             .ToBytes();
 
-        string content = Encoding.ASCII.GetString(bytes);
+        string content = PdfTestContentText.ReadDecoded(bytes);
 
         Assert.Contains("<< /Type /ExtGState /ca 0.35 /CA 0.75 >>", content);
         Assert.Contains("/ExtGState << /GS1 ", content);
@@ -235,7 +235,7 @@ public partial class PdfDocumentVisualQualityTests {
             .Shape(shape)
             .ToBytes();
 
-        string content = Encoding.ASCII.GetString(bytes);
+        string content = PdfTestContentText.ReadDecoded(bytes);
 
         Assert.Contains("q\n30 110 45 20 re W n\nq\n0.961 0.961 0.961 rg", content);
         Assert.Contains("30 90 90 40 re B", content);
@@ -286,7 +286,7 @@ public partial class PdfDocumentVisualQualityTests {
             .Shape(shape)
             .ToBytes();
 
-        string content = Encoding.ASCII.GetString(bytes);
+        string content = PdfTestContentText.ReadDecoded(bytes);
 
         Assert.Contains("q\n1 0 0 -1 40 125 cm", content);
         Assert.Contains("6 0 m 34 0 l", content);
@@ -313,7 +313,7 @@ public partial class PdfDocumentVisualQualityTests {
             .Shape(shape)
             .ToBytes();
 
-        string content = Encoding.ASCII.GetString(bytes);
+        string content = PdfTestContentText.ReadDecoded(bytes);
 
         Assert.Contains("/Shading << /SH1 ", content);
         Assert.Contains("/ShadingType 2 /ColorSpace /DeviceRGB /Coords [30 118 120 118]", content);
@@ -420,7 +420,7 @@ public partial class PdfDocumentVisualQualityTests {
             })
             .Shape(shape)
             .ToBytes();
-        string content = Encoding.ASCII.GetString(bytes);
+        string content = PdfTestContentText.ReadDecoded(bytes);
 
         Assert.Contains("/ShadingType 3 /ColorSpace /DeviceRGB /Coords [0 0 0 0 0 1]", content);
         Assert.Contains("q\n30 90 90 40 re W n\n67.5 0 0 20 52.5 110 cm\n/SH1 sh\nQ", content);
@@ -431,7 +431,7 @@ public partial class PdfDocumentVisualQualityTests {
         Assert.Equal(0.5D, projectedGradient.EndRadiusY, 3);
 
         shape.Transform = OfficeTransform.Translate(5D, 3D);
-        string transformedContent = Encoding.ASCII.GetString(PdfDocument.Create(new PdfOptions {
+        string transformedContent = PdfTestContentText.ReadDecoded(PdfDocument.Create(new PdfOptions {
                 PageWidth = 220,
                 PageHeight = 160,
                 MarginLeft = 30,
@@ -461,7 +461,7 @@ public partial class PdfDocumentVisualQualityTests {
             .Shape(shape)
             .ToBytes();
 
-        string content = Encoding.ASCII.GetString(bytes);
+        string content = PdfTestContentText.ReadDecoded(bytes);
 
         Assert.Contains("/ShadingType 2 /ColorSpace /DeviceRGB /Coords [20 0 20 20]", content);
         Assert.Contains("q\n1 0 0 -1 40 125 cm", content);
@@ -485,7 +485,7 @@ public partial class PdfDocumentVisualQualityTests {
             .Shape(shape)
             .ToBytes();
 
-        string content = Encoding.ASCII.GetString(bytes);
+        string content = PdfTestContentText.ReadDecoded(bytes);
 
         Assert.Contains("/ShadingType 3 /ColorSpace /DeviceRGB", content);
         Assert.DoesNotContain("/Subtype /Image", content);
@@ -521,7 +521,7 @@ public partial class PdfDocumentVisualQualityTests {
             .Shape(shape)
             .ToBytes();
 
-        string content = Encoding.ASCII.GetString(bytes);
+        string content = PdfTestContentText.ReadDecoded(bytes);
 
         Assert.Contains("/ExtGState << /GS1 ", content);
         Assert.Contains("/Type /ExtGState /ca 0.22 /CA 0.22", content);
@@ -549,7 +549,7 @@ public partial class PdfDocumentVisualQualityTests {
             .Shape(shape)
             .ToBytes();
 
-        string content = Encoding.ASCII.GetString(bytes);
+        string content = PdfTestContentText.ReadDecoded(bytes);
 
         double[] shadowOpacities = Regex.Matches(content, @"/Type /ExtGState /ca (?<opacity>0(?:\.\d+)?) /CA \k<opacity>")
             .Cast<Match>()
@@ -580,7 +580,7 @@ public partial class PdfDocumentVisualQualityTests {
                 strokeDashStyle: OfficeStrokeDashStyle.DashDot)
             .ToBytes();
 
-        string content = Encoding.ASCII.GetString(bytes);
+        string content = PdfTestContentText.ReadDecoded(bytes);
 
         Assert.Contains("0.2 0.4 0.6 RG", content);
         Assert.Contains("2 w", content);
@@ -608,7 +608,7 @@ public partial class PdfDocumentVisualQualityTests {
             .Shape(shape, align: PdfAlign.Center, spacingBefore: 4, spacingAfter: 6)
             .ToBytes();
 
-        string content = Encoding.ASCII.GetString(bytes);
+        string content = PdfTestContentText.ReadDecoded(bytes);
 
         Assert.Contains("0.961 0.961 0.961 rg", content);
         Assert.Contains("0.275 0.51 0.706 RG", content);
@@ -641,7 +641,7 @@ public partial class PdfDocumentVisualQualityTests {
             .Shape(shape, align: PdfAlign.Center, spacingBefore: 4, spacingAfter: 6)
             .ToBytes();
 
-        string content = Encoding.ASCII.GetString(bytes);
+        string content = PdfTestContentText.ReadDecoded(bytes);
 
         Assert.Contains("0.961 0.961 0.961 rg", content);
         Assert.Contains("0.275 0.51 0.706 RG", content);
@@ -673,7 +673,7 @@ public partial class PdfDocumentVisualQualityTests {
             .Shape(shape, align: PdfAlign.Center, spacingBefore: 4, spacingAfter: 6)
             .ToBytes();
 
-        string content = Encoding.ASCII.GetString(bytes);
+        string content = PdfTestContentText.ReadDecoded(bytes);
 
         Assert.Contains("0.275 0.51 0.706 RG", content);
         Assert.Contains("2 w", content);
@@ -703,7 +703,7 @@ public partial class PdfDocumentVisualQualityTests {
             .Shape(shape, align: PdfAlign.Center, spacingBefore: 4, spacingAfter: 6)
             .ToBytes();
 
-        string content = Encoding.ASCII.GetString(bytes);
+        string content = PdfTestContentText.ReadDecoded(bytes);
 
         Assert.Contains("0.961 0.961 0.961 rg", content);
         Assert.Contains("0.275 0.51 0.706 RG", content);
@@ -735,7 +735,7 @@ public partial class PdfDocumentVisualQualityTests {
             .Shape(shape, align: PdfAlign.Center, spacingBefore: 4, spacingAfter: 6)
             .ToBytes();
 
-        string content = Encoding.ASCII.GetString(bytes);
+        string content = PdfTestContentText.ReadDecoded(bytes);
 
         Assert.Contains("80 120 m", content);
         Assert.Contains("106.667 146.667 133.333 146.667 160 120 c", content);
@@ -771,7 +771,7 @@ public partial class PdfDocumentVisualQualityTests {
             .Drawing(drawing, align: PdfAlign.Center, spacingBefore: 4, spacingAfter: 6)
             .ToBytes();
 
-        string content = Encoding.ASCII.GetString(bytes);
+        string content = PdfTestContentText.ReadDecoded(bytes);
 
         Assert.Contains("0.961 0.961 0.961 rg", content);
         Assert.Contains("60 100 120 60 re f", content);

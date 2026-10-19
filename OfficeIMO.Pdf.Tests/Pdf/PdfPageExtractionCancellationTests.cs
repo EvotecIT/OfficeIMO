@@ -1,6 +1,5 @@
 using OfficeIMO.Pdf;
 using System.Threading;
-using System.Threading.Tasks;
 using Xunit;
 
 namespace OfficeIMO.Tests.Pdf;
@@ -36,37 +35,31 @@ public class PdfPageExtractionCancellationTests {
     }
 
     [Fact]
-    public void LargeFalseHeaderScanHonorsCancellation() {
-        string source = "%PDF-1.7\n" + string.Concat(Enumerable.Repeat("x obj", 5_000_000));
+    public void FalseHeaderScanRejectsNonObjectsAndHonorsCancellation() {
+        string source = "%PDF-1.7\n" + string.Concat(Enumerable.Repeat("x obj", 8192));
         byte[] pdf = System.Text.Encoding.ASCII.GetBytes(source);
         var options = new PdfLoadOptions {
             Limits = new PdfReadLimits { MaxObjectParsingTime = TimeSpan.FromSeconds(20) }
         };
         using var cancellation = new CancellationTokenSource();
-        using var entered = new ManualResetEventSlim();
-        Task parse = Task.Factory.StartNew(() => {
-            entered.Set();
-            PdfSyntax.ParseObjects(pdf, options, out _, out _, source, cancellation.Token);
-        }, CancellationToken.None, TaskCreationOptions.LongRunning, TaskScheduler.Default);
-
-        Assert.True(entered.Wait(TimeSpan.FromSeconds(5)));
+        Assert.Empty(PdfSyntax.ParseObjects(pdf, options, out _, out _, source, cancellation.Token).Map);
         cancellation.Cancel();
-        Assert.ThrowsAny<OperationCanceledException>(() => parse.GetAwaiter().GetResult());
+        Assert.ThrowsAny<OperationCanceledException>(() =>
+            PdfSyntax.ParseObjects(pdf, options, out _, out _, source, cancellation.Token));
     }
 
     [Fact]
-    public void LargeHexStringDecodeHonorsCancellation() {
-        string hex = new string('A', 40_000_000);
+    public void ChunkedHexDecodePreservesWhitespaceAndOddNibbleAndHonorsCancellation() {
+        string hex = string.Concat(Enumerable.Repeat("A b\n", 4097)) + "C";
+        byte[] expected = Enumerable.Repeat((byte)0xAB, 4097).Concat(new byte[] { 0xC0 }).ToArray();
         using var cancellation = new CancellationTokenSource();
-        using var entered = new ManualResetEventSlim();
-        Task decode = Task.Factory.StartNew(() => {
-            entered.Set();
-            PdfTextString.DecodeHexBytes(hex, 0, hex.Length, cancellation.Token);
-        }, CancellationToken.None, TaskCreationOptions.LongRunning, TaskScheduler.Default);
+        Assert.Equal(expected, PdfTextString.DecodeHexBytes(hex, 0, hex.Length, cancellation.Token));
 
-        Assert.True(entered.Wait(TimeSpan.FromSeconds(5)));
+        // A worker may finish before the waiting test thread gets CPU time. Pin the
+        // cancellation contract directly instead of assuming a scheduler ordering.
         cancellation.Cancel();
-        Assert.ThrowsAny<OperationCanceledException>(() => decode.GetAwaiter().GetResult());
+        Assert.Throws<OperationCanceledException>(() =>
+            PdfTextString.DecodeHexBytes(hex, 0, hex.Length, cancellation.Token));
     }
 
     [Fact]

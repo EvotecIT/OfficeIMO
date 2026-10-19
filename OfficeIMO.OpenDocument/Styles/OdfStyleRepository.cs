@@ -37,6 +37,17 @@ public sealed partial class OdfStyleRepository {
             ? new OdfStyle(_document, element, "styles.xml", false) : null;
     }
 
+    /// <summary>Gets or creates the native default style for an owning format adapter.</summary>
+    internal OdfStyle GetOrCreateDefault(OdfStyleFamily family) {
+        OdfStyle? existing = FindDefault(family);
+        if (existing != null) return existing;
+        var element = new XElement(OdfNamespaces.Style + "default-style",
+            new XAttribute(OdfNamespaces.Style + "family", FamilyToken(family)));
+        GetContainer("styles.xml", OdfNamespaces.Office + "styles").Add(element);
+        _document.MarkPartDirty("styles.xml");
+        return new OdfStyle(_document, element, "styles.xml", false);
+    }
+
     /// <summary>Finds an automatic style within its owning package part before falling back to common styles.</summary>
     internal OdfStyle? FindInPart(OdfStyleFamily family, string name, string partPath) {
         if (string.IsNullOrWhiteSpace(name)) return null;
