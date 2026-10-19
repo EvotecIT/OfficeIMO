@@ -47,8 +47,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
             }
 
             if (!hasPageContent) currentPageName = block.PageName;
-            HtmlPageBreakTarget breakBefore = ResolveForcedBreakAt(block.ForcedBreaks, 0D);
-            if (breakBefore == HtmlPageBreakTarget.None && IsForcedPageBreak(block.BreakBefore)) breakBefore = block.BreakBefore;
+            HtmlPageBreakTarget breakBefore = ResolveRootBreakBefore(block);
             if (breakBefore != HtmlPageBreakTarget.None) {
                 ApplyBreakBefore(breakBefore, pages, ref visuals, ref y, ref pageGeometry, currentPageName);
                 pageWidth = pageGeometry.Width;
@@ -255,9 +254,12 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 }
             }
 
-            HtmlPageBreakTarget breakAfter = ResolveForcedBreakAt(block.ForcedBreaks, block.Height);
-            if (IsForcedPageBreak(block.BreakAfter)) breakAfter = block.BreakAfter;
+            HtmlPageBreakTarget breakAfter = ResolveRootBreakAfter(block);
             if (breakAfter != HtmlPageBreakTarget.None && index < blocks.Count - 1) {
+                // Resolve both sides of this sibling boundary before inserting
+                // parity pages. A following Left must not inherit blank pages
+                // already inserted for the preceding sibling's Right.
+                breakAfter = CombineForcedPageTargets(breakAfter, ResolveRootBreakBefore(blocks[index + 1]));
                 CommitPage(pages, visuals, pageGeometry, currentPageName);
                 BeginPage(currentPageName);
                 EnsurePageSide(breakAfter, pages, ref visuals, ref y, ref pageGeometry, currentPageName);

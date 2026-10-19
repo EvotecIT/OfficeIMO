@@ -429,6 +429,13 @@ OfficeImageExportResult image = source.ExportImage(OfficeImageExportFormat.Png, 
 
 The static contract includes normal-flow, flex, grid with column and row subgrid, deterministic stacking, positioned `clip` rectangles, basic-shape `clip-path`, paged fragmentation, named pages, running strings and elements, SVG, tagged-PDF semantics, and CSS-controlled PDF bookmarks. Browser-only execution such as JavaScript, animation timelines, live scroll state, and interactive layout is not attempted. Unsupported values that reach the declared feature handlers produce stable diagnostics; selectors outside the bounded selector subset simply do not match. Inspect `HtmlRenderCapabilityCatalog.All`, `HtmlRenderProfileContracts.All`, or the generated support matrix for the exact declared subset.
 
+At supported ordinary-flow sibling boundaries, authored page breaks and a named-page
+change share one transition. A plain `page` break retains an accompanying `left` or
+`right` requirement; when both sides specify a page side, the following child's
+side takes precedence. The destination keeps its page name, including across a
+column-flex gap. An empty page needed to reach the requested side counts toward
+`MaxPageCount`.
+
 Legacy `clip: rect(top, right, bottom, left)` clips the whole border box of an
 absolute or fixed element, including its background, border and link area. Each
 edge accepts a finite length or `auto`; comma-separated and historical

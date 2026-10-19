@@ -227,29 +227,54 @@ internal sealed partial class HtmlRenderLayoutEngine {
         if (forcedBreak != null && consumedBoundaries != null && includeProjectedBoundaries) {
             // Adjacent after/before declarations and a named-page change share
             // one source boundary. A flex gap can separate their source offsets;
-            // retain the first cut and the later declaration's target/name.
-            HtmlRenderForcedBreak first = forcedBreak;
-            HtmlRenderForcedBreak last = first;
-            string? pageName = first.PageName;
-            bool changesPageName = first.ChangesPageName;
-            for (int index = low + 1; index < forcedBreaks.Count; index++) {
-                HtmlRenderForcedBreak candidate = forcedBreaks[index];
-                if (!ReferenceEquals(candidate.Boundary, first.Boundary) || !IsForcedPageBreak(candidate.Target)) continue;
-                last = candidate;
-                if (candidate.ChangesPageName) {
-                    pageName = candidate.PageName;
-                    changesPageName = true;
-                }
-            }
-            if (!ReferenceEquals(first, last))
-                forcedBreak = new HtmlRenderForcedBreak(first.Offset, last.Target, pageName, changesPageName,
-                    first.Boundary, first.Edge, first.IsAfter, first.Projected, first.AdvancesFollowingFlow);
+            // retain the first cut while combining page-side and name controls.
+            forcedBreak = FoldForcedPageBoundary(forcedBreaks, low, forcedBreaks.Count);
         }
         return forcedBreak != null;
     }
 
-    private static HtmlPageBreakTarget ResolveForcedBreakAt(IReadOnlyList<HtmlRenderForcedBreak> forcedBreaks, double offset) =>
+    /// <summary>Combines one logical boundary without changing its physical cut or source ownership.</summary>
+    private static HtmlRenderForcedBreak FoldForcedPageBoundary(
+        IReadOnlyList<HtmlRenderForcedBreak> forcedBreaks, int firstIndex, int endIndex) {
+        HtmlRenderForcedBreak first = forcedBreaks[firstIndex];
+        HtmlRenderForcedBreak last = first;
+        HtmlRenderForcedBreak? side = null;
+        string? pageName = first.PageName;
+        bool changesPageName = first.ChangesPageName;
+        for (int index = firstIndex; index < endIndex; index++) {
+            HtmlRenderForcedBreak candidate = forcedBreaks[index];
+            if (!ReferenceEquals(candidate.Boundary, first.Boundary) || !IsForcedPageBreak(candidate.Target)) continue;
+            last = candidate;
+            // A plain page force, including a named-page marker, cannot erase
+            // a side requirement. The following child's side wins over an
+            // after declaration even when signed flow reverses their offsets.
+            if (candidate.Target is HtmlPageBreakTarget.Left or HtmlPageBreakTarget.Right
+                && (side == null || side.IsAfter || !candidate.IsAfter)) side = candidate;
+            if (candidate.ChangesPageName) {
+                pageName = candidate.PageName;
+                changesPageName = true;
+            }
+        }
+        return ReferenceEquals(first, last) ? first
+            : new HtmlRenderForcedBreak(first.Offset, side?.Target ?? last.Target, pageName, changesPageName,
+                first.Boundary, first.Edge, first.IsAfter, first.Projected, first.AdvancesFollowingFlow);
+    }
+
+    private HtmlPageBreakTarget ResolveForcedBreakAt(IReadOnlyList<HtmlRenderForcedBreak> forcedBreaks, double offset) =>
         ResolveForcedBoundaryAt(forcedBreaks, offset)?.Target ?? HtmlPageBreakTarget.None;
+
+    /// <summary>Combines forced types; only a later page-side value replaces an existing side.</summary>
+    private static HtmlPageBreakTarget CombineForcedPageTargets(HtmlPageBreakTarget earlier, HtmlPageBreakTarget later) =>
+        !IsForcedPageBreak(later) ? earlier
+            : later is HtmlPageBreakTarget.Left or HtmlPageBreakTarget.Right ? later
+            : earlier is HtmlPageBreakTarget.Left or HtmlPageBreakTarget.Right ? earlier : later;
+
+    private HtmlPageBreakTarget ResolveRootBreakBefore(HtmlRenderFlowBlock block) =>
+        CombineForcedPageTargets(IsForcedPageBreak(block.BreakBefore) ? block.BreakBefore : HtmlPageBreakTarget.None,
+            ResolveForcedBreakAt(block.ForcedBreaks, 0D));
+
+    private HtmlPageBreakTarget ResolveRootBreakAfter(HtmlRenderFlowBlock block) =>
+        CombineForcedPageTargets(ResolveForcedBreakAt(block.ForcedBreaks, block.Height), block.BreakAfter);
 
     /// <summary>Skips an empty initial run that has entered no source content on the physical page.</summary>
     private void ConsumeUnenteredPageBoundaries(HtmlRenderFlowBlock block, ISet<object> consumedBoundaries) {
@@ -280,14 +305,31 @@ internal sealed partial class HtmlRenderLayoutEngine {
         }
     }
 
-    private static HtmlRenderForcedBreak? ResolveForcedBoundaryAt(IReadOnlyList<HtmlRenderForcedBreak> forcedBreaks, double offset) {
-        HtmlRenderForcedBreak? boundary = null;
-        foreach (HtmlRenderForcedBreak forcedBreak in forcedBreaks) {
+    private HtmlRenderForcedBreak? ResolveForcedBoundaryAt(IReadOnlyList<HtmlRenderForcedBreak> forcedBreaks, double offset) {
+        if (forcedBreaks.Count == 0) return null;
+        CheckCancellation();
+        ChargeLayoutOperations(3L * forcedBreaks.Count, "coincident forced page boundary resolution");
+        int selected = -1;
+        int rangeStart = -1;
+        int rangeEnd = forcedBreaks.Count;
+        for (int index = 0; index < forcedBreaks.Count; index++) {
+            HtmlRenderForcedBreak forcedBreak = forcedBreaks[index];
             if (forcedBreak.Offset < offset - 0.0001D) continue;
-            if (forcedBreak.Offset > offset + 0.0001D) break;
-            if (IsForcedPageBreak(forcedBreak.Target)) boundary = forcedBreak;
+            if (forcedBreak.Offset > offset + 0.0001D) { rangeEnd = index; break; }
+            if (rangeStart < 0) rangeStart = index;
+            if (IsForcedPageBreak(forcedBreak.Target)) selected = index;
         }
-        return boundary;
+        if (selected < 0) return null;
+        // Distinct empty siblings at one offset remain separate boundaries.
+        // Fold only the selected boundary, starting at its first occurrence.
+        for (int index = rangeStart; index < selected; index++) {
+            if (IsForcedPageBreak(forcedBreaks[index].Target)
+                && ReferenceEquals(forcedBreaks[index].Boundary, forcedBreaks[selected].Boundary)) {
+                selected = index;
+                break;
+            }
+        }
+        return FoldForcedPageBoundary(forcedBreaks, selected, rangeEnd);
     }
 
     private static string? ResolvePageNameAt(IReadOnlyList<HtmlRenderForcedBreak> forcedBreaks, double offset,

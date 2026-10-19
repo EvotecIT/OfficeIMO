@@ -38,4 +38,63 @@ public sealed partial class HtmlRenderingTests {
             rendered.RequireNoLoss();
         }
     }
+
+    [Theory]
+    [InlineData("block", "right", null, 3)]
+    [InlineData("block", "right", "page", 3)]
+    [InlineData("block", "right", "left", 2)]
+    [InlineData("block", "left", "right", 3)]
+    [InlineData("block", "left", "page", 2)]
+    [InlineData("column-flex-gap", "right", null, 3)]
+    [InlineData("column-flex-gap", "right", "page", 3)]
+    [InlineData("inline", "right", null, 3)]
+    public void HtmlPagedBoundary_NamedTransitionRetainsTheLatestAuthoredPageSide(
+        string host, string after, string? before, int expectedPages) {
+        string children = "<p style='break-after:" + after + "'>ONE</p><p style='page:other"
+            + (before == null ? "" : ";break-before:" + before) + "'>TWO</p>";
+        string body = host switch {
+            "column-flex-gap" => "<div style='display:flex;flex-direction:column;gap:12px'>" + children + "</div>",
+            "inline" => "<span>" + children + "</span>",
+            _ => "<div>" + children + "</div>"
+        };
+        string html = ColumnBreakSource("<style>@page{size:700px 140px;margin:20px}"
+            + "@page other{size:700px 140px;margin:20px}</style>" + body);
+
+        foreach (HtmlRenderIntentProfile profile in new[] { HtmlRenderIntentProfile.PrintPaged, HtmlRenderIntentProfile.ScreenMediaPaged }) {
+            HtmlRenderDocument rendered = HtmlRenderEngine.Execute(HtmlConversionDocument.Parse(html),
+                HtmlRenderRequest.Create(profile, HtmlRenderEncoder.DisplayList, ColumnPageBandOptions())).Document;
+
+            Assert.Equal(expectedPages, rendered.Pages.Count);
+            Assert.Equal(1, ColumnPageBandTextPage(rendered, "ONE").PageNumber);
+            Assert.Equal(expectedPages, ColumnPageBandTextPage(rendered, "TWO").PageNumber);
+            Assert.Equal("other", rendered.Pages[expectedPages - 1].PageName);
+            if (expectedPages == 3) Assert.Empty(rendered.Pages[1].Visuals.OfType<HtmlRenderText>());
+            AssertColumnPageBandTextOnce(rendered, new[] { "ONE", "TWO" });
+            rendered.RequireNoLoss();
+        }
+    }
+
+    [Theory]
+    [InlineData("right", true)]
+    [InlineData("left", false)]
+    public void HtmlPagedBoundary_NamedPageSideCountsBlankPagesAgainstTheLimit(string side, bool exceedsLimit) {
+        string html = ColumnBreakSource("<style>@page{size:700px 140px;margin:20px}"
+            + "@page other{size:700px 140px;margin:20px}</style>"
+            + "<div><p style='break-after:" + side + "'>ONE</p><p style='page:other'>TWO</p></div>");
+        foreach (HtmlRenderIntentProfile profile in new[] { HtmlRenderIntentProfile.PrintPaged, HtmlRenderIntentProfile.ScreenMediaPaged }) {
+            HtmlRenderOptions options = ColumnPageBandOptions();
+            options.MaxPageCount = 2;
+            HtmlRenderDocument Render() => HtmlRenderEngine.Execute(HtmlConversionDocument.Parse(html),
+                HtmlRenderRequest.Create(profile, HtmlRenderEncoder.DisplayList, options)).Document;
+            if (exceedsLimit) {
+                InvalidOperationException error = Assert.Throws<InvalidOperationException>(() => Render());
+                Assert.Contains("maximum page count", error.Message, StringComparison.OrdinalIgnoreCase);
+            } else {
+                HtmlRenderDocument rendered = Render();
+                Assert.Equal(2, rendered.Pages.Count);
+                Assert.Equal(2, ColumnPageBandTextPage(rendered, "TWO").PageNumber);
+                rendered.RequireNoLoss();
+            }
+        }
+    }
 }
