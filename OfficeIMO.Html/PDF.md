@@ -302,6 +302,8 @@ options.MaxOutlinedTextCharactersPerRun = 16_384;
 options.MaxOutlinedTextPathCommands = 1_000_000;
 ```
 
+HTML uses the shared Core/PDF owners for bidirectional ordering, line breaking and bounded Arabic per-letter joining. Combining-mark attachment and required lam-alef ligatures need a complete shaping provider. The managed fallback preserves logical searchable text and reports approximation loss; strict mode rejects that fallback.
+
 For complete OpenType GSUB/GPOS shaping, add the optional `OfficeIMO.Drawing.HarfBuzz` adapter and assign its provider to the same options object used by PDF and image output:
 
 ```csharp
@@ -313,6 +315,14 @@ var options = new HtmlToPdfOptions {
 };
 options.Fonts.Add("Report Arabic", File.ReadAllBytes("ReportArabic.ttf"));
 ```
+
+Configured providers can retain an ordinary horizontal RTL Arabic word across eligible inline paint boundaries. Each piece must share the selected bounded monochrome font program, collection face and variation coordinates, with matching font size, language, direction and OpenType features. Letter spacing must be zero, source partitions must preserve complete logical clusters, and slice advances must add up to the complete word. Glyph IDs, offsets, advances and continuation glyphs stay with their logical source through measurement and painting. Forced breaks, bidi controls, emergency word wrapping, inline insets and differing shaping settings lie outside this retained-context subset.
+
+Paragraph bidi also supplies the direction for neutral punctuation. With zero letter and word spacing, eligible horizontal RTL slices retain the provider result requested with that resolved direction, so later output does not infer a new direction from punctuation alone. Font, provider, color-glyph or cluster-retention failures in an otherwise eligible context report `HtmlRenderComplexTextShapingUnsupported`.
+
+HTML PDF output paints admitted glyphs as vector outlines with logical `ActualText` for extraction and accessibility, alongside supported decoration paint. A positive-advance run with no visible outline still keeps its logical text and eligible link bounds. Absence of ink alone does not trigger fresh shaping. Provider acceptance and a clean report do not establish native appearance for every font or script.
+
+`HtmlRenderPage.CreateDrawing()` also carries admitted glyphs into Drawing output. Generic PDF export through `PdfPageCanvas.Drawing(...)` accepts retained text as unwrapped positioned monochrome slices; attached text decorations, padding, indentation, outline strokes and specialized metric geometry are outside that route and fail explicitly. Separate decoration shapes already present in the Drawing use normal shape output.
 
 Hosts that ship the OfficeIMO portable browser font set can activate its layout
 aliases, fallback order, PDF embedding, and substitutions through one reusable
