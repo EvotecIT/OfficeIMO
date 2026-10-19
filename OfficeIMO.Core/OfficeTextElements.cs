@@ -139,6 +139,20 @@ public static class OfficeTextElements {
         return false;
     }
 
+    /// <summary>Detects marks requiring attachment independently of Arabic joining and bidi ordering.</summary>
+    internal static bool ContainsCombiningMark(string? value) {
+        if (string.IsNullOrEmpty(value)) return false;
+        for (int index = 0; index < value!.Length;) {
+            int scalarIndex = index;
+            ReadScalar(value, ref index);
+            UnicodeCategory category = CharUnicodeInfo.GetUnicodeCategory(value, scalarIndex);
+            if (category == UnicodeCategory.NonSpacingMark ||
+                category == UnicodeCategory.SpacingCombiningMark ||
+                category == UnicodeCategory.EnclosingMark) return true;
+        }
+        return false;
+    }
+
     internal static bool ContainsZeroWidthJoinerSequence(string? value) {
         if (string.IsNullOrEmpty(value)) return false;
         for (int index = 0; index < value!.Length;) {

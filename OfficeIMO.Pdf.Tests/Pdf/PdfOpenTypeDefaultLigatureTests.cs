@@ -8,6 +8,68 @@ using Xunit;
 namespace OfficeIMO.Tests.Pdf;
 
 public class PdfOpenTypeDefaultLigatureTests {
+    [Theory]
+    [InlineData(false, "\u0627\u064E")]
+    [InlineData(true, "\u0627\u064E")]
+    [InlineData(false, "\u05D0\u05B7")]
+    [InlineData(true, "\u05D0\u05B7")]
+    public void DiagnosedFallbackRetainsDirectionalMarkClustersWithoutRecordingCoverage(bool explicitManaged, string text) {
+        byte[] data = ManagedTextShapingTestAssets.CreateFontWithUniformAdvance(2048, 1229,
+            0x0627, 0x064E, 0xFE8D, 0x05D0, 0x05B7);
+        var font = PdfTrueTypeFontProgram.Parse(data, "Diagnosed cluster");
+        IOfficeTextShapingProvider? provider = explicitManaged ? OfficeManagedTextShapingProvider.Instance : null;
+        int successes = 0;
+        var options = PdfTextShapingOptions.ForRendering("Diagnosed cluster", PdfTextShapingMode.OpenTypeLigatures,
+            shapingProvider: provider, providerShapedTextRecorder: (_, _, _, _) => successes++);
+
+        PdfGlyphRun run = font.ShapeText(text, options);
+
+        Assert.True(font.TryGetGlyphId(text[0] == '\u0627' ? 0xFE8D : text[0], out int baseGlyph));
+        Assert.True(font.TryGetGlyphId(text[1], out int markGlyph));
+        Assert.Equal(new[] { baseGlyph, markGlyph }, run.Glyphs.Select(glyph => glyph.GlyphId));
+        Assert.Equal(new[] { 0, 1 }, run.Glyphs.Select(glyph => glyph.TextIndex));
+        Assert.Equal(text, string.Concat(run.Glyphs.Select(glyph => glyph.UnicodeText)));
+        Assert.Equal(text, run.ActualText);
+        Assert.Null(run.SourceShapingResult);
+        Assert.False(run.IsAutomaticallyShaped);
+        Assert.Equal(0, successes);
+        Assert.Equal(14.4D, font.MeasureTextWidth(text, 12D, PdfTextShapingMode.OpenTypeLigatures, provider), 8);
+        Assert.Equal(14.40234375D, font.MeasureTextWidth(text, 12D, PdfTextShapingMode.OpenTypeLigatures,
+            provider, useFontUnitAdvances: true), 8);
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void DiagnosedFallbackRetainsJoiningAcrossAnArabicMark(bool explicitManaged) {
+        const string text = "\u0628\u064E\u062A";
+        byte[] data = ManagedTextShapingTestAssets.CreateFontWithDistinctGlyphs(0x0628, 0x062A, 0x064E, 0xFE91, 0xFE96);
+        var font = PdfTrueTypeFontProgram.Parse(data, "Diagnosed joining");
+        var options = PdfTextShapingOptions.ForRendering("Diagnosed joining", PdfTextShapingMode.OpenTypeLigatures,
+            shapingProvider: explicitManaged ? OfficeManagedTextShapingProvider.Instance : null);
+
+        PdfGlyphRun run = font.ShapeText(text, options);
+
+        Assert.True(font.TryGetGlyphId(0xFE91, out int initialBeh));
+        Assert.True(font.TryGetGlyphId(0xFE96, out int finalTeh));
+        Assert.True(font.TryGetGlyphId(0x064E, out int fatha));
+        Assert.Equal(new[] { finalTeh, initialBeh, fatha }, run.Glyphs.Select(glyph => glyph.GlyphId));
+        Assert.Equal(new[] { 2, 0, 1 }, run.Glyphs.Select(glyph => glyph.TextIndex));
+        Assert.Equal(text, run.ActualText);
+        Assert.Null(run.SourceShapingResult);
+        Assert.False(run.IsAutomaticallyShaped);
+    }
+
+    [Fact]
+    public void DiagnosedFallbackRetainsExistingUnsupportedLookupDecline() {
+        byte[] data = ManagedTextShapingTestAssets.CreateFontWithLigature(0x05D0, 0x05B7,
+            scriptTag: "hebr", lookupFlags: 8);
+        var request = new OfficeTextShapingRequest("\u05D0\u05B7", "Unsupported lookup", data, false, 1000,
+            OfficeTextDirection.RightToLeft, "he", OfficeTextFeatureSettings.Default.With("liga", 1));
+
+        Assert.Null(OfficeManagedTextShapingProvider.Instance.ShapeDiagnosedFallback(request));
+    }
+
     [Fact]
     public void DeclinedComplexScriptRetainsFallbackDiagnostic() {
         byte[] data = ManagedTextShapingTestAssets.CreateFontWithDistinctGlyphs(0x20, 0x0915, 0x094D, 0x0937);

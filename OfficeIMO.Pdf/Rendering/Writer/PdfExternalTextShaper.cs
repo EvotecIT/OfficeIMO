@@ -47,6 +47,19 @@ internal static partial class PdfExternalTextShaper {
             options.Direction == OfficeTextDirection.Auto ? OfficeTextElements.ResolveBaseDirection(text) : options.Direction,
             options.Language, default, fontCollectionIndex: null, variationCoordinates: null, cloneFontData: false));
 
+        if (result == null && (automaticDirectional ||
+            ReferenceEquals(options.ShapingProvider, OfficeManagedTextShapingProvider.Instance) &&
+            (OfficeTextElements.ContainsRightToLeft(text) || OfficeTextElements.ContainsJoiningScript(text)))) {
+            OfficeTextShapingResult? fallback = ShapeDiagnosedFallback(text, font.FontName,
+                font.FontDataForInspection, isOpenTypeCff: false, font.UnitsPerEm, options, automaticDirectional);
+            if (fallback != null) {
+                glyphRun = BuildGlyphRun(text, fallback, font.GlyphCount, font.UnitsPerEm, font.GetGlyphWidth1000,
+                    options.RecordGlyphUsage ? font.RecordGlyphUsage : null, includeActualText: true,
+                    preserveSourceShapingResult: false);
+                return true;
+            }
+        }
+
         if (result == null && options.ShapingProvider != null && options.ShapingMode == PdfTextShapingMode.OpenTypeLigatures) {
             automaticLatin = true;
             result = OfficeManagedTextShapingProvider.Instance.ShapeText(new OfficeTextShapingRequest(
@@ -111,6 +124,19 @@ internal static partial class PdfExternalTextShaper {
             options.Direction == OfficeTextDirection.Auto ? OfficeTextElements.ResolveBaseDirection(text) : options.Direction,
             options.Language, default, fontCollectionIndex: null, variationCoordinates: null, cloneFontData: false));
 
+        if (result == null && (automaticDirectional ||
+            ReferenceEquals(options.ShapingProvider, OfficeManagedTextShapingProvider.Instance) &&
+            (OfficeTextElements.ContainsRightToLeft(text) || OfficeTextElements.ContainsJoiningScript(text)))) {
+            OfficeTextShapingResult? fallback = ShapeDiagnosedFallback(text, font.FontName,
+                font.FontDataForInspection, isOpenTypeCff: true, font.UnitsPerEm, options, automaticDirectional);
+            if (fallback != null) {
+                glyphRun = BuildGlyphRun(text, fallback, font.GlyphCount, font.UnitsPerEm, font.GetGlyphWidth1000,
+                    options.RecordGlyphUsage ? font.RecordGlyphUsage : null, includeActualText: true,
+                    preserveSourceShapingResult: false);
+                return true;
+            }
+        }
+
         if (result == null && options.ShapingProvider != null && options.ShapingMode == PdfTextShapingMode.OpenTypeLigatures) {
             automaticLatin = true;
             result = OfficeManagedTextShapingProvider.Instance.ShapeText(new OfficeTextShapingRequest(
@@ -158,6 +184,24 @@ internal static partial class PdfExternalTextShaper {
          (options.Direction == OfficeTextDirection.Auto || options.Direction == OfficeTextDirection.LeftToRight) &&
          !OfficeManagedTextShaper.RequiresComplexLayout(text));
 
+    // Preserve Core's bounded joining and mark-cluster ordering after it declines complete
+    // coverage. Pure Latin text keeps its existing automatic-Latin GSUB retry.
+    private static OfficeTextShapingResult? ShapeDiagnosedFallback(string text, string fontName,
+        byte[] fontData, bool isOpenTypeCff, int unitsPerEm, PdfTextShapingOptions options, bool automaticDirectional) {
+        var features = automaticDirectional && options.FeatureSettings.IsDefault
+            ? AutomaticDirectionalFeatures : options.FeatureSettings;
+        OfficeTextShapingResult? fallback = Shape(features);
+        return fallback ?? (automaticDirectional && options.FeatureSettings.IsDefault
+            ? Shape(OfficeTextFeatureSettings.Default) : null);
+
+        OfficeTextShapingResult? Shape(OfficeTextFeatureSettings featureSettings) =>
+            OfficeManagedTextShapingProvider.Instance.ShapeDiagnosedFallback(new OfficeTextShapingRequest(
+                text, fontName, fontData, isOpenTypeCff, unitsPerEm,
+                options.Direction == OfficeTextDirection.Auto ? OfficeTextElements.ResolveBaseDirection(text) : options.Direction,
+                options.Language, default, fontCollectionIndex: null, variationCoordinates: null,
+                cloneFontData: false, featureSettings: featureSettings));
+    }
+
     private static PdfGlyphRun BuildGlyphRun(
         string text,
         OfficeTextShapingResult result,
@@ -165,7 +209,8 @@ internal static partial class PdfExternalTextShaper {
         int unitsPerEm,
         Func<int, int> getGlyphWidth1000,
         Action<int, string>? recordGlyphUsage,
-        bool includeActualText) {
+        bool includeActualText,
+        bool preserveSourceShapingResult = true) {
         if (result.Glyphs.Count == 0) {
             throw new ArgumentException("PDF text shaping provider returned no glyphs for non-null text.", nameof(result));
         }
@@ -209,7 +254,14 @@ internal static partial class PdfExternalTextShaper {
         // A purely right-to-left run in exact reverse cluster order is what conforming readers
         // reorder themselves; a run-wide ActualText would make them reverse it a second time.
         if (includeActualText && result.Direction == OfficeTextDirection.RightToLeft && IsReversedLogicalRun(text, glyphs)) includeActualText = false;
-        return new PdfGlyphRun(glyphs, Array.Empty<PdfTextEncodingDiagnostic>(), actualText: includeActualText ? text : null, result.Direction, hasCompleteVerticalAdvances, result, preserveGlyphUnicode: !includeActualText);
+        return new PdfGlyphRun(glyphs, Array.Empty<PdfTextEncodingDiagnostic>(), actualText: includeActualText ? text : null,
+            result.Direction, hasCompleteVerticalAdvances, preserveSourceShapingResult ? result : null,
+            preserveGlyphUnicode: !includeActualText) {
+            // Core's diagnosed fallback uses nominal advances plus these design-unit pair
+            // adjustments. Keep font-unit layout precise without implying provider coverage.
+            DesignAdvanceAdjustments = preserveSourceShapingResult ? null
+                : Enumerable.Range(0, result.Glyphs.Count).Select(result.GetAdvanceAdjustment).ToArray()
+        };
     }
 
     internal static bool IsReversedLogicalRun(string text, IReadOnlyList<PdfGlyphInfo> glyphs) {

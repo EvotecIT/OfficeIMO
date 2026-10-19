@@ -59,7 +59,8 @@ public sealed partial class OfficeManagedTextShapingProvider {
     }
 
     private bool TryShapeTokens(OfficeTextShapingRequest request, out IOfficeFontProgram font,
-        out List<OfficeOpenTypeSubstitution.GlyphToken> tokens, out OfficeTextDirection resolvedDirection) {
+        out List<OfficeOpenTypeSubstitution.GlyphToken> tokens, out OfficeTextDirection resolvedDirection,
+        bool allowDiagnosedFallback = false) {
         if (request == null) throw new ArgumentNullException(nameof(request));
         font = null!;
         tokens = null!;
@@ -68,6 +69,11 @@ public sealed partial class OfficeManagedTextShapingProvider {
         if (request.Direction == OfficeTextDirection.TopToBottom ||
             string.IsNullOrEmpty(request.Text) ||
             !OfficeManagedTextShaper.RequiresComplexLayout(request.Text) && request.FeatureSettings.IsDefault && !request.ApplyDefaultLatinLigatures ||
+            // Default Latin GSUB and its diagnostics own supported composition. The other
+            // managed path cannot provide mark attachment or required Arabic ligatures.
+            !allowDiagnosedFallback && !request.ApplyDefaultLatinLigatures &&
+            (OfficeTextElements.ContainsCombiningMark(request.Text) ||
+             OfficeArabicTextShaper.RequiresLamAlefLigatureShaping(request.Text, request.FeatureSettings)) ||
             !request.ApplyDefaultLatinLigatures && (OfficeTextElements.ContainsVariationSelector(request.Text) ||
             OfficeTextElements.ContainsZeroWidthJoinerSequence(request.Text) ||
             OfficeTextElements.ContainsShapingRequiredScript(request.Text) ||
