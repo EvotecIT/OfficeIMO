@@ -995,8 +995,16 @@ foreach ($name in $selected) {
             $provenanceMetadata['benchmark.browser.owner'] = 'HtmlTinkerX source'
             $provenanceMetadata['benchmark.browser.sourceCommit'] = $htmlTinkerXSourceCommit
         } else {
+            $htmlTinkerXReferences = @($pdfComparisonProject.SelectNodes('//PackageReference[@Include="HtmlTinkerX"]'))
+            if ($htmlTinkerXReferences.Count -ne 1 -or
+                [string] $htmlTinkerXReferences[0].Version -notmatch '^\d+\.\d+\.\d+$') {
+                throw 'The HTML comparison must declare one exact HtmlTinkerX package version.'
+            }
+            $htmlTinkerXPackageVersion = [string] $htmlTinkerXReferences[0].Version
             $provenanceMetadata['benchmark.browser.owner'] = 'HtmlTinkerX package'
-            $provenanceMetadata['benchmark.browser.packageVersion'] = '2.0.7'
+            $provenanceMetadata['benchmark.browser.packageVersion'] = $htmlTinkerXPackageVersion
+            $provenanceMetadata['benchmark.package.htmltinkerx.version'] = $htmlTinkerXPackageVersion
+            $provenanceMetadata['benchmark.dependency.htmltinkerx.version'] = $htmlTinkerXPackageVersion
         }
     }
     $provenanceCapture = Start-BenchmarkProvenanceCapture `
