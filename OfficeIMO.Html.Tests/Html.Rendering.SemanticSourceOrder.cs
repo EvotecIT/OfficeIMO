@@ -1,5 +1,6 @@
 using OfficeIMO.Html;
 using OfficeIMO.Html.Pdf;
+using OfficeIMO.TestAssets;
 using OfficeIMO.Tests.Pdf;
 using PdfCore = OfficeIMO.Pdf;
 using Xunit;
@@ -90,6 +91,8 @@ public sealed partial class HtmlRenderingTests {
     [Theory]
     [InlineData("Before")]
     [InlineData("<div>Before</div>")]
+    [InlineData("Before<span class='rtl'>א</span>After")]
+    [InlineData("<div style='writing-mode:vertical-rl;height:100px'>Before</div>")]
     public void HtmlPdf_TaggedSourceOrderRetainsAnonymousParagraphs(string before) {
         string html = SourceOrderStyles(400) + "<section><h1>Heading</h1>" + before
             + SourceOrderTable(2) + "<p>After</p></section>";
@@ -119,15 +122,47 @@ public sealed partial class HtmlRenderingTests {
         }
     }
 
-    private static HtmlToPdfOptions SourceOrderOptions() => new() {
-        AutoFitWidePrintContent = false,
-        ResourcePolicy = PdfCore.PdfResourcePolicy.CreatePortableDeterministic()
-    };
+    [Fact]
+    public void HtmlPdf_TaggedSourceOrderKeepsDiagnosedEmptyAnonymousContent() {
+        string html = SourceOrderStyles(400) + "<section><div>&#xf000;</div>" + SourceOrderTable(1) + "</section>";
+        var result = HtmlConversionDocument.Parse(html).ToPdfDocumentResult(SourceOrderOptions());
+        Assert.Contains(result.Report.Warnings,
+            warning => warning.Code == HtmlPdfDiagnosticCodes.UnavailablePrivateUseGlyphOmitted);
+        Assert.DoesNotContain("\uf000", PdfCore.PdfReadDocument.Open(result.ToBytes()).ExtractText(), StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void HtmlPdf_TaggedSourceOrderRetainsPaginatedBidiEnvelopes() {
+        string html = SourceOrderStyles(120) + "<section><h1>Heading</h1><div dir='rtl'>"
+            + string.Join(" ", Enumerable.Repeat("Before <span class='rtl'>א</span> After", 16))
+            + "</div>" + SourceOrderTable(2) + "<h2>End</h2></section>";
+        byte[] pdf = HtmlConversionDocument.Parse(html).ToPdfBytes(SourceOrderOptions());
+        var root = SourceOrderRoot(pdf, out var elements);
+        string?[] roles = root.ChildElementObjectNumbers.Select(id => elements[id].StructureType).ToArray();
+        int table = Array.IndexOf(roles, "Table");
+        Assert.True(PdfCore.PdfInspector.Inspect(pdf).PageCount > 1);
+        Assert.Equal("H1", roles[0]);
+        Assert.True(table > 1);
+        Assert.All(roles.Skip(1).Take(table - 1), role => Assert.Equal("P", role));
+        Assert.Equal(new[] { "Table", "H2" }, roles.Skip(table));
+    }
+
+    private static HtmlToPdfOptions SourceOrderOptions() {
+        byte[] hebrew = ManagedTextShapingTestAssets.CreateFont(0x05D0);
+        var options = new HtmlToPdfOptions {
+            AutoFitWidePrintContent = false,
+            ResourcePolicy = PdfCore.PdfResourcePolicy.CreatePortableDeterministic()
+        };
+        options.Fonts.Add("Source Hebrew", hebrew);
+        options.PdfOptions.RegisterNamedFontFamily(new PdfCore.PdfEmbeddedFontFamily("Source Hebrew", hebrew));
+        return options;
+    }
 
     private static string SourceOrderStyles(int height) =>
         "<!doctype html><html lang='en-US'><style>@page{size:400px " + height + "px;margin:12px}"
         + "body,p,h1,h2,td,th{margin:0;font:14px/20px Arial}img{display:block;width:24px;height:24px}"
-        + "table{width:100%;border-collapse:collapse}td,th{padding:0;border:1px solid black}th{background:#dceffc}</style>";
+        + "table{width:100%;border-collapse:collapse}td,th{padding:0;border:1px solid black}th{background:#dceffc}"
+        + ".rtl{font-family:'Source Hebrew'}</style>";
 
     private static string SourceOrderTable(int rows) =>
         "<table><thead><tr><th scope='col'>Header</th></tr></thead><tbody>"

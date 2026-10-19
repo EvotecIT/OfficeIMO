@@ -453,10 +453,13 @@ internal static partial class HtmlPdfRenderedConverter {
         }
         if (!textAsSpan && !logicalTextOwned && visual.SemanticSourceOrder.HasValue
             && (visual is HtmlRenderText { IsPaintOnly: false } || visual is HtmlRenderLogicalTextGroup)) {
-            canvas.Structure(PdfCore.PdfCanvasStructureRole.Paragraph, nested =>
-                AddVisual(nested, visual, webFonts, imageResources, conversionReport, surfaceWidth, surfaceHeight,
-                    interactiveFormControls, cancellationToken, textAsSpan: true, activeClip, logicalTextOwned, pagePaint),
-                new PdfCore.PdfCanvasStructureOptions { LogicalOrder = visual.SemanticSourceOrder });
+            var anonymousContent = new PdfCore.PdfPageCanvas(allowOutOfPageCoordinates: true);
+            AddVisual(anonymousContent, visual, webFonts, imageResources, conversionReport, surfaceWidth, surfaceHeight,
+                interactiveFormControls, cancellationToken, textAsSpan: true, activeClip, logicalTextOwned, pagePaint);
+            if (HasCanvasContent(anonymousContent.Items))
+                canvas.Structure(PdfCore.PdfCanvasStructureRole.Paragraph, nested => nested.AddItems(anonymousContent.Items),
+                    new PdfCore.PdfCanvasStructureOptions { LogicalOrder = visual.SemanticSourceOrder });
+            else canvas.AddItems(anonymousContent.Items);
             return;
         }
         if (visual is HtmlRenderFormField formField) {

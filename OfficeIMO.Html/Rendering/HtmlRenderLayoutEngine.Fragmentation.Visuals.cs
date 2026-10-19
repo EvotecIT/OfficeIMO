@@ -181,7 +181,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                             fragment.Count,
                             logicalTextGroup.Source,
                             logicalTextGroup.LayoutY - start,
-                            logicalScope: logicalTextGroup.LogicalScope));
+                            logicalScope: logicalTextGroup.LogicalScope) { SemanticSourceOrder = logicalTextGroup.SemanticSourceOrder });
                     }
                     continue;
                 }

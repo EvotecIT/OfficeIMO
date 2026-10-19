@@ -338,7 +338,9 @@ internal sealed partial class HtmlRenderLayoutEngine {
                     Math.Max(0.01D, lineHeight),
                     lineVisuals,
                     lineVisualStart,
-                    paintLineSegments.FirstOrDefault()?.Run.Source));
+                    paintLineSegments.FirstOrDefault()?.Run.Source) {
+                    SemanticSourceOrder = paintLineSegments.Select(segment => segment.Run.SemanticSourceOrder).Min()
+                });
             }
 
             flowY = Math.Max(flowY, lineY + lineHeight);

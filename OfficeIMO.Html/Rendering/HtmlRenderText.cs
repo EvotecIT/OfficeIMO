@@ -290,7 +290,7 @@ public sealed class HtmlRenderText : HtmlRenderVisual {
                 SemanticFragmentOrder, LogicalTextOrder, UnderlineStyle, StrikethroughStyle,
                 Baseline, BaselineLevel, BaselineScale, BaselineOffset, null,
                 DecorationColor, FeatureSettings, FontPalette, Math.Min(LineHeight, LayoutHeight),
-                FontDescriptor, PaintTopOverflow, IsPaintOnly, LinkBounds, UsesOrdinaryLineCarrier);
+                FontDescriptor, PaintTopOverflow, IsPaintOnly, LinkBounds, UsesOrdinaryLineCarrier) { SemanticSourceOrder = SemanticSourceOrder };
         }
     }
 
