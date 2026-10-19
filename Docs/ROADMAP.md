@@ -523,7 +523,6 @@ The [Draw API](../OfficeIMO.OpenDocument/README.md#create-and-edit-draw-document
 ### Spreadsheet and CSV delivery order
 
 - [ ] Extend the [XML Spreadsheet 2003 data profile](../OfficeIMO.Excel/README.md#xml-spreadsheet-2003-data-interchange) with producer-backed appearance, column and merge geometry, names, comments, links and print metadata. Qualify independent XML producers and native Excel read/write separately from self-round trips and external consumer subsets. Assess arbitrary XML-table exchange as a separate schema-mapping contract.
-- [ ] Extend scalar financial evaluation beyond the qualified `PMT`/`IPMT`/`PPMT`/`PV`/`FV`/`NPER`/`NPV` subset with bounded `RATE`, `IRR`, `XIRR` and `XNPV` behavior, convergence/error semantics and independent saved-result references; do not treat formula storage as calculation support.
 - [ ] Deepen [native XLS lifecycle support](officeimo.excel.legacy-xls-compatibility.md#native-xls-write-capability) for chart sheets and other currently rejected sheet kinds, and qualify real macro-workbook edit/save with complete project streams and host identities. Keep unrelated unsupported workbook content visible; byte-preserving VBA alone does not qualify the entire workbook.
 - [ ] Define and qualify format-specific encrypted XLS/XLSB output before expanding the existing OOXML encrypted-save contract. Separate password-to-open, password-to-modify and worksheet/workbook protection; keep unimplemented legacy output rejected and document algorithm/security and native compatibility boundaries.
 

@@ -676,6 +676,7 @@ namespace OfficeIMO.Excel {
                     if (function is "GCD" or "LCM") return TryEvaluateIntegerAggregateValue(function, args, out result);
                     if (function == "PROB") return TryEvaluateProbabilityValue(args, out result);
                     if (function is "IPMT" or "PPMT") return TryEvaluatePaymentSplitValue(function, args, out result);
+                    if (function is "RATE" or "IRR" or "XIRR" or "XNPV") return TryEvaluateCashFlowValue(function, args, out result);
                     if (function == "RANDBETWEEN") return TryEvaluateRandomBetweenValue(args, out result);
                     if (function == "OFFSET") return TryEvaluateOffsetValue(args, out result);
                     if (function == "GETPIVOTDATA") return TryEvaluatePivotDataValue(args, out result);
@@ -888,8 +889,11 @@ namespace OfficeIMO.Excel {
                         return TryEvaluateFinancialFunction(function, args, out result);
                     }
 
-                    if (function is "IPMT" or "PPMT") {
-                        if (!TryEvaluatePaymentSplitValue(function, args, out FormulaArgumentValue paymentResult)) return false;
+                    if (function is "IPMT" or "PPMT" or "RATE" or "IRR" or "XIRR" or "XNPV") {
+                        bool evaluated = function is "IPMT" or "PPMT"
+                            ? TryEvaluatePaymentSplitValue(function, args, out FormulaArgumentValue paymentResult)
+                            : TryEvaluateCashFlowValue(function, args, out paymentResult);
+                        if (!evaluated) return false;
                         if (paymentResult.IsError) { error = paymentResult; return false; }
                         result = paymentResult.Number!.Value;
                         return true;

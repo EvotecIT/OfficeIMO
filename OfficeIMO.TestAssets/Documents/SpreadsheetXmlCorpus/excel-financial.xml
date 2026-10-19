@@ -1,0 +1,212 @@
+<?xml version="1.0"?>
+<?mso-application progid="Excel.Sheet"?>
+<Workbook xmlns="urn:schemas-microsoft-com:office:spreadsheet"
+ xmlns:o="urn:schemas-microsoft-com:office:office"
+ xmlns:x="urn:schemas-microsoft-com:office:excel"
+ xmlns:ss="urn:schemas-microsoft-com:office:spreadsheet"
+ xmlns:html="http://www.w3.org/TR/REC-html40">
+ <DocumentProperties xmlns="urn:schemas-microsoft-com:office:office">
+  <LastAuthor>Przemysław Kłys</LastAuthor>
+  <Created>2026-10-19T18:41:14Z</Created>
+  <LastSaved>2026-10-19T18:40:29Z</LastSaved>
+  <Version>16.00</Version>
+ </DocumentProperties>
+ <OfficeDocumentSettings xmlns="urn:schemas-microsoft-com:office:office">
+  <AllowPNG/>
+ </OfficeDocumentSettings>
+ <ExcelWorkbook xmlns="urn:schemas-microsoft-com:office:excel">
+  <WindowHeight>19100</WindowHeight>
+  <WindowWidth>32767</WindowWidth>
+  <WindowTopX>32767</WindowTopX>
+  <WindowTopY>600</WindowTopY>
+  <ProtectStructure>False</ProtectStructure>
+  <ProtectWindows>False</ProtectWindows>
+ </ExcelWorkbook>
+ <Styles>
+  <Style ss:ID="Default" ss:Name="Normal">
+   <Alignment ss:Vertical="Bottom"/>
+   <Borders/>
+   <Font ss:FontName="Calibri" ss:Size="11"/>
+   <Interior/>
+   <NumberFormat/>
+   <Protection/>
+  </Style>
+ </Styles>
+ <Worksheet ss:Name="Finance">
+  <Table ss:ExpandedColumnCount="2" ss:ExpandedRowCount="38" x:FullColumns="1"
+   x:FullRows="1" ss:DefaultColumnWidth="65" ss:DefaultRowHeight="16">
+   <Row ss:Height="15">
+    <Cell ss:Formula="=RATE(48,-200,8000)"><Data ss:Type="Number">7.7014724882013682E-3</Data></Cell>
+    <Cell><Data ss:Type="String">RATE(48,-200,8000)</Data></Cell>
+   </Row>
+   <Row ss:Height="15">
+    <Cell ss:Formula="=RATE(12,-100,1200,,,0)"><Data ss:Type="Number">0</Data></Cell>
+    <Cell><Data ss:Type="String">RATE(12,-100,1200,,,0)</Data></Cell>
+   </Row>
+   <Row ss:Height="15">
+    <Cell ss:Formula="=RATE(10,,-100,200)"><Data ss:Type="Number">7.1773462536441887E-2</Data></Cell>
+    <Cell><Data ss:Type="String">RATE(10,,-100,200)</Data></Cell>
+   </Row>
+   <Row ss:Height="15">
+    <Cell ss:Formula="=RATE(12,-100,1200,0,1)"><Data ss:Type="Number">2.5972630155802441E-9</Data></Cell>
+    <Cell><Data ss:Type="String">RATE(12,-100,1200,0,1)</Data></Cell>
+   </Row>
+   <Row ss:Height="15">
+    <Cell ss:Formula="=IRR({-70000,12000,15000,18000,21000,26000})"><Data
+      ss:Type="Number">8.663094803652216E-2</Data></Cell>
+    <Cell><Data ss:Type="String">IRR({-70000,12000,15000,18000,21000,26000})</Data></Cell>
+   </Row>
+   <Row ss:Height="15">
+    <Cell ss:Formula="=IRR({-70000;12000;15000},-0.1)"><Data ss:Type="Number">-0.44350694133473989</Data></Cell>
+    <Cell><Data ss:Type="String">IRR({-70000;12000;15000},-0.1)</Data></Cell>
+   </Row>
+   <Row ss:Height="15">
+    <Cell ss:Formula="=IRR({-100,50})"><Data ss:Type="Number">-0.5</Data></Cell>
+    <Cell><Data ss:Type="String">IRR({-100,50})</Data></Cell>
+   </Row>
+   <Row ss:Height="15">
+    <Cell ss:Formula="=IRR({-100,100})"><Data ss:Type="Number">2.2204460492503131E-16</Data></Cell>
+    <Cell><Data ss:Type="String">IRR({-100,100})</Data></Cell>
+   </Row>
+   <Row ss:Height="15">
+    <Cell ss:Formula="=IRR({-100,230,-132},0.1)"><Data ss:Type="Number">0.10000000000000009</Data></Cell>
+    <Cell><Data ss:Type="String">IRR({-100,230,-132},0.1)</Data></Cell>
+   </Row>
+   <Row ss:Height="15">
+    <Cell ss:Formula="=IRR({-100,230,-132},0.2)"><Data ss:Type="Number">0.20000000000000018</Data></Cell>
+    <Cell><Data ss:Type="String">IRR({-100,230,-132},0.2)</Data></Cell>
+   </Row>
+   <Row ss:Height="15">
+    <Cell ss:Formula="=IRR({-100,&quot;ignored&quot;,TRUE,110})"><Data
+      ss:Type="Number">0.10000000000000009</Data></Cell>
+    <Cell><Data ss:Type="String">IRR({-100,&quot;ignored&quot;,TRUE,110})</Data></Cell>
+   </Row>
+   <Row ss:Height="15">
+    <Cell
+     ss:Formula="=XIRR({-10000,2750,4250,3250,2750},{39448,39508,39751,39859,39904})"><Data
+      ss:Type="Number">0.3733625352382659</Data></Cell>
+    <Cell><Data ss:Type="String">XIRR({-10000,2750,4250,3250,2750},{39448,39508,39751,39859,39904})</Data></Cell>
+   </Row>
+   <Row ss:Height="15">
+    <Cell
+     ss:Formula="=XNPV(0.09,{-10000,2750,4250,3250,2750},{39448,39508,39751,39859,39904})"><Data
+      ss:Type="Number">2086.6476020315349</Data></Cell>
+    <Cell><Data ss:Type="String">XNPV(0.09,{-10000,2750,4250,3250,2750},{39448,39508,39751,39859,39904})</Data></Cell>
+   </Row>
+   <Row ss:Height="15">
+    <Cell ss:Formula="=XNPV(0,{-100,110},{40000.9,40365.1})"><Data ss:Type="Error">#NUM!</Data></Cell>
+    <Cell><Data ss:Type="String">XNPV(0,{-100,110},{40000.9,40365.1})</Data></Cell>
+   </Row>
+   <Row ss:Height="15">
+    <Cell ss:Formula="=XNPV(0.1,{-100,110},{40000.9,40365.1})"><Data
+      ss:Type="Number">-1.4210854715202004E-14</Data></Cell>
+    <Cell><Data ss:Type="String">XNPV(0.1,{-100,110},{40000.9,40365.1})</Data></Cell>
+   </Row>
+   <Row ss:Height="15">
+    <Cell ss:Formula="=IRR({1,2,3})"><Data ss:Type="Error">#NUM!</Data></Cell>
+    <Cell><Data ss:Type="String">IRR({1,2,3})</Data></Cell>
+   </Row>
+   <Row ss:Height="15">
+    <Cell ss:Formula="=IRR({-1,-2})"><Data ss:Type="Error">#NUM!</Data></Cell>
+    <Cell><Data ss:Type="String">IRR({-1,-2})</Data></Cell>
+   </Row>
+   <Row ss:Height="15">
+    <Cell ss:Formula="=IRR({-1,2},-1)"><Data ss:Type="Error">#VALUE!</Data></Cell>
+    <Cell><Data ss:Type="String">IRR({-1,2},-1)</Data></Cell>
+   </Row>
+   <Row ss:Height="15">
+    <Cell ss:Formula="=IRR({-100,&quot;text&quot;,110,#N/A})"><Data ss:Type="Error">#VALUE!</Data></Cell>
+    <Cell><Data ss:Type="String">IRR({-100,&quot;text&quot;,110,#N/A})</Data></Cell>
+   </Row>
+   <Row ss:Height="15">
+    <Cell ss:Formula="=IRR({-1,2},&quot;bad&quot;)"><Data ss:Type="Error">#VALUE!</Data></Cell>
+    <Cell><Data ss:Type="String">IRR({-1,2},&quot;bad&quot;)</Data></Cell>
+   </Row>
+   <Row ss:Height="15">
+    <Cell ss:Formula="=XIRR({-100,110},{40000,39999})"><Data ss:Type="Error">#NUM!</Data></Cell>
+    <Cell><Data ss:Type="String">XIRR({-100,110},{40000,39999})</Data></Cell>
+   </Row>
+   <Row ss:Height="15">
+    <Cell ss:Formula="=XIRR({-100,110},{40000})"><Data ss:Type="Error">#NUM!</Data></Cell>
+    <Cell><Data ss:Type="String">XIRR({-100,110},{40000})</Data></Cell>
+   </Row>
+   <Row ss:Height="15">
+    <Cell ss:Formula="=XIRR({-100,110},{40000,&quot;date&quot;})"><Data
+      ss:Type="Error">#VALUE!</Data></Cell>
+    <Cell><Data ss:Type="String">XIRR({-100,110},{40000,&quot;date&quot;})</Data></Cell>
+   </Row>
+   <Row ss:Height="15">
+    <Cell ss:Formula="=XIRR({-100,110},{-1,40000})"><Data ss:Type="Error">#NUM!</Data></Cell>
+    <Cell><Data ss:Type="String">XIRR({-100,110},{-1,40000})</Data></Cell>
+   </Row>
+   <Row ss:Height="15">
+    <Cell ss:Formula="=XNPV(-1,{-100,110},{40000,40365})"><Data ss:Type="Error">#NUM!</Data></Cell>
+    <Cell><Data ss:Type="String">XNPV(-1,{-100,110},{40000,40365})</Data></Cell>
+   </Row>
+   <Row ss:Height="15">
+    <Cell ss:Formula="=XNPV(0.1,{-100,#REF!},{40000,40365})"><Data ss:Type="Error">#REF!</Data></Cell>
+    <Cell><Data ss:Type="String">XNPV(0.1,{-100,#REF!},{40000,40365})</Data></Cell>
+   </Row>
+   <Row ss:Height="15">
+    <Cell ss:Formula="=XIRR({-100,110},{40000,40000})"><Data ss:Type="Error">#NUM!</Data></Cell>
+    <Cell><Data ss:Type="String">XIRR({-100,110},{40000,40000})</Data></Cell>
+   </Row>
+   <Row ss:Height="15">
+    <Cell ss:Formula="=RATE(0,-100,1200)"><Data ss:Type="Error">#NUM!</Data></Cell>
+    <Cell><Data ss:Type="String">RATE(0,-100,1200)</Data></Cell>
+   </Row>
+   <Row ss:Height="15">
+    <Cell ss:Formula="=RATE(12,-100,1200,0,2)"><Data ss:Type="Number">2.5972630155802441E-9</Data></Cell>
+    <Cell><Data ss:Type="String">RATE(12,-100,1200,0,2)</Data></Cell>
+   </Row>
+   <Row ss:Height="15">
+    <Cell ss:Formula="=RATE(12,100,1200)"><Data ss:Type="Error">#NUM!</Data></Cell>
+    <Cell><Data ss:Type="String">RATE(12,100,1200)</Data></Cell>
+   </Row>
+   <Row ss:Height="15">
+    <Cell ss:Formula="=RATE(#N/A,-100,1200)"><Data ss:Type="Error">#N/A</Data></Cell>
+    <Cell><Data ss:Type="String">RATE(#N/A,-100,1200)</Data></Cell>
+   </Row>
+   <Row ss:Height="15">
+    <Cell ss:Formula="=IFERROR(IRR({1,2,3}),42)"><Data ss:Type="Number">42</Data></Cell>
+    <Cell><Data ss:Type="String">IFERROR(IRR({1,2,3}),42)</Data></Cell>
+   </Row>
+   <Row ss:Height="15">
+    <Cell ss:Formula="=XNPV(0.1,{100,110},{40000,40365})"><Data ss:Type="Number">200</Data></Cell>
+    <Cell><Data ss:Type="String">XNPV(0.1,{100,110},{40000,40365})</Data></Cell>
+   </Row>
+   <Row ss:Height="15">
+    <Cell ss:Formula="=XIRR({-100,0,110},{40000,40100,40365})"><Data
+      ss:Type="Number">9.9999994039535522E-2</Data></Cell>
+    <Cell><Data ss:Type="String">XIRR({-100,0,110},{40000,40100,40365})</Data></Cell>
+   </Row>
+   <Row ss:Height="15">
+    <Cell ss:Formula="=XIRR({-100,&quot;ignored&quot;,110},{40000,40100,40365})"><Data
+      ss:Type="Error">#VALUE!</Data></Cell>
+    <Cell><Data ss:Type="String">XIRR({-100,&quot;ignored&quot;,110},{40000,40100,40365})</Data></Cell>
+   </Row>
+   <Row ss:Height="15">
+    <Cell ss:Formula="=IRR({-1,1000})"><Data ss:Type="Number">998.99999999999909</Data></Cell>
+    <Cell><Data ss:Type="String">IRR({-1,1000})</Data></Cell>
+   </Row>
+   <Row ss:Height="15">
+    <Cell ss:Formula="=RATE(1,-100,100)"><Data ss:Type="Number">3.9165039923232365E-9</Data></Cell>
+    <Cell><Data ss:Type="String">RATE(1,-100,100)</Data></Cell>
+   </Row>
+   <Row ss:Height="15">
+    <Cell ss:Formula="=XIRR({-100,110},{0,365})"><Data ss:Type="Number">9.9999994039535522E-2</Data></Cell>
+    <Cell><Data ss:Type="String">XIRR({-100,110},{0,365})</Data></Cell>
+   </Row>
+  </Table>
+  <WorksheetOptions xmlns="urn:schemas-microsoft-com:office:excel">
+   <PageSetup>
+    <Header x:Margin="0.3"/>
+    <Footer x:Margin="0.3"/>
+    <PageMargins x:Bottom="0.75" x:Left="0.7" x:Right="0.7" x:Top="0.75"/>
+   </PageSetup>
+   <Selected/>
+   <ProtectObjects>False</ProtectObjects>
+   <ProtectScenarios>False</ProtectScenarios>
+  </WorksheetOptions>
+ </Worksheet>
+</Workbook>

@@ -1158,13 +1158,27 @@ OfficeIMO stores the native connection, table, and query-table relationship chai
 
 ### Formula inspection and calculation policy
 
+`RATE`, `IRR`, `XIRR` and `XNPV` calculate annuity rates and periodic or dated
+cash flows. Cash-flow vectors accept worksheet ranges, names, simple structured
+references and rectangular literal arrays. IRR ignores text, Booleans and blanks
+in its series; XIRR retains blank cash-flow positions as zero. Dated functions
+truncate date serials, use a 365-day year, and require dates no earlier than the
+first date. XNPV requires a positive discount rate. RATE/IRR use at most 20
+iterations per attempt and XIRR at most 100. An unsuccessful nondefault guess
+gets one retry from 10%; non-convergence returns `#NUM!`. Guesses select
+among possible roots, so a cash-flow schedule does not imply a unique rate.
+The shared 100,000-cell resolution budget applies across paired vectors.
+Saved Microsoft Excel references cover successful rates, multiple roots,
+negative returns, date fractions, input coercions and error results.
+
 `IPMT` and `PPMT` calculate the interest and principal portions of a
 constant-rate annuity payment, including beginning-of-period payments and
 omitted optional future-value/payment-type arguments. For example,
 `IPMT(0.1/12,1,36,8000)` calculates the first month's interest. These scalar
 functions use the same `PMT`/`FV` owner; typed errors propagate through references
-and `IFERROR`. The qualified rate domain is greater than -1, payment type is 0
-or 1, and the selected period is between 1 and the positive period count.
+and `IFERROR`. The qualified rate domain is greater than -1, zero payment type
+means end-of-period and nonzero means beginning-of-period, and the selected
+period is between 1 and the positive period count.
 Invalid qualified domains produce `#NUM!`; unsupported signatures and operands
 retain their existing cached result rather than inventing a value.
 

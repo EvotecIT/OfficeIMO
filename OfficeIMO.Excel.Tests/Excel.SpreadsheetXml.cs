@@ -14,6 +14,18 @@ public sealed class ExcelSpreadsheetXmlTests {
     private static byte[] Cells(string content) => Workbook("<Worksheet ss:Name=\"Data\"><Table><Row>" + content + "</Row></Table></Worksheet>");
 
     [Fact]
+    public void Xml_import_reads_native_Excel_saved_formulas_and_caches_without_calculation() {
+        string path = Path.Combine(RepositoryTestPaths.Find(), "OfficeIMO.TestAssets", "Documents", "SpreadsheetXmlCorpus", "excel-financial.xml");
+        using var document = ExcelDocument.ImportSpreadsheetXml(path).Value;
+        Assert.Equal(38, document.InspectFormulas().Formulas.Count);
+        Assert.InRange(document.Sheets[0].CellAt(1, 1).GetValue<double>(), 0.00770147248, 0.00770147250);
+        Assert.Equal("#NUM!", document.InspectFormulas().Formulas.Single(formula => formula.CellReference == "A14").CachedValue);
+        using var copy = ExcelDocument.Load(new MemoryStream(document.ToBytes()));
+        Assert.Equal("RATE(48,-200,8000)", copy.Sheets[0].GetFormulaText(1, 1));
+        Assert.Empty(copy.ValidateOpenXml());
+    }
+
+    [Fact]
     public void Xml_import_retains_types_sparse_positions_formula_caches_and_editable_workbook() {
         byte[] source = Workbook("""
             <Styles><Style ss:ID="date"><NumberFormat ss:Format="yyyy-mm-dd"/></Style></Styles>

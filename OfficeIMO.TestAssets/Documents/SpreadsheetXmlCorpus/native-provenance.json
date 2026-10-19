@@ -1,0 +1,13 @@
+{
+  "producer": "Microsoft Excel for Mac",
+  "version": "16.113.4 (26100421)",
+  "locale": "pl-PL",
+  "createdUtc": "2026-10-19T18:44:00Z",
+  "method": "Synthetic controls authored through ExcelDocument; opened without repair, F9 recalculated, saved as XLSX; first cohort saved as XML Spreadsheet through native Save As. Existing manual calculation preference retained. No native settings changed.",
+  "files": {
+    "excel-financial-results.xlsx": "56c7437346cfddf0b67dc46d259f5f9b0a5f79c0be686402f85bae5b11a0a819",
+    "excel-financial-coercions.xlsx": "fee1134fabe16912d431ddcbcc7a51b14774a4141e3b5f15c9be5b79cd3a9a29",
+    "excel-financial.xml": "5a75a1e0ebd00e97ca0a14c1e72c72f553f0680966c64940e693e7c52d42852a"
+  },
+  "limits": "Native saved cache references qualify the included formulas and coercion cases. XML producer fixture is a simple worksheet, not broad XML appearance qualification."
+}

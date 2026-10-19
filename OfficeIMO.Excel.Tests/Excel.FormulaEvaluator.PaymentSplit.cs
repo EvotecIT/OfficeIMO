@@ -22,6 +22,8 @@ public sealed class ExcelPaymentSplitTests {
     [InlineData("IPMT(0,1,12,1200)", 0)]
     [InlineData("PPMT(0,1,12,1200)", -100)]
     [InlineData("IPMT(0.01,1,12,1200,0,1)", 0)]
+    [InlineData("IPMT(0.01,2,12,1200,0,2)", -10.9443708275841)]
+    [InlineData("PPMT(0.01,2,12,1200,0,-1)", -94.61854641401)]
     public void Payment_splits_match_reference_values_and_survive_save(string formula, double expected) {
         using var document = ExcelDocument.Create(); var sheet = document.AddWorksheet("Loan");
         sheet.CellValue(1, 1, 42d); sheet.CellFormula(1, 1, formula);
@@ -37,7 +39,6 @@ public sealed class ExcelPaymentSplitTests {
     [Theory]
     [InlineData("IPMT(0.01,0,12,1200)", "#NUM!")]
     [InlineData("PPMT(0.01,13,12,1200)", "#NUM!")]
-    [InlineData("IPMT(0.01,1,12,1200,0,2)", "#NUM!")]
     [InlineData("IFERROR(IPMT(0.01,0,12,1200),99)", "99")]
     [InlineData("IPMT(#REF!,1,12,1200)", "#REF!")]
     public void Payment_splits_replace_stale_caches_with_typed_errors(string formula, string expected) {

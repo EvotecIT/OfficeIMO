@@ -19,8 +19,8 @@ public partial class ExcelSheet {
             numbers[index] = value.Number!.Value;
         }
         if (firstError.IsError) { result = firstError; return true; }
-        double rate = numbers[0], period = numbers[1], periods = numbers[2], present = numbers[3], future = numbers[4], type = numbers[5];
-        if (period < 1 || period > periods || periods <= 0 || rate <= -1 || (type != 0 && type != 1)) {
+        double rate = numbers[0], period = numbers[1], periods = numbers[2], present = numbers[3], future = numbers[4], type = numbers[5] == 0 ? 0 : 1;
+        if (period < 1 || period > periods || periods <= 0 || rate <= -1) {
             result = FormulaArgumentValue.Error("#NUM!"); return true;
         }
         if (!TryEvaluatePmt(new[] { rate, periods, present, future, type }, out double payment)

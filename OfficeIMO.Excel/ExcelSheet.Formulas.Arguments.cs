@@ -180,6 +180,7 @@ namespace OfficeIMO.Excel {
             var builder = new StringBuilder();
             int depth = 0;
             int bracketDepth = 0;
+            int arrayDepth = 0;
             bool inString = false;
             bool inQuotedQualifier = false;
 
@@ -244,7 +245,12 @@ namespace OfficeIMO.Excel {
                     continue;
                 }
 
-                if (!inString && ch == ',' && depth == 0 && bracketDepth == 0) {
+                if (!inString && bracketDepth == 0 && (ch == '{' || ch == '}')) {
+                    arrayDepth += ch == '{' ? 1 : -1;
+                    if (arrayDepth < 0 || arrayDepth > 1) return Array.Empty<string>();
+                }
+
+                if (!inString && ch == ',' && depth == 0 && bracketDepth == 0 && arrayDepth == 0) {
                     AddToken(tokens, builder, preserveEmpty);
                     continue;
                 }
@@ -252,7 +258,7 @@ namespace OfficeIMO.Excel {
                 builder.Append(ch);
             }
 
-            if (depth != 0 || bracketDepth != 0 || inString || inQuotedQualifier) {
+            if (depth != 0 || bracketDepth != 0 || arrayDepth != 0 || inString || inQuotedQualifier) {
                 return Array.Empty<string>();
             }
 
