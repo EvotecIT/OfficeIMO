@@ -80,11 +80,15 @@ internal sealed partial class HtmlRenderLayoutEngine {
         double start = 0D;
         double remaining = owner.Boundary.RemainingHeight;
         int page = owner.PageNumber;
-        while (start < terminalStart - 0.0001D) {
+        var consumedBoundaries = new HashSet<object>();
+        while (start < terminalStart - 0.0001D
+            || TryGetNextForcedBreak(prefix.ForcedBreaks, start, out HtmlRenderForcedBreak? pending,
+                consumedBoundaries, includeProjectedBoundaries: true)
+                && pending!.Offset <= terminalStart + 0.0001D) {
             CheckCancellation();
             ChargeLayoutOperation("spanner physical page origin");
             PagedBlockFragment? fragment = PlanPagedFragment(prefix, start, remaining, owner.PageHeight,
-                remaining >= owner.PageHeight - 0.0001D);
+                remaining >= owner.PageHeight - 0.0001D, consumedBoundaries, includeProjectedBoundaries: true);
             if (fragment != null && (fragment.Forced || fragment.SuppressedHeader || fragment.SuppressedFooter)) return false;
             if (fragment != null && fragment.End > terminalStart + 0.0001D) {
                 remaining -= terminalStart - start;
@@ -93,8 +97,10 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 // The outer paginator commits every unfinished source fragment,
                 // including one ending at terminalStart with unused body space.
                 start = fragment.End;
+                if (fragment.AuthoredBreak != null) ConsumePagedForcedBreak(prefix, fragment.AuthoredBreak, consumedBoundaries);
             }
-            HtmlPageBreakTarget target = ResolveForcedBreakAt(prefix.ForcedBreaks, start);
+            HtmlPageBreakTarget target = fragment?.AuthoredBreak?.Target
+                ?? ResolveForcedBreakAt(prefix.ForcedBreaks, start);
             do {
                 CheckCancellation();
                 ChargeLayoutOperation("spanner physical page advance");

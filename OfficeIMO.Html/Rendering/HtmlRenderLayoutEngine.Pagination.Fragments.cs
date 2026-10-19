@@ -9,7 +9,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
     /// <param name="rawAvailable">The remaining destination height before repeat reservations.</param>
     /// <param name="fullPageHeight">The usable body height of an empty page.</param>
     /// <param name="canForceFragment">Allows repeat suppression and forced fragmentation when the caller cannot move to a page with more room.</param>
-    /// <param name="consumedBoundaries">Optional source-projection cursor retaining distinct authored boundaries at the same offset.</param>
+    /// <param name="consumedBoundaries">Optional cursor retaining distinct authored boundaries at the same offset.</param>
+    /// <param name="includeProjectedBoundaries">Includes physical boundaries whose source projection already accounts for page-entry spacing.</param>
     /// <returns>Null when no safe progress fits and the caller should start another page.</returns>
     /// <remarks>The returned end covers body source only; the caller consumes the original footer after painting its final repetition.</remarks>
     private PagedBlockFragment? PlanPagedFragment(
@@ -18,7 +19,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
         double rawAvailable,
         double fullPageHeight,
         bool canForceFragment,
-        ISet<object>? consumedBoundaries = null) {
+        ISet<object>? consumedBoundaries = null,
+        bool includeProjectedBoundaries = false) {
         CheckCancellation();
         ChargeLayoutOperations((long)block.ContinuationGroups.Count + block.TrailingGroups.Count,
             "page fragment repeat-group planning");
@@ -34,7 +36,13 @@ internal sealed partial class HtmlRenderLayoutEngine {
         bool forced = false;
         if (consumedBoundaries != null)
             ChargeLayoutOperations(block.ForcedBreaks.Count, "page fragment authored-boundary cursor");
-        bool forcedBreakFits = TryGetNextForcedBreak(block.ForcedBreaks, start, out HtmlRenderForcedBreak? forcedBreak, consumedBoundaries)
+        bool hasForcedBreak = TryGetNextForcedBreak(block.ForcedBreaks, start, out HtmlRenderForcedBreak? forcedBreak,
+            consumedBoundaries, includeProjectedBoundaries);
+        // A separate empty source boundary advances the physical page without
+        // consuming table rows or repeating their header/footer on a blank page.
+        if (includeProjectedBoundaries && hasForcedBreak && forcedBreak!.Offset <= start + 0.0001D)
+            return new PagedBlockFragment(null, null, start, rawAvailable, false, false, false, forcedBreak);
+        bool forcedBreakFits = hasForcedBreak
             && forcedBreak!.Offset <= fragmentLimit + 0.0001D
             && forcedBreak.Offset <= start + available + 0.0001D;
         double fragmentEnd = forcedBreakFits

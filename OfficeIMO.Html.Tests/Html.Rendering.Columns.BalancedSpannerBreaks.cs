@@ -5,6 +5,26 @@ namespace OfficeIMO.Tests;
 
 public sealed partial class HtmlRenderingTests {
     [Theory]
+    [InlineData("auto")]
+    [InlineData("balance")]
+    public void HtmlColumns_EmptySpannerPageDoesNotPaintTheFollowingCollapsedTable(string fill) {
+        HtmlRenderDocument rendered = RenderSpannerBreakControls(HtmlRenderIntentProfile.PrintPaged,
+            "<p>P1</p><p>P2</p><div style='column-span:all;break-before:page;break-after:page'></div>"
+            + "<table id='empty-page-tail' style='column-span:all;border-collapse:collapse;width:200px'>"
+            + "<tr><td style='border:2px solid red;padding:0'>TABLE</td></tr></table><p>T1</p>",
+            extraStyle: "column-fill:" + fill);
+
+        Assert.Equal(3, rendered.Pages.Count);
+        Assert.Empty(ColumnPageBandText(rendered.Pages[1]));
+        Assert.DoesNotContain(EnumerateRenderVisuals(rendered.Pages[1].Scene).OfType<HtmlRenderShape>(),
+            shape => shape.Source?.StartsWith("table#empty-page-tail:collapsed-border-", StringComparison.Ordinal) == true);
+        Assert.Contains(EnumerateRenderVisuals(rendered.Pages[2].Scene).OfType<HtmlRenderShape>(),
+            shape => shape.Source?.StartsWith("table#empty-page-tail:collapsed-border-", StringComparison.Ordinal) == true);
+        AssertColumnPageBandTextOnce(rendered, new[] { "P1", "P2", "TABLE", "T1", "AFTER" });
+        rendered.RequireNoLoss();
+    }
+
+    [Theory]
     [InlineData(HtmlRenderIntentProfile.PrintPaged, true)]
     [InlineData(HtmlRenderIntentProfile.PrintPaged, false)]
     [InlineData(HtmlRenderIntentProfile.ScreenMediaPaged, true)]
@@ -113,7 +133,10 @@ public sealed partial class HtmlRenderingTests {
             "<p>P1</p><p>P2</p><p style='column-span:all;break-before:page'>SPAN</p><p>T1</p>",
             extraStyle: "column-fill:balance;" + hostStyle);
 
-        AssertColumnPageBandTextOnce(rendered, new[] { "P1", "P2", "SPAN", "T1", "AFTER" });
+        HtmlRenderText[] text = rendered.Pages.SelectMany(page => EnumerateRenderVisuals(page.Scene))
+            .OfType<HtmlRenderText>().ToArray();
+        foreach (string label in new[] { "P1", "P2", "SPAN", "T1", "AFTER" })
+            Assert.Single(text, item => item.Text == label);
         Assert.Contains(rendered.Diagnostics, item => item.Code == HtmlRenderDiagnosticCodes.MultiColumnValueUnsupported);
         Assert.Throws<HtmlConversionException>(() => rendered.RequireNoLoss());
     }

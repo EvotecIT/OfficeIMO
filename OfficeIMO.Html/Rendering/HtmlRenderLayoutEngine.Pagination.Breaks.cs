@@ -204,7 +204,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
         IReadOnlyList<HtmlRenderForcedBreak> forcedBreaks,
         double offset,
         out HtmlRenderForcedBreak? forcedBreak,
-        ISet<object>? consumedBoundaries = null) {
+        ISet<object>? consumedBoundaries = null,
+        bool includeProjectedBoundaries = false) {
         int low = 0;
         int high = forcedBreaks.Count;
         double target = offset + (consumedBoundaries == null ? 0.0001D : -0.0001D);
@@ -217,30 +218,62 @@ internal sealed partial class HtmlRenderLayoutEngine {
         while (low < forcedBreaks.Count) {
             HtmlRenderForcedBreak item = forcedBreaks[low];
             if (IsForcedPageBreak(item.Target)
-                && (consumedBoundaries == null || !item.Projected && !consumedBoundaries.Contains(item.Boundary)
+                && (consumedBoundaries == null || (includeProjectedBoundaries || !item.Projected)
+                    && !consumedBoundaries.Contains(item.Boundary)
                     && !(item.Edge == HtmlRenderBreakEdge.Leading && item.Offset <= 0.0001D))) break;
             low++;
         }
         forcedBreak = low < forcedBreaks.Count ? forcedBreaks[low] : null;
+        if (forcedBreak != null && consumedBoundaries != null && includeProjectedBoundaries) {
+            // Adjacent after/before declarations share one source boundary;
+            // its later declaration wins without consuming an empty sibling's
+            // distinct boundary at the same source position.
+            for (int index = low + 1; index < forcedBreaks.Count; index++) {
+                HtmlRenderForcedBreak candidate = forcedBreaks[index];
+                if (candidate.Offset > forcedBreak.Offset + 0.0001D) break;
+                if (ReferenceEquals(candidate.Boundary, forcedBreak.Boundary) && IsForcedPageBreak(candidate.Target))
+                    forcedBreak = candidate;
+            }
+        }
         return forcedBreak != null;
     }
 
-    private static HtmlPageBreakTarget ResolveForcedBreakAt(IReadOnlyList<HtmlRenderForcedBreak> forcedBreaks, double offset) {
-        HtmlPageBreakTarget target = HtmlPageBreakTarget.None;
+    private static HtmlPageBreakTarget ResolveForcedBreakAt(IReadOnlyList<HtmlRenderForcedBreak> forcedBreaks, double offset) =>
+        ResolveForcedBoundaryAt(forcedBreaks, offset)?.Target ?? HtmlPageBreakTarget.None;
+
+    /// <summary>Consumes one source boundary or the shared physical destination of an already projected empty run.</summary>
+    private void ConsumePagedForcedBreak(HtmlRenderFlowBlock block, HtmlRenderForcedBreak forcedBreak,
+        ISet<object> consumedBoundaries) {
+        consumedBoundaries.Add(forcedBreak.Boundary);
+        if (!forcedBreak.Projected) return;
+        // Projection has already merged an initial empty run into one physical
+        // move. Its coincident destination markers must not create new pages.
+        ChargeLayoutOperations(block.ForcedBreaks.Count, "projected physical boundary consumption");
+        foreach (HtmlRenderForcedBreak item in block.ForcedBreaks) {
+            if (item.Offset < forcedBreak.Offset - 0.0001D) continue;
+            if (item.Offset > forcedBreak.Offset + 0.0001D) break;
+            if (item.Projected) consumedBoundaries.Add(item.Boundary);
+        }
+    }
+
+    private static HtmlRenderForcedBreak? ResolveForcedBoundaryAt(IReadOnlyList<HtmlRenderForcedBreak> forcedBreaks, double offset) {
+        HtmlRenderForcedBreak? boundary = null;
         foreach (HtmlRenderForcedBreak forcedBreak in forcedBreaks) {
             if (forcedBreak.Offset < offset - 0.0001D) continue;
             if (forcedBreak.Offset > offset + 0.0001D) break;
-            if (IsForcedPageBreak(forcedBreak.Target)) target = forcedBreak.Target;
+            if (IsForcedPageBreak(forcedBreak.Target)) boundary = forcedBreak;
         }
-        return target;
+        return boundary;
     }
 
-    private static string? ResolvePageNameAt(IReadOnlyList<HtmlRenderForcedBreak> forcedBreaks, double offset, string? currentPageName) {
+    private static string? ResolvePageNameAt(IReadOnlyList<HtmlRenderForcedBreak> forcedBreaks, double offset,
+        string? currentPageName, object? boundary = null) {
         string? pageName = currentPageName;
         foreach (HtmlRenderForcedBreak forcedBreak in forcedBreaks) {
             if (forcedBreak.Offset < offset - 0.0001D) continue;
             if (forcedBreak.Offset > offset + 0.0001D) break;
-            if (forcedBreak.ChangesPageName) pageName = forcedBreak.PageName;
+            if (forcedBreak.ChangesPageName && (boundary == null || ReferenceEquals(boundary, forcedBreak.Boundary)))
+                pageName = forcedBreak.PageName;
         }
         return pageName;
     }

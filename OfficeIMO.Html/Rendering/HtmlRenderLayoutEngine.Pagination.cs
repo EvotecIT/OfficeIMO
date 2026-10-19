@@ -111,10 +111,15 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 block = columnBlock.ForPagination();
                 columnAware = true;
             }
+            var consumedBoundaries = new HashSet<object>();
             if (columnAware && hasPageContent) {
-                HtmlPageBreakTarget columnBreak = ResolveForcedBreakAt(block.ForcedBreaks, 0D);
-                if (columnBreak != HtmlPageBreakTarget.None) {
-                    ApplyBreakBefore(columnBreak, pages, ref visuals, ref y, ref pageGeometry, currentPageName);
+                HtmlRenderForcedBreak? columnBreak = ResolveForcedBoundaryAt(block.ForcedBreaks, 0D);
+                if (columnBreak != null) {
+                    ApplyBreakBefore(columnBreak.Target, pages, ref visuals, ref y, ref pageGeometry, currentPageName);
+                    // The retained column mapping can insert a synthetic entry
+                    // break. Consume that event without swallowing a distinct
+                    // empty sibling boundary at the same source position.
+                    ConsumePagedForcedBreak(block, columnBreak, consumedBoundaries);
                     pageWidth = pageGeometry.Width;
                     pageHeight = pageGeometry.Height;
                     contentHeight = ResolvePageBodyContentHeight(pages.Count + 1, pageGeometry);
@@ -153,13 +158,15 @@ internal sealed partial class HtmlRenderLayoutEngine {
                     PagedBlockFragment? plan = PlanPagedFragment(block, blockOffset, rawAvailable, contentHeight,
                         canForceFragment: y <= ResolvePageBodyTop(pages.Count + 1, pageGeometry) + 0.0001D
                             && _pageFloatPlan.ReservedHeight(pages.Count + 1, "top") <= 0D
-                            && _pageFloatPlan.ReservedHeight(pages.Count + 1, "bottom") <= 0D);
+                            && _pageFloatPlan.ReservedHeight(pages.Count + 1, "bottom") <= 0D,
+                        consumedBoundaries: consumedBoundaries, includeProjectedBoundaries: true);
                     if (plan == null) {
                         CommitPage(pages, visuals, pageGeometry, currentPageName);
                         BeginPage(currentPageName);
                         continue;
                     }
                     ReportPagedFragmentLoss(block, plan);
+                    if (plan.AuthoredBreak != null) ConsumePagedForcedBreak(block, plan.AuthoredBreak, consumedBoundaries);
                     HtmlRenderContinuationGroup? continuationGroup = plan.Header;
                     HtmlRenderTrailingGroup? trailingGroup = plan.Footer;
                     bool repeatContinuation = continuationGroup != null;
@@ -177,12 +184,17 @@ internal sealed partial class HtmlRenderLayoutEngine {
                         y += continuationHeight;
                     }
 
-                    IReadOnlyList<HtmlRenderVisual> fragment = SliceBlockVisuals(block, blockOffset, fragmentEnd,
-                        ResolvePagedBackgroundWindow(blockOffset, plan));
+                    // An empty authored page owns no source paint or assignments.
+                    // In particular it cannot copy a collapsed table boundary or
+                    // a terminal navigation anchor from the following fragment.
+                    bool consumesSource = fragmentEnd > blockOffset + 0.0001D;
+                    IReadOnlyList<HtmlRenderVisual> fragment = consumesSource
+                        ? SliceBlockVisuals(block, blockOffset, fragmentEnd, ResolvePagedBackgroundWindow(blockOffset, plan))
+                        : Array.Empty<HtmlRenderVisual>();
                     foreach (HtmlRenderVisual visual in fragment) {
                         fragmentVisuals.Add(visual.Translate(0D, y, fragmentVisuals.Count));
                     }
-                    RecordRunningStringAssignments(block, blockOffset, fragmentEnd, y);
+                    if (consumesSource) RecordRunningStringAssignments(block, blockOffset, fragmentEnd, y);
                     y += fragmentEnd - blockOffset;
                     blockOffset = fragmentEnd;
                     bool finishedTableFooter = false;
@@ -209,7 +221,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
                             && string.Equals(ResolvePageNameAt(block.ForcedBreaks, blockOffset, currentPageName), currentPageName, StringComparison.Ordinal)
                             && y < ResolvePageBodyBottom(pages.Count + 1, pageGeometry) - 0.0001D) continue;
                         HtmlInlineBreakProgress? continuationProgress = ResolveInlineContinuationProgress(block, blockOffset);
-                        string? nextPageName = ResolvePageNameAt(block.ForcedBreaks, blockOffset, currentPageName);
+                        string? nextPageName = ResolvePageNameAt(block.ForcedBreaks, blockOffset, currentPageName,
+                            plan.AuthoredBreak?.Boundary);
                         ExtendPagedBodyBackgroundThroughFragmentSlack(block, pageGeometry, visuals, y);
                         CommitPage(pages, visuals, pageGeometry, currentPageName);
                         BeginPage(nextPageName);
@@ -217,7 +230,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
                         pageWidth = pageGeometry.Width;
                         pageHeight = pageGeometry.Height;
                         contentHeight = ResolvePageBodyContentHeight(pages.Count + 1, pageGeometry);
-                        HtmlPageBreakTarget internalBreak = ResolveForcedBreakAt(block.ForcedBreaks, blockOffset);
+                        HtmlPageBreakTarget internalBreak = plan.AuthoredBreak?.Target
+                            ?? ResolveForcedBreakAt(block.ForcedBreaks, blockOffset);
                         if (internalBreak != HtmlPageBreakTarget.None) {
                             EnsurePageSide(internalBreak, pages, ref visuals, ref y, ref pageGeometry, currentPageName);
                             pageWidth = pageGeometry.Width;
