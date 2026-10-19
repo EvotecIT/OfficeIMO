@@ -80,11 +80,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
                     || !ReferenceEquals(selected?.Program, font)) { sameProgram = false; break; }
             }
             if (!sameProgram) { Report(pieces[0].Run, "cross-inline-font-context-not-retained"); continue; }
-            OfficeTextShapingResult? shaped = _options.TextShapingProvider.ShapeText(new OfficeTextShapingRequest(
-                text, font.DisplayName ?? fontInfo.FamilyName, font.GetFontDataForShaping(), font.IsOpenTypeCff, font.UnitsPerEm,
-                OfficeTextDirection.RightToLeft, _options.TextShapingLanguage, _cancellationToken, font.CollectionIndex,
-                (font as IOfficeVariableFontProgram)?.VariationCoordinatesForShaping, cloneFontData: false,
-                fontProgramCacheKey: font, featureSettings: style.TextFeatureSettings));
+            OfficeTextShapingResult? shaped = ShapeConfiguredText(text, font, fontInfo, style,
+                OfficeTextDirection.RightToLeft, _options.TextShapingProvider);
             CheckCancellation();
             if (shaped != null) ChargeLayoutOperations(1L + (shaped.Glyphs.Count + 31L) / 32L, "provider joining glyph retention");
             if (shaped == null) { Report(pieces[0].Run, "cross-inline-provider-declined"); continue; }
@@ -127,7 +124,12 @@ internal sealed partial class HtmlRenderLayoutEngine {
         || run.InlineEdgeBoundary != null && HasArabicJoiningInsets(run.Style);
 
     private static bool CanShareProviderContext(HtmlRenderBoxStyle left, HtmlRenderBoxStyle right) =>
-        left.Font.Size > 0D && left.Font.Equals(right.Font) && left.FontDescriptor == right.FontDescriptor
+        left.Font.Size > 0D && left.Font.Size == right.Font.Size
+        && string.Equals(left.Font.FamilyName, right.Font.FamilyName, StringComparison.OrdinalIgnoreCase)
+        && left.Font.Face.Equals(right.Font.Face)
+        && (left.Font.Style & (OfficeFontStyle.Bold | OfficeFontStyle.Italic))
+            == (right.Font.Style & (OfficeFontStyle.Bold | OfficeFontStyle.Italic))
+        && left.FontDescriptor == right.FontDescriptor
         && left.TextFeatureSettings.Equals(right.TextFeatureSettings)
         && string.Equals(left.Language, right.Language, StringComparison.OrdinalIgnoreCase)
         && left.Direction == right.Direction && left.UnicodeBidi == "normal" && right.UnicodeBidi == "normal"
@@ -141,8 +143,43 @@ internal sealed partial class HtmlRenderLayoutEngine {
     private void ReportProviderContextLoss(HtmlInlineRun run, string detail) {
         if (run.OwnerElement != null && !_reportedComplexTextShapingElements.Add(run.OwnerElement)) return;
         _diagnostics.Add(ComponentName, HtmlRenderDiagnosticCodes.ComplexTextShapingUnsupported,
-            "A cross-inline shaping context could not retain complete provider glyphs with their authored paint; separate source runs were used.",
+            "A shaping context could not retain complete provider glyphs with their authored paint and direction; separate source runs were used.",
             HtmlDiagnosticSeverity.Warning, run.Source, detail, OfficeConversionLossKind.Approximation);
+    }
+
+    // Paragraph bidi owns the direction of neutral slices too. Retain its accepted
+    // result rather than asking a later backend to infer direction from punctuation.
+    private bool TryPrepareDirectionalProviderText(string text, HtmlRenderBoxStyle style,
+        OfficeTextDirection direction, out OfficePreparedTextShaping? prepared) {
+        prepared = null;
+        if (_options.TextShapingProvider == null || style.LetterSpacing != 0D || style.WordSpacing != 0D
+            || style.WritingMode != "horizontal-tb") return false;
+        string logical = OfficeArabicTextShaper.ToLogicalText(text);
+        OfficeFontInfo fontInfo = GetEffectiveTextFont(style);
+        if (!_fonts.TryResolveFaceForText(logical, fontInfo.FamilyName, style.FontDescriptor, fontInfo.Size,
+                out OfficeFontFace? face) || face?.Program is not IOfficeBoundedFontProgram
+            || face.Style != (fontInfo.Style & (OfficeFontStyle.Bold | OfficeFontStyle.Italic))) return false;
+        ChargeLayoutOperations(1L + (logical.Length + 31L) / 32L, "directional glyph retention");
+        OfficeTextShapingResult? shaped = ShapeConfiguredText(logical, face.Program, fontInfo, style,
+            direction, _options.TextShapingProvider);
+        if (shaped == null || face.Program is IOfficeColorFontProgram color
+            && shaped.Glyphs.Any(glyph => color.HasColorGlyph(glyph.GlyphId))) return false;
+        ChargeLayoutOperations(1L + (shaped.Glyphs.Count + 31L) / 32L, "directional glyph retention");
+        prepared = new OfficePreparedTextShaping(face.Program, logical, shaped, _cancellationToken);
+        return true;
+    }
+
+    private OfficeTextShapingResult? ShapeConfiguredText(string logicalText, IOfficeFontProgram font,
+        OfficeFontInfo fontInfo, HtmlRenderBoxStyle style, OfficeTextDirection direction,
+        IOfficeTextShapingProvider provider) {
+        CheckCancellation();
+        OfficeTextShapingResult? result = provider.ShapeText(new OfficeTextShapingRequest(
+            logicalText, font.DisplayName ?? fontInfo.FamilyName, font.GetFontDataForShaping(), font.IsOpenTypeCff,
+            font.UnitsPerEm, direction, _options.TextShapingLanguage, _cancellationToken, font.CollectionIndex,
+            (font as IOfficeVariableFontProgram)?.VariationCoordinatesForShaping, cloneFontData: false,
+            fontProgramCacheKey: font, featureSettings: style.TextFeatureSettings));
+        CheckCancellation();
+        return result;
     }
 
     private readonly struct PreparedInlineSlice {

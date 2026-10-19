@@ -28,7 +28,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
         }
         if (!segment.BidiResolved
             && (Math.Abs(segment.Run.Style.LetterSpacing) > 0.0001D || Math.Abs(segment.Run.Style.WordSpacing) > 0.0001D)) {
-            if (!OfficeTextElements.ContainsRightToLeft(segment.Text) && !OfficeTextElements.ContainsBidiControl(segment.Text)) {
+            if (!OfficeTextElements.ContainsRightToLeft(segment.Text) && !OfficeTextElements.ContainsBidiControl(segment.Text)
+                && segment.ResolvedDirection != OfficeTextDirection.RightToLeft) {
                 return ResolveSpacedPaintSegments(segment, x);
             }
         }
@@ -37,7 +38,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
             return ResolveSpacedPaintSegments(segment, x);
         }
         if (segment.BidiResolved ||
-            !OfficeTextElements.ContainsRightToLeft(segment.Text) && !OfficeTextElements.ContainsBidiControl(segment.Text)) {
+            !OfficeTextElements.ContainsRightToLeft(segment.Text) && !OfficeTextElements.ContainsBidiControl(segment.Text)
+                && segment.ResolvedDirection != OfficeTextDirection.RightToLeft) {
             return new[] { new InlinePaintSegment(segment.Text, x, Math.Max(0.01D, segment.Width), segment.Width, 0) };
         }
 
@@ -47,13 +49,19 @@ internal sealed partial class HtmlRenderLayoutEngine {
         foreach (InlineDirectionalGroup group in groups) {
             double groupX = cursor;
             if (group.RightToLeft) {
-                if (TryMeasureWithConfiguredProvider(group.Text, segment.Run.Style, out _)) {
+                if (TryPrepareDirectionalProviderText(group.Text, segment.Run.Style,
+                    OfficeTextDirection.RightToLeft, out OfficePreparedTextShaping? prepared)) {
                     result.Add(new InlinePaintSegment(
-                        OfficeArabicTextShaper.ToLogicalText(group.Text),
+                        prepared!.Text,
                         groupX,
                         Math.Max(0.01D, group.Width),
                         group.Width,
-                        group.LogicalOrder));
+                        group.LogicalOrder, bidiResolved: true, preparedShaping: prepared));
+                } else if (TryMeasureWithConfiguredProvider(group.Text, segment.Run.Style, out _)) {
+                    if (!OfficeTextElements.ContainsRightToLeft(group.Text))
+                        ReportProviderContextLoss(segment.Run, "neutral-directional-glyph-context-not-retained");
+                    result.Add(new InlinePaintSegment(OfficeArabicTextShaper.ToLogicalText(group.Text),
+                        groupX, Math.Max(0.01D, group.Width), group.Width, group.LogicalOrder));
                 } else {
                     AppendRightToLeftPaintSegments(result, group, groupX, segment.Run.Style);
                 }
@@ -109,6 +117,10 @@ internal sealed partial class HtmlRenderLayoutEngine {
     }
 
     private IReadOnlyList<InlineDirectionalGroup> ResolveDirectionalGroups(InlineSegment segment) {
+        if (segment.ResolvedDirection.HasValue) {
+            return new[] { new InlineDirectionalGroup(segment.Text,
+                segment.ResolvedDirection == OfficeTextDirection.RightToLeft, segment.Width, 0) };
+        }
         var groups = new List<InlineDirectionalGroup>();
         OfficeTextDirection baseDirection = string.Equals(segment.Run.Style.Direction, "rtl", StringComparison.Ordinal)
             ? OfficeTextDirection.RightToLeft
@@ -224,7 +236,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
         int start = 0;
         while (start < ordered.Count) {
             int end = start + 1;
-            while (end < ordered.Count && ordered[end].SourceSegmentIndex == ordered[start].SourceSegmentIndex) end++;
+            while (end < ordered.Count && ordered[end].SourceSegmentIndex == ordered[start].SourceSegmentIndex
+                && (_options.TextShapingProvider == null || ordered[end].RightToLeft == ordered[start].RightToLeft)) end++;
             string text = string.Concat(ordered.Skip(start).Take(end - start).Select(static element => element.Text));
             string logicalText = string.Concat(ordered
                 .Skip(start)
@@ -237,7 +250,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
             // Preserve prepared contextual paint when no provider owns this script.
             // Marks and required ligatures add fidelity loss without discarding those forms.
             // Unsupported script input and configured shapers still need logical source.
-            bool needsShapingInput = OfficeTextElements.ContainsShapingRequiredScript(logicalText)
+            bool needsShapingInput = _options.TextShapingProvider != null && ordered[start].RightToLeft
+                || OfficeTextElements.ContainsShapingRequiredScript(logicalText)
                 || OfficeTextElements.ContainsVariationSelector(logicalText)
                 || OfficeTextElements.ContainsJoiningScript(logicalText)
                     && !OfficeArabicTextShaper.CanShapeAllJoiningCharacters(logicalText)
@@ -250,7 +264,9 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 sources[sourceIndex].Run,
                 logicalText,
                 bidiResolved: sources[sourceIndex].PreparedShaping != null || !needsShapingInput,
-                logicalEndProgress: sources[sourceIndex].LogicalEndProgress);
+                logicalEndProgress: sources[sourceIndex].LogicalEndProgress,
+                resolvedDirection: _options.TextShapingProvider == null ? null
+                    : ordered[start].RightToLeft ? OfficeTextDirection.RightToLeft : OfficeTextDirection.LeftToRight);
             result.Add(group);
             firstGroups[sourceIndex] ??= group;
             lastGroups[sourceIndex] = group;
@@ -349,12 +365,13 @@ internal sealed partial class HtmlRenderLayoutEngine {
             string logicalText,
             int sourceSegmentIndex,
             int sourceElementIndex,
-            double width) {
+            double width, bool rightToLeft = false) {
             Text = text;
             LogicalText = logicalText;
             SourceSegmentIndex = sourceSegmentIndex;
             SourceElementIndex = sourceElementIndex;
             Width = width;
+            RightToLeft = rightToLeft;
         }
 
         internal string Text { get; }
@@ -362,8 +379,9 @@ internal sealed partial class HtmlRenderLayoutEngine {
         internal int SourceSegmentIndex { get; }
         internal int SourceElementIndex { get; }
         internal double Width { get; }
+        internal bool RightToLeft { get; }
 
         internal InlineBidiElement WithText(string text) =>
-            new InlineBidiElement(text, LogicalText, SourceSegmentIndex, SourceElementIndex, Width);
+            new InlineBidiElement(text, LogicalText, SourceSegmentIndex, SourceElementIndex, Width, rightToLeft: true);
     }
 }

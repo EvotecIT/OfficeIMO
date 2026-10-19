@@ -245,20 +245,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
 
         _cancellationToken.ThrowIfCancellationRequested();
         string logicalText = OfficeArabicTextShaper.ToLogicalText(text);
-        OfficeTextShapingResult? result = provider.ShapeText(new OfficeTextShapingRequest(
-            logicalText,
-            font.DisplayName ?? effectiveFont.FamilyName,
-            font.GetFontDataForShaping(),
-            font.IsOpenTypeCff,
-            font.UnitsPerEm,
-            OfficeTextElements.ResolveBaseDirection(logicalText),
-            _options.TextShapingLanguage,
-            _cancellationToken,
-            font.CollectionIndex,
-            (font as IOfficeVariableFontProgram)?.VariationCoordinatesForShaping,
-            cloneFontData: false,
-            fontProgramCacheKey: font,
-            featureSettings: style.TextFeatureSettings));
+        OfficeTextShapingResult? result = ShapeConfiguredText(logicalText, font, effectiveFont, style,
+            OfficeTextElements.ResolveBaseDirection(logicalText), provider);
         if (result == null) {
             measured = 0D;
             return false;
@@ -614,13 +602,15 @@ internal sealed partial class HtmlRenderLayoutEngine {
             HtmlInlineRun run,
             string? logicalText = null,
             bool bidiResolved = false,
-            int logicalEndProgress = 0) {
+            int logicalEndProgress = 0,
+            OfficeTextDirection? resolvedDirection = null) {
             Text = text;
             LogicalText = logicalText ?? text;
             Width = width;
             Run = run;
             BidiResolved = bidiResolved;
             LogicalEndProgress = logicalEndProgress;
+            ResolvedDirection = resolvedDirection;
             PreparedShaping = run.GetPreparedShaping(LogicalText, run.Style);
         }
 
@@ -632,6 +622,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         internal double Advance => LeadingAdvance + Width + TrailingAdvance;
         internal HtmlInlineRun Run { get; }
         internal bool BidiResolved { get; }
+        internal OfficeTextDirection? ResolvedDirection { get; }
         internal OfficePreparedTextShaping? PreparedShaping { get; }
         internal int LogicalEndProgress { get; }
         internal void SetWidth(double width) => Width = Math.Max(0D, width);

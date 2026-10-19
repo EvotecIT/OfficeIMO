@@ -117,6 +117,77 @@ public sealed class DrawingPreparedTextShapingTests {
         Assert.Equal(OfficeDrawingRasterRenderer.Render(expected, 2D).GetPixels(), pixels);
     }
 
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void PublicCompositionRetainsPreparedClusterInk(bool scaled) {
+        OfficeDrawing source = PreparedCopySource(OfficeColor.Black, out OfficePreparedTextShaping prepared);
+        var translated = new OfficeDrawing(120D, 100D).AddDrawing(source, 7D, 9D);
+        OfficeDrawingText text = Assert.Single(translated.Elements.OfType<OfficeDrawingText>());
+        Assert.Same(prepared, text.PreparedShaping);
+        Assert.Same(prepared.Program, text.PreparedShaping!.Program);
+        Assert.Equal("A", text.Text);
+        Assert.Equal("A", text.RasterText);
+        Assert.False(text.PreservesPaintedGlyphs); // Prepared logical text is not a painted glyph alias string.
+        double scale = scaled ? 2D : 1D;
+        OfficeDrawing composed = scaled
+            ? new OfficeDrawing(240D, 200D).AddEffectDrawing(translated, OfficeTransform.Scale(scale, scale))
+            : translated;
+        OfficeDrawing expected = PreparedCopyReference(OfficeColor.Black, 7D, 9D, scale);
+        Assert.Equal(OfficeDrawingRasterRenderer.Render(expected, background: OfficeColor.White).GetPixels(),
+            OfficeDrawingRasterRenderer.Render(composed, background: OfficeColor.White).GetPixels());
+    }
+
+    [Fact]
+    public void ColorTintRetainsPreparedClusterInkAndSourceAlpha() {
+        OfficeColor sourceColor = OfficeColor.FromRgba(0, 0, 0, 128);
+        OfficeDrawing source = PreparedCopySource(sourceColor, out OfficePreparedTextShaping prepared);
+        OfficeDrawing tinted = source.Clone();
+        tinted.ApplyColorTint(OfficeColor.FromRgba(255, 0, 0, 7));
+        OfficeDrawingText text = Assert.Single(tinted.Elements.OfType<OfficeDrawingText>());
+        Assert.Same(prepared, text.PreparedShaping);
+        Assert.Same(prepared.Result, text.PreparedShaping!.Result);
+        Assert.Equal("A", text.Text);
+        Assert.Equal("A", text.RasterText);
+        Assert.False(text.PreservesPaintedGlyphs);
+        OfficeColor expectedColor = OfficeColor.FromRgba(255, 0, 0, 128);
+        Assert.Equal(expectedColor, text.Color);
+        OfficeDrawing expected = PreparedCopyReference(expectedColor, 0D, 0D, 1D);
+        Assert.Equal(OfficeDrawingRasterRenderer.Render(expected, background: OfficeColor.White).GetPixels(),
+            OfficeDrawingRasterRenderer.Render(tinted, background: OfficeColor.White).GetPixels());
+    }
+
+    private static OfficeDrawing PreparedCopySource(OfficeColor color, out OfficePreparedTextShaping prepared) {
+        const string family = "Prepared Copy";
+        var drawing = new OfficeDrawing(100D, 80D);
+        drawing.Fonts.Add(family, TrackedDistinctOutlines());
+        IOfficeFontProgram program = Assert.Single(drawing.Fonts.Faces).Program;
+        var result = new OfficeTextShapingResult(new[] {
+            new OfficeShapedGlyph(2, "A", 0, 1000, 100, 200),
+            OfficeShapedGlyph.CreatePositionedUnicodeContinuation(1, 0, 0, 0, 200, -100)
+        }, OfficeTextDirection.LeftToRight);
+        prepared = new OfficePreparedTextShaping(program, "A", result);
+        drawing.AddPositionedText("A", 10D, 20D, 80D, 40D,
+            new OfficeFontInfo(family, 20D), color, textAdvanceWidth: prepared.Measure(20D));
+        drawing.MarkLastTextWithPreparedShaping(prepared);
+        return drawing;
+    }
+
+    private static OfficeDrawing PreparedCopyReference(OfficeColor color, double offsetX, double offsetY, double scale) {
+        // At size20 the existing tracking fixture contributes zero. The positioned baseline is40.
+        OfficeShape first = OfficeShape.Rectangle(12D * scale, 14D * scale);
+        first.FillColor = color;
+        first.StrokeColor = null;
+        OfficeShape continuation = OfficeShape.Rectangle(8D * scale, 14D * scale);
+        continuation.FillColor = color;
+        continuation.StrokeColor = null;
+        double width = (offsetX == 0D ? 100D : 120D) * scale;
+        double height = (offsetY == 0D ? 80D : 100D) * scale;
+        return new OfficeDrawing(width, height)
+            .AddShape(first, (12D + offsetX) * scale, (22D + offsetY) * scale)
+            .AddShape(continuation, (34D + offsetX) * scale, (28D + offsetY) * scale);
+    }
+
     private sealed class RetainedRunProvider : IOfficeTextShapingProvider {
         private readonly OfficeTextShapingResult _result;
         internal RetainedRunProvider(OfficeTextShapingResult result) => _result = result;

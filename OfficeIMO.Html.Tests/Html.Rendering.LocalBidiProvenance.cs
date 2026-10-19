@@ -47,7 +47,10 @@ public sealed partial class HtmlRenderingTests {
             .Where(text => OfficeTextElements.ContainsRightToLeft(text.Text)).ToArray();
 
         Assert.NotEmpty(directional);
-        Assert.All(directional, text => Assert.False(text.PreservesPaintedGlyphs));
+        Assert.All(directional, text => {
+            Assert.NotNull(text.PreparedShaping);
+            Assert.Equal(text.Text, text.PreparedShaping!.Text);
+        });
         Assert.Contains(provider.Requests, request => request.Text == "אבג");
         Assert.DoesNotContain(provider.Requests, request => request.Text == "גבא");
     }
