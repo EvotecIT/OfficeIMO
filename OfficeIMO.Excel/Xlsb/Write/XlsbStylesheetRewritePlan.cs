@@ -29,7 +29,7 @@ namespace OfficeIMO.Excel.Xlsb.Write {
         internal static XlsbStylesheetRewritePlan Create(
             ExcelDocument document,
             XlsbWorkbook sourceWorkbook,
-            byte[]? sourcePartBytes) {
+            byte[]? sourcePartBytes, long maximumBytes = int.MaxValue) {
             if (document == null) throw new ArgumentNullException(nameof(document));
             if (sourceWorkbook == null) throw new ArgumentNullException(nameof(sourceWorkbook));
 
@@ -88,7 +88,7 @@ namespace OfficeIMO.Excel.Xlsb.Write {
                 sourceWorkbook.Stylesheet.Fonts.Count,
                 sourceWorkbook.Stylesheet.CellFormats.Count,
                 fontRecords,
-                cellFormatRecords);
+                cellFormatRecords, maximumBytes);
             return new XlsbStylesheetRewritePlan(sourceWorkbook.StylesheetPartName, replacement, cellFormatCount);
         }
 
@@ -169,7 +169,7 @@ namespace OfficeIMO.Excel.Xlsb.Write {
             int sourceFontCount,
             int sourceCellFormatCount,
             IReadOnlyList<XlsbGeneratedRecord> addedFonts,
-            IReadOnlyList<XlsbGeneratedRecord> addedCellFormats) {
+            IReadOnlyList<XlsbGeneratedRecord> addedCellFormats, long maximumBytes) {
             IReadOnlyList<XlsbRecord> records;
             using (var input = new MemoryStream(sourcePartBytes, writable: false)) {
                 records = XlsbRecordReader.ReadAll(input);
@@ -181,7 +181,7 @@ namespace OfficeIMO.Excel.Xlsb.Write {
             ValidateDeclaredCount(records[beginFonts], sourceFontCount, "font");
             ValidateDeclaredCount(records[beginCellFormats], sourceCellFormatCount, "cell format");
 
-            using var output = new MemoryStream(sourcePartBytes.Length + (addedFonts.Count + addedCellFormats.Count) * 64);
+            using var output = new OfficeIMO.Core.Internal.OfficeBoundedMemoryStream(maximumBytes);
             for (int index = 0; index < records.Count; index++) {
                 XlsbRecord record = records[index];
                 if (index == beginFonts) {

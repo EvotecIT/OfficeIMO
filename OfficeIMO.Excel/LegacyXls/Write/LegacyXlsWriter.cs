@@ -65,12 +65,12 @@ namespace OfficeIMO.Excel.LegacyXls.Write {
             document.Execution.ReportTiming(operation, elapsed);
         }
 
-        private static byte[] BuildCompoundFile(ExcelDocument document, byte[] workbookStream) {
+        private static byte[] BuildCompoundFile(ExcelDocument document, byte[] workbookStream, long maximumBytes = int.MaxValue) {
             return BuildCompoundFile(
                 document,
                 new OfficeCompoundStream(
                     GetWorkbookStreamName(document.LegacyXlsSourceCompoundFile),
-                    workbookStream));
+                    workbookStream), maximumBytes);
         }
 
         private static byte[] BuildCompoundFile(
@@ -92,7 +92,7 @@ namespace OfficeIMO.Excel.LegacyXls.Write {
 
         private static byte[] BuildCompoundFile(
             ExcelDocument document,
-            OfficeCompoundStream workbookStream) {
+            OfficeCompoundStream workbookStream, long maximumBytes = int.MaxValue) {
             IReadOnlyList<OfficeCompoundStream> propertyStreams = LegacyOlePropertySetWriter.CreateDocumentPropertyStreams(document);
             var streams = new List<OfficeCompoundStream>(propertyStreams.Count + 1) {
                 workbookStream
@@ -100,12 +100,15 @@ namespace OfficeIMO.Excel.LegacyXls.Write {
             streams.AddRange(propertyStreams);
             OfficeCompoundFile? sourceCompoundFile = document.LegacyXlsSourceCompoundFile;
             if (sourceCompoundFile == null) {
-                return OfficeCompoundFileWriter.Write(streams);
+                if (maximumBytes == int.MaxValue) return OfficeCompoundFileWriter.Write(streams);
+                using var bounded = new OfficeBoundedMemoryStream(maximumBytes);
+                OfficeCompoundFileWriter.Write(bounded, streams);
+                return bounded.ToArray();
             }
 
             return OfficeCompoundFileWriter.Rewrite(
                 sourceCompoundFile,
-                streams.ToDictionary(stream => stream.Name, stream => stream.Bytes, StringComparer.OrdinalIgnoreCase));
+                streams.ToDictionary(stream => stream.Name, stream => stream.Bytes, StringComparer.OrdinalIgnoreCase), maxOutputBytes: maximumBytes);
         }
 
         private static string GetWorkbookStreamName(OfficeCompoundFile? sourceCompoundFile) {
@@ -117,7 +120,7 @@ namespace OfficeIMO.Excel.LegacyXls.Write {
             return sourceWorkbookEntry?.Path ?? "Workbook";
         }
 
-        private static byte[] BuildWorkbookStream(ExcelDocument document) {
+        private static byte[] BuildWorkbookStream(ExcelDocument document, byte[]? filePass = null, long maximumBytes = int.MaxValue) {
             var sheets = document.Sheets.ToArray();
             if (sheets.Length == 0) {
                 throw new InvalidOperationException("Native XLS saving requires at least one worksheet.");
@@ -136,8 +139,9 @@ namespace OfficeIMO.Excel.LegacyXls.Write {
 
             LegacyXlsSharedStringTable sharedStrings = LegacyXlsSharedStringTable.Create(worksheetCells);
 
-            using var stream = new MemoryStream();
+            using var stream = new OfficeBoundedMemoryStream(maximumBytes);
             WriteRecord(stream, 0x0809, WorkbookGlobalsBof);
+            if (filePass != null) WriteRecord(stream, 0x002f, filePass);
             WriteRecord(stream, 0x00e1, BuildUInt16Payload(1200));
             WriteRecord(stream, 0x00c1, BuildUInt16Payload(0));
             WriteRecord(stream, 0x00e2, Array.Empty<byte>());
@@ -231,7 +235,7 @@ namespace OfficeIMO.Excel.LegacyXls.Write {
                 WriteRecord(stream, 0x00eb, workbookDrawingGroup);
             }
 
-            sharedStrings.WriteRecords(stream);
+            sharedStrings.WriteRecords(stream, maximumBytes: maximumBytes - stream.Position);
             WriteRecord(stream, 0x000a, Array.Empty<byte>());
 
             for (int i = 0; i < sheets.Length; i++) {

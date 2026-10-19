@@ -97,8 +97,12 @@ The writer rejects chart-sheet, macro-sheet and dialog-sheet package parts.
 The independent OpenPreserve `valid.xls` macro workbook includes chart sheets
 and therefore cannot complete native save, even when general conversion loss is
 allowed. Retaining its VBA bytes alone would not qualify that workbook's full
-lifecycle. Encrypted native XLS output is also unsupported; encrypted input and
-workbook/sheet protection have separate contracts.
+lifecycle. Native encrypted XLS output uses classic BIFF8 RC4/MD5 with a
+1–15 UTF-16-code-unit password. Retained pivot-cache and revision BIFF streams
+are rejected before output; VBA and some compound metadata remain unencrypted
+according to the format. See the [password-to-open contract](../OfficeIMO.Excel/README.md#password-to-open-output)
+for security limits and the separately qualified native XLSB profile. Workbook/sheet
+protection is a separate contract.
 
 This is practical feature parity, not a claim that every XLSX feature can be encoded in BIFF8.
 

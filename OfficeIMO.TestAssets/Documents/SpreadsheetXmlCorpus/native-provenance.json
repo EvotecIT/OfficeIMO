@@ -12,9 +12,12 @@
     "excel-geometry.xlsx": "3c603e17b1aab3b1e6eae9d87ecc48ac7eca69682136b5123de43738ab64a2f9",
     "excel-preservation.xml": "a7eaa7b5efcea8dfb130d39d2e6f54b8ef45c5722513d1476277e82e864244c1",
     "excel-preservation-readback.xlsx": "8b8e5f5ec9fc4445a954eb1c6f2732a382135391b74365223089fb08c6b9fceb",
-    "officeimo-preservation.xml": "98f36da8f3aab42f21e371debecbbdeabf2e1f40d731bffe9bcd616ad45e5c2f"
+    "officeimo-preservation.xml": "98f36da8f3aab42f21e371debecbbdeabf2e1f40d731bffe9bcd616ad45e5c2f",
+    "rich-text-control.xml": "806f803483038584199a81324a238754ad3c5b2200dae9101158f6160383ffe5",
+    "excel-rich-text-readback.xlsx": "8b3849c24b14029f4c23edf7a865615a9df0254cf99ce5f820732b97a0529881"
   },
   "limits": "Native saved cache references qualify the included formulas and coercion cases. XML producer fixture is a simple worksheet, not broad XML appearance qualification.",
   "preservationMethod": "OfficeIMO XLSX control saved as XML through native Excel; OfficeIMO XML export independently opened without repair and saved as XLSX. Both saved URLs observed. App closed after each cohort. No global settings changed.",
-  "preservationLimits": "Native Excel quantizes the custom RGB font color to indexed color 56 when reading XML. Fill, medium dashed border, bold/italic, rotation, formula hiding, merge, hyperlink tooltip, names and page settings are retained by the corrected consumer cohort. Native XML geometry control uses observed eight-pixel column digit width. Not a general pixel-fidelity claim."
+  "preservationLimits": "Native Excel quantizes the custom RGB font color to indexed color 56 when reading XML. Fill, medium dashed border, bold/italic, rotation, formula hiding, merge, hyperlink tooltip, names and page settings are retained by the corrected consumer cohort. Native XML geometry control uses observed eight-pixel column digit width. Not a general pixel-fidelity claim.",
+  "richTextMethod": "OfficeIMO XML opened without repair in the same native Excel version; bold, italic and red Arial 14 runs visually observed. Saved as XLSX; shared string runs and underlined comment inspected. Native readback uses indexed red color 10."
 }

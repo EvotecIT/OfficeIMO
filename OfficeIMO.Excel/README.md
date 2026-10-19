@@ -462,6 +462,41 @@ await foreach (InvoiceRow row in reader.RowsAsAsync<InvoiceRow>(cancellationToke
 }
 ```
 
+### Password-to-open output
+
+`SaveEncrypted(path, password)` selects XLSX/XLSM, XLSB or XLS from the destination
+extension. For a stream, select the physical format explicitly:
+
+```csharp
+using var document = ExcelDocument.Create();
+document.AddWorksheet("Data").CellValue(1, 1, "Protected workbook");
+document.SaveEncrypted("protected.xlsb", password);
+using var output = new MemoryStream();
+document.SaveEncrypted(output, password, ExcelFileFormat.Xls);
+```
+
+XLSX/XLSM and XLSB use Agile Office package encryption. XLSB contains a native
+BIFF12 package. XLS uses classic BIFF8 RC4/MD5 with a password of 1–15 UTF-16 code
+units. This legacy algorithm provides weak protection; choose XLSX or XLSB for
+modern password-to-open encryption. XLS encryption does not encrypt VBA project
+streams or all compound-file metadata, as defined by the format. Retained pivot
+cache and revision BIFF streams are rejected before encrypted XLS output because
+the writer does not yet encrypt those auxiliary streams.
+
+Encryption retains each native encoder's feature and loss-policy limits.
+`MaxInMemoryPackageBytes` also bounds native BIFF serialization and XLSB
+intermediate parts before their output buffers grow; it is not a total process
+memory budget. The
+included XLS/XLSB worksheet controls open in native Excel without repair; this
+qualifies those controls, not every possible workbook feature. Password-to-modify
+and worksheet/workbook protection are separate from password-to-open encryption.
+
+After encrypting the associated file or stream, automatic persistence is disabled
+so disposal cannot replace the encrypted output with plaintext. No password is
+retained. Use `SaveEncrypted` explicitly for later changes; an ordinary explicit
+`Save` writes an unencrypted file. Exporting to a different stream keeps the
+original destination's persistence policy.
+
 `OpenEncryptedDataReader` opens Office Open XML workbooks protected by Agile
 encryption from a file, byte array, or the remaining bytes of a readable stream.
 The decrypted package determines the XLSX or XLSB format. Package integrity is

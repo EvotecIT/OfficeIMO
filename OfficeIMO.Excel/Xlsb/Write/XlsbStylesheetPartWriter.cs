@@ -36,10 +36,10 @@ namespace OfficeIMO.Excel.Xlsb.Write {
         private const int BrtStyle = 48;
 
         /// <summary>Defines style zero even when a new workbook has no explicit formatting.</summary>
-        internal static byte[] CreateForNewWorkbook(Stylesheet? stylesheet, out int cellFormatCount) =>
-            Create(stylesheet ?? ExcelDocument.CreateDefaultStylesheet(), out cellFormatCount);
+        internal static byte[] CreateForNewWorkbook(Stylesheet? stylesheet, out int cellFormatCount, long maximumBytes = int.MaxValue) =>
+            Create(stylesheet ?? ExcelDocument.CreateDefaultStylesheet(), out cellFormatCount, maximumBytes);
 
-        internal static byte[] Create(Stylesheet stylesheet, out int cellFormatCount) {
+        internal static byte[] Create(Stylesheet stylesheet, out int cellFormatCount, long maximumBytes = int.MaxValue) {
             if (stylesheet == null) throw new ArgumentNullException(nameof(stylesheet));
             ValidateUnsupportedCollections(stylesheet);
 
@@ -55,7 +55,7 @@ namespace OfficeIMO.Excel.Xlsb.Write {
             ValidateCellFormatReferences(styleFormats, fonts.Length, fills.Length, borders.Length, isStyleFormat: true);
             ValidateCellFormatReferences(cellFormats, fonts.Length, fills.Length, borders.Length, isStyleFormat: false, styleFormats.Length);
 
-            using var output = new MemoryStream(1024 + (fonts.Length + fills.Length + borders.Length + cellFormats.Length) * 80);
+            using var output = new OfficeIMO.Core.Internal.OfficeBoundedMemoryStream(maximumBytes);
             XlsbRecordWriter.Write(output, BrtBeginStyleSheet);
             if (numberFormats.Length > 0) {
                 WriteCollection(output, BrtBeginFmts, BrtEndFmts, numberFormats, WriteNumberFormat);

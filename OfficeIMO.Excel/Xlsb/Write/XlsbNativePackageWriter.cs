@@ -18,7 +18,7 @@ namespace OfficeIMO.Excel.Xlsb.Write {
         internal static byte[] Rewrite(
             ExcelDocument document,
             byte[] sourcePackageBytes,
-            XlsbWorkbook sourceWorkbook) {
+            XlsbWorkbook sourceWorkbook, long maximumBytes = int.MaxValue) {
             if (document == null) throw new ArgumentNullException(nameof(document));
             if (sourcePackageBytes == null) throw new ArgumentNullException(nameof(sourcePackageBytes));
             if (sourceWorkbook == null) throw new ArgumentNullException(nameof(sourceWorkbook));
@@ -33,12 +33,12 @@ namespace OfficeIMO.Excel.Xlsb.Write {
                 if (!string.IsNullOrWhiteSpace(sourceWorkbook.StylesheetPartName)) {
                     ZipArchiveEntry sourceStylesEntry = FindEntry(archive, sourceWorkbook.StylesheetPartName!)
                         ?? throw new InvalidDataException($"The source XLSB styles part '{sourceWorkbook.StylesheetPartName}' is missing.");
-                    sourceStylesPart = ReadEntry(sourceStylesEntry, sourceWorkbook.MaxPartBytes);
+                    sourceStylesPart = ReadEntry(sourceStylesEntry, (int)Math.Min(maximumBytes, sourceWorkbook.MaxPartBytes));
                 }
                 XlsbStylesheetRewritePlan stylesheetPlan = XlsbStylesheetRewritePlan.Create(
                     document,
                     sourceWorkbook,
-                    sourceStylesPart);
+                    sourceStylesPart, maximumBytes);
                 if (stylesheetPlan.Replacement != null) {
                     replacements.Add(stylesheetPlan.PartName!, stylesheetPlan.Replacement);
                 }
@@ -49,7 +49,7 @@ namespace OfficeIMO.Excel.Xlsb.Write {
                         ?? throw new InvalidDataException($"The source XLSB worksheet '{sourceSheet.Name}' has no resolved package part.");
                     ZipArchiveEntry sourceEntry = FindEntry(archive, partName)
                         ?? throw new InvalidDataException($"The source XLSB worksheet part '{partName}' is missing.");
-                    byte[] originalPart = ReadEntry(sourceEntry, MaxWorksheetPartBytes);
+                    byte[] originalPart = ReadEntry(sourceEntry, (int)Math.Min(maximumBytes, MaxWorksheetPartBytes));
                     IReadOnlyList<XlsbWriteCell> cells = XlsbWorksheetCellExtractor.Extract(
                         document,
                         sheets[index],
@@ -74,7 +74,7 @@ namespace OfficeIMO.Excel.Xlsb.Write {
                         autoFilterPlan.Records,
                         autoFilterPlan.Rewrite,
                         hyperlinkPlan?.Records ?? Array.Empty<XlsbGeneratedRecord>(),
-                        rewriteHyperlinks);
+                        rewriteHyperlinks, maximumBytes);
                     if (!originalPart.SequenceEqual(rewrittenPart)) {
                         replacements.Add(partName, rewrittenPart);
                     }
@@ -97,7 +97,7 @@ namespace OfficeIMO.Excel.Xlsb.Write {
                 replacements,
                 sourceWorkbook.MaxPartBytes,
                 sourceWorkbook.MaxPackageBytes,
-                deletions);
+                deletions, maximumBytes);
             if (!XlsbPackageDetector.TryFindWorkbookPart(rewritten, out _)) {
                 throw new InvalidDataException("The rewritten package no longer satisfies the XLSB package contract.");
             }
@@ -208,7 +208,7 @@ namespace OfficeIMO.Excel.Xlsb.Write {
             IReadOnlyDictionary<string, byte[]> replacements,
             int maxPartBytes,
             long maxPackageBytes,
-            ISet<string>? deletions) {
+            ISet<string>? deletions, long maximumBytes = int.MaxValue) {
             if (sourcePackageBytes == null) throw new ArgumentNullException(nameof(sourcePackageBytes));
             if (replacements == null) throw new ArgumentNullException(nameof(replacements));
 
@@ -236,7 +236,7 @@ namespace OfficeIMO.Excel.Xlsb.Write {
 
             using var sourceStream = new MemoryStream(sourcePackageBytes, writable: false);
             using var sourceArchive = new ZipArchive(sourceStream, ZipArchiveMode.Read, leaveOpen: false);
-            using var destinationStream = new MemoryStream(sourcePackageBytes.Length + 4096);
+            using var destinationStream = new OfficeIMO.Core.Internal.OfficeBoundedMemoryStream(maximumBytes);
             long decompressedBytes = 0;
             byte[] buffer = new byte[81920];
             var writtenReplacements = new HashSet<string>(StringComparer.OrdinalIgnoreCase);

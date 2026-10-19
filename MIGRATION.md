@@ -3596,3 +3596,11 @@ Setting `WordParagraph.ParagraphAlignment` or `VerticalCharacterAlignmentOnLine`
 - Review `HasLoss`, omitted-content, and resource-policy diagnostics before accepting converted output.
 - Clean package caches, lock files, `bin`, and `obj` outputs when old and new assemblies were restored together.
 - Run the application test suite on every supported operating system after the coordinated package upgrade.
+
+## Excel encrypted-save persistence
+
+Saving encrypted output to the document's associated file or stream changes its
+persistence mode to explicit. Disposal no longer writes pending edits over the
+encrypted file. Call `SaveEncrypted` explicitly for each later protected save;
+ordinary `Save` writes unencrypted output. Exporting encrypted output to another
+stream does not change the original destination's persistence mode.

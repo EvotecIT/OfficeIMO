@@ -55,7 +55,7 @@ namespace OfficeIMO.Excel.Xlsb.Write {
             IReadOnlyList<XlsbWriteCell> cells,
             int cellFormatCount,
             IReadOnlyList<XlsbGeneratedRecord> hyperlinkRecords,
-            XlsbSharedStringTable? sharedStrings = null) {
+            XlsbSharedStringTable? sharedStrings = null, long maximumBytes = int.MaxValue) {
             if (sheet == null) throw new ArgumentNullException(nameof(sheet));
             if (cells == null) throw new ArgumentNullException(nameof(cells));
             if (hyperlinkRecords == null) throw new ArgumentNullException(nameof(hyperlinkRecords));
@@ -67,7 +67,7 @@ namespace OfficeIMO.Excel.Xlsb.Write {
                 .ToDictionary(group => group.Key, group => (IReadOnlyList<XlsbWriteCell>)group.OrderBy(cell => cell.Column).ToArray());
             int[] rowIndexes = cellsByRow.Keys.Concat(geometry.RowProperties.Keys).Distinct().OrderBy(row => row).ToArray();
 
-            using var output = new MemoryStream(Math.Max(256, cells.Count * 24));
+            using var output = new OfficeIMO.Core.Internal.OfficeBoundedMemoryStream(maximumBytes);
             XlsbRecordWriter.Write(output, 129); // BrtBeginSheet
             Worksheet worksheet = sheet.WorksheetPart.Worksheet
                 ?? throw new InvalidDataException($"Worksheet '{sheet.Name}' has no worksheet root.");
@@ -125,7 +125,7 @@ namespace OfficeIMO.Excel.Xlsb.Write {
             IReadOnlyList<XlsbGeneratedRecord> autoFilterRecords,
             bool rewriteAutoFilter,
             IReadOnlyList<XlsbGeneratedRecord> hyperlinkRecords,
-            bool rewriteHyperlinks) {
+            bool rewriteHyperlinks, long maximumBytes = int.MaxValue) {
             if (originalPart == null) throw new ArgumentNullException(nameof(originalPart));
             if (cells == null) throw new ArgumentNullException(nameof(cells));
             if (autoFilterRecords == null) throw new ArgumentNullException(nameof(autoFilterRecords));
@@ -155,7 +155,7 @@ namespace OfficeIMO.Excel.Xlsb.Write {
                 ? FindAutoFilterBounds(records, endIndex)
                 : (-1, -1);
 
-            using var output = new MemoryStream(originalPart.Length + Math.Max(256, cells.Count * 24));
+            using var output = new OfficeIMO.Core.Internal.OfficeBoundedMemoryStream(maximumBytes);
             for (int index = 0; index <= beginIndex; index++) {
                 if (records[index].Type == BrtWsDim && dimensionPayload != null) {
                     XlsbRecordWriter.Write(output, BrtWsDim, dimensionPayload);

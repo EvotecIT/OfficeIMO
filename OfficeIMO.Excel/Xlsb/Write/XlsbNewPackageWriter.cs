@@ -14,7 +14,7 @@ namespace OfficeIMO.Excel.Xlsb.Write {
             ExcelDocument document,
             Stream destination,
             bool useSharedStrings = false,
-            CancellationToken cancellationToken = default) {
+            CancellationToken cancellationToken = default, long maximumBytes = int.MaxValue) {
             if (document == null) throw new ArgumentNullException(nameof(document));
             if (destination == null) throw new ArgumentNullException(nameof(destination));
             if (!destination.CanWrite) throw new ArgumentException("The XLSB destination must be writable.", nameof(destination));
@@ -22,7 +22,8 @@ namespace OfficeIMO.Excel.Xlsb.Write {
             ExcelSheet[] sheets = document.Sheets.ToArray();
             ValidateWorkbook(document, sheets);
             Stylesheet? stylesheet = document.WorkbookPartRoot.WorkbookStylesPart?.Stylesheet;
-            byte[] stylesPart = XlsbStylesheetPartWriter.CreateForNewWorkbook(stylesheet, out int cellFormatCount);
+            byte[] stylesPart = XlsbStylesheetPartWriter.CreateForNewWorkbook(stylesheet, out int cellFormatCount, maximumBytes);
+            long remainingBytes = maximumBytes - stylesPart.Length;
             var worksheetParts = new byte[sheets.Length][];
             var hyperlinkPlans = new XlsbWorksheetHyperlinkPlan[sheets.Length];
             XlsbSharedStringTable? sharedStrings = useSharedStrings ? new XlsbSharedStringTable() : null;
@@ -39,10 +40,12 @@ namespace OfficeIMO.Excel.Xlsb.Write {
                     cells,
                     cellFormatCount,
                     hyperlinkPlans[index].Records,
-                    sharedStrings);
+                    sharedStrings, Math.Max(1, remainingBytes));
+                remainingBytes -= worksheetParts[index].LongLength;
+                if (remainingBytes < 0) throw OfficeIMO.Core.Internal.OfficeOutputLimit.Create("Native XLSB intermediate parts exceed the in-memory save limit.");
             }
 
-            ArraySegment<byte>? sharedStringsPart = sharedStrings?.CreatePart(cancellationToken);
+            ArraySegment<byte>? sharedStringsPart = sharedStrings?.CreatePart(cancellationToken, Math.Max(1, remainingBytes));
             WritePackage(document, destination, sheets, stylesPart, worksheetParts, hyperlinkPlans, sharedStringsPart);
         }
 

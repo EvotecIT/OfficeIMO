@@ -132,6 +132,21 @@ public sealed class ExcelSpreadsheetXmlPreservationTests {
         }
     }
 
+    [Fact]
+    public void Native_Excel_readback_retains_rich_cell_runs_and_underlined_comment() {
+        string path = Path.Combine(RepositoryTestPaths.Find(), "OfficeIMO.TestAssets", "Documents", "SpreadsheetXmlCorpus", "excel-rich-text-readback.xlsx");
+        using var document = ExcelDocument.Load(path);
+        var part = document.OpenXmlDocument.WorkbookPart!;
+        var runs = part.SharedStringTablePart!.SharedStringTable!.Elements<SharedStringItem>().Single().Elements<Run>().ToArray();
+        Assert.Equal("Plain bold italic red", string.Concat(runs.Select(item => item.InnerText)));
+        Assert.NotNull(runs[1].RunProperties!.GetFirstChild<Bold>());
+        Assert.NotNull(runs[2].RunProperties!.GetFirstChild<Italic>());
+        Assert.Equal("Arial", runs[3].RunProperties!.GetFirstChild<RunFont>()!.Val!.Value);
+        Assert.Equal(14d, runs[3].RunProperties!.GetFirstChild<FontSize>()!.Val!.Value);
+        Assert.Equal(10U, runs[3].RunProperties!.GetFirstChild<Color>()!.Indexed!.Value);
+        Assert.NotNull(part.WorksheetParts.Single().WorksheetCommentsPart!.Comments!.Descendants<RunProperties>().Single().GetFirstChild<Underline>());
+    }
+
     [Theory]
     [InlineData("<Row><Cell ss:MergeAcross='1'/><Cell ss:Index='2'/></Row>")]
     [InlineData("<Row><Cell ss:MergeDown='1'/></Row><Row><Cell/></Row>")]
