@@ -312,9 +312,11 @@ namespace OfficeIMO.Word {
             }
         }
 
-        internal bool TryGetImageBytes(out byte[] bytes, out string? unsupportedReason) {
+        internal bool TryGetImageBytes(out byte[] bytes, out string? unsupportedReason,
+            System.Threading.CancellationToken cancellationToken = default) {
             bytes = Array.Empty<byte>();
             unsupportedReason = null;
+            cancellationToken.ThrowIfCancellationRequested();
 
             string? relationshipId = GetImageRelationshipId();
             if (string.IsNullOrWhiteSpace(relationshipId)) {
@@ -328,9 +330,7 @@ namespace OfficeIMO.Word {
             }
 
             using Stream stream = imagePart.GetStream(FileMode.Open, FileAccess.Read);
-            using var memoryStream = new MemoryStream();
-            stream.CopyTo(memoryStream);
-            bytes = memoryStream.ToArray();
+            bytes = OfficeIMO.Core.Internal.OfficeStreamReader.ReadAllBytes(stream, cancellationToken);
             if (bytes.Length == 0) {
                 unsupportedReason = "Watermark image part is empty.";
                 return false;

@@ -200,7 +200,7 @@ namespace OfficeIMO.Word.Pdf {
             V.ImageData? imageData = element.GetFirstChild<V.ImageData>();
             if (imageData == null ||
                 !IsNativeVmlBoxVisibleOnPage(box, pageWidth, pageHeight) ||
-                !TryGetNativeVmlImageBytes(document, element, imageData, out byte[]? imageBytes) ||
+                !TryGetNativeVmlImageBytes(document, element, imageData, out byte[]? imageBytes, cancellationToken) ||
                 imageBytes == null ||
                 !TryPrepareNativePdfImageBytes(imageBytes, out byte[] preparedBytes, out _, cancellationToken)) {
                 return false;
@@ -230,7 +230,7 @@ namespace OfficeIMO.Word.Pdf {
             return true;
         }
 
-        private static bool TryGetNativeVmlImageBytes(WordDocument document, OpenXmlElement element, V.ImageData imageData, out byte[]? imageBytes) {
+        private static bool TryGetNativeVmlImageBytes(WordDocument document, OpenXmlElement element, V.ImageData imageData, out byte[]? imageBytes, CancellationToken cancellationToken) {
             imageBytes = null;
             string? relationshipId = imageData.RelationshipId?.Value ?? GetNativeOpenXmlAttribute(imageData, "id");
             if (string.IsNullOrWhiteSpace(relationshipId)) {
@@ -242,14 +242,15 @@ namespace OfficeIMO.Word.Pdf {
             }
 
             using Stream stream = imagePart.GetStream(FileMode.Open, FileAccess.Read);
-            return TryReadNativeVmlImageBytes(stream, NativeVmlImageMaxBytes, out imageBytes);
+            return TryReadNativeVmlImageBytes(stream, NativeVmlImageMaxBytes, out imageBytes, cancellationToken);
         }
 
-        internal static bool TryReadNativeVmlImageBytes(Stream stream, long maxBytes, out byte[]? imageBytes) {
+        internal static bool TryReadNativeVmlImageBytes(Stream stream, long maxBytes, out byte[]? imageBytes, CancellationToken cancellationToken = default) {
             imageBytes = null;
             if (stream == null || maxBytes <= 0L) {
                 return false;
             }
+            cancellationToken.ThrowIfCancellationRequested();
 
             if (stream.CanSeek && stream.Length > maxBytes) {
                 return false;
@@ -259,6 +260,7 @@ namespace OfficeIMO.Word.Pdf {
             byte[] buffer = new byte[81920];
             long totalRead = 0L;
             while (true) {
+                cancellationToken.ThrowIfCancellationRequested();
                 int bytesRead = stream.Read(buffer, 0, buffer.Length);
                 if (bytesRead == 0) {
                     break;
@@ -276,6 +278,7 @@ namespace OfficeIMO.Word.Pdf {
                 return false;
             }
 
+            cancellationToken.ThrowIfCancellationRequested();
             imageBytes = memory.ToArray();
             return true;
         }

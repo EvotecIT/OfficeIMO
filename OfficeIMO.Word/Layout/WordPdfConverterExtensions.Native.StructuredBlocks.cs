@@ -415,7 +415,7 @@ namespace OfficeIMO.Word.Pdf {
                 return null;
             }
 
-            if (!watermark.TryGetImageBytes(out byte[] bytes, out string? unsupportedReason)) {
+            if (!watermark.TryGetImageBytes(out byte[] bytes, out string? unsupportedReason, options?.CancellationToken ?? default)) {
                 if (options != null) {
                     AddNativeExportWarning(
                         options,
