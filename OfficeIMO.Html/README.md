@@ -670,9 +670,18 @@ right/left script placement and scale, limits and bars through the shared Core r
 The managed static font readers supply designed radical, fence and large-operator
 variants, bounded connector assemblies, italic correction, per-corner script
 kerning and accent attachment. Explicit `stretchy="false"` and `largeop="false"`
-retain natural operators. Missing or unusable records use deterministic fallback
-geometry. Variable MATH metrics, complete matrix/stack typesetting and the full
-MathML attribute/CSS grammar remain outside this subset. See the
+retain natural operators. Direct operators in ordinary rows use the shared
+finite form/spacing dictionary. Supported `form` values are `prefix`, `infix`,
+and `postfix`. Independent `lspace`/`rspace` sides accept nonnegative `em`, `px`,
+`%`, and unitless zero.
+For example, `lspace="0" rspace="0.25em"` changes the two sides independently;
+percentages scale each dictionary side. HTML keeps authored pixels in CSS-pixel
+scene units. Unsupported side syntax and detected authored spacing in unqualified
+embellished contexts produce `HtmlRenderMathMlContentUnsupported` approximation diagnostics.
+Missing or unusable font records use deterministic fallback geometry. Variable
+MATH metrics, complete operator dictionaries, embellished contexts, complete
+matrix/stack typesetting and the full MathML attribute/CSS grammar remain outside
+this subset. See the
 [shared math contract](../OfficeIMO.Core/README.md#structured-math) for limits and
 the caller's font-metric opt-out.
 

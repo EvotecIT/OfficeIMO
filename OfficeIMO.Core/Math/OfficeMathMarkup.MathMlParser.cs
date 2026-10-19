@@ -43,7 +43,10 @@ public static partial class OfficeMathMarkup {
                 case "mi": return OfficeMath.Identifier(element.Value);
                 case "mn": return OfficeMath.Number(element.Value);
                 case "mo": return OfficeMath.Create(OfficeMathKind.Operator, text: element.Value,
-                    stretchy: OperatorBoolean(element, "stretchy"), largeOperator: OperatorBoolean(element, "largeop"));
+                    stretchy: OperatorBoolean(element, "stretchy"), largeOperator: OperatorBoolean(element, "largeop"),
+                    operatorForm: OfficeMathOperatorSpacing.NormalizeForm((string?)element.Attribute("form")),
+                    operatorLeftSpace: OfficeMathOperatorSpacing.NormalizeLength((string?)element.Attribute("lspace")),
+                    operatorRightSpace: OfficeMathOperatorSpacing.NormalizeLength((string?)element.Attribute("rspace")));
                 case "mfrac":
                     return string.Equals((string?)element.Attribute("bevelled"), "true", StringComparison.OrdinalIgnoreCase)
                         ? OfficeMath.SlashedFraction(ParseRequired(children, 0, name), ParseRequired(children, 1, name))
@@ -83,7 +86,10 @@ public static partial class OfficeMathMarkup {
         private bool TryParseFunctionRow(IReadOnlyList<XElement> children, out OfficeMathExpression? expression) {
             expression = null;
             if (children.Count != 3 || children[0].Name.LocalName != "mi" || children[1].Name.LocalName != "mo" ||
-                children[1].Value != "⁡" || children[2].Name.LocalName != "mfenced") return false;
+                children[1].Value != "⁡" || children[2].Name.LocalName != "mfenced" ||
+                OfficeMathOperatorSpacing.NormalizeForm((string?)children[1].Attribute("form")) != null ||
+                OfficeMathOperatorSpacing.NormalizeLength((string?)children[1].Attribute("lspace")) != null ||
+                OfficeMathOperatorSpacing.NormalizeLength((string?)children[1].Attribute("rspace")) != null) return false;
             OfficeMathExpression argument = ParseMathMlElement(children[2]);
             if (argument.Kind == OfficeMathKind.Delimited && argument.Character == "(" && argument.SecondaryCharacter == ")") {
                 argument = argument.Children[0];
@@ -98,7 +104,7 @@ public static partial class OfficeMathMarkup {
             if (children.Count != 2) return false;
             OfficeMathExpression head = children[0];
             OfficeMathExpression content = children[1];
-            if (head.Kind == OfficeMathKind.Operator && head.LargeOperator != false && IsNarySymbol(head.Text)) {
+            if (head.Kind == OfficeMathKind.Operator && !head.HasOperatorSpacingOverrides && head.LargeOperator != false && IsNarySymbol(head.Text)) {
                 expression = OfficeMath.Nary(head.Text!, content);
                 return true;
             }
@@ -110,7 +116,7 @@ public static partial class OfficeMathMarkup {
         private OfficeMathExpression ParseOverUnder(List<XElement> children, bool over, bool both, XElement source) {
             OfficeMathExpression basis = ParseRequired(children, 0, source.Name.LocalName);
             OfficeMathExpression first = ParseRequired(children, 1, source.Name.LocalName);
-            if (basis.Kind == OfficeMathKind.Operator && basis.LargeOperator != false && IsNarySymbol(basis.Text)) {
+            if (basis.Kind == OfficeMathKind.Operator && !basis.HasOperatorSpacingOverrides && basis.LargeOperator != false && IsNarySymbol(basis.Text)) {
                 OfficeMathExpression content = OfficeMath.Text(string.Empty);
                 return both
                     ? OfficeMath.Nary(basis.Text!, content, first, ParseRequired(children, 2, source.Name.LocalName))

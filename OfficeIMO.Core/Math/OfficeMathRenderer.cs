@@ -34,7 +34,7 @@ public static partial class OfficeMathRenderer {
         if (expression == null) throw new ArgumentNullException(nameof(expression));
         OfficeMathRenderOptions effective = options?.Clone() ?? new OfficeMathRenderOptions();
         effective.Validate();
-        LayoutBox box = new LayoutEngine(effective, !effective.DisplayStyle, cancellationToken).Layout(expression, 1D);
+        LayoutBox box = new LayoutEngine(effective, !effective.DisplayStyle, cancellationToken).LayoutRoot(expression, 1D);
         return new OfficeMathLayoutMetrics(box.Width, box.Height, box.Baseline);
     }
 
@@ -47,7 +47,7 @@ public static partial class OfficeMathRenderer {
         if (expression == null) throw new ArgumentNullException(nameof(expression));
         OfficeMathRenderOptions effective = options?.Clone() ?? new OfficeMathRenderOptions();
         effective.Validate();
-        LayoutBox box = new LayoutEngine(effective, !effective.DisplayStyle, cancellationToken).Layout(expression, 1D);
+        LayoutBox box = new LayoutEngine(effective, !effective.DisplayStyle, cancellationToken).LayoutRoot(expression, 1D);
         double width = Math.Max(1D, box.Width + effective.Padding * 2D);
         double height = Math.Max(1D, box.Height + effective.Padding * 2D);
         var drawing = new OfficeDrawing(width, height);
@@ -78,7 +78,7 @@ public static partial class OfficeMathRenderer {
         if (expression == null) throw new ArgumentNullException(nameof(expression));
         OfficeMathRenderOptions effective = options?.Clone() ?? new OfficeMathRenderOptions();
         effective.Validate();
-        LayoutBox box = new LayoutEngine(effective, !effective.DisplayStyle, cancellationToken).Layout(expression, 1D);
+        LayoutBox box = new LayoutEngine(effective, !effective.DisplayStyle, cancellationToken).LayoutRoot(expression, 1D);
         if (x < 0D || y < 0D || x + box.Width > drawing.Width || y + box.Height > drawing.Height) {
             throw new ArgumentOutOfRangeException(nameof(expression), "The mathematical expression must fit inside the drawing bounds.");
         }
@@ -240,20 +240,11 @@ public static partial class OfficeMathRenderer {
             var boxes = new List<LayoutBox>(children.Count);
             double baseline = 0D;
             double descent = 0D;
-            double width = 0D;
             for (int index = 0; index < children.Count; index++) {
                 LayoutBox child = Layout(children[index], scale);
-                double operatorSpace = index > 0 && index + 1 < children.Count
-                    ? BinaryOperatorSpace(children[index], scale) : 0D;
-                if (operatorSpace > 0D) {
-                    var spaced = new LayoutBox(child.Width + operatorSpace * 2D, child.Height, child.Baseline);
-                    spaced.Add(child, operatorSpace, 0D);
-                    child = spaced;
-                }
                 boxes.Add(child);
                 baseline = Math.Max(baseline, child.Baseline);
                 descent = Math.Max(descent, child.Height - child.Baseline);
-                width += child.Width;
             }
             if (_mathConstants != null) {
                 double axis = MathAxis(scale);
@@ -274,7 +265,15 @@ public static partial class OfficeMathRenderer {
                 }
                 baseline = boxes.Max(b => b.Baseline);
                 descent = Math.Max(0D, boxes.Max(b => b.Height - b.Baseline));
-                width = boxes.Sum(b => b.Width);
+            }
+            // Outside operator space is applied after stretching so a designed fence
+            // replacement cannot discard authored lspace/rspace or duplicate its paint.
+            FindNonSpaceRowChildren(children, out int first, out int last);
+            double width = 0D;
+            for (int index = 0; index < boxes.Count; index++) {
+                string form = first == last ? "infix" : index == first ? "prefix" : index == last ? "postfix" : "infix";
+                boxes[index] = AddOperatorSpace(boxes[index], children[index], form, scale);
+                width += boxes[index].Width;
             }
             var result = new LayoutBox(width, baseline + descent, baseline);
             double x = 0D;
@@ -292,16 +291,6 @@ public static partial class OfficeMathRenderer {
             _options.Fonts.TryResolveFaceForText("x", _options.Font.FamilyName, _options.Font.Face,
                 FontSize(scale), out _)
                 ? Text("x", scale).Baseline / 2D : FontSize(scale) * 0.25D;
-
-        private double BinaryOperatorSpace(OfficeMathExpression expression, double scale) {
-            if (expression.Kind != OfficeMathKind.Operator) return 0D;
-            // Bounded binary/relation spacing; prefix/suffix operators are excluded by Row.
-            return expression.Text switch {
-                "+" or "-" or "−" or "×" or "÷" => FontSize(scale) * 2D / 9D,
-                "=" or "<" or ">" or "≤" or "≥" => FontSize(scale) * 5D / 18D,
-                _ => 0D
-            };
-        }
 
         private LayoutBox Fraction(OfficeMathExpression expression, double scale) {
             double childScale = _compact ? ScriptScale(scale) : scale;
@@ -590,7 +579,11 @@ public static partial class OfficeMathRenderer {
     }
 
     private sealed class LayoutBox {
-        internal LayoutBox(double width, double height, double baseline) { Width = width; Height = height; Baseline = baseline; }
+        internal LayoutBox(double width, double height, double baseline) {
+            Width = Finite(width, nameof(width));
+            Height = Finite(height, nameof(height));
+            Baseline = Finite(baseline, nameof(baseline));
+        }
         internal double Width { get; private set; }
         internal double Height { get; private set; }
         internal double Baseline { get; }
@@ -611,10 +604,17 @@ public static partial class OfficeMathRenderer {
                 if (command.Kind == LayoutCommandKind.Text || command.Kind == LayoutCommandKind.Outline) {
                     // Track the actual translated frames too: regrouping floating-point additions
                     // can otherwise put a last token just outside a tightly measured canvas.
-                    Width = Math.Max(Width, command.X + command.Width);
-                    Height = Math.Max(Height, command.Y + command.Height);
+                    Width = Finite(Math.Max(Width, command.X + command.Width), nameof(Width));
+                    Height = Finite(Math.Max(Height, command.Y + command.Height), nameof(Height));
                 }
             }
+        }
+
+        // Measurement must reject nonfinite geometry even when no drawing is created.
+        private static double Finite(double value, string parameterName) {
+            if (double.IsNaN(value) || double.IsInfinity(value))
+                throw new ArgumentOutOfRangeException(parameterName, "Mathematical layout must fit inside finite drawing bounds.");
+            return value;
         }
     }
 }

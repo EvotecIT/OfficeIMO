@@ -94,6 +94,10 @@ namespace OfficeIMO.Word {
         }
 
         private static void AppendOmml(XElement parent, OfficeMathExpression expression) {
+            if (HasUnsupportedNativeOperatorProperties(expression.OperatorForm, expression.OperatorLeftSpace, expression.OperatorRightSpace)) {
+                throw new NotSupportedException(
+                    "Authored MathML operator form and spacing have no lossless OMML mapping. Retain MathML or use the shared drawing renderer.");
+            }
             switch (expression.Kind) {
                 case OfficeMathKind.Text:
                 case OfficeMathKind.Identifier:

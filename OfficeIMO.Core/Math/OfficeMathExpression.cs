@@ -80,7 +80,10 @@ public sealed class OfficeMathExpression : IEquatable<OfficeMathExpression> {
         string? separatorCharacter,
         bool naryUpperOnly,
         bool? stretchy = null,
-        bool? largeOperator = null) {
+        bool? largeOperator = null,
+        string? operatorForm = null,
+        string? operatorLeftSpace = null,
+        string? operatorRightSpace = null) {
         Kind = kind;
         Text = text;
         Character = character;
@@ -91,6 +94,9 @@ public sealed class OfficeMathExpression : IEquatable<OfficeMathExpression> {
         _naryUpperOnly = naryUpperOnly;
         Stretchy = stretchy;
         LargeOperator = largeOperator;
+        OperatorForm = operatorForm;
+        OperatorLeftSpace = operatorLeftSpace;
+        OperatorRightSpace = operatorRightSpace;
         _children = new ReadOnlyCollection<OfficeMathExpression>(children?.ToList() ?? new List<OfficeMathExpression>());
         Validate();
     }
@@ -104,6 +110,10 @@ public sealed class OfficeMathExpression : IEquatable<OfficeMathExpression> {
     // Selected MathML operator overrides stay with the immutable, format-neutral node.
     internal bool? Stretchy { get; }
     internal bool? LargeOperator { get; }
+    internal string? OperatorForm { get; }
+    internal string? OperatorLeftSpace { get; }
+    internal string? OperatorRightSpace { get; }
+    internal bool HasOperatorSpacingOverrides => OperatorForm != null || OperatorLeftSpace != null || OperatorRightSpace != null;
 
     /// <summary>Primary delimiter, accent, or n-ary operator character.</summary>
     public string? Character { get; }
@@ -245,7 +255,10 @@ public sealed class OfficeMathExpression : IEquatable<OfficeMathExpression> {
             expression.SeparatorCharacter,
             expression._naryUpperOnly,
             expression.Stretchy,
-            expression.LargeOperator);
+            expression.LargeOperator,
+            expression.OperatorForm,
+            expression.OperatorLeftSpace,
+            expression.OperatorRightSpace);
     }
 
     private OfficeMathExpression WithText(string text) => new OfficeMathExpression(
@@ -259,14 +272,19 @@ public sealed class OfficeMathExpression : IEquatable<OfficeMathExpression> {
         SeparatorCharacter,
         _naryUpperOnly,
         Stretchy,
-        LargeOperator);
+        LargeOperator,
+        OperatorForm,
+        OperatorLeftSpace,
+        OperatorRightSpace);
 
     /// <inheritdoc />
     public bool Equals(OfficeMathExpression? other) {
         if (other == null || Kind != other.Kind || Text != other.Text || Character != other.Character ||
             SecondaryCharacter != other.SecondaryCharacter || SeparatorCharacter != other.SeparatorCharacter || RowCount != other.RowCount ||
             ColumnCount != other.ColumnCount || _naryUpperOnly != other._naryUpperOnly || Stretchy != other.Stretchy ||
-            LargeOperator != other.LargeOperator || _children.Count != other._children.Count) return false;
+            LargeOperator != other.LargeOperator || OperatorForm != other.OperatorForm ||
+            OperatorLeftSpace != other.OperatorLeftSpace || OperatorRightSpace != other.OperatorRightSpace ||
+            _children.Count != other._children.Count) return false;
         for (int index = 0; index < _children.Count; index++) {
             if (!_children[index].Equals(other._children[index])) return false;
         }
@@ -289,6 +307,9 @@ public sealed class OfficeMathExpression : IEquatable<OfficeMathExpression> {
             hash = (hash * 397) ^ _naryUpperOnly.GetHashCode();
             hash = (hash * 397) ^ Stretchy.GetHashCode();
             hash = (hash * 397) ^ LargeOperator.GetHashCode();
+            hash = (hash * 397) ^ (OperatorForm?.GetHashCode() ?? 0);
+            hash = (hash * 397) ^ (OperatorLeftSpace?.GetHashCode() ?? 0);
+            hash = (hash * 397) ^ (OperatorRightSpace?.GetHashCode() ?? 0);
             for (int index = 0; index < _children.Count; index++) hash = (hash * 397) ^ _children[index].GetHashCode();
             return hash;
         }

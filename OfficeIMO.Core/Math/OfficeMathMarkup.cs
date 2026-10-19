@@ -85,6 +85,9 @@ public static partial class OfficeMathMarkup {
                 XElement op = Element("mo", expression.Text);
                 if (expression.Stretchy.HasValue) op.SetAttributeValue("stretchy", expression.Stretchy.Value ? "true" : "false");
                 if (expression.LargeOperator.HasValue) op.SetAttributeValue("largeop", expression.LargeOperator.Value ? "true" : "false");
+                if (expression.OperatorForm != null) op.SetAttributeValue("form", expression.OperatorForm);
+                if (expression.OperatorLeftSpace != null) op.SetAttributeValue("lspace", expression.OperatorLeftSpace);
+                if (expression.OperatorRightSpace != null) op.SetAttributeValue("rspace", expression.OperatorRightSpace);
                 return op;
             case OfficeMathKind.Row: return Element("mrow", expression.Children.Select(ToMathMlElement));
             case OfficeMathKind.Fraction:

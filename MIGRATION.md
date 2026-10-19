@@ -677,6 +677,30 @@ Opt-in PNG and SVG preview assets now retain rendering diagnostics in the neutra
 
 Connector geometry in saved files now uses its native local transform. Consumers reading XML geometry directly must apply Pin/LocPin/Angle to obtain page coordinates. Reader text represents unattached endpoints with coordinates instead of empty shape IDs. Topology `edge` records append start X/Y and end X/Y columns after the label; absent shape IDs remain empty.
 
+## MathML operator spacing and native equations
+
+The shared math renderer and HTML rendering apply the selected operator dictionary
+and supported `form`, `lspace`, and `rspace` attributes. Equation widths, wrapping,
+and preview images can change even when spacing was not authored. Review equation
+layout and regenerate affected image baselines; supported side values are
+nonnegative `em`, `px`, `%`, and unitless zero.
+
+`WordMathMarkup.ToOmml(...)` and the Word equation add/replace APIs reject shared
+expressions retaining authored operator form or side spacing with
+`NotSupportedException`. Those attributes were previously discarded during
+MathML parsing. Retain MathML and render it through the shared drawing owner, or
+explicitly remove those presentation attributes before parsing when an editable
+Word equation without their spacing is acceptable.
+
+Native OneNote writing rejects those properties with
+`OneNoteFormatException.Code == "ONENOTE_WRITE_MATH_LOSS"` rather than dropping them.
+
+HTML-to-Word import retains its editable approximation and reports
+`ContentApproximated` with `LossKind.Approximation`, including labelled formulas
+and nonblank side attributes outside the shared renderer's grammar. Applications
+that require exact spacing must inspect the result report before accepting the
+Word projection.
+
 ## HTML normal line height
 
 Missing CSS line height and `line-height: normal` use the selected font's metrics when available. Line and table heights can change. To retain a fixed multiplier, assign `DefaultLineHeight = 1.2D` explicitly, or author the required CSS `line-height`; cloning preserves that choice. Browser style mode no longer adds document-style bottom spacing to tables. Author a table margin when that spacing is required.

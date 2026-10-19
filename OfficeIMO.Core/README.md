@@ -1133,6 +1133,22 @@ selection and font tracking use the authored point size for both measurement and
 Fonts are caller supplied; OfficeIMO.Core does not ship a math font or require a native
 rendering engine.
 
+MathML `mo` tokens retain explicit `prefix`, `infix`, or `postfix` form and
+independent `lspace`/`rspace` values in `em`, `px`, `%`, or unitless zero. In ordinary
+rows, form is inferred from the first and last non-space-like children when it is
+not authored; an only child uses infix form. A finite dictionary covers selected
+arithmetic, relation, fence, and punctuation operators; other entries use a
+deterministic fallback. Percentages scale each side's dictionary spacing, `em`
+uses the token's font size, and standalone rendering converts CSS pixels through
+`Dpi / 96`. Side spacing is applied outside a stretched glyph. Negative lengths,
+other units, and CSS expressions are outside this grammar. The full operator
+dictionary and embellished-operator contexts remain outside this subset.
+
+Word OMML writing rejects expressions retaining authored operator form or side
+spacing with `NotSupportedException`; retain MathML and use the shared renderer
+when those values must survive. Native OneNote writing rejects those properties
+with `ONENOTE_WRITE_MATH_LOSS`.
+
 The same immutable expression tree feeds native OneNote math and Word OMML adapters. The shared model includes right and left scripts, centered upper/lower limits, built-up and slashed fractions, delimiter lists, stacks, matrices, equation arrays, n-ary operators, accents, bars, boxes, and phantoms. OneNote maps all of those structures natively. Word maps the lossless OMML subset; `Stack` and `StretchStack` fail with `NotSupportedException` because OMML has no equivalent, and callers can choose `EquationArray` explicitly when that projection is intended. Drawing owns the AST, portable markup, measurement, and visual layout; each document package owns only its native codec. MathML and LaTeX parsing default to a nesting limit of 128 and expose bounded overloads; excessive nesting fails with `OfficeMathParseException.Code == "DRAWING_MATH_DEPTH"`.
 
 ## Find a conversion package
