@@ -1,4 +1,5 @@
 using System.Text;
+using System.Globalization;
 
 namespace OfficeIMO.Html;
 
@@ -67,7 +68,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 || nonCjk!.Contains(point)) breaks[point] = true;
         }
         CheckCancellation();
-        return new InlineWordMap(this, mapped.ToArray(), breaks, paragraphStyle.PreventTextWrapping, styleSelector);
+        return new InlineWordMap(this, text, mapped.ToArray(), breaks, paragraphStyle.PreventTextWrapping, styleSelector);
     }
 
     private sealed class InlineWordFitting {
@@ -77,6 +78,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
             _map = new Lazy<InlineWordMap>(createMap);
             _consecutiveHyphenatedLines = consecutiveHyphenatedLines;
         }
+        internal UnicodeCategory? GetPrecedingCategory(HtmlInlineRun run, int sourceOffset) =>
+            _map.Value.GetPrecedingCategory(run, sourceOffset);
         internal bool CanBreakBefore(HtmlInlineRun run, int sourceOffset) => _map.Value.CanBreakBefore(run, sourceOffset);
         internal bool HasBreakInside(HtmlInlineRun run, int sourceStart, int sourceEnd) => _map.Value.HasBreakInside(run, sourceStart, sourceEnd);
         internal double PreviewWithContinuation(InlineLine line, HtmlInlineRun run, int sourceEnd,
@@ -87,6 +90,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
 
     private sealed class InlineWordMap {
         private readonly HtmlRenderLayoutEngine _owner;
+        private readonly string _source;
         private readonly InlineWordSourceRun[] _runs;
         private readonly Dictionary<HtmlInlineRun, int> _indices = new();
         private readonly int[] _previousBreak;
@@ -96,9 +100,10 @@ internal sealed partial class HtmlRenderLayoutEngine {
         private readonly Dictionary<(int Run, int Offset), InlineWordPreview[]> _continuations = new();
         private readonly Dictionary<(HtmlInlineRun Run, int End), int[]> _hyphenationBreaks = new();
 
-        internal InlineWordMap(HtmlRenderLayoutEngine owner, InlineWordSourceRun[] runs,
+        internal InlineWordMap(HtmlRenderLayoutEngine owner, string source, InlineWordSourceRun[] runs,
             bool[] breaks, bool preventWrapping, Func<HtmlInlineRun, HtmlRenderBoxStyle>? styleSelector) {
             _owner = owner;
+            _source = source;
             _runs = runs;
             _styleSelector = styleSelector;
             _preventWrapping = preventWrapping;
@@ -115,6 +120,9 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 _nextBreak[reverse] = next;
             }
         }
+
+        internal UnicodeCategory? GetPrecedingCategory(HtmlInlineRun run, int sourceOffset) =>
+            _indices.TryGetValue(run, out int index) ? GetPrecedingTextCategory(_source, _runs[index].Start + sourceOffset) : null;
 
         internal bool CanBreakBefore(HtmlInlineRun run, int sourceOffset) =>
             !_indices.TryGetValue(run, out int index)

@@ -8,7 +8,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         IElement? formattingContainer,
         double width,
         HtmlRenderBoxStyle parentStyle,
-        List<HtmlInlineRun> runs) {
+        List<HtmlInlineRun> targetRuns) {
         if (formattingContainer == null
             || !_styleResolver.TryResolvePseudo(
                 formattingContainer,
@@ -17,6 +17,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 parentStyle,
                 out HtmlRenderBoxStyle firstLineStyle)) return;
 
+        IReadOnlyList<HtmlInlineRun> runs = PrepareArabicJoiningRuns(targetRuns);
         width = Math.Max(0.01D, width - (parentStyle.TextIndent?.Resolve(width) ?? 0D));
         var styledRuns = new List<HtmlInlineRun>(runs.Count);
         PrepareInlineEdgeScopes(runs);
@@ -49,8 +50,16 @@ internal sealed partial class HtmlRenderLayoutEngine {
             HtmlRenderBoxStyle runFirstLineStyle = CreateFirstLineRunStyle(run, firstLineStyle);
             IReadOnlyList<string> tokens = Tokenize(run.Text, run.Style.PreserveWhitespace, run.Style.BreakSpaces).ToList();
             int sourceOffset = 0;
+            int logicalOffset = 0;
             for (int tokenIndex = 0; tokenIndex < tokens.Count; tokenIndex++) {
                 string token = tokens[tokenIndex];
+                string logicalToken = SliceLogicalToken(run, token, ref logicalOffset);
+                if (token == "\n" && run.Style.PreserveWhitespace
+                    && logicalOffset > 0 && logicalOffset < run.LogicalText.Length
+                    && run.LogicalText[logicalOffset - 1] == '\r' && run.LogicalText[logicalOffset] == '\n') {
+                    logicalOffset++;
+                    logicalToken = "\n";
+                }
                 int sourceStartOffset = sourceOffset;
                 sourceOffset += run.Style.PreserveWhitespace && token == "\n"
                     && run.Text[sourceOffset] == '\r'
@@ -58,11 +67,11 @@ internal sealed partial class HtmlRenderLayoutEngine {
                         ? 2 : token.Length;
                 run.InlineTokenEndsRun = tokenIndex == tokens.Count - 1;
                 if (!firstLine) {
-                    styledRuns.Add(run.CloneText(token, token, run.Style, run.IsFirstLetter));
+                    styledRuns.Add(run.CloneText(token, logicalToken, run.Style, run.IsFirstLetter));
                     continue;
                 }
                 if (token == "\u2028" || run.Style.PreserveWhitespace && (token == "\n" || token == "\r\n")) {
-                    styledRuns.Add(run.CloneText(token, token, run.IsFirstLetter ? run.Style : runFirstLineStyle, run.IsFirstLetter));
+                    styledRuns.Add(run.CloneText(token, logicalToken, run.IsFirstLetter ? run.Style : runFirstLineStyle, run.IsFirstLetter));
                     firstLine = false;
                     continue;
                 }
@@ -78,7 +87,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 double previewAdvance = !preventWrapping
                     && (canBreakBefore || wordFitting.HasBreakInside(run, sourceStartOffset, sourceOffset)
                         || !IsWhitespaceToken(token)
-                            && PrepareHyphenationToken(token, token, run.Style, reportUnsupportedLanguage: false).HasBreaks)
+                            && PrepareHyphenationToken(token, logicalToken, run.Style, reportUnsupportedLanguage: false).HasBreaks)
                         ? wordFitting.PreviewWithContinuation(previewLine, run, sourceOffset, tokenWidth)
                         : previewLine.PreviewAdvance(run, tokenWidth);
                 bool moveWholeToken = !preventWrapping && hasContent && canBreakBefore && !IsWhitespaceToken(token)
@@ -89,23 +98,24 @@ internal sealed partial class HtmlRenderLayoutEngine {
                             && MeasureInlineText(measuredToken, run.Style) <= width + 0.0001D);
                 if (moveWholeToken) {
                     firstLine = false;
-                    styledRuns.Add(run.CloneText(token, token, run.Style, run.IsFirstLetter));
+                    styledRuns.Add(run.CloneText(token, logicalToken, run.Style, run.IsFirstLetter));
                     continue;
                 }
                 if (!preventWrapping
                     && previewAdvance > width
                     && !IsWhitespaceToken(token)
                     && remainingWidth > 0.0001D
-                    && TryResolveFirstLineTokenSplit(token, run.Style, tokenStyle, remainingWidth, out int split, out HyphenationToken? prepared)) {
+                    && TryResolveFirstLineTokenSplit(token, logicalToken, run.Style, tokenStyle, remainingWidth,
+                        wordFitting.GetPrecedingCategory(run, sourceStartOffset), out int split, out HyphenationToken? prepared)) {
                     string prefix = token.Substring(0, split);
                     string suffix = token.Substring(split);
-                    HtmlInlineRun prefixRun = run.CloneText(prefix, prefix, tokenStyle, run.IsFirstLetter);
+                    HtmlInlineRun prefixRun = run.CloneText(prefix, logicalToken.Substring(0, split), tokenStyle, run.IsFirstLetter);
                     prefixRun.EndsFirstLine = true;
                     prefixRun.FirstLineHyphen = prepared.HasValue ? run.Style.HyphenateCharacter : string.Empty;
                     prefixRun.PreparedHyphenation = prepared?.SliceSource(0, split);
                     styledRuns.Add(prefixRun);
                     if (suffix.Length > 0) {
-                        HtmlInlineRun suffixRun = run.CloneText(suffix, suffix, run.Style, run.IsFirstLetter);
+                        HtmlInlineRun suffixRun = run.CloneText(suffix, logicalToken.Substring(split), run.Style, run.IsFirstLetter);
                         suffixRun.PreparedHyphenation = prepared?.SliceSource(split, token.Length - split);
                         styledRuns.Add(suffixRun);
                     }
@@ -116,15 +126,15 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 if (!preventWrapping && hasContent && previewAdvance > width
                     && (IsWhitespaceToken(token) || canBreakBefore)) firstLine = false;
                 HtmlRenderBoxStyle appliedStyle = firstLine ? tokenStyle : run.Style;
-                styledRuns.Add(run.CloneText(token, token, appliedStyle, run.IsFirstLetter));
+                styledRuns.Add(run.CloneText(token, logicalToken, appliedStyle, run.IsFirstLetter));
                 if (firstLine) {
                     previewLine.Add(new InlineSegment(token, tokenWidth, run));
                     if (!IsWhitespaceToken(token)) hasContent = true;
                 }
             }
         }
-        runs.Clear();
-        runs.AddRange(styledRuns);
+        targetRuns.Clear();
+        targetRuns.AddRange(styledRuns);
     }
 
     private static HtmlRenderBoxStyle CreateFirstLineRunStyle(HtmlInlineRun run, HtmlRenderBoxStyle firstLineStyle) {
@@ -144,16 +154,18 @@ internal sealed partial class HtmlRenderLayoutEngine {
 
     private bool TryResolveFirstLineTokenSplit(
         string token,
+        string logicalToken,
         HtmlRenderBoxStyle layoutStyle,
         HtmlRenderBoxStyle firstLineStyle,
         double width,
+        UnicodeCategory? precedingCategory,
         out int split,
         out HyphenationToken? prepared) {
         split = -1;
         prepared = null;
         ChargeLayoutOperations(token.Length, "first-line token search");
         string searchToken = GetFirstLineSearchToken(token, firstLineStyle, width);
-        HyphenationToken hyphenation = PrepareHyphenationToken(token, token, layoutStyle);
+        HyphenationToken hyphenation = PrepareHyphenationToken(token, logicalToken, layoutStyle);
         if (hyphenation.HasBreaks && firstLineStyle.HyphenateLimitLines != 0) {
             int FindBreak(IReadOnlyList<int> points) => FindLargestFittingFirstLineBreak(
                 hyphenation.PaintText, points.Where(point => point > 0 && point < searchToken.Length
@@ -170,7 +182,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
 
         IReadOnlyList<int> preferred = GetHtmlPreferredBreakPositions(
             searchToken,
-            allowCjkBreaks: layoutStyle.WordBreak != "keep-all");
+            allowCjkBreaks: layoutStyle.WordBreak != "keep-all",
+            precedingCategory);
         split = FindLargestFittingFirstLineBreak(searchToken, preferred, string.Empty, firstLineStyle, width);
         if (split > 0) return true;
         if (!AllowsEmergencyTokenBreak(layoutStyle)) return false;

@@ -159,61 +159,6 @@ internal sealed partial class HtmlRenderLayoutEngine {
         return null;
     }
 
-    private List<HtmlInlineRun> ApplyScopedFontFallbacks(IEnumerable<HtmlInlineRun> sourceRuns) {
-        var resolvedRuns = new List<HtmlInlineRun>();
-        foreach (HtmlInlineRun run in sourceRuns) {
-            if (run.Text.Length == 0 || run.AtomicBlock != null || run.FloatingBlock != null || run.PositionedMarkerElement != null) {
-                resolvedRuns.Add(run);
-                continue;
-            }
-
-            _fontUsage?.Observe(run.Text, run.Style.Font.FamilyName, run.Style.FontDescriptor);
-            IReadOnlyList<OfficeFontFallbackRun> fallbacks = _fonts.PlanFallbackRuns(
-                run.Text,
-                run.Style.Font.FamilyName,
-                run.Style.FontDescriptor);
-            string shapedText = OfficeArabicTextShaper.Shape(fallbacks.Count == 1 ? fallbacks[0].Text : run.Text);
-            if (fallbacks.Count == 1
-                && string.Equals(fallbacks[0].Text, run.Text, StringComparison.Ordinal)
-                && string.Equals(InlineFallbackFamilyRequest(fallbacks[0]), run.Style.Font.FamilyName, StringComparison.Ordinal)
-                && string.Equals(shapedText, run.Text, StringComparison.Ordinal)) {
-                resolvedRuns.Add(run);
-                continue;
-            }
-
-            int fallbackOffset = 0;
-            foreach (OfficeFontFallbackRun fallback in fallbacks) {
-                HtmlRenderBoxStyle style = run.Style.Clone();
-                style.Font = style.Font.WithFamilyName(InlineFallbackFamilyRequest(fallback));
-                var resolvedRun = new HtmlInlineRun(
-                    OfficeArabicTextShaper.Shape(fallback.Text),
-                    style,
-                    run.LinkUri,
-                    run.Source,
-                    run.PaintOffsetX,
-                    run.PaintOffsetY,
-                    run.OwnerElement,
-                    run.PositionedMarkerElement,
-                    fallback.Text) {
-                    InlineStrutStyles = run.InlineStrutStyles
-                };
-                resolvedRun.PreparedHyphenation = run.PreparedHyphenation?.SliceSource(fallbackOffset, fallback.Text.Length);
-                fallbackOffset += fallback.Text.Length;
-                resolvedRun.EndsFirstLine = run.EndsFirstLine && fallbackOffset == run.Text.Length;
-                resolvedRun.FirstLineHyphen = resolvedRun.EndsFirstLine ? run.FirstLineHyphen : string.Empty;
-                if (run.SemanticNodeId.HasValue) {
-                    resolvedRun.AssignSemanticNode(run.SemanticRole, run.SemanticNodeId.Value, run.BookmarkAnchorText, run.SemanticFragmentOrder);
-                }
-                if (run.InlineSemanticGroupRole.HasValue && run.InlineSemanticGroupKey != null) {
-                    resolvedRun.AssignInlineSemanticGroup(run.InlineSemanticGroupRole.Value, run.InlineSemanticGroupKey);
-                }
-                resolvedRuns.Add(resolvedRun);
-            }
-        }
-
-        return resolvedRuns;
-    }
-
     private static void AssignSemanticFragmentOrders(IEnumerable<HtmlInlineRun> runs) {
         var nextOrders = new Dictionary<int, int>();
         foreach (HtmlInlineRun run in runs) {

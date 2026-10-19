@@ -1,4 +1,5 @@
 using System.Text;
+using System.Globalization;
 using AngleSharp.Dom;
 
 namespace OfficeIMO.Html;
@@ -12,6 +13,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         double firstLineIndent = 0D;
         bool hasContent = false;
         bool pendingAtomicBreak = false;
+        UnicodeCategory? precedingCategory = null;
         var cloned = new List<(HtmlRenderBoxStyle Style, double Start, double End)>();
         var ends = new Dictionary<HtmlRenderBoxStyle, double>();
         foreach (IntrinsicTextRun edge in runs.Where(run => run.IsInlineInset && run.IsInlineInsetEnd)) {
@@ -31,6 +33,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         foreach (IntrinsicTextRun run in runs) {
             if (run.IsParagraphStart) {
                 FinishSegment();
+                precedingCategory = null;
                 firstLineIndent = run.Style.TextIndent?.ResolveIntrinsicContribution() ?? 0D;
                 continue;
             }
@@ -49,14 +52,18 @@ internal sealed partial class HtmlRenderLayoutEngine {
             }
             if (run.IsForcedBreak) {
                 FinishSegment();
+                precedingCategory = null;
                 continue;
             }
             if (pendingAtomicBreak) FinishSegment();
             if (run.IsReplaced) {
+                precedingCategory = null;
                 AddAdvance(run.ReplacedMinWidth);
                 pendingAtomicBreak = !run.Style.PreventTextWrapping;
                 continue;
             }
+            UnicodeCategory? runPrecedingCategory = precedingCategory;
+            if (run.Text.Length > 0) precedingCategory = GetPrecedingTextCategory(run.Text, run.Text.Length);
             if (run.Style.PreventTextWrapping) {
                 AddAdvance(run.Text.IndexOf('\t') >= 0
                     ? MeasureTabExpandedText(run.Text, run.Style, current)
@@ -80,7 +87,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
                         HyphenationToken hyphenation = PrepareHyphenationToken(token, token, run.Style);
                         string paintToken = hyphenation.PaintText;
                         var hyphenationBreaks = new HashSet<int>(hyphenation.PrimaryBreaks.Concat(hyphenation.SecondaryBreaks));
-                        IReadOnlyList<int> preferredBreaks = GetHtmlPreferredBreakPositions(paintToken, run.Style.WordBreak != "keep-all");
+                        IReadOnlyList<int> preferredBreaks = GetHtmlPreferredBreakPositions(paintToken,
+                            run.Style.WordBreak != "keep-all", start == 0 ? runPrecedingCategory : GetPrecedingTextCategory(run.Text, start));
                         int segmentStart = 0;
                         foreach (int end in preferredBreaks.Concat(hyphenationBreaks).Distinct().OrderBy(point => point)) {
                             if (end <= segmentStart || end > paintToken.Length) continue;
@@ -260,7 +268,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
             AppendNormalizedIntrinsicText(normalized, text.ToString(), run.Style);
             hasLineContent = hasAnyContent = true;
         }
-        return hasAnyContent ? normalized : Array.Empty<IntrinsicTextRun>();
+        return hasAnyContent ? PrepareArabicJoiningIntrinsicRuns(normalized) : Array.Empty<IntrinsicTextRun>();
     }
 
     private static bool IsCollapsibleCssWhitespace(char value) => value is ' ' or '\t' or '\n' or '\f' or '\r';

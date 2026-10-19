@@ -149,7 +149,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
         if (paintToken.Length != logicalToken.Length) return false;
         IReadOnlyList<int> breaks = GetHtmlPreferredBreakPositions(
             paintToken,
-            allowCjkBreaks: run.Style.WordBreak != "keep-all");
+            allowCjkBreaks: run.Style.WordBreak != "keep-all",
+            wordFitting.GetPrecedingCategory(run, sourceStartOffset));
         if (breaks.Count == 0) return false;
         int start = 0;
         foreach (int end in breaks.Concat(new[] { paintToken.Length })) {
@@ -194,12 +195,33 @@ internal sealed partial class HtmlRenderLayoutEngine {
         return start == paintToken.Length;
     }
 
-    private IReadOnlyList<int> GetHtmlPreferredBreakPositions(string text, bool allowCjkBreaks) {
-        // Normal HTML line layout keeps unspaced solidus text together in Chromium.
-        // Explicit overflow-wrap and word-break modes can still split it later.
-        return OfficeTextLineBreaks.GetBreakPositions(text, allowCjkBreaks, _cancellationToken)
-            .Where(point => text[point - 1] != '/')
-            .ToArray();
+    private IReadOnlyList<int> GetHtmlPreferredBreakPositions(string text, bool allowCjkBreaks,
+        UnicodeCategory? precedingCategory = null) {
+        // Keep the shared UAX #14 owner and the existing HTML solidus policy.
+        int[] positions = OfficeTextLineBreaks.GetBreakPositions(text, allowCjkBreaks, _cancellationToken)
+            .Where(point => text[point - 1] != '/').ToArray();
+        int firstHyphen = text.IndexOf('-');
+        if (firstHyphen < 0) return positions;
+        ChargeLayoutOperations(1L + (text.Length + 31L) / 32L, "HTML line-break tailoring");
+        SortedSet<int>? tailored = null;
+        // CSS Text distinguishes a word/range hyphen before a digit from a leading minus.
+        for (int index = firstHyphen; index + 1 < text.Length; index++) {
+            if (((index - firstHyphen) & 1023) == 0) CheckCancellation();
+            if (text[index] != '-' || !char.IsDigit(text, index + 1)) continue;
+            UnicodeCategory? before = index == 0 ? precedingCategory : GetPrecedingTextCategory(text, index);
+            if (before is UnicodeCategory.UppercaseLetter or UnicodeCategory.LowercaseLetter
+                or UnicodeCategory.TitlecaseLetter or UnicodeCategory.ModifierLetter
+                or UnicodeCategory.OtherLetter or UnicodeCategory.DecimalDigitNumber)
+                (tailored ??= new SortedSet<int>(positions)).Add(index + 1);
+        }
+        return tailored?.ToArray() ?? positions;
+    }
+
+    private static UnicodeCategory? GetPrecedingTextCategory(string text, int offset) {
+        if (offset <= 0) return null;
+        int previous = offset - 1;
+        if (previous > 0 && char.IsLowSurrogate(text[previous]) && char.IsHighSurrogate(text[previous - 1])) previous--;
+        return CharUnicodeInfo.GetUnicodeCategory(text, previous);
     }
 
     private double MeasureTabExpandedText(string value, HtmlRenderBoxStyle style, double currentWidth) {

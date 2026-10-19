@@ -274,7 +274,8 @@ internal static partial class ManagedTextShapingTestAssets {
         IReadOnlyDictionary<int, int>? glyphBottoms = null,
         IReadOnlyDictionary<int, int>? glyphWidths = null,
         IReadOnlyDictionary<int, int>? glyphLefts = null, byte[]? vdmx = null,
-        IReadOnlyList<(string Tag, byte[] Data)>? additionalTables = null) {
+        IReadOnlyList<(string Tag, byte[] Data)>? additionalTables = null,
+        IReadOnlyDictionary<int, ushort>? glyphAdvances = null) {
         // A zero-contour glyph still carries its header and empty instruction stream.
         // Keep the glyf table present so both drawing and PDF readers can admit the fixture.
         byte[] glyph = emptyGlyphs ? new byte[12] : CreateVisibleGlyph(400);
@@ -304,11 +305,19 @@ internal static partial class ManagedTextShapingTestAssets {
             WriteUInt16(maxp, 8, 1); // maxContours
             WriteUInt16(maxp, 14, 1); // maxZones
         }
+        byte[] hhea = CreateHheaTable(ascender, descender);
+        if (glyphAdvances != null) {
+            hmtx = new byte[checked(glyphCount * 4)];
+            for (int index = 0; index < glyphCount; index++) {
+                WriteUInt16(hmtx, index * 4, glyphAdvances.TryGetValue(index, out ushort advance) ? advance : (ushort)500);
+            }
+            WriteUInt16(hhea, 34, checked((ushort)glyphCount));
+        }
         var tables = new List<(string Tag, byte[] Data)> {
             ("cmap", cmap),
             ("glyf", glyf),
             ("head", CreateHeadTable()),
-            ("hhea", CreateHheaTable(ascender, descender)),
+            ("hhea", hhea),
             ("hmtx", hmtx),
             ("loca", loca),
             ("maxp", maxp),
