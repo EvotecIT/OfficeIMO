@@ -3175,7 +3175,7 @@ async function prepareDrawing(drawing, settings, fonts, used) {
             return existing;
         const font = fonts.select(slot === "bold" || slot === "boldItalic", slot === "italic" || slot === "boldItalic");
         if (!font.program || font.syntheticBold || font.syntheticItalic)
-            throw new NotSupportedError("Drawing text requires its exact embedded font face; supply fonts." + slot + ".");
+            throw new NotSupportedError("Drawing text without an exact embedded font face at fonts." + slot);
         drawingFonts.set(slot, font);
         return font;
     }

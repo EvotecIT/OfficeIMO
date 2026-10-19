@@ -6083,7 +6083,7 @@ _modules.set("2908c4b401414c852357df4b0792e2b68a1508c821a2aea6ee9772d6f94562a7",
 return _exports;
 })();
 
-const _m57 = _modules.get("248a60610bd5de6387f4245e79dc79cabeed41f91b8fc0f570d999305651d6a7") ?? (() => {
+const _m57 = _modules.get("2369ea1b72551c804d95e7d3f89bbece1fe7e7c7503345451879ef877b4b90f0") ?? (() => {
 const { NotSupportedError, OfficeIMOError } = _m2;
 
 const { checkAbort, pause, taskYieldDue } = _m4;
@@ -6247,7 +6247,7 @@ async function prepareDrawing(drawing, settings, fonts, used) {
             return existing;
         const font = fonts.select(slot === "bold" || slot === "boldItalic", slot === "italic" || slot === "boldItalic");
         if (!font.program || font.syntheticBold || font.syntheticItalic)
-            throw new NotSupportedError("Drawing text requires its exact embedded font face; supply fonts." + slot + ".");
+            throw new NotSupportedError("Drawing text without an exact embedded font face at fonts." + slot);
         drawingFonts.set(slot, font);
         return font;
     }
@@ -6326,11 +6326,11 @@ async function prepareDrawing(drawing, settings, fonts, used) {
     return { width: captured.width, height: captured.height, content: fragments.join(""), commands: captured.commands, elements: captured.elements };
 }
 const _exports = Object.freeze({ checkDrawingBlock: checkDrawingBlock, prepareDrawing: prepareDrawing });
-_modules.set("248a60610bd5de6387f4245e79dc79cabeed41f91b8fc0f570d999305651d6a7", _exports);
+_modules.set("2369ea1b72551c804d95e7d3f89bbece1fe7e7c7503345451879ef877b4b90f0", _exports);
 return _exports;
 })();
 
-const _m53 = _modules.get("f595ec24cbf74d7d89f7a1ce5251e068a3e75e1ebf04d8d91787334c9b394b4e") ?? (() => {
+const _m53 = _modules.get("2e94c07f933c8e8c042005e935e0b0a3a8bd782b815220f8863be728570e5981") ?? (() => {
 const { BlobByteSink, withDestination } = _m3;
 
 const { beginTask, checkAbort, consumeRows, pause, taskYieldDue } = _m4;
@@ -6483,7 +6483,7 @@ function checkTableOptions(options) {
         throw new TypeError("Table options support columns, headings, footers, widths and presentation; document settings belong on writePdfDocument.");
 }
 const _exports = Object.freeze({ pdfTable: pdfTable, writePdfDocument: writePdfDocument, writePdfDocumentTo: writePdfDocumentTo });
-_modules.set("f595ec24cbf74d7d89f7a1ce5251e068a3e75e1ebf04d8d91787334c9b394b4e", _exports);
+_modules.set("2e94c07f933c8e8c042005e935e0b0a3a8bd782b815220f8863be728570e5981", _exports);
 return _exports;
 })();
 
@@ -6527,17 +6527,17 @@ _modules.set("ed8eb038bc649a3b76f0797059ab082ebadd1b9a205b8cea7bda1f0c42ffe47b",
 return _exports;
 })();
 
-const _m35 = _modules.get("63a92f6dafb1949ed513c50b05c063012f67cdb80d47e66250de3d8badd4bae7") ?? (() => {
+const _m35 = _modules.get("388158d4403b323c761c5cdb26e27a7e538e9704bf1e1b0561fa49fac1a14279") ?? (() => {
 
 const _exports = Object.freeze({ writePdf: _m36.writePdf, writePdfTo: _m36.writePdfTo, writePdfDocument: _m53.writePdfDocument, writePdfDocumentTo: _m53.writePdfDocumentTo, pdfTable: _m53.pdfTable, PdfFont: _m42.PdfFont, preflightPdfText: _m58.preflightPdfText, ExportCell: _m5.ExportCell, saveBlob: _m1.saveBlob });
-_modules.set("63a92f6dafb1949ed513c50b05c063012f67cdb80d47e66250de3d8badd4bae7", _exports);
+_modules.set("388158d4403b323c761c5cdb26e27a7e538e9704bf1e1b0561fa49fac1a14279", _exports);
 return _exports;
 })();
 
-const _m0 = _modules.get("18a4f409151a34db09dad63e41aee4bb278b0900aa2b89505f4a6110824fe0a3") ?? (() => {
+const _m0 = _modules.get("afc7ff57991098a708ae3d3cea4dff19f750e61fb48bf4ab55ec7555c9082ebb") ?? (() => {
 
 const _exports = Object.freeze({ core: _m1, zip: _m8, xml: _m11, opc: _m12, xlsx: _m15, csv: _m34, pdf: _m35, Workbook: _m15.Workbook, Worksheet: _m15.Worksheet, Cell: _m15.Cell, StyleRegistry: _m15.StyleRegistry, NumberFormats: _m15.NumberFormats, writeXlsx: _m15.writeXlsx, writeXlsxTo: _m15.writeXlsxTo, writeCsv: _m34.writeCsv, writeCsvTo: _m34.writeCsvTo, writePdf: _m35.writePdf, writePdfTo: _m35.writePdfTo, writePdfDocument: _m35.writePdfDocument, writePdfDocumentTo: _m35.writePdfDocumentTo, pdfTable: _m35.pdfTable, PdfFont: _m35.PdfFont, preflightPdfText: _m35.preflightPdfText, saveBlob: _m1.saveBlob, ExportCell: _m1.ExportCell });
-_modules.set("18a4f409151a34db09dad63e41aee4bb278b0900aa2b89505f4a6110824fe0a3", _exports);
+_modules.set("afc7ff57991098a708ae3d3cea4dff19f750e61fb48bf4ab55ec7555c9082ebb", _exports);
 return _exports;
 })();
 Object.assign(officeimo, _m0);
