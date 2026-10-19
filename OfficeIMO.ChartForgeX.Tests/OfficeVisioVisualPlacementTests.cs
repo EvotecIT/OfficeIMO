@@ -347,7 +347,7 @@ public sealed partial class OfficeVisioVisualIntegrationTests {
 
     [Fact]
     public void NativeGraphUsesSourceCardColorsAndAllowsExplicitThemeOverride() {
-        var chart = TopologyChart.Create().WithThemeMode(VisualThemeMode.Light).AddNode("a", "Service", 100, 100);
+        TopologyChart chart = TopologyChart.Create().WithThemeMode(VisualThemeMode.Light).AddNode("a", "Service", 100, 100);
         chart.ConfigureTheme(theme => {
             theme.Light.Surface = ChartColor.FromHex("#F0F4FA");
             theme.Light.Foreground = ChartColor.FromHex("#14243A");

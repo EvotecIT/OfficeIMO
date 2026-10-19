@@ -9,7 +9,7 @@ public static partial class OfficeDrawingPortableExporter {
             if (!string.Equals(text.Font.FamilyName, Options.FontFamily, StringComparison.OrdinalIgnoreCase)) {
                 // SVG producers may append generic fallbacks. The qualified face must
                 // remain first; the face and glyph checks below still forbid substitution.
-                var families = OfficeFontFamilyParser.Parse(text.Font.FamilyName);
+                System.Collections.Generic.List<string> families = OfficeFontFamilyParser.Parse(text.Font.FamilyName, requirePrimaryFamily: true);
                 if (families.Count == 0 || !string.Equals(families[0], Options.FontFamily, StringComparison.OrdinalIgnoreCase))
                     Fail("DRAWING_FONT_FAMILY_UNSUPPORTED", "Every text run must use the explicitly selected font family.", location);
             }
