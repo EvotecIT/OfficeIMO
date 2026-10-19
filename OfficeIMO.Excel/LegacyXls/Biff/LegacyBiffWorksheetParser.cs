@@ -2,7 +2,7 @@ using OfficeIMO.Excel.LegacyXls.Diagnostics;
 using OfficeIMO.Excel.LegacyXls.Model;
 
 namespace OfficeIMO.Excel.LegacyXls.Biff {
-    internal static class LegacyBiffWorksheetParser {
+    internal static partial class LegacyBiffWorksheetParser {
         internal static void Parse(
             byte[] workbookStream,
             ushort workbookGlobalsBiffVersion,
@@ -108,6 +108,14 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                     conditionalFormattingState.AddUnresolvedFeatures(unsupportedFeatures, preservedFeatureRecords, diagnostics, options.ReportUnsupportedContent);
                     sharedFormulaState.AddUnresolvedDiagnostics();
                     return;
+                }
+
+                if (nestedSubstreamDepth > 0) {
+                    ReadNestedChartRecord(new BiffRecord(type, offset, payload), sheet.Name, chartMetadataState,
+                        externSheets, externalReferences, sheetNames, definedNames, chartRecords, drawingRecords,
+                        formulaTokenRecords, unsupportedFeatures, preservedFeatureRecords, diagnostics, options, decodedImageBudget);
+                    offset = payloadOffset + length;
+                    continue;
                 }
 
                 ParseWorksheetRecord(sheet, workbookGlobalsBiffVersion, sharedStrings, externSheets, externalReferences, sheetNames, definedNames, unsupportedFeatures, preservedFeatureRecords, pivotTableRecords, chartRecords, drawingRecords, externalQueryConnections, calculationSettings, formulaTokenRecords, diagnostics, options, decodedImageBudget, commentState, drawingTextObjectState, drawingContinuationState, conditionalFormattingState, sharedFormulaState, chartMetadataState, pivotTableMetadataState, type, offset, payload, ref frozenWindow, ref pendingFormulaString);

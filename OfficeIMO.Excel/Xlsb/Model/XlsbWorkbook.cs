@@ -27,6 +27,8 @@ namespace OfficeIMO.Excel.Xlsb.Model {
 
         internal Dictionary<string, XlsbProjectedPart> RelatedParts { get; } = new(StringComparer.OrdinalIgnoreCase);
 
+        internal Dictionary<string, string> ProjectionPartUris { get; } = new(StringComparer.OrdinalIgnoreCase);
+
         internal string? VbaProjectPartName { get; set; }
 
         internal IReadOnlyList<XlsbDefinedName> DefinedNames => _definedNames;

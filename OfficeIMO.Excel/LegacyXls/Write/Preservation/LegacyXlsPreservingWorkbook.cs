@@ -10,10 +10,13 @@ namespace OfficeIMO.Excel.LegacyXls.Write;
 
 /// <summary>Keeps native records/reference tables and edits existing fixed-width literal cell records.</summary>
 internal sealed partial class LegacyXlsPreservingWorkbook {
+    private readonly LegacyXlsWorkbook _model;
+    private readonly Dictionary<string, int> _nativeSheets = new(StringComparer.Ordinal);
     private readonly OfficeCompoundFile _compound;
     private readonly string _streamName;
     private readonly IReadOnlyList<BiffRecord> _records;
     private readonly Dictionary<(string, string), CellSlot> _cells = new();
+    internal IReadOnlyDictionary<string, int> NativeIndexes => _nativeSheets;
     private readonly int _sstIndex;
     private readonly int _sstEnd;
     private readonly int _extSstIndex;
@@ -22,6 +25,7 @@ internal sealed partial class LegacyXlsPreservingWorkbook {
     private readonly Dictionary<string, uint> _plainStrings = new(StringComparer.Ordinal);
 
     internal LegacyXlsPreservingWorkbook(LegacyXlsWorkbook workbook, CancellationToken cancellationToken) {
+        _model = workbook;
         _compound = workbook.SourceCompoundFile!;
         byte[] raw = LegacyWorkbookStreamLocator.FindWorkbookStream(_compound.Streams) ?? throw new NotSupportedException("Missing native workbook stream.");
         _streamName = _compound.Streams.First(item => ReferenceEquals(item.Value, raw)).Key;
@@ -49,6 +53,11 @@ internal sealed partial class LegacyXlsPreservingWorkbook {
                 if ((payloads[segment][offset] & 0x0c) == 0 && !_plainStrings.ContainsKey(values[index].Text))
                     _plainStrings.Add(values[index].Text, checked((uint)index));
             }
+        }
+        foreach (var record in _records.TakeWhile(record => record.Type != 0x000a).Where(record => record.Type == 0x0085)) {
+            int offset = 7;
+            string name = BiffStringReader.ReadUnicodeStringNoCch(record.Payload, ref offset, record.Payload[6]);
+            _nativeSheets.Add(name, _nativeSheets.Count);
         }
         var recordIndexes = _records.Select((record, index) => (record.Offset, Index: index)).ToDictionary(item => item.Offset, item => item.Index);
         foreach (var sheet in workbook.Worksheets) {
@@ -94,14 +103,14 @@ internal sealed partial class LegacyXlsPreservingWorkbook {
         cancellationToken.ThrowIfCancellationRequested();
         if (_compound.Streams[_streamName].LongLength > maximumBytes) throw OfficeOutputLimit.Create("Native XLS preservation exceeds the output materialization limit.");
         var replacements = new Dictionary<int, byte[]>();
-        var strings = new List<string>(); var stringIndexes = new Dictionary<string, uint>(_plainStrings, StringComparer.Ordinal);
+        var strings = new List<LegacyXlsPreservedString>(); var stringIndexes = new Dictionary<string, uint>(_plainStrings, StringComparer.Ordinal);
         foreach (var edit in changes) {
             cancellationToken.ThrowIfCancellationRequested();
             if (!CanApply(edit)) throw new NotSupportedException("The native XLS literal edit is outside the preserving profile.");
             var slot = _cells[(edit.Sheet, edit.Cell)];
             if (!replacements.TryGetValue(slot.Record, out var data)) replacements.Add(slot.Record, data = (byte[])_records[slot.Record].Payload.Clone());
             if (slot.Kind == "text") {
-                if (!stringIndexes.TryGetValue(edit.Text, out uint index)) { index = checked(_stringCount + (uint)strings.Count); stringIndexes.Add(edit.Text, index); strings.Add(edit.Text); }
+                if (!stringIndexes.TryGetValue(edit.Text, out uint index)) { index = checked(_stringCount + (uint)strings.Count); stringIndexes.Add(edit.Text, index); strings.Add(new LegacyXlsPreservedString(edit.Text, Array.Empty<LegacyXlsTextFormattingRun>())); }
                 WriteUInt32(data, slot.ValueOffset, index);
             } else if (slot.Kind == "boolean") data[slot.ValueOffset] = edit.Text == "1" || bool.TryParse(edit.Text, out bool flag) && flag ? (byte)1 : (byte)0;
             else if (slot.Kind == "error") { TryGetErrorCode(edit.Text, out byte error); data[slot.ValueOffset] = error; }
@@ -113,7 +122,9 @@ internal sealed partial class LegacyXlsPreservingWorkbook {
         }
         byte[] workbook = RewriteRecords(replacements, strings, filePass, maximumBytes, cancellationToken);
         if (transform != null) workbook = transform(workbook);
-        return OfficeCompoundFileWriter.Rewrite(_compound, new Dictionary<string, byte[]>(StringComparer.OrdinalIgnoreCase) { [_streamName] = workbook }, maxOutputBytes: maximumBytes);
+        var compoundReplacements = new Dictionary<string, byte[]>(StringComparer.OrdinalIgnoreCase) { [_streamName] = workbook };
+        if (transform != null) LegacyXlsCompoundEncryption.AddEncryptedAuxiliaryStreams(_compound, compoundReplacements, transform);
+        return OfficeCompoundFileWriter.Rewrite(_compound, compoundReplacements, maxOutputBytes: maximumBytes);
     }
 
     private static bool TryEncodeRk(double value, out uint encoded) {

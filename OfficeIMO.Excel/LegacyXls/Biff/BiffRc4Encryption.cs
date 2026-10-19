@@ -84,9 +84,9 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
         }
 
         internal static byte[] EncryptWorkbookStream(byte[] workbookStream, string password, byte[] salt) {
-            return BiffRc4WorkbookStreamCipher.Transform(
+            return BiffRc4RecordStreamCipher.Transform(
                 workbookStream,
-                block => DeriveKey(salt, password, block));
+                block => DeriveKey(salt, password, block), requireCompleteRecords: true);
         }
 
         private static bool TryReadDescriptor(byte[] payload, out Rc4Descriptor? descriptor, out string? error) {
@@ -117,7 +117,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
         }
 
         private static byte[] TransformWorkbookStream(byte[] workbookStream, Rc4Descriptor descriptor, string password) {
-            return BiffRc4WorkbookStreamCipher.Transform(
+            return BiffRc4RecordStreamCipher.Transform(
                 workbookStream,
                 block => DeriveKey(descriptor.Salt, password, block));
         }

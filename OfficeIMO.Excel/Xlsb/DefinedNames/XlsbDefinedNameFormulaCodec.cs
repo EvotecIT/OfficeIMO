@@ -140,6 +140,10 @@ namespace OfficeIMO.Excel.Xlsb.NameRecords {
                 reason = "an external workbook or non-self supporting link";
                 return false;
             }
+            if (externalSheet.FirstSheetIndex == -1 || externalSheet.LastSheetIndex == -1) {
+                reference = "#REF!";
+                return true;
+            }
             if (externalSheet.FirstSheetIndex != externalSheet.LastSheetIndex
                 || externalSheet.FirstSheetIndex < 0
                 || externalSheet.FirstSheetIndex >= worksheets.Count) {

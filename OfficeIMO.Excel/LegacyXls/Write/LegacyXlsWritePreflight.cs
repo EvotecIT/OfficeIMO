@@ -67,7 +67,7 @@ namespace OfficeIMO.Excel.LegacyXls.Write {
             }
         }
 
-        private static void ThrowIfUnsupported(
+        internal static void ThrowIfUnsupported(
             ExcelSheet sheet,
             int sheetIndex,
             WorkbookPart workbookPart,

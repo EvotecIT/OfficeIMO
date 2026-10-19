@@ -139,6 +139,14 @@ namespace OfficeIMO.Excel.Xlsb.Write {
             XlsbRecordWriter.Write(output, endRecord);
         }
 
+        internal static XlsbGeneratedRecord CreateNumberFormatRecord(NumberingFormat value) {
+            using var output = new MemoryStream();
+            WriteNumberFormat(output, value);
+            output.Position = 0;
+            var record = XlsbRecordReader.ReadAll(output).Single();
+            return new XlsbGeneratedRecord(record.Type, record.Data);
+        }
+
         private static void WriteNumberFormat(Stream output, NumberingFormat format) {
             uint id = format.NumberFormatId?.Value
                 ?? throw new NotSupportedException("Native XLSB generation requires every custom number format to have an id.");
@@ -192,6 +200,14 @@ namespace OfficeIMO.Excel.Xlsb.Write {
             return new XlsbGeneratedRecord(BrtFont, payload.ToArray());
         }
 
+        internal static XlsbGeneratedRecord CreateFillRecord(Fill value) {
+            using var output = new MemoryStream();
+            WriteFill(output, value);
+            output.Position = 0;
+            var record = XlsbRecordReader.ReadAll(output).Single();
+            return new XlsbGeneratedRecord(record.Type, record.Data);
+        }
+
         private static void WriteFill(Stream output, Fill fill) {
             GradientFill? gradient = fill.GetFirstChild<GradientFill>();
             if (gradient != null) {
@@ -207,6 +223,14 @@ namespace OfficeIMO.Excel.Xlsb.Write {
             for (int index = 0; index < 5; index++) WriteDouble(payload, 0D);
             WriteUInt32(payload, 0);
             XlsbRecordWriter.Write(output, BrtFill, payload.ToArray());
+        }
+
+        internal static XlsbGeneratedRecord CreateBorderRecord(Border value) {
+            using var output = new MemoryStream();
+            WriteBorder(output, value);
+            output.Position = 0;
+            var record = XlsbRecordReader.ReadAll(output).Single();
+            return new XlsbGeneratedRecord(record.Type, record.Data);
         }
 
         private static void WriteBorder(Stream output, Border border) {

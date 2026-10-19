@@ -55,7 +55,7 @@ namespace OfficeIMO.Excel.Xlsb.Write {
             IReadOnlyList<XlsbWriteCell> cells,
             int cellFormatCount,
             IReadOnlyList<XlsbGeneratedRecord> hyperlinkRecords,
-            XlsbSharedStringTable? sharedStrings = null, long maximumBytes = int.MaxValue) {
+            XlsbSharedStringTable? sharedStrings = null, long maximumBytes = int.MaxValue, string? codeName = null) {
             if (sheet == null) throw new ArgumentNullException(nameof(sheet));
             if (cells == null) throw new ArgumentNullException(nameof(cells));
             if (hyperlinkRecords == null) throw new ArgumentNullException(nameof(hyperlinkRecords));
@@ -71,7 +71,9 @@ namespace OfficeIMO.Excel.Xlsb.Write {
             XlsbRecordWriter.Write(output, 129); // BrtBeginSheet
             Worksheet worksheet = sheet.WorksheetPart.Worksheet
                 ?? throw new InvalidDataException($"Worksheet '{sheet.Name}' has no worksheet root.");
-            XlsbWorksheetPropertiesWriter.Write(output, worksheet.GetFirstChild<SheetProperties>(), sheet.Name);
+            var properties = worksheet.GetFirstChild<SheetProperties>();
+            if (codeName != null) { properties = properties == null ? new SheetProperties() : (SheetProperties)properties.CloneNode(true); properties.CodeName = codeName; }
+            XlsbWorksheetPropertiesWriter.Write(output, properties, sheet.Name);
             XlsbRecordWriter.Write(output, BrtWsDim, geometry.DimensionPayload);
             foreach (XlsbGeneratedRecord record in geometry.PrefixRecords) {
                 XlsbRecordWriter.Write(output, record.Type, record.Payload);

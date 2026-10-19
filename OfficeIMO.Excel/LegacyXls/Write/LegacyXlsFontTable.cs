@@ -6,7 +6,7 @@ using System.Globalization;
 using System.Text;
 
 namespace OfficeIMO.Excel.LegacyXls.Write {
-    internal sealed class LegacyXlsFontTable {
+    internal sealed partial class LegacyXlsFontTable {
         private const ushort AutomaticColorIndex = 0x7fff;
         private const string DefaultFontName = "Calibri";
         private const double DefaultFontSize = 11d;
@@ -19,9 +19,9 @@ namespace OfficeIMO.Excel.LegacyXls.Write {
         private readonly LegacyXlsThemeColorResolver _themeColors;
         private List<string>? _paletteColors;
 
-        private LegacyXlsFontTable(LegacyXlsThemeColorResolver themeColors) {
+        private LegacyXlsFontTable(LegacyXlsThemeColorResolver themeColors, bool addDefaults = true) {
             _themeColors = themeColors ?? throw new ArgumentNullException(nameof(themeColors));
-            AddRequiredDefaultFonts();
+            if (addDefaults) AddRequiredDefaultFonts();
         }
 
         internal IReadOnlyList<byte[]> FontRecords => _entries.Select(BuildFontPayload).ToArray();

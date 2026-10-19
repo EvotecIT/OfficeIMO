@@ -107,7 +107,11 @@ namespace OfficeIMO.Excel.LegacyXls.Projection {
                 sheets.Add(new LegacyXlsSheetProjectionEntry(chartSheet.StreamOffset, null, chartSheet));
             }
 
-            sheets.Sort((left, right) => left.StreamOffset.CompareTo(right.StreamOffset));
+            sheets.Sort((left, right) => {
+                int first = workbook.NativeSheetOrder.TryGetValue(left.StreamOffset, out int leftOrder) ? leftOrder : left.StreamOffset;
+                int second = workbook.NativeSheetOrder.TryGetValue(right.StreamOffset, out int rightOrder) ? rightOrder : right.StreamOffset;
+                return first.CompareTo(second);
+            });
             return sheets;
         }
 

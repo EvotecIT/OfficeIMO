@@ -44,15 +44,6 @@ public sealed class ExcelLegacyNativePreservationTests {
     }
 
     [Fact]
-    public void Unsupported_structural_edit_is_rejected_without_touching_the_destination() {
-        using var document = ExcelDocument.Load(Fixture);
-        document.Sheets[0].Name = "Renamed worksheet";
-        using var destination = new MemoryStream(); destination.WriteByte(42);
-        Assert.Throws<NotSupportedException>(() => document.Save(destination, ExcelFileFormat.Xls));
-        Assert.Equal(new byte[] { 42 }, destination.ToArray());
-    }
-
-    [Fact]
     public void Existing_numeric_record_can_change_without_rebuilding_reference_tables() {
         var source = LegacyXlsWorkbook.Load(Fixture);
         var nativeSheet = source.Worksheets.First(sheet => sheet.Cells.Any(cell => cell.Kind == LegacyXlsCellValueKind.Number && !cell.IsFormula));
@@ -108,16 +99,17 @@ public sealed class ExcelLegacyNativePreservationTests {
     }
 
     [Fact]
-    public void Unsupported_shared_string_format_changes_are_rejected() {
-        using var document = ExcelDocument.Load(Fixture);
+    public void Shared_string_format_edits_are_encoded_without_reindexing_original_strings() {
+        using var document = ExcelDocument.Load(new MemoryStream(File.ReadAllBytes(Fixture)));
         var cell = document.Sheets[0].WorksheetPart.Worksheet!.Descendants<DocumentFormat.OpenXml.Spreadsheet.Cell>().First(item => item.CellReference?.Value == "A1");
         int index = int.Parse(cell.CellValue!.Text, System.Globalization.CultureInfo.InvariantCulture);
         var item = document.WorkbookPartRoot.SharedStringTablePart!.SharedStringTable!.Elements<DocumentFormat.OpenXml.Spreadsheet.SharedStringItem>().ElementAt(index);
         string text = item.InnerText; item.RemoveAllChildren();
         item.Append(new DocumentFormat.OpenXml.Spreadsheet.Run(new DocumentFormat.OpenXml.Spreadsheet.RunProperties(new DocumentFormat.OpenXml.Spreadsheet.Bold()), new DocumentFormat.OpenXml.Spreadsheet.Text(text)));
-        using var output = new MemoryStream(); output.WriteByte(42);
-        Assert.Throws<NotSupportedException>(() => document.Save(output, ExcelFileFormat.Xls));
-        Assert.Equal(new byte[] { 42 }, output.ToArray());
+        using var output = new MemoryStream(); document.Save(output, ExcelFileFormat.Xls);
+        using var reloaded = ExcelDocument.Load(new MemoryStream(output.ToArray()));
+        Assert.Equal(text, reloaded.Sheets[0].CellAt(1, 1).GetValue<string>());
+        Assert.All(reloaded.Sheets[0].CellAt(1, 1).GetRichText(), run => Assert.True(run.Bold));
     }
 
     [Theory]

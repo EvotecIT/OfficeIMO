@@ -6,7 +6,7 @@ namespace OfficeIMO.Tests;
 
 public sealed class ExcelLegacyVbaProducerPreservationTests {
     [Fact]
-    public void Native_xls_save_rejects_new_cells_in_an_independent_chart_macro_workbook_without_touching_output() {
+    public void Native_xls_cell_addition_retains_independent_chart_and_macro_carriers() {
         string path = Path.Combine(RepositoryTestPaths.Find(), "OfficeIMO.TestAssets", "Documents", "LegacyXlsCorpus", "openpreserve-format-corpus", "valid.xls");
         byte[] source = File.ReadAllBytes(path);
         Assert.True(OfficeCompoundFileReader.TryRead(source, out OfficeCompoundFile? original, out string? sourceError), sourceError);
@@ -15,11 +15,12 @@ public sealed class ExcelLegacyVbaProducerPreservationTests {
         using var document = ExcelDocument.Load(new MemoryStream(source));
         document.Sheets[0].CellValue(1, 1, "Cell edit with original VBA retained");
         Assert.NotEmpty(document.LegacyXlsChartSheets);
-        // A1 is absent in this source, so adding it exceeds the fixed-width literal preserving profile.
-        using var destination = new MemoryStream(new byte[] { 1, 2, 3, 4 }, writable: true);
-        var exception = Assert.Throws<NotSupportedException>(() => document.Save(destination, ExcelFileFormat.Xls,
-            new ExcelSaveOptions { LossPolicy = OfficeConversionLossPolicy.Allow }));
-        Assert.Contains("unsupported sheet types", exception.Message);
-        Assert.Equal(new byte[] { 1, 2, 3, 4 }, destination.ToArray());
+        using var destination = new MemoryStream();
+        document.Save(destination, ExcelFileFormat.Xls);
+        using var reloaded = ExcelDocument.Load(new MemoryStream(destination.ToArray()));
+        Assert.Equal("Cell edit with original VBA retained", reloaded.Sheets[0].CellAt(1, 1).GetValue<string>());
+        Assert.Equal(document.LegacyXlsChartSheets.Count, reloaded.LegacyXlsChartSheets.Count);
+        Assert.True(OfficeCompoundFileReader.TryRead(destination.ToArray(), out OfficeCompoundFile? saved, out string? error), error);
+        foreach (var stream in originalVba) Assert.Equal(stream.Value, saved!.Streams[stream.Key]);
     }
 }

@@ -49,17 +49,22 @@ namespace OfficeIMO.Excel.Xlsb.Write {
 
         internal byte[]? SourceRecordData { get; }
 
-        internal static XlsbWriteCell PreserveSource(XlsbCell source) {
+        internal static XlsbWriteCell PreserveSource(XlsbCell source, uint? styleIndex = null) {
             if (source == null) throw new ArgumentNullException(nameof(source));
+            byte[] data = source.SourceRecordData ?? throw new InvalidDataException("The XLSB source cell has no preserved record payload.");
+            if (styleIndex.HasValue && styleIndex.Value != source.StyleIndex) {
+                if (data.Length < 8 || styleIndex.Value > 0xFFFFFF) throw new InvalidDataException("Invalid native XLSB style reference.");
+                data = (byte[])data.Clone(); for (int index = 0; index < 3; index++) data[4 + index] = (byte)(styleIndex.Value >> (index * 8));
+            }
             return new XlsbWriteCell(
                 source.Row,
                 source.Column,
-                source.StyleIndex,
+                styleIndex ?? source.StyleIndex,
                 ToWriteKind(source),
                 source.Value,
                 source.FormulaPayloadBytes,
                 source.SourceRecordType,
-                source.SourceRecordData ?? throw new InvalidDataException("The XLSB source cell has no preserved record payload."));
+                data);
         }
 
         private static XlsbWriteCellKind ToWriteKind(XlsbCell source) {

@@ -142,6 +142,7 @@ namespace OfficeIMO.Excel {
                     throw new ArgumentException("Worksheet not found in workbook.", nameof(sheet));
                 }
 
+                var originalOrder = orderedSheets.ToArray();
                 target.Remove();
                 orderedSheets.Remove(target);
                 if (targetIndex >= orderedSheets.Count) {
@@ -150,6 +151,7 @@ namespace OfficeIMO.Excel {
                     sheets.InsertBefore(target, orderedSheets[targetIndex]);
                 }
 
+                ReindexLocalNamesAfterSheetReorder(originalOrder, sheets.Elements<Sheet>().ToArray());
                 MarkSheetCacheDirty();
                 WorkbookRoot.Save();
             });

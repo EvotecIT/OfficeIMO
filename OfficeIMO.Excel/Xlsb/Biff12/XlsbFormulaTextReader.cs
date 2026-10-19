@@ -1,5 +1,6 @@
 using OfficeIMO.Excel.LegacyXls.Biff;
 using System.Globalization;
+using OfficeIMO.Excel.Xlsb.Model;
 
 namespace OfficeIMO.Excel.Xlsb.Biff12 {
     /// <summary>
@@ -19,7 +20,7 @@ namespace OfficeIMO.Excel.Xlsb.Biff12 {
         private const int RangePrecedence = 9;
         private const int AtomPrecedence = 10;
 
-        internal static bool TryRead(byte[] tokens, out string? formulaText) {
+        internal static bool TryRead(byte[] tokens, out string? formulaText, XlsbWorkbook? workbook = null) {
             if (tokens == null) throw new ArgumentNullException(nameof(tokens));
 
             formulaText = null;
@@ -129,6 +130,31 @@ namespace OfficeIMO.Excel.Xlsb.Biff12 {
                         byte parameterCount = tokens[offset++];
                         if (!TryReadUInt16(tokens, ref offset, out ushort functionBits)
                             || !ApplyVariableFunction(stack, parameterCount, functionBits)) return false;
+                        break;
+                    case 0x23:
+                    case 0x43:
+                    case 0x63:
+                        if (!TryReadUInt32(tokens, ref offset, out uint nameId) || workbook == null || nameId == 0 || nameId > workbook.DefinedNames.Count) return false;
+                        stack.Push(new FormulaExpression(workbook.DefinedNames[(int)nameId - 1].Name, AtomPrecedence));
+                        break;
+                    case 0x3A:
+                    case 0x5A:
+                    case 0x7A:
+                    case 0x3B:
+                    case 0x5B:
+                    case 0x7B:
+                        if (!TryReadUInt16(tokens, ref offset, out ushort externalId) || workbook == null || externalId >= workbook.ExternalSheetReferences.Count) return false;
+                        var external = workbook.ExternalSheetReferences[externalId];
+                        if (external.SupportingLinkIndex >= workbook.SelfSupportingLinks.Count || !workbook.SelfSupportingLinks[(int)external.SupportingLinkIndex]) return false;
+                        string? local;
+                        if (!((token & 0x1F) == 0x1B ? TryReadArea(tokens, ref offset, out local) : TryReadReference(tokens, ref offset, out local))) return false;
+                        if (external.FirstSheetIndex == -1 || external.LastSheetIndex == -1) {
+                            stack.Push(new FormulaExpression("#REF!", AtomPrecedence)); break;
+                        }
+                        if (external.FirstSheetIndex < 0 || external.LastSheetIndex < 0 || external.FirstSheetIndex >= workbook.Sheets.Count || external.LastSheetIndex >= workbook.Sheets.Count) return false;
+                        string sheetName = workbook.Sheets[external.FirstSheetIndex].Name;
+                        if (external.FirstSheetIndex != external.LastSheetIndex) sheetName += ":" + workbook.Sheets[external.LastSheetIndex].Name;
+                        stack.Push(new FormulaExpression("'" + sheetName.Replace("'", "''") + "'!" + local, AtomPrecedence));
                         break;
                     case 0x24:
                     case 0x44:

@@ -2,6 +2,7 @@ using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Spreadsheet;
 using DocumentFormat.OpenXml.Packaging;
 using OfficeIMO.Excel.LegacyXls.Model;
+using OfficeIMO.Excel.LegacyXls.Compound;
 using OfficeIMO.Core.Internal;
 using System.Diagnostics;
 using System.Globalization;
@@ -65,12 +66,12 @@ namespace OfficeIMO.Excel.LegacyXls.Write {
             document.Execution.ReportTiming(operation, elapsed);
         }
 
-        private static byte[] BuildCompoundFile(ExcelDocument document, byte[] workbookStream, long maximumBytes = int.MaxValue) {
+        private static byte[] BuildCompoundFile(ExcelDocument document, byte[] workbookStream, long maximumBytes = int.MaxValue, Func<byte[], byte[]>? encryptAuxiliary = null) {
             return BuildCompoundFile(
                 document,
                 new OfficeCompoundStream(
                     GetWorkbookStreamName(document.LegacyXlsSourceCompoundFile),
-                    workbookStream), maximumBytes);
+                    workbookStream), maximumBytes, encryptAuxiliary);
         }
 
         private static byte[] BuildCompoundFile(
@@ -92,7 +93,7 @@ namespace OfficeIMO.Excel.LegacyXls.Write {
 
         private static byte[] BuildCompoundFile(
             ExcelDocument document,
-            OfficeCompoundStream workbookStream, long maximumBytes = int.MaxValue) {
+            OfficeCompoundStream workbookStream, long maximumBytes = int.MaxValue, Func<byte[], byte[]>? encryptAuxiliary = null) {
             IReadOnlyList<OfficeCompoundStream> propertyStreams = LegacyOlePropertySetWriter.CreateDocumentPropertyStreams(document);
             var streams = new List<OfficeCompoundStream>(propertyStreams.Count + 1) {
                 workbookStream
@@ -106,9 +107,9 @@ namespace OfficeIMO.Excel.LegacyXls.Write {
                 return bounded.ToArray();
             }
 
-            return OfficeCompoundFileWriter.Rewrite(
-                sourceCompoundFile,
-                streams.ToDictionary(stream => stream.Name, stream => stream.Bytes, StringComparer.OrdinalIgnoreCase), maxOutputBytes: maximumBytes);
+            var replacements = streams.ToDictionary(stream => stream.Name, stream => stream.Bytes, StringComparer.OrdinalIgnoreCase);
+            if (encryptAuxiliary != null) LegacyXlsCompoundEncryption.AddEncryptedAuxiliaryStreams(sourceCompoundFile, replacements, encryptAuxiliary);
+            return OfficeCompoundFileWriter.Rewrite(sourceCompoundFile, replacements, maxOutputBytes: maximumBytes);
         }
 
         private static string GetWorkbookStreamName(OfficeCompoundFile? sourceCompoundFile) {

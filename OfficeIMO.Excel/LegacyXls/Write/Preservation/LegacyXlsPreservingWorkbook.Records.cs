@@ -6,8 +6,8 @@ using System.Threading;
 namespace OfficeIMO.Excel.LegacyXls.Write;
 
 internal sealed partial class LegacyXlsPreservingWorkbook {
-    private byte[] RewriteRecords(Dictionary<int, byte[]> replacements, IReadOnlyList<string> strings,
-        byte[]? filePass, long maximumBytes, CancellationToken cancellationToken) {
+    private byte[] RewriteRecords(Dictionary<int, byte[]> replacements, IReadOnlyList<LegacyXlsPreservedString> strings,
+        byte[]? filePass, long maximumBytes, CancellationToken cancellationToken, EditingLayout? editing = null) {
         var output = new List<OutputRecord>(_records.Count);
         var locations = _stringLocations.Select(position => (RecordKey: _sstIndex + position.SegmentIndex, position.Offset)).ToList();
         int syntheticKey = -1;
@@ -15,28 +15,50 @@ internal sealed partial class LegacyXlsPreservingWorkbook {
         int extKey = _extSstIndex;
         uint stringCount = checked(_stringCount + (uint)strings.Count);
         if (strings.Count != 0) {
-            var encoded = LegacyXlsWriter.EncodePreservedStringAppend(strings, maximumBytes, cancellationToken);
+            var encoded = LegacyXlsWriter.EncodePreservedStringAppend(strings, maximumBytes, cancellationToken, includeHeader: _sstIndex < 0);
             appended = encoded.Payloads;
             foreach (var position in encoded.Locations) locations.Add((-1 - position.SegmentIndex, position.Offset));
             syntheticKey -= appended.Count;
-            byte[] sst = (byte[])_records[_sstIndex].Payload.Clone(); WriteUInt32(sst, 4, stringCount); replacements[_sstIndex] = sst;
+            if (_sstIndex >= 0) {
+                byte[] sst = (byte[])_records[_sstIndex].Payload.Clone(); WriteUInt32(sst, 4, stringCount); replacements[_sstIndex] = sst;
+            }
         }
-        if (_sstIndex >= 0 && extKey < 0) extKey = syntheticKey--;
+        bool hasSst = _sstIndex >= 0 || strings.Count != 0;
+        if (hasSst && extKey < 0) extKey = syntheticKey--;
         int bucketSize = Math.Max(checked((int)(stringCount / 128)) + 1, 8);
         int bucketCount = checked((int)((stringCount + bucketSize - 1) / bucketSize));
-        byte[]? newExtSst = _sstIndex < 0 ? null : new byte[checked(2 + 8 * bucketCount)];
+        byte[]? newExtSst = !hasSst ? null : new byte[checked(2 + 8 * bucketCount)];
         ushort encodedBucketSize = checked((ushort)bucketSize);
         if (newExtSst != null) { newExtSst[0] = (byte)encodedBucketSize; newExtSst[1] = (byte)(encodedBucketSize >> 8); }
+        var worksheetBofs = new HashSet<int>(_model.Worksheets.Select(sheet => sheet.StreamOffset));
+        bool needsCalculation = replacements.Count != 0 || editing != null;
         for (int i = 0; i < _records.Count; i++) {
             cancellationToken.ThrowIfCancellationRequested();
+            if (editing != null && editing.Before.TryGetValue(i, out var before)) output.AddRange(before);
+            if (_sstIndex < 0 && strings.Count != 0 && _records[i].Type == 0x000a && !_records.Take(i).Any(record => record.Type == 0x000a)) {
+                for (int append = 0; append < appended.Count; append++) output.Add(new OutputRecord(-1 - append, append == 0 ? (ushort)0x00fc : (ushort)0x003c, appended[append]));
+                output.Add(new OutputRecord(extKey, 0x00ff, newExtSst!));
+            }
             if (_sstIndex >= 0 && i == _sstEnd) {
                 for (int append = 0; append < appended.Count; append++) output.Add(new OutputRecord(-1 - append, 0x003c, appended[append]));
                 if (_extSstIndex < 0) output.Add(new OutputRecord(extKey, 0x00ff, newExtSst!));
             }
             var record = _records[i];
+            if (record.Type == (ushort)BiffRecordType.FilePass) continue;
             byte[] payload = newExtSst != null && i == _extSstIndex ? newExtSst : replacements.TryGetValue(i, out var replacement) ? replacement : record.Payload;
-            output.Add(new OutputRecord(i, record.Type, payload));
+            if (editing != null && editing.Replace.TryGetValue(i, out var edited)) output.AddRange(edited);
+            else output.Add(new OutputRecord(i, record.Type, payload));
             if (i == 0 && filePass != null) output.Add(new OutputRecord(syntheticKey--, 0x002f, filePass));
+            if (needsCalculation && worksheetBofs.Contains(record.Offset) && (editing == null || !editing.Replace.TryGetValue(i, out var replacementRecords) || replacementRecords.Count != 0) && (i + 1 == _records.Count || _records[i + 1].Type != 0x005e))
+                output.Add(new OutputRecord(syntheticKey--, 0x005e, new byte[2]));
+        }
+        if (editing != null && editing.Before.TryGetValue(_records.Count, out var tail)) output.AddRange(tail);
+        foreach (var sst in output.Where(record => record.Type == 0x00fc)) {
+            // Counts include retained, unused string slots; cstTotal cannot be smaller than cstUnique.
+            byte[] data = (byte[])sst.Payload.Clone();
+            WriteUInt32(data, 0, Math.Max(stringCount, checked((uint)output.Count(record => record.Type == 0x00fd))));
+            output[output.IndexOf(sst)] = sst with { Payload = data };
+            break;
         }
         var newOffsets = new Dictionary<int, int>(); var oldToNew = new Dictionary<int, int>();
         long length = 0;
@@ -53,11 +75,17 @@ internal sealed partial class LegacyXlsPreservingWorkbook {
         foreach (var record in output) {
             cancellationToken.ThrowIfCancellationRequested();
             byte[] payload = record.Payload;
-            if (record.Type == 0x0085) { payload = (byte[])payload.Clone(); WriteUInt32(payload, 0, Relocate(BiffRecordReader.ReadUInt32(payload, 0))); }
+            if (record.Type == 0x0085) { payload = (byte[])payload.Clone(); WriteUInt32(payload, 0,
+                editing != null && editing.PointerTargets.TryGetValue((record.Key, 0), out int target) ? checked((uint)newOffsets[target]) : Relocate(BiffRecordReader.ReadUInt32(payload, 0))); }
             else if (record.Type == 0x020b) {
                 if (payload.Length < 16 || (payload.Length - 16) % 4 != 0) throw new NotSupportedException("Invalid native worksheet Index record.");
                 payload = (byte[])payload.Clone();
-                for (int offset = 12; offset < payload.Length; offset += 4) WriteUInt32(payload, offset, Relocate(BiffRecordReader.ReadUInt32(payload, offset)));
+                uint IndexPointer(int offset) => editing != null && editing.PointerTargets.TryGetValue((record.Key, offset), out int target)
+                    ? checked((uint)newOffsets[target]) : Relocate(BiffRecordReader.ReadUInt32(payload, offset));
+                WriteUInt32(payload, 12, IndexPointer(12));
+                if (editing != null && editing.IndexDbCells.TryGetValue(record.Key, out var dbKeys)) {
+                    for (int index = 0; index < dbKeys.Count; index++) WriteUInt32(payload, 16 + index * 4, checked((uint)newOffsets[dbKeys[index]]));
+                } else for (int offset = 16; offset < payload.Length; offset += 4) WriteUInt32(payload, offset, IndexPointer(offset));
             } else if (record.Type == 0x00ff) {
                 payload = (byte[])payload.Clone();
                 if (newExtSst != null && record.Key == extKey) {

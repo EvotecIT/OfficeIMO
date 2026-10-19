@@ -13,30 +13,30 @@ namespace OfficeIMO.Excel.Xlsb.Write {
             ExcelDocument document,
             ExcelSheet sheet,
             XlsbSheet sourceSheet,
-            int availableCellFormatCount) {
+            int availableCellFormatCount, XlsbFormulaWriteContext? formulas = null) {
             if (document == null) throw new ArgumentNullException(nameof(document));
             if (sheet == null) throw new ArgumentNullException(nameof(sheet));
             if (sourceSheet == null) throw new ArgumentNullException(nameof(sourceSheet));
 
             ThrowIfUnsupportedWorksheetMutation(sheet, sourceSheet);
-            return ExtractCore(document, sheet, sourceSheet, availableCellFormatCount);
+            return ExtractCore(document, sheet, sourceSheet, availableCellFormatCount, formulas);
         }
 
         internal static IReadOnlyList<XlsbWriteCell> ExtractNew(
             ExcelDocument document,
-            ExcelSheet sheet) {
+            ExcelSheet sheet, XlsbFormulaWriteContext? formulas = null) {
             if (document == null) throw new ArgumentNullException(nameof(document));
             if (sheet == null) throw new ArgumentNullException(nameof(sheet));
 
             ThrowIfUnsupportedNewWorksheetContent(sheet);
-            return ExtractCore(document, sheet, sourceSheet: null, availableCellFormatCount: null);
+            return ExtractCore(document, sheet, sourceSheet: null, availableCellFormatCount: null, formulas);
         }
 
         private static IReadOnlyList<XlsbWriteCell> ExtractCore(
             ExcelDocument document,
             ExcelSheet sheet,
             XlsbSheet? sourceSheet,
-            int? availableCellFormatCount) {
+            int? availableCellFormatCount, XlsbFormulaWriteContext? formulas) {
             var sourceCells = sourceSheet?.Cells.ToDictionary(cell => (cell.Row, cell.Column))
                 ?? new Dictionary<(int Row, int Column), XlsbCell>();
             var visitedSourceCells = new HashSet<(int Row, int Column)>();
@@ -65,9 +65,9 @@ namespace OfficeIMO.Excel.Xlsb.Write {
                         allowNewStyles: sourceSheet == null,
                         availableCellFormatCount);
                     if (sourceCell != null
-                        && styleIndex == sourceCell.StyleIndex
                         && CellMatchesSource(sheet, cell, sourceCell, resolvedFormulaTexts)) {
-                        result.Add(XlsbWriteCell.PreserveSource(sourceCell));
+                        var preserved = XlsbWriteCell.PreserveSource(sourceCell, styleIndex);
+                        result.Add(formulas?.RebindSourceCell(preserved) ?? preserved);
                         sequentialColumn = cellColumn + 1;
                         continue;
                     }
@@ -80,7 +80,7 @@ namespace OfficeIMO.Excel.Xlsb.Write {
                         cellRow,
                         cellColumn,
                         styleIndex,
-                        resolvedFormulaTexts);
+                        resolvedFormulaTexts, formulas);
                     if (writeCell != null) result.Add(writeCell);
                     sequentialColumn = cellColumn + 1;
                 }
@@ -153,13 +153,9 @@ namespace OfficeIMO.Excel.Xlsb.Write {
             int row,
             int column,
             uint styleIndex,
-            IReadOnlyDictionary<string, string> resolvedFormulaTexts) {
+            IReadOnlyDictionary<string, string> resolvedFormulaTexts, XlsbFormulaWriteContext? formulas) {
             if (cell.CellFormula != null) {
-                return ConvertFormulaCell(document, sheet, cell, sourceCell, row, column, styleIndex, resolvedFormulaTexts);
-            }
-
-            if (sourceCell?.FormulaBytes != null) {
-                throw new NotSupportedException($"Native XLSB rewriting cannot remove or replace the preserved formula at {ToAddress(row, column)}. Save as .xlsx to change formula structure.");
+                return ConvertFormulaCell(document, sheet, cell, sourceCell, row, column, styleIndex, resolvedFormulaTexts, formulas);
             }
 
             CellValues? dataType = cell.DataType?.Value;
@@ -209,7 +205,7 @@ namespace OfficeIMO.Excel.Xlsb.Write {
             int row,
             int column,
             uint styleIndex,
-            IReadOnlyDictionary<string, string> resolvedFormulaTexts) {
+            IReadOnlyDictionary<string, string> resolvedFormulaTexts, XlsbFormulaWriteContext? formulas) {
             string formulaText = GetResolvedFormulaText(cell, resolvedFormulaTexts);
             byte[] formulaPayload;
             if (sourceCell?.FormulaBytes != null
@@ -217,7 +213,12 @@ namespace OfficeIMO.Excel.Xlsb.Write {
                 && string.Equals(sourceCell.FormulaText, formulaText, StringComparison.Ordinal)) {
                 formulaPayload = sourceCell.FormulaPayloadBytes
                     ?? throw new InvalidDataException($"The preserved XLSB formula at {ToAddress(row, column)} has no complete formula payload.");
-            } else if (!XlsbFormulaEncoder.TryEncode(formulaText, out formulaPayload, out string? reason)) {
+                formulaPayload = formulas?.RebindSourceFormula(formulaPayload) ?? formulaPayload;
+            } else {
+                string? reason;
+                bool encoded = formulas == null ? XlsbFormulaEncoder.TryEncode(formulaText, out formulaPayload, out reason)
+                    : formulas.TryEncode(formulaText, sheet.Name, out formulaPayload, out reason);
+                if (!encoded)
                 throw new NotSupportedException($"Native XLSB generation cannot encode formula '{formulaText}' at {ToAddress(row, column)}. {reason}");
             }
 

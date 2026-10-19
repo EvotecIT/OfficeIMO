@@ -9,6 +9,8 @@ namespace OfficeIMO.Excel {
     public partial class ExcelDocument {
         private XlsbProjectionPreservationGuard? _xlsbPreservationGuard;
 
+        internal XlsbProjectionPreservationGuard NativeXlsbPreservation => _xlsbPreservationGuard
+            ?? throw new InvalidOperationException("The XLSB source bindings are unavailable.");
         internal void ValidateNativeXlsbProjection() => _xlsbPreservationGuard?.Validate(this);
         private void EnsureXlsbFileTargetSupported(
             string path,
@@ -260,12 +262,38 @@ namespace OfficeIMO.Excel {
             string? sourcePath,
             XlsbWorkbook? generatedWorkbook = null) {
             XlsbWorkbook workbook = generatedWorkbook ?? XlsbWorkbookReader.Load(bytes);
+            RestoreNativeXlsbProjectionIdentity(workbook);
             if (workbook.Stylesheet != null) XlsbStylesheetProjector.Install(this, workbook.Stylesheet);
             MarkLoadedFromXlsb(sourcePath, workbook);
         }
 
+        private void RestoreNativeXlsbProjectionIdentity(XlsbWorkbook workbook) {
+            XlsbDefinedNameProjector.SynchronizeExisting(this, workbook.DefinedNames);
+            if (workbook.VbaProjectPartName != null && WorkbookPartRoot.VbaProjectPart != null) {
+                using var input = new MemoryStream(workbook.RelatedParts[workbook.VbaProjectPartName].Bytes, writable: false);
+                WorkbookPartRoot.VbaProjectPart.FeedData(input);
+            }
+            if (_xlsbAdvancedWorkbook != null)
+                foreach (var mapping in _xlsbAdvancedWorkbook.ProjectionPartUris) workbook.ProjectionPartUris[mapping.Key] = mapping.Value;
+            foreach (var sheet in Sheets) {
+                var native = workbook.Worksheets.FirstOrDefault(item => item.Name == sheet.Name);
+                if (native == null) continue;
+                var root = sheet.WorksheetPart.Worksheet!;
+                var nativeFormulas = native.Cells.Where(cell => cell.FormulaText != null).ToDictionary(cell => A1.CellReference(cell.Row, cell.Column));
+                foreach (var cell in root.Descendants<DocumentFormat.OpenXml.Spreadsheet.Cell>().Where(cell => cell.CellFormula != null))
+                    if (nativeFormulas.TryGetValue(cell.CellReference?.Value ?? string.Empty, out var formula)) cell.CellFormula!.Text = formula.FormulaText!;
+                string? codeName = native.Properties?.CodeName;
+                if (string.IsNullOrEmpty(codeName)) continue;
+                var properties = root.SheetProperties;
+                if (properties == null) { properties = new DocumentFormat.OpenXml.Spreadsheet.SheetProperties(); root.AddChild(properties, true); }
+                properties.CodeName = codeName;
+            }
+        }
+
         private void RefreshXlsbStateAfterNativeWrite(byte[] bytes) {
             XlsbWorkbook workbook = XlsbWorkbookReader.Load(bytes);
+            RestoreNativeXlsbProjectionIdentity(workbook);
+            if (workbook.Stylesheet != null) XlsbStylesheetProjector.Install(this, workbook.Stylesheet);
             _xlsbOriginalPackageBytes = bytes;
             _xlsbAdvancedWorkbook = workbook;
             _xlsbPreservationGuard = XlsbProjectionPreservationGuard.Capture(this);

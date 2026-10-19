@@ -9,7 +9,11 @@ namespace OfficeIMO.Excel.Xlsb.Write {
         private const int MaximumControlFunctionDepth = 64;
         private const int MaximumFormulaOperators = 256;
 
-        internal static bool TryEncode(string formulaText, out byte[] formulaPayload, out string? reason) {
+        internal static bool TryEncode(string formulaText, out byte[] formulaPayload, out string? reason) =>
+            TryEncode(formulaText, LegacyXlsFormulaNameIndex.Empty, -1, null, out formulaPayload, out reason);
+
+        internal static bool TryEncode(string formulaText, LegacyXlsFormulaNameIndex names, int sheetIndex, Func<ushort, ushort>? mapExternal,
+            out byte[] formulaPayload, out string? reason) {
             formulaPayload = Array.Empty<byte>();
             if (formulaText == null) throw new ArgumentNullException(nameof(formulaText));
         if (formulaText.Length > MaximumFormulaCharacters) {
@@ -20,7 +24,7 @@ namespace OfficeIMO.Excel.Xlsb.Write {
             reason = $"Formula syntactic nesting exceeds the supported depth of {MaximumControlFunctionDepth}.";
             return false;
         }
-        if (!TryEncodeTokens(formulaText, depth: 0, out byte[] biff12Tokens, out reason)) return false;
+        if (!TryEncodeTokens(formulaText, depth: 0, names, sheetIndex, mapExternal, out byte[] biff12Tokens, out reason)) return false;
 
             using var payload = new MemoryStream(checked(biff12Tokens.Length + 10));
             WriteUInt16(payload, 0); // grbit
@@ -71,25 +75,25 @@ namespace OfficeIMO.Excel.Xlsb.Write {
             return false;
         }
 
-        private static bool TryEncodeTokens(string formulaText, int depth,
+        private static bool TryEncodeTokens(string formulaText, int depth, LegacyXlsFormulaNameIndex names, int sheetIndex, Func<ushort, ushort>? mapExternal,
             out byte[] tokens, out string? reason) {
             if (depth > MaximumControlFunctionDepth) {
                 tokens = Array.Empty<byte>();
                 reason = $"Formula control-function nesting exceeds the supported depth of {MaximumControlFunctionDepth}.";
                 return false;
             }
-            if (TryEncodeControlFunction(formulaText, depth, out tokens, out reason)) return true;
+            if (TryEncodeControlFunction(formulaText, depth, names, sheetIndex, mapExternal, out tokens, out reason)) return true;
             if (reason != null) return false;
 
-            if (!LegacyXlsFormulaEncoder.TryEncode(formulaText, out byte[] biff8Tokens, out reason)) {
+            if (!LegacyXlsFormulaEncoder.TryEncode(formulaText, names, sheetIndex, out byte[] biff8Tokens, out reason)) {
                 tokens = Array.Empty<byte>();
                 return false;
             }
 
-            return TryConvertTokens(biff8Tokens, out tokens, out reason);
+            return TryConvertTokens(biff8Tokens, mapExternal, out tokens, out reason);
         }
 
-        private static bool TryEncodeControlFunction(string formulaText, int depth,
+        private static bool TryEncodeControlFunction(string formulaText, int depth, LegacyXlsFormulaNameIndex names, int sheetIndex, Func<ushort, ushort>? mapExternal,
             out byte[] tokens, out string? reason) {
             tokens = Array.Empty<byte>();
             reason = null;
@@ -133,7 +137,7 @@ namespace OfficeIMO.Excel.Xlsb.Write {
                     continue;
                 }
 
-                if (!TryEncodeTokens(argument, checked(depth + 1),
+                if (!TryEncodeTokens(argument, checked(depth + 1), names, sheetIndex, mapExternal,
                         out byte[] argumentTokens, out reason)) return false;
                 output.Write(argumentTokens, 0, argumentTokens.Length);
             }
@@ -203,7 +207,7 @@ namespace OfficeIMO.Excel.Xlsb.Write {
             return true;
         }
 
-        private static bool TryConvertTokens(byte[] source, out byte[] converted, out string? reason) {
+        private static bool TryConvertTokens(byte[] source, Func<ushort, ushort>? mapExternal, out byte[] converted, out string? reason) {
             converted = Array.Empty<byte>();
             reason = null;
             using var output = new MemoryStream(source.Length + 16);
@@ -242,6 +246,27 @@ namespace OfficeIMO.Excel.Xlsb.Write {
                     case 0x42:
                     case 0x62:
                         if (!TryCopy(source, ref offset, output, token, 3)) return InvalidToken(out reason);
+                        break;
+                    case 0x23:
+                    case 0x43:
+                    case 0x63:
+                        if (!TryCopy(source, ref offset, output, token, 4)) return InvalidToken(out reason);
+                        break;
+                    case 0x3A:
+                    case 0x5A:
+                    case 0x7A:
+                    case 0x3B:
+                    case 0x5B:
+                    case 0x7B:
+                        if (offset > source.Length - 2) return InvalidToken(out reason);
+                        ushort external = ReadUInt16(source, offset); offset += 2;
+                        using (var reference = new MemoryStream()) {
+                            bool area = (token & 0x1F) == 0x1B;
+                            if (!(area ? TryConvertArea(source, ref offset, reference, token) : TryConvertReference(source, ref offset, reference, token))) return InvalidToken(out reason);
+                            byte[] bytes = reference.ToArray(); output.WriteByte(bytes[0]);
+                            WriteUInt16(output, mapExternal?.Invoke(external) ?? external);
+                            output.Write(bytes, 1, bytes.Length - 1);
+                        }
                         break;
                     case 0x24:
                     case 0x44:

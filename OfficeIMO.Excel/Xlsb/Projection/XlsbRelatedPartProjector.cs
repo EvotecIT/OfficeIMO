@@ -46,6 +46,7 @@ internal sealed class XlsbRelatedPartProjector {
         _document.AddMacro(_workbook.RelatedParts[sourceName].Bytes);
         var part = _document.WorkbookPartRoot.VbaProjectPart!;
         _copied.Add(sourceName, part);
+        _workbook.ProjectionPartUris[sourceName] = part.Uri.OriginalString;
         CopyRelationships(part, sourceName);
     }
 
@@ -58,6 +59,7 @@ internal sealed class XlsbRelatedPartProjector {
         XlsbProjectedPart source = _workbook.RelatedParts[sourceName];
         OpenXmlPart target = CreatePart(owner, relationshipType, source.ContentType, id, Path.GetExtension(sourceName));
         _copied.Add(sourceName, target);
+        _workbook.ProjectionPartUris[sourceName] = target.Uri.OriginalString;
         using (var input = new MemoryStream(source.Bytes, writable: false)) target.FeedData(input);
         CopyRelationships(target, sourceName);
         return target;
