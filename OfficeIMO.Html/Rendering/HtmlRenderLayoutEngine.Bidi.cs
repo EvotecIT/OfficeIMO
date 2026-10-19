@@ -57,16 +57,19 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 result.AddRange(ResolveSpacedPaintSegments(
                     new InlineSegment(group.Text, group.Width, segment.Run, group.Text),
                     groupX,
-                    group.LogicalOrder));
+                    group.LogicalOrder,
+                    bidiResolved: true));
             } else {
-                result.Add(new InlinePaintSegment(group.Text, groupX, Math.Max(0.01D, group.Width), group.Width, group.LogicalOrder));
+                result.Add(new InlinePaintSegment(group.Text, groupX, Math.Max(0.01D, group.Width), group.Width,
+                    group.LogicalOrder, bidiResolved: true));
             }
             cursor += group.Width;
         }
         return result.OrderBy(static item => item.LogicalOrder).ToArray();
     }
 
-    private IReadOnlyList<InlinePaintSegment> ResolveSpacedPaintSegments(InlineSegment segment, double x, int? logicalOrder = null) {
+    private IReadOnlyList<InlinePaintSegment> ResolveSpacedPaintSegments(InlineSegment segment, double x,
+        int? logicalOrder = null, bool bidiResolved = false) {
         var result = new List<InlinePaintSegment>();
         double cursor = x;
         IReadOnlyList<string> elements = OfficeTextElements.Split(segment.Text);
@@ -78,7 +81,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 double advance = glyphWidth
                     + segment.Run.Style.LetterSpacing
                     + (IsWordSpacingSeparator(element) ? segment.Run.Style.WordSpacing : 0D);
-                result.Add(new InlinePaintSegment(element, cursor, Math.Max(0.01D, glyphWidth), advance, logicalOrder ?? index));
+                result.Add(new InlinePaintSegment(element, cursor, Math.Max(0.01D, glyphWidth), advance,
+                    logicalOrder ?? index, bidiResolved));
                 cursor += advance;
             }
             return result;
@@ -92,7 +96,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
             string text = string.Concat(elements.Skip(start).Take(end - start));
             double glyphWidth = MeasureText(text, effectiveFont, segment.Run.Style.FontDescriptor);
             double advance = glyphWidth + (whitespace ? segment.Run.Style.WordSpacing * (end - start) : 0D);
-            result.Add(new InlinePaintSegment(text, cursor, Math.Max(0.01D, glyphWidth), advance, logicalOrder ?? start));
+            result.Add(new InlinePaintSegment(text, cursor, Math.Max(0.01D, glyphWidth), advance,
+                logicalOrder ?? start, bidiResolved));
             cursor += advance;
             start = end;
         }
@@ -291,19 +296,23 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 right,
                 Math.Max(0.01D, glyphWidth),
                 advance,
-                group.LogicalOrder));
+                group.LogicalOrder,
+                bidiResolved: true));
         }
     }
 
     private readonly struct InlinePaintSegment {
-        internal InlinePaintSegment(string text, double x, double width, double advance, int logicalOrder) {
+        internal InlinePaintSegment(string text, double x, double width, double advance, int logicalOrder,
+            bool bidiResolved = false) {
             Text = text;
             X = x;
             Width = width;
             Advance = advance;
             LogicalOrder = logicalOrder;
+            BidiResolved = bidiResolved;
         }
 
+        internal bool BidiResolved { get; }
         internal string Text { get; }
         internal double X { get; }
         internal double Width { get; }

@@ -262,7 +262,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                             layoutY: lineY,
                             semanticNodeId: segment.Run.SemanticNodeId,
                             textAdvanceWidth: paintSegment.Advance,
-                            bidiVisualOrderResolved: segment.BidiResolved,
+                            bidiVisualOrderResolved: segment.BidiResolved || paintSegment.BidiResolved,
                             semanticFragmentOrder: segment.Run.SemanticFragmentOrder,
                             logicalTextOrder: segment.Run.LogicalTextOrder,
                             underlineStyle: segment.Run.Style.VectorTextDecoration ? OfficeTextDecorationStyle.None : segment.Run.Style.UnderlineStyle,
