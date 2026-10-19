@@ -60,7 +60,7 @@ internal static class HtmlFontSizePolicy {
         "h6" => inherited.WithRelativeSize(inherited.Pixels * 0.67D),
         "small" => inherited.WithRelativeSize(browser ? inherited.Pixels / 1.2D : inherited.Pixels * 0.83D),
         "sup" or "sub" => inherited.WithRelativeSize(inherited.Pixels / 1.2D),
-        "big" => inherited.WithRelativeSize(inherited.Pixels * 1.17D),
+        "big" => inherited.WithRelativeSize(inherited.Pixels * (browser ? 1.2D : 1.17D)),
         _ => inherited
     };
 

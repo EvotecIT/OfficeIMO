@@ -147,6 +147,8 @@ public sealed partial class HtmlRenderingTests {
     [Theory]
     [InlineData("<h1><code>X</code></h1>", 26D, 32D)]
     [InlineData("<small><code>X</code></small>", 10.833333333333334D, 13.28D)]
+    [InlineData("<big><code>X</code></big>", 15.6D, 18.72D)]
+    [InlineData("<section style='font-size:20px'><big><code>X</code></big></section>", 24D, 23.4D)]
     [InlineData("<span style='font-size:larger'><code>X</code></span>", 15.6D, 19.2D)]
     [InlineData("<span style='font-size:smaller'><code>X</code></span>", 10.833333333333334D, 13.333333333333334D)]
     public void HtmlBrowserFontDefaults_UaAndRelativeTransformsRetainTheirUsedScale(
