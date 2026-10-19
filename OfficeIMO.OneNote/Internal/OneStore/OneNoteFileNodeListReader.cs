@@ -14,6 +14,7 @@ internal static class OneNoteFileNodeListReader {
         OneNoteReaderOptions options) {
         var fragments = new List<OneNoteFileNodeListFragment>();
         var nodes = new List<OneNoteFileNode>();
+        int retainedNodes = 0;
         var visitedOffsets = new HashSet<ulong>();
         OneNoteFileChunkReference current = firstFragment;
         uint? listId = null;
@@ -67,11 +68,13 @@ internal static class OneNoteFileNodeListReader {
             int nodeLimit = data.Length - FragmentTrailerLength;
             int remainingNodes = committedNodeCount!.Value - nodes.Count;
             if (remainingNodes <= 0) break;
-            var fragmentNodes = ReadNodes(data, FragmentHeaderLength, nodeLimit, current.Offset, declaredFileLength, options, nodes.Count, remainingNodes);
-            if (nodes.Count > options.MaxFileNodes - fragmentNodes.Count) {
+            var fragmentNodes = ReadNodes(data, FragmentHeaderLength, nodeLimit, current.Offset, declaredFileLength, options, retainedNodes, remainingNodes);
+            if (retainedNodes > options.MaxFileNodes - fragmentNodes.Count) {
                 throw new OneNoteFormatException("ONENOTE_FILE_NODE_LIMIT", "The file-node limit was exceeded.", ToOffset(current.Offset));
             }
-            nodes.AddRange(fragmentNodes);
+            // ChunkTerminatorFND only ends a fragment; the transaction log does not count it.
+            nodes.AddRange(fragmentNodes.Where(node => node.RawId != (ushort)OneNoteFileNodeId.ChunkTerminator));
+            retainedNodes += fragmentNodes.Count;
 
             OneNoteFileChunkReference next = OneNoteBinary.ReadFileChunkReference64x32(data, data.Length - FragmentTrailerLength);
             fragments.Add(new OneNoteFileNodeListFragment(
@@ -106,8 +109,9 @@ internal static class OneNoteFileNodeListReader {
         int priorNodeCount,
         int maximumNodes) {
         var nodes = new List<OneNoteFileNode>();
+        int committedNodes = 0;
         int offset = start;
-        while (limit - offset >= 4 && nodes.Count < maximumNodes) {
+        while (limit - offset >= 4 && committedNodes < maximumNodes) {
             if (priorNodeCount + nodes.Count >= options.MaxFileNodes) {
                 throw new OneNoteFormatException("ONENOTE_FILE_NODE_LIMIT", "The file-node limit was exceeded.", ToOffset(fragmentOffset + (ulong)offset));
             }
@@ -157,6 +161,7 @@ internal static class OneNoteFileNodeListReader {
             offset += size;
 
             if (rawId == (ushort)OneNoteFileNodeId.ChunkTerminator) break;
+            committedNodes++;
         }
         return nodes;
     }
