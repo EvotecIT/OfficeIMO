@@ -194,14 +194,19 @@ public static class ReaderInputLimits {
                 ThrowIfInputExceeds(totalBytes, maxInputBytes);
                 buffer.Write(chunk, 0, read);
             }
+            buffer.Position = 0;
         } catch {
             buffer.Dispose();
             throw;
         } finally {
-            if (restorePosition) stream.Position = originalPosition;
+            try {
+                if (restorePosition) stream.Position = originalPosition;
+            } catch {
+                buffer.Dispose();
+                throw;
+            }
         }
 
-        buffer.Position = 0;
         ownsStream = true;
         return buffer;
     }
@@ -285,14 +290,19 @@ public static class ReaderInputLimits {
                 ThrowIfInputExceeds(totalBytes, maxInputBytes);
                 await buffer.WriteAsync(chunk, 0, read, cancellationToken).ConfigureAwait(false);
             }
+            buffer.Position = 0;
         } catch {
             buffer.Dispose();
             throw;
         } finally {
-            if (restorePosition) stream.Position = originalPosition;
+            try {
+                if (restorePosition) stream.Position = originalPosition;
+            } catch {
+                buffer.Dispose();
+                throw;
+            }
         }
 
-        buffer.Position = 0;
         return buffer;
     }
 

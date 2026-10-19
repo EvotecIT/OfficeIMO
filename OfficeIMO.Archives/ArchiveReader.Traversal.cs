@@ -59,18 +59,24 @@ public static partial class ArchiveReader {
         var effective = Normalize(options);
         using Stream snapshot = CreateBoundedSnapshot(zipStream, effective.MaxArchiveBytes, cancellationToken);
         ValidateZipSource(snapshot, effective, cancellationToken);
-        using var archive = new ZipArchive(snapshot, ZipArchiveMode.Read, leaveOpen: true);
-        return TraverseZipCore(archive, effective, cancellationToken);
+        using var inspection = ArchiveInspector.OpenZipSnapshot(snapshot, new ArchiveInspectionOptions {
+            OperationBudget = effective.OperationBudget, ZipLegacyCodePage = effective.ZipLegacyCodePage,
+            MaxInputBytes = effective.MaxArchiveBytes, MaxEntryCount = effective.MaxPhysicalEntries,
+            MaxEntryBytes = long.MaxValue, MaxExpandedBytes = long.MaxValue
+        }, cancellationToken);
+        return TraverseZip(inspection, effective, cancellationToken);
     }
 
     /// <summary>
     /// Traverses ZIP entries from an already opened archive and returns accepted entries with warnings.
+    /// Names are already decoded by its owner; raw filename encoding cannot be validated or changed by this overload.
     /// </summary>
     public static ArchiveTraversalResult TraverseZip(ZipArchive archive, ArchiveTraversalOptions? options = null) {
         return TraverseZip(archive, options, CancellationToken.None);
     }
 
-    /// <summary>Traverses an opened archive with bounded metadata processing and cooperative cancellation.</summary>
+    /// <summary>Traverses an opened archive with bounded metadata processing and cooperative cancellation.
+    /// Names retain the decoding policy applied when the archive was opened.</summary>
     public static ArchiveTraversalResult TraverseZip(ZipArchive archive, ArchiveTraversalOptions? options,
         CancellationToken cancellationToken) {
         if (archive == null) throw new ArgumentNullException(nameof(archive));
@@ -82,7 +88,38 @@ public static partial class ArchiveReader {
     private static ArchiveTraversalResult TraverseZipCore(ZipArchive archive, ArchiveTraversalOptions options,
         CancellationToken cancellationToken) {
         cancellationToken.ThrowIfCancellationRequested();
-        IReadOnlyList<ZipArchiveEntry> archiveEntries = archive.Entries;
+        if (archive.Entries.Count > options.MaxPhysicalEntries)
+            throw new InvalidDataException($"ZIP source exceeds MaxPhysicalEntries ({options.MaxPhysicalEntries}).");
+        options.OperationBudget?.AdmitEntries(archive.Entries.Count);
+        var entries = new List<TraversalEntry>();
+        foreach (var entry in archive.Entries) {
+            cancellationToken.ThrowIfCancellationRequested();
+            entries.Add(new TraversalEntry(entry.FullName, entry.Name, TryGetLength(entry, out long length) ? length : -1,
+                entry.CompressedLength, TryGetLastWriteUtc(entry), null));
+        }
+        return TraverseEntries(entries, options, cancellationToken);
+    }
+
+    /// <summary>Applies ZIP ingestion selection policy to an existing immutable inspection without reparsing its input.
+    /// Metadata acceptance does not verify member content; use inspection.OpenRead or ReadMembers for payloads.</summary>
+    public static ArchiveTraversalResult TraverseZip(ArchiveInspection inspection, ArchiveTraversalOptions? options = null,
+        CancellationToken cancellationToken = default) {
+        if (inspection == null) throw new ArgumentNullException(nameof(inspection));
+        if (inspection.Format != ArchiveFormat.Zip) throw new ArgumentException("A ZIP inspection is required.", nameof(inspection));
+        var entries = new List<TraversalEntry>();
+        foreach (var entry in inspection.Entries) {
+            cancellationToken.ThrowIfCancellationRequested();
+            string normalized = entry.RawName.Replace('\\', '/');
+            string name = normalized.Substring(normalized.LastIndexOf('/') + 1);
+            entries.Add(new TraversalEntry(entry.RawName, name, entry.Length, entry.CompressedLength ?? 0,
+                TraversalLastWriteUtc(entry.LastWriteTime), entry.Diagnostic));
+        }
+        return TraverseEntries(entries, Normalize(options), cancellationToken);
+    }
+
+    private static ArchiveTraversalResult TraverseEntries(IReadOnlyList<TraversalEntry> archiveEntries,
+        ArchiveTraversalOptions options, CancellationToken cancellationToken) {
+        cancellationToken.ThrowIfCancellationRequested();
         if (archiveEntries.Count > options.MaxPhysicalEntries) {
             throw new InvalidDataException($"ZIP source exceeds MaxPhysicalEntries ({options.MaxPhysicalEntries}).");
         }
@@ -103,7 +140,7 @@ public static partial class ArchiveReader {
         int accepted = 0;
         int visited = 0;
 
-        IEnumerable<(ZipArchiveEntry Entry, int Index)> entries = archiveEntries.Select((entry, index) => (entry, index));
+        IEnumerable<(TraversalEntry Entry, int Index)> entries = archiveEntries.Select((entry, index) => (entry, index));
         if (options.DeterministicOrder) {
             entries = entries.OrderBy(item => item.Entry.FullName, StringComparer.Ordinal);
         }
@@ -111,6 +148,10 @@ public static partial class ArchiveReader {
         foreach (var (entry, index) in entries) {
             cancellationToken.ThrowIfCancellationRequested();
             visited++;
+            if (entry.Diagnostic != null) {
+                Warn(new ArchiveTraversalWarning { EntryPath = entry.FullName, Code = entry.Diagnostic.Code, Warning = entry.Diagnostic.Message });
+                continue;
+            }
             var fullName = NormalizeEntryName(entry.FullName);
             if (fullName.Length == 0) {
                 Warn(new ArchiveTraversalWarning {
@@ -152,7 +193,7 @@ public static partial class ArchiveReader {
 
             long entryLength = 0;
             if (!isDirectory) {
-                if (!TryGetLength(entry, out entryLength)) {
+                if ((entryLength = entry.Length) < 0) {
                     Warn(new ArchiveTraversalWarning {
                         EntryPath = fullName,
                         Warning = "Skipped ZIP entry because uncompressed size could not be read."
@@ -176,7 +217,7 @@ public static partial class ArchiveReader {
                     continue;
                 }
 
-                if (options.MaxCompressionRatio.HasValue && IsCompressionRatioExceeded(entry, entryLength, options.MaxCompressionRatio.Value)) {
+                if (options.MaxCompressionRatio.HasValue && entryLength > 0 && entry.CompressedLength > 0 && (double)entryLength / entry.CompressedLength > options.MaxCompressionRatio.Value) {
                     Warn(new ArchiveTraversalWarning {
                         EntryPath = fullName,
                         Warning = $"Skipped ZIP entry because compression ratio exceeds MaxCompressionRatio ({options.MaxCompressionRatio.Value.ToString(System.Globalization.CultureInfo.InvariantCulture)})."
@@ -197,7 +238,7 @@ public static partial class ArchiveReader {
             }
 
             accepted++;
-            var lastWriteUtc = TryGetLastWriteUtc(entry);
+            var lastWriteUtc = entry.LastWriteUtc;
             list.Add(new ArchiveEntryDescriptor {
                 FullName = fullName,
                 RawFullName = entry.FullName,
@@ -218,6 +259,18 @@ public static partial class ArchiveReader {
         };
     }
 
+    private sealed class TraversalEntry {
+        internal TraversalEntry(string fullName, string name, long length, long compressed, DateTime time, ArchiveInspectionDiagnostic? diagnostic) {
+            FullName = fullName; Name = name; Length = length; CompressedLength = compressed; LastWriteUtc = time; Diagnostic = diagnostic;
+        }
+        internal string FullName { get; }
+        internal string Name { get; }
+        internal long Length { get; }
+        internal long CompressedLength { get; }
+        internal DateTime LastWriteUtc { get; }
+        internal ArchiveInspectionDiagnostic? Diagnostic { get; }
+    }
+
     private static string NormalizeEntryName(string? fullName) {
         return OfficeArchiveSafety.NormalizeEntryName(fullName);
     }
@@ -234,10 +287,6 @@ public static partial class ArchiveReader {
         return OfficeArchiveSafety.TryGetLength(entry, out length);
     }
 
-    private static bool IsCompressionRatioExceeded(ZipArchiveEntry entry, long uncompressedLength, double maxRatio) {
-        return OfficeArchiveSafety.IsCompressionRatioExceeded(entry, uncompressedLength, maxRatio);
-    }
-
     private static DateTime TryGetLastWriteUtc(ZipArchiveEntry entry) {
         try {
             return entry.LastWriteTime.UtcDateTime;
@@ -246,9 +295,16 @@ public static partial class ArchiveReader {
         }
     }
 
+    private static DateTime TraversalLastWriteUtc(DateTimeOffset? dosTime) {
+        // Inspection preserves the wall-clock fields with a zero offset. Keep traversal's existing
+        // ZipArchive convention: interpret timezone-unspecified DOS fields in the current local zone.
+        return dosTime.HasValue ? new DateTimeOffset(dosTime.Value.DateTime).UtcDateTime : DateTime.MinValue;
+    }
+
     private static ArchiveTraversalOptions Normalize(ArchiveTraversalOptions? options) {
         var source = options ?? new ArchiveTraversalOptions();
         var o = new ArchiveTraversalOptions {
+            OperationBudget = source.OperationBudget, ZipLegacyCodePage = source.ZipLegacyCodePage,
             MaxEntries = source.MaxEntries,
             MaxPhysicalEntries = source.MaxPhysicalEntries,
             MaxArchiveBytes = source.MaxArchiveBytes,

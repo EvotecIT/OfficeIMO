@@ -158,6 +158,10 @@ PowerPoint SmartArt now renders from the drawing Office caches with the diagram 
 
 DrawingML `hueOff`, `hueMod`, `satOff` and `satMod` colour transforms are applied, so colours that use them, common in SmartArt, no longer prevent a chart or shape from rendering. DrawingML `tint` and `shade` blend in linear sRGB and retain the proportion specified by the document. Theme table bands, shape fills and gradient stops can therefore change colour; the generic `OfficeColorTransforms.Tint` and `Shade` helpers keep their encoded-RGB contract.
 
+## Verified archive copying
+
+`ArchiveInspection.CopyTo` stages ZIP, CAB and embedded MSI cabinet members in private temporary storage before writing verified content to the destination. Set `ArchiveInspectionOptions.MaxTemporaryBytes` when copying members larger than the default 256 MiB staging allowance. Raising `MaxEntryBytes` alone does not raise this disk limit. Input snapshots retain their separate `MaxInputBytes` policy.
+
 ## PSWriteOffice repository and coordinated releases
 
 PSWriteOffice is maintained in [OfficeIMO](https://github.com/EvotecIT/OfficeIMO),

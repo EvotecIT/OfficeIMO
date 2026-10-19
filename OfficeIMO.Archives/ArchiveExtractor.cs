@@ -28,6 +28,7 @@ public static partial class ArchiveExtractor {
         CheckDestination(destination);
         using var source = new FileStream(package, FileMode.Open, FileAccess.Read, FileShare.Read);
         ArchiveLimits.Check(source.Length, limits.Input, nameof(ArchiveExtractionOptions.MaxInputBytes));
+        limits.Operation.AdmitInput(source.Length);
         ArchiveFormat format = Detect(source, cancellationToken);
         if (limits.AllowedFormats != null && !limits.AllowedFormats.Contains(format))
             throw new NotSupportedException("The detected archive format is not allowed by this extraction operation: " + format);
@@ -50,7 +51,7 @@ public static partial class ArchiveExtractor {
             if (Directory.Exists(destination)) Directory.Delete(destination, recursive: false);
             Directory.Move(staging, destination);
             staging = string.Empty;
-            return new ArchiveExtractionResult(format, Array.AsReadOnly(files.OrderBy(file => file.RelativePath, StringComparer.Ordinal).ToArray()), total);
+            return new ArchiveExtractionResult(format, Array.AsReadOnly(files.OrderBy(file => file.RelativePath, StringComparer.Ordinal).ToArray()), total, limits.Operation.Usage);
         } catch (OfficeCabinetException exception) {
             throw limits.Translate(exception);
         } finally {
@@ -95,6 +96,7 @@ public static partial class ArchiveExtractor {
         var selected = new Dictionary<string, string>(StringComparer.Ordinal);
         IReadOnlyList<OfficeCabinetEntry> entries = OfficeCabinetArchiveReader.Read(source, limits.Input, limits.Expanded,
             limits.Entry, limits.Entries, token, name => {
+                limits.Operation.AdmitEntries(1);
                 string path = paths.Add(name);
                 if (!limits.Select(path)) return false;
                 selected.Add(name, path); return true;

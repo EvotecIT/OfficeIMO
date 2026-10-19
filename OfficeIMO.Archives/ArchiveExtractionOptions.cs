@@ -5,6 +5,12 @@ namespace OfficeIMO.Archives;
 
 /// <summary>Finite resource and selection limits for one archive extraction.</summary>
 public sealed class ArchiveExtractionOptions {
+    /// <summary>Optional cumulative budget shared with related and nested archive operations.</summary>
+    public ArchiveOperationBudget? OperationBudget { get; set; }
+    /// <summary>Explicit code page for unflagged non-ASCII ZIP names. Null retains strict ASCII/UTF-8 admission;
+    /// the UTF-8 flag always takes precedence. No host-locale inference occurs.</summary>
+    public int? ZipLegacyCodePage { get; set; }
+
     /// <summary>Allowed formats detected from package bytes. Null permits every supported format.
     /// A disallowed format raises NotSupportedException before staging or payload parsing.</summary>
     public IReadOnlyCollection<ArchiveFormat>? AllowedFormats { get; set; }

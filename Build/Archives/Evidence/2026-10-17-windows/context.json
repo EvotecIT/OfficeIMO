@@ -1,0 +1,30 @@
+{
+  "sourceHead": "0fec7c2e9292679ba2b1b317b986fe108d68c78e",
+  "boundary": "Unsigned private package runtime proof; Windows Shell ZIP producer, not interactive Explorer UI automation. No installer or extracted executable run.",
+  "packageVersion": "3.5.1.9999",
+  "checkoutCommit": "d8110c97121447d117f9b639047851d8b5bad992",
+  "os": "Microsoft Windows NT 10.0.26100.0",
+  "packages": [
+    {
+      "bytes": 8487570,
+      "sha256": "85b3b53e0df7b367c42326a6df27810ccd368751857eb7119d434ef48f150424",
+      "file": "OfficeIMO.Core.3.5.1.9999.nupkg"
+    },
+    {
+      "bytes": 251570,
+      "sha256": "f269ea71c845261b001655459d374cbb1a64c9feb2fdb9eeb173e0bc4f89a39e",
+      "file": "OfficeIMO.Archives.3.5.1.9999.nupkg"
+    },
+    {
+      "bytes": 1583511,
+      "sha256": "c53902b3733f8f250dbe5996e72195428d98e1c60fe72427ebf9a41c07e54b21",
+      "file": "OfficeIMO.Reader.Core.3.5.1.9999.nupkg"
+    },
+    {
+      "bytes": 70615,
+      "sha256": "3bd399be546a818e692c080d3e2f0abbece9484d9b4d65c8b5783d82c99f0ba8",
+      "file": "OfficeIMO.Reader.Zip.3.5.1.9999.nupkg"
+    }
+  ],
+  "runUrl": "https://github.com/EvotecIT/OfficeIMO/actions/runs/39072630103"
+}

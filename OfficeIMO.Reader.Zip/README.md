@@ -94,7 +94,7 @@ foreach (string warning in chunks.SelectMany(chunk => chunk.Warnings ?? Array.Em
 - Bounded nested ZIP traversal with `ReaderZipOptions`.
 - Path and stream dispatch, including non-seekable stream support.
 
-The adapter checks compressed size and every physical ZIP entry before opening top-level or nested archives. Path and stream inputs are copied into bounded private snapshots so validation and parsing see the same bytes. Its default source limit is 512 MiB and its default physical entry limit is 10,000. `ReaderOptions.MaxInputBytes` can lower the source limit; raise `ArchiveTraversalOptions.MaxArchiveBytes` or `MaxPhysicalEntries` deliberately for larger trusted archives. A top-level archive above either limit fails before metadata loading; a nested archive is skipped with a warning.
+The adapter checks compressed size and every physical ZIP entry before opening top-level or nested archives. Path and stream inputs are copied into bounded private snapshots so validation and parsing see the same bytes. Archives borrows that snapshot for inventory and verified reads; it does not create another input copy. The snapshot is released when enumeration completes, fails, is cancelled or is disposed early. Its default source limit is 512 MiB and its default physical entry limit is 10,000. `ReaderOptions.MaxInputBytes` can lower the source limit; raise `ArchiveTraversalOptions.MaxArchiveBytes` or `MaxPhysicalEntries` deliberately for larger trusted archives. A top-level archive above either limit fails before metadata loading; a nested archive is skipped with a warning.
 
 ## Boundaries
 
@@ -113,3 +113,9 @@ The adapter checks compressed size and every physical ZIP entry before opening t
 - **OfficeIMO:** `OfficeIMO.Reader.Core` and `OfficeIMO.Archives` own safe traversal, nested-archive limits, extraction projection, and warnings.
 
 See the [complete OfficeIMO package map](../README.md) for related formats and conversion paths.
+
+## Verified payloads and cumulative archive limits
+
+Reader opens ZIP inventory through `OfficeIMO.Archives` and dispatches a member only after complete length, exact Deflate framing and CRC checks pass. Corrupt ordinary or nested members produce warnings instead of document content. Archive quota exhaustion is translated to the terminal `ReaderResourceLimitException` with its native exception preserved; it is not downgraded to a parse warning.
+
+When `ArchiveTraversalOptions.OperationBudget` is null, each read creates a new cumulative archive budget shared with nested ZIPs. A budget supplied when registering `AddZipHandler` is shared by every read through the built reader and is not reset between reads. Use that shared instance to apply explicit tree limits or coordinate related archive operations. The existing Reader document/chunk budgets continue to apply. ZIP input above 64 MiB uses private temporary storage; returned verified members remain buffered and consume memory beyond logical byte limits. Pass `ZipLegacyCodePage` only when the producer's encoding is known; strict ASCII/flagged-UTF-8 admission is the default, and UTF-8 declarations take precedence.

@@ -1,0 +1,16 @@
+{
+  "namesRepresentableInSystemAnsi": false,
+  "apartment": "STA",
+  "expectedNames": [
+    "Zażółć-gęślą-jaźń.txt",
+    "Łódź.txt"
+  ],
+  "complete": false,
+  "userInteractive": true,
+  "systemAnsiCodePage": 1252,
+  "lastReadError": "System.IO.IOException",
+  "messagePump": true,
+  "windows": "Microsoft Windows NT 10.0.26100.0",
+  "powershell": "7.6.6",
+  "zipBytes": 22
+}

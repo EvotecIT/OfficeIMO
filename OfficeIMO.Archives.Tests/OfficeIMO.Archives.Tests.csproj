@@ -8,10 +8,12 @@
     <LangVersion>Latest</LangVersion>
   </PropertyGroup>
   <ItemGroup>
+    <None Update="Fixtures/IndependentZip/*" CopyToOutputDirectory="PreserveNewest" />
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="18.5.1" />
     <PackageReference Include="xunit" Version="2.9.3" />
     <PackageReference Include="xunit.runner.visualstudio" Version="3.1.5"><PrivateAssets>all</PrivateAssets></PackageReference>
     <ProjectReference Include="..\OfficeIMO.Archives\OfficeIMO.Archives.csproj" />
+    <ProjectReference Include="..\OfficeIMO.Reader.Zip\OfficeIMO.Reader.Zip.csproj" />
   </ItemGroup>
   <ItemGroup>
     <Using Include="System" /><Using Include="System.IO" /><Using Include="System.Collections.Generic" />
@@ -24,5 +26,6 @@
     <None Include="../OfficeIMO.OneNote.Tests/Fixtures/testOneNote2016.one" Link="Fixtures/testOneNote2016.one" CopyToOutputDirectory="PreserveNewest" />
     <None Include="../OfficeIMO.OneNote.Tests/Fixtures/makecab-lzx-testOneNoteFromOffice365-2.cab" Link="Fixtures/makecab-lzx-testOneNoteFromOffice365-2.cab" CopyToOutputDirectory="PreserveNewest" />
     <None Include="../OfficeIMO.OneNote.Tests/Fixtures/testOneNoteFromOffice365-2.one" Link="Fixtures/testOneNoteFromOffice365-2.one" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="../OfficeIMO.OneNote.Tests/Fixtures/makecab-lzx*-e8.cab" Link="Fixtures/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 </Project>
