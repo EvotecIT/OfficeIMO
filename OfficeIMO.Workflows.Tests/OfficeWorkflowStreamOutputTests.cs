@@ -97,10 +97,7 @@ public sealed class OfficeWorkflowStreamOutputTests {
         File.WriteAllBytes(Path.Combine(abandoned, ".lease"), []);
         foreach (string target in new[] { "output.pdf", "record.json" }) {
             // Use the actual writer's claim path, including its long-path fallback.
-            string claim = (string)System.Reflection.Assembly.Load("OfficeIMO.Core")
-                .GetType("OfficeIMO.Core.Internal.OfficeFileCommit")!
-                .GetMethod("CreateClaimPath", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static)!
-                .Invoke(null, [Path.Combine(abandoned, target)])!;
+            string claim = CreateCommitClaimPath(Path.Combine(abandoned, target));
             File.WriteAllBytes(claim, []);
         }
         var store = new OfficeWorkflowOutputRecoveryStore(directory, 12000);
@@ -143,20 +140,35 @@ public sealed class OfficeWorkflowStreamOutputTests {
         Assert.Equal(new byte[] { 1, 2, 3 }, File.ReadAllBytes(artifact));
     }
 
-    [Fact]
-    public async Task AdmissionPreservesAnIncompleteRecordWithAnActiveCommitClaim() {
+    [Theory]
+    [InlineData(false, "output.pdf")]
+    [InlineData(false, "record.json")]
+    [InlineData(true, "output.pdf")]
+    [InlineData(true, "record.json")]
+    public async Task AdmissionPreservesActiveCanonicalClaimsAndReclaimsAfterRelease(bool longPath, string target) {
         using var root = new Scope();
-        string directory = Path.Combine(root.Path, "recovery");
+        string directory = Path.Combine(root.Path, longPath ? new string('a', 160) : "recovery");
         string active = Path.Combine(directory, "output-" + Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(active);
         string artifact = Path.Combine(active, "output.pdf");
         File.WriteAllBytes(artifact, [1, 2, 3]);
-        string claim = Path.Combine(active, ".output.pdf.officeimo-commit");
-        using var activeClaim = new FileStream(claim, FileMode.CreateNew, FileAccess.ReadWrite, FileShare.None);
-        var store = new OfficeWorkflowOutputRecoveryStore(directory);
-        using var lease = await store.CreateAsync([1], "content://provider/selected", "selected.pdf", default);
-        Assert.Equal(new byte[] { 1, 2, 3 }, File.ReadAllBytes(artifact));
-        Assert.True(File.Exists(claim));
+        string claim = CreateCommitClaimPath(Path.Combine(active, target));
+        string otherTarget = Path.Combine(active, target == "output.pdf" ? "record.json" : "output.pdf");
+        File.WriteAllBytes(CreateCommitClaimPath(otherTarget), []);
+        IDisposable activeClaim = AcquireCommitClaim(Path.Combine(active, target));
+        try {
+            var store = new OfficeWorkflowOutputRecoveryStore(directory);
+            using var lease = await store.CreateAsync([1], "content://provider/selected", "selected.pdf", default);
+            Assert.Equal(new byte[] { 1, 2, 3 }, File.ReadAllBytes(artifact));
+            Assert.True(File.Exists(claim));
+            // A failed multi-claim admission must release any earlier claim it
+            // acquired; this probe would fail if that coordination handle leaked.
+            using (AcquireCommitClaim(otherTarget)) { }
+        } finally { activeClaim.Dispose(); }
+        var restarted = new OfficeWorkflowOutputRecoveryStore(directory);
+        using var next = await restarted.CreateAsync([2], "content://provider/selected", "next.pdf", default);
+        Assert.False(Directory.Exists(active));
+        Assert.True(File.Exists(next.Recovery.FilePath));
     }
 
     [Theory]
@@ -239,6 +251,19 @@ public sealed class OfficeWorkflowStreamOutputTests {
         Assert.Equal(0, writes);
         Assert.Empty(store.GetRecoveries());
     }
+
+    // These integration fixtures use the actual Core writer's internal owner,
+    // without a production test hook or another copy of its pathname/lock logic.
+    private static Type CommitClaimType => System.Reflection.Assembly.Load("OfficeIMO.Core")
+        .GetType("OfficeIMO.Core.Internal.IO.OfficeFileCommitClaim", throwOnError: true)!;
+
+    private static string CreateCommitClaimPath(string destination) => (string)CommitClaimType
+        .GetMethod("CreatePath", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static)!
+        .Invoke(null, [destination])!;
+
+    private static IDisposable AcquireCommitClaim(string destination) => (IDisposable)CommitClaimType
+        .GetMethod("Acquire", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static)!
+        .Invoke(null, [destination])!;
 
     private sealed class DenyGuard : IOfficeWorkflowPublicationGuard {
         public ValueTask<bool> CanPublishAsync(string path, bool isDirectory, CancellationToken token) => ValueTask.FromResult(false);
