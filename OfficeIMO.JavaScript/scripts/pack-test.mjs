@@ -24,6 +24,13 @@ await writeFile(join(output, "archive.json"), JSON.stringify(manifest, null, 2) 
 await writeFile(join(consumer, "package.json"), '{"private":true,"type":"module"}\n');
 for (const file of ["consumer.mts", "worker.mts", "runtime.mjs", "worker-runtime.mjs", "node-streams.mjs"]) await copyFile(join(root, "test/consumer", file), join(consumer, file));
 run([npmCli, "install", "--ignore-scripts", "--no-audit", "--no-fund", "--save-exact", join(output, manifest[0].filename)], consumer);
+// A repeated same-version qualification must execute the current archive's bytes,
+// including when npm can otherwise reuse an existing local-file installation.
+for (const file of manifest[0].files) {
+  const expected = await readFile(join(root, file.path));
+  const installed = await readFile(join(consumer, "node_modules/@evotecit/officeimo", file.path));
+  if (!expected.equals(installed)) throw new Error("Installed archive differs from the current package source: " + file.path);
+}
 run([join(root, "node_modules/typescript/bin/tsc"), "--strict", "--exactOptionalPropertyTypes", "--noUncheckedIndexedAccess", "--noEmit", "--target", "ES2022",
   "--module", "NodeNext", "--moduleResolution", "NodeNext", "--lib", "ES2022,DOM", "consumer.mts"], consumer);
 run([join(root, "node_modules/typescript/bin/tsc"), "--strict", "--exactOptionalPropertyTypes", "--noUncheckedIndexedAccess", "--outDir", "worker-runtime", "--target", "ES2022",
@@ -38,6 +45,8 @@ await copyFile(join(consumer, "packed-streamed.xlsx"), join(output, "packed-stre
 await copyFile(join(consumer, "packed-node-stream.xlsx"), join(output, "packed-node-stream.xlsx"));
 await copyFile(join(consumer, "packed-worker.xlsx"), join(output, "packed-worker.xlsx"));
 await copyFile(join(consumer, "packed-consumer.pdf"), join(output, "packed-consumer.pdf"));
+await copyFile(join(consumer, "packed-document.pdf"), join(output, "packed-document.pdf"));
+await copyFile(join(consumer, "packed-rich-report.pdf"), join(output, "packed-rich-report.pdf"));
 await writeFile(join(output, "consumer-report.json"), JSON.stringify({ passed: true, subpaths: 7, strictTypeScript: "5.9.3", archive: manifest[0].filename,
-  integrations: ["datatables", "canopyx"], nodeWritableStreams: ["csv", "xlsx", "pdf"], shippedFiles: manifest[0].files.length, runtimeDependencies: 0 }, null, 2) + "\n");
+  integrations: ["datatables", "canopyx"], pdfReport: ["png", "drawing", "tagged"], nodeWritableStreams: ["csv", "xlsx", "pdf"], shippedFiles: manifest[0].files.length, runtimeDependencies: 0 }, null, 2) + "\n");
 console.log("Strict types, archive contents, isolated npm install and all runtime subpaths passed.");

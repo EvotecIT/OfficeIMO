@@ -67,6 +67,8 @@ export class PdfTableLayout {
   private async cell(value: ExportValue, first: number, span: number, row: number, style: CellPresentation): Promise<PdfLayoutCell> {
     const { options, padding, fontSize, budget, limits } = this.settings, column = options.columns[first]!;
     const own = value instanceof ExportCell ? value.presentation : undefined;
+    if (options.tagged && value instanceof ExportCell && value.link)
+      throw new TypeError("Tagged PDF link annotations are unsupported; use plain text cells.");
     const combined = presentation({ ...(column.alignment === undefined ? {} : { alignment: column.alignment }),
       ...(column.wrapText === undefined ? {} : { wrapText: column.wrapText }), ...style, ...own });
     const font = this.fonts.select(combined.bold, combined.italic), width = this.widths.slice(first, first + span).reduce((n, w) => n + w, 0);

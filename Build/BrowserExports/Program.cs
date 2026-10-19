@@ -27,6 +27,7 @@ Directory.CreateDirectory(evidence);
 if (args.Any(a => a.StartsWith("--canopy=", StringComparison.Ordinal))) { await CanopyInterop.RunAsync(repository, evidence, args); return; }
 if (args.Contains("--links")) { await PortableLinkInterop.RunAsync(repository, evidence, args); return; }
 if (args.Contains("--pdf")) { await PdfInterop.RunAsync(repository, evidence, args); return; }
+if (args.Contains("--pdf-rich")) { await PdfRichInterop.RunAsync(repository, evidence, args); return; }
 if (args.Contains("--datatables-session")) { await DataTablesComparisonSession.RunAsync(repository, evidence, args); return; }
 if (args.Contains("--datatables")) { await DataTablesInterop.RunAsync(repository, evidence, args); return; }
 if (args.Contains("--qualify")) { await ExportQualification.RunAsync(repository, evidence, args); return; }

@@ -261,7 +261,7 @@ Without supplied fonts, PDF uses standard Helvetica with WinAnsi text. For Polis
 
 Call `preflightPdfText(text, { fonts: { regular }, bold: true })` from `@evotecit/officeimo/pdf` to check a known text run before export. It returns `{ supported: true }` or the first issue with `code`, `message`, and a zero-based UTF-16 `index` in the original input; `scalar` identifies the original character and is absent for an unpaired surrogate. Codes distinguish `embedded-font-required`, `missing-glyph`, `unsupported-layout`, `unsupported-control` and `unpaired-surrogate`. The check uses the writer's font selection, line-break and tab rules. It checks only the supplied string, leaves row sources untouched, and does not establish wrapping, document resource limits or accessibility.
 
-This writer handles scalar text layout for Latin, Greek, Cyrillic, Han, Hiragana, Katakana, precomposed Hangul and common symbols, including supplementary Unicode where the font provides it. If a supplied TrueType font lacks U+202F (narrow no-break space) but provides an inkless U+2009 (thin space), the writer uses that thin-space glyph and its advance while preserving U+202F in the PDF's Unicode map. Other missing glyphs, malformed surrogates, combining sequences, bidirectional text and scripts requiring shaping fail explicitly. It does not provide general HTML/SVG rendering, tagged PDF or PDF/A. Composed documents support the bounded image and vector contracts below. Long text is wrapped and continued across pages without truncation; CRLF/CR become line breaks and tabs expand to four spaces for display.
+This writer handles scalar text layout for Latin, Greek, Cyrillic, Han, Hiragana, Katakana, precomposed Hangul and common symbols, including supplementary Unicode where the font provides it. If a supplied TrueType font lacks U+202F (narrow no-break space) but provides an inkless U+2009 (thin space), the writer uses that thin-space glyph and its advance while preserving U+202F in the PDF's Unicode map. Other missing glyphs, malformed surrogates, combining sequences, bidirectional text and scripts requiring shaping fail explicitly. It does not provide general HTML/SVG rendering or PDF/A. Composed documents support the bounded image and vector contracts below. Long text is wrapped and continued across pages without truncation; CRLF/CR become line breaks and tabs expand to four spaces for display.
 
 `PdfLimits` includes shared row/cell/text/output ceilings plus `maxPages` (default 10,000), `maxColumns` (1,024), `maxCellCharacters` (1,000,000 UTF-16 units), `maxRowLines` (100,000), `maxFontBytes` (16 MiB across unique supplied fonts), `maxPageBytes` (8 MiB of drawing commands and link dictionaries), and `maxHyperlinks` (100,000 native annotations). A continued linked cell creates one annotation per page fragment; repeated linked headings also consume that limit. PDF cell/text budgets count rendered strings, headings, totals and page decorations; `maxRows` counts source rows. Resource failures never silently remove rows, columns or text. Native deflate compresses streams when available; `compression: false` or a missing native compressor produces valid uncompressed PDFs.
 
@@ -269,7 +269,7 @@ Workers can call the same writers without a DOM. For a portable worker-to-page h
 
 ### Compose a PDF report
 
-`writePdfDocument` combines paragraphs, independently paginated tables, images, vector paths and explicit page breaks. `writePdfDocumentTo` writes the same blocks to a caller-owned destination. `pdfTable` checks each table's columns and getters against its row type.
+`writePdfDocument` combines paragraphs, independently paginated tables, images, vector paths, portable drawings and explicit page breaks. `writePdfDocumentTo` writes the same blocks to a caller-owned destination. `pdfTable` checks each table's columns and getters against its row type.
 
 ```ts
 import { writePdfDocument, pdfTable, saveBlob } from "@evotecit/officeimo";
@@ -303,13 +303,74 @@ saveBlob(report, "sales-report.pdf");
 
 Document options own page geometry, fonts, padding, decorations and limits. Each table owns its columns, repeated headings, widths, presentation, formatter and totals. Paragraphs support their own font size, bold, italic, text color and horizontal alignment. The existing font and supported-script rules apply to every block. `writePdf` and `writePdfTo` remain convenient entry points for one table.
 
-Images accept `{ format: "jpeg", data }` or decoded `{ format: "rgb" | "rgba", width, height, data }` pixels. Raw pixels are row-major, 8 bits per channel, without row padding or premultiplied alpha. JPEG accepts 8-bit grayscale/RGB baseline, sequential and progressive frames. CMYK, ICC profiles, EXIF metadata and other component layouts fail explicitly; normalize color and orientation before supplying those JPEGs. PNG and arbitrary SVG bytes are not decoded.
+Images accept `{ format: "png", data }`, `{ format: "jpeg", data }` or decoded `{ format: "rgb" | "rgba", width, height, data }` pixels. Raw pixels are row-major, 8 bits per channel, without row padding or premultiplied alpha. JPEG accepts 8-bit grayscale/RGB baseline, sequential and progressive frames. CMYK, ICC profiles, EXIF metadata and other component layouts fail explicitly; normalize color and orientation before supplying those JPEGs.
+
+PNG intake accepts complete static, noninterlaced, 8-bit RGB/RGBA images with no color-profile metadata. It checks chunk CRCs, critical chunk order, scanline filters and the exact inflated byte length. RGB samples pass unchanged into the PDF's DeviceRGB image; straight alpha becomes a separate soft mask. Indexed/grayscale images, 16-bit samples, interlacing, animation, EXIF, `tRNS`, `sBIT`, and color/profile chunks (`sRGB`, `gAMA`, `cHRM`, `iCCP`, `cICP`, `mDCV`, `cLLI`) fail explicitly; normalize those inputs first. PNG decoding requires native `DecompressionStream("deflate")` and returns `code: "PLATFORM_UNAVAILABLE"` when unavailable. Arbitrary SVG bytes are not decoded.
 
 An image's optional display `width` and `height` use points. One omitted dimension preserves the intrinsic aspect ratio; omitting both uses 96 DPI. The writer scales an oversized graphic down to the printable page and moves it intact to the next page when necessary. Source bytes are copied when the image is first consumed. Reusing that image object shares its PDF resource. Keep source objects and byte arrays stable until their block has been consumed.
 
 Vector blocks use explicit top-left bounds and `move`, `line`, `cubic` and `close` commands. A block paints one path with optional six-digit RGB `fill` and `stroke`, `strokeWidth`, and `fillRule: "nonzero" | "evenodd"`. Coordinates must stay inside the declared bounds. Painting is clipped to those bounds. Images and vectors support `alignment: "left" | "center" | "right"`. This path contract does not interpret SVG markup, CSS, gradients, text or external resources.
 
 Blocks and table rows are consumed once in order, with destination backpressure and cancellation. Pass a fresh source for each export. The result's `rows` sums the data rows across all tables; `columns` is the widest table. Row, cell, rendered-text, page, font, output and hyperlink limits cover the whole document. Graphics add `maxImageBytes` (32 MiB across distinct source image objects), `maxImagePixels` (16,777,216 pixels per image), and `maxVectorCommands` (100,000 commands across all vector blocks). Caller-owned destinations retain their normal partial-output and disposal contract.
+
+### Portable drawings
+
+A `drawing` block paints an ordered collection of paths, fixed-baseline text and rectangular clip groups as one indivisible graphic. It uses the same page fitting, alignment and tagged-figure alternatives as images and vectors. `OfficeIMO.Drawing.OfficeDrawingPortableExporter.TryExportJson` produces this wire format from supported `OfficeDrawing` content. Pass the parsed JSON as the block's `drawing` value; failed producer exports return diagnostics and no partial drawing.
+
+```ts
+import { writePdfDocument } from "@evotecit/officeimo";
+import type { PdfDrawing } from "@evotecit/officeimo";
+
+const drawing: PdfDrawing = {
+  version: 1, width: 200, height: 100,
+  elements: [
+    { kind: "path", stroke: "555555", lineCap: "square", commands: [
+      { op: "move", x: 10, y: 10 }, { op: "line", x: 10, y: 90 },
+      { op: "line", x: 190, y: 90 }
+    ] },
+    { kind: "group", clip: { x: 10, y: 10, width: 180, height: 80 }, elements: [
+      { kind: "path", stroke: "217346", strokeWidth: 2, lineJoin: "round", commands: [
+        { op: "move", x: 0, y: 95 }, { op: "line", x: 80, y: 60 },
+        { op: "line", x: 200, y: 15 }
+      ] }
+    ] }
+  ]
+};
+const report = await writePdfDocument([
+  { kind: "drawing", drawing, alternativeText: "Sales increased through the quarter." }
+], { tagged: { language: "en-US" } });
+```
+
+Version 1 accepts `path`, `text` and `group` elements only. Paths use the existing `move`, `line`, `cubic` and `close` commands, RGB fills/strokes, positive `strokeWidth`, `fillRule`, `lineCap: "butt" | "round" | "square"`, and `lineJoin: "miter" | "round" | "bevel"`. The miter limit is 10. Groups contain ordered `elements` and an optional rectangular `clip`. Every drawing is also clipped to its own bounds. Coordinates use points from the top left; finite values from -1,000,000 through 1,000,000 allow geometry to extend beyond a clip. Drawing dimensions are positive and at most 14,400 points; rectangular clip dimensions may reach 1,000,000 points.
+
+Text elements declare `text`, `x`, `y`, `font`, `fontSize` and RGB `color`; `y` is the baseline. The font slot is `regular`, `bold`, `italic` or `boldItalic`, and that exact embedded static TrueType face must be supplied in the document's `fonts`. Use the same licensed static family in the .NET producer and the JavaScript writer. Missing faces and synthetic emphasis are rejected. Text stays at its authored position without wrapping or shaping; line breaks, control characters, unsupported scripts and missing glyphs fail explicitly under the existing scalar-text rules.
+
+The wire format rejects unknown properties, versions, commands and element kinds. It does not parse SVG/CSS or load fonts and external resources. `maxDrawingElements` (default 100,000) counts paths, text and groups across drawing blocks; nesting is limited to 32 element levels. Drawing path commands share `maxVectorCommands` with vector blocks. Text shares cell/character budgets with the rest of the document. Serialized drawing content obeys `maxPageBytes`, and preflight and serialization cooperate with cancellation. Keep the supplied drawing stable until its block is consumed.
+
+### Tagged PDF reports
+
+Set `tagged: { language: "en-US" }` on a PDF writer to emit a logical structure tree. The language must be a locale identifier accepted by `Intl.getCanonicalLocales`. Composed paragraphs use `P` by default; `headingLevel: 1` through `6` selects `H1` through `H6` without changing the visual presentation. The document-level `title` uses `H1`; top/bottom messages use `P`.
+
+```ts
+import { writePdfDocument, pdfTable } from "@evotecit/officeimo";
+
+const report = await writePdfDocument([
+  { kind: "paragraph", text: "Sales report", headingLevel: 1,
+    fontSize: 18, presentation: { bold: true } },
+  { kind: "paragraph", text: "Services sold this quarter." },
+  pdfTable([{ item: "Services", amount: 120 }], {
+    columns: [{ header: "Item", key: "item" }, { header: "Amount", key: "amount" }]
+  })
+], { tagged: { language: "en-US" } });
+```
+
+The supported table profile uses one leaf heading per column, tagged as `TH` with column scope. Empty heading cells use `TD`. Ordinary data and footer cells use `TD`. A table remains one `Table` with ordered `TR` and cell elements across pages; each continued paragraph or cell retains its logical identity. Repeated visual headings, table borders/backgrounds, page headers/footers and page numbers are artifacts. Grouped headings, `headerRows`, structured `footer.rows` and linked `ExportCell` values are rejected in tagged mode.
+
+Every image, vector or drawing block in tagged output requires either a nonempty `alternativeText` or `decorative: true`. Meaningful graphics become `Figure` elements with an alternative; decorative graphics are artifacts. Supplying both is an error. Figure alternatives count toward the cell/text budgets and obey `maxCellCharacters`. Choose alternatives and heading levels that express the report's meaning; the writer cannot infer them.
+
+`maxStructureElements` (default 1,000,000) bounds retained logical elements, including `Document`, tables, rows, cells and figures. `maxMarkedContentReferences` (2,000,000) bounds their references to painted content, including continued cell lines. These limits apply across the document. Untagged output remains the default.
+
+This profile provides structure for supported reports. It does not claim accessible PDF or PDF/UA conformance. Assistive-technology reading, navigation and author-supplied semantics require manual acceptance; see the [remaining accessibility work](../Docs/ROADMAP.md#officeimo-javascript).
 
 ## XLSX: workbook, worksheets and cells
 

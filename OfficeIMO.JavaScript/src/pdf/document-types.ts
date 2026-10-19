@@ -1,5 +1,6 @@
 import type { CellPresentation } from "../core/index.js";
 import type { PdfOptions } from "./types.js";
+import type { PdfDrawingBlock } from "./drawing-types.js";
 
 /** Page geometry, fonts, decorations and resource policy shared by every document block. */
 export interface PdfDocumentOptions extends Omit<PdfOptions<never>, "columns" | "includeHeader" | "headerRows" | "footer" |
@@ -17,6 +18,8 @@ export interface PdfTableBlock {
 export interface PdfParagraphBlock {
   readonly kind: "paragraph";
   readonly text: string;
+  /** Heading level in tagged output; omitted text is a paragraph. Appearance uses presentation. */
+  readonly headingLevel?: 1 | 2 | 3 | 4 | 5 | 6;
   readonly fontSize?: number;
   readonly presentation?: Pick<CellPresentation, "bold" | "italic" | "color" | "alignment">;
 }
@@ -31,14 +34,20 @@ export interface PdfRawImage {
 }
 /** An 8-bit grayscale/RGB JPEG. CMYK, ICC-profiled and nonstandard component layouts are rejected. */
 export interface PdfJpegImage { readonly format: "jpeg"; readonly data: Uint8Array; }
+/** A complete static unprofiled, noninterlaced 8-bit RGB/RGBA PNG, decoded with native DecompressionStream. */
+export interface PdfPngImage { readonly format: "png"; readonly data: Uint8Array; }
 /** An indivisible image. Oversized display dimensions scale down to the printable page. */
 export interface PdfImageBlock {
   readonly kind: "image";
-  readonly image: PdfRawImage | PdfJpegImage;
+  readonly image: PdfRawImage | PdfJpegImage | PdfPngImage;
   /** Display lengths in PDF points; omitted dimensions retain the intrinsic aspect ratio at 96 DPI. */
   readonly width?: number;
   readonly height?: number;
   readonly alignment?: "left" | "center" | "right";
+  /** Required for meaningful figures in tagged output; cannot accompany decorative:true. */
+  readonly alternativeText?: string;
+  /** Explicitly exclude a purely decorative graphic from the logical reading order. */
+  readonly decorative?: boolean;
 }
 /** Coordinates use points from the vector block's top-left corner. */
 export type PdfPathCommand = { readonly op: "move" | "line"; readonly x: number; readonly y: number } |
@@ -55,6 +64,8 @@ export interface PdfVectorBlock {
   readonly strokeWidth?: number;
   readonly fillRule?: "nonzero" | "evenodd";
   readonly alignment?: "left" | "center" | "right";
+  readonly alternativeText?: string;
+  readonly decorative?: boolean;
 }
 /** Blocks are consumed once in order; each table owns its row source until that table completes. */
-export type PdfDocumentBlock = PdfParagraphBlock | PdfTableBlock | PdfPageBreakBlock | PdfImageBlock | PdfVectorBlock;
+export type PdfDocumentBlock = PdfParagraphBlock | PdfTableBlock | PdfPageBreakBlock | PdfImageBlock | PdfVectorBlock | PdfDrawingBlock;

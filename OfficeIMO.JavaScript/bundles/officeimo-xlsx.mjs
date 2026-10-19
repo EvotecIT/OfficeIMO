@@ -486,11 +486,11 @@ const _m11 = (() => {
 function isDate(value) {
     if (value === null || typeof value !== "object")
         return false;
-    // Ordinary domain rows are objects too. Avoid throwing for each one; the native
-    // check below still rejects objects that merely advertise a Date string tag.
-    if (!(value instanceof Date) && Object.prototype.toString.call(value) !== "[object Date]")
-        return false;
     try {
+        // Ordinary rows take the cheap negative path. A custom string tag can be an
+        // accessor: use the native brand check directly without reading that tag.
+        if (!(value instanceof Date) && !(Symbol.toStringTag in value) && Object.prototype.toString.call(value) !== "[object Date]")
+            return false;
         Date.prototype.getTime.call(value);
         return true;
     }
@@ -527,19 +527,14 @@ const _exports = Object.freeze({ corePropertiesXml: corePropertiesXml, appProper
 return _exports;
 })();
 
-const _m13 = (() => {
-const { checkAbort, withAbort } = _m2;
-
-const { OfficeIMOError } = _m3;
-
-const zipLimit = 0xffffffff;
+const _m14 = (() => {
 const crcTable = new Uint32Array(256).map((_, index) => {
     let value = index;
     for (let bit = 0; bit < 8; bit++)
         value = value & 1 ? 0xedb88320 ^ (value >>> 1) : value >>> 1;
     return value >>> 0;
 });
-/** Incremental CRC-32/ISO-HDLC, also usable by a future reader. */
+/** Incremental CRC-32/ISO-HDLC shared by ZIP and PNG chunk validation. */
 class Crc32 {
     crc = 0xffffffff;
     update(bytes) {
@@ -550,6 +545,20 @@ class Crc32 {
     }
     get value() { return (this.crc ^ 0xffffffff) >>> 0; }
 }
+const _exports = Object.freeze({ Crc32: Crc32 });
+return _exports;
+})();
+
+const _m13 = (() => {
+const { checkAbort, withAbort } = _m2;
+
+const { OfficeIMOError } = _m3;
+
+const { Crc32 } = _m14;
+
+
+
+const zipLimit = 0xffffffff;
 function zipSize(value) {
     if (!Number.isSafeInteger(value) || value < 0 || value >= zipLimit)
         throw new OfficeIMOError("ZIP64_REQUIRED", "Classic ZIP entries and archives must stay below 4 GiB; ZIP64 is not supported yet.");
@@ -667,7 +676,7 @@ class EntryWriter {
         this.reader?.releaseLock();
     }
 }
-const _exports = Object.freeze({ zipLimit: zipLimit, Crc32: Crc32, zipSize: zipSize, EntryWriter: EntryWriter });
+const _exports = Object.freeze({ Crc32: _m14.Crc32, zipLimit: zipLimit, zipSize: zipSize, EntryWriter: EntryWriter });
 return _exports;
 })();
 
@@ -1152,7 +1161,7 @@ const _exports = Object.freeze({ partUri: _m8.partUri, relationshipPartUri: _m8.
 return _exports;
 })();
 
-const _m15 = (() => {
+const _m16 = (() => {
 function colorArgb(value) {
     if (typeof value !== "string" || !/^#?(?:[0-9a-f]{6}|[0-9a-f]{8})$/i.test(value))
         throw new TypeError("Color must be RGB or ARGB hex.");
@@ -1163,12 +1172,12 @@ const _exports = Object.freeze({ colorArgb: colorArgb });
 return _exports;
 })();
 
-const _m16 = (() => {
+const _m17 = (() => {
 const { OfficeIMOError } = _m3;
 
 const { cleanXml, escapeOoxmlAttribute } = _m10;
 
-const { colorArgb } = _m15;
+const { colorArgb } = _m16;
 
 /** @internal Reject unsupported properties rather than silently losing presentation. */
 function fields(value, allowed, label) {
@@ -1273,14 +1282,14 @@ const _exports = Object.freeze({ fields: fields, optionalBoolean: optionalBoolea
 return _exports;
 })();
 
-const _m14 = (() => {
+const _m15 = (() => {
 const { escapeOoxmlAttribute, cleanXml, xmlDeclaration } = _m10;
 
 const { OfficeIMOError } = _m3;
 
-const { colorArgb } = _m15;
+const { colorArgb } = _m16;
 
-const { DifferentialStyles } = _m16;
+const { DifferentialStyles } = _m17;
 
 
 
@@ -1478,11 +1487,11 @@ class StyleRegistry {
         }).join("") + '</cellXfs><cellStyles count="1"><cellStyle name="Normal" xfId="0" builtinId="0"/></cellStyles>' + this.differential.toXml() + '</styleSheet>';
     }
 }
-const _exports = Object.freeze({ colorArgb: _m15.colorArgb, spreadsheetNamespace: spreadsheetNamespace, NumberFormats: NumberFormats, validateStylePatch: validateStylePatch, copyStylePatch: copyStylePatch, StyleRegistry: StyleRegistry });
+const _exports = Object.freeze({ colorArgb: _m16.colorArgb, spreadsheetNamespace: spreadsheetNamespace, NumberFormats: NumberFormats, validateStylePatch: validateStylePatch, copyStylePatch: copyStylePatch, StyleRegistry: StyleRegistry });
 return _exports;
 })();
 
-const _m19 = (() => {
+const _m20 = (() => {
 /** @internal One target policy shared by document writers and portable cells. */
 function copyExportLink(link) {
     if (!link || typeof link !== "object" || typeof link.target !== "string" ||
@@ -1499,10 +1508,10 @@ const _exports = Object.freeze({ copyExportLink: copyExportLink });
 return _exports;
 })();
 
-const _m18 = (() => {
+const _m19 = (() => {
 const { isDate } = _m11;
 
-const { copyExportLink } = _m19;
+const { copyExportLink } = _m20;
 
 const exportCellBrand = Symbol.for("@evotecit/officeimo/ExportCell");
 /** One resolved value/presentation decision that can be reused across exports. Strings remain literal data. */
@@ -1543,10 +1552,10 @@ const _exports = Object.freeze({ ExportCell: ExportCell, assertScalar: assertSca
 return _exports;
 })();
 
-const _m17 = (() => {
+const _m18 = (() => {
 const { cleanXml, escapeXml } = _m10;
 
-const { ExportCell, assertExportValue, assertScalar } = _m18;
+const { ExportCell, assertExportValue, assertScalar } = _m19;
 
 const { isDate } = _m11;
 
@@ -1636,8 +1645,8 @@ const _exports = Object.freeze({ Cell: Cell, assertXlsxValue: assertXlsxValue, c
 return _exports;
 })();
 
-const _m21 = (() => {
-const { assertExportValue } = _m18;
+const _m22 = (() => {
+const { assertExportValue } = _m19;
 
 const { checkAbort } = _m2;
 
@@ -1698,10 +1707,10 @@ const _exports = Object.freeze({ createRowProjector: createRowProjector, copyCol
 return _exports;
 })();
 
-const _m22 = (() => {
+const _m23 = (() => {
 const { cleanXml, escapeXml, escapeOoxmlAttribute, xmlDeclaration } = _m10;
 
-const { copyExportLink } = _m19;
+const { copyExportLink } = _m20;
 
 const { officeRelationshipsNamespace } = _m7;
 
@@ -1759,10 +1768,10 @@ const _exports = Object.freeze({ cellPosition: cellPosition, copyHyperlink: copy
 return _exports;
 })();
 
-const _m24 = (() => {
+const _m25 = (() => {
 const { OfficeIMOError } = _m3;
 
-const { cellPosition } = _m22;
+const { cellPosition } = _m23;
 
 function indexRows(regions) {
     if (!regions.length)
@@ -1863,7 +1872,7 @@ const _exports = Object.freeze({ MergeRegions: MergeRegions });
 return _exports;
 })();
 
-const _m25 = (() => {
+const _m26 = (() => {
 class NumericAggregate {
     operation;
     count = 0;
@@ -1910,20 +1919,20 @@ const _exports = Object.freeze({ NumericAggregate: NumericAggregate, createTotal
 return _exports;
 })();
 
-const _m23 = (() => {
-const { ExportCell } = _m18;
+const _m24 = (() => {
+const { ExportCell } = _m19;
 
 const { isDate } = _m11;
 
-const { Cell, cellText, columnName } = _m17;
+const { Cell, cellText, columnName } = _m18;
 
 const { escapeOoxmlAttribute } = _m10;
 
-const { MergeRegions } = _m24;
+const { MergeRegions } = _m25;
 
 const { OfficeIMOError } = _m3;
 
-const { createTotals } = _m25;
+const { createTotals } = _m26;
 
 /** @internal A computed formula with a numeric cache; no public arbitrary-formula input. */
 class ComputedTotal {
@@ -2081,16 +2090,16 @@ const _exports = Object.freeze({ ComputedTotal: ComputedTotal, ReportLayout: Rep
 return _exports;
 })();
 
-const _m26 = (() => {
+const _m27 = (() => {
 const { cleanXml, escapeXml, escapeOoxmlAttribute } = _m10;
 
-const { cellPosition } = _m22;
+const { cellPosition } = _m23;
 
-const { columnName } = _m17;
+const { columnName } = _m18;
 
-const { colorArgb } = _m15;
+const { colorArgb } = _m16;
 
-const { fields, optionalBoolean, differentialXml } = _m16;
+const { fields, optionalBoolean, differentialXml } = _m17;
 
 function target(range, columns) {
     if (typeof range === "string") {
@@ -2246,7 +2255,7 @@ const _exports = Object.freeze({ prepareConditionalFormats: prepareConditionalFo
 return _exports;
 })();
 
-const _m20 = (() => {
+const _m21 = (() => {
 const { checkAbort, consumeRows, inputRows, pause, taskYieldDue } = _m2;
 
 const { ChunkedTextSink, BlobByteSink } = _m5;
@@ -2255,7 +2264,7 @@ const { NotSupportedError, OfficeIMOError } = _m3;
 
 const { notifyProgress } = _m4;
 
-const { copyColumns, createRowProjector } = _m21;
+const { copyColumns, createRowProjector } = _m22;
 
 const { EntryWriter } = _m13;
 
@@ -2263,19 +2272,19 @@ const { xmlDeclaration } = _m10;
 
 const { officeRelationshipsNamespace } = _m7;
 
-const { Cell, cellText, columnName, inlineText, excelDate, copyValue } = _m17;
+const { Cell, cellText, columnName, inlineText, excelDate, copyValue } = _m18;
 
-const { spreadsheetNamespace, colorArgb, validateStylePatch, copyStylePatch } = _m14;
+const { spreadsheetNamespace, colorArgb, validateStylePatch, copyStylePatch } = _m15;
 
-const { copyHyperlink, copyImage, hyperlinksXml, cellPosition } = _m22;
+const { copyHyperlink, copyImage, hyperlinksXml, cellPosition } = _m23;
 
-const { ExportCell, assertScalar } = _m18;
+const { ExportCell, assertScalar } = _m19;
 
-const { ReportLayout, ComputedTotal, printXml } = _m23;
+const { ReportLayout, ComputedTotal, printXml } = _m24;
 
 const { cleanXml } = _m10;
 
-const { ConditionalFormats, prepareConditionalFormats } = _m26;
+const { ConditionalFormats, prepareConditionalFormats } = _m27;
 
 const { isDate } = _m11;
 
@@ -2835,18 +2844,18 @@ const _exports = Object.freeze({ Worksheet: Worksheet });
 return _exports;
 })();
 
-const _m27 = (() => {
+const _m28 = (() => {
 const { escapeOoxmlAttribute, escapeXml, xmlDeclaration } = _m10;
 
-const { cellText, columnName } = _m17;
+const { cellText, columnName } = _m18;
 
-const { spreadsheetNamespace } = _m14;
+const { spreadsheetNamespace } = _m15;
 
-const { ExportCell } = _m18;
+const { ExportCell } = _m19;
 
-const { Cell } = _m17;
+const { Cell } = _m18;
 
-const { totalFormula } = _m23;
+const { totalFormula } = _m24;
 
 function defineTable(id, options, columns, policy) {
     const name = options.name ?? "Table" + id;
@@ -2881,7 +2890,7 @@ const _exports = Object.freeze({ defineTable: defineTable, tableXml: tableXml })
 return _exports;
 })();
 
-const _m28 = (() => {
+const _m29 = (() => {
 const { OfficeIMOError } = _m3;
 
 const { cleanXml } = _m10;
@@ -2963,19 +2972,19 @@ const { OpcPackage, officeRelationshipsNamespace, relationshipTypes, corePropert
 
 const { escapeOoxmlAttribute, cleanXml, xmlDeclaration } = _m10;
 
-const { StyleRegistry, spreadsheetNamespace } = _m14;
+const { StyleRegistry, spreadsheetNamespace } = _m15;
 
-const { sheetName, assertXlsxValue } = _m17;
+const { sheetName, assertXlsxValue } = _m18;
 
-const { assertExportValue } = _m18;
+const { assertExportValue } = _m19;
 
-const { Worksheet } = _m20;
+const { Worksheet } = _m21;
 
-const { defineTable, tableXml } = _m27;
+const { defineTable, tableXml } = _m28;
 
-const { drawingXml, drawingContentType } = _m22;
+const { drawingXml, drawingContentType } = _m23;
 
-const { TextOverflow } = _m28;
+const { TextOverflow } = _m29;
 
 const xlsxMime = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
 const formatType = (name) => "application/vnd.openxmlformats-officedocument.spreadsheetml." + name + "+xml";
@@ -3281,8 +3290,8 @@ const _exports = Object.freeze({ Workbook: Workbook });
 return _exports;
 })();
 
-const _m30 = (() => {
-const { ExportCell, assertScalar } = _m18;
+const _m31 = (() => {
+const { ExportCell, assertScalar } = _m19;
 
 function style(patch) {
     for (const component of ["font", "fill", "border", "numberFormat"])
@@ -3327,14 +3336,14 @@ const _exports = Object.freeze({ portableSheet: portableSheet, portableWorkbook:
 return _exports;
 })();
 
-const _m29 = (() => {
+const _m30 = (() => {
 const { withDestination } = _m5;
 
-const { copyColumns } = _m21;
+const { copyColumns } = _m22;
 
 const { Workbook } = _m1;
 
-const { portableSheet, portableWorkbook } = _m30;
+const { portableSheet, portableWorkbook } = _m31;
 
 function prepare(options) {
     const columns = copyColumns(options?.columns);
@@ -3380,7 +3389,7 @@ const _exports = Object.freeze({ writeXlsx: writeXlsx, writeXlsxTo: writeXlsxTo 
 return _exports;
 })();
 
-const _m31 = (() => {
+const _m32 = (() => {
 
 
 
@@ -3422,13 +3431,13 @@ function saveBlob(blob, fileName) {
         setTimeout(() => URL.revokeObjectURL(url), 30000);
     }
 }
-const _exports = Object.freeze({ OfficeIMOError: _m3.OfficeIMOError, NotSupportedError: _m3.NotSupportedError, BlobByteSink: _m5.BlobByteSink, ChunkedTextSink: _m5.ChunkedTextSink, writeBytes: _m5.writeBytes, ExportCell: _m18.ExportCell, checkAbort: _m2.checkAbort, withAbort: _m2.withAbort, inputRows: _m2.inputRows, pause: _m2.pause, detectFeatures: detectFeatures, saveBlob: saveBlob });
+const _exports = Object.freeze({ OfficeIMOError: _m3.OfficeIMOError, NotSupportedError: _m3.NotSupportedError, BlobByteSink: _m5.BlobByteSink, ChunkedTextSink: _m5.ChunkedTextSink, writeBytes: _m5.writeBytes, ExportCell: _m19.ExportCell, checkAbort: _m2.checkAbort, withAbort: _m2.withAbort, inputRows: _m2.inputRows, pause: _m2.pause, detectFeatures: detectFeatures, saveBlob: saveBlob });
 return _exports;
 })();
 
 const _m0 = (() => {
 
-const _exports = Object.freeze({ Workbook: _m1.Workbook, writeXlsx: _m29.writeXlsx, writeXlsxTo: _m29.writeXlsxTo, Worksheet: _m20.Worksheet, Cell: _m17.Cell, StyleRegistry: _m14.StyleRegistry, NumberFormats: _m14.NumberFormats, saveBlob: _m31.saveBlob, ExportCell: _m18.ExportCell });
+const _exports = Object.freeze({ Workbook: _m1.Workbook, writeXlsx: _m30.writeXlsx, writeXlsxTo: _m30.writeXlsxTo, Worksheet: _m21.Worksheet, Cell: _m18.Cell, StyleRegistry: _m15.StyleRegistry, NumberFormats: _m15.NumberFormats, saveBlob: _m32.saveBlob, ExportCell: _m19.ExportCell });
 return _exports;
 })();
 const { Workbook, writeXlsx, writeXlsxTo, Worksheet, Cell, StyleRegistry, NumberFormats, saveBlob, ExportCell } = _m0;

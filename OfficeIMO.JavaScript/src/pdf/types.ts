@@ -7,6 +7,8 @@ export interface PdfMargins { readonly top: number; readonly right: number; read
 export interface PdfFonts { readonly regular: PdfFont; readonly bold?: PdfFont; readonly italic?: PdfFont; readonly boldItalic?: PdfFont; }
 /** Font family and emphasis selection for one text run; omitted fonts use standard Helvetica. */
 export interface PdfTextPreflightOptions { readonly fonts?: PdfFonts; readonly bold?: boolean; readonly italic?: boolean; }
+/** Opt-in logical structure for the supported report profile; does not assert PDF/UA conformance. */
+export interface PdfTaggedOptions { readonly language: string; }
 /** Stable reason that the current scalar-layout writer cannot render a text run. */
 export type PdfTextIssueCode = "unpaired-surrogate" | "unsupported-control" | "unsupported-layout" | "embedded-font-required" | "missing-glyph";
 /** Text support alone does not establish layout, resource-budget or accessibility success. */
@@ -36,6 +38,12 @@ export interface PdfLimits extends ExportLimits {
   readonly maxImagePixels?: number;
   /** Total path commands across a composed document, checked before serializing a block. */
   readonly maxVectorCommands?: number;
+  /** Total path, text and group elements across portable drawing blocks. */
+  readonly maxDrawingElements?: number;
+  /** Logical structure elements retained by a tagged document, including Document, rows and cells. */
+  readonly maxStructureElements?: number;
+  /** Cross-page content references retained by the structure tree, including continued cells. */
+  readonly maxMarkedContentReferences?: number;
 }
 export type PdfTotal = "sum" | "count" | "average" | "min" | "max";
 export interface PdfTableFooter {
@@ -54,6 +62,8 @@ export interface PdfOptions<T = never> extends Omit<StreamOptions, "limits"> {
   readonly margins?: number | Partial<PdfMargins>;
   /** Standard Helvetica is used when omitted. Supply TrueType fonts for Unicode text. */
   readonly fonts?: PdfFonts;
+  /** Logical reading order, simple table semantics and explicit figure alternatives. */
+  readonly tagged?: PdfTaggedOptions;
   readonly fontSize?: number;
   /** First-page title. Empty text is omitted without reserving space or consuming a cell. */
   readonly title?: string;

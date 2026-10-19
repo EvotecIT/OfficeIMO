@@ -28,6 +28,15 @@ dotnet run --project Build/BrowserExports/OfficeIMO.Browser.Interop.csproj -c Re
 dotnet run --project Build/BrowserExports/OfficeIMO.Browser.Interop.csproj -c Release -- . "$evidence/pdf-scale" --pdf --scale
 ```
 
+Qualify composed PNG, tagged PDF and portable drawing output against the current ES modules and classic bundle:
+
+```sh
+npm --prefix OfficeIMO.JavaScript run build
+npm --prefix OfficeIMO.JavaScript run test:browser -- "$evidence/pdf-rich" --pdf-rich
+```
+
+This route serves modules over loopback HTTP and runs the same contracts against the classic bundle in each of the three engines. It checks exact RGB/alpha samples, every PNG filter, unsupported color profiles, resource ceilings, native-inflater cancellation, tagged paragraphs, figures and tables, ordinary row objects with string-tag getters, and oversized image fitting. A portable drawing checks overlapping paths, rectangular clipping, line caps and an explicitly embedded static TrueType face. Every emitted PDF opens without repair through the separate managed reader. Reports record browser versions and module/bundle hashes. Build intermediates stay in the requested evidence directory's `build` folder; rendered PDF and assistive-technology acceptance remain separate qualification.
+
 The PDF lane checks Chromium, Firefox and WebKit, native/uncompressed/fallback streams, Polish text, Japanese text, supplementary symbols, repeated and spanned headings, multirow footers, totals, oversized text, paged input, slow sinks, cancellation and resource ceilings. Worker output transfers byte chunks to avoid WebKit worker Blob-read restrictions. Every document must open without repair in `OfficeIMO.Pdf`; ordered row IDs, complete long text, headings and expected values are independently checked. DataTables button scenarios run when verified comparison assets are provided. The ordinary workflow runs both installed pairs without host-timing gates. `--scale` records diagnostic durations and validates every cell in plain/styled tables at 10,000 and 100,000 rows with four/twenty columns; large PDFs are deleted immediately after readback. Rendered-page inspection with an independent PDF application remains separate visual proof.
 
 The verification runner uses the repository's pinned .NET SDK, Node 18 or newer and PowerShell 7 for the wrapper commands. Browser installation, sessions and captures use the existing test-only HtmlTinkerX/Playwright package. The runner is outside the normal solution and is not packable; neither distributed OfficeIMO package acquires browser tooling. Excel and LibreOffice spot checks remain optional independent application proof.

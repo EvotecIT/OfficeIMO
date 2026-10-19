@@ -174,11 +174,15 @@ public static class OfficeVisualConversionExtensions {
         return target;
     }
 
-    private static OfficeSvgDrawingReaderOptions CreateReaderOptions(OfficeVisualConversionOptions options) => new OfficeSvgDrawingReaderOptions {
-        MaximumElements = options.MaximumSvgElements,
-        MaximumViewportDimension = options.MaximumSvgViewportDimension,
-        MaximumViewportPixels = options.MaximumSvgViewportPixels
-    };
+    private static OfficeSvgDrawingReaderOptions CreateReaderOptions(OfficeVisualConversionOptions options) {
+        var reader = new OfficeSvgDrawingReaderOptions {
+            MaximumElements = options.MaximumSvgElements,
+            MaximumViewportDimension = options.MaximumSvgViewportDimension,
+            MaximumViewportPixels = options.MaximumSvgViewportPixels
+        };
+        reader.Fonts.AddRange(options.Fonts);
+        return reader;
+    }
 
     private static void ThrowIfRasterFallbackIsUnsafe(
         byte[] svgBytes,

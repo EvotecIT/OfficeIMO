@@ -348,16 +348,16 @@ _modules.set("02ec6cf227afac6ead01cf24b9e3958c71ffd2616ecf0ad6b0baed551f39b86d",
 return _exports;
 })();
 
-const _m6 = _modules.get("1755f53656df3669e74d6774aa819807a82f7446b8af667d73c80117a5458699") ?? (() => {
+const _m6 = _modules.get("501f5fccaecb27d9e514b74cf64893649e50616692250593d120ca315b510c04") ?? (() => {
 /** @internal Recognize native Date values across iframe realms without trusting a string tag. */
 function isDate(value) {
     if (value === null || typeof value !== "object")
         return false;
-    // Ordinary domain rows are objects too. Avoid throwing for each one; the native
-    // check below still rejects objects that merely advertise a Date string tag.
-    if (!(value instanceof Date) && Object.prototype.toString.call(value) !== "[object Date]")
-        return false;
     try {
+        // Ordinary rows take the cheap negative path. A custom string tag can be an
+        // accessor: use the native brand check directly without reading that tag.
+        if (!(value instanceof Date) && !(Symbol.toStringTag in value) && Object.prototype.toString.call(value) !== "[object Date]")
+            return false;
         Date.prototype.getTime.call(value);
         return true;
     }
@@ -366,7 +366,7 @@ function isDate(value) {
     }
 }
 const _exports = Object.freeze({ isDate: isDate });
-_modules.set("1755f53656df3669e74d6774aa819807a82f7446b8af667d73c80117a5458699", _exports);
+_modules.set("501f5fccaecb27d9e514b74cf64893649e50616692250593d120ca315b510c04", _exports);
 return _exports;
 })();
 
@@ -388,7 +388,7 @@ _modules.set("e3ffb91cf46091b5b178d3d4d7b158f52cf21d2ee0e7dfe1fb5140810fd7fecb",
 return _exports;
 })();
 
-const _m5 = _modules.get("9b92d9d98bd78c7cb43ed3a16c3464beb37c87aae22af87b8e12f52f9310e786") ?? (() => {
+const _m5 = _modules.get("f79dd9ca01bb1864831e26b384a6612a1eb631936d358dd2a008a894dbceb4fd") ?? (() => {
 const { isDate } = _m6;
 
 const { copyExportLink } = _m7;
@@ -429,7 +429,7 @@ function assertExportValue(value) {
     assertScalar(value);
 }
 const _exports = Object.freeze({ ExportCell: ExportCell, assertScalar: assertScalar, assertExportValue: assertExportValue });
-_modules.set("9b92d9d98bd78c7cb43ed3a16c3464beb37c87aae22af87b8e12f52f9310e786", _exports);
+_modules.set("f79dd9ca01bb1864831e26b384a6612a1eb631936d358dd2a008a894dbceb4fd", _exports);
 return _exports;
 })();
 
@@ -449,7 +449,7 @@ _modules.set("6cfd3e806439f6301003a2d1699a74fdfa574d935550ab62b97b528728eaee1f",
 return _exports;
 })();
 
-const _m9 = _modules.get("8934dd8ad55b1b318934c20dc2b47bbec27b17ba23ca820e2a3060a8dcdd112e") ?? (() => {
+const _m9 = _modules.get("e5f51523cbe24352ffc2ddc2cdf46cc1145e4215964526154f109ec9c0146386") ?? (() => {
 const { assertExportValue } = _m5;
 
 const { checkAbort } = _m1;
@@ -508,11 +508,11 @@ function copyColumns(columns, workbookStyles = false) {
     });
 }
 const _exports = Object.freeze({ createRowProjector: createRowProjector, copyColumns: copyColumns });
-_modules.set("8934dd8ad55b1b318934c20dc2b47bbec27b17ba23ca820e2a3060a8dcdd112e", _exports);
+_modules.set("e5f51523cbe24352ffc2ddc2cdf46cc1145e4215964526154f109ec9c0146386", _exports);
 return _exports;
 })();
 
-const _m10 = _modules.get("2dea921ea9dc47e1814e701d105e0568bf8edca4d91c480a2c0334817925b0f5") ?? (() => {
+const _m10 = _modules.get("9e9621bba11170b44ed2da3db9d8769784402a320771933ef68ba6b9d9f10a31") ?? (() => {
 
 
 
@@ -555,11 +555,11 @@ function saveBlob(blob, fileName) {
     }
 }
 const _exports = Object.freeze({ OfficeIMOError: _m3.OfficeIMOError, NotSupportedError: _m3.NotSupportedError, BlobByteSink: _m2.BlobByteSink, ChunkedTextSink: _m2.ChunkedTextSink, writeBytes: _m2.writeBytes, ExportCell: _m5.ExportCell, checkAbort: _m1.checkAbort, withAbort: _m1.withAbort, inputRows: _m1.inputRows, pause: _m1.pause, detectFeatures: detectFeatures, saveBlob: saveBlob });
-_modules.set("2dea921ea9dc47e1814e701d105e0568bf8edca4d91c480a2c0334817925b0f5", _exports);
+_modules.set("9e9621bba11170b44ed2da3db9d8769784402a320771933ef68ba6b9d9f10a31", _exports);
 return _exports;
 })();
 
-const _m0 = _modules.get("494c1fb29ac472828a226586c2fda73c9aff35e925d65e6a43a6e53e83a6793c") ?? (() => {
+const _m0 = _modules.get("8d53c3ca40bb7f550fede378a9850d80d8bda9928e93cfbb2fb46a3e4faaffa4") ?? (() => {
 const { beginTask, checkAbort, consumeRows, taskYieldDue, withAbort } = _m1;
 
 const { BlobByteSink, ChunkedTextSink, withDestination } = _m2;
@@ -693,7 +693,7 @@ async function writeCsv(rows, configuration) {
     }
 }
 const _exports = Object.freeze({ saveBlob: _m10.saveBlob, ExportCell: _m5.ExportCell, writeCsvTo: writeCsvTo, writeCsv: writeCsv });
-_modules.set("494c1fb29ac472828a226586c2fda73c9aff35e925d65e6a43a6e53e83a6793c", _exports);
+_modules.set("8d53c3ca40bb7f550fede378a9850d80d8bda9928e93cfbb2fb46a3e4faaffa4", _exports);
 return _exports;
 })();
 Object.assign(officeimo, _m0, { core: _m10, csv: _m0 });

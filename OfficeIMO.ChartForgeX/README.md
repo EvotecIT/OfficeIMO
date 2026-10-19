@@ -31,6 +31,12 @@ document.AddParagraph().AddVisualArtifact(artifact);
 document.Save();
 ```
 
+## Produce a portable PDF chart drawing
+
+Use `OfficeVisualSvgPolicy.RequireVector` when producing a chart for the JavaScript PDF drawing block. Add the same licensed static TrueType faces to `OfficeVisualConversionOptions.Fonts` before conversion so SVG text measurement uses the faces registered during chart preparation. Call `conversion.Report.RequireNoLoss()`, then pass `conversion.Drawing` to `OfficeDrawingPortableExporter.TryExportJson` in `OfficeIMO.Core` with the selected font family. The JavaScript consumer loads those same faces separately.
+
+This route uses the existing .NET SVG importer and canonical drawing model. The portable export rejects unsupported paint, fonts and text layout instead of dropping labels or substituting a raster image. See the [portable drawing profile](../OfficeIMO.Core/README.md#portable-report-drawings) for its limits.
+
 ## Choose the destination
 
 Use the same artifact in each format. Worksheet ranges and slide layout boxes preserve proportions and center the visual within the authored bounds.

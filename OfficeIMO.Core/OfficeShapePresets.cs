@@ -755,7 +755,7 @@ public static partial class OfficeShapePresets {
         return OfficeShape.Path(transformed);
     }
 
-    private static List<OfficePathCommand> CreateEllipsePath(double centerX, double centerY, double radiusX, double radiusY, bool clockwise) {
+    internal static List<OfficePathCommand> CreateEllipsePath(double centerX, double centerY, double radiusX, double radiusY, bool clockwise) {
         const double k = 0.5522847498307936D;
         if (clockwise) {
             return new List<OfficePathCommand> {

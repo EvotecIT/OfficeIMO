@@ -53,6 +53,47 @@ test("PDF documents embed valid JPEG bytes without re-encoding and contain overs
   }
 });
 
+test("PDF image display dimensions fit the page after admitting very wide and explicitly oversized images", async () => {
+  const panorama = { format: "rgb", width: 20000, height: 1, data: new Uint8Array(60000) };
+  for (const block of [{ kind: "image", image: panorama }, { kind: "image", image: logo, width: 50000, height: 50000 }]) {
+    const pdf = await inspectPdf(await writePdfDocument([block], { pageSize: "A5", pageNumbers: false, compression: false }));
+    assert.equal(pdf.pages.length, 1);
+    const transform = /q ([\d.]+) 0 0 ([\d.]+) 36 [\d.]+ cm \/Image1 Do/.exec(pdf.pages[0].content);
+    assert.ok(transform, "A finite fitted image is painted");
+    assert.ok(Number(transform[1]) > 0 && Number(transform[1]) <= 347.529);
+    assert.ok(Number(transform[2]) > 0 && Number(transform[2]) <= 523.276);
+  }
+  for (const width of [0, -1, Infinity, NaN])
+    await assert.rejects(writePdfDocument([{ kind: "image", image: logo, width }]), /finite and positive/);
+});
+
+test("PDF vectors capture geometry, path records and command counts before cooperative serialization", async () => {
+  const now = Object.getOwnPropertyDescriptor(performance, "now"), scheduler = globalThis.scheduler;
+  const commands = [{ op: "move", x: 0, y: 0 }, ...Array.from({ length: 1024 }, () => ({ op: "line", x: 1, y: 1 }))];
+  const mutable = { kind: "vector", width: 10, height: 10, commands, fill: "FFFFFF", stroke: "000000", fillRule: "evenodd" };
+  const path = [{ op: "move", x: 0, y: 0 }, { op: "line", x: 2, y: 2 }];
+  try {
+    let clock = 0, yields = 0;
+    Object.defineProperty(performance, "now", { configurable: true, value: () => clock += 40 });
+    globalThis.scheduler = { postTask: async callback => {
+      if (++yields === 1) {
+        commands.push({ op: "line", x: 9, y: 9 }); commands[1024].x = 9;
+        mutable.width = 20; mutable.fillRule = "nonzero";
+      }
+      callback();
+    } };
+    const pdf = await inspectPdf(await writePdfDocument([mutable, { kind: "vector", width: 10, height: 10, commands: path, stroke: "000000" },
+      { kind: "drawing", drawing: { version: 1, width: 10, height: 10, elements: [{ kind: "path", commands: path, stroke: "000000" }] } }],
+      { pageNumbers: false, compression: false, limits: { maxVectorCommands: 1029 } }));
+    assert.ok(yields > 0);
+    const content = pdf.pages[0].content;
+    assert.match(content, /0 0 10 10 re W n/);
+    assert.match(content, /B\*/);
+    assert.doesNotMatch(content, /9 9 l|9 1 l/);
+    assert.equal((content.match(/1 1 l/g) ?? []).length, 1024);
+  } finally { if (now) Object.defineProperty(performance, "now", now); else delete performance.now; globalThis.scheduler = scheduler; }
+});
+
 test("PDF headings moved to a fresh page consume the rendered text budget once", async () => {
   for (const [options, cells, characters] of [
     [{ columns: [{ header: "Name", key: "name" }] }, 3, 26],
@@ -93,7 +134,7 @@ test("PDF documents reject unsupported graphics before embedding their payload",
   assert.throws(() => pdfTable([], { columns, fontSize: 36 }), /document settings/);
   await assert.rejects(writePdfDocument([{ kind: "table", rows: [], options: { columns, padding: 40 } }]), /document settings/);
   for (const image of [{ ...logo, width: 3 }, { ...logo, width: Number.MAX_SAFE_INTEGER }, { format: "png", data: Uint8Array.of(1) }])
-    await assert.rejects(writePdfDocument([{ kind: "image", image }]), /Raw image|dimensions|support/);
+    await assert.rejects(writePdfDocument([{ kind: "image", image }]), /Raw image|dimensions|support|PNG signature/);
   for (const block of [{ ...vector, commands: [{ op: "line", x: 1, y: 1 }] }, { ...vector, commands: [{ op: "move", x: 81, y: 1 }] },
     { ...vector, commands: [{ op: "svg", data: "<svg/>" }] }]) await assert.rejects(writePdfDocument([block]), /subpath|bounds|command/);
   const sof = jpeg.findIndex((b, i) => b === 255 && jpeg[i + 1] === 192), cmyk = jpeg.slice(); cmyk[sof + 9] = 4;

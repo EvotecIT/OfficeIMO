@@ -32,6 +32,21 @@ test("Date-like objects cannot impersonate native Dates and Dates cannot act as 
   }
 });
 
+test("Date detection leaves ordinary row string-tag accessors untouched across export formats", async () => {
+  let reads = 0;
+  const tagged = Object.defineProperty({}, Symbol.toStringTag, { get() { reads++; return "Date"; } });
+  const throwing = Object.defineProperty({}, Symbol.toStringTag, { get() { reads++; throw Error("Unused row tag"); } });
+  const rows = [{ value: "safe" }, Object.assign(Object.create(tagged), { value: "safe" }), Object.assign(throwing, { value: "safe" })];
+  const columns = [{ header: "Value", key: "value" }];
+  assert.equal(await (await writeCsv(rows, { columns })).text(), "Value\r\nsafe\r\nsafe\r\nsafe\r\n");
+  assert.match((await readZip(await writeXlsx(rows, { columns }))).get("xl/worksheets/sheet1.xml").content, /safe/);
+  assert.match((await inspectPdf(await writePdf(rows, { columns }))).text, /safe/);
+  const foreign = vm.runInNewContext('new Date("2026-10-19T12:00:00Z")');
+  Object.defineProperty(foreign, Symbol.toStringTag, { get() { reads++; throw Error("Unused Date tag"); } });
+  for (const write of [writeCsv, writeXlsx, writePdf]) await write([[foreign]], { columns: [{ header: "Date" }] });
+  assert.equal(reads, 0);
+});
+
 test("Blob and destination writers reject async progress callbacks without leaking their rejection", async () => {
   const columns = [{ header: "Value" }];
   for (const write of [writeCsv, writeXlsx, writePdf]) {

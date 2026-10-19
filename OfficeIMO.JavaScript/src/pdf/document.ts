@@ -9,6 +9,8 @@ import { PdfTableLayout } from "./table-layout.js";
 import { PdfWriteSession } from "./session.js";
 import { PdfDocumentImages } from "./document-images.js";
 import { vectorCommands } from "./document-vectors.js";
+import { graphicAlternative } from "./structure.js";
+import { checkDrawingBlock, prepareDrawing } from "./document-drawings.js";
 import type { PdfDocumentBlock, PdfDocumentOptions, PdfTableBlock, PdfTableOptions } from "./document-types.js";
 
 /** Capture typed columns for a single-use table source in a composed document. */
@@ -29,17 +31,19 @@ export async function writePdfDocumentTo(blocks: Iterable<PdfDocumentBlock> | As
   beginTask(); checkAbort(options.signal);
   return withDestination(destination, async sink => {
     const session = new PdfWriteSession(sink, prepared), { objects, pages, fonts } = session, images = new PdfDocumentImages(objects, prepared);
-    let rows = 0, columns = 0, commands = 0;
+    let rows = 0, columns = 0, commands = 0, drawingElements = 0;
     await session.start();
     await consumeRows(blocks, options.signal, async block => {
       if (!block || typeof block !== "object") throw new TypeError("PDF document blocks must be objects.");
       switch (block.kind) {
         case "paragraph": {
           if (typeof block.text !== "string") throw new TypeError("Paragraph text must be a string.");
+          if (block.headingLevel !== undefined && (!Number.isInteger(block.headingLevel) || block.headingLevel < 1 || block.headingLevel > 6))
+            throw new TypeError("Paragraph headingLevel must be an integer from 1 through 6.");
           if (block.presentation && Object.keys(block.presentation).some(key => !["bold", "italic", "color", "alignment"].includes(key)))
             throw new TypeError("PDF paragraph presentation supports bold, italic, color and alignment.");
           const style = presentation(block.presentation), size = positive(block.fontSize ?? prepared.fontSize, "Paragraph font size", 144);
-          if (block.text) await pages.paragraph(block.text, style, size);
+          if (block.text) await pages.paragraph(block.text, style, size, true, block.headingLevel);
           break;
         }
         case "pageBreak": await pages.pageBreak(); break;
@@ -60,16 +64,26 @@ export async function writePdfDocumentTo(blocks: Iterable<PdfDocumentBlock> | As
           pages.endTable(); break;
         }
         case "image": {
-          const alignment = graphicAlignment(block.alignment), image = await images.prepare(block.image);
-          const width = positive(block.width ?? (block.height === undefined ? image.width * .75 : block.height * image.width / image.height), "Image display width");
-          const height = positive(block.height ?? width * image.height / image.width, "Image display height");
+          const alternative = graphicAlternative(block, prepared), alignment = graphicAlignment(block.alignment), image = await images.prepare(block.image);
+          const width = block.width ?? (block.height === undefined ? image.width * .75 : block.height * image.width / image.height);
+          const height = block.height ?? width * image.height / image.width;
+          if (!Number.isFinite(width) || width <= 0 || !Number.isFinite(height) || height <= 0)
+            throw new RangeError("Image display dimensions must be finite and positive.");
           pages.registerXObject(image.name, image.id);
-          await pages.graphic(width, height, alignment, (x, y, w, h) => "q " + [w, 0, 0, h, x, y].map(n).join(" ") + " cm /" + image.name + " Do Q\n"); break;
+          await pages.graphic(width, height, alignment, (x, y, w, h) => "q " + [w, 0, 0, h, x, y].map(n).join(" ") + " cm /" + image.name + " Do Q\n", alternative); break;
         }
         case "vector": {
-          const alignment = graphicAlignment(block.alignment), path = await vectorCommands(block, prepared, commands); commands += block.commands.length;
-          await pages.graphic(block.width, block.height, alignment, (x, y, w, h) => "q " + [w / block.width, 0, 0, -h / block.height, x, y + h].map(n).join(" ") +
-            " cm 0 0 " + n(block.width) + " " + n(block.height) + " re W n\n" + path + "Q\n"); break;
+          const alternative = graphicAlternative(block, prepared), alignment = graphicAlignment(block.alignment), path = await vectorCommands(block, prepared, commands); commands += path.count;
+          await pages.graphic(path.width, path.height, alignment, (x, y, w, h) => "q " + [w / path.width, 0, 0, -h / path.height, x, y + h].map(n).join(" ") +
+            " cm 0 0 " + n(path.width) + " " + n(path.height) + " re W n\n" + path.content + "Q\n", alternative); break;
+        }
+        case "drawing": {
+          checkDrawingBlock(block);
+          const alternative = graphicAlternative(block, prepared), alignment = graphicAlignment(block.alignment);
+          const drawing = await prepareDrawing(block.drawing, prepared, fonts, { commands, elements: drawingElements });
+          commands += drawing.commands; drawingElements += drawing.elements;
+          await pages.graphic(drawing.width, drawing.height, alignment, (x, y, w, h) => "q " + [w / drawing.width, 0, 0, -h / drawing.height, x, y + h].map(n).join(" ") +
+            " cm 0 0 " + n(drawing.width) + " " + n(drawing.height) + " re W n\n" + drawing.content + "Q\n", alternative); break;
         }
         default: throw new TypeError("Unsupported PDF document block.");
       }

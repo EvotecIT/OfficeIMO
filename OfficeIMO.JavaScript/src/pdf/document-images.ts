@@ -3,6 +3,7 @@ import { checkAbort, pause, taskYieldDue } from "../core/iteration.js";
 import type { PdfImageBlock } from "./document-types.js";
 import type { PdfObjects } from "./objects.js";
 import type { PdfSettings } from "./settings.js";
+import { pngPixels } from "./png.js";
 
 interface ImageResource { readonly name: string; readonly id: number; readonly width: number; readonly height: number; }
 /** Shared document image resources; source objects are captured on first consumption. */
@@ -15,20 +16,21 @@ export class PdfDocumentImages {
     const { limits, options } = this.settings;
     if (!image || typeof image !== "object" || !(image.data instanceof Uint8Array)) throw new TypeError("PDF images require a byte array.");
     if (this.bytes + image.data.length > limits.maxImageBytes) throw new OfficeIMOError("RESOURCE_LIMIT", "maxImageBytes exceeded.");
-    let width: number, height: number, components: number;
-    if (image.format === "jpeg") ({ width, height, components } = jpegSize(image.data));
+    let width: number, height: number, components: number, decoded: Uint8Array | undefined;
+    if (image.format === "png") ({ width, height, components, data: decoded } = await pngPixels(image.data, limits.maxImagePixels, options.signal));
+    else if (image.format === "jpeg") ({ width, height, components } = jpegSize(image.data));
     else if (image.format === "rgb" || image.format === "rgba") {
       ({ width, height } = image); components = image.format === "rgba" ? 4 : 3;
-    } else throw new NotSupportedError("PDF images support unprofiled JPEG or decoded RGB/RGBA pixels.");
+    } else throw new NotSupportedError("PDF images support unprofiled PNG/JPEG or decoded RGB/RGBA pixels.");
     if (!Number.isSafeInteger(width) || !Number.isSafeInteger(height) || width < 1 || height < 1 ||
         !Number.isSafeInteger(width * height) || width * height > limits.maxImagePixels)
       throw new OfficeIMOError("RESOURCE_LIMIT", "Image dimensions must be positive integers within maxImagePixels.");
-    if (image.format !== "jpeg" && image.data.length !== width * height * components) throw new RangeError("Raw image bytes must match width × height × channels exactly.");
+    if ((image.format === "rgb" || image.format === "rgba") && image.data.length !== width * height * components) throw new RangeError("Raw image bytes must match width × height × channels exactly.");
     checkAbort(options.signal);
-    const source = new Uint8Array(image.data), id = this.objects.reserve(), name = "Image" + (this.images.size + 1);
-    this.bytes += source.length;
+    const source = decoded ?? new Uint8Array(image.data), id = this.objects.reserve(), name = "Image" + (this.images.size + 1);
+    this.bytes += image.data.length;
     let pixels = source, mask: number | undefined;
-    if (image.format === "rgba") {
+    if (components === 4) {
       pixels = new Uint8Array(width * height * 3); const alpha = new Uint8Array(width * height);
       for (let p = 0; p < alpha.length; p++) {
         pixels[p * 3] = source[p * 4]!; pixels[p * 3 + 1] = source[p * 4 + 1]!; pixels[p * 3 + 2] = source[p * 4 + 2]!; alpha[p] = source[p * 4 + 3]!;

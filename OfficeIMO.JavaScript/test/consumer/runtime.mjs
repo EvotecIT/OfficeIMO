@@ -34,6 +34,24 @@ const composed = await pdf.writePdfDocument([{ kind: "paragraph", text: "Packed 
   { kind: "image", image: { format: "rgb", width: 1, height: 1, data: Uint8Array.of(0, 128, 255) }, width: 20, height: 20 }]);
 assert.equal(composed.type, "application/pdf");
 await writeFile("packed-document.pdf", new Uint8Array(await composed.arrayBuffer()));
+// Independently produced Pillow RGB PNG; no DOM or canvas participates in decoding.
+const png = Uint8Array.from(Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAwAAAAICAIAAABChommAAAAJklEQVR42mP8ICLCgApULqEJMDAxEAGop4hFheE6mtD1b5oD6yYA4aYFETss/rAAAAAASUVORK5CYII=", "base64"));
+const richBlocks = [
+  { kind: "paragraph", text: "Packed tagged report", headingLevel: 1 },
+  { kind: "image", image: { format: "png", data: png }, width: 120, alternativeText: "Four colored quadrants" },
+  { kind: "drawing", drawing: { version: 1, width: 120, height: 40, elements: [
+    { kind: "path", fill: "008000", commands: [{ op: "move", x: 0, y: 0 }, { op: "line", x: 120, y: 40 }, { op: "line", x: 0, y: 40 }, { op: "close" }] }
+  ] }, alternativeText: "Green triangle" },
+  pdf.pdfTable([{ value: "Packed cell" }], { columns: [{ header: "Value", key: "value" }] })
+];
+const richOptions = { tagged: { language: "en-US" }, compression: false, pageNumbers: false };
+const rich = await pdf.writePdfDocument(richBlocks, richOptions);
+assert.equal(rich.type, "application/pdf");
+assert.match(await rich.text(), /\/StructTreeRoot /);
+await writeFile("packed-rich-report.pdf", new Uint8Array(await rich.arrayBuffer()));
+await import("@evotecit/officeimo/pdf.js");
+const classicRich = await globalThis.OfficeIMO.pdf.writePdfDocument(richBlocks, richOptions);
+assert.deepEqual(Buffer.from(await classicRich.arrayBuffer()), Buffer.from(await rich.arrayBuffer()), "Packed standalone PDF script matches the ESM report");
 const domainRows = [{ person: { name: "Łódź 🧪" }, ignored: { nested: true } }], columns = [{ header: "Name", value: row => row.person.name }];
 const packed = await writeXlsx(domainRows, { columns, compression: "store", sheet: { name: "Packed" } });
 await writeFile("packed-consumer.xlsx", new Uint8Array(await packed.arrayBuffer()));

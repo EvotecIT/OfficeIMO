@@ -302,11 +302,11 @@ const _m8 = (() => {
 function isDate(value) {
     if (value === null || typeof value !== "object")
         return false;
-    // Ordinary domain rows are objects too. Avoid throwing for each one; the native
-    // check below still rejects objects that merely advertise a Date string tag.
-    if (!(value instanceof Date) && Object.prototype.toString.call(value) !== "[object Date]")
-        return false;
     try {
+        // Ordinary rows take the cheap negative path. A custom string tag can be an
+        // accessor: use the native brand check directly without reading that tag.
+        if (!(value instanceof Date) && !(Symbol.toStringTag in value) && Object.prototype.toString.call(value) !== "[object Date]")
+            return false;
         Date.prototype.getTime.call(value);
         return true;
     }
@@ -586,6 +586,7 @@ function settings(configuration, document = false) {
         return Object.freeze(rows.map(row => Object.freeze(row.map(cell => cell ? Object.freeze({ ...cell }) : null))));
     }
     const options = { ...configuration, columns,
+        ...(configuration.tagged ? { tagged: Object.freeze({ ...configuration.tagged }) } : {}),
         ...(configuration.headerRows ? { headerRows: copySpans(configuration.headerRows) } : {}),
         ...(configuration.fonts ? { fonts: Object.freeze({ ...configuration.fonts }) } : {}),
         ...(configuration.columnWidths ? { columnWidths: Object.freeze([...configuration.columnWidths]) } : {}),
@@ -597,7 +598,8 @@ function settings(configuration, document = false) {
         footerPresentation: presentation({ background: "eef2f6", bold: true, ...configuration.footerPresentation }) };
     const budget = new ExportBudget(options.limits);
     const limits = { maxPages: 10000, maxColumns: 1024, maxCellCharacters: 1000000, maxRowLines: 100000, maxFontBytes: 16 * 1024 * 1024, maxPageBytes: 8 * 1024 * 1024, maxHyperlinks: 100000,
-        maxImageBytes: 32 * 1024 * 1024, maxImagePixels: 16 * 1024 * 1024, maxVectorCommands: 100000 };
+        maxImageBytes: 32 * 1024 * 1024, maxImagePixels: 16 * 1024 * 1024, maxVectorCommands: 100000, maxDrawingElements: 100000,
+        maxStructureElements: 1000000, maxMarkedContentReferences: 2000000 };
     for (const key of Object.keys(limits)) {
         const override = options.limits?.[key];
         if (override !== undefined)
@@ -643,6 +645,19 @@ function settings(configuration, document = false) {
         throw new TypeError("Structured footer rows cannot be combined with values/totals.");
     if (options.headerRows && options.includeHeader === false)
         throw new TypeError("headerRows requires includeHeader.");
+    if (options.tagged !== undefined) {
+        if (!options.tagged || typeof options.tagged !== "object" || typeof options.tagged.language !== "string" || options.tagged.language.length > 63)
+            throw new TypeError("tagged.language must be a language tag such as en or en-US.");
+        try {
+            if (Intl.getCanonicalLocales(options.tagged.language).length !== 1)
+                throw new RangeError();
+        }
+        catch {
+            throw new TypeError("tagged.language must be a language tag such as en or en-US.");
+        }
+        if (options.headerRows || columns.some(column => column.groups?.length) || options.footer?.rows)
+            throw new TypeError("Tagged PDF supports leaf column headings and ordinary footer cells; grouped headings and span matrices are unsupported.");
+    }
     return { options, page, margins, fontSize, padding, limits, budget };
 }
 const _exports = Object.freeze({ positive: positive, color: color, presentation: presentation, settings: settings });
@@ -1925,6 +1940,8 @@ class PdfTableLayout {
     async cell(value, first, span, row, style) {
         const { options, padding, fontSize, budget, limits } = this.settings, column = options.columns[first];
         const own = value instanceof ExportCell ? value.presentation : undefined;
+        if (options.tagged && value instanceof ExportCell && value.link)
+            throw new TypeError("Tagged PDF link annotations are unsupported; use plain text cells.");
         const combined = presentation({ ...(column.alignment === undefined ? {} : { alignment: column.alignment }),
             ...(column.wrapText === undefined ? {} : { wrapText: column.wrapText }), ...style, ...own });
         const font = this.fonts.select(combined.bold, combined.italic), width = this.widths.slice(first, first + span).reduce((n, w) => n + w, 0);
@@ -2059,6 +2076,8 @@ const { wrapText, wrapTextCooperatively, synchronousText } = _m24;
 
 const { linkAnnotation } = _m26;
 
+const { unicodeHex } = _m14;
+
 /** @internal One page of drawing commands and O(page count) references, never the complete report body. */
 class PdfPages {
     objects;
@@ -2067,6 +2086,7 @@ class PdfPages {
     parent;
     resources;
     layout;
+    structure;
     references = [];
     current = 0;
     commands = [];
@@ -2080,13 +2100,16 @@ class PdfPages {
     pageNumberWidth;
     colors = new Map();
     externalObjects = new Map();
-    constructor(objects, settings, fonts, parent, resources, layout) {
+    tableElement;
+    tableHeadingsDrawn = false;
+    constructor(objects, settings, fonts, parent, resources, layout, structure) {
         this.objects = objects;
         this.settings = settings;
         this.fonts = fonts;
         this.parent = parent;
         this.resources = resources;
         this.layout = layout;
+        this.structure = structure;
         this.totalPages = settings.options.pageNumbers === false ? undefined : objects.reserve();
         this.pageNumberWidth = 0;
         if (this.totalPages && settings.limits.maxPages > 0) {
@@ -2117,10 +2140,14 @@ class PdfPages {
         }
         return rgb;
     }
-    text(text, font, size, x, baseline, foreground = "111827") {
+    artifact(command, type = "Layout") {
+        return this.structure ? "/Artifact << /Type /" + type + " >> BDC\n" + command + "EMC\n" : command;
+    }
+    text(text, font, size, x, baseline, foreground = "111827", element) {
         const n = pdfNumber, shear = font.syntheticItalic ? .2126 : 0;
-        this.add("q " + this.rgb(foreground) + " rg " + this.rgb(foreground) + " RG\nBT /" + font.name + " " + n(size) + " Tf " +
-            (font.syntheticBold ? n(size * .025) + " w 2 Tr " : "0 Tr ") + "1 0 " + n(shear) + " 1 " + n(x) + " " + n(baseline) + " Tm " + font.encode(text) + " Tj ET Q\n");
+        const command = "q " + this.rgb(foreground) + " rg " + this.rgb(foreground) + " RG\nBT /" + font.name + " " + n(size) + " Tf " +
+            (font.syntheticBold ? n(size * .025) + " w 2 Tr " : "0 Tr ") + "1 0 " + n(shear) + " 1 " + n(x) + " " + n(baseline) + " Tm " + font.encode(text) + " Tj ET Q\n";
+        this.add(this.structure && element !== undefined ? this.structure.mark(element) + command + "EMC\n" : this.artifact(command, "Pagination"));
     }
     decorationText(value) {
         if (value === undefined)
@@ -2144,6 +2171,7 @@ class PdfPages {
         this.references.push(this.current);
         this.commands = [];
         this.commandBytes = 0;
+        this.structure?.beginPage(this.current);
         this.y = page.height - margins.top;
         const header = this.decorationText(options.pageHeader), footer = this.decorationText(options.pageFooter);
         if (header && margins.top < lineHeight + 4)
@@ -2161,11 +2189,11 @@ class PdfPages {
             const line = wrapText(label, font, fontSize, this.pageNumberWidth, 128, 1, false)[0];
             this.settings.budget.cell(label);
             this.text(label, font, fontSize, x, y);
-            this.add("q 1 0 0 1 " + pdfNumber(x + line.width) + " " + pdfNumber(y) + " cm /TotalPages Do Q\n");
+            this.add(this.artifact("q 1 0 0 1 " + pdfNumber(x + line.width) + " " + pdfNumber(y) + " cm /TotalPages Do Q\n", "Pagination"));
         }
         if (this.references.length === 1) {
             if (options.title)
-                await this.paragraph(options.title, { bold: true }, fontSize * 1.5, false);
+                await this.paragraph(options.title, { bold: true }, fontSize * 1.5, false, 1);
             if (options.messageTop)
                 await this.paragraph(options.messageTop, {}, fontSize, false);
         }
@@ -2173,19 +2201,32 @@ class PdfPages {
         this.continuationTop = page.height - margins.top - headerHeight;
         if (this.y - headerHeight - lineHeight - this.settings.padding * 2 < margins.bottom)
             throw new RangeError("PDF title and repeated headings leave no room for a data line.");
-        for (const header of headers)
-            this.draw(header, 0, header.lines);
+        if (tableHeadings && this.layout && this.structure && this.tableElement === undefined)
+            this.tableElement = this.structure.element("Table");
+        this.drawHeadings(headers);
         this.dataTop = this.y;
     }
-    draw(row, firstLine, lineCount) {
+    drawHeadings(headers) {
+        for (const header of headers) {
+            const elements = this.structure && this.tableElement !== undefined && !this.tableHeadingsDrawn ?
+                this.structure.tableRow(this.tableElement, header.cells.map(cell => cell.lines.some(line => line.text.trim().length > 0))) : undefined;
+            this.draw(header, 0, header.lines, elements);
+        }
+        if (headers.length)
+            this.tableHeadingsDrawn = true;
+    }
+    rowElements(row) {
+        return this.structure && this.tableElement !== undefined ? this.structure.tableRow(this.tableElement, row.cells.map(() => false)) : undefined;
+    }
+    draw(row, firstLine, lineCount, elements) {
         if (!this.layout)
             throw new Error("A table layout is required before drawing rows.");
         const { padding, fontSize } = this.settings, n = pdfNumber, height = lineCount * row.lineHeight + padding * 2;
-        for (const cell of row.cells) {
+        for (const [index, cell] of row.cells.entries()) {
             const x = this.layout.lefts[cell.first], cellHeight = cell.height ?? height;
             if (cell.style.background)
-                this.add("q " + this.rgb(cell.style.background) + " rg " + n(x) + " " + n(this.y - cellHeight) + " " + n(cell.width) + " " + n(cellHeight) + " re f Q\n");
-            this.add("q 0.82 0.85 0.89 RG 0.4 w " + n(x) + " " + n(this.y - cellHeight) + " " + n(cell.width) + " " + n(cellHeight) + " re S Q\n");
+                this.add(this.artifact("q " + this.rgb(cell.style.background) + " rg " + n(x) + " " + n(this.y - cellHeight) + " " + n(cell.width) + " " + n(cellHeight) + " re f Q\n"));
+            this.add(this.artifact("q 0.82 0.85 0.89 RG 0.4 w " + n(x) + " " + n(this.y - cellHeight) + " " + n(cell.width) + " " + n(cellHeight) + " re S Q\n"));
             if (cell.link) {
                 if (++this.hyperlinks > this.settings.limits.maxHyperlinks)
                     throw new OfficeIMOError("RESOURCE_LIMIT", "maxHyperlinks exceeded.");
@@ -2196,7 +2237,7 @@ class PdfPages {
             for (let line = firstLine; line < Math.min(cell.lines.length, cell.height ? cell.lines.length : firstLine + lineCount); line++) {
                 const text = cell.lines[line], left = cell.style.alignment === "right" ? cell.width - padding - text.width : cell.style.alignment === "center" ? (cell.width - text.width) / 2 : padding;
                 const ascent = (cell.font.program?.ascent ?? 800) * fontSize / 1000;
-                this.text(text.text, cell.font, fontSize, x + left, this.y - padding - ascent - (line - firstLine) * (row.structured ? cell.lineHeight : row.lineHeight), cell.style.color);
+                this.text(text.text, cell.font, fontSize, x + left, this.y - padding - ascent - (line - firstLine) * (row.structured ? cell.lineHeight : row.lineHeight), cell.style.color, elements?.[index]);
             }
         }
         this.y -= row.structured ? row.height : height;
@@ -2210,9 +2251,10 @@ class PdfPages {
         if (height > this.dataTop - bottom)
             throw new RangeError("A structured footer must fit on one page below the repeated headings.");
         for (const row of rows)
-            this.draw(row, 0, row.lines);
+            this.draw(row, 0, row.lines, this.rowElements(row));
     }
     async row(row) {
+        const elements = this.rowElements(row);
         const { margins, padding } = this.settings, full = this.continuationTop - margins.bottom;
         if (row.height <= full + .001 && row.height > this.y - margins.bottom + .001) {
             await this.finishPage();
@@ -2228,7 +2270,7 @@ class PdfPages {
             }
             if (lines <= 0)
                 throw new RangeError("PDF page cannot fit a table line.");
-            this.draw(row, first, lines);
+            this.draw(row, first, lines, elements);
             first += lines;
             if (first < row.lines) {
                 await this.finishPage();
@@ -2236,7 +2278,7 @@ class PdfPages {
             }
         }
     }
-    async paragraph(text, style = {}, size = this.settings.fontSize, paginate = true) {
+    async paragraph(text, style = {}, size = this.settings.fontSize, paginate = true, headingLevel) {
         const { margins, page, limits } = this.settings, font = this.fonts.select(style.bold, style.italic), lineHeight = font.lineHeight(size);
         this.settings.budget.cell(text);
         const lines = await wrapTextCooperatively(text, font, size, page.width - margins.left - margins.right, limits.maxCellCharacters, limits.maxRowLines, true, this.settings.options.signal);
@@ -2244,13 +2286,14 @@ class PdfPages {
             throw new RangeError("PDF page cannot fit a paragraph line at the selected font metrics.");
         if (!paginate && this.y - lines.length * lineHeight - 8 < margins.bottom)
             throw new RangeError("PDF title/message exceeds the first page's content area.");
+        const element = this.structure?.element(headingLevel ? "H" + headingLevel : "P");
         for (const line of lines) {
             if (this.y - lineHeight < margins.bottom) {
                 await this.finishPage();
                 await this.start(false);
             }
             const x = style.alignment === "right" ? page.width - margins.right - line.width : style.alignment === "center" ? margins.left + (page.width - margins.left - margins.right - line.width) / 2 : margins.left;
-            this.text(line.text, font, size, x, this.y - (font.program?.ascent ?? 800) * size / 1000, style.color);
+            this.text(line.text, font, size, x, this.y - (font.program?.ascent ?? 800) * size / 1000, style.color, element);
             this.y -= lineHeight;
         }
         this.y -= 8;
@@ -2258,6 +2301,8 @@ class PdfPages {
     /** Begin an independent table on the current page, retaining its headings on continuation pages. */
     async beginTable(layout) {
         this.layout = layout;
+        this.tableElement = this.structure?.element("Table");
+        this.tableHeadingsDrawn = false;
         const headings = await layout.headers(), height = headings.reduce((n, row) => n + row.height, 0);
         if (this.y - height - layout.lineHeight - this.settings.padding * 2 < this.settings.margins.bottom) {
             await this.finishPage();
@@ -2265,15 +2310,14 @@ class PdfPages {
             return;
         }
         this.continuationTop = this.settings.page.height - this.settings.margins.top - height;
-        for (const heading of headings)
-            this.draw(heading, 0, heading.lines);
+        this.drawHeadings(headings);
         this.dataTop = this.y;
     }
-    endTable() { this.layout = undefined; this.y -= 8; }
+    endTable() { this.layout = undefined; this.tableElement = undefined; this.tableHeadingsDrawn = false; this.y -= 8; }
     async pageBreak() { await this.finishPage(); await this.start(false); }
     registerXObject(name, id) { this.externalObjects.set(name, id); }
     /** Place an indivisible graphic, preserving aspect ratio and scaling down to page bounds. */
-    async graphic(width, height, alignment, paint) {
+    async graphic(width, height, alignment, paint, alternativeText) {
         const { page, margins } = this.settings, available = page.width - margins.left - margins.right;
         const scale = Math.min(1, available / width, (page.height - margins.top - margins.bottom) / height);
         width *= scale;
@@ -2281,7 +2325,9 @@ class PdfPages {
         if (this.y - height < margins.bottom)
             await this.pageBreak();
         const left = alignment === "right" ? page.width - margins.right - width : alignment === "center" ? margins.left + (available - width) / 2 : margins.left;
-        this.add(paint(left, this.y - height, width, height));
+        const command = paint(left, this.y - height, width, height);
+        const element = this.structure && alternativeText !== undefined ? this.structure.element("Figure", this.structure.document, " /Alt <feff" + unicodeHex(alternativeText) + ">") : undefined;
+        this.add(this.structure && element !== undefined ? this.structure.mark(element) + command + "EMC\n" : this.artifact(command));
         this.y -= height + 8;
     }
     async finishPage() {
@@ -2295,7 +2341,10 @@ class PdfPages {
         }
         await this.objects.object(this.current, "<< /Type /Page /Parent " + this.parent + " 0 R /MediaBox [0 0 " + pdfNumber(page.width) + " " + pdfNumber(page.height) +
             "] /Resources " + this.resources + " 0 R /Contents " + contents + " 0 R" +
+            (this.structure?.pageDictionary ?? "") +
             (annotations.length ? " /Annots [" + annotations.map(id => id + " 0 R").join(" ") + "]" : "") + " >>");
+        if (this.structure)
+            await this.structure.finishPage();
         this.commands = [];
         this.annotations = [];
         this.commandBytes = 0;
@@ -2323,6 +2372,101 @@ const _exports = Object.freeze({ PdfPages: PdfPages });
 return _exports;
 })();
 
+const _m27 = (() => {
+const { OfficeIMOError } = _m4;
+
+const { checkAbort } = _m3;
+
+const { unicodeHex } = _m14;
+
+/** @internal Logical elements outlive page painting so split paragraphs/cells keep one identity. */
+class PdfStructure {
+    objects;
+    settings;
+    root;
+    document;
+    parentTree;
+    elements = new Map();
+    pageEntries = [];
+    pageParents = [];
+    pageId = 0;
+    pageCount = 0;
+    references = 0;
+    constructor(objects, settings) {
+        this.objects = objects;
+        this.settings = settings;
+        this.root = objects.reserve();
+        this.parentTree = objects.reserve();
+        this.document = this.element("Document", this.root);
+    }
+    element(role, parent = this.document, attributes = "") {
+        checkAbort(this.settings.options.signal);
+        if (this.elements.size >= this.settings.limits.maxStructureElements)
+            throw new OfficeIMOError("RESOURCE_LIMIT", "maxStructureElements exceeded.");
+        const id = this.objects.reserve(), element = { id, parent, role, children: [], attributes };
+        this.elements.set(id, element);
+        this.elements.get(parent)?.children.push(id + " 0 R");
+        return id;
+    }
+    tableRow(table, headers) {
+        const row = this.element("TR", table);
+        return headers.map(header => this.element(header ? "TH" : "TD", row, header ? " /A << /O /Table /Scope /Column >>" : ""));
+    }
+    beginPage(pageId) { this.pageId = pageId; this.pageParents = []; this.pageCount++; }
+    /** Every MCID is local to its page; its parent entry points back to the owning logical element. */
+    mark(elementId) {
+        if (++this.references > this.settings.limits.maxMarkedContentReferences)
+            throw new OfficeIMOError("RESOURCE_LIMIT", "maxMarkedContentReferences exceeded.");
+        const element = this.elements.get(elementId);
+        const mcid = this.pageParents.length;
+        this.pageParents.push(elementId);
+        element.children.push("<< /Type /MCR /Pg " + this.pageId + " 0 R /MCID " + mcid + " >>");
+        return "/" + element.role + " << /MCID " + mcid + " >> BDC\n";
+    }
+    get pageDictionary() { return " /StructParents " + (this.pageCount - 1) + " /Tabs /S"; }
+    get catalogDictionary() {
+        return " /MarkInfo << /Marked true >> /Lang <feff" + unicodeHex(this.settings.options.tagged.language) + "> /StructTreeRoot " + this.root + " 0 R";
+    }
+    async finishPage() {
+        const array = this.objects.reserve();
+        await this.objects.object(array, "[" + this.pageParents.map(id => id + " 0 R").join(" ") + "]");
+        this.pageEntries.push((this.pageCount - 1) + " " + array + " 0 R");
+        this.pageParents = [];
+    }
+    async finish() {
+        for (const element of this.elements.values()) {
+            checkAbort(this.settings.options.signal);
+            await this.objects.object(element.id, "<< /Type /StructElem /S /" + element.role + " /P " + element.parent +
+                " 0 R /K [" + element.children.join(" ") + "]" + element.attributes + " >>");
+        }
+        await this.objects.object(this.parentTree, "<< /Nums [" + this.pageEntries.join(" ") + "] >>");
+        await this.objects.object(this.root, "<< /Type /StructTreeRoot /K [" + this.document + " 0 R] /ParentTree " +
+            this.parentTree + " 0 R /ParentTreeNextKey " + this.pageCount + " >>");
+    }
+}
+/** Validate author intent even in untagged output so a later opt-in cannot silently change meaning. */
+function graphicAlternative(value, settings) {
+    if (value.decorative !== undefined && typeof value.decorative !== "boolean")
+        throw new TypeError("Graphic decorative must be boolean.");
+    if (value.alternativeText !== undefined) {
+        if (typeof value.alternativeText !== "string" || !value.alternativeText.trim())
+            throw new TypeError("Graphic alternativeText must be nonempty text.");
+        if (value.alternativeText.length > settings.limits.maxCellCharacters)
+            throw new OfficeIMOError("RESOURCE_LIMIT", "maxCellCharacters exceeded by graphic alternativeText.");
+        unicodeHex(value.alternativeText);
+        if (value.decorative)
+            throw new TypeError("A decorative graphic cannot also have alternativeText.");
+    }
+    if (settings.options.tagged && value.alternativeText === undefined && value.decorative !== true)
+        throw new TypeError("Tagged PDF graphics require alternativeText or decorative:true.");
+    if (settings.options.tagged && value.alternativeText !== undefined)
+        settings.budget.cell(value.alternativeText);
+    return value.alternativeText;
+}
+const _exports = Object.freeze({ PdfStructure: PdfStructure, graphicAlternative: graphicAlternative });
+return _exports;
+})();
+
 const _m13 = (() => {
 const { PdfObjects, unicodeHex } = _m14;
 
@@ -2332,6 +2476,8 @@ const { PdfTableLayout } = _m22;
 
 const { PdfPages } = _m25;
 
+const { PdfStructure } = _m27;
+
 /** One resource/catalog owner shared by table convenience exports and composed documents. */
 class PdfWriteSession {
     settings;
@@ -2339,6 +2485,7 @@ class PdfWriteSession {
     fonts;
     pages;
     layout;
+    structure;
     root;
     parent;
     resources;
@@ -2350,9 +2497,10 @@ class PdfWriteSession {
         this.parent = this.objects.reserve();
         this.resources = this.objects.reserve();
         this.info = this.objects.reserve();
+        this.structure = settings.options.tagged ? new PdfStructure(this.objects, settings) : undefined;
         this.fonts = new PdfFontResources(this.objects, settings.options.fonts, settings.limits.maxFontBytes);
         this.layout = table ? new PdfTableLayout(settings, this.fonts) : undefined;
-        this.pages = new PdfPages(this.objects, settings, this.fonts, this.parent, this.resources, this.layout);
+        this.pages = new PdfPages(this.objects, settings, this.fonts, this.parent, this.resources, this.layout, this.structure);
     }
     async start() {
         await this.objects.text("%PDF-1.7\n");
@@ -2366,7 +2514,9 @@ class PdfWriteSession {
             await font.write(objects, options.compression !== false);
         await objects.object(this.resources, "<< /Font " + fonts.dictionary() + pages.xobjects() + " >>");
         await objects.object(this.parent, "<< /Type /Pages /Count " + pages.references.length + " /Kids [" + pages.references.map(id => id + " 0 R").join(" ") + "] >>");
-        await objects.object(this.root, "<< /Type /Catalog /Pages " + this.parent + " 0 R >>");
+        if (this.structure)
+            await this.structure.finish();
+        await objects.object(this.root, "<< /Type /Catalog /Pages " + this.parent + " 0 R" + (this.structure?.catalogDictionary ?? "") + " >>");
         await objects.object(this.info, "<< /Producer (OfficeIMO.js)" + (options.title === undefined ? "" : " /Title <feff" + unicodeHex(options.title) + ">") + " >>");
         await objects.finish(this.root, this.info);
     }
@@ -2441,10 +2591,217 @@ const _exports = Object.freeze({ writePdf: writePdf, writePdfTo: writePdfTo });
 return _exports;
 })();
 
-const _m28 = (() => {
+const _m31 = (() => {
+const crcTable = new Uint32Array(256).map((_, index) => {
+    let value = index;
+    for (let bit = 0; bit < 8; bit++)
+        value = value & 1 ? 0xedb88320 ^ (value >>> 1) : value >>> 1;
+    return value >>> 0;
+});
+/** Incremental CRC-32/ISO-HDLC shared by ZIP and PNG chunk validation. */
+class Crc32 {
+    crc = 0xffffffff;
+    update(bytes) {
+        let crc = this.crc;
+        for (let index = 0; index < bytes.length; index++)
+            crc = crcTable[(crc ^ bytes[index]) & 255] ^ (crc >>> 8);
+        this.crc = crc;
+    }
+    get value() { return (this.crc ^ 0xffffffff) >>> 0; }
+}
+const _exports = Object.freeze({ Crc32: Crc32 });
+return _exports;
+})();
+
+const _m30 = (() => {
+const { NotSupportedError, OfficeIMOError } = _m4;
+
+const { checkAbort, pause, taskYieldDue, withAbort } = _m3;
+
+const { Crc32 } = _m31;
+
+const signature = [137, 80, 78, 71, 13, 10, 26, 10];
+const unsupportedChunks = new Set(["PLTE", "tRNS", "iCCP", "sRGB", "gAMA", "cHRM", "cICP", "mDCV", "cLLI", "sBIT", "eXIf", "acTL", "fcTL", "fdAT"]);
+/** Decode the static unprofiled 8-bit RGB/RGBA profile without canvas or a second compression engine. */
+async function pngPixels(inputSource, maxPixels, signal) {
+    checkAbort(signal);
+    const shape = pngShape(inputSource, maxPixels);
+    const source = new Uint8Array(inputSource);
+    const header = await pngHeader(source, shape, signal);
+    checkAbort(signal);
+    let stream;
+    try {
+        if (typeof DecompressionStream !== "function")
+            throw new TypeError("Missing DecompressionStream");
+        stream = new DecompressionStream("deflate");
+    }
+    catch (cause) {
+        throw new OfficeIMOError("PLATFORM_UNAVAILABLE", "PNG intake requires native DecompressionStream(\"deflate\").", { cause });
+    }
+    const { width, height, components } = header, rowBytes = width * components;
+    const expected = (rowBytes + 1) * height;
+    // All dimensions and the exact filtered length are bounded before allocating decoded pixels.
+    if (!Number.isSafeInteger(expected) || expected > 0x7fffffff)
+        throw new OfficeIMOError("RESOURCE_LIMIT", "PNG filtered data exceeds the supported decoded byte length.");
+    const pixels = new Uint8Array(rowBytes * height), view = new DataView(source.buffer, source.byteOffset, source.byteLength);
+    let chunk = header.firstData, position = chunk + 8, end = position + view.getUint32(chunk);
+    const input = new ReadableStream({ pull(controller) {
+            checkAbort(signal);
+            while (position === end && chunk < header.dataEnd) {
+                chunk = end + 4;
+                if (chunk === header.dataEnd) {
+                    controller.close();
+                    return;
+                }
+                position = chunk + 8;
+                end = position + view.getUint32(chunk);
+            }
+            // Limit the input given to the platform inflater between downstream length checks.
+            const next = Math.min(end, position + 4096);
+            controller.enqueue(source.subarray(position, next));
+            position = next;
+        } }, { highWaterMark: 0 });
+    const reader = input.pipeThrough(stream).getReader();
+    let inflated = 0, output = 0, column = 0, filter = 0;
+    try {
+        while (true) {
+            const item = await withAbort(reader.read(), signal).catch(cause => {
+                checkAbort(signal);
+                throw new TypeError("Invalid PNG zlib image data.", { cause });
+            });
+            checkAbort(signal);
+            if (item.done)
+                break;
+            if (item.value.length > expected - inflated)
+                throw new TypeError("PNG inflated bytes exceed the exact IHDR scanline length.");
+            for (let p = 0; p < item.value.length; p++) {
+                const value = item.value[p];
+                if (column === 0) {
+                    filter = value;
+                    if (filter > 4)
+                        throw new TypeError("Invalid PNG scanline filter.");
+                }
+                else {
+                    const left = column > components ? pixels[output - components] : 0;
+                    const up = output >= rowBytes ? pixels[output - rowBytes] : 0;
+                    const upperLeft = column > components && output >= rowBytes ? pixels[output - rowBytes - components] : 0;
+                    pixels[output++] = value + (filter === 0 ? 0 : filter === 1 ? left : filter === 2 ? up :
+                        filter === 3 ? Math.floor((left + up) / 2) : paeth(left, up, upperLeft));
+                }
+                column = column === rowBytes ? 0 : column + 1;
+                if ((p & 16383) === 16383) {
+                    if (taskYieldDue())
+                        await pause();
+                    checkAbort(signal);
+                }
+            }
+            inflated += item.value.length;
+            if (taskYieldDue())
+                await pause();
+            checkAbort(signal);
+        }
+        if (inflated !== expected)
+            throw new TypeError("PNG inflated bytes must match the exact IHDR scanline length.");
+        return { width, height, components, data: pixels };
+    }
+    catch (error) {
+        void reader.cancel(error).catch(() => { });
+        throw error;
+    }
+    finally {
+        reader.releaseLock();
+    }
+}
+/** Verify the complete source and critical chunk order before any decompressed image allocation. */
+async function pngHeader(source, shape, signal) {
+    const view = new DataView(source.buffer, source.byteOffset, source.byteLength);
+    let firstData = 0, dataEnd = 0, dataClosed = false;
+    for (let offset = 8; offset < source.length;) {
+        checkAbort(signal);
+        if (offset + 12 > source.length)
+            throw new TypeError("Truncated PNG chunk.");
+        const length = view.getUint32(offset), end = offset + 12 + length;
+        if (length > 0x7fffffff || end > source.length)
+            throw new TypeError("Truncated or oversized PNG chunk.");
+        const type = String.fromCharCode(...source.subarray(offset + 4, offset + 8));
+        if (!/^[A-Za-z]{2}[A-Z][A-Za-z]$/.test(type))
+            throw new TypeError("Invalid PNG chunk type.");
+        const crc = new Crc32();
+        for (let p = offset + 4; p < end - 4; p += 65536) {
+            crc.update(source.subarray(p, Math.min(end - 4, p + 65536)));
+            if (taskYieldDue())
+                await pause();
+            checkAbort(signal);
+        }
+        if (crc.value !== view.getUint32(end - 4))
+            throw new TypeError("PNG chunk CRC mismatch: " + type + ".");
+        if (offset === 8 && type !== "IHDR")
+            throw new TypeError("PNG IHDR must be the first chunk.");
+        if (type === "IHDR") {
+            if (offset !== 8 || length !== 13)
+                throw new TypeError("PNG requires one 13-byte IHDR first.");
+        }
+        else if (type === "IDAT") {
+            if (dataClosed)
+                throw new TypeError("PNG IDAT chunks must be consecutive.");
+            firstData ||= offset;
+            dataEnd = end;
+        }
+        else {
+            if (firstData)
+                dataClosed = true;
+            if (type === "IEND") {
+                if (length !== 0 || !firstData || end !== source.length)
+                    throw new TypeError("PNG requires a final empty IEND after IDAT.");
+                return { ...shape, firstData, dataEnd };
+            }
+            if (unsupportedChunks.has(type))
+                throw new NotSupportedError("PNG chunk " + type + "; normalize color, orientation, transparency or animation first");
+            if ((source[offset + 4] & 32) === 0)
+                throw new NotSupportedError("Required PNG chunk " + type);
+        }
+        offset = end;
+    }
+    throw new TypeError("PNG requires a complete final IEND chunk.");
+}
+/** Check source metadata synchronously, before capturing source bytes or allocating any image plane. */
+function pngShape(source, maxPixels) {
+    if (source.length < 33 || signature.some((value, index) => source[index] !== value))
+        throw new TypeError("Invalid PNG signature or truncated IHDR.");
+    const view = new DataView(source.buffer, source.byteOffset, source.byteLength);
+    if (view.getUint32(8) !== 13 || String.fromCharCode(...source.subarray(12, 16)) !== "IHDR")
+        throw new TypeError("PNG requires one 13-byte IHDR first.");
+    const width = view.getUint32(16), height = view.getUint32(20);
+    if (!width || !height || width > 0x7fffffff || height > 0x7fffffff)
+        throw new TypeError("Invalid PNG dimensions.");
+    if (!Number.isSafeInteger(width * height) || width * height > maxPixels)
+        throw new OfficeIMOError("RESOURCE_LIMIT", "PNG dimensions exceed maxImagePixels.");
+    if (source[24] !== 8 || ![2, 6].includes(source[25]))
+        throw new NotSupportedError("PNG intake requires 8-bit RGB or RGBA pixels");
+    if (source[26] !== 0 || source[27] !== 0)
+        throw new NotSupportedError("PNG compression or filter method");
+    if (source[28] !== 0)
+        throw new NotSupportedError("Interlaced PNG intake");
+    const components = source[25] === 6 ? 4 : 3;
+    if (!Number.isSafeInteger((width * components + 1) * height) || (width * components + 1) * height > 0x7fffffff)
+        throw new OfficeIMOError("RESOURCE_LIMIT", "PNG filtered data exceeds the supported decoded byte length.");
+    return { width, height, components };
+}
+function paeth(left, up, upperLeft) {
+    const prediction = left + up - upperLeft;
+    const a = Math.abs(prediction - left), b = Math.abs(prediction - up), c = Math.abs(prediction - upperLeft);
+    return a <= b && a <= c ? left : b <= c ? up : upperLeft;
+}
+const _exports = Object.freeze({ pngPixels: pngPixels });
+return _exports;
+})();
+
+const _m29 = (() => {
 const { NotSupportedError, OfficeIMOError } = _m4;
 
 const { checkAbort, pause, taskYieldDue } = _m3;
+
+const { pngPixels } = _m30;
 
 /** Shared document image resources; source objects are captured on first consumption. */
 class PdfDocumentImages {
@@ -2465,25 +2822,27 @@ class PdfDocumentImages {
             throw new TypeError("PDF images require a byte array.");
         if (this.bytes + image.data.length > limits.maxImageBytes)
             throw new OfficeIMOError("RESOURCE_LIMIT", "maxImageBytes exceeded.");
-        let width, height, components;
-        if (image.format === "jpeg")
+        let width, height, components, decoded;
+        if (image.format === "png")
+            ({ width, height, components, data: decoded } = await pngPixels(image.data, limits.maxImagePixels, options.signal));
+        else if (image.format === "jpeg")
             ({ width, height, components } = jpegSize(image.data));
         else if (image.format === "rgb" || image.format === "rgba") {
             ({ width, height } = image);
             components = image.format === "rgba" ? 4 : 3;
         }
         else
-            throw new NotSupportedError("PDF images support unprofiled JPEG or decoded RGB/RGBA pixels.");
+            throw new NotSupportedError("PDF images support unprofiled PNG/JPEG or decoded RGB/RGBA pixels.");
         if (!Number.isSafeInteger(width) || !Number.isSafeInteger(height) || width < 1 || height < 1 ||
             !Number.isSafeInteger(width * height) || width * height > limits.maxImagePixels)
             throw new OfficeIMOError("RESOURCE_LIMIT", "Image dimensions must be positive integers within maxImagePixels.");
-        if (image.format !== "jpeg" && image.data.length !== width * height * components)
+        if ((image.format === "rgb" || image.format === "rgba") && image.data.length !== width * height * components)
             throw new RangeError("Raw image bytes must match width × height × channels exactly.");
         checkAbort(options.signal);
-        const source = new Uint8Array(image.data), id = this.objects.reserve(), name = "Image" + (this.images.size + 1);
-        this.bytes += source.length;
+        const source = decoded ?? new Uint8Array(image.data), id = this.objects.reserve(), name = "Image" + (this.images.size + 1);
+        this.bytes += image.data.length;
         let pixels = source, mask;
-        if (image.format === "rgba") {
+        if (components === 4) {
             pixels = new Uint8Array(width * height * 3);
             const alpha = new Uint8Array(width * height);
             for (let p = 0; p < alpha.length; p++) {
@@ -2559,7 +2918,7 @@ const _exports = Object.freeze({ PdfDocumentImages: PdfDocumentImages });
 return _exports;
 })();
 
-const _m29 = (() => {
+const _m32 = (() => {
 const { OfficeIMOError } = _m4;
 
 const { checkAbort, pause, taskYieldDue } = _m3;
@@ -2568,19 +2927,32 @@ const { color, positive } = _m10;
 
 const { pdfNumber: n } = _m14;
 
-/** Validate and serialize one bounded display path, with no markup parser or resource loading. */
+/** Capture and serialize one bounded display path, with no markup parser or resource loading. */
 async function vectorCommands(block, settings, used) {
-    positive(block.width, "Vector width");
-    positive(block.height, "Vector height");
-    if (!Array.isArray(block.commands))
+    const width = positive(block.width, "Vector width"), height = positive(block.height, "Vector height");
+    const source = block.commands;
+    if (!Array.isArray(source))
         throw new TypeError("Vector commands must be an array.");
-    if (used + block.commands.length > settings.limits.maxVectorCommands)
+    if (used + source.length > settings.limits.maxVectorCommands)
         throw new OfficeIMOError("RESOURCE_LIMIT", "maxVectorCommands exceeded.");
+    const input = source.map(c => {
+        if (!c || typeof c !== "object")
+            throw new TypeError("Invalid vector command.");
+        const op = c.op;
+        if (op === "move" || op === "line")
+            return { op, x: c.x, y: c.y };
+        if (op === "cubic")
+            return { op, x1: c.x1, y1: c.y1, x2: c.x2, y2: c.y2, x: c.x, y: c.y };
+        if (op === "close")
+            return { op };
+        throw new TypeError("Unsupported vector command.");
+    });
     const fill = block.fill === undefined ? undefined : color(block.fill), stroke = block.stroke === undefined ? undefined : color(block.stroke);
     if (fill === undefined && stroke === undefined)
         throw new TypeError("A vector path requires fill or stroke.");
     const strokeWidth = positive(block.strokeWidth ?? 1, "Vector stroke width", 144);
-    if (block.fillRule !== undefined && !["nonzero", "evenodd"].includes(block.fillRule))
+    const fillRule = block.fillRule;
+    if (fillRule !== undefined && !["nonzero", "evenodd"].includes(fillRule))
         throw new TypeError("Invalid vector fill rule.");
     const commands = [];
     let bytes = 0, started = false;
@@ -2589,21 +2961,21 @@ async function vectorCommands(block, settings, used) {
             throw new RangeError("Vector coordinates must stay inside their declared bounds.");
         return n(value);
     };
-    for (let i = 0; i < block.commands.length; i++) {
-        const c = block.commands[i];
+    for (let i = 0; i < input.length; i++) {
+        const c = input[i];
         let command;
         if (!c || typeof c !== "object")
             throw new TypeError("Invalid vector command.");
         if (c.op === "move" || c.op === "line") {
             if (c.op === "line" && !started)
                 throw new TypeError("A vector subpath must begin with move.");
-            command = coordinate(c.x, block.width) + " " + coordinate(c.y, block.height) + (c.op === "move" ? " m\n" : " l\n");
+            command = coordinate(c.x, width) + " " + coordinate(c.y, height) + (c.op === "move" ? " m\n" : " l\n");
             started = true;
         }
         else if (c.op === "cubic") {
             if (!started)
                 throw new TypeError("A vector subpath must begin with move.");
-            command = [coordinate(c.x1, block.width), coordinate(c.y1, block.height), coordinate(c.x2, block.width), coordinate(c.y2, block.height), coordinate(c.x, block.width), coordinate(c.y, block.height)].join(" ") + " c\n";
+            command = [coordinate(c.x1, width), coordinate(c.y1, height), coordinate(c.x2, width), coordinate(c.y2, height), coordinate(c.x, width), coordinate(c.y, height)].join(" ") + " c\n";
         }
         else if (c.op === "close") {
             if (!started)
@@ -2624,14 +2996,223 @@ async function vectorCommands(block, settings, used) {
     }
     if (!started)
         throw new TypeError("A vector path needs at least one command.");
-    return (fill === undefined ? "" : fill + " rg\n") + (stroke === undefined ? "" : stroke + " RG\n" + n(strokeWidth) + " w\n") +
-        commands.join("") + (fill !== undefined && stroke !== undefined ? "B" : fill !== undefined ? "f" : "S") + (fill !== undefined && block.fillRule === "evenodd" ? "*" : "") + "\n";
+    return { width, height, count: input.length, content: (fill === undefined ? "" : fill + " rg\n") + (stroke === undefined ? "" : stroke + " RG\n" + n(strokeWidth) + " w\n") +
+            commands.join("") + (fill !== undefined && stroke !== undefined ? "B" : fill !== undefined ? "f" : "S") + (fill !== undefined && fillRule === "evenodd" ? "*" : "") + "\n" };
 }
 const _exports = Object.freeze({ vectorCommands: vectorCommands });
 return _exports;
 })();
 
-const _m27 = (() => {
+const _m33 = (() => {
+const { NotSupportedError, OfficeIMOError } = _m4;
+
+const { checkAbort, pause, taskYieldDue } = _m3;
+
+const { color, positive } = _m10;
+
+const { pdfNumber: n } = _m14;
+
+/** Portable drawings are an exact schema: unsupported data must never be silently discarded. */
+function record(value, keys, name) {
+    if (!value || typeof value !== "object" || Array.isArray(value) || Reflect.ownKeys(value).some(key => typeof key !== "string" || !keys.includes(key)))
+        throw new TypeError("Unsupported " + name + " properties.");
+    return value;
+}
+function checkDrawingBlock(value) {
+    record(value, ["kind", "drawing", "alignment", "alternativeText", "decorative"], "drawing block");
+}
+function coordinate(value) {
+    if (typeof value !== "number" || !Number.isFinite(value) || Math.abs(value) > 1000000)
+        throw new RangeError("Drawing coordinates must be finite and within -1,000,000 through 1,000,000 points.");
+    return value;
+}
+function clipRectangle(value) {
+    const clip = record(value, ["x", "y", "width", "height"], "drawing clip");
+    return { x: coordinate(clip.x), y: coordinate(clip.y), width: positive(clip.width, "Drawing clip width", 1000000), height: positive(clip.height, "Drawing clip height", 1000000) };
+}
+async function cooperate(settings) {
+    if (taskYieldDue())
+        await pause();
+    checkAbort(settings.options.signal);
+}
+/** Preflight and snapshot before painting. The existing font owner retains glyph maps and subsets. */
+async function prepareDrawing(drawing, settings, fonts, used) {
+    checkAbort(settings.options.signal);
+    const root = record(drawing, ["version", "width", "height", "elements"], "drawing");
+    if (root.version !== 1)
+        throw new NotSupportedError("Only portable drawing version 1 is supported.");
+    const width = positive(root.width, "Drawing width"), height = positive(root.height, "Drawing height");
+    let commands = used.commands, elements = used.elements;
+    const ancestors = new Set();
+    async function path(value) {
+        record(value, ["kind", "commands", "fill", "stroke", "strokeWidth", "fillRule", "lineCap", "lineJoin"], "drawing path");
+        if (!Array.isArray(value.commands))
+            throw new TypeError("Drawing path commands must be an array.");
+        if (commands + value.commands.length > settings.limits.maxVectorCommands)
+            throw new OfficeIMOError("RESOURCE_LIMIT", "maxVectorCommands exceeded.");
+        commands += value.commands.length;
+        const fill = value.fill === undefined ? undefined : color(value.fill), stroke = value.stroke === undefined ? undefined : color(value.stroke);
+        if (fill === undefined && stroke === undefined)
+            throw new TypeError("A drawing path requires fill or stroke.");
+        const strokeWidth = positive(value.strokeWidth ?? 1, "Drawing stroke width");
+        const fillRule = value.fillRule, lineCap = value.lineCap, lineJoin = value.lineJoin;
+        if (fillRule !== undefined && !["nonzero", "evenodd"].includes(fillRule))
+            throw new TypeError("Invalid drawing fillRule.");
+        if (lineCap !== undefined && !["butt", "round", "square"].includes(lineCap))
+            throw new TypeError("Invalid drawing lineCap.");
+        if (lineJoin !== undefined && !["miter", "round", "bevel"].includes(lineJoin))
+            throw new TypeError("Invalid drawing lineJoin.");
+        const snapshot = value.commands.slice(), copied = [];
+        let started = false;
+        for (let i = 0; i < snapshot.length; i++) {
+            const c = snapshot[i];
+            if (!c || typeof c !== "object")
+                throw new TypeError("Invalid drawing path command.");
+            if (c.op === "move" || c.op === "line") {
+                record(c, ["op", "x", "y"], "drawing path command");
+                if (c.op === "line" && !started)
+                    throw new TypeError("A drawing subpath must begin with move.");
+                copied.push({ op: c.op, x: coordinate(c.x), y: coordinate(c.y) });
+                started = true;
+            }
+            else if (c.op === "cubic") {
+                record(c, ["op", "x1", "y1", "x2", "y2", "x", "y"], "drawing path command");
+                if (!started)
+                    throw new TypeError("A drawing subpath must begin with move.");
+                copied.push({ op: "cubic", x1: coordinate(c.x1), y1: coordinate(c.y1), x2: coordinate(c.x2), y2: coordinate(c.y2), x: coordinate(c.x), y: coordinate(c.y) });
+            }
+            else if (c.op === "close") {
+                record(c, ["op"], "drawing path command");
+                if (!started)
+                    throw new TypeError("Cannot close an empty drawing path.");
+                copied.push({ op: "close" });
+            }
+            else
+                throw new TypeError("Unsupported drawing path command.");
+            if ((i & 1023) === 1023)
+                await cooperate(settings);
+        }
+        if (!started)
+            throw new TypeError("A drawing path needs at least one command.");
+        return { kind: "path", commands: copied, style: (fill === undefined ? "" : fill + " rg\n") + (stroke === undefined ? "" : stroke + " RG\n" + n(strokeWidth) + " w\n") +
+                String(["butt", "round", "square"].indexOf(lineCap ?? "butt")) + " J\n" + String(["miter", "round", "bevel"].indexOf(lineJoin ?? "miter")) + " j\n10 M\n",
+            paint: (fill !== undefined && stroke !== undefined ? "B" : fill !== undefined ? "f" : "S") + (fill !== undefined && fillRule === "evenodd" ? "*" : "") + "\n" };
+    }
+    async function text(value) {
+        record(value, ["kind", "text", "x", "y", "font", "fontSize", "color"], "drawing text");
+        if (typeof value.text !== "string")
+            throw new TypeError("Drawing text must be a string.");
+        if (value.text.length > settings.limits.maxCellCharacters)
+            throw new OfficeIMOError("RESOURCE_LIMIT", "maxCellCharacters exceeded.");
+        if (/[\r\n\u2028\u2029]/.test(value.text))
+            throw new NotSupportedError("Drawing text must be a single baseline without line breaks.");
+        if (!["regular", "bold", "italic", "boldItalic"].includes(value.font))
+            throw new TypeError("Invalid drawing font slot.");
+        const font = fonts.select(value.font === "bold" || value.font === "boldItalic", value.font === "italic" || value.font === "boldItalic");
+        if (!font.program || font.syntheticBold || font.syntheticItalic)
+            throw new NotSupportedError("Drawing text requires its exact embedded font face; supply fonts." + value.font + ".");
+        const snapshot = value.text, x = coordinate(value.x), y = coordinate(value.y), size = positive(value.fontSize, "Drawing font size"), foreground = color(value.color);
+        settings.budget.cell(snapshot);
+        let count = 0;
+        for (const character of snapshot) {
+            font.width(character.codePointAt(0));
+            if ((++count & 1023) === 0)
+                await cooperate(settings);
+        }
+        return { kind: "text", text: snapshot, x, y, size, color: foreground, font };
+    }
+    async function children(input, depth) {
+        if (!Array.isArray(input))
+            throw new TypeError("Drawing elements must be an array.");
+        if (depth > 32 && input.length)
+            throw new RangeError("Drawing groups support at most 32 element levels.");
+        if (elements + input.length > settings.limits.maxDrawingElements)
+            throw new OfficeIMOError("RESOURCE_LIMIT", "maxDrawingElements exceeded.");
+        const snapshot = input.slice(), output = [];
+        for (let i = 0; i < snapshot.length; i++) {
+            if (++elements > settings.limits.maxDrawingElements)
+                throw new OfficeIMOError("RESOURCE_LIMIT", "maxDrawingElements exceeded.");
+            const value = snapshot[i];
+            if (!value || typeof value !== "object")
+                throw new TypeError("Invalid drawing element.");
+            if (ancestors.has(value))
+                throw new TypeError("Drawing groups cannot contain cycles.");
+            if (value.kind === "path")
+                output.push(await path(value));
+            else if (value.kind === "text")
+                output.push(await text(value));
+            else if (value.kind === "group") {
+                record(value, ["kind", "clip", "elements"], "drawing group");
+                const clip = value.clip === undefined ? undefined : clipRectangle(value.clip);
+                ancestors.add(value);
+                output.push({ kind: "group", ...(clip ? { clip } : {}), children: await children(value.elements, depth + 1) });
+                ancestors.delete(value);
+            }
+            else
+                throw new TypeError("Unsupported drawing element kind.");
+            if ((i & 255) === 255)
+                await cooperate(settings);
+        }
+        return output;
+    }
+    const plan = await children(root.elements, 1);
+    const fragments = [];
+    let bytes = 0;
+    function add(fragment) {
+        bytes += fragment.length;
+        if (bytes > settings.limits.maxPageBytes - 256)
+            throw new OfficeIMOError("RESOURCE_LIMIT", "maxPageBytes exceeded by drawing content.");
+        fragments.push(fragment);
+    }
+    async function paint(nodes) {
+        for (let i = 0; i < nodes.length; i++) {
+            const node = nodes[i];
+            add("q\n");
+            if (node.kind === "group") {
+                if (node.clip)
+                    add([node.clip.x, node.clip.y, node.clip.width, node.clip.height].map(n).join(" ") + " re W n\n");
+                await paint(node.children);
+            }
+            else if (node.kind === "path") {
+                add(node.style);
+                for (let j = 0; j < node.commands.length; j++) {
+                    const c = node.commands[j];
+                    add(c.op === "move" || c.op === "line" ? n(c.x) + " " + n(c.y) + (c.op === "move" ? " m\n" : " l\n") :
+                        c.op === "cubic" ? [c.x1, c.y1, c.x2, c.y2, c.x, c.y].map(n).join(" ") + " c\n" : "h\n");
+                    if ((j & 1023) === 1023)
+                        await cooperate(settings);
+                }
+                add(node.paint);
+            }
+            else {
+                add(node.color + " rg\nBT /" + node.font.name + " " + n(node.size) + " Tf 0 Tr 1 0 0 -1 " + n(node.x) + " " + n(node.y) + " Tm <");
+                let chunk = "", count = 0;
+                for (const character of node.text) {
+                    chunk += character;
+                    if ((++count & 1023) === 0) {
+                        add(node.font.encode(chunk).slice(1, -1));
+                        chunk = "";
+                        await cooperate(settings);
+                    }
+                }
+                if (chunk)
+                    add(node.font.encode(chunk).slice(1, -1));
+                add("> Tj ET\n");
+            }
+            add("Q\n");
+            if ((i & 255) === 255)
+                await cooperate(settings);
+        }
+    }
+    await paint(plan);
+    checkAbort(settings.options.signal);
+    return { width, height, content: fragments.join(""), commands: commands - used.commands, elements: elements - used.elements };
+}
+const _exports = Object.freeze({ checkDrawingBlock: checkDrawingBlock, prepareDrawing: prepareDrawing });
+return _exports;
+})();
+
+const _m28 = (() => {
 const { BlobByteSink, withDestination } = _m2;
 
 const { beginTask, checkAbort, consumeRows, pause, taskYieldDue } = _m3;
@@ -2648,9 +3229,13 @@ const { PdfTableLayout } = _m22;
 
 const { PdfWriteSession } = _m13;
 
-const { PdfDocumentImages } = _m28;
+const { PdfDocumentImages } = _m29;
 
-const { vectorCommands } = _m29;
+const { vectorCommands } = _m32;
+
+const { graphicAlternative } = _m27;
+
+const { checkDrawingBlock, prepareDrawing } = _m33;
 
 /** Capture typed columns for a single-use table source in a composed document. */
 function pdfTable(rows, options) {
@@ -2676,7 +3261,7 @@ async function writePdfDocumentTo(blocks, destination, configuration = {}) {
     checkAbort(options.signal);
     return withDestination(destination, async (sink) => {
         const session = new PdfWriteSession(sink, prepared), { objects, pages, fonts } = session, images = new PdfDocumentImages(objects, prepared);
-        let rows = 0, columns = 0, commands = 0;
+        let rows = 0, columns = 0, commands = 0, drawingElements = 0;
         await session.start();
         await consumeRows(blocks, options.signal, async (block) => {
             if (!block || typeof block !== "object")
@@ -2685,11 +3270,13 @@ async function writePdfDocumentTo(blocks, destination, configuration = {}) {
                 case "paragraph": {
                     if (typeof block.text !== "string")
                         throw new TypeError("Paragraph text must be a string.");
+                    if (block.headingLevel !== undefined && (!Number.isInteger(block.headingLevel) || block.headingLevel < 1 || block.headingLevel > 6))
+                        throw new TypeError("Paragraph headingLevel must be an integer from 1 through 6.");
                     if (block.presentation && Object.keys(block.presentation).some(key => !["bold", "italic", "color", "alignment"].includes(key)))
                         throw new TypeError("PDF paragraph presentation supports bold, italic, color and alignment.");
                     const style = presentation(block.presentation), size = positive(block.fontSize ?? prepared.fontSize, "Paragraph font size", 144);
                     if (block.text)
-                        await pages.paragraph(block.text, style, size);
+                        await pages.paragraph(block.text, style, size, true, block.headingLevel);
                     break;
                 }
                 case "pageBreak":
@@ -2724,18 +3311,30 @@ async function writePdfDocumentTo(blocks, destination, configuration = {}) {
                     break;
                 }
                 case "image": {
-                    const alignment = graphicAlignment(block.alignment), image = await images.prepare(block.image);
-                    const width = positive(block.width ?? (block.height === undefined ? image.width * .75 : block.height * image.width / image.height), "Image display width");
-                    const height = positive(block.height ?? width * image.height / image.width, "Image display height");
+                    const alternative = graphicAlternative(block, prepared), alignment = graphicAlignment(block.alignment), image = await images.prepare(block.image);
+                    const width = block.width ?? (block.height === undefined ? image.width * .75 : block.height * image.width / image.height);
+                    const height = block.height ?? width * image.height / image.width;
+                    if (!Number.isFinite(width) || width <= 0 || !Number.isFinite(height) || height <= 0)
+                        throw new RangeError("Image display dimensions must be finite and positive.");
                     pages.registerXObject(image.name, image.id);
-                    await pages.graphic(width, height, alignment, (x, y, w, h) => "q " + [w, 0, 0, h, x, y].map(n).join(" ") + " cm /" + image.name + " Do Q\n");
+                    await pages.graphic(width, height, alignment, (x, y, w, h) => "q " + [w, 0, 0, h, x, y].map(n).join(" ") + " cm /" + image.name + " Do Q\n", alternative);
                     break;
                 }
                 case "vector": {
-                    const alignment = graphicAlignment(block.alignment), path = await vectorCommands(block, prepared, commands);
-                    commands += block.commands.length;
-                    await pages.graphic(block.width, block.height, alignment, (x, y, w, h) => "q " + [w / block.width, 0, 0, -h / block.height, x, y + h].map(n).join(" ") +
-                        " cm 0 0 " + n(block.width) + " " + n(block.height) + " re W n\n" + path + "Q\n");
+                    const alternative = graphicAlternative(block, prepared), alignment = graphicAlignment(block.alignment), path = await vectorCommands(block, prepared, commands);
+                    commands += path.count;
+                    await pages.graphic(path.width, path.height, alignment, (x, y, w, h) => "q " + [w / path.width, 0, 0, -h / path.height, x, y + h].map(n).join(" ") +
+                        " cm 0 0 " + n(path.width) + " " + n(path.height) + " re W n\n" + path.content + "Q\n", alternative);
+                    break;
+                }
+                case "drawing": {
+                    checkDrawingBlock(block);
+                    const alternative = graphicAlternative(block, prepared), alignment = graphicAlignment(block.alignment);
+                    const drawing = await prepareDrawing(block.drawing, prepared, fonts, { commands, elements: drawingElements });
+                    commands += drawing.commands;
+                    drawingElements += drawing.elements;
+                    await pages.graphic(drawing.width, drawing.height, alignment, (x, y, w, h) => "q " + [w / drawing.width, 0, 0, -h / drawing.height, x, y + h].map(n).join(" ") +
+                        " cm 0 0 " + n(drawing.width) + " " + n(drawing.height) + " re W n\n" + drawing.content + "Q\n", alternative);
                     break;
                 }
                 default: throw new TypeError("Unsupported PDF document block.");
@@ -2767,7 +3366,7 @@ const _exports = Object.freeze({ pdfTable: pdfTable, writePdfDocument: writePdfD
 return _exports;
 })();
 
-const _m30 = (() => {
+const _m34 = (() => {
 const { fontProgram } = _m16;
 
 const { resolveScalar, selectFont, validateFonts } = _m20;
@@ -2806,7 +3405,7 @@ const _exports = Object.freeze({ preflightPdfText: preflightPdfText });
 return _exports;
 })();
 
-const _m31 = (() => {
+const _m35 = (() => {
 
 
 
@@ -2854,7 +3453,7 @@ return _exports;
 
 const _m0 = (() => {
 
-const _exports = Object.freeze({ writePdf: _m1.writePdf, writePdfTo: _m1.writePdfTo, writePdfDocument: _m27.writePdfDocument, writePdfDocumentTo: _m27.writePdfDocumentTo, pdfTable: _m27.pdfTable, PdfFont: _m16.PdfFont, preflightPdfText: _m30.preflightPdfText, ExportCell: _m7.ExportCell, saveBlob: _m31.saveBlob });
+const _exports = Object.freeze({ writePdf: _m1.writePdf, writePdfTo: _m1.writePdfTo, writePdfDocument: _m28.writePdfDocument, writePdfDocumentTo: _m28.writePdfDocumentTo, pdfTable: _m28.pdfTable, PdfFont: _m16.PdfFont, preflightPdfText: _m34.preflightPdfText, ExportCell: _m7.ExportCell, saveBlob: _m35.saveBlob });
 return _exports;
 })();
 const { writePdf, writePdfTo, writePdfDocument, writePdfDocumentTo, pdfTable, PdfFont, preflightPdfText, ExportCell, saveBlob } = _m0;

@@ -343,11 +343,11 @@ const _m6 = (() => {
 function isDate(value) {
     if (value === null || typeof value !== "object")
         return false;
-    // Ordinary domain rows are objects too. Avoid throwing for each one; the native
-    // check below still rejects objects that merely advertise a Date string tag.
-    if (!(value instanceof Date) && Object.prototype.toString.call(value) !== "[object Date]")
-        return false;
     try {
+        // Ordinary rows take the cheap negative path. A custom string tag can be an
+        // accessor: use the native brand check directly without reading that tag.
+        if (!(value instanceof Date) && !(Symbol.toStringTag in value) && Object.prototype.toString.call(value) !== "[object Date]")
+            return false;
         Date.prototype.getTime.call(value);
         return true;
     }

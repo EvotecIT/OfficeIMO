@@ -33,7 +33,7 @@ export interface PdfSettings {
   readonly margins: PdfMargins;
   readonly fontSize: number;
   readonly padding: number;
-  readonly limits: Required<Pick<PdfLimits, "maxPages" | "maxColumns" | "maxCellCharacters" | "maxRowLines" | "maxFontBytes" | "maxPageBytes" | "maxHyperlinks" | "maxImageBytes" | "maxImagePixels" | "maxVectorCommands">>;
+  readonly limits: Required<Pick<PdfLimits, "maxPages" | "maxColumns" | "maxCellCharacters" | "maxRowLines" | "maxFontBytes" | "maxPageBytes" | "maxHyperlinks" | "maxImageBytes" | "maxImagePixels" | "maxVectorCommands" | "maxDrawingElements" | "maxStructureElements" | "maxMarkedContentReferences">>;
   readonly budget: ExportBudget;
 }
 export function settings(configuration: PdfOptions, document = false): PdfSettings {
@@ -44,6 +44,7 @@ export function settings(configuration: PdfOptions, document = false): PdfSettin
     return Object.freeze(rows.map(row => Object.freeze(row.map(cell => cell ? Object.freeze({ ...cell }) : null))));
   }
   const options: PdfOptions = { ...configuration, columns,
+    ...(configuration.tagged ? { tagged: Object.freeze({ ...configuration.tagged }) } : {}),
     ...(configuration.headerRows ? { headerRows: copySpans(configuration.headerRows) } : {}),
     ...(configuration.fonts ? { fonts: Object.freeze({ ...configuration.fonts }) } : {}),
     ...(configuration.columnWidths ? { columnWidths: Object.freeze([...configuration.columnWidths]) } : {}),
@@ -55,7 +56,8 @@ export function settings(configuration: PdfOptions, document = false): PdfSettin
     footerPresentation: presentation({ background: "eef2f6", bold: true, ...configuration.footerPresentation }) };
   const budget = new ExportBudget(options.limits);
   const limits = { maxPages: 10000, maxColumns: 1024, maxCellCharacters: 1000000, maxRowLines: 100000, maxFontBytes: 16 * 1024 * 1024, maxPageBytes: 8 * 1024 * 1024, maxHyperlinks: 100000,
-    maxImageBytes: 32 * 1024 * 1024, maxImagePixels: 16 * 1024 * 1024, maxVectorCommands: 100000 };
+    maxImageBytes: 32 * 1024 * 1024, maxImagePixels: 16 * 1024 * 1024, maxVectorCommands: 100000, maxDrawingElements: 100000,
+    maxStructureElements: 1000000, maxMarkedContentReferences: 2000000 };
   for (const key of Object.keys(limits) as (keyof typeof limits)[]) {
     const override = options.limits?.[key]; if (override !== undefined) limits[key] = override;
   }
@@ -79,5 +81,13 @@ export function settings(configuration: PdfOptions, document = false): PdfSettin
   if (options.footer?.values && options.footer.values.length > columns.length) throw new RangeError("Footer has more values than declared columns.");
   if (options.footer?.rows && (options.footer.values !== undefined || options.footer.totals !== undefined)) throw new TypeError("Structured footer rows cannot be combined with values/totals.");
   if (options.headerRows && options.includeHeader === false) throw new TypeError("headerRows requires includeHeader.");
+  if (options.tagged !== undefined) {
+    if (!options.tagged || typeof options.tagged !== "object" || typeof options.tagged.language !== "string" || options.tagged.language.length > 63)
+      throw new TypeError("tagged.language must be a language tag such as en or en-US.");
+    try { if (Intl.getCanonicalLocales(options.tagged.language).length !== 1) throw new RangeError(); }
+    catch { throw new TypeError("tagged.language must be a language tag such as en or en-US."); }
+    if (options.headerRows || columns.some(column => column.groups?.length) || options.footer?.rows)
+      throw new TypeError("Tagged PDF supports leaf column headings and ordinary footer cells; grouped headings and span matrices are unsupported.");
+  }
   return { options, page, margins, fontSize, padding, limits, budget };
 }

@@ -15,6 +15,9 @@ function run(args) {
 }
 const server = createServer(async (request, response) => {
   try {
+    if (new URL(request.url, "http://127.0.0.1").pathname === "/host.html") {
+      response.setHeader("Content-Type", "text/html; charset=utf-8"); response.end("<!doctype html><meta charset=utf-8><title>OfficeIMO module qualification</title>"); return;
+    }
     const path = resolve(root, "." + decodeURIComponent(new URL(request.url, "http://127.0.0.1").pathname));
     if (relative(root, path).startsWith("..") || !/\.(?:js|mjs)$/.test(path)) { response.writeHead(404).end(); return; }
     response.setHeader("Content-Type", "text/javascript; charset=utf-8"); response.setHeader("Access-Control-Allow-Origin", "*");
@@ -23,7 +26,8 @@ const server = createServer(async (request, response) => {
 });
 await new Promise(resolve => server.listen(0, "127.0.0.1", resolve));
 try {
-  await run(["run", "--project", "OfficeIMO.JavaScript.Examples/OfficeIMO.JavaScript.Examples.csproj", "-c", "Release", "--", join(output, "example")]);
-  await run(["run", "--project", "Build/BrowserExports/OfficeIMO.Browser.Interop.csproj", "-c", "Release", "--", repository, join(output, "interop"),
+  if (!process.argv.includes("--pdf-rich"))
+    await run(["run", "--project", "OfficeIMO.JavaScript.Examples/OfficeIMO.JavaScript.Examples.csproj", "-c", "Release", "--artifacts-path", join(output, "build"), "--", join(output, "example")]);
+  await run(["run", "--project", "Build/BrowserExports/OfficeIMO.Browser.Interop.csproj", "-c", "Release", "--artifacts-path", join(output, "build"), "--", repository, join(output, "interop"),
     "--limits", "--example=" + join(output, "example"), "--module-url=http://127.0.0.1:" + server.address().port + "/dist", ...process.argv.slice(3)]);
 } finally { await new Promise(resolve => server.close(resolve)); }
