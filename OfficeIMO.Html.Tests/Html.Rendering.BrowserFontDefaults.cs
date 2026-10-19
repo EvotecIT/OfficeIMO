@@ -226,6 +226,27 @@ public sealed partial class HtmlRenderingTests {
     }
 
     [Theory]
+    [InlineData("font-family:monospace", "", 6.5D, 8D)]
+    [InlineData("font-family:monospace;font-size:inherit", "", 13D, 16D)]
+    [InlineData("font-size:inherit", "", 16D, 16D)]
+    [InlineData("font-size:unset", "", 16D, 16D)]
+    [InlineData("font-size:initial", "", 16D, 16D)]
+    [InlineData("font-size:revert", "", 8D, 8D)]
+    [InlineData("font-family:monospace", "font-size:20px", 10D, 10D)]
+    [InlineData("font-size:12px", "", 12D, 12D)]
+    public void HtmlBrowserFontProvenance_RubyDefaultsRespectAuthoredFamilyAndSize(
+        string annotationCss, string outerCss, double browserSize, double documentSize) {
+        foreach (bool browser in new[] { false, true }) {
+            HtmlRenderDocument rendered = RenderBrowserFontDefaultFixture("<section style='" + outerCss
+                + "'><ruby>A<rt style='" + annotationCss + "'>D<span>N</span></rt></ruby></section>", browser);
+            HtmlRenderText[] text = BrowserFontDefaultText(rendered);
+            HtmlRenderText[] annotationRuns = text.Where(run => run.Text != "A").ToArray();
+            Assert.Equal("DN", string.Concat(annotationRuns.Select(run => run.Text)));
+            Assert.All(annotationRuns, run => Assert.Equal(browser ? browserSize : documentSize, run.Font.Size, 6));
+        }
+    }
+
+    [Theory]
     [InlineData("font-family:inherit")]
     [InlineData("font-family:unset")]
     [InlineData("font:inherit")]

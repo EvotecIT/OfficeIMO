@@ -154,7 +154,10 @@ public static partial class HtmlComputedStyleEngine {
             return;
         }
 
-        if (!valueAlreadyValidated && !IsSupportedDeclarationValue(name, resolved.Value)) {
+        // An effective renderer default has no CSS token yet. Its explicit
+        // inheritance still participates in the cascade without naming a face.
+        bool inheritsDeferredDefault = resolved.InheritsComputedValue && resolved.Value.Length == 0;
+        if (!valueAlreadyValidated && !inheritsDeferredDefault && !IsSupportedDeclarationValue(name, resolved.Value)) {
             return;
         }
 
@@ -220,7 +223,7 @@ public static partial class HtmlComputedStyleEngine {
                 // Keep explicit inheritance distinct from an initial-value reset even without a CSS parent value.
                 : string.Equals(name, "font-family", StringComparison.OrdinalIgnoreCase)
                     && !string.Equals(trimmed, "revert", StringComparison.OrdinalIgnoreCase)
-                ? CssKeywordResolution.ForInheritedValue("inherit")
+                ? CssKeywordResolution.ForInheritedValue(string.Empty)
                 : (string.Equals(name, "font-size", StringComparison.OrdinalIgnoreCase)
                     || string.Equals(name, "text-transform", StringComparison.OrdinalIgnoreCase))
                 ? CssKeywordResolution.ForInheritedValue("inherit")

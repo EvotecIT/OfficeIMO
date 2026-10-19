@@ -338,7 +338,9 @@ before their children inherit styles. Its fixed medium size is 13 CSS pixels;
 sizes remain absolute: code inside a 20px parent stays at 20px. Relative sizes
 retain their origin, so code inside a parent sized at `1.25em` uses 16.25px with
 the default settings. Root-relative dimensions and container queries use the
-same resolved sizes. Font selection and fallback still follow the resource policy.
+same resolved sizes. Ruby annotation sizing honors authored font settings, and
+nested inline text inherits the reduced size. Font selection and fallback still
+follow the resource policy.
 
 Unavailable `@font-face` declarations remain in the diagnostic report. They
 count as font approximation when rendered text requests the unavailable face;

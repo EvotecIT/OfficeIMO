@@ -38,10 +38,12 @@ internal sealed partial class HtmlRenderLayoutEngine {
         double annotationHeight = 0D;
         foreach (IElement annotation in annotations) {
             HtmlRenderBoxStyle annotationStyle = _styleResolver.Resolve(annotation, availableWidth, rubyStyle);
-            if (!_styleResolver.IsPropertySpecified(annotation, "font-size")) {
+            if (!_styleResolver.IsPropertyAuthored(annotation, "font-size")) {
                 annotationStyle = annotationStyle.Clone();
-                annotationStyle.Font = annotationStyle.Font.WithSize(Math.Max(1D, rubyStyle.Font.Size * 0.5D));
-                annotationStyle.FontSizeContext = annotationStyle.FontSizeContext?.WithRelativeSize(annotationStyle.Font.Size);
+                // Browser defaults were resolved before descendant inheritance.
+                // Document mode retains its local annotation-size fallback.
+                if (!annotationStyle.FontSizeContext.HasValue)
+                    annotationStyle.Font = annotationStyle.Font.WithSize(Math.Max(1D, annotationStyle.Font.Size * 0.5D));
                 annotationStyle.LineHeight = Math.Max(annotationStyle.Font.Size, rubyStyle.LineHeight * 0.5D);
                 annotationStyle.InlineAlignmentLineHeight = null;
                 annotationStyle.UsesNaturalLineHeight = false;

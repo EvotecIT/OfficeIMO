@@ -150,6 +150,11 @@ internal sealed partial class HtmlRenderStyleResolver {
         _computedStyles.Elements.TryGetValue(element, out HtmlComputedStyle? computed)
         && computed.IsSpecifiedValue(propertyName);
 
+    /// <summary>Includes explicit CSS inheritance and resets, while rollback exposes the UA default.</summary>
+    internal bool IsPropertyAuthored(IElement element, string propertyName) =>
+        _computedStyles.Elements.TryGetValue(element, out HtmlComputedStyle? computed)
+        && HasAuthoredValue(computed, propertyName);
+
     private HtmlRenderBoxStyle ResolveCore(
         IElement element,
         HtmlComputedStyle computed,
