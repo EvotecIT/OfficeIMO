@@ -112,6 +112,12 @@ internal sealed partial class HtmlRenderLayoutEngine {
             }
             var consumedBoundaries = new HashSet<object>();
             ConsumeUnenteredPageBoundaries(block, consumedBoundaries);
+            foreach (HtmlRenderForcedBreak item in block.ForcedBreaks) {
+                CheckCancellation();
+                ChargeLayoutOperation("leading page boundary consumption");
+                if (item.Edge == HtmlRenderBreakEdge.Leading && !item.Projected && IsForcedPageBreak(item.Target))
+                    consumedBoundaries.Add(item.Boundary);
+            }
             if (columnAware && hasPageContent) {
                 HtmlRenderForcedBreak? columnBreak = ResolveForcedBoundaryAt(block.ForcedBreaks, 0D);
                 if (columnBreak != null) {

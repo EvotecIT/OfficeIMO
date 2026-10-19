@@ -145,4 +145,94 @@ public sealed partial class HtmlRenderingTests {
                 item => item.Text == text);
         }
     }
+
+    [Theory]
+    [InlineData("heading", false)]
+    [InlineData("wrapper", false)]
+    [InlineData("named", false)]
+    [InlineData("heading", true)]
+    [InlineData("wrapper", true)]
+    [InlineData("named", true)]
+    [InlineData("wrapped-single-column", false)]
+    public void RendererKeepsFollowingMarginAtResolvedPageBoundary(string boundary, bool layeredBackground) {
+        string headingBreak = boundary == "named" ? "" : "break-before:page;";
+        string sectionPage = boundary == "named" ? "page:chapter;" : "";
+        string content = "<h2 id='target'>Heading target</h2><p>Following line</p>";
+        if (boundary == "wrapper") content = "<div>" + content + "</div>";
+        if (boundary == "wrapped-single-column") content = "<div style='display:flex;flex-flow:column wrap;height:150px'><section>" + content + "</section></div>";
+        string html = "<style>@page{size:400px 200px;margin:0}@page chapter{size:400px 200px;margin:0}"
+            + "html,body{margin:0;padding:0}body{font:16px/20px Arial}"
+            + "table{border-collapse:collapse;margin:0 0 16px}td{padding:0}"
+            + "section{" + sectionPage + "}h2{font:20px/24px Arial;margin:18px 0 10px;" + headingBreak + "}"
+            + "p{margin:0}" + (layeredBackground ? "html{background:#222}body{background:white}" : "")
+            + "</style><table><tr><td>Table lead</td></tr></table><section>" + content + "</section>";
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html,
+            new HtmlRenderOptions { Mode = HtmlRenderMode.Paged, ViewportWidth = 400D, Margins = HtmlRenderMargins.All(0D) });
+
+        Assert.Equal(2, rendered.Pages.Count);
+        HtmlRenderBookmarkAnchor target = Assert.Single(
+            EnumerateRenderVisuals(rendered.Pages[1].Scene).OfType<HtmlRenderBookmarkAnchor>(),
+            anchor => anchor.Source == "h2#target");
+        Assert.Equal(18D, target.Y, 3);
+        foreach (string text in new[] { "Heading target", "Following line" }) {
+            Assert.Single(rendered.Pages.SelectMany(page => EnumerateRenderVisuals(page.Scene)).OfType<HtmlRenderText>(),
+                item => item.Text == text);
+        }
+    }
+
+    [Theory]
+    [InlineData("columns")]
+    [InlineData("table")]
+    [InlineData("nested-table")]
+    [InlineData("row-flex")]
+    [InlineData("grid")]
+    [InlineData("reverse-column")]
+    [InlineData("wrapped-columns")]
+    [InlineData("nested-table-flex")]
+    public void RendererKeepsCollapsedMarginsWhenPageControlUsesSourceFlowFallback(string context) {
+        HtmlRenderDocument RenderWithBreak(string before) {
+            string content = "<p style='margin:0 0 16px'>Lead</p><p id='target' style='margin:18px 0 0;break-before:" + before + "'>Target</p>";
+            if (context == "nested-table") content = "<div>" + content + "</div>";
+            if (context == "nested-table-flex") content = "<div style='display:flex;flex-direction:column'><div>" + content + "</div></div>";
+            string wrapper = context switch {
+                "columns" => "<div style='columns:2;column-gap:20px;column-fill:auto;height:100px'>" + content + "</div>",
+                "row-flex" => "<div style='display:flex'><div>" + content + "</div></div>",
+                "grid" => "<div style='display:grid'><div>" + content + "</div></div>",
+                "reverse-column" => "<div style='display:flex;flex-direction:column-reverse'><div>" + content + "</div></div>",
+                "wrapped-columns" => "<div style='display:flex;flex-flow:column wrap;height:50px'><div>" + content + "</div><div style='height:10px'>Filler</div></div>",
+                _ => "<table><tr><td>" + content + "</td></tr></table>"
+            };
+            string html = "<style>@page{size:400px 200px;margin:0}html,body{margin:0;padding:0}"
+                + "body{font:16px/20px Arial}table{border-collapse:collapse;margin:0}td{padding:0}</style>" + wrapper;
+            return HtmlRenderTestDriver.Render(html,
+                new HtmlRenderOptions { Mode = HtmlRenderMode.Paged, ViewportWidth = 400D, Margins = HtmlRenderMargins.All(0D) });
+        }
+
+        HtmlRenderDocument ordinary = RenderWithBreak("auto");
+        HtmlRenderDocument hinted = RenderWithBreak("page");
+        HtmlRenderText Text(HtmlRenderDocument document, string value) => Assert.Single(
+            EnumerateRenderVisuals(Assert.Single(document.Pages).Scene).OfType<HtmlRenderText>(),
+            text => text.Text == value);
+        HtmlRenderText expected = Text(ordinary, "Target");
+        HtmlRenderText actual = Text(hinted, "Target");
+        Assert.Equal(38D, expected.Y - Text(ordinary, "Lead").Y, 3);
+        Assert.Equal(expected.X, actual.X, 3);
+        Assert.Equal(expected.Y, actual.Y, 3);
+    }
+
+    [Fact]
+    public void PagedWrappedSingleColumnMeasuresFollowingItemAfterResolvedMarginBoundary() {
+        string html = "<style>@page{size:400px 200px;margin:0}html,body{margin:0;padding:0}"
+            + "body{font:16px/20px Arial}main{display:flex;flex-flow:column wrap;height:150px}p{margin:0}"
+            + "</style><main><div><p style='margin-bottom:16px'>Lead</p>"
+            + "<p style='margin-top:18px;break-before:page'>Target</p></div><p>Tail</p></main>";
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html,
+            new HtmlRenderOptions { Mode = HtmlRenderMode.Paged });
+        Assert.Equal(2, rendered.Pages.Count);
+        HtmlRenderText[] texts = EnumerateRenderVisuals(rendered.Pages[1].Scene).OfType<HtmlRenderText>().ToArray();
+        HtmlRenderText target = Assert.Single(texts, item => item.Text == "Target");
+        HtmlRenderText tail = Assert.Single(texts, item => item.Text == "Tail");
+        Assert.Equal(20D, tail.Y - target.Y, 3);
+        Assert.Single(EnumerateRenderVisuals(rendered.Pages[0].Scene).OfType<HtmlRenderText>(), item => item.Text == "Lead");
+    }
 }

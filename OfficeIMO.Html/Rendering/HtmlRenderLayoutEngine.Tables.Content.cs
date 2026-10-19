@@ -8,6 +8,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         double contentWidth,
         HtmlRenderBoxStyle style,
         int depth) {
+        using var pageBoundaries = new DescendantPageBoundaryScope(this, retainsPageBoundaries: false);
         if (cell.Nodes == null && !HasBlockChildren(cell.Element, contentWidth, style, depth)) {
             return LayoutInlineNodes(cell.Element.ChildNodes, contentWidth, style, depth, null, cell.Element);
         }

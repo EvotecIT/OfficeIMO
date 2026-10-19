@@ -269,9 +269,20 @@ internal sealed partial class HtmlRenderLayoutEngine {
             : later is HtmlPageBreakTarget.Left or HtmlPageBreakTarget.Right ? later
             : earlier is HtmlPageBreakTarget.Left or HtmlPageBreakTarget.Right ? earlier : later;
 
-    private HtmlPageBreakTarget ResolveRootBreakBefore(HtmlRenderFlowBlock block) =>
-        CombineForcedPageTargets(IsForcedPageBreak(block.BreakBefore) ? block.BreakBefore : HtmlPageBreakTarget.None,
+    private HtmlPageBreakTarget ResolveRootBreakBefore(HtmlRenderFlowBlock block) {
+        HtmlPageBreakTarget target = CombineForcedPageTargets(
+            IsForcedPageBreak(block.BreakBefore) ? block.BreakBefore : HtmlPageBreakTarget.None,
             ResolveForcedBreakAt(block.ForcedBreaks, 0D));
+        foreach (HtmlRenderForcedBreak item in block.ForcedBreaks) {
+            CheckCancellation();
+            ChargeLayoutOperation("leading page boundary resolution");
+            // A collapsed parent margin can translate a logical entry away
+            // from zero. Projected entries already own physical destination space.
+            if (item.Edge == HtmlRenderBreakEdge.Leading && !item.Projected)
+                target = CombineForcedPageTargets(target, item.Target);
+        }
+        return target;
+    }
 
     private HtmlPageBreakTarget ResolveRootBreakAfter(HtmlRenderFlowBlock block) =>
         CombineForcedPageTargets(ResolveForcedBreakAt(block.ForcedBreaks, block.Height), block.BreakAfter);

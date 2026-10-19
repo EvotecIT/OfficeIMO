@@ -217,14 +217,6 @@ internal sealed partial class HtmlRenderLayoutEngine {
                             adjoiningMargins.Clear();
                         }
                     }
-                    // A forced page boundary ends the adjoining sibling margin group.
-                    // Keep the following top margin with its new page; the preceding
-                    // margin remains allocated to its own source block.
-                    if (_options.Mode == HtmlRenderMode.Paged
-                        && (IsForcedPageBreak(childStyle.BreakBefore)
-                            || blocks.Count > 0 && IsForcedPageBreak(ResolveRootBreakAfter(blocks[blocks.Count - 1])))) {
-                        adjoiningMargins.Clear();
-                    }
                     var anticipatedMargins = adjoiningMargins;
                     anticipatedMargins.Add(new HtmlCollapsedMargin(childStyle.MarginTop));
                     double anticipatedMarginAdjustment = adjoiningMargins.Count > 0
@@ -270,6 +262,16 @@ internal sealed partial class HtmlRenderLayoutEngine {
                                 && Math.Abs(measuredStyle.MarginLeft - childStyle.MarginLeft) <= 0.0001D
                                 && Math.Abs(measuredStyle.MarginRight - childStyle.MarginRight) <= 0.0001D) break;
                             childStyle = measuredStyle;
+                            childFloats?.Clear();
+                            childBlock = LayoutPlacedChild();
+                        }
+                    }
+                    // Descendant controls and inherited page names are only known
+                    // after layout. Keep the sibling group intact until that point.
+                    if (StartsPageMarginGroup(blocks, childBlock)) {
+                        adjoiningMargins.Clear();
+                        if (Math.Abs(anticipatedMarginAdjustment) > 0.0001D) {
+                            anticipatedMarginAdjustment = 0D;
                             childFloats?.Clear();
                             childBlock = LayoutPlacedChild();
                         }

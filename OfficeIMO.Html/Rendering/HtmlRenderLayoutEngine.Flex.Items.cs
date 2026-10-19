@@ -95,7 +95,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
     }
 
     private HtmlRenderFlowBlock LayoutFlexItem(FlexItem item, double containingWidth, HtmlRenderBoxStyle parentStyle, int depth,
-        PagedFloatBoundary? pageBoundary = null) {
+        PagedFloatBoundary? pageBoundary = null, bool retainsPageBoundaries = false) {
+        using var pageBoundaries = new DescendantPageBoundaryScope(this, retainsPageBoundaries);
         HtmlRenderFlowBlock block = item.Element != null
             ? LayoutElement(item.Element, containingWidth, item.Style, parentStyle, depth, pageBoundary: pageBoundary)
             : LayoutAnonymousFlexItem(item, containingWidth, parentStyle);
