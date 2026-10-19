@@ -1,6 +1,6 @@
 using System.Text.Json;
 using HtmlTinkerX;
-using OfficeIMO.Browser;
+using OfficeIMO.JavaScript.Assets;
 
 /// <summary>Opt-in native paged source qualification, retaining compact reports and removing validated large output.</summary>
 internal static class CanopyScale {
@@ -37,14 +37,14 @@ internal static class CanopyScale {
                     proof = PdfExportVerifier.Verify(path);
                 } else proof = QualificationVerifier.Verify(path, spec);
                 long length = new FileInfo(path).Length;
-                File.WriteAllText(Path.Combine(output, name + ".json"), JsonSerializer.Serialize(new { metrics, proof, asset = BrowserAssets.CanopyXScript.HashedFileName,
+                File.WriteAllText(Path.Combine(output, name + ".json"), JsonSerializer.Serialize(new { metrics, proof, asset = JavaScriptAssets.CanopyXScript.HashedFileName,
                     bytes = length, retained = false, timing = "diagnostic; includes native capture, acknowledged file bridge and output generation" }, new JsonSerializerOptions { WriteIndented = true }));
                 Console.WriteLine($"Passed {name}: {rows * (long)columns} cells, {length} bytes to remove after independent readback.");
             } catch (Exception error) {
                 failure = error;
                 try {
                     File.WriteAllText(Path.Combine(output, name + ".json"), JsonSerializer.Serialize(new { metrics, error = error.ToString(), rows, columns, format, navigation,
-                        asset = BrowserAssets.CanopyXScript.HashedFileName, bytes = File.Exists(path) ? new FileInfo(path).Length : 0, validated = false }, new JsonSerializerOptions { WriteIndented = true }));
+                        asset = JavaScriptAssets.CanopyXScript.HashedFileName, bytes = File.Exists(path) ? new FileInfo(path).Length : 0, validated = false }, new JsonSerializerOptions { WriteIndented = true }));
                 } catch (Exception reportError) { Console.Error.WriteLine("Could not retain compact failure report: " + reportError.Message); }
                 throw;
             } finally {

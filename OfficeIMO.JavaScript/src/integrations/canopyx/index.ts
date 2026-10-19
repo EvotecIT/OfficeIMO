@@ -1,5 +1,6 @@
 import { BlobByteSink } from "../../core/index.js";
 import type { OutputDestination, ExportResult, ExportProgress } from "../../core/index.js";
+import { notifyProgress } from "../../core/progress.js";
 import { writeXlsxTo } from "../../xlsx/index.js";
 import { writeCsvTo } from "../../csv/index.js";
 import { writePdfTo } from "../../pdf/index.js";
@@ -14,8 +15,7 @@ export type { CanopyCapture, CanopyExportCell, CanopyExportColumn, CanopyExportR
 export async function writeCanopyTo(capture: CanopyCapture, format: CanopyFormat, destination: OutputDestination, options: CanopyWriteOptions = {}): Promise<ExportResult> {
   const source = createCanopyExport(capture, format, options), { signal } = options;
   const progress = options.onProgress ? { onProgress: (event: ExportProgress) => {
-    const result: unknown = options.onProgress!({ ...event, ...(source.rowCount === null ? {} : { totalRows: source.rowCount }) });
-    if (result && typeof (result as { then?: unknown }).then === "function") { void Promise.resolve(result).catch(() => {}); throw new TypeError("onProgress must be synchronous."); }
+    notifyProgress(options.onProgress, { ...event, ...(source.rowCount === null ? {} : { totalRows: source.rowCount }) });
   } } : {};
   const stream = { ...(signal ? { signal } : {}), ...progress };
   if (format === "xlsx") return writeXlsxTo(source.rows(), destination, { ...options.xlsx, ...stream, columns: source.columns,

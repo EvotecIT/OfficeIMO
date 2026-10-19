@@ -1,6 +1,7 @@
 import { BlobByteSink, checkAbort, saveBlob } from "../../core/index.js";
 import type { OutputDestination, ExportResult } from "../../core/index.js";
 import { concatRows } from "../../core/iteration.js";
+import { notifyProgress } from "../../core/progress.js";
 import { writeCsvTo } from "../../csv/index.js";
 import { writeXlsxTo } from "../../xlsx/index.js";
 import { writePdfTo } from "../../pdf/index.js";
@@ -11,6 +12,7 @@ import { captureDataTablesExport, createDataTablesExport } from "./snapshot.js";
 import type { DataTablesApi, DataTablesButtonOptions, DataTablesHost, DataTablesWriteOptions } from "./types.js";
 export { createDataTablesExport } from "./snapshot.js";
 export { ExportCell } from "../../core/presentation.js";
+export { PdfFont } from "../../pdf/font.js";
 export type { DataTablesApi, DataTablesHost, DataTablesOptions, DataTablesExportOptions, DataTablesFormat,
   DataTablesCellContext, DataTablesExport, DataTablesWriteOptions, DataTablesButtonOptions } from "./types.js";
 
@@ -30,13 +32,13 @@ export async function writeDataTableTo(host: DataTablesHost, table: DataTablesAp
     const footer = source.footer || options.sheet?.footer ? { values: source.footer ?? [], ...options.sheet?.footer } : undefined;
     result = await writeXlsxTo(source.rows, destination, { ...options.workbook, ...stream, columns: source.columns,
       sheet: { ...options.sheet, name: options.sheetName ?? "Data", ...(footer ? { footer } : {}) },
-      ...(options.onProgress ? { onProgress: event => options.onProgress?.({ ...event, totalRows: source.rowCount }) } : {}) });
+      ...(options.onProgress ? { onProgress: event => notifyProgress(options.onProgress, { ...event, totalRows: source.rowCount }) } : {}) });
   } else if (format === "pdf") {
     const footer = options.pdf?.footer ?? (source.footerStructure ? { rows: source.footerStructure } : source.footer ? { values: source.footer } : undefined);
     result = await writePdfTo(source.rows, destination, { ...options.pdf, ...stream, columns: source.columns,
       ...(source.headerStructure && options.pdf?.includeHeader !== false && !options.pdf?.headerRows ? { headerRows: source.headerStructure } : {}),
       ...(footer ? { footer } : {}),
-      ...(options.onProgress ? { onProgress: event => options.onProgress?.({ ...event, totalRows: source.rowCount }) } : {}) });
+      ...(options.onProgress ? { onProgress: event => notifyProgress(options.onProgress, { ...event, totalRows: source.rowCount }) } : {}) });
   } else {
     const headingCount = source.headers.length, footerCount = source.footer ? 1 : 0;
     const rows = concatRows(source.headers, source.rows, source.footer ? [source.footer] : []);
@@ -44,7 +46,7 @@ export async function writeDataTableTo(host: DataTablesHost, table: DataTablesAp
       ...(options.limits?.maxRows !== undefined ? { limits: { ...options.limits, maxRows: Math.min(Number.MAX_SAFE_INTEGER, options.limits.maxRows + headingCount + footerCount) } } : {}),
       onProgress: event => {
         const rowCount = Math.max(0, Math.min(source.rowCount, event.rows - headingCount));
-        options.onProgress?.({ ...event, rows: rowCount, totalRows: source.rowCount });
+        notifyProgress(options.onProgress, { ...event, rows: rowCount, totalRows: source.rowCount });
       } });
   }
   checkAbort(signal);

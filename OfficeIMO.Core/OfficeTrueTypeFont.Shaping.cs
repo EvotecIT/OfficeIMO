@@ -44,6 +44,24 @@ public sealed partial class OfficeTrueTypeFont {
         IReadOnlyList<int> scalars,
         System.Threading.CancellationToken cancellationToken = default) => _kerning.PositionRun(glyphs, scalars, cancellationToken);
 
+    /// <summary>Positions an already validated BMP scalar run using the same pair adjustment and tracking owner as native paint.</summary>
+    internal IReadOnlyList<double> PositionPortableScalars(string text, double fontSize) {
+        var glyphs = new List<int>(text.Length);
+        var scalars = new List<int>(text.Length);
+        var indexes = new List<int>(text.Length);
+        for (int i = 0; i < text.Length; i++) { glyphs.Add(MapGlyph(text[i])); scalars.Add(text[i]); indexes.Add(i); }
+        OfficeOpenTypeGlyphPositioning[] positioned = PositionGlyphRun(glyphs, scalars);
+        bool[]? boundaries = TrackingBoundaries(text, indexes);
+        double scale = ScaleFor(fontSize), tracking = HorizontalTracking(fontSize), cursor = 0;
+        var positions = new double[text.Length];
+        for (int i = 0; i < positions.Length; i++) {
+            positions[i] = cursor + positioned[i].XPlacement * scale;
+            cursor += (AdvanceWidth((ushort)glyphs[i]) + positioned[i].XAdvance) * scale +
+                (boundaries == null || boundaries[i] ? tracking : 0);
+        }
+        return positions;
+    }
+
     bool IOfficeColorFontProgram.HasColorGlyph(int glyphId) => _colorGlyphs?.HasColorGlyph(glyphId) == true;
 
     bool IOfficeColorFontProgram.TryGetColorLayers(

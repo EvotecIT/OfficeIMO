@@ -14,11 +14,14 @@ Deliberately bounded compatibility contracts are not backlog by themselves. A pr
 
 | Open milestone | Content and acceptance | Consumers |
 | --- | --- | --- |
-| [ ] 4. Adoption | In the owning consumer repositories, use OfficeIMO JavaScript for CanopyX/HtmlForgeX Excel and PDF export; remove JSZip, pdfmake and the font asset from HtmlForgeX after equivalent exports are qualified. | HtmlForgeX, CanopyX |
-| [ ] 5. PDF documents | Images, vector paths from SVG/ChartForgeX charts, text layout beyond tables and a portable report-to-PDF path without a server. | Portable reports that need a PDF without a server |
+| [ ] 4. Adoption | Qualify OfficeIMO JavaScript as the standard CanopyX/HtmlForgeX Excel and PDF export path, preserving current-view selection, typed data and licensed fonts. Keep native XLSX/pdfmake customization behind an explicit legacy engine choice; qualify both delivery paths in their owning consumers. | HtmlForgeX, CanopyX |
 | [ ] 6. Readers, on demand | Streaming ZIP reader, XLSX reader for values/types/basic styles and streaming CSV reader. Begin a bounded import slice when a report/application needs it, such as importing a domain list. | The report/application with an identified import workflow |
 | [ ] 7. Word writer, later | Paragraphs, runs, headings, lists, tables, images, headers/footers and sections, mapping to `OfficeIMO.Word` vocabulary and independent DOCX qualification. | A browser consumer that needs Export to Word |
 | [ ] 8. PowerPoint writer, later | Slides, text, tables, images and charts as visuals, with independent PPTX qualification. | A browser consumer that needs PowerPoint export |
+
+- [ ] Extend PDF typography beyond scalar text: combining marks, bidirectional text, script shaping and font fallback with preserved extraction text. Qualify an explicit provider or owned implementation against independently shaped fixtures before admitting each script; preserve the current rejection for unsupported text.
+- [ ] Complete assistive-technology reading and navigation acceptance for the [tagged JavaScript report profile](../OfficeIMO.JavaScript/README.md#tagged-pdf-reports), alongside independent structure validation. Extend table/link semantics beyond the explicitly rejected grouped/span and annotation cases only with qualified structure associations. Require this evidence before claiming accessible PDF or PDF/UA conformance.
+- [ ] Promote the qualified worker recipes into a reusable execution surface when an adopting host needs it. Keep host worker creation and delivery policy explicit; qualify bounded row/output handoff, progress, cancellation, failure propagation and disposal without cloning the entire report.
 
 ## Release-wide quality
 
@@ -32,7 +35,7 @@ Deliberately bounded compatibility contracts are not backlog by themselves. A pr
 
 ## Portable browser exports
 
-- [ ] Integrate [OfficeIMO.Browser](../OfficeIMO.Browser/README.md) with CanopyX's current-view export menu and HtmlForgeX's data explorer/report shell in their owning repositories. Preserve the current filter, sort, column order and visibility; qualify inline and bundled delivery in SharePoint through UltimateHtmlViewer. Decide whether the hosts retain their browser CSV implementation or consume the same OfficeIMO writer.
+- [ ] Integrate [OfficeIMO.JavaScript.Assets](../OfficeIMO.JavaScript.Assets/README.md) with CanopyX's current-view export menu and HtmlForgeX's data explorer/report shell in their owning repositories. Preserve the current filter, sort, column order and visibility; qualify inline and bundled delivery in SharePoint through UltimateHtmlViewer. Decide whether the hosts retain their browser CSV implementation or consume the same OfficeIMO writer.
 
 ## Product discovery and public evidence
 

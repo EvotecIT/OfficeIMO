@@ -75,12 +75,25 @@ async function runBrowserScenarios({ vectorJson, workerScript, limits }) {
       for (const kind of ["xlsx", "csv", "bytes"]) {
         const controller = new AbortController(); let returned = false;
         function* rows() { try { for (let i = 0; i < 1000000; i++) yield kind === "bytes" ? Uint8Array.of(1) : ["row" + i]; } finally { returned = true; } }
+        let checkpoint;
+        const pendingInput = new Promise(resolve => { checkpoint = resolve; });
+        const source = { [Symbol.asyncIterator]() {
+          const iterator = rows(); let requests = 0;
+          return { next() {
+            if (++requests === 257) { checkpoint(); return new Promise(() => {}); }
+            return iterator.next();
+          }, return: () => iterator.return() };
+        } };
         const options = { columns: [{ header: "V" }], signal: controller.signal };
         const book = new Workbook(options);
-        const writing = kind === "xlsx" ? book.addWorksheet("Cancelled", options).addRows(rows())
-          : kind === "csv" ? writeCsv(rows(), options) : OfficeIMO.core.writeBytes(rows(), { write() {} }, controller.signal);
-        setTimeout(() => controller.abort(), 15);
-        await rejects(() => writing, "AbortError"); require(returned, scheduling + " cancelled iterator was returned");
+        const writing = kind === "xlsx" ? book.addWorksheet("Cancelled", options).addRows(source)
+          : kind === "csv" ? writeCsv(source, options) : OfficeIMO.core.writeBytes(source, { write() {} }, controller.signal);
+        // Arm cancellation after input is pending; fast byte writes may finish a finite source before a timed abort.
+        await pendingInput;
+        const timer = setTimeout(() => controller.abort(), 0);
+        try {
+          await rejects(() => writing, "AbortError"); require(returned, scheduling + " cancelled iterator was returned");
+        } finally { clearTimeout(timer); await book.discard(controller.signal.reason); }
       }
       for (const kind of ["appends", "sample"]) {
         const controller = new AbortController(), reason = new Error("cancel " + kind), total = 100000;

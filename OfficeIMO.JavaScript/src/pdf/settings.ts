@@ -17,11 +17,12 @@ export function color(value: string): string {
 }
 export function presentation(value: CellPresentation = {}): Readonly<CellPresentation> {
   if (!value || typeof value !== "object") throw new TypeError("PDF presentation must be an object.");
-  if (value.background !== undefined) color(value.background);
-  if (value.color !== undefined) color(value.color);
-  for (const key of ["bold", "italic", "wrapText"] as const) if (value[key] !== undefined && typeof value[key] !== "boolean") throw new TypeError("PDF presentation " + key + " must be boolean.");
-  if (value.alignment !== undefined && !["left", "center", "right"].includes(value.alignment)) throw new TypeError("PDF table alignment supports left, center and right.");
-  return Object.freeze({ ...value });
+  const snapshot = { ...value };
+  if (snapshot.background !== undefined) color(snapshot.background);
+  if (snapshot.color !== undefined) color(snapshot.color);
+  for (const key of ["bold", "italic", "wrapText"] as const) if (snapshot[key] !== undefined && typeof snapshot[key] !== "boolean") throw new TypeError("PDF presentation " + key + " must be boolean.");
+  if (snapshot.alignment !== undefined && !["left", "center", "right"].includes(snapshot.alignment)) throw new TypeError("PDF table alignment supports left, center and right.");
+  return Object.freeze(snapshot);
 }
 const sizes: Readonly<Record<string, PdfPageSize>> = {
   A3: { width: 841.89, height: 1190.551 }, A4: { width: 595.276, height: 841.89 }, A5: { width: 419.528, height: 595.276 },
@@ -33,17 +34,18 @@ export interface PdfSettings {
   readonly margins: PdfMargins;
   readonly fontSize: number;
   readonly padding: number;
-  readonly limits: Required<Pick<PdfLimits, "maxPages" | "maxColumns" | "maxCellCharacters" | "maxRowLines" | "maxFontBytes" | "maxPageBytes" | "maxHyperlinks">>;
+  readonly limits: Required<Pick<PdfLimits, "maxPages" | "maxColumns" | "maxCellCharacters" | "maxRowLines" | "maxFontBytes" | "maxPageBytes" | "maxHyperlinks" | "maxImageBytes" | "maxImagePixels" | "maxVectorCommands" | "maxDrawingElements" | "maxStructureElements" | "maxMarkedContentReferences">>;
   readonly budget: ExportBudget;
 }
-export function settings(configuration: PdfOptions): PdfSettings {
+export function settings(configuration: PdfOptions, document = false): PdfSettings {
   const columns = copyColumns(configuration?.columns).map(c => Object.freeze(c));
-  if (!columns.length) throw new TypeError("PDF tables need at least one declared column.");
+  if (!columns.length && !document) throw new TypeError("PDF tables need at least one declared column.");
   function copySpans(rows: TableSpanRows): TableSpanRows {
     tableSpans(rows, columns.length);
     return Object.freeze(rows.map(row => Object.freeze(row.map(cell => cell ? Object.freeze({ ...cell }) : null))));
   }
   const options: PdfOptions = { ...configuration, columns,
+    ...(configuration.tagged ? { tagged: Object.freeze({ ...configuration.tagged }) } : {}),
     ...(configuration.headerRows ? { headerRows: copySpans(configuration.headerRows) } : {}),
     ...(configuration.fonts ? { fonts: Object.freeze({ ...configuration.fonts }) } : {}),
     ...(configuration.columnWidths ? { columnWidths: Object.freeze([...configuration.columnWidths]) } : {}),
@@ -54,7 +56,9 @@ export function settings(configuration: PdfOptions): PdfSettings {
     headerPresentation: presentation({ background: "e7edf5", bold: true, ...configuration.headerPresentation }),
     footerPresentation: presentation({ background: "eef2f6", bold: true, ...configuration.footerPresentation }) };
   const budget = new ExportBudget(options.limits);
-  const limits = { maxPages: 10000, maxColumns: 1024, maxCellCharacters: 1000000, maxRowLines: 100000, maxFontBytes: 16 * 1024 * 1024, maxPageBytes: 8 * 1024 * 1024, maxHyperlinks: 100000 };
+  const limits = { maxPages: 10000, maxColumns: 1024, maxCellCharacters: 1000000, maxRowLines: 100000, maxFontBytes: 16 * 1024 * 1024, maxPageBytes: 8 * 1024 * 1024, maxHyperlinks: 100000,
+    maxImageBytes: 32 * 1024 * 1024, maxImagePixels: 16 * 1024 * 1024, maxVectorCommands: 100000, maxDrawingElements: 100000,
+    maxStructureElements: 1000000, maxMarkedContentReferences: 2000000 };
   for (const key of Object.keys(limits) as (keyof typeof limits)[]) {
     const override = options.limits?.[key]; if (override !== undefined) limits[key] = override;
   }
@@ -78,5 +82,13 @@ export function settings(configuration: PdfOptions): PdfSettings {
   if (options.footer?.values && options.footer.values.length > columns.length) throw new RangeError("Footer has more values than declared columns.");
   if (options.footer?.rows && (options.footer.values !== undefined || options.footer.totals !== undefined)) throw new TypeError("Structured footer rows cannot be combined with values/totals.");
   if (options.headerRows && options.includeHeader === false) throw new TypeError("headerRows requires includeHeader.");
+  if (options.tagged !== undefined) {
+    if (!options.tagged || typeof options.tagged !== "object" || typeof options.tagged.language !== "string" || options.tagged.language.length > 63)
+      throw new TypeError("tagged.language must be a language tag such as en or en-US.");
+    try { if (Intl.getCanonicalLocales(options.tagged.language).length !== 1) throw new RangeError(); }
+    catch { throw new TypeError("tagged.language must be a language tag such as en or en-US."); }
+    if (options.headerRows || columns.some(column => column.groups?.length) || options.footer?.rows)
+      throw new TypeError("Tagged PDF supports leaf column headings and ordinary footer cells; grouped headings and span matrices are unsupported.");
+  }
   return { options, page, margins, fontSize, padding, limits, budget };
 }

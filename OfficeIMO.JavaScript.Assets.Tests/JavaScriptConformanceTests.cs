@@ -9,7 +9,7 @@ using System.Threading.Tasks;
 using OfficeIMO.TestAssets;
 using Xunit;
 
-namespace OfficeIMO.Browser.Tests;
+namespace OfficeIMO.JavaScript.Assets.Tests;
 
 /// <summary>Independent C# readers and SDK validation qualify the shared TypeScript writer corpus.</summary>
 public sealed class JavaScriptConformanceTests {

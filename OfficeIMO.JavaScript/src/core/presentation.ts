@@ -1,4 +1,5 @@
 import type { Alignment, CellValue } from "./index.js";
+import { isDate } from "./dates.js";
 import { copyExportLink } from "./links.js";
 import type { ExportLink } from "./links.js";
 const exportCellBrand = Symbol.for("@evotecit/officeimo/ExportCell");
@@ -39,7 +40,7 @@ export class ExportCell {
 /** @internal Reject async formatters while observing their rejection immediately. */
 export function assertScalar(value: unknown): asserts value is CellValue {
   const kind = typeof value;
-  if (value == null || kind === "string" || kind === "number" || kind === "boolean" || value instanceof Date) return;
+  if (value == null || kind === "string" || kind === "number" || kind === "boolean" || isDate(value)) return;
   if (typeof (value as { then?: unknown }).then === "function") void Promise.resolve(value).catch(() => {});
   throw new TypeError("Export values and formatter results must be synchronous strings, numbers, booleans, Dates or null.");
 }

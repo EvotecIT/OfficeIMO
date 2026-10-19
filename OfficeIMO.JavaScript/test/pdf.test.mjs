@@ -41,6 +41,36 @@ test("PDF paginates oversized rows without losing long words and repeats every h
   assert.equal(body, long);
 });
 
+test("PDF keeps a row intact when it fits a continuation page below a first-page title", async () => {
+  const lines = Array.from({ length: 8 }, (_, i) => "Line " + (i + 1));
+  const options = { columns: [{ header: "Items" }], pageSize: { width: 220, height: 240 }, margins: 25,
+    fontSize: 10, pageNumbers: false, compression: false, title: "Sales report\nSecond title line\nThird title line" };
+  for (const preceding of [[], [["Short"]]]) {
+    const pdf = await inspectPdf(await writePdf([...preceding, [lines.join("\n")]], options));
+    assert.equal(pdf.pages.length, 2);
+    assert.ok(!pdf.pages[0].lines.includes("Line 1"));
+    assert.deepEqual(pdf.pages[1].lines, ["Items", ...lines]);
+  }
+});
+
+test("PDF standard-font validation work is bounded by distinct scalars and selected faces", async () => {
+  const original = RegExp.prototype.test;
+  let scalarChecks = 0;
+  RegExp.prototype.test = function(...args) {
+    if (this.source.includes("\\p{")) scalarChecks++;
+    return original.apply(this, args);
+  };
+  const text = "ASCII report € ".repeat(500);
+  let report;
+  try {
+    report = await writePdf([{}, { bold: true }, { italic: true }, { bold: true, italic: true }].map(presentation => [new ExportCell(text, { presentation })]),
+      { columns: [{ header: "" }], includeHeader: false, pageNumbers: false, compression: false });
+  } finally { RegExp.prototype.test = original; }
+  assert.ok(scalarChecks <= new Set(text).size * 4 * 2, "Repeated glyphs must reuse their validated standard-font metrics");
+  const pdf = await inspectPdf(report);
+  assert.equal(pdf.pages.flatMap(p => p.lines).join(""), text.repeat(4));
+});
+
 test("PDF streams complete pages before producer exhaustion and releases borrowed destinations", async () => {
   let writes = 0, completed = false, returned = false;
   const chunks = [], destination = new WritableStream({ async write(bytes) { assert.equal(completed, false); writes++; chunks.push(bytes.slice()); } });
@@ -117,6 +147,28 @@ test("PDF cancellation returns a pending source and releases a hung sink's strea
   const sinkAbort = new AbortController(), destination = new WritableStream({ write() { setTimeout(() => sinkAbort.abort(Error("sink abort")), 0); return new Promise(() => {}); } });
   await assert.rejects(writePdfTo(Array.from({length:100}, () => ["Row", 1]), destination, { columns, signal: sinkAbort.signal }), /sink abort/);
   assert.equal(destination.locked, false);
+});
+
+test("PDF cancellation interrupts large cell and paragraph layout before page output", async () => {
+  const now = Object.getOwnPropertyDescriptor(performance, "now"), scheduler = globalThis.scheduler;
+  try {
+    for (const area of ["cell", "paragraph", "header", "footer"]) {
+      const abort = new AbortController();
+      let clock = 0, scheduled = 0, writes = 0;
+      Object.defineProperty(performance, "now", { configurable: true, value: () => clock += 40 });
+      globalThis.scheduler = { postTask: async callback => { scheduled++; abort.abort(new Error("layout abort")); callback(); } };
+      const text = "A".repeat(16000), options = { columns: [{ header: area === "header" ? text : "" }],
+        includeHeader: area === "header", pageNumbers: false, compression: false, signal: abort.signal,
+        ...(area === "paragraph" ? { messageBottom: text } : {}), ...(area === "header" ? { fontSize: .1 } : {}),
+        ...(area === "footer" ? { footer: { values: [text] } } : {}) };
+      await assert.rejects(writePdfTo(area === "cell" ? [[text]] : [], { write() { writes++; } }, options), /layout abort/);
+      assert.equal(scheduled, 1, area);
+      assert.equal(writes, 0, "Cancellation during " + area + " layout must precede the first completed page");
+    }
+  } finally {
+    if (now) Object.defineProperty(performance, "now", now); else delete performance.now;
+    globalThis.scheduler = scheduler;
+  }
 });
 
 test("PDF font programs are immutable and malformed/restricted fonts never reach a document", () => {

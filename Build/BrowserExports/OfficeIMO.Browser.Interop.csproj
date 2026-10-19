@@ -7,7 +7,7 @@
     <IsPackable>false</IsPackable>
   </PropertyGroup>
   <ItemGroup>
-    <ProjectReference Include="../../OfficeIMO.Browser/OfficeIMO.Browser.csproj" />
+    <ProjectReference Include="../../OfficeIMO.JavaScript.Assets/OfficeIMO.JavaScript.Assets.csproj" />
     <ProjectReference Include="../../OfficeIMO.Excel/OfficeIMO.Excel.csproj" />
     <ProjectReference Include="../../OfficeIMO.Reader.Excel/OfficeIMO.Reader.Excel.csproj" />
     <ProjectReference Include="../../OfficeIMO.CSV/OfficeIMO.CSV.csproj" />
