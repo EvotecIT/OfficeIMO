@@ -11,14 +11,7 @@
     ]
   },
   "accessibility": [],
-  "encryptionDeclarations": [
-    {
-      "appDescription": "Native PDF reader, editor and converter. Uses standard PDF password protection and certificate signatures implemented in the bundled OfficeIMO engine and Bouncy Castle. No proprietary or non-standard cryptographic algorithms.",
-      "containsProprietaryCryptography": false,
-      "containsThirdPartyCryptography": true,
-      "availableOnFrenchStore": true
-    }
-  ],
+  "encryptionDeclarations": [],
   "subscriptionGroups": [],
   "availability": {
     "availableInNewTerritories": true,
@@ -233,7 +226,7 @@
       },
       {
         "territoryId": "FRA",
-        "available": true
+        "available": false
       },
       {
         "territoryId": "FSM",
