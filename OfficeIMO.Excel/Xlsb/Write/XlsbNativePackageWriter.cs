@@ -18,7 +18,7 @@ namespace OfficeIMO.Excel.Xlsb.Write {
         internal static byte[] Rewrite(
             ExcelDocument document,
             byte[] sourcePackageBytes,
-            XlsbWorkbook sourceWorkbook, long maximumBytes = int.MaxValue) {
+            XlsbWorkbook sourceWorkbook, long maximumBytes = int.MaxValue, ExcelNativeCalculationPolicy calculation = default) {
             if (document == null) throw new ArgumentNullException(nameof(document));
             if (sourcePackageBytes == null) throw new ArgumentNullException(nameof(sourcePackageBytes));
             if (sourceWorkbook == null) throw new ArgumentNullException(nameof(sourceWorkbook));
@@ -59,8 +59,9 @@ namespace OfficeIMO.Excel.Xlsb.Write {
                         var hyperlinks = XlsbWorksheetHyperlinkPlan.Create(sheet, pruneOrphanedRelationships: true);
                         if (hyperlinks.Relationships.Count > 0) replacements[XlsbSheetStructure.RelationshipPartName(structure.PartNames[binding.Part.Uri.OriginalString])] = hyperlinks.CreateRelationshipPart();
                         structure.NewCodeNames.TryGetValue(binding.Name, out string? codeName);
-                        replacements.Add(structure.PartNames[binding.Part.Uri.OriginalString], XlsbWorksheetPartWriter.Create(sheet, newCells,
-                            stylesheetPlan.CellFormatCount, hyperlinks.Records, maximumBytes: maximumBytes, codeName: codeName));
+                        byte[] createdPart = XlsbWorksheetPartWriter.Create(sheet, newCells,
+                            stylesheetPlan.CellFormatCount, hyperlinks.Records, maximumBytes: maximumBytes, codeName: codeName);
+                        replacements.Add(structure.PartNames[binding.Part.Uri.OriginalString], ApplyFormulaCachePolicy(createdPart, calculation, maximumBytes));
                         continue;
                     }
                     XlsbSheet sourceSheet = sourceWorkbook.Sheets[binding.Original.NativeIndex];
@@ -95,6 +96,7 @@ namespace OfficeIMO.Excel.Xlsb.Write {
                         autoFilterPlan.Rewrite,
                         hyperlinkPlan?.Records ?? Array.Empty<XlsbGeneratedRecord>(),
                         rewriteHyperlinks, maximumBytes);
+                    rewrittenPart = ApplyFormulaCachePolicy(rewrittenPart, calculation, maximumBytes);
                     if (!originalPart.SequenceEqual(rewrittenPart)) {
                         replacements.Add(partName, rewrittenPart);
                     }
@@ -110,7 +112,7 @@ namespace OfficeIMO.Excel.Xlsb.Write {
                     }
                 }
                 byte[] currentWorkbook = replacements.TryGetValue(workbookPart, out byte[]? replacementWorkbook) ? replacementWorkbook : ReadPart(workbookPart);
-                byte[] completedWorkbook = formulas.CompleteWorkbook(currentWorkbook, maximumBytes);
+                byte[] completedWorkbook = RewriteCalculationProperties(document, sourceWorkbook, formulas.CompleteWorkbook(currentWorkbook, maximumBytes), maximumBytes);
                 if (!ReferenceEquals(currentWorkbook, completedWorkbook)) replacements[workbookPart] = completedWorkbook;
                 RebindTableFormulas(archive, structure, replacements, deletions, sourceWorkbook.MaxPartBytes, maximumBytes);
             }
@@ -182,10 +184,7 @@ namespace OfficeIMO.Excel.Xlsb.Write {
         }
 
         private static void ValidateCalculationProperties(ExcelDocument document, XlsbWorkbook sourceWorkbook) {
-            CalculationProperties? properties = document.WorkbookRoot.GetFirstChild<CalculationProperties>();
-            if (!XlsbCalculationPropertiesProjector.Matches(properties, sourceWorkbook.CalculationProperties)) {
-                throw new NotSupportedException("Native XLSB rewriting preserves but cannot modify workbook calculation properties. Save that change as .xlsx.");
-            }
+            XlsbCalculationPropertiesWriter.Validate(document.WorkbookRoot.CalculationProperties);
         }
 
         private static void ValidateWorkbookProtection(ExcelDocument document, XlsbWorkbook sourceWorkbook) {

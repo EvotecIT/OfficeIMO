@@ -222,6 +222,12 @@ namespace OfficeIMO.Excel.Xlsb.Write {
                 throw new NotSupportedException($"Native XLSB generation cannot encode formula '{formulaText}' at {ToAddress(row, column)}. {reason}");
             }
 
+            if (cell.CellFormula?.CalculateCell?.Value == true && (sourceCell?.FormulaBytes == null || sourceCell.FormulaText != formulaText)) { formulaPayload = (byte[])formulaPayload.Clone(); formulaPayload[0] |= 2; }
+            if (cell.CellValue == null && cell.InlineString == null) {
+                formulaPayload = (byte[])formulaPayload.Clone(); formulaPayload[0] |= 2;
+                return new XlsbWriteCell(row, column, styleIndex, XlsbWriteCellKind.FormulaText, string.Empty, formulaPayload);
+            }
+
             CellValues? dataType = cell.DataType?.Value;
             string rawValue = cell.CellValue?.InnerText ?? string.Empty;
             if (dataType == CellValues.Boolean) {

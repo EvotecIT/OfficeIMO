@@ -70,7 +70,7 @@ public sealed class ExcelEncryptedSaveTests {
         using var output = new MemoryStream(new byte[] { 1, 2, 3, 4 }, writable: true);
         Assert.Throws<ArgumentException>(() => document.SaveEncrypted(output, new string('x', 16), ExcelFileFormat.Xls));
         Assert.Equal(new byte[] { 1, 2, 3, 4 }, output.ToArray());
-        Assert.Throws<NotSupportedException>(() => document.SaveEncrypted(output, "test-password", ExcelFileFormat.Xlsb, new() { EvaluateFormulasBeforeSave = true }));
+        Assert.Throws<NotSupportedException>(() => document.SaveEncrypted(output, "test-password", ExcelFileFormat.Xlsb, new() { SafePreflight = true }));
         Assert.Equal(new byte[] { 1, 2, 3, 4 }, output.ToArray());
     }
 

@@ -62,15 +62,15 @@ public partial class ExcelDocument {
         EnsureLegacyXlsSaveDoesNotDropImportedContent(options);
         EnsureXlsbStreamTargetSupported(format, options);
         byte[] package = SourceFormat == ExcelFileFormat.Xlsb
-            ? CanCopyUnchangedXlsb(options) ? _xlsbOriginalPackageBytes! : XlsbNativePackageWriter.Rewrite(
-                this, _xlsbOriginalPackageBytes!, _xlsbAdvancedWorkbook!, maximumBytes)
+            ? CanCopyUnchangedXlsb(options) ? _xlsbOriginalPackageBytes! : RewriteNativeXlsb(options, maximumBytes)
             : GenerateBoundedEncryptedXlsbPackage(options, maximumBytes);
         ThrowIfPackageMaterializationExceedsLimit(package.LongLength, options);
         return OfficeEncryption.EncryptPackage(package, password);
     }
 
     private byte[] GenerateBoundedEncryptedXlsbPackage(ExcelSaveOptions? options, long maximumBytes) {
-        PrepareWorkbookForSave(options);
+        PrepareNativeCalculationForSave(options);
+        PrepareWorkbookForSave(options, applyCalculationPolicy: false);
         using var output = new OfficeBoundedMemoryStream(maximumBytes);
         XlsbNewPackageWriter.Write(this, output, options?.XlsbUseSharedStrings == true,
             CancellationToken.None, maximumBytes);
