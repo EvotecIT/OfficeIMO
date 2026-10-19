@@ -93,18 +93,8 @@ namespace OfficeIMO.Word.Pdf {
         }
 
         private static void AddNativeHeaderFooterImage(List<NativeHeaderFooterImage> images, WordImage image, PdfCore.PdfAlign align, WordToPdfOptions? options, string source) {
-            if (!TryGetNativeBodyImageBytes(image, options, source, out byte[] bytes)) return;
-            if (!TryPrepareNativePdfImageBytes(bytes, out byte[] preparedBytes, out string? unsupportedReason)) {
-                if (options != null) {
-                    AddNativeExportWarning(
-                        options,
-                        "NativeHeaderFooterImageUnsupported",
-                        source,
-                        "Word header/footer image was not exported because the shared PDF raster pipeline could not prepare it. " + unsupportedReason);
-                }
-
-                return;
-            }
+            if (!TryPrepareNativeBodyImage(image, options, source, out byte[] preparedBytes,
+                    unsupportedCode: "NativeHeaderFooterImageUnsupported")) return;
 
             double width = image.Width.HasValue ? image.Width.Value * 72D / 96D : 144D;
             double height = image.Height.HasValue ? image.Height.Value * 72D / 96D : 144D;
