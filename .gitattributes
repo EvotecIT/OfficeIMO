@@ -36,6 +36,7 @@ OfficeIMO.DjVu.Tests/Fixtures/**/*.pbm -diff
 OfficeIMO.JavaScript.Assets/** text eol=lf
 OfficeIMO.JavaScript/** text eol=lf
 OfficeIMO.JavaScript/test/fixtures/pdf/*.jpg -text -diff
+OfficeIMO.JavaScript/test/fixtures/pdf/*.png -text -diff
 
 # Raw decoded raster evidence contains arbitrary bytes, including LF without NUL.
 # Windows checkout must not expand those sample values to CRLF.
