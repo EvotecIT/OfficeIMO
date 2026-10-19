@@ -72,7 +72,7 @@ jobs:
             -SourceCommit $env:ENGINE_SOURCE -Version $env:ENGINE_VERSION -Publish $true
       - name: Retain package identity and dependency evidence
         if: always() && env.STUDIO_ENGINE_OUTPUT != ''
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         with:
           name: studio-engine-evidence
           path: |
