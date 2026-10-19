@@ -35,10 +35,17 @@ if (-not (Test-Path -LiteralPath $pdfAssemblyPath -PathType Leaf) -or
 Add-Type -Path (Resolve-Path -LiteralPath $coreAssemblyPath).Path
 Add-Type -Path (Resolve-Path -LiteralPath $pdfAssemblyPath).Path
 
-if ($report.schemaVersion -ne 2 -or
+if (($report.schemaVersion -isnot [int] -and $report.schemaVersion -isnot [long]) -or
+    $report.schemaVersion -ne 3 -or
     [string] $report.scale -ne 'High' -or
-    [int] $report.iterations -lt 3) {
-    throw 'HTML/PDF artifact evidence must be a schema-v2 High-scale run with at least three iterations.'
+    ($report.iterations -isnot [int] -and $report.iterations -isnot [long]) -or
+    $report.iterations -lt 3) {
+    throw 'HTML/PDF artifact evidence must be a schema-v3 High-scale run with at least three iterations.'
+}
+if ($null -eq $report.PSObject.Properties['allEnginesComparable'] -or
+    $report.allEnginesComparable -isnot [bool] -or
+    $report.allEnginesComparable -ne $true) {
+    throw 'HTML/PDF artifact evidence has not admitted the aggregate comparison.'
 }
 
 $expectedPageCount = [int] $report.input.expectedPageCount
@@ -175,10 +182,24 @@ if ($engines.Count -ne $expectedEngines.Count -or
 
 foreach ($engine in $engines) {
     $engineName = [string] $engine.engine
+    $admissionProperties = @('status', 'requestedIterations', 'notRunAfterRejection', 'timingComparable', 'memoryComparable', 'failures', 'determinism')
+    if (@($admissionProperties | Where-Object { $null -eq $engine.PSObject.Properties[$_] -or $null -eq $engine.PSObject.Properties[$_].Value }).Count -gt 0 -or
+        [string] $engine.status -cne 'Passed' -or
+        ($engine.requestedIterations -isnot [int] -and $engine.requestedIterations -isnot [long]) -or
+        $engine.requestedIterations -ne $report.iterations -or
+        ($engine.notRunAfterRejection -isnot [int] -and $engine.notRunAfterRejection -isnot [long]) -or
+        $engine.notRunAfterRejection -ne 0 -or
+        $engine.timingComparable -isnot [bool] -or $engine.timingComparable -ne $true -or
+        $engine.memoryComparable -isnot [bool] -or $engine.memoryComparable -ne $true -or
+        $engine.failures -isnot [array] -or @($engine.failures).Count -ne 0 -or
+        $null -eq $engine.determinism) {
+        throw "HTML/PDF artifact evidence engine '$engineName' is not admitted as a complete comparable run."
+    }
     $outputs = @($engine.outputs)
     $iterations = @($outputs | ForEach-Object { [int] $_.iteration } | Sort-Object -Unique)
     $expectedIterations = @(1..([int] $report.iterations))
-    if ($outputs.Count -ne [int] $report.iterations -or
+    if (@($outputs | Where-Object { $_.iteration -isnot [int] -and $_.iteration -isnot [long] }).Count -gt 0 -or
+        $outputs.Count -ne [int] $report.iterations -or
         $iterations.Count -ne $expectedIterations.Count -or
         @(Compare-Object -ReferenceObject $expectedIterations -DifferenceObject $iterations).Count -ne 0) {
         throw "HTML/PDF artifact evidence engine '$engineName' must contain exactly one output for every declared iteration."
