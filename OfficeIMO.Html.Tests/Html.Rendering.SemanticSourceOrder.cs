@@ -166,6 +166,47 @@ public sealed partial class HtmlRenderingTests {
         Assert.True(roles.Length >= 3);
     }
 
+    [Fact]
+    public void HtmlPdf_TaggedSourceOrderScopesInlineFrameDocument() {
+        string html = SourceOrderStyles(400)
+            + "<section><h1>Heading</h1><p>Before</p><iframe style='display:block;height:60px'"
+            + " srcdoc='&lt;p&gt;Inside&lt;/p&gt;'></iframe><p>After</p></section>";
+        byte[] pdf = HtmlConversionDocument.Parse(html).ToPdfBytes(SourceOrderOptions());
+        var root = SourceOrderRoot(pdf, out var elements);
+        Assert.Equal(new[] { "H1", "P", "Div", "P" },
+            root.ChildElementObjectNumbers.Select(id => elements[id].StructureType));
+        var frame = elements[root.ChildElementObjectNumbers[2]];
+        Assert.Contains(frame.ChildElementObjectNumbers, id => elements[id].StructureType == "P");
+        Assert.Equal(1, PdfCore.PdfReadDocument.Open(pdf).ExtractText()
+            .Split(new[] { "Inside" }, StringSplitOptions.None).Length - 1);
+    }
+
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void HtmlPdf_TaggedSourceOrderRetainsStaticControlValue(bool interactive) {
+        string html = SourceOrderStyles(400)
+            + "<section><h1>Heading</h1><p>Before</p>"
+            + "<input name='source' value='FieldValue' style='display:block;position:relative;z-index:1;transform:translateX(1px)'>"
+            + "<p>After</p></section>";
+        var options = SourceOrderOptions();
+        options.InteractiveFormControls = interactive;
+        var result = HtmlConversionDocument.Parse(html).ToPdfDocumentResult(options);
+        byte[] pdf = result.ToBytes();
+        if (interactive) Assert.Contains(result.Report.Warnings,
+            warning => warning.Code == HtmlRenderDiagnosticCodes.FormFieldTransformStaticFallback);
+        Assert.Empty(PdfCore.PdfInspector.Inspect(pdf).FormFields);
+        var root = SourceOrderRoot(pdf, out var elements);
+        var spans = Assert.Single(PdfCore.PdfReadDocument.Open(pdf).Pages).GetTextSpans();
+        Assert.Equal(new[] { "Heading", "Before", "FieldValue", "After" },
+            root.ChildElementObjectNumbers.Select(id => OwnedText(elements[id])));
+
+        string OwnedText(PdfCore.PdfStructureElementInfo item) =>
+            string.Concat(item.MarkedContentReferences.SelectMany(reference =>
+                spans.Where(span => span.MarkedContentId == reference.MarkedContentId).Select(span => span.Text)))
+            + string.Concat(item.ChildElementObjectNumbers.Select(id => OwnedText(elements[id])));
+    }
+
     private static HtmlToPdfOptions SourceOrderOptions() {
         byte[] hebrew = ManagedTextShapingTestAssets.CreateFont(0x05D0);
         var options = new HtmlToPdfOptions {

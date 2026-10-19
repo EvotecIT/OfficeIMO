@@ -33,4 +33,20 @@ internal sealed partial class HtmlRenderLayoutEngine {
         _semanticSourceOrders.TryGetValue(element, out var position)
             ? kind == HtmlPseudoElementKind.After ? position.End : position.Start
             : null;
+
+    /// <summary>
+    /// Retains a control's source position when its widget is replaced by static
+    /// paint. Existing positions of authored descendants remain authoritative.
+    /// </summary>
+    private void AssignFallbackSourceOrder(IEnumerable<HtmlRenderVisual> visuals, int? sourceOrder) {
+        if (!sourceOrder.HasValue) return;
+        var pending = new Stack<HtmlRenderVisual>(visuals);
+        while (pending.Count > 0) {
+            _cancellationToken.ThrowIfCancellationRequested();
+            HtmlRenderVisual visual = pending.Pop();
+            visual.SemanticSourceOrder ??= sourceOrder;
+            IReadOnlyList<HtmlRenderVisual>? children = GetGroupChildren(visual);
+            if (children != null) foreach (HtmlRenderVisual child in children) pending.Push(child);
+        }
+    }
 }

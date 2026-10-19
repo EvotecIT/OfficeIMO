@@ -86,6 +86,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         if (style.PaintVisible) {
             AddFormControlContent(visuals, element, style, x, y, boxWidth, boxHeight, source, buttonInline);
             AddBoxOutlinePaint(visuals, style, x, y, boxWidth, boxHeight, element);
+            AssignFallbackSourceOrder(visuals, GetSemanticSourceOrder(element));
             if (TryCreateFormFieldVisual(element, style, x, y, boxWidth, boxHeight, visuals, source, out HtmlRenderFormField? formField)) {
                 visuals = new List<HtmlRenderVisual> { formField! };
             }

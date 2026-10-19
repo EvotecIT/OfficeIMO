@@ -130,10 +130,13 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 }));
             }
         }
-        if (!style.SemanticArtifact && !style.SemanticGroupRoleOverride.HasValue) return WrapEditableLayoutRegion(block, element, style);
+        // A frame's child document has its own source coordinates. Keep them
+        // inside the frame's parent-document position instead of sorting peers.
+        if (!style.SemanticArtifact && !style.SemanticGroupRoleOverride.HasValue && !IsInlineFrameElement(element))
+            return WrapEditableLayoutRegion(block, element, style);
         HtmlRenderSemanticGroupRole role = style.SemanticArtifact
             ? HtmlRenderSemanticGroupRole.Artifact
-            : style.SemanticGroupRoleOverride!.Value;
+            : style.SemanticGroupRoleOverride ?? HtmlRenderSemanticGroupRole.Division;
         HtmlRenderFlowBlock semanticBlock = WrapSemanticBlock(block, role,
             HtmlRenderStyleResolver.DescribeSource(element), structureElementKey, GetSemanticSourceOrder(element));
         return WrapEditableLayoutRegion(semanticBlock, element, style);
