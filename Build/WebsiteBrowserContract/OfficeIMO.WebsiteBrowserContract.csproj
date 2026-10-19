@@ -7,6 +7,6 @@
     <IsPackable>false</IsPackable>
   </PropertyGroup>
   <ItemGroup>
-    <PackageReference Include="HtmlTinkerX" Version="3.0.3" />
+    <PackageReference Include="HtmlTinkerX" Version="3.0.5" />
   </ItemGroup>
 </Project>

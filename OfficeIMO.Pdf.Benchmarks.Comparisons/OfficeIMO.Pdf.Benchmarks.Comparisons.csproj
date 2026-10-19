@@ -24,7 +24,6 @@
   </Target>
 
   <PropertyGroup Condition="'$(HtmlTinkerXProjectPath)' != ''">
-    <DefineConstants>$(DefineConstants);HTMLTINKERX_SOURCE</DefineConstants>
     <HtmlTinkerXSourceProjectFullPath>$([System.IO.Path]::GetFullPath('$(HtmlTinkerXProjectPath)'))</HtmlTinkerXSourceProjectFullPath>
   </PropertyGroup>
 
@@ -34,7 +33,7 @@
 
   <ItemGroup>
     <PackageReference Include="BenchmarkDotNet" Version="0.15.8" />
-    <PackageReference Include="HtmlTinkerX" Version="2.0.7" Condition="'$(HtmlTinkerXProjectPath)' == ''" />
+    <PackageReference Include="HtmlTinkerX" Version="3.0.5" Condition="'$(HtmlTinkerXProjectPath)' == ''" />
     <PackageReference Include="itext" Version="9.7.0" />
     <PackageReference Include="itext.pdfhtml" Version="6.3.3" />
     <PackageReference Include="PdfPig" Version="0.1.15" />

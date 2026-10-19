@@ -86,6 +86,12 @@ h1{font-size:2.75rem;font-weight:800} h2{font-size:2rem;font-weight:800} h3{font
 .imo-footer__links{display:flex;flex-direction:column;gap:0.4rem}
 .imo-footer__links a{font-size:0.85rem;color:var(--imo-text-muted);transition:color var(--imo-duration)}
 .imo-footer__links a:hover{color:var(--imo-accent)}
+.imo-footer__family{padding:1.5rem 0;border-top:1px solid var(--imo-glass-border);margin-top:2rem}
+.imo-footer__family .imo-footer__heading{font-size:0.75rem;margin-bottom:0.75rem}
+.imo-footer__family ul{display:flex;flex-wrap:wrap;column-gap:1.5rem;row-gap:0.5rem}
+.imo-footer__family a{display:inline-block;padding:0.25rem 0;font-size:0.85rem;color:var(--imo-text-secondary)}
+.imo-footer__family a:hover{color:var(--imo-accent);text-decoration:underline;text-underline-offset:0.2em}
+.imo-footer__family a:focus-visible{outline:2px solid var(--imo-accent);outline-offset:4px;border-radius:2px}
 .imo-footer__bottom{border-top:1px solid var(--imo-glass-border);display:flex;justify-content:space-between}
 
 /* Badges, Install, Code */

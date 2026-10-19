@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Text;
 using CodeGlyphX;
 using CodeGlyphX.DataMatrix;
-using CodeGlyphX.Rendering.Png;
+using CodeGlyphX.Rendering;
 using CodeGlyphX.Rendering.Svg;
 
 internal static class SvgScenarioFactory {
@@ -21,13 +21,13 @@ internal static class SvgScenarioFactory {
         string svg;
         switch (name) {
             case "QR default":
-                QrCode defaultQr = QrCode.Encode("https://evotec.xyz/codeglyphx/benchmark");
+                QrCode defaultQr = QR.Encode("https://evotec.xyz/codeglyphx/benchmark");
                 svg = SvgQrRenderer.Render(defaultQr.Modules, new QrSvgRenderOptions());
                 break;
             case "QR styled circles":
-                QrCode styledQr = QrCode.Encode("STYLED-QR-OFFICEIMO-BENCHMARK");
+                QrCode styledQr = QR.Encode("STYLED-QR-OFFICEIMO-BENCHMARK");
                 svg = SvgQrRenderer.Render(styledQr.Modules, new QrSvgRenderOptions {
-                    ModuleShape = QrPngModuleShape.Circle,
+                    ModuleShape = QrModuleShape.Circle,
                     ModuleScale = 0.78,
                     DarkColor = "#2457A6",
                     LightColor = "#F7FAFF"
