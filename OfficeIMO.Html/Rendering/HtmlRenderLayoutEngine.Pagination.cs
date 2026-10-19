@@ -112,6 +112,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 columnAware = true;
             }
             var consumedBoundaries = new HashSet<object>();
+            ConsumeUnenteredPageBoundaries(block, consumedBoundaries);
             if (columnAware && hasPageContent) {
                 HtmlRenderForcedBreak? columnBreak = ResolveForcedBoundaryAt(block.ForcedBreaks, 0D);
                 if (columnBreak != null) {

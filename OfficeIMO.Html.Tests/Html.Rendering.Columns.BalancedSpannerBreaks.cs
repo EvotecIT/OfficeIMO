@@ -7,6 +7,21 @@ public sealed partial class HtmlRenderingTests {
     [Theory]
     [InlineData("auto")]
     [InlineData("balance")]
+    public void HtmlColumns_InitialEmptySpannerDoesNotCreateAnUnenteredPage(string fill) {
+        foreach (HtmlRenderIntentProfile profile in new[] { HtmlRenderIntentProfile.PrintPaged, HtmlRenderIntentProfile.ScreenMediaPaged }) {
+            HtmlRenderDocument rendered = RenderSpannerBreakControls(profile,
+                "<div style='column-span:all;break-before:page;break-after:page'></div><p>T1</p><p>T2</p>",
+                extraStyle: "column-fill:" + fill, maxPageCount: 1);
+
+            Assert.Single(rendered.Pages);
+            AssertColumnPageBandTextOnce(rendered, new[] { "T1", "T2", "AFTER" });
+            rendered.RequireNoLoss();
+        }
+    }
+
+    [Theory]
+    [InlineData("auto")]
+    [InlineData("balance")]
     public void HtmlColumns_EmptySpannerPageDoesNotPaintTheFollowingCollapsedTable(string fill) {
         HtmlRenderDocument rendered = RenderSpannerBreakControls(HtmlRenderIntentProfile.PrintPaged,
             "<p>P1</p><p>P2</p><div style='column-span:all;break-before:page;break-after:page'></div>"

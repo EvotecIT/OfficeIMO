@@ -251,6 +251,20 @@ internal sealed partial class HtmlRenderLayoutEngine {
     private static HtmlPageBreakTarget ResolveForcedBreakAt(IReadOnlyList<HtmlRenderForcedBreak> forcedBreaks, double offset) =>
         ResolveForcedBoundaryAt(forcedBreaks, offset)?.Target ?? HtmlPageBreakTarget.None;
 
+    /// <summary>Skips an empty initial run that has entered no source content on the physical page.</summary>
+    private void ConsumeUnenteredPageBoundaries(HtmlRenderFlowBlock block, ISet<object> consumedBoundaries) {
+        if (block.ForcedBreaks.Count == 0 || block.ForcedBreaks[0].Offset > 0.0001D) return;
+        ChargeLayoutOperations(2L * block.ForcedBreaks.Count, "unentered physical boundary qualification");
+        var namedBoundaries = new HashSet<object>(block.ForcedBreaks
+            .Where(item => item.ChangesPageName).Select(item => item.Boundary));
+        foreach (HtmlRenderForcedBreak item in block.ForcedBreaks) {
+            if (item.Offset > 0.0001D) break;
+            if (item.Target == HtmlPageBreakTarget.Page && item.IsAfter && !item.Projected
+                && !item.AdvancesFollowingFlow && !namedBoundaries.Contains(item.Boundary))
+                consumedBoundaries.Add(item.Boundary);
+        }
+    }
+
     /// <summary>Consumes one source boundary or the shared physical destination of an already projected empty run.</summary>
     private void ConsumePagedForcedBreak(HtmlRenderFlowBlock block, HtmlRenderForcedBreak forcedBreak,
         ISet<object> consumedBoundaries) {

@@ -81,6 +81,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         double remaining = owner.Boundary.RemainingHeight;
         int page = owner.PageNumber;
         var consumedBoundaries = new HashSet<object>();
+        ConsumeUnenteredPageBoundaries(prefix, consumedBoundaries);
         while (start < terminalStart - 0.0001D
             || TryGetNextForcedBreak(prefix.ForcedBreaks, start, out HtmlRenderForcedBreak? pending,
                 consumedBoundaries, includeProjectedBoundaries: true)
