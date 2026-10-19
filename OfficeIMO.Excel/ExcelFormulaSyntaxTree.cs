@@ -66,7 +66,7 @@ namespace OfficeIMO.Excel {
     /// Immutable syntax tree for reference-bearing Excel formula text. It preserves all non-reference
     /// tokens verbatim and provides the common rewriter used by public conversion and search APIs.
     /// </summary>
-    public sealed class ExcelFormulaSyntaxTree {
+    public sealed partial class ExcelFormulaSyntaxTree {
         private static readonly string[] ErrorLiterals = {
             "#GETTING_DATA", "#BLOCKED!", "#CONNECT!", "#UNKNOWN!", "#PYTHON!",
             "#DIV/0!", "#VALUE!", "#SPILL!", "#FIELD!", "#CALC!", "#BUSY!",

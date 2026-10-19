@@ -9,6 +9,7 @@ This matrix describes the current workbook contract. “Partial” means useful 
 | XLSX/XLSM/XLTX/XLTM | Native create, load, inspect, edit, preserve, and save through the normal `ExcelDocument` surface | Unknown or preservation-sensitive package parts are reported before edit-heavy workflows |
 | XLS | First-party BIFF8 import, supported native writer subset, guarded XLS/XLSX conversion, feature reporting, package security, and password-to-open support for XOR, classic RC4, and RC4 CryptoAPI | Unsupported encryption, drawings, complete chart visuals, pivots, tables, connections, VBA/OLE, and signatures are diagnosed or blocked |
 | XLSB | First-party BIFF12 import, supported native writer subset, byte-identical unchanged save, preservation-aware supported cell rewrite, and XLSB-to-XLSX conversion | Unsupported mutations and save-time transforms fail before output; XLSX bytes are never mislabeled as XLSB |
+| XML Spreadsheet 2003 | Explicit `ImportSpreadsheetXml` and `ExportSpreadsheetXml` data interchange over the existing workbook model | Typed cells, ordinary formulas/caches, number formats and selected row/sheet state; unsupported appearance and metadata are reported. General XML-table exchange and full XML workbook fidelity are not provided. |
 
 The detailed legacy contracts are documented in [XLS/XLSX compatibility](../Docs/officeimo.excel.legacy-xls-compatibility.md) and [Word/Excel interoperability](../Docs/officeimo.word-excel-interoperability.md).
 
@@ -40,7 +41,7 @@ The detailed legacy contracts are documented in [XLS/XLSX compatibility](../Docs
 | Aggregation | `SUM`, `AVERAGE`, `AVERAGEA`, `MIN`, `MINA`, `MAX`, `MAXA`, `COUNT`, `COUNTA`, `COUNTBLANK`, `SUBTOTAL`, `PRODUCT` |
 | Conditional aggregation | `COUNTIF`, `SUMIF`, `AVERAGEIF`, `COUNTIFS`, `SUMIFS`, `AVERAGEIFS`, `MINIFS`, `MAXIFS` |
 | Statistics and reporting | `MEDIAN`, `LARGE`, `SMALL`, `MODE.SNGL`, `MODE`, `GEOMEAN`, `HARMEAN`, `AVEDEV`, `DEVSQ`, `SUMXMY2`, `SUMX2MY2`, `SUMX2PY2`, `SUMSQ`, `SUMPRODUCT`, `STDEV.S`, `STDEV.P`, `VAR.S`, `VAR.P`, `PERCENTILE.INC`, `PERCENTILE.EXC`, `QUARTILE.INC`, `QUARTILE.EXC`, `PERCENTRANK.INC`, `PERCENTRANK.EXC`, `RANK.EQ`, `RANK.AVG`, `COVAR`, `COVARIANCE.P`, `COVARIANCE.S`, `CORREL`, `SLOPE`, `INTERCEPT`, `RSQ`, `FORECAST.LINEAR` |
-| Financial | `PMT`, `PV`, `FV`, `NPER`, `NPV` |
+| Financial | `PMT`, `IPMT`, `PPMT`, `PV`, `FV`, `NPER`, `NPV` |
 | Lookup and reference | `VLOOKUP`, `HLOOKUP`, `XLOOKUP`, `INDEX`, `MATCH`, `XMATCH`, `ROW`, `COLUMN`, `ROWS`, `COLUMNS` |
 | Mathematics | `ABS`, `SIGN`, `ROUND`, `ROUNDUP`, `ROUNDDOWN`, `MROUND`, `TRUNC`, `INT`, `CEILING.MATH`, `FLOOR.MATH`, `CEILING`, `FLOOR`, `POWER`, `SQRT`, `LN`, `LOG10`, `EXP`, `PI`, `RADIANS`, `DEGREES`, `MOD` |
 | Date and time | `DATE`, `TIME`, `DATEVALUE`, `TIMEVALUE`, `TODAY`, `NOW`, `YEAR`, `MONTH`, `DAY`, `HOUR`, `MINUTE`, `SECOND`, `DATEDIF`, `YEARFRAC`, `EDATE`, `EOMONTH`, `DAYS`, `DAYS360`, `WEEKDAY`, `WEEKNUM`, `ISOWEEKNUM`, `NETWORKDAYS`, `WORKDAY`, `WORKDAY.INTL` |
@@ -60,6 +61,18 @@ PDF output uses the Excel print model and the shared PDF/Drawing owners. Route e
 `ExcelLoadOptions.PackageSecurity` applies shared limits and policy to Open XML, XLSB, and compound XLS inputs before parsing. Secure defaults retain compatible active content within structural limits; untrusted defaults reject active and external content. Typed findings identify the rejecting rule and part.
 
 Unknown or preservation-sensitive content is inspected before mutation. Relationship-backed drawings, workbook structures, charts, modern-chart parts, pivot/query metadata, and template bindings are retained through load/clone/edit/save paths covered by the package-preservation corpus. A successful save is not treated as evidence that every feature became editable.
+
+Native XLS saving can retain an imported compound VBA project when the workbook
+fits the writer subset. This does not establish complete macro-workbook
+preservation: chart-sheet parts, macro/dialog sheet kinds and other unsupported
+features can still block the save. The independent OpenPreserve `valid.xls`
+fixture demonstrates the chart-sheet rejection before destination mutation.
+VBA execution is never part of this contract.
+
+Password-to-open XLS import supports the documented XOR/RC4 variants. Encrypted
+native XLS output is rejected; `SaveEncrypted` writes Office Open XML packages.
+Do not infer legacy encrypted-output support from worksheet protection or
+encrypted-input support.
 
 ## Performance evidence
 

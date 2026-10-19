@@ -82,11 +82,23 @@ getters retain the original serial after date getters.
 
 Projected chart sheets are not classified as conversion loss. Preserve-only records are exposed separately from projected chart sheets and unsupported sheets.
 
+An imported compound VBA project can be retained byte-for-byte during supported
+native XLS saves. XLS-to-XLSX conversion does not acquire an editable VBA project
+from this path, and remains subject to the conversion-loss gate. This is distinct
+from the VBA source-editing APIs for macro-enabled Open XML workbooks.
+
 ## Native XLS write capability
 
 The BIFF8 writer handles the tested subset of worksheets, values, supported formulas, common styles and formatting, merges, comments, hyperlinks, names, filters, validations, conditional formatting, workbook/sheet layout and views, protection metadata, table-style metadata, and document properties.
 
 XLSX supports more features and larger limits than BIFF8. Before native XLS output, OfficeIMO checks workbook structure, grid and payload limits, formulas, charts/drawings/images, tables and pivots, connections/query tables, threaded comments, unsupported VML, macro/signature content, and other unsupported destination features. A failed preflight leaves existing output unchanged.
+
+The writer rejects chart-sheet, macro-sheet and dialog-sheet package parts.
+The independent OpenPreserve `valid.xls` macro workbook includes chart sheets
+and therefore cannot complete native save, even when general conversion loss is
+allowed. Retaining its VBA bytes alone would not qualify that workbook's full
+lifecycle. Encrypted native XLS output is also unsupported; encrypted input and
+workbook/sheet protection have separate contracts.
 
 This is practical feature parity, not a claim that every XLSX feature can be encoded in BIFF8.
 

@@ -43,7 +43,7 @@ sheet.CellValue(1, 1, "Name");
 sheet.CellValue(1, 2, "Value");
 sheet.CellValue(2, 1, "Alpha");
 sheet.CellValue(2, 2, 42);
-sheet.AddTable("A1:B2", hasHeader: true, name: "DataTable", style: TableStyle.TableStyleMedium9);
+sheet.AddTable("A1:B2", hasHeader: true, name: "DataTable", style: ExcelTableStyle.TableStyleMedium9);
 sheet.AutoFitColumns();
 
 document.Save();
@@ -191,6 +191,50 @@ only after reviewing that loss. See
 [XLS and XLSX compatibility](../Docs/officeimo.excel.legacy-xls-compatibility.md) for
 the current capability matrix and safety contract. Use the
 [migration guide](../MIGRATION.md#legacy-doc-and-xls-api-changes) for canonical API replacements.
+
+### XML Spreadsheet 2003 data interchange
+
+Use the explicit XML APIs for standalone XML Spreadsheet 2003 files. They share
+the normal editable workbook model; `Load` and `Save` retain their existing
+XLSX/XLSM, XLS and XLSB routes.
+
+```csharp
+using OfficeIMO.Excel;
+
+var imported = ExcelDocument.ImportSpreadsheetXml("archive.xml");
+using var workbook = imported.Value;
+foreach (var diagnostic in imported.Report.FidelityDiagnostics)
+    Console.WriteLine(diagnostic.Message);
+imported.Report.RequireNoLoss(); // Optional strict admission, before editing or saving.
+workbook.Save("editable.xlsx");
+
+var exported = workbook.ExportSpreadsheetXml();
+exported.Report.RequireNoLoss(); // Review omissions before publishing the XML bytes.
+File.WriteAllBytes("exchange.xml", exported.Value);
+```
+
+Import accepts paths, bytes and caller-owned streams. Stream import starts at
+the current position, advances it and leaves the stream open. Export returns
+UTF-8 XML bytes, supports read-only workbooks and retains the workbook's file
+association. The result's workbook is caller-owned, including when strict
+admission rejects its report.
+
+The data profile carries multiple worksheets, sparse coordinates, text,
+finite numbers, Booleans, classic errors, date serials and number formats,
+ordinary formulas with cached values, row heights and hidden rows, and hidden
+sheet state. The shared reference syntax owner converts R1C1 formulas to A1 on
+import and back on export without calculating them. Date conversion uses the
+workbook's 1900 or 1904 epoch.
+
+This is a data interchange profile, not a complete XML Spreadsheet renderer or
+arbitrary XML-table mapper. Rich appearance, column geometry, merged-cell
+geometry, charts, pivots, named ranges, comments, hyperlinks, print settings and
+other unsupported metadata produce operation-level loss diagnostics. An
+unrecognized formula dialect retains its cached value with an omission report.
+Native XML Spreadsheet coordinates are limited to 65,536 rows and 256 columns.
+`ExcelSpreadsheetXmlOptions` bounds input/output bytes, stored cells, worksheets,
+styles, XML elements and depth; it also accepts cancellation. DTDs and external
+XML entity resolution are disabled.
 
 ### Import additional legacy spreadsheet formats
 
@@ -735,7 +779,7 @@ sheet.CellValue(4, 2, 24);
 sheet.CellValue(5, 1, "Q4");
 sheet.CellValue(5, 2, 30);
 
-sheet.AddTable("A1:B5", hasHeader: true, name: "RevenueTable", style: TableStyle.TableStyleMedium2);
+sheet.AddTable("A1:B5", hasHeader: true, name: "RevenueTable", style: ExcelTableStyle.TableStyleMedium2);
 sheet.ChartFromTable("RevenueTable")
     .RevenueTrend("Revenue trend")
     .Size(640, 320)
@@ -819,7 +863,7 @@ sheet.CellValue(4, 1, "APAC");
 sheet.CellValue(4, 2, "Alpha");
 sheet.CellValue(4, 3, "Q2");
 sheet.CellValue(4, 4, 141000);
-sheet.AddTable("A1:D4", hasHeader: true, name: "SalesTable", style: TableStyle.TableStyleMedium4);
+sheet.AddTable("A1:D4", hasHeader: true, name: "SalesTable", style: ExcelTableStyle.TableStyleMedium4);
 
 sheet.Pivot("A1:D4")
     .Rows("Region")
@@ -1113,6 +1157,16 @@ ExcelQueryRefreshResult refresh = await document.RefreshQueryAsync(
 OfficeIMO stores the native connection, table, and query-table relationship chain but does not ship a database or network provider. The application-owned `IExcelQueryExecutionHost` interprets the opaque command and returns rows. OfficeIMO applies row, column, cell, and character budgets before a transactional table replacement. Commands loaded from imported workbooks require the separate `AllowImportedCommands` opt-in.
 
 ### Formula inspection and calculation policy
+
+`IPMT` and `PPMT` calculate the interest and principal portions of a
+constant-rate annuity payment, including beginning-of-period payments and
+omitted optional future-value/payment-type arguments. For example,
+`IPMT(0.1/12,1,36,8000)` calculates the first month's interest. These scalar
+functions use the same `PMT`/`FV` owner; typed errors propagate through references
+and `IFERROR`. The qualified rate domain is greater than -1, payment type is 0
+or 1, and the selected period is between 1 and the positive period count.
+Invalid qualified domains produce `#NUM!`; unsupported signatures and operands
+retain their existing cached result rather than inventing a value.
 
 Scalar calculation supports parentheses, unary signs, percentages, powers,
 arithmetic precedence, text concatenation, comparisons, and expressions inside

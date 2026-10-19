@@ -675,6 +675,7 @@ namespace OfficeIMO.Excel {
                     if (function is "INT" or "MOD" or "SQRT" or "SIGN" or "TRUNC" or "ROUNDUP" or "ROUNDDOWN" or "EXP" or "LN" or "LOG" or "LOG10" or "CEILING" or "FLOOR" or "EVEN" or "ODD" or "FACT" or "COMBIN") return TryEvaluateScalarMathValue(function, args, out result);
                     if (function is "GCD" or "LCM") return TryEvaluateIntegerAggregateValue(function, args, out result);
                     if (function == "PROB") return TryEvaluateProbabilityValue(args, out result);
+                    if (function is "IPMT" or "PPMT") return TryEvaluatePaymentSplitValue(function, args, out result);
                     if (function == "RANDBETWEEN") return TryEvaluateRandomBetweenValue(args, out result);
                     if (function == "OFFSET") return TryEvaluateOffsetValue(args, out result);
                     if (function == "GETPIVOTDATA") return TryEvaluatePivotDataValue(args, out result);
@@ -885,6 +886,13 @@ namespace OfficeIMO.Excel {
 
                     if (function == "PMT" || function == "PV" || function == "FV" || function == "NPER" || function == "NPV") {
                         return TryEvaluateFinancialFunction(function, args, out result);
+                    }
+
+                    if (function is "IPMT" or "PPMT") {
+                        if (!TryEvaluatePaymentSplitValue(function, args, out FormulaArgumentValue paymentResult)) return false;
+                        if (paymentResult.IsError) { error = paymentResult; return false; }
+                        result = paymentResult.Number!.Value;
+                        return true;
                     }
 
                     if (function == "VLOOKUP" || function == "HLOOKUP" || function == "XLOOKUP") {
