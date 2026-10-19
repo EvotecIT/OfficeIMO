@@ -446,6 +446,12 @@ side takes precedence. The destination keeps its page name, including across a
 column-flex gap. An empty page needed to reach the requested side counts toward
 `MaxPageCount`.
 
+In supported paged flows, an explicit page break or effective named-page change
+ends adjoining sibling-margin collapse. The incoming block retains its top margin,
+including when an ordinary wrapper propagates a descendant's break. Siblings and
+formatting contexts that ignore that page control keep their existing margin-collapse
+behavior.
+
 Legacy `clip: rect(top, right, bottom, left)` clips the whole border box of an
 absolute or fixed element, including its background, border and link area. Each
 edge accepts a finite length or `auto`; comma-separated and historical
