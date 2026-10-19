@@ -1,0 +1,97 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OfficeIMORoot>$(MSBuildThisFileDirectory)..\..\..\..\</OfficeIMORoot>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+  <PropertyGroup>
+    <Company>Evotec</Company>
+    <Authors>Przemyslaw Klys</Authors>
+    <VersionPrefix>1.0.1</VersionPrefix>
+    <TargetFrameworks>net8.0</TargetFrameworks>
+    <TargetFrameworks Condition="$([MSBuild]::IsOSPlatform('Windows'))">net472;net8.0</TargetFrameworks>
+    <AssemblyName>PSWriteOffice</AssemblyName>
+    <Copyright>(c) 2011 - 2022 Przemyslaw Klys @ Evotec. All rights reserved.</Copyright>
+    <LangVersion>latest</LangVersion>
+    <Nullable>enable</Nullable>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="PowerShellStandard.Library" Version="5.1.1" PrivateAssets="all" />
+    <InternalsVisibleTo Include="PSWriteOffice.Tests" />
+  </ItemGroup>
+  <ItemGroup Condition=" '$(TargetFramework)' == 'net472' ">
+    <Reference Include="System.Net.Http" />
+  </ItemGroup>
+  <PropertyGroup Condition=" '$(TargetFramework)' == 'net472' ">
+    <DefineConstants>$(DefineConstants);FRAMEWORK</DefineConstants>
+  </PropertyGroup>
+  <!-- Make sure the output DLL's from library are included in the output -->
+  <PropertyGroup>
+    <!-- Make sure the output DLL's from library are included in the output -->
+    <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
+  </PropertyGroup>
+  <PropertyGroup>
+    <!-- PowerForge enriches module help from the compiler XML documentation file. -->
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(TargetFramework)' == 'net472' ">
+    <DefineConstants>$(DefineConstants);FRAMEWORK</DefineConstants>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="$(OfficeIMORoot)\OfficeIMO.Workflows\OfficeIMO.Workflows.csproj" Condition="'$(TargetFramework)' != 'net472'" />
+    <ProjectReference Include="$(OfficeIMORoot)\OfficeIMO.Core\OfficeIMO.Core.csproj" />
+    <ProjectReference Include="$(OfficeIMORoot)\OfficeIMO.Adf\OfficeIMO.Adf.csproj" />
+    <ProjectReference Include="$(OfficeIMORoot)\OfficeIMO.Confluence\OfficeIMO.Confluence.csproj" />
+    <ProjectReference Include="$(OfficeIMORoot)\OfficeIMO.Word\OfficeIMO.Word.csproj" />
+    <ProjectReference Include="$(OfficeIMORoot)\OfficeIMO.Word.Markdown\OfficeIMO.Word.Markdown.csproj" />
+    <ProjectReference Include="$(OfficeIMORoot)\OfficeIMO.Excel\OfficeIMO.Excel.csproj" />
+    <ProjectReference Include="$(OfficeIMORoot)\OfficeIMO.Excel.Csv\OfficeIMO.Excel.Csv.csproj" />
+    <ProjectReference Include="$(OfficeIMORoot)\OfficeIMO.Excel.Html\OfficeIMO.Excel.Html.csproj" />
+    <ProjectReference Include="$(OfficeIMORoot)\OfficeIMO.PowerPoint\OfficeIMO.PowerPoint.csproj" />
+    <ProjectReference Include="$(OfficeIMORoot)\OfficeIMO.PowerPoint.Html\OfficeIMO.PowerPoint.Html.csproj" />
+    <ProjectReference Include="$(OfficeIMORoot)\OfficeIMO.Markdown\OfficeIMO.Markdown.csproj" />
+    <ProjectReference Include="$(OfficeIMORoot)\OfficeIMO.Markdown.Html\OfficeIMO.Markdown.Html.csproj" />
+    <ProjectReference Include="$(OfficeIMORoot)\OfficeIMO.Pdf\OfficeIMO.Pdf.csproj" />
+    <ProjectReference Include="$(OfficeIMORoot)\OfficeIMO.Word.Pdf\OfficeIMO.Word.Pdf.csproj" />
+    <ProjectReference Include="$(OfficeIMORoot)\OfficeIMO.Excel.Pdf\OfficeIMO.Excel.Pdf.csproj" />
+    <ProjectReference Include="$(OfficeIMORoot)\OfficeIMO.Markdown.Pdf\OfficeIMO.Markdown.Pdf.csproj" />
+    <ProjectReference Include="$(OfficeIMORoot)\OfficeIMO.Html.Pdf\OfficeIMO.Html.Pdf.csproj" />
+    <ProjectReference Include="$(OfficeIMORoot)\OfficeIMO.PowerPoint.Pdf\OfficeIMO.PowerPoint.Pdf.csproj" />
+    <ProjectReference Include="$(OfficeIMORoot)\OfficeIMO.CSV\OfficeIMO.CSV.csproj" />
+    <ProjectReference Include="$(OfficeIMORoot)\OfficeIMO.Word.Html\OfficeIMO.Word.Html.csproj" />
+    <ProjectReference Include="$(OfficeIMORoot)\OfficeIMO.Reader.All\OfficeIMO.Reader.All.csproj" />
+    <ProjectReference Include="$(OfficeIMORoot)\OfficeIMO.Ocr\OfficeIMO.Ocr.csproj" />
+    <ProjectReference Include="$(OfficeIMORoot)\OfficeIMO.Reader.Ocr\OfficeIMO.Reader.Ocr.csproj" />
+    <ProjectReference Include="$(OfficeIMORoot)\OfficeIMO.Ocr.Process\OfficeIMO.Ocr.Process.csproj" />
+    <ProjectReference Include="$(OfficeIMORoot)\OfficeIMO.Ocr.Tesseract\OfficeIMO.Ocr.Tesseract.csproj" />
+    <ProjectReference Include="$(OfficeIMORoot)\OfficeIMO.Pdf.Ocr\OfficeIMO.Pdf.Ocr.csproj" />
+    <ProjectReference Include="$(OfficeIMORoot)\OfficeIMO.IWork\OfficeIMO.IWork.csproj" />
+    <ProjectReference Include="$(OfficeIMORoot)\OfficeIMO.Word.IWork\OfficeIMO.Word.IWork.csproj" />
+    <ProjectReference Include="$(OfficeIMORoot)\OfficeIMO.Excel.IWork\OfficeIMO.Excel.IWork.csproj" />
+    <ProjectReference Include="$(OfficeIMORoot)\OfficeIMO.PowerPoint.IWork\OfficeIMO.PowerPoint.IWork.csproj" />
+    <ProjectReference Include="$(OfficeIMORoot)\OfficeIMO.OneNote\OfficeIMO.OneNote.csproj" />
+    <ProjectReference Include="$(OfficeIMORoot)\OfficeIMO.OneNote.Markdown\OfficeIMO.OneNote.Markdown.csproj" />
+    <ProjectReference Include="$(OfficeIMORoot)\OfficeIMO.OneNote.Html\OfficeIMO.OneNote.Html.csproj" />
+    <ProjectReference Include="$(OfficeIMORoot)\OfficeIMO.OneNote.Pdf\OfficeIMO.OneNote.Pdf.csproj" />
+    <ProjectReference Include="$(OfficeIMORoot)\OfficeIMO.Provenance.C2pa\OfficeIMO.Provenance.C2pa.csproj" />
+    <ProjectReference Include="$(OfficeIMORoot)\OfficeIMO.Visio\OfficeIMO.Visio.csproj" />
+    <ProjectReference Include="$(OfficeIMORoot)\OfficeIMO.Rtf\OfficeIMO.Rtf.csproj" />
+    <ProjectReference Include="$(OfficeIMORoot)\OfficeIMO.Word.Rtf\OfficeIMO.Word.Rtf.csproj" />
+    <ProjectReference Include="$(OfficeIMORoot)\OfficeIMO.Rtf.Pdf\OfficeIMO.Rtf.Pdf.csproj" />
+    <ProjectReference Include="$(OfficeIMORoot)\OfficeIMO.Rtf.Markdown\OfficeIMO.Rtf.Markdown.csproj" />
+    <ProjectReference Include="$(OfficeIMORoot)\OfficeIMO.Html\OfficeIMO.Html.csproj" />
+    <ProjectReference Include="$(OfficeIMORoot)\OfficeIMO.OpenDocument\OfficeIMO.OpenDocument.csproj" />
+    <ProjectReference Include="$(OfficeIMORoot)\OfficeIMO.Word.OpenDocument\OfficeIMO.Word.OpenDocument.csproj" />
+    <ProjectReference Include="$(OfficeIMORoot)\OfficeIMO.Excel.OpenDocument\OfficeIMO.Excel.OpenDocument.csproj" />
+    <ProjectReference Include="$(OfficeIMORoot)\OfficeIMO.PowerPoint.OpenDocument\OfficeIMO.PowerPoint.OpenDocument.csproj" />
+    <ProjectReference Include="$(OfficeIMORoot)\OfficeIMO.Email\OfficeIMO.Email.csproj" />
+    <ProjectReference Include="$(OfficeIMORoot)\OfficeIMO.AsciiDoc\OfficeIMO.AsciiDoc.csproj" />
+    <ProjectReference Include="$(OfficeIMORoot)\OfficeIMO.AsciiDoc.Markdown\OfficeIMO.AsciiDoc.Markdown.csproj" />
+    <ProjectReference Include="$(OfficeIMORoot)\OfficeIMO.Latex\OfficeIMO.Latex.csproj" />
+    <ProjectReference Include="$(OfficeIMORoot)\OfficeIMO.Latex.Markdown\OfficeIMO.Latex.Markdown.csproj" />
+    <ProjectReference Include="$(OfficeIMORoot)\OfficeIMO.GoogleWorkspace\OfficeIMO.GoogleWorkspace.csproj" />
+    <ProjectReference Include="$(OfficeIMORoot)\OfficeIMO.Word.GoogleDocs\OfficeIMO.Word.GoogleDocs.csproj" />
+    <ProjectReference Include="$(OfficeIMORoot)\OfficeIMO.ChartForgeX\OfficeIMO.ChartForgeX.csproj" />
+    <ProjectReference Include="$(OfficeIMORoot)\OfficeIMO.Excel.GoogleSheets\OfficeIMO.Excel.GoogleSheets.csproj" />
+  </ItemGroup>
+</Project>

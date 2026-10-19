@@ -76,6 +76,7 @@ enum ScanBuilder {
     }
 
     /// Providers own their temporary URL only during the callback. Decode a bounded, upright image before returning.
+    @MainActor
     static func image(from provider: NSItemProvider) async throws -> CGImage {
         try await withCheckedThrowingContinuation { continuation in
             _ = provider.loadFileRepresentation(forTypeIdentifier: UTType.image.identifier) { url, error in

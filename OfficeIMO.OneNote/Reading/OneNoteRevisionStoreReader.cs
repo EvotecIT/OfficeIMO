@@ -85,7 +85,7 @@ public static class OneNoteRevisionStoreReader {
         var byOffset = new Dictionary<ulong, OneNoteFileNodeList> { [rootOffset] = root };
         var queue = new Queue<OneNoteFileNodeList>();
         queue.Enqueue(root);
-        int totalNodes = root.Nodes.Count;
+        int totalNodes = RetainedNodes(root);
         int totalFragments = root.Fragments.Count;
 
         while (queue.Count > 0) {
@@ -108,13 +108,14 @@ public static class OneNoteRevisionStoreReader {
                 }
                 var firstFragment = new OneNoteFileChunkReference(childOffset, (uint)node.ChunkReference.Length);
                 OneNoteFileNodeList child = OneNoteFileNodeListReader.Read(stream, firstFragment, declaredFileLength, committedNodeCounts, options);
-                if (totalNodes > options.MaxFileNodes - child.Nodes.Count) {
+                int childNodes = RetainedNodes(child);
+                if (totalNodes > options.MaxFileNodes - childNodes) {
                     throw new OneNoteFormatException("ONENOTE_FILE_NODE_LIMIT", "The file-node limit was exceeded while traversing referenced lists.", node.FileOffset);
                 }
                 if (totalFragments > options.MaxFileNodeListFragments - child.Fragments.Count) {
                     throw new OneNoteFormatException("ONENOTE_FILE_NODE_FRAGMENT_LIMIT", "The file-node-list fragment limit was exceeded while traversing referenced lists.", node.FileOffset);
                 }
-                totalNodes += child.Nodes.Count;
+                totalNodes += childNodes;
                 totalFragments += child.Fragments.Count;
                 node.ReferencedFileNodeList = child;
                 byOffset.Add(childOffset, child);
@@ -124,6 +125,9 @@ public static class OneNoteRevisionStoreReader {
         }
         return lists.AsReadOnly();
     }
+
+    // Counts every node kept in the fragments, including the ChunkTerminatorFND nodes left out of the logical list.
+    private static int RetainedNodes(OneNoteFileNodeList list) => list.Fragments.Sum(fragment => fragment.Nodes.Count);
 
     internal static void ValidateRootList(OneNoteFileNodeList root, OneNoteFileKind fileKind) {
         int manifestReferences = root.Nodes.Count(node => node.RawId == (ushort)OneNoteFileNodeId.ObjectSpaceManifestListReference);

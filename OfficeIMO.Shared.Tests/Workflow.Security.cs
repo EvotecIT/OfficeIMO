@@ -8,7 +8,8 @@ public class WorkflowSecurityTests {
         string workflow = ReadWorkflow();
 
         Assert.DoesNotContain("npm exec -- vsce", workflow, StringComparison.Ordinal);
-        Assert.Contains("& node $VsceMain show $ExtensionId --json", workflow, StringComparison.Ordinal);
+        Assert.Contains("$vsceCli = 'OfficeIMO.Markup.VSCode/node_modules/@vscode/vsce/vsce'", workflow, StringComparison.Ordinal);
+        Assert.Contains("& node $VsceCli show $ExtensionId --json", workflow, StringComparison.Ordinal);
     }
 
     [Fact]

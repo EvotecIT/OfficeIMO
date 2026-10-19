@@ -72,19 +72,13 @@ private struct HarnessScan: View {
     }
 }
 
-/// The navigation bar the system's document group adds in compact width; regular width uses the split view's bars.
+/// Mirrors the navigation container supplied by the normal iOS document group.
 private struct HarnessWindow: View {
     let document: StudioDocument
     let url: URL
-    @Environment(\.horizontalSizeClass) private var sizeClass
-
     var body: some View {
-        if sizeClass == .compact {
-            NavigationStack {
-                window.navigationBarTitleDisplayMode(.inline)
-            }
-        } else {
-            window
+        NavigationStack {
+            window.navigationBarTitleDisplayMode(.inline)
         }
     }
 

@@ -12,11 +12,12 @@ The PSWriteOffice website catalog groups every exported cmdlet into exactly one 
 | --- | ---: | --- |
 | Excel | 162 | [Excel automation](/docs/pswriteoffice/excel/) |
 | Word | 97 | [Word automation](/docs/pswriteoffice/word/) |
-| PDF | 93 | [PDF automation](/docs/pswriteoffice/pdf/) |
+| PDF | 96 | [PDF automation](/docs/pswriteoffice/pdf/) |
+| Conversion routes | 1 | [Choose a conversion route](/docs/pswriteoffice/conversion-routes/) |
 | PowerPoint | 61 | [PowerPoint automation](/docs/pswriteoffice/powerpoint/) |
 | Markdown | 26 | [Open and text formats](/docs/pswriteoffice/open-text-formats/) |
 | Visio | 24 | [Visio diagrams](/docs/pswriteoffice/visio/) |
-| Reader, extraction, and OCR | 15 | [Reader, extraction, and OCR](/docs/pswriteoffice/reader/) |
+| Reader, extraction, and OCR | 17 | [Reader, extraction, and OCR](/docs/pswriteoffice/reader/) |
 | Archive migration and evidence | 6 | [Automation patterns](/docs/pswriteoffice/automation-patterns/) |
 | Confluence Cloud | 7 | [Confluence Cloud publishing](/docs/pswriteoffice/confluence/) |
 | RTF | 6 | [Open and text formats](/docs/pswriteoffice/open-text-formats/) |
@@ -25,7 +26,7 @@ The PSWriteOffice website catalog groups every exported cmdlet into exactly one 
 | Email | 9 | [Open and text formats](/docs/pswriteoffice/open-text-formats/) |
 | AsciiDoc | 4 | [Open and text formats](/docs/pswriteoffice/open-text-formats/) |
 | LaTeX | 4 | [Open and text formats](/docs/pswriteoffice/open-text-formats/) |
-| HTML assets | 3 | [Open and text formats](/docs/pswriteoffice/open-text-formats/) |
+| HTML assets | 4 | [Open and text formats](/docs/pswriteoffice/open-text-formats/) |
 | Cross-format visuals | 1 | [Automation patterns](/docs/pswriteoffice/automation-patterns/) |
 | Protection capabilities | 1 | [Automation patterns](/docs/pswriteoffice/automation-patterns/) |
 | Shared authoring primitives | 1 | [Automation patterns](/docs/pswriteoffice/automation-patterns/) |
