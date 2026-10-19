@@ -11,7 +11,7 @@ Creates discoverable page and rendering settings for Export-OfficeWordImage.
 ## SYNTAX
 ### __AllParameterSets
 ```powershell
-New-OfficeWordImageOptions [-IncludeDocumentContent] [-PageIndex <Int32>] [-PageCount <Int32>] [-Scale <Double>] [-MaximumOutputWidth <Int32>] [-MaximumOutputHeight <Int32>] [-BackgroundColor <string>] [-TargetDpi <Double>] [-MaximumRasterPixels <Int64>] [-RasterOverflowBehavior <OfficeRasterOverflowBehavior>] [-MaximumOutputCount <Int32>] [-MaximumTotalRasterPixels <Int64>] [-MaximumTotalEncodedBytes <Int64>] [-RenderTimeoutSeconds <Double>] [-MaximumDegreeOfParallelism <Int32>] [-TextShapingLanguage <string>] [<CommonParameters>]
+New-OfficeWordImageOptions [-PageIndex <Int32>] [-PageCount <Int32>] [-Scale <Double>] [-MaximumOutputWidth <Int32>] [-MaximumOutputHeight <Int32>] [-BackgroundColor <string>] [-TargetDpi <Double>] [-MaximumRasterPixels <Int64>] [-RasterOverflowBehavior <OfficeRasterOverflowBehavior>] [-MaximumOutputCount <Int32>] [-MaximumTotalRasterPixels <Int64>] [-MaximumTotalEncodedBytes <Int64>] [-RenderTimeoutSeconds <Double>] [-MaximumDegreeOfParallelism <Int32>] [-TextShapingLanguage <string>] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
@@ -21,7 +21,7 @@ Creates discoverable page and rendering settings for Export-OfficeWordImage.
 
 ### EXAMPLE 1
 ```powershell
-PS> $options = New-OfficeWordImageOptions -PageIndex 0 -PageCount 2 -TargetDpi 144 -IncludeDocumentContent
+PS> $options = New-OfficeWordImageOptions -PageIndex 0 -PageCount 2 -TargetDpi 144
 Export-OfficeWordImage -Path .\Report.docx -OutputPath .\Pages -Options $options
 ```
 
@@ -34,22 +34,6 @@ Background color name or hex value.
 
 ```yaml
 Type: String
-Parameter Sets: __AllParameterSets
-Aliases: None
-Possible values:
-
-Required: False
-Position: named
-Default value: None
-Accept pipeline input: False
-Accept wildcard characters: False
-```
-
-### -IncludeDocumentContent
-Render document content.
-
-```yaml
-Type: SwitchParameter
 Parameter Sets: __AllParameterSets
 Aliases: None
 Possible values:
