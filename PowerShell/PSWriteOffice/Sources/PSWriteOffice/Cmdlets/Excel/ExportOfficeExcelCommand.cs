@@ -386,11 +386,6 @@ public sealed partial class ExportOfficeExcelCommand : PSCmdlet
             return;
         }
 
-        if (File.Exists(resolvedPath) && !preserveWorkbook)
-        {
-            File.Delete(resolvedPath);
-        }
-
         var document = preserveWorkbook
             ? ExcelDocumentService.LoadDocument(resolvedPath, readOnly: false, autoSave: false)
             : ExcelDocumentService.CreateDocument(resolvedPath, autoSave: false);

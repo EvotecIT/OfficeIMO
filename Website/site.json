@@ -204,6 +204,8 @@
   },
   "StructuredData": {
     "Enabled": true,
+    "Website": true,
+    "Organization": true,
     "Breadcrumbs": true,
     "Article": true,
     "WebPage": true,
@@ -318,7 +320,8 @@
         "ReadOnly": false
       }
     ],
-    "MarkdownNegotiation": false
+    "MarkdownNegotiation": false,
+    "MarkdownArtifacts": { "Enabled": true, "MaxPages": 0 }
   },
   "Cloudflare": {
     "Cache": {

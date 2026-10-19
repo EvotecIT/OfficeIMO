@@ -4,7 +4,15 @@ namespace OfficeIMO.Excel;
 
 /// <summary>Prepares qualified formula functions for their XLSX storage spelling.</summary>
 internal static class ExcelFormulaStorage {
-    private static readonly string[] QualifiedFutureFunctions = { "TEXTJOIN", "IFNA", "MINIFS", "MAXIFS" };
+    private static readonly string[] QualifiedFutureFunctions = {
+        "TEXTJOIN", "IFNA", "MINIFS", "MAXIFS",
+        "IFS", "CONCAT", "TEXTBEFORE", "TEXTAFTER", "REGEXEXTRACT",
+        "XLOOKUP", "XMATCH", "SWITCH", "STDEV.S", "STDEV.P", "VAR.S", "VAR.P",
+        "CEILING.MATH", "FLOOR.MATH", "COVARIANCE.P", "COVARIANCE.S",
+        "RANK.EQ", "RANK.AVG", "MODE.SNGL", "PERCENTILE.INC", "PERCENTILE.EXC",
+        "PERCENTRANK.INC", "PERCENTRANK.EXC", "QUARTILE.INC", "QUARTILE.EXC",
+        "FORECAST.LINEAR", "FORMULATEXT", "ISFORMULA", "ISOWEEKNUM", "DAYS"
+    };
     private static readonly string[] QualifiedArrayFunctions = { "SEQUENCE", "UNIQUE", "SORT", "FILTER" };
 
     /// <summary>Prefixes qualified future-function calls while preserving literals, references, and authored prefixes.</summary>

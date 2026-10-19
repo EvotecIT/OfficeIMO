@@ -526,7 +526,7 @@ public partial class HtmlOfficeAdapters {
 
     [Fact]
     public void ExcelHtml_LoadPreservesFormulaWhitespaceFromSemanticInventory() {
-        string formula = "CONCAT(\"A  B\",\" C\")";
+        string formula = "_xlfn.CONCAT(\"A  B\",\" C\")";
         string html = """
             <main>
               <section class="officeimo-sheet" data-officeimo-sheet="Formulas" data-officeimo-range="A1:A1">

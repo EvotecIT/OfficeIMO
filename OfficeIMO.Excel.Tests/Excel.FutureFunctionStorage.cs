@@ -132,6 +132,87 @@ public sealed class ExcelFutureFunctionStorageTests {
     }
 
     [Theory]
+    [InlineData("buffered")]
+    [InlineData("materialized")]
+    [InlineData("array")]
+    public void Modern_function_storage_matches_native_Excel_spelling_across_save_routes(string route) {
+        var cases = new (string Formula, string Stored)[] {
+            ("IFS(TRUE,\"yes\",FALSE,\"no\")", "_xlfn.IFS(TRUE,\"yes\",FALSE,\"no\")"),
+            ("CONCAT(\"north\",\"-\",\"alice\")", "_xlfn.CONCAT(\"north\",\"-\",\"alice\")"),
+            ("TEXTBEFORE(\"north-alice\",\"-\")", "_xlfn.TEXTBEFORE(\"north-alice\",\"-\")"),
+            ("TEXTAFTER(\"north-alice\",\"-\")", "_xlfn.TEXTAFTER(\"north-alice\",\"-\")"),
+            ("REGEXEXTRACT(\"Order 123\",\"[0-9]+\")", "_xlfn.REGEXEXTRACT(\"Order 123\",\"[0-9]+\")"),
+            ("XLOOKUP(2,E1:E3,F1:F3)", "_xlfn.XLOOKUP(2,E1:E3,F1:F3)"),
+            ("XMATCH(2,E1:E3,0)", "_xlfn.XMATCH(2,E1:E3,0)"),
+            ("SWITCH(1,1,\"one\",\"other\")", "_xlfn.SWITCH(1,1,\"one\",\"other\")"),
+            ("STDEV.S(E1:E3)", "_xlfn.STDEV.S(E1:E3)"),
+            ("STDEV.P(E1:E3)", "_xlfn.STDEV.P(E1:E3)"),
+            ("VAR.S(E1:E3)", "_xlfn.VAR.S(E1:E3)"),
+            ("VAR.P(E1:E3)", "_xlfn.VAR.P(E1:E3)"),
+            ("CEILING.MATH(4.3)", "_xlfn.CEILING.MATH(4.3)"),
+            ("FLOOR.MATH(4.3)", "_xlfn.FLOOR.MATH(4.3)"),
+            ("COVARIANCE.P(E1:E3,F1:F3)", "_xlfn.COVARIANCE.P(E1:E3,F1:F3)"),
+            ("COVARIANCE.S(E1:E3,F1:F3)", "_xlfn.COVARIANCE.S(E1:E3,F1:F3)"),
+            ("RANK.EQ(2,E1:E3)", "_xlfn.RANK.EQ(2,E1:E3)"),
+            ("RANK.AVG(2,E1:E3)", "_xlfn.RANK.AVG(2,E1:E3)"),
+            ("MODE.SNGL(E1:E3,E2)", "_xlfn.MODE.SNGL(E1:E3,E2)"),
+            ("PERCENTILE.INC(E1:E3,0.5)", "_xlfn.PERCENTILE.INC(E1:E3,0.5)"),
+            ("PERCENTILE.EXC(E1:E3,0.5)", "_xlfn.PERCENTILE.EXC(E1:E3,0.5)"),
+            ("PERCENTRANK.INC(E1:E3,2)", "_xlfn.PERCENTRANK.INC(E1:E3,2)"),
+            ("PERCENTRANK.EXC(E1:E3,2)", "_xlfn.PERCENTRANK.EXC(E1:E3,2)"),
+            ("QUARTILE.INC(E1:E3,2)", "_xlfn.QUARTILE.INC(E1:E3,2)"),
+            ("QUARTILE.EXC(E1:E3,2)", "_xlfn.QUARTILE.EXC(E1:E3,2)"),
+            ("FORECAST.LINEAR(4,F1:F3,E1:E3)", "_xlfn.FORECAST.LINEAR(4,F1:F3,E1:E3)"),
+            ("FORMULATEXT(D1)", "_xlfn.FORMULATEXT(D1)"),
+            ("ISFORMULA(D1)", "_xlfn.ISFORMULA(D1)"),
+            ("ISOWEEKNUM(DATE(2026,1,1))", "_xlfn.ISOWEEKNUM(DATE(2026,1,1))"),
+            ("DAYS(DATE(2026,1,2),DATE(2026,1,1))", "_xlfn.DAYS(DATE(2026,1,2),DATE(2026,1,1))"),
+            ("SUM(E1:E3)", "SUM(E1:E3)"),
+            ("WORKDAY.INTL(DATE(2026,1,1),1,1)", "WORKDAY.INTL(DATE(2026,1,1),1,1)"),
+            ("_xlfn.IFS(TRUE,_xlfn.CONCAT(\"a\",\"b\"))", "_xlfn.IFS(TRUE,_xlfn.CONCAT(\"a\",\"b\"))"),
+            ("ifs(TRUE,Concat(\"a\",\"b\"),FALSE,\"c\")", "_xlfn.ifs(TRUE,_xlfn.Concat(\"a\",\"b\"),FALSE,\"c\")"),
+            ("CONCAT(\"IFS(CONCAT(\",'O''Brien, IFS(CONCAT('!A1)", "_xlfn.CONCAT(\"IFS(CONCAT(\",'O''Brien, IFS(CONCAT('!A1)")
+        };
+        using var document = ExcelDocument.Create();
+        ExcelSheet sheet = document.AddWorksheet("O'Brien, IFS(CONCAT(");
+        const int firstFormulaRow = 30;
+        for (int row = 1; row < firstFormulaRow + cases.Length; row++) {
+            for (int column = 1; column <= 6; column++) {
+                if (column == 2 && row >= firstFormulaRow) {
+                    string formula = cases[row - firstFormulaRow].Formula;
+                    if (route == "array") sheet.SetArrayFormula($"B{row}:B{row}", formula);
+                    else sheet.CellFormula(row, column, formula);
+                } else if (row == 1 && column == 4) sheet.CellFormula(row, column, "1+2");
+                else sheet.CellValue(row, column, column == 5 ? row : column == 6 ? row * 10 : 0);
+            }
+        }
+        if (route == "materialized") sheet.CellAt(1, 1).GetValue();
+        using var output = new MemoryStream(); document.Save(output);
+        if (route == "buffered") Assert.Equal(ExcelSavePackageWriter.DirectDataSetPackage, document.LastSaveDiagnostics.Writer);
+        VerifyStoredFormulas(output);
+        output.Position = 0;
+        using var reopened = ExcelDocument.Load(output);
+        Assert.Empty(reopened.ValidateOpenXml());
+        for (int index = 0; index < cases.Length; index++)
+            Assert.Equal(cases[index].Stored, reopened.Sheets[0].GetFormulaText(firstFormulaRow + index, 2));
+        using var saved = new MemoryStream(); reopened.Save(saved);
+        VerifyStoredFormulas(saved);
+
+        void VerifyStoredFormulas(MemoryStream bytes) {
+            bytes.Position = 0;
+            using var archive = new ZipArchive(bytes, ZipArchiveMode.Read, leaveOpen: true);
+            using var part = archive.GetEntry("xl/worksheets/sheet1.xml")!.Open();
+            XNamespace ns = "http://schemas.openxmlformats.org/spreadsheetml/2006/main";
+            var cells = XDocument.Load(part).Descendants(ns + "c").ToDictionary(cell => cell.Attribute("r")!.Value);
+            for (int index = 0; index < cases.Length; index++) {
+                XElement formula = cells[$"B{firstFormulaRow + index}"].Element(ns + "f")!;
+                Assert.Equal(cases[index].Stored, formula.Value);
+                Assert.Equal(route == "array" ? "array" : null, formula.Attribute("t")?.Value);
+            }
+        }
+    }
+
+    [Theory]
     [InlineData("IFNA", false)]
     [InlineData("MINIFS", false)]
     [InlineData("MAXIFS", false)]
