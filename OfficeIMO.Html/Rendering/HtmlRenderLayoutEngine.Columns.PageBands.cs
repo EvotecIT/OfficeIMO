@@ -4,9 +4,17 @@ namespace OfficeIMO.Html;
 
 internal sealed partial class HtmlRenderLayoutEngine {
     /// <summary>Qualifies ordinary outer column flows for physical-page planning.</summary>
-    private bool CanPaginateColumnRegion(IElement element, HtmlRenderBoxStyle style) {
+    private bool CanPaginateColumnRegion(IElement element, HtmlRenderBoxStyle style) =>
+        style.ColumnFill == "auto" && CanUseOuterColumnPageFlow(element, style);
+
+    /// <summary>
+    /// Checks the shared source and ancestor assumptions for outer page flow.
+    /// Balanced spanners use the ordinary fragment planner without allocating
+    /// the sequential physical column bands reserved for auto-fill regions.
+    /// </summary>
+    private bool CanUseOuterColumnPageFlow(IElement element, HtmlRenderBoxStyle style) {
         if (_options.Mode != HtmlRenderMode.Paged || _activeColumnOwner != null
-            || style.ColumnFill != "auto" || style.WritingMode != "horizontal-tb"
+            || style.WritingMode != "horizontal-tb"
             || style.OverflowX != "visible" || style.OverflowY != "visible"
             || EstablishesTransformedContainingBlock(style)) return false;
         HtmlRenderBoxStyle childStyle = style;

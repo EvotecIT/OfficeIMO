@@ -22,9 +22,10 @@ internal sealed partial class HtmlRenderLayoutEngine {
         PrepareColumnSourcePositionedRequests(partitions);
 
         var pieces = new List<HtmlRenderFlowBlock>();
-        bool pagedColumnRegion = _columnContentDepth == 0 && CanPaginateColumnRegion(element, style);
+        bool outerPageFlow = _columnContentDepth == 0 && CanUseOuterColumnPageFlow(element, style);
+        bool pagedColumnRegion = outerPageFlow && style.ColumnFill == "auto";
         bool directSpanners = _columnContentDepth == 0
-            && (_options.Mode != HtmlRenderMode.Paged || pagedColumnRegion);
+            && (_options.Mode != HtmlRenderMode.Paged || outerPageFlow);
         bool hasPrecedingSpanner = false;
         ColumnPaginationContext? columnContext = null;
         double contentHeight = 0D;
@@ -45,7 +46,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                     "Authored page breaks inside multi-column content retain the source-flow fallback.",
                     HtmlDiagnosticSeverity.Warning, source, "page breaks in column content");
             }
-            HtmlRenderFlowBlock? prefix = directSpanners && hasPrecedingSpanner
+            HtmlRenderFlowBlock? prefix = pagedColumnRegion && hasPrecedingSpanner
                 && partition.Spanner == null && children.Count > 0 && !childPageBreaks
                 ? BuildSpanningFlowBlock(pieces.Concat(new[] { children[0] }).ToArray(), contentWidth, source, true)
                 : null;
