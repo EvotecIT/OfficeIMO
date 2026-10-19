@@ -27,11 +27,11 @@ Describe 'Office document PDF exports' {
     It 'preserves the caller font-embedding policy when constructing Word options' {
         $balanced = New-OfficeWordPdfOptions
         $balanced.ResourcePolicy.AllowSystemFontEmbedding | Should -BeTrue
-        $balanced.ResourcePolicy.AllowDocumentFontEmbedding | Should -BeFalse
+        $balanced.ResourcePolicy.AllowDocumentFontEmbedding | Should -BeTrue
 
-        $template = New-OfficeWordPdfOptions -AllowSystemFontEmbedding -AllowDocumentFontEmbedding
-        $template.ResourcePolicy.AllowSystemFontEmbedding | Should -BeTrue
-        $template.ResourcePolicy.AllowDocumentFontEmbedding | Should -BeTrue
+        $template = New-OfficeWordPdfOptions -AllowSystemFontEmbedding:$false -AllowDocumentFontEmbedding:$false
+        $template.ResourcePolicy.AllowSystemFontEmbedding | Should -BeFalse
+        $template.ResourcePolicy.AllowDocumentFontEmbedding | Should -BeFalse
 
         $restricted = New-OfficeWordPdfOptions -AllowDocumentFontEmbedding -AllowSystemFontEmbedding:$false
         $restricted.ResourcePolicy.AllowDocumentFontEmbedding | Should -BeTrue

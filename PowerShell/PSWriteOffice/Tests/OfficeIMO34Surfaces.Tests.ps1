@@ -69,7 +69,8 @@ Describe 'OfficeIMO 3.4 PowerShell surfaces' {
         $pdfEvidence.GetType().FullName | Should -Be 'OfficeIMO.Pdf.PdfDocumentConversionResult'
         Get-OfficePdfText -Path $pdfPath | Should -Match 'Review backup status'
 
-        $run.Text = 'Arabic layout evidence: ' + (-join @(0x0645, 0x0631, 0x062D, 0x0628, 0x0627 | ForEach-Object { [char] $_ }))
+        # Semantic PDF projection flattens an explicitly sized OneNote canvas.
+        $page.Width = 1200
         $section.Save($onePath)
         $lossPath = Join-Path $TestDrive 'operations-loss.pdf'
         [IO.File]::WriteAllText($lossPath, 'caller-owned')
