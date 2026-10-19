@@ -974,6 +974,22 @@ foreach ($name in $selected) {
         $provenanceMetadata['benchmark.workload.affinityMask'] = $affinityLabel
         $provenanceMetadata['benchmark.workload.affinityApplication'] = $effectiveAffinityApplication
     }
+    if ($name -in @('pdfhtml', 'pdfhtmlpayload')) {
+        [xml] $pdfComparisonProject = Get-Content -LiteralPath (
+            Join-Path $repositoryRoot 'OfficeIMO.Pdf.Benchmarks.Comparisons/OfficeIMO.Pdf.Benchmarks.Comparisons.csproj') -Raw
+        $peachVersionNode = $pdfComparisonProject.SelectSingleNode('//PeachPdfBenchmarkVersion')
+        if ($null -eq $peachVersionNode -or [string] $peachVersionNode.InnerText -notmatch '^\d+\.\d+\.\d+$') {
+            throw 'The HTML comparison must declare an exact PeachPDF package version.'
+        }
+        $peachVersion = [string] $peachVersionNode.InnerText
+        $provenanceMetadata['benchmark.package.peachpdf.version'] = $peachVersion
+        $provenanceMetadata['benchmark.dependency.peachpdf.version'] = $peachVersion
+        foreach ($face in @('Regular', 'Bold')) {
+            $fontPath = Join-Path $repositoryRoot "Website/Apps/OfficeIMO.Web.Converter/Assets/Fonts/Carlito-$face.ttf"
+            $provenanceMetadata["benchmark.fixture.html.font.$($face.ToLowerInvariant()).sha256"] =
+                (Get-FileHash -LiteralPath $fontPath -Algorithm SHA256).Hash.ToLowerInvariant()
+        }
+    }
     if ($name -eq 'pdfhtml') {
         if ($null -ne $htmlTinkerXSourceCommit) {
             $provenanceMetadata['benchmark.browser.owner'] = 'HtmlTinkerX source'

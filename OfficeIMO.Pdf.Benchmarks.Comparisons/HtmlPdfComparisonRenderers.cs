@@ -51,6 +51,9 @@ internal static class HtmlPdfComparisonRenderers {
         await session.Page.SetContentAsync(
             html,
             new PageSetContentOptions { WaitUntil = WaitUntilState.Load }).WaitAsync(cancellationToken).ConfigureAwait(false);
+        await HtmlBrowser.PreparePageForContentAsync(session.Page,
+            waitForFunction: "() => document.fonts.status === 'loaded' && document.fonts.check('12px Carlito') && document.fonts.check('bold 12px Carlito')",
+            cancellationToken: cancellationToken).ConfigureAwait(false);
     }
 
     internal static Task<byte[]> CaptureChromiumPageAsync(
@@ -58,20 +61,12 @@ internal static class HtmlPdfComparisonRenderers {
         CancellationToken cancellationToken = default) {
         ArgumentNullException.ThrowIfNull(session);
         return HtmlBrowser.GetPagePdfAsync(session.Page,
-#if HTMLTINKERX_SOURCE
             new HtmlBrowserPdfOptions(
                 printBackground: true,
                 format: PdfPageFormat.A4,
                 preferCssPageSize: true,
                 tagged: true),
             cancellationToken: cancellationToken
-#else
-            printBackground: true,
-            format: PdfPageFormat.A4,
-            preferCssPageSize: true,
-            tagged: true,
-            cancellationToken: cancellationToken
-#endif
         );
     }
 }
