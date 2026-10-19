@@ -61,7 +61,7 @@ Recognition and pixel stability use the native page's reported bounds clipped to
 
 ## Store declarations
 
-`powerforge.store-onboarding.json` owns remote setup without archive targets. `appstoreconnect-governance.json` declares free pricing, worldwide availability and the reviewed encryption facts. Empty accessibility and subscription arrays make no claims and erase nothing. Plan and apply governance through PowerForge, retaining the exact reviewed plan.
+`powerforge.store-onboarding.json` owns remote setup without archive targets. `appstoreconnect-governance.json` declares free pricing and availability outside France. The initial release excludes France while the French encryption filing is completed. Its empty `encryptionDeclarations` array contains no encryption-document declarations; each uploaded build still needs its publisher-reviewed export-compliance answer. Empty accessibility and subscription arrays make no claims and erase nothing. Plan and apply governance through PowerForge, retaining the exact reviewed plan.
 
 The native privacy manifest records required-reason APIs used by document recovery, selected files, preferences and timing. The public policy is maintained in `OfficeIMO.Studio/PRIVACY.md` and [the website privacy page](https://officeimo.com/studio/privacy/). Review the native app's actual behavior when answering Apple's privacy questionnaire.
 
