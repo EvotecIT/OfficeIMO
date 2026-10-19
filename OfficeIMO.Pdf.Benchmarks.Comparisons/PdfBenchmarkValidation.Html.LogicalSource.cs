@@ -79,6 +79,7 @@ internal static partial class PdfBenchmarkValidation {
                 if (cells.Length != expected[row].Length) throw Reject("the tagged table cell inventory differs");
                 for (int column = 0; column < cells.Length; column++) BindText(cells[column], expected[row][column], pageObject);
             }
+            BindTablePaint(table, pageObject);
         }
         if (owners.MoveNext()) throw Reject("the structure contains extra authored content owners");
         if (Descendants(roots).Sum(node => node.OrderedKids.Count(kid => kid is HtmlReportContent)) != claimedContent.Count)
@@ -110,21 +111,36 @@ internal static partial class PdfBenchmarkValidation {
             int references = 0;
             foreach (HtmlReportContent reference in ContentInOrder(owner)) {
                 references++;
-                var key = (reference.Page, reference.Mcid);
-                if (key.Page != pageObject || !claimedContent.Add(key) || !marked.TryGetValue(key, out var content))
-                    throw Reject("a source element has missing, repeated, or wrong-page MCID content");
-                var letters = new HashSet<Letter>(ReferenceEqualityComparer.Instance);
-                var pending = new Stack<MarkedContentElement>();
-                var visited = new HashSet<MarkedContentElement>(ReferenceEqualityComparer.Instance);
-                pending.Push(content);
-                while (pending.TryPop(out var item)) {
-                    if (!visited.Add(item)) continue;
-                    foreach (Letter letter in item.Letters) letters.Add(letter);
-                    foreach (var child in item.Children) pending.Push(child);
-                }
-                yield return letters.ToArray();
+                yield return ClaimContent(reference, pageObject);
             }
             if (references == 0) throw Reject("an authored source owner has no marked-content binding");
+        }
+        IReadOnlyList<Letter> ClaimContent(HtmlReportContent reference, int pageObject) {
+            var key = (reference.Page, reference.Mcid);
+            if (key.Page != pageObject || !claimedContent.Add(key) || !marked.TryGetValue(key, out var content))
+                throw Reject("a source element has missing, repeated, or wrong-page MCID content");
+            var letters = new HashSet<Letter>(ReferenceEqualityComparer.Instance);
+            var pending = new Stack<MarkedContentElement>();
+            var visited = new HashSet<MarkedContentElement>(ReferenceEqualityComparer.Instance);
+            pending.Push(content);
+            while (pending.TryPop(out var item)) {
+                if (!visited.Add(item)) continue;
+                foreach (Letter letter in item.Letters) letters.Add(letter);
+                foreach (var child in item.Children) pending.Push(child);
+            }
+            return letters.ToArray();
+        }
+        void BindTablePaint(HtmlReportTag node, int pageObject) {
+            // Table and row backgrounds/borders may have their own non-text
+            // MCIDs. Cell text still needs its exact authored owner and order.
+            foreach (HtmlReportKid kid in node.OrderedKids) {
+                if (kid is HtmlReportContent content) {
+                    if (ClaimContent(content, pageObject).Any(letter => !string.IsNullOrWhiteSpace(letter.Value)))
+                        throw Reject("a table container owns decoded text outside an authored cell");
+                } else if (kid is HtmlReportChild child && child.Value.Role is not ("TH" or "TD")) {
+                    BindTablePaint(child.Value, pageObject);
+                }
+            }
         }
         IEnumerable<HtmlReportContent> ContentInOrder(HtmlReportTag owner) {
             foreach (HtmlReportKid kid in owner.OrderedKids) {
