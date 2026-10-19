@@ -156,7 +156,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
             return strings;
         }
 
-        internal static List<BiffStringValue> ReadSharedStringValues(IReadOnlyList<byte[]> payloads, List<LegacyXlsImportDiagnostic> diagnostics, int recordOffset) {
+        internal static List<BiffStringValue> ReadSharedStringValues(IReadOnlyList<byte[]> payloads, List<LegacyXlsImportDiagnostic> diagnostics, int recordOffset, ICollection<(int SegmentIndex, int Offset)>? locations = null, System.Threading.CancellationToken cancellationToken = default) {
             var strings = new List<BiffStringValue>();
             if (payloads.Count == 0 || payloads[0].Length < 8) {
                 diagnostics.Add(new LegacyXlsImportDiagnostic(
@@ -172,8 +172,11 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
             _ = reader.ReadUInt32Raw();
             uint uniqueCount = reader.ReadUInt32Raw();
             for (uint i = 0; i < uniqueCount && reader.HasData; i++) {
+                cancellationToken.ThrowIfCancellationRequested();
                 try {
+                    var location = reader.Position;
                     strings.Add(ReadSegmentedUnicodeStringValue(reader));
+                    locations?.Add(location);
                 } catch (InvalidDataException ex) {
                     diagnostics.Add(new LegacyXlsImportDiagnostic(
                         LegacyXlsDiagnosticSeverity.Warning,
@@ -405,6 +408,8 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                     return _segmentIndex < _segments.Count && _offset < _segments[_segmentIndex].Length;
                 }
             }
+
+            internal (int SegmentIndex, int Offset) Position { get { AdvancePastEmptySegments(); return (_segmentIndex, _offset); } }
 
             internal byte ReadByteRaw() {
                 AdvancePastEmptySegments();

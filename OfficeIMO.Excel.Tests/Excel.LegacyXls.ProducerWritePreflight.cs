@@ -6,7 +6,7 @@ namespace OfficeIMO.Tests;
 
 public sealed class ExcelLegacyVbaProducerPreservationTests {
     [Fact]
-    public void Native_xls_save_rejects_unsupported_sheet_kinds_in_an_independent_macro_workbook_without_touching_output() {
+    public void Native_xls_save_rejects_new_cells_in_an_independent_chart_macro_workbook_without_touching_output() {
         string path = Path.Combine(RepositoryTestPaths.Find(), "OfficeIMO.TestAssets", "Documents", "LegacyXlsCorpus", "openpreserve-format-corpus", "valid.xls");
         byte[] source = File.ReadAllBytes(path);
         Assert.True(OfficeCompoundFileReader.TryRead(source, out OfficeCompoundFile? original, out string? sourceError), sourceError);
@@ -15,7 +15,7 @@ public sealed class ExcelLegacyVbaProducerPreservationTests {
         using var document = ExcelDocument.Load(new MemoryStream(source));
         document.Sheets[0].CellValue(1, 1, "Cell edit with original VBA retained");
         Assert.NotEmpty(document.LegacyXlsChartSheets);
-        // This file's chart-sheet parts exceed the writer subset even when general conversion loss is allowed.
+        // A1 is absent in this source, so adding it exceeds the fixed-width literal preserving profile.
         using var destination = new MemoryStream(new byte[] { 1, 2, 3, 4 }, writable: true);
         var exception = Assert.Throws<NotSupportedException>(() => document.Save(destination, ExcelFileFormat.Xls,
             new ExcelSaveOptions { LossPolicy = OfficeConversionLossPolicy.Allow }));

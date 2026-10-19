@@ -124,7 +124,7 @@ namespace OfficeIMO.Excel {
 
         internal OfficeCompoundFile? LegacyXlsSourceCompoundFile => _legacyXlsSourceCompoundFile;
 
-        internal void MarkLoadedFromLegacyXls(string? sourcePath, LegacyXlsWorkbook workbook) {
+        internal void MarkLoadedFromLegacyXls(string? sourcePath, LegacyXlsWorkbook workbook, CancellationToken cancellationToken = default) {
             if (workbook == null) throw new ArgumentNullException(nameof(workbook));
 
             SourceFormat = ExcelFileFormat.Xls;
@@ -137,6 +137,8 @@ namespace OfficeIMO.Excel {
             _legacyXlsCompoundFeatures = workbook.CompoundFeatureRecords.ToArray();
             _legacyXlsSourceCompoundFile = workbook.SourceCompoundFile;
             _legacyXlsWasEncryptedSource = workbook.WasEncryptedSource;
+            _packageDirty = false;
+            _legacyXlsPreservationSnapshot = LegacyXlsPreservationSnapshot.Capture(this, workbook, cancellationToken);
             _openXmlOriginalPackageBytes = null;
 
             if (!string.IsNullOrEmpty(sourcePath)) {
@@ -148,6 +150,7 @@ namespace OfficeIMO.Excel {
             if (workbook == null) throw new ArgumentNullException(nameof(workbook));
 
             SourceFormat = ExcelFileFormat.Xlsb;
+            _legacyXlsPreservationSnapshot = null;
             _xlsbSourcePath = sourcePath;
             _xlsbOriginalPackageBytes = workbook.OriginalPackageBytes;
             _legacyXlsWasEncryptedSource = false;
@@ -185,7 +188,7 @@ namespace OfficeIMO.Excel {
                     document = ReopenProjectedWorkbookReadOnly(document);
                 }
                 cancellationToken.ThrowIfCancellationRequested();
-                document.MarkLoadedFromLegacyXls(sourcePath, workbook);
+                document.MarkLoadedFromLegacyXls(sourcePath, workbook, cancellationToken);
                 return document;
             } catch {
                 document.Dispose();
@@ -198,7 +201,8 @@ namespace OfficeIMO.Excel {
                 EnsureLegacyXlsSaveDoesNotDropImportedContent(
                     options,
                     includeProjectedChartSheets: true,
-                    preserveLinkedVbaProject: true);
+                    preserveLinkedVbaProject: true,
+                    preserveNativeRecords: true);
 
                 if (allowNativeXls) {
                     return;
@@ -244,7 +248,9 @@ namespace OfficeIMO.Excel {
         private void EnsureLegacyXlsSaveDoesNotDropImportedContent(
             ExcelSaveOptions? options,
             bool includeProjectedChartSheets = false,
-            bool preserveLinkedVbaProject = false) {
+            bool preserveLinkedVbaProject = false,
+            bool preserveNativeRecords = false) {
+            if (preserveNativeRecords && CanPreserveNativeLegacyXls(options)) return;
             if (SourceFormat != ExcelFileFormat.Xls
                 || !HasLossyLegacyXlsImportState(includeProjectedChartSheets, preserveLinkedVbaProject)
                 || options?.LossPolicy == OfficeConversionLossPolicy.Allow) {
@@ -274,12 +280,7 @@ namespace OfficeIMO.Excel {
             }
 
             cancellationToken.ThrowIfCancellationRequested();
-            bool directWrite = TryBuildDirectTabularLegacyXls(options, cancellationToken, out byte[] xlsBytes);
-            if (!directWrite) {
-                PrepareWorkbookForSave(options);
-                cancellationToken.ThrowIfCancellationRequested();
-                xlsBytes = OfficeIMO.Excel.LegacyXls.Write.LegacyXlsWriter.WriteWorkbook(this);
-            }
+            byte[] xlsBytes = BuildNativeLegacyXls(options, cancellationToken, out bool directWrite, out bool preservedWrite);
             cancellationToken.ThrowIfCancellationRequested();
             bool reopenWorkingPackage = ShouldCloseOpenPackageForNativeLegacyXlsFileSave(path);
             byte[]? workingPackageBytes = reopenWorkingPackage
@@ -306,7 +307,7 @@ namespace OfficeIMO.Excel {
 
             LastSaveDiagnostics = directWrite
                 ? ExcelSaveDiagnostics.NativeBinaryDirectPackage()
-                : ExcelSaveDiagnostics.Standard("Native XLS save used the first-party BIFF8 writer.");
+                : ExcelSaveDiagnostics.Standard(preservedWrite ? "Native XLS literal edits preserved original BIFF records and compound streams." : "Native XLS save used the first-party BIFF8 writer.");
 
             return true;
         }
@@ -317,12 +318,7 @@ namespace OfficeIMO.Excel {
             }
 
             cancellationToken.ThrowIfCancellationRequested();
-            bool directWrite = TryBuildDirectTabularLegacyXls(options, cancellationToken, out byte[] xlsBytes);
-            if (!directWrite) {
-                PrepareWorkbookForSave(options);
-                cancellationToken.ThrowIfCancellationRequested();
-                xlsBytes = OfficeIMO.Excel.LegacyXls.Write.LegacyXlsWriter.WriteWorkbook(this);
-            }
+            byte[] xlsBytes = BuildNativeLegacyXls(options, cancellationToken, out bool directWrite, out bool preservedWrite);
             cancellationToken.ThrowIfCancellationRequested();
             bool reopenWorkingPackage = ShouldCloseOpenPackageForNativeLegacyXlsFileSave(path);
             byte[]? workingPackageBytes = reopenWorkingPackage
@@ -349,7 +345,7 @@ namespace OfficeIMO.Excel {
 
             LastSaveDiagnostics = directWrite
                 ? ExcelSaveDiagnostics.NativeBinaryDirectPackage()
-                : ExcelSaveDiagnostics.Standard("Native XLS save used the first-party BIFF8 writer.");
+                : ExcelSaveDiagnostics.Standard(preservedWrite ? "Native XLS literal edits preserved original BIFF records and compound streams." : "Native XLS save used the first-party BIFF8 writer.");
 
             return true;
         }
@@ -362,28 +358,18 @@ namespace OfficeIMO.Excel {
             EnsureLegacyXlsSaveDoesNotDropImportedContent(
                 options,
                 includeProjectedChartSheets: true,
-                preserveLinkedVbaProject: true);
+                preserveLinkedVbaProject: true,
+                preserveNativeRecords: true);
             cancellationToken.ThrowIfCancellationRequested();
-            if (TryBuildDirectTabularLegacyXls(options, cancellationToken, out byte[] directXlsBytes)) {
-                PrepareDestinationStreamForWrite(destination);
-                destination.Write(directXlsBytes, 0, directXlsBytes.Length);
-                try { destination.Flush(); } catch (NotSupportedException) { }
-                MarkPackageClean(null);
-                DisablePackageCopyBackAfterNativeLegacyXlsSave(destination);
-                LastSaveDiagnostics = ExcelSaveDiagnostics.NativeBinaryDirectPackage();
-                return true;
-            }
-
-            PrepareWorkbookForSave(options);
-            cancellationToken.ThrowIfCancellationRequested();
-            byte[] xlsBytes = OfficeIMO.Excel.LegacyXls.Write.LegacyXlsWriter.WriteWorkbook(this);
+            byte[] xlsBytes = BuildNativeLegacyXls(options, cancellationToken, out bool directWrite, out bool preservedWrite);
             cancellationToken.ThrowIfCancellationRequested();
             PrepareDestinationStreamForWrite(destination);
             destination.Write(xlsBytes, 0, xlsBytes.Length);
             try { destination.Flush(); } catch (NotSupportedException) { }
             MarkPackageClean(null);
             DisablePackageCopyBackAfterNativeLegacyXlsSave(destination);
-            LastSaveDiagnostics = ExcelSaveDiagnostics.Standard("Native XLS stream save used the first-party BIFF8 writer.");
+            LastSaveDiagnostics = directWrite ? ExcelSaveDiagnostics.NativeBinaryDirectPackage()
+                : ExcelSaveDiagnostics.Standard(preservedWrite ? "Native XLS literal edits preserved original BIFF records and compound streams." : "Native XLS stream save used the first-party BIFF8 writer.");
             return true;
         }
 
@@ -395,28 +381,18 @@ namespace OfficeIMO.Excel {
             EnsureLegacyXlsSaveDoesNotDropImportedContent(
                 options,
                 includeProjectedChartSheets: true,
-                preserveLinkedVbaProject: true);
+                preserveLinkedVbaProject: true,
+                preserveNativeRecords: true);
             cancellationToken.ThrowIfCancellationRequested();
-            if (TryBuildDirectTabularLegacyXls(options, cancellationToken, out byte[] directXlsBytes)) {
-                PrepareDestinationStreamForWrite(destination);
-                await destination.WriteAsync(directXlsBytes, 0, directXlsBytes.Length, cancellationToken).ConfigureAwait(false);
-                try { await destination.FlushAsync(cancellationToken).ConfigureAwait(false); } catch (NotSupportedException) { }
-                MarkPackageClean(null);
-                DisablePackageCopyBackAfterNativeLegacyXlsSave(destination);
-                LastSaveDiagnostics = ExcelSaveDiagnostics.NativeBinaryDirectPackage();
-                return true;
-            }
-
-            PrepareWorkbookForSave(options);
-            cancellationToken.ThrowIfCancellationRequested();
-            byte[] xlsBytes = OfficeIMO.Excel.LegacyXls.Write.LegacyXlsWriter.WriteWorkbook(this);
+            byte[] xlsBytes = BuildNativeLegacyXls(options, cancellationToken, out bool directWrite, out bool preservedWrite);
             cancellationToken.ThrowIfCancellationRequested();
             PrepareDestinationStreamForWrite(destination);
             await destination.WriteAsync(xlsBytes, 0, xlsBytes.Length, cancellationToken).ConfigureAwait(false);
             try { await destination.FlushAsync(cancellationToken).ConfigureAwait(false); } catch (NotSupportedException) { }
             MarkPackageClean(null);
             DisablePackageCopyBackAfterNativeLegacyXlsSave(destination);
-            LastSaveDiagnostics = ExcelSaveDiagnostics.Standard("Native XLS stream save used the first-party BIFF8 writer.");
+            LastSaveDiagnostics = directWrite ? ExcelSaveDiagnostics.NativeBinaryDirectPackage()
+                : ExcelSaveDiagnostics.Standard(preservedWrite ? "Native XLS literal edits preserved original BIFF records and compound streams." : "Native XLS stream save used the first-party BIFF8 writer.");
             return true;
         }
 

@@ -522,7 +522,7 @@ The [Draw API](../OfficeIMO.OpenDocument/README.md#create-and-edit-draw-document
 
 ### Spreadsheet and CSV delivery order
 
-- [ ] Deepen [native XLS lifecycle support](officeimo.excel.legacy-xls-compatibility.md#native-xls-write-capability) for chart sheets and other currently rejected sheet kinds, and qualify real macro-workbook edit/save with complete project streams and host identities. Keep unrelated unsupported workbook content visible; byte-preserving VBA alone does not qualify the entire workbook.
+- [ ] Extend [native XLS lifecycle support](officeimo.excel.legacy-xls-compatibility.md#preserve-imported-biff8-workbooks) beyond existing fixed-width literal edits: new cells and type changes, formula/style/structure edits with preserved chart and macro content, encrypted-source preservation, and broader sheet kinds. Qualify each additional operation against independent producers and native consumers, retaining complete project streams and host identities. Keep chart editing and macro execution separate from encoded-content preservation.
 - [ ] Extend the [encrypted XLS output profile](../OfficeIMO.Excel/README.md#password-to-open-output) to retained pivot-cache and revision BIFF streams, with independent producer/consumer evidence and no plaintext auxiliary-stream fallback.
 
 - [ ] Extend authored XLSX future-function storage beyond `TEXTJOIN`, the [qualified `IFNA`/`MINIFS`/`MAXIFS` calls](../OfficeIMO.Excel/README.md#ifna-minifs-and-maxifs-formula-storage) and the four bounded array calls. Keep prefix handling in the shared Excel formula-storage owner, preserve literals and existing aliases, and pair each additional family with saved/reopened native recalculation.

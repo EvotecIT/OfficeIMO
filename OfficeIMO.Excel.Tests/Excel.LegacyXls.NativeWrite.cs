@@ -145,7 +145,7 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void LegacyXls_NativeSave_BlocksLossyImportedXlsWithoutExplicitOptIn() {
+        public void LegacyXls_NativeSave_PreservesUnchangedChartWorkbookWithoutLossOptIn() {
             string sourcePath = Path.Combine(
                 GetTestsProjectRoot(),
                 "Documents",
@@ -160,9 +160,13 @@ namespace OfficeIMO.Tests {
                 Assert.Empty(document.LegacyXlsUnsupportedFeatures);
                 Assert.NotEmpty(document.LegacyXlsChartSheets);
 
-                NotSupportedException exception = Assert.Throws<NotSupportedException>(() => document.Save(xlsOutputPath));
-                Assert.Contains(nameof(ExcelSaveOptions.LossPolicy), exception.Message);
-                Assert.False(File.Exists(xlsOutputPath));
+                document.Save(xlsOutputPath);
+                using ExcelDocument saved = ExcelDocument.Load(xlsOutputPath);
+                Assert.Equal(document.LegacyXlsChartSheets.Count, saved.LegacyXlsChartSheets.Count);
+                Assert.True(OfficeIMO.Core.Internal.OfficeCompoundFileReader.TryRead(File.ReadAllBytes(sourcePath), out OfficeIMO.Core.Internal.OfficeCompoundFile? before, out string? error), error);
+                Assert.True(OfficeIMO.Core.Internal.OfficeCompoundFileReader.TryRead(File.ReadAllBytes(xlsOutputPath), out OfficeIMO.Core.Internal.OfficeCompoundFile? after, out error), error);
+                foreach (var stream in before!.Streams.Where(item => !item.Key.Equals("Workbook", StringComparison.OrdinalIgnoreCase)))
+                    Assert.Equal(stream.Value, after!.Streams[stream.Key]);
             } finally {
                 TryDelete(xlsOutputPath);
             }

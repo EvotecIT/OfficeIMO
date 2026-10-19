@@ -17,6 +17,7 @@ internal static partial class LegacyXlsWriter {
         var salt = new byte[16]; var verifier = new byte[16];
         using (var random = RandomNumberGenerator.Create()) { random.GetBytes(salt); random.GetBytes(verifier); }
         byte[] filePass = BiffRc4Encryption.CreateFilePassPayload(password, salt, verifier);
+        if (document.TryGetLegacyXlsPreservationPlan(out var plan)) return plan!.WriteEncrypted(filePass, password, salt, maximumBytes);
         byte[] workbook = BuildWorkbookStream(document, filePass, maximumBytes);
         return BuildCompoundFile(document, BiffRc4Encryption.EncryptWorkbookStream(workbook, password, salt), maximumBytes);
     }

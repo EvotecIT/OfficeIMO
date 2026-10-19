@@ -109,7 +109,8 @@ namespace OfficeIMO.Excel {
             var originalFilePath = FilePath;
             EnsureLegacyXlsSaveDoesNotDropImportedContent(
                 options,
-                preserveLinkedVbaProject: ExcelDocumentLoadRouting.HasLegacyXlsExtension(path));
+                preserveLinkedVbaProject: ExcelDocumentLoadRouting.HasLegacyXlsExtension(path),
+                preserveNativeRecords: ExcelDocumentLoadRouting.HasLegacyXlsExtension(path));
             EnsureLegacyBinaryExcelSaveTargetSupported(path, allowNativeXls: true, options);
             EnsureXlsbFileTargetSupported(path, options);
 
@@ -266,7 +267,8 @@ namespace OfficeIMO.Excel {
             var originalFilePath = FilePath;
             EnsureLegacyXlsSaveDoesNotDropImportedContent(
                 options,
-                preserveLinkedVbaProject: ExcelDocumentLoadRouting.HasLegacyXlsExtension(target));
+                preserveLinkedVbaProject: ExcelDocumentLoadRouting.HasLegacyXlsExtension(target),
+                preserveNativeRecords: ExcelDocumentLoadRouting.HasLegacyXlsExtension(target));
             EnsureLegacyBinaryExcelSaveTargetSupported(target, allowNativeXls: true, options);
             EnsureXlsbFileTargetSupported(target, options);
             EnsureDestinationFileWritable(target);
@@ -376,7 +378,8 @@ namespace OfficeIMO.Excel {
             EnsureWritableForSave();
             EnsureLegacyXlsSaveDoesNotDropImportedContent(
                 options,
-                preserveLinkedVbaProject: format == ExcelFileFormat.Xls);
+                preserveLinkedVbaProject: format == ExcelFileFormat.Xls,
+                preserveNativeRecords: format == ExcelFileFormat.Xls);
 
 #if NETFRAMEWORK
             if (!destination.CanSeek) {
@@ -517,7 +520,8 @@ namespace OfficeIMO.Excel {
             EnsureWritableForSave();
             EnsureLegacyXlsSaveDoesNotDropImportedContent(
                 options,
-                preserveLinkedVbaProject: format == ExcelFileFormat.Xls);
+                preserveLinkedVbaProject: format == ExcelFileFormat.Xls,
+                preserveNativeRecords: format == ExcelFileFormat.Xls);
 
 #if NETFRAMEWORK
             if (!destination.CanSeek) {

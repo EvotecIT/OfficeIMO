@@ -150,7 +150,7 @@ namespace OfficeIMO.Excel.LegacyXls.Write {
                     LegacyXlsStringPosition position = stringPositions[stringIndex];
                     ushort recordRelativeOffset = checked((ushort)(position.Offset + 4));
                     uint containingRecordOffset = checked((uint)recordOffsets[position.SegmentIndex]);
-                    WriteUInt32(payload, containingRecordOffset);
+                    WriteUInt32(payload, checked(containingRecordOffset + recordRelativeOffset));
                     WriteUInt16(payload, recordRelativeOffset);
                     WriteUInt16(payload, 0);
                 }

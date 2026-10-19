@@ -181,6 +181,13 @@ unprojected BIFF records are reported through the legacy import diagnostics
 instead of being silently dropped.
 
 Native `.xls` save uses the same `Save("*.xls")` path as other OfficeIMO saves.
+An imported, unencrypted BIFF8 workbook can preserve its original chart sheets,
+VBA streams and host identities while editing existing literal cells without
+changing their BIFF record sizes. The same profile supports encrypted output.
+Changes to formulas, rich-text runs, styles, properties or structure, new cells,
+and save-time calculation policies use the ordinary writer's feature preflight.
+See the [preserving profile](../Docs/officeimo.excel.legacy-xls-compatibility.md#preserve-imported-biff8-workbooks)
+for the exact boundary and native Excel evidence.
 When a workbook contains a feature outside the supported BIFF8 writer subset,
 OfficeIMO throws a preflight error with the unsupported feature name so the
 caller can save as `.xlsx`, remove the feature, or choose a different workflow.
@@ -497,8 +504,10 @@ Encryption retains each native encoder's feature and loss-policy limits.
 `MaxInMemoryPackageBytes` also bounds native BIFF serialization and XLSB
 intermediate parts before their output buffers grow; it is not a total process
 memory budget. The
-included XLS/XLSB worksheet controls open in native Excel without repair; this
-qualifies those controls, not every possible workbook feature. Password-to-modify
+included XLS/XLSB worksheet controls and imported chart/macro preservation controls
+open in native Excel without repair with macros disabled. This qualifies the
+documented edit profiles; macro execution and arbitrary workbook features remain
+separate. Password-to-modify
 and worksheet/workbook protection are separate from password-to-open encryption.
 
 After encrypting the associated file or stream, automatic persistence is disabled

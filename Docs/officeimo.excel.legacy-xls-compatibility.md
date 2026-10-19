@@ -93,18 +93,40 @@ The BIFF8 writer handles the tested subset of worksheets, values, supported form
 
 XLSX supports more features and larger limits than BIFF8. Before native XLS output, OfficeIMO checks workbook structure, grid and payload limits, formulas, charts/drawings/images, tables and pivots, connections/query tables, threaded comments, unsupported VML, macro/signature content, and other unsupported destination features. A failed preflight leaves existing output unchanged.
 
-The writer rejects chart-sheet, macro-sheet and dialog-sheet package parts.
-The independent OpenPreserve `valid.xls` macro workbook includes chart sheets
-and therefore cannot complete native save, even when general conversion loss is
-allowed. Retaining its VBA bytes alone would not qualify that workbook's full
-lifecycle. Native encrypted XLS output uses classic BIFF8 RC4/MD5 with a
-1–15 UTF-16-code-unit password. Retained pivot-cache and revision BIFF streams
-are rejected before output; VBA and some compound metadata remain unencrypted
-according to the format. See the [password-to-open contract](../OfficeIMO.Excel/README.md#password-to-open-output)
-for security limits and the separately qualified native XLSB profile. Workbook/sheet
-protection is a separate contract.
+### Preserve imported BIFF8 workbooks
 
-This is practical feature parity, not a claim that every XLSX feature can be encoded in BIFF8.
+For a structurally unchanged, unencrypted BIFF8 source, native save can retain the
+original workbook records and every other compound stream while changing existing
+literal cells. This preserves chart sheets, VBA project streams and host identities,
+embedded content, and records that the editable model only partially represents.
+The same profile can write password-to-open encrypted XLS output.
+
+The preserving profile accepts text-to-text, Boolean-to-Boolean, classic error-to-error,
+and representable numeric edits in existing fixed-width BIFF cell records. Existing
+rich-text formatting is retained; editing a rich-text value or its runs is outside
+this profile. Numeric RK cells retain their original encoding and reject values that
+cannot fit it. Adding cells, changing cell kinds, formulas, styles, sheet structure,
+properties, or save-time calculation/repair policies requires the ordinary writer
+and its feature preflight. A chart-bearing workbook therefore rejects those changes
+before touching the destination. An encrypted input or signed compound source does
+not enter this preserving profile.
+
+The native Excel controls contain ten worksheets, four chart sheets, and an inert
+VBA project with matching host identities. Plain and encrypted literal edits reopen
+without repair, retain the edited value, and display the populated chart's three
+bars. Automated checks compare retained compound streams and chart substreams and
+exercise repeated file saves, long Unicode strings, shared-string indices, output
+limits and cancellation. These controls qualify the stated edit profile; they do
+not establish arbitrary chart editing or macro execution.
+
+### Encrypted output
+
+Native encrypted XLS output uses classic BIFF8 RC4/MD5 with a 1–15 UTF-16-code-unit
+password. Retained pivot-cache and revision BIFF streams are rejected before output;
+VBA and some compound metadata remain unencrypted according to the format. See the
+[password-to-open contract](../OfficeIMO.Excel/README.md#password-to-open-output)
+for security limits and the native XLSB profile. Workbook/sheet protection is a
+separate contract.
 
 ## Detailed import assessment
 

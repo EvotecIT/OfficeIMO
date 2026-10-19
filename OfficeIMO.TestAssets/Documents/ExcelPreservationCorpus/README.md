@@ -20,3 +20,11 @@ preservation testable; the other chart sheets remain empty controls.
 except the first worksheet binary part match the native source byte-for-byte.
 Excel reopened it without repair, displayed the edited text and the same populated
 bar chart, and kept macros disabled. VBA execution remains outside this proof.
+
+The plain and encrypted edited XLS controls use the same existing `graphs2!A1`
+literal edit. Native Excel reopened the exact read-only artifacts without repair,
+with macros disabled, and displayed the edited cell and populated chart. Their
+hashes remained unchanged after inspection. The encrypted control uses the public
+test password `test-password`; it contains the same inert VBA project. These
+controls cover preservation during supported edits, not chart editing or macro
+execution. See `provenance.json` for artifact hashes and acceptance details.

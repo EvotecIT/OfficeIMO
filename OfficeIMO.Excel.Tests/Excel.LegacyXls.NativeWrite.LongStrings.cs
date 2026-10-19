@@ -124,14 +124,14 @@ namespace OfficeIMO.Tests {
             ushort expectedRecordType,
             ushort expectedCharacterCount) {
             int bucketOffset = checked(2 + (bucketIndex * 8));
-            uint containingRecordOffset = ReadUInt32(extendedSharedStringPayload, bucketOffset);
+            uint stringOffset = ReadUInt32(extendedSharedStringPayload, bucketOffset);
             ushort stringRelativeOffset = ReadUInt16(extendedSharedStringPayload, bucketOffset + 4);
-            int recordOffset = checked((int)containingRecordOffset);
+            int recordOffset = checked((int)(stringOffset - stringRelativeOffset));
             ushort recordLength = ReadUInt16(workbookStream, recordOffset + 2);
 
             Assert.Equal(expectedRecordType, ReadUInt16(workbookStream, recordOffset));
             Assert.InRange(stringRelativeOffset, (ushort)4, checked((ushort)(recordLength + 2)));
-            Assert.Equal(expectedCharacterCount, ReadUInt16(workbookStream, checked(recordOffset + stringRelativeOffset)));
+            Assert.Equal(expectedCharacterCount, ReadUInt16(workbookStream, checked((int)stringOffset)));
         }
 
         [Fact]

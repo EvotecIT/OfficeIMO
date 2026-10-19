@@ -51,9 +51,9 @@ public partial class ExcelDocument {
         long maximumBytes = Math.Min(GetPackageMaterializationLimit(options) ?? int.MaxValue, int.MaxValue);
         if (format == ExcelFileFormat.Xls) {
             LegacyXlsWriter.ValidateEncryptionPassword(password);
-            EnsureLegacyXlsSaveDoesNotDropImportedContent(options, includeProjectedChartSheets: true, preserveLinkedVbaProject: true);
+            EnsureLegacyXlsSaveDoesNotDropImportedContent(options, includeProjectedChartSheets: true, preserveLinkedVbaProject: true, preserveNativeRecords: true);
             EnsureXlsbStringStorageSupported(isXlsbTarget: false, options);
-            PrepareWorkbookForSave(options);
+            if (!CanPreserveNativeLegacyXls(options)) PrepareWorkbookForSave(options);
             byte[] legacy = LegacyXlsWriter.WriteEncryptedWorkbook(this, password, maximumBytes);
             ThrowIfPackageMaterializationExceedsLimit(legacy.LongLength, options);
             return legacy;
