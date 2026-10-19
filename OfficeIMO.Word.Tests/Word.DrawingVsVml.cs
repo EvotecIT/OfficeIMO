@@ -12,8 +12,7 @@ namespace OfficeIMO.Tests {
     public partial class Word {
         [Fact]
         public void VmlImageFileNameFallsBackToEmbeddedPartWhenTitleIsAbsent() {
-            string assets = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "../../../..", "Assets"));
-            string source = Path.Combine(assets, "OfficeIMO.png");
+            string source = Path.Combine(AppContext.BaseDirectory, "Images", "EvotecLogo.png");
             string output = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".docx");
             try {
                 using (WordDocument document = WordDocument.Create(output)) {
@@ -34,14 +33,13 @@ namespace OfficeIMO.Tests {
 
         [Fact]
         public void VmlImageFileNameRoundTripsThroughItsPublicProperty() {
-            string assets = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "../../../..", "Assets"));
-            string source = Path.Combine(assets, "OfficeIMO.png");
+            string source = Path.Combine(AppContext.BaseDirectory, "Images", "EvotecLogo.png");
             string output = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".docx");
             try {
                 using (WordDocument document = WordDocument.Create(output)) {
                     document.AddImageVml(source);
                     WordImage image = Assert.Single(document.Images);
-                    Assert.Equal("OfficeIMO.png", image.FileName);
+                    Assert.Equal(Path.GetFileName(source), image.FileName);
                     image.FileName = "renamed.png";
                     Assert.Equal("renamed.png", image.FileName);
                     document.Save();
@@ -53,8 +51,7 @@ namespace OfficeIMO.Tests {
 
         [Fact]
         public void Test_DrawingVsVmlCounts() {
-            string assets = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "../../../..", "Assets"));
-            string img = Path.Combine(assets, "OfficeIMO.png");
+            string img = Path.Combine(AppContext.BaseDirectory, "Images", "EvotecLogo.png");
 
             string drawingFile = Path.Combine(_directoryWithFiles, "DrawingCounts.docx");
             using (WordDocument doc = WordDocument.Create(drawingFile)) {
