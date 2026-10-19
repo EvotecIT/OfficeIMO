@@ -12,6 +12,7 @@ import type { ByteSink } from "../core/sinks.js";
 import { OfficeIMOError } from "../core/errors.js";
 import { escapeXml, xmlDeclaration } from "../xml/index.js";
 import type { InvalidCharacterPolicy } from "../xml/index.js";
+import { checkAbort, pause, taskYieldDue } from "../core/iteration.js";
 
 export const relationshipsNamespace = "http://schemas.openxmlformats.org/package/2006/relationships";
 export const officeRelationshipsNamespace = "http://schemas.openxmlformats.org/officeDocument/2006/relationships";
@@ -69,7 +70,7 @@ export class OpcPackage {
   private readonly types = new ContentTypes();
   private readonly parts = new Map<string, PackagePart | { uri: string; prepared: PreparedEntry } | { uri: string; written: true }>();
   private readonly directories = new Set<string>();
-  private readonly relationships = new Map<string, Relationship[]>();
+  private readonly relationships = new Map<string, Map<string, Relationship>>();
   private state = "open";
   private result: Promise<number> | undefined;
   private readonly zip: ZipWriter;
@@ -107,14 +108,15 @@ export class OpcPackage {
     catch (error) { await this.discard(error); throw error; }
   }
   addRelationship(source: string, relationship: Relationship): void {
+    checkAbort(this.options.signal);
     this.open(); source = source === "/" ? source : partUri(source);
     if (!/^[A-Za-z_][A-Za-z0-9_.-]*$/.test(relationship.id)) throw new TypeError("Relationship id must be an XML ID.");
     if (!/^[A-Za-z][A-Za-z0-9+.-]*:[^\s<>"']+$/.test(relationship.type)) throw new TypeError("Relationship type must be an absolute URI.");
     const target = relationship.external ? relationship.target : partUri(relationship.target);
     if (relationship.external && (!target || /[\u0000-\u0020]/.test(target))) throw new TypeError("Invalid external relationship target.");
-    const key = source.toLowerCase(), list = this.relationships.get(key) ?? [];
-    if (list.some(r => r.id === relationship.id)) throw new TypeError("Duplicate relationship id: " + relationship.id);
-    list.push({ ...relationship, target }); this.relationships.set(key, list);
+    const key = source.toLowerCase(), list = this.relationships.get(key) ?? new Map<string, Relationship>();
+    if (list.has(relationship.id)) throw new TypeError("Duplicate relationship id: " + relationship.id);
+    list.set(relationship.id, { ...relationship, target }); this.relationships.set(key, list);
   }
   setProperties(core: CoreProperties = {}, app: AppProperties = {}): void {
     // Build and validate both documents before reserving any parts.
@@ -148,7 +150,12 @@ export class OpcPackage {
       try {
         for (const [source, list] of this.relationships) {
           if (source !== "/" && !this.parts.has(source)) throw new TypeError("Missing relationship source part: " + source);
-          for (const rel of list) if (!rel.external && !this.parts.has(rel.target.toLowerCase())) throw new TypeError("Missing relationship target: " + rel.target);
+          let checked = 0;
+          for (const rel of list.values()) {
+            checkAbort(this.options.signal);
+            if (!rel.external && !this.parts.has(rel.target.toLowerCase())) throw new TypeError("Missing relationship target: " + rel.target);
+            if ((++checked & 255) === 0 && taskYieldDue()) { await pause(); checkAbort(this.options.signal); }
+          }
         }
         for (const part of this.parts.values()) {
           if ("written" in part) continue;
@@ -157,10 +164,16 @@ export class OpcPackage {
         }
         for (const [key, list] of this.relationships) {
           const source = key === "/" ? "/" : this.parts.get(key)!.uri;
-          const xml = xmlDeclaration + '<Relationships xmlns="' + relationshipsNamespace + '">' + list.map(r =>
-            '<Relationship Id="' + escapeXml(r.id) + '" Type="' + escapeXml(r.type) + '" Target="' +
-            escapeXml(r.external ? r.target : relativePartTarget(source, r.target)) + '"' + (r.external ? ' TargetMode="External"' : "") + '/>').join("") + '</Relationships>';
-          await zip.add(relationshipPartUri(source).slice(1), this.source(xml));
+          await zip.add(relationshipPartUri(source).slice(1), async sink => {
+            const text = new ChunkedTextSink(sink, this.options.signal);
+            await text.write(xmlDeclaration + '<Relationships xmlns="' + relationshipsNamespace + '">');
+            for (const r of list.values()) {
+              const xml = '<Relationship Id="' + escapeXml(r.id) + '" Type="' + escapeXml(r.type) + '" Target="' +
+                escapeXml(r.external ? r.target : relativePartTarget(source, r.target)) + '"' + (r.external ? ' TargetMode="External"' : "") + '/>';
+              if (text.append(xml)) await text.flush();
+            }
+            await text.write('</Relationships>'); await text.close();
+          });
         }
         await zip.add("[Content_Types].xml", this.source(this.types.toXml()));
         await zip.finish(); this.state = "complete"; return zip.bytesWritten;

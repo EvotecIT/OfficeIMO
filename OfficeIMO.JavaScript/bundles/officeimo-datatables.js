@@ -291,7 +291,29 @@ _modules.set("30899b95dd5dd6f624c2452b62f806fd950961d21a48ccf9c2dfb3452abb67a9",
 return _exports;
 })();
 
-const _m6 = _modules.get("e3ffb91cf46091b5b178d3d4d7b158f52cf21d2ee0e7dfe1fb5140810fd7fecb") ?? (() => {
+const _m6 = _modules.get("501f5fccaecb27d9e514b74cf64893649e50616692250593d120ca315b510c04") ?? (() => {
+/** @internal Recognize native Date values across iframe realms without trusting a string tag. */
+function isDate(value) {
+    if (value === null || typeof value !== "object")
+        return false;
+    try {
+        // Ordinary rows take the cheap negative path. A custom string tag can be an
+        // accessor: use the native brand check directly without reading that tag.
+        if (!(value instanceof Date) && !(Symbol.toStringTag in value) && Object.prototype.toString.call(value) !== "[object Date]")
+            return false;
+        Date.prototype.getTime.call(value);
+        return true;
+    }
+    catch {
+        return false;
+    }
+}
+const _exports = Object.freeze({ isDate: isDate });
+_modules.set("501f5fccaecb27d9e514b74cf64893649e50616692250593d120ca315b510c04", _exports);
+return _exports;
+})();
+
+const _m7 = _modules.get("e3ffb91cf46091b5b178d3d4d7b158f52cf21d2ee0e7dfe1fb5140810fd7fecb") ?? (() => {
 /** @internal One target policy shared by document writers and portable cells. */
 function copyExportLink(link) {
     if (!link || typeof link !== "object" || typeof link.target !== "string" ||
@@ -309,8 +331,10 @@ _modules.set("e3ffb91cf46091b5b178d3d4d7b158f52cf21d2ee0e7dfe1fb5140810fd7fecb",
 return _exports;
 })();
 
-const _m5 = _modules.get("1776e2e05f0580d133fd9d8bb25337175f06b83e72cb1e8d0d2b7fd44f6d1231") ?? (() => {
-const { copyExportLink } = _m6;
+const _m5 = _modules.get("f79dd9ca01bb1864831e26b384a6612a1eb631936d358dd2a008a894dbceb4fd") ?? (() => {
+const { isDate } = _m6;
+
+const { copyExportLink } = _m7;
 
 const exportCellBrand = Symbol.for("@evotecit/officeimo/ExportCell");
 /** One resolved value/presentation decision that can be reused across exports. Strings remain literal data. */
@@ -335,7 +359,7 @@ class ExportCell {
 /** @internal Reject async formatters while observing their rejection immediately. */
 function assertScalar(value) {
     const kind = typeof value;
-    if (value == null || kind === "string" || kind === "number" || kind === "boolean" || value instanceof Date)
+    if (value == null || kind === "string" || kind === "number" || kind === "boolean" || isDate(value))
         return;
     if (typeof value.then === "function")
         void Promise.resolve(value).catch(() => { });
@@ -348,11 +372,11 @@ function assertExportValue(value) {
     assertScalar(value);
 }
 const _exports = Object.freeze({ ExportCell: ExportCell, assertScalar: assertScalar, assertExportValue: assertExportValue });
-_modules.set("1776e2e05f0580d133fd9d8bb25337175f06b83e72cb1e8d0d2b7fd44f6d1231", _exports);
+_modules.set("f79dd9ca01bb1864831e26b384a6612a1eb631936d358dd2a008a894dbceb4fd", _exports);
 return _exports;
 })();
 
-const _m1 = _modules.get("f75b4dd6745da92c32a648f2ca36880959551482c60b8aa85068b9c3dfd39f36") ?? (() => {
+const _m1 = _modules.get("9e9621bba11170b44ed2da3db9d8769784402a320771933ef68ba6b9d9f10a31") ?? (() => {
 
 
 
@@ -395,11 +419,27 @@ function saveBlob(blob, fileName) {
     }
 }
 const _exports = Object.freeze({ OfficeIMOError: _m2.OfficeIMOError, NotSupportedError: _m2.NotSupportedError, BlobByteSink: _m3.BlobByteSink, ChunkedTextSink: _m3.ChunkedTextSink, writeBytes: _m3.writeBytes, ExportCell: _m5.ExportCell, checkAbort: _m4.checkAbort, withAbort: _m4.withAbort, inputRows: _m4.inputRows, pause: _m4.pause, detectFeatures: detectFeatures, saveBlob: saveBlob });
-_modules.set("f75b4dd6745da92c32a648f2ca36880959551482c60b8aa85068b9c3dfd39f36", _exports);
+_modules.set("9e9621bba11170b44ed2da3db9d8769784402a320771933ef68ba6b9d9f10a31", _exports);
 return _exports;
 })();
 
-const _m8 = _modules.get("02ec6cf227afac6ead01cf24b9e3958c71ffd2616ecf0ad6b0baed551f39b86d") ?? (() => {
+const _m8 = _modules.get("6cfd3e806439f6301003a2d1699a74fdfa574d935550ab62b97b528728eaee1f") ?? (() => {
+/** @internal Notify synchronously; observe an accidental promise before rejecting its unsupported use. */
+function notifyProgress(callback, progress) {
+    if (!callback)
+        return;
+    const result = callback(progress);
+    if (result && typeof result.then === "function") {
+        void Promise.resolve(result).catch(() => { });
+        throw new TypeError("onProgress must be synchronous.");
+    }
+}
+const _exports = Object.freeze({ notifyProgress: notifyProgress });
+_modules.set("6cfd3e806439f6301003a2d1699a74fdfa574d935550ab62b97b528728eaee1f", _exports);
+return _exports;
+})();
+
+const _m10 = _modules.get("02ec6cf227afac6ead01cf24b9e3958c71ffd2616ecf0ad6b0baed551f39b86d") ?? (() => {
 const { OfficeIMOError } = _m2;
 
 /** @internal Check before accepting the next value or chunk. */
@@ -456,10 +496,12 @@ _modules.set("02ec6cf227afac6ead01cf24b9e3958c71ffd2616ecf0ad6b0baed551f39b86d",
 return _exports;
 })();
 
-const _m9 = _modules.get("9fafe62c62ddf4438ee7401032931b9f393343083ee6d53f45e64492e8ed21f6") ?? (() => {
+const _m11 = _modules.get("e5f51523cbe24352ffc2ddc2cdf46cc1145e4215964526154f109ec9c0146386") ?? (() => {
 const { assertExportValue } = _m5;
 
 const { checkAbort } = _m4;
+
+const { isDate } = _m6;
 
 function createRowProjector(columns, worksheet, signal, validate = assertExportValue) {
     const getters = columns.some(column => column.value);
@@ -471,7 +513,7 @@ function createRowProjector(columns, worksheet, signal, validate = assertExportV
                 validate(value);
             return row;
         }
-        if (!row || typeof row !== "object" || row instanceof Date)
+        if (!row || typeof row !== "object" || isDate(row))
             throw new TypeError("A row must be an array or object.");
         if (Array.isArray(row) && row.length > columns.length && !columns.every(column => column.value))
             throw new RangeError("Project every column explicitly when selecting from a wider array row.");
@@ -513,20 +555,24 @@ function copyColumns(columns, workbookStyles = false) {
     });
 }
 const _exports = Object.freeze({ createRowProjector: createRowProjector, copyColumns: copyColumns });
-_modules.set("9fafe62c62ddf4438ee7401032931b9f393343083ee6d53f45e64492e8ed21f6", _exports);
+_modules.set("e5f51523cbe24352ffc2ddc2cdf46cc1145e4215964526154f109ec9c0146386", _exports);
 return _exports;
 })();
 
-const _m7 = _modules.get("0cef4b154a3df464fbdd3c7598f36b2448028dbdf0664c184a7ee2ccd690579f") ?? (() => {
+const _m9 = _modules.get("8d53c3ca40bb7f550fede378a9850d80d8bda9928e93cfbb2fb46a3e4faaffa4") ?? (() => {
 const { beginTask, checkAbort, consumeRows, taskYieldDue, withAbort } = _m4;
 
 const { BlobByteSink, ChunkedTextSink, withDestination } = _m3;
 
-const { ExportBudget, boundedSink } = _m8;
+const { ExportBudget, boundedSink } = _m10;
 
 const { ExportCell } = _m5;
 
-const { copyColumns, createRowProjector } = _m9;
+const { isDate } = _m6;
+
+const { notifyProgress } = _m8;
+
+const { copyColumns, createRowProjector } = _m11;
 
 
 
@@ -538,7 +584,7 @@ function csvField(value, delimiter, protect, quote, nullValue) {
     let text;
     if (value == null)
         text = "";
-    else if (value instanceof Date)
+    else if (isDate(value))
         text = Number.isFinite(value.getTime()) ? value.toISOString() : "";
     else if (typeof value === "boolean")
         text = value ? "True" : "False";
@@ -609,7 +655,7 @@ async function write(rows, sink, options) {
             }
         }
         if (buffer.append(text + lineEnding))
-            return buffer.flush().then(() => { options.onProgress?.({ phase: "rows", rows: count }); });
+            return buffer.flush().then(() => { notifyProgress(options.onProgress, { phase: "rows", rows: count + (header ? 0 : 1) }); });
     }
     if (options.includeHeader !== false && columns.length)
         await record(columns.map(c => c.header), true);
@@ -621,7 +667,7 @@ async function write(rows, sink, options) {
         count++;
     });
     await buffer.close();
-    options.onProgress?.({ phase: "complete", rows: count, bytes });
+    notifyProgress(options.onProgress, { phase: "complete", rows: count, bytes });
     checkAbort(signal);
     return { rows: count, columns: columns.length, bytes };
 }
@@ -634,10 +680,10 @@ async function writeCsv(rows, configuration) {
                 if (p.phase === "complete")
                     completedRows = p.rows;
                 else
-                    options.onProgress?.(p);
+                    notifyProgress(options.onProgress, p);
             } });
         const blob = sink.toBlob("text/csv;charset=utf-8");
-        options.onProgress?.({ phase: "complete", rows: completedRows, bytes: blob.size });
+        notifyProgress(options.onProgress, { phase: "complete", rows: completedRows, bytes: blob.size });
         checkAbort(options.signal);
         return blob;
     }
@@ -647,11 +693,11 @@ async function writeCsv(rows, configuration) {
     }
 }
 const _exports = Object.freeze({ saveBlob: _m1.saveBlob, ExportCell: _m5.ExportCell, writeCsvTo: writeCsvTo, writeCsv: writeCsv });
-_modules.set("0cef4b154a3df464fbdd3c7598f36b2448028dbdf0664c184a7ee2ccd690579f", _exports);
+_modules.set("8d53c3ca40bb7f550fede378a9850d80d8bda9928e93cfbb2fb46a3e4faaffa4", _exports);
 return _exports;
 })();
 
-const _m13 = _modules.get("1c59bcf8a34f5a3e12c0bbcde4b2cc33229bf5680c6553fea568737cb154643b") ?? (() => {
+const _m15 = _modules.get("1c59bcf8a34f5a3e12c0bbcde4b2cc33229bf5680c6553fea568737cb154643b") ?? (() => {
 const { OfficeIMOError } = _m2;
 
 /** Canonical absolute OPC part URI. ASCII URI spelling; Unicode must be UTF-8 percent encoded. */
@@ -699,7 +745,7 @@ _modules.set("1c59bcf8a34f5a3e12c0bbcde4b2cc33229bf5680c6553fea568737cb154643b",
 return _exports;
 })();
 
-const _m15 = _modules.get("d9a861cb1ec0360496ee3bb1e96213bc66bfe82792559a40d04ada941e38e5ed") ?? (() => {
+const _m17 = _modules.get("d9a861cb1ec0360496ee3bb1e96213bc66bfe82792559a40d04ada941e38e5ed") ?? (() => {
 const { OfficeIMOError } = _m2;
 
 const { ChunkedTextSink } = _m3;
@@ -781,12 +827,14 @@ _modules.set("d9a861cb1ec0360496ee3bb1e96213bc66bfe82792559a40d04ada941e38e5ed",
 return _exports;
 })();
 
-const _m14 = _modules.get("06e590fad1cfa136f01f0e46c83fc9f4c5da9464926f9c1b13bb1b029f372f30") ?? (() => {
-const { escapeXml, xmlDeclaration } = _m15;
+const _m16 = _modules.get("de974ad7b2b04798ac3f0c8a2414bccda3247c7a1709f8f57949956008e476a4") ?? (() => {
+const { escapeXml, xmlDeclaration } = _m17;
+
+const { isDate } = _m6;
 
 function corePropertiesXml(properties = {}, policy = "strip") {
     const created = properties.created ?? new Date(), modified = properties.modified ?? created;
-    if (!(created instanceof Date) || !(modified instanceof Date) || !Number.isFinite(created.getTime()) || !Number.isFinite(modified.getTime()))
+    if (!isDate(created) || !isDate(modified) || !Number.isFinite(created.getTime()) || !Number.isFinite(modified.getTime()))
         throw new TypeError("Invalid workbook property date.");
     return xmlDeclaration + '<cp:coreProperties xmlns:cp="http://schemas.openxmlformats.org/package/2006/metadata/core-properties"' +
         ' xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:dcterms="http://purl.org/dc/terms/" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">' +
@@ -801,23 +849,18 @@ function appPropertiesXml(properties = {}, policy = "strip") {
         '<Application>' + escapeXml(properties.application ?? "OfficeIMO", policy) + '</Application><Company>' + escapeXml(properties.company ?? "", policy) + '</Company></Properties>';
 }
 const _exports = Object.freeze({ corePropertiesXml: corePropertiesXml, appPropertiesXml: appPropertiesXml });
-_modules.set("06e590fad1cfa136f01f0e46c83fc9f4c5da9464926f9c1b13bb1b029f372f30", _exports);
+_modules.set("de974ad7b2b04798ac3f0c8a2414bccda3247c7a1709f8f57949956008e476a4", _exports);
 return _exports;
 })();
 
-const _m17 = _modules.get("8e6dad887c82ad981412bbdc63bf2b12af87975e2e55c8cddf67cc7e1103d645") ?? (() => {
-const { checkAbort, withAbort } = _m4;
-
-const { OfficeIMOError } = _m2;
-
-const zipLimit = 0xffffffff;
+const _m20 = _modules.get("790c15edc51b308be3e7d8222630d407f8c79c31ab21ba0b9f92c00f44ab4021") ?? (() => {
 const crcTable = new Uint32Array(256).map((_, index) => {
     let value = index;
     for (let bit = 0; bit < 8; bit++)
         value = value & 1 ? 0xedb88320 ^ (value >>> 1) : value >>> 1;
     return value >>> 0;
 });
-/** Incremental CRC-32/ISO-HDLC, also usable by a future reader. */
+/** Incremental CRC-32/ISO-HDLC shared by ZIP and PNG chunk validation. */
 class Crc32 {
     crc = 0xffffffff;
     update(bytes) {
@@ -828,6 +871,21 @@ class Crc32 {
     }
     get value() { return (this.crc ^ 0xffffffff) >>> 0; }
 }
+const _exports = Object.freeze({ Crc32: Crc32 });
+_modules.set("790c15edc51b308be3e7d8222630d407f8c79c31ab21ba0b9f92c00f44ab4021", _exports);
+return _exports;
+})();
+
+const _m19 = _modules.get("7f87afcf60f5a26c736ecb79910a0ad7f291217eef7537cd4f83b391819c2587") ?? (() => {
+const { checkAbort, withAbort } = _m4;
+
+const { OfficeIMOError } = _m2;
+
+const { Crc32 } = _m20;
+
+
+
+const zipLimit = 0xffffffff;
 function zipSize(value) {
     if (!Number.isSafeInteger(value) || value < 0 || value >= zipLimit)
         throw new OfficeIMOError("ZIP64_REQUIRED", "Classic ZIP entries and archives must stay below 4 GiB; ZIP64 is not supported yet.");
@@ -945,15 +1003,15 @@ class EntryWriter {
         this.reader?.releaseLock();
     }
 }
-const _exports = Object.freeze({ zipLimit: zipLimit, Crc32: Crc32, zipSize: zipSize, EntryWriter: EntryWriter });
-_modules.set("8e6dad887c82ad981412bbdc63bf2b12af87975e2e55c8cddf67cc7e1103d645", _exports);
+const _exports = Object.freeze({ Crc32: _m20.Crc32, zipLimit: zipLimit, zipSize: zipSize, EntryWriter: EntryWriter });
+_modules.set("7f87afcf60f5a26c736ecb79910a0ad7f291217eef7537cd4f83b391819c2587", _exports);
 return _exports;
 })();
 
-const _m16 = _modules.get("a2ddba56b4d67b3507dfd2b8954d830353827d258bc3ca5665f687430f915983") ?? (() => {
+const _m18 = _modules.get("6eb47fc215e4b235d1134f80b987e263aa42a195e61a033551445c1f0c9bcb51") ?? (() => {
 
 
-const { EntryWriter, zipSize } = _m17;
+const { EntryWriter, zipSize } = _m19;
 
 const { checkAbort, withAbort, pause, taskYieldDue } = _m4;
 
@@ -1181,27 +1239,29 @@ class ZipWriter {
         return this.owned.toBlob(type);
     }
 }
-const _exports = Object.freeze({ Crc32: _m17.Crc32, validateEntryName: validateEntryName, ZipWriter: ZipWriter });
-_modules.set("a2ddba56b4d67b3507dfd2b8954d830353827d258bc3ca5665f687430f915983", _exports);
+const _exports = Object.freeze({ Crc32: _m19.Crc32, validateEntryName: validateEntryName, ZipWriter: ZipWriter });
+_modules.set("6eb47fc215e4b235d1134f80b987e263aa42a195e61a033551445c1f0c9bcb51", _exports);
 return _exports;
 })();
 
-const _m12 = _modules.get("7919eb77b77281ca0fa12fdf5e1f0bb9d1f52b1f2be3bdac919577ff9b33aa4c") ?? (() => {
+const _m14 = _modules.get("eb6db17d49450674b12e834934423973c1995bd7a495459f2ff623f7ba0229fa") ?? (() => {
 
 
 
 
-const { partUri, relationshipPartUri, relativePartTarget } = _m13;
+const { partUri, relationshipPartUri, relativePartTarget } = _m15;
 
-const { corePropertiesXml, appPropertiesXml } = _m14;
+const { corePropertiesXml, appPropertiesXml } = _m16;
 
-const { ZipWriter } = _m16;
+const { ZipWriter } = _m18;
 
 const { ChunkedTextSink } = _m3;
 
 const { OfficeIMOError } = _m2;
 
-const { escapeXml, xmlDeclaration } = _m15;
+const { escapeXml, xmlDeclaration } = _m17;
+
+const { checkAbort, pause, taskYieldDue } = _m4;
 
 const relationshipsNamespace = "http://schemas.openxmlformats.org/package/2006/relationships";
 const officeRelationshipsNamespace = "http://schemas.openxmlformats.org/officeDocument/2006/relationships";
@@ -1304,6 +1364,7 @@ class OpcPackage {
         }
     }
     addRelationship(source, relationship) {
+        checkAbort(this.options.signal);
         this.open();
         source = source === "/" ? source : partUri(source);
         if (!/^[A-Za-z_][A-Za-z0-9_.-]*$/.test(relationship.id))
@@ -1313,10 +1374,10 @@ class OpcPackage {
         const target = relationship.external ? relationship.target : partUri(relationship.target);
         if (relationship.external && (!target || /[\u0000-\u0020]/.test(target)))
             throw new TypeError("Invalid external relationship target.");
-        const key = source.toLowerCase(), list = this.relationships.get(key) ?? [];
-        if (list.some(r => r.id === relationship.id))
+        const key = source.toLowerCase(), list = this.relationships.get(key) ?? new Map();
+        if (list.has(relationship.id))
             throw new TypeError("Duplicate relationship id: " + relationship.id);
-        list.push({ ...relationship, target });
+        list.set(relationship.id, { ...relationship, target });
         this.relationships.set(key, list);
     }
     setProperties(core = {}, app = {}) {
@@ -1359,9 +1420,16 @@ class OpcPackage {
                 for (const [source, list] of this.relationships) {
                     if (source !== "/" && !this.parts.has(source))
                         throw new TypeError("Missing relationship source part: " + source);
-                    for (const rel of list)
+                    let checked = 0;
+                    for (const rel of list.values()) {
+                        checkAbort(this.options.signal);
                         if (!rel.external && !this.parts.has(rel.target.toLowerCase()))
                             throw new TypeError("Missing relationship target: " + rel.target);
+                        if ((++checked & 255) === 0 && taskYieldDue()) {
+                            await pause();
+                            checkAbort(this.options.signal);
+                        }
+                    }
                 }
                 for (const part of this.parts.values()) {
                     if ("written" in part)
@@ -1373,9 +1441,18 @@ class OpcPackage {
                 }
                 for (const [key, list] of this.relationships) {
                     const source = key === "/" ? "/" : this.parts.get(key).uri;
-                    const xml = xmlDeclaration + '<Relationships xmlns="' + relationshipsNamespace + '">' + list.map(r => '<Relationship Id="' + escapeXml(r.id) + '" Type="' + escapeXml(r.type) + '" Target="' +
-                        escapeXml(r.external ? r.target : relativePartTarget(source, r.target)) + '"' + (r.external ? ' TargetMode="External"' : "") + '/>').join("") + '</Relationships>';
-                    await zip.add(relationshipPartUri(source).slice(1), this.source(xml));
+                    await zip.add(relationshipPartUri(source).slice(1), async (sink) => {
+                        const text = new ChunkedTextSink(sink, this.options.signal);
+                        await text.write(xmlDeclaration + '<Relationships xmlns="' + relationshipsNamespace + '">');
+                        for (const r of list.values()) {
+                            const xml = '<Relationship Id="' + escapeXml(r.id) + '" Type="' + escapeXml(r.type) + '" Target="' +
+                                escapeXml(r.external ? r.target : relativePartTarget(source, r.target)) + '"' + (r.external ? ' TargetMode="External"' : "") + '/>';
+                            if (text.append(xml))
+                                await text.flush();
+                        }
+                        await text.write('</Relationships>');
+                        await text.close();
+                    });
                 }
                 await zip.add("[Content_Types].xml", this.source(this.types.toXml()));
                 await zip.finish();
@@ -1409,12 +1486,12 @@ class OpcPackage {
         await this.zip.discard(error);
     }
 }
-const _exports = Object.freeze({ partUri: _m13.partUri, relationshipPartUri: _m13.relationshipPartUri, relativePartTarget: _m13.relativePartTarget, corePropertiesXml: _m14.corePropertiesXml, appPropertiesXml: _m14.appPropertiesXml, relationshipsNamespace: relationshipsNamespace, officeRelationshipsNamespace: officeRelationshipsNamespace, contentTypesNamespace: contentTypesNamespace, relationshipTypes: relationshipTypes, ContentTypes: ContentTypes, OpcPackage: OpcPackage });
-_modules.set("7919eb77b77281ca0fa12fdf5e1f0bb9d1f52b1f2be3bdac919577ff9b33aa4c", _exports);
+const _exports = Object.freeze({ partUri: _m15.partUri, relationshipPartUri: _m15.relationshipPartUri, relativePartTarget: _m15.relativePartTarget, corePropertiesXml: _m16.corePropertiesXml, appPropertiesXml: _m16.appPropertiesXml, relationshipsNamespace: relationshipsNamespace, officeRelationshipsNamespace: officeRelationshipsNamespace, contentTypesNamespace: contentTypesNamespace, relationshipTypes: relationshipTypes, ContentTypes: ContentTypes, OpcPackage: OpcPackage });
+_modules.set("eb6db17d49450674b12e834934423973c1995bd7a495459f2ff623f7ba0229fa", _exports);
 return _exports;
 })();
 
-const _m19 = _modules.get("204def412284dfb11df9aececd57c8c0455db2927ebdb483dd255e7b29f6f359") ?? (() => {
+const _m22 = _modules.get("204def412284dfb11df9aececd57c8c0455db2927ebdb483dd255e7b29f6f359") ?? (() => {
 function colorArgb(value) {
     if (typeof value !== "string" || !/^#?(?:[0-9a-f]{6}|[0-9a-f]{8})$/i.test(value))
         throw new TypeError("Color must be RGB or ARGB hex.");
@@ -1426,12 +1503,12 @@ _modules.set("204def412284dfb11df9aececd57c8c0455db2927ebdb483dd255e7b29f6f359",
 return _exports;
 })();
 
-const _m20 = _modules.get("4ab86bb45f864ae0512151e4068f81ed890a42fab7dc8a574efc3d748df7c3d4") ?? (() => {
+const _m23 = _modules.get("4ab86bb45f864ae0512151e4068f81ed890a42fab7dc8a574efc3d748df7c3d4") ?? (() => {
 const { OfficeIMOError } = _m2;
 
-const { cleanXml, escapeOoxmlAttribute } = _m15;
+const { cleanXml, escapeOoxmlAttribute } = _m17;
 
-const { colorArgb } = _m19;
+const { colorArgb } = _m22;
 
 /** @internal Reject unsupported properties rather than silently losing presentation. */
 function fields(value, allowed, label) {
@@ -1537,14 +1614,14 @@ _modules.set("4ab86bb45f864ae0512151e4068f81ed890a42fab7dc8a574efc3d748df7c3d4",
 return _exports;
 })();
 
-const _m18 = _modules.get("d161fa0b379454c110e39cc08d827c2d47405c09066ecedbb70a12f4a35d2bfd") ?? (() => {
-const { escapeOoxmlAttribute, cleanXml, xmlDeclaration } = _m15;
+const _m21 = _modules.get("d161fa0b379454c110e39cc08d827c2d47405c09066ecedbb70a12f4a35d2bfd") ?? (() => {
+const { escapeOoxmlAttribute, cleanXml, xmlDeclaration } = _m17;
 
 const { OfficeIMOError } = _m2;
 
-const { colorArgb } = _m19;
+const { colorArgb } = _m22;
 
-const { DifferentialStyles } = _m20;
+const { DifferentialStyles } = _m23;
 
 
 
@@ -1742,15 +1819,17 @@ class StyleRegistry {
         }).join("") + '</cellXfs><cellStyles count="1"><cellStyle name="Normal" xfId="0" builtinId="0"/></cellStyles>' + this.differential.toXml() + '</styleSheet>';
     }
 }
-const _exports = Object.freeze({ colorArgb: _m19.colorArgb, spreadsheetNamespace: spreadsheetNamespace, NumberFormats: NumberFormats, validateStylePatch: validateStylePatch, copyStylePatch: copyStylePatch, StyleRegistry: StyleRegistry });
+const _exports = Object.freeze({ colorArgb: _m22.colorArgb, spreadsheetNamespace: spreadsheetNamespace, NumberFormats: NumberFormats, validateStylePatch: validateStylePatch, copyStylePatch: copyStylePatch, StyleRegistry: StyleRegistry });
 _modules.set("d161fa0b379454c110e39cc08d827c2d47405c09066ecedbb70a12f4a35d2bfd", _exports);
 return _exports;
 })();
 
-const _m21 = _modules.get("e34083915684cd97cc83ee4d09dc46b518bd9dab89dbfdce12206ab90e3ee1e0") ?? (() => {
-const { cleanXml, escapeXml } = _m15;
+const _m24 = _modules.get("1aac198e2184d5d5a6e3d4ac9d414ec92991420a1c8ad0f5f798ea8c7c8daab8") ?? (() => {
+const { cleanXml, escapeXml } = _m17;
 
 const { ExportCell, assertExportValue, assertScalar } = _m5;
+
+const { isDate } = _m6;
 
 /** A typed value plus a workbook-local style index. */
 class Cell {
@@ -1770,12 +1849,12 @@ function assertXlsxValue(value) {
 }
 /** @internal Buffered samples and footer definitions capture mutable Date values. */
 function copyValue(value) {
-    if (value instanceof Date)
-        return new Date(value);
-    if (value instanceof Cell && value.value instanceof Date)
-        return new Cell(new Date(value.value), value.style);
-    if (value instanceof ExportCell && value.value instanceof Date)
-        return new ExportCell(new Date(value.value), { ...(value.text === undefined ? {} : { text: value.text }), ...(value.presentation ? { presentation: value.presentation } : {}), ...(value.link ? { link: value.link } : {}) });
+    if (isDate(value))
+        return new Date(value.getTime());
+    if (value instanceof Cell && isDate(value.value))
+        return new Cell(new Date(value.value.getTime()), value.style);
+    if (value instanceof ExportCell && isDate(value.value))
+        return new ExportCell(new Date(value.value.getTime()), { ...(value.text === undefined ? {} : { text: value.text }), ...(value.presentation ? { presentation: value.presentation } : {}), ...(value.link ? { link: value.link } : {}) });
     return value;
 }
 function cellText(value, policy = "strip") {
@@ -1835,16 +1914,16 @@ function excelDate(date, mode) {
     return (time - Date.UTC(1899, 11, 31)) / 86400000 + (time >= Date.UTC(1900, 2, 1) ? 1 : 0);
 }
 const _exports = Object.freeze({ Cell: Cell, assertXlsxValue: assertXlsxValue, copyValue: copyValue, cellText: cellText, inlineText: inlineText, columnName: columnName, sheetName: sheetName, excelDate: excelDate });
-_modules.set("e34083915684cd97cc83ee4d09dc46b518bd9dab89dbfdce12206ab90e3ee1e0", _exports);
+_modules.set("1aac198e2184d5d5a6e3d4ac9d414ec92991420a1c8ad0f5f798ea8c7c8daab8", _exports);
 return _exports;
 })();
 
-const _m23 = _modules.get("c507e4a8c7e4c9d8b1fea1bbf22ef65c25d3199b9471ba7d72e0f37669ef0439") ?? (() => {
-const { cleanXml, escapeXml, escapeOoxmlAttribute, xmlDeclaration } = _m15;
+const _m26 = _modules.get("8193451460f632b94935a6a96b293e3bff4434b68eff93b8a45331424b91052d") ?? (() => {
+const { cleanXml, escapeXml, escapeOoxmlAttribute, xmlDeclaration } = _m17;
 
-const { copyExportLink } = _m6;
+const { copyExportLink } = _m7;
 
-const { officeRelationshipsNamespace } = _m12;
+const { officeRelationshipsNamespace } = _m14;
 
 function cellPosition(reference) {
     const match = typeof reference === "string" && /^([A-Z]{1,3})([1-9][0-9]{0,6})$/.exec(reference);
@@ -1897,14 +1976,14 @@ function drawingXml(images, policy) {
 }
 const drawingContentType = "application/vnd.openxmlformats-officedocument.drawing+xml";
 const _exports = Object.freeze({ cellPosition: cellPosition, copyHyperlink: copyHyperlink, copyImage: copyImage, hyperlinksXml: hyperlinksXml, drawingXml: drawingXml, drawingContentType: drawingContentType });
-_modules.set("c507e4a8c7e4c9d8b1fea1bbf22ef65c25d3199b9471ba7d72e0f37669ef0439", _exports);
+_modules.set("8193451460f632b94935a6a96b293e3bff4434b68eff93b8a45331424b91052d", _exports);
 return _exports;
 })();
 
-const _m25 = _modules.get("a243a375bf4a43f1dc1e117315f68b7c23e660c31dc76ce0a1392931e234ecca") ?? (() => {
+const _m28 = _modules.get("38b2005e8211a5e84d49238c1faf0d830b5ed2ede275f87e2933dfeb3078f78f") ?? (() => {
 const { OfficeIMOError } = _m2;
 
-const { cellPosition } = _m23;
+const { cellPosition } = _m26;
 
 function indexRows(regions) {
     if (!regions.length)
@@ -2002,11 +2081,11 @@ class MergeRegions {
         throw new RangeError("Merged ranges must stay within exported rows."); }
 }
 const _exports = Object.freeze({ MergeRegions: MergeRegions });
-_modules.set("a243a375bf4a43f1dc1e117315f68b7c23e660c31dc76ce0a1392931e234ecca", _exports);
+_modules.set("38b2005e8211a5e84d49238c1faf0d830b5ed2ede275f87e2933dfeb3078f78f", _exports);
 return _exports;
 })();
 
-const _m26 = _modules.get("c9fde2c438e186da56f740105fcd41c265fdfdd855a4f1b811d556a02387479b") ?? (() => {
+const _m29 = _modules.get("c9fde2c438e186da56f740105fcd41c265fdfdd855a4f1b811d556a02387479b") ?? (() => {
 class NumericAggregate {
     operation;
     count = 0;
@@ -2054,18 +2133,20 @@ _modules.set("c9fde2c438e186da56f740105fcd41c265fdfdd855a4f1b811d556a02387479b",
 return _exports;
 })();
 
-const _m24 = _modules.get("fc40b44c83964015446375afb3f0863dfb9a09df1cba632a16423bb54fee3843") ?? (() => {
+const _m27 = _modules.get("8c89477c967f5ac6593547229583a6a670c67c5d0aa8e71d28e0e4a4e577597d") ?? (() => {
 const { ExportCell } = _m5;
 
-const { Cell, cellText, columnName } = _m21;
+const { isDate } = _m6;
 
-const { escapeOoxmlAttribute } = _m15;
+const { Cell, cellText, columnName } = _m24;
 
-const { MergeRegions } = _m25;
+const { escapeOoxmlAttribute } = _m17;
+
+const { MergeRegions } = _m28;
 
 const { OfficeIMOError } = _m2;
 
-const { createTotals } = _m26;
+const { createTotals } = _m29;
 
 /** @internal A computed formula with a numeric cache; no public arbitrary-formula input. */
 class ComputedTotal {
@@ -2162,7 +2243,7 @@ class ReportLayout {
             if (!this.columns[i] || this.columns[i].width !== undefined)
                 return;
             const raw = value instanceof ExportCell ? value.text ?? value.value : value instanceof Cell ? value.value : value;
-            const text = raw instanceof Date ? Number.isFinite(raw.getTime()) ? raw.toISOString() : "" : raw == null ? "" : String(raw);
+            const text = isDate(raw) ? Number.isFinite(raw.getTime()) ? raw.toISOString() : "" : raw == null ? "" : String(raw);
             // Inspect at most a small prefix. A single long value cannot make a huge sampling allocation.
             const length = Math.max(0, ...text.slice(0, Math.ceil(max * 4)).split(/\r?\n/).map(line => [...line].length));
             this.widths[i] = Math.max(this.widths[i] ?? min, Math.min(max, length + 2));
@@ -2220,20 +2301,20 @@ function printXml(options, policy) {
             (options.footer === undefined ? "" : '<oddFooter>' + escapeOoxmlAttribute("&C" + options.footer.replace(/&/g, "&&"), policy) + '</oddFooter>') + '</headerFooter>' : "");
 }
 const _exports = Object.freeze({ ComputedTotal: ComputedTotal, ReportLayout: ReportLayout, totalFormula: totalFormula, printXml: printXml });
-_modules.set("fc40b44c83964015446375afb3f0863dfb9a09df1cba632a16423bb54fee3843", _exports);
+_modules.set("8c89477c967f5ac6593547229583a6a670c67c5d0aa8e71d28e0e4a4e577597d", _exports);
 return _exports;
 })();
 
-const _m27 = _modules.get("c64517646bc846643793d5b0868a284991fddc80f236b2a77418e7b4cad91551") ?? (() => {
-const { cleanXml, escapeXml, escapeOoxmlAttribute } = _m15;
+const _m30 = _modules.get("6be7521f11c8d1870f52344bbd5c9848d80e06e43d4a79970bd8dd3c2a611d63") ?? (() => {
+const { cleanXml, escapeXml, escapeOoxmlAttribute } = _m17;
 
-const { cellPosition } = _m23;
+const { cellPosition } = _m26;
 
-const { columnName } = _m21;
+const { columnName } = _m24;
 
-const { colorArgb } = _m19;
+const { colorArgb } = _m22;
 
-const { fields, optionalBoolean, differentialXml } = _m20;
+const { fields, optionalBoolean, differentialXml } = _m23;
 
 function target(range, columns) {
     if (typeof range === "string") {
@@ -2386,39 +2467,48 @@ class ConditionalFormats {
     }
 }
 const _exports = Object.freeze({ prepareConditionalFormats: prepareConditionalFormats, ConditionalFormats: ConditionalFormats });
-_modules.set("c64517646bc846643793d5b0868a284991fddc80f236b2a77418e7b4cad91551", _exports);
+_modules.set("6be7521f11c8d1870f52344bbd5c9848d80e06e43d4a79970bd8dd3c2a611d63", _exports);
 return _exports;
 })();
 
-const _m22 = _modules.get("792ce537484422b15c12cf8b53fa3ab438742bf89ee948731028caae5bdcf265") ?? (() => {
+const _m25 = _modules.get("4684cb30889805e42995c81f82cc58c91fb5fb9f84d7512e1c4b0131683cbda8") ?? (() => {
 const { checkAbort, consumeRows, inputRows, pause, taskYieldDue } = _m4;
 
 const { ChunkedTextSink, BlobByteSink } = _m3;
 
 const { NotSupportedError, OfficeIMOError } = _m2;
 
-const { copyColumns, createRowProjector } = _m9;
+const { notifyProgress } = _m8;
 
-const { EntryWriter } = _m17;
+const { copyColumns, createRowProjector } = _m11;
 
-const { xmlDeclaration } = _m15;
+const { EntryWriter } = _m19;
 
-const { officeRelationshipsNamespace } = _m12;
+const { xmlDeclaration } = _m17;
 
-const { Cell, cellText, columnName, inlineText, excelDate, copyValue } = _m21;
+const { officeRelationshipsNamespace } = _m14;
 
-const { spreadsheetNamespace, colorArgb, validateStylePatch, copyStylePatch } = _m18;
+const { Cell, cellText, columnName, inlineText, excelDate, copyValue } = _m24;
 
-const { copyHyperlink, copyImage, hyperlinksXml, cellPosition } = _m23;
+const { spreadsheetNamespace, colorArgb, validateStylePatch, copyStylePatch } = _m21;
+
+const { copyHyperlink, copyImage, hyperlinksXml, cellPosition } = _m26;
 
 const { ExportCell, assertScalar } = _m5;
 
-const { ReportLayout, ComputedTotal, printXml } = _m24;
+const { ReportLayout, ComputedTotal, printXml } = _m27;
 
-const { cleanXml } = _m15;
+const { cleanXml } = _m17;
 
-const { ConditionalFormats, prepareConditionalFormats } = _m27;
+const { ConditionalFormats, prepareConditionalFormats } = _m30;
 
+const { isDate } = _m6;
+
+const maximumHyperlinks = 65530;
+function checkHyperlinkCount(count) {
+    if (count > maximumHyperlinks)
+        throw new RangeError("Excel supports at most 65,530 hyperlinks per worksheet; split the sheet.");
+}
 /** Worksheet rows are written once in order; the model retains compressed output rather than source data. */
 class Worksheet {
     book;
@@ -2504,6 +2594,7 @@ class Worksheet {
         if (options.hyperlinks !== undefined) {
             if (!Array.isArray(options.hyperlinks))
                 throw new TypeError("Hyperlinks must be an array.");
+            checkHyperlinkCount(options.hyperlinks.length);
             const seen = new Set();
             for (const requested of options.hyperlinks) {
                 const link = copyHyperlink(requested, book.settings.invalidCharacterPolicy);
@@ -2585,7 +2676,7 @@ class Worksheet {
                 throw new TypeError("A merged range would hide the value at " + col.letter + row + "; covered cells must be empty.");
             value = undefined; // An empty string in a covered typed column is an empty cell, not a type mismatch.
         }
-        const type = value instanceof Date ? "date" : typeof value;
+        const type = isDate(value) ? "date" : typeof value;
         if (!header && !footer && value != null && col.column.type && !this.book.writerFor(col.column.type) && col.column.type !== type)
             throw new TypeError("Cell " + col.letter + row + " does not match column type " + col.column.type + ".");
         let style = explicitStyle === undefined ? header ? col.headerStyle : total?.operation === "count" ? 0 : type === "date" ? col.dateStyle : col.style : this.book.styles.validateStyle(explicitStyle);
@@ -2625,6 +2716,8 @@ class Worksheet {
             const cell = col.letter + row;
             if (link || this.linkedCells.has(cell))
                 throw new TypeError("A text-preservation cell cannot also have an external hyperlink.");
+            checkHyperlinkCount(this.links.length + this.internalLinks.length + 1);
+            this.book.checkLinks(1);
             // Replace a generated cell's original reservation with its preview and overflow records.
             if (reservedCharacters !== undefined) {
                 this.book.budget.release(1, reservedCharacters);
@@ -2834,7 +2927,7 @@ class Worksheet {
         }
     }
     progress() { if (!this.preserved)
-        this.book.settings.onProgress?.({ phase: "rows", rows: this.book.rowCount, sheetRows: this.count, sheetName: this.name }); }
+        notifyProgress(this.book.settings.onProgress, { phase: "rows", rows: this.book.rowCount, sheetRows: this.count, sheetName: this.name }); }
     get rowCount() { return this.count; }
     /** @internal Preservation records are metadata, not report data rows. */
     get reportRowCount() { return this.preserved ? 0 : this.count; }
@@ -2845,6 +2938,8 @@ class Worksheet {
             throw new OfficeIMOError("INVALID_STATE", "Worksheet is closed.");
         if (this.failed)
             throw this.error;
+        if (image.data instanceof Uint8Array)
+            this.book.checkImage(image.data.length);
         const copied = copyImage(image, this.book.settings.invalidCharacterPolicy);
         this.book.retainImage(copied.data.length);
         this.pictures.push(copied);
@@ -2865,6 +2960,7 @@ class Worksheet {
             throw new TypeError("Hyperlinks cannot address a covered merged cell.");
         if (this.linkedCells.has(copied.cell))
             throw new TypeError("Duplicate hyperlink cell: " + copied.cell);
+        checkHyperlinkCount(this.links.length + this.internalLinks.length + 1);
         this.book.retainLink();
         this.links.push(copied);
         this.linkedCells.add(copied.cell);
@@ -2961,22 +3057,22 @@ class Worksheet {
     async discard(error) { this.failed = true; this.error = error; this.pending = []; this.pendingCharacters = 0; this.prepared = undefined; this.buffer = undefined; this.output.discard(); await this.entry?.discard(error); }
 }
 const _exports = Object.freeze({ Worksheet: Worksheet });
-_modules.set("792ce537484422b15c12cf8b53fa3ab438742bf89ee948731028caae5bdcf265", _exports);
+_modules.set("4684cb30889805e42995c81f82cc58c91fb5fb9f84d7512e1c4b0131683cbda8", _exports);
 return _exports;
 })();
 
-const _m28 = _modules.get("a67ca046e05040cb3d1db7c05384fb10f814e96d380fc767f6cf4fca905ace6b") ?? (() => {
-const { escapeOoxmlAttribute, escapeXml, xmlDeclaration } = _m15;
+const _m31 = _modules.get("68b4cdba5dd9744a718b0493a852ef8dff21613bebb31d0558ad0aa0a65698cf") ?? (() => {
+const { escapeOoxmlAttribute, escapeXml, xmlDeclaration } = _m17;
 
-const { cellText, columnName } = _m21;
+const { cellText, columnName } = _m24;
 
-const { spreadsheetNamespace } = _m18;
+const { spreadsheetNamespace } = _m21;
 
 const { ExportCell } = _m5;
 
-const { Cell } = _m21;
+const { Cell } = _m24;
 
-const { totalFormula } = _m24;
+const { totalFormula } = _m27;
 
 function defineTable(id, options, columns, policy) {
     const name = options.name ?? "Table" + id;
@@ -3008,14 +3104,14 @@ function tableXml(table, rowCount, policy, headerRow = 1, footer) {
         '" showColumnStripes="' + (options.bandedColumns ? 1 : 0) + '"/></table>';
 }
 const _exports = Object.freeze({ defineTable: defineTable, tableXml: tableXml });
-_modules.set("a67ca046e05040cb3d1db7c05384fb10f814e96d380fc767f6cf4fca905ace6b", _exports);
+_modules.set("68b4cdba5dd9744a718b0493a852ef8dff21613bebb31d0558ad0aa0a65698cf", _exports);
 return _exports;
 })();
 
-const _m29 = _modules.get("acd647b6c207dc638a4ab15141efe2d5da2be95107ae7df2a5663352ff5ef604") ?? (() => {
+const _m32 = _modules.get("acd647b6c207dc638a4ab15141efe2d5da2be95107ae7df2a5663352ff5ef604") ?? (() => {
 const { OfficeIMOError } = _m2;
 
-const { cleanXml } = _m15;
+const { cleanXml } = _m17;
 
 /** @internal Overflow is deliberately bounded: ZIP worksheet entries cannot be interleaved. */
 class TextOverflow {
@@ -3080,32 +3176,34 @@ _modules.set("acd647b6c207dc638a4ab15141efe2d5da2be95107ae7df2a5663352ff5ef604",
 return _exports;
 })();
 
-const _m11 = _modules.get("cc9e6426dce65cc53d2d2f4647c00e9c918ddf7fba6dab5859062599cd0149c3") ?? (() => {
-const { beginTask, checkAbort } = _m4;
+const _m13 = _modules.get("0fc69158b36bf3e820ef79f3b6c947d7c4136bdfb0fa601dc5f5ca2983b257fa") ?? (() => {
+const { beginTask, checkAbort, pause, taskYieldDue } = _m4;
 
 const { OfficeIMOError } = _m2;
 
+const { notifyProgress } = _m8;
+
 const { ChunkedTextSink } = _m3;
 
-const { ExportBudget } = _m8;
+const { ExportBudget } = _m10;
 
-const { OpcPackage, officeRelationshipsNamespace, relationshipTypes, corePropertiesXml } = _m12;
+const { OpcPackage, officeRelationshipsNamespace, relationshipTypes, corePropertiesXml } = _m14;
 
-const { escapeOoxmlAttribute, cleanXml, xmlDeclaration } = _m15;
+const { escapeOoxmlAttribute, cleanXml, xmlDeclaration } = _m17;
 
-const { StyleRegistry, spreadsheetNamespace } = _m18;
+const { StyleRegistry, spreadsheetNamespace } = _m21;
 
-const { sheetName, assertXlsxValue } = _m21;
+const { sheetName, assertXlsxValue } = _m24;
 
 const { assertExportValue } = _m5;
 
-const { Worksheet } = _m22;
+const { Worksheet } = _m25;
 
-const { defineTable, tableXml } = _m28;
+const { defineTable, tableXml } = _m31;
 
-const { drawingXml, drawingContentType } = _m23;
+const { drawingXml, drawingContentType } = _m26;
 
-const { TextOverflow } = _m29;
+const { TextOverflow } = _m32;
 
 const xlsxMime = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
 const formatType = (name) => "application/vnd.openxmlformats-officedocument.spreadsheetml." + name + "+xml";
@@ -3228,9 +3326,13 @@ class Workbook {
     /** @internal Reserve a preflighted worksheet batch or one row hyperlink. */
     retainLink(count = 1) { this.checkLinks(count); this.links += count; }
     /** @internal */
-    retainImage(bytes) {
+    checkImage(bytes) {
         if (this.settings.limits?.maxImageBytes !== undefined && this.imageBytes + bytes > this.settings.limits.maxImageBytes)
             throw new OfficeIMOError("RESOURCE_LIMIT", "maxImageBytes exceeded.");
+    }
+    /** @internal Reserve only a validated image, after checking its budget before copying. */
+    retainImage(bytes) {
+        this.checkImage(bytes);
         this.imageBytes += bytes;
     }
     /** @internal Bound compressed worksheet retention in Blob mode before final packaging. */
@@ -3331,18 +3433,27 @@ class Workbook {
                         this.addXmlPart(tableUri, formatType("table"), () => tableXml(table, sheet.rowCount, this.settings.invalidCharacterPolicy, sheet.headerRowCount, sheet.footerSettings));
                         this.package.addRelationship(uri, { id: "table", type: officeRelationshipsNamespace + "/table", target: tableUri });
                     }
-                    for (let j = 0; j < sheet.hyperlinks.length; j++)
-                        this.package.addRelationship(uri, {
-                            id: "link" + (j + 1), type: officeRelationshipsNamespace + "/hyperlink", target: sheet.hyperlinks[j].target, external: true
-                        });
+                    for (let j = 0; j < sheet.hyperlinks.length; j++) {
+                        checkAbort(this.settings.signal);
+                        this.package.addRelationship(uri, { id: "link" + (j + 1), type: officeRelationshipsNamespace + "/hyperlink", target: sheet.hyperlinks[j].target, external: true });
+                        if ((j & 255) === 255 && taskYieldDue()) {
+                            await pause();
+                            checkAbort(this.settings.signal);
+                        }
+                    }
                     if (sheet.images.length) {
                         const drawingUri = "/xl/drawings/drawing" + (i + 1) + ".xml";
                         this.addXmlPart(drawingUri, drawingContentType, () => drawingXml(sheet.images, this.settings.invalidCharacterPolicy));
                         this.package.addRelationship(uri, { id: "drawing", type: officeRelationshipsNamespace + "/drawing", target: drawingUri });
                         for (let j = 0; j < sheet.images.length; j++) {
+                            checkAbort(this.settings.signal);
                             const imageUri = "/xl/media/sheet" + (i + 1) + "-image" + (j + 1) + ".png";
                             this.package.addPart({ uri: imageUri, contentType: "image/png", data: sheet.images[j].data });
                             this.package.addRelationship(drawingUri, { id: "image" + (j + 1), type: officeRelationshipsNamespace + "/image", target: imageUri });
+                            if ((j & 255) === 255 && taskYieldDue()) {
+                                await pause();
+                                checkAbort(this.settings.signal);
+                            }
                         }
                     }
                 }
@@ -3356,11 +3467,17 @@ class Workbook {
                     this.overflow.clear();
                 }
                 this.package.addRelationship("/", { id: "workbook", type: relationshipTypes.officeDocument, target: "/xl/workbook.xml" });
-                for (let i = 0; i < this.sheets.length; i++)
+                for (let i = 0; i < this.sheets.length; i++) {
+                    checkAbort(this.settings.signal);
                     this.package.addRelationship("/xl/workbook.xml", { id: "rId" + (i + 1), type: relationshipTypes.worksheet, target: "/xl/worksheets/sheet" + (i + 1) + ".xml" });
+                    if ((i & 255) === 255 && taskYieldDue()) {
+                        await pause();
+                        checkAbort(this.settings.signal);
+                    }
+                }
                 this.package.addRelationship("/xl/workbook.xml", { id: "styles", type: relationshipTypes.styles, target: "/xl/styles.xml" });
                 const bytes = await this.package.finish();
-                this.settings.onProgress?.({ phase: "complete", rows, bytes });
+                notifyProgress(this.settings.onProgress, { phase: "complete", rows, bytes });
                 checkAbort(this.settings.signal);
                 this.state = "complete";
                 return { rows, sheets: this.sheets.length, bytes };
@@ -3389,11 +3506,11 @@ class Workbook {
     }
 }
 const _exports = Object.freeze({ Workbook: Workbook });
-_modules.set("cc9e6426dce65cc53d2d2f4647c00e9c918ddf7fba6dab5859062599cd0149c3", _exports);
+_modules.set("0fc69158b36bf3e820ef79f3b6c947d7c4136bdfb0fa601dc5f5ca2983b257fa", _exports);
 return _exports;
 })();
 
-const _m31 = _modules.get("1141c94d932b8fb3296acf7d23724f00a51e0892b184d991845cd80e167df687") ?? (() => {
+const _m34 = _modules.get("106a64b0eb7e34dd867571bd2b17df0d203b1c23987d2c08088446037b68c104") ?? (() => {
 const { ExportCell, assertScalar } = _m5;
 
 function style(patch) {
@@ -3436,18 +3553,18 @@ function portableWorkbook(options = {}) {
     return { ...options, cellValueWriters: wrapped };
 }
 const _exports = Object.freeze({ portableSheet: portableSheet, portableWorkbook: portableWorkbook });
-_modules.set("1141c94d932b8fb3296acf7d23724f00a51e0892b184d991845cd80e167df687", _exports);
+_modules.set("106a64b0eb7e34dd867571bd2b17df0d203b1c23987d2c08088446037b68c104", _exports);
 return _exports;
 })();
 
-const _m30 = _modules.get("9b4b0b20c6140175113b97d9316bca025be5cf40a89a3544b8aac92f2c5bce1f") ?? (() => {
+const _m33 = _modules.get("888714f81880e3832111a1a56ffc94359939fccd64a8facf60d7ff555e4f6ac0") ?? (() => {
 const { withDestination } = _m3;
 
-const { copyColumns } = _m9;
+const { copyColumns } = _m11;
 
-const { Workbook } = _m11;
+const { Workbook } = _m13;
 
-const { portableSheet, portableWorkbook } = _m31;
+const { portableSheet, portableWorkbook } = _m34;
 
 function prepare(options) {
     const columns = copyColumns(options?.columns);
@@ -3490,18 +3607,18 @@ async function writeXlsxTo(rows, destination, configuration) {
     });
 }
 const _exports = Object.freeze({ writeXlsx: writeXlsx, writeXlsxTo: writeXlsxTo });
-_modules.set("9b4b0b20c6140175113b97d9316bca025be5cf40a89a3544b8aac92f2c5bce1f", _exports);
+_modules.set("888714f81880e3832111a1a56ffc94359939fccd64a8facf60d7ff555e4f6ac0", _exports);
 return _exports;
 })();
 
-const _m10 = _modules.get("5c2c3db714a2f5b7fd897f60f0cc52cf145c6ee059d626f697aa74b899d1f068") ?? (() => {
+const _m12 = _modules.get("679f5bc526287a62ec916dccb80e4351ce1008d15ff3804233ebda01c0adce9f") ?? (() => {
 
-const _exports = Object.freeze({ Workbook: _m11.Workbook, writeXlsx: _m30.writeXlsx, writeXlsxTo: _m30.writeXlsxTo, Worksheet: _m22.Worksheet, Cell: _m21.Cell, StyleRegistry: _m18.StyleRegistry, NumberFormats: _m18.NumberFormats, saveBlob: _m1.saveBlob, ExportCell: _m5.ExportCell });
-_modules.set("5c2c3db714a2f5b7fd897f60f0cc52cf145c6ee059d626f697aa74b899d1f068", _exports);
+const _exports = Object.freeze({ Workbook: _m13.Workbook, writeXlsx: _m33.writeXlsx, writeXlsxTo: _m33.writeXlsxTo, Worksheet: _m25.Worksheet, Cell: _m24.Cell, StyleRegistry: _m21.StyleRegistry, NumberFormats: _m21.NumberFormats, saveBlob: _m1.saveBlob, ExportCell: _m5.ExportCell });
+_modules.set("679f5bc526287a62ec916dccb80e4351ce1008d15ff3804233ebda01c0adce9f", _exports);
 return _exports;
 })();
 
-const _m35 = _modules.get("e33d98716c5fb499475741ab605c455a22cb9e23aa334770c63cdaae7929155f") ?? (() => {
+const _m38 = _modules.get("fae7226e22e925cccd060708e85a5ac9e0812d86b7e27d0c1f29cf6a6a7e9074") ?? (() => {
 const { assertExportValue } = _m5;
 
 /** Validate one small, rectangular heading/footer matrix before any drawing. */
@@ -3540,18 +3657,18 @@ function tableSpans(rows, columns) {
     });
 }
 const _exports = Object.freeze({ tableSpans: tableSpans });
-_modules.set("e33d98716c5fb499475741ab605c455a22cb9e23aa334770c63cdaae7929155f", _exports);
+_modules.set("fae7226e22e925cccd060708e85a5ac9e0812d86b7e27d0c1f29cf6a6a7e9074", _exports);
 return _exports;
 })();
 
-const _m34 = _modules.get("3c1d46e1c90631fe887219e0b2de19a934b16d2c73f4a331406a15199b70c368") ?? (() => {
+const _m37 = _modules.get("feed007d46e8aa0d2174a2cb49fb25a6888b7a6c4281386138429c90b0c17cb6") ?? (() => {
 const { OfficeIMOError } = _m2;
 
-const { ExportBudget } = _m8;
+const { ExportBudget } = _m10;
 
-const { copyColumns } = _m9;
+const { copyColumns } = _m11;
 
-const { tableSpans } = _m35;
+const { tableSpans } = _m38;
 
 function positive(value, name, max = 14400) {
     if (!Number.isFinite(value) || value <= 0 || value > max)
@@ -3567,30 +3684,32 @@ function color(value) {
 function presentation(value = {}) {
     if (!value || typeof value !== "object")
         throw new TypeError("PDF presentation must be an object.");
-    if (value.background !== undefined)
-        color(value.background);
-    if (value.color !== undefined)
-        color(value.color);
+    const snapshot = { ...value };
+    if (snapshot.background !== undefined)
+        color(snapshot.background);
+    if (snapshot.color !== undefined)
+        color(snapshot.color);
     for (const key of ["bold", "italic", "wrapText"])
-        if (value[key] !== undefined && typeof value[key] !== "boolean")
+        if (snapshot[key] !== undefined && typeof snapshot[key] !== "boolean")
             throw new TypeError("PDF presentation " + key + " must be boolean.");
-    if (value.alignment !== undefined && !["left", "center", "right"].includes(value.alignment))
+    if (snapshot.alignment !== undefined && !["left", "center", "right"].includes(snapshot.alignment))
         throw new TypeError("PDF table alignment supports left, center and right.");
-    return Object.freeze({ ...value });
+    return Object.freeze(snapshot);
 }
 const sizes = {
     A3: { width: 841.89, height: 1190.551 }, A4: { width: 595.276, height: 841.89 }, A5: { width: 419.528, height: 595.276 },
     LETTER: { width: 612, height: 792 }, LEGAL: { width: 612, height: 1008 }, TABLOID: { width: 792, height: 1224 }
 };
-function settings(configuration) {
+function settings(configuration, document = false) {
     const columns = copyColumns(configuration?.columns).map(c => Object.freeze(c));
-    if (!columns.length)
+    if (!columns.length && !document)
         throw new TypeError("PDF tables need at least one declared column.");
     function copySpans(rows) {
         tableSpans(rows, columns.length);
         return Object.freeze(rows.map(row => Object.freeze(row.map(cell => cell ? Object.freeze({ ...cell }) : null))));
     }
     const options = { ...configuration, columns,
+        ...(configuration.tagged ? { tagged: Object.freeze({ ...configuration.tagged }) } : {}),
         ...(configuration.headerRows ? { headerRows: copySpans(configuration.headerRows) } : {}),
         ...(configuration.fonts ? { fonts: Object.freeze({ ...configuration.fonts }) } : {}),
         ...(configuration.columnWidths ? { columnWidths: Object.freeze([...configuration.columnWidths]) } : {}),
@@ -3601,7 +3720,9 @@ function settings(configuration) {
         headerPresentation: presentation({ background: "e7edf5", bold: true, ...configuration.headerPresentation }),
         footerPresentation: presentation({ background: "eef2f6", bold: true, ...configuration.footerPresentation }) };
     const budget = new ExportBudget(options.limits);
-    const limits = { maxPages: 10000, maxColumns: 1024, maxCellCharacters: 1000000, maxRowLines: 100000, maxFontBytes: 16 * 1024 * 1024, maxPageBytes: 8 * 1024 * 1024, maxHyperlinks: 100000 };
+    const limits = { maxPages: 10000, maxColumns: 1024, maxCellCharacters: 1000000, maxRowLines: 100000, maxFontBytes: 16 * 1024 * 1024, maxPageBytes: 8 * 1024 * 1024, maxHyperlinks: 100000,
+        maxImageBytes: 32 * 1024 * 1024, maxImagePixels: 16 * 1024 * 1024, maxVectorCommands: 100000, maxDrawingElements: 100000,
+        maxStructureElements: 1000000, maxMarkedContentReferences: 2000000 };
     for (const key of Object.keys(limits)) {
         const override = options.limits?.[key];
         if (override !== undefined)
@@ -3647,14 +3768,27 @@ function settings(configuration) {
         throw new TypeError("Structured footer rows cannot be combined with values/totals.");
     if (options.headerRows && options.includeHeader === false)
         throw new TypeError("headerRows requires includeHeader.");
+    if (options.tagged !== undefined) {
+        if (!options.tagged || typeof options.tagged !== "object" || typeof options.tagged.language !== "string" || options.tagged.language.length > 63)
+            throw new TypeError("tagged.language must be a language tag such as en or en-US.");
+        try {
+            if (Intl.getCanonicalLocales(options.tagged.language).length !== 1)
+                throw new RangeError();
+        }
+        catch {
+            throw new TypeError("tagged.language must be a language tag such as en or en-US.");
+        }
+        if (options.headerRows || columns.some(column => column.groups?.length) || options.footer?.rows)
+            throw new TypeError("Tagged PDF supports leaf column headings and ordinary footer cells; grouped headings and span matrices are unsupported.");
+    }
     return { options, page, margins, fontSize, padding, limits, budget };
 }
 const _exports = Object.freeze({ positive: positive, color: color, presentation: presentation, settings: settings });
-_modules.set("3c1d46e1c90631fe887219e0b2de19a934b16d2c73f4a331406a15199b70c368", _exports);
+_modules.set("feed007d46e8aa0d2174a2cb49fb25a6888b7a6c4281386138429c90b0c17cb6", _exports);
 return _exports;
 })();
 
-const _m36 = _modules.get("26fe24e1d11237562f07204e0c1a6ff3b1c06546f7fc3e9e5f35e53636dd6d56") ?? (() => {
+const _m40 = _modules.get("26fe24e1d11237562f07204e0c1a6ff3b1c06546f7fc3e9e5f35e53636dd6d56") ?? (() => {
 const { checkAbort, withAbort, pause, taskYieldDue } = _m4;
 
 const { OfficeIMOError } = _m2;
@@ -3787,7 +3921,7 @@ _modules.set("26fe24e1d11237562f07204e0c1a6ff3b1c06546f7fc3e9e5f35e53636dd6d56",
 return _exports;
 })();
 
-const _m40 = _modules.get("1e169e6ecdeceff319b5da4bf01f4c653c1a3d9e8ad696b141bf8ac52d9f446c") ?? (() => {
+const _m44 = _modules.get("1e169e6ecdeceff319b5da4bf01f4c653c1a3d9e8ad696b141bf8ac52d9f446c") ?? (() => {
 /** @internal Bounded big-endian reader used for caller-provided TrueType programs. */
 class FontReader {
     bytes;
@@ -3817,8 +3951,8 @@ _modules.set("1e169e6ecdeceff319b5da4bf01f4c653c1a3d9e8ad696b141bf8ac52d9f446c",
 return _exports;
 })();
 
-const _m41 = _modules.get("0c9db038dc71b0dce6cef9061dd2dc0c1d699a1ce737d8d41b818996d47acf5e") ?? (() => {
-const { align4, checksum } = _m40;
+const _m45 = _modules.get("0c9db038dc71b0dce6cef9061dd2dc0c1d699a1ce737d8d41b818996d47acf5e") ?? (() => {
+const { align4, checksum } = _m44;
 
 /** Preserve glyph IDs and complete composite dependencies, as in OfficeIMO.Pdf's native subsetter. */
 function subsetTrueType(font, requested, characters) {
@@ -3972,12 +4106,12 @@ _modules.set("0c9db038dc71b0dce6cef9061dd2dc0c1d699a1ce737d8d41b818996d47acf5e",
 return _exports;
 })();
 
-const _m39 = _modules.get("0c236a8c52738a1e0a5bdca1281d82c8e187e06dffd8f8d75cdb9b07f490c9a3") ?? (() => {
+const _m43 = _modules.get("0c236a8c52738a1e0a5bdca1281d82c8e187e06dffd8f8d75cdb9b07f490c9a3") ?? (() => {
 const { NotSupportedError } = _m2;
 
-const { FontReader } = _m40;
+const { FontReader } = _m44;
 
-const { subsetTrueType } = _m41;
+const { subsetTrueType } = _m45;
 
 /** @internal Native TrueType outline profile shared with the C# PDF writer's glyph-preserving subset design. */
 class TrueTypeFont extends FontReader {
@@ -4151,8 +4285,8 @@ _modules.set("0c236a8c52738a1e0a5bdca1281d82c8e187e06dffd8f8d75cdb9b07f490c9a3",
 return _exports;
 })();
 
-const _m38 = _modules.get("9cc6382549c3b9917a9f7cf097b1e7d178b9f12bf443f1b05d95ae077d2ed8de") ?? (() => {
-const { TrueTypeFont } = _m39;
+const _m42 = _modules.get("9cc6382549c3b9917a9f7cf097b1e7d178b9f12bf443f1b05d95ae077d2ed8de") ?? (() => {
+const { TrueTypeFont } = _m43;
 
 const programs = new WeakMap();
 const fontBrand = Symbol.for("@evotecit/officeimo/PdfFont");
@@ -4192,7 +4326,7 @@ _modules.set("9cc6382549c3b9917a9f7cf097b1e7d178b9f12bf443f1b05d95ae077d2ed8de",
 return _exports;
 })();
 
-const _m42 = _modules.get("1ed4965a6e2963a91190baa8a58ada8ce0edde8fe653bcb6609002e872af0d61") ?? (() => {
+const _m47 = _modules.get("1ed4965a6e2963a91190baa8a58ada8ce0edde8fe653bcb6609002e872af0d61") ?? (() => {
 // Generated by scripts/pdf-widths.mjs from OfficeIMO.Pdf's Adobe AFM-derived metrics.
 const helveticaWidths = new Map([
     [32, [278, 278]],
@@ -4515,35 +4649,84 @@ _modules.set("1ed4965a6e2963a91190baa8a58ada8ce0edde8fe653bcb6609002e872af0d61",
 return _exports;
 })();
 
-const _m37 = _modules.get("d4202803cb965dfa8a5e8ceb3c34fe75f47f1208f4dfc372e84f3d07ba630de2") ?? (() => {
-const { NotSupportedError, OfficeIMOError } = _m2;
+const _m46 = _modules.get("af08c33f2b8793684df240352e41b36b6091f4e0801ba12227a883fd41ed9ae4") ?? (() => {
+const { OfficeIMOError } = _m2;
 
-const { PdfFont, fontProgram } = _m38;
+const { PdfFont, fontProgram } = _m42;
 
-const { helveticaWidths } = _m42;
-
-const { pdfNumber, unicodeHex } = _m36;
+const { helveticaWidths } = _m47;
 
 const winAnsiExtras = new Map([0x20ac, 0, 0x201a, 0x192, 0x201e, 0x2026, 0x2020, 0x2021, 0x2c6, 0x2030, 0x160, 0x2039, 0x152, 0, 0x17d, 0, 0, 0x2018, 0x2019, 0x201c, 0x201d, 0x2022, 0x2013, 0x2014, 0x2dc, 0x2122, 0x161, 0x203a, 0x153, 0, 0x17e, 0x178].map((cp, i) => [cp, i + 128]));
+/** @internal Called after scalar support succeeds when encoding a standard-font run. */
 function standardCode(scalar) {
     if ((scalar >= 32 && scalar <= 126) || (scalar >= 160 && scalar <= 255))
         return scalar;
-    const code = scalar ? winAnsiExtras.get(scalar) : undefined;
-    if (code !== undefined)
-        return code;
-    throw new NotSupportedError("Text U+" + scalar.toString(16).toUpperCase() + " needs an embedded Unicode TrueType font; supply fonts.regular.");
+    return scalar ? winAnsiExtras.get(scalar) : undefined;
 }
-/** Glyph fallback must be explicit; unsupported shaping never produces a plausible-looking damaged report. */
-function validateScalar(scalar) {
+/** @internal One encoding/glyph decision for the writer and public text preflight. */
+function resolveScalar(scalar, program, bold) {
     if (scalar >= 0xd800 && scalar <= 0xdfff)
-        throw new TypeError("PDF text contains an unpaired UTF-16 surrogate.");
+        return { supported: false, code: "unpaired-surrogate", message: "PDF text contains an unpaired UTF-16 surrogate." };
     if (scalar < 32 || (scalar >= 127 && scalar < 160))
-        throw new NotSupportedError("PDF text contains an unsupported control character.");
+        return { supported: false, code: "unsupported-control", message: "PDF text contains an unsupported control character." };
     const character = String.fromCodePoint(scalar);
     if (/[\p{Mark}\p{Format}]/u.test(character) || !/[\p{Script=Latin}\p{Script=Greek}\p{Script=Cyrillic}\p{Script=Han}\p{Script=Hiragana}\p{Script=Katakana}\p{Script=Hangul}\p{Script=Common}]/u.test(character) ||
         (scalar >= 0x1100 && scalar <= 0x11ff) || (scalar >= 0x1f3fb && scalar <= 0x1f3ff))
-        throw new NotSupportedError("This PDF table writer supports Unicode scalar layout; complex shaping, combining sequences and bidirectional text require a shaping-capable writer.");
+        return { supported: false, code: "unsupported-layout", message: "This PDF table writer supports Unicode scalar layout; complex shaping, combining sequences and bidirectional text require a shaping-capable writer." };
+    if (!program) {
+        if (standardCode(scalar) === undefined)
+            return { supported: false, code: "embedded-font-required", message: "Text U+" + scalar.toString(16).toUpperCase() + " needs an embedded Unicode TrueType font; supply fonts.regular." };
+        const metric = helveticaWidths.get(scalar === 160 ? 32 : scalar === 173 ? 45 : scalar);
+        if (!metric)
+            return { supported: false, code: "missing-glyph", message: "Standard font has no metric for this character." };
+        return { supported: true, width: metric[bold ? 1 : 0] };
+    }
+    let glyph = program.glyph(scalar);
+    // Reuse only an inkless thin-space glyph; the source scalar keeps its own CID/ToUnicode.
+    if (!glyph && scalar === 0x202f) {
+        const thin = program.glyph(0x2009);
+        if (thin && program.offsets[thin] === program.offsets[thin + 1])
+            glyph = thin;
+    }
+    if (!glyph)
+        return { supported: false, code: "missing-glyph", message: "The supplied font has no glyph for U+" + scalar.toString(16).toUpperCase() + "." };
+    return { supported: true, glyph, width: program.widths[glyph] };
 }
+/** @internal Family validation is shared; preflight does not impose a document's byte budget. */
+function validateFonts(fonts, maxBytes) {
+    if (!fonts)
+        return;
+    if (!(fonts.regular instanceof PdfFont))
+        throw new TypeError("fonts.regular must be a PdfFont.");
+    const unique = new Set();
+    for (const [key, font] of Object.entries(fonts)) {
+        if (!["regular", "bold", "italic", "boldItalic"].includes(key) || !(font instanceof PdfFont))
+            throw new TypeError("Invalid PDF font family.");
+        unique.add(font);
+    }
+    if (maxBytes !== undefined && [...unique].reduce((n, f) => n + fontProgram(f).bytes.length, 0) > maxBytes)
+        throw new OfficeIMOError("RESOURCE_LIMIT", "maxFontBytes exceeded.");
+}
+/** @internal Missing emphasis faces select regular glyphs with the writer's synthetic styling. */
+function selectFont(fonts, bold, italic) {
+    const exact = fonts && (bold && italic ? fonts.boldItalic : bold ? fonts.bold : italic ? fonts.italic : fonts.regular);
+    const font = exact ?? fonts?.regular;
+    return { font, syntheticBold: !!font && bold && !exact, syntheticItalic: !!font && italic && !exact };
+}
+const _exports = Object.freeze({ standardCode: standardCode, resolveScalar: resolveScalar, validateFonts: validateFonts, selectFont: selectFont });
+_modules.set("af08c33f2b8793684df240352e41b36b6091f4e0801ba12227a883fd41ed9ae4", _exports);
+return _exports;
+})();
+
+const _m41 = _modules.get("4bab4e4c237c983023083ad7aa6de8a74808726c6aa568a1391e9647a378477a") ?? (() => {
+const { NotSupportedError, OfficeIMOError } = _m2;
+
+const { fontProgram } = _m42;
+
+const { resolveScalar, selectFont, standardCode, validateFonts } = _m46;
+
+const { pdfNumber, unicodeHex } = _m40;
+
 class PdfFontResource {
     index;
     bold;
@@ -4555,6 +4738,7 @@ class PdfFontResource {
     syntheticBold;
     syntheticItalic;
     mappings = new Map();
+    standardWidths = new Map();
     constructor(index, bold, italic, font, objects, syntheticBold, syntheticItalic, shared) {
         this.index = index;
         this.bold = bold;
@@ -4572,20 +4756,22 @@ class PdfFontResource {
         const existing = this.mappings.get(scalar);
         if (existing)
             return existing.width;
-        validateScalar(scalar);
-        if (!this.program) {
-            standardCode(scalar);
-            const metric = helveticaWidths.get(scalar === 160 ? 32 : scalar === 173 ? 45 : scalar);
-            if (!metric)
-                throw new NotSupportedError("Standard font has no metric for this character.");
-            return metric[this.bold ? 1 : 0];
+        const standard = this.standardWidths.get(scalar);
+        if (standard !== undefined)
+            return standard;
+        const resolved = resolveScalar(scalar, this.program, this.bold);
+        if (!resolved.supported) {
+            if (resolved.code === "unpaired-surrogate")
+                throw new TypeError(resolved.message);
+            throw new NotSupportedError(resolved.message);
         }
-        const glyph = this.program.glyph(scalar);
-        if (!glyph)
-            throw new NotSupportedError("The supplied font has no glyph for U+" + scalar.toString(16).toUpperCase() + ".");
+        if (!this.program) {
+            this.standardWidths.set(scalar, resolved.width);
+            return resolved.width;
+        }
         if (this.mappings.size >= 65535)
             throw new OfficeIMOError("RESOURCE_LIMIT", "A PDF font supports at most 65,535 distinct Unicode scalars.");
-        const mapping = { cid: this.mappings.size + 1, glyph, width: this.program.widths[glyph] };
+        const mapping = { cid: this.mappings.size + 1, glyph: resolved.glyph, width: resolved.width };
         this.mappings.set(scalar, mapping);
         return mapping.width;
     }
@@ -4645,27 +4831,15 @@ class PdfFontResources {
     constructor(objects, fonts, maxBytes = 16 * 1024 * 1024) {
         this.objects = objects;
         this.fonts = fonts;
-        if (fonts) {
-            if (!(fonts.regular instanceof PdfFont))
-                throw new TypeError("fonts.regular must be a PdfFont.");
-            const unique = new Set();
-            for (const [key, font] of Object.entries(fonts)) {
-                if (!["regular", "bold", "italic", "boldItalic"].includes(key) || !(font instanceof PdfFont))
-                    throw new TypeError("Invalid PDF font family.");
-                unique.add(font);
-            }
-            if ([...unique].reduce((n, f) => n + fontProgram(f).bytes.length, 0) > maxBytes)
-                throw new OfficeIMOError("RESOURCE_LIMIT", "maxFontBytes exceeded.");
-        }
+        validateFonts(fonts, maxBytes);
     }
     select(bold = false, italic = false) {
         const key = String(bold) + String(italic), existing = this.selections.get(key);
         if (existing)
             return existing;
-        const exact = this.fonts && (bold && italic ? this.fonts.boldItalic : bold ? this.fonts.bold : italic ? this.fonts.italic : this.fonts.regular);
-        const font = exact ?? this.fonts?.regular;
+        const { font, syntheticBold, syntheticItalic } = selectFont(this.fonts, bold, italic);
         const shared = font ? this.programs.get(font) : undefined;
-        const resource = new PdfFontResource(this.resources.length + 1, bold, italic, font, this.objects, !!font && bold && !exact, !!font && italic && !exact, shared);
+        const resource = new PdfFontResource(this.resources.length + 1, bold, italic, font, this.objects, syntheticBold, syntheticItalic, shared);
         if (!shared) {
             this.resources.push(resource);
             if (font)
@@ -4676,15 +4850,19 @@ class PdfFontResources {
     }
     dictionary() { return "<< " + this.resources.map(f => "/" + f.name + " " + f.object + " 0 R").join(" ") + " >>"; }
 }
-const _exports = Object.freeze({ validateScalar: validateScalar, PdfFontResource: PdfFontResource, PdfFontResources: PdfFontResources });
-_modules.set("d4202803cb965dfa8a5e8ceb3c34fe75f47f1208f4dfc372e84f3d07ba630de2", _exports);
+const _exports = Object.freeze({ PdfFontResource: PdfFontResource, PdfFontResources: PdfFontResources });
+_modules.set("4bab4e4c237c983023083ad7aa6de8a74808726c6aa568a1391e9647a378477a", _exports);
 return _exports;
 })();
 
-const _m44 = _modules.get("c9e431c660fc16c0b10027156c35bb5921901f64a996881651383ec33cb4e452") ?? (() => {
+const _m49 = _modules.get("40f564b2595a245a2f77d25abfdb6d388118781cfd1da73ec9c9655dd1bd42b3") ?? (() => {
 const { OfficeIMOError } = _m2;
 
 const { ExportCell, assertExportValue } = _m5;
+
+const { checkAbort, pause, taskYieldDue } = _m4;
+
+const { isDate } = _m6;
 
 function synchronousText(value, name) {
     if (typeof value === "string")
@@ -4700,13 +4878,36 @@ function displayText(value, options, context) {
     const raw = value instanceof ExportCell ? value.value : value;
     if (options.formatValue)
         return synchronousText(options.formatValue(raw, context), "formatValue");
-    return raw == null ? "" : raw instanceof Date ? Number.isFinite(raw.getTime()) ? raw.toISOString() : "" : typeof raw === "number" && !Number.isFinite(raw) ? "" : typeof raw === "boolean" ? raw ? "True" : "False" : String(raw);
+    return raw == null ? "" : isDate(raw) ? Number.isFinite(raw.getTime()) ? raw.toISOString() : "" : typeof raw === "number" && !Number.isFinite(raw) ? "" : typeof raw === "boolean" ? raw ? "True" : "False" : String(raw);
 }
 /** Greedy word boundaries, then scalar boundaries. No character, whitespace or long-word truncation. */
 function wrapText(text, font, size, width, maxCharacters, maxLines, wrap = true) {
+    const scanner = wrapSteps(text, font, size, width, maxCharacters, maxLines, wrap);
+    while (true) {
+        const next = scanner.next();
+        if (next.done)
+            return next.value;
+    }
+}
+/** Let the host process input and cancellation while a large cell or paragraph is laid out. */
+async function wrapTextCooperatively(text, font, size, width, maxCharacters, maxLines, wrap = true, signal) {
+    checkAbort(signal);
+    const scanner = wrapSteps(text, font, size, width, maxCharacters, maxLines, wrap);
+    while (true) {
+        const next = scanner.next();
+        if (next.done)
+            return next.value;
+        if (taskYieldDue())
+            await pause();
+        checkAbort(signal);
+    }
+}
+/** One scanner owns wrapping semantics for synchronous measurements and cooperative layout. */
+function* wrapSteps(text, font, size, width, maxCharacters, maxLines, wrap) {
     if (text.length > maxCharacters)
         throw new OfficeIMOError("RESOURCE_LIMIT", "maxCellCharacters exceeded.");
     const lines = [];
+    let scanned = 0;
     function emit(chars, measure) {
         if (lines.length >= maxLines)
             throw new OfficeIMOError("RESOURCE_LIMIT", "maxRowLines exceeded.");
@@ -4715,6 +4916,8 @@ function wrapText(text, font, size, width, maxCharacters, maxLines, wrap = true)
     for (const paragraph of text.replace(/\r\n?/g, "\n").replace(/\t/g, "    ").split("\n")) {
         let chars = [], advances = [], measured = 0, breakAt = -1;
         for (const character of paragraph) {
+            if ((++scanned & 4095) === 0)
+                yield;
             const advance = font.width(character.codePointAt(0)) * size / 1000;
             if (advance > width + .001)
                 throw new RangeError("PDF column is too narrow for a glyph. Increase page/column width or reduce padding/font size.");
@@ -4747,26 +4950,28 @@ function wrapText(text, font, size, width, maxCharacters, maxLines, wrap = true)
                 breakAt = chars.length - 1;
         }
         emit(chars, measured);
+        if ((++scanned & 4095) === 0)
+            yield;
     }
     return lines;
 }
-const _exports = Object.freeze({ synchronousText: synchronousText, displayText: displayText, wrapText: wrapText });
-_modules.set("c9e431c660fc16c0b10027156c35bb5921901f64a996881651383ec33cb4e452", _exports);
+const _exports = Object.freeze({ synchronousText: synchronousText, displayText: displayText, wrapText: wrapText, wrapTextCooperatively: wrapTextCooperatively });
+_modules.set("40f564b2595a245a2f77d25abfdb6d388118781cfd1da73ec9c9655dd1bd42b3", _exports);
 return _exports;
 })();
 
-const _m43 = _modules.get("c4ac512ad80f08a9ed8e4e54b1ea17077252c25fd804d61e36bbb4d0199d4d23") ?? (() => {
+const _m48 = _modules.get("cb8af6422bb915f9b410c7fc9d4385323967b6bd47dc228e201a66cf3d1914ca") ?? (() => {
 const { ExportCell } = _m5;
 
-const { copyExportLink } = _m6;
+const { copyExportLink } = _m7;
 
-const { tableSpans } = _m35;
+const { tableSpans } = _m38;
 
-const { createTotals } = _m26;
+const { createTotals } = _m29;
 
-const { presentation, positive } = _m34;
+const { presentation, positive } = _m37;
 
-const { displayText, wrapText } = _m44;
+const { displayText, wrapTextCooperatively } = _m49;
 
 class PdfTableLayout {
     settings;
@@ -4818,9 +5023,11 @@ class PdfTableLayout {
         this.headings = headings;
         this.totals = createTotals(columns, options.footer?.totals);
     }
-    cell(value, first, span, row, style) {
+    async cell(value, first, span, row, style) {
         const { options, padding, fontSize, budget, limits } = this.settings, column = options.columns[first];
         const own = value instanceof ExportCell ? value.presentation : undefined;
+        if (options.tagged && value instanceof ExportCell && value.link)
+            throw new TypeError("Tagged PDF link annotations are unsupported; use plain text cells.");
         const combined = presentation({ ...(column.alignment === undefined ? {} : { alignment: column.alignment }),
             ...(column.wrapText === undefined ? {} : { wrapText: column.wrapText }), ...style, ...own });
         const font = this.fonts.select(combined.bold, combined.italic), width = this.widths.slice(first, first + span).reduce((n, w) => n + w, 0);
@@ -4828,29 +5035,41 @@ class PdfTableLayout {
         budget.cell(text);
         return { first, span, width, font, style: combined, lineHeight: font.lineHeight(fontSize),
             ...(value instanceof ExportCell && value.link ? { link: copyExportLink(value.link) } : {}),
-            lines: wrapText(text, font, fontSize, width - padding * 2, limits.maxCellCharacters, limits.maxRowLines, combined.wrapText !== false) };
+            lines: await wrapTextCooperatively(text, font, fontSize, width - padding * 2, limits.maxCellCharacters, limits.maxRowLines, combined.wrapText !== false, options.signal) };
     }
     row(cells) {
         const lines = Math.max(1, ...cells.map(c => c.lines.length));
         const lineHeight = Math.max(this.lineHeight, ...cells.map(c => c.lineHeight));
         return { cells, lines, lineHeight, height: lines * lineHeight + this.settings.padding * 2 };
     }
-    headers() {
+    async headers() {
         if (this.settings.options.headerRows)
             return this.block(this.settings.options.headerRows, this.settings.options.headerPresentation ?? {});
         const { formatValue: _format, ...options } = this.settings.options;
         // Header labels are already resolved text and never passed through a data-value formatter.
-        return this.headings.map(cells => this.row(cells.map(c => this.cell(new ExportCell(c.text, { text: c.text }), c.first, c.span, -1, options.headerPresentation ?? {}))));
+        const rows = [];
+        for (const heading of this.headings) {
+            const cells = [];
+            for (const c of heading)
+                cells.push(await this.cell(new ExportCell(c.text, { text: c.text }), c.first, c.span, -1, options.headerPresentation ?? {}));
+            rows.push(this.row(cells));
+        }
+        return rows;
     }
-    block(matrix, style) {
+    async block(matrix, style) {
         const anchors = tableSpans(matrix, this.settings.options.columns.length);
         const { formatValue: _format, ...literalOptions } = this.settings.options;
-        const cells = anchors.map(row => row.map(c => {
-            const value = c.value instanceof ExportCell ? c.value : new ExportCell(c.value);
-            const literal = new ExportCell(value.value, { text: displayText(value, literalOptions, { rowIndex: -1, columnIndex: c.first, column: literalOptions.columns[c.first] }),
-                ...(value.presentation ? { presentation: value.presentation } : {}), ...(value.link ? { link: value.link } : {}) });
-            return { ...this.cell(literal, c.first, c.span, -1, style), rowSpan: c.rowSpan };
-        }));
+        const cells = [];
+        for (const row of anchors) {
+            const laidOut = [];
+            for (const c of row) {
+                const value = c.value instanceof ExportCell ? c.value : new ExportCell(c.value);
+                const literal = new ExportCell(value.value, { text: displayText(value, literalOptions, { rowIndex: -1, columnIndex: c.first, column: literalOptions.columns[c.first] }),
+                    ...(value.presentation ? { presentation: value.presentation } : {}), ...(value.link ? { link: value.link } : {}) });
+                laidOut.push({ ...await this.cell(literal, c.first, c.span, -1, style), rowSpan: c.rowSpan });
+            }
+            cells.push(laidOut);
+        }
         const heights = cells.map(row => Math.max(this.lineHeight + this.settings.padding * 2, ...row.filter(c => c.rowSpan === 1).map(c => c.lines.length * c.lineHeight + this.settings.padding * 2)));
         cells.forEach((row, r) => row.forEach(c => {
             const existing = heights.slice(r, r + c.rowSpan).reduce((n, h) => n + h, 0), needed = c.lines.length * c.lineHeight + this.settings.padding * 2;
@@ -4861,34 +5080,36 @@ class PdfTableLayout {
         return cells.map((row, r) => ({ cells: row.map(c => ({ ...c, height: heights.slice(r, r + c.rowSpan).reduce((n, h) => n + h, 0) })),
             lines: Math.max(1, Math.ceil((heights[r] - this.settings.padding * 2) / this.lineHeight)), lineHeight: this.lineHeight, height: heights[r], structured: true }));
     }
-    data(values, index, footer = false) {
+    async data(values, index, footer = false) {
         const { options } = this.settings;
-        return this.row(options.columns.map((_, column) => {
+        const cells = [];
+        for (let column = 0; column < options.columns.length; column++) {
             const value = values[column], raw = value instanceof ExportCell ? value.value : value;
             if (!footer)
                 this.totals[column].accept(raw);
             const style = footer ? options.footerPresentation ?? {} : index % 2 && options.alternateRowColor ? { background: options.alternateRowColor } : {};
-            return this.cell(value, column, 1, index, style);
-        }));
+            cells.push(await this.cell(value, column, 1, index, style));
+        }
+        return this.row(cells);
     }
-    footer(index) {
+    async footer(index) {
         if (!this.settings.options.footer)
             return undefined;
         if (this.settings.options.footer.rows)
             return this.block(this.settings.options.footer.rows, this.settings.options.footerPresentation ?? {});
         const values = this.totals.map((total, i) => total.operation ? total.value() : this.settings.options.footer?.values?.[i]);
-        return [this.data(values, index, true)];
+        return [await this.data(values, index, true)];
     }
 }
 const _exports = Object.freeze({ PdfTableLayout: PdfTableLayout });
-_modules.set("c4ac512ad80f08a9ed8e4e54b1ea17077252c25fd804d61e36bbb4d0199d4d23", _exports);
+_modules.set("cb8af6422bb915f9b410c7fc9d4385323967b6bd47dc228e201a66cf3d1914ca", _exports);
 return _exports;
 })();
 
-const _m46 = _modules.get("ba335bb5f54ae99287c54a4f4e9eba2206b1cf7afb56db6ec7470c4715bb4837") ?? (() => {
+const _m51 = _modules.get("ba335bb5f54ae99287c54a4f4e9eba2206b1cf7afb56db6ec7470c4715bb4837") ?? (() => {
 const { OfficeIMOError } = _m2;
 
-const { pdfNumber, unicodeHex } = _m36;
+const { pdfNumber, unicodeHex } = _m40;
 
 const encoder = new TextEncoder();
 /** @internal URI actions are byte strings; tooltips are Unicode PDF text strings. */
@@ -4930,26 +5151,30 @@ _modules.set("ba335bb5f54ae99287c54a4f4e9eba2206b1cf7afb56db6ec7470c4715bb4837",
 return _exports;
 })();
 
-const _m45 = _modules.get("56c9db44196a590394b29a36d93249e1615d9aead514daa770f804c6e1df7233") ?? (() => {
+const _m50 = _modules.get("a4f0f1bd720d45f050b08151420d0025a5d2e48eb210998b38703468fd6770d1") ?? (() => {
 const { OfficeIMOError } = _m2;
 
 const { checkAbort } = _m4;
 
-const { pdfNumber } = _m36;
+const { pdfNumber } = _m40;
 
-const { color } = _m34;
+const { color } = _m37;
 
-const { wrapText, synchronousText } = _m44;
+const { wrapText, wrapTextCooperatively, synchronousText } = _m49;
 
-const { linkAnnotation } = _m46;
+const { linkAnnotation } = _m51;
+
+const { unicodeHex } = _m40;
 
 /** @internal One page of drawing commands and O(page count) references, never the complete report body. */
 class PdfPages {
     objects;
     settings;
-    layout;
+    fonts;
     parent;
     resources;
+    layout;
+    structure;
     references = [];
     current = 0;
     commands = [];
@@ -4958,19 +5183,25 @@ class PdfPages {
     hyperlinks = 0;
     y = 0;
     dataTop = 0;
+    continuationTop = 0;
     totalPages;
     pageNumberWidth;
     colors = new Map();
-    constructor(objects, settings, layout, parent, resources) {
+    externalObjects = new Map();
+    tableElement;
+    tableHeadingsDrawn = false;
+    constructor(objects, settings, fonts, parent, resources, layout, structure) {
         this.objects = objects;
         this.settings = settings;
-        this.layout = layout;
+        this.fonts = fonts;
         this.parent = parent;
         this.resources = resources;
+        this.layout = layout;
+        this.structure = structure;
         this.totalPages = settings.options.pageNumbers === false ? undefined : objects.reserve();
         this.pageNumberWidth = 0;
         if (this.totalPages && settings.limits.maxPages > 0) {
-            const font = layout.fonts.select(), max = settings.limits.maxPages;
+            const font = fonts.select(), max = settings.limits.maxPages;
             const digitWidth = Math.max(...Array.from({ length: Math.min(10, max) }, (_, i) => font.width(max < 10 ? 49 + i : 48 + i)));
             const countWidth = digitWidth * String(max).length * settings.fontSize / 1000;
             const literals = wrapText("Page  of ", font, settings.fontSize, settings.page.width, 128, 1, false)[0].width;
@@ -4997,10 +5228,14 @@ class PdfPages {
         }
         return rgb;
     }
-    text(text, font, size, x, baseline, foreground = "111827") {
+    artifact(command, type = "Layout") {
+        return this.structure ? "/Artifact << /Type /" + type + " >> BDC\n" + command + "EMC\n" : command;
+    }
+    text(text, font, size, x, baseline, foreground = "111827", element) {
         const n = pdfNumber, shear = font.syntheticItalic ? .2126 : 0;
-        this.add("q " + this.rgb(foreground) + " rg " + this.rgb(foreground) + " RG\nBT /" + font.name + " " + n(size) + " Tf " +
-            (font.syntheticBold ? n(size * .025) + " w 2 Tr " : "0 Tr ") + "1 0 " + n(shear) + " 1 " + n(x) + " " + n(baseline) + " Tm " + font.encode(text) + " Tj ET Q\n");
+        const command = "q " + this.rgb(foreground) + " rg " + this.rgb(foreground) + " RG\nBT /" + font.name + " " + n(size) + " Tf " +
+            (font.syntheticBold ? n(size * .025) + " w 2 Tr " : "0 Tr ") + "1 0 " + n(shear) + " 1 " + n(x) + " " + n(baseline) + " Tm " + font.encode(text) + " Tj ET Q\n";
+        this.add(this.structure && element !== undefined ? this.structure.mark(element) + command + "EMC\n" : this.artifact(command, "Pagination"));
     }
     decorationText(value) {
         if (value === undefined)
@@ -5012,24 +5247,26 @@ class PdfPages {
         if (!text)
             return;
         this.settings.budget.cell(text);
-        const font = this.layout.fonts.select(), lines = wrapText(text, font, this.settings.fontSize, width, this.settings.limits.maxCellCharacters, 1, false);
+        const font = this.fonts.select(), lines = wrapText(text, font, this.settings.fontSize, width, this.settings.limits.maxCellCharacters, 1, false);
         this.text(lines[0].text, font, this.settings.fontSize, x, y);
     }
-    async start(tableHeadings = true) {
+    async start(tableHeadings = true, preparedHeadings) {
         if (this.references.length >= this.settings.limits.maxPages)
             throw new OfficeIMOError("RESOURCE_LIMIT", "maxPages exceeded.");
         const { page, margins, options, fontSize } = this.settings;
+        const lineHeight = this.fonts.select().lineHeight(fontSize);
         this.current = this.objects.reserve();
         this.references.push(this.current);
         this.commands = [];
         this.commandBytes = 0;
+        this.structure?.beginPage(this.current);
         this.y = page.height - margins.top;
         const header = this.decorationText(options.pageHeader), footer = this.decorationText(options.pageFooter);
-        if (header && margins.top < this.layout.lineHeight + 4)
+        if (header && margins.top < lineHeight + 4)
             throw new RangeError("Top margin is too small for a page header.");
-        if ((footer || this.totalPages) && margins.bottom < this.layout.lineHeight + 4)
+        if ((footer || this.totalPages) && margins.bottom < lineHeight + 4)
             throw new RangeError("Bottom margin is too small for page decorations.");
-        const font = this.layout.fonts.select(), centerOffset = ((font.program?.ascent ?? 800) + (font.program?.descent ?? -200)) * fontSize / 2000;
+        const font = this.fonts.select(), centerOffset = ((font.program?.ascent ?? 800) + (font.program?.descent ?? -200)) * fontSize / 2000;
         this.decoration(header, margins.left, page.height - margins.top / 2 - centerOffset, page.width - margins.left - margins.right);
         const footerWidth = page.width - margins.left - margins.right - (this.totalPages ? this.pageNumberWidth + this.settings.padding * 2 : 0);
         if (footerWidth <= 0 && footer)
@@ -5040,28 +5277,44 @@ class PdfPages {
             const line = wrapText(label, font, fontSize, this.pageNumberWidth, 128, 1, false)[0];
             this.settings.budget.cell(label);
             this.text(label, font, fontSize, x, y);
-            this.add("q 1 0 0 1 " + pdfNumber(x + line.width) + " " + pdfNumber(y) + " cm /TotalPages Do Q\n");
+            this.add(this.artifact("q 1 0 0 1 " + pdfNumber(x + line.width) + " " + pdfNumber(y) + " cm /TotalPages Do Q\n", "Pagination"));
         }
         if (this.references.length === 1) {
             if (options.title)
-                await this.paragraph(options.title, { bold: true }, fontSize * 1.5, false);
+                await this.paragraph(options.title, { bold: true }, fontSize * 1.5, false, 1);
             if (options.messageTop)
                 await this.paragraph(options.messageTop, {}, fontSize, false);
         }
-        const headers = tableHeadings ? this.layout.headers() : [], headerHeight = headers.reduce((n, h) => n + h.height, 0);
-        if (this.y - headerHeight - this.layout.lineHeight - this.settings.padding * 2 < margins.bottom)
+        const headers = preparedHeadings ?? (tableHeadings && this.layout ? await this.layout.headers() : []), headerHeight = headers.reduce((n, h) => n + h.height, 0);
+        this.continuationTop = page.height - margins.top - headerHeight;
+        if (this.y - headerHeight - lineHeight - this.settings.padding * 2 < margins.bottom)
             throw new RangeError("PDF title and repeated headings leave no room for a data line.");
-        for (const header of headers)
-            this.draw(header, 0, header.lines);
+        if (tableHeadings && this.layout && this.structure && this.tableElement === undefined)
+            this.tableElement = this.structure.element("Table");
+        this.drawHeadings(headers);
         this.dataTop = this.y;
     }
-    draw(row, firstLine, lineCount) {
+    drawHeadings(headers) {
+        for (const header of headers) {
+            const elements = this.structure && this.tableElement !== undefined && !this.tableHeadingsDrawn ?
+                this.structure.tableRow(this.tableElement, header.cells.map(cell => cell.lines.some(line => line.text.trim().length > 0))) : undefined;
+            this.draw(header, 0, header.lines, elements);
+        }
+        if (headers.length)
+            this.tableHeadingsDrawn = true;
+    }
+    rowElements(row) {
+        return this.structure && this.tableElement !== undefined ? this.structure.tableRow(this.tableElement, row.cells.map(() => false)) : undefined;
+    }
+    draw(row, firstLine, lineCount, elements) {
+        if (!this.layout)
+            throw new Error("A table layout is required before drawing rows.");
         const { padding, fontSize } = this.settings, n = pdfNumber, height = lineCount * row.lineHeight + padding * 2;
-        for (const cell of row.cells) {
+        for (const [index, cell] of row.cells.entries()) {
             const x = this.layout.lefts[cell.first], cellHeight = cell.height ?? height;
             if (cell.style.background)
-                this.add("q " + this.rgb(cell.style.background) + " rg " + n(x) + " " + n(this.y - cellHeight) + " " + n(cell.width) + " " + n(cellHeight) + " re f Q\n");
-            this.add("q 0.82 0.85 0.89 RG 0.4 w " + n(x) + " " + n(this.y - cellHeight) + " " + n(cell.width) + " " + n(cellHeight) + " re S Q\n");
+                this.add(this.artifact("q " + this.rgb(cell.style.background) + " rg " + n(x) + " " + n(this.y - cellHeight) + " " + n(cell.width) + " " + n(cellHeight) + " re f Q\n"));
+            this.add(this.artifact("q 0.82 0.85 0.89 RG 0.4 w " + n(x) + " " + n(this.y - cellHeight) + " " + n(cell.width) + " " + n(cellHeight) + " re S Q\n"));
             if (cell.link) {
                 if (++this.hyperlinks > this.settings.limits.maxHyperlinks)
                     throw new OfficeIMOError("RESOURCE_LIMIT", "maxHyperlinks exceeded.");
@@ -5072,7 +5325,7 @@ class PdfPages {
             for (let line = firstLine; line < Math.min(cell.lines.length, cell.height ? cell.lines.length : firstLine + lineCount); line++) {
                 const text = cell.lines[line], left = cell.style.alignment === "right" ? cell.width - padding - text.width : cell.style.alignment === "center" ? (cell.width - text.width) / 2 : padding;
                 const ascent = (cell.font.program?.ascent ?? 800) * fontSize / 1000;
-                this.text(text.text, cell.font, fontSize, x + left, this.y - padding - ascent - (line - firstLine) * (row.structured ? cell.lineHeight : row.lineHeight), cell.style.color);
+                this.text(text.text, cell.font, fontSize, x + left, this.y - padding - ascent - (line - firstLine) * (row.structured ? cell.lineHeight : row.lineHeight), cell.style.color, elements?.[index]);
             }
         }
         this.y -= row.structured ? row.height : height;
@@ -5086,11 +5339,12 @@ class PdfPages {
         if (height > this.dataTop - bottom)
             throw new RangeError("A structured footer must fit on one page below the repeated headings.");
         for (const row of rows)
-            this.draw(row, 0, row.lines);
+            this.draw(row, 0, row.lines, this.rowElements(row));
     }
     async row(row) {
-        const { margins, padding } = this.settings, full = this.dataTop - margins.bottom;
-        if (row.height <= full + .001 && row.height > this.y - margins.bottom + .001 && this.y < this.dataTop - .001) {
+        const elements = this.rowElements(row);
+        const { margins, padding } = this.settings, full = this.continuationTop - margins.bottom;
+        if (row.height <= full + .001 && row.height > this.y - margins.bottom + .001) {
             await this.finishPage();
             await this.start();
         }
@@ -5104,7 +5358,7 @@ class PdfPages {
             }
             if (lines <= 0)
                 throw new RangeError("PDF page cannot fit a table line.");
-            this.draw(row, first, lines);
+            this.draw(row, first, lines, elements);
             first += lines;
             if (first < row.lines) {
                 await this.finishPage();
@@ -5112,23 +5366,57 @@ class PdfPages {
             }
         }
     }
-    async paragraph(text, style = {}, size = this.settings.fontSize, paginate = true) {
-        const { margins, page, limits } = this.settings, font = this.layout.fonts.select(style.bold, style.italic), lineHeight = font.lineHeight(size);
+    async paragraph(text, style = {}, size = this.settings.fontSize, paginate = true, headingLevel) {
+        const { margins, page, limits } = this.settings, font = this.fonts.select(style.bold, style.italic), lineHeight = font.lineHeight(size);
         this.settings.budget.cell(text);
-        const lines = wrapText(text, font, size, page.width - margins.left - margins.right, limits.maxCellCharacters, limits.maxRowLines);
+        const lines = await wrapTextCooperatively(text, font, size, page.width - margins.left - margins.right, limits.maxCellCharacters, limits.maxRowLines, true, this.settings.options.signal);
         if (lineHeight > page.height - margins.top - margins.bottom)
             throw new RangeError("PDF page cannot fit a paragraph line at the selected font metrics.");
         if (!paginate && this.y - lines.length * lineHeight - 8 < margins.bottom)
             throw new RangeError("PDF title/message exceeds the first page's content area.");
+        const element = this.structure?.element(headingLevel ? "H" + headingLevel : "P");
         for (const line of lines) {
             if (this.y - lineHeight < margins.bottom) {
                 await this.finishPage();
                 await this.start(false);
             }
-            this.text(line.text, font, size, margins.left, this.y - (font.program?.ascent ?? 800) * size / 1000, style.color);
+            const x = style.alignment === "right" ? page.width - margins.right - line.width : style.alignment === "center" ? margins.left + (page.width - margins.left - margins.right - line.width) / 2 : margins.left;
+            this.text(line.text, font, size, x, this.y - (font.program?.ascent ?? 800) * size / 1000, style.color, element);
             this.y -= lineHeight;
         }
         this.y -= 8;
+    }
+    /** Begin an independent table on the current page, retaining its headings on continuation pages. */
+    async beginTable(layout) {
+        this.layout = layout;
+        this.tableElement = this.structure?.element("Table");
+        this.tableHeadingsDrawn = false;
+        const headings = await layout.headers(), height = headings.reduce((n, row) => n + row.height, 0);
+        if (this.y - height - layout.lineHeight - this.settings.padding * 2 < this.settings.margins.bottom) {
+            await this.finishPage();
+            await this.start(true, headings);
+            return;
+        }
+        this.continuationTop = this.settings.page.height - this.settings.margins.top - height;
+        this.drawHeadings(headings);
+        this.dataTop = this.y;
+    }
+    endTable() { this.layout = undefined; this.tableElement = undefined; this.tableHeadingsDrawn = false; this.y -= 8; }
+    async pageBreak() { await this.finishPage(); await this.start(false); }
+    registerXObject(name, id) { this.externalObjects.set(name, id); }
+    /** Place an indivisible graphic, preserving aspect ratio and scaling down to page bounds. */
+    async graphic(width, height, alignment, paint, alternativeText) {
+        const { page, margins } = this.settings, available = page.width - margins.left - margins.right;
+        const scale = Math.min(1, available / width, (page.height - margins.top - margins.bottom) / height);
+        width *= scale;
+        height *= scale;
+        if (this.y - height < margins.bottom)
+            await this.pageBreak();
+        const left = alignment === "right" ? page.width - margins.right - width : alignment === "center" ? margins.left + (available - width) / 2 : margins.left;
+        const command = paint(left, this.y - height, width, height);
+        const element = this.structure && alternativeText !== undefined ? this.structure.element("Figure", this.structure.document, " /Alt <feff" + unicodeHex(alternativeText) + ">") : undefined;
+        this.add(this.structure && element !== undefined ? this.structure.mark(element) + command + "EMC\n" : this.artifact(command));
+        this.y -= height + 8;
     }
     async finishPage() {
         const contents = this.objects.reserve(), { page, options } = this.settings;
@@ -5141,7 +5429,10 @@ class PdfPages {
         }
         await this.objects.object(this.current, "<< /Type /Page /Parent " + this.parent + " 0 R /MediaBox [0 0 " + pdfNumber(page.width) + " " + pdfNumber(page.height) +
             "] /Resources " + this.resources + " 0 R /Contents " + contents + " 0 R" +
+            (this.structure?.pageDictionary ?? "") +
             (annotations.length ? " /Annots [" + annotations.map(id => id + " 0 R").join(" ") + "]" : "") + " >>");
+        if (this.structure)
+            await this.structure.finishPage();
         this.commands = [];
         this.annotations = [];
         this.commandBytes = 0;
@@ -5150,37 +5441,194 @@ class PdfPages {
     async finish() {
         await this.finishPage();
         if (this.totalPages) {
-            const font = this.layout.fonts.select(), text = String(this.references.length), size = this.settings.fontSize;
+            const font = this.fonts.select(), text = String(this.references.length), size = this.settings.fontSize;
             this.settings.budget.cell(text);
             const content = "BT /" + font.name + " " + pdfNumber(size) + " Tf 1 0 0 1 0 0 Tm " + font.encode(text) + " Tj ET\n";
             const width = wrapText(text, font, size, this.settings.page.width, 128, 1, false)[0].width;
             const bottom = (font.program?.bbox[1] ?? -250) * size / 1000 - 1, top = (font.program?.bbox[3] ?? 1000) * size / 1000 + 1;
-            await this.objects.stream(this.totalPages, content, "/Type /XObject /Subtype /Form /BBox [-1 " + pdfNumber(bottom) + " " + pdfNumber(width + 1) + " " + pdfNumber(top) + "] /Resources << /Font " + this.layout.fonts.dictionary() + " >>", this.settings.options.compression !== false);
+            await this.objects.stream(this.totalPages, content, "/Type /XObject /Subtype /Form /BBox [-1 " + pdfNumber(bottom) + " " + pdfNumber(width + 1) + " " + pdfNumber(top) + "] /Resources << /Font " + this.fonts.dictionary() + " >>", this.settings.options.compression !== false);
         }
     }
-    xobjects() { return this.totalPages ? " /XObject << /TotalPages " + this.totalPages + " 0 R >>" : ""; }
+    xobjects() {
+        const entries = [...this.externalObjects].map(([name, id]) => "/" + name + " " + id + " 0 R");
+        if (this.totalPages)
+            entries.push("/TotalPages " + this.totalPages + " 0 R");
+        return entries.length ? " /XObject << " + entries.join(" ") + " >>" : "";
+    }
 }
 const _exports = Object.freeze({ PdfPages: PdfPages });
-_modules.set("56c9db44196a590394b29a36d93249e1615d9aead514daa770f804c6e1df7233", _exports);
+_modules.set("a4f0f1bd720d45f050b08151420d0025a5d2e48eb210998b38703468fd6770d1", _exports);
 return _exports;
 })();
 
-const _m33 = _modules.get("5004fdaa8e288742bf590311cfa446ef8ed10097b97235824b7159f75ca187d5") ?? (() => {
+const _m52 = _modules.get("02f5ec56b90e06e48c50b3843923c25999514fcf5341c6a187495a3e7e1455e8") ?? (() => {
+const { OfficeIMOError } = _m2;
+
+const { checkAbort } = _m4;
+
+const { unicodeHex } = _m40;
+
+/** @internal Logical elements outlive page painting so split paragraphs/cells keep one identity. */
+class PdfStructure {
+    objects;
+    settings;
+    root;
+    document;
+    parentTree;
+    elements = new Map();
+    pageEntries = [];
+    pageParents = [];
+    pageId = 0;
+    pageCount = 0;
+    references = 0;
+    constructor(objects, settings) {
+        this.objects = objects;
+        this.settings = settings;
+        this.root = objects.reserve();
+        this.parentTree = objects.reserve();
+        this.document = this.element("Document", this.root);
+    }
+    element(role, parent = this.document, attributes = "") {
+        checkAbort(this.settings.options.signal);
+        if (this.elements.size >= this.settings.limits.maxStructureElements)
+            throw new OfficeIMOError("RESOURCE_LIMIT", "maxStructureElements exceeded.");
+        const id = this.objects.reserve(), element = { id, parent, role, children: [], attributes };
+        this.elements.set(id, element);
+        this.elements.get(parent)?.children.push(id + " 0 R");
+        return id;
+    }
+    tableRow(table, headers) {
+        const row = this.element("TR", table);
+        return headers.map(header => this.element(header ? "TH" : "TD", row, header ? " /A << /O /Table /Scope /Column >>" : ""));
+    }
+    beginPage(pageId) { this.pageId = pageId; this.pageParents = []; this.pageCount++; }
+    /** Every MCID is local to its page; its parent entry points back to the owning logical element. */
+    mark(elementId) {
+        if (++this.references > this.settings.limits.maxMarkedContentReferences)
+            throw new OfficeIMOError("RESOURCE_LIMIT", "maxMarkedContentReferences exceeded.");
+        const element = this.elements.get(elementId);
+        const mcid = this.pageParents.length;
+        this.pageParents.push(elementId);
+        element.children.push("<< /Type /MCR /Pg " + this.pageId + " 0 R /MCID " + mcid + " >>");
+        return "/" + element.role + " << /MCID " + mcid + " >> BDC\n";
+    }
+    get pageDictionary() { return " /StructParents " + (this.pageCount - 1) + " /Tabs /S"; }
+    get catalogDictionary() {
+        return " /MarkInfo << /Marked true >> /Lang <feff" + unicodeHex(this.settings.options.tagged.language) + "> /StructTreeRoot " + this.root + " 0 R";
+    }
+    async finishPage() {
+        const array = this.objects.reserve();
+        await this.objects.object(array, "[" + this.pageParents.map(id => id + " 0 R").join(" ") + "]");
+        this.pageEntries.push((this.pageCount - 1) + " " + array + " 0 R");
+        this.pageParents = [];
+    }
+    async finish() {
+        for (const element of this.elements.values()) {
+            checkAbort(this.settings.options.signal);
+            await this.objects.object(element.id, "<< /Type /StructElem /S /" + element.role + " /P " + element.parent +
+                " 0 R /K [" + element.children.join(" ") + "]" + element.attributes + " >>");
+        }
+        await this.objects.object(this.parentTree, "<< /Nums [" + this.pageEntries.join(" ") + "] >>");
+        await this.objects.object(this.root, "<< /Type /StructTreeRoot /K [" + this.document + " 0 R] /ParentTree " +
+            this.parentTree + " 0 R /ParentTreeNextKey " + this.pageCount + " >>");
+    }
+}
+/** Validate author intent even in untagged output so a later opt-in cannot silently change meaning. */
+function graphicAlternative(value, settings) {
+    const decorative = value.decorative, alternativeText = value.alternativeText;
+    if (decorative !== undefined && typeof decorative !== "boolean")
+        throw new TypeError("Graphic decorative must be boolean.");
+    if (alternativeText !== undefined) {
+        if (typeof alternativeText !== "string" || !alternativeText.trim())
+            throw new TypeError("Graphic alternativeText must be nonempty text.");
+        if (alternativeText.length > settings.limits.maxCellCharacters)
+            throw new OfficeIMOError("RESOURCE_LIMIT", "maxCellCharacters exceeded by graphic alternativeText.");
+        unicodeHex(alternativeText);
+        if (decorative)
+            throw new TypeError("A decorative graphic cannot also have alternativeText.");
+    }
+    if (settings.options.tagged && alternativeText === undefined && decorative !== true)
+        throw new TypeError("Tagged PDF graphics require alternativeText or decorative:true.");
+    if (settings.options.tagged && alternativeText !== undefined)
+        settings.budget.cell(alternativeText);
+    return alternativeText;
+}
+const _exports = Object.freeze({ PdfStructure: PdfStructure, graphicAlternative: graphicAlternative });
+_modules.set("02f5ec56b90e06e48c50b3843923c25999514fcf5341c6a187495a3e7e1455e8", _exports);
+return _exports;
+})();
+
+const _m39 = _modules.get("ad774d489a449828908a0071c4cdc800350f8af0fccf1eaeb3c52c4890797833") ?? (() => {
+const { PdfObjects, unicodeHex } = _m40;
+
+const { PdfFontResources } = _m41;
+
+const { PdfTableLayout } = _m48;
+
+const { PdfPages } = _m50;
+
+const { PdfStructure } = _m52;
+
+/** One resource/catalog owner shared by table convenience exports and composed documents. */
+class PdfWriteSession {
+    settings;
+    objects;
+    fonts;
+    pages;
+    layout;
+    structure;
+    root;
+    parent;
+    resources;
+    info;
+    constructor(sink, settings, table = false) {
+        this.settings = settings;
+        this.objects = new PdfObjects(sink, settings.options.signal, settings.options.limits?.maxOutputBytes);
+        this.root = this.objects.reserve();
+        this.parent = this.objects.reserve();
+        this.resources = this.objects.reserve();
+        this.info = this.objects.reserve();
+        this.structure = settings.options.tagged ? new PdfStructure(this.objects, settings) : undefined;
+        this.fonts = new PdfFontResources(this.objects, settings.options.fonts, settings.limits.maxFontBytes);
+        this.layout = table ? new PdfTableLayout(settings, this.fonts) : undefined;
+        this.pages = new PdfPages(this.objects, settings, this.fonts, this.parent, this.resources, this.layout, this.structure);
+    }
+    async start() {
+        await this.objects.text("%PDF-1.7\n");
+        await this.objects.raw(Uint8Array.of(0x25, 0xe2, 0xe3, 0xcf, 0xd3, 0x0a));
+        await this.pages.start(this.layout !== undefined);
+    }
+    async finish() {
+        const { options } = this.settings, { objects, fonts, pages } = this;
+        await pages.finish();
+        for (const font of fonts.resources)
+            await font.write(objects, options.compression !== false);
+        await objects.object(this.resources, "<< /Font " + fonts.dictionary() + pages.xobjects() + " >>");
+        await objects.object(this.parent, "<< /Type /Pages /Count " + pages.references.length + " /Kids [" + pages.references.map(id => id + " 0 R").join(" ") + "] >>");
+        if (this.structure)
+            await this.structure.finish();
+        await objects.object(this.root, "<< /Type /Catalog /Pages " + this.parent + " 0 R" + (this.structure?.catalogDictionary ?? "") + " >>");
+        await objects.object(this.info, "<< /Producer (OfficeIMO.js)" + (options.title === undefined ? "" : " /Title <feff" + unicodeHex(options.title) + ">") + " >>");
+        await objects.finish(this.root, this.info);
+    }
+}
+const _exports = Object.freeze({ PdfWriteSession: PdfWriteSession });
+_modules.set("ad774d489a449828908a0071c4cdc800350f8af0fccf1eaeb3c52c4890797833", _exports);
+return _exports;
+})();
+
+const _m36 = _modules.get("4969bbb2096ba0eeccc8a9d16cd29b5d46af6bc204f03d80e6f058d62eef1779") ?? (() => {
 const { BlobByteSink, withDestination } = _m3;
 
 const { beginTask, checkAbort, consumeRows, pause, taskYieldDue } = _m4;
 
-const { createRowProjector } = _m9;
+const { notifyProgress } = _m8;
 
-const { settings } = _m34;
+const { createRowProjector } = _m11;
 
-const { PdfObjects, unicodeHex } = _m36;
+const { settings } = _m37;
 
-const { PdfFontResources } = _m37;
-
-const { PdfTableLayout } = _m43;
-
-const { PdfPages } = _m45;
+const { PdfWriteSession } = _m39;
 
 async function writePdf(rows, configuration) {
     const sink = new BlobByteSink();
@@ -5198,28 +5646,25 @@ async function writePdfTo(rows, destination, configuration) {
     beginTask();
     checkAbort(options.signal);
     return withDestination(destination, async (sink) => {
-        const objects = new PdfObjects(sink, options.signal, options.limits?.maxOutputBytes), root = objects.reserve(), parent = objects.reserve(), resources = objects.reserve(), info = objects.reserve();
-        const fonts = new PdfFontResources(objects, options.fonts, prepared.limits.maxFontBytes), layout = new PdfTableLayout(prepared, fonts), pages = new PdfPages(objects, prepared, layout, parent, resources);
+        const session = new PdfWriteSession(sink, prepared, true), { objects, pages } = session, layout = session.layout;
         const project = createRowProjector(options.columns, undefined, options.signal);
         let count = 0;
-        await objects.text("%PDF-1.7\n");
-        await objects.raw(Uint8Array.of(0x25, 0xe2, 0xe3, 0xcf, 0xd3, 0x0a));
-        await pages.start();
+        await session.start();
         const completed = () => {
             count++;
             if (count % 256 === 0) {
-                options.onProgress?.({ phase: "rows", rows: count, bytes: objects.bytes });
+                notifyProgress(options.onProgress, { phase: "rows", rows: count, bytes: objects.bytes });
                 if (taskYieldDue())
                     return pause().then(() => { checkAbort(options.signal); });
             }
             checkAbort(options.signal);
         };
-        await consumeRows(rows, options.signal, row => {
+        await consumeRows(rows, options.signal, async (row) => {
             budget.row(count + 1);
             const values = project(row, count);
-            return pages.row(layout.data(values, count)).then(completed);
+            return pages.row(await layout.data(values, count)).then(completed);
         });
-        const footer = layout.footer(count);
+        const footer = await layout.footer(count);
         if (footer) {
             if (options.footer?.rows)
                 await pages.block(footer);
@@ -5228,32 +5673,868 @@ async function writePdfTo(rows, destination, configuration) {
         }
         if (options.messageBottom)
             await pages.paragraph(options.messageBottom);
-        await pages.finish();
-        for (const font of fonts.resources)
-            await font.write(objects, options.compression !== false);
-        await objects.object(resources, "<< /Font " + fonts.dictionary() + pages.xobjects() + " >>");
-        await objects.object(parent, "<< /Type /Pages /Count " + pages.references.length + " /Kids [" + pages.references.map(id => id + " 0 R").join(" ") + "] >>");
-        await objects.object(root, "<< /Type /Catalog /Pages " + parent + " 0 R >>");
-        await objects.object(info, "<< /Producer (OfficeIMO.js)" + (options.title === undefined ? "" : " /Title <feff" + unicodeHex(options.title) + ">") + " >>");
-        await objects.finish(root, info);
-        options.onProgress?.({ phase: "complete", rows: count, bytes: objects.bytes });
+        await session.finish();
+        notifyProgress(options.onProgress, { phase: "complete", rows: count, bytes: objects.bytes });
         checkAbort(options.signal);
         return { rows: count, columns: options.columns.length, bytes: objects.bytes };
     });
 }
 const _exports = Object.freeze({ writePdf: writePdf, writePdfTo: writePdfTo });
-_modules.set("5004fdaa8e288742bf590311cfa446ef8ed10097b97235824b7159f75ca187d5", _exports);
+_modules.set("4969bbb2096ba0eeccc8a9d16cd29b5d46af6bc204f03d80e6f058d62eef1779", _exports);
 return _exports;
 })();
 
-const _m32 = _modules.get("62df58acf64ab10e75cb3a0a8caf8b6bf97a0ab15ea090a32c8333c1695a70da") ?? (() => {
+const _m55 = _modules.get("19f325186cdc3272e443cab61ed42b88c8c88b629c0e9c36090f0359c1aa267b") ?? (() => {
+const { NotSupportedError, OfficeIMOError } = _m2;
 
-const _exports = Object.freeze({ writePdf: _m33.writePdf, writePdfTo: _m33.writePdfTo, PdfFont: _m38.PdfFont, ExportCell: _m5.ExportCell, saveBlob: _m1.saveBlob });
-_modules.set("62df58acf64ab10e75cb3a0a8caf8b6bf97a0ab15ea090a32c8333c1695a70da", _exports);
+const { checkAbort, pause, taskYieldDue, withAbort } = _m4;
+
+const { Crc32 } = _m20;
+
+const signature = [137, 80, 78, 71, 13, 10, 26, 10];
+const unsupportedChunks = new Set(["PLTE", "tRNS", "iCCP", "sRGB", "gAMA", "cHRM", "cICP", "mDCV", "cLLI", "sBIT", "eXIf", "acTL", "fcTL", "fdAT"]);
+/** Decode the static unprofiled 8-bit RGB/RGBA profile without canvas or a second compression engine. */
+async function pngPixels(inputSource, maxPixels, signal) {
+    checkAbort(signal);
+    const shape = pngShape(inputSource, maxPixels);
+    const source = new Uint8Array(inputSource);
+    const header = await pngHeader(source, shape, signal);
+    checkAbort(signal);
+    let stream;
+    try {
+        if (typeof DecompressionStream !== "function")
+            throw new TypeError("Missing DecompressionStream");
+        stream = new DecompressionStream("deflate");
+    }
+    catch (cause) {
+        throw new OfficeIMOError("PLATFORM_UNAVAILABLE", "PNG intake requires native DecompressionStream(\"deflate\").", { cause });
+    }
+    const { width, height, components } = header, rowBytes = width * components;
+    const expected = (rowBytes + 1) * height;
+    // All dimensions and the exact filtered length are bounded before allocating decoded pixels.
+    if (!Number.isSafeInteger(expected) || expected > 0x7fffffff)
+        throw new OfficeIMOError("RESOURCE_LIMIT", "PNG filtered data exceeds the supported decoded byte length.");
+    const pixels = new Uint8Array(rowBytes * height), view = new DataView(source.buffer, source.byteOffset, source.byteLength);
+    let chunk = header.firstData, position = chunk + 8, end = position + view.getUint32(chunk);
+    const input = new ReadableStream({ pull(controller) {
+            checkAbort(signal);
+            while (position === end && chunk < header.dataEnd) {
+                chunk = end + 4;
+                if (chunk === header.dataEnd) {
+                    controller.close();
+                    return;
+                }
+                position = chunk + 8;
+                end = position + view.getUint32(chunk);
+            }
+            // Limit the input given to the platform inflater between downstream length checks.
+            const next = Math.min(end, position + 4096);
+            controller.enqueue(source.subarray(position, next));
+            position = next;
+        } }, { highWaterMark: 0 });
+    const reader = input.pipeThrough(stream).getReader();
+    let inflated = 0, output = 0, column = 0, filter = 0;
+    try {
+        while (true) {
+            const item = await withAbort(reader.read(), signal).catch(cause => {
+                checkAbort(signal);
+                throw new TypeError("Invalid PNG zlib image data.", { cause });
+            });
+            checkAbort(signal);
+            if (item.done)
+                break;
+            if (item.value.length > expected - inflated)
+                throw new TypeError("PNG inflated bytes exceed the exact IHDR scanline length.");
+            for (let p = 0; p < item.value.length; p++) {
+                const value = item.value[p];
+                if (column === 0) {
+                    filter = value;
+                    if (filter > 4)
+                        throw new TypeError("Invalid PNG scanline filter.");
+                }
+                else {
+                    const left = column > components ? pixels[output - components] : 0;
+                    const up = output >= rowBytes ? pixels[output - rowBytes] : 0;
+                    const upperLeft = column > components && output >= rowBytes ? pixels[output - rowBytes - components] : 0;
+                    pixels[output++] = value + (filter === 0 ? 0 : filter === 1 ? left : filter === 2 ? up :
+                        filter === 3 ? Math.floor((left + up) / 2) : paeth(left, up, upperLeft));
+                }
+                column = column === rowBytes ? 0 : column + 1;
+                if ((p & 16383) === 16383) {
+                    if (taskYieldDue())
+                        await pause();
+                    checkAbort(signal);
+                }
+            }
+            inflated += item.value.length;
+            if (taskYieldDue())
+                await pause();
+            checkAbort(signal);
+        }
+        if (inflated !== expected)
+            throw new TypeError("PNG inflated bytes must match the exact IHDR scanline length.");
+        return { width, height, components, data: pixels };
+    }
+    catch (error) {
+        void reader.cancel(error).catch(() => { });
+        throw error;
+    }
+    finally {
+        reader.releaseLock();
+    }
+}
+/** Verify the complete source and critical chunk order before any decompressed image allocation. */
+async function pngHeader(source, shape, signal) {
+    const view = new DataView(source.buffer, source.byteOffset, source.byteLength);
+    let firstData = 0, dataEnd = 0, dataClosed = false;
+    for (let offset = 8; offset < source.length;) {
+        checkAbort(signal);
+        if (offset + 12 > source.length)
+            throw new TypeError("Truncated PNG chunk.");
+        const length = view.getUint32(offset), end = offset + 12 + length;
+        if (length > 0x7fffffff || end > source.length)
+            throw new TypeError("Truncated or oversized PNG chunk.");
+        const type = String.fromCharCode(...source.subarray(offset + 4, offset + 8));
+        if (!/^[A-Za-z]{2}[A-Z][A-Za-z]$/.test(type))
+            throw new TypeError("Invalid PNG chunk type.");
+        const crc = new Crc32();
+        for (let p = offset + 4; p < end - 4; p += 65536) {
+            crc.update(source.subarray(p, Math.min(end - 4, p + 65536)));
+            if (taskYieldDue())
+                await pause();
+            checkAbort(signal);
+        }
+        if (crc.value !== view.getUint32(end - 4))
+            throw new TypeError("PNG chunk CRC mismatch: " + type + ".");
+        if (offset === 8 && type !== "IHDR")
+            throw new TypeError("PNG IHDR must be the first chunk.");
+        if (type === "IHDR") {
+            if (offset !== 8 || length !== 13)
+                throw new TypeError("PNG requires one 13-byte IHDR first.");
+        }
+        else if (type === "IDAT") {
+            if (dataClosed)
+                throw new TypeError("PNG IDAT chunks must be consecutive.");
+            firstData ||= offset;
+            dataEnd = end;
+        }
+        else {
+            if (firstData)
+                dataClosed = true;
+            if (type === "IEND") {
+                if (length !== 0 || !firstData || end !== source.length)
+                    throw new TypeError("PNG requires a final empty IEND after IDAT.");
+                return { ...shape, firstData, dataEnd };
+            }
+            if (unsupportedChunks.has(type))
+                throw new NotSupportedError("PNG chunk " + type + "; normalize color, orientation, transparency or animation first");
+            if ((source[offset + 4] & 32) === 0)
+                throw new NotSupportedError("Required PNG chunk " + type);
+        }
+        offset = end;
+    }
+    throw new TypeError("PNG requires a complete final IEND chunk.");
+}
+/** Check source metadata synchronously, before capturing source bytes or allocating any image plane. */
+function pngShape(source, maxPixels) {
+    if (source.length < 33 || signature.some((value, index) => source[index] !== value))
+        throw new TypeError("Invalid PNG signature or truncated IHDR.");
+    const view = new DataView(source.buffer, source.byteOffset, source.byteLength);
+    if (view.getUint32(8) !== 13 || String.fromCharCode(...source.subarray(12, 16)) !== "IHDR")
+        throw new TypeError("PNG requires one 13-byte IHDR first.");
+    const width = view.getUint32(16), height = view.getUint32(20);
+    if (!width || !height || width > 0x7fffffff || height > 0x7fffffff)
+        throw new TypeError("Invalid PNG dimensions.");
+    if (!Number.isSafeInteger(width * height) || width * height > maxPixels)
+        throw new OfficeIMOError("RESOURCE_LIMIT", "PNG dimensions exceed maxImagePixels.");
+    if (source[24] !== 8 || ![2, 6].includes(source[25]))
+        throw new NotSupportedError("PNG intake requires 8-bit RGB or RGBA pixels");
+    if (source[26] !== 0 || source[27] !== 0)
+        throw new NotSupportedError("PNG compression or filter method");
+    if (source[28] !== 0)
+        throw new NotSupportedError("Interlaced PNG intake");
+    const components = source[25] === 6 ? 4 : 3;
+    if (!Number.isSafeInteger((width * components + 1) * height) || (width * components + 1) * height > 0x7fffffff)
+        throw new OfficeIMOError("RESOURCE_LIMIT", "PNG filtered data exceeds the supported decoded byte length.");
+    return { width, height, components };
+}
+function paeth(left, up, upperLeft) {
+    const prediction = left + up - upperLeft;
+    const a = Math.abs(prediction - left), b = Math.abs(prediction - up), c = Math.abs(prediction - upperLeft);
+    return a <= b && a <= c ? left : b <= c ? up : upperLeft;
+}
+const _exports = Object.freeze({ pngPixels: pngPixels });
+_modules.set("19f325186cdc3272e443cab61ed42b88c8c88b629c0e9c36090f0359c1aa267b", _exports);
 return _exports;
 })();
 
-const _m47 = _modules.get("e37eb5f0298d8bc9492db790f163f4a1d6d8b4293981cfdacfcd9d9810ec9b7f") ?? (() => {
+const _m54 = _modules.get("c1e06f6e69cd688f1c733486c493fa2a33192559cf35815cd836500ee1e31146") ?? (() => {
+const { NotSupportedError, OfficeIMOError } = _m2;
+
+const { checkAbort, pause, taskYieldDue } = _m4;
+
+const { pngPixels } = _m55;
+
+/** Shared document image resources; source objects are captured on first consumption. */
+class PdfDocumentImages {
+    objects;
+    settings;
+    images = new Map();
+    bytes = 0;
+    constructor(objects, settings) {
+        this.objects = objects;
+        this.settings = settings;
+    }
+    async prepare(image) {
+        const existing = this.images.get(image);
+        if (existing)
+            return existing;
+        const { limits, options } = this.settings;
+        if (!image || typeof image !== "object")
+            throw new TypeError("PDF images require a byte array.");
+        const data = image.data, format = image.format;
+        if (!(data instanceof Uint8Array))
+            throw new TypeError("PDF images require a byte array.");
+        const byteLength = data.length;
+        if (this.bytes + byteLength > limits.maxImageBytes)
+            throw new OfficeIMOError("RESOURCE_LIMIT", "maxImageBytes exceeded.");
+        let width, height, components, decoded;
+        if (format === "png")
+            ({ width, height, components, data: decoded } = await pngPixels(data, limits.maxImagePixels, options.signal));
+        else if (format === "jpeg")
+            ({ width, height, components } = jpegSize(data));
+        else if (format === "rgb" || format === "rgba") {
+            ({ width, height } = image);
+            components = format === "rgba" ? 4 : 3;
+        }
+        else
+            throw new NotSupportedError("PDF images support unprofiled PNG/JPEG or decoded RGB/RGBA pixels.");
+        if (!Number.isSafeInteger(width) || !Number.isSafeInteger(height) || width < 1 || height < 1 ||
+            !Number.isSafeInteger(width * height) || width * height > limits.maxImagePixels)
+            throw new OfficeIMOError("RESOURCE_LIMIT", "Image dimensions must be positive integers within maxImagePixels.");
+        if ((format === "rgb" || format === "rgba") && byteLength !== width * height * components)
+            throw new RangeError("Raw image bytes must match width × height × channels exactly.");
+        checkAbort(options.signal);
+        const id = this.objects.reserve(), name = "Image" + (this.images.size + 1);
+        this.bytes += byteLength;
+        const captured = decoded ?? new Uint8Array(data);
+        let pixels = captured, mask;
+        if (components === 4) {
+            pixels = new Uint8Array(width * height * 3);
+            const alpha = new Uint8Array(width * height);
+            for (let p = 0; p < alpha.length; p++) {
+                pixels[p * 3] = captured[p * 4];
+                pixels[p * 3 + 1] = captured[p * 4 + 1];
+                pixels[p * 3 + 2] = captured[p * 4 + 2];
+                alpha[p] = captured[p * 4 + 3];
+                if ((p & 16383) === 16383) {
+                    if (taskYieldDue())
+                        await pause();
+                    checkAbort(options.signal);
+                }
+            }
+            mask = this.objects.reserve();
+            await this.objects.stream(mask, alpha, "/Type /XObject /Subtype /Image /Width " + width + " /Height " + height + " /ColorSpace /DeviceGray /BitsPerComponent 8", options.compression !== false);
+        }
+        const dictionary = "/Type /XObject /Subtype /Image /Width " + width + " /Height " + height + " /ColorSpace /" +
+            (components === 1 ? "DeviceGray" : "DeviceRGB") + " /BitsPerComponent 8" + (mask ? " /SMask " + mask + " 0 R" : "") +
+            (format === "jpeg" ? " /Filter /DCTDecode" : "");
+        await this.objects.stream(id, pixels, dictionary, format === "jpeg" ? false : options.compression !== false);
+        const resource = { name, id, width, height };
+        this.images.set(image, resource);
+        return resource;
+    }
+}
+/** Inspect bounded JPEG headers; JPEG entropy decoding remains the independent reader's job. */
+function jpegSize(bytes) {
+    if (bytes.length < 4 || bytes[0] !== 255 || bytes[1] !== 216 || bytes[bytes.length - 2] !== 255 || bytes[bytes.length - 1] !== 217)
+        throw new TypeError("JPEG images need complete SOI/EOI markers.");
+    let result;
+    for (let p = 2; p < bytes.length;) {
+        if (bytes[p++] !== 255)
+            throw new TypeError("Invalid JPEG marker.");
+        while (bytes[p] === 255)
+            p++;
+        const marker = bytes[p++];
+        if (marker === 218) {
+            if (!result)
+                throw new TypeError("JPEG scan precedes its frame header.");
+            return result;
+        }
+        if (marker === 217)
+            break;
+        if (p + 2 > bytes.length)
+            throw new TypeError("Truncated JPEG segment.");
+        const length = bytes[p] * 256 + bytes[p + 1], end = p + length;
+        if (length < 2 || end > bytes.length)
+            throw new TypeError("Truncated JPEG segment.");
+        if (marker === 226 && length >= 14 && String.fromCharCode(...bytes.subarray(p + 2, p + 14)) === "ICC_PROFILE\0")
+            throw new NotSupportedError("Normalize ICC-profiled JPEG colors before PDF embedding.");
+        if (marker === 225 && length >= 8 && String.fromCharCode(...bytes.subarray(p + 2, p + 8)) === "Exif\0\0")
+            throw new NotSupportedError("Normalize JPEG EXIF orientation before PDF embedding.");
+        if (marker >= 192 && marker <= 207 && ![196, 200, 204].includes(marker)) {
+            if (![192, 193, 194].includes(marker) || length < 8 || bytes[p + 2] !== 8)
+                throw new NotSupportedError("PDF JPEG images require 8-bit baseline, sequential or progressive frames.");
+            const components = bytes[p + 7];
+            if (![1, 3].includes(components) || length !== 8 + components * 3)
+                throw new NotSupportedError("PDF JPEG images require grayscale or RGB components; CMYK is unsupported.");
+            if (components === 3) {
+                const ids = [bytes[p + 8], bytes[p + 11], bytes[p + 14]].join(",");
+                if (ids !== "1,2,3" && ids !== "82,71,66")
+                    throw new NotSupportedError("Unsupported JPEG component color layout.");
+            }
+            if (result)
+                throw new NotSupportedError("Multiple JPEG frame headers are unsupported.");
+            result = { width: bytes[p + 5] * 256 + bytes[p + 6], height: bytes[p + 3] * 256 + bytes[p + 4], components };
+        }
+        p = end;
+    }
+    throw new TypeError("JPEG image has no complete frame and scan.");
+}
+const _exports = Object.freeze({ PdfDocumentImages: PdfDocumentImages });
+_modules.set("c1e06f6e69cd688f1c733486c493fa2a33192559cf35815cd836500ee1e31146", _exports);
+return _exports;
+})();
+
+const _m56 = _modules.get("2908c4b401414c852357df4b0792e2b68a1508c821a2aea6ee9772d6f94562a7") ?? (() => {
+const { OfficeIMOError } = _m2;
+
+const { checkAbort, pause, taskYieldDue } = _m4;
+
+const { color, positive } = _m37;
+
+const { pdfNumber: n } = _m40;
+
+/** Capture and serialize one bounded display path, with no markup parser or resource loading. */
+async function vectorCommands(block, settings, used) {
+    const width = positive(block.width, "Vector width"), height = positive(block.height, "Vector height");
+    const source = block.commands;
+    if (!Array.isArray(source))
+        throw new TypeError("Vector commands must be an array.");
+    if (used + source.length > settings.limits.maxVectorCommands)
+        throw new OfficeIMOError("RESOURCE_LIMIT", "maxVectorCommands exceeded.");
+    const input = source.map(c => {
+        if (!c || typeof c !== "object")
+            throw new TypeError("Invalid vector command.");
+        const op = c.op;
+        if (op === "move" || op === "line")
+            return { op, x: c.x, y: c.y };
+        if (op === "cubic")
+            return { op, x1: c.x1, y1: c.y1, x2: c.x2, y2: c.y2, x: c.x, y: c.y };
+        if (op === "close")
+            return { op };
+        throw new TypeError("Unsupported vector command.");
+    });
+    const fillValue = block.fill, strokeValue = block.stroke;
+    const fill = fillValue === undefined ? undefined : color(fillValue), stroke = strokeValue === undefined ? undefined : color(strokeValue);
+    if (fill === undefined && stroke === undefined)
+        throw new TypeError("A vector path requires fill or stroke.");
+    const strokeWidth = positive(block.strokeWidth ?? 1, "Vector stroke width", 144);
+    const fillRule = block.fillRule;
+    if (fillRule !== undefined && !["nonzero", "evenodd"].includes(fillRule))
+        throw new TypeError("Invalid vector fill rule.");
+    const commands = [];
+    let bytes = 0, started = false;
+    const coordinate = (value, bound) => {
+        if (!Number.isFinite(value) || value < 0 || value > bound)
+            throw new RangeError("Vector coordinates must stay inside their declared bounds.");
+        return n(value);
+    };
+    for (let i = 0; i < input.length; i++) {
+        const c = input[i];
+        let command;
+        if (!c || typeof c !== "object")
+            throw new TypeError("Invalid vector command.");
+        if (c.op === "move" || c.op === "line") {
+            if (c.op === "line" && !started)
+                throw new TypeError("A vector subpath must begin with move.");
+            command = coordinate(c.x, width) + " " + coordinate(c.y, height) + (c.op === "move" ? " m\n" : " l\n");
+            started = true;
+        }
+        else if (c.op === "cubic") {
+            if (!started)
+                throw new TypeError("A vector subpath must begin with move.");
+            command = [coordinate(c.x1, width), coordinate(c.y1, height), coordinate(c.x2, width), coordinate(c.y2, height), coordinate(c.x, width), coordinate(c.y, height)].join(" ") + " c\n";
+        }
+        else if (c.op === "close") {
+            if (!started)
+                throw new TypeError("Cannot close an empty vector path.");
+            command = "h\n";
+        }
+        else
+            throw new TypeError("Unsupported vector command.");
+        bytes += command.length;
+        if (bytes > settings.limits.maxPageBytes - 256)
+            throw new OfficeIMOError("RESOURCE_LIMIT", "maxPageBytes exceeded by vector commands.");
+        commands.push(command);
+        if ((i & 1023) === 1023) {
+            if (taskYieldDue())
+                await pause();
+            checkAbort(settings.options.signal);
+        }
+    }
+    if (!started)
+        throw new TypeError("A vector path needs at least one command.");
+    return { width, height, count: input.length, content: (fill === undefined ? "" : fill + " rg\n") + (stroke === undefined ? "" : stroke + " RG\n" + n(strokeWidth) + " w\n") +
+            commands.join("") + (fill !== undefined && stroke !== undefined ? "B" : fill !== undefined ? "f" : "S") + (fill !== undefined && fillRule === "evenodd" ? "*" : "") + "\n" };
+}
+const _exports = Object.freeze({ vectorCommands: vectorCommands });
+_modules.set("2908c4b401414c852357df4b0792e2b68a1508c821a2aea6ee9772d6f94562a7", _exports);
+return _exports;
+})();
+
+const _m57 = _modules.get("2369ea1b72551c804d95e7d3f89bbece1fe7e7c7503345451879ef877b4b90f0") ?? (() => {
+const { NotSupportedError, OfficeIMOError } = _m2;
+
+const { checkAbort, pause, taskYieldDue } = _m4;
+
+const { color, positive } = _m37;
+
+const { pdfNumber: n } = _m40;
+
+/** Portable drawings are an exact schema: unsupported data must never be silently discarded. */
+function record(value, keys, name) {
+    if (!value || typeof value !== "object" || Array.isArray(value) || Reflect.ownKeys(value).some(key => typeof key !== "string" || !keys.includes(key)))
+        throw new TypeError("Unsupported " + name + " properties.");
+    return value;
+}
+function checkDrawingBlock(value) {
+    record(value, ["kind", "drawing", "alignment", "alternativeText", "decorative"], "drawing block");
+}
+function coordinate(value) {
+    if (typeof value !== "number" || !Number.isFinite(value) || Math.abs(value) > 1000000)
+        throw new RangeError("Drawing coordinates must be finite and within -1,000,000 through 1,000,000 points.");
+    return value;
+}
+function clipRectangle(value) {
+    const clip = record(value, ["x", "y", "width", "height"], "drawing clip");
+    return { x: coordinate(clip.x), y: coordinate(clip.y), width: positive(clip.width, "Drawing clip width", 1000000), height: positive(clip.height, "Drawing clip height", 1000000) };
+}
+async function cooperate(settings) {
+    if (taskYieldDue())
+        await pause();
+    checkAbort(settings.options.signal);
+}
+/** Take ownership of one bounded schema before any cooperative or font work can run caller code. */
+function captureDrawing(drawing, settings, used) {
+    checkAbort(settings.options.signal);
+    const root = record(drawing, ["version", "width", "height", "elements"], "drawing");
+    if (root.version !== 1)
+        throw new NotSupportedError("Only portable drawing version 1 is supported.");
+    const width = positive(root.width, "Drawing width"), height = positive(root.height, "Drawing height");
+    let commands = used.commands, elements = used.elements;
+    const ancestors = new Set();
+    function path(value) {
+        record(value, ["kind", "commands", "fill", "stroke", "strokeWidth", "fillRule", "lineCap", "lineJoin"], "drawing path");
+        const source = value.commands;
+        if (!Array.isArray(source))
+            throw new TypeError("Drawing path commands must be an array.");
+        if (commands + source.length > settings.limits.maxVectorCommands)
+            throw new OfficeIMOError("RESOURCE_LIMIT", "maxVectorCommands exceeded.");
+        checkAbort(settings.options.signal);
+        const snapshot = source.slice(), copied = [];
+        let started = false;
+        commands += snapshot.length;
+        const fillValue = value.fill, strokeValue = value.stroke;
+        const fill = fillValue === undefined ? undefined : color(fillValue), stroke = strokeValue === undefined ? undefined : color(strokeValue);
+        if (fill === undefined && stroke === undefined)
+            throw new TypeError("A drawing path requires fill or stroke.");
+        const strokeWidth = positive(value.strokeWidth ?? 1, "Drawing stroke width");
+        const fillRule = value.fillRule, lineCap = value.lineCap, lineJoin = value.lineJoin;
+        if (fillRule !== undefined && !["nonzero", "evenodd"].includes(fillRule))
+            throw new TypeError("Invalid drawing fillRule.");
+        if (lineCap !== undefined && !["butt", "round", "square"].includes(lineCap))
+            throw new TypeError("Invalid drawing lineCap.");
+        if (lineJoin !== undefined && !["miter", "round", "bevel"].includes(lineJoin))
+            throw new TypeError("Invalid drawing lineJoin.");
+        for (let i = 0; i < snapshot.length; i++) {
+            const c = snapshot[i];
+            if (!c || typeof c !== "object")
+                throw new TypeError("Invalid drawing path command.");
+            const op = c.op;
+            if (op === "move" || op === "line") {
+                record(c, ["op", "x", "y"], "drawing path command");
+                if (op === "line" && !started)
+                    throw new TypeError("A drawing subpath must begin with move.");
+                copied.push({ op, x: coordinate(c.x), y: coordinate(c.y) });
+                started = true;
+            }
+            else if (op === "cubic") {
+                record(c, ["op", "x1", "y1", "x2", "y2", "x", "y"], "drawing path command");
+                if (!started)
+                    throw new TypeError("A drawing subpath must begin with move.");
+                copied.push({ op: "cubic", x1: coordinate(c.x1), y1: coordinate(c.y1), x2: coordinate(c.x2), y2: coordinate(c.y2), x: coordinate(c.x), y: coordinate(c.y) });
+            }
+            else if (op === "close") {
+                record(c, ["op"], "drawing path command");
+                if (!started)
+                    throw new TypeError("Cannot close an empty drawing path.");
+                copied.push({ op: "close" });
+            }
+            else
+                throw new TypeError("Unsupported drawing path command.");
+            if ((i & 1023) === 1023)
+                checkAbort(settings.options.signal);
+        }
+        if (!started)
+            throw new TypeError("A drawing path needs at least one command.");
+        return { kind: "path", commands: copied, style: (fill === undefined ? "" : fill + " rg\n") + (stroke === undefined ? "" : stroke + " RG\n" + n(strokeWidth) + " w\n") +
+                String(["butt", "round", "square"].indexOf(lineCap ?? "butt")) + " J\n" + String(["miter", "round", "bevel"].indexOf(lineJoin ?? "miter")) + " j\n10 M\n",
+            paint: (fill !== undefined && stroke !== undefined ? "B" : fill !== undefined ? "f" : "S") + (fill !== undefined && fillRule === "evenodd" ? "*" : "") + "\n" };
+    }
+    function text(value) {
+        record(value, ["kind", "text", "x", "y", "font", "fontSize", "color"], "drawing text");
+        const snapshot = value.text, slot = value.font;
+        if (typeof snapshot !== "string")
+            throw new TypeError("Drawing text must be a string.");
+        if (snapshot.length > settings.limits.maxCellCharacters)
+            throw new OfficeIMOError("RESOURCE_LIMIT", "maxCellCharacters exceeded.");
+        if (/[\r\n\u2028\u2029]/.test(snapshot))
+            throw new NotSupportedError("Drawing text must be a single baseline without line breaks.");
+        if (!["regular", "bold", "italic", "boldItalic"].includes(slot))
+            throw new TypeError("Invalid drawing font slot.");
+        const x = coordinate(value.x), y = coordinate(value.y), size = positive(value.fontSize, "Drawing font size"), foreground = color(value.color);
+        settings.budget.cell(snapshot);
+        return { kind: "text", text: snapshot, x, y, size, color: foreground, font: slot };
+    }
+    function children(input, depth) {
+        if (!Array.isArray(input))
+            throw new TypeError("Drawing elements must be an array.");
+        if (depth > 32 && input.length)
+            throw new RangeError("Drawing groups support at most 32 element levels.");
+        if (elements + input.length > settings.limits.maxDrawingElements)
+            throw new OfficeIMOError("RESOURCE_LIMIT", "maxDrawingElements exceeded.");
+        checkAbort(settings.options.signal);
+        const snapshot = input.slice(), output = [];
+        for (let i = 0; i < snapshot.length; i++) {
+            if (++elements > settings.limits.maxDrawingElements)
+                throw new OfficeIMOError("RESOURCE_LIMIT", "maxDrawingElements exceeded.");
+            const value = snapshot[i];
+            if (!value || typeof value !== "object")
+                throw new TypeError("Invalid drawing element.");
+            if (ancestors.has(value))
+                throw new TypeError("Drawing groups cannot contain cycles.");
+            const kind = value.kind;
+            if (kind === "path")
+                output.push(path(value));
+            else if (kind === "text")
+                output.push(text(value));
+            else if (kind === "group") {
+                record(value, ["kind", "clip", "elements"], "drawing group");
+                const clipValue = value.clip, clip = clipValue === undefined ? undefined : clipRectangle(clipValue);
+                ancestors.add(value);
+                output.push({ kind: "group", ...(clip ? { clip } : {}), children: children(value.elements, depth + 1) });
+                ancestors.delete(value);
+            }
+            else
+                throw new TypeError("Unsupported drawing element kind.");
+            if ((i & 255) === 255)
+                checkAbort(settings.options.signal);
+        }
+        return output;
+    }
+    const plan = children(root.elements, 1);
+    checkAbort(settings.options.signal);
+    return { width, height, plan, commands: commands - used.commands, elements: elements - used.elements };
+}
+/** Preflight and paint owned records. The existing font owner retains glyph maps and subsets. */
+async function prepareDrawing(drawing, settings, fonts, used) {
+    // A drawing's bounded capture is synchronous; yielding here would leave later caller records borrowed.
+    const captured = captureDrawing(drawing, settings, used), drawingFonts = new Map();
+    function fontFor(slot) {
+        const existing = drawingFonts.get(slot);
+        if (existing)
+            return existing;
+        const font = fonts.select(slot === "bold" || slot === "boldItalic", slot === "italic" || slot === "boldItalic");
+        if (!font.program || font.syntheticBold || font.syntheticItalic)
+            throw new NotSupportedError("Drawing text without an exact embedded font face at fonts." + slot);
+        drawingFonts.set(slot, font);
+        return font;
+    }
+    // The work budget belongs to the drawing, including short runs in separate sibling groups.
+    let preflightCharacters = 0, preflightElements = 0;
+    async function preflight(nodes) {
+        for (let i = 0; i < nodes.length; i++) {
+            const node = nodes[i];
+            if (node.kind === "group")
+                await preflight(node.children);
+            else if (node.kind === "text") {
+                const font = fontFor(node.font);
+                for (const character of node.text) {
+                    font.width(character.codePointAt(0));
+                    if ((++preflightCharacters & 1023) === 0)
+                        await cooperate(settings);
+                }
+            }
+            if ((++preflightElements & 255) === 0)
+                await cooperate(settings);
+        }
+    }
+    await preflight(captured.plan);
+    const fragments = [];
+    let bytes = 0;
+    function add(fragment) {
+        bytes += fragment.length;
+        if (bytes > settings.limits.maxPageBytes - 256)
+            throw new OfficeIMOError("RESOURCE_LIMIT", "maxPageBytes exceeded by drawing content.");
+        fragments.push(fragment);
+    }
+    let paintedCharacters = 0, paintedCommands = 0, paintedElements = 0;
+    async function paint(nodes) {
+        for (let i = 0; i < nodes.length; i++) {
+            const node = nodes[i];
+            add("q\n");
+            if (node.kind === "group") {
+                if (node.clip)
+                    add([node.clip.x, node.clip.y, node.clip.width, node.clip.height].map(n).join(" ") + " re W n\n");
+                await paint(node.children);
+            }
+            else if (node.kind === "path") {
+                add(node.style);
+                for (let j = 0; j < node.commands.length; j++) {
+                    const c = node.commands[j];
+                    add(c.op === "move" || c.op === "line" ? n(c.x) + " " + n(c.y) + (c.op === "move" ? " m\n" : " l\n") :
+                        c.op === "cubic" ? [c.x1, c.y1, c.x2, c.y2, c.x, c.y].map(n).join(" ") + " c\n" : "h\n");
+                    if ((++paintedCommands & 1023) === 0)
+                        await cooperate(settings);
+                }
+                add(node.paint);
+            }
+            else {
+                const font = fontFor(node.font);
+                add(node.color + " rg\nBT /" + font.name + " " + n(node.size) + " Tf 0 Tr 1 0 0 -1 " + n(node.x) + " " + n(node.y) + " Tm <");
+                let chunk = "";
+                for (const character of node.text) {
+                    chunk += character;
+                    if ((++paintedCharacters & 1023) === 0) {
+                        add(font.encode(chunk).slice(1, -1));
+                        chunk = "";
+                        await cooperate(settings);
+                    }
+                }
+                if (chunk)
+                    add(font.encode(chunk).slice(1, -1));
+                add("> Tj ET\n");
+            }
+            add("Q\n");
+            if ((++paintedElements & 255) === 0)
+                await cooperate(settings);
+        }
+    }
+    await paint(captured.plan);
+    checkAbort(settings.options.signal);
+    return { width: captured.width, height: captured.height, content: fragments.join(""), commands: captured.commands, elements: captured.elements };
+}
+const _exports = Object.freeze({ checkDrawingBlock: checkDrawingBlock, prepareDrawing: prepareDrawing });
+_modules.set("2369ea1b72551c804d95e7d3f89bbece1fe7e7c7503345451879ef877b4b90f0", _exports);
+return _exports;
+})();
+
+const _m53 = _modules.get("2e94c07f933c8e8c042005e935e0b0a3a8bd782b815220f8863be728570e5981") ?? (() => {
+const { BlobByteSink, withDestination } = _m3;
+
+const { beginTask, checkAbort, consumeRows, pause, taskYieldDue } = _m4;
+
+const { notifyProgress } = _m8;
+
+const { copyColumns, createRowProjector } = _m11;
+
+const { settings, presentation, positive } = _m37;
+
+const { pdfNumber: n } = _m40;
+
+const { PdfTableLayout } = _m48;
+
+const { PdfWriteSession } = _m39;
+
+const { PdfDocumentImages } = _m54;
+
+const { vectorCommands } = _m56;
+
+const { graphicAlternative } = _m52;
+
+const { checkDrawingBlock, prepareDrawing } = _m57;
+
+/** Capture typed columns for a single-use table source in a composed document. */
+function pdfTable(rows, options) {
+    checkTableOptions(options);
+    return Object.freeze({ kind: "table", rows, options: Object.freeze({ ...options, columns: Object.freeze(copyColumns(options?.columns)) }) });
+}
+/** Write sequential report blocks to a PDF Blob, retaining finished output proportional to file size. */
+async function writePdfDocument(blocks, options = {}) {
+    const sink = new BlobByteSink();
+    try {
+        await writePdfDocumentTo(blocks, sink, options);
+        return sink.toBlob("application/pdf");
+    }
+    catch (error) {
+        sink.discard();
+        throw error;
+    }
+}
+/** Stream composed pages with backpressure. Rows sum all tables; columns reports the widest table. */
+async function writePdfDocumentTo(blocks, destination, configuration = {}) {
+    const prepared = settings({ ...configuration, columns: [], includeHeader: false }, true), { options, budget } = prepared;
+    beginTask();
+    checkAbort(options.signal);
+    return withDestination(destination, async (sink) => {
+        const session = new PdfWriteSession(sink, prepared), { objects, pages, fonts } = session, images = new PdfDocumentImages(objects, prepared);
+        let rows = 0, columns = 0, commands = 0, drawingElements = 0;
+        await session.start();
+        await consumeRows(blocks, options.signal, async (block) => {
+            if (!block || typeof block !== "object")
+                throw new TypeError("PDF document blocks must be objects.");
+            switch (block.kind) {
+                case "paragraph": {
+                    const text = block.text, headingLevel = block.headingLevel, paragraphPresentation = block.presentation;
+                    if (typeof text !== "string")
+                        throw new TypeError("Paragraph text must be a string.");
+                    if (headingLevel !== undefined && (!Number.isInteger(headingLevel) || headingLevel < 1 || headingLevel > 6))
+                        throw new TypeError("Paragraph headingLevel must be an integer from 1 through 6.");
+                    if (paragraphPresentation && Object.keys(paragraphPresentation).some(key => !["bold", "italic", "color", "alignment"].includes(key)))
+                        throw new TypeError("PDF paragraph presentation supports bold, italic, color and alignment.");
+                    const style = presentation(paragraphPresentation), size = positive(block.fontSize ?? prepared.fontSize, "Paragraph font size", 144);
+                    if (text)
+                        await pages.paragraph(text, style, size, true, headingLevel);
+                    break;
+                }
+                case "pageBreak":
+                    await pages.pageBreak();
+                    break;
+                case "table": {
+                    checkTableOptions(block.options);
+                    const table = settings({ ...options, ...block.options, columns: block.options?.columns, includeHeader: block.options?.includeHeader ?? true }), layout = new PdfTableLayout({ ...table, budget }, fonts);
+                    const project = createRowProjector(table.options.columns, undefined, options.signal);
+                    let count = 0;
+                    columns = Math.max(columns, table.options.columns.length);
+                    await pages.beginTable(layout);
+                    await consumeRows(block.rows, options.signal, async (row) => {
+                        budget.row(rows + 1);
+                        await pages.row(await layout.data(project(row, count), count));
+                        count++;
+                        rows++;
+                        if (rows % 256 === 0)
+                            notifyProgress(options.onProgress, { phase: "rows", rows, bytes: objects.bytes });
+                        if (taskYieldDue())
+                            await pause();
+                        checkAbort(options.signal);
+                    });
+                    const footer = await layout.footer(count);
+                    if (footer) {
+                        if (table.options.footer?.rows)
+                            await pages.block(footer);
+                        else
+                            await pages.row(footer[0]);
+                    }
+                    pages.endTable();
+                    break;
+                }
+                case "image": {
+                    const displayWidth = block.width, displayHeight = block.height;
+                    const alternative = graphicAlternative(block, prepared), alignment = graphicAlignment(block.alignment), image = await images.prepare(block.image);
+                    const width = displayWidth ?? (displayHeight === undefined ? image.width * .75 : displayHeight * image.width / image.height);
+                    const height = displayHeight ?? width * image.height / image.width;
+                    if (!Number.isFinite(width) || width <= 0 || !Number.isFinite(height) || height <= 0)
+                        throw new RangeError("Image display dimensions must be finite and positive.");
+                    pages.registerXObject(image.name, image.id);
+                    await pages.graphic(width, height, alignment, (x, y, w, h) => "q " + [w, 0, 0, h, x, y].map(n).join(" ") + " cm /" + image.name + " Do Q\n", alternative);
+                    break;
+                }
+                case "vector": {
+                    const alternative = graphicAlternative(block, prepared), alignment = graphicAlignment(block.alignment), path = await vectorCommands(block, prepared, commands);
+                    commands += path.count;
+                    await pages.graphic(path.width, path.height, alignment, (x, y, w, h) => "q " + [w / path.width, 0, 0, -h / path.height, x, y + h].map(n).join(" ") +
+                        " cm 0 0 " + n(path.width) + " " + n(path.height) + " re W n\n" + path.content + "Q\n", alternative);
+                    break;
+                }
+                case "drawing": {
+                    checkDrawingBlock(block);
+                    const alternative = graphicAlternative(block, prepared), alignment = graphicAlignment(block.alignment);
+                    const drawing = await prepareDrawing(block.drawing, prepared, fonts, { commands, elements: drawingElements });
+                    commands += drawing.commands;
+                    drawingElements += drawing.elements;
+                    await pages.graphic(drawing.width, drawing.height, alignment, (x, y, w, h) => "q " + [w / drawing.width, 0, 0, -h / drawing.height, x, y + h].map(n).join(" ") +
+                        " cm 0 0 " + n(drawing.width) + " " + n(drawing.height) + " re W n\n" + drawing.content + "Q\n", alternative);
+                    break;
+                }
+                default: throw new TypeError("Unsupported PDF document block.");
+            }
+            if (taskYieldDue())
+                await pause();
+            checkAbort(options.signal);
+        });
+        if (options.messageBottom)
+            await pages.paragraph(options.messageBottom);
+        await session.finish();
+        notifyProgress(options.onProgress, { phase: "complete", rows, bytes: objects.bytes });
+        checkAbort(options.signal);
+        return { rows, columns, bytes: objects.bytes };
+    });
+}
+function graphicAlignment(value) {
+    if (value !== undefined && !["left", "center", "right"].includes(value))
+        throw new TypeError("Invalid graphic alignment.");
+    return value ?? "left";
+}
+/** Per-table overrides cannot change the document's shared fonts, geometry or resource policy. */
+function checkTableOptions(options) {
+    const allowed = ["columns", "includeHeader", "headerRows", "footer", "headerPresentation", "footerPresentation", "alternateRowColor", "columnWidths", "wideTable", "formatValue"];
+    if (!options || typeof options !== "object" || Object.keys(options).some(key => !allowed.includes(key)))
+        throw new TypeError("Table options support columns, headings, footers, widths and presentation; document settings belong on writePdfDocument.");
+}
+const _exports = Object.freeze({ pdfTable: pdfTable, writePdfDocument: writePdfDocument, writePdfDocumentTo: writePdfDocumentTo });
+_modules.set("2e94c07f933c8e8c042005e935e0b0a3a8bd782b815220f8863be728570e5981", _exports);
+return _exports;
+})();
+
+const _m58 = _modules.get("ed8eb038bc649a3b76f0797059ab082ebadd1b9a205b8cea7bda1f0c42ffe47b") ?? (() => {
+const { fontProgram } = _m42;
+
+const { resolveScalar, selectFont, validateFonts } = _m46;
+
+/**
+ * Check one text run against the writer's selected font and scalar-layout rules.
+ * Returns the first text issue at its original UTF-16 index. This does not check
+ * wrapping, page geometry, resource budgets or document accessibility.
+ */
+function preflightPdfText(text, options = {}) {
+    if (typeof text !== "string")
+        throw new TypeError("PDF preflight text must be a string.");
+    if (!options || typeof options !== "object")
+        throw new TypeError("PDF preflight options must be an object.");
+    for (const key of ["bold", "italic"])
+        if (options[key] !== undefined && typeof options[key] !== "boolean")
+            throw new TypeError("PDF preflight " + key + " must be boolean.");
+    validateFonts(options.fonts);
+    const bold = options.bold ?? false, { font } = selectFont(options.fonts, bold, options.italic ?? false);
+    const program = font ? fontProgram(font) : undefined, checked = new Set();
+    for (let index = 0; index < text.length;) {
+        const scalar = text.codePointAt(index);
+        // wrapText treats CR/LF as paragraph boundaries and expands tabs to spaces.
+        const displayed = scalar === 9 ? 32 : scalar;
+        if (scalar !== 10 && scalar !== 13 && !checked.has(displayed)) {
+            const result = resolveScalar(displayed, program, bold);
+            if (!result.supported)
+                return { ...result, index, ...(result.code === "unpaired-surrogate" ? {} : { scalar }) };
+            checked.add(displayed);
+        }
+        index += scalar > 0xffff ? 2 : 1;
+    }
+    return { supported: true };
+}
+const _exports = Object.freeze({ preflightPdfText: preflightPdfText });
+_modules.set("ed8eb038bc649a3b76f0797059ab082ebadd1b9a205b8cea7bda1f0c42ffe47b", _exports);
+return _exports;
+})();
+
+const _m35 = _modules.get("388158d4403b323c761c5cdb26e27a7e538e9704bf1e1b0561fa49fac1a14279") ?? (() => {
+
+const _exports = Object.freeze({ writePdf: _m36.writePdf, writePdfTo: _m36.writePdfTo, writePdfDocument: _m53.writePdfDocument, writePdfDocumentTo: _m53.writePdfDocumentTo, pdfTable: _m53.pdfTable, PdfFont: _m42.PdfFont, preflightPdfText: _m58.preflightPdfText, ExportCell: _m5.ExportCell, saveBlob: _m1.saveBlob });
+_modules.set("388158d4403b323c761c5cdb26e27a7e538e9704bf1e1b0561fa49fac1a14279", _exports);
+return _exports;
+})();
+
+const _m59 = _modules.get("e37eb5f0298d8bc9492db790f163f4a1d6d8b4293981cfdacfcd9d9810ec9b7f") ?? (() => {
 /** @internal Runtime-checked calls across the optional third-party API boundary. */
 function call(owner, name, ...args) {
     const fn = member(owner, name);
@@ -5286,12 +6567,12 @@ _modules.set("e37eb5f0298d8bc9492db790f163f4a1d6d8b4293981cfdacfcd9d9810ec9b7f",
 return _exports;
 })();
 
-const _m48 = _modules.get("4041da9cb1ace4c20752add243bef79fdddb8444512318337498eb9887a7d74b") ?? (() => {
+const _m60 = _modules.get("892f06c1375b74a3bcbf2ecd661c9fd8afc510834aa92f354a52d6b11b6c22de") ?? (() => {
 const { ExportCell, assertExportValue } = _m5;
 
-const { tableSpans } = _m35;
+const { tableSpans } = _m38;
 
-const { member } = _m47;
+const { member } = _m59;
 
 /** @internal */
 function value(input) {
@@ -5356,18 +6637,18 @@ function headings(structure, leaf, mode) {
     return { rows, groups };
 }
 const _exports = Object.freeze({ value: value, text: text, headings: headings });
-_modules.set("4041da9cb1ace4c20752add243bef79fdddb8444512318337498eb9887a7d74b", _exports);
+_modules.set("892f06c1375b74a3bcbf2ecd661c9fd8afc510834aa92f354a52d6b11b6c22de", _exports);
 return _exports;
 })();
 
-const _m49 = _modules.get("ddd6c89be71f535c009ce6c13291dde01fd4f4997f6f8c3674e37f08cda5d7cf") ?? (() => {
+const _m61 = _modules.get("450f1c10bf139ee3ff4a738a059df38854791cdd0240014033a57497c1321370") ?? (() => {
 const { checkAbort, pause, rowsFromBatches, taskYieldDue } = _m4;
 
-const { ExportBudget } = _m8;
+const { ExportBudget } = _m10;
 
-const { array, call, indexes, member } = _m47;
+const { array, call, indexes, member } = _m59;
 
-const { headings, text, value } = _m48;
+const { headings, text, value } = _m60;
 
 function safeOptions(options) {
     const format = options.format ? { ...options.format } : undefined, customize = options.customizeData;
@@ -5563,28 +6844,32 @@ function captureDataTablesExport(host, table, options = {}, omitted) {
         ...(footerHeading?.structure ? { footerStructure: footerHeading.structure } : {}), rowCount: count, rows });
 }
 const _exports = Object.freeze({ createDataTablesExport: createDataTablesExport, captureDataTablesExport: captureDataTablesExport });
-_modules.set("ddd6c89be71f535c009ce6c13291dde01fd4f4997f6f8c3674e37f08cda5d7cf", _exports);
+_modules.set("450f1c10bf139ee3ff4a738a059df38854791cdd0240014033a57497c1321370", _exports);
 return _exports;
 })();
 
-const _m0 = _modules.get("30db1aec187350ac48136e4d2f7462143f3139aec4fd5451f22ebf0559d04337") ?? (() => {
+const _m0 = _modules.get("2b734895bbb7b72e14762f464386c9f3bdbcc631387c6eda6b1d85d73df95cc9") ?? (() => {
 const { BlobByteSink, checkAbort, saveBlob } = _m1;
 
 const { concatRows } = _m4;
 
-const { writeCsvTo } = _m7;
+const { notifyProgress } = _m8;
 
-const { writeXlsxTo } = _m10;
+const { writeCsvTo } = _m9;
 
-const { writePdfTo } = _m32;
+const { writeXlsxTo } = _m12;
 
-const { portableSheet, portableWorkbook } = _m31;
+const { writePdfTo } = _m35;
 
-const { call, member } = _m47;
+const { portableSheet, portableWorkbook } = _m34;
 
-const { value } = _m48;
+const { call, member } = _m59;
 
-const { captureDataTablesExport, createDataTablesExport } = _m49;
+const { value } = _m60;
+
+const { captureDataTablesExport, createDataTablesExport } = _m61;
+
+
 
 
 
@@ -5608,14 +6893,14 @@ async function writeDataTableTo(host, table, format, destination, options = {}) 
         const footer = source.footer || options.sheet?.footer ? { values: source.footer ?? [], ...options.sheet?.footer } : undefined;
         result = await writeXlsxTo(source.rows, destination, { ...options.workbook, ...stream, columns: source.columns,
             sheet: { ...options.sheet, name: options.sheetName ?? "Data", ...(footer ? { footer } : {}) },
-            ...(options.onProgress ? { onProgress: event => options.onProgress?.({ ...event, totalRows: source.rowCount }) } : {}) });
+            ...(options.onProgress ? { onProgress: event => notifyProgress(options.onProgress, { ...event, totalRows: source.rowCount }) } : {}) });
     }
     else if (format === "pdf") {
         const footer = options.pdf?.footer ?? (source.footerStructure ? { rows: source.footerStructure } : source.footer ? { values: source.footer } : undefined);
         result = await writePdfTo(source.rows, destination, { ...options.pdf, ...stream, columns: source.columns,
             ...(source.headerStructure && options.pdf?.includeHeader !== false && !options.pdf?.headerRows ? { headerRows: source.headerStructure } : {}),
             ...(footer ? { footer } : {}),
-            ...(options.onProgress ? { onProgress: event => options.onProgress?.({ ...event, totalRows: source.rowCount }) } : {}) });
+            ...(options.onProgress ? { onProgress: event => notifyProgress(options.onProgress, { ...event, totalRows: source.rowCount }) } : {}) });
     }
     else {
         const headingCount = source.headers.length, footerCount = source.footer ? 1 : 0;
@@ -5624,7 +6909,7 @@ async function writeDataTableTo(host, table, format, destination, options = {}) 
             ...(options.limits?.maxRows !== undefined ? { limits: { ...options.limits, maxRows: Math.min(Number.MAX_SAFE_INTEGER, options.limits.maxRows + headingCount + footerCount) } } : {}),
             onProgress: event => {
                 const rowCount = Math.max(0, Math.min(source.rowCount, event.rows - headingCount));
-                options.onProgress?.({ ...event, rows: rowCount, totalRows: source.rowCount });
+                notifyProgress(options.onProgress, { ...event, rows: rowCount, totalRows: source.rowCount });
             } });
     }
     checkAbort(signal);
@@ -5720,8 +7005,8 @@ function registerDataTablesButtons(host, options = {}) {
         };
     }
 }
-const _exports = Object.freeze({ createDataTablesExport: _m49.createDataTablesExport, ExportCell: _m5.ExportCell, writeDataTableTo: writeDataTableTo, exportDataTable: exportDataTable, registerDataTablesButtons: registerDataTablesButtons });
-_modules.set("30db1aec187350ac48136e4d2f7462143f3139aec4fd5451f22ebf0559d04337", _exports);
+const _exports = Object.freeze({ createDataTablesExport: _m61.createDataTablesExport, ExportCell: _m5.ExportCell, PdfFont: _m42.PdfFont, writeDataTableTo: writeDataTableTo, exportDataTable: exportDataTable, registerDataTablesButtons: registerDataTablesButtons });
+_modules.set("2b734895bbb7b72e14762f464386c9f3bdbcc631387c6eda6b1d85d73df95cc9", _exports);
 return _exports;
 })();
 Object.assign(officeimo, _m0);

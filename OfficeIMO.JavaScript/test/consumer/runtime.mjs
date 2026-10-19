@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { readFile, writeFile } from "node:fs/promises";
-import { Workbook, writeXlsx, writeXlsxTo, writePdf, core, zip, xml, opc, xlsx, csv, pdf } from "@evotecit/officeimo";
+import { Workbook, writeXlsx, writeXlsxTo, writePdf, preflightPdfText, core, zip, xml, opc, xlsx, csv, pdf } from "@evotecit/officeimo";
 import * as coreModule from "@evotecit/officeimo/core";
 import * as zipModule from "@evotecit/officeimo/zip";
 import * as xmlModule from "@evotecit/officeimo/xml";
@@ -22,9 +22,36 @@ const canopyCapture = { request: { columns: [{ id: "Name", title: "Name", kind: 
 assert.equal(await (await canopyModule.exportCanopy(canopyCapture, "csv", { unsupportedPresentation: "text" })).text(), "Name\r\nPacked\r\n");
 assert.equal(writeXlsx, xlsx.writeXlsx); assert.equal(writeXlsxTo, xlsx.writeXlsxTo);
 assert.equal(writePdf, pdf.writePdf);
+assert.equal(preflightPdfText, pdf.preflightPdfText);
+assert.deepEqual(preflightPdfText("Packed\r\n\tPDF"), { supported: true });
+const textIssue = pdfModule.preflightPdfText("Packed Ł");
+assert.equal(textIssue.supported, false); assert.equal(textIssue.code, "embedded-font-required"); assert.equal(textIssue.index, 7);
 const packedPdf = await writePdf([{name:'Packed PDF'}],{columns:[{header:'Name',key:'name'}]});
 assert.equal(packedPdf.type,'application/pdf');
 await writeFile('packed-consumer.pdf',new Uint8Array(await packedPdf.arrayBuffer()));
+const composed = await pdf.writePdfDocument([{ kind: "paragraph", text: "Packed document" },
+  pdf.pdfTable([{ name: "Packed section" }], { columns: [{ header: "Name", key: "name" }] }),
+  { kind: "image", image: { format: "rgb", width: 1, height: 1, data: Uint8Array.of(0, 128, 255) }, width: 20, height: 20 }]);
+assert.equal(composed.type, "application/pdf");
+await writeFile("packed-document.pdf", new Uint8Array(await composed.arrayBuffer()));
+// Independently produced Pillow RGB PNG; no DOM or canvas participates in decoding.
+const png = Uint8Array.from(Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAwAAAAICAIAAABChommAAAAJklEQVR42mP8ICLCgApULqEJMDAxEAGop4hFheE6mtD1b5oD6yYA4aYFETss/rAAAAAASUVORK5CYII=", "base64"));
+const richBlocks = [
+  { kind: "paragraph", text: "Packed tagged report", headingLevel: 1 },
+  { kind: "image", image: { format: "png", data: png }, width: 120, alternativeText: "Four colored quadrants" },
+  { kind: "drawing", drawing: { version: 1, width: 120, height: 40, elements: [
+    { kind: "path", fill: "008000", commands: [{ op: "move", x: 0, y: 0 }, { op: "line", x: 120, y: 40 }, { op: "line", x: 0, y: 40 }, { op: "close" }] }
+  ] }, alternativeText: "Green triangle" },
+  pdf.pdfTable([{ value: "Packed cell" }], { columns: [{ header: "Value", key: "value" }] })
+];
+const richOptions = { tagged: { language: "en-US" }, compression: false, pageNumbers: false };
+const rich = await pdf.writePdfDocument(richBlocks, richOptions);
+assert.equal(rich.type, "application/pdf");
+assert.match(await rich.text(), /\/StructTreeRoot /);
+await writeFile("packed-rich-report.pdf", new Uint8Array(await rich.arrayBuffer()));
+await import("@evotecit/officeimo/pdf.js");
+const classicRich = await globalThis.OfficeIMO.pdf.writePdfDocument(richBlocks, richOptions);
+assert.deepEqual(Buffer.from(await classicRich.arrayBuffer()), Buffer.from(await rich.arrayBuffer()), "Packed standalone PDF script matches the ESM report");
 const domainRows = [{ person: { name: "Łódź 🧪" }, ignored: { nested: true } }], columns = [{ header: "Name", value: row => row.person.name }];
 const packed = await writeXlsx(domainRows, { columns, compression: "store", sheet: { name: "Packed" } });
 await writeFile("packed-consumer.xlsx", new Uint8Array(await packed.arrayBuffer()));

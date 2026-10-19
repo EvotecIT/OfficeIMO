@@ -49,6 +49,8 @@ public sealed partial class OfficeTrueTypeFont : IOfficeBoundedFontProgram, IOff
     private readonly short _indexToLocFormat;
     private readonly int? _collectionIndex;
     private readonly string _fingerprint;
+    // Portable scalar-text projections require the original static face, including default-axis rejection.
+    internal bool IsVariableFont => _variationModel.IsVariable;
     /// <summary>Static font math design metrics, when the selected face supplies a valid MATH table.</summary>
     public OfficeMathFontConstants? MathConstants { get; }
     OfficeMathGlyphData? IOfficeMathGlyphProgram.MathGlyphData => _mathGlyphData;

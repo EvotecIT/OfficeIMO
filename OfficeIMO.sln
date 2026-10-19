@@ -516,9 +516,9 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "OfficeIMO.Xps.Tests", "Offi
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "OfficeIMO.Reader.Xps", "OfficeIMO.Reader.Xps\OfficeIMO.Reader.Xps.csproj", "{77A9757E-7719-4586-8875-219571E9D1A4}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "OfficeIMO.Browser", "OfficeIMO.Browser\OfficeIMO.Browser.csproj", "{78F5C8DC-E6EC-4A1D-A97B-34AA5EB25F2E}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "OfficeIMO.JavaScript.Assets", "OfficeIMO.JavaScript.Assets\OfficeIMO.JavaScript.Assets.csproj", "{78F5C8DC-E6EC-4A1D-A97B-34AA5EB25F2E}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "OfficeIMO.Browser.Tests", "OfficeIMO.Browser.Tests\OfficeIMO.Browser.Tests.csproj", "{BA380143-A009-41F3-A636-4B5D6645B349}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "OfficeIMO.JavaScript.Assets.Tests", "OfficeIMO.JavaScript.Assets.Tests\OfficeIMO.JavaScript.Assets.Tests.csproj", "{BA380143-A009-41F3-A636-4B5D6645B349}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "OfficeIMO.Studio.Core", "OfficeIMO.Studio.Core\OfficeIMO.Studio.Core.csproj", "{2A60A45E-6703-49BF-A0E2-8829E962BE87}"
 EndProject

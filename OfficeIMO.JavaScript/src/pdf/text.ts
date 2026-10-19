@@ -1,5 +1,7 @@
 import { OfficeIMOError } from "../core/errors.js";
 import { ExportCell, assertExportValue } from "../core/presentation.js";
+import { checkAbort, pause, taskYieldDue } from "../core/iteration.js";
+import { isDate } from "../core/dates.js";
 import type { ExportValue, ColumnValueContext } from "../core/index.js";
 import type { PdfOptions } from "./types.js";
 import type { PdfFontResource } from "./font-resources.js";
@@ -14,13 +16,32 @@ export function displayText(value: ExportValue, options: PdfOptions, context: Co
   if (value instanceof ExportCell && value.text !== undefined) return value.text;
   const raw = value instanceof ExportCell ? value.value : value;
   if (options.formatValue) return synchronousText(options.formatValue(raw, context), "formatValue");
-  return raw == null ? "" : raw instanceof Date ? Number.isFinite(raw.getTime()) ? raw.toISOString() : "" : typeof raw === "number" && !Number.isFinite(raw) ? "" : typeof raw === "boolean" ? raw ? "True" : "False" : String(raw);
+  return raw == null ? "" : isDate(raw) ? Number.isFinite(raw.getTime()) ? raw.toISOString() : "" : typeof raw === "number" && !Number.isFinite(raw) ? "" : typeof raw === "boolean" ? raw ? "True" : "False" : String(raw);
 }
 export interface PdfTextLine { readonly text: string; readonly width: number; }
 /** Greedy word boundaries, then scalar boundaries. No character, whitespace or long-word truncation. */
 export function wrapText(text: string, font: PdfFontResource, size: number, width: number, maxCharacters: number, maxLines: number, wrap = true): readonly PdfTextLine[] {
+  const scanner = wrapSteps(text, font, size, width, maxCharacters, maxLines, wrap);
+  while (true) { const next = scanner.next(); if (next.done) return next.value; }
+}
+/** Let the host process input and cancellation while a large cell or paragraph is laid out. */
+export async function wrapTextCooperatively(text: string, font: PdfFontResource, size: number, width: number,
+  maxCharacters: number, maxLines: number, wrap = true, signal?: AbortSignal): Promise<readonly PdfTextLine[]> {
+  checkAbort(signal);
+  const scanner = wrapSteps(text, font, size, width, maxCharacters, maxLines, wrap);
+  while (true) {
+    const next = scanner.next();
+    if (next.done) return next.value;
+    if (taskYieldDue()) await pause();
+    checkAbort(signal);
+  }
+}
+/** One scanner owns wrapping semantics for synchronous measurements and cooperative layout. */
+function* wrapSteps(text: string, font: PdfFontResource, size: number, width: number, maxCharacters: number,
+  maxLines: number, wrap: boolean): Generator<void, readonly PdfTextLine[], undefined> {
   if (text.length > maxCharacters) throw new OfficeIMOError("RESOURCE_LIMIT", "maxCellCharacters exceeded.");
   const lines: PdfTextLine[] = [];
+  let scanned = 0;
   function emit(chars: readonly string[], measure: number): void {
     if (lines.length >= maxLines) throw new OfficeIMOError("RESOURCE_LIMIT", "maxRowLines exceeded.");
     lines.push({ text: chars.join(""), width: measure });
@@ -28,6 +49,7 @@ export function wrapText(text: string, font: PdfFontResource, size: number, widt
   for (const paragraph of text.replace(/\r\n?/g, "\n").replace(/\t/g, "    ").split("\n")) {
     let chars: string[] = [], advances: number[] = [], measured = 0, breakAt = -1;
     for (const character of paragraph) {
+      if ((++scanned & 4095) === 0) yield;
       const advance = font.width(character.codePointAt(0)!) * size / 1000;
       if (advance > width + .001) throw new RangeError("PDF column is too narrow for a glyph. Increase page/column width or reduce padding/font size.");
       if (measured + advance > width + .001) {
@@ -44,6 +66,7 @@ export function wrapText(text: string, font: PdfFontResource, size: number, widt
       if (character === " ") breakAt = chars.length - 1;
     }
     emit(chars, measured);
+    if ((++scanned & 4095) === 0) yield;
   }
   return lines;
 }

@@ -1212,6 +1212,10 @@ public static partial class OfficeSvgDrawingReader {
         ApplyProperty("font-style", element.Attribute("font-style")?.Value, paintServers, ref result, ref unsupported);
         ApplyProperty("font-stretch", element.Attribute("font-stretch")?.Value, paintServers, ref result, ref unsupported);
         ApplyProperty("font-weight", element.Attribute("font-weight")?.Value, paintServers, ref result, ref unsupported);
+        ApplyProperty("font-variation-settings", element.Attribute("font-variation-settings")?.Value, paintServers, ref result, ref unsupported);
+        ApplyProperty("font-feature-settings", element.Attribute("font-feature-settings")?.Value, paintServers, ref result, ref unsupported);
+        ApplyProperty("font-language-override", element.Attribute("font-language-override")?.Value, paintServers, ref result, ref unsupported);
+        ApplyProperty("font-palette", element.Attribute("font-palette")?.Value, paintServers, ref result, ref unsupported);
         ApplyProperty("writing-mode", element.Attribute("writing-mode")?.Value, paintServers, ref result, ref unsupported);
         ApplyProperty("text-orientation", element.Attribute("text-orientation")?.Value, paintServers, ref result, ref unsupported);
         ApplyProperty("text-anchor", element.Attribute("text-anchor")?.Value, paintServers, ref result, ref unsupported);
@@ -1495,6 +1499,17 @@ public static partial class OfficeSvgDrawingReader {
                 break;
             case "marker-end":
                 style.MarkerEnd = normalized.Equals("none", StringComparison.OrdinalIgnoreCase) ? null : normalized;
+                break;
+            case "font-variation-settings":
+            case "font-feature-settings":
+            case "font-language-override":
+            case "font-palette":
+                // The drawing text model does not retain these SVG selections. Tolerant import
+                // reports the loss so strict vector consumers cannot silently accept a changed face.
+                if (!normalized.Equals("normal", StringComparison.OrdinalIgnoreCase) &&
+                    !normalized.Equals("initial", StringComparison.OrdinalIgnoreCase) &&
+                    !normalized.Equals("inherit", StringComparison.OrdinalIgnoreCase) &&
+                    !normalized.Equals("unset", StringComparison.OrdinalIgnoreCase)) unsupported++;
                 break;
         }
     }

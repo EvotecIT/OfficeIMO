@@ -1,5 +1,6 @@
-import { beginTask, checkAbort } from "../core/iteration.js";
+import { beginTask, checkAbort, pause, taskYieldDue } from "../core/iteration.js";
 import { OfficeIMOError } from "../core/errors.js";
+import { notifyProgress } from "../core/progress.js";
 import { ChunkedTextSink } from "../core/sinks.js";
 import { ExportBudget } from "../core/limits.js";
 import type { ZipEntry } from "../zip/index.js";
@@ -115,8 +116,12 @@ export class Workbook {
   /** @internal Reserve a preflighted worksheet batch or one row hyperlink. */
   retainLink(count = 1): void { this.checkLinks(count); this.links += count; }
   /** @internal */
-  retainImage(bytes: number): void {
+  checkImage(bytes: number): void {
     if (this.settings.limits?.maxImageBytes !== undefined && this.imageBytes + bytes > this.settings.limits.maxImageBytes) throw new OfficeIMOError("RESOURCE_LIMIT", "maxImageBytes exceeded.");
+  }
+  /** @internal Reserve only a validated image, after checking its budget before copying. */
+  retainImage(bytes: number): void {
+    this.checkImage(bytes);
     this.imageBytes += bytes;
   }
   /** @internal Bound compressed worksheet retention in Blob mode before final packaging. */
@@ -197,17 +202,21 @@ export class Workbook {
             this.addXmlPart(tableUri, formatType("table"), () => tableXml(table, sheet.rowCount, this.settings.invalidCharacterPolicy, sheet.headerRowCount, sheet.footerSettings));
             this.package.addRelationship(uri, { id: "table", type: officeRelationshipsNamespace + "/table", target: tableUri });
           }
-          for (let j = 0; j < sheet.hyperlinks.length; j++) this.package.addRelationship(uri, {
-            id: "link" + (j + 1), type: officeRelationshipsNamespace + "/hyperlink", target: sheet.hyperlinks[j]!.target, external: true
-          });
+          for (let j = 0; j < sheet.hyperlinks.length; j++) {
+            checkAbort(this.settings.signal);
+            this.package.addRelationship(uri, { id: "link" + (j + 1), type: officeRelationshipsNamespace + "/hyperlink", target: sheet.hyperlinks[j]!.target, external: true });
+            if ((j & 255) === 255 && taskYieldDue()) { await pause(); checkAbort(this.settings.signal); }
+          }
           if (sheet.images.length) {
             const drawingUri = "/xl/drawings/drawing" + (i + 1) + ".xml";
             this.addXmlPart(drawingUri, drawingContentType, () => drawingXml(sheet.images, this.settings.invalidCharacterPolicy));
             this.package.addRelationship(uri, { id: "drawing", type: officeRelationshipsNamespace + "/drawing", target: drawingUri });
             for (let j = 0; j < sheet.images.length; j++) {
+              checkAbort(this.settings.signal);
               const imageUri = "/xl/media/sheet" + (i + 1) + "-image" + (j + 1) + ".png";
               this.package.addPart({ uri: imageUri, contentType: "image/png", data: sheet.images[j]!.data });
               this.package.addRelationship(drawingUri, { id: "image" + (j + 1), type: officeRelationshipsNamespace + "/image", target: imageUri });
+              if ((j & 255) === 255 && taskYieldDue()) { await pause(); checkAbort(this.settings.signal); }
             }
           }
         }
@@ -219,10 +228,14 @@ export class Workbook {
           this.overflow.clear();
         }
         this.package.addRelationship("/", { id: "workbook", type: relationshipTypes.officeDocument, target: "/xl/workbook.xml" });
-        for (let i = 0; i < this.sheets.length; i++) this.package.addRelationship("/xl/workbook.xml", { id: "rId" + (i + 1), type: relationshipTypes.worksheet, target: "/xl/worksheets/sheet" + (i + 1) + ".xml" });
+        for (let i = 0; i < this.sheets.length; i++) {
+          checkAbort(this.settings.signal);
+          this.package.addRelationship("/xl/workbook.xml", { id: "rId" + (i + 1), type: relationshipTypes.worksheet, target: "/xl/worksheets/sheet" + (i + 1) + ".xml" });
+          if ((i & 255) === 255 && taskYieldDue()) { await pause(); checkAbort(this.settings.signal); }
+        }
         this.package.addRelationship("/xl/workbook.xml", { id: "styles", type: relationshipTypes.styles, target: "/xl/styles.xml" });
         const bytes = await this.package.finish();
-        this.settings.onProgress?.({ phase: "complete", rows, bytes });
+        notifyProgress(this.settings.onProgress, { phase: "complete", rows, bytes });
         checkAbort(this.settings.signal); this.state = "complete"; return { rows, sheets: this.sheets.length, bytes };
       } catch (error) {
         await this.discard(error);

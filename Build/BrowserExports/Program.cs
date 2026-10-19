@@ -1,6 +1,6 @@
 using System.Text.Json;
 using HtmlTinkerX;
-using OfficeIMO.Browser;
+using OfficeIMO.JavaScript.Assets;
 using OfficeIMO.TestAssets;
 
 if (args.Length == 2 && args[0] == "--validate-links") {
@@ -27,6 +27,7 @@ Directory.CreateDirectory(evidence);
 if (args.Any(a => a.StartsWith("--canopy=", StringComparison.Ordinal))) { await CanopyInterop.RunAsync(repository, evidence, args); return; }
 if (args.Contains("--links")) { await PortableLinkInterop.RunAsync(repository, evidence, args); return; }
 if (args.Contains("--pdf")) { await PdfInterop.RunAsync(repository, evidence, args); return; }
+if (args.Contains("--pdf-rich")) { await PdfRichInterop.RunAsync(repository, evidence, args); return; }
 if (args.Contains("--datatables-session")) { await DataTablesComparisonSession.RunAsync(repository, evidence, args); return; }
 if (args.Contains("--datatables")) { await DataTablesInterop.RunAsync(repository, evidence, args); return; }
 if (args.Contains("--qualify")) { await ExportQualification.RunAsync(repository, evidence, args); return; }
@@ -37,8 +38,8 @@ string reportContracts = File.ReadAllText(Path.Combine(repository, "Build", "Bro
 string fixtureJson = File.ReadAllText(Path.Combine(repository, "OfficeIMO.TestAssets", "JavaScript", "xlsx-writer.json"));
 string? moduleUrl = args.FirstOrDefault(a => a.StartsWith("--module-url=", StringComparison.Ordinal))?.Substring("--module-url=".Length);
 string host = Path.Combine(evidence, "fixture-host.html");
-File.WriteAllText(Path.Combine(evidence, BrowserAssets.Script.HashedFileName), BrowserAssets.Script.Content, new System.Text.UTF8Encoding(false));
-File.WriteAllText(host, "<!doctype html><meta charset=\"utf-8\"><title>Browser export fixture host</title><script src=\"" + BrowserAssets.Script.HashedFileName + "\"></script>");
+File.WriteAllText(Path.Combine(evidence, JavaScriptAssets.Script.HashedFileName), JavaScriptAssets.Script.Content, new System.Text.UTF8Encoding(false));
+File.WriteAllText(host, "<!doctype html><meta charset=\"utf-8\"><title>Browser export fixture host</title><script src=\"" + JavaScriptAssets.Script.HashedFileName + "\"></script>");
 var reports = new List<object>();
 var engines = new[] { HtmlBrowserEngine.Chromium, HtmlBrowserEngine.Firefox, HtmlBrowserEngine.WebKit };
 string? selectedEngine = args.FirstOrDefault(a => a.StartsWith("--engine=", StringComparison.Ordinal))?.Substring("--engine=".Length);
@@ -66,7 +67,7 @@ foreach (HtmlBrowserEngine engine in engines) {
     });
     await session.Page.AddScriptTagAsync(new() { Content = scenarios });
     JsonElement result = await session.Page.EvaluateAsync<JsonElement>("async args => runBrowserScenarios(args)",
-        new { vectorJson, workerScript = BrowserAssets.Script.Content, limits = args.Contains("--limits") });
+        new { vectorJson, workerScript = JavaScriptAssets.Script.Content, limits = args.Contains("--limits") });
     await session.Page.AddScriptTagAsync(new() { Content = layers });
     JsonElement layerResult = await session.Page.EvaluateAsync<JsonElement>("args => runLayerScenarios(args)", new { fixtureJson, moduleBase = moduleUrl });
     await session.Page.AddScriptTagAsync(new() { Content = reportContracts });

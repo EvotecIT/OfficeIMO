@@ -1,6 +1,6 @@
 /* Product-specific assertions; browser lifetime and installation belong to HtmlTinkerX. */
 globalThis.runPdfContracts = async function ({ regular, bold, symbols, japanese, workerScript, scale }) {
-  const { writePdf, writePdfTo, PdfFont, ExportCell } = OfficeIMO;
+  const { writePdf, writePdfTo, writePdfDocument, writePdfDocumentTo, pdfTable, PdfFont, ExportCell } = OfficeIMO;
   const bytes = base64 => Uint8Array.from(atob(base64), c => c.charCodeAt(0));
   const fonts = { regular: new PdfFont(bytes(regular)), bold: new PdfFont(bytes(bold)) };
   const columns = [{ header: 'Name', key: 'name', groups: ['Report'] }, { header: 'Amount', key: 'amount', alignment: 'right', groups: ['Report'] }, { header: 'State', key: 'state', groups: ['Report'] }];
@@ -12,6 +12,31 @@ globalThis.runPdfContracts = async function ({ regular, bold, symbols, japanese,
     for (let offset = 0; offset < data.length; offset += 32768) encoded += String.fromCharCode(...data.subarray(offset, offset + 32768));
     await writePdfFixture(name + '.pdf', btoa(encoded), JSON.stringify({required, ...extra}));
   }
+  const logo = {format:'rgba',width:2,height:2,data:Uint8Array.of(255,0,0,255,0,255,0,128,0,0,255,255,255,255,0,0)};
+  const documentColumns = [{header:'Item',key:'name'},{header:'Amount',key:'amount'}];
+  const documentBlocks = () => [
+    {kind:'paragraph',text:'Quarterly report',fontSize:18,presentation:{bold:true,alignment:'center'}},
+    {kind:'image',image:logo,width:60,height:60},
+    {kind:'vector',width:80,height:30,fill:'E2F0D9',stroke:'008000',commands:[
+      {op:'move',x:1,y:1},{op:'line',x:79,y:1},{op:'cubic',x1:79,y1:15,x2:50,y2:29,x:1,y:29},{op:'close'}]},
+    pdfTable(Array.from({length:45},(_,i)=>({name:'First row '+i,amount:2})),
+      {columns:documentColumns,footer:{values:['First total'],totals:{amount:'sum'}}}),
+    {kind:'pageBreak'},{kind:'paragraph',text:'Second section'},
+    {kind:'image',image:logo,width:20,height:20},
+    pdfTable([{name:'Second row',amount:7}],{columns:[{header:'Other',key:'name'},documentColumns[1]],
+      footer:{values:['Second total'],totals:{amount:'sum'}}})
+  ];
+  const documentRequired = ['Quarterly report','First row 44','First total','90','Second section','Other','Second row','Second total','7'];
+  await save('document',await writePdfDocument(documentBlocks(),{fonts,pageSize:'A5',pageHeader:'Shared report'}),
+    documentRequired,{firstPageOnly:['Quarterly report'],repeated:['Shared report']});
+  const documentChunks = [];
+  const documentResult = await writePdfDocumentTo(documentBlocks(),{async write(chunk){
+    documentChunks.push(chunk.slice());await new Promise(resolve=>setTimeout(resolve,0));
+  }},{fonts,pageSize:'A5',pageHeader:'Shared report',compression:false});
+  if(documentResult.rows!==46||documentResult.columns!==2||documentResult.bytes!==documentChunks.reduce((n,c)=>n+c.length,0))
+    throw Error('PDF document streaming result did not account for both tables and all output bytes.');
+  await save('document-stream',new Blob(documentChunks),documentRequired,{firstPageOnly:['Quarterly report'],repeated:['Shared report']});
+  reports.push({name:'document-stream',...documentResult,writes:documentChunks.length});
   await save('empty',await writePdf([],{columns:columns.map(({groups,...column})=>column),fonts,includeHeader:false,pageNumbers:false}),[]);
   const modified = bytes(regular), metricView = new DataView(modified.buffer);
   for (let i=0;i<metricView.getUint16(4);i++) {

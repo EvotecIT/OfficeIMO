@@ -59,6 +59,22 @@ For bounded image sequences, format discovery, resize planning, shared text opti
 dotnet add package OfficeIMO.Core
 ```
 
+## Portable report drawings
+
+`OfficeDrawingPortableExporter` exports a bounded `OfficeDrawing` as version 1 JSON for the JavaScript PDF drawing block. It preserves ordered solid-color paths, positioned Latin text, rectangular clips and positive uniform scaling. The producer and JavaScript consumer must load the same licensed static TrueType faces. Register those faces in `drawing.Fonts` and select their exact family:
+
+```csharp
+using OfficeIMO.Drawing;
+
+var options = new OfficeDrawingPortableOptions("Report Sans");
+if (!OfficeDrawingPortableExporter.TryExportJson(drawing, options, out string? json, out var diagnostics)) {
+    throw new NotSupportedException(string.Join("; ", diagnostics.Select(item => item.Message)));
+}
+File.WriteAllText("chart.json", json!);
+```
+
+The exporter rejects unsupported elements before returning a payload. Gradients, transparency, images, nonrectangular clips, rotated or wrapped text, variable/color fonts and complex text shaping are outside this profile. Solid strokes retain caps and joins; miter joins require a miter limit of ten. Pair positioning uses the existing Core font metrics; adjusted Latin runs become individually positioned characters. Fonts are supplied separately. Resource options bound elements, commands, nesting, text and JSON size. Drawing dimensions cannot exceed 14,400 points; coordinates must be finite and within one million points.
+
 ## Native VBA projects
 
 `OfficeVbaProject` in the `OfficeIMO` namespace reads and writes the MS-OVBA

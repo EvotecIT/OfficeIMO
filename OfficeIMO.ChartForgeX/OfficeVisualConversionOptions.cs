@@ -18,6 +18,10 @@ public sealed class OfficeVisualConversionOptions {
     /// <summary>Gets or sets core ChartForgeX topology rendering and raster encoding options.</summary>
     public VisualArtifactRenderOptions? RenderOptions { get; set; }
 
+    /// <summary>Scoped licensed faces shared with chart preparation and document consumers.</summary>
+    /// <remarks>These faces are supplied before SVG text measurement; no process-wide font registry is changed.</remarks>
+    public OfficeFontFaceCollection Fonts { get; } = new OfficeFontFaceCollection();
+
     /// <summary>Gets or sets SVG import behavior. The default preserves appearance, using PNG when vector import is incomplete.</summary>
     public OfficeVisualSvgPolicy SvgPolicy {
         get => _svgPolicy;

@@ -1,7 +1,7 @@
 using System.Security.Cryptography;
 using System.Text.Json;
 using HtmlTinkerX;
-using OfficeIMO.Browser;
+using OfficeIMO.JavaScript.Assets;
 
 /// <summary>Opt-in qualification against an explicit native CanopyX candidate, using the shared browser owner.</summary>
 internal static class CanopyInterop {
@@ -67,10 +67,10 @@ internal static class CanopyInterop {
             });
             await session.Page.AddStyleTagAsync(new() { Content = inputs["canopyx-reporting.css"] + inputs["canopyx-filter-editor.css"] + "body{padding:16px;box-sizing:border-box}h1{font-size:22px;font-weight:400}#fixture{height:620px}.cx-host{height:100%}" });
             await session.Page.AddScriptTagAsync(new() { Content = inputs["canopyx-reporting.js"] + "\n" + inputs["canopyx-filter-editor.js"] });
-            await session.Page.AddScriptTagAsync(new() { Content = BrowserAssets.CanopyXScript.Content });
+            await session.Page.AddScriptTagAsync(new() { Content = JavaScriptAssets.CanopyXScript.Content });
             await session.Page.AddScriptTagAsync(new() { Content = script });
             JsonElement result = await session.Page.EvaluateAsync<JsonElement>("args => runCanopyContracts(args)",
-                new { regular, bold, workerScript = BrowserAssets.CanopyXScript.Content });
+                new { regular, bold, workerScript = JavaScriptAssets.CanopyXScript.Content });
             await session.Page.Locator("#canopy-host-export").ClickAsync();
             await session.Page.WaitForFunctionAsync("() => globalThis.canopyHostButtonComplete || globalThis.canopyHostButtonError");
             string? hostError = await session.Page.EvaluateAsync<string?>("globalThis.canopyHostButtonError || null");
@@ -80,17 +80,17 @@ internal static class CanopyInterop {
             await CaptureAsync("canopy-compact", 420, 760);
             await session.Page.GotoAsync(new Uri(host).AbsoluteUri);
             await session.Page.AddScriptTagAsync(new() { Content = inputs["canopyx-grid.js"] });
-            await session.Page.AddScriptTagAsync(new() { Content = BrowserAssets.CanopyXScript.Content });
+            await session.Page.AddScriptTagAsync(new() { Content = JavaScriptAssets.CanopyXScript.Content });
             await session.Page.AddScriptTagAsync(new() { Content = script });
             JsonElement ordinary = await session.Page.EvaluateAsync<JsonElement>("args => runOrdinaryCanopyContracts(args)", new { regular, bold });
             if (args.Contains("--canopy-scale") || args.Contains("--canopy-pdf-scale")) {
                 await session.Page.GotoAsync(new Uri(host).AbsoluteUri);
                 await session.Page.AddScriptTagAsync(new() { Content = inputs["canopyx-reporting.js"] });
-                await session.Page.AddScriptTagAsync(new() { Content = BrowserAssets.CanopyXScript.Content });
+                await session.Page.AddScriptTagAsync(new() { Content = JavaScriptAssets.CanopyXScript.Content });
                 await session.Page.AddScriptTagAsync(new() { Content = script });
                 await CanopyScale.RunAsync(session, repository, output, args);
             }
-            var report = new { engine = engine.ToString(), browserVersion = session.Browser?.Version, canopy, inputs = hashes, asset = BrowserAssets.CanopyXScript.HashedFileName, result, ordinary, files, errors };
+            var report = new { engine = engine.ToString(), browserVersion = session.Browser?.Version, canopy, inputs = hashes, asset = JavaScriptAssets.CanopyXScript.HashedFileName, result, ordinary, files, errors };
             reports.Add(report);
             File.WriteAllText(Path.Combine(output, "report.json"), JsonSerializer.Serialize(report, new JsonSerializerOptions { WriteIndented = true }));
             Console.WriteLine($"CanopyX {engine}: {files.Count} independently read exports; native capture/host/paging/cancellation contracts.");

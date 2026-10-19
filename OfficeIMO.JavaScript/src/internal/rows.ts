@@ -2,6 +2,7 @@ import type { ColumnValueContext } from "../core/index.js";
 import type { ProjectionColumn } from "./columns.js";
 import { assertExportValue } from "../core/presentation.js";
 import { checkAbort } from "../core/iteration.js";
+import { isDate } from "../core/dates.js";
 
 export function createRowProjector(columns: readonly ProjectionColumn[],
   worksheet?: { readonly sheetName: string; readonly firstDataRow: number }, signal?: AbortSignal,
@@ -13,7 +14,7 @@ export function createRowProjector(columns: readonly ProjectionColumn[],
       for (const value of row) validate(value);
       return row;
     }
-    if (!row || typeof row !== "object" || row instanceof Date) throw new TypeError("A row must be an array or object.");
+    if (!row || typeof row !== "object" || isDate(row)) throw new TypeError("A row must be an array or object.");
     if (Array.isArray(row) && row.length > columns.length && !columns.every(column => column.value))
       throw new RangeError("Project every column explicitly when selecting from a wider array row.");
     return columns.map((c, columnIndex) => {

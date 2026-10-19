@@ -2,6 +2,7 @@ import { cleanXml, escapeXml } from "../xml/index.js";
 import type { InvalidCharacterPolicy } from "../xml/index.js";
 import type { CellValue } from "../core/index.js";
 import { ExportCell, assertExportValue, assertScalar } from "../core/presentation.js";
+import { isDate } from "../core/dates.js";
 
 /** A typed value plus a workbook-local style index. */
 export class Cell {
@@ -14,9 +15,9 @@ export function assertXlsxValue(value: unknown): void {
 }
 /** @internal Buffered samples and footer definitions capture mutable Date values. */
 export function copyValue(value: unknown): unknown {
-  if (value instanceof Date) return new Date(value);
-  if (value instanceof Cell && value.value instanceof Date) return new Cell(new Date(value.value), value.style);
-  if (value instanceof ExportCell && value.value instanceof Date) return new ExportCell(new Date(value.value), { ...(value.text === undefined ? {} : { text: value.text }), ...(value.presentation ? { presentation: value.presentation } : {}), ...(value.link ? { link: value.link } : {}) });
+  if (isDate(value)) return new Date(value.getTime());
+  if (value instanceof Cell && isDate(value.value)) return new Cell(new Date(value.value.getTime()), value.style);
+  if (value instanceof ExportCell && isDate(value.value)) return new ExportCell(new Date(value.value.getTime()), { ...(value.text === undefined ? {} : { text: value.text }), ...(value.presentation ? { presentation: value.presentation } : {}), ...(value.link ? { link: value.link } : {}) });
   return value;
 }
 

@@ -5,6 +5,22 @@ import type { PdfFont } from "./font.js";
 export interface PdfPageSize { readonly width: number; readonly height: number; }
 export interface PdfMargins { readonly top: number; readonly right: number; readonly bottom: number; readonly left: number; }
 export interface PdfFonts { readonly regular: PdfFont; readonly bold?: PdfFont; readonly italic?: PdfFont; readonly boldItalic?: PdfFont; }
+/** Font family and emphasis selection for one text run; omitted fonts use standard Helvetica. */
+export interface PdfTextPreflightOptions { readonly fonts?: PdfFonts; readonly bold?: boolean; readonly italic?: boolean; }
+/** Opt-in logical structure for the supported report profile; does not assert PDF/UA conformance. */
+export interface PdfTaggedOptions { readonly language: string; }
+/** Stable reason that the current scalar-layout writer cannot render a text run. */
+export type PdfTextIssueCode = "unpaired-surrogate" | "unsupported-control" | "unsupported-layout" | "embedded-font-required" | "missing-glyph";
+/** Text support alone does not establish layout, resource-budget or accessibility success. */
+export type PdfTextPreflightResult = { readonly supported: true } | {
+  readonly supported: false;
+  readonly code: PdfTextIssueCode;
+  /** Zero-based UTF-16 index in the original input, before line-break and tab normalization. */
+  readonly index: number;
+  /** Original Unicode scalar; absent when the issue is an unpaired surrogate. */
+  readonly scalar?: number;
+  readonly message: string;
+};
 export interface PdfLimits extends ExportLimits {
   readonly maxPages?: number;
   readonly maxColumns?: number;
@@ -16,6 +32,18 @@ export interface PdfLimits extends ExportLimits {
   readonly maxPageBytes?: number;
   /** Actual link annotations, including repeated headings and continued cell fragments. */
   readonly maxHyperlinks?: number;
+  /** Total source bytes of distinct image objects retained by a composed document. */
+  readonly maxImageBytes?: number;
+  /** Per-image decoded pixel ceiling, checked before allocating RGB or alpha planes. */
+  readonly maxImagePixels?: number;
+  /** Total path commands across a composed document, checked before serializing a block. */
+  readonly maxVectorCommands?: number;
+  /** Total path, text and group elements across portable drawing blocks. */
+  readonly maxDrawingElements?: number;
+  /** Logical structure elements retained by a tagged document, including Document, rows and cells. */
+  readonly maxStructureElements?: number;
+  /** Cross-page content references retained by the structure tree, including continued cells. */
+  readonly maxMarkedContentReferences?: number;
 }
 export type PdfTotal = "sum" | "count" | "average" | "min" | "max";
 export interface PdfTableFooter {
@@ -34,6 +62,8 @@ export interface PdfOptions<T = never> extends Omit<StreamOptions, "limits"> {
   readonly margins?: number | Partial<PdfMargins>;
   /** Standard Helvetica is used when omitted. Supply TrueType fonts for Unicode text. */
   readonly fonts?: PdfFonts;
+  /** Logical reading order, simple table semantics and explicit figure alternatives. */
+  readonly tagged?: PdfTaggedOptions;
   readonly fontSize?: number;
   /** First-page title. Empty text is omitted without reserving space or consuming a cell. */
   readonly title?: string;

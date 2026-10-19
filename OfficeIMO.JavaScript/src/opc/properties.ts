@@ -1,5 +1,6 @@
 import { escapeXml, xmlDeclaration } from "../xml/index.js";
 import type { InvalidCharacterPolicy } from "../xml/index.js";
+import { isDate } from "../core/dates.js";
 
 export interface CoreProperties {
   readonly creator?: string;
@@ -13,7 +14,7 @@ export interface AppProperties { readonly application?: string; readonly company
 
 export function corePropertiesXml(properties: CoreProperties = {}, policy: InvalidCharacterPolicy = "strip"): string {
   const created = properties.created ?? new Date(), modified = properties.modified ?? created;
-  if (!(created instanceof Date) || !(modified instanceof Date) || !Number.isFinite(created.getTime()) || !Number.isFinite(modified.getTime()))
+  if (!isDate(created) || !isDate(modified) || !Number.isFinite(created.getTime()) || !Number.isFinite(modified.getTime()))
     throw new TypeError("Invalid workbook property date.");
   return xmlDeclaration + '<cp:coreProperties xmlns:cp="http://schemas.openxmlformats.org/package/2006/metadata/core-properties"' +
     ' xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:dcterms="http://purl.org/dc/terms/" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">' +

@@ -348,7 +348,29 @@ _modules.set("02ec6cf227afac6ead01cf24b9e3958c71ffd2616ecf0ad6b0baed551f39b86d",
 return _exports;
 })();
 
-const _m6 = _modules.get("e3ffb91cf46091b5b178d3d4d7b158f52cf21d2ee0e7dfe1fb5140810fd7fecb") ?? (() => {
+const _m6 = _modules.get("501f5fccaecb27d9e514b74cf64893649e50616692250593d120ca315b510c04") ?? (() => {
+/** @internal Recognize native Date values across iframe realms without trusting a string tag. */
+function isDate(value) {
+    if (value === null || typeof value !== "object")
+        return false;
+    try {
+        // Ordinary rows take the cheap negative path. A custom string tag can be an
+        // accessor: use the native brand check directly without reading that tag.
+        if (!(value instanceof Date) && !(Symbol.toStringTag in value) && Object.prototype.toString.call(value) !== "[object Date]")
+            return false;
+        Date.prototype.getTime.call(value);
+        return true;
+    }
+    catch {
+        return false;
+    }
+}
+const _exports = Object.freeze({ isDate: isDate });
+_modules.set("501f5fccaecb27d9e514b74cf64893649e50616692250593d120ca315b510c04", _exports);
+return _exports;
+})();
+
+const _m7 = _modules.get("e3ffb91cf46091b5b178d3d4d7b158f52cf21d2ee0e7dfe1fb5140810fd7fecb") ?? (() => {
 /** @internal One target policy shared by document writers and portable cells. */
 function copyExportLink(link) {
     if (!link || typeof link !== "object" || typeof link.target !== "string" ||
@@ -366,8 +388,10 @@ _modules.set("e3ffb91cf46091b5b178d3d4d7b158f52cf21d2ee0e7dfe1fb5140810fd7fecb",
 return _exports;
 })();
 
-const _m5 = _modules.get("1776e2e05f0580d133fd9d8bb25337175f06b83e72cb1e8d0d2b7fd44f6d1231") ?? (() => {
-const { copyExportLink } = _m6;
+const _m5 = _modules.get("f79dd9ca01bb1864831e26b384a6612a1eb631936d358dd2a008a894dbceb4fd") ?? (() => {
+const { isDate } = _m6;
+
+const { copyExportLink } = _m7;
 
 const exportCellBrand = Symbol.for("@evotecit/officeimo/ExportCell");
 /** One resolved value/presentation decision that can be reused across exports. Strings remain literal data. */
@@ -392,7 +416,7 @@ class ExportCell {
 /** @internal Reject async formatters while observing their rejection immediately. */
 function assertScalar(value) {
     const kind = typeof value;
-    if (value == null || kind === "string" || kind === "number" || kind === "boolean" || value instanceof Date)
+    if (value == null || kind === "string" || kind === "number" || kind === "boolean" || isDate(value))
         return;
     if (typeof value.then === "function")
         void Promise.resolve(value).catch(() => { });
@@ -405,14 +429,32 @@ function assertExportValue(value) {
     assertScalar(value);
 }
 const _exports = Object.freeze({ ExportCell: ExportCell, assertScalar: assertScalar, assertExportValue: assertExportValue });
-_modules.set("1776e2e05f0580d133fd9d8bb25337175f06b83e72cb1e8d0d2b7fd44f6d1231", _exports);
+_modules.set("f79dd9ca01bb1864831e26b384a6612a1eb631936d358dd2a008a894dbceb4fd", _exports);
 return _exports;
 })();
 
-const _m7 = _modules.get("9fafe62c62ddf4438ee7401032931b9f393343083ee6d53f45e64492e8ed21f6") ?? (() => {
+const _m8 = _modules.get("6cfd3e806439f6301003a2d1699a74fdfa574d935550ab62b97b528728eaee1f") ?? (() => {
+/** @internal Notify synchronously; observe an accidental promise before rejecting its unsupported use. */
+function notifyProgress(callback, progress) {
+    if (!callback)
+        return;
+    const result = callback(progress);
+    if (result && typeof result.then === "function") {
+        void Promise.resolve(result).catch(() => { });
+        throw new TypeError("onProgress must be synchronous.");
+    }
+}
+const _exports = Object.freeze({ notifyProgress: notifyProgress });
+_modules.set("6cfd3e806439f6301003a2d1699a74fdfa574d935550ab62b97b528728eaee1f", _exports);
+return _exports;
+})();
+
+const _m9 = _modules.get("e5f51523cbe24352ffc2ddc2cdf46cc1145e4215964526154f109ec9c0146386") ?? (() => {
 const { assertExportValue } = _m5;
 
 const { checkAbort } = _m1;
+
+const { isDate } = _m6;
 
 function createRowProjector(columns, worksheet, signal, validate = assertExportValue) {
     const getters = columns.some(column => column.value);
@@ -424,7 +466,7 @@ function createRowProjector(columns, worksheet, signal, validate = assertExportV
                 validate(value);
             return row;
         }
-        if (!row || typeof row !== "object" || row instanceof Date)
+        if (!row || typeof row !== "object" || isDate(row))
             throw new TypeError("A row must be an array or object.");
         if (Array.isArray(row) && row.length > columns.length && !columns.every(column => column.value))
             throw new RangeError("Project every column explicitly when selecting from a wider array row.");
@@ -466,11 +508,11 @@ function copyColumns(columns, workbookStyles = false) {
     });
 }
 const _exports = Object.freeze({ createRowProjector: createRowProjector, copyColumns: copyColumns });
-_modules.set("9fafe62c62ddf4438ee7401032931b9f393343083ee6d53f45e64492e8ed21f6", _exports);
+_modules.set("e5f51523cbe24352ffc2ddc2cdf46cc1145e4215964526154f109ec9c0146386", _exports);
 return _exports;
 })();
 
-const _m8 = _modules.get("f75b4dd6745da92c32a648f2ca36880959551482c60b8aa85068b9c3dfd39f36") ?? (() => {
+const _m10 = _modules.get("9e9621bba11170b44ed2da3db9d8769784402a320771933ef68ba6b9d9f10a31") ?? (() => {
 
 
 
@@ -513,11 +555,11 @@ function saveBlob(blob, fileName) {
     }
 }
 const _exports = Object.freeze({ OfficeIMOError: _m3.OfficeIMOError, NotSupportedError: _m3.NotSupportedError, BlobByteSink: _m2.BlobByteSink, ChunkedTextSink: _m2.ChunkedTextSink, writeBytes: _m2.writeBytes, ExportCell: _m5.ExportCell, checkAbort: _m1.checkAbort, withAbort: _m1.withAbort, inputRows: _m1.inputRows, pause: _m1.pause, detectFeatures: detectFeatures, saveBlob: saveBlob });
-_modules.set("f75b4dd6745da92c32a648f2ca36880959551482c60b8aa85068b9c3dfd39f36", _exports);
+_modules.set("9e9621bba11170b44ed2da3db9d8769784402a320771933ef68ba6b9d9f10a31", _exports);
 return _exports;
 })();
 
-const _m0 = _modules.get("0cef4b154a3df464fbdd3c7598f36b2448028dbdf0664c184a7ee2ccd690579f") ?? (() => {
+const _m0 = _modules.get("8d53c3ca40bb7f550fede378a9850d80d8bda9928e93cfbb2fb46a3e4faaffa4") ?? (() => {
 const { beginTask, checkAbort, consumeRows, taskYieldDue, withAbort } = _m1;
 
 const { BlobByteSink, ChunkedTextSink, withDestination } = _m2;
@@ -526,7 +568,11 @@ const { ExportBudget, boundedSink } = _m4;
 
 const { ExportCell } = _m5;
 
-const { copyColumns, createRowProjector } = _m7;
+const { isDate } = _m6;
+
+const { notifyProgress } = _m8;
+
+const { copyColumns, createRowProjector } = _m9;
 
 
 
@@ -538,7 +584,7 @@ function csvField(value, delimiter, protect, quote, nullValue) {
     let text;
     if (value == null)
         text = "";
-    else if (value instanceof Date)
+    else if (isDate(value))
         text = Number.isFinite(value.getTime()) ? value.toISOString() : "";
     else if (typeof value === "boolean")
         text = value ? "True" : "False";
@@ -609,7 +655,7 @@ async function write(rows, sink, options) {
             }
         }
         if (buffer.append(text + lineEnding))
-            return buffer.flush().then(() => { options.onProgress?.({ phase: "rows", rows: count }); });
+            return buffer.flush().then(() => { notifyProgress(options.onProgress, { phase: "rows", rows: count + (header ? 0 : 1) }); });
     }
     if (options.includeHeader !== false && columns.length)
         await record(columns.map(c => c.header), true);
@@ -621,7 +667,7 @@ async function write(rows, sink, options) {
         count++;
     });
     await buffer.close();
-    options.onProgress?.({ phase: "complete", rows: count, bytes });
+    notifyProgress(options.onProgress, { phase: "complete", rows: count, bytes });
     checkAbort(signal);
     return { rows: count, columns: columns.length, bytes };
 }
@@ -634,10 +680,10 @@ async function writeCsv(rows, configuration) {
                 if (p.phase === "complete")
                     completedRows = p.rows;
                 else
-                    options.onProgress?.(p);
+                    notifyProgress(options.onProgress, p);
             } });
         const blob = sink.toBlob("text/csv;charset=utf-8");
-        options.onProgress?.({ phase: "complete", rows: completedRows, bytes: blob.size });
+        notifyProgress(options.onProgress, { phase: "complete", rows: completedRows, bytes: blob.size });
         checkAbort(options.signal);
         return blob;
     }
@@ -646,9 +692,9 @@ async function writeCsv(rows, configuration) {
         throw error;
     }
 }
-const _exports = Object.freeze({ saveBlob: _m8.saveBlob, ExportCell: _m5.ExportCell, writeCsvTo: writeCsvTo, writeCsv: writeCsv });
-_modules.set("0cef4b154a3df464fbdd3c7598f36b2448028dbdf0664c184a7ee2ccd690579f", _exports);
+const _exports = Object.freeze({ saveBlob: _m10.saveBlob, ExportCell: _m5.ExportCell, writeCsvTo: writeCsvTo, writeCsv: writeCsv });
+_modules.set("8d53c3ca40bb7f550fede378a9850d80d8bda9928e93cfbb2fb46a3e4faaffa4", _exports);
 return _exports;
 })();
-Object.assign(officeimo, _m0, { core: _m8, csv: _m0 });
+Object.assign(officeimo, _m0, { core: _m10, csv: _m0 });
 })(globalThis);
