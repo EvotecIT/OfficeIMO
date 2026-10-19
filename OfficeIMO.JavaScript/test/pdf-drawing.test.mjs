@@ -89,6 +89,41 @@ test("drawing resource budgets span blocks and share text and path accounting wi
   ]) await assert.rejects(writePdfDocument(blocks, { ...options, limits }), error);
 });
 
+test("drawing command and text getters retain the values admitted by their resource limits", async () => {
+  const commands = [{ op: "move", x: 0, y: 0 }], extra = { op: "line", x: 9, y: 9 };
+  let commandReads = 0, textReads = 0;
+  const capturedPath = { ...path, get commands() { return ++commandReads === 1 ? commands : [...commands, extra]; } };
+  const capturedText = { ...text, get text() { return ++textReads === 1 ? "A" : "BBBB"; } };
+  const pdf = await inspectPdf(await writePdfDocument([block([capturedPath, capturedText]), block([path])], {
+    ...options, limits: { maxVectorCommands: 3, maxCellCharacters: 1 }
+  }));
+  assert.equal(pdf.text, "A");
+  assert.doesNotMatch(pdf.pages[0].content, /9 9 l/);
+  assert.equal((pdf.pages[0].content.match(/(?:^|\n)0 0 m/g) ?? []).length, 1);
+  await assert.rejects(writePdfDocument([block([{ ...path, get commands() { return [...commands, extra]; } }])], {
+    ...options, limits: { maxVectorCommands: 1 }
+  }), /maxVectorCommands/);
+  await assert.rejects(writePdfDocument([block([{ ...text, get text() { return "BBBB"; } }])], {
+    ...options, limits: { maxCellCharacters: 1 }
+  }), /maxCellCharacters/);
+});
+
+test("drawing command operations, paint, font slots and group clips use their captured fields", async () => {
+  let opReads = 0, fillReads = 0, strokeReads = 0, fontReads = 0, clipReads = 0, kindReads = 0;
+  const capturedPath = { ...path, get kind() { return ++kindReads === 1 ? "path" : "text"; },
+    get fill() { return ++fillReads === 1 ? "FF0000" : "0000FF"; },
+    get stroke() { return ++strokeReads === 1 ? "008000" : "0000FF"; },
+    commands: [{ get op() { return ++opReads === 1 ? "move" : "line"; }, x: 0, y: 0 }] };
+  const capturedText = { ...text, text: "Regular", get font() { return ++fontReads === 1 ? "regular" : "bold"; } };
+  const group = { kind: "group", get clip() { return ++clipReads === 1 ? { x: 3, y: 4, width: 12, height: 13 } : { x: Infinity }; }, elements: [capturedPath, capturedText] };
+  const pdf = await inspectPdf(await writePdfDocument([block([group])], { ...options, fonts: { regular: fonts.regular } }));
+  assert.equal(pdf.text, "Regular");
+  assert.match(pdf.pages[0].content, /3 4 12 13 re W n/);
+  assert.match(pdf.pages[0].content, /1 0 0 rg\n0 0\.502 0 RG/);
+  assert.match(pdf.pages[0].content, /0 0 m\nB/);
+  assert.doesNotMatch(pdf.pages[0].content, /0 0 1 [rR][gG]|0 0 l/);
+});
+
 test("drawing preflight and serialization yield to cancellation and release active source/destination ownership", async () => {
   const now = Object.getOwnPropertyDescriptor(performance, "now"), scheduler = globalThis.scheduler;
   try {

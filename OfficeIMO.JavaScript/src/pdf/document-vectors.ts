@@ -20,7 +20,8 @@ export async function vectorCommands(block: PdfVectorBlock, settings: PdfSetting
     if (op === "close") return { op };
     throw new TypeError("Unsupported vector command.");
   });
-  const fill = block.fill === undefined ? undefined : color(block.fill), stroke = block.stroke === undefined ? undefined : color(block.stroke);
+  const fillValue = block.fill, strokeValue = block.stroke;
+  const fill = fillValue === undefined ? undefined : color(fillValue), stroke = strokeValue === undefined ? undefined : color(strokeValue);
   if (fill === undefined && stroke === undefined) throw new TypeError("A vector path requires fill or stroke.");
   const strokeWidth = positive(block.strokeWidth ?? 1, "Vector stroke width", 144);
   const fillRule = block.fillRule;

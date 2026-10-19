@@ -126,6 +126,58 @@ test("tagged structure and marked-content budgets fail visibly and release activ
   await assert.rejects(writePdfDocument([{ ...vector, alternativeText: "Described" }], { tagged, limits: { maxCellCharacters: 3 } }), /maxCellCharacters/);
 });
 
+test("graphic alternative getters preserve the validated text and decorative intent", async () => {
+  let textReads = 0, decorativeReads = 0;
+  const described = { ...vector, get alternativeText() { return ++textReads === 1 ? "A" : "BBBB"; } };
+  const decorative = { ...vector, get decorative() { return ++decorativeReads === 1 ? true : false; } };
+  const pdf = await inspectPdf(await writePdfDocument([described, decorative], {
+    tagged, compression: false, pageNumbers: false, limits: { maxCellCharacters: 1, maxCells: 1, maxTextCharacters: 1 }
+  }));
+  const figures = [...pdf.objects.values()].filter(o => /\/S \/Figure /.test(o.body));
+  assert.equal(figures.length, 1);
+  assert.match(figures[0].body, /\/Alt <feff0041>/);
+  assert.doesNotMatch(figures[0].body, /0042004200420042/);
+  assert.equal((pdf.pages[0].content.match(/\/Artifact << \/Type \/Layout >> BDC/g) ?? []).length, 1);
+});
+
+test("composed paragraph getters retain validated heading and text values", async () => {
+  let textReads = 0, levelReads = 0, presentationReads = 0;
+  const paragraph = { kind: "paragraph", get text() { return ++textReads === 1 ? "A" : "BBBB"; },
+    get headingLevel() { return ++levelReads === 1 ? 2 : 9; },
+    get presentation() { return ++presentationReads === 1 ? { bold: true } : { background: "FF0000" }; } };
+  const pdf = await inspectPdf(await writePdfDocument([paragraph], {
+    tagged, compression: false, pageNumbers: false, limits: { maxCellCharacters: 1, maxTextCharacters: 1 }
+  }));
+  assert.equal(pdf.text, "A");
+  const heading = [...pdf.objects.values()].find(o => /\/S \/H2 /.test(o.body));
+  assert.ok(heading, "The captured heading level owns the emitted text");
+  assert.doesNotMatch([...pdf.objects.values()].map(o => o.body).join("\n"), /\/S \/H9 /);
+});
+
+test("paragraph presentation snapshots nested getters before validating its emitted style", async () => {
+  const reads = { bold: 0, italic: 0, color: 0, alignment: 0 };
+  const presentation = {
+    get bold() { return ++reads.bold <= 2 ? false : true; },
+    get italic() { return ++reads.italic <= 2 ? false : true; },
+    get color() { return ++reads.color <= 2 ? "008000" : "0000FF"; },
+    get alignment() { return ++reads.alignment <= 2 ? "left" : "right"; }
+  };
+  const pdf = await inspectPdf(await writePdfDocument([{ kind: "paragraph", text: "A", presentation }], { compression: false, pageNumbers: false }));
+  assert.deepEqual(reads, { bold: 1, italic: 1, color: 1, alignment: 1 });
+  assert.match(pdf.pages[0].content, /q 0 0\.502 0 rg 0 0\.502 0 RG/);
+  assert.match(pdf.pages[0].content, /1 0 0 1 36 [\d.]+ Tm <41> Tj/);
+  const fonts = [...pdf.objects.values()].filter(o => /\/Type \/Font /.test(o.body));
+  assert.ok(fonts.some(font => /\/BaseFont \/Helvetica /.test(font.body)));
+  assert.ok(fonts.every(font => !/Helvetica-(?:Bold|Oblique)/.test(font.body)));
+  for (const [key, invalid, valid, error] of [["bold", "yes", false, /bold must be boolean/], ["italic", "yes", false, /italic must be boolean/],
+    ["color", "invalid", "008000", /six-digit RGB/], ["alignment", "justify", "left", /alignment supports/]]) {
+    let count = 0;
+    const invalidFirst = Object.defineProperty({}, key, { enumerable: true, get() { return ++count === 1 ? invalid : valid; } });
+    await assert.rejects(writePdfDocument([{ kind: "paragraph", text: "A", presentation: invalidFirst }], { pageNumbers: false }), error);
+    assert.equal(count, 1);
+  }
+});
+
 test("cancelling tagged page output returns rows and blocks and releases the caller destination", async () => {
   const abort = new AbortController(); let rowsReturned = 0, blocksReturned = 0, writes = 0;
   async function* rows() { try { for (let i = 0; i < 100; i++) yield { name: "Row " + i, amount: i }; } finally { rowsReturned++; } }

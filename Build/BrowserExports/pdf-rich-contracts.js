@@ -135,5 +135,75 @@ async function runRichPdfContracts({ moduleBase, fixtures, drawingFont, classic 
   await rejected([drawingBlock], { ...configuration, tagged }, error => String(error).includes('exact embedded font'), 'drawing-exact-font-required');
   await rejected([{ ...drawingBlock, drawing: { ...drawing, opacity: 0.5 } }], drawingOptions, error => String(error).includes('drawing properties'), 'drawing-unsupported-schema');
   await rejected([drawingBlock], { ...drawingOptions, limits: { maxDrawingElements: 1 } }, error => error.code === 'RESOURCE_LIMIT', 'drawing-element-limit');
-  return { checks, nativeInflater: typeof native === 'function', documents: 8, profile: classic ? 'classic' : 'esm' };
+  await verifyCapturedPdfInputs({ writePdfDocument, PdfFont, inspect, save, rejected, require, bytes, drawingFont, configuration, checks });
+  return { checks, nativeInflater: typeof native === 'function', documents: 12, profile: classic ? 'classic' : 'esm' };
+}
+
+// Changing public getters must not replace values already admitted by resource and schema checks.
+async function verifyCapturedPdfInputs({ writePdfDocument, PdfFont, inspect, save, rejected, require, bytes, drawingFont, configuration, checks }) {
+  let dataReads = 0, formatReads = 0, heightReads = 0;
+  const image = { width: 1, height: 1, get format() { return ++formatReads === 1 ? 'rgb' : 'jpeg'; },
+    get data() { return ++dataReads === 1 ? Uint8Array.of(1,2,3) : Uint8Array.of(4,5,6,7,8,9); } };
+  const imageBlob = await writePdfDocument([{ kind: 'image', image, get height() { return ++heightReads === 1 ? 17 : 34; } }], {
+    ...configuration, limits: { maxImageBytes: 3, maxImagePixels: 1 }
+  });
+  const imagePdf = await inspect(imageBlob), resource = imagePdf.images[0];
+  require(resource && resource.data.length === 3 && resource.data.every((value,index) => value === index+1), 'Image getter replaced admitted bytes');
+  require(resource.body.includes('/DeviceRGB') && !resource.body.includes('/DCTDecode'), 'Image getter replaced admitted format');
+  require(imagePdf.text.includes('q 17 0 0 17 ') && !imagePdf.text.includes('q 34 0 0 34 '), 'Image getter replaced admitted display height');
+  await save('getter-image', imageBlob); checks.push('image-getter-admitted-bytes-format-display');
+  await rejected([{ kind: 'image', image: { format: 'rgb', width: 1, height: 1, get data() { return new Uint8Array(6); } } }],
+    { ...configuration, limits: { maxImageBytes: 3 } }, error => error.code === 'RESOURCE_LIMIT', 'image-getter-source-byte-limit');
+
+  let commandReads = 0, textReads = 0, opReads = 0, fillReads = 0, strokeReads = 0, fontReads = 0, clipReads = 0, kindReads = 0;
+  const commands = [{ get op() { return ++opReads === 1 ? 'move' : 'line'; }, x: 0, y: 0 }];
+  const path = { get kind() { return ++kindReads === 1 ? 'path' : 'text'; },
+    get fill() { return ++fillReads === 1 ? 'FF0000' : '0000FF'; },
+    get stroke() { return ++strokeReads === 1 ? '008000' : '0000FF'; }, strokeWidth: 2,
+    get commands() { return ++commandReads === 1 ? commands : [...commands,{ op: 'line', x: 9, y: 9 }]; } };
+  const text = { kind: 'text', get text() { return ++textReads === 1 ? 'A' : 'BBBB'; }, x: 10, y: 25,
+    get font() { return ++fontReads === 1 ? 'regular' : 'bold'; }, fontSize: 14, color: '000000' };
+  const group = { kind: 'group', get clip() { return ++clipReads === 1 ? { x: 3, y: 4, width: 12, height: 13 } : { x: Infinity }; }, elements: [path,text] };
+  const drawingBlob = await writePdfDocument([{ kind: 'drawing', drawing: { version: 1, width: 200, height: 100, elements: [group] } }], {
+    ...configuration, fonts: { regular: new PdfFont(bytes(drawingFont)) }, limits: { maxVectorCommands: 1, maxCellCharacters: 1 }
+  });
+  const drawingPdf = await inspect(drawingBlob);
+  for (const token of ['3 4 12 13 re W n','1 0 0 rg\n0 0.502 0 RG','0 0 m\nB'])
+    require(drawingPdf.text.includes(token), 'Drawing getter replaced admitted path/paint/clip: ' + token);
+  require(!drawingPdf.text.includes('9 9 l'), 'Drawing getter exceeded admitted command count');
+  await save('getter-drawing', drawingBlob, ['A']); checks.push('drawing-getter-command-text-budget'); checks.push('drawing-getter-op-paint-font-clip');
+
+  const vector = { kind: 'vector', width: 10, height: 10, stroke: '000000', commands: [{ op: 'move', x: 0, y: 0 },{ op: 'line', x: 10, y: 10 }] };
+  let alternativeReads = 0, decorativeReads = 0;
+  const alternativeBlob = await writePdfDocument([
+    { ...vector, get alternativeText() { return ++alternativeReads === 1 ? 'A' : 'BBBB'; } },
+    { ...vector, get decorative() { return ++decorativeReads === 1 ? true : false; } }
+  ], { ...configuration, tagged: { language: 'en-US' }, limits: { maxCellCharacters: 1, maxCells: 1, maxTextCharacters: 1 } });
+  const alternativePdf = await inspect(alternativeBlob);
+  require((alternativePdf.text.match(/\/S \/Figure /g) ?? []).length === 1 && alternativePdf.text.includes('/Alt <feff0041>'), 'Graphic getters replaced admitted alternative text');
+  require((alternativePdf.text.match(/\/Artifact << \/Type \/Layout >> BDC/g) ?? []).length === 1, 'Graphic getter replaced decorative intent');
+  await save('getter-alternative', alternativeBlob); checks.push('graphic-getter-alternative-decorative-budget');
+
+  let paragraphReads = 0, levelReads = 0, presentationReads = 0, boldReads = 0, italicReads = 0, colorReads = 0, alignmentReads = 0;
+  const paragraphStyle = {
+    get bold() { return ++boldReads <= 2 ? false : true; }, get italic() { return ++italicReads <= 2 ? false : true; },
+    get color() { return ++colorReads <= 2 ? '008000' : '0000FF'; }, get alignment() { return ++alignmentReads <= 2 ? 'left' : 'right'; }
+  };
+  const paragraphBlob = await writePdfDocument([{ kind: 'paragraph', get text() { return ++paragraphReads === 1 ? 'A' : 'BBBB'; },
+    get headingLevel() { return ++levelReads === 1 ? 2 : 9; },
+    get presentation() { return ++presentationReads === 1 ? paragraphStyle : { background: 'FF0000' }; }
+  }], { ...configuration, tagged: { language: 'en-US' }, limits: { maxCellCharacters: 1, maxTextCharacters: 1 } });
+  const paragraphPdf = await inspect(paragraphBlob);
+  require(paragraphPdf.text.includes('/S /H2 ') && !paragraphPdf.text.includes('/S /H9 '), 'Paragraph getter replaced admitted heading');
+  await save('getter-paragraph', paragraphBlob, ['A']); checks.push('paragraph-getter-text-heading-budget');
+  require([boldReads,italicReads,colorReads,alignmentReads].every(count => count === 1), 'Paragraph presentation getters were reread after capture');
+  require(paragraphPdf.text.includes('0 0.502 0 rg') && !paragraphPdf.text.includes('0 0 1 rg'), 'Paragraph presentation getter replaced admitted color');
+  require(!paragraphPdf.text.includes('Helvetica-Bold') && !paragraphPdf.text.includes('Helvetica-Oblique') && paragraphPdf.text.includes('1 0 0 1 36 '), 'Paragraph presentation getter replaced admitted font/alignment');
+  checks.push('paragraph-nested-presentation-getter-capture');
+  for (const [key,invalid,valid] of [['bold','yes',false],['italic','yes',false],['color','invalid','008000'],['alignment','justify','left']]) {
+    let reads = 0;
+    await rejected([{ kind: 'paragraph', text: 'A', presentation: { get [key]() { return ++reads === 1 ? invalid : valid; } } }], configuration,
+      error => error instanceof TypeError, 'paragraph-presentation-invalid-' + key);
+    require(reads === 1, 'Invalid paragraph presentation was reread: ' + key);
+  }
 }

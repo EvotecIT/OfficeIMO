@@ -75,15 +75,16 @@ export class PdfStructure {
 
 /** Validate author intent even in untagged output so a later opt-in cannot silently change meaning. */
 export function graphicAlternative(value: { readonly alternativeText?: string; readonly decorative?: boolean }, settings: PdfSettings): string | undefined {
-  if (value.decorative !== undefined && typeof value.decorative !== "boolean") throw new TypeError("Graphic decorative must be boolean.");
-  if (value.alternativeText !== undefined) {
-    if (typeof value.alternativeText !== "string" || !value.alternativeText.trim()) throw new TypeError("Graphic alternativeText must be nonempty text.");
-    if (value.alternativeText.length > settings.limits.maxCellCharacters) throw new OfficeIMOError("RESOURCE_LIMIT", "maxCellCharacters exceeded by graphic alternativeText.");
-    unicodeHex(value.alternativeText);
-    if (value.decorative) throw new TypeError("A decorative graphic cannot also have alternativeText.");
+  const decorative = value.decorative, alternativeText = value.alternativeText;
+  if (decorative !== undefined && typeof decorative !== "boolean") throw new TypeError("Graphic decorative must be boolean.");
+  if (alternativeText !== undefined) {
+    if (typeof alternativeText !== "string" || !alternativeText.trim()) throw new TypeError("Graphic alternativeText must be nonempty text.");
+    if (alternativeText.length > settings.limits.maxCellCharacters) throw new OfficeIMOError("RESOURCE_LIMIT", "maxCellCharacters exceeded by graphic alternativeText.");
+    unicodeHex(alternativeText);
+    if (decorative) throw new TypeError("A decorative graphic cannot also have alternativeText.");
   }
-  if (settings.options.tagged && value.alternativeText === undefined && value.decorative !== true)
+  if (settings.options.tagged && alternativeText === undefined && decorative !== true)
     throw new TypeError("Tagged PDF graphics require alternativeText or decorative:true.");
-  if (settings.options.tagged && value.alternativeText !== undefined) settings.budget.cell(value.alternativeText);
-  return value.alternativeText;
+  if (settings.options.tagged && alternativeText !== undefined) settings.budget.cell(alternativeText);
+  return alternativeText;
 }

@@ -67,6 +67,24 @@ test("PDF image display dimensions fit the page after admitting very wide and ex
     await assert.rejects(writePdfDocument([{ kind: "image", image: logo, width }]), /finite and positive/);
 });
 
+test("PDF images capture byte, format and display getters before validation and output", async () => {
+  let dataReads = 0, formatReads = 0, heightReads = 0;
+  const image = { width: 1, height: 1, get format() { return ++formatReads === 1 ? "rgb" : "jpeg"; },
+    get data() { return ++dataReads === 1 ? Uint8Array.of(1, 2, 3) : Uint8Array.of(4, 5, 6, 7, 8, 9); } };
+  const pdf = await inspectPdf(await writePdfDocument([{ kind: "image", image, get height() { return ++heightReads === 1 ? 17 : 34; } }], {
+    compression: false, pageNumbers: false, limits: { maxImageBytes: 3, maxImagePixels: 1 }
+  }));
+  const embedded = [...pdf.objects.values()].find(o => /\/Subtype \/Image/.test(o.body));
+  assert.deepEqual(embedded.stream, Buffer.from([1, 2, 3]));
+  assert.match(embedded.body, /\/Width 1 \/Height 1 \/ColorSpace \/DeviceRGB/);
+  assert.doesNotMatch(embedded.body, /DCTDecode/);
+  assert.match(pdf.pages[0].content, /q 17 0 0 17 /);
+  assert.doesNotMatch(pdf.pages[0].content, /q 34 0 0 34 /);
+  await assert.rejects(writePdfDocument([{ kind: "image", image: { format: "rgb", width: 1, height: 1, get data() { return new Uint8Array(6); } } }], {
+    limits: { maxImageBytes: 3 }
+  }), /maxImageBytes/);
+});
+
 test("PDF vectors capture geometry, path records and command counts before cooperative serialization", async () => {
   const now = Object.getOwnPropertyDescriptor(performance, "now"), scheduler = globalThis.scheduler;
   const commands = [{ op: "move", x: 0, y: 0 }, ...Array.from({ length: 1024 }, () => ({ op: "line", x: 1, y: 1 }))];
@@ -87,7 +105,8 @@ test("PDF vectors capture geometry, path records and command counts before coope
       { pageNumbers: false, compression: false, limits: { maxVectorCommands: 1029 } }));
     assert.ok(yields > 0);
     const content = pdf.pages[0].content;
-    assert.match(content, /0 0 10 10 re W n/);
+    assert.equal((content.match(/0 0 10 10 re W n/g) ?? []).length, 3);
+    assert.doesNotMatch(content, /0 0 20 10 re W n|0\.5 0 0 -1/);
     assert.match(content, /B\*/);
     assert.doesNotMatch(content, /9 9 l|9 1 l/);
     assert.equal((content.match(/1 1 l/g) ?? []).length, 1024);

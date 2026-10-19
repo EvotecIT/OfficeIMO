@@ -3661,7 +3661,7 @@ _modules.set("fae7226e22e925cccd060708e85a5ac9e0812d86b7e27d0c1f29cf6a6a7e9074",
 return _exports;
 })();
 
-const _m37 = _modules.get("93b301e86901db605e753e0e93c14713ee250c9278b722f611691997c8b27abc") ?? (() => {
+const _m37 = _modules.get("feed007d46e8aa0d2174a2cb49fb25a6888b7a6c4281386138429c90b0c17cb6") ?? (() => {
 const { OfficeIMOError } = _m2;
 
 const { ExportBudget } = _m18;
@@ -3684,16 +3684,17 @@ function color(value) {
 function presentation(value = {}) {
     if (!value || typeof value !== "object")
         throw new TypeError("PDF presentation must be an object.");
-    if (value.background !== undefined)
-        color(value.background);
-    if (value.color !== undefined)
-        color(value.color);
+    const snapshot = { ...value };
+    if (snapshot.background !== undefined)
+        color(snapshot.background);
+    if (snapshot.color !== undefined)
+        color(snapshot.color);
     for (const key of ["bold", "italic", "wrapText"])
-        if (value[key] !== undefined && typeof value[key] !== "boolean")
+        if (snapshot[key] !== undefined && typeof snapshot[key] !== "boolean")
             throw new TypeError("PDF presentation " + key + " must be boolean.");
-    if (value.alignment !== undefined && !["left", "center", "right"].includes(value.alignment))
+    if (snapshot.alignment !== undefined && !["left", "center", "right"].includes(snapshot.alignment))
         throw new TypeError("PDF table alignment supports left, center and right.");
-    return Object.freeze({ ...value });
+    return Object.freeze(snapshot);
 }
 const sizes = {
     A3: { width: 841.89, height: 1190.551 }, A4: { width: 595.276, height: 841.89 }, A5: { width: 419.528, height: 595.276 },
@@ -3783,7 +3784,7 @@ function settings(configuration, document = false) {
     return { options, page, margins, fontSize, padding, limits, budget };
 }
 const _exports = Object.freeze({ positive: positive, color: color, presentation: presentation, settings: settings });
-_modules.set("93b301e86901db605e753e0e93c14713ee250c9278b722f611691997c8b27abc", _exports);
+_modules.set("feed007d46e8aa0d2174a2cb49fb25a6888b7a6c4281386138429c90b0c17cb6", _exports);
 return _exports;
 })();
 
@@ -4959,7 +4960,7 @@ _modules.set("40f564b2595a245a2f77d25abfdb6d388118781cfd1da73ec9c9655dd1bd42b3",
 return _exports;
 })();
 
-const _m48 = _modules.get("a2980f5f65511e3ce807f4256a3d82d5cc1f3d4b7ffe85975a116b4f1b392ff5") ?? (() => {
+const _m48 = _modules.get("cb8af6422bb915f9b410c7fc9d4385323967b6bd47dc228e201a66cf3d1914ca") ?? (() => {
 const { ExportCell } = _m5;
 
 const { copyExportLink } = _m7;
@@ -5101,7 +5102,7 @@ class PdfTableLayout {
     }
 }
 const _exports = Object.freeze({ PdfTableLayout: PdfTableLayout });
-_modules.set("a2980f5f65511e3ce807f4256a3d82d5cc1f3d4b7ffe85975a116b4f1b392ff5", _exports);
+_modules.set("cb8af6422bb915f9b410c7fc9d4385323967b6bd47dc228e201a66cf3d1914ca", _exports);
 return _exports;
 })();
 
@@ -5150,7 +5151,7 @@ _modules.set("ba335bb5f54ae99287c54a4f4e9eba2206b1cf7afb56db6ec7470c4715bb4837",
 return _exports;
 })();
 
-const _m50 = _modules.get("54c2fd8f106c19fc69daa02d1ca0ff35ab1fb3cf5b1a9cb0ab2063c61ced3722") ?? (() => {
+const _m50 = _modules.get("a4f0f1bd720d45f050b08151420d0025a5d2e48eb210998b38703468fd6770d1") ?? (() => {
 const { OfficeIMOError } = _m2;
 
 const { checkAbort } = _m4;
@@ -5456,11 +5457,11 @@ class PdfPages {
     }
 }
 const _exports = Object.freeze({ PdfPages: PdfPages });
-_modules.set("54c2fd8f106c19fc69daa02d1ca0ff35ab1fb3cf5b1a9cb0ab2063c61ced3722", _exports);
+_modules.set("a4f0f1bd720d45f050b08151420d0025a5d2e48eb210998b38703468fd6770d1", _exports);
 return _exports;
 })();
 
-const _m52 = _modules.get("2288d269797cf3df49c7732c368c3598a16850e8e6c71c36bdb45fc92ed38c18") ?? (() => {
+const _m52 = _modules.get("02f5ec56b90e06e48c50b3843923c25999514fcf5341c6a187495a3e7e1455e8") ?? (() => {
 const { OfficeIMOError } = _m2;
 
 const { checkAbort } = _m4;
@@ -5534,29 +5535,30 @@ class PdfStructure {
 }
 /** Validate author intent even in untagged output so a later opt-in cannot silently change meaning. */
 function graphicAlternative(value, settings) {
-    if (value.decorative !== undefined && typeof value.decorative !== "boolean")
+    const decorative = value.decorative, alternativeText = value.alternativeText;
+    if (decorative !== undefined && typeof decorative !== "boolean")
         throw new TypeError("Graphic decorative must be boolean.");
-    if (value.alternativeText !== undefined) {
-        if (typeof value.alternativeText !== "string" || !value.alternativeText.trim())
+    if (alternativeText !== undefined) {
+        if (typeof alternativeText !== "string" || !alternativeText.trim())
             throw new TypeError("Graphic alternativeText must be nonempty text.");
-        if (value.alternativeText.length > settings.limits.maxCellCharacters)
+        if (alternativeText.length > settings.limits.maxCellCharacters)
             throw new OfficeIMOError("RESOURCE_LIMIT", "maxCellCharacters exceeded by graphic alternativeText.");
-        unicodeHex(value.alternativeText);
-        if (value.decorative)
+        unicodeHex(alternativeText);
+        if (decorative)
             throw new TypeError("A decorative graphic cannot also have alternativeText.");
     }
-    if (settings.options.tagged && value.alternativeText === undefined && value.decorative !== true)
+    if (settings.options.tagged && alternativeText === undefined && decorative !== true)
         throw new TypeError("Tagged PDF graphics require alternativeText or decorative:true.");
-    if (settings.options.tagged && value.alternativeText !== undefined)
-        settings.budget.cell(value.alternativeText);
-    return value.alternativeText;
+    if (settings.options.tagged && alternativeText !== undefined)
+        settings.budget.cell(alternativeText);
+    return alternativeText;
 }
 const _exports = Object.freeze({ PdfStructure: PdfStructure, graphicAlternative: graphicAlternative });
-_modules.set("2288d269797cf3df49c7732c368c3598a16850e8e6c71c36bdb45fc92ed38c18", _exports);
+_modules.set("02f5ec56b90e06e48c50b3843923c25999514fcf5341c6a187495a3e7e1455e8", _exports);
 return _exports;
 })();
 
-const _m39 = _modules.get("63c9c1b7f640325c23b458fc2a16a9d52ceef714a58529e2bff15abbf9b85fe2") ?? (() => {
+const _m39 = _modules.get("ad774d489a449828908a0071c4cdc800350f8af0fccf1eaeb3c52c4890797833") ?? (() => {
 const { PdfObjects, unicodeHex } = _m40;
 
 const { PdfFontResources } = _m41;
@@ -5611,11 +5613,11 @@ class PdfWriteSession {
     }
 }
 const _exports = Object.freeze({ PdfWriteSession: PdfWriteSession });
-_modules.set("63c9c1b7f640325c23b458fc2a16a9d52ceef714a58529e2bff15abbf9b85fe2", _exports);
+_modules.set("ad774d489a449828908a0071c4cdc800350f8af0fccf1eaeb3c52c4890797833", _exports);
 return _exports;
 })();
 
-const _m36 = _modules.get("8f954ec8675d2c0c060362a42c4f4765d771a57c276fa44d3174b5cd4e8c73f9") ?? (() => {
+const _m36 = _modules.get("4969bbb2096ba0eeccc8a9d16cd29b5d46af6bc204f03d80e6f058d62eef1779") ?? (() => {
 const { BlobByteSink, withDestination } = _m3;
 
 const { beginTask, checkAbort, consumeRows, pause, taskYieldDue } = _m4;
@@ -5678,7 +5680,7 @@ async function writePdfTo(rows, destination, configuration) {
     });
 }
 const _exports = Object.freeze({ writePdf: writePdf, writePdfTo: writePdfTo });
-_modules.set("8f954ec8675d2c0c060362a42c4f4765d771a57c276fa44d3174b5cd4e8c73f9", _exports);
+_modules.set("4969bbb2096ba0eeccc8a9d16cd29b5d46af6bc204f03d80e6f058d62eef1779", _exports);
 return _exports;
 })();
 
@@ -5866,7 +5868,7 @@ _modules.set("19f325186cdc3272e443cab61ed42b88c8c88b629c0e9c36090f0359c1aa267b",
 return _exports;
 })();
 
-const _m54 = _modules.get("309b72dd2c1b901efdf36daf4b547eedac82322012d6743d4cf6839ceb90f999") ?? (() => {
+const _m54 = _modules.get("c1e06f6e69cd688f1c733486c493fa2a33192559cf35815cd836500ee1e31146") ?? (() => {
 const { NotSupportedError, OfficeIMOError } = _m2;
 
 const { checkAbort, pause, taskYieldDue } = _m4;
@@ -5888,38 +5890,43 @@ class PdfDocumentImages {
         if (existing)
             return existing;
         const { limits, options } = this.settings;
-        if (!image || typeof image !== "object" || !(image.data instanceof Uint8Array))
+        if (!image || typeof image !== "object")
             throw new TypeError("PDF images require a byte array.");
-        if (this.bytes + image.data.length > limits.maxImageBytes)
+        const data = image.data, format = image.format;
+        if (!(data instanceof Uint8Array))
+            throw new TypeError("PDF images require a byte array.");
+        const byteLength = data.length;
+        if (this.bytes + byteLength > limits.maxImageBytes)
             throw new OfficeIMOError("RESOURCE_LIMIT", "maxImageBytes exceeded.");
         let width, height, components, decoded;
-        if (image.format === "png")
-            ({ width, height, components, data: decoded } = await pngPixels(image.data, limits.maxImagePixels, options.signal));
-        else if (image.format === "jpeg")
-            ({ width, height, components } = jpegSize(image.data));
-        else if (image.format === "rgb" || image.format === "rgba") {
+        if (format === "png")
+            ({ width, height, components, data: decoded } = await pngPixels(data, limits.maxImagePixels, options.signal));
+        else if (format === "jpeg")
+            ({ width, height, components } = jpegSize(data));
+        else if (format === "rgb" || format === "rgba") {
             ({ width, height } = image);
-            components = image.format === "rgba" ? 4 : 3;
+            components = format === "rgba" ? 4 : 3;
         }
         else
             throw new NotSupportedError("PDF images support unprofiled PNG/JPEG or decoded RGB/RGBA pixels.");
         if (!Number.isSafeInteger(width) || !Number.isSafeInteger(height) || width < 1 || height < 1 ||
             !Number.isSafeInteger(width * height) || width * height > limits.maxImagePixels)
             throw new OfficeIMOError("RESOURCE_LIMIT", "Image dimensions must be positive integers within maxImagePixels.");
-        if ((image.format === "rgb" || image.format === "rgba") && image.data.length !== width * height * components)
+        if ((format === "rgb" || format === "rgba") && byteLength !== width * height * components)
             throw new RangeError("Raw image bytes must match width × height × channels exactly.");
         checkAbort(options.signal);
-        const source = decoded ?? new Uint8Array(image.data), id = this.objects.reserve(), name = "Image" + (this.images.size + 1);
-        this.bytes += image.data.length;
-        let pixels = source, mask;
+        const id = this.objects.reserve(), name = "Image" + (this.images.size + 1);
+        this.bytes += byteLength;
+        const captured = decoded ?? new Uint8Array(data);
+        let pixels = captured, mask;
         if (components === 4) {
             pixels = new Uint8Array(width * height * 3);
             const alpha = new Uint8Array(width * height);
             for (let p = 0; p < alpha.length; p++) {
-                pixels[p * 3] = source[p * 4];
-                pixels[p * 3 + 1] = source[p * 4 + 1];
-                pixels[p * 3 + 2] = source[p * 4 + 2];
-                alpha[p] = source[p * 4 + 3];
+                pixels[p * 3] = captured[p * 4];
+                pixels[p * 3 + 1] = captured[p * 4 + 1];
+                pixels[p * 3 + 2] = captured[p * 4 + 2];
+                alpha[p] = captured[p * 4 + 3];
                 if ((p & 16383) === 16383) {
                     if (taskYieldDue())
                         await pause();
@@ -5931,8 +5938,8 @@ class PdfDocumentImages {
         }
         const dictionary = "/Type /XObject /Subtype /Image /Width " + width + " /Height " + height + " /ColorSpace /" +
             (components === 1 ? "DeviceGray" : "DeviceRGB") + " /BitsPerComponent 8" + (mask ? " /SMask " + mask + " 0 R" : "") +
-            (image.format === "jpeg" ? " /Filter /DCTDecode" : "");
-        await this.objects.stream(id, pixels, dictionary, image.format === "jpeg" ? false : options.compression !== false);
+            (format === "jpeg" ? " /Filter /DCTDecode" : "");
+        await this.objects.stream(id, pixels, dictionary, format === "jpeg" ? false : options.compression !== false);
         const resource = { name, id, width, height };
         this.images.set(image, resource);
         return resource;
@@ -5985,11 +5992,11 @@ function jpegSize(bytes) {
     throw new TypeError("JPEG image has no complete frame and scan.");
 }
 const _exports = Object.freeze({ PdfDocumentImages: PdfDocumentImages });
-_modules.set("309b72dd2c1b901efdf36daf4b547eedac82322012d6743d4cf6839ceb90f999", _exports);
+_modules.set("c1e06f6e69cd688f1c733486c493fa2a33192559cf35815cd836500ee1e31146", _exports);
 return _exports;
 })();
 
-const _m56 = _modules.get("5e993b0340d5b55934c00a5978d4cedcfbdbfbc61c66130fde4559808a7ae396") ?? (() => {
+const _m56 = _modules.get("2908c4b401414c852357df4b0792e2b68a1508c821a2aea6ee9772d6f94562a7") ?? (() => {
 const { OfficeIMOError } = _m2;
 
 const { checkAbort, pause, taskYieldDue } = _m4;
@@ -6018,7 +6025,8 @@ async function vectorCommands(block, settings, used) {
             return { op };
         throw new TypeError("Unsupported vector command.");
     });
-    const fill = block.fill === undefined ? undefined : color(block.fill), stroke = block.stroke === undefined ? undefined : color(block.stroke);
+    const fillValue = block.fill, strokeValue = block.stroke;
+    const fill = fillValue === undefined ? undefined : color(fillValue), stroke = strokeValue === undefined ? undefined : color(strokeValue);
     if (fill === undefined && stroke === undefined)
         throw new TypeError("A vector path requires fill or stroke.");
     const strokeWidth = positive(block.strokeWidth ?? 1, "Vector stroke width", 144);
@@ -6071,11 +6079,11 @@ async function vectorCommands(block, settings, used) {
             commands.join("") + (fill !== undefined && stroke !== undefined ? "B" : fill !== undefined ? "f" : "S") + (fill !== undefined && fillRule === "evenodd" ? "*" : "") + "\n" };
 }
 const _exports = Object.freeze({ vectorCommands: vectorCommands });
-_modules.set("5e993b0340d5b55934c00a5978d4cedcfbdbfbc61c66130fde4559808a7ae396", _exports);
+_modules.set("2908c4b401414c852357df4b0792e2b68a1508c821a2aea6ee9772d6f94562a7", _exports);
 return _exports;
 })();
 
-const _m57 = _modules.get("c7cd3cff95ff46f3f38a855e2b4a93f7d04084bf74963b459fb648c01103d246") ?? (() => {
+const _m57 = _modules.get("7df977adafd05e4559baa1eefb02424581ca74f3bc5572327b937028900e3cab") ?? (() => {
 const { NotSupportedError, OfficeIMOError } = _m2;
 
 const { checkAbort, pause, taskYieldDue } = _m4;
@@ -6118,12 +6126,16 @@ async function prepareDrawing(drawing, settings, fonts, used) {
     const ancestors = new Set();
     async function path(value) {
         record(value, ["kind", "commands", "fill", "stroke", "strokeWidth", "fillRule", "lineCap", "lineJoin"], "drawing path");
-        if (!Array.isArray(value.commands))
+        const source = value.commands;
+        if (!Array.isArray(source))
             throw new TypeError("Drawing path commands must be an array.");
-        if (commands + value.commands.length > settings.limits.maxVectorCommands)
+        if (commands + source.length > settings.limits.maxVectorCommands)
             throw new OfficeIMOError("RESOURCE_LIMIT", "maxVectorCommands exceeded.");
-        commands += value.commands.length;
-        const fill = value.fill === undefined ? undefined : color(value.fill), stroke = value.stroke === undefined ? undefined : color(value.stroke);
+        const snapshot = source.slice(), copied = [];
+        let started = false;
+        commands += snapshot.length;
+        const fillValue = value.fill, strokeValue = value.stroke;
+        const fill = fillValue === undefined ? undefined : color(fillValue), stroke = strokeValue === undefined ? undefined : color(strokeValue);
         if (fill === undefined && stroke === undefined)
             throw new TypeError("A drawing path requires fill or stroke.");
         const strokeWidth = positive(value.strokeWidth ?? 1, "Drawing stroke width");
@@ -6134,26 +6146,25 @@ async function prepareDrawing(drawing, settings, fonts, used) {
             throw new TypeError("Invalid drawing lineCap.");
         if (lineJoin !== undefined && !["miter", "round", "bevel"].includes(lineJoin))
             throw new TypeError("Invalid drawing lineJoin.");
-        const snapshot = value.commands.slice(), copied = [];
-        let started = false;
         for (let i = 0; i < snapshot.length; i++) {
             const c = snapshot[i];
             if (!c || typeof c !== "object")
                 throw new TypeError("Invalid drawing path command.");
-            if (c.op === "move" || c.op === "line") {
+            const op = c.op;
+            if (op === "move" || op === "line") {
                 record(c, ["op", "x", "y"], "drawing path command");
-                if (c.op === "line" && !started)
+                if (op === "line" && !started)
                     throw new TypeError("A drawing subpath must begin with move.");
-                copied.push({ op: c.op, x: coordinate(c.x), y: coordinate(c.y) });
+                copied.push({ op, x: coordinate(c.x), y: coordinate(c.y) });
                 started = true;
             }
-            else if (c.op === "cubic") {
+            else if (op === "cubic") {
                 record(c, ["op", "x1", "y1", "x2", "y2", "x", "y"], "drawing path command");
                 if (!started)
                     throw new TypeError("A drawing subpath must begin with move.");
                 copied.push({ op: "cubic", x1: coordinate(c.x1), y1: coordinate(c.y1), x2: coordinate(c.x2), y2: coordinate(c.y2), x: coordinate(c.x), y: coordinate(c.y) });
             }
-            else if (c.op === "close") {
+            else if (op === "close") {
                 record(c, ["op"], "drawing path command");
                 if (!started)
                     throw new TypeError("Cannot close an empty drawing path.");
@@ -6172,18 +6183,19 @@ async function prepareDrawing(drawing, settings, fonts, used) {
     }
     async function text(value) {
         record(value, ["kind", "text", "x", "y", "font", "fontSize", "color"], "drawing text");
-        if (typeof value.text !== "string")
+        const snapshot = value.text, slot = value.font;
+        if (typeof snapshot !== "string")
             throw new TypeError("Drawing text must be a string.");
-        if (value.text.length > settings.limits.maxCellCharacters)
+        if (snapshot.length > settings.limits.maxCellCharacters)
             throw new OfficeIMOError("RESOURCE_LIMIT", "maxCellCharacters exceeded.");
-        if (/[\r\n\u2028\u2029]/.test(value.text))
+        if (/[\r\n\u2028\u2029]/.test(snapshot))
             throw new NotSupportedError("Drawing text must be a single baseline without line breaks.");
-        if (!["regular", "bold", "italic", "boldItalic"].includes(value.font))
+        if (!["regular", "bold", "italic", "boldItalic"].includes(slot))
             throw new TypeError("Invalid drawing font slot.");
-        const font = fonts.select(value.font === "bold" || value.font === "boldItalic", value.font === "italic" || value.font === "boldItalic");
+        const font = fonts.select(slot === "bold" || slot === "boldItalic", slot === "italic" || slot === "boldItalic");
         if (!font.program || font.syntheticBold || font.syntheticItalic)
-            throw new NotSupportedError("Drawing text requires its exact embedded font face; supply fonts." + value.font + ".");
-        const snapshot = value.text, x = coordinate(value.x), y = coordinate(value.y), size = positive(value.fontSize, "Drawing font size"), foreground = color(value.color);
+            throw new NotSupportedError("Drawing text requires its exact embedded font face; supply fonts." + slot + ".");
+        const x = coordinate(value.x), y = coordinate(value.y), size = positive(value.fontSize, "Drawing font size"), foreground = color(value.color);
         settings.budget.cell(snapshot);
         let count = 0;
         for (const character of snapshot) {
@@ -6209,13 +6221,14 @@ async function prepareDrawing(drawing, settings, fonts, used) {
                 throw new TypeError("Invalid drawing element.");
             if (ancestors.has(value))
                 throw new TypeError("Drawing groups cannot contain cycles.");
-            if (value.kind === "path")
+            const kind = value.kind;
+            if (kind === "path")
                 output.push(await path(value));
-            else if (value.kind === "text")
+            else if (kind === "text")
                 output.push(await text(value));
-            else if (value.kind === "group") {
+            else if (kind === "group") {
                 record(value, ["kind", "clip", "elements"], "drawing group");
-                const clip = value.clip === undefined ? undefined : clipRectangle(value.clip);
+                const clipValue = value.clip, clip = clipValue === undefined ? undefined : clipRectangle(clipValue);
                 ancestors.add(value);
                 output.push({ kind: "group", ...(clip ? { clip } : {}), children: await children(value.elements, depth + 1) });
                 ancestors.delete(value);
@@ -6281,11 +6294,11 @@ async function prepareDrawing(drawing, settings, fonts, used) {
     return { width, height, content: fragments.join(""), commands: commands - used.commands, elements: elements - used.elements };
 }
 const _exports = Object.freeze({ checkDrawingBlock: checkDrawingBlock, prepareDrawing: prepareDrawing });
-_modules.set("c7cd3cff95ff46f3f38a855e2b4a93f7d04084bf74963b459fb648c01103d246", _exports);
+_modules.set("7df977adafd05e4559baa1eefb02424581ca74f3bc5572327b937028900e3cab", _exports);
 return _exports;
 })();
 
-const _m53 = _modules.get("42eff4fd44958d0f4f64aac028af2687e94b09f9ff9d5afce9b5fd0520be4bbc") ?? (() => {
+const _m53 = _modules.get("4460cd2b254deb2c6cacc00a096c50f1391f3854becd227988083619cceafec2") ?? (() => {
 const { BlobByteSink, withDestination } = _m3;
 
 const { beginTask, checkAbort, consumeRows, pause, taskYieldDue } = _m4;
@@ -6341,15 +6354,16 @@ async function writePdfDocumentTo(blocks, destination, configuration = {}) {
                 throw new TypeError("PDF document blocks must be objects.");
             switch (block.kind) {
                 case "paragraph": {
-                    if (typeof block.text !== "string")
+                    const text = block.text, headingLevel = block.headingLevel, paragraphPresentation = block.presentation;
+                    if (typeof text !== "string")
                         throw new TypeError("Paragraph text must be a string.");
-                    if (block.headingLevel !== undefined && (!Number.isInteger(block.headingLevel) || block.headingLevel < 1 || block.headingLevel > 6))
+                    if (headingLevel !== undefined && (!Number.isInteger(headingLevel) || headingLevel < 1 || headingLevel > 6))
                         throw new TypeError("Paragraph headingLevel must be an integer from 1 through 6.");
-                    if (block.presentation && Object.keys(block.presentation).some(key => !["bold", "italic", "color", "alignment"].includes(key)))
+                    if (paragraphPresentation && Object.keys(paragraphPresentation).some(key => !["bold", "italic", "color", "alignment"].includes(key)))
                         throw new TypeError("PDF paragraph presentation supports bold, italic, color and alignment.");
-                    const style = presentation(block.presentation), size = positive(block.fontSize ?? prepared.fontSize, "Paragraph font size", 144);
-                    if (block.text)
-                        await pages.paragraph(block.text, style, size, true, block.headingLevel);
+                    const style = presentation(paragraphPresentation), size = positive(block.fontSize ?? prepared.fontSize, "Paragraph font size", 144);
+                    if (text)
+                        await pages.paragraph(text, style, size, true, headingLevel);
                     break;
                 }
                 case "pageBreak":
@@ -6384,9 +6398,10 @@ async function writePdfDocumentTo(blocks, destination, configuration = {}) {
                     break;
                 }
                 case "image": {
+                    const displayWidth = block.width, displayHeight = block.height;
                     const alternative = graphicAlternative(block, prepared), alignment = graphicAlignment(block.alignment), image = await images.prepare(block.image);
-                    const width = block.width ?? (block.height === undefined ? image.width * .75 : block.height * image.width / image.height);
-                    const height = block.height ?? width * image.height / image.width;
+                    const width = displayWidth ?? (displayHeight === undefined ? image.width * .75 : displayHeight * image.width / image.height);
+                    const height = displayHeight ?? width * image.height / image.width;
                     if (!Number.isFinite(width) || width <= 0 || !Number.isFinite(height) || height <= 0)
                         throw new RangeError("Image display dimensions must be finite and positive.");
                     pages.registerXObject(image.name, image.id);
@@ -6436,7 +6451,7 @@ function checkTableOptions(options) {
         throw new TypeError("Table options support columns, headings, footers, widths and presentation; document settings belong on writePdfDocument.");
 }
 const _exports = Object.freeze({ pdfTable: pdfTable, writePdfDocument: writePdfDocument, writePdfDocumentTo: writePdfDocumentTo });
-_modules.set("42eff4fd44958d0f4f64aac028af2687e94b09f9ff9d5afce9b5fd0520be4bbc", _exports);
+_modules.set("4460cd2b254deb2c6cacc00a096c50f1391f3854becd227988083619cceafec2", _exports);
 return _exports;
 })();
 
@@ -6480,17 +6495,17 @@ _modules.set("ed8eb038bc649a3b76f0797059ab082ebadd1b9a205b8cea7bda1f0c42ffe47b",
 return _exports;
 })();
 
-const _m35 = _modules.get("d946f0131ee655df16b8703836aa3f68095b4b265cd1e14073629dc491d6cc50") ?? (() => {
+const _m35 = _modules.get("a958f03bd4ca0e6c4fc3245c1f3b32cc4d9851b46d1f2700229ba21a97e71479") ?? (() => {
 
 const _exports = Object.freeze({ writePdf: _m36.writePdf, writePdfTo: _m36.writePdfTo, writePdfDocument: _m53.writePdfDocument, writePdfDocumentTo: _m53.writePdfDocumentTo, pdfTable: _m53.pdfTable, PdfFont: _m42.PdfFont, preflightPdfText: _m58.preflightPdfText, ExportCell: _m5.ExportCell, saveBlob: _m1.saveBlob });
-_modules.set("d946f0131ee655df16b8703836aa3f68095b4b265cd1e14073629dc491d6cc50", _exports);
+_modules.set("a958f03bd4ca0e6c4fc3245c1f3b32cc4d9851b46d1f2700229ba21a97e71479", _exports);
 return _exports;
 })();
 
-const _m0 = _modules.get("bd874db1ec218720260f15e8272d7b657d76a71aa8e1dc4ff167a84631edffe0") ?? (() => {
+const _m0 = _modules.get("24f6d988bc5c6d2b55eb79ee402e3a8f10b330e1d0e2a22f16d7132ab4061879") ?? (() => {
 
 const _exports = Object.freeze({ core: _m1, zip: _m8, xml: _m11, opc: _m12, xlsx: _m15, csv: _m34, pdf: _m35, Workbook: _m15.Workbook, Worksheet: _m15.Worksheet, Cell: _m15.Cell, StyleRegistry: _m15.StyleRegistry, NumberFormats: _m15.NumberFormats, writeXlsx: _m15.writeXlsx, writeXlsxTo: _m15.writeXlsxTo, writeCsv: _m34.writeCsv, writeCsvTo: _m34.writeCsvTo, writePdf: _m35.writePdf, writePdfTo: _m35.writePdfTo, writePdfDocument: _m35.writePdfDocument, writePdfDocumentTo: _m35.writePdfDocumentTo, pdfTable: _m35.pdfTable, PdfFont: _m35.PdfFont, preflightPdfText: _m35.preflightPdfText, saveBlob: _m1.saveBlob, ExportCell: _m1.ExportCell });
-_modules.set("bd874db1ec218720260f15e8272d7b657d76a71aa8e1dc4ff167a84631edffe0", _exports);
+_modules.set("24f6d988bc5c6d2b55eb79ee402e3a8f10b330e1d0e2a22f16d7132ab4061879", _exports);
 return _exports;
 })();
 Object.assign(officeimo, _m0);

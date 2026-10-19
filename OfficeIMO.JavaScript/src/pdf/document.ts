@@ -37,13 +37,14 @@ export async function writePdfDocumentTo(blocks: Iterable<PdfDocumentBlock> | As
       if (!block || typeof block !== "object") throw new TypeError("PDF document blocks must be objects.");
       switch (block.kind) {
         case "paragraph": {
-          if (typeof block.text !== "string") throw new TypeError("Paragraph text must be a string.");
-          if (block.headingLevel !== undefined && (!Number.isInteger(block.headingLevel) || block.headingLevel < 1 || block.headingLevel > 6))
+          const text = block.text, headingLevel = block.headingLevel, paragraphPresentation = block.presentation;
+          if (typeof text !== "string") throw new TypeError("Paragraph text must be a string.");
+          if (headingLevel !== undefined && (!Number.isInteger(headingLevel) || headingLevel < 1 || headingLevel > 6))
             throw new TypeError("Paragraph headingLevel must be an integer from 1 through 6.");
-          if (block.presentation && Object.keys(block.presentation).some(key => !["bold", "italic", "color", "alignment"].includes(key)))
+          if (paragraphPresentation && Object.keys(paragraphPresentation).some(key => !["bold", "italic", "color", "alignment"].includes(key)))
             throw new TypeError("PDF paragraph presentation supports bold, italic, color and alignment.");
-          const style = presentation(block.presentation), size = positive(block.fontSize ?? prepared.fontSize, "Paragraph font size", 144);
-          if (block.text) await pages.paragraph(block.text, style, size, true, block.headingLevel);
+          const style = presentation(paragraphPresentation), size = positive(block.fontSize ?? prepared.fontSize, "Paragraph font size", 144);
+          if (text) await pages.paragraph(text, style, size, true, headingLevel);
           break;
         }
         case "pageBreak": await pages.pageBreak(); break;
@@ -64,9 +65,10 @@ export async function writePdfDocumentTo(blocks: Iterable<PdfDocumentBlock> | As
           pages.endTable(); break;
         }
         case "image": {
+          const displayWidth = block.width, displayHeight = block.height;
           const alternative = graphicAlternative(block, prepared), alignment = graphicAlignment(block.alignment), image = await images.prepare(block.image);
-          const width = block.width ?? (block.height === undefined ? image.width * .75 : block.height * image.width / image.height);
-          const height = block.height ?? width * image.height / image.width;
+          const width = displayWidth ?? (displayHeight === undefined ? image.width * .75 : displayHeight * image.width / image.height);
+          const height = displayHeight ?? width * image.height / image.width;
           if (!Number.isFinite(width) || width <= 0 || !Number.isFinite(height) || height <= 0)
             throw new RangeError("Image display dimensions must be finite and positive.");
           pages.registerXObject(image.name, image.id);

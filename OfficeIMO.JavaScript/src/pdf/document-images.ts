@@ -1,6 +1,6 @@
 import { NotSupportedError, OfficeIMOError } from "../core/errors.js";
 import { checkAbort, pause, taskYieldDue } from "../core/iteration.js";
-import type { PdfImageBlock } from "./document-types.js";
+import type { PdfImageBlock, PdfRawImage } from "./document-types.js";
 import type { PdfObjects } from "./objects.js";
 import type { PdfSettings } from "./settings.js";
 import { pngPixels } from "./png.js";
@@ -14,26 +14,30 @@ export class PdfDocumentImages {
   async prepare(image: PdfImageBlock["image"]): Promise<ImageResource> {
     const existing = this.images.get(image); if (existing) return existing;
     const { limits, options } = this.settings;
-    if (!image || typeof image !== "object" || !(image.data instanceof Uint8Array)) throw new TypeError("PDF images require a byte array.");
-    if (this.bytes + image.data.length > limits.maxImageBytes) throw new OfficeIMOError("RESOURCE_LIMIT", "maxImageBytes exceeded.");
+    if (!image || typeof image !== "object") throw new TypeError("PDF images require a byte array.");
+    const data = image.data, format = image.format;
+    if (!(data instanceof Uint8Array)) throw new TypeError("PDF images require a byte array.");
+    const byteLength = data.length;
+    if (this.bytes + byteLength > limits.maxImageBytes) throw new OfficeIMOError("RESOURCE_LIMIT", "maxImageBytes exceeded.");
     let width: number, height: number, components: number, decoded: Uint8Array | undefined;
-    if (image.format === "png") ({ width, height, components, data: decoded } = await pngPixels(image.data, limits.maxImagePixels, options.signal));
-    else if (image.format === "jpeg") ({ width, height, components } = jpegSize(image.data));
-    else if (image.format === "rgb" || image.format === "rgba") {
-      ({ width, height } = image); components = image.format === "rgba" ? 4 : 3;
+    if (format === "png") ({ width, height, components, data: decoded } = await pngPixels(data, limits.maxImagePixels, options.signal));
+    else if (format === "jpeg") ({ width, height, components } = jpegSize(data));
+    else if (format === "rgb" || format === "rgba") {
+      ({ width, height } = image as PdfRawImage); components = format === "rgba" ? 4 : 3;
     } else throw new NotSupportedError("PDF images support unprofiled PNG/JPEG or decoded RGB/RGBA pixels.");
     if (!Number.isSafeInteger(width) || !Number.isSafeInteger(height) || width < 1 || height < 1 ||
         !Number.isSafeInteger(width * height) || width * height > limits.maxImagePixels)
       throw new OfficeIMOError("RESOURCE_LIMIT", "Image dimensions must be positive integers within maxImagePixels.");
-    if ((image.format === "rgb" || image.format === "rgba") && image.data.length !== width * height * components) throw new RangeError("Raw image bytes must match width × height × channels exactly.");
+    if ((format === "rgb" || format === "rgba") && byteLength !== width * height * components) throw new RangeError("Raw image bytes must match width × height × channels exactly.");
     checkAbort(options.signal);
-    const source = decoded ?? new Uint8Array(image.data), id = this.objects.reserve(), name = "Image" + (this.images.size + 1);
-    this.bytes += image.data.length;
-    let pixels = source, mask: number | undefined;
+    const id = this.objects.reserve(), name = "Image" + (this.images.size + 1);
+    this.bytes += byteLength;
+    const captured = decoded ?? new Uint8Array(data);
+    let pixels = captured, mask: number | undefined;
     if (components === 4) {
       pixels = new Uint8Array(width * height * 3); const alpha = new Uint8Array(width * height);
       for (let p = 0; p < alpha.length; p++) {
-        pixels[p * 3] = source[p * 4]!; pixels[p * 3 + 1] = source[p * 4 + 1]!; pixels[p * 3 + 2] = source[p * 4 + 2]!; alpha[p] = source[p * 4 + 3]!;
+        pixels[p * 3] = captured[p * 4]!; pixels[p * 3 + 1] = captured[p * 4 + 1]!; pixels[p * 3 + 2] = captured[p * 4 + 2]!; alpha[p] = captured[p * 4 + 3]!;
         if ((p & 16383) === 16383) { if (taskYieldDue()) await pause(); checkAbort(options.signal); }
       }
       mask = this.objects.reserve();
@@ -41,8 +45,8 @@ export class PdfDocumentImages {
     }
     const dictionary = "/Type /XObject /Subtype /Image /Width " + width + " /Height " + height + " /ColorSpace /" +
       (components === 1 ? "DeviceGray" : "DeviceRGB") + " /BitsPerComponent 8" + (mask ? " /SMask " + mask + " 0 R" : "") +
-      (image.format === "jpeg" ? " /Filter /DCTDecode" : "");
-    await this.objects.stream(id, pixels, dictionary, image.format === "jpeg" ? false : options.compression !== false);
+      (format === "jpeg" ? " /Filter /DCTDecode" : "");
+    await this.objects.stream(id, pixels, dictionary, format === "jpeg" ? false : options.compression !== false);
     const resource = { name, id, width, height }; this.images.set(image, resource); return resource;
   }
 }

@@ -3643,16 +3643,17 @@ function color(value) {
 function presentation(value = {}) {
     if (!value || typeof value !== "object")
         throw new TypeError("PDF presentation must be an object.");
-    if (value.background !== undefined)
-        color(value.background);
-    if (value.color !== undefined)
-        color(value.color);
+    const snapshot = { ...value };
+    if (snapshot.background !== undefined)
+        color(snapshot.background);
+    if (snapshot.color !== undefined)
+        color(snapshot.color);
     for (const key of ["bold", "italic", "wrapText"])
-        if (value[key] !== undefined && typeof value[key] !== "boolean")
+        if (snapshot[key] !== undefined && typeof snapshot[key] !== "boolean")
             throw new TypeError("PDF presentation " + key + " must be boolean.");
-    if (value.alignment !== undefined && !["left", "center", "right"].includes(value.alignment))
+    if (snapshot.alignment !== undefined && !["left", "center", "right"].includes(snapshot.alignment))
         throw new TypeError("PDF table alignment supports left, center and right.");
-    return Object.freeze({ ...value });
+    return Object.freeze(snapshot);
 }
 const sizes = {
     A3: { width: 841.89, height: 1190.551 }, A4: { width: 595.276, height: 841.89 }, A5: { width: 419.528, height: 595.276 },
@@ -5480,22 +5481,23 @@ class PdfStructure {
 }
 /** Validate author intent even in untagged output so a later opt-in cannot silently change meaning. */
 function graphicAlternative(value, settings) {
-    if (value.decorative !== undefined && typeof value.decorative !== "boolean")
+    const decorative = value.decorative, alternativeText = value.alternativeText;
+    if (decorative !== undefined && typeof decorative !== "boolean")
         throw new TypeError("Graphic decorative must be boolean.");
-    if (value.alternativeText !== undefined) {
-        if (typeof value.alternativeText !== "string" || !value.alternativeText.trim())
+    if (alternativeText !== undefined) {
+        if (typeof alternativeText !== "string" || !alternativeText.trim())
             throw new TypeError("Graphic alternativeText must be nonempty text.");
-        if (value.alternativeText.length > settings.limits.maxCellCharacters)
+        if (alternativeText.length > settings.limits.maxCellCharacters)
             throw new OfficeIMOError("RESOURCE_LIMIT", "maxCellCharacters exceeded by graphic alternativeText.");
-        unicodeHex(value.alternativeText);
-        if (value.decorative)
+        unicodeHex(alternativeText);
+        if (decorative)
             throw new TypeError("A decorative graphic cannot also have alternativeText.");
     }
-    if (settings.options.tagged && value.alternativeText === undefined && value.decorative !== true)
+    if (settings.options.tagged && alternativeText === undefined && decorative !== true)
         throw new TypeError("Tagged PDF graphics require alternativeText or decorative:true.");
-    if (settings.options.tagged && value.alternativeText !== undefined)
-        settings.budget.cell(value.alternativeText);
-    return value.alternativeText;
+    if (settings.options.tagged && alternativeText !== undefined)
+        settings.budget.cell(alternativeText);
+    return alternativeText;
 }
 const _exports = Object.freeze({ PdfStructure: PdfStructure, graphicAlternative: graphicAlternative });
 return _exports;
@@ -5830,38 +5832,43 @@ class PdfDocumentImages {
         if (existing)
             return existing;
         const { limits, options } = this.settings;
-        if (!image || typeof image !== "object" || !(image.data instanceof Uint8Array))
+        if (!image || typeof image !== "object")
             throw new TypeError("PDF images require a byte array.");
-        if (this.bytes + image.data.length > limits.maxImageBytes)
+        const data = image.data, format = image.format;
+        if (!(data instanceof Uint8Array))
+            throw new TypeError("PDF images require a byte array.");
+        const byteLength = data.length;
+        if (this.bytes + byteLength > limits.maxImageBytes)
             throw new OfficeIMOError("RESOURCE_LIMIT", "maxImageBytes exceeded.");
         let width, height, components, decoded;
-        if (image.format === "png")
-            ({ width, height, components, data: decoded } = await pngPixels(image.data, limits.maxImagePixels, options.signal));
-        else if (image.format === "jpeg")
-            ({ width, height, components } = jpegSize(image.data));
-        else if (image.format === "rgb" || image.format === "rgba") {
+        if (format === "png")
+            ({ width, height, components, data: decoded } = await pngPixels(data, limits.maxImagePixels, options.signal));
+        else if (format === "jpeg")
+            ({ width, height, components } = jpegSize(data));
+        else if (format === "rgb" || format === "rgba") {
             ({ width, height } = image);
-            components = image.format === "rgba" ? 4 : 3;
+            components = format === "rgba" ? 4 : 3;
         }
         else
             throw new NotSupportedError("PDF images support unprofiled PNG/JPEG or decoded RGB/RGBA pixels.");
         if (!Number.isSafeInteger(width) || !Number.isSafeInteger(height) || width < 1 || height < 1 ||
             !Number.isSafeInteger(width * height) || width * height > limits.maxImagePixels)
             throw new OfficeIMOError("RESOURCE_LIMIT", "Image dimensions must be positive integers within maxImagePixels.");
-        if ((image.format === "rgb" || image.format === "rgba") && image.data.length !== width * height * components)
+        if ((format === "rgb" || format === "rgba") && byteLength !== width * height * components)
             throw new RangeError("Raw image bytes must match width × height × channels exactly.");
         checkAbort(options.signal);
-        const source = decoded ?? new Uint8Array(image.data), id = this.objects.reserve(), name = "Image" + (this.images.size + 1);
-        this.bytes += image.data.length;
-        let pixels = source, mask;
+        const id = this.objects.reserve(), name = "Image" + (this.images.size + 1);
+        this.bytes += byteLength;
+        const captured = decoded ?? new Uint8Array(data);
+        let pixels = captured, mask;
         if (components === 4) {
             pixels = new Uint8Array(width * height * 3);
             const alpha = new Uint8Array(width * height);
             for (let p = 0; p < alpha.length; p++) {
-                pixels[p * 3] = source[p * 4];
-                pixels[p * 3 + 1] = source[p * 4 + 1];
-                pixels[p * 3 + 2] = source[p * 4 + 2];
-                alpha[p] = source[p * 4 + 3];
+                pixels[p * 3] = captured[p * 4];
+                pixels[p * 3 + 1] = captured[p * 4 + 1];
+                pixels[p * 3 + 2] = captured[p * 4 + 2];
+                alpha[p] = captured[p * 4 + 3];
                 if ((p & 16383) === 16383) {
                     if (taskYieldDue())
                         await pause();
@@ -5873,8 +5880,8 @@ class PdfDocumentImages {
         }
         const dictionary = "/Type /XObject /Subtype /Image /Width " + width + " /Height " + height + " /ColorSpace /" +
             (components === 1 ? "DeviceGray" : "DeviceRGB") + " /BitsPerComponent 8" + (mask ? " /SMask " + mask + " 0 R" : "") +
-            (image.format === "jpeg" ? " /Filter /DCTDecode" : "");
-        await this.objects.stream(id, pixels, dictionary, image.format === "jpeg" ? false : options.compression !== false);
+            (format === "jpeg" ? " /Filter /DCTDecode" : "");
+        await this.objects.stream(id, pixels, dictionary, format === "jpeg" ? false : options.compression !== false);
         const resource = { name, id, width, height };
         this.images.set(image, resource);
         return resource;
@@ -5959,7 +5966,8 @@ async function vectorCommands(block, settings, used) {
             return { op };
         throw new TypeError("Unsupported vector command.");
     });
-    const fill = block.fill === undefined ? undefined : color(block.fill), stroke = block.stroke === undefined ? undefined : color(block.stroke);
+    const fillValue = block.fill, strokeValue = block.stroke;
+    const fill = fillValue === undefined ? undefined : color(fillValue), stroke = strokeValue === undefined ? undefined : color(strokeValue);
     if (fill === undefined && stroke === undefined)
         throw new TypeError("A vector path requires fill or stroke.");
     const strokeWidth = positive(block.strokeWidth ?? 1, "Vector stroke width", 144);
@@ -6058,12 +6066,16 @@ async function prepareDrawing(drawing, settings, fonts, used) {
     const ancestors = new Set();
     async function path(value) {
         record(value, ["kind", "commands", "fill", "stroke", "strokeWidth", "fillRule", "lineCap", "lineJoin"], "drawing path");
-        if (!Array.isArray(value.commands))
+        const source = value.commands;
+        if (!Array.isArray(source))
             throw new TypeError("Drawing path commands must be an array.");
-        if (commands + value.commands.length > settings.limits.maxVectorCommands)
+        if (commands + source.length > settings.limits.maxVectorCommands)
             throw new OfficeIMOError("RESOURCE_LIMIT", "maxVectorCommands exceeded.");
-        commands += value.commands.length;
-        const fill = value.fill === undefined ? undefined : color(value.fill), stroke = value.stroke === undefined ? undefined : color(value.stroke);
+        const snapshot = source.slice(), copied = [];
+        let started = false;
+        commands += snapshot.length;
+        const fillValue = value.fill, strokeValue = value.stroke;
+        const fill = fillValue === undefined ? undefined : color(fillValue), stroke = strokeValue === undefined ? undefined : color(strokeValue);
         if (fill === undefined && stroke === undefined)
             throw new TypeError("A drawing path requires fill or stroke.");
         const strokeWidth = positive(value.strokeWidth ?? 1, "Drawing stroke width");
@@ -6074,26 +6086,25 @@ async function prepareDrawing(drawing, settings, fonts, used) {
             throw new TypeError("Invalid drawing lineCap.");
         if (lineJoin !== undefined && !["miter", "round", "bevel"].includes(lineJoin))
             throw new TypeError("Invalid drawing lineJoin.");
-        const snapshot = value.commands.slice(), copied = [];
-        let started = false;
         for (let i = 0; i < snapshot.length; i++) {
             const c = snapshot[i];
             if (!c || typeof c !== "object")
                 throw new TypeError("Invalid drawing path command.");
-            if (c.op === "move" || c.op === "line") {
+            const op = c.op;
+            if (op === "move" || op === "line") {
                 record(c, ["op", "x", "y"], "drawing path command");
-                if (c.op === "line" && !started)
+                if (op === "line" && !started)
                     throw new TypeError("A drawing subpath must begin with move.");
-                copied.push({ op: c.op, x: coordinate(c.x), y: coordinate(c.y) });
+                copied.push({ op, x: coordinate(c.x), y: coordinate(c.y) });
                 started = true;
             }
-            else if (c.op === "cubic") {
+            else if (op === "cubic") {
                 record(c, ["op", "x1", "y1", "x2", "y2", "x", "y"], "drawing path command");
                 if (!started)
                     throw new TypeError("A drawing subpath must begin with move.");
                 copied.push({ op: "cubic", x1: coordinate(c.x1), y1: coordinate(c.y1), x2: coordinate(c.x2), y2: coordinate(c.y2), x: coordinate(c.x), y: coordinate(c.y) });
             }
-            else if (c.op === "close") {
+            else if (op === "close") {
                 record(c, ["op"], "drawing path command");
                 if (!started)
                     throw new TypeError("Cannot close an empty drawing path.");
@@ -6112,18 +6123,19 @@ async function prepareDrawing(drawing, settings, fonts, used) {
     }
     async function text(value) {
         record(value, ["kind", "text", "x", "y", "font", "fontSize", "color"], "drawing text");
-        if (typeof value.text !== "string")
+        const snapshot = value.text, slot = value.font;
+        if (typeof snapshot !== "string")
             throw new TypeError("Drawing text must be a string.");
-        if (value.text.length > settings.limits.maxCellCharacters)
+        if (snapshot.length > settings.limits.maxCellCharacters)
             throw new OfficeIMOError("RESOURCE_LIMIT", "maxCellCharacters exceeded.");
-        if (/[\r\n\u2028\u2029]/.test(value.text))
+        if (/[\r\n\u2028\u2029]/.test(snapshot))
             throw new NotSupportedError("Drawing text must be a single baseline without line breaks.");
-        if (!["regular", "bold", "italic", "boldItalic"].includes(value.font))
+        if (!["regular", "bold", "italic", "boldItalic"].includes(slot))
             throw new TypeError("Invalid drawing font slot.");
-        const font = fonts.select(value.font === "bold" || value.font === "boldItalic", value.font === "italic" || value.font === "boldItalic");
+        const font = fonts.select(slot === "bold" || slot === "boldItalic", slot === "italic" || slot === "boldItalic");
         if (!font.program || font.syntheticBold || font.syntheticItalic)
-            throw new NotSupportedError("Drawing text requires its exact embedded font face; supply fonts." + value.font + ".");
-        const snapshot = value.text, x = coordinate(value.x), y = coordinate(value.y), size = positive(value.fontSize, "Drawing font size"), foreground = color(value.color);
+            throw new NotSupportedError("Drawing text requires its exact embedded font face; supply fonts." + slot + ".");
+        const x = coordinate(value.x), y = coordinate(value.y), size = positive(value.fontSize, "Drawing font size"), foreground = color(value.color);
         settings.budget.cell(snapshot);
         let count = 0;
         for (const character of snapshot) {
@@ -6149,13 +6161,14 @@ async function prepareDrawing(drawing, settings, fonts, used) {
                 throw new TypeError("Invalid drawing element.");
             if (ancestors.has(value))
                 throw new TypeError("Drawing groups cannot contain cycles.");
-            if (value.kind === "path")
+            const kind = value.kind;
+            if (kind === "path")
                 output.push(await path(value));
-            else if (value.kind === "text")
+            else if (kind === "text")
                 output.push(await text(value));
-            else if (value.kind === "group") {
+            else if (kind === "group") {
                 record(value, ["kind", "clip", "elements"], "drawing group");
-                const clip = value.clip === undefined ? undefined : clipRectangle(value.clip);
+                const clipValue = value.clip, clip = clipValue === undefined ? undefined : clipRectangle(clipValue);
                 ancestors.add(value);
                 output.push({ kind: "group", ...(clip ? { clip } : {}), children: await children(value.elements, depth + 1) });
                 ancestors.delete(value);
@@ -6280,15 +6293,16 @@ async function writePdfDocumentTo(blocks, destination, configuration = {}) {
                 throw new TypeError("PDF document blocks must be objects.");
             switch (block.kind) {
                 case "paragraph": {
-                    if (typeof block.text !== "string")
+                    const text = block.text, headingLevel = block.headingLevel, paragraphPresentation = block.presentation;
+                    if (typeof text !== "string")
                         throw new TypeError("Paragraph text must be a string.");
-                    if (block.headingLevel !== undefined && (!Number.isInteger(block.headingLevel) || block.headingLevel < 1 || block.headingLevel > 6))
+                    if (headingLevel !== undefined && (!Number.isInteger(headingLevel) || headingLevel < 1 || headingLevel > 6))
                         throw new TypeError("Paragraph headingLevel must be an integer from 1 through 6.");
-                    if (block.presentation && Object.keys(block.presentation).some(key => !["bold", "italic", "color", "alignment"].includes(key)))
+                    if (paragraphPresentation && Object.keys(paragraphPresentation).some(key => !["bold", "italic", "color", "alignment"].includes(key)))
                         throw new TypeError("PDF paragraph presentation supports bold, italic, color and alignment.");
-                    const style = presentation(block.presentation), size = positive(block.fontSize ?? prepared.fontSize, "Paragraph font size", 144);
-                    if (block.text)
-                        await pages.paragraph(block.text, style, size, true, block.headingLevel);
+                    const style = presentation(paragraphPresentation), size = positive(block.fontSize ?? prepared.fontSize, "Paragraph font size", 144);
+                    if (text)
+                        await pages.paragraph(text, style, size, true, headingLevel);
                     break;
                 }
                 case "pageBreak":
@@ -6323,9 +6337,10 @@ async function writePdfDocumentTo(blocks, destination, configuration = {}) {
                     break;
                 }
                 case "image": {
+                    const displayWidth = block.width, displayHeight = block.height;
                     const alternative = graphicAlternative(block, prepared), alignment = graphicAlignment(block.alignment), image = await images.prepare(block.image);
-                    const width = block.width ?? (block.height === undefined ? image.width * .75 : block.height * image.width / image.height);
-                    const height = block.height ?? width * image.height / image.width;
+                    const width = displayWidth ?? (displayHeight === undefined ? image.width * .75 : displayHeight * image.width / image.height);
+                    const height = displayHeight ?? width * image.height / image.width;
                     if (!Number.isFinite(width) || width <= 0 || !Number.isFinite(height) || height <= 0)
                         throw new RangeError("Image display dimensions must be finite and positive.");
                     pages.registerXObject(image.name, image.id);

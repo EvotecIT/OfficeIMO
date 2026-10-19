@@ -48,29 +48,32 @@ export async function prepareDrawing(drawing: PdfDrawing, settings: PdfSettings,
   const ancestors = new Set<object>();
   async function path(value: PdfDrawingPath): Promise<PathPlan> {
     record(value, ["kind", "commands", "fill", "stroke", "strokeWidth", "fillRule", "lineCap", "lineJoin"], "drawing path");
-    if (!Array.isArray(value.commands)) throw new TypeError("Drawing path commands must be an array.");
-    if (commands + value.commands.length > settings.limits.maxVectorCommands) throw new OfficeIMOError("RESOURCE_LIMIT", "maxVectorCommands exceeded.");
-    commands += value.commands.length;
-    const fill = value.fill === undefined ? undefined : color(value.fill), stroke = value.stroke === undefined ? undefined : color(value.stroke);
+    const source = value.commands;
+    if (!Array.isArray(source)) throw new TypeError("Drawing path commands must be an array.");
+    if (commands + source.length > settings.limits.maxVectorCommands) throw new OfficeIMOError("RESOURCE_LIMIT", "maxVectorCommands exceeded.");
+    const snapshot = source.slice(), copied: PdfPathCommand[] = []; let started = false;
+    commands += snapshot.length;
+    const fillValue = value.fill, strokeValue = value.stroke;
+    const fill = fillValue === undefined ? undefined : color(fillValue), stroke = strokeValue === undefined ? undefined : color(strokeValue);
     if (fill === undefined && stroke === undefined) throw new TypeError("A drawing path requires fill or stroke.");
     const strokeWidth = positive(value.strokeWidth ?? 1, "Drawing stroke width");
     const fillRule = value.fillRule, lineCap = value.lineCap, lineJoin = value.lineJoin;
     if (fillRule !== undefined && !["nonzero", "evenodd"].includes(fillRule)) throw new TypeError("Invalid drawing fillRule.");
     if (lineCap !== undefined && !["butt", "round", "square"].includes(lineCap)) throw new TypeError("Invalid drawing lineCap.");
     if (lineJoin !== undefined && !["miter", "round", "bevel"].includes(lineJoin)) throw new TypeError("Invalid drawing lineJoin.");
-    const snapshot = value.commands.slice(), copied: PdfPathCommand[] = []; let started = false;
     for (let i = 0; i < snapshot.length; i++) {
       const c = snapshot[i]!;
       if (!c || typeof c !== "object") throw new TypeError("Invalid drawing path command.");
-      if (c.op === "move" || c.op === "line") {
+      const op = c.op;
+      if (op === "move" || op === "line") {
         record(c, ["op", "x", "y"], "drawing path command");
-        if (c.op === "line" && !started) throw new TypeError("A drawing subpath must begin with move.");
-        copied.push({ op: c.op, x: coordinate(c.x), y: coordinate(c.y) }); started = true;
-      } else if (c.op === "cubic") {
+        if (op === "line" && !started) throw new TypeError("A drawing subpath must begin with move.");
+        copied.push({ op, x: coordinate(c.x), y: coordinate(c.y) }); started = true;
+      } else if (op === "cubic") {
         record(c, ["op", "x1", "y1", "x2", "y2", "x", "y"], "drawing path command");
         if (!started) throw new TypeError("A drawing subpath must begin with move.");
         copied.push({ op: "cubic", x1: coordinate(c.x1), y1: coordinate(c.y1), x2: coordinate(c.x2), y2: coordinate(c.y2), x: coordinate(c.x), y: coordinate(c.y) });
-      } else if (c.op === "close") {
+      } else if (op === "close") {
         record(c, ["op"], "drawing path command");
         if (!started) throw new TypeError("Cannot close an empty drawing path."); copied.push({ op: "close" });
       } else throw new TypeError("Unsupported drawing path command.");
@@ -83,13 +86,14 @@ export async function prepareDrawing(drawing: PdfDrawing, settings: PdfSettings,
   }
   async function text(value: PdfDrawingText): Promise<TextPlan> {
     record(value, ["kind", "text", "x", "y", "font", "fontSize", "color"], "drawing text");
-    if (typeof value.text !== "string") throw new TypeError("Drawing text must be a string.");
-    if (value.text.length > settings.limits.maxCellCharacters) throw new OfficeIMOError("RESOURCE_LIMIT", "maxCellCharacters exceeded.");
-    if (/[\r\n\u2028\u2029]/.test(value.text)) throw new NotSupportedError("Drawing text must be a single baseline without line breaks.");
-    if (!["regular", "bold", "italic", "boldItalic"].includes(value.font)) throw new TypeError("Invalid drawing font slot.");
-    const font = fonts.select(value.font === "bold" || value.font === "boldItalic", value.font === "italic" || value.font === "boldItalic");
-    if (!font.program || font.syntheticBold || font.syntheticItalic) throw new NotSupportedError("Drawing text requires its exact embedded font face; supply fonts." + value.font + ".");
-    const snapshot = value.text, x = coordinate(value.x), y = coordinate(value.y), size = positive(value.fontSize, "Drawing font size"), foreground = color(value.color);
+    const snapshot = value.text, slot = value.font;
+    if (typeof snapshot !== "string") throw new TypeError("Drawing text must be a string.");
+    if (snapshot.length > settings.limits.maxCellCharacters) throw new OfficeIMOError("RESOURCE_LIMIT", "maxCellCharacters exceeded.");
+    if (/[\r\n\u2028\u2029]/.test(snapshot)) throw new NotSupportedError("Drawing text must be a single baseline without line breaks.");
+    if (!["regular", "bold", "italic", "boldItalic"].includes(slot)) throw new TypeError("Invalid drawing font slot.");
+    const font = fonts.select(slot === "bold" || slot === "boldItalic", slot === "italic" || slot === "boldItalic");
+    if (!font.program || font.syntheticBold || font.syntheticItalic) throw new NotSupportedError("Drawing text requires its exact embedded font face; supply fonts." + slot + ".");
+    const x = coordinate(value.x), y = coordinate(value.y), size = positive(value.fontSize, "Drawing font size"), foreground = color(value.color);
     settings.budget.cell(snapshot);
     let count = 0;
     for (const character of snapshot) {
@@ -108,11 +112,12 @@ export async function prepareDrawing(drawing: PdfDrawing, settings: PdfSettings,
       const value = snapshot[i];
       if (!value || typeof value !== "object") throw new TypeError("Invalid drawing element.");
       if (ancestors.has(value)) throw new TypeError("Drawing groups cannot contain cycles.");
-      if (value.kind === "path") output.push(await path(value));
-      else if (value.kind === "text") output.push(await text(value));
-      else if (value.kind === "group") {
+      const kind = value.kind;
+      if (kind === "path") output.push(await path(value));
+      else if (kind === "text") output.push(await text(value));
+      else if (kind === "group") {
         record(value, ["kind", "clip", "elements"], "drawing group");
-        const clip = value.clip === undefined ? undefined : clipRectangle(value.clip);
+        const clipValue = value.clip, clip = clipValue === undefined ? undefined : clipRectangle(clipValue);
         ancestors.add(value);
         output.push({ kind: "group", ...(clip ? { clip } : {}), children: await children(value.elements, depth + 1) });
         ancestors.delete(value);

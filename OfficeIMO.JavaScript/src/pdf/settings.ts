@@ -17,11 +17,12 @@ export function color(value: string): string {
 }
 export function presentation(value: CellPresentation = {}): Readonly<CellPresentation> {
   if (!value || typeof value !== "object") throw new TypeError("PDF presentation must be an object.");
-  if (value.background !== undefined) color(value.background);
-  if (value.color !== undefined) color(value.color);
-  for (const key of ["bold", "italic", "wrapText"] as const) if (value[key] !== undefined && typeof value[key] !== "boolean") throw new TypeError("PDF presentation " + key + " must be boolean.");
-  if (value.alignment !== undefined && !["left", "center", "right"].includes(value.alignment)) throw new TypeError("PDF table alignment supports left, center and right.");
-  return Object.freeze({ ...value });
+  const snapshot = { ...value };
+  if (snapshot.background !== undefined) color(snapshot.background);
+  if (snapshot.color !== undefined) color(snapshot.color);
+  for (const key of ["bold", "italic", "wrapText"] as const) if (snapshot[key] !== undefined && typeof snapshot[key] !== "boolean") throw new TypeError("PDF presentation " + key + " must be boolean.");
+  if (snapshot.alignment !== undefined && !["left", "center", "right"].includes(snapshot.alignment)) throw new TypeError("PDF table alignment supports left, center and right.");
+  return Object.freeze(snapshot);
 }
 const sizes: Readonly<Record<string, PdfPageSize>> = {
   A3: { width: 841.89, height: 1190.551 }, A4: { width: 595.276, height: 841.89 }, A5: { width: 419.528, height: 595.276 },
