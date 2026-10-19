@@ -2013,9 +2013,14 @@ public partial class PowerPointSaveAsPdfTests {
 
         byte[] bytes = presentation.ToPdfBytes();
 
-        string raw = PdfOperatorSearchText.From(bytes);
-        Assert.Contains("100 120 m", raw, StringComparison.Ordinal);
-        Assert.Contains("20 80 l", raw, StringComparison.Ordinal);
+        using PdfPigDocument pdf = PdfPigDocument.Open(bytes);
+        var segment = Assert.Single(pdf.GetPage(1).Paths.Where(path => path.IsStroked)
+            .SelectMany(path => path).SelectMany(subpath => subpath.Commands)
+            .OfType<UglyToad.PdfPig.Core.PdfSubpath.Line>());
+        Assert.Equal(100D, segment.From.X, 6);
+        Assert.Equal(120D, segment.From.Y, 6);
+        Assert.Equal(20D, segment.To.X, 6);
+        Assert.Equal(80D, segment.To.Y, 6);
     }
 
     [Fact]

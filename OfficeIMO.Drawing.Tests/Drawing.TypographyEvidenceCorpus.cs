@@ -62,6 +62,11 @@ public sealed class DrawingTypographyEvidenceCorpusTests {
                 DiagnosticSource = evidence.Name
             });
             Assert.Contains(raster.GetPixels(), pixel => pixel != 0);
+            if (evidence.Name == "Arabic") {
+                Assert.Contains(renderDiagnostics, diagnostic =>
+                    diagnostic.Code == OfficeImageExportDiagnosticCodes.TextShapingFallback &&
+                    diagnostic.LossKind == OfficeConversionLossKind.Approximation);
+            }
             if (evidence.Direction == OfficeTextDirection.TopToBottom) {
                 Assert.Contains(renderDiagnostics, diagnostic =>
                     diagnostic.Code == OfficeImageExportDiagnosticCodes.TextShapingFallback &&

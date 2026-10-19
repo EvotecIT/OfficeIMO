@@ -48,7 +48,8 @@ public static partial class PowerPointPdfConverterExtensions {
         ApplyShapeAppearance(textBox, frame, slideNumber, options);
         if (!frame.FillColor.HasValue && frame.FillGradient == null && frame.FillRadialGradient == null
             && !frame.StrokeColor.HasValue) return;
-        canvas.Shape(frame, x, y, rotationAngle: textBox.Rotation ?? 0D);
+        PptCore.PowerPointSlideImageRenderer.ApplyShapeTransformForExport(frame, textBox, width, height);
+        canvas.Shape(frame, x, y);
     }
 
 }

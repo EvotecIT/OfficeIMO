@@ -84,7 +84,7 @@ public static partial class HtmlRenderCapabilityCatalog {
         CssModule(HtmlCapabilitySpecificationIds.CssPagedMedia, "CSS paged media and fragmentation", "css-page, css-break, css-gcpm, css-page-floats"),
         CssModule(HtmlCapabilitySpecificationIds.CssConditional, "Media, conditional, and container queries", "mediaqueries, css-conditional, css-contain"),
         CssModule(HtmlCapabilitySpecificationIds.CssFonts, "CSS fonts", "css-fonts"),
-        Specification(HtmlCapabilitySpecificationIds.Unicode17, "Unicode Standard 17.0.0", "https://www.unicode.org/versions/Unicode17.0.0/", "17.0.0", "bidirectional text, line breaking, character properties, and generated Unicode data used by the selected text subset"),
+        Specification(HtmlCapabilitySpecificationIds.Unicode16, "Unicode Standard 16.0.0", "https://www.unicode.org/versions/Unicode16.0.0/", "16.0.0", "bidirectional text, line breaking, character properties, and generated Unicode data used by the selected text subset"),
         Specification(HtmlCapabilitySpecificationIds.Svg2, "SVG 2 editor source", "https://github.com/w3c/svgwg/tree/" + SvgRevision, SvgRevision, "bounded static SVG geometry, paint, text, references, masks, and filters declared by the SVG capability rows"),
         Specification(HtmlCapabilitySpecificationIds.MathMlCore, "MathML Core editor source", "https://github.com/w3c/mathml-core/tree/" + MathMlRevision, MathMlRevision, "bounded Presentation MathML structures declared by the MathML capability rows")
     }).ToArray();

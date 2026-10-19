@@ -120,6 +120,28 @@ public sealed partial class PdfRendererFidelityTests {
         Assert.NotEmpty(result.CapabilityDiagnostics);
     }
 
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void MeshConstructionAndSamplingObserveThePageCancellationToken(bool cancelBeforeConstruction) {
+        using var cancellation = new System.Threading.CancellationTokenSource();
+        var x = new List<double> { 0, 100, 0 };
+        var y = new List<double> { 0, 0, 100 };
+        var values = new List<double> { 0, 0, 0 };
+        var triangles = new List<int> { 0, 1, 2 };
+        if (cancelBeforeConstruction) {
+            cancellation.Cancel();
+            Assert.Throws<OperationCanceledException>(() =>
+                new PdfMeshShadingSampler(x, y, values, 1, triangles, null, cancellation.Token));
+        } else {
+            var sampler = new PdfMeshShadingSampler(x, y, values, 1, triangles, null, cancellation.Token);
+            Assert.True(sampler.TrySampleComponents(10, 10, Array.Empty<double>(), new double[1]));
+            cancellation.Cancel();
+            Assert.Throws<OperationCanceledException>(() =>
+                sampler.TrySampleComponents(10, 10, Array.Empty<double>(), new double[1]));
+        }
+    }
+
     [Fact]
     public void MeshSamplingChargesItsCandidateSearch() {
         var x = new List<double> { 0, 100, 0 };

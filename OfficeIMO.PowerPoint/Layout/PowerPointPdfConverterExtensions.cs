@@ -385,14 +385,15 @@ public static partial class PowerPointPdfConverterExtensions {
             }
             return;
         }
-        OfficeShape? shape = CreateOfficeShape(autoShape.ShapeType.ToOpenXml(), autoShape, width, height);
+        OfficeShape? shape = CreateOfficeShape(autoShape.ShapeType.ToOpenXml(), width, height);
         if (shape == null) {
             AddWarning(options, slideNumber, "unsupported-auto-shape", "Skipped unsupported PowerPoint auto-shape type '" + GetShapePresetName(autoShape.ShapeType.ToOpenXml()) + "'.", lossKind: OfficeConversionLossKind.Omission);
             return;
         }
 
         ApplyShapeAppearance(autoShape, shape, slideNumber, options);
-        canvas.Shape(shape, x, y, rotationAngle: autoShape.Rotation ?? 0D);
+        PptCore.PowerPointSlideImageRenderer.ApplyShapeTransformForExport(shape, autoShape, width, height);
+        canvas.Shape(shape, x, y);
     }
 
     private static bool RenderTextBoxGeometry(PdfCore.PdfPageCanvas canvas, PptCore.PowerPointTextBox textBox, double x, double y, double width, double height, int slideNumber, PowerPointToPdfOptions options) {
@@ -401,19 +402,20 @@ public static partial class PowerPointPdfConverterExtensions {
             return false;
         }
 
-        OfficeShape? shape = CreateOfficeShape(type, textBox, width, height);
+        OfficeShape? shape = CreateOfficeShape(type, width, height);
         if (shape == null) {
             return false;
         }
 
         ApplyShapeAppearance(textBox, shape, slideNumber, options);
-        canvas.Shape(shape, x, y, rotationAngle: textBox.Rotation ?? 0D);
+        PptCore.PowerPointSlideImageRenderer.ApplyShapeTransformForExport(shape, textBox, width, height);
+        canvas.Shape(shape, x, y);
         return true;
     }
 
-    private static OfficeShape? CreateOfficeShape(ShapeTypeValues? type, PptCore.PowerPointShape source, double width, double height) {
+    private static OfficeShape? CreateOfficeShape(ShapeTypeValues? type, double width, double height) {
         return type.HasValue &&
-               OfficeShapePresets.TryCreate(GetShapePresetName(type), width, height, source.HorizontalFlip == true, source.VerticalFlip == true, out OfficeShape? shape)
+               OfficeShapePresets.TryCreate(GetShapePresetName(type), width, height, false, false, out OfficeShape? shape)
             ? shape
             : null;
     }

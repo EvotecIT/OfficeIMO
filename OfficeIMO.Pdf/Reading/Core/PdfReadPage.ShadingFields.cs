@@ -145,7 +145,9 @@ public sealed partial class PdfReadPage {
             }
             int rows = xs.Count / verticesPerRow;
             for (int row = 0; row + 1 < rows; row++) {
+                budget.CancellationToken.ThrowIfCancellationRequested();
                 for (int column = 0; column + 1 < verticesPerRow; column++) {
+                    if ((column & 1023) == 0) budget.CancellationToken.ThrowIfCancellationRequested();
                     int a = row * verticesPerRow + column, b = a + 1, c = a + verticesPerRow, d = c + 1;
                     AddTriangle(a, b, c);
                     AddTriangle(b, d, c);
@@ -156,7 +158,7 @@ public sealed partial class PdfReadPage {
                 xs, ys, values, triangles, budget);
         }
         if (triangles.Count == 0) return false;
-        sampler = new PdfMeshShadingSampler(xs, ys, values, valueCount, triangles, functions);
+        sampler = new PdfMeshShadingSampler(xs, ys, values, valueCount, triangles, functions, budget.CancellationToken);
         return true;
     }
 
@@ -237,8 +239,10 @@ public sealed partial class PdfReadPage {
         var bu = new double[4];
         var bv = new double[4];
         foreach (var patch in patches) {
+            budget.CancellationToken.ThrowIfCancellationRequested();
             int baseVertex = xs.Count;
             for (int row = 0; row <= subdivision; row++) {
+                budget.CancellationToken.ThrowIfCancellationRequested();
                 double v = row / (double)subdivision;
                 Bernstein(v, bv);
                 for (int column = 0; column <= subdivision; column++) {
@@ -258,6 +262,7 @@ public sealed partial class PdfReadPage {
                 }
             }
             for (int row = 0; row < subdivision; row++) {
+                budget.CancellationToken.ThrowIfCancellationRequested();
                 for (int column = 0; column < subdivision; column++) {
                     int a = baseVertex + row * (subdivision + 1) + column, b = a + 1, c = a + subdivision + 1, d = c + 1;
                     triangles.Add(a); triangles.Add(b); triangles.Add(c);

@@ -8,7 +8,8 @@ public static class TypographyEvidenceCorpus {
     /// <summary>Gets the representative multilingual script matrix.</summary>
     public static IReadOnlyList<TypographyEvidenceCase> Cases { get; } = new[] {
         new TypographyEvidenceCase("GreekCyrillicFallback", "Carlito", "Carlito-Regular.ttf", "Ελληνικά Кириллица", OfficeTextDirection.LeftToRight, "el", false, true),
-        new TypographyEvidenceCase("Arabic", "Noto Sans Arabic", "NotoSansArabic-Regular.ttf", "سلام بالعالم", OfficeTextDirection.RightToLeft, "ar", true, true),
+        // Required lam-alef uses the diagnosed managed fallback; HarfBuzz supplies complete shaping.
+        new TypographyEvidenceCase("Arabic", "Noto Sans Arabic", "NotoSansArabic-Regular.ttf", "سلام بالعالم", OfficeTextDirection.RightToLeft, "ar", false, true),
         new TypographyEvidenceCase("Hebrew", "OfficeIMO Hebrew Evidence", "", "שלום עולם", OfficeTextDirection.RightToLeft, "he", true, false),
         new TypographyEvidenceCase("Indic", "Noto Sans Devanagari", "NotoSansDevanagari-Regular.ttf", "नमस्ते दुनिया", OfficeTextDirection.LeftToRight, "hi", false, true),
         new TypographyEvidenceCase("CjkVertical", "Noto Sans SC", "NotoSansSC-BaselineSubset.ttf", "永字国", OfficeTextDirection.TopToBottom, "zh", false, true),

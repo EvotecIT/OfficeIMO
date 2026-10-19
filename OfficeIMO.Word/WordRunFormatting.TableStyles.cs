@@ -49,9 +49,9 @@ internal static partial class WordRunFormatting {
         string.Equals(styleId, "NormalTable", StringComparison.OrdinalIgnoreCase);
 
     /// <summary>
-    /// Mirrors the native converter's supported condition set and priority, including its
+    /// Resolves band-one and band-two run paint before the edge conditions, including the
     /// contiguous repeated-header/body/footer boundaries. Logical columns include omitted
-    /// leading cells and merged spans. Corner and band-two overrides are outside that set.
+    /// leading cells and merged spans; corner overrides remain outside this supported set.
     /// </summary>
     private static IEnumerable<TableStyleOverrideValues> EnumerateTableRunConditions(TableRunPaintState state, TableCell cell) {
         if (!state.Cells.TryGetValue(cell, out var position)) yield break;
@@ -66,10 +66,13 @@ internal static partial class WordRunFormatting {
         if ((mask & 0x0080) != 0 && column == 0)
             yield return TableStyleOverrideValues.FirstColumn;
         if (rowIndex >= headerRows && rowIndex < footerStart) {
-            if ((mask & 0x0400) == 0 && column % 2 == 1)
-                yield return TableStyleOverrideValues.Band1Vertical;
-            if ((mask & 0x0200) == 0 && (rowIndex - headerRows) % 2 == 1)
-                yield return TableStyleOverrideValues.Band1Horizontal;
+            int bandColumn = column - ((mask & 0x0080) != 0 ? 1 : 0);
+            if ((mask & 0x0400) == 0 && state.ColumnBandSize > 0 && bandColumn >= 0)
+                yield return bandColumn / state.ColumnBandSize % 2 == 0
+                    ? TableStyleOverrideValues.Band1Vertical : TableStyleOverrideValues.Band2Vertical;
+            if ((mask & 0x0200) == 0 && state.RowBandSize > 0)
+                yield return (rowIndex - headerRows) / state.RowBandSize % 2 == 0
+                    ? TableStyleOverrideValues.Band1Horizontal : TableStyleOverrideValues.Band2Horizontal;
         }
         if (lastRow && rowIndex >= footerStart)
             yield return TableStyleOverrideValues.LastRow;
