@@ -1,8 +1,9 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
-import { PdfFont, writePdf, writePdfDocument } from "../dist/pdf/index.js";
+import { PdfFont, preflightPdfText, writePdf, writePdfDocument } from "../dist/pdf/index.js";
 import { TrueTypeFont } from "../dist/pdf/truetype.js";
+import { NotSupportedError } from "../dist/core/index.js";
 import { inspectPdf } from "./pdf-reader.mjs";
 
 const source = new Uint8Array(await readFile(new URL("../../Website/Apps/OfficeIMO.Web.Converter/Assets/Fonts/Carlito-Regular.ttf", import.meta.url)));
@@ -25,6 +26,7 @@ test("PDF preserves missing no-break thin spaces through the font's blank thin-s
   const program = new TrueTypeFont(source), thin = program.glyph(0x2009), narrow = program.glyph(0x202f), text = "\u2009\u202f";
   const fonts = { regular: withCharacters([[0x2009, thin]]) };
   const options = { fonts, pageNumbers: false, compression: false };
+  assert.deepEqual(preflightPdfText(text, { fonts }), { supported: true });
   for (const blob of [await writePdf([[text]], { ...options, columns: [{ header: "" }], includeHeader: false, columnWidths: [100] }),
     await writePdfDocument([{ kind: "paragraph", text }], options)]) {
     const pdf = await inspectPdf(blob);
@@ -36,11 +38,76 @@ test("PDF preserves missing no-break thin spaces through the font's blank thin-s
     assert.deepEqual(widths, [program.widths[thin], program.widths[thin]].map(width => Number(width.toFixed(3))));
   }
   // A declared narrow-space glyph takes precedence; missing or inked substitutes still fail.
-  const native = await inspectPdf(await writePdfDocument([{ kind: "paragraph", text: "\u202f" }], { ...options, fonts: { regular: withCharacters([[0x2009, thin], [0x202f, narrow]]) } }));
+  const nativeFonts = { regular: withCharacters([[0x2009, thin], [0x202f, narrow]]) };
+  assert.deepEqual(preflightPdfText("\u202f", { fonts: nativeFonts }), { supported: true });
+  const native = await inspectPdf(await writePdfDocument([{ kind: "paragraph", text: "\u202f" }], { ...options, fonts: nativeFonts }));
   const nativeCid = [...native.objects.values()].find(object => /\/Subtype \/CIDFontType2/.test(object.body));
   assert.deepEqual(/\/W \[1 \[([^\]]+)/.exec(nativeCid.body)[1].trim().split(/\s+/).map(Number), [Number(program.widths[narrow].toFixed(3))]);
-  for (const characters of [[[0x20, program.glyph(0x20)]], [[0x2009, program.glyph(65)]]])
-    await assert.rejects(writePdfDocument([{ kind: "paragraph", text: "\u202f" }], { ...options, fonts: { regular: withCharacters(characters) } }), /no glyph for U\+202F/);
+  for (const characters of [[[0x20, program.glyph(0x20)]], [[0x2009, program.glyph(65)]]]) {
+    const missingFonts = { regular: withCharacters(characters) }, issue = preflightPdfText("\u202f", { fonts: missingFonts });
+    assert.equal(issue.supported, false); assert.equal(issue.code, "missing-glyph"); assert.equal(issue.index, 0); assert.equal(issue.scalar, 0x202f);
+    await assert.rejects(writePdfDocument([{ kind: "paragraph", text: "\u202f" }], { ...options, fonts: missingFonts }), { message: new NotSupportedError(issue.message).message });
+  }
+});
+
+test("PDF preflight reports the first writer text issue at the original UTF-16 index", async () => {
+  const program = new TrueTypeFont(source), glyph = program.glyph(65);
+  const fonts = { regular: withCharacters([[0x20, program.glyph(0x20)], [65, glyph], [0x1f9ea, glyph]]) };
+  for (const [text, selection, code, index, scalar] of [
+    ["City Ł", {}, "embedded-font-required", 5, 0x141],
+    ["A\u0001Z", { fonts }, "unsupported-control", 1, 1],
+    ["A\u0301Z", { fonts }, "unsupported-layout", 1, 0x301],
+    ["Aمرحبا", { fonts }, "unsupported-layout", 1, 0x645],
+    ["A\u1100", { fonts }, "unsupported-layout", 1, 0x1100],
+    ["A🧪Z", { fonts }, "missing-glyph", 3, 90],
+    ["A\r\n\t🧪\ud800", { fonts }, "unpaired-surrogate", 6, undefined],
+    ["A\r🧪\udc00", { fonts }, "unpaired-surrogate", 4, undefined]
+  ]) {
+    const result = preflightPdfText(text, selection);
+    assert.equal(result.supported, false, text); assert.equal(result.code, code); assert.equal(result.index, index); assert.equal(result.scalar, scalar);
+    await assert.rejects(writePdfDocument([{ kind: "paragraph", text }], { ...selection, pageNumbers: false }), error => {
+      assert.equal(error.message, code === "unpaired-surrogate" ? result.message : new NotSupportedError(result.message).message);
+      assert.equal(error.name, code === "unpaired-surrogate" ? "TypeError" : "NotSupportedError"); return true;
+    });
+  }
+  const text = "A\r\n\t🧪\rA\nA";
+  assert.deepEqual(preflightPdfText(text, { fonts }), { supported: true });
+  const pdf = await inspectPdf(await writePdfDocument([{ kind: "paragraph", text }], { fonts, pageNumbers: false }));
+  assert.deepEqual(pdf.pages[0].lines, ["A", "    🧪", "A", "A"]);
+  assert.deepEqual(preflightPdfText("\r\n\r\n"), { supported: true });
+  const missingSpace = { regular: withCharacters([[65, glyph]]) }, tab = preflightPdfText("A\t", { fonts: missingSpace });
+  assert.equal(tab.supported, false); assert.equal(tab.code, "missing-glyph"); assert.equal(tab.index, 1); assert.equal(tab.scalar, 9);
+  await assert.rejects(writePdfDocument([{ kind: "paragraph", text: "A\t" }], { fonts: missingSpace, pageNumbers: false }), { message: new NotSupportedError(tab.message).message });
+});
+
+test("PDF preflight and table headings select the same exact and synthetic emphasis faces", async () => {
+  const program = new TrueTypeFont(source), face = scalar => withCharacters([[scalar, program.glyph(scalar)]]);
+  const fonts = { regular: face(65), bold: face(66), italic: face(67), boldItalic: face(68) };
+  for (const [text, bold, italic] of [["A", false, false], ["B", true, false], ["C", false, true], ["D", true, true]]) {
+    assert.deepEqual(preflightPdfText(text, { fonts, bold, italic }), { supported: true });
+    const pdf = await inspectPdf(await writePdfDocument([{ kind: "paragraph", text, presentation: { bold, italic } }], { fonts, pageNumbers: false }));
+    assert.equal(pdf.text, text);
+  }
+  const heading = await inspectPdf(await writePdf([], { columns: [{ header: "B" }], fonts, pageNumbers: false }));
+  assert.equal(heading.text, "B");
+  const exact = preflightPdfText("A", { fonts, bold: true });
+  assert.equal(exact.supported, false); assert.equal(exact.code, "missing-glyph");
+  await assert.rejects(writePdfDocument([{ kind: "paragraph", text: "A", presentation: { bold: true } }], { fonts, pageNumbers: false }), { message: new NotSupportedError(exact.message).message });
+  const fallbackFonts = { regular: fonts.regular };
+  assert.deepEqual(preflightPdfText("A", { fonts: fallbackFonts, bold: true, italic: true }), { supported: true });
+  const synthetic = await inspectPdf(await writePdfDocument([{ kind: "paragraph", text: "A", presentation: { bold: true, italic: true } }], { fonts: fallbackFonts, pageNumbers: false }));
+  assert.equal(synthetic.text, "A"); assert.match(synthetic.pages[0].content, /2 Tr/); assert.match(synthetic.pages[0].content, /1 0 0\.213 1/);
+});
+
+test("PDF text preflight does not claim layout or document resource success", async () => {
+  assert.deepEqual(preflightPdfText("Report"), { supported: true });
+  await assert.rejects(writePdfDocument([{ kind: "paragraph", text: "Report" }], { limits: { maxCellCharacters: 1 } }), /maxCellCharacters/);
+  const fonts = { regular: new PdfFont(source) };
+  assert.deepEqual(preflightPdfText("Report", { fonts }), { supported: true });
+  await assert.rejects(writePdfDocument([{ kind: "paragraph", text: "Report" }], { fonts, limits: { maxFontBytes: 1 } }), /maxFontBytes/);
+  assert.throws(() => preflightPdfText(null), TypeError);
+  assert.throws(() => preflightPdfText("Report", { bold: "yes" }), TypeError);
+  assert.throws(() => preflightPdfText("Report", { fonts: {} }), /fonts.regular/);
 });
 
 function directoryEntry(bytes, tag) {

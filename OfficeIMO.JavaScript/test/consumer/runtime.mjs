@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { readFile, writeFile } from "node:fs/promises";
-import { Workbook, writeXlsx, writeXlsxTo, writePdf, core, zip, xml, opc, xlsx, csv, pdf } from "@evotecit/officeimo";
+import { Workbook, writeXlsx, writeXlsxTo, writePdf, preflightPdfText, core, zip, xml, opc, xlsx, csv, pdf } from "@evotecit/officeimo";
 import * as coreModule from "@evotecit/officeimo/core";
 import * as zipModule from "@evotecit/officeimo/zip";
 import * as xmlModule from "@evotecit/officeimo/xml";
@@ -22,6 +22,10 @@ const canopyCapture = { request: { columns: [{ id: "Name", title: "Name", kind: 
 assert.equal(await (await canopyModule.exportCanopy(canopyCapture, "csv", { unsupportedPresentation: "text" })).text(), "Name\r\nPacked\r\n");
 assert.equal(writeXlsx, xlsx.writeXlsx); assert.equal(writeXlsxTo, xlsx.writeXlsxTo);
 assert.equal(writePdf, pdf.writePdf);
+assert.equal(preflightPdfText, pdf.preflightPdfText);
+assert.deepEqual(preflightPdfText("Packed\r\n\tPDF"), { supported: true });
+const textIssue = pdfModule.preflightPdfText("Packed Ł");
+assert.equal(textIssue.supported, false); assert.equal(textIssue.code, "embedded-font-required"); assert.equal(textIssue.index, 7);
 const packedPdf = await writePdf([{name:'Packed PDF'}],{columns:[{header:'Name',key:'name'}]});
 assert.equal(packedPdf.type,'application/pdf');
 await writeFile('packed-consumer.pdf',new Uint8Array(await packedPdf.arrayBuffer()));

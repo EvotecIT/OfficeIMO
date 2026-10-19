@@ -1,11 +1,12 @@
-import { core, zip, xml, opc, xlsx, csv, ExportCell, writeXlsx, writeXlsxTo } from "@evotecit/officeimo";
+import { core, zip, xml, opc, xlsx, csv, ExportCell, writeXlsx, writeXlsxTo, preflightPdfText as rootPreflightPdfText } from "@evotecit/officeimo";
 import { BlobByteSink, ChunkedTextSink, detectFeatures, NotSupportedError } from "@evotecit/officeimo/core";
 import { ZipWriter, Crc32 } from "@evotecit/officeimo/zip";
 import { XmlWriter, escapeXml } from "@evotecit/officeimo/xml";
 import { OpcPackage, relationshipTypes, partUri, ContentTypes } from "@evotecit/officeimo/opc";
 import { Workbook, Worksheet, Cell, StyleRegistry, NumberFormats, saveBlob } from "@evotecit/officeimo/xlsx";
 import { writeCsv, writeCsvTo } from "@evotecit/officeimo/csv";
-import { writePdf, writePdfTo, writePdfDocument, writePdfDocumentTo, pdfTable, PdfFont } from "@evotecit/officeimo/pdf";
+import { writePdf, writePdfTo, writePdfDocument, writePdfDocumentTo, pdfTable, PdfFont, preflightPdfText } from "@evotecit/officeimo/pdf";
+import type { PdfTextPreflightOptions, PdfTextPreflightResult, PdfTextIssueCode } from "@evotecit/officeimo/pdf";
 import type { Column, Rows } from "@evotecit/officeimo/core";
 import type { XlsxColumn } from "@evotecit/officeimo/xlsx";
 import type { ConditionalFormat } from "@evotecit/officeimo/xlsx";
@@ -61,6 +62,18 @@ async function exportPdf() {
   await writePdf([{nested:{x:1}}],{columns:[{header:'Nested',key:'nested'}]});
 }
 void exportPdf;
+
+const preflightOptions: PdfTextPreflightOptions = { bold: true };
+const textSupport: PdfTextPreflightResult = preflightPdfText("Report", preflightOptions);
+if (!textSupport.supported) {
+  const code: PdfTextIssueCode = textSupport.code;
+  const sourceIndex: number = textSupport.index;
+  const scalar: number | undefined = textSupport.scalar;
+  void [code, sourceIndex, scalar, textSupport.message];
+}
+rootPreflightPdfText("Report");
+// @ts-expect-error text preflight selects emphasis with boolean flags
+preflightPdfText("Report", { bold: "yes" });
 
 async function exportPdfDocument() {
   const rows = [{ name: "Report", amount: 1 }];

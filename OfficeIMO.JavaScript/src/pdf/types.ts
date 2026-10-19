@@ -5,6 +5,20 @@ import type { PdfFont } from "./font.js";
 export interface PdfPageSize { readonly width: number; readonly height: number; }
 export interface PdfMargins { readonly top: number; readonly right: number; readonly bottom: number; readonly left: number; }
 export interface PdfFonts { readonly regular: PdfFont; readonly bold?: PdfFont; readonly italic?: PdfFont; readonly boldItalic?: PdfFont; }
+/** Font family and emphasis selection for one text run; omitted fonts use standard Helvetica. */
+export interface PdfTextPreflightOptions { readonly fonts?: PdfFonts; readonly bold?: boolean; readonly italic?: boolean; }
+/** Stable reason that the current scalar-layout writer cannot render a text run. */
+export type PdfTextIssueCode = "unpaired-surrogate" | "unsupported-control" | "unsupported-layout" | "embedded-font-required" | "missing-glyph";
+/** Text support alone does not establish layout, resource-budget or accessibility success. */
+export type PdfTextPreflightResult = { readonly supported: true } | {
+  readonly supported: false;
+  readonly code: PdfTextIssueCode;
+  /** Zero-based UTF-16 index in the original input, before line-break and tab normalization. */
+  readonly index: number;
+  /** Original Unicode scalar; absent when the issue is an unpaired surrogate. */
+  readonly scalar?: number;
+  readonly message: string;
+};
 export interface PdfLimits extends ExportLimits {
   readonly maxPages?: number;
   readonly maxColumns?: number;

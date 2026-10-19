@@ -259,6 +259,8 @@ Lengths are points, with 72 points per inch. Defaults are A4 portrait, 36-point 
 
 Without supplied fonts, PDF uses standard Helvetica with WinAnsi text. For Polish, Greek, Cyrillic, CJK or other supported Unicode scalars, supply an embedding-permitted static TrueType font containing those glyphs. `PdfFont` copies and validates bytes once and can be reused. Optional `bold`, `italic` and `boldItalic` faces preserve their real glyphs; missing faces use synthetic emphasis. Used glyphs and composite dependencies are embedded as a subset, with Unicode extraction maps. Font permissions can require full embedding or prohibit embedding, which fails visibly. Collections, CFF/WOFF and variable fonts require conversion to static TrueType before use. The library neither fetches fonts nor reads installed fonts; font licensing belongs to the host.
 
+Call `preflightPdfText(text, { fonts: { regular }, bold: true })` from `@evotecit/officeimo/pdf` to check a known text run before export. It returns `{ supported: true }` or the first issue with `code`, `message`, and a zero-based UTF-16 `index` in the original input; `scalar` identifies the original character and is absent for an unpaired surrogate. Codes distinguish `embedded-font-required`, `missing-glyph`, `unsupported-layout`, `unsupported-control` and `unpaired-surrogate`. The check uses the writer's font selection, line-break and tab rules. It checks only the supplied string, leaves row sources untouched, and does not establish wrapping, document resource limits or accessibility.
+
 This writer handles scalar text layout for Latin, Greek, Cyrillic, Han, Hiragana, Katakana, precomposed Hangul and common symbols, including supplementary Unicode where the font provides it. If a supplied TrueType font lacks U+202F (narrow no-break space) but provides an inkless U+2009 (thin space), the writer uses that thin-space glyph and its advance while preserving U+202F in the PDF's Unicode map. Other missing glyphs, malformed surrogates, combining sequences, bidirectional text and scripts requiring shaping fail explicitly. It does not provide general HTML/SVG rendering, tagged PDF or PDF/A. Composed documents support the bounded image and vector contracts below. Long text is wrapped and continued across pages without truncation; CRLF/CR become line breaks and tabs expand to four spaces for display.
 
 `PdfLimits` includes shared row/cell/text/output ceilings plus `maxPages` (default 10,000), `maxColumns` (1,024), `maxCellCharacters` (1,000,000 UTF-16 units), `maxRowLines` (100,000), `maxFontBytes` (16 MiB across unique supplied fonts), `maxPageBytes` (8 MiB of drawing commands and link dictionaries), and `maxHyperlinks` (100,000 native annotations). A continued linked cell creates one annotation per page fragment; repeated linked headings also consume that limit. PDF cell/text budgets count rendered strings, headings, totals and page decorations; `maxRows` counts source rows. Resource failures never silently remove rows, columns or text. Native deflate compresses streams when available; `compression: false` or a missing native compressor produces valid uncompressed PDFs.
@@ -367,7 +369,7 @@ async function exportSales(destination: WritableStream<Uint8Array>, signal: Abor
 }
 ```
 
-`writeCsvTo` has the same destination and completion contract. Pass the signal into paged fetching and destination I/O too; rejecting an export does not cancel application-owned I/O automatically. Node streams need a small `ByteSink` adapter that resolves each write after backpressure is satisfied. Native Web Streams need no adapter.
+`writeCsvTo` and `writePdfTo` have the same destination and completion contract. Pass the signal into paged fetching and destination I/O too; rejecting an export does not cancel application-owned I/O automatically. Native Web Streams need no adapter. For Node writable streams, use the platform's `Writable.toWeb` adapter as shown below.
 
 Select a caller-owned sink when constructing the workbook to deliver ZIP bytes during row production. Complete streamed worksheets in order: `close()` completes a worksheet explicitly, and starting the next worksheet closes its predecessor. Await each append before switching worksheets. A closed worksheet cannot receive more rows. `finish()` completes the ZIP directory and returns data-row, sheet and byte counts; repeated calls reuse the same result. The row count excludes headings, footers and preservation-sheet records. The sheet count includes the preservation sheet when present.
 
@@ -403,6 +405,35 @@ Both CSV and XLSX accept optional `limits`: `maxRows` counts data rows per works
 XLSX rejects oversized text by default. Set `oversizedText: "preserve"` to write a bounded preview with an internal link to the full value on a `Text overflow` worksheet. Each overflow record identifies the source sheet/cell, one-based part number, text and total part count. Concatenate its `Text` values in part order to reconstruct the complete XML-valid value. Chunks never split a supplementary Unicode character. The same strip/reject policy applies to invalid XML characters. Preserve mode does not replace an existing external link on that cell; that conflict throws.
 
 ZIP entries cannot interleave, so preservation retains a bounded text spool until the report worksheets finish. `maxOverflowCharacters` defaults to 4,000,000 UTF-16 units. Width sampling has separate defaults of 100,000 retained cells and 1,000,000 UTF-16 units of encoded row XML, including markup, configurable through `maxBufferedCells` and `maxBufferedCharacters`. Automatic width sampling stops within these budgets; an explicitly requested sample that exceeds them fails visibly. Full cell values are preserved in both cases. CSV retains long text directly and is an alternative when Excel's cell/storage constraints do not suit the data.
+
+### Node writable streams
+
+`Writable.toWeb` connects Node file or HTTP response streams to `writeXlsxTo`, `writeCsvTo` and `writePdfTo`, including backpressure. End the Node stream after a successful export and await `finished` before using the file. Destroy it on failure; the caller decides whether to remove a partial file.
+
+```ts
+import { createWriteStream } from "node:fs";
+import { Writable } from "node:stream";
+import { finished } from "node:stream/promises";
+import { writeXlsxTo } from "@evotecit/officeimo";
+
+async function exportSales(path: string, signal: AbortSignal) {
+  const output = createWriteStream(path, { signal });
+  const completion = finished(output);
+  void completion.catch(() => {}); // Observe I/O failures while the exporter is still writing.
+  try {
+    const result = await writeXlsxTo([{ customer: "Contoso", amount: 12.5 }], Writable.toWeb(output), {
+      columns: [{ header: "Customer", key: "customer" }, { header: "Amount", key: "amount" }], signal
+    });
+    output.end();
+    await completion;
+    return result;
+  } catch (error) {
+    output.destroy();
+    await completion.catch(() => {});
+    throw error;
+  }
+}
+```
 
 ## Workers and paged sources
 
