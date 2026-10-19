@@ -358,7 +358,8 @@ internal static partial class TextContentParser {
         bool requireMappedText = false,
         Func<string, byte[], PdfTextDecodingEvidence>? decodingEvidenceForResource = null,
         bool mergeKernedTextArrays = true,
-        Action<DrawingActualTextScope>? onCompletedDrawingActualText = null) {
+        Action<DrawingActualTextScope>? onCompletedDrawingActualText = null,
+        Func<string, bool>? usesTwoByteGlyphCodesForResource = null) {
 #if NET8_0_OR_GREATER
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(maxActualTextCharacters);
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(maxDecodedTextCharacters);
@@ -996,9 +997,10 @@ internal static partial class TextContentParser {
                     return string.Empty;
                 }
             }
-            // Detect 2-byte CIDs (Identity-H) vs single-byte
-            bool twoByte = false;
-            if (bytes.Length >= 2) {
+            // Declared fixed-width encodings remain two-byte even when their glyphs have no
+            // advance or a prefix decodes as ordinary text. Other callers retain the heuristic.
+            bool twoByte = usesTwoByteGlyphCodesForResource?.Invoke(font) == true;
+            if (!twoByte && bytes.Length >= 2) {
                 string one = DecodeRun(new byte[] { bytes[0] }, probe: true);
                 string two = DecodeRun(new byte[] { bytes[0], bytes[1] }, probe: true);
                 double firstByteWidth = sumWidth1000ForFont(font, new byte[] { bytes[0] });
