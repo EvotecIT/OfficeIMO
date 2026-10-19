@@ -335,7 +335,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 visual.DecorationColor,
                 visual.FeatureSettings,
                 visual.FontPalette,
-                fontDescriptor: visual.FontDescriptor);
+                fontDescriptor: visual.FontDescriptor) { SemanticSourceOrder = visual.SemanticSourceOrder };
             if (upright) {
                 destination.Add(glyph.Translate(0D, 0D, destination.Count));
                 continue;

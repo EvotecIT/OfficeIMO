@@ -46,7 +46,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
             return;
         }
         if (style.Display == "inline-block") {
-            HtmlRenderFlowBlock box = CreateGeneratedInlineBox(element, style, content, link, source, width);
+            HtmlRenderFlowBlock box = CreateGeneratedInlineBox(element, style, content, link, source, width, GetGeneratedSemanticSourceOrder(element, kind));
             runs.Add(new HtmlInlineRun(box, style, link, source,
                 inheritedPaintOffsetX + offsetX, inheritedPaintOffsetY + offsetY, element));
             return;
@@ -61,7 +61,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
             inheritedPaintOffsetX + offsetX,
             inheritedPaintOffsetY + offsetY,
             runs,
-            retainCasingContext: true);
+            retainCasingContext: true, semanticSourceOrder: GetGeneratedSemanticSourceOrder(element, kind));
     }
 
     private void AddGeneratedContentBlock(
@@ -82,7 +82,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
             string? link = string.Equals(element.TagName, "a", StringComparison.OrdinalIgnoreCase)
                 ? ResolveSafeLink(element.GetAttribute("href"), element)
                 : null;
-            HtmlRenderFlowBlock box = CreateGeneratedInlineBox(element, style, content, link, source, containingWidth);
+            HtmlRenderFlowBlock box = CreateGeneratedInlineBox(element, style, content, link, source, containingWidth, GetGeneratedSemanticSourceOrder(element, kind));
             blocks.Add(ApplyPositioning(box, style, containingWidth, ResolveContainingBlockHeight(parentStyle), source));
             return;
         }
@@ -109,7 +109,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         bool paintsBlockBox = style.Display == "block" || style.Display == "flow-root" || style.Display == "list-item";
         var runs = new List<HtmlInlineRun>();
         AddGeneratedInlineFragments(content, element, style, link, source, contentWidth, 0D, 0D, runs,
-            insideGeneratedBox: paintsBlockBox);
+            insideGeneratedBox: paintsBlockBox, semanticSourceOrder: GetGeneratedSemanticSourceOrder(element, kind));
         runs = ApplyScopedFontFallbacks(runs);
         HtmlInlineLayout inline = LayoutInlineRuns(runs, contentWidth, style, element);
         double boxHeight = ResolveBoxHeight(inline.Height, boxWidth, style);
@@ -208,10 +208,11 @@ internal sealed partial class HtmlRenderLayoutEngine {
         double paintOffsetY,
         ICollection<HtmlInlineRun> runs,
         bool insideGeneratedBox = false,
-        bool retainCasingContext = false) {
+        bool retainCasingContext = false, int? semanticSourceOrder = null) {
         // The outer box owns the originating element's inline paint and hit area.
         // Its anonymous contents must not capture those ancestors a second time.
         IElement? runOwner = insideGeneratedBox ? null : element;
+        int? sourceOrder = semanticSourceOrder ?? GetSemanticSourceOrder(element);
         for (int index = 0; index < content.Fragments.Count; index++) {
             HtmlGeneratedContentFragment fragment = content.Fragments[index];
             bool contextOnly = style.Font.Size <= 0D;
@@ -225,7 +226,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 string text = ApplyTextTransform(fragment.Value, style);
                 if (text.Length > 0) {
                     runs.Add(new HtmlInlineRun(text, style, link, fragmentSource, paintOffsetX, paintOffsetY, runOwner) {
-                        IsTextTransformContextOnly = contextOnly
+                        IsTextTransformContextOnly = contextOnly,
+                        SemanticSourceOrder = sourceOrder
                     });
                 }
                 continue;
@@ -241,7 +243,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                     paintOffsetY,
                     runOwner,
                     logicalText: string.Empty,
-                    leaderPattern: fragment.Value));
+                    leaderPattern: fragment.Value) { SemanticSourceOrder = sourceOrder });
                 continue;
             }
 
@@ -253,13 +255,14 @@ internal sealed partial class HtmlRenderLayoutEngine {
                     : HtmlCounterStyleFormatter.TryFormat(pageNumber, counterStyle, out string standard, out _)
                         ? standard
                         : pageNumber.ToString(System.Globalization.CultureInfo.InvariantCulture);
-                runs.Add(new HtmlInlineRun(pageText, style, link, fragmentSource, paintOffsetX, paintOffsetY, runOwner));
+                runs.Add(new HtmlInlineRun(pageText, style, link, fragmentSource, paintOffsetX, paintOffsetY, runOwner) { SemanticSourceOrder = sourceOrder });
                 continue;
             }
 
             IDocument? owner = element.Owner;
             if (owner == null) continue;
             IElement imageElement = owner.CreateElement("img");
+            if (sourceOrder.HasValue) _semanticSourceOrders[imageElement] = (sourceOrder.Value, sourceOrder.Value);
             imageElement.SetAttribute("src", fragment.Value);
             // A replaced child inherits text properties, not the pseudo box's
             // authored dimensions, margins, decoration or paint effects.

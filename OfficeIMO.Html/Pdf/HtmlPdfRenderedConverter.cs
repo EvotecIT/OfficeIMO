@@ -451,6 +451,14 @@ internal static partial class HtmlPdfRenderedConverter {
                     interactiveFormControls, cancellationToken, textAsSpan, pageClip, logicalTextOwned, pagePaint));
             return;
         }
+        if (!textAsSpan && !logicalTextOwned && visual.SemanticSourceOrder.HasValue
+            && (visual is HtmlRenderText { IsPaintOnly: false } || visual is HtmlRenderLogicalTextGroup)) {
+            canvas.Structure(PdfCore.PdfCanvasStructureRole.Paragraph, nested =>
+                AddVisual(nested, visual, webFonts, imageResources, conversionReport, surfaceWidth, surfaceHeight,
+                    interactiveFormControls, cancellationToken, textAsSpan: true, activeClip, logicalTextOwned, pagePaint),
+                new PdfCore.PdfCanvasStructureOptions { LogicalOrder = visual.SemanticSourceOrder });
+            return;
+        }
         if (visual is HtmlRenderFormField formField) {
             bool fullyContained = !activeClip.HasValue || activeClip.Value.AllowsInteractiveWidgets && activeClip.Value.Contains(formField);
             AddFormField(canvas, formField, webFonts, imageResources, conversionReport, surfaceWidth, surfaceHeight, interactiveFormControls && fullyContained, cancellationToken, textAsSpan, activeClip, logicalTextOwned, pagePaint);

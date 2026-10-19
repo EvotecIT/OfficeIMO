@@ -40,7 +40,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                     inheritedPaintOffsetX,
                     inheritedPaintOffsetY,
                     textNode.ParentElement,
-                    textTransformPending: true) { IsTextTransformContextOnly = contextOnly });
+                    textTransformPending: true) { IsTextTransformContextOnly = contextOnly, SemanticSourceOrder = GetSemanticSourceOrder(textNode) });
             }
 
             return;

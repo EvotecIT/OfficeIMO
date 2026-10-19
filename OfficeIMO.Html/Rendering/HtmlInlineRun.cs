@@ -135,6 +135,7 @@ internal sealed class HtmlInlineRun {
     internal int? SemanticNodeId { get; private set; }
     internal int? SemanticFragmentOrder { get; private set; }
     internal int? LogicalTextOrder { get; private set; }
+    internal int? SemanticSourceOrder { get; set; }
     internal HtmlRenderSemanticGroupRole? InlineSemanticGroupRole { get; private set; }
     internal string? InlineSemanticGroupKey { get; private set; }
     internal string? BookmarkAnchorText { get; private set; }
@@ -200,6 +201,7 @@ internal sealed class HtmlInlineRun {
             SemanticNodeId = SemanticNodeId,
             SemanticFragmentOrder = SemanticFragmentOrder,
             LogicalTextOrder = LogicalTextOrder,
+            SemanticSourceOrder = SemanticSourceOrder,
             InlineSemanticGroupRole = InlineSemanticGroupRole,
             InlineSemanticGroupKey = InlineSemanticGroupKey,
             BookmarkAnchorText = BookmarkAnchorText,

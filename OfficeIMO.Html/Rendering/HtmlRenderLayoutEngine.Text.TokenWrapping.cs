@@ -352,6 +352,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
             logicalText: "\u2026");
         if (source.SemanticNodeId.HasValue) run.AssignSemanticNode(source.SemanticRole, source.SemanticNodeId.Value, source.BookmarkAnchorText, source.SemanticFragmentOrder);
         if (source.LogicalTextOrder.HasValue) run.AssignLogicalTextOrder(source.LogicalTextOrder.Value);
+        run.SemanticSourceOrder = source.SemanticSourceOrder;
         if (source.InlineSemanticGroupRole.HasValue && source.InlineSemanticGroupKey != null) {
             run.AssignInlineSemanticGroup(source.InlineSemanticGroupRole.Value, source.InlineSemanticGroupKey);
         }

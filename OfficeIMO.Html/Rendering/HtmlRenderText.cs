@@ -244,6 +244,7 @@ public sealed class HtmlRenderText : HtmlRenderVisual {
             source.BaselineLevel, source.BaselineScale, source.BaselineOffset, source.TextPaintWidth,
             source.DecorationColor, source.FeatureSettings, source.FontPalette, source.LayoutHeight,
             source.FontDescriptor, source.PaintTopOverflow, source.IsPaintOnly, source.LinkBounds, source.UsesOrdinaryLineCarrier) {
+        SemanticSourceOrder = source.SemanticSourceOrder;
         WrappedLines = wrappedLines;
         PreparedShaping = preparedShaping;
     }

@@ -615,6 +615,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         internal List<FlattenedSemanticPlacement> FlattenedSemanticPlacements { get; } = new List<FlattenedSemanticPlacement>();
         internal HtmlRenderBoxStyle Style { get; set; }
         internal int SourceIndex { get; }
+        internal int? SemanticSourceOrder { get; set; }
         internal double Basis { get; set; }
         internal double AutomaticMinimumMainSize { get; set; }
         internal double MainSize { get; set; }

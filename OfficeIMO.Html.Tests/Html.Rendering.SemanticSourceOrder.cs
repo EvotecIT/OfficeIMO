@@ -72,6 +72,53 @@ public sealed partial class HtmlRenderingTests {
             .Select(id => elements[elements[id].ChildElementObjectNumbers.Single()].StructureType));
     }
 
+    [Theory]
+    [InlineData(HtmlRenderIntentProfile.PrintPaged)]
+    [InlineData(HtmlRenderIntentProfile.ScreenMediaPaged)]
+    [InlineData(HtmlRenderIntentProfile.ScreenSnapshotPaged)]
+    public void HtmlPdf_TaggedSourceOrderSurvivesFormProjection(HtmlRenderIntentProfile profile) {
+        string html = SourceOrderStyles(400)
+            + "<section><h1>Heading</h1><input name='source' value='FieldValue'>"
+            + "<p>Summary</p>" + SourceOrderTable(2) + "</section>";
+        byte[] pdf = HtmlConversionDocument.Parse(html).RenderToPdfResult(
+            HtmlRenderRequest.Create(profile, HtmlRenderEncoder.Pdf, SourceOrderOptions())).ToBytes();
+        var root = SourceOrderRoot(pdf, out var elements);
+        Assert.Equal(new[] { "H1", "Form", "P", "Table" }, root.ChildElementObjectNumbers
+            .Select(id => elements[id].StructureType).Where(role => role != "Span"));
+    }
+
+    [Theory]
+    [InlineData("Before")]
+    [InlineData("<div>Before</div>")]
+    public void HtmlPdf_TaggedSourceOrderRetainsAnonymousParagraphs(string before) {
+        string html = SourceOrderStyles(400) + "<section><h1>Heading</h1>" + before
+            + SourceOrderTable(2) + "<p>After</p></section>";
+        byte[] pdf = HtmlConversionDocument.Parse(html).ToPdfBytes(SourceOrderOptions());
+        var root = SourceOrderRoot(pdf, out var elements);
+        Assert.Equal(new[] { "H1", "P", "Table", "P" },
+            root.ChildElementObjectNumbers.Select(id => elements[id].StructureType));
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void HtmlPdf_TaggedSourceOrderRetainsAnonymousAndGeneratedFlexItems(bool generated) {
+        string html = SourceOrderStyles(400)
+            + (generated ? "<style>.items::before{content:'F'}.items::after{content:'Z'}</style>" : "")
+            + "<section><div class='items' style='display:flex'>A<span>B</span>C</div></section>";
+        byte[] pdf = HtmlConversionDocument.Parse(html).ToPdfBytes(SourceOrderOptions());
+        var root = SourceOrderRoot(pdf, out var elements);
+        var order = new List<int>();
+        Collect(root);
+        Assert.Equal(order.OrderBy(value => value), order);
+        Assert.Equal(generated ? 5 : 3, order.Count);
+
+        void Collect(PdfCore.PdfStructureElementInfo item) {
+            order.AddRange(item.MarkedContentReferences.Select(reference => reference.MarkedContentId));
+            foreach (int child in item.ChildElementObjectNumbers) Collect(elements[child]);
+        }
+    }
+
     private static HtmlToPdfOptions SourceOrderOptions() => new() {
         AutoFitWidePrintContent = false,
         ResourcePolicy = PdfCore.PdfResourcePolicy.CreatePortableDeterministic()

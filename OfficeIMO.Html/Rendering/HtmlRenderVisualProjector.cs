@@ -125,7 +125,9 @@ internal sealed class HtmlRenderVisualProjector {
             }
             if (projectedChildren.Count == 0) return null;
             CountVisual();
-            return create(projectedChildren);
+            HtmlRenderVisual result = create(projectedChildren);
+            result.SemanticSourceOrder = visual.SemanticSourceOrder;
+            return result;
         }
 
         HtmlRenderVisual? ProjectClipped(IEnumerable<HtmlRenderVisual> children, ProjectionClip clip,

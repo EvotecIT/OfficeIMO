@@ -122,6 +122,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         _initialSemanticNodeId = Math.Max(0, semanticNodeIdStart);
         _operationBudget = operationBudget ?? new HtmlRenderOperationBudget();
         _computedStyles = computedStyles;
+        InitializeSemanticSourceOrder(document);
         int documentOrder = 0;
         foreach (IElement element in document.QuerySelectorAll("*")) {
             _documentOrderByElement[element] = documentOrder++;

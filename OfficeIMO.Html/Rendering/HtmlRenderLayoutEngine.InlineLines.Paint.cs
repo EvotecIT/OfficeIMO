@@ -286,6 +286,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                             ordinaryLineCarrier: ordinaryLineCarrier && segment.Run.Style.LineHeight >= segment.Run.Style.Font.Size
                                 && segment.Run.Style.Baseline == OfficeTextBaseline.Normal
                                 && segment.Run.Style.BaselineScale == 1D && segment.Run.Style.BaselineOffset == 0D)
+                            { SemanticSourceOrder = segment.Run.SemanticSourceOrder }
                             .WithPreparedShaping(paintSegment.PreparedShaping));
                     }
                     HtmlRenderVisual textVisual = paintSegments.Count > 1 || segment.BidiResolved ||
@@ -303,7 +304,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                             visuals.Count,
                             segment.Run.Source,
                             layoutY: lineY,
-                            layoutHeight: textLayoutHeight)
+                            layoutHeight: textLayoutHeight) { SemanticSourceOrder = segment.Run.SemanticSourceOrder }
                         : textVisuals[0];
                     AddInlineTextDecorations(visuals, ownedVisuals, segment.Run, formattingContainer, textVisuals, aboveText: false);
                     AddTextShadowVisuals(

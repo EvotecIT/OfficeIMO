@@ -17,7 +17,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
             if (string.IsNullOrWhiteSpace(text.Data) || parentStyle.Font.Size <= 0D) return true;
             string source = HtmlRenderStyleResolver.DescribeSource(text.ParentElement ?? throw new InvalidOperationException("A flex text node has no parent element.")) + "::anonymous-flex-item";
             IElement owner = text.ParentElement!;
-            items.Add(new FlexItem(text.Data, owner, source, ResolveAncestorLink(owner), CreateAnonymousFlexStyle(parentStyle), sourceIndex++, paintAnonymousBox: false));
+            items.Add(new FlexItem(text.Data, owner, source, ResolveAncestorLink(owner), CreateAnonymousFlexStyle(parentStyle), sourceIndex++, paintAnonymousBox: false) { SemanticSourceOrder = GetSemanticSourceOrder(text) });
             return true;
         }
 
@@ -65,7 +65,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
             return true;
         }
         if (style.Position != "static" && style.Position != "relative" && style.Position != "sticky") return false;
-        items.Add(new FlexItem(element, BlockifyFlexItemStyle(style), sourceIndex++));
+        items.Add(new FlexItem(element, BlockifyFlexItemStyle(style), sourceIndex++) { SemanticSourceOrder = GetSemanticSourceOrder(element) });
         return true;
     }
 
@@ -91,7 +91,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
             ResolveAncestorLink(element),
             BlockifyFlexItemStyle(style),
             sourceIndex++,
-            paintAnonymousBox: true));
+            paintAnonymousBox: true) { SemanticSourceOrder = GetGeneratedSemanticSourceOrder(element, kind) });
     }
 
     private HtmlRenderFlowBlock LayoutFlexItem(FlexItem item, double containingWidth, HtmlRenderBoxStyle parentStyle, int depth,

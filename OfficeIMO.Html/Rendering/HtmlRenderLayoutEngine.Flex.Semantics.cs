@@ -10,6 +10,6 @@ internal sealed partial class HtmlRenderLayoutEngine {
             + ":" + item.SourceIndex.ToString(System.Globalization.CultureInfo.InvariantCulture);
 
         return WrapSemanticBlock(block, HtmlRenderSemanticGroupRole.Division, item.Source, key,
-            GetSemanticSourceOrder(item.SourceElement) ?? item.SourceIndex);
+            item.SemanticSourceOrder ?? item.SourceIndex);
     }
 }

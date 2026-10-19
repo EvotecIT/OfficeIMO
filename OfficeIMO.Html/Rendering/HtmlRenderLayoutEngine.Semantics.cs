@@ -3,9 +3,6 @@ using AngleSharp.Dom;
 namespace OfficeIMO.Html;
 
 internal sealed partial class HtmlRenderLayoutEngine {
-    private int? GetSemanticSourceOrder(IElement element) =>
-        _documentOrderByElement.TryGetValue(element, out int order) ? order : null;
-
     private HtmlRenderFlowBlock ApplyElementSemantics(HtmlRenderFlowBlock block, IElement element, HtmlRenderBoxStyle style) {
         RegisterBookmark(element, style);
         ReportUnsupportedSemanticTag(element, style);
