@@ -986,6 +986,10 @@ public sealed partial class PdfReadPage {
         bool IsType3FontResource(string fontRes) =>
             fonts.TryGetValue(fontRes, out PdfFontResource? font) &&
             string.Equals(font.FontSubtype, "Type3", StringComparison.Ordinal);
+        bool UsesTwoByteGlyphCodes(string fontRes) =>
+            fonts.TryGetValue(fontRes, out PdfFontResource? font) &&
+            string.Equals(font.FontSubtype, "Type0", StringComparison.Ordinal) &&
+            (font.Encoding is "Identity-H" or "Identity-V" || font.PredefinedCMap != null);
         string? ResolveDrawingFontFamily(string fontRes) =>
             fonts.TryGetValue(fontRes, out PdfFontResource? font) ? font.DrawingFontFamily : null;
         Dictionary<string, Func<byte, string>>? substitutedGlyphDecoders = null;
@@ -1095,7 +1099,8 @@ public sealed partial class PdfReadPage {
             initialFillColorResolved: initialFillColorResolved, initialStrokeColorResolved: initialStrokeColorResolved, initialStrokeDashIdentity: initialStrokeDashIdentity,
             inheritedActualTextState: inheritedActualTextState,
             onActualTextForm: (offset, state) => actualTextForms[offset] = state,
-            onCompletedDrawingActualText: onCompletedDrawingActualText));
+            onCompletedDrawingActualText: onCompletedDrawingActualText,
+            usesTwoByteGlyphCodesForResource: UsesTwoByteGlyphCodes));
 
         // Text interpretation has already validated the stream and its limits.
         // A missing Do token rules out forms; strings containing Do simply keep
