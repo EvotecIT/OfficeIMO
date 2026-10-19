@@ -6,7 +6,7 @@ namespace OfficeIMO.Excel.LegacyXls.Write {
     internal sealed partial class LegacyXlsExternSheetTable {
         private const string ExternalLinkPathRelationshipType = "http://schemas.openxmlformats.org/officeDocument/2006/relationships/externalLinkPath";
 
-        private ushort _nativeIndexOffset;
+        private ushort[]? _preservedSheetIndexes;
         private readonly Dictionary<string, ushort> _rangeIndexes;
         private readonly Dictionary<string, ushort> _externalSheetIndexes;
         private readonly Dictionary<string, ExternalNameIndex> _externalNameIndexes;
@@ -141,7 +141,7 @@ namespace OfficeIMO.Excel.LegacyXls.Write {
 
             for (int i = 0; i < SheetNames.Length; i++) {
                 if (SheetNameLookup.Matches(SheetNames[i], sheetName)) {
-                    externSheetIndex = checked((ushort)(i + _nativeIndexOffset));
+                    externSheetIndex = _preservedSheetIndexes == null ? checked((ushort)i) : _preservedSheetIndexes[i];
                     return true;
                 }
             }
@@ -158,7 +158,7 @@ namespace OfficeIMO.Excel.LegacyXls.Write {
             }
 
             if (firstSheetIndex == lastSheetIndex) {
-                externSheetIndex = checked((ushort)(firstSheetIndex + _nativeIndexOffset));
+                externSheetIndex = _preservedSheetIndexes == null ? checked((ushort)firstSheetIndex) : _preservedSheetIndexes[firstSheetIndex];
                 return true;
             }
 

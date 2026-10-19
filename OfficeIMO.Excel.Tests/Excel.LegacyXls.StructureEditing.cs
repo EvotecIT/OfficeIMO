@@ -34,7 +34,16 @@ public sealed class ExcelLegacyStructureEditingTests {
         Assert.Equal(43D, loaded.GetSheet("Added data").CellAt(2, 1).GetValue<double>());
         var result = LegacyXlsWorkbook.Load(new MemoryStream(bytes));
         string? addedCodeName = result.Worksheets.Single(sheet => sheet.Name == "Added data").CodeName;
+        foreach (var native in result.Worksheets)
+            Assert.Equal(native.CodeName, loaded.GetSheet(native.Name).WorksheetPart.Worksheet!.SheetProperties?.CodeName?.Value);
+        if (result.Windows.Count > 0) Assert.Equal((uint)result.Windows[0].ActiveSheetIndex, loaded.WorkbookRoot.BookViews!.Elements<WorkbookView>().First().ActiveTab?.Value);
+
         Assert.False(string.IsNullOrEmpty(addedCodeName));
+        Assert.Equal(addedCodeName, document.GetSheet("Added data").WorksheetPart.Worksheet!.SheetProperties?.CodeName?.Value);
+        document.GetSheet("Added data").CellValue(3, 1, "Second native save");
+        using var secondSave = ExcelDocument.Load(new MemoryStream(document.ToBytes(ExcelFileFormat.Xls)));
+        Assert.Equal("Second native save", secondSave.GetSheet("Added data").CellAt(3, 1).GetValue<string>());
+        Assert.Equal(addedCodeName, secondSave.GetSheet("Added data").WorksheetPart.Worksheet!.SheetProperties?.CodeName?.Value);
         Assert.True(OfficeCompoundFileReader.TryRead(original, out OfficeCompoundFile? before, out string? error), error);
         Assert.True(OfficeCompoundFileReader.TryRead(bytes, out OfficeCompoundFile? after, out error), error);
         var beforeProject = ReadProject(before!); var afterProject = ReadProject(after!);

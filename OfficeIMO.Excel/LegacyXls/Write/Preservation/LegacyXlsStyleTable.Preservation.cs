@@ -30,8 +30,22 @@ namespace OfficeIMO.Excel.LegacyXls.Write {
                     xf[2] = (byte)replacement; xf[3] = (byte)(replacement >> 8);
                 }
             }
-            var indexes = generated._styleIndexMap.ToDictionary(item => item.Key, item => checked((ushort)(nativeCount + item.Value - required)));
-            return new LegacyXlsStyleTable(indexes, formats, appended, Array.Empty<byte[]>());
+            var known = new Dictionary<string, ushort>(StringComparer.Ordinal);
+            ushort nativeIndex = 0;
+            foreach (var record in source.Where(record => record.Type == 0x00e0)) {
+                string key = Convert.ToBase64String(record.Payload);
+                if (!known.ContainsKey(key)) known.Add(key, nativeIndex);
+                nativeIndex = checked((ushort)(nativeIndex + 1));
+            }
+            var added = new List<byte[]>(); var indexes = new Dictionary<uint, ushort>();
+            foreach (var item in generated._styleIndexMap) {
+                byte[] payload = appended[item.Value - required]; string key = Convert.ToBase64String(payload);
+                if (!known.TryGetValue(key, out ushort index)) {
+                    index = checked((ushort)(nativeCount + added.Count)); known.Add(key, index); added.Add(payload);
+                }
+                indexes.Add(item.Key, index);
+            }
+            return new LegacyXlsStyleTable(indexes, formats, added, Array.Empty<byte[]>());
         }
 
     }

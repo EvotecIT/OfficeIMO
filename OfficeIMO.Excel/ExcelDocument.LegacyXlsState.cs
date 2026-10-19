@@ -281,6 +281,7 @@ namespace OfficeIMO.Excel {
 
             cancellationToken.ThrowIfCancellationRequested();
             byte[] xlsBytes = BuildNativeLegacyXls(options, cancellationToken, out bool directWrite, out bool preservedWrite);
+            var adoptedWorkbook = PrepareNativeLegacyXlsAdoption(xlsBytes, cancellationToken);
             cancellationToken.ThrowIfCancellationRequested();
             bool reopenWorkingPackage = ShouldCloseOpenPackageForNativeLegacyXlsFileSave(path);
             byte[]? workingPackageBytes = reopenWorkingPackage
@@ -305,6 +306,7 @@ namespace OfficeIMO.Excel {
                 MarkPackageClean(null);
             }
 
+            AdoptNativeLegacyXlsAfterWrite(adoptedWorkbook, CancellationToken.None);
             LastSaveDiagnostics = directWrite
                 ? ExcelSaveDiagnostics.NativeBinaryDirectPackage()
                 : ExcelSaveDiagnostics.Standard(preservedWrite ? "Native XLS literal edits preserved original BIFF records and compound streams." : "Native XLS save used the first-party BIFF8 writer.");
@@ -319,6 +321,7 @@ namespace OfficeIMO.Excel {
 
             cancellationToken.ThrowIfCancellationRequested();
             byte[] xlsBytes = BuildNativeLegacyXls(options, cancellationToken, out bool directWrite, out bool preservedWrite);
+            var adoptedWorkbook = PrepareNativeLegacyXlsAdoption(xlsBytes, cancellationToken);
             cancellationToken.ThrowIfCancellationRequested();
             bool reopenWorkingPackage = ShouldCloseOpenPackageForNativeLegacyXlsFileSave(path);
             byte[]? workingPackageBytes = reopenWorkingPackage
@@ -343,6 +346,7 @@ namespace OfficeIMO.Excel {
                 MarkPackageClean(null);
             }
 
+            AdoptNativeLegacyXlsAfterWrite(adoptedWorkbook, CancellationToken.None);
             LastSaveDiagnostics = directWrite
                 ? ExcelSaveDiagnostics.NativeBinaryDirectPackage()
                 : ExcelSaveDiagnostics.Standard(preservedWrite ? "Native XLS literal edits preserved original BIFF records and compound streams." : "Native XLS save used the first-party BIFF8 writer.");
@@ -362,12 +366,14 @@ namespace OfficeIMO.Excel {
                 preserveNativeRecords: true);
             cancellationToken.ThrowIfCancellationRequested();
             byte[] xlsBytes = BuildNativeLegacyXls(options, cancellationToken, out bool directWrite, out bool preservedWrite);
+            var adoptedWorkbook = PrepareNativeLegacyXlsAdoption(xlsBytes, cancellationToken);
             cancellationToken.ThrowIfCancellationRequested();
             PrepareDestinationStreamForWrite(destination);
             destination.Write(xlsBytes, 0, xlsBytes.Length);
             try { destination.Flush(); } catch (NotSupportedException) { }
             MarkPackageClean(null);
             DisablePackageCopyBackAfterNativeLegacyXlsSave(destination);
+            AdoptNativeLegacyXlsAfterWrite(adoptedWorkbook, CancellationToken.None);
             LastSaveDiagnostics = directWrite ? ExcelSaveDiagnostics.NativeBinaryDirectPackage()
                 : ExcelSaveDiagnostics.Standard(preservedWrite ? "Native XLS literal edits preserved original BIFF records and compound streams." : "Native XLS stream save used the first-party BIFF8 writer.");
             return true;
@@ -385,12 +391,14 @@ namespace OfficeIMO.Excel {
                 preserveNativeRecords: true);
             cancellationToken.ThrowIfCancellationRequested();
             byte[] xlsBytes = BuildNativeLegacyXls(options, cancellationToken, out bool directWrite, out bool preservedWrite);
+            var adoptedWorkbook = PrepareNativeLegacyXlsAdoption(xlsBytes, cancellationToken);
             cancellationToken.ThrowIfCancellationRequested();
             PrepareDestinationStreamForWrite(destination);
             await destination.WriteAsync(xlsBytes, 0, xlsBytes.Length, cancellationToken).ConfigureAwait(false);
             try { await destination.FlushAsync(cancellationToken).ConfigureAwait(false); } catch (NotSupportedException) { }
             MarkPackageClean(null);
             DisablePackageCopyBackAfterNativeLegacyXlsSave(destination);
+            AdoptNativeLegacyXlsAfterWrite(adoptedWorkbook, CancellationToken.None);
             LastSaveDiagnostics = directWrite ? ExcelSaveDiagnostics.NativeBinaryDirectPackage()
                 : ExcelSaveDiagnostics.Standard(preservedWrite ? "Native XLS literal edits preserved original BIFF records and compound streams." : "Native XLS stream save used the first-party BIFF8 writer.");
             return true;
