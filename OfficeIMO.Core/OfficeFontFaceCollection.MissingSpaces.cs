@@ -29,7 +29,7 @@ public sealed partial class OfficeFontFaceCollection {
         OfficeFontFace? currentFace,
         HashSet<string> explicitlySelectedFaces) {
         if (currentFace == null || !IsWhitespace(element)) return false;
-        if (!OfficeMissingSpaceMetrics.ContainsEmSpace(element)) return true;
+        if (IsWhitespaceControl(element)) return true;
         bool explicitlySelected = explicitlySelectedFaces.Contains(currentFace.ResourceFamilyName);
         return explicitlySelected ? currentFace.HasGlyphs(element) : currentFace.Covers(element);
     }
@@ -41,13 +41,20 @@ public sealed partial class OfficeFontFaceCollection {
         return value.Length > 0;
     }
 
+    private static bool IsWhitespaceControl(string value) {
+        for (int index = 0; index < value.Length; index++) {
+            if (!OfficeTextElements.IsFontCoverageWhitespaceControl(value[index])) return false;
+        }
+        return value.Length > 0;
+    }
+
     private static bool CoversPlannedText(
         OfficeFontFace face,
         string text,
         bool requireUnicodeRange,
         bool allowSpaceSynthesis = false) {
         foreach (string element in OfficeTextElements.Enumerate(text)) {
-            if (IsWhitespace(element) && !OfficeMissingSpaceMetrics.ContainsEmSpace(element)) continue;
+            if (IsWhitespaceControl(element)) continue;
             if (requireUnicodeRange ? face.Covers(element) : face.HasGlyphs(element)) continue;
             if (!allowSpaceSynthesis || requireUnicodeRange && !face.UnicodeRanges.ContainsFontCoverageText(element) ||
                 !OfficeMissingSpaceMetrics.CoversWithSynthesis(face.Program, element)) return false;

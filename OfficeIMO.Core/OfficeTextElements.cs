@@ -160,6 +160,12 @@ public static class OfficeTextElements {
         || scalar >= 0xFE00 && scalar <= 0xFE0F
         || scalar >= 0xE0100 && scalar <= 0xE01EF;
 
+    /// <summary>Keeps the existing font-coverage exemption for tab and line controls.
+    /// Spacing separators still require their own mapped glyph.</summary>
+    internal static bool IsFontCoverageWhitespaceControl(int scalar) =>
+        scalar >= 0x0009 && scalar <= 0x000D || scalar == 0x0085
+        || scalar == 0x2028 || scalar == 0x2029;
+
     /// <summary>Resolves base direction from the first strong Unicode character.</summary>
     public static OfficeTextDirection ResolveBaseDirection(string? value) {
         if (string.IsNullOrEmpty(value)) {

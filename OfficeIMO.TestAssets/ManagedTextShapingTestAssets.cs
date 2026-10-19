@@ -275,7 +275,9 @@ internal static partial class ManagedTextShapingTestAssets {
         IReadOnlyDictionary<int, int>? glyphWidths = null,
         IReadOnlyDictionary<int, int>? glyphLefts = null, byte[]? vdmx = null,
         IReadOnlyList<(string Tag, byte[] Data)>? additionalTables = null) {
-        byte[] glyph = emptyGlyphs ? Array.Empty<byte>() : CreateVisibleGlyph(400);
+        // A zero-contour glyph still carries its header and empty instruction stream.
+        // Keep the glyf table present so both drawing and PDF readers can admit the fixture.
+        byte[] glyph = emptyGlyphs ? new byte[12] : CreateVisibleGlyph(400);
         var glyf = new byte[(glyphCount - (inkedNotdef ? 0 : 1)) * glyph.Length];
         var loca = new byte[(glyphCount + 1) * 2];
         var hmtx = new byte[4 + (glyphCount - 1) * 2];
