@@ -332,6 +332,14 @@ claim a complete Chromium stylesheet or cross-platform system-font identity.
 Set `DefaultFontFamily` after calling the helper when the application supplies
 or requires a particular font family.
 
+Browser mode gives `pre`, `code`, `kbd` and `samp` a generic monospace family
+before their children inherit styles. Its fixed medium size is 13 CSS pixels;
+`DefaultFontSize` sets the separate standard medium size. Authored absolute
+sizes remain absolute: code inside a 20px parent stays at 20px. Relative sizes
+retain their origin, so code inside a parent sized at `1.25em` uses 16.25px with
+the default settings. Root-relative dimensions and container queries use the
+same resolved sizes. Font selection and fallback still follow the resource policy.
+
 Unavailable `@font-face` declarations remain in the diagnostic report. They
 count as font approximation when rendered text requests the unavailable face;
 unused declarations and fallback faces that are never reached are informational.

@@ -258,7 +258,10 @@ internal static class HtmlRenderCssValues {
         }
 
         string normalized = value!.Trim();
-        return normalized.Length == 0 ? fallback : normalized;
+        // Some UA/default families are resolved only by the rendering context.
+        // Keep explicit inheritance of that context out of physical face lookup.
+        return normalized.Length == 0 || normalized.Equals("inherit", StringComparison.OrdinalIgnoreCase)
+            ? fallback : normalized;
     }
 
     internal static IReadOnlyList<string> FontFamilyNames(string? value) {

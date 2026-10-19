@@ -41,6 +41,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
             if (!_styleResolver.IsPropertySpecified(annotation, "font-size")) {
                 annotationStyle = annotationStyle.Clone();
                 annotationStyle.Font = annotationStyle.Font.WithSize(Math.Max(1D, rubyStyle.Font.Size * 0.5D));
+                annotationStyle.FontSizeContext = annotationStyle.FontSizeContext?.WithRelativeSize(annotationStyle.Font.Size);
                 annotationStyle.LineHeight = Math.Max(annotationStyle.Font.Size, rubyStyle.LineHeight * 0.5D);
                 annotationStyle.InlineAlignmentLineHeight = null;
                 annotationStyle.UsesNaturalLineHeight = false;

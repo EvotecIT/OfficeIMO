@@ -57,8 +57,13 @@ public static partial class HtmlComputedStyleEngine {
         IDictionary<string, HtmlCssCascadePriority> cascadePriorities,
         IDictionary<string, HtmlCssCascadeTrace>? cascadeTraces,
         HtmlRenderingFontDefaults? fontDefaults = null) {
-        if (element.NamespaceUri != "http://www.w3.org/1999/xhtml") return;
         string tag = element.LocalName;
+        if (fontDefaults.HasValue && tag == "math"
+            && element.NamespaceUri == "http://www.w3.org/1998/Math/MathML") {
+            ApplyHtmlUserAgentDefault("font-family", "math", declarations.ContainsKey("font-family"), properties,
+                inheritedProperties, resetProperties, originRevertedProperties, cascadePriorities, cascadeTraces);
+        }
+        if (element.NamespaceUri != "http://www.w3.org/1999/xhtml") return;
         if (fontDefaults.HasValue && (tag is "pre" or "code" or "kbd" or "samp")) {
             ApplyHtmlUserAgentDefault("font-family", "monospace", declarations.ContainsKey("font-family"), properties,
                 inheritedProperties, resetProperties, originRevertedProperties, cascadePriorities, cascadeTraces);

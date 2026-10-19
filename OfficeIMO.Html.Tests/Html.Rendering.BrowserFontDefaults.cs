@@ -199,6 +199,71 @@ public sealed partial class HtmlRenderingTests {
     private static HtmlRenderText[] BrowserFontDefaultText(HtmlRenderDocument rendered) =>
         rendered.Pages.SelectMany(page => EnumerateRenderVisuals(page.Scene)).OfType<HtmlRenderText>().ToArray();
 
+    [Theory]
+    [InlineData("table")]
+    [InlineData("table-row")]
+    [InlineData("table-cell")]
+    public void HtmlBrowserFontProvenance_AnonymousTableWrappersRetainRelativeInheritance(string display) {
+        AssertBrowserFontDefaultModes("<div style='display:" + display + "'><code>X</code></div>",
+            13D, "monospace", 16D, "Consolas");
+    }
+
+    [Theory]
+    [InlineData("", 8D, 6.5D)]
+    [InlineData("font-size:20px", 10D, 10D)]
+    public void HtmlBrowserFontProvenance_RubyAnnotationDescendantsInheritTheReducedSize(
+        string style, double expectedSize, double browserCodeSize) {
+        foreach (bool browser in new[] { false, true }) {
+            HtmlRenderDocument rendered = RenderBrowserFontDefaultFixture("<section style='" + style
+                + "'><ruby>A<rt><span>X</span><code>Z</code></rt></ruby><ruby>B<rt>Y</rt></ruby></section>", browser);
+            HtmlRenderText[] text = BrowserFontDefaultText(rendered);
+            Assert.Equal(expectedSize, Assert.Single(text, run => run.Text == "X").Font.Size, 6);
+            Assert.Equal(Assert.Single(text, run => run.Text == "Y").Font.Size,
+                Assert.Single(text, run => run.Text == "X").Font.Size, 6);
+            Assert.Equal(browser ? browserCodeSize : expectedSize,
+                Assert.Single(text, run => run.Text == "Z").Font.Size, 6);
+        }
+    }
+
+    [Theory]
+    [InlineData("font-family:inherit")]
+    [InlineData("font-family:unset")]
+    [InlineData("font:inherit")]
+    [InlineData("font-family:var(--missing,inherit)")]
+    public void HtmlBrowserFontProvenance_ExplicitFamilyInheritanceUsesTheUnstyledParent(string declaration) {
+        AssertBrowserFontDefaultModes("<code style='" + declaration + "'>X</code>",
+            16D, "serif", 16D, "Arial");
+    }
+
+    [Theory]
+    [InlineData("initial", 16D, "serif")]
+    [InlineData("revert", 13D, "monospace")]
+    public void HtmlBrowserFontProvenance_FamilyResetAndRollbackRetainTheirPolicies(
+        string keyword, double browserSize, string browserFamily) {
+        AssertBrowserFontDefaultModes("<code style='font-family:" + keyword + "'>X</code>",
+            browserSize, browserFamily, 16D, "Consolas");
+    }
+
+    [Fact]
+    public void HtmlBrowserFontProvenance_MathContainerUsesItsEffectiveMathFamily() {
+        const string markup = "<section style='font-family:monospace'><math id='math-default' "
+            + "style='width:10em;container-type:inline-size;background:blue'>"
+            + "<mtext id='math-token'>x</mtext></math></section>";
+        const string css = "@container (width:160px){#math-token{text-transform:uppercase}}";
+        foreach (bool browser in new[] { false, true }) {
+            HtmlRenderDocument rendered = RenderBrowserFontDefaultFixture(markup, browser, extraCss: css);
+            HtmlRenderShape[] shapes = rendered.Pages.SelectMany(page => EnumerateRenderVisuals(page.Scene))
+                .OfType<HtmlRenderShape>().Where(shape => shape.Source == "math#math-default").ToArray();
+            Assert.NotEmpty(shapes);
+            Assert.All(shapes, shape => Assert.Equal(160D, shape.Width, 6));
+            HtmlRenderDrawing drawing = Assert.Single(rendered.Pages
+                .SelectMany(page => EnumerateRenderVisuals(page.Scene)).OfType<HtmlRenderDrawing>());
+            OfficeIMO.Drawing.OfficeDrawingText text = Assert.Single(drawing.Drawing.Elements
+                .OfType<OfficeIMO.Drawing.OfficeDrawingText>());
+            Assert.Equal("X", text.RasterText ?? text.Text);
+        }
+    }
+
     private static void AssertBrowserFontDefaultModes(
         string markup, double browserSize, string browserFamily, double documentSize, string documentFamily,
         bool standardsMode = true, string extraCss = "") {

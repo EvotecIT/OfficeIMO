@@ -177,6 +177,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
     private static HtmlRenderBoxStyle CreateAnonymousBoxStyle(HtmlRenderBoxStyle parentStyle, string display, string semanticRole) => new HtmlRenderBoxStyle {
         Display = display,
         Font = parentStyle.Font,
+        FontSizeContext = parentStyle.FontSizeContext,
         FontDescriptor = parentStyle.FontDescriptor,
         PaintVisible = parentStyle.PaintVisible,
         UnderlineStyle = parentStyle.UnderlineStyle,

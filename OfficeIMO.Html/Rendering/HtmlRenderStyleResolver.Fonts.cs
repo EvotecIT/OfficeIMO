@@ -91,7 +91,8 @@ internal sealed partial class HtmlRenderStyleResolver {
     internal static string ResolveFontFamily(string tag, HtmlComputedStyle computed, string inherited) {
         if (tag == "math") {
             if (!HasAuthoredValue(computed, "font-family")) return "math";
-            if (computed.IsResetValue("font-family")) return "serif";
+            if (computed.IsResetValue("font-family"))
+                return HtmlRenderCssValues.FontFamilyList(computed.GetValue("font-family"), "serif");
             if (computed.IsInheritedValue("font-family")) return inherited;
         }
         return HtmlRenderCssValues.FontFamilyList(computed.GetValue("font-family"), inherited);
