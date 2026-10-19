@@ -16,10 +16,12 @@ internal sealed partial class HtmlRenderLayoutEngine {
     /// Preserves authored sibling boundaries through normal-flow wrappers. Edge
     /// values propagate to the enclosing boundary, including through decorations;
     /// internal empty siblings retain distinct identities even at equal offsets.
+    /// A flex caller supplies its allocated child extent instead of signed block advance.
     /// </summary>
     private void AppendChildForcedBreaks(IReadOnlyList<HtmlRenderFlowBlock> children, int index,
-        double start, ICollection<HtmlRenderForcedBreak> result, object[] boundaries) {
+        double start, ICollection<HtmlRenderForcedBreak> result, object[] boundaries, double? afterAdvance = null) {
         HtmlRenderFlowBlock child = children[index];
+        double advance = afterAdvance ?? child.NormalFlowAdvance;
         HtmlRenderBreakEdge before = index == 0 ? HtmlRenderBreakEdge.Leading : HtmlRenderBreakEdge.Interior;
         HtmlRenderBreakEdge after = index == children.Count - 1 ? HtmlRenderBreakEdge.Trailing : HtmlRenderBreakEdge.Interior;
         double beforeEntryGap = child.PagedSourceEntryGap;
@@ -32,15 +34,15 @@ internal sealed partial class HtmlRenderLayoutEngine {
             ChargeLayoutOperation("forced flow boundary propagation");
             result.Add(item.Edge switch {
                 HtmlRenderBreakEdge.Leading => BindEntry(item, start + beforeEntryGap, boundaries[index], before, beforeEntryGap),
-                HtmlRenderBreakEdge.Trailing => BindEntry(item, start + child.NormalFlowAdvance + afterEntryGap,
+                HtmlRenderBreakEdge.Trailing => BindEntry(item, start + advance + afterEntryGap,
                     boundaries[index + 1], after, afterEntryGap),
                 _ => item.Translate(start)
             });
         }
         if (child.BreakAfter != HtmlPageBreakTarget.None)
-            result.Add(new HtmlRenderForcedBreak(start + child.NormalFlowAdvance + afterEntryGap, child.BreakAfter,
+            result.Add(new HtmlRenderForcedBreak(start + advance + afterEntryGap, child.BreakAfter,
                 boundary: boundaries[index + 1], edge: after, isAfter: true, projected: afterEntryGap > 0.0001D,
-                advancesFollowingFlow: child.NormalFlowAdvance > 0.0001D || child.Visuals.Any(HasOrdinaryFragmentSource)));
+                advancesFollowingFlow: advance > 0.0001D || child.Visuals.Any(HasOrdinaryFragmentSource)));
 
         static HtmlRenderForcedBreak BindEntry(HtmlRenderForcedBreak item, double offset, object boundary,
             HtmlRenderBreakEdge edge, double entryGap) {
@@ -51,7 +53,9 @@ internal sealed partial class HtmlRenderLayoutEngine {
 
     private object[] CreateFlowBoundaries(IReadOnlyList<HtmlRenderFlowBlock> children) {
         if (!children.Any(child => child.BreakBefore != HtmlPageBreakTarget.None
-            || child.BreakAfter != HtmlPageBreakTarget.None || child.ForcedBreaks.Count > 0)) return Array.Empty<object>();
+            || child.BreakAfter != HtmlPageBreakTarget.None || child.ForcedBreaks.Count > 0)
+            && !children.Skip(1).Any(child => !string.Equals(children[0].PageName, child.PageName, StringComparison.Ordinal)))
+            return Array.Empty<object>();
         int count = children.Count;
         CheckCancellation();
         ChargeLayoutOperations((long)count + 1L, "forced sibling boundaries");

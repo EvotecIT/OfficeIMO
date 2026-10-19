@@ -127,7 +127,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
             }
             paintExtent = Math.Max(paintExtent, offsetY + block.PagedPaintExtent);
             if (index > 0 && !string.Equals(pageName, block.PageName, StringComparison.Ordinal)) {
-                forced.Add(new HtmlRenderForcedBreak(offsetY, HtmlPageBreakTarget.Page, block.PageName, changesPageName: true));
+                forced.Add(new HtmlRenderForcedBreak(offsetY, HtmlPageBreakTarget.Page, block.PageName,
+                    changesPageName: true, boundary: flowBoundaries[index]));
             }
             pageName = block.PageName;
             if (!vertical) AppendChildForcedBreaks(blocks, index, offsetY, forced, flowBoundaries);

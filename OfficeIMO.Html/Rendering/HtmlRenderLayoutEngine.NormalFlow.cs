@@ -46,7 +46,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 "overlapping normal-flow surface");
             if (index > 0 && !string.Equals(pageName, block.PageName, StringComparison.Ordinal))
                 forced.Add(new HtmlRenderForcedBreak(advance, HtmlPageBreakTarget.Page,
-                    block.PageName, changesPageName: true));
+                    block.PageName, changesPageName: true, boundary: boundaries[index]));
             pageName = block.PageName;
             AppendChildForcedBreaks(blocks, index, advance, forced, boundaries);
             AppendKeepWithNextRange(blocks, index, advance, keeps);

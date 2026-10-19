@@ -221,8 +221,9 @@ internal sealed partial class HtmlRenderLayoutEngine {
                             && string.Equals(ResolvePageNameAt(block.ForcedBreaks, blockOffset, currentPageName), currentPageName, StringComparison.Ordinal)
                             && y < ResolvePageBodyBottom(pages.Count + 1, pageGeometry) - 0.0001D) continue;
                         HtmlInlineBreakProgress? continuationProgress = ResolveInlineContinuationProgress(block, blockOffset);
-                        string? nextPageName = ResolvePageNameAt(block.ForcedBreaks, blockOffset, currentPageName,
-                            plan.AuthoredBreak?.Boundary);
+                        string? nextPageName = plan.AuthoredBreak is { ChangesPageName: true } namedBreak
+                            ? namedBreak.PageName
+                            : ResolvePageNameAt(block.ForcedBreaks, blockOffset, currentPageName, plan.AuthoredBreak?.Boundary);
                         ExtendPagedBodyBackgroundThroughFragmentSlack(block, pageGeometry, visuals, y);
                         CommitPage(pages, visuals, pageGeometry, currentPageName);
                         BeginPage(nextPageName);

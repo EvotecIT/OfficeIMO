@@ -107,23 +107,25 @@ internal sealed partial class HtmlRenderLayoutEngine {
     // Margin truncation must observe the same direct and descendant forced
     // boundaries as a block flow. Parallel/reversed columns retain their
     // existing contract rather than borrowing a single flow's page changes.
-    private static IEnumerable<HtmlRenderForcedBreak> ResolveColumnFlexForcedBreaks(
+    private IReadOnlyList<HtmlRenderForcedBreak> ResolveColumnFlexForcedBreaks(
         IReadOnlyList<FlexLine> lines, HtmlRenderBoxStyle style, double contentY) {
-        if (lines.Count != 1 || style.FlexDirection != "column") yield break;
-        string? childPageName = lines[0].Items.FirstOrDefault()?.Block?.PageName;
-        foreach (FlexItem item in lines[0].Items) {
-            HtmlRenderFlowBlock child = item.Block!;
-            double start = contentY + item.MainOffset;
+        if (lines.Count != 1 || style.FlexDirection != "column") return Array.Empty<HtmlRenderForcedBreak>();
+        IReadOnlyList<FlexItem> items = lines[0].Items;
+        HtmlRenderFlowBlock[] children = items.Select(item => item.Block!).ToArray();
+        object[] boundaries = CreateFlowBoundaries(children);
+        var result = new List<HtmlRenderForcedBreak>();
+        string? childPageName = children.FirstOrDefault()?.PageName;
+        for (int index = 0; index < items.Count; index++) {
+            HtmlRenderFlowBlock child = children[index];
+            double start = contentY + items[index].MainOffset;
             if (!string.Equals(childPageName, child.PageName, StringComparison.Ordinal)) {
-                yield return new HtmlRenderForcedBreak(start, HtmlPageBreakTarget.Page, child.PageName, changesPageName: true);
+                result.Add(new HtmlRenderForcedBreak(start, HtmlPageBreakTarget.Page, child.PageName,
+                    changesPageName: true, boundary: boundaries[index]));
             }
             childPageName = child.PageName;
-            if (child.BreakBefore != HtmlPageBreakTarget.None)
-                yield return new HtmlRenderForcedBreak(start, child.BreakBefore);
-            foreach (HtmlRenderForcedBreak boundary in child.ForcedBreaks) yield return boundary.Translate(start);
-            if (child.BreakAfter != HtmlPageBreakTarget.None)
-                yield return new HtmlRenderForcedBreak(start + child.Height, child.BreakAfter);
+            AppendChildForcedBreaks(children, index, start, result, boundaries, afterAdvance: child.Height);
         }
+        return result;
     }
 
     private bool TryRelayoutBlockForFlexPagination(

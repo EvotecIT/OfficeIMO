@@ -236,7 +236,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 HtmlRenderFlowBlock child = children[childIndex];
                 double childStart = contentHeight;
                 if (childIndex > 0 && !string.Equals(childPageName, child.PageName, StringComparison.Ordinal)) {
-                    forcedBreaks.Add(new HtmlRenderForcedBreak(childStart, HtmlPageBreakTarget.Page, child.PageName, changesPageName: true));
+                    forcedBreaks.Add(new HtmlRenderForcedBreak(childStart, HtmlPageBreakTarget.Page, child.PageName,
+                        changesPageName: true, boundary: childBoundaries[childIndex]));
                 }
                 childPageName = child.PageName;
                 AppendChildForcedBreaks(children, childIndex, childStart, forcedBreaks, childBoundaries);

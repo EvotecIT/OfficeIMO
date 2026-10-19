@@ -225,15 +225,25 @@ internal sealed partial class HtmlRenderLayoutEngine {
         }
         forcedBreak = low < forcedBreaks.Count ? forcedBreaks[low] : null;
         if (forcedBreak != null && consumedBoundaries != null && includeProjectedBoundaries) {
-            // Adjacent after/before declarations share one source boundary;
-            // its later declaration wins without consuming an empty sibling's
-            // distinct boundary at the same source position.
+            // Adjacent after/before declarations and a named-page change share
+            // one source boundary. A flex gap can separate their source offsets;
+            // retain the first cut and the later declaration's target/name.
+            HtmlRenderForcedBreak first = forcedBreak;
+            HtmlRenderForcedBreak last = first;
+            string? pageName = first.PageName;
+            bool changesPageName = first.ChangesPageName;
             for (int index = low + 1; index < forcedBreaks.Count; index++) {
                 HtmlRenderForcedBreak candidate = forcedBreaks[index];
-                if (candidate.Offset > forcedBreak.Offset + 0.0001D) break;
-                if (ReferenceEquals(candidate.Boundary, forcedBreak.Boundary) && IsForcedPageBreak(candidate.Target))
-                    forcedBreak = candidate;
+                if (!ReferenceEquals(candidate.Boundary, first.Boundary) || !IsForcedPageBreak(candidate.Target)) continue;
+                last = candidate;
+                if (candidate.ChangesPageName) {
+                    pageName = candidate.PageName;
+                    changesPageName = true;
+                }
             }
+            if (!ReferenceEquals(first, last))
+                forcedBreak = new HtmlRenderForcedBreak(first.Offset, last.Target, pageName, changesPageName,
+                    first.Boundary, first.Edge, first.IsAfter, first.Projected, first.AdvancesFollowingFlow);
         }
         return forcedBreak != null;
     }
