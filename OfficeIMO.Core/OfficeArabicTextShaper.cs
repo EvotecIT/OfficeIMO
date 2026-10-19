@@ -10,7 +10,7 @@ namespace OfficeIMO.Drawing;
 /// </summary>
 /// <remarks>
 /// The shaper preserves one UTF-16 character per base letter and intentionally does not
-/// synthesize optional ligatures. This keeps layout and logical-text mapping deterministic
+/// synthesize ligatures or position combining marks. This keeps layout and logical-text mapping deterministic
 /// while improving joining for renderers that do not execute OpenType shaping tables.
 /// </remarks>
 public static class OfficeArabicTextShaper {
@@ -58,6 +58,20 @@ public static class OfficeArabicTextShaper {
             return false;
         }
         return true;
+    }
+
+    /// <summary>Identifies ordinary logical-order lam-alef pairs requiring ligature shaping beyond contextual forms.</summary>
+    /// <remarks>Marks and joining controls retain their separate capability checks. An explicit disabled rlig feature is authored behavior.</remarks>
+    internal static bool RequiresLamAlefLigatureShaping(string? value, OfficeTextFeatureSettings? featureSettings = null) {
+        if (string.IsNullOrEmpty(value) || featureSettings != null
+            && featureSettings.TryGetValue("rlig", out int setting) && setting == 0) return false;
+        char previous = '\0';
+        for (int index = 0; index < value!.Length; index++) {
+            char current = LogicalForms.TryGetValue(value[index], out char logical) ? logical : value[index];
+            if (previous == '\u0644' && current is '\u0622' or '\u0623' or '\u0625' or '\u0627') return true;
+            previous = current;
+        }
+        return false;
     }
 
     /// <summary>Maps presentation forms produced by this shaper back to their Arabic letters.</summary>
