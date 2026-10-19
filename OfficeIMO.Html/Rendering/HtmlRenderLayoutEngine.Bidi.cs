@@ -230,10 +230,13 @@ internal sealed partial class HtmlRenderLayoutEngine {
             double segmentWidth = ordered.Skip(start).Take(end - start).Sum(static element => element.Width);
             int sourceIndex = ordered[start].SourceSegmentIndex;
             HtmlRenderBoxStyle style = sources[sourceIndex].Run.Style;
-            // Paragraph bidi owns placement, but reordered scalars are not shaped glyphs.
-            // Keep provider input logical so the shared text owner still shapes the run
-            // and reports a provider that accepts measurement but declines painting.
-            bool needsShapingInput = RequiresConfiguredTextShaping(logicalText)
+            // Preserve prepared contextual paint when no provider owns this script.
+            // Marks and required ligatures add fidelity loss without discarding those forms.
+            // Unsupported script input and configured shapers still need logical source.
+            bool needsShapingInput = OfficeTextElements.ContainsShapingRequiredScript(logicalText)
+                || OfficeTextElements.ContainsVariationSelector(logicalText)
+                || OfficeTextElements.ContainsJoiningScript(logicalText)
+                    && !OfficeArabicTextShaper.CanShapeAllJoiningCharacters(logicalText)
                 || OfficeTextElements.ContainsZeroWidthJoinerSequence(logicalText)
                 || OfficeTextElements.ContainsRightToLeft(logicalText)
                     && (_options.TextShapingProvider != null || !style.TextFeatureSettings.IsDefault);

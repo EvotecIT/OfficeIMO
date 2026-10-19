@@ -4,6 +4,8 @@ using OfficeIMO.Drawing;
 namespace OfficeIMO.Html;
 
 internal sealed partial class HtmlRenderLayoutEngine {
+    private int _arabicJoiningEligibilityRemainder;
+
     // Core owns joining; this projection only retains context across paint-only
     // inline boundaries and maps the length-preserving result to source slices.
     private IReadOnlyList<HtmlInlineRun> PrepareArabicJoiningRuns(IReadOnlyList<HtmlInlineRun> runs) {
@@ -56,18 +58,25 @@ internal sealed partial class HtmlRenderLayoutEngine {
         return result;
     }
 
-    // Eligibility only reads run/text fields; charge its cheap scan in chunks.
+    // Eligibility only reads run/text fields. Carry partial chunks across calls:
+    // nested intrinsic lists must not each incur a rounded-up minimum operation.
     // Full context mapping retains its separate per-run and character charges.
     private bool HasArabicJoiningSource<T>(IReadOnlyList<T> runs, Func<T, string> textSelector) {
         CheckCancellation();
-        ChargeLayoutOperations((runs.Count + 31L) / 32L, "Arabic joining eligibility");
         for (int index = 0; index < runs.Count; index++) {
             CheckCancellation();
             string text = textSelector(runs[index]);
-            ChargeLayoutOperations((text.Length + 31L) / 32L, "Arabic joining eligibility text scan");
+            ChargeArabicJoiningEligibility(1L + text.Length);
             if (OfficeTextElements.ContainsJoiningScript(text)) return true;
         }
         return false;
+    }
+
+    private void ChargeArabicJoiningEligibility(long work) {
+        long pending = work + _arabicJoiningEligibilityRemainder;
+        long operations = pending / 32L;
+        _arabicJoiningEligibilityRemainder = (int)(pending % 32L);
+        if (operations > 0L) ChargeLayoutOperations(operations, "Arabic joining eligibility");
     }
 
     private string[] PrepareArabicJoiningText(IReadOnlyList<ArabicJoiningItem> items) {

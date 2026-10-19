@@ -180,15 +180,15 @@ internal sealed partial class HtmlRenderLayoutEngine {
     private void ReportUnsupportedComplexTextShaping(string text, IElement? element, HtmlRenderBoxStyle style, string? source = null) {
         if (element == null || string.IsNullOrWhiteSpace(text) || _reportedComplexTextShapingElements.Contains(element)) return;
         bool featureShaping = !style.TextFeatureSettings.IsDefault;
-        if (!featureShaping && !RequiresConfiguredTextShaping(text)) return;
-        if (featureShaping && _options.TextShapingProvider != null) return;
+        if (!featureShaping && !RequiresConfiguredTextShaping(text, style.TextFeatureSettings)) return;
+        if (featureShaping && _options.TextShapingProvider != null && !RequiresConfiguredTextShaping(text, style.TextFeatureSettings)) return;
         IReadOnlyList<OfficeFontFallbackRun> fallbackRuns = _fonts.PlanFallbackRuns(
             text,
             style.Font.FamilyName,
             style.FontDescriptor);
         bool allUnsupportedRunsShaped = true;
         foreach (OfficeFontFallbackRun fallback in fallbackRuns) {
-            if (!featureShaping && !RequiresConfiguredTextShaping(fallback.Text)) continue;
+            if (!featureShaping && !RequiresConfiguredTextShaping(fallback.Text, style.TextFeatureSettings)) continue;
             HtmlRenderBoxStyle fallbackStyle = style.Clone();
             fallbackStyle.Font = fallbackStyle.Font.WithFamilyName(InlineFallbackFamilyRequest(fallback));
             if (!TryMeasureWithConfiguredProvider(fallback.Text, fallbackStyle, out _)) {
@@ -214,8 +214,10 @@ internal sealed partial class HtmlRenderLayoutEngine {
             OfficeConversionLossKind.Approximation);
     }
 
-    private static bool RequiresConfiguredTextShaping(string text) =>
-        OfficeTextElements.ContainsShapingRequiredScript(text)
+    private static bool RequiresConfiguredTextShaping(string text, OfficeTextFeatureSettings featureSettings) =>
+        OfficeTextElements.ContainsCombiningMark(text)
+        || OfficeArabicTextShaper.RequiresLamAlefLigatureShaping(text, featureSettings)
+        || OfficeTextElements.ContainsShapingRequiredScript(text)
         || OfficeTextElements.ContainsVariationSelector(text)
         || OfficeTextElements.ContainsJoiningScript(text)
             && !OfficeArabicTextShaper.CanShapeAllJoiningCharacters(text);

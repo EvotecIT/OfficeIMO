@@ -3,6 +3,7 @@ using OfficeIMO.Html.Pdf;
 using OfficeIMO.Mhtml;
 using OfficeIMO.Tests.Pdf;
 using System.Threading.Tasks;
+using System.Xml.Linq;
 using PdfCore = OfficeIMO.Pdf;
 using Xunit;
 
@@ -44,8 +45,12 @@ public sealed class MhtmlRenderResourcePolicyTests {
 
         HtmlRenderResult svg = await HtmlRenderEngine.ExecuteAsync(document.HtmlDocument,
             imageRequest.WithEncoder(HtmlRenderEncoder.Svg));
-        string vectors = string.Concat(svg.ExportImages().Select(page => Encoding.UTF8.GetString(page.Bytes)));
-        Assert.Contains("Archived CSS", vectors, StringComparison.Ordinal);
+        string[] vectorPages = svg.ExportImages().Select(page => Encoding.UTF8.GetString(page.Bytes)).ToArray();
+        string vectors = string.Concat(vectorPages);
+        string vectorText = string.Concat(vectorPages.SelectMany(page =>
+            XDocument.Parse(page).Descendants(XName.Get("text", "http://www.w3.org/2000/svg")))
+            .Select(text => text.Value));
+        Assert.Contains("Archived CSS", vectorText, StringComparison.Ordinal);
         Assert.Contains("#336699", vectors, StringComparison.OrdinalIgnoreCase);
         Assert.Single(svg.Document.Pages.SelectMany(page => Walk(page.Scene)).OfType<HtmlRenderImage>());
         Assert.False(options.ResourcePolicy.AllowRemoteResourceResolution);

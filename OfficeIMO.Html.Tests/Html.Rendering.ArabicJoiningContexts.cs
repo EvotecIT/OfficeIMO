@@ -79,6 +79,10 @@ public sealed partial class HtmlRenderingTests {
         Assert.Contains('\uFEE3', painted);
         Assert.Contains('\uFEAE', painted);
         Assert.Equal(logical, rendered.Text.Trim());
+        Assert.Contains(rendered.Diagnostics, diagnostic =>
+            diagnostic.Code == HtmlRenderDiagnosticCodes.ComplexTextShapingUnsupported
+            && diagnostic.LossKind == OfficeConversionLossKind.Approximation);
+        Assert.Throws<HtmlConversionException>(() => rendered.RequireNoLoss());
     }
 
     private static HtmlRenderDocument RenderArabicContext(string content, string width = "300px", string extraCss = "") {

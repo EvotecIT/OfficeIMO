@@ -30,7 +30,7 @@ public static partial class OfficeSvgDrawingReader {
         int pointAllowance = Math.Max(1, remainingCommands / 2);
         List<List<OfficePoint>> contours;
         try {
-            if (!TryGetSvgTextRunContours(run, drawing.Fonts, references, pointAllowance, out contours)) return false;
+            if (!TryGetSvgTextRunContours(run, drawing.Fonts, references, pointAllowance, ref unsupported, out contours)) return false;
         } catch (InvalidOperationException) {
             pathCommandLimitExceeded = true;
             return false;
