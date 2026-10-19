@@ -55,6 +55,9 @@ public abstract partial class HtmlRenderVisual {
 
     internal HtmlRenderPaintPhase PaintPhase { get; set; }
 
+    // Source adapters retain semantic placement separately from paint and fragment arrival.
+    internal int? SemanticSourceOrder { get; set; }
+
     // A repeated table fragment reopens only its enclosing formatting context.
     // Remember this closure's immediate phase, including an already-atomic
     // nested box, instead of guessing from the visual's shape or children.
@@ -88,6 +91,7 @@ public abstract partial class HtmlRenderVisual {
 
     internal T CopyStackingContextTo<T>(T result) where T : HtmlRenderVisual {
         result.PaintPhase = PaintPhase;
+        result.SemanticSourceOrder = SemanticSourceOrder;
         result.AtomicSourcePaintPhase = AtomicSourcePaintPhase;
         result.StackingContext = StackingContext;
         result.PaintProjectionIdentity = PaintProjectionIdentity;

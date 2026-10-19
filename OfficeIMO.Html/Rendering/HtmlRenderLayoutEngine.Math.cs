@@ -130,7 +130,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
             source);
         mathVisuals.Add(new HtmlRenderSemanticGroup(
             HtmlRenderSemanticGroupRole.Formula, contentX, contentY, contentSize.Width, contentSize.Height,
-            new[] { logicalVisual }, 0, source, alternativeText: alternativeText, mathMlSource: mathMlSource));
+            new[] { logicalVisual }, 0, source, alternativeText: alternativeText, mathMlSource: mathMlSource,
+            logicalOrder: GetSemanticSourceOrder(element)));
 
         HtmlResolvedBorderRadii outerRadii = ResolveBoxRadii(style, boxWidth, boxHeight, element, source);
         HtmlResolvedBorderRadii contentRadii = outerRadii.Inset(

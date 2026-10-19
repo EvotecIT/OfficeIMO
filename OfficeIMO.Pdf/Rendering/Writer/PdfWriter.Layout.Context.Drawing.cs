@@ -287,9 +287,9 @@ internal static partial class PdfWriter {
                 .Then(OfficeTransform.Translate(originX, pageTopY));
         }
 
-        private void DrawDrawingImageAt(OfficeDrawingImage image, double originX, double originTopY) {
+        private void DrawDrawingImageAt(OfficeDrawingImage image, double originX, double originTopY, long? logicalOrder = null) {
             OfficeImageProjection projection = image.Projection;
-            if (TryDrawSvgImageAt(image, originX, originTopY)) return;
+            if (TryDrawSvgImageAt(image, originX, originTopY, logicalOrder)) return;
             PdfDocument.PreparedImage prepared = PdfDocument.PrepareImageBytes(image.EncodedBytes);
             var imageStyle = new PdfImageStyle {
                 Fit = OfficeImageFit.Stretch,
@@ -331,6 +331,7 @@ internal static partial class PdfWriter {
             pageImage.RotationCenterY = originTopY - projection.RotationCenterY;
             pageImage.SuppressAccessibilityWrapper = _suppressCanvasAccessibilityWrappers;
             pageImage.StructureParentElement = _canvasStructureParentElement;
+            pageImage.LogicalOrder = logicalOrder;
             currentPage!.Images.Add(pageImage);
             pageImage.InlineDrawToken = AllocateInlineImageDrawToken(currentPage);
             sb.Append(pageImage.InlineDrawToken);
@@ -356,7 +357,7 @@ internal static partial class PdfWriter {
             return true;
         }
 
-        private int? AppendDrawingMarkedContentBegin(PdfDrawingStyle style, out bool markedContent, bool recordDrawingEvidence = true) {
+        private int? AppendDrawingMarkedContentBegin(PdfDrawingStyle style, out bool markedContent, bool recordDrawingEvidence = true, long? logicalOrder = null) {
             EnsurePage();
 
             if (_suppressCanvasAccessibilityWrappers) {
@@ -379,7 +380,7 @@ internal static partial class PdfWriter {
                 return null;
             }
 
-            int? markedContentId = RegisterFigureStructureElement(style.AlternativeText!, _canvasStructureParentElement);
+            int? markedContentId = RegisterFigureStructureElement(style.AlternativeText!, _canvasStructureParentElement, logicalOrder);
             int? structElementIndex = FindStructElementIndex(currentPage, markedContentId, "Figure");
             sb.Append("/Figure << /Alt ")
                 .Append(PdfSyntaxEscaper.TextString(style.AlternativeText!));

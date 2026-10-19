@@ -84,7 +84,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                     Math.Max(0.01D, topCaptionHeight + emptyTableHeight + bottomCaptionHeight),
                     emptyVisuals,
                     0,
-                    source)
+                    source, logicalOrder: GetSemanticSourceOrder(table))
             };
             return new HtmlRenderFlowBlock(style.Display == "inline-table" ? tableWidth + style.MarginLeft + style.MarginRight : containingWidth, emptyHeight, semanticEmptyVisuals, style.BreakBefore, style.BreakAfter, style.AvoidBreakInside, source, pageName: style.PageName);
         }
@@ -451,7 +451,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 visuals,
                 0,
                 source,
-                structureElementKey: structureKey)
+                structureElementKey: structureKey, logicalOrder: GetSemanticSourceOrder(table))
         };
         semanticVisuals.AddRange(navigationDestinations);
         PrependRepeatedTableBackdrop(continuationVisuals, tableBackdrop, continuationHeight);
@@ -467,7 +467,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                     continuationVisuals,
                     0,
                     source,
-                    structureElementKey: structureKey)
+                    structureElementKey: structureKey, logicalOrder: GetSemanticSourceOrder(table))
             };
         IReadOnlyList<HtmlRenderVisual> semanticTrailingVisuals = trailingVisuals.Count == 0
             ? Array.Empty<HtmlRenderVisual>()
@@ -481,7 +481,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                     trailingVisuals,
                     0,
                     source,
-                    structureElementKey: structureKey)
+                    structureElementKey: structureKey, logicalOrder: GetSemanticSourceOrder(table))
             };
         double trailingSourceEnd = caption != null && caption.Side == "bottom"
             ? tableY + tableHeight

@@ -525,6 +525,7 @@ internal static partial class HtmlPdfRenderedConverter {
         }
 
         var style = new PdfCore.PdfFormFieldStyle {
+            LogicalOrder = field.SemanticSourceOrder,
             BackgroundColor = field.BackgroundColor.HasValue ? PdfCore.PdfColor.FromOfficeColorOrNull(field.BackgroundColor.Value) : null,
             BorderColor = field.BorderColor.HasValue ? PdfCore.PdfColor.FromOfficeColorOrNull(field.BorderColor.Value) : null,
             BorderWidth = field.BorderWidth * PointsPerCssPixel,

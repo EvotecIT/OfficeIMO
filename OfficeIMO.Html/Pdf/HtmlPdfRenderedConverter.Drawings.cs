@@ -239,7 +239,7 @@ internal static partial class HtmlPdfRenderedConverter {
         if (string.IsNullOrWhiteSpace(visual.AlternativeText)) {
             AddElements(canvas, source.Elements);
         } else {
-            canvas.Figure(visual.AlternativeText!, figure => AddElements(figure, source.Elements));
+            canvas.Figure(visual.AlternativeText!, figure => AddElements(figure, source.Elements), visual.SemanticSourceOrder);
         }
         double linkX = visual.ImageX * PointsPerCssPixel;
         double linkY = visual.ImageY * PointsPerCssPixel;

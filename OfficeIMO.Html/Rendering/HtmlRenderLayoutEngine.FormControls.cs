@@ -469,7 +469,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
             height,
             fallbackVisuals,
             paintOrder: 0,
-            source);
+            source) { SemanticSourceOrder = GetSemanticSourceOrder(element) };
         return true;
     }
 

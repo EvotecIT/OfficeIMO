@@ -3,6 +3,9 @@ using AngleSharp.Dom;
 namespace OfficeIMO.Html;
 
 internal sealed partial class HtmlRenderLayoutEngine {
+    private int? GetSemanticSourceOrder(IElement element) =>
+        _documentOrderByElement.TryGetValue(element, out int order) ? order : null;
+
     private HtmlRenderFlowBlock ApplyElementSemantics(HtmlRenderFlowBlock block, IElement element, HtmlRenderBoxStyle style) {
         RegisterBookmark(element, style);
         ReportUnsupportedSemanticTag(element, style);
@@ -28,7 +31,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         }
         HtmlRenderFlowBlock listBlock = style.SemanticArtifact || style.SemanticGroupRoleOverride.HasValue
             ? block
-            : ApplyListSemantics(block, element, structureElementKey);
+            : ApplyListSemantics(block, element, structureElementKey, GetSemanticSourceOrder(element));
         HtmlRenderSemanticGroupRole role;
         if (style.SemanticArtifact) role = HtmlRenderSemanticGroupRole.Artifact;
         else if (style.SemanticGroupRoleOverride.HasValue) role = style.SemanticGroupRoleOverride.Value;
@@ -42,7 +45,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
             else return WrapEditableLayoutRegion(listBlock, element, style);
         }
         HtmlRenderFlowBlock semanticBlock = WrapSemanticBlock(listBlock, role,
-            HtmlRenderStyleResolver.DescribeSource(element), structureElementKey);
+            HtmlRenderStyleResolver.DescribeSource(element), structureElementKey, GetSemanticSourceOrder(element));
         return WrapEditableLayoutRegion(semanticBlock, element, style);
     }
 
@@ -135,7 +138,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
             ? HtmlRenderSemanticGroupRole.Artifact
             : style.SemanticGroupRoleOverride!.Value;
         HtmlRenderFlowBlock semanticBlock = WrapSemanticBlock(block, role,
-            HtmlRenderStyleResolver.DescribeSource(element), structureElementKey);
+            HtmlRenderStyleResolver.DescribeSource(element), structureElementKey, GetSemanticSourceOrder(element));
         return WrapEditableLayoutRegion(semanticBlock, element, style);
     }
 
@@ -246,6 +249,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         HtmlRenderFlowBlock block,
         FlattenedSemanticBoundary boundary,
         bool firstFragment, int? logicalOrder = null) {
+        logicalOrder = GetSemanticSourceOrder(boundary.Element) ?? logicalOrder;
         double anchorTop = Math.Max(0D, block.CollapsibleMarginTop);
         firstFragment &= IsFirstColumnSourceFragment(boundary.Element);
         if (firstFragment) block = AddTargetPageAnchor(block, boundary.Element, anchorTop);

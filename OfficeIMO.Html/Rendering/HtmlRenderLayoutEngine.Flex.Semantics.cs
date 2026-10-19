@@ -9,6 +9,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         string key = "html-flex-item:" + GetSemanticNodeId(item.SourceElement).ToString(System.Globalization.CultureInfo.InvariantCulture)
             + ":" + item.SourceIndex.ToString(System.Globalization.CultureInfo.InvariantCulture);
 
-        return WrapSemanticBlock(block, HtmlRenderSemanticGroupRole.Division, item.Source, key, item.SourceIndex);
+        return WrapSemanticBlock(block, HtmlRenderSemanticGroupRole.Division, item.Source, key,
+            GetSemanticSourceOrder(item.SourceElement) ?? item.SourceIndex);
     }
 }

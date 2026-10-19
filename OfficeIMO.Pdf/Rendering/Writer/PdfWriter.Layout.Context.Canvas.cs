@@ -365,7 +365,7 @@ internal static partial class PdfWriter {
 
         private void RenderCanvasFigure(PdfCanvasFigureItem item) {
             EnsurePage();
-            int? markedContentId = RegisterFigureStructureElement(item.AlternativeText, _canvasStructureParentElement);
+            int? markedContentId = RegisterFigureStructureElement(item.AlternativeText, _canvasStructureParentElement, item.LogicalOrder);
             sb.Append("/Figure << /Alt ")
                 .Append(PdfSyntaxEscaper.TextString(item.AlternativeText));
             if (markedContentId.HasValue) {
@@ -665,6 +665,7 @@ internal static partial class PdfWriter {
             PageImage pageImage = CreatePageImage(block, imageStyle, item.X, bottomY, block.Width, block.Height);
             pageImage.SuppressAccessibilityWrapper = _suppressCanvasAccessibilityWrappers;
             pageImage.StructureParentElement = _canvasStructureParentElement;
+            pageImage.LogicalOrder = item.LogicalOrder;
             pageImage.RotationAngle = item.RotationAngle;
             pageImage.HorizontalFlip = item.HorizontalFlip;
             pageImage.VerticalFlip = item.VerticalFlip;
