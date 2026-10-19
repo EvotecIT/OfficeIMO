@@ -147,6 +147,25 @@ public sealed partial class HtmlRenderingTests {
         Assert.Equal(new[] { "Table", "H2" }, roles.Skip(table));
     }
 
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void HtmlPdf_TaggedSourceOrderRetainsInlineImageBetweenText(bool bidi) {
+        string middle = SourceOrderImage("raster").Replace("<img ", "<img style='display:inline' ");
+        string html = SourceOrderStyles(400) + "<section><p>Before" + middle
+            + (bidi ? "<span class='rtl'>א</span>" : "") + "After</p></section>";
+        byte[] pdf = HtmlConversionDocument.Parse(html).ToPdfBytes(SourceOrderOptions());
+        var root = SourceOrderRoot(pdf, out var elements);
+        var paragraph = elements[Assert.Single(root.ChildElementObjectNumbers)];
+        Assert.Equal("P", paragraph.StructureType);
+        string?[] roles = paragraph.ChildElementObjectNumbers.Select(id => elements[id].StructureType).ToArray();
+        Assert.Equal("Span", roles[0]);
+        Assert.Contains("Figure", roles);
+        Assert.True(roles[1] == "Figure", string.Join(",", roles));
+        Assert.All(roles.Skip(2), role => Assert.Equal("Span", role));
+        Assert.True(roles.Length >= 3);
+    }
+
     private static HtmlToPdfOptions SourceOrderOptions() {
         byte[] hebrew = ManagedTextShapingTestAssets.CreateFont(0x05D0);
         var options = new HtmlToPdfOptions {

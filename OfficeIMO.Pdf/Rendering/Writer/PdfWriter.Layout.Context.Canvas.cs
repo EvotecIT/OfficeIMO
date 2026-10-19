@@ -282,7 +282,7 @@ internal static partial class PdfWriter {
             double actualTextX = item.HasPosition ? item.X : 0D;
             double actualTextY = item.HasPosition ? currentOpts.PageHeight - item.Y - (item.UsesBounds ? item.Height : 0D) : 0D;
             RenderLogicalText(item.Text, actualTextX, actualTextY,
-                () => RenderCanvasBlock(new PdfCanvasBlock(item.Items)), item.Width, item.Height);
+                () => RenderCanvasBlock(new PdfCanvasBlock(item.Items)), item.Width, item.Height, item.LogicalOrder);
         }
 
         private void RenderCanvasStructure(PdfCanvasStructureItem item) {
@@ -422,7 +422,7 @@ internal static partial class PdfWriter {
             double topY = currentOpts.PageHeight - item.Y;
             double bottomY = topY - item.Height;
             string? structureType = _suppressCanvasAccessibilityWrappers ? null : MapCanvasTextStructureType(item.StructureRole);
-            int? markedContentId = structureType == null ? null : RegisterTextStructureElement(structureType, _canvasStructureParentElement);
+            int? markedContentId = structureType == null ? null : RegisterTextStructureElement(structureType, _canvasStructureParentElement, logicalOrder: item.LogicalOrder);
             ReportRichPaintDiagnostics("CanvasText", "PdfCanvasText", block, lines, lineHeights,
                 item.PreservePositionedText ? topY - size : FirstTextBaselineFromTop(ChooseNormal(currentOpts.DefaultFont), size, topY),
                 size, leading, item.X, width, new TableCellContentFrame(item.X, topY + item.PositionedClipTopOverflow, width, item.Height + item.PositionedClipTopOverflow),

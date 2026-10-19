@@ -68,9 +68,9 @@ internal static partial class HtmlPdfRenderedConverter {
             if (carrier.X != group.X || carrier.Y != group.Y || carrier.Width != group.Width || carrier.Height != logicalHeight) {
                 canvas.ActualText(logicalText, carrier.X * PointsPerCssPixel, carrier.Y * PointsPerCssPixel,
                     carrier.Width * PointsPerCssPixel, carrier.Height * PointsPerCssPixel,
-                    nested => nested.AddItems(content.Items));
+                    nested => nested.AddItems(content.Items), logicalOrder: group.SemanticSourceOrder);
             } else canvas.ActualText(logicalText, group.X * PointsPerCssPixel,
-                (group.Y + logicalHeight) * PointsPerCssPixel, nested => nested.AddItems(content.Items));
+                (group.Y + logicalHeight) * PointsPerCssPixel, nested => nested.AddItems(content.Items), logicalOrder: group.SemanticSourceOrder);
         }
     }
 

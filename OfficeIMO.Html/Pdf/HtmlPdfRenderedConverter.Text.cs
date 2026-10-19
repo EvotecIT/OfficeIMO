@@ -150,7 +150,7 @@ internal static partial class HtmlPdfRenderedConverter {
             visual.PaintLineHeight * PointsPerCssPixel,
             (visual.TextPaintWidth ?? visual.TextAdvanceWidth) * PointsPerCssPixel,
             visual.PaintTopOverflow * PointsPerCssPixel,
-            fontMetricScale: PointsPerCssPixel);
+            fontMetricScale: PointsPerCssPixel, logicalOrder: visual.SemanticSourceOrder);
         double logicalWidth = visual.TextPaintWidth ?? visual.TextAdvanceWidth ?? frameWidth;
         // The source-em paint carrier may start above the line box. Its blank
         // leading must not turn otherwise native visible glyphs into an
@@ -168,7 +168,7 @@ internal static partial class HtmlPdfRenderedConverter {
             && (carrier.X != visual.X || carrier.Y != logicalY
             || carrier.Width != logicalWidth || carrier.Height != logicalHeight)) {
             canvas.ActualText(pdfText, carrier.X * PointsPerCssPixel, carrier.Y * PointsPerCssPixel,
-                carrier.Width * PointsPerCssPixel, carrier.Height * PointsPerCssPixel, Paint);
+                carrier.Width * PointsPerCssPixel, carrier.Height * PointsPerCssPixel, Paint, logicalOrder: visual.SemanticSourceOrder);
         } else Paint(canvas);
     }
 

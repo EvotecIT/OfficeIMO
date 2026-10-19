@@ -738,6 +738,7 @@ internal sealed class PdfCanvasTextItem : PdfCanvasItem {
     public double? FontSize { get; }
     public double? LineHeight { get; }
     public PdfCanvasTextStructureRole StructureRole { get; }
+    internal long? LogicalOrder { get; set; }
     internal bool PreservePositionedText { get; set; }
     internal double? PositionedAdvanceWidth { get; set; }
     internal double PositionedClipTopOverflow { get; set; }

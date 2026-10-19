@@ -404,7 +404,7 @@ internal static partial class HtmlPdfRenderedConverter {
                     carrier.Y * PointsPerCssPixel,
                     carrier.Width * PointsPerCssPixel,
                     carrier.Height * PointsPerCssPixel,
-                    addDrawingAndLink);
+                    addDrawingAndLink, logicalOrder: visual.SemanticSourceOrder);
             } else {
                 canvas.Structure(MapOutlinedTextStructureRole(role), nested =>
                     nested.ActualText(
@@ -413,7 +413,8 @@ internal static partial class HtmlPdfRenderedConverter {
                         carrier.Y * PointsPerCssPixel,
                         carrier.Width * PointsPerCssPixel,
                         carrier.Height * PointsPerCssPixel,
-                        addDrawingAndLink));
+                        addDrawingAndLink, logicalOrder: visual.SemanticSourceOrder),
+                    new PdfCore.PdfCanvasStructureOptions { LogicalOrder = visual.SemanticSourceOrder });
             }
         }
 

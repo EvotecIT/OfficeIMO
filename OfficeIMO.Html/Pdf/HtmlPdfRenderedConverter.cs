@@ -572,7 +572,7 @@ internal static partial class HtmlPdfRenderedConverter {
                 canvas.TextField(field.Name, field.Value, x, y, width, height, fontSize, style);
             }
             if (!field.IsPassword && !string.IsNullOrWhiteSpace(field.Value)) {
-                canvas.SearchableText(field.Value, x, y + Math.Min(height, fontSize));
+                canvas.SearchableText(field.Value, x, y + Math.Min(height, fontSize), logicalOrder: field.SemanticSourceOrder);
             }
         } else if (field.FieldKind == HtmlRenderFormFieldKind.CheckBox) {
             canvas.CheckBoxWithExportValue(field.Name, field.IsSelected, x, y, width, height, field.RadioOption ?? "Yes", field.Value, style);
@@ -591,7 +591,7 @@ internal static partial class HtmlPdfRenderedConverter {
             string searchableValue = string.Join(" ", searchableLabels
                 .Where(value => !string.IsNullOrWhiteSpace(value)));
             if (searchableValue.Length > 0) {
-                canvas.SearchableText(searchableValue, x, y + Math.Min(height, fontSize));
+                canvas.SearchableText(searchableValue, x, y + Math.Min(height, fontSize), logicalOrder: field.SemanticSourceOrder);
             }
         } else {
             canvas.RadioButtonWithExportValue(field.Name, field.RadioOption!, field.Value, field.IsSelected, x, y, width, height, style);
