@@ -76,19 +76,23 @@ public static partial class OfficeMathMarkup {
         }
     }
 
+    private static XElement OperatorMathMl(OfficeMathExpression expression, string? text) {
+        XElement op = Element("mo", text);
+        if (expression.Stretchy.HasValue) op.SetAttributeValue("stretchy", expression.Stretchy.Value ? "true" : "false");
+        if (expression.LargeOperator.HasValue) op.SetAttributeValue("largeop", expression.LargeOperator.Value ? "true" : "false");
+        if (expression.OperatorForm != null) op.SetAttributeValue("form", expression.OperatorForm);
+        if (expression.OperatorLeftSpace != null) op.SetAttributeValue("lspace", expression.OperatorLeftSpace);
+        if (expression.OperatorRightSpace != null) op.SetAttributeValue("rspace", expression.OperatorRightSpace);
+        return op;
+    }
+
     private static XElement ToMathMlElement(OfficeMathExpression expression) {
         switch (expression.Kind) {
             case OfficeMathKind.Text: return Element("mtext", expression.Text);
             case OfficeMathKind.Identifier: return Element("mi", expression.Text);
             case OfficeMathKind.Number: return Element("mn", expression.Text);
             case OfficeMathKind.Operator:
-                XElement op = Element("mo", expression.Text);
-                if (expression.Stretchy.HasValue) op.SetAttributeValue("stretchy", expression.Stretchy.Value ? "true" : "false");
-                if (expression.LargeOperator.HasValue) op.SetAttributeValue("largeop", expression.LargeOperator.Value ? "true" : "false");
-                if (expression.OperatorForm != null) op.SetAttributeValue("form", expression.OperatorForm);
-                if (expression.OperatorLeftSpace != null) op.SetAttributeValue("lspace", expression.OperatorLeftSpace);
-                if (expression.OperatorRightSpace != null) op.SetAttributeValue("rspace", expression.OperatorRightSpace);
-                return op;
+                return OperatorMathMl(expression, expression.Text);
             case OfficeMathKind.Row: return Element("mrow", expression.Children.Select(ToMathMlElement));
             case OfficeMathKind.Fraction:
                 return Element("mfrac", ToMathMlElement(expression.Children[0]), ToMathMlElement(expression.Children[1]));
@@ -134,14 +138,13 @@ public static partial class OfficeMathMarkup {
                 return MatrixMathMl(expression);
             case OfficeMathKind.Accent:
                 return new XElement(MathMlNamespace + "mover", new XAttribute("accent", "true"),
-                    ToMathMlElement(expression.Children[0]), ToMathMlElement(OfficeMath.Create(OfficeMathKind.Operator,
-                        text: expression.Character ?? "^", stretchy: expression.Stretchy)));
+                    ToMathMlElement(expression.Children[0]), OperatorMathMl(expression, expression.Character ?? "^"));
             case OfficeMathKind.Overbar:
                 return new XElement(MathMlNamespace + "mover", new XAttribute("accent", "true"),
-                    ToMathMlElement(expression.Children[0]), Element("mo", "¯"));
+                    ToMathMlElement(expression.Children[0]), OperatorMathMl(expression, "¯"));
             case OfficeMathKind.Underbar:
                 return new XElement(MathMlNamespace + "munder", new XAttribute("accentunder", "true"),
-                    ToMathMlElement(expression.Children[0]), Element("mo", "_"));
+                    ToMathMlElement(expression.Children[0]), OperatorMathMl(expression, "_"));
             case OfficeMathKind.Box:
                 return new XElement(MathMlNamespace + "menclose", new XAttribute("notation", "box"), ToMathMlElement(expression.Children[0]));
             case OfficeMathKind.Phantom:

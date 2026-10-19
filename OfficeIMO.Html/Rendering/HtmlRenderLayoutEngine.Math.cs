@@ -207,7 +207,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
     }
 
     private static bool TryFindUnsupportedMathMlElement(IElement math, out string localName) {
-        foreach (IElement element in math.QuerySelectorAll("*")) {
+        foreach (IElement element in EnumerateMathMlPresentation(math)) {
             string candidate = element.LocalName.ToLowerInvariant();
             if (candidate == "mstyle" && TryFindIgnoredMathMlPresentationAttribute(element, out string attribute)) {
                 localName = "mstyle[" + attribute + "]";
@@ -224,13 +224,14 @@ internal sealed partial class HtmlRenderLayoutEngine {
                     || element.HasAttribute("lspace") || element.HasAttribute("rspace");
                 IElement? spacingOwner = element.ParentElement;
                 while (spacingOwner != null && spacingOwner.LocalName.ToLowerInvariant() is "mrow" or "mstyle" or "semantics") {
-                    int children = spacingOwner.Children.Count(child => child.LocalName is not ("annotation" or "annotation-xml"));
+                    int children = MathMlPresentationChildren(spacingOwner).Count();
                     if (children != 1) break;
                     spacingOwner = spacingOwner.ParentElement;
                 }
                 string? parent = spacingOwner?.LocalName.ToLowerInvariant();
                 if (hasOverrides && parent is not ("math" or "mrow" or "mstyle")
-                    && !(parent == "msqrt" && spacingOwner!.Children.Length > 1)) {
+                    && !(parent is "msqrt" or "mtd" or "mphantom" or "menclose"
+                        && MathMlPresentationChildren(spacingOwner!).Count() > 1)) {
                     localName = "mo[operator-spacing-in-" + parent + "]";
                     return true;
                 }
@@ -248,6 +249,24 @@ internal sealed partial class HtmlRenderLayoutEngine {
         }
         localName = string.Empty;
         return false;
+    }
+
+    // Match the shared parser: annotations are inert and semantics selects one presentation child.
+    private static IEnumerable<IElement> MathMlPresentationChildren(IElement element) {
+        IEnumerable<IElement> children = element.Children.Where(child =>
+            !string.Equals(child.LocalName, "annotation", StringComparison.OrdinalIgnoreCase)
+            && !string.Equals(child.LocalName, "annotation-xml", StringComparison.OrdinalIgnoreCase));
+        return string.Equals(element.LocalName, "semantics", StringComparison.OrdinalIgnoreCase)
+            ? children.Take(1) : children;
+    }
+
+    private static IEnumerable<IElement> EnumerateMathMlPresentation(IElement root) {
+        var pending = new Stack<IElement>(MathMlPresentationChildren(root).Reverse());
+        while (pending.Count > 0) {
+            IElement element = pending.Pop();
+            yield return element;
+            foreach (IElement child in MathMlPresentationChildren(element).Reverse()) pending.Push(child);
+        }
     }
 
     private static bool TryFindIgnoredMathMlPresentationAttribute(IElement element, out string attribute) {

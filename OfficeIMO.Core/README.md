@@ -1142,7 +1142,11 @@ deterministic fallback. Percentages scale each side's dictionary spacing, `em`
 uses the token's font size, and standalone rendering converts CSS pixels through
 `Dpi / 96`. Side spacing is applied outside a stretched glyph. Negative lengths,
 other units, and CSS expressions are outside this grammar. The full operator
-dictionary and embellished-operator contexts remain outside this subset.
+dictionary and embellished-operator contexts remain outside this subset. Scalar
+accent and bar operands retain these attributes when serialized back to MathML.
+A composite accent operand containing authored operator presentation fails with
+`DRAWING_MATH_OPERATOR_PRESENTATION` because the scalar accent model cannot
+preserve its separate operators.
 
 Word OMML writing rejects expressions retaining authored operator form or side
 spacing with `NotSupportedException`; retain MathML and use the shared renderer

@@ -124,15 +124,27 @@ public static partial class OfficeMathMarkup {
             }
             if (both) return OfficeMath.SubSuperscript(basis, first, ParseRequired(children, 2, source.Name.LocalName));
             bool accent = string.Equals((string?)source.Attribute(over ? "accent" : "accentunder"), "true", StringComparison.OrdinalIgnoreCase);
-            if (accent && first.Stretchy != false && first.ToPlainText() == (over ? "¯" : "_")) return over ? OfficeMath.Overbar(basis) : OfficeMath.Underbar(basis);
+            bool bar = accent && first.Stretchy != false && first.ToPlainText() == (over ? "¯" : "_");
+            if ((bar || (accent && over)) && first.Kind != OfficeMathKind.Operator && ContainsOperatorSpacing(first)) {
+                throw new OfficeMathParseException("DRAWING_MATH_OPERATOR_PRESENTATION",
+                    "A composite accent operand with authored operator presentation cannot be represented by a scalar accent.");
+            }
+            if (bar) return OfficeMath.Create(over ? OfficeMathKind.Overbar : OfficeMathKind.Underbar,
+                children: new[] { basis }, operatorForm: first.OperatorForm,
+                operatorLeftSpace: first.OperatorLeftSpace, operatorRightSpace: first.OperatorRightSpace);
             if (accent && over) {
                 OfficeMathExpression accented = OfficeMath.Create(OfficeMathKind.Accent, children: new[] { basis },
-                    character: first.ToPlainText(), stretchy: first.Stretchy);
+                    character: first.ToPlainText(), stretchy: first.Stretchy, operatorForm: first.OperatorForm,
+                    operatorLeftSpace: first.OperatorLeftSpace, operatorRightSpace: first.OperatorRightSpace);
                 _tokenParsed?.Invoke(children[1], accented);
                 return accented;
             }
             return over ? OfficeMath.UpperLimit(basis, first) : OfficeMath.LowerLimit(basis, first);
         }
+
+        // Scalar accents cannot retain distinct presentation owners inside a composite operand.
+        private static bool ContainsOperatorSpacing(OfficeMathExpression expression) =>
+            expression.HasOperatorSpacingOverrides || expression.Children.Any(ContainsOperatorSpacing);
 
         private OfficeMathExpression ParseMultiScripts(IReadOnlyList<XElement> children, string owner) {
             int marker = -1;

@@ -679,6 +679,11 @@ Connector geometry in saved files now uses its native local transform. Consumers
 
 ## MathML operator spacing and native equations
 
+Scalar accents and bars retain their operator's authored form and side spacing.
+Parsing a composite accent operand containing these attributes throws
+`OfficeMathParseException` with code `DRAWING_MATH_OPERATOR_PRESENTATION` rather
+than discarding them. Retain the original MathML when that projection is needed.
+
 The shared math renderer and HTML rendering apply the selected operator dictionary
 and supported `form`, `lspace`, and `rspace` attributes. Equation widths, wrapping,
 and preview images can change even when spacing was not authored. Review equation

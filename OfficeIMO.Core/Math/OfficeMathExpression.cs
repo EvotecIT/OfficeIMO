@@ -108,6 +108,7 @@ public sealed class OfficeMathExpression : IEquatable<OfficeMathExpression> {
     public string? Text { get; }
 
     // Selected MathML operator overrides stay with the immutable, format-neutral node.
+    // For scalar accents/bars they describe the represented mo operand.
     internal bool? Stretchy { get; }
     internal bool? LargeOperator { get; }
     internal string? OperatorForm { get; }
