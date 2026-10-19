@@ -444,11 +444,13 @@ public sealed partial class HtmlRenderingTests {
         Assert.Contains(rendered.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.ResourceByteLimitExceeded);
     }
 
-    [Fact]
-    public void HtmlRender_FontAndImageDataUrisShareOneOperationBudget() {
+    [Theory]
+    [InlineData("font/ttf")]
+    [InlineData("binary/octet-stream")]
+    public void HtmlRender_FontAndImageDataUrisShareOneOperationBudget(string contentType) {
         byte[] font = CreateHtmlRenderTestFont();
         string png = Convert.ToBase64String(PdfPngTestImages.CreateRgbPng(2, 2));
-        string html = "<style>@font-face{font-family:BudgetFont;src:url('data:font/ttf;base64,"
+        string html = "<style>@font-face{font-family:BudgetFont;src:url('data:" + contentType + ";base64,"
             + Convert.ToBase64String(font)
             + "')}p{font-family:BudgetFont}</style><p>Font marker</p><img id='over-count' src='data:image/png;base64,"
             + png
