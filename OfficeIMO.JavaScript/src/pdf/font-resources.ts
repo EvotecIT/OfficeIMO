@@ -29,6 +29,7 @@ export class PdfFontResource {
   readonly syntheticBold: boolean;
   readonly syntheticItalic: boolean;
   private readonly mappings = new Map<number, { cid: number; glyph: number; width: number }>();
+  private readonly standardWidths = new Map<number, number>();
   constructor(readonly index: number, readonly bold: boolean, readonly italic: boolean, font: PdfFont | undefined,
     objects: PdfObjects, syntheticBold: boolean, syntheticItalic: boolean, private readonly shared?: PdfFontResource) {
     this.name = shared?.name ?? "F" + index; this.object = shared?.object ?? objects.reserve(); this.program = font ? fontProgram(font) : undefined;
@@ -38,12 +39,16 @@ export class PdfFontResource {
     if (this.shared) return this.shared.width(scalar);
     const existing = this.mappings.get(scalar);
     if (existing) return existing.width;
+    const standard = this.standardWidths.get(scalar);
+    if (standard !== undefined) return standard;
     validateScalar(scalar);
     if (!this.program) {
       standardCode(scalar);
       const metric = helveticaWidths.get(scalar === 160 ? 32 : scalar === 173 ? 45 : scalar);
       if (!metric) throw new NotSupportedError("Standard font has no metric for this character.");
-      return metric[this.bold ? 1 : 0];
+      const width = metric[this.bold ? 1 : 0];
+      this.standardWidths.set(scalar, width);
+      return width;
     }
     const glyph = this.program.glyph(scalar);
     if (!glyph) throw new NotSupportedError("The supplied font has no glyph for U+" + scalar.toString(16).toUpperCase() + ".");

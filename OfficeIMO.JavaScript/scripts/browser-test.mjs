@@ -23,7 +23,7 @@ const server = createServer(async (request, response) => {
 });
 await new Promise(resolve => server.listen(0, "127.0.0.1", resolve));
 try {
-  await run(["run", "--project", "OfficeIMO.Browser.Examples/OfficeIMO.Browser.Examples.csproj", "-c", "Release", "--", join(output, "example")]);
+  await run(["run", "--project", "OfficeIMO.JavaScript.Examples/OfficeIMO.JavaScript.Examples.csproj", "-c", "Release", "--", join(output, "example")]);
   await run(["run", "--project", "Build/BrowserExports/OfficeIMO.Browser.Interop.csproj", "-c", "Release", "--", repository, join(output, "interop"),
     "--limits", "--example=" + join(output, "example"), "--module-url=http://127.0.0.1:" + server.address().port + "/dist", ...process.argv.slice(3)]);
 } finally { await new Promise(resolve => server.close(resolve)); }

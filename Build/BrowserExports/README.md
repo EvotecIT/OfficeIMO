@@ -41,7 +41,7 @@ $evidence = '/path/to/task-evidence'
 npm ci --ignore-scripts --prefix OfficeIMO.JavaScript
 npm --prefix OfficeIMO.JavaScript --script-shell pwsh test
 npm --prefix OfficeIMO.JavaScript --script-shell pwsh run test:consumer
-dotnet test OfficeIMO.Browser.Tests/OfficeIMO.Browser.Tests.csproj -c Release
+dotnet test OfficeIMO.JavaScript.Assets.Tests/OfficeIMO.JavaScript.Assets.Tests.csproj -c Release
 # The CSV contract is also part of the ordinary CSV suite.
 dotnet test OfficeIMO.CSV.Tests/OfficeIMO.CSV.Tests.csproj -c Release --filter FullyQualifiedName~CsvBrowserExportVectorsTests
 npm --prefix OfficeIMO.JavaScript --script-shell pwsh run test:browser -- "$evidence/browser"

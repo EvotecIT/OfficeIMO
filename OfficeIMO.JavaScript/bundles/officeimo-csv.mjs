@@ -339,6 +339,27 @@ return _exports;
 })();
 
 const _m6 = (() => {
+/** @internal Recognize native Date values across iframe realms without trusting a string tag. */
+function isDate(value) {
+    if (value === null || typeof value !== "object")
+        return false;
+    // Ordinary domain rows are objects too. Avoid throwing for each one; the native
+    // check below still rejects objects that merely advertise a Date string tag.
+    if (!(value instanceof Date) && Object.prototype.toString.call(value) !== "[object Date]")
+        return false;
+    try {
+        Date.prototype.getTime.call(value);
+        return true;
+    }
+    catch {
+        return false;
+    }
+}
+const _exports = Object.freeze({ isDate: isDate });
+return _exports;
+})();
+
+const _m7 = (() => {
 /** @internal One target policy shared by document writers and portable cells. */
 function copyExportLink(link) {
     if (!link || typeof link !== "object" || typeof link.target !== "string" ||
@@ -356,7 +377,9 @@ return _exports;
 })();
 
 const _m5 = (() => {
-const { copyExportLink } = _m6;
+const { isDate } = _m6;
+
+const { copyExportLink } = _m7;
 
 const exportCellBrand = Symbol.for("@evotecit/officeimo/ExportCell");
 /** One resolved value/presentation decision that can be reused across exports. Strings remain literal data. */
@@ -381,7 +404,7 @@ class ExportCell {
 /** @internal Reject async formatters while observing their rejection immediately. */
 function assertScalar(value) {
     const kind = typeof value;
-    if (value == null || kind === "string" || kind === "number" || kind === "boolean" || value instanceof Date)
+    if (value == null || kind === "string" || kind === "number" || kind === "boolean" || isDate(value))
         return;
     if (typeof value.then === "function")
         void Promise.resolve(value).catch(() => { });
@@ -397,10 +420,27 @@ const _exports = Object.freeze({ ExportCell: ExportCell, assertScalar: assertSca
 return _exports;
 })();
 
-const _m7 = (() => {
+const _m8 = (() => {
+/** @internal Notify synchronously; observe an accidental promise before rejecting its unsupported use. */
+function notifyProgress(callback, progress) {
+    if (!callback)
+        return;
+    const result = callback(progress);
+    if (result && typeof result.then === "function") {
+        void Promise.resolve(result).catch(() => { });
+        throw new TypeError("onProgress must be synchronous.");
+    }
+}
+const _exports = Object.freeze({ notifyProgress: notifyProgress });
+return _exports;
+})();
+
+const _m9 = (() => {
 const { assertExportValue } = _m5;
 
 const { checkAbort } = _m1;
+
+const { isDate } = _m6;
 
 function createRowProjector(columns, worksheet, signal, validate = assertExportValue) {
     const getters = columns.some(column => column.value);
@@ -412,7 +452,7 @@ function createRowProjector(columns, worksheet, signal, validate = assertExportV
                 validate(value);
             return row;
         }
-        if (!row || typeof row !== "object" || row instanceof Date)
+        if (!row || typeof row !== "object" || isDate(row))
             throw new TypeError("A row must be an array or object.");
         if (Array.isArray(row) && row.length > columns.length && !columns.every(column => column.value))
             throw new RangeError("Project every column explicitly when selecting from a wider array row.");
@@ -457,7 +497,7 @@ const _exports = Object.freeze({ createRowProjector: createRowProjector, copyCol
 return _exports;
 })();
 
-const _m8 = (() => {
+const _m10 = (() => {
 
 
 
@@ -512,7 +552,11 @@ const { ExportBudget, boundedSink } = _m4;
 
 const { ExportCell } = _m5;
 
-const { copyColumns, createRowProjector } = _m7;
+const { isDate } = _m6;
+
+const { notifyProgress } = _m8;
+
+const { copyColumns, createRowProjector } = _m9;
 
 
 
@@ -524,7 +568,7 @@ function csvField(value, delimiter, protect, quote, nullValue) {
     let text;
     if (value == null)
         text = "";
-    else if (value instanceof Date)
+    else if (isDate(value))
         text = Number.isFinite(value.getTime()) ? value.toISOString() : "";
     else if (typeof value === "boolean")
         text = value ? "True" : "False";
@@ -595,7 +639,7 @@ async function write(rows, sink, options) {
             }
         }
         if (buffer.append(text + lineEnding))
-            return buffer.flush().then(() => { options.onProgress?.({ phase: "rows", rows: count }); });
+            return buffer.flush().then(() => { notifyProgress(options.onProgress, { phase: "rows", rows: count + (header ? 0 : 1) }); });
     }
     if (options.includeHeader !== false && columns.length)
         await record(columns.map(c => c.header), true);
@@ -607,7 +651,7 @@ async function write(rows, sink, options) {
         count++;
     });
     await buffer.close();
-    options.onProgress?.({ phase: "complete", rows: count, bytes });
+    notifyProgress(options.onProgress, { phase: "complete", rows: count, bytes });
     checkAbort(signal);
     return { rows: count, columns: columns.length, bytes };
 }
@@ -620,10 +664,10 @@ async function writeCsv(rows, configuration) {
                 if (p.phase === "complete")
                     completedRows = p.rows;
                 else
-                    options.onProgress?.(p);
+                    notifyProgress(options.onProgress, p);
             } });
         const blob = sink.toBlob("text/csv;charset=utf-8");
-        options.onProgress?.({ phase: "complete", rows: completedRows, bytes: blob.size });
+        notifyProgress(options.onProgress, { phase: "complete", rows: completedRows, bytes: blob.size });
         checkAbort(options.signal);
         return blob;
     }
@@ -632,7 +676,7 @@ async function writeCsv(rows, configuration) {
         throw error;
     }
 }
-const _exports = Object.freeze({ saveBlob: _m8.saveBlob, ExportCell: _m5.ExportCell, writeCsvTo: writeCsvTo, writeCsv: writeCsv });
+const _exports = Object.freeze({ saveBlob: _m10.saveBlob, ExportCell: _m5.ExportCell, writeCsvTo: writeCsvTo, writeCsv: writeCsv });
 return _exports;
 })();
 const { saveBlob, ExportCell, writeCsvTo, writeCsv } = _m0;

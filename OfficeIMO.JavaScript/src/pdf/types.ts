@@ -16,6 +16,12 @@ export interface PdfLimits extends ExportLimits {
   readonly maxPageBytes?: number;
   /** Actual link annotations, including repeated headings and continued cell fragments. */
   readonly maxHyperlinks?: number;
+  /** Total source bytes of distinct image objects retained by a composed document. */
+  readonly maxImageBytes?: number;
+  /** Per-image decoded pixel ceiling, checked before allocating RGB or alpha planes. */
+  readonly maxImagePixels?: number;
+  /** Total path commands across a composed document, checked before serializing a block. */
+  readonly maxVectorCommands?: number;
 }
 export type PdfTotal = "sum" | "count" | "average" | "min" | "max";
 export interface PdfTableFooter {

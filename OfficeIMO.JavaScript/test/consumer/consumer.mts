@@ -5,7 +5,7 @@ import { XmlWriter, escapeXml } from "@evotecit/officeimo/xml";
 import { OpcPackage, relationshipTypes, partUri, ContentTypes } from "@evotecit/officeimo/opc";
 import { Workbook, Worksheet, Cell, StyleRegistry, NumberFormats, saveBlob } from "@evotecit/officeimo/xlsx";
 import { writeCsv, writeCsvTo } from "@evotecit/officeimo/csv";
-import { writePdf, writePdfTo, PdfFont } from "@evotecit/officeimo/pdf";
+import { writePdf, writePdfTo, writePdfDocument, writePdfDocumentTo, pdfTable, PdfFont } from "@evotecit/officeimo/pdf";
 import type { Column, Rows } from "@evotecit/officeimo/core";
 import type { XlsxColumn } from "@evotecit/officeimo/xlsx";
 import type { ConditionalFormat } from "@evotecit/officeimo/xlsx";
@@ -61,6 +61,24 @@ async function exportPdf() {
   await writePdf([{nested:{x:1}}],{columns:[{header:'Nested',key:'nested'}]});
 }
 void exportPdf;
+
+async function exportPdfDocument() {
+  const rows = [{ name: "Report", amount: 1 }];
+  const table = pdfTable(rows, { columns: [{ header: "Name", key: "name" }, { header: "Amount", value: row => row.amount }], footer: { totals: { Amount: "sum" } } });
+  const blocks = [{ kind: "paragraph", text: "Report", fontSize: 18 }, table,
+    { kind: "image", image: { format: "rgba", width: 1, height: 1, data: Uint8Array.of(10, 20, 30, 255) } },
+    { kind: "vector", width: 20, height: 20, fill: "008000", commands: [{ op: "move", x: 1, y: 1 }, { op: "line", x: 19, y: 19 }] },
+    { kind: "pageBreak" }] as const;
+  await writePdfDocument(blocks, { title: "Report", limits: { maxImageBytes: 100, maxVectorCommands: 10 } });
+  await writePdfDocumentTo(blocks, new WritableStream<Uint8Array>());
+  // @ts-expect-error table keys are checked against the inferred row type
+  pdfTable(rows, { columns: [{ header: "Name", key: "missing" }] });
+  // @ts-expect-error table getters must resolve a scalar or portable cell synchronously
+  pdfTable(rows, { columns: [{ header: "Name", value: async row => row.name }] });
+  // @ts-expect-error raw graphics do not accept arbitrary SVG markup
+  await writePdfDocument([{ kind: "vector", width: 20, height: 20, commands: [{ op: "svg", text: "<svg/>" }] }]);
+}
+void exportPdfDocument;
 
 interface RecordRow { readonly name: string; readonly seen: Date; }
 const columns = [{ header: "Name", key: "name" }, { header: "Seen", key: "seen", type: "date", format: "yyyy-mm-dd" }] as const satisfies readonly Column<RecordRow>[];

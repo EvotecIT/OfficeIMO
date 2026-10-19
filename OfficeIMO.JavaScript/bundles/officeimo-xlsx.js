@@ -182,7 +182,23 @@ _modules.set("dd969d5cbc3aef12718d139818e6c9d43dad3dcfea78483f90bae652bce46f53",
 return _exports;
 })();
 
-const _m4 = _modules.get("30899b95dd5dd6f624c2452b62f806fd950961d21a48ccf9c2dfb3452abb67a9") ?? (() => {
+const _m4 = _modules.get("6cfd3e806439f6301003a2d1699a74fdfa574d935550ab62b97b528728eaee1f") ?? (() => {
+/** @internal Notify synchronously; observe an accidental promise before rejecting its unsupported use. */
+function notifyProgress(callback, progress) {
+    if (!callback)
+        return;
+    const result = callback(progress);
+    if (result && typeof result.then === "function") {
+        void Promise.resolve(result).catch(() => { });
+        throw new TypeError("onProgress must be synchronous.");
+    }
+}
+const _exports = Object.freeze({ notifyProgress: notifyProgress });
+_modules.set("6cfd3e806439f6301003a2d1699a74fdfa574d935550ab62b97b528728eaee1f", _exports);
+return _exports;
+})();
+
+const _m5 = _modules.get("30899b95dd5dd6f624c2452b62f806fd950961d21a48ccf9c2dfb3452abb67a9") ?? (() => {
 const { checkAbort, consumeRows, withAbort, pause, taskYieldDue } = _m2;
 
 const { OfficeIMOError } = _m3;
@@ -291,7 +307,7 @@ _modules.set("30899b95dd5dd6f624c2452b62f806fd950961d21a48ccf9c2dfb3452abb67a9",
 return _exports;
 })();
 
-const _m5 = _modules.get("02ec6cf227afac6ead01cf24b9e3958c71ffd2616ecf0ad6b0baed551f39b86d") ?? (() => {
+const _m6 = _modules.get("02ec6cf227afac6ead01cf24b9e3958c71ffd2616ecf0ad6b0baed551f39b86d") ?? (() => {
 const { OfficeIMOError } = _m3;
 
 /** @internal Check before accepting the next value or chunk. */
@@ -348,7 +364,7 @@ _modules.set("02ec6cf227afac6ead01cf24b9e3958c71ffd2616ecf0ad6b0baed551f39b86d",
 return _exports;
 })();
 
-const _m7 = _modules.get("1c59bcf8a34f5a3e12c0bbcde4b2cc33229bf5680c6553fea568737cb154643b") ?? (() => {
+const _m8 = _modules.get("1c59bcf8a34f5a3e12c0bbcde4b2cc33229bf5680c6553fea568737cb154643b") ?? (() => {
 const { OfficeIMOError } = _m3;
 
 /** Canonical absolute OPC part URI. ASCII URI spelling; Unicode must be UTF-8 percent encoded. */
@@ -396,10 +412,10 @@ _modules.set("1c59bcf8a34f5a3e12c0bbcde4b2cc33229bf5680c6553fea568737cb154643b",
 return _exports;
 })();
 
-const _m9 = _modules.get("d9a861cb1ec0360496ee3bb1e96213bc66bfe82792559a40d04ada941e38e5ed") ?? (() => {
+const _m10 = _modules.get("d9a861cb1ec0360496ee3bb1e96213bc66bfe82792559a40d04ada941e38e5ed") ?? (() => {
 const { OfficeIMOError } = _m3;
 
-const { ChunkedTextSink } = _m4;
+const { ChunkedTextSink } = _m5;
 
 const xmlDeclaration = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>';
 /** XML 1.0 characters; Unicode mode retains valid surrogate pairs. */
@@ -478,12 +494,36 @@ _modules.set("d9a861cb1ec0360496ee3bb1e96213bc66bfe82792559a40d04ada941e38e5ed",
 return _exports;
 })();
 
-const _m8 = _modules.get("06e590fad1cfa136f01f0e46c83fc9f4c5da9464926f9c1b13bb1b029f372f30") ?? (() => {
-const { escapeXml, xmlDeclaration } = _m9;
+const _m11 = _modules.get("1755f53656df3669e74d6774aa819807a82f7446b8af667d73c80117a5458699") ?? (() => {
+/** @internal Recognize native Date values across iframe realms without trusting a string tag. */
+function isDate(value) {
+    if (value === null || typeof value !== "object")
+        return false;
+    // Ordinary domain rows are objects too. Avoid throwing for each one; the native
+    // check below still rejects objects that merely advertise a Date string tag.
+    if (!(value instanceof Date) && Object.prototype.toString.call(value) !== "[object Date]")
+        return false;
+    try {
+        Date.prototype.getTime.call(value);
+        return true;
+    }
+    catch {
+        return false;
+    }
+}
+const _exports = Object.freeze({ isDate: isDate });
+_modules.set("1755f53656df3669e74d6774aa819807a82f7446b8af667d73c80117a5458699", _exports);
+return _exports;
+})();
+
+const _m9 = _modules.get("627ef7108ff8510fa1b043db2e0a48c30a10a912cd0622c267bc588f75b63595") ?? (() => {
+const { escapeXml, xmlDeclaration } = _m10;
+
+const { isDate } = _m11;
 
 function corePropertiesXml(properties = {}, policy = "strip") {
     const created = properties.created ?? new Date(), modified = properties.modified ?? created;
-    if (!(created instanceof Date) || !(modified instanceof Date) || !Number.isFinite(created.getTime()) || !Number.isFinite(modified.getTime()))
+    if (!isDate(created) || !isDate(modified) || !Number.isFinite(created.getTime()) || !Number.isFinite(modified.getTime()))
         throw new TypeError("Invalid workbook property date.");
     return xmlDeclaration + '<cp:coreProperties xmlns:cp="http://schemas.openxmlformats.org/package/2006/metadata/core-properties"' +
         ' xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:dcterms="http://purl.org/dc/terms/" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">' +
@@ -498,11 +538,11 @@ function appPropertiesXml(properties = {}, policy = "strip") {
         '<Application>' + escapeXml(properties.application ?? "OfficeIMO", policy) + '</Application><Company>' + escapeXml(properties.company ?? "", policy) + '</Company></Properties>';
 }
 const _exports = Object.freeze({ corePropertiesXml: corePropertiesXml, appPropertiesXml: appPropertiesXml });
-_modules.set("06e590fad1cfa136f01f0e46c83fc9f4c5da9464926f9c1b13bb1b029f372f30", _exports);
+_modules.set("627ef7108ff8510fa1b043db2e0a48c30a10a912cd0622c267bc588f75b63595", _exports);
 return _exports;
 })();
 
-const _m11 = _modules.get("8e6dad887c82ad981412bbdc63bf2b12af87975e2e55c8cddf67cc7e1103d645") ?? (() => {
+const _m13 = _modules.get("8e6dad887c82ad981412bbdc63bf2b12af87975e2e55c8cddf67cc7e1103d645") ?? (() => {
 const { checkAbort, withAbort } = _m2;
 
 const { OfficeIMOError } = _m3;
@@ -647,16 +687,16 @@ _modules.set("8e6dad887c82ad981412bbdc63bf2b12af87975e2e55c8cddf67cc7e1103d645",
 return _exports;
 })();
 
-const _m10 = _modules.get("a2ddba56b4d67b3507dfd2b8954d830353827d258bc3ca5665f687430f915983") ?? (() => {
+const _m12 = _modules.get("a2ddba56b4d67b3507dfd2b8954d830353827d258bc3ca5665f687430f915983") ?? (() => {
 
 
-const { EntryWriter, zipSize } = _m11;
+const { EntryWriter, zipSize } = _m13;
 
 const { checkAbort, withAbort, pause, taskYieldDue } = _m2;
 
 const { OfficeIMOError } = _m3;
 
-const { BlobByteSink, writeBytes } = _m4;
+const { BlobByteSink, writeBytes } = _m5;
 
 const encoder = new TextEncoder();
 function validateEntryName(name) {
@@ -878,27 +918,29 @@ class ZipWriter {
         return this.owned.toBlob(type);
     }
 }
-const _exports = Object.freeze({ Crc32: _m11.Crc32, validateEntryName: validateEntryName, ZipWriter: ZipWriter });
+const _exports = Object.freeze({ Crc32: _m13.Crc32, validateEntryName: validateEntryName, ZipWriter: ZipWriter });
 _modules.set("a2ddba56b4d67b3507dfd2b8954d830353827d258bc3ca5665f687430f915983", _exports);
 return _exports;
 })();
 
-const _m6 = _modules.get("7919eb77b77281ca0fa12fdf5e1f0bb9d1f52b1f2be3bdac919577ff9b33aa4c") ?? (() => {
+const _m7 = _modules.get("142f7ba594de50c8b32b7ff1fcb804aae4cd49fe5e32108c4fa5a1e05849f6a2") ?? (() => {
 
 
 
 
-const { partUri, relationshipPartUri, relativePartTarget } = _m7;
+const { partUri, relationshipPartUri, relativePartTarget } = _m8;
 
-const { corePropertiesXml, appPropertiesXml } = _m8;
+const { corePropertiesXml, appPropertiesXml } = _m9;
 
-const { ZipWriter } = _m10;
+const { ZipWriter } = _m12;
 
-const { ChunkedTextSink } = _m4;
+const { ChunkedTextSink } = _m5;
 
 const { OfficeIMOError } = _m3;
 
-const { escapeXml, xmlDeclaration } = _m9;
+const { escapeXml, xmlDeclaration } = _m10;
+
+const { checkAbort, pause, taskYieldDue } = _m2;
 
 const relationshipsNamespace = "http://schemas.openxmlformats.org/package/2006/relationships";
 const officeRelationshipsNamespace = "http://schemas.openxmlformats.org/officeDocument/2006/relationships";
@@ -1001,6 +1043,7 @@ class OpcPackage {
         }
     }
     addRelationship(source, relationship) {
+        checkAbort(this.options.signal);
         this.open();
         source = source === "/" ? source : partUri(source);
         if (!/^[A-Za-z_][A-Za-z0-9_.-]*$/.test(relationship.id))
@@ -1010,10 +1053,10 @@ class OpcPackage {
         const target = relationship.external ? relationship.target : partUri(relationship.target);
         if (relationship.external && (!target || /[\u0000-\u0020]/.test(target)))
             throw new TypeError("Invalid external relationship target.");
-        const key = source.toLowerCase(), list = this.relationships.get(key) ?? [];
-        if (list.some(r => r.id === relationship.id))
+        const key = source.toLowerCase(), list = this.relationships.get(key) ?? new Map();
+        if (list.has(relationship.id))
             throw new TypeError("Duplicate relationship id: " + relationship.id);
-        list.push({ ...relationship, target });
+        list.set(relationship.id, { ...relationship, target });
         this.relationships.set(key, list);
     }
     setProperties(core = {}, app = {}) {
@@ -1056,9 +1099,16 @@ class OpcPackage {
                 for (const [source, list] of this.relationships) {
                     if (source !== "/" && !this.parts.has(source))
                         throw new TypeError("Missing relationship source part: " + source);
-                    for (const rel of list)
+                    let checked = 0;
+                    for (const rel of list.values()) {
+                        checkAbort(this.options.signal);
                         if (!rel.external && !this.parts.has(rel.target.toLowerCase()))
                             throw new TypeError("Missing relationship target: " + rel.target);
+                        if ((++checked & 255) === 0 && taskYieldDue()) {
+                            await pause();
+                            checkAbort(this.options.signal);
+                        }
+                    }
                 }
                 for (const part of this.parts.values()) {
                     if ("written" in part)
@@ -1070,9 +1120,18 @@ class OpcPackage {
                 }
                 for (const [key, list] of this.relationships) {
                     const source = key === "/" ? "/" : this.parts.get(key).uri;
-                    const xml = xmlDeclaration + '<Relationships xmlns="' + relationshipsNamespace + '">' + list.map(r => '<Relationship Id="' + escapeXml(r.id) + '" Type="' + escapeXml(r.type) + '" Target="' +
-                        escapeXml(r.external ? r.target : relativePartTarget(source, r.target)) + '"' + (r.external ? ' TargetMode="External"' : "") + '/>').join("") + '</Relationships>';
-                    await zip.add(relationshipPartUri(source).slice(1), this.source(xml));
+                    await zip.add(relationshipPartUri(source).slice(1), async (sink) => {
+                        const text = new ChunkedTextSink(sink, this.options.signal);
+                        await text.write(xmlDeclaration + '<Relationships xmlns="' + relationshipsNamespace + '">');
+                        for (const r of list.values()) {
+                            const xml = '<Relationship Id="' + escapeXml(r.id) + '" Type="' + escapeXml(r.type) + '" Target="' +
+                                escapeXml(r.external ? r.target : relativePartTarget(source, r.target)) + '"' + (r.external ? ' TargetMode="External"' : "") + '/>';
+                            if (text.append(xml))
+                                await text.flush();
+                        }
+                        await text.write('</Relationships>');
+                        await text.close();
+                    });
                 }
                 await zip.add("[Content_Types].xml", this.source(this.types.toXml()));
                 await zip.finish();
@@ -1106,12 +1165,12 @@ class OpcPackage {
         await this.zip.discard(error);
     }
 }
-const _exports = Object.freeze({ partUri: _m7.partUri, relationshipPartUri: _m7.relationshipPartUri, relativePartTarget: _m7.relativePartTarget, corePropertiesXml: _m8.corePropertiesXml, appPropertiesXml: _m8.appPropertiesXml, relationshipsNamespace: relationshipsNamespace, officeRelationshipsNamespace: officeRelationshipsNamespace, contentTypesNamespace: contentTypesNamespace, relationshipTypes: relationshipTypes, ContentTypes: ContentTypes, OpcPackage: OpcPackage });
-_modules.set("7919eb77b77281ca0fa12fdf5e1f0bb9d1f52b1f2be3bdac919577ff9b33aa4c", _exports);
+const _exports = Object.freeze({ partUri: _m8.partUri, relationshipPartUri: _m8.relationshipPartUri, relativePartTarget: _m8.relativePartTarget, corePropertiesXml: _m9.corePropertiesXml, appPropertiesXml: _m9.appPropertiesXml, relationshipsNamespace: relationshipsNamespace, officeRelationshipsNamespace: officeRelationshipsNamespace, contentTypesNamespace: contentTypesNamespace, relationshipTypes: relationshipTypes, ContentTypes: ContentTypes, OpcPackage: OpcPackage });
+_modules.set("142f7ba594de50c8b32b7ff1fcb804aae4cd49fe5e32108c4fa5a1e05849f6a2", _exports);
 return _exports;
 })();
 
-const _m13 = _modules.get("204def412284dfb11df9aececd57c8c0455db2927ebdb483dd255e7b29f6f359") ?? (() => {
+const _m15 = _modules.get("204def412284dfb11df9aececd57c8c0455db2927ebdb483dd255e7b29f6f359") ?? (() => {
 function colorArgb(value) {
     if (typeof value !== "string" || !/^#?(?:[0-9a-f]{6}|[0-9a-f]{8})$/i.test(value))
         throw new TypeError("Color must be RGB or ARGB hex.");
@@ -1123,12 +1182,12 @@ _modules.set("204def412284dfb11df9aececd57c8c0455db2927ebdb483dd255e7b29f6f359",
 return _exports;
 })();
 
-const _m14 = _modules.get("4ab86bb45f864ae0512151e4068f81ed890a42fab7dc8a574efc3d748df7c3d4") ?? (() => {
+const _m16 = _modules.get("4ab86bb45f864ae0512151e4068f81ed890a42fab7dc8a574efc3d748df7c3d4") ?? (() => {
 const { OfficeIMOError } = _m3;
 
-const { cleanXml, escapeOoxmlAttribute } = _m9;
+const { cleanXml, escapeOoxmlAttribute } = _m10;
 
-const { colorArgb } = _m13;
+const { colorArgb } = _m15;
 
 /** @internal Reject unsupported properties rather than silently losing presentation. */
 function fields(value, allowed, label) {
@@ -1234,14 +1293,14 @@ _modules.set("4ab86bb45f864ae0512151e4068f81ed890a42fab7dc8a574efc3d748df7c3d4",
 return _exports;
 })();
 
-const _m12 = _modules.get("d161fa0b379454c110e39cc08d827c2d47405c09066ecedbb70a12f4a35d2bfd") ?? (() => {
-const { escapeOoxmlAttribute, cleanXml, xmlDeclaration } = _m9;
+const _m14 = _modules.get("d161fa0b379454c110e39cc08d827c2d47405c09066ecedbb70a12f4a35d2bfd") ?? (() => {
+const { escapeOoxmlAttribute, cleanXml, xmlDeclaration } = _m10;
 
 const { OfficeIMOError } = _m3;
 
-const { colorArgb } = _m13;
+const { colorArgb } = _m15;
 
-const { DifferentialStyles } = _m14;
+const { DifferentialStyles } = _m16;
 
 
 
@@ -1439,12 +1498,12 @@ class StyleRegistry {
         }).join("") + '</cellXfs><cellStyles count="1"><cellStyle name="Normal" xfId="0" builtinId="0"/></cellStyles>' + this.differential.toXml() + '</styleSheet>';
     }
 }
-const _exports = Object.freeze({ colorArgb: _m13.colorArgb, spreadsheetNamespace: spreadsheetNamespace, NumberFormats: NumberFormats, validateStylePatch: validateStylePatch, copyStylePatch: copyStylePatch, StyleRegistry: StyleRegistry });
+const _exports = Object.freeze({ colorArgb: _m15.colorArgb, spreadsheetNamespace: spreadsheetNamespace, NumberFormats: NumberFormats, validateStylePatch: validateStylePatch, copyStylePatch: copyStylePatch, StyleRegistry: StyleRegistry });
 _modules.set("d161fa0b379454c110e39cc08d827c2d47405c09066ecedbb70a12f4a35d2bfd", _exports);
 return _exports;
 })();
 
-const _m17 = _modules.get("e3ffb91cf46091b5b178d3d4d7b158f52cf21d2ee0e7dfe1fb5140810fd7fecb") ?? (() => {
+const _m19 = _modules.get("e3ffb91cf46091b5b178d3d4d7b158f52cf21d2ee0e7dfe1fb5140810fd7fecb") ?? (() => {
 /** @internal One target policy shared by document writers and portable cells. */
 function copyExportLink(link) {
     if (!link || typeof link !== "object" || typeof link.target !== "string" ||
@@ -1462,8 +1521,10 @@ _modules.set("e3ffb91cf46091b5b178d3d4d7b158f52cf21d2ee0e7dfe1fb5140810fd7fecb",
 return _exports;
 })();
 
-const _m16 = _modules.get("1776e2e05f0580d133fd9d8bb25337175f06b83e72cb1e8d0d2b7fd44f6d1231") ?? (() => {
-const { copyExportLink } = _m17;
+const _m18 = _modules.get("9b92d9d98bd78c7cb43ed3a16c3464beb37c87aae22af87b8e12f52f9310e786") ?? (() => {
+const { isDate } = _m11;
+
+const { copyExportLink } = _m19;
 
 const exportCellBrand = Symbol.for("@evotecit/officeimo/ExportCell");
 /** One resolved value/presentation decision that can be reused across exports. Strings remain literal data. */
@@ -1488,7 +1549,7 @@ class ExportCell {
 /** @internal Reject async formatters while observing their rejection immediately. */
 function assertScalar(value) {
     const kind = typeof value;
-    if (value == null || kind === "string" || kind === "number" || kind === "boolean" || value instanceof Date)
+    if (value == null || kind === "string" || kind === "number" || kind === "boolean" || isDate(value))
         return;
     if (typeof value.then === "function")
         void Promise.resolve(value).catch(() => { });
@@ -1501,14 +1562,16 @@ function assertExportValue(value) {
     assertScalar(value);
 }
 const _exports = Object.freeze({ ExportCell: ExportCell, assertScalar: assertScalar, assertExportValue: assertExportValue });
-_modules.set("1776e2e05f0580d133fd9d8bb25337175f06b83e72cb1e8d0d2b7fd44f6d1231", _exports);
+_modules.set("9b92d9d98bd78c7cb43ed3a16c3464beb37c87aae22af87b8e12f52f9310e786", _exports);
 return _exports;
 })();
 
-const _m15 = _modules.get("e34083915684cd97cc83ee4d09dc46b518bd9dab89dbfdce12206ab90e3ee1e0") ?? (() => {
-const { cleanXml, escapeXml } = _m9;
+const _m17 = _modules.get("4cd8b4716ab011e376749d29fdeffa5e453a637f487324e4acd70f24a27263cb") ?? (() => {
+const { cleanXml, escapeXml } = _m10;
 
-const { ExportCell, assertExportValue, assertScalar } = _m16;
+const { ExportCell, assertExportValue, assertScalar } = _m18;
+
+const { isDate } = _m11;
 
 /** A typed value plus a workbook-local style index. */
 class Cell {
@@ -1528,12 +1591,12 @@ function assertXlsxValue(value) {
 }
 /** @internal Buffered samples and footer definitions capture mutable Date values. */
 function copyValue(value) {
-    if (value instanceof Date)
-        return new Date(value);
-    if (value instanceof Cell && value.value instanceof Date)
-        return new Cell(new Date(value.value), value.style);
-    if (value instanceof ExportCell && value.value instanceof Date)
-        return new ExportCell(new Date(value.value), { ...(value.text === undefined ? {} : { text: value.text }), ...(value.presentation ? { presentation: value.presentation } : {}), ...(value.link ? { link: value.link } : {}) });
+    if (isDate(value))
+        return new Date(value.getTime());
+    if (value instanceof Cell && isDate(value.value))
+        return new Cell(new Date(value.value.getTime()), value.style);
+    if (value instanceof ExportCell && isDate(value.value))
+        return new ExportCell(new Date(value.value.getTime()), { ...(value.text === undefined ? {} : { text: value.text }), ...(value.presentation ? { presentation: value.presentation } : {}), ...(value.link ? { link: value.link } : {}) });
     return value;
 }
 function cellText(value, policy = "strip") {
@@ -1593,14 +1656,16 @@ function excelDate(date, mode) {
     return (time - Date.UTC(1899, 11, 31)) / 86400000 + (time >= Date.UTC(1900, 2, 1) ? 1 : 0);
 }
 const _exports = Object.freeze({ Cell: Cell, assertXlsxValue: assertXlsxValue, copyValue: copyValue, cellText: cellText, inlineText: inlineText, columnName: columnName, sheetName: sheetName, excelDate: excelDate });
-_modules.set("e34083915684cd97cc83ee4d09dc46b518bd9dab89dbfdce12206ab90e3ee1e0", _exports);
+_modules.set("4cd8b4716ab011e376749d29fdeffa5e453a637f487324e4acd70f24a27263cb", _exports);
 return _exports;
 })();
 
-const _m19 = _modules.get("9fafe62c62ddf4438ee7401032931b9f393343083ee6d53f45e64492e8ed21f6") ?? (() => {
-const { assertExportValue } = _m16;
+const _m21 = _modules.get("8934dd8ad55b1b318934c20dc2b47bbec27b17ba23ca820e2a3060a8dcdd112e") ?? (() => {
+const { assertExportValue } = _m18;
 
 const { checkAbort } = _m2;
+
+const { isDate } = _m11;
 
 function createRowProjector(columns, worksheet, signal, validate = assertExportValue) {
     const getters = columns.some(column => column.value);
@@ -1612,7 +1677,7 @@ function createRowProjector(columns, worksheet, signal, validate = assertExportV
                 validate(value);
             return row;
         }
-        if (!row || typeof row !== "object" || row instanceof Date)
+        if (!row || typeof row !== "object" || isDate(row))
             throw new TypeError("A row must be an array or object.");
         if (Array.isArray(row) && row.length > columns.length && !columns.every(column => column.value))
             throw new RangeError("Project every column explicitly when selecting from a wider array row.");
@@ -1654,16 +1719,16 @@ function copyColumns(columns, workbookStyles = false) {
     });
 }
 const _exports = Object.freeze({ createRowProjector: createRowProjector, copyColumns: copyColumns });
-_modules.set("9fafe62c62ddf4438ee7401032931b9f393343083ee6d53f45e64492e8ed21f6", _exports);
+_modules.set("8934dd8ad55b1b318934c20dc2b47bbec27b17ba23ca820e2a3060a8dcdd112e", _exports);
 return _exports;
 })();
 
-const _m20 = _modules.get("c507e4a8c7e4c9d8b1fea1bbf22ef65c25d3199b9471ba7d72e0f37669ef0439") ?? (() => {
-const { cleanXml, escapeXml, escapeOoxmlAttribute, xmlDeclaration } = _m9;
+const _m22 = _modules.get("106c38ee52edaebf05c6f0777c92f06f4cd51904ab03c6ab42676072eed2fc2f") ?? (() => {
+const { cleanXml, escapeXml, escapeOoxmlAttribute, xmlDeclaration } = _m10;
 
-const { copyExportLink } = _m17;
+const { copyExportLink } = _m19;
 
-const { officeRelationshipsNamespace } = _m6;
+const { officeRelationshipsNamespace } = _m7;
 
 function cellPosition(reference) {
     const match = typeof reference === "string" && /^([A-Z]{1,3})([1-9][0-9]{0,6})$/.exec(reference);
@@ -1716,14 +1781,14 @@ function drawingXml(images, policy) {
 }
 const drawingContentType = "application/vnd.openxmlformats-officedocument.drawing+xml";
 const _exports = Object.freeze({ cellPosition: cellPosition, copyHyperlink: copyHyperlink, copyImage: copyImage, hyperlinksXml: hyperlinksXml, drawingXml: drawingXml, drawingContentType: drawingContentType });
-_modules.set("c507e4a8c7e4c9d8b1fea1bbf22ef65c25d3199b9471ba7d72e0f37669ef0439", _exports);
+_modules.set("106c38ee52edaebf05c6f0777c92f06f4cd51904ab03c6ab42676072eed2fc2f", _exports);
 return _exports;
 })();
 
-const _m22 = _modules.get("a243a375bf4a43f1dc1e117315f68b7c23e660c31dc76ce0a1392931e234ecca") ?? (() => {
+const _m24 = _modules.get("bc8d1c124e8e3b8cf1f4c4d4a1117e2e02764ab8d2bc726c09e59f01126b3b13") ?? (() => {
 const { OfficeIMOError } = _m3;
 
-const { cellPosition } = _m20;
+const { cellPosition } = _m22;
 
 function indexRows(regions) {
     if (!regions.length)
@@ -1821,11 +1886,11 @@ class MergeRegions {
         throw new RangeError("Merged ranges must stay within exported rows."); }
 }
 const _exports = Object.freeze({ MergeRegions: MergeRegions });
-_modules.set("a243a375bf4a43f1dc1e117315f68b7c23e660c31dc76ce0a1392931e234ecca", _exports);
+_modules.set("bc8d1c124e8e3b8cf1f4c4d4a1117e2e02764ab8d2bc726c09e59f01126b3b13", _exports);
 return _exports;
 })();
 
-const _m23 = _modules.get("c9fde2c438e186da56f740105fcd41c265fdfdd855a4f1b811d556a02387479b") ?? (() => {
+const _m25 = _modules.get("c9fde2c438e186da56f740105fcd41c265fdfdd855a4f1b811d556a02387479b") ?? (() => {
 class NumericAggregate {
     operation;
     count = 0;
@@ -1873,18 +1938,20 @@ _modules.set("c9fde2c438e186da56f740105fcd41c265fdfdd855a4f1b811d556a02387479b",
 return _exports;
 })();
 
-const _m21 = _modules.get("fc40b44c83964015446375afb3f0863dfb9a09df1cba632a16423bb54fee3843") ?? (() => {
-const { ExportCell } = _m16;
+const _m23 = _modules.get("64da07fcc8faec622f299465a353ce206526d79ac24b60026331e5bd980365b8") ?? (() => {
+const { ExportCell } = _m18;
 
-const { Cell, cellText, columnName } = _m15;
+const { isDate } = _m11;
 
-const { escapeOoxmlAttribute } = _m9;
+const { Cell, cellText, columnName } = _m17;
 
-const { MergeRegions } = _m22;
+const { escapeOoxmlAttribute } = _m10;
+
+const { MergeRegions } = _m24;
 
 const { OfficeIMOError } = _m3;
 
-const { createTotals } = _m23;
+const { createTotals } = _m25;
 
 /** @internal A computed formula with a numeric cache; no public arbitrary-formula input. */
 class ComputedTotal {
@@ -1981,7 +2048,7 @@ class ReportLayout {
             if (!this.columns[i] || this.columns[i].width !== undefined)
                 return;
             const raw = value instanceof ExportCell ? value.text ?? value.value : value instanceof Cell ? value.value : value;
-            const text = raw instanceof Date ? Number.isFinite(raw.getTime()) ? raw.toISOString() : "" : raw == null ? "" : String(raw);
+            const text = isDate(raw) ? Number.isFinite(raw.getTime()) ? raw.toISOString() : "" : raw == null ? "" : String(raw);
             // Inspect at most a small prefix. A single long value cannot make a huge sampling allocation.
             const length = Math.max(0, ...text.slice(0, Math.ceil(max * 4)).split(/\r?\n/).map(line => [...line].length));
             this.widths[i] = Math.max(this.widths[i] ?? min, Math.min(max, length + 2));
@@ -2039,20 +2106,20 @@ function printXml(options, policy) {
             (options.footer === undefined ? "" : '<oddFooter>' + escapeOoxmlAttribute("&C" + options.footer.replace(/&/g, "&&"), policy) + '</oddFooter>') + '</headerFooter>' : "");
 }
 const _exports = Object.freeze({ ComputedTotal: ComputedTotal, ReportLayout: ReportLayout, totalFormula: totalFormula, printXml: printXml });
-_modules.set("fc40b44c83964015446375afb3f0863dfb9a09df1cba632a16423bb54fee3843", _exports);
+_modules.set("64da07fcc8faec622f299465a353ce206526d79ac24b60026331e5bd980365b8", _exports);
 return _exports;
 })();
 
-const _m24 = _modules.get("c64517646bc846643793d5b0868a284991fddc80f236b2a77418e7b4cad91551") ?? (() => {
-const { cleanXml, escapeXml, escapeOoxmlAttribute } = _m9;
+const _m26 = _modules.get("0a95ba969fc6eb59d24f1a0501b63abdb871dd20b48cf3658069d18cc828df8d") ?? (() => {
+const { cleanXml, escapeXml, escapeOoxmlAttribute } = _m10;
 
-const { cellPosition } = _m20;
+const { cellPosition } = _m22;
 
-const { columnName } = _m15;
+const { columnName } = _m17;
 
-const { colorArgb } = _m13;
+const { colorArgb } = _m15;
 
-const { fields, optionalBoolean, differentialXml } = _m14;
+const { fields, optionalBoolean, differentialXml } = _m16;
 
 function target(range, columns) {
     if (typeof range === "string") {
@@ -2205,39 +2272,48 @@ class ConditionalFormats {
     }
 }
 const _exports = Object.freeze({ prepareConditionalFormats: prepareConditionalFormats, ConditionalFormats: ConditionalFormats });
-_modules.set("c64517646bc846643793d5b0868a284991fddc80f236b2a77418e7b4cad91551", _exports);
+_modules.set("0a95ba969fc6eb59d24f1a0501b63abdb871dd20b48cf3658069d18cc828df8d", _exports);
 return _exports;
 })();
 
-const _m18 = _modules.get("792ce537484422b15c12cf8b53fa3ab438742bf89ee948731028caae5bdcf265") ?? (() => {
+const _m20 = _modules.get("8100ccf7a1251ff2ff23d2eb5775761ba3b5673adda3f8096d9da7820cd004c0") ?? (() => {
 const { checkAbort, consumeRows, inputRows, pause, taskYieldDue } = _m2;
 
-const { ChunkedTextSink, BlobByteSink } = _m4;
+const { ChunkedTextSink, BlobByteSink } = _m5;
 
 const { NotSupportedError, OfficeIMOError } = _m3;
 
-const { copyColumns, createRowProjector } = _m19;
+const { notifyProgress } = _m4;
 
-const { EntryWriter } = _m11;
+const { copyColumns, createRowProjector } = _m21;
 
-const { xmlDeclaration } = _m9;
+const { EntryWriter } = _m13;
 
-const { officeRelationshipsNamespace } = _m6;
+const { xmlDeclaration } = _m10;
 
-const { Cell, cellText, columnName, inlineText, excelDate, copyValue } = _m15;
+const { officeRelationshipsNamespace } = _m7;
 
-const { spreadsheetNamespace, colorArgb, validateStylePatch, copyStylePatch } = _m12;
+const { Cell, cellText, columnName, inlineText, excelDate, copyValue } = _m17;
 
-const { copyHyperlink, copyImage, hyperlinksXml, cellPosition } = _m20;
+const { spreadsheetNamespace, colorArgb, validateStylePatch, copyStylePatch } = _m14;
 
-const { ExportCell, assertScalar } = _m16;
+const { copyHyperlink, copyImage, hyperlinksXml, cellPosition } = _m22;
 
-const { ReportLayout, ComputedTotal, printXml } = _m21;
+const { ExportCell, assertScalar } = _m18;
 
-const { cleanXml } = _m9;
+const { ReportLayout, ComputedTotal, printXml } = _m23;
 
-const { ConditionalFormats, prepareConditionalFormats } = _m24;
+const { cleanXml } = _m10;
 
+const { ConditionalFormats, prepareConditionalFormats } = _m26;
+
+const { isDate } = _m11;
+
+const maximumHyperlinks = 65530;
+function checkHyperlinkCount(count) {
+    if (count > maximumHyperlinks)
+        throw new RangeError("Excel supports at most 65,530 hyperlinks per worksheet; split the sheet.");
+}
 /** Worksheet rows are written once in order; the model retains compressed output rather than source data. */
 class Worksheet {
     book;
@@ -2323,6 +2399,7 @@ class Worksheet {
         if (options.hyperlinks !== undefined) {
             if (!Array.isArray(options.hyperlinks))
                 throw new TypeError("Hyperlinks must be an array.");
+            checkHyperlinkCount(options.hyperlinks.length);
             const seen = new Set();
             for (const requested of options.hyperlinks) {
                 const link = copyHyperlink(requested, book.settings.invalidCharacterPolicy);
@@ -2404,7 +2481,7 @@ class Worksheet {
                 throw new TypeError("A merged range would hide the value at " + col.letter + row + "; covered cells must be empty.");
             value = undefined; // An empty string in a covered typed column is an empty cell, not a type mismatch.
         }
-        const type = value instanceof Date ? "date" : typeof value;
+        const type = isDate(value) ? "date" : typeof value;
         if (!header && !footer && value != null && col.column.type && !this.book.writerFor(col.column.type) && col.column.type !== type)
             throw new TypeError("Cell " + col.letter + row + " does not match column type " + col.column.type + ".");
         let style = explicitStyle === undefined ? header ? col.headerStyle : total?.operation === "count" ? 0 : type === "date" ? col.dateStyle : col.style : this.book.styles.validateStyle(explicitStyle);
@@ -2444,6 +2521,8 @@ class Worksheet {
             const cell = col.letter + row;
             if (link || this.linkedCells.has(cell))
                 throw new TypeError("A text-preservation cell cannot also have an external hyperlink.");
+            checkHyperlinkCount(this.links.length + this.internalLinks.length + 1);
+            this.book.checkLinks(1);
             // Replace a generated cell's original reservation with its preview and overflow records.
             if (reservedCharacters !== undefined) {
                 this.book.budget.release(1, reservedCharacters);
@@ -2653,7 +2732,7 @@ class Worksheet {
         }
     }
     progress() { if (!this.preserved)
-        this.book.settings.onProgress?.({ phase: "rows", rows: this.book.rowCount, sheetRows: this.count, sheetName: this.name }); }
+        notifyProgress(this.book.settings.onProgress, { phase: "rows", rows: this.book.rowCount, sheetRows: this.count, sheetName: this.name }); }
     get rowCount() { return this.count; }
     /** @internal Preservation records are metadata, not report data rows. */
     get reportRowCount() { return this.preserved ? 0 : this.count; }
@@ -2664,6 +2743,8 @@ class Worksheet {
             throw new OfficeIMOError("INVALID_STATE", "Worksheet is closed.");
         if (this.failed)
             throw this.error;
+        if (image.data instanceof Uint8Array)
+            this.book.checkImage(image.data.length);
         const copied = copyImage(image, this.book.settings.invalidCharacterPolicy);
         this.book.retainImage(copied.data.length);
         this.pictures.push(copied);
@@ -2684,6 +2765,7 @@ class Worksheet {
             throw new TypeError("Hyperlinks cannot address a covered merged cell.");
         if (this.linkedCells.has(copied.cell))
             throw new TypeError("Duplicate hyperlink cell: " + copied.cell);
+        checkHyperlinkCount(this.links.length + this.internalLinks.length + 1);
         this.book.retainLink();
         this.links.push(copied);
         this.linkedCells.add(copied.cell);
@@ -2780,22 +2862,22 @@ class Worksheet {
     async discard(error) { this.failed = true; this.error = error; this.pending = []; this.pendingCharacters = 0; this.prepared = undefined; this.buffer = undefined; this.output.discard(); await this.entry?.discard(error); }
 }
 const _exports = Object.freeze({ Worksheet: Worksheet });
-_modules.set("792ce537484422b15c12cf8b53fa3ab438742bf89ee948731028caae5bdcf265", _exports);
+_modules.set("8100ccf7a1251ff2ff23d2eb5775761ba3b5673adda3f8096d9da7820cd004c0", _exports);
 return _exports;
 })();
 
-const _m25 = _modules.get("a67ca046e05040cb3d1db7c05384fb10f814e96d380fc767f6cf4fca905ace6b") ?? (() => {
-const { escapeOoxmlAttribute, escapeXml, xmlDeclaration } = _m9;
+const _m27 = _modules.get("5698fe6c2af9c5beaff81876a71a26db2641c1d8019819f5d4ec447d279d4338") ?? (() => {
+const { escapeOoxmlAttribute, escapeXml, xmlDeclaration } = _m10;
 
-const { cellText, columnName } = _m15;
+const { cellText, columnName } = _m17;
 
-const { spreadsheetNamespace } = _m12;
+const { spreadsheetNamespace } = _m14;
 
-const { ExportCell } = _m16;
+const { ExportCell } = _m18;
 
-const { Cell } = _m15;
+const { Cell } = _m17;
 
-const { totalFormula } = _m21;
+const { totalFormula } = _m23;
 
 function defineTable(id, options, columns, policy) {
     const name = options.name ?? "Table" + id;
@@ -2827,14 +2909,14 @@ function tableXml(table, rowCount, policy, headerRow = 1, footer) {
         '" showColumnStripes="' + (options.bandedColumns ? 1 : 0) + '"/></table>';
 }
 const _exports = Object.freeze({ defineTable: defineTable, tableXml: tableXml });
-_modules.set("a67ca046e05040cb3d1db7c05384fb10f814e96d380fc767f6cf4fca905ace6b", _exports);
+_modules.set("5698fe6c2af9c5beaff81876a71a26db2641c1d8019819f5d4ec447d279d4338", _exports);
 return _exports;
 })();
 
-const _m26 = _modules.get("acd647b6c207dc638a4ab15141efe2d5da2be95107ae7df2a5663352ff5ef604") ?? (() => {
+const _m28 = _modules.get("acd647b6c207dc638a4ab15141efe2d5da2be95107ae7df2a5663352ff5ef604") ?? (() => {
 const { OfficeIMOError } = _m3;
 
-const { cleanXml } = _m9;
+const { cleanXml } = _m10;
 
 /** @internal Overflow is deliberately bounded: ZIP worksheet entries cannot be interleaved. */
 class TextOverflow {
@@ -2899,32 +2981,34 @@ _modules.set("acd647b6c207dc638a4ab15141efe2d5da2be95107ae7df2a5663352ff5ef604",
 return _exports;
 })();
 
-const _m1 = _modules.get("cc9e6426dce65cc53d2d2f4647c00e9c918ddf7fba6dab5859062599cd0149c3") ?? (() => {
-const { beginTask, checkAbort } = _m2;
+const _m1 = _modules.get("dd2cb3dc2d9241788efa5577a5087d99d971d4a2973dc35475412d83651f674e") ?? (() => {
+const { beginTask, checkAbort, pause, taskYieldDue } = _m2;
 
 const { OfficeIMOError } = _m3;
 
-const { ChunkedTextSink } = _m4;
+const { notifyProgress } = _m4;
 
-const { ExportBudget } = _m5;
+const { ChunkedTextSink } = _m5;
 
-const { OpcPackage, officeRelationshipsNamespace, relationshipTypes, corePropertiesXml } = _m6;
+const { ExportBudget } = _m6;
 
-const { escapeOoxmlAttribute, cleanXml, xmlDeclaration } = _m9;
+const { OpcPackage, officeRelationshipsNamespace, relationshipTypes, corePropertiesXml } = _m7;
 
-const { StyleRegistry, spreadsheetNamespace } = _m12;
+const { escapeOoxmlAttribute, cleanXml, xmlDeclaration } = _m10;
 
-const { sheetName, assertXlsxValue } = _m15;
+const { StyleRegistry, spreadsheetNamespace } = _m14;
 
-const { assertExportValue } = _m16;
+const { sheetName, assertXlsxValue } = _m17;
 
-const { Worksheet } = _m18;
+const { assertExportValue } = _m18;
 
-const { defineTable, tableXml } = _m25;
+const { Worksheet } = _m20;
 
-const { drawingXml, drawingContentType } = _m20;
+const { defineTable, tableXml } = _m27;
 
-const { TextOverflow } = _m26;
+const { drawingXml, drawingContentType } = _m22;
+
+const { TextOverflow } = _m28;
 
 const xlsxMime = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
 const formatType = (name) => "application/vnd.openxmlformats-officedocument.spreadsheetml." + name + "+xml";
@@ -3047,9 +3131,13 @@ class Workbook {
     /** @internal Reserve a preflighted worksheet batch or one row hyperlink. */
     retainLink(count = 1) { this.checkLinks(count); this.links += count; }
     /** @internal */
-    retainImage(bytes) {
+    checkImage(bytes) {
         if (this.settings.limits?.maxImageBytes !== undefined && this.imageBytes + bytes > this.settings.limits.maxImageBytes)
             throw new OfficeIMOError("RESOURCE_LIMIT", "maxImageBytes exceeded.");
+    }
+    /** @internal Reserve only a validated image, after checking its budget before copying. */
+    retainImage(bytes) {
+        this.checkImage(bytes);
         this.imageBytes += bytes;
     }
     /** @internal Bound compressed worksheet retention in Blob mode before final packaging. */
@@ -3150,18 +3238,27 @@ class Workbook {
                         this.addXmlPart(tableUri, formatType("table"), () => tableXml(table, sheet.rowCount, this.settings.invalidCharacterPolicy, sheet.headerRowCount, sheet.footerSettings));
                         this.package.addRelationship(uri, { id: "table", type: officeRelationshipsNamespace + "/table", target: tableUri });
                     }
-                    for (let j = 0; j < sheet.hyperlinks.length; j++)
-                        this.package.addRelationship(uri, {
-                            id: "link" + (j + 1), type: officeRelationshipsNamespace + "/hyperlink", target: sheet.hyperlinks[j].target, external: true
-                        });
+                    for (let j = 0; j < sheet.hyperlinks.length; j++) {
+                        checkAbort(this.settings.signal);
+                        this.package.addRelationship(uri, { id: "link" + (j + 1), type: officeRelationshipsNamespace + "/hyperlink", target: sheet.hyperlinks[j].target, external: true });
+                        if ((j & 255) === 255 && taskYieldDue()) {
+                            await pause();
+                            checkAbort(this.settings.signal);
+                        }
+                    }
                     if (sheet.images.length) {
                         const drawingUri = "/xl/drawings/drawing" + (i + 1) + ".xml";
                         this.addXmlPart(drawingUri, drawingContentType, () => drawingXml(sheet.images, this.settings.invalidCharacterPolicy));
                         this.package.addRelationship(uri, { id: "drawing", type: officeRelationshipsNamespace + "/drawing", target: drawingUri });
                         for (let j = 0; j < sheet.images.length; j++) {
+                            checkAbort(this.settings.signal);
                             const imageUri = "/xl/media/sheet" + (i + 1) + "-image" + (j + 1) + ".png";
                             this.package.addPart({ uri: imageUri, contentType: "image/png", data: sheet.images[j].data });
                             this.package.addRelationship(drawingUri, { id: "image" + (j + 1), type: officeRelationshipsNamespace + "/image", target: imageUri });
+                            if ((j & 255) === 255 && taskYieldDue()) {
+                                await pause();
+                                checkAbort(this.settings.signal);
+                            }
                         }
                     }
                 }
@@ -3175,11 +3272,17 @@ class Workbook {
                     this.overflow.clear();
                 }
                 this.package.addRelationship("/", { id: "workbook", type: relationshipTypes.officeDocument, target: "/xl/workbook.xml" });
-                for (let i = 0; i < this.sheets.length; i++)
+                for (let i = 0; i < this.sheets.length; i++) {
+                    checkAbort(this.settings.signal);
                     this.package.addRelationship("/xl/workbook.xml", { id: "rId" + (i + 1), type: relationshipTypes.worksheet, target: "/xl/worksheets/sheet" + (i + 1) + ".xml" });
+                    if ((i & 255) === 255 && taskYieldDue()) {
+                        await pause();
+                        checkAbort(this.settings.signal);
+                    }
+                }
                 this.package.addRelationship("/xl/workbook.xml", { id: "styles", type: relationshipTypes.styles, target: "/xl/styles.xml" });
                 const bytes = await this.package.finish();
-                this.settings.onProgress?.({ phase: "complete", rows, bytes });
+                notifyProgress(this.settings.onProgress, { phase: "complete", rows, bytes });
                 checkAbort(this.settings.signal);
                 this.state = "complete";
                 return { rows, sheets: this.sheets.length, bytes };
@@ -3208,12 +3311,12 @@ class Workbook {
     }
 }
 const _exports = Object.freeze({ Workbook: Workbook });
-_modules.set("cc9e6426dce65cc53d2d2f4647c00e9c918ddf7fba6dab5859062599cd0149c3", _exports);
+_modules.set("dd2cb3dc2d9241788efa5577a5087d99d971d4a2973dc35475412d83651f674e", _exports);
 return _exports;
 })();
 
-const _m28 = _modules.get("1141c94d932b8fb3296acf7d23724f00a51e0892b184d991845cd80e167df687") ?? (() => {
-const { ExportCell, assertScalar } = _m16;
+const _m30 = _modules.get("62ecf5d9195193a2a00edd958793b63e038c0a808d4aff4232a1ac5332e2eded") ?? (() => {
+const { ExportCell, assertScalar } = _m18;
 
 function style(patch) {
     for (const component of ["font", "fill", "border", "numberFormat"])
@@ -3255,18 +3358,18 @@ function portableWorkbook(options = {}) {
     return { ...options, cellValueWriters: wrapped };
 }
 const _exports = Object.freeze({ portableSheet: portableSheet, portableWorkbook: portableWorkbook });
-_modules.set("1141c94d932b8fb3296acf7d23724f00a51e0892b184d991845cd80e167df687", _exports);
+_modules.set("62ecf5d9195193a2a00edd958793b63e038c0a808d4aff4232a1ac5332e2eded", _exports);
 return _exports;
 })();
 
-const _m27 = _modules.get("9b4b0b20c6140175113b97d9316bca025be5cf40a89a3544b8aac92f2c5bce1f") ?? (() => {
-const { withDestination } = _m4;
+const _m29 = _modules.get("f3113767635c5c38c2c8c328757611460dd26de80c74685ef2828556952a4eb0") ?? (() => {
+const { withDestination } = _m5;
 
-const { copyColumns } = _m19;
+const { copyColumns } = _m21;
 
 const { Workbook } = _m1;
 
-const { portableSheet, portableWorkbook } = _m28;
+const { portableSheet, portableWorkbook } = _m30;
 
 function prepare(options) {
     const columns = copyColumns(options?.columns);
@@ -3309,11 +3412,11 @@ async function writeXlsxTo(rows, destination, configuration) {
     });
 }
 const _exports = Object.freeze({ writeXlsx: writeXlsx, writeXlsxTo: writeXlsxTo });
-_modules.set("9b4b0b20c6140175113b97d9316bca025be5cf40a89a3544b8aac92f2c5bce1f", _exports);
+_modules.set("f3113767635c5c38c2c8c328757611460dd26de80c74685ef2828556952a4eb0", _exports);
 return _exports;
 })();
 
-const _m29 = _modules.get("f75b4dd6745da92c32a648f2ca36880959551482c60b8aa85068b9c3dfd39f36") ?? (() => {
+const _m31 = _modules.get("2dea921ea9dc47e1814e701d105e0568bf8edca4d91c480a2c0334817925b0f5") ?? (() => {
 
 
 
@@ -3355,16 +3458,16 @@ function saveBlob(blob, fileName) {
         setTimeout(() => URL.revokeObjectURL(url), 30000);
     }
 }
-const _exports = Object.freeze({ OfficeIMOError: _m3.OfficeIMOError, NotSupportedError: _m3.NotSupportedError, BlobByteSink: _m4.BlobByteSink, ChunkedTextSink: _m4.ChunkedTextSink, writeBytes: _m4.writeBytes, ExportCell: _m16.ExportCell, checkAbort: _m2.checkAbort, withAbort: _m2.withAbort, inputRows: _m2.inputRows, pause: _m2.pause, detectFeatures: detectFeatures, saveBlob: saveBlob });
-_modules.set("f75b4dd6745da92c32a648f2ca36880959551482c60b8aa85068b9c3dfd39f36", _exports);
+const _exports = Object.freeze({ OfficeIMOError: _m3.OfficeIMOError, NotSupportedError: _m3.NotSupportedError, BlobByteSink: _m5.BlobByteSink, ChunkedTextSink: _m5.ChunkedTextSink, writeBytes: _m5.writeBytes, ExportCell: _m18.ExportCell, checkAbort: _m2.checkAbort, withAbort: _m2.withAbort, inputRows: _m2.inputRows, pause: _m2.pause, detectFeatures: detectFeatures, saveBlob: saveBlob });
+_modules.set("2dea921ea9dc47e1814e701d105e0568bf8edca4d91c480a2c0334817925b0f5", _exports);
 return _exports;
 })();
 
-const _m0 = _modules.get("5c2c3db714a2f5b7fd897f60f0cc52cf145c6ee059d626f697aa74b899d1f068") ?? (() => {
+const _m0 = _modules.get("894a92ed862f26fe3ee4895c9e2bb9c8ca6ab13d84c21abb378fc6c5c5963a54") ?? (() => {
 
-const _exports = Object.freeze({ Workbook: _m1.Workbook, writeXlsx: _m27.writeXlsx, writeXlsxTo: _m27.writeXlsxTo, Worksheet: _m18.Worksheet, Cell: _m15.Cell, StyleRegistry: _m12.StyleRegistry, NumberFormats: _m12.NumberFormats, saveBlob: _m29.saveBlob, ExportCell: _m16.ExportCell });
-_modules.set("5c2c3db714a2f5b7fd897f60f0cc52cf145c6ee059d626f697aa74b899d1f068", _exports);
+const _exports = Object.freeze({ Workbook: _m1.Workbook, writeXlsx: _m29.writeXlsx, writeXlsxTo: _m29.writeXlsxTo, Worksheet: _m20.Worksheet, Cell: _m17.Cell, StyleRegistry: _m14.StyleRegistry, NumberFormats: _m14.NumberFormats, saveBlob: _m31.saveBlob, ExportCell: _m18.ExportCell });
+_modules.set("894a92ed862f26fe3ee4895c9e2bb9c8ca6ab13d84c21abb378fc6c5c5963a54", _exports);
 return _exports;
 })();
-Object.assign(officeimo, _m0, { core: _m29, zip: _m10, xml: _m9, opc: _m6, xlsx: _m0 });
+Object.assign(officeimo, _m0, { core: _m31, zip: _m12, xml: _m10, opc: _m7, xlsx: _m0 });
 })(globalThis);

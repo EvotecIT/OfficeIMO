@@ -25,6 +25,11 @@ assert.equal(writePdf, pdf.writePdf);
 const packedPdf = await writePdf([{name:'Packed PDF'}],{columns:[{header:'Name',key:'name'}]});
 assert.equal(packedPdf.type,'application/pdf');
 await writeFile('packed-consumer.pdf',new Uint8Array(await packedPdf.arrayBuffer()));
+const composed = await pdf.writePdfDocument([{ kind: "paragraph", text: "Packed document" },
+  pdf.pdfTable([{ name: "Packed section" }], { columns: [{ header: "Name", key: "name" }] }),
+  { kind: "image", image: { format: "rgb", width: 1, height: 1, data: Uint8Array.of(0, 128, 255) }, width: 20, height: 20 }]);
+assert.equal(composed.type, "application/pdf");
+await writeFile("packed-document.pdf", new Uint8Array(await composed.arrayBuffer()));
 const domainRows = [{ person: { name: "Łódź 🧪" }, ignored: { nested: true } }], columns = [{ header: "Name", value: row => row.person.name }];
 const packed = await writeXlsx(domainRows, { columns, compression: "store", sheet: { name: "Packed" } });
 await writeFile("packed-consumer.xlsx", new Uint8Array(await packed.arrayBuffer()));

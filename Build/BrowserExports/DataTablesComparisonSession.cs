@@ -1,7 +1,7 @@
 using System.Security.Cryptography;
 using System.Text.Json;
 using HtmlTinkerX;
-using OfficeIMO.Browser;
+using OfficeIMO.JavaScript.Assets;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Validation;
 
@@ -57,7 +57,7 @@ internal static class DataTablesComparisonSession {
                         object? pdfFonts = null;
                         if (spec.GetProperty("format").GetString() == "pdf") {
                             if (!pdfScriptLoaded) {
-                                await session.Page.AddScriptTagAsync(new() { Content = BrowserAssets.PdfScript.Content });
+                                await session.Page.AddScriptTagAsync(new() { Content = JavaScriptAssets.PdfScript.Content });
                                 pdfScriptLoaded = true;
                             }
                             if (!await session.Page.EvaluateAsync<bool>("() => typeof pdfMake !== 'undefined'"))
@@ -115,7 +115,7 @@ internal static class DataTablesComparisonSession {
                         if (format == "xlsx" && schemaErrors.Length == 0 && spec.GetProperty("rows").GetInt32() <= 10000)
                             WorkbookVerifier.Verify(path, 128L * 1024 * 1024);
                         string hash; using (Stream file = File.OpenRead(path)) hash = Convert.ToHexString(SHA256.HashData(file)).ToLowerInvariant();
-                        result = new { proof, conformance = new { passed = schemaErrors.Length == 0, stylesErrors = schemaErrors }, sha256 = hash, browserVersion = session.Browser?.Version, asset = BrowserAssets.DataTablesScript.HashedFileName };
+                        result = new { proof, conformance = new { passed = schemaErrors.Length == 0, stylesErrors = schemaErrors }, sha256 = hash, browserVersion = session.Browser?.Version, asset = JavaScriptAssets.DataTablesScript.HashedFileName };
                         if (format == "pdf" && command.TryGetProperty("keep", out var keep) && keep.GetBoolean())
                             File.Move(path, Path.Combine(evidence, $"qualified-{spec.GetProperty("stack").GetString()}-{spec.GetProperty("browser").GetString()}-{measurement.GetProperty("lane").GetString()}-{spec.GetProperty("rows").GetInt32()}-{spec.GetProperty("columns").GetInt32()}-{hash}.pdf"), true);
                         else File.Delete(path);

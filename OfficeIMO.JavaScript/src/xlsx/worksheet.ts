@@ -1,6 +1,7 @@
 import { checkAbort, consumeRows, inputRows, pause, taskYieldDue } from "../core/iteration.js";
 import { ChunkedTextSink, BlobByteSink } from "../core/sinks.js";
 import { NotSupportedError, OfficeIMOError } from "../core/errors.js";
+import { notifyProgress } from "../core/progress.js";
 import type { CellValue } from "../core/index.js";
 import { copyColumns, createRowProjector } from "../internal/rows.js";
 import { EntryWriter } from "../zip/entry.js";
@@ -23,6 +24,12 @@ import { ReportLayout, ComputedTotal, printXml } from "./layout.js";
 import { cleanXml } from "../xml/index.js";
 import { ConditionalFormats, prepareConditionalFormats } from "./conditional-formatting.js";
 import type { PreparedRule } from "./conditional-formatting.js";
+import { isDate } from "../core/dates.js";
+
+const maximumHyperlinks = 65530;
+function checkHyperlinkCount(count: number): void {
+  if (count > maximumHyperlinks) throw new RangeError("Excel supports at most 65,530 hyperlinks per worksheet; split the sheet.");
+}
 
 /** Worksheet rows are written once in order; the model retains compressed output rather than source data. */
 export class Worksheet<T = never> {
@@ -95,6 +102,7 @@ export class Worksheet<T = never> {
     if (options.footer?.style) book.styles.compose(0, options.footer.style);
     if (options.hyperlinks !== undefined) {
       if (!Array.isArray(options.hyperlinks)) throw new TypeError("Hyperlinks must be an array.");
+      checkHyperlinkCount(options.hyperlinks.length);
       const seen = new Set<string>();
       for (const requested of options.hyperlinks) {
         const link = copyHyperlink(requested, book.settings.invalidCharacterPolicy);
@@ -149,7 +157,7 @@ export class Worksheet<T = never> {
       if (total || (value != null && value !== "")) throw new TypeError("A merged range would hide the value at " + col.letter + row + "; covered cells must be empty.");
       value = undefined; // An empty string in a covered typed column is an empty cell, not a type mismatch.
     }
-    const type = value instanceof Date ? "date" : typeof value;
+    const type = isDate(value) ? "date" : typeof value;
     if (!header && !footer && value != null && col.column.type && !this.book.writerFor(col.column.type) && col.column.type !== type)
       throw new TypeError("Cell " + col.letter + row + " does not match column type " + col.column.type + ".");
     let style = explicitStyle === undefined ? header ? col.headerStyle : total?.operation === "count" ? 0 : type === "date" ? col.dateStyle : col.style : this.book.styles.validateStyle(explicitStyle);
@@ -180,6 +188,8 @@ export class Worksheet<T = never> {
     if (type === "string" && cleanXml(value, this.book.settings.invalidCharacterPolicy).length > 32767) {
       const cell = col.letter + row;
       if (link || this.linkedCells.has(cell)) throw new TypeError("A text-preservation cell cannot also have an external hyperlink.");
+      checkHyperlinkCount(this.links.length + this.internalLinks.length + 1);
+      this.book.checkLinks(1);
       // Replace a generated cell's original reservation with its preview and overflow records.
       if (reservedCharacters !== undefined) { this.book.budget.release(1, reservedCharacters); reservedCharacters = undefined; }
       const preserved = this.book.preserveText(this.name, cell, value as string);
@@ -319,7 +329,7 @@ export class Worksheet<T = never> {
     } catch (error) { this.failed = true; this.error = error; await this.book.discard(error); throw error; }
     finally { this.busy = false; }
   }
-  private progress(): void { if (!this.preserved) this.book.settings.onProgress?.({ phase: "rows", rows: this.book.rowCount, sheetRows: this.count, sheetName: this.name }); }
+  private progress(): void { if (!this.preserved) notifyProgress(this.book.settings.onProgress, { phase: "rows", rows: this.book.rowCount, sheetRows: this.count, sheetName: this.name }); }
   get rowCount(): number { return this.count; }
   /** @internal Preservation records are metadata, not report data rows. */
   get reportRowCount(): number { return this.preserved ? 0 : this.count; }
@@ -328,6 +338,7 @@ export class Worksheet<T = never> {
     this.book.assertOpen();
     if (this.completion) throw new OfficeIMOError("INVALID_STATE", "Worksheet is closed.");
     if (this.failed) throw this.error;
+    if (image.data instanceof Uint8Array) this.book.checkImage(image.data.length);
     const copied = copyImage(image, this.book.settings.invalidCharacterPolicy);
     this.book.retainImage(copied.data.length); this.pictures.push(copied);
   }
@@ -343,6 +354,7 @@ export class Worksheet<T = never> {
     const position = cellPosition(copied.cell);
     if (this.layout.regions.covered(position.column, position.row)) throw new TypeError("Hyperlinks cannot address a covered merged cell.");
     if (this.linkedCells.has(copied.cell)) throw new TypeError("Duplicate hyperlink cell: " + copied.cell);
+    checkHyperlinkCount(this.links.length + this.internalLinks.length + 1);
     this.book.retainLink();
     this.links.push(copied); this.linkedCells.add(copied.cell);
   }

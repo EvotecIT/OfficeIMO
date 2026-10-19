@@ -1,6 +1,6 @@
 using System.Text.Json;
 using HtmlTinkerX;
-using OfficeIMO.Browser;
+using OfficeIMO.JavaScript.Assets;
 
 /// <summary>Cross-engine portable-link correctness using the shared browser owner.</summary>
 internal static class PortableLinkInterop {
@@ -19,9 +19,9 @@ internal static class PortableLinkInterop {
                 string path = Path.Combine(output, name); File.WriteAllBytes(path, Convert.FromBase64String(base64));
                 files.Add(PortableLinkVerifier.Verify(path)); return true;
             });
-            await session.Page.AddScriptTagAsync(new() { Content = BrowserAssets.Script.Content });
+            await session.Page.AddScriptTagAsync(new() { Content = JavaScriptAssets.Script.Content });
             await session.Page.AddScriptTagAsync(new() { Content = script });
-            var result = await session.Page.EvaluateAsync<JsonElement>("script => runPortableLinkContracts(script)", BrowserAssets.Script.Content);
+            var result = await session.Page.EvaluateAsync<JsonElement>("script => runPortableLinkContracts(script)", JavaScriptAssets.Script.Content);
             if (errors.Count != 0) throw new InvalidDataException(string.Join("; ", errors));
             reports.Add(new { engine = engine.ToString(), browserVersion = session.Browser?.Version, result, files, errors });
             Console.WriteLine($"Portable links {engine}: {files.Count} independently read documents, classic/fallback/worker CSV contracts.");

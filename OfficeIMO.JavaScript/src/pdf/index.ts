@@ -1,4 +1,6 @@
 export { writePdf, writePdfTo } from "./write.js";
+export { writePdfDocument, writePdfDocumentTo, pdfTable } from "./document.js";
+export type { PdfDocumentOptions, PdfDocumentBlock, PdfTableOptions, PdfTableBlock, PdfParagraphBlock, PdfPageBreakBlock, PdfImageBlock, PdfRawImage, PdfJpegImage, PdfVectorBlock, PdfPathCommand } from "./document-types.js";
 export { PdfFont } from "./font.js";
 export { ExportCell } from "../core/presentation.js";
 export { saveBlob } from "../core/index.js";

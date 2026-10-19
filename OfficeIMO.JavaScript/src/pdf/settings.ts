@@ -33,12 +33,12 @@ export interface PdfSettings {
   readonly margins: PdfMargins;
   readonly fontSize: number;
   readonly padding: number;
-  readonly limits: Required<Pick<PdfLimits, "maxPages" | "maxColumns" | "maxCellCharacters" | "maxRowLines" | "maxFontBytes" | "maxPageBytes" | "maxHyperlinks">>;
+  readonly limits: Required<Pick<PdfLimits, "maxPages" | "maxColumns" | "maxCellCharacters" | "maxRowLines" | "maxFontBytes" | "maxPageBytes" | "maxHyperlinks" | "maxImageBytes" | "maxImagePixels" | "maxVectorCommands">>;
   readonly budget: ExportBudget;
 }
-export function settings(configuration: PdfOptions): PdfSettings {
+export function settings(configuration: PdfOptions, document = false): PdfSettings {
   const columns = copyColumns(configuration?.columns).map(c => Object.freeze(c));
-  if (!columns.length) throw new TypeError("PDF tables need at least one declared column.");
+  if (!columns.length && !document) throw new TypeError("PDF tables need at least one declared column.");
   function copySpans(rows: TableSpanRows): TableSpanRows {
     tableSpans(rows, columns.length);
     return Object.freeze(rows.map(row => Object.freeze(row.map(cell => cell ? Object.freeze({ ...cell }) : null))));
@@ -54,7 +54,8 @@ export function settings(configuration: PdfOptions): PdfSettings {
     headerPresentation: presentation({ background: "e7edf5", bold: true, ...configuration.headerPresentation }),
     footerPresentation: presentation({ background: "eef2f6", bold: true, ...configuration.footerPresentation }) };
   const budget = new ExportBudget(options.limits);
-  const limits = { maxPages: 10000, maxColumns: 1024, maxCellCharacters: 1000000, maxRowLines: 100000, maxFontBytes: 16 * 1024 * 1024, maxPageBytes: 8 * 1024 * 1024, maxHyperlinks: 100000 };
+  const limits = { maxPages: 10000, maxColumns: 1024, maxCellCharacters: 1000000, maxRowLines: 100000, maxFontBytes: 16 * 1024 * 1024, maxPageBytes: 8 * 1024 * 1024, maxHyperlinks: 100000,
+    maxImageBytes: 32 * 1024 * 1024, maxImagePixels: 16 * 1024 * 1024, maxVectorCommands: 100000 };
   for (const key of Object.keys(limits) as (keyof typeof limits)[]) {
     const override = options.limits?.[key]; if (override !== undefined) limits[key] = override;
   }

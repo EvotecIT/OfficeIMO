@@ -2,6 +2,8 @@ import { beginTask, checkAbort, consumeRows, taskYieldDue, withAbort } from "../
 import { BlobByteSink, ChunkedTextSink, withDestination } from "../core/sinks.js";
 import { ExportBudget, boundedSink } from "../core/limits.js";
 import { ExportCell } from "../core/presentation.js";
+import { isDate } from "../core/dates.js";
+import { notifyProgress } from "../core/progress.js";
 import type { ByteSink, OutputDestination } from "../core/sinks.js";
 import type { CellValue, Column, StreamOptions, ExportResult } from "../core/index.js";
 import { copyColumns, createRowProjector } from "../internal/rows.js";
@@ -37,7 +39,7 @@ function csvField(value: unknown, delimiter: string, protect: boolean, quote: No
   if (value == null && nullValue !== undefined) value = nullValue;
   let text: string;
   if (value == null) text = "";
-  else if (value instanceof Date) text = Number.isFinite(value.getTime()) ? value.toISOString() : "";
+  else if (isDate(value)) text = Number.isFinite(value.getTime()) ? value.toISOString() : "";
   else if (typeof value === "boolean") text = value ? "True" : "False";
   else if (typeof value === "number") text = Number.isFinite(value) ? String(value) : "";
   else if (typeof value === "string") text = value;
@@ -94,7 +96,7 @@ async function write(rows: Iterable<unknown> | AsyncIterable<unknown>, sink: Byt
         text = "";
       }
     }
-    if (buffer.append(text + lineEnding)) return buffer.flush().then(() => { options.onProgress?.({ phase: "rows", rows: count }); });
+    if (buffer.append(text + lineEnding)) return buffer.flush().then(() => { notifyProgress(options.onProgress, { phase: "rows", rows: count + (header ? 0 : 1) }); });
   }
   if (options.includeHeader !== false && columns.length) await record(columns.map(c => c.header), true);
   await consumeRows(rows, signal, row => {
@@ -103,7 +105,7 @@ async function write(rows: Iterable<unknown> | AsyncIterable<unknown>, sink: Byt
     if (pending) return pending.then(() => { count++; });
     count++;
   });
-  await buffer.close(); options.onProgress?.({ phase: "complete", rows: count, bytes }); checkAbort(signal);
+  await buffer.close(); notifyProgress(options.onProgress, { phase: "complete", rows: count, bytes }); checkAbort(signal);
   return { rows: count, columns: columns.length, bytes };
 }
 
@@ -115,9 +117,9 @@ export async function writeCsv(rows: Iterable<unknown> | AsyncIterable<unknown>,
     let completedRows = 0;
     await write(rows, sink, { ...options, onProgress: p => {
       if (p.phase === "complete") completedRows = p.rows;
-      else options.onProgress?.(p);
+      else notifyProgress(options.onProgress, p);
     } });
     const blob = sink.toBlob("text/csv;charset=utf-8");
-    options.onProgress?.({ phase: "complete", rows: completedRows, bytes: blob.size }); checkAbort(options.signal); return blob;
+    notifyProgress(options.onProgress, { phase: "complete", rows: completedRows, bytes: blob.size }); checkAbort(options.signal); return blob;
   } catch (error) { sink.discard(); throw error; }
 }

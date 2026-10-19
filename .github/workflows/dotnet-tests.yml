@@ -137,7 +137,7 @@ jobs:
           npm ci --ignore-scripts --no-audit --no-fund --prefix OfficeIMO.JavaScript
           npm --prefix OfficeIMO.JavaScript --script-shell pwsh test
           npm --prefix OfficeIMO.JavaScript --script-shell pwsh run test:consumer
-          dotnet test OfficeIMO.Browser.Tests/OfficeIMO.Browser.Tests.csproj -c Release --logger trx
+          dotnet test OfficeIMO.JavaScript.Assets.Tests/OfficeIMO.JavaScript.Assets.Tests.csproj -c Release --logger trx
       - name: Verify browser workbooks, CSV vectors and offline examples
         shell: pwsh
         run: |

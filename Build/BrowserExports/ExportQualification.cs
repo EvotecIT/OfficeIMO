@@ -2,7 +2,7 @@ using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
 using HtmlTinkerX;
-using OfficeIMO.Browser;
+using OfficeIMO.JavaScript.Assets;
 
 /// <summary>Opt-in browser/output qualification, with bounded file delivery and per-artifact validation.</summary>
 internal static class ExportQualification {
@@ -42,10 +42,10 @@ internal static class ExportQualification {
         }
         if (args.Contains("--conditional")) cases = cases.Where(spec => spec.Format == "xlsx" && (!spec.Unique || spec.Worker || spec.DelayedPages))
             .Select(spec => spec with { Conditional = true }).ToList();
-        string script = BrowserAssets.Script.Content, qualification = File.ReadAllText(Path.Combine(repository, "Build", "BrowserExports", "qualification.js"));
+        string script = JavaScriptAssets.Script.Content, qualification = File.ReadAllText(Path.Combine(repository, "Build", "BrowserExports", "qualification.js"));
         string host = Path.Combine(evidence, "qualification.html");
-        File.WriteAllText(Path.Combine(evidence, BrowserAssets.Script.HashedFileName), script, new UTF8Encoding(false));
-        File.WriteAllText(host, "<!doctype html><meta charset=\"utf-8\"><title>OfficeIMO export qualification</title><script src=\"" + BrowserAssets.Script.HashedFileName + "\"></script>");
+        File.WriteAllText(Path.Combine(evidence, JavaScriptAssets.Script.HashedFileName), script, new UTF8Encoding(false));
+        File.WriteAllText(host, "<!doctype html><meta charset=\"utf-8\"><title>OfficeIMO export qualification</title><script src=\"" + JavaScriptAssets.Script.HashedFileName + "\"></script>");
         var engines = new[] { HtmlBrowserEngine.Chromium, HtmlBrowserEngine.Firefox, HtmlBrowserEngine.WebKit };
         string? selected = args.FirstOrDefault(a => a.StartsWith("--engine=", StringComparison.Ordinal))?.Substring(9);
         if (selected is not null) engines = engines.Where(e => string.Equals(e.ToString(), selected, StringComparison.OrdinalIgnoreCase)).ToArray();
@@ -81,7 +81,7 @@ internal static class ExportQualification {
                 if (errors.Count != 0) throw new InvalidDataException("Browser errors: " + string.Join("; ", errors));
                 string sha;
                 using (Stream hashSource = File.OpenRead(path)) sha = Convert.ToHexString(SHA256.HashData(hashSource)).ToLowerInvariant();
-                var report = new { engine = engine.ToString(), version = session.Browser?.Version, scriptHash = BrowserAssets.Script.HashedFileName,
+                var report = new { engine = engine.ToString(), version = session.Browser?.Version, scriptHash = JavaScriptAssets.Script.HashedFileName,
                     utc = DateTime.UtcNow, metrics, proof, sha256 = sha, retained = args.Contains("--keep") };
                 File.WriteAllText(Path.Combine(output, spec.Name + ".json"), JsonSerializer.Serialize(report, new JsonSerializerOptions { WriteIndented = true }));
                 Console.WriteLine($"Passed {engine}/{spec.Name}: {metrics.GetProperty("outputBytes")} bytes, {metrics.GetProperty("elapsedMs")} ms; every value validated.");

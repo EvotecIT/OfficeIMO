@@ -88,3 +88,19 @@ test("relative relationship targets with a colon in the first segment remain int
     assert.ok(zip.get(relationshipPartUri(source).slice(1)).content.includes('Target="' + expected + '"'));
   }
 });
+
+test("relationship IDs are unique per source and retain insertion order across streamed XML chunks", async () => {
+  const packageFile = new OpcPackage({ compression: "store" });
+  for (const uri of ["/first.xml", "/second.xml"])
+    packageFile.addPart({ uri, contentType: "application/xml", data: "<document/>" });
+  const relationship = i => ({ id: "link" + i, type: relationshipTypes.officeDocument, target: "https://example.com/?id=" + i + "&mode=report", external: true });
+  for (let i = 0; i < 2048; i++) packageFile.addRelationship("/first.xml", relationship(i));
+  assert.throws(() => packageFile.addRelationship("/FIRST.xml", relationship(1024)), /Duplicate relationship id/);
+  packageFile.addRelationship("/second.xml", relationship(1024));
+  const zip = await readZip(await packageFile.toBlob());
+  const first = zip.get("_rels/first.xml.rels").content;
+  const ids = [...first.matchAll(/<Relationship Id="([^"]+)"/g)].map(match => match[1]);
+  assert.deepEqual(ids, Array.from({ length: 2048 }, (_, i) => "link" + i));
+  assert.match(first, /id=2047&amp;mode=report/);
+  assert.equal([...zip.get("_rels/second.xml.rels").content.matchAll(/<Relationship /g)].length, 1);
+});
