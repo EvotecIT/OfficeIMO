@@ -6,6 +6,17 @@
   "profilePath": "./_temp/pipeline-profile.json",
   "steps": [
     {
+      "task": "engine-lock",
+      "id": "engine-lock-ci",
+      "modes": ["ci"],
+      "operation": "verify",
+      "path": "./.powerforge/engine-lock.json",
+      "failOnDrift": true,
+      "requireImmutableRef": true,
+      "reportPath": "./_reports/engine-lock.json",
+      "summaryPath": "./_reports/engine-lock.md"
+    },
+    {
       "task": "exec",
       "id": "prepare-powershell-tooling",
       "command": "pwsh",
@@ -3488,6 +3499,7 @@
       "maxDescriptionLength": 160,
       "applyGeneratedApiReferenceSeoProfile": true,
       "requireCanonical": true,
+      "requireStructuredData": true,
       "requireHreflang": true,
       "requireHreflangXDefault": true,
       "exclude": "downloads/showcase/**,downloads/integrations/**",
@@ -3528,7 +3540,7 @@
         "nuget:*",
         "powershellgallery:*"
       ],
-      "maxTotalFiles": 25000,
+      "maxTotalFiles": 35000,
       "maxFileBytes": 26214400,
       "navSelector": "header nav",
       "navCanonicalPath": "index.html",
