@@ -74,10 +74,13 @@ foreach (int page in matches.PageNumbers) {
 }
 ```
 
-Word does not store stable physical pages. Enabling `IncludePageLocations` runs the OfficeIMO.Word layout engine
-with the configured fonts and resources, maps visible body-block fragments to computed pages, and reports
-`OfficeDocumentPageProvenance.Computed`. Results can differ from Microsoft Word when fonts, metrics, or unsupported
-layout features differ, so the option is disabled by default.
+Word does not store stable physical pages. Enabling `IncludePageLocations` uses the same OfficeIMO.Word page layout
+as PDF and image export and reports `OfficeDocumentPageProvenance.Computed`. `PageLocationOptions.LayoutOptions`
+configures that layout. The normalized `Blocks` and `Pages` contain visible rendered text lines with page-specific
+identities and baseline extents in PDF user-space points. Logical text remains available through `Chunks`; tables
+and links remain at document scope because rendered lines do not identify their authored source blocks. Page Markdown
+therefore follows rendered text rather than authored paragraph or list structure. Results can differ from Microsoft Word
+when fonts, metrics, or unsupported layout features differ, so the option is disabled by default.
 
 Selected WordPerfect, WordStar, Ami Pro, Lotus Word Pro, Works/Write, and Word for DOS sources are included in `OfficeIMO.Word` but remain opt-in at the Reader registration boundary:
 

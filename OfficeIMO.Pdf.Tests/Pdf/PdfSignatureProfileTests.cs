@@ -45,6 +45,7 @@ public class PdfSignatureProfileTests {
             Y = 54,
             Width = 210,
             Height = 60,
+            Font = PdfSignatureTestFonts.LoadAppearanceFont(),
             Text = "Approved: Earth’s €"
         };
 
@@ -67,14 +68,16 @@ public class PdfSignatureProfileTests {
         Assert.Equal(54, widget.Y1);
         Assert.Equal(252, widget.X2);
         Assert.Equal(114, widget.Y2);
-        Assert.Contains("<417070726F7665643A20456172746892732080> Tj", raw, StringComparison.Ordinal);
-        var appearanceStream = Assert.Single(PdfSyntax.ParseObjects(preparation.PreparedPdf).Map.Values
+        var objects = PdfSyntax.ParseObjects(preparation.PreparedPdf).Map;
+        var appearanceStream = Assert.Single(objects.Values
             .Select(o => o.Value).OfType<PdfStream>(), s =>
                 s.Dictionary.Items.TryGetValue("Subtype", out var subtype) && subtype is PdfName { Name: "Form" });
         var resources = Assert.IsType<PdfDictionary>(appearanceStream.Dictionary.Items["Resources"]);
         var fonts = Assert.IsType<PdfDictionary>(resources.Items["Font"]);
-        var font = Assert.IsType<PdfDictionary>(fonts.Items["F1"]);
-        Assert.Equal("WinAnsiEncoding", Assert.IsType<PdfName>(font.Items["Encoding"]).Name);
+        var fontReference = Assert.IsType<PdfReference>(fonts.Items["F1"]);
+        var font = Assert.IsType<PdfDictionary>(objects[fontReference.ObjectNumber].Value);
+        Assert.Equal("Type0", Assert.IsType<PdfName>(font.Items["Subtype"]).Name);
+        Assert.IsType<PdfReference>(font.Items["ToUnicode"]);
         Assert.Contains("/Subtype /Widget", raw, StringComparison.Ordinal);
         Assert.Contains("/Subtype /Form", raw, StringComparison.Ordinal);
     }
@@ -140,8 +143,10 @@ public class PdfSignatureProfileTests {
         Assert.Contains("/Subtype /Image", raw, StringComparison.Ordinal);
         Assert.Contains("/Im1 Do", raw, StringComparison.Ordinal);
         Assert.Equal("Image", Assert.IsType<PdfName>(embeddedImage.Dictionary.Items["Subtype"]).Name);
-        Assert.Equal(1, Assert.IsType<PdfNumber>(embeddedImage.Dictionary.Items["Width"]).Value);
-        Assert.Equal(2, Assert.IsType<PdfNumber>(embeddedImage.Dictionary.Items["Height"]).Value);
+        Assert.Equal(2, Assert.IsType<PdfNumber>(embeddedImage.Dictionary.Items["Width"]).Value);
+        Assert.Equal(1, Assert.IsType<PdfNumber>(embeddedImage.Dictionary.Items["Height"]).Value);
+        Assert.Equal(appearance.ImageBytes, embeddedImage.Data);
+        Assert.Equal("DCTDecode", embeddedImage.Dictionary.Get<PdfName>("Filter")?.Name);
     }
 
     [Fact]

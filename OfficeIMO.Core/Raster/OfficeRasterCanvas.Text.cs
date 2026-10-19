@@ -38,7 +38,7 @@ public sealed partial class OfficeRasterCanvas {
             if (ShouldUseFallbackRuns(fallbackRuns, fontFamily)) {
                 double aggregate = 0D;
                 foreach (OfficeFontFallbackRun run in fallbackRuns) {
-                    aggregate += MeasureText(run.Text, size, run.FamilyName, style);
+                    aggregate += MeasureText(run.Text, size, run.FamilyRequest, style);
                 }
                 if (cache.Count >= MaxTextMeasurementCacheEntries) cache.Clear();
                 cache[key] = aggregate;
@@ -73,7 +73,7 @@ public sealed partial class OfficeRasterCanvas {
                 double aggregate = 0D;
                 foreach ((OfficeFontFallbackRun run, OfficeTextDirection runDirection) in PlanVisualFallbackRuns(text!, fontFamily, style, textDirection)) {
                     aggregate += MeasurePositionedText(
-                        run.Text, size, run.FamilyName, style, featureSettings, runDirection);
+                        run.Text, size, run.FamilyRequest, style, featureSettings, runDirection);
                 }
                 return aggregate;
             }
@@ -219,6 +219,7 @@ public sealed partial class OfficeRasterCanvas {
                 ? textAdvanceWidth.Value
                 : measured;
             double top = y + ResolveRasterTextTop(font, size, height, baselineFontSize);
+            if (baselineFontSize.HasValue) top += SnapBaselineOffset(y + baselineFontSize.Value);
             double textX = ResolveTextX(retainOverflow ? x : x + 3D, availableWidth, resolvedAdvance, alignment);
             double horizontalScale = measured > 0D && Math.Abs(resolvedAdvance - measured) > 0.0001D
                 ? resolvedAdvance / measured
@@ -233,7 +234,7 @@ public sealed partial class OfficeRasterCanvas {
                 List<List<OfficePoint>> contours = GetResolvedTextContours(value, font, textX, top, size, featureSettings, textDirection);
                 if (Math.Abs(horizontalScale - 1D) > 0.0001D) ScaleContoursX(contours, textX, horizontalScale);
                 if ((simulatedStyle & OfficeFontStyle.Italic) == OfficeFontStyle.Italic) SlantContours(contours, top, size);
-                FillTextContours(contours, color, (simulatedStyle & OfficeFontStyle.Bold) != 0 ? OfficeSyntheticTextStyle.BoldOffset(size) : 0D);
+                PaintTextContours(contours, color, (simulatedStyle & OfficeFontStyle.Bold) != 0 ? OfficeSyntheticTextStyle.BoldOffset(size) : 0D);
             }
 
             OfficeTextDecorationStyle resolvedUnderlineStyle = underlineStyle != OfficeTextDecorationStyle.None

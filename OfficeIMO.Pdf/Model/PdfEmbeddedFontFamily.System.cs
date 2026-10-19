@@ -493,6 +493,7 @@ public sealed partial class PdfEmbeddedFontFamily {
 
         yield return "/Library/Fonts";
         yield return "/System/Library/Fonts";
+        foreach (string root in OfficeIMO.Drawing.OfficeInstalledApplicationFonts.GetDirectories()) yield return root;
     }
 
     internal static System.Collections.Generic.IEnumerable<string> EnumerateTrueTypeFontFiles(string root) {

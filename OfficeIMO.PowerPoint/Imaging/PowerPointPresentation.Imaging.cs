@@ -25,36 +25,7 @@ namespace OfficeIMO.PowerPoint {
             if (consumer == null) throw new ArgumentNullException(nameof(consumer));
             ThrowIfDisposed();
             PowerPointPresentationImageExportOptions resolved = NormalizePresentationImageExportOptions(options);
-            PowerPointImageExportOptions slideOptions = CreateSlideImageExportOptions(resolved);
-            HashSet<int>? selectedSlideNumbers = CreateSelectedSlideNumberSet(resolved, Slides.Count);
-            int[] slideIndexes = Enumerable.Range(0, Slides.Count)
-                .Where(index => selectedSlideNumbers == null || selectedSlideNumbers.Contains(index + 1))
-                .Where(index => resolved.IncludeHiddenSlides || !Slides[index].Hidden)
-                .ToArray();
-            var encodingBudget = new OfficeImageExportEncodingBudget(resolved.MaximumTotalEncodedBytes);
-            OfficeImageExportBatchProcessor.ForEachOrdered(
-                slideIndexes,
-                resolved.MaximumDegreeOfParallelism,
-                (slideIndex, _, token) => {
-                    int slideNumber = slideIndex + 1;
-                    OfficeImageExportResult result = PowerPointSlideImageRenderer.Render(
-                        Slides[slideIndex],
-                        format,
-                        slideOptions,
-                        token,
-                        encodingBudget);
-                    return new OfficeImageExportResult(
-                        result.Format,
-                        result.Width,
-                        result.Height,
-                        result.Bytes,
-                        "Slide " + slideNumber.ToString(System.Globalization.CultureInfo.InvariantCulture),
-                        "PowerPoint slide " + slideNumber.ToString(System.Globalization.CultureInfo.InvariantCulture),
-                        result.Diagnostics);
-                },
-                consumer,
-                cancellationToken,
-                resolved);
+            PowerPointPageImageExport.RenderPages(this, format, resolved, consumer, cancellationToken);
         }
 
         /// <summary>
@@ -104,20 +75,5 @@ namespace OfficeIMO.PowerPoint {
             return resolved;
         }
 
-        private static HashSet<int>? CreateSelectedSlideNumberSet(PowerPointPresentationImageExportOptions options, int slideCount) {
-            if (options.SlideNumbers == null || options.SlideNumbers.Count == 0) {
-                return null;
-            }
-
-            int highestSlideNumber = options.SlideNumbers.Max();
-            if (highestSlideNumber > slideCount) {
-                throw new ArgumentOutOfRangeException(nameof(options), "Selected slide numbers must exist in the presentation.");
-            }
-
-            return new HashSet<int>(options.SlideNumbers);
-        }
-
-        private static PowerPointImageExportOptions CreateSlideImageExportOptions(
-            PowerPointPresentationImageExportOptions options) => options.Clone();
     }
 }

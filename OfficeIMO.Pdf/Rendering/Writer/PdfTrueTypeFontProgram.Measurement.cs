@@ -28,21 +28,25 @@ internal sealed partial class PdfTrueTypeFontProgram {
     }
 
     /// <summary>Measures canonical substituted tokens, preserving usage and failure order under one usage lock.</summary>
-    internal int MeasureDefaultLatinTokens(List<OfficeOpenTypeSubstitution.GlyphToken> tokens,
+    internal int MeasureDefaultLatinTokens(List<OfficeOpenTypeSubstitution.GlyphToken> tokens, OfficeOpenTypeGlyphPositioning[]? positions,
         bool recordGlyphUsage, Action<int, string>? observeUsage, CancellationToken cancellationToken) {
         if (recordGlyphUsage) {
             lock (_usageLock) {
-                return MeasureDefaultLatinTokensCore(tokens, recordGlyphUsage, observeUsage, cancellationToken);
+                return MeasureDefaultLatinTokensCore(tokens, positions, recordGlyphUsage, observeUsage, cancellationToken);
             }
         }
-        return MeasureDefaultLatinTokensCore(tokens, recordGlyphUsage, observeUsage, cancellationToken);
+        return MeasureDefaultLatinTokensCore(tokens, positions, recordGlyphUsage, observeUsage, cancellationToken);
     }
 
-    private int MeasureDefaultLatinTokensCore(List<OfficeOpenTypeSubstitution.GlyphToken> tokens,
+    private int MeasureDefaultLatinTokensCore(List<OfficeOpenTypeSubstitution.GlyphToken> tokens, OfficeOpenTypeGlyphPositioning[]? positions,
         bool recordGlyphUsage, Action<int, string>? observeUsage, CancellationToken cancellationToken) {
         int advance = 0;
-        foreach (OfficeOpenTypeSubstitution.GlyphToken token in tokens) {
+        for (int index = 0; index < tokens.Count; index++) {
+            OfficeOpenTypeSubstitution.GlyphToken token = tokens[index];
             cancellationToken.ThrowIfCancellationRequested();
+            // Kerning uses the drawing path's per-glyph rounding so wrapping matches painting.
+            if (positions != null && positions[index].XAdvance != 0)
+                advance = checked(advance + PdfExternalTextShaper.ScaleToPdfUnits(positions[index].XAdvance, UnitsPerEm));
             PdfExternalTextShaper.ValidateMeasuredGlyph(token.GlyphId, GlyphCount);
             int width = GetGlyphWidth1000(token.GlyphId);
             if (recordGlyphUsage) {

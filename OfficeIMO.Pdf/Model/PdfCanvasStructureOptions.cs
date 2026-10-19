@@ -3,6 +3,7 @@ namespace OfficeIMO.Pdf;
 /// <summary>Optional accessibility attributes for a canvas structure container.</summary>
 public sealed class PdfCanvasStructureOptions {
     private string? _alternativeText;
+    private string? _language;
     private PdfCanvasTableHeaderScope? _headerScope;
     private int _columnSpan = 1;
     private int _rowSpan = 1;
@@ -21,6 +22,21 @@ public sealed class PdfCanvasStructureOptions {
         set {
             if (value != null) Guard.NotNullOrWhiteSpace(value, nameof(AlternativeText));
             _alternativeText = value?.Trim();
+        }
+    }
+
+    /// <summary>Optional language tag for this structure and its descendants, for example "fr-FR". Null inherits the parent language.</summary>
+    /// <remarks>Uses the language-tag syntax accepted by PDF compliance assessment; rejects empty values and control characters.</remarks>
+    public string? Language {
+        get => _language;
+        set {
+            if (value != null) {
+                Guard.NotNullOrWhiteSpace(value, nameof(Language));
+                if (value.Any(char.IsControl)) throw new ArgumentException("PDF structure language cannot contain control characters.", nameof(Language));
+                if (!PdfComplianceAnalyzer.IsValidPdfLanguageTag(value))
+                    throw new ArgumentException("PDF structure language must have valid language-tag syntax, for example fr-FR.", nameof(Language));
+            }
+            _language = value?.Trim();
         }
     }
 
@@ -101,6 +117,7 @@ public sealed class PdfCanvasStructureOptions {
         ValidateAssociatedFileLimits(_maxAssociatedFileBytes, _maxTotalAssociatedFileBytes);
         return new PdfCanvasStructureOptions {
             AlternativeText = AlternativeText,
+            Language = Language,
             HeaderScope = HeaderScope,
             ColumnSpan = ColumnSpan,
             RowSpan = RowSpan,

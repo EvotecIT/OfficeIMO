@@ -1,5 +1,163 @@
 # Upgrading OfficeIMO
 
+## Strict PDF standards helpers
+
+`PdfOptions.UsePdfA(...)` and `UsePdfUa(...)` enable the strict compliance gate. Saving rejects missing font embedding, accessibility prerequisites and incompatible combined profile declarations; every declared A/UA profile is checked against the saved bytes. Applications that only prepare metadata can use `ConfigurePdfAGroundwork(...)` and `ConfigurePdfUaGroundwork(...)` instead. External validation remains necessary for a conformance claim on an exact artifact.
+
+PDF/A-4, PDF/A-4e, PDF/A-4f and PDF/UA-2 use PDF 2.0. PDF/A-4 metadata lives in XMP; callers reading only trailer Info fields should read `PdfDocument.Load(bytes).Inspect().XmpMetadata`.
+
+Hybrid invoice generation supports only PDF/A-3a, PDF/A-3b and PDF/A-3u, optionally combined with PDF/UA-1, and preserves those configured profiles. Replace PDF/A-4, PDF/A-4e or PDF/A-4f hybrid options with a supported PDF/A-3 profile, and replace PDF/UA-2 with PDF/UA-1 for hybrids. Use presentation-only output when invoice XML is not required; general PDF/A-4, PDF/A-4e and PDF/A-4f output remains available. Saved PDF/A-4f attachments cannot satisfy Factur-X/ZUGFeRD compliance proof.
+
+## Lossless PDF optimization
+
+The optimizer preserves XMP packets, embedded-file streams and output-intent ICC streams without changing their encoding or contents, and retains the source Info dictionary only when it exists. PDF/A-1 inputs reject object-stream or xref-stream settings; use `Balanced`, `Archival` or `Web`, or set `UseObjectStreams = false` and `XrefFormat = ClassicTable`. Inputs with filtered XMP metadata are rejected before output is written because the optimizer cannot both remove its filter and preserve the packet encoding. Object/xref-stream settings also reject unreadable XMP because its declared profile cannot be established safely; use classic cross references or supply metadata within the supported XML read limits. Signed files remain blocked: optimize before signing.
+
+## PAdES signatures and visible text
+
+`PdfCmsExternalSigner` honors the prepared subfilter. `CadesDetached` creates PAdES baseline CMS with a signing-certificate-v2 attribute and without CMS signing-time; SHA-1 and encapsulated content are rejected for this profile. RSA and ECDSA signing use platform key handles. `DetachedCms` retains its CMS signing-time behavior. Document timestamps require an RFC 3161 signer rather than the detached CMS adapter.
+
+Visible text appearances require `PdfVisibleSignatureAppearanceOptions.Font` with an embedded TrueType font. Supply the font explicitly; the writer rejects missing fonts instead of emitting unembedded Helvetica. Image-only appearances with `ShowText = false` do not need a text font.
+
+For B-T, provide `CmsSigningOptions.SignatureTimestampProvider`, for example `Rfc3161TimestampClient.GetTimestamp`. The client accepts caller-owned HTTP transport and trust policy, checks nonce, imprint and TSA signature, and returns the token for the CMS unsigned attribute. Optional evidence fetching uses `PdfLongTermValidationEnricher.EnrichAsync`; existing caller-supplied DSS/VRI enrichment remains available. Embedded certificates and revocation data alone do not establish a complete trusted B-LT validation path.
+
+## PDF graphics, images and stream compression
+
+Direct PDF authoring compresses page content with Flate by default. Set `PdfOptions.CompressContentStreams = false` when a tool needs plain page operators. ICC profiles, embedded files and widget appearances are compressed independently; XMP packets remain uncompressed. Tools inspecting PDF streams must decode their declared filters before reading their content. `PdfAttachmentInfo.SizeBytes` remains the encoded stream size; use `DeclaredSizeBytes` for the original size declared in attachment parameters, or extract the payload when its actual decoded size is required.
+
+`OfficeIMO.Reader.Pdf` attachment `sizeBytes` and total-size metadata also describe encoded streams. `encodedSizeBytes` names that value explicitly; `declaredSizeBytes` carries the untrusted payload-size claim when present. Metadata inspection does not decode attachments.
+
+Image authoring applies EXIF rotation and mirroring through placement matrices. Previously unoriented images can rotate or mirror, and their intrinsic dimensions and resolution axes can swap. JPEG DCT payloads, PNG sample depth, ICC profiles, transparency masks and image sharing are retained through orientation changes. Supported PNG and JPEG ICC profiles use ICCBased colour spaces; indexed PNGs keep their palettes. Sixteen-bit PNG samples are retained in PDF 1.5 and newer. PDF 1.4 output rounds them to eight bits. Crops and authored mirrors or rotations compose around the target frame. Visible signature images now follow the same resource-allocation and target-version rules.
+
+Authored-layout reports now include glyph and inline paint overhang, rotated and viewport cells, paragraph frames and free-text boxes. Existing report consumers can receive warnings for previously silent clipping. Enlarge the affected frame or adjust its content; geometry that cannot be inspected within the bounded contract is reported as unassessed. Enabling these diagnostics does not change PDF text emission.
+
+Supported SVG images embedded in drawings retain vector paths, gradients, clipping and text. Tiling patterns use reusable PDF pattern cells. Expanded link annotations count against a shared generation budget derived from the existing pattern `maximumTileCount` limits, including nested and running content. Canvas gradients interpolate premultiplied colour channels, avoiding dark fringes beside transparent stops; imported SVG/XPS gradients retain their producer's separate colour/alpha interpolation. Regenerate image baselines that relied on the earlier rasterized SVG or canvas-gradient appearance.
+
+PDF page images and SVG exports retain horizontal and vertical text reflection, including inside clips. Regenerate previews of mirrored text that previously disappeared or used only its baseline rotation.
+
+## Image encoding defaults
+
+PNG and lossless WebP now default to `OfficeImageEncodingEffort.Balanced`. This replaces exhaustive candidate searches with bounded heuristics and one main compression plan. Set `RasterEncoding.Png.Effort` or `RasterEncoding.Webp.Effort` to `Smallest` to select the exhaustive compressor, or to `Fast` for lower encode cost. Direct codec option objects expose the same `Effort` property. Pixels remain lossless at every level; compressed bytes and sizes can change. PNG effort applies to `Compression = Optimal`; explicit `Fastest` and `Stored` compression retain their existing contracts. Lossy WebP quality remains separate.
+
+PNG optimal output chooses exact grayscale, grayscale-alpha, RGB, RGBA, or indexed samples instead of requiring a fixed channel layout. Palette transparency retains every original RGBA value. Generated PNGs also declare sRGB with matching gamma and chromaticities; a supplied ICC profile replaces those declarations through `EncodeWithMetadata`. Consumers must read IHDR rather than assume RGBA. Encoded bytes and image baselines can change while decoded pixels remain identical. `EncodeScanlines` and `CreateFromCompressedScanlines` retain the caller-selected layout and do not add automatic color declarations. The public raster model remains eight-bit; use `OfficePngWriter.EncodeRgba64` to encode sixteen-bit source samples directly.
+
+JPEG enables optimized Huffman tables by default. Quality 85, 4:4:4 sampling, and sequential scans remain the defaults, and decoded pixels are unchanged by Huffman optimization. Set `OfficeJpegEncodeOptions.OptimizeHuffman = false` to retain standard tables and the lower-memory MCU-at-a-time path.
+
+SVG non-interpolated images are embedded rasters with sampling hints instead of pixel rectangles. Consumers that inspect SVG structure must accept `<image>` and data URIs. Supported already-painted text can become paths; opt into eligible ordinary text paths with `SvgTextAsPaths`. Paths preserve appearance and logical accessibility labels but are not selectable SVG text.
+
+## PowerPoint PDF and slide images
+
+PowerPoint PDF and PNG/JPEG/SVG exports share one slide layout. Existing `ToPng`, `ToJpeg`, `ToSvg`, `ExportImage`, `ExportImages`, and fluent builders keep their signatures. The core `OfficeIMO.PowerPoint` package now owns forward PDF conversion and references `OfficeIMO.Pdf`; the `OfficeIMO.PowerPoint.Pdf` namespace is unchanged. Rebuild applications that used the converter types from the former adapter assembly.
+
+`AddTextBox` creates an ordinary text shape. Set `PlaceholderType` and `PlaceholderIndex` explicitly when creating a template placeholder. Ordinary text shapes on slide layouts remain visible inherited content; structural placeholder prompts supply styles and geometry.
+
+`PowerPointImageExportOptions.LayoutOptions` supplies the shared `PowerPointToPdfOptions`, including font policy. Image diagnostics now include the PDF conversion and rendering diagnostics. Code that filters the former image-only diagnostic codes should use the canonical codes, such as `text-box-overflow` and `small-caps-approximation`. `CreateVisualSnapshot().Drawing` contains the PDF page scene, including glyph paths; use the snapshot's `TextSpans` for text and geometry instead of assuming `OfficeDrawingText` or `OfficeDrawingRichText` elements.
+
+PowerPoint page-image batches retain zero-based `SequenceIndex` and the selected batch's `SequenceCount`, alongside the original slide identity. Snapshot creation enforces `RenderTimeout` through the shared image-export deadline and reports `OfficeImageExportTimeoutException`.
+
+DrawingML normal autofit applies stored font scaling and line-spacing reduction, or computes shrinking when the scale is absent. Shape autofit grows the exported frame. Fixed frames retain overflowing text without ellipses and report overflow; the slide edge clips visible painting. Tables use PowerPoint cell insets and grow rows for content. Image output therefore changes from the former preview renderer. Embedded-image byte limits also apply to the PDF layout; the aggregate limit covers the selected conversion, rather than resetting for each rendered image.
+
+PDF-to-PowerPoint extension-call syntax is unchanged. Static calls move from `PowerPointPdfConverterExtensions.ToPowerPointPresentation*` and `.SaveAsPowerPoint*` to `PdfPowerPointConverterExtensions`, which remains in `OfficeIMO.PowerPoint.Pdf`.
+
+Layout and master placeholder prompts are not slide content. Create a concrete slide placeholder to display its text or field; it inherits the template's geometry and style. Ordinary layout and master artwork remains visible.
+
+## Office conversion fonts and Word page images
+
+The balanced PDF resource policy embeds installed document fonts by default for Word, Excel, PowerPoint, HTML and Markdown. Fonts supplied by installed Office applications on macOS are discoverable. Output sizes, line breaks and pagination can change as source fonts replace standard Helvetica fallbacks. Review substitution diagnostics and the `font-embedding-cost` entries for the actual font payload cost. Set `ResourcePolicy = PdfResourcePolicy.CreatePortableDeterministic()` or supply a fixed rendering profile when output must not depend on host fonts.
+
+Word image export (`ToPng`, `ToJpeg`, `ToSvg`, `ExportImages`, and their fluent builders) now uses the same page layout and font policy as Word-to-PDF. Regenerate preview baselines: page counts, line breaks, styles and borders can change, and the preview renderer no longer shortens text with an ellipsis. Set `WordImageExportOptions.LayoutOptions` to the same `WordToPdfOptions` used for PDF export when customizing layout.
+
+`OfficeIMO.Word` now references `OfficeIMO.Pdf`, which depends only on `OfficeIMO.Core`; no external runtime dependency is added. Forward conversion APIs and `WordToPdfOptions` move from the `OfficeIMO.Word.Pdf` assembly to `OfficeIMO.Word`, retaining their namespace. Recompile consumers; PDF-to-Word import still requires `OfficeIMO.Word.Pdf`.
+
+`WordDocumentVisualSnapshot.Fragments` and the guessed source-block fragment/region types are removed. Use `TextSpans` for text and geometry from the actual laid-out page, in PDF user-space coordinates. `IncludeDocumentContent`, builder `IncludeContent`/`WithoutContent`, and preview-specific `WordImageExportDiagnosticCodes` are removed. PowerShell callers should remove `-IncludeDocumentContent` from `New-OfficeWordImageOptions`; Word page images always render document content. Export diagnostics now carry the same conversion and rendering codes as the PDF-backed route. Skipped unsupported objects are classified as omissions, so `RequireNoOmissions` rejects them on both routes; font, wrapping and appearance fallbacks remain approximations. An out-of-range page index throws `ArgumentOutOfRangeException` instead of producing an empty preview.
+
+With Reader Word `IncludePageLocations`, `Pages` and normalized `Blocks` now contain visible page text lines with PDF user-space baseline extents, rather than source paragraph/table fragments. Their IDs are page/line-specific; logical text remains in `Chunks` and authored tables/links remain at document scope. Page search and Markdown follow the rendered lines. This projection reports `officeimo.reader.word.rich-v5` and remains opt-in.
+
+Inline header and footer pictures retain their height and reserve body space. Empty table paragraphs retain their mark's minimum line height, including explicit cell margins. Supported non-wrapping floating pictures retain paragraph/margin anchors and signed offsets. Pictures extending beyond a page retain their placement and report clipping instead of entering document flow.
+
+Header/footer SmartArt authoring and reading now use relationships on the containing story for diagram data, layout, colours, quick style and cached drawing. Regenerate DOCX files whose header/footer diagrams were authored with relationships only on the main document part; saving an existing malformed file does not relocate those parts automatically. Body diagrams retain their existing relationship ownership.
+
+## Markdown PDF and page images
+
+Markdown PDF export preserves code-block indentation, including consecutive tabs, and uses the same monospace font selection for inline code and fenced code. Footnote references are superscript internal links; definitions follow the document body. Parent ordered items following nested lists remain separate items in both HTML and PDF output.
+
+`PdfTextFallbackFeatures.Default` includes `MultilingualFonts`. Converters using this shared default can embed installed fallback fonts for Japanese, Chinese, Arabic, and Hebrew under their resource policy. Rebuild consumers that compiled the enum constant into their own options. Select `None`, or individual flags without `MultilingualFonts`, when exact font selection is required. Font coverage still depends on the permitted fonts available to the host.
+
+RTF PDF export exposes `RtfToPdfOptions.TextFallbacks` with the same default. Installed fallback faces cover characters missing from the authored font; system-font access remains controlled by `ResourcePolicy.AllowSystemFontEmbedding`.
+
+`PdfParagraphStyle.TextWhitespaceMode` overrides whitespace handling for one paragraph without changing the document's prose. A null value inherits `PdfOptions.TextWhitespaceMode`.
+
+## PDF text output and embedded fonts
+
+Generated PDF text applies pair kerning by default for standard and embedded fonts, so line widths, wrapping and page breaks can change. Set `PdfOptions.TextKerning = false` to keep the previous unkerned advances. Regenerate visual baselines that pinned earlier line breaks.
+
+Line wrapping follows Unicode line breaking (UAX #14). Words can now break after hyphens and slashes, at zero-width spaces and between CJK characters, so a token such as `buyer-service-1` can wrap as `buyer-` / `service-1`. `PdfOptions.UseAutomaticHyphenation(language)` adds opt-in US English and German pattern hyphenation; it replaces any `UseTextHyphenationDictionary` configuration, and the last one configured applies.
+
+Right-to-left and Arabic text is shaped and ordered automatically, without configuring a shaping provider. Glyphs are written in visual order, and pure right-to-left runs no longer carry a run-wide `ActualText`; their Unicode text comes from the font's `ToUnicode` map. Logical text extraction is unchanged.
+
+Text is written as one `TJ` array per run, with numeric kerning and justification adjustments, instead of per-glyph `Tj` operators with individual text matrices. `ActualText` is written only for clusters that `ToUnicode` cannot express. Tools that parse OfficeIMO content streams should accept `TJ` arrays.
+
+Embedded font names carry the standard six-letter subset tag, for example `ABCDEF+Arial`. TrueType subsets are renumbered compactly and mapped through `/CIDToGIDMap`. OpenType/CFF fonts embed as `/FontFile3 /Subtype /CIDFontType0C` when a CID-keyed subset can be proven, and otherwise keep the `/OpenType` program; `FontFile3` streams no longer carry `/Length1`. Assertions on `BaseFont` or `FontName` should ignore the subset tag.
+
+`PdfReadPage.GetTextSpans()` returns one span per text-show operator. For kerned `TJ` arrays from OfficeIMO and other producers, that is usually a whole same-font line rather than a word or glyph. Use `PdfTextSpan.TryGetGlyphs` or the `PdfUnderstandingWord` results of document understanding for glyph or word geometry, such as a redaction area around one word. A pure right-to-left span reports `PdfTextSpan.Text` in paint order.
+
+`OfficeBidiTextResolver` implements the Unicode Bidirectional Algorithm (UAX #9) and `OfficeTextLineBreaks` implements UAX #14, both from Unicode 16.0 data. Edge cases follow the standard: for example, the break opportunity at U+1806 MONGOLIAN TODO SOFT HYPHEN is now before it rather than after. Exact-standard-font mode still throws `PdfTextEncodingPreflightException` for text outside WinAnsi; its message now names `UseTextFallbacks()`, `MultilingualFonts` and `UseFontFamily` as remedies.
+
+## Managed PDF rendering
+
+PDF page rendering to PNG, JPEG, WebP, TIFF and Drawing follows PDF viewer conventions more closely, so pixel comparisons against earlier renders change:
+
+- Strokes default to butt caps, miter joins and a miter limit of 10, and the `M` operator and ExtGState `/ML` are honoured. Zero-width and sub-pixel strokes paint one device pixel. The `render.operator.miter-limit-simplified` capability is no longer reported.
+- Raster sizes no longer gain a row or column from floating-point noise; a 792-point page at 150 DPI is 1650 rows, not 1651. Safety-reduced scales keep strict whole-pixel sizing.
+- Downscaled images are box-filtered and image edges are anti-aliased, and clipping paths are anti-aliased.
+- Embedded CFF, Type1C, CIDFontType0C, OpenType/CFF and Type 1 fonts render from their own outlines instead of a substituted system font, so the `font-cff-substitution` and `font-substitution` diagnostics no longer appear for them. Text in the standard Symbol and ZapfDingbats fonts extracts as Greek, mathematical and dingbat characters rather than ASCII letters.
+- Text render modes 1, 2, 5 and 6 stroke glyph outlines. Text clipping modes 4–7 still do not clip later painting.
+- Function-based (type 1) and mesh (types 4–7) shadings render. Axial and radial shadings without `/Extend` leave their ends unpainted.
+- Images with 1, 2, 4 or 16 bits per component, resized or non-8-bit soft masks, `/Matte`, and JBIG2 images render. JBIG2 direct regions honour the page combination policy, and arithmetic symbol dictionaries reuse retained generic and refinement bitmap contexts, including global dictionaries. Regenerate previews of these images that used the earlier context reset. Soft masks with a `/TR` transfer function apply it. Undecodable images report `render.resource.image-unsupported` instead of being omitted silently, and knockout groups report `render.resource.knockout-group-simplified`.
+- Widgets without appearance streams, and text and choice widgets under `/NeedAppearances`, render a transient synthesized appearance reported as `render.annotation.appearance-synthesized` instead of `render.resource.annotation-appearance-missing`. The source document is not changed. List boxes retain visible `/Opt` rows, export/display labels, all selected highlights, and `/TI` scrolling; combo boxes retain their single selected display value. Filling and incremental appearance regeneration use the same list-row paint and clear selection without hiding the options. Incremental text and choice appearances preserve inherited Type0 glyph encoding and apply the caller's decoded-stream limit while reading their font maps.
+
+`OfficeColorSpaceConverter.FromCmyk` interpolates between SWOP process-colour solids instead of computing `255 × (1 − c) × (1 − k)`. Pure cyan becomes RGB (0, 173, 239) and 100% black becomes (35, 31, 32). Update code that compares exact DeviceCMYK conversion results.
+
+## Word run backgrounds
+
+Word HTML and native PDF conversions inherit run highlighting and shading through direct formatting, character and paragraph styles, applicable table styles, and document defaults. Explicit highlight `none` and shading resets still take precedence. Dark-magenta highlights use `800080`; native PDF dark-yellow highlights use `808000`. Regenerate exports that omitted inherited backgrounds or used the earlier highlight colours.
+
+## Native chart and SmartArt rendering
+
+PowerPoint cached SmartArt drawings are checked against each source node identity and its exact visible text. `SetNodeText` updates a current producer cache together with the source node, preserving its geometry and text style. Externally edited data whose cache still has old wording or swapped labels is rejected instead of exporting stale labels.
+
+Series fill and outline paint are independent in shared chart snapshots. Use
+`OfficeChartSeries.WithSeriesStyle(OfficeChartPointStyle)` when an unfilled series must retain
+an outline; a transparent `Color` is no longer needed for no-fill. Word, PowerPoint and Excel
+PDF and image exports preserve explicit area, bubble and column outlines independently of
+fill, including point overrides where supported. Bottom-aligned table text also reserves the
+named font's final descent when its line advance is shorter than its font box, preventing
+spreadsheet glyphs from being clipped at a cell or worksheet boundary.
+
+XLSX/ODS conversion retains the workbook default font separately from cell fonts. Column-width measurement after an ODS round trip uses the authored default family, size, bold and italic face instead of resetting to Calibri. Regenerate converted workbooks and previews that depended on the reset.
+
+`WordChart.SetSeriesColor` and series palettes replace the base fill on filled cartesian, filled radar, bubble and 3-D line series, and the connecting stroke on 2-D line, scatter and unfilled radar charts. They replace an existing no-fill choice and preserve independent outlines on filled series. Code inspecting line-chart XML should read the colour from `a:ln/a:solidFill`.
+
+Word, Excel and PowerPoint charts whose series or slices store no colour now render with the colours Office gives them, instead of being skipped (PowerPoint, Word images) or drawn with OfficeIMO's fallback palette (Excel, Word PDF). The colour comes from the classic `c:style` number (2 when absent) and the theme accents; from the seventh series on, Office's darker and lighter variations apply. Charts authored through OfficeIMO APIs that store no series colour change colour accordingly. A palette passed in `PowerPointToPdfOptions.ChartStyle` or `ExcelToPdfOptions.ChartStyle` still replaces these automatic colours.
+
+Office does not consult the `cs:chartStyle` and `cs:colorStyle` parts when it draws a chart, so they no longer prevent Word charts from rendering and no longer change exported colours. An `ExcelChartStylePreset` colour style no longer reorders the exported automatic pie palette.
+
+Other native chart geometry now follows Office, so chart renders and baselines change:
+
+- Line and scatter series without a stored marker draw Office's automatic markers (size 7 diamond, square, triangle, and so on), even when the line group sets `c:marker` to 0.
+- Horizontal bar charts draw the first category at the bottom unless the category axis is reversed (`maxMin`). Charts authored with an explicit `minMax` orientation were previously drawn top-down.
+- Line and area points sit in the middle of each category, where the category labels are. `OfficeChartLayout.WithCategoryPointsOnTickMarks(true)` restores tick-mark placement for snapshots you build yourself; native charts with `c:crossBetween val="midCat"` set it automatically.
+- Native `c:gapWidth` and `c:overlap` set bar spacing (`OfficeChartLayout.WithBarGeometry`), and stock charts draw high-low lines (`OfficeChartLayout.WithHighLowLines`).
+- Date category axes format their cached serial numbers with the axis or source-linked number format, such as `m/d/yyyy`.
+- Charts that set `c:plotVisOnly` but carry no workbook at all render from their cached values, as Office does. Charts whose workbook link is external or unresolved still return `false`.
+
+3-D, pie-of-pie and surface charts still render as flat 2-D projections, and now say so: PowerPoint PDF and image export report `chart-projected`, Word PDF reports `NativeBodyChartSimplified`, and Excel PDF reports `chart-approximation`. Excel PDF export now draws stock and surface charts this way instead of skipping them. A skipped PowerPoint chart's `unsupported-chart` warning names the actual reason. Reading a chart snapshot no longer hides unexpected exceptions; only document content that cannot be projected returns `false`.
+
+Flat 3-D line projections use the visible ribbon fill before its border colour. An outline-only ribbon retains its outline colour; disabling both fill and outline leaves the series invisible. Caller palettes still replace automatic ribbon colours.
+
+PowerPoint SmartArt now renders from the drawing Office caches with the diagram (`ppt/diagrams/drawing*.xml`), so producer layouts keep their shapes, colours and text positions in PDF and image export. When that drawing is missing or no longer matches the diagram text, the existing semantic layout is used; if neither applies, `unsupported-smartart` names both reasons. Worksheet SmartArt is reported as `WorksheetSmartArt` in Excel PDF export instead of being omitted silently.
+
+DrawingML `hueOff`, `hueMod`, `satOff` and `satMod` colour transforms are applied, so colours that use them, common in SmartArt, no longer prevent a chart or shape from rendering. DrawingML `tint` and `shade` blend in linear sRGB and retain the proportion specified by the document. Theme table bands, shape fills and gradient stops can therefore change colour; the generic `OfficeColorTransforms.Tint` and `Shade` helpers keep their encoded-RGB contract.
+
 ## Verified archive copying
 
 `ArchiveInspection.CopyTo` stages ZIP, CAB and embedded MSI cabinet members in private temporary storage before writing verified content to the destination. Set `ArchiveInspectionOptions.MaxTemporaryBytes` when copying members larger than the default 256 MiB staging allowance. Raising `MaxEntryBytes` alone does not raise this disk limit. Input snapshots retain their separate `MaxInputBytes` policy.
@@ -147,6 +305,44 @@ Read/edit operations continue to use their explicit `PdfLoadOptions` limits.
 The authoring limits bound admitted and emitted payload bytes, not defensive
 copies or peak process memory. See [attachment authoring limits](OfficeIMO.Pdf/README.md#attachment-authoring-limits)
 for configuration and destination-preservation behavior.
+
+## Excel bubble chart snapshots
+
+`ExcelChart.TryGetSnapshot(...)` reads bubble series from worksheet ranges,
+numeric literals, and numeric caches. Each series exposes aligned `XValues`,
+`Values`, and signed source `BubbleSizes`. Unsupported or inconsistent triples fail
+snapshot reading. PDF and image exports render true bubbles through the shared
+Core renderer, preserving `bubbleScale`, area/width `sizeRepresents`, and automatic
+series colours. Snapshots expose `BubbleScalePercent`, `BubbleSizeMode`, and
+`ShowNegativeBubbles`.
+
+Negative sizes remain in the snapshot. When `showNegBubbles` is false, their
+bubbles are omitted as requested. When true, exports still omit negative-size
+bubbles and report `ExcelChartBubbleNegativeSizesUnsupported`; the shared renderer
+cannot paint them. PDF warnings retain this omission classification through
+`ExcelPdfExportWarning.LossKind`. Invalid scale/size settings and 3-D bubble projections report
+`ExcelChartBubbleSettingsApproximated`. Native Excel's absolute bubble diameters
+and printer geometry are not guaranteed.
+
+Worksheet-canvas PDF retains charts anchored above or left of the populated cells
+without expanding the table's cell range. Large leading gaps use the computed
+scene fit even below five percent so retained cells stay inside the page.
+
+## Excel worksheet canvas drawings and print layout
+
+Worksheet-canvas PDF export includes supported drawing shapes and text boxes.
+`UseWorksheetImages` controls these objects along with worksheet pictures.
+Visual snapshots retain `OfficeConditionalIconKind.None` for custom `NoIcons`
+rules so value suppression survives without painted artwork or reserved icon space.
+Feature preflight accepts renderable shapes; unsupported objects and drawing
+hyperlinks remain reported. The flow-table profile reports omitted shapes. Its compact conditional-arrow indicators preserve upward, downward and sideways directions for yellow arrows.
+
+Fit-to-page planning includes retained drawing extents before choosing page
+breaks. Wide banners can therefore reduce the print scale and page count.
+Drawing text sizes retain their authored point units in both PDF and image output.
+Horizontal and vertical print centering apply within print margins, including
+page-aware PNG/SVG export with `SplitByManualPageBreaks = true`. Ordinary range
+and worksheet images remain cropped to the selected cells.
 
 ## Excel worksheet page-fit inspection
 
@@ -497,9 +693,11 @@ Image export uses the PDF writer's glyph-coverage contract. An uncovered charact
 
 Tables with `break-inside:auto` can split at legal row boundaries even when the entire table would fit on a new page. Author `break-inside:avoid` on the table when keeping it together is required.
 
+CSS `box-shadow` retains authored zero blur and spread values. Sharp inset shadows, including table rows and generated content, no longer become blurred during style normalization. Regenerate image baselines that captured that blur.
+
 ## Static HTML rendering and capability profiles
 
-Existing `ToPdfBytes()` calls retain print-paged output. Use `HtmlRenderRequest.Create()` with `PrintPaged`, `ScreenMediaPaged`, or `ScreenSnapshotPaged` when selecting a layout contract explicitly. The API and `officeimo html convert --profile` use the same request; `officeimo html render` writes selected PNG or SVG pages and their manifest to an archive. MHTML and site-bundle inputs retain bounded archive resources without permitting network or local-file reads by default. See the [HTML package](OfficeIMO.Html/README.md) and [PDF adapter](OfficeIMO.Html.Pdf/README.md) for examples and profile limits.
+Existing `ToPdfBytes()` calls retain print-paged output. Use `HtmlRenderRequest.Create()` with `PrintPaged`, `ScreenMediaPaged`, or `ScreenSnapshotPaged` when selecting a layout contract explicitly. The API and `officeimo html convert --profile` use the same request; `officeimo html render` writes selected PNG or SVG pages and their manifest to an archive. MHTML and site-bundle inputs retain bounded archive resources without permitting network or local-file reads by default. For site-bundle image and display-list output, `ResourcePolicy.AllowEmbeddedPackageResources` controls archive reads separately from host reads. Permission changes on request snapshots apply to synchronous and asynchronous rendering. See the [HTML package](OfficeIMO.Html/README.md) and [PDF adapter](OfficeIMO.Html.Pdf/README.md) for examples and profile limits.
 
 `HtmlRenderCapability.SupportLevel` and `HtmlRenderSupportLevel` are replaced by `HtmlRenderCapability.ProfileBindings` and the versioned profile contract. Inspect the selected binding's coverage, handling, maturity, and promotion independently. Custom capability entries pass `HtmlCapabilityStage` and their profile bindings to the constructor; a single support value no longer describes every media, layout, and output profile.
 
@@ -507,15 +705,6 @@ Existing `ToPdfBytes()` calls retain print-paged output. Use `HtmlRenderRequest.
 
 Native HTML rendering honors the `open` attribute on `<details>`. Closed disclosures show their first `<summary>` and omit the body from layout and PDF bookmarks; earlier native output flattened closed bodies into the document. Report producers that need the complete body in print must add `open` to the intended disclosures in their script-free export HTML. A JavaScript `beforeprint` handler is not executed by the static renderer.
 
-## PNG scan sample layout
-
-`OfficePngCompression.Optimal` encodes fully opaque black-and-white raster images as
-one-bit grayscale PNGs. Other opaque images use eight-bit RGB samples. Decoded
-pixels, dimensions, and density remain unchanged.
-Consumers that inspect samples or add color-dependent PNG chunks must read the
-IHDR bit depth and color type instead of assuming eight-bit RGBA output.
-`EncodeScanlines` retains the explicitly requested sample layout; `Stored` raster
-encoding retains eight-bit RGBA output.
 
 ## PDF editing protection and source fonts
 

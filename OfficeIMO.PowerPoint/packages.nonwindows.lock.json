@@ -95,6 +95,12 @@
       },
       "officeimo.core": {
         "type": "Project"
+      },
+      "officeimo.pdf": {
+        "type": "Project",
+        "dependencies": {
+          "OfficeIMO.Core": "[3.5.1, )"
+        }
       }
     },
     ".NETStandard,Version=v2.0/linux-arm64": {},
@@ -140,6 +146,12 @@
       },
       "officeimo.core": {
         "type": "Project"
+      },
+      "officeimo.pdf": {
+        "type": "Project",
+        "dependencies": {
+          "OfficeIMO.Core": "[3.5.1, )"
+        }
       }
     },
     "net10.0/linux-arm64": {
@@ -227,6 +239,12 @@
       },
       "officeimo.core": {
         "type": "Project"
+      },
+      "officeimo.pdf": {
+        "type": "Project",
+        "dependencies": {
+          "OfficeIMO.Core": "[3.5.1, )"
+        }
       }
     },
     "net8.0/linux-arm64": {

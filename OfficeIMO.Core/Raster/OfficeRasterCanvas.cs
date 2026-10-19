@@ -488,6 +488,10 @@ public sealed partial class OfficeRasterCanvas {
             return;
         }
 
+        if (PdfImageSampling) {
+            DrawPdfImage(image, imageTransform, inverseTransform, sourceLeft, sourceTop, sourceWidth, sourceHeight, interpolate);
+            return;
+        }
         (double minX, double minY, double maxX, double maxY) = imageTransform.TransformRectangleBounds(0D, 0D, 1D, 1D);
         if (!IntersectsVisibleImageBounds((minX, minY, maxX, maxY), interpolate)) return;
         image = PrepareImageSource(image);
@@ -609,9 +613,11 @@ public sealed partial class OfficeRasterCanvas {
 
     private void BlendPixel(int x, int y, OfficeColor color) {
         _cancellationToken.ThrowIfCancellationRequested();
-        if (!IsPixelInsideClip(x, y)) {
+        double clip = GetClipCoverage(x, y);
+        if (clip <= 0D) {
             return;
         }
+        if (clip < 1D) color = ApplyCoverage(color, clip);
 
         if (_image != null) {
             _image.BlendPixel(x, y, color);
@@ -715,7 +721,7 @@ public sealed partial class OfficeRasterCanvas {
 
     private static OfficeColor InterpolateGradient(OfficeRadialGradient gradient, double ratio) {
         return double.IsNaN(ratio) ? gradient.OutsideColor ?? OfficeColor.Transparent
-            : InterpolateGradientStops(gradient.Stops, ratio, gradient.InterpolateAlphaSeparately || gradient.SpreadMode != OfficeGradientSpreadMode.Pad || gradient.OutsideColor != null || gradient.StartRadius > gradient.EndRadius, gradient.ColorInterpolation);
+            : InterpolateGradientStops(gradient.Stops, ratio, gradient.InterpolateAlphaSeparately, gradient.ColorInterpolation);
     }
 
     internal static OfficeColor InterpolateGradientStops(IReadOnlyList<OfficeGradientStop> stops, double ratio, bool separateAlpha = false, OfficeGradientColorInterpolation interpolation = OfficeGradientColorInterpolation.Srgb) {
@@ -730,9 +736,9 @@ public sealed partial class OfficeRasterCanvas {
                 double span = next.Offset - previous.Offset;
                 double localRatio = span <= double.Epsilon ? 0D : (ratio - previous.Offset) / span;
                 localRatio = Clamp(localRatio, 0D, 1D);
-                // Native XPS radial paint interpolates color and alpha separately,
-                // consistently with paths, strokes, SVG composition and PDF.
-                if (interpolation == OfficeGradientColorInterpolation.LinearRgb) return OfficeGradientColors.Interpolate(previous.Color, next.Color, localRatio, interpolation);
+                // Imported SVG/XPS retains separate alpha interpolation; canvas
+                // gradients interpolate premultiplied channels in either color space.
+                if (interpolation == OfficeGradientColorInterpolation.LinearRgb) return OfficeGradientColors.Interpolate(previous.Color, next.Color, localRatio, interpolation, separateAlpha);
                 if (separateAlpha) return OfficeColor.FromRgba(
                     InterpolateByte(previous.Color.R, next.Color.R, localRatio),
                     InterpolateByte(previous.Color.G, next.Color.G, localRatio),

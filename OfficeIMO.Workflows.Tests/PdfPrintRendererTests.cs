@@ -60,11 +60,13 @@ public sealed class PdfPrintRendererTests {
     [Fact]
     public void PreparationRejectsSheetOutsideTheDeliveryWorkingSetBudget() {
         OfficeShape marker = OfficeShape.Rectangle(20, 20);
-        marker.FillColor = OfficeColor.Red;
+        marker.FillGradient = OfficeLinearGradient.Horizontal(OfficeColor.Black, OfficeColor.FromRgb(255, 128, 64));
         marker.StrokeWidth = 0;
         PdfDocument document = PdfDocument.Create(new PdfOptions {
             PageWidth = 200, PageHeight = 300, MarginLeft = 0, MarginRight = 0, MarginTop = 0, MarginBottom = 0
         }).Canvas(canvas => canvas.Shape(marker, 20, 20));
+        // A multi-channel gradient keeps more than 256 colors after placement, so the
+        // encoder cannot replace RGB scanlines with a compact exact palette.
         // This sheet fits the pixel budget, but its RGB scanlines and decoded RGBA output
         // together exceed the shared 256 MiB decoder bound. A blank bilevel sheet does not.
         Assert.Throws<InvalidOperationException>(() => PdfPrintRenderer.Prepare(document,

@@ -254,7 +254,7 @@ Appending comments to older DOCX files assigns missing paragraph identities to e
 - Applies optional shared package-security policy before parsing Open XML or compound DOC files, and preflights read, edit, template, render, and save capabilities.
 - Inspects and manages VBA and embedded package/OLE/ActiveX payload bytes without executing active content.
 - Creates and validates cross-platform OPC XML package signatures and managed VBA legacy, agile, and V3 signatures through an explicitly supplied `IOfficeSecurityProvider`; structural inspection remains provider-free.
-- Exports estimated document page ranges as dependency-free PNG or SVG previews through `ExportImages(...)`, `SaveAsImages(...)`, and `ToImages()`.
+- Exports document page ranges as managed PNG, JPEG, TIFF, WebP or SVG pages through `ExportImages(...)`, `SaveAsImages(...)`, and `ToImages()`.
 - Keeps Office automation out of the runtime path, making it suitable for services, scheduled jobs, CI, desktop apps, and automation hosts.
 - Provides fluent helpers for common authoring flows while keeping the lower-level Word object model available.
 - Uses `OfficeIMO.Drawing` for shared colors, image metadata, page rendering, and the reusable math expression tree.
@@ -673,7 +673,9 @@ paragraph.AddText(" is editable Word math.");
 
 `WordDocument.AddEquation(...)` and `WordParagraph.AddEquation(...)` map the shared expression directly to native OMML. Existing equations expose `ToExpression()`, `SetExpression(...)`, and `ToDrawing(...)`; `WordMathMarkup` converts between OMML and `OfficeMathExpression`. The adapter covers matrices and multi-column equation arrays, left/right scripts, centered limits, skewed fractions, delimiter lists, n-ary operators, and decorations. Display-equation replacement retains `oMathParaPr` presentation metadata. Shared `Stack` and `StretchStack` nodes fail closed because OMML has no lossless equivalent; use `OfficeMath.EquationArray(...)` explicitly if that alternate layout is acceptable. The reusable AST stays in `OfficeIMO.Drawing`, while Word owns only the OMML adapter.
 
-### Convert with adjacent packages
+### Convert Word content
+
+PDF export is included in `OfficeIMO.Word` through the first-party managed PDF engine. HTML and Markdown conversion use their adjacent adapter packages.
 
 ```csharp
 using OfficeIMO.Word.Html;
@@ -818,9 +820,29 @@ and report unsupported per-point styling. Imported native point overrides remain
 in the editable chart package.
 See the [shared style example](../OfficeIMO.Core/README.md#style-individual-chart-points).
 
+## SmartArt in headers and footers
+
+Create diagrams through a paragraph in the containing story:
+
+```csharp
+WordSmartArt diagram = document.HeaderDefaultOrCreate.AddParagraph()
+    .AddSmartArt(WordSmartArtType.BasicProcess);
+diagram.SetNodeText(0, "Review");
+diagram.AddNode("Approve");
+```
+
+Use `FooterDefaultOrCreate` for a footer. DOCX diagram data, layout, colours,
+quick style and any cached drawing use relationships owned by that header or
+footer. Reopening and editing resolve those local relationships independently
+of diagrams in the body, even when relationship IDs are reused.
+
+PDF and page images repeat the diagram with the containing story. Supported
+cached preset geometry is used when present; unsupported appearance still
+carries the [SmartArt projection limits](../OfficeIMO.Word.Pdf/README.md#page-images-with-pdf-pagination).
+
 ## Managed image export
 
-Word page previews use the shared Drawing renderer and can be returned as PNG, JPEG, TIFF, lossless WebP, or SVG without Office automation:
+Word pages use the shared Word-to-PDF layout and Drawing renderer and can be returned as PNG, JPEG, TIFF, lossless WebP, or SVG without Office automation:
 
 ```csharp
 using OfficeIMO.Drawing;
@@ -834,6 +856,10 @@ document.ToImage()
     .WithRasterEncoding(raster => raster.Jpeg.Quality = 90)
     .Save("page-1.jpg");
 ```
+
+Image export shares Word-to-PDF pagination, line breaks, fonts, headings and table borders. Paragraphs and cells flow across pages without preview ellipsis. `WordImageExportOptions.LayoutOptions` accepts the same `WordToPdfOptions` as PDF conversion. For PDF and images from one conversion, use the [page-image route](../OfficeIMO.Word.Pdf/README.md#page-images-with-pdf-pagination).
+
+`OfficeIMO.Word` owns the Word page adapter and references the first-party managed `OfficeIMO.Pdf` layout and page renderer. No Office installation or external conversion executable is required. `CreateVisualSnapshots()` exposes the resulting Drawing scenes and `TextSpans` with page text geometry.
 
 The document package owns Word pagination and diagnostics; `OfficeIMO.Drawing` owns sizing, pixels, and encoding. The same fit limit applies to SVG and raster output. `SaveAsJpeg`, `SaveAsTiff`, and `SaveAsWebp` are thin convenience wrappers over the same builder.
 

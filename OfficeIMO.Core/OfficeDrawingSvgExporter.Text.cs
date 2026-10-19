@@ -9,10 +9,28 @@ public static partial class OfficeDrawingSvgExporter {
         OfficeDrawingText text,
         OfficeRasterCanvas textMetrics,
         string idPrefix,
-        ref int clipPathId) {
+        ref int clipPathId,
+        bool textAsPaths, System.Collections.Generic.ISet<string> requiredFontFamilies) {
+        var fragment = new StringBuilder(Math.Min(256, sb.MaxCapacity - sb.Length), sb.MaxCapacity - sb.Length);
+        AppendTextCore(fragment, text, textMetrics, idPrefix, ref clipPathId, textAsPaths);
+        CollectSvgTextFontFamilies(fragment.ToString(), requiredFontFamilies, textMetrics.CancellationToken);
+        sb.Append(fragment);
+    }
+
+    private static void AppendTextCore(StringBuilder sb, OfficeDrawingText text, OfficeRasterCanvas textMetrics,
+        string idPrefix, ref int clipPathId, bool textAsPaths) {
         using var metricScope = textMetrics.PushFontMetricScale(text.FontMetricScale);
         using var faceScope = textMetrics.PushTextFace(text.Font.Face);
-        if (textMetrics.Fonts is { } fonts && HasSelectedVariableFont(text, fonts)) {
+        if (TryAppendGlyphPaths(sb, text, textMetrics, textAsPaths)) return;
+        if (text.OutlineStrokeColor.HasValue) {
+            var fragment = new StringBuilder(Math.Min(256, sb.MaxCapacity - sb.Length), sb.MaxCapacity - sb.Length);
+            AppendTextContent(fragment, text, textMetrics, idPrefix, ref clipPathId);
+            var painted = new StringBuilder();
+            if (textMetrics.Fonts is { } strokeFonts && HasSelectedVariableFont(text, strokeFonts)) {
+                AppendSelectedVariableFonts(painted, fragment.ToString(), text, strokeFonts, textMetrics.CancellationToken);
+            } else painted.Append(fragment);
+            AppendStrokedSvgText(sb, painted.ToString(), text, textMetrics.CancellationToken);
+        } else if (textMetrics.Fonts is { } fonts && HasSelectedVariableFont(text, fonts)) {
             var fragment = new StringBuilder();
             AppendTextContent(fragment, text, textMetrics, idPrefix, ref clipPathId);
             AppendSelectedVariableFonts(sb, fragment.ToString(), text, fonts, textMetrics.CancellationToken);
@@ -52,7 +70,7 @@ public static partial class OfficeDrawingSvgExporter {
                 text.RasterText,
                 verticalContentX + verticalContentWidth / 2D,
                 verticalContentY,
-                text.Color ?? OfficeColor.Black,
+                ResolveSvgTextFill(text),
                 text.Font.FamilyName,
                 text.Font.Size,
                 text.Font.IsBold,
@@ -98,7 +116,7 @@ public static partial class OfficeDrawingSvgExporter {
             x,
             y,
             lineHeight,
-            text.Color ?? OfficeColor.Black,
+            ResolveSvgTextFill(text),
             text.Font.FamilyName ?? "Arial",
             fontSize,
             text.Alignment,
@@ -118,7 +136,7 @@ public static partial class OfficeDrawingSvgExporter {
             text.FontPalette,
             OfficeTextShapingBackend.BrowserNative,
             text.PreservesPaintedGlyphs ? OfficeTextDirection.LeftToRight : text.TextDirection,
-            text.PreservesPaintedGlyphs, face: text.Font.Face);
+            text.PreservesPaintedGlyphs, face: text.Font.Face, logicalText: text.Text);
 
         if (useFrameTransform) {
             sb.Append("</g>");
@@ -181,7 +199,7 @@ public static partial class OfficeDrawingSvgExporter {
             contentY + baselineOffset,
             contentWidth,
             contentHeight,
-            text.Color ?? OfficeColor.Black,
+            ResolveSvgTextFill(text),
             text.Font.FamilyName,
             text.Alignment,
             text.VerticalAlignment,
@@ -199,7 +217,15 @@ public static partial class OfficeDrawingSvgExporter {
             decorationColor: text.DecorationColor);
     }
 
-    private static void AppendRichText(StringBuilder sb, OfficeDrawingRichText text, OfficeRasterCanvas textMetrics) {
+    private static void AppendRichText(StringBuilder sb, OfficeDrawingRichText text, OfficeRasterCanvas textMetrics,
+        System.Collections.Generic.ISet<string> requiredFontFamilies) {
+        var fragment = new StringBuilder(Math.Min(256, sb.MaxCapacity - sb.Length), sb.MaxCapacity - sb.Length);
+        AppendRichTextCore(fragment, text, textMetrics);
+        CollectSvgTextFontFamilies(fragment.ToString(), requiredFontFamilies, textMetrics.CancellationToken);
+        sb.Append(fragment);
+    }
+
+    private static void AppendRichTextCore(StringBuilder sb, OfficeDrawingRichText text, OfficeRasterCanvas textMetrics) {
         bool useFrameTransform = text.FlipHorizontal || text.FlipVertical;
         if (useFrameTransform) {
             AppendRichTextFrameGroupStart(sb, text);

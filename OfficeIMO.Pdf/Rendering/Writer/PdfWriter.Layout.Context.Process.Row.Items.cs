@@ -45,7 +45,7 @@ internal static partial class PdfWriter {
                     double size = paragraphStyle?.FontSize ?? currentOpts.DefaultFontSize;
                     double leading = GetParagraphLeading(paragraphStyle, size);
                     var textFrame = GetParagraphTextFrame(paragraphStyle, 0, columnWidth);
-                    var wrap = WrapRichRunsCoreWithFirstLineOrigin(rpb2.Runs, textFrame.Width, size, ChooseNormal(currentOpts.DefaultFont), leading, textFrame.FirstLineWidth, textFrame.FirstLineX - textFrame.X, GetParagraphTabStopWidth(paragraphStyle), currentOpts, paragraphStyle?.TabStops.ToArray(), lineSpacing: paragraphStyle?.LineSpacing);
+                    var wrap = WrapRichRunsCoreWithFirstLineOrigin(rpb2.Runs, textFrame.Width, size, ChooseNormal(currentOpts.DefaultFont), leading, textFrame.FirstLineWidth, textFrame.FirstLineX - textFrame.X, GetParagraphTabStopWidth(paragraphStyle), currentOpts, paragraphStyle?.TabStops.ToArray(), lineSpacing: paragraphStyle?.LineSpacing, textWhitespaceMode: paragraphStyle?.TextWhitespaceMode);
                     items.Add(new ColPar { Block = rpb2, Lines = wrap.Lines, Heights = wrap.LineHeights, Leading = leading, Size = size, XOffset = textFrame.X, TextWidth = textFrame.Width, FirstLineXOffset = textFrame.FirstLineX, FirstLineTextWidth = textFrame.FirstLineWidth });
                 } else if (cb is PdfListBlock list) {
                     PreparedListLayout prepared = PrepareListLayout(
@@ -66,6 +66,7 @@ internal static partial class PdfWriter {
                             Lines = layout.Lines,
                             Heights = layout.LineHeights,
                             Marker = preparedItem.Marker,
+                            MarkerFallback = preparedItem.MarkerFallback,
                             MarkerFont = prepared.MarkerFont,
                             MarkerNamedFont = prepared.MarkerNamedFont,
                             MarkerFeatureSettings = prepared.Style?.MarkerFeatureSettings,

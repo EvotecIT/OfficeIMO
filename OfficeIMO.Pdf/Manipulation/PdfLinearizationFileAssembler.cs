@@ -10,14 +10,14 @@ internal static class PdfLinearizationFileAssembler {
     internal static byte[] Assemble(
         Dictionary<int, PdfIndirectObject> objects,
         int catalogObjectNumber,
-        PdfMetadata metadata,
+        int? infoObjectNumber,
         byte[] sourcePdf,
         string trailerIdEntry,
         PdfOptimizationOptions options) {
         options.CancellationToken.ThrowIfCancellationRequested();
         PdfLinearizationPlan plan = PdfLinearizationPlanner.Create(objects, catalogObjectNumber);
-        Numbering numbering = CreateNumbering(plan);
-        SerializedObjects serialized = Serialize(objects, metadata, plan, numbering, options);
+        Numbering numbering = CreateNumbering(plan, infoObjectNumber);
+        SerializedObjects serialized = Serialize(objects, plan, numbering, options);
 
         byte[] header = PdfEncoding.Latin1GetBytes(
             "%PDF-" + PdfFileAssembler.GetHeaderVersion(PdfFileAssembler.ParseHeaderVersionOrDefault(PdfSyntax.GetHeaderVersion(sourcePdf))) + "\n%\u00e2\u00e3\u00cf\u00d3\n");
@@ -64,8 +64,6 @@ internal static class PdfLinearizationFileAssembler {
 
         RecordOffsets(serialized.SharedObjects, objectOffsets, ref position);
         RecordOffsets(serialized.RemainingObjects, objectOffsets, ref position);
-        objectOffsets[numbering.InfoObjectId] = position;
-        position += serialized.Info.LongLength;
         long mainXrefOffset = position;
         byte[] mainXref = BuildMainXref(numbering.FirstGroupStart, objectOffsets, firstXrefOffset, trailerIdEntry);
         long fileLength = mainXrefOffset + mainXref.LongLength;
@@ -114,14 +112,13 @@ internal static class PdfLinearizationFileAssembler {
         WriteGroup(boundedOutput, serialized.SharedObjects, options.CancellationToken);
         WriteGroup(boundedOutput, serialized.RemainingObjects, options.CancellationToken);
         options.CancellationToken.ThrowIfCancellationRequested();
-        Write(boundedOutput, serialized.Info);
         Write(boundedOutput, mainXref);
         if (output.Position != fileLength) throw new InvalidOperationException("Linearized PDF output length did not match its /L parameter.");
         options.CancellationToken.ThrowIfCancellationRequested();
         return output.ToArray();
     }
 
-    private static Numbering CreateNumbering(PdfLinearizationPlan plan) {
+    private static Numbering CreateNumbering(PdfLinearizationPlan plan, int? infoObjectNumber) {
         var numberMap = new Dictionary<int, int>();
         int next = 1;
         for (int pageIndex = 1; pageIndex < plan.PageGroups.Count; pageIndex++) {
@@ -129,7 +126,6 @@ internal static class PdfLinearizationFileAssembler {
         }
         foreach (int sourceId in plan.SharedObjects) numberMap[sourceId] = next++;
         foreach (int sourceId in plan.RemainingObjects) numberMap[sourceId] = next++;
-        int infoObjectId = next++;
         int firstGroupStart = next;
         int linearizationObjectId = next++;
         int catalogObjectId = next++;
@@ -137,12 +133,13 @@ internal static class PdfLinearizationFileAssembler {
         foreach (int sourceId in plan.PageGroups[0]) numberMap[sourceId] = next++;
         int firstPageObjectId = numberMap[plan.PageObjectNumbers[0]];
         int hintObjectId = next++;
+        // The planner retains standalone source objects in RemainingObjects, including trailer Info.
+        int infoObjectId = infoObjectNumber.HasValue ? numberMap[infoObjectNumber.Value] : 0;
         return new Numbering(numberMap, infoObjectId, firstGroupStart, linearizationObjectId, catalogObjectId, firstPageObjectId, hintObjectId, next - 1);
     }
 
     private static SerializedObjects Serialize(
         Dictionary<int, PdfIndirectObject> objects,
-        PdfMetadata metadata,
         PdfLinearizationPlan plan,
         Numbering numbering,
         PdfOptimizationOptions options) {
@@ -180,9 +177,7 @@ internal static class PdfLinearizationFileAssembler {
         foreach (int sourceId in plan.RemainingObjects) remainingItems.Add(new SerializedObject(numbering.NumberMap[sourceId], sourceId, SerializeObject(sourceId)));
         var remaining = remainingItems.AsReadOnly();
         byte[] catalog = SerializeObject(plan.CatalogObjectNumber);
-        byte[] info = PdfObjectBytes.WrapIndirectObject(numbering.InfoObjectId, PdfEncoding.Latin1GetBytes(PdfPageExtractor.BuildInfoDictionary(metadata)));
-        _ = AddRetainedBytes(retainedBytes, info.LongLength, options.MaximumOutputBytes);
-        return new SerializedObjects(catalog, pageGroups.AsReadOnly(), shared, remaining, info);
+        return new SerializedObjects(catalog, pageGroups.AsReadOnly(), shared, remaining);
     }
 
     private static long AddRetainedBytes(long current, long added, long? maximumOutputBytes) {
@@ -349,9 +344,9 @@ internal static class PdfLinearizationFileAssembler {
 
         builder.Append("trailer\n<< /Size ").Append(totalSize.ToString(CultureInfo.InvariantCulture))
             .Append(" /Prev ").Append(Fixed(mainXrefOffset))
-            .Append(" /Root ").Append(PdfSyntaxEscaper.IndirectReference(catalogObjectId))
-            .Append(" /Info ").Append(PdfSyntaxEscaper.IndirectReference(infoObjectId))
-            .Append(trailerIdEntry)
+            .Append(" /Root ").Append(PdfSyntaxEscaper.IndirectReference(catalogObjectId));
+        if (infoObjectId > 0) builder.Append(" /Info ").Append(PdfSyntaxEscaper.IndirectReference(infoObjectId));
+        builder.Append(trailerIdEntry)
             .Append(" >>\nstartxref\n0\n%%EOF\n");
         return PdfEncoding.Latin1GetBytes(builder.ToString());
     }
@@ -433,14 +428,13 @@ internal static class PdfLinearizationFileAssembler {
     }
 
     private sealed class SerializedObjects {
-        internal SerializedObjects(byte[] catalog, IReadOnlyList<IReadOnlyList<SerializedObject>> pageGroups, IReadOnlyList<SerializedObject> sharedObjects, IReadOnlyList<SerializedObject> remainingObjects, byte[] info) {
-            Catalog = catalog; PageGroups = pageGroups; SharedObjects = sharedObjects; RemainingObjects = remainingObjects; Info = info;
+        internal SerializedObjects(byte[] catalog, IReadOnlyList<IReadOnlyList<SerializedObject>> pageGroups, IReadOnlyList<SerializedObject> sharedObjects, IReadOnlyList<SerializedObject> remainingObjects) {
+            Catalog = catalog; PageGroups = pageGroups; SharedObjects = sharedObjects; RemainingObjects = remainingObjects;
         }
         internal byte[] Catalog { get; }
         internal IReadOnlyList<IReadOnlyList<SerializedObject>> PageGroups { get; }
         internal IReadOnlyList<SerializedObject> SharedObjects { get; }
         internal IReadOnlyList<SerializedObject> RemainingObjects { get; }
-        internal byte[] Info { get; }
     }
 
     private readonly struct SerializedObject {

@@ -39,7 +39,9 @@ namespace OfficeIMO.Excel.Pdf {
                 tableStyle.CellDataBars = cellDataBars;
             }
 
-            Dictionary<(int Row, int Column), PdfCore.PdfCellIcon>? cellIcons = CreateCellIcons(conditionalFills, rowIndexes, columnOffset, exportedColumns);
+            Dictionary<(int Row, int Column), PdfCore.PdfCellIcon>? cellIcons = options.WorksheetLayout == ExcelPdfWorksheetLayoutMode.FlowTable
+                ? CreateCellIcons(conditionalFills, rowIndexes, columnOffset, exportedColumns)
+                : null;
             if (cellIcons != null) {
                 tableStyle.CellIcons = cellIcons;
                 tableStyle.CellPaddings = CreateIconCellPaddings(cellIcons, tableStyle.CellPaddings, tableStyle.CellPaddingLeft ?? tableStyle.CellPaddingX);
@@ -332,6 +334,7 @@ namespace OfficeIMO.Excel.Pdf {
             int columnEnd = exportedColumns > 0 ? columnOffset + exportedColumns : int.MaxValue;
             Dictionary<(int Row, int Column), PdfCore.PdfCellIcon>? icons = null;
             foreach (KeyValuePair<(int Row, int Column), ConditionalIconCell> conditionalIcon in conditionalFills.Icons) {
+                if (conditionalIcon.Value.Kind == OfficeConditionalIconKind.None) continue;
                 int localRow = FindLocalRowIndex(rowIndexes, conditionalIcon.Key.Row);
                 if (localRow < 0 ||
                     conditionalIcon.Key.Column < columnOffset ||
@@ -341,8 +344,8 @@ namespace OfficeIMO.Excel.Pdf {
 
                 icons ??= new Dictionary<(int Row, int Column), PdfCore.PdfCellIcon>();
                 icons[(localRow, conditionalIcon.Key.Column - columnOffset)] = new PdfCore.PdfCellIcon {
-                    Kind = conditionalIcon.Value.Kind,
-                    Color = conditionalIcon.Value.Color,
+                    Kind = GetLegacyConditionalIconShape(conditionalIcon.Value.Kind),
+                    Color = GetLegacyConditionalIconColor(conditionalIcon.Value.Kind),
                     Size = 8D,
                     HorizontalAlignment = PdfCore.PdfColumnAlign.Left
                 };

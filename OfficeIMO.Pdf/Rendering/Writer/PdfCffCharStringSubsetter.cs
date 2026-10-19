@@ -91,7 +91,7 @@ internal static class PdfCffCharStringSubsetter {
         }
     }
 
-    private static CffIndex ReadIndex(byte[] data, int offset) {
+    internal static CffIndex ReadIndex(byte[] data, int offset) {
         EnsureRange(data, offset, 2);
         int count = ReadUInt16(data, offset);
         if (count == 0) {
@@ -160,7 +160,7 @@ internal static class PdfCffCharStringSubsetter {
         return -1;
     }
 
-    private static double ReadDictionaryNumber(byte[] data, ref int offset, int end, int firstByte) {
+    internal static double ReadDictionaryNumber(byte[] data, ref int offset, int end, int firstByte) {
         if (firstByte >= 32 && firstByte <= 246) {
             return firstByte - 139;
         }
@@ -248,7 +248,7 @@ internal static class PdfCffCharStringSubsetter {
         }
     }
 
-    private static byte[] BuildIndex(byte[][] objects, int dataLength) {
+    internal static byte[] BuildIndex(byte[][] objects, int dataLength) {
         int maximumOffset = checked(dataLength + 1);
         int offSize = maximumOffset <= byte.MaxValue
             ? 1
@@ -276,7 +276,7 @@ internal static class PdfCffCharStringSubsetter {
         return result;
     }
 
-    private static byte[] CopyObject(byte[] data, CffObject value) {
+    internal static byte[] CopyObject(byte[] data, CffObject value) {
         var result = new byte[value.Length];
         Buffer.BlockCopy(data, value.Offset, result, 0, value.Length);
         return result;
@@ -322,13 +322,13 @@ internal static class PdfCffCharStringSubsetter {
         }
     }
 
-    private static bool IsCffDataException(Exception exception) =>
+    internal static bool IsCffDataException(Exception exception) =>
         exception is NotSupportedException ||
         exception is ArgumentException ||
         exception is ArithmeticException ||
         exception is IndexOutOfRangeException;
 
-    private readonly struct CffIndex {
+    internal readonly struct CffIndex {
         private readonly int[] _offsets;
 
         internal CffIndex(int startOffset, int count, int dataOffset, int endOffset, int[] offsets) {
@@ -357,7 +357,7 @@ internal static class PdfCffCharStringSubsetter {
         }
     }
 
-    private readonly struct CffObject {
+    internal readonly struct CffObject {
         internal CffObject(int offset, int length) {
             Offset = offset;
             Length = length;

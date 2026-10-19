@@ -361,13 +361,13 @@ public sealed class PackageDependencyGuardrailTests {
 
         Assert.Equal([
             "../OfficeIMO.Core/OfficeIMO.Core.csproj",
+            "../OfficeIMO.Pdf/OfficeIMO.Pdf.csproj",
             "../OfficeIMO.Html.Core/OfficeIMO.Html.Core.csproj",
             "../OfficeIMO.Html.AngleSharp/OfficeIMO.Html.AngleSharp.csproj"
         ], references);
         Assert.DoesNotContain(references, static reference => reference.Contains("OfficeIMO.Email", StringComparison.OrdinalIgnoreCase));
         Assert.DoesNotContain(references, static reference => reference.Contains("OfficeIMO.Rtf", StringComparison.OrdinalIgnoreCase));
         Assert.DoesNotContain(references, static reference => reference.Contains("OfficeIMO.Mhtml", StringComparison.OrdinalIgnoreCase));
-        Assert.DoesNotContain(references, static reference => reference.Contains("OfficeIMO.Pdf", StringComparison.OrdinalIgnoreCase));
     }
 
     [Theory]

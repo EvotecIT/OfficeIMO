@@ -55,9 +55,9 @@
       "currentContract": "Export estimated multi-page Word layouts while keeping Word-owned wrapping, sections, fields, and object anchoring separate from Drawing-owned pixels and vectors.",
       "boundary": "The renderer does not claim Microsoft Word application pagination; overflow, fallback, and estimated-pagination behavior is diagnosed.",
       "evidence": [
-        "OfficeIMO.Word.Tests/Word.ImageExport.cs",
-        "OfficeIMO.Word.Tests/Word.ImageExport.Batch.cs",
-        "OfficeIMO.Word.Tests/Word.ImageExport.Policy.cs"
+        "OfficeIMO.Word.Tests/Word.ImageExport.SharedLayout.cs",
+        "OfficeIMO.Word.Tests/Word.ImageExport.RasterFormats.cs",
+        "OfficeIMO.Word.Tests/Pdf/Word.PdfPageImageLayoutTests.cs"
       ]
     },
     {

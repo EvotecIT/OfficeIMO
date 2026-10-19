@@ -38,7 +38,7 @@ public partial class PdfComplianceAnalyzerTests {
             PdfComplianceRequirementStatus.Missing);
         PdfComplianceRequirement missingTaxRate = AssertRequirement(
             PdfComplianceAnalyzer.Assess(PdfComplianceProfile.FacturX, missingTaxRateOptions),
-            "einvoice-xml-tax-breakdown",
+            "einvoice-xml-tax-category-rate",
             PdfComplianceRequirementStatus.Missing);
         PdfComplianceRequirement missingTaxAmount = AssertRequirement(
             PdfComplianceAnalyzer.Assess(PdfComplianceProfile.FacturX, missingTaxAmountOptions),
@@ -47,7 +47,7 @@ public partial class PdfComplianceAnalyzerTests {
 
         Assert.Contains("ApplicableTradeTax TypeCode", missingTaxType.Diagnostic);
         Assert.Contains("ApplicableTradeTax CategoryCode", missingTaxCategory.Diagnostic);
-        Assert.Contains("ApplicableTradeTax RateApplicablePercent", missingTaxRate.Diagnostic);
+        Assert.Contains("RateApplicablePercent", missingTaxRate.Diagnostic);
         Assert.Contains("ApplicableTradeTax BasisAmount", missingTaxAmount.Diagnostic);
         Assert.Contains("ApplicableTradeTax CalculatedAmount", missingTaxAmount.Diagnostic);
     }

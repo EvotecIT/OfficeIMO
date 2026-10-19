@@ -101,7 +101,8 @@ internal static partial class HtmlPdfRenderedConverter {
 
     // Image encoders use exactly the PDF font measurement and print-fitting policy.
     // Keep the original request axes and selection; only the encoder changes here.
-    internal static HtmlRenderOptions PrepareImageOptions(HtmlRenderRequest request) {
+    /// <summary>Applies PDF font and resource policy to image and display-list requests.</summary>
+    internal static HtmlRenderOptions PrepareNonPdfOptions(HtmlRenderRequest request) {
         HtmlRenderOptions source = request.Options;
         var options = new HtmlToPdfOptions(source);
         bool preserveHtmlResourcePolicy = source is not HtmlToPdfOptions;
@@ -111,15 +112,15 @@ internal static partial class HtmlPdfRenderedConverter {
             options.UrlPolicy = source.UrlPolicy.Clone();
             options.ResourceUrlPolicy = source.GetResourceUrlPolicy().Clone();
         }
-        return PrepareRequest(request.WithOptions(options), options, allowImageEncoder: true,
+        return PrepareRequest(request.WithOptions(options), options, allowNonPdfEncoder: true,
             preserveHtmlResourcePolicy: preserveHtmlResourcePolicy).Request.ResolveOptions();
     }
 
     private static PreparedPdfRequest PrepareRequest(HtmlRenderRequest request, HtmlToPdfOptions options,
-        bool allowImageEncoder = false, bool preserveHtmlResourcePolicy = false) {
+        bool allowNonPdfEncoder = false, bool preserveHtmlResourcePolicy = false) {
         if (request == null) throw new ArgumentNullException(nameof(request));
         if (options == null) throw new ArgumentNullException(nameof(options));
-        if (request.Encoder != HtmlRenderEncoder.Pdf && !allowImageEncoder) {
+        if (request.Encoder != HtmlRenderEncoder.Pdf && !allowNonPdfEncoder) {
             throw new ArgumentException("HTML-to-PDF conversion requires the Pdf render encoder.", nameof(request));
         }
         HtmlToPdfOptions renderOptions = new HtmlToPdfOptions(request.Options);
@@ -143,6 +144,10 @@ internal static partial class HtmlPdfRenderedConverter {
         renderOptions.FallbackTextMeasurement = CreateFallbackTextMeasurement(options, measurementOptions);
         renderOptions.FallbackTextFaceMetrics = CreateFallbackTextFaceMetrics(options, measurementOptions);
         if (preserveHtmlResourcePolicy) return new PreparedPdfRequest(request.WithOptions(renderOptions), renderOptions);
+        // Prepared requests retain archive callbacks across option snapshots. Recheck
+        // current permissions for synchronous reads just as for asynchronous reads below.
+        if (!options.ResourcePolicy.AllowEmbeddedPackageResources)
+            renderOptions.SynchronousResourceResolver = null;
         HtmlRenderResourceResolver? embeddedPackageResolver = options.EmbeddedPackageResourceResolver;
         HtmlUrlPolicy hostResourceUrlPolicy = (options.EmbeddedPackageHostResourceUrlPolicy ?? renderOptions.GetResourceUrlPolicy()).Clone();
         ApplyResourceAccessPolicy(
@@ -346,12 +351,16 @@ internal static partial class HtmlPdfRenderedConverter {
                         PdfCore.PageMargins.Uniform(bleedInset)));
                 }
                 page.Canvas(canvas => {
-                    if (printLayoutScale == 1D) {
-                        AddPageVisuals(canvas, renderedPage, webFonts, imageResources, conversionReport, options.InteractiveFormControls, cancellationToken, mathMlFiles);
-                    } else {
-                        canvas.Effect(OfficeTransform.Scale(printLayoutScale, printLayoutScale), 1D,
-                            content => AddPageVisuals(content, renderedPage, webFonts, imageResources, conversionReport, options.InteractiveFormControls, cancellationToken, mathMlFiles));
-                    }
+                    // The retained HTML surface already clips its paint at the page edge.
+                    // Keep that source boundary outside print and element transforms.
+                    canvas.SourceClip(0D, 0D, pageWidth, pageHeight, sourcePaint => {
+                        if (printLayoutScale == 1D) {
+                            AddPageVisuals(sourcePaint, renderedPage, webFonts, imageResources, conversionReport, options.InteractiveFormControls, cancellationToken, mathMlFiles);
+                        } else {
+                            sourcePaint.Effect(OfficeTransform.Scale(printLayoutScale, printLayoutScale), 1D,
+                                content => AddPageVisuals(content, renderedPage, webFonts, imageResources, conversionReport, options.InteractiveFormControls, cancellationToken, mathMlFiles));
+                        }
+                    });
                     AddPageOutlines(canvas, headingsByPage[renderedPage.PageNumber], headingDocumentOrder, printLayoutScale, cancellationToken);
                 });
             });
@@ -437,7 +446,7 @@ internal static partial class HtmlPdfRenderedConverter {
             double bottom = visual.Y + visual.Height;
             if (right <= 0D || bottom <= 0D || visual.X >= surfaceWidth || visual.Y >= surfaceHeight) return;
             var pageClip = new ClipBounds(0D, 0D, surfaceWidth, surfaceHeight);
-            canvas.Clip(0D, 0D, surfaceWidth * PointsPerCssPixel, surfaceHeight * PointsPerCssPixel, clipped =>
+            canvas.SourceClip(0D, 0D, surfaceWidth * PointsPerCssPixel, surfaceHeight * PointsPerCssPixel, clipped =>
                 AddVisual(clipped, visual, webFonts, imageResources, conversionReport, surfaceWidth, surfaceHeight,
                     interactiveFormControls, cancellationToken, textAsSpan, pageClip, logicalTextOwned, pagePaint));
             return;
@@ -682,7 +691,7 @@ internal static partial class HtmlPdfRenderedConverter {
             return;
         }
         ClipBounds clip = ClipBounds.Intersect(activeClip, new ClipBounds(left, top, right, bottom, constrainToSurface: constrainToSurface));
-        canvas.Clip(
+        canvas.SourceClip(
             left * PointsPerCssPixel,
             top * PointsPerCssPixel,
             (right - left) * PointsPerCssPixel,
@@ -717,7 +726,7 @@ internal static partial class HtmlPdfRenderedConverter {
         double clipX = group.ClipX * PointsPerCssPixel;
         double clipY = group.ClipY * PointsPerCssPixel;
         OfficeClipPath clipPath = group.ClipPath.Scale(PointsPerCssPixel, PointsPerCssPixel);
-        Action<PdfCore.PdfPageCanvas> addClip = target => target.Clip(
+        Action<PdfCore.PdfPageCanvas> addClip = target => target.SourceClip(
             clipX,
             clipY,
             clipPath,
@@ -732,7 +741,7 @@ internal static partial class HtmlPdfRenderedConverter {
         } else if (!activeClip.HasValue
                    && (clipX + clipPath.Width > surfaceWidth * PointsPerCssPixel
                        || clipY + clipPath.Height > surfaceHeight * PointsPerCssPixel)) {
-            canvas.Clip(0D, 0D, surfaceWidth * PointsPerCssPixel, surfaceHeight * PointsPerCssPixel, addClip);
+            canvas.SourceClip(0D, 0D, surfaceWidth * PointsPerCssPixel, surfaceHeight * PointsPerCssPixel, addClip);
         } else {
             addClip(canvas);
         }

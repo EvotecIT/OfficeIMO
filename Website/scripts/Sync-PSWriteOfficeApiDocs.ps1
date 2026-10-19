@@ -314,7 +314,14 @@ if (Test-Path -LiteralPath $gitDirectory) {
 if (-not $sourceBundle.Valid) {
     throw "The current OfficeIMO PowerShell API bundle is invalid: $($sourceBundle.Reason)."
 }
+# A partial API refresh must retain the evidence for the unchanged documentation snapshot.
+$documentationEvidenceBytes = if ($SkipDocumentation -and (Test-Path -LiteralPath $catalogEvidencePath -PathType Leaf)) {
+    [IO.File]::ReadAllBytes($catalogEvidencePath)
+} else { $null }
 Sync-DirectoryContents -Source $websiteArtifactsRoot -Destination $targetRoot
+if ($null -ne $documentationEvidenceBytes) {
+    [IO.File]::WriteAllBytes($catalogEvidencePath, $documentationEvidenceBytes)
+}
 # The module help uses a lowercase suffix; the website's API input has a
 # canonical uppercase suffix that must also exist on case-sensitive filesystems.
 Rename-Item -LiteralPath (Join-Path $targetRoot 'PSWriteOffice-help.xml') -NewName 'PSWriteOffice-Help.xml'

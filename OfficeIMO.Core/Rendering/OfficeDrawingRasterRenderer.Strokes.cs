@@ -25,7 +25,7 @@ public static partial class OfficeDrawingRasterRenderer {
                         ?? color ?? OfficeColor.Transparent;
                 }
                 return SampleStrokeGradient(linear, radial, x, y, width, height, px, py) ?? color ?? OfficeColor.Transparent;
-            });
+            }, shape.StrokeHairline);
     }
 
     private static OfficeTransform GetRasterTransform(OfficeDrawingShape drawing, double scale) =>

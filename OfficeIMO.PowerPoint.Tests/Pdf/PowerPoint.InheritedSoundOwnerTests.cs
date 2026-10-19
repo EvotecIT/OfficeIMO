@@ -91,7 +91,11 @@ public sealed partial class PowerPointInheritedLinkOwnerTests {
             PowerPointTable value = slide.AddTablePoints(2, 2, 30, 30, 240, 60);
             value.GetCell(1, 1).Text = "Sounded";
             shape = value;
-        } else shape = slide.AddTextBoxPoints("Sounded", 30, 30, 240, 60);
+        } else {
+            PowerPointTextBox box = slide.AddTextBoxPoints("Sounded", 30, 30, 240, 60);
+            box.PlaceholderType = null;
+            shape = box;
+        }
         shape.Element.Remove(); Tree(Owner(slide, master)).Append(shape.Element);
         return Assert.Single(slide.GetInheritedShapesForExport(), inherited => inherited.Name == shape.Name);
     }

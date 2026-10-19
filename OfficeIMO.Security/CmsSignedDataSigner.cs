@@ -9,7 +9,7 @@ using Org.BouncyCastle.Operators.Utilities;
 
 namespace OfficeIMO.Security;
 
-/// <summary>Creates interoperable CMS SignedData without exporting an RSA private key.</summary>
+/// <summary>Creates interoperable CMS SignedData without exporting a private key.</summary>
 public static class CmsSignedDataSigner {
     /// <summary>Creates a detached CMS signature over <paramref name="content"/>.</summary>
     public static byte[] SignDetached(
@@ -52,15 +52,20 @@ public static class CmsSignedDataSigner {
                 exception);
         }
 
+        if (options.UsePadesBaseline && (encapsulate || contentTypeOid != CmsObjectIdentifiers.Data.Id || options.DigestAlgorithm == HashAlgorithmName.SHA1)) {
+            throw new ArgumentException("PAdES baseline requires detached CMS data and SHA-256 or stronger.", nameof(options));
+        }
+
         using RSA? rsa = signingCertificate.GetRSAPrivateKey();
-        if (rsa == null) {
+        using ECDsa? ecdsa = rsa is null ? signingCertificate.GetECDsaPrivateKey() : null;
+        if (rsa == null && ecdsa == null) {
             throw new NotSupportedException(
-                "CMS signing currently requires an RSA certificate with an accessible private key.");
+                "CMS signing requires an RSA or ECDSA certificate with an accessible private key.");
         }
 
         Org.BouncyCastle.X509.X509Certificate bcSigner = DotNetUtilities.FromX509Certificate(signingCertificate);
         AlgorithmIdentifier signatureAlgorithm = DefaultSignatureAlgorithmFinder.Instance.Find(
-            GetSignatureAlgorithmName(options.DigestAlgorithm));
+            GetSignatureAlgorithmName(options.DigestAlgorithm, ecdsa is not null));
         AlgorithmIdentifier digestAlgorithm = DefaultDigestAlgorithmFinder.Instance.Find(signatureAlgorithm);
         byte[] contentDigest = ComputeDigest(content, options.DigestAlgorithm);
         var attributeParameters = new Dictionary<CmsAttributeTableParameter, object> {
@@ -70,13 +75,29 @@ public static class CmsSignedDataSigner {
             [CmsAttributeTableParameter.SignatureAlgorithmIdentifier] = signatureAlgorithm
         };
         Org.BouncyCastle.Asn1.Cms.AttributeTable attributeTable =
-            new SignedAttributeGenerator(options).GetAttributes(attributeParameters);
+            new SignedAttributeGenerator(options, signingCertificate.RawData).GetAttributes(attributeParameters);
         var signedAttributes = new DerSet(attributeTable.ToAsn1EncodableVector());
         byte[] signedAttributeBytes = signedAttributes.GetEncoded(Asn1Encodable.Der);
-        byte[] signature = rsa.SignData(
-            signedAttributeBytes,
-            options.DigestAlgorithm,
-            RSASignaturePadding.Pkcs1);
+        byte[] signature = rsa is not null
+            ? rsa.SignData(signedAttributeBytes, options.DigestAlgorithm, RSASignaturePadding.Pkcs1)
+            : SignEcdsa(ecdsa!, signedAttributeBytes, options.DigestAlgorithm);
+
+        Asn1Set? unsignedAttributes = null;
+        if (options.SignatureTimestampProvider is not null) {
+            byte[] tokenBytes = options.SignatureTimestampProvider((byte[])signature.Clone())
+                ?? throw new CryptographicException("The signature timestamp provider returned no token.");
+            SecurityLimits.EnsureBufferWithinLimit(tokenBytes, 16L * 1024 * 1024, nameof(options.SignatureTimestampProvider));
+            var token = new Org.BouncyCastle.Tsp.TimeStampToken(new CmsSignedData(tokenBytes));
+            byte[] imprint = DigestUtilities.CalculateDigest(token.TimeStampInfo.MessageImprintAlgOid, signature);
+            if (!Org.BouncyCastle.Utilities.Arrays.FixedTimeEquals(imprint, token.TimeStampInfo.GetMessageImprintDigest())) {
+                throw new CryptographicException("The signature timestamp does not cover the CMS signature value.");
+            }
+            var tsa = token.GetCertificates().EnumerateMatches(token.SignerID).FirstOrDefault()
+                ?? throw new CryptographicException("The signature timestamp must embed its TSA certificate.");
+            token.Validate(tsa);
+            unsignedAttributes = new DerSet(new Org.BouncyCastle.Asn1.Cms.Attribute(
+                new DerObjectIdentifier("1.2.840.113549.1.9.16.2.14"), new DerSet(ContentInfo.GetInstance(tokenBytes))));
+        }
 
         var signerIdentifier = new SignerIdentifier(
             new IssuerAndSerialNumber(bcSigner.IssuerDN, bcSigner.SerialNumber));
@@ -86,7 +107,7 @@ public static class CmsSignedDataSigner {
             signedAttributes,
             signatureAlgorithm,
             new DerOctetString(signature),
-            unauthenticatedAttributes: null);
+            unauthenticatedAttributes: unsignedAttributes);
 
         var certificates = new List<Asn1Encodable> { bcSigner.CertificateStructure };
         if (options.IncludeCertificateChain && certificateChain != null) {
@@ -112,12 +133,27 @@ public static class CmsSignedDataSigner {
             .GetEncoded(Asn1Encodable.Der);
     }
 
-    private static string GetSignatureAlgorithmName(HashAlgorithmName digestAlgorithm) {
-        if (digestAlgorithm == HashAlgorithmName.SHA256) return "SHA256WITHRSA";
-        if (digestAlgorithm == HashAlgorithmName.SHA384) return "SHA384WITHRSA";
-        if (digestAlgorithm == HashAlgorithmName.SHA512) return "SHA512WITHRSA";
-        if (digestAlgorithm == HashAlgorithmName.SHA1) return "SHA1WITHRSA";
-        throw new NotSupportedException("CMS RSA signing supports SHA-1, SHA-256, SHA-384, and SHA-512.");
+    private static byte[] SignEcdsa(ECDsa key, byte[] content, HashAlgorithmName digest) {
+        byte[] raw = key.SignData(content, digest);
+        if (raw.Length != 2 * ((key.KeySize + 7) / 8)) {
+            throw new CryptographicException("ECDSA signing returned an unexpected IEEE P1363 signature length.");
+        }
+        int half = raw.Length / 2;
+        byte[] r = new byte[half];
+        byte[] s = new byte[half];
+        Buffer.BlockCopy(raw, 0, r, 0, half);
+        Buffer.BlockCopy(raw, half, s, 0, half);
+        return new DerSequence(new DerInteger(new Org.BouncyCastle.Math.BigInteger(1, r)),
+            new DerInteger(new Org.BouncyCastle.Math.BigInteger(1, s))).GetEncoded(Asn1Encodable.Der);
+    }
+
+    private static string GetSignatureAlgorithmName(HashAlgorithmName digestAlgorithm, bool ecdsa) {
+        string suffix = ecdsa ? "WITHECDSA" : "WITHRSA";
+        if (digestAlgorithm == HashAlgorithmName.SHA256) return "SHA256" + suffix;
+        if (digestAlgorithm == HashAlgorithmName.SHA384) return "SHA384" + suffix;
+        if (digestAlgorithm == HashAlgorithmName.SHA512) return "SHA512" + suffix;
+        if (digestAlgorithm == HashAlgorithmName.SHA1) return "SHA1" + suffix;
+        throw new NotSupportedException("CMS signing supports SHA-1, SHA-256, SHA-384, and SHA-512.");
     }
 
     private static byte[] ComputeDigest(byte[] content, HashAlgorithmName digestAlgorithm) {
@@ -130,7 +166,7 @@ public static class CmsSignedDataSigner {
                     : digestAlgorithm == HashAlgorithmName.SHA1
                         ? CreateSha1DigestForLegacyCmsCompatibility()
                         : throw new NotSupportedException(
-                            "CMS RSA signing supports SHA-1, SHA-256, SHA-384, and SHA-512.");
+                            "CMS signing supports SHA-1, SHA-256, SHA-384, and SHA-512.");
         return algorithm.ComputeHash(content);
     }
 
@@ -140,9 +176,11 @@ public static class CmsSignedDataSigner {
 
     private sealed class SignedAttributeGenerator : CmsAttributeTableGenerator {
         private readonly CmsSigningOptions _options;
+        private readonly byte[] _certificate;
 
-        internal SignedAttributeGenerator(CmsSigningOptions options) {
+        internal SignedAttributeGenerator(CmsSigningOptions options, byte[] certificate) {
             _options = options;
+            _certificate = certificate;
         }
 
         public Org.BouncyCastle.Asn1.Cms.AttributeTable GetAttributes(
@@ -163,7 +201,20 @@ public static class CmsSignedDataSigner {
                 CmsAttributes.MessageDigest,
                 new DerSet(new DerOctetString(digest))));
 
-            if (_options.IncludeSigningTime) {
+            if (_options.UsePadesBaseline) {
+#if NET8_0_OR_GREATER
+                byte[] certificateHash = SHA256.HashData(_certificate);
+#else
+                using SHA256 sha256 = SHA256.Create();
+                byte[] certificateHash = sha256.ComputeHash(_certificate);
+#endif
+                var certId = new Org.BouncyCastle.Asn1.Ess.EssCertIDv2(certificateHash);
+                attributes.Add(new Org.BouncyCastle.Asn1.Cms.Attribute(
+                    new DerObjectIdentifier("1.2.840.113549.1.9.16.2.47"),
+                    new DerSet(new Org.BouncyCastle.Asn1.Ess.SigningCertificateV2(new[] { certId }))));
+            }
+
+            if (_options.IncludeSigningTime && !_options.UsePadesBaseline) {
                 DateTimeOffset signingTime = _options.SigningTime ?? DateTimeOffset.UtcNow;
                 attributes.Add(new Org.BouncyCastle.Asn1.Cms.Attribute(
                     CmsAttributes.SigningTime,

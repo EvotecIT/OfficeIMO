@@ -20,7 +20,16 @@ internal static partial class PdfComplianceAnalyzer {
         Add(requirements, "pdfa-identification", "PDF/A identification XMP",
             hasMatchingIdentification,
             "PDF/A identification metadata matches " + expectedIdentification + ".",
-            "Set PdfOptions.SetPdfAIdentification(...) to " + expectedIdentification + " before claiming this profile.");
+            IsElectronicInvoice(profile)
+                ? "Hybrid invoices support only PDF/A-3a, PDF/A-3b and PDF/A-3u, optionally with PDF/UA-1."
+                : "Set PdfOptions.SetPdfAIdentification(...) to " + expectedIdentification + " before claiming this profile.");
+
+        if (IsElectronicInvoice(profile)) {
+            Add(requirements, "einvoice-pdfua-profile", "Invoice PDF/UA profile",
+                options.PdfUaIdentification == null || options.PdfUaIdentification.Part == 1,
+                "The invoice has no PDF/UA declaration or declares PDF/UA-1.",
+                "Hybrid invoices support only PDF/A-3a, PDF/A-3b and PDF/A-3u, optionally with PDF/UA-1; PDF/UA-2 is not supported.");
+        }
 
         requirements.Add(BuildPdfAEncryptionPolicyRequirement(options));
 
@@ -32,6 +41,18 @@ internal static partial class PdfComplianceAnalyzer {
         requirements.Add(BuildOutputIntentPolicyRequirement(options));
 
         requirements.Add(BuildPdfAEmbeddedFileModificationDateRequirement(options, generatedEvidence));
+        PdfEmbeddedFile[] attachments = options.EmbeddedFileSnapshots
+            .Concat(generatedEvidence?.StructureAssociatedFiles ?? Array.Empty<PdfEmbeddedFile>()).ToArray();
+        if (target.Part == 2 || target.Part == 4 && string.IsNullOrEmpty(target.Conformance)) {
+            Add(requirements, "pdfa-attachment-policy", "Profile attachment policy", attachments.Length == 0,
+                "No embedded files are present.",
+                "Use PDF/A-3 or PDF/A-4f for arbitrary embedded files; PDF/A-2 embedded PDF/A validation is not supported by this generation gate.");
+        }
+        if (profile == PdfComplianceProfile.PdfA4F) {
+            Add(requirements, "pdfa4f-embedded-files", "PDF/A-4f embedded files", options.EmbeddedFileSnapshots.Any(),
+                "The catalog EmbeddedFiles tree contains an attachment.",
+                "PDF/A-4f requires an EmbeddedFiles catalog entry. Add at least one embedded file.");
+        }
 
         AddEmbeddedFontCoverageRequirement(requirements, options, generatedStandardFonts, generatedFontUsages);
 

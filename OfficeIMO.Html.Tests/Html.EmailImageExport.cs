@@ -61,8 +61,8 @@ public sealed class HtmlEmailImageExportTests {
 
         Assert.Equal(OfficeImageExportFormat.Svg, result.Format);
         string svg = System.Text.Encoding.UTF8.GetString(result.Bytes);
-        Assert.Contains("Quarterly update", svg);
-        Assert.Contains("Hello,", svg);
+        Assert.Contains("Quarterly update", SvgPaintedText.Read(svg));
+        Assert.Contains("Hello,", SvgPaintedText.Read(svg));
         Assert.DoesNotContain(
             result.Diagnostics,
             diagnostic => diagnostic.Code == "EMAIL_IMAGE_BODY_MISSING");

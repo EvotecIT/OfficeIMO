@@ -65,7 +65,7 @@ internal static partial class HtmlPdfRenderedConverter {
                         .Then(drawingToPage);
                     OfficeDrawing nestedDrawing = drawingGroup.Drawing;
                     Action<PdfCore.PdfPageCanvas> addGroupPaint = groupTarget => groupTarget.Effect(pageGroupTransform, 1D, grouped => {
-                        grouped.Clip(
+                        grouped.SourceClip(
                             originX,
                             originY,
                             drawingGroup.ClipPath.Scale(scaleX * PointsPerCssPixel, scaleY * PointsPerCssPixel),
@@ -126,7 +126,7 @@ internal static partial class HtmlPdfRenderedConverter {
                     double clipY = (visual.Y + (area.Y * scaleY)) * PointsPerCssPixel;
                     double clipWidth = area.Width * scaleX * PointsPerCssPixel;
                     double clipHeight = area.Height * scaleY * PointsPerCssPixel;
-                    target.Clip(clipX, clipY, clipWidth, clipHeight, clipped => {
+                    target.SourceClip(clipX, clipY, clipWidth, clipHeight, clipped => {
                         foreach (OfficeTransform tileTransform in tilingPattern.GetTileTransforms()) {
                             cancellationToken.ThrowIfCancellationRequested();
                             OfficeTransform pageTransform = pageToDrawing

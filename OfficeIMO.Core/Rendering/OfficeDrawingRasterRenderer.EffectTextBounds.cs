@@ -23,8 +23,8 @@ public static partial class OfficeDrawingRasterRenderer {
     private static EffectTextLayerPlan PlanEffectTextLayer(OfficeDrawingEffectGroup effect,
         OfficeRasterCanvas canvas, double scale, double parentX, double parentY,
         OfficeTransform? samplingPlacement = null) {
-        // Nearest content retains its original grid. Measure that complete text
-        // extent before deciding which images can affect the sampling policy.
+        // Isolated nearest content retains its original grid. Transform-only
+        // forwarding is handled before rasterization by RenderEffectGroup.
         EffectTextLayerPlan original = CreateEffectTextLayer(effect.InnerDrawing, canvas,
             scale, scale, interpolate: false);
         SamplingInspectionContext inspection = new SamplingInspectionContext(canvas.CancellationToken);
@@ -38,8 +38,8 @@ public static partial class OfficeDrawingRasterRenderer {
         // the independent axes so a narrow destination does not allocate a square.
         EffectTextLayerPlan sampled = CreateEffectTextLayer(effect.InnerDrawing, canvas,
             scaleX, scaleY, interpolate: true);
-        // Density can change rounded overhang support. If that reveals nearest
-        // content, conservatively return to its original grid and measurements.
+        // Density can reveal nearest content at rounded overhangs. Isolation
+        // must conservatively retain its original grid and measurements.
         return ContainsNearest(sampled) ? original : sampled;
 
         bool ContainsNearest(EffectTextLayerPlan plan) {

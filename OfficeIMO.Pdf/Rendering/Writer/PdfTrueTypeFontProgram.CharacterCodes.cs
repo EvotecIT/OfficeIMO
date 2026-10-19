@@ -1,100 +1,61 @@
-using OfficeIMO.Drawing;
-
 namespace OfficeIMO.Pdf;
 
 internal sealed partial class PdfTrueTypeFontProgram {
-    private const int FirstAsciiCharacter = 32;
-    private const int AsciiCharacterCount = 95;
-    private ulong _usedAsciiLow, _usedAsciiHigh;
+    // CIDs are glyph ids. Pins keep each emitted glyph's ToUnicode entry deterministic, and
+    // alias codes (glyph count + scalar) keep characters that share a nominal glyph distinct.
+    internal IPdfGlyphTextPinner TextPinner => _textPins;
 
-    // Separate CIDs give ordinary characters stable Unicode mappings even when
-    // a later ligature or Unicode alias changes the mapping of their shared GID.
-    // Original GID-based CIDs remain available for every other shaping route.
-    internal bool TryCreateAsciiTextShowCommand(PdfGlyphRun run, out PdfTextShowCommand command) {
-        command = null!;
-        if (!run.PreserveGlyphUnicode || run.ActualText != null || run.HasPositioning ||
-            run.HasMissingGlyphs || run.Glyphs.Count == 0 || GlyphCount > 65536 - AsciiCharacterCount ||
-            (run.Direction != OfficeTextDirection.Auto && run.Direction != OfficeTextDirection.LeftToRight)) {
-            return false;
-        }
-
-        ulong low = 0, high = 0;
-        for (int index = 0; index < run.Glyphs.Count; index++) {
-            PdfGlyphInfo glyph = run.Glyphs[index];
-            if (glyph.UnicodeText.Length != 1 || glyph.TextIndex != index || glyph.LogicalClusterStart != index) return false;
-            int scalar = glyph.UnicodeText[0];
-            int offset = scalar - FirstAsciiCharacter;
-            if (offset < 0 || offset >= AsciiCharacterCount ||
-                !_cmap.TryGetValue(scalar, out int glyphId) || glyphId <= 0 || glyphId >= GlyphCount || glyphId != glyph.GlyphId) return false;
-            if (offset < 64) low |= 1UL << offset;
-            else high |= 1UL << (offset - 64);
-        }
-
-        var hex = PdfGlyphRun.RentHexBuilder(run.Glyphs.Count * 4);
-        for (int index = 0; index < run.Glyphs.Count; index++)
-            PdfGlyphRun.AppendGlyphHex(hex, GetAsciiCharacterCode(run.Glyphs[index].UnicodeText[0]));
-        string glyphHex = PdfGlyphRun.ReturnHexBuilder(hex);
-        lock (_usageLock) {
-            _usedAsciiLow |= low;
-            _usedAsciiHigh |= high;
-        }
-        command = new PdfTextShowCommand(glyphHex, advanceWidth1000: run.TotalAdvanceWidth1000, visualGlyphs: run.Glyphs);
-        return true;
-    }
-
-    private int GetAsciiCharacterCode(int scalar) => GlyphCount + scalar - FirstAsciiCharacter;
-
-    internal IReadOnlyList<(int CharacterCode, int GlyphId, string UnicodeText)> GetUsedAsciiCharacterMappings() {
-        var result = new List<(int, int, string)>();
-        lock (_usageLock) {
-            for (int offset = 0; offset < AsciiCharacterCount; offset++) {
-                if (!IsAsciiCharacterUsed(offset)) continue;
-                int scalar = offset + FirstAsciiCharacter;
-                result.Add((GetAsciiCharacterCode(scalar), _cmap[scalar], ((char)scalar).ToString()));
-            }
-        }
-        return result;
-    }
+    internal IReadOnlyList<(int CharacterCode, int GlyphId, string UnicodeText)> GetAliasCharacterMappings() => _textPins.GetAliases();
 
     internal IReadOnlyList<(int CharacterCode, string UnicodeText)> GetCharacterCodeToUnicodeMappings() {
         var result = new List<(int, string)>(GetGlyphToUnicodeMappings());
-        foreach (var mapping in GetUsedAsciiCharacterMappings())
-            result.Add((mapping.CharacterCode, mapping.UnicodeText));
+        foreach (var alias in _textPins.GetAliases()) result.Add((alias.Code, alias.UnicodeText));
         return result;
     }
 
-    // Snapshot the source before locking the destination: option-context merges
-    // must not acquire two usage locks in opposing order.
-    internal void MergeAsciiCharacterUsageFrom(PdfTrueTypeFontProgram source) {
+    internal void MergeTextPinsFrom(PdfTrueTypeFontProgram source) {
         if (ReferenceEquals(this, source)) return;
         if (!_subsetFontFingerprint.Equals(source._subsetFontFingerprint))
-            throw new InvalidOperationException("Character-code usage can only be merged for the same TrueType font program.");
-        ulong low, high;
-        lock (source._usageLock) { low = source._usedAsciiLow; high = source._usedAsciiHigh; }
-        lock (_usageLock) { _usedAsciiLow |= low; _usedAsciiHigh |= high; }
+            throw new InvalidOperationException("Glyph text pins can only be merged for the same TrueType font program.");
+        _textPins.MergeFrom(source._textPins);
     }
 
-    internal byte[]? BuildCidToGlyphMap() {
-        lock (_usageLock) {
-            if ((_usedAsciiLow | _usedAsciiHigh) == 0) return null;
-            // Unused entries stay zero, keeping large-font maps sparse and
-            // compressible. Only painted original CIDs need identity entries.
-            var map = new byte[(GlyphCount + AsciiCharacterCount) * 2];
-            foreach (int glyphId in _usedGlyphIds) {
-                if (glyphId >= 0 && glyphId < GlyphCount) WriteCidGlyph(map, glyphId, glyphId);
-            }
-            for (int offset = 0; offset < AsciiCharacterCount; offset++) {
-                if (!IsAsciiCharacterUsed(offset)) continue;
-                int scalar = offset + FirstAsciiCharacter;
-                WriteCidGlyph(map, GetAsciiCharacterCode(scalar), _cmap[scalar]);
-            }
-            return map;
+    /// <summary>BaseFont and FontName of the embedded program: subset-tagged once glyphs are renumbered.</summary>
+    internal string SubsetFontName {
+        get {
+            int[]? glyphOrder = GetCompactSubsetGlyphOrder();
+            return glyphOrder == null ? FontName : PdfSubsetTag.Apply(FontName, glyphOrder, _data);
         }
     }
 
-    private bool IsAsciiCharacterUsed(int offset) => offset < 64
-        ? (_usedAsciiLow & (1UL << offset)) != 0
-        : (_usedAsciiHigh & (1UL << (offset - 64))) != 0;
+    // Maps painted CIDs (glyph ids and alias codes) into the renumbered subset program.
+    internal byte[]? BuildCidToGlyphMap() {
+        IReadOnlyList<(int Code, int GlyphId, string UnicodeText)> aliases = _textPins.GetAliases();
+        int[]? glyphOrder = GetCompactSubsetGlyphOrder();
+        if (aliases.Count == 0 && glyphOrder == null) return null;
+        var subsetGlyphIds = new Dictionary<int, int>();
+        if (glyphOrder != null) {
+            for (int index = 0; index < glyphOrder.Length; index++) subsetGlyphIds[glyphOrder[index]] = index;
+        }
+        int Subset(int glyphId) => glyphOrder == null ? glyphId : subsetGlyphIds.TryGetValue(glyphId, out int mapped) ? mapped : 0;
+
+        IReadOnlyList<int> usedGlyphIds = GetUsedGlyphIds();
+        int maximumCode = 0;
+        bool identity = aliases.Count == 0;
+        foreach (int glyphId in usedGlyphIds) {
+            maximumCode = Math.Max(maximumCode, glyphId);
+            identity &= Subset(glyphId) == glyphId;
+        }
+        if (identity) return null;
+        foreach (var alias in aliases) maximumCode = Math.Max(maximumCode, alias.Code);
+        // Unused entries stay zero, keeping large-font maps sparse and compressible.
+        var map = new byte[(maximumCode + 1) * 2];
+        foreach (int glyphId in usedGlyphIds) {
+            if (glyphId >= 0 && glyphId < GlyphCount) WriteCidGlyph(map, glyphId, Subset(glyphId));
+        }
+        foreach (var alias in aliases) WriteCidGlyph(map, alias.Code, Subset(alias.GlyphId));
+        return map;
+    }
 
     private static void WriteCidGlyph(byte[] map, int characterCode, int glyphId) {
         map[characterCode * 2] = (byte)(glyphId >> 8);

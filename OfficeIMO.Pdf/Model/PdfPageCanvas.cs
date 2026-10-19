@@ -118,7 +118,7 @@ public sealed partial class PdfPageCanvas {
 
     /// <summary>Groups absolute canvas content under a typed tagged-PDF structure container.</summary>
     public PdfPageCanvas Structure(PdfCanvasStructureRole role, Action<PdfPageCanvas> build, PdfCanvasStructureOptions? options = null) {
-        if ((int)role < (int)PdfCanvasStructureRole.Section || (int)role > (int)PdfCanvasStructureRole.TableBody) {
+        if ((int)role < (int)PdfCanvasStructureRole.Section || (int)role > (int)PdfCanvasStructureRole.Span) {
             throw new ArgumentOutOfRangeException(nameof(role));
         }
         Guard.NotNull(build, nameof(build));
@@ -608,6 +608,13 @@ internal sealed class PdfCanvasImageResource {
 
     internal static PdfCanvasImageResource Create(byte[] bytes) {
         Guard.NotNullOrEmpty(bytes, nameof(bytes));
+        // Canvas SVG images use the same vector writer as Drawing images. They
+        // must not pass through the raster-only PDF image-stream preparer.
+        if (OfficeImageReader.TryIdentifyByContent(bytes, null, out OfficeImageInfo info) && info.Format == OfficeImageFormat.Svg) {
+            byte[] snapshot = (byte[])bytes.Clone();
+            PdfSvgImageReader.Read(snapshot);
+            return Create(new PdfDocument.PreparedImage(snapshot, info, OfficeImageFormat.Svg, wasTranscoded: false));
+        }
         return Create(PdfDocument.PrepareImageBytes(bytes));
     }
 
@@ -887,6 +894,7 @@ internal sealed class PdfCanvasClipItem : PdfCanvasItem {
 
     public IReadOnlyList<PdfCanvasItem> Items { get; }
     public OfficeClipPath ClipPath { get; }
+    internal bool PreservesSourceClip { get; set; }
     public double Width => ClipPath.Width;
     public double Height => ClipPath.Height;
 }

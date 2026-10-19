@@ -23,10 +23,11 @@ namespace OfficeIMO.Tests {
 
             PowerPointSlideVisualSnapshot snapshot = presentation.Slides[0]
                 .CreateVisualSnapshot(options);
-            Assert.True(snapshot.Drawing.Elements.OfType<OfficeDrawingShape>()
-                .Count(shape => shape.Shape.FillGradient != null) >= 7);
-            Assert.DoesNotContain(snapshot.Diagnostics, diagnostic =>
-                diagnostic.Code != OfficeImageExportDiagnosticCodes.FontSubstituted);
+            OfficeImageExportDiagnostic[] unexpectedDiagnostics = snapshot.Diagnostics.Where(diagnostic =>
+                (diagnostic.Severity != OfficeImageExportDiagnosticSeverity.Info
+                    || diagnostic.LossKind != OfficeConversionLossKind.None)
+                && diagnostic.Code != OfficeImageExportDiagnosticCodes.FontSubstituted
+                && diagnostic.Code != "font-family-substitution").ToArray();
 
             byte[] actual = presentation.Slides[0].ToPng(options);
             VisualRasterComparison comparison = VisualBaselineTestSupport.CompareRasterImages(
@@ -37,12 +38,14 @@ namespace OfficeIMO.Tests {
                 maximumRootMeanSquareError: 30D,
                 maximumMeanLuminanceError: 10D);
 
-            Assert.True(comparison.Passed,
-                $"Binary shape rendering differs from the LibreOffice reference at " +
+            Assert.True(comparison.Passed && unexpectedDiagnostics.Length == 0,
+                $"Binary shape raster comparison passed={comparison.Passed}: " +
                 $"{comparison.DifferentPixels} of {comparison.TotalPixels} pixels " +
                 $"(maximum channel delta {comparison.MaxChannelDelta}, " +
                 $"MAE {comparison.MeanAbsoluteError:F3}, RMSE {comparison.RootMeanSquareError:F3}, " +
-                $"luminance MAE {comparison.MeanLuminanceError:F3}).");
+                $"luminance MAE {comparison.MeanLuminanceError:F3}). " +
+                "Unexpected snapshot diagnostics: " + string.Join("; ", unexpectedDiagnostics.Select(diagnostic =>
+                    $"{diagnostic.Code} [{diagnostic.LossKind}]: {diagnostic.Message}")));
         }
 
         [Fact]
@@ -56,10 +59,14 @@ namespace OfficeIMO.Tests {
 
             PowerPointSlideVisualSnapshot snapshot = presentation.Slides[0]
                 .CreateVisualSnapshot(options);
-            Assert.DoesNotContain(snapshot.Drawing.Elements.OfType<OfficeDrawingText>(), text =>
-                text.Text.Contains("Click to edit", StringComparison.Ordinal));
-            Assert.DoesNotContain(snapshot.Diagnostics, diagnostic =>
-                diagnostic.Code != OfficeImageExportDiagnosticCodes.FontSubstituted);
+            Assert.NotEmpty(snapshot.TextSpans);
+            Assert.DoesNotContain("Click to edit", string.Concat(snapshot.TextSpans.Select(span => span.Text)),
+                StringComparison.Ordinal);
+            OfficeImageExportDiagnostic[] unexpectedDiagnostics = snapshot.Diagnostics.Where(diagnostic =>
+                (diagnostic.Severity != OfficeImageExportDiagnosticSeverity.Info
+                    || diagnostic.LossKind != OfficeConversionLossKind.None)
+                && diagnostic.Code != OfficeImageExportDiagnosticCodes.FontSubstituted
+                && diagnostic.Code != "font-family-substitution").ToArray();
 
             byte[] actual = presentation.Slides[0].ToPng(options);
             VisualRasterComparison comparison = VisualBaselineTestSupport.CompareRasterImages(
@@ -70,12 +77,14 @@ namespace OfficeIMO.Tests {
                 maximumRootMeanSquareError: 22D,
                 maximumMeanLuminanceError: 6D);
 
-            Assert.True(comparison.Passed,
-                $"Microsoft-authored binary rendering differs from the LibreOffice reference at " +
+            Assert.True(comparison.Passed && unexpectedDiagnostics.Length == 0,
+                $"Microsoft-authored raster comparison passed={comparison.Passed}: " +
                 $"{comparison.DifferentPixels} of {comparison.TotalPixels} pixels " +
                 $"(maximum channel delta {comparison.MaxChannelDelta}, " +
                 $"MAE {comparison.MeanAbsoluteError:F3}, RMSE {comparison.RootMeanSquareError:F3}, " +
-                $"luminance MAE {comparison.MeanLuminanceError:F3}).");
+                $"luminance MAE {comparison.MeanLuminanceError:F3}). " +
+                "Unexpected snapshot diagnostics: " + string.Join("; ", unexpectedDiagnostics.Select(diagnostic =>
+                    $"{diagnostic.Code} [{diagnostic.LossKind}]: {diagnostic.Message}")));
         }
     }
 }

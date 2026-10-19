@@ -10,7 +10,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         if (IsVerticalWritingMode(style.WritingMode) && style.TextOrientation == "upright") return style.Font.Size;
         var fallback = _fonts.PlanFallbackRuns("0", style.Font.FamilyName, style.Font.Face).FirstOrDefault();
         HtmlRenderBoxStyle measurementStyle = style.Clone();
-        measurementStyle.Font = style.Font.WithFamilyName(fallback?.FamilyName ?? style.Font.FamilyName);
+        measurementStyle.Font = style.Font.WithFamilyName(fallback?.FamilyRequest ?? style.Font.FamilyName);
         measurementStyle.BaselineScale = 1D;
         double advance = TryMeasureWithConfiguredProvider("0", measurementStyle, out double shaped)
             ? shaped : MeasureText("0", measurementStyle.Font, measurementStyle.FontDescriptor);

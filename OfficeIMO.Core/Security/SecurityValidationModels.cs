@@ -121,7 +121,15 @@ public sealed class CmsSigningOptions {
     /// Optional ASN.1 object identifier for the signed content type. CMS data is used when omitted.
     /// </summary>
     public string? ContentTypeOid { get; set; }
-    /// <summary>Whether to include the CMS signing-time attribute. Defaults to true.</summary>
+    /// <summary>Creates detached PAdES baseline CMS with signing-certificate-v2 and without CMS signing-time. Requires SHA-256 or stronger.</summary>
+    public bool UsePadesBaseline { get; set; }
+    /// <summary>
+    /// Optional RFC 3161 timestamp provider. Receives a copy of the raw signature value and returns a DER
+    /// timestamp token covering that value. The caller owns transport and TSA trust policy; the signer checks
+    /// the token signature, TSA certificate profile and imprint before embedding it as an unsigned attribute.
+    /// </summary>
+    public Func<byte[], byte[]>? SignatureTimestampProvider { get; set; }
+    /// <summary>Whether to include the CMS signing-time attribute. Defaults to true; ignored when UsePadesBaseline is true.</summary>
     public bool IncludeSigningTime { get; set; } = true;
     /// <summary>Optional signing time. Current UTC time is used when omitted.</summary>
     public DateTimeOffset? SigningTime { get; set; }

@@ -11,6 +11,7 @@ public static partial class OfficeSvgDrawingReader {
         IList<SvgTextRun> runs,
         IEnumerable<SvgTextPathLayout> layouts,
         SvgElementReferenceRegistry references,
+        OfficeFontFaceCollection fonts,
         double viewX,
         double viewY,
         SvgContentSafetyTextObserver? observer,
@@ -44,7 +45,7 @@ public static partial class OfficeSvgDrawingReader {
                 }
                 if (runLimitExceeded) break;
                 if (glyphs.Count == 0) continue;
-                IReadOnlyList<double> glyphAdvances = MeasureTextPathGlyphAdvances(source, glyphs);
+                IReadOnlyList<double> glyphAdvances = MeasureTextPathGlyphAdvances(source, glyphs, fonts, references.CancellationToken);
                 double runAdvance = 0D;
                 for (int glyphIndex = 0; glyphIndex < glyphs.Count; glyphIndex++) {
                     double glyphAdvance = glyphAdvances[glyphIndex];
@@ -85,12 +86,15 @@ public static partial class OfficeSvgDrawingReader {
         }
     }
 
-    private static IReadOnlyList<double> MeasureTextPathGlyphAdvances(SvgTextRun source, IReadOnlyList<string> glyphs) {
+    private static IReadOnlyList<double> MeasureTextPathGlyphAdvances(SvgTextRun source, IReadOnlyList<string> glyphs,
+        OfficeFontFaceCollection fonts, System.Threading.CancellationToken cancellationToken) {
         var advances = new double[glyphs.Count];
         double measuredTotal = 0D;
         for (int index = 0; index < glyphs.Count; index++) {
+            cancellationToken.ThrowIfCancellationRequested();
             double measured = source.FontProgram?.Measure(glyphs[index], source.FontSize)
-                ?? EstimateSvgTextWidth(glyphs[index], source.FontSize);
+                ?? ResolveSvgTextFontRuns(glyphs[index], source.FontSize, source.Style, fonts,
+                    source.TextDirection, visualOrder: false, cancellationToken).Sum(part => part.Width);
             if (double.IsNaN(measured) || double.IsInfinity(measured) || measured <= 0D) {
                 measured = EstimateSvgTextWidth(glyphs[index], source.FontSize);
             }

@@ -268,6 +268,7 @@ public static partial class PdfAdvancedUnderstandingStages {
                     string wordText = PdfTextDirectionAnalysis.RestoreLogicalOrderFromGlyphPaintSequence(
                         text.Substring(start, cursor - start),
                         run.GlyphSequenceProgressesLeftToRight);
+                    if (start == 0 && TryJoinKernedFragment(result, runs, runIndex, run, wordText, startX, startY, endX, endDistance - startDistance)) continue;
                     result.Add(new PdfUnderstandingWord(
                         wordText,
                         Math.Min(startX, endX),
@@ -291,6 +292,45 @@ public static partial class PdfAdvancedUnderstandingStages {
                 }
             }
             return result.Count == 0 ? Array.Empty<PdfUnderstandingWord>() : result.AsReadOnly();
+        }
+
+        // Kerning and glyph positioning split one TJ array into several spans. A fragment that
+        // continues the previous span's last word on the same baseline, with no whitespace and a
+        // gap well below a word space, belongs to that word.
+        private static bool TryJoinKernedFragment(List<PdfUnderstandingWord> result, IReadOnlyList<PdfTextSpan> runs, int runIndex,
+            PdfTextSpan run, string wordText, double startX, double startY, double endX, double advance) {
+            if (result.Count == 0 || runIndex == 0) return false;
+            PdfTextSpan previousRun = runs[runIndex - 1];
+            PdfUnderstandingWord previous = result[result.Count - 1];
+            string previousText = previousRun.Text ?? string.Empty;
+            if (previous.SourceRuns.Count == 0 || !ReferenceEquals(previous.SourceRuns[previous.SourceRuns.Count - 1], previousRun) ||
+                previousText.Length == 0 || char.IsWhiteSpace(previousText[previousText.Length - 1]) ||
+                !run.GlyphSequenceProgressesLeftToRight || !previousRun.GlyphSequenceProgressesLeftToRight ||
+                Math.Abs(run.RotationDegrees) > 0.5D || Math.Abs(previousRun.RotationDegrees) > 0.5D ||
+                previous.IsSelectionBox || (run.HasActualText && run.TextRenderingMode == 3) ||
+                Math.Abs(previous.BaselineY - startY) > Math.Max(0.01D, run.FontSize * 0.02D) ||
+                Math.Abs(previous.FontSize - run.FontSize) > Math.Max(0.01D, run.FontSize * 0.02D)) return false;
+            double gap = Math.Min(startX, endX) - previous.XEnd;
+            double em = Math.Max(run.FontSize, 0.01D);
+            if (gap < -0.3D * em || gap > 0.1D * em) return false;
+            var sources = new List<PdfTextSpan>(previous.SourceRuns) { run };
+            var evidence = new List<PdfInferenceEvidence>(previous.Evidence) {
+                new PdfInferenceEvidence("word.kerned-fragment-join",
+                    "Adjacent same-baseline glyph runs without whitespace were joined into one word.", 0.9D)
+            };
+            result[result.Count - 1] = new PdfUnderstandingWord(
+                previous.Text + wordText,
+                Math.Min(previous.XStart, Math.Min(startX, endX)),
+                Math.Max(previous.XEnd, Math.Max(startX, endX)),
+                previous.BaselineY,
+                previous.FontSize,
+                previous.RotationDegrees,
+                sources,
+                Math.Min(previous.Confidence, 0.95D),
+                evidence,
+                (previous.Advance ?? 0D) + gap + advance,
+                sourceSequence: previous.SourceSequence);
+            return true;
         }
 
         private static double[] BuildUniformScalarBoundaries(string text, double advance, double fontSize) {

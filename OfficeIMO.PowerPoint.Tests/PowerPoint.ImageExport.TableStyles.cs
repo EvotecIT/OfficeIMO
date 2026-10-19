@@ -35,7 +35,7 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void PowerPointSlide_ProjectsTableStyleColumnsAndCornersThroughSharedDrawingBorderBox() {
+        public void PowerPointSlide_RendersTableStyleColumnsAndCorners() {
             using var stream = new MemoryStream();
             using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
             presentation.SlideSize.SetSizePoints(180, 120);
@@ -52,28 +52,11 @@ namespace OfficeIMO.Tests {
             table.LastColumn = true;
             table.BandedRows = false;
             table.BandedColumns = false;
-            PowerPointSlideVisualSnapshot snapshot = slide.CreateVisualSnapshot();
             OfficeImageExportResult png = slide.ExportImage(OfficeImageExportFormat.Png);
             OfficeImageExportResult svg = slide.ExportImage(OfficeImageExportFormat.Svg);
 
-            AssertNoUnexpectedDiagnostics(snapshot.Diagnostics);
             AssertNoUnexpectedDiagnostics(png.Diagnostics);
             AssertNoUnexpectedDiagnostics(svg.Diagnostics);
-            Assert.Contains(snapshot.Drawing.Elements.OfType<OfficeDrawingShape>(), shape =>
-                shape.Shape.Kind == OfficeShapeKind.Rectangle &&
-                shape.Shape.FillColor == OfficeColor.FromRgb(252, 231, 243));
-            Assert.Contains(snapshot.Drawing.Elements.OfType<OfficeDrawingShape>(), shape =>
-                shape.Shape.Kind == OfficeShapeKind.Rectangle &&
-                shape.Shape.FillColor == OfficeColor.FromRgb(219, 234, 254));
-            Assert.Contains(snapshot.Drawing.Elements.OfType<OfficeDrawingShape>(), shape =>
-                shape.Shape.Kind == OfficeShapeKind.Rectangle &&
-                shape.Shape.FillColor == OfficeColor.FromRgb(220, 252, 231));
-            Assert.Contains(snapshot.Drawing.Elements.OfType<OfficeDrawingShape>(), shape =>
-                shape.Shape.Kind == OfficeShapeKind.Rectangle &&
-                shape.Shape.FillColor == OfficeColor.FromRgb(226, 232, 240));
-            Assert.Contains(snapshot.Drawing.Elements.OfType<OfficeDrawingShape>(), shape =>
-                shape.Shape.Kind == OfficeShapeKind.Rectangle &&
-                shape.Shape.FillColor == OfficeColor.FromRgb(254, 243, 199));
 
             Assert.True(OfficePngReader.TryDecode(png.Bytes, out OfficeRasterImage? image));
             Assert.Equal(OfficeColor.FromRgb(252, 231, 243), image!.GetPixel(30, 30));
@@ -91,7 +74,7 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void PowerPointSlide_ProjectsTableStyleBandedColumnsThroughSharedDrawingBorderBox() {
+        public void PowerPointSlide_RendersTableStyleBandedColumns() {
             using var stream = new MemoryStream();
             using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
             presentation.SlideSize.SetSizePoints(180, 100);
@@ -109,19 +92,11 @@ namespace OfficeIMO.Tests {
             table.BandedRows = false;
             table.BandedColumns = true;
 
-            PowerPointSlideVisualSnapshot snapshot = slide.CreateVisualSnapshot();
             OfficeImageExportResult png = slide.ExportImage(OfficeImageExportFormat.Png);
             OfficeImageExportResult svg = slide.ExportImage(OfficeImageExportFormat.Svg);
 
-            AssertNoUnexpectedDiagnostics(snapshot.Diagnostics);
             AssertNoUnexpectedDiagnostics(png.Diagnostics);
             AssertNoUnexpectedDiagnostics(svg.Diagnostics);
-            Assert.Contains(snapshot.Drawing.Elements.OfType<OfficeDrawingShape>(), shape =>
-                shape.Shape.Kind == OfficeShapeKind.Rectangle &&
-                shape.Shape.FillColor == OfficeColor.FromRgb(199, 210, 254));
-            Assert.Contains(snapshot.Drawing.Elements.OfType<OfficeDrawingShape>(), shape =>
-                shape.Shape.Kind == OfficeShapeKind.Rectangle &&
-                shape.Shape.FillColor == OfficeColor.FromRgb(254, 215, 170));
 
             Assert.True(OfficePngReader.TryDecode(png.Bytes, out OfficeRasterImage? image));
             Assert.Equal(OfficeColor.FromRgb(199, 210, 254), image!.GetPixel(32, 32));
@@ -135,7 +110,7 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void PowerPointSlide_ProjectsMergedTableStyleOuterBordersThroughSharedDrawingBorderBox() {
+        public void PowerPointSlide_RendersMergedTableStyleOuterBorders() {
             using var stream = new MemoryStream();
             using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
             presentation.SlideSize.SetSizePoints(140, 90);
@@ -149,28 +124,18 @@ namespace OfficeIMO.Tests {
             table.SetRowHeightsPoints(36);
             table.GetCell(0, 0).Merge = (1, 2);
 
-            PowerPointSlideVisualSnapshot snapshot = slide.CreateVisualSnapshot();
             OfficeImageExportResult png = slide.ExportImage(OfficeImageExportFormat.Png);
             OfficeImageExportResult svg = slide.ExportImage(OfficeImageExportFormat.Svg);
 
-            AssertNoUnexpectedDiagnostics(snapshot.Diagnostics);
             AssertNoUnexpectedDiagnostics(png.Diagnostics);
             AssertNoUnexpectedDiagnostics(svg.Diagnostics);
 
-            List<OfficeDrawingShape> borderLines = snapshot.Drawing.Elements
-                .OfType<OfficeDrawingShape>()
-                .Where(shape => shape.Shape.Kind == OfficeShapeKind.Line)
-                .ToList();
-            Assert.Contains(borderLines, line =>
-                line.Shape.StrokeColor == OfficeColor.FromRgb(22, 163, 74) &&
-                Math.Abs(line.Shape.StrokeWidth - 4D) < 0.000001D);
-            Assert.DoesNotContain(borderLines, line => line.Shape.StrokeColor == OfficeColor.FromRgb(250, 204, 21));
-
-            string svgText = System.Text.Encoding.UTF8.GetString(svg.Bytes);
-            Assert.Contains("#16A34A", svgText, StringComparison.OrdinalIgnoreCase);
-            Assert.DoesNotContain("#FACC15", svgText, StringComparison.OrdinalIgnoreCase);
+            OfficeRasterImage svgImage = ReadSvgOutput(svg);
+            // The clipped table spans x=20..100. Sample inside its right border, not at the exclusive edge.
+            Assert.Equal(OfficeColor.FromRgb(22, 163, 74), svgImage.GetPixel(99, 38));
+            Assert.Equal(0, CountPixelsNear(svgImage, OfficeColor.FromRgb(250, 204, 21)));
             Assert.True(OfficePngReader.TryDecode(png.Bytes, out OfficeRasterImage? image));
-            Assert.Equal(OfficeColor.FromRgb(22, 163, 74), image!.GetPixel(100, 38));
+            Assert.Equal(OfficeColor.FromRgb(22, 163, 74), image!.GetPixel(99, 38));
         }
 
         private static void AddImageExportTableStyle(PowerPointSlide slide, string styleId) {

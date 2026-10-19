@@ -208,7 +208,7 @@ public partial class PdfDocumentComplianceAssessmentTests {
         string content = Encoding.ASCII.GetString(pdf);
 
         Assert.Contains("/P << /MCID 0 >> BDC", content, StringComparison.Ordinal);
-        Assert.True(CountOccurrences(content, "/Artifact BMC") >= 2);
+        Assert.True(CountOccurrences(content, "/Artifact << /Type /Layout >> BDC") >= 2);
     }
 
     [Fact]
@@ -225,7 +225,7 @@ public partial class PdfDocumentComplianceAssessmentTests {
         string content = Encoding.ASCII.GetString(pdf);
 
         Assert.Contains("/P << /MCID 0 >> BDC", content, StringComparison.Ordinal);
-        Assert.Contains("/Artifact BMC", content, StringComparison.Ordinal);
+        Assert.Contains("/Artifact << /Type /Layout >> BDC", content, StringComparison.Ordinal);
     }
 
     [Fact]

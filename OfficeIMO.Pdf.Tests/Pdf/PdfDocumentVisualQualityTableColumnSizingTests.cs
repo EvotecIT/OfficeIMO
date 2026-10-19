@@ -431,7 +431,7 @@ public partial class PdfDocumentVisualQualityTests {
             }, style: style)
             .ToBytes();
 
-        string content = Encoding.ASCII.GetString(bytes);
+        string content = PdfTestContentText.ReadDecoded(bytes);
         double renderedWidth = ExtractPaintedRectangles(content, "0.17 0.27 0.37 rg", "f").Sum(rectangle => rectangle.W);
 
         Assert.InRange(renderedWidth, 159.5D, 160.5D);
@@ -466,7 +466,7 @@ public partial class PdfDocumentVisualQualityTests {
                                 }, style: style))))))
             .ToBytes();
 
-        string content = Encoding.ASCII.GetString(bytes);
+        string content = PdfTestContentText.ReadDecoded(bytes);
         double renderedWidth = ExtractPaintedRectangles(content, "0.18 0.28 0.38 rg", "f").Sum(rectangle => rectangle.W);
 
         Assert.InRange(renderedWidth, 100D, 150.5D);

@@ -119,5 +119,8 @@ namespace OfficeIMO.PowerPoint {
 
         /// <summary>Native pie rotation and doughnut hole geometry.</summary>
         public OfficeIMO.Drawing.OfficeChartRadialLayout RadialLayout { get; }
+
+        /// <summary>What a flat projection of the native chart family leaves out, or null for an exact family.</summary>
+        internal string? ProjectionNotice { get; set; }
     }
 }

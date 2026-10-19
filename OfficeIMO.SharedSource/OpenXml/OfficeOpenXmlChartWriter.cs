@@ -138,6 +138,8 @@ namespace OfficeIMO.OpenXml.Internal {
                 ApplySharedSeriesMarker(seriesElement, series, kind, fallbackSeriesColor);
                 ApplySharedPointColors(seriesElement, series);
                 OfficeOpenXmlChartPointStyles.ApplySeries(seriesElement, series);
+                if (series.SeriesStyle?.FillColor.HasValue == true || series.SeriesStyle?.OutlineColor.HasValue == true)
+                    SetAutomaticSeriesColor(seriesElement, false);
                 OfficeOpenXmlChartExplosions.ApplySeries(seriesElement, series);
             }
         }

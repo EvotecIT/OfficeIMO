@@ -821,7 +821,11 @@ public sealed class StudioNativeEngineTests : IDisposable {
         }
         string workbook = Path.Combine(_root, "figures.xlsx");
         using (var document = OfficeIMO.Excel.ExcelDocument.Create(workbook)) {
-            document.AddWorksheet("Data").CellValue(1, 1, "Quarterly figures");
+            var sheet = document.AddWorksheet("Data");
+            sheet.CellValue(1, 1, "Quarterly figures");
+            sheet.SetColumnWidth(1, 40); // Search validates visible text, not clipped cell overflow.
+            sheet.SetRowHeight(1, 30);
+            sheet.CellVerticalAlign(1, 1, OfficeIMO.Excel.ExcelVerticalAlignment.Center);
             document.Save();
         }
         string deck = Path.Combine(_root, "deck.pptx");
@@ -836,7 +840,7 @@ public sealed class StudioNativeEngineTests : IDisposable {
             Assert.Equal(route, result.Route);
             Assert.Equal(new FileInfo(output).Length, result.OutputBytes);
             using StudioNativeDocument converted = await StudioNativeDocument.OpenAsync(output, null, default);
-            Assert.NotEmpty((await converted.SearchAsync("quarterly", default)).Hits);
+            Assert.True((await converted.SearchAsync("quarterly", default)).Hits.Count > 0, route + ": " + OfficeIMO.Pdf.PdfReadDocument.Open(File.ReadAllBytes(output)).ExtractText());
         }
     }
 

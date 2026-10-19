@@ -159,7 +159,18 @@ internal static partial class PdfComplianceAnalyzer {
         Add(requirements, "readback-pdfa-identification", "Readback PDF/A identification XMP",
             hasMatchingIdentification,
             "The saved PDF contains PDF/A identification metadata for " + GetDisplayName(profile) + ".",
-            "The saved PDF XMP metadata must contain matching pdfaid:part and pdfaid:conformance values for " + GetDisplayName(profile) + ".");
+            IsElectronicInvoice(profile)
+                ? "Hybrid invoices support only PDF/A-3a, PDF/A-3b and PDF/A-3u, optionally with PDF/UA-1."
+                : "The saved PDF XMP metadata must contain matching pdfaid:part and pdfaid:conformance values for " + GetDisplayName(profile) + ".");
+
+        if (IsElectronicInvoice(profile)) {
+            Add(requirements, "readback-einvoice-pdfua-profile", "Readback invoice PDF/UA profile",
+                xmp?.PdfUaPart == null || xmp.PdfUaPart == 1,
+                "The saved invoice has no PDF/UA declaration or declares PDF/UA-1.",
+                "Hybrid invoices support only PDF/A-3a, PDF/A-3b and PDF/A-3u, optionally with PDF/UA-1; PDF/UA-2 is not supported.");
+        }
+
+        AddPdfIdentificationReadbackRequirements(requirements, xmp, target.Part);
 
         Add(requirements, "readback-output-intent", "Readback catalog output intent",
             info.OutputIntentCount > 0,
@@ -427,6 +438,10 @@ internal static partial class PdfComplianceAnalyzer {
                 xmp?.PdfUaPart == expectedPart,
                 "The saved PDF contains " + GetDisplayName(profile) + " identification metadata.",
                 "The saved PDF XMP metadata must contain pdfuaid:part=" + expectedPart.ToString(System.Globalization.CultureInfo.InvariantCulture) + ".");
+
+            if (expectedPart == 2) Add(requirements, "readback-pdfua-revision", "PDF/UA-2 revision",
+                XmpIdentificationValue(xmp?.RawXml, PdfUaIdentification.NamespaceUri, "rev") == "2024",
+                "PDF/UA-2 revision is 2024.", "PDF/UA-2 requires pdfuaid:rev=2024.");
 
             Add(requirements, "readback-document-title", "Readback document title metadata",
                 !string.IsNullOrWhiteSpace(xmp?.Title),

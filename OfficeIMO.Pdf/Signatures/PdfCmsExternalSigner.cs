@@ -10,7 +10,7 @@ public sealed class PdfCmsExternalSigner : IPdfExternalSigner, IDisposable {
     private readonly List<X509Certificate2> _certificateChain;
     private bool _disposed;
 
-    /// <summary>Creates an RSA CMS signer and clones the certificate handles used by it.</summary>
+    /// <summary>Creates an RSA or ECDSA CMS signer and clones the certificate handles used by it.</summary>
     public PdfCmsExternalSigner(
         IOfficeSecurityProvider securityProvider,
         X509Certificate2 certificate,
@@ -49,10 +49,24 @@ public sealed class PdfCmsExternalSigner : IPdfExternalSigner, IDisposable {
         ArgumentNullException.ThrowIfNull(request);
 #endif
         ThrowIfDisposed();
+        string subFilter = request.Preparation.SubFilter;
+        if (subFilter != "adbe.pkcs7.detached" && subFilter != "ETSI.CAdES.detached") {
+            throw new NotSupportedException("The CMS signer requires a detached CMS or CAdES subfilter; use an RFC 3161 timestamp signer for document timestamps.");
+        }
+        var options = new CmsSigningOptions {
+            DigestAlgorithm = SigningOptions.DigestAlgorithm,
+            ContentTypeOid = SigningOptions.ContentTypeOid,
+            IncludeSigningTime = SigningOptions.IncludeSigningTime,
+            SigningTime = SigningOptions.SigningTime,
+            IncludeCertificateChain = SigningOptions.IncludeCertificateChain,
+            MaxContentBytes = SigningOptions.MaxContentBytes,
+            UsePadesBaseline = subFilter == "ETSI.CAdES.detached",
+            SignatureTimestampProvider = SigningOptions.SignatureTimestampProvider
+        };
         return _securityProvider.SignCmsDetached(
             request.SignedContent,
             _certificate,
-            SigningOptions,
+            options,
             _certificateChain);
     }
 

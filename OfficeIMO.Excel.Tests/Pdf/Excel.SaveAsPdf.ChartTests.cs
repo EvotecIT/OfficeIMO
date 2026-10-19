@@ -15,6 +15,16 @@ using C = DocumentFormat.OpenXml.Drawing.Charts;
 namespace OfficeIMO.Tests;
 
 public partial class Excel {
+    // Series without a stored colour take the workbook theme's accents in series order, as Excel draws them.
+    private static string DefaultAccentPdfColor(int accent) {
+        using ExcelDocument document = ExcelDocument.Create();
+        document.EnsureWorkbookTheme();
+        DocumentFormat.OpenXml.Drawing.ColorScheme scheme = document.OpenXmlDocument.WorkbookPart!.ThemePart!.Theme!.ThemeElements!.ColorScheme!;
+        string hex = (accent == 1 ? scheme.Accent1Color!.RgbColorModelHex : scheme.Accent2Color!.RgbColorModelHex)!.Val!.Value!;
+        OfficeColor color = OfficeColor.Parse("#" + hex);
+        return string.Join(" ", new[] { color.R, color.G, color.B }.Select(channel =>
+            (channel / 255D).ToString("0.###", CultureInfo.InvariantCulture)));
+    }
 
     [Fact]
     public void SaveAsPdf_PlainPieRetainsOutsideLabelsAndLeaderLines() {
@@ -99,8 +109,8 @@ public partial class Excel {
         Assert.Contains("Target", text);
 
         string rawPdf = PdfOperatorSearchText.From(bytes);
-        Assert.Contains("0.122 0.306 0.475 rg", rawPdf, StringComparison.Ordinal);
-        Assert.Contains("0.184 0.435 0.243 rg", rawPdf, StringComparison.Ordinal);
+        Assert.Contains(DefaultAccentPdfColor(1) + " rg", rawPdf, StringComparison.Ordinal);
+        Assert.Contains(DefaultAccentPdfColor(2) + " rg", rawPdf, StringComparison.Ordinal);
 
         using PdfPigDocument disabledPdf = PdfPigDocument.Open(new MemoryStream(disabledBytes));
         Assert.DoesNotContain("Revenue Chart", disabledPdf.GetPage(1).Text);
@@ -320,8 +330,8 @@ public partial class Excel {
         Assert.Contains("Licenses", text);
 
         string rawPdf = PdfOperatorSearchText.From(bytes);
-        Assert.Contains("0.122 0.306 0.475 rg", rawPdf, StringComparison.Ordinal);
-        Assert.Contains("0.184 0.435 0.243 RG", rawPdf, StringComparison.Ordinal);
+        Assert.Contains(DefaultAccentPdfColor(1) + " rg", rawPdf, StringComparison.Ordinal);
+        Assert.Contains(DefaultAccentPdfColor(2) + " RG", rawPdf, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -535,7 +545,6 @@ public partial class Excel {
 
     [Theory]
     [InlineData(ExcelChartType.ColumnClustered, ExcelChartType.Scatter)]
-    [InlineData(ExcelChartType.ColumnClustered, ExcelChartType.Bubble)]
     [InlineData(ExcelChartType.Scatter, ExcelChartType.ColumnClustered)]
     [InlineData(ExcelChartType.Scatter, ExcelChartType.Line)]
     public void SaveAsPdf_ExcelWorkbook_RejectsMixedCategoryAndScatterAxisModels(
@@ -656,8 +665,8 @@ public partial class Excel {
         Assert.Contains("Throughput", text);
 
         string rawPdf = PdfOperatorSearchText.From(bytes);
-        Assert.Contains("0.122 0.306 0.475 RG", rawPdf, StringComparison.Ordinal);
-        Assert.Contains("0.184 0.435 0.243 RG", rawPdf, StringComparison.Ordinal);
+        Assert.Contains(DefaultAccentPdfColor(1) + " RG", rawPdf, StringComparison.Ordinal);
+        Assert.Contains(DefaultAccentPdfColor(2) + " RG", rawPdf, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -699,8 +708,8 @@ public partial class Excel {
         Assert.Contains("Target", text);
 
         string rawPdf = PdfOperatorSearchText.From(bytes);
-        Assert.Contains("0.122 0.306 0.475 rg", rawPdf, StringComparison.Ordinal);
-        Assert.Contains("0.184 0.435 0.243 rg", rawPdf, StringComparison.Ordinal);
+        Assert.Contains(DefaultAccentPdfColor(1) + " rg", rawPdf, StringComparison.Ordinal);
+        Assert.Contains(DefaultAccentPdfColor(2) + " rg", rawPdf, StringComparison.Ordinal);
     }
 
     [Fact]

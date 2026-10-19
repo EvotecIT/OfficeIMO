@@ -132,7 +132,8 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable 
         bool supportsFolderNavigation = true,
         Func<CancellationToken, Task<string?>>? pickSaveComparisonReport = null,
         MainWindowViewModel? sharedWorkbenches = null,
-        Func<CancellationToken, Task<OfficeIMO.Ocr.IOcrEngine>>? orientationEngineFactory = null) {
+        Func<CancellationToken, Task<OfficeIMO.Ocr.IOcrEngine>>? orientationEngineFactory = null,
+        Func<OfficeIMO.Pdf.PdfEmbeddedFont>? loadSigningAppearanceFont = null) {
         _services = services ?? (Avalonia.Application.Current as App)?.Services ?? StudioApplicationServices.CreateDefault();
         _createOrientationEngine = orientationEngineFactory ?? CreateOrientationEngineAsync;
         _hasOrientationProvider = orientationEngineFactory is not null;
@@ -163,6 +164,7 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable 
         _reviewWatermark = reviewWatermark ?? (_ => Task.FromResult(false));
         _showSigningResult = showSigningResult ?? (_ => Task.CompletedTask);
         _loadSigningCertificate = loadSigningCertificate ?? LoadSigningCertificate;
+        _loadSigningAppearanceFont = loadSigningAppearanceFont ?? LoadSigningAppearanceFont;
         _reviewPageExtraction = reviewPageExtraction ?? (_ => Task.FromResult(false));
         _showPageExtractionResult = showPageExtractionResult ?? (_ => Task.CompletedTask);
         _promptPdfPassword = promptPdfPassword ?? ((_, _, _) => Task.FromResult<string?>(null));

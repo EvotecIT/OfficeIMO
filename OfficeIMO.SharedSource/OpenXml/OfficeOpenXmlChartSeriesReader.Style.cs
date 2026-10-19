@@ -100,7 +100,9 @@ namespace OfficeIMO.OpenXml.Internal {
 
         private static Surface ReadSurface(OpenXmlElement? properties, A.ColorScheme? scheme, OpenXmlElement? colorMap) {
             if (properties == null) return default;
-            if (properties.ChildElements.Any(child => child is not A.SolidFill && child is not A.NoFill && child is not A.Outline))
+            // An empty effect list, as Office writes on most chart surfaces, draws nothing.
+            if (properties.ChildElements.Any(child => child is not A.SolidFill && child is not A.NoFill && child is not A.Outline &&
+                !(child is A.EffectList && !child.HasChildren)))
                 throw new NotSupportedException("The chart surface has an unsupported fill or effect.");
             var outline = properties.GetFirstChild<A.Outline>();
             if (outline?.CapType != null || outline?.Alignment != null || outline?.CompoundLineType != null)

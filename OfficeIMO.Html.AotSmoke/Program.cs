@@ -48,7 +48,11 @@ string secondPageSvg = standardsSource.ToSvg(standardsOptions, pageIndex: 1);
 byte[] standardsPdf = standardsSource.ToPdfBytes(new HtmlToPdfOptions(standardsOptions));
 PdfReadDocument standardsReadDocument = PdfReadDocument.Open(standardsPdf);
 string standardsText = standardsReadDocument.ExtractText();
-if (!secondPageSvg.Contains("Static standards page two", StringComparison.Ordinal)) throw new InvalidOperationException("The NativeAOT paged SVG output lost its second page.");
+if (!string.Concat(System.Xml.Linq.XDocument.Parse(secondPageSvg).Descendants()
+        .Where(element => (element.Name.LocalName == "text" || element.Attribute("aria-label") != null) &&
+            !element.Ancestors().Any(parent => parent.Attribute("aria-label") != null))
+        .Select(element => element.Attribute("aria-label")?.Value ?? element.Value))
+    .Contains("Static standards page two", StringComparison.Ordinal)) throw new InvalidOperationException("The NativeAOT paged SVG output lost its second page.");
 if (standardsReadDocument.Pages.Count != 2
     || !standardsText.Contains("Static standards page one", StringComparison.Ordinal)
     || !standardsText.Contains("Static standards page two", StringComparison.Ordinal)) {

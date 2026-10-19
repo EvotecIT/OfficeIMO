@@ -203,6 +203,7 @@ internal static class PdfImageExportEngine {
             DiagnosticSink = diagnostics,
             DiagnosticSource = source,
             MaximumRasterPixels = effective.MaximumRasterPixels,
+            PdfRasterConventions = true,
             CancellationToken = cancellationToken
         });
         byte[] bytes = OfficeRasterImageEncoder.Encode(
@@ -342,7 +343,7 @@ internal static class PdfImageExportEngine {
     }
 
     private static int Scaled(double value, double scale) =>
-        Math.Max(1, checked((int)Math.Ceiling(value * scale)));
+        Math.Max(1, checked((int)OfficeRasterScaleLimiter.CeilingPixels(value * scale)));
 
     private static OfficeDrawing AddBackground(OfficeDrawing drawing, OfficeColor color) {
         var composed = new OfficeDrawing(drawing.Width, drawing.Height);

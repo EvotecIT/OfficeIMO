@@ -41,7 +41,7 @@ internal static partial class PdfWriter {
                     int? id = RegisterTextStructureElement("Span", _canvasStructureParentElement, logicalOrder: source.LogicalOrder);
                     if (id.HasValue) sb.Append("/Span << /MCID ").Append(id.Value.ToString(System.Globalization.CultureInfo.InvariantCulture)).Append(" >> BDC\n");
                     else sb.Append("/Span BMC\n");
-                } else sb.Append("/Artifact BMC\n");
+                } else sb.Append("/Artifact << /Type /Layout >> BDC\n");
                 _drawingSourcePaintDepth++;
                 var previousSource = _activeDrawingSourceContent;
                 _activeDrawingSourceContent = source;

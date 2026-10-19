@@ -37,7 +37,7 @@ public sealed partial class OfficeDrawing {
                     mask = new OfficeDrawingSoftMask(maskDrawing, mask.Mode,
                         OfficeTransform.Translate(maskLeft, maskTop).Then(mask.Transform)
                             .Then(OfficeTransform.Translate(-childLeft, -childTop)),
-                        mask.BackdropColor, mask.LuminosityStandard);
+                        mask.BackdropColor, mask.LuminosityStandard).WithTransferTable(mask.TransferTable);
                 }
                 content.ReplaceElement(index, element, new OfficeDrawingEffectGroup(child,
                     OfficeTransform.Translate(childLeft, childTop).Then(effect.Transform), effect.BlendMode, mask, effect.Opacity) {

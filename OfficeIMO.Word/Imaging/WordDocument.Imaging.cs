@@ -12,16 +12,16 @@ namespace OfficeIMO.Word {
         /// </summary>
         public WordDocumentVisualSnapshot CreateVisualSnapshot(WordImageExportOptions? options = null) {
             WordImageExportOptions resolved = NormalizeImageExportOptions(options);
-            return WordDocumentImageRenderer.CreateSnapshot(this, resolved);
+            return WordPageImageExport.CreateSnapshot(this, resolved);
         }
 
-        /// <summary>Returns the renderer's estimated document page count.</summary>
-        public int GetEstimatedPageCount() => WordDocumentImageRenderer.EstimatePageCount(this);
+        /// <summary>Returns the shared layout's document page count.</summary>
+        public int GetEstimatedPageCount() => WordPageImageExport.EstimatePageCount(this);
 
         /// <summary>Creates format-neutral visual snapshots for a page range or the complete document.</summary>
         public IReadOnlyList<WordDocumentVisualSnapshot> CreateVisualSnapshots(WordImageExportOptions? options = null) {
             WordImageExportOptions resolved = NormalizeImageExportOptions(options);
-            return WordDocumentImageRenderer.CreateSnapshots(this, resolved);
+            return WordPageImageExport.CreateSnapshots(this, resolved);
         }
 
         /// <summary>
@@ -32,7 +32,7 @@ namespace OfficeIMO.Word {
             WordImageExportOptions? options,
             CancellationToken cancellationToken) {
             WordImageExportOptions resolved = NormalizeImageExportOptions(options);
-            return WordDocumentImageRenderer.CreateSnapshots(this, resolved, cancellationToken);
+            return WordPageImageExport.CreateSnapshots(this, resolved, cancellationToken);
         }
 
         /// <summary>
@@ -43,14 +43,14 @@ namespace OfficeIMO.Word {
             WordImageExportOptions? options = null,
             CancellationToken cancellationToken = default) {
             WordImageExportOptions resolved = NormalizeImageExportOptions(options);
-            return WordDocumentImageRenderer.Render(this, format, resolved, cancellationToken);
+            return WordPageImageExport.Render(this, format, resolved, cancellationToken);
         }
 
         /// <summary>Exports a page range or the complete document as PNG or SVG images.</summary>
         public IReadOnlyList<OfficeImageExportResult> ExportImages(OfficeImageExportFormat format,
             WordImageExportOptions? options = null) {
             WordImageExportOptions resolved = NormalizeImageExportOptions(options);
-            return WordDocumentImageRenderer.RenderPages(this, format, resolved);
+            return WordPageImageExport.RenderPages(this, format, resolved);
         }
 
         /// <summary>Streams selected page images to a consumer without retaining earlier payloads.</summary>
@@ -60,7 +60,7 @@ namespace OfficeIMO.Word {
             WordImageExportOptions? options = null,
             CancellationToken cancellationToken = default) {
             WordImageExportOptions resolved = NormalizeImageExportOptions(options);
-            WordDocumentImageRenderer.RenderPages(this, format, resolved, consumer, cancellationToken);
+            WordPageImageExport.RenderPages(this, format, resolved, consumer, cancellationToken);
         }
 
         /// <summary>Saves every selected document page as a PNG file in a folder.</summary>
@@ -85,12 +85,12 @@ namespace OfficeIMO.Word {
             new WordDocumentPageImageExportBuilder(this, options).As(format).SaveAsync(folderPath, cancellationToken);
 
         /// <summary>
-        /// Estimates how many pages the dependency-free image renderer will produce for this document.
+        /// Returns how many pages the shared Word layout produces for this document.
         /// </summary>
         /// <remarks>
         /// This follows OfficeIMO's renderer layout model and is not a substitute for Word's application-owned pagination.
         /// </remarks>
-        public int GetEstimatedImagePageCount() => WordDocumentImageRenderer.EstimatePageCount(this);
+        public int GetEstimatedImagePageCount() => WordPageImageExport.EstimatePageCount(this);
 
         /// <summary>
         /// Renders the requested document page to dependency-free PNG bytes.

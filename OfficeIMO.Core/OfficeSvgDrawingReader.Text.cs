@@ -40,7 +40,7 @@ public static partial class OfficeSvgDrawingReader {
             }
         }
         ApplyTextAnchors(runs);
-        ApplyTextPaths(runs, textPaths, references, viewX, viewY, observer: null, ref unsupported);
+        ApplyTextPaths(runs, textPaths, references, drawing.Fonts, viewX, viewY, observer: null, ref unsupported);
         foreach (SvgTextRun run in runs) {
             AddTextRun(
                 drawing,
@@ -139,11 +139,11 @@ public static partial class OfficeSvgDrawingReader {
                 int firstTextRun = runs.Count;
                 double fontSize = Math.Max(0.1D, style.FontSize);
                 if (style.WritingMode != SvgWritingMode.HorizontalTb) {
-                    AddVerticalTextRuns(text, style, fonts, transform, baselineShift, positioning, viewX, viewY, runs, ref cursor, ref unsupported);
+                    AddVerticalTextRuns(text, style, fonts, references, transform, baselineShift, positioning, viewX, viewY, runs, ref cursor, ref unsupported);
                     observer?.Associate(textNode, style, runs, firstTextRun);
                     continue;
                 }
-                AddHorizontalTextRuns(text, style, fonts, transform, baselineShift, positioning, viewX, viewY, runs, ref cursor, ref unsupported);
+                AddHorizontalTextRuns(text, style, fonts, references, transform, baselineShift, positioning, viewX, viewY, runs, ref cursor, ref unsupported);
                 observer?.Associate(textNode, style, runs, firstTextRun);
                 continue;
             }
@@ -223,6 +223,7 @@ public static partial class OfficeSvgDrawingReader {
         string text,
         SvgPaintContext style,
         OfficeFontFaceCollection fonts,
+        SvgElementReferenceRegistry references,
         OfficeTransform transform,
         double baselineShift,
         SvgTextPositioning? positioning,
@@ -234,7 +235,7 @@ public static partial class OfficeSvgDrawingReader {
         double fontSize = Math.Max(0.1D, style.FontSize);
         if (positioning == null || !positioning.RequiresPerCharacterRuns) {
             double rotation = positioning?.Apply(ref cursor, viewX, viewY) ?? 0D;
-            double width = MeasureSvgText(text, fontSize, style, fonts, out IOfficeFontProgram? fontProgram);
+            double width = MeasureSvgText(text, fontSize, style, fonts, out IOfficeFontProgram? fontProgram, references.CancellationToken);
             double baseline = ResolveTextBaseline(cursor.Baseline, fontSize, style.DominantBaseline) - baselineShift;
             runs.Add(new SvgTextRun(text, cursor.X, baseline, width, fontSize, cursor.Chunk, style.TextAnchor, style, transform, fontProgram, rotation));
             cursor.X += width;
@@ -248,7 +249,7 @@ public static partial class OfficeSvgDrawingReader {
                 return;
             }
             double rotation = positioning.Apply(ref cursor, viewX, viewY);
-            double width = MeasureSvgText(glyph, fontSize, style, fonts, out IOfficeFontProgram? fontProgram);
+            double width = MeasureSvgText(glyph, fontSize, style, fonts, out IOfficeFontProgram? fontProgram, references.CancellationToken);
             double baseline = ResolveTextBaseline(cursor.Baseline, fontSize, style.DominantBaseline) - baselineShift;
             runs.Add(new SvgTextRun(
                 glyph, cursor.X, baseline, width, fontSize, cursor.Chunk, style.TextAnchor,
@@ -263,6 +264,7 @@ public static partial class OfficeSvgDrawingReader {
         string text,
         SvgPaintContext style,
         OfficeFontFaceCollection fonts,
+        SvgElementReferenceRegistry references,
         OfficeTransform transform,
         double baselineShift,
         SvgTextPositioning? positioning,
@@ -281,7 +283,7 @@ public static partial class OfficeSvgDrawingReader {
                 return;
             }
             double authoredRotation = positioning?.Apply(ref cursor, viewX, viewY) ?? 0D;
-            double glyphWidth = MeasureSvgText(glyph, fontSize, style, fonts, out IOfficeFontProgram? fontProgram);
+            double glyphWidth = MeasureSvgText(glyph, fontSize, style, fonts, out IOfficeFontProgram? fontProgram, references.CancellationToken);
             double advance = fontSize;
             double centerX = cursor.X;
             double centerY = cursor.Baseline + advance / 2D - baselineShift;
@@ -325,18 +327,12 @@ public static partial class OfficeSvgDrawingReader {
         double fontSize,
         SvgPaintContext style,
         OfficeFontFaceCollection fonts,
-        out IOfficeFontProgram? program) {
-        program = fonts.ResolveForText(text, style.FontFamily, style.FontFace, fontSize, out _)
-            ?? OfficeTrueTypeFont.TryLoadFontFamilyForText(style.FontFamily, style.FontFace, text, out _)
-                ?.ForInstalledOpticalSize(fontSize, style.FontFace.Weight >= 600);
-        if (program != null) {
-            double measured = program.Measure(text, fontSize);
-            if (!double.IsNaN(measured) && !double.IsInfinity(measured) && measured > 0D) {
-                return measured;
-            }
-            program = null;
-        }
-        return EstimateSvgTextWidth(text, fontSize);
+        out IOfficeFontProgram? program,
+        System.Threading.CancellationToken cancellationToken) {
+        IReadOnlyList<SvgTextFontRun> parts = ResolveSvgTextFontRuns(text, fontSize, style, fonts,
+            style.TextDirection, visualOrder: false, cancellationToken);
+        program = parts.Count == 1 ? parts[0].Program : null;
+        return parts.Sum(part => part.Width);
     }
 
     private static double ResolveOwnBaselineShift(

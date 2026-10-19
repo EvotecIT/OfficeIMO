@@ -28,6 +28,7 @@ internal sealed class PdfObjectStore : IPdfObjectStore {
     internal long PeakRetainedMemoryBytes => _peakMemoryBytes;
     public int Count => _entries.Count;
     public bool IsReadOnly => false;
+    public PdfVisualResourceCache VisualResources { get; } = new();
 
     public byte[] this[int index] {
         get {

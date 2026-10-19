@@ -376,6 +376,10 @@ namespace OfficeIMO.Excel {
                     return null;
                 }
 
+                if (plotArea.GetFirstChild<BubbleChart>() is BubbleChart bubble) {
+                    return TryReadBubbleChartData(plotArea, bubble, contextSheet, pointBudget);
+                }
+
                 IReadOnlyList<OpenXmlCompositeElement> seriesList = GetChartSeries(plotArea);
                 if (seriesList.Count == 0) {
                     return null;

@@ -12,6 +12,9 @@ public enum OfficeTiffCompression {
     /// <summary>Writes uncompressed RGBA strips.</summary>
     None = 1,
 
+    /// <summary>Uses CCITT T.6 Group 4 compression for opaque, exactly black/white pixels. Other samples are rejected without thresholding.</summary>
+    CcittGroup4 = 4,
+
     /// <summary>Uses the TIFF 6.0 LZW dictionary compression method.</summary>
     Lzw = 5,
 
@@ -77,6 +80,7 @@ public static partial class OfficeTiffCodec {
             OfficeTiffCompression.Deflate => OfficeZlibCodec.Compress(
                 PrepareTiffCompressionInput(pixels, image.Width, image.Height, effective)),
             OfficeTiffCompression.Lzw => EncodeTiffLzw(pixels, image.Width, image.Height, effective),
+            OfficeTiffCompression.CcittGroup4 => OfficeFaxEncoder.EncodeGroup4(image),
             OfficeTiffCompression.None => pixels,
             _ => null
         };
@@ -84,18 +88,12 @@ public static partial class OfficeTiffCodec {
             ? EncodePackBitsRows(pixels, image.Width * 4, image.Height, output: null, outputOffset: 0)
             : strip!.Length;
 
-        const int ifdOffset = 8;
-        bool writePredictor = UsesHorizontalPredictor(effective);
-        int entryCount = BaseEntryCount - (effective.WriteResolution ? 0 : 3) + (writePredictor ? 1 : 0);
-        int ifdLength = 2 + (entryCount * 12) + 4;
-        int bitsPerSampleOffset = checked(ifdOffset + ifdLength);
-        int xResolutionOffset = checked(bitsPerSampleOffset + 8);
-        int yResolutionOffset = checked(xResolutionOffset + 8);
-        int stripOffset = effective.WriteResolution ? checked(yResolutionOffset + 8) : xResolutionOffset;
+        byte[] header = CreateEncodingHeader(image, effective, stripLength);
+        int stripOffset = header.Length;
         int fileLength = OfficeRasterGuards.EnsureOutputBytes(
             checked((long)stripOffset + stripLength),
             "The TIFF exceeds the encoded-size limit.");
-        long retainedStripBytes = effective.Compression is OfficeTiffCompression.Lzw or OfficeTiffCompression.Deflate
+        long retainedStripBytes = effective.Compression is OfficeTiffCompression.Lzw or OfficeTiffCompression.Deflate or OfficeTiffCompression.CcittGroup4
             ? stripLength
             : 0L;
         if (!IsMultiPageTiffWorkingSetWithinLimit(pixels.LongLength, retainedStripBytes, fileLength)) {
@@ -103,42 +101,7 @@ public static partial class OfficeTiffCodec {
         }
         byte[] output = new byte[fileLength];
 
-        output[0] = (byte)'I';
-        output[1] = (byte)'I';
-        WriteUInt16(output, 2, 42);
-        WriteUInt32(output, 4, ifdOffset);
-        WriteUInt16(output, ifdOffset, entryCount);
-
-        int entry = ifdOffset + 2;
-        WriteEntry(output, ref entry, 256, 4, 1, image.Width);
-        WriteEntry(output, ref entry, 257, 4, 1, image.Height);
-        WriteEntry(output, ref entry, 258, 3, 4, bitsPerSampleOffset);
-        WriteShortEntry(output, ref entry, 259, (int)effective.Compression);
-        WriteShortEntry(output, ref entry, 262, 2);
-        WriteEntry(output, ref entry, 273, 4, 1, stripOffset);
-        WriteShortEntry(output, ref entry, 274, 1);
-        WriteShortEntry(output, ref entry, 277, 4);
-        WriteEntry(output, ref entry, 278, 4, 1, image.Height);
-        WriteEntry(output, ref entry, 279, 4, 1, stripLength);
-        if (effective.WriteResolution) {
-            WriteEntry(output, ref entry, 282, 5, 1, xResolutionOffset);
-            WriteEntry(output, ref entry, 283, 5, 1, yResolutionOffset);
-        }
-        WriteShortEntry(output, ref entry, 284, 1);
-        GetEncodingResolution(effective, out double resolutionX, out double resolutionY, out int resolutionUnit);
-        if (effective.WriteResolution) WriteShortEntry(output, ref entry, 296, resolutionUnit);
-        if (writePredictor) WriteShortEntry(output, ref entry, 317, (int)effective.Predictor);
-        WriteShortEntry(output, ref entry, 338, 2);
-        WriteUInt32(output, entry, 0);
-
-        WriteUInt16(output, bitsPerSampleOffset, 8);
-        WriteUInt16(output, bitsPerSampleOffset + 2, 8);
-        WriteUInt16(output, bitsPerSampleOffset + 4, 8);
-        WriteUInt16(output, bitsPerSampleOffset + 6, 8);
-        if (effective.WriteResolution) {
-            WriteRational(output, xResolutionOffset, resolutionX);
-            WriteRational(output, yResolutionOffset, resolutionY);
-        }
+        Buffer.BlockCopy(header, 0, output, 0, header.Length);
         if (effective.Compression == OfficeTiffCompression.PackBits) {
             int written = EncodePackBitsRows(pixels, image.Width * 4, image.Height, output, stripOffset);
             if (written != stripLength) {
@@ -247,6 +210,7 @@ public static partial class OfficeTiffCodec {
 
     private static void ValidateOptions(OfficeTiffEncodeOptions options) {
         if (options.Compression != OfficeTiffCompression.None &&
+            options.Compression != OfficeTiffCompression.CcittGroup4 &&
             options.Compression != OfficeTiffCompression.Lzw &&
             options.Compression != OfficeTiffCompression.PackBits &&
             options.Compression != OfficeTiffCompression.Deflate) {

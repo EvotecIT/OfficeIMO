@@ -115,14 +115,15 @@ internal static partial class HtmlPdfRenderedConverter {
                 if (PdfCore.PdfEmbeddedFontFamily.TryResolveSystemFace(
                         familyName, descriptor, text, out PdfCore.PdfEmbeddedFontFamily? face)
                     && face != null
-                    && NamedFontCoversText(options, face.FamilyName, text, bold, italic)) {
-                    return face.FamilyName;
+                    && NamedFontCoversText(options, OfficeFontFamilyParser.Quote(face.FamilyName), text, bold, italic)) {
+                    return OfficeFontFamilyParser.Quote(face.FamilyName);
                 }
             }
         }
         if (familyNames.IndexOf(',') < 0) return familyNames;
         foreach (string familyName in EnumerateBoundedSystemFamilies(familyNames)) {
-            if (NamedFontCoversTextWithStyleFallback(options, familyName, text, bold, italic)) return familyName;
+            string request = OfficeFontFamilyParser.Quote(familyName);
+            if (NamedFontCoversTextWithStyleFallback(options, request, text, bold, italic)) return request;
         }
         return familyNames;
     }
@@ -385,7 +386,7 @@ internal static partial class HtmlPdfRenderedConverter {
                 foreach (OfficeDrawingText drawingText in EnumerateDrawingText(drawing.Drawing.Elements)) {
                     foreach (OfficeFontFallbackRun run in faces.PlanFallbackRuns(
                                  drawingText.Text, drawingText.Font.FamilyName, drawingText.Font.Style)) {
-                        yield return run.FamilyName;
+                        yield return run.FamilyRequest;
                     }
                 }
             }

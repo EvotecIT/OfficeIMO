@@ -20,9 +20,9 @@ public sealed class OfficeJpegEncodeOptions {
     public bool Progressive { get; set; }
 
     /// <summary>
-    /// Enables optimized Huffman tables.
+    /// Enables lossless statistical Huffman optimization. Disable to use the standard tables and lower coefficient memory.
     /// </summary>
-    public bool OptimizeHuffman { get; set; }
+    public bool OptimizeHuffman { get; set; } = true;
 
     /// <summary>
     /// Optional metadata segments (EXIF/XMP/ICC).

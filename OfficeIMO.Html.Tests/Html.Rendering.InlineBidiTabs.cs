@@ -5,35 +5,21 @@ namespace OfficeIMO.Tests;
 
 public sealed partial class HtmlRenderingTests {
     [Theory]
-    [InlineData("slice")]
-    [InlineData("clone")]
-    public void HtmlInlineEdges_IdentityBidiOverridePreservesTabStopsAndSourceEdges(string decorationBreak) {
+    [InlineData("slice", "\u202d")]
+    [InlineData("clone", "\u202d")]
+    [InlineData("slice", "\u202e")]
+    [InlineData("clone", "\u202e")]
+    public void HtmlInlineEdges_BidiOverridePreservesTabStopsAndSourceEdges(string decorationBreak, string overrideControl) {
+        // UAX #9 L1 resets a tab to the paragraph level, so even a right-to-left override keeps each
+        // single-character segment on its own side of the tab stop with its own advance and edges.
         HtmlRenderDocument plain = RenderInlineBidiTab("A\tX", decorationBreak);
-        HtmlRenderDocument overridden = RenderInlineBidiTab("\u202dA\tX\u202c", decorationBreak);
+        HtmlRenderDocument overridden = RenderInlineBidiTab(overrideControl + "A\tX\u202c", decorationBreak);
         foreach (string value in new[] { "A", "X", "END" }) {
             HtmlRenderText expected = Assert.Single(InlineEdgeTexts(plain), text => text.Text == value);
             HtmlRenderText actual = Assert.Single(InlineEdgeTexts(overridden), text => text.Text == value);
             Assert.Equal(expected.X, actual.X, 3);
             Assert.Equal(expected.Y, actual.Y, 3);
         }
-    }
-
-    [Theory]
-    [InlineData("slice")]
-    [InlineData("clone")]
-    public void HtmlInlineEdges_ReversedTabSegmentsKeepAdvancesOnTheirOwnSource(string decorationBreak) {
-        HtmlRenderDocument rendered = RenderInlineBidiTab("\u202eA\tX\u202c", decorationBreak);
-        HtmlRenderText[] text = InlineEdgeTexts(rendered);
-        HtmlRenderText first = Assert.Single(text, item => item.Text == "X");
-        HtmlRenderText last = Assert.Single(text, item => item.Text == "A");
-        HtmlRenderText after = Assert.Single(text, item => item.Text == "END");
-        HtmlRenderText plainAfter = Assert.Single(InlineEdgeTexts(RenderInlineBidiTab("A\tX", decorationBreak)), item => item.Text == "END");
-
-        // The original A segment owns the opening edge; X owns the closing edge.
-        // Reordering their shared run must not transfer either edge to the other segment.
-        Assert.Equal(0D, first.X, 3);
-        Assert.True(last.X > first.X + (first.TextAdvanceWidth ?? first.Width) + 20D);
-        Assert.Equal(plainAfter.X, after.X, 3);
     }
 
     private static HtmlRenderDocument RenderInlineBidiTab(string text, string decorationBreak) =>

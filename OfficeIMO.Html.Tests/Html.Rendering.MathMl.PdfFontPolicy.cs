@@ -21,6 +21,7 @@ public sealed partial class HtmlRenderingTests {
             + "<iframe style='width:200px;height:80px' srcdoc=\""
             + System.Net.WebUtility.HtmlEncode(child) + "\"></iframe>");
         var options = new HtmlToPdfOptions();
+        options.ResourcePolicy.AllowDocumentFontEmbedding = false;
         HtmlPdfRenderResult result = HtmlPdfRenderedConverter.Convert(source, options);
         HtmlRenderDocument rendered = result.RenderResult!.Document;
 

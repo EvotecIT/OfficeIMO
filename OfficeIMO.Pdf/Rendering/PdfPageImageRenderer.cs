@@ -117,6 +117,7 @@ internal static partial class PdfPageImageRenderer {
             TextShapingProvider = textShapingProvider,
             TextShapingLanguage = textShapingLanguage,
             MaximumRasterPixels = maximumRasterPixels,
+            PdfRasterConventions = true,
             CancellationToken = cancellationToken
         });
     }

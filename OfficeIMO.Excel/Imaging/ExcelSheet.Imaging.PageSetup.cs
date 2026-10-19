@@ -109,14 +109,16 @@ namespace OfficeIMO.Excel {
                 diagnostics.AsReadOnly());
         }
 
-        private static bool ShouldApplyPageSetupCanvas(ExcelSheetPageSetup pageSetup) =>
+        private bool ShouldApplyPageSetupCanvas(ExcelSheetPageSetup pageSetup) =>
+            GetPrintOptions().HorizontalCentered == true ||
+            GetPrintOptions().VerticalCentered == true ||
             pageSetup.Orientation.HasValue ||
             pageSetup.Margins != null ||
             pageSetup.PaperSizeCode.HasValue ||
             ExcelPageSetupGeometry.HasFitToPageScale(pageSetup) ||
             (pageSetup.Scale.HasValue && !ExcelPageSetupGeometry.HasFitToPageScale(pageSetup));
 
-        private static PageSetupCanvasGeometry ResolvePageSetupCanvasGeometry(
+        private PageSetupCanvasGeometry ResolvePageSetupCanvasGeometry(
             ExcelSheetPageSetup pageSetup,
             double outputScale,
             int contentWidth,
@@ -140,6 +142,9 @@ namespace OfficeIMO.Excel {
                 printableHeight,
                 0.1D,
                 4D);
+            ExcelSheetPrintOptions printOptions = GetPrintOptions();
+            x += ExcelPageSetupGeometry.CenteredOffset(printOptions.HorizontalCentered, printableWidth, contentWidth * contentScale);
+            y += ExcelPageSetupGeometry.CenteredOffset(printOptions.VerticalCentered, printableHeight, contentHeight * contentScale);
             return new PageSetupCanvasGeometry(width, height, x, y, contentScale);
         }
 

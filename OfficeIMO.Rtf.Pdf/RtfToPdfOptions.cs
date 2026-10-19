@@ -19,6 +19,9 @@ public sealed class RtfToPdfOptions {
     /// <summary>Optional PDF engine options. The converter clones the instance before applying RTF page setup.</summary>
     public PdfCore.PdfOptions? PdfOptions { get; set; }
 
+    /// <summary>Built-in generated-text fallback groups. Set to None for exact document-font output.</summary>
+    public PdfCore.PdfTextFallbackFeatures TextFallbacks { get; set; } = PdfCore.PdfTextFallbackFeatures.Default;
+
     /// <summary>Host-resource policy. Defaults to balanced conversion: system fonts and bounded in-source resources are allowed, while local and remote reads are denied.</summary>
     public PdfCore.PdfResourcePolicy ResourcePolicy {
         get => _resourcePolicy;
@@ -80,6 +83,7 @@ public sealed class RtfToPdfOptions {
 
         return new RtfToPdfOptions {
             PdfOptions = PdfOptions?.Clone(),
+            TextFallbacks = TextFallbacks,
             ResourcePolicy = ResourcePolicy.Clone(),
             IncludeHiddenText = IncludeHiddenText,
             IncludeImages = IncludeImages,

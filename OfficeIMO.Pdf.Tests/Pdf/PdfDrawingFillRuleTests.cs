@@ -64,6 +64,19 @@ public sealed class PdfDrawingFillRuleTests {
         Assert.Contains(fillRule == OfficeFillRule.EvenOdd ? " f*\n" : " f\n", content, StringComparison.Ordinal);
     }
 
+    [Theory]
+    [InlineData("", false)]
+    [InlineData("fill-rule='evenodd'", true)]
+    public void SvgProducerDefaultsToNonzeroWhileExplicitEvenoddRetainsItsHole(string rule, bool hole) {
+        byte[] svg = Encoding.UTF8.GetBytes("<svg xmlns='http://www.w3.org/2000/svg' width='40' height='30'><path fill='green' " + rule +
+            " d='M0 0H30V20H0Z M3 0H33V20H3Z'/></svg>");
+        Assert.True(OfficeSvgDrawingReader.TryRead(svg, out OfficeDrawing? drawing, out int unsupported));
+        Assert.Equal(0, unsupported);
+        byte[] pdf = PdfDocument.Create(CreateOptions()).Drawing(drawing!).ToBytes();
+        OfficeRasterImage raster = OfficeDrawingRasterRenderer.Render(PdfReadDocument.Open(pdf).Pages[0].ToDrawing(), background: OfficeColor.White);
+        Assert.Equal(hole ? OfficeColor.White : OfficeColor.Green, raster.GetPixel(15, 10));
+    }
+
     private static PdfOptions CreateOptions() => new PdfOptions {
         PageWidth = 80D, PageHeight = 80D,
         MarginLeft = 0D, MarginRight = 0D, MarginTop = 0D, MarginBottom = 0D,

@@ -58,6 +58,9 @@ public sealed partial class PdfInvoiceDocument {
 
     /// <summary>
     /// Renders the captured invoice and attaches its exact CII XML using Factur-X PDF/A-3 groundwork.
+    /// Supported hybrid profiles are PDF/A-3a, PDF/A-3b and PDF/A-3u, optionally with PDF/UA-1.
+    /// A PDF/A-3 compliance profile without identification metadata configures that requested conformance level.
+    /// A PDF/UA-1 compliance profile without identification metadata configures PDF/UA-1 alongside the invoice carrier.
     /// Supply embedded fonts through the PDF options. Validate the exact output with PDF/A and invoice validators before claiming compliance.
     /// </summary>
     public byte[] ToPdfBytes(PdfOptions? options = null) => ToPdfBytes(options, default);
@@ -107,7 +110,27 @@ public sealed partial class PdfInvoiceDocument {
         configured.UseTextFallbacks(PdfTextFallbackFeatures.MultilingualFonts);
         if (configured.TextShapingProvider == null) configured.UseManagedTextShaping();
         if (embedInvoiceXml) {
-            configured.UseFacturX(_xml, relationship: PdfAssociatedFileRelationship.Alternative);
+            const string supportedProfiles = "Hybrid invoices support only PDF/A-3a, PDF/A-3b and PDF/A-3u, optionally with PDF/UA-1.";
+            if (configured.PdfUaIdentification?.Part == 2 || configured.ComplianceProfile == PdfComplianceProfile.PdfUa2)
+                throw new NotSupportedException(supportedProfiles + " PDF/UA-2 (PdfUa2) is not supported for hybrid invoices. Use ToPresentationPdfBytes for a PDF without invoice XML.");
+            if (configured.ComplianceProfile is PdfComplianceProfile.PdfA2A or PdfComplianceProfile.PdfA2B
+                or PdfComplianceProfile.PdfA2U or PdfComplianceProfile.PdfA4 or PdfComplianceProfile.PdfA4E
+                or PdfComplianceProfile.PdfA4F or PdfComplianceProfile.PdfX1A2003 or PdfComplianceProfile.PdfX4)
+                throw new NotSupportedException(supportedProfiles + " Requested compliance profile " + configured.ComplianceProfile + " is not supported for hybrid invoices. Use ToPresentationPdfBytes for a PDF without invoice XML.");
+            if (configured.PdfUaIdentification == null && configured.ComplianceProfile == PdfComplianceProfile.PdfUa1)
+                configured.ConfigurePdfUaGroundwork(PdfComplianceProfile.PdfUa1);
+            if (configured.PdfAIdentification == null && configured.ComplianceProfile is
+                PdfComplianceProfile.PdfA3A or PdfComplianceProfile.PdfA3B or PdfComplianceProfile.PdfA3U)
+                configured.ConfigurePdfAGroundwork(configured.ComplianceProfile);
+            // Preserve a supported archival target; reject unsupported invoice containers
+            // instead of silently replacing the caller's requested profile.
+            if (configured.PdfAIdentification is PdfAIdentification archival) {
+                if (archival.Part != 3 || archival.Conformance is not ("A" or "B" or "U"))
+                    throw new NotSupportedException(supportedProfiles + " PDF/A-4, PDF/A-4e and PDF/A-4f are not supported invoice containers. Use ToPresentationPdfBytes for a PDF without invoice XML.");
+                configured.AddFacturXInvoiceXml(_xml, relationship: PdfAssociatedFileRelationship.Alternative);
+            } else {
+                configured.UseFacturX(_xml, relationship: PdfAssociatedFileRelationship.Alternative);
+            }
             configured.SetEmbeddedFileModificationDate("factur-x.xml", _capturedAt);
         }
         PdfDocument document = PdfDocument.Create(configured);

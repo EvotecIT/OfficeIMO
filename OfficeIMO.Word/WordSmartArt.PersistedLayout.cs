@@ -17,8 +17,8 @@ namespace OfficeIMO.Word {
                     return Array.Empty<WordSmartArtPersistedShape>();
                 }
 
-                var mainPart = _document._wordprocessingDocument.MainDocumentPart!;
-                if (mainPart.GetPartById(persistRelationshipId!) is not DiagramPersistLayoutPart persistPart) {
+                OpenXmlPart owner = WordPartOwnership.Resolve(_document, _drawing);
+                if (owner.GetPartById(persistRelationshipId!) is not DiagramPersistLayoutPart persistPart) {
                     return Array.Empty<WordSmartArtPersistedShape>();
                 }
 

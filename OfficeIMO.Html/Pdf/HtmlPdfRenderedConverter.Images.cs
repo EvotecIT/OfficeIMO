@@ -48,7 +48,7 @@ internal static partial class HtmlPdfRenderedConverter {
         if (imageResource == null) return;
         OfficeImagePatternLayout pattern = visual.Pattern.Scale(PointsPerCssPixel);
         OfficeImagePlacement area = pattern.Area;
-        canvas.Clip(area.X, area.Y, area.Width, area.Height, clipped => {
+        canvas.SourceClip(area.X, area.Y, area.Width, area.Height, clipped => {
             foreach (OfficeImagePlacement tile in pattern.GetTilePlacements(visual.MaximumTileCount)) {
                 cancellationToken.ThrowIfCancellationRequested();
                 clipped.ImageShared(imageResource, tile.X, tile.Y, tile.Width, tile.Height);

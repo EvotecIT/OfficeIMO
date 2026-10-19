@@ -25,7 +25,7 @@ public sealed class PdfInvoiceDocumentTypeTests {
         var options = new PdfOptions().EmbedStandardFont(PdfStandardFont.Helvetica, font, "Source Serif")
             .EmbedStandardFont(PdfStandardFont.HelveticaBold, font, "Source Serif");
         byte[] pdf = snapshot.ToPdfBytes(options);
-        string text = PdfReadDocument.Open(pdf).ExtractText();
+        string text = PdfReadDocument.Open(pdf).ExtractUnwrappedText();
         Assert.Contains(heading, text);
         Assert.Contains(invoice.Number, text);
         Assert.Equal(code, InvoiceParser.Read(Assert.Single(PdfDocument.Load(pdf).Attachments.Extract()).Bytes).Invoice.TypeCode);

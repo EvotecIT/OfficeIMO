@@ -2,17 +2,34 @@ namespace OfficeIMO.Pdf;
 
 internal static partial class PdfPageContentVisualParser {
     private sealed partial class Parser {
-        private double GetRenderedStrokeWidth() {
-            double width = _state.StrokeWidth;
-            if (double.IsPositiveInfinity(width)) return RenderedHairlineStrokeWidth;
-            return width <= 0D ? width : width * GetRenderedStrokeScale();
+        private double GetRenderedStrokeWidth((double X, double Y)? direction = null) {
+            double strokeWidth = _state.StrokeWidth;
+            if (double.IsPositiveInfinity(strokeWidth)) return RenderedHairlineStrokeWidth;
+            if (!_scaleStrokeWidthWithTransform || strokeWidth <= 0D) {
+                return strokeWidth;
+            }
+
+            Matrix2D transform = _state.Transform;
+            double determinant = Math.Abs((transform.A * transform.D) - (transform.B * transform.C));
+            if (direction is (double dx, double dy) && determinant > 0D && (dx != 0D || dy != 0D)) {
+                // A user-space pen maps to an ellipse. A single segment's painted width is the pen's
+                // extent perpendicular to its page direction: w * |det| * |M^-1 v| / |v|.
+                double inverseX = (transform.D * dx - transform.C * dy) / determinant;
+                double inverseY = (-transform.B * dx + transform.A * dy) / determinant;
+                double width = strokeWidth * determinant * Math.Sqrt(inverseX * inverseX + inverseY * inverseY) / Math.Sqrt(dx * dx + dy * dy);
+                if (width > 0D && !double.IsNaN(width) && !double.IsInfinity(width)) return width;
+            }
+            // The area-preserving scale is exact for similarity transforms and does not inflate sheared pens.
+            return determinant > 0D && !double.IsNaN(determinant) && !double.IsInfinity(determinant)
+                ? strokeWidth * Math.Sqrt(determinant)
+                : strokeWidth;
         }
 
-        /// <summary>Projects exact dash distances and phase with the same transform as stroke width.</summary>
+        /// <summary>Projects dash distances and phase exactly for uniform transforms.</summary>
         private PdfStrokeDashPattern? GetRenderedStrokeDashPattern() {
             PdfStrokeDashPattern? pattern = _state.StrokeDashPattern;
             if (!pattern.HasValue || pattern.Value.Array.Count == 0) return pattern;
-            double scale = GetRenderedStrokeScale();
+            double scale = GetRenderedDashScale();
             if (scale == 1D) return pattern;
 
             var lengths = new double[pattern.Value.Array.Count];
@@ -21,8 +38,8 @@ internal static partial class PdfPageContentVisualParser {
         }
 
         // Uniform transforms have an exact scalar stroke scale. Preserve the existing
-        // RMS approximation for nonuniform transforms; their diagnostic owner remains unchanged.
-        private double GetRenderedStrokeScale() {
+        // RMS dash-distance approximation for nonuniform transforms; their diagnostic owner remains unchanged.
+        private double GetRenderedDashScale() {
             if (!_scaleStrokeWidthWithTransform) return 1D;
             Matrix2D transform = _state.Transform;
             double squaredScale = ((transform.A * transform.A) +

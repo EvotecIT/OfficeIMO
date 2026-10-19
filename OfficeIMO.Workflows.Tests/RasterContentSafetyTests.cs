@@ -405,7 +405,7 @@ public sealed partial class RasterContentSafetyTests {
 
     [Fact]
     public async Task InspectRejectsPngGammaThatTheDecoderCannotNormalize() {
-        byte[] image = CreateImage(20, 10, OfficeColor.White, null, null);
+        byte[] image = CreateUntaggedColorDeclarationImage();
         byte[] gamma = new byte[4];
         BinaryPrimitives.WriteUInt32BigEndian(gamma, 45455U);
         byte[] colorManaged = InsertPngChunkBefore(image, "IDAT", "gAMA", gamma);
@@ -418,7 +418,7 @@ public sealed partial class RasterContentSafetyTests {
     [InlineData(false)]
     [InlineData(true)]
     public async Task InspectRequiresSrgbDeclarationForCanonicalGammaAndChromaticities(bool includeSrgbChunk) {
-        byte[] image = CreateImage(20, 10, OfficeColor.White, null, null);
+        byte[] image = CreateUntaggedColorDeclarationImage();
         byte[] gamma = new byte[4];
         BinaryPrimitives.WriteUInt32BigEndian(gamma, 45455U);
         byte[] chromaticities = new byte[32];
@@ -936,6 +936,14 @@ public sealed partial class RasterContentSafetyTests {
     private static byte[] InsertPngTextChunk(byte[] png, string keyword, string value) {
         byte[] data = Encoding.Latin1.GetBytes(keyword + "\0" + value);
         return InsertPngChunkBefore(png, "IEND", "tEXt", data);
+    }
+
+    // Color-policy tests author their own declarations independently of the
+    // ordinary PNG encoder's sRGB/gamma/chromaticity defaults.
+    private static byte[] CreateUntaggedColorDeclarationImage() {
+        var rows = new byte[10 * (20 * 3 + 1)];
+        for (int y = 0; y < 10; y++) for (int x = 1; x <= 20 * 3; x++) rows[y * 61 + x] = 255;
+        return OfficePngWriter.EncodeScanlines(20, 10, 8, 2, rows);
     }
 
     private static byte[] InsertPngChunkBefore(byte[] png, string beforeType, string chunkType, byte[] data) {

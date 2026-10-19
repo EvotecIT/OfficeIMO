@@ -127,11 +127,11 @@ public class PdfAIdentificationMetadataTests {
     }
 
     [Fact]
-    public void PdfAFluentHelper_MapsToArchivalGroundworkDefaults() {
+    public void PdfAFluentHelper_EnablesStrictArchivalDefaults() {
         var defaultOptions = new PdfOptions().UsePdfA();
         PdfOptions defaultClone = defaultOptions.Clone();
 
-        Assert.Equal(PdfComplianceProfile.None, defaultClone.ComplianceProfile);
+        Assert.Equal(PdfComplianceProfile.PdfA3B, defaultClone.ComplianceProfile);
         Assert.Equal(PdfFileVersion.Pdf17, defaultClone.FileVersion);
         Assert.Equal(3, defaultClone.PdfAIdentification!.Part);
         Assert.Equal("B", defaultClone.PdfAIdentification.Conformance);
@@ -475,11 +475,11 @@ public class PdfAIdentificationMetadataTests {
     }
 
     [Fact]
-    public void PdfUaFluentHelper_MapsToAccessibilityGroundworkDefaults() {
+    public void PdfUaFluentHelper_EnablesStrictAccessibilityDefaults() {
         var options = new PdfOptions().UsePdfUa(language: "pl-PL");
         PdfOptions clone = options.Clone();
 
-        Assert.Equal(PdfComplianceProfile.None, clone.ComplianceProfile);
+        Assert.Equal(PdfComplianceProfile.PdfUa1, clone.ComplianceProfile);
         Assert.Equal(PdfFileVersion.Pdf17, clone.FileVersion);
         Assert.True(clone.IncludeXmpMetadata);
         Assert.True(clone.IncludeStandardFontToUnicodeMaps);
@@ -538,7 +538,7 @@ public class PdfAIdentificationMetadataTests {
             .Paragraph(p => p.Text("Tagged catalog markers are groundwork, not certification."))
             .ToBytes();
 
-        string raw = Encoding.UTF8.GetString(bytes);
+        string raw = PdfTestContentText.ReadDecoded(bytes);
         PdfDocumentProbe probe = PdfInspector.Probe(bytes);
         PdfDocumentInfo info = PdfInspector.Inspect(bytes);
         PdfOptions clone = options.Clone();

@@ -381,7 +381,7 @@ public sealed partial class PdfProvenanceTests {
             page.Items["Annots"] = annotations;
             return security.InfoObjectNumber;
         });
-        string validText = Encoding.ASCII.GetString(validAnnotation);
+        string validText = PdfEncoding.Latin1GetString(validAnnotation);
         System.Text.RegularExpressions.Match activeReference = System.Text.RegularExpressions.Regex.Match(
             validText,
             @"/FS\s+\d+\s+0\s+R",
@@ -392,7 +392,7 @@ public sealed partial class PdfProvenanceTests {
             @"\s0\s+R$",
             " 1 R",
             System.Text.RegularExpressions.RegexOptions.CultureInvariant);
-        byte[] staleAnnotation = Encoding.ASCII.GetBytes(validText.Remove(activeReference.Index, activeReference.Length)
+        byte[] staleAnnotation = PdfEncoding.Latin1GetBytes(validText.Remove(activeReference.Index, activeReference.Length)
             .Insert(activeReference.Index, staleReference));
 
         OfficeProvenanceReport report = PdfProvenance.Inspect(staleAnnotation);
@@ -1318,27 +1318,27 @@ public sealed partial class PdfProvenanceTests {
         (PdfObjectLookup.Resolve(objects, reference) as PdfDictionary)?.Get<PdfStringObj>("F")?.Value;
 
     private static byte[] CreateManifestStore() {
-        byte[] storeDescription = CreateBox("jumd", Join(C2paUuid("c2pa"), new byte[] { 0x03 }, Encoding.ASCII.GetBytes("c2pa\0")));
-        byte[] manifestDescription = CreateBox("jumd", Join(C2paUuid("c2ma"), new byte[] { 0x03 }, Encoding.ASCII.GetBytes("m\0")));
-        byte[] assertionStoreDescription = CreateBox("jumd", Join(C2paUuid("c2as"), new byte[] { 0x03 }, Encoding.ASCII.GetBytes("c2pa.assertions\0")));
-        byte[] assertionDescription = CreateBox("jumd", Join(C2paUuid("c2ac"), new byte[] { 0x03 }, Encoding.ASCII.GetBytes("c2pa.test\0")));
+        byte[] storeDescription = CreateBox("jumd", Join(C2paUuid("c2pa"), new byte[] { 0x03 }, PdfEncoding.Latin1GetBytes("c2pa\0")));
+        byte[] manifestDescription = CreateBox("jumd", Join(C2paUuid("c2ma"), new byte[] { 0x03 }, PdfEncoding.Latin1GetBytes("m\0")));
+        byte[] assertionStoreDescription = CreateBox("jumd", Join(C2paUuid("c2as"), new byte[] { 0x03 }, PdfEncoding.Latin1GetBytes("c2pa.assertions\0")));
+        byte[] assertionDescription = CreateBox("jumd", Join(C2paUuid("c2ac"), new byte[] { 0x03 }, PdfEncoding.Latin1GetBytes("c2pa.test\0")));
         byte[] assertionStore = CreateBox("jumb", Join(assertionStoreDescription,
             CreateBox("jumb", Join(assertionDescription, CreateBox("cbor", new byte[] { 0xA0 })))));
-        byte[] claimDescription = CreateBox("jumd", Join(C2paUuid("c2cl"), new byte[] { 0x03 }, Encoding.ASCII.GetBytes("c2pa.claim\0")));
+        byte[] claimDescription = CreateBox("jumd", Join(C2paUuid("c2cl"), new byte[] { 0x03 }, PdfEncoding.Latin1GetBytes("c2pa.claim\0")));
         byte[] claim = CreateBox("jumb", Join(claimDescription, CreateBox("cbor", new byte[] { 0xA0 })));
-        byte[] signatureDescription = CreateBox("jumd", Join(C2paUuid("c2cs"), new byte[] { 0x03 }, Encoding.ASCII.GetBytes("c2pa.signature\0")));
+        byte[] signatureDescription = CreateBox("jumd", Join(C2paUuid("c2cs"), new byte[] { 0x03 }, PdfEncoding.Latin1GetBytes("c2pa.signature\0")));
         byte[] signature = CreateBox("jumb", Join(signatureDescription, CreateBox("cbor", new byte[] { 0xA0 })));
         return CreateBox("jumb", Join(storeDescription, CreateBox("jumb", Join(manifestDescription, assertionStore, claim, signature))));
     }
 
     private static byte[] C2paUuid(string code) => Join(
-        Encoding.ASCII.GetBytes(code),
+        PdfEncoding.Latin1GetBytes(code),
         new byte[] { 0x00, 0x11, 0x00, 0x10, 0x80, 0x00, 0x00, 0xAA, 0x00, 0x38, 0x9B, 0x71 });
 
     private static byte[] CreateBox(string type, byte[] payload) {
         byte[] box = new byte[payload.Length + 8];
         WriteBigEndian(box, 0, box.Length);
-        Encoding.ASCII.GetBytes(type).CopyTo(box, 4);
+        PdfEncoding.Latin1GetBytes(type).CopyTo(box, 4);
         Buffer.BlockCopy(payload, 0, box, 8, payload.Length);
         return box;
     }

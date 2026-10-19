@@ -11,7 +11,7 @@ public partial class HtmlRenderOptions : OfficeImageExportOptions {
     /// <summary>CSS reference pixel density used for physical page conversion.</summary>
     public const double CssPixelsPerInch = 96D;
 
-    /// <summary>Creates the default paged render configuration.</summary>
+    /// <summary>Creates the default paged print configuration. Select <see cref="HtmlRenderMode.Continuous"/> for an unpaginated screenshot.</summary>
     public HtmlRenderOptions() {
         PageSize = OfficePageSizes.A4;
         Margins = HtmlRenderMargins.All(48D);

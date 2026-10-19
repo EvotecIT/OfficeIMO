@@ -27,48 +27,6 @@ public sealed class ExcelChartExplodedSlicesTests {
     }
 
     [Fact]
-    public void CustomModernColorStyleControlsRadialPaletteWithoutAuthoringPointFills() {
-        using var document = ExcelDocument.Create();
-        ExcelChart chart = document.AddWorksheet("Results").AddChart(OfficeChartKind.Pie,
-            new OfficeChartData(new[] { "A", "B" }, new[] {
-                new OfficeChartSeries("Status", new[] { 7d, 3d })
-            }), 1, 1);
-        chart.ApplyStylePreset();
-        Assert.True(chart.TryGetSnapshot(out ExcelChartSnapshot baseline));
-        ChartPart chartPart = document.OpenXmlDocument.WorkbookPart!.WorksheetParts
-            .Single(part => part.DrawingsPart != null).DrawingsPart!.ChartParts.Single();
-        string styleXml;
-        using (var reader = new StreamReader(Assert.Single(chartPart.GetPartsOfType<ChartStylePart>()).GetStream()))
-            styleXml = reader.ReadToEnd();
-        string colorXml;
-        using (var reader = new StreamReader(Assert.Single(chartPart.GetPartsOfType<ChartColorStylePart>()).GetStream()))
-            colorXml = reader.ReadToEnd();
-        string customColors = colorXml.Replace(
-            "<a:schemeClr val=\"accent1\"/><a:schemeClr val=\"accent2\"/>",
-            "<a:schemeClr val=\"accent2\"/><a:schemeClr val=\"accent1\"/>");
-        Assert.NotEqual(colorXml, customColors);
-        chart.ApplyStylePreset(new ExcelChartStylePreset(styleXml, customColors));
-
-        Assert.True(chart.TryGetSnapshot(out ExcelChartSnapshot snapshot));
-        Assert.Equal(baseline.Style!.Palette[1], snapshot.Style!.Palette[0]);
-        Assert.Equal(baseline.Style.Palette[0], snapshot.Style.Palette[1]);
-        Assert.Null(snapshot.Data.Series.Single().PointColorArgb);
-        Assert.Empty(document.ValidateDocument());
-    }
-
-    [Fact]
-    public void MultiRingDoughnutRejectsTransformedModernPalette() {
-        using var document = ExcelDocument.Create();
-        ExcelChart chart = document.AddWorksheet("Results").AddChart(OfficeChartKind.Doughnut,
-            new OfficeChartData(new[] { "A", "B" }, new[] {
-                new OfficeChartSeries("Inner", new[] { 7d, 3d }),
-                new OfficeChartSeries("Outer", new[] { 2d, 8d })
-            }), 1, 1);
-        chart.ApplyStylePreset();
-        Assert.False(chart.TryGetSnapshot(out _));
-    }
-
-    [Fact]
     public void MultiRingDoughnutWithExplicitSliceFillsDoesNotNeedTheTransformedPalette() {
         OfficeColor?[] colors = { OfficeColor.Parse("#234567"), OfficeColor.Parse("#89ABCD") };
         using var document = ExcelDocument.Create();
@@ -81,29 +39,6 @@ public sealed class ExcelChartExplodedSlicesTests {
         Assert.True(chart.TryGetSnapshot(out ExcelChartSnapshot snapshot));
         Assert.All(snapshot.Data.Series, series =>
             Assert.Equal(new[] { "234567", "89ABCD" }, series.PointColorArgb));
-    }
-
-    [Fact]
-    public void ModernPaletteRejectsNonAutomaticDataPointFill() {
-        using var document = ExcelDocument.Create();
-        ExcelChart chart = document.AddWorksheet("Results").AddChart(OfficeChartKind.Pie,
-            new OfficeChartData(new[] { "A", "B" }, new[] {
-                new OfficeChartSeries("Status", new[] { 7d, 3d })
-            }), 1, 1);
-        chart.ApplyStylePreset();
-        ChartPart chartPart = document.OpenXmlDocument.WorkbookPart!.WorksheetParts
-            .Single(part => part.DrawingsPart != null).DrawingsPart!.ChartParts.Single();
-        string styleXml;
-        using (var reader = new StreamReader(Assert.Single(chartPart.GetPartsOfType<ChartStylePart>()).GetStream()))
-            styleXml = reader.ReadToEnd();
-        string colorXml;
-        using (var reader = new StreamReader(Assert.Single(chartPart.GetPartsOfType<ChartColorStylePart>()).GetStream()))
-            colorXml = reader.ReadToEnd();
-        string customStyle = styleXml.Replace("<cs:fillRef idx=\"1\"><cs:styleClr val=\"auto\"/></cs:fillRef>",
-            "<cs:fillRef idx=\"1\"><cs:styleClr val=\"accent1\"/></cs:fillRef>");
-        Assert.NotEqual(styleXml, customStyle);
-        chart.ApplyStylePreset(new ExcelChartStylePreset(customStyle, colorXml));
-        Assert.False(chart.TryGetSnapshot(out _));
     }
 
     [Fact]

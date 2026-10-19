@@ -73,7 +73,7 @@ internal static partial class PdfWriter {
         private readonly System.Collections.Generic.HashSet<PdfLayoutPositionCapture> initializedPositionCaptures = new System.Collections.Generic.HashSet<PdfLayoutPositionCapture>();
         private readonly System.Collections.Generic.List<PdfLayerDefinition> activeLayers = new System.Collections.Generic.List<PdfLayerDefinition>();
         private readonly System.Collections.Generic.List<ContainerRenderScope> activeContainerScopes = new System.Collections.Generic.List<ContainerRenderScope>();
-        private readonly System.Collections.Generic.Dictionary<(string Key, string Type, PageStructElement? Parent, string Scope, int Columns, int Rows, string AlternativeText), PageStructElement> canvasStructureElements = new System.Collections.Generic.Dictionary<(string, string, PageStructElement?, string, int, int, string), PageStructElement>();
+        private readonly System.Collections.Generic.Dictionary<(string Key, string Type, PageStructElement? Parent, string Scope, int Columns, int Rows, string AlternativeText, string? Language), PageStructElement> canvasStructureElements = new System.Collections.Generic.Dictionary<(string, string, PageStructElement?, string, int, int, string, string?), PageStructElement>();
 
         public LayoutContext(
             PdfOptions options,
@@ -85,7 +85,9 @@ internal static partial class PdfWriter {
             RunningContentImageAssets? runningAssets = null,
             IReadOnlyList<PageNumberInfo>? previousRunningPages = null,
             int previousDocumentPages = 1,
+            DrawingPatternAnnotationBudget? drawingPatternAnnotations = null,
             System.Threading.CancellationToken cancellationToken = default) {
+            this.drawingPatternAnnotations = drawingPatternAnnotations ?? new DrawingPatternAnnotationBudget();
             currentOpts = options;
             currentPageBaseOptions = options;
             this.cancellationToken = cancellationToken;
@@ -225,6 +227,7 @@ internal static partial class PdfWriter {
                 sb.Insert(0, background.ToString());
                 behindTextCanvases.Clear();
             }
+            ReportFreeTextAnnotationDiagnostics();
             currentPage.Content = pageContents.Store(sb);
             pages.Add(currentPage);
             emittedPageGroups.Add(currentPage.PageGroupId);

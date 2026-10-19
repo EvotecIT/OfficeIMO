@@ -25,9 +25,10 @@ internal static partial class StudioProcessProbe {
             && int.TryParse(width, out int windowWidth) && int.TryParse(height, out int windowHeight))
             return StudioExperienceProbe.Run(experienceRoot, scenario, windowWidth, windowHeight, culture, theme);
         if (args is not ["--studio-process-probe", var mode, var root] ||
-            mode is not ("write" or "private-write" or "restore" or "recover-missing" or "private-verify" or "storage-full" or "storage-detach")) return 2;
+            mode is not ("write" or "private-write" or "restore" or "recover-missing" or "private-verify" or "storage-full" or "storage-detach" or "ipc-long-temp")) return 2;
         root = Path.GetFullPath(root);
         if (!Directory.Exists(root)) return 2;
+        if (mode == "ipc-long-temp") return VerifyLongTempIpc(root);
         _profile = mode == "storage-full" ? Path.Combine(root, "volume", "profile") : Path.Combine(root, "profile");
         var app = HeadlessUnitTestSession.StartNew(typeof(StudioProcessProbe), AvaloniaTestIsolationLevel.PerTest);
         try {

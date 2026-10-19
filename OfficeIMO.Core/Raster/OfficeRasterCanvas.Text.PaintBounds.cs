@@ -20,7 +20,7 @@ public sealed partial class OfficeRasterCanvas {
             IReadOnlyList<OfficeFontFallbackRun> runs = _fonts.PlanFallbackRuns(text, family, RequestedTextFace(style));
             if (ShouldUseFallbackRuns(runs, family)) {
                 foreach (OfficeFontFallbackRun run in runs) {
-                    OfficeTextPaintBounds bounds = MeasureTextPaintBounds(run.Text, size, run.FamilyName, style);
+                    OfficeTextPaintBounds bounds = MeasureTextPaintBounds(run.Text, size, run.FamilyRequest, style);
                     top = Math.Min(top, bounds.Top); bottom = Math.Max(bottom, bounds.Bottom);
                 }
                 return Store();

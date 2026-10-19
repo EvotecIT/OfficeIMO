@@ -675,6 +675,21 @@ public sealed partial class HtmlRenderingTests {
     }
 
     [Fact]
+    public void HtmlClipPath_Standard14WithoutOutlinesKeepsItsStrictUnmeasuredBoundsDiagnostic() {
+        var options = new HtmlToPdfOptions {
+            ResourcePolicy = PdfCore.PdfResourcePolicy.CreatePortableDeterministic(),
+            Mode = HtmlRenderMode.Paged,
+            PageSize = new OfficePageSize(120D / 96D, 50D / 96D),
+            HonorCssPageRules = false, Margins = HtmlRenderMargins.All(0D),
+            FidelityPolicy = HtmlRenderFidelityPolicy.RequireNoLoss
+        };
+        HtmlConversionException error = Assert.Throws<HtmlConversionException>(() => HtmlConversionDocument.Parse(
+            "<div style='width:100px;height:30px;margin:0;clip-path:ellipse(50% 45% at center);font-size:10px'>ClipPathPdfMarker</div>")
+            .ToPdfBytes(options));
+        Assert.Contains("CanvasTextPaintBoundsUnmeasured", error.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void HtmlClipPath_PreservesSearchablePdfAndTruthfullyRejectsUnsupportedGeometry() {
         const string supported = "<div style='width:100px;height:30px;margin:0;background:#eee;clip-path:ellipse(50% 45% at center);font-size:10px'>ClipPathPdfMarker</div>";
         var options = new HtmlToPdfOptions {
@@ -682,6 +697,7 @@ public sealed partial class HtmlRenderingTests {
             PageSize = new OfficePageSize(120D / HtmlRenderOptions.CssPixelsPerInch, 50D / HtmlRenderOptions.CssPixelsPerInch),
             HonorCssPageRules = false,
             Margins = HtmlRenderMargins.All(0D),
+            FontFamily = SvgPaintedText.CreatePinnedFamily(),
             FidelityPolicy = HtmlRenderFidelityPolicy.RequireNoLoss
         };
 

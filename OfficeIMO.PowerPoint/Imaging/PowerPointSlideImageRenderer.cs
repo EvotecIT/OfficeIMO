@@ -9,520 +9,38 @@ using A = DocumentFormat.OpenXml.Drawing;
 
 namespace OfficeIMO.PowerPoint {
     internal static partial class PowerPointSlideImageRenderer {
-        internal static OfficeImageExportResult Render(
-            PowerPointSlide slide,
-            OfficeImageExportFormat format,
-            PowerPointImageExportOptions options,
-            CancellationToken cancellationToken = default,
-            OfficeImageExportEncodingBudget? encodingBudget = null) {
-            if (slide == null) {
-                throw new ArgumentNullException(nameof(slide));
-            }
-
-            if (options == null) {
-                throw new ArgumentNullException(nameof(options));
-            }
-
-            return OfficeImageExportExecutionScope.Run(
-                options,
-                cancellationToken,
-                token => RenderCore(slide, format, options, token, encodingBudget));
-        }
-
-        private static OfficeImageExportResult RenderCore(
-            PowerPointSlide slide,
-            OfficeImageExportFormat format,
-            PowerPointImageExportOptions options,
-            CancellationToken cancellationToken,
-            OfficeImageExportEncodingBudget? encodingBudget) {
-            cancellationToken.ThrowIfCancellationRequested();
-            PowerPointSlideVisualSnapshot snapshot = CreateSnapshot(slide, options);
-            cancellationToken.ThrowIfCancellationRequested();
-            OfficeDrawing drawing = snapshot.Drawing;
-
-            if (format == OfficeImageExportFormat.Svg) {
-                List<OfficeImageExportDiagnostic> diagnostics = new List<OfficeImageExportDiagnostic>(snapshot.Diagnostics);
-                var fallbackCodec = new OfficeRasterImageFallbackCodec(options.ImageCodec, diagnostics, "PowerPoint slide");
-                double scale = options.GetEffectiveScale(drawing.Width, drawing.Height);
-                byte[] svg = encodingBudget == null
-                    ? OfficeDrawingSvgExporter.ToSvgBytes(
-                        drawing,
-                        scale,
-                        OfficeSvgSizeUnit.Pixel,
-                        fallbackCodec,
-                        resourceIdPrefix: null,
-                        maximumUtf8Bytes: options.MaximumTotalEncodedBytes,
-                        cancellationToken)
-                    : encodingBudget.EncodeWithinRemainingBudget(
-                        remaining => OfficeDrawingSvgExporter.ToSvgBytes(
-                            drawing,
-                            scale,
-                            OfficeSvgSizeUnit.Pixel,
-                            fallbackCodec,
-                            resourceIdPrefix: null,
-                            maximumUtf8Bytes: remaining,
-                            cancellationToken),
-                        cancellationToken);
-                return options.EnsureAccepted(new OfficeImageExportResult(format, ScaledWidth(drawing, scale), ScaledHeight(drawing, scale), svg, "Slide", "PowerPoint slide", diagnostics));
-            }
-
-            if (format.IsRaster()) {
-                List<OfficeImageExportDiagnostic> diagnostics = new List<OfficeImageExportDiagnostic>(snapshot.Diagnostics);
-                const string source = "PowerPoint slide";
-                OfficeRasterExportPlan plan = OfficeRasterExportPlanner.Resolve(
-                    drawing.Width,
-                    drawing.Height,
-                    format,
-                    options,
-                    source);
-                if (plan.Diagnostic != null) diagnostics.Add(plan.Diagnostic);
-                var fallbackCodec = new OfficeRasterImageFallbackCodec(options.ImageCodec, diagnostics, source);
-                OfficeRasterImage image = OfficeDrawingRasterRenderer.Render(drawing, new OfficeDrawingRasterRenderOptions {
-                    Scale = plan.Limit.Scale,
-                    Background = options.BackgroundColor,
-                    ImageCodec = fallbackCodec,
-                    TextShapingProvider = options.TextShapingProvider,
-                    TextShapingLanguage = options.TextShapingLanguage,
-                    DiagnosticSink = diagnostics,
-                    DiagnosticSource = source,
-                    CancellationToken = cancellationToken
-                });
-                byte[] bytes = encodingBudget == null
-                    ? OfficeRasterImageEncoder.Encode(
-                        image,
-                        format,
-                        plan.CreateEncodingOptions(),
-                        options.MaximumTotalEncodedBytes,
-                        cancellationToken)
-                    : OfficeRasterImageEncoder.Encode(
-                        image,
-                        format,
-                        plan.CreateEncodingOptions(),
-                        encodingBudget,
-                        cancellationToken);
-                cancellationToken.ThrowIfCancellationRequested();
-                return options.EnsureAccepted(new OfficeImageExportResult(format, image.Width, image.Height, bytes, "Slide", source, diagnostics));
-            }
-
-            throw new ArgumentOutOfRangeException(nameof(format), format, "Unsupported image export format.");
-        }
-
-        internal static PowerPointSlideVisualSnapshot CreateSnapshot(PowerPointSlide slide, PowerPointImageExportOptions options) {
-            if (slide == null) throw new ArgumentNullException(nameof(slide));
-            if (options == null) throw new ArgumentNullException(nameof(options));
-            options.Validate();
-            List<OfficeImageExportDiagnostic> diagnostics = new List<OfficeImageExportDiagnostic>();
-            OfficeDrawing drawing = CreateDrawing(slide, options, diagnostics);
-            drawing.AppendFontDiagnostics(diagnostics, "PowerPoint slide");
-            return new PowerPointSlideVisualSnapshot(drawing, diagnostics.AsReadOnly());
-        }
-
-        private static OfficeDrawing CreateDrawing(PowerPointSlide slide, PowerPointImageExportOptions options, List<OfficeImageExportDiagnostic> diagnostics) {
-            (double width, double height) = GetSlideSizePoints(slide);
-            OfficeDrawing drawing = new OfficeDrawing(width, height).ApplyImageExportOptions(options);
-            var imageBudget = new PowerPointEmbeddedImageReadBudget(
-                options.MaximumEmbeddedImageBytes,
-                options.MaximumTotalEmbeddedImageBytes);
-            AddBackgroundRectangle(drawing, options.BackgroundColor, fillGradient: null);
-
-            if (options.IncludeSlideBackground) {
-                AddResolvedBackground(slide, drawing, diagnostics, imageBudget);
-            }
-
-            if (options.IncludeSlideContent) {
-                A.ColorScheme? colorScheme = GetSlideColorScheme(slide);
-                AddSlideContent(slide.GetInheritedShapesForExport(), drawing, diagnostics,
-                    PowerPointShapeBoundsMapping.Identity, colorScheme, options, imageBudget, 0);
-                AddSlideContent(slide.Shapes, drawing, diagnostics,
-                    PowerPointShapeBoundsMapping.Identity, colorScheme, options, imageBudget, 0);
-            }
-
-            return drawing;
-        }
-
-        private static void AddSlideContent(IEnumerable<PowerPointShape> shapes, OfficeDrawing drawing,
-            List<OfficeImageExportDiagnostic> diagnostics, PowerPointShapeBoundsMapping mapping,
-            A.ColorScheme? colorScheme, PowerPointImageExportOptions options,
-            PowerPointEmbeddedImageReadBudget imageBudget, int groupDepth) {
-            foreach (PowerPointShape shape in shapes) {
-                if (shape.Hidden && !options.IncludeHiddenShapes) {
-                    continue;
-                }
-                if (!ShouldIncludeShape(shape, options)) {
-                    continue;
-                }
-
-                if (shape is PowerPointGroupShape groupShape) {
-                    AddGroupShape(drawing, groupShape, diagnostics, mapping, colorScheme, options, imageBudget, groupDepth);
-                } else if (shape is PowerPointPicture picture) {
-                    AddPicture(drawing, picture, diagnostics, mapping, imageBudget);
-                } else if (shape is PowerPointTable table) {
-                    AddTable(drawing, table, diagnostics, mapping, colorScheme);
-                } else if (shape is PowerPointChart chart) {
-                    AddChart(drawing, chart, diagnostics, mapping, colorScheme);
-                } else if (shape is PowerPointSmartArt smartArt) {
-                    AddSmartArt(drawing, smartArt, diagnostics, mapping);
-                } else if (shape is PowerPointTextBox textBox) {
-                    AddTextBox(drawing, textBox, diagnostics, mapping, colorScheme);
-                } else if (shape is PowerPointAutoShape autoShape) {
-                    AddAutoShape(drawing, autoShape, diagnostics, mapping, colorScheme);
-                } else if (shape is PowerPointConnectionShape connectionShape) {
-                    AddAutoShape(drawing, connectionShape, diagnostics, mapping, colorScheme);
-                } else if (shape is PowerPointOleObject) {
-                    AddUnsupportedShapeDiagnostic(diagnostics, shape,
-                        "Skipped a PowerPoint OLE object because embedded-object previews are not yet projected through OfficeIMO.Drawing.");
-                } else if (HasUnsupportedTransform(shape)) {
-                    AddUnsupportedShapeDiagnostic(diagnostics, shape, "Skipped a PowerPoint shape because rotated or flipped slide content is not yet projected through OfficeIMO.Drawing.");
-                    continue;
-                } else {
-                    AddUnsupportedShapeDiagnostic(diagnostics, shape, "Skipped a PowerPoint shape type that is not yet projected through OfficeIMO.Drawing.");
-                }
-            }
-        }
-
         private static A.ColorScheme? GetSlideColorScheme(PowerPointSlide slide) =>
-            slide.SlidePart.ThemeOverridePart?.ThemeOverride?.ColorScheme
-            ?? slide.SlidePart.SlideLayoutPart?.ThemeOverridePart?.ThemeOverride?
-                .ColorScheme
-            ?? slide.SlidePart.SlideLayoutPart?.SlideMasterPart?.ThemePart?.Theme?
-                .ThemeElements?.ColorScheme;
+            slide.ResolvedColorScheme;
 
         private static A.FormatScheme? GetSlideFormatScheme(PowerPointSlide slide) =>
-            slide.SlidePart.ThemeOverridePart?.ThemeOverride?.FormatScheme
-            ?? slide.SlidePart.SlideLayoutPart?.ThemeOverridePart?.ThemeOverride?
-                .FormatScheme
-            ?? slide.SlidePart.SlideLayoutPart?.SlideMasterPart?.ThemePart?.Theme?
-                .ThemeElements?.FormatScheme;
+            slide.ResolvedFormatScheme;
 
-        private static void AddGroupShape(OfficeDrawing drawing, PowerPointGroupShape groupShape,
-            List<OfficeImageExportDiagnostic> diagnostics, PowerPointShapeBoundsMapping mapping,
-            A.ColorScheme? colorScheme, PowerPointImageExportOptions options,
-            PowerPointEmbeddedImageReadBudget imageBudget, int groupDepth) {
-            if (options.MaxGroupShapeDepth >= 0 && groupDepth >= options.MaxGroupShapeDepth) {
-                AddUnsupportedShapeDiagnostic(diagnostics, groupShape,
-                    "Skipped nested PowerPoint group content because MaxGroupShapeDepth was reached.");
-                return;
-            }
-            if (groupShape.OwnerSlide == null) {
-                AddUnsupportedShapeDiagnostic(diagnostics, groupShape, "Skipped a PowerPoint group shape because its owning slide context could not be resolved.");
-                return;
-            }
-
-            OfficeImageFrameTransform frameTransform = CreateGroupFrameTransform(groupShape, 0D, 0D, 0D, 0D);
-            if (frameTransform.HasTransform) {
-                if (!TryGetBounds(groupShape, drawing, diagnostics, mapping, out double left, out double top, out double width, out double height)) {
-                    return;
-                }
-
-                var groupDrawing = new OfficeDrawing(Math.Max(1D, drawing.Width - left), Math.Max(1D, drawing.Height - top));
-                groupDrawing.Fonts.AddRange(drawing.Fonts);
-                PowerPointShapeBoundsMapping localChildMapping = CreateGroupLocalChildMapping(groupShape, mapping);
-                AddSlideContent(groupShape.OwnerSlide.GetGroupChildren(groupShape), groupDrawing, diagnostics,
-                    localChildMapping, colorScheme, options, imageBudget, groupDepth + 1);
-
-                try {
-                    OfficeImageFrameTransform groupFrameTransform = CreateGroupFrameTransform(groupShape, left, top, width, height);
-                    if (RequiresGroupClip(groupDrawing, width, height)) {
-                        drawing.AddClippedDrawing(groupDrawing, left, top, OfficeClipPath.Rectangle(width, height), groupFrameTransform);
-                    } else {
-                        drawing.AddDrawing(groupDrawing, left, top, groupFrameTransform);
-                    }
-                } catch (ArgumentOutOfRangeException) {
-                    AddUnsupportedShapeDiagnostic(diagnostics, groupShape, "Skipped a PowerPoint group shape because its transformed Drawing content would exceed the slide canvas.");
-                }
-
-                return;
-            }
-
-            if (TryGetBounds(groupShape, drawing, diagnostics, mapping, out double clipLeft, out double clipTop, out double clipWidth, out double clipHeight)) {
-                var groupDrawing = new OfficeDrawing(Math.Max(1D, drawing.Width - clipLeft), Math.Max(1D, drawing.Height - clipTop));
-                groupDrawing.Fonts.AddRange(drawing.Fonts);
-                PowerPointShapeBoundsMapping localChildMapping = CreateGroupLocalChildMapping(groupShape, mapping);
-                AddSlideContent(groupShape.OwnerSlide.GetGroupChildren(groupShape), groupDrawing, diagnostics,
-                    localChildMapping, colorScheme, options, imageBudget, groupDepth + 1);
-                if (RequiresGroupClip(groupDrawing, clipWidth, clipHeight)) {
-                    drawing.AddClippedDrawing(groupDrawing, clipLeft, clipTop, OfficeClipPath.Rectangle(clipWidth, clipHeight));
-                } else {
-                    drawing.AddDrawing(groupDrawing, clipLeft, clipTop);
-                }
-                return;
-            }
-
-            PowerPointShapeBoundsMapping childMapping = CreateGroupChildMapping(groupShape, mapping);
-            AddSlideContent(groupShape.OwnerSlide.GetGroupChildren(groupShape), drawing, diagnostics,
-                childMapping, colorScheme, options, imageBudget, groupDepth + 1);
-        }
-
-        private static bool RequiresGroupClip(OfficeDrawing groupDrawing, double width, double height) {
-            for (int i = 0; i < groupDrawing.Elements.Count; i++) {
-                OfficeDrawingElement element = groupDrawing.Elements[i];
-                if (element is OfficeDrawingShape shape) {
-                    if (shape.X < 0D || shape.Y < 0D || shape.X + shape.Shape.Width > width || shape.Y + shape.Shape.Height > height) {
-                        return true;
-                    }
-                } else if (element is OfficeDrawingText text) {
-                    if (text.X < 0D || text.Y < 0D || text.X + text.Width > width || text.Y + text.Height > height) {
-                        return true;
-                    }
-                } else if (element is OfficeDrawingRichText richText) {
-                    if (richText.X < 0D || richText.Y < 0D || richText.X + richText.Width > width || richText.Y + richText.Height > height) {
-                        return true;
-                    }
-                } else if (element is OfficeDrawingImage image) {
-                    (double left, double top, double right, double bottom) = image.Projection.GetDestinationBounds();
-                    if (left < 0D || top < 0D || right > width || bottom > height) {
-                        return true;
-                    }
-                } else if (element is OfficeDrawingGroup group) {
-                    if (group.X < 0D || group.Y < 0D || group.X + group.ClipPath.Width > width || group.Y + group.ClipPath.Height > height) {
-                        return true;
-                    }
-                }
-            }
-
-            return false;
-        }
-
-        private static void AddPicture(OfficeDrawing drawing, PowerPointPicture picture,
-            List<OfficeImageExportDiagnostic> diagnostics, PowerPointShapeBoundsMapping mapping,
-            PowerPointEmbeddedImageReadBudget imageBudget) {
-            if (!TryGetBounds(picture, drawing, diagnostics, mapping, out double left, out double top, out double width, out double height)) {
-                return;
-            }
-
-            byte[] bytes;
-            try {
-                int readLimit = imageBudget.GetNextReadLimit();
-                bytes = picture.GetImageBytes(readLimit);
-                imageBudget.Consume(bytes.Length);
-            } catch (Exception exception) when (exception is InvalidOperationException or InvalidDataException) {
-                AddUnsupportedShapeDiagnostic(diagnostics, picture, "Skipped a PowerPoint picture because its embedded image bytes could not be read.");
-                return;
-            }
-
-            if (bytes.Length == 0) {
-                AddUnsupportedShapeDiagnostic(diagnostics, picture, "Skipped a PowerPoint picture because its embedded image bytes are empty.");
-                return;
-            }
-
-            PowerPointPictureCrop crop = picture.GetCrop();
-            OfficeImageProjection projection = CreateImageProjection(
-                left,
-                top,
-                width,
-                height,
-                crop.Left,
-                crop.Top,
-                crop.Right,
-                crop.Bottom,
-                picture.Rotation ?? 0D,
-                picture.HorizontalFlip == true,
-                picture.VerticalFlip == true);
-            TryAddImage(drawing, bytes, picture.ContentType, projection, DescribeShape(picture), diagnostics, picture);
-        }
-
-        private static void AddAutoShape(OfficeDrawing drawing, PowerPointShape shape, List<OfficeImageExportDiagnostic> diagnostics, PowerPointShapeBoundsMapping mapping, A.ColorScheme? colorScheme) {
-            string? presetName = GetAutoShapePresetName(shape);
-            if (IsZeroThicknessLinePreset(presetName) && TryAddZeroThicknessLine(drawing, shape, diagnostics, mapping, presetName, colorScheme)) {
-                return;
-            }
-
-            if (IsBentConnectorPreset(presetName) && TryAddBentConnector(drawing, shape, diagnostics, mapping, colorScheme)) {
-                return;
-            }
-
-            if (IsCurvedConnectorPreset(presetName) && TryAddCurvedConnector(drawing, shape, diagnostics, mapping, colorScheme)) {
-                return;
-            }
-
-            if (!TryGetBounds(shape, drawing, diagnostics, mapping, out double left, out double top, out double width, out double height)) {
-                return;
-            }
-
-            if (TryAddCustomGeometryShape(drawing, shape, left, top, width, height, diagnostics, mapping, colorScheme)) {
-                return;
-            }
-
-            if (!OfficeShapePresets.TryCreate(presetName, width, height, out OfficeShape? drawingShape) || drawingShape == null) {
-                AddUnsupportedShapeDiagnostic(diagnostics, shape, "Skipped a PowerPoint auto shape geometry that is not yet projected through OfficeIMO.Drawing.");
-                return;
-            }
-
-            ApplyShapeStyle(drawingShape, shape, colorScheme, mapping, diagnostics);
-            ApplyShapeTransform(drawingShape, shape, width, height);
-            drawing.AddShape(drawingShape, left, top);
-        }
-
-        private static string? GetAutoShapePresetName(PowerPointShape shape) {
-            return GetOpenXmlShapeProperties(shape)?.GetFirstChild<A.PresetGeometry>()?.Preset?.InnerText;
-        }
-
-        private static void AddTextBox(OfficeDrawing drawing, PowerPointTextBox textBox, List<OfficeImageExportDiagnostic> diagnostics, PowerPointShapeBoundsMapping mapping, A.ColorScheme? colorScheme, bool suppressFrame = false, Func<string?, double, string?, OfficeFontStyle, double>? measure = null, string? defaultFontFamily = null) {
-            string text = ResolvePowerPointDisplayText(textBox);
-            bool hasVisibleFrame = HasVisibleFrame(textBox, colorScheme);
-            if (string.IsNullOrEmpty(text) && !hasVisibleFrame) {
-                return;
-            }
-
-            if (!TryGetBounds(textBox, drawing, diagnostics, mapping, out double left, out double top, out double width, out double height)) {
-                return;
-            }
-
-            OfficeShape frame = CreateTextBoxFrame(textBox, width, height, diagnostics);
-            ApplyShapeStyle(frame, textBox, colorScheme, mapping, diagnostics);
-            ApplyShapeTransform(frame, textBox, width, height);
-            if (hasVisibleFrame && !suppressFrame) {
-                drawing.AddShape(frame, left, top);
-            }
-
-            if (string.IsNullOrEmpty(text)) {
-                return;
-            }
-
-            ReportCharacterSpacing(textBox, diagnostics);
-            AddSmallCapsApproximationDiagnosticIfNeeded(textBox, diagnostics);
-            AddWavyDoubleUnderlineApproximationDiagnosticIfNeeded(textBox, diagnostics);
-            AddBaselineApproximationDiagnosticIfNeeded(textBox, diagnostics);
-
-            double marginLeft = mapping.MapHorizontalLength(textBox.TextMarginLeftPoints ?? PowerPointTextDefaults.DefaultHorizontalInsetPoints);
-            double marginTop = mapping.MapVerticalLength(textBox.TextMarginTopPoints ?? PowerPointTextDefaults.DefaultVerticalInsetPoints);
-            double marginRight = mapping.MapHorizontalLength(textBox.TextMarginRightPoints ?? PowerPointTextDefaults.DefaultHorizontalInsetPoints);
-            double marginBottom = mapping.MapVerticalLength(textBox.TextMarginBottomPoints ?? PowerPointTextDefaults.DefaultVerticalInsetPoints);
-            if (width > 0.5D && height > 0.5D && (marginLeft + marginRight >= width || marginTop + marginBottom >= height)) {
-                double horizontalScale = Math.Min(1D, (width - 0.5D) / Math.Max(0.5D, marginLeft + marginRight));
-                double verticalScale = Math.Min(1D, (height - 0.5D) / Math.Max(0.5D, marginTop + marginBottom));
-                marginLeft *= horizontalScale;
-                marginRight *= horizontalScale;
-                marginTop *= verticalScale;
-                marginBottom *= verticalScale;
-                diagnostics.Add(new OfficeImageExportDiagnostic(OfficeImageExportDiagnosticSeverity.Warning,
-                    "POWERPOINT_TEXT_PADDING", "Reduced PowerPoint text box margins because they leave no renderable text area.",
-                    DescribeShape(textBox), OfficeConversionLossKind.Approximation));
-            }
-            double textWidth = width - marginLeft - marginRight;
-            double textHeight = height - marginTop - marginBottom;
-            if (textWidth <= 0D || textHeight <= 0D) {
-                AddUnsupportedShapeDiagnostic(diagnostics, textBox, "Skipped PowerPoint text because the text margins leave no renderable drawing area.");
-                return;
-            }
-
-            var padding = new OfficeTextPadding(marginLeft, marginTop, marginRight, marginBottom);
-            PowerPointParagraph? firstParagraph = textBox.Paragraphs.Count > 0 ? textBox.Paragraphs[0] : null;
-            OfficeTextAlignment alignment = MapTextAlignment(firstParagraph?.Alignment);
-            OfficeTextParagraphIndent paragraphIndent = CreateParagraphIndent(firstParagraph, mapping);
-            double rotation = textBox.Rotation ?? 0D;
-            double rotationCenterX = left + (width / 2D);
-            double rotationCenterY = top + (height / 2D);
-            bool flipHorizontal = textBox.HorizontalFlip == true;
-            bool flipVertical = textBox.VerticalFlip == true;
-            measure ??= OfficeDrawingTextLayout.CreateMetrics(drawing).MeasureText;
-            if (TryAddTextBoxParagraphFlow(
-                drawing,
-                textBox,
-                left,
-                top,
-                width,
-                height,
-                textWidth,
-                textHeight,
-                marginLeft,
-                marginTop,
-                rotation,
-                rotationCenterX,
-                rotationCenterY,
-                flipHorizontal,
-                flipVertical,
-                mapping,
-                colorScheme,
-                diagnostics, measure, defaultFontFamily)) {
-                return;
-            }
-
-            List<OfficeRichTextRun> richRuns = CreateRichTextRuns(textBox, colorScheme, mapping, defaultFontFamily);
-            if (ShouldRenderRichText(richRuns)) {
-                drawing.AddRichText(
-                    richRuns,
-                    left,
-                    top,
-                    width,
-                    height,
-                    alignment,
-                    verticalAlignment: MapTextVerticalAlignment(textBox.TextVerticalAlignment),
-                    rotationDegrees: rotation,
-                    rotationCenterX: rotationCenterX,
-                    rotationCenterY: rotationCenterY,
-                    wrapText: true,
-                    flipHorizontal: flipHorizontal,
-                    flipVertical: flipVertical,
-                    padding: padding,
-                    paragraphIndent: paragraphIndent);
-                return;
-            }
-
-            drawing.AddText(
-                richRuns.Count == 1 ? richRuns[0].Text : text,
-                left,
-                top,
-                width,
-                height,
-                richRuns.Count == 1 ? new OfficeFontInfo(richRuns[0].FontFamily, richRuns[0].FontSize, richRuns[0].FontStyle) : CreateFont(textBox, mapping, defaultFontFamily),
-                richRuns.Count == 1 ? richRuns[0].Color : ResolveTextBoxColor(textBox, colorScheme),
-                alignment,
-                rotationDegrees: rotation,
-                rotationCenterX: rotationCenterX,
-                rotationCenterY: rotationCenterY,
-                verticalAlignment: MapTextVerticalAlignment(textBox.TextVerticalAlignment),
-                wrapText: true,
-                flipHorizontal: flipHorizontal,
-                flipVertical: flipVertical,
-                padding: padding,
-                paragraphIndent: paragraphIndent);
-        }
-
-        private static OfficeShape CreateTextBoxFrame(
-            PowerPointTextBox textBox,
-            double width,
-            double height,
+        /// <summary>Projects the existing shared shape appearance for preset and text-frame export.</summary>
+        internal static void ApplyShapeAppearanceForExport(OfficeShape target, PowerPointShape source,
             List<OfficeImageExportDiagnostic> diagnostics) {
-            string? presetName = GetAutoShapePresetName(textBox);
-            if (string.IsNullOrEmpty(presetName)
-                || string.Equals(presetName, "rect", StringComparison.OrdinalIgnoreCase)
-                || string.Equals(presetName, "rectangle", StringComparison.OrdinalIgnoreCase)) {
-                return OfficeShape.Rectangle(width, height);
+            bool transformedAncestor = source.Element.Ancestors<DocumentFormat.OpenXml.Presentation.GroupShape>()
+                .Any(group => group.GroupShapeProperties?.TransformGroup is { } transform
+                    && ((transform.Rotation?.Value ?? 0) != 0 || transform.HorizontalFlip?.Value == true
+                        || transform.VerticalFlip?.Value == true));
+            ApplyShapeStyle(target, source, source.OwnerSlide?.ResolvedColorScheme,
+                PowerPointShapeBoundsMapping.Identity.WithTransformedAncestor(transformedAncestor), diagnostics);
+            if (source.UnsupportedFillKindForExport is { } fillKind) {
+                AddUnsupportedShapeDiagnostic(diagnostics, source,
+                    "Skipped a PowerPoint " + fillKind + " fill that is not supported by the shared Drawing renderer.");
             }
-            if (OfficeShapePresets.TryCreate(presetName, width, height,
-                    out OfficeShape? preset) && preset != null) {
-                return preset;
-            }
-
-            AddUnsupportedShapeDiagnostic(
-                diagnostics,
-                textBox,
-                "Rendered the PowerPoint text content inside a rectangular frame because its preset frame geometry is not yet projected through OfficeIMO.Drawing.",
-                OfficeConversionLossKind.Approximation);
-            return OfficeShape.Rectangle(width, height);
-        }
-
-        private static bool HasVisibleFrame(PowerPointShape source, A.ColorScheme? colorScheme) {
-            return (source.FillTransparency != 100
-                    && (HasShapeFillGradient(source)
-                        || TryResolveShapeFillColor(source, colorScheme, out _))) ||
-                TryResolveShapeOutlineColor(source, colorScheme, out _);
         }
 
         private static void ApplyShapeStyle(OfficeShape target, PowerPointShape source,
             A.ColorScheme? colorScheme, PowerPointShapeBoundsMapping mapping,
             List<OfficeImageExportDiagnostic> diagnostics) {
-            if (source.FillTransparency != 100) {
-                ShapeFillGradientProjection gradientProjection = ApplyShapeFillGradient(
-                    target, source, colorScheme, mapping.HasTransformedAncestor);
-                if (gradientProjection == ShapeFillGradientProjection.Unsupported) {
-                    AddUnsupportedShapeDiagnostic(diagnostics, source,
-                        "Skipped a PowerPoint shape gradient that cannot be represented faithfully by the shared Drawing renderer.");
-                } else if (gradientProjection == ShapeFillGradientProjection.None
-                    && TryResolveShapeFillColor(source, colorScheme, out OfficeColor fill)) {
-                    target.FillColor = fill;
-                }
+            ShapeFillGradientProjection gradientProjection = ApplyShapeFillGradient(
+                target, source, colorScheme, mapping.HasTransformedAncestor);
+            if (gradientProjection == ShapeFillGradientProjection.Unsupported) {
+                AddUnsupportedShapeDiagnostic(diagnostics, source,
+                    "Skipped a PowerPoint shape gradient that cannot be represented faithfully by the shared Drawing renderer.");
+            } else if (gradientProjection == ShapeFillGradientProjection.None
+                && TryResolveShapeFillColor(source, colorScheme, out OfficeColor fill)) {
+                target.FillColor = fill;
             }
 
             if (TryResolveShapeOutlineColor(source, colorScheme, out OfficeColor stroke)) {
@@ -568,73 +86,15 @@ namespace OfficeIMO.PowerPoint {
         }
 
         private static bool TryResolveShapeFillColor(PowerPointShape source, A.ColorScheme? colorScheme, out OfficeColor color) {
-            color = default;
-            DocumentFormat.OpenXml.Presentation.ShapeProperties? properties = GetOpenXmlShapeProperties(source);
-            if (properties != null) {
-                OfficeColor? resolvedColor = OfficeOpenXmlThemeColorResolver.ResolveColor(
-                    properties.GetFirstChild<A.SolidFill>(), colorScheme);
-                if (resolvedColor.HasValue) {
-                    color = resolvedColor.Value;
-                    return true;
-                }
-                if (HasExplicitShapeFill(properties)) return false;
-            }
-
-            A.FillReference? fillReference =
-                GetOpenXmlShapeStyle(source)?.FillReference;
-            A.FormatScheme? formatScheme = source.OwnerSlide == null
-                ? null
-                : GetSlideFormatScheme(source.OwnerSlide);
-            OpenXmlElement? themeFill = ResolveThemeShapeFill(formatScheme,
-                fillReference?.Index?.Value);
-            A.SolidFill? themeSolid = themeFill as A.SolidFill
-                ?? themeFill?.GetFirstChild<A.SolidFill>();
-            OfficeColor? themeColor = OfficeOpenXmlThemeColorResolver.ResolveColor(
-                themeSolid, colorScheme,
-                fillReference);
-            if (themeColor.HasValue) {
-                color = themeColor.Value;
-                return true;
-            }
-
-            return TryParseOfficeColor(source.FillColor, out color);
+            OfficeColor? resolved = source.ResolveFillColorForExport();
+            color = resolved.GetValueOrDefault();
+            return resolved.HasValue;
         }
 
         private static bool TryResolveShapeOutlineColor(PowerPointShape source, A.ColorScheme? colorScheme, out OfficeColor color) {
-            color = default;
-            DocumentFormat.OpenXml.Presentation.ShapeProperties? properties = GetOpenXmlShapeProperties(source);
-            if (properties != null) {
-                A.Outline? outline = properties.GetFirstChild<A.Outline>();
-                OfficeColor? resolvedColor = OfficeOpenXmlThemeColorResolver.ResolveColor(
-                    outline?.GetFirstChild<A.SolidFill>(), colorScheme);
-                if (resolvedColor.HasValue) {
-                    color = resolvedColor.Value;
-                    return true;
-                }
-                if (outline?.ChildElements.Any(child => child is A.NoFill
-                        or A.SolidFill or A.GradientFill or A.PatternFill) == true) {
-                    return false;
-                }
-            }
-
-            A.LineReference? lineReference =
-                GetOpenXmlShapeStyle(source)?.LineReference;
-            A.FormatScheme? formatScheme = source.OwnerSlide == null
-                ? null
-                : GetSlideFormatScheme(source.OwnerSlide);
-            OpenXmlElement? themeLine = ResolveThemeShapeLine(formatScheme,
-                lineReference?.Index?.Value);
-            A.SolidFill? themeSolid = themeLine as A.SolidFill
-                ?? themeLine?.GetFirstChild<A.SolidFill>();
-            OfficeColor? themeColor = OfficeOpenXmlThemeColorResolver.ResolveColor(
-                themeSolid, colorScheme,
-                lineReference);
-            if (themeColor.HasValue) {
-                color = themeColor.Value;
-                return true;
-            }
-
-            return TryParseOfficeColor(source.OutlineColor, out color);
+            OfficeColor? resolved = source.ResolveOutlineColorForExport();
+            color = resolved.GetValueOrDefault();
+            return resolved.HasValue;
         }
 
         private static void ApplyStrokeLineCapAndJoin(OfficeShape target,
@@ -781,25 +241,6 @@ namespace OfficeIMO.PowerPoint {
             }
         }
 
-        private static OfficeFontInfo CreateFont(PowerPointTextBox textBox, PowerPointShapeBoundsMapping mapping, string? defaultFontFamily) {
-            PowerPointTextRun? firstRun = textBox.Paragraphs
-                .SelectMany(paragraph => paragraph.InlineNodes)
-                .FirstOrDefault(node => node.Run != null && !string.IsNullOrEmpty(node.Text))?.Run;
-            OfficeFontStyle style = OfficeFontStyle.Regular;
-            if (firstRun?.Bold == true || textBox.Bold) {
-                style |= OfficeFontStyle.Bold;
-            }
-
-            if (firstRun?.Italic == true || textBox.Italic) {
-                style |= OfficeFontStyle.Italic;
-            }
-
-            return new OfficeFontInfo(
-                firstRun?.FontName ?? textBox.FontName ?? ResolveTextBoxFallbackFont(textBox, defaultFontFamily),
-                mapping.MapFontSize(firstRun?.FontSize ?? textBox.FontSize ?? 18),
-                style);
-        }
-
         private static bool ShouldRenderRichText(IReadOnlyList<OfficeRichTextRun> richRuns) =>
             richRuns.Count > 1 ||
             (richRuns.Count == 1 && (richRuns[0].Underline || richRuns[0].Strikethrough ||
@@ -818,45 +259,9 @@ namespace OfficeIMO.PowerPoint {
                 : OfficeTextParagraphIndent.Empty;
         }
 
-        private static List<OfficeRichTextRun> CreateRichTextRuns(PowerPointTextBox textBox, A.ColorScheme? colorScheme, PowerPointShapeBoundsMapping mapping, string? defaultFontFamily) {
-            IReadOnlyList<PowerPointParagraph> paragraphs = textBox.Paragraphs;
-            var richRuns = new List<OfficeRichTextRun>();
-            var numberingState = new PowerPointParagraphNumberingState();
-            for (int paragraphIndex = 0; paragraphIndex < paragraphs.Count; paragraphIndex++) {
-                PowerPointParagraph paragraph = paragraphs[paragraphIndex];
-                IReadOnlyList<PowerPointParagraphInline> inlineNodes = paragraph.InlineNodes;
-                PowerPointTextRun? firstRun = inlineNodes.FirstOrDefault(node => node.Run != null)?.Run;
-                string? marker = numberingState.CreateMarker(paragraph);
-                bool paragraphHasVisibleText = !string.IsNullOrEmpty(marker) || inlineNodes.Any(node => !string.IsNullOrEmpty(node.Text));
-                if (!paragraphHasVisibleText) {
-                    continue;
-                }
-
-                if (richRuns.Count > 0) {
-                    richRuns.Add(CreateRichTextRun(Environment.NewLine, firstRun, textBox, paragraph, colorScheme, mapping, defaultFontFamily: defaultFontFamily));
-                }
-
-                if (!string.IsNullOrEmpty(marker)) {
-                    richRuns.Add(CreateRichTextRun(marker!, firstRun, textBox, paragraph, colorScheme, mapping, markerRun: true, defaultFontFamily: defaultFontFamily));
-                }
-
-                for (int inlineIndex = 0; inlineIndex < inlineNodes.Count; inlineIndex++) {
-                    PowerPointParagraphInline inline = inlineNodes[inlineIndex];
-                    string runText = inline.Text;
-                    if (string.IsNullOrEmpty(runText)) {
-                        continue;
-                    }
-
-                    richRuns.AddRange(CreateEffectiveTextRuns(runText, inline.Run, textBox, paragraph, colorScheme, mapping, defaultFontFamily));
-                }
-            }
-
-            return richRuns;
-        }
-
         private static OfficeRichTextRun CreateRichTextRun(string text, PowerPointTextRun? run, PowerPointTextBox textBox, PowerPointParagraph? paragraph, A.ColorScheme? colorScheme, PowerPointShapeBoundsMapping mapping, bool markerRun = false, string? defaultFontFamily = null) {
-            OfficeColor color = ResolveTextRunColor(run, textBox, colorScheme);
-            OfficeColor? backgroundColor = ResolveTextRunBackgroundColor(run, colorScheme);
+            OfficeColor color = ResolveTextRunColor(run, textBox, colorScheme, paragraph);
+            OfficeColor? backgroundColor = ResolveTextRunBackgroundColor(run, textBox, colorScheme);
             return new OfficeRichTextRun(
                 ResolvePowerPointDisplayText(text, run, paragraph, markerRun),
                 mapping.MapFontSize(markerRun ? paragraph?.BulletSizePoints ?? run?.FontSize ?? textBox.FontSize ?? 18 : run?.FontSize ?? textBox.FontSize ?? 18),
@@ -1006,28 +411,28 @@ namespace OfficeIMO.PowerPoint {
             _ => OfficeTextBaseline.Normal
         };
 
-        private static OfficeColor ResolveTextRunColor(PowerPointTextRun? run, PowerPointTextBox textBox, A.ColorScheme? colorScheme) {
-            OfficeColor? runColor = OfficeOpenXmlThemeColorResolver.ResolveColor(run?.RunProperties?.GetFirstChild<A.SolidFill>(), colorScheme);
-            if (runColor.HasValue) {
-                return runColor.Value;
-            }
-
-            return ResolveTextBoxColor(textBox, colorScheme);
+        private static OfficeColor ResolveTextRunColor(PowerPointTextRun? run, PowerPointTextBox textBox, A.ColorScheme? colorScheme,
+            PowerPointParagraph? paragraph = null) {
+            if (run == null) return ResolveTextBoxColor(textBox, colorScheme);
+            paragraph ??= textBox.Paragraphs.FirstOrDefault(item =>
+                ReferenceEquals(item.Paragraph, run.Run.Parent ?? run.RunProperties?.Parent?.Parent));
+            return PowerPointEffectiveRunStyleResolver.ResolveTextColorForExport(run, paragraph, textBox)
+                ?? OfficeColor.Black;
         }
 
         private static OfficeColor ResolveTextBoxColor(PowerPointTextBox textBox, A.ColorScheme? colorScheme) {
-            PowerPointTextRun? run = textBox.Paragraphs
-                .SelectMany(paragraph => paragraph.InlineNodes)
+            PowerPointParagraph? paragraph = textBox.Paragraphs.FirstOrDefault(item =>
+                item.InlineNodes.Any(node => node.Run != null && !string.IsNullOrEmpty(node.Text)))
+                ?? textBox.Paragraphs.FirstOrDefault();
+            PowerPointTextRun? run = paragraph?.InlineNodes
                 .FirstOrDefault(node => node.Run != null && !string.IsNullOrEmpty(node.Text))?.Run;
-            OfficeColor? textBoxColor = OfficeOpenXmlThemeColorResolver.ResolveColor(run?.RunProperties?.GetFirstChild<A.SolidFill>(), colorScheme);
-            return textBoxColor.HasValue
-                ? textBoxColor.Value
-                : OfficeColor.Black;
+            return PowerPointEffectiveRunStyleResolver.ResolveTextColorForExport(run, paragraph, textBox)
+                ?? OfficeColor.Black;
         }
 
-        private static OfficeColor? ResolveTextRunBackgroundColor(PowerPointTextRun? run, A.ColorScheme? colorScheme) {
-            return OfficeOpenXmlThemeColorResolver.ResolveColor(run?.RunProperties?.GetFirstChild<A.Highlight>(), colorScheme);
-        }
+        private static OfficeColor? ResolveTextRunBackgroundColor(PowerPointTextRun? run, PowerPointTextBox textBox, A.ColorScheme? colorScheme) =>
+            PowerPointEffectiveRunStyleResolver.ResolveTextColorElementForExport(
+                run?.RunProperties?.GetFirstChild<A.Highlight>(), textBox);
 
         private static OfficeTextAlignment MapTextAlignment(PowerPointTextAlignment? alignment) {
             if (alignment == PowerPointTextAlignment.Center) {
@@ -1046,18 +451,6 @@ namespace OfficeIMO.PowerPoint {
             }
 
             return OfficeTextAlignment.Left;
-        }
-
-        private static OfficeTextVerticalAlignment MapTextVerticalAlignment(PowerPointTextVerticalAlignment? alignment) {
-            if (alignment == PowerPointTextVerticalAlignment.Center) {
-                return OfficeTextVerticalAlignment.Center;
-            }
-
-            if (alignment == PowerPointTextVerticalAlignment.Bottom) {
-                return OfficeTextVerticalAlignment.Bottom;
-            }
-
-            return OfficeTextVerticalAlignment.Top;
         }
 
         private static OfficeStrokeDashStyle MapDash(A.PresetLineDashValues? dash) {
@@ -1086,273 +479,6 @@ namespace OfficeIMO.PowerPoint {
             return OfficeStrokeDashStyle.Solid;
         }
 
-        private static bool TryGetBounds(PowerPointShape shape, OfficeDrawing drawing, List<OfficeImageExportDiagnostic> diagnostics, PowerPointShapeBoundsMapping mapping, out double left, out double top, out double width, out double height) {
-            if (!shape.TryGetExportBoundsPoints(out left, out top, out width, out height)) {
-                AddUnsupportedShapeDiagnostic(diagnostics, shape, "Skipped a PowerPoint shape because its bounds are outside the slide drawing canvas.");
-                return false;
-            }
-
-            left = mapping.MapX(left);
-            top = mapping.MapY(top);
-            width = mapping.MapWidth(width);
-            height = mapping.MapHeight(height);
-
-            if (width <= 0D ||
-                height <= 0D ||
-                left < 0D ||
-                top < 0D ||
-                left + width > drawing.Width ||
-                top + height > drawing.Height) {
-                AddUnsupportedShapeDiagnostic(diagnostics, shape, "Skipped a PowerPoint shape because its bounds are outside the slide drawing canvas.");
-                return false;
-            }
-
-            return true;
-        }
-
-        private static PowerPointShapeBoundsMapping CreateGroupChildMapping(PowerPointGroupShape groupShape, PowerPointShapeBoundsMapping parentMapping) {
-            A.TransformGroup? transform = groupShape.GroupShape.GroupShapeProperties?.TransformGroup;
-            long? groupXEmu = transform?.Offset?.X?.Value;
-            long? groupYEmu = transform?.Offset?.Y?.Value;
-            long? groupWidthEmu = transform?.Extents?.Cx?.Value;
-            long? groupHeightEmu = transform?.Extents?.Cy?.Value;
-            long? childXEmu = transform?.ChildOffset?.X?.Value;
-            long? childYEmu = transform?.ChildOffset?.Y?.Value;
-            long? childWidthEmu = transform?.ChildExtents?.Cx?.Value;
-            long? childHeightEmu = transform?.ChildExtents?.Cy?.Value;
-            if (!groupXEmu.HasValue || !groupYEmu.HasValue || !groupWidthEmu.HasValue || !groupHeightEmu.HasValue ||
-                !childXEmu.HasValue || !childYEmu.HasValue || !childWidthEmu.HasValue || !childHeightEmu.HasValue ||
-                childWidthEmu.Value == 0L || childHeightEmu.Value == 0L) {
-                return parentMapping;
-            }
-
-            double groupX = PowerPointUnits.ToPoints(groupXEmu.Value);
-            double groupY = PowerPointUnits.ToPoints(groupYEmu.Value);
-            double childX = PowerPointUnits.ToPoints(childXEmu.Value);
-            double childY = PowerPointUnits.ToPoints(childYEmu.Value);
-            double scaleX = groupWidthEmu.Value / (double)childWidthEmu.Value;
-            double scaleY = groupHeightEmu.Value / (double)childHeightEmu.Value;
-            PowerPointShapeBoundsMapping groupMapping = new PowerPointShapeBoundsMapping(
-                groupX - (childX * scaleX),
-                groupY - (childY * scaleY),
-                scaleX,
-                scaleY);
-            return parentMapping.Compose(groupMapping);
-        }
-
-        private static PowerPointShapeBoundsMapping CreateGroupLocalChildMapping(PowerPointGroupShape groupShape, PowerPointShapeBoundsMapping parentMapping) {
-            A.TransformGroup? transform = groupShape.GroupShape.GroupShapeProperties?.TransformGroup;
-            bool hasTransformedAncestor = parentMapping.HasTransformedAncestor
-                || CreateGroupFrameTransform(groupShape, 0D, 0D, 0D, 0D).HasTransform;
-            long? groupWidthEmu = transform?.Extents?.Cx?.Value;
-            long? groupHeightEmu = transform?.Extents?.Cy?.Value;
-            long? childXEmu = transform?.ChildOffset?.X?.Value;
-            long? childYEmu = transform?.ChildOffset?.Y?.Value;
-            long? childWidthEmu = transform?.ChildExtents?.Cx?.Value;
-            long? childHeightEmu = transform?.ChildExtents?.Cy?.Value;
-            if (!groupWidthEmu.HasValue || !groupHeightEmu.HasValue ||
-                !childXEmu.HasValue || !childYEmu.HasValue || !childWidthEmu.HasValue || !childHeightEmu.HasValue ||
-                childWidthEmu.Value == 0L || childHeightEmu.Value == 0L) {
-                return parentMapping.WithTransformedAncestor(hasTransformedAncestor);
-            }
-
-            double childX = PowerPointUnits.ToPoints(childXEmu.Value);
-            double childY = PowerPointUnits.ToPoints(childYEmu.Value);
-            double scaleX = groupWidthEmu.Value / (double)childWidthEmu.Value;
-            double scaleY = groupHeightEmu.Value / (double)childHeightEmu.Value;
-            return new PowerPointShapeBoundsMapping(
-                -parentMapping.MapWidth(childX * scaleX),
-                -parentMapping.MapHeight(childY * scaleY),
-                parentMapping.MapWidth(scaleX),
-                parentMapping.MapHeight(scaleY),
-                hasTransformedAncestor);
-        }
-
-        private static OfficeImageFrameTransform CreateGroupFrameTransform(PowerPointGroupShape groupShape, double left, double top, double width, double height) {
-            A.TransformGroup? transform = groupShape.GroupShape.GroupShapeProperties?.TransformGroup;
-            double rotation = transform?.Rotation?.Value / 60000D ?? 0D;
-            return new OfficeImageFrameTransform(
-                rotation,
-                left + (width / 2D),
-                top + (height / 2D),
-                transform?.HorizontalFlip?.Value == true,
-                transform?.VerticalFlip?.Value == true);
-        }
-
-        private static bool HasUnsupportedTransform(PowerPointShape shape) {
-            double rotation = shape.Rotation ?? 0D;
-            return Math.Abs(rotation) > 0.000001D || shape.HorizontalFlip == true || shape.VerticalFlip == true;
-        }
-
-        private static OfficeImageProjection CreateImageProjection(
-            double left,
-            double top,
-            double width,
-            double height,
-            double cropLeft,
-            double cropTop,
-            double cropRight,
-            double cropBottom,
-            double rotationDegrees,
-            bool flipHorizontal,
-            bool flipVertical) {
-            return new OfficeImageProjection(
-                new OfficeImagePlacement(left, top, width, height),
-                OfficeImageSourceCrop.FromClampedFractions(cropLeft, cropTop, cropRight, cropBottom),
-                rotationDegrees,
-                left + (width / 2D),
-                top + (height / 2D),
-                flipHorizontal,
-                flipVertical);
-        }
-
-        private static void TryAddImage(
-            OfficeDrawing drawing,
-            byte[] bytes,
-            string? contentType,
-            OfficeImageProjection projection,
-            string source,
-            List<OfficeImageExportDiagnostic> diagnostics,
-            PowerPointShape? shape) {
-            try {
-                drawing.AddImage(bytes, contentType, projection, source);
-            } catch (ArgumentOutOfRangeException) {
-                if (shape == null) {
-                    AddDiagnostic(
-                        diagnostics,
-                        PowerPointImageExportDiagnosticCodes.ImageBoundsUnsupported,
-                        "Skipped a PowerPoint image because its projected bounds are outside the slide drawing canvas.",
-                        OfficeConversionLossKind.Omission);
-                } else {
-                    AddUnsupportedShapeDiagnostic(diagnostics, shape, "Skipped a PowerPoint image because its projected bounds are outside the slide drawing canvas.");
-                }
-            }
-        }
-
-        private static void AddResolvedBackground(PowerPointSlide slide, OfficeDrawing drawing,
-            List<OfficeImageExportDiagnostic> diagnostics, PowerPointEmbeddedImageReadBudget imageBudget) {
-            PowerPointSlideBackground background;
-            try {
-                int readLimit = imageBudget.GetNextReadLimit();
-                background = slide.GetBackground(readLimit);
-                if (background.Kind == PowerPointSlideBackgroundKind.Image) {
-                    imageBudget.Consume(background.ImageByteLength);
-                }
-            } catch (Exception exception) when (exception is InvalidOperationException or InvalidDataException) {
-                AddDiagnostic(
-                    diagnostics,
-                    PowerPointImageExportDiagnosticCodes.InvalidSlideBackgroundImage,
-                    "Used the configured fallback background because the PowerPoint slide background image exceeded the export limit.",
-                    OfficeConversionLossKind.Omission);
-                return;
-            }
-            switch (background.Kind) {
-                case PowerPointSlideBackgroundKind.None:
-                    return;
-                case PowerPointSlideBackgroundKind.SolidColor:
-                    if (TryParseOfficeColor(background.Color, out OfficeColor color)) {
-                        AddBackgroundRectangle(drawing, color, fillGradient: null);
-                    } else {
-                        AddDiagnostic(
-                            diagnostics,
-                            PowerPointImageExportDiagnosticCodes.InvalidSlideBackgroundColor,
-                            "Used the configured fallback background because the PowerPoint slide background color could not be parsed.",
-                            OfficeConversionLossKind.Omission);
-                    }
-                    return;
-                case PowerPointSlideBackgroundKind.LinearGradient:
-                    if (TryCreateGradient(background, out OfficeLinearGradient? gradient)) {
-                        AddBackgroundRectangle(drawing, gradient!.Stops[0].Color, gradient);
-                    } else {
-                        AddDiagnostic(
-                            diagnostics,
-                            PowerPointImageExportDiagnosticCodes.InvalidSlideBackgroundGradient,
-                            "Used the configured fallback background because the PowerPoint slide background gradient colors could not be parsed.",
-                            OfficeConversionLossKind.Omission);
-                    }
-                    return;
-                case PowerPointSlideBackgroundKind.Image:
-                    AddBackgroundImage(drawing, background, diagnostics);
-                    return;
-                case PowerPointSlideBackgroundKind.Unsupported:
-                    AddDiagnostic(
-                        diagnostics,
-                        PowerPointImageExportDiagnosticCodes.UnsupportedSlideBackground,
-                        "Used the configured fallback background because " + (background.UnsupportedReason ?? "the PowerPoint slide background is not supported."),
-                        OfficeConversionLossKind.Omission);
-                    return;
-            }
-        }
-
-        private sealed class PowerPointEmbeddedImageReadBudget {
-            private readonly int _maximumImageBytes;
-            private long _remainingBytes;
-
-            internal PowerPointEmbeddedImageReadBudget(int maximumImageBytes, long maximumTotalBytes) {
-                _maximumImageBytes = maximumImageBytes;
-                _remainingBytes = maximumTotalBytes;
-            }
-
-            internal int GetNextReadLimit() {
-                if (_remainingBytes <= 0) {
-                    throw new InvalidOperationException("The aggregate embedded-image byte limit was exceeded.");
-                }
-                return (int)Math.Min(_maximumImageBytes, Math.Min(int.MaxValue, _remainingBytes));
-            }
-
-            internal void Consume(int bytes) {
-                if (bytes < 0 || bytes > _remainingBytes) {
-                    throw new InvalidOperationException("The aggregate embedded-image byte limit was exceeded.");
-                }
-                _remainingBytes -= bytes;
-            }
-        }
-
-        private static void AddBackgroundImage(OfficeDrawing drawing, PowerPointSlideBackground background, List<OfficeImageExportDiagnostic> diagnostics) {
-            byte[]? bytes = background.ImageBytes;
-            if (bytes == null || bytes.Length == 0) {
-                AddDiagnostic(
-                    diagnostics,
-                    PowerPointImageExportDiagnosticCodes.InvalidSlideBackgroundImage,
-                    "Used the configured fallback background because the PowerPoint slide background image bytes could not be read.",
-                    OfficeConversionLossKind.Omission);
-                return;
-            }
-
-            OfficeImageProjection projection = CreateImageProjection(
-                0D,
-                0D,
-                drawing.Width,
-                drawing.Height,
-                background.ImageCropLeft,
-                background.ImageCropTop,
-                background.ImageCropRight,
-                background.ImageCropBottom,
-                rotationDegrees: 0D,
-                flipHorizontal: false,
-                flipVertical: false);
-            TryAddImage(drawing, bytes, background.ImageContentType, projection, "PowerPoint slide background image", diagnostics, null);
-        }
-
-        private static void AddBackgroundRectangle(OfficeDrawing drawing, OfficeColor fillColor, OfficeLinearGradient? fillGradient) {
-            OfficeShape shape = OfficeShape.Rectangle(drawing.Width, drawing.Height);
-            shape.FillColor = fillColor;
-            shape.FillGradient = fillGradient?.Clone();
-            shape.StrokeWidth = 0D;
-            drawing.AddShape(shape, 0D, 0D);
-        }
-
-        private static bool TryCreateGradient(PowerPointSlideBackground background, out OfficeLinearGradient? gradient) {
-            gradient = null;
-            if (!TryParseOfficeColor(background.GradientStartColor, out OfficeColor start) ||
-                !TryParseOfficeColor(background.GradientEndColor, out OfficeColor end)) {
-                return false;
-            }
-
-            gradient = OfficeLinearGradient.FromAngle(start, end, background.GradientAngleDegrees ?? 0D);
-            return true;
-        }
-
         private static bool TryParseOfficeColor(string? value, out OfficeColor color) {
             color = default;
             if (string.IsNullOrWhiteSpace(value)) {
@@ -1365,43 +491,6 @@ namespace OfficeIMO.PowerPoint {
             }
 
             return OfficeColor.TryParseHex(normalized, out color);
-        }
-
-        private static (double Width, double Height) GetSlideSizePoints(PowerPointSlide slide) {
-            long widthEmus = 12192000L;
-            long heightEmus = 6858000L;
-            if (slide.SlidePart.OpenXmlPackage is DocumentFormat.OpenXml.Packaging.PresentationDocument presentationDocument) {
-                DocumentFormat.OpenXml.Presentation.SlideSize? size = presentationDocument.PresentationPart?.Presentation?.SlideSize;
-                widthEmus = size?.Cx?.Value ?? widthEmus;
-                heightEmus = size?.Cy?.Value ?? heightEmus;
-            }
-
-            return (PowerPointUnits.ToPoints(widthEmus), PowerPointUnits.ToPoints(heightEmus));
-        }
-
-        private static int ScaledWidth(OfficeDrawing drawing, double scale) =>
-            Math.Max(1, (int)Math.Ceiling(drawing.Width * scale));
-
-        private static int ScaledHeight(OfficeDrawing drawing, double scale) =>
-            Math.Max(1, (int)Math.Ceiling(drawing.Height * scale));
-
-        private static int UnscaledWidth(OfficeDrawing drawing) =>
-            Math.Max(1, (int)Math.Ceiling(drawing.Width));
-
-        private static int UnscaledHeight(OfficeDrawing drawing) =>
-            Math.Max(1, (int)Math.Ceiling(drawing.Height));
-
-        private static void AddDiagnostic(
-            List<OfficeImageExportDiagnostic> diagnostics,
-            string code,
-            string message,
-            OfficeConversionLossKind lossKind) {
-            diagnostics.Add(new OfficeImageExportDiagnostic(
-                OfficeImageExportDiagnosticSeverity.Warning,
-                code,
-                message,
-                "PowerPoint slide",
-                lossKind));
         }
 
         private static string DescribeShape(PowerPointShape shape) =>

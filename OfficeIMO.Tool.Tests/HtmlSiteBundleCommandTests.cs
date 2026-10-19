@@ -27,6 +27,7 @@ public sealed class HtmlSiteBundleCommandTests {
         Assert.True(exit == 0, error.ToString());
         Assert.True(input.CanRead);
         Assert.DoesNotContain("StylesheetResourceUnavailable", error.ToString(), StringComparison.Ordinal);
+        Assert.DoesNotContain("HtmlRenderResourceUnavailable", error.ToString(), StringComparison.Ordinal);
         if (command == "convert") {
             string text = PdfReadDocument.Open(output.ToArray()).ExtractText();
             Assert.Contains("Embedded CLI bundle", text, StringComparison.Ordinal);
@@ -35,9 +36,11 @@ public sealed class HtmlSiteBundleCommandTests {
             using var archive = new ZipArchive(new MemoryStream(output.ToArray()), ZipArchiveMode.Read);
             using var reader = new StreamReader(archive.GetEntry("pages/page-0001.svg")!.Open());
             string svg = await reader.ReadToEndAsync();
-            Assert.Contains("CLI bundle", svg, StringComparison.Ordinal);
+            string paintedText = OfficeIMO.Tests.SvgPaintedText.Read(svg);
+            Assert.Contains("Embedded", paintedText, StringComparison.Ordinal);
+            Assert.Contains("CLI bundle", paintedText, StringComparison.Ordinal);
             Assert.Contains("#123456", svg, StringComparison.Ordinal);
-            Assert.DoesNotContain("Wrong root", svg, StringComparison.Ordinal);
+            Assert.DoesNotContain("Wrong root", OfficeIMO.Tests.SvgPaintedText.Read(svg), StringComparison.Ordinal);
         }
     }
 

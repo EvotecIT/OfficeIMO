@@ -65,8 +65,8 @@ public static partial class ExcelOpenDocumentConversionExtensions {
 
     private static void ApplyExcelStyle(OdsDocument document, OdsCell target, ExcelCellStyleSnapshot style,
         IDictionary<uint, string> dataStyles, ref int unsupported) {
-        if (style.Bold) target.Bold = true;
-        if (style.Italic) target.Italic = true;
+        target.Bold = style.Bold;
+        target.Italic = style.Italic;
         ExcelUnderlineStyle? underlineStyle = style.UnderlineStyle;
         bool underlined = underlineStyle.HasValue
             ? underlineStyle.Value != ExcelUnderlineStyle.None
@@ -209,8 +209,8 @@ public static partial class ExcelOpenDocumentConversionExtensions {
         CultureInfo textCaseCulture) {
         int unsupported = 0;
         unsupportedDataStyleFormat = false;
-        if (style.Bold == true) target.SetBold();
-        if (style.Italic == true) target.SetItalic();
+        if (style.Bold.HasValue) target.SetBold(style.Bold.Value);
+        if (style.Italic.HasValue) target.SetItalic(style.Italic.Value);
         ExcelUnderlineStyle? underline = MapOdfUnderline(
             style.Underline,
             style.UnderlineStyle,

@@ -44,7 +44,7 @@ public class PdfInvoiceLocalizationTests {
 
         byte[] pdf = PdfInvoiceDocument.Create(InvoiceFixture.Create(), Contract(), layout)
             .ToPresentationPdfBytes(MultilingualOptions());
-        string text = PdfReadDocument.Open(pdf).ExtractText();
+        string text = PdfReadDocument.Open(pdf).ExtractUnwrappedText();
 
         Assert.Contains(heading, text, StringComparison.Ordinal);
         Assert.Contains(amountDue, text, StringComparison.Ordinal);
@@ -73,7 +73,7 @@ public class PdfInvoiceLocalizationTests {
         Assert.Equal(invoice.Lines[0].Description, embedded.Invoice.Lines[0].Description);
 
         PdfReadDocument visible = PdfReadDocument.Open(pdf);
-        string text = visible.ExtractText();
+        string text = visible.ExtractUnwrappedText();
         Assert.True(visible.Pages.Count > 1);
         Assert.Contains("Faktura / Invoice " + invoice.Number, text, StringComparison.Ordinal);
         Assert.Contains("Sprzedawca / Seller", text, StringComparison.Ordinal);
@@ -98,7 +98,7 @@ public class PdfInvoiceLocalizationTests {
         layout.FormattingCulture = custom.Culture;
 
         byte[] pdf = PdfInvoiceDocument.Create(InvoiceFixture.Create(), Contract(), layout).ToPdfBytes(MultilingualOptions());
-        string text = PdfReadDocument.Open(pdf).ExtractText();
+        string text = PdfReadDocument.Open(pdf).ExtractUnwrappedText();
         Assert.Contains("Faktura INV-2026-001", text, StringComparison.Ordinal);
         Assert.Contains("Seller", text, StringComparison.Ordinal);
     }

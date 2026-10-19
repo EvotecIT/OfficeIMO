@@ -1776,7 +1776,8 @@ public class PdfDocumentChartDrawingTests {
             chartKind,
             categoryCount,
             seriesCount,
-            new Dictionary<A.SchemeColorValues, OfficeColor>()
+            new Dictionary<A.SchemeColorValues, OfficeColor>(),
+            null!
         })!;
     }
 

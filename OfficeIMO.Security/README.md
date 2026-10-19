@@ -56,7 +56,7 @@ foreach (CmsSignerVerificationResult signer in result.Signers) {
 }
 ```
 
-Signing uses the platform `RSA` handle and does not export the private key. Verification supports RSA and ECDSA
+Signing uses platform `RSA` or `ECDsa` handles and does not export private keys. `CmsSigningOptions.UsePadesBaseline` creates detached baseline CMS with a SHA-256 signing-certificate-v2 binding and omits CMS signing-time. Verification supports RSA and ECDSA
 signers and keeps mathematical signature, message digest, certificate trust, revocation, and timestamp outcomes
 separate. `CreateCmsVerificationSession(...)` shares operation-wide timestamp limits across related CMS containers.
 
@@ -109,6 +109,22 @@ ciphertext length establishes it, then checked exactly before returning content.
 `VerifyTimestamp(...)` validates RFC 3161 signatures, TSA certificate profiles, message imprints, caller trust policy,
 and revocation as a separate operation. TSA chain validation defaults to the token generation time unless the caller
 supplies another verification time.
+
+`Rfc3161TimestampClient` requests timestamps through a supplied transport callback:
+
+```csharp
+var tsa = new Rfc3161TimestampClient(timestampTransport, tsaTrustPolicy);
+var signingOptions = new CmsSigningOptions {
+    UsePadesBaseline = true,
+    SignatureTimestampProvider = tsa.GetTimestamp
+};
+```
+
+`timestampTransport` receives DER request bytes and a cancellation token and
+returns the DER response bytes. POST with `application/timestamp-query` and
+accept `application/timestamp-reply`. Configure the HTTP client's timeout and
+enforce a response-size limit before buffering data. The timestamp client rechecks its response limit and validates
+the nonce, message imprint, TSA signature, certificate profile and trust policy.
 
 ## XML Digital Signatures
 

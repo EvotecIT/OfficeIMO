@@ -1,7 +1,7 @@
 {
-  "generatedAtUtc": "2026-10-14T14:39:35.9270951Z",
-  "sourceCount": 4,
-  "referenceCount": 105836,
+  "generatedAtUtc": "2026-10-17T06:33:23.4175910Z",
+  "sourceCount": 3,
+  "referenceCount": 105864,
   "duplicateCount": 0,
   "references": [
     {
@@ -36032,6 +36032,15 @@
       ]
     },
     {
+      "uid": "F:OfficeIMO.Html.HtmlRenderDiagnosticCodes.ClipValueUnsupported",
+      "name": "HtmlRenderDiagnosticCodes.ClipValueUnsupported",
+      "href": "/api/html/officeimo-html-htmlrenderdiagnosticcodes/#field-clipvalueunsupported",
+      "aliases": [
+        "global::OfficeIMO.Html.HtmlRenderDiagnosticCodes.ClipValueUnsupported",
+        "OfficeIMO.Html.HtmlRenderDiagnosticCodes.ClipValueUnsupported"
+      ]
+    },
+    {
       "uid": "F:OfficeIMO.Html.HtmlRenderDiagnosticCodes.CollapsedTableBorderLimitExceeded",
       "name": "HtmlRenderDiagnosticCodes.CollapsedTableBorderLimitExceeded",
       "href": "/api/html/officeimo-html-htmlrenderdiagnosticcodes/#field-collapsedtableborderlimitexceeded",
@@ -36398,6 +36407,15 @@
       "aliases": [
         "global::OfficeIMO.Html.HtmlRenderDiagnosticCodes.InputCharacterLimitExceeded",
         "OfficeIMO.Html.HtmlRenderDiagnosticCodes.InputCharacterLimitExceeded"
+      ]
+    },
+    {
+      "uid": "F:OfficeIMO.Html.HtmlRenderDiagnosticCodes.IntrinsicSizeUnsupported",
+      "name": "HtmlRenderDiagnosticCodes.IntrinsicSizeUnsupported",
+      "href": "/api/html/officeimo-html-htmlrenderdiagnosticcodes/#field-intrinsicsizeunsupported",
+      "aliases": [
+        "global::OfficeIMO.Html.HtmlRenderDiagnosticCodes.IntrinsicSizeUnsupported",
+        "OfficeIMO.Html.HtmlRenderDiagnosticCodes.IntrinsicSizeUnsupported"
       ]
     },
     {
@@ -38473,7 +38491,7 @@
     {
       "uid": "F:OfficeIMO.Html.Pdf.HtmlPdfAccessibilityIssueSeverity.Error",
       "name": "HtmlPdfAccessibilityIssueSeverity.Error",
-      "href": "/api/html-pdf/officeimo-html-pdf-htmlpdfaccessibilityissueseverity/#field-error",
+      "href": "/api/html/officeimo-html-pdf-htmlpdfaccessibilityissueseverity/#field-error",
       "aliases": [
         "global::OfficeIMO.Html.Pdf.HtmlPdfAccessibilityIssueSeverity.Error",
         "OfficeIMO.Html.Pdf.HtmlPdfAccessibilityIssueSeverity.Error"
@@ -38482,7 +38500,7 @@
     {
       "uid": "F:OfficeIMO.Html.Pdf.HtmlPdfAccessibilityIssueSeverity.Warning",
       "name": "HtmlPdfAccessibilityIssueSeverity.Warning",
-      "href": "/api/html-pdf/officeimo-html-pdf-htmlpdfaccessibilityissueseverity/#field-warning",
+      "href": "/api/html/officeimo-html-pdf-htmlpdfaccessibilityissueseverity/#field-warning",
       "aliases": [
         "global::OfficeIMO.Html.Pdf.HtmlPdfAccessibilityIssueSeverity.Warning",
         "OfficeIMO.Html.Pdf.HtmlPdfAccessibilityIssueSeverity.Warning"
@@ -38491,7 +38509,7 @@
     {
       "uid": "F:OfficeIMO.Html.Pdf.HtmlPdfDiagnosticCodes.FontOutlineBudgetApproximated",
       "name": "HtmlPdfDiagnosticCodes.FontOutlineBudgetApproximated",
-      "href": "/api/html-pdf/officeimo-html-pdf-htmlpdfdiagnosticcodes/#field-fontoutlinebudgetapproximated",
+      "href": "/api/html/officeimo-html-pdf-htmlpdfdiagnosticcodes/#field-fontoutlinebudgetapproximated",
       "aliases": [
         "global::OfficeIMO.Html.Pdf.HtmlPdfDiagnosticCodes.FontOutlineBudgetApproximated",
         "OfficeIMO.Html.Pdf.HtmlPdfDiagnosticCodes.FontOutlineBudgetApproximated"
@@ -38500,7 +38518,7 @@
     {
       "uid": "F:OfficeIMO.Html.Pdf.HtmlPdfDiagnosticCodes.FontProgramOutlined",
       "name": "HtmlPdfDiagnosticCodes.FontProgramOutlined",
-      "href": "/api/html-pdf/officeimo-html-pdf-htmlpdfdiagnosticcodes/#field-fontprogramoutlined",
+      "href": "/api/html/officeimo-html-pdf-htmlpdfdiagnosticcodes/#field-fontprogramoutlined",
       "aliases": [
         "global::OfficeIMO.Html.Pdf.HtmlPdfDiagnosticCodes.FontProgramOutlined",
         "OfficeIMO.Html.Pdf.HtmlPdfDiagnosticCodes.FontProgramOutlined"
@@ -38509,7 +38527,7 @@
     {
       "uid": "F:OfficeIMO.Html.Pdf.HtmlPdfDiagnosticCodes.ImagePayloadOmitted",
       "name": "HtmlPdfDiagnosticCodes.ImagePayloadOmitted",
-      "href": "/api/html-pdf/officeimo-html-pdf-htmlpdfdiagnosticcodes/#field-imagepayloadomitted",
+      "href": "/api/html/officeimo-html-pdf-htmlpdfdiagnosticcodes/#field-imagepayloadomitted",
       "aliases": [
         "global::OfficeIMO.Html.Pdf.HtmlPdfDiagnosticCodes.ImagePayloadOmitted",
         "OfficeIMO.Html.Pdf.HtmlPdfDiagnosticCodes.ImagePayloadOmitted"
@@ -38518,7 +38536,7 @@
     {
       "uid": "F:OfficeIMO.Html.Pdf.HtmlPdfDiagnosticCodes.ImageStaticFrameSelected",
       "name": "HtmlPdfDiagnosticCodes.ImageStaticFrameSelected",
-      "href": "/api/html-pdf/officeimo-html-pdf-htmlpdfdiagnosticcodes/#field-imagestaticframeselected",
+      "href": "/api/html/officeimo-html-pdf-htmlpdfdiagnosticcodes/#field-imagestaticframeselected",
       "aliases": [
         "global::OfficeIMO.Html.Pdf.HtmlPdfDiagnosticCodes.ImageStaticFrameSelected",
         "OfficeIMO.Html.Pdf.HtmlPdfDiagnosticCodes.ImageStaticFrameSelected"
@@ -38527,7 +38545,7 @@
     {
       "uid": "F:OfficeIMO.Html.Pdf.HtmlPdfDiagnosticCodes.RenderedFontFamilyLimitExceeded",
       "name": "HtmlPdfDiagnosticCodes.RenderedFontFamilyLimitExceeded",
-      "href": "/api/html-pdf/officeimo-html-pdf-htmlpdfdiagnosticcodes/#field-renderedfontfamilylimitexceeded",
+      "href": "/api/html/officeimo-html-pdf-htmlpdfdiagnosticcodes/#field-renderedfontfamilylimitexceeded",
       "aliases": [
         "global::OfficeIMO.Html.Pdf.HtmlPdfDiagnosticCodes.RenderedFontFamilyLimitExceeded",
         "OfficeIMO.Html.Pdf.HtmlPdfDiagnosticCodes.RenderedFontFamilyLimitExceeded"
@@ -38536,7 +38554,7 @@
     {
       "uid": "F:OfficeIMO.Html.Pdf.HtmlPdfDiagnosticCodes.UnavailablePrivateUseGlyphOmitted",
       "name": "HtmlPdfDiagnosticCodes.UnavailablePrivateUseGlyphOmitted",
-      "href": "/api/html-pdf/officeimo-html-pdf-htmlpdfdiagnosticcodes/#field-unavailableprivateuseglyphomitted",
+      "href": "/api/html/officeimo-html-pdf-htmlpdfdiagnosticcodes/#field-unavailableprivateuseglyphomitted",
       "aliases": [
         "global::OfficeIMO.Html.Pdf.HtmlPdfDiagnosticCodes.UnavailablePrivateUseGlyphOmitted",
         "OfficeIMO.Html.Pdf.HtmlPdfDiagnosticCodes.UnavailablePrivateUseGlyphOmitted"
@@ -38545,7 +38563,7 @@
     {
       "uid": "F:OfficeIMO.Html.Pdf.HtmlPortableBrowserFontProfile.ArabicFallbackFontFamily",
       "name": "HtmlPortableBrowserFontProfile.ArabicFallbackFontFamily",
-      "href": "/api/html-pdf/officeimo-html-pdf-htmlportablebrowserfontprofile/#field-arabicfallbackfontfamily",
+      "href": "/api/html/officeimo-html-pdf-htmlportablebrowserfontprofile/#field-arabicfallbackfontfamily",
       "aliases": [
         "global::OfficeIMO.Html.Pdf.HtmlPortableBrowserFontProfile.ArabicFallbackFontFamily",
         "OfficeIMO.Html.Pdf.HtmlPortableBrowserFontProfile.ArabicFallbackFontFamily"
@@ -38554,7 +38572,7 @@
     {
       "uid": "F:OfficeIMO.Html.Pdf.HtmlPortableBrowserFontProfile.DefaultFontFamily",
       "name": "HtmlPortableBrowserFontProfile.DefaultFontFamily",
-      "href": "/api/html-pdf/officeimo-html-pdf-htmlportablebrowserfontprofile/#field-defaultfontfamily",
+      "href": "/api/html/officeimo-html-pdf-htmlportablebrowserfontprofile/#field-defaultfontfamily",
       "aliases": [
         "global::OfficeIMO.Html.Pdf.HtmlPortableBrowserFontProfile.DefaultFontFamily",
         "OfficeIMO.Html.Pdf.HtmlPortableBrowserFontProfile.DefaultFontFamily"
@@ -38563,7 +38581,7 @@
     {
       "uid": "F:OfficeIMO.Html.Pdf.HtmlPortableBrowserFontProfile.DefaultLayoutFontFamilies",
       "name": "HtmlPortableBrowserFontProfile.DefaultLayoutFontFamilies",
-      "href": "/api/html-pdf/officeimo-html-pdf-htmlportablebrowserfontprofile/#field-defaultlayoutfontfamilies",
+      "href": "/api/html/officeimo-html-pdf-htmlportablebrowserfontprofile/#field-defaultlayoutfontfamilies",
       "aliases": [
         "global::OfficeIMO.Html.Pdf.HtmlPortableBrowserFontProfile.DefaultLayoutFontFamilies",
         "OfficeIMO.Html.Pdf.HtmlPortableBrowserFontProfile.DefaultLayoutFontFamilies"
@@ -38572,7 +38590,7 @@
     {
       "uid": "F:OfficeIMO.Html.Pdf.HtmlPortableBrowserFontProfile.JapaneseFallbackFontFamily",
       "name": "HtmlPortableBrowserFontProfile.JapaneseFallbackFontFamily",
-      "href": "/api/html-pdf/officeimo-html-pdf-htmlportablebrowserfontprofile/#field-japanesefallbackfontfamily",
+      "href": "/api/html/officeimo-html-pdf-htmlportablebrowserfontprofile/#field-japanesefallbackfontfamily",
       "aliases": [
         "global::OfficeIMO.Html.Pdf.HtmlPortableBrowserFontProfile.JapaneseFallbackFontFamily",
         "OfficeIMO.Html.Pdf.HtmlPortableBrowserFontProfile.JapaneseFallbackFontFamily"
@@ -38581,7 +38599,7 @@
     {
       "uid": "F:OfficeIMO.Html.Pdf.HtmlPortableBrowserFontProfile.SymbolFallbackFontFamily",
       "name": "HtmlPortableBrowserFontProfile.SymbolFallbackFontFamily",
-      "href": "/api/html-pdf/officeimo-html-pdf-htmlportablebrowserfontprofile/#field-symbolfallbackfontfamily",
+      "href": "/api/html/officeimo-html-pdf-htmlportablebrowserfontprofile/#field-symbolfallbackfontfamily",
       "aliases": [
         "global::OfficeIMO.Html.Pdf.HtmlPortableBrowserFontProfile.SymbolFallbackFontFamily",
         "OfficeIMO.Html.Pdf.HtmlPortableBrowserFontProfile.SymbolFallbackFontFamily"
@@ -253657,6 +253675,66 @@
       ]
     },
     {
+      "uid": "M:OfficeIMO.Html.HtmlConversionDocument.RenderToPdfBytes(OfficeIMO.Html.HtmlConversionDocument,OfficeIMO.Html.HtmlRenderRequest,System.Threading.CancellationToken)",
+      "name": "HtmlConversionDocument.RenderToPdfBytes",
+      "href": "/api/html/officeimo-html-htmlconversiondocument/#extension-rendertopdfbytes-officeimo-html-htmlconversiondocument-officeimo-html-htmlrenderrequest-threading-cancellationtoken",
+      "aliases": [
+        "global::OfficeIMO.Html.HtmlConversionDocument.RenderToPdfBytes",
+        "OfficeIMO.Html.HtmlConversionDocument.RenderToPdfBytes",
+        "OfficeIMO.Html.HtmlConversionDocument.RenderToPdfBytes(OfficeIMO.Html.HtmlConversionDocument,OfficeIMO.Html.HtmlRenderRequest,System.Threading.CancellationToken)"
+      ]
+    },
+    {
+      "uid": "M:OfficeIMO.Html.HtmlConversionDocument.RenderToPdfBytesAsync(OfficeIMO.Html.HtmlConversionDocument,OfficeIMO.Html.HtmlRenderRequest,System.Threading.CancellationToken)",
+      "name": "HtmlConversionDocument.RenderToPdfBytesAsync",
+      "href": "/api/html/officeimo-html-htmlconversiondocument/#extension-rendertopdfbytesasync-officeimo-html-htmlconversiondocument-officeimo-html-htmlrenderrequest-threading-cancellationtoken",
+      "aliases": [
+        "global::OfficeIMO.Html.HtmlConversionDocument.RenderToPdfBytesAsync",
+        "OfficeIMO.Html.HtmlConversionDocument.RenderToPdfBytesAsync",
+        "OfficeIMO.Html.HtmlConversionDocument.RenderToPdfBytesAsync(OfficeIMO.Html.HtmlConversionDocument,OfficeIMO.Html.HtmlRenderRequest,System.Threading.CancellationToken)"
+      ]
+    },
+    {
+      "uid": "M:OfficeIMO.Html.HtmlConversionDocument.RenderToPdfDocumentResult(OfficeIMO.Html.HtmlConversionDocument,OfficeIMO.Html.HtmlRenderRequest,System.Threading.CancellationToken)",
+      "name": "HtmlConversionDocument.RenderToPdfDocumentResult",
+      "href": "/api/html/officeimo-html-htmlconversiondocument/#extension-rendertopdfdocumentresult-officeimo-html-htmlconversiondocument-officeimo-html-htmlrenderrequest-threading-cancellationtoken",
+      "aliases": [
+        "global::OfficeIMO.Html.HtmlConversionDocument.RenderToPdfDocumentResult",
+        "OfficeIMO.Html.HtmlConversionDocument.RenderToPdfDocumentResult",
+        "OfficeIMO.Html.HtmlConversionDocument.RenderToPdfDocumentResult(OfficeIMO.Html.HtmlConversionDocument,OfficeIMO.Html.HtmlRenderRequest,System.Threading.CancellationToken)"
+      ]
+    },
+    {
+      "uid": "M:OfficeIMO.Html.HtmlConversionDocument.RenderToPdfDocumentResultAsync(OfficeIMO.Html.HtmlConversionDocument,OfficeIMO.Html.HtmlRenderRequest,System.Threading.CancellationToken)",
+      "name": "HtmlConversionDocument.RenderToPdfDocumentResultAsync",
+      "href": "/api/html/officeimo-html-htmlconversiondocument/#extension-rendertopdfdocumentresultasync-officeimo-html-htmlconversiondocument-officeimo-html-htmlrenderrequest-threading-cancellationtoken",
+      "aliases": [
+        "global::OfficeIMO.Html.HtmlConversionDocument.RenderToPdfDocumentResultAsync",
+        "OfficeIMO.Html.HtmlConversionDocument.RenderToPdfDocumentResultAsync",
+        "OfficeIMO.Html.HtmlConversionDocument.RenderToPdfDocumentResultAsync(OfficeIMO.Html.HtmlConversionDocument,OfficeIMO.Html.HtmlRenderRequest,System.Threading.CancellationToken)"
+      ]
+    },
+    {
+      "uid": "M:OfficeIMO.Html.HtmlConversionDocument.RenderToPdfResult(OfficeIMO.Html.HtmlConversionDocument,OfficeIMO.Html.HtmlRenderRequest,System.Threading.CancellationToken)",
+      "name": "HtmlConversionDocument.RenderToPdfResult",
+      "href": "/api/html/officeimo-html-htmlconversiondocument/#extension-rendertopdfresult-officeimo-html-htmlconversiondocument-officeimo-html-htmlrenderrequest-threading-cancellationtoken",
+      "aliases": [
+        "global::OfficeIMO.Html.HtmlConversionDocument.RenderToPdfResult",
+        "OfficeIMO.Html.HtmlConversionDocument.RenderToPdfResult",
+        "OfficeIMO.Html.HtmlConversionDocument.RenderToPdfResult(OfficeIMO.Html.HtmlConversionDocument,OfficeIMO.Html.HtmlRenderRequest,System.Threading.CancellationToken)"
+      ]
+    },
+    {
+      "uid": "M:OfficeIMO.Html.HtmlConversionDocument.RenderToPdfResultAsync(OfficeIMO.Html.HtmlConversionDocument,OfficeIMO.Html.HtmlRenderRequest,System.Threading.CancellationToken)",
+      "name": "HtmlConversionDocument.RenderToPdfResultAsync",
+      "href": "/api/html/officeimo-html-htmlconversiondocument/#extension-rendertopdfresultasync-officeimo-html-htmlconversiondocument-officeimo-html-htmlrenderrequest-threading-cancellationtoken",
+      "aliases": [
+        "global::OfficeIMO.Html.HtmlConversionDocument.RenderToPdfResultAsync",
+        "OfficeIMO.Html.HtmlConversionDocument.RenderToPdfResultAsync",
+        "OfficeIMO.Html.HtmlConversionDocument.RenderToPdfResultAsync(OfficeIMO.Html.HtmlConversionDocument,OfficeIMO.Html.HtmlRenderRequest,System.Threading.CancellationToken)"
+      ]
+    },
+    {
       "uid": "M:OfficeIMO.Html.HtmlConversionDocument.SaveAsJpeg(OfficeIMO.Html.HtmlConversionDocument,System.IO.Stream,OfficeIMO.Html.HtmlRenderOptions,System.Int32)",
       "name": "HtmlConversionDocument.SaveAsJpeg",
       "href": "/api/html/officeimo-html-htmlconversiondocument/#extension-saveasjpeg-officeimo-html-htmlconversiondocument-io-stream-officeimo-html-htmlrenderoptions-int32",
@@ -253694,6 +253772,86 @@
         "global::OfficeIMO.Html.HtmlConversionDocument.SaveAsJpegAsync",
         "OfficeIMO.Html.HtmlConversionDocument.SaveAsJpegAsync",
         "OfficeIMO.Html.HtmlConversionDocument.SaveAsJpegAsync(OfficeIMO.Html.HtmlConversionDocument,System.String,OfficeIMO.Html.HtmlRenderOptions,System.Int32,System.Threading.CancellationToken)"
+      ]
+    },
+    {
+      "uid": "M:OfficeIMO.Html.HtmlConversionDocument.SaveAsPdf(OfficeIMO.Html.HtmlConversionDocument,System.IO.Stream,OfficeIMO.Html.Pdf.HtmlToPdfOptions,System.Threading.CancellationToken)",
+      "name": "HtmlConversionDocument.SaveAsPdf",
+      "href": "/api/html/officeimo-html-htmlconversiondocument/#extension-saveaspdf-officeimo-html-htmlconversiondocument-io-stream-officeimo-html-pdf-htmltopdfoptions-threading-cancellationtoken",
+      "aliases": [
+        "global::OfficeIMO.Html.HtmlConversionDocument.SaveAsPdf",
+        "OfficeIMO.Html.HtmlConversionDocument.SaveAsPdf",
+        "OfficeIMO.Html.HtmlConversionDocument.SaveAsPdf(OfficeIMO.Html.HtmlConversionDocument,System.IO.Stream,OfficeIMO.Html.Pdf.HtmlToPdfOptions,System.Threading.CancellationToken)"
+      ]
+    },
+    {
+      "uid": "M:OfficeIMO.Html.HtmlConversionDocument.SaveAsPdf(OfficeIMO.Html.HtmlConversionDocument,System.String,OfficeIMO.Html.Pdf.HtmlToPdfOptions,System.Threading.CancellationToken)",
+      "name": "HtmlConversionDocument.SaveAsPdf",
+      "href": "/api/html/officeimo-html-htmlconversiondocument/#extension-saveaspdf-officeimo-html-htmlconversiondocument-string-officeimo-html-pdf-htmltopdfoptions-threading-cancellationtoken",
+      "aliases": [
+        "global::OfficeIMO.Html.HtmlConversionDocument.SaveAsPdf",
+        "OfficeIMO.Html.HtmlConversionDocument.SaveAsPdf",
+        "OfficeIMO.Html.HtmlConversionDocument.SaveAsPdf(OfficeIMO.Html.HtmlConversionDocument,System.String,OfficeIMO.Html.Pdf.HtmlToPdfOptions,System.Threading.CancellationToken)"
+      ]
+    },
+    {
+      "uid": "M:OfficeIMO.Html.HtmlConversionDocument.SaveAsPdfAsync(OfficeIMO.Html.HtmlConversionDocument,System.IO.Stream,OfficeIMO.Html.Pdf.HtmlToPdfOptions,System.Threading.CancellationToken)",
+      "name": "HtmlConversionDocument.SaveAsPdfAsync",
+      "href": "/api/html/officeimo-html-htmlconversiondocument/#extension-saveaspdfasync-officeimo-html-htmlconversiondocument-io-stream-officeimo-html-pdf-htmltopdfoptions-threading-cancellationtoken",
+      "aliases": [
+        "global::OfficeIMO.Html.HtmlConversionDocument.SaveAsPdfAsync",
+        "OfficeIMO.Html.HtmlConversionDocument.SaveAsPdfAsync",
+        "OfficeIMO.Html.HtmlConversionDocument.SaveAsPdfAsync(OfficeIMO.Html.HtmlConversionDocument,System.IO.Stream,OfficeIMO.Html.Pdf.HtmlToPdfOptions,System.Threading.CancellationToken)"
+      ]
+    },
+    {
+      "uid": "M:OfficeIMO.Html.HtmlConversionDocument.SaveAsPdfAsync(OfficeIMO.Html.HtmlConversionDocument,System.String,OfficeIMO.Html.Pdf.HtmlToPdfOptions,System.Threading.CancellationToken)",
+      "name": "HtmlConversionDocument.SaveAsPdfAsync",
+      "href": "/api/html/officeimo-html-htmlconversiondocument/#extension-saveaspdfasync-officeimo-html-htmlconversiondocument-string-officeimo-html-pdf-htmltopdfoptions-threading-cancellationtoken",
+      "aliases": [
+        "global::OfficeIMO.Html.HtmlConversionDocument.SaveAsPdfAsync",
+        "OfficeIMO.Html.HtmlConversionDocument.SaveAsPdfAsync",
+        "OfficeIMO.Html.HtmlConversionDocument.SaveAsPdfAsync(OfficeIMO.Html.HtmlConversionDocument,System.String,OfficeIMO.Html.Pdf.HtmlToPdfOptions,System.Threading.CancellationToken)"
+      ]
+    },
+    {
+      "uid": "M:OfficeIMO.Html.HtmlConversionDocument.SaveAsPdfResult(OfficeIMO.Html.HtmlConversionDocument,System.IO.Stream,OfficeIMO.Html.Pdf.HtmlToPdfOptions,System.Threading.CancellationToken)",
+      "name": "HtmlConversionDocument.SaveAsPdfResult",
+      "href": "/api/html/officeimo-html-htmlconversiondocument/#extension-saveaspdfresult-officeimo-html-htmlconversiondocument-io-stream-officeimo-html-pdf-htmltopdfoptions-threading-cancellationtoken",
+      "aliases": [
+        "global::OfficeIMO.Html.HtmlConversionDocument.SaveAsPdfResult",
+        "OfficeIMO.Html.HtmlConversionDocument.SaveAsPdfResult",
+        "OfficeIMO.Html.HtmlConversionDocument.SaveAsPdfResult(OfficeIMO.Html.HtmlConversionDocument,System.IO.Stream,OfficeIMO.Html.Pdf.HtmlToPdfOptions,System.Threading.CancellationToken)"
+      ]
+    },
+    {
+      "uid": "M:OfficeIMO.Html.HtmlConversionDocument.SaveAsPdfResult(OfficeIMO.Html.HtmlConversionDocument,System.String,OfficeIMO.Html.Pdf.HtmlToPdfOptions,System.Threading.CancellationToken)",
+      "name": "HtmlConversionDocument.SaveAsPdfResult",
+      "href": "/api/html/officeimo-html-htmlconversiondocument/#extension-saveaspdfresult-officeimo-html-htmlconversiondocument-string-officeimo-html-pdf-htmltopdfoptions-threading-cancellationtoken",
+      "aliases": [
+        "global::OfficeIMO.Html.HtmlConversionDocument.SaveAsPdfResult",
+        "OfficeIMO.Html.HtmlConversionDocument.SaveAsPdfResult",
+        "OfficeIMO.Html.HtmlConversionDocument.SaveAsPdfResult(OfficeIMO.Html.HtmlConversionDocument,System.String,OfficeIMO.Html.Pdf.HtmlToPdfOptions,System.Threading.CancellationToken)"
+      ]
+    },
+    {
+      "uid": "M:OfficeIMO.Html.HtmlConversionDocument.SaveAsPdfResultAsync(OfficeIMO.Html.HtmlConversionDocument,System.IO.Stream,OfficeIMO.Html.Pdf.HtmlToPdfOptions,System.Threading.CancellationToken)",
+      "name": "HtmlConversionDocument.SaveAsPdfResultAsync",
+      "href": "/api/html/officeimo-html-htmlconversiondocument/#extension-saveaspdfresultasync-officeimo-html-htmlconversiondocument-io-stream-officeimo-html-pdf-htmltopdfoptions-threading-cancellationtoken",
+      "aliases": [
+        "global::OfficeIMO.Html.HtmlConversionDocument.SaveAsPdfResultAsync",
+        "OfficeIMO.Html.HtmlConversionDocument.SaveAsPdfResultAsync",
+        "OfficeIMO.Html.HtmlConversionDocument.SaveAsPdfResultAsync(OfficeIMO.Html.HtmlConversionDocument,System.IO.Stream,OfficeIMO.Html.Pdf.HtmlToPdfOptions,System.Threading.CancellationToken)"
+      ]
+    },
+    {
+      "uid": "M:OfficeIMO.Html.HtmlConversionDocument.SaveAsPdfResultAsync(OfficeIMO.Html.HtmlConversionDocument,System.String,OfficeIMO.Html.Pdf.HtmlToPdfOptions,System.Threading.CancellationToken)",
+      "name": "HtmlConversionDocument.SaveAsPdfResultAsync",
+      "href": "/api/html/officeimo-html-htmlconversiondocument/#extension-saveaspdfresultasync-officeimo-html-htmlconversiondocument-string-officeimo-html-pdf-htmltopdfoptions-threading-cancellationtoken",
+      "aliases": [
+        "global::OfficeIMO.Html.HtmlConversionDocument.SaveAsPdfResultAsync",
+        "OfficeIMO.Html.HtmlConversionDocument.SaveAsPdfResultAsync",
+        "OfficeIMO.Html.HtmlConversionDocument.SaveAsPdfResultAsync(OfficeIMO.Html.HtmlConversionDocument,System.String,OfficeIMO.Html.Pdf.HtmlToPdfOptions,System.Threading.CancellationToken)"
       ]
     },
     {
@@ -253857,6 +254015,26 @@
       ]
     },
     {
+      "uid": "M:OfficeIMO.Html.HtmlConversionDocument.SaveRenderCapabilityGallery(OfficeIMO.Html.HtmlConversionDocument,System.String,OfficeIMO.Html.Pdf.HtmlRenderCapabilityGalleryOptions)",
+      "name": "HtmlConversionDocument.SaveRenderCapabilityGallery",
+      "href": "/api/html/officeimo-html-htmlconversiondocument/#extension-saverendercapabilitygallery-officeimo-html-htmlconversiondocument-string-officeimo-html-pdf-htmlrendercapabilitygalleryoptions",
+      "aliases": [
+        "global::OfficeIMO.Html.HtmlConversionDocument.SaveRenderCapabilityGallery",
+        "OfficeIMO.Html.HtmlConversionDocument.SaveRenderCapabilityGallery",
+        "OfficeIMO.Html.HtmlConversionDocument.SaveRenderCapabilityGallery(OfficeIMO.Html.HtmlConversionDocument,System.String,OfficeIMO.Html.Pdf.HtmlRenderCapabilityGalleryOptions)"
+      ]
+    },
+    {
+      "uid": "M:OfficeIMO.Html.HtmlConversionDocument.SaveRenderCapabilityGallery(OfficeIMO.Html.HtmlConversionDocument,System.String,OfficeIMO.Html.Pdf.HtmlRenderCapabilityGalleryOptions,System.Threading.CancellationToken)",
+      "name": "HtmlConversionDocument.SaveRenderCapabilityGallery",
+      "href": "/api/html/officeimo-html-htmlconversiondocument/#extension-saverendercapabilitygallery-officeimo-html-htmlconversiondocument-string-officeimo-html-pdf-htmlrendercapabilitygalleryoptions-threading-cancellationtoken",
+      "aliases": [
+        "global::OfficeIMO.Html.HtmlConversionDocument.SaveRenderCapabilityGallery",
+        "OfficeIMO.Html.HtmlConversionDocument.SaveRenderCapabilityGallery",
+        "OfficeIMO.Html.HtmlConversionDocument.SaveRenderCapabilityGallery(OfficeIMO.Html.HtmlConversionDocument,System.String,OfficeIMO.Html.Pdf.HtmlRenderCapabilityGalleryOptions,System.Threading.CancellationToken)"
+      ]
+    },
+    {
       "uid": "M:OfficeIMO.Html.HtmlConversionDocument.ToImage(OfficeIMO.Html.HtmlConversionDocument)",
       "name": "HtmlConversionDocument.ToImage",
       "href": "/api/html/officeimo-html-htmlconversiondocument/#extension-toimage-officeimo-html-htmlconversiondocument",
@@ -253914,6 +254092,66 @@
         "global::OfficeIMO.Html.HtmlConversionDocument.ToJpegAsync",
         "OfficeIMO.Html.HtmlConversionDocument.ToJpegAsync",
         "OfficeIMO.Html.HtmlConversionDocument.ToJpegAsync(OfficeIMO.Html.HtmlConversionDocument,OfficeIMO.Html.HtmlRenderOptions,System.Int32,System.Threading.CancellationToken)"
+      ]
+    },
+    {
+      "uid": "M:OfficeIMO.Html.HtmlConversionDocument.ToPdfBytes(OfficeIMO.Html.HtmlConversionDocument,OfficeIMO.Html.Pdf.HtmlToPdfOptions,System.Threading.CancellationToken)",
+      "name": "HtmlConversionDocument.ToPdfBytes",
+      "href": "/api/html/officeimo-html-htmlconversiondocument/#extension-topdfbytes-officeimo-html-htmlconversiondocument-officeimo-html-pdf-htmltopdfoptions-threading-cancellationtoken",
+      "aliases": [
+        "global::OfficeIMO.Html.HtmlConversionDocument.ToPdfBytes",
+        "OfficeIMO.Html.HtmlConversionDocument.ToPdfBytes",
+        "OfficeIMO.Html.HtmlConversionDocument.ToPdfBytes(OfficeIMO.Html.HtmlConversionDocument,OfficeIMO.Html.Pdf.HtmlToPdfOptions,System.Threading.CancellationToken)"
+      ]
+    },
+    {
+      "uid": "M:OfficeIMO.Html.HtmlConversionDocument.ToPdfBytesAsync(OfficeIMO.Html.HtmlConversionDocument,OfficeIMO.Html.Pdf.HtmlToPdfOptions,System.Threading.CancellationToken)",
+      "name": "HtmlConversionDocument.ToPdfBytesAsync",
+      "href": "/api/html/officeimo-html-htmlconversiondocument/#extension-topdfbytesasync-officeimo-html-htmlconversiondocument-officeimo-html-pdf-htmltopdfoptions-threading-cancellationtoken",
+      "aliases": [
+        "global::OfficeIMO.Html.HtmlConversionDocument.ToPdfBytesAsync",
+        "OfficeIMO.Html.HtmlConversionDocument.ToPdfBytesAsync",
+        "OfficeIMO.Html.HtmlConversionDocument.ToPdfBytesAsync(OfficeIMO.Html.HtmlConversionDocument,OfficeIMO.Html.Pdf.HtmlToPdfOptions,System.Threading.CancellationToken)"
+      ]
+    },
+    {
+      "uid": "M:OfficeIMO.Html.HtmlConversionDocument.ToPdfDocument(OfficeIMO.Html.HtmlConversionDocument,OfficeIMO.Html.Pdf.HtmlToPdfOptions,System.Threading.CancellationToken)",
+      "name": "HtmlConversionDocument.ToPdfDocument",
+      "href": "/api/html/officeimo-html-htmlconversiondocument/#extension-topdfdocument-officeimo-html-htmlconversiondocument-officeimo-html-pdf-htmltopdfoptions-threading-cancellationtoken",
+      "aliases": [
+        "global::OfficeIMO.Html.HtmlConversionDocument.ToPdfDocument",
+        "OfficeIMO.Html.HtmlConversionDocument.ToPdfDocument",
+        "OfficeIMO.Html.HtmlConversionDocument.ToPdfDocument(OfficeIMO.Html.HtmlConversionDocument,OfficeIMO.Html.Pdf.HtmlToPdfOptions,System.Threading.CancellationToken)"
+      ]
+    },
+    {
+      "uid": "M:OfficeIMO.Html.HtmlConversionDocument.ToPdfDocumentAsync(OfficeIMO.Html.HtmlConversionDocument,OfficeIMO.Html.Pdf.HtmlToPdfOptions,System.Threading.CancellationToken)",
+      "name": "HtmlConversionDocument.ToPdfDocumentAsync",
+      "href": "/api/html/officeimo-html-htmlconversiondocument/#extension-topdfdocumentasync-officeimo-html-htmlconversiondocument-officeimo-html-pdf-htmltopdfoptions-threading-cancellationtoken",
+      "aliases": [
+        "global::OfficeIMO.Html.HtmlConversionDocument.ToPdfDocumentAsync",
+        "OfficeIMO.Html.HtmlConversionDocument.ToPdfDocumentAsync",
+        "OfficeIMO.Html.HtmlConversionDocument.ToPdfDocumentAsync(OfficeIMO.Html.HtmlConversionDocument,OfficeIMO.Html.Pdf.HtmlToPdfOptions,System.Threading.CancellationToken)"
+      ]
+    },
+    {
+      "uid": "M:OfficeIMO.Html.HtmlConversionDocument.ToPdfDocumentResult(OfficeIMO.Html.HtmlConversionDocument,OfficeIMO.Html.Pdf.HtmlToPdfOptions,System.Threading.CancellationToken)",
+      "name": "HtmlConversionDocument.ToPdfDocumentResult",
+      "href": "/api/html/officeimo-html-htmlconversiondocument/#extension-topdfdocumentresult-officeimo-html-htmlconversiondocument-officeimo-html-pdf-htmltopdfoptions-threading-cancellationtoken",
+      "aliases": [
+        "global::OfficeIMO.Html.HtmlConversionDocument.ToPdfDocumentResult",
+        "OfficeIMO.Html.HtmlConversionDocument.ToPdfDocumentResult",
+        "OfficeIMO.Html.HtmlConversionDocument.ToPdfDocumentResult(OfficeIMO.Html.HtmlConversionDocument,OfficeIMO.Html.Pdf.HtmlToPdfOptions,System.Threading.CancellationToken)"
+      ]
+    },
+    {
+      "uid": "M:OfficeIMO.Html.HtmlConversionDocument.ToPdfDocumentResultAsync(OfficeIMO.Html.HtmlConversionDocument,OfficeIMO.Html.Pdf.HtmlToPdfOptions,System.Threading.CancellationToken)",
+      "name": "HtmlConversionDocument.ToPdfDocumentResultAsync",
+      "href": "/api/html/officeimo-html-htmlconversiondocument/#extension-topdfdocumentresultasync-officeimo-html-htmlconversiondocument-officeimo-html-pdf-htmltopdfoptions-threading-cancellationtoken",
+      "aliases": [
+        "global::OfficeIMO.Html.HtmlConversionDocument.ToPdfDocumentResultAsync",
+        "OfficeIMO.Html.HtmlConversionDocument.ToPdfDocumentResultAsync",
+        "OfficeIMO.Html.HtmlConversionDocument.ToPdfDocumentResultAsync(OfficeIMO.Html.HtmlConversionDocument,OfficeIMO.Html.Pdf.HtmlToPdfOptions,System.Threading.CancellationToken)"
       ]
     },
     {
@@ -265774,6 +266012,26 @@
       ]
     },
     {
+      "uid": "M:OfficeIMO.Html.HtmlSiteBundle.RenderToPdfResult(OfficeIMO.Html.HtmlSiteBundle,OfficeIMO.Html.HtmlRenderRequest,System.Threading.CancellationToken)",
+      "name": "HtmlSiteBundle.RenderToPdfResult",
+      "href": "/api/html/officeimo-html-htmlsitebundle/#extension-rendertopdfresult-officeimo-html-htmlsitebundle-officeimo-html-htmlrenderrequest-threading-cancellationtoken",
+      "aliases": [
+        "global::OfficeIMO.Html.HtmlSiteBundle.RenderToPdfResult",
+        "OfficeIMO.Html.HtmlSiteBundle.RenderToPdfResult",
+        "OfficeIMO.Html.HtmlSiteBundle.RenderToPdfResult(OfficeIMO.Html.HtmlSiteBundle,OfficeIMO.Html.HtmlRenderRequest,System.Threading.CancellationToken)"
+      ]
+    },
+    {
+      "uid": "M:OfficeIMO.Html.HtmlSiteBundle.RenderToPdfResultAsync(OfficeIMO.Html.HtmlSiteBundle,OfficeIMO.Html.HtmlRenderRequest,System.Threading.CancellationToken)",
+      "name": "HtmlSiteBundle.RenderToPdfResultAsync",
+      "href": "/api/html/officeimo-html-htmlsitebundle/#extension-rendertopdfresultasync-officeimo-html-htmlsitebundle-officeimo-html-htmlrenderrequest-threading-cancellationtoken",
+      "aliases": [
+        "global::OfficeIMO.Html.HtmlSiteBundle.RenderToPdfResultAsync",
+        "OfficeIMO.Html.HtmlSiteBundle.RenderToPdfResultAsync",
+        "OfficeIMO.Html.HtmlSiteBundle.RenderToPdfResultAsync(OfficeIMO.Html.HtmlSiteBundle,OfficeIMO.Html.HtmlRenderRequest,System.Threading.CancellationToken)"
+      ]
+    },
+    {
       "uid": "M:OfficeIMO.Html.HtmlSiteBundle.ToString",
       "name": "HtmlSiteBundle.ToString",
       "href": "/api/html/officeimo-html-htmlsitebundle/#method-tostring",
@@ -267222,7 +267480,7 @@
     {
       "uid": "M:OfficeIMO.Html.Pdf.HtmlPdfAccessibilityIssue.Equals(System.Object)",
       "name": "HtmlPdfAccessibilityIssue.Equals",
-      "href": "/api/html-pdf/officeimo-html-pdf-htmlpdfaccessibilityissue/#method-equals-object",
+      "href": "/api/html/officeimo-html-pdf-htmlpdfaccessibilityissue/#method-equals-object",
       "aliases": [
         "global::OfficeIMO.Html.Pdf.HtmlPdfAccessibilityIssue.Equals",
         "OfficeIMO.Html.Pdf.HtmlPdfAccessibilityIssue.Equals",
@@ -267232,7 +267490,7 @@
     {
       "uid": "M:OfficeIMO.Html.Pdf.HtmlPdfAccessibilityIssue.GetHashCode",
       "name": "HtmlPdfAccessibilityIssue.GetHashCode",
-      "href": "/api/html-pdf/officeimo-html-pdf-htmlpdfaccessibilityissue/#method-gethashcode",
+      "href": "/api/html/officeimo-html-pdf-htmlpdfaccessibilityissue/#method-gethashcode",
       "aliases": [
         "global::OfficeIMO.Html.Pdf.HtmlPdfAccessibilityIssue.GetHashCode",
         "OfficeIMO.Html.Pdf.HtmlPdfAccessibilityIssue.GetHashCode"
@@ -267241,7 +267499,7 @@
     {
       "uid": "M:OfficeIMO.Html.Pdf.HtmlPdfAccessibilityIssue.GetType",
       "name": "HtmlPdfAccessibilityIssue.GetType",
-      "href": "/api/html-pdf/officeimo-html-pdf-htmlpdfaccessibilityissue/#method-gettype",
+      "href": "/api/html/officeimo-html-pdf-htmlpdfaccessibilityissue/#method-gettype",
       "aliases": [
         "global::OfficeIMO.Html.Pdf.HtmlPdfAccessibilityIssue.GetType",
         "OfficeIMO.Html.Pdf.HtmlPdfAccessibilityIssue.GetType"
@@ -267250,7 +267508,7 @@
     {
       "uid": "M:OfficeIMO.Html.Pdf.HtmlPdfAccessibilityIssue.ToString",
       "name": "HtmlPdfAccessibilityIssue.ToString",
-      "href": "/api/html-pdf/officeimo-html-pdf-htmlpdfaccessibilityissue/#method-tostring",
+      "href": "/api/html/officeimo-html-pdf-htmlpdfaccessibilityissue/#method-tostring",
       "aliases": [
         "global::OfficeIMO.Html.Pdf.HtmlPdfAccessibilityIssue.ToString",
         "OfficeIMO.Html.Pdf.HtmlPdfAccessibilityIssue.ToString"
@@ -267259,7 +267517,7 @@
     {
       "uid": "M:OfficeIMO.Html.Pdf.HtmlPdfAccessibilityIssueSeverity.CompareTo(System.Object)",
       "name": "HtmlPdfAccessibilityIssueSeverity.CompareTo",
-      "href": "/api/html-pdf/officeimo-html-pdf-htmlpdfaccessibilityissueseverity/#method-compareto-object",
+      "href": "/api/html/officeimo-html-pdf-htmlpdfaccessibilityissueseverity/#method-compareto-object",
       "aliases": [
         "global::OfficeIMO.Html.Pdf.HtmlPdfAccessibilityIssueSeverity.CompareTo",
         "OfficeIMO.Html.Pdf.HtmlPdfAccessibilityIssueSeverity.CompareTo",
@@ -267269,7 +267527,7 @@
     {
       "uid": "M:OfficeIMO.Html.Pdf.HtmlPdfAccessibilityIssueSeverity.Equals(System.Object)",
       "name": "HtmlPdfAccessibilityIssueSeverity.Equals",
-      "href": "/api/html-pdf/officeimo-html-pdf-htmlpdfaccessibilityissueseverity/#method-equals-object",
+      "href": "/api/html/officeimo-html-pdf-htmlpdfaccessibilityissueseverity/#method-equals-object",
       "aliases": [
         "global::OfficeIMO.Html.Pdf.HtmlPdfAccessibilityIssueSeverity.Equals",
         "OfficeIMO.Html.Pdf.HtmlPdfAccessibilityIssueSeverity.Equals",
@@ -267279,7 +267537,7 @@
     {
       "uid": "M:OfficeIMO.Html.Pdf.HtmlPdfAccessibilityIssueSeverity.GetHashCode",
       "name": "HtmlPdfAccessibilityIssueSeverity.GetHashCode",
-      "href": "/api/html-pdf/officeimo-html-pdf-htmlpdfaccessibilityissueseverity/#method-gethashcode",
+      "href": "/api/html/officeimo-html-pdf-htmlpdfaccessibilityissueseverity/#method-gethashcode",
       "aliases": [
         "global::OfficeIMO.Html.Pdf.HtmlPdfAccessibilityIssueSeverity.GetHashCode",
         "OfficeIMO.Html.Pdf.HtmlPdfAccessibilityIssueSeverity.GetHashCode"
@@ -267288,7 +267546,7 @@
     {
       "uid": "M:OfficeIMO.Html.Pdf.HtmlPdfAccessibilityIssueSeverity.GetType",
       "name": "HtmlPdfAccessibilityIssueSeverity.GetType",
-      "href": "/api/html-pdf/officeimo-html-pdf-htmlpdfaccessibilityissueseverity/#method-gettype",
+      "href": "/api/html/officeimo-html-pdf-htmlpdfaccessibilityissueseverity/#method-gettype",
       "aliases": [
         "global::OfficeIMO.Html.Pdf.HtmlPdfAccessibilityIssueSeverity.GetType",
         "OfficeIMO.Html.Pdf.HtmlPdfAccessibilityIssueSeverity.GetType"
@@ -267297,7 +267555,7 @@
     {
       "uid": "M:OfficeIMO.Html.Pdf.HtmlPdfAccessibilityIssueSeverity.GetTypeCode",
       "name": "HtmlPdfAccessibilityIssueSeverity.GetTypeCode",
-      "href": "/api/html-pdf/officeimo-html-pdf-htmlpdfaccessibilityissueseverity/#method-gettypecode",
+      "href": "/api/html/officeimo-html-pdf-htmlpdfaccessibilityissueseverity/#method-gettypecode",
       "aliases": [
         "global::OfficeIMO.Html.Pdf.HtmlPdfAccessibilityIssueSeverity.GetTypeCode",
         "OfficeIMO.Html.Pdf.HtmlPdfAccessibilityIssueSeverity.GetTypeCode"
@@ -267306,7 +267564,7 @@
     {
       "uid": "M:OfficeIMO.Html.Pdf.HtmlPdfAccessibilityIssueSeverity.HasFlag(Enum)",
       "name": "HtmlPdfAccessibilityIssueSeverity.HasFlag",
-      "href": "/api/html-pdf/officeimo-html-pdf-htmlpdfaccessibilityissueseverity/#method-hasflag-enum",
+      "href": "/api/html/officeimo-html-pdf-htmlpdfaccessibilityissueseverity/#method-hasflag-enum",
       "aliases": [
         "global::OfficeIMO.Html.Pdf.HtmlPdfAccessibilityIssueSeverity.HasFlag",
         "OfficeIMO.Html.Pdf.HtmlPdfAccessibilityIssueSeverity.HasFlag",
@@ -267316,7 +267574,7 @@
     {
       "uid": "M:OfficeIMO.Html.Pdf.HtmlPdfAccessibilityIssueSeverity.ToString",
       "name": "HtmlPdfAccessibilityIssueSeverity.ToString",
-      "href": "/api/html-pdf/officeimo-html-pdf-htmlpdfaccessibilityissueseverity/#method-tostring",
+      "href": "/api/html/officeimo-html-pdf-htmlpdfaccessibilityissueseverity/#method-tostring",
       "aliases": [
         "global::OfficeIMO.Html.Pdf.HtmlPdfAccessibilityIssueSeverity.ToString",
         "OfficeIMO.Html.Pdf.HtmlPdfAccessibilityIssueSeverity.ToString"
@@ -267325,7 +267583,7 @@
     {
       "uid": "M:OfficeIMO.Html.Pdf.HtmlPdfAccessibilityIssueSeverity.ToString(IFormatProvider)",
       "name": "HtmlPdfAccessibilityIssueSeverity.ToString",
-      "href": "/api/html-pdf/officeimo-html-pdf-htmlpdfaccessibilityissueseverity/#method-tostring-iformatprovider",
+      "href": "/api/html/officeimo-html-pdf-htmlpdfaccessibilityissueseverity/#method-tostring-iformatprovider",
       "aliases": [
         "global::OfficeIMO.Html.Pdf.HtmlPdfAccessibilityIssueSeverity.ToString",
         "OfficeIMO.Html.Pdf.HtmlPdfAccessibilityIssueSeverity.ToString",
@@ -267335,7 +267593,7 @@
     {
       "uid": "M:OfficeIMO.Html.Pdf.HtmlPdfAccessibilityIssueSeverity.ToString(System.String)",
       "name": "HtmlPdfAccessibilityIssueSeverity.ToString",
-      "href": "/api/html-pdf/officeimo-html-pdf-htmlpdfaccessibilityissueseverity/#method-tostring-string",
+      "href": "/api/html/officeimo-html-pdf-htmlpdfaccessibilityissueseverity/#method-tostring-string",
       "aliases": [
         "global::OfficeIMO.Html.Pdf.HtmlPdfAccessibilityIssueSeverity.ToString",
         "OfficeIMO.Html.Pdf.HtmlPdfAccessibilityIssueSeverity.ToString",
@@ -267345,7 +267603,7 @@
     {
       "uid": "M:OfficeIMO.Html.Pdf.HtmlPdfAccessibilityIssueSeverity.ToString(System.String,IFormatProvider)",
       "name": "HtmlPdfAccessibilityIssueSeverity.ToString",
-      "href": "/api/html-pdf/officeimo-html-pdf-htmlpdfaccessibilityissueseverity/#method-tostring-string-iformatprovider",
+      "href": "/api/html/officeimo-html-pdf-htmlpdfaccessibilityissueseverity/#method-tostring-string-iformatprovider",
       "aliases": [
         "global::OfficeIMO.Html.Pdf.HtmlPdfAccessibilityIssueSeverity.ToString",
         "OfficeIMO.Html.Pdf.HtmlPdfAccessibilityIssueSeverity.ToString",
@@ -267355,7 +267613,7 @@
     {
       "uid": "M:OfficeIMO.Html.Pdf.HtmlPdfAccessibilityValidationResult.Equals(System.Object)",
       "name": "HtmlPdfAccessibilityValidationResult.Equals",
-      "href": "/api/html-pdf/officeimo-html-pdf-htmlpdfaccessibilityvalidationresult/#method-equals-object",
+      "href": "/api/html/officeimo-html-pdf-htmlpdfaccessibilityvalidationresult/#method-equals-object",
       "aliases": [
         "global::OfficeIMO.Html.Pdf.HtmlPdfAccessibilityValidationResult.Equals",
         "OfficeIMO.Html.Pdf.HtmlPdfAccessibilityValidationResult.Equals",
@@ -267365,7 +267623,7 @@
     {
       "uid": "M:OfficeIMO.Html.Pdf.HtmlPdfAccessibilityValidationResult.GetHashCode",
       "name": "HtmlPdfAccessibilityValidationResult.GetHashCode",
-      "href": "/api/html-pdf/officeimo-html-pdf-htmlpdfaccessibilityvalidationresult/#method-gethashcode",
+      "href": "/api/html/officeimo-html-pdf-htmlpdfaccessibilityvalidationresult/#method-gethashcode",
       "aliases": [
         "global::OfficeIMO.Html.Pdf.HtmlPdfAccessibilityValidationResult.GetHashCode",
         "OfficeIMO.Html.Pdf.HtmlPdfAccessibilityValidationResult.GetHashCode"
@@ -267374,7 +267632,7 @@
     {
       "uid": "M:OfficeIMO.Html.Pdf.HtmlPdfAccessibilityValidationResult.GetType",
       "name": "HtmlPdfAccessibilityValidationResult.GetType",
-      "href": "/api/html-pdf/officeimo-html-pdf-htmlpdfaccessibilityvalidationresult/#method-gettype",
+      "href": "/api/html/officeimo-html-pdf-htmlpdfaccessibilityvalidationresult/#method-gettype",
       "aliases": [
         "global::OfficeIMO.Html.Pdf.HtmlPdfAccessibilityValidationResult.GetType",
         "OfficeIMO.Html.Pdf.HtmlPdfAccessibilityValidationResult.GetType"
@@ -267383,7 +267641,7 @@
     {
       "uid": "M:OfficeIMO.Html.Pdf.HtmlPdfAccessibilityValidationResult.ToString",
       "name": "HtmlPdfAccessibilityValidationResult.ToString",
-      "href": "/api/html-pdf/officeimo-html-pdf-htmlpdfaccessibilityvalidationresult/#method-tostring",
+      "href": "/api/html/officeimo-html-pdf-htmlpdfaccessibilityvalidationresult/#method-tostring",
       "aliases": [
         "global::OfficeIMO.Html.Pdf.HtmlPdfAccessibilityValidationResult.ToString",
         "OfficeIMO.Html.Pdf.HtmlPdfAccessibilityValidationResult.ToString"
@@ -267392,7 +267650,7 @@
     {
       "uid": "M:OfficeIMO.Html.Pdf.HtmlPdfAccessibilityValidator.Equals(System.Object)",
       "name": "HtmlPdfAccessibilityValidator.Equals",
-      "href": "/api/html-pdf/officeimo-html-pdf-htmlpdfaccessibilityvalidator/#method-equals-object",
+      "href": "/api/html/officeimo-html-pdf-htmlpdfaccessibilityvalidator/#method-equals-object",
       "aliases": [
         "global::OfficeIMO.Html.Pdf.HtmlPdfAccessibilityValidator.Equals",
         "OfficeIMO.Html.Pdf.HtmlPdfAccessibilityValidator.Equals",
@@ -267402,7 +267660,7 @@
     {
       "uid": "M:OfficeIMO.Html.Pdf.HtmlPdfAccessibilityValidator.GetHashCode",
       "name": "HtmlPdfAccessibilityValidator.GetHashCode",
-      "href": "/api/html-pdf/officeimo-html-pdf-htmlpdfaccessibilityvalidator/#method-gethashcode",
+      "href": "/api/html/officeimo-html-pdf-htmlpdfaccessibilityvalidator/#method-gethashcode",
       "aliases": [
         "global::OfficeIMO.Html.Pdf.HtmlPdfAccessibilityValidator.GetHashCode",
         "OfficeIMO.Html.Pdf.HtmlPdfAccessibilityValidator.GetHashCode"
@@ -267411,7 +267669,7 @@
     {
       "uid": "M:OfficeIMO.Html.Pdf.HtmlPdfAccessibilityValidator.GetType",
       "name": "HtmlPdfAccessibilityValidator.GetType",
-      "href": "/api/html-pdf/officeimo-html-pdf-htmlpdfaccessibilityvalidator/#method-gettype",
+      "href": "/api/html/officeimo-html-pdf-htmlpdfaccessibilityvalidator/#method-gettype",
       "aliases": [
         "global::OfficeIMO.Html.Pdf.HtmlPdfAccessibilityValidator.GetType",
         "OfficeIMO.Html.Pdf.HtmlPdfAccessibilityValidator.GetType"
@@ -267420,7 +267678,7 @@
     {
       "uid": "M:OfficeIMO.Html.Pdf.HtmlPdfAccessibilityValidator.ToString",
       "name": "HtmlPdfAccessibilityValidator.ToString",
-      "href": "/api/html-pdf/officeimo-html-pdf-htmlpdfaccessibilityvalidator/#method-tostring",
+      "href": "/api/html/officeimo-html-pdf-htmlpdfaccessibilityvalidator/#method-tostring",
       "aliases": [
         "global::OfficeIMO.Html.Pdf.HtmlPdfAccessibilityValidator.ToString",
         "OfficeIMO.Html.Pdf.HtmlPdfAccessibilityValidator.ToString"
@@ -267429,7 +267687,7 @@
     {
       "uid": "M:OfficeIMO.Html.Pdf.HtmlPdfAccessibilityValidator.Validate(OfficeIMO.Html.HtmlConversionDocument,System.Byte[])",
       "name": "HtmlPdfAccessibilityValidator.Validate",
-      "href": "/api/html-pdf/officeimo-html-pdf-htmlpdfaccessibilityvalidator/#method-validate-officeimo-html-htmlconversiondocument-byte",
+      "href": "/api/html/officeimo-html-pdf-htmlpdfaccessibilityvalidator/#method-validate-officeimo-html-htmlconversiondocument-byte",
       "aliases": [
         "global::OfficeIMO.Html.Pdf.HtmlPdfAccessibilityValidator.Validate",
         "OfficeIMO.Html.Pdf.HtmlPdfAccessibilityValidator.Validate",
@@ -267439,7 +267697,7 @@
     {
       "uid": "M:OfficeIMO.Html.Pdf.HtmlPdfAccessibilityValidator.Validate(System.Byte[])",
       "name": "HtmlPdfAccessibilityValidator.Validate",
-      "href": "/api/html-pdf/officeimo-html-pdf-htmlpdfaccessibilityvalidator/#method-validate-byte",
+      "href": "/api/html/officeimo-html-pdf-htmlpdfaccessibilityvalidator/#method-validate-byte",
       "aliases": [
         "global::OfficeIMO.Html.Pdf.HtmlPdfAccessibilityValidator.Validate",
         "OfficeIMO.Html.Pdf.HtmlPdfAccessibilityValidator.Validate",
@@ -267449,7 +267707,7 @@
     {
       "uid": "M:OfficeIMO.Html.Pdf.HtmlPdfConverterExtensions.Equals(System.Object)",
       "name": "HtmlPdfConverterExtensions.Equals",
-      "href": "/api/html-pdf/officeimo-html-pdf-htmlpdfconverterextensions/#method-equals-object",
+      "href": "/api/html/officeimo-html-pdf-htmlpdfconverterextensions/#method-equals-object",
       "aliases": [
         "global::OfficeIMO.Html.Pdf.HtmlPdfConverterExtensions.Equals",
         "OfficeIMO.Html.Pdf.HtmlPdfConverterExtensions.Equals",
@@ -267459,7 +267717,7 @@
     {
       "uid": "M:OfficeIMO.Html.Pdf.HtmlPdfConverterExtensions.GetHashCode",
       "name": "HtmlPdfConverterExtensions.GetHashCode",
-      "href": "/api/html-pdf/officeimo-html-pdf-htmlpdfconverterextensions/#method-gethashcode",
+      "href": "/api/html/officeimo-html-pdf-htmlpdfconverterextensions/#method-gethashcode",
       "aliases": [
         "global::OfficeIMO.Html.Pdf.HtmlPdfConverterExtensions.GetHashCode",
         "OfficeIMO.Html.Pdf.HtmlPdfConverterExtensions.GetHashCode"
@@ -267468,7 +267726,7 @@
     {
       "uid": "M:OfficeIMO.Html.Pdf.HtmlPdfConverterExtensions.GetType",
       "name": "HtmlPdfConverterExtensions.GetType",
-      "href": "/api/html-pdf/officeimo-html-pdf-htmlpdfconverterextensions/#method-gettype",
+      "href": "/api/html/officeimo-html-pdf-htmlpdfconverterextensions/#method-gettype",
       "aliases": [
         "global::OfficeIMO.Html.Pdf.HtmlPdfConverterExtensions.GetType",
         "OfficeIMO.Html.Pdf.HtmlPdfConverterExtensions.GetType"
@@ -267477,7 +267735,7 @@
     {
       "uid": "M:OfficeIMO.Html.Pdf.HtmlPdfConverterExtensions.RenderToPdfBytes(OfficeIMO.Html.HtmlConversionDocument,OfficeIMO.Html.HtmlRenderRequest,System.Threading.CancellationToken)",
       "name": "HtmlPdfConverterExtensions.RenderToPdfBytes",
-      "href": "/api/html-pdf/officeimo-html-pdf-htmlpdfconverterextensions/#method-rendertopdfbytes-officeimo-html-htmlconversiondocument-officeimo-html-htmlrenderrequest-threading-cancellationtoken",
+      "href": "/api/html/officeimo-html-pdf-htmlpdfconverterextensions/#method-rendertopdfbytes-officeimo-html-htmlconversiondocument-officeimo-html-htmlrenderrequest-threading-cancellationtoken",
       "aliases": [
         "global::OfficeIMO.Html.Pdf.HtmlPdfConverterExtensions.RenderToPdfBytes",
         "OfficeIMO.Html.Pdf.HtmlPdfConverterExtensions.RenderToPdfBytes",
@@ -267487,7 +267745,7 @@
     {
       "uid": "M:OfficeIMO.Html.Pdf.HtmlPdfConverterExtensions.RenderToPdfBytesAsync(OfficeIMO.Html.HtmlConversionDocument,OfficeIMO.Html.HtmlRenderRequest,System.Threading.CancellationToken)",
       "name": "HtmlPdfConverterExtensions.RenderToPdfBytesAsync",
-      "href": "/api/html-pdf/officeimo-html-pdf-htmlpdfconverterextensions/#method-rendertopdfbytesasync-officeimo-html-htmlconversiondocument-officeimo-html-htmlrenderrequest-threading-cancellationtoken",
+      "href": "/api/html/officeimo-html-pdf-htmlpdfconverterextensions/#method-rendertopdfbytesasync-officeimo-html-htmlconversiondocument-officeimo-html-htmlrenderrequest-threading-cancellationtoken",
       "aliases": [
         "global::OfficeIMO.Html.Pdf.HtmlPdfConverterExtensions.RenderToPdfBytesAsync",
         "OfficeIMO.Html.Pdf.HtmlPdfConverterExtensions.RenderToPdfBytesAsync",
@@ -267497,7 +267755,7 @@
     {
       "uid": "M:OfficeIMO.Html.Pdf.HtmlPdfConverterExtensions.RenderToPdfDocumentResult(OfficeIMO.Html.HtmlConversionDocument,OfficeIMO.Html.HtmlRenderRequest,System.Threading.CancellationToken)",
       "name": "HtmlPdfConverterExtensions.RenderToPdfDocumentResult",
-      "href": "/api/html-pdf/officeimo-html-pdf-htmlpdfconverterextensions/#method-rendertopdfdocumentresult-officeimo-html-htmlconversiondocument-officeimo-html-htmlrenderrequest-threading-cancellationtoken",
+      "href": "/api/html/officeimo-html-pdf-htmlpdfconverterextensions/#method-rendertopdfdocumentresult-officeimo-html-htmlconversiondocument-officeimo-html-htmlrenderrequest-threading-cancellationtoken",
       "aliases": [
         "global::OfficeIMO.Html.Pdf.HtmlPdfConverterExtensions.RenderToPdfDocumentResult",
         "OfficeIMO.Html.Pdf.HtmlPdfConverterExtensions.RenderToPdfDocumentResult",
@@ -267507,7 +267765,7 @@
     {
       "uid": "M:OfficeIMO.Html.Pdf.HtmlPdfConverterExtensions.RenderToPdfDocumentResultAsync(OfficeIMO.Html.HtmlConversionDocument,OfficeIMO.Html.HtmlRenderRequest,System.Threading.CancellationToken)",
       "name": "HtmlPdfConverterExtensions.RenderToPdfDocumentResultAsync",
-      "href": "/api/html-pdf/officeimo-html-pdf-htmlpdfconverterextensions/#method-rendertopdfdocumentresultasync-officeimo-html-htmlconversiondocument-officeimo-html-htmlrenderrequest-threading-cancellationtoken",
+      "href": "/api/html/officeimo-html-pdf-htmlpdfconverterextensions/#method-rendertopdfdocumentresultasync-officeimo-html-htmlconversiondocument-officeimo-html-htmlrenderrequest-threading-cancellationtoken",
       "aliases": [
         "global::OfficeIMO.Html.Pdf.HtmlPdfConverterExtensions.RenderToPdfDocumentResultAsync",
         "OfficeIMO.Html.Pdf.HtmlPdfConverterExtensions.RenderToPdfDocumentResultAsync",
@@ -267517,7 +267775,7 @@
     {
       "uid": "M:OfficeIMO.Html.Pdf.HtmlPdfConverterExtensions.RenderToPdfResult(OfficeIMO.Html.HtmlConversionDocument,OfficeIMO.Html.HtmlRenderRequest,System.Threading.CancellationToken)",
       "name": "HtmlPdfConverterExtensions.RenderToPdfResult",
-      "href": "/api/html-pdf/officeimo-html-pdf-htmlpdfconverterextensions/#method-rendertopdfresult-officeimo-html-htmlconversiondocument-officeimo-html-htmlrenderrequest-threading-cancellationtoken",
+      "href": "/api/html/officeimo-html-pdf-htmlpdfconverterextensions/#method-rendertopdfresult-officeimo-html-htmlconversiondocument-officeimo-html-htmlrenderrequest-threading-cancellationtoken",
       "aliases": [
         "global::OfficeIMO.Html.Pdf.HtmlPdfConverterExtensions.RenderToPdfResult",
         "OfficeIMO.Html.Pdf.HtmlPdfConverterExtensions.RenderToPdfResult",
@@ -267527,7 +267785,7 @@
     {
       "uid": "M:OfficeIMO.Html.Pdf.HtmlPdfConverterExtensions.RenderToPdfResultAsync(OfficeIMO.Html.HtmlConversionDocument,OfficeIMO.Html.HtmlRenderRequest,System.Threading.CancellationToken)",
       "name": "HtmlPdfConverterExtensions.RenderToPdfResultAsync",
-      "href": "/api/html-pdf/officeimo-html-pdf-htmlpdfconverterextensions/#method-rendertopdfresultasync-officeimo-html-htmlconversiondocument-officeimo-html-htmlrenderrequest-threading-cancellationtoken",
+      "href": "/api/html/officeimo-html-pdf-htmlpdfconverterextensions/#method-rendertopdfresultasync-officeimo-html-htmlconversiondocument-officeimo-html-htmlrenderrequest-threading-cancellationtoken",
       "aliases": [
         "global::OfficeIMO.Html.Pdf.HtmlPdfConverterExtensions.RenderToPdfResultAsync",
         "OfficeIMO.Html.Pdf.HtmlPdfConverterExtensions.RenderToPdfResultAsync",
@@ -267537,7 +267795,7 @@
     {
       "uid": "M:OfficeIMO.Html.Pdf.HtmlPdfConverterExtensions.SaveAsPdf(OfficeIMO.Html.HtmlConversionDocument,System.IO.Stream,OfficeIMO.Html.Pdf.HtmlToPdfOptions,System.Threading.CancellationToken)",
       "name": "HtmlPdfConverterExtensions.SaveAsPdf",
-      "href": "/api/html-pdf/officeimo-html-pdf-htmlpdfconverterextensions/#method-saveaspdf-officeimo-html-htmlconversiondocument-io-stream-officeimo-html-pdf-htmltopdfoptions-threading-cancellationtoken",
+      "href": "/api/html/officeimo-html-pdf-htmlpdfconverterextensions/#method-saveaspdf-officeimo-html-htmlconversiondocument-io-stream-officeimo-html-pdf-htmltopdfoptions-threading-cancellationtoken",
       "aliases": [
         "global::OfficeIMO.Html.Pdf.HtmlPdfConverterExtensions.SaveAsPdf",
         "OfficeIMO.Html.Pdf.HtmlPdfConverterExtensions.SaveAsPdf",
@@ -267547,7 +267805,7 @@
     {
       "uid": "M:OfficeIMO.Html.Pdf.HtmlPdfConverterExtensions.SaveAsPdf(OfficeIMO.Html.HtmlConversionDocument,System.String,OfficeIMO.Html.Pdf.HtmlToPdfOptions,System.Threading.CancellationToken)",
       "name": "HtmlPdfConverterExtensions.SaveAsPdf",
-      "href": "/api/html-pdf/officeimo-html-pdf-htmlpdfconverterextensions/#method-saveaspdf-officeimo-html-htmlconversiondocument-string-officeimo-html-pdf-htmltopdfoptions-threading-cancellationtoken",
+      "href": "/api/html/officeimo-html-pdf-htmlpdfconverterextensions/#method-saveaspdf-officeimo-html-htmlconversiondocument-string-officeimo-html-pdf-htmltopdfoptions-threading-cancellationtoken",
       "aliases": [
         "global::OfficeIMO.Html.Pdf.HtmlPdfConverterExtensions.SaveAsPdf",
         "OfficeIMO.Html.Pdf.HtmlPdfConverterExtensions.SaveAsPdf",
@@ -267557,7 +267815,7 @@
     {
       "uid": "M:OfficeIMO.Html.Pdf.HtmlPdfConverterExtensions.SaveAsPdfAsync(OfficeIMO.Html.HtmlConversionDocument,System.IO.Stream,OfficeIMO.Html.Pdf.HtmlToPdfOptions,System.Threading.CancellationToken)",
       "name": "HtmlPdfConverterExtensions.SaveAsPdfAsync",
-      "href": "/api/html-pdf/officeimo-html-pdf-htmlpdfconverterextensions/#method-saveaspdfasync-officeimo-html-htmlconversiondocument-io-stream-officeimo-html-pdf-htmltopdfoptions-threading-cancellationtoken",
+      "href": "/api/html/officeimo-html-pdf-htmlpdfconverterextensions/#method-saveaspdfasync-officeimo-html-htmlconversiondocument-io-stream-officeimo-html-pdf-htmltopdfoptions-threading-cancellationtoken",
       "aliases": [
         "global::OfficeIMO.Html.Pdf.HtmlPdfConverterExtensions.SaveAsPdfAsync",
         "OfficeIMO.Html.Pdf.HtmlPdfConverterExtensions.SaveAsPdfAsync",
@@ -267567,7 +267825,7 @@
     {
       "uid": "M:OfficeIMO.Html.Pdf.HtmlPdfConverterExtensions.SaveAsPdfAsync(OfficeIMO.Html.HtmlConversionDocument,System.String,OfficeIMO.Html.Pdf.HtmlToPdfOptions,System.Threading.CancellationToken)",
       "name": "HtmlPdfConverterExtensions.SaveAsPdfAsync",
-      "href": "/api/html-pdf/officeimo-html-pdf-htmlpdfconverterextensions/#method-saveaspdfasync-officeimo-html-htmlconversiondocument-string-officeimo-html-pdf-htmltopdfoptions-threading-cancellationtoken",
+      "href": "/api/html/officeimo-html-pdf-htmlpdfconverterextensions/#method-saveaspdfasync-officeimo-html-htmlconversiondocument-string-officeimo-html-pdf-htmltopdfoptions-threading-cancellationtoken",
       "aliases": [
         "global::OfficeIMO.Html.Pdf.HtmlPdfConverterExtensions.SaveAsPdfAsync",
         "OfficeIMO.Html.Pdf.HtmlPdfConverterExtensions.SaveAsPdfAsync",
@@ -267577,7 +267835,7 @@
     {
       "uid": "M:OfficeIMO.Html.Pdf.HtmlPdfConverterExtensions.SaveAsPdfResult(OfficeIMO.Html.HtmlConversionDocument,System.IO.Stream,OfficeIMO.Html.Pdf.HtmlToPdfOptions,System.Threading.CancellationToken)",
       "name": "HtmlPdfConverterExtensions.SaveAsPdfResult",
-      "href": "/api/html-pdf/officeimo-html-pdf-htmlpdfconverterextensions/#method-saveaspdfresult-officeimo-html-htmlconversiondocument-io-stream-officeimo-html-pdf-htmltopdfoptions-threading-cancellationtoken",
+      "href": "/api/html/officeimo-html-pdf-htmlpdfconverterextensions/#method-saveaspdfresult-officeimo-html-htmlconversiondocument-io-stream-officeimo-html-pdf-htmltopdfoptions-threading-cancellationtoken",
       "aliases": [
         "global::OfficeIMO.Html.Pdf.HtmlPdfConverterExtensions.SaveAsPdfResult",
         "OfficeIMO.Html.Pdf.HtmlPdfConverterExtensions.SaveAsPdfResult",
@@ -267587,7 +267845,7 @@
     {
       "uid": "M:OfficeIMO.Html.Pdf.HtmlPdfConverterExtensions.SaveAsPdfResult(OfficeIMO.Html.HtmlConversionDocument,System.String,OfficeIMO.Html.Pdf.HtmlToPdfOptions,System.Threading.CancellationToken)",
       "name": "HtmlPdfConverterExtensions.SaveAsPdfResult",
-      "href": "/api/html-pdf/officeimo-html-pdf-htmlpdfconverterextensions/#method-saveaspdfresult-officeimo-html-htmlconversiondocument-string-officeimo-html-pdf-htmltopdfoptions-threading-cancellationtoken",
+      "href": "/api/html/officeimo-html-pdf-htmlpdfconverterextensions/#method-saveaspdfresult-officeimo-html-htmlconversiondocument-string-officeimo-html-pdf-htmltopdfoptions-threading-cancellationtoken",
       "aliases": [
         "global::OfficeIMO.Html.Pdf.HtmlPdfConverterExtensions.SaveAsPdfResult",
         "OfficeIMO.Html.Pdf.HtmlPdfConverterExtensions.SaveAsPdfResult",
@@ -267597,7 +267855,7 @@
     {
       "uid": "M:OfficeIMO.Html.Pdf.HtmlPdfConverterExtensions.SaveAsPdfResultAsync(OfficeIMO.Html.HtmlConversionDocument,System.IO.Stream,OfficeIMO.Html.Pdf.HtmlToPdfOptions,System.Threading.CancellationToken)",
       "name": "HtmlPdfConverterExtensions.SaveAsPdfResultAsync",
-      "href": "/api/html-pdf/officeimo-html-pdf-htmlpdfconverterextensions/#method-saveaspdfresultasync-officeimo-html-htmlconversiondocument-io-stream-officeimo-html-pdf-htmltopdfoptions-threading-cancellationtoken",
+      "href": "/api/html/officeimo-html-pdf-htmlpdfconverterextensions/#method-saveaspdfresultasync-officeimo-html-htmlconversiondocument-io-stream-officeimo-html-pdf-htmltopdfoptions-threading-cancellationtoken",
       "aliases": [
         "global::OfficeIMO.Html.Pdf.HtmlPdfConverterExtensions.SaveAsPdfResultAsync",
         "OfficeIMO.Html.Pdf.HtmlPdfConverterExtensions.SaveAsPdfResultAsync",
@@ -267607,7 +267865,7 @@
     {
       "uid": "M:OfficeIMO.Html.Pdf.HtmlPdfConverterExtensions.SaveAsPdfResultAsync(OfficeIMO.Html.HtmlConversionDocument,System.String,OfficeIMO.Html.Pdf.HtmlToPdfOptions,System.Threading.CancellationToken)",
       "name": "HtmlPdfConverterExtensions.SaveAsPdfResultAsync",
-      "href": "/api/html-pdf/officeimo-html-pdf-htmlpdfconverterextensions/#method-saveaspdfresultasync-officeimo-html-htmlconversiondocument-string-officeimo-html-pdf-htmltopdfoptions-threading-cancellationtoken",
+      "href": "/api/html/officeimo-html-pdf-htmlpdfconverterextensions/#method-saveaspdfresultasync-officeimo-html-htmlconversiondocument-string-officeimo-html-pdf-htmltopdfoptions-threading-cancellationtoken",
       "aliases": [
         "global::OfficeIMO.Html.Pdf.HtmlPdfConverterExtensions.SaveAsPdfResultAsync",
         "OfficeIMO.Html.Pdf.HtmlPdfConverterExtensions.SaveAsPdfResultAsync",
@@ -267617,7 +267875,7 @@
     {
       "uid": "M:OfficeIMO.Html.Pdf.HtmlPdfConverterExtensions.ToPdfBytes(OfficeIMO.Html.HtmlConversionDocument,OfficeIMO.Html.Pdf.HtmlToPdfOptions,System.Threading.CancellationToken)",
       "name": "HtmlPdfConverterExtensions.ToPdfBytes",
-      "href": "/api/html-pdf/officeimo-html-pdf-htmlpdfconverterextensions/#method-topdfbytes-officeimo-html-htmlconversiondocument-officeimo-html-pdf-htmltopdfoptions-threading-cancellationtoken",
+      "href": "/api/html/officeimo-html-pdf-htmlpdfconverterextensions/#method-topdfbytes-officeimo-html-htmlconversiondocument-officeimo-html-pdf-htmltopdfoptions-threading-cancellationtoken",
       "aliases": [
         "global::OfficeIMO.Html.Pdf.HtmlPdfConverterExtensions.ToPdfBytes",
         "OfficeIMO.Html.Pdf.HtmlPdfConverterExtensions.ToPdfBytes",
@@ -267627,7 +267885,7 @@
     {
       "uid": "M:OfficeIMO.Html.Pdf.HtmlPdfConverterExtensions.ToPdfBytesAsync(OfficeIMO.Html.HtmlConversionDocument,OfficeIMO.Html.Pdf.HtmlToPdfOptions,System.Threading.CancellationToken)",
       "name": "HtmlPdfConverterExtensions.ToPdfBytesAsync",
-      "href": "/api/html-pdf/officeimo-html-pdf-htmlpdfconverterextensions/#method-topdfbytesasync-officeimo-html-htmlconversiondocument-officeimo-html-pdf-htmltopdfoptions-threading-cancellationtoken",
+      "href": "/api/html/officeimo-html-pdf-htmlpdfconverterextensions/#method-topdfbytesasync-officeimo-html-htmlconversiondocument-officeimo-html-pdf-htmltopdfoptions-threading-cancellationtoken",
       "aliases": [
         "global::OfficeIMO.Html.Pdf.HtmlPdfConverterExtensions.ToPdfBytesAsync",
         "OfficeIMO.Html.Pdf.HtmlPdfConverterExtensions.ToPdfBytesAsync",
@@ -267637,7 +267895,7 @@
     {
       "uid": "M:OfficeIMO.Html.Pdf.HtmlPdfConverterExtensions.ToPdfDocument(OfficeIMO.Html.HtmlConversionDocument,OfficeIMO.Html.Pdf.HtmlToPdfOptions,System.Threading.CancellationToken)",
       "name": "HtmlPdfConverterExtensions.ToPdfDocument",
-      "href": "/api/html-pdf/officeimo-html-pdf-htmlpdfconverterextensions/#method-topdfdocument-officeimo-html-htmlconversiondocument-officeimo-html-pdf-htmltopdfoptions-threading-cancellationtoken",
+      "href": "/api/html/officeimo-html-pdf-htmlpdfconverterextensions/#method-topdfdocument-officeimo-html-htmlconversiondocument-officeimo-html-pdf-htmltopdfoptions-threading-cancellationtoken",
       "aliases": [
         "global::OfficeIMO.Html.Pdf.HtmlPdfConverterExtensions.ToPdfDocument",
         "OfficeIMO.Html.Pdf.HtmlPdfConverterExtensions.ToPdfDocument",
@@ -267647,7 +267905,7 @@
     {
       "uid": "M:OfficeIMO.Html.Pdf.HtmlPdfConverterExtensions.ToPdfDocumentAsync(OfficeIMO.Html.HtmlConversionDocument,OfficeIMO.Html.Pdf.HtmlToPdfOptions,System.Threading.CancellationToken)",
       "name": "HtmlPdfConverterExtensions.ToPdfDocumentAsync",
-      "href": "/api/html-pdf/officeimo-html-pdf-htmlpdfconverterextensions/#method-topdfdocumentasync-officeimo-html-htmlconversiondocument-officeimo-html-pdf-htmltopdfoptions-threading-cancellationtoken",
+      "href": "/api/html/officeimo-html-pdf-htmlpdfconverterextensions/#method-topdfdocumentasync-officeimo-html-htmlconversiondocument-officeimo-html-pdf-htmltopdfoptions-threading-cancellationtoken",
       "aliases": [
         "global::OfficeIMO.Html.Pdf.HtmlPdfConverterExtensions.ToPdfDocumentAsync",
         "OfficeIMO.Html.Pdf.HtmlPdfConverterExtensions.ToPdfDocumentAsync",
@@ -267657,7 +267915,7 @@
     {
       "uid": "M:OfficeIMO.Html.Pdf.HtmlPdfConverterExtensions.ToPdfDocumentResult(OfficeIMO.Html.HtmlConversionDocument,OfficeIMO.Html.Pdf.HtmlToPdfOptions,System.Threading.CancellationToken)",
       "name": "HtmlPdfConverterExtensions.ToPdfDocumentResult",
-      "href": "/api/html-pdf/officeimo-html-pdf-htmlpdfconverterextensions/#method-topdfdocumentresult-officeimo-html-htmlconversiondocument-officeimo-html-pdf-htmltopdfoptions-threading-cancellationtoken",
+      "href": "/api/html/officeimo-html-pdf-htmlpdfconverterextensions/#method-topdfdocumentresult-officeimo-html-htmlconversiondocument-officeimo-html-pdf-htmltopdfoptions-threading-cancellationtoken",
       "aliases": [
         "global::OfficeIMO.Html.Pdf.HtmlPdfConverterExtensions.ToPdfDocumentResult",
         "OfficeIMO.Html.Pdf.HtmlPdfConverterExtensions.ToPdfDocumentResult",
@@ -267667,7 +267925,7 @@
     {
       "uid": "M:OfficeIMO.Html.Pdf.HtmlPdfConverterExtensions.ToPdfDocumentResultAsync(OfficeIMO.Html.HtmlConversionDocument,OfficeIMO.Html.Pdf.HtmlToPdfOptions,System.Threading.CancellationToken)",
       "name": "HtmlPdfConverterExtensions.ToPdfDocumentResultAsync",
-      "href": "/api/html-pdf/officeimo-html-pdf-htmlpdfconverterextensions/#method-topdfdocumentresultasync-officeimo-html-htmlconversiondocument-officeimo-html-pdf-htmltopdfoptions-threading-cancellationtoken",
+      "href": "/api/html/officeimo-html-pdf-htmlpdfconverterextensions/#method-topdfdocumentresultasync-officeimo-html-htmlconversiondocument-officeimo-html-pdf-htmltopdfoptions-threading-cancellationtoken",
       "aliases": [
         "global::OfficeIMO.Html.Pdf.HtmlPdfConverterExtensions.ToPdfDocumentResultAsync",
         "OfficeIMO.Html.Pdf.HtmlPdfConverterExtensions.ToPdfDocumentResultAsync",
@@ -267677,7 +267935,7 @@
     {
       "uid": "M:OfficeIMO.Html.Pdf.HtmlPdfConverterExtensions.ToString",
       "name": "HtmlPdfConverterExtensions.ToString",
-      "href": "/api/html-pdf/officeimo-html-pdf-htmlpdfconverterextensions/#method-tostring",
+      "href": "/api/html/officeimo-html-pdf-htmlpdfconverterextensions/#method-tostring",
       "aliases": [
         "global::OfficeIMO.Html.Pdf.HtmlPdfConverterExtensions.ToString",
         "OfficeIMO.Html.Pdf.HtmlPdfConverterExtensions.ToString"
@@ -267686,7 +267944,7 @@
     {
       "uid": "M:OfficeIMO.Html.Pdf.HtmlPdfDiagnosticCodes.Equals(System.Object)",
       "name": "HtmlPdfDiagnosticCodes.Equals",
-      "href": "/api/html-pdf/officeimo-html-pdf-htmlpdfdiagnosticcodes/#method-equals-object",
+      "href": "/api/html/officeimo-html-pdf-htmlpdfdiagnosticcodes/#method-equals-object",
       "aliases": [
         "global::OfficeIMO.Html.Pdf.HtmlPdfDiagnosticCodes.Equals",
         "OfficeIMO.Html.Pdf.HtmlPdfDiagnosticCodes.Equals",
@@ -267696,7 +267954,7 @@
     {
       "uid": "M:OfficeIMO.Html.Pdf.HtmlPdfDiagnosticCodes.GetHashCode",
       "name": "HtmlPdfDiagnosticCodes.GetHashCode",
-      "href": "/api/html-pdf/officeimo-html-pdf-htmlpdfdiagnosticcodes/#method-gethashcode",
+      "href": "/api/html/officeimo-html-pdf-htmlpdfdiagnosticcodes/#method-gethashcode",
       "aliases": [
         "global::OfficeIMO.Html.Pdf.HtmlPdfDiagnosticCodes.GetHashCode",
         "OfficeIMO.Html.Pdf.HtmlPdfDiagnosticCodes.GetHashCode"
@@ -267705,7 +267963,7 @@
     {
       "uid": "M:OfficeIMO.Html.Pdf.HtmlPdfDiagnosticCodes.GetType",
       "name": "HtmlPdfDiagnosticCodes.GetType",
-      "href": "/api/html-pdf/officeimo-html-pdf-htmlpdfdiagnosticcodes/#method-gettype",
+      "href": "/api/html/officeimo-html-pdf-htmlpdfdiagnosticcodes/#method-gettype",
       "aliases": [
         "global::OfficeIMO.Html.Pdf.HtmlPdfDiagnosticCodes.GetType",
         "OfficeIMO.Html.Pdf.HtmlPdfDiagnosticCodes.GetType"
@@ -267714,7 +267972,7 @@
     {
       "uid": "M:OfficeIMO.Html.Pdf.HtmlPdfDiagnosticCodes.ToString",
       "name": "HtmlPdfDiagnosticCodes.ToString",
-      "href": "/api/html-pdf/officeimo-html-pdf-htmlpdfdiagnosticcodes/#method-tostring",
+      "href": "/api/html/officeimo-html-pdf-htmlpdfdiagnosticcodes/#method-tostring",
       "aliases": [
         "global::OfficeIMO.Html.Pdf.HtmlPdfDiagnosticCodes.ToString",
         "OfficeIMO.Html.Pdf.HtmlPdfDiagnosticCodes.ToString"
@@ -267723,7 +267981,7 @@
     {
       "uid": "M:OfficeIMO.Html.Pdf.HtmlPdfRenderRequestResult.Equals(System.Object)",
       "name": "HtmlPdfRenderRequestResult.Equals",
-      "href": "/api/html-pdf/officeimo-html-pdf-htmlpdfrenderrequestresult/#method-equals-object",
+      "href": "/api/html/officeimo-html-pdf-htmlpdfrenderrequestresult/#method-equals-object",
       "aliases": [
         "global::OfficeIMO.Html.Pdf.HtmlPdfRenderRequestResult.Equals",
         "OfficeIMO.Html.Pdf.HtmlPdfRenderRequestResult.Equals",
@@ -267733,7 +267991,7 @@
     {
       "uid": "M:OfficeIMO.Html.Pdf.HtmlPdfRenderRequestResult.GetHashCode",
       "name": "HtmlPdfRenderRequestResult.GetHashCode",
-      "href": "/api/html-pdf/officeimo-html-pdf-htmlpdfrenderrequestresult/#method-gethashcode",
+      "href": "/api/html/officeimo-html-pdf-htmlpdfrenderrequestresult/#method-gethashcode",
       "aliases": [
         "global::OfficeIMO.Html.Pdf.HtmlPdfRenderRequestResult.GetHashCode",
         "OfficeIMO.Html.Pdf.HtmlPdfRenderRequestResult.GetHashCode"
@@ -267742,7 +268000,7 @@
     {
       "uid": "M:OfficeIMO.Html.Pdf.HtmlPdfRenderRequestResult.GetType",
       "name": "HtmlPdfRenderRequestResult.GetType",
-      "href": "/api/html-pdf/officeimo-html-pdf-htmlpdfrenderrequestresult/#method-gettype",
+      "href": "/api/html/officeimo-html-pdf-htmlpdfrenderrequestresult/#method-gettype",
       "aliases": [
         "global::OfficeIMO.Html.Pdf.HtmlPdfRenderRequestResult.GetType",
         "OfficeIMO.Html.Pdf.HtmlPdfRenderRequestResult.GetType"
@@ -267751,7 +268009,7 @@
     {
       "uid": "M:OfficeIMO.Html.Pdf.HtmlPdfRenderRequestResult.ToBytes(System.Threading.CancellationToken)",
       "name": "HtmlPdfRenderRequestResult.ToBytes",
-      "href": "/api/html-pdf/officeimo-html-pdf-htmlpdfrenderrequestresult/#method-tobytes-threading-cancellationtoken",
+      "href": "/api/html/officeimo-html-pdf-htmlpdfrenderrequestresult/#method-tobytes-threading-cancellationtoken",
       "aliases": [
         "global::OfficeIMO.Html.Pdf.HtmlPdfRenderRequestResult.ToBytes",
         "OfficeIMO.Html.Pdf.HtmlPdfRenderRequestResult.ToBytes",
@@ -267761,7 +268019,7 @@
     {
       "uid": "M:OfficeIMO.Html.Pdf.HtmlPdfRenderRequestResult.ToString",
       "name": "HtmlPdfRenderRequestResult.ToString",
-      "href": "/api/html-pdf/officeimo-html-pdf-htmlpdfrenderrequestresult/#method-tostring",
+      "href": "/api/html/officeimo-html-pdf-htmlpdfrenderrequestresult/#method-tostring",
       "aliases": [
         "global::OfficeIMO.Html.Pdf.HtmlPdfRenderRequestResult.ToString",
         "OfficeIMO.Html.Pdf.HtmlPdfRenderRequestResult.ToString"
@@ -267770,7 +268028,7 @@
     {
       "uid": "M:OfficeIMO.Html.Pdf.HtmlPdfResourcePolicySummary.Equals(System.Object)",
       "name": "HtmlPdfResourcePolicySummary.Equals",
-      "href": "/api/html-pdf/officeimo-html-pdf-htmlpdfresourcepolicysummary/#method-equals-object",
+      "href": "/api/html/officeimo-html-pdf-htmlpdfresourcepolicysummary/#method-equals-object",
       "aliases": [
         "global::OfficeIMO.Html.Pdf.HtmlPdfResourcePolicySummary.Equals",
         "OfficeIMO.Html.Pdf.HtmlPdfResourcePolicySummary.Equals",
@@ -267780,7 +268038,7 @@
     {
       "uid": "M:OfficeIMO.Html.Pdf.HtmlPdfResourcePolicySummary.From(OfficeIMO.Html.Pdf.HtmlToPdfOptions)",
       "name": "HtmlPdfResourcePolicySummary.From",
-      "href": "/api/html-pdf/officeimo-html-pdf-htmlpdfresourcepolicysummary/#method-from-officeimo-html-pdf-htmltopdfoptions",
+      "href": "/api/html/officeimo-html-pdf-htmlpdfresourcepolicysummary/#method-from-officeimo-html-pdf-htmltopdfoptions",
       "aliases": [
         "global::OfficeIMO.Html.Pdf.HtmlPdfResourcePolicySummary.From",
         "OfficeIMO.Html.Pdf.HtmlPdfResourcePolicySummary.From",
@@ -267790,7 +268048,7 @@
     {
       "uid": "M:OfficeIMO.Html.Pdf.HtmlPdfResourcePolicySummary.GetHashCode",
       "name": "HtmlPdfResourcePolicySummary.GetHashCode",
-      "href": "/api/html-pdf/officeimo-html-pdf-htmlpdfresourcepolicysummary/#method-gethashcode",
+      "href": "/api/html/officeimo-html-pdf-htmlpdfresourcepolicysummary/#method-gethashcode",
       "aliases": [
         "global::OfficeIMO.Html.Pdf.HtmlPdfResourcePolicySummary.GetHashCode",
         "OfficeIMO.Html.Pdf.HtmlPdfResourcePolicySummary.GetHashCode"
@@ -267799,7 +268057,7 @@
     {
       "uid": "M:OfficeIMO.Html.Pdf.HtmlPdfResourcePolicySummary.GetType",
       "name": "HtmlPdfResourcePolicySummary.GetType",
-      "href": "/api/html-pdf/officeimo-html-pdf-htmlpdfresourcepolicysummary/#method-gettype",
+      "href": "/api/html/officeimo-html-pdf-htmlpdfresourcepolicysummary/#method-gettype",
       "aliases": [
         "global::OfficeIMO.Html.Pdf.HtmlPdfResourcePolicySummary.GetType",
         "OfficeIMO.Html.Pdf.HtmlPdfResourcePolicySummary.GetType"
@@ -267808,7 +268066,7 @@
     {
       "uid": "M:OfficeIMO.Html.Pdf.HtmlPdfResourcePolicySummary.ToString",
       "name": "HtmlPdfResourcePolicySummary.ToString",
-      "href": "/api/html-pdf/officeimo-html-pdf-htmlpdfresourcepolicysummary/#method-tostring",
+      "href": "/api/html/officeimo-html-pdf-htmlpdfresourcepolicysummary/#method-tostring",
       "aliases": [
         "global::OfficeIMO.Html.Pdf.HtmlPdfResourcePolicySummary.ToString",
         "OfficeIMO.Html.Pdf.HtmlPdfResourcePolicySummary.ToString"
@@ -267817,7 +268075,7 @@
     {
       "uid": "M:OfficeIMO.Html.Pdf.HtmlPortableBrowserFontProfile.Create(System.String,System.Func{System.String,System.Byte[]})",
       "name": "HtmlPortableBrowserFontProfile.Create",
-      "href": "/api/html-pdf/officeimo-html-pdf-htmlportablebrowserfontprofile/#method-create-string-func-system-string-system-byte",
+      "href": "/api/html/officeimo-html-pdf-htmlportablebrowserfontprofile/#method-create-string-func-system-string-system-byte",
       "aliases": [
         "global::OfficeIMO.Html.Pdf.HtmlPortableBrowserFontProfile.Create",
         "OfficeIMO.Html.Pdf.HtmlPortableBrowserFontProfile.Create",
@@ -267827,7 +268085,7 @@
     {
       "uid": "M:OfficeIMO.Html.Pdf.HtmlPortableBrowserFontProfile.CreateDrawingFonts",
       "name": "HtmlPortableBrowserFontProfile.CreateDrawingFonts",
-      "href": "/api/html-pdf/officeimo-html-pdf-htmlportablebrowserfontprofile/#method-createdrawingfonts",
+      "href": "/api/html/officeimo-html-pdf-htmlportablebrowserfontprofile/#method-createdrawingfonts",
       "aliases": [
         "global::OfficeIMO.Html.Pdf.HtmlPortableBrowserFontProfile.CreateDrawingFonts",
         "OfficeIMO.Html.Pdf.HtmlPortableBrowserFontProfile.CreateDrawingFonts"
@@ -267836,7 +268094,7 @@
     {
       "uid": "M:OfficeIMO.Html.Pdf.HtmlPortableBrowserFontProfile.CreateHtmlOptions(OfficeIMO.Drawing.IOfficeTextShapingProvider)",
       "name": "HtmlPortableBrowserFontProfile.CreateHtmlOptions",
-      "href": "/api/html-pdf/officeimo-html-pdf-htmlportablebrowserfontprofile/#method-createhtmloptions-officeimo-drawing-iofficetextshapingprovider",
+      "href": "/api/html/officeimo-html-pdf-htmlportablebrowserfontprofile/#method-createhtmloptions-officeimo-drawing-iofficetextshapingprovider",
       "aliases": [
         "global::OfficeIMO.Html.Pdf.HtmlPortableBrowserFontProfile.CreateHtmlOptions",
         "OfficeIMO.Html.Pdf.HtmlPortableBrowserFontProfile.CreateHtmlOptions",
@@ -267846,7 +268104,7 @@
     {
       "uid": "M:OfficeIMO.Html.Pdf.HtmlPortableBrowserFontProfile.CreatePdfOptions(OfficeIMO.Drawing.IOfficeTextShapingProvider)",
       "name": "HtmlPortableBrowserFontProfile.CreatePdfOptions",
-      "href": "/api/html-pdf/officeimo-html-pdf-htmlportablebrowserfontprofile/#method-createpdfoptions-officeimo-drawing-iofficetextshapingprovider",
+      "href": "/api/html/officeimo-html-pdf-htmlportablebrowserfontprofile/#method-createpdfoptions-officeimo-drawing-iofficetextshapingprovider",
       "aliases": [
         "global::OfficeIMO.Html.Pdf.HtmlPortableBrowserFontProfile.CreatePdfOptions",
         "OfficeIMO.Html.Pdf.HtmlPortableBrowserFontProfile.CreatePdfOptions",
@@ -267856,7 +268114,7 @@
     {
       "uid": "M:OfficeIMO.Html.Pdf.HtmlPortableBrowserFontProfile.Equals(System.Object)",
       "name": "HtmlPortableBrowserFontProfile.Equals",
-      "href": "/api/html-pdf/officeimo-html-pdf-htmlportablebrowserfontprofile/#method-equals-object",
+      "href": "/api/html/officeimo-html-pdf-htmlportablebrowserfontprofile/#method-equals-object",
       "aliases": [
         "global::OfficeIMO.Html.Pdf.HtmlPortableBrowserFontProfile.Equals",
         "OfficeIMO.Html.Pdf.HtmlPortableBrowserFontProfile.Equals",
@@ -267866,7 +268124,7 @@
     {
       "uid": "M:OfficeIMO.Html.Pdf.HtmlPortableBrowserFontProfile.GetHashCode",
       "name": "HtmlPortableBrowserFontProfile.GetHashCode",
-      "href": "/api/html-pdf/officeimo-html-pdf-htmlportablebrowserfontprofile/#method-gethashcode",
+      "href": "/api/html/officeimo-html-pdf-htmlportablebrowserfontprofile/#method-gethashcode",
       "aliases": [
         "global::OfficeIMO.Html.Pdf.HtmlPortableBrowserFontProfile.GetHashCode",
         "OfficeIMO.Html.Pdf.HtmlPortableBrowserFontProfile.GetHashCode"
@@ -267875,7 +268133,7 @@
     {
       "uid": "M:OfficeIMO.Html.Pdf.HtmlPortableBrowserFontProfile.GetType",
       "name": "HtmlPortableBrowserFontProfile.GetType",
-      "href": "/api/html-pdf/officeimo-html-pdf-htmlportablebrowserfontprofile/#method-gettype",
+      "href": "/api/html/officeimo-html-pdf-htmlportablebrowserfontprofile/#method-gettype",
       "aliases": [
         "global::OfficeIMO.Html.Pdf.HtmlPortableBrowserFontProfile.GetType",
         "OfficeIMO.Html.Pdf.HtmlPortableBrowserFontProfile.GetType"
@@ -267884,7 +268142,7 @@
     {
       "uid": "M:OfficeIMO.Html.Pdf.HtmlPortableBrowserFontProfile.ToString",
       "name": "HtmlPortableBrowserFontProfile.ToString",
-      "href": "/api/html-pdf/officeimo-html-pdf-htmlportablebrowserfontprofile/#method-tostring",
+      "href": "/api/html/officeimo-html-pdf-htmlportablebrowserfontprofile/#method-tostring",
       "aliases": [
         "global::OfficeIMO.Html.Pdf.HtmlPortableBrowserFontProfile.ToString",
         "OfficeIMO.Html.Pdf.HtmlPortableBrowserFontProfile.ToString"
@@ -267893,7 +268151,7 @@
     {
       "uid": "M:OfficeIMO.Html.Pdf.HtmlRenderCapabilityGalleryExtensions.Equals(System.Object)",
       "name": "HtmlRenderCapabilityGalleryExtensions.Equals",
-      "href": "/api/html-pdf/officeimo-html-pdf-htmlrendercapabilitygalleryextensions/#method-equals-object",
+      "href": "/api/html/officeimo-html-pdf-htmlrendercapabilitygalleryextensions/#method-equals-object",
       "aliases": [
         "global::OfficeIMO.Html.Pdf.HtmlRenderCapabilityGalleryExtensions.Equals",
         "OfficeIMO.Html.Pdf.HtmlRenderCapabilityGalleryExtensions.Equals",
@@ -267903,7 +268161,7 @@
     {
       "uid": "M:OfficeIMO.Html.Pdf.HtmlRenderCapabilityGalleryExtensions.GetHashCode",
       "name": "HtmlRenderCapabilityGalleryExtensions.GetHashCode",
-      "href": "/api/html-pdf/officeimo-html-pdf-htmlrendercapabilitygalleryextensions/#method-gethashcode",
+      "href": "/api/html/officeimo-html-pdf-htmlrendercapabilitygalleryextensions/#method-gethashcode",
       "aliases": [
         "global::OfficeIMO.Html.Pdf.HtmlRenderCapabilityGalleryExtensions.GetHashCode",
         "OfficeIMO.Html.Pdf.HtmlRenderCapabilityGalleryExtensions.GetHashCode"
@@ -267912,7 +268170,7 @@
     {
       "uid": "M:OfficeIMO.Html.Pdf.HtmlRenderCapabilityGalleryExtensions.GetType",
       "name": "HtmlRenderCapabilityGalleryExtensions.GetType",
-      "href": "/api/html-pdf/officeimo-html-pdf-htmlrendercapabilitygalleryextensions/#method-gettype",
+      "href": "/api/html/officeimo-html-pdf-htmlrendercapabilitygalleryextensions/#method-gettype",
       "aliases": [
         "global::OfficeIMO.Html.Pdf.HtmlRenderCapabilityGalleryExtensions.GetType",
         "OfficeIMO.Html.Pdf.HtmlRenderCapabilityGalleryExtensions.GetType"
@@ -267921,7 +268179,7 @@
     {
       "uid": "M:OfficeIMO.Html.Pdf.HtmlRenderCapabilityGalleryExtensions.SaveRenderCapabilityGallery(OfficeIMO.Html.HtmlConversionDocument,System.String,OfficeIMO.Html.Pdf.HtmlRenderCapabilityGalleryOptions)",
       "name": "HtmlRenderCapabilityGalleryExtensions.SaveRenderCapabilityGallery",
-      "href": "/api/html-pdf/officeimo-html-pdf-htmlrendercapabilitygalleryextensions/#method-saverendercapabilitygallery-officeimo-html-htmlconversiondocument-string-officeimo-html-pdf-htmlrendercapabilitygalleryoptions",
+      "href": "/api/html/officeimo-html-pdf-htmlrendercapabilitygalleryextensions/#method-saverendercapabilitygallery-officeimo-html-htmlconversiondocument-string-officeimo-html-pdf-htmlrendercapabilitygalleryoptions",
       "aliases": [
         "global::OfficeIMO.Html.Pdf.HtmlRenderCapabilityGalleryExtensions.SaveRenderCapabilityGallery",
         "OfficeIMO.Html.Pdf.HtmlRenderCapabilityGalleryExtensions.SaveRenderCapabilityGallery",
@@ -267931,7 +268189,7 @@
     {
       "uid": "M:OfficeIMO.Html.Pdf.HtmlRenderCapabilityGalleryExtensions.SaveRenderCapabilityGallery(OfficeIMO.Html.HtmlConversionDocument,System.String,OfficeIMO.Html.Pdf.HtmlRenderCapabilityGalleryOptions,System.Threading.CancellationToken)",
       "name": "HtmlRenderCapabilityGalleryExtensions.SaveRenderCapabilityGallery",
-      "href": "/api/html-pdf/officeimo-html-pdf-htmlrendercapabilitygalleryextensions/#method-saverendercapabilitygallery-officeimo-html-htmlconversiondocument-string-officeimo-html-pdf-htmlrendercapabilitygalleryoptions-threading-cancellationtoken",
+      "href": "/api/html/officeimo-html-pdf-htmlrendercapabilitygalleryextensions/#method-saverendercapabilitygallery-officeimo-html-htmlconversiondocument-string-officeimo-html-pdf-htmlrendercapabilitygalleryoptions-threading-cancellationtoken",
       "aliases": [
         "global::OfficeIMO.Html.Pdf.HtmlRenderCapabilityGalleryExtensions.SaveRenderCapabilityGallery",
         "OfficeIMO.Html.Pdf.HtmlRenderCapabilityGalleryExtensions.SaveRenderCapabilityGallery",
@@ -267941,7 +268199,7 @@
     {
       "uid": "M:OfficeIMO.Html.Pdf.HtmlRenderCapabilityGalleryExtensions.ToString",
       "name": "HtmlRenderCapabilityGalleryExtensions.ToString",
-      "href": "/api/html-pdf/officeimo-html-pdf-htmlrendercapabilitygalleryextensions/#method-tostring",
+      "href": "/api/html/officeimo-html-pdf-htmlrendercapabilitygalleryextensions/#method-tostring",
       "aliases": [
         "global::OfficeIMO.Html.Pdf.HtmlRenderCapabilityGalleryExtensions.ToString",
         "OfficeIMO.Html.Pdf.HtmlRenderCapabilityGalleryExtensions.ToString"
@@ -267950,7 +268208,7 @@
     {
       "uid": "M:OfficeIMO.Html.Pdf.HtmlRenderCapabilityGalleryOptions.#ctor(OfficeIMO.Html.HtmlCapabilityGalleryScenario)",
       "name": "HtmlRenderCapabilityGalleryOptions.HtmlRenderCapabilityGalleryOptions",
-      "href": "/api/html-pdf/officeimo-html-pdf-htmlrendercapabilitygalleryoptions/#constructor-ctor-officeimo-html-htmlcapabilitygalleryscenario",
+      "href": "/api/html/officeimo-html-pdf-htmlrendercapabilitygalleryoptions/#constructor-ctor-officeimo-html-htmlcapabilitygalleryscenario",
       "aliases": [
         "global::OfficeIMO.Html.Pdf.HtmlRenderCapabilityGalleryOptions.#ctor",
         "OfficeIMO.Html.Pdf.HtmlRenderCapabilityGalleryOptions.#ctor",
@@ -267960,7 +268218,7 @@
     {
       "uid": "M:OfficeIMO.Html.Pdf.HtmlRenderCapabilityGalleryOptions.Equals(System.Object)",
       "name": "HtmlRenderCapabilityGalleryOptions.Equals",
-      "href": "/api/html-pdf/officeimo-html-pdf-htmlrendercapabilitygalleryoptions/#method-equals-object",
+      "href": "/api/html/officeimo-html-pdf-htmlrendercapabilitygalleryoptions/#method-equals-object",
       "aliases": [
         "global::OfficeIMO.Html.Pdf.HtmlRenderCapabilityGalleryOptions.Equals",
         "OfficeIMO.Html.Pdf.HtmlRenderCapabilityGalleryOptions.Equals",
@@ -267970,7 +268228,7 @@
     {
       "uid": "M:OfficeIMO.Html.Pdf.HtmlRenderCapabilityGalleryOptions.GetHashCode",
       "name": "HtmlRenderCapabilityGalleryOptions.GetHashCode",
-      "href": "/api/html-pdf/officeimo-html-pdf-htmlrendercapabilitygalleryoptions/#method-gethashcode",
+      "href": "/api/html/officeimo-html-pdf-htmlrendercapabilitygalleryoptions/#method-gethashcode",
       "aliases": [
         "global::OfficeIMO.Html.Pdf.HtmlRenderCapabilityGalleryOptions.GetHashCode",
         "OfficeIMO.Html.Pdf.HtmlRenderCapabilityGalleryOptions.GetHashCode"
@@ -267979,7 +268237,7 @@
     {
       "uid": "M:OfficeIMO.Html.Pdf.HtmlRenderCapabilityGalleryOptions.GetType",
       "name": "HtmlRenderCapabilityGalleryOptions.GetType",
-      "href": "/api/html-pdf/officeimo-html-pdf-htmlrendercapabilitygalleryoptions/#method-gettype",
+      "href": "/api/html/officeimo-html-pdf-htmlrendercapabilitygalleryoptions/#method-gettype",
       "aliases": [
         "global::OfficeIMO.Html.Pdf.HtmlRenderCapabilityGalleryOptions.GetType",
         "OfficeIMO.Html.Pdf.HtmlRenderCapabilityGalleryOptions.GetType"
@@ -267988,7 +268246,7 @@
     {
       "uid": "M:OfficeIMO.Html.Pdf.HtmlRenderCapabilityGalleryOptions.ToString",
       "name": "HtmlRenderCapabilityGalleryOptions.ToString",
-      "href": "/api/html-pdf/officeimo-html-pdf-htmlrendercapabilitygalleryoptions/#method-tostring",
+      "href": "/api/html/officeimo-html-pdf-htmlrendercapabilitygalleryoptions/#method-tostring",
       "aliases": [
         "global::OfficeIMO.Html.Pdf.HtmlRenderCapabilityGalleryOptions.ToString",
         "OfficeIMO.Html.Pdf.HtmlRenderCapabilityGalleryOptions.ToString"
@@ -267997,7 +268255,7 @@
     {
       "uid": "M:OfficeIMO.Html.Pdf.HtmlSiteBundlePdfExtensions.Equals(System.Object)",
       "name": "HtmlSiteBundlePdfExtensions.Equals",
-      "href": "/api/html-pdf/officeimo-html-pdf-htmlsitebundlepdfextensions/#method-equals-object",
+      "href": "/api/html/officeimo-html-pdf-htmlsitebundlepdfextensions/#method-equals-object",
       "aliases": [
         "global::OfficeIMO.Html.Pdf.HtmlSiteBundlePdfExtensions.Equals",
         "OfficeIMO.Html.Pdf.HtmlSiteBundlePdfExtensions.Equals",
@@ -268007,7 +268265,7 @@
     {
       "uid": "M:OfficeIMO.Html.Pdf.HtmlSiteBundlePdfExtensions.GetHashCode",
       "name": "HtmlSiteBundlePdfExtensions.GetHashCode",
-      "href": "/api/html-pdf/officeimo-html-pdf-htmlsitebundlepdfextensions/#method-gethashcode",
+      "href": "/api/html/officeimo-html-pdf-htmlsitebundlepdfextensions/#method-gethashcode",
       "aliases": [
         "global::OfficeIMO.Html.Pdf.HtmlSiteBundlePdfExtensions.GetHashCode",
         "OfficeIMO.Html.Pdf.HtmlSiteBundlePdfExtensions.GetHashCode"
@@ -268016,7 +268274,7 @@
     {
       "uid": "M:OfficeIMO.Html.Pdf.HtmlSiteBundlePdfExtensions.GetType",
       "name": "HtmlSiteBundlePdfExtensions.GetType",
-      "href": "/api/html-pdf/officeimo-html-pdf-htmlsitebundlepdfextensions/#method-gettype",
+      "href": "/api/html/officeimo-html-pdf-htmlsitebundlepdfextensions/#method-gettype",
       "aliases": [
         "global::OfficeIMO.Html.Pdf.HtmlSiteBundlePdfExtensions.GetType",
         "OfficeIMO.Html.Pdf.HtmlSiteBundlePdfExtensions.GetType"
@@ -268025,7 +268283,7 @@
     {
       "uid": "M:OfficeIMO.Html.Pdf.HtmlSiteBundlePdfExtensions.RenderToPdfResult(OfficeIMO.Html.HtmlSiteBundle,OfficeIMO.Html.HtmlRenderRequest,System.Threading.CancellationToken)",
       "name": "HtmlSiteBundlePdfExtensions.RenderToPdfResult",
-      "href": "/api/html-pdf/officeimo-html-pdf-htmlsitebundlepdfextensions/#method-rendertopdfresult-officeimo-html-htmlsitebundle-officeimo-html-htmlrenderrequest-threading-cancellationtoken",
+      "href": "/api/html/officeimo-html-pdf-htmlsitebundlepdfextensions/#method-rendertopdfresult-officeimo-html-htmlsitebundle-officeimo-html-htmlrenderrequest-threading-cancellationtoken",
       "aliases": [
         "global::OfficeIMO.Html.Pdf.HtmlSiteBundlePdfExtensions.RenderToPdfResult",
         "OfficeIMO.Html.Pdf.HtmlSiteBundlePdfExtensions.RenderToPdfResult",
@@ -268035,7 +268293,7 @@
     {
       "uid": "M:OfficeIMO.Html.Pdf.HtmlSiteBundlePdfExtensions.RenderToPdfResultAsync(OfficeIMO.Html.HtmlSiteBundle,OfficeIMO.Html.HtmlRenderRequest,System.Threading.CancellationToken)",
       "name": "HtmlSiteBundlePdfExtensions.RenderToPdfResultAsync",
-      "href": "/api/html-pdf/officeimo-html-pdf-htmlsitebundlepdfextensions/#method-rendertopdfresultasync-officeimo-html-htmlsitebundle-officeimo-html-htmlrenderrequest-threading-cancellationtoken",
+      "href": "/api/html/officeimo-html-pdf-htmlsitebundlepdfextensions/#method-rendertopdfresultasync-officeimo-html-htmlsitebundle-officeimo-html-htmlrenderrequest-threading-cancellationtoken",
       "aliases": [
         "global::OfficeIMO.Html.Pdf.HtmlSiteBundlePdfExtensions.RenderToPdfResultAsync",
         "OfficeIMO.Html.Pdf.HtmlSiteBundlePdfExtensions.RenderToPdfResultAsync",
@@ -268045,7 +268303,7 @@
     {
       "uid": "M:OfficeIMO.Html.Pdf.HtmlSiteBundlePdfExtensions.ToString",
       "name": "HtmlSiteBundlePdfExtensions.ToString",
-      "href": "/api/html-pdf/officeimo-html-pdf-htmlsitebundlepdfextensions/#method-tostring",
+      "href": "/api/html/officeimo-html-pdf-htmlsitebundlepdfextensions/#method-tostring",
       "aliases": [
         "global::OfficeIMO.Html.Pdf.HtmlSiteBundlePdfExtensions.ToString",
         "OfficeIMO.Html.Pdf.HtmlSiteBundlePdfExtensions.ToString"
@@ -268054,7 +268312,7 @@
     {
       "uid": "M:OfficeIMO.Html.Pdf.HtmlToPdfOptions.#ctor",
       "name": "HtmlToPdfOptions.HtmlToPdfOptions",
-      "href": "/api/html-pdf/officeimo-html-pdf-htmltopdfoptions/#constructor-ctor",
+      "href": "/api/html/officeimo-html-pdf-htmltopdfoptions/#constructor-ctor",
       "aliases": [
         "global::OfficeIMO.Html.Pdf.HtmlToPdfOptions.#ctor",
         "OfficeIMO.Html.Pdf.HtmlToPdfOptions.#ctor"
@@ -268063,7 +268321,7 @@
     {
       "uid": "M:OfficeIMO.Html.Pdf.HtmlToPdfOptions.#ctor(OfficeIMO.Html.HtmlRenderOptions)",
       "name": "HtmlToPdfOptions.HtmlToPdfOptions",
-      "href": "/api/html-pdf/officeimo-html-pdf-htmltopdfoptions/#constructor-ctor-officeimo-html-htmlrenderoptions",
+      "href": "/api/html/officeimo-html-pdf-htmltopdfoptions/#constructor-ctor-officeimo-html-htmlrenderoptions",
       "aliases": [
         "global::OfficeIMO.Html.Pdf.HtmlToPdfOptions.#ctor",
         "OfficeIMO.Html.Pdf.HtmlToPdfOptions.#ctor",
@@ -268073,7 +268331,7 @@
     {
       "uid": "M:OfficeIMO.Html.Pdf.HtmlToPdfOptions.Clone",
       "name": "HtmlToPdfOptions.Clone",
-      "href": "/api/html-pdf/officeimo-html-pdf-htmltopdfoptions/#method-clone",
+      "href": "/api/html/officeimo-html-pdf-htmltopdfoptions/#method-clone",
       "aliases": [
         "global::OfficeIMO.Html.Pdf.HtmlToPdfOptions.Clone",
         "OfficeIMO.Html.Pdf.HtmlToPdfOptions.Clone"
@@ -268082,7 +268340,7 @@
     {
       "uid": "M:OfficeIMO.Html.Pdf.HtmlToPdfOptions.ClonePdf",
       "name": "HtmlToPdfOptions.ClonePdf",
-      "href": "/api/html-pdf/officeimo-html-pdf-htmltopdfoptions/#method-clonepdf",
+      "href": "/api/html/officeimo-html-pdf-htmltopdfoptions/#method-clonepdf",
       "aliases": [
         "global::OfficeIMO.Html.Pdf.HtmlToPdfOptions.ClonePdf",
         "OfficeIMO.Html.Pdf.HtmlToPdfOptions.ClonePdf"
@@ -268091,7 +268349,7 @@
     {
       "uid": "M:OfficeIMO.Html.Pdf.HtmlToPdfOptions.EnsureAccepted(OfficeImageExportResult)",
       "name": "HtmlToPdfOptions.EnsureAccepted",
-      "href": "/api/html-pdf/officeimo-html-pdf-htmltopdfoptions/#method-ensureaccepted-officeimageexportresult",
+      "href": "/api/html/officeimo-html-pdf-htmltopdfoptions/#method-ensureaccepted-officeimageexportresult",
       "aliases": [
         "global::OfficeIMO.Html.Pdf.HtmlToPdfOptions.EnsureAccepted",
         "OfficeIMO.Html.Pdf.HtmlToPdfOptions.EnsureAccepted",
@@ -268101,7 +268359,7 @@
     {
       "uid": "M:OfficeIMO.Html.Pdf.HtmlToPdfOptions.Equals(System.Object)",
       "name": "HtmlToPdfOptions.Equals",
-      "href": "/api/html-pdf/officeimo-html-pdf-htmltopdfoptions/#method-equals-object",
+      "href": "/api/html/officeimo-html-pdf-htmltopdfoptions/#method-equals-object",
       "aliases": [
         "global::OfficeIMO.Html.Pdf.HtmlToPdfOptions.Equals",
         "OfficeIMO.Html.Pdf.HtmlToPdfOptions.Equals",
@@ -268111,7 +268369,7 @@
     {
       "uid": "M:OfficeIMO.Html.Pdf.HtmlToPdfOptions.GetEffectiveScale(System.Double,System.Double)",
       "name": "HtmlToPdfOptions.GetEffectiveScale",
-      "href": "/api/html-pdf/officeimo-html-pdf-htmltopdfoptions/#method-geteffectivescale-double-double",
+      "href": "/api/html/officeimo-html-pdf-htmltopdfoptions/#method-geteffectivescale-double-double",
       "aliases": [
         "global::OfficeIMO.Html.Pdf.HtmlToPdfOptions.GetEffectiveScale",
         "OfficeIMO.Html.Pdf.HtmlToPdfOptions.GetEffectiveScale",
@@ -268121,7 +268379,7 @@
     {
       "uid": "M:OfficeIMO.Html.Pdf.HtmlToPdfOptions.GetHashCode",
       "name": "HtmlToPdfOptions.GetHashCode",
-      "href": "/api/html-pdf/officeimo-html-pdf-htmltopdfoptions/#method-gethashcode",
+      "href": "/api/html/officeimo-html-pdf-htmltopdfoptions/#method-gethashcode",
       "aliases": [
         "global::OfficeIMO.Html.Pdf.HtmlToPdfOptions.GetHashCode",
         "OfficeIMO.Html.Pdf.HtmlToPdfOptions.GetHashCode"
@@ -268130,7 +268388,7 @@
     {
       "uid": "M:OfficeIMO.Html.Pdf.HtmlToPdfOptions.GetResourcePolicySummary",
       "name": "HtmlToPdfOptions.GetResourcePolicySummary",
-      "href": "/api/html-pdf/officeimo-html-pdf-htmltopdfoptions/#method-getresourcepolicysummary",
+      "href": "/api/html/officeimo-html-pdf-htmltopdfoptions/#method-getresourcepolicysummary",
       "aliases": [
         "global::OfficeIMO.Html.Pdf.HtmlToPdfOptions.GetResourcePolicySummary",
         "OfficeIMO.Html.Pdf.HtmlToPdfOptions.GetResourcePolicySummary"
@@ -268139,7 +268397,7 @@
     {
       "uid": "M:OfficeIMO.Html.Pdf.HtmlToPdfOptions.GetType",
       "name": "HtmlToPdfOptions.GetType",
-      "href": "/api/html-pdf/officeimo-html-pdf-htmltopdfoptions/#method-gettype",
+      "href": "/api/html/officeimo-html-pdf-htmltopdfoptions/#method-gettype",
       "aliases": [
         "global::OfficeIMO.Html.Pdf.HtmlToPdfOptions.GetType",
         "OfficeIMO.Html.Pdf.HtmlToPdfOptions.GetType"
@@ -268148,7 +268406,7 @@
     {
       "uid": "M:OfficeIMO.Html.Pdf.HtmlToPdfOptions.ToString",
       "name": "HtmlToPdfOptions.ToString",
-      "href": "/api/html-pdf/officeimo-html-pdf-htmltopdfoptions/#method-tostring",
+      "href": "/api/html/officeimo-html-pdf-htmltopdfoptions/#method-tostring",
       "aliases": [
         "global::OfficeIMO.Html.Pdf.HtmlToPdfOptions.ToString",
         "OfficeIMO.Html.Pdf.HtmlToPdfOptions.ToString"
@@ -268157,7 +268415,7 @@
     {
       "uid": "M:OfficeIMO.Html.Pdf.HtmlToPdfOptions.UseBrowserUserAgentStyles",
       "name": "HtmlToPdfOptions.UseBrowserUserAgentStyles",
-      "href": "/api/html-pdf/officeimo-html-pdf-htmltopdfoptions/#method-usebrowseruseragentstyles",
+      "href": "/api/html/officeimo-html-pdf-htmltopdfoptions/#method-usebrowseruseragentstyles",
       "aliases": [
         "global::OfficeIMO.Html.Pdf.HtmlToPdfOptions.UseBrowserUserAgentStyles",
         "OfficeIMO.Html.Pdf.HtmlToPdfOptions.UseBrowserUserAgentStyles"
@@ -268166,7 +268424,7 @@
     {
       "uid": "M:OfficeIMO.Html.Pdf.HtmlToPdfOptions.UseTextHyphenationLexicon(OfficeTextHyphenationLexicon)",
       "name": "HtmlToPdfOptions.UseTextHyphenationLexicon",
-      "href": "/api/html-pdf/officeimo-html-pdf-htmltopdfoptions/#method-usetexthyphenationlexicon-officetexthyphenationlexicon",
+      "href": "/api/html/officeimo-html-pdf-htmltopdfoptions/#method-usetexthyphenationlexicon-officetexthyphenationlexicon",
       "aliases": [
         "global::OfficeIMO.Html.Pdf.HtmlToPdfOptions.UseTextHyphenationLexicon",
         "OfficeIMO.Html.Pdf.HtmlToPdfOptions.UseTextHyphenationLexicon",
@@ -602253,7 +602511,7 @@
     {
       "uid": "OfficeIMO.Html.Pdf.HtmlPdfAccessibilityIssue",
       "name": "HtmlPdfAccessibilityIssue",
-      "href": "/api/html-pdf/officeimo-html-pdf-htmlpdfaccessibilityissue/",
+      "href": "/api/html/officeimo-html-pdf-htmlpdfaccessibilityissue/",
       "aliases": [
         "global::OfficeIMO.Html.Pdf.HtmlPdfAccessibilityIssue",
         "HtmlPdfAccessibilityIssue",
@@ -602263,7 +602521,7 @@
     {
       "uid": "OfficeIMO.Html.Pdf.HtmlPdfAccessibilityIssueSeverity",
       "name": "HtmlPdfAccessibilityIssueSeverity",
-      "href": "/api/html-pdf/officeimo-html-pdf-htmlpdfaccessibilityissueseverity/",
+      "href": "/api/html/officeimo-html-pdf-htmlpdfaccessibilityissueseverity/",
       "aliases": [
         "global::OfficeIMO.Html.Pdf.HtmlPdfAccessibilityIssueSeverity",
         "HtmlPdfAccessibilityIssueSeverity",
@@ -602273,7 +602531,7 @@
     {
       "uid": "OfficeIMO.Html.Pdf.HtmlPdfAccessibilityValidationResult",
       "name": "HtmlPdfAccessibilityValidationResult",
-      "href": "/api/html-pdf/officeimo-html-pdf-htmlpdfaccessibilityvalidationresult/",
+      "href": "/api/html/officeimo-html-pdf-htmlpdfaccessibilityvalidationresult/",
       "aliases": [
         "global::OfficeIMO.Html.Pdf.HtmlPdfAccessibilityValidationResult",
         "HtmlPdfAccessibilityValidationResult",
@@ -602283,7 +602541,7 @@
     {
       "uid": "OfficeIMO.Html.Pdf.HtmlPdfAccessibilityValidator",
       "name": "HtmlPdfAccessibilityValidator",
-      "href": "/api/html-pdf/officeimo-html-pdf-htmlpdfaccessibilityvalidator/",
+      "href": "/api/html/officeimo-html-pdf-htmlpdfaccessibilityvalidator/",
       "aliases": [
         "global::OfficeIMO.Html.Pdf.HtmlPdfAccessibilityValidator",
         "HtmlPdfAccessibilityValidator",
@@ -602293,7 +602551,7 @@
     {
       "uid": "OfficeIMO.Html.Pdf.HtmlPdfConverterExtensions",
       "name": "HtmlPdfConverterExtensions",
-      "href": "/api/html-pdf/officeimo-html-pdf-htmlpdfconverterextensions/",
+      "href": "/api/html/officeimo-html-pdf-htmlpdfconverterextensions/",
       "aliases": [
         "global::OfficeIMO.Html.Pdf.HtmlPdfConverterExtensions",
         "HtmlPdfConverterExtensions",
@@ -602303,7 +602561,7 @@
     {
       "uid": "OfficeIMO.Html.Pdf.HtmlPdfDiagnosticCodes",
       "name": "HtmlPdfDiagnosticCodes",
-      "href": "/api/html-pdf/officeimo-html-pdf-htmlpdfdiagnosticcodes/",
+      "href": "/api/html/officeimo-html-pdf-htmlpdfdiagnosticcodes/",
       "aliases": [
         "global::OfficeIMO.Html.Pdf.HtmlPdfDiagnosticCodes",
         "HtmlPdfDiagnosticCodes",
@@ -602313,7 +602571,7 @@
     {
       "uid": "OfficeIMO.Html.Pdf.HtmlPdfRenderRequestResult",
       "name": "HtmlPdfRenderRequestResult",
-      "href": "/api/html-pdf/officeimo-html-pdf-htmlpdfrenderrequestresult/",
+      "href": "/api/html/officeimo-html-pdf-htmlpdfrenderrequestresult/",
       "aliases": [
         "global::OfficeIMO.Html.Pdf.HtmlPdfRenderRequestResult",
         "HtmlPdfRenderRequestResult",
@@ -602323,7 +602581,7 @@
     {
       "uid": "OfficeIMO.Html.Pdf.HtmlPdfResourcePolicySummary",
       "name": "HtmlPdfResourcePolicySummary",
-      "href": "/api/html-pdf/officeimo-html-pdf-htmlpdfresourcepolicysummary/",
+      "href": "/api/html/officeimo-html-pdf-htmlpdfresourcepolicysummary/",
       "aliases": [
         "global::OfficeIMO.Html.Pdf.HtmlPdfResourcePolicySummary",
         "HtmlPdfResourcePolicySummary",
@@ -602333,7 +602591,7 @@
     {
       "uid": "OfficeIMO.Html.Pdf.HtmlPortableBrowserFontProfile",
       "name": "HtmlPortableBrowserFontProfile",
-      "href": "/api/html-pdf/officeimo-html-pdf-htmlportablebrowserfontprofile/",
+      "href": "/api/html/officeimo-html-pdf-htmlportablebrowserfontprofile/",
       "aliases": [
         "global::OfficeIMO.Html.Pdf.HtmlPortableBrowserFontProfile",
         "HtmlPortableBrowserFontProfile",
@@ -602343,7 +602601,7 @@
     {
       "uid": "OfficeIMO.Html.Pdf.HtmlRenderCapabilityGalleryExtensions",
       "name": "HtmlRenderCapabilityGalleryExtensions",
-      "href": "/api/html-pdf/officeimo-html-pdf-htmlrendercapabilitygalleryextensions/",
+      "href": "/api/html/officeimo-html-pdf-htmlrendercapabilitygalleryextensions/",
       "aliases": [
         "global::OfficeIMO.Html.Pdf.HtmlRenderCapabilityGalleryExtensions",
         "HtmlRenderCapabilityGalleryExtensions",
@@ -602353,7 +602611,7 @@
     {
       "uid": "OfficeIMO.Html.Pdf.HtmlRenderCapabilityGalleryOptions",
       "name": "HtmlRenderCapabilityGalleryOptions",
-      "href": "/api/html-pdf/officeimo-html-pdf-htmlrendercapabilitygalleryoptions/",
+      "href": "/api/html/officeimo-html-pdf-htmlrendercapabilitygalleryoptions/",
       "aliases": [
         "global::OfficeIMO.Html.Pdf.HtmlRenderCapabilityGalleryOptions",
         "HtmlRenderCapabilityGalleryOptions",
@@ -602363,7 +602621,7 @@
     {
       "uid": "OfficeIMO.Html.Pdf.HtmlSiteBundlePdfExtensions",
       "name": "HtmlSiteBundlePdfExtensions",
-      "href": "/api/html-pdf/officeimo-html-pdf-htmlsitebundlepdfextensions/",
+      "href": "/api/html/officeimo-html-pdf-htmlsitebundlepdfextensions/",
       "aliases": [
         "global::OfficeIMO.Html.Pdf.HtmlSiteBundlePdfExtensions",
         "HtmlSiteBundlePdfExtensions",
@@ -602373,7 +602631,7 @@
     {
       "uid": "OfficeIMO.Html.Pdf.HtmlToPdfOptions",
       "name": "HtmlToPdfOptions",
-      "href": "/api/html-pdf/officeimo-html-pdf-htmltopdfoptions/",
+      "href": "/api/html/officeimo-html-pdf-htmltopdfoptions/",
       "aliases": [
         "global::OfficeIMO.Html.Pdf.HtmlToPdfOptions",
         "HtmlToPdfOptions",
@@ -742805,6 +743063,15 @@
       ]
     },
     {
+      "uid": "P:OfficeIMO.Html.HtmlRenderOptions.SvgTextAsPaths",
+      "name": "HtmlRenderOptions.SvgTextAsPaths",
+      "href": "/api/html/officeimo-html-htmlrenderoptions/#property-svgtextaspaths",
+      "aliases": [
+        "global::OfficeIMO.Html.HtmlRenderOptions.SvgTextAsPaths",
+        "OfficeIMO.Html.HtmlRenderOptions.SvgTextAsPaths"
+      ]
+    },
+    {
       "uid": "P:OfficeIMO.Html.HtmlRenderOptions.TargetDpi",
       "name": "HtmlRenderOptions.TargetDpi",
       "href": "/api/html/officeimo-html-htmlrenderoptions/#property-targetdpi",
@@ -747217,7 +747484,7 @@
     {
       "uid": "P:OfficeIMO.Html.Pdf.HtmlPdfAccessibilityIssue.Code",
       "name": "HtmlPdfAccessibilityIssue.Code",
-      "href": "/api/html-pdf/officeimo-html-pdf-htmlpdfaccessibilityissue/#property-code",
+      "href": "/api/html/officeimo-html-pdf-htmlpdfaccessibilityissue/#property-code",
       "aliases": [
         "global::OfficeIMO.Html.Pdf.HtmlPdfAccessibilityIssue.Code",
         "OfficeIMO.Html.Pdf.HtmlPdfAccessibilityIssue.Code"
@@ -747226,7 +747493,7 @@
     {
       "uid": "P:OfficeIMO.Html.Pdf.HtmlPdfAccessibilityIssue.Message",
       "name": "HtmlPdfAccessibilityIssue.Message",
-      "href": "/api/html-pdf/officeimo-html-pdf-htmlpdfaccessibilityissue/#property-message",
+      "href": "/api/html/officeimo-html-pdf-htmlpdfaccessibilityissue/#property-message",
       "aliases": [
         "global::OfficeIMO.Html.Pdf.HtmlPdfAccessibilityIssue.Message",
         "OfficeIMO.Html.Pdf.HtmlPdfAccessibilityIssue.Message"
@@ -747235,7 +747502,7 @@
     {
       "uid": "P:OfficeIMO.Html.Pdf.HtmlPdfAccessibilityIssue.Severity",
       "name": "HtmlPdfAccessibilityIssue.Severity",
-      "href": "/api/html-pdf/officeimo-html-pdf-htmlpdfaccessibilityissue/#property-severity",
+      "href": "/api/html/officeimo-html-pdf-htmlpdfaccessibilityissue/#property-severity",
       "aliases": [
         "global::OfficeIMO.Html.Pdf.HtmlPdfAccessibilityIssue.Severity",
         "OfficeIMO.Html.Pdf.HtmlPdfAccessibilityIssue.Severity"
@@ -747244,7 +747511,7 @@
     {
       "uid": "P:OfficeIMO.Html.Pdf.HtmlPdfAccessibilityValidationResult.Issues",
       "name": "HtmlPdfAccessibilityValidationResult.Issues",
-      "href": "/api/html-pdf/officeimo-html-pdf-htmlpdfaccessibilityvalidationresult/#property-issues",
+      "href": "/api/html/officeimo-html-pdf-htmlpdfaccessibilityvalidationresult/#property-issues",
       "aliases": [
         "global::OfficeIMO.Html.Pdf.HtmlPdfAccessibilityValidationResult.Issues",
         "OfficeIMO.Html.Pdf.HtmlPdfAccessibilityValidationResult.Issues"
@@ -747253,7 +747520,7 @@
     {
       "uid": "P:OfficeIMO.Html.Pdf.HtmlPdfAccessibilityValidationResult.IsValid",
       "name": "HtmlPdfAccessibilityValidationResult.IsValid",
-      "href": "/api/html-pdf/officeimo-html-pdf-htmlpdfaccessibilityvalidationresult/#property-isvalid",
+      "href": "/api/html/officeimo-html-pdf-htmlpdfaccessibilityvalidationresult/#property-isvalid",
       "aliases": [
         "global::OfficeIMO.Html.Pdf.HtmlPdfAccessibilityValidationResult.IsValid",
         "OfficeIMO.Html.Pdf.HtmlPdfAccessibilityValidationResult.IsValid"
@@ -747262,7 +747529,7 @@
     {
       "uid": "P:OfficeIMO.Html.Pdf.HtmlPdfRenderRequestResult.Output",
       "name": "HtmlPdfRenderRequestResult.Output",
-      "href": "/api/html-pdf/officeimo-html-pdf-htmlpdfrenderrequestresult/#property-output",
+      "href": "/api/html/officeimo-html-pdf-htmlpdfrenderrequestresult/#property-output",
       "aliases": [
         "global::OfficeIMO.Html.Pdf.HtmlPdfRenderRequestResult.Output",
         "OfficeIMO.Html.Pdf.HtmlPdfRenderRequestResult.Output"
@@ -747271,7 +747538,7 @@
     {
       "uid": "P:OfficeIMO.Html.Pdf.HtmlPdfRenderRequestResult.RenderResult",
       "name": "HtmlPdfRenderRequestResult.RenderResult",
-      "href": "/api/html-pdf/officeimo-html-pdf-htmlpdfrenderrequestresult/#property-renderresult",
+      "href": "/api/html/officeimo-html-pdf-htmlpdfrenderrequestresult/#property-renderresult",
       "aliases": [
         "global::OfficeIMO.Html.Pdf.HtmlPdfRenderRequestResult.RenderResult",
         "OfficeIMO.Html.Pdf.HtmlPdfRenderRequestResult.RenderResult"
@@ -747280,7 +747547,7 @@
     {
       "uid": "P:OfficeIMO.Html.Pdf.HtmlPdfResourcePolicySummary.AllowDataUris",
       "name": "HtmlPdfResourcePolicySummary.AllowDataUris",
-      "href": "/api/html-pdf/officeimo-html-pdf-htmlpdfresourcepolicysummary/#property-allowdatauris",
+      "href": "/api/html/officeimo-html-pdf-htmlpdfresourcepolicysummary/#property-allowdatauris",
       "aliases": [
         "global::OfficeIMO.Html.Pdf.HtmlPdfResourcePolicySummary.AllowDataUris",
         "OfficeIMO.Html.Pdf.HtmlPdfResourcePolicySummary.AllowDataUris"
@@ -747289,7 +747556,7 @@
     {
       "uid": "P:OfficeIMO.Html.Pdf.HtmlPdfResourcePolicySummary.AllowDocumentFontEmbedding",
       "name": "HtmlPdfResourcePolicySummary.AllowDocumentFontEmbedding",
-      "href": "/api/html-pdf/officeimo-html-pdf-htmlpdfresourcepolicysummary/#property-allowdocumentfontembedding",
+      "href": "/api/html/officeimo-html-pdf-htmlpdfresourcepolicysummary/#property-allowdocumentfontembedding",
       "aliases": [
         "global::OfficeIMO.Html.Pdf.HtmlPdfResourcePolicySummary.AllowDocumentFontEmbedding",
         "OfficeIMO.Html.Pdf.HtmlPdfResourcePolicySummary.AllowDocumentFontEmbedding"
@@ -747298,7 +747565,7 @@
     {
       "uid": "P:OfficeIMO.Html.Pdf.HtmlPdfResourcePolicySummary.AllowedUrlSchemes",
       "name": "HtmlPdfResourcePolicySummary.AllowedUrlSchemes",
-      "href": "/api/html-pdf/officeimo-html-pdf-htmlpdfresourcepolicysummary/#property-allowedurlschemes",
+      "href": "/api/html/officeimo-html-pdf-htmlpdfresourcepolicysummary/#property-allowedurlschemes",
       "aliases": [
         "global::OfficeIMO.Html.Pdf.HtmlPdfResourcePolicySummary.AllowedUrlSchemes",
         "OfficeIMO.Html.Pdf.HtmlPdfResourcePolicySummary.AllowedUrlSchemes"
@@ -747307,7 +747574,7 @@
     {
       "uid": "P:OfficeIMO.Html.Pdf.HtmlPdfResourcePolicySummary.AllowEmbeddedPackageResources",
       "name": "HtmlPdfResourcePolicySummary.AllowEmbeddedPackageResources",
-      "href": "/api/html-pdf/officeimo-html-pdf-htmlpdfresourcepolicysummary/#property-allowembeddedpackageresources",
+      "href": "/api/html/officeimo-html-pdf-htmlpdfresourcepolicysummary/#property-allowembeddedpackageresources",
       "aliases": [
         "global::OfficeIMO.Html.Pdf.HtmlPdfResourcePolicySummary.AllowEmbeddedPackageResources",
         "OfficeIMO.Html.Pdf.HtmlPdfResourcePolicySummary.AllowEmbeddedPackageResources"
@@ -747316,7 +747583,7 @@
     {
       "uid": "P:OfficeIMO.Html.Pdf.HtmlPdfResourcePolicySummary.AllowLocalFileAccess",
       "name": "HtmlPdfResourcePolicySummary.AllowLocalFileAccess",
-      "href": "/api/html-pdf/officeimo-html-pdf-htmlpdfresourcepolicysummary/#property-allowlocalfileaccess",
+      "href": "/api/html/officeimo-html-pdf-htmlpdfresourcepolicysummary/#property-allowlocalfileaccess",
       "aliases": [
         "global::OfficeIMO.Html.Pdf.HtmlPdfResourcePolicySummary.AllowLocalFileAccess",
         "OfficeIMO.Html.Pdf.HtmlPdfResourcePolicySummary.AllowLocalFileAccess"
@@ -747325,7 +747592,7 @@
     {
       "uid": "P:OfficeIMO.Html.Pdf.HtmlPdfResourcePolicySummary.AllowRemoteResourceResolution",
       "name": "HtmlPdfResourcePolicySummary.AllowRemoteResourceResolution",
-      "href": "/api/html-pdf/officeimo-html-pdf-htmlpdfresourcepolicysummary/#property-allowremoteresourceresolution",
+      "href": "/api/html/officeimo-html-pdf-htmlpdfresourcepolicysummary/#property-allowremoteresourceresolution",
       "aliases": [
         "global::OfficeIMO.Html.Pdf.HtmlPdfResourcePolicySummary.AllowRemoteResourceResolution",
         "OfficeIMO.Html.Pdf.HtmlPdfResourcePolicySummary.AllowRemoteResourceResolution"
@@ -747334,7 +747601,7 @@
     {
       "uid": "P:OfficeIMO.Html.Pdf.HtmlPdfResourcePolicySummary.AllowSystemFontEmbedding",
       "name": "HtmlPdfResourcePolicySummary.AllowSystemFontEmbedding",
-      "href": "/api/html-pdf/officeimo-html-pdf-htmlpdfresourcepolicysummary/#property-allowsystemfontembedding",
+      "href": "/api/html/officeimo-html-pdf-htmlpdfresourcepolicysummary/#property-allowsystemfontembedding",
       "aliases": [
         "global::OfficeIMO.Html.Pdf.HtmlPdfResourcePolicySummary.AllowSystemFontEmbedding",
         "OfficeIMO.Html.Pdf.HtmlPdfResourcePolicySummary.AllowSystemFontEmbedding"
@@ -747343,7 +747610,7 @@
     {
       "uid": "P:OfficeIMO.Html.Pdf.HtmlPdfResourcePolicySummary.HasResourceResolver",
       "name": "HtmlPdfResourcePolicySummary.HasResourceResolver",
-      "href": "/api/html-pdf/officeimo-html-pdf-htmlpdfresourcepolicysummary/#property-hasresourceresolver",
+      "href": "/api/html/officeimo-html-pdf-htmlpdfresourcepolicysummary/#property-hasresourceresolver",
       "aliases": [
         "global::OfficeIMO.Html.Pdf.HtmlPdfResourcePolicySummary.HasResourceResolver",
         "OfficeIMO.Html.Pdf.HtmlPdfResourcePolicySummary.HasResourceResolver"
@@ -747352,7 +747619,7 @@
     {
       "uid": "P:OfficeIMO.Html.Pdf.HtmlPdfResourcePolicySummary.MaxConcurrentResourceLoads",
       "name": "HtmlPdfResourcePolicySummary.MaxConcurrentResourceLoads",
-      "href": "/api/html-pdf/officeimo-html-pdf-htmlpdfresourcepolicysummary/#property-maxconcurrentresourceloads",
+      "href": "/api/html/officeimo-html-pdf-htmlpdfresourcepolicysummary/#property-maxconcurrentresourceloads",
       "aliases": [
         "global::OfficeIMO.Html.Pdf.HtmlPdfResourcePolicySummary.MaxConcurrentResourceLoads",
         "OfficeIMO.Html.Pdf.HtmlPdfResourcePolicySummary.MaxConcurrentResourceLoads"
@@ -747361,7 +747628,7 @@
     {
       "uid": "P:OfficeIMO.Html.Pdf.HtmlPdfResourcePolicySummary.MaxResourceBytes",
       "name": "HtmlPdfResourcePolicySummary.MaxResourceBytes",
-      "href": "/api/html-pdf/officeimo-html-pdf-htmlpdfresourcepolicysummary/#property-maxresourcebytes",
+      "href": "/api/html/officeimo-html-pdf-htmlpdfresourcepolicysummary/#property-maxresourcebytes",
       "aliases": [
         "global::OfficeIMO.Html.Pdf.HtmlPdfResourcePolicySummary.MaxResourceBytes",
         "OfficeIMO.Html.Pdf.HtmlPdfResourcePolicySummary.MaxResourceBytes"
@@ -747370,7 +747637,7 @@
     {
       "uid": "P:OfficeIMO.Html.Pdf.HtmlPdfResourcePolicySummary.MaxResourceCount",
       "name": "HtmlPdfResourcePolicySummary.MaxResourceCount",
-      "href": "/api/html-pdf/officeimo-html-pdf-htmlpdfresourcepolicysummary/#property-maxresourcecount",
+      "href": "/api/html/officeimo-html-pdf-htmlpdfresourcepolicysummary/#property-maxresourcecount",
       "aliases": [
         "global::OfficeIMO.Html.Pdf.HtmlPdfResourcePolicySummary.MaxResourceCount",
         "OfficeIMO.Html.Pdf.HtmlPdfResourcePolicySummary.MaxResourceCount"
@@ -747379,7 +747646,7 @@
     {
       "uid": "P:OfficeIMO.Html.Pdf.HtmlPdfResourcePolicySummary.MaxResourceRequests",
       "name": "HtmlPdfResourcePolicySummary.MaxResourceRequests",
-      "href": "/api/html-pdf/officeimo-html-pdf-htmlpdfresourcepolicysummary/#property-maxresourcerequests",
+      "href": "/api/html/officeimo-html-pdf-htmlpdfresourcepolicysummary/#property-maxresourcerequests",
       "aliases": [
         "global::OfficeIMO.Html.Pdf.HtmlPdfResourcePolicySummary.MaxResourceRequests",
         "OfficeIMO.Html.Pdf.HtmlPdfResourcePolicySummary.MaxResourceRequests"
@@ -747388,7 +747655,7 @@
     {
       "uid": "P:OfficeIMO.Html.Pdf.HtmlPdfResourcePolicySummary.MaxStylesheetImportDepth",
       "name": "HtmlPdfResourcePolicySummary.MaxStylesheetImportDepth",
-      "href": "/api/html-pdf/officeimo-html-pdf-htmlpdfresourcepolicysummary/#property-maxstylesheetimportdepth",
+      "href": "/api/html/officeimo-html-pdf-htmlpdfresourcepolicysummary/#property-maxstylesheetimportdepth",
       "aliases": [
         "global::OfficeIMO.Html.Pdf.HtmlPdfResourcePolicySummary.MaxStylesheetImportDepth",
         "OfficeIMO.Html.Pdf.HtmlPdfResourcePolicySummary.MaxStylesheetImportDepth"
@@ -747397,7 +747664,7 @@
     {
       "uid": "P:OfficeIMO.Html.Pdf.HtmlPdfResourcePolicySummary.MaxTotalResourceBytes",
       "name": "HtmlPdfResourcePolicySummary.MaxTotalResourceBytes",
-      "href": "/api/html-pdf/officeimo-html-pdf-htmlpdfresourcepolicysummary/#property-maxtotalresourcebytes",
+      "href": "/api/html/officeimo-html-pdf-htmlpdfresourcepolicysummary/#property-maxtotalresourcebytes",
       "aliases": [
         "global::OfficeIMO.Html.Pdf.HtmlPdfResourcePolicySummary.MaxTotalResourceBytes",
         "OfficeIMO.Html.Pdf.HtmlPdfResourcePolicySummary.MaxTotalResourceBytes"
@@ -747406,7 +747673,7 @@
     {
       "uid": "P:OfficeIMO.Html.Pdf.HtmlPdfResourcePolicySummary.ResourceTimeout",
       "name": "HtmlPdfResourcePolicySummary.ResourceTimeout",
-      "href": "/api/html-pdf/officeimo-html-pdf-htmlpdfresourcepolicysummary/#property-resourcetimeout",
+      "href": "/api/html/officeimo-html-pdf-htmlpdfresourcepolicysummary/#property-resourcetimeout",
       "aliases": [
         "global::OfficeIMO.Html.Pdf.HtmlPdfResourcePolicySummary.ResourceTimeout",
         "OfficeIMO.Html.Pdf.HtmlPdfResourcePolicySummary.ResourceTimeout"
@@ -747415,7 +747682,7 @@
     {
       "uid": "P:OfficeIMO.Html.Pdf.HtmlPortableBrowserFontProfile.Fingerprint",
       "name": "HtmlPortableBrowserFontProfile.Fingerprint",
-      "href": "/api/html-pdf/officeimo-html-pdf-htmlportablebrowserfontprofile/#property-fingerprint",
+      "href": "/api/html/officeimo-html-pdf-htmlportablebrowserfontprofile/#property-fingerprint",
       "aliases": [
         "global::OfficeIMO.Html.Pdf.HtmlPortableBrowserFontProfile.Fingerprint",
         "OfficeIMO.Html.Pdf.HtmlPortableBrowserFontProfile.Fingerprint"
@@ -747424,7 +747691,7 @@
     {
       "uid": "P:OfficeIMO.Html.Pdf.HtmlPortableBrowserFontProfile.FontFamilySubstitutions",
       "name": "HtmlPortableBrowserFontProfile.FontFamilySubstitutions",
-      "href": "/api/html-pdf/officeimo-html-pdf-htmlportablebrowserfontprofile/#property-fontfamilysubstitutions",
+      "href": "/api/html/officeimo-html-pdf-htmlportablebrowserfontprofile/#property-fontfamilysubstitutions",
       "aliases": [
         "global::OfficeIMO.Html.Pdf.HtmlPortableBrowserFontProfile.FontFamilySubstitutions",
         "OfficeIMO.Html.Pdf.HtmlPortableBrowserFontProfile.FontFamilySubstitutions"
@@ -747433,7 +747700,7 @@
     {
       "uid": "P:OfficeIMO.Html.Pdf.HtmlPortableBrowserFontProfile.FontPack",
       "name": "HtmlPortableBrowserFontProfile.FontPack",
-      "href": "/api/html-pdf/officeimo-html-pdf-htmlportablebrowserfontprofile/#property-fontpack",
+      "href": "/api/html/officeimo-html-pdf-htmlportablebrowserfontprofile/#property-fontpack",
       "aliases": [
         "global::OfficeIMO.Html.Pdf.HtmlPortableBrowserFontProfile.FontPack",
         "OfficeIMO.Html.Pdf.HtmlPortableBrowserFontProfile.FontPack"
@@ -747442,7 +747709,7 @@
     {
       "uid": "P:OfficeIMO.Html.Pdf.HtmlPortableBrowserFontProfile.Id",
       "name": "HtmlPortableBrowserFontProfile.Id",
-      "href": "/api/html-pdf/officeimo-html-pdf-htmlportablebrowserfontprofile/#property-id",
+      "href": "/api/html/officeimo-html-pdf-htmlportablebrowserfontprofile/#property-id",
       "aliases": [
         "global::OfficeIMO.Html.Pdf.HtmlPortableBrowserFontProfile.Id",
         "OfficeIMO.Html.Pdf.HtmlPortableBrowserFontProfile.Id"
@@ -747451,7 +747718,7 @@
     {
       "uid": "P:OfficeIMO.Html.Pdf.HtmlRenderCapabilityGalleryOptions.Expectations",
       "name": "HtmlRenderCapabilityGalleryOptions.Expectations",
-      "href": "/api/html-pdf/officeimo-html-pdf-htmlrendercapabilitygalleryoptions/#property-expectations",
+      "href": "/api/html/officeimo-html-pdf-htmlrendercapabilitygalleryoptions/#property-expectations",
       "aliases": [
         "global::OfficeIMO.Html.Pdf.HtmlRenderCapabilityGalleryOptions.Expectations",
         "OfficeIMO.Html.Pdf.HtmlRenderCapabilityGalleryOptions.Expectations"
@@ -747460,7 +747727,7 @@
     {
       "uid": "P:OfficeIMO.Html.Pdf.HtmlRenderCapabilityGalleryOptions.PdfProofOptions",
       "name": "HtmlRenderCapabilityGalleryOptions.PdfProofOptions",
-      "href": "/api/html-pdf/officeimo-html-pdf-htmlrendercapabilitygalleryoptions/#property-pdfproofoptions",
+      "href": "/api/html/officeimo-html-pdf-htmlrendercapabilitygalleryoptions/#property-pdfproofoptions",
       "aliases": [
         "global::OfficeIMO.Html.Pdf.HtmlRenderCapabilityGalleryOptions.PdfProofOptions",
         "OfficeIMO.Html.Pdf.HtmlRenderCapabilityGalleryOptions.PdfProofOptions"
@@ -747469,7 +747736,7 @@
     {
       "uid": "P:OfficeIMO.Html.Pdf.HtmlRenderCapabilityGalleryOptions.PreviewAllPages",
       "name": "HtmlRenderCapabilityGalleryOptions.PreviewAllPages",
-      "href": "/api/html-pdf/officeimo-html-pdf-htmlrendercapabilitygalleryoptions/#property-previewallpages",
+      "href": "/api/html/officeimo-html-pdf-htmlrendercapabilitygalleryoptions/#property-previewallpages",
       "aliases": [
         "global::OfficeIMO.Html.Pdf.HtmlRenderCapabilityGalleryOptions.PreviewAllPages",
         "OfficeIMO.Html.Pdf.HtmlRenderCapabilityGalleryOptions.PreviewAllPages"
@@ -747478,7 +747745,7 @@
     {
       "uid": "P:OfficeIMO.Html.Pdf.HtmlRenderCapabilityGalleryOptions.PreviewFormats",
       "name": "HtmlRenderCapabilityGalleryOptions.PreviewFormats",
-      "href": "/api/html-pdf/officeimo-html-pdf-htmlrendercapabilitygalleryoptions/#property-previewformats",
+      "href": "/api/html/officeimo-html-pdf-htmlrendercapabilitygalleryoptions/#property-previewformats",
       "aliases": [
         "global::OfficeIMO.Html.Pdf.HtmlRenderCapabilityGalleryOptions.PreviewFormats",
         "OfficeIMO.Html.Pdf.HtmlRenderCapabilityGalleryOptions.PreviewFormats"
@@ -747487,7 +747754,7 @@
     {
       "uid": "P:OfficeIMO.Html.Pdf.HtmlRenderCapabilityGalleryOptions.PreviewPageIndex",
       "name": "HtmlRenderCapabilityGalleryOptions.PreviewPageIndex",
-      "href": "/api/html-pdf/officeimo-html-pdf-htmlrendercapabilitygalleryoptions/#property-previewpageindex",
+      "href": "/api/html/officeimo-html-pdf-htmlrendercapabilitygalleryoptions/#property-previewpageindex",
       "aliases": [
         "global::OfficeIMO.Html.Pdf.HtmlRenderCapabilityGalleryOptions.PreviewPageIndex",
         "OfficeIMO.Html.Pdf.HtmlRenderCapabilityGalleryOptions.PreviewPageIndex"
@@ -747496,7 +747763,7 @@
     {
       "uid": "P:OfficeIMO.Html.Pdf.HtmlRenderCapabilityGalleryOptions.RenderOptions",
       "name": "HtmlRenderCapabilityGalleryOptions.RenderOptions",
-      "href": "/api/html-pdf/officeimo-html-pdf-htmlrendercapabilitygalleryoptions/#property-renderoptions",
+      "href": "/api/html/officeimo-html-pdf-htmlrendercapabilitygalleryoptions/#property-renderoptions",
       "aliases": [
         "global::OfficeIMO.Html.Pdf.HtmlRenderCapabilityGalleryOptions.RenderOptions",
         "OfficeIMO.Html.Pdf.HtmlRenderCapabilityGalleryOptions.RenderOptions"
@@ -747505,7 +747772,7 @@
     {
       "uid": "P:OfficeIMO.Html.Pdf.HtmlRenderCapabilityGalleryOptions.Scenario",
       "name": "HtmlRenderCapabilityGalleryOptions.Scenario",
-      "href": "/api/html-pdf/officeimo-html-pdf-htmlrendercapabilitygalleryoptions/#property-scenario",
+      "href": "/api/html/officeimo-html-pdf-htmlrendercapabilitygalleryoptions/#property-scenario",
       "aliases": [
         "global::OfficeIMO.Html.Pdf.HtmlRenderCapabilityGalleryOptions.Scenario",
         "OfficeIMO.Html.Pdf.HtmlRenderCapabilityGalleryOptions.Scenario"
@@ -747514,7 +747781,7 @@
     {
       "uid": "P:OfficeIMO.Html.Pdf.HtmlToPdfOptions.AdditionalStylesheets",
       "name": "HtmlToPdfOptions.AdditionalStylesheets",
-      "href": "/api/html-pdf/officeimo-html-pdf-htmltopdfoptions/#property-additionalstylesheets",
+      "href": "/api/html/officeimo-html-pdf-htmltopdfoptions/#property-additionalstylesheets",
       "aliases": [
         "global::OfficeIMO.Html.Pdf.HtmlToPdfOptions.AdditionalStylesheets",
         "OfficeIMO.Html.Pdf.HtmlToPdfOptions.AdditionalStylesheets"
@@ -747523,7 +747790,7 @@
     {
       "uid": "P:OfficeIMO.Html.Pdf.HtmlToPdfOptions.AllowSystemFontFallback",
       "name": "HtmlToPdfOptions.AllowSystemFontFallback",
-      "href": "/api/html-pdf/officeimo-html-pdf-htmltopdfoptions/#property-allowsystemfontfallback",
+      "href": "/api/html/officeimo-html-pdf-htmltopdfoptions/#property-allowsystemfontfallback",
       "aliases": [
         "global::OfficeIMO.Html.Pdf.HtmlToPdfOptions.AllowSystemFontFallback",
         "OfficeIMO.Html.Pdf.HtmlToPdfOptions.AllowSystemFontFallback"
@@ -747532,7 +747799,7 @@
     {
       "uid": "P:OfficeIMO.Html.Pdf.HtmlToPdfOptions.AutoFitWidePrintContent",
       "name": "HtmlToPdfOptions.AutoFitWidePrintContent",
-      "href": "/api/html-pdf/officeimo-html-pdf-htmltopdfoptions/#property-autofitwideprintcontent",
+      "href": "/api/html/officeimo-html-pdf-htmltopdfoptions/#property-autofitwideprintcontent",
       "aliases": [
         "global::OfficeIMO.Html.Pdf.HtmlToPdfOptions.AutoFitWidePrintContent",
         "OfficeIMO.Html.Pdf.HtmlToPdfOptions.AutoFitWidePrintContent"
@@ -747541,7 +747808,7 @@
     {
       "uid": "P:OfficeIMO.Html.Pdf.HtmlToPdfOptions.BackgroundColor",
       "name": "HtmlToPdfOptions.BackgroundColor",
-      "href": "/api/html-pdf/officeimo-html-pdf-htmltopdfoptions/#property-backgroundcolor",
+      "href": "/api/html/officeimo-html-pdf-htmltopdfoptions/#property-backgroundcolor",
       "aliases": [
         "global::OfficeIMO.Html.Pdf.HtmlToPdfOptions.BackgroundColor",
         "OfficeIMO.Html.Pdf.HtmlToPdfOptions.BackgroundColor"
@@ -747550,7 +747817,7 @@
     {
       "uid": "P:OfficeIMO.Html.Pdf.HtmlToPdfOptions.BaseUri",
       "name": "HtmlToPdfOptions.BaseUri",
-      "href": "/api/html-pdf/officeimo-html-pdf-htmltopdfoptions/#property-baseuri",
+      "href": "/api/html/officeimo-html-pdf-htmltopdfoptions/#property-baseuri",
       "aliases": [
         "global::OfficeIMO.Html.Pdf.HtmlToPdfOptions.BaseUri",
         "OfficeIMO.Html.Pdf.HtmlToPdfOptions.BaseUri"
@@ -747559,7 +747826,7 @@
     {
       "uid": "P:OfficeIMO.Html.Pdf.HtmlToPdfOptions.ConicGradientQualitySegments",
       "name": "HtmlToPdfOptions.ConicGradientQualitySegments",
-      "href": "/api/html-pdf/officeimo-html-pdf-htmltopdfoptions/#property-conicgradientqualitysegments",
+      "href": "/api/html/officeimo-html-pdf-htmltopdfoptions/#property-conicgradientqualitysegments",
       "aliases": [
         "global::OfficeIMO.Html.Pdf.HtmlToPdfOptions.ConicGradientQualitySegments",
         "OfficeIMO.Html.Pdf.HtmlToPdfOptions.ConicGradientQualitySegments"
@@ -747568,7 +747835,7 @@
     {
       "uid": "P:OfficeIMO.Html.Pdf.HtmlToPdfOptions.DefaultFontFamily",
       "name": "HtmlToPdfOptions.DefaultFontFamily",
-      "href": "/api/html-pdf/officeimo-html-pdf-htmltopdfoptions/#property-defaultfontfamily",
+      "href": "/api/html/officeimo-html-pdf-htmltopdfoptions/#property-defaultfontfamily",
       "aliases": [
         "global::OfficeIMO.Html.Pdf.HtmlToPdfOptions.DefaultFontFamily",
         "OfficeIMO.Html.Pdf.HtmlToPdfOptions.DefaultFontFamily"
@@ -747577,7 +747844,7 @@
     {
       "uid": "P:OfficeIMO.Html.Pdf.HtmlToPdfOptions.DefaultFontSize",
       "name": "HtmlToPdfOptions.DefaultFontSize",
-      "href": "/api/html-pdf/officeimo-html-pdf-htmltopdfoptions/#property-defaultfontsize",
+      "href": "/api/html/officeimo-html-pdf-htmltopdfoptions/#property-defaultfontsize",
       "aliases": [
         "global::OfficeIMO.Html.Pdf.HtmlToPdfOptions.DefaultFontSize",
         "OfficeIMO.Html.Pdf.HtmlToPdfOptions.DefaultFontSize"
@@ -747586,7 +747853,7 @@
     {
       "uid": "P:OfficeIMO.Html.Pdf.HtmlToPdfOptions.DefaultLineHeight",
       "name": "HtmlToPdfOptions.DefaultLineHeight",
-      "href": "/api/html-pdf/officeimo-html-pdf-htmltopdfoptions/#property-defaultlineheight",
+      "href": "/api/html/officeimo-html-pdf-htmltopdfoptions/#property-defaultlineheight",
       "aliases": [
         "global::OfficeIMO.Html.Pdf.HtmlToPdfOptions.DefaultLineHeight",
         "OfficeIMO.Html.Pdf.HtmlToPdfOptions.DefaultLineHeight"
@@ -747595,7 +747862,7 @@
     {
       "uid": "P:OfficeIMO.Html.Pdf.HtmlToPdfOptions.FidelityPolicy",
       "name": "HtmlToPdfOptions.FidelityPolicy",
-      "href": "/api/html-pdf/officeimo-html-pdf-htmltopdfoptions/#property-fidelitypolicy",
+      "href": "/api/html/officeimo-html-pdf-htmltopdfoptions/#property-fidelitypolicy",
       "aliases": [
         "global::OfficeIMO.Html.Pdf.HtmlToPdfOptions.FidelityPolicy",
         "OfficeIMO.Html.Pdf.HtmlToPdfOptions.FidelityPolicy"
@@ -747604,7 +747871,7 @@
     {
       "uid": "P:OfficeIMO.Html.Pdf.HtmlToPdfOptions.FontFamily",
       "name": "HtmlToPdfOptions.FontFamily",
-      "href": "/api/html-pdf/officeimo-html-pdf-htmltopdfoptions/#property-fontfamily",
+      "href": "/api/html/officeimo-html-pdf-htmltopdfoptions/#property-fontfamily",
       "aliases": [
         "global::OfficeIMO.Html.Pdf.HtmlToPdfOptions.FontFamily",
         "OfficeIMO.Html.Pdf.HtmlToPdfOptions.FontFamily"
@@ -747613,7 +747880,7 @@
     {
       "uid": "P:OfficeIMO.Html.Pdf.HtmlToPdfOptions.Fonts",
       "name": "HtmlToPdfOptions.Fonts",
-      "href": "/api/html-pdf/officeimo-html-pdf-htmltopdfoptions/#property-fonts",
+      "href": "/api/html/officeimo-html-pdf-htmltopdfoptions/#property-fonts",
       "aliases": [
         "global::OfficeIMO.Html.Pdf.HtmlToPdfOptions.Fonts",
         "OfficeIMO.Html.Pdf.HtmlToPdfOptions.Fonts"
@@ -747622,7 +747889,7 @@
     {
       "uid": "P:OfficeIMO.Html.Pdf.HtmlToPdfOptions.HonorCssPageRules",
       "name": "HtmlToPdfOptions.HonorCssPageRules",
-      "href": "/api/html-pdf/officeimo-html-pdf-htmltopdfoptions/#property-honorcsspagerules",
+      "href": "/api/html/officeimo-html-pdf-htmltopdfoptions/#property-honorcsspagerules",
       "aliases": [
         "global::OfficeIMO.Html.Pdf.HtmlToPdfOptions.HonorCssPageRules",
         "OfficeIMO.Html.Pdf.HtmlToPdfOptions.HonorCssPageRules"
@@ -747631,7 +747898,7 @@
     {
       "uid": "P:OfficeIMO.Html.Pdf.HtmlToPdfOptions.ImageCodec",
       "name": "HtmlToPdfOptions.ImageCodec",
-      "href": "/api/html-pdf/officeimo-html-pdf-htmltopdfoptions/#property-imagecodec",
+      "href": "/api/html/officeimo-html-pdf-htmltopdfoptions/#property-imagecodec",
       "aliases": [
         "global::OfficeIMO.Html.Pdf.HtmlToPdfOptions.ImageCodec",
         "OfficeIMO.Html.Pdf.HtmlToPdfOptions.ImageCodec"
@@ -747640,7 +747907,7 @@
     {
       "uid": "P:OfficeIMO.Html.Pdf.HtmlToPdfOptions.InteractiveFormControls",
       "name": "HtmlToPdfOptions.InteractiveFormControls",
-      "href": "/api/html-pdf/officeimo-html-pdf-htmltopdfoptions/#property-interactiveformcontrols",
+      "href": "/api/html/officeimo-html-pdf-htmltopdfoptions/#property-interactiveformcontrols",
       "aliases": [
         "global::OfficeIMO.Html.Pdf.HtmlToPdfOptions.InteractiveFormControls",
         "OfficeIMO.Html.Pdf.HtmlToPdfOptions.InteractiveFormControls"
@@ -747649,7 +747916,7 @@
     {
       "uid": "P:OfficeIMO.Html.Pdf.HtmlToPdfOptions.LogicalUnitsPerInch",
       "name": "HtmlToPdfOptions.LogicalUnitsPerInch",
-      "href": "/api/html-pdf/officeimo-html-pdf-htmltopdfoptions/#property-logicalunitsperinch",
+      "href": "/api/html/officeimo-html-pdf-htmltopdfoptions/#property-logicalunitsperinch",
       "aliases": [
         "global::OfficeIMO.Html.Pdf.HtmlToPdfOptions.LogicalUnitsPerInch",
         "OfficeIMO.Html.Pdf.HtmlToPdfOptions.LogicalUnitsPerInch"
@@ -747658,7 +747925,7 @@
     {
       "uid": "P:OfficeIMO.Html.Pdf.HtmlToPdfOptions.Margins",
       "name": "HtmlToPdfOptions.Margins",
-      "href": "/api/html-pdf/officeimo-html-pdf-htmltopdfoptions/#property-margins",
+      "href": "/api/html/officeimo-html-pdf-htmltopdfoptions/#property-margins",
       "aliases": [
         "global::OfficeIMO.Html.Pdf.HtmlToPdfOptions.Margins",
         "OfficeIMO.Html.Pdf.HtmlToPdfOptions.Margins"
@@ -747667,7 +747934,7 @@
     {
       "uid": "P:OfficeIMO.Html.Pdf.HtmlToPdfOptions.MathMlSourceModificationDate",
       "name": "HtmlToPdfOptions.MathMlSourceModificationDate",
-      "href": "/api/html-pdf/officeimo-html-pdf-htmltopdfoptions/#property-mathmlsourcemodificationdate",
+      "href": "/api/html/officeimo-html-pdf-htmltopdfoptions/#property-mathmlsourcemodificationdate",
       "aliases": [
         "global::OfficeIMO.Html.Pdf.HtmlToPdfOptions.MathMlSourceModificationDate",
         "OfficeIMO.Html.Pdf.HtmlToPdfOptions.MathMlSourceModificationDate"
@@ -747676,7 +747943,7 @@
     {
       "uid": "P:OfficeIMO.Html.Pdf.HtmlToPdfOptions.MaxBackgroundImageLayers",
       "name": "HtmlToPdfOptions.MaxBackgroundImageLayers",
-      "href": "/api/html-pdf/officeimo-html-pdf-htmltopdfoptions/#property-maxbackgroundimagelayers",
+      "href": "/api/html/officeimo-html-pdf-htmltopdfoptions/#property-maxbackgroundimagelayers",
       "aliases": [
         "global::OfficeIMO.Html.Pdf.HtmlToPdfOptions.MaxBackgroundImageLayers",
         "OfficeIMO.Html.Pdf.HtmlToPdfOptions.MaxBackgroundImageLayers"
@@ -747685,7 +747952,7 @@
     {
       "uid": "P:OfficeIMO.Html.Pdf.HtmlToPdfOptions.MaxBackgroundImageTiles",
       "name": "HtmlToPdfOptions.MaxBackgroundImageTiles",
-      "href": "/api/html-pdf/officeimo-html-pdf-htmltopdfoptions/#property-maxbackgroundimagetiles",
+      "href": "/api/html/officeimo-html-pdf-htmltopdfoptions/#property-maxbackgroundimagetiles",
       "aliases": [
         "global::OfficeIMO.Html.Pdf.HtmlToPdfOptions.MaxBackgroundImageTiles",
         "OfficeIMO.Html.Pdf.HtmlToPdfOptions.MaxBackgroundImageTiles"
@@ -747694,7 +747961,7 @@
     {
       "uid": "P:OfficeIMO.Html.Pdf.HtmlToPdfOptions.MaxBoxShadowLayers",
       "name": "HtmlToPdfOptions.MaxBoxShadowLayers",
-      "href": "/api/html-pdf/officeimo-html-pdf-htmltopdfoptions/#property-maxboxshadowlayers",
+      "href": "/api/html/officeimo-html-pdf-htmltopdfoptions/#property-maxboxshadowlayers",
       "aliases": [
         "global::OfficeIMO.Html.Pdf.HtmlToPdfOptions.MaxBoxShadowLayers",
         "OfficeIMO.Html.Pdf.HtmlToPdfOptions.MaxBoxShadowLayers"
@@ -747703,7 +747970,7 @@
     {
       "uid": "P:OfficeIMO.Html.Pdf.HtmlToPdfOptions.MaxCollapsedTableBorderSegments",
       "name": "HtmlToPdfOptions.MaxCollapsedTableBorderSegments",
-      "href": "/api/html-pdf/officeimo-html-pdf-htmltopdfoptions/#property-maxcollapsedtablebordersegments",
+      "href": "/api/html/officeimo-html-pdf-htmltopdfoptions/#property-maxcollapsedtablebordersegments",
       "aliases": [
         "global::OfficeIMO.Html.Pdf.HtmlToPdfOptions.MaxCollapsedTableBorderSegments",
         "OfficeIMO.Html.Pdf.HtmlToPdfOptions.MaxCollapsedTableBorderSegments"
@@ -747712,7 +747979,7 @@
     {
       "uid": "P:OfficeIMO.Html.Pdf.HtmlToPdfOptions.MaxColumnCount",
       "name": "HtmlToPdfOptions.MaxColumnCount",
-      "href": "/api/html-pdf/officeimo-html-pdf-htmltopdfoptions/#property-maxcolumncount",
+      "href": "/api/html/officeimo-html-pdf-htmltopdfoptions/#property-maxcolumncount",
       "aliases": [
         "global::OfficeIMO.Html.Pdf.HtmlToPdfOptions.MaxColumnCount",
         "OfficeIMO.Html.Pdf.HtmlToPdfOptions.MaxColumnCount"
@@ -747721,7 +747988,7 @@
     {
       "uid": "P:OfficeIMO.Html.Pdf.HtmlToPdfOptions.MaxConcurrentResourceLoads",
       "name": "HtmlToPdfOptions.MaxConcurrentResourceLoads",
-      "href": "/api/html-pdf/officeimo-html-pdf-htmltopdfoptions/#property-maxconcurrentresourceloads",
+      "href": "/api/html/officeimo-html-pdf-htmltopdfoptions/#property-maxconcurrentresourceloads",
       "aliases": [
         "global::OfficeIMO.Html.Pdf.HtmlToPdfOptions.MaxConcurrentResourceLoads",
         "OfficeIMO.Html.Pdf.HtmlToPdfOptions.MaxConcurrentResourceLoads"
@@ -747730,7 +747997,7 @@
     {
       "uid": "P:OfficeIMO.Html.Pdf.HtmlToPdfOptions.MaxFrameDepth",
       "name": "HtmlToPdfOptions.MaxFrameDepth",
-      "href": "/api/html-pdf/officeimo-html-pdf-htmltopdfoptions/#property-maxframedepth",
+      "href": "/api/html/officeimo-html-pdf-htmltopdfoptions/#property-maxframedepth",
       "aliases": [
         "global::OfficeIMO.Html.Pdf.HtmlToPdfOptions.MaxFrameDepth",
         "OfficeIMO.Html.Pdf.HtmlToPdfOptions.MaxFrameDepth"
@@ -747739,7 +748006,7 @@
     {
       "uid": "P:OfficeIMO.Html.Pdf.HtmlToPdfOptions.MaxGradientStops",
       "name": "HtmlToPdfOptions.MaxGradientStops",
-      "href": "/api/html-pdf/officeimo-html-pdf-htmltopdfoptions/#property-maxgradientstops",
+      "href": "/api/html/officeimo-html-pdf-htmltopdfoptions/#property-maxgradientstops",
       "aliases": [
         "global::OfficeIMO.Html.Pdf.HtmlToPdfOptions.MaxGradientStops",
         "OfficeIMO.Html.Pdf.HtmlToPdfOptions.MaxGradientStops"
@@ -747748,7 +748015,7 @@
     {
       "uid": "P:OfficeIMO.Html.Pdf.HtmlToPdfOptions.MaxGridTracks",
       "name": "HtmlToPdfOptions.MaxGridTracks",
-      "href": "/api/html-pdf/officeimo-html-pdf-htmltopdfoptions/#property-maxgridtracks",
+      "href": "/api/html/officeimo-html-pdf-htmltopdfoptions/#property-maxgridtracks",
       "aliases": [
         "global::OfficeIMO.Html.Pdf.HtmlToPdfOptions.MaxGridTracks",
         "OfficeIMO.Html.Pdf.HtmlToPdfOptions.MaxGridTracks"
@@ -747757,7 +748024,7 @@
     {
       "uid": "P:OfficeIMO.Html.Pdf.HtmlToPdfOptions.MaxHtmlNodes",
       "name": "HtmlToPdfOptions.MaxHtmlNodes",
-      "href": "/api/html-pdf/officeimo-html-pdf-htmltopdfoptions/#property-maxhtmlnodes",
+      "href": "/api/html/officeimo-html-pdf-htmltopdfoptions/#property-maxhtmlnodes",
       "aliases": [
         "global::OfficeIMO.Html.Pdf.HtmlToPdfOptions.MaxHtmlNodes",
         "OfficeIMO.Html.Pdf.HtmlToPdfOptions.MaxHtmlNodes"
@@ -747766,7 +748033,7 @@
     {
       "uid": "P:OfficeIMO.Html.Pdf.HtmlToPdfOptions.MaximumDegreeOfParallelism",
       "name": "HtmlToPdfOptions.MaximumDegreeOfParallelism",
-      "href": "/api/html-pdf/officeimo-html-pdf-htmltopdfoptions/#property-maximumdegreeofparallelism",
+      "href": "/api/html/officeimo-html-pdf-htmltopdfoptions/#property-maximumdegreeofparallelism",
       "aliases": [
         "global::OfficeIMO.Html.Pdf.HtmlToPdfOptions.MaximumDegreeOfParallelism",
         "OfficeIMO.Html.Pdf.HtmlToPdfOptions.MaximumDegreeOfParallelism"
@@ -747775,7 +748042,7 @@
     {
       "uid": "P:OfficeIMO.Html.Pdf.HtmlToPdfOptions.MaximumOutputCount",
       "name": "HtmlToPdfOptions.MaximumOutputCount",
-      "href": "/api/html-pdf/officeimo-html-pdf-htmltopdfoptions/#property-maximumoutputcount",
+      "href": "/api/html/officeimo-html-pdf-htmltopdfoptions/#property-maximumoutputcount",
       "aliases": [
         "global::OfficeIMO.Html.Pdf.HtmlToPdfOptions.MaximumOutputCount",
         "OfficeIMO.Html.Pdf.HtmlToPdfOptions.MaximumOutputCount"
@@ -747784,7 +748051,7 @@
     {
       "uid": "P:OfficeIMO.Html.Pdf.HtmlToPdfOptions.MaximumOutputHeight",
       "name": "HtmlToPdfOptions.MaximumOutputHeight",
-      "href": "/api/html-pdf/officeimo-html-pdf-htmltopdfoptions/#property-maximumoutputheight",
+      "href": "/api/html/officeimo-html-pdf-htmltopdfoptions/#property-maximumoutputheight",
       "aliases": [
         "global::OfficeIMO.Html.Pdf.HtmlToPdfOptions.MaximumOutputHeight",
         "OfficeIMO.Html.Pdf.HtmlToPdfOptions.MaximumOutputHeight"
@@ -747793,7 +748060,7 @@
     {
       "uid": "P:OfficeIMO.Html.Pdf.HtmlToPdfOptions.MaximumOutputWidth",
       "name": "HtmlToPdfOptions.MaximumOutputWidth",
-      "href": "/api/html-pdf/officeimo-html-pdf-htmltopdfoptions/#property-maximumoutputwidth",
+      "href": "/api/html/officeimo-html-pdf-htmltopdfoptions/#property-maximumoutputwidth",
       "aliases": [
         "global::OfficeIMO.Html.Pdf.HtmlToPdfOptions.MaximumOutputWidth",
         "OfficeIMO.Html.Pdf.HtmlToPdfOptions.MaximumOutputWidth"
@@ -747802,7 +748069,7 @@
     {
       "uid": "P:OfficeIMO.Html.Pdf.HtmlToPdfOptions.MaximumRasterPixels",
       "name": "HtmlToPdfOptions.MaximumRasterPixels",
-      "href": "/api/html-pdf/officeimo-html-pdf-htmltopdfoptions/#property-maximumrasterpixels",
+      "href": "/api/html/officeimo-html-pdf-htmltopdfoptions/#property-maximumrasterpixels",
       "aliases": [
         "global::OfficeIMO.Html.Pdf.HtmlToPdfOptions.MaximumRasterPixels",
         "OfficeIMO.Html.Pdf.HtmlToPdfOptions.MaximumRasterPixels"
@@ -747811,7 +748078,7 @@
     {
       "uid": "P:OfficeIMO.Html.Pdf.HtmlToPdfOptions.MaximumTotalEncodedBytes",
       "name": "HtmlToPdfOptions.MaximumTotalEncodedBytes",
-      "href": "/api/html-pdf/officeimo-html-pdf-htmltopdfoptions/#property-maximumtotalencodedbytes",
+      "href": "/api/html/officeimo-html-pdf-htmltopdfoptions/#property-maximumtotalencodedbytes",
       "aliases": [
         "global::OfficeIMO.Html.Pdf.HtmlToPdfOptions.MaximumTotalEncodedBytes",
         "OfficeIMO.Html.Pdf.HtmlToPdfOptions.MaximumTotalEncodedBytes"
@@ -747820,7 +748087,7 @@
     {
       "uid": "P:OfficeIMO.Html.Pdf.HtmlToPdfOptions.MaximumTotalRasterPixels",
       "name": "HtmlToPdfOptions.MaximumTotalRasterPixels",
-      "href": "/api/html-pdf/officeimo-html-pdf-htmltopdfoptions/#property-maximumtotalrasterpixels",
+      "href": "/api/html/officeimo-html-pdf-htmltopdfoptions/#property-maximumtotalrasterpixels",
       "aliases": [
         "global::OfficeIMO.Html.Pdf.HtmlToPdfOptions.MaximumTotalRasterPixels",
         "OfficeIMO.Html.Pdf.HtmlToPdfOptions.MaximumTotalRasterPixels"
@@ -747829,7 +748096,7 @@
     {
       "uid": "P:OfficeIMO.Html.Pdf.HtmlToPdfOptions.MaxInputCharacters",
       "name": "HtmlToPdfOptions.MaxInputCharacters",
-      "href": "/api/html-pdf/officeimo-html-pdf-htmltopdfoptions/#property-maxinputcharacters",
+      "href": "/api/html/officeimo-html-pdf-htmltopdfoptions/#property-maxinputcharacters",
       "aliases": [
         "global::OfficeIMO.Html.Pdf.HtmlToPdfOptions.MaxInputCharacters",
         "OfficeIMO.Html.Pdf.HtmlToPdfOptions.MaxInputCharacters"
@@ -747838,7 +748105,7 @@
     {
       "uid": "P:OfficeIMO.Html.Pdf.HtmlToPdfOptions.MaxLayoutDepth",
       "name": "HtmlToPdfOptions.MaxLayoutDepth",
-      "href": "/api/html-pdf/officeimo-html-pdf-htmltopdfoptions/#property-maxlayoutdepth",
+      "href": "/api/html/officeimo-html-pdf-htmltopdfoptions/#property-maxlayoutdepth",
       "aliases": [
         "global::OfficeIMO.Html.Pdf.HtmlToPdfOptions.MaxLayoutDepth",
         "OfficeIMO.Html.Pdf.HtmlToPdfOptions.MaxLayoutDepth"
@@ -747847,7 +748114,7 @@
     {
       "uid": "P:OfficeIMO.Html.Pdf.HtmlToPdfOptions.MaxLayoutOperations",
       "name": "HtmlToPdfOptions.MaxLayoutOperations",
-      "href": "/api/html-pdf/officeimo-html-pdf-htmltopdfoptions/#property-maxlayoutoperations",
+      "href": "/api/html/officeimo-html-pdf-htmltopdfoptions/#property-maxlayoutoperations",
       "aliases": [
         "global::OfficeIMO.Html.Pdf.HtmlToPdfOptions.MaxLayoutOperations",
         "OfficeIMO.Html.Pdf.HtmlToPdfOptions.MaxLayoutOperations"
@@ -747856,7 +748123,7 @@
     {
       "uid": "P:OfficeIMO.Html.Pdf.HtmlToPdfOptions.MaxLeaderCharacters",
       "name": "HtmlToPdfOptions.MaxLeaderCharacters",
-      "href": "/api/html-pdf/officeimo-html-pdf-htmltopdfoptions/#property-maxleadercharacters",
+      "href": "/api/html/officeimo-html-pdf-htmltopdfoptions/#property-maxleadercharacters",
       "aliases": [
         "global::OfficeIMO.Html.Pdf.HtmlToPdfOptions.MaxLeaderCharacters",
         "OfficeIMO.Html.Pdf.HtmlToPdfOptions.MaxLeaderCharacters"
@@ -747865,7 +748132,7 @@
     {
       "uid": "P:OfficeIMO.Html.Pdf.HtmlToPdfOptions.MaxOutlinedTextCharactersPerRun",
       "name": "HtmlToPdfOptions.MaxOutlinedTextCharactersPerRun",
-      "href": "/api/html-pdf/officeimo-html-pdf-htmltopdfoptions/#property-maxoutlinedtextcharactersperrun",
+      "href": "/api/html/officeimo-html-pdf-htmltopdfoptions/#property-maxoutlinedtextcharactersperrun",
       "aliases": [
         "global::OfficeIMO.Html.Pdf.HtmlToPdfOptions.MaxOutlinedTextCharactersPerRun",
         "OfficeIMO.Html.Pdf.HtmlToPdfOptions.MaxOutlinedTextCharactersPerRun"
@@ -747874,7 +748141,7 @@
     {
       "uid": "P:OfficeIMO.Html.Pdf.HtmlToPdfOptions.MaxOutlinedTextPathCommands",
       "name": "HtmlToPdfOptions.MaxOutlinedTextPathCommands",
-      "href": "/api/html-pdf/officeimo-html-pdf-htmltopdfoptions/#property-maxoutlinedtextpathcommands",
+      "href": "/api/html/officeimo-html-pdf-htmltopdfoptions/#property-maxoutlinedtextpathcommands",
       "aliases": [
         "global::OfficeIMO.Html.Pdf.HtmlToPdfOptions.MaxOutlinedTextPathCommands",
         "OfficeIMO.Html.Pdf.HtmlToPdfOptions.MaxOutlinedTextPathCommands"
@@ -747883,7 +748150,7 @@
     {
       "uid": "P:OfficeIMO.Html.Pdf.HtmlToPdfOptions.MaxPageCount",
       "name": "HtmlToPdfOptions.MaxPageCount",
-      "href": "/api/html-pdf/officeimo-html-pdf-htmltopdfoptions/#property-maxpagecount",
+      "href": "/api/html/officeimo-html-pdf-htmltopdfoptions/#property-maxpagecount",
       "aliases": [
         "global::OfficeIMO.Html.Pdf.HtmlToPdfOptions.MaxPageCount",
         "OfficeIMO.Html.Pdf.HtmlToPdfOptions.MaxPageCount"
@@ -747892,7 +748159,7 @@
     {
       "uid": "P:OfficeIMO.Html.Pdf.HtmlToPdfOptions.MaxProjectedVisuals",
       "name": "HtmlToPdfOptions.MaxProjectedVisuals",
-      "href": "/api/html-pdf/officeimo-html-pdf-htmltopdfoptions/#property-maxprojectedvisuals",
+      "href": "/api/html/officeimo-html-pdf-htmltopdfoptions/#property-maxprojectedvisuals",
       "aliases": [
         "global::OfficeIMO.Html.Pdf.HtmlToPdfOptions.MaxProjectedVisuals",
         "OfficeIMO.Html.Pdf.HtmlToPdfOptions.MaxProjectedVisuals"
@@ -747901,7 +748168,7 @@
     {
       "uid": "P:OfficeIMO.Html.Pdf.HtmlToPdfOptions.MaxResourceBytes",
       "name": "HtmlToPdfOptions.MaxResourceBytes",
-      "href": "/api/html-pdf/officeimo-html-pdf-htmltopdfoptions/#property-maxresourcebytes",
+      "href": "/api/html/officeimo-html-pdf-htmltopdfoptions/#property-maxresourcebytes",
       "aliases": [
         "global::OfficeIMO.Html.Pdf.HtmlToPdfOptions.MaxResourceBytes",
         "OfficeIMO.Html.Pdf.HtmlToPdfOptions.MaxResourceBytes"
@@ -747910,7 +748177,7 @@
     {
       "uid": "P:OfficeIMO.Html.Pdf.HtmlToPdfOptions.MaxResourceCount",
       "name": "HtmlToPdfOptions.MaxResourceCount",
-      "href": "/api/html-pdf/officeimo-html-pdf-htmltopdfoptions/#property-maxresourcecount",
+      "href": "/api/html/officeimo-html-pdf-htmltopdfoptions/#property-maxresourcecount",
       "aliases": [
         "global::OfficeIMO.Html.Pdf.HtmlToPdfOptions.MaxResourceCount",
         "OfficeIMO.Html.Pdf.HtmlToPdfOptions.MaxResourceCount"
@@ -747919,7 +748186,7 @@
     {
       "uid": "P:OfficeIMO.Html.Pdf.HtmlToPdfOptions.MaxResourceRequests",
       "name": "HtmlToPdfOptions.MaxResourceRequests",
-      "href": "/api/html-pdf/officeimo-html-pdf-htmltopdfoptions/#property-maxresourcerequests",
+      "href": "/api/html/officeimo-html-pdf-htmltopdfoptions/#property-maxresourcerequests",
       "aliases": [
         "global::OfficeIMO.Html.Pdf.HtmlToPdfOptions.MaxResourceRequests",
         "OfficeIMO.Html.Pdf.HtmlToPdfOptions.MaxResourceRequests"
@@ -747928,7 +748195,7 @@
     {
       "uid": "P:OfficeIMO.Html.Pdf.HtmlToPdfOptions.MaxRunningStringCharacters",
       "name": "HtmlToPdfOptions.MaxRunningStringCharacters",
-      "href": "/api/html-pdf/officeimo-html-pdf-htmltopdfoptions/#property-maxrunningstringcharacters",
+      "href": "/api/html/officeimo-html-pdf-htmltopdfoptions/#property-maxrunningstringcharacters",
       "aliases": [
         "global::OfficeIMO.Html.Pdf.HtmlToPdfOptions.MaxRunningStringCharacters",
         "OfficeIMO.Html.Pdf.HtmlToPdfOptions.MaxRunningStringCharacters"
@@ -747937,7 +748204,7 @@
     {
       "uid": "P:OfficeIMO.Html.Pdf.HtmlToPdfOptions.MaxStylesheetImportDepth",
       "name": "HtmlToPdfOptions.MaxStylesheetImportDepth",
-      "href": "/api/html-pdf/officeimo-html-pdf-htmltopdfoptions/#property-maxstylesheetimportdepth",
+      "href": "/api/html/officeimo-html-pdf-htmltopdfoptions/#property-maxstylesheetimportdepth",
       "aliases": [
         "global::OfficeIMO.Html.Pdf.HtmlToPdfOptions.MaxStylesheetImportDepth",
         "OfficeIMO.Html.Pdf.HtmlToPdfOptions.MaxStylesheetImportDepth"
@@ -747946,7 +748213,7 @@
     {
       "uid": "P:OfficeIMO.Html.Pdf.HtmlToPdfOptions.MaxSurfaceHeight",
       "name": "HtmlToPdfOptions.MaxSurfaceHeight",
-      "href": "/api/html-pdf/officeimo-html-pdf-htmltopdfoptions/#property-maxsurfaceheight",
+      "href": "/api/html/officeimo-html-pdf-htmltopdfoptions/#property-maxsurfaceheight",
       "aliases": [
         "global::OfficeIMO.Html.Pdf.HtmlToPdfOptions.MaxSurfaceHeight",
         "OfficeIMO.Html.Pdf.HtmlToPdfOptions.MaxSurfaceHeight"
@@ -747955,7 +748222,7 @@
     {
       "uid": "P:OfficeIMO.Html.Pdf.HtmlToPdfOptions.MaxSurfaceWidth",
       "name": "HtmlToPdfOptions.MaxSurfaceWidth",
-      "href": "/api/html-pdf/officeimo-html-pdf-htmltopdfoptions/#property-maxsurfacewidth",
+      "href": "/api/html/officeimo-html-pdf-htmltopdfoptions/#property-maxsurfacewidth",
       "aliases": [
         "global::OfficeIMO.Html.Pdf.HtmlToPdfOptions.MaxSurfaceWidth",
         "OfficeIMO.Html.Pdf.HtmlToPdfOptions.MaxSurfaceWidth"
@@ -747964,7 +748231,7 @@
     {
       "uid": "P:OfficeIMO.Html.Pdf.HtmlToPdfOptions.MaxSvgForeignObjectDepth",
       "name": "HtmlToPdfOptions.MaxSvgForeignObjectDepth",
-      "href": "/api/html-pdf/officeimo-html-pdf-htmltopdfoptions/#property-maxsvgforeignobjectdepth",
+      "href": "/api/html/officeimo-html-pdf-htmltopdfoptions/#property-maxsvgforeignobjectdepth",
       "aliases": [
         "global::OfficeIMO.Html.Pdf.HtmlToPdfOptions.MaxSvgForeignObjectDepth",
         "OfficeIMO.Html.Pdf.HtmlToPdfOptions.MaxSvgForeignObjectDepth"
@@ -747973,7 +748240,7 @@
     {
       "uid": "P:OfficeIMO.Html.Pdf.HtmlToPdfOptions.MaxSvgForeignObjectHtmlNodes",
       "name": "HtmlToPdfOptions.MaxSvgForeignObjectHtmlNodes",
-      "href": "/api/html-pdf/officeimo-html-pdf-htmltopdfoptions/#property-maxsvgforeignobjecthtmlnodes",
+      "href": "/api/html/officeimo-html-pdf-htmltopdfoptions/#property-maxsvgforeignobjecthtmlnodes",
       "aliases": [
         "global::OfficeIMO.Html.Pdf.HtmlToPdfOptions.MaxSvgForeignObjectHtmlNodes",
         "OfficeIMO.Html.Pdf.HtmlToPdfOptions.MaxSvgForeignObjectHtmlNodes"
@@ -747982,7 +748249,7 @@
     {
       "uid": "P:OfficeIMO.Html.Pdf.HtmlToPdfOptions.MaxTableColumns",
       "name": "HtmlToPdfOptions.MaxTableColumns",
-      "href": "/api/html-pdf/officeimo-html-pdf-htmltopdfoptions/#property-maxtablecolumns",
+      "href": "/api/html/officeimo-html-pdf-htmltopdfoptions/#property-maxtablecolumns",
       "aliases": [
         "global::OfficeIMO.Html.Pdf.HtmlToPdfOptions.MaxTableColumns",
         "OfficeIMO.Html.Pdf.HtmlToPdfOptions.MaxTableColumns"
@@ -747991,7 +748258,7 @@
     {
       "uid": "P:OfficeIMO.Html.Pdf.HtmlToPdfOptions.MaxTableRows",
       "name": "HtmlToPdfOptions.MaxTableRows",
-      "href": "/api/html-pdf/officeimo-html-pdf-htmltopdfoptions/#property-maxtablerows",
+      "href": "/api/html/officeimo-html-pdf-htmltopdfoptions/#property-maxtablerows",
       "aliases": [
         "global::OfficeIMO.Html.Pdf.HtmlToPdfOptions.MaxTableRows",
         "OfficeIMO.Html.Pdf.HtmlToPdfOptions.MaxTableRows"
@@ -748000,7 +748267,7 @@
     {
       "uid": "P:OfficeIMO.Html.Pdf.HtmlToPdfOptions.MaxTextShadowLayers",
       "name": "HtmlToPdfOptions.MaxTextShadowLayers",
-      "href": "/api/html-pdf/officeimo-html-pdf-htmltopdfoptions/#property-maxtextshadowlayers",
+      "href": "/api/html/officeimo-html-pdf-htmltopdfoptions/#property-maxtextshadowlayers",
       "aliases": [
         "global::OfficeIMO.Html.Pdf.HtmlToPdfOptions.MaxTextShadowLayers",
         "OfficeIMO.Html.Pdf.HtmlToPdfOptions.MaxTextShadowLayers"
@@ -748009,7 +748276,7 @@
     {
       "uid": "P:OfficeIMO.Html.Pdf.HtmlToPdfOptions.MaxTotalResourceBytes",
       "name": "HtmlToPdfOptions.MaxTotalResourceBytes",
-      "href": "/api/html-pdf/officeimo-html-pdf-htmltopdfoptions/#property-maxtotalresourcebytes",
+      "href": "/api/html/officeimo-html-pdf-htmltopdfoptions/#property-maxtotalresourcebytes",
       "aliases": [
         "global::OfficeIMO.Html.Pdf.HtmlToPdfOptions.MaxTotalResourceBytes",
         "OfficeIMO.Html.Pdf.HtmlToPdfOptions.MaxTotalResourceBytes"
@@ -748018,7 +748285,7 @@
     {
       "uid": "P:OfficeIMO.Html.Pdf.HtmlToPdfOptions.MediaContext",
       "name": "HtmlToPdfOptions.MediaContext",
-      "href": "/api/html-pdf/officeimo-html-pdf-htmltopdfoptions/#property-mediacontext",
+      "href": "/api/html/officeimo-html-pdf-htmltopdfoptions/#property-mediacontext",
       "aliases": [
         "global::OfficeIMO.Html.Pdf.HtmlToPdfOptions.MediaContext",
         "OfficeIMO.Html.Pdf.HtmlToPdfOptions.MediaContext"
@@ -748027,7 +748294,7 @@
     {
       "uid": "P:OfficeIMO.Html.Pdf.HtmlToPdfOptions.MediaFeatures",
       "name": "HtmlToPdfOptions.MediaFeatures",
-      "href": "/api/html-pdf/officeimo-html-pdf-htmltopdfoptions/#property-mediafeatures",
+      "href": "/api/html/officeimo-html-pdf-htmltopdfoptions/#property-mediafeatures",
       "aliases": [
         "global::OfficeIMO.Html.Pdf.HtmlToPdfOptions.MediaFeatures",
         "OfficeIMO.Html.Pdf.HtmlToPdfOptions.MediaFeatures"
@@ -748036,7 +748303,7 @@
     {
       "uid": "P:OfficeIMO.Html.Pdf.HtmlToPdfOptions.Mode",
       "name": "HtmlToPdfOptions.Mode",
-      "href": "/api/html-pdf/officeimo-html-pdf-htmltopdfoptions/#property-mode",
+      "href": "/api/html/officeimo-html-pdf-htmltopdfoptions/#property-mode",
       "aliases": [
         "global::OfficeIMO.Html.Pdf.HtmlToPdfOptions.Mode",
         "OfficeIMO.Html.Pdf.HtmlToPdfOptions.Mode"
@@ -748045,7 +748312,7 @@
     {
       "uid": "P:OfficeIMO.Html.Pdf.HtmlToPdfOptions.PageHeight",
       "name": "HtmlToPdfOptions.PageHeight",
-      "href": "/api/html-pdf/officeimo-html-pdf-htmltopdfoptions/#property-pageheight",
+      "href": "/api/html/officeimo-html-pdf-htmltopdfoptions/#property-pageheight",
       "aliases": [
         "global::OfficeIMO.Html.Pdf.HtmlToPdfOptions.PageHeight",
         "OfficeIMO.Html.Pdf.HtmlToPdfOptions.PageHeight"
@@ -748054,7 +748321,7 @@
     {
       "uid": "P:OfficeIMO.Html.Pdf.HtmlToPdfOptions.PageSize",
       "name": "HtmlToPdfOptions.PageSize",
-      "href": "/api/html-pdf/officeimo-html-pdf-htmltopdfoptions/#property-pagesize",
+      "href": "/api/html/officeimo-html-pdf-htmltopdfoptions/#property-pagesize",
       "aliases": [
         "global::OfficeIMO.Html.Pdf.HtmlToPdfOptions.PageSize",
         "OfficeIMO.Html.Pdf.HtmlToPdfOptions.PageSize"
@@ -748063,7 +748330,7 @@
     {
       "uid": "P:OfficeIMO.Html.Pdf.HtmlToPdfOptions.PageWidth",
       "name": "HtmlToPdfOptions.PageWidth",
-      "href": "/api/html-pdf/officeimo-html-pdf-htmltopdfoptions/#property-pagewidth",
+      "href": "/api/html/officeimo-html-pdf-htmltopdfoptions/#property-pagewidth",
       "aliases": [
         "global::OfficeIMO.Html.Pdf.HtmlToPdfOptions.PageWidth",
         "OfficeIMO.Html.Pdf.HtmlToPdfOptions.PageWidth"
@@ -748072,7 +748339,7 @@
     {
       "uid": "P:OfficeIMO.Html.Pdf.HtmlToPdfOptions.PdfOptions",
       "name": "HtmlToPdfOptions.PdfOptions",
-      "href": "/api/html-pdf/officeimo-html-pdf-htmltopdfoptions/#property-pdfoptions",
+      "href": "/api/html/officeimo-html-pdf-htmltopdfoptions/#property-pdfoptions",
       "aliases": [
         "global::OfficeIMO.Html.Pdf.HtmlToPdfOptions.PdfOptions",
         "OfficeIMO.Html.Pdf.HtmlToPdfOptions.PdfOptions"
@@ -748081,7 +748348,7 @@
     {
       "uid": "P:OfficeIMO.Html.Pdf.HtmlToPdfOptions.Policy",
       "name": "HtmlToPdfOptions.Policy",
-      "href": "/api/html-pdf/officeimo-html-pdf-htmltopdfoptions/#property-policy",
+      "href": "/api/html/officeimo-html-pdf-htmltopdfoptions/#property-policy",
       "aliases": [
         "global::OfficeIMO.Html.Pdf.HtmlToPdfOptions.Policy",
         "OfficeIMO.Html.Pdf.HtmlToPdfOptions.Policy"
@@ -748090,7 +748357,7 @@
     {
       "uid": "P:OfficeIMO.Html.Pdf.HtmlToPdfOptions.PrintLayoutWidthCssPixels",
       "name": "HtmlToPdfOptions.PrintLayoutWidthCssPixels",
-      "href": "/api/html-pdf/officeimo-html-pdf-htmltopdfoptions/#property-printlayoutwidthcsspixels",
+      "href": "/api/html/officeimo-html-pdf-htmltopdfoptions/#property-printlayoutwidthcsspixels",
       "aliases": [
         "global::OfficeIMO.Html.Pdf.HtmlToPdfOptions.PrintLayoutWidthCssPixels",
         "OfficeIMO.Html.Pdf.HtmlToPdfOptions.PrintLayoutWidthCssPixels"
@@ -748099,7 +748366,7 @@
     {
       "uid": "P:OfficeIMO.Html.Pdf.HtmlToPdfOptions.Progress",
       "name": "HtmlToPdfOptions.Progress",
-      "href": "/api/html-pdf/officeimo-html-pdf-htmltopdfoptions/#property-progress",
+      "href": "/api/html/officeimo-html-pdf-htmltopdfoptions/#property-progress",
       "aliases": [
         "global::OfficeIMO.Html.Pdf.HtmlToPdfOptions.Progress",
         "OfficeIMO.Html.Pdf.HtmlToPdfOptions.Progress"
@@ -748108,7 +748375,7 @@
     {
       "uid": "P:OfficeIMO.Html.Pdf.HtmlToPdfOptions.ProjectSerializedShadowRoots",
       "name": "HtmlToPdfOptions.ProjectSerializedShadowRoots",
-      "href": "/api/html-pdf/officeimo-html-pdf-htmltopdfoptions/#property-projectserializedshadowroots",
+      "href": "/api/html/officeimo-html-pdf-htmltopdfoptions/#property-projectserializedshadowroots",
       "aliases": [
         "global::OfficeIMO.Html.Pdf.HtmlToPdfOptions.ProjectSerializedShadowRoots",
         "OfficeIMO.Html.Pdf.HtmlToPdfOptions.ProjectSerializedShadowRoots"
@@ -748117,7 +748384,7 @@
     {
       "uid": "P:OfficeIMO.Html.Pdf.HtmlToPdfOptions.RasterEncoding",
       "name": "HtmlToPdfOptions.RasterEncoding",
-      "href": "/api/html-pdf/officeimo-html-pdf-htmltopdfoptions/#property-rasterencoding",
+      "href": "/api/html/officeimo-html-pdf-htmltopdfoptions/#property-rasterencoding",
       "aliases": [
         "global::OfficeIMO.Html.Pdf.HtmlToPdfOptions.RasterEncoding",
         "OfficeIMO.Html.Pdf.HtmlToPdfOptions.RasterEncoding"
@@ -748126,7 +748393,7 @@
     {
       "uid": "P:OfficeIMO.Html.Pdf.HtmlToPdfOptions.RasterOverflowBehavior",
       "name": "HtmlToPdfOptions.RasterOverflowBehavior",
-      "href": "/api/html-pdf/officeimo-html-pdf-htmltopdfoptions/#property-rasteroverflowbehavior",
+      "href": "/api/html/officeimo-html-pdf-htmltopdfoptions/#property-rasteroverflowbehavior",
       "aliases": [
         "global::OfficeIMO.Html.Pdf.HtmlToPdfOptions.RasterOverflowBehavior",
         "OfficeIMO.Html.Pdf.HtmlToPdfOptions.RasterOverflowBehavior"
@@ -748135,7 +748402,7 @@
     {
       "uid": "P:OfficeIMO.Html.Pdf.HtmlToPdfOptions.RenderTimeout",
       "name": "HtmlToPdfOptions.RenderTimeout",
-      "href": "/api/html-pdf/officeimo-html-pdf-htmltopdfoptions/#property-rendertimeout",
+      "href": "/api/html/officeimo-html-pdf-htmltopdfoptions/#property-rendertimeout",
       "aliases": [
         "global::OfficeIMO.Html.Pdf.HtmlToPdfOptions.RenderTimeout",
         "OfficeIMO.Html.Pdf.HtmlToPdfOptions.RenderTimeout"
@@ -748144,7 +748411,7 @@
     {
       "uid": "P:OfficeIMO.Html.Pdf.HtmlToPdfOptions.ResourcePolicy",
       "name": "HtmlToPdfOptions.ResourcePolicy",
-      "href": "/api/html-pdf/officeimo-html-pdf-htmltopdfoptions/#property-resourcepolicy",
+      "href": "/api/html/officeimo-html-pdf-htmltopdfoptions/#property-resourcepolicy",
       "aliases": [
         "global::OfficeIMO.Html.Pdf.HtmlToPdfOptions.ResourcePolicy",
         "OfficeIMO.Html.Pdf.HtmlToPdfOptions.ResourcePolicy"
@@ -748153,7 +748420,7 @@
     {
       "uid": "P:OfficeIMO.Html.Pdf.HtmlToPdfOptions.ResourceResolver",
       "name": "HtmlToPdfOptions.ResourceResolver",
-      "href": "/api/html-pdf/officeimo-html-pdf-htmltopdfoptions/#property-resourceresolver",
+      "href": "/api/html/officeimo-html-pdf-htmltopdfoptions/#property-resourceresolver",
       "aliases": [
         "global::OfficeIMO.Html.Pdf.HtmlToPdfOptions.ResourceResolver",
         "OfficeIMO.Html.Pdf.HtmlToPdfOptions.ResourceResolver"
@@ -748162,7 +748429,7 @@
     {
       "uid": "P:OfficeIMO.Html.Pdf.HtmlToPdfOptions.ResourceTimeout",
       "name": "HtmlToPdfOptions.ResourceTimeout",
-      "href": "/api/html-pdf/officeimo-html-pdf-htmltopdfoptions/#property-resourcetimeout",
+      "href": "/api/html/officeimo-html-pdf-htmltopdfoptions/#property-resourcetimeout",
       "aliases": [
         "global::OfficeIMO.Html.Pdf.HtmlToPdfOptions.ResourceTimeout",
         "OfficeIMO.Html.Pdf.HtmlToPdfOptions.ResourceTimeout"
@@ -748171,7 +748438,7 @@
     {
       "uid": "P:OfficeIMO.Html.Pdf.HtmlToPdfOptions.ResourceUrlPolicy",
       "name": "HtmlToPdfOptions.ResourceUrlPolicy",
-      "href": "/api/html-pdf/officeimo-html-pdf-htmltopdfoptions/#property-resourceurlpolicy",
+      "href": "/api/html/officeimo-html-pdf-htmltopdfoptions/#property-resourceurlpolicy",
       "aliases": [
         "global::OfficeIMO.Html.Pdf.HtmlToPdfOptions.ResourceUrlPolicy",
         "OfficeIMO.Html.Pdf.HtmlToPdfOptions.ResourceUrlPolicy"
@@ -748180,16 +748447,25 @@
     {
       "uid": "P:OfficeIMO.Html.Pdf.HtmlToPdfOptions.Scale",
       "name": "HtmlToPdfOptions.Scale",
-      "href": "/api/html-pdf/officeimo-html-pdf-htmltopdfoptions/#property-scale",
+      "href": "/api/html/officeimo-html-pdf-htmltopdfoptions/#property-scale",
       "aliases": [
         "global::OfficeIMO.Html.Pdf.HtmlToPdfOptions.Scale",
         "OfficeIMO.Html.Pdf.HtmlToPdfOptions.Scale"
       ]
     },
     {
+      "uid": "P:OfficeIMO.Html.Pdf.HtmlToPdfOptions.SvgTextAsPaths",
+      "name": "HtmlToPdfOptions.SvgTextAsPaths",
+      "href": "/api/html/officeimo-html-pdf-htmltopdfoptions/#property-svgtextaspaths",
+      "aliases": [
+        "global::OfficeIMO.Html.Pdf.HtmlToPdfOptions.SvgTextAsPaths",
+        "OfficeIMO.Html.Pdf.HtmlToPdfOptions.SvgTextAsPaths"
+      ]
+    },
+    {
       "uid": "P:OfficeIMO.Html.Pdf.HtmlToPdfOptions.TargetDpi",
       "name": "HtmlToPdfOptions.TargetDpi",
-      "href": "/api/html-pdf/officeimo-html-pdf-htmltopdfoptions/#property-targetdpi",
+      "href": "/api/html/officeimo-html-pdf-htmltopdfoptions/#property-targetdpi",
       "aliases": [
         "global::OfficeIMO.Html.Pdf.HtmlToPdfOptions.TargetDpi",
         "OfficeIMO.Html.Pdf.HtmlToPdfOptions.TargetDpi"
@@ -748198,7 +748474,7 @@
     {
       "uid": "P:OfficeIMO.Html.Pdf.HtmlToPdfOptions.TextFallbacks",
       "name": "HtmlToPdfOptions.TextFallbacks",
-      "href": "/api/html-pdf/officeimo-html-pdf-htmltopdfoptions/#property-textfallbacks",
+      "href": "/api/html/officeimo-html-pdf-htmltopdfoptions/#property-textfallbacks",
       "aliases": [
         "global::OfficeIMO.Html.Pdf.HtmlToPdfOptions.TextFallbacks",
         "OfficeIMO.Html.Pdf.HtmlToPdfOptions.TextFallbacks"
@@ -748207,7 +748483,7 @@
     {
       "uid": "P:OfficeIMO.Html.Pdf.HtmlToPdfOptions.TextHyphenationCallback",
       "name": "HtmlToPdfOptions.TextHyphenationCallback",
-      "href": "/api/html-pdf/officeimo-html-pdf-htmltopdfoptions/#property-texthyphenationcallback",
+      "href": "/api/html/officeimo-html-pdf-htmltopdfoptions/#property-texthyphenationcallback",
       "aliases": [
         "global::OfficeIMO.Html.Pdf.HtmlToPdfOptions.TextHyphenationCallback",
         "OfficeIMO.Html.Pdf.HtmlToPdfOptions.TextHyphenationCallback"
@@ -748216,7 +748492,7 @@
     {
       "uid": "P:OfficeIMO.Html.Pdf.HtmlToPdfOptions.TextShapingLanguage",
       "name": "HtmlToPdfOptions.TextShapingLanguage",
-      "href": "/api/html-pdf/officeimo-html-pdf-htmltopdfoptions/#property-textshapinglanguage",
+      "href": "/api/html/officeimo-html-pdf-htmltopdfoptions/#property-textshapinglanguage",
       "aliases": [
         "global::OfficeIMO.Html.Pdf.HtmlToPdfOptions.TextShapingLanguage",
         "OfficeIMO.Html.Pdf.HtmlToPdfOptions.TextShapingLanguage"
@@ -748225,7 +748501,7 @@
     {
       "uid": "P:OfficeIMO.Html.Pdf.HtmlToPdfOptions.TextShapingMode",
       "name": "HtmlToPdfOptions.TextShapingMode",
-      "href": "/api/html-pdf/officeimo-html-pdf-htmltopdfoptions/#property-textshapingmode",
+      "href": "/api/html/officeimo-html-pdf-htmltopdfoptions/#property-textshapingmode",
       "aliases": [
         "global::OfficeIMO.Html.Pdf.HtmlToPdfOptions.TextShapingMode",
         "OfficeIMO.Html.Pdf.HtmlToPdfOptions.TextShapingMode"
@@ -748234,7 +748510,7 @@
     {
       "uid": "P:OfficeIMO.Html.Pdf.HtmlToPdfOptions.TextShapingProvider",
       "name": "HtmlToPdfOptions.TextShapingProvider",
-      "href": "/api/html-pdf/officeimo-html-pdf-htmltopdfoptions/#property-textshapingprovider",
+      "href": "/api/html/officeimo-html-pdf-htmltopdfoptions/#property-textshapingprovider",
       "aliases": [
         "global::OfficeIMO.Html.Pdf.HtmlToPdfOptions.TextShapingProvider",
         "OfficeIMO.Html.Pdf.HtmlToPdfOptions.TextShapingProvider"
@@ -748243,7 +748519,7 @@
     {
       "uid": "P:OfficeIMO.Html.Pdf.HtmlToPdfOptions.UrlPolicy",
       "name": "HtmlToPdfOptions.UrlPolicy",
-      "href": "/api/html-pdf/officeimo-html-pdf-htmltopdfoptions/#property-urlpolicy",
+      "href": "/api/html/officeimo-html-pdf-htmltopdfoptions/#property-urlpolicy",
       "aliases": [
         "global::OfficeIMO.Html.Pdf.HtmlToPdfOptions.UrlPolicy",
         "OfficeIMO.Html.Pdf.HtmlToPdfOptions.UrlPolicy"
@@ -748252,7 +748528,7 @@
     {
       "uid": "P:OfficeIMO.Html.Pdf.HtmlToPdfOptions.UserAgentStyles",
       "name": "HtmlToPdfOptions.UserAgentStyles",
-      "href": "/api/html-pdf/officeimo-html-pdf-htmltopdfoptions/#property-useragentstyles",
+      "href": "/api/html/officeimo-html-pdf-htmltopdfoptions/#property-useragentstyles",
       "aliases": [
         "global::OfficeIMO.Html.Pdf.HtmlToPdfOptions.UserAgentStyles",
         "OfficeIMO.Html.Pdf.HtmlToPdfOptions.UserAgentStyles"
@@ -748261,7 +748537,7 @@
     {
       "uid": "P:OfficeIMO.Html.Pdf.HtmlToPdfOptions.ViewportHeight",
       "name": "HtmlToPdfOptions.ViewportHeight",
-      "href": "/api/html-pdf/officeimo-html-pdf-htmltopdfoptions/#property-viewportheight",
+      "href": "/api/html/officeimo-html-pdf-htmltopdfoptions/#property-viewportheight",
       "aliases": [
         "global::OfficeIMO.Html.Pdf.HtmlToPdfOptions.ViewportHeight",
         "OfficeIMO.Html.Pdf.HtmlToPdfOptions.ViewportHeight"
@@ -748270,7 +748546,7 @@
     {
       "uid": "P:OfficeIMO.Html.Pdf.HtmlToPdfOptions.ViewportWidth",
       "name": "HtmlToPdfOptions.ViewportWidth",
-      "href": "/api/html-pdf/officeimo-html-pdf-htmltopdfoptions/#property-viewportwidth",
+      "href": "/api/html/officeimo-html-pdf-htmltopdfoptions/#property-viewportwidth",
       "aliases": [
         "global::OfficeIMO.Html.Pdf.HtmlToPdfOptions.ViewportWidth",
         "OfficeIMO.Html.Pdf.HtmlToPdfOptions.ViewportWidth"
@@ -1015907,7 +1016183,7 @@
       ]
     }
   ],
-  "previousReferenceCount": 105836,
+  "previousReferenceCount": 105864,
   "referenceDeltaCount": 0,
   "referenceDeltaPercent": 0
 }

@@ -433,6 +433,7 @@ public sealed class PdfConversionReportTests {
             "NotoSansArabic-Regular.ttf"));
         var options = new PdfOptions()
             .ReportDiagnosticsTo(report, "OfficeIMO.Tests")
+            .SetTextShapingMode(PdfTextShapingMode.UnicodeScalar)
             .EmbedStandardFont(PdfStandardFont.Helvetica, fontData, "OfficeIMO Strict Arabic");
         return new PdfDocumentConversionResult(
             PdfDocument.Create(options).Paragraph(paragraph => paragraph.Text("مرحبا")),

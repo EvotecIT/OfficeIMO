@@ -73,10 +73,12 @@ public sealed partial class PdfOptions {
         if (_namedFontFamilies != null &&
             _namedFontFamilies.TryGetValue(key, out PdfEmbeddedFontFamily? registered)) {
             registeredFamilyName = registered.FamilyName;
+            ReportInstalledOfficeFontSubstitution(familyNames!, registered, namedFamily: true);
             return true;
         }
         if (!TryRegisterNamedFontFamily(family)) return false;
         registeredFamilyName = family.FamilyName;
+        ReportInstalledOfficeFontSubstitution(familyNames!, family, namedFamily: true);
         return true;
     }
 

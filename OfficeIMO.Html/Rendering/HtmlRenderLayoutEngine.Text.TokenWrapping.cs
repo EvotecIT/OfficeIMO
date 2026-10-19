@@ -194,10 +194,10 @@ internal sealed partial class HtmlRenderLayoutEngine {
         return start == paintToken.Length;
     }
 
-    private static IReadOnlyList<int> GetHtmlPreferredBreakPositions(string text, bool allowCjkBreaks) {
+    private IReadOnlyList<int> GetHtmlPreferredBreakPositions(string text, bool allowCjkBreaks) {
         // Normal HTML line layout keeps unspaced solidus text together in Chromium.
         // Explicit overflow-wrap and word-break modes can still split it later.
-        return OfficeTextLineBreaks.GetBreakPositions(text, allowCjkBreaks)
+        return OfficeTextLineBreaks.GetBreakPositions(text, allowCjkBreaks, _cancellationToken)
             .Where(point => text[point - 1] != '/')
             .ToArray();
     }

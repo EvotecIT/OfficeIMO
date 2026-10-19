@@ -246,7 +246,7 @@ namespace OfficeIMO.Tests.Pdf {
                                 .PercentColumn(50, column => column.Paragraph(paragraph => paragraph.Text("RightSeparatorMarker")))))))
                 .ToBytes();
 
-            string rawPdf = Encoding.ASCII.GetString(bytes);
+            string rawPdf = PdfTestContentText.ReadDecoded(bytes);
 
             Assert.Contains("0.12 0.34 0.56 RG", rawPdf, StringComparison.Ordinal);
             Assert.Contains("1.25 w", rawPdf, StringComparison.Ordinal);

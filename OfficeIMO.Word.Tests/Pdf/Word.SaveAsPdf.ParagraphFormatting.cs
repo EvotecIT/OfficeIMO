@@ -318,8 +318,15 @@ namespace OfficeIMO.Tests {
                 Assert.Contains("Native justified paragraph", allText);
             }
 
-            string content = PdfOperatorSearchText.From(File.ReadAllBytes(pdfPath));
-            Assert.Matches(new Regex(@"(?:0\.[1-9]\d*|[1-9]\d*(?:\.\d+)?) Tw"), content);
+            using (PdfPigDocument pdf = PdfPigDocument.Open(pdfPath)) {
+                var lines = pdf.GetPage(1).Letters.Where(letter => !string.IsNullOrWhiteSpace(letter.Value))
+                    .GroupBy(letter => Math.Round(letter.StartBaseLine.Y, 2))
+                    .OrderByDescending(line => line.Key).ToArray();
+                Assert.True(lines.Length > 2);
+                // Every full line reaches the right text edge, whether its font uses Tw or CID/TJ advances.
+                foreach (var line in lines.Take(lines.Length - 1))
+                    Assert.InRange(line.Max(letter => letter.EndBaseLine.X), 215.9D, 216.1D);
+            }
         }
 
         [Fact]

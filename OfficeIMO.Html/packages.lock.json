@@ -62,12 +62,18 @@
         "type": "Project",
         "dependencies": {
           "AngleSharp": "[1.8.3, )",
-          "OfficeIMO.Html.Core": "[3.4.5, )",
+          "OfficeIMO.Html.Core": "[3.5.1, )",
           "System.Text.Encoding.CodePages": "[8.0.0, )"
         }
       },
       "officeimo.html.core": {
         "type": "Project"
+      },
+      "officeimo.pdf": {
+        "type": "Project",
+        "dependencies": {
+          "OfficeIMO.Core": "[3.5.1, )"
+        }
       }
     },
     ".NETFramework,Version=v4.7.2/linux-arm64": {},
@@ -151,12 +157,18 @@
         "type": "Project",
         "dependencies": {
           "AngleSharp": "[1.8.3, )",
-          "OfficeIMO.Html.Core": "[3.4.5, )",
+          "OfficeIMO.Html.Core": "[3.5.1, )",
           "System.Text.Encoding.CodePages": "[8.0.0, )"
         }
       },
       "officeimo.html.core": {
         "type": "Project"
+      },
+      "officeimo.pdf": {
+        "type": "Project",
+        "dependencies": {
+          "OfficeIMO.Core": "[3.5.1, )"
+        }
       }
     },
     ".NETStandard,Version=v2.0/linux-arm64": {},
@@ -194,11 +206,17 @@
         "type": "Project",
         "dependencies": {
           "AngleSharp": "[1.8.3, )",
-          "OfficeIMO.Html.Core": "[3.4.5, )"
+          "OfficeIMO.Html.Core": "[3.5.1, )"
         }
       },
       "officeimo.html.core": {
         "type": "Project"
+      },
+      "officeimo.pdf": {
+        "type": "Project",
+        "dependencies": {
+          "OfficeIMO.Core": "[3.5.1, )"
+        }
       }
     },
     "net10.0/linux-arm64": {},
@@ -236,11 +254,17 @@
         "type": "Project",
         "dependencies": {
           "AngleSharp": "[1.8.3, )",
-          "OfficeIMO.Html.Core": "[3.4.5, )"
+          "OfficeIMO.Html.Core": "[3.5.1, )"
         }
       },
       "officeimo.html.core": {
         "type": "Project"
+      },
+      "officeimo.pdf": {
+        "type": "Project",
+        "dependencies": {
+          "OfficeIMO.Core": "[3.5.1, )"
+        }
       }
     },
     "net8.0/linux-arm64": {},

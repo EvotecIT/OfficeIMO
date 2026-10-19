@@ -1049,7 +1049,7 @@ public class PowerPointPdfTableImportTests {
             .ToBytes();
 
         using var presentation = new MemoryStream();
-        PdfPowerPointConversionReport report = PowerPointPdfConverterExtensions.SaveAsPowerPoint(
+        PdfPowerPointConversionReport report = PdfPowerPointConverterExtensions.SaveAsPowerPoint(
             LoadTables(pdf),
             presentation,
             PdfToPowerPointOptions.CreateEditableTables()).RequireSuccess().Report!;
@@ -1241,7 +1241,7 @@ public class PowerPointPdfTableImportTests {
             .ToBytes();
 
         using var presentation = new MemoryStream();
-        PdfPowerPointConversionReport report = PowerPointPdfConverterExtensions.SaveAsPowerPoint(
+        PdfPowerPointConversionReport report = PdfPowerPointConverterExtensions.SaveAsPowerPoint(
             LoadTables(pdf, PdfCore.PdfPageRange.From(1, 1)),
             presentation,
             new PdfToPowerPointOptions {
@@ -1269,7 +1269,7 @@ public class PowerPointPdfTableImportTests {
         }
 
         using var emptyPresentation = new MemoryStream();
-        PdfPowerPointConversionReport emptyReport = PowerPointPdfConverterExtensions.SaveAsPowerPoint(
+        PdfPowerPointConversionReport emptyReport = PdfPowerPointConverterExtensions.SaveAsPowerPoint(
             LoadTables(pdf, PdfCore.PdfPageRange.From(2, 2)),
             emptyPresentation,
             new PdfToPowerPointOptions {
@@ -1306,7 +1306,7 @@ public class PowerPointPdfTableImportTests {
             .ToBytes();
 
         using var presentation = new MemoryStream();
-        PdfPowerPointConversionReport report = PowerPointPdfConverterExtensions.SaveAsPowerPoint(
+        PdfPowerPointConversionReport report = PdfPowerPointConverterExtensions.SaveAsPowerPoint(
             LoadTables(pdf),
             presentation,
             new PdfToPowerPointOptions {
@@ -1348,7 +1348,7 @@ public class PowerPointPdfTableImportTests {
             .ToBytes();
 
         using var presentation = new MemoryStream();
-        PdfPowerPointConversionReport report = PowerPointPdfConverterExtensions.SaveAsPowerPoint(
+        PdfPowerPointConversionReport report = PdfPowerPointConverterExtensions.SaveAsPowerPoint(
             LoadTables(pdf),
             presentation,
             new PdfToPowerPointOptions {

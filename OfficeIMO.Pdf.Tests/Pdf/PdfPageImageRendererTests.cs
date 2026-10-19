@@ -193,7 +193,9 @@ public partial class PdfPageImageRendererTests {
         string drawingText = string.Concat(drawing.Elements.OfType<OfficeDrawingText>().Select(text => text.Text));
         Assert.Contains("Managed raster page", drawingText, StringComparison.Ordinal);
         Assert.Contains(drawing.Images, image => image.ContentType == "image/png" && image.Bytes.Length > 8);
-        string svgText = Encoding.UTF8.GetString(svg);
+        // Kerned glyph runs project as separately positioned SVG text fragments.
+        string svgText = string.Concat(System.Text.RegularExpressions.Regex.Matches(Encoding.UTF8.GetString(svg), "<text[^>]*>([^<]*)</text>")
+            .Cast<System.Text.RegularExpressions.Match>().Select(match => match.Groups[1].Value));
         Assert.Contains("Managed", svgText, StringComparison.Ordinal);
         Assert.Contains("raster", svgText, StringComparison.Ordinal);
         Assert.Contains("page", svgText, StringComparison.Ordinal);
@@ -213,7 +215,7 @@ public partial class PdfPageImageRendererTests {
         var image = Assert.Single(drawing.Images);
         Assert.Equal("image/png", image.ContentType);
         AssertPngSignature(image.Bytes);
-        Assert.Equal(new byte[] { 0, 0, 255, 255, 255, 0, 255 }, PdfPngTestImages.DecodeStoredPngIdat(image.Bytes));
+        Assert.Equal(new byte[] { 0, 0, 173, 239, 236, 0, 140 }, PdfPngTestImages.DecodeStoredPngIdat(image.Bytes));
     }
 
     [Fact]
@@ -227,7 +229,7 @@ public partial class PdfPageImageRendererTests {
         var image = Assert.Single(drawing.Images);
         Assert.Equal("image/png", image.ContentType);
         Assert.Equal(6, PdfPngTestImages.ReadPngColorType(image.Bytes));
-        Assert.Equal(new byte[] { 0, 255, 255, 0, 128 }, PdfPngTestImages.DecodeStoredPngIdat(image.Bytes));
+        Assert.Equal(new byte[] { 0, 255, 242, 0, 128 }, PdfPngTestImages.DecodeStoredPngIdat(image.Bytes));
     }
 
     [Fact]
@@ -2394,9 +2396,10 @@ public partial class PdfPageImageRendererTests {
         Assert.True(OfficePngReader.TryDecode(renderedPng, out OfficeRasterImage? rendered));
         Assert.NotNull(rendered);
         OfficeColor blended = rendered!.GetPixel(50, 110);
-        Assert.Equal(255, blended.R);
-        Assert.InRange(blended.G, 126, 128);
-        Assert.InRange(blended.B, 126, 128);
+        // Half-opaque SWOP red (237, 28, 36) over white.
+        Assert.InRange(blended.R, 245, 247);
+        Assert.InRange(blended.G, 140, 143);
+        Assert.InRange(blended.B, 144, 147);
     }
 
     [Fact]
@@ -2588,7 +2591,7 @@ public partial class PdfPageImageRendererTests {
 
         OfficeRasterImage raster = OfficeDrawingRasterRenderer.Render(PdfPageImageRenderer.RenderPage(pdf));
 
-        Assert.Equal(OfficeColor.Red, raster.GetPixel(25, 155));
+        Assert.Equal(OfficeColor.FromRgb(237, 28, 36), raster.GetPixel(25, 155));
     }
 
     [Fact]
@@ -2952,7 +2955,7 @@ public partial class PdfPageImageRendererTests {
         var image = Assert.Single(drawing.Images);
         Assert.Equal("image/png", image.ContentType);
         Assert.Equal(2, PdfPngTestImages.ReadPngColorType(image.Bytes));
-        Assert.Equal(new byte[] { 0, 0, 255, 255 }, PdfPngTestImages.DecodeStoredPngIdat(image.Bytes));
+        Assert.Equal(new byte[] { 0, 0, 173, 239 }, PdfPngTestImages.DecodeStoredPngIdat(image.Bytes));
     }
 
     [Fact]
@@ -2971,7 +2974,7 @@ public partial class PdfPageImageRendererTests {
         var image = Assert.Single(drawing.Images);
         Assert.Equal("image/png", image.ContentType);
         Assert.Equal(6, PdfPngTestImages.ReadPngColorType(image.Bytes));
-        Assert.Equal(new byte[] { 0, 0, 255, 255, 0, 255, 0, 255, 255 }, PdfPngTestImages.DecodeStoredPngIdat(image.Bytes));
+        Assert.Equal(new byte[] { 0, 0, 173, 239, 0, 236, 0, 140, 255 }, PdfPngTestImages.DecodeStoredPngIdat(image.Bytes));
     }
 
     [Fact]
@@ -3367,7 +3370,7 @@ public partial class PdfPageImageRendererTests {
             options: new PdfPageRenderOptions { Format = PdfPageRenderFormat.Svg }));
 
         Assert.Contains(drawing.Shapes, item => item.Shape.FillColor == OfficeColor.FromRgb(0, 255, 0));
-        Assert.Contains(drawing.Shapes, item => item.Shape.FillColor == OfficeColor.FromRgb(255, 0, 0));
+        Assert.Contains(drawing.Shapes, item => item.Shape.FillColor == OfficeColor.FromRgb(237, 28, 36));
         Assert.DoesNotContain(result.CapabilityDiagnostics, item => item.Code == PdfRenderCapabilities.ColorSpaceId);
     }
 
@@ -3443,9 +3446,9 @@ public partial class PdfPageImageRendererTests {
 
         OfficeDrawingShape shape = Assert.Single(drawing.Shapes, item =>
             item.Shape.Kind == OfficeShapeKind.Rectangle &&
-            item.Shape.FillColor == OfficeColor.FromRgb(0, 255, 255));
-        Assert.Equal(OfficeColor.FromRgb(0, 255, 255), shape.Shape.FillColor);
-        Assert.Equal(OfficeColor.FromRgb(255, 0, 255), shape.Shape.StrokeColor);
+            item.Shape.FillColor == OfficeColor.FromRgb(0, 173, 239));
+        Assert.Equal(OfficeColor.FromRgb(0, 173, 239), shape.Shape.FillColor);
+        Assert.Equal(OfficeColor.FromRgb(236, 0, 140), shape.Shape.StrokeColor);
         Assert.Equal(3D, shape.Shape.StrokeWidth);
     }
 
@@ -3475,7 +3478,7 @@ public partial class PdfPageImageRendererTests {
 
         OfficeDrawingShape cmykShape = Assert.Single(drawing.Shapes, item =>
             item.Shape.Kind == OfficeShapeKind.Rectangle &&
-            item.Shape.FillColor == OfficeColor.Red);
+            item.Shape.FillColor == OfficeColor.FromRgb(237, 28, 36));
         Assert.Null(cmykShape.Shape.StrokeColor);
     }
 
@@ -3595,17 +3598,21 @@ public partial class PdfPageImageRendererTests {
     [Theory]
     [InlineData("")]
     [InlineData("/Extend [false false]")]
-    public void RenderPage_PreservesNonExtendingOrdinaryAxialShading(string extendEntry) {
+    public void RenderPage_LeavesUnextendedAxialShadingEndsUnpainted(string extendEntry) {
         byte[] pdf = BuildSingleStreamPdf(
             "/Sh1 sh",
             "<< /Shading << /Sh1 5 0 R >> >>",
             "5 0 obj\n<< /ShadingType 2 /ColorSpace /DeviceRGB /Coords [20 80 140 80] /Function << /FunctionType 2 /Domain [0 1] /C0 [1 0 0] /C1 [0 0 1] /N 1 >> " + extendEntry + " >>\nendobj");
 
         PdfPageRenderResult result = Assert.Single(PdfPageImageRenderer.RenderPages(pdf));
-        OfficeDrawing drawing = PdfPageImageRenderer.RenderPage(pdf);
+        Assert.True(OfficePngReader.TryDecode(PdfPageImageRenderer.RenderPageAsPng(pdf), out OfficeRasterImage? raster));
 
+        // ISO 32000-1, 8.7.4.5.3: without Extend the shading paints only between the axis endpoints.
         Assert.DoesNotContain(result.CapabilityDiagnostics, diagnostic => diagnostic.Code == PdfRenderCapabilities.UnsupportedShadingId);
-        Assert.Single(drawing.Shapes);
+        OfficeColor before = raster!.GetPixel(10, 100), inside = raster.GetPixel(80, 100), after = raster.GetPixel(170, 100);
+        Assert.True(before.R > 240 && before.G > 240 && before.B > 240, before.ToString());
+        Assert.True(after.R > 240 && after.G > 240 && after.B > 240, after.ToString());
+        Assert.True(inside.R > 60 && inside.B > 60 && inside.G < 40, inside.ToString());
     }
 
     [Fact]
@@ -3964,7 +3971,8 @@ public partial class PdfPageImageRendererTests {
         Assert.Equal("Stroke text", text.Text);
         Assert.Equal(OfficeColor.FromRgba(0, 0, 255, 128), text.Color);
         Assert.Contains("#0000FF", svg, StringComparison.OrdinalIgnoreCase);
-        Assert.Contains("fill-opacity", svg, StringComparison.Ordinal);
+        Assert.Contains("stroke-opacity", svg, StringComparison.Ordinal);
+        Assert.Contains("fill=\"none\"", svg, StringComparison.Ordinal);
     }
 
     [Fact]

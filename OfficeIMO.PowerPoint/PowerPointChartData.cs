@@ -184,7 +184,8 @@ namespace OfficeIMO.PowerPoint {
 
         /// <summary>Native series appearance retained by the canonical series reader.</summary>
         internal OfficeChartSeries? SharedAppearance { get; set; }
-        internal bool HasUnsupportedSharedAppearance { get; set; }
+        /// <summary>Why the shared reader cannot draw this series faithfully, or null when it can.</summary>
+        internal string? UnsupportedSharedAppearance { get; set; }
         internal bool HasAutomaticSeriesColor { get; set; }
 
         /// <summary>

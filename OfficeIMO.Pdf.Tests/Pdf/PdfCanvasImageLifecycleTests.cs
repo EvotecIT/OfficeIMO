@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Text;
 using OfficeIMO.Drawing;
 using OfficeIMO.Pdf;
+using OfficeIMO.Pdf.Filters;
 using Xunit;
 
 namespace OfficeIMO.Tests.Pdf;
@@ -36,10 +37,20 @@ public sealed class PdfCanvasImageLifecycleTests {
             .ToBytes();
 
         string raw = Encoding.ASCII.GetString(bytes);
-        int imageDraw = raw.IndexOf("/Im1 Do", StringComparison.Ordinal);
-        int effectDraw = raw.IndexOf("/Fx1 Do", StringComparison.Ordinal);
-        Assert.True(imageDraw >= 0, "Expected the table-cell image in the effect Form XObject.");
-        Assert.True(effectDraw > imageDraw, "Expected the page to invoke the effect after its image-bearing Form XObject was serialized.");
+        var objects = PdfSyntax.ParseObjects(bytes).Map;
+        PdfDictionary page = Assert.Single(objects.Values.Select(item => item.Value).OfType<PdfDictionary>(),
+            dictionary => dictionary.Get<PdfName>("Type")?.Name == "Page");
+        PdfDictionary pageResources = Assert.IsType<PdfDictionary>(PdfObjectLookup.ResolveChain(objects, page.Items["Resources"]));
+        PdfDictionary pageXObjects = Assert.IsType<PdfDictionary>(PdfObjectLookup.ResolveChain(objects, pageResources.Items["XObject"]));
+        PdfStream effect = Assert.IsType<PdfStream>(PdfObjectLookup.ResolveChain(objects, pageXObjects.Items["Fx1"]));
+        Assert.Equal("Form", effect.Dictionary.Get<PdfName>("Subtype")?.Name);
+        string effectOperators = Encoding.ASCII.GetString(StreamDecoder.DecodeRequired(effect, objects));
+        Assert.Contains("/Im1 Do", effectOperators, StringComparison.Ordinal);
+        PdfDictionary effectResources = Assert.IsType<PdfDictionary>(PdfObjectLookup.ResolveChain(objects, effect.Dictionary.Items["Resources"]));
+        PdfDictionary effectXObjects = Assert.IsType<PdfDictionary>(PdfObjectLookup.ResolveChain(objects, effectResources.Items["XObject"]));
+        PdfStream image = Assert.IsType<PdfStream>(PdfObjectLookup.ResolveChain(objects, effectXObjects.Items["Im1"]));
+        Assert.Equal("Image", image.Dictionary.Get<PdfName>("Subtype")?.Name);
+        Assert.Contains("/Fx1 Do", raw, StringComparison.Ordinal);
         Assert.Contains("/GS1 gs", raw, StringComparison.Ordinal);
         Assert.Contains("1 0 0 1 12 -7 cm", raw, StringComparison.Ordinal);
     }

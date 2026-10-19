@@ -175,7 +175,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
             string shapedText = OfficeArabicTextShaper.Shape(fallbacks.Count == 1 ? fallbacks[0].Text : run.Text);
             if (fallbacks.Count == 1
                 && string.Equals(fallbacks[0].Text, run.Text, StringComparison.Ordinal)
-                && string.Equals(fallbacks[0].FamilyName, run.Style.Font.FamilyName, StringComparison.Ordinal)
+                && string.Equals(InlineFallbackFamilyRequest(fallbacks[0]), run.Style.Font.FamilyName, StringComparison.Ordinal)
                 && string.Equals(shapedText, run.Text, StringComparison.Ordinal)) {
                 resolvedRuns.Add(run);
                 continue;
@@ -184,7 +184,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
             int fallbackOffset = 0;
             foreach (OfficeFontFallbackRun fallback in fallbacks) {
                 HtmlRenderBoxStyle style = run.Style.Clone();
-                style.Font = style.Font.WithFamilyName(fallback.FamilyName);
+                style.Font = style.Font.WithFamilyName(InlineFallbackFamilyRequest(fallback));
                 var resolvedRun = new HtmlInlineRun(
                     OfficeArabicTextShaper.Shape(fallback.Text),
                     style,
@@ -245,7 +245,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         foreach (OfficeFontFallbackRun fallback in fallbackRuns) {
             if (!featureShaping && !RequiresConfiguredTextShaping(fallback.Text)) continue;
             HtmlRenderBoxStyle fallbackStyle = style.Clone();
-            fallbackStyle.Font = fallbackStyle.Font.WithFamilyName(fallback.FamilyName);
+            fallbackStyle.Font = fallbackStyle.Font.WithFamilyName(InlineFallbackFamilyRequest(fallback));
             if (!TryMeasureWithConfiguredProvider(fallback.Text, fallbackStyle, out _)) {
                 allUnsupportedRunsShaped = false;
                 break;

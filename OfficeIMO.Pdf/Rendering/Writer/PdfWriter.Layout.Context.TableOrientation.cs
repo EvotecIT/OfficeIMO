@@ -8,7 +8,7 @@ internal static partial class PdfWriter {
         private void RenderOrientedTableCellContent(TableCellLayout cell, PdfTableStyle style, int row, int column,
             TableCellContentFrame frame, double cellX, double cellTop, double cellWidth, double cellHeight,
             PdfStandardFont font, double fontSize, double leading, double runFontSizeScale, RichParagraphBlock paragraph,
-            string structureType, int? markedContentId, bool includeCellObjects = true) {
+            string structureType, int? markedContentId, bool includeCellObjects = true, OfficeTransform? diagnosticTransform = null) {
             bool clockwise = cell.TextRotation < 0;
             double physicalLeft = GetTableCellPaddingLeft(style, row, column);
             double physicalRight = GetTableCellPaddingRight(style, row, column);
@@ -44,6 +44,15 @@ internal static partial class PdfWriter {
             TableCellContentFrame inkClip = GetTableCellInkClipFrame(style, row, column, cellX, cellTop, cellWidth, cellHeight);
             double clipX = clockwise ? frame.Top - inkClip.Top : inkClip.Top - inkClip.Height - frame.Top + frame.Height;
             double clipBottom = clockwise ? inkClip.Left - frame.Left : frame.Left + frame.Width - inkClip.Left - inkClip.Width;
+            OfficeTransform diagnosticTurn = clockwise
+                ? new OfficeTransform(0D, -1D, 1D, 0D, frame.Left, frame.Top)
+                : new OfficeTransform(0D, 1D, -1D, 0D, frame.Left + frame.Width, frame.Top - frame.Height);
+            ReportRichPaintDiagnostics("TableCell", "PdfTableCell[" + row + "," + column + "]", paragraph,
+                lines, heights, firstBaseline, fontSize, leading, left, width,
+                new TableCellContentFrame(clipX, clipBottom + inkClip.Width, inkClip.Height, inkClip.Width),
+                alignments: alignments, offsets: offsets, widths: widths, baselineFont: font,
+                localTransform: diagnosticTurn.Then(diagnosticTransform ?? OfficeTransform.Identity),
+                secondClip: new TableCellContentFrame(0D, frame.Width, frame.Height, frame.Width));
             OmitInvisibleTableCellViewportLines(lines, heights, alignments, offsets, widths,
                 paragraph.Align, firstBaseline, left, width, clipX, clipBottom, inkClip.Height, inkClip.Width,
                 leading, fontSize, currentOpts, font);
