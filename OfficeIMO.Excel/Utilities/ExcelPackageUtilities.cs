@@ -3,18 +3,15 @@ using System.Xml;
 using System.Xml.Linq;
 
 namespace OfficeIMO.Excel.Utilities {
-    internal static class ExcelPackageUtilities {
+    internal static partial class ExcelPackageUtilities {
         private const string ContentTypesEntry = "[Content_Types].xml";
         internal const long MaximumContentTypesEntryBytes = 16L * 1024L * 1024L;
-        private const string WorkbookOverridePart = "/xl/workbook.xml";
         private const string WorkbookContentType = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml";
         private const string MacroEnabledWorkbookContentType = "application/vnd.ms-excel.sheet.macroEnabled.main+xml";
         private const string TemplateWorkbookContentType = "application/vnd.openxmlformats-officedocument.spreadsheetml.template.main+xml";
         private const string MacroEnabledTemplateWorkbookContentType = "application/vnd.ms-excel.template.macroEnabled.main+xml";
         internal const string AddInWorkbookContentType = "application/vnd.ms-excel.addin.macroEnabled.main+xml";
-        private const string AppPropsOverridePart = "/docProps/app.xml";
         private const string AppPropsContentType = "application/vnd.openxmlformats-officedocument.extended-properties+xml";
-        private const string CorePropsOverridePart = "/docProps/core.xml";
         private const string CorePropsContentType = "application/vnd.openxmlformats-package.core-properties+xml";
 
         internal static bool NormalizeContentTypes(string packagePath) {
@@ -63,6 +60,9 @@ namespace OfficeIMO.Excel.Utilities {
             }
 
             XNamespace ns = root.Name.Namespace;
+            var (workbookPartName, appPartName, corePartName) = ReadRootParts(archive, maxCharactersInPart);
+            string? workbookContentType = workbookPartName == null ? null : GetEffectiveContentType(root, workbookPartName);
+            if (!IsSupportedWorkbookContentType(workbookContentType)) workbookContentType = WorkbookContentType;
             bool changed = false;
 
             var xmlDefaults = root.Elements(ns + "Default")
@@ -104,17 +104,9 @@ namespace OfficeIMO.Excel.Utilities {
                 return false;
             }
 
-            string workbookContentType = root.Elements(ns + "Override")
-                .FirstOrDefault(e => string.Equals((string?)e.Attribute("PartName"), WorkbookOverridePart, StringComparison.OrdinalIgnoreCase))
-                ?.Attribute("ContentType")
-                ?.Value ?? WorkbookContentType;
-            if (!IsSupportedWorkbookContentType(workbookContentType)) {
-                workbookContentType = WorkbookContentType;
-            }
-
-            if (EnsureOverride(WorkbookOverridePart, workbookContentType)) changed = true;
-            if (EnsureOverride(AppPropsOverridePart, AppPropsContentType)) changed = true;
-            if (EnsureOverride(CorePropsOverridePart, CorePropsContentType)) changed = true;
+            if (workbookPartName != null && EnsureOverride(workbookPartName, workbookContentType!)) changed = true;
+            if (appPartName != null && EnsureOverride(appPartName, AppPropsContentType)) changed = true;
+            if (corePartName != null && EnsureOverride(corePartName, CorePropsContentType)) changed = true;
 
             if (!changed) {
                 return false;
@@ -165,11 +157,12 @@ namespace OfficeIMO.Excel.Utilities {
                 }
 
                 XNamespace ns = root.Name.Namespace;
+                var (workbookPartName, appPartName, corePartName) = ReadRootParts(archive, maxCharactersInPart);
                 int xmlDefaultCount = 0;
                 bool xmlDefaultIsCorrect = false;
-                bool workbookOverrideIsCorrect = false;
-                bool appPropsOverrideIsCorrect = false;
-                bool corePropsOverrideIsCorrect = false;
+                bool workbookOverrideIsCorrect = workbookPartName == null;
+                bool appPropsOverrideIsCorrect = appPartName == null;
+                bool corePropsOverrideIsCorrect = corePartName == null;
 
                 foreach (var element in root.Elements()) {
                     if (element.Name == ns + "Default"
@@ -185,11 +178,11 @@ namespace OfficeIMO.Excel.Utilities {
 
                     string? partName = (string?)element.Attribute("PartName");
                     string? contentType = (string?)element.Attribute("ContentType");
-                    if (string.Equals(partName, WorkbookOverridePart, StringComparison.OrdinalIgnoreCase)) {
+                    if (string.Equals(partName, workbookPartName, StringComparison.OrdinalIgnoreCase)) {
                         workbookOverrideIsCorrect = IsSupportedWorkbookContentType(contentType);
-                    } else if (string.Equals(partName, AppPropsOverridePart, StringComparison.OrdinalIgnoreCase)) {
+                    } else if (string.Equals(partName, appPartName, StringComparison.OrdinalIgnoreCase)) {
                         appPropsOverrideIsCorrect = string.Equals(contentType, AppPropsContentType, StringComparison.OrdinalIgnoreCase);
-                    } else if (string.Equals(partName, CorePropsOverridePart, StringComparison.OrdinalIgnoreCase)) {
+                    } else if (string.Equals(partName, corePartName, StringComparison.OrdinalIgnoreCase)) {
                         corePropsOverrideIsCorrect = string.Equals(contentType, CorePropsContentType, StringComparison.OrdinalIgnoreCase);
                     }
                 }
@@ -282,8 +275,9 @@ namespace OfficeIMO.Excel.Utilities {
                 .Where(e => string.Equals((string?)e.Attribute("Extension"), "xml", StringComparison.OrdinalIgnoreCase))
                 .ToList();
             string? xmlContentType = xmlDefaults.Count > 0 ? (string?)xmlDefaults[0].Attribute("ContentType") : null;
+            string? workbookPartName = GetWorkbookPartName(archive);
             var workbookOverride = root.Elements(ns + "Override")
-                .FirstOrDefault(e => string.Equals((string?)e.Attribute("PartName"), WorkbookOverridePart, StringComparison.OrdinalIgnoreCase));
+                .FirstOrDefault(e => string.Equals((string?)e.Attribute("PartName"), workbookPartName, StringComparison.OrdinalIgnoreCase));
             string? workbookContentType = workbookOverride?.Attribute("ContentType")?.Value;
 
             return new ContentTypesSummary(

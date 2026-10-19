@@ -1,0 +1,12 @@
+{
+  "createdUtc": "2026-10-19",
+  "nativeProducer": "Microsoft Excel for Mac 16.113.4 (26100421), pl-PL",
+  "source": "OfficeIMO projection of CC0 OpenPreserve valid.xls, original SHA256 4fe7b0d3552075601233a95e61782e7c7e90c1f948d70cc6afd706a6af8dd453; original VBA replaced with a newly authored inert project",
+  "vba": "Document modules carry matching workbook/worksheet/chart identities and comments only. PreservationNotes contains comments only. No procedures or event handlers. Native workbook opened with macros disabled; no VBA execution.",
+  "method": "Corrected inert-macro-control.xlsm opened without repair; native Save As XLSB, then XLS. Both saved URLs observed. Native UI lists 14 sheets including chart sheets. Chart appearance and VBA execution not qualified. Excel exited, process absence verified, resource board released.",
+  "files": {
+    "inert-macro-control.xlsm": "eb07142b8e1f796a0bd16d4063141cbb44ed8e63fd5a4d2002c2b49182f1ffcd",
+    "excel-inert-macro.xls": "39ce06f6896f2800c19a992cc2636188b7d64b0233dd39afe7db56c74ce6648b",
+    "excel-inert-macro.xlsb": "db6d83ff73820368416527df6f33c841a58aeef8ccc719bf520717f928654e38"
+  }
+}

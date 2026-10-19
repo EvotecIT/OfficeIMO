@@ -127,10 +127,11 @@ namespace OfficeIMO.Excel {
             }
 
             XNamespace ns = "http://schemas.openxmlformats.org/package/2006/content-types";
+            string? workbookPartName = ExcelPackageUtilities.GetWorkbookPartName(archive);
             XElement? workbookOverride = document
                 .Root?
                 .Elements(ns + "Override")
-                .FirstOrDefault(element => string.Equals((string?)element.Attribute("PartName"), "/xl/workbook.xml", StringComparison.OrdinalIgnoreCase));
+                .FirstOrDefault(element => string.Equals((string?)element.Attribute("PartName"), workbookPartName, StringComparison.OrdinalIgnoreCase));
             if (workbookOverride == null) {
                 return;
             }
@@ -177,10 +178,11 @@ namespace OfficeIMO.Excel {
             using Stream stream = contentTypesEntry.Open();
             XDocument document = XDocument.Load(stream);
             XNamespace ns = "http://schemas.openxmlformats.org/package/2006/content-types";
+            string? workbookPartName = ExcelPackageUtilities.GetWorkbookPartName(archive);
             return document
                 .Root?
                 .Elements(ns + "Override")
-                .FirstOrDefault(element => string.Equals((string?)element.Attribute("PartName"), "/xl/workbook.xml", StringComparison.OrdinalIgnoreCase))
+                .FirstOrDefault(element => string.Equals((string?)element.Attribute("PartName"), workbookPartName, StringComparison.OrdinalIgnoreCase))
                 ?.Attribute("ContentType")
                 ?.Value;
         }
