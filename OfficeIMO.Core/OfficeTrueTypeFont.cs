@@ -742,7 +742,7 @@ public sealed partial class OfficeTrueTypeFont : IOfficeBoundedFontProgram, IOff
         if (length < 16 || table > cmapEnd - length) return 0;
         var code = scalar;
         var segCount = ReadUInt16(_data, table + 6) / 2;
-        if (segCount == 0 || segCount > OfficeOpenTypeCmap.MaximumSubtables * 16) return 0;
+        if (segCount == 0 || segCount > OfficeOpenTypeCmap.MaximumFormat4Segments) return 0;
         var endCodes = table + 14;
         var startCodes = endCodes + segCount * 2 + 2;
         var idDeltas = startCodes + segCount * 2;
@@ -1391,7 +1391,7 @@ public sealed partial class OfficeTrueTypeFont : IOfficeBoundedFontProgram, IOff
     }
 
     private static IEnumerable<string> CandidateFontDirectoryPaths(string key, CancellationToken cancellationToken = default) {
-        foreach (string directory in CandidateFontDirectories()) {
+        foreach (string directory in CandidateFontDirectories(cancellationToken)) {
             cancellationToken.ThrowIfCancellationRequested();
             if (!Directory.Exists(directory)) {
                 continue;
@@ -1400,51 +1400,13 @@ public sealed partial class OfficeTrueTypeFont : IOfficeBoundedFontProgram, IOff
             foreach (string path in SafeEnumerateFontFiles(directory)) {
                 cancellationToken.ThrowIfCancellationRequested();
                 string fileKey = NormalizeFontFamilyKey(Path.GetFileNameWithoutExtension(path));
-                if (fileKey == key || fileKey.StartsWith(key, StringComparison.OrdinalIgnoreCase) || fileKey.Contains(key)) {
+                string fileHint = key == "calibrilight" ? "calibri" : key;
+                if (fileKey == key || fileKey.StartsWith(fileHint, StringComparison.OrdinalIgnoreCase) || fileKey.Contains(key)) {
                     yield return path;
                 }
             }
         }
         foreach (string path in OfficeCloudFontFiles.GetFamilyFiles(key, cancellationToken)) yield return path;
-    }
-
-    private static IEnumerable<string> CandidateFontDirectories() {
-        string windows = Environment.GetFolderPath(Environment.SpecialFolder.Windows);
-        if (!string.IsNullOrEmpty(windows)) {
-            yield return Path.Combine(windows, "Fonts");
-        }
-
-        yield return "/System/Library/Fonts";
-        yield return "/System/Library/Fonts/Supplemental";
-        yield return "/Library/Fonts";
-        yield return "/usr/share/fonts/truetype/dejavu";
-        yield return "/usr/share/fonts/truetype/liberation2";
-        yield return "/usr/share/fonts/dejavu";
-        yield return "/usr/share/fonts/liberation";
-    }
-
-    private static IEnumerable<string> SafeEnumerateFontFiles(string directory) {
-        string[] files;
-        try {
-            files = Directory.GetFiles(directory, "*.*", SearchOption.TopDirectoryOnly);
-        } catch (IOException) {
-            yield break;
-        } catch (UnauthorizedAccessException) {
-            yield break;
-        } catch (ArgumentException) {
-            yield break;
-        } catch (NotSupportedException) {
-            yield break;
-        }
-
-        foreach (string file in files) {
-            string extension = Path.GetExtension(file);
-            if (string.Equals(extension, ".ttf", StringComparison.OrdinalIgnoreCase) ||
-                string.Equals(extension, ".otf", StringComparison.OrdinalIgnoreCase) ||
-                string.Equals(extension, ".ttc", StringComparison.OrdinalIgnoreCase)) {
-                yield return file;
-            }
-        }
     }
 
     private static string NormalizeFontFamilyKey(string family) {

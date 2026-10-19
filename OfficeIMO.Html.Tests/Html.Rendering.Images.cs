@@ -73,6 +73,7 @@ public sealed partial class HtmlRenderingTests {
         const string html = "<img src='missing.png' alt='Heliopause movie&#13;&#10;  unavailable' style='width:180px;height:40px'>";
 
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, new HtmlRenderOptions {
+            Mode = HtmlRenderMode.Continuous,
             ViewportWidth = 200D,
             Margins = HtmlRenderMargins.All(0D)
         });
@@ -96,6 +97,7 @@ public sealed partial class HtmlRenderingTests {
             """;
 
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, new HtmlRenderOptions {
+            Mode = HtmlRenderMode.Continuous,
             ViewportWidth = 220D,
             Margins = HtmlRenderMargins.All(0D)
         });
@@ -132,6 +134,7 @@ public sealed partial class HtmlRenderingTests {
             + "' style='display:block;width:80px;height:16px;font:12px/16px Arial'>";
 
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, new HtmlRenderOptions {
+            Mode = HtmlRenderMode.Continuous,
             ViewportWidth = 120D,
             Margins = HtmlRenderMargins.All(0D)
         });
@@ -153,6 +156,7 @@ public sealed partial class HtmlRenderingTests {
         const string html = "<img src='missing.png' alt='Heliopause&#160;movie&#13;&#10; unavailable' style='width:180px;height:40px'>";
 
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, new HtmlRenderOptions {
+            Mode = HtmlRenderMode.Continuous,
             ViewportWidth = 200D,
             Margins = HtmlRenderMargins.All(0D)
         });
@@ -169,6 +173,7 @@ public sealed partial class HtmlRenderingTests {
             <a href="https://example.com/missing"><img src="missing.png" alt="Unavailable" style="display:block;width:120px;height:70px"></a>
             """;
         var options = new HtmlRenderOptions {
+            Mode = HtmlRenderMode.Continuous,
             ViewportWidth = 140D,
             Margins = HtmlRenderMargins.All(0D),
             BackgroundColor = OfficeColor.White
@@ -191,6 +196,7 @@ public sealed partial class HtmlRenderingTests {
             + "<svg id='art' viewBox='0 0 20 10' style='width:40px;height:20px'>"
             + "<rect class='host-painted' width='20' height='10'/></svg>";
         var options = new HtmlRenderOptions {
+            Mode = HtmlRenderMode.Continuous,
             ViewportWidth = 80D,
             ViewportHeight = 40D,
             Margins = HtmlRenderMargins.All(0D),
@@ -213,6 +219,7 @@ public sealed partial class HtmlRenderingTests {
         const string html = "<body style='margin:0'><style>svg{display:block;width:500px;height:60px;background-color:#888}</style>"
             + "<svg><line x1='10' y1='30' x2='300' y2='30' style='stroke:blue;stroke-width:20'/></svg></body>";
         var options = new HtmlRenderOptions {
+            Mode = HtmlRenderMode.Continuous,
             ViewportWidth = 520D,
             ViewportHeight = 80D,
             Margins = HtmlRenderMargins.All(0D),
@@ -235,6 +242,7 @@ public sealed partial class HtmlRenderingTests {
         const string html = "<body style='margin:0'><svg viewBox='0 0 100 50' style='display:block;width:500px;height:300px'>"
             + "<rect x='10' y='5' width='20' height='10' fill='red'/></svg></body>";
         var options = new HtmlRenderOptions {
+            Mode = HtmlRenderMode.Continuous,
             ViewportWidth = 520D,
             ViewportHeight = 320D,
             Margins = HtmlRenderMargins.All(0D)
@@ -258,6 +266,7 @@ public sealed partial class HtmlRenderingTests {
             + "style='display:block;width:500px;height:300px;object-fit:contain'>"
             + "<rect width='100' height='50' fill='red'/></svg></body>";
         var options = new HtmlRenderOptions {
+            Mode = HtmlRenderMode.Continuous,
             ViewportWidth = 520D,
             ViewportHeight = 320D,
             Margins = HtmlRenderMargins.All(0D)
@@ -284,6 +293,7 @@ public sealed partial class HtmlRenderingTests {
             + "style='display:block;width:10px;height:12px;object-fit:cover;object-position:right center'>"
             + "<rect width='10' height='10' fill='red'/><rect x='10' width='10' height='10' fill='blue'/></svg></body>";
         var options = new HtmlRenderOptions {
+            Mode = HtmlRenderMode.Continuous,
             ViewportWidth = 20D,
             ViewportHeight = 20D,
             Margins = HtmlRenderMargins.All(0D)
@@ -308,6 +318,7 @@ public sealed partial class HtmlRenderingTests {
         const string html = "<body style='margin:0'><svg width='1000000' style='display:block;width:500px;height:60px'>"
             + "<rect width='10' height='10' filter='url(#blur)'/></svg></body>";
         var options = new HtmlRenderOptions {
+            Mode = HtmlRenderMode.Continuous,
             ViewportWidth = 520D,
             ViewportHeight = 80D,
             Margins = HtmlRenderMargins.All(0D),
@@ -325,6 +336,7 @@ public sealed partial class HtmlRenderingTests {
         const string html = "<body style='margin:0'><svg viewBox='0 0 10 4' style='display:block;width:100px;height:40px'>"
             + "<rect width='10' height='4' fill='red'/><customPaint/></svg></body>";
         var options = new HtmlRenderOptions {
+            Mode = HtmlRenderMode.Continuous,
             ViewportWidth = 120D,
             ViewportHeight = 60D,
             Margins = HtmlRenderMargins.All(0D),
@@ -354,6 +366,7 @@ public sealed partial class HtmlRenderingTests {
             + $"<img id='density' src='data:image/jpeg;base64,{data}' style='display:block;image-resolution:2dppx'>"
             + "</body>";
         var options = new HtmlRenderOptions {
+            Mode = HtmlRenderMode.Continuous,
             ViewportWidth = 20D,
             ViewportHeight = 20D,
             Margins = HtmlRenderMargins.All(0D),
@@ -393,6 +406,7 @@ public sealed partial class HtmlRenderingTests {
             + $"<img id='explicit' src='data:image/jpeg;base64,{data}' style='display:block;image-resolution:2dppx'>"
             + "</body>";
         var options = new HtmlRenderOptions {
+            Mode = HtmlRenderMode.Continuous,
             ViewportWidth = 320D,
             ViewportHeight = 20D,
             Margins = HtmlRenderMargins.All(0D)
@@ -415,6 +429,7 @@ public sealed partial class HtmlRenderingTests {
             + Convert.ToBase64String(jpeg) + "' style='display:block;image-resolution:" + resolution + "'></body>";
 
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, new HtmlRenderOptions {
+            Mode = HtmlRenderMode.Continuous,
             ViewportWidth = 320D,
             ViewportHeight = 20D,
             Margins = HtmlRenderMargins.All(0D)
@@ -453,6 +468,7 @@ public sealed partial class HtmlRenderingTests {
         string data = Convert.ToBase64String(Encoding.UTF8.GetBytes(svgSource));
         string html = "<body style='margin:0'><img id='svg-image' src='data:image/svg+xml;base64," + data + "' alt='vector'></body>";
         var options = new HtmlRenderOptions {
+            Mode = HtmlRenderMode.Continuous,
             ViewportWidth = 220D,
             ViewportHeight = 120D,
             Margins = HtmlRenderMargins.All(0D),
@@ -477,6 +493,7 @@ public sealed partial class HtmlRenderingTests {
         string data = Convert.ToBase64String(Encoding.UTF8.GetBytes(svgSource));
         string html = "<body style='margin:0'><img id='vector' src='data:image/svg+xml;base64," + data + "' style='display:block;width:80px;height:40px'><div style='font-size:6px;line-height:8px'>SvgPdf</div></body>";
         var options = new HtmlRenderOptions {
+            Mode = HtmlRenderMode.Continuous,
             ViewportWidth = 90D,
             ViewportHeight = 55D,
             Margins = HtmlRenderMargins.All(0D),
@@ -506,12 +523,19 @@ public sealed partial class HtmlRenderingTests {
         Assert.Equal(OfficeColor.Red, raster.GetPixel(10, 10));
         Assert.Equal(OfficeColor.Blue, raster.GetPixel(60, 20));
         Assert.Equal(OfficeColor.Lime, raster.GetPixel(40, 20));
-        Assert.Contains("<path", exportedSvg, StringComparison.Ordinal);
-        Assert.Contains("<ellipse", exportedSvg, StringComparison.Ordinal);
-        Assert.Contains("transform=\"matrix(", exportedSvg, StringComparison.Ordinal);
-        Assert.Contains(">Svg</text>", exportedSvg, StringComparison.Ordinal);
-        Assert.Contains(">LabelX</text>", exportedSvg, StringComparison.Ordinal);
-        Assert.DoesNotContain("data:image/svg+xml", exportedSvg, StringComparison.Ordinal);
+        OfficeRasterImage svgRaster = RasterizeHtmlImageSvg(exportedSvg);
+        Assert.Equal(OfficeColor.Red, svgRaster.GetPixel(10, 10));
+        Assert.Equal(OfficeColor.Blue, svgRaster.GetPixel(60, 20));
+        Assert.Equal(OfficeColor.Lime, svgRaster.GetPixel(40, 20));
+        Assert.True(OfficePngReader.TryDecode(HtmlConversionDocument.Parse(html).ToPng(options), out OfficeRasterImage? pngRaster));
+        Assert.Equal(OfficeColor.Red, pngRaster!.GetPixel(10, 10));
+        Assert.Equal(OfficeColor.Blue, pngRaster.GetPixel(60, 20));
+        Assert.Equal(OfficeColor.Lime, pngRaster.GetPixel(40, 20));
+        System.Xml.Linq.XNamespace svgNamespace = "http://www.w3.org/2000/svg";
+        string svgText = string.Concat(System.Xml.Linq.XDocument.Parse(exportedSvg).Descendants(svgNamespace + "text")
+            .Select(text => text.Value));
+        Assert.Contains("SvgLabelX", string.Concat(svgText.Where(character => !char.IsWhiteSpace(character))), StringComparison.Ordinal);
+        Assert.DoesNotContain("data:image/", exportedSvg, StringComparison.Ordinal);
         Assert.Contains("SvgPdf", pdfText, StringComparison.Ordinal);
         Assert.Contains("SvgLabelX", pdfText, StringComparison.Ordinal);
         Assert.Empty(PdfCore.PdfImageExtractor.ExtractImages(pdf));
@@ -527,7 +551,7 @@ public sealed partial class HtmlRenderingTests {
         string data = Convert.ToBase64String(Encoding.UTF8.GetBytes(svgSource));
         string html = "<body style='margin:0'><img id='effects' src='data:image/svg+xml;base64," + data
             + "' style='display:block;width:100px;height:40px'></body>";
-        var options = new HtmlRenderOptions { ViewportWidth = 100D, ViewportHeight = 40D, Margins = HtmlRenderMargins.All(0D) };
+        var options = new HtmlRenderOptions { Mode = HtmlRenderMode.Continuous, ViewportWidth = 100D, ViewportHeight = 40D, Margins = HtmlRenderMargins.All(0D) };
 
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html), options);
         string exportedSvg = HtmlConversionDocument.Parse(html).ToSvg(options);
@@ -540,9 +564,12 @@ public sealed partial class HtmlRenderingTests {
             background: OfficeColor.White);
 
         Assert.DoesNotContain(rendered.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.SvgContentUnsupported);
-        Assert.Contains("mix-blend-mode:multiply", exportedSvg, StringComparison.Ordinal);
-        Assert.Contains("<mask id=", exportedSvg, StringComparison.Ordinal);
-        Assert.Equal(new byte[] { 137, 80, 78, 71 }, png.Take(4));
+        OfficeRasterImage svgRaster = RasterizeHtmlImageSvg(exportedSvg);
+        Assert.True(OfficePngReader.TryDecode(png, out OfficeRasterImage? pngRaster));
+        Assert.True(svgRaster.GetPixel(20, 15).B < 40);
+        Assert.True(svgRaster.GetPixel(60, 15).B > 180);
+        Assert.True(pngRaster!.GetPixel(20, 15).B < 40);
+        Assert.True(pngRaster.GetPixel(60, 15).B > 180);
         Assert.True(pdfRaster.GetPixel(20, 15).B < 40);
         Assert.True(pdfRaster.GetPixel(60, 15).B > 180);
         Assert.Contains(pdfResult.Report.Warnings, warning => warning.Code == "HtmlPdfDrawingEffectRasterized");
@@ -558,6 +585,7 @@ public sealed partial class HtmlRenderingTests {
         string html = "<body style='margin:0'><img id='filtered-vector' src='data:image/svg+xml;base64," + data
             + "' style='display:block;width:120px;height:100px'></body>";
         var options = new HtmlRenderOptions {
+            Mode = HtmlRenderMode.Continuous,
             ViewportWidth = 120D,
             ViewportHeight = 100D,
             Margins = HtmlRenderMargins.All(0D)
@@ -590,6 +618,7 @@ public sealed partial class HtmlRenderingTests {
             + "<foreignObject x='1' y='7' width='10' height='2'><div xmlns='http://www.w3.org/1999/xhtml' "
             + "style='font:1.5px/2px Arial;color:navy'>InlineForeign</div></foreignObject></svg></body>";
         var options = new HtmlRenderOptions {
+            Mode = HtmlRenderMode.Continuous,
             ViewportWidth = 120D,
             ViewportHeight = 100D,
             Margins = HtmlRenderMargins.All(0D)
@@ -622,6 +651,7 @@ public sealed partial class HtmlRenderingTests {
         string html = "<body style='margin:0'><img id='foreign-html' src='data:image/svg+xml;base64," + data
             + "' style='display:block;width:100px;height:60px'></body>";
         var options = new HtmlRenderOptions {
+            Mode = HtmlRenderMode.Continuous,
             ViewportWidth = 100D,
             ViewportHeight = 60D,
             Margins = HtmlRenderMargins.All(0D)
@@ -666,6 +696,7 @@ public sealed partial class HtmlRenderingTests {
         string recursiveHtml = "<img src='data:image/svg+xml;base64,"
             + Convert.ToBase64String(Encoding.UTF8.GetBytes(outerSvg)) + "'>";
         var recursiveOptions = new HtmlRenderOptions {
+            Mode = HtmlRenderMode.Continuous,
             ViewportWidth = 20D,
             ViewportHeight = 20D,
             Margins = HtmlRenderMargins.All(0D),
@@ -682,6 +713,7 @@ public sealed partial class HtmlRenderingTests {
         string nodeHtml = "<img src='data:image/svg+xml;base64,"
             + Convert.ToBase64String(Encoding.UTF8.GetBytes(nodeSvg)) + "'>";
         var nodeOptions = new HtmlRenderOptions {
+            Mode = HtmlRenderMode.Continuous,
             ViewportWidth = 20D,
             ViewportHeight = 10D,
             Margins = HtmlRenderMargins.All(0D),
@@ -698,6 +730,7 @@ public sealed partial class HtmlRenderingTests {
         string data = Convert.ToBase64String(Encoding.UTF8.GetBytes(svgSource));
         string html = "<img id='filtered' src='data:image/svg+xml;base64," + data + "' style='width:100px;height:40px'>";
         var options = new HtmlRenderOptions {
+            Mode = HtmlRenderMode.Continuous,
             ViewportWidth = 100D,
             ViewportHeight = 40D,
             Margins = HtmlRenderMargins.All(0D),
@@ -712,7 +745,9 @@ public sealed partial class HtmlRenderingTests {
         Assert.DoesNotContain(rendered.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.SvgContentUnsupported);
         HtmlRenderDrawing visual = Assert.Single(rendered.Pages[0].Visuals.OfType<HtmlRenderDrawing>());
         Assert.Single(visual.Drawing.Images);
-        Assert.Contains("data:image/png;base64", exportedSvg, StringComparison.Ordinal);
+        Assert.Equal(OfficeColor.Purple, RasterizeHtmlImageSvg(exportedSvg).GetPixel(50, 20));
+        Assert.True(OfficePngReader.TryDecode(HtmlConversionDocument.Parse(html).ToPng(options), out OfficeRasterImage? png));
+        Assert.Equal(OfficeColor.Purple, png!.GetPixel(50, 20));
     }
 
     [Fact]
@@ -721,6 +756,7 @@ public sealed partial class HtmlRenderingTests {
         string data = Convert.ToBase64String(Encoding.UTF8.GetBytes(svgSource));
         string html = "<img src='data:image/svg+xml;base64," + data + "' style='width:100px;height:40px'>";
         var options = new HtmlRenderOptions {
+            Mode = HtmlRenderMode.Continuous,
             ViewportWidth = 100D,
             ViewportHeight = 40D,
             Margins = HtmlRenderMargins.All(0D),
@@ -742,6 +778,7 @@ public sealed partial class HtmlRenderingTests {
         string data = Convert.ToBase64String(Encoding.UTF8.GetBytes("<svg-not-supported-by-managed-reader/>"));
         string html = "<img id='codec-svg' src='data:image/svg+xml;base64," + data + "' style='width:50px;height:20px'>";
         var options = new HtmlRenderOptions {
+            Mode = HtmlRenderMode.Continuous,
             ViewportWidth = 60D,
             ViewportHeight = 30D,
             Margins = HtmlRenderMargins.All(0D),
@@ -758,10 +795,13 @@ public sealed partial class HtmlRenderingTests {
 
     [Fact]
     public void HtmlImageExport_KeepsCallerCodecInsideTheRenderDeadline() {
-        string data = Convert.ToBase64String(new byte[] { 1, 2, 3, 4 });
+        // An inspected, valid LZMA TIFF reaches the caller codec; malformed
+        // bytes are rejected by the shared PDF raster owner before that seam.
+        const string data = "SUkqAFAAAAD9N3pYWgAAAP8S2UECAQMBACEBFnkgxO7gAv8ADV0Af4A8Fz4mR/wBtzwgAAAAAAAAASGABgAAAADtKJuoAAr8AgAAAAAAWVoKAAABAwABAAAAEAAAAAEBAwABAAAAEAAAAAIBAwADAAAAzgAAAAMBAwABAAAAbYgAAAYBAwABAAAAAgAAABEBBAABAAAACAAAABUBAwABAAAAAwAAABYBAwABAAAAEAAAABcBBAABAAAASAAAABwBAwABAAAAAQAAAAAAAAAIAAgACAA=";
         string html = "<img src='data:image/tiff;base64," + data + "' style='width:20px;height:20px'>";
         var timeout = TimeSpan.FromMilliseconds(50D);
         var options = new HtmlRenderOptions {
+            Mode = HtmlRenderMode.Continuous,
             ViewportWidth = 30D,
             ViewportHeight = 30D,
             Margins = HtmlRenderMargins.All(0D),
@@ -785,6 +825,7 @@ public sealed partial class HtmlRenderingTests {
         string html = "<body style='margin:0'><img id='paint-server' src='data:image/svg+xml;base64," + data
             + "' style='display:block;width:80px;height:40px'><div style='font-size:6px;line-height:8px'>SvgPdfX</div></body>";
         var options = new HtmlRenderOptions {
+            Mode = HtmlRenderMode.Continuous,
             ViewportWidth = 90D,
             ViewportHeight = 55D,
             Margins = HtmlRenderMargins.All(0D),
@@ -840,6 +881,7 @@ public sealed partial class HtmlRenderingTests {
         string html = "<img id='partial-svg' src='data:image/svg+xml;base64," + data + "'>";
 
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html), new HtmlRenderOptions {
+            Mode = HtmlRenderMode.Continuous,
             ViewportWidth = 40D,
             ViewportHeight = 40D,
             Margins = HtmlRenderMargins.All(0D)
@@ -857,6 +899,7 @@ public sealed partial class HtmlRenderingTests {
         string html = $"<img id='contained' src='data:image/png;base64,{data}' alt='contained image' style='display:block;width:40px;height:40px;object-fit:contain;object-position:right bottom'>"
             + "<div style='font-size:6px;line-height:8px'>ImagePdf</div>";
         var options = new HtmlRenderOptions {
+            Mode = HtmlRenderMode.Continuous,
             ViewportWidth = 60D,
             ViewportHeight = 55D,
             Margins = HtmlRenderMargins.All(0D),
@@ -885,7 +928,14 @@ public sealed partial class HtmlRenderingTests {
         Assert.False(image.SourceCrop.HasCrop);
         Assert.Equal(OfficeColor.Transparent, raster.GetPixel(20, 10));
         Assert.True(raster.GetPixel(20, 30).A > 0);
-        Assert.Contains("<image x=\"0\" y=\"20\" width=\"40\" height=\"20\"", svg, StringComparison.Ordinal);
+        OfficeRasterImage svgRaster = RasterizeHtmlImageSvg(svg);
+        Assert.Equal(OfficeColor.Transparent, svgRaster.GetPixel(20, 10));
+        Assert.True(svgRaster.GetPixel(20, 30).A > 0);
+        Assert.Equal(OfficeColor.Transparent, svgRaster.GetPixel(45, 30));
+        Assert.True(OfficePngReader.TryDecode(HtmlConversionDocument.Parse(html).ToPng(options), out OfficeRasterImage? pngRaster));
+        Assert.Equal(OfficeColor.Transparent, pngRaster!.GetPixel(20, 10));
+        Assert.True(pngRaster.GetPixel(20, 30).A > 0);
+        Assert.Equal(OfficeColor.Transparent, pngRaster.GetPixel(45, 30));
         Assert.Contains("ImagePdf", pdfText, StringComparison.Ordinal);
         Assert.Contains(PdfCore.PdfImageExtractor.ExtractImages(pdf), extracted => extracted.IsImageFile && extracted.MimeType == "image/png");
         Assert.DoesNotContain(OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToPdfDocumentResult(pdfOptions).Report.Warnings, warning => warning.Severity == PdfCore.PdfConversionWarningSeverity.Error);
@@ -896,6 +946,7 @@ public sealed partial class HtmlRenderingTests {
         string data = Convert.ToBase64String(PdfPngTestImages.CreateRgbPng(20, 10));
         string html = $"<img id='covered' src='data:image/png;base64,{data}' style='display:block;width:40px;height:40px;object-fit:cover;object-position:right center'>";
         var options = new HtmlRenderOptions {
+            Mode = HtmlRenderMode.Continuous,
             ViewportWidth = 50D,
             ViewportHeight = 45D,
             Margins = HtmlRenderMargins.All(0D),
@@ -922,6 +973,7 @@ public sealed partial class HtmlRenderingTests {
         string data = Convert.ToBase64String(Encoding.UTF8.GetBytes(svgSource));
         string html = "<img id='covered-svg' src='data:image/svg+xml;base64," + data + "' style='display:block;width:10px;height:10px;object-fit:cover;object-position:right center'>";
         var options = new HtmlRenderOptions {
+            Mode = HtmlRenderMode.Continuous,
             ViewportWidth = 12D,
             ViewportHeight = 12D,
             Margins = HtmlRenderMargins.All(0D),
@@ -984,6 +1036,7 @@ public sealed partial class HtmlRenderingTests {
             + $"<img id='border-box-image' src='data:image/png;base64,{data}' style='display:block;box-sizing:border-box;width:40px;height:40px;padding:5px;border:2px solid black'>";
 
         List<HtmlRenderImage> images = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html), new HtmlRenderOptions {
+            Mode = HtmlRenderMode.Continuous,
             ViewportWidth = 120D,
             ViewportHeight = 190D,
             Margins = HtmlRenderMargins.All(0D),
@@ -1012,6 +1065,7 @@ public sealed partial class HtmlRenderingTests {
             + "</div>";
 
         HtmlRenderImage image = Assert.Single(HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html), new HtmlRenderOptions {
+            Mode = HtmlRenderMode.Continuous,
             ViewportWidth = 1000D,
             ViewportHeight = 800D,
             Margins = HtmlRenderMargins.All(0D)
@@ -1029,6 +1083,7 @@ public sealed partial class HtmlRenderingTests {
             + $"<div style='width:100px;font-size:8px;line-height:10px'><img id='float-image' src='data:image/png;base64,{data}' style='float:left'><span>FloatText</span></div>";
 
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html), new HtmlRenderOptions {
+            Mode = HtmlRenderMode.Continuous,
             ViewportWidth = 120D,
             ViewportHeight = 40D,
             Margins = HtmlRenderMargins.All(0D)
@@ -1062,6 +1117,7 @@ public sealed partial class HtmlRenderingTests {
             + $"<div style='width:100px;font-size:8px;line-height:10px'><img id='float-tiff' src='{source}' style='float:left'><span>TiffFloatText</span></div>";
 
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html), new HtmlRenderOptions {
+            Mode = HtmlRenderMode.Continuous,
             ViewportWidth = 120D,
             ViewportHeight = 100D,
             Margins = HtmlRenderMargins.All(0D)
@@ -1094,6 +1150,7 @@ public sealed partial class HtmlRenderingTests {
         string data = Convert.ToBase64String(PdfPngTestImages.CreateRgbPng(20, 10));
         string html = $"<p id='inline-line' style='width:60px;margin:0;font-size:10px;line-height:12px'>Before<a href='https://example.com/image'><img id='inline-image' src='data:image/png;base64,{data}' alt='inline image' style='width:18px;height:14px;margin:0 2px;border:1px solid #0000ff;border-radius:4px;object-fit:cover'></a>After</p>";
         var options = new HtmlRenderOptions {
+            Mode = HtmlRenderMode.Continuous,
             ViewportWidth = 65D,
             ViewportHeight = 45D,
             Margins = HtmlRenderMargins.All(0D),
@@ -1130,8 +1187,12 @@ public sealed partial class HtmlRenderingTests {
         Assert.True(image.Y < before.Y);
         Assert.True(after.Y > before.Y);
         Assert.True(raster.GetPixel((int)Math.Round(image.X + image.Width / 2D), (int)Math.Round(image.Y + image.Height / 2D)).A > 0);
-        Assert.Contains("<clipPath", svg, StringComparison.Ordinal);
-        Assert.Contains("<image", svg, StringComparison.Ordinal);
+        OfficeRasterImage svgRaster = RasterizeHtmlImageSvg(svg);
+        Assert.True(svgRaster.GetPixel((int)Math.Round(image.X + image.Width / 2D), (int)Math.Round(image.Y + image.Height / 2D)).A > 0);
+        Assert.Equal(OfficeColor.Transparent, svgRaster.GetPixel((int)Math.Round(image.X + image.Width / 2D), (int)Math.Round(after.Y + after.Height / 2D)));
+        Assert.True(OfficePngReader.TryDecode(HtmlConversionDocument.Parse(html).ToPng(options), out OfficeRasterImage? pngRaster));
+        Assert.True(pngRaster!.GetPixel((int)Math.Round(image.X + image.Width / 2D), (int)Math.Round(image.Y + image.Height / 2D)).A > 0);
+        Assert.Equal(OfficeColor.Transparent, pngRaster.GetPixel((int)Math.Round(image.X + image.Width / 2D), (int)Math.Round(after.Y + after.Height / 2D)));
         Assert.Contains("Before", pdfText, StringComparison.Ordinal);
         Assert.Contains("After", pdfText, StringComparison.Ordinal);
         Assert.Single(PdfCore.PdfDocumentReadResult.Load(pdf).GetLinksByUri("https://example.com/image"));
@@ -1170,8 +1231,11 @@ public sealed partial class HtmlRenderingTests {
             Assert.True(OfficePngReader.TryDecode(pngPages[index].Bytes, out OfficeRasterImage? raster));
             Assert.True(raster!.GetPixel(20, index < 2 ? 20 : 5).R > 240);
             string svg = Encoding.UTF8.GetString(svgPages[index].Bytes);
-            Assert.Contains("<clipPath", svg, StringComparison.Ordinal);
-            Assert.Contains("<image", svg, StringComparison.Ordinal);
+            OfficeRasterImage svgRaster = RasterizeHtmlImageSvg(svg);
+            Assert.Equal(40, svgRaster.Width);
+            Assert.Equal(40, svgRaster.Height);
+            Assert.True(svgRaster.GetPixel(20, index < 2 ? 20 : 5).R > 240);
+            if (index == 2) Assert.Equal(OfficeColor.Transparent, svgRaster.GetPixel(20, 20));
         }
         Assert.Equal(3, PdfCore.PdfInspector.Inspect(pdf).PageCount);
         Assert.DoesNotContain(rendered.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.VisualFragmentUnsupported);
@@ -1255,6 +1319,7 @@ public sealed partial class HtmlRenderingTests {
             + $"<img id='rounded-image' src='data:image/png;base64,{data}' style='display:block;width:30px;height:20px;border-radius:8px 2px / 3px 6px'>";
 
         var options = new HtmlRenderOptions {
+            Mode = HtmlRenderMode.Continuous,
             ViewportWidth = 50D,
             ViewportHeight = 45D,
             Margins = HtmlRenderMargins.All(0D),
@@ -1294,6 +1359,7 @@ public sealed partial class HtmlRenderingTests {
         string data = Convert.ToBase64String(PdfPngTestImages.CreateRgbPng(4, 4));
         string html = $"<div id='rounded-background' style='width:30px;height:20px;border-radius:10px 2px / 4px 8px;background-image:url(data:image/png;base64,{data});background-size:4px 4px;background-repeat:repeat'></div>";
         var options = new HtmlRenderOptions {
+            Mode = HtmlRenderMode.Continuous,
             ViewportWidth = 35D,
             ViewportHeight = 25D,
             Margins = HtmlRenderMargins.All(0D),
@@ -1324,6 +1390,11 @@ public sealed partial class HtmlRenderingTests {
         Assert.Contains(PdfCore.PdfImageExtractor.ExtractImages(pdf), image => image.IsImageFile && image.MimeType == "image/png");
         Assert.DoesNotContain(rendered.Diagnostics, item => item.Code == HtmlRenderDiagnosticCodes.BorderRadiusValueUnsupported);
         Assert.DoesNotContain(OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToPdfDocumentResult(pdfOptions).Report.Warnings, warning => warning.Severity == PdfCore.PdfConversionWarningSeverity.Error);
+    }
+
+    private static OfficeRasterImage RasterizeHtmlImageSvg(string svg) {
+        Assert.True(OfficeSvgDrawingReader.TryRead(Encoding.UTF8.GetBytes(svg), out OfficeDrawing? drawing));
+        return OfficeDrawingRasterRenderer.Render(drawing!, background: OfficeColor.Transparent);
     }
 
     private sealed class SvgFallbackCodec : IOfficeRasterImageCodec {
@@ -1375,7 +1446,7 @@ public sealed partial class HtmlRenderingTests {
     private sealed class SlowFallbackCodec : IOfficeRasterImageCodec {
         public bool TryDecode(byte[] encodedBytes, string? contentType, out OfficeRasterImage? image) {
             Thread.Sleep(100);
-            image = new OfficeRasterImage(2, 2, OfficeColor.Purple);
+            image = new OfficeRasterImage(16, 16, OfficeColor.Purple);
             return true;
         }
     }

@@ -25,6 +25,7 @@ public static partial class ExcelOpenDocumentConversionExtensions {
         target.Metadata.Title = snapshot.Title;
         target.Metadata.Creator = snapshot.Author;
         target.Metadata.Subject = snapshot.Subject;
+        ExportWorkbookDefaultFont(source, target);
         NamedRangeConversionPlan namedRangePlan = BuildNamedRangeConversionPlan(snapshot.NamedRanges);
 
         int cells = 0, formulas = 0, formulaTranslationFailures = 0, styles = 0, hyperlinks = 0, unsupportedHyperlinks = 0, hyperlinkTooltips = 0, comments = 0, richComments = 0, threadedComments = 0, merges = 0;
@@ -412,6 +413,7 @@ public static partial class ExcelOpenDocumentConversionExtensions {
         target.BuiltinDocumentProperties.Title = source.Metadata.Title;
         target.BuiltinDocumentProperties.Creator = source.Metadata.Creator;
         target.BuiltinDocumentProperties.Subject = source.Metadata.Subject;
+        ImportWorkbookDefaultFont(source, target);
         var dataStyles = source.DataStyles.GroupBy(style => style.Name, StringComparer.Ordinal)
             .ToDictionary(group => group.Key, group => group.First(), StringComparer.Ordinal);
         var sourceValidations = source.Validations

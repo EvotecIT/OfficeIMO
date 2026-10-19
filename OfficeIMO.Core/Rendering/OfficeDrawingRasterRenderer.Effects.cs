@@ -14,6 +14,8 @@ public static partial class OfficeDrawingRasterRenderer {
         if (!effectGroup.Transform.TryInvert(out _)) return;
         EffectTextLayerPlan layerPlan = PlanEffectTextLayer(effectGroup, canvas, scale,
             canvas.CoordinateScaleX, canvas.CoordinateScaleY);
+        if (TryForwardScaledSourceOverGroup(canvas, effectGroup, layerPlan, scale,
+                imageCodec, maximumRasterPixels, cancellationToken)) return;
         double scaleX = layerPlan.ScaleX, scaleY = layerPlan.ScaleY;
         double layerScale = System.Math.Max(scaleX, scaleY);
         if (scaleX <= 0D || scaleY <= 0D) return;
@@ -54,6 +56,7 @@ public static partial class OfficeDrawingRasterRenderer {
                 canvas.DiagnosticSink,
                 canvas.DiagnosticSource,
                 canvas.TransformedTextBudget,
+                canvas.PdfRasterConventions,
                 maximumRasterPixels,
                 cancellationToken);
         }
@@ -71,6 +74,7 @@ public static partial class OfficeDrawingRasterRenderer {
             DiagnosticSink = canvas.DiagnosticSink,
             DiagnosticSource = canvas.DiagnosticSource,
             TransformedTextBudget = canvas.TransformedTextBudget,
+            PdfRasterConventions = canvas.PdfRasterConventions,
             ImageCache = canvas.ImageCache,
             MaximumRasterPixels = maximumRasterPixels,
             CancellationToken = cancellationToken
@@ -327,6 +331,7 @@ public static partial class OfficeDrawingRasterRenderer {
         System.Collections.Generic.ICollection<OfficeImageExportDiagnostic>? diagnosticSink,
         string? diagnosticSource,
         OfficeRasterTransformedTextBudget transformedTextBudget,
+        bool pdfRasterConventions,
         long maximumRasterPixels,
         System.Threading.CancellationToken cancellationToken) {
         long surfacePixels = (long)source.Width * source.Height;
@@ -354,11 +359,13 @@ public static partial class OfficeDrawingRasterRenderer {
             DiagnosticSink = diagnosticSink,
             DiagnosticSource = diagnosticSource,
             TransformedTextBudget = transformedTextBudget,
+            PdfRasterConventions = pdfRasterConventions,
             MaximumRasterPixels = maximumRasterPixels,
             CancellationToken = cancellationToken
         }, scaleX, scaleY, maskPlan, fonts);
         OfficeRasterImage result = new OfficeRasterImage(source.Width, source.Height);
         double backdrop = GetMaskFactor(softMask.BackdropColor, softMask.Mode, softMask.LuminosityStandard);
+        byte[]? transfer = softMask.TransferTable;
         for (int y = 0; y < source.Height; y++) {
             cancellationToken.ThrowIfCancellationRequested();
             for (int x = 0; x < source.Width; x++) {
@@ -366,6 +373,7 @@ public static partial class OfficeDrawingRasterRenderer {
                 OfficeColor maskPixel = mask.GetPixel(x, y);
                 double maskAlpha = maskPixel.A / 255D;
                 double coverage = GetMaskFactor(maskPixel, softMask.Mode, softMask.LuminosityStandard) + ((1D - maskAlpha) * backdrop);
+                if (transfer != null) coverage = transfer[(int)System.Math.Round(System.Math.Max(0D, System.Math.Min(1D, coverage)) * 255D)] / 255D;
                 result.SetPixel(x, y, OfficeColor.FromRgba(sourcePixel.R, sourcePixel.G, sourcePixel.B, (byte)System.Math.Round(sourcePixel.A * coverage)));
             }
         }

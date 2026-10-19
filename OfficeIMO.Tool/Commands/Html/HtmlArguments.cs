@@ -34,7 +34,7 @@ internal sealed class HtmlArguments {
     internal string? BoldFontPath { get; private set; }
     internal string? ItalicFontPath { get; private set; }
     internal string? BoldItalicFontPath { get; private set; }
-    internal HtmlRenderIntentProfile RenderProfile { get; private set; } = HtmlRenderIntentProfile.ScreenFullPage;
+    internal HtmlRenderIntentProfile RenderProfile { get; private set; } = HtmlRenderIntentProfile.PrintPaged;
     internal HtmlRenderEncoder RenderEncoder { get; private set; } = HtmlRenderEncoder.Png;
     internal HtmlRenderPageSet RenderPageSet { get; private set; } = HtmlRenderPageSet.All();
     internal double? ViewportWidth { get; private set; }
@@ -62,8 +62,6 @@ internal sealed class HtmlArguments {
                 _ => throw new HtmlUsageException("Unknown command '" + args[0] + "'.")
             }
         };
-        if (parsed.Command == HtmlCommandKind.Convert) parsed.RenderProfile = HtmlRenderIntentProfile.PrintPaged;
-
         for (int index = 1; index < args.Length; index++) {
             string token = args[index];
             if (IsHelp(token)) return new HtmlArguments { Command = HtmlCommandKind.Help };

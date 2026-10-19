@@ -27,10 +27,17 @@ internal static class PdfTextDirectionAnalysis {
 
         IReadOnlyList<string> elements = OfficeTextElements.Split(text);
         if (elements.Count < 2) return text;
+        // Right-to-left words separated by spaces or punctuation reverse as a whole. Left-to-right
+        // letters and digits, and neutrals at either edge (which may belong to the surrounding
+        // context), make the logical order ambiguous, so such runs are left unchanged.
         for (int index = 0; index < elements.Count; index++) {
-            if (OfficeTextElements.ResolveBaseDirection(elements[index]) != OfficeTextDirection.RightToLeft) {
-                return text;
-            }
+            string element = elements[index];
+            if (element.Length == 0) return text;
+            int scalar = char.IsSurrogatePair(element, 0) ? char.ConvertToUtf32(element, 0) : element[0];
+            OfficeBidiClass bidiClass = OfficeUnicodeTextData.GetBidiClass(scalar);
+            if (bidiClass is OfficeBidiClass.R or OfficeBidiClass.AL) continue;
+            bool interior = index > 0 && index < elements.Count - 1;
+            if (!interior || bidiClass is not (OfficeBidiClass.WS or OfficeBidiClass.CS or OfficeBidiClass.ON or OfficeBidiClass.ES or OfficeBidiClass.ET or OfficeBidiClass.NSM or OfficeBidiClass.BN)) return text;
         }
 
         return string.Concat(elements.Reverse());

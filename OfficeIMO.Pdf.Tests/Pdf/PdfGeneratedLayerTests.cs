@@ -26,7 +26,7 @@ public class PdfGeneratedLayerTests {
         Assert.True(group.IsLocked);
         Assert.Equal(2, read.Pages.Count);
 
-        string raw = PdfEncoding.Latin1GetString(bytes);
+        string raw = PdfTestContentText.ReadDecoded(bytes);
         Assert.StartsWith("%PDF-1.5", raw, StringComparison.Ordinal);
         Assert.Equal(2, raw.Split(new[] { "/OC /OC1 BDC" }, StringSplitOptions.None).Length - 1);
         Assert.Equal(2, raw.Split(new[] { "/Properties << /OC1" }, StringSplitOptions.None).Length - 1);

@@ -71,37 +71,113 @@ public sealed class OfficeHarfBuzzTextShapingProvider : IOfficeTextShapingProvid
     internal const int MaxInternedLanguagesPerProcess = 1024;
     private const long MaxCachedResultBytesPerFont = 8L * 1024L * 1024L;
 
+    // Mixed text is shaped as runs of one script and one bidi level (UAX #9), so each run gets
+    // the right OpenType script and direction. Runs are placed in visual order. Each cluster's
+    // text belongs to its first glyph; other glyphs of the cluster are extraction continuations.
     private OfficeTextShapingResult? ShapeUncached(
         OfficeTextShapingRequest request,
         CachedFontCollection fontCollection,
         Language? language) {
-        fontCollection.Shape(request, language, out int glyphCount, out GlyphInfo[] infos, out GlyphPosition[] positions);
-        if (glyphCount == 0) return null;
+        string text = request.Text;
+        List<ShapingRun> runs = SegmentRuns(text, request.Direction, request.CancellationToken);
+        var shaped = new (GlyphInfo[] Infos, GlyphPosition[] Positions)[runs.Count];
+        for (int runIndex = 0; runIndex < runs.Count; runIndex++) {
+            ShapingRun run = runs[runIndex];
+            fontCollection.Shape(request, language, run.Start, run.Length, run.Direction, run.Script,
+                out int glyphCount, out GlyphInfo[] infos, out GlyphPosition[] positions);
+            if (glyphCount == 0 || infos.Length == 0 || infos.Length != positions.Length) return null;
+            shaped[runIndex] = (infos, positions);
+        }
         GC.KeepAlive(request.FontDataForShaping);
-        if (infos.Length == 0 || infos.Length != positions.Length) return null;
 
-        IReadOnlyDictionary<int, int> clusterEnds = BuildClusterEnds(infos, request.Text.Length);
-        var glyphs = new List<OfficeShapedGlyph>(infos.Length);
-        for (int index = 0; index < infos.Length; index++) {
-            request.CancellationToken.ThrowIfCancellationRequested();
-            int glyphId = checked((int)infos[index].Codepoint);
-            int textIndex = checked((int)infos[index].Cluster);
-            if (glyphId <= 0 || textIndex < 0 || textIndex >= request.Text.Length) return null;
-
-            int end = clusterEnds[textIndex];
-            string unicodeText = request.Text.Substring(textIndex, end - textIndex);
-            GlyphPosition position = positions[index];
-            glyphs.Add(new OfficeShapedGlyph(
-                glyphId,
-                unicodeText,
-                textIndex,
-                position.XAdvance,
-                position.YAdvance,
-                position.XOffset,
-                position.YOffset));
+        int[] visualOrder = runs.Count == 1 ? new[] { 0 }
+            : OfficeUnicodeBidi.ReorderItems(runs.Select(static run => run.Level).ToArray());
+        var glyphs = new List<OfficeShapedGlyph>();
+        var clusterStarts = new List<int>();
+        var assigned = new HashSet<int>();
+        foreach (int runIndex in visualOrder) {
+            ShapingRun run = runs[runIndex];
+            (GlyphInfo[] infos, GlyphPosition[] positions) = shaped[runIndex];
+            IReadOnlyDictionary<int, int> clusterEnds = BuildClusterEnds(infos, run.Start, run.Start + run.Length);
+            for (int index = 0; index < infos.Length; index++) {
+                request.CancellationToken.ThrowIfCancellationRequested();
+                int glyphId = checked((int)infos[index].Codepoint);
+                int textIndex = checked((int)infos[index].Cluster);
+                if (glyphId <= 0 || textIndex < run.Start || textIndex >= run.Start + run.Length) return null;
+                GlyphPosition position = positions[index];
+                if (assigned.Add(textIndex)) {
+                    glyphs.Add(new OfficeShapedGlyph(glyphId, text.Substring(textIndex, clusterEnds[textIndex] - textIndex), textIndex,
+                        position.XAdvance, position.YAdvance, position.XOffset, position.YOffset));
+                } else {
+                    glyphs.Add(OfficeShapedGlyph.CreatePositionedUnicodeContinuation(glyphId, textIndex,
+                        position.XAdvance, position.YAdvance, position.XOffset, position.YOffset));
+                }
+                clusterStarts.Add(textIndex);
+            }
         }
 
-        return new OfficeTextShapingResult(glyphs, request.Direction);
+        OfficeTextDirection direction = request.Direction != OfficeTextDirection.Auto ? request.Direction
+            : runs.Count == 1 ? runs[0].Direction : OfficeTextDirection.Auto;
+        return new OfficeTextShapingResult(glyphs, advanceAdjustments: null, direction, clusterStarts);
+    }
+
+    private readonly struct ShapingRun {
+        internal ShapingRun(int start, int length, int level, OfficeTextDirection direction, Script script) {
+            Start = start;
+            Length = length;
+            Level = level;
+            Direction = direction;
+            Script = script;
+        }
+        internal int Start { get; }
+        internal int Length { get; }
+        internal int Level { get; }
+        internal OfficeTextDirection Direction { get; }
+        internal Script Script { get; }
+    }
+
+    private static List<ShapingRun> SegmentRuns(string text, OfficeTextDirection direction, System.Threading.CancellationToken cancellationToken) {
+        int[] scalars = OfficeUnicodeBidi.ToScalars(text, out int[] starts);
+        if (direction == OfficeTextDirection.TopToBottom) {
+            return new List<ShapingRun> { new ShapingRun(0, text.Length, 0, direction, ResolveFirstScript(scalars)) };
+        }
+        int? paragraphLevel = direction switch {
+            OfficeTextDirection.RightToLeft => 1,
+            OfficeTextDirection.LeftToRight => 0,
+            _ => null
+        };
+        byte[] levels = OfficeUnicodeBidi.Resolve(scalars, paragraphLevel, cancellationToken).GetLineLevels(0, scalars.Length);
+        var scripts = new Script[scalars.Length];
+        Script current = Script.Invalid;
+        for (int index = 0; index < scalars.Length; index++) {
+            Script script = UnicodeFunctions.Default.GetScript(scalars[index]);
+            if (script == Script.Common || script == Script.Inherited || script == Script.Unknown || script == Script.Invalid) script = current;
+            scripts[index] = script;
+            if (script != Script.Invalid) current = script;
+        }
+        // Leading neutrals take the first real script.
+        Script first = ResolveFirstScript(scalars);
+        for (int index = 0; index < scripts.Length && scripts[index] == Script.Invalid; index++) scripts[index] = first;
+
+        var runs = new List<ShapingRun>();
+        int runStart = 0;
+        for (int index = 1; index <= scalars.Length; index++) {
+            if (index < scalars.Length && levels[index] == levels[runStart] && scripts[index] == scripts[runStart]) continue;
+            int start = starts[runStart];
+            int end = index < scalars.Length ? starts[index] : text.Length;
+            OfficeTextDirection runDirection = (levels[runStart] & 1) == 1 ? OfficeTextDirection.RightToLeft : OfficeTextDirection.LeftToRight;
+            runs.Add(new ShapingRun(start, end - start, levels[runStart], runDirection, scripts[runStart]));
+            runStart = index;
+        }
+        return runs;
+    }
+
+    private static Script ResolveFirstScript(int[] scalars) {
+        foreach (int scalar in scalars) {
+            Script script = UnicodeFunctions.Default.GetScript(scalar);
+            if (script != Script.Common && script != Script.Inherited && script != Script.Unknown && script != Script.Invalid) return script;
+        }
+        return Script.Common;
     }
 
     private ResolvedLanguage ResolveLanguage(string? value) {
@@ -163,16 +239,17 @@ public sealed class OfficeHarfBuzzTextShapingProvider : IOfficeTextShapingProvid
 
     private static IReadOnlyDictionary<int, int> BuildClusterEnds(
         IReadOnlyList<GlyphInfo> infos,
-        int textLength) {
+        int runStart,
+        int runEnd) {
         int[] starts = infos
             .Select(static info => checked((int)info.Cluster))
-            .Where(index => index >= 0 && index < textLength)
+            .Where(index => index >= runStart && index < runEnd)
             .Distinct()
             .OrderBy(static index => index)
             .ToArray();
         var ends = new Dictionary<int, int>(starts.Length);
         for (int index = 0; index < starts.Length; index++) {
-            ends[starts[index]] = index + 1 < starts.Length ? starts[index + 1] : textLength;
+            ends[starts[index]] = index + 1 < starts.Length ? starts[index + 1] : runEnd;
         }
         return ends;
     }
@@ -318,6 +395,10 @@ public sealed class OfficeHarfBuzzTextShapingProvider : IOfficeTextShapingProvid
         internal void Shape(
             OfficeTextShapingRequest request,
             Language? language,
+            int start,
+            int length,
+            OfficeTextDirection direction,
+            Script script,
             out int glyphCount,
             out GlyphInfo[] infos,
             out GlyphPosition[] positions) {
@@ -341,17 +422,18 @@ public sealed class OfficeHarfBuzzTextShapingProvider : IOfficeTextShapingProvid
                     .ToArray();
                 cached.Font.SetVariations(variations);
                 using var buffer = new HarfBuzzSharp.Buffer();
-                buffer.AddUtf16(request.Text);
-                buffer.GuessSegmentProperties();
-                buffer.Direction = request.Direction switch {
-                    OfficeTextDirection.LeftToRight => Direction.LeftToRight,
+                // The whole text is context for this run; clusters are indexes into it.
+                buffer.AddUtf16(request.Text, start, length);
+                buffer.Direction = direction switch {
                     OfficeTextDirection.RightToLeft => Direction.RightToLeft,
                     OfficeTextDirection.TopToBottom => Direction.TopToBottom,
-                    _ => buffer.Direction
+                    _ => Direction.LeftToRight
                 };
+                buffer.Script = script;
                 if (language != null) {
                     buffer.Language = language;
                 }
+                buffer.GuessSegmentProperties();
 
                 request.CancellationToken.ThrowIfCancellationRequested();
                 Feature[] features = request.FeatureSettings.Features

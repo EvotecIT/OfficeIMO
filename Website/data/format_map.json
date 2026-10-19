@@ -1422,7 +1422,7 @@
       "id": "html-pdf",
       "source": "HTML",
       "target": "PDF",
-      "package": "OfficeIMO.Html.Pdf",
+      "package": "OfficeIMO.Html",
       "support": "Established",
       "fidelity": "FixedLayout",
       "api": "HtmlConversionDocument.Parse(html).ToPdfDocumentResult(options)",

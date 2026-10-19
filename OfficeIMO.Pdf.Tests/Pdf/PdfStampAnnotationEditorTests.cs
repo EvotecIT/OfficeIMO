@@ -90,7 +90,7 @@ public class PdfStampAnnotationEditorTests {
     }
 
     [Fact]
-    public void OrientedJpegStampEmbedsNormalizedPixels() {
+    public void OrientedJpegStampRetainsSourceDctPixels() {
         var raster = new OfficeRasterImage(2, 1);
         raster.SetPixel(0, 0, OfficeColor.Red);
         raster.SetPixel(1, 0, OfficeColor.Blue);
@@ -114,8 +114,10 @@ public class PdfStampAnnotationEditorTests {
                              subtype is PdfName { Name: "Image" } &&
                              stream.Dictionary.Items.TryGetValue("ColorSpace", out PdfObject? colorSpace) &&
                              colorSpace is PdfName { Name: "DeviceRGB" });
-        Assert.Equal(1, Assert.IsType<PdfNumber>(embedded.Dictionary.Items["Width"]).Value);
-        Assert.Equal(2, Assert.IsType<PdfNumber>(embedded.Dictionary.Items["Height"]).Value);
+        Assert.Equal(2, Assert.IsType<PdfNumber>(embedded.Dictionary.Items["Width"]).Value);
+        Assert.Equal(1, Assert.IsType<PdfNumber>(embedded.Dictionary.Items["Height"]).Value);
+        Assert.Equal(image, embedded.Data);
+        Assert.Equal("DCTDecode", embedded.Dictionary.Get<PdfName>("Filter")?.Name);
     }
 
     [Fact]

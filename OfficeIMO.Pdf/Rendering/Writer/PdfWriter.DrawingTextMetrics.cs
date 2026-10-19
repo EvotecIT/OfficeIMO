@@ -40,7 +40,7 @@ internal static partial class PdfWriter {
                         var fonts = new OfficeFontFaceCollection();
                         if (fonts.TryAdd(measuredFamily, data, style)) {
                             canvas = new OfficeRasterCanvas(new OfficeRasterImage(1, 1), null, fonts,
-                                options.TextShapingProvider, options.Language, cancellationToken: cancellationToken);
+                                options.TextShapingProvider, options.EffectiveTextShapingLanguage, cancellationToken: cancellationToken);
                         }
                         if (metrics.Count >= 256) metrics.Clear();
                         metrics[key] = canvas;

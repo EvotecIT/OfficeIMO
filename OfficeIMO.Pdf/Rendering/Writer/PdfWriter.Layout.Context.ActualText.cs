@@ -14,7 +14,7 @@ internal static partial class PdfWriter {
                 ? null : RegisterTextStructureElement("Span", _canvasStructureParentElement);
             // Secondary paint has no second structure-tree owner. Classify it as
             // an artifact while retaining its empty replacement and interactions.
-            if (paintOnly) sb.Append("/Artifact BMC\n");
+            if (paintOnly) sb.Append("/Artifact << /Type /Layout >> BDC\n");
             sb.Append("/Span << /ActualText ").Append(PdfSyntaxEscaper.TextString(actualText));
             // Other readers use the standard invisible glyph geometry. This optional
             // owner hint lets our reader distinguish it from a legacy point carrier

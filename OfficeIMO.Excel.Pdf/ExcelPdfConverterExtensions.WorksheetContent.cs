@@ -121,6 +121,7 @@ namespace OfficeIMO.Excel.Pdf {
                 return Array.Empty<WorksheetChartExportData>();
             }
 
+            AddWorksheetSmartArtWarnings(workbookSheet, options, sheetName);
             var charts = new List<WorksheetChartExportData>();
             foreach (ExcelChart chart in workbookSheet.Charts) {
                 if (!chart.TryGetSnapshot(out ExcelChartSnapshot snapshot)) {
@@ -130,6 +131,12 @@ namespace OfficeIMO.Excel.Pdf {
                         "WorksheetChart",
                         $"Worksheet chart '{chart.Name}' was not exported because its chart data could not be read into a first-party PDF snapshot.");
                     continue;
+                }
+
+                foreach (var diagnostic in snapshot.Diagnostics.Where(diagnostic =>
+                    diagnostic.Code == ExcelImageExportDiagnosticCodes.ChartBubbleNegativeSizesUnsupported ||
+                    diagnostic.Code == ExcelImageExportDiagnosticCodes.ChartBubbleSettingsApproximated)) {
+                    AddWarning(options, sheetName, diagnostic.Code, diagnostic.Message, diagnostic.LossKind);
                 }
 
                 if (!HasRenderableChartData(snapshot)) {
@@ -162,6 +169,22 @@ namespace OfficeIMO.Excel.Pdf {
                 .ToList();
         }
 
+        // Worksheet SmartArt has no first-party PDF renderer yet. Report each diagram rather than
+        // dropping it silently.
+        private static void AddWorksheetSmartArtWarnings(ExcelSheet workbookSheet, ExcelToPdfOptions options, string sheetName) {
+            var drawing = workbookSheet.WorksheetPart.DrawingsPart?.WorksheetDrawing;
+            if (drawing == null) return;
+            foreach (var diagram in drawing.Descendants<DocumentFormat.OpenXml.Drawing.Diagrams.RelationshipIds>()) {
+                string? name = diagram.Ancestors<DocumentFormat.OpenXml.Drawing.Spreadsheet.GraphicFrame>().FirstOrDefault()?
+                    .NonVisualGraphicFrameProperties?.NonVisualDrawingProperties?.Name?.Value;
+                AddWarning(
+                    options,
+                    sheetName,
+                    "WorksheetSmartArt",
+                    $"Worksheet SmartArt diagram '{(string.IsNullOrWhiteSpace(name) ? "SmartArt" : name)}' was not exported because worksheet SmartArt has no first-party PDF renderer.");
+            }
+        }
+
         private static bool IsSupportedChartSnapshot(
             ExcelChartSnapshot snapshot,
             out string? unsupportedReason,
@@ -171,6 +194,11 @@ namespace OfficeIMO.Excel.Pdf {
             if (!TryMapChartKind(snapshot.ChartType, out _)) {
                 unsupportedReason = $"chart type '{snapshot.ChartType}' is not supported by the first-party PDF chart renderer.";
                 return false;
+            }
+            // 3-D, pie-of-pie, stock and surface families are drawn as flat projections; say what is left out.
+            if (ExcelRangeImageRenderer.TryMapChartKind(snapshot.ChartType, out _, out string? projection) &&
+                !string.IsNullOrWhiteSpace(projection)) {
+                approximationWarnings.Add(projection!);
             }
 
             bool hasMixedSeries = snapshot.Data.Series.Any(series =>
@@ -218,8 +246,8 @@ namespace OfficeIMO.Excel.Pdf {
             return string.IsNullOrWhiteSpace(snapshot.Name) ? snapshot.ChartType.ToString() : snapshot.Name;
         }
 
-        private static void AddWarning(ExcelToPdfOptions options, string sheetName, string feature, string message) {
-            var warning = new ExcelPdfExportWarning(sheetName, feature, message);
+        private static void AddWarning(ExcelToPdfOptions options, string sheetName, string feature, string message, OfficeConversionLossKind lossKind = OfficeConversionLossKind.Approximation) {
+            var warning = new ExcelPdfExportWarning(sheetName, feature, message, lossKind);
             options.Warnings.Add(warning);
             options.Report.Add(warning.ToConversionWarning());
         }

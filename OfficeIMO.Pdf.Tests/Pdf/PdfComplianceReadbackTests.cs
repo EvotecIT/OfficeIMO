@@ -119,10 +119,10 @@ public class PdfComplianceReadbackTests {
             .Meta(title: "Catalog version PDF/A-4", author: "OfficeIMO")
             .Paragraph(paragraph => paragraph.Text("Catalog version override"))
             .ToBytes();
-        string raw = Encoding.ASCII.GetString(pdf)
+        string raw = PdfEncoding.Latin1GetString(pdf)
             .Replace("%PDF-2.0", "%PDF-1.7")
             .Replace("/Type /Catalog", "/Type /Catalog /Version /2.0");
-        byte[] header17Catalog20 = Encoding.ASCII.GetBytes(raw);
+        byte[] header17Catalog20 = PdfEncoding.Latin1GetBytes(raw);
 
         PdfDocumentInfo info = PdfInspector.Inspect(header17Catalog20);
         PdfComplianceReadinessReport report = PdfComplianceAnalyzer.AssessReadback(PdfComplianceProfile.PdfA4F, info);

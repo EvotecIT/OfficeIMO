@@ -49,7 +49,7 @@ public class PdfParsingModeTests {
         var (objects, _) = PdfSyntax.ParseObjects(pdf);
         PdfStream stream = Assert.IsType<PdfStream>(objects[4].Value);
 
-        Assert.Equal(streamData, Encoding.ASCII.GetString(stream.Data));
+        Assert.Equal(streamData, PdfEncoding.Latin1GetString(stream.Data));
         Assert.False(objects.ContainsKey(5));
         Assert.DoesNotContain(
             document.RepairReport.Diagnostics,
@@ -70,7 +70,7 @@ public class PdfParsingModeTests {
             out PdfRepairReport repairReport);
 
         PdfStream stream = Assert.IsType<PdfStream>(objects[4].Value);
-        Assert.Equal(streamData, Encoding.ASCII.GetString(stream.Data));
+        Assert.Equal(streamData, PdfEncoding.Latin1GetString(stream.Data));
         Assert.False(objects.ContainsKey(5));
         Assert.IsType<PdfNumber>(objects[6].Value);
         Assert.DoesNotContain(
@@ -83,7 +83,7 @@ public class PdfParsingModeTests {
     public void IndirectStreamLength_IgnoresMatchingScalarBytesInsideLaterStream() {
         const string firstStreamData = "prefix endstream\n5 0 obj\nbinary-like suffix";
         const string laterStreamData = "6 0 obj\n1\nendobj\npayload";
-        byte[] pdf = Encoding.ASCII.GetBytes(
+        byte[] pdf = PdfEncoding.Latin1GetBytes(
             "%PDF-1.7\n" +
             "1 0 obj\n<< /Type /Catalog /Pages 2 0 R >>\nendobj\n" +
             "2 0 obj\n<< /Type /Pages /Count 0 /Kids [] >>\nendobj\n" +
@@ -105,9 +105,9 @@ public class PdfParsingModeTests {
         PdfStream firstStream = Assert.IsType<PdfStream>(objects[4].Value);
         PdfNumber length = Assert.IsType<PdfNumber>(objects[6].Value);
         PdfStream laterStream = Assert.IsType<PdfStream>(objects[7].Value);
-        Assert.Equal(firstStreamData, Encoding.ASCII.GetString(firstStream.Data));
+        Assert.Equal(firstStreamData, PdfEncoding.Latin1GetString(firstStream.Data));
         Assert.Equal(firstStreamData.Length, length.Value);
-        Assert.Equal(laterStreamData, Encoding.ASCII.GetString(laterStream.Data));
+        Assert.Equal(laterStreamData, PdfEncoding.Latin1GetString(laterStream.Data));
         Assert.False(objects.ContainsKey(5));
     }
 
@@ -151,11 +151,11 @@ public class PdfParsingModeTests {
 
         pdf.Append("trailer\n<< /Root 1 0 R /Size 106 >>\nstartxref\n0\n%%EOF\n");
 
-        var (objects, _) = PdfSyntax.ParseObjects(Encoding.ASCII.GetBytes(pdf.ToString()));
+        var (objects, _) = PdfSyntax.ParseObjects(PdfEncoding.Latin1GetBytes(pdf.ToString()));
 
         for (int i = 0; i < streamData.Length; i++) {
             PdfStream stream = Assert.IsType<PdfStream>(objects[firstStreamObject + i].Value);
-            Assert.Equal(streamData[i], Encoding.ASCII.GetString(stream.Data));
+            Assert.Equal(streamData[i], PdfEncoding.Latin1GetString(stream.Data));
         }
 
         for (int i = 0; i < indirectStreamCount; i++) {
@@ -167,7 +167,7 @@ public class PdfParsingModeTests {
     [Fact]
     public void IndirectStreamLength_IgnoresLimitFailuresFromObjectLikePayloadBytes() {
         const string streamData = "5 0 obj\n<< /A [1 2 3 4 5 6 7 8 9 10] >>\nendobj\npayload";
-        byte[] pdf = Encoding.ASCII.GetBytes(
+        byte[] pdf = PdfEncoding.Latin1GetBytes(
             "%PDF-1.7\n" +
             "6 0 obj\n" +
             streamData.Length.ToString(System.Globalization.CultureInfo.InvariantCulture) +
@@ -183,13 +183,13 @@ public class PdfParsingModeTests {
         var (objects, _) = PdfSyntax.ParseObjects(pdf, options);
 
         PdfStream stream = Assert.IsType<PdfStream>(objects[4].Value);
-        Assert.Equal(streamData, Encoding.ASCII.GetString(stream.Data));
+        Assert.Equal(streamData, PdfEncoding.Latin1GetString(stream.Data));
         Assert.False(objects.ContainsKey(5));
     }
 
     [Fact]
     public void MissingStreamBoundary_DoesNotConsumeFollowingValidStreamObject() {
-        byte[] pdf = Encoding.ASCII.GetBytes(
+        byte[] pdf = PdfEncoding.Latin1GetBytes(
             "%PDF-1.7\n" +
             "1 0 obj\n<< /Type /Catalog /Pages 2 0 R >>\nendobj\n" +
             "2 0 obj\n<< /Type /Pages /Count 0 /Kids [] >>\nendobj\n" +
@@ -203,7 +203,7 @@ public class PdfParsingModeTests {
             out PdfRepairReport repairReport);
 
         PdfStream followingStream = Assert.IsType<PdfStream>(objects[5].Value);
-        Assert.Equal("OK", Encoding.ASCII.GetString(followingStream.Data));
+        Assert.Equal("OK", PdfEncoding.Latin1GetString(followingStream.Data));
         Assert.Contains(
             repairReport.Diagnostics,
             diagnostic => diagnostic.Code == "MissingEndObject" && diagnostic.ObjectNumber == 4);
@@ -211,7 +211,7 @@ public class PdfParsingModeTests {
 
     [Fact]
     public void MissingEndObjectIsReportedOrRejectedByPolicy() {
-        byte[] pdf = Encoding.ASCII.GetBytes(
+        byte[] pdf = PdfEncoding.Latin1GetBytes(
             "%PDF-1.7\n1 0 obj\n<< /Type /Catalog /Pages 2 0 R >>\nendobj\n" +
             "2 0 obj\n<< /Type /Pages /Count 0 /Kids [] >>\nendobj\n" +
             "3 0 obj\n<< /Producer (unterminated object boundary) >>\n" +
@@ -253,7 +253,7 @@ public class PdfParsingModeTests {
 
     [Fact]
     public void MissingStartXrefIsExplicitlyRebuiltOrRejectedByPolicy() {
-        byte[] pdf = Encoding.ASCII.GetBytes(
+        byte[] pdf = PdfEncoding.Latin1GetBytes(
             "%PDF-1.7\n1 0 obj\n<< /Type /Catalog /Pages 2 0 R >>\nendobj\n" +
             "2 0 obj\n<< /Type /Pages /Count 0 /Kids [] >>\nendobj\n" +
             "trailer\n<< /Root 1 0 R /Size 3 >>\n%%EOF\n");
@@ -269,9 +269,9 @@ public class PdfParsingModeTests {
     [Fact]
     public void IncorrectPageCountDoesNotHideReachablePagesAndStrictModeRejectsIt() {
         byte[] clean = PdfDocument.Create().Paragraph(p => p.Text("Page one")).PageBreak().Paragraph(p => p.Text("Page two")).ToBytes();
-        string text = Encoding.ASCII.GetString(clean);
+        string text = PdfEncoding.Latin1GetString(clean);
         Assert.Contains("/Count 2", text, StringComparison.Ordinal);
-        byte[] damaged = Encoding.ASCII.GetBytes(text.Replace("/Count 2", "/Count 1"));
+        byte[] damaged = PdfEncoding.Latin1GetBytes(text.Replace("/Count 2", "/Count 1"));
 
         PdfReadDocument lenient = PdfReadDocument.Open(damaged, new PdfLoadOptions { ParsingMode = PdfParsingMode.Lenient });
         PdfParseException strict = Assert.Throws<PdfParseException>(() => PdfReadDocument.Open(damaged, new PdfLoadOptions { ParsingMode = PdfParsingMode.Strict }));
@@ -284,7 +284,7 @@ public class PdfParsingModeTests {
 
     [Fact]
     public void MalformedNameTreeBrokenDestinationAndOrphanAreDiagnosedWithoutDestructiveRepair() {
-        byte[] pdf = Encoding.ASCII.GetBytes(
+        byte[] pdf = PdfEncoding.Latin1GetBytes(
             "%PDF-1.7\n" +
             "1 0 obj\n<< /Type /Catalog /Pages 2 0 R /Names << /Dests 7 0 R >> >>\nendobj\n" +
             "2 0 obj\n<< /Type /Pages /Count 1 /Kids [3 0 R] /MediaBox [0 0 300 300] >>\nendobj\n" +
@@ -304,7 +304,7 @@ public class PdfParsingModeTests {
 
     [Fact]
     public void RepeatedReferencesRemainReachableWhileUnreferencedSemanticObjectsAreReported() {
-        byte[] pdf = Encoding.ASCII.GetBytes(
+        byte[] pdf = PdfEncoding.Latin1GetBytes(
             "%PDF-1.7\n" +
             "1 0 obj\n<< /Type /Catalog /Pages 2 0 R /Extra [5 0 R 5 0 R 5 0 R] >>\nendobj\n" +
             "2 0 obj\n<< /Type /Pages /Count 0 /Kids [] >>\nendobj\n" +
@@ -322,7 +322,7 @@ public class PdfParsingModeTests {
 
     [Fact]
     public void CyclicReferencesRemainBoundedWhileUnreferencedSemanticObjectsAreReported() {
-        byte[] pdf = Encoding.ASCII.GetBytes(
+        byte[] pdf = PdfEncoding.Latin1GetBytes(
             "%PDF-1.7\n" +
             "1 0 obj\n<< /Type /Catalog /Pages 2 0 R /Extra 5 0 R >>\nendobj\n" +
             "2 0 obj\n<< /Type /Pages /Count 0 /Kids [] >>\nendobj\n" +
@@ -340,7 +340,7 @@ public class PdfParsingModeTests {
 
     [Fact]
     public void OrphanSummaryReportsLowestObjectNumberRegardlessOfDefinitionOrder() {
-        byte[] pdf = Encoding.ASCII.GetBytes(
+        byte[] pdf = PdfEncoding.Latin1GetBytes(
             "%PDF-1.7\n" +
             "1 0 obj\n<< /Type /Catalog /Pages 2 0 R /Extra [5 0 R 5 0 R] >>\nendobj\n" +
             "2 0 obj\n<< /Type /Pages /Count 0 /Kids [] >>\nendobj\n" +
@@ -360,7 +360,7 @@ public class PdfParsingModeTests {
 
     [Fact]
     public void GenerationMismatchDoesNotHideAnOrphanedSemanticObject() {
-        byte[] pdf = Encoding.ASCII.GetBytes(
+        byte[] pdf = PdfEncoding.Latin1GetBytes(
             "%PDF-1.7\n" +
             "1 0 obj\n<< /Type /Catalog /Pages 2 0 R /Extra 5 0 R >>\nendobj\n" +
             "2 0 obj\n<< /Type /Pages /Count 0 /Kids [] >>\nendobj\n" +
@@ -377,7 +377,7 @@ public class PdfParsingModeTests {
 
     [Fact]
     public void InvalidNameTreeGenerationDoesNotSkipAValidSibling() {
-        byte[] pdf = Encoding.ASCII.GetBytes(
+        byte[] pdf = PdfEncoding.Latin1GetBytes(
             "%PDF-1.7\n" +
             "1 0 obj\n<< /Type /Catalog /Pages 2 0 R /Names << /Dests 7 0 R >> >>\nendobj\n" +
             "2 0 obj\n<< /Type /Pages /Count 1 /Kids [3 0 R] >>\nendobj\n" +
@@ -395,7 +395,7 @@ public class PdfParsingModeTests {
 
     [Fact]
     public void DuplicateObjectIdentifierWithoutIncrementalChainUsesLastDefinitionAndReportsRecovery() {
-        byte[] pdf = Encoding.ASCII.GetBytes(
+        byte[] pdf = PdfEncoding.Latin1GetBytes(
             "%PDF-1.7\n" +
             "1 0 obj\n<< /Type /Catalog /Pages 2 0 R >>\nendobj\n" +
             "2 0 obj\n<< /Type /Pages /Count 0 /Kids [] >>\nendobj\n" +
@@ -418,7 +418,7 @@ public class PdfParsingModeTests {
         string additionalObjects = string.IsNullOrEmpty(extraObjects)
             ? string.Empty
             : extraObjects.TrimEnd('\r', '\n') + "\n";
-        return Encoding.ASCII.GetBytes(
+        return PdfEncoding.Latin1GetBytes(
             "%PDF-1.7\n" +
             "1 0 obj\n<< /Type /Catalog /Pages 2 0 R >>\nendobj\n" +
             "2 0 obj\n<< /Type /Pages /Count 1 /Kids [3 0 R] >>\nendobj\n" +
@@ -429,13 +429,13 @@ public class PdfParsingModeTests {
     }
 
     private static byte[] ReplaceLastStartXrefOffset(byte[] pdf, string replacement) {
-        string text = Encoding.ASCII.GetString(pdf);
+        string text = PdfEncoding.Latin1GetString(pdf);
         int marker = text.LastIndexOf("startxref", StringComparison.Ordinal);
         Assert.True(marker >= 0);
         int start = marker + "startxref".Length;
         while (start < text.Length && char.IsWhiteSpace(text[start])) start++;
         int end = start;
         while (end < text.Length && char.IsDigit(text[end])) end++;
-        return Encoding.ASCII.GetBytes(text.Substring(0, start) + replacement + text.Substring(end));
+        return PdfEncoding.Latin1GetBytes(text.Substring(0, start) + replacement + text.Substring(end));
     }
 }

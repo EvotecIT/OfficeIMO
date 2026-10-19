@@ -58,6 +58,7 @@ public partial class PdfExternalEngineProofTests {
                 Reason = "External signature validation proof",
                 VisibleAppearance = new PdfVisibleSignatureAppearanceOptions {
                     PageNumber = 1,
+                    Font = PdfSignatureTestFonts.LoadAppearanceFont(),
                     Text = "OfficeIMO Engine Proof"
                 },
                 ReservedSignatureContentsBytes = 8192

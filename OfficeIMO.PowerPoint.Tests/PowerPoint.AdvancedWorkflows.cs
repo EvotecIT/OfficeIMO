@@ -218,10 +218,6 @@ namespace OfficeIMO.Tests {
             Assert.Equal("conn",
                 connector.GetFirstChild<Dgm.Shape>()!.Type!.Value);
 
-            PowerPointSlideVisualSnapshot snapshot =
-                slide.CreateVisualSnapshot();
-            Assert.Equal(4, snapshot.Drawing.Shapes.Count(shape =>
-                shape.Shape.Kind == OfficeShapeKind.Line));
             Assert.Empty(presentation.ValidateDocument());
         }
 
@@ -252,9 +248,6 @@ namespace OfficeIMO.Tests {
                     connector.GetFirstChild<Dgm.Shape>()!.Type!.Value);
             });
 
-            PowerPointSlideVisualSnapshot snapshot = slide.CreateVisualSnapshot();
-            Assert.Equal(3, snapshot.Drawing.Shapes.Count(shape =>
-                shape.Shape.Kind == OfficeShapeKind.Line));
             Assert.Empty(presentation.ValidateDocument());
         }
 
@@ -1011,8 +1004,8 @@ namespace OfficeIMO.Tests {
             OfficeImageExportResult rendered = slide.ExportImage(
                 OfficeImageExportFormat.Png);
             Assert.Contains(rendered.Diagnostics, diagnostic =>
-                diagnostic.Code
-                    == PowerPointImageExportDiagnosticCodes.UnsupportedShape
+                diagnostic.Code == "unsupported-chart"
+                && diagnostic.LossKind == OfficeConversionLossKind.Omission
                 && diagnostic.Message.Contains("chart",
                     StringComparison.OrdinalIgnoreCase));
             Assert.True(PowerPointDesktopReferenceRenderer

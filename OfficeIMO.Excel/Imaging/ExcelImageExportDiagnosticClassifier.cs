@@ -41,6 +41,7 @@ namespace OfficeIMO.Excel {
                 case ExcelImageExportDiagnosticCodes.DrawingShapeTextRotationApproximation:
                 case ExcelImageExportDiagnosticCodes.DrawingShapeTextAutoFitUnsupported:
                 case ExcelImageExportDiagnosticCodes.DrawingShapeTextVerticalOrientationUnsupported:
+                case ExcelImageExportDiagnosticCodes.ChartBubbleSettingsApproximated:
                 case ExcelImageExportDiagnosticCodes.ChartKindApproximated:
                 case ExcelImageExportDiagnosticCodes.ChartDataLabelPointOverridesApproximated:
                 case ExcelImageExportDiagnosticCodes.ChartAreaStyleApproximation:
@@ -94,6 +95,7 @@ namespace OfficeIMO.Excel {
                 case ExcelImageExportDiagnosticCodes.ThreadedCommentUnsupported:
                 case ExcelImageExportDiagnosticCodes.DrawingShapeUnsupported:
                 case ExcelImageExportDiagnosticCodes.ChartSnapshotUnavailable:
+                case ExcelImageExportDiagnosticCodes.ChartBubbleNegativeSizesUnsupported:
                 case ExcelImageExportDiagnosticCodes.ChartKindUnsupported:
                 case ExcelImageExportDiagnosticCodes.ChartAxisUnitUnsupported:
                 case ExcelImageExportDiagnosticCodes.ChartTrendlineUnsupported:

@@ -582,13 +582,23 @@ public sealed partial class PdfDocument {
             options.AddTextShapingDiagnostics(
                 PdfTextDiagnostics.AnalyzeAdvancedTextLayout(run.Text, source),
                 run.Text,
-                ShouldDeferProviderCoveredTextShapingDiagnostics(options, runFont, run.Text));
+                ShouldDeferProviderCoveredTextShapingDiagnostics(options, runFont, run.Text, run));
         }
     }
 
-    private static bool ShouldDeferProviderCoveredTextShapingDiagnostics(PdfOptions options, PdfStandardFont font, string text) {
-        if (options.TextShapingProviderSnapshot == null) {
+    private static bool ShouldDeferProviderCoveredTextShapingDiagnostics(
+        PdfOptions options, PdfStandardFont font, string text, PdfTextRun? run = null) {
+        if (options.TextShapingProviderSnapshot == null && options.TextShapingModeSnapshot != PdfTextShapingMode.OpenTypeLigatures) {
             return false;
+        }
+
+        // Named families use the same provider path as embedded standard slots.
+        // Leave their shaping warning to the writer, which observes actual provider
+        // success and still reports a declined run rather than assuming coverage.
+        if (run != null && options.TryResolveNamedFontFace(run.FontFamily, run.Bold, run.Italic, out PdfNamedFontFace face)
+            && ((options.TryGetNamedFontProgram(face, out PdfTrueTypeFontProgram? trueType) && trueType != null)
+                || (options.TryGetNamedOpenTypeCffFontProgram(face, out PdfOpenTypeCffFontProgram? cff) && cff != null))) {
+            return true;
         }
 
         if (HasEmbeddedFontProgram(options, font)) {

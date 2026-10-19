@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using OfficeIMO.Pdf;
 using OfficeIMO.TestAssets;
 using Xunit;
@@ -18,15 +19,31 @@ public sealed class PdfLogicalTextCommandTests {
         var run = new PdfGlyphRun(new[] { new PdfGlyphInfo(1, "A", 0, 500), new PdfGlyphInfo(2, "B", 1, 500) },
             Array.Empty<PdfTextEncodingDiagnostic>(), preserveGlyphUnicode: true);
         var output = new System.Text.StringBuilder();
+        double fontSize = cssSize * 0.75D;
         new ContentStreamBuilder(output).BeginText().TextMatrix(40D, 400D)
-            .ShowText(font.ToTextShowCommand("AB", run, fontMetricScale: 0.75D), cssSize * 0.75D).EndText();
+            .ShowText(font.ToTextShowCommand("AB", run, fontMetricScale: 0.75D), fontSize).EndText();
+        // Walk the show operators as a viewer does: two-byte codes advance by their
+        // widths (500/1000 em here) and TJ numbers move left by n/1000 em.
         var origins = new List<double>();
+        double x = 40D;
         PdfContentStreamInterpreter.Interpret(output.ToString(), 100, operation => {
-            if (operation.Name == "Tm") origins.Add(Convert.ToDouble(operation.Operands[4], System.Globalization.CultureInfo.InvariantCulture));
+            if (operation.Name is not ("Tj" or "TJ")) return;
+            object operand = operation.Operands[operation.Operands.Count - 1];
+            IEnumerable<object> items = operand is List<object> array ? array : new[] { operand };
+            foreach (object item in items) {
+                if (item is double number) {
+                    x -= number * fontSize / 1000D;
+                    continue;
+                }
+                for (int index = 0; index + 1 < ((byte[])item).Length; index += 2) {
+                    origins.Add(x);
+                    x += 500D * fontSize / 1000D;
+                }
+            }
         });
-        double expected = 40D + (500D - adjustment) * cssSize * 0.75D / 1000D;
-        // Ordinary paint matrices serialize coordinates to three decimal places.
-        Assert.InRange(origins[2], expected - 0.0005D, expected + 0.0005D);
+        double expected = 40D + (500D - adjustment) * fontSize / 1000D;
+        Assert.Equal(2, origins.Count);
+        Assert.InRange(origins[1], expected - 0.0005D, expected + 0.0005D);
     }
 
     [Fact]

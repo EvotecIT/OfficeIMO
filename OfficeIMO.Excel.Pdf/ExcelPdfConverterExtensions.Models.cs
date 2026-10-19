@@ -26,6 +26,8 @@ namespace OfficeIMO.Excel.Pdf {
             public SheetExportData ExportData { get; }
             public IReadOnlyList<WorksheetImageExportData> Images { get; }
             public IReadOnlyList<WorksheetChartExportData> Charts { get; }
+            public ExcelSheetPrintOptions? PrintOptions { get; set; }
+            public IReadOnlyList<OfficeIMO.Excel.Utilities.ExcelWorksheetDrawingObjectInfo> DrawingObjects { get; set; } = Array.Empty<OfficeIMO.Excel.Utilities.ExcelWorksheetDrawingObjectInfo>();
             public bool HasTable { get; }
             public int ExportedRows { get; }
             public IReadOnlyList<int> ManualRowBreaks { get; }
@@ -93,13 +95,13 @@ namespace OfficeIMO.Excel.Pdf {
         }
 
         private sealed class ConditionalIconCell {
-            public ConditionalIconCell(PdfCore.PdfCellIconKind kind, PdfCore.PdfColor color) {
+            public ConditionalIconCell(OfficeConditionalIconKind kind, bool showValue) {
                 Kind = kind;
-                Color = color;
+                ShowValue = showValue;
             }
 
-            public PdfCore.PdfCellIconKind Kind { get; }
-            public PdfCore.PdfColor Color { get; }
+            public OfficeConditionalIconKind Kind { get; }
+            public bool ShowValue { get; }
         }
 
         private sealed class WorksheetImageExportData {

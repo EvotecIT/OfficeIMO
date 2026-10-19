@@ -246,7 +246,7 @@ public sealed class BrowserPdfImportTests {
         // This snapshot pins Base14 positioned text, exact stroke dashes, and the implicit
         // closure of filled open contours (including the pale green status circle).
         Assert.Equal(
-            "b0c63c7485378d1349a41a63e3747764c6d7de6e67cfcb8032f93d33b2aec32d",
+            "38688eb90ff831125b8b2401e1c2fe85b500f5a6baef3ba7b00b5f121c12d26f",
             Convert.ToHexString(SHA256.HashData(raster.GetPixels())).ToLowerInvariant());
     }
 
@@ -311,7 +311,7 @@ public sealed class BrowserPdfImportTests {
         Assert.Equal(1200, raster.Height);
         // Pin visual output rather than platform-dependent PNG compression.
         Assert.Equal(
-            "f695e7c619d0e60fb4d394dbbf6b4e9e577ddf676605fd93712f6f98650909fa",
+            "e6d187cace2f9e9281540cd408e8bd4e4a35aa69caf2f8c884aec2d417e472f1",
             Convert.ToHexString(SHA256.HashData(raster.GetPixels())).ToLowerInvariant());
     }
 

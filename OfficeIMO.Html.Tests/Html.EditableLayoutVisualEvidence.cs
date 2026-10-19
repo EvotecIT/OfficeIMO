@@ -8,6 +8,7 @@ using OfficeIMO.Rtf;
 using OfficeIMO.Tests;
 using OfficeIMO.Word;
 using OfficeIMO.Word.Html;
+using OfficeIMO.Word.Pdf;
 using Xunit;
 
 namespace OfficeIMO.Html.Tests;
@@ -27,6 +28,14 @@ public sealed class HtmlEditableLayoutVisualEvidenceTests {
         using WordDocument word = WordDocument.Load(
             new MemoryStream(docx),
             new WordLoadOptions { AccessMode = OfficeIMO.DocumentAccessMode.ReadOnly });
+        WordTextBox positionedWordBox = Assert.Single(word.TextBoxes, box => box.Paragraphs.Any(paragraph =>
+            paragraph.Text.Contains("Editable positioned", StringComparison.Ordinal)));
+        HtmlRenderMargins margins = new HtmlRenderOptions().Margins;
+        Assert.Equal("DBEAFE", positionedWordBox.FillColorHex);
+        Assert.Equal((int)((32D + margins.Left) * 9525D), positionedWordBox.HorizontalPositionOffset);
+        Assert.Equal((int)((200D + margins.Top) * 9525D), positionedWordBox.VerticalPositionOffset);
+        Assert.Equal(240L * 9525L, positionedWordBox.Width);
+        Assert.Equal(72L * 9525L, positionedWordBox.Height);
         byte[] wordPng = word.ToPng(new WordImageExportOptions { BackgroundColor = OfficeColor.White });
 
         HtmlToRtfResult rtfResult = source.ToRtfDocumentResult();
@@ -61,6 +70,10 @@ public sealed class HtmlEditableLayoutVisualEvidenceTests {
         WriteEvidenceWhenRequested("editable-layout.xlsx", xlsx);
         WriteEvidenceWhenRequested("editable-layout.pptx", pptx);
         WriteEvidenceWhenRequested("editable-layout-word.png", wordPng);
+        if (!string.IsNullOrWhiteSpace(Environment.GetEnvironmentVariable("OFFICEIMO_HTML_LAYOUT_EVIDENCE_DIR"))) {
+            WriteEvidenceWhenRequested("editable-layout-word.pdf", word.ToPdfBytes());
+            WriteEvidenceWhenRequested("editable-layout-word.svg", Encoding.UTF8.GetBytes(word.ToSvg()));
+        }
         WriteEvidenceWhenRequested("editable-layout-excel.png", excelPng);
         WriteEvidenceWhenRequested("editable-layout-powerpoint.png", powerPointPng);
 

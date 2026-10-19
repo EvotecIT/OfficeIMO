@@ -518,7 +518,7 @@ public class PdfDocumentCanvasTests {
 
         string raw = Encoding.ASCII.GetString(bytes);
         PdfTaggedContentInfo tagged = Assert.IsType<PdfTaggedContentInfo>(PdfInspector.Inspect(bytes).TaggedContent);
-        Assert.Contains("/Artifact BMC", raw, StringComparison.Ordinal);
+        Assert.Contains("/Artifact << /Type /Layout >> BDC", raw, StringComparison.Ordinal);
         Assert.Equal(2, tagged.StructureElements.Count(element => element.StructureType == "P"));
         Assert.DoesNotContain(tagged.StructureElements, element => element.StructureType is "Span" or "TH" or "TD" or "Figure");
         string extracted = PdfReadDocument.Open(bytes).ExtractText();
@@ -557,7 +557,7 @@ public class PdfDocumentCanvasTests {
         Assert.Empty(info.GetAnnotationsBySubtype("Highlight"));
         Assert.Empty(info.Outlines);
         Assert.DoesNotContain(tagged.StructureElements, element => element.StructureType == "Form");
-        Assert.Contains("/Artifact BMC", Encoding.ASCII.GetString(bytes), StringComparison.Ordinal);
+        Assert.Contains("/Artifact << /Type /Layout >> BDC", Encoding.ASCII.GetString(bytes), StringComparison.Ordinal);
     }
 
     [Fact]

@@ -26,8 +26,7 @@ namespace OfficeIMO.PowerPoint {
             }
 
             string resolvedStyleId = styleId!;
-            PresentationPart? presentationPart = table.OwnerSlide?.SlidePart
-                .GetParentParts()
+            PresentationPart? presentationPart = (table.OwnerSlide?.SlidePart ?? table.RelationshipOwnerPart)?.GetParentParts()
                 .OfType<PresentationPart>()
                 .FirstOrDefault();
             if (presentationPart != null) {

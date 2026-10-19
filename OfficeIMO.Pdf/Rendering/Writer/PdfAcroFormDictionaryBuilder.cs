@@ -1,6 +1,6 @@
 namespace OfficeIMO.Pdf;
 
-internal static class PdfAcroFormDictionaryBuilder {
+internal static partial class PdfAcroFormDictionaryBuilder {
     private static readonly double[] DefaultBorderDashPattern = { 3D };
 
     private static readonly char[] TextFieldLineSeparators = { '\n' };
@@ -111,7 +111,7 @@ internal static class PdfAcroFormDictionaryBuilder {
             " >>";
     }
 
-    internal static string BuildTextFieldAppearanceContent(double width, double height, string value, double fontSize, PdfFormFieldStyle? style = null, string? encodedTextHex = null, PdfFormFieldTextAlignment? textAlignment = null, double? textWidth = null, string? fontResourceName = null, Func<string, string?>? encodeTextSegmentHex = null, Func<string, double, double>? measureTextSegmentWidth = null, Func<string, IReadOnlyList<PdfTextAppearanceSegment>>? encodeTextSegments = null) {
+    internal static string BuildTextFieldAppearanceContent(double width, double height, string value, double fontSize, PdfFormFieldStyle? style = null, string? encodedTextHex = null, PdfFormFieldTextAlignment? textAlignment = null, double? textWidth = null, string? fontResourceName = null, Func<string, string?>? encodeTextSegmentHex = null, Func<string, double, double>? measureTextSegmentWidth = null, Func<string, IReadOnlyList<PdfTextAppearanceSegment>>? encodeTextSegments = null, double? singleLineBaseline = null) {
         Guard.Positive(width, nameof(width));
         Guard.Positive(height, nameof(height));
         Guard.NotNull(value, nameof(value));
@@ -144,7 +144,7 @@ internal static class PdfAcroFormDictionaryBuilder {
         } else if (effectiveStyle.IsComb && effectiveStyle.MaxLength.HasValue) {
             content += BuildCombTextFieldAppearanceContent(width, height, displayValue, fontSize, effectiveStyle, effectiveFontResourceName, encodeTextSegmentHex, measureTextSegmentWidth, encodeTextSegments);
         } else {
-            double baseline = Math.Max(2D, (height - fontSize) / 2D + fontSize * 0.72D);
+            double baseline = singleLineBaseline ?? Math.Max(2D, (height - fontSize) / 2D + fontSize * 0.72D);
             double measuredTextWidth = textWidth.HasValue ? textWidth.Value : MeasureTextAppearanceSegment(displayValue, fontSize, measureTextSegmentWidth);
             double textX = CalculateAlignedTextX(availableTextWidth, measuredTextWidth, effectiveAlignment);
             string clippedValue = availableTextWidth <= 0.001D ? string.Empty : displayValue;

@@ -20,6 +20,7 @@ public sealed partial class HtmlRenderingTests {
             """;
 
         var options = new HtmlRenderOptions {
+            Mode = HtmlRenderMode.Continuous,
             ViewportWidth = 120D,
             ViewportHeight = 125D,
             Margins = HtmlRenderMargins.All(0D),
@@ -50,6 +51,7 @@ public sealed partial class HtmlRenderingTests {
             + "<div style='width:120px;height:40px;border-bottom:6px " + borderStyle + " #808080;background:white'></div>"
             + "<div style='width:120px;height:12px;background:#00ff00'></div>";
         var options = new HtmlRenderOptions {
+            Mode = HtmlRenderMode.Continuous,
             ViewportWidth = 120D,
             ViewportHeight = 56D,
             Margins = HtmlRenderMargins.All(0D),
@@ -85,6 +87,7 @@ public sealed partial class HtmlRenderingTests {
             + "<div style='margin:8px;width:64px;height:44px;border-width:" + widths
             + ";border-style:" + borderStyle + ";border-color:#808080;border-radius:12px 8px / 10px 16px;background:white'></div>";
         var options = new HtmlRenderOptions {
+            Mode = HtmlRenderMode.Continuous,
             ViewportWidth = 80D,
             ViewportHeight = 60D,
             Margins = HtmlRenderMargins.All(0D),

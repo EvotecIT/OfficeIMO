@@ -71,6 +71,10 @@ public sealed partial class IWorkBoundaryTests {
             Assert.Equal(rows == 3 ? "medium" : "thin", borders.Bottom!.Style);
         } else {
             using var result = source.ToPowerPointPresentationResult(); result.Report.RequireCompleteEditableReconstruction();
+            // Border evidence does not depend on the host's minimum font line box.
+            var authoredTable = result.Value.Slides[0].Tables.First();
+            for (int row = 0; row < authoredTable.Rows; row++) authoredTable.SetRowHeightPoints(row, 60D);
+            authoredTable.HeightPoints = authoredTable.Rows * 60D;
             result.Value.Save(saved); saved.Position = 0;
             using var reopened = PowerPointPresentation.Load(saved); Assert.Empty(reopened.ValidateDocument());
             var pdf = reopened.ToPdfDocument();
@@ -96,7 +100,7 @@ public sealed partial class IWorkBoundaryTests {
 
     private static void AssertRenderedBorder(string svg, double x1, double y1, double x2, double y2, double width) {
         var document = System.Xml.Linq.XDocument.Parse(svg);
-        Assert.Contains(document.Descendants(), element => {
+        Assert.True(document.Descendants().Any(element => {
             if (element.Name.LocalName != "line" || !double.TryParse((string?)element.Attribute("stroke-width"),
                 System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out double actualWidth)
                 || Math.Abs(actualWidth - width) > 0.001) return false;
@@ -104,7 +108,7 @@ public sealed partial class IWorkBoundaryTests {
                 double.Parse((string)element.Attribute(name)!, System.Globalization.CultureInfo.InvariantCulture)).ToArray();
             bool At(int index, double x, double y) => Math.Abs(values[index] - x) < 0.001 && Math.Abs(values[index + 1] - y) < 0.001;
             return At(0, x1, y1) && At(2, x2, y2) || At(0, x2, y2) && At(2, x1, y1);
-        });
+        }), $"Missing border ({x1},{y1})-({x2},{y2}) at width {width}.\n{svg}");
     }
 
     [Theory]

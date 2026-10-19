@@ -14,6 +14,7 @@ public sealed partial class HtmlRenderingTests {
         const string html = "<style>ol{list-style-position:outside}li::marker{content:'[' counter(list-item,upper-roman) '] ';color:#ff0000;font-size:10px}</style>"
             + "<ol start='4'><li id='first'>First</li><li value='7'>SecondPdf</li></ol>";
         var options = new HtmlRenderOptions {
+            Mode = HtmlRenderMode.Continuous,
             ViewportWidth = 160D,
             ViewportHeight = 70D,
             Margins = HtmlRenderMargins.All(20D)
@@ -45,6 +46,7 @@ public sealed partial class HtmlRenderingTests {
             + "<li id='suppressed'>Suppressed</li></ol>";
 
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, new HtmlRenderOptions {
+            Mode = HtmlRenderMode.Continuous,
             ViewportWidth = 160D,
             ViewportHeight = 80D,
             Margins = HtmlRenderMargins.All(20D)
@@ -68,7 +70,7 @@ public sealed partial class HtmlRenderingTests {
             + "<li><p><strong>First point</strong> continues on its own paragraph.</p></li>"
             + "<li><p>Second point</p></li></ul>"
             + "<ul style='list-style:none'><li><p>Markerless point</p></li></ul>";
-        var options = new HtmlRenderOptions { ViewportWidth = 320D, Margins = HtmlRenderMargins.All(0D) };
+        var options = new HtmlRenderOptions { Mode = HtmlRenderMode.Continuous, ViewportWidth = 320D, Margins = HtmlRenderMargins.All(0D) };
 
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, options);
         HtmlRenderText[] texts = EnumerateRenderVisuals(rendered.Pages[0].Scene).OfType<HtmlRenderText>().ToArray();
@@ -89,7 +91,7 @@ public sealed partial class HtmlRenderingTests {
 
     [Fact]
     public void HtmlRendering_UnstyledListsReserveSpaceForOutsideMarkersAndHonorAuthoredPadding() {
-        var options = new HtmlRenderOptions { ViewportWidth = 320D, Margins = HtmlRenderMargins.All(0D) };
+        var options = new HtmlRenderOptions { Mode = HtmlRenderMode.Continuous, ViewportWidth = 320D, Margins = HtmlRenderMargins.All(0D) };
         const string item = "<li><p style='margin:0'>List content</p></li>";
         HtmlRenderDocument defaultList = HtmlRenderTestDriver.Render("<ul>" + item + "</ul>", options);
         HtmlRenderDocument resetList = HtmlRenderTestDriver.Render("<ul style='padding:0'>" + item + "</ul>", options);
@@ -109,7 +111,7 @@ public sealed partial class HtmlRenderingTests {
         const string html = "<style>body,ul{margin:0}ul{padding-left:40px}li p{margin:0}</style>"
             + "<ul><li><a href='https://example.test/inline'>Inline item</a></li>"
             + "<li><p>Block item</p></li></ul>";
-        var options = new HtmlRenderOptions { ViewportWidth = 320D, Margins = HtmlRenderMargins.All(0D) };
+        var options = new HtmlRenderOptions { Mode = HtmlRenderMode.Continuous, ViewportWidth = 320D, Margins = HtmlRenderMargins.All(0D) };
 
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, options);
         HtmlRenderText[] texts = EnumerateRenderVisuals(rendered.Pages[0].Scene).OfType<HtmlRenderText>().ToArray();
@@ -127,7 +129,7 @@ public sealed partial class HtmlRenderingTests {
     public void HtmlRendering_RtlOutsideMarkerKeepsInlineTextAtTheListContentEdge() {
         const string html = "<style>body,ul{margin:0}ul{padding-right:40px}li p{margin:0}</style>"
             + "<ul dir='rtl'><li>Inline item</li><li><p>Block item</p></li></ul>";
-        var options = new HtmlRenderOptions { ViewportWidth = 320D, Margins = HtmlRenderMargins.All(0D) };
+        var options = new HtmlRenderOptions { Mode = HtmlRenderMode.Continuous, ViewportWidth = 320D, Margins = HtmlRenderMargins.All(0D) };
 
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, options);
         HtmlRenderText[] texts = EnumerateRenderVisuals(rendered.Pages[0].Scene).OfType<HtmlRenderText>().ToArray();
@@ -142,11 +144,13 @@ public sealed partial class HtmlRenderingTests {
 
     [Fact]
     public void HtmlRendering_ListStyleImageUsesSharedResourcePipelineAndFallsBackToTextMarker() {
-        string imageData = Convert.ToBase64String(PdfPngTestImages.CreateRgbPng(6, 4));
+        byte[] markerPng = PdfPngTestImages.CreateRgbPng(6, 4);
+        string imageData = Convert.ToBase64String(markerPng);
         string source = "data:image/png;base64," + imageData;
         string html = "<ul style=\"list-style-type:none;list-style-image:url('" + source + "');list-style-position:outside\"><li>ImagePdf</li></ul>"
             + "<ul style=\"list-style-image:url('data:image/png;base64,not-valid')\"><li>Fallback</li></ul>";
         var options = new HtmlRenderOptions {
+            Mode = HtmlRenderMode.Continuous,
             ViewportWidth = 160D,
             ViewportHeight = 70D,
             Margins = HtmlRenderMargins.All(10D)
@@ -161,8 +165,14 @@ public sealed partial class HtmlRenderingTests {
 
         Assert.Equal(6D, image.Width, 3);
         Assert.Equal(4D, image.Height, 3);
+        Assert.Equal(markerPng, image.Bytes);
         Assert.Equal("• ", fallback.Text);
-        Assert.Contains("data:image/png;base64", svg, StringComparison.Ordinal);
+        OfficeDrawing svgDrawing = HtmlSvgPaintAssertions.Read(Encoding.UTF8.GetBytes(svg));
+        OfficeRasterImage svgRaster = OfficeDrawingRasterRenderer.Render(svgDrawing, 4D, OfficeColor.White);
+        OfficeColor markerPixel = OfficeColor.FromRgb(4 * 31, 2 * 29, (4 + 2) * 15);
+        Assert.True(Enumerable.Range(0, svgRaster.Height).Any(y =>
+            Enumerable.Range(0, svgRaster.Width).Any(x => svgRaster.GetPixel(x, y) == markerPixel)),
+            "The exported SVG must paint the source marker's distinct RGB pixels.");
         Assert.Contains("ImagePdf", PdfCore.PdfReadDocument.Open(pdf).ExtractText(), StringComparison.Ordinal);
         Assert.True(HtmlComputedStyleEngine.IsApplicableSupports("(list-style-image:url('marker.png'))"));
         Assert.False(HtmlComputedStyleEngine.IsApplicableSupports("(list-style-image:linear-gradient(red,blue))"));
@@ -177,6 +187,7 @@ public sealed partial class HtmlRenderingTests {
             + "<ul style='list-style-position:" + position + "'><li id='mixed'>Mixed marker</li></ul>";
 
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, new HtmlRenderOptions {
+            Mode = HtmlRenderMode.Continuous,
             ViewportWidth = 180D,
             Margins = HtmlRenderMargins.All(10D)
         });

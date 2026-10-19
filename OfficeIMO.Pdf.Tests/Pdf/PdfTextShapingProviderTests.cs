@@ -1,3 +1,4 @@
+using System.Linq;
 using System;
 using System.Collections.Generic;
 using System.Globalization;
@@ -30,7 +31,9 @@ public class PdfTextShapingProviderTests {
             foreach (string logicalToken in evidence.Text.Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries)) {
                 Assert.Contains(logicalToken, extracted, StringComparison.Ordinal);
             }
-            if (evidence.Direction == OfficeTextDirection.RightToLeft || evidence.ManagedShapingExpected) {
+            // Reordered or substituted clusters need ActualText; plain right-to-left glyphs in visual
+            // order map through ToUnicode, which conforming readers reorder themselves.
+            if (evidence.ManagedShapingExpected && evidence.Direction != OfficeTextDirection.RightToLeft) {
                 Assert.Contains("/ActualText", Encoding.ASCII.GetString(bytes), StringComparison.Ordinal);
             }
             Assert.DoesNotContain(report.Warnings, warning =>
@@ -381,6 +384,65 @@ public class PdfTextShapingProviderTests {
     }
 
     private readonly record struct PixelBounds(int X, int Y, int Width, int Height);
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void RequiredLamAlefRetainsDiagnosedJoiningAndLogicalText(bool explicitManaged) {
+        const string text = "\u0644\u0627";
+        byte[] fontData = ManagedTextShapingTestAssets.CreateFontWithDistinctGlyphs(0x0644, 0x0627, 0xFEDF, 0xFE8E);
+        var font = PdfTrueTypeFontProgram.Parse(fontData, "Diagnosed lam-alef");
+        IOfficeTextShapingProvider? provider = explicitManaged ? OfficeManagedTextShapingProvider.Instance : null;
+        int successes = 0;
+        PdfGlyphRun run = font.ShapeText(text, PdfTextShapingOptions.ForRendering("Diagnosed lam-alef",
+            PdfTextShapingMode.OpenTypeLigatures, provider, (_, _, _, _) => successes++));
+        Assert.True(font.TryGetGlyphId(0xFEDF, out int initialLam));
+        Assert.True(font.TryGetGlyphId(0xFE8E, out int finalAlef));
+        Assert.Equal(new[] { finalAlef, initialLam }, run.Glyphs.Select(glyph => glyph.GlyphId));
+        Assert.Equal(text, string.Concat(run.Glyphs.OrderBy(glyph => glyph.TextIndex).Select(glyph => glyph.UnicodeText)));
+        Assert.Null(run.SourceShapingResult);
+        Assert.False(run.IsAutomaticallyShaped);
+        Assert.Equal(0, successes);
+
+        var report = new PdfConversionReport();
+        var options = new PdfOptions().ReportDiagnosticsTo(report)
+            .EmbedStandardFont(PdfStandardFont.Helvetica, fontData, "Diagnosed lam-alef");
+        if (explicitManaged) options.UseManagedTextShaping();
+
+        byte[] pdf = PdfDocument.Create(options).Paragraph(paragraph => paragraph.Text(text)).ToBytes();
+
+        Assert.Contains(text, PdfReadDocument.Open(pdf).ExtractText(), StringComparison.Ordinal);
+        Assert.Contains(report.Warnings, warning => warning.Code == "unsupported-complex-script-shaping"
+            && warning.LossKind == OfficeConversionLossKind.Approximation);
+        Assert.Throws<InvalidOperationException>(() => report.RequireNoLoss());
+    }
+
+    [Theory]
+    [InlineData(false, "\u0627\u064E")]
+    [InlineData(true, "\u0627\u064E")]
+    [InlineData(false, "\u05D0\u05B7")]
+    [InlineData(true, "\u05D0\u05B7")]
+    [InlineData(false, "\u0430\u0483")]
+    [InlineData(true, "\u0430\u0483")]
+    [InlineData(false, "\U0001D15F\U0001D165")]
+    [InlineData(true, "\U0001D15F\U0001D165")]
+    [InlineData(false, "\u0430\uA670")]
+    [InlineData(true, "\u0430\uA670")]
+    public void ManagedMarksRetainApproximationDiagnosticsInDefaultAndExplicitModes(bool explicitManaged, string text) {
+        byte[] fontData = ManagedTextShapingTestAssets.CreateFont(0x0627, 0xFE8D, 0x064E, 0x05D0, 0x05B7, 0x0430, 0x0483, 0x1D15F, 0x1D165, 0xA670);
+        var report = new PdfConversionReport();
+        var options = new PdfOptions().ReportDiagnosticsTo(report)
+            .EmbedStandardFont(PdfStandardFont.Helvetica, fontData, "Managed Marks");
+        if (explicitManaged) options.UseManagedTextShaping();
+
+        byte[] pdf = PdfDocument.Create(options).Paragraph(paragraph => paragraph.Text(text)).ToBytes();
+
+        Assert.Contains(text, PdfReadDocument.Open(pdf).ExtractText(), StringComparison.Ordinal);
+        Assert.True(report.HasLoss);
+        Assert.Contains(report.Warnings, warning => warning.Code == "unsupported-mark-positioning-or-joiner-shaping"
+            && warning.LossKind == OfficeConversionLossKind.Approximation);
+        Assert.Throws<InvalidOperationException>(() => report.RequireNoLoss());
+    }
 
     [Fact]
     public void TextShapingProvider_ShapesEmbeddedTrueTypeComplexScriptWithoutUnsupportedWarnings() {

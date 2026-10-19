@@ -33,7 +33,8 @@ public static partial class OfficeDrawingRasterRenderer {
         double scale = options.Scale;
         if (scale <= 0D || double.IsNaN(scale) || double.IsInfinity(scale))
             throw new ArgumentOutOfRangeException(nameof(options), "Scale must be a finite positive number.");
-        double fullWidth = Math.Ceiling(drawing.Width * scale), fullHeight = Math.Ceiling(drawing.Height * scale);
+        double fullWidth = Math.Max(1D, OfficeRasterScaleLimiter.CeilingPixels(drawing.Width * scale));
+        double fullHeight = Math.Max(1D, OfficeRasterScaleLimiter.CeilingPixels(drawing.Height * scale));
         if (width <= 0 || height <= 0 || x < 0 || y < 0 || x + (double)width > fullWidth || y + (double)height > fullHeight)
             throw new ArgumentOutOfRangeException(nameof(width), "The region must lie within the rendered drawing.");
         if ((long)width * height > options.MaximumRasterPixels)
@@ -90,12 +91,14 @@ public static partial class OfficeDrawingRasterRenderer {
             diagnosticSource: options.DiagnosticSource,
             cancellationToken: options.CancellationToken);
         canvas.FontMetricScale = scale;
+        canvas.PdfRasterConventions = options.PdfRasterConventions;
         canvas.SetCoordinateScale(scaleX / scale, scaleY / scale);
         if (options.TransformedTextBudget != null) canvas.ShareTransformedTextBudget(options.TransformedTextBudget);
         canvas.ImageCache = options.ImageCache;
         IOfficeRasterImageCodec? imageCodec = options.ThrowOnImageDecodeFailure
             ? new RequiredImageCodec(options.ImageCodec, options.MaximumRasterPixels, options.CancellationToken)
             : options.ImageCodec;
+        canvas.MaximumClipRasterPixels = options.MaximumRasterPixels;
         RenderElements(canvas, drawing.Elements, scale, imageCodec, options.MaximumRasterPixels, options.CancellationToken);
 
         return image;
@@ -248,7 +251,9 @@ public static partial class OfficeDrawingRasterRenderer {
                 } else if (linearGradient != null) {
                     canvas.FillLinearGradientRectangle(x, y, width, height, linearGradient);
                 } else if (fill.HasValue) {
-                    canvas.FillRectangle(x, y, width, height, fill.Value);
+                    double fillX = x, fillY = y, fillWidth = width, fillHeight = height;
+                    canvas.TrySnapRectangle(ref fillX, ref fillY, ref fillWidth, ref fillHeight, shape.CrispEdges);
+                    canvas.FillRectangle(fillX, fillY, fillWidth, fillHeight, fill.Value);
                 }
 
                 if ((stroke.HasValue || strokeLinearGradient != null || strokeRadialGradient != null) && strokeWidth > 0D) {
@@ -487,40 +492,13 @@ public static partial class OfficeDrawingRasterRenderer {
     }
 
     private static IReadOnlyList<OfficeDrawingShape> CreateGlowShapes(OfficeDrawingShape drawingShape) {
-        OfficeShape shape = drawingShape.Shape;
-        OfficeGlow? glow = shape.Glow;
-        if (glow == null || glow.Radius <= 0D || glow.Opacity <= 0D || glow.Color.A == 0) {
-            return Array.Empty<OfficeDrawingShape>();
+        IReadOnlyList<OfficeShape> layers = OfficeGlowLayerPlanner.CreateShapes(drawingShape.Shape);
+        if (layers.Count == 0) return Array.Empty<OfficeDrawingShape>();
+        var glowShapes = new List<OfficeDrawingShape>(layers.Count);
+        for (int i = 0; i < layers.Count; i++) {
+            glowShapes.Add(new OfficeDrawingShape(layers[i], drawingShape.X, drawingShape.Y));
         }
-
-        const int layers = 4;
-        var glowShapes = new List<OfficeDrawingShape>(layers);
-        double baseStrokeWidth = Math.Max(0D, shape.StrokeWidth);
-        for (int i = layers; i >= 1; i--) {
-            double factor = i / (double)layers;
-            OfficeShape glowShape = shape.Clone();
-            glowShape.Shadow = null;
-            glowShape.Glow = null;
-            glowShape.FillColor = null;
-            glowShape.FillGradient = null;
-            glowShape.FillRadialGradient = null;
-            glowShape.StrokeColor = glow.Color;
-            glowShape.StrokeGradient = null;
-            glowShape.StrokeRadialGradient = null;
-            glowShape.StrokeWidth = Math.Max(1D, baseStrokeWidth + glow.Radius * 2D * factor);
-            glowShape.StrokeDashStyle = OfficeStrokeDashStyle.Solid;
-            glowShape.StrokeStartMarker = null;
-            glowShape.StrokeEndMarker = null;
-            glowShape.StrokeOpacity = ComputeGlowLayerOpacity(glow.Opacity, layers - i + 1);
-            glowShapes.Add(new OfficeDrawingShape(glowShape, drawingShape.X, drawingShape.Y));
-        }
-
         return glowShapes;
-    }
-
-    private static double ComputeGlowLayerOpacity(double opacity, int layerDepth) {
-        double clamped = opacity < 0D ? 0D : opacity > 1D ? 1D : opacity;
-        return 1D - Math.Pow(1D - clamped, layerDepth + 1);
     }
 
     private static IReadOnlyList<OfficeDrawingShape> CreateShadowShapes(OfficeDrawingShape drawingShape) {

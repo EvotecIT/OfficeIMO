@@ -158,7 +158,9 @@ public sealed class PdfVisualPageImportTests {
         image.HorizontalPositionOffset = -20 * 12700;
         var fallback = word.ToPdfDocumentResult();
         Assert.NotEmpty(fallback.Value.ToBytes());
-        Assert.Contains(fallback.Warnings, warning => warning.Code == "NativeAnchoredImageFlowed");
+        Assert.Contains(fallback.Warnings, warning => warning.Code == "NativeAnchoredImageClipped");
+        var clipped = Assert.Single(PdfCore.PdfDocument.Load(fallback.ToBytes()).Images.Placements());
+        Assert.Equal(-20D, clipped.X, 3);
     }
 
     [Fact]

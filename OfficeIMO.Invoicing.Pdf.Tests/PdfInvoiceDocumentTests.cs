@@ -17,7 +17,7 @@ public class PdfInvoiceDocumentTests {
         invoice.DirectDebitMandateReference = "standalone-mandate";
         PdfInvoiceDocument snapshot = PdfInvoiceDocument.Create(invoice, Contract());
         byte[] pdf = snapshot.ToPdfBytes(Options());
-        string text = PdfReadDocument.Open(pdf).ExtractText();
+        string text = PdfReadDocument.Open(pdf).ExtractUnwrappedText();
         Assert.Contains("standalone-reference", text, StringComparison.Ordinal);
         Assert.Contains("standalone-creditor", text, StringComparison.Ordinal);
         Assert.Contains("standalone-mandate", text, StringComparison.Ordinal);
@@ -51,7 +51,7 @@ public class PdfInvoiceDocumentTests {
         PdfInvoiceDocument snapshot = PdfInvoiceDocument.Create(invoice, Contract());
 
         byte[] pdf = snapshot.ToPresentationPdfBytes(Options());
-        string text = string.Join(" ", PdfReadDocument.Open(pdf).ExtractText().Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries));
+        string text = string.Join(" ", PdfReadDocument.Open(pdf).ExtractUnwrappedText().Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries));
 
         Assert.Empty(PdfDocument.Load(pdf).Attachments.Extract());
         Assert.Contains("Invoice INV-2026-001", text, StringComparison.Ordinal);
@@ -94,7 +94,7 @@ public class PdfInvoiceDocumentTests {
         layout.Theme = null;
         layout.Approvals.Clear();
         byte[] second = snapshot.ToPresentationPdfBytes(Options());
-        string text = PdfReadDocument.Open(first).ExtractText();
+        string text = PdfReadDocument.Open(first).ExtractUnwrappedText();
 
         Assert.Equal(first, second);
         Assert.Contains("Prepared by", text, StringComparison.OrdinalIgnoreCase);
@@ -118,7 +118,7 @@ public class PdfInvoiceDocumentTests {
         layout.Theme = InvoicePdfTheme.Modern(PdfColor.FromRgb(63, 92, 255));
 
         byte[] pdf = PdfInvoiceDocument.Create(invoice, Contract(), layout).ToPresentationPdfBytes(Options());
-        string text = PdfReadDocument.Open(pdf).ExtractText();
+        string text = PdfReadDocument.Open(pdf).ExtractUnwrappedText();
 
         Assert.Equal(3, text.Split(new[] { "SECOND-PAYMENT-REFERENCE" }, StringSplitOptions.None).Length - 1);
     }
@@ -150,7 +150,7 @@ public class PdfInvoiceDocumentTests {
         layout.Theme = InvoicePdfTheme.Modern(PdfColor.FromRgb(63, 92, 255));
 
         byte[] pdf = PdfInvoiceDocument.Create(invoice, Contract(), layout).ToPresentationPdfBytes(Options());
-        string text = string.Join(" ", PdfReadDocument.Open(pdf).ExtractText().Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries));
+        string text = string.Join(" ", PdfReadDocument.Open(pdf).ExtractUnwrappedText().Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries));
         WriteEvidence("modern-financial-details", pdf);
 
         foreach (string expected in new[] {
@@ -173,7 +173,7 @@ public class PdfInvoiceDocumentTests {
 
         byte[] pdf = PdfInvoiceDocument.Create(invoice, Contract(), layout).ToPresentationPdfBytes(Options());
         PdfReadDocument document = PdfReadDocument.Open(pdf);
-        string text = document.ExtractText();
+        string text = document.ExtractUnwrappedText();
 
         Assert.True(document.Pages.Count > 2);
         foreach (string expected in new[] { "FINAL-INVOICE-MARKER", "FINAL-PARTY-MARKER", "FINAL-PAYMENT-MARKER", "FINAL-APPROVAL-MARKER" })
@@ -192,7 +192,7 @@ public class PdfInvoiceDocumentTests {
 
         byte[] pdf = PdfInvoiceDocument.Create(invoice, Contract(), layout).ToPresentationPdfBytes(Options());
         PdfReadDocument document = PdfReadDocument.Open(pdf);
-        string text = document.ExtractText();
+        string text = document.ExtractUnwrappedText();
 
         Assert.True(document.Pages.Count > 2);
         Assert.Contains("FINAL-PAYMENT-REFERENCE-MARKER", text, StringComparison.Ordinal);
@@ -206,7 +206,7 @@ public class PdfInvoiceDocumentTests {
         layout.Approvals.Add(new InvoicePdfApproval("Approved by", "Marta Nowak", "Finance", invoice.IssueDate));
 
         byte[] pdf = PdfInvoiceDocument.Create(invoice, Contract(), layout).ToPresentationPdfBytes(Options());
-        string text = PdfReadDocument.Open(pdf).ExtractText();
+        string text = PdfReadDocument.Open(pdf).ExtractUnwrappedText();
 
         Assert.Contains("Approvals", text, StringComparison.Ordinal);
         Assert.Contains("Marta Nowak", text, StringComparison.Ordinal);
@@ -230,7 +230,7 @@ public class PdfInvoiceDocumentTests {
         byte[] pdf = PdfInvoiceDocument.Create(invoice, Contract()).ToPdfBytes(Options());
         PdfReadDocument document = PdfReadDocument.Open(pdf);
         Assert.True(document.Pages.Count > 2);
-        Assert.Contains("FINAL-NUMBER-MARKER", document.ExtractText(), StringComparison.Ordinal);
+        Assert.Contains("FINAL-NUMBER-MARKER", document.ExtractUnwrappedText(), StringComparison.Ordinal);
         WriteEvidence("long-invoice-number", pdf);
     }
 
@@ -271,7 +271,7 @@ public class PdfInvoiceDocumentTests {
 
         byte[] pdf = snapshot.ToPdfBytes(Options());
         Assert.Equal(snapshot.ToXmlBytes(), Assert.Single(PdfDocument.Load(pdf).Attachments.Extract()).Bytes);
-        string text = PdfReadDocument.Open(pdf).ExtractText();
+        string text = PdfReadDocument.Open(pdf).ExtractUnwrappedText();
         Assert.Contains("Invoice INV-2026-001", text, StringComparison.Ordinal);
         Assert.Equal(expectedLines > 0, text.IndexOf("Consulting", StringComparison.Ordinal) >= 0);
     }
@@ -299,7 +299,7 @@ public class PdfInvoiceDocumentTests {
         byte[] pdf = PdfInvoiceDocument.Create(invoice, Contract()).ToPdfBytes(Options());
         PdfReadDocument document = PdfReadDocument.Open(pdf);
         Assert.True(document.Pages.Count > 1);
-        Assert.Contains("FINAL-DETAIL-MARKER", document.ExtractText(), StringComparison.Ordinal);
+        Assert.Contains("FINAL-DETAIL-MARKER", document.ExtractUnwrappedText(), StringComparison.Ordinal);
         WriteEvidence("long-" + group, pdf);
     }
 
@@ -312,7 +312,7 @@ public class PdfInvoiceDocumentTests {
         invoice.Period = new InvoicePeriod { Start = start ? new DateTime(2026, 9, 1) : null, End = end ? new DateTime(2026, 9, 10) : null };
         invoice.Lines[0].Period = invoice.Period;
         byte[] pdf = PdfInvoiceDocument.Create(invoice, Contract()).ToPdfBytes(Options());
-        string text = PdfReadDocument.Open(pdf).ExtractText();
+        string text = PdfReadDocument.Open(pdf).ExtractUnwrappedText();
         Assert.Contains(expected, text, StringComparison.Ordinal);
         Assert.Contains("Period: " + expected, text, StringComparison.Ordinal);
         WriteEvidence(start ? end ? "period-range" : "period-start" : "period-end", pdf);
@@ -330,7 +330,7 @@ public class PdfInvoiceDocumentTests {
         PdfInvoiceDocument snapshot = PdfInvoiceDocument.Create(invoice, Contract());
         byte[] xml = snapshot.ToXmlBytes();
         byte[] pdf = snapshot.ToPdfBytes(Options());
-        string text = PdfReadDocument.Open(pdf).ExtractText();
+        string text = PdfReadDocument.Open(pdf).ExtractUnwrappedText();
         foreach (string expected in new[] { "Identifier (0088): seller-1", "Identifier (0088): buyer-id",
             "Identifier (0088): payee-1", "Legal registration (0002): HRB 12345", "Legal registration (0002): payee-register",
             "Electronic address (EM):", "seller@example.test", "buyer@example.test", "Location (0088): location-1",
@@ -355,7 +355,7 @@ public class PdfInvoiceDocumentTests {
         invoice.Lines[0].Classifications[0].ListVersion = "2026";
         PdfInvoiceDocument snapshot = PdfInvoiceDocument.Create(invoice, Contract());
         byte[] pdf = snapshot.ToPdfBytes(Options());
-        string text = string.Join(" ", PdfReadDocument.Open(pdf).ExtractText().Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries));
+        string text = string.Join(" ", PdfReadDocument.Open(pdf).ExtractUnwrappedText().Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries));
         foreach (string expected in new[] { "Order line: 10", "Accounting reference: project-cost", "Object (ABZ): line-object",
             "Standard item (0160): 1234567890128", "Origin: DE", "Classification (IB, version 2026): 0721-880X",
             "Service tier: Standard", "Identifier (ABZ): object-1", "Business process", invoice.BusinessProcessId!, "text/csv" })
@@ -378,7 +378,7 @@ public class PdfInvoiceDocumentTests {
         else invoice.Lines[0].AllowancesAndCharges.Add(adjustment);
         PdfInvoiceDocument snapshot = PdfInvoiceDocument.Create(invoice, Contract());
         byte[] pdf = snapshot.ToPdfBytes(Options());
-        string text = string.Join(" ", PdfReadDocument.Open(pdf).ExtractText().Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries));
+        string text = string.Join(" ", PdfReadDocument.Open(pdf).ExtractUnwrappedText().Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries));
         foreach (string expected in new[] { "Base: 100.00 EUR", "Percentage: 1.00001%", "Adjusted service", "Reason code: " + adjustment.ReasonCode })
             Assert.Contains(expected, text, StringComparison.Ordinal);
         Assert.Equal(snapshot.ToXmlBytes(), Assert.Single(PdfDocument.Load(pdf).Attachments.Extract()).Bytes);
@@ -395,7 +395,7 @@ public class PdfInvoiceDocumentTests {
         line.UnitPrice = 0.003m;
         PdfInvoiceDocument snapshot = PdfInvoiceDocument.Create(invoice, Contract());
         byte[] pdf = snapshot.ToPdfBytes(Options());
-        string text = PdfReadDocument.Open(pdf).ExtractText();
+        string text = PdfReadDocument.Open(pdf).ExtractUnwrappedText();
         Assert.Contains("Gross price: 0.004 EUR / 1 C62", text, StringComparison.Ordinal);
         Assert.Contains("Price discount: 0.001 EUR / 1 C62", text, StringComparison.Ordinal);
         Assert.Contains("0.003 / 1 C62", text, StringComparison.Ordinal);
@@ -428,7 +428,7 @@ public class PdfInvoiceDocumentTests {
         PdfInvoiceDocument snapshot = PdfInvoiceDocument.Create(invoice, Contract());
         Assert.Null(snapshot.ToInvoice().AllowancesAndCharges[0].Tax!.Rate);
         byte[] pdf = snapshot.ToPdfBytes(Options());
-        string text = PdfReadDocument.Open(pdf).ExtractText();
+        string text = PdfReadDocument.Open(pdf).ExtractUnwrappedText();
         Assert.Contains("Outside scope adjustment", text, StringComparison.Ordinal);
         Assert.Contains(charge ? "Charge" : "Allowance", text, StringComparison.Ordinal);
         Assert.DoesNotContain("0%", text, StringComparison.Ordinal);
@@ -463,7 +463,7 @@ public class PdfInvoiceDocumentTests {
         var attachment = Assert.Single(PdfDocument.Load(pdf).Attachments.Extract());
         Assert.Equal("factur-x.xml", attachment.FileName);
         Assert.Equal(xml, attachment.Bytes);
-        string text = PdfReadDocument.Open(pdf).ExtractText();
+        string text = PdfReadDocument.Open(pdf).ExtractUnwrappedText();
         Assert.Contains("INV-2026-001", text, StringComparison.Ordinal);
         Assert.Contains((credit ? "Credit note " : "Invoice ") + "INV-2026-001", text, StringComparison.Ordinal);
         Assert.DoesNotContain("MUTATED", text, StringComparison.Ordinal);

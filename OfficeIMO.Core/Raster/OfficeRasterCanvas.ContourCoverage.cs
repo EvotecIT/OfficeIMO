@@ -42,12 +42,15 @@ public sealed partial class OfficeRasterCanvas {
 
     private void FillContourPaint(
         IReadOnlyList<IReadOnlyList<OfficePoint>> contours, OfficeFillRule fillRule, Func<double, double, OfficeColor> paint,
-        IReadOnlyList<IReadOnlyList<OfficePoint>>? unionContours, ContourCoverageWorkspace workspace) {
+        IReadOnlyList<IReadOnlyList<OfficePoint>>? unionContours, ContourCoverageWorkspace workspace, IReadOnlyList<ClipContourSource>? intersectionClips = null) {
         List<double> boundaries = workspace.Boundaries;
         double minX = double.PositiveInfinity, maxX = double.NegativeInfinity;
         long contourEdges = 0L;
         if (!CollectContourBounds(contours, boundaries, ref minX, ref maxX, ref contourEdges)) return;
         if (unionContours != null && !CollectContourBounds(unionContours, boundaries, ref minX, ref maxX, ref contourEdges)) return;
+        if (intersectionClips != null) for (int clip = 1; clip < intersectionClips.Count; clip++) {
+            if (!CollectContourBounds(intersectionClips[clip].Contours, boundaries, ref minX, ref maxX, ref contourEdges)) return;
+        }
         if (boundaries.Count == 0 || maxX <= 0D || minX >= Width) return;
         SortDistinctContourBoundaries(boundaries);
         double minY = boundaries[0], maxY = boundaries[boundaries.Count - 1];
@@ -92,7 +95,9 @@ public sealed partial class OfficeRasterCanvas {
                 // interface-backed contour for each sample and vertex split.
                 int rowEdgeCount = 0;
                 AddContourRowEdges(contours, y, ref rowEdges, ref rowEdgeCount);
-                if (unionContours != null) AddContourRowEdges(unionContours, y, ref rowEdges, ref rowEdgeCount, true);
+                if (unionContours != null) AddContourRowEdges(unionContours, y, ref rowEdges, ref rowEdgeCount, 1);
+                if (intersectionClips != null) for (int clip = 1; clip < intersectionClips.Count; clip++)
+                    AddContourRowEdges(intersectionClips[clip].Contours, y, ref rowEdges, ref rowEdgeCount, clip);
                 scanlines.Clear();
                 rowCrossings.Clear();
                 if (singleTile) Array.Clear(coverage, 0, tileLength);
@@ -117,7 +122,7 @@ public sealed partial class OfficeRasterCanvas {
                         // wide shapes still need those samples for subsequent tiles.
                         if (singleTile) {
                             AccumulateContourIntervals(crossings, 0, crossings.Count, fillRule,
-                                left, right, high - low, coverage);
+                                left, right, high - low, coverage, intersectionClips);
                         } else {
                             scanlines.Add((high - low, rowCrossings.Count, crossings.Count));
                             rowCrossings.AddRange(crossings);
@@ -130,7 +135,7 @@ public sealed partial class OfficeRasterCanvas {
                     if (!singleTile) {
                         Array.Clear(coverage, 0, count);
                         foreach ((double weight, int start, int length) in scanlines) {
-                            AccumulateContourIntervals(rowCrossings, start, length, fillRule, tileLeft, tileRight, weight, coverage);
+                            AccumulateContourIntervals(rowCrossings, start, length, fillRule, tileLeft, tileRight, weight, coverage, intersectionClips);
                         }
                     }
                     for (int x = tileLeft; x <= tileRight; x++) {
@@ -176,7 +181,7 @@ public sealed partial class OfficeRasterCanvas {
         return true;
     }
 
-    private static void AddContourRowEdges(IReadOnlyList<IReadOnlyList<OfficePoint>> contours, int row, ref ContourRowEdge[]? edges, ref int count, bool secondShape = false) {
+    private static void AddContourRowEdges(IReadOnlyList<IReadOnlyList<OfficePoint>> contours, int row, ref ContourRowEdge[]? edges, ref int count, int group = 0) {
         for (int contourIndex = 0; contourIndex < contours.Count; contourIndex++) {
             IReadOnlyList<OfficePoint> contour = contours[contourIndex];
             if (contour.Count < 3) continue;
@@ -187,7 +192,7 @@ public sealed partial class OfficeRasterCanvas {
                 // vertex interval can round onto a pixel-row boundary.
                 if (start.Y != end.Y && ((start.Y <= row + 1D && end.Y >= row) || (end.Y <= row + 1D && start.Y >= row))) {
                     if (edges == null || count == edges.Length) GrowContourRowEdges(ref edges, count);
-                    edges![count++] = new ContourRowEdge(start, end, secondShape);
+                    edges![count++] = new ContourRowEdge(start, end, group);
                 }
                 start = end;
             }
@@ -200,7 +205,7 @@ public sealed partial class OfficeRasterCanvas {
             OfficePoint start = edge.Start, end = edge.End;
             bool upward = start.Y <= y && end.Y > y;
             bool downward = start.Y > y && end.Y <= y;
-            if (upward || downward) crossings.Add(new ContourCrossing(start.X + (y - start.Y) * (end.X - start.X) / (end.Y - start.Y), upward ? 1 : -1, edge.SecondShape));
+            if (upward || downward) crossings.Add(new ContourCrossing(start.X + (y - start.Y) * (end.X - start.X) / (end.Y - start.Y), upward ? 1 : -1, edge.Group));
         }
     }
 
@@ -226,13 +231,17 @@ public sealed partial class OfficeRasterCanvas {
     }
 
     private readonly struct ContourRowEdge {
-        internal ContourRowEdge(OfficePoint start, OfficePoint end, bool secondShape) { Start = start; End = end; SecondShape = secondShape; }
+        internal ContourRowEdge(OfficePoint start, OfficePoint end, int group) { Start = start; End = end; Group = group; }
         internal OfficePoint Start { get; }
         internal OfficePoint End { get; }
-        internal bool SecondShape { get; }
+        internal int Group { get; }
     }
 
-    private static void AccumulateContourIntervals(List<ContourCrossing> crossings, int startIndex, int count, OfficeFillRule rule, int left, int right, double weight, double[] coverage) {
+    private static void AccumulateContourIntervals(List<ContourCrossing> crossings, int startIndex, int count, OfficeFillRule rule, int left, int right, double weight, double[] coverage, IReadOnlyList<ClipContourSource>? intersectionClips = null) {
+        if (intersectionClips != null) {
+            AccumulateClipIntersection(crossings, startIndex, count, intersectionClips, left, right, weight, coverage);
+            return;
+        }
         int winding = 0, secondWinding = 0, index = startIndex;
         int endIndex = startIndex + count;
         double previous = crossings[index].X;
@@ -250,7 +259,7 @@ public sealed partial class OfficeRasterCanvas {
             }
             do {
                 int delta = rule == OfficeFillRule.NonZero ? crossings[index].WindingDelta : 1;
-                if (crossings[index].SecondShape) secondWinding += delta;
+                if (crossings[index].Group == 1) secondWinding += delta;
                 else winding += delta;
                 index++;
             } while (index < endIndex && Math.Abs(crossings[index].X - x) <= ContourCrossingTolerance);
@@ -259,10 +268,10 @@ public sealed partial class OfficeRasterCanvas {
     }
 
     private readonly struct ContourCrossing {
-        internal ContourCrossing(double x, int windingDelta, bool secondShape) { X = x; WindingDelta = windingDelta; SecondShape = secondShape; }
+        internal ContourCrossing(double x, int windingDelta, int group) { X = x; WindingDelta = windingDelta; Group = group; }
         internal double X { get; }
         internal int WindingDelta { get; }
-        internal bool SecondShape { get; }
+        internal int Group { get; }
     }
 
     private sealed class ContourCrossingComparer : IComparer<ContourCrossing> {

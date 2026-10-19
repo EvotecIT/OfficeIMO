@@ -37,8 +37,14 @@ public sealed class PdfHtmlPageAppearanceTests {
         string embedded = pdf.ToHtml(options);
         Assert.Contains("pdf-page-appearance", embedded);
         using var imageHtml = new HtmlParser().ParseDocument(embedded);
-        Assert.Contains(DecodeAppearanceSvg(imageHtml.QuerySelector("img.pdf-page-appearance")!.GetAttribute("src"))
-            .Descendants(), node => node.Name.LocalName == "rect" && node.Attribute("fill") is not null);
+        XElement image = Assert.Single(DecodeAppearanceSvg(imageHtml.QuerySelector("img.pdf-page-appearance")!.GetAttribute("src"))
+            .Descendants(), node => node.Name.LocalName == "image");
+        const string pngPrefix = "data:image/png;base64,";
+        string? payload = image.Attribute("href")?.Value;
+        Assert.StartsWith(pngPrefix, payload, StringComparison.Ordinal);
+        Assert.True(OfficePngReader.TryDecode(Convert.FromBase64String(payload!.Substring(pngPrefix.Length)), out OfficeRasterImage? actual));
+        Assert.True(OfficePngReader.TryDecode(PdfPngTestImages.CreateRgbPng(2, 2), out OfficeRasterImage? expected));
+        Assert.Equal(expected!.GetPixels(), actual!.GetPixels());
         Assert.Equal(0, pdf.ToHtmlResult(options).Summary.ImagePlaceholderCount);
         options.MaxEmbeddedImageBytes = 0;
         var limited = pdf.ToHtmlResult(options);

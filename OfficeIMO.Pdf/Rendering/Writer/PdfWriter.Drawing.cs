@@ -982,7 +982,7 @@ internal static partial class PdfWriter {
 
     private static void AppendArtifactBegin(StringBuilder sb, bool enabled) {
         if (enabled) {
-            sb.Append("/Artifact BMC\n");
+            sb.Append("/Artifact << /Type /Layout >> BDC\n");
         }
     }
 

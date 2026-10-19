@@ -40,7 +40,10 @@ internal readonly struct PdfPageVisualPrimitive {
         int sourceOperatorIndex = 0,
         PdfContentOrderKey? contentOrderKey = null,
         bool isSelfColoredShading = false,
-        PdfStrokeDashPattern? strokeDashPattern = null, PdfPageFunctionPaint? functionPaint = null) {
+        PdfStrokeDashPattern? strokeDashPattern = null, PdfPageFunctionPaint? functionPaint = null,
+        double strokeMiterLimit = PdfPageContentVisualParser.PdfDefaultMiterLimit, bool isHairlineStroke = false) {
+        StrokeMiterLimit = strokeMiterLimit;
+        IsHairlineStroke = isHairlineStroke;
         FunctionPaint = functionPaint;
         Kind = kind;
         X = x;
@@ -197,6 +200,12 @@ internal readonly struct PdfPageVisualPrimitive {
 
     public OfficeStrokeLineJoin? StrokeLineJoin { get; }
 
+    /// <summary>PDF miter limit in effect when the path was painted.</summary>
+    internal double StrokeMiterLimit { get; }
+
+    /// <summary>True for a zero-width PDF line, which paints the thinnest line the device can render.</summary>
+    internal bool IsHairlineStroke { get; }
+
     public double? FillOpacity { get; }
 
     public double? StrokeOpacity { get; }
@@ -277,7 +286,7 @@ internal readonly struct PdfPageVisualPrimitive {
             SourceOperatorIndex,
             ContentOrderKey,
             IsSelfColoredShading,
-            StrokeDashPattern, FunctionPaint);
+            StrokeDashPattern, FunctionPaint, StrokeMiterLimit, IsHairlineStroke);
 
     internal PdfPageVisualPrimitive WithPaintOrder(double paintOrder) =>
         new PdfPageVisualPrimitive(
@@ -311,7 +320,7 @@ internal readonly struct PdfPageVisualPrimitive {
             SourceOperatorIndex,
             ContentOrderKey,
             IsSelfColoredShading,
-            StrokeDashPattern, FunctionPaint);
+            StrokeDashPattern, FunctionPaint, StrokeMiterLimit, IsHairlineStroke);
 
     internal PdfPageVisualPrimitive WithSourceOperatorIndex(int sourceOperatorIndex) =>
         new PdfPageVisualPrimitive(
@@ -320,7 +329,17 @@ internal readonly struct PdfPageVisualPrimitive {
             StrokeColor, StrokeGradient, StrokeRadialGradient,
             StrokeWidth, StrokeDashStyle, StrokeLineCap, StrokeLineJoin,
             FillOpacity, StrokeOpacity, FillRule, ClipPath, PaintOrder,
-            FillTilingPattern, StrokeTilingPattern, sourceOperatorIndex, ContentOrderKey, IsSelfColoredShading, StrokeDashPattern, FunctionPaint);
+            FillTilingPattern, StrokeTilingPattern, sourceOperatorIndex, ContentOrderKey, IsSelfColoredShading, StrokeDashPattern, FunctionPaint, StrokeMiterLimit, IsHairlineStroke);
+
+    internal PdfPageVisualPrimitive WithStrokeStyle(double strokeMiterLimit, bool isHairlineStroke) =>
+        strokeMiterLimit == StrokeMiterLimit && isHairlineStroke == IsHairlineStroke ? this : new PdfPageVisualPrimitive(
+            Kind, X, Y, Width, Height, X1, Y1, X2, Y2, PathCommands,
+            FillColor, FillGradient, FillRadialGradient,
+            StrokeColor, StrokeGradient, StrokeRadialGradient,
+            StrokeWidth, StrokeDashStyle, StrokeLineCap, StrokeLineJoin,
+            FillOpacity, StrokeOpacity, FillRule, ClipPath, PaintOrder,
+            FillTilingPattern, StrokeTilingPattern, SourceOperatorIndex, ContentOrderKey, IsSelfColoredShading, StrokeDashPattern, FunctionPaint,
+            strokeMiterLimit, isHairlineStroke);
 
     internal PdfPageVisualPrimitive WithContentOrderKey(PdfContentOrderKey contentOrderKey) =>
         new PdfPageVisualPrimitive(
@@ -329,7 +348,7 @@ internal readonly struct PdfPageVisualPrimitive {
             StrokeColor, StrokeGradient, StrokeRadialGradient,
             StrokeWidth, StrokeDashStyle, StrokeLineCap, StrokeLineJoin,
             FillOpacity, StrokeOpacity, FillRule, ClipPath, PaintOrder,
-            FillTilingPattern, StrokeTilingPattern, SourceOperatorIndex, contentOrderKey, IsSelfColoredShading, StrokeDashPattern, FunctionPaint);
+            FillTilingPattern, StrokeTilingPattern, SourceOperatorIndex, contentOrderKey, IsSelfColoredShading, StrokeDashPattern, FunctionPaint, StrokeMiterLimit, IsHairlineStroke);
 
     private static void Include(OfficePoint point, ref bool hasPoint, ref double left, ref double top, ref double right, ref double bottom) {
         if (!hasPoint) {

@@ -409,6 +409,7 @@ namespace OfficeIMO.PowerPoint {
             bool applied = ApplySeriesByIndex(seriesIndex, series => {
                 C.ChartShapeProperties props = EnsureChartShapeProperties(series);
                 ApplySolidFill(props, color);
+                OfficeIMO.OpenXml.Internal.OfficeOpenXmlChartAutomaticColors.ClearAutomaticSeriesColor(series);
             });
 
             if (!applied) {
@@ -433,6 +434,7 @@ namespace OfficeIMO.PowerPoint {
             bool applied = ApplySeriesByName(seriesName, ignoreCase, series => {
                 C.ChartShapeProperties props = EnsureChartShapeProperties(series);
                 ApplySolidFill(props, color);
+                OfficeIMO.OpenXml.Internal.OfficeOpenXmlChartAutomaticColors.ClearAutomaticSeriesColor(series);
             });
 
             if (!applied) {
@@ -457,6 +459,7 @@ namespace OfficeIMO.PowerPoint {
             bool applied = ApplySeriesByIndex(seriesIndex, series => {
                 C.ChartShapeProperties props = EnsureChartShapeProperties(series);
                 ApplyLine(props, color, widthPoints);
+                OfficeIMO.OpenXml.Internal.OfficeOpenXmlChartAutomaticColors.ClearAutomaticSeriesColor(series);
             });
 
             if (!applied) {
@@ -481,6 +484,7 @@ namespace OfficeIMO.PowerPoint {
             bool applied = ApplySeriesByName(seriesName, ignoreCase, series => {
                 C.ChartShapeProperties props = EnsureChartShapeProperties(series);
                 ApplyLine(props, color, widthPoints);
+                OfficeIMO.OpenXml.Internal.OfficeOpenXmlChartAutomaticColors.ClearAutomaticSeriesColor(series);
             });
 
             if (!applied) {

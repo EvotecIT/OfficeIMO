@@ -10,11 +10,10 @@ public sealed partial class DrawingRasterEncodingTests {
     [Theory]
     [InlineData(5)]
     [InlineData(9)]
-    public void OptimalPngObservesCancellationInLaterCompressionPasses(int cancelAtRow) {
+    public void SmallestPngObservesCancellationInLaterCompressionPasses(int cancelAtRow) {
         var image = new OfficeRasterImage(32, 4, OfficeColor.CornflowerBlue);
         if (cancelAtRow == 9) {
-            // Large candidates require a final compression pass after both probes.
-            // A small unfiltered winner can now be emitted from bounded scratch.
+            // Cancellation must also interrupt the final compression after probes.
             byte[] pixels = new byte[32769 * 4 * 4];
             new Random(0x706e67).NextBytes(pixels);
             image = OfficeRasterImage.FromRgba32(32769, 4, pixels);
@@ -24,7 +23,7 @@ public sealed partial class DrawingRasterEncodingTests {
         int rows = 0;
         Assert.Throws<OperationCanceledException>(() =>
             OfficeRasterImageEncoder.EncodeTo(image, OfficeImageExportFormat.Png, destination,
-                new OfficeRasterEncodingOptions(), maximumEncodedBytes: long.MaxValue,
+                new OfficeRasterEncodingOptions { Png = new OfficePngEncodeOptions { Effort = OfficeImageEncodingEffort.Smallest } }, maximumEncodedBytes: long.MaxValue,
                 cancellationToken: cancellation.Token, checkpointObserver: checkpoint => {
                     if (checkpoint == OfficeRasterEncodingCheckpoint.PngCompressionRow && ++rows == cancelAtRow)
                         cancellation.Cancel();
@@ -57,7 +56,7 @@ public sealed partial class DrawingRasterEncodingTests {
     [Theory]
     [InlineData(false)]
     [InlineData(true)]
-    public void OptimalPngFitsTheUnfilteredLosslessRepresentation(bool adaptivePreferred) {
+    public void SmallestPngFitsTheUnfilteredLosslessRepresentation(bool adaptivePreferred) {
         const int width = 160, height = 80;
         var image = new OfficeRasterImage(width, height);
         for (int y = 0; y < height; y++) {
@@ -76,9 +75,10 @@ public sealed partial class DrawingRasterEncodingTests {
         var rows = new byte[(stride + 1) * height];
         for (int y = 0; y < height; y++) Buffer.BlockCopy(pixels, y * stride, rows, y * (stride + 1) + 1, stride);
         byte[] unfiltered = OfficePngWriter.EncodeScanlines(width, height, 8, 6, rows);
-        byte[] optimal = OfficePngWriter.Encode(image);
+        var options = new OfficePngEncodeOptions { Effort = OfficeImageEncodingEffort.Smallest };
+        byte[] optimal = OfficePngWriter.Encode(image, options);
         using var stream = new MemoryStream();
-        OfficePngWriter.EncodeTo(image, stream);
+        OfficePngWriter.EncodeTo(image, stream, options);
 
         Assert.True(optimal.Length <= unfiltered.Length);
         Assert.True(stream.Length <= unfiltered.Length);

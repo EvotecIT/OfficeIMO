@@ -14,6 +14,8 @@ internal sealed partial class PdfOpenTypeCffFontProgram {
     private readonly Dictionary<string, TableRecord> _tables;
     private readonly SortedSet<int> _usedGlyphIds = new();
     private readonly Dictionary<int, string> _usedGlyphToUnicode = new();
+    private readonly PdfCanonicalGlyphText _canonicalGlyphText;
+    private readonly PdfGlyphTextPins _textPins;
     private readonly object _usageLock = new();
     private readonly PdfShortTextCache<PdfGlyphRun> _shortGlyphRuns = new();
     private readonly PdfShortTextCache<PdfMeasuredText> _shortMeasurements;
@@ -52,6 +54,8 @@ internal sealed partial class PdfOpenTypeCffFontProgram {
         StemV = stemV;
         _advanceWidths1000 = advanceWidths1000;
         _cmap = cmap;
+        _canonicalGlyphText = new PdfCanonicalGlyphText(cmap);
+        _textPins = new PdfGlyphTextPins(_canonicalGlyphText, _advanceWidths1000.Length, allowAliases: false);
         CffTableLength = cffTableLength;
     }
 
@@ -71,6 +75,8 @@ internal sealed partial class PdfOpenTypeCffFontProgram {
         StemV = source.StemV;
         _advanceWidths1000 = source._advanceWidths1000;
         _cmap = source._cmap;
+        _canonicalGlyphText = source._canonicalGlyphText;
+        _textPins = new PdfGlyphTextPins(_canonicalGlyphText, _advanceWidths1000.Length, allowAliases: false);
         CffTableLength = source.CffTableLength;
         _shortMeasurements = source._shortMeasurements;
     }
@@ -201,7 +207,8 @@ internal sealed partial class PdfOpenTypeCffFontProgram {
 
         PdfTextShapingOptions options = PdfTextShapingOptions.ForRendering(FontName, shapingMode, shapingProvider, language: language, featureSettings: featureSettings);
         if (useFontUnitAdvances) return MeasureFontUnitAdvanceWidth1000(ShapeText(text!, options)) * fontSize / 1000D;
-        int advance = shapingProvider == null && options.FeatureSettings.IsDefault && shapingMode == PdfTextShapingMode.OpenTypeLigatures
+        int advance = shapingProvider == null && options.FeatureSettings.IsDefault && shapingMode == PdfTextShapingMode.OpenTypeLigatures &&
+            !PdfExternalTextShaper.RequiresManagedDirectionalShaping(text!, options)
             ? MeasureDefaultLatinAdvanceWidth1000(text!, options)
             : ShapeText(text!, options).TotalAdvanceWidth1000;
         return advance * fontSize / 1000D;
@@ -268,14 +275,20 @@ internal sealed partial class PdfOpenTypeCffFontProgram {
             glyphs.Add(new PdfGlyphInfo(glyphId, scalar, scalarStart, GetGlyphWidth1000(glyphId)));
         }
 
-        // The scalar fallback does not perform bidirectional layout. Preserve the
-        // caller's logical string as ActualText so readers do not have to guess
-        // whether the emitted glyph order is logical or visual.
-        string? actualText = OfficeTextElements.ResolveBaseDirection(text) == OfficeTextDirection.RightToLeft
+        // Right-to-left text is painted in visual order, as in the TrueType scalar fallback.
+        bool reordered = !options.PreservesPaintedGlyphs && OfficeUnicodeBidi.ContainsRightToLeft(text) && glyphs.Count > 1;
+        if (reordered) {
+            glyphs = PdfUnicodeScalarTextShaper.ToVisualOrder(text, glyphs);
+            if (PdfExternalTextShaper.IsReversedLogicalRun(text, glyphs)) {
+                return new PdfGlyphRun(glyphs, Array.Empty<PdfTextEncodingDiagnostic>(), actualText: null, OfficeTextDirection.RightToLeft, preserveGlyphUnicode: true);
+            }
+        }
+        string? actualText = !options.PreservesPaintedGlyphs && (reordered || OfficeTextElements.ResolveBaseDirection(text) == OfficeTextDirection.RightToLeft)
             ? text
             : null;
         return new PdfGlyphRun(glyphs, Array.Empty<PdfTextEncodingDiagnostic>(), actualText, preserveGlyphUnicode:
-            options.ShapingMode == PdfTextShapingMode.OpenTypeLigatures && options.ShapingProvider == null && !OfficeManagedTextShaper.RequiresComplexLayout(text));
+            options.PreservesPaintedGlyphs || reordered || options.ShapingMode == PdfTextShapingMode.OpenTypeLigatures && options.ShapingProvider == null && !OfficeManagedTextShaper.RequiresComplexLayout(text),
+            isScalarBidi: reordered);
     }
 
     public double GetAscender(double fontSize) =>
@@ -287,13 +300,28 @@ internal sealed partial class PdfOpenTypeCffFontProgram {
     public byte[] BuildFullOpenTypeFontFile() =>
         _data.ToArray();
 
+    // CIDs are glyph ids. Pins keep each emitted glyph's ToUnicode entry
+    // deterministic, so ordinary runs need no ActualText for extraction.
+    internal IPdfGlyphTextPinner TextPinner => _textPins;
+
+    internal PdfTextShowCommand ToTextShowCommand(PdfGlyphRun run) => run.ToTextShowCommand().WithPinner(_textPins);
+
+    internal void MergeTextPinsFrom(PdfOpenTypeCffFontProgram source) {
+        if (ReferenceEquals(this, source)) return;
+        _textPins.MergeFrom(source._textPins);
+    }
+
     public IReadOnlyList<(int GlyphId, string UnicodeText)> GetGlyphToUnicodeMappings() {
         lock (_usageLock) {
             if (_usedGlyphToUnicode.Count > 0) {
-                return _usedGlyphToUnicode
-                    .OrderBy(entry => entry.Key)
-                    .Select(entry => (entry.Key, entry.Value))
-                    .ToArray();
+                // Emitted pins own their glyph's entry, then the cmap's canonical text (a mirrored
+                // bracket keeps its own character); glyphs outside the cmap keep usage text.
+                var mappings = new List<(int GlyphId, string UnicodeText)>(_usedGlyphToUnicode.Count);
+                foreach (int glyphId in _usedGlyphIds) {
+                    if (_textPins.TryGetPinned(glyphId, out string text) || _canonicalGlyphText.TryGet(glyphId, out text) || _usedGlyphToUnicode.TryGetValue(glyphId, out text!))
+                        mappings.Add((glyphId, text));
+                }
+                return mappings;
             }
         }
 
@@ -328,6 +356,7 @@ internal sealed partial class PdfOpenTypeCffFontProgram {
         lock (_usageLock) {
             _usedGlyphIds.Clear();
             _usedGlyphToUnicode.Clear();
+            _textPins.Clear();
         }
     }
 

@@ -149,8 +149,8 @@ public static partial class OfficeTextBlockRenderer {
         string? fontPalette = null,
         OfficeTextShapingBackend? shapingBackend = null,
         OfficeTextDirection direction = OfficeTextDirection.Auto,
-        bool preservePaintedGlyphOrder = false, OfficeFontFaceDescriptor? face = null) =>
-        AppendSvgTextElementCore(builder, text, x, y, lineHeight, color, fontFamily, fontSize, horizontalAlignment, bold, italic, underline, rotationDegrees, rotationCenterX, rotationCenterY, strikethrough, textAdvanceWidth, underlineStyle, strikethroughStyle, baseline, decorationColor, featureSettings, fontPalette, direction, shapingBackend, preservePaintedGlyphOrder, face);
+        bool preservePaintedGlyphOrder = false, OfficeFontFaceDescriptor? face = null, string? logicalText = null) =>
+        AppendSvgTextElementCore(builder, text, x, y, lineHeight, color, fontFamily, fontSize, horizontalAlignment, bold, italic, underline, rotationDegrees, rotationCenterX, rotationCenterY, strikethrough, textAdvanceWidth, underlineStyle, strikethroughStyle, baseline, decorationColor, featureSettings, fontPalette, direction, shapingBackend, preservePaintedGlyphOrder, face, logicalText);
 
     private static StringBuilder AppendSvgTextElementCore(
         StringBuilder builder,
@@ -178,7 +178,7 @@ public static partial class OfficeTextBlockRenderer {
         string? fontPalette,
         OfficeTextDirection direction = OfficeTextDirection.Auto,
         OfficeTextShapingBackend? shapingBackend = null,
-        bool preservePaintedGlyphOrder = false, OfficeFontFaceDescriptor? face = null) {
+        bool preservePaintedGlyphOrder = false, OfficeFontFaceDescriptor? face = null, string? logicalText = null) {
         if (builder == null) {
             throw new ArgumentNullException(nameof(builder));
         }
@@ -207,8 +207,11 @@ public static partial class OfficeTextBlockRenderer {
             ? OfficeTextElements.ResolveBaseDirection(text)
             : direction;
         bool splitDecorations = RequiresSeparateSvgDecorations(resolvedUnderlineStyle, resolvedStrikethroughStyle);
-        builder.Append("<text")
-            .AppendNumberAttribute("x", x)
+        builder.Append("<text");
+        if (logicalText != null && !string.Equals(text, logicalText, StringComparison.Ordinal)) {
+            builder.AppendAttribute("aria-label", logicalText);
+        }
+        builder.AppendNumberAttribute("x", x)
             .AppendNumberAttribute("y", renderedY)
             .AppendAttribute("font-family", string.IsNullOrWhiteSpace(fontFamily) ? "Arial, sans-serif" : fontFamily)
             .AppendNumberAttribute("font-size", renderedFontSize)

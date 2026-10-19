@@ -33,7 +33,7 @@ public sealed partial class HtmlRenderingTests {
                 + "' style='display:block;width:60px;height:30px'>"
             : svg;
         HtmlConversionDocument document = HtmlConversionDocument.Parse("<body style='margin:0'>" + source + "</body>");
-        var options = new HtmlRenderOptions { ViewportWidth = 60D, ViewportHeight = 30D, Margins = HtmlRenderMargins.All(0D) };
+        var options = new HtmlRenderOptions { Mode = HtmlRenderMode.Continuous, ViewportWidth = 60D, ViewportHeight = 30D, Margins = HtmlRenderMargins.All(0D) };
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(document, options);
         Assert.DoesNotContain(rendered.Diagnostics, d => d.Code is HtmlRenderDiagnosticCodes.SvgContentUnsupported or HtmlRenderDiagnosticCodes.SvgRasterFallback);
         HtmlRenderDrawing visual = Assert.Single(rendered.Pages[0].Visuals.OfType<HtmlRenderDrawing>());
@@ -46,7 +46,9 @@ public sealed partial class HtmlRenderingTests {
         IReadOnlyList<PdfCore.PdfExtractedImage> images = PdfCore.PdfImageExtractor.ExtractImages(pdf);
         Assert.Contains(images, image => image.IsImageFile && image.MimeType == "image/png" &&
             OfficeRasterImageDecoder.TryDecode(image.Bytes, out OfficeRasterImage? decoded) && HasSvgFilterPurple(decoded!));
-        Assert.Contains("data:image/png;base64,", document.ToSvg(options), StringComparison.Ordinal);
+        OfficeRasterImage exportedSvg = RasterizeHtmlImageSvg(document.ToSvg(options));
+        Assert.Equal(OfficeColor.FromRgb(0, 0, 0), exportedSvg.GetPixel(21, 10));
+        AssertSvgFilterPurple(exportedSvg.GetPixel(40, 10));
     }
 
     private static void AssertSvgFilterPurple(OfficeColor pixel) {

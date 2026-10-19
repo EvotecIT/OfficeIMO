@@ -1,27 +1,17 @@
+using System.Linq;
 using DocumentFormat.OpenXml.Wordprocessing;
 using OfficeIMO.Html;
 using Color = OfficeIMO.Drawing.OfficeColor;
 
 namespace OfficeIMO.Word.Html {
     internal partial class HtmlToWordConverter {
-        private static readonly Dictionary<HighlightColorValues, Color> _highlightColors = new() {
-            { HighlightColorValues.Yellow, Color.Yellow },
-            { HighlightColorValues.Green, Color.Lime },
-            { HighlightColorValues.Cyan, Color.Cyan },
-            { HighlightColorValues.Magenta, Color.Magenta },
-            { HighlightColorValues.Blue, Color.Blue },
-            { HighlightColorValues.Red, Color.Red },
-            { HighlightColorValues.DarkBlue, Color.DarkBlue },
-            { HighlightColorValues.DarkCyan, Color.DarkCyan },
-            { HighlightColorValues.DarkGreen, Color.DarkGreen },
-            { HighlightColorValues.DarkMagenta, Color.DarkMagenta },
-            { HighlightColorValues.DarkRed, Color.DarkRed },
-            { HighlightColorValues.DarkYellow, Color.Parse("#808000") },
-            { HighlightColorValues.DarkGray, Color.DarkGray },
-            { HighlightColorValues.LightGray, Color.LightGray },
-            { HighlightColorValues.Black, Color.Black },
-            { HighlightColorValues.White, Color.White }
-        };
+        private static readonly Dictionary<HighlightColorValues, Color> _highlightColors = new[] {
+            HighlightColorValues.Yellow, HighlightColorValues.Green, HighlightColorValues.Cyan,
+            HighlightColorValues.Magenta, HighlightColorValues.Blue, HighlightColorValues.Red,
+            HighlightColorValues.DarkBlue, HighlightColorValues.DarkCyan, HighlightColorValues.DarkGreen,
+            HighlightColorValues.DarkMagenta, HighlightColorValues.DarkRed, HighlightColorValues.DarkYellow,
+            HighlightColorValues.DarkGray, HighlightColorValues.LightGray, HighlightColorValues.Black, HighlightColorValues.White
+        }.ToDictionary(highlight => highlight, highlight => Color.Parse("#" + WordRunFormatting.GetHighlightColorHex(highlight)));
 
         private void ApplyTextBackground(
             WordParagraph run,

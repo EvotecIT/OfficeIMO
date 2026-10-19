@@ -1,7 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Reviewed OfficeIMO 3.3 to 3.4 API renames apply to each compatible baseline framework.
-     Keep exact diagnostic/member targets and baseline-only scope; framework fallback must not
-     require duplicated or unused asset-path entries. -->
+<!-- Exact baseline-only changes: reviewed 3.3 API renames and HTML-to-PDF types
+     moved into OfficeIMO.Html. Consumers must rebuild; see MIGRATION.md. -->
 <Suppressions>
   <Suppression>
     <DiagnosticId>CP0001</DiagnosticId>
@@ -11,81 +10,6 @@
   <Suppression>
     <DiagnosticId>CP0001</DiagnosticId>
     <Target>T:OfficeIMO.Html.Pdf.PdfHtmlSaveOptions</Target>
-    <IsBaselineSuppression>true</IsBaselineSuppression>
-  </Suppression>
-  <Suppression>
-    <DiagnosticId>CP0002</DiagnosticId>
-    <Target>M:OfficeIMO.Html.Pdf.HtmlPdfConverterExtensions.SaveAsPdf(OfficeIMO.Html.HtmlConversionDocument,System.IO.Stream,OfficeIMO.Html.Pdf.HtmlPdfSaveOptions)</Target>
-    <IsBaselineSuppression>true</IsBaselineSuppression>
-  </Suppression>
-  <Suppression>
-    <DiagnosticId>CP0002</DiagnosticId>
-    <Target>M:OfficeIMO.Html.Pdf.HtmlPdfConverterExtensions.SaveAsPdf(OfficeIMO.Html.HtmlConversionDocument,System.String,OfficeIMO.Html.Pdf.HtmlPdfSaveOptions)</Target>
-    <IsBaselineSuppression>true</IsBaselineSuppression>
-  </Suppression>
-  <Suppression>
-    <DiagnosticId>CP0002</DiagnosticId>
-    <Target>M:OfficeIMO.Html.Pdf.HtmlPdfConverterExtensions.SaveAsPdfAsync(OfficeIMO.Html.HtmlConversionDocument,System.IO.Stream,OfficeIMO.Html.Pdf.HtmlPdfSaveOptions,System.Threading.CancellationToken)</Target>
-    <IsBaselineSuppression>true</IsBaselineSuppression>
-  </Suppression>
-  <Suppression>
-    <DiagnosticId>CP0002</DiagnosticId>
-    <Target>M:OfficeIMO.Html.Pdf.HtmlPdfConverterExtensions.SaveAsPdfAsync(OfficeIMO.Html.HtmlConversionDocument,System.String,OfficeIMO.Html.Pdf.HtmlPdfSaveOptions,System.Threading.CancellationToken)</Target>
-    <IsBaselineSuppression>true</IsBaselineSuppression>
-  </Suppression>
-  <Suppression>
-    <DiagnosticId>CP0002</DiagnosticId>
-    <Target>M:OfficeIMO.Html.Pdf.HtmlPdfConverterExtensions.ToPdf(OfficeIMO.Html.HtmlConversionDocument,OfficeIMO.Html.Pdf.HtmlPdfSaveOptions)</Target>
-    <IsBaselineSuppression>true</IsBaselineSuppression>
-  </Suppression>
-  <Suppression>
-    <DiagnosticId>CP0002</DiagnosticId>
-    <Target>M:OfficeIMO.Html.Pdf.HtmlPdfConverterExtensions.ToPdfAsync(OfficeIMO.Html.HtmlConversionDocument,OfficeIMO.Html.Pdf.HtmlPdfSaveOptions,System.Threading.CancellationToken)</Target>
-    <IsBaselineSuppression>true</IsBaselineSuppression>
-  </Suppression>
-  <Suppression>
-    <DiagnosticId>CP0002</DiagnosticId>
-    <Target>M:OfficeIMO.Html.Pdf.HtmlPdfConverterExtensions.ToPdfDocument(OfficeIMO.Html.HtmlConversionDocument,OfficeIMO.Html.Pdf.HtmlPdfSaveOptions)</Target>
-    <IsBaselineSuppression>true</IsBaselineSuppression>
-  </Suppression>
-  <Suppression>
-    <DiagnosticId>CP0002</DiagnosticId>
-    <Target>M:OfficeIMO.Html.Pdf.HtmlPdfConverterExtensions.ToPdfDocumentAsync(OfficeIMO.Html.HtmlConversionDocument,OfficeIMO.Html.Pdf.HtmlPdfSaveOptions,System.Threading.CancellationToken)</Target>
-    <IsBaselineSuppression>true</IsBaselineSuppression>
-  </Suppression>
-  <Suppression>
-    <DiagnosticId>CP0002</DiagnosticId>
-    <Target>M:OfficeIMO.Html.Pdf.HtmlPdfConverterExtensions.ToPdfDocumentResult(OfficeIMO.Html.HtmlConversionDocument,OfficeIMO.Html.Pdf.HtmlPdfSaveOptions)</Target>
-    <IsBaselineSuppression>true</IsBaselineSuppression>
-  </Suppression>
-  <Suppression>
-    <DiagnosticId>CP0002</DiagnosticId>
-    <Target>M:OfficeIMO.Html.Pdf.HtmlPdfConverterExtensions.ToPdfDocumentResultAsync(OfficeIMO.Html.HtmlConversionDocument,OfficeIMO.Html.Pdf.HtmlPdfSaveOptions,System.Threading.CancellationToken)</Target>
-    <IsBaselineSuppression>true</IsBaselineSuppression>
-  </Suppression>
-  <Suppression>
-    <DiagnosticId>CP0002</DiagnosticId>
-    <Target>M:OfficeIMO.Html.Pdf.HtmlPdfConverterExtensions.TrySaveAsPdf(OfficeIMO.Html.HtmlConversionDocument,System.IO.Stream,OfficeIMO.Html.Pdf.HtmlPdfSaveOptions)</Target>
-    <IsBaselineSuppression>true</IsBaselineSuppression>
-  </Suppression>
-  <Suppression>
-    <DiagnosticId>CP0002</DiagnosticId>
-    <Target>M:OfficeIMO.Html.Pdf.HtmlPdfConverterExtensions.TrySaveAsPdf(OfficeIMO.Html.HtmlConversionDocument,System.String,OfficeIMO.Html.Pdf.HtmlPdfSaveOptions)</Target>
-    <IsBaselineSuppression>true</IsBaselineSuppression>
-  </Suppression>
-  <Suppression>
-    <DiagnosticId>CP0002</DiagnosticId>
-    <Target>M:OfficeIMO.Html.Pdf.HtmlPdfConverterExtensions.TrySaveAsPdfAsync(OfficeIMO.Html.HtmlConversionDocument,System.IO.Stream,OfficeIMO.Html.Pdf.HtmlPdfSaveOptions,System.Threading.CancellationToken)</Target>
-    <IsBaselineSuppression>true</IsBaselineSuppression>
-  </Suppression>
-  <Suppression>
-    <DiagnosticId>CP0002</DiagnosticId>
-    <Target>M:OfficeIMO.Html.Pdf.HtmlPdfConverterExtensions.TrySaveAsPdfAsync(OfficeIMO.Html.HtmlConversionDocument,System.String,OfficeIMO.Html.Pdf.HtmlPdfSaveOptions,System.Threading.CancellationToken)</Target>
-    <IsBaselineSuppression>true</IsBaselineSuppression>
-  </Suppression>
-  <Suppression>
-    <DiagnosticId>CP0002</DiagnosticId>
-    <Target>M:OfficeIMO.Html.Pdf.HtmlPdfResourcePolicySummary.From(OfficeIMO.Html.Pdf.HtmlPdfSaveOptions)</Target>
     <IsBaselineSuppression>true</IsBaselineSuppression>
   </Suppression>
   <Suppression>
@@ -146,6 +70,41 @@
   <Suppression>
     <DiagnosticId>CP0002</DiagnosticId>
     <Target>M:OfficeIMO.Html.Pdf.PdfHtmlConverterExtensions.ToHtmlResult(OfficeIMO.Pdf.PdfDocumentReadResult,OfficeIMO.Html.Pdf.PdfHtmlSaveOptions)</Target>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0001</DiagnosticId>
+    <Target>T:OfficeIMO.Html.Pdf.HtmlPdfAccessibilityIssueSeverity</Target>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0001</DiagnosticId>
+    <Target>T:OfficeIMO.Html.Pdf.HtmlPdfAccessibilityIssue</Target>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0001</DiagnosticId>
+    <Target>T:OfficeIMO.Html.Pdf.HtmlPdfAccessibilityValidationResult</Target>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0001</DiagnosticId>
+    <Target>T:OfficeIMO.Html.Pdf.HtmlPdfAccessibilityValidator</Target>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0001</DiagnosticId>
+    <Target>T:OfficeIMO.Html.Pdf.HtmlPdfConverterExtensions</Target>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0001</DiagnosticId>
+    <Target>T:OfficeIMO.Html.Pdf.HtmlPdfDiagnosticCodes</Target>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0001</DiagnosticId>
+    <Target>T:OfficeIMO.Html.Pdf.HtmlPdfResourcePolicySummary</Target>
     <IsBaselineSuppression>true</IsBaselineSuppression>
   </Suppression>
 </Suppressions>

@@ -88,6 +88,16 @@ OfficeImageExportResult message = await email
 
 Load EPUB with `IncludeRawHtml = true` and `IncludeResourceData = true` for the best result. Email resolves allowed CID/content-location MIME resources through the HTML resource pipeline. ODT/ODS/ODP diagnostics are attached to the resulting Word/Excel/PowerPoint image diagnostics.
 
+## Encoder and SVG output
+
+PNG and lossless WebP default to `OfficeImageEncodingEffort.Balanced`. Set `options.RasterEncoding.Png.Effort` or `.Webp.Effort` to `Fast` for lower encode cost or `Smallest` for exhaustive candidate searches. All levels retain exact pixels. `PdfPageImageExportRequest.RasterEncoding` passes the same settings through Workflows and snapshots them before execution.
+
+PNG optimal encoding selects exact grayscale, grayscale-alpha, RGB, RGBA, or indexed samples and writes sRGB color information. Use the metadata-aware raster encoder for an ICC profile and native density. JPEG defaults to optimized Huffman tables at quality 85 and 4:4:4; progressive and 4:2:0 remain explicit settings. TIFF adds `OfficeTiffCompression.CcittGroup4` for exact opaque black/white sources. WebP streams share the bounded lossless compressor instead of always writing literals. The [Core README](../OfficeIMO.Core/README.md) describes these APIs and their resource limits.
+
+SVG embeds non-interpolated rasters as `<image>` with pixelated sampling hints instead of expanding each pixel into rectangles. Output pixel dimensions follow the raster rounding rule. Soft-mask transfer tables and text outline strokes retain their Drawing paint semantics.
+
+Set `OfficeImageExportOptions.SvgTextAsPaths = true` to export eligible single-line horizontal ASCII text through registered font outlines. Already-painted runs use that path when supported. The SVG keeps logical text as an accessibility label and omits fonts no longer used by `<text>`. Wrapped, decorated, vertical, mixed-fallback, complex-script and color-glyph configurations retain text and the required font. This mode does not subset retained fonts and is not an editable-text export.
+
 ## Current Limits
 
 - Word pagination is estimated rather than Microsoft Word-exact.
@@ -95,6 +105,6 @@ Load EPUB with `IncludeRawHtml = true` and `IncludeResourceData = true` for the 
 - Static image export does not preserve animation or multi-frame input.
 - Complex TIFF/WebP/SVG input variants use a caller codec or a diagnosed visible fallback.
 - Exact cross-machine typography requires caller-supplied font data.
-- ICC workflows, EXIF preservation, and CMYK color conversion are not part of the current contract.
+- Raster transcoding carries supported ICC and EXIF profiles through `OfficeRasterImageEncoder.EncodeWithMetadata`; this does not imply automatic color conversion or source metadata preservation by every document adapter.
 
 Open fidelity and proof work is tracked in [ROADMAP.md](ROADMAP.md). Additional output formats and package-local copies of the shared engine are outside the current contract.

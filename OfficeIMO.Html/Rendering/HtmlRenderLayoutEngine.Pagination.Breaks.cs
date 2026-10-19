@@ -62,14 +62,20 @@ internal sealed partial class HtmlRenderLayoutEngine {
         return children == null || children.Any(child => ContainsPageStartMarginContent(child, spacingBlock));
     }
 
-    private static double FindFragmentEnd(HtmlRenderFlowBlock block, double start, double available, double? maximumEnd = null, double fullPageHeight = 0D) {
+    private static double FindFragmentEnd(HtmlRenderFlowBlock block, double start, double available, double? maximumEnd = null,
+        double fullPageHeight = 0D, HtmlRenderTrailingGroup? reservedFooter = null) {
         double limit = Math.Min(maximumEnd ?? block.Height, Math.Min(block.Height, start + available));
         IReadOnlyList<double> offsets = block.BreakOffsets;
         for (int index = UpperBound(offsets, limit + 0.0001D) - 1; index >= 0; index--) {
             double offset = offsets[index];
             if (offset <= start + 0.0001D) break;
+            // Finishing the body with its reserved footer consumes the original
+            // footer too. Authored keeps spanning that footer are then complete,
+            // even though only body geometry belongs to the sliced fragment.
+            double consumedEnd = reservedFooter != null && Math.Abs(offset - reservedFooter.ContentEndsAt) <= 0.0001D
+                ? reservedFooter.SourceEndsAt : offset;
             if (IsAllowedLineBreak(block, start, offset)
-                && !BreaksAvoidedRangeThatFitsPage(block, start, offset, fullPageHeight, limit)) return offset;
+                && !BreaksAvoidedRangeThatFitsPage(block, start, consumedEnd, fullPageHeight, limit)) return offset;
         }
 
         return start;
@@ -102,7 +108,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         }
 
         double candidateAvailable = Math.Max(0D, available - upcoming.Height);
-        double candidateEnd = FindFragmentEnd(block, start, candidateAvailable, upcoming.ContentEndsAt, fullPageHeight);
+        double candidateEnd = FindFragmentEnd(block, start, candidateAvailable, upcoming.ContentEndsAt, fullPageHeight, upcoming);
         if (candidateEnd > upcoming.StartsAt + 0.0001D) {
             fragmentLimit = upcoming.ContentEndsAt;
             return upcoming;

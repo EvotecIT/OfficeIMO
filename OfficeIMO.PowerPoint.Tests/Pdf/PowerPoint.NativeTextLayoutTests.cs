@@ -1,10 +1,8 @@
 using System;
-using System.Globalization;
 using System.IO;
 using System.Linq;
-using System.Text;
-using System.Xml.Linq;
 using OfficeIMO.Drawing;
+using OfficeIMO.Pdf;
 using OfficeIMO.PowerPoint;
 using OfficeIMO.PowerPoint.Pdf;
 using Xunit;
@@ -16,7 +14,7 @@ public sealed class PowerPointNativeTextLayoutTests {
     [Theory]
     [InlineData(false)]
     [InlineData(true)]
-    public void NativePdfAndSvgAgreeOnWrappedAndSpacedTextBaselinesAndRetainLinks(bool managedShaping) {
+    public void NativePdfAndSnapshotAgreeOnWrappedAndSpacedTextBaselinesAndRetainLinks(bool managedShaping) {
         var fonts = new OfficeFontFaceCollection().Add("NativeFixture",
             OfficeIMO.TestAssets.PdfTestFontAssets.LoadBundledOpenTypeCffFont());
         var profile = new OfficeRenderingProfile("native-text-regression", fonts, managedShaping ? OfficeManagedTextShapingProvider.Instance : null);
@@ -51,22 +49,24 @@ public sealed class PowerPointNativeTextLayoutTests {
 
         var images = new PowerPointImageExportOptions();
         images.UseRenderingProfile(profile);
-        XDocument svg = XDocument.Parse(Encoding.UTF8.GetString(slide.ExportImage(OfficeImageExportFormat.Svg, images).Bytes));
+        byte[] svg = slide.ExportImage(OfficeImageExportFormat.Svg, images).Bytes;
+        PowerPointSlideVisualSnapshot snapshot = slide.CreateVisualSnapshot(images);
         byte[] bytes = presentation.ToPdfBytes(new PowerPointToPdfOptions().UseRenderingProfile(profile));
         using var pdf = UglyToad.PdfPig.PdfDocument.Open(bytes);
         var page = pdf.GetPage(1);
         var letters = page.Letters;
         string pdfText = string.Concat(letters.Select(letter => letter.Value));
-        foreach (string marker in new[] { "PLAIN", "ALPHA", "LINKONE", "LINKTHREE", "TAIL", "FIRST", "SECOND" }) {
-            XElement element = Assert.Single(svg.Descendants(), element => element.Name.LocalName == "text" && element.Value.StartsWith(marker, StringComparison.Ordinal));
-            int index = pdfText.IndexOf(marker, StringComparison.Ordinal);
-            Assert.True(index >= 0, "PDF lost searchable text: " + marker);
-            double x = double.Parse(element.Attribute("x")!.Value, CultureInfo.InvariantCulture);
-            double y = double.Parse(element.Attribute("y")!.Value, CultureInfo.InvariantCulture);
-            Assert.True(Math.Abs(letters[index].StartBaseLine.X - x) <= 0.1D, $"{marker}: PDF X={letters[index].StartBaseLine.X}; SVG X={x}; {element}");
-            Assert.True(Math.Abs((page.Height - letters[index].StartBaseLine.Y) - y) <= 0.1D, $"{marker}: PDF Y={page.Height - letters[index].StartBaseLine.Y}; SVG Y={y}");
+        string snapshotText = string.Concat(snapshot.TextSpans.Select(span => span.Text));
+        foreach (string marker in new[] { "PLAIN", "ALPHA", "LINKONE", "LINKTWO", "LINKTHREE", "TAIL", "FIRST", "SECOND" }) {
+            Assert.Contains(marker, pdfText, StringComparison.Ordinal);
+            Assert.Contains(marker, snapshotText, StringComparison.Ordinal);
         }
-        Assert.Contains("LINKTWO", pdfText);
+        var canonicalPage = PdfCore.PdfReadDocument.Open(bytes).Pages[0];
+        // Compare the public PDF span geometry contract; another reader can use a different font-origin convention.
+        Assert.Equal(canonicalPage.GetTextSpans().Select(span => (span.Text, span.X, span.Y, span.FontSize, span.Advance, span.RotationDegrees)),
+            snapshot.TextSpans.Select(span => (span.Text, span.X, span.Y, span.FontSize, span.Advance, span.RotationDegrees)));
+        Assert.Equal(canonicalPage.ExportImage(OfficeImageExportFormat.Svg,
+            new PdfImageExportOptions().UseRenderingProfile(profile)).Bytes, svg);
         Assert.Equal(new[] { "https://officeimo.net/native-layout" }, PdfCore.PdfInspector.Inspect(bytes).LinkUris);
     }
 }

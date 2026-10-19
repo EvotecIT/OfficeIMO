@@ -41,6 +41,9 @@ public sealed class PdfPageImageExportRequest {
     /// <summary>Output format.</summary>
     public OfficeImageExportFormat Format { get; set; } = OfficeImageExportFormat.Png;
 
+    /// <summary>Format-specific raster encoding settings, including PNG and lossless WebP effort.</summary>
+    public OfficeRasterEncodingOptions RasterEncoding { get; set; } = new();
+
     /// <summary>Target raster density. SVG records the requested logical scale without rasterizing.</summary>
     public double TargetDpi { get; set; } = 144D;
 

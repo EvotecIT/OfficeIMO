@@ -2117,7 +2117,8 @@ namespace OfficeIMO.Tests {
             OfficeDrawingText janLabel = Assert.Single(chartDrawing.Elements.OfType<OfficeDrawingText>(), text => text.Text == "Jan");
             OfficeDrawingText febLabel = Assert.Single(chartDrawing.Elements.OfType<OfficeDrawingText>(), text => text.Text == "Feb");
             OfficeDrawingText marLabel = Assert.Single(chartDrawing.Elements.OfType<OfficeDrawingText>(), text => text.Text == "Mar");
-            Assert.True(janLabel.Y < febLabel.Y && febLabel.Y < marLabel.Y, "Expected horizontal bar categories to follow the authored axis order from top to bottom.");
+            // Like Office, a minMax category axis runs bottom-up on a horizontal bar chart.
+            Assert.True(janLabel.Y > febLabel.Y && febLabel.Y > marLabel.Y, "Expected horizontal bar categories to follow the authored axis order from bottom to top.");
         }
 
         [Fact]

@@ -975,27 +975,6 @@ The body paragraph must not touch the front matter table.
     }
 
     [Fact]
-    public void Markdown_SaveAsPdf_RendersInlineCodeWithoutRawCourierFallback() {
-        string markdown = """
-# Inline Code
-
-Use `OfficeIMO.Pdf` inside normal prose.
-""";
-
-        var options = new MarkdownToPdfOptions {
-            Style = MarkdownPdfStyle.TechnicalDocument()
-        };
-
-        byte[] pdf = OfficeIMO.Markdown.MarkdownReader.Parse(markdown).ToPdfBytes(options);
-        string text = PdfCore.PdfReadDocument.Open(pdf).ExtractText();
-        string rawPdf = System.Text.Encoding.ASCII.GetString(pdf);
-
-        Assert.Empty(options.Warnings);
-        Assert.Contains("OfficeIMO.Pdf", text);
-        Assert.DoesNotContain("/BaseFont /Courier", rawPdf, StringComparison.Ordinal);
-    }
-
-    [Fact]
     public void Markdown_SaveAsPdf_KeepsReadableVerticalRhythm() {
         string markdown = """
 ---

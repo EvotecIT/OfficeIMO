@@ -1,0 +1,6 @@
+{
+  "producer": "Pillow 11.3.0 using its JPEG encoder",
+  "generation": "RGB 2x1 opaque white; JPEG quality100 subsampling0; EXIF orientation6; existing OfficeIMO sRGB IEC61966-2.1 profile",
+  "purpose": "Independent three-component white JPEG that becomes bilevel after ICC orientation normalization",
+  "sha256": "49696002b4ce91833288d6569e73c0551ec6e6eb1639a6786c646b815c3a4280"
+}

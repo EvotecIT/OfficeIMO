@@ -1,0 +1,159 @@
+{
+  "oracle": "Apache JBIG2 ImageIO 3.0.5",
+  "oracleJarSha256": "d426cc8b6ac211dd5ffd120a86a65e55ae65d808c818207c1261bc1880b42653",
+  "specification": "ITU-T T.88 7.4.2.2 and 7.4.8.5",
+  "cases": [
+    {
+      "name": "generic-op0-override0",
+      "width": 8,
+      "height": 8,
+      "encoded": "AAAAATAAAQAAABMAAAAIAAAACAAAAAAAAAAABAAAAAAAAiYAAQAAACUAAAAIAAAACAAAAAAAAAAAAAAD//3/Av7+/sfIuFpN/icf//+sAAAAAyYAAQAAACQAAAAIAAAACAAAAAAAAAAAAAAD//3/Av7+/um89FlnXL///6w=",
+      "decoded": "AAAAAAAAAAA=",
+      "encodedSha256": "47c6a826a28aa8549b930352c27717021ff8a9daa48d3dcb97cd5c46cb23a082"
+    },
+    {
+      "name": "generic-op0-override1",
+      "width": 8,
+      "height": 8,
+      "encoded": "AAAAATAAAQAAABMAAAAIAAAACAAAAAAAAAAARAAAAAAAAiYAAQAAACUAAAAIAAAACAAAAAAAAAAAAAAD//3/Av7+/sfIuFpN/icf//+sAAAAAyYAAQAAACQAAAAIAAAACAAAAAAAAAAAAAAD//3/Av7+/um89FlnXL///6w=",
+      "decoded": "AAAAAAAAAAA=",
+      "encodedSha256": "756d40f18cc1eb0d55e3ae527ff9c30a89754460edf92445f7fd485e01f68ece"
+    },
+    {
+      "name": "generic-op1-override0",
+      "width": 8,
+      "height": 8,
+      "encoded": "AAAAATAAAQAAABMAAAAIAAAACAAAAAAAAAAADAAAAAAAAiYAAQAAACUAAAAIAAAACAAAAAAAAAAAAQAD//3/Av7+/sfIuFpN/icf//+sAAAAAyYAAQAAACQAAAAIAAAACAAAAAAAAAAAAQAD//3/Av7+/um89FlnXL///6w=",
+      "decoded": "e+/de++99/4=",
+      "encodedSha256": "711ce6516be02b85cdf7686104663140bfa7a1b00bf59f3b7f369cf84541bc2c"
+    },
+    {
+      "name": "generic-op1-override1",
+      "width": 8,
+      "height": 8,
+      "encoded": "AAAAATAAAQAAABMAAAAIAAAACAAAAAAAAAAATAAAAAAAAiYAAQAAACUAAAAIAAAACAAAAAAAAAAAAAAD//3/Av7+/sfIuFpN/icf//+sAAAAAyYAAQAAACQAAAAIAAAACAAAAAAAAAAAAAAD//3/Av7+/um89FlnXL///6w=",
+      "decoded": "AAAAAAAAAAA=",
+      "encodedSha256": "f3dd9125b945558c308bdb9bb4ccfeb4576c301ae43f251567d9a2832af68690"
+    },
+    {
+      "name": "generic-op2-override0",
+      "width": 8,
+      "height": 8,
+      "encoded": "AAAAATAAAQAAABMAAAAIAAAACAAAAAAAAAAAFAAAAAAAAiYAAQAAACUAAAAIAAAACAAAAAAAAAAAAgAD//3/Av7+/sfIuFpN/icf//+sAAAAAyYAAQAAACQAAAAIAAAACAAAAAAAAAAAAgAD//3/Av7+/um89FlnXL///6w=",
+      "decoded": "U0pJKWWMsfY=",
+      "encodedSha256": "5f4280d768ee8384c9917db003def215ba5a10ecb28ca5811f97a0a3bd61b167"
+    },
+    {
+      "name": "generic-op2-override1",
+      "width": 8,
+      "height": 8,
+      "encoded": "AAAAATAAAQAAABMAAAAIAAAACAAAAAAAAAAAVAAAAAAAAiYAAQAAACUAAAAIAAAACAAAAAAAAAAAAAAD//3/Av7+/sfIuFpN/icf//+sAAAAAyYAAQAAACQAAAAIAAAACAAAAAAAAAAAAAAD//3/Av7+/um89FlnXL///6w=",
+      "decoded": "AAAAAAAAAAA=",
+      "encodedSha256": "a9395773e8a17db898c78a42441d3d3ecb100ddae26605e3b81078b2d7334c6d"
+    },
+    {
+      "name": "generic-op3-override0",
+      "width": 8,
+      "height": 8,
+      "encoded": "AAAAATAAAQAAABMAAAAIAAAACAAAAAAAAAAAHAAAAAAAAiYAAQAAACUAAAAIAAAACAAAAAAAAAAAAwAD//3/Av7+/sfIuFpN/icf//+sAAAAAyYAAQAAACQAAAAIAAAACAAAAAAAAAAAAwAD//3/Av7+/um89FlnXL///6w=",
+      "decoded": "U0pJKWWMsfY=",
+      "encodedSha256": "3aac0cecb47b663be3dac376abb42ddc27cb5cbc563cf7e2dbabc1c32192d306"
+    },
+    {
+      "name": "generic-op3-override1",
+      "width": 8,
+      "height": 8,
+      "encoded": "AAAAATAAAQAAABMAAAAIAAAACAAAAAAAAAAAXAAAAAAAAiYAAQAAACUAAAAIAAAACAAAAAAAAAAAAAAD//3/Av7+/sfIuFpN/icf//+sAAAAAyYAAQAAACQAAAAIAAAACAAAAAAAAAAAAAAD//3/Av7+/um89FlnXL///6w=",
+      "decoded": "AAAAAAAAAAA=",
+      "encodedSha256": "d6ba084855f66b612b629cdd2bc1b0abc8eec14c23ff1a9a32d4e0beb3284eaa"
+    },
+    {
+      "name": "text-op0-override0",
+      "width": 8,
+      "height": 8,
+      "encoded": "AAAAATAAAQAAABMAAAAIAAAACAAAAAAAAAAABAAAAAAAAgAAAQAAACcAAAP//f8C/v7+AAAAAgAAAAJKfDPpwtJv8TkmWnbdlnXLmEf//6wAAAADBiACAQAAABwAAAAIAAAACAAAAAAAAAAAAAAQAAAAAalb//+sAAAABAYgAgEAAAAcAAAACAAAAAgAAAAAAAAAAAAAEAAAAAGpL///rA==",
+      "decoded": "AAAAAAAAAAA=",
+      "encodedSha256": "f34663332f9396b34de54c7a77a06d9658355ad40515b7b8e67a7bc91064f98f"
+    },
+    {
+      "name": "text-op0-override1",
+      "width": 8,
+      "height": 8,
+      "encoded": "AAAAATAAAQAAABMAAAAIAAAACAAAAAAAAAAARAAAAAAAAgAAAQAAACcAAAP//f8C/v7+AAAAAgAAAAJKfDPpwtJv8TkmWnbdlnXLmEf//6wAAAADBiACAQAAABwAAAAIAAAACAAAAAAAAAAAAAAQAAAAAalb//+sAAAABAYgAgEAAAAcAAAACAAAAAgAAAAAAAAAAAAAEAAAAAGpL///rA==",
+      "decoded": "AAAAAAAAAAA=",
+      "encodedSha256": "caf5122c7d74282db619be84793e38c2bd36ed67a8126b2172f2de1a1b1d31be"
+    },
+    {
+      "name": "text-op1-override0",
+      "width": 8,
+      "height": 8,
+      "encoded": "AAAAATAAAQAAABMAAAAIAAAACAAAAAAAAAAADAAAAAAAAgAAAQAAACcAAAP//f8C/v7+AAAAAgAAAAJKfDPpwtJv8TkmWnbdlnXLmEf//6wAAAADBiACAQAAABwAAAAIAAAACAAAAAAAAAAAAQAQAAAAAalb//+sAAAABAYgAgEAAAAcAAAACAAAAAgAAAAAAAAAAAEAEAAAAAGpL///rA==",
+      "decoded": "e+/de++99/4=",
+      "encodedSha256": "b0d2834a0be09c2cc2dbcc4e62bec62c8716b7145a822b19c3836fb954b65ce5"
+    },
+    {
+      "name": "text-op1-override1",
+      "width": 8,
+      "height": 8,
+      "encoded": "AAAAATAAAQAAABMAAAAIAAAACAAAAAAAAAAATAAAAAAAAgAAAQAAACcAAAP//f8C/v7+AAAAAgAAAAJKfDPpwtJv8TkmWnbdlnXLmEf//6wAAAADBiACAQAAABwAAAAIAAAACAAAAAAAAAAAAAAQAAAAAalb//+sAAAABAYgAgEAAAAcAAAACAAAAAgAAAAAAAAAAAAAEAAAAAGpL///rA==",
+      "decoded": "AAAAAAAAAAA=",
+      "encodedSha256": "4209dec721307a2114e3483e3f57ed9455e02afbe3e583dff202c13fea49fa43"
+    },
+    {
+      "name": "text-op2-override0",
+      "width": 8,
+      "height": 8,
+      "encoded": "AAAAATAAAQAAABMAAAAIAAAACAAAAAAAAAAAFAAAAAAAAgAAAQAAACcAAAP//f8C/v7+AAAAAgAAAAJKfDPpwtJv8TkmWnbdlnXLmEf//6wAAAADBiACAQAAABwAAAAIAAAACAAAAAAAAAAAAgAQAAAAAalb//+sAAAABAYgAgEAAAAcAAAACAAAAAgAAAAAAAAAAAIAEAAAAAGpL///rA==",
+      "decoded": "U0pJKWWMsfY=",
+      "encodedSha256": "aee8c2515a53d70113e8141ac2c12325823c8a9c92f98c88d7933e7df6d413ed"
+    },
+    {
+      "name": "text-op2-override1",
+      "width": 8,
+      "height": 8,
+      "encoded": "AAAAATAAAQAAABMAAAAIAAAACAAAAAAAAAAAVAAAAAAAAgAAAQAAACcAAAP//f8C/v7+AAAAAgAAAAJKfDPpwtJv8TkmWnbdlnXLmEf//6wAAAADBiACAQAAABwAAAAIAAAACAAAAAAAAAAAAAAQAAAAAalb//+sAAAABAYgAgEAAAAcAAAACAAAAAgAAAAAAAAAAAAAEAAAAAGpL///rA==",
+      "decoded": "AAAAAAAAAAA=",
+      "encodedSha256": "606636923e93e13dedda28ab3f8a96058b25a37e3c5ee9377d54d9b002acd009"
+    },
+    {
+      "name": "text-op3-override0",
+      "width": 8,
+      "height": 8,
+      "encoded": "AAAAATAAAQAAABMAAAAIAAAACAAAAAAAAAAAHAAAAAAAAgAAAQAAACcAAAP//f8C/v7+AAAAAgAAAAJKfDPpwtJv8TkmWnbdlnXLmEf//6wAAAADBiACAQAAABwAAAAIAAAACAAAAAAAAAAAAwAQAAAAAalb//+sAAAABAYgAgEAAAAcAAAACAAAAAgAAAAAAAAAAAMAEAAAAAGpL///rA==",
+      "decoded": "U0pJKWWMsfY=",
+      "encodedSha256": "0b53d36d526bf95e4dee5e8bc5e578f88e9e1b033d8321a3989981d334703aa0"
+    },
+    {
+      "name": "text-op3-override1",
+      "width": 8,
+      "height": 8,
+      "encoded": "AAAAATAAAQAAABMAAAAIAAAACAAAAAAAAAAAXAAAAAAAAgAAAQAAACcAAAP//f8C/v7+AAAAAgAAAAJKfDPpwtJv8TkmWnbdlnXLmEf//6wAAAADBiACAQAAABwAAAAIAAAACAAAAAAAAAAAAAAQAAAAAalb//+sAAAABAYgAgEAAAAcAAAACAAAAAgAAAAAAAAAAAAAEAAAAAGpL///rA==",
+      "decoded": "AAAAAAAAAAA=",
+      "encodedSha256": "636e4a62b7f994716a8dcce1692079bed388f1b81755df1335108db36b9be32c"
+    },
+    {
+      "name": "page-refinement-replace",
+      "width": 8,
+      "height": 8,
+      "encoded": "AAAAATAAAQAAABMAAAAIAAAACAAAAAAAAAAADgAAAAAAAioAAQAAABoAAAAIAAAACAAAAAAAAAAABAHfSemoEn//rA==",
+      "decoded": "Oeecc84555w=",
+      "encodedSha256": "03f81e6ebbf7b7b6bcb7cb503ef936f45589e7dac1af57716d6c949d752dcb44"
+    },
+    {
+      "name": "retained-generic",
+      "width": 24,
+      "height": 8,
+      "encoded": "AAAAATAAAQAAABMAAAAYAAAACAAAAAAAAAAAAAAAAAAAAgAAAQAAACACAAP//f8C/v7+AAAAAQAAAAFKfDPpwtJv8TkIr///rAAAAAMAIAIBAAAAHwEAA//9/wL+/v4AAAABAAAAAUp8JlNuyzrl1p///6wAAAAEACACAQAAABwBAAP//f8C/v7+AAAAAQAAAAFKfunE7Iw///+sAAAABQYgAgEAAAAcAAAACAAAAAgAAAAAAAAAAAAAEAAAAAGpQ///rAAAAAYGIAMBAAAAHAAAAAgAAAAIAAAACAAAAAAAABAAAAABqUP//6wAAAAHBiAEAQAAABwAAAAIAAAACAAAABAAAAAAAAAQAAAAAalD//+s",
+      "decoded": "ajlqreet1ZzVWnNaq86rtTm1VudWapxq",
+      "encodedSha256": "46e09c48c36c57b61e9558185eb18d3633efd9edcb26577a14d6048dddf2fcb6"
+    },
+    {
+      "name": "retained-refinement",
+      "width": 24,
+      "height": 8,
+      "encoded": "AAAAATAAAQAAABMAAAAYAAAACAAAAAAAAAAAAAAAAAAAAgAAAQAAACAAAAP//f8C/v7+AAAAAQAAAAFKfDPpwtJv8TkIr///rAAAAAMAIAIBAAAAIRICA//9/wL+/v4AAAABAAAAAUp/B54hhqq9kLqrP///rAAAAAQAIAMBAAAAHhECA//9/wL+/v4AAAABAAAAAUp/B5zIyo/sO///rAAAAAUAIAMBAAAAIRECA//9/wL+/v4AAAABAAAAAUp/B6ZmVGdy6Do7M///rAAAAAYGIAMBAAAAHAAAAAgAAAAIAAAAAAAAAAAAABAAAAABqUP//6wAAAAHBiAEAQAAABwAAAAIAAAACAAAAAgAAAAAAAAQAAAAAalD//+sAAAACAYgBQEAAAAcAAAACAAAAAgAAAAQAAAAAAAAEAAAAAGpQ///rA==",
+      "decoded": "OTlq5+etnJzVc3Nazs6rOTm15+dWnJxq",
+      "encodedSha256": "1f48631d3225432782cdcb45a774d1c5e26f64ffe29041b9ceaa57994415f7c9"
+    }
+  ]
+}

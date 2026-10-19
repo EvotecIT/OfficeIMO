@@ -419,16 +419,10 @@ public partial class HtmlWordGapClosure {
         run._runProperties.Shading.Color = "FF0000";
 
         string html = document.ToHtml(new WordToHtmlOptions { IncludeRunHighlightStyles = true });
-        WordDocumentVisualSnapshot snapshot = document.CreateVisualSnapshot();
-        OfficeIMO.Drawing.OfficeRichTextRun renderedRun = Assert.Single(
-            snapshot.Drawing.Elements
-                .OfType<OfficeIMO.Drawing.OfficeDrawingRichText>()
-                .SelectMany(richText => richText.Runs),
-            candidate => candidate.Text == "Solid");
 
         Assert.Contains("background-color:#ff0000", html, StringComparison.OrdinalIgnoreCase);
         Assert.DoesNotContain("background-color:#0000ff", html, StringComparison.OrdinalIgnoreCase);
-        Assert.Equal(OfficeIMO.Drawing.OfficeColor.Red, renderedRun.BackgroundColor);
+        AssertRenderedWordBackgrounds(document, OfficeIMO.Drawing.OfficeColor.Red);
     }
 
     [Fact]

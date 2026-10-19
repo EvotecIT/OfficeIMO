@@ -88,6 +88,8 @@ public sealed partial class HtmlSiteBundle {
             throw new ArgumentException("Use the site-bundle PDF adapter for the Pdf encoder.", nameof(request));
         }
         HtmlRenderOptions options = request.Options;
+        if (options is Pdf.HtmlToPdfOptions)
+            return Pdf.HtmlSiteBundlePdfExtensions.Prepare(this, request);
         options.BaseUri ??= BaseUri;
         HtmlRenderResourceResolver? fallback = options.ResourceResolver;
         options.ResourceResolver = fallback == null ? ResolveResourceAsync : async (resource, token) =>

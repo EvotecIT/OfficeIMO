@@ -7829,6 +7829,20 @@
       "limitation":"External resources are not fetched during inspection."
     },
     {
+      "id":"conversion:html-pdf",
+      "packageId":"OfficeIMO.Html",
+      "formatId":"HTML",
+      "targetFormatId":"PDF",
+      "capabilityId":"html-pdf",
+      "operation":"Convert",
+      "state":"Supported",
+      "publicApi":"HtmlConversionDocument.Parse(html).ToPdfDocumentResult(options)",
+      "evidence":"Representative HTML documents cover headings, lists, tables, links, images, pagination, tagged output, portable fonts, and conversion reports.",
+      "sourceCatalog":"OfficeConversionCapabilityCatalog",
+      "extensions":[".htm",".html",".txt"],
+      "limitation":"The renderer supports bounded HTML and CSS, not a full browser layout engine; scripts, dynamic layout, and advanced CSS are intentionally unsupported."
+    },
+    {
       "id":"conversion:html-jpeg",
       "packageId":"OfficeIMO.Html",
       "formatId":"HTML",
@@ -7967,20 +7981,6 @@
       "sourceCatalog":"OfficeIMO.NativeLifecycle",
       "extensions":[".htm",".html"],
       "limitation":""
-    },
-    {
-      "id":"conversion:html-pdf",
-      "packageId":"OfficeIMO.Html.Pdf",
-      "formatId":"HTML",
-      "targetFormatId":"PDF",
-      "capabilityId":"html-pdf",
-      "operation":"Convert",
-      "state":"Supported",
-      "publicApi":"HtmlConversionDocument.Parse(html).ToPdfDocumentResult(options)",
-      "evidence":"Representative HTML documents cover headings, lists, tables, links, images, pagination, tagged output, portable fonts, and conversion reports.",
-      "sourceCatalog":"OfficeConversionCapabilityCatalog",
-      "extensions":[".htm",".html",".txt"],
-      "limitation":"The renderer supports bounded HTML and CSS, not a full browser layout engine; scripts, dynamic layout, and advanced CSS are intentionally unsupported."
     },
     {
       "id":"conversion:pdf-html",

@@ -2,7 +2,8 @@ namespace OfficeIMO.Pdf;
 
 internal sealed partial class PdfTrueTypeFontProgram {
     private const uint TrueTypeChecksumMagic = 0xB1B0AFBA;
-    private byte[] BuildSubsetFontFileUncached(IReadOnlyList<int> usedGlyphIds) {
+    private byte[] BuildSubsetFontFileUncached(int[] usedGlyphIds, bool compact, out int[]? glyphOrder) {
+        glyphOrder = null;
         var glyphs = new SortedSet<int>(usedGlyphIds);
         if (!_tables.TryGetValue("glyf", out TableRecord originalGlyf) ||
             !_tables.TryGetValue("loca", out TableRecord originalLoca)) {
@@ -11,6 +12,7 @@ internal sealed partial class PdfTrueTypeFontProgram {
 
         glyphs.Add(0);
         AddCompositeGlyphDependencies(glyphs);
+        if (compact && usedGlyphIds.Length > 0) return BuildCompactSubset(glyphs, out glyphOrder);
 
         uint[] locaOffsets = ReadLocaOffsets();
         byte[] glyf = BuildSubsetGlyfTable(glyphs, locaOffsets, out uint[] subsetLocaOffsets);

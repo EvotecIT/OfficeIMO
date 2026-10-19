@@ -53,7 +53,8 @@ public sealed partial class HtmlRenderPage {
                     if (original.Color.A == 0 || original.Width <= 0D || original.Height <= 0D) continue;
                     if (original.TextAdvanceWidth is not double measuredAdvance || original.Text.IndexOfAny(new[] { '\r', '\n' }) >= 0) { NotInspected(original, "Text without a single-line positioned advance cannot establish ink geometry."); continue; }
                     HtmlRenderText text = original.ResolveBaselineForPainting();
-                    string value = text.BidiVisualOrderResolved ? "\u202D" + text.Text + "\u202C" : text.Text;
+                    string value = text.BidiVisualOrderResolved && !text.PreservesPaintedGlyphs ? "\u202D" + text.Text + "\u202C" : text.Text;
+                    measurement.PreservePaintedGlyphOrder = text.PreservesPaintedGlyphs;
                     double advance = text.TextPaintWidth ?? (measuredAdvance > 0D ? measuredAdvance : text.Width);
                     double sourceSize = Math.Max(1D, original.Font.Size);
                     var ink = measurement.MeasurePositionedTextBounds(value, text.X, text.Y, text.Width, text.Height,

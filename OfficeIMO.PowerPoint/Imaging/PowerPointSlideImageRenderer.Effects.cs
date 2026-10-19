@@ -12,24 +12,24 @@ namespace OfficeIMO.PowerPoint {
             }
 
             A.Glow? glow = effects.GetFirstChild<A.Glow>();
-            if (glow != null && TryCreateGlow(glow, colorScheme, mapping, out OfficeGlow? officeGlow)) {
+            if (glow != null && TryCreateGlow(glow, colorScheme, mapping, out OfficeGlow? officeGlow, source.OwnerSlide?.ResolvedColorMap)) {
                 target.Glow = officeGlow;
             }
 
             A.OuterShadow? shadow = effects.GetFirstChild<A.OuterShadow>();
-            if (shadow != null && TryCreateShadow(shadow, colorScheme, mapping, out OfficeShadow? officeShadow)) {
+            if (shadow != null && TryCreateShadow(shadow, colorScheme, mapping, out OfficeShadow? officeShadow, source.OwnerSlide?.ResolvedColorMap)) {
                 target.Shadow = officeShadow;
             }
         }
 
-        private static bool TryCreateGlow(A.Glow glow, A.ColorScheme? colorScheme, PowerPointShapeBoundsMapping mapping, out OfficeGlow? officeGlow) {
+        private static bool TryCreateGlow(A.Glow glow, A.ColorScheme? colorScheme, PowerPointShapeBoundsMapping mapping, out OfficeGlow? officeGlow, OpenXmlElement? colorMap = null) {
             officeGlow = null;
             double radius = mapping.MapHorizontalLength(PowerPointUnits.ToPoints(glow.Radius?.Value ?? 0L));
             if (radius <= 0D) {
                 return false;
             }
 
-            if (!TryResolveEffectColor(glow, colorScheme, out OfficeColor color)) {
+            if (!TryResolveEffectColor(glow, colorScheme, colorMap, out OfficeColor color)) {
                 return false;
             }
 
@@ -42,7 +42,7 @@ namespace OfficeIMO.PowerPoint {
             return true;
         }
 
-        private static bool TryCreateShadow(A.OuterShadow shadow, A.ColorScheme? colorScheme, PowerPointShapeBoundsMapping mapping, out OfficeShadow? officeShadow) {
+        private static bool TryCreateShadow(A.OuterShadow shadow, A.ColorScheme? colorScheme, PowerPointShapeBoundsMapping mapping, out OfficeShadow? officeShadow, OpenXmlElement? colorMap = null) {
             officeShadow = null;
             double distance = mapping.MapHorizontalLength(PowerPointUnits.ToPoints(shadow.Distance?.Value ?? 0L));
             double blurRadius = mapping.MapHorizontalLength(PowerPointUnits.ToPoints(shadow.BlurRadius?.Value ?? 0L));
@@ -50,7 +50,7 @@ namespace OfficeIMO.PowerPoint {
                 return false;
             }
 
-            if (!TryResolveEffectColor(shadow, colorScheme, out OfficeColor color)) {
+            if (!TryResolveEffectColor(shadow, colorScheme, colorMap, out OfficeColor color)) {
                 return false;
             }
 
@@ -68,30 +68,11 @@ namespace OfficeIMO.PowerPoint {
             return true;
         }
 
-        private static bool TryResolveEffectColor(OpenXmlCompositeElement owner, A.ColorScheme? colorScheme, out OfficeColor color) {
-            color = default;
-            A.SolidFill solidFill = new A.SolidFill();
-            OpenXmlElement? colorElement = owner.GetFirstChild<A.RgbColorModelHex>();
-            if (colorElement == null) {
-                colorElement = owner.GetFirstChild<A.SchemeColor>();
-            }
-
-            if (colorElement == null) {
-                colorElement = owner.GetFirstChild<A.SystemColor>();
-            }
-
-            if (colorElement == null) {
-                return false;
-            }
-
-            solidFill.Append((OpenXmlElement)colorElement.CloneNode(true));
-            OfficeColor? resolved = OfficeOpenXmlThemeColorResolver.ResolveColor(solidFill, colorScheme);
-            if (!resolved.HasValue) {
-                return false;
-            }
-
-            color = resolved.Value;
-            return true;
+        private static bool TryResolveEffectColor(OpenXmlCompositeElement owner, A.ColorScheme? colorScheme,
+            OpenXmlElement? colorMap, out OfficeColor color) {
+            OfficeColor? resolved = OfficeOpenXmlThemeColorResolver.ResolveColor(owner, colorScheme, colorMap: colorMap);
+            color = resolved.GetValueOrDefault();
+            return resolved.HasValue;
         }
     }
 }

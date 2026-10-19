@@ -60,10 +60,12 @@ public sealed class PdfRunSpacingFontTrackingTests {
         double firstEnd = page.Letters.Single(letter => letter.Value == " ").StartBaseLine.X;
         double secondStart = page.Letters.First(letter => letter.Value == "B").StartBaseLine.X;
         double secondEnd = page.Letters.Single(letter => letter.Value == "X").StartBaseLine.X;
-        Assert.InRange(Math.Abs(underlines[0].Left - firstStart), 0D, 0.02D);
-        Assert.InRange(Math.Abs(underlines[0].Right - firstEnd), 0D, 0.02D);
-        Assert.InRange(Math.Abs(underlines[1].Left - secondStart), 0D, 0.02D);
-        Assert.InRange(Math.Abs(underlines[1].Right - secondEnd), 0D, 0.02D);
+        // PdfPig advances glyphs by design-unit widths, while PDF painting uses the rounded /W
+        // widths; within one TJ run that difference accumulates to a few hundredths of a point.
+        Assert.InRange(Math.Abs(underlines[0].Left - firstStart), 0D, 0.03D);
+        Assert.InRange(Math.Abs(underlines[0].Right - firstEnd), 0D, 0.03D);
+        Assert.InRange(Math.Abs(underlines[1].Left - secondStart), 0D, 0.03D);
+        Assert.InRange(Math.Abs(underlines[1].Right - secondEnd), 0D, 0.03D);
     }
 
     private static PdfOptions TrackingOptions(short smallTracking, short largeTracking) {

@@ -45,7 +45,7 @@ public class PdfDocumentWorkflowTests {
             }, style: style, includeHeader: true, keyHeader: "Field", valueHeader: "Value")
             .ToBytes();
 
-        string raw = Encoding.ASCII.GetString(bytes);
+        string raw = PdfTestContentText.ReadDecoded(bytes);
         string text = PdfReadDocument.Open(bytes).ExtractText();
 
         Assert.Equal(4, style.HeaderRowCount);
@@ -209,7 +209,7 @@ public class PdfDocumentWorkflowTests {
             })
             .ToBytes();
 
-        string raw = PdfEncoding.Latin1GetString(bytes);
+        string raw = PdfTestContentText.ReadDecoded(bytes);
 
         Assert.Matches(@"(?s)/F\d+\s+4\s+Tf.*<54696E79>\s+Tj", raw);
     }
@@ -1478,7 +1478,7 @@ public class PdfDocumentWorkflowTests {
         Assert.Equal("\u2603", diagnostic.Text);
         Assert.False(diagnostic.IsControlCharacter);
         Assert.Equal("PDF WinAnsiEncoding", diagnostic.Encoding);
-        Assert.Equal("Embedded Unicode fonts are required for this text.", diagnostic.Remediation);
+        Assert.StartsWith("Embedded Unicode fonts are required for this text", Assert.IsType<string>(diagnostic.Remediation), StringComparison.Ordinal);
         Assert.Equal(diagnostic.CodePoint, bytesDiagnostic.CodePoint);
         Assert.Equal(diagnostic.Location, bytesDiagnostic.Location);
 
@@ -1500,7 +1500,7 @@ public class PdfDocumentWorkflowTests {
         Assert.Equal("PdfParagraph[0].Run[0]", warning.Details["location"]);
         Assert.Equal("0", warning.Details["runIndex"]);
         Assert.Equal("PDF WinAnsiEncoding", warning.Details["encoding"]);
-        Assert.Equal("Embedded Unicode fonts are required for this text.", warning.Details["remediation"]);
+        Assert.StartsWith("Embedded Unicode fonts are required for this text", Assert.IsType<string>(warning.Details["remediation"]), StringComparison.Ordinal);
         Assert.Equal(warning.Code, bytesWarning.Code);
     }
 

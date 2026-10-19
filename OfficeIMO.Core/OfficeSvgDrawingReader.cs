@@ -76,9 +76,9 @@ public static partial class OfficeSvgDrawingReader {
         if (ExceedsSvgElementNestingLimit(root) || ExceedsValidSvgDocumentPathCommandLimit(root, maximumGeometryCommands)) return false;
 
         try {
-            ApplySvgStylesheets(root, ref unsupportedFeatureCount);
             var scene = new OfficeDrawing(viewWidth, viewHeight);
             scene.Fonts.AddRange(options?.Fonts);
+            ApplySvgStylesheets(root, scene.Fonts, ref unsupportedFeatureCount, options?.CancellationToken ?? default);
             int visited = 0;
             int pathCommands = 0;
             bool pathCommandLimitExceeded = false;
@@ -127,7 +127,7 @@ public static partial class OfficeSvgDrawingReader {
                 return false;
             }
             OfficeDrawing rootContent = rootHasEffects ? new OfficeDrawing(viewWidth, viewHeight) : scene;
-            rootContent.Fonts.AddRange(options?.Fonts);
+            rootContent.Fonts.AddRange(scene.Fonts);
             AddChildren(root, rootContent, context, paintServers, references, rootTransform, viewX, viewY,
                 maximumElements, maximumViewportDimension, maximumViewportPixels, 0,
                 ref visited, ref pathCommands, ref pathCommandLimitExceeded, ref unsupportedFeatureCount);
@@ -1207,6 +1207,8 @@ public static partial class OfficeSvgDrawingReader {
         ApplyProperty("stroke-linejoin", element.Attribute("stroke-linejoin")?.Value, paintServers, ref result, ref unsupported);
         ApplyProperty("stroke-miterlimit", element.Attribute("stroke-miterlimit")?.Value, paintServers, ref result, ref unsupported);
         ApplyProperty("fill-rule", element.Attribute("fill-rule")?.Value, paintServers, ref result, ref unsupported);
+        ApplyProperty("image-rendering", element.Attribute("image-rendering")?.Value, paintServers, ref result, ref unsupported);
+        ApplyProperty("shape-rendering", element.Attribute("shape-rendering")?.Value, paintServers, ref result, ref unsupported);
         ApplyProperty("font-family", element.Attribute("font-family")?.Value, paintServers, ref result, ref unsupported);
         ApplyProperty("font-size", element.Attribute("font-size")?.Value, paintServers, ref result, ref unsupported);
         ApplyProperty("font-style", element.Attribute("font-style")?.Value, paintServers, ref result, ref unsupported);
@@ -1296,6 +1298,36 @@ public static partial class OfficeSvgDrawingReader {
         if (string.IsNullOrWhiteSpace(value)) return;
         string normalized = value!.Trim();
         switch (name.Trim().ToLowerInvariant()) {
+            case "image-rendering":
+                switch (normalized.ToLowerInvariant()) {
+                    case "optimizespeed": case "pixelated": case "crisp-edges":
+                        style.NearestNeighborImages = true;
+                        break;
+                    case "auto": case "optimizequality": case "smooth": case "high-quality":
+                        style.NearestNeighborImages = false;
+                        break;
+                    default: unsupported++; break;
+                }
+                return;
+            case "shape-rendering":
+                switch (normalized.ToLowerInvariant()) {
+                    case "crispedges":
+                        style.CrispEdges = true;
+                        break;
+                    case "auto":
+                    case "optimizespeed":
+                    case "geometricprecision":
+                    case "initial":
+                        style.CrispEdges = false;
+                        break;
+                    case "inherit":
+                    case "unset":
+                        break;
+                    default:
+                        unsupported++;
+                        break;
+                }
+                break;
             case "color":
                 if (normalized.Equals("currentcolor", StringComparison.OrdinalIgnoreCase)) break;
                 if (!OfficeColor.TryParseCss(normalized, out OfficeColor currentColor)) unsupported++;
@@ -1383,9 +1415,8 @@ public static partial class OfficeSvgDrawingReader {
                 else unsupported++;
                 break;
             case "font-family":
-                string family = normalized.Split(',')[0].Trim().Trim('\'', '"');
-                if (family.Length == 0) unsupported++;
-                else style.FontFamily = family;
+                if (OfficeFontFamilyParser.Parse(normalized).Count == 0) unsupported++;
+                else style.FontFamily = normalized;
                 break;
             case "font-size":
                 if (!TrySvgLength(normalized, out double fontSize) || fontSize <= 0D) unsupported++;
@@ -1530,6 +1561,7 @@ public static partial class OfficeSvgDrawingReader {
         shape.StrokeLineJoin = style.LineJoin;
         shape.StrokeMiterLimit = style.MiterLimit;
         shape.FillRule = style.FillRule;
+        shape.CrispEdges = style.CrispEdges;
     }
 
     private static void ApplyDeferredPaint(
@@ -1798,6 +1830,8 @@ public static partial class OfficeSvgDrawingReader {
         internal OfficeStrokeLineJoin LineJoin;
         internal double MiterLimit;
         internal OfficeFillRule FillRule;
+        internal bool CrispEdges;
+        internal bool NearestNeighborImages;
         internal string FontFamily;
         internal double FontSize;
         internal SvgLineHeight LineHeight;

@@ -471,14 +471,16 @@ public sealed class BrowserConversionServiceTests {
             document,
             limitExcelRows: false);
 
-        ConversionWarningView warning = Assert.Single(result.StructuredWarnings);
+        ConversionWarningView warning = Assert.Single(result.StructuredWarnings,
+            item => item.Code == "NativeFontFamilySubstituted");
         Assert.Equal("NativeFontFamilySubstituted", warning.Code);
         Assert.Equal("Information", warning.Severity);
         Assert.False(warning.CanChangePagination);
         Assert.Equal("Faithful", result.FidelityStatus);
         Assert.Contains("Carlito", Encoding.ASCII.GetString(result.Bytes), StringComparison.Ordinal);
         using JsonDocument manifest = JsonDocument.Parse(result.CompanionReport!.Bytes);
-        JsonElement manifestWarning = Assert.Single(manifest.RootElement.GetProperty("warnings").EnumerateArray());
+        JsonElement manifestWarning = Assert.Single(manifest.RootElement.GetProperty("warnings").EnumerateArray(),
+            item => item.GetProperty("code").GetString() == "NativeFontFamilySubstituted");
         Assert.Equal("Information", manifestWarning.GetProperty("severity").GetString());
         Assert.False(manifestWarning.GetProperty("canChangePagination").GetBoolean());
     }

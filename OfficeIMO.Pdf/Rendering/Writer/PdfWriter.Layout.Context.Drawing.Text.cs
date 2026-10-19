@@ -103,7 +103,8 @@ internal static partial class PdfWriter {
                         underlineStyle: text.UnderlineStyle, strikeStyle: text.StrikethroughStyle,
                         decorationColor: ToPdfColor(text.DecorationColor))
                         .WithFeatureSettings(text.FeatureSettings)
-                        .WithTextDirection(positionedDirection);
+                        .WithTextDirection(positionedDirection)
+                        .WithPaintedGlyphPreservation(text.PreservesPaintedGlyphs);
                     WriteDrawingPositionedRun(run, x, baseline, advance, frameX, frameTopY - text.Height, text.Width, text.Height,
                         text.Color ?? OfficeColor.Black, text.DecorationColor, clipToFrame: text.ClipToFrame);
                     baseline -= text.LineHeight ?? text.Font.Size * 1.2D;

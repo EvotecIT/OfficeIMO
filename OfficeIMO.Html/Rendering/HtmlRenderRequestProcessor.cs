@@ -38,7 +38,7 @@ internal static class HtmlRenderRequestProcessor {
             projected = Stitch(projected, selectedSurfaces, options, cancellationToken, out HtmlRenderSurfaceResult stitched);
             selectedSurfaces = new[] { stitched };
         }
-        return new HtmlRenderResult(request, projected, selectedSurfaces);
+        return new HtmlRenderResult(request, projected, selectedSurfaces, options);
     }
 
     private static HtmlRenderDocument ClipViewport(

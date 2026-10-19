@@ -105,9 +105,8 @@ internal static partial class OfficeOpenXmlChartSeriesReader {
         if (text is C.RichText && (text.Elements<A.Paragraph>().Skip(1).Any() || text.Descendants<A.Break>().Any()))
             throw new NotSupportedException("Multiline native chart text cannot be projected.");
         var body = text.GetFirstChild<A.BodyProperties>();
-        if (body != null && (body.GetAttributes().Any(attribute =>
-                attribute.LocalName != "rot" || attribute.Value != "0") ||
-                body.ChildElements.Any(child => child is not A.NoAutoFit)))
+        if (body != null && (body.GetAttributes().Any(attribute => !IsNeutralTextBodyAttribute(attribute)) ||
+                body.ChildElements.Any(child => child is not A.NoAutoFit and not A.ShapeAutoFit)))
             throw new NotSupportedException("The native chart text body layout cannot be projected.");
         foreach (var paragraphProperties in text.Descendants().Where(element => element is A.ParagraphProperties ||
             element.Parent is A.ListStyle)) {
@@ -116,6 +115,19 @@ internal static partial class OfficeOpenXmlChartSeriesReader {
                 throw new NotSupportedException("The native chart paragraph layout cannot be projected.");
         }
     }
+
+    // Office writes these body settings on every chart title and label. For single-line,
+    // centred, unrotated text they leave the shared layout unchanged.
+    private static bool IsNeutralTextBodyAttribute(OpenXmlAttribute attribute) => attribute.LocalName switch {
+        "rot" => attribute.Value == "0",
+        "vert" => attribute.Value == "horz",
+        "wrap" => attribute.Value == "square" || attribute.Value == "none",
+        "anchor" => attribute.Value == "ctr",
+        "anchorCtr" or "spcFirstLastPara" or "vertOverflow" or "horzOverflow" => true,
+        "lIns" or "tIns" or "rIns" or "bIns" => int.TryParse(attribute.Value, System.Globalization.NumberStyles.Integer,
+            System.Globalization.CultureInfo.InvariantCulture, out int inset) && inset >= 0 && inset <= 91440,
+        _ => false
+    };
 
     private static NativeText ApplyNativeText(NativeText inherited, OpenXmlElement? properties, A.ColorScheme? scheme, OpenXmlElement? colorMap) {
         if (properties == null) return inherited;
@@ -141,8 +153,11 @@ internal static partial class OfficeOpenXmlChartSeriesReader {
             } else if (attribute.LocalName == "strike") {
                 if (attribute.Value is not "noStrike" and not "sngStrike") throw new NotSupportedException("The chart text strike cannot be projected.");
                 style = attribute.Value == "sngStrike" ? (style ?? OfficeFontStyle.Regular) | OfficeFontStyle.Strikethrough : (style ?? OfficeFontStyle.Regular) & ~OfficeFontStyle.Strikethrough;
-            } else if (attribute.LocalName == "spc" && attribute.Value == "-1") {
+            } else if (attribute.LocalName == "spc" && attribute.Value is "-1" or "0") {
                 // Some producers serialize this visually negligible default on every chart run.
+            } else if (attribute.LocalName == "baseline" && attribute.Value == "0" ||
+                attribute.LocalName == "kern" && int.TryParse(attribute.Value, out int kerning) && kerning >= 0) {
+                // Office writes no superscript and its kerning threshold on every chart run.
             } else if (attribute.LocalName is not "lang" and not "altLang" and not "dirty" and not "smtClean" and not "smtId") {
                 throw new NotSupportedException("The chart text attributes cannot be projected.");
             }
@@ -154,6 +169,9 @@ internal static partial class OfficeOpenXmlChartSeriesReader {
                 color = OfficeOpenXmlThemeColorResolver.ResolveColor(fill, scheme, colorMap: colorMap) ?? throw new NotSupportedException("The chart text colour cannot be resolved.");
             } else if (child is A.EastAsianFont or A.ComplexScriptFont) {
                 string? scriptTypeface = child is A.EastAsianFont eastAsian ? eastAsian.Typeface?.Value : ((A.ComplexScriptFont)child).Typeface?.Value;
+                // Office pairs +mn-lt with +mn-ea and +mn-cs (and +mj-lt with +mj-ea and +mj-cs). The
+                // script slots only apply to East Asian and complex-script runs of the same theme group.
+                if (IsSameThemeFontGroup(latinTypeface, scriptTypeface)) continue;
                 if (string.IsNullOrWhiteSpace(latinTypeface) ||
                     !string.Equals(family, ResolveNativeTypeface(scriptTypeface, scheme), StringComparison.OrdinalIgnoreCase))
                     throw new NotSupportedException("Different chart text script typefaces cannot be projected by one font family.");
@@ -162,6 +180,10 @@ internal static partial class OfficeOpenXmlChartSeriesReader {
         }
         return new NativeText(size, style, color, family);
     }
+
+    private static bool IsSameThemeFontGroup(string? latinTypeface, string? scriptTypeface) =>
+        latinTypeface is "+mn-lt" && scriptTypeface is "+mn-ea" or "+mn-cs" ||
+        latinTypeface is "+mj-lt" && scriptTypeface is "+mj-ea" or "+mj-cs";
 
     private static string ResolveNativeTypeface(string? typeface, A.ColorScheme? scheme) {
         if (string.IsNullOrWhiteSpace(typeface))

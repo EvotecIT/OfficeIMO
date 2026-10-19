@@ -10,7 +10,7 @@ public sealed class StudioLocalDocumentFontTests {
     [InlineData("doc-pdf")]
     [InlineData("xlsx-pdf")]
     [InlineData("pptx-pdf")]
-    public void LocalOfficeExportsAllowDocumentFontsWithoutOtherHostResources(string routeId) {
+    public void LocalOfficeExportsUseIsolatedBalancedFontPolicies(string routeId) {
         using var workbench = new ConversionWorkbenchViewModel(
             _ => Task.FromResult<IReadOnlyList<string>>([]), _ => Task.FromResult<string?>(null));
         var job = new ConversionJobViewModel("local-document", workbench.Routes.Single(route => route.Route.Id == routeId));
@@ -20,8 +20,11 @@ public sealed class StudioLocalDocumentFontTests {
         Assert.True(policy.AllowDocumentFontEmbedding);
         Assert.False(policy.AllowLocalFileAccess);
         Assert.False(policy.AllowRemoteResourceResolution);
-        // Per-job opt-in must not mutate the policy used by other hosts.
-        Assert.False(PdfResourcePolicy.CreateDefault().AllowDocumentFontEmbedding);
+        // Mutating one job must not change another job or the shared default.
+        policy.AllowDocumentFontEmbedding = false;
+        Assert.True(PdfResourcePolicy.CreateDefault().AllowDocumentFontEmbedding);
+        OfficeWorkflowConversionOptions another = job.CreateConversionOptions();
+        Assert.True((another.Word?.ResourcePolicy ?? another.Excel?.ResourcePolicy ?? another.PowerPoint!.ResourcePolicy).AllowDocumentFontEmbedding);
     }
 
     [Theory]

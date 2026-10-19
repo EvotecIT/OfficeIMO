@@ -251,7 +251,6 @@ namespace OfficeIMO.Word.GoogleDocs {
                     "Raster fallback image options cannot be null.");
             }
             WordImageExportOptions imageOptions = options.RasterFallbackImageOptions.Clone();
-            imageOptions.IncludeDocumentContent = true;
             imageOptions.PageIndex = 0;
             imageOptions.PageCount = null;
             var renderedPages = new List<(GoogleDocsParagraph Paragraph, GoogleDocsInlineImage Image)>();

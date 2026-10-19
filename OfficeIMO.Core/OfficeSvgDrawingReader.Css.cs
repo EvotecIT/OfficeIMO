@@ -14,8 +14,10 @@ public static partial class OfficeSvgDrawingReader {
     private const long MaximumSvgCssMatchWork = 2_000_000L;
     private const long MaximumSvgComputedCssCharacters = 16L * 1024L * 1024L;
 
-    private static bool ApplySvgStylesheets(XElement root, ref int unsupported, bool requireCompleteCss = false) {
+    private static bool ApplySvgStylesheets(XElement root, OfficeFontFaceCollection fonts, ref int unsupported,
+        System.Threading.CancellationToken cancellationToken = default, bool requireCompleteCss = false) {
         var rules = new List<SvgCssRule>();
+        var fontImports = new SvgEmbeddedFontImports(fonts, cancellationToken);
         int declarations = 0;
         bool complete = true;
         XNamespace svgNamespace = root.Name.Namespace;
@@ -23,6 +25,7 @@ public static partial class OfficeSvgDrawingReader {
         foreach (XElement style in selectorRoot.DescendantsAndSelf().Where(element =>
                      IsNativeSvgElement(element, svgNamespace) &&
                      element.Name.LocalName.Equals("style", StringComparison.Ordinal))) {
+            cancellationToken.ThrowIfCancellationRequested();
             if (!IsSupportedSvgStylesheetElement(style)) {
                 unsupported++;
                 complete = false;
@@ -38,7 +41,7 @@ public static partial class OfficeSvgDrawingReader {
                 complete = false;
                 continue;
             }
-            if (!ParseSvgCssRules(RemoveSvgCssComments(style.Value), rules, ref declarations, ref unsupported)) {
+            if (!ParseSvgCssRules(RemoveSvgCssComments(style.Value), rules, fontImports, ref declarations, ref unsupported)) {
                 complete = false;
             }
         }
@@ -65,6 +68,7 @@ public static partial class OfficeSvgDrawingReader {
         bool matchWorkExceeded = false;
         var computedCustomProperties = new Dictionary<XElement, IReadOnlyDictionary<string, string>>();
         for (int elementIndex = 0; elementIndex < elements.Length; elementIndex++) {
+            cancellationToken.ThrowIfCancellationRequested();
             XElement element = elements[elementIndex];
             XElement selectorElement = selectorElements[elementIndex];
             if (!IsNativeSvgElement(element, svgNamespace) ||
@@ -246,6 +250,7 @@ public static partial class OfficeSvgDrawingReader {
     private static bool ParseSvgCssRules(
         string css,
         ICollection<SvgCssRule> rules,
+        SvgEmbeddedFontImports fontImports,
         ref int declarationCount,
         ref int unsupported) {
         if (ContainsNonSvgCssWhitespace(css)) {
@@ -253,7 +258,9 @@ public static partial class OfficeSvgDrawingReader {
             return false;
         }
         int cursor = 0;
+        bool complete = true;
         while (cursor < css.Length && rules.Count < MaximumSvgCssRules && declarationCount < MaximumSvgCssDeclarations) {
+            fontImports.CancellationToken.ThrowIfCancellationRequested();
             int open = FindSvgCssCharacter(css, '{', cursor);
             if (open < 0) break;
             int close = FindSvgCssBlockEnd(css, open + 1);
@@ -263,7 +270,12 @@ public static partial class OfficeSvgDrawingReader {
             }
             string selectorText = css.Substring(cursor, open - cursor).Trim();
             string body = css.Substring(open + 1, close - open - 1);
-            if (selectorText.StartsWith("@", StringComparison.Ordinal)) {
+            if (selectorText.Equals("@font-face", StringComparison.OrdinalIgnoreCase)) {
+                if (!TryImportSvgFontFace(body, fontImports, ref declarationCount)) {
+                    unsupported++;
+                    complete = false;
+                }
+            } else if (selectorText.StartsWith("@", StringComparison.Ordinal)) {
                 unsupported++;
                 return false;
             } else {
@@ -305,7 +317,7 @@ public static partial class OfficeSvgDrawingReader {
             unsupported++;
             return false;
         }
-        return true;
+        return complete;
     }
 
     private static IReadOnlyList<SvgCssDeclaration> ParseSvgCssDeclarations(string? text) {
@@ -346,7 +358,7 @@ public static partial class OfficeSvgDrawingReader {
         "baseline-shift" or "clip-path" or "clip-rule" or "color" or "color-interpolation" or "display" or "dominant-baseline" or "fill" or "fill-opacity" or "fill-rule" or
         "filter" or "flood-color" or "flood-opacity" or "font-family" or "font-size" or "font-style" or "font-stretch" or "font-weight" or
         "font-variation-settings" or "font-feature-settings" or "font-language-override" or "font-palette" or "line-height" or "marker-end" or
-        "marker-mid" or "marker-start" or "mask" or "mask-type" or "mix-blend-mode" or "opacity" or "stop-color" or "stop-opacity" or
+        "marker-mid" or "marker-start" or "mask" or "mask-type" or "mix-blend-mode" or "opacity" or "image-rendering" or "shape-rendering" or "stop-color" or "stop-opacity" or
         "stroke" or "stroke-dasharray" or "stroke-dashoffset" or "stroke-linecap" or "stroke-linejoin" or
         "stroke-miterlimit" or "stroke-opacity" or "stroke-width" or "text-anchor" or "text-orientation" or "transform" or
         "vector-effect" or "visibility" or "writing-mode" => true,
@@ -530,7 +542,7 @@ public static partial class OfficeSvgDrawingReader {
     private static bool IsInheritedSvgCssPropertyName(string propertyName) => propertyName.ToLowerInvariant() switch {
         "color" or "color-interpolation" or "fill" or "fill-opacity" or "fill-rule" or "font-family" or "font-size" or
         "font-style" or "font-stretch" or "font-weight" or "font-variation-settings" or "font-feature-settings" or "font-language-override" or
-        "font-palette" or "line-height" or "marker-end" or "marker-mid" or "marker-start" or
+        "font-palette" or "line-height" or "marker-end" or "marker-mid" or "marker-start" or "image-rendering" or "shape-rendering" or
         "stroke" or "stroke-dasharray" or "stroke-dashoffset" or "stroke-linecap" or "stroke-linejoin" or
         "stroke-miterlimit" or "stroke-opacity" or "stroke-width" or "text-anchor" or "text-orientation" or
         "visibility" or "writing-mode" => true,
@@ -563,6 +575,7 @@ public static partial class OfficeSvgDrawingReader {
             "mask-type" => "luminance",
             "mix-blend-mode" => "normal",
             "opacity" => "1",
+            "image-rendering" or "shape-rendering" => "auto",
             "stop-color" => "black",
             "stop-opacity" => "1",
             "stroke" => "none",

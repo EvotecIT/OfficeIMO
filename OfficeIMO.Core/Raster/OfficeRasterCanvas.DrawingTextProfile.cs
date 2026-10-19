@@ -17,8 +17,13 @@ public sealed partial class OfficeRasterCanvas {
         child.SetCoordinateScale(CoordinateScaleX, CoordinateScaleY);
         child.ShareTransformedTextBudget(_transformedTextBudget);
         child.ImageCache = ImageCache;
+        child.MaximumClipRasterPixels = MaximumClipRasterPixels;
         child._clipRegion = _clipRegion;
         child.PreservePaintedGlyphOrder = PreservePaintedGlyphOrder;
+        child.StrokeAdjustment = StrokeAdjustment;
+        child.SnapTextBaselines = SnapTextBaselines;
+        child.PdfImageSampling = PdfImageSampling;
+        child.AntialiasedClipping = AntialiasedClipping;
         return child;
     }
 }

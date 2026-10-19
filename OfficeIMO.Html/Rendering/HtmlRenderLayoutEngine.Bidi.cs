@@ -128,7 +128,10 @@ internal sealed partial class HtmlRenderLayoutEngine {
 
         string directionalText = string.Concat(lines.SelectMany(static line => line).Select(static segment =>
             segment.Text.Length == 0 && segment.LogicalText == "\t" ? "\t" : segment.Text));
-        if (!OfficeTextElements.ContainsBidiControl(directionalText)) return null;
+        // Ordinary RTL words participate in one paragraph even when inline styles or
+        // font fallback split them into separate source runs without bidi controls.
+        if (!OfficeTextElements.ContainsBidiControl(directionalText)
+            && !OfficeTextElements.ContainsRightToLeft(directionalText)) return null;
 
         var visibleLines = new List<IReadOnlyList<InlineBidiElement>>(lines.Count);
         foreach (IReadOnlyList<InlineSegment> line in lines) {
@@ -203,7 +206,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         return visibleElements;
     }
 
-    private static IReadOnlyList<InlineSegment> BuildResolvedInlineSegments(
+    private IReadOnlyList<InlineSegment> BuildResolvedInlineSegments(
         IReadOnlyList<InlineSegment> sources,
         IReadOnlyList<InlineBidiElement> ordered) {
         var result = new List<InlineSegment>();
@@ -221,12 +224,20 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 .Select(static element => element.LogicalText));
             double segmentWidth = ordered.Skip(start).Take(end - start).Sum(static element => element.Width);
             int sourceIndex = ordered[start].SourceSegmentIndex;
+            HtmlRenderBoxStyle style = sources[sourceIndex].Run.Style;
+            // Paragraph bidi owns placement, but reordered scalars are not shaped glyphs.
+            // Keep provider input logical so the shared text owner still shapes the run
+            // and reports a provider that accepts measurement but declines painting.
+            bool needsShapingInput = RequiresConfiguredTextShaping(logicalText)
+                || OfficeTextElements.ContainsZeroWidthJoinerSequence(logicalText)
+                || OfficeTextElements.ContainsRightToLeft(logicalText)
+                    && (_options.TextShapingProvider != null || !style.TextFeatureSettings.IsDefault);
             var group = new InlineSegment(
-                text,
+                needsShapingInput ? logicalText : text,
                 segmentWidth,
                 sources[sourceIndex].Run,
                 logicalText,
-                bidiResolved: true,
+                bidiResolved: !needsShapingInput,
                 logicalEndProgress: sources[sourceIndex].LogicalEndProgress);
             result.Add(group);
             firstGroups[sourceIndex] ??= group;

@@ -151,7 +151,7 @@ internal static partial class PdfReaderAdapter {
                 associatedCount++;
             }
 
-            totalSizeBytes += attachment.SizeBytes;
+            totalSizeBytes += attachment.EncodedSizeBytes;
 
             string relationshipKey = GetActionTypeKey(attachment.Relationship.ToString());
             relationshipCounts[relationshipKey] = relationshipCounts.TryGetValue(relationshipKey, out int relationshipCount) ? relationshipCount + 1 : 1;
@@ -201,9 +201,12 @@ internal static partial class PdfReaderAdapter {
             ["relationship"] = attachment.Relationship.ToString(),
             ["source"] = attachment.Source,
             ["isAssociatedFile"] = ToMetadataText(attachment.IsAssociatedFile),
-            ["sizeBytes"] = attachment.SizeBytes.ToString(CultureInfo.InvariantCulture)
+            ["sizeBytes"] = attachment.EncodedSizeBytes.ToString(CultureInfo.InvariantCulture),
+            ["encodedSizeBytes"] = attachment.EncodedSizeBytes.ToString(CultureInfo.InvariantCulture)
         };
 
+        AddAttribute(attributes, "declaredSizeBytes", attachment.DeclaredSizeBytes);
+        AddAttribute(attributes, "decodedSizeBytes", attachment.DecodedSizeBytes);
         AddAttribute(attributes, "unicodeFileName", attachment.UnicodeFileName);
         AddAttribute(attributes, "description", attachment.Description);
         AddAttribute(attributes, "mimeType", attachment.MimeType);

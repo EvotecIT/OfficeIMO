@@ -21,43 +21,16 @@ public static partial class OfficeSvgDrawingReader {
         ref int pathCommands,
         ref bool pathCommandLimitExceeded,
         ref int unsupported) {
-        if (run.FontProgram is not IOfficeBoundedFontProgram bounded) return false;
         int remainingCommands = MaximumSvgPathCommands - pathCommands;
         if (remainingCommands < 8) {
             pathCommandLimitExceeded = true;
             return false;
         }
 
-        double lineHeight = bounded.LineHeight(run.FontSize);
-        double baselineOffset = bounded is IOfficeFontBaselineMetrics metrics
-            ? metrics.BaselineOffset(run.FontSize)
-            : lineHeight * 0.8D;
-        if (double.IsNaN(lineHeight) || double.IsInfinity(lineHeight) || lineHeight <= 0D
-            || double.IsNaN(baselineOffset) || double.IsInfinity(baselineOffset)) return false;
-        baselineOffset = Math.Max(0D, Math.Min(lineHeight, baselineOffset));
         int pointAllowance = Math.Max(1, remainingCommands / 2);
-        // The contours are visual ink, while ActualText below retains the source's logical text.
-        OfficeManagedTextFallback shaped = OfficeManagedTextShaper.Resolve(
-            run.Text, bounded, run.TextDirection, CancellationToken.None);
-        string outlineText = shaped.Used ? shaped.Text : run.Text;
         List<List<OfficePoint>> contours;
         try {
-            contours = bounded is IOfficeCffBoundedFontProgram cff
-                ? cff.GetTextContoursBounded(
-                    outlineText,
-                    run.X,
-                    run.Baseline - baselineOffset,
-                    run.FontSize,
-                    pointAllowance,
-                    CancellationToken.None,
-                    references.CffOperationBudget)
-                : bounded.GetTextContoursBounded(
-                    outlineText,
-                    run.X,
-                    run.Baseline - baselineOffset,
-                    run.FontSize,
-                    pointAllowance,
-                    CancellationToken.None);
+            if (!TryGetSvgTextRunContours(run, drawing.Fonts, references, pointAllowance, out contours)) return false;
         } catch (InvalidOperationException) {
             pathCommandLimitExceeded = true;
             return false;

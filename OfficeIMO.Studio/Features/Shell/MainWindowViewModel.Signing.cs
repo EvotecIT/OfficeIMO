@@ -12,7 +12,16 @@ public sealed partial class MainWindowViewModel {
     private readonly Func<PdfSigningPreviewViewModel, Task<bool>> _reviewSigning;
     private readonly Func<PdfSigningPreviewViewModel, Task> _showSigningResult;
     private readonly Func<string, X509Certificate2> _loadSigningCertificate;
+    private readonly Func<PdfEmbeddedFont> _loadSigningAppearanceFont;
     private bool _reviewingSigning;
+
+    /// <summary>Uses the document engine's installed-font policy for embedded signature text.</summary>
+    private static PdfEmbeddedFont LoadSigningAppearanceFont() {
+        var options = new PdfOptions();
+        if (!options.TryUseDefaultDocumentFontFallback(requireEmbeddedFont: true))
+            throw new InvalidOperationException("Visible signature text requires an installed embeddable TrueType font.");
+        return options.EmbeddedFonts[options.DefaultFont];
+    }
 
     /// <summary>Certify instead of approve: only possible while the document has no other signatures.</summary>
     [CommunityToolkit.Mvvm.ComponentModel.ObservableProperty]
@@ -41,8 +50,9 @@ public sealed partial class MainWindowViewModel {
         try {
             string? destination = await _pickSavePdf(cancellationToken).ConfigureAwait(true);
             if (string.IsNullOrWhiteSpace(destination) || !IsReviewedCopyCurrent(workspace, revision)) return;
+            PdfEmbeddedFont? appearanceFont = settings.Visible ? _loadSigningAppearanceFont() : null;
             byte[]? image = null;
-            if (!await RunStandaloneAsync(async token => image = await workspace.PreviewSignatureAsync(settings.CreateOptions(), token).ConfigureAwait(true),
+            if (!await RunStandaloneAsync(async token => image = await workspace.PreviewSignatureAsync(settings.CreateOptions(appearanceFont), token).ConfigureAwait(true),
                     cancellationToken).ConfigureAwait(true) || !IsReviewedCopyCurrent(workspace, revision)) return;
             bool provider = _services.Storage.UsesProviderPublication(destination);
             using var preview = new PdfSigningPreviewViewModel(settings, workspace.Pages.Count, destination, provider, image, _localizer,
@@ -70,7 +80,7 @@ public sealed partial class MainWindowViewModel {
                         job.Report(new OfficeWorkflowProgress("signing", "signing", update.Stage, update.Fraction));
                     });
                     var output = _services.Storage.CreateWorkflowOutput(destination, _services.WorkflowRecovery);
-                    result = await workspace.SaveSignedCopyAsync(destination, signer, settings.CreateOptions(), verifier, token, progress,
+                    result = await workspace.SaveSignedCopyAsync(destination, signer, settings.CreateOptions(appearanceFont), verifier, token, progress,
                         output, _publicationGuard).ConfigureAwait(true);
                     job.Complete(result.Status, result.OutputPath, result.Summary, result.Recovery);
                 } catch (OperationCanceledException) when (token.IsCancellationRequested) {

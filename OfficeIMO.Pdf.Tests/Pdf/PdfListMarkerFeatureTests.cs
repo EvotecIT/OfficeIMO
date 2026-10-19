@@ -8,6 +8,35 @@ namespace OfficeIMO.Tests.Pdf;
 
 public sealed class PdfListMarkerFeatureTests {
     [Theory]
+    [InlineData(false, "■")]
+    [InlineData(true, "■")]
+    [InlineData(false, "A■")]
+    [InlineData(true, "A■")]
+    public void MarkersUseTheSameFallbackRunsForWidthAndPaint(bool inRow, string marker) {
+        const string primary = "Marker primary";
+        var options = new PdfOptions { DefaultFont = PdfStandardFont.Courier, DefaultFontSize = 10D }
+            .RegisterNamedFontFamily(new PdfEmbeddedFontFamily(primary, ManagedTextShapingTestAssets.CreateFont(' ', 'A')))
+            .RegisterEmbeddedFontFallbacks(new PdfEmbeddedFontFallbackSet(new[] {
+                new PdfEmbeddedFontFallbackCandidate("Marker square", ManagedTextShapingTestAssets.CreateFont('■'))
+            }));
+        var document = PdfDocument.Create(options);
+        var items = new[] { new PdfListItem("body", marker: marker) };
+        var style = new PdfListStyle { MarkerFontFamily = primary, MarkerFontSize = 20D, MarkerGap = 12D };
+        if (inRow) document.Compose(compose => compose.Page(page => page.Content(content =>
+            content.Row(row => row.PercentColumn(100, column => column.RichBullets(items, style: style))))));
+        else document.RichBullets(items, style: style);
+        using var pdf = PdfPigDocument.Open(document.ToBytes());
+        var letters = pdf.GetPage(1).Letters;
+        Assert.Equal(marker + "body", pdf.GetPage(1).Text);
+        var square = Assert.Single(letters, letter => letter.Value == "■");
+        var body = Assert.Single(letters, letter => letter.Value == "b");
+        Assert.Equal(12D, body.StartBaseLine.X - square.EndBaseLine.X, 3);
+        Assert.Equal(body.StartBaseLine.Y, square.StartBaseLine.Y, 3);
+        if (marker.Length > 1)
+            Assert.Equal(body.StartBaseLine.Y, Assert.Single(letters, letter => letter.Value == "A").StartBaseLine.Y, 3);
+    }
+
+    [Theory]
     [InlineData(false)]
     [InlineData(true)]
     public void MixedNumberingMeasuresOnlyMarkersActuallyRendered(bool inRow) {
@@ -36,8 +65,8 @@ public sealed class PdfListMarkerFeatureTests {
     [InlineData(true, 0, 10D)]
     [InlineData(false, 1, 9.2D)]
     [InlineData(true, 1, 9.2D)]
-    [InlineData(false, -1, 10D)]
-    [InlineData(true, -1, 10D)]
+    [InlineData(false, -1, 9.2D)]
+    [InlineData(true, -1, 9.2D)]
     public void MarkerFeaturesRemainConsistentInFlowAndRowColumns(bool inRow, int kerning, double advance) {
         var options = new PdfOptions { DefaultFont = PdfStandardFont.Courier, DefaultFontSize = 10D };
         options.RegisterNamedFontFamily(new PdfEmbeddedFontFamily(ManagedTextShapingTestAssets.FamilyName,
@@ -66,8 +95,8 @@ public sealed class PdfListMarkerFeatureTests {
         var v = Assert.Single(letters, letter => letter.Value == "V");
         var body = Assert.Single(letters, letter => letter.Value == "b");
         Assert.Equal(advance, v.StartBaseLine.X - a.StartBaseLine.X, 3);
-        // This fixture adjusts both placement and advance: with GPOS enabled,
-        // its final pen is 0.2 points left of PdfPig's nominal final glyph end.
-        Assert.Equal(kerning == 1 ? 11.8D : 12D, body.StartBaseLine.X - v.EndBaseLine.X, 3);
+        // This fixture adjusts both placement and advance: with GPOS enabled (explicitly or
+        // by default), its final pen is 0.2 points left of PdfPig's nominal final glyph end.
+        Assert.Equal(kerning != 0 ? 11.8D : 12D, body.StartBaseLine.X - v.EndBaseLine.X, 3);
     }
 }

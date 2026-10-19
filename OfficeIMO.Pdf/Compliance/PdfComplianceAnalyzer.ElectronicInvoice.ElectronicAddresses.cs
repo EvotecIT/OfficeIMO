@@ -1,7 +1,9 @@
 namespace OfficeIMO.Pdf;
 
 internal static partial class PdfComplianceAnalyzer {
+    // CEF EAS also includes the non-numeric EM scheme for electronic mail.
     private static readonly string[] ElectronicInvoiceElectronicAddressSchemeIds = {
+        "EM",
         "0002",
         "0007",
         "0009",

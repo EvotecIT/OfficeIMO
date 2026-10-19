@@ -132,12 +132,33 @@ public static class OfficeTextElements {
             int scalar = ReadScalar(value, ref index);
             if (scalar == 0x200C || scalar == 0x200D) return true;
             UnicodeCategory category = CharUnicodeInfo.GetUnicodeCategory(value, scalarIndex);
-            if (category == UnicodeCategory.NonSpacingMark ||
-                category == UnicodeCategory.SpacingCombiningMark ||
-                category == UnicodeCategory.EnclosingMark) return true;
+            if (IsCombiningMarkCategory(category)) return true;
         }
         return false;
     }
+
+    /// <summary>Detects marks requiring attachment independently of Arabic joining and bidi ordering.</summary>
+    internal static bool ContainsCombiningMark(string? value) {
+        if (string.IsNullOrEmpty(value)) return false;
+        for (int index = 0; index < value!.Length;) {
+            int scalarIndex = index;
+            ReadScalar(value, ref index);
+            UnicodeCategory category = CharUnicodeInfo.GetUnicodeCategory(value, scalarIndex);
+            if (IsCombiningMarkCategory(category)) return true;
+        }
+        return false;
+    }
+
+    /// <summary>Determines whether a Unicode scalar is a nonspacing, spacing, or enclosing mark.</summary>
+    internal static bool IsCombiningMark(int scalar) => IsCombiningMarkCategory(
+        scalar <= char.MaxValue
+            ? char.GetUnicodeCategory((char)scalar)
+            : CharUnicodeInfo.GetUnicodeCategory(char.ConvertFromUtf32(scalar), 0));
+
+    private static bool IsCombiningMarkCategory(UnicodeCategory category) =>
+        category == UnicodeCategory.NonSpacingMark ||
+        category == UnicodeCategory.SpacingCombiningMark ||
+        category == UnicodeCategory.EnclosingMark;
 
     internal static bool ContainsZeroWidthJoinerSequence(string? value) {
         if (string.IsNullOrEmpty(value)) return false;
@@ -210,7 +231,7 @@ public static class OfficeTextElements {
         IsInRange(scalar, 0x1E900, 0x1E95F) ||
         IsInRange(scalar, 0x1EE00, 0x1EEFF);
 
-    private static bool IsJoiningScriptScalar(int scalar) =>
+    internal static bool IsJoiningScriptScalar(int scalar) =>
         IsInRange(scalar, 0x0600, 0x08FF)
         || IsInRange(scalar, 0xFB50, 0xFDFF)
         || IsInRange(scalar, 0xFE70, 0xFEFF)

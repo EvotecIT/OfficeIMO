@@ -43,21 +43,22 @@ internal static partial class PdfWriter {
     private static double MeasureRichText(string text, PdfStandardFont font, double fontSize, PdfTextBaseline baseline, PdfOptions? options = null) =>
         EstimateSimpleTextWidthForOptions(text, font, EffectiveRichFontSize(fontSize, baseline), options);
 
-    private static double MeasureRichText(string text, PdfStandardFont font, PdfNamedFontFace? namedFont, double fontSize, PdfTextBaseline baseline, PdfOptions? options = null, OfficeTextFeatureSettings? featureSettings = null, double horizontalTextScaling = 100D, double characterSpacing = 0D, OfficeTextDirection textDirection = OfficeTextDirection.Auto, double fontMetricScale = 1D) {
+    private static double MeasureRichText(string text, PdfStandardFont font, PdfNamedFontFace? namedFont, double fontSize, PdfTextBaseline baseline, PdfOptions? options = null, OfficeTextFeatureSettings? featureSettings = null, double horizontalTextScaling = 100D, double characterSpacing = 0D, OfficeTextDirection textDirection = OfficeTextDirection.Auto, double fontMetricScale = 1D, bool preservesPaintedGlyphs = false) {
         double effectiveFontSize = EffectiveRichFontSize(fontSize, baseline);
-        if (horizontalTextScaling == 100D && characterSpacing == 0D && fontMetricScale == 1D) {
+        if (!preservesPaintedGlyphs && horizontalTextScaling == 100D && characterSpacing == 0D && fontMetricScale == 1D) {
             return EstimateSimpleTextWidthForOptions(text, font, namedFont, effectiveFontSize, options, featureSettings);
         }
         if (ContainsLineBreak(text)) {
             double maximum = 0D;
             foreach (string line in text.Split(LayoutLineSeparators, StringSplitOptions.None)) {
                 maximum = Math.Max(maximum, MeasureRichText(line, font, namedFont, fontSize, baseline, options,
-                    featureSettings, horizontalTextScaling, characterSpacing, textDirection, fontMetricScale));
+                    featureSettings, horizontalTextScaling, characterSpacing, textDirection, fontMetricScale, preservesPaintedGlyphs));
             }
             return maximum;
         }
 
-        PdfTextShowCommand command = EncodeTextShowCommand(text, font, namedFont, options, featureSettings, textDirection, fontMetricScale, horizontalTextScaling);
+        PdfTextShowCommand command = EncodeTextShowCommand(text, font, namedFont, options, featureSettings, textDirection, fontMetricScale, horizontalTextScaling,
+            preservesPaintedGlyphs);
         double scaledWidth = command.FontUnitLayoutAdvanceWidth1000.HasValue
             ? command.FontUnitLayoutAdvanceWidth1000.Value * effectiveFontSize / 1000D
             : command.AdvanceWidth1000.GetValueOrDefault() * effectiveFontSize / 1000D * horizontalTextScaling / 100D;

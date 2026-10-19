@@ -525,7 +525,7 @@ namespace OfficeIMO.Excel {
                 "Worksheet images are present but are skipped by the first-party Excel-to-PDF image writer because their format is unsupported or they are native in-cell images.",
                 pdfUnsupportedImageDetails);
             Add(features, "Media", "PDF-unrendered drawing shapes", OfficeFeatureSupportLevel.PartiallyEditable, pdfUnrenderedDrawingShapeCount, null,
-                "Worksheet drawing shapes and text boxes are present but are skipped by the first-party Excel-to-PDF path.",
+                "Unsupported worksheet drawing shapes or text boxes are skipped by the first-party Excel-to-PDF path.",
                 pdfUnrenderedDrawingShapeDetails);
             Add(features, "Layout", "PDF-unsupported print areas", OfficeFeatureSupportLevel.PartiallyEditable, pdfUnsupportedPrintAreaCount, null,
                 "Worksheet print-area references cannot be exported as valid local A1 areas. Multiple valid areas are exported separately.",

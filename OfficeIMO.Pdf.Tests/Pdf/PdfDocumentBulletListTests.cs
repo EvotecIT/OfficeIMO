@@ -220,10 +220,10 @@ public class PdfDocumentBulletListTests {
             })
             .ToBytes();
 
-        string content = Encoding.ASCII.GetString(bytes);
-        int boldText = content.IndexOf("<426F6C64>", StringComparison.Ordinal);
-        int redText = content.IndexOf("<526564>", StringComparison.Ordinal);
-        int markedText = content.IndexOf("<4D61726B6564>", StringComparison.Ordinal);
+        string content = PdfTestContentText.JoinTextArrays(PdfTestContentText.ReadDecoded(bytes));
+        int boldText = content.IndexOf("426F6C64", StringComparison.Ordinal);
+        int redText = content.IndexOf("526564", StringComparison.Ordinal);
+        int markedText = content.IndexOf("4D61726B6564", StringComparison.Ordinal);
 
         using (PdfPigDocument pdf = PdfPigDocument.Open(new MemoryStream(bytes))) {
             Assert.Contains("Plain Bold Red Marked Linked", pdf.GetPage(1).Text, StringComparison.Ordinal);
@@ -392,7 +392,7 @@ public class PdfDocumentBulletListTests {
         var bytes = doc.ToBytes();
         Assert.NotEmpty(bytes);
 
-        var pdfContent = Encoding.ASCII.GetString(bytes);
+        var pdfContent = PdfTestContentText.ReadDecoded(bytes);
         Assert.Contains("0.2 0.4 0.6 rg", pdfContent);
     }
 
@@ -405,7 +405,7 @@ public class PdfDocumentBulletListTests {
         var bytes = doc.ToBytes();
         Assert.NotEmpty(bytes);
 
-        var pdfContent = Encoding.ASCII.GetString(bytes);
+        var pdfContent = PdfTestContentText.ReadDecoded(bytes);
         Assert.Contains("0.2 0.4 0.6 rg", pdfContent);
         Assert.Contains("<312E> Tj", pdfContent);
     }
@@ -455,7 +455,7 @@ public class PdfDocumentBulletListTests {
         double bulletX = bulletLine.First(letter => letter.Value == "•").StartBaseLine.X;
         double textX = bulletLine.First(letter => letter.Value == "S").StartBaseLine.X;
         double afterGap = bulletLine.First().StartBaseLine.Y - afterLine.First().StartBaseLine.Y;
-        string rawPdf = Encoding.ASCII.GetString(bytes);
+        string rawPdf = PdfTestContentText.ReadDecoded(bytes);
 
         Assert.InRange(bulletPointSize, 12.5, 13.5);
         Assert.InRange(bulletX, options.MarginLeft + 15, options.MarginLeft + 17);

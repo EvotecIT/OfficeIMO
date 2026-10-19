@@ -10,6 +10,71 @@ using Xunit;
 namespace OfficeIMO.Tests.Pdf;
 
 public class PdfFontMeasurementTests {
+    [Theory]
+    [InlineData(false, "\u0628\u064E\u062A", "\uFE96\uFE91\u064E")]
+    [InlineData(true, "\u0628\u064E\u062A", "\uFE96\uFE91\u064E")]
+    [InlineData(false, "\u05D0\u05B7", "\u05D0\u05B7")]
+    [InlineData(true, "\u05D0\u05B7", "\u05D0\u05B7")]
+    public void CffDiagnosedFallbackPreservesGlyphClustersAndDesignMetrics(bool explicitManaged, string text, string painted) {
+        byte[] data = CreateMappedCffClusterFixture();
+        var font = PdfOpenTypeCffFontProgram.Parse(data, "Synthetic CFF cluster");
+        IOfficeTextShapingProvider? provider = explicitManaged ? OfficeManagedTextShapingProvider.Instance : null;
+        OfficeTextFeatureSettings unkerned = OfficeTextFeatureSettings.Default.With("kern", 0);
+        int successes = 0;
+        var options = PdfTextShapingOptions.ForRendering("Synthetic CFF cluster", PdfTextShapingMode.OpenTypeLigatures,
+            shapingProvider: provider, providerShapedTextRecorder: (_, _, _, _) => successes++, featureSettings: unkerned);
+
+        PdfGlyphRun run = font.ShapeText(text, options);
+
+        int[] expectedGlyphs = painted.Select(character => {
+            Assert.True(font.TryGetGlyphId(character, out int glyph));
+            return glyph;
+        }).ToArray();
+        Assert.Equal(expectedGlyphs, run.Glyphs.Select(glyph => glyph.GlyphId));
+        Assert.Equal(text, string.Concat(run.Glyphs.OrderBy(glyph => glyph.TextIndex).Select(glyph => glyph.UnicodeText)));
+        Assert.Equal(text, run.ActualText);
+        Assert.Null(run.SourceShapingResult);
+        Assert.False(run.IsAutomaticallyShaped);
+        Assert.Equal(0, successes);
+        Assert.Equal(painted.Length * 7.2D, font.MeasureTextWidth(text, 12D, PdfTextShapingMode.OpenTypeLigatures,
+            provider, featureSettings: unkerned), 8);
+        Assert.Equal(painted.Length * 1229D * 12D / 2048D, font.MeasureTextWidth(text, 12D,
+            PdfTextShapingMode.OpenTypeLigatures, provider, featureSettings: unkerned, useFontUnitAdvances: true), 8);
+    }
+
+    private static byte[] CreateMappedCffClusterFixture() {
+        string? path = PdfComplianceTestFonts.FindBundledOpenTypeCffFont();
+        Assert.NotNull(path);
+        byte[] source = File.ReadAllBytes(path!);
+        // Reuse existing CFF glyph programs. Only their Unicode names are synthetic:
+        // this fixture tests the CFF projection and metrics, not script appearance.
+        byte[] mapping = ManagedTextShapingTestAssets.CreateFontWithDistinctGlyphs(
+            0x05D0, 0x05B7, 0x0628, 0x062A, 0x064E, 0xFE91, 0xFE96);
+        OfficeOpenTypeReader reader = Assert.IsType<OfficeOpenTypeReader>(OfficeOpenTypeReader.TryCreate(mapping));
+        Assert.True(reader.TryGetTable("cmap", out int cmapOffset, out int cmapLength));
+        int appended = (source.Length + 3) & ~3;
+        var font = new byte[appended + cmapLength];
+        Array.Copy(source, font, source.Length);
+        Array.Copy(mapping, cmapOffset, font, appended, cmapLength);
+        int count = font[4] * 256 + font[5];
+        int record = Enumerable.Range(0, count).Select(index => 12 + index * 16)
+            .Single(entry => Encoding.ASCII.GetString(font, entry, 4) == "cmap");
+        Write32(record + 8, checked((uint)appended));
+        Write32(record + 12, checked((uint)cmapLength));
+        // Match the existing CFF precision fixtures: one repeated long metric.
+        WriteUInt16(font, FindTableOffset(font, "head") + 18, 2048);
+        WriteUInt16(font, FindTableOffset(font, "hhea") + 34, 1);
+        WriteUInt16(font, FindTableOffset(font, "hmtx"), 1229);
+        return font;
+
+        void Write32(int offset, uint value) {
+            font[offset] = (byte)(value >> 24);
+            font[offset + 1] = (byte)(value >> 16);
+            font[offset + 2] = (byte)(value >> 8);
+            font[offset + 3] = (byte)value;
+        }
+    }
+
     [Fact]
     public void ImportedLayoutRetainsProviderAdvancesAndShapesOnlyOnce() {
         byte[] data = ManagedTextShapingTestAssets.CreateFontWithUniformAdvance(2048, 1229, 'A');
@@ -47,9 +112,11 @@ public class PdfFontMeasurementTests {
         foreach (bool fork in new[] { false, true }) {
             PdfTrueTypeFontProgram? tt = fork ? trueType?.ForkForDocument() : trueType;
             PdfOpenTypeCffFontProgram? ot = fork ? openType?.ForkForDocument() : openType;
+            // Design-unit rounding is independent of the font's default pair kerning.
+            OfficeTextFeatureSettings unkerned = OfficeTextFeatureSettings.Default.With("kern", 0);
             double Measure(bool original) => cff
-                ? ot!.MeasureTextWidth("AAAAAAAAAA", 12, mode, useFontUnitAdvances: original)
-                : tt!.MeasureTextWidth("AAAAAAAAAA", 12, mode, useFontUnitAdvances: original);
+                ? ot!.MeasureTextWidth("AAAAAAAAAA", 12, mode, featureSettings: unkerned, useFontUnitAdvances: original)
+                : tt!.MeasureTextWidth("AAAAAAAAAA", 12, mode, featureSettings: unkerned, useFontUnitAdvances: original);
             Assert.Equal(72D, Measure(false));
             Assert.Equal(72.01171875D, Measure(true));
         }
@@ -142,7 +209,14 @@ public class PdfFontMeasurementTests {
             ? value => ot!.MeasureTextWidth(value, 10, PdfTextShapingMode.OpenTypeLigatures)
             : value => tt!.MeasureTextWidth(value, 10, PdfTextShapingMode.OpenTypeLigatures);
 
-        Assert.Equal(2_146_271_512 * 10D / 1000, measure(text.Substring(0, 524)));
+        // Default measurement includes the font's pair kerning with the drawing path's rounding.
+        int unitsPerEm = cff ? ot!.UnitsPerEm : tt!.UnitsPerEm;
+        OfficeTextShapingResult kerned = Assert.IsType<OfficeTextShapingResult>(OfficeManagedTextShapingProvider.Instance.ShapeText(
+            new OfficeTextShapingRequest(text.Substring(0, 524), "Overflow", data, cff, unitsPerEm, OfficeTextDirection.Auto, null, default,
+                fontCollectionIndex: null, variationCoordinates: null, cloneFontData: true, applyDefaultLatinLigatures: true)));
+        long kerning = Enumerable.Range(0, kerned.Glyphs.Count)
+            .Sum(index => (long)Math.Round(kerned.GetAdvanceAdjustment(index) * 1000D / unitsPerEm, MidpointRounding.AwayFromZero));
+        Assert.Equal((2_146_271_512 + kerning) * 10D / 1000, measure(text.Substring(0, 524)));
         if (cff) ot!.ResetGlyphUsage(); else tt!.ResetGlyphUsage();
         Assert.Throws<OverflowException>(() => measure(text));
         var mappings = cff ? ot!.GetGlyphToUnicodeMappings() : tt!.GetGlyphToUnicodeMappings();

@@ -1,4 +1,3 @@
-using System.Globalization;
 using System.Xml.Linq;
 using OfficeIMO.Drawing;
 using OfficeIMO.Html;
@@ -154,5 +153,5 @@ public sealed partial class HtmlRenderingTests {
     }
 
     private static double ParseScriptCoordinate(XElement node, string attribute) =>
-        double.Parse(node.Attribute(attribute)!.Value, CultureInfo.InvariantCulture);
+        HtmlSvgTestCoordinates.CssValue(node, attribute);
 }

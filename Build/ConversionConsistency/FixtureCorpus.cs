@@ -40,6 +40,11 @@ internal static partial class FixtureCorpus {
                     for (int column = 1; column <= 2; column++) sheet.CellFontName(row, column, family);
                 }
             }
+            // Column units also use workbook font zero, independently of painted cell
+            // styles. Pin it to the same controlled font instead of the host's Calibri.
+            var defaultFont = excel.OpenXmlDocument.WorkbookPart!.WorkbookStylesPart!.Stylesheet!.Fonts!
+                .Elements<DocumentFormat.OpenXml.Spreadsheet.Font>().First();
+            defaultFont.FontName = new DocumentFormat.OpenXml.Spreadsheet.FontName { Val = family };
             excel.Save(Path.Combine(output, "service-review.xlsx"));
             excel.ToOpenDocumentResult().Value.Save(Path.Combine(output, "service-review.ods"));
         }

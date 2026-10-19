@@ -57,27 +57,32 @@ public sealed partial class IWorkWorkflowTests {
         Assert.Empty(Directory.GetFiles(files.Root, "*.tmp"));
     }
 
-    [Theory]
-    [InlineData(false)]
-    [InlineData(true)]
-    public async Task Complete_pdf_rejects_known_text_clipping_and_preserves_the_destination(bool nativeReference) {
+    [Fact]
+    public async Task Complete_keynote_pdf_publishes_complete_text_beyond_its_authored_frame() {
         using var files = new Files("key", "pdf");
-        if (nativeReference) File.Copy(Path.Combine(AppContext.BaseDirectory, "Corpus", "colors.key"), files.Input, true);
-        else {
-            IWorkKeynoteDocument source = IWorkKeynoteDocument.Create();
-            source.AddSlide().AddText("VISIBLE alpha beta gamma delta epsilon zeta eta theta TAIL", 10, 10, 150, 30);
-            source.Save(files.Input, overwrite: true);
-        }
+        const string text = "VISIBLE alpha beta gamma delta epsilon zeta eta theta TAIL";
+        IWorkKeynoteDocument source = IWorkKeynoteDocument.Create();
+        source.AddSlide().AddText(text, 10, 10, 150, 30);
+        source.Save(files.Input, overwrite: true);
         File.WriteAllText(files.Output, "keep existing");
         OfficeWorkflowRequest request = files.Request("keynote-pdf");
         request.RegisteredConversionSettings = new IWorkWorkflowSettings();
         request.ConflictPolicy = OfficeWorkflowConflictPolicy.Replace;
+
         OfficeWorkflowResult result = await IWorkWorkflow.CreateRunner().RunAsync(request);
-        Assert.False(result.Succeeded);
-        Assert.Contains("clipped", result.Summary);
-        Assert.Contains(result.ConversionEvidence!.FidelityDiagnostics, diagnostic => diagnostic.Code == "text-box-overflow");
+
+        Assert.True(result.Succeeded, result.Summary);
+        Assert.Equal(files.Output, result.OutputPath);
+        byte[] output = File.ReadAllBytes(files.Output);
+        Assert.Equal((long)output.Length, result.OutputBytes);
+        PdfReadDocument pdf = PdfReadDocument.Open(output);
+        Assert.Single(pdf.Pages);
+        Assert.Equal(string.Concat(text.Where(character => !char.IsWhiteSpace(character))),
+            string.Concat(pdf.ExtractText().Where(character => !char.IsWhiteSpace(character))));
+        Assert.DoesNotContain(result.ConversionEvidence!.FidelityDiagnostics,
+            diagnostic => diagnostic.LossKind is OfficeConversionLossKind.Omission or OfficeConversionLossKind.Failure);
         Assert.Equal("0", result.ConversionEvidence.Facts["omittedSourceUnitCount"]);
-        Assert.Equal("keep existing", File.ReadAllText(files.Output));
+        Assert.Contains(result.Diagnostics, diagnostic => diagnostic.Code == "OutputReopened");
         Assert.Empty(Directory.GetFiles(files.Root, "*.tmp"));
     }
 

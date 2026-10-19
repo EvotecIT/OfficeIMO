@@ -3,7 +3,7 @@ using OfficeIMO.Drawing;
 namespace OfficeIMO.Pdf;
 
 internal static partial class PdfExternalTextShaper {
-    // Default Latin shaping has nominal advances and no positioning. Project the shared
+    // Default Latin shaping has nominal advances plus default pair kerning. Project the shared
     // substituted tokens directly, retaining each source index and continuation cluster.
     private static bool TryShapeDefaultLatinText(string text, string fontName, byte[] fontData,
         bool isCff, int unitsPerEm, int glyphCount, Func<int, int> getGlyphWidth1000,
@@ -11,26 +11,33 @@ internal static partial class PdfExternalTextShaper {
         var request = new OfficeTextShapingRequest(text, fontName, fontData, isCff, unitsPerEm,
             options.Direction, options.Language, default, fontCollectionIndex: null, variationCoordinates: null,
             cloneFontData: false, applyDefaultLatinLigatures: true);
-        if (!OfficeManagedTextShapingProvider.Instance.TryShapeDefaultLatinTokens(request, out var tokens, out OfficeTextDirection direction)) {
+        if (!OfficeManagedTextShapingProvider.Instance.TryShapeDefaultLatinTokens(request, out var tokens, out OfficeTextDirection direction,
+            out OfficeOpenTypeGlyphPositioning[]? positions)) {
             glyphRun = null!;
             return false;
         }
 
         var glyphs = new List<PdfGlyphInfo>(tokens.Count);
-        foreach (OfficeOpenTypeSubstitution.GlyphToken token in tokens) {
+        for (int index = 0; index < tokens.Count; index++) {
+            OfficeOpenTypeSubstitution.GlyphToken token = tokens[index];
             ValidateMeasuredGlyph(token.GlyphId, glyphCount);
             if (token.TextIndex < 0 || token.TextIndex > text.Length) {
                 throw new ArgumentException("PDF text shaping provider returned a text index outside the source text.", nameof(text));
             }
             int width = getGlyphWidth1000(token.GlyphId);
+            int advance = positions == null ? width : checked(width + ScaleToPdfUnits(positions[index].XAdvance, unitsPerEm));
+            int offsetX = positions == null ? 0 : ScaleToPdfUnits(positions[index].XPlacement, unitsPerEm);
             recordGlyphUsage?.Invoke(token.GlyphId, token.UnicodeText);
             glyphs.Add(new PdfGlyphInfo(token.GlyphId, token.UnicodeText, token.TextIndex,
-                width, width, 0, 0, 0, token.ClusterStart));
+                width, advance, 0, offsetX, 0, token.ClusterStart));
         }
 
-        bool includeActualText = direction != OfficeTextDirection.LeftToRight || OfficeManagedTextShaper.RequiresComplexLayout(text);
+        // Neutral-only text (such as a word space) resolves to Auto and is laid out left to right.
+        bool includeActualText = direction is not (OfficeTextDirection.LeftToRight or OfficeTextDirection.Auto) || OfficeManagedTextShaper.RequiresComplexLayout(text);
         glyphRun = new PdfGlyphRun(glyphs, Array.Empty<PdfTextEncodingDiagnostic>(), includeActualText ? text : null,
-            direction, preserveGlyphUnicode: !includeActualText, isAutomaticallyShaped: true);
+            direction, preserveGlyphUnicode: !includeActualText, isAutomaticallyShaped: true) {
+            DesignAdvanceAdjustments = positions?.Select(static position => position.XAdvance).ToArray()
+        };
         options.ProviderShapedTextRecorder?.Invoke(text, fontName, isCff, true);
         return true;
     }

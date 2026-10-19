@@ -19,7 +19,7 @@ public sealed partial class PdfTableCellViewportTests {
         var link = Assert.Single(pdf.GetPage(1).GetHyperlinks());
         Assert.InRange(link.Bounds.Left, 23.99, 24.01);
         Assert.InRange(link.Bounds.Right, 41.99, 42.01);
-        string operators = System.Text.Encoding.ASCII.GetString(bytes);
+        string operators = PdfTestContentText.ReadDecoded(bytes);
         Assert.Contains("24 132 100 24 re W n", operators);
         Assert.Contains("6 150 36 6 re W n", operators);
     }
@@ -64,6 +64,6 @@ public sealed partial class PdfTableCellViewportTests {
         var link = Assert.Single(pdf.GetPage(1).GetHyperlinks());
         Assert.InRange(link.Bounds.Bottom, 143.99, 144.01);
         Assert.InRange(link.Bounds.Top, 155.99, 156.01);
-        Assert.Contains("24 132 100 24 re W n", System.Text.Encoding.ASCII.GetString(bytes));
+        Assert.Contains("24 132 100 24 re W n", PdfTestContentText.ReadDecoded(bytes));
     }
 }

@@ -35,7 +35,16 @@ public sealed partial class HtmlRenderingTests {
             foreach (int y in new[] { 16, 17, 19, 20, 96 }) Assert.Equal(viewport.GetPixel(x, y), raster.GetPixel(x, y));
         }
         string svg = Encoding.UTF8.GetString(Assert.Single(result.ExportImages()).Bytes);
-        Assert.Contains("<pattern", svg, StringComparison.Ordinal);
+        OfficeRasterImage svgRaster = RasterizeHtmlImageSvg(svg);
+        OfficeRasterImage svgViewport = RasterizeHtmlImageSvg(Encoding.UTF8.GetString(
+            RenderOverflowPattern(html, HtmlRenderIntentProfile.ScreenViewport, HtmlRenderEncoder.Svg).ExportImage().Bytes));
+        foreach (int x in new[] { 0, 16, 19, 23, 256, 319 }) {
+            foreach (int y in new[] { 16, 17, 19, 20, 96 }) Assert.Equal(svgViewport.GetPixel(x, y), svgRaster.GetPixel(x, y));
+        }
+        Assert.NotEqual(OfficeColor.White, svgRaster.GetPixel(20, 20));
+        Assert.NotEqual(svgRaster.GetPixel(19, 17), svgRaster.GetPixel(23, 17));
+        Assert.Equal(svgRaster.GetPixel(19, 17), svgRaster.GetPixel(27, 17));
+        Assert.Equal(svgRaster.GetPixel(19, 17), svgRaster.GetPixel(19, 21));
         Assert.Equal(320D, drawing.Width);
         Assert.Equal(230D, drawing.Height);
         Assert.Equal(new byte[] { 137, 80, 78, 71, 13, 10, 26, 10 },
@@ -50,7 +59,8 @@ public sealed partial class HtmlRenderingTests {
         Assert.Empty(drawing.ImagePatterns);
         OfficeRasterImage raster = OfficeDrawingRasterRenderer.Render(drawing, 1D, OfficeColor.White);
         Assert.Equal(OfficeColor.White, raster.GetPixel(319, 20));
-        Assert.DoesNotContain("<pattern", Encoding.UTF8.GetString(Assert.Single(result.ExportImages()).Bytes), StringComparison.Ordinal);
+        OfficeRasterImage svgRaster = RasterizeHtmlImageSvg(Encoding.UTF8.GetString(Assert.Single(result.ExportImages()).Bytes));
+        Assert.Equal(OfficeColor.White, svgRaster.GetPixel(319, 20));
     }
 
     [Theory]
@@ -112,7 +122,9 @@ public sealed partial class HtmlRenderingTests {
         string html = "<style>body{margin:0}</style><img src='data:image/png;base64," + OverflowPatternTile
             + "' style='display:block;width:400px;height:80px;position:relative;left:400px'>";
         HtmlRenderResult result = RenderOverflowPattern(html, HtmlRenderIntentProfile.ScreenMediaPaged, HtmlRenderEncoder.Svg);
-        Assert.DoesNotContain("<image", Encoding.UTF8.GetString(Assert.Single(result.ExportImages()).Bytes), StringComparison.Ordinal);
+        OfficeRasterImage svgRaster = RasterizeHtmlImageSvg(Encoding.UTF8.GetString(Assert.Single(result.ExportImages()).Bytes));
+        Assert.Equal(OfficeColor.White, svgRaster.GetPixel(20, 20));
+        Assert.Equal(OfficeColor.White, svgRaster.GetPixel(319, 20));
     }
 
     private static string OverflowPatternHtml(string extra) => "<style>body{margin:0}div{width:400px;height:80px;"

@@ -26,7 +26,7 @@ public class PdfPageImageRendererBatchTests {
             options: new PdfPageRenderOptions { Format = PdfPageRenderFormat.Svg }));
 
         Assert.True(result.Succeeded, string.Join(" ", result.Diagnostics));
-        Assert.Contains(result.CapabilityDiagnostics, static diagnostic => diagnostic.Code == "render.operator.miter-limit-simplified" && diagnostic.Subject == "M");
+        Assert.DoesNotContain(result.CapabilityDiagnostics, static diagnostic => diagnostic.Subject == "M");
         Assert.Contains(manifest.Entries, static entry => entry.Id == "render.operator.rendering-intent" && entry.SupportLevel == PdfRenderSupportLevel.Supported);
         Assert.DoesNotContain(result.CapabilityDiagnostics, static diagnostic => diagnostic.Subject == "ri");
         Assert.Contains(result.CapabilityDiagnostics, static diagnostic => diagnostic.Code == "render.operator.flatness-simplified" && diagnostic.Subject == "i");

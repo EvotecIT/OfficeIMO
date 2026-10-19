@@ -29,7 +29,7 @@ namespace OfficeIMO.PowerPoint {
                     string? relId = PowerPointUtils.GetRelationshipIdValue(slideId);
                     if (!string.IsNullOrEmpty(relId)) {
                         SlidePart slidePart = (SlidePart)_presentationPart.GetPartById(relId!);
-                        _slides.Add(new PowerPointSlide(slidePart));
+                        _slides.Add(new PowerPointSlide(slidePart, this));
                     }
                 }
             }

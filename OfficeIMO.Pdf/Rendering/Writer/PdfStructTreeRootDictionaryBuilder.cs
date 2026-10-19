@@ -1,11 +1,11 @@
 namespace OfficeIMO.Pdf;
 
-internal static class PdfStructTreeRootDictionaryBuilder {
+internal static partial class PdfStructTreeRootDictionaryBuilder {
     internal static string BuildEmptyStructTreeRootDictionary() {
         return "<< /Type /StructTreeRoot /K [] /RoleMap << >> >>\n";
     }
 
-    internal static string BuildStructTreeRootDictionary(IReadOnlyList<int> childElementIds, int parentTreeId, int parentTreeNextKey, IEnumerable<string>? structureTypes = null, int? idTreeId = null) {
+    internal static string BuildStructTreeRootDictionary(IReadOnlyList<int> childElementIds, int parentTreeId, int parentTreeNextKey, IEnumerable<string>? structureTypes = null, int? idTreeId = null, int? namespaceId = null) {
         Guard.NotNull(childElementIds, nameof(childElementIds));
         if (parentTreeNextKey < 0) {
             throw new ArgumentOutOfRangeException(nameof(parentTreeNextKey), parentTreeNextKey, "PDF parent-tree next key must be non-negative.");
@@ -22,6 +22,7 @@ internal static class PdfStructTreeRootDictionaryBuilder {
         }
 
         if (idTreeId.HasValue) sb.Append(" /IDTree ").Append(PdfSyntaxEscaper.IndirectReference(idTreeId.Value));
+        if (namespaceId.HasValue) sb.Append(" /Namespaces [").Append(PdfSyntaxEscaper.IndirectReference(namespaceId.Value)).Append(']');
         sb.Append(" /RoleMap <<");
         foreach (string role in (structureTypes ?? Enumerable.Empty<string>())
             .Where(role => role == "H7" || role == "H8" || role == "H9")
@@ -53,12 +54,12 @@ internal static class PdfStructTreeRootDictionaryBuilder {
         return BuildStructElement(parentId, pageId, "Figure", markedContentId, alternativeText, contentStreamObjectId: contentStreamObjectId);
     }
 
-    internal static string BuildTextStructElement(int parentId, int pageId, string structureType, int markedContentId, string tableHeaderScope = "", int tableColumnSpan = 1, int tableRowSpan = 1, IReadOnlyList<int>? additionalMarkedContentIds = null, int? contentStreamObjectId = null, IReadOnlyList<int?>? additionalContentStreamObjectIds = null) {
+    internal static string BuildTextStructElement(int parentId, int pageId, string structureType, int markedContentId, string tableHeaderScope = "", int tableColumnSpan = 1, int tableRowSpan = 1, IReadOnlyList<int>? additionalMarkedContentIds = null, int? contentStreamObjectId = null, IReadOnlyList<int?>? additionalContentStreamObjectIds = null, IReadOnlyList<string>? tableHeaders = null) {
         Guard.NotNullOrWhiteSpace(structureType, nameof(structureType));
-        return BuildStructElement(parentId, pageId, structureType, markedContentId, null, tableHeaderScope, tableColumnSpan, tableRowSpan, additionalMarkedContentIds, contentStreamObjectId, additionalContentStreamObjectIds);
+        return BuildStructElement(parentId, pageId, structureType, markedContentId, null, tableHeaderScope, tableColumnSpan, tableRowSpan, additionalMarkedContentIds, contentStreamObjectId, additionalContentStreamObjectIds, tableHeaders);
     }
 
-    internal static string BuildContainerStructElement(int parentId, int pageId, string structureType, IReadOnlyList<int> childElementIds, string tableHeaderScope = "", int tableColumnSpan = 1, int tableRowSpan = 1, string? alternativeText = null, bool includePageReference = true, IReadOnlyList<int>? associatedFileIds = null, string? elementId = null) {
+    internal static string BuildContainerStructElement(int parentId, int pageId, string structureType, IReadOnlyList<int> childElementIds, string tableHeaderScope = "", int tableColumnSpan = 1, int tableRowSpan = 1, string? alternativeText = null, bool includePageReference = true, IReadOnlyList<int>? associatedFileIds = null, string? elementId = null, IReadOnlyList<string>? tableHeaders = null) {
         Guard.NotNullOrWhiteSpace(structureType, nameof(structureType));
         Guard.NotNull(childElementIds, nameof(childElementIds));
         var sb = new StringBuilder();
@@ -73,8 +74,8 @@ internal static class PdfStructTreeRootDictionaryBuilder {
 
         sb.Append(" /K ");
         AppendReferenceArray(sb, childElementIds);
-        if (ShouldEmitTableAttributes(structureType, tableHeaderScope, tableColumnSpan, tableRowSpan)) {
-            AppendTableAttributes(sb, structureType, tableHeaderScope, tableColumnSpan, tableRowSpan);
+        if (ShouldEmitTableAttributes(structureType, tableHeaderScope, tableColumnSpan, tableRowSpan, tableHeaders)) {
+            AppendTableAttributes(sb, structureType, tableHeaderScope, tableColumnSpan, tableRowSpan, tableHeaders);
         }
 
         if (!string.IsNullOrWhiteSpace(alternativeText)) {
@@ -185,7 +186,7 @@ internal static class PdfStructTreeRootDictionaryBuilder {
             .Append(" >>");
     }
 
-    private static string BuildStructElement(int parentId, int pageId, string structureType, int markedContentId, string? alternativeText, string tableHeaderScope = "", int tableColumnSpan = 1, int tableRowSpan = 1, IReadOnlyList<int>? additionalMarkedContentIds = null, int? contentStreamObjectId = null, IReadOnlyList<int?>? additionalContentStreamObjectIds = null) {
+    private static string BuildStructElement(int parentId, int pageId, string structureType, int markedContentId, string? alternativeText, string tableHeaderScope = "", int tableColumnSpan = 1, int tableRowSpan = 1, IReadOnlyList<int>? additionalMarkedContentIds = null, int? contentStreamObjectId = null, IReadOnlyList<int?>? additionalContentStreamObjectIds = null, IReadOnlyList<string>? tableHeaders = null) {
         var sb = new StringBuilder();
         sb.Append("<< /Type /StructElem /S /")
             .Append(structureType)
@@ -212,8 +213,8 @@ internal static class PdfStructTreeRootDictionaryBuilder {
                 .Append(PdfSyntaxEscaper.TextString(alternativeText!));
         }
 
-        if (ShouldEmitTableAttributes(structureType, tableHeaderScope, tableColumnSpan, tableRowSpan)) {
-            AppendTableAttributes(sb, structureType, tableHeaderScope, tableColumnSpan, tableRowSpan);
+        if (ShouldEmitTableAttributes(structureType, tableHeaderScope, tableColumnSpan, tableRowSpan, tableHeaders)) {
+            AppendTableAttributes(sb, structureType, tableHeaderScope, tableColumnSpan, tableRowSpan, tableHeaders);
         }
 
         sb.Append(" >>\n");
@@ -226,7 +227,7 @@ internal static class PdfStructTreeRootDictionaryBuilder {
             : null;
     }
 
-    private static bool ShouldEmitTableAttributes(string structureType, string tableHeaderScope, int tableColumnSpan, int tableRowSpan) {
+    private static bool ShouldEmitTableAttributes(string structureType, string tableHeaderScope, int tableColumnSpan, int tableRowSpan, IReadOnlyList<string>? tableHeaders) {
         bool tableCell = string.Equals(structureType, "TH", StringComparison.Ordinal) || string.Equals(structureType, "TD", StringComparison.Ordinal);
         if (!tableCell) {
             return false;
@@ -234,11 +235,16 @@ internal static class PdfStructTreeRootDictionaryBuilder {
 
         return (string.Equals(structureType, "TH", StringComparison.Ordinal) && !string.IsNullOrWhiteSpace(tableHeaderScope)) ||
             tableColumnSpan > 1 ||
-            tableRowSpan > 1;
+            tableRowSpan > 1 || tableHeaders?.Count > 0;
     }
 
-    private static void AppendTableAttributes(StringBuilder sb, string structureType, string tableHeaderScope, int tableColumnSpan, int tableRowSpan) {
+    private static void AppendTableAttributes(StringBuilder sb, string structureType, string tableHeaderScope, int tableColumnSpan, int tableRowSpan, IReadOnlyList<string>? tableHeaders) {
         sb.Append(" /A << /O /Table");
+        if (tableHeaders != null && tableHeaders.Count > 0) {
+            sb.Append(" /Headers [");
+            foreach (string header in tableHeaders) sb.Append(PdfSyntaxEscaper.TextString(header)).Append(' ');
+            sb.Append(']');
+        }
         if (string.Equals(structureType, "TH", StringComparison.Ordinal) && !string.IsNullOrWhiteSpace(tableHeaderScope)) {
             sb.Append(" /Scope /")
                 .Append(PdfSyntaxEscaper.Name(tableHeaderScope));
@@ -317,6 +323,7 @@ internal static class PdfStructTreeRootDictionaryBuilder {
             }
 
             StructParentIndex = structParentIndex;
+            IsArrayEntry = structElementIds != null;
             StructElementIds = structElementIds ?? Array.Empty<int?>();
             StructElementId = structElementId;
         }
@@ -327,7 +334,7 @@ internal static class PdfStructTreeRootDictionaryBuilder {
 
         public int StructElementId { get; }
 
-        public bool IsArrayEntry => StructElementIds.Count > 0;
+        public bool IsArrayEntry { get; }
 
         public static ParentTreeEntry ForMarkedContentPage(int structParentIndex, IReadOnlyList<int> structElementIds) {
             Guard.NotNull(structElementIds, nameof(structElementIds));

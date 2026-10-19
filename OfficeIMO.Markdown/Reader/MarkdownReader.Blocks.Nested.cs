@@ -86,6 +86,7 @@ public static partial class MarkdownReader {
                 && relativeLineIndentColumns > 3
                 && lineIndentColumns < continuationIndent;
             bool breakOnOrderedListLine = breakOnAnyOrderedListLine ||
+                (initialLineIndex >= 0 && lineIndentColumns < CountLeadingIndentColumns(lines[initialLineIndex] ?? string.Empty)) ||
                 IsMarkdigDefinitionLazyOrderedListBoundary(state, k, line, options);
 
             // Stop before the next list item (including nested items).

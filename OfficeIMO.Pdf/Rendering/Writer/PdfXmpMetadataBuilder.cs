@@ -127,6 +127,7 @@ internal static class PdfXmpMetadataBuilder {
         sb.Append("<pdfaid:part>")
             .Append(identification.Part.ToString(System.Globalization.CultureInfo.InvariantCulture))
             .Append("</pdfaid:part>\n");
+        if (identification.Part == 4) AppendElement(sb, "pdfaid:rev", "2020");
         if (!string.IsNullOrEmpty(identification.Conformance)) {
             sb.Append("<pdfaid:conformance>")
                 .Append(identification.Conformance)
@@ -142,6 +143,7 @@ internal static class PdfXmpMetadataBuilder {
         sb.Append("<pdfuaid:part>")
             .Append(identification.Part.ToString(System.Globalization.CultureInfo.InvariantCulture))
             .Append("</pdfuaid:part>\n");
+        if (identification.Part == 2) AppendElement(sb, "pdfuaid:rev", "2024");
     }
 
     private static void AppendPdfXIdentification(StringBuilder sb, PdfXIdentification? identification) {

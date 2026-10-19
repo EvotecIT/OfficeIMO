@@ -110,6 +110,42 @@ public static class PdfLongTermValidationEnricher {
         return result;
     }
 
+    /// <summary>
+    /// Resolves additional validation material using a caller-owned fetcher and appends it together with supplied
+    /// evidence. Fetching is opt-in; endpoint selection, HTTP transport, validation and freshness belong to the caller.
+    /// Embedding evidence does not by itself establish a complete trusted PAdES B-LT validation path.
+    /// </summary>
+    public static async System.Threading.Tasks.Task<PdfLongTermValidationEnrichmentResult> EnrichAsync(
+        byte[] pdf,
+        PdfLongTermValidationEvidence evidence,
+        IPdfSignatureCryptographyProvider cryptographyProvider,
+        Func<PdfSignatureValidationResult, System.Threading.CancellationToken,
+            System.Threading.Tasks.Task<PdfLongTermValidationEvidence>>? fetchEvidence = null,
+        PdfLoadOptions? readOptions = null,
+        System.Threading.CancellationToken cancellationToken = default) {
+        Guard.NotNull(pdf, nameof(pdf));
+        Guard.NotNull(evidence, nameof(evidence));
+        Guard.NotNull(cryptographyProvider, nameof(cryptographyProvider));
+        cancellationToken.ThrowIfCancellationRequested();
+        if (fetchEvidence is not null) {
+            pdf = (byte[])pdf.Clone();
+            PdfSignatureValidationResult target = FindVerifiedTarget(
+                PdfSignatureValidator.Validate(pdf, cryptographyProvider, readOptions), evidence.SignatureObjectNumber);
+            PdfLongTermValidationEvidence fetched = await fetchEvidence(target, cancellationToken).ConfigureAwait(false)
+                ?? throw new InvalidOperationException("The validation evidence fetcher returned no evidence.");
+            cancellationToken.ThrowIfCancellationRequested();
+            if (fetched.SignatureObjectNumber != evidence.SignatureObjectNumber) {
+                throw new ArgumentException("Fetched evidence must identify the same signature object.", nameof(fetchEvidence));
+            }
+            evidence = new PdfLongTermValidationEvidence(evidence.SignatureObjectNumber,
+                evidence.CertificateValues.Concat(fetched.CertificateValues),
+                evidence.OcspValues.Concat(fetched.OcspValues),
+                evidence.CrlValues.Concat(fetched.CrlValues));
+        }
+        cancellationToken.ThrowIfCancellationRequested();
+        return Enrich(pdf, evidence, cryptographyProvider, readOptions);
+    }
+
     /// <summary>Enriches a readable PDF stream.</summary>
     public static PdfLongTermValidationEnrichmentResult Enrich(
         Stream input,

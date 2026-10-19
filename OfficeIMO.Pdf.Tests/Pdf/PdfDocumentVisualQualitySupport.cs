@@ -266,7 +266,7 @@ public partial class PdfDocumentVisualQualityTests {
             }, style: style)
             .ToBytes();
 
-        return Encoding.ASCII.GetString(bytes);
+        return PdfTestContentText.ReadDecoded(bytes);
     }
 
     private static int CountOccurrences(string text, string value) {
@@ -675,7 +675,9 @@ public partial class PdfDocumentVisualQualityTests {
             var ordered = line.OrderBy(letter => letter.StartBaseLine.X).ToList();
             for (int i = 1; i < ordered.Count; i++) {
                 double gap = ordered[i].StartBaseLine.X - ordered[i - 1].EndBaseLine.X;
-                Assert.True(gap >= -0.25,
+                // Pair kerning (AFM and GPOS pairs stay within about 0.2 em) overlaps advance boxes by design.
+                double kerningTolerance = Math.Max(0.25, 0.2 * Math.Min(ordered[i - 1].PointSize, ordered[i].PointSize));
+                Assert.True(gap >= -kerningTolerance,
                     $"Expected {areaName} text not to collide on baseline {line.Key:0.##}, but '{ordered[i - 1].Value}' and '{ordered[i].Value}' overlap by {-gap:0.##}pt.");
             }
         }
@@ -728,7 +730,7 @@ public partial class PdfDocumentVisualQualityTests {
     private static void AppendContentStreams(Dictionary<int, PdfIndirectObject> objects, PdfObject contents, List<string> streams) {
         if (contents is PdfReference reference) {
             if (objects.TryGetValue(reference.ObjectNumber, out var indirect) && indirect.Value is PdfStream stream) {
-                streams.Add(Encoding.GetEncoding("ISO-8859-1").GetString(stream.Data));
+                streams.Add(Encoding.GetEncoding("ISO-8859-1").GetString(OfficeIMO.Pdf.Filters.StreamDecoder.Decode(stream.Dictionary, stream.Data, objects)));
             }
 
             return;

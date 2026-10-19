@@ -6,7 +6,7 @@ namespace OfficeIMO.Pdf;
 
 #pragma warning disable CA1850 // Static HashData is unavailable on netstandard2.0 and net472.
 
-internal sealed class PdfFontResource {
+internal sealed partial class PdfFontResource {
     public string ResourceName { get; }
     public string BaseFont { get; }
     public string Encoding { get; }
@@ -18,8 +18,10 @@ internal sealed class PdfFontResource {
     public ToUnicodeCMap? CMap { get; }
     internal Lazy<PdfPredefinedCMap>? PredefinedCMap { get; }
     public IReadOnlyDictionary<int, string>? Differences { get; }
-    public byte[]? EmbeddedTrueTypeFont { get; }
-    public string? DrawingFontFamily { get; }
+    private readonly byte[]? _embeddedTrueTypeFont;
+    public byte[]? EmbeddedTrueTypeFont => _embeddedTrueTypeFont ?? RetainedDrawingResource?._embeddedTrueTypeFont;
+    private readonly string? _drawingFontFamily;
+    public string? DrawingFontFamily => _drawingFontFamily ?? RetainedDrawingResource?._drawingFontFamily;
     public int? FontWeight { get; }
     public int? FontDescriptorFlags { get; }
     internal bool IsSymbolicSubstitute { get; }
@@ -54,8 +56,8 @@ internal sealed class PdfFontResource {
         CMap = cmap;
         PredefinedCMap = predefinedCMap;
         Differences = differences;
-        EmbeddedTrueTypeFont = embeddedTrueTypeFont;
-        DrawingFontFamily = CreateDrawingFontFamily(baseFont, embeddedTrueTypeFont);
+        _embeddedTrueTypeFont = embeddedTrueTypeFont;
+        _drawingFontFamily = CreateDrawingFontFamily(baseFont, embeddedTrueTypeFont);
         FontWeight = fontWeight;
         FontDescriptorFlags = fontDescriptorFlags;
         IsSymbolicSubstitute = DetectSymbolicSubstitute(baseFont, fontDescriptorFlags);
@@ -63,7 +65,9 @@ internal sealed class PdfFontResource {
 
     private PdfFontResource(string resourceName, PdfFontResource source, PdfDrawingFontProgram? drawingProgram = null) {
         byte[]? embeddedTrueTypeFont = drawingProgram?.Program;
-        DrawingProgram = drawingProgram ?? source.DrawingProgram;
+        _drawingProgram = drawingProgram ?? source.DrawingProgram;
+        _deferredDrawing = drawingProgram == null ? source._deferredDrawing : null;
+        _builtinEncoding = source._builtinEncoding;
         ResourceName = resourceName;
         BaseFont = source.BaseFont;
         Encoding = source.Encoding;
@@ -75,8 +79,8 @@ internal sealed class PdfFontResource {
         CMap = source.CMap;
         PredefinedCMap = source.PredefinedCMap;
         Differences = source.Differences;
-        EmbeddedTrueTypeFont = embeddedTrueTypeFont ?? source.EmbeddedTrueTypeFont;
-        DrawingFontFamily = embeddedTrueTypeFont == null
+        _embeddedTrueTypeFont = embeddedTrueTypeFont ?? source.EmbeddedTrueTypeFont;
+        _drawingFontFamily = embeddedTrueTypeFont == null
             ? source.DrawingFontFamily
             : CreateDrawingFontFamily(source.BaseFont, embeddedTrueTypeFont, drawingProgram);
         FontWeight = source.FontWeight;
@@ -102,7 +106,8 @@ internal sealed class PdfFontResource {
             : new PdfFontResource(resourceName, this);
 
     /// <summary>Synthesized drawing program and mappings when the embedded program needed a Unicode cmap.</summary>
-    internal PdfDrawingFontProgram? DrawingProgram { get; }
+    private readonly PdfDrawingFontProgram? _drawingProgram;
+    internal PdfDrawingFontProgram? DrawingProgram => _drawingProgram ?? RetainedDrawingResource?._drawingProgram;
 
     /// <summary>Returns this resource with a drawing-ready embedded TrueType program.</summary>
     internal PdfFontResource WithDrawingProgram(PdfDrawingFontProgram drawingProgram) =>

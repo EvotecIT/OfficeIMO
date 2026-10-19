@@ -16,6 +16,7 @@ public sealed partial class HtmlRenderingTests {
             + "<div id='moved' style='height:24px;margin:0;background:#ff0000'>Moved</div>"
             + "<div id='next' style='height:24px;margin:0'>Next</div>";
         var options = new HtmlRenderOptions {
+            Mode = HtmlRenderMode.Continuous,
             ViewportWidth = 200D,
             Margins = HtmlRenderMargins.All(0D)
         };
@@ -43,6 +44,7 @@ public sealed partial class HtmlRenderingTests {
         const string positionedHtml = "<p style='margin:0'><span style='position:relative;left:7px;top:3px'>Outer"
             + "<span style='position:relative;left:5px;top:2px'>Inner</span></span><span>Tail</span></p>";
         var options = new HtmlRenderOptions {
+            Mode = HtmlRenderMode.Continuous,
             ViewportWidth = 240D,
             Margins = HtmlRenderMargins.All(0D)
         };
@@ -153,7 +155,9 @@ public sealed partial class HtmlRenderingTests {
         Assert.Equal(OfficeColor.White, raster.GetPixel(5, 5));
         Assert.Equal(OfficeColor.Red, raster.GetPixel(15, 15));
         Assert.Equal(new byte[] { 137, 80, 78, 71, 13, 10, 26, 10 }, png.Bytes.Take(8));
-        Assert.Contains("<rect x=\"10\" y=\"10\" width=\"20\" height=\"20\"", svg, StringComparison.Ordinal);
+        OfficeRasterImage svgRaster = RasterizeHtmlImageSvg(svg);
+        Assert.Equal(OfficeColor.White, svgRaster.GetPixel(5, 5));
+        Assert.Equal(OfficeColor.Red, svgRaster.GetPixel(15, 15));
         string searchablePdfText = string.Concat(PdfCore.PdfReadDocument.Open(pdf).ExtractText().Where(character => !char.IsWhiteSpace(character)));
         Assert.Contains("PositionPdfMarker", searchablePdfText, StringComparison.Ordinal);
         Assert.DoesNotContain(OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToPdfDocumentResult(pdfOptions).Report.Warnings, warning => warning.Severity == PdfCore.PdfConversionWarningSeverity.Error);
@@ -186,7 +190,9 @@ public sealed partial class HtmlRenderingTests {
         Assert.Equal(OfficeColor.White, raster.GetPixel(5, 5));
         Assert.Equal(OfficeColor.Red, raster.GetPixel(85, 45));
         Assert.Equal(new byte[] { 137, 80, 78, 71, 13, 10, 26, 10 }, png.Bytes.Take(8));
-        Assert.Contains("<rect x=\"10\" y=\"10\" width=\"80\" height=\"40\"", svg, StringComparison.Ordinal);
+        OfficeRasterImage svgRaster = RasterizeHtmlImageSvg(svg);
+        Assert.Equal(OfficeColor.White, svgRaster.GetPixel(5, 5));
+        Assert.Equal(OfficeColor.Red, svgRaster.GetPixel(85, 45));
         string searchablePdfText = string.Concat(PdfCore.PdfReadDocument.Open(pdf).ExtractText().Where(character => !char.IsWhiteSpace(character)));
         Assert.Contains("AbsolutePdfMarker", searchablePdfText, StringComparison.Ordinal);
         Assert.DoesNotContain(OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToPdfDocumentResult(pdfOptions).Report.Warnings, warning => warning.Severity == PdfCore.PdfConversionWarningSeverity.Error);
@@ -200,6 +206,7 @@ public sealed partial class HtmlRenderingTests {
             + "<div style='position:relative;left:calc(5px + 2px);top:10%;z-index:3'>Relative</div>";
 
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html), new HtmlRenderOptions {
+            Mode = HtmlRenderMode.Continuous,
             ViewportWidth = 200D,
             Margins = HtmlRenderMargins.All(0D)
         });
@@ -226,6 +233,7 @@ public sealed partial class HtmlRenderingTests {
             + "<div id='after' style='width:30px;height:10px;margin:0;background:#00ff00'>After</div>";
 
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html), new HtmlRenderOptions {
+            Mode = HtmlRenderMode.Continuous,
             ViewportWidth = 240D,
             Margins = HtmlRenderMargins.All(0D)
         });
@@ -248,6 +256,7 @@ public sealed partial class HtmlRenderingTests {
             + "<div id='stretched' style='position:absolute;left:10px;right:20px;top:10px;bottom:20px;margin:0;background:#ff0000'></div></div>";
 
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html), new HtmlRenderOptions {
+            Mode = HtmlRenderMode.Continuous,
             ViewportWidth = 220D,
             Margins = HtmlRenderMargins.All(0D)
         });
@@ -269,6 +278,7 @@ public sealed partial class HtmlRenderingTests {
             + "<div id='grid-absolute' style='position:absolute;left:100px;top:10px;width:20px;height:20px;background:#ffff00'></div></div>";
 
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html), new HtmlRenderOptions {
+            Mode = HtmlRenderMode.Continuous,
             ViewportWidth = 220D,
             Margins = HtmlRenderMargins.All(0D)
         });
@@ -350,6 +360,7 @@ public sealed partial class HtmlRenderingTests {
             + "<div id='after-sticky' style='width:20px;height:20px;margin:0;background:#0000ff'>After</div>";
 
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html), new HtmlRenderOptions {
+            Mode = HtmlRenderMode.Continuous,
             ViewportWidth = 100D,
             Margins = HtmlRenderMargins.All(0D)
         });
@@ -367,6 +378,7 @@ public sealed partial class HtmlRenderingTests {
         const string positionedHtml = "<p style='margin:0'><span style='position:relative'>Before"
             + "<span style='position:absolute;left:5px;top:5px'>Overlay</span></span><span>After</span></p>";
         var options = new HtmlRenderOptions {
+            Mode = HtmlRenderMode.Continuous,
             ViewportWidth = 160D,
             Margins = HtmlRenderMargins.All(0D)
         };
@@ -396,6 +408,7 @@ public sealed partial class HtmlRenderingTests {
             + "<div id='positive-one' style='position:absolute;z-index:1;left:0;top:0;width:40px;height:40px;background:#ff00ff'></div></div>";
 
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html), new HtmlRenderOptions {
+            Mode = HtmlRenderMode.Continuous,
             ViewportWidth = 40D,
             ViewportHeight = 40D,
             Margins = HtmlRenderMargins.All(0D)
@@ -424,6 +437,7 @@ public sealed partial class HtmlRenderingTests {
             + "<div id='nested-negative' style='position:absolute;z-index:-100;left:0;top:0;width:40px;height:40px;background:#00ff00'></div></div></div>";
 
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html), new HtmlRenderOptions {
+            Mode = HtmlRenderMode.Continuous,
             ViewportWidth = 40D,
             ViewportHeight = 40D,
             Margins = HtmlRenderMargins.All(0D)
@@ -446,6 +460,7 @@ public sealed partial class HtmlRenderingTests {
             + "<div id='document-flow' style='width:40px;height:40px;margin:0;background:#00ff00'></div>";
 
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html), new HtmlRenderOptions {
+            Mode = HtmlRenderMode.Continuous,
             ViewportWidth = 40D,
             ViewportHeight = 40D,
             Margins = HtmlRenderMargins.All(0D)
@@ -490,8 +505,10 @@ public sealed partial class HtmlRenderingTests {
         Assert.Equal(450, raster.Height);
         Assert.Equal(new byte[] { 137, 80, 78, 71, 13, 10, 26, 10 }, png.Bytes.Take(8));
         Assert.Equal(OfficeColor.Red, raster.GetPixel(550, 425));
-        Assert.Contains("width=\"600\"", svg, StringComparison.Ordinal);
-        Assert.Contains("height=\"450\"", svg, StringComparison.Ordinal);
+        OfficeRasterImage svgRaster = RasterizeHtmlImageSvg(svg);
+        Assert.Equal(600, svgRaster.Width);
+        Assert.Equal(450, svgRaster.Height);
+        Assert.Equal(OfficeColor.Red, svgRaster.GetPixel(550, 425));
         Assert.Equal(500D, FindPositionedShape(rendered, "div#absolute-overflow").X, 3);
         Assert.Equal(700D, FindPositionedShape(rendered, "div#fixed-overflow").X, 3);
     }
@@ -503,6 +520,7 @@ public sealed partial class HtmlRenderingTests {
             + "<div id='after-auto' style='height:20px;margin:0;background:#00ff00'></div>";
 
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html), new HtmlRenderOptions {
+            Mode = HtmlRenderMode.Continuous,
             ViewportWidth = 100D,
             Margins = HtmlRenderMargins.All(0D)
         });
@@ -522,6 +540,7 @@ public sealed partial class HtmlRenderingTests {
             + "<div id='nested-auto' style='position:absolute;width:10px;height:10px;margin:0;background:#ff0000'></div></div></div>";
 
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html), new HtmlRenderOptions {
+            Mode = HtmlRenderMode.Continuous,
             ViewportWidth = 120D,
             Margins = HtmlRenderMargins.All(0D)
         });
@@ -537,6 +556,7 @@ public sealed partial class HtmlRenderingTests {
         const string html = "<p style='margin:0'>Before<span id='inline-auto' style='position:absolute;background:#ff0000'>Auto</span>After</p>";
 
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html), new HtmlRenderOptions {
+            Mode = HtmlRenderMode.Continuous,
             ViewportWidth = 120D,
             Margins = HtmlRenderMargins.All(0D)
         });
@@ -554,6 +574,7 @@ public sealed partial class HtmlRenderingTests {
             + "<span id='inline-below' style='position:absolute;left:0;top:100%;width:10px;height:10px;background:#ff0000'></span></span></p>";
 
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html), new HtmlRenderOptions {
+            Mode = HtmlRenderMode.Continuous,
             ViewportWidth = 100D,
             Margins = HtmlRenderMargins.All(0D)
         });
@@ -576,6 +597,7 @@ public sealed partial class HtmlRenderingTests {
             + "<div id='grid-auto' style='position:absolute;width:20px;height:20px;background:#0000ff'></div></div>";
 
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html), new HtmlRenderOptions {
+            Mode = HtmlRenderMode.Continuous,
             ViewportWidth = 220D,
             Margins = HtmlRenderMargins.All(0D)
         });
@@ -625,6 +647,7 @@ public sealed partial class HtmlRenderingTests {
             + "<div id='grid-nested-auto' style='position:absolute;width:10px;height:10px;background:#0000ff'></div></div></div></div>";
 
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html), new HtmlRenderOptions {
+            Mode = HtmlRenderMode.Continuous,
             ViewportWidth = 220D,
             Margins = HtmlRenderMargins.All(0D)
         });
@@ -645,6 +668,7 @@ public sealed partial class HtmlRenderingTests {
             + "<div id='grid-area-inset' style='position:absolute;grid-column:2;grid-row:2;left:10%;top:10%;width:20px;height:20px;background:#0000ff'></div></div>";
 
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html), new HtmlRenderOptions {
+            Mode = HtmlRenderMode.Continuous,
             ViewportWidth = 220D,
             Margins = HtmlRenderMargins.All(0D)
         });
@@ -668,6 +692,7 @@ public sealed partial class HtmlRenderingTests {
             + "<div id='root-relative-two' style='position:relative;z-index:2;top:-80px;width:40px;height:40px;margin:0;background:#ffff00'></div>";
 
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html), new HtmlRenderOptions {
+            Mode = HtmlRenderMode.Continuous,
             ViewportWidth = 40D,
             ViewportHeight = 80D,
             Margins = HtmlRenderMargins.All(0D)
@@ -696,6 +721,7 @@ public sealed partial class HtmlRenderingTests {
             + "<div id='grid-negative-z' style='position:relative;z-index:-1;grid-area:1/1;width:40px;height:40px;background:#ff0000'></div></div>";
 
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html), new HtmlRenderOptions {
+            Mode = HtmlRenderMode.Continuous,
             ViewportWidth = 40D,
             Margins = HtmlRenderMargins.All(0D)
         });
@@ -716,6 +742,7 @@ public sealed partial class HtmlRenderingTests {
             + "<div id='relative-nested-negative' style='position:relative;z-index:-100;width:40px;height:40px;background:#00ff00'></div></div></div>";
 
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html), new HtmlRenderOptions {
+            Mode = HtmlRenderMode.Continuous,
             ViewportWidth = 40D,
             Margins = HtmlRenderMargins.All(0D)
         });
@@ -735,6 +762,7 @@ public sealed partial class HtmlRenderingTests {
             + "</p>";
 
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html), new HtmlRenderOptions {
+            Mode = HtmlRenderMode.Continuous,
             ViewportWidth = 100D,
             Margins = HtmlRenderMargins.All(0D)
         });
@@ -759,6 +787,7 @@ public sealed partial class HtmlRenderingTests {
             + "</p>";
 
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html), new HtmlRenderOptions {
+            Mode = HtmlRenderMode.Continuous,
             ViewportWidth = 80D,
             ViewportHeight = 40D,
             Margins = HtmlRenderMargins.All(0D)
@@ -835,6 +864,7 @@ public sealed partial class HtmlRenderingTests {
         const string baselineHtml = "<div style='height:100px;margin:0'><span>Marker</span></div>";
         const string positionedHtml = "<div style='height:100px;margin:0'><span style='position:relative;right:5px;bottom:10%'>Marker</span></div>";
         var options = new HtmlRenderOptions {
+            Mode = HtmlRenderMode.Continuous,
             ViewportWidth = 200D,
             Margins = HtmlRenderMargins.All(0D)
         };

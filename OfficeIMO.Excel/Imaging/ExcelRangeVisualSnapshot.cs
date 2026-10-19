@@ -379,7 +379,7 @@ namespace OfficeIMO.Excel {
         /// <summary>Cell height in CSS pixels.</summary>
         public double Height { get; }
 
-        /// <summary>Rendered icon kind.</summary>
+        /// <summary>Rendered icon kind, or None when only the value-visibility rule applies.</summary>
         public OfficeConditionalIconKind Kind { get; }
 
         /// <summary>Whether the formatted cell value should be rendered beside the icon.</summary>

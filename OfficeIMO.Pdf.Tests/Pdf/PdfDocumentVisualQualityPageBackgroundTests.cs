@@ -21,7 +21,7 @@ public partial class PdfDocumentVisualQualityTests {
             .Paragraph(p => p.Text("Body content stays inside the reusable page frame."))
             .ToBytes();
 
-        string raw = Encoding.ASCII.GetString(bytes);
+        string raw = PdfTestContentText.ReadDecoded(bytes);
         string stream = Assert.Single(GetPageContentStreams(bytes, pageNumber: 1));
         int borderDraw = stream.IndexOf("30 30 552 732 re", StringComparison.Ordinal);
         int firstTextBlock = stream.IndexOf("BT", StringComparison.Ordinal);
@@ -93,7 +93,7 @@ public partial class PdfDocumentVisualQualityTests {
             .Paragraph(p => p.Text("Body content stays above the fitted page background image."))
             .ToBytes();
 
-        string raw = Encoding.ASCII.GetString(bytes);
+        string raw = PdfTestContentText.ReadDecoded(bytes);
         string stream = Assert.Single(GetPageContentStreams(bytes, pageNumber: 1));
         int imageDraw = stream.IndexOf("/Im", StringComparison.Ordinal);
         int firstTextBlock = stream.IndexOf("BT", StringComparison.Ordinal);
@@ -183,7 +183,7 @@ public partial class PdfDocumentVisualQualityTests {
             .Paragraph(p => p.Text("Body content stays above reusable vector page decoration."))
             .ToBytes();
 
-        string raw = Encoding.ASCII.GetString(bytes);
+        string raw = PdfTestContentText.ReadDecoded(bytes);
         string stream = Assert.Single(GetPageContentStreams(bytes, pageNumber: 1));
         int shapePath = stream.IndexOf("54 640", StringComparison.Ordinal);
         int firstTextBlock = stream.IndexOf("BT", StringComparison.Ordinal);
@@ -253,7 +253,7 @@ public partial class PdfDocumentVisualQualityTests {
             .Paragraph(p => p.Text("Anchored bands"))
             .ToBytes();
 
-        string raw = Encoding.ASCII.GetString(bytes);
+        string raw = PdfTestContentText.ReadDecoded(bytes);
         string stream = Assert.Single(GetPageContentStreams(bytes, pageNumber: 1));
         int topBand = stream.IndexOf("12 342 276 50 re", StringComparison.Ordinal);
         int bottomBand = stream.IndexOf("20 10 260 30 re", StringComparison.Ordinal);

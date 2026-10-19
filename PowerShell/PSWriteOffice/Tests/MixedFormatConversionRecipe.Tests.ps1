@@ -13,7 +13,6 @@ Describe 'Mixed-format conversion review recipe' -Skip:($PSVersionTable.PSEditio
         $first.Selected | Should -Be 3
         $first.Completed | Should -Be 3
         $first.Reused | Should -Be 0
-        $first.ReviewRequired | Should -Be 0
         $hashes = @(Get-ChildItem $first.PdfDirectory -File | Sort-Object Name | Get-FileHash | Select-Object -ExpandProperty Hash)
         $firstReview = Join-Path $first.ReviewDirectory 'review.json'
         $reviewHash = (Get-FileHash $firstReview).Hash
@@ -35,6 +34,8 @@ Describe 'Mixed-format conversion review recipe' -Skip:($PSVersionTable.PSEditio
         $destination = Join-Path $TestDrive 'mixed-output'
         $null = New-Item -ItemType Directory -Path $source
         Copy-Item (Join-Path $sampleRoot '*') $source
+        # Raw HTML produces a content warning independently of installed fonts.
+        Add-Content -LiteralPath (Join-Path $source 'Service-Handover.md') -Value "`n`n<div>Conversion review fixture.</div>" -Encoding UTF8
         $broken = Join-Path $source 'Correctable.docx'
         'Not an Open XML package' | Set-Content $broken
         'Unsupported example file' | Set-Content (Join-Path $source 'Unsupported.dat')

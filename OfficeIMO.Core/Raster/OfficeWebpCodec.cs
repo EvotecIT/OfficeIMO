@@ -38,7 +38,8 @@ public static partial class OfficeWebpCodec {
         double dpiX,
         double dpiY,
         CancellationToken cancellationToken = default,
-        long additionalRetainedManagedBytes = 0L) {
+        long additionalRetainedManagedBytes = 0L,
+        OfficeImageEncodingEffort effort = OfficeImageEncodingEffort.Balanced) {
         if (image == null) throw new ArgumentNullException(nameof(image));
         cancellationToken.ThrowIfCancellationRequested();
         if (image.Width > OfficeRasterImageEncoder.WebpMaximumDimension) throw new ArgumentOutOfRangeException(nameof(image), "WebP width cannot exceed 16,384 pixels.");
@@ -54,7 +55,7 @@ public static partial class OfficeWebpCodec {
         EnsureEncodingWorkingSet(pixels.LongLength, literalFileLength, 0L, exif?.LongLength ?? 0L,
             additionalRetainedManagedBytes);
         byte[]? compressedPayload = TryEncodeCompressedVp8l(image.Width, image.Height, hasAlpha, pixels,
-            literalFileLength, exif?.LongLength ?? 0L, additionalRetainedManagedBytes, cancellationToken);
+            literalFileLength, exif?.LongLength ?? 0L, additionalRetainedManagedBytes, cancellationToken, effort: effort);
         cancellationToken.ThrowIfCancellationRequested();
         int payloadLength = compressedPayload != null && compressedPayload.Length < literalPayloadLength
             ? compressedPayload.Length

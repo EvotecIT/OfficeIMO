@@ -38,8 +38,8 @@ public class PdfRoundedCornerTests {
         byte[] rounded = PdfDocument.Create(d => d.Content(c => c.Table(Callout(), PdfAlign.Left, CalloutStyle(6)))).ToBytes();
         byte[] square = PdfDocument.Create(d => d.Content(c => c.Table(Callout(), PdfAlign.Left, CalloutStyle(0)))).ToBytes();
 
-        string roundedRaw = PdfEncoding.Latin1GetString(rounded);
-        string squareRaw = PdfEncoding.Latin1GetString(square);
+        string roundedRaw = PdfTestContentText.ReadDecoded(rounded);
+        string squareRaw = PdfTestContentText.ReadDecoded(square);
 
         // Rounding changes the drawing: the square box strokes a plain rectangle (re), the rounded box
         // emits bezier corners (c) for its outer fill and border and clips the accent stripe to them.
@@ -73,7 +73,7 @@ public class PdfRoundedCornerTests {
             })
             .ToBytes();
 
-        string raw = PdfEncoding.Latin1GetString(bytes);
+        string raw = PdfTestContentText.ReadDecoded(bytes);
         Assert.Contains(" c", raw);   // rounded corners emit bezier operators
         string text = PdfReadDocument.Open(bytes).ExtractText();
         Assert.Contains("Panel title", text, StringComparison.Ordinal);
@@ -91,7 +91,7 @@ public class PdfRoundedCornerTests {
             .Canvas(canvas => canvas.Table(Callout(), 24, 24, 160, 64, style))
             .ToBytes();
 
-        string raw = PdfEncoding.Latin1GetString(bytes);
+        string raw = PdfTestContentText.ReadDecoded(bytes);
         Assert.Contains(" c", raw, StringComparison.Ordinal);
         Assert.Contains("Callout title", PdfReadDocument.Open(bytes).ExtractText(), StringComparison.Ordinal);
     }
@@ -110,8 +110,8 @@ public class PdfRoundedCornerTests {
             .ToBytes();
 
         Assert.Equal(
-            CountOccurrences(PdfEncoding.Latin1GetString(oneRowBatches), " c"),
-            CountOccurrences(PdfEncoding.Latin1GetString(threeRowBatches), " c"));
+            CountOccurrences(PdfTestContentText.ReadDecoded(oneRowBatches), " c"),
+            CountOccurrences(PdfTestContentText.ReadDecoded(threeRowBatches), " c"));
 
         static IEnumerable<string[]> CreateRows() {
             for (int row = 0; row < 7; row++) yield return new[] { "Row " + row, "Value " + row };
@@ -135,7 +135,7 @@ public class PdfRoundedCornerTests {
             }
         };
 
-        string raw = PdfEncoding.Latin1GetString(PdfDocument.Create(new PdfOptions { CompressContentStreams = false })
+        string raw = PdfTestContentText.ReadDecoded(PdfDocument.Create(new PdfOptions { CompressContentStreams = false })
             .Table(new[] { new[] { "Border contract" } }, style: style)
             .ToBytes());
 
@@ -157,11 +157,11 @@ public class PdfRoundedCornerTests {
             [(0, 1)] = new PdfCellBorder { Color = PdfColor.FromRgb(68, 85, 102), Width = 1 }
         };
 
-        string raw = PdfEncoding.Latin1GetString(PdfDocument.Create(new PdfOptions { CompressContentStreams = false })
+        string raw = PdfTestContentText.ReadDecoded(PdfDocument.Create(new PdfOptions { CompressContentStreams = false })
             .Table(new[] { new[] { "Left", "Middle", "Right" } }, style: style)
             .ToBytes());
         style.CellBorders = null;
-        string withoutCellBorder = PdfEncoding.Latin1GetString(PdfDocument.Create(new PdfOptions { CompressContentStreams = false })
+        string withoutCellBorder = PdfTestContentText.ReadDecoded(PdfDocument.Create(new PdfOptions { CompressContentStreams = false })
             .Table(new[] { new[] { "Left", "Middle", "Right" } }, style: style)
             .ToBytes());
 

@@ -6,6 +6,50 @@ using Xunit;
 namespace OfficeIMO.Tests;
 
 public partial class PowerPoint {
+    [Theory]
+    [InlineData(true, 204, 210, 216)]
+    [InlineData(false, 10, 61, 84)]
+    public void ThemeColorResolver_TintAndShadeUseLinearRgbAndPreserveAlpha(bool tint, byte red, byte green, byte blue) {
+        var transforms = new RgbColorModelHex { Val = "156082" };
+        transforms.Append(tint
+            ? (DocumentFormat.OpenXml.OpenXmlElement)new Tint { Val = 40000 }
+            : new Shade { Val = 40000 });
+        transforms.Append(new AlphaModulation { Val = 50000 });
+
+        OfficeColor actual = OfficeOpenXmlThemeColorResolver.ApplyTransforms(
+            OfficeColor.FromRgba(21, 96, 130, 128), transforms);
+
+        Assert.Equal(OfficeColor.FromRgba(red, green, blue, 64), actual);
+    }
+
+    [Fact]
+    public void ThemeColorResolver_KeepsTintShadeAndAlphaTransformsInSourceOrder() {
+        var tintThenShade = new RgbColorModelHex(new Tint { Val = 40000 }, new Shade { Val = 50000 },
+            new Alpha { Val = 50000 }, new AlphaModulation { Val = 50000 }) { Val = "156082" };
+        var shadeThenTint = new RgbColorModelHex(new Shade { Val = 50000 }, new Tint { Val = 40000 },
+            new AlphaModulation { Val = 50000 }, new Alpha { Val = 50000 }) { Val = "156082" };
+
+        Assert.Equal(OfficeColor.FromRgba(149, 154, 158, 64), OfficeOpenXmlThemeColorResolver.ResolveColor(tintThenShade, null));
+        Assert.Equal(OfficeColor.FromRgba(204, 207, 210, 128), OfficeOpenXmlThemeColorResolver.ResolveColor(shadeThenTint, null));
+    }
+
+    [Theory]
+    [InlineData("red", 255, 0, 0)]
+    [InlineData("dkBlue", 0, 0, 139)]
+    [InlineData("dkGray", 169, 169, 169)]
+    [InlineData("ltGoldenrodYellow", 250, 250, 210)]
+    [InlineData("medVioletRed", 199, 21, 133)]
+    [InlineData("gray", 128, 128, 128)]
+    public void ThemeColorResolver_DecodesPresetTokensAndDrawingMlAbbreviations(string token, byte red, byte green, byte blue) {
+        var color = new PresetColor(new Alpha { Val = 50000 });
+        color.SetAttribute(new DocumentFormat.OpenXml.OpenXmlAttribute("val", string.Empty, token));
+        Assert.Equal(OfficeColor.FromRgba(red, green, blue, 128),
+            OfficeOpenXmlThemeColorResolver.ResolveColor(color, null));
+        var scheme = new ColorScheme(new Accent1Color((PresetColor)color.CloneNode(true))) { Name = "Preset theme" };
+        Assert.Equal(OfficeColor.FromRgba(red, green, blue, 128),
+            OfficeOpenXmlThemeColorResolver.ResolveColor(new SchemeColor { Val = SchemeColorValues.Accent1 }, scheme));
+    }
+
     [Fact]
     public void ThemeColorResolver_DistinguishesComplementFromChannelInverse() {
         var complement = new RgbColorModelHex(new Complement()) { Val = "336699" };

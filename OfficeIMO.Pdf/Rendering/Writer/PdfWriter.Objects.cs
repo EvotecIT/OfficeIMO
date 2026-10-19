@@ -6,8 +6,12 @@ namespace OfficeIMO.Pdf;
 
 internal static partial class PdfWriter {
     private static int AddObject(System.Collections.Generic.IList<byte[]> list, string body) {
+        PdfVisualResourceCache? cache = (list as IPdfObjectStore)?.VisualResources;
+        string? key = PdfVisualResourceCache.IsVisualDictionary(body) ? PdfVisualResourceCache.Hash(body) : null;
+        if (key != null && cache != null && cache.TryGet(key, out int existingId)) return existingId;
         int id = list.Count + 1;
         list.Add(PdfObjectBytes.WrapIndirectObject(id, body));
+        if (key != null) cache?.Add(key, id);
         return id;
     }
 
@@ -35,16 +39,6 @@ internal static partial class PdfWriter {
             content);
     }
 
-    private static int AddTrueTypeFontFileObject(System.Collections.Generic.IList<byte[]> list, PdfTrueTypeFontProgram fontProgram, bool compress, CancellationToken cancellationToken) {
-        byte[] data = fontProgram.BuildSubsetFontFile(compress, out int uncompressedLength, cancellationToken);
-        string filter = compress ? " /Filter /FlateDecode" : string.Empty;
-        return AddStreamObject(
-            list,
-            "<< /Length " + data.Length.ToString(CultureInfo.InvariantCulture) +
-            " /Length1 " + uncompressedLength.ToString(CultureInfo.InvariantCulture) + filter + " >>",
-            data);
-    }
-
     private static int AddFlateStreamObject(System.Collections.Generic.IList<byte[]> list, byte[] content) {
         Guard.NotNull(content, nameof(content));
         byte[] compressed = DeflateZlib(content);
@@ -70,6 +64,19 @@ internal static partial class PdfWriter {
         Guard.NotNull(content, nameof(content));
         Guard.NotNullOrWhiteSpace(dictionary, nameof(dictionary));
 
+        // These writer-owned dictionaries have exactly one direct /Length entry.
+        // Metadata is deliberately excluded: PDF/A XMP packets remain unfiltered.
+        if (PdfVisualResourceCache.ShouldCompressStream(dictionary)) {
+            string lengthEntry = " /Length " + content.Length.ToString(CultureInfo.InvariantCulture) + " ";
+            int lengthIndex = dictionary.IndexOf(lengthEntry, StringComparison.Ordinal);
+            if (lengthIndex < 0) throw new InvalidOperationException("Generated stream has no matching direct length.");
+            content = DeflateZlib(content);
+            dictionary = dictionary.Substring(0, lengthIndex) + " /Filter /FlateDecode /Length " +
+                content.Length.ToString(CultureInfo.InvariantCulture) + " " + dictionary.Substring(lengthIndex + lengthEntry.Length);
+        }
+        PdfVisualResourceCache? cache = (list as IPdfObjectStore)?.VisualResources;
+        string? key = PdfVisualResourceCache.IsShareableStream(dictionary) ? PdfVisualResourceCache.Hash(dictionary, content) : null;
+        if (key != null && cache != null && cache.TryGet(key, out int existingId)) return existingId;
         int id = list.Count + 1;
         if (list is PdfObjectStore objectStore) {
             objectStore.AddSegments(PdfObjectBytes.CreateStreamObjectSegments(id, dictionary, content));
@@ -78,6 +85,7 @@ internal static partial class PdfWriter {
         } else {
             list.Add(PdfObjectBytes.WrapStreamObject(id, dictionary, content));
         }
+        if (key != null) cache?.Add(key, id);
         return id;
     }
 
@@ -376,6 +384,7 @@ internal static partial class PdfWriter {
     }
 
     private sealed class PageStructElement {
+        public string? Language { get; set; }
         public long? LogicalOrder { get; set; }
         public int? MarkedContentId { get; set; }
         public System.Collections.Generic.List<int>? AdditionalMarkedContentIds { get; set; }
@@ -419,6 +428,7 @@ internal static partial class PdfWriter {
     }
 
     private sealed class PageShading {
+        public bool InterpolateAlphaSeparately { get; set; }
         public bool IsOpacityData { get; set; }
         public OfficeGradientColorInterpolation ColorInterpolation { get; set; }
         public string Name { get; set; } = string.Empty;
@@ -457,6 +467,7 @@ internal static partial class PdfWriter {
     }
 
     private sealed class PageEffectGroup {
+        public PageTilingPattern? TilingPattern { get; set; }
         public PdfPageContentHandle Content { get; set; }
         public PageEffectGroup? SoftMask { get; set; }
         public OfficeSoftMaskMode SoftMaskMode { get; set; }
@@ -489,6 +500,7 @@ internal static partial class PdfWriter {
     }
 
     private sealed class PageImage {
+        public OfficeImageOrientation Orientation { get; set; } = OfficeImageOrientation.Normal;
         public bool IsOpacityData { get; set; }
         public bool Interpolate { get; set; }
         public byte[] Data { get; set; } = System.Array.Empty<byte>();
@@ -525,6 +537,7 @@ internal static partial class PdfWriter {
         public int? StructElementIndex { get; set; }
         public string? InlineDrawToken { get; set; }
         public bool IsForeground { get; set; }
+        public OfficeTransform ForegroundTransform { get; set; } = OfficeTransform.Identity;
         public uint ForegroundZOrder { get; set; }
         public bool DebugBox { get; set; }
         public string Name { get; set; } = string.Empty;

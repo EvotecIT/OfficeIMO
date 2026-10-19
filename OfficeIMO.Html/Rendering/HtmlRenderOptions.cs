@@ -5,13 +5,13 @@ namespace OfficeIMO.Html;
 /// <summary>
 /// Shared layout and safety options used by HTML image and PDF rendering.
 /// </summary>
-public class HtmlRenderOptions : OfficeImageExportOptions {
+public partial class HtmlRenderOptions : OfficeImageExportOptions {
     private readonly List<string> _additionalStylesheets = new List<string>();
 
     /// <summary>CSS reference pixel density used for physical page conversion.</summary>
     public const double CssPixelsPerInch = 96D;
 
-    /// <summary>Creates the default continuous render configuration.</summary>
+    /// <summary>Creates the default paged print configuration. Select <see cref="HtmlRenderMode.Continuous"/> for an unpaginated screenshot.</summary>
     public HtmlRenderOptions() {
         PageSize = OfficePageSizes.A4;
         Margins = HtmlRenderMargins.All(48D);
@@ -24,8 +24,8 @@ public class HtmlRenderOptions : OfficeImageExportOptions {
         source.CopyTo(this);
     }
 
-    /// <summary>Continuous or paged layout mode.</summary>
-    public HtmlRenderMode Mode { get; set; } = HtmlRenderMode.Continuous;
+    /// <summary>Layout mode. Defaults to paged print output; select Continuous for an unpaginated screenshot.</summary>
+    public HtmlRenderMode Mode { get; set; } = HtmlRenderMode.Paged;
 
     /// <summary>
     /// Determines whether diagnosed approximations, omissions, or failures may be returned.

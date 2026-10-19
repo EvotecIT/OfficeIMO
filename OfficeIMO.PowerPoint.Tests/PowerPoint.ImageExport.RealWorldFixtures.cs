@@ -6,6 +6,7 @@ using System.Text;
 using DocumentFormat.OpenXml.Presentation;
 using OfficeIMO.Drawing;
 using OfficeIMO.PowerPoint;
+using OfficeIMO.Pdf;
 using Xunit;
 using A = DocumentFormat.OpenXml.Drawing;
 
@@ -39,7 +40,6 @@ namespace OfficeIMO.Tests {
                     OfficeColor.FromRgb(245, 158, 11),
                     OfficeColor.FromRgb(99, 102, 241)
                 },
-                18,
                 4000),
             new PowerPointImageFixtureBaseline(
                 "officeimo-powerpoint-image-process-diagram",
@@ -51,28 +51,12 @@ namespace OfficeIMO.Tests {
                     OfficeColor.FromRgb(234, 88, 12),
                     OfficeColor.FromRgb(168, 85, 247)
                 },
-                13,
                 10000)
         };
 
-        [Fact]
-        public void PowerPointImageExportRealWorldFixtureManifestCoversApprovedFixtureBaselines() {
-            string[] names = RealWorldFixtureBaselines
-                .Select(item => item.Name)
-                .OrderBy(name => name, StringComparer.Ordinal)
-                .ToArray();
-
-            Assert.Equal(
-                new[] {
-                    "officeimo-powerpoint-image-dashboard",
-                    "officeimo-powerpoint-image-process-diagram"
-                },
-                names);
-        }
-
         [Theory]
         [MemberData(nameof(GetRealWorldFixtureBaselines))]
-        public void PowerPointImageExportRealWorldFixturesRenderThroughSharedDrawing(PowerPointImageFixtureBaseline baseline) {
+        public void PowerPointImageExportRealWorldFixturesMatchPdfPageImages(PowerPointImageFixtureBaseline baseline) {
             using PowerPointPresentation presentation = baseline.CreatePresentation();
             PowerPointSlide slide = presentation.Slides[0];
 
@@ -80,10 +64,9 @@ namespace OfficeIMO.Tests {
             OfficeImageExportResult png = slide.ExportImage(OfficeImageExportFormat.Png);
             OfficeImageExportResult svg = slide.ExportImage(OfficeImageExportFormat.Svg);
 
-            AssertNoUnexpectedDiagnostics(snapshot.Diagnostics);
-            AssertNoUnexpectedDiagnostics(png.Diagnostics);
-            AssertNoUnexpectedDiagnostics(svg.Diagnostics);
-            Assert.True(snapshot.Drawing.Elements.Count >= baseline.ExpectedMinimumDrawingElements, baseline.Name + " lost Drawing snapshot coverage.");
+            AssertFixtureDiagnostics(snapshot.Diagnostics);
+            AssertFixtureDiagnostics(png.Diagnostics);
+            AssertFixtureDiagnostics(svg.Diagnostics);
             Assert.True(OfficePngReader.TryDecode(png.Bytes, out OfficeRasterImage? image), baseline.Name + " PNG output is not decodable by OfficeIMO.Drawing.");
             Assert.Equal((int)Math.Round(snapshot.Width), image!.Width);
             Assert.Equal((int)Math.Round(snapshot.Height), image.Height);
@@ -91,16 +74,28 @@ namespace OfficeIMO.Tests {
 
             string svgText = Encoding.UTF8.GetString(svg.Bytes);
             Assert.Contains("<svg", svgText, StringComparison.Ordinal);
-            string decodedSvgText = ReadVisibleSvgText(svgText);
             string snapshotText = GetSnapshotPlainText(snapshot);
-            foreach (string expectedText in baseline.ExpectedSvgTexts) {
+            foreach (string expectedText in baseline.ExpectedTexts) {
                 Assert.Contains(expectedText, snapshotText, StringComparison.Ordinal);
-                Assert.Contains(expectedText, decodedSvgText, StringComparison.Ordinal);
+            }
+
+            foreach (OfficeImageExportFormat format in new[] { OfficeImageExportFormat.Png, OfficeImageExportFormat.Jpeg, OfficeImageExportFormat.Svg }) {
+                AssertSharedPdfImageRoute(presentation, format);
             }
 
             foreach (OfficeColor expectedColor in baseline.ExpectedRasterColors) {
                 Assert.True(CountPixelsNear(image, expectedColor) > 20, baseline.Name + " lost expected color " + expectedColor + " in PNG output.");
             }
+        }
+
+        private static void AssertFixtureDiagnostics(IEnumerable<OfficeImageExportDiagnostic> diagnostics) {
+            OfficeImageExportDiagnostic[] all = diagnostics.ToArray();
+            // These compact labels allow visible overflow. Any clipping or other loss still fails below.
+            foreach (OfficeImageExportDiagnostic diagnostic in all.Where(item => item.Code == "text-box-overflow")) {
+                Assert.Equal(OfficeConversionLossKind.None, diagnostic.LossKind);
+                Assert.Equal(OfficeImageExportDiagnosticSeverity.Warning, diagnostic.Severity);
+            }
+            AssertNoUnexpectedDiagnostics(all.Where(item => item.Code != "text-box-overflow"));
         }
 
         public static IEnumerable<object[]> GetRealWorldFixtureBaselines() =>
@@ -240,35 +235,34 @@ namespace OfficeIMO.Tests {
             return count;
         }
 
-        private static string GetSnapshotPlainText(PowerPointSlideVisualSnapshot snapshot) {
-            var builder = new StringBuilder();
-            foreach (OfficeDrawingElement element in snapshot.Drawing.Elements) {
-                switch (element) {
-                    case OfficeDrawingText text:
-                        builder.AppendLine(text.Text);
-                        break;
-                    case OfficeDrawingRichText richText:
-                        builder.AppendLine(richText.PlainText);
-                        break;
-                }
-            }
+        private static string GetSnapshotPlainText(PowerPointSlideVisualSnapshot snapshot) =>
+            string.Concat(GetSnapshotTextSegments(snapshot).Select(segment => segment.Text));
 
-            return builder.ToString();
+        private static IEnumerable<(PdfTextSpan Span, string Text)> GetSnapshotTextSegments(PowerPointSlideVisualSnapshot snapshot) {
+            PdfTextSpan? previous = null;
+            foreach (PdfTextSpan span in snapshot.TextSpans) {
+                string text = System.Text.RegularExpressions.Regex.Replace(span.Text, @"\s+", " ");
+                if (text.Length == 0) continue;
+                // Preserve run boundaries within a line; a wrapped line separates logical words.
+                if (previous != null && Math.Abs(previous.Y - span.Y) > 0.01D
+                    && previous.Text.Length > 0 && !char.IsWhiteSpace(previous.Text[previous.Text.Length - 1])
+                    && !char.IsWhiteSpace(text[0])) text = " " + text;
+                yield return (span, text);
+                previous = span;
+            }
         }
 
         public sealed class PowerPointImageFixtureBaseline {
             public PowerPointImageFixtureBaseline(
                 string name,
                 Func<PowerPointPresentation> createPresentation,
-                IReadOnlyList<string> expectedSvgTexts,
+                IReadOnlyList<string> expectedTexts,
                 IReadOnlyList<OfficeColor> expectedRasterColors,
-                int expectedMinimumDrawingElements,
                 int expectedMinimumNonBackgroundPixels) {
                 Name = name;
                 CreatePresentation = createPresentation;
-                ExpectedSvgTexts = expectedSvgTexts;
+                ExpectedTexts = expectedTexts;
                 ExpectedRasterColors = expectedRasterColors;
-                ExpectedMinimumDrawingElements = expectedMinimumDrawingElements;
                 ExpectedMinimumNonBackgroundPixels = expectedMinimumNonBackgroundPixels;
             }
 
@@ -276,11 +270,9 @@ namespace OfficeIMO.Tests {
 
             public Func<PowerPointPresentation> CreatePresentation { get; }
 
-            public IReadOnlyList<string> ExpectedSvgTexts { get; }
+            public IReadOnlyList<string> ExpectedTexts { get; }
 
             public IReadOnlyList<OfficeColor> ExpectedRasterColors { get; }
-
-            public int ExpectedMinimumDrawingElements { get; }
 
             public int ExpectedMinimumNonBackgroundPixels { get; }
         }

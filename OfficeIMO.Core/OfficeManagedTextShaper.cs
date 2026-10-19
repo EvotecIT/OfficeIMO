@@ -17,6 +17,8 @@ internal static class OfficeManagedTextShaper {
 
         cancellationToken.ThrowIfCancellationRequested();
         bool incomplete =
+            OfficeTextElements.ContainsCombiningMark(text) ||
+            OfficeArabicTextShaper.RequiresLamAlefLigatureShaping(text) ||
             OfficeTextElements.ContainsShapingRequiredScript(text) ||
             OfficeTextElements.ContainsVariationSelector(text) ||
             OfficeTextElements.ContainsZeroWidthJoinerSequence(text) ||
@@ -42,6 +44,7 @@ internal static class OfficeManagedTextShaper {
     }
 
     internal static bool RequiresComplexLayout(string? text) =>
+        OfficeTextElements.ContainsCombiningMark(text) ||
         OfficeTextElements.ContainsRightToLeft(text) ||
         OfficeTextElements.ContainsJoiningScript(text) ||
         OfficeTextElements.ContainsShapingRequiredScript(text) ||

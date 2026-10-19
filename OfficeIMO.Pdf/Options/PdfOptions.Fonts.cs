@@ -4,8 +4,6 @@ using System.Linq;
 namespace OfficeIMO.Pdf;
 
 public sealed partial class PdfOptions {
-    private static readonly char[] OfficeFontFamilySeparators = { ',', ';' };
-    private static readonly char[] OfficeFontFamilyTrimChars = { ' ', '\t', '"', '\'' };
     private static readonly PdfStandardFont[] AdditionalFontFamilySlotPreference = {
         PdfStandardFont.TimesRoman,
         PdfStandardFont.Courier,
@@ -265,6 +263,7 @@ public sealed partial class PdfOptions {
             if (reserved.Contains(family) && !EmbeddedFontFamilySlotMatches(family, familyName!) &&
                 !TrySelectAvailableFontFamilySlot(familyName!, reserved, out family)) return false;
             RegisterFontFamily(family, embeddedFamily);
+            ReportInstalledOfficeFontSubstitution(familyName!, embeddedFamily, namedFamily: false);
         }
 
         DefaultFont = family;
@@ -290,6 +289,7 @@ public sealed partial class PdfOptions {
             FooterFont = family;
         } else if (embedSystemFont && TryLoadOfficeFontFamily(familyName!, out PdfEmbeddedFontFamily? embeddedFamily) && embeddedFamily != null) {
             RegisterFontFamily(PdfStandardFont.Helvetica, embeddedFamily);
+            ReportInstalledOfficeFontSubstitution(familyName!, embeddedFamily, namedFamily: false);
             DefaultFont = PdfStandardFont.Helvetica;
             HeaderFont = PdfStandardFont.Helvetica;
             FooterFont = PdfStandardFont.Helvetica;
@@ -327,6 +327,7 @@ public sealed partial class PdfOptions {
         PdfStandardFont normalizedFamily = PdfStandardFontMapper.GetFontFamily(baseFontFamily);
         if (embedSystemFont && TryLoadOfficeFontFamily(familyName!, out PdfEmbeddedFontFamily? embeddedFamily) && embeddedFamily != null) {
             RegisterFontFamily(normalizedFamily, embeddedFamily);
+            ReportInstalledOfficeFontSubstitution(familyName!, embeddedFamily, namedFamily: false);
         }
 
         return this;
@@ -466,16 +467,19 @@ public sealed partial class PdfOptions {
             }
         }
 
+        // Honor every explicitly listed installed family before considering an implicit substitute.
+        foreach (string candidate in EnumerateOfficeFontFamilyCandidates(familyName)) {
+            foreach (string substitute in OfficeIMO.Drawing.OfficeDocumentFontSubstitutions.Enumerate(candidate)) {
+                if (PdfEmbeddedFontFamily.TryFromSystem(substitute, out embeddedFamily) && embeddedFamily != null) {
+                    return true;
+                }
+            }
+        }
+
         embeddedFamily = null;
         return false;
     }
 
-    private static System.Collections.Generic.IEnumerable<string> EnumerateOfficeFontFamilyCandidates(string familyName) {
-        foreach (string value in familyName.Split(OfficeFontFamilySeparators)) {
-            string candidate = value.Trim(OfficeFontFamilyTrimChars);
-            if (!string.IsNullOrWhiteSpace(candidate)) {
-                yield return candidate;
-            }
-        }
-    }
+    private static System.Collections.Generic.List<string> EnumerateOfficeFontFamilyCandidates(string familyName) =>
+        OfficeIMO.Drawing.OfficeFontFamilyParser.Parse(familyName, allowSemicolonSeparators: true);
 }

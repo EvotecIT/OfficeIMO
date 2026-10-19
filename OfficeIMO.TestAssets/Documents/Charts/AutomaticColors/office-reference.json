@@ -1,0 +1,243 @@
+{
+  "schemaVersion": 1,
+  "purpose": "Fill colours Microsoft Office draws for chart series and data points that store no colour. Each chart's officeFills lists the distinct non-white fills of its page in first-drawn order; series are drawn in series order and pie slices in point order.",
+  "producerEnvironment": {
+    "suite": "Microsoft 365 for Mac",
+    "shortVersion": "16.113.4",
+    "bundleVersion": "16.113.26100421",
+    "operatingSystem": "macOS 27.0.1",
+    "operatingSystemBuild": "26A434"
+  },
+  "exports": [
+    {
+      "source": "automatic-colors.pptx",
+      "sourceSha256": "f07aefe0cc3ca06a61d23aec0ceb48fd0d63f6582acc2e634e91a9b9b8d465a5",
+      "producer": "Microsoft PowerPoint",
+      "exportPreset": "best-for-printing",
+      "pdf": "microsoft-powerpoint-16.113-automatic-colors.pdf",
+      "pdfSha256": "3d9dd0ebf838c4a0c113d6a4e460941a7f24125b9f48677d0bd4b040a5ff041f"
+    },
+    {
+      "source": "automatic-colors.docx",
+      "sourceSha256": "dece3dd8f40d160ad0896bddeec01ab0ca3afb7364866a981daa8882553f21cb",
+      "producer": "Microsoft Word",
+      "exportPreset": "save-as-pdf",
+      "pdf": "microsoft-word-16.113-automatic-colors.pdf",
+      "pdfSha256": "73278a00d9c785d8ae8018cdbb6bc314f0bc689c71c05425d8adda97403897d9"
+    },
+    {
+      "source": "automatic-colors.xlsx",
+      "sourceSha256": "2388f11887fa0a5f1bccbff8b0cd29a8c2e156c6d08bda4a93d843465e748cd5",
+      "producer": "Microsoft Excel",
+      "exportPreset": "best-for-printing, whole workbook",
+      "pdf": "microsoft-excel-16.113-automatic-colors.pdf",
+      "pdfSha256": "ccd4bee458a58984168a776def4157e3a9006ac738c53537cf149c636a90ff16"
+    }
+  ],
+  "charts": [
+    {
+      "number": 1,
+      "title": "Classic style 2 clustered column",
+      "officeFills": [
+        "156082",
+        "E97132",
+        "196B24"
+      ]
+    },
+    {
+      "number": 2,
+      "title": "Classic style 2 with eight series",
+      "officeFills": [
+        "115472",
+        "CE632B",
+        "155E1F",
+        "0C8BBC",
+        "8D2582",
+        "449328",
+        "8599AA",
+        "EEA18A"
+      ]
+    },
+    {
+      "number": 3,
+      "title": "Colourful palette 1 with eight series",
+      "officeFills": [
+        "115472",
+        "CE632B",
+        "155E1F",
+        "0C8BBC",
+        "8D2582",
+        "449328",
+        "8599AA",
+        "EEA18A"
+      ]
+    },
+    {
+      "number": 4,
+      "title": "Clustered bar",
+      "officeFills": [
+        "156082",
+        "E97132",
+        "196B24"
+      ]
+    },
+    {
+      "number": 5,
+      "title": "Line with markers",
+      "officeFills": [
+        "156082",
+        "E97132",
+        "196B24"
+      ]
+    },
+    {
+      "number": 6,
+      "title": "Classic line",
+      "officeFills": [
+        "156082",
+        "E97132",
+        "196B24"
+      ]
+    },
+    {
+      "number": 7,
+      "title": "Area",
+      "officeFills": [
+        "156082",
+        "E97132"
+      ]
+    },
+    {
+      "number": 8,
+      "title": "Scatter",
+      "officeFills": [
+        "156082",
+        "E97132",
+        "196B24"
+      ]
+    },
+    {
+      "number": 9,
+      "title": "Classic pie",
+      "officeFills": [
+        "156082",
+        "E97132",
+        "196B24",
+        "0F9ED5"
+      ]
+    },
+    {
+      "number": 10,
+      "title": "Pie with eight slices",
+      "officeFills": [
+        "115472",
+        "CE632B",
+        "155E1F",
+        "0C8BBC",
+        "8D2582",
+        "449328",
+        "8599AA",
+        "EEA18A"
+      ]
+    },
+    {
+      "number": 11,
+      "title": "Stock high-low-close",
+      "officeFills": [
+        "196B24"
+      ]
+    },
+    {
+      "number": 12,
+      "title": "Monochromatic palette 1",
+      "officeFills": [
+        "156082",
+        "E97132",
+        "196B24",
+        "0F9ED5"
+      ]
+    },
+    {
+      "number": 13,
+      "title": "Classic style 4 monochrome",
+      "officeFills": [
+        "B75725",
+        "DA692E",
+        "EC9172",
+        "F3BEB1"
+      ]
+    },
+    {
+      "number": 14,
+      "title": "Classic style 1 greyscale",
+      "officeFills": [
+        "555555",
+        "9E9E9E",
+        "727272",
+        "464646",
+        "838383",
+        "C1C1C1"
+      ]
+    },
+    {
+      "number": 15,
+      "title": "Pie with monochromatic palette",
+      "officeFills": [
+        "156082",
+        "E97132",
+        "196B24",
+        "0F9ED5"
+      ]
+    },
+    {
+      "number": 16,
+      "title": "Doughnut with two rings",
+      "officeFills": [
+        "156082",
+        "E97132",
+        "196B24",
+        "0F9ED5"
+      ]
+    },
+    {
+      "number": 17,
+      "title": "Classic style 2 with six series",
+      "officeFills": [
+        "115472",
+        "CE632B",
+        "155E1F",
+        "0C8BBC",
+        "8D2582",
+        "449328"
+      ]
+    },
+    {
+      "number": 18,
+      "title": "Classic style 2 with twelve series",
+      "officeFills": [
+        "0F4E6A",
+        "C05C27",
+        "13571C",
+        "0A82B0",
+        "832279",
+        "3F8924",
+        "156082",
+        "E97132",
+        "196B24",
+        "0F9ED5",
+        "A02B93",
+        "4EA72E"
+      ]
+    },
+    {
+      "number": 19,
+      "title": "Classic style 1 with four series",
+      "officeFills": [
+        "616161",
+        "B3B3B3",
+        "818181",
+        "505050"
+      ]
+    }
+  ]
+}

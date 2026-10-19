@@ -11,7 +11,7 @@ namespace OfficeIMO.Tests.Pdf;
 
 public partial class PdfStamperTests {
     [Fact]
-    public void StampImage_NormalizesExifOrientationBeforeEmbedding() {
+    public void StampImage_PreservesExifJpegAndUsesOrientedDefaultSize() {
         var raster = new OfficeRasterImage(2, 1);
         raster.SetPixel(0, 0, OfficeColor.Red);
         raster.SetPixel(1, 0, OfficeColor.Blue);
@@ -34,8 +34,15 @@ public partial class PdfStamperTests {
                              subtype is PdfName { Name: "Image" } &&
                              stream.Dictionary.Items.TryGetValue("ColorSpace", out PdfObject? colorSpace) &&
                              colorSpace is PdfName { Name: "DeviceRGB" });
-        Assert.Equal(1, Assert.IsType<PdfNumber>(image.Dictionary.Items["Width"]).Value);
-        Assert.Equal(2, Assert.IsType<PdfNumber>(image.Dictionary.Items["Height"]).Value);
+        Assert.Equal(2, Assert.IsType<PdfNumber>(image.Dictionary.Items["Width"]).Value);
+        Assert.Equal(1, Assert.IsType<PdfNumber>(image.Dictionary.Items["Height"]).Value);
+        Assert.Equal(jpeg, image.Data);
+        Assert.Equal("DCTDecode", image.Dictionary.Get<PdfName>("Filter")?.Name);
+        PdfImagePlacement placement = Assert.Single(PdfImageExtractor.ExtractImagePlacements(stamped));
+        Assert.Equal(1, placement.Width, 3);
+        Assert.Equal(2, placement.Height, 3);
+        Assert.Equal(0, placement.A, 3);
+        Assert.Equal(0, placement.D, 3);
     }
 
     [Fact]

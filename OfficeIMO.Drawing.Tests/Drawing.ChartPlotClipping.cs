@@ -53,8 +53,9 @@ public sealed class DrawingChartPlotClippingTests {
         var data = new OfficeChartData(new[] { "A", "B" }, new[] {
             new OfficeChartSeries("Series", new[] { 10d, 10d }, null, ink)
         });
+        // Points on the tick marks (OOXML midCat) put the clipped area across the whole plot.
         var layout = new OfficeChartLayout(showLegend: false,
-            verticalAxisMinimum: 0, verticalAxisMaximum: 5);
+            verticalAxisMinimum: 0, verticalAxisMaximum: 5).WithCategoryPointsOnTickMarks(true);
         OfficeDrawing drawing = OfficeChartDrawingRenderer.Render(new OfficeChartSnapshot("", null,
             OfficeChartKind.Area, data, 360, 240, layout: layout));
         OfficeDrawingGroup group = Assert.Single(drawing.Elements.OfType<OfficeDrawingGroup>());
@@ -212,8 +213,9 @@ public sealed class DrawingChartPlotClippingTests {
         var data = new OfficeChartData(new[] { "A", "B" }, new[] {
             new OfficeChartSeries("Series", new[] { -1e12, 1e9 }, null, ink)
         });
+        // Points on the tick marks (OOXML midCat) put the second category at the plot edge.
         var layout = new OfficeChartLayout(showLegend: false,
-            verticalAxisMinimum: 0, verticalAxisMaximum: 1);
+            verticalAxisMinimum: 0, verticalAxisMaximum: 1).WithCategoryPointsOnTickMarks(true);
         OfficeDrawing drawing = OfficeChartDrawingRenderer.Render(new OfficeChartSnapshot("", null,
             kind, data, 360, 240, layout: layout));
         OfficeDrawingGroup group = Assert.Single(drawing.Elements.OfType<OfficeDrawingGroup>(),

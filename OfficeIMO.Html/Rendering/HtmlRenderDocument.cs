@@ -233,7 +233,10 @@ public sealed class HtmlRenderDocument : global::OfficeIMO.IOfficeConversionRepo
                 .ThenBy(item => item.Y)
                 .ThenBy(item => item.X)
                 .ToList();
-            var first = ordered[0];
+            // Navigation targets the element's anchor, not the font's paint carrier.
+            // PDF font metrics can move a text fragment above its CSS line box.
+            var first = ordered.FirstOrDefault(item => item.IsAnchor);
+            if (!first.IsAnchor) first = ordered[0];
             string renderedText = string.Concat(ordered.Where(item => !item.IsAnchor).Select(item => item.Text)).Trim();
             string anchorText = ordered.Where(item => item.IsAnchor).Select(item => item.Text.Trim()).FirstOrDefault(text => text.Length > 0) ?? string.Empty;
             string headingText = anchorText.Length > 0 ? anchorText : renderedText;

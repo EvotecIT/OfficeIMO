@@ -150,7 +150,19 @@ Compatible table segments continue across adjacent pages by default. The shared 
 
 Worksheet print areas are exported separately, in their stored order, with each area starting on a new page. Both worksheet layouts honor local A1 cells and ranges, whole-row and whole-column selections, and multiple areas. Content outside the selected areas is excluded. Repeated title rows, first/even/odd headers and footers, and page numbering belong to the worksheet and continue across its areas. Internal links to a cell appearing in several areas target its first exported occurrence. Invalid or external print-area references are rejected instead of widening the selection to the used range.
 
-Worksheet fit-to-page mode defaults each omitted fit dimension to one page. A zero dimension leaves that axis unlimited. Manual scaling remains active when fit-to-page mode is disabled, even when the file retains cached fit dimensions.
+Worksheet fit-to-page mode includes retained image, chart, and shape extents before choosing page breaks, and defaults each omitted fit dimension to one page. A zero dimension leaves that axis unlimited. Manual scaling remains active when fit-to-page mode is disabled, even when the file retains cached fit dimensions.
+
+Bubble charts use aligned X/Y/size triples, the authored bubble scale percentage,
+and area or width sizing through the same Core bubble renderer as PNG export.
+Automatic per-series colours remain resolved from the workbook theme and chart
+style. A caller-supplied `ChartStyle` palette replaces automatic colours.
+`showNegBubbles = false` omits negative-size bubbles; a request to show them emits
+`ExcelChartBubbleNegativeSizesUnsupported` because Core cannot paint negative
+sizes. Positive bubbles remain visible. Invalid bubble settings and flat
+projections of 3-D bubbles emit `ExcelChartBubbleSettingsApproximated`. Native
+Excel's absolute bubble diameters can differ.
+
+Worksheet horizontal and vertical print centering position the scaled scene inside its print margins. Supported DrawingML shapes and text boxes use the same shape/text drawing owner as PNG export; `UseWorksheetImages = false` omits these objects as well as pictures. Unsupported objects produce a conversion warning. Header and footer pictures resolve their VML image relationships, including imported files with an undeclared standard relationship prefix or a stale relationship identifier.
 
 The default worksheet canvas preserves authored font sizes in wrapped cells. A cell with shrink-to-fit enabled reduces its own text without changing neighboring cells; wrapping takes precedence when both settings are present.
 
@@ -167,6 +179,8 @@ Manual row and column breaks also divide merged cells. Each fragment retains the
 ## Current limits
 
 - Workbook content is read through `OfficeIMO.Excel`; layout and PDF writing use `OfficeIMO.Pdf`.
+- Worksheet-canvas conditional icons use shared vector artwork and reserve space before cell text. The flow-table profile retains generic indicators; exact native icon pixels and print insets are not guaranteed.
+- Shapes paint above worksheet pictures and charts. Mixed DrawingML object stacking and rich-text runs within a shape are not fully reproduced.
 - Worksheet column widths and fit scaling use layout estimates. Exact Excel printer geometry and derived fit percentages are not guaranteed; fit-to-width documents can have different scale and page counts. Use producer comparisons for workflows that depend on identical pagination.
 - PDF import is structured-data recovery. It reconstructs detected tables as worksheets; `SourceScope` and `HasOmittedPageContent` report text, source vector graphics, images, links, forms, annotations, or actions that are not represented by those tables. `HasLoss` and `RequireNoLoss()` include both that omitted page content and table-row truncation.
 - The current reverse route recovers detected tables and structured values; arbitrary PDF page art is reported rather than presented as an editable workbook. Open recovery work is tracked in the repository [roadmap](../Docs/ROADMAP.md).

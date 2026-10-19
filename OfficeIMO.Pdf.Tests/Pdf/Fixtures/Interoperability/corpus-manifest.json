@@ -109,7 +109,7 @@
       "expectedAnnotationActionTypes": [ "Launch" ],
       "expectedRepairCodes": [],
       "expectedRenderSucceeded": true,
-      "expectedRenderDiagnosticCodes": [ "render.resource.annotation-appearance-missing" ],
+      "expectedRenderDiagnosticCodes": [],
       "expectedMutationMode": "Blocked",
       "features": [ "word-2003", "acrobat-9", "external-document", "launch-action", "link-annotation", "tagged" ]
     },

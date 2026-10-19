@@ -79,11 +79,7 @@ public sealed partial class IWorkBoundaryTests {
         string[] expected = source.Paragraphs.Select(paragraph => paragraph.ListNumber is int number
             ? number + ". " + paragraph.Text : paragraph.Text).ToArray();
         var drawing = reopened.Slides[0].CreateVisualSnapshot().Drawing;
-        Assert.Equal(expected, drawing.Elements.Select(item => item switch {
-            OfficeDrawingRichText rich => rich.PlainText,
-            OfficeDrawingText plain => plain.Text,
-            _ => null
-        }).Where(text => text != null));
+        Assert.Equal(string.Concat(expected), DrawingText(drawing));
         var pdf = reopened.ToPdfDocumentResult();
         string text = PdfCore.PdfReadDocument.Open(pdf.Value.ToBytes()).ExtractText();
         int previous = -1;
@@ -95,6 +91,11 @@ public sealed partial class IWorkBoundaryTests {
         Assert.Equal(OfficeConversionLossKind.Approximation,
             Assert.Single(pdf.Report.Warnings, warning => warning.Code == "table-list-layout-approximation").LossKind);
     }
+
+    // Painted glyph positioning can split a logical paragraph into adjacent runs.
+    private static string DrawingText(OfficeDrawing drawing) => string.Concat(drawing.Elements.Select(element => element switch {
+        OfficeDrawingText text => text.Text, OfficeDrawingRichText rich => rich.PlainText, _ => string.Empty
+    }));
 
     private static MemoryStream ChildResetMappingPackage(IWorkDocumentKind kind, string boundary) {
         string[] text = boundary == "third-level"

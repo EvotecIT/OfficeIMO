@@ -81,9 +81,10 @@ internal static partial class PdfWriter {
                 "Image metadata removed: lost " + result.Metadata.Lost + "; stripped " + result.Metadata.Stripped + ".",
                 PdfConversionWarningSeverity.Warning);
         }
-        image.Data = result.Bytes;
-        image.Info = result.Final;
-        image.PreparedStream = null;
+        PdfDocument.PreparedImage prepared = PdfDocument.PrepareImageBytes(result.Bytes, cancellationToken);
+        image.Data = prepared.Data;
+        image.Info = prepared.Info;
+        image.PreparedStream = prepared.PreparedStream;
     }
 
     private static void ReportImageOptimization(PdfOptions options, PageImage image, string code, string message,

@@ -14,7 +14,7 @@ public sealed partial class HtmlRenderingTests {
     public void HtmlFloat_ShrinkToFitPreservesBlockReplacedWidth(string child) {
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(
             "<body style='margin:0'><div id='outer' style='float:left;background:red'>" + child + "</div></body>",
-            new HtmlRenderOptions { ViewportWidth = 300D, Margins = HtmlRenderMargins.All(0D) });
+            new HtmlRenderOptions { Mode = HtmlRenderMode.Continuous, ViewportWidth = 300D, Margins = HtmlRenderMargins.All(0D) });
 
         HtmlRenderShape outer = FindPositionedShape(rendered, "div#outer");
         Assert.True(outer.Width >= 119D);
@@ -25,6 +25,7 @@ public sealed partial class HtmlRenderingTests {
         const string html = "<body style='margin:0'><div id='outer' style='float:left;background:red'>"
             + "<div style='width:40px;overflow:hidden'>AnUnbreakablyLongLabel</div></div></body>";
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, new HtmlRenderOptions {
+            Mode = HtmlRenderMode.Continuous,
             ViewportWidth = 300D,
             Margins = HtmlRenderMargins.All(0D)
         });
@@ -39,7 +40,7 @@ public sealed partial class HtmlRenderingTests {
             HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(
                 "<body style='margin:0'><div id='outer' style='float:left;background:red'>"
                 + "X<span style='padding-left:10px'>" + content + "</span>Y</div></body>",
-                new HtmlRenderOptions { ViewportWidth = 400D, Margins = HtmlRenderMargins.All(0D) });
+                new HtmlRenderOptions { Mode = HtmlRenderMode.Continuous, ViewportWidth = 400D, Margins = HtmlRenderMargins.All(0D) });
             return FindPositionedShape(rendered, "div#outer").Width;
         }
 
@@ -61,6 +62,7 @@ public sealed partial class HtmlRenderingTests {
             + "<li><div><a href='#conditions'>Current Conditions</a></div></li>"
             + "</ul></div>";
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, new HtmlRenderOptions {
+            Mode = HtmlRenderMode.Continuous,
             ViewportWidth = 500D,
             Margins = HtmlRenderMargins.All(0D)
         });
@@ -79,6 +81,7 @@ public sealed partial class HtmlRenderingTests {
             + "<div style='padding:0 12px'><div style='padding:0 8px'>Long label</div></div>"
             + "</div></body>";
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, new HtmlRenderOptions {
+            Mode = HtmlRenderMode.Continuous,
             ViewportWidth = 500D,
             Margins = HtmlRenderMargins.All(0D)
         });
@@ -198,6 +201,7 @@ public sealed partial class HtmlRenderingTests {
             + "</p></li><li id='second' style='height:20px;background:#ddd'>Next</li></ul>";
 
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, new HtmlRenderOptions {
+            Mode = HtmlRenderMode.Continuous,
             ViewportWidth = 300D,
             Margins = HtmlRenderMargins.All(0D)
         });
@@ -216,6 +220,7 @@ public sealed partial class HtmlRenderingTests {
             + "</p></div><div id='second' style='height:20px;background:#ddd'>Next</div>";
 
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, new HtmlRenderOptions {
+            Mode = HtmlRenderMode.Continuous,
             ViewportWidth = 300D,
             Margins = HtmlRenderMargins.All(0D)
         });
@@ -234,6 +239,7 @@ public sealed partial class HtmlRenderingTests {
             + "</p></div><div id='second' style='height:20px;background:#ddd'>Next</div>";
 
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, new HtmlRenderOptions {
+            Mode = HtmlRenderMode.Continuous,
             ViewportWidth = 300D,
             Margins = HtmlRenderMargins.All(0D)
         });
@@ -264,6 +270,7 @@ public sealed partial class HtmlRenderingTests {
             + "One two three four five six seven eight nine ten eleven twelve thirteen fourteen</p>";
 
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html), new HtmlRenderOptions {
+            Mode = HtmlRenderMode.Continuous,
             ViewportWidth = 100D,
             Margins = HtmlRenderMargins.All(0D)
         });
@@ -283,6 +290,7 @@ public sealed partial class HtmlRenderingTests {
             + "<span>Lead</span><span id='float' style='float:left;width:30px;height:20px;background:red'></span>"
             + "<span> tail</span></p>";
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, new HtmlRenderOptions {
+            Mode = HtmlRenderMode.Continuous,
             ViewportWidth = 100D,
             Margins = HtmlRenderMargins.All(0D)
         });
@@ -304,6 +312,7 @@ public sealed partial class HtmlRenderingTests {
             + "<span>Long heading</span><span id='float' style='float:left;width:70px;height:20px;background:red'></span>"
             + "<span> tail</span></p>";
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, new HtmlRenderOptions {
+            Mode = HtmlRenderMode.Continuous,
             ViewportWidth = 100D,
             Margins = HtmlRenderMargins.All(0D)
         });
@@ -321,6 +330,7 @@ public sealed partial class HtmlRenderingTests {
         string html = "<p style='width:200px;margin:0;font-size:10px;line-height:10px'>"
             + "Lead <span style='float:" + side + ";width:20px;height:20px'></span> tail</p>";
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, new HtmlRenderOptions {
+            Mode = HtmlRenderMode.Continuous,
             ViewportWidth = 200D,
             Margins = HtmlRenderMargins.All(0D)
         });
@@ -338,6 +348,7 @@ public sealed partial class HtmlRenderingTests {
             + "One two three four five six seven eight nine ten</p>";
 
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html), new HtmlRenderOptions {
+            Mode = HtmlRenderMode.Continuous,
             ViewportWidth = 100D,
             Margins = HtmlRenderMargins.All(0D)
         });
@@ -357,6 +368,7 @@ public sealed partial class HtmlRenderingTests {
             + "One two three four five six seven eight</p>";
 
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html), new HtmlRenderOptions {
+            Mode = HtmlRenderMode.Continuous,
             ViewportWidth = 100D,
             Margins = HtmlRenderMargins.All(0D)
         });
@@ -379,6 +391,7 @@ public sealed partial class HtmlRenderingTests {
             + "One two three four five six seven eight</p>";
 
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html), new HtmlRenderOptions {
+            Mode = HtmlRenderMode.Continuous,
             ViewportWidth = 100D,
             Margins = HtmlRenderMargins.All(0D)
         });
@@ -398,6 +411,7 @@ public sealed partial class HtmlRenderingTests {
             + "Nested float text wraps around the measured box and continues below it.</span></p>";
 
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html), new HtmlRenderOptions {
+            Mode = HtmlRenderMode.Continuous,
             ViewportWidth = 100D,
             Margins = HtmlRenderMargins.All(0D)
         });
@@ -415,6 +429,7 @@ public sealed partial class HtmlRenderingTests {
             + "Lead <span style='white-space:nowrap'><span>No wrap</span> range</span> tail</p>";
 
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html), new HtmlRenderOptions {
+            Mode = HtmlRenderMode.Continuous,
             ViewportWidth = 100D,
             Margins = HtmlRenderMargins.All(0D)
         });
@@ -433,6 +448,7 @@ public sealed partial class HtmlRenderingTests {
     [Fact]
     public void HtmlFloat_AutomaticHyphenationUsesAuthoredBreakpointsAndCharacter() {
         var options = new HtmlRenderOptions {
+            Mode = HtmlRenderMode.Continuous,
             ViewportWidth = 100D,
             Margins = HtmlRenderMargins.All(0D),
             TextHyphenationCallback = token => token == "typography" ? new[] { 2, 5, 7 } : Array.Empty<int>()
@@ -495,6 +511,7 @@ public sealed partial class HtmlRenderingTests {
     [Fact]
     public void HtmlFloat_BreakAllSuppressesManualAndAutomaticHyphenation() {
         var options = new HtmlRenderOptions {
+            Mode = HtmlRenderMode.Continuous,
             ViewportWidth = 100D,
             Margins = HtmlRenderMargins.All(0D),
             TextHyphenationCallback = _ => throw new InvalidOperationException("break-all must suppress automatic hyphenation callbacks")
@@ -519,6 +536,7 @@ public sealed partial class HtmlRenderingTests {
             + "<span style='float:left;width:30px;height:28px'></span>one two three four five six seven eight nine ten eleven twelve</p>";
 
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, new HtmlRenderOptions {
+            Mode = HtmlRenderMode.Continuous,
             ViewportWidth = 100D,
             Margins = HtmlRenderMargins.All(0D)
         });
@@ -534,6 +552,7 @@ public sealed partial class HtmlRenderingTests {
             + "<span style='float:left;width:30px;height:20px'></span>one two three four five six seven eight</p>";
 
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, new HtmlRenderOptions {
+            Mode = HtmlRenderMode.Continuous,
             ViewportWidth = 100D,
             Margins = HtmlRenderMargins.All(0D)
         });
@@ -579,6 +598,7 @@ public sealed partial class HtmlRenderingTests {
             + "Image text wraps beside the intrinsic image and then returns to full width.</p>";
 
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html), new HtmlRenderOptions {
+            Mode = HtmlRenderMode.Continuous,
             ViewportWidth = 100D,
             Margins = HtmlRenderMargins.All(0D)
         });
@@ -596,6 +616,7 @@ public sealed partial class HtmlRenderingTests {
             + "<span id='float-paint' style='float:left;width:20px;height:20px;background:#ff0000'></span>"
             + "FloatPdfMarker wraps beside the box.</p>";
         var options = new HtmlRenderOptions {
+            Mode = HtmlRenderMode.Continuous,
             ViewportWidth = 80D,
             ViewportHeight = 40D,
             Margins = HtmlRenderMargins.All(0D)
@@ -616,7 +637,11 @@ public sealed partial class HtmlRenderingTests {
 
         Assert.Equal(OfficeColor.Red, raster.GetPixel(5, 5));
         Assert.Equal(new byte[] { 137, 80, 78, 71, 13, 10, 26, 10 }, png.Bytes.Take(8));
-        Assert.Contains("<rect x=\"0\" y=\"0\" width=\"20\" height=\"20\"", svg, StringComparison.Ordinal);
+        OfficeRasterImage svgRaster = RasterizeHtmlImageSvg(svg);
+        Assert.Equal(OfficeColor.Red, svgRaster.GetPixel(5, 5));
+        Assert.Equal(OfficeColor.Red, svgRaster.GetPixel(18, 18));
+        Assert.NotEqual(OfficeColor.Red, svgRaster.GetPixel(25, 18));
+        Assert.NotEqual(OfficeColor.Red, svgRaster.GetPixel(5, 23));
         Assert.Contains("FloatPdfMarker", pdfText, StringComparison.Ordinal);
         Assert.DoesNotContain(OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToPdfDocumentResult(pdfOptions).Report.Warnings, warning => warning.Severity == PdfCore.PdfConversionWarningSeverity.Error);
     }
@@ -1071,6 +1096,7 @@ public sealed partial class HtmlRenderingTests {
         const string html = "<p style='margin:0'><span id='invalid-float' style='float:up;clear:around'>Text</span></p>";
 
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html), new HtmlRenderOptions {
+            Mode = HtmlRenderMode.Continuous,
             ViewportWidth = 100D,
             Margins = HtmlRenderMargins.All(0D)
         });

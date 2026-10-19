@@ -1,5 +1,6 @@
 using OfficeIMO.Drawing;
 using OfficeIMO.Html;
+using OfficeIMO.Html.Pdf;
 using System.Threading.Tasks;
 using Xunit;
 
@@ -141,7 +142,7 @@ public sealed partial class HtmlRenderingTests {
         Assert.Contains(
             exception.Diagnostics,
             diagnostic =>
-                diagnostic.Code == OfficeImageExportDiagnosticCodes.SourceImageDecodeFallback &&
+                diagnostic.Code == HtmlPdfDiagnosticCodes.ImagePayloadOmitted &&
                 diagnostic.LossKind == OfficeConversionLossKind.Omission);
     }
 

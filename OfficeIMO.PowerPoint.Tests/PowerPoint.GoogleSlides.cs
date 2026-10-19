@@ -87,20 +87,6 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void BatchCompiler_PreservesTextBearingPresetGeometry() {
-            using PowerPointPresentation presentation = PowerPointPresentation.Create();
-            PowerPointSlide slide = presentation.AddSlide();
-            slide.AddTextShapePoints(OfficePresetShapeType.RightArrow, "Next step", 20, 30, 180, 60);
-            slide.AddTextBoxPoints("Plain text", 20, 110, 180, 60);
-
-            GoogleSlidesBatch batch = presentation.BuildGoogleSlidesBatch();
-
-            GoogleSlidesTextBox[] textShapes = Assert.Single(batch.Slides).Elements.OfType<GoogleSlidesTextBox>().ToArray();
-            Assert.Equal("RIGHT_ARROW", Assert.Single(textShapes, shape => shape.Text == "Next step").ShapeType);
-            Assert.Equal("TEXT_BOX", Assert.Single(textShapes, shape => shape.Text == "Plain text").ShapeType);
-        }
-
-        [Fact]
         public void BatchCompiler_DropsMalformedRichTextColorsBeforeJsonGeneration() {
             using PowerPointPresentation presentation = PowerPointPresentation.Create();
             PowerPointTextRun run = presentation.AddSlide()

@@ -79,6 +79,9 @@ public sealed class PowerPointChartSecondaryAxisLayoutTests {
         }
         bytes.Position = 0;
         package.FeedData(bytes);
+        // The cached values carry the styled cell format, so the axis needs the workbook projection.
+        foreach (C.FormatCode code in part.ChartSpace.Descendants<C.Values>().SelectMany(values => values.Descendants<C.FormatCode>()))
+            code.Text = "#,##0.00";
 
         Assert.False(chart.TryGetOfficeSnapshot(out _));
     }

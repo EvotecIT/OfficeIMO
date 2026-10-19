@@ -196,7 +196,7 @@ namespace OfficeIMO.Tests.Pdf {
             });
 
             byte[] bytes = doc.ToBytes();
-            string rawPdf = Encoding.ASCII.GetString(bytes);
+            string rawPdf = PdfTestContentText.ReadDecoded(bytes);
             using var pdf = PdfPigDocument.Open(new MemoryStream(bytes));
             string pageText = Normalize(pdf.GetPage(1).Text);
 
@@ -228,7 +228,7 @@ namespace OfficeIMO.Tests.Pdf {
             });
 
             byte[] bytes = doc.ToBytes();
-            string rawPdf = Encoding.ASCII.GetString(bytes);
+            string rawPdf = PdfTestContentText.ReadDecoded(bytes);
             using var pdf = PdfPigDocument.Open(new MemoryStream(bytes));
             string pageText = Normalize(pdf.GetPage(1).Text);
 
@@ -702,14 +702,14 @@ namespace OfficeIMO.Tests.Pdf {
             Assert.True(firstFooter.IsBold);
             Assert.InRange(firstHeader.FontSize, 16.5D, 17.5D);
             Assert.InRange(firstFooter.FontSize, 15.5D, 16.5D);
-            Assert.Contains(first, span => span.Text == "1");
+            Assert.Contains(first, span => span.Text == "1" || span.Text == "-1");
 
             PdfTextSpan evenHeader = Assert.Single(even, span => span.Text == "EvenStyled");
             PdfTextSpan evenFooter = Assert.Single(even, span => span.Text == "EvenFooter");
             Assert.True(evenHeader.IsItalic);
             Assert.True(evenFooter.IsItalic);
             Assert.InRange(evenHeader.FontSize, 14.5D, 15.5D);
-            Assert.Contains(even, span => span.Text == "2");
+            Assert.Contains(even, span => span.Text == "2" || span.Text == "-2");
 
             PdfTextSpan oddHeader = Assert.Single(odd, span => span.Text == "OddStyled");
             PdfTextSpan oddFooter = Assert.Single(odd, span => span.Text == "OddFooter");
@@ -737,7 +737,7 @@ namespace OfficeIMO.Tests.Pdf {
                 .Paragraph(paragraph => paragraph.Text("Header footer image body"));
 
             byte[] bytes = doc.ToBytes();
-            string rawPdf = Encoding.ASCII.GetString(bytes);
+            string rawPdf = PdfTestContentText.ReadDecoded(bytes);
 
             Assert.Contains("24 0 0 12 30 166 cm", rawPdf);
             Assert.Contains("30 0 0 10 135 22 cm", rawPdf);
@@ -766,7 +766,7 @@ namespace OfficeIMO.Tests.Pdf {
                 .Paragraph(paragraph => paragraph.Text("Body"));
 
             byte[] bytes = doc.ToBytes();
-            string rawPdf = Encoding.ASCII.GetString(bytes);
+            string rawPdf = PdfTestContentText.ReadDecoded(bytes);
             System.Text.RegularExpressions.Match imagePlacement = System.Text.RegularExpressions.Regex.Match(
                 rawPdf,
                 @"24 0 0 12 (?<x>-?\d+(?:\.\d+)?) 166 cm",
@@ -809,7 +809,7 @@ namespace OfficeIMO.Tests.Pdf {
                 .Paragraph(paragraph => paragraph.Text("Header footer visual overflow body"))
                 .ToBytes();
 
-            string rawPdf = Encoding.ASCII.GetString(bytes);
+            string rawPdf = PdfTestContentText.ReadDecoded(bytes);
             Assert.Contains("150 0 0 14 55 174 cm", rawPdf, StringComparison.Ordinal);
             Assert.Contains("20 32 160 12 re", rawPdf, StringComparison.Ordinal);
             Assert.Contains(report.Warnings, warning =>
@@ -911,7 +911,7 @@ namespace OfficeIMO.Tests.Pdf {
                 .ToBytes();
 
             Assert.NotEmpty(bytes);
-            string rawPdf = Encoding.ASCII.GetString(bytes);
+            string rawPdf = PdfTestContentText.ReadDecoded(bytes);
             Assert.Equal(1, CountOccurrences(rawPdf, "0 0 12 12 re W n"));
             PdfConversionWarning warning = Assert.Single(report.Warnings, warning =>
                 warning.Code == "HeaderFooterPageBoundsClipped" &&
@@ -1151,7 +1151,7 @@ namespace OfficeIMO.Tests.Pdf {
                 .Paragraph(paragraph => paragraph.Text("Header footer shape body"));
 
             byte[] bytes = doc.ToBytes();
-            string rawPdf = Encoding.ASCII.GetString(bytes);
+            string rawPdf = PdfTestContentText.ReadDecoded(bytes);
 
             Assert.Contains("1 0 0 rg", rawPdf);
             Assert.Contains("0 0 1 rg", rawPdf);

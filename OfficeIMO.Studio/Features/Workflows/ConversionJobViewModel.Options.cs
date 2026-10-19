@@ -47,13 +47,13 @@ public sealed partial class ConversionJobViewModel {
 
     internal OfficeWorkflowConversionOptions CreateConversionOptions() => new() {
         Word = Route.Route.Id is "docx-pdf" or "doc-pdf"
-            ? new WordToPdfOptions { ResourcePolicy = CreateLocalDocumentFontPolicy() }.UseProfile(PdfProfile)
+            ? new WordToPdfOptions().UseProfile(PdfProfile)
             : null,
         Excel = IsWorksheetExport
-            ? new ExcelToPdfOptions { ResourcePolicy = CreateLocalDocumentFontPolicy() }.UseProfile(PdfProfile)
+            ? new ExcelToPdfOptions().UseProfile(PdfProfile)
             : null,
         PowerPoint = Route.Route.Id == "pptx-pdf"
-            ? new PowerPointToPdfOptions { ResourcePolicy = CreateLocalDocumentFontPolicy() }.UseProfile(PdfProfile)
+            ? new PowerPointToPdfOptions().UseProfile(PdfProfile)
             : null,
         PageRanges = SupportsPageSelection ? PageRanges : null,
         WordMode = IsWordImport ? WordMode : null,
@@ -74,11 +74,4 @@ public sealed partial class ConversionJobViewModel {
         _ => throw new ArgumentOutOfRangeException(nameof(OutputProfile), OutputProfile, "Unsupported PDF export profile.")
     };
 
-    private static PdfResourcePolicy CreateLocalDocumentFontPolicy() {
-        // These jobs originate from files the user selects in the local app.
-        // Preserve their installed fonts without enabling unrelated resources.
-        PdfResourcePolicy policy = PdfResourcePolicy.CreateDefault();
-        policy.AllowDocumentFontEmbedding = true;
-        return policy;
-    }
 }

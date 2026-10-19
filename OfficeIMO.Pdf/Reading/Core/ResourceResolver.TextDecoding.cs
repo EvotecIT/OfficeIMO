@@ -7,7 +7,7 @@ internal static partial class ResourceResolver {
         }
         // Prefer font-specific ToUnicode map when present
         if (font.HasToUnicode && font.CMap is not null) return bytes => font.CMap.MapBytes(bytes, maxDecodedTextCharacters);
-        var baseDecoder = BuildBaseEncodingDecoder(font.Encoding, maxDecodedTextCharacters);
+        var baseDecoder = BuildFontBaseDecoder(font, maxDecodedTextCharacters);
         if (font.Differences is not null && font.Differences.Count > 0) {
             var differences = font.Differences;
             return bytes => DecodeWithDifferences(bytes, differences, baseDecoder, maxDecodedTextCharacters);
@@ -32,7 +32,12 @@ internal static partial class ResourceResolver {
             };
         }
         return (bytes, maximum) => {
-            bool supportedEncoding = font.Encoding is "StandardEncoding" or "MacRomanEncoding" ||
+            if (!useWinAnsiFallback && font.Differences != null) {
+                foreach (byte code in bytes)
+                    if (font.Differences.TryGetValue(code, out string? value) && value.Length == 0)
+                        throw new PdfUnsupportedTextMappingException(font);
+            }
+            bool supportedEncoding = font.HasBuiltinEncoding || font.Encoding is "StandardEncoding" or "MacRomanEncoding" or "SymbolEncoding" or "ZapfDingbatsEncoding" ||
                 font.HasDeclaredEncoding && font.Encoding == "WinAnsiEncoding";
             if (!useWinAnsiFallback && !supportedEncoding) {
                 var text = new StringBuilder();
@@ -49,14 +54,14 @@ internal static partial class ResourceResolver {
                 return text.ToString();
             }
             return font.Differences is { Count: > 0 }
-                ? DecodeWithDifferences(bytes, font.Differences, BuildBaseEncodingDecoder(font.Encoding, maximum), maximum)
-                : BuildBudgetedBaseEncodingDecoder(font.Encoding)(bytes, maximum);
+                ? DecodeWithDifferences(bytes, font.Differences, BuildFontBaseDecoder(font, maximum, useWinAnsiFallback), maximum)
+                : BuildBudgetedFontBaseDecoder(font, useWinAnsiFallback)(bytes, maximum);
         };
     }
 
     /// <summary>Decodes one simple-font code through its encoding and Differences, ignoring ToUnicode.</summary>
     internal static System.Func<byte, string> CreateSimpleEncodingDecoder(PdfFontResource font) {
-        System.Func<byte[], int, string> baseDecoder = BuildBudgetedBaseEncodingDecoder(font.Encoding);
+        System.Func<byte[], int, string> baseDecoder = BuildBudgetedFontBaseDecoder(font);
         IReadOnlyDictionary<int, string>? differences = font.Differences;
         return code => differences != null && differences.TryGetValue(code, out string? difference)
             ? difference
@@ -76,11 +81,11 @@ internal static partial class ResourceResolver {
             return (bytes, maximumCharacters) => DecodeWithDifferences(
                 bytes,
                 differences,
-                BuildBaseEncodingDecoder(font.Encoding, maximumCharacters),
+                BuildFontBaseDecoder(font, maximumCharacters),
                 maximumCharacters);
         }
 
-        return BuildBudgetedBaseEncodingDecoder(font.Encoding);
+        return BuildBudgetedFontBaseDecoder(font);
     }
 
     // Named composite CMaps select CIDs, not single-byte WinAnsi characters. Identity
@@ -102,7 +107,41 @@ internal static partial class ResourceResolver {
         throw new PdfUnsupportedTextMappingException(font);
     }
 
+    private static Func<byte[], string> BuildFontBaseDecoder(PdfFontResource font, int maximum, bool useWinAnsiFallback = true) {
+        Func<byte[], int, string> decoder = BuildBudgetedFontBaseDecoder(font, useWinAnsiFallback);
+        return bytes => decoder(bytes, maximum);
+    }
+
+    private static Func<byte[], int, string> BuildBudgetedFontBaseDecoder(PdfFontResource font, bool useWinAnsiFallback = true) {
+        if (!font.HasBuiltinEncoding) return BuildBudgetedBaseEncodingDecoder(font.Encoding);
+        return (bytes, maximum) => {
+            if (bytes.Length == 0) return string.Empty;
+            string?[]? names = font.BuiltinEncoding;
+            if (names == null) {
+                if (useWinAnsiFallback) return PdfWinAnsiEncoding.Decode(bytes, maximum);
+                throw new PdfUnsupportedTextMappingException(font);
+            }
+            var text = new StringBuilder();
+            foreach (byte code in bytes) {
+                string? name = names[code];
+                string? value = null;
+                if (name == null || !TryDecodeGlyphName(name, out value) || value == null) {
+                    if (!useWinAnsiFallback) throw new PdfUnsupportedTextMappingException(font);
+                    value = PdfWinAnsiEncoding.Decode(new[] { code }, maximum);
+                }
+                if ((long)text.Length + value.Length > maximum)
+                    throw PdfReadLimitException.Create(PdfReadLimitKind.DecodedTextCharacters, maximum, (long)text.Length + value.Length);
+                text.Append(value);
+            }
+            return text.ToString();
+        };
+    }
+
     private static System.Func<byte[], int, string> BuildBudgetedBaseEncodingDecoder(string encoding) {
+        if (PdfSymbolicFontEncoding.IsSymbolicEncoding(encoding)) {
+            return (bytes, maximumCharacters) => PdfSymbolicFontEncoding.Decode(encoding, bytes, maximumCharacters);
+        }
+
         if (string.Equals(encoding, "StandardEncoding", System.StringComparison.Ordinal)) {
             return static (bytes, maximumCharacters) => PdfStandardEncoding.Decode(bytes, maximumCharacters);
         }
@@ -112,18 +151,6 @@ internal static partial class ResourceResolver {
         }
 
         return static (bytes, maximumCharacters) => PdfWinAnsiEncoding.Decode(bytes, maximumCharacters);
-    }
-
-    private static System.Func<byte[], string> BuildBaseEncodingDecoder(string encoding, int maxDecodedTextCharacters) {
-        if (string.Equals(encoding, "StandardEncoding", System.StringComparison.Ordinal)) {
-            return bytes => PdfStandardEncoding.Decode(bytes, maxDecodedTextCharacters);
-        }
-
-        if (string.Equals(encoding, "MacRomanEncoding", System.StringComparison.Ordinal)) {
-            return bytes => PdfMacRomanEncoding.Decode(bytes, maxDecodedTextCharacters);
-        }
-
-        return bytes => PdfWinAnsiEncoding.Decode(bytes, maxDecodedTextCharacters);
     }
 
     private static string DecodeWithDifferences(

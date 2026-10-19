@@ -24,7 +24,7 @@ public static partial class OfficeWebpCodec {
                 ValidateDpi(options.DpiY, nameof(options.DpiY));
             }
             return EncodeCore(image, options.WritePhysicalResolution, options.DpiX, options.DpiY,
-                cancellationToken, options.RetainedManagedBytes);
+                cancellationToken, options.RetainedManagedBytes, options.Effort);
         }
         using var destination = new MemoryStream();
         EncodeTo(image, destination, options,
@@ -70,7 +70,7 @@ public static partial class OfficeWebpCodec {
                 ValidateDpi(dpiY!.Value, nameof(dpiY));
             }
             EncodeStreaming(image, destination, resolution, dpiX ?? 96D, dpiY ?? 96D,
-                cancellationToken, checkpointObserver, options.RetainedManagedBytes, materializeOutput);
+                cancellationToken, checkpointObserver, options.RetainedManagedBytes, materializeOutput, options.Effort);
             return;
         }
         if (image.Width > 16383 || image.Height > 16383) {
@@ -137,6 +137,8 @@ public static partial class OfficeWebpCodec {
         if (options.Mode == OfficeWebpEncodingMode.Lossy && (options.Quality < 1 || options.Quality > 100)) {
             throw new ArgumentOutOfRangeException(nameof(options), "Lossy WebP quality must be from 1 through 100.");
         }
+        if (options.Effort != OfficeImageEncodingEffort.Fast && options.Effort != OfficeImageEncodingEffort.Balanced && options.Effort != OfficeImageEncodingEffort.Smallest)
+            throw new ArgumentOutOfRangeException(nameof(options), "Unknown lossless encoding effort.");
         if (options.RetainedManagedBytes < 0) throw new ArgumentOutOfRangeException(nameof(options));
     }
 

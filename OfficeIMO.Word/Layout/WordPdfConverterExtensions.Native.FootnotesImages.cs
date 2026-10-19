@@ -1,0 +1,304 @@
+using System.Collections.Generic;
+using System.Text;
+using OfficeIMO.Drawing;
+using A = DocumentFormat.OpenXml.Drawing;
+using W = DocumentFormat.OpenXml.Wordprocessing;
+using W14 = DocumentFormat.OpenXml.Office2010.Word;
+using W15 = DocumentFormat.OpenXml.Office2013.Word;
+using Wps = DocumentFormat.OpenXml.Office2010.Word.DrawingShape;
+using PdfCore = OfficeIMO.Pdf;
+
+namespace OfficeIMO.Word.Pdf {
+    public static partial class WordPdfConverterExtensions {
+        private static List<PdfFootnote> CollectNativeFootnotes(IReadOnlyList<WordElement> elements, NativeNoteNumbering footnoteNumbersById,
+            List<PdfFootnote> documentEndnotes) {
+            var footnotes = new List<PdfFootnote>();
+            foreach (WordElement element in elements) {
+                CollectNativeFootnotes(element, footnotes, footnoteNumbersById, structuredDocumentTagDepth: 0, tableDepth: 0);
+            }
+
+            if (!footnoteNumbersById.EndnotesAtDocumentEnd) return footnotes;
+            var sectionNotes = new List<PdfFootnote>(footnotes.Count);
+            foreach (PdfFootnote note in footnotes) {
+                if (note.IsEndnote) documentEndnotes.Add(note);
+                else sectionNotes.Add(note);
+            }
+            return sectionNotes;
+        }
+
+        private static void CollectNativeFootnotes(
+            WordElement element,
+            List<PdfFootnote> footnotes,
+            NativeNoteNumbering footnoteNumbersById,
+            int structuredDocumentTagDepth,
+            int tableDepth) {
+            switch (element) {
+                case WordFootNote footNote:
+                    AddNativeFootnote(footNote, footnotes, footnoteNumbersById);
+                    break;
+                case WordEndNote endNote:
+                    AddNativeEndnote(endNote, footnotes, footnoteNumbersById);
+                    break;
+                case WordParagraph paragraph:
+                    WordFootNote? paragraphFootnote = paragraph.FootNote;
+                    if (paragraphFootnote != null) {
+                        AddNativeFootnote(paragraphFootnote, footnotes, footnoteNumbersById);
+                    }
+
+                    WordEndNote? paragraphEndnote = paragraph.EndNote;
+                    if (paragraphEndnote != null) {
+                        AddNativeEndnote(paragraphEndnote, footnotes, footnoteNumbersById);
+                    }
+
+                    foreach (WordParagraph run in paragraph.GetRuns()) {
+                        WordFootNote? runFootnote = run.FootNote;
+                        if (runFootnote != null) {
+                            AddNativeFootnote(runFootnote, footnotes, footnoteNumbersById);
+                        }
+
+                        WordEndNote? runEndnote = run.EndNote;
+                        if (runEndnote != null) {
+                            AddNativeEndnote(runEndnote, footnotes, footnoteNumbersById);
+                        }
+                    }
+
+                    break;
+                case WordTable table:
+                    EnsureNativeTableDepth(tableDepth);
+                    foreach (WordTableRow row in table.Rows) {
+                        foreach (WordTableCell cell in row.Cells) {
+                            foreach (WordElement cellElement in cell.Elements) {
+                                CollectNativeFootnotes(
+                                    cellElement,
+                                    footnotes,
+                                    footnoteNumbersById,
+                                    structuredDocumentTagDepth,
+                                    tableDepth + 1);
+                            }
+                        }
+                    }
+
+                    break;
+                case WordCoverPage coverPage:
+                    EnsureNativeStructuredDocumentTagDepth(structuredDocumentTagDepth);
+                    foreach (WordElement coverElement in GetNativeStructuredBlockElements(coverPage.Document, coverPage.SdtBlock)) {
+                        CollectNativeFootnotes(coverElement, footnotes, footnoteNumbersById, structuredDocumentTagDepth + 1, tableDepth);
+                    }
+
+                    break;
+                case WordStructuredDocumentTag structuredDocumentTag:
+                    EnsureNativeStructuredDocumentTagDepth(structuredDocumentTagDepth);
+                    foreach (WordElement structuredElement in GetNativeStructuredBlockElements(structuredDocumentTag.Document, structuredDocumentTag.SdtBlock)) {
+                        CollectNativeFootnotes(structuredElement, footnotes, footnoteNumbersById, structuredDocumentTagDepth + 1, tableDepth);
+                    }
+
+                    break;
+            }
+        }
+
+        private static void EnsureNativeStructuredDocumentTagDepth(int depth) {
+            if (depth >= MaximumNativeStructuredDocumentTagDepth) {
+                throw new InvalidDataException(
+                    $"Structured document tag nesting exceeds the supported limit of {MaximumNativeStructuredDocumentTagDepth} levels.");
+            }
+        }
+
+        private static void AddNativeFootnote(WordFootNote footNote, List<PdfFootnote> footnotes, NativeNoteNumbering footnoteNumbersById) {
+            long? referenceId = footNote.ReferenceId;
+            if (!referenceId.HasValue || referenceId.Value == 0) {
+                return;
+            }
+
+            long key = GetNativeFootnoteKey(referenceId.Value);
+            if (footnoteNumbersById.ContainsKey(key)) {
+                return;
+            }
+
+            footnotes.Add(new PdfFootnote {
+                Label = footnoteNumbersById.Add(key, endnote: false),
+                Text = GetNativeFootnoteText(footNote)
+            });
+        }
+
+        private static void AddNativeEndnote(WordEndNote endNote, List<PdfFootnote> footnotes, NativeNoteNumbering footnoteNumbersById) {
+            long? referenceId = endNote.ReferenceId;
+            if (!referenceId.HasValue || referenceId.Value == 0) {
+                return;
+            }
+
+            long key = GetNativeEndnoteKey(referenceId.Value);
+            if (footnoteNumbersById.ContainsKey(key)) {
+                return;
+            }
+
+            footnotes.Add(new PdfFootnote {
+                Label = footnoteNumbersById.Add(key, endnote: true),
+                Text = GetNativeEndnoteText(endNote),
+                IsEndnote = true
+            });
+        }
+
+        private static string GetNativeFootnoteText(WordFootNote footNote) {
+            var parts = new List<string>();
+            foreach (WordParagraph paragraph in footNote.Paragraphs ?? Enumerable.Empty<WordParagraph>()) {
+                if (!string.IsNullOrWhiteSpace(paragraph.Text)) {
+                    parts.Add(paragraph.Text);
+                }
+            }
+
+            return string.Join(" ", parts);
+        }
+
+        private static string GetNativeEndnoteText(WordEndNote endNote) {
+            var parts = new List<string>();
+            foreach (WordParagraph paragraph in endNote.Paragraphs ?? Enumerable.Empty<WordParagraph>()) {
+                if (!string.IsNullOrWhiteSpace(paragraph.Text)) {
+                    parts.Add(paragraph.Text);
+                }
+            }
+
+            return string.Join(" ", parts);
+        }
+
+        private static IReadOnlyList<int> GetNativeFootnoteNumbersForElement(IReadOnlyList<WordElement> elements, int index, NativeNoteNumbering footnoteNumbersById, HashSet<long>? seenKeys = null) {
+            var numbers = new List<int>();
+            seenKeys ??= new HashSet<long>();
+            for (int i = index + 1; i < elements.Count && (elements[i] is WordFootNote || elements[i] is WordEndNote); i++) {
+                long? key = GetNativeNoteKey(elements[i]);
+                if (key.HasValue && footnoteNumbersById.TryGetValue(key.Value, out int number) && seenKeys.Add(key.Value)) {
+                    numbers.Add(number);
+                }
+            }
+
+            return numbers;
+        }
+
+        private static List<int> GetNativeParagraphFootnoteNumbers(WordParagraph paragraph, IReadOnlyList<WordParagraph> runs, IReadOnlyList<int> followingFootnoteNumbers, NativeNoteNumbering footnoteNumbersById) {
+            var numbers = new List<int>();
+            var seenKeys = new HashSet<long>();
+            AddNativeParagraphFootnoteNumber(paragraph, numbers, footnoteNumbersById, seenKeys);
+            foreach (WordParagraph run in runs) {
+                AddNativeParagraphFootnoteNumber(run, numbers, footnoteNumbersById, seenKeys);
+            }
+
+            // Paragraph and traversal wrappers can expose the same reference twice.
+            // Tokens retain identity even when displayed labels repeat.
+            var unmatched = numbers.GroupBy(number => number).ToDictionary(group => group.Key, group => group.Count());
+            foreach (int number in followingFootnoteNumbers) {
+                if (unmatched.TryGetValue(number, out int count) && count > 0) unmatched[number] = count - 1;
+                else numbers.Add(number);
+            }
+            return numbers;
+        }
+
+        private static void AddNativeParagraphFootnoteNumber(WordParagraph paragraph, List<int> numbers, NativeNoteNumbering footnoteNumbersById, HashSet<long> seenKeys) {
+            WordFootNote? footNote = paragraph.FootNote;
+            long? footnoteKey = footNote?.ReferenceId.HasValue == true && footNote.ReferenceId.Value != 0 ? GetNativeFootnoteKey(footNote.ReferenceId.Value) : null;
+            if (footnoteKey.HasValue && footnoteNumbersById.TryGetValue(footnoteKey.Value, out int number) && seenKeys.Add(footnoteKey.Value)) {
+                numbers.Add(number);
+            }
+
+            WordEndNote? endNote = paragraph.EndNote;
+            long? endnoteKey = endNote?.ReferenceId.HasValue == true && endNote.ReferenceId.Value != 0 ? GetNativeEndnoteKey(endNote.ReferenceId.Value) : null;
+            if (endnoteKey.HasValue && footnoteNumbersById.TryGetValue(endnoteKey.Value, out number) && seenKeys.Add(endnoteKey.Value)) {
+                numbers.Add(number);
+            }
+        }
+
+        private static long? GetNativeNoteKey(WordElement element) {
+            switch (element) {
+                case WordFootNote footNote when footNote.ReferenceId.HasValue && footNote.ReferenceId.Value != 0:
+                    return GetNativeFootnoteKey(footNote.ReferenceId.Value);
+                case WordEndNote endNote when endNote.ReferenceId.HasValue && endNote.ReferenceId.Value != 0:
+                    return GetNativeEndnoteKey(endNote.ReferenceId.Value);
+                default:
+                    return null;
+            }
+        }
+
+        private static long GetNativeFootnoteKey(long referenceId) => referenceId;
+
+        private static long GetNativeEndnoteKey(long referenceId) => -referenceId;
+
+        private static void RenderNativeFootnotes(INativePdfFlow pdf, IReadOnlyList<PdfFootnote> footnotes) {
+            if (footnotes.Count == 0) {
+                return;
+            }
+
+            pdf.HR(thickness: 0.5, color: PdfCore.PdfColor.LightGray, spacingBefore: 8, spacingAfter: 4);
+            foreach (PdfFootnote footnote in footnotes) {
+                pdf.Paragraph(builder => {
+                    builder.Baseline(PdfCore.PdfTextBaseline.Superscript);
+                    builder.Text(footnote.Label);
+                    builder.Baseline(PdfCore.PdfTextBaseline.Normal);
+                    if (!string.IsNullOrWhiteSpace(footnote.Text)) {
+                        builder.Text(" ");
+                        builder.Text(NormalizeNativeDirectText(footnote.Text));
+                    }
+                });
+            }
+        }
+
+        private static bool RenderNativeImage(INativePdfFlow pdf, WordImage image, PdfCore.PdfAlign align = PdfCore.PdfAlign.Left, WordToPdfOptions? options = null, string source = "body image", PdfCore.PdfParagraphStyle? anchorStyle = null, PdfCore.PdfPageCanvas? anchoredCanvas = null, NativeObjectParagraphSpacing? paragraphSpacing = null, WordParagraph? anchorParagraph = null) {
+            if (image == null) {
+                return false;
+            }
+
+            if (!TryGetNativeBodyImageBytes(image, options, source, out byte[] bytes)) {
+                return false;
+            }
+
+            if (!TryPrepareNativePdfImageBytes(bytes, out byte[] preparedBytes, out string? unsupportedReason)) {
+                if (options != null) {
+                    AddNativeExportWarning(
+                        options,
+                        "NativeBodyImageUnsupported",
+                        source,
+                        "Word image was not exported because the shared PDF raster pipeline could not prepare it. " + unsupportedReason);
+                }
+
+                return false;
+            }
+
+            double width = image.Width.HasValue ? image.Width.Value * 72D / 96D : 144D;
+            double height = image.Height.HasValue ? image.Height.Value * 72D / 96D : 144D;
+            if (anchorStyle != null && TryAddNativeAnchoredImage(pdf, image, preparedBytes, width, height,
+                    anchorStyle, anchoredCanvas, anchorParagraph, options, source)) return false;
+            if (image._Image?.Anchor != null && options != null)
+                AddNativeExportWarning(options, "NativeAnchoredImageFlowed", source,
+                    "The image's wrap, anchor or transform is outside the fixed-placement contract; it was placed in document flow.");
+            RenderNativeFlowObject(pdf, paragraphSpacing, flow => flow.Image(preparedBytes, width, height, align));
+            return true;
+        }
+
+        private static bool TryGetNativeBodyImageBytes(WordImage image, WordToPdfOptions? options, string source, out byte[] bytes) {
+            try {
+                bytes = ImageEmbedder.GetImageBytes(image);
+                return true;
+            } catch (InvalidOperationException ex) {
+                bytes = System.Array.Empty<byte>();
+                if (options != null) {
+                    AddNativeExportWarning(
+                        options,
+                        "NativeBodyImageUnavailable",
+                        source,
+                        "Word image was not exported because the image bytes could not be extracted. " + ex.Message);
+                }
+
+                return false;
+            }
+        }
+
+        private static bool TryPrepareNativePdfImageBytes(
+            byte[] bytes,
+            out byte[] preparedBytes,
+            out string? unsupportedReason) =>
+            PdfCore.PdfDocument.TryPrepareImageBytes(
+                bytes,
+                out preparedBytes,
+                out _,
+                out _,
+                out unsupportedReason);
+
+    }
+}

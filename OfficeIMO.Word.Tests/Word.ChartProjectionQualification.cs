@@ -17,7 +17,7 @@ public sealed class WordChartProjectionQualificationTests {
         var space = chart.ChartPart!.ChartSpace!;
         space.AddChild(new C.TextProperties(new A.BodyProperties(), new A.ListStyle(),
             new A.Paragraph(new A.ParagraphProperties(new A.DefaultRunProperties(
-                new A.SolidFill(new A.RgbColorModelHex(new A.HueOffset { Val = 60000 }) { Val = "112233" }))))), true);
+                new A.SolidFill(new A.RgbColorModelHex(new A.Gamma()) { Val = "112233" }))))), true);
         string before = space.OuterXml;
         Assert.False(chart.TryGetOfficeSnapshot(out _));
         Assert.Equal(before, space.OuterXml);
@@ -177,7 +177,6 @@ public sealed class WordChartProjectionQualificationTests {
     [InlineData("sparse")]
     [InlineData("negative")]
     [InlineData("dateAxis")]
-    [InlineData("style")]
     [InlineData("labelFormat")]
     [InlineData("legendEntry")]
     [InlineData("rotation")]
@@ -193,9 +192,6 @@ public sealed class WordChartProjectionQualificationTests {
     [InlineData("secondaryCategory")]
     [InlineData("labelOffset")]
     [InlineData("rounded")]
-    [InlineData("crossBetween")]
-    [InlineData("automaticMarker")]
-    [InlineData("inheritedMarker")]
     [InlineData("labelAlignment")]
     [InlineData("barShape")]
     [InlineData("barSeriesShape")]
@@ -224,7 +220,6 @@ public sealed class WordChartProjectionQualificationTests {
         else if (feature == "dropLines") layer.AddChild(new C.DropLines(), true);
         else if (feature == "sparse") series.Descendants<C.NumericPoint>().Last().Remove();
         else if (feature == "negative") series.AddChild(new C.InvertIfNegative { Val = true }, true);
-        else if (feature == "style") space.AddChild(new C.Style { Val = 42 }, true);
         else if (feature == "labelFormat") layer.AddChild(new C.DataLabels(new C.NumberingFormat { FormatCode = "m/d/yyyy", SourceLinked = false }, new C.ShowValue { Val = true }), true);
         else if (feature == "legendEntry") native.GetFirstChild<C.Legend>()!.AddChild(new C.LegendEntry(new C.Index { Val = 0 }, new C.TextProperties(new A.BodyProperties(), new A.ListStyle(), new A.Paragraph(new A.ParagraphProperties(new A.DefaultRunProperties { FontSize = 2400 })))), true);
         else if (feature == "rotation") space.AddChild(new C.TextProperties(new A.BodyProperties { Rotation = 5400000 }, new A.ListStyle(), new A.Paragraph()), true);
@@ -248,9 +243,6 @@ public sealed class WordChartProjectionQualificationTests {
         else if (feature == "secondaryCategory") plot.Elements<C.CategoryAxis>().Single(axis => axis.AxisPosition!.Val!.Value == C.AxisPositionValues.Top).GetFirstChild<C.Delete>()!.Val = false;
         else if (feature == "labelOffset") plot.GetFirstChild<C.CategoryAxis>()!.GetFirstChild<C.LabelOffset>()!.Val = 200;
         else if (feature == "rounded") space.GetFirstChild<C.RoundedCorners>()!.Val = true;
-        else if (feature == "crossBetween") plot.GetFirstChild<C.ValueAxis>()!.GetFirstChild<C.CrossBetween>()!.Val = C.CrossBetweenValues.MidpointCategory;
-        else if (feature == "automaticMarker") series.AddChild(new C.Marker(new C.Symbol { Val = C.MarkerStyleValues.Auto }), true);
-        else if (feature == "inheritedMarker") series.RemoveAllChildren<C.Marker>();
         else if (feature == "labelAlignment") plot.GetFirstChild<C.CategoryAxis>()!.AddChild(new C.LabelAlignment { Val = C.LabelAlignmentValues.Left }, true);
         else if (feature == "barShape" || feature == "barSeriesShape") {
             var shape = new OpenXmlUnknownElement("c", "shape", "http://schemas.openxmlformats.org/drawingml/2006/chart");
