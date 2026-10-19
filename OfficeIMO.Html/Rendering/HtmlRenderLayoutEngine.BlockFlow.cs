@@ -217,6 +217,14 @@ internal sealed partial class HtmlRenderLayoutEngine {
                             adjoiningMargins.Clear();
                         }
                     }
+                    // A forced page boundary ends the adjoining sibling margin group.
+                    // Keep the following top margin with its new page; the preceding
+                    // margin remains allocated to its own source block.
+                    if (_options.Mode == HtmlRenderMode.Paged
+                        && (IsForcedPageBreak(childStyle.BreakBefore)
+                            || blocks.Count > 0 && IsForcedPageBreak(ResolveRootBreakAfter(blocks[blocks.Count - 1])))) {
+                        adjoiningMargins.Clear();
+                    }
                     var anticipatedMargins = adjoiningMargins;
                     anticipatedMargins.Add(new HtmlCollapsedMargin(childStyle.MarginTop));
                     double anticipatedMarginAdjustment = adjoiningMargins.Count > 0

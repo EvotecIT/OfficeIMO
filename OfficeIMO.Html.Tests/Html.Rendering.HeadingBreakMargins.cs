@@ -7,9 +7,11 @@ namespace OfficeIMO.Tests;
 public sealed partial class HtmlRenderingTests {
     [Theory]
     [InlineData(false, 0, 0D, false)]
+    [InlineData(false, 16, 0D, false)]
     [InlineData(true, 0, 0D, false)]
     [InlineData(true, 16, 0D, false)]
     [InlineData(false, 0, 32D, false)]
+    [InlineData(false, 16, 32D, false)]
     [InlineData(true, 16, 0D, true)]
     [InlineData(true, 0, 32D, true)]
     public void PagedRendererTruncatesUnforcedHeadingMarginsAndPreservesForcedMargins(
@@ -106,5 +108,41 @@ public sealed partial class HtmlRenderingTests {
         Assert.Single(rendered.Pages.SelectMany(page => EnumerateRenderVisuals(page.Scene)).OfType<HtmlRenderText>(),
             text => text.Text == "Heading target");
         if (boundary == "named") Assert.Equal(500D, rendered.Pages[1].Height, 3);
+    }
+
+    [Theory]
+    [InlineData("break-before:page", "", HtmlRenderMode.Paged, 1)]
+    [InlineData("break-before:left", "", HtmlRenderMode.Paged, 1)]
+    [InlineData("break-before:right", "", HtmlRenderMode.Paged, 2)]
+    [InlineData("page-break-before:always", "", HtmlRenderMode.Paged, 1)]
+    [InlineData("", "break-after:page", HtmlRenderMode.Paged, 1)]
+    [InlineData("break-before:auto", "", HtmlRenderMode.Paged, 0)]
+    [InlineData("break-before:avoid-page", "", HtmlRenderMode.Paged, 0)]
+    [InlineData("break-before:page", "", HtmlRenderMode.Continuous, 0)]
+    public void RendererKeepsFollowingChildMarginSeparateFromTableAtForcedPageBoundary(
+        string before, string after, HtmlRenderMode mode, int targetPage) {
+        string html = "<style>@page{size:400px 200px;margin:0}html,body{margin:0;padding:0}"
+            + "body{font:16px/20px Arial}table{border-collapse:collapse;margin:0 0 16px;" + after + "}"
+            + "td{padding:0}section{" + before + "}h2{font:20px/24px Arial;margin:18px 0 10px}"
+            + "p{margin:0}</style><table id='lead'><tr><td>Table lead</td></tr></table>"
+            + "<section><h2 id='target'>Heading target</h2><p>Following line</p></section>";
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html,
+            new HtmlRenderOptions { Mode = mode, ViewportWidth = 400D, Margins = HtmlRenderMargins.All(0D) });
+
+        Assert.Equal(targetPage + 1, rendered.Pages.Count);
+        HtmlRenderSemanticGroup table = Assert.Single(
+            EnumerateRenderVisuals(rendered.Pages[0].Scene).OfType<HtmlRenderSemanticGroup>(),
+            group => group.Source == "table#lead" && group.Role == HtmlRenderSemanticGroupRole.Table);
+        Assert.Equal(0D, table.Y, 3);
+        HtmlRenderBookmarkAnchor target = Assert.Single(
+            EnumerateRenderVisuals(rendered.Pages[targetPage].Scene).OfType<HtmlRenderBookmarkAnchor>(),
+            anchor => anchor.Source == "h2#target");
+        Assert.Equal(targetPage > 0 ? 18D : table.Y + table.Height + 18D, target.Y, 3);
+        foreach (string text in new[] { "Heading target", "Following line" }) {
+            Assert.Single(rendered.Pages.SelectMany(page => EnumerateRenderVisuals(page.Scene)).OfType<HtmlRenderText>(),
+                item => item.Text == text);
+            Assert.Single(EnumerateRenderVisuals(rendered.Pages[targetPage].Scene).OfType<HtmlRenderText>(),
+                item => item.Text == text);
+        }
     }
 }
