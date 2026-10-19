@@ -55,6 +55,7 @@ public static class OfficeDocumentReaderBuilderZipExtensions {
     private static ArchiveTraversalOptions? Clone(ArchiveTraversalOptions? options) {
         if (options == null) return null;
         return new ArchiveTraversalOptions {
+            OperationBudget = options.OperationBudget, ZipLegacyCodePage = options.ZipLegacyCodePage,
             MaxEntries = options.MaxEntries,
             MaxPhysicalEntries = options.MaxPhysicalEntries,
             MaxArchiveBytes = options.MaxArchiveBytes,

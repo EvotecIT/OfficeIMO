@@ -31,6 +31,7 @@ internal static partial class OfficeCabinetArchiveReader {
             var expanded = new long[_directory.Folders.Length];
             var unsupported = new string?[_directory.Folders.Length];
             var checksumFrames = new int[_directory.Folders.Length];
+            var work = new long[_directory.Folders.Length];
             long total = 0;
             for (int index = 0; index < _directory.Folders.Length; index++) {
                 token.ThrowIfCancellationRequested();
@@ -55,6 +56,8 @@ internal static partial class OfficeCabinetArchiveReader {
                         throw Error("CAB_EXPANDED_LIMIT", "Declared CAB folder expansion exceeds the configured limit.");
                     if (expanded[index] + expandedLength > int.MaxValue)
                         throw Error("CAB_FOLDER_BUFFER_LIMIT", "Declared CAB folder expansion exceeds the managed buffer limit.");
+                    int dictionary = (folder.Compression & 15) == 1 ? (int)Math.Min(expanded[index], OfficeMsZipDecoder.WindowBytes) : 0;
+                    work[index] += OfficeCabinetWorkBudget.FrameWork(compressedLength, expandedLength, _directory.DataReserve, dictionary);
                     compressed[index] += compressedLength; expanded[index] += expandedLength; total += expandedLength;
                     offset += 8 + _directory.DataReserve + compressedLength;
                 }
@@ -67,7 +70,8 @@ internal static partial class OfficeCabinetArchiveReader {
                     throw Error("CAB_ENTRY_RANGE", "A CAB member extends beyond its declared folder expansion.");
                 members.Add(new OfficeCabinetMemberInfo(index, file.Name, file.Length, file.FolderIndex,
                     _directory.Folders[file.FolderIndex].Compression, compressed[file.FolderIndex], expanded[file.FolderIndex],
-                    _directory.Folders[file.FolderIndex].BlockCount, checksumFrames[file.FolderIndex], unsupported[file.FolderIndex]));
+                    _directory.Folders[file.FolderIndex].BlockCount, checksumFrames[file.FolderIndex],
+                    work[file.FolderIndex], unsupported[file.FolderIndex]));
             }
             Members = members.AsReadOnly(); ExpandedBytes = total;
         }
@@ -76,17 +80,7 @@ internal static partial class OfficeCabinetArchiveReader {
         internal byte[] ReadMember(int ordinal, long maxExpandedBytes, OfficeCabinetWorkBudget workBudget,
             CancellationToken token) {
             if (ordinal < 0 || ordinal >= Members.Count) throw new ArgumentOutOfRangeException(nameof(ordinal));
-            var reader = new Reader(_data, maxExpandedBytes, _maxEntryBytes, _maxEntries, token, workBudget);
-            reader._length = _directory.Length;
-            FileHeader file = _directory.Files[ordinal];
-            byte[] folder = reader.DecompressFolder(_directory.Folders[file.FolderIndex], _directory.DataReserve, maxExpandedBytes);
-            token.ThrowIfCancellationRequested();
-            if ((long)file.FolderOffset + file.Length > folder.LongLength)
-                throw Error("CAB_ENTRY_RANGE", "A CAB member extends beyond its decoded folder.");
-            var result = new byte[(int)file.Length];
-            if (result.Length != 0) Buffer.BlockCopy(folder, (int)file.FolderOffset, result, 0, result.Length);
-            token.ThrowIfCancellationRequested();
-            return result;
+            return ReadFolderMembers(new[] { ordinal }, maxExpandedBytes, workBudget, token)[0];
         }
     }
 

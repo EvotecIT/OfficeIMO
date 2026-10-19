@@ -1,0 +1,53 @@
+{
+  "runtime": ".NET Framework 4.8.9345.0",
+  "os": "Microsoft Windows 10.0.26100 ",
+  "assembly": "3.5.1.9999",
+  "results": [
+    {
+      "file": "7zip-utf8.zip",
+      "sha256": "3331c79451dfae4c73712991d5f2fe49468fdec5f85b17222cad6bfc1e5e67ca",
+      "members": 1,
+      "encoding": null,
+      "verified": true
+    },
+    {
+      "file": "python-streaming.zip",
+      "sha256": "fce71581b4e5902922e75709d6d153e9a8d2fd9967a4cb3b272aa7ad453522a1",
+      "members": 1,
+      "encoding": null,
+      "verified": true
+    },
+    {
+      "file": "python-streaming-zip64.zip",
+      "sha256": "241d6e262111cbc6aa6072e3fcebf335e73fc49c7a5f95f4b0db929039a69482",
+      "members": 1,
+      "encoding": null,
+      "verified": true
+    },
+    {
+      "file": "7zip-unflagged-utf8.zip",
+      "sha256": "e0545d79ecab4bfb57e3d3abad375493f9387c1d3ef2f9c3147b39409296eaf8",
+      "members": 1,
+      "encoding": 65001,
+      "verified": true
+    },
+    {
+      "file": "python-cp1250.zip",
+      "sha256": "9df59c1300eed632e718bf82639faa2aa35c37ba4992f0da8b023814980cf26d",
+      "members": 1,
+      "encoding": 1250,
+      "verified": true
+    },
+    {
+      "file": "7z2604-x64.msi",
+      "sha256": "0b01334a418654293513449f61d6bfc99e5196ca371e3c3dc961eda57cd535c6",
+      "members": 106,
+      "verified": true
+    },
+    {
+      "file": "makecab-lzx-testOneNote2016.cab",
+      "sha256": "531f6465ab1ae92e5011d6cdb614130a91358e714f5eef995af50799efad5bec",
+      "verified": true
+    }
+  ]
+}

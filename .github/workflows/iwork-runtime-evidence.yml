@@ -45,7 +45,7 @@ jobs:
         uses: actions/checkout@v7
         with:
           repository: EvotecIT/PSPublishModule
-          ref: 000237c50bad900df3ce95b7ed81488fa1189734
+          ref: 77bb1364bd4e21a23200189504c6805f8c13c8dc
           path: .benchmark-artifacts/iwork-tooling
           persist-credentials: false
       - name: Build pinned PowerForge measurement owner

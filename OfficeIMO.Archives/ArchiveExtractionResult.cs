@@ -24,9 +24,11 @@ public sealed class ExtractedArchiveFile {
 
 /// <summary>The complete verified result of a single-container extraction.</summary>
 public sealed class ArchiveExtractionResult {
-    internal ArchiveExtractionResult(ArchiveFormat format, IReadOnlyList<ExtractedArchiveFile> files, long totalBytes) {
-        Format = format; Files = files; TotalBytes = totalBytes;
+    internal ArchiveExtractionResult(ArchiveFormat format, IReadOnlyList<ExtractedArchiveFile> files, long totalBytes, ArchiveResourceUsage usage) {
+        Format = format; Files = files; TotalBytes = totalBytes; ResourceUsage = usage;
     }
+    /// <summary>Cumulative resource charges of the operation at publication.</summary>
+    public ArchiveResourceUsage ResourceUsage { get; }
     /// <summary>The detected input format.</summary>
     public ArchiveFormat Format { get; }
     /// <summary>Selected files published into the destination directory.</summary>

@@ -1,0 +1,22 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFrameworks>net8.0;net10.0</TargetFrameworks>
+    <TargetFrameworks Condition="$([MSBuild]::IsOsPlatform('Windows'))">$(TargetFrameworks);net472</TargetFrameworks>
+    <LangVersion>Latest</LangVersion>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+  <ItemGroup Condition="'$(OfficeIMOQualificationVersion)' != ''">
+    <PackageReference Include="OfficeIMO.Archives" Version="$(OfficeIMOQualificationVersion)" />
+    <PackageReference Include="OfficeIMO.Reader.Zip" Version="$(OfficeIMOQualificationVersion)" />
+  </ItemGroup>
+  <ItemGroup Condition="'$(TargetFramework)' == 'net472'">
+    <Compile Remove="*Evidence.cs" />
+    <Reference Include="System.IO.Compression" />
+  </ItemGroup>
+  <Target Name="RequireQualificationVersion" BeforeTargets="CoreCompile">
+    <Error Condition="'$(OfficeIMOQualificationVersion)' == ''" Text="Pass OfficeIMOQualificationVersion for the explicit packed candidate." />
+  </Target>
+</Project>
