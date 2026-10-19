@@ -7,6 +7,7 @@ namespace OfficeIMO.Html;
 internal sealed partial class HtmlRenderStyleResolver {
     private readonly HtmlComputedStyleSet _computedStyles;
     private readonly HtmlRenderOptions _options;
+    private readonly HtmlRenderingFontDefaults? _fontDefaults;
     private readonly HtmlDiagnosticReport _diagnostics;
     private readonly System.Threading.CancellationToken _cancellationToken;
     private readonly HtmlRenderOperationBudget _operationBudget;
@@ -26,6 +27,7 @@ internal sealed partial class HtmlRenderStyleResolver {
         System.Threading.CancellationToken cancellationToken = default, HtmlRenderOperationBudget? operationBudget = null) {
         _computedStyles = computedStyles;
         _options = options;
+        _fontDefaults = computedStyles.FontDefaults ?? HtmlRenderingFontDefaults.ForRendering(options);
         _diagnostics = diagnostics;
         _measureCharacterAdvance = measureCharacterAdvance;
         _cancellationToken = cancellationToken;
@@ -35,6 +37,10 @@ internal sealed partial class HtmlRenderStyleResolver {
         _rootFontSize = options.DefaultFontSize;
         foreach (KeyValuePair<IElement, HtmlComputedStyle> entry in computedStyles.Elements) {
             if (!string.Equals(entry.Key.LocalName, "html", StringComparison.OrdinalIgnoreCase)) continue;
+            if (_fontDefaults.HasValue && entry.Value.FontSizeContext is HtmlFontSizeContext rootContext) {
+                _rootFontSize = rootContext.Pixels;
+                break;
+            }
             if (!entry.Value.IsImplicitlyInheritedValue("font-size")
                 && !entry.Value.IsInheritedValue("font-size")) {
                 _rootFontSize = ResolveFontSize(entry.Value.GetValue("font-size"),
@@ -169,9 +175,21 @@ internal sealed partial class HtmlRenderStyleResolver {
         _activeCharacterAdvance = ContainsCharacterUnit(fontSizeValue)
             ? _measureCharacterAdvance(parent ?? new HtmlRenderBoxStyle { Font = new OfficeFontInfo(_options.DefaultFontFamily, _options.DefaultFontSize) })
             : double.NaN;
-        double fontSize = ResolveComputedFontSize(tag, computed, fontSizeValue, parentFontSize,
-            pseudoElement, pseudoSemanticRole);
         string fontTag = pseudoElement ? string.Empty : tag;
+        string defaultFamily = !_fontDefaults.HasValue && !pseudoElement && (tag == "code" || tag == "pre" || tag == "kbd" || tag == "samp")
+            ? "Consolas"
+            : parent?.Font.FamilyName ?? _options.DefaultFontFamily;
+        // Explicit CSS inheritance uses the parent's surviving family, including
+        // Document mode's code tags whose unstyled fallback remains monospace.
+        if (computed.IsInheritedValue("font-family") && !computed.IsImplicitlyInheritedValue("font-family"))
+            defaultFamily = parent?.Font.FamilyName ?? _options.DefaultFontFamily;
+        string family = ResolveFontFamily(fontTag, computed, defaultFamily);
+        if (_fontDefaults.HasValue && HtmlFontSizePolicy.IsSoleGenericMonospace(family)) family = "monospace";
+        HtmlFontSizeContext? fontSizeContext = _fontDefaults.HasValue
+            ? ResolveBrowserFontSize(tag, computed, family, parent, pseudoElement, pseudoSemanticRole)
+            : null;
+        double fontSize = fontSizeContext?.Pixels ?? ResolveComputedFontSize(tag, computed, fontSizeValue, parentFontSize,
+            pseudoElement, pseudoSemanticRole);
         OfficeFontFaceDescriptor fontDescriptor = ResolveFontFaceDescriptor(
             fontTag,
             computed,
@@ -194,10 +212,6 @@ internal sealed partial class HtmlRenderStyleResolver {
         fontStyle &= ~(OfficeFontStyle.Bold | OfficeFontStyle.Italic);
         fontStyle |= fontDescriptor.ToStyle();
         OfficeTextDecorationStyle decorationStyle = ResolveTextDecorationStyle(computed.GetValue("text-decoration-style"));
-        string defaultFamily = !pseudoElement && (tag == "code" || tag == "pre" || tag == "kbd" || tag == "samp")
-            ? "Consolas"
-            : parent?.Font.FamilyName ?? _options.DefaultFontFamily;
-        string family = ResolveFontFamily(fontTag, computed, defaultFamily);
         string direction = ResolveDirection(computed.GetValue("direction"), parent?.Direction);
         string unicodeBidi = NormalizeCssValue(computed.GetValue("unicode-bidi"), "normal");
         string language = ResolveLanguage(element, parent?.Language);
@@ -242,6 +256,7 @@ internal sealed partial class HtmlRenderStyleResolver {
             DisplayWasSpecified = computed.IsSpecifiedValue("display") || computed.IsInheritedValue("display"),
             PaintVisible = ResolvePaintVisibility(computed.GetValue("visibility"), parent),
             Font = new OfficeFontInfo(family, fontSize, fontDescriptor, fontStyle),
+            FontSizeContext = fontSizeContext,
             FontDescriptor = fontDescriptor,
             UnderlineStyle = propagatedUnderline && !ownsUnderline
                 ? parent!.UnderlineStyle
@@ -715,21 +730,8 @@ internal sealed partial class HtmlRenderStyleResolver {
     };
 
 
-    private static double ResolveDefaultTagFontSize(string tag, double inherited) {
-        switch (tag) {
-            case "h1": return inherited * 2D;
-            case "h2": return inherited * 1.5D;
-            case "h3": return inherited * 1.17D;
-            case "h4": return inherited;
-            case "h5": return inherited * 0.83D;
-            case "h6": return inherited * 0.67D;
-            case "small": return inherited * 0.83D;
-            case "sup":
-            case "sub": return inherited / 1.2D;
-            case "big": return inherited * 1.17D;
-            default: return inherited;
-        }
-    }
+    private static double ResolveDefaultTagFontSize(string tag, double inherited) =>
+        HtmlFontSizePolicy.ResolveHtmlDefault(tag, new HtmlFontSizeContext(inherited, true, string.Empty, false)).Pixels;
 
     internal static string ResolveDisplay(IElement element, string value, string webkitBoxOrient = "", bool hasLineClamp = false) {
         string tag = element.TagName.ToLowerInvariant();

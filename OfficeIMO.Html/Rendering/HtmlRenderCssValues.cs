@@ -83,14 +83,7 @@ internal static class HtmlRenderCssValues {
         out double result,
         out bool isCalculated,
         double characterAdvance = double.NaN, bool uprightVerticalText = false) {
-        result = 0D;
-        isCalculated = false;
-        if (string.IsNullOrWhiteSpace(value)) return false;
-        try {
-            HtmlCssMathParseResult parsed = HtmlCssMathParser.ParseLengthPercentage(value!);
-            if (!parsed.IsParsed) return false;
-            isCalculated = parsed.Expression!.IsCalculated;
-            var context = new HtmlCssLengthResolutionContext {
+        var context = new HtmlCssLengthResolutionContext {
                 PercentageReference = FiniteOrNull(reference),
                 FontSize = FiniteOrNull(fontSize),
                 RootFontSize = FiniteOrNull(rootFontSize),
@@ -102,8 +95,27 @@ internal static class HtmlRenderCssValues {
                 ContainerHeight = FiniteOrNull(containerHeight),
                 ContainerInlineSize = FiniteOrNull(containerWidth),
                 ContainerBlockSize = FiniteOrNull(containerHeight)
-            };
-            HtmlCssLengthResolutionResult resolved = HtmlCssMathResolver.ResolveLength(parsed.Expression, context);
+        };
+        return TryLength(value, context, out result, out isCalculated, out _);
+    }
+
+    /// <summary>Resolves through the existing numeric owner while retaining typed root metadata for font provenance.</summary>
+    internal static bool TryLength(
+        string? value,
+        HtmlCssLengthResolutionContext context,
+        out double result,
+        out bool isCalculated,
+        out HtmlCssMathExpression? expression) {
+        result = 0D;
+        isCalculated = false;
+        expression = null;
+        if (string.IsNullOrWhiteSpace(value)) return false;
+        try {
+            HtmlCssMathParseResult parsed = HtmlCssMathParser.ParseLengthPercentage(value!);
+            if (!parsed.IsParsed) return false;
+            expression = parsed.Expression!;
+            isCalculated = expression.IsCalculated;
+            HtmlCssLengthResolutionResult resolved = HtmlCssMathResolver.ResolveLength(expression, context);
             if (!resolved.IsResolved || !resolved.Value.HasValue) return false;
             result = resolved.Value.Value;
             return true;

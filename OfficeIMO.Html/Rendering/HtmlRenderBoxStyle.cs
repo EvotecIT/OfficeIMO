@@ -126,6 +126,7 @@ internal sealed class HtmlRenderBoxStyle {
     internal int GradientStopLimitExceededCount;
     internal IReadOnlyList<HtmlRenderBackgroundLayer> BackgroundImageLayers = Array.Empty<HtmlRenderBackgroundLayer>();
     internal OfficeFontInfo Font;
+    internal HtmlFontSizeContext? FontSizeContext;
     internal OfficeFontFaceDescriptor FontDescriptor = OfficeFontFaceDescriptor.Regular;
     internal OfficeTextDecorationStyle UnderlineStyle;
     internal OfficeTextDecorationStyle StrikethroughStyle;
