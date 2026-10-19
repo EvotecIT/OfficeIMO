@@ -214,16 +214,28 @@ internal sealed partial class HtmlRenderLayoutEngine {
                         pageGeometry.Margins.Left, 0D, block);
 
                     if (blockOffset < block.Height - 0.0001D) {
+                        HtmlRenderForcedBreak? authoredBreak = plan.AuthoredBreak;
+                        if (finishedTableFooter && authoredBreak == null) {
+                            // A final footer advances from its body end to its
+                            // source end. A following boundary skipped by that
+                            // jump must be consumed with this transition.
+                            ChargeLayoutOperations(2L * block.ForcedBreaks.Count, "completed table footer boundary cursor");
+                            if (TryGetNextForcedBreak(block.ForcedBreaks, blockOffset, out HtmlRenderForcedBreak? footerBreak,
+                                consumedBoundaries, includeProjectedBoundaries: true)
+                                && footerBreak!.Offset <= blockOffset + 0.0001D) authoredBreak = footerBreak;
+                        }
                         // A wrapper can contain content after the completed table.
                         // Let that content use the space after its final footer.
                         if (finishedTableFooter
-                            && ResolveForcedBreakAt(block.ForcedBreaks, blockOffset) == HtmlPageBreakTarget.None
+                            && authoredBreak == null
                             && string.Equals(ResolvePageNameAt(block.ForcedBreaks, blockOffset, currentPageName), currentPageName, StringComparison.Ordinal)
                             && y < ResolvePageBodyBottom(pages.Count + 1, pageGeometry) - 0.0001D) continue;
+                        if (authoredBreak != null && plan.AuthoredBreak == null)
+                            ConsumePagedForcedBreak(block, authoredBreak, consumedBoundaries);
                         HtmlInlineBreakProgress? continuationProgress = ResolveInlineContinuationProgress(block, blockOffset);
-                        string? nextPageName = plan.AuthoredBreak is { ChangesPageName: true } namedBreak
+                        string? nextPageName = authoredBreak is { ChangesPageName: true } namedBreak
                             ? namedBreak.PageName
-                            : ResolvePageNameAt(block.ForcedBreaks, blockOffset, currentPageName, plan.AuthoredBreak?.Boundary);
+                            : ResolvePageNameAt(block.ForcedBreaks, blockOffset, currentPageName, authoredBreak?.Boundary);
                         ExtendPagedBodyBackgroundThroughFragmentSlack(block, pageGeometry, visuals, y);
                         CommitPage(pages, visuals, pageGeometry, currentPageName);
                         BeginPage(nextPageName);
@@ -231,7 +243,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                         pageWidth = pageGeometry.Width;
                         pageHeight = pageGeometry.Height;
                         contentHeight = ResolvePageBodyContentHeight(pages.Count + 1, pageGeometry);
-                        HtmlPageBreakTarget internalBreak = plan.AuthoredBreak?.Target
+                        HtmlPageBreakTarget internalBreak = authoredBreak?.Target
                             ?? ResolveForcedBreakAt(block.ForcedBreaks, blockOffset);
                         if (internalBreak != HtmlPageBreakTarget.None) {
                             EnsurePageSide(internalBreak, pages, ref visuals, ref y, ref pageGeometry, currentPageName);
