@@ -51,6 +51,15 @@ public partial class Html {
     }
 
     [Fact]
+    public void UnicodeProfilePinMatchesTheSharedGeneratedLayoutData() {
+        foreach (HtmlCapabilityProfileManifest profile in HtmlRenderCapabilityCatalog.ProfileManifests) {
+            var unicode = profile.Specifications.Where(pin => pin.Id.StartsWith("unicode-", StringComparison.Ordinal)).ToArray();
+            if (profile.Id == HtmlCapabilityProfileIds.WebDocumentV1) Assert.Empty(unicode);
+            else Assert.Equal(OfficeIMO.Drawing.OfficeUnicodeTextData.UnicodeVersion, Assert.Single(unicode).Revision);
+        }
+    }
+
+    [Fact]
     public void HtmlRenderCapabilityCatalog_IsCompleteDeterministicAndDiagnosticBacked() {
         IReadOnlyList<HtmlRenderCapability> capabilities = HtmlRenderCapabilityCatalog.All;
 

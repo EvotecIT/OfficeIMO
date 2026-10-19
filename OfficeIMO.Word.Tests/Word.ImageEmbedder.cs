@@ -18,7 +18,7 @@ namespace OfficeIMO.Tests {
             MainDocumentPart mainPart = doc.AddMainDocumentPart();
             mainPart.Document = new Document(new Body());
 
-            string assetPath = Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", "Assets", "OfficeIMO.png");
+            string assetPath = Path.Combine(AppContext.BaseDirectory, "Images", "EvotecLogo.png");
             Run run = ImageEmbedder.CreateImageRun(mainPart, assetPath);
             Assert.NotNull(mainPart.Document);
             Assert.NotNull(mainPart.Document.Body);
@@ -34,7 +34,7 @@ namespace OfficeIMO.Tests {
             using WordprocessingDocument doc = WordprocessingDocument.Create(ms, WordprocessingDocumentType.Document, true);
             MainDocumentPart mainPart = doc.AddMainDocumentPart();
             mainPart.Document = new Document(new Body());
-            string assetPath = Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", "Assets", "OfficeIMO.png");
+            string assetPath = Path.Combine(AppContext.BaseDirectory, "Images", "EvotecLogo.png");
 
             Run first = ImageEmbedder.CreateImageRun(mainPart, assetPath);
             Run second = ImageEmbedder.CreateImageRun(mainPart, assetPath);

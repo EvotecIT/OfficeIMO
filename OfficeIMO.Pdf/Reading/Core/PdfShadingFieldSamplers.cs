@@ -143,16 +143,25 @@ internal sealed class PdfMeshShadingSampler : IPdfShadingFieldSampler {
     private readonly double _left, _top, _cellWidth, _cellHeight;
     private readonly int _columns, _rows;
     private readonly int[][] _cells;
+    private readonly System.Threading.CancellationToken _cancellationToken;
 
     internal PdfMeshShadingSampler(List<double> x, List<double> y, List<double> values, int valueCount, List<int> triangles,
-        PdfShadingColorFunctions? functions) {
+        PdfShadingColorFunctions? functions, System.Threading.CancellationToken cancellationToken = default) {
+        _cancellationToken = cancellationToken;
+        cancellationToken.ThrowIfCancellationRequested();
         _x = x.ToArray(); _y = y.ToArray(); _values = values.ToArray();
         _valueCount = valueCount;
         _triangles = triangles.ToArray();
         _functions = functions;
         double left = double.PositiveInfinity, top = double.PositiveInfinity, right = double.NegativeInfinity, bottom = double.NegativeInfinity;
-        foreach (double value in _x) { left = Math.Min(left, value); right = Math.Max(right, value); }
-        foreach (double value in _y) { top = Math.Min(top, value); bottom = Math.Max(bottom, value); }
+        for (int index = 0; index < _x.Length; index++) {
+            if ((index & 1023) == 0) cancellationToken.ThrowIfCancellationRequested();
+            left = Math.Min(left, _x[index]); right = Math.Max(right, _x[index]);
+        }
+        for (int index = 0; index < _y.Length; index++) {
+            if ((index & 1023) == 0) cancellationToken.ThrowIfCancellationRequested();
+            top = Math.Min(top, _y[index]); bottom = Math.Max(bottom, _y[index]);
+        }
         int triangleCount = _triangles.Length / 3;
         int side = Math.Max(1, Math.Min(256, (int)Math.Sqrt(Math.Max(1, triangleCount))));
         _columns = side; _rows = side;
@@ -164,8 +173,10 @@ internal sealed class PdfMeshShadingSampler : IPdfShadingFieldSampler {
         long entries = 0L;
         for (int pass = 0; pass < 2; pass++) {
             for (int triangle = 0; triangle < triangleCount; triangle++) {
+                if ((triangle & 255) == 0) cancellationToken.ThrowIfCancellationRequested();
                 CellRange(triangle, out int c0, out int r0, out int c1, out int r1);
                 for (int row = r0; row <= r1; row++) {
+                    cancellationToken.ThrowIfCancellationRequested();
                     for (int column = c0; column <= c1; column++) {
                         int cell = row * _columns + column;
                         if (pass == 0) {
@@ -179,7 +190,10 @@ internal sealed class PdfMeshShadingSampler : IPdfShadingFieldSampler {
             }
             if (pass == 0) {
                 _cells = new int[counts.Length][];
-                for (int cell = 0; cell < counts.Length; cell++) _cells[cell] = new int[counts[cell]];
+                for (int cell = 0; cell < counts.Length; cell++) {
+                    if ((cell & 255) == 0) cancellationToken.ThrowIfCancellationRequested();
+                    _cells[cell] = new int[counts[cell]];
+                }
             }
         }
         _cells ??= Array.Empty<int[]>();
@@ -208,6 +222,7 @@ internal sealed class PdfMeshShadingSampler : IPdfShadingFieldSampler {
         int best = -1;
         double w0 = 0D, w1 = 0D, w2 = 0D;
         for (int index = 0; index < candidates.Length; index++) {
+            if ((index & 1023) == 0) _cancellationToken.ThrowIfCancellationRequested();
             if (!TryBarycentric(candidates[index], x, y, out w0, out w1, out w2)) continue;
             best = candidates[index];
             break;

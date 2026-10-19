@@ -23,7 +23,7 @@ public static partial class ExcelOpenDocumentConversionExtensions {
         if (font == null) return;
         if (OdfFontFamilySyntax.TryParse(style.FontFamily, out OdfFontFamilySyntax? family))
             font.FontName = new FontName { Val = family!.PrimaryFamily };
-        if (style.FontSize.HasValue) font.FontSize = new FontSize { Val = style.FontSize.Value.ToPoints() };
+        if (style.FontSize.HasValue) font.FontSize = new FontSize { Val = OdfTextStyleResolver.ResolveFontSize(source.Styles.Resolve(style)) };
         if (style.Bold.HasValue) font.Bold = new Bold { Val = style.Bold.Value };
         if (style.Italic.HasValue) font.Italic = new Italic { Val = style.Italic.Value };
     }

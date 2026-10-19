@@ -9,6 +9,27 @@ using Xunit;
 namespace OfficeIMO.Tests;
 
 public sealed class SpreadsheetDefaultFontConversionTests {
+    [Theory]
+    [InlineData("120%", 14.4D)]
+    [InlineData("80%", 9.6D)]
+    [InlineData("14pt", 14D)]
+    public void RelativeDefaultFontSizesUseTheOpenDocumentCascade(string lexical, double expectedPoints) {
+        using var original = ExcelDocument.Create();
+        original.AddWorksheet("Default font").CellValue(1, 1, "Visible cell");
+        OdsDocument source = original.ToOpenDocument();
+        source.Styles.GetOrCreateDefault(OdfStyleFamily.TableCell).FontSize = OdfLength.Parse(lexical);
+        using var serialized = new MemoryStream();
+        source.Save(serialized);
+        serialized.Position = 0;
+        OdsDocument loaded = OdsDocument.Load(serialized);
+
+        using ExcelDocument imported = loaded.ToExcelDocument();
+
+        Font font = imported.OpenXmlDocument.WorkbookPart!.WorkbookStylesPart!.Stylesheet!.Fonts!.Elements<Font>().First();
+        Assert.Equal(expectedPoints, font.FontSize!.Val!.Value, 6);
+        Assert.Equal("Visible cell", imported.CreateInspectionSnapshot().Worksheets[0].Cells.Single().Value);
+    }
+
     [Fact]
     public void WorkbookColumnFontSurvivesSavedOdsRoundTripIndependentlyOfCellFonts() {
         using var workbook = ExcelDocument.Create();

@@ -51,12 +51,17 @@ internal static partial class WordRunFormatting {
         internal readonly Style[] Chain;
         internal readonly Dictionary<TableCell, (int Row, int Column, int Span)> Cells = new();
         internal readonly int Mask, HeaderRows, FooterStart, ColumnCount;
+        internal readonly int RowBandSize, ColumnBandSize;
         internal readonly bool HasConditionalPaint;
 
         internal TableRunPaintState(Table table, Styles? styles, CancellationToken token) {
             string? styleId = table.GetFirstChild<TableProperties>()?.TableStyle?.Val?.Value;
             Chain = EnumerateStyleChain(styles, styleId, StyleValues.Table)
                 .TakeWhile(style => !IsBuiltInNormalTableStyle(style.StyleId?.Value)).ToArray();
+            RowBandSize = Chain.Select(style => style.StyleTableProperties?.GetFirstChild<TableStyleRowBandSize>()?.Val?.Value)
+                .FirstOrDefault(size => size.HasValue) ?? 1;
+            ColumnBandSize = Chain.Select(style => style.StyleTableProperties?.GetFirstChild<TableStyleColumnBandSize>()?.Val?.Value)
+                .FirstOrDefault(size => size.HasValue) ?? 1;
             HasConditionalPaint = Chain.Any(style => style.Elements<TableStyleProperties>()
                 .Any(conditional => HasRunBackground(conditional.GetFirstChild<RunPropertiesBaseStyle>())));
             if (!HasConditionalPaint) return;

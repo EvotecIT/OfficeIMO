@@ -226,7 +226,8 @@ namespace OfficeIMO.PowerPoint {
             return 6D;
         }
 
-        private static void ApplyShapeTransform(OfficeShape target, PowerPointShape source, double width, double height) {
+        /// <summary>Applies the native shape frame to the composed geometry and paint.</summary>
+        internal static void ApplyShapeTransformForExport(OfficeShape target, PowerPointShape source, double width, double height) {
             double rotation = source.Rotation ?? 0D;
             bool flipHorizontal = source.HorizontalFlip == true;
             bool flipVertical = source.VerticalFlip == true;

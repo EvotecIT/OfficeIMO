@@ -16,6 +16,7 @@ public partial class Word {
     [InlineData("preset", "alpha-offset", 0.5D)]
     [InlineData("srgb", "offset-modulate", 0.4D)]
     [InlineData("srgb", "modulate-offset", 0.3D)]
+    [InlineData("srgb", "modulate-chain", 0.2D)]
     [InlineData("srgb", "upper-clamp", 0.5D)]
     [InlineData("srgb", "lower-clamp", 0.2D)]
     [InlineData("theme-alpha", "modulate-offset", 0.1D)]
@@ -46,6 +47,9 @@ public partial class Word {
                 break;
             case "modulate-offset":
                 color.Append(new A.AlphaModulation { Val = 50000 }, new A.AlphaOffset { Val = -20000 });
+                break;
+            case "modulate-chain":
+                color.Append(new A.Alpha { Val = 80000 }, new A.AlphaModulation { Val = 50000 }, new A.AlphaModulation { Val = 50000 });
                 break;
             case "upper-clamp":
                 color.Append(new A.AlphaOffset { Val = 20000 }, new A.AlphaModulation { Val = 50000 });

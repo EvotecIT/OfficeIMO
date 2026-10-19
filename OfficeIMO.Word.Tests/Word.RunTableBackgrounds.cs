@@ -77,8 +77,10 @@ public sealed class WordRunTableBackgroundTests {
     [InlineData("lastRow", "0640", 2, 1)]
     [InlineData("firstCol", "0680", 1, 0)]
     [InlineData("lastCol", "0700", 1, 2)]
-    [InlineData("band1Horz", "0400", 1, 0)]
-    [InlineData("band1Vert", "0200", 0, 1)]
+    [InlineData("band1Horz", "0400", 0, 0)]
+    [InlineData("band2Horz", "0400", 1, 0)]
+    [InlineData("band1Vert", "0200", 0, 0)]
+    [InlineData("band2Vert", "0200", 0, 1)]
     public void SupportedConditionsUseTheContainingCellAndLeaveOtherCellsAtDefaults(string condition, string look, int row, int column) {
         using WordDocument document = WordDocument.Create();
         Styles styles = document.MainDocumentPartRoot.StyleDefinitionsPart!.Styles!;
@@ -95,9 +97,102 @@ public sealed class WordRunTableBackgroundTests {
         using WordDocument loaded = WordDocument.Load(new MemoryStream(document.ToBytes()));
         Table raw = loaded.MainDocumentPartRoot.Document.Body!.Elements<Table>().Single();
         Assert.Equal("0000FF", ReadShading(loaded, raw.Elements<TableRow>().ElementAt(row).Elements<TableCell>().ElementAt(column)));
-        int otherRow = condition is "band1Horz" or "band1Vert" ? 0 : 2 - row;
-        int otherColumn = condition is "band1Horz" or "band1Vert" ? 0 : 2 - column;
+        int otherRow = condition.EndsWith("Horz", StringComparison.Ordinal) ? 1 - row
+            : condition.EndsWith("Vert", StringComparison.Ordinal) ? row : 2 - row;
+        int otherColumn = condition.EndsWith("Vert", StringComparison.Ordinal) ? 1 - column
+            : condition.EndsWith("Horz", StringComparison.Ordinal) ? column : 2 - column;
         Assert.Equal("FF0000", ReadShading(loaded, raw.Elements<TableRow>().ElementAt(otherRow).Elements<TableCell>().ElementAt(otherColumn)));
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void SecondBandRunBackgroundSurvivesSaveAndNativePdfConversion(bool vertical) {
+        using WordDocument document = WordDocument.Create();
+        Styles styles = document.MainDocumentPartRoot.StyleDefinitionsPart!.Styles!;
+        styles.DocDefaults = new DocDefaults(new RunPropertiesDefault(new RunPropertiesBaseStyle(Shade("FFFF00"))));
+        styles.Append(new Style(new TableStyleProperties(new RunPropertiesBaseStyle(Shade("0000FF"))) {
+            Type = vertical ? TableStyleOverrideValues.Band2Vertical : TableStyleOverrideValues.Band2Horizontal
+        }) { Type = StyleValues.Table, StyleId = "SecondBandBackground" });
+        WordTable table = document.AddTable(vertical ? 1 : 2, vertical ? 2 : 1);
+        table._tableProperties!.TableStyle = new TableStyle { Val = "SecondBandBackground" };
+        table._tableProperties.TableLook = new TableLook { Val = vertical ? "0200" : "0400" };
+        table.Rows[0].Cells[0].Paragraphs[0].Text = "FIRST";
+        table.Rows[vertical ? 0 : 1].Cells[vertical ? 1 : 0].Paragraphs[0].Text = "SECOND";
+        using WordDocument loaded = WordDocument.Load(new MemoryStream(document.ToBytes()));
+        using var pdf = PdfPigDocument.Open(loaded.ToPdfBytes(new WordToPdfOptions {
+            IncludePageNumbers = false, ResourcePolicy = PdfResourcePolicy.CreatePortableDeterministic()
+        }));
+        Assert.Equal((1D, 1D, 0D), PaintAt(pdf.GetPage(1), "FIRST"));
+        Assert.Equal((0D, 0D, 1D), PaintAt(pdf.GetPage(1), "SECOND"));
+    }
+
+    [Theory]
+    [InlineData(false, false)]
+    [InlineData(true, false)]
+    [InlineData(false, true)]
+    [InlineData(true, true)]
+    public void BandSizesAndFirstEdgeRestartTheBodyPattern(bool vertical, bool firstRow) {
+        using WordDocument document = WordDocument.Create();
+        Styles styles = document.MainDocumentPartRoot.StyleDefinitionsPart!.Styles!;
+        styles.Append(new Style(
+            new StyleTableProperties(new TableStyleRowBandSize { Val = 2 }, new TableStyleColumnBandSize { Val = 2 }),
+            new TableStyleProperties(new RunPropertiesBaseStyle(Shade("FF0000"))) {
+                Type = vertical ? TableStyleOverrideValues.Band1Vertical : TableStyleOverrideValues.Band1Horizontal
+            },
+            new TableStyleProperties(new RunPropertiesBaseStyle(Shade("0000FF"))) {
+                Type = vertical ? TableStyleOverrideValues.Band2Vertical : TableStyleOverrideValues.Band2Horizontal
+            },
+            new TableStyleProperties(new RunPropertiesBaseStyle(Shade("00FF00"))) {
+                Type = TableStyleOverrideValues.FirstRow
+            },
+            new TableStyleProperties(new RunPropertiesBaseStyle(Shade("00FF00"))) {
+                Type = TableStyleOverrideValues.FirstColumn
+            }) { Type = StyleValues.Table, StyleId = "SizedBands" });
+        WordTable table = document.AddTable(vertical ? 1 : 5, vertical ? 5 : 1);
+        table._tableProperties!.TableStyle = new TableStyle { Val = "SizedBands" };
+        table._tableProperties.TableLook = new TableLook { Val = firstRow ? vertical ? "0280" : "0420" : vertical ? "0200" : "0400" };
+        foreach (WordTableRow row in table.Rows)
+            foreach (WordTableCell cell in row.Cells) cell.Paragraphs[0].Text = "PAINT";
+        using WordDocument loaded = WordDocument.Load(new MemoryStream(document.ToBytes()));
+        Table raw = loaded.MainDocumentPartRoot.Document.Body!.Elements<Table>().Single();
+        for (int index = 0; index < 5; index++) {
+            int bodyIndex = index - (firstRow ? 1 : 0);
+            string expected = bodyIndex < 0 ? "00FF00" : bodyIndex / 2 % 2 == 0 ? "FF0000" : "0000FF";
+            Assert.Equal(expected, ReadShading(loaded, raw.Elements<TableRow>().ElementAt(vertical ? 0 : index)
+                .Elements<TableCell>().ElementAt(vertical ? index : 0)));
+        }
+    }
+
+    [Theory]
+    [InlineData(false, false)]
+    [InlineData(true, false)]
+    [InlineData(false, true)]
+    [InlineData(true, true)]
+    public void ExplicitZeroBandSizeStopsInheritedBanding(bool vertical, bool inherited) {
+        using WordDocument document = WordDocument.Create();
+        Styles styles = document.MainDocumentPartRoot.StyleDefinitionsPart!.Styles!;
+        var band = new TableStyleProperties(new RunPropertiesBaseStyle(Shade("0000FF"))) {
+            Type = vertical ? TableStyleOverrideValues.Band1Vertical : TableStyleOverrideValues.Band1Horizontal
+        };
+        var parent = new Style(new StyleTableProperties(new TableStyleRowBandSize { Val = 2 },
+            new TableStyleColumnBandSize { Val = 2 }), band) { Type = StyleValues.Table, StyleId = "BandParent" };
+        styles.Append(parent);
+        var current = new Style(new StyleRunProperties(Shade("FFFF00")),
+            new StyleTableProperties(vertical ? new TableStyleColumnBandSize { Val = 0 } : new TableStyleRowBandSize { Val = 0 })) {
+            Type = StyleValues.Table, StyleId = "ZeroBand"
+        };
+        if (inherited) current.BasedOn = new BasedOn { Val = "BandParent" };
+        else current.Append(band.CloneNode(true));
+        styles.Append(current);
+        WordTable table = document.AddTable(vertical ? 1 : 3, vertical ? 3 : 1);
+        table._tableProperties!.TableStyle = new TableStyle { Val = "ZeroBand" };
+        table._tableProperties.TableLook = new TableLook { Val = vertical ? "0200" : "0400" };
+        foreach (WordTableRow row in table.Rows)
+            foreach (WordTableCell cell in row.Cells) cell.Paragraphs[0].Text = "NO BAND";
+        using WordDocument loaded = WordDocument.Load(new MemoryStream(document.ToBytes()));
+        Table raw = loaded.MainDocumentPartRoot.Document.Body!.Elements<Table>().Single();
+        Assert.All(raw.Descendants<TableCell>(), cell => Assert.Equal("FFFF00", ReadShading(loaded, cell)));
     }
 
     [Fact]
