@@ -116,7 +116,7 @@ public sealed class HtmlRenderText : HtmlRenderVisual {
         LogicalTextOrder = logicalTextOrder;
         TextAdvanceWidth = textAdvanceWidth;
         TextPaintWidth = textPaintWidth;
-        BidiVisualOrderResolved = bidiVisualOrderResolved;
+        _bidiVisualOrderResolved = bidiVisualOrderResolved;
         UnderlineStyle = underlineStyle != OfficeTextDecorationStyle.None
             ? underlineStyle
             : font.IsUnderline ? OfficeTextDecorationStyle.Single : OfficeTextDecorationStyle.None;
@@ -224,29 +224,53 @@ public sealed class HtmlRenderText : HtmlRenderVisual {
             : new HtmlRenderText(Text, X, Y + BaselineOffset, Width, Height,
                 Font.WithSize(Font.Size * BaselineScale), Color, Alignment, LineHeight, PaintOrder,
                 LinkUri, Source, SemanticRole, LayoutY, SemanticNodeId, TextAdvanceWidth,
-                BidiVisualOrderResolved, SemanticFragmentOrder, LogicalTextOrder,
+                _bidiVisualOrderResolved, SemanticFragmentOrder, LogicalTextOrder,
                 UnderlineStyle, StrikethroughStyle, OfficeTextBaseline.Normal, 0, 1D, 0D,
                 TextPaintWidth, DecorationColor, FeatureSettings, FontPalette, LayoutHeight, FontDescriptor,
-                PaintTopOverflow, IsPaintOnly, LinkBounds, UsesOrdinaryLineCarrier).WithWrappedLines(WrappedLines);
+                PaintTopOverflow, IsPaintOnly, LinkBounds, UsesOrdinaryLineCarrier)
+                .WithPreparedShaping(PreparedShaping).WithWrappedLines(WrappedLines);
 
     // Generated margin frames retain their complete text in the scene. Both
     // painting adapters consume the same measured lines instead of rewrapping.
     internal IReadOnlyList<OfficeTextLine>? WrappedLines { get; }
 
-    private HtmlRenderText(HtmlRenderText source, IReadOnlyList<OfficeTextLine> wrappedLines)
+    private HtmlRenderText(HtmlRenderText source, IReadOnlyList<OfficeTextLine>? wrappedLines,
+        OfficePreparedTextShaping? preparedShaping)
         : this(source.Text, source.X, source.Y, source.Width, source.Height, source.Font,
             source.Color, source.Alignment, source.LineHeight, source.PaintOrder, source.LinkUri,
             source.Source, source.SemanticRole, source.LayoutY, source.SemanticNodeId,
-            source.TextAdvanceWidth, source.BidiVisualOrderResolved, source.SemanticFragmentOrder,
+            source.TextAdvanceWidth, source._bidiVisualOrderResolved, source.SemanticFragmentOrder,
             source.LogicalTextOrder, source.UnderlineStyle, source.StrikethroughStyle, source.Baseline,
             source.BaselineLevel, source.BaselineScale, source.BaselineOffset, source.TextPaintWidth,
             source.DecorationColor, source.FeatureSettings, source.FontPalette, source.LayoutHeight,
             source.FontDescriptor, source.PaintTopOverflow, source.IsPaintOnly, source.LinkBounds, source.UsesOrdinaryLineCarrier) {
         WrappedLines = wrappedLines;
+        PreparedShaping = preparedShaping;
     }
 
-    internal HtmlRenderText WithWrappedLines(IReadOnlyList<OfficeTextLine>? lines) =>
-        lines == null ? this : new HtmlRenderText(this, lines);
+    /// <summary>Exact selected font and visual glyphs admitted during inline layout.</summary>
+    internal OfficePreparedTextShaping? PreparedShaping { get; }
+
+    /// <summary>Retains a complete cluster-safe slice without changing its logical text.</summary>
+    internal HtmlRenderText WithPreparedShaping(OfficePreparedTextShaping? preparedShaping) {
+        if (ReferenceEquals(PreparedShaping, preparedShaping)) return this;
+        if (preparedShaping != null) {
+            if (!string.Equals(Text, preparedShaping.Text, StringComparison.Ordinal))
+                throw new ArgumentException("Prepared glyphs must represent this visual's exact logical text.", nameof(preparedShaping));
+            if (WrappedLines != null)
+                throw new InvalidOperationException("Wrapped text requires an explicit prepared slice for each paint fragment.");
+        }
+        return CopyStackingContextTo(new HtmlRenderText(this, WrappedLines, preparedShaping));
+    }
+
+    internal HtmlRenderText WithWrappedLines(IReadOnlyList<OfficeTextLine>? lines) {
+        if (lines == null) return this;
+        // OfficeTextLine has no source offsets. Reflow needs explicit complete
+        // cluster slices; silently dropping a retained result would reshape it.
+        if (PreparedShaping != null)
+            throw new InvalidOperationException("Wrapped text requires an explicit prepared slice for each paint fragment.");
+        return new HtmlRenderText(this, lines, preparedShaping: null);
+    }
 
     internal IEnumerable<HtmlRenderText> GetWrappedPaintFragments() {
         if (WrappedLines == null) {
@@ -269,19 +293,22 @@ public sealed class HtmlRenderText : HtmlRenderVisual {
         }
     }
 
-    internal bool BidiVisualOrderResolved { get; }
+    private readonly bool _bidiVisualOrderResolved;
+
+    internal bool BidiVisualOrderResolved => PreparedShaping != null || _bidiVisualOrderResolved;
 
     // RTL paragraph fragments already contain visual glyph order. The legacy
     // per-glyph Arabic path also carries contextual forms that must not be isolated again.
     // Latin text still needs normal font substitutions even inside a resolved paragraph.
-    internal bool PreservesPaintedGlyphs => BidiVisualOrderResolved && OfficeTextElements.ContainsRightToLeft(Text)
+    internal bool PreservesPaintedGlyphs => PreparedShaping != null
+        || BidiVisualOrderResolved && OfficeTextElements.ContainsRightToLeft(Text)
         || Text.Length == 1 && !string.Equals(Text, OfficeArabicTextShaper.ToLogicalText(Text), StringComparison.Ordinal);
 
     internal override HtmlRenderVisual TranslateCore(double offsetX, double offsetY, int paintOrder) =>
         offsetX == 0D && offsetY == 0D && paintOrder == PaintOrder ? this :
-        new HtmlRenderText(Text, X + offsetX, Y + offsetY, Width, Height, Font, Color, Alignment, LineHeight, paintOrder, LinkUri, Source, SemanticRole, LayoutY + offsetY, SemanticNodeId, TextAdvanceWidth, BidiVisualOrderResolved, SemanticFragmentOrder, LogicalTextOrder, UnderlineStyle, StrikethroughStyle, Baseline, BaselineLevel, BaselineScale, BaselineOffset, TextPaintWidth, DecorationColor, FeatureSettings, FontPalette, LayoutHeight, FontDescriptor, PaintTopOverflow, IsPaintOnly, TranslateLinkBounds(offsetX, offsetY), UsesOrdinaryLineCarrier).WithWrappedLines(WrappedLines);
+        new HtmlRenderText(Text, X + offsetX, Y + offsetY, Width, Height, Font, Color, Alignment, LineHeight, paintOrder, LinkUri, Source, SemanticRole, LayoutY + offsetY, SemanticNodeId, TextAdvanceWidth, _bidiVisualOrderResolved, SemanticFragmentOrder, LogicalTextOrder, UnderlineStyle, StrikethroughStyle, Baseline, BaselineLevel, BaselineScale, BaselineOffset, TextPaintWidth, DecorationColor, FeatureSettings, FontPalette, LayoutHeight, FontDescriptor, PaintTopOverflow, IsPaintOnly, TranslateLinkBounds(offsetX, offsetY), UsesOrdinaryLineCarrier).WithPreparedShaping(PreparedShaping).WithWrappedLines(WrappedLines);
 
     internal override HtmlRenderVisual TranslatePaintCore(double offsetX, double offsetY, int paintOrder) =>
         offsetX == 0D && offsetY == 0D && paintOrder == PaintOrder ? this :
-        new HtmlRenderText(Text, X + offsetX, Y + offsetY, Width, Height, Font, Color, Alignment, LineHeight, paintOrder, LinkUri, Source, SemanticRole, LayoutY, SemanticNodeId, TextAdvanceWidth, BidiVisualOrderResolved, SemanticFragmentOrder, LogicalTextOrder, UnderlineStyle, StrikethroughStyle, Baseline, BaselineLevel, BaselineScale, BaselineOffset, TextPaintWidth, DecorationColor, FeatureSettings, FontPalette, LayoutHeight, FontDescriptor, PaintTopOverflow, IsPaintOnly, TranslateLinkBounds(offsetX, offsetY), UsesOrdinaryLineCarrier).WithWrappedLines(WrappedLines);
+        new HtmlRenderText(Text, X + offsetX, Y + offsetY, Width, Height, Font, Color, Alignment, LineHeight, paintOrder, LinkUri, Source, SemanticRole, LayoutY, SemanticNodeId, TextAdvanceWidth, _bidiVisualOrderResolved, SemanticFragmentOrder, LogicalTextOrder, UnderlineStyle, StrikethroughStyle, Baseline, BaselineLevel, BaselineScale, BaselineOffset, TextPaintWidth, DecorationColor, FeatureSettings, FontPalette, LayoutHeight, FontDescriptor, PaintTopOverflow, IsPaintOnly, TranslateLinkBounds(offsetX, offsetY), UsesOrdinaryLineCarrier).WithPreparedShaping(PreparedShaping).WithWrappedLines(WrappedLines);
 }

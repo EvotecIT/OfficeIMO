@@ -24,13 +24,13 @@ internal sealed partial class HtmlRenderLayoutEngine {
             && isFinalContentToken
             && line.HasFlowContent
             && wordFitting.CanBreakBefore(run, sourceStartOffset)
-            && InlineLine.PreviewEmptyLineAdvance(run, MeasureInlineText(token.PaintText, run.Style)) <= width + 0.0001D) {
+            && InlineLine.PreviewEmptyLineAdvance(run, MeasureInlineText(token.PaintText, run.Style, run)) <= width + 0.0001D) {
             TrimTrailingWhitespace(line);
             lines.Add(line);
             line = new InlineLine();
             line.Add(new InlineSegment(
                 token.PaintText,
-                MeasureInlineText(token.PaintText, run.Style),
+                MeasureInlineText(token.PaintText, run.Style, run),
                 run,
                 token.LogicalText,
                 logicalEndProgress: logicalEndProgress));
@@ -51,7 +51,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 || CountConsecutiveHyphenatedLines(lines) < run.Style.HyphenateLimitLines.Value;
             int selectedEnd = -1;
             bool selectedIsBreak = false;
-            double remainderWidth = MeasureInlineText(token.PaintText.Substring(start), run.Style);
+            double remainderWidth = MeasureInlineText(token.PaintText.Substring(start), run.Style, run);
             double remainderAdvance = previewContinuation && start == 0
                 ? wordFitting.PreviewWithContinuation(line, run, sourceEndOffset, remainderWidth)
                 : line.PreviewAdvance(run, remainderWidth);
@@ -73,7 +73,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                     string logicalRemainder = token.LogicalText.Substring(start);
                     line.Add(new InlineSegment(
                         paintRemainder,
-                        MeasureInlineText(paintRemainder, run.Style),
+                        MeasureInlineText(paintRemainder, run.Style, run),
                         run,
                         logicalRemainder,
                         logicalEndProgress: logicalEndProgress));
@@ -93,7 +93,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 : logicalEndProgress - logicalStartProgress;
             line.Add(new InlineSegment(
                 paintChunk,
-                MeasureInlineText(paintChunk, run.Style),
+                MeasureInlineText(paintChunk, run.Style, run),
                 run,
                 logicalChunk,
                 logicalEndProgress: selectedEnd == token.PaintText.Length
@@ -157,7 +157,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
             if (end <= start || end > paintToken.Length) continue;
             string paintChunk = paintToken.Substring(start, end - start);
             string logicalChunk = logicalToken.Substring(start, end - start);
-            double chunkWidth = MeasureInlineText(paintChunk, run.Style);
+            double chunkWidth = MeasureInlineText(paintChunk, run.Style, run);
             bool completesToken = end == paintToken.Length;
             int sourceStart = sourceStartOffset + (start < sourceBoundaries.Count ? sourceBoundaries[start] : start);
             int sourceEnd = completesToken ? sourceEndOffset
@@ -247,7 +247,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         string logicalText,
         HtmlInlineRun run,
         int logicalStartProgress = 0) {
-        double spaceWidth = Math.Max(0.01D, MeasureInlineText(" ", run.Style));
+        double spaceWidth = Math.Max(0.01D, MeasureInlineText(" ", run.Style, run));
         double stopWidth = run.Style.TabSizeIsLength ? run.Style.TabSize : run.Style.TabSize * spaceWidth;
         int chunkStart = 0;
         int logicalProgress = logicalStartProgress;
@@ -259,7 +259,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 logicalProgress += logicalChunk.Length;
                 line.Add(new InlineSegment(
                     paintChunk,
-                    MeasureInlineText(paintChunk, run.Style),
+                    MeasureInlineText(paintChunk, run.Style, run),
                     run,
                     logicalChunk,
                     logicalEndProgress: logicalProgress));
@@ -283,7 +283,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         logicalProgress += finalLogical.Length;
         line.Add(new InlineSegment(
             finalPaint,
-            MeasureInlineText(finalPaint, run.Style),
+            MeasureInlineText(finalPaint, run.Style, run),
             run,
             finalLogical,
             logicalEndProgress: logicalProgress));
@@ -408,7 +408,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         for (int index = 0; index < paintElements.Count; index++) {
             string value = paintElements[index];
             string logicalValue = index < logicalElements.Count ? logicalElements[index] : OfficeArabicTextShaper.ToLogicalText(value);
-            double charWidth = MeasureInlineText(value, run.Style);
+            double charWidth = MeasureInlineText(value, run.Style, run);
             bool completesPiece = completesToken && index == paintElements.Count - 1;
             if (part.Length > 0 && line.PreviewAdvance(run, partWidth + charWidth, completesPiece) > line.ResolveAvailableWidth(width) + 0.0001D) {
                 line.Add(new InlineSegment(

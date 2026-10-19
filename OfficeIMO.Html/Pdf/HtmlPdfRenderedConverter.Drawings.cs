@@ -221,7 +221,10 @@ internal static partial class HtmlPdfRenderedConverter {
                     baselineOffset: 0D,
                     decorationColor: text.DecorationColor,
                     featureSettings: text.FeatureSettings,
-                    fontPalette: text.FontPalette);
+                    fontPalette: text.FontPalette)
+                    .WithPreparedShaping(text.PreparedShaping != null &&
+                        string.Equals(text.RasterText, text.PreparedShaping.Text, StringComparison.Ordinal)
+                            ? text.PreparedShaping : null);
                 void AddDrawingText(PdfCore.PdfPageCanvas textTarget) => AddText(textTarget, projectedText, webFonts, conversionReport,
                     visual.X + visual.Width, asSpan: true, logicalTextOwned: text.Text != text.RasterText, cancellationToken,
                     baselineFontSize: Math.Max(0.001D, (text.Font.Size + text.BaselineOffset) * scaleY),

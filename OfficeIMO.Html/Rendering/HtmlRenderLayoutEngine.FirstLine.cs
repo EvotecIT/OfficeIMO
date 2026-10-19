@@ -18,6 +18,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 out HtmlRenderBoxStyle firstLineStyle)) return;
 
         IReadOnlyList<HtmlInlineRun> runs = PrepareArabicJoiningRuns(targetRuns);
+        if (_options.TextShapingProvider != null)
+            runs = PrepareConfiguredJoiningRuns(runs, parentStyle, run => CreateFirstLineRunStyle(run, firstLineStyle), reportLoss: false);
         width = Math.Max(0.01D, width - (parentStyle.TextIndent?.Resolve(width) ?? 0D));
         var styledRuns = new List<HtmlInlineRun>(runs.Count);
         PrepareInlineEdgeScopes(runs);
@@ -80,7 +82,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 string measuredToken = !run.Style.PreserveWhitespace && IsWhitespaceToken(token) ? " " : token;
                 double tokenWidth = tokenStyle.PreserveWhitespace && measuredToken.IndexOf('\t') >= 0
                     ? MeasureTabExpandedText(measuredToken, tokenStyle, previewLine.PreviewContentStart(run))
-                    : MeasureInlineText(measuredToken, tokenStyle);
+                    : MeasureInlineText(measuredToken, tokenStyle, run);
                 double remainingWidth = Math.Max(0D, width - previewLine.PreviewAdvance(run, 0D, false));
                 bool preventWrapping = parentStyle.PreventTextWrapping || run.Style.PreventTextWrapping;
                 bool canBreakBefore = wordFitting.CanBreakBefore(run, sourceStartOffset);
@@ -95,7 +97,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                     && (tokenStyle.HyphenateLimitZone > 0D && remainingWidth <= tokenStyle.HyphenateLimitZone + 0.0001D
                         || tokenStyle.HyphenateLimitLast == "always"
                             && !HasRemainingInlineFlowContent(runs, runIndex, tokens, tokenIndex)
-                            && MeasureInlineText(measuredToken, run.Style) <= width + 0.0001D);
+                            && MeasureInlineText(measuredToken, run.Style, run) <= width + 0.0001D);
                 if (moveWholeToken) {
                     firstLine = false;
                     styledRuns.Add(run.CloneText(token, logicalToken, run.Style, run.IsFirstLetter));

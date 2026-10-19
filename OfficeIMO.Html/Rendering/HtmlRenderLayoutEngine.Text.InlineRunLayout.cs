@@ -186,10 +186,10 @@ internal sealed partial class HtmlRenderLayoutEngine {
                     : PrepareHyphenationToken(paintToken, normalizedLogicalToken, run.Style);
                 paintToken = hyphenation.PaintText;
                 string logicalPaintToken = hyphenation.LogicalText;
-                double measured = hasTabs ? tabExpandedWidth : MeasureInlineText(paintToken, run.Style);
+                double measured = hasTabs ? tabExpandedWidth : MeasureInlineText(paintToken, run.Style, run);
                 if (run.EndsFirstLine && tokenIndex == tokens.Count - 1) {
                     paintToken += run.FirstLineHyphen;
-                    line.Add(new InlineSegment(paintToken, MeasureInlineText(paintToken, run.Style), run,
+                    line.Add(new InlineSegment(paintToken, MeasureInlineText(paintToken, run.Style, run), run,
                         logicalPaintToken, logicalEndProgress: tokenEnd));
                     line.EndsWithHyphenation = run.FirstLineHyphen.Length > 0;
                     lines.Add(line);

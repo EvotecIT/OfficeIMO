@@ -22,6 +22,10 @@ internal sealed partial class HtmlRenderLayoutEngine {
     }
 
     private IReadOnlyList<InlinePaintSegment> ResolveInlinePaintSegments(InlineSegment segment, double x) {
+        if (segment.PreparedShaping != null) {
+            return new[] { new InlinePaintSegment(segment.LogicalText, x, Math.Max(0.01D, segment.Width),
+                segment.Width, 0, bidiResolved: true, preparedShaping: segment.PreparedShaping) };
+        }
         if (!segment.BidiResolved
             && (Math.Abs(segment.Run.Style.LetterSpacing) > 0.0001D || Math.Abs(segment.Run.Style.WordSpacing) > 0.0001D)) {
             if (!OfficeTextElements.ContainsRightToLeft(segment.Text) && !OfficeTextElements.ContainsBidiControl(segment.Text)) {
@@ -45,7 +49,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
             if (group.RightToLeft) {
                 if (TryMeasureWithConfiguredProvider(group.Text, segment.Run.Style, out _)) {
                     result.Add(new InlinePaintSegment(
-                        OfficeBidiTextResolver.MirrorText(group.Text),
+                        OfficeArabicTextShaper.ToLogicalText(group.Text),
                         groupX,
                         Math.Max(0.01D, group.Width),
                         group.Width,
@@ -241,11 +245,11 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 || OfficeTextElements.ContainsRightToLeft(logicalText)
                     && (_options.TextShapingProvider != null || !style.TextFeatureSettings.IsDefault);
             var group = new InlineSegment(
-                needsShapingInput ? logicalText : text,
+                sources[sourceIndex].PreparedShaping != null || needsShapingInput ? logicalText : text,
                 segmentWidth,
                 sources[sourceIndex].Run,
                 logicalText,
-                bidiResolved: !needsShapingInput,
+                bidiResolved: sources[sourceIndex].PreparedShaping != null || !needsShapingInput,
                 logicalEndProgress: sources[sourceIndex].LogicalEndProgress);
             result.Add(group);
             firstGroups[sourceIndex] ??= group;
@@ -306,16 +310,18 @@ internal sealed partial class HtmlRenderLayoutEngine {
 
     private readonly struct InlinePaintSegment {
         internal InlinePaintSegment(string text, double x, double width, double advance, int logicalOrder,
-            bool bidiResolved = false) {
+            bool bidiResolved = false, OfficePreparedTextShaping? preparedShaping = null) {
             Text = text;
             X = x;
             Width = width;
             Advance = advance;
             LogicalOrder = logicalOrder;
             BidiResolved = bidiResolved;
+            PreparedShaping = preparedShaping;
         }
 
         internal bool BidiResolved { get; }
+        internal OfficePreparedTextShaping? PreparedShaping { get; }
         internal string Text { get; }
         internal double X { get; }
         internal double Width { get; }

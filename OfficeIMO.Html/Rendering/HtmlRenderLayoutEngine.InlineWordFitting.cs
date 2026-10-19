@@ -132,6 +132,31 @@ internal sealed partial class HtmlRenderLayoutEngine {
             sourceEnd > sourceStart && _indices.TryGetValue(run, out int index)
             && _previousBreak[_runs[index].Start + sourceEnd - 1] > _runs[index].Start + sourceStart;
 
+        // Shaping uses the same authored boundaries and Unicode opportunities as
+        // fitting. Source ownership is retained; identical text in another word
+        // is a different range, rather than a cache key for contextual glyphs.
+        internal IEnumerable<InlineWordSlice[]> CrossRunWords() {
+            int firstRun = 0;
+            for (int start = 0; start < _source.Length;) {
+                _owner.CheckCancellation();
+                int end = _nextBreak[start + 1];
+                while (firstRun < _runs.Length && _runs[firstRun].End <= start) firstRun++;
+                var pieces = new List<InlineWordSlice>();
+                for (int index = firstRun; index < _runs.Length && _runs[index].Start < end; index++) {
+                    _owner.CheckCancellation();
+                    _owner.ChargeLayoutOperation("inline shaping source range");
+                    InlineWordSourceRun source = _runs[index];
+                    int from = Math.Max(start, source.Start) - source.Start;
+                    int length = Math.Min(end, source.End) - source.Start - from;
+                    if (length > 0) pieces.Add(new InlineWordSlice(source.Run, from, length));
+                    else if (source.Run.InlineEdgeBoundary != null)
+                        pieces.Add(new InlineWordSlice(source.Run, 0, 0));
+                }
+                if (pieces.Count(static piece => piece.Length > 0) > 1) yield return pieces.ToArray();
+                start = end;
+            }
+        }
+
         /// <summary>Previews a source-mapped tail without consuming scopes or altering future runs.</summary>
         internal double PreviewWithContinuation(InlineLine line, HtmlInlineRun run, int sourceEnd,
             double contentWidth, bool completesToken, Func<int>? consecutiveHyphenatedLines) {
@@ -156,7 +181,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                     string value = source.Run.Text.Substring(from, to - from).Replace("\u00AD", string.Empty);
                     if (to == source.Run.Text.Length && source.Run.EndsFirstLine) value += source.Run.FirstLineHyphen;
                     HtmlRenderBoxStyle style = _styleSelector?.Invoke(source.Run) ?? source.Run.Style;
-                    double width = _owner.MeasureInlineText(value, style);
+                    double width = _owner.MeasureInlineText(value, style, source.Run);
                     var hyphenatedWidths = new List<double>();
                     // The current token has already attempted its own hyphenation. Only
                     // later runs will reach the normal hyphenation path after this preview.
@@ -228,6 +253,15 @@ internal sealed partial class HtmlRenderLayoutEngine {
         internal double Width { get; }
         internal bool EndsRun { get; }
         internal IReadOnlyList<double> HyphenatedWidths { get; }
+    }
+
+    private readonly struct InlineWordSlice {
+        internal InlineWordSlice(HtmlInlineRun run, int offset, int length) {
+            Run = run; Offset = offset; Length = length;
+        }
+        internal HtmlInlineRun Run { get; }
+        internal int Offset { get; }
+        internal int Length { get; }
     }
 
     private sealed partial class InlineLine {

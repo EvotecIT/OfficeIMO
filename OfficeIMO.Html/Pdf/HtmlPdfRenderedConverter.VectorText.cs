@@ -23,6 +23,11 @@ internal static partial class HtmlPdfRenderedConverter {
         bool preservePositionedFrame,
         ClipBounds? logicalClip) {
         cancellationToken.ThrowIfCancellationRequested();
+        if (visual.PreparedShaping is OfficePreparedTextShaping prepared) {
+            return TryAddPreparedOutlinedText(canvas, visual, prepared, webFonts, conversionReport,
+                frameWidth, asSpan, logicalTextOwned, cancellationToken, baselineFontSize,
+                suppressLink, preservePositionedFrame, logicalClip);
+        }
         OfficeFontStyle requestedStyle = (visual.Font.IsBold ? OfficeFontStyle.Bold : OfficeFontStyle.Regular)
             | (visual.Font.IsItalic ? OfficeFontStyle.Italic : OfficeFontStyle.Regular);
         IReadOnlyList<OfficeFontFallbackRun> planned = webFonts.Faces.PlanFallbackRuns(
@@ -63,7 +68,7 @@ internal static partial class HtmlPdfRenderedConverter {
         if (!requiresOutlines) {
             foreach (OutlinedFontRun run in resolvedRuns) {
                 cancellationToken.ThrowIfCancellationRequested();
-                if (RequiresProviderOwnedLayout(run.Face, run.Text)) {
+                if (RequiresProviderOwnedLayout(run.Face!, run.Text)) {
                     requiresOutlines = true;
                     break;
                 }
@@ -74,7 +79,7 @@ internal static partial class HtmlPdfRenderedConverter {
         webFonts.OutlineBudget.ValidateTextLength(visual.Text.Length);
         if (webFonts.OutlineBudget.IsPathLimitReached)
             throw new InvalidOperationException("HTML-to-PDF outlined text exceeded the configured path-command budget.");
-        if (resolvedRuns.Any(run => run.Face.Program is not IOfficeBoundedFontProgram)) {
+        if (resolvedRuns.Any(run => run.Program is not IOfficeBoundedFontProgram)) {
             throw new InvalidOperationException(
                 "Provider-owned HTML-to-PDF text outlines require IOfficeBoundedFontProgram so cancellation and output limits remain enforceable.");
         }
@@ -91,13 +96,13 @@ internal static partial class HtmlPdfRenderedConverter {
                 ReportDeclinedOutlinedShaping(webFonts, visual, run);
             }
             double advance = shapingResult == null
-                ? run.Face.Program.Measure(run.Text, visual.Font.Size)
-                : run.Face.Program.MeasureShapedText(shapedText!, shapingResult, visual.Font.Size);
+                ? run.Program.Measure(run.Text, visual.Font.Size)
+                : run.Program.MeasureShapedText(shapedText!, shapingResult, visual.Font.Size);
             cancellationToken.ThrowIfCancellationRequested();
             if (double.IsNaN(advance) || double.IsInfinity(advance) || advance < 0D) return false;
             runs.Add(new OutlinedFontRun(
                 run.Text,
-                run.Face,
+                run.Face!,
                 run.SimulateBold,
                 run.SimulateItalic,
                 advance,
@@ -105,6 +110,27 @@ internal static partial class HtmlPdfRenderedConverter {
                 shapingResult));
         }
 
+        return TryPaintOutlinedText(canvas, visual, webFonts, conversionReport, frameWidth,
+            asSpan, logicalTextOwned, cancellationToken, baselineFontSize, suppressLink,
+            preservePositionedFrame, logicalClip, runs);
+    }
+
+    // Both freshly shaped and retained runs use the existing bounded contour,
+    // frame, decoration, logical-text and link writer.
+    private static bool TryPaintOutlinedText(
+        PdfCore.PdfPageCanvas canvas,
+        HtmlRenderText visual,
+        RegisteredWebFonts webFonts,
+        PdfCore.PdfConversionReport conversionReport,
+        double frameWidth,
+        bool asSpan,
+        bool logicalTextOwned,
+        CancellationToken cancellationToken,
+        double baselineFontSize,
+        bool suppressLink,
+        bool preservePositionedFrame,
+        ClipBounds? logicalClip,
+        IReadOnlyList<OutlinedFontRun> runs) {
         double measuredAdvance = runs.Sum(run => run.Advance);
         if (measuredAdvance <= 0D) return false;
         double? paintWidth = visual.TextPaintWidth ?? visual.TextAdvanceWidth;
@@ -116,7 +142,7 @@ internal static partial class HtmlPdfRenderedConverter {
         var lineHeights = new double[runs.Count];
         var baselineOffsets = new double[runs.Count];
         for (int index = 0; index < runs.Count; index++) {
-            IOfficeFontProgram program = runs[index].Face.Program;
+            IOfficeFontProgram program = runs[index].Program;
             lineHeights[index] = program.LineHeight(visual.Font.Size);
             baselineOffsets[index] = ResolveBaselineOffset(
                 program,
@@ -135,14 +161,18 @@ internal static partial class HtmlPdfRenderedConverter {
         for (int runIndex = 0; runIndex < runs.Count; runIndex++) {
             OutlinedFontRun run = runs[runIndex];
             cancellationToken.ThrowIfCancellationRequested();
-            var bounded = (IOfficeBoundedFontProgram)run.Face.Program;
+            var bounded = (IOfficeBoundedFontProgram)run.Program;
             int availablePoints = webFonts.OutlineBudget.RemainingPointAllowance - retainedPointCount;
             if (availablePoints <= 0) {
                 throw new InvalidOperationException("HTML-to-PDF outlined text exceeded the configured path-command budget.");
             }
             double runTop = lineMetrics.Baseline - baselineOffsets[runIndex];
             var sourcePaintGroups = new List<OutlinedPaintContours>();
-            if (run.Face.Program is OfficeTrueTypeFont trueType &&
+            if (run.PreparedShaping is OfficePreparedTextShaping prepared) {
+                sourcePaintGroups.Add(new OutlinedPaintContours(visual.Color,
+                    prepared.GetContours(cursor, runTop, visual.Font.Size, availablePoints,
+                        cancellationToken, webFonts.OutlineBudget.CffOperationBudget)));
+            } else if (run.Program is OfficeTrueTypeFont trueType &&
                 (run.ShapingResult == null
                     ? trueType.TryGetColorTextContours(
                         run.Text,
@@ -411,13 +441,13 @@ internal static partial class HtmlPdfRenderedConverter {
         shapedText = null;
         IOfficeTextShapingProvider? provider = webFonts.TextShapingProvider;
         if (provider == null && !featureSettings.IsDefault) provider = OfficeManagedTextShapingProvider.Instance;
-        if (provider == null || run.Face.Program.ProvidesComplexTextLayout) return null;
+        if (provider == null || run.Program.ProvidesComplexTextLayout) return null;
         shapedText = OfficeArabicTextShaper.ToLogicalText(run.Text);
         cancellationToken.ThrowIfCancellationRequested();
-        IOfficeFontProgram program = run.Face.Program;
+        IOfficeFontProgram program = run.Program;
         OfficeTextShapingResult? shapingResult = provider.ShapeText(new OfficeTextShapingRequest(
             shapedText,
-            program.DisplayName ?? run.Face.FamilyName,
+            program.DisplayName ?? run.Face!.FamilyName,
             program.GetFontDataForShaping(),
             program.IsOpenTypeCff,
             program.UnitsPerEm,
@@ -425,7 +455,7 @@ internal static partial class HtmlPdfRenderedConverter {
             webFonts.TextShapingLanguage,
             cancellationToken,
             program.CollectionIndex,
-            run.Face.VariationCoordinatesForShaping,
+            run.Face!.VariationCoordinatesForShaping,
             cloneFontData: false,
             fontProgramCacheKey: program,
             featureSettings: featureSettings));
@@ -438,7 +468,7 @@ internal static partial class HtmlPdfRenderedConverter {
         HtmlRenderText visual,
         OutlinedFontRun run) {
         if (webFonts.TextShapingProvider == null
-            || run.Face.Program.ProvidesComplexTextLayout
+            || run.Program.ProvidesComplexTextLayout
             || !RequiresConfiguredTextShaping(run.Text)) return;
         string source = visual.Source ?? "html-text";
         if (webFonts.Diagnostics.Any(diagnostic =>
@@ -638,7 +668,7 @@ internal static partial class HtmlPdfRenderedConverter {
         PdfCore.PdfConversionReport conversionReport,
         HtmlRenderText visual,
         IEnumerable<OutlinedFontRun> runs) {
-        foreach (OfficeFontFace face in runs.Select(run => run.Face).Distinct()) {
+        foreach (OfficeFontFace face in runs.Select(run => run.Face).OfType<OfficeFontFace>().Distinct()) {
             bool alreadyReported = conversionReport.Warnings.Any(warning =>
                 string.Equals(warning.Code, HtmlPdfDiagnosticCodes.FontProgramOutlined, StringComparison.Ordinal)
                 && warning.Details.TryGetValue("ResourceFamily", out string? family)
@@ -659,37 +689,6 @@ internal static partial class HtmlPdfRenderedConverter {
                     ["StaticPdfEmbeddable"] = face.CanEmbedAsStaticPdfFont ? "true" : "false"
                 }));
         }
-    }
-
-    private readonly struct OutlinedFontRun {
-        internal OutlinedFontRun(string text, OfficeFontFace face, bool simulateBold, bool simulateItalic)
-            : this(text, face, simulateBold, simulateItalic, 0D, null, null) {
-        }
-
-        internal OutlinedFontRun(
-            string text,
-            OfficeFontFace face,
-            bool simulateBold,
-            bool simulateItalic,
-            double advance,
-            string? shapedText,
-            OfficeTextShapingResult? shapingResult) {
-            Text = text;
-            Face = face;
-            SimulateBold = simulateBold;
-            SimulateItalic = simulateItalic;
-            Advance = advance;
-            ShapedText = shapedText;
-            ShapingResult = shapingResult;
-        }
-
-        internal string Text { get; }
-        internal OfficeFontFace Face { get; }
-        internal bool SimulateBold { get; }
-        internal bool SimulateItalic { get; }
-        internal double Advance { get; }
-        internal string? ShapedText { get; }
-        internal OfficeTextShapingResult? ShapingResult { get; }
     }
 
     private sealed class OutlinedPaintContours {

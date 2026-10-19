@@ -55,7 +55,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
             result.Add(string.Equals(contextual[index], run.Text, StringComparison.Ordinal)
                 ? run : new IntrinsicTextRun(contextual[index], run.Style, textTransformPending: false));
         }
-        return result;
+        return PrepareConfiguredJoiningIntrinsicRuns(result);
     }
 
     // Eligibility only reads run/text fields. Carry partial chunks across calls:
@@ -188,6 +188,6 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 resolvedRuns.Add(resolvedRun);
             }
         }
-        return resolvedRuns;
+        return resolvedRuns.Count == 0 ? resolvedRuns : PrepareConfiguredJoiningRuns(resolvedRuns, resolvedRuns[0].Style);
     }
 }

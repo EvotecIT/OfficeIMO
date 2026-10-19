@@ -85,13 +85,14 @@ public sealed partial class HtmlRenderingTests {
         Assert.Throws<HtmlConversionException>(() => rendered.RequireNoLoss());
     }
 
-    private static HtmlRenderDocument RenderArabicContext(string content, string width = "300px", string extraCss = "") {
+    private static HtmlRenderDocument RenderArabicContext(string content, string width = "300px", string extraCss = "",
+        IOfficeTextShapingProvider? provider = null, byte[]? fontData = null) {
         var options = new HtmlRenderOptions {
             Mode = HtmlRenderMode.Continuous, ViewportWidth = 400D, ViewportHeight = 200D,
             Margins = HtmlRenderMargins.All(0D), AllowSystemFontFallback = false,
-            DefaultFontFamily = ManagedTextShapingTestAssets.FamilyName
+            DefaultFontFamily = ManagedTextShapingTestAssets.FamilyName, TextShapingProvider = provider
         };
-        options.Fonts.Add(ManagedTextShapingTestAssets.FamilyName, ArabicContextFont());
+        options.Fonts.Add(ManagedTextShapingTestAssets.FamilyName, fontData ?? ArabicContextFont());
         string html = "<style>html,body{margin:0;padding:0}#probe{margin:0;padding:0;border:0;"
             + "font:20px/24px '" + ManagedTextShapingTestAssets.FamilyName + "';"
             + "background:white;display:inline-block;direction:rtl;width:" + width + "}"

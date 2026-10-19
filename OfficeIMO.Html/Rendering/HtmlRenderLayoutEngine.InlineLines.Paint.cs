@@ -241,6 +241,9 @@ internal sealed partial class HtmlRenderLayoutEngine {
                     IReadOnlyList<InlinePaintSegment> paintSegments = ResolveInlinePaintSegments(segment, x);
                     var textVisuals = new List<HtmlRenderVisual>(paintSegments.Count);
                     foreach (InlinePaintSegment paintSegment in paintSegments) {
+                        // Retained glyph paths cannot delegate decoration to SVG <text>.
+                        // Keep CSS decoration paint in the existing shared HTML owner.
+                        bool vectorDecoration = segment.Run.Style.VectorTextDecoration || paintSegment.PreparedShaping != null;
                         double frameWidth = Math.Min(Math.Max(0.01D, lineRight - paintSegment.X), paintSegment.Width + frameTolerance);
                         textVisuals.Add(new HtmlRenderText(
                             paintSegment.Text,
@@ -248,7 +251,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                             textY,
                             Math.Max(0.01D, frameWidth),
                             Math.Max(0.01D, paintHeight),
-                            segment.Run.Style.VectorTextDecoration
+                            vectorDecoration
                                 ? new OfficeFontInfo(segment.Run.Style.Font.FamilyName, segment.Run.Style.Font.Size,
                                     segment.Run.Style.FontDescriptor, segment.Run.Style.Font.Style & ~(OfficeFontStyle.Underline | OfficeFontStyle.Strikethrough))
                                 : segment.Run.Style.Font,
@@ -262,11 +265,11 @@ internal sealed partial class HtmlRenderLayoutEngine {
                             layoutY: lineY,
                             semanticNodeId: segment.Run.SemanticNodeId,
                             textAdvanceWidth: paintSegment.Advance,
-                            bidiVisualOrderResolved: segment.BidiResolved || paintSegment.BidiResolved,
+                            bidiVisualOrderResolved: paintSegment.PreparedShaping == null && (segment.BidiResolved || paintSegment.BidiResolved),
                             semanticFragmentOrder: segment.Run.SemanticFragmentOrder,
                             logicalTextOrder: segment.Run.LogicalTextOrder,
-                            underlineStyle: segment.Run.Style.VectorTextDecoration ? OfficeTextDecorationStyle.None : segment.Run.Style.UnderlineStyle,
-                            strikethroughStyle: segment.Run.Style.VectorTextDecoration ? OfficeTextDecorationStyle.None : segment.Run.Style.StrikethroughStyle,
+                            underlineStyle: vectorDecoration ? OfficeTextDecorationStyle.None : segment.Run.Style.UnderlineStyle,
+                            strikethroughStyle: vectorDecoration ? OfficeTextDecorationStyle.None : segment.Run.Style.StrikethroughStyle,
                             baseline: segment.Run.Style.Baseline,
                             baselineLevel: segment.Run.Style.BaselineLevel,
                             baselineScale: segment.Run.Style.BaselineScale,
@@ -282,7 +285,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
                                 paintSegment.X, anchorY, Math.Max(0.01D, Math.Max(paintSegment.Width, paintSegment.Advance)), anchorHeight),
                             ordinaryLineCarrier: ordinaryLineCarrier && segment.Run.Style.LineHeight >= segment.Run.Style.Font.Size
                                 && segment.Run.Style.Baseline == OfficeTextBaseline.Normal
-                                && segment.Run.Style.BaselineScale == 1D && segment.Run.Style.BaselineOffset == 0D));
+                                && segment.Run.Style.BaselineScale == 1D && segment.Run.Style.BaselineOffset == 0D)
+                            .WithPreparedShaping(paintSegment.PreparedShaping));
                     }
                     HtmlRenderVisual textVisual = paintSegments.Count > 1 || segment.BidiResolved ||
                         !string.Equals(segment.Text, segment.LogicalText, StringComparison.Ordinal) ||

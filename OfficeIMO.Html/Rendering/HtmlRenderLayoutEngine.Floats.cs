@@ -264,10 +264,10 @@ internal sealed partial class HtmlRenderLayoutEngine {
                     ? run.PreparedHyphenation.Value.SliceSource(logicalOffset - token.Length, normalizedLogicalToken.Length)
                     : PrepareHyphenationToken(expandedToken, normalizedLogicalToken, run.Style);
                 string paintToken = hyphenation.PaintText;
-                double measured = hasTabs ? tabExpandedWidth : MeasureInlineText(paintToken, run.Style);
+                double measured = hasTabs ? tabExpandedWidth : MeasureInlineText(paintToken, run.Style, run);
                 if (run.EndsFirstLine && tokenIndex == tokens.Count - 1) {
                     paintToken += run.FirstLineHyphen;
-                    double prefixWidth = MeasureInlineText(paintToken, run.Style);
+                    double prefixWidth = MeasureInlineText(paintToken, run.Style, run);
                     if (line.HasFlowContent && line.PreviewAdvance(run, prefixWidth) > line.AvailableWidth + 0.0001D)
                         CommitFloatLine(lines, ref line, ref y, context, defaultLineHeight);
                     if (!line.HasFlowContent && line.PreviewAdvance(run, prefixWidth) > line.AvailableWidth + 0.0001D)
@@ -439,7 +439,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         int consumed = 0;
         foreach (string value in OfficeTextElements.Enumerate(token)) {
             consumed += value.Length;
-            double elementWidth = MeasureInlineText(value, run.Style);
+            double elementWidth = MeasureInlineText(value, run.Style, run);
             if (line.HasFlowContent && line.PreviewAdvance(run, elementWidth, completesToken && consumed == token.Length) > line.AvailableWidth) {
                 CommitFloatLine(lines, ref line, ref y, context, lineHeight);
             }
@@ -519,7 +519,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
             paint = new HtmlRenderShape(shape, x, y + lineY, paintOrder, run.LinkUri, run.Source);
         } else {
             string leaderPattern = run.LeaderPattern!;
-            double unitWidth = Math.Max(0.01D, MeasureInlineText(leaderPattern, run.Style));
+            double unitWidth = Math.Max(0.01D, MeasureInlineText(leaderPattern, run.Style, run));
             double requiredCount = Math.Max(1D, Math.Ceiling(width / unitWidth));
             if (double.IsNaN(requiredCount) || double.IsInfinity(requiredCount)
                 || requiredCount * leaderPattern.Length > _options.MaxLeaderCharacters) {

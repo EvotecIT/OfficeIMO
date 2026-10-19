@@ -73,7 +73,8 @@ public sealed partial class HtmlRenderPage {
                 text.Width, text.LayoutHeight, text.Font, text.Color, text.Alignment, text.LineHeight,
                 text.PaintOrder, text.LinkUri, text.Source, text.SemanticRole,
                 layoutY: text.LayoutY, semanticNodeId: text.SemanticNodeId,
-                textAdvanceWidth: text.TextAdvanceWidth, layoutHeight: text.LayoutHeight, fontDescriptor: text.FontDescriptor);
+                textAdvanceWidth: text.TextAdvanceWidth, layoutHeight: text.LayoutHeight, fontDescriptor: text.FontDescriptor)
+                .WithPreparedShaping(text.PreparedShaping);
         }
         return visual.PaintChildren is { } children
             ? visual.ProjectPaintChildren(children.Select(ProjectInspectionBounds), 0D, 0D, visual.PaintOrder)

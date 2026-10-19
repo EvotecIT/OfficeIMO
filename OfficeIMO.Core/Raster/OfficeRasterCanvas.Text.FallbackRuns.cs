@@ -201,9 +201,10 @@ public sealed partial class OfficeRasterCanvas {
         return true;
     }
 
-    private static bool ShouldUseFallbackRuns(
+    private bool ShouldUseFallbackRuns(
         IReadOnlyList<OfficeFontFallbackRun> runs,
         string? requestedFamilies) {
+        if (_preparedShaping != null) return false;
         if (runs.Count > 1) return true;
         if (runs.Count == 0) return false;
         string requested = requestedFamilies?.Trim() ?? string.Empty;

@@ -147,7 +147,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
             layoutY: text.LayoutY,
             semanticNodeId: null,
             textAdvanceWidth: text.TextAdvanceWidth,
-            bidiVisualOrderResolved: text.BidiVisualOrderResolved,
+            bidiVisualOrderResolved: text.PreparedShaping == null && text.BidiVisualOrderResolved,
             semanticFragmentOrder: null,
             logicalTextOrder: null,
             underlineStyle: text.UnderlineStyle,
@@ -163,7 +163,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
             layoutHeight: text.LayoutHeight,
             fontDescriptor: text.FontDescriptor,
             paintTopOverflow: text.PaintTopOverflow,
-            paintOnly: true);
+            paintOnly: true).WithPreparedShaping(text.PreparedShaping);
 
     private static string TextShadowSource(string source, int index, int count) =>
         count == 1

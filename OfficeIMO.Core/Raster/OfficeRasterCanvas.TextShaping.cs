@@ -34,6 +34,10 @@ public sealed partial class OfficeRasterCanvas {
         OfficeTextFeatureSettings? featureSettings,
         OfficeTextDirection direction,
         out OfficeTextShapingResult shapedRun) {
+        if (IsPreparedText(text, font)) {
+            shapedRun = _preparedShaping!.Result;
+            return true;
+        }
         if (PreservePaintedGlyphOrder) {
             shapedRun = null!;
             return false;
@@ -221,6 +225,8 @@ public sealed partial class OfficeRasterCanvas {
     private double MeasureResolvedText(string text, IOfficeFontProgram font, double fontSize,
         OfficeTextFeatureSettings? featureSettings = null,
         OfficeTextDirection direction = OfficeTextDirection.Auto) {
+        if (IsPreparedText(text, font))
+            return _preparedMetricRun?.Measure(fontSize) ?? _preparedShaping!.Measure(fontSize);
         if (font.ProvidesComplexTextLayout) return font.Measure(text, fontSize);
         OfficeTextDirection resolvedDirection = ResolveTextDirection(text, direction);
         if (TryGetShapedTextRun(text, font, featureSettings, resolvedDirection, out OfficeTextShapingResult run)) {
@@ -238,6 +244,10 @@ public sealed partial class OfficeRasterCanvas {
         double fontSize,
         OfficeTextFeatureSettings? featureSettings = null,
         OfficeTextDirection direction = OfficeTextDirection.Auto) {
+        if (IsPreparedText(text, font))
+            return _preparedMetricRun?.GetContours(x, y, fontSize, MaximumTextOutlinePointsPerRun, _cancellationToken)
+                ?? _preparedShaping!.GetContours(x, y, fontSize, MaximumTextOutlinePointsPerRun, _cancellationToken,
+                    _cffOperationBudget);
         if (font.ProvidesComplexTextLayout) {
             return GetBoundedTextContours(font, text, x, y, fontSize);
         }

@@ -413,6 +413,21 @@ internal sealed partial class HtmlRenderLayoutEngine {
         return measured;
     }
 
+    private double MeasureInlineText(string value, HtmlRenderBoxStyle style, HtmlInlineRun run) =>
+        run.GetPreparedShaping(value, style) is OfficePreparedTextShaping prepared
+            ? MeasurePreparedInlineText(value, style, prepared)
+            : MeasureInlineText(value, style);
+
+    private double MeasureInlineText(string value, HtmlRenderBoxStyle style, IntrinsicTextRun run) =>
+        run.PreparedShaping != null && string.Equals(value, run.PreparedShaping.Text, StringComparison.Ordinal)
+            ? MeasurePreparedInlineText(value, style, run.PreparedShaping)
+            : MeasureInlineText(value, style);
+
+    private double MeasurePreparedInlineText(string value, HtmlRenderBoxStyle style, OfficePreparedTextShaping prepared) {
+        _fontUsage?.Observe(value, style.Font.FamilyName, style.FontDescriptor);
+        return prepared.Measure(GetEffectiveTextFont(style).Size);
+    }
+
     private string? ResolveSafeLink(string? rawHref, IElement element) {
         if (rawHref == null) return null;
         string candidate = rawHref.Trim();
@@ -606,6 +621,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
             Run = run;
             BidiResolved = bidiResolved;
             LogicalEndProgress = logicalEndProgress;
+            PreparedShaping = run.GetPreparedShaping(LogicalText, run.Style);
         }
 
         internal string Text { get; }
@@ -616,6 +632,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         internal double Advance => LeadingAdvance + Width + TrailingAdvance;
         internal HtmlInlineRun Run { get; }
         internal bool BidiResolved { get; }
+        internal OfficePreparedTextShaping? PreparedShaping { get; }
         internal int LogicalEndProgress { get; }
         internal void SetWidth(double width) => Width = Math.Max(0D, width);
     }
