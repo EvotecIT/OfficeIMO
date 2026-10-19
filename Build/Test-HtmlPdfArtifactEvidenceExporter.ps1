@@ -7,12 +7,14 @@ $osDescription = $isWindowsHost ? 'Windows contract-test host' : 'Linux contract
 $temporaryRoot = Join-Path ([System.IO.Path]::GetTempPath()) (
     'officeimo-html-pdf-artifact-exporter-' + [Guid]::NewGuid().ToString('N'))
 $pdfProjectPath = Join-Path $PSScriptRoot '../OfficeIMO.Pdf/OfficeIMO.Pdf.csproj'
-$pdfAssemblyPath = Join-Path $PSScriptRoot '../OfficeIMO.Pdf/bin/Release/net10.0/OfficeIMO.Pdf.dll'
+if ([System.Environment]::Version.Major -lt 8) { throw 'PDF artifact inspection requires PowerShell on .NET 8 or later.' }
+$inspectionFramework = [System.Environment]::Version.Major -ge 10 ? 'net10.0' : 'net8.0'
+$pdfAssemblyPath = Join-Path $PSScriptRoot "../OfficeIMO.Pdf/bin/Release/$inspectionFramework/OfficeIMO.Pdf.dll"
 if (-not (Test-Path -LiteralPath $pdfAssemblyPath -PathType Leaf)) {
-    & dotnet build $pdfProjectPath -c Release -f net10.0 --nologo
+    & dotnet build $pdfProjectPath -c Release -f $inspectionFramework --nologo
     if ($LASTEXITCODE -ne 0) { throw 'Could not build OfficeIMO.Pdf for artifact-exporter contracts.' }
 }
-Add-Type -Path (Join-Path $PSScriptRoot '../OfficeIMO.Pdf/bin/Release/net10.0/OfficeIMO.Core.dll')
+Add-Type -Path (Join-Path $PSScriptRoot "../OfficeIMO.Pdf/bin/Release/$inspectionFramework/OfficeIMO.Core.dll")
 Add-Type -Path $pdfAssemblyPath
 
 function New-TestPdfBytes {

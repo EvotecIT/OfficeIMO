@@ -26,11 +26,13 @@ $pathComparison = if ([System.Environment]::OSVersion.Platform -eq [System.Platf
     [System.StringComparison]::Ordinal
 }
 $report = Get-Content -LiteralPath $reportPath -Raw | ConvertFrom-Json
-$pdfAssemblyPath = Join-Path $PSScriptRoot '../OfficeIMO.Pdf/bin/Release/net10.0/OfficeIMO.Pdf.dll'
-$coreAssemblyPath = Join-Path $PSScriptRoot '../OfficeIMO.Pdf/bin/Release/net10.0/OfficeIMO.Core.dll'
+if ([System.Environment]::Version.Major -lt 8) { throw 'PDF artifact inspection requires PowerShell on .NET 8 or later.' }
+$inspectionFramework = [System.Environment]::Version.Major -ge 10 ? 'net10.0' : 'net8.0'
+$pdfAssemblyPath = Join-Path $PSScriptRoot "../OfficeIMO.Pdf/bin/Release/$inspectionFramework/OfficeIMO.Pdf.dll"
+$coreAssemblyPath = Join-Path $PSScriptRoot "../OfficeIMO.Pdf/bin/Release/$inspectionFramework/OfficeIMO.Core.dll"
 if (-not (Test-Path -LiteralPath $pdfAssemblyPath -PathType Leaf) -or
     -not (Test-Path -LiteralPath $coreAssemblyPath -PathType Leaf)) {
-    throw 'HTML/PDF artifact evidence requires a Release net10.0 OfficeIMO.Pdf build for independent PDF and preview inspection.'
+    throw "HTML/PDF artifact evidence requires a Release $inspectionFramework OfficeIMO.Pdf build for independent PDF and preview inspection."
 }
 Add-Type -Path (Resolve-Path -LiteralPath $coreAssemblyPath).Path
 Add-Type -Path (Resolve-Path -LiteralPath $pdfAssemblyPath).Path
