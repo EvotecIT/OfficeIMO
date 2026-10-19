@@ -4,7 +4,6 @@ using System.Text;
 using CodeGlyphX;
 using CodeGlyphX.DataMatrix;
 using CodeGlyphX.Rendering;
-using CodeGlyphX.Rendering.Png;
 using CodeGlyphX.Rendering.Svg;
 using OfficeIMO.Drawing;
 using OfficeIMO.Drawing.CodeGlyphX;
@@ -15,7 +14,7 @@ namespace OfficeIMO.Drawing.CodeGlyphX.Tests;
 public sealed class CodeGlyphDrawingIntegrationTests {
     [Fact]
     public void NeutralSvgBoundaryImportsQrWithoutTheAdapterApi() {
-        QrCode qr = QrCode.Encode("https://evotec.xyz/codeglyphx");
+        QrCode qr = QR.Encode("https://evotec.xyz/codeglyphx");
         string svg = SvgQrRenderer.Render(qr.Modules, new QrSvgRenderOptions());
 
         Assert.True(OfficeSvgDrawingReader.TryRead(Encoding.UTF8.GetBytes(svg), out OfficeDrawing? drawing, out int unsupported));
@@ -26,9 +25,9 @@ public sealed class CodeGlyphDrawingIntegrationTests {
 
     [Fact]
     public void AdapterImportsStyledQrAsReusableShapes() {
-        QrCode qr = QrCode.Encode("STYLED-QR-OFFICEIMO");
+        QrCode qr = QR.Encode("STYLED-QR-OFFICEIMO");
         var options = new QrSvgRenderOptions {
-            ModuleShape = QrPngModuleShape.Circle,
+            ModuleShape = QrModuleShape.Circle,
             ModuleScale = 0.78,
             DarkColor = "#2457A6",
             LightColor = "#F7FAFF"
@@ -44,13 +43,13 @@ public sealed class CodeGlyphDrawingIntegrationTests {
 
     [Fact]
     public void AdapterImportsLargeStyledQrWithinTheTrustedElementLimit() {
-        QrCode qr = QrCode.Encode("LARGE-STYLED-QR", new QrEasyOptions {
+        QrCode qr = QR.Encode("LARGE-STYLED-QR", new QrEncodingOptions {
             ErrorCorrectionLevel = QrErrorCorrectionLevel.L,
             MinVersion = 40,
             MaxVersion = 40
         });
         var options = new QrSvgRenderOptions {
-            ModuleShape = QrPngModuleShape.Circle,
+            ModuleShape = QrModuleShape.Circle,
             ModuleScale = 0.78
         };
 
@@ -63,12 +62,12 @@ public sealed class CodeGlyphDrawingIntegrationTests {
 
     [Fact]
     public void AdapterImportsLargeDotGridQrWithinTheTrustedElementLimit() {
-        QrCode qr = QrCode.Encode("LARGE-DOT-GRID-QR", new QrEasyOptions {
+        QrCode qr = QR.Encode("LARGE-DOT-GRID-QR", new QrEncodingOptions {
             ErrorCorrectionLevel = QrErrorCorrectionLevel.L,
             MinVersion = 40,
             MaxVersion = 40
         });
-        var options = new QrSvgRenderOptions { ModuleShape = QrPngModuleShape.DotGrid };
+        var options = new QrSvgRenderOptions { ModuleShape = QrModuleShape.DotGrid };
 
         OfficeDrawing drawing = qr.ToOfficeDrawing(out int unsupported, options);
 
@@ -78,7 +77,7 @@ public sealed class CodeGlyphDrawingIntegrationTests {
 
     [Fact]
     public void AdapterRejectsQrLogosThatCannotBePreserved() {
-        QrCode qr = QrCode.Encode("LOGO-QR-OFFICEIMO");
+        QrCode qr = QR.Encode("LOGO-QR-OFFICEIMO");
         var options = new QrSvgRenderOptions { Logo = new QrLogoOptions(new byte[] { 1 }) };
 
         NotSupportedException exception = Assert.Throws<NotSupportedException>(() => qr.ToOfficeDrawing(options));
@@ -88,7 +87,7 @@ public sealed class CodeGlyphDrawingIntegrationTests {
 
     [Fact]
     public void AdapterPreservesAlphaQrColors() {
-        QrCode qr = QrCode.Encode("ALPHA-QR-OFFICEIMO");
+        QrCode qr = QR.Encode("ALPHA-QR-OFFICEIMO");
         var options = new QrSvgRenderOptions { DarkColor = "rgba(36,87,166,0.502)" };
 
         OfficeDrawing drawing = qr.ToOfficeDrawing(out int unsupported, options);

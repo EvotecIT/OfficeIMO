@@ -8,7 +8,7 @@
   </PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="../OfficeIMO.JavaScript.Assets/OfficeIMO.JavaScript.Assets.csproj" />
-    <PackageReference Include="HtmlForgeX" Version="1.1.0" />
+    <PackageReference Include="HtmlForgeX" Version="2.0.0" />
     <None Include="current-view.js" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 </Project>

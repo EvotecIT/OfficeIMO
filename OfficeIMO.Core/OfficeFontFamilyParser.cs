@@ -15,7 +15,8 @@ internal static class OfficeFontFamilyParser {
         string? familyNames,
         int maximumCandidates = DefaultMaximumCandidates,
         int maximumFamilyNameLength = DefaultMaximumFamilyNameLength,
-        bool allowSemicolonSeparators = false) {
+        bool allowSemicolonSeparators = false,
+        bool requirePrimaryFamily = false) {
         var families = new List<string>();
         if (string.IsNullOrEmpty(familyNames) || maximumCandidates < 1 || maximumFamilyNameLength < 1) {
             return families;
@@ -45,6 +46,8 @@ internal static class OfficeFontFamilyParser {
                 segmentEnd++;
             }
             string family = CleanSegment(familyNames, segmentStart, segmentEnd, maximumFamilyNameLength);
+            // Strict consumers must not promote a fallback past an empty primary entry.
+            if (requirePrimaryFamily && segmentStart == 0 && family.Length == 0) return families;
             if (family.Length > 0 && seen.Add(family)) families.Add(family);
             segmentStart = segmentEnd + 1;
         }

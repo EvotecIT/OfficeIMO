@@ -12,7 +12,7 @@
     <ProjectReference Include="../../OfficeIMO.Reader.Excel/OfficeIMO.Reader.Excel.csproj" />
     <ProjectReference Include="../../OfficeIMO.CSV/OfficeIMO.CSV.csproj" />
     <ProjectReference Include="../../OfficeIMO.Pdf/OfficeIMO.Pdf.csproj" />
-    <PackageReference Include="HtmlTinkerX" Version="3.0.3" />
+    <PackageReference Include="HtmlTinkerX" Version="3.0.5" />
     <Compile Include="../../OfficeIMO.TestAssets/CSV/BrowserCsvVectorContract.cs" Link="Shared/BrowserCsvVectorContract.cs" />
     <Compile Include="../../OfficeIMO.TestAssets/JavaScript/JavaScriptWorkbookContract.cs" Link="Shared/JavaScriptWorkbookContract.cs" />
   </ItemGroup>

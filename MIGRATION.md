@@ -1,5 +1,11 @@
 # Upgrading OfficeIMO
 
+## ChartForgeX 3 and CodeGlyphX 3
+
+`OfficeIMO.ChartForgeX` and `OfficeIMO.ChartForgeX.Markdown` use ChartForgeX 3.0.0. Prepare visuals with the shared `VisualTheme` and `VisualThemeMode` API. Replace legacy theme factories such as `TopologyTheme.Light()` with `WithThemeMode(VisualThemeMode.Light)`, or pass a paired theme to `WithTheme(...)`. Customize theme colors through `ConfigureTheme(...)`; for example, `theme.Light.Surface` supplies the topology card fill. The OfficeIMO conversion and document-placement APIs are unchanged.
+
+`OfficeIMO.Drawing.CodeGlyphX` requires CodeGlyphX 3.x (`[3.0.0, 4.0.0)`). Update an application's direct CodeGlyphX reference to the same major version when using this bridge. Create QR codes with `QR.Encode(...)` and `QrEncodingOptions`, and use the shared `CodeGlyphX.Rendering.QrModuleShape` enum for styled modules.
+
 ## Strict PDF standards helpers
 
 `PdfOptions.UsePdfA(...)` and `UsePdfUa(...)` enable the strict compliance gate. Saving rejects missing font embedding, accessibility prerequisites and incompatible combined profile declarations; every declared A/UA profile is checked against the saved bytes. Applications that only prepare metadata can use `ConfigurePdfAGroundwork(...)` and `ConfigurePdfUaGroundwork(...)` instead. External validation remains necessary for a conformance claim on an exact artifact.

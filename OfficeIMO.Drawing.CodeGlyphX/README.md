@@ -18,7 +18,7 @@ using CodeGlyphX.Rendering.Svg;
 using OfficeIMO.Drawing;
 using OfficeIMO.Drawing.CodeGlyphX;
 
-QrCode qr = QrCode.Encode("https://evotec.xyz");
+QrCode qr = QR.Encode("https://evotec.xyz");
 OfficeDrawing drawing = qr.ToOfficeDrawing(new QrSvgRenderOptions {
     ModuleSize = 8,
     QuietZone = 4

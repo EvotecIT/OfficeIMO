@@ -4,6 +4,7 @@ using System.Linq;
 using System.Xml.Linq;
 using ChartForgeX.Topology;
 using ChartForgeX.Primitives;
+using ChartForgeX.Themes;
 using ChartForgeX.VisualArtifacts;
 using OfficeIMO.Visio;
 using Xunit;
@@ -346,9 +347,11 @@ public sealed partial class OfficeVisioVisualIntegrationTests {
 
     [Fact]
     public void NativeGraphUsesSourceCardColorsAndAllowsExplicitThemeOverride() {
-        var chart = TopologyChart.Create().WithTheme(TopologyTheme.Light()).AddNode("a", "Service", 100, 100);
-        chart.Theme!.Card = "#F0F4FA";
-        chart.Theme.Foreground = "#14243A";
+        TopologyChart chart = TopologyChart.Create().WithThemeMode(VisualThemeMode.Light).AddNode("a", "Service", 100, 100);
+        chart.ConfigureTheme(theme => {
+            theme.Light.Surface = ChartColor.FromHex("#F0F4FA");
+            theme.Light.Foreground = ChartColor.FromHex("#14243A");
+        });
         var envelope = chart.ToVisualArtifact().ToInterchangeEnvelope();
         var result = envelope.ToOfficeVisio();
         var shape = result.Page.Shapes.Single(item => item.Id == "a");

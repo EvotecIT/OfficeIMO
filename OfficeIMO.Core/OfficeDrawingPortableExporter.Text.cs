@@ -6,8 +6,13 @@ public static partial class OfficeDrawingPortableExporter {
     private sealed partial class ProjectionContext {
         internal Element ProjectText(OfficeDrawingText text, OfficeTransform transform, OfficeFontFaceCollection fonts, string location) {
             CountText(text.Text.Length, location);
-            if (!string.Equals(text.Font.FamilyName, Options.FontFamily, StringComparison.OrdinalIgnoreCase))
-                Fail("DRAWING_FONT_FAMILY_UNSUPPORTED", "Every text run must use the explicitly selected font family.", location);
+            if (!string.Equals(text.Font.FamilyName, Options.FontFamily, StringComparison.OrdinalIgnoreCase)) {
+                // SVG producers may append generic fallbacks. The qualified face must
+                // remain first; the face and glyph checks below still forbid substitution.
+                System.Collections.Generic.List<string> families = OfficeFontFamilyParser.Parse(text.Font.FamilyName, requirePrimaryFamily: true);
+                if (families.Count == 0 || !string.Equals(families[0], Options.FontFamily, StringComparison.OrdinalIgnoreCase))
+                    Fail("DRAWING_FONT_FAMILY_UNSUPPORTED", "Every text run must use the explicitly selected font family.", location);
+            }
             if (text.WrapText || text.ShrinkToFit || text.StackedText || text.HasFrameTransform || text.HasPadding || text.HasParagraphIndent ||
                 text.VerticalAlignment != OfficeTextVerticalAlignment.Top || text.Baseline != OfficeTextBaseline.Normal ||
                 text.BaselineLevel != 0 || text.BaselineScale != 1 || text.BaselineOffset != 0 || text.FontMetricScale != 1 ||

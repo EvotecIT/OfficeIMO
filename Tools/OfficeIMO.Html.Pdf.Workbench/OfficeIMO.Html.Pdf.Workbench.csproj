@@ -24,11 +24,11 @@
   </ItemGroup>
 
   <ItemGroup Condition=" '$(HtmlTinkerXProjectPath)' == '' ">
-    <PackageReference Include="HtmlTinkerX" Version="3.0.1" />
+    <PackageReference Include="HtmlTinkerX" Version="3.0.5" />
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="AngleSharp" Version="1.8.3" />
+    <PackageReference Include="AngleSharp" Version="1.8.4" />
   </ItemGroup>
 
 </Project>
