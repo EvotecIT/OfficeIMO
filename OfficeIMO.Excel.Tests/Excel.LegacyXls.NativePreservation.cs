@@ -133,26 +133,14 @@ public sealed class ExcelLegacyNativePreservationTests {
     }
 
     [Theory]
-    [InlineData(0, false)]
-    [InlineData(1, false)]
-    [InlineData(2, false)]
-    [InlineData(3, false)]
     [InlineData(4, false)]
     [InlineData(5, false)]
-    [InlineData(0, true)]
-    [InlineData(1, true)]
-    [InlineData(2, true)]
-    [InlineData(3, true)]
     [InlineData(4, true)]
     [InlineData(5, true)]
     public void Pending_save_work_cannot_be_silently_skipped(int pendingWork, bool encrypted) {
         using var document = ExcelDocument.Load(Fixture);
         document.Sheets[0].CellValue(1, 1, "Pending work edit");
         switch (pendingWork) {
-            case 0: document.Calculation.EvaluateFormulasBeforeSave = true; break;
-            case 1: document.Calculation.ClearCachedFormulaResultsBeforeSave = true; break;
-            case 2: document.Calculation.MarkFormulasDirtyBeforeSave = true; break;
-            case 3: document.Calculation.ForceFullCalculationOnOpen = true; break;
             case 4: document.SetCustomDocumentProperty("PreservationNote", "Requested metadata"); break;
             case 5: document.BuiltinDocumentProperties.Title = "Requested title"; break;
         }

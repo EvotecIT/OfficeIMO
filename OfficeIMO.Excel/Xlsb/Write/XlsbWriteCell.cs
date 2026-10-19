@@ -33,6 +33,8 @@ namespace OfficeIMO.Excel.Xlsb.Write {
             SourceRecordData = sourceRecordData;
         }
 
+        internal XlsbGeneratedRecord? FormulaGroup { get; set; }
+
         internal int Row { get; }
 
         internal int Column { get; }

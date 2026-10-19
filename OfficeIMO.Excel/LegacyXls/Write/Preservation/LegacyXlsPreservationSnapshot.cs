@@ -8,7 +8,7 @@ using System.Threading;
 
 namespace OfficeIMO.Excel.LegacyXls.Write;
 
-/// <summary>Admits literal edits only when the projected workbook's other contracts remain unchanged.</summary>
+/// <summary>Admits native cell edits when the projected workbook's other contracts remain unchanged.</summary>
 internal sealed partial class LegacyXlsPreservationSnapshot {
     private readonly Dictionary<string, string> _parts;
     private readonly Dictionary<(string Sheet, string Cell), CellValueSnapshot> _cells;
@@ -19,6 +19,7 @@ internal sealed partial class LegacyXlsPreservationSnapshot {
     private readonly Dictionary<string, HashSet<string>> _partOwners;
     private readonly string _customProperties;
     private readonly string _coreProperties;
+    private readonly string _calculation;
 
     private LegacyXlsPreservationSnapshot(ExcelDocument document, LegacyXlsWorkbook workbook, CancellationToken cancellationToken) {
         _source = new LegacyXlsPreservingWorkbook(workbook, cancellationToken);
@@ -28,6 +29,7 @@ internal sealed partial class LegacyXlsPreservationSnapshot {
         _partOwners = CapturePartOwners(document);
         _customProperties = CaptureCustomProperties(document);
         _coreProperties = document.GetLegacyXlsCorePropertiesSnapshot();
+        _calculation = CaptureCalculation(document);
         _parts = CaptureParts(document, cancellationToken);
         _cells = CaptureCells(document, cancellationToken);
     }
@@ -45,6 +47,7 @@ internal sealed partial class LegacyXlsPreservationSnapshot {
         if (document.GetLegacyXlsCorePropertiesSnapshot() != _coreProperties || CaptureCustomProperties(document) != _customProperties) return false;
         var bindings = _bindings.ReadCurrent(document);
         var renames = _bindings.GetReverseRenames(document);
+        bool calculationChanged = _calculation != CaptureCalculation(document);
         bool structureChanged = _sheetBindings != (document.WorkbookRoot.Sheets?.OuterXml ?? string.Empty);
         if (!ValidateDefinedNames(document, bindings, renames)) return false;
         var currentParts = CaptureParts(document, cancellationToken, renames);
@@ -52,7 +55,7 @@ internal sealed partial class LegacyXlsPreservationSnapshot {
         var currentCells = CaptureCells(document, cancellationToken, renames);
         var changes = new List<LegacyXlsLiteralEdit>();
         var edits = new List<LegacyXlsCellEdit>();
-        bool literalOnly = !structureChanged;
+        bool literalOnly = !structureChanged && !calculationChanged;
         var currentSheetUris = new HashSet<string>(bindings.Select(binding => binding.Part.Uri.OriginalString), StringComparer.Ordinal);
         foreach (var key in _cells.Keys.Union(currentCells.Keys)) {
             bool existed = _cells.TryGetValue(key, out var previous);
@@ -60,16 +63,23 @@ internal sealed partial class LegacyXlsPreservationSnapshot {
             if (existed && exists && current!.Text == previous!.Text && current.Kind == previous.Kind && current.Metadata == previous.Metadata && current.Style == previous.Style && current.Formatting == previous.Formatting) continue;
             if (!exists && !currentSheetUris.Contains(key.Item1)) continue;
             string name = exists ? current!.SheetName : bindings.Single(binding => binding.Part.Uri.OriginalString == key.Item1).Name;
-            edits.Add(new LegacyXlsCellEdit(name, key.Item2, exists ? (Cell)current!.Cell.CloneNode(true) : null));
+            bool preserveFormula = existed && exists && previous!.CacheMetadata == current!.CacheMetadata
+                && (previous.IsFormula && current.IsFormula || previous.Text == current.Text && previous.Kind == current.Kind);
+            bool cacheOnly = preserveFormula && previous!.IsFormula && previous.Style == current!.Style;
+            edits.Add(new LegacyXlsCellEdit(name, key.Item2, exists ? (Cell)current!.Cell.CloneNode(true) : null, cacheOnly, preserveFormula));
             if (!existed || !exists || previous!.Metadata != current!.Metadata || previous.Style != current.Style || previous.IsFormula || current.IsFormula || current.Formatting.Length != 0) { literalOnly = false; continue; }
             var change = new LegacyXlsLiteralEdit(name, key.Item2, current.Text, current.Kind);
             if (!_source.CanApply(change)) literalOnly = false;
             changes.Add(change);
         }
-        plan = literalOnly ? new LegacyXlsPreservationPlan(_source, changes)
-            : new LegacyXlsPreservationPlan(_source, document, edits, structureChanged ? bindings : null);
+        plan = new LegacyXlsPreservationPlan(_source, document, edits, literalOnly ? changes : null, structureChanged ? bindings : null, calculationChanged);
         return true;
     }
+
+    private static string CaptureCalculation(ExcelDocument document) => (document.WorkbookRoot.CalculationProperties?.OuterXml ?? string.Empty)
+        + string.Join("\0", document.Sheets.Where(sheet => sheet.WorksheetPart.Worksheet?.GetFirstChild<SheetCalculationProperties>() != null)
+            .OrderBy(sheet => sheet.WorksheetPart.Uri.OriginalString, StringComparer.Ordinal)
+            .Select(sheet => sheet.WorksheetPart.Uri.OriginalString + sheet.WorksheetPart.Worksheet!.GetFirstChild<SheetCalculationProperties>()!.OuterXml));
 
     // Compare values rather than a dirty flag: import can populate pending properties before this baseline.
     private static string CaptureCustomProperties(ExcelDocument document) => string.Join("\0",
@@ -95,7 +105,7 @@ internal sealed partial class LegacyXlsPreservationSnapshot {
                     if (root is Worksheet worksheet) WriteWorksheetMetadata(writer, worksheet, cancellationToken, renames);
                     else if (root is Workbook workbook) {
                         var copy = (Workbook)NormalizeReferences(workbook, renames);
-                        copy.Sheets = null; copy.DefinedNames = null; copy.WriteTo(writer);
+                        copy.Sheets = null; copy.DefinedNames = null; copy.CalculationProperties = null; copy.WriteTo(writer);
                     } else NormalizeReferences(root, renames).WriteTo(writer);
                 }, includeChildPart: child => part is not WorkbookPart || child is not WorksheetPart));
         }
@@ -105,6 +115,7 @@ internal sealed partial class LegacyXlsPreservationSnapshot {
     private static void WriteWorksheetMetadata(XmlWriter writer, Worksheet worksheet, CancellationToken cancellationToken, IReadOnlyDictionary<string, string>? renames) {
         writer.WriteStartElement("worksheetSnapshot"); WriteAttributes(writer, worksheet, false);
         foreach (var child in worksheet.ChildElements) {
+            if (child is SheetCalculationProperties) continue;
             if (child is not SheetData data) { NormalizeReferences(child, renames).WriteTo(writer); continue; }
             writer.WriteStartElement("data"); WriteAttributes(writer, data, false);
             foreach (var row in data.ChildElements) {
@@ -141,7 +152,7 @@ internal sealed partial class LegacyXlsPreservationSnapshot {
                 var type = cell.DataType?.Value;
                 string kind = type == CellValues.SharedString || type == CellValues.InlineString || type == CellValues.String ? "text"
                     : type == CellValues.Boolean ? "boolean" : type == CellValues.Error ? "error" : type == CellValues.Date ? "date" : "number";
-                cells.Add((sheet.WorksheetPart.Uri.OriginalString, address), new CellValueSnapshot(type == CellValues.SharedString && int.TryParse(cell.CellValue?.Text, out int stringIndex) ? sharedText.Get(stringIndex) ?? string.Empty : sheet.GetCellText(cell), kind, cell.CellFormula != null, GetTextFormatting(cell, sharedItems, formats), CaptureCellMetadata((Cell)NormalizeReferences(cell, renames)), Style(cell.StyleIndex?.Value ?? 0), cell, sheet.Name));
+                cells.Add((sheet.WorksheetPart.Uri.OriginalString, address), new CellValueSnapshot(type == CellValues.SharedString && int.TryParse(cell.CellValue?.Text, out int stringIndex) ? sharedText.Get(stringIndex) ?? string.Empty : sheet.GetCellText(cell), kind, cell.CellFormula != null, GetTextFormatting(cell, sharedItems, formats), CaptureCellMetadata((Cell)NormalizeReferences(cell, renames)), Style(cell.StyleIndex?.Value ?? 0), cell, sheet.Name, CaptureFormulaCacheMetadata((Cell)NormalizeReferences(cell, renames))));
             }
         return cells;
     }
@@ -183,21 +194,35 @@ internal sealed partial class LegacyXlsPreservationSnapshot {
         return clone.OuterXml;
     }
 
-    private sealed record CellValueSnapshot(string Text, string Kind, bool IsFormula, string Formatting, string Metadata, string Style, Cell Cell, string SheetName);
+    private static string CaptureFormulaCacheMetadata(Cell cell) {
+        var clone = (Cell)cell.CloneNode(true); clone.CellValue = null; clone.InlineString = null; clone.DataType = null; clone.ValueMetaIndex = null; clone.StyleIndex = null;
+        if (clone.CellFormula != null) clone.CellFormula.CalculateCell = null;
+        return clone.OuterXml;
+    }
+
+    private sealed record CellValueSnapshot(string Text, string Kind, bool IsFormula, string Formatting, string Metadata, string Style, Cell Cell, string SheetName, string CacheMetadata);
 }
 
 internal sealed record LegacyXlsLiteralEdit(string Sheet, string Cell, string Text, string Kind);
 
 internal sealed class LegacyXlsPreservationPlan {
     private readonly LegacyXlsPreservingWorkbook _source;
-    private readonly IReadOnlyList<LegacyXlsLiteralEdit> _changes = Array.Empty<LegacyXlsLiteralEdit>();
-    private readonly ExcelDocument? _document;
-    private readonly IReadOnlyList<LegacyXlsCellEdit>? _edits;
+    private readonly ExcelDocument _document;
+    private readonly IReadOnlyList<LegacyXlsLiteralEdit>? _changes;
+    private readonly IReadOnlyList<LegacyXlsCellEdit> _edits;
     private readonly IReadOnlyList<ExcelLegacySheetBindings.Binding>? _bindings;
-    internal LegacyXlsPreservationPlan(LegacyXlsPreservingWorkbook source, IReadOnlyList<LegacyXlsLiteralEdit> changes) { _source = source; _changes = changes; }
-    internal LegacyXlsPreservationPlan(LegacyXlsPreservingWorkbook source, ExcelDocument document, IReadOnlyList<LegacyXlsCellEdit> edits, IReadOnlyList<ExcelLegacySheetBindings.Binding>? bindings = null) { _source = source; _document = document; _edits = edits; _bindings = bindings; }
-    internal byte[] Write(byte[]? filePass, long maximumBytes, System.Threading.CancellationToken cancellationToken) => _edits == null ? _source.Write(_changes, filePass, maximumBytes, cancellationToken) : _source.WriteEdits(_document!, _edits, filePass, maximumBytes, cancellationToken, bindings: _bindings);
-    internal byte[] WriteEncrypted(byte[] filePass, string password, byte[] salt, long maximumBytes) =>
-        _edits == null ? _source.Write(_changes, filePass, maximumBytes, CancellationToken.None, bytes => OfficeIMO.Excel.LegacyXls.Biff.BiffRc4Encryption.EncryptWorkbookStream(bytes, password, salt))
-        : _source.WriteEdits(_document!, _edits, filePass, maximumBytes, CancellationToken.None, bytes => OfficeIMO.Excel.LegacyXls.Biff.BiffRc4Encryption.EncryptWorkbookStream(bytes, password, salt), _bindings);
+    private readonly bool _calculationChanged;
+    internal LegacyXlsPreservationPlan(LegacyXlsPreservingWorkbook source, ExcelDocument document, IReadOnlyList<LegacyXlsCellEdit> edits,
+        IReadOnlyList<LegacyXlsLiteralEdit>? changes, IReadOnlyList<ExcelLegacySheetBindings.Binding>? bindings, bool calculationChanged) {
+        _source = source; _document = document; _edits = edits; _changes = changes; _bindings = bindings; _calculationChanged = calculationChanged;
+    }
+    internal byte[] Write(byte[]? filePass, long maximumBytes, CancellationToken token, ExcelNativeCalculationPolicy calculation = default) =>
+        _changes != null && !calculation.ClearCachedResults && !calculation.RecalculateOnOpen ? _source.Write(_changes, filePass, maximumBytes, token)
+            : _source.WriteEdits(_document, _edits, filePass, maximumBytes, token, bindings: _bindings, calculationChanged: _calculationChanged, calculation: calculation);
+    internal byte[] WriteEncrypted(byte[] filePass, string password, byte[] salt, long maximumBytes, ExcelNativeCalculationPolicy calculation = default) {
+        byte[] Encrypt(byte[] bytes) => OfficeIMO.Excel.LegacyXls.Biff.BiffRc4Encryption.EncryptWorkbookStream(bytes, password, salt);
+        return _changes != null && !calculation.ClearCachedResults && !calculation.RecalculateOnOpen
+            ? _source.Write(_changes, filePass, maximumBytes, CancellationToken.None, Encrypt)
+            : _source.WriteEdits(_document, _edits, filePass, maximumBytes, CancellationToken.None, Encrypt, _bindings, _calculationChanged, calculation);
+    }
 }

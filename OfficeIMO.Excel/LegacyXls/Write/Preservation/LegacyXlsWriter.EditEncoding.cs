@@ -30,7 +30,8 @@ internal static partial class LegacyXlsWriter {
         var names = new LegacyXlsFormulaNameIndex(globals, locals, externs);
         var result = new LegacyXlsEditEncoding(externs);
         var dummyStrings = new LegacyXlsSharedStringTable(Array.Empty<LegacyXlsSharedStringEntry>(), 0);
-        edits = ExpandFormulaGroups(document, source, records, edits, token, structure);
+        foreach (var edit in edits.Where(edit => edit.CacheOnly)) result.FormulaCaches.Add((edit.Sheet, edit.Address), edit.Cell!);
+        edits = ExpandFormulaGroups(document, source, records, edits.Where(edit => !edit.CacheOnly).ToArray(), result, token, structure);
         var convertedBySheet = new Dictionary<string, List<LegacyXlsCell>>(StringComparer.Ordinal);
         foreach (var group in edits.GroupBy(edit => edit.Sheet)) {
             int index = Array.FindIndex(sheets, sheet => sheet.Name == group.Key);
@@ -45,6 +46,13 @@ internal static partial class LegacyXlsWriter {
                 ParseCellReference(edit.Address, out uint row, out int column);
                 if (row == 0 || row > 65536 || column < 1 || column > 256)
                     throw new NotSupportedException("Native XLS cells require rows 1–65536 and columns 1–256.");
+                if (result.NativeFormulaCells.TryGetValue((edit.Sheet, edit.Address), out var native)) {
+                    var retained = native.ToArray(); byte[] payload = (byte[])retained[0].Payload.Clone();
+                    WriteUInt16(payload, 4, styles.GetBiffStyleIndex(edit.Cell.StyleIndex?.Value));
+                    retained[0] = new BiffRecord(retained[0].Type, retained[0].Offset, payload);
+                    result.Cells.Add((edit.Sheet, edit.Address), EncodePreservedFormulaCache(sheet, edit.Cell, retained, document.DateSystem, structure?.NameIndexes));
+                    continue;
+                }
                 var converted = ConvertCell(sheet, document.WorkbookPartRoot, index, edit.Cell,
                     checked((ushort)(row - 1)), checked((ushort)(column - 1)), styles, document.DateSystem, names, shared, arrays, fonts);
                 if (!converted.HasValue) { result.Cells.Add((edit.Sheet, edit.Address), Array.Empty<BiffRecord>()); continue; }
@@ -74,45 +82,14 @@ internal static partial class LegacyXlsWriter {
                 generated.Insert(generated.Count - 1, new BiffRecord(0x01ba, -1, BuildCodeNamePayload(codeName)));
             result.NewWorksheets.Add(binding.Name, generated);
         }
+        if (fonts.PaletteRecord is byte[] palette) {
+            byte[]? originalPalette = records.Where(record => record.Type == 0x0092).Select(record => record.Payload).FirstOrDefault();
+            if (originalPalette == null || !palette.SequenceEqual(originalPalette)) result.Palette = palette;
+        }
         result.Fonts.AddRange(fonts.FontRecords.Skip(source.Fonts.Count));
         result.Formats.AddRange(styles.FormatRecords);
         result.Styles.AddRange(styles.CellFormatRecords);
         return result;
-    }
-
-    private static IReadOnlyList<LegacyXlsCellEdit> ExpandFormulaGroups(ExcelDocument document, LegacyXlsWorkbook source,
-        IReadOnlyList<BiffRecord> records, IReadOnlyList<LegacyXlsCellEdit> edits, CancellationToken token, LegacyXlsSheetStructure? structure) {
-        var result = edits.ToDictionary(edit => (edit.Sheet, edit.Address));
-        foreach (var sheet in source.Worksheets) {
-            int start = records.ToList().FindIndex(record => record.Offset == sheet.StreamOffset);
-            int depth = 0;
-            var ranges = new List<(int FirstRow, int LastRow, int FirstCol, int LastCol)>();
-            for (int i = start; i < records.Count; i++) {
-                var record = records[i];
-                if (record.Type == 0x0809) { depth++; continue; }
-                if (record.Type == 0x000a) { if (--depth == 0) break; continue; }
-                if (depth == 1 && record.Type is 0x04bc or 0x0221 && record.Payload.Length >= 6)
-                    ranges.Add((BiffRecordReader.ReadUInt16(record.Payload, 0) + 1, BiffRecordReader.ReadUInt16(record.Payload, 2) + 1, record.Payload[4] + 1, record.Payload[5] + 1));
-            }
-            string currentName = structure == null ? sheet.Name : structure.CurrentName(sheet.Name) ?? string.Empty;
-            var current = document.Sheets.FirstOrDefault(item => item.Name == currentName);
-            if (current == null) continue;
-            foreach (var anchor in current.WorksheetPart.Worksheet!.Descendants<Cell>().Where(cell => cell.CellFormula?.FormulaType?.Value == CellFormulaValues.Array)) {
-                if (A1.TryParseRange(anchor.CellFormula!.Reference?.Value ?? string.Empty, out int r1, out int c1, out int r2, out int c2))
-                    ranges.Add((r1, r2, c1, c2));
-            }
-            foreach (var range in ranges) {
-                bool Within(string address) { var (row, col) = A1.ParseCellRef(address); return row >= range.FirstRow && row <= range.LastRow && col >= range.FirstCol && col <= range.LastCol; }
-                if (!edits.Any(edit => edit.Sheet == currentName && Within(edit.Address))) continue;
-                foreach (var cell in current.WorksheetPart.Worksheet.Descendants<Cell>()) {
-                    token.ThrowIfCancellationRequested();
-                    string address = cell.CellReference?.Value ?? string.Empty;
-                    if (Within(address) && !result.ContainsKey((currentName, address)))
-                        result.Add((currentName, address), new LegacyXlsCellEdit(currentName, address, (Cell)cell.CloneNode(true)));
-                }
-            }
-        }
-        return result.Values.ToArray();
     }
 
     internal static byte[] EncodePreservedRow(ushort row, IReadOnlyList<ushort> columns, byte[]? original) {
@@ -126,14 +103,17 @@ internal static partial class LegacyXlsWriter {
         BuildDbCellPayload(firstRow, firstCells, position);
 }
 
-internal sealed record LegacyXlsCellEdit(string Sheet, string Address, Cell? Cell);
+internal sealed record LegacyXlsCellEdit(string Sheet, string Address, Cell? Cell, bool CacheOnly = false, bool PreserveFormula = false);
 internal sealed record LegacyXlsPreservedString(string Text, IReadOnlyList<LegacyXlsTextFormattingRun> Runs);
 internal sealed class LegacyXlsEditEncoding {
     internal LegacyXlsEditEncoding(LegacyXlsExternSheetTable externs) { Externs = externs; }
     internal LegacyXlsExternSheetTable Externs { get; }
+    internal Dictionary<(string Sheet, string Address), IReadOnlyList<BiffRecord>> NativeFormulaCells { get; } = new();
+    internal Dictionary<(string Sheet, string Address), Cell> FormulaCaches { get; } = new();
     internal Dictionary<(string Sheet, string Address), IReadOnlyList<BiffRecord>> Cells { get; } = new();
     internal Dictionary<string, IReadOnlyList<BiffRecord>> NewWorksheets { get; } = new(StringComparer.Ordinal);
     internal List<LegacyXlsPreservedString> Strings { get; } = new();
+    internal byte[]? Palette { get; set; }
     internal List<byte[]> Fonts { get; } = new();
     internal List<byte[]> Formats { get; } = new();
     internal List<byte[]> Styles { get; } = new();

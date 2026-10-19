@@ -181,13 +181,16 @@ unprojected BIFF records are reported through the legacy import diagnostics
 instead of being silently dropped.
 
 Native `.xls` save uses the same `Save("*.xls")` path as other OfficeIMO saves.
-An imported, unencrypted BIFF8 workbook can preserve its original chart sheets,
-VBA streams and host identities while editing existing literal cells without
-changing their BIFF record sizes. The same profile supports encrypted output.
-Changes to formulas, rich-text runs, styles, properties or structure, new cells,
-and save-time calculation policies use the ordinary writer's feature preflight.
+Imported BIFF8 workbooks retain their native chart sheets, VBA streams, embedded
+content and other compound streams during supported cell and worksheet edits.
+The preserving writer supports new and deleted cells, value/type changes,
+encodable formulas, rich text and styles, worksheet rename/add/remove/reorder,
+and save-time calculation policies. Plain and supported encrypted sources use
+the same path, with plain or password-to-open output. Worksheet structure edits
+keep native references, local-name scopes, chart carriers and VBA document-host
+identities coherent. Signed sources and unsupported feature edits remain guarded.
 See the [preserving profile](../Docs/officeimo.excel.legacy-xls-compatibility.md#preserve-imported-biff8-workbooks)
-for the exact boundary and native Excel evidence.
+for format limits, retained-content boundaries and native Excel evidence.
 When a workbook contains a feature outside the supported BIFF8 writer subset,
 OfficeIMO throws a preflight error with the unsupported feature name so the
 caller can save as `.xlsx`, remove the feature, or choose a different workflow.
@@ -375,10 +378,13 @@ written, so `.xlsx` bytes are never disguised as `.xlsb`.
 
 Chart-sheet drawing/chart parts and linked VBA project parts are projected through
 their original relationships without executing macros or following external links.
-Native worksheet edits retain the original chart-sheet and VBA package bytes,
-including host identities. Changing those preserved parts or sheet bindings is
-rejected for native XLSB output; use macro-compatible Open XML output for such
-edits. Unprojected chart-sheet view, protection and print records remain visible
+Native cell, formula, style and worksheet rename/add/remove/reorder operations
+retain chart and VBA carriers. Structure edits update references, scoped names,
+chart formulas and VBA document-host identities. Shared formula groups and fixed
+array formulas retain their native semantics; save-time calculation options can
+evaluate supported formulas, clear caches or request native recalculation.
+Editing the retained artwork or other unsupported package content remains guarded;
+use macro-compatible Open XML output for those edits. Unprojected chart-sheet view, protection and print records remain visible
 in `XlsbPreservedRecords`; native preservation does not imply lossless conversion.
 `MaxRelatedParts` and `MaxRelationshipDepth` bound imported chart/VBA graphs in
 addition to the existing decompressed-part and package budgets.
@@ -497,8 +503,10 @@ BIFF12 package. XLS uses classic BIFF8 RC4/MD5 with a password of 1–15 UTF-16 
 units. This legacy algorithm provides weak protection; choose XLSX or XLSB for
 modern password-to-open encryption. XLS encryption does not encrypt VBA project
 streams or all compound-file metadata, as defined by the format. Retained pivot
-cache and revision BIFF streams are rejected before encrypted XLS output because
-the writer does not yet encrypt those auxiliary streams.
+cache and revision BIFF streams are encrypted with their own stream positions and
+record-specific plaintext fields. Supported encrypted-source metadata is decoded
+for preservation; passwords are used for the operation and are not retained by
+the document. An explicit encrypted save can rotate the password.
 
 Encryption retains each native encoder's feature and loss-policy limits.
 `MaxInMemoryPackageBytes` also bounds native BIFF serialization and XLSB
@@ -2025,14 +2033,14 @@ This table is generated from the package-neutral OfficeIMO operation catalog. Th
 
 | Operation | Supported | Partial | Preserved | Rejected | Unsupported | Not applicable |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: |
-| Create | 21 | 13 | 0 | 15 | 2 | 2 |
+| Create | 22 | 13 | 0 | 15 | 1 | 2 |
 | Read | 34 | 0 | 17 | 0 | 0 | 2 |
 | Edit | 11 | 0 | 39 | 2 | 1 | 0 |
 | Preserve | 10 | 0 | 39 | 0 | 0 | 0 |
 | Inspect | 6 | 0 | 0 | 0 | 0 | 0 |
 | Validate | 4 | 0 | 0 | 0 | 0 | 2 |
 | Remove | 4 | 0 | 0 | 0 | 1 | 0 |
-| Convert | 48 | 40 | 0 | 9 | 0 | 0 |
+| Convert | 49 | 40 | 0 | 8 | 0 | 0 |
 | Export | 5 | 0 | 0 | 0 | 0 | 0 |
 
 The complete rows for `OfficeIMO.Excel` are published in the [generated operation contract](https://github.com/EvotecIT/OfficeIMO/blob/master/Docs/Compatibility/generated/package-operations.md).

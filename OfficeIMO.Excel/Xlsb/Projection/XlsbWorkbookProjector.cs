@@ -49,6 +49,16 @@ namespace OfficeIMO.Excel.Xlsb.Projection {
                         }
                     });
 
+                    foreach (var group in sourceSheet.FormulaGroups.Where(group => group.Type == 426)) {
+                        var anchor = sourceSheet.Cells.FirstOrDefault(cell => cell.Row == group.AnchorRow && cell.Column == group.AnchorColumn);
+                        if (string.IsNullOrWhiteSpace(anchor?.FormulaText)) continue;
+                        targetSheet.SetLegacyArrayFormula(group.Range.ToA1Reference(), anchor!.FormulaText!);
+                        foreach (var cell in targetSheet.WorksheetPart.Worksheet!.Descendants<DocumentFormat.OpenXml.Spreadsheet.Cell>()) {
+                            if (cell.CellReference?.Value == null) continue;
+                            var position = A1.ParseCellRef(cell.CellReference.Value);
+                            if (group.Contains(position.Row, position.Col) && (position.Row != group.AnchorRow || position.Col != group.AnchorColumn)) cell.CellFormula = null;
+                        }
+                    }
                     XlsbWorksheetPropertiesProjector.Apply(targetSheet, sourceSheet.Properties);
                     XlsbWorksheetGeometryProjector.Apply(targetSheet, sourceSheet);
                     XlsbWorksheetProtectionProjector.Apply(targetSheet, sourceSheet.Protection);

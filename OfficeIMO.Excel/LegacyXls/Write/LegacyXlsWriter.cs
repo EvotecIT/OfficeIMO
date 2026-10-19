@@ -267,7 +267,7 @@ namespace OfficeIMO.Excel.LegacyXls.Write {
             LegacyXlsWorksheetRow[] worksheetRows = CreateWorksheetRows(cells, layout.Rows);
             LegacyXlsDimensions dimensions = GetWorksheetDimensions(cells, layout);
             WriteRecord(stream, 0x0809, WorksheetBof);
-            WriteWorksheetCalculationRecords(stream, sheet);
+            WriteWorksheetCalculationRecords(stream, document, sheet);
             long indexRecordPosition = stream.Position;
             WriteRecord(stream, 0x020b, BuildWorksheetIndexPayload(cells, dimensions.RowBlockCount));
             WriteWorksheetCalculationSettingsRecords(stream, document);
@@ -522,6 +522,12 @@ namespace OfficeIMO.Excel.LegacyXls.Write {
                         break;
                     case LegacyXlsCellKind.Number:
                         WriteNumberCellRecord(stream, fixedCellRecord, cell.Row, cell.Column, cell.NumberValue, cell.StyleIndex);
+                        break;
+                    case LegacyXlsCellKind.FormulaEmpty:
+                        byte[] empty = BuildFormulaSpecialPayload(cell.Row, cell.Column, 3, 0, cell.StyleIndex, cell.FormulaTokens, cell.FormulaExtraData);
+                        empty[14] |= 1; // Formula.fAlwaysCalc; bit 1 is reserved in BIFF8.
+                        WriteRecord(stream, 0x0006, empty);
+                        WriteFormulaFollowUpRecords(stream, cell);
                         break;
                     case LegacyXlsCellKind.FormulaNumber:
                         WriteRecord(stream, 0x0006, BuildFormulaNumberPayload(cell.Row, cell.Column, cell.NumberValue, cell.StyleIndex, cell.FormulaTokens, cell.FormulaExtraData));
@@ -962,79 +968,6 @@ namespace OfficeIMO.Excel.LegacyXls.Write {
 
             EnsureSupportedFormulaRecordPayloadLength(tokens, formulaExtraData, address);
             return ConvertCachedFormulaCell(sheet, cell, row, column, styleIndex, dateSystem, tokens, formulaExtraData, arrayFormulaPayload, sharedFormulaPayload, address, isArrayFormula);
-        }
-
-        private static LegacyXlsCell ConvertCachedFormulaCell(
-            ExcelSheet sheet,
-            Cell cell,
-            ushort row,
-            ushort column,
-            ushort styleIndex,
-            ExcelDateSystem dateSystem,
-            byte[] tokens,
-            byte[] formulaExtraData,
-            byte[]? arrayFormulaPayload,
-            byte[]? sharedFormulaPayload,
-            string address,
-            bool isArrayFormula) {
-            DocumentFormat.OpenXml.Spreadsheet.CellValues? dataType = cell.DataType?.Value;
-            string rawValue = cell.CellValue?.InnerText ?? string.Empty;
-            if (dataType == DocumentFormat.OpenXml.Spreadsheet.CellValues.Boolean) {
-                if (string.IsNullOrWhiteSpace(rawValue)) {
-                    throw new NotSupportedException($"Native XLS saving requires a cached result for formula cell {address}. Enable formula evaluation before saving or save as .xlsx.");
-                }
-
-                bool value = rawValue == "1" || rawValue.Equals("true", StringComparison.OrdinalIgnoreCase);
-                return LegacyXlsCell.FormulaBoolean(row, column, styleIndex, value, tokens, formulaExtraData, arrayFormulaPayload, sharedFormulaPayload);
-            }
-
-            if (dataType == DocumentFormat.OpenXml.Spreadsheet.CellValues.String
-                || dataType == DocumentFormat.OpenXml.Spreadsheet.CellValues.SharedString
-                || dataType == DocumentFormat.OpenXml.Spreadsheet.CellValues.InlineString) {
-                string text = sheet.GetCellText(cell);
-                EnsureSupportedFormulaTextLength(text, address);
-                return LegacyXlsCell.FormulaText(
-                    row,
-                    column,
-                    styleIndex,
-                    text,
-                    tokens,
-                    formulaExtraData,
-                    arrayFormulaPayload: arrayFormulaPayload,
-                    sharedFormulaPayload: sharedFormulaPayload);
-            }
-
-            if (dataType == DocumentFormat.OpenXml.Spreadsheet.CellValues.Error) {
-                if (string.IsNullOrWhiteSpace(rawValue)) {
-                    throw new NotSupportedException($"Native XLS saving requires a cached result for formula cell {address}. Enable formula evaluation before saving or save as .xlsx.");
-                }
-
-                if (ExcelErrorCode.TryGetCode(rawValue, out byte errorCode)) {
-                    return LegacyXlsCell.FormulaError(row, column, styleIndex, errorCode, tokens, formulaExtraData, arrayFormulaPayload, sharedFormulaPayload);
-                }
-
-                throw new NotSupportedException($"Native XLS saving does not support cached error result '{rawValue}' for formula cell {address}.");
-            }
-
-            if (dataType == DocumentFormat.OpenXml.Spreadsheet.CellValues.Date) {
-                if (string.IsNullOrWhiteSpace(rawValue)) {
-                    throw new NotSupportedException($"Native XLS saving requires a cached result for formula cell {address}. Enable formula evaluation before saving or save as .xlsx.");
-                }
-
-                if (TryParseOpenXmlDate(rawValue, out DateTime date)) {
-                    return LegacyXlsCell.FormulaNumber(row, column, styleIndex, ExcelDateSystemConverter.ToSerial(date, dateSystem), tokens, formulaExtraData, arrayFormulaPayload, sharedFormulaPayload);
-                }
-
-                throw new NotSupportedException($"Native XLS saving does not support cached date result '{rawValue}' for formula cell {address}.");
-            }
-
-            if ((dataType == DocumentFormat.OpenXml.Spreadsheet.CellValues.Number || dataType == null)
-                && !string.IsNullOrWhiteSpace(rawValue)
-                && double.TryParse(rawValue, NumberStyles.Float, CultureInfo.InvariantCulture, out double number)) {
-                return LegacyXlsCell.FormulaNumber(row, column, styleIndex, number, tokens, formulaExtraData, arrayFormulaPayload, sharedFormulaPayload);
-            }
-
-            throw new NotSupportedException($"Native XLS saving requires a numeric, Boolean, text, error, or date cached result for formula cell {address}. Enable formula evaluation before saving or save as .xlsx.");
         }
 
         private static void EnsureSupportedLabelTextLength(string text, string address) {
@@ -2152,150 +2085,7 @@ namespace OfficeIMO.Excel.LegacyXls.Write {
             }
         }
 
-        private sealed class LegacyXlsArrayFormulaTable {
-            private readonly List<LegacyXlsArrayFormulaDefinition> _definitions;
 
-            private LegacyXlsArrayFormulaTable(List<LegacyXlsArrayFormulaDefinition> definitions) {
-                _definitions = definitions;
-            }
-
-            internal static LegacyXlsArrayFormulaTable Create(ExcelSheet sheet, int sheetIndex, LegacyXlsFormulaNameIndex formulaNameIndex) {
-                SheetData? sheetData = sheet.WorksheetPart.Worksheet?.GetFirstChild<SheetData>();
-                var definitions = new List<LegacyXlsArrayFormulaDefinition>();
-                if (sheetData == null) {
-                    return new LegacyXlsArrayFormulaTable(definitions);
-                }
-
-                Dictionary<ulong, Cell> cellsByAddress = BuildCellAddressMap(sheetData);
-                foreach (KeyValuePair<ulong, Cell> entry in cellsByAddress) {
-                    Cell cell = entry.Value;
-                    CellFormula? formula = cell.CellFormula;
-                    if (formula?.FormulaType?.Value != DocumentFormat.OpenXml.Spreadsheet.CellFormulaValues.Array) {
-                        continue;
-                    }
-
-                    DecodeCellKey(entry.Key, out ushort anchorRow, out ushort anchorColumn);
-                    if (!TryParseFormulaRange(formula.Reference?.Value, out ushort firstRow, out ushort firstColumn, out ushort lastRow, out ushort lastColumn)
-                        || anchorRow < firstRow
-                        || anchorRow > lastRow
-                        || anchorColumn < firstColumn
-                        || anchorColumn > lastColumn) {
-                        throw new NotSupportedException($"Native XLS saving does not support array formula range '{formula.Reference?.Value}' at {ToA1Address(anchorRow, anchorColumn)}. Save as .xlsx or remove this formula before saving as .xls.");
-                    }
-
-                    if (!LegacyXlsFormulaEncoder.TryEncode(formula.Text ?? string.Empty, formulaNameIndex, sheetIndex, out byte[] formulaTokens, out string? reason)) {
-                        throw new NotSupportedException($"Native XLS saving does not yet support array formula '{formula.Text}' at {ToA1Address(anchorRow, anchorColumn)}: {reason} Save as .xlsx or remove this formula before saving as .xls.");
-                    }
-
-                    EnsureSupportedArrayFormulaPayloadLength(formulaTokens, ToA1Address(anchorRow, anchorColumn));
-                    var definition = new LegacyXlsArrayFormulaDefinition(
-                        anchorRow,
-                        anchorColumn,
-                        firstRow,
-                        firstColumn,
-                        lastRow,
-                        lastColumn,
-                        BuildArrayFormulaPayload(firstRow, firstColumn, lastRow, lastColumn, formulaTokens));
-                    EnsureArrayFormulaCachedCells(cellsByAddress, definition);
-                    definitions.Add(definition);
-                }
-
-                return new LegacyXlsArrayFormulaTable(definitions);
-            }
-
-            internal bool TryGetDefinition(ushort row, ushort column, out LegacyXlsArrayFormulaDefinition definition) {
-                foreach (LegacyXlsArrayFormulaDefinition candidate in _definitions) {
-                    if (candidate.Contains(row, column)) {
-                        definition = candidate;
-                        return true;
-                    }
-                }
-
-                definition = default;
-                return false;
-            }
-
-            private static Dictionary<ulong, Cell> BuildCellAddressMap(SheetData sheetData) {
-                var cells = new Dictionary<ulong, Cell>();
-                foreach (Row row in sheetData.Elements<Row>()) {
-                    uint rowIndex = row.RowIndex?.Value ?? 0U;
-                    int sequentialColumn = 1;
-                    foreach (Cell cell in row.Elements<Cell>()) {
-                        uint effectiveRow = rowIndex;
-                        int effectiveColumn = sequentialColumn;
-                        if (!string.IsNullOrEmpty(cell.CellReference?.Value)) {
-                            ParseCellReference(cell.CellReference!.Value!, out effectiveRow, out effectiveColumn);
-                        }
-
-                        if (effectiveRow > 0 && effectiveColumn > 0 && effectiveRow <= 65536U && effectiveColumn <= 256) {
-                            cells[EncodeCellKey(checked((ushort)(effectiveRow - 1U)), checked((ushort)(effectiveColumn - 1)))] = cell;
-                        }
-
-                        sequentialColumn = effectiveColumn + 1;
-                    }
-                }
-
-                return cells;
-            }
-
-            private static void EnsureArrayFormulaCachedCells(IReadOnlyDictionary<ulong, Cell> cellsByAddress, LegacyXlsArrayFormulaDefinition definition) {
-                for (int row = definition.FirstRow; row <= definition.LastRow; row++) {
-                    for (int column = definition.FirstColumn; column <= definition.LastColumn; column++) {
-                        ushort currentRow = checked((ushort)row);
-                        ushort currentColumn = checked((ushort)column);
-                        if (!cellsByAddress.TryGetValue(EncodeCellKey(currentRow, currentColumn), out Cell? cell)
-                            || string.IsNullOrWhiteSpace(cell.CellValue?.InnerText)) {
-                            throw new NotSupportedException($"Native XLS saving requires cached results for every cell in multi-cell array formula range {definition.Range}. Missing cached result at {ToA1Address(currentRow, currentColumn)}.");
-                        }
-
-                        if ((currentRow != definition.AnchorRow || currentColumn != definition.AnchorColumn) && cell.CellFormula != null) {
-                            throw new NotSupportedException($"Native XLS saving does not support non-anchor formulas inside array formula range {definition.Range}. Remove the formula at {ToA1Address(currentRow, currentColumn)} or save as .xlsx.");
-                        }
-                    }
-                }
-            }
-
-            private static ulong EncodeCellKey(ushort row, ushort column) {
-                return ((ulong)row << 16) | column;
-            }
-
-            private static void DecodeCellKey(ulong key, out ushort row, out ushort column) {
-                row = (ushort)(key >> 16);
-                column = (ushort)(key & 0xffff);
-            }
-        }
-
-        private readonly struct LegacyXlsArrayFormulaDefinition {
-            internal LegacyXlsArrayFormulaDefinition(ushort anchorRow, ushort anchorColumn, ushort firstRow, ushort firstColumn, ushort lastRow, ushort lastColumn, byte[] payload) {
-                AnchorRow = anchorRow;
-                AnchorColumn = anchorColumn;
-                FirstRow = firstRow;
-                FirstColumn = firstColumn;
-                LastRow = lastRow;
-                LastColumn = lastColumn;
-                Payload = payload;
-            }
-
-            internal ushort AnchorRow { get; }
-
-            internal ushort AnchorColumn { get; }
-
-            internal ushort FirstRow { get; }
-
-            internal ushort FirstColumn { get; }
-
-            internal ushort LastRow { get; }
-
-            internal ushort LastColumn { get; }
-
-            internal byte[] Payload { get; }
-
-            internal string Range => ToA1Address(FirstRow, FirstColumn) + ":" + ToA1Address(LastRow, LastColumn);
-
-            internal bool Contains(ushort row, ushort column) {
-                return row >= FirstRow && row <= LastRow && column >= FirstColumn && column <= LastColumn;
-            }
-        }
 
         private sealed class LegacyXlsSharedFormulaTable {
             private readonly Dictionary<uint, LegacyXlsSharedFormulaDefinition> _definitions;
@@ -2399,123 +2189,6 @@ namespace OfficeIMO.Excel.LegacyXls.Write {
             internal string FormulaText { get; }
 
             internal byte[] Payload { get; }
-        }
-
-        private readonly struct LegacyXlsCell {
-            private LegacyXlsCell(
-                ushort row,
-                ushort column,
-                ushort styleIndex,
-                LegacyXlsCellKind kind,
-                string? textValue,
-                double numberValue,
-                bool booleanValue,
-                byte errorValue,
-                byte[]? formulaTokens,
-                byte[]? formulaExtraData,
-                byte[]? arrayFormulaPayload,
-                byte[]? sharedFormulaPayload,
-                IReadOnlyList<LegacyXlsTextFormattingRun>? textFormattingRuns,
-                uint sharedStringIndex = uint.MaxValue) {
-                Row = row;
-                Column = column;
-                StyleIndex = styleIndex;
-                Kind = kind;
-                TextValue = textValue;
-                NumberValue = numberValue;
-                BooleanValue = booleanValue;
-                ErrorValue = errorValue;
-                FormulaTokens = formulaTokens ?? Array.Empty<byte>();
-                FormulaExtraData = formulaExtraData ?? Array.Empty<byte>();
-                ArrayFormulaPayload = arrayFormulaPayload ?? Array.Empty<byte>();
-                SharedFormulaPayload = sharedFormulaPayload ?? Array.Empty<byte>();
-                TextFormattingRuns = textFormattingRuns ?? Array.Empty<LegacyXlsTextFormattingRun>();
-                SharedStringIndex = sharedStringIndex;
-            }
-
-            internal ushort Row { get; }
-
-            internal ushort Column { get; }
-
-            internal ushort StyleIndex { get; }
-
-            internal LegacyXlsCellKind Kind { get; }
-
-            internal string? TextValue { get; }
-
-            internal double NumberValue { get; }
-
-            internal bool BooleanValue { get; }
-
-            internal byte ErrorValue { get; }
-
-            internal byte[] FormulaTokens { get; }
-
-            internal byte[] FormulaExtraData { get; }
-
-            internal byte[] ArrayFormulaPayload { get; }
-
-            internal byte[] SharedFormulaPayload { get; }
-
-            internal IReadOnlyList<LegacyXlsTextFormattingRun> TextFormattingRuns { get; }
-
-            internal uint SharedStringIndex { get; }
-
-            internal LegacyXlsCell WithSharedStringIndex(uint sharedStringIndex) =>
-                new LegacyXlsCell(
-                    Row,
-                    Column,
-                    StyleIndex,
-                    Kind,
-                    TextValue,
-                    NumberValue,
-                    BooleanValue,
-                    ErrorValue,
-                    FormulaTokens,
-                    FormulaExtraData,
-                    ArrayFormulaPayload,
-                    SharedFormulaPayload,
-                    TextFormattingRuns,
-                    sharedStringIndex);
-
-            internal static LegacyXlsCell Blank(ushort row, ushort column, ushort styleIndex) =>
-                new LegacyXlsCell(row, column, styleIndex, LegacyXlsCellKind.Blank, null, 0, false, 0, null, null, null, null, null);
-
-            internal static LegacyXlsCell Text(ushort row, ushort column, ushort styleIndex, string value, IReadOnlyList<LegacyXlsTextFormattingRun>? textFormattingRuns = null) =>
-                new LegacyXlsCell(row, column, styleIndex, LegacyXlsCellKind.Text, value, 0, false, 0, null, null, null, null, textFormattingRuns);
-
-            internal static LegacyXlsCell Number(ushort row, ushort column, ushort styleIndex, double value) =>
-                new LegacyXlsCell(row, column, styleIndex, LegacyXlsCellKind.Number, null, value, false, 0, null, null, null, null, null);
-
-            internal static LegacyXlsCell Boolean(ushort row, ushort column, ushort styleIndex, bool value) =>
-                new LegacyXlsCell(row, column, styleIndex, LegacyXlsCellKind.Boolean, null, 0, value, 0, null, null, null, null, null);
-
-            internal static LegacyXlsCell Error(ushort row, ushort column, ushort styleIndex, byte errorValue) =>
-                new LegacyXlsCell(row, column, styleIndex, LegacyXlsCellKind.Error, null, 0, false, errorValue, null, null, null, null, null);
-
-            internal static LegacyXlsCell FormulaNumber(ushort row, ushort column, ushort styleIndex, double value, byte[] formulaTokens, byte[]? formulaExtraData = null, byte[]? arrayFormulaPayload = null, byte[]? sharedFormulaPayload = null) =>
-                new LegacyXlsCell(row, column, styleIndex, LegacyXlsCellKind.FormulaNumber, null, value, false, 0, formulaTokens, formulaExtraData, arrayFormulaPayload, sharedFormulaPayload, null);
-
-            internal static LegacyXlsCell FormulaBoolean(ushort row, ushort column, ushort styleIndex, bool value, byte[] formulaTokens, byte[]? formulaExtraData = null, byte[]? arrayFormulaPayload = null, byte[]? sharedFormulaPayload = null) =>
-                new LegacyXlsCell(row, column, styleIndex, LegacyXlsCellKind.FormulaBoolean, null, 0, value, 0, formulaTokens, formulaExtraData, arrayFormulaPayload, sharedFormulaPayload, null);
-
-            internal static LegacyXlsCell FormulaText(ushort row, ushort column, ushort styleIndex, string value, byte[] formulaTokens, byte[]? formulaExtraData = null, byte[]? arrayFormulaPayload = null, byte[]? sharedFormulaPayload = null) =>
-                new LegacyXlsCell(row, column, styleIndex, LegacyXlsCellKind.FormulaText, value, 0, false, 0, formulaTokens, formulaExtraData, arrayFormulaPayload, sharedFormulaPayload, null);
-
-            internal static LegacyXlsCell FormulaError(ushort row, ushort column, ushort styleIndex, byte errorValue, byte[] formulaTokens, byte[]? formulaExtraData = null, byte[]? arrayFormulaPayload = null, byte[]? sharedFormulaPayload = null) =>
-                new LegacyXlsCell(row, column, styleIndex, LegacyXlsCellKind.FormulaError, null, 0, false, errorValue, formulaTokens, formulaExtraData, arrayFormulaPayload, sharedFormulaPayload, null);
-        }
-
-        private enum LegacyXlsCellKind {
-            Blank,
-            Text,
-            Number,
-            Boolean,
-            Error,
-            FormulaNumber,
-            FormulaBoolean,
-            FormulaText,
-            FormulaError
         }
 
         private sealed class LegacyXlsWorksheetLayout {

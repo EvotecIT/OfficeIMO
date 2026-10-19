@@ -3654,15 +3654,6 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void LegacyXls_NativeSave_BlocksFormulaWithoutNumericCachedResult() {
-            AssertNativeXlsSaveNotSupported("cached result", (document, sheet) => {
-                sheet.CellValue(1, 1, 2d);
-                sheet.CellValue(2, 1, 3d);
-                sheet.CellFormula(3, 1, "A1+A2");
-            });
-        }
-
-        [Fact]
         public void LegacyXls_NativeSave_WritesExternalWorkbookFormulaReferences() {
             string openXmlPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".xlsx");
             string xlsOutputPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".xls");
@@ -3865,15 +3856,6 @@ namespace OfficeIMO.Tests {
                 TryDelete(openXmlPath);
                 TryDelete(xlsOutputPath);
             }
-        }
-
-        [Fact]
-        public void LegacyXls_NativeSave_BlocksMultiCellArrayFormulaWithoutCachedResultsBeforeWriting() {
-            AssertNativeXlsSaveNotSupported("cached results for every cell", (document, sheet) => {
-                sheet.CellValue(1, 1, 2d);
-                sheet.CellValue(2, 1, 3d);
-                sheet.SetArrayFormula("A3:A4", "SUM(A1:A2)");
-            });
         }
 
         [Fact]

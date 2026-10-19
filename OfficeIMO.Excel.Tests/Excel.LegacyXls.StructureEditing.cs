@@ -7,6 +7,25 @@ using Xunit;
 namespace OfficeIMO.Tests;
 
 public sealed class ExcelLegacyStructureEditingTests {
+    [Fact]
+    public void Native_save_as_keeps_following_saves_on_the_selected_destination() {
+        string root = Path.Combine(Path.GetTempPath(), "OfficeIMO-Xls-Association-" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(root);
+        string originalPath = Path.Combine(root, "original.xls"), target = Path.Combine(root, "edited.xls");
+        try {
+            using var seed = ExcelDocument.Create(); seed.AddWorksheet("Data").CellValue(1, 1, "Original");
+            byte[] original = seed.ToBytes(ExcelFileFormat.Xls); File.WriteAllBytes(originalPath, original);
+            using (var document = ExcelDocument.Load(originalPath)) {
+                document.Sheets[0].CellValue(1, 1, "First edit"); document.Save(target);
+                Assert.Equal(target, document.FilePath);
+                document.Sheets[0].CellValue(1, 1, "Second edit"); document.Save();
+            }
+            Assert.Equal(original, File.ReadAllBytes(originalPath));
+            using var loaded = ExcelDocument.Load(target);
+            Assert.Equal("Second edit", loaded.Sheets[0].CellAt(1, 1).GetValue<string>());
+        } finally { Directory.Delete(root, recursive: true); }
+    }
+
     [Theory]
     [InlineData(false)]
     [InlineData(true)]
@@ -74,6 +93,23 @@ public sealed class ExcelLegacyStructureEditingTests {
         Assert.DoesNotContain(loaded.WorkbookRoot.DefinedNames!.Elements<DefinedName>(), name => name.Name == "FirstLocal");
         Assert.Equal(0U, loaded.WorkbookRoot.DefinedNames.Elements<DefinedName>().Single(name => name.Name == "SecondLocal").LocalSheetId?.Value);
         Assert.Equal("GlobalThird+1", loaded.GetSheet("Third").WorksheetPart.Worksheet!.Descendants<Cell>().Single(cell => cell.CellReference?.Value == "A2").CellFormula?.Text);
+    }
+
+    [Theory]
+    [InlineData(ExcelFileFormat.Xls)]
+    [InlineData(ExcelFileFormat.Xlsb)]
+    public void Renaming_a_native_sheet_keeps_internal_hyperlinks_pointing_at_it(ExcelFileFormat format) {
+        using var seed = ExcelDocument.Create(); var links = seed.AddWorksheet("Links"); var target = seed.AddWorksheet("Target");
+        target.CellValue(2, 2, "Destination"); links.SetInternalLink(1, 1, target, "B2", "Jump", style: false);
+        using var document = ExcelDocument.Load(new MemoryStream(seed.ToBytes(format)));
+        document.GetSheet("Target").Name = "Sales Łódź";
+        byte[] bytes = document.ToBytes(format);
+        using var loaded = ExcelDocument.Load(new MemoryStream(bytes));
+        var link = Assert.Single(loaded.GetSheet("Links").WorksheetPart.Worksheet!.Descendants<Hyperlink>());
+        Assert.Equal("'Sales Łódź'!B2", link.Location?.Value);
+        document.GetSheet("Links").CellValue(2, 1, "Second save");
+        using var second = ExcelDocument.Load(new MemoryStream(document.ToBytes(format)));
+        Assert.Equal(link.Location?.Value, Assert.Single(second.GetSheet("Links").WorksheetPart.Worksheet!.Descendants<Hyperlink>()).Location?.Value);
     }
 
     private static OfficeVbaProject ReadProject(OfficeCompoundFile source) {

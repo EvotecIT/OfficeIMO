@@ -377,7 +377,7 @@ namespace OfficeIMO.Excel {
             LegacyXlsImportOptions? importOptions = null,
             Action<LegacyXlsWorkbook>? beforeProjection = null) {
             if (!readOnly && saveOnDispose) {
-                throw new NotSupportedException("SaveOnDispose is not supported when loading legacy binary .xls files. Save to a new .xlsx path instead.");
+                throw new NotSupportedException("SaveOnDispose is not supported for imported XLS workbooks. Use an explicit Save operation.");
             }
 
             LegacyXlsImportOptions effectiveOptions = importOptions ?? new LegacyXlsImportOptions();
@@ -417,7 +417,7 @@ namespace OfficeIMO.Excel {
             string? filePath,
             XlsbImportOptions? importOptions) {
             if (!readOnly && saveOnDispose) {
-                throw new NotSupportedException("SaveOnDispose is not supported when loading XLSB workbooks. Save explicitly to an .xlsx path while native XLSB writing is unavailable.");
+                throw new NotSupportedException("SaveOnDispose is not supported for imported XLSB workbooks. Use an explicit Save operation.");
             }
 
             XlsbWorkbook workbook = XlsbWorkbookReader.Load(bytes, importOptions);

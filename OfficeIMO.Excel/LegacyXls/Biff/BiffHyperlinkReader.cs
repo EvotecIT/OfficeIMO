@@ -2,7 +2,7 @@ using OfficeIMO.Excel.LegacyXls.Model;
 using System.Text;
 
 namespace OfficeIMO.Excel.LegacyXls.Biff {
-    internal static class BiffHyperlinkReader {
+    internal static partial class BiffHyperlinkReader {
         private const uint StreamVersion = 2;
         private const uint HasMoniker = 0x00000001;
         private const uint HasLocation = 0x00000008;

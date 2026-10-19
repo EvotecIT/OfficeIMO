@@ -8,7 +8,7 @@ using System.Threading;
 
 namespace OfficeIMO.Excel.Xlsb.Write {
     /// <summary>Creates the bounded cell mutation plan used by the preservation-aware XLSB rewriter.</summary>
-    internal static class XlsbWorksheetCellExtractor {
+    internal static partial class XlsbWorksheetCellExtractor {
         internal static IReadOnlyList<XlsbWriteCell> Extract(
             ExcelDocument document,
             ExcelSheet sheet,
@@ -99,7 +99,7 @@ namespace OfficeIMO.Excel.Xlsb.Write {
                 int row = left.Row.CompareTo(right.Row);
                 return row != 0 ? row : left.Column.CompareTo(right.Column);
             });
-            return result.AsReadOnly();
+            return ApplyArrayFormulaGroups(sheet, result, formulas).AsReadOnly();
         }
 
         private static void ThrowIfUnsupportedNewWorksheetContent(ExcelSheet sheet) {

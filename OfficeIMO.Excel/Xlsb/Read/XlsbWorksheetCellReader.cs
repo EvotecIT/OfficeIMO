@@ -117,7 +117,7 @@ namespace OfficeIMO.Excel.Xlsb.Read {
             };
             if (XlsbFormulaTextReader.TryRead(tokens, out string? formulaText, workbook)) {
                 cell.FormulaText = formulaText;
-            } else {
+            } else if (!(tokens.Length == 5 && tokens[0] == 1)) {
                 workbook.AddDiagnostic(new XlsbImportDiagnostic(
                     "XLSB-FORMULA-PRESERVED",
                     XlsbImportDiagnosticSeverity.Warning,

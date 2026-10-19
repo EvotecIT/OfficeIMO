@@ -3,7 +3,7 @@
 Worksheets: 10
 Chart sheets: 4
 Unsupported sheets: 0
-Cells: 4072
+Cells: 2916
 Formula cells: 2147
 Comments: 0
 Hyperlinks: 0
@@ -49,13 +49,13 @@ Array formula records: 0
 Future function aliases: 0
 Workbook metadata records: 20
 Workbook future metadata records: 0
-Worksheet metadata records: 67
+Worksheet metadata records: 63
 Worksheet future metadata records: 0
 Unsupported sheet metadata records: 0
 Unsupported sheet future metadata records: 0
-Unsupported features: 2
+Unsupported features: 6
 Unsupported projection gaps: 0
-Preserved feature records: 2
+Preserved feature records: 6
 Errors: 0
 Warnings: 0
 
@@ -63,6 +63,7 @@ Warnings: 0
 
 | Key | Count |
 | --- | --- |
+| XLS-BIFF-FEATURE-DRAWING-UNSUPPORTED | 4 |
 | XLS-BIFF-FEATURE-EXTERNAL-REFERENCE-UNSUPPORTED | 2 |
 | XLS-BIFF-SORT-RESERVED-BYTES | 1 |
 
@@ -896,30 +897,36 @@ Warnings: 0
 
 | Key | Count |
 | --- | --- |
+| XLS-BIFF-FEATURE-DRAWING-UNSUPPORTED | 4 |
 | XLS-BIFF-FEATURE-EXTERNAL-REFERENCE-UNSUPPORTED | 2 |
 
 ## Unsupported Features By Kind
 
 | Key | Count |
 | --- | --- |
+| DrawingObject | 4 |
 | ExternalReference | 2 |
 
 ## Unsupported Feature Record Types
 
 | Key | Count |
 | --- | --- |
+| DrawingObject\|XLS-BIFF-FEATURE-DRAWING-UNSUPPORTED\|0x01B6 | 4 |
 | ExternalReference\|XLS-BIFF-FEATURE-EXTERNAL-REFERENCE-UNSUPPORTED\|0x01AE | 2 |
 
 ## Unsupported Feature Details
 
 | Key | Count |
 | --- | --- |
+| DrawingObject\|XLS-BIFF-FEATURE-DRAWING-UNSUPPORTED\|Drawing:TxO | 4 |
 | ExternalReference\|XLS-BIFF-FEATURE-EXTERNAL-REFERENCE-UNSUPPORTED\|ExternalReference:ExternalWorkbook | 2 |
 
 ## Unsupported Feature Locations
 
 | Key | Count |
 | --- | --- |
+| XLS-BIFF-FEATURE-DRAWING-UNSUPPORTED\|graphs1 | 2 |
+| XLS-BIFF-FEATURE-DRAWING-UNSUPPORTED\|graphs2 | 2 |
 | XLS-BIFF-FEATURE-EXTERNAL-REFERENCE-UNSUPPORTED\|(workbook) | 2 |
 
 ## File Format States
@@ -2523,10 +2530,8 @@ Warnings: 0
 
 | Key | Count |
 | --- | --- |
-| DecodedFormattingRuns:0 | 4 |
-| DecodedFormattingRuns:1 | 4 |
-| DecodedText:Missing | 4 |
-| DecodedText:Present | 4 |
+| DecodedFormattingRuns:0 | 8 |
+| DecodedText:Missing | 8 |
 | FormattingRunsInContinueRecords:Present | 8 |
 | JustifyLastLine:False | 8 |
 | LockedText:True | 8 |
@@ -3198,7 +3203,6 @@ Warnings: 0
 | OutlineLevels | 10 |
 | PhoneticSettings | 2 |
 | PrinterSettings | 3 |
-| PrintSize | 4 |
 | RowBlockIndex | 10 |
 | Selection | 10 |
 | SheetOptions | 10 |
@@ -3208,10 +3212,12 @@ Warnings: 0
 
 | Key | Count |
 | --- | --- |
+| DrawingObject | 4 |
 | ExternalReference | 2 |
 
 ## Preserved Feature Record Details
 
 | Key | Count |
 | --- | --- |
+| DrawingObject\|XLS-BIFF-FEATURE-DRAWING-UNSUPPORTED\|Drawing:TxO | 4 |
 | ExternalReference\|XLS-BIFF-FEATURE-EXTERNAL-REFERENCE-UNSUPPORTED\|ExternalReference:ExternalWorkbook | 2 |

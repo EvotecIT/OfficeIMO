@@ -56,8 +56,10 @@ public sealed class ExcelXlsbCalculationSaveTests {
         Assert.Equal(3D, calculated.Sheets[0].CellAt(1, 1).GetValue<double>());
     }
 
-    [Fact]
-    public void Clearing_opaque_native_formula_cache_keeps_tokens_on_a_subsequent_edit() {
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void Clearing_opaque_native_formula_cache_keeps_tokens_on_a_subsequent_edit(bool encryptedOutput) {
         using var seed = ExcelDocument.Create(); var sheet = seed.AddWorksheet("Data");
         sheet.CellFormula(1, 1, "1+2"); sheet.RecalculateSupportedFormulas();
         byte[] source = seed.ToBytes(ExcelFileFormat.Xlsb);
@@ -81,8 +83,10 @@ public sealed class ExcelXlsbCalculationSaveTests {
         using var document = ExcelDocument.Load(new MemoryStream(edited.ToArray()));
         Assert.Null(document.Sheets[0].WorksheetPart.Worksheet!.Descendants<Cell>().Single().CellFormula);
         using var cleared = new MemoryStream();
-        document.Save(cleared, ExcelFileFormat.Xlsb, new ExcelSaveOptions { ClearCachedFormulaResultsBeforeSave = true });
-        var first = XlsbWorkbookReader.Load(cleared.ToArray()).Worksheets[0].Cells.Single();
+        var options = new ExcelSaveOptions { ClearCachedFormulaResultsBeforeSave = true };
+        if (encryptedOutput) document.SaveEncrypted(cleared, "test-password", ExcelFileFormat.Xlsb, options); else document.Save(cleared, ExcelFileFormat.Xlsb, options);
+        using var readback = encryptedOutput ? ExcelDocument.LoadEncrypted(cleared, "test-password") : ExcelDocument.Load(cleared);
+        var first = XlsbWorkbookReader.Load(readback.ToBytes(ExcelFileFormat.Xlsb)).Worksheets[0].Cells.Single();
         Assert.Equal(refError, first.FormulaBytes); Assert.Equal(string.Empty, first.Value);
         document.Sheets[0].CellValue(2, 1, "later edit");
         var second = XlsbWorkbookReader.Load(document.ToBytes(ExcelFileFormat.Xlsb)).Worksheets[0].Cells.Single(cell => cell.Row == 1);

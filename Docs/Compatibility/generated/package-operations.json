@@ -3257,12 +3257,12 @@
       "targetFormatId":"Excel.Xls",
       "capabilityId":"Excel.Security.Encryption",
       "operation":"Convert",
-      "state":"Rejected",
+      "state":"Supported",
       "publicApi":"ExcelCompatibilityCatalog.Xls",
       "evidence":"OfficeIMO.Excel.LegacyXls::Excel.Security.Encryption::modern-to-legacy",
       "sourceCatalog":"OfficeIMO.Excel.LegacyXls",
       "extensions":[".xlam",".xlsb",".xlsm",".xlsx",".xltm",".xltx"],
-      "limitation":"Supported encrypted XLS input can be loaded with a password. Cross-generation conversion reports that password protection is removed and blocks by default; first-party encrypted XLS authoring remains incomplete."
+      "limitation":"XOR, classic RC4 and supported CryptoAPI input can be loaded with a password. Classic BIFF8 RC4/MD5 output includes retained pivot-cache and revision streams; VBA and format-exempt metadata stay unencrypted. Cross-generation conversion reports removal of password protection and blocks by default."
     },
     {
       "id":"legacy:OfficeIMO.Excel.LegacyXls:Excel.Xls.Analytics.Pivots:modern-to-legacy",
@@ -3780,7 +3780,7 @@
       "evidence":"OfficeIMO.Excel.Xlsb::Excel.Xlsb.Formulas.Tokens::modern-to-legacy",
       "sourceCatalog":"OfficeIMO.Excel.Xlsb",
       "extensions":[".xlam",".xlsm",".xlsx",".xltm",".xltx"],
-      "limitation":"Existing unsupported formula payloads are retained during allowed cell-value rewrites; new generation supports a bounded token subset."
+      "limitation":"Supported scalar, shared and fixed-array formulas can be edited, with native cached-result and calculation policies. Unchanged unsupported payloads remain native; new expressions use the bounded token encoder."
     },
     {
       "id":"legacy:OfficeIMO.Excel.Xlsb:Excel.Xlsb.Lifecycle.File:modern-to-legacy",
@@ -4055,12 +4055,12 @@
       "targetFormatId":"",
       "capabilityId":"Excel.Security.Encryption",
       "operation":"Create",
-      "state":"Unsupported",
+      "state":"Supported",
       "publicApi":"ExcelCompatibilityCatalog.Xls",
       "evidence":"OfficeIMO.Excel.LegacyXls::Excel.Security.Encryption::new-legacy-write",
       "sourceCatalog":"OfficeIMO.Excel.LegacyXls",
       "extensions":[".xls"],
-      "limitation":"Supported encrypted XLS input can be loaded with a password. Cross-generation conversion reports that password protection is removed and blocks by default; first-party encrypted XLS authoring remains incomplete."
+      "limitation":"XOR, classic RC4 and supported CryptoAPI input can be loaded with a password. Classic BIFF8 RC4/MD5 output includes retained pivot-cache and revision streams; VBA and format-exempt metadata stay unencrypted. Cross-generation conversion reports removal of password protection and blocks by default."
     },
     {
       "id":"legacy:OfficeIMO.Excel.LegacyXls:Excel.Xls.Analytics.Pivots:new-legacy-write",
@@ -4452,7 +4452,7 @@
       "evidence":"OfficeIMO.Excel.LegacyXls::Excel.Security.Encryption::legacy-import",
       "sourceCatalog":"OfficeIMO.Excel.LegacyXls",
       "extensions":[".xla",".xlm",".xls",".xlt",".xlw"],
-      "limitation":"Supported encrypted XLS input can be loaded with a password. Cross-generation conversion reports that password protection is removed and blocks by default; first-party encrypted XLS authoring remains incomplete."
+      "limitation":"XOR, classic RC4 and supported CryptoAPI input can be loaded with a password. Classic BIFF8 RC4/MD5 output includes retained pivot-cache and revision streams; VBA and format-exempt metadata stay unencrypted. Cross-generation conversion reports removal of password protection and blocks by default."
     },
     {
       "id":"legacy:OfficeIMO.Excel.LegacyXls:Excel.Xls.Analytics.Pivots:legacy-import",
@@ -4844,7 +4844,7 @@
       "evidence":"OfficeIMO.Excel.LegacyXls::Excel.Security.Encryption::legacy-round-trip-edit",
       "sourceCatalog":"OfficeIMO.Excel.LegacyXls",
       "extensions":[".xls"],
-      "limitation":"Supported encrypted XLS input can be loaded with a password. Cross-generation conversion reports that password protection is removed and blocks by default; first-party encrypted XLS authoring remains incomplete."
+      "limitation":"XOR, classic RC4 and supported CryptoAPI input can be loaded with a password. Classic BIFF8 RC4/MD5 output includes retained pivot-cache and revision streams; VBA and format-exempt metadata stay unencrypted. Cross-generation conversion reports removal of password protection and blocks by default."
     },
     {
       "id":"legacy:OfficeIMO.Excel.LegacyXls:Excel.Xls.Analytics.Pivots:legacy-round-trip-edit",
@@ -5236,7 +5236,7 @@
       "evidence":"OfficeIMO.Excel.LegacyXls::Excel.Security.Encryption::legacy-round-trip-preserve",
       "sourceCatalog":"OfficeIMO.Excel.LegacyXls",
       "extensions":[".xls"],
-      "limitation":"Supported encrypted XLS input can be loaded with a password. Cross-generation conversion reports that password protection is removed and blocks by default; first-party encrypted XLS authoring remains incomplete."
+      "limitation":"XOR, classic RC4 and supported CryptoAPI input can be loaded with a password. Classic BIFF8 RC4/MD5 output includes retained pivot-cache and revision streams; VBA and format-exempt metadata stay unencrypted. Cross-generation conversion reports removal of password protection and blocks by default."
     },
     {
       "id":"legacy:OfficeIMO.Excel.LegacyXls:Excel.Xls.Analytics.Pivots:legacy-round-trip-preserve",
@@ -5628,7 +5628,7 @@
       "evidence":"OfficeIMO.Excel.LegacyXls::Excel.Security.Encryption::legacy-to-modern",
       "sourceCatalog":"OfficeIMO.Excel.LegacyXls",
       "extensions":[".xla",".xlm",".xls",".xlt",".xlw"],
-      "limitation":"Supported encrypted XLS input can be loaded with a password. Cross-generation conversion reports that password protection is removed and blocks by default; first-party encrypted XLS authoring remains incomplete."
+      "limitation":"XOR, classic RC4 and supported CryptoAPI input can be loaded with a password. Classic BIFF8 RC4/MD5 output includes retained pivot-cache and revision streams; VBA and format-exempt metadata stay unencrypted. Cross-generation conversion reports removal of password protection and blocks by default."
     },
     {
       "id":"legacy:OfficeIMO.Excel.LegacyXls:Excel.Xls.Analytics.Pivots:legacy-to-modern",
@@ -6146,7 +6146,7 @@
       "evidence":"OfficeIMO.Excel.Xlsb::Excel.Xlsb.Formulas.Tokens::new-legacy-write",
       "sourceCatalog":"OfficeIMO.Excel.Xlsb",
       "extensions":[".xlsb"],
-      "limitation":"Existing unsupported formula payloads are retained during allowed cell-value rewrites; new generation supports a bounded token subset."
+      "limitation":"Supported scalar, shared and fixed-array formulas can be edited, with native cached-result and calculation policies. Unchanged unsupported payloads remain native; new expressions use the bounded token encoder."
     },
     {
       "id":"legacy:OfficeIMO.Excel.Xlsb:Excel.Xlsb.Lifecycle.File:new-legacy-write",
@@ -6426,7 +6426,7 @@
       "evidence":"OfficeIMO.Excel.Xlsb::Excel.Xlsb.Formulas.Tokens::legacy-import",
       "sourceCatalog":"OfficeIMO.Excel.Xlsb",
       "extensions":[".xlsb"],
-      "limitation":"Existing unsupported formula payloads are retained during allowed cell-value rewrites; new generation supports a bounded token subset."
+      "limitation":"Supported scalar, shared and fixed-array formulas can be edited, with native cached-result and calculation policies. Unchanged unsupported payloads remain native; new expressions use the bounded token encoder."
     },
     {
       "id":"legacy:OfficeIMO.Excel.Xlsb:Excel.Xlsb.Lifecycle.File:legacy-import",
@@ -6706,7 +6706,7 @@
       "evidence":"OfficeIMO.Excel.Xlsb::Excel.Xlsb.Formulas.Tokens::legacy-round-trip-edit",
       "sourceCatalog":"OfficeIMO.Excel.Xlsb",
       "extensions":[".xlsb"],
-      "limitation":"Existing unsupported formula payloads are retained during allowed cell-value rewrites; new generation supports a bounded token subset."
+      "limitation":"Supported scalar, shared and fixed-array formulas can be edited, with native cached-result and calculation policies. Unchanged unsupported payloads remain native; new expressions use the bounded token encoder."
     },
     {
       "id":"legacy:OfficeIMO.Excel.Xlsb:Excel.Xlsb.Lifecycle.File:legacy-round-trip-edit",
@@ -6986,7 +6986,7 @@
       "evidence":"OfficeIMO.Excel.Xlsb::Excel.Xlsb.Formulas.Tokens::legacy-round-trip-preserve",
       "sourceCatalog":"OfficeIMO.Excel.Xlsb",
       "extensions":[".xlsb"],
-      "limitation":"Existing unsupported formula payloads are retained during allowed cell-value rewrites; new generation supports a bounded token subset."
+      "limitation":"Supported scalar, shared and fixed-array formulas can be edited, with native cached-result and calculation policies. Unchanged unsupported payloads remain native; new expressions use the bounded token encoder."
     },
     {
       "id":"legacy:OfficeIMO.Excel.Xlsb:Excel.Xlsb.Lifecycle.File:legacy-round-trip-preserve",
@@ -7266,7 +7266,7 @@
       "evidence":"OfficeIMO.Excel.Xlsb::Excel.Xlsb.Formulas.Tokens::legacy-to-modern",
       "sourceCatalog":"OfficeIMO.Excel.Xlsb",
       "extensions":[".xlsb"],
-      "limitation":"Existing unsupported formula payloads are retained during allowed cell-value rewrites; new generation supports a bounded token subset."
+      "limitation":"Supported scalar, shared and fixed-array formulas can be edited, with native cached-result and calculation policies. Unchanged unsupported payloads remain native; new expressions use the bounded token encoder."
     },
     {
       "id":"legacy:OfficeIMO.Excel.Xlsb:Excel.Xlsb.Lifecycle.File:legacy-to-modern",

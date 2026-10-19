@@ -299,8 +299,8 @@ namespace OfficeIMO.Excel {
             }
         }
 
-        private void RefreshXlsbStateAfterNativeWrite(byte[] bytes) {
-            XlsbWorkbook workbook = XlsbWorkbookReader.Load(bytes);
+        private void RefreshXlsbStateAfterNativeWrite(byte[] bytes, XlsbWorkbook? prepared = null) {
+            XlsbWorkbook workbook = prepared ?? XlsbWorkbookReader.Load(bytes);
             RestoreNativeXlsbProjectionIdentity(workbook);
             if (workbook.Stylesheet != null) XlsbStylesheetProjector.Install(this, workbook.Stylesheet);
             _xlsbOriginalPackageBytes = bytes;

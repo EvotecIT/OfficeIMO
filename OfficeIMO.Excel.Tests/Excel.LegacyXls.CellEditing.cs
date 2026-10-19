@@ -69,4 +69,22 @@ public sealed class ExcelLegacyCellEditingTests {
             Assert.Equal(3.141592653589793D, loaded.Sheets[0].CellAt(200 + iteration, 1).GetValue<double>());
         }
     }
+    [Fact]
+    public void New_RGB_styles_reuse_only_unreferenced_native_palette_slots() {
+        using var seed = ExcelDocument.Create(); var sheet = seed.AddWorksheet("Data");
+        sheet.CellValue(1, 1, "Original"); sheet.CellAt(1, 1).SetFillColor("#ABCDEF");
+        byte[] bytes = seed.ToBytes(ExcelFileFormat.Xls);
+        for (int iteration = 0; iteration < 3; iteration++) {
+            using var document = ExcelDocument.Load(new MemoryStream(bytes));
+            document.Sheets[0].CellValue(2, 1, "New color");
+            document.Sheets[0].CellAt(2, 1).SetFillColor("#123456");
+            document.Sheets[0].CellFontColor(2, 1, "#654321");
+            bytes = document.ToBytes(ExcelFileFormat.Xls);
+            using var loaded = ExcelDocument.Load(new MemoryStream(bytes));
+            Assert.Equal("FFABCDEF", loaded.Sheets[0].GetCellStyle(1, 1).FillColorArgb);
+            Assert.Equal("FF123456", loaded.Sheets[0].GetCellStyle(2, 1).FillColorArgb);
+            Assert.Equal("FF654321", loaded.Sheets[0].GetCellStyle(2, 1).FontColorArgb);
+        }
+    }
+
 }

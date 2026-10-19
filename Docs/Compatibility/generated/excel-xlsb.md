@@ -7,7 +7,7 @@ Schema version: 1
 | Lifecycle | Excel.Xlsb.Lifecycle.File | Excel.Xlsb | Native | Native | Native | PreservedOpaque | Native | Native | None |  |
 | Structure | Excel.Xlsb.Structure.Worksheets | Excel.Xlsb | Native | Native | Native | PreservedOpaque | Native | Native | None |  |
 | Cells | Excel.Xlsb.Cells.Values | Excel.Xlsb | Native | Native | Native | PreservedOpaque | Native | Native | None |  |
-| Formulas | Excel.Xlsb.Formulas.Tokens | Excel.Xlsb | Native | Native | Approximated | PreservedOpaque | Approximated | Native | Editability, Carrier | Existing unsupported formula payloads are retained during allowed cell-value rewrites; new generation supports a bounded token subset. |
+| Formulas | Excel.Xlsb.Formulas.Tokens | Excel.Xlsb | Native | Native | Approximated | PreservedOpaque | Approximated | Native | Editability, Carrier | Supported scalar, shared and fixed-array formulas can be edited, with native cached-result and calculation policies. Unchanged unsupported payloads remain native; new expressions use the bounded token encoder. |
 | Formatting | Excel.Xlsb.Formatting.Styles | Excel.Xlsb | Native | Native | Approximated | PreservedOpaque | Approximated | Native | Editability, Carrier | A useful style subset projects and can be generated. Complex gradients, extensions, differential styles, and custom style families remain guarded. |
 | Structure | Excel.Xlsb.Structure.Geometry | Excel.Xlsb | Native | Native | Native | PreservedOpaque | Native | Native | None |  |
 | Navigation | Excel.Xlsb.Navigation.Hyperlinks | Excel.Xlsb | Native | Native | Native | Native | Native | Native | None |  |

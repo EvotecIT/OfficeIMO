@@ -95,35 +95,50 @@ XLSX supports more features and larger limits than BIFF8. Before native XLS outp
 
 ### Preserve imported BIFF8 workbooks
 
-For a structurally unchanged, unencrypted BIFF8 source, native save can retain the
-original workbook records and every other compound stream while changing existing
-literal cells. This preserves chart sheets, VBA project streams and host identities,
-embedded content, and records that the editable model only partially represents.
-The same profile can write password-to-open encrypted XLS output.
+Imported BIFF8 sources retain the original compound-file graph during supported
+native edits, including chart sheets, VBA projects, embedded content and records
+that the editable model only partially represents. Supported encrypted sources
+use the same preservation path after password-to-open decoding.
 
-The preserving profile accepts text-to-text, Boolean-to-Boolean, classic error-to-error,
-and representable numeric edits in existing fixed-width BIFF cell records. Existing
-rich-text formatting is retained; editing a rich-text value or its runs is outside
-this profile. Numeric RK cells retain their original encoding and reject values that
-cannot fit it. Adding cells, changing cell kinds, formulas, styles, sheet structure,
-properties, or save-time calculation/repair policies requires the ordinary writer
-and its feature preflight. A chart-bearing workbook therefore rejects those changes
-before touching the destination. An encrypted input or signed compound source does
-not enter this preserving profile.
+The preserving profile supports:
 
-The native Excel controls contain ten worksheets, four chart sheets, and an inert
-VBA project with matching host identities. Plain and encrypted literal edits reopen
-without repair, retain the edited value, and display the populated chart's three
-bars. Automated checks compare retained compound streams and chart substreams and
-exercise repeated file saves, long Unicode strings, shared-string indices, output
-limits and cancellation. These controls qualify the stated edit profile; they do
-not establish arbitrary chart editing or macro execution.
+- new, deleted and changed cells, including value/type changes and long Unicode or rich text;
+- supported scalar, shared and fixed-array formulas, cached results and calculation policies;
+- fonts, number formats, fills, borders, alignment and protection through the native style encoders;
+- worksheet rename, addition, removal and reorder, including local-name scope and native formula references;
+- plain and password-to-open output, repeated saves and password rotation.
+
+Unchanged opaque formula tokens and group definitions remain native. Editing a
+shared member materializes the remaining members without replacing their formulas
+with cached literals. Array operations retain the declared range; an opaque array
+cannot be partially replaced. A removed worksheet's VBA document module is removed,
+a new worksheet receives a distinct host identity, and retained modules keep their
+source. VBA code is not executed or rewritten to interpret sheet names embedded
+inside arbitrary macro text.
+
+BIFF8 still limits worksheets to 65,536 rows and 256 columns and uses a 56-entry
+color palette. New colors reuse safely unreferenced slots; opaque artwork or
+formatting can reserve existing slots. Unsupported formula grammar, changes to
+retained artwork, signed compound sources, unprojected sheet kinds and unsupported
+save-time repair or property edits fail preflight before changing output. This
+profile does not make arbitrary BIFF content editable or extend BIFF8's limits.
+
+The native Excel controls contain ten worksheets, four chart sheets and an inert
+VBA project with matching host identities. Plain and encrypted cell and worksheet
+lifecycle controls reopen without repair; native Save As readback verifies tab
+order, cross-sheet results and retained/new/removed document hosts. Automated checks
+also compare retained streams and records, cover independent-producer inputs and
+exercise repeated saves, formula groups, palette allocation, output limits and
+cancellation. Macro execution and editing chart content have separate contracts.
 
 ### Encrypted output
 
 Native encrypted XLS output uses classic BIFF8 RC4/MD5 with a 1–15 UTF-16-code-unit
-password. Retained pivot-cache and revision BIFF streams are rejected before output;
-VBA and some compound metadata remain unencrypted according to the format. See the
+password. Retained pivot-cache and revision BIFF streams use the same encryption
+session with independent stream-position accounting and the format's plaintext
+record exceptions. VBA and some compound metadata remain unencrypted according
+to the format. Supported CryptoAPI input also restores encrypted summary metadata
+and nested storage for subsequent native preservation saves. See the
 [password-to-open contract](../OfficeIMO.Excel/README.md#password-to-open-output)
 for security limits and the native XLSB profile. Workbook/sheet protection is a
 separate contract.

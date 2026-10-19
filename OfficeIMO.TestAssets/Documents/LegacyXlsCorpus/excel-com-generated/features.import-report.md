@@ -49,7 +49,7 @@ Array formula records: 0
 Future function aliases: 0
 Workbook metadata records: 23
 Workbook future metadata records: 5
-Worksheet metadata records: 10
+Worksheet metadata records: 8
 Worksheet future metadata records: 1
 Unsupported sheet metadata records: 0
 Unsupported sheet future metadata records: 0
@@ -3011,10 +3011,9 @@ Warnings: 0
 | --- | --- |
 | FutureMetadata | 1 |
 | GridSet | 1 |
-| HeaderFooter | 2 |
+| HeaderFooter | 1 |
 | OutlineLevels | 1 |
 | PrinterSettings | 1 |
-| PrintSize | 1 |
 | RowBlockIndex | 1 |
 | Selection | 1 |
 | SheetOptions | 1 |

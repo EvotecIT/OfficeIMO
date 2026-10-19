@@ -61,7 +61,7 @@
       "modernToLegacy":"Approximated",
       "legacyToModern":"Native",
       "affectedFidelity":"Editability, Carrier",
-      "note":"Existing unsupported formula payloads are retained during allowed cell-value rewrites; new generation supports a bounded token subset."
+      "note":"Supported scalar, shared and fixed-array formulas can be edited, with native cached-result and calculation policies. Unchanged unsupported payloads remain native; new expressions use the bounded token encoder."
     },
     {
       "id":"Excel.Xlsb.Formatting.Styles",

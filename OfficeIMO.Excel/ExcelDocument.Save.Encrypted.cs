@@ -1,6 +1,9 @@
 using OfficeIMO.Core.Internal;
 using OfficeIMO.Excel.LegacyXls.Write;
 using OfficeIMO.Excel.Xlsb.Write;
+using OfficeIMO.Excel.Xlsb;
+using OfficeIMO.Excel.Xlsb.Model;
+using OfficeIMO.Excel.LegacyXls.Model;
 using System.Threading;
 
 namespace OfficeIMO.Excel;
@@ -20,8 +23,9 @@ public partial class ExcelDocument {
         if (!destination.CanWrite) throw new ArgumentException("Destination must be writable.", nameof(destination));
         if (format == ExcelFileFormat.Xlsx) { SaveEncrypted(destination, password, saveOptions); return; }
         EnsureWritableForSave();
-        byte[] encrypted = BuildEncryptedBinaryWorkbook(format, password, saveOptions);
-        WriteEncryptedWorkbookToStream(destination, encrypted);
+        var prepared = BuildEncryptedBinaryWorkbook(format, password, saveOptions);
+        WriteEncryptedWorkbookToStream(destination, prepared.Bytes);
+        AdoptEncryptedBinaryState(prepared);
         LastSaveDiagnostics = ExcelSaveDiagnostics.Standard("Encrypted output uses the selected native workbook encoder.");
     }
 
@@ -39,24 +43,26 @@ public partial class ExcelDocument {
             : ExcelDocumentLoadRouting.HasXlsbExtension(path) ? ExcelFileFormat.Xlsb : null;
         if (format == null) return false;
         EnsureDestinationFileWritable(path); EnsureDirectoryWritable(path);
-        byte[] encrypted = BuildEncryptedBinaryWorkbook(format.Value, password, options);
-        CommitPreparedPackageToFile(path, encrypted);
+        var prepared = BuildEncryptedBinaryWorkbook(format.Value, password, options);
+        CommitPreparedPackageToFile(path, prepared.Bytes);
         FilePath = path;
         DisableImplicitPersistenceAfterEncryptedSave();
+        AdoptEncryptedBinaryState(prepared);
         LastSaveDiagnostics = ExcelSaveDiagnostics.Standard("Encrypted output uses the selected native workbook encoder.");
         return true;
     }
 
-    private byte[] BuildEncryptedBinaryWorkbook(ExcelFileFormat format, string password, ExcelSaveOptions? options) {
+    private PreparedEncryptedBinaryWorkbook BuildEncryptedBinaryWorkbook(ExcelFileFormat format, string password, ExcelSaveOptions? options) {
         long maximumBytes = Math.Min(GetPackageMaterializationLimit(options) ?? int.MaxValue, int.MaxValue);
         if (format == ExcelFileFormat.Xls) {
             LegacyXlsWriter.ValidateEncryptionPassword(password);
             EnsureLegacyXlsSaveDoesNotDropImportedContent(options, includeProjectedChartSheets: true, preserveLinkedVbaProject: true, preserveNativeRecords: true);
             EnsureXlsbStringStorageSupported(isXlsbTarget: false, options);
-            if (!CanPreserveNativeLegacyXls(options)) PrepareWorkbookForSave(options);
-            byte[] legacy = LegacyXlsWriter.WriteEncryptedWorkbook(this, password, maximumBytes);
+            var calculation = PrepareNativeCalculationForSave(options);
+            if (!CanPreserveNativeLegacyXls(options)) PrepareWorkbookForSave(options, applyCalculationPolicy: false);
+            byte[] legacy = LegacyXlsWriter.WriteEncryptedWorkbook(this, password, maximumBytes, calculation);
             ThrowIfPackageMaterializationExceedsLimit(legacy.LongLength, options);
-            return legacy;
+            return new PreparedEncryptedBinaryWorkbook(legacy, PrepareNativeLegacyXlsAdoption(legacy, CancellationToken.None, password), null);
         }
         if (format != ExcelFileFormat.Xlsb) throw new ArgumentOutOfRangeException(nameof(format));
         EnsureLegacyXlsSaveDoesNotDropImportedContent(options);
@@ -65,7 +71,16 @@ public partial class ExcelDocument {
             ? CanCopyUnchangedXlsb(options) ? _xlsbOriginalPackageBytes! : RewriteNativeXlsb(options, maximumBytes)
             : GenerateBoundedEncryptedXlsbPackage(options, maximumBytes);
         ThrowIfPackageMaterializationExceedsLimit(package.LongLength, options);
-        return OfficeEncryption.EncryptPackage(package, password);
+        XlsbWorkbook? state = SourceFormat == ExcelFileFormat.Xlsb && !ReferenceEquals(package, _xlsbOriginalPackageBytes)
+            ? XlsbWorkbookReader.Load(package, new XlsbImportOptions { MaxPartBytes = _xlsbAdvancedWorkbook!.MaxPartBytes, MaxPackageBytes = _xlsbAdvancedWorkbook.MaxPackageBytes }) : null;
+        return new PreparedEncryptedBinaryWorkbook(OfficeEncryption.EncryptPackage(package, password), null, state);
+    }
+
+    private sealed record PreparedEncryptedBinaryWorkbook(byte[] Bytes, LegacyXlsWorkbook? Legacy, XlsbWorkbook? Binary);
+
+    private void AdoptEncryptedBinaryState(PreparedEncryptedBinaryWorkbook prepared) {
+        if (prepared.Legacy != null) AdoptNativeLegacyXlsAfterWrite(prepared.Legacy, CancellationToken.None);
+        if (prepared.Binary != null) RefreshXlsbStateAfterNativeWrite(prepared.Binary.OriginalPackageBytes, prepared.Binary);
     }
 
     private byte[] GenerateBoundedEncryptedXlsbPackage(ExcelSaveOptions? options, long maximumBytes) {

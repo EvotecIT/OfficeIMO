@@ -58,7 +58,16 @@ namespace OfficeIMO.Excel {
         public void ClearCachedFormulaResults() {
             WriteLock(() => {
                 bool changed = false;
-                foreach (var cell in WorksheetRoot.Descendants<Cell>().Where(c => c.CellFormula != null)) {
+                var arrays = WorksheetRoot.Descendants<CellFormula>()
+                    .Where(formula => formula.FormulaType?.Value == CellFormulaValues.Array)
+                    .Select(formula => formula.Reference?.Value).Where(reference => reference != null)
+                    .Select(reference => A1.TryParseRange(reference!, out int top, out int left, out int bottom, out int right)
+                        ? (Top: top, Left: left, Bottom: bottom, Right: right) : default).ToArray();
+                foreach (var cell in WorksheetRoot.Descendants<Cell>()) {
+                    bool arrayMember = cell.CellReference?.Value is string address
+                        && TryParseCellReference(address, out int row, out int column)
+                        && arrays.Any(range => row >= range.Top && row <= range.Bottom && column >= range.Left && column <= range.Right);
+                    if (cell.CellFormula == null && !arrayMember) continue;
                     if (cell.CellValue != null || cell.ValueMetaIndex != null) {
                         cell.CellValue = null;
                         ClearCellValueMetadataAttribute(cell);
@@ -590,7 +599,9 @@ namespace OfficeIMO.Excel {
             WriteLock(() => {
                 for (int row = r1; row <= r2; row++) {
                     for (int column = c1; column <= c2; column++) {
-                        ClearCellValueMetadata(GetCell(row, column));
+                        var member = GetCell(row, column);
+                        ClearCellValueMetadata(member);
+                        if (row != r1 || column != c1) member.CellFormula = null;
                     }
                 }
                 var topLeft = GetCell(r1, c1);

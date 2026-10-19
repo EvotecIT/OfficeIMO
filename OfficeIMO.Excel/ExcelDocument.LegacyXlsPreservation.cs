@@ -24,19 +24,19 @@ public partial class ExcelDocument {
         SourceFormat == ExcelFileFormat.Xls && !HasLegacyPreservationTransforms(options) && _legacyXlsPreservationSnapshot?.TryCreatePlan(this, out _) == true;
 
     private bool HasLegacyPreservationTransforms(ExcelSaveOptions? options) =>
-        options?.SafeRepairDefinedNames == true || options?.SafePreflight == true || options?.ValidateOpenXml == true
-        || HasCalculationSaveWork(options);
+        options?.SafeRepairDefinedNames == true || options?.SafePreflight == true || options?.ValidateOpenXml == true;
 
     private byte[] BuildNativeLegacyXls(ExcelSaveOptions? options, CancellationToken cancellationToken, out bool direct, out bool preserved) {
         cancellationToken.ThrowIfCancellationRequested();
         direct = false; preserved = false;
+        var calculation = PrepareNativeCalculationForSave(options);
         if (SourceFormat == ExcelFileFormat.Xls && !HasLegacyPreservationTransforms(options) && _legacyXlsPreservationSnapshot?.TryCreatePlan(this, out var plan, cancellationToken) == true) {
             preserved = true;
             long maximumBytes = Math.Min(GetPackageMaterializationLimit(options) ?? int.MaxValue, int.MaxValue);
-            return plan!.Write(null, maximumBytes, cancellationToken);
+            return plan!.Write(null, maximumBytes, cancellationToken, calculation);
         }
         if (TryBuildDirectTabularLegacyXls(options, cancellationToken, out byte[] bytes)) { direct = true; return bytes; }
-        PrepareWorkbookForSave(options);
+        PrepareWorkbookForSave(options, applyCalculationPolicy: false);
         cancellationToken.ThrowIfCancellationRequested();
         return LegacyXlsWriter.WriteWorkbook(this);
     }

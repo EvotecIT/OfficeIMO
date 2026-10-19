@@ -21,10 +21,26 @@ namespace OfficeIMO.Excel.LegacyXls.Write {
             table._paletteColors = BiffColorPalette.DefaultPaletteColors.ToList();
             for (int index = 0; index < source.PaletteColors.Count; index++) table._paletteColors[index] = source.PaletteColors[index];
             for (int index = 0; index < table._paletteColors.Count; index++) {
-                table._reservedPaletteSlots.Add(index);
                 string color = table._paletteColors[index];
                 if (!table._customColorIndexes.ContainsKey(color)) table._customColorIndexes.Add(color, checked((ushort)(index + 8)));
             }
+            void Reserve(ushort? index) { if (index is >= 8 and < 64) table._reservedPaletteSlots.Add(index.Value - 8); }
+            foreach (var font in source.Fonts) Reserve(font.ColorIndex);
+            foreach (var format in source.CellFormats) {
+                Reserve(format.FillForegroundColorIndex); Reserve(format.FillBackgroundColorIndex);
+                if (format.Border is not { } border) continue;
+                Reserve(border.LeftColorIndex); Reserve(border.RightColorIndex); Reserve(border.TopColorIndex);
+                Reserve(border.BottomColorIndex); Reserve(border.DiagonalColorIndex);
+            }
+            foreach (var sheet in source.Worksheets) { Reserve(sheet.GridLineColorIndex); Reserve(sheet.TabColorIndex); }
+            // Opaque native features may contain palette references outside the typed style model.
+            // Keep those slots rather than recoloring retained artwork or conditional formatting.
+            if (source.DrawingRecords.Count != 0 || source.ChartRecords.Count != 0
+                || source.PreservedFeatureRecords.Any(feature => feature.Kind is LegacyXlsUnsupportedFeatureKind.UnsupportedRecord
+                    or LegacyXlsUnsupportedFeatureKind.StyleExtension or LegacyXlsUnsupportedFeatureKind.TableStyle
+                    or LegacyXlsUnsupportedFeatureKind.ConditionalFormatting or LegacyXlsUnsupportedFeatureKind.FeatureExtension)
+                || source.Worksheets.Any(sheet => sheet.ConditionalFormattings.Count != 0 || sheet.ConditionalFormattingExtensions.Count != 0))
+                for (int index = 0; index < table._paletteColors.Count; index++) table._reservedPaletteSlots.Add(index);
             return table;
         }
 

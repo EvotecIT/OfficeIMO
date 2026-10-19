@@ -7,13 +7,14 @@ namespace OfficeIMO.Excel.LegacyXls.Write;
 
 internal sealed partial class LegacyXlsPreservingWorkbook {
     internal byte[] WriteEdits(ExcelDocument document, IReadOnlyList<LegacyXlsCellEdit> edits,
-        byte[]? filePass, long maximumBytes, CancellationToken token, Func<byte[], byte[]>? transform = null, IReadOnlyList<ExcelLegacySheetBindings.Binding>? bindings = null) {
+        byte[]? filePass, long maximumBytes, CancellationToken token, Func<byte[], byte[]>? transform = null, IReadOnlyList<ExcelLegacySheetBindings.Binding>? bindings = null, bool calculationChanged = false, ExcelNativeCalculationPolicy calculation = default) {
         var structure = bindings == null ? null : new LegacyXlsSheetStructure(bindings, _nativeSheets);
         var compound = PrepareVbaHosts(structure, maximumBytes, token);
         var encodingRecords = structure?.PrepareGlobals(_records) ?? _records;
         var encoding = LegacyXlsWriter.EncodePreservedEdits(document, _model, encodingRecords, structure?.CurrentIndexes ?? _nativeSheets,
             edits, _stringCount, token, structure);
-        var layout = BuildEditingLayout(encoding, token, structure);
+        var layout = BuildEditingLayout(document, encoding, token, structure, calculation);
+        if (calculationChanged) ApplyCalculationSettings(document, layout, structure, token);
         if (structure != null) ApplyStructure(layout, structure, encoding, token);
         byte[] workbook = RewriteRecords(new(), encoding.Strings, filePass, maximumBytes, token, layout);
         if (transform != null) workbook = transform(workbook);
@@ -22,7 +23,7 @@ internal sealed partial class LegacyXlsPreservingWorkbook {
         return OfficeCompoundFileWriter.Rewrite(compound, replacements, maxOutputBytes: maximumBytes, cancellationToken: token);
     }
 
-    private EditingLayout BuildEditingLayout(LegacyXlsEditEncoding encoding, CancellationToken token, LegacyXlsSheetStructure? structure = null) {
+    private EditingLayout BuildEditingLayout(ExcelDocument document, LegacyXlsEditEncoding encoding, CancellationToken token, LegacyXlsSheetStructure? structure = null, ExcelNativeCalculationPolicy calculation = default) {
         var layout = new EditingLayout();
         int globalsEnd = _records.ToList().FindIndex(record => record.Type == 0x000a);
         void AppendAfter(ushort type, IEnumerable<byte[]> payloads) {
@@ -30,6 +31,11 @@ internal sealed partial class LegacyXlsPreservingWorkbook {
             for (int i = 0; i < globalsEnd; i++) if (_records[i].Type == type) last = i;
             int before = last < 0 ? _sstIndex >= 0 ? _sstIndex : globalsEnd : last + 1;
             foreach (var payload in payloads) layout.InsertBefore(before, layout.New(type, payload));
+        }
+        if (encoding.Palette != null) {
+            int palette = _records.ToList().FindIndex(record => record.Type == 0x0092);
+            if (palette >= 0) layout.Replace[palette] = new[] { new OutputRecord(palette, 0x0092, encoding.Palette) };
+            else layout.InsertBefore(globalsEnd, layout.New(0x0092, encoding.Palette));
         }
         AppendAfter(0x0031, encoding.Fonts); AppendAfter(0x041e, encoding.Formats); AppendAfter(0x00e0, encoding.Styles);
         int externIndex = -1;
@@ -40,7 +46,8 @@ internal sealed partial class LegacyXlsPreservingWorkbook {
         if (externIndex >= 0) layout.Replace[externIndex] = new[] { new OutputRecord(externIndex, 0x0017, encoding.Externs.Payload) };
         else layout.InsertBefore(externPosition, layout.New(0x0017, encoding.Externs.Payload));
 
-        foreach (var sheet in _model.Worksheets.Where(sheet => encoding.Cells.Keys.Any(key => key.Sheet == (structure == null ? sheet.Name : structure.CurrentName(sheet.Name))))) {
+        foreach (var sheet in _model.Worksheets.Where(sheet => structure == null || structure.CurrentName(sheet.Name) != null).Where(sheet => calculation.ClearCachedResults || calculation.RecalculateOnOpen
+            || encoding.Cells.Keys.Concat(encoding.FormulaCaches.Keys).Any(key => key.Sheet == (structure == null ? sheet.Name : structure.CurrentName(sheet.Name))))) {
             token.ThrowIfCancellationRequested();
             string currentName = structure?.CurrentName(sheet.Name) ?? sheet.Name;
             int begin = _records.ToList().FindIndex(record => record.Offset == sheet.StreamOffset);
@@ -82,6 +89,7 @@ internal sealed partial class LegacyXlsPreservingWorkbook {
                 if (edit.Value.Count == 0) cells.Remove(key);
                 else cells[key] = edit.Value.ToList();
             }
+            ApplyFormulaCaches(document, currentName, cells, encoding, calculation, structure, token);
             foreach (var row in cells.Keys.Select(key => key.Row).Distinct()) if (!rows.ContainsKey(row)) rows.Add(row, Array.Empty<byte>());
             var rowNumbers = rows.Keys.ToArray();
             uint first = rowNumbers.Length == 0 ? 0U : rowNumbers[0];

@@ -79,6 +79,7 @@ internal sealed partial class LegacyXlsPreservingWorkbook {
                 if (_records[i].Type == 0x000a && --depth == 0) break;
             }
         }
+        RewriteTextSheetReferences(layout, structure, token);
         if (structure.NameIndexes.Any(item => item.Value != item.Key)) RewriteNameReferences(layout, structure.NameIndexes, token);
     }
 }

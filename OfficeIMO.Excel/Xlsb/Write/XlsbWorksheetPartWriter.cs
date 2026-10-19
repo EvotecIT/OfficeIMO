@@ -144,6 +144,11 @@ namespace OfficeIMO.Excel.Xlsb.Write {
                 throw new InvalidDataException("The XLSB worksheet has an invalid sheet-data boundary order.");
             }
 
+            cells = PrepareRetainedFormulaGroups(records, cells);
+            var groupData = new HashSet<byte[]>(XlsbFormulaGroup.ReadGroups(records).Select(group => group.Data));
+            records = records.Where(record => !groupData.Contains(record.Data)).ToArray();
+            beginIndex = FindSingleRecord(records, BrtBeginSheetData, "BrtBeginSheetData");
+            endIndex = FindSingleRecord(records, BrtEndSheetData, "BrtEndSheetData");
             XlsbSheetDataLayout layout = ParseSheetDataLayout(records, beginIndex + 1, endIndex);
             IReadOnlyDictionary<int, IReadOnlyList<XlsbWriteCell>> cellsByRow = cells
                 .GroupBy(cell => cell.Row - 1)
@@ -456,6 +461,7 @@ namespace OfficeIMO.Excel.Xlsb.Write {
         private static void WriteCell(Stream output, XlsbWriteCell cell, XlsbSharedStringTable? sharedStrings = null) {
             if (cell.SourceRecordType.HasValue && cell.SourceRecordData != null) {
                 XlsbRecordWriter.Write(output, cell.SourceRecordType.Value, cell.SourceRecordData);
+                if (cell.FormulaGroup != null) XlsbRecordWriter.Write(output, cell.FormulaGroup.Type, cell.FormulaGroup.Payload);
                 return;
             }
 
@@ -518,6 +524,7 @@ namespace OfficeIMO.Excel.Xlsb.Write {
             }
 
             XlsbRecordWriter.Write(output, recordType, payload.ToArray());
+            if (cell.FormulaGroup != null) XlsbRecordWriter.Write(output, cell.FormulaGroup.Type, cell.FormulaGroup.Payload);
         }
 
         private static void WriteSimpleCellHeader(Stream output, int recordType, int payloadLength, XlsbWriteCell cell) {

@@ -32,6 +32,8 @@ namespace OfficeIMO.Excel.Xlsb.Model {
 
         internal string? PartName { get; set; }
 
+        internal IReadOnlyList<OfficeIMO.Excel.Xlsb.Biff12.XlsbFormulaGroup> FormulaGroups { get; set; } = Array.Empty<OfficeIMO.Excel.Xlsb.Biff12.XlsbFormulaGroup>();
+
         internal IReadOnlyList<XlsbCell> Cells => _cells;
 
         internal IReadOnlyList<XlsbRowInfo> Rows => _rows;

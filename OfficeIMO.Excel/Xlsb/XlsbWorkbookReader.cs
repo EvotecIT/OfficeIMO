@@ -790,6 +790,19 @@ namespace OfficeIMO.Excel.Xlsb {
                     partName));
             }
 
+            worksheet.FormulaGroups = XlsbFormulaGroup.ReadGroups(records);
+            foreach (var group in worksheet.FormulaGroups) {
+                foreach (var member in worksheet.Cells.Where(cell => group.Contains(cell.Row, cell.Column) && XlsbFormulaGroup.IsGroupReference(cell.FormulaPayloadBytes))) {
+                    try {
+                        byte[] materialized = group.Materialize(member.Row, member.Column);
+                        int count = checked((int)XlsbFormulaGroup.Read(materialized, 2));
+                        if (XlsbFormulaTextReader.TryRead(materialized.Skip(6).Take(count).ToArray(), out string? text, workbook)) member.FormulaText = text;
+                    } catch (NotSupportedException) {
+                        workbook.AddDiagnostic(new XlsbImportDiagnostic("XLSB-FORMULA-PRESERVED", XlsbImportDiagnosticSeverity.Warning,
+                            "Preserved an unsupported grouped formula and its cached result.", partName));
+                    }
+                }
+            }
             if (worksheet.UsedRange == null) {
                 throw new InvalidDataException($"The XLSB worksheet part '{partName}' does not contain BrtWsDim.");
             }
