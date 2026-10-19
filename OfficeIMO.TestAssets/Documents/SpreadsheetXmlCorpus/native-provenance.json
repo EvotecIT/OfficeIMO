@@ -7,7 +7,14 @@
   "files": {
     "excel-financial-results.xlsx": "56c7437346cfddf0b67dc46d259f5f9b0a5f79c0be686402f85bae5b11a0a819",
     "excel-financial-coercions.xlsx": "fee1134fabe16912d431ddcbcc7a51b14774a4141e3b5f15c9be5b79cd3a9a29",
-    "excel-financial.xml": "5a75a1e0ebd00e97ca0a14c1e72c72f553f0680966c64940e693e7c52d42852a"
+    "excel-financial.xml": "5a75a1e0ebd00e97ca0a14c1e72c72f553f0680966c64940e693e7c52d42852a",
+    "excel-geometry.xml": "3804cee39e3401ad9e187d5760db392b9ecf7632742010ea928e885f7d2523b0",
+    "excel-geometry.xlsx": "3c603e17b1aab3b1e6eae9d87ecc48ac7eca69682136b5123de43738ab64a2f9",
+    "excel-preservation.xml": "a7eaa7b5efcea8dfb130d39d2e6f54b8ef45c5722513d1476277e82e864244c1",
+    "excel-preservation-readback.xlsx": "8b8e5f5ec9fc4445a954eb1c6f2732a382135391b74365223089fb08c6b9fceb",
+    "officeimo-preservation.xml": "98f36da8f3aab42f21e371debecbbdeabf2e1f40d731bffe9bcd616ad45e5c2f"
   },
-  "limits": "Native saved cache references qualify the included formulas and coercion cases. XML producer fixture is a simple worksheet, not broad XML appearance qualification."
+  "limits": "Native saved cache references qualify the included formulas and coercion cases. XML producer fixture is a simple worksheet, not broad XML appearance qualification.",
+  "preservationMethod": "OfficeIMO XLSX control saved as XML through native Excel; OfficeIMO XML export independently opened without repair and saved as XLSX. Both saved URLs observed. App closed after each cohort. No global settings changed.",
+  "preservationLimits": "Native Excel quantizes the custom RGB font color to indexed color 56 when reading XML. Fill, medium dashed border, bold/italic, rotation, formula hiding, merge, hyperlink tooltip, names and page settings are retained by the corrected consumer cohort. Native XML geometry control uses observed eight-pixel column digit width. Not a general pixel-fidelity claim."
 }

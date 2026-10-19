@@ -140,7 +140,7 @@ public sealed class ExcelSpreadsheetXmlTests {
     [Fact]
     public void Omitted_features_are_reported_and_strict_consumers_can_reject_the_result() {
         var result = ExcelDocument.ImportSpreadsheetXml(Workbook("""
-            <Styles><Style ss:ID="Default"><Font ss:Bold="1"/></Style></Styles>
+            <Styles><Style ss:ID="Default"><Font ss:Bold="1"/><Unsupported/></Style></Styles>
             <Worksheet ss:Name="Data"><Table><Row><Cell ss:MergeAcross="1"><Data ss:Type="String">A</Data></Cell>
             <Cell><Data ss:Type="String">C</Data></Cell></Row></Table></Worksheet>
             """));
@@ -148,9 +148,8 @@ public sealed class ExcelSpreadsheetXmlTests {
         Assert.True(result.HasLoss);
         Assert.Throws<OfficeConversionException>(() => result.RequireNoLoss());
         Assert.Equal("C", document.Sheets[0].CellAt(1, 3).GetValue<string>());
-        Assert.Contains(result.Report.FidelityDiagnostics, item => item.Message.Contains("Font"));
-        Assert.Contains(result.Report.FidelityDiagnostics, item => item.Message.Contains("merged-cell"));
-        document.Sheets[0].AddTable("A1:C1", hasHeader: true, name: "DataTable", style: ExcelTableStyle.TableStyleMedium9);
+        Assert.Contains(result.Report.FidelityDiagnostics, item => item.Message.Contains("Unsupported"));
+        document.Sheets[0].AddTable("D1:F1", hasHeader: true, name: "DataTable", style: ExcelTableStyle.TableStyleMedium9);
         Assert.True(document.ExportSpreadsheetXml().HasLoss);
     }
 

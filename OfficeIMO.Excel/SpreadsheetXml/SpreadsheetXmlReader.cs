@@ -9,29 +9,11 @@ namespace OfficeIMO.Excel.SpreadsheetXml;
 
 internal static class SpreadsheetXmlReader {
     internal static OfficeConversionResult<ExcelDocument, ExcelSpreadsheetXmlReport> Read(Stream input, ExcelSpreadsheetXmlOptions options) {
-        if (input == null) throw new ArgumentNullException(nameof(input));
-        if (!input.CanRead) throw new ArgumentException("Input must be readable.", nameof(input));
-        using var bytes = new MemoryStream();
-        var buffer = new byte[8192];
-        int count;
-        while ((count = input.Read(buffer, 0, (int)Math.Min(buffer.Length, (long)options.MaxInputBytes - bytes.Length + 1))) != 0) {
-            options.CancellationToken.ThrowIfCancellationRequested();
-            if (bytes.Length + count > options.MaxInputBytes) throw new InvalidDataException("XML Spreadsheet exceeds MaxInputBytes.");
-            bytes.Write(buffer, 0, count);
-        }
-        bytes.Position = 0;
-        using var xml = XmlReader.Create(bytes, new XmlReaderSettings {
-            DtdProcessing = DtdProcessing.Prohibit, XmlResolver = null, MaxCharactersInDocument = options.MaxInputBytes,
-            IgnoreComments = true, IgnoreProcessingInstructions = true
-        });
-        using var limited = new OfficeXmlLimitingReader(xml, "XML Spreadsheet", options.MaxXmlDepth, options.MaxXmlElements,
-            (int)Math.Min(int.MaxValue, 8L * options.MaxXmlElements), options.CancellationToken,
-            "Cell", Ss.NamespaceName, options.MaxCells, nameof(options.MaxCells));
-        XElement root = XDocument.Load(limited, LoadOptions.PreserveWhitespace).Root
-            ?? throw new InvalidDataException("XML Spreadsheet has no root element.");
+        XElement root = Utilities.ExcelXmlInput.Read(input, options.MaxInputBytes, options.MaxXmlDepth, options.MaxXmlElements,
+            options.CancellationToken, Ss + "Cell", options.MaxCells);
         if (root.Name != Ss + "Workbook") throw new InvalidDataException("Input is not an XML Spreadsheet 2003 Workbook.");
         var context = new SpreadsheetXmlContext(options);
-        context.Inspect(root, new[] { "Styles", "Worksheet", (X + "ExcelWorkbook").ToString() }, Array.Empty<string>());
+        context.Inspect(root, new[] { "Styles", "Worksheet", "Names", (X + "ExcelWorkbook").ToString() }, Array.Empty<string>());
         if (root.Element(X + "ExcelWorkbook") is XElement excelWorkbook)
             context.Inspect(excelWorkbook, new[] { (X + "Date1904").ToString() }, Array.Empty<string>());
         bool date1904 = root.Element(X + "ExcelWorkbook")?.Element(X + "Date1904") != null;
@@ -51,23 +33,29 @@ internal static class SpreadsheetXmlReader {
                 if (!names.Add(name) || name.Length == 0 || name.Length > 31 || name.IndexOfAny(new[] { '[', ']', ':', '*', '?', '/', '\\' }) >= 0)
                     throw new InvalidDataException("Invalid or duplicate worksheet name.");
                 var sheet = document.AddWorksheet(name);
-                context.Inspect(source, new[] { "Table", (X + "WorksheetOptions").ToString() }, new[] { "Name" });
-                if (source.Element(X + "WorksheetOptions") is XElement worksheetOptions)
-                    context.Inspect(worksheetOptions, new[] { (X + "Visible").ToString() }, Array.Empty<string>());
+                context.Inspect(source, new[] { "Table", "Names", (X + "WorksheetOptions").ToString() }, new[] { "Name", "Protected", "RightToLeft" });
+
                 XElement? visible = source.Element(X + "WorksheetOptions")?.Element(X + "Visible");
                 if (visible?.Value is "SheetHidden" or "SheetVeryHidden") sheet.SheetElement.State = visible.Value == "SheetHidden" ? SheetStateValues.Hidden : SheetStateValues.VeryHidden;
                 XElement[] tables = source.Elements(Ss + "Table").ToArray();
                 if (tables.Length > 1) throw new InvalidDataException("A worksheet cannot contain multiple tables.");
                 if (tables.Length == 1) ReadTable(tables[0], sheet, styles, context, date1904);
+                SpreadsheetXmlOptionsCodec.Read(source, sheet, context);
             }
+            SpreadsheetXmlMetadata.ReadNames(root.Element(Ss + "Names"), workbookPart, null, context);
+            for (int index = 0; index < sheets.Length; index++) SpreadsheetXmlMetadata.ReadNames(sheets[index].Element(Ss + "Names"), workbookPart, (uint)index, context);
             return new(document, context.Report());
         } catch { document.Dispose(); throw; }
     }
 
     private static void ReadTable(XElement table, ExcelSheet sheet, IReadOnlyDictionary<string, uint> styles,
         SpreadsheetXmlContext context, bool date1904) {
-        context.Inspect(table, new[] { "Row" }, new[] { "ExpandedRowCount", "ExpandedColumnCount", "StyleID" });
+        context.Inspect(table, new[] { "Row", "Column" }, new[] { "ExpandedRowCount", "ExpandedColumnCount", "StyleID", "DefaultColumnWidth", "DefaultRowHeight" });
         uint tableStyle = Style(table, styles, styles.TryGetValue("Default", out uint defaultStyle) ? defaultStyle : 0);
+        uint?[] columnStyles = SpreadsheetXmlGeometry.ReadColumns(table, sheet, styles, context);
+        int[] occupied = new int[257];
+        var merges = new MergeCells();
+        var annotations = new List<(XElement source, int row, int column)>();
         int rowIndex = 0;
         var data = new SheetData();
         foreach (XElement sourceRow in table.Elements(Ss + "Row")) {
@@ -86,6 +74,7 @@ internal static class SpreadsheetXmlReader {
                 row.Height = value; row.CustomHeight = true;
             }
             uint rowStyle = Style(sourceRow, styles, tableStyle);
+            if (sourceRow.Attribute(Ss + "StyleID") != null) { row.StyleIndex = rowStyle; row.CustomFormat = true; }
             int columnIndex = 0;
             foreach (XElement sourceCell in sourceRow.Elements(Ss + "Cell")) {
                 context.Cell();
@@ -93,8 +82,8 @@ internal static class SpreadsheetXmlReader {
                 Coordinate(rowIndex, nextColumn);
                 if (nextColumn <= columnIndex) throw new InvalidDataException("Worksheet cell indexes must increase.");
                 columnIndex = nextColumn;
-                context.Inspect(sourceCell, new[] { "Data" }, new[] { "Index", "StyleID", "Formula", "MergeAcross", "MergeDown" });
-                var cell = new Cell { CellReference = A1.CellReference(rowIndex, columnIndex), StyleIndex = Style(sourceCell, styles, rowStyle) };
+                context.Inspect(sourceCell, new[] { "Data", "Comment", "NamedCell" }, new[] { "Index", "StyleID", "Formula", "MergeAcross", "MergeDown", "HRef", (X + "HRefScreenTip").ToString() });
+                var cell = new Cell { CellReference = A1.CellReference(rowIndex, columnIndex), StyleIndex = Style(sourceCell, styles, sourceRow.Attribute(Ss + "StyleID") != null ? rowStyle : columnStyles[columnIndex] ?? tableStyle) };
                 XElement[] values = sourceCell.Elements(Ss + "Data").ToArray();
                 if (values.Length > 1) throw new InvalidDataException("A cell cannot contain multiple values.");
                 if (values.Length == 1) ReadValue(values[0], cell, date1904, sheet, context);
@@ -112,18 +101,30 @@ internal static class SpreadsheetXmlReader {
                     }
                 }
                 row.Append(cell);
-                if (sourceCell.Attribute(Ss + "MergeAcross") != null || sourceCell.Attribute(Ss + "MergeDown") != null) {
-                    context.Omitted("merged-cell geometry");
-                    int across = Nonnegative(sourceCell, "MergeAcross", 255);
-                    Coordinate(rowIndex + Nonnegative(sourceCell, "MergeDown", 65535), columnIndex + across);
-                    columnIndex += across;
+                int across = Nonnegative(sourceCell, "MergeAcross", 255), down = Nonnegative(sourceCell, "MergeDown", 65535);
+                Coordinate(rowIndex + down, columnIndex + across);
+                for (int covered = columnIndex; covered <= columnIndex + across; covered++) {
+                    if (occupied[covered] >= rowIndex) throw new InvalidDataException("Overlapping XML Spreadsheet cells or merges.");
+                    occupied[covered] = rowIndex + down;
                 }
+                if (across > 0 || down > 0) merges.Append(new MergeCell { Reference = cell.CellReference!.Value + ":" + A1.CellReference(rowIndex + down, columnIndex + across) });
+                annotations.Add((sourceCell, rowIndex, columnIndex));
+                columnIndex += across;
             }
             data.Append(row);
         }
         var worksheet = sheet.WorksheetPart.Worksheet!;
         worksheet.GetFirstChild<SheetData>()?.Remove();
-        worksheet.Append(data);
+        worksheet.AddChild(data, true);
+        if (merges.HasChildren) worksheet.AddChild(merges, true);
+        foreach (var annotation in annotations) {
+            XElement? value = annotation.source.Element(Ss + "Data");
+            if (value?.HasElements == true && (string?)value.Attribute(Ss + "Type") == "String") {
+                if (annotation.source.Attribute(Ss + "Formula") == null) sheet.SetRichText(annotation.row, annotation.column, SpreadsheetXmlRichText.Read(value, context));
+                else context.Omitted("rich text in a formula cache (plain cached text retained)");
+            }
+            SpreadsheetXmlMetadata.ReadCell(annotation.source, sheet, annotation.row, annotation.column, context);
+        }
         Utilities.ExcelXmlPartWriter.SavePreservingLineEndings(sheet.WorksheetPart, worksheet);
     }
 
@@ -142,7 +143,7 @@ internal static class SpreadsheetXmlReader {
     }
 
     private static void ReadValue(XElement source, Cell cell, bool date1904, ExcelSheet sheet, SpreadsheetXmlContext context) {
-        context.Inspect(source, Array.Empty<string>(), new[] { "Type" });
+        context.Inspect(source, ((string?)source.Attribute(Ss + "Type") == "String" ? new[] { "B", "I", "U", "S", "Sub", "Sup", "Font" }.Select(name => (SpreadsheetXmlRichText.Html + name).ToString()).ToArray() : Array.Empty<string>()), new[] { "Type" });
         string text = source.Value;
         if (text.Length > 32767) throw new InvalidDataException("XML Spreadsheet cell text exceeds Excel's cell limit.");
         switch ((string?)source.Attribute(Ss + "Type")) {
@@ -159,7 +160,7 @@ internal static class SpreadsheetXmlReader {
                 catch (FormatException exception) { throw new InvalidDataException("Invalid XML Spreadsheet date.", exception); }
                 double serial = ExcelDateSystemConverter.ToSerial(date, date1904 ? ExcelDateSystem.NineteenFour : ExcelDateSystem.NineteenHundred);
                 cell.DataType = CellValues.Number; cell.CellValue = new CellValue(serial.ToString("R", CultureInfo.InvariantCulture));
-                cell.StyleIndex = SpreadsheetXmlStyles.EnsureDateStyle(sheet.WorksheetPart.GetParentParts().OfType<DocumentFormat.OpenXml.Packaging.WorkbookPart>().Single(), cell.StyleIndex?.Value ?? 0);
+                cell.StyleIndex = SpreadsheetXmlStyles.EnsureDateStyle(sheet.WorksheetPart.GetParentParts().OfType<DocumentFormat.OpenXml.Packaging.WorkbookPart>().Single(), cell.StyleIndex?.Value ?? 0, context);
                 break;
             case "Error":
                 if (!new[] { "#NULL!", "#DIV/0!", "#VALUE!", "#REF!", "#NAME?", "#NUM!", "#N/A" }.Contains(text)) throw new InvalidDataException("Invalid XML Spreadsheet error.");

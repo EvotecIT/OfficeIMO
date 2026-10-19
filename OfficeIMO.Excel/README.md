@@ -219,22 +219,65 @@ UTF-8 XML bytes, supports read-only workbooks and retains the workbook's file
 association. The result's workbook is caller-owned, including when strict
 admission rejects its report.
 
-The data profile carries multiple worksheets, sparse coordinates, text,
-finite numbers, Booleans, classic errors, date serials and number formats,
-ordinary formulas with cached values, row heights and hidden rows, and hidden
-sheet state. The shared reference syntax owner converts R1C1 formulas to A1 on
-import and back on export without calculating them. Date conversion uses the
+The workbook profile carries multiple worksheets, sparse coordinates, typed cells,
+ordinary formulas with cached values, date serials and number formats. It maps
+inherited fonts, pattern fills, borders, alignment and cell protection into the
+existing workbook style model. It also carries row heights, column widths and
+styles, hidden rows/columns/sheets, merged cells, scoped names, comments,
+hyperlinks, ordinary print settings and frozen panes. The supported rich-text
+subset includes bold, italic, underline, strike, subscript/superscript and font
+name, size and colour. The shared syntax owner converts ordinary R1C1 formulas
+to A1 on import and back on export without calculating them. Dates use the
 workbook's 1900 or 1904 epoch.
 
-This is a data interchange profile, not a complete XML Spreadsheet renderer or
-arbitrary XML-table mapper. Rich appearance, column geometry, merged-cell
-geometry, charts, pivots, named ranges, comments, hyperlinks, print settings and
-other unsupported metadata produce operation-level loss diagnostics. An
-unrecognized formula dialect retains its cached value with an omission report.
+Review the operation's diagnostics before accepting conversion. Charts, pivots,
+modern Excel tables, conditional formatting and other unimplemented metadata
+are reported as omissions. Theme colours are resolved to RGB; theme identity
+is reported as lost. Native Excel can quantize XML font colours to its legacy
+palette even when the XML retains the requested RGB. This is not a general
+pixel-fidelity or complete XML Spreadsheet feature claim.
+
+Column dimensions in XML are points; Open XML stores font-dependent character
+widths. Installed default-font metrics drive the conversion. If that font is
+unavailable, the report identifies the seven-pixel approximation. Set
+`ExcelSpreadsheetXmlOptions.DefaultFontMaximumDigitWidthPixels` when the target
+font's measured maximum digit width at 96 DPI is known. The native fixture
+cohort uses its observed eight-pixel width; that observation is not a universal
+font default.
+
 Native XML Spreadsheet coordinates are limited to 65,536 rows and 256 columns.
-`ExcelSpreadsheetXmlOptions` bounds input/output bytes, stored cells, worksheets,
-styles, XML elements and depth; it also accepts cancellation. DTDs and external
-XML entity resolution are disabled.
+An invalid or overlapping merge is rejected before returning a workbook.
+Export rejects covered merged-cell data that the target format would discard.
+`ExcelSpreadsheetXmlOptions` bounds bytes, stored cells, worksheets, styles,
+XML elements and depth, and accepts cancellation. DTDs and external XML entity
+resolution are disabled. The [fixture corpus](../OfficeIMO.TestAssets/Documents/SpreadsheetXmlCorpus/README.md)
+distinguishes native producer, native consumer and managed round-trip evidence.
+
+### Exchange XML tables
+
+`ExcelSheet.FromXml` inserts an XML table through the existing DataTable path;
+`ToXml` exports an explicit bounded A1 range using cached cell values. This is
+separate from XML Spreadsheet workbook conversion. The default schema is
+`Table` containing `Row` elements with repeated `Data` children. Text stays
+literal, so leading zeroes and formula-looking strings are retained.
+
+```csharp
+using var workbook = ExcelDocument.Create();
+var sheet = workbook.AddWorksheet("Orders");
+sheet.FromXml("<Table><Row><Data>00127</Data><Data>Ready</Data></Row></Table>");
+string xml = sheet.ToXml("A1:B1");
+```
+
+For named elements or row attributes, supply ordered `ExcelXmlTableColumn`
+mappings through `ExcelXmlTableOptions.Columns`. Configure the root/row names
+and namespace explicitly. Each column selects text, finite number, XML Boolean
+or date/time conversion. Unmapped fields are outside the selected table;
+repeated matches and nested scalar markup are rejected. Missing named fields
+remain blank. Positional export uses `xsi:nil` to distinguish missing cells from
+empty strings. The complete XML is parsed and converted before insertion;
+existing worksheet insertion cancellation semantics apply while cells are written.
+Caller streams remain open. Byte, row, column, rectangular-cell, element and
+depth limits apply; external schemas, DTDs and XML entities are never resolved.
 
 ### Import additional legacy spreadsheet formats
 

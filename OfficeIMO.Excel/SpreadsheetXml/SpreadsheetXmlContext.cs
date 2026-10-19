@@ -9,6 +9,7 @@ internal sealed class SpreadsheetXmlContext {
     internal readonly ExcelSpreadsheetXmlOptions Options;
     private readonly Dictionary<string, OfficeConversionFidelityDiagnostic> _diagnostics = new(StringComparer.Ordinal);
     private int _cells;
+    internal readonly Dictionary<uint, uint> DateStyles = new();
 
     internal SpreadsheetXmlContext(ExcelSpreadsheetXmlOptions options) => Options = options;
     internal void Cell() {
@@ -23,6 +24,10 @@ internal sealed class SpreadsheetXmlContext {
             "The data interchange profile omits " + feature + ".", OfficeConversionLossKind.Omission,
             "OfficeIMO.Excel.SpreadsheetXml");
     }
+    internal void Approximate(string feature) {
+        if (_diagnostics.ContainsKey(feature)) return;
+        _diagnostics[feature] = new OfficeConversionFidelityDiagnostic("EXCEL_XML_APPROXIMATION", feature, OfficeConversionLossKind.Approximation, "OfficeIMO.Excel.SpreadsheetXml");
+    }
     internal ExcelSpreadsheetXmlReport Report() => new(_diagnostics.Values);
     internal void Inspect(XElement element, string[] children, string[] attributes) {
         foreach (XElement child in element.Elements()) {
@@ -30,7 +35,7 @@ internal sealed class SpreadsheetXmlContext {
         }
         foreach (XAttribute attribute in element.Attributes()) {
             if (attribute.IsNamespaceDeclaration || attribute.Name == XNamespace.Xml + "space") continue;
-            if (attribute.Name.Namespace != Ss || !attributes.Contains(attribute.Name.LocalName))
+            if (!(attribute.Name.Namespace == Ss && attributes.Contains(attribute.Name.LocalName)) && !attributes.Contains(attribute.Name.ToString()))
                 Omitted("attribute " + attribute.Name);
         }
     }
