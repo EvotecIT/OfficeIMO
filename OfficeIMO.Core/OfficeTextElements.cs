@@ -132,9 +132,7 @@ public static class OfficeTextElements {
             int scalar = ReadScalar(value, ref index);
             if (scalar == 0x200C || scalar == 0x200D) return true;
             UnicodeCategory category = CharUnicodeInfo.GetUnicodeCategory(value, scalarIndex);
-            if (category == UnicodeCategory.NonSpacingMark ||
-                category == UnicodeCategory.SpacingCombiningMark ||
-                category == UnicodeCategory.EnclosingMark) return true;
+            if (IsCombiningMarkCategory(category)) return true;
         }
         return false;
     }
@@ -146,12 +144,21 @@ public static class OfficeTextElements {
             int scalarIndex = index;
             ReadScalar(value, ref index);
             UnicodeCategory category = CharUnicodeInfo.GetUnicodeCategory(value, scalarIndex);
-            if (category == UnicodeCategory.NonSpacingMark ||
-                category == UnicodeCategory.SpacingCombiningMark ||
-                category == UnicodeCategory.EnclosingMark) return true;
+            if (IsCombiningMarkCategory(category)) return true;
         }
         return false;
     }
+
+    /// <summary>Determines whether a Unicode scalar is a nonspacing, spacing, or enclosing mark.</summary>
+    internal static bool IsCombiningMark(int scalar) => IsCombiningMarkCategory(
+        scalar <= char.MaxValue
+            ? char.GetUnicodeCategory((char)scalar)
+            : CharUnicodeInfo.GetUnicodeCategory(char.ConvertFromUtf32(scalar), 0));
+
+    private static bool IsCombiningMarkCategory(UnicodeCategory category) =>
+        category == UnicodeCategory.NonSpacingMark ||
+        category == UnicodeCategory.SpacingCombiningMark ||
+        category == UnicodeCategory.EnclosingMark;
 
     internal static bool ContainsZeroWidthJoinerSequence(string? value) {
         if (string.IsNullOrEmpty(value)) return false;

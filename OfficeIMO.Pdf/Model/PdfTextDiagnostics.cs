@@ -1316,25 +1316,7 @@ internal static partial class PdfTextDiagnostics {
     }
 
     private static bool IsCombiningMarkOrJoiner(int scalar) =>
-        scalar == 0x200C ||
-        scalar == 0x200D ||
-        IsInRange(scalar, 0x0300, 0x036F) ||
-        IsInRange(scalar, 0x0591, 0x05BD) ||
-        scalar == 0x05BF ||
-        IsInRange(scalar, 0x05C1, 0x05C2) ||
-        IsInRange(scalar, 0x05C4, 0x05C5) ||
-        IsInRange(scalar, 0x0610, 0x061A) ||
-        IsInRange(scalar, 0x064B, 0x065F) ||
-        scalar == 0x0670 ||
-        IsInRange(scalar, 0x06D6, 0x06ED) ||
-        IsInRange(scalar, 0x0711, 0x074A) ||
-        IsInRange(scalar, 0x07A6, 0x07B0) ||
-        IsInRange(scalar, 0x0816, 0x082D) ||
-        IsInRange(scalar, 0x0900, 0x0D7F) ||
-        IsInRange(scalar, 0x1AB0, 0x1AFF) ||
-        IsInRange(scalar, 0x1DC0, 0x1DFF) ||
-        IsInRange(scalar, 0x20D0, 0x20FF) ||
-        IsInRange(scalar, 0xFE20, 0xFE2F);
+        scalar == 0x200C || scalar == 0x200D || OfficeTextElements.IsCombiningMark(scalar);
 
     private static bool IsInRange(int scalar, int first, int last) =>
         scalar >= first && scalar <= last;
