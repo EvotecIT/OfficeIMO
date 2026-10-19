@@ -178,12 +178,7 @@ public class PdfTextQualityTests {
     }
 
     private static string? FindRepositoryFile(string relativePath) {
-        DirectoryInfo? directory = new DirectoryInfo(AppContext.BaseDirectory);
-        while (directory != null) {
-            string candidate = Path.Combine(directory.FullName, relativePath.Replace('/', Path.DirectorySeparatorChar));
-            if (File.Exists(candidate)) return candidate;
-            directory = directory.Parent;
-        }
-        return null;
+        string candidate = Path.Combine(RepositoryTestPaths.Find(), relativePath.Replace('/', Path.DirectorySeparatorChar));
+        return File.Exists(candidate) ? candidate : null;
     }
 }
