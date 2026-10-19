@@ -371,6 +371,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
             .ThenBy(request => request.SourceOrder);
 
     private PositionedLayer LayoutPositionedElement(PositionedElementRequest request, double containingWidth, double containingHeight) {
+        using var pageBoundaries = new DescendantPageBoundaryScope(this, retainsPageBoundaries: false);
         HtmlRenderBoxStyle parentStyle = request.ParentStyle;
         HtmlRenderBoxStyle style = request.Style.Clone();
         if (request.IsViewportFixed) {

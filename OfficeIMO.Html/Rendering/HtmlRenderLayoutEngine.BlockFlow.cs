@@ -231,19 +231,23 @@ internal sealed partial class HtmlRenderLayoutEngine {
                         && ContainsFloatingDescendant(element, width, childStyle, depth + 1)
                             ? new List<HtmlFloatExclusion>()
                             : null;
-                    HtmlRenderFlowBlock LayoutPlacedChild() => LayoutElement(
-                        element,
-                        width,
-                        childStyle,
-                        parentStyle,
-                        depth + 1,
-                        carriesContinuation ? continuationTarget : null,
-                        carriesContinuation ? continuationLogicalCharacters : 0,
-                        pageBoundary?.Shift(flowHeight - anticipatedMarginAdjustment),
-                        activeFloats?.Count > 0 && !EstablishesFloatContainingBlock(childStyle) ? activeFloats.Select(item => item.Shift(
-                            -childStyle.MarginLeft - childStyle.BorderLeftWidth - childStyle.PaddingLeft,
-                            -flowHeight - childStyle.MarginTop - childStyle.BorderTopWidth - childStyle.PaddingTop)).ToArray() : null,
-                        childFloats, floatContext.At(width, 0D, flowHeight - anticipatedMarginAdjustment));
+                    var floatPlacementState = floatContext.CapturePlacementState();
+                    HtmlRenderFlowBlock LayoutPlacedChild() {
+                        floatContext.RestorePlacementState(floatPlacementState);
+                        return LayoutElement(
+                            element,
+                            width,
+                            childStyle,
+                            parentStyle,
+                            depth + 1,
+                            carriesContinuation ? continuationTarget : null,
+                            carriesContinuation ? continuationLogicalCharacters : 0,
+                            pageBoundary?.Shift(flowHeight - anticipatedMarginAdjustment),
+                            activeFloats?.Count > 0 && !EstablishesFloatContainingBlock(childStyle) ? activeFloats.Select(item => item.Shift(
+                                -childStyle.MarginLeft - childStyle.BorderLeftWidth - childStyle.PaddingLeft,
+                                -flowHeight - childStyle.MarginTop - childStyle.BorderTopWidth - childStyle.PaddingTop)).ToArray() : null,
+                            childFloats, floatContext.At(width, 0D, flowHeight - anticipatedMarginAdjustment));
+                    }
                     HtmlRenderFlowBlock childBlock = LayoutPlacedChild();
                     if (activeFloats?.Count > 0 && AvoidsActiveFloatsAsBlock(unavoidedStyle)
                         && (!unavoidedStyle.ExplicitHeight.HasValue || unavoidedStyle.Display == "table")) {
@@ -268,7 +272,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                     }
                     // Descendant controls and inherited page names are only known
                     // after layout. Keep the sibling group intact until that point.
-                    if (StartsPageMarginGroup(blocks, childBlock)) {
+                    if (StartsPageMarginGroup(blocks.Count > 0 ? blocks[blocks.Count - 1] : null, childBlock)) {
                         adjoiningMargins.Clear();
                         if (Math.Abs(anticipatedMarginAdjustment) > 0.0001D) {
                             anticipatedMarginAdjustment = 0D;

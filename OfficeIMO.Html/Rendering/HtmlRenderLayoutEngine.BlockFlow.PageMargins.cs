@@ -4,12 +4,11 @@ internal sealed partial class HtmlRenderLayoutEngine {
     private int _suppressedPageBoundaryDepth;
 
     /// <summary>Ends sibling margin collapse only where the enclosing flow retains page controls.</summary>
-    private bool StartsPageMarginGroup(IReadOnlyList<HtmlRenderFlowBlock> preceding, HtmlRenderFlowBlock following) {
+    private bool StartsPageMarginGroup(HtmlRenderFlowBlock? previous, HtmlRenderFlowBlock following) {
         if (_options.Mode != HtmlRenderMode.Paged || _suppressedPageBoundaryDepth > 0 || _columnContentDepth > 0)
             return false;
         if (IsForcedPageBreak(ResolveRootBreakBefore(following))) return true;
-        if (preceding.Count == 0) return false;
-        HtmlRenderFlowBlock previous = preceding[preceding.Count - 1];
+        if (previous == null) return false;
         return IsForcedPageBreak(ResolveRootBreakAfter(previous))
             || !string.Equals(previous.PageName, following.PageName, StringComparison.Ordinal);
     }

@@ -175,6 +175,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
             CheckCancellation();
             ChargeLayoutOperation("interrupted inline margin scan");
             HtmlRenderFlowBlock block = blocks[index];
+            if (StartsPageMarginGroup(index > 0 ? blocks[index - 1] : null, block)) adjoining.Clear();
             if (!block.HasCollapsibleMargins) {
                 adjoining.Clear();
                 continue;
