@@ -1527,7 +1527,7 @@ _modules.set("1ed4965a6e2963a91190baa8a58ada8ce0edde8fe653bcb6609002e872af0d61",
 return _exports;
 })();
 
-const _m15 = _modules.get("547429ea0c2a515b07fbf3e023a293146506369bdc959a117396193a9f35f35b") ?? (() => {
+const _m15 = _modules.get("5724ae56529d97a1afcaeeb73a759a50d42ae530bf062ee68ece8dbb85b9361b") ?? (() => {
 const { NotSupportedError, OfficeIMOError } = _m4;
 
 const { PdfFont, fontProgram } = _m16;
@@ -1545,7 +1545,7 @@ function standardCode(scalar) {
         return code;
     throw new NotSupportedError("Text U+" + scalar.toString(16).toUpperCase() + " needs an embedded Unicode TrueType font; supply fonts.regular.");
 }
-/** Glyph fallback must be explicit; unsupported shaping never produces a plausible-looking damaged report. */
+/** Visible glyph fallback stays explicit; unsupported shaping never produces a plausible-looking damaged report. */
 function validateScalar(scalar) {
     if (scalar >= 0xd800 && scalar <= 0xdfff)
         throw new TypeError("PDF text contains an unpaired UTF-16 surrogate.");
@@ -1598,7 +1598,14 @@ class PdfFontResource {
             this.standardWidths.set(scalar, width);
             return width;
         }
-        const glyph = this.program.glyph(scalar);
+        let glyph = this.program.glyph(scalar);
+        // Unicode defines U+202F as no-break thin space, with U+2009's advance.
+        // Reuse only an existing inkless glyph; the scalar keeps its own CID/ToUnicode.
+        if (!glyph && scalar === 0x202f) {
+            const thin = this.program.glyph(0x2009);
+            if (thin && this.program.offsets[thin] === this.program.offsets[thin + 1])
+                glyph = thin;
+        }
         if (!glyph)
             throw new NotSupportedError("The supplied font has no glyph for U+" + scalar.toString(16).toUpperCase() + ".");
         if (this.mappings.size >= 65535)
@@ -1695,7 +1702,7 @@ class PdfFontResources {
     dictionary() { return "<< " + this.resources.map(f => "/" + f.name + " " + f.object + " 0 R").join(" ") + " >>"; }
 }
 const _exports = Object.freeze({ validateScalar: validateScalar, PdfFontResource: PdfFontResource, PdfFontResources: PdfFontResources });
-_modules.set("547429ea0c2a515b07fbf3e023a293146506369bdc959a117396193a9f35f35b", _exports);
+_modules.set("5724ae56529d97a1afcaeeb73a759a50d42ae530bf062ee68ece8dbb85b9361b", _exports);
 return _exports;
 })();
 
@@ -2319,7 +2326,7 @@ _modules.set("4d67ccce997b63f4c080f0e893a95560518c97e8245a237ab983da8c62fd142e",
 return _exports;
 })();
 
-const _m13 = _modules.get("6ba8de1b0baad81fcf8a5203a8df2c3a0162ae68e8914ab6aceb8468762b832d") ?? (() => {
+const _m13 = _modules.get("825b4b90af234b0433d21070c11b43f4d1b8fe39a434e6c70c39dfbc6039f00c") ?? (() => {
 const { PdfObjects, unicodeHex } = _m14;
 
 const { PdfFontResources } = _m15;
@@ -2368,11 +2375,11 @@ class PdfWriteSession {
     }
 }
 const _exports = Object.freeze({ PdfWriteSession: PdfWriteSession });
-_modules.set("6ba8de1b0baad81fcf8a5203a8df2c3a0162ae68e8914ab6aceb8468762b832d", _exports);
+_modules.set("825b4b90af234b0433d21070c11b43f4d1b8fe39a434e6c70c39dfbc6039f00c", _exports);
 return _exports;
 })();
 
-const _m1 = _modules.get("8e60d34c020b32157e05e1cbc2f6c70a8b59aeaa681fff5added6ec3be0505ff") ?? (() => {
+const _m1 = _modules.get("f465847517752eb45d4778be7c33c7327cdf0e94ff39f129148a37ab1f6c97fb") ?? (() => {
 const { BlobByteSink, withDestination } = _m2;
 
 const { beginTask, checkAbort, consumeRows, pause, taskYieldDue } = _m3;
@@ -2435,7 +2442,7 @@ async function writePdfTo(rows, destination, configuration) {
     });
 }
 const _exports = Object.freeze({ writePdf: writePdf, writePdfTo: writePdfTo });
-_modules.set("8e60d34c020b32157e05e1cbc2f6c70a8b59aeaa681fff5added6ec3be0505ff", _exports);
+_modules.set("f465847517752eb45d4778be7c33c7327cdf0e94ff39f129148a37ab1f6c97fb", _exports);
 return _exports;
 })();
 
@@ -2631,7 +2638,7 @@ _modules.set("8f3055173ac5b3632faadc528af0addb284b4fc4f65063de86f6797381c7dea1",
 return _exports;
 })();
 
-const _m26 = _modules.get("109856c81c4b2f9b21498135f9a3a67347fa2be7293addba857dddc47bc490ea") ?? (() => {
+const _m26 = _modules.get("4721f6686daad362a02c38000bbba5b136e4c2e536dc06b3a06468b668ecee46") ?? (() => {
 const { BlobByteSink, withDestination } = _m2;
 
 const { beginTask, checkAbort, consumeRows, pause, taskYieldDue } = _m3;
@@ -2764,7 +2771,7 @@ function checkTableOptions(options) {
         throw new TypeError("Table options support columns, headings, footers, widths and presentation; document settings belong on writePdfDocument.");
 }
 const _exports = Object.freeze({ pdfTable: pdfTable, writePdfDocument: writePdfDocument, writePdfDocumentTo: writePdfDocumentTo });
-_modules.set("109856c81c4b2f9b21498135f9a3a67347fa2be7293addba857dddc47bc490ea", _exports);
+_modules.set("4721f6686daad362a02c38000bbba5b136e4c2e536dc06b3a06468b668ecee46", _exports);
 return _exports;
 })();
 
@@ -2815,10 +2822,10 @@ _modules.set("2dea921ea9dc47e1814e701d105e0568bf8edca4d91c480a2c0334817925b0f5",
 return _exports;
 })();
 
-const _m0 = _modules.get("0c9c9d34d543c39bb43a6f41280bc96bf728e15f890021e313cddb8dbe696ee0") ?? (() => {
+const _m0 = _modules.get("8a36d5c168c29e2e592f3713b246b1e20d177d275f5cc978f57aa7e99d61c073") ?? (() => {
 
 const _exports = Object.freeze({ writePdf: _m1.writePdf, writePdfTo: _m1.writePdfTo, writePdfDocument: _m26.writePdfDocument, writePdfDocumentTo: _m26.writePdfDocumentTo, pdfTable: _m26.pdfTable, PdfFont: _m16.PdfFont, ExportCell: _m7.ExportCell, saveBlob: _m29.saveBlob });
-_modules.set("0c9c9d34d543c39bb43a6f41280bc96bf728e15f890021e313cddb8dbe696ee0", _exports);
+_modules.set("8a36d5c168c29e2e592f3713b246b1e20d177d275f5cc978f57aa7e99d61c073", _exports);
 return _exports;
 })();
 Object.assign(officeimo, _m0, { core: _m29, pdf: _m0 });

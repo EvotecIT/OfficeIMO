@@ -1,9 +1,47 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
-import { PdfFont } from "../dist/pdf/index.js";
+import { PdfFont, writePdf, writePdfDocument } from "../dist/pdf/index.js";
+import { TrueTypeFont } from "../dist/pdf/truetype.js";
+import { inspectPdf } from "./pdf-reader.mjs";
 
 const source = new Uint8Array(await readFile(new URL("../../Website/Apps/OfficeIMO.Web.Converter/Assets/Fonts/Carlito-Regular.ttf", import.meta.url)));
+
+// A sparse synthetic Unicode cmap over the existing licensed fixture's original glyphs.
+function withCharacters(characters) {
+  const bytes = new Uint8Array(source.length + 28 + characters.length * 12); bytes.set(source);
+  const view = new DataView(bytes.buffer), entry = directoryEntry(bytes, "cmap"), offset = source.length;
+  view.setUint32(entry + 8, offset); view.setUint32(entry + 12, bytes.length - offset);
+  view.setUint16(offset + 2, 1); view.setUint16(offset + 4, 3); view.setUint16(offset + 6, 10); view.setUint32(offset + 8, 12);
+  view.setUint16(offset + 12, 12); view.setUint32(offset + 16, 16 + characters.length * 12); view.setUint32(offset + 24, characters.length);
+  characters.forEach(([scalar, glyph], index) => {
+    const p = offset + 28 + index * 12;
+    view.setUint32(p, scalar); view.setUint32(p + 4, scalar); view.setUint32(p + 8, glyph);
+  });
+  return new PdfFont(bytes);
+}
+
+test("PDF preserves missing no-break thin spaces through the font's blank thin-space glyph", async () => {
+  const program = new TrueTypeFont(source), thin = program.glyph(0x2009), narrow = program.glyph(0x202f), text = "\u2009\u202f";
+  const fonts = { regular: withCharacters([[0x2009, thin]]) };
+  const options = { fonts, pageNumbers: false, compression: false };
+  for (const blob of [await writePdf([[text]], { ...options, columns: [{ header: "" }], includeHeader: false, columnWidths: [100] }),
+    await writePdfDocument([{ kind: "paragraph", text }], options)]) {
+    const pdf = await inspectPdf(blob);
+    assert.equal(pdf.text, text, "Distinct Unicode scalars must survive extraction even when they share an inkless glyph");
+    const cid = [...pdf.objects.values()].find(object => /\/Subtype \/CIDFontType2/.test(object.body));
+    const map = pdf.objects.get(Number(/\/CIDToGIDMap (\d+) 0 R/.exec(cid.body)[1])).stream;
+    assert.equal(map.readUInt16BE(2), thin); assert.equal(map.readUInt16BE(4), thin);
+    const widths = /\/W \[1 \[([^\]]+)/.exec(cid.body)[1].trim().split(/\s+/).map(Number);
+    assert.deepEqual(widths, [program.widths[thin], program.widths[thin]].map(width => Number(width.toFixed(3))));
+  }
+  // A declared narrow-space glyph takes precedence; missing or inked substitutes still fail.
+  const native = await inspectPdf(await writePdfDocument([{ kind: "paragraph", text: "\u202f" }], { ...options, fonts: { regular: withCharacters([[0x2009, thin], [0x202f, narrow]]) } }));
+  const nativeCid = [...native.objects.values()].find(object => /\/Subtype \/CIDFontType2/.test(object.body));
+  assert.deepEqual(/\/W \[1 \[([^\]]+)/.exec(nativeCid.body)[1].trim().split(/\s+/).map(Number), [Number(program.widths[narrow].toFixed(3))]);
+  for (const characters of [[[0x20, program.glyph(0x20)]], [[0x2009, program.glyph(65)]]])
+    await assert.rejects(writePdfDocument([{ kind: "paragraph", text: "\u202f" }], { ...options, fonts: { regular: withCharacters(characters) } }), /no glyph for U\+202F/);
+});
 
 function directoryEntry(bytes, tag) {
   const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);

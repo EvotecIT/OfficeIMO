@@ -13,7 +13,7 @@ function standardCode(scalar: number): number {
   if (code !== undefined) return code;
   throw new NotSupportedError("Text U+" + scalar.toString(16).toUpperCase() + " needs an embedded Unicode TrueType font; supply fonts.regular.");
 }
-/** Glyph fallback must be explicit; unsupported shaping never produces a plausible-looking damaged report. */
+/** Visible glyph fallback stays explicit; unsupported shaping never produces a plausible-looking damaged report. */
 export function validateScalar(scalar: number): void {
   if (scalar >= 0xd800 && scalar <= 0xdfff) throw new TypeError("PDF text contains an unpaired UTF-16 surrogate.");
   if (scalar < 32 || (scalar >= 127 && scalar < 160)) throw new NotSupportedError("PDF text contains an unsupported control character.");
@@ -50,7 +50,13 @@ export class PdfFontResource {
       this.standardWidths.set(scalar, width);
       return width;
     }
-    const glyph = this.program.glyph(scalar);
+    let glyph = this.program.glyph(scalar);
+    // Unicode defines U+202F as no-break thin space, with U+2009's advance.
+    // Reuse only an existing inkless glyph; the scalar keeps its own CID/ToUnicode.
+    if (!glyph && scalar === 0x202f) {
+      const thin = this.program.glyph(0x2009);
+      if (thin && this.program.offsets[thin] === this.program.offsets[thin + 1]) glyph = thin;
+    }
     if (!glyph) throw new NotSupportedError("The supplied font has no glyph for U+" + scalar.toString(16).toUpperCase() + ".");
     if (this.mappings.size >= 65535) throw new OfficeIMOError("RESOURCE_LIMIT", "A PDF font supports at most 65,535 distinct Unicode scalars.");
     const mapping = { cid: this.mappings.size + 1, glyph, width: this.program.widths[glyph]! };

@@ -4594,7 +4594,7 @@ function standardCode(scalar) {
         return code;
     throw new NotSupportedError("Text U+" + scalar.toString(16).toUpperCase() + " needs an embedded Unicode TrueType font; supply fonts.regular.");
 }
-/** Glyph fallback must be explicit; unsupported shaping never produces a plausible-looking damaged report. */
+/** Visible glyph fallback stays explicit; unsupported shaping never produces a plausible-looking damaged report. */
 function validateScalar(scalar) {
     if (scalar >= 0xd800 && scalar <= 0xdfff)
         throw new TypeError("PDF text contains an unpaired UTF-16 surrogate.");
@@ -4647,7 +4647,14 @@ class PdfFontResource {
             this.standardWidths.set(scalar, width);
             return width;
         }
-        const glyph = this.program.glyph(scalar);
+        let glyph = this.program.glyph(scalar);
+        // Unicode defines U+202F as no-break thin space, with U+2009's advance.
+        // Reuse only an existing inkless glyph; the scalar keeps its own CID/ToUnicode.
+        if (!glyph && scalar === 0x202f) {
+            const thin = this.program.glyph(0x2009);
+            if (thin && this.program.offsets[thin] === this.program.offsets[thin + 1])
+                glyph = thin;
+        }
         if (!glyph)
             throw new NotSupportedError("The supplied font has no glyph for U+" + scalar.toString(16).toUpperCase() + ".");
         if (this.mappings.size >= 65535)
