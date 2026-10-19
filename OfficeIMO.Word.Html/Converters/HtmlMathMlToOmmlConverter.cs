@@ -154,6 +154,7 @@ namespace OfficeIMO.Word.Html {
             new XElement(
                 M + "rad",
                 new XElement(M + "radPr", new XElement(M + "degHide", new XAttribute(M + "val", "1"))),
+                new XElement(M + "deg"),
                 new XElement(M + "e", ConvertChildren(element)));
 
         private XElement CreateRoot(IElement element) {

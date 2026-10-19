@@ -28,9 +28,9 @@ public sealed class HtmlWordMathOperatorSpacingLossTests {
         WordEquation equation = Assert.Single(document.Equations);
         Assert.Equal(WordEquationRepresentation.Omml, equation.Representation);
         XElement native = XElement.Parse(equation.Omml!);
-        Assert.Equal(labeled ? 0 : 1, native.Descendants().Count(element => element.Name.LocalName == "f"));
-        Assert.Equal(labeled ? "spoken fraction" : "x+y2",
-            string.Concat(native.Descendants().Where(element => element.Name.LocalName == "t").Select(element => element.Value)));
+        XNamespace math = "http://schemas.openxmlformats.org/officeDocument/2006/math";
+        Assert.Single(native.Descendants(math + "f"));
+        Assert.Equal("x+y2", string.Concat(native.Descendants(math + "t").Select(element => element.Value)));
         Assert.Empty(document.ValidateDocument());
         HtmlDiagnostic[] losses = result.Report.Diagnostics.Where(diagnostic =>
             diagnostic.Component == "OfficeIMO.Word.Html"
@@ -48,15 +48,23 @@ public sealed class HtmlWordMathOperatorSpacingLossTests {
         }
     }
 
-    [Fact]
-    public void OperatorMetadataInsideIgnoredAnnotationIsNotAnEditableProjectionLoss() {
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void OperatorMetadataInsideIgnoredAnnotationIsNotAnEditableProjectionLoss(bool labeled) {
+        string label = labeled ? " aria-label='spoken primary fraction'" : string.Empty;
         HtmlToWordResult result = HtmlConversionDocument.Parse(
-            "<math><semantics><mi>x</mi><annotation-xml encoding='application/mathml+xml'>"
+            "<math" + label + "><semantics><mfrac><mi>a</mi><mi>b</mi></mfrac>"
+            + "<annotation encoding='application/x-tex'>ignored alternate</annotation>"
+            + "<annotation-xml encoding='application/mathml+xml'>"
             + "<math><mo lspace='.5em'>+</mo></math></annotation-xml></semantics></math>")
             .ToWordDocumentResult();
         using WordDocument document = result.RequireValue();
 
-        Assert.Equal("x", Assert.Single(document.Equations).Text);
+        XNamespace math = "http://schemas.openxmlformats.org/officeDocument/2006/math";
+        XElement native = XElement.Parse(Assert.Single(document.Equations).Omml!);
+        Assert.Single(native.Descendants(math + "f"));
+        Assert.Equal("ab", string.Concat(native.Descendants(math + "t").Select(element => element.Value)));
         Assert.DoesNotContain(result.Report.Diagnostics, diagnostic =>
             diagnostic.Component == "OfficeIMO.Word.Html"
             && diagnostic.Code == HtmlConversionDiagnosticCodes.ContentApproximated);

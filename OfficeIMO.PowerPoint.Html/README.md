@@ -42,6 +42,9 @@ On the ordinary HTML path, bounded positioned, floating, flex, and grid regions 
 
 Generic HTML import divides long paragraphs into editable text boxes across slides and retains supported inline formatting and hyperlinks. Tables with suitable row geometry continue as native tables with repeated header rows. Native header links use the header text color, including on repeated table fragments, while authored run colors remain explicit. Readers supporting the native hyperlink text-color extension retain these colors; older readers may use their theme hyperlink color. Captions remain separate editable text. Oversized cells and unsupported list pagination produce explicit approximation reports; authored slide geometry remains authoritative.
 
+Ordinary HTML runs use shared computed font styles, including inherited families
+and resolved CSS custom properties. Heading titles retain their own text and font.
+
 ## Positioned review
 
 Use `PowerPointHtmlSaveOptions.CreateVisualReviewProfile()` or set `ExportProfile = PowerPointHtmlExportProfile.VisualReview` for a positioned visual representation. `SharedProfile` exposes the corresponding generic engine lane. `DocumentOutput` controls full-document versus fragment output, title, language, theme, default styles, and newlines. Visual-review HTML is intended for inspection, while semantic slide HTML is the importable contract.

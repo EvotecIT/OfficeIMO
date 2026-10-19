@@ -51,7 +51,7 @@ namespace OfficeIMO.Word.Html {
                                     string.IsNullOrEmpty(element.Id) ? "math" : "math#" + element.Id,
                                     lossKind: OfficeConversionLossKind.Approximation);
                             }
-                            if (string.IsNullOrWhiteSpace(equationLabel) && hasStructuredEquation) {
+                            if (hasStructuredEquation) {
                                 paragraph.AddEquation(structuredOmml);
                             } else {
                                 string equationText = equationLabel ?? element.TextContent ?? string.Empty;
