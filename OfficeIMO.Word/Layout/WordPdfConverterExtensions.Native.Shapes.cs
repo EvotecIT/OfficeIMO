@@ -206,11 +206,11 @@ namespace OfficeIMO.Word.Pdf {
                 return;
             }
 
-            // Keep the shared resolver's alpha, including theme alpha and ordered transforms.
-            // The PDF writer applies this color alpha once, as it does for solid fills.
-            nativeShape.StrokeColor = hasDrawingStrokeColor
-                ? drawingStroke
-                : (ParseNativeColor(wordShape.StrokeColorHex) ?? PdfCore.PdfColor.Black).ToOfficeColor();
+            PdfCore.PdfColor? stroke = hasDrawingStrokeColor ? PdfCore.PdfColor.FromOfficeColor(drawingStroke) : ParseNativeColor(wordShape.StrokeColorHex);
+            nativeShape.StrokeColor = (stroke ?? PdfCore.PdfColor.Black).ToOfficeColor();
+            // Transfer the shared resolver's completed alpha once alongside RGB.
+            // Running text-box admission also relies on this separate-opacity contract.
+            if (hasDrawingStrokeColor) nativeShape.StrokeOpacity = drawingStroke.A / 255D;
             nativeShape.StrokeWidth = Math.Max(0D, wordShape.StrokeWeight ?? 1D);
             nativeShape.StrokeDashStyle = MapNativeDrawingPresetDash(drawingOutline);
         }
