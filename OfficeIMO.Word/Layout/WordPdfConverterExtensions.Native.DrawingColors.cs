@@ -84,69 +84,6 @@ namespace OfficeIMO.Word.Pdf {
             return distance <= 22.5D;
         }
 
-        private static bool TryGetNativeDrawingFillOpacity(OpenXmlElement? owner, out double opacity) {
-            A.SolidFill? solidFill = owner?.GetFirstChild<A.SolidFill>();
-            if (TryGetNativeDrawingOpacity(solidFill, out opacity)) {
-                return true;
-            }
-
-            A.GradientFill? gradientFill = owner?.GetFirstChild<A.GradientFill>();
-            if (TryGetNativeDrawingOpacity(gradientFill, out opacity)) {
-                return true;
-            }
-
-            opacity = 1D;
-            return false;
-        }
-
-        private static bool TryGetNativeDrawingOpacity(OpenXmlElement? owner, out double opacity) {
-            opacity = 1D;
-            if (owner == null) {
-                return false;
-            }
-
-            foreach (OpenXmlElement colorElement in owner.Descendants()) {
-                switch (colorElement.LocalName) {
-                    case "srgbClr":
-                    case "schemeClr":
-                    case "scrgbClr":
-                    case "sysClr":
-                        if (TryGetNativeDrawingColorAlpha(colorElement, out opacity)) {
-                            return true;
-                        }
-                        break;
-                }
-            }
-
-            return false;
-        }
-
-        private static bool TryGetNativeDrawingColorAlpha(OpenXmlElement colorElement, out double opacity) {
-            opacity = 1D;
-            bool found = false;
-            foreach (OpenXmlElement transform in colorElement.ChildElements) {
-                int? value = GetNativeDrawingColorTransformValue(transform);
-                if (!value.HasValue) {
-                    continue;
-                }
-
-                double amount = Math.Max(0D, Math.Min(100000D, value.Value)) / 100000D;
-                switch (transform.LocalName) {
-                    case "alpha":
-                        opacity = amount;
-                        found = true;
-                        break;
-                    case "alphaMod":
-                    case "alphaModFix":
-                        opacity *= amount;
-                        found = true;
-                        break;
-                }
-            }
-
-            return found;
-        }
-
         private static bool TryGetNativeDrawingColor(OpenXmlElement? owner, out OfficeColor color, IReadOnlyDictionary<A.SchemeColorValues, OfficeColor>? themeColors = null) {
             color = default;
             if (owner == null) {
@@ -274,13 +211,6 @@ namespace OfficeIMO.Word.Pdf {
 
         private static OfficeColor ApplyNativeDrawingColorTransforms(OfficeColor color, OpenXmlElement colorElement) =>
             OfficeIMO.OpenXml.Internal.OfficeOpenXmlThemeColorResolver.ApplyTransforms(color, colorElement);
-
-        private static int? GetNativeDrawingColorTransformValue(OpenXmlElement transform) {
-            string? raw = GetNativeDrawingEnumAttributeValue(transform, "val") ?? GetNativeDrawingEnumAttributeValue(transform, "amt");
-            return int.TryParse(raw, System.Globalization.NumberStyles.Integer, System.Globalization.CultureInfo.InvariantCulture, out int value)
-                ? value
-                : (int?)null;
-        }
 
         private static string? GetNativeDrawingEnumAttributeValue(OpenXmlElement element, string name) {
             foreach (OpenXmlAttribute attribute in element.GetAttributes()) {

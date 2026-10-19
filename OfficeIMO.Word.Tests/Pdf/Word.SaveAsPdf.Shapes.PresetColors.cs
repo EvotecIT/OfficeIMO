@@ -76,6 +76,6 @@ public partial class Word {
         Assert.Equal(112D, stroke.Width, precision: 3);
         Assert.Equal(48D, stroke.Height, precision: 3);
         Assert.Equal(1D, stroke.StrokeWidth, precision: 3);
-        Assert.Equal(0.65D, stroke.StrokeOpacity ?? 1D, precision: 3);
+        Assert.InRange(stroke.StrokeOpacity ?? 1D, 0.65D - 1D / 255D, 0.65D + 1D / 255D);
     }
 }

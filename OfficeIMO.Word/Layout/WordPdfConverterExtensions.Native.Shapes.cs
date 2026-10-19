@@ -206,15 +206,13 @@ namespace OfficeIMO.Word.Pdf {
                 return;
             }
 
-            PdfCore.PdfColor? stroke = hasDrawingStrokeColor ? PdfCore.PdfColor.FromOfficeColor(drawingStroke) : ParseNativeColor(wordShape.StrokeColorHex);
-            nativeShape.StrokeColor = (stroke ?? PdfCore.PdfColor.Black).ToOfficeColor();
+            // Keep the shared resolver's alpha, including theme alpha and ordered transforms.
+            // The PDF writer applies this color alpha once, as it does for solid fills.
+            nativeShape.StrokeColor = hasDrawingStrokeColor
+                ? drawingStroke
+                : (ParseNativeColor(wordShape.StrokeColorHex) ?? PdfCore.PdfColor.Black).ToOfficeColor();
             nativeShape.StrokeWidth = Math.Max(0D, wordShape.StrokeWeight ?? 1D);
             nativeShape.StrokeDashStyle = MapNativeDrawingPresetDash(drawingOutline);
-            if (TryGetNativeDrawingFillOpacity(drawingOutline, out double strokeOpacity)) {
-                nativeShape.StrokeOpacity = strokeOpacity;
-            } else if (hasDrawingStrokeColor && drawingStroke.A < byte.MaxValue) {
-                nativeShape.StrokeOpacity = drawingStroke.A / 255D;
-            }
         }
 
         private static OfficeStrokeDashStyle MapNativeDrawingPresetDash(A.Outline? outline) {
