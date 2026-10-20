@@ -188,12 +188,13 @@ internal static partial class PdfWriter {
                     StructureParentElement = _canvasStructureParentElement
                 });
                 field.StructureParentElement = _canvasStructureParentElement;
+                CaptureFormNavigationTarget(field);
                 currentPage!.FormFields.Add(field);
                 pageDirty = true;
                 return;
             }
 
-            currentPage!.FormFields.Add(new FormFieldAnnotation {
+            var annotation = new FormFieldAnnotation {
                 X1 = item.X,
                 Y1 = bottomY,
                 X2 = item.X + item.Width,
@@ -219,7 +220,9 @@ internal static partial class PdfWriter {
                 AllowsMultipleSelection = item.AllowsMultipleSelection,
                 Style = item.Style,
                 StructureParentElement = _canvasStructureParentElement
-            });
+            };
+            CaptureFormNavigationTarget(annotation);
+            currentPage!.FormFields.Add(annotation);
             pageDirty = true;
         }
 
@@ -306,7 +309,7 @@ internal static partial class PdfWriter {
             string alternativeText = options.AlternativeText ?? string.Empty;
             string? language = options.Language ?? _canvasStructureParentElement?.Language ?? currentOpts.Language;
             PageStructElement? structureElement;
-            var structureKey = (options.StructureElementKey ?? string.Empty, structureType, _canvasStructureParentElement, headerScope, options.ColumnSpan, options.RowSpan, alternativeText, language);
+            var structureKey = (options.StructureElementKey ?? string.Empty, structureType, _canvasStructureParentElement, headerScope, options.ColumnSpan, options.RowSpan, alternativeText, language, options.ListNumbering);
             if (options.StructureElementKey != null && canvasStructureElements.TryGetValue(structureKey, out PageStructElement? existingStructureElement)) {
                 structureElement = existingStructureElement;
                 if (!currentPage!.StructElements.Contains(structureElement)) structureElement.SpansPages = true;
@@ -322,6 +325,8 @@ internal static partial class PdfWriter {
                     structureElement.Language = language;
                     structureElement.AssociatedFiles = options.AssociatedFileSnapshots;
                     structureElement.LogicalOrder = options.LogicalOrder;
+                    structureElement.ListNumbering = options.ListNumbering;
+                    structureElement.StructureElementKey = options.StructureElementKey;
                 }
                 if (options.StructureElementKey != null && structureElement != null) {
                     canvasStructureElements[structureKey] = structureElement;
@@ -668,6 +673,7 @@ internal static partial class PdfWriter {
             pageImage.RotationAngle = item.RotationAngle;
             pageImage.HorizontalFlip = item.HorizontalFlip;
             pageImage.VerticalFlip = item.VerticalFlip;
+            ReserveImageNavigationTarget(pageImage);
             currentPage!.Images.Add(pageImage);
             pageImage.IsForeground = item.Foreground;
             if (item.Foreground) pageImage.ForegroundTransform = _canvasEffectToPage;

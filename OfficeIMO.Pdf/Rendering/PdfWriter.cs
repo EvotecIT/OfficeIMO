@@ -966,7 +966,7 @@ internal static partial class PdfWriter {
                                 byte[] positionedSelectedBytes = PdfEncoding.Latin1GetBytes(positionedSelectedAppearance);
                                 string positionedSelectedDictionary = PdfAcroFormDictionaryBuilder.BuildCheckBoxAppearanceStreamDictionary(widgetWidth, widgetHeight, positionedSelectedBytes.Length);
                                 int positionedSelectedAppearanceId = AddStreamObject(objects, positionedSelectedDictionary, positionedSelectedBytes);
-                                AnnotationStructureReference? widgetStructureReference = RegisterAnnotationStructureReference(page, markInfo, ref nextStructParentIndex, "Form", widgetFrame.StructureParentElementIndex, widgetFrame.StructureParentElement);
+                                AnnotationStructureReference? widgetStructureReference = RegisterAnnotationStructureReference(page, markInfo, ref nextStructParentIndex, "Form", widgetFrame.StructureParentElementIndex, widgetFrame.StructureParentElement, widgetFrame.NavigationTarget);
                                 string widget = PdfAnnotationDictionaryBuilder.BuildRadioButtonWidgetAnnotation(
                                     widgetFrame.X1,
                                     widgetFrame.Y1,
@@ -1004,7 +1004,7 @@ internal static partial class PdfWriter {
 
                         var widgetObjectIds = new List<int>(field.Options.Count);
                         for (int optionIndex = 0; optionIndex < field.Options.Count; optionIndex++) {
-                            AnnotationStructureReference? widgetStructureReference = RegisterAnnotationStructureReference(page, markInfo, ref nextStructParentIndex, "Form", field.StructureParentElementIndex, field.StructureParentElement);
+                            AnnotationStructureReference? widgetStructureReference = RegisterAnnotationStructureReference(page, markInfo, ref nextStructParentIndex, "Form", field.StructureParentElementIndex, field.StructureParentElement, optionIndex == 0 ? field.NavigationTarget : null);
                             double widgetTop = field.Y2 - optionIndex * (field.ButtonSize + field.ButtonGap);
                             double widgetBottom = widgetTop - field.ButtonSize;
                             double widgetLeft = field.X1;
@@ -1033,7 +1033,7 @@ internal static partial class PdfWriter {
                         continue;
                     }
 
-                    AnnotationStructureReference? formWidgetStructureReference = RegisterAnnotationStructureReference(page, markInfo, ref nextStructParentIndex, "Form", field.StructureParentElementIndex, field.StructureParentElement);
+                    AnnotationStructureReference? formWidgetStructureReference = RegisterAnnotationStructureReference(page, markInfo, ref nextStructParentIndex, "Form", field.StructureParentElementIndex, field.StructureParentElement, field.NavigationTarget);
                     if (field.Kind == FormFieldAnnotationKind.CheckBox) {
                         string offAppearance = PdfAcroFormDictionaryBuilder.BuildCheckBoxAppearanceContent(appearanceWidth, appearanceHeight, selected: false, field.Style);
                         byte[] offAppearanceBytes = PdfEncoding.Latin1GetBytes(offAppearance);
@@ -1127,8 +1127,11 @@ internal static partial class PdfWriter {
             BuildGeneratedStructTree(objects, layout.Pages, pageIds, structTreeRootId, opts.Language, pdf20: serializationFileVersion >= PdfFileVersion.Pdf20);
         }
 
-        int outlinesId = BuildOutlines(objects, layout.Pages, pageIds, opts.OutlineExpansionLevelSnapshot);
-        int namedDestinationsId = BuildNamedDestinations(objects, layout.Pages, pageIds);
+        bool structuredDestinations = markInfo && serializationFileVersion >= PdfFileVersion.Pdf20;
+        bool requireStructureDestinations = opts.ComplianceProfile == PdfComplianceProfile.PdfUa2;
+        if (structuredDestinations) CompleteStructureDestinations(objects, layout.Pages, requireStructureDestinations);
+        int outlinesId = BuildOutlines(objects, layout.Pages, pageIds, opts.OutlineExpansionLevelSnapshot, structuredDestinations, requireStructureDestinations);
+        int namedDestinationsId = BuildNamedDestinations(objects, layout.Pages, pageIds, structuredDestinations);
         int acroFormId = 0;
         if (formFieldIds.Count > 0) {
             acroFormId = AddObject(objects, PdfAcroFormDictionaryBuilder.BuildAcroFormDictionary(formFieldIds, EnsureFormHelveticaFont(opts), opts.AcroFormDefaultTextAlignmentSnapshot));
@@ -1214,6 +1217,13 @@ internal static partial class PdfWriter {
                 destination.Left,
                 destination.Bottom,
                 destination.Right);
+            if (structuredDestinations) {
+                PageStructElement? target = layout.Pages[targetPageIndex].StructElements.FirstOrDefault();
+                if (target?.ObjectId > 0)
+                    openAction = "<< /S /GoTo /D " + openAction + " /SD [" + PdfSyntaxEscaper.IndirectReference(target.ObjectId) + " /Fit] >>";
+                else if (requireStructureDestinations)
+                    throw new InvalidOperationException("PDF/UA-2 opening actions require tagged content on their target page.");
+            }
         }
 
         string? pageMode = opts.CatalogPageModeSnapshot.HasValue
@@ -1557,13 +1567,13 @@ internal static partial class PdfWriter {
             int structElementIndex = page.StructElements.Count;
             image.MarkedContentId = markedContentId;
             image.StructElementIndex = structElementIndex;
-            page.StructElements.Add(new PageStructElement {
-                MarkedContentId = markedContentId,
-                StructureType = "Figure",
-                AlternativeText = image.AlternativeText!,
-                ParentElementIndex = image.StructureParentElementIndex,
-                ParentElement = image.StructureParentElement
-            });
+            PageStructElement element = image.NavigationTarget ?? new PageStructElement();
+            element.MarkedContentId = markedContentId;
+            element.StructureType = "Figure";
+            element.AlternativeText = image.AlternativeText!;
+            element.ParentElementIndex = image.StructureParentElementIndex;
+            element.ParentElement = image.StructureParentElement;
+            page.StructElements.Add(element);
         }
     }
 
@@ -1587,7 +1597,7 @@ internal static partial class PdfWriter {
         }
     }
 
-    private static AnnotationStructureReference? RegisterAnnotationStructureReference(LayoutResult.Page page, bool markInfo, ref int nextStructParentIndex, string structureType, int? parentElementIndex = null, PageStructElement? parentElement = null) {
+    private static AnnotationStructureReference? RegisterAnnotationStructureReference(LayoutResult.Page page, bool markInfo, ref int nextStructParentIndex, string structureType, int? parentElementIndex = null, PageStructElement? parentElement = null, PageStructElement? reservedElement = null) {
         if (!markInfo) {
             return null;
         }
@@ -1596,12 +1606,12 @@ internal static partial class PdfWriter {
             StructParentIndex = nextStructParentIndex++,
             StructElementIndex = page.StructElements.Count
         };
-        page.StructElements.Add(new PageStructElement {
-            StructureType = structureType,
-            AnnotationStructParentIndex = reference.StructParentIndex,
-            ParentElementIndex = parentElementIndex,
-            ParentElement = parentElement
-        });
+        PageStructElement element = reservedElement ?? new PageStructElement();
+        element.StructureType = structureType;
+        element.AnnotationStructParentIndex = reference.StructParentIndex;
+        element.ParentElementIndex = parentElementIndex;
+        element.ParentElement = parentElement;
+        page.StructElements.Add(element);
         return reference;
     }
 
@@ -1925,7 +1935,7 @@ internal static partial class PdfWriter {
         }
     }
 
-    private static int BuildOutlines(IList<byte[]> objects, IReadOnlyList<LayoutResult.Page> pages, List<int> pageIds, int outlineExpansionLevel) {
+    private static int BuildOutlines(IList<byte[]> objects, IReadOnlyList<LayoutResult.Page> pages, List<int> pageIds, int outlineExpansionLevel, bool structuredDestinations = false, bool requireStructureDestinations = false) {
         var root = new OutlineNode { Level = 0 };
         var stack = new Stack<OutlineNode>();
         stack.Push(root);
@@ -1961,6 +1971,7 @@ internal static partial class PdfWriter {
                 Title = bookmark.Title,
                 Y = bookmark.Y, X = bookmark.X, Uri = bookmark.Uri,
                 OutlineState = bookmark.OutlineState,
+                StructureElement = bookmark.StructureElement, StructureElementKey = bookmark.StructureElementKey,
                 Parent = parent
             };
             parent.Children.Add(node);
@@ -1997,7 +2008,9 @@ internal static partial class PdfWriter {
                 lastChildId,
                 descendantCount,
                 pageId,
-                node.Y, node.X, node.Uri));
+                node.Y, node.X, node.Uri,
+                structuredDestinations && node.Uri == null
+                    ? ResolveOutlineStructureId(pages[node.PageIndex], node, requireStructureDestinations) : null));
         }
 
         ReplaceObject(objects, rootId, PdfOutlineDictionaryBuilder.BuildOutlineRoot(

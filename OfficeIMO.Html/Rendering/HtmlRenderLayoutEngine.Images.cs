@@ -53,7 +53,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
         double imageX = style.MarginLeft + style.BorderLeftWidth + style.PaddingLeft;
         double imageY = style.MarginTop + style.BorderTopWidth + style.PaddingTop;
         string? link = inheritedLink ?? ResolveAncestorLink(element);
-        string? alternativeText = element.GetAttribute("alt") ?? element.GetAttribute("aria-label");
+        bool decorative = HtmlAccessibilitySemantics.IsDecorativeImage(element);
+        string? alternativeText = decorative ? null : HtmlAccessibilitySemantics.GetImageAccessibleName(element);
         ReplacedObjectPlacement placement = ResolveReplacedObjectPlacement(
             style,
             contentSize.Width,
@@ -129,7 +130,11 @@ internal sealed partial class HtmlRenderLayoutEngine {
         if (!style.PaintVisible) visuals.Clear();
 
         double outerHeight = style.MarginTop + boxHeight + style.MarginBottom;
-        return new HtmlRenderFlowBlock(containingWidth, outerHeight, visuals, style.BreakBefore, style.BreakAfter, style.AvoidBreakInside, sourceDescription, pageName: style.PageName);
+        var block = new HtmlRenderFlowBlock(containingWidth, outerHeight, visuals, style.BreakBefore, style.BreakAfter, style.AvoidBreakInside, sourceDescription, pageName: style.PageName);
+        return decorative && !style.SemanticArtifact
+            ? WrapSemanticBlock(block, HtmlRenderSemanticGroupRole.Artifact, sourceDescription,
+                "html-decorative-image:" + GetSemanticNodeId(element).ToString(System.Globalization.CultureInfo.InvariantCulture))
+            : block;
     }
 
     private double ResolveFloatingImageOuterWidth(IElement element, HtmlRenderBoxStyle style) {

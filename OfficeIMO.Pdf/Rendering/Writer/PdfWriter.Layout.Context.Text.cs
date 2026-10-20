@@ -106,17 +106,17 @@ internal static partial class PdfWriter {
             AddNamedDestinationName(bookmark.Name, topY);
         }
 
-        private void AddNamedDestinationName(string name, double topY) {
+        private void AddNamedDestinationName(string name, double topY, PageStructElement? target = null) {
             EnsurePage();
-            currentPage!.NamedDestinations.Add(new PageNamedDestination { Name = name, Y = topY });
+            currentPage!.NamedDestinations.Add(new PageNamedDestination { Name = name, Y = topY, StructureElement = target, AttachToNextStructure = target == null });
         }
 
-        private void AddTableCellNamedDestinationName(string? name, double topY) {
+        private void AddTableCellNamedDestinationName(string? name, double topY, int? markedContentId = null) {
             if (string.IsNullOrWhiteSpace(name) || !emittedTableCellNamedDestinations.Add(name!)) {
                 return;
             }
 
-            AddNamedDestinationName(name!, topY);
+            AddNamedDestinationName(name!, topY, ResolveMarkedStructure(markedContentId));
         }
 
         private double FirstTextBaselineFromTop(PdfStandardFont font, double fontSize, double topY) =>

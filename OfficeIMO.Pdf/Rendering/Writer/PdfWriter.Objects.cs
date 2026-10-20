@@ -234,6 +234,7 @@ internal static partial class PdfWriter {
     }
 
     private sealed class FormFieldAnnotation {
+        public PageStructElement? NavigationTarget { get; set; }
         public double X1 { get; set; }
         public double Y1 { get; set; }
         public double X2 { get; set; }
@@ -276,6 +277,7 @@ internal static partial class PdfWriter {
     }
 
     private sealed class RadioButtonWidgetAnnotation {
+        public PageStructElement? NavigationTarget { get; set; }
         public double X1 { get; set; }
         public double Y1 { get; set; }
         public double X2 { get; set; }
@@ -360,6 +362,8 @@ internal static partial class PdfWriter {
     }
 
     private sealed class PageBookmark {
+        public PageStructElement? StructureElement { get; set; }
+        public string? StructureElementKey { get; set; }
         public double X { get; set; }
         public string? Uri { get; set; }
         public int Level { get; set; }
@@ -370,6 +374,8 @@ internal static partial class PdfWriter {
     }
 
     private sealed class PageNamedDestination {
+        public PageStructElement? StructureElement { get; set; }
+        public bool AttachToNextStructure { get; set; }
         public double X { get; set; }
         public string Name { get; set; } = string.Empty;
         public double Y { get; set; }
@@ -384,6 +390,8 @@ internal static partial class PdfWriter {
     }
 
     private sealed class PageStructElement {
+        public PdfListNumbering? ListNumbering { get; set; }
+        public string? StructureElementKey { get; set; }
         public string? Language { get; set; }
         public long? LogicalOrder { get; set; }
         public int? MarkedContentId { get; set; }
@@ -487,6 +495,8 @@ internal static partial class PdfWriter {
     }
 
     private sealed class OutlineNode {
+        public PageStructElement? StructureElement { get; set; }
+        public string? StructureElementKey { get; set; }
         public double X { get; set; }
         public string? Uri { get; set; }
         public int Id { get; set; }
@@ -500,6 +510,7 @@ internal static partial class PdfWriter {
     }
 
     private sealed class PageImage {
+        public PageStructElement? NavigationTarget { get; set; }
         public OfficeImageOrientation Orientation { get; set; } = OfficeImageOrientation.Normal;
         public bool IsOpacityData { get; set; }
         public bool Interpolate { get; set; }
