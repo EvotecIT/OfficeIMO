@@ -6,17 +6,12 @@ internal static partial class PdfAnnotationFlattener {
         ref int nextObjectNumber,
         PdfAnnotationFlattenOptions? options,
         Dictionary<int, int> pageNumbers,
+        PdfLoadOptions? readOptions,
         out PdfGeneratedOutputGrowth generatedGrowth) {
         var cancellationToken = options?.CancellationToken ?? default;
         cancellationToken.ThrowIfCancellationRequested();
         int flattenedCount = 0;
-        int maximumContentBytes = 0;
-        int maximumPageContentBytes = 0;
-        long totalContentBytes = 0L;
-        int maximumContentOperations = 0;
-        int maximumContentOperands = 0;
-        int addedContentContexts = 0;
-        int totalContentOperations = 0;
+        var growth = new PdfFlattenedContentGrowth(objects, readOptions, nextObjectNumber, cancellationToken);
         foreach (var entry in objects.OrderBy(pair => pair.Key).ToArray()) {
             cancellationToken.ThrowIfCancellationRequested();
             if (entry.Value.Value is not PdfDictionary page ||
@@ -87,39 +82,13 @@ internal static partial class PdfAnnotationFlattener {
             objects[contentObjectNumber] = new PdfIndirectObject(contentObjectNumber, 0, contentStream);
             int isolationBytes = PdfPageContentIsolation.Append(objects, page, contentObjectNumber,
                 ref nextObjectNumber, cancellationToken);
-            addedContentContexts += isolationBytes == 0 ? 1 : 3;
-            int addedOperations = SaturatingMultiply(pageAnnotations.Count, 4);
-            if (isolationBytes != 0) addedOperations = addedOperations > int.MaxValue - 2 ? int.MaxValue : addedOperations + 2;
-            totalContentOperations = totalContentOperations > int.MaxValue - addedOperations
-                ? int.MaxValue : totalContentOperations + addedOperations;
-            maximumContentBytes = Math.Max(maximumContentBytes, Math.Max(contentStream.Data.Length, isolationBytes == 0 ? 0 : 3));
-            long addedBytes = contentStream.Data.LongLength + isolationBytes;
-            maximumPageContentBytes = (int)Math.Max(maximumPageContentBytes, Math.Min(int.MaxValue, addedBytes));
-            totalContentBytes = totalContentBytes > long.MaxValue - addedBytes
-                ? long.MaxValue
-                : totalContentBytes + addedBytes;
-            maximumContentOperations = Math.Max(maximumContentOperations, addedOperations);
-            maximumContentOperands = Math.Max(maximumContentOperands, SaturatingMultiply(pageAnnotations.Count, 7));
+            growth.AddPage(page, contentStream, isolationBytes);
         }
 
         cancellationToken.ThrowIfCancellationRequested();
-        generatedGrowth = new PdfGeneratedOutputGrowth(
-            minimumRawStreamBytes: maximumContentBytes,
-            minimumDecodedStreamBytes: maximumContentBytes,
-            additionalTotalDecodedStreamBytes: totalContentBytes,
-            additionalPageContentBytes: maximumPageContentBytes,
-            additionalRetainedContentBytes: totalContentBytes,
-            additionalContentOperations: maximumContentOperations,
-            additionalContentOperands: maximumContentOperands,
-            additionalContentNestingDepth: addedContentContexts == 0 ? 0 : 1,
-            additionalPrintProductionContexts: addedContentContexts,
-            additionalPrintProductionOperations: totalContentOperations > int.MaxValue / 2
-                ? int.MaxValue : totalContentOperations * 2);
+        generatedGrowth = growth.ToGrowth();
         return flattenedCount;
     }
-
-    private static int SaturatingMultiply(int value, int multiplier) =>
-        value > int.MaxValue / multiplier ? int.MaxValue : value * multiplier;
 
     private static bool MatchesFlattenSelector(PdfObject annotation, string subtype, PdfAnnotationFlattenOptions? options) {
         if (options == null) return true;

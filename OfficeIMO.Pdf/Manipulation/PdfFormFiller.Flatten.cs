@@ -104,8 +104,9 @@ internal static partial class PdfFormFiller {
         }
     }
 
-    private static int FlattenPageWidgets(Dictionary<int, PdfIndirectObject> objects, Dictionary<int, FlattenWidgetState> widgets, ref int nextObjectNumber, System.Threading.CancellationToken cancellationToken = default) {
+    private static int FlattenPageWidgets(Dictionary<int, PdfIndirectObject> objects, Dictionary<int, FlattenWidgetState> widgets, ref int nextObjectNumber, PdfLoadOptions? readOptions, int firstGeneratedObject, out PdfGeneratedOutputGrowth generatedGrowth, System.Threading.CancellationToken cancellationToken = default) {
         cancellationToken.ThrowIfCancellationRequested();
+        var growth = new PdfFlattenedContentGrowth(objects, readOptions, firstGeneratedObject, cancellationToken);
         int flattenedWidgetCount = 0;
         foreach (var entry in objects.OrderBy(pair => pair.Key).ToArray()) {
             cancellationToken.ThrowIfCancellationRequested();
@@ -140,11 +141,14 @@ internal static partial class PdfFormFiller {
             }
 
             string content = BuildFlattenContent(objects, page, pageWidgets, cancellationToken);
+            if (content.Length == 0) continue;
             int contentObjectNumber = nextObjectNumber++;
             objects[contentObjectNumber] = new PdfIndirectObject(contentObjectNumber, 0, CreateContentStream(content));
-            PdfPageContentIsolation.Append(objects, page, contentObjectNumber, ref nextObjectNumber, cancellationToken);
+            int isolationBytes = PdfPageContentIsolation.Append(objects, page, contentObjectNumber, ref nextObjectNumber, cancellationToken);
+            growth.AddPage(page, (PdfStream)objects[contentObjectNumber].Value, isolationBytes);
         }
 
+        generatedGrowth = growth.ToGrowth();
         return flattenedWidgetCount;
     }
 

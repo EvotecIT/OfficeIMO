@@ -4,7 +4,7 @@ namespace OfficeIMO.Pdf;
 
 internal static partial class PdfFormFiller {
     private static byte[] RewriteAllObjects(Dictionary<int, PdfIndirectObject> objects, int catalogObjectNumber, PdfReadDocument source, byte[] sourcePdf,
-        CancellationToken cancellationToken = default) {
+        PdfGeneratedOutputGrowth generatedGrowth, out PdfLoadOptions outputReadOptions, CancellationToken cancellationToken = default) {
         PdfSourceEncryptionContext? sourceEncryption = PdfSourceEncryptionContext.Create(source, cancellationToken);
         var sourceIds = objects.Keys.OrderBy(id => id).ToArray();
         var numberMap = new Dictionary<int, int>(sourceIds.Length);
@@ -36,9 +36,11 @@ internal static partial class PdfFormFiller {
 
         cancellationToken.ThrowIfCancellationRequested();
         byte[] result = PdfPageExtractor.Assemble(rewritten, numberMap[catalogObjectNumber], infoId, fileVersion, cancellationToken);
-        return sourceEncryption?.Protect(result,
-            generatedReadOptions: PdfLoadOptions.ForGeneratedOutput(source.ReadOptions, sourcePdf, result),
+        byte[] protectedResult = sourceEncryption?.Protect(result,
+            generatedReadOptions: PdfLoadOptions.ForGeneratedOutput(source.ReadOptions, sourcePdf, result, generatedGrowth),
             cancellationToken: cancellationToken) ?? result;
+        outputReadOptions = PdfLoadOptions.ForGeneratedOutput(source.ReadOptions, sourcePdf, protectedResult, generatedGrowth);
+        return protectedResult;
     }
 
     private static bool ContainsOpenTypeFontFileStream(Dictionary<int, PdfIndirectObject> objects, CancellationToken cancellationToken = default) {

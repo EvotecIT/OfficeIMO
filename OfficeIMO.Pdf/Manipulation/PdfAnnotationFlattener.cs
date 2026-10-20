@@ -57,6 +57,7 @@ internal static partial class PdfAnnotationFlattener {
             ref nextObjectNumber,
             options,
             pageNumbers,
+            readOptions,
             out generatedGrowth);
         if (flattenedCount == 0) {
             generatedGrowth = default;

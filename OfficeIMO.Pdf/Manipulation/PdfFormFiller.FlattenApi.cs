@@ -17,7 +17,11 @@ internal static partial class PdfFormFiller {
         return FlattenFields(pdf, options, readOptions: null);
     }
 
-    internal static byte[] FlattenFields(byte[] pdf, PdfFormFillerOptions? options, PdfLoadOptions? readOptions, CancellationToken cancellationToken = default) {
+    internal static byte[] FlattenFields(byte[] pdf, PdfFormFillerOptions? options, PdfLoadOptions? readOptions, CancellationToken cancellationToken = default) =>
+        FlattenFields(pdf, options, readOptions, out _, cancellationToken);
+
+    internal static byte[] FlattenFields(byte[] pdf, PdfFormFillerOptions? options, PdfLoadOptions? readOptions,
+        out PdfLoadOptions outputReadOptions, CancellationToken cancellationToken = default) {
         using var linkedCancellation = LinkCancellation(options?.CancellationToken ?? default, ref cancellationToken);
         cancellationToken.ThrowIfCancellationRequested();
         Guard.NotNull(pdf, nameof(pdf));
@@ -35,6 +39,7 @@ internal static partial class PdfFormFiller {
         }
 
         int nextObjectNumber = objects.Keys.Count == 0 ? 1 : objects.Keys.Max() + 1;
+        int firstGeneratedObject = nextObjectNumber;
         PdfDictionary? acroFormDefaultResources = TryReadDefaultResources(objects, acroForm);
         string? acroFormDefaultAppearance = TryReadText(objects, acroForm, "DA");
         var widgets = new Dictionary<int, FlattenWidgetState>();
@@ -48,7 +53,7 @@ internal static partial class PdfFormFiller {
             throw new NotSupportedException(UnsupportedFlattenWidgetMessage);
         }
 
-        int flattenedWidgetCount = FlattenPageWidgets(objects, widgets, ref nextObjectNumber, cancellationToken);
+        int flattenedWidgetCount = FlattenPageWidgets(objects, widgets, ref nextObjectNumber, readOptions, firstGeneratedObject, out PdfGeneratedOutputGrowth generatedGrowth, cancellationToken);
         if (flattenedWidgetCount != widgets.Count) {
             throw new NotSupportedException(UnsupportedFlattenAnnotationMessage);
         }
@@ -65,25 +70,34 @@ internal static partial class PdfFormFiller {
         }
 
         PdfObjectGraphPruner.PruneUnreachableObjects(objects, catalogObjectNumber, cancellationToken);
-        return RewriteAllObjects(objects, catalogObjectNumber, PdfReadDocument.Open(pdf, readOptions, cancellationToken), pdf, cancellationToken);
+        return RewriteAllObjects(objects, catalogObjectNumber, PdfReadDocument.Open(pdf, readOptions, cancellationToken), pdf, generatedGrowth, out outputReadOptions, cancellationToken);
     }
 
     /// <summary>
     /// Returns a new PDF with only the named simple text, choice, and button AcroForm fields painted into page content and removed from the form tree.
     /// </summary>
     public static byte[] FlattenFields(byte[] pdf, IReadOnlyCollection<string> fieldNames, PdfFormFillerOptions? options = null) {
-        return FlattenFieldsCore(pdf, fieldNames, options, readOptions: null, requireMutationPlan: true);
+        return FlattenFieldsCore(pdf, fieldNames, options, readOptions: null, requireMutationPlan: true, out _);
     }
 
     internal static byte[] FlattenFields(byte[] pdf, IReadOnlyCollection<string> fieldNames, PdfFormFillerOptions? options, PdfLoadOptions? readOptions) =>
-        FlattenFieldsCore(pdf, fieldNames, options, readOptions, requireMutationPlan: true);
+        FlattenFieldsCore(pdf, fieldNames, options, readOptions, requireMutationPlan: true, out _);
+
+    internal static byte[] FlattenFields(byte[] pdf, IReadOnlyCollection<string> fieldNames, PdfFormFillerOptions? options,
+        PdfLoadOptions? readOptions, out PdfLoadOptions outputReadOptions) =>
+        FlattenFieldsCore(pdf, fieldNames, options, readOptions, requireMutationPlan: true, out outputReadOptions);
 
     internal static byte[] FlattenFieldsWithinPlannedRewrite(byte[] pdf, IReadOnlyCollection<string> fieldNames, PdfFormFillerOptions? options = null, PdfLoadOptions? readOptions = null, System.Threading.CancellationToken cancellationToken = default) {
         cancellationToken.ThrowIfCancellationRequested();
-        return FlattenFieldsCore(pdf, fieldNames, options, readOptions, requireMutationPlan: false, cancellationToken);
+        return FlattenFieldsCore(pdf, fieldNames, options, readOptions, requireMutationPlan: false, out _, cancellationToken);
     }
 
-    private static byte[] FlattenFieldsCore(byte[] pdf, IReadOnlyCollection<string> fieldNames, PdfFormFillerOptions? options, PdfLoadOptions? readOptions, bool requireMutationPlan, System.Threading.CancellationToken cancellationToken = default) {
+    internal static byte[] FlattenFieldsWithinPlannedRewrite(byte[] pdf, IReadOnlyCollection<string> fieldNames,
+        PdfFormFillerOptions? options, PdfLoadOptions? readOptions, out PdfLoadOptions outputReadOptions,
+        System.Threading.CancellationToken cancellationToken = default) =>
+        FlattenFieldsCore(pdf, fieldNames, options, readOptions, requireMutationPlan: false, out outputReadOptions, cancellationToken);
+
+    private static byte[] FlattenFieldsCore(byte[] pdf, IReadOnlyCollection<string> fieldNames, PdfFormFillerOptions? options, PdfLoadOptions? readOptions, bool requireMutationPlan, out PdfLoadOptions outputReadOptions, System.Threading.CancellationToken cancellationToken = default) {
         using var linkedCancellation = LinkCancellation(options?.CancellationToken ?? default, ref cancellationToken);
         cancellationToken.ThrowIfCancellationRequested();
         Guard.NotNull(pdf, nameof(pdf));
@@ -106,6 +120,7 @@ internal static partial class PdfFormFiller {
         var widgets = new Dictionary<int, FlattenWidgetState>();
         var removableObjects = new HashSet<int>();
         int nextObjectNumber = objects.Keys.Count == 0 ? 1 : objects.Keys.Max() + 1;
+        int firstGeneratedObject = nextObjectNumber;
         CollectSelectedFlattenFields(
             objects,
             fields,
@@ -133,7 +148,7 @@ internal static partial class PdfFormFiller {
             throw new NotSupportedException(UnsupportedFlattenWidgetMessage);
         }
 
-        int flattenedWidgetCount = FlattenPageWidgets(objects, widgets, ref nextObjectNumber, cancellationToken);
+        int flattenedWidgetCount = FlattenPageWidgets(objects, widgets, ref nextObjectNumber, readOptions, firstGeneratedObject, out PdfGeneratedOutputGrowth generatedGrowth, cancellationToken);
         if (flattenedWidgetCount != widgets.Count) {
             throw new NotSupportedException(UnsupportedFlattenAnnotationMessage);
         }
@@ -150,7 +165,7 @@ internal static partial class PdfFormFiller {
             objects.Remove(objectNumber);
         }
         PdfObjectGraphPruner.PruneUnreachableObjects(objects, catalogObjectNumber, cancellationToken);
-        return RewriteAllObjects(objects, catalogObjectNumber, PdfReadDocument.Open(pdf, readOptions, cancellationToken), pdf, cancellationToken);
+        return RewriteAllObjects(objects, catalogObjectNumber, PdfReadDocument.Open(pdf, readOptions, cancellationToken), pdf, generatedGrowth, out outputReadOptions, cancellationToken);
     }
 
 }

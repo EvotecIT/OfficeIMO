@@ -38,11 +38,27 @@ internal static partial class PdfFormFiller {
         PdfLoadOptions? readOptions, CancellationToken cancellationToken = default) =>
         FillFieldsCore(pdf, fieldValues, options, readOptions, requireMutationPlan: true, cancellationToken);
 
-    internal static byte[] FillFieldsWithinPlannedRewrite(byte[] pdf, IReadOnlyDictionary<string, PdfFormFieldValue> fieldValues, PdfFormFillerOptions? options = null, PdfLoadOptions? readOptions = null, CancellationToken cancellationToken = default) {
-        return FillFieldsCore(pdf, fieldValues, options, readOptions, requireMutationPlan: false, cancellationToken);
-    }
+    internal static byte[] FillFieldsWithinPlannedRewrite(byte[] pdf, IReadOnlyDictionary<string, PdfFormFieldValue> fieldValues, PdfFormFillerOptions? options = null, PdfLoadOptions? readOptions = null, CancellationToken cancellationToken = default) =>
+        FillFieldsWithinPlannedRewrite(pdf, fieldValues, options, readOptions, out _, cancellationToken);
 
-    private static byte[] FillFieldsCore(byte[] pdf, IReadOnlyDictionary<string, PdfFormFieldValue> fieldValues, PdfFormFillerOptions? options, PdfLoadOptions? readOptions, bool requireMutationPlan, CancellationToken cancellationToken = default) {
+    internal static byte[] FillFieldsWithinPlannedRewrite(byte[] pdf, IReadOnlyDictionary<string, PdfFormFieldValue> fieldValues,
+        PdfFormFillerOptions? options, PdfLoadOptions? readOptions, out PdfLoadOptions outputReadOptions, CancellationToken cancellationToken = default) =>
+        FillFieldsCore(pdf, fieldValues, options, readOptions, requireMutationPlan: false, out outputReadOptions, cancellationToken);
+
+    internal static byte[] FillFields(byte[] pdf, IReadOnlyDictionary<string, string> fieldValues, PdfFormFillerOptions? options,
+        PdfLoadOptions? readOptions, out PdfLoadOptions outputReadOptions) =>
+        FillFields(pdf, ToFormFieldValues(fieldValues, GetCancellationToken(options)), options, readOptions, out outputReadOptions);
+
+    internal static byte[] FillFields(byte[] pdf, IReadOnlyDictionary<string, PdfFormFieldValue> fieldValues, PdfFormFillerOptions? options,
+        PdfLoadOptions? readOptions, out PdfLoadOptions outputReadOptions, CancellationToken cancellationToken = default) =>
+        FillFieldsCore(pdf, fieldValues, options, readOptions, requireMutationPlan: true, out outputReadOptions, cancellationToken);
+
+    private static byte[] FillFieldsCore(byte[] pdf, IReadOnlyDictionary<string, PdfFormFieldValue> fieldValues, PdfFormFillerOptions? options,
+        PdfLoadOptions? readOptions, bool requireMutationPlan, CancellationToken cancellationToken = default) =>
+        FillFieldsCore(pdf, fieldValues, options, readOptions, requireMutationPlan, out _, cancellationToken);
+
+    private static byte[] FillFieldsCore(byte[] pdf, IReadOnlyDictionary<string, PdfFormFieldValue> fieldValues, PdfFormFillerOptions? options,
+        PdfLoadOptions? readOptions, bool requireMutationPlan, out PdfLoadOptions outputReadOptions, CancellationToken cancellationToken = default) {
         using var linkedCancellation = LinkCancellation(options?.CancellationToken ?? default, ref cancellationToken);
         Guard.NotNull(pdf, nameof(pdf));
         cancellationToken.ThrowIfCancellationRequested();
@@ -64,6 +80,7 @@ internal static partial class PdfFormFiller {
 
         var remaining = new HashSet<string>(fieldValues.Keys, StringComparer.Ordinal);
         int nextObjectNumber = objects.Keys.Count == 0 ? 1 : objects.Keys.Max() + 1;
+        int firstGeneratedObject = nextObjectNumber;
         int? acroFormQuadding = ReadFieldQuadding(objects, acroForm, null);
         PdfDictionary? acroFormDefaultResources = TryReadDefaultResources(objects, acroForm);
         string? acroFormDefaultAppearance = TryReadText(objects, acroForm, "DA");
@@ -77,7 +94,8 @@ internal static partial class PdfFormFiller {
         }
 
         acroForm.Items["NeedAppearances"] = new PdfBoolean(options?.KeepNeedAppearances == true);
-        return RewriteAllObjects(objects, catalogObjectNumber, PdfReadDocument.Open(pdf, readOptions, cancellationToken), pdf, cancellationToken);
+        PdfGeneratedOutputGrowth growth = GetFilledAppearanceGrowth(objects, firstGeneratedObject, cancellationToken);
+        return RewriteAllObjects(objects, catalogObjectNumber, PdfReadDocument.Open(pdf, readOptions, cancellationToken), pdf, growth, out outputReadOptions, cancellationToken);
     }
 
     private static void RejectPushButtonFillValues(byte[] pdf, IEnumerable<string> fieldNames, PdfLoadOptions? readOptions,
@@ -385,12 +403,16 @@ internal static partial class PdfFormFiller {
     /// Returns a new PDF with simple AcroForm field values updated and then flattened into page content.
     /// </summary>
     public static byte[] FillAndFlattenFields(byte[] pdf, IReadOnlyDictionary<string, string> fieldValues, PdfFormFillerOptions? options) {
-        return FlattenFields(FillFields(pdf, fieldValues, options), options);
+        return FillAndFlattenFields(pdf, fieldValues, options, readOptions: null);
     }
 
-    internal static byte[] FillAndFlattenFields(byte[] pdf, IReadOnlyDictionary<string, string> fieldValues, PdfFormFillerOptions? options, PdfLoadOptions? readOptions) {
-        byte[] filled = FillFields(pdf, fieldValues, options, readOptions);
-        return FlattenFields(filled, options, PdfLoadOptions.WithMinimumInputBytes(readOptions, filled.LongLength));
+    internal static byte[] FillAndFlattenFields(byte[] pdf, IReadOnlyDictionary<string, string> fieldValues, PdfFormFillerOptions? options, PdfLoadOptions? readOptions) =>
+        FillAndFlattenFields(pdf, fieldValues, options, readOptions, out _);
+
+    internal static byte[] FillAndFlattenFields(byte[] pdf, IReadOnlyDictionary<string, string> fieldValues,
+        PdfFormFillerOptions? options, PdfLoadOptions? readOptions, out PdfLoadOptions outputReadOptions) {
+        byte[] filled = FillFields(pdf, fieldValues, options, readOptions, out PdfLoadOptions filledReadOptions);
+        return FlattenFields(filled, options, filledReadOptions, out outputReadOptions);
     }
 
     /// <summary>
@@ -404,12 +426,16 @@ internal static partial class PdfFormFiller {
     /// Returns a new PDF with simple AcroForm field values updated and then flattened into page content.
     /// </summary>
     public static byte[] FillAndFlattenFields(byte[] pdf, IReadOnlyDictionary<string, PdfFormFieldValue> fieldValues, PdfFormFillerOptions? options) {
-        return FlattenFields(FillFields(pdf, fieldValues, options), options);
+        return FillAndFlattenFields(pdf, fieldValues, options, readOptions: null);
     }
 
-    internal static byte[] FillAndFlattenFields(byte[] pdf, IReadOnlyDictionary<string, PdfFormFieldValue> fieldValues, PdfFormFillerOptions? options, PdfLoadOptions? readOptions) {
-        byte[] filled = FillFields(pdf, fieldValues, options, readOptions);
-        return FlattenFields(filled, options, PdfLoadOptions.WithMinimumInputBytes(readOptions, filled.LongLength));
+    internal static byte[] FillAndFlattenFields(byte[] pdf, IReadOnlyDictionary<string, PdfFormFieldValue> fieldValues, PdfFormFillerOptions? options, PdfLoadOptions? readOptions) =>
+        FillAndFlattenFields(pdf, fieldValues, options, readOptions, out _);
+
+    internal static byte[] FillAndFlattenFields(byte[] pdf, IReadOnlyDictionary<string, PdfFormFieldValue> fieldValues,
+        PdfFormFillerOptions? options, PdfLoadOptions? readOptions, out PdfLoadOptions outputReadOptions) {
+        byte[] filled = FillFields(pdf, fieldValues, options, readOptions, out PdfLoadOptions filledReadOptions);
+        return FlattenFields(filled, options, filledReadOptions, out outputReadOptions);
     }
 
     /// <summary>

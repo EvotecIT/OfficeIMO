@@ -703,9 +703,7 @@ public sealed partial class PdfDocument {
 
     /// <summary>Flattens supported annotation appearances with cooperative cancellation.</summary>
     public PdfDocument FlattenVisualAnnotations(CancellationToken cancellationToken) {
-        return ApplyMutation(input => PdfAnnotationFlattener.FlattenVisualAnnotations(input,
-            new PdfAnnotationFlattenOptions { CancellationToken = cancellationToken }, ReadOptions),
-            cancellationToken: cancellationToken);
+        return FlattenVisualAnnotationsWithReadOptions(ReadOptions, cancellationToken);
     }
 
     /// <summary>
@@ -717,9 +715,17 @@ public sealed partial class PdfDocument {
     /// <summary>Attempts to flatten supported annotation appearances with cooperative cancellation.</summary>
     public PdfOperationResult<PdfDocument> FlattenVisualAnnotationsResult(PdfLoadOptions? options, CancellationToken cancellationToken) {
         return TryMutationOperation("Flatten visual annotations", PdfPreflightCapability.ManipulatePages, PdfMutationOperation.ModifyAnnotations,
-            _ => ApplyMutation(input => PdfAnnotationFlattener.FlattenVisualAnnotations(input,
-                new PdfAnnotationFlattenOptions { CancellationToken = cancellationToken }, options ?? ReadOptions), options,
-                cancellationToken: cancellationToken), options: options, cancellationToken: cancellationToken);
+            _ => FlattenVisualAnnotationsWithReadOptions(options ?? ReadOptions, cancellationToken),
+            options: options, cancellationToken: cancellationToken);
+    }
+
+    private PdfDocument FlattenVisualAnnotationsWithReadOptions(PdfLoadOptions readOptions, CancellationToken cancellationToken) {
+        cancellationToken.ThrowIfCancellationRequested();
+        byte[] input = GetBytesForOperation(cancellationToken);
+        PdfAnnotationEditResult result = PdfAnnotationEditor.FlattenAnnotations(input,
+            new PdfAnnotationFlattenOptions { CancellationToken = cancellationToken }, readOptions);
+        return WithBytes(input, result.Bytes, result.OutputReadOptions,
+            operationName: nameof(FlattenVisualAnnotations), cancellationToken: cancellationToken);
     }
 
     /// <summary>
