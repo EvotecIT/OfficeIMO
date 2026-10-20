@@ -9,9 +9,11 @@ namespace OfficeIMO.Word.Pdf {
         private static IEnumerable<PdfCore.PdfTextRun> CreateNativeNoteReferenceRuns(
             WordParagraph paragraph, IReadOnlyList<int> numbers, NativeNoteNumbering numbersById,
             NativeDocumentDefaults defaults, NativeFontMap? fontMap,
-            NativeTableRunStyleDefaults tableDefaults = default, bool useConfiguredTypography = false) {
+            NativeTableRunStyleDefaults tableDefaults = default, bool useConfiguredTypography = false,
+            ISet<int>? emittedNoteTokens = null) {
             var sourceKeys = new HashSet<NativeNoteKey>();
             foreach (int number in numbers) {
+                if (emittedNoteTokens?.Contains(number) == true) continue;
                 if (paragraph._paragraph.Descendants<W.FootnoteReference>().Any(reference =>
                     reference.Id?.Value is long id && numbersById.TryGetPageFootnote(GetNativeFootnoteKey(id), out _) &&
                     numbersById.TryGetValue(GetNativeFootnoteKey(id), out int token) && token == number)) continue;

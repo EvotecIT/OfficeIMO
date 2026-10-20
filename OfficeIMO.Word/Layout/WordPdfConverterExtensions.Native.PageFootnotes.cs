@@ -16,16 +16,15 @@ public static partial class WordPdfConverterExtensions {
         foreach (WordSection section in document.Sections) {
             foreach (W.FootnoteReference reference in EnumerateNativeNoteParagraphs(section.Elements)
                 .SelectMany(paragraph => EnumerateNativeVisibleNoteReferences(paragraph)).OfType<W.FootnoteReference>())
-                if (reference.Id?.Value is long id && id != 0) referenced.Add(id);
+                if (reference.Id?.Value is long id) referenced.Add(id);
             foreach (WordHeaderFooter story in EnumerateNativeActiveRunningStories(section))
                 foreach (W.FootnoteReference reference in EnumerateNativeRunningFootnoteReferences(story))
-                    if (reference.Id?.Value is long id && id != 0) referenced.Add(id);
+                    if (reference.Id?.Value is long id) referenced.Add(id);
         }
         if (referenced.Count == 0) return;
         W.Footnotes? source = document._wordprocessingDocument.MainDocumentPart?.FootnotesPart?.Footnotes;
         IEnumerable<W.Footnote> ordinaryNotes = (source?.Elements<W.Footnote>() ?? Enumerable.Empty<W.Footnote>())
-            .Where(note => referenced.Contains(note.Id?.Value ?? 0) && note.Type?.Value != W.FootnoteEndnoteValues.Separator &&
-                note.Type?.Value != W.FootnoteEndnoteValues.ContinuationSeparator);
+            .Where(note => note.Id?.Value is long id && referenced.Contains(id) && WordNoteResolver.IsOrdinary(note));
         foreach (W.Footnote note in ordinaryNotes.Concat(new[] {
             ResolveNativePageFootnoteSeparatorStory(source, continuation: false),
             ResolveNativePageFootnoteSeparatorStory(source, continuation: true)
@@ -78,11 +77,12 @@ public static partial class WordPdfConverterExtensions {
         var seen = new HashSet<OpenXmlElement>();
         foreach (WordHeaderFooter story in EnumerateNativeActiveRunningStories(section)) {
             foreach (W.FootnoteReference reference in EnumerateNativeRunningFootnoteReferences(story)) {
-                if (!seen.Add(reference) || reference.Id?.Value is not long id || id == 0) continue;
+                if (!seen.Add(reference) || reference.Id?.Value is not long id) continue;
+                W.Footnote? source = WordNoteResolver.FindFootnote(
+                    section._document._wordprocessingDocument.MainDocumentPart, id);
+                if (source == null) continue;
                 AddNativeFootnote(section._document, id, fallback, notes);
-                W.Footnote? source = section._document._wordprocessingDocument.MainDocumentPart?.FootnotesPart?.Footnotes?
-                    .Elements<W.Footnote>().FirstOrDefault(note => note.Id?.Value == id);
-                if (source != null) ReportNativeFootnoteFallbackContent(source, options);
+                ReportNativeFootnoteFallbackContent(source, options);
                 notes.ReportPlacementFallback();
             }
         }
@@ -93,7 +93,7 @@ public static partial class WordPdfConverterExtensions {
         NativeDocumentDefaults defaults, NativeFontMap fonts, string? bodyProfileGap, bool stableContinuationWidth) {
         List<W.FootnoteReference> references = EnumerateNativeNoteParagraphs(elements)
             .SelectMany(paragraph => EnumerateNativeVisibleNoteReferences(paragraph))
-            .OfType<W.FootnoteReference>().Where(reference => reference.Id?.Value is long id && id != 0)
+            .OfType<W.FootnoteReference>().Where(reference => reference.Id?.Value is long)
             .Distinct().ToList();
         if (references.Count == 0) return true;
         bool qualified = bodyProfileGap == null && stableContinuationWidth && (section.ColumnCount ?? 1) == 1;
@@ -101,8 +101,9 @@ public static partial class WordPdfConverterExtensions {
         W.Footnotes? part = section._document._wordprocessingDocument.MainDocumentPart?.FootnotesPart?.Footnotes;
         foreach (W.FootnoteReference reference in references) {
             options?.CancellationToken.ThrowIfCancellationRequested();
-            if (reference.Id?.Value is not long id || id == 0) continue;
-            W.Footnote? source = part?.Elements<W.Footnote>().FirstOrDefault(note => note.Id?.Value == id);
+            if (reference.Id?.Value is not long id) continue;
+            W.Footnote? source = WordNoteResolver.FindFootnote(
+                section._document._wordprocessingDocument.MainDocumentPart, id);
             if (source == null) throw new InvalidDataException("The footnote reference has no matching note body.");
             if (!CanProjectNativePageNoteReference(reference) ||
                 reference.Ancestors<W.SdtRun>().Any(control => !CanProjectNativePageNoteControl(control)) ||

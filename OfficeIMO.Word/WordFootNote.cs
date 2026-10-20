@@ -23,28 +23,14 @@ namespace OfficeIMO.Word {
         }
 
         /// <summary>
-        /// List of Paragraphs for given FootNote
-        /// As there can be multiple paragraphs with different formatting it's required to provide a list
-        /// Zero based object should be skipped, as it's FootnoteReference
-        /// However for sake of completion and potential ability to modify it we expose it as well
+        /// Gets the paragraphs of the referenced ordinary footnote, or null when its body cannot be resolved.
+        /// A note can contain multiple paragraphs with different formatting.
         /// </summary>
         public List<WordParagraph>? Paragraphs {
             get {
-                var referenceId = _reference?.Id?.Value ?? 0;
-
-                if (referenceId != 0) {
-                    var footnotesPart = _document._wordprocessingDocument.MainDocumentPart?.FootnotesPart;
-                    var footNotes = footnotesPart?.Footnotes?.ChildElements.OfType<Footnote>().ToList();
-                    if (footNotes != null) {
-                        foreach (var footNote in footNotes) {
-                            if (footNote?.Id?.Value == referenceId) {
-                                return WordSection.ConvertParagraphsToWordParagraphs(_document, footNote.OfType<Paragraph>());
-                            }
-                        }
-                    }
-                }
-
-                return null;
+                Footnote? footnote = WordNoteResolver.FindFootnote(
+                    _document._wordprocessingDocument.MainDocumentPart, _reference?.Id?.Value);
+                return footnote == null ? null : WordSection.ConvertParagraphsToWordParagraphs(_document, footnote.Elements<Paragraph>());
             }
         }
 
@@ -75,17 +61,8 @@ namespace OfficeIMO.Word {
         /// Removes this footnote and its reference, preserving other content in the reference run.
         /// </summary>
         public void Remove() {
-            var referenceId = _reference?.Id?.Value ?? 0;
-
-            var footnotesPart = _document._wordprocessingDocument.MainDocumentPart?.FootnotesPart;
-            var footNotes = footnotesPart?.Footnotes?.ChildElements.OfType<Footnote>().ToList();
-            if (footNotes != null) {
-                foreach (var footNote in footNotes) {
-                    if (footNote?.Id?.Value == referenceId) {
-                        footNote.Remove();
-                    }
-                }
-            }
+            WordNoteResolver.FindFootnote(
+                _document._wordprocessingDocument.MainDocumentPart, _reference?.Id?.Value)?.Remove();
 
             if (_reference?.Parent == _run) {
                 _reference.Remove();

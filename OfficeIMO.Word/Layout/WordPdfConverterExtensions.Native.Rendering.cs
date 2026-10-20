@@ -663,11 +663,12 @@ namespace OfficeIMO.Word.Pdf {
             }
 
             int bodyRunStart = builder.CurrentRuns.Count;
+            var emittedNoteTokens = new HashSet<int>();
             IReadOnlyList<WordTabStop> tabStops = GetNativeParagraphEffectiveTabStops(paragraph);
             int tabIndex = 0;
             bool hasEquationContent = !projectedContentOnly && WordEquation.GetOccurrences(paragraph._document, paragraph._paragraph).Count > 0;
             var inlineControls = new NativeInlineContentControlProjection(tableCell: false);
-            if ((hasRenderableRuns || runs.Any(run => HasNativePageNoteContent(run, footnoteNumbersById, nativeDefaults))) && !hasEquationContent) {
+            if ((hasRenderableRuns || runs.Any(run => HasNativeNoteContent(run, footnoteNumbersById, nativeDefaults))) && !hasEquationContent) {
                 foreach (WordParagraph run in runs) {
                     if (IsNativeHiddenTextRun(run, paragraph)) continue;
                     if (inlineControls.TryCreateRuns(run, NativeTableStyleDefaults.Empty, nativeDefaults,
@@ -693,8 +694,8 @@ namespace OfficeIMO.Word.Pdf {
                         continue;
                     }
 
-                    if (!TryAddNativePageNoteRun(builder, run, paragraph, footnoteNumbersById,
-                        tabStops, ref tabIndex, options, nativeDefaults, nativeFontMap))
+                    if (!TryAddNativeNoteRun(builder, run, paragraph, footnoteNumbersById,
+                        tabStops, ref tabIndex, options, nativeDefaults, nativeFontMap, emittedNoteTokens))
                         AddNativeRun(builder, run, paragraph, tabStops, ref tabIndex, options, nativeDefaults, nativeFontMap);
                 }
 
@@ -703,7 +704,8 @@ namespace OfficeIMO.Word.Pdf {
                     AddNativeText(builder, supplementalText!, paragraph, tabStops, ref tabIndex, nativeDefaults, nativeFontMap);
                 }
             } else if (hasEquationContent) {
-                AddNativeEquationContent(builder, paragraph, tabStops, ref tabIndex, options, nativeDefaults, nativeFontMap);
+                AddNativeEquationContent(builder, paragraph, tabStops, ref tabIndex, options, nativeDefaults, nativeFontMap,
+                    footnoteNumbersById, emittedNoteTokens);
             } else if (!projectedContentOnly && paragraph.IsHyperLink && paragraph.Hyperlink != null && !IsNativeHiddenTextRun(paragraph) && !string.IsNullOrEmpty(paragraph.Hyperlink.Text)) {
                 NativeResolvedTextStyle style = ResolveNativeTextRunStyle(paragraph, nativeDefaults: nativeDefaults, nativeFontMap: nativeFontMap);
                 AddNativeCasedText(builder, paragraph.Hyperlink.Text, style, tabStops, ref tabIndex, paragraph.Hyperlink);
@@ -713,7 +715,7 @@ namespace OfficeIMO.Word.Pdf {
             }
 
             builder.Runs(CreateNativeNoteReferenceRuns(paragraph, paragraphFootnoteNumbers, footnoteNumbersById,
-                nativeDefaults, nativeFontMap));
+                nativeDefaults, nativeFontMap, emittedNoteTokens: emittedNoteTokens));
             // Inspect emitted content rather than a wrapper's first-run text.
             // Marker spacers are outside this range; images and references are not.
             bool needsParagraphMark = NeedsNativeParagraphMarkStrut(builder.CurrentRuns.Skip(bodyRunStart), marker != null);
@@ -1177,11 +1179,20 @@ namespace OfficeIMO.Word.Pdf {
             ref int tabIndex,
             WordToPdfOptions? options,
             NativeDocumentDefaults nativeDefaults,
-            NativeFontMap nativeFontMap) {
+            NativeFontMap nativeFontMap,
+            NativeNoteNumbering notes,
+            ISet<int> emittedNoteTokens) {
             foreach (WordEquationContentSegment segment in GetNativeVisibleEquationContentSegments(paragraph)) {
+                WordParagraph sourceRun = segment.CreateSourceParagraph(paragraph._document, paragraph._paragraph, paragraph);
+                if (segment.ArtifactElement != null && TryCreateNativeNoteMarker(segment.ArtifactElement,
+                    sourceRun, paragraph, notes, nativeDefaults, nativeFontMap, NativeTableRunStyleDefaults.Empty, false,
+                    out PdfCore.PdfTextRun? marker, out int? token)) {
+                    builder.Runs(new[] { marker! });
+                    if (token.HasValue) emittedNoteTokens.Add(token.Value);
+                    continue;
+                }
                 string visibleText = GetNativeEquationSegmentText(segment);
                 if (string.IsNullOrEmpty(visibleText)) continue;
-                WordParagraph sourceRun = segment.CreateSourceParagraph(paragraph._document, paragraph._paragraph, paragraph);
                 AddNativeRun(builder, visibleText, sourceRun, paragraph, tabStops, ref tabIndex, options, nativeDefaults, nativeFontMap);
             }
         }
