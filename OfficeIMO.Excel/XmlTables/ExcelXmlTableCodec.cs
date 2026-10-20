@@ -84,7 +84,7 @@ internal static class ExcelXmlTableCodec {
 
     private static object ReadElement(XElement element, ExcelXmlTableValueType type) {
         if (element.HasElements) throw new InvalidDataException("An XML table scalar cannot contain nested elements.");
-        if (element.Attribute(Xsi + "nil") is XAttribute nil && XmlConvert.ToBoolean(nil.Value)) {
+        if (element.Attribute(Xsi + "nil") is XAttribute nil && (bool)Parse(nil.Value, ExcelXmlTableValueType.Boolean)) {
             if (element.Value.Length != 0) throw new InvalidDataException("A nil XML table cell cannot contain text.");
             return DBNull.Value;
         }

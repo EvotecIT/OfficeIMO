@@ -94,6 +94,37 @@ public sealed class ExcelXmlTableTests {
         Assert.Equal("00127", sheet.CellAt(1, 1).GetValue<string>());
     }
 
+    [Theory]
+    [InlineData(false, false)]
+    [InlineData(false, true)]
+    [InlineData(true, false)]
+    [InlineData(true, true)]
+    public void Invalid_nil_values_report_invalid_data_without_replacing_existing_cells(bool mapped, bool stream) {
+        using var document = ExcelDocument.Create(); var sheet = document.AddWorksheet("Data"); sheet.CellValue(1, 1, "Keep");
+        var options = new ExcelXmlTableOptions();
+        if (mapped) options.Columns.Add(new() { Name = "Value", XmlName = "Data" });
+        const string xml = "<Table xmlns:xsi='http://www.w3.org/2001/XMLSchema-instance'><Row><Data xsi:nil='maybe'/></Row></Table>";
+        InvalidDataException error;
+        if (stream) {
+            using var input = new MemoryStream(Encoding.UTF8.GetBytes(xml));
+            error = Assert.Throws<InvalidDataException>(() => sheet.FromXml(input, options: options));
+        } else error = Assert.Throws<InvalidDataException>(() => sheet.FromXml(xml, options: options));
+        Assert.IsType<FormatException>(error.InnerException);
+        Assert.Equal("Keep", sheet.CellAt(1, 1).GetValue<string>());
+    }
+
+    [Theory]
+    [InlineData("true", true)]
+    [InlineData("1", true)]
+    [InlineData("false", false)]
+    [InlineData("0", false)]
+    public void Nil_boolean_lexical_forms_keep_missing_and_literal_cells_distinct(string nil, bool missing) {
+        using var document = ExcelDocument.Create(); var sheet = document.AddWorksheet("Data");
+        string value = missing ? "" : "Literal";
+        sheet.FromXml("<Table xmlns:xsi='http://www.w3.org/2001/XMLSchema-instance'><Row><Data xsi:nil='" + nil + "'>" + value + "</Data></Row></Table>");
+        Assert.Equal(missing ? null : "Literal", sheet.CellAt(1, 1).GetValue<string>());
+    }
+
     private static ExcelXmlTableOptions Mapping() {
         var options = new ExcelXmlTableOptions { RootElementName = "orders", RowElementName = "order", NamespaceUri = "urn:orders" };
         options.Columns.Add(new() { Name = "Identifier", XmlName = "id", IsAttribute = true });
