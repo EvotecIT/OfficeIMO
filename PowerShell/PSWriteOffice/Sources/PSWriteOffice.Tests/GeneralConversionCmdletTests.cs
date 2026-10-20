@@ -10,7 +10,8 @@ namespace PSWriteOffice.Tests;
 public sealed class GeneralConversionCmdletTests {
     [Fact]
     public void SingleAndSelectedFileJobsShareRoutingAndPreserveConflictingOutput() {
-        string root = Path.Combine(Path.GetTempPath(), "officeimo-conversion-command-" + Guid.NewGuid().ToString("N"));
+        // Batch checkpoints reject symlink ancestors, including macOS's /var temp alias.
+        string root = Path.Combine(AppContext.BaseDirectory, "officeimo-conversion-command-" + Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(root);
         try {
             string source = Path.Combine(root, "literal.txt");
