@@ -996,7 +996,10 @@ foreach ($name in $selected) {
         $provenanceMetadata['benchmark.dependency.pdfpecker.license'] = 'MIT AND OFL-1.1 AND Bitstream-Vera AND APAFML AND BSD-3-Clause AND MIT-Modern-Variant AND Unicode-3.0 AND FSFAP AND LPPL-1.3c'
         $provenanceMetadata['benchmark.dependency.pdfpecker.licenseUrl'] =
             "https://www.nuget.org/packages/PdfPecker/$pdfPeckerVersion/License"
-        $packageEvidencePath = Join-Path $artifactsPath 'pdfpecker-package.json'
+        # The shared capture reserves an empty raw directory. Probe the package
+        # beside it, then admit the probe as a captured artifact after reservation.
+        $packageEvidencePath = Join-Path $OutputRoot (
+            '{0}-pdfpecker-package.json' -f (Split-Path -Leaf $artifactsPath))
         $packageEvidenceArguments = @(
             'run', '-c', 'Release', '-f', $Framework,
             '--project', (Join-Path $repositoryRoot $definition.Project)
@@ -1043,6 +1046,10 @@ foreach ($name in $selected) {
         -ArtifactRoot $artifactsPath `
         -Metadata $provenanceMetadata `
         -RunMode $RunMode
+    if ($name -in @('pdfhtml', 'pdfhtmlpayload')) {
+        Move-Item -LiteralPath $packageEvidencePath -Destination (
+            Join-Path $artifactsPath 'pdfpecker-package.json')
+    }
 
     $arguments = @(
         'run',
