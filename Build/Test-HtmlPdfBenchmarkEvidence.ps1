@@ -14,6 +14,7 @@ $expectedScenarios = @('Chromium', 'ITextPdfHtml', 'OfficeIMO', 'PeachPDF', 'Pdf
 $expectedScales = @('Easy', 'Medium', 'High')
 $sourceCommit = $null
 $browserCommit = $null
+$pdfPeckerPackageSha512 = $null
 
 foreach ($platform in @('windows', 'linux')) {
     $fileName = "$comparisonId-$platform-full.json"
@@ -46,6 +47,14 @@ foreach ($platform in @('windows', 'linux')) {
         [string] $result.metadata.runMode -ne 'full' -or
         [string] $result.metadata.gitWorktreeClean -ne 'true') {
         throw "HTML/PDF benchmark evidence has invalid environment or provenance metadata for $fileName."
+    }
+
+    $currentPackageSha512 = [string] $result.metadata.'benchmark.dependency.pdfpecker.packageSha512'
+    if ($null -eq $pdfPeckerPackageSha512) {
+        $pdfPeckerPackageSha512 = $currentPackageSha512
+    } elseif (-not [string]::Equals(
+        $pdfPeckerPackageSha512, $currentPackageSha512, [System.StringComparison]::Ordinal)) {
+        throw 'Windows and Linux HTML/PDF benchmark evidence must use the same PdfPecker package archive SHA-512.'
     }
 
     $currentSourceCommit = [string] $result.metadata.'benchmark.workload.sourceCommit'

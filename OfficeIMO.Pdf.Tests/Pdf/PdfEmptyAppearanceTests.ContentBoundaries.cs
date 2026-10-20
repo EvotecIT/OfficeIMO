@@ -36,13 +36,13 @@ public sealed partial class PdfEmptyAppearanceTests {
     }
 
     [Fact]
-    public void ImportedPagePreservesTheAdmittedSplitNumericOperandAndItsPaint() {
+    public void ImportedPagePreservesOperandsSeparatedByAContentStreamBoundary() {
         byte[] unsplit = BuildPdf(null, "[0 0 0 0]");
         byte[] source = PdfDocumentObjectGraphRewriter.Rewrite(unsplit, null, null, (objects, security) => {
             var first = (PdfStream)objects[8].Value;
-            objects[8] = new PdfIndirectObject(8, 0, new PdfStream(first.Dictionary, Encoding.ASCII.GetBytes("0 g 10 1")));
+            objects[8] = new PdfIndirectObject(8, 0, new PdfStream(first.Dictionary, Encoding.ASCII.GetBytes("0 g 10")));
             int next = objects.Keys.Max() + 1;
-            objects[next] = new PdfIndirectObject(next, 0, new PdfStream(new PdfDictionary(), Encoding.ASCII.GetBytes("60 50 20 re f")));
+            objects[next] = new PdfIndirectObject(next, 0, new PdfStream(new PdfDictionary(), Encoding.ASCII.GetBytes("160 50 20 re f")));
             var contents = new PdfArray();
             contents.Items.Add(new PdfReference(8, 0));
             contents.Items.Add(new PdfReference(next, 0));

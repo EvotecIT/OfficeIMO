@@ -264,6 +264,7 @@ internal static partial class PdfMerger {
             mergedPageOffset += importedSources[importedSources.Count - 1].PageObjectNumbers.Length;
         }
 
+        ValidateTaggedMergePolicy(importedSources, primarySourceIndex, options?.Policy ?? new PdfMergePolicy());
         byte[] merged = WriteMerged(importedSources, primarySourceIndex, outputOrder: null, out int mergedObjectCount, cancellationToken);
         PdfLoadOptions outputReadOptions = PdfLoadOptions.ForComposedOutput(
             importedSources[primarySourceIndex].Document.ReadOptions,

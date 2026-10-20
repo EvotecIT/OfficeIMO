@@ -1304,9 +1304,11 @@ startxref
 
         $x = [math]::Min($block.XStart, $block.XEnd) - 2
         $width = [math]::Abs($block.XEnd - $block.XStart) + 4
-        $y = $block.BaselineY - 14
+        # Keep the selected line's area inside its neighbors' glyph bounds.
+        $y = $block.BaselineY - ($block.FontSize * 0.25)
+        $height = $block.FontSize * 1.1
 
-        ConvertTo-OfficePdfRedacted -Path $path -OutputPath $redactedPath -PageNumber $block.PageNumber -X $x -Y $y -Width $width -Height 20 -FillColor '#111111' |
+        ConvertTo-OfficePdfRedacted -Path $path -OutputPath $redactedPath -PageNumber $block.PageNumber -X $x -Y $y -Width $width -Height $height -FillColor '#111111' |
             Should -BeOfType System.IO.FileInfo
 
         $text = Get-OfficePdfText -Path $redactedPath

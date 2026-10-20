@@ -794,6 +794,7 @@ public sealed partial class PdfReadPage {
                 pageContentBudget.Validate(stream);
             } else {
                 byte[] decoded = pageContentBudget.Decode(stream);
+                if (content.Length > 0) content.Append(PdfContentStreamSequenceDecoder.Separator);
                 content.Append(PdfEncoding.Latin1GetString(decoded));
             }
         }
@@ -2322,8 +2323,9 @@ public sealed partial class PdfReadPage {
         var builder = new System.Text.StringBuilder();
         var entries = new List<PageContentStreamOffset>();
         foreach (PageContentStreamEntry entry in GetContentStreamObjects()) {
-            // Preserve concatenated bytes just as mutation does. Conforming writers split only at lexical
-            // boundaries; inserting whitespace would recover malformed token splits differently here.
+            // ISO 32000-2 Table 31 separates content-array streams with whitespace. Keep
+            // operator identities in the same logical sequence used by content mutation.
+            if (entries.Count > 0) builder.Append(PdfContentStreamSequenceDecoder.Separator);
             entries.Add(new PageContentStreamOffset(builder.Length, entry.ObjectNumber));
             builder.Append(PdfEncoding.Latin1GetString(pageContentBudget.Decode(entry.Stream)));
         }

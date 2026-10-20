@@ -520,7 +520,7 @@ internal static partial class PdfRedactionApplier {
                 indirect.Value is PdfStream stream &&
                 !stream.DecodingFailed) {
                 builder.Append(PdfEncoding.Latin1GetString(StreamDecoder.DecodeRequired(stream, objects, maximumDecodedStreamBytes)));
-                builder.Append('\n');
+                builder.Append(PdfContentStreamSequenceDecoder.Separator);
             }
         }
 

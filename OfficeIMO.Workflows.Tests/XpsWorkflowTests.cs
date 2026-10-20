@@ -92,7 +92,7 @@ public sealed class XpsWorkflowTests {
     }
 
     [Fact]
-    public async Task TaggedNativeAssemblyRejectsTheUnsupportedRewriteAndPreservesTheDestination() {
+    public async Task TaggedNativeAssemblyPreservesBothSourcesAndTheirStructure() {
         using var scope = new Scope(); var document = Create(XpsFormat.OpenXps);
         var markup = document.Pages[0].GetMarkup(); markup.Elements().Single().SetAttributeValue("Name", "text");
         document.Pages[0].ReplaceMarkup(markup);
@@ -105,9 +105,12 @@ public sealed class XpsWorkflowTests {
         var result = await new OfficeWorkflowRunner().AssemblePdfAsync(new() {
             Sources = [source, source], OutputPath = output, ConflictPolicy = OfficeWorkflowConflictPolicy.Replace
         });
-        Assert.Equal(OfficeWorkflowStatus.Failed, result.Status);
-        Assert.Contains("FullRewrite.TaggedContent", result.Summary);
-        Assert.Equal("Existing output", File.ReadAllText(output));
+        Assert.True(result.Status == OfficeWorkflowStatus.Completed, result.Summary);
+        var pdf = PdfDocument.Load(output);
+        Assert.Equal(2, pdf.Inspect().PageCount);
+        Assert.True(pdf.Inspect().HasTaggedContent);
+        Assert.Equal(2, pdf.Inspect().TaggedContent!.StructureElements.Count(element => element.StructureType == "P"));
+        Assert.All(pdf.Read().Pages, page => Assert.Contains("Native workflow text", string.Join("", page.TextBlocks.Select(block => block.Text))));
     }
 
     [Fact]

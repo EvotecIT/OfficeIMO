@@ -39,7 +39,7 @@ internal static partial class PdfStamper {
                     if (remaining <= 0) return;
                     byte[] decoded = decodedStreamBudget.DecodeRequired(
                         stream, objects, Math.Min(limits.MaxDecodedStreamBytes, remaining), cancellationToken);
-                    if (content.Length > 0) content.Append('\n');
+                    if (content.Length > 0) content.Append(PdfContentStreamSequenceDecoder.Separator);
                     content.Append(PdfEncoding.Latin1GetString(decoded));
                 }
                 PdfContentStreamInterpreter.Interpret(content.ToString(), limits.MaxContentOperations, operation => {

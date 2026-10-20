@@ -89,6 +89,44 @@ public sealed partial class PdfTaggedMergeTests {
         .TextField("Name", value: value, style: new PdfFormFieldStyle { AlternateName = "Customer name" }).ToBytes();
 
     [Fact]
+    public void TaggedMergeKeepsPrimaryAttachmentsWithoutRewritingTheirStructure() {
+        byte[] primary = PdfDocument.Create().TaggedPdfCatalogMarkers()
+            .AttachFile("notes.txt", new byte[] { 1, 2, 3 }, "text/plain")
+            .H1("Primary report").ToBytes();
+        byte[] output = PdfDocument.MergeToBytes(primary, Report("Incoming", "en-US"));
+        var document = PdfDocument.Load(output);
+        Assert.Equal(new byte[] { 1, 2, 3 }, Assert.Single(document.Attachments.Extract()).Bytes);
+        AssertParentTreeMatchesPages(PdfReadDocument.Open(output), 2);
+    }
+
+    [Theory]
+    [InlineData("metadata", PdfMergeStructureMode.Drop, false)]
+    [InlineData("metadata", PdfMergeStructureMode.Combine, false)]
+    [InlineData("outlines", PdfMergeStructureMode.Drop, false)]
+    [InlineData("outlines", PdfMergeStructureMode.Combine, false)]
+    [InlineData("attachments", PdfMergeStructureMode.Combine, false)]
+    [InlineData("attachments", PdfMergeStructureMode.Drop, true)]
+    [InlineData("attachments", PdfMergeStructureMode.KeepPrimary, true)]
+    public void TaggedMergeExplainsUnsupportedCatalogPoliciesBeforeAssembly(string structure, PdfMergeStructureMode mode, bool incomingAttachment) {
+        byte[] first = Report("Primary", "en-US");
+        byte[] second = incomingAttachment
+            ? PdfDocument.Create().TaggedPdfCatalogMarkers().AttachFile("notes.txt", new byte[] { 1, 2, 3 }).H1("Incoming report").ToBytes()
+            : Report("Incoming", "en-US");
+        byte[] firstSnapshot = (byte[])first.Clone(), secondSnapshot = (byte[])second.Clone();
+        var policy = new PdfMergePolicy();
+        switch (structure) {
+            case "metadata": policy.Metadata = mode; break;
+            case "outlines": policy.Outlines = mode; break;
+            case "attachments": policy.Attachments = mode; break;
+        }
+        var error = Assert.Throws<NotSupportedException>(() => PdfDocument.MergeToBytes(new PdfMergeOptions { Policy = policy }, first, second));
+        Assert.Contains("Tagged PDF merge", error.Message, StringComparison.Ordinal);
+        Assert.Contains(structure, error.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Equal(firstSnapshot, first);
+        Assert.Equal(secondSnapshot, second);
+    }
+
+    [Fact]
     public void InterleavingRequiresAnExplicitTaggedReadingOrderPolicy() {
         byte[] source = Report("Service", "en-US");
         var error = Assert.Throws<NotSupportedException>(() => PdfPageInterleaver.Interleave(source, source));

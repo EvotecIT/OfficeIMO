@@ -18,7 +18,7 @@ public sealed partial class HtmlRenderingTests {
     [InlineData("fixed")]
     public void HtmlPageMarginFontPreparation_GlobalPositionedAssignmentsShareTheLayoutBudget(string position) {
         string html = PageMarginFontBudgetSource(referenced: true, attributeValue: false)
-            .Replace("</style>", "#assignment{position:" + position + ";left:0;top:0}</style>", StringComparison.Ordinal);
+            .Replace("</style>", "#assignment{position:" + position + ";left:0;top:0}</style>");
 
         AssertPageMarginFontBudget(html);
     }
