@@ -1336,8 +1336,12 @@ Describe 'Word DSL surface' {
 
         $document = Get-OfficeWord -Path $path
         try {
+            $document | Add-OfficeWordParagraph -Text 'Unsaved pipeline content' | Out-Null
+            @($document | Get-OfficeWordParagraph | Where-Object Text -eq 'Unsaved pipeline content').Count | Should -Be 1
             $toc = $document | Get-OfficeWordTableOfContents
             $toc | Update-OfficeWordTableOfContents -PassThru | Should -Not -BeNullOrEmpty
+            $document.IsDisposed | Should -BeFalse
+            @(Get-Item -LiteralPath $path | Get-OfficeWordParagraph | Where-Object Text -eq 'Unsaved pipeline content').Count | Should -Be 0
         } finally {
             $document.Dispose()
         }

@@ -21,8 +21,8 @@ public sealed class GetOfficeVisioInfoCommand : PSCmdlet
     private const string DocumentParameterSet = "Document";
 
     /// <summary>Visio .vsdx path.</summary>
-    [Parameter(Mandatory = true, Position = 0, ValueFromPipeline = true, ParameterSetName = PathParameterSet)]
-    [Alias("FilePath")]
+    [Parameter(Mandatory = true, Position = 0, ValueFromPipeline = true, ParameterSetName = PathParameterSet, ValueFromPipelineByPropertyName = true)]
+    [Alias("FilePath", "FullName", "LiteralPath")]
     public string? Path { get; set; }
 
     /// <summary>Visio document object.</summary>

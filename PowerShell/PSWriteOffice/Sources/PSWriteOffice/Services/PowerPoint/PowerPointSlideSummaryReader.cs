@@ -1,7 +1,5 @@
 using System;
 using System.Linq;
-using DocumentFormat.OpenXml.Packaging;
-using DocumentFormat.OpenXml.Presentation;
 using OfficeIMO.PowerPoint;
 
 namespace PSWriteOffice.Services.PowerPoint;
@@ -68,19 +66,16 @@ internal static class PowerPointSlideSummaryReader
         }
 
         var notes = PowerPointNotesReader.Read(slide, slideIndex);
-        var slidePart = PowerPointNotesReader.ResolveSlidePart(slide);
-        var layoutPart = slidePart?.SlideLayoutPart;
-        var masterPart = layoutPart?.GetParentParts().OfType<SlideMasterPart>().FirstOrDefault();
-        var presentationPart = masterPart?.GetParentParts().OfType<PresentationPart>().FirstOrDefault();
+        var layout = slide.GetLayoutInfo();
 
         return new PowerPointSlideSummaryInfo
         {
             Slide = slide,
             SlideIndex = slideIndex,
-            MasterIndex = ResolveMasterIndex(presentationPart, masterPart),
+            MasterIndex = layout?.MasterIndex ?? -1,
             LayoutIndex = slide.LayoutIndex,
-            LayoutName = layoutPart?.SlideLayout?.CommonSlideData?.Name?.Value,
-            LayoutType = layoutPart?.SlideLayout?.Type is { Value: var layoutType } ? layoutType.ToString() : null,
+            LayoutName = layout?.Name,
+            LayoutType = layout?.Type?.ToString(),
             Title = ResolveTitle(slide),
             HasNotes = notes.HasNotes,
             NotesText = notes.Text,
@@ -92,25 +87,6 @@ internal static class PowerPointSlideSummaryReader
             PlaceholderCount = slide.TextBoxes.Count(textBox => textBox.IsPlaceholder),
             LayoutPlaceholderCount = slide.GetLayoutPlaceholders().Count
         };
-    }
-
-    private static int ResolveMasterIndex(PresentationPart? presentationPart, SlideMasterPart? masterPart)
-    {
-        if (presentationPart == null || masterPart == null)
-        {
-            return -1;
-        }
-
-        var masters = presentationPart.SlideMasterParts.ToArray();
-        for (var i = 0; i < masters.Length; i++)
-        {
-            if (ReferenceEquals(masters[i], masterPart))
-            {
-                return i;
-            }
-        }
-
-        return -1;
     }
 
     private static string? ResolveTitle(PowerPointSlide slide)

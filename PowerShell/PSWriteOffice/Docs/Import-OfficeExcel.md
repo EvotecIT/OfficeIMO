@@ -9,7 +9,7 @@ schema: 2.0.0
 Imports rows from an Excel workbook as PowerShell objects.
 
 ## SYNTAX
-### Path (Default)
+### Path
 ```powershell
 Import-OfficeExcel [-Path] <string> [-WorksheetName <string>] [-SheetIndex <Int32>] [-AllSheets] [-Range <string>] [-StartRow <Int32>] [-EndRow <Int32>] [-StartColumn <Int32>] [-EndColumn <Int32>] [-NoHeader] [-NumericAsDecimal] [-FormulaMode <OfficeExcelFormulaMode>] [-CultureName <string>] [-AsHashtable] [-AsDataTable] [-AsDataReader] [-ByColumn] [-SchemaSampleSize <int>] [-ChunkRows <int>] [<CommonParameters>]
 ```
@@ -288,13 +288,13 @@ Workbook path to import.
 ```yaml
 Type: String
 Parameter Sets: Path
-Aliases: FilePath, InputPath, FullName
+Aliases: FilePath, InputPath, FullName, LiteralPath
 Possible values:
 
 Required: True
 Position: 0
 Default value: None
-Accept pipeline input: True (ByPropertyName)
+Accept pipeline input: True (ByValue, ByPropertyName)
 Accept wildcard characters: False
 ```
 

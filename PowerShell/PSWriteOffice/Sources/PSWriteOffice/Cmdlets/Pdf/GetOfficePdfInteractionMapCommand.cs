@@ -1,3 +1,4 @@
+using PSWriteOffice.Services;
 using System.Management.Automation;
 using OfficeIMO.Pdf;
 using PSWriteOffice.Services.Pdf;
@@ -10,7 +11,8 @@ namespace PSWriteOffice.Cmdlets.Pdf;
 public sealed class GetOfficePdfInteractionMapCommand : PSCmdlet
 {
     /// <summary>Source PDF path.</summary>
-    [Parameter(Mandatory = true, Position = 0)]
+    [Parameter(Mandatory = true, Position = 0, ValueFromPipelineByPropertyName = true, ValueFromPipeline = true)]
+    [Alias("FullName", "LiteralPath")]
     public string Path { get; set; } = string.Empty;
 
     /// <summary>One-based page number.</summary>
@@ -42,7 +44,7 @@ public sealed class GetOfficePdfInteractionMapCommand : PSCmdlet
             Password,
             IgnorePermissionRestrictions.IsPresent);
         var document = PdfCommandUtilities.LoadDocument(
-            SessionState.Path.GetUnresolvedProviderPathFromPSPath(Path), readOptions);
+            OfficeFileCommandUtilities.ResolvePath(this, Path), readOptions);
         WriteObject(PdfPageInteractionMap.Create(document.ToBytes(), Page, Options, readOptions));
     }
 }

@@ -1,3 +1,4 @@
+using OfficeIMO.Core.Internal;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -70,7 +71,7 @@ public sealed class GetOfficeConfluenceAttachmentCommand : AsyncPSCmdlet
                 return;
             }
 
-            var path = SessionState.Path.GetUnresolvedProviderPathFromPSPath(OutFile);
+            var path = OfficeFileCommandUtilities.ResolvePath(this, OutFile);
             if (File.Exists(path) && !Force.IsPresent)
             {
                 throw new IOException($"File '{path}' already exists. Use -Force to overwrite it.");
@@ -91,7 +92,7 @@ public sealed class GetOfficeConfluenceAttachmentCommand : AsyncPSCmdlet
                 directory = Directory.GetCurrentDirectory();
             }
 
-            string temporaryPath = AtomicFileWriter.CreateTemporaryPath(directory, Path.GetFileName(path));
+            string temporaryPath = OfficeFileOutput.CreateTemporaryPath(directory, Path.GetFileName(path));
             try
             {
                 using (var destination = new FileStream(

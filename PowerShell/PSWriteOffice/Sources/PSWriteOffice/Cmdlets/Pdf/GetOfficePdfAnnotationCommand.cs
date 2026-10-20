@@ -10,8 +10,8 @@ namespace PSWriteOffice.Cmdlets.Pdf;
 public sealed class GetOfficePdfAnnotationCommand : PSCmdlet
 {
     /// <summary>PDF file path.</summary>
-    [Parameter(Mandatory = true, Position = 0, ValueFromPipeline = true)]
-    [Alias("FilePath")]
+    [Parameter(Mandatory = true, Position = 0, ValueFromPipeline = true, ValueFromPipelineByPropertyName = true)]
+    [Alias("FilePath", "FullName", "LiteralPath")]
     public string Path { get; set; } = string.Empty;
 
     /// <summary>Optional annotation subtype filter such as Text, Link, Widget, or FreeText.</summary>

@@ -82,7 +82,7 @@ public sealed partial class ExportOfficeDocumentPdfCommand {
         };
         if (!ShouldProcess(request.OutputDirectory, "Export selected documents to PDF")) return;
         var progress = new BatchProgress(this);
-        var result = await new OfficeWorkflowRunner().RunBatchAsync(request, progress, CancelToken);
+        var result = await PSWriteOffice.Services.OfficeWorkflowCommandUtilities.CreateRunner().RunBatchAsync(request, progress, CancelToken);
         if (!ItemResults.IsPresent && progress.Failures > BatchProgress.MaximumFailureWarnings) {
             WriteWarning($"{progress.Failures - BatchProgress.MaximumFailureWarnings} further failure messages were suppressed. Use -ItemResults for structured per-file outcomes.");
         }

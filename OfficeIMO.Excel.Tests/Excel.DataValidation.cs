@@ -12,6 +12,31 @@ namespace OfficeIMO.Tests {
     /// Tests for various data validation types.
     /// </summary>
     public partial class Excel {
+        [Theory]
+        [InlineData("$B:$B", "B1048576")]
+        [InlineData("5:5", "XFD5")]
+        [InlineData("XFD:XFD", "XFD2")]
+        [InlineData("1048576:1048576", "C1048576")]
+        public void WholeGridValidationRangesSupportQueryMessageUpdateAndPartialRemoval(string range, string cell) {
+            using ExcelDocument document = ExcelDocument.Create();
+            ExcelSheet sheet = document.AddWorksheet("Data");
+            sheet.ValidationWholeNumber(range, ExcelDataValidationOperator.Between, 1, 10,
+                errorTitle: "Existing error", errorMessage: "Use 1-10");
+
+            Assert.Single(sheet.GetDataValidations(cell));
+            sheet.UpdateDataValidationMessages(range, message => message.Prompt = "Choose a value");
+            var validation = Assert.Single(sheet.GetDataValidations(cell));
+            Assert.Equal("Choose a value", validation.Prompt);
+            Assert.Equal("Existing error", validation.ErrorTitle);
+            Assert.False(validation.ShowInputMessage);
+
+            sheet.RemoveDataValidations(cell);
+            Assert.Empty(sheet.GetDataValidations(cell));
+            Assert.NotEmpty(sheet.GetDataValidations());
+            Assert.Throws<ArgumentException>(() => sheet.GetDataValidations("XFE:XFE"));
+            Assert.Throws<ArgumentException>(() => sheet.GetDataValidations("1048577:1048577"));
+        }
+
         [Fact]
         public void ValidationWholeNumberBetween() {
             string filePath = Path.Combine(_directoryWithFiles, "ValidationWholeNumber.xlsx");

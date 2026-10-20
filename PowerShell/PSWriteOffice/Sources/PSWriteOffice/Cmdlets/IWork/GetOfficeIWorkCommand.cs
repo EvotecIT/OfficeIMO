@@ -1,3 +1,4 @@
+using PSWriteOffice.Services;
 using System.Management.Automation;
 using OfficeIMO.IWork;
 
@@ -17,8 +18,8 @@ namespace PSWriteOffice.Cmdlets.IWork;
 public sealed class GetOfficeIWorkCommand : PSCmdlet
 {
     /// <summary>Path to a modern Pages, Numbers, or Keynote package or directory bundle.</summary>
-    [Parameter(Mandatory = true, Position = 0, ValueFromPipeline = true)]
-    [Alias("FilePath")]
+    [Parameter(Mandatory = true, Position = 0, ValueFromPipeline = true, ValueFromPipelineByPropertyName = true)]
+    [Alias("FilePath", "FullName", "LiteralPath")]
     public string Path { get; set; } = string.Empty;
 
     /// <summary>Optional expected application kind; a mismatch is rejected.</summary>
@@ -32,7 +33,7 @@ public sealed class GetOfficeIWorkCommand : PSCmdlet
     /// <inheritdoc />
     protected override void ProcessRecord()
     {
-        var path = SessionState.Path.GetUnresolvedProviderPathFromPSPath(Path);
+        var path = OfficeFileCommandUtilities.ResolvePath(this, Path);
         WriteObject(Kind.HasValue
             ? IWorkSourceDocument.Open(path, Kind.Value, Options)
             : IWorkSourceDocument.Open(path, Options));

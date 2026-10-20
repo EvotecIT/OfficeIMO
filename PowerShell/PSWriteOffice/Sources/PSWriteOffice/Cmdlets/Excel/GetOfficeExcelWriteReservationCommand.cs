@@ -21,8 +21,8 @@ public sealed class GetOfficeExcelWriteReservationCommand : PSCmdlet
     private const string ParameterSetDocument = "Document";
 
     /// <summary>Workbook path to inspect.</summary>
-    [Parameter(Mandatory = true, Position = 0, ParameterSetName = ParameterSetPath)]
-    [Alias("FilePath", "InputPath", "FullName")]
+    [Parameter(Mandatory = true, Position = 0, ParameterSetName = ParameterSetPath, ValueFromPipelineByPropertyName = true, ValueFromPipeline = true)]
+    [Alias("FilePath", "InputPath", "FullName", "LiteralPath")]
     public string? Path { get; set; }
 
     /// <summary>Open workbook document to inspect.</summary>

@@ -6,21 +6,6 @@ BeforeAll {
     }
     Import-Module $ModuleManifest -Global -ErrorAction Stop
 
-    function Get-OfficePrivateRegistryCount {
-        param(
-            [Parameter(Mandatory)]
-            [string] $TypeName,
-            [Parameter(Mandatory)]
-            [string] $FieldName
-        )
-
-        $type = [AppDomain]::CurrentDomain.GetAssemblies() |
-            ForEach-Object { $_.GetType($TypeName, $false) } |
-            Where-Object { $null -ne $_ } |
-            Select-Object -First 1
-        $field = $type.GetField($FieldName, [Reflection.BindingFlags]'NonPublic,Static')
-        $field.GetValue($null).Count
-    }
 }
 
 Describe 'Office document PDF exports' {
@@ -234,14 +219,20 @@ Describe 'Office document PDF exports' {
             }
         }
 
-        $wordBefore = Get-OfficePrivateRegistryCount -TypeName 'PSWriteOffice.Services.Word.WordDocumentService' -FieldName 'EncryptedSourcePaths'
-        $excelBefore = Get-OfficePrivateRegistryCount -TypeName 'PSWriteOffice.Services.Excel.ExcelDocumentService' -FieldName 'EncryptedSourcePaths'
+        $wordBefore = [Convert]::ToBase64String([IO.File]::ReadAllBytes($wordPath))
+        $excelBefore = [Convert]::ToBase64String([IO.File]::ReadAllBytes($excelPath))
 
         Export-OfficeDocumentPdf -InputPath $wordPath -Path $wordPdf -Password $password
         Export-OfficeDocumentPdf -InputPath $excelPath -Path $excelPdf -Password $password
 
-        Get-OfficePrivateRegistryCount -TypeName 'PSWriteOffice.Services.Word.WordDocumentService' -FieldName 'EncryptedSourcePaths' | Should -Be $wordBefore
-        Get-OfficePrivateRegistryCount -TypeName 'PSWriteOffice.Services.Excel.ExcelDocumentService' -FieldName 'EncryptedSourcePaths' | Should -Be $excelBefore
+        [Convert]::ToBase64String([IO.File]::ReadAllBytes($wordPath)) | Should -Be $wordBefore
+        [Convert]::ToBase64String([IO.File]::ReadAllBytes($excelPath)) | Should -Be $excelBefore
+        Get-OfficePdfText -Path $wordPdf | Should -Match 'Encrypted Word PDF export'
+        Get-OfficePdfText -Path $excelPdf | Should -Match 'Encrypted Excel PDF export'
+        foreach ($source in @($wordPath, $excelPath)) {
+            $exclusive = [IO.File]::Open($source, [IO.FileMode]::Open, [IO.FileAccess]::ReadWrite, [IO.FileShare]::None)
+            $exclusive.Dispose()
+        }
         Test-Path -LiteralPath $wordPdf | Should -BeTrue
         Test-Path -LiteralPath $excelPdf | Should -BeTrue
     }

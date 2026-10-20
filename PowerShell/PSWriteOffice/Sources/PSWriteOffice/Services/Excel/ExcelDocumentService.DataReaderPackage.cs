@@ -1,3 +1,4 @@
+using OfficeIMO.Core.Internal;
 using System;
 using System.Data;
 using System.IO;
@@ -40,7 +41,7 @@ internal static partial class ExcelDocumentService
             Directory.CreateDirectory(directory);
         }
 
-        var temporaryPath = AtomicFileWriter.CreateTemporaryPath(
+        var temporaryPath = OfficeFileOutput.CreateTemporaryPath(
             directory ?? Directory.GetCurrentDirectory(),
             Path.GetFileName(targetPath));
         try

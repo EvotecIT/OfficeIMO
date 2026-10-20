@@ -3,7 +3,7 @@
 > [!IMPORTANT]
 > PSWriteOffice is the PowerShell module in **[OfficeIMO](https://github.com/EvotecIT/OfficeIMO)**. Report bugs and request features in [OfficeIMO issues](https://github.com/EvotecIT/OfficeIMO/issues), and submit pull requests to that repository.
 
-PowerShell-first document automation for Office, PDF, iWork, OneNote, OpenDocument, email, Markdown, AsciiDoc, LaTeX, CSV, Reader, and Visio, built on top of `OfficeIMO.*`.
+PowerShell document automation for Office, PDF, Project, Access, EPUB, electronic invoices, iWork, OneNote, OpenDocument, email, Markdown, AsciiDoc, LaTeX, CSV, Reader, and Visio, built on `OfficeIMO.*`.
 
 📦 PowerShell Gallery
 
@@ -96,6 +96,61 @@ Send-OfficePdfPrinter -Path .\Report.pdf -PrinterName 'Office printer'
 A print receipt proves queue acceptance; physical delivery remains unconfirmed. Windows file printers require an explicit new output file. Check the queue after interrupted submission before retrying. Printing uses the shared OfficeIMO PDF/printer services and retains their platform requirements.
 
 ## Advanced document workflows
+
+`ConvertTo-OfficeDocument` uses the same OfficeIMO route selection, conflict policy,
+limits and evidence for one file, a selected-file pipeline, or a directory job.
+General conversion jobs require PowerShell 7.4 or newer:
+
+```powershell
+Get-OfficeConversionRoute -Executable | Select-Object Id, SourceExtensions, TargetExtension
+ConvertTo-OfficeDocument -InputPath ./report.pdf -OutputPath ./report.docx
+Get-ChildItem ./reports -Filter *.pdf |
+    ConvertTo-OfficeDocument -OutputDirectory ./word -TargetExtension docx -ItemResults
+```
+
+Existing destinations are preserved by default. Choose `-ConflictPolicy Rename`
+to select an unused filename, or `Replace` to replace one deliberately. Directory
+jobs support `-CheckpointDirectory` and `-RetryFailed`. Use
+`New-OfficeConversionOptions` for renderer settings and `-RequireNoLoss` when
+reported reductions must block output. `Get-OfficeConversionRoute -Executable`
+lists file routes registered by this host, including the first-party iWork adapter.
+
+Project, Access, EPUB and invoice workflows use ordinary PowerShell parameters:
+
+```powershell
+$project = New-OfficeProject -Name Delivery -StartDate '2026-10-20 08:00'
+try {
+    $project | Add-OfficeProjectTask -Name Build -DurationDays 3
+    $project | Invoke-OfficeProjectSchedule -Apply | Out-Null
+    $project | Save-OfficeProject -Path ./delivery.xml
+} finally { $project | Close-OfficeProject }
+
+$book = New-OfficeEpub -Title Handbook -Language en -Author 'Example team'
+$book | Add-OfficeEpubChapter -Title Welcome -Text 'Safety & care'
+$book | Save-OfficeEpub -Path ./handbook.epub
+```
+
+The [native document example](Examples/Workflows/Example-NativeDocumentFamilies.ps1)
+also creates an Access table database from PowerShell objects and generates invoice
+XML and a hybrid PDF. Access uses inert native codecs without ACE, COM or SQL
+execution. Unsupported native profiles and model operations remain explicit owner
+diagnostics. Native MPP saves assess generation-specific loss and require explicit
+`-AllowLoss` for reported reductions. `-ReportVariable` retains that assessment
+even when a strict save is rejected. Mapped Project tables require explicit field
+maps and report omitted features; use XML for full supported-model exchange.
+
+`Get-OfficeInvoiceLine` and `Set-OfficeInvoiceLine` edit invoice lines without .NET
+construction. After changing source amounts, use `Set-OfficeInvoice -RecalculateTotals`
+to replace declared amounts with calculations from the edited model. Invoice
+serialization blocks silent source and profile loss. `Test-OfficeInvoice` checks
+a model's semantics and arithmetic. Its file parameter set validates exact XML
+with caller-supplied pinned authority rules; without the optional local Saxon/Java
+runner, business rules remain `NotRun` and the report does not claim validity.
+
+File readers accept `FileInfo` pipelines through `FullName`, literal paths through
+`-Path` or its `-LiteralPath` alias, and FileSystem PSDrives. Scalar reader paths
+are literal; expand wildcards with `Get-ChildItem` or use a command that explicitly
+supports discovery. Non-filesystem providers are rejected at the file boundary.
 
 Search a file, a PST/OST, several paths, or a whole mixed-format folder with ordinary PowerShell parameters. Registered formats are discovered automatically, individual unreadable files are reported without stopping the rest of the search, and each match includes its source path and document type:
 

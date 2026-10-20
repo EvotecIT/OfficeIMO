@@ -35,7 +35,7 @@ namespace PSWriteOffice.Cmdlets.Excel;
 ///     Select-Object -ExpandProperty Values</code>
 ///   <para>Returns one object per column with the column name, 1-based column index, and the column values as an array.</para>
 /// </example>
-[Cmdlet(VerbsData.Import, "OfficeExcel", DefaultParameterSetName = ParameterSetPath)]
+[Cmdlet(VerbsData.Import, "OfficeExcel")]
 [Alias("ExcelImport")]
 public sealed class ImportOfficeExcelCommand : AsyncPSCmdlet
 {
@@ -44,8 +44,8 @@ public sealed class ImportOfficeExcelCommand : AsyncPSCmdlet
     private const string ParameterSetDocument = "Document";
 
     /// <summary>Workbook path to import.</summary>
-    [Parameter(Mandatory = true, Position = 0, ValueFromPipelineByPropertyName = true, ParameterSetName = ParameterSetPath)]
-    [Alias("FilePath", "InputPath", "FullName")]
+    [Parameter(Mandatory = true, Position = 0, ValueFromPipelineByPropertyName = true, ParameterSetName = ParameterSetPath, ValueFromPipeline = true)]
+    [Alias("FilePath", "InputPath", "FullName", "LiteralPath")]
     public string? Path { get; set; }
 
     /// <summary>Remote workbook URI to import.</summary>

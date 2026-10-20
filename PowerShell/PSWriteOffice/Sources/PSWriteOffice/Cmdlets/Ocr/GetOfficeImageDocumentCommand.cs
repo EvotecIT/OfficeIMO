@@ -22,8 +22,8 @@ namespace PSWriteOffice.Cmdlets.Ocr;
 public sealed class GetOfficeImageDocumentCommand : OfficeOcrCmdlet
 {
     /// <summary>Path to a supported single-frame raster image.</summary>
-    [Parameter(Mandatory = true, Position = 0, ValueFromPipeline = true)]
-    [Alias("FilePath")]
+    [Parameter(Mandatory = true, Position = 0, ValueFromPipeline = true, ValueFromPipelineByPropertyName = true)]
+    [Alias("FilePath", "FullName", "LiteralPath")]
     public string Path { get; set; } = string.Empty;
 
     /// <summary>Optional engine-neutral OCR provider. When omitted, uses the configured local Tesseract session.</summary>

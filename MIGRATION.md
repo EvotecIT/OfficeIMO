@@ -1,5 +1,35 @@
 # Upgrading OfficeIMO
 
+## PSWriteOffice file and workflow APIs
+
+Build and publish PSWriteOffice through `Build/Build-Release.ps1` so its version
+and engine payloads follow the coordinated NuGet, PowerShell Gallery and GitHub
+release. Source, examples and tests live under `PowerShell/PSWriteOffice`.
+
+`New-OfficeWord -TemplatePath ... -NoSave` and its Excel equivalent leave the
+template and destination untouched until an explicit save. Scripts that depended
+on the earlier implicit template copy must call the corresponding `Save` command.
+
+`Set-OfficePdfCompliance` and `Set-OfficePdfElectronicInvoice` configure new PDF
+documents inside the PDF DSL. Their unsupported `-Document` parameter sets and
+ineffective `-PassThru` parameters have been removed. Use the supported PDF
+inspection and conversion commands for existing files.
+
+Scalar file readers accept `FullName`/`LiteralPath` aliases and `FileInfo`
+pipelines, resolve FileSystem PSDrives, and reject other providers. Input is
+literal; expand wildcards with `Get-ChildItem` first.
+
+`ConvertTo-OfficeDocument` provides catalog-driven single and batch conversion
+with destination protection, bounds and structured evidence. It requires
+PowerShell 7.4. Existing format-specific commands retain their documented host
+support. Model invoice validation works on Windows PowerShell 5.1;
+authority-rule validation requires PowerShell 7.4.
+
+Release credentials use `NUGET_API_KEY`, `GITHUB_TOKEN`, `PSGALLERY_API_KEY_FILE`
+and `GITHUB_TOKEN_FILE`; workstation-specific secret paths are no longer used.
+See [building and releasing](Docs/building-and-releasing.md) for file overrides
+and portable default locations.
+
 ## ChartForgeX 3 and CodeGlyphX 3
 
 `OfficeIMO.ChartForgeX` and `OfficeIMO.ChartForgeX.Markdown` use ChartForgeX 3.0.0. Prepare visuals with the shared `VisualTheme` and `VisualThemeMode` API. Replace legacy theme factories such as `TopologyTheme.Light()` with `WithThemeMode(VisualThemeMode.Light)`, or pass a paired theme to `WithTheme(...)`. Customize theme colors through `ConfigureTheme(...)`; for example, `theme.Light.Surface` supplies the topology card fill. The OfficeIMO conversion and document-placement APIs are unchanged.

@@ -105,37 +105,18 @@ public sealed class SetOfficeExcelDataValidationMessageCommand : PSCmdlet {
             return;
         }
 
-        var displayState = ExcelDataValidationMessageDisplayState.Capture(sheet, targetRange);
-        var existing = GetFirstDataValidation(sheet, targetRange);
-        var promptTitle = ResolveMessageValue(nameof(PromptTitle), PromptTitle, existing?.PromptTitle);
-        var prompt = ResolveMessageValue(nameof(Prompt), Prompt, existing?.Prompt);
-        var errorTitle = ResolveMessageValue(nameof(ErrorTitle), ErrorTitle, existing?.ErrorTitle);
-        var errorMessage = ResolveMessageValue(nameof(ErrorMessage), ErrorMessage, existing?.Error);
-        bool? boundShowInputMessage = ResolveBoundDisplayFlag(nameof(ShowInputMessage), ShowInputMessage);
-        bool? boundShowErrorMessage = ResolveBoundDisplayFlag(nameof(ShowErrorMessage), ShowErrorMessage);
-        bool showInputMessage = boundShowInputMessage ?? HasMessageText(promptTitle, prompt);
-        bool showErrorMessage = boundShowErrorMessage ?? HasMessageText(errorTitle, errorMessage);
-        SetDataValidationMessages(sheet, targetRange, new ExcelDataValidationMessageOptions {
-            PromptTitle = promptTitle,
-            Prompt = prompt,
-            ErrorTitle = errorTitle,
-            Error = errorMessage,
-            ShowInputMessage = showInputMessage,
-            ShowErrorMessage = showErrorMessage
+        sheet.UpdateDataValidationMessages(targetRange, options => {
+            bool hadPrompt = HasMessageText(options.PromptTitle, options.Prompt);
+            bool hadError = HasMessageText(options.ErrorTitle, options.Error);
+            if (MyInvocation.BoundParameters.ContainsKey(nameof(PromptTitle))) options.PromptTitle = PromptTitle;
+            if (MyInvocation.BoundParameters.ContainsKey(nameof(Prompt))) options.Prompt = Prompt;
+            if (MyInvocation.BoundParameters.ContainsKey(nameof(ErrorTitle))) options.ErrorTitle = ErrorTitle;
+            if (MyInvocation.BoundParameters.ContainsKey(nameof(ErrorMessage))) options.Error = ErrorMessage;
+            if (MyInvocation.BoundParameters.ContainsKey(nameof(ShowInputMessage))) options.ShowInputMessage = ShowInputMessage.IsPresent;
+            else if (!hadPrompt) options.ShowInputMessage = HasMessageText(options.PromptTitle, options.Prompt);
+            if (MyInvocation.BoundParameters.ContainsKey(nameof(ShowErrorMessage))) options.ShowErrorMessage = ShowErrorMessage.IsPresent;
+            else if (!hadError) options.ShowErrorMessage = HasMessageText(options.ErrorTitle, options.Error);
         });
-        displayState.Restore(
-            sheet,
-            targetRange,
-            promptTitle,
-            MyInvocation.BoundParameters.ContainsKey(nameof(PromptTitle)),
-            prompt,
-            MyInvocation.BoundParameters.ContainsKey(nameof(Prompt)),
-            errorTitle,
-            MyInvocation.BoundParameters.ContainsKey(nameof(ErrorTitle)),
-            errorMessage,
-            MyInvocation.BoundParameters.ContainsKey(nameof(ErrorMessage)),
-            boundShowInputMessage,
-            boundShowErrorMessage);
 
         workbook.SaveIfOwned();
 
@@ -158,43 +139,9 @@ public sealed class SetOfficeExcelDataValidationMessageCommand : PSCmdlet {
             || MyInvocation.BoundParameters.ContainsKey(nameof(ShowErrorMessage));
     }
 
-    private string? ResolveMessageValue(string parameterName, string? value, string? existing) {
-        return MyInvocation.BoundParameters.ContainsKey(parameterName) ? value : existing;
-    }
-
-    private bool? ResolveBoundDisplayFlag(string parameterName, SwitchParameter value) {
-        return MyInvocation.BoundParameters.ContainsKey(parameterName)
-            ? value.IsPresent
-            : null;
-    }
-
     private static bool HasMessageText(string? title, string? message)
         => !string.IsNullOrEmpty(title) || !string.IsNullOrEmpty(message);
 
-    private static ExcelDataValidationInfo? GetFirstDataValidation(ExcelSheet sheet, string targetRange)
-        => GetDataValidations(sheet, targetRange).FirstOrDefault();
-
-    private static IReadOnlyList<ExcelDataValidationInfo> GetDataValidations(ExcelSheet sheet, string targetRange) {
-        try {
-            var filtered = sheet.GetDataValidations(targetRange);
-            if (filtered.Count > 0) {
-                return filtered;
-            }
-        } catch (ArgumentException) {
-        }
-
-        return sheet.GetDataValidations()
-            .Where(validation => ExcelDataValidationMessageDisplayState.ReferenceListOverlapsTarget(validation.Range, targetRange))
-            .ToArray();
-    }
-
-    private static void SetDataValidationMessages(ExcelSheet sheet, string targetRange, ExcelDataValidationMessageOptions options) {
-        try {
-            sheet.SetDataValidationMessages(targetRange, options);
-        } catch (ArgumentException) {
-            if (!GetDataValidations(sheet, targetRange).Any()) {
-                throw;
-            }
-        }
-    }
+    private static IReadOnlyList<ExcelDataValidationInfo> GetDataValidations(ExcelSheet sheet, string targetRange)
+        => sheet.GetDataValidations(targetRange);
 }

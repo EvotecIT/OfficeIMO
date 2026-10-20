@@ -73,13 +73,13 @@ Path to the .docx. Accepts PS paths.
 ```yaml
 Type: String
 Parameter Sets: __AllParameterSets
-Aliases: InputPath, FilePath
+Aliases: InputPath, FilePath, FullName, LiteralPath
 Possible values:
 
 Required: True
 Position: 0
 Default value: None
-Accept pipeline input: False
+Accept pipeline input: True (ByValue, ByPropertyName)
 Accept wildcard characters: False
 ```
 
@@ -104,7 +104,7 @@ This cmdlet supports the common parameters: -Debug, -ErrorAction, -ErrorVariable
 
 ## INPUTS
 
-- `None`
+- `System.String`
 
 ## OUTPUTS
 

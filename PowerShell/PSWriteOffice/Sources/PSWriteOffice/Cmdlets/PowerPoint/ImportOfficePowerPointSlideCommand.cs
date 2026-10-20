@@ -1,3 +1,4 @@
+using PSWriteOffice.Services;
 using System;
 using System.IO;
 using System.Management.Automation;
@@ -59,7 +60,7 @@ public sealed class ImportOfficePowerPointSlideCommand : PSCmdlet
                 return;
             }
 
-            var resolvedPath = SessionState.Path.GetUnresolvedProviderPathFromPSPath(SourcePath);
+            var resolvedPath = OfficeFileCommandUtilities.ResolvePath(this, SourcePath);
             if (!File.Exists(resolvedPath))
             {
                 throw new FileNotFoundException($"File '{resolvedPath}' was not found.", resolvedPath);

@@ -17,7 +17,7 @@ namespace PSWriteOffice.Cmdlets.Excel;
 /// }</code>
 ///   <para>Reports whether the workbook is already using OfficeIMO direct tabular state and gives a size-based recommendation for future imports or exports.</para>
 /// </example>
-[Cmdlet(VerbsCommon.Get, "OfficeExcelStreamingContract", DefaultParameterSetName = ParameterSetPath)]
+[Cmdlet(VerbsCommon.Get, "OfficeExcelStreamingContract")]
 [Alias("ExcelStreamingContract")]
 [OutputType(typeof(PSObject))]
 public sealed class GetOfficeExcelStreamingContractCommand : PSCmdlet {
@@ -25,8 +25,8 @@ public sealed class GetOfficeExcelStreamingContractCommand : PSCmdlet {
     private const string ParameterSetDocument = "Document";
 
     /// <summary>Workbook path.</summary>
-    [Parameter(Mandatory = true, Position = 0, ParameterSetName = ParameterSetPath)]
-    [Alias("InputPath", "FilePath")]
+    [Parameter(Mandatory = true, Position = 0, ParameterSetName = ParameterSetPath, ValueFromPipelineByPropertyName = true, ValueFromPipeline = true)]
+    [Alias("InputPath", "FilePath", "FullName", "LiteralPath")]
     public string Path { get; set; } = string.Empty;
 
     /// <summary>Workbook document.</summary>

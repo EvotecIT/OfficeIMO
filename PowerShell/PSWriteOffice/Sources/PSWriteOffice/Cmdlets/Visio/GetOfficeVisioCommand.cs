@@ -18,8 +18,8 @@ namespace PSWriteOffice.Cmdlets.Visio;
 public sealed class GetOfficeVisioCommand : PSCmdlet
 {
     /// <summary>Visio .vsdx path.</summary>
-    [Parameter(Mandatory = true, Position = 0, ValueFromPipeline = true)]
-    [Alias("FilePath")]
+    [Parameter(Mandatory = true, Position = 0, ValueFromPipeline = true, ValueFromPipelineByPropertyName = true)]
+    [Alias("FilePath", "FullName", "LiteralPath")]
     public string Path { get; set; } = string.Empty;
 
     /// <inheritdoc />

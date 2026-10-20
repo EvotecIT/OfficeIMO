@@ -1,15 +1,15 @@
 {
   "slug": "pswriteoffice",
   "name": "PSWriteOffice",
-  "description": "PowerShell document automation across Word, Excel, PowerPoint, PDF, Reader, Confluence, Visio, and open text formats.",
+  "description": "PowerShell document automation across OfficeIMO's document, spreadsheet, presentation, PDF, Project, Access, EPUB, invoicing, and conversion engines.",
   "mode": "hub-full",
   "contentMode": "hybrid",
   "status": "active",
   "listed": false,
   "version": "3.0.9",
-  "sourceRef": "main",
+  "sourceRef": "master",
   "links": {
-    "source": "https://github.com/EvotecIT/PSWriteOffice"
+    "source": "https://github.com/EvotecIT/OfficeIMO/tree/master/PowerShell/PSWriteOffice"
   },
   "surfaces": {
     "docs": true,

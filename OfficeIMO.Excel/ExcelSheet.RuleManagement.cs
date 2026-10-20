@@ -675,20 +675,43 @@ namespace OfficeIMO.Excel {
         /// </summary>
         public void SetDataValidationMessages(string a1Range, ExcelDataValidationMessageOptions options) {
             if (options == null) throw new ArgumentNullException(nameof(options));
+            SetDataValidationMessagesCore(a1Range, _ => options);
+        }
+
+        /// <summary>Updates each matching rule independently, preserving fields that the callback does not change.</summary>
+        /// <param name="a1Range">A1 range overlapping the rules to update.</param>
+        /// <param name="update">Synchronous mutation of each rule's current message settings.</param>
+        public void UpdateDataValidationMessages(string a1Range, Action<ExcelDataValidationMessageOptions> update) {
+            if (update == null) throw new ArgumentNullException(nameof(update));
+            SetDataValidationMessagesCore(a1Range, validation => {
+                var options = new ExcelDataValidationMessageOptions {
+                    PromptTitle = validation.PromptTitle?.Value, Prompt = validation.Prompt?.Value,
+                    ErrorTitle = validation.ErrorTitle?.Value, Error = validation.Error?.Value,
+                    ShowInputMessage = validation.ShowInputMessage?.Value ?? false,
+                    ShowErrorMessage = validation.ShowErrorMessage?.Value ?? false,
+                    PreserveShowMessageFlags = true
+                };
+                update(options);
+                return options;
+            });
+        }
+
+        private void SetDataValidationMessagesCore(string a1Range, Func<DataValidation, ExcelDataValidationMessageOptions> optionsFactory) {
             var filter = ParseReferenceArgument(a1Range);
             WriteLock(() => {
                 var validations = WorksheetRoot.GetFirstChild<DataValidations>();
                 if (validations == null) return;
                 bool changed = false;
+                foreach (var validation in validations.Elements<DataValidation>()) {
+                    string range = validation.SequenceOfReferences?.InnerText ?? string.Empty;
+                    if (!ReferenceListOverlaps(range, filter)) continue;
+                    var options = optionsFactory(validation);
                 bool showInputMessage = options.PreserveShowMessageFlags
                     ? options.ShowInputMessage
                     : options.ShowInputMessage || !string.IsNullOrEmpty(options.Prompt) || !string.IsNullOrEmpty(options.PromptTitle);
                 bool showErrorMessage = options.PreserveShowMessageFlags
                     ? options.ShowErrorMessage
                     : options.ShowErrorMessage || !string.IsNullOrEmpty(options.Error) || !string.IsNullOrEmpty(options.ErrorTitle);
-                foreach (var validation in validations.Elements<DataValidation>()) {
-                    string range = validation.SequenceOfReferences?.InnerText ?? string.Empty;
-                    if (!ReferenceListOverlaps(range, filter)) continue;
 
                     bool validationChanged =
                         !string.Equals(validation.PromptTitle?.Value, options.PromptTitle, StringComparison.Ordinal)
