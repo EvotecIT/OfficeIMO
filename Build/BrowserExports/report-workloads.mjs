@@ -5,6 +5,7 @@ import { spawnSync } from "node:child_process";
 import { pathToFileURL, fileURLToPath } from "node:url";
 import os from "node:os";
 import path from "node:path";
+import { groupedFixtures, groupedRows, writeGroupedWorkload } from "./report-workloads-grouped.mjs";
 
 const args = process.argv.slice(2), command = args.shift();
 const opts = Object.fromEntries(args.flatMap((arg, i) => i % 2 ? [] : [[arg.replace(/^--/, ""), args[i + 1]]]));
@@ -20,7 +21,8 @@ const fixtures = [
   { name: "inventory-pdf-100000-sink", format: "pdf", rows: 100000, delivery: "sink", styled: false },
   { name: "assessment-pdf-10000-blob", format: "pdf", rows: 10000, delivery: "blob", styled: true },
   { name: "tagged-pdf-10000-sink", format: "pdf", rows: 10000, delivery: "sink", styled: true, tagged: true },
-  { name: "tagged-pdf-100000-sink", format: "pdf", rows: 100000, delivery: "sink", styled: true, tagged: true }
+  { name: "tagged-pdf-100000-sink", format: "pdf", rows: 100000, delivery: "sink", styled: true, tagged: true },
+  ...groupedFixtures
 ];
 const titles = ["ID", "Asset", "Owner", "Status", "Amount", "Seen"];
 function row(index) {
@@ -47,23 +49,25 @@ async function manifest() {
   const value = JSON.parse(await readFile(required("manifest"), "utf8"));
   if (sha(await readFile(fileURLToPath(import.meta.url))) !== value.helperSha256) throw Error("Workload helper changed after manifest preparation.");
   if (sha(await readFile(path.join(path.dirname(fileURLToPath(import.meta.url)), "verify-report-workload.py"))) !== value.verifierSha256) throw Error("Independent verifier changed after preparation.");
+  if (value.groupedHelperSha256 && sha(await readFile(path.join(path.dirname(fileURLToPath(import.meta.url)), "report-workloads-grouped.mjs"))) !== value.groupedHelperSha256) throw Error("Grouped workload changed after preparation.");
   if (value.example && sha(await readFile(value.example.path)) !== value.example.sha256) throw Error("Canonical editable-analysis example changed after preparation.");
   return value;
 }
 async function run() {
   const input = await manifest(), fixture = input.cases.find(item => item.name === required("case")), engine = required("engine");
   if (!fixture || !input.engines[engine]) throw Error("Unknown workload or engine.");
-  if (fixture.currentOnly && engine !== "current") throw Error("Editable analysis is current-only diagnostics; the snapshot baseline is not equivalent work.");
+  if (fixture.currentOnly && engine !== "current") throw Error("Analytical reports are current-only diagnostics; the snapshot baseline is not equivalent work.");
   const source = input.engines[engine];
   if (sha(await readFile(source.path)) !== source.sha256) throw Error("Measured runtime changed after preparation.");
   const api = await import(pathToFileURL(source.path).href), config = settings(fixture), output = path.resolve(required("output"));
   const example = fixture.kind === "editable-analysis" ? await import(pathToFileURL(input.example.path).href) : undefined;
+  const analytical = example || fixture.kind === "grouped-analysis";
   const file = await open(output, "w"), memoryBefore = process.memoryUsage(), loadBefore = os.loadavg(), cpuStart = process.cpuUsage();
   let outputBytes = 0, firstByteMs = null, last = performance.now(), maxTimerGapMs = 0, timerTicks = 0;
   let produced = 0, enumerations = 0, returned = 0, writes = 0, firstDeliveryProducedRows, acknowledgementOverlapWrites = 0, maxRowsAdvancedDuringAcknowledgement = 0;
   function* selectedRows() {
     enumerations++;
-    try { for (const value of example.operationalRows(fixture.rows)) { produced++; yield value; } }
+    try { for (const value of example ? example.operationalRows(fixture.rows) : groupedRows(fixture)) { produced++; yield value; } }
     finally { returned++; }
   }
   let maxSampledHeapBytes = memoryBefore.heapUsed, maxSampledExternalBytes = memoryBefore.external;
@@ -73,13 +77,14 @@ async function run() {
   const sink = { async write(bytes) {
     const before = produced; await file.writeFile(bytes);
     // Native compression has a bounded input/output pipeline; one compressed write may overlap source movement.
-    if (example && produced !== before) { acknowledgementOverlapWrites++; maxRowsAdvancedDuringAcknowledgement = Math.max(maxRowsAdvancedDuringAcknowledgement, produced - before); }
+    if (analytical && produced !== before) { acknowledgementOverlapWrites++; maxRowsAdvancedDuringAcknowledgement = Math.max(maxRowsAdvancedDuringAcknowledgement, produced - before); }
     firstByteMs ??= performance.now() - started; firstDeliveryProducedRows ??= produced; writes++; outputBytes += bytes.length;
   } };
   let blob, result;
   try {
     const writer = "write" + ({ pdf: "Pdf", xlsx: "Xlsx", csv: "Csv" })[fixture.format];
     if (example) result = await example.writeServiceAnalysis(api, { rows: selectedRows(), sink });
+    else if (fixture.kind === "grouped-analysis") result = await writeGroupedWorkload(api, fixture, { rows: selectedRows(), sink });
     else if (fixture.delivery === "blob") blob = await api[writer](rows(api, fixture), config);
     else await api[writer + "To"](rows(api, fixture), sink, config);
   } catch (error) { clearInterval(timer); await file.close(); throw error; }
@@ -88,14 +93,16 @@ async function run() {
   // Blob copying and all validation are outside the measured interval. Sink file acceptance is inside it.
   if (blob) { const bytes = new Uint8Array(await blob.arrayBuffer()); outputBytes = bytes.length; await file.writeFile(bytes); }
   await file.close();
-  if (example && (enumerations !== 1 || returned !== 1 || produced !== fixture.rows || result.rows !== fixture.rows || result.columns !== 6 || result.bytes !== outputBytes))
-    throw Error("Editable analysis did not complete its one-pass source and delivery contract.");
+  const columns = fixture.kind === "grouped-analysis" ? 7 : titles.length;
+  if (analytical && (enumerations !== 1 || returned !== 1 || produced !== fixture.rows || result.rows !== fixture.rows || result.columns !== columns || result.bytes !== outputBytes))
+    throw Error("Analytical report did not complete its one-pass source and delivery contract.");
   const bytes = await readFile(output);
-  return { case: fixture.name, engine, engineMs, firstByteMs, outputBytes, outputSha256: sha(bytes), rows: fixture.rows, columns: titles.length,
+  return { case: fixture.name, engine, engineMs, firstByteMs, outputBytes, outputSha256: sha(bytes), rows: fixture.rows, columns,
     peakRssBytes, maxSampledHeapBytes, maxSampledExternalBytes, memoryBefore, memoryAfter, maxTimerGapMs, timerTicks, cpuMicroseconds: cpu,
-    inputScope: example ? "Canonical lazy operationalRows and writeServiceAnalysis included: Unicode sites, typed values/dates, live Excel rules, three formula caches and one visible range chart. No retained source matrix. Imports/setup excluded; current-only diagnostics, no baseline ranking."
+    inputScope: fixture.kind === "grouped-analysis" ? "Lazy ordered service/site metrics and public grouped report APIs included. Typed numbers/nulls/UTC dates, all-null first group, numeric group/grand totals; no retained source matrix or group body. Imports/setup excluded; current-only diagnostics, no baseline ranking."
+      : example ? "Canonical lazy operationalRows and writeServiceAnalysis included: Unicode sites, typed values/dates, live Excel rules, three formula caches and one visible range chart. No retained source matrix. Imports/setup excluded; current-only diagnostics, no baseline ranking."
       : "Lazy deterministic row generation and portable cell construction included; no retained source matrix. Imports/setup excluded.",
-    ...(example ? { sourceContract: { produced, enumerations, returned, writes, firstDeliveryProducedRows, awaitedByteSink: true,
+    ...(analytical ? { sourceContract: { produced, enumerations, returned, writes, firstDeliveryProducedRows, awaitedByteSink: true,
       acknowledgementOverlapWrites, maxRowsAdvancedDuringAcknowledgement, nativeCompressionMayReadAhead: true } } : {}),
     outputScope: fixture.delivery === "sink" ? "Complete export through awaited regular-file writes; OS page cache applies; first byte is first sink acceptance." : "Complete Blob generation; later Blob read and file copy excluded; first-byte metric unavailable.",
     memoryScope: "Fresh Node process lifetime peakRSS through operation end includes import/native memory; sampled JS heap/external are separate and not additive. Sampling can miss synchronous peaks.",
@@ -114,6 +121,11 @@ async function validate(output = required("output")) {
   } else if (fixture.format === "pdf") {
     const checked = spawnSync(required("qpdf"), ["--check", output], { encoding: "utf8", maxBuffer: 1024 * 1024 });
     if (checked.status !== 0) throw Error("qpdf failed: " + checked.stdout + checked.stderr);
+    if (fixture.kind === "grouped-analysis") {
+      const checked = spawnSync(required("python"), [path.join(path.dirname(fileURLToPath(import.meta.url)), "verify-report-workload.py"), output, String(fixture.rows), "grouped-pdf", String(fixture.groupRows), required("pdftotext")], { encoding: "utf8", maxBuffer: 1024 * 1024 });
+      if (checked.status !== 0) throw Error("Independent grouped PDF validation failed: " + checked.stdout + checked.stderr);
+      return { passed: true, sha256: sha(bytes), bytes: bytes.length, proof: { ...JSON.parse(checked.stdout), qpdf: true } };
+    }
     const extracted = spawnSync(required("pdftotext"), ["-layout", output, "-"], { encoding: "utf8", maxBuffer: 64 * 1024 * 1024 });
     if (extracted.status !== 0) throw Error("Poppler extraction failed.");
     const lines = extracted.stdout.split(/[\r\n\f]+/).map(line => line.trim()).filter(line => /^N\d{6}\s/.test(line));
@@ -124,7 +136,7 @@ async function validate(output = required("output")) {
     proof = { rows: fixture.rows, columns: titles.length, everyCell: true, qpdf: true, ...(fixture.tagged ? { dataCells } : {}) };
   } else {
     const checked = spawnSync(required("python"), [path.join(path.dirname(fileURLToPath(import.meta.url)), "verify-report-workload.py"), output, String(fixture.rows),
-      ...(fixture.kind === "editable-analysis" ? ["service-analysis"] : [])], { encoding: "utf8", maxBuffer: 1024 * 1024 });
+      ...(fixture.kind === "editable-analysis" ? ["service-analysis"] : fixture.kind === "grouped-analysis" ? ["grouped-analysis", String(fixture.groupRows)] : [])], { encoding: "utf8", maxBuffer: 1024 * 1024 });
     if (checked.status !== 0) throw Error("Independent XLSX validation failed: " + checked.stdout + checked.stderr);
     proof = JSON.parse(checked.stdout);
   }
@@ -134,16 +146,18 @@ async function validate(output = required("output")) {
 // Functional acknowledgement/abort proof, outside every throughput measurement.
 async function contracts() {
   const input = await manifest(), fixture = input.cases.find(item => item.name === required("case"));
-  if (fixture?.kind !== "editable-analysis" || !input.example) throw Error("Contract proof requires the canonical editable-analysis case.");
+  if (!["editable-analysis", "grouped-analysis"].includes(fixture?.kind)) throw Error("Contract proof requires an analytical report case.");
   const source = input.engines.current;
   if (sha(await readFile(source.path)) !== source.sha256) throw Error("Current runtime changed before contract proof.");
-  const api = await import(pathToFileURL(source.path).href), example = await import(pathToFileURL(input.example.path).href);
-  const output = path.resolve(required("output")), storedOutput = output + ".store.xlsx", file = await open(storedOutput, "w");
+  const api = await import(pathToFileURL(source.path).href), example = fixture.kind === "editable-analysis" ? await import(pathToFileURL(input.example.path).href) : undefined;
+  const operation = options => example ? example.writeServiceAnalysis(api, options) : writeGroupedWorkload(api, fixture, options);
+  const selectedValues = () => example ? example.operationalRows(fixture.rows) : groupedRows(fixture);
+  const output = path.resolve(required("output")), storedOutput = output + ".store." + fixture.format, file = await open(storedOutput, "w");
   let produced = 0, enumerations = 0, returned = 0, writes = 0, bytes = 0, firstDeliveryProducedRows;
   const progress = [];
   async function* selected() {
     enumerations++;
-    try { for (const value of example.operationalRows(fixture.rows)) { produced++; yield value; } }
+    try { for (const value of selectedValues()) { produced++; yield value; } }
     finally { returned++; }
   }
   const destination = { async write(chunk) {
@@ -152,22 +166,22 @@ async function contracts() {
     firstDeliveryProducedRows ??= produced; writes++; bytes += chunk.length;
   } };
   let result;
-  try { result = await example.writeServiceAnalysis(api, { input: { compression: "store" }, rows: selected(), sink: destination, onProgress: event => progress.push(event.rows) }); }
+  try { result = await operation({ input: { compression: "store" }, rows: selected(), sink: destination, onProgress: event => progress.push(event.rows) }); }
   finally { await file.close(); }
   if (enumerations !== 1 || returned !== 1 || produced !== fixture.rows || result.rows !== fixture.rows || result.bytes !== bytes || progress.at(-1) !== fixture.rows)
     throw Error("Slow editable analysis violated source, progress or byte-sink delivery ownership.");
   const storedComplete = await validate(storedOutput);
-  // Hold the first entry-data chunk. Native compression may fill its pipeline, but must stop before consuming the full source.
+  // Hold output after source data has entered the writer. Compression may fill its pipeline, but must stop before full source consumption.
   const compressedFile = await open(output, "w");
   let autoProduced = 0, autoEnumerations = 0, autoReturned = 0, autoWrites = 0, autoBytes = 0, heldFrontier;
   async function* compressedRows() {
     autoEnumerations++;
-    try { for (const value of example.operationalRows(fixture.rows)) { autoProduced++; yield value; } }
+    try { for (const value of selectedValues()) { autoProduced++; yield value; } }
     finally { autoReturned++; }
   }
   let autoResult;
-  try { autoResult = await example.writeServiceAnalysis(api, { rows: compressedRows(), sink: { async write(chunk) {
-    if (autoWrites === 1) {
+  try { autoResult = await operation({ rows: compressedRows(), sink: { async write(chunk) {
+    if (!heldFrontier && autoProduced > 0) {
       const before = autoProduced;
       await new Promise(resolve => setTimeout(resolve, 100)); const after100ms = autoProduced;
       await new Promise(resolve => setTimeout(resolve, 100)); const after200ms = autoProduced;
@@ -179,15 +193,15 @@ async function contracts() {
   if (!heldFrontier || autoEnumerations !== 1 || autoReturned !== 1 || autoProduced !== fixture.rows || autoResult.rows !== fixture.rows || autoResult.bytes !== autoBytes)
     throw Error("Compressed editable analysis violated its one-pass or byte-delivery contract.");
   const complete = await validate();
-  const controller = new AbortController(), reason = new Error("Cancel the 100k selected analysis after 1000 rows");
+  const controller = new AbortController(), reason = new Error("Cancel the selected analysis after 1000 rows");
   let cancelledRows = 0, cancelledReturns = 0, release, caught; const partial = [];
   const released = new Promise(resolve => { release = resolve; });
   async function* cancelled() {
-    try { for (const value of example.operationalRows(fixture.rows)) { if (++cancelledRows === 1000) controller.abort(reason); yield value; } }
+    try { for (const value of selectedValues()) { if (++cancelledRows === 1000) controller.abort(reason); yield value; } }
     finally { cancelledReturns++; release(); }
   }
   const cancelledDestination = { write(chunk) { partial.push(chunk.slice()); } };
-  try { await example.writeServiceAnalysis(api, { input: { compression: "store" }, rows: cancelled(), sink: cancelledDestination, signal: controller.signal }); }
+  try { await operation({ input: { compression: "store" }, rows: cancelled(), sink: cancelledDestination, signal: controller.signal }); }
   catch (error) { caught = error; }
   if (caught !== reason || cancelledRows !== 1000) throw Error("Cancellation changed its original reason or row frontier.");
   await new Promise((resolve, reject) => {
@@ -195,13 +209,14 @@ async function contracts() {
     released.then(() => { clearTimeout(watchdog); resolve(); });
   });
   const partialBytes = Buffer.concat(partial);
-  if (cancelledReturns !== 1 || partialBytes.indexOf(Buffer.from([0x50, 0x4b, 0x05, 0x06])) !== -1) throw Error("Cancelled analysis returned a completed archive or did not release its input once.");
+  const completedOutput = fixture.format === "xlsx" ? partialBytes.indexOf(Buffer.from([0x50, 0x4b, 0x05, 0x06])) !== -1 : partialBytes.includes(Buffer.from("%%EOF"));
+  if (cancelledReturns !== 1 || completedOutput) throw Error("Cancelled analysis returned a completed output or did not release its input once.");
   await manifest();
   if (sha(await readFile(source.path)) !== source.sha256) throw Error("Current runtime changed during contract proof.");
   return { passed: true, runtime: source, case: fixture.name, functionalProofNotTiming: true,
     slowSink: { compression: "store", produced, enumerations, returned, writes, bytes, firstDeliveryProducedRows, progress: progress.at(-1), callerOwnedByteSink: true, acknowledgementDelayMs: 1, independentOutput: storedComplete },
     nativeCompression: { produced: autoProduced, enumerations: autoEnumerations, returned: autoReturned, writes: autoWrites, bytes: autoBytes, heldFrontier },
-    cancellation: { declaredRows: fixture.rows, consumedRows: cancelledRows, returned: cancelledReturns, originalReason: true, partialBytes: partialBytes.length, completedZip: false },
+    cancellation: { declaredRows: fixture.rows, consumedRows: cancelledRows, returned: cancelledReturns, originalReason: true, partialBytes: partialBytes.length, completedOutput: false },
     independentOutput: complete };
 }
 try {
@@ -213,6 +228,7 @@ try {
     const names = opts.cases?.split(","), cases = names ? names.map(name => { const item = fixtures.find(item => item.name === name); if (!item) throw Error("Unknown case " + name); return item; }) : fixtures.filter(item => !item.currentOnly);
     const examplePath = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../../OfficeIMO.JavaScript.Examples/report-engine-job.mjs");
     result = { schema: 1, created: new Date().toISOString(), helperSha256: sha(await readFile(fileURLToPath(import.meta.url))),
+      groupedHelperSha256: sha(await readFile(path.join(path.dirname(fileURLToPath(import.meta.url)), "report-workloads-grouped.mjs"))),
       verifierSha256: sha(await readFile(path.join(path.dirname(fileURLToPath(import.meta.url)), "verify-report-workload.py"))), engines, cases,
       ...(cases.some(item => item.kind === "editable-analysis") ? { example: { path: examplePath, sha256: sha(await readFile(examplePath)) } } : {}) };
     await writeFile(path.join(evidence, "workloads.json"), JSON.stringify(result, null, 2) + "\n");

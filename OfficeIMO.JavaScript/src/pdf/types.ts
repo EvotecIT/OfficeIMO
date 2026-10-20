@@ -2,6 +2,7 @@ import type { Column, ExportValue, CellPresentation, CellValue, ColumnValueConte
 import type { PdfFont } from "./font.js";
 import type { PdfTextRun } from "./inline-types.js";
 import type { PdfTextDirection, PdfTextShaper } from "./text-shaping-types.js";
+import type { BooleanText } from "../core/value-text.js";
 
 /** PDF lengths are points (72 points per inch). */
 export interface PdfPageSize { readonly width: number; readonly height: number; }
@@ -77,6 +78,15 @@ export interface PdfPageContext {
   readonly sectionPageNumber: number;
   readonly sectionTitle?: string;
 }
+/** Literal text around the current/total page counts; no locale is inferred. */
+export interface PdfPageNumberLabels {
+  /** Text before the current page number. Default "Page ". Empty text is valid. */
+  readonly prefix?: string;
+  /** Text between the current and total page numbers. Default " of ". */
+  readonly separator?: string;
+  /** Text after the total page count. Default empty. */
+  readonly suffix?: string;
+}
 export interface PdfOptions<T = never> extends Omit<StreamOptions, "limits"> {
   /** Optional provider for composed paragraphs and table cells. Legacy decorations remain scalar text. */
   readonly textShaper?: PdfTextShaper;
@@ -113,6 +123,10 @@ export interface PdfOptions<T = never> extends Omit<StreamOptions, "limits"> {
   readonly pageHeader?: string | ((context: PdfPageContext) => string);
   readonly pageFooter?: string | ((context: PdfPageContext) => string);
   readonly pageNumbers?: boolean;
+  /** Captured page-number literals. English defaults preserve the existing display contract. */
+  readonly pageNumberLabels?: PdfPageNumberLabels;
+  /** Explicit boolean display labels. Defaults are the existing English True/False text. */
+  readonly booleanText?: BooleanText;
   /** Prefer ExportCell.text for presentation, then this formatter, then ISO/scalar text. */
   readonly formatValue?: (value: CellValue, context: ColumnValueContext) => string;
   /** Styled display runs when ExportCell.text is absent; must return synchronously. */

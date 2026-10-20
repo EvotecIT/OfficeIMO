@@ -160,6 +160,21 @@ node Build/BrowserExports/report-workloads.mjs contracts --manifest "$evidence/e
 
 Independent readback checks every source cell, finite formula/cache ranges, validation and chart references, and the two visible sheets. The separate functional run checks slow stored output, cancellation and source release, plus a held compressed-data write. Native compression can buffer input while a compressed write awaits acknowledgement; the functional observation checks that source consumption stops before the complete input drains rather than assuming that every compressed write stops it immediately. Keep these observations outside throughput measurements.
 
+## Grouped analytical report qualification
+
+The `--grouped-report` profile consumes real filtered/selected DataTables captures from both pinned version pairs and a native CanopyX capture. The host explicitly orders by the grouping field and supplies stable column IDs, renamed/reordered headings and display labels. The shared executable report job writes XLSX and PDF; the adapters retain grid capture ownership.
+
+```powershell
+$origin = 'http://127.0.0.1:8765' # Existing server serving this repository root.
+dotnet run --project Build/BrowserExports/OfficeIMO.Browser.Interop.csproj -c Release --artifacts-path "$evidence/grouped/build" -- . "$evidence/grouped" --grouped-report "--module-url=$origin/OfficeIMO.JavaScript/dist" "--example-url=$origin/OfficeIMO.JavaScript.Examples/report-engine-job.mjs" "--comparison-assets=$assets" "--canopy=$canopySource"
+# Re-read retained files without another browser run.
+dotnet run --project Build/BrowserExports/OfficeIMO.Browser.Interop.csproj -c Release -- --validate-grouped "$evidence/grouped"
+```
+
+The three-engine profile checks Blob and slow-sink exports, a bounded worker handoff, empty captures, cancellation and recurrence rejection. XLSX readback validates typed data, finite formula ranges/caches and native outlines. PDF readback validates every source record, group/grand averages, continuation labels and explicit page-counter labels. A host-authored footer is checked separately from the table body margin. Native Excel edit, recalculate, collapse and save/reopen evidence remains a separate application check.
+
+The canonical ReportWorkloads runner includes opt-in `grouped-analysis-xlsx-100000-sink` and `grouped-analysis-pdf-5000-sink` cases. They measure the OfficeIMO grouped workflow with independent content validation; there is no equivalent earlier grouped writer to use as a speed baseline. Keep timing and memory observations outside ordinary correctness gates and report the captured host load and source hashes. A separate equivalent flat-report comparison can detect overhead in unchanged default paths.
+
 ## DataTables integration and comparisons
 
 The optional grid integration is qualified against the version pairs in `comparison-assets.json`. The downloaded MIT-licensed assets are test-only and hash-checked; they never enter npm, NuGet or product build dependencies. The `bundled` pair identifies the assessed HtmlForgeX asset versions, while `current` identifies the pinned current comparison pair. Updating this manifest is an intentional comparison-input change.

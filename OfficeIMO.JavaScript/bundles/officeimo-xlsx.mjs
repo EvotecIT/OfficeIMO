@@ -1657,7 +1657,7 @@ function formulaText(value) {
     localReferences(text);
     return text;
 }
-/** An authored Excel formula and its initial numeric result. The writer stores both without evaluating the expression. */
+/** An authored Excel formula and its initial numeric or blank result. The writer stores both without evaluating the expression. */
 class FormulaCell {
     cachedValue;
     style;
@@ -1669,8 +1669,8 @@ class FormulaCell {
         this.cachedValue = cachedValue;
         this.style = style;
         this.formula = formulaText(formula);
-        if (typeof cachedValue !== "number" || !Number.isFinite(cachedValue))
-            throw new TypeError("Formula caches must be finite numbers.");
+        if (cachedValue !== null && (typeof cachedValue !== "number" || !Number.isFinite(cachedValue)))
+            throw new TypeError("Formula caches must be finite numbers or null for a blank result.");
         if (style !== undefined && (!Number.isSafeInteger(style) || style < 0))
             throw new RangeError("Formula style indexes must be nonnegative safe integers.");
         formulaCells.add(this);
@@ -1681,7 +1681,7 @@ class FormulaCell {
 function formulaXml(cell) {
     if (!(cell instanceof FormulaCell))
         throw new TypeError("Formula cells must be created with FormulaCell.");
-    return "<f>" + escapeXml(cell.formula, "reject") + "</f><v>" + cell.cachedValue + "</v>";
+    return "<f>" + escapeXml(cell.formula, "reject") + "</f><v>" + (cell.cachedValue ?? "") + "</v>";
 }
 const _exports = Object.freeze({ formulaText: formulaText, FormulaCell: FormulaCell, formulaXml: formulaXml });
 return _exports;
@@ -2922,9 +2922,15 @@ class Worksheet {
             book.styles.validateStyle(options.headerStyle);
         if (options.alternatingRowStyle !== undefined)
             book.styles.compose(0, options.alternatingRowStyle);
-        for (const callback of [options.rowStyle, options.cellStyle])
+        for (const callback of [options.rowStyle, options.cellStyle, options.rowOutline])
             if (callback !== undefined && typeof callback !== "function")
-                throw new TypeError("Style callbacks must be functions.");
+                throw new TypeError("Row and style callbacks must be functions.");
+        if (options.maxOutlineLevel !== undefined && (!Number.isInteger(options.maxOutlineLevel) || options.maxOutlineLevel < 0 || options.maxOutlineLevel > 7))
+            throw new RangeError("Maximum outline level must be an integer from zero through seven.");
+        if (options.rowOutline && options.maxOutlineLevel === undefined)
+            throw new TypeError("A row outline callback requires maxOutlineLevel before streamed rows are written.");
+        if (!options.rowOutline && options.maxOutlineLevel !== undefined)
+            throw new TypeError("maxOutlineLevel requires a row outline callback.");
         for (const height of [options.rowHeight, options.headerHeight])
             if (height !== undefined && (!Number.isFinite(height) || height <= 0 || height > 409))
                 throw new RangeError("Row height must be positive and at most 409 points.");
@@ -3061,7 +3067,7 @@ class Worksheet {
             this.book.retainFormula(formula.formula.length);
         this.book.budget.cell(formula ? formula.formula : value, reservedCharacters);
         if (formula)
-            return prefix + '>' + formulaXml(formula) + '</c>';
+            return prefix + (value === null ? ' t="str"' : "") + '>' + formulaXml(formula) + '</c>';
         if (total)
             return prefix + (value === null ? ' t="str"' : "") + '><f>' + total.formula.replace(/"/g, "&quot;") + '</f><v>' + (value ?? "") + '</v></c>';
         if (value == null || (type === "number" && !Number.isFinite(value)))
@@ -3078,16 +3084,38 @@ class Worksheet {
     }
     *rowXml(values, number, header, footer = false, title = false) {
         const height = title ? this.options.title?.height ?? 28 : header ? this.options.headerHeight : this.options.rowHeight;
-        const context = !header && !footer && (this.options.rowStyle || this.options.cellStyle) ? Object.freeze({ rowIndex: number - this.headerRows - 1, worksheetRow: number, sheetName: this.name,
+        const context = !header && !footer && (this.options.rowStyle || this.options.cellStyle || this.options.rowOutline) ? Object.freeze({ rowIndex: number - this.headerRows - 1, worksheetRow: number, sheetName: this.name,
             values: Object.freeze(this.columns.map((_, i) => values[i] instanceof FormulaCell ? values[i].cachedValue : values[i] instanceof Cell || values[i] instanceof ExportCell ? values[i].value : values[i])) }) : undefined;
         const rowStyle = context && this.options.rowStyle?.(context);
         if (rowStyle !== undefined)
             validateStylePatch(rowStyle);
+        const outline = this.outline(context);
         const rowStyles = !header && (rowStyle || this.options.alternatingRowStyle) ? new Map() : undefined;
-        yield '<row r="' + number + '"' + (height === undefined ? "" : ' ht="' + height + '" customHeight="1"') + '>';
+        yield '<row r="' + number + '"' + (height === undefined ? "" : ' ht="' + height + '" customHeight="1"') +
+            (outline?.level ? ' outlineLevel="' + outline.level + '"' : "") + (outline?.hidden ? ' hidden="1"' : "") + (outline?.collapsed ? ' collapsed="1"' : "") + '>';
         for (let i = 0; i < this.columns.length; i++)
             yield this.cell(values[i], i, number, header, rowStyle, context, rowStyles, footer, title);
         yield '</row>';
+    }
+    outline(context) {
+        if (!context || !this.options.rowOutline)
+            return undefined;
+        const requested = this.options.rowOutline(context);
+        if (requested === undefined)
+            return undefined;
+        if (requested === null || typeof requested !== "object" || Array.isArray(requested))
+            throw new TypeError("Row outline callbacks must return metadata or undefined.");
+        if (typeof requested.then === "function") {
+            void Promise.resolve(requested).catch(() => { });
+            throw new TypeError("Row outline callbacks must return synchronous metadata.");
+        }
+        const { level: requestedLevel, hidden, collapsed } = requested, level = requestedLevel ?? 0;
+        if (!Number.isInteger(level) || level < 0 || level > this.options.maxOutlineLevel)
+            throw new RangeError("Row outline level exceeds the declared maximum.");
+        for (const value of [hidden, collapsed])
+            if (value !== undefined && typeof value !== "boolean")
+                throw new TypeError("Row outline flags must be booleans.");
+        return Object.freeze({ level, ...(hidden === undefined ? {} : { hidden }), ...(collapsed === undefined ? {} : { collapsed }) });
     }
     writeRow(values, number, header, footer = false, title = false) {
         const chunks = this.rowXml(values, number, header, footer, title);
@@ -3182,8 +3210,10 @@ class Worksheet {
         const buffer = this.buffer = new ChunkedTextSink(this.entry, this.book.settings.signal), opts = this.options;
         const x = opts.freezeColumns ?? 0, y = opts.freezeHeader ? this.headerRows : 0;
         const pane = x && y ? "bottomRight" : x ? "topRight" : "bottomLeft", cell = columnName(x + 1) + (y + 1);
-        await buffer.write(xmlDeclaration + '<worksheet xmlns="' + spreadsheetNamespace + '" xmlns:r="' + officeRelationshipsNamespace + '">' + (opts.print ? '<sheetPr><pageSetUpPr fitToPage="1"/></sheetPr>' : "") + '<sheetViews><sheetView workbookViewId="0">' +
-            (x || y ? '<pane' + (x ? ' xSplit="' + x + '"' : "") + (y ? ' ySplit="' + y + '"' : "") + ' topLeftCell="' + cell + '" activePane="' + pane + '" state="frozen"/><selection pane="' + pane + '" activeCell="' + cell + '" sqref="' + cell + '"/>' : "") + '</sheetView></sheetViews>');
+        await buffer.write(xmlDeclaration + '<worksheet xmlns="' + spreadsheetNamespace + '" xmlns:r="' + officeRelationshipsNamespace + '">' +
+            (opts.print || opts.rowOutline ? '<sheetPr>' + (opts.rowOutline ? '<outlinePr summaryBelow="1" showOutlineSymbols="1"/>' : "") + (opts.print ? '<pageSetUpPr fitToPage="1"/>' : "") + '</sheetPr>' : "") + '<sheetViews><sheetView workbookViewId="0">' +
+            (x || y ? '<pane' + (x ? ' xSplit="' + x + '"' : "") + (y ? ' ySplit="' + y + '"' : "") + ' topLeftCell="' + cell + '" activePane="' + pane + '" state="frozen"/><selection pane="' + pane + '" activeCell="' + cell + '" sqref="' + cell + '"/>' : "") + '</sheetView></sheetViews>' +
+            (opts.rowOutline ? '<sheetFormatPr defaultRowHeight="15" outlineLevelRow="' + opts.maxOutlineLevel + '"/>' : ""));
         const defaultWidth = opts.defaultColumnWidth ?? (this.table ? 20 : undefined);
         if (this.columns.some((_, i) => this.layout.widths[i] !== undefined || defaultWidth !== undefined)) {
             await buffer.write('<cols>');
@@ -4384,7 +4414,362 @@ const _exports = Object.freeze({ writeXlsx: writeXlsx, writeXlsxTo: writeXlsxTo 
 return _exports;
 })();
 
+const _m41 = (() => {
+const { ExportCell, assertExportValue } = _m19;
+
+const { isDate } = _m11;
+
+const { checkAbort, inputRows, pause, taskYieldDue } = _m2;
+
+const { ExportBudget } = _m6;
+
+const { OfficeIMOError } = _m3;
+
+const { copyColumns, createRowProjector } = _m23;
+
+const { createTotals } = _m28;
+
+const sources = new WeakMap();
+/** @internal Writers accept the owned immutable event source rather than trusting caller-authored event protocols. */
+function assertGroupedReportSource(value) {
+    if (!value || typeof value !== "object" || !sources.has(value))
+        throw new TypeError("Create grouped report sources with createGroupedReport.");
+}
+/** @internal The consuming writer's signal reaches pending source reads as well as destination writes. */
+function groupedReportEvents(source, signal) {
+    assertGroupedReportSource(source);
+    return { async *[Symbol.asyncIterator]() {
+            const operation = groupedReportOperation(source, signal);
+            try {
+                yield* operation.events;
+            }
+            finally {
+                operation.dispose();
+            }
+        } };
+}
+/** @internal Share cancellation between original source reads and destination writes; callers dispose in finally. */
+function groupedReportOperation(source, signal) {
+    assertGroupedReportSource(source);
+    const factory = sources.get(source), linked = linkedSignals(factory.signal, signal);
+    return { signal: linked.signal, events: factory.events(linked.signal), dispose: linked.dispose };
+}
+function linkedSignals(source, consumer) {
+    if (!source || !consumer || source === consumer)
+        return { signal: source ?? consumer, dispose() { } };
+    const controller = new AbortController(), abortSource = () => controller.abort(source.reason), abortConsumer = () => controller.abort(consumer.reason);
+    source.addEventListener("abort", abortSource, { once: true });
+    consumer.addEventListener("abort", abortConsumer, { once: true });
+    if (source.aborted)
+        abortSource();
+    else if (consumer.aborted)
+        abortConsumer();
+    return { signal: controller.signal, dispose() { source.removeEventListener("abort", abortSource); consumer.removeEventListener("abort", abortConsumer); } };
+}
+function maximum(value, fallback, name) {
+    const result = value ?? fallback;
+    if (!Number.isSafeInteger(result) || result < 0)
+        throw new RangeError(name + " must be a nonnegative safe integer.");
+    return result;
+}
+function copyValue(value) {
+    assertExportValue(value);
+    if (isDate(value))
+        return new Date(Date.prototype.getTime.call(value));
+    if (value instanceof ExportCell) {
+        const scalar = value.value, text = value.text, presentation = value.presentation, link = value.link;
+        return new ExportCell(isDate(scalar) ? new Date(Date.prototype.getTime.call(scalar)) : scalar, { ...(text === undefined ? {} : { text }), ...(presentation === undefined ? {} : { presentation }), ...(link === undefined ? {} : { link }) });
+    }
+    return value ?? null;
+}
+function scalar(value) { return value instanceof ExportCell ? value.value : value; }
+function identity(value) {
+    if (value == null)
+        return { key: null, id: "null", text: "" };
+    if (isDate(value)) {
+        const time = Date.prototype.getTime.call(value);
+        if (!Number.isFinite(time))
+            throw new TypeError("A group key date must be valid.");
+        return { key: new Date(time), id: "date:" + time, text: new Date(time).toISOString() };
+    }
+    if (typeof value === "number" && !Number.isFinite(value))
+        throw new TypeError("A numeric group key must be finite.");
+    const text = String(value);
+    return { key: value, id: typeof value + ":" + text, text };
+}
+function eventKey(value) { return isDate(value) ? new Date(Date.prototype.getTime.call(value)) : value; }
+function result(aggregates) {
+    return Object.freeze(aggregates.map(aggregate => aggregate.operation === undefined ? null : aggregate.value()));
+}
+/** Group a preordered row source once. Closed-group recurrence rejects rather than silently splitting a group.
+ * Equality is locale independent: strings are exact, numbers and booleans retain their types, dates compare
+ * by UTC instant, and null/undefined share one group. No sorting or complete group-body retention occurs. */
+function createGroupedReport(rows, options) {
+    if (!options || typeof options !== "object")
+        throw new TypeError("Grouped report options are required.");
+    // Capture configuration before validation so accessors cannot select different columns in later stages.
+    const { columns: selected, groupBy, totals: selectedTotals, groupLabel, maxGroups: requestedGroups, maxGroupKeyCharacters: requestedCharacters, signal: sourceSignal, limits } = options;
+    if (limits !== undefined && (!limits || typeof limits !== "object" || Array.isArray(limits)))
+        throw new TypeError("Grouped source limits must be an object.");
+    if (limits !== undefined && "maxOutputBytes" in limits)
+        throw new TypeError("Set maxOutputBytes on the format writer, not the grouped source.");
+    const capturedLimits = limits === undefined ? undefined : { ...limits };
+    if (!Array.isArray(selected) || !selected.length)
+        throw new TypeError("A grouped report needs declared columns.");
+    const captured = selected.map(column => ({ ...column }));
+    const columns = copyColumns(captured);
+    const keys = columns.map(column => column.key);
+    if (keys.some(key => typeof key !== "string" || key.length === 0) || new Set(keys).size !== keys.length)
+        throw new TypeError("Grouped report columns need unique, nonempty stable keys.");
+    const groupColumn = keys.indexOf(groupBy);
+    if (typeof groupBy !== "string" || groupColumn < 0)
+        throw new TypeError("groupBy must name a declared stable column key.");
+    if (groupLabel !== undefined && typeof groupLabel !== "function")
+        throw new TypeError("groupLabel must be a synchronous function.");
+    const totals = Object.freeze({ ...selectedTotals });
+    const grand = createTotals(columns, totals);
+    for (let column = 0; column < columns.length; column++)
+        if (grand[column].operation !== undefined && columns[column].type !== "number")
+            throw new TypeError("Grouped numeric totals require a column declared with type:number.");
+    const maxGroups = maximum(requestedGroups, 1000, "maxGroups");
+    const maxCharacters = maximum(requestedCharacters, 1000000, "maxGroupKeyCharacters");
+    const budget = new ExportBudget(capturedLimits);
+    const portable = Object.freeze(columns.map(column => {
+        const { value: _getter, ...metadata } = column;
+        return Object.freeze(metadata);
+    }));
+    for (const column of columns) {
+        budget.cell(column.header);
+        for (const group of column.groups ?? [])
+            budget.reserve(0, group.length);
+        Object.freeze(column);
+    }
+    let consumed = false;
+    const eventsFor = (signal) => Object.freeze({ [Symbol.asyncIterator]() {
+            if (consumed)
+                throw new TypeError("A grouped report source can be consumed only once.");
+            consumed = true;
+            return iterate(signal);
+        } });
+    const events = eventsFor(sourceSignal);
+    async function* iterate(signal) {
+        const project = createRowProjector(columns, undefined, signal);
+        const seen = new Set();
+        let characters = 0, rowCount = 0, groups = 0, currentId;
+        let key = null, label = "", groupRows = 0, aggregates = createTotals(columns, totals);
+        for await (const input of inputRows(rows, signal)) {
+            // Copy positional input once before the shared projector validates and inspects its values.
+            const snapshot = Array.isArray(input) ? Array.from(input) : input;
+            const projected = project(snapshot, rowCount), values = [];
+            for (let column = 0; column < columns.length; column++)
+                values.push(copyValue(projected[column]));
+            checkAbort(signal);
+            const next = identity(scalar(values[groupColumn]));
+            if (next.id !== currentId) {
+                if (seen.has(next.id))
+                    throw new TypeError("Grouped rows must be contiguous; a closed group key occurred again.");
+                if (groups === maxGroups)
+                    throw new OfficeIMOError("RESOURCE_LIMIT", "maxGroups exceeded.");
+                let nextLabel = next.text;
+                if (groupLabel) {
+                    const formatted = groupLabel(eventKey(next.key));
+                    if (typeof formatted?.then === "function")
+                        void Promise.resolve(formatted).catch(() => { });
+                    if (typeof formatted !== "string")
+                        throw new TypeError("groupLabel must return synchronous text.");
+                    nextLabel = formatted;
+                }
+                checkAbort(signal);
+                const nextCharacters = characters + next.id.length + nextLabel.length;
+                if (!Number.isSafeInteger(nextCharacters) || nextCharacters > maxCharacters)
+                    throw new OfficeIMOError("RESOURCE_LIMIT", "maxGroupKeyCharacters exceeded.");
+                budget.reserve(0, nextLabel.length);
+                if (currentId !== undefined)
+                    yield Object.freeze({ kind: "groupEnd", groupIndex: groups - 1,
+                        key: eventKey(key), label, rows: groupRows, totals: result(aggregates) });
+                currentId = next.id;
+                key = next.key;
+                label = nextLabel;
+                groupRows = 0;
+                characters = nextCharacters;
+                seen.add(next.id);
+                groups++;
+                aggregates = createTotals(columns, totals);
+                yield Object.freeze({ kind: "groupStart", groupIndex: groups - 1, key: eventKey(key), label });
+            }
+            budget.row(rowCount + 1);
+            for (let column = 0; column < values.length; column++) {
+                const value = values[column], raw = scalar(value);
+                if (grand[column].operation !== undefined && raw != null && (typeof raw !== "number" || !Number.isFinite(raw)))
+                    throw new TypeError("Grouped numeric metrics must resolve to finite numbers or null.");
+                budget.cell(raw);
+                if (value instanceof ExportCell && value.text !== undefined)
+                    budget.reserve(0, value.text.length);
+                aggregates[column].accept(raw);
+                grand[column].accept(raw);
+            }
+            checkAbort(signal);
+            yield Object.freeze({ kind: "row", values: Object.freeze(values), rowIndex: rowCount, groupIndex: groups - 1 });
+            rowCount++;
+            groupRows++;
+            if (taskYieldDue()) {
+                await pause();
+                checkAbort(signal);
+            }
+        }
+        checkAbort(signal);
+        if (currentId !== undefined)
+            yield Object.freeze({ kind: "groupEnd", groupIndex: groups - 1,
+                key: eventKey(key), label, rows: groupRows, totals: result(aggregates) });
+        checkAbort(signal);
+        yield Object.freeze({ kind: "complete", rows: rowCount, groups, totals: result(grand) });
+    }
+    const source = Object.freeze({ columns: portable, groupBy, totals, events });
+    sources.set(source, { signal: sourceSignal, events: eventsFor });
+    return source;
+}
+const _exports = Object.freeze({ assertGroupedReportSource: assertGroupedReportSource, groupedReportEvents: groupedReportEvents, groupedReportOperation: groupedReportOperation, createGroupedReport: createGroupedReport });
+return _exports;
+})();
+
 const _m40 = (() => {
+const { assertGroupedReportSource, groupedReportOperation } = _m41;
+
+const { withDestination } = _m5;
+
+const { Workbook } = _m1;
+
+const { FormulaCell } = _m21;
+
+const { columnName } = _m18;
+
+const { copyStylePatch } = _m15;
+
+const { portableSheet } = _m39;
+
+const unsupported = ["columns", "headerRows", "footer", "table", "mergedCells", "hyperlinks", "conditionalFormats", "dataValidation", "rowStyle", "cellStyle", "rowOutline", "maxOutlineLevel"];
+const subtotalOperations = { average: 1, count: 2, max: 4, min: 5, sum: 9 };
+function prepare(report, configuration) {
+    assertGroupedReportSource(report);
+    if (!configuration || typeof configuration !== "object")
+        throw new TypeError("Grouped XLSX options require host-authored labels.");
+    const options = { ...configuration }, sheet = { ...options.sheet };
+    if (!options.labelColumn || typeof options.labelColumn !== "object")
+        throw new TypeError("Grouped XLSX needs a leading label column.");
+    const labelColumn = { ...options.labelColumn };
+    if (typeof labelColumn.header !== "string")
+        throw new TypeError("The leading label column needs a string header.");
+    for (const label of [options.subtotalLabel, options.grandTotalLabel])
+        if (typeof label !== "function")
+            throw new TypeError("Grouped summary labels must be functions.");
+    for (const flag of [options.includeGrandTotal, options.collapseGroups])
+        if (flag !== undefined && typeof flag !== "boolean")
+            throw new TypeError("Grouped XLSX flags must be booleans.");
+    for (const key of unsupported)
+        if (sheet[key] !== undefined)
+            throw new TypeError("Grouped XLSX owns worksheet " + key + ".");
+    if (sheet.autoFilter !== undefined && sheet.autoFilter !== false)
+        throw new TypeError("Grouped summary rows cannot use a native table or autofilter.");
+    if (options.sink !== undefined || options.cellValueWriters !== undefined)
+        throw new TypeError("Grouped XLSX owns its destination and uses already resolved source values.");
+    for (const style of [options.groupStyle, options.subtotalStyle, options.grandTotalStyle])
+        if (style !== undefined)
+            portableSheet({ alternatingRowStyle: style });
+    for (const column of report.columns)
+        if (Object.prototype.hasOwnProperty.call(report.totals, column.key) && column.type !== "number")
+            throw new TypeError("Editable grouped totals require explicitly numeric columns.");
+    return { ...options, labelColumn, sheet: portableSheet(sheet),
+        ...(options.groupStyle ? { groupStyle: copyStylePatch(options.groupStyle) } : {}),
+        ...(options.subtotalStyle ? { subtotalStyle: copyStylePatch(options.subtotalStyle) } : {}),
+        ...(options.grandTotalStyle ? { grandTotalStyle: copyStylePatch(options.grandTotalStyle) } : {}) };
+}
+function label(value) {
+    if (typeof value?.then === "function")
+        void Promise.resolve(value).catch(() => { });
+    if (typeof value !== "string")
+        throw new TypeError("Grouped summary labels must return strings.");
+    return value;
+}
+/** SUBTOTAL ignores nested subtotal formulas; functions 1..11 include collapsed outline details. */
+function subtotal(operation, letter, first, last, cached) {
+    const range = letter + first + ":" + letter + last;
+    const expression = "SUBTOTAL(" + subtotalOperations[operation] + "," + range + ")";
+    return new FormulaCell(operation === "average" || operation === "min" || operation === "max"
+        ? "IF(SUBTOTAL(2," + range + ")=0,\"\"," + expression + ")" : expression, cached, operation === "count" ? 0 : undefined);
+}
+async function write(report, options, sink) {
+    const { labelColumn, subtotalLabel, grandTotalLabel, includeGrandTotal, collapseGroups, sheet: sheetOptions, groupStyle, subtotalStyle, grandTotalStyle, onProgress, ...settings } = options;
+    const operation = groupedReportOperation(report, settings.signal);
+    let rows = 0, currentKind = "groupStart";
+    const progress = onProgress ? (event) => onProgress({ ...event, rows, ...(event.sheetRows === undefined ? {} : { sheetRows: rows }) }) : undefined;
+    let book;
+    try {
+        book = new Workbook({ ...settings, ...(operation.signal ? { signal: operation.signal } : {}), ...(progress ? { onProgress: progress } : {}), ...(sink ? { sink } : {}) });
+        const { name = "Data", ...sheetSettings } = sheetOptions ?? {};
+        const columns = [{ ...labelColumn, type: "string" }, ...report.columns];
+        const styles = { groupStart: groupStyle ?? { font: { bold: true } }, groupEnd: subtotalStyle ?? { font: { bold: true } }, complete: grandTotalStyle ?? { font: { bold: true } } };
+        const sheet = book.addWorksheet(name, { boldHeader: true, autoSize: { minWidth: 6, maxWidth: 54 }, ...sheetSettings, columns,
+            maxOutlineLevel: 1,
+            rowStyle: () => currentKind === "row" ? undefined : styles[currentKind],
+            rowOutline: () => currentKind === "row" ? { level: 1, hidden: collapseGroups ?? false } : currentKind === "groupEnd" && collapseGroups ? { collapsed: true } : undefined });
+        const operations = report.columns.map(column => Object.prototype.hasOwnProperty.call(report.totals, column.key) ? report.totals[column.key] : undefined);
+        let firstDetail = 0, firstAnyDetail = 0, lastDetail = 0;
+        async function* values() {
+            for await (const event of operation.events) {
+                currentKind = event.kind;
+                if (event.kind === "groupStart") {
+                    firstDetail = sheet.rowCount + sheet.headerRowCount + 2;
+                    yield [event.label, ...report.columns.map(() => null)];
+                }
+                else if (event.kind === "row") {
+                    rows++;
+                    lastDetail = sheet.rowCount + sheet.headerRowCount + 1;
+                    firstAnyDetail ||= lastDetail;
+                    yield [null, ...event.values];
+                }
+                else if (event.kind === "groupEnd") {
+                    yield [label(subtotalLabel(event)), ...operations.map((operation, index) => operation
+                            ? subtotal(operation, columnName(index + 2), firstDetail, lastDetail, event.totals[index]) : null)];
+                }
+                else if (includeGrandTotal !== false) {
+                    // Empty exports still retain a labelled numeric sum/count and blank average/min/max.
+                    yield [label(grandTotalLabel(event)), ...operations.map((operation, index) => operation
+                            ? firstAnyDetail ? subtotal(operation, columnName(index + 2), firstAnyDetail, lastDetail, event.totals[index]) : event.totals[index] : null)];
+                }
+            }
+        }
+        await sheet.addRows(values());
+        if (sink) {
+            const completion = await book.finish();
+            return { result: { rows, columns: report.columns.length + 1, bytes: completion.bytes } };
+        }
+        const blob = await book.toBlob();
+        return { blob, result: { rows, columns: report.columns.length + 1, bytes: blob.size } };
+    }
+    catch (error) {
+        await book?.discard(error);
+        throw error;
+    }
+    finally {
+        operation.dispose();
+    }
+}
+/** Write one ordered grouped source to editable Excel outlines and finite native SUBTOTAL formulas. */
+async function writeGroupedXlsx(report, options) {
+    return (await write(report, prepare(report, options))).blob;
+}
+/** Await accepted bytes; the caller retains its sink, partial bytes and stream lifetime. Counts exclude generated summary rows. */
+async function writeGroupedXlsxTo(report, destination, options) {
+    const prepared = prepare(report, options);
+    return withDestination(destination, async (sink) => (await write(report, prepared, sink)).result);
+}
+const _exports = Object.freeze({ writeGroupedXlsx: writeGroupedXlsx, writeGroupedXlsxTo: writeGroupedXlsxTo });
+return _exports;
+})();
+
+const _m42 = (() => {
+
+
 
 
 
@@ -4426,14 +4811,14 @@ function saveBlob(blob, fileName) {
         setTimeout(() => URL.revokeObjectURL(url), 30000);
     }
 }
-const _exports = Object.freeze({ OfficeIMOError: _m3.OfficeIMOError, NotSupportedError: _m3.NotSupportedError, BlobByteSink: _m5.BlobByteSink, ChunkedTextSink: _m5.ChunkedTextSink, writeBytes: _m5.writeBytes, ExportCell: _m19.ExportCell, checkAbort: _m2.checkAbort, withAbort: _m2.withAbort, inputRows: _m2.inputRows, pause: _m2.pause, detectFeatures: detectFeatures, saveBlob: saveBlob });
+const _exports = Object.freeze({ OfficeIMOError: _m3.OfficeIMOError, NotSupportedError: _m3.NotSupportedError, BlobByteSink: _m5.BlobByteSink, ChunkedTextSink: _m5.ChunkedTextSink, writeBytes: _m5.writeBytes, ExportCell: _m19.ExportCell, createGroupedReport: _m41.createGroupedReport, checkAbort: _m2.checkAbort, withAbort: _m2.withAbort, inputRows: _m2.inputRows, pause: _m2.pause, detectFeatures: detectFeatures, saveBlob: saveBlob });
 return _exports;
 })();
 
 const _m0 = (() => {
 
-const _exports = Object.freeze({ Workbook: _m1.Workbook, writeXlsx: _m38.writeXlsx, writeXlsxTo: _m38.writeXlsxTo, Worksheet: _m22.Worksheet, Cell: _m18.Cell, FormulaCell: _m21.FormulaCell, StyleRegistry: _m15.StyleRegistry, NumberFormats: _m15.NumberFormats, saveBlob: _m40.saveBlob, ExportCell: _m19.ExportCell });
+const _exports = Object.freeze({ Workbook: _m1.Workbook, writeXlsx: _m38.writeXlsx, writeXlsxTo: _m38.writeXlsxTo, writeGroupedXlsx: _m40.writeGroupedXlsx, writeGroupedXlsxTo: _m40.writeGroupedXlsxTo, createGroupedReport: _m41.createGroupedReport, Worksheet: _m22.Worksheet, Cell: _m18.Cell, FormulaCell: _m21.FormulaCell, StyleRegistry: _m15.StyleRegistry, NumberFormats: _m15.NumberFormats, saveBlob: _m42.saveBlob, ExportCell: _m19.ExportCell });
 return _exports;
 })();
-const { Workbook, writeXlsx, writeXlsxTo, Worksheet, Cell, FormulaCell, StyleRegistry, NumberFormats, saveBlob, ExportCell } = _m0;
-export { Workbook, writeXlsx, writeXlsxTo, Worksheet, Cell, FormulaCell, StyleRegistry, NumberFormats, saveBlob, ExportCell };
+const { Workbook, writeXlsx, writeXlsxTo, writeGroupedXlsx, writeGroupedXlsxTo, createGroupedReport, Worksheet, Cell, FormulaCell, StyleRegistry, NumberFormats, saveBlob, ExportCell } = _m0;
+export { Workbook, writeXlsx, writeXlsxTo, writeGroupedXlsx, writeGroupedXlsxTo, createGroupedReport, Worksheet, Cell, FormulaCell, StyleRegistry, NumberFormats, saveBlob, ExportCell };

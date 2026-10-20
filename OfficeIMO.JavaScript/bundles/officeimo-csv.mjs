@@ -604,6 +604,291 @@ return _exports;
 })();
 
 const _m12 = (() => {
+/** Compatibility display policy; hosts can supply labels without changing typed source values. */
+const defaultBooleanText = Object.freeze({ true: "True", false: "False" });
+/** @internal Capture display policy once, before source iteration or asynchronous output. */
+function captureBooleanText(input) {
+    if (input === undefined)
+        return defaultBooleanText;
+    if (!input || typeof input !== "object")
+        throw new TypeError("booleanText must contain true and false strings.");
+    const yes = input.true, no = input.false;
+    if (typeof yes !== "string" || typeof no !== "string")
+        throw new TypeError("booleanText must contain true and false strings.");
+    return Object.freeze({ true: yes, false: no });
+}
+const _exports = Object.freeze({ defaultBooleanText: defaultBooleanText, captureBooleanText: captureBooleanText });
+return _exports;
+})();
+
+const _m15 = (() => {
+class NumericAggregate {
+    operation;
+    count = 0;
+    sum = 0;
+    mean = 0;
+    min = Infinity;
+    max = -Infinity;
+    constructor(operation) {
+        this.operation = operation;
+    }
+    accept(value) {
+        if (!this.operation || typeof value !== "number" || !Number.isFinite(value))
+            return;
+        this.count++;
+        if (this.operation === "sum") {
+            this.sum += value;
+            if (!Number.isFinite(this.sum))
+                throw new RangeError("Numeric total exceeds finite number range.");
+        }
+        else if (this.operation === "average") {
+            const delta = value - this.mean;
+            this.mean = this.count === 1 ? value : Number.isFinite(delta) ? this.mean + delta / this.count : this.mean * ((this.count - 1) / this.count) + value / this.count;
+        }
+        else if (this.operation === "min")
+            this.min = Math.min(this.min, value);
+        else if (this.operation === "max")
+            this.max = Math.max(this.max, value);
+    }
+    value() {
+        return this.operation === "count" ? this.count : this.operation === "sum" ? this.sum : !this.count ? null : this.operation === "average" ? this.mean : this.operation === "min" ? this.min : this.max;
+    }
+}
+function createTotals(columns, totals = {}) {
+    const keys = columns.map(c => c.key ?? c.header);
+    for (const [key, operation] of Object.entries(totals)) {
+        if (keys.filter(k => k === key).length !== 1)
+            throw new TypeError("Totals need an unambiguous declared column key: " + key);
+        if (!["sum", "count", "average", "min", "max"].includes(operation))
+            throw new TypeError("Invalid total operation.");
+    }
+    return keys.map(key => new NumericAggregate(Object.prototype.hasOwnProperty.call(totals, key) ? totals[key] : undefined));
+}
+const _exports = Object.freeze({ NumericAggregate: NumericAggregate, createTotals: createTotals });
+return _exports;
+})();
+
+const _m14 = (() => {
+const { ExportCell, assertExportValue } = _m5;
+
+const { isDate } = _m6;
+
+const { checkAbort, inputRows, pause, taskYieldDue } = _m1;
+
+const { ExportBudget } = _m4;
+
+const { OfficeIMOError } = _m3;
+
+const { copyColumns, createRowProjector } = _m9;
+
+const { createTotals } = _m15;
+
+const sources = new WeakMap();
+/** @internal Writers accept the owned immutable event source rather than trusting caller-authored event protocols. */
+function assertGroupedReportSource(value) {
+    if (!value || typeof value !== "object" || !sources.has(value))
+        throw new TypeError("Create grouped report sources with createGroupedReport.");
+}
+/** @internal The consuming writer's signal reaches pending source reads as well as destination writes. */
+function groupedReportEvents(source, signal) {
+    assertGroupedReportSource(source);
+    return { async *[Symbol.asyncIterator]() {
+            const operation = groupedReportOperation(source, signal);
+            try {
+                yield* operation.events;
+            }
+            finally {
+                operation.dispose();
+            }
+        } };
+}
+/** @internal Share cancellation between original source reads and destination writes; callers dispose in finally. */
+function groupedReportOperation(source, signal) {
+    assertGroupedReportSource(source);
+    const factory = sources.get(source), linked = linkedSignals(factory.signal, signal);
+    return { signal: linked.signal, events: factory.events(linked.signal), dispose: linked.dispose };
+}
+function linkedSignals(source, consumer) {
+    if (!source || !consumer || source === consumer)
+        return { signal: source ?? consumer, dispose() { } };
+    const controller = new AbortController(), abortSource = () => controller.abort(source.reason), abortConsumer = () => controller.abort(consumer.reason);
+    source.addEventListener("abort", abortSource, { once: true });
+    consumer.addEventListener("abort", abortConsumer, { once: true });
+    if (source.aborted)
+        abortSource();
+    else if (consumer.aborted)
+        abortConsumer();
+    return { signal: controller.signal, dispose() { source.removeEventListener("abort", abortSource); consumer.removeEventListener("abort", abortConsumer); } };
+}
+function maximum(value, fallback, name) {
+    const result = value ?? fallback;
+    if (!Number.isSafeInteger(result) || result < 0)
+        throw new RangeError(name + " must be a nonnegative safe integer.");
+    return result;
+}
+function copyValue(value) {
+    assertExportValue(value);
+    if (isDate(value))
+        return new Date(Date.prototype.getTime.call(value));
+    if (value instanceof ExportCell) {
+        const scalar = value.value, text = value.text, presentation = value.presentation, link = value.link;
+        return new ExportCell(isDate(scalar) ? new Date(Date.prototype.getTime.call(scalar)) : scalar, { ...(text === undefined ? {} : { text }), ...(presentation === undefined ? {} : { presentation }), ...(link === undefined ? {} : { link }) });
+    }
+    return value ?? null;
+}
+function scalar(value) { return value instanceof ExportCell ? value.value : value; }
+function identity(value) {
+    if (value == null)
+        return { key: null, id: "null", text: "" };
+    if (isDate(value)) {
+        const time = Date.prototype.getTime.call(value);
+        if (!Number.isFinite(time))
+            throw new TypeError("A group key date must be valid.");
+        return { key: new Date(time), id: "date:" + time, text: new Date(time).toISOString() };
+    }
+    if (typeof value === "number" && !Number.isFinite(value))
+        throw new TypeError("A numeric group key must be finite.");
+    const text = String(value);
+    return { key: value, id: typeof value + ":" + text, text };
+}
+function eventKey(value) { return isDate(value) ? new Date(Date.prototype.getTime.call(value)) : value; }
+function result(aggregates) {
+    return Object.freeze(aggregates.map(aggregate => aggregate.operation === undefined ? null : aggregate.value()));
+}
+/** Group a preordered row source once. Closed-group recurrence rejects rather than silently splitting a group.
+ * Equality is locale independent: strings are exact, numbers and booleans retain their types, dates compare
+ * by UTC instant, and null/undefined share one group. No sorting or complete group-body retention occurs. */
+function createGroupedReport(rows, options) {
+    if (!options || typeof options !== "object")
+        throw new TypeError("Grouped report options are required.");
+    // Capture configuration before validation so accessors cannot select different columns in later stages.
+    const { columns: selected, groupBy, totals: selectedTotals, groupLabel, maxGroups: requestedGroups, maxGroupKeyCharacters: requestedCharacters, signal: sourceSignal, limits } = options;
+    if (limits !== undefined && (!limits || typeof limits !== "object" || Array.isArray(limits)))
+        throw new TypeError("Grouped source limits must be an object.");
+    if (limits !== undefined && "maxOutputBytes" in limits)
+        throw new TypeError("Set maxOutputBytes on the format writer, not the grouped source.");
+    const capturedLimits = limits === undefined ? undefined : { ...limits };
+    if (!Array.isArray(selected) || !selected.length)
+        throw new TypeError("A grouped report needs declared columns.");
+    const captured = selected.map(column => ({ ...column }));
+    const columns = copyColumns(captured);
+    const keys = columns.map(column => column.key);
+    if (keys.some(key => typeof key !== "string" || key.length === 0) || new Set(keys).size !== keys.length)
+        throw new TypeError("Grouped report columns need unique, nonempty stable keys.");
+    const groupColumn = keys.indexOf(groupBy);
+    if (typeof groupBy !== "string" || groupColumn < 0)
+        throw new TypeError("groupBy must name a declared stable column key.");
+    if (groupLabel !== undefined && typeof groupLabel !== "function")
+        throw new TypeError("groupLabel must be a synchronous function.");
+    const totals = Object.freeze({ ...selectedTotals });
+    const grand = createTotals(columns, totals);
+    for (let column = 0; column < columns.length; column++)
+        if (grand[column].operation !== undefined && columns[column].type !== "number")
+            throw new TypeError("Grouped numeric totals require a column declared with type:number.");
+    const maxGroups = maximum(requestedGroups, 1000, "maxGroups");
+    const maxCharacters = maximum(requestedCharacters, 1000000, "maxGroupKeyCharacters");
+    const budget = new ExportBudget(capturedLimits);
+    const portable = Object.freeze(columns.map(column => {
+        const { value: _getter, ...metadata } = column;
+        return Object.freeze(metadata);
+    }));
+    for (const column of columns) {
+        budget.cell(column.header);
+        for (const group of column.groups ?? [])
+            budget.reserve(0, group.length);
+        Object.freeze(column);
+    }
+    let consumed = false;
+    const eventsFor = (signal) => Object.freeze({ [Symbol.asyncIterator]() {
+            if (consumed)
+                throw new TypeError("A grouped report source can be consumed only once.");
+            consumed = true;
+            return iterate(signal);
+        } });
+    const events = eventsFor(sourceSignal);
+    async function* iterate(signal) {
+        const project = createRowProjector(columns, undefined, signal);
+        const seen = new Set();
+        let characters = 0, rowCount = 0, groups = 0, currentId;
+        let key = null, label = "", groupRows = 0, aggregates = createTotals(columns, totals);
+        for await (const input of inputRows(rows, signal)) {
+            // Copy positional input once before the shared projector validates and inspects its values.
+            const snapshot = Array.isArray(input) ? Array.from(input) : input;
+            const projected = project(snapshot, rowCount), values = [];
+            for (let column = 0; column < columns.length; column++)
+                values.push(copyValue(projected[column]));
+            checkAbort(signal);
+            const next = identity(scalar(values[groupColumn]));
+            if (next.id !== currentId) {
+                if (seen.has(next.id))
+                    throw new TypeError("Grouped rows must be contiguous; a closed group key occurred again.");
+                if (groups === maxGroups)
+                    throw new OfficeIMOError("RESOURCE_LIMIT", "maxGroups exceeded.");
+                let nextLabel = next.text;
+                if (groupLabel) {
+                    const formatted = groupLabel(eventKey(next.key));
+                    if (typeof formatted?.then === "function")
+                        void Promise.resolve(formatted).catch(() => { });
+                    if (typeof formatted !== "string")
+                        throw new TypeError("groupLabel must return synchronous text.");
+                    nextLabel = formatted;
+                }
+                checkAbort(signal);
+                const nextCharacters = characters + next.id.length + nextLabel.length;
+                if (!Number.isSafeInteger(nextCharacters) || nextCharacters > maxCharacters)
+                    throw new OfficeIMOError("RESOURCE_LIMIT", "maxGroupKeyCharacters exceeded.");
+                budget.reserve(0, nextLabel.length);
+                if (currentId !== undefined)
+                    yield Object.freeze({ kind: "groupEnd", groupIndex: groups - 1,
+                        key: eventKey(key), label, rows: groupRows, totals: result(aggregates) });
+                currentId = next.id;
+                key = next.key;
+                label = nextLabel;
+                groupRows = 0;
+                characters = nextCharacters;
+                seen.add(next.id);
+                groups++;
+                aggregates = createTotals(columns, totals);
+                yield Object.freeze({ kind: "groupStart", groupIndex: groups - 1, key: eventKey(key), label });
+            }
+            budget.row(rowCount + 1);
+            for (let column = 0; column < values.length; column++) {
+                const value = values[column], raw = scalar(value);
+                if (grand[column].operation !== undefined && raw != null && (typeof raw !== "number" || !Number.isFinite(raw)))
+                    throw new TypeError("Grouped numeric metrics must resolve to finite numbers or null.");
+                budget.cell(raw);
+                if (value instanceof ExportCell && value.text !== undefined)
+                    budget.reserve(0, value.text.length);
+                aggregates[column].accept(raw);
+                grand[column].accept(raw);
+            }
+            checkAbort(signal);
+            yield Object.freeze({ kind: "row", values: Object.freeze(values), rowIndex: rowCount, groupIndex: groups - 1 });
+            rowCount++;
+            groupRows++;
+            if (taskYieldDue()) {
+                await pause();
+                checkAbort(signal);
+            }
+        }
+        checkAbort(signal);
+        if (currentId !== undefined)
+            yield Object.freeze({ kind: "groupEnd", groupIndex: groups - 1,
+                key: eventKey(key), label, rows: groupRows, totals: result(aggregates) });
+        checkAbort(signal);
+        yield Object.freeze({ kind: "complete", rows: rowCount, groups, totals: result(grand) });
+    }
+    const source = Object.freeze({ columns: portable, groupBy, totals, events });
+    sources.set(source, { signal: sourceSignal, events: eventsFor });
+    return source;
+}
+const _exports = Object.freeze({ assertGroupedReportSource: assertGroupedReportSource, groupedReportEvents: groupedReportEvents, groupedReportOperation: groupedReportOperation, createGroupedReport: createGroupedReport });
+return _exports;
+})();
+
+const _m13 = (() => {
+
+
 
 
 
@@ -645,7 +930,7 @@ function saveBlob(blob, fileName) {
         setTimeout(() => URL.revokeObjectURL(url), 30000);
     }
 }
-const _exports = Object.freeze({ OfficeIMOError: _m3.OfficeIMOError, NotSupportedError: _m3.NotSupportedError, BlobByteSink: _m2.BlobByteSink, ChunkedTextSink: _m2.ChunkedTextSink, writeBytes: _m2.writeBytes, ExportCell: _m5.ExportCell, checkAbort: _m1.checkAbort, withAbort: _m1.withAbort, inputRows: _m1.inputRows, pause: _m1.pause, detectFeatures: detectFeatures, saveBlob: saveBlob });
+const _exports = Object.freeze({ OfficeIMOError: _m3.OfficeIMOError, NotSupportedError: _m3.NotSupportedError, BlobByteSink: _m2.BlobByteSink, ChunkedTextSink: _m2.ChunkedTextSink, writeBytes: _m2.writeBytes, ExportCell: _m5.ExportCell, createGroupedReport: _m14.createGroupedReport, checkAbort: _m1.checkAbort, withAbort: _m1.withAbort, inputRows: _m1.inputRows, pause: _m1.pause, detectFeatures: detectFeatures, saveBlob: saveBlob });
 return _exports;
 })();
 
@@ -666,11 +951,13 @@ const { copyColumns, createRowProjector } = _m9;
 
 const { csvStructuredRows } = _m10;
 
+const { captureBooleanText } = _m12;
 
 
 
 
-function csvField(value, delimiter, protect, quote, nullValue) {
+
+function csvField(value, delimiter, protect, quote, booleanText, nullValue) {
     if (value == null && nullValue !== undefined)
         value = nullValue;
     let text;
@@ -679,7 +966,7 @@ function csvField(value, delimiter, protect, quote, nullValue) {
     else if (isDate(value))
         text = Number.isFinite(value.getTime()) ? value.toISOString() : "";
     else if (typeof value === "boolean")
-        text = value ? "True" : "False";
+        text = booleanText[value ? "true" : "false"];
     else if (typeof value === "number")
         text = Number.isFinite(value) ? String(value) : "";
     else if (typeof value === "string")
@@ -689,7 +976,7 @@ function csvField(value, delimiter, protect, quote, nullValue) {
             void Promise.resolve(value).catch(() => { });
         throw new TypeError("CSV cells and formatter results must be synchronous strings, numbers, booleans, Dates or null.");
     }
-    if (protect && typeof value === "string" && /^ *[=+\-@\t\r\n]/.test(text))
+    if (protect && (typeof value === "string" || typeof value === "boolean") && /^ *[=+\-@\t\r\n]/.test(text))
         text = "'" + text;
     return quote === "all" || (quote === "strings" && typeof value === "string") || text.includes(delimiter) || /["\r\n]/.test(text)
         ? '"' + text.replace(/"/g, '""') + '"' : text;
@@ -701,6 +988,7 @@ async function writeCsvTo(rows, destination, configuration) {
 async function write(rows, sink, options) {
     beginTask();
     const columns = copyColumns(options.columns).map(c => Object.freeze(c)), delimiter = options.delimiter ?? ",", lineEnding = options.lineEnding ?? "\r\n", quote = options.quote ?? "minimal";
+    const booleanText = captureBooleanText(options.booleanText);
     if (![",", ";", "\t"].includes(delimiter))
         throw new RangeError("Delimiter must be comma, semicolon or tab.");
     if (!["\r\n", "\n", "\r"].includes(lineEnding))
@@ -741,9 +1029,9 @@ async function write(rows, sink, options) {
             let value = !header && column.valueFormatter ? column.valueFormatter(raw, { rowIndex: count, columnIndex: i, column, values: snapshot }) : raw;
             if (value == null && options.nullValue !== undefined)
                 value = options.nullValue;
-            budget.cell(value);
+            budget.cell(typeof value === "boolean" ? booleanText[value ? "true" : "false"] : value);
             checkAbort(signal);
-            text += (i ? delimiter : "") + csvField(value, delimiter, protect, quote, options.nullValue);
+            text += (i ? delimiter : "") + csvField(value, delimiter, protect, quote, booleanText, options.nullValue);
             if (text.length >= buffer.chunkSize || (i & 127) === 127 && taskYieldDue()) {
                 if (buffer.append(text))
                     return buffer.flush().then(() => record(values, header, i + 1, snapshot));
@@ -790,7 +1078,7 @@ async function writeCsv(rows, configuration) {
         throw error;
     }
 }
-const _exports = Object.freeze({ saveBlob: _m12.saveBlob, ExportCell: _m5.ExportCell, writeCsvTo: writeCsvTo, writeCsv: writeCsv });
+const _exports = Object.freeze({ saveBlob: _m13.saveBlob, ExportCell: _m5.ExportCell, writeCsvTo: writeCsvTo, writeCsv: writeCsv });
 return _exports;
 })();
 const { saveBlob, ExportCell, writeCsvTo, writeCsv } = _m0;

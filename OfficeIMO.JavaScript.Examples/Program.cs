@@ -22,7 +22,7 @@ foreach (bool bundle in new[] { false, true }) {
     table.AddRow(new List<string> { "DC02", "Łódź", "8" });
     table.AddRow(new List<string> { "DC03", "Warsaw", "21" });
     // Table renders the typed rows; the plain wrapper needs no third-party table runtime.
-    document.Body.Add(new HtmlTag("table").Value(table));
+    document.Body.Add(new HtmlTag("table").Attribute("data-column-fields", "name site latency").Value(table));
     document.Body.Add(new HtmlTag("p").Id("status").Attribute("role", "status").Attribute("aria-live", "polite").Value("Ready"));
     if (bundle) {
         File.WriteAllText(Path.Combine(output, JavaScriptAssets.Script.HashedFileName), JavaScriptAssets.Script.Content, new UTF8Encoding(false));

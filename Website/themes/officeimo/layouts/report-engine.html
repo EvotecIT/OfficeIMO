@@ -20,7 +20,7 @@
       <header class="imo-report-lab__intro">
         <p class="imo-section__eyebrow">OfficeIMO.JavaScript · runs on your device</p>
         <h1>Make the report.<br />Keep the detail.</h1>
-        <p>One operational dataset. Typed Excel with editable charts, a composed PDF, or clean CSV. Try the engine with a few rows, then give it a larger workload.</p>
+        <p>One operational dataset. Editable Excel analysis, grouped totals and detail, a composed PDF, or clean CSV. Try the engine with a few rows, then give it a larger workload.</p>
       </header>
       <section class="imo-report-lab__workbench" aria-labelledby="report-workbench-title">
         <div class="imo-report-lab__controls">
@@ -36,9 +36,19 @@
             </select>
             <label for="report-format">Document</label>
             <select id="report-format" name="format">
-              <option value="xlsx">Excel · editable chart and data</option>
+              <option value="xlsx">Excel · typed workbook</option>
               <option value="pdf">PDF · composed report</option>
               <option value="csv">CSV · ordered values</option>
+            </select>
+            <label for="report-layout">Report layout</label>
+            <select id="report-layout" name="layout">
+              <option value="analysis">Editable analysis / composed report</option>
+              <option value="grouped">Group by site · totals and detail</option>
+            </select>
+            <label for="report-language">Grouped report language</label>
+            <select id="report-language" name="language">
+              <option value="en">English</option>
+              <option value="pl">Polski</option>
             </select>
             <div class="imo-report-lab__actions">
               <button id="report-generate" class="imo-btn imo-btn-primary" type="submit" disabled>Generate report</button>

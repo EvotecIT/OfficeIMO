@@ -20,7 +20,7 @@ if ($Cases) { $selection = @('--cases', ($Cases -join ',')) }
 & $node $helper prepare --baseline (Resolve-Path -LiteralPath $BaselineBundle).Path --current (Join-Path $repository 'OfficeIMO.JavaScript/bundles/officeimo.mjs') --evidence $evidence @selection
 if ($LASTEXITCODE -ne 0) { throw 'Workload preparation failed.' }
 if (@((Get-Content -LiteralPath $manifest -Raw | ConvertFrom-Json).cases | Where-Object currentOnly).Count -gt 0 -and ($Compare -or $Engine -contains 'baseline')) {
-    throw 'Editable-analysis diagnostics require -Engine current -Compare:$false; the old snapshot report is not equivalent work.'
+    throw 'Analytical-report diagnostics require -Engine current -Compare:$false; the old snapshot report is not equivalent work.'
 }
 $variables = @{ Node = $node; Helper = $helper; Manifest = $manifest; Evidence = $evidence
     Qpdf = (Get-Command qpdf -ErrorAction Stop).Source; Pdftotext = (Get-Command pdftotext -ErrorAction Stop).Source

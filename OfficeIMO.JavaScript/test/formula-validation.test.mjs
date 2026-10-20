@@ -50,7 +50,7 @@ test("formula cells are immutable, bounded XML-valid numeric caches with direct 
   assert.equal(cell.formula, "SUM(1,2)"); assert.equal(cell.cachedValue, 3); assert.ok(Object.isFrozen(cell));
   assert.throws(() => { cell.cachedValue = 99; }, TypeError);
   for (const formula of ["", "=", "x".repeat(8193), "SUM(1,\u0001)", 'IF(A1="\ud800",1,0)']) assert.throws(() => new FormulaCell(formula, 0));
-  for (const value of [undefined, null, "3", true, NaN, Infinity, -Infinity]) assert.throws(() => new FormulaCell("1+2", value));
+  for (const value of [undefined, "3", true, NaN, Infinity, -Infinity]) assert.throws(() => new FormulaCell("1+2", value));
   for (const style of [-1, NaN, 1.5, Number.MAX_SAFE_INTEGER + 1]) assert.throws(() => new FormulaCell("0", 0, style));
   for (const formula of ["[Book.xlsx]Sheet1!A1", "'[Book.xlsx]Sheet 1'!A1", "SUM([1]Sheet!A1)", "cmd|' /C calc'!A0"])
     assert.throws(() => new FormulaCell(formula, 0), { code: "NOT_SUPPORTED" });

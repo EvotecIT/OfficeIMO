@@ -50,15 +50,15 @@ export function formulaText(value: string): string {
   return text;
 }
 
-/** An authored Excel formula and its initial numeric result. The writer stores both without evaluating the expression. */
+/** An authored Excel formula and its initial numeric or blank result. The writer stores both without evaluating the expression. */
 export class FormulaCell {
   static [Symbol.hasInstance](value: unknown): boolean {
     return value !== null && typeof value === "object" && formulaCells.has(value);
   }
   readonly formula: string;
-  constructor(formula: string, readonly cachedValue: number, readonly style?: number) {
+  constructor(formula: string, readonly cachedValue: number | null, readonly style?: number) {
     this.formula = formulaText(formula);
-    if (typeof cachedValue !== "number" || !Number.isFinite(cachedValue)) throw new TypeError("Formula caches must be finite numbers.");
+    if (cachedValue !== null && (typeof cachedValue !== "number" || !Number.isFinite(cachedValue))) throw new TypeError("Formula caches must be finite numbers or null for a blank result.");
     if (style !== undefined && (!Number.isSafeInteger(style) || style < 0)) throw new RangeError("Formula style indexes must be nonnegative safe integers.");
     formulaCells.add(this);
     Object.freeze(this);
@@ -68,5 +68,5 @@ export class FormulaCell {
 /** @internal The worksheet owns the cell coordinate, style and cumulative formula budget. */
 export function formulaXml(cell: FormulaCell): string {
   if (!(cell instanceof FormulaCell)) throw new TypeError("Formula cells must be created with FormulaCell.");
-  return "<f>" + escapeXml(cell.formula, "reject") + "</f><v>" + cell.cachedValue + "</v>";
+  return "<f>" + escapeXml(cell.formula, "reject") + "</f><v>" + (cell.cachedValue ?? "") + "</v>";
 }

@@ -24,6 +24,14 @@ export type CellValueWriter = (value: CellValue, context: CellWriterContext) => 
 /** Data indexes are zero-based. worksheetRow is the explicit one-based Excel coordinate. */
 export interface RowStyleContext { readonly rowIndex: number; readonly worksheetRow: number; readonly values: readonly CellValue[]; readonly sheetName: string; }
 export interface CellStyleContext extends RowStyleContext { readonly value: CellValue; readonly column: XlsxColumn; readonly columnIndex: number; }
+/** Native Excel outline metadata for a serialized worksheet data row. */
+export interface RowOutline {
+  /** Zero is a summary row; Excel supports at most seven nested detail levels. */
+  readonly level?: number;
+  readonly hidden?: boolean;
+  /** Marks a summary row whose preceding detail rows are initially hidden. */
+  readonly collapsed?: boolean;
+}
 /** A real Excel table over this worksheet's header and data rows. Empty exports retain headers without a table part. */
 export interface TableOptions {
   readonly name?: string;
@@ -90,6 +98,10 @@ export interface SheetOptions<T = never> {
   readonly alternatingRowStyle?: CellStyle;
   readonly rowStyle?: (context: RowStyleContext) => CellStyle | undefined;
   readonly cellStyle?: (context: CellStyleContext) => CellStyle | undefined;
+  /** Native row outlines, captured once during serialization. Requires an explicit maximum level. */
+  readonly rowOutline?: (context: RowStyleContext) => RowOutline | undefined;
+  /** Declared outline upper bound, from zero through seven; emitted before streamed rows. */
+  readonly maxOutlineLevel?: number;
   readonly rowHeight?: number;
   readonly headerHeight?: number;
   /** Fallback width in characters. Native tables default to 20 when no column width is supplied. */

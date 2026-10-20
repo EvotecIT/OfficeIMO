@@ -105,11 +105,15 @@ export async function writePdfDocumentTo(blocks: Iterable<PdfDocumentBlock> | As
         }
         case "pageBreak": await flushParagraphs(); await pages.pageBreak(); break;
         case "table": {
-          const { options: tableOptions, rows: source, caption: inputCaption } = block;
+          const { options: tableOptions, rows: source, caption: inputCaption, continuationCaption: inputContinuationCaption } = block;
           checkTableOptions(tableOptions);
           const capturedCaption = snapshotCaption(inputCaption);
+          if (inputContinuationCaption !== undefined && options.tagged)
+            throw new TypeError("Tagged PDF table continuation captions are unsupported.");
+          const capturedContinuationCaption = snapshotCaption(inputContinuationCaption);
           const table = settings({ ...pages.settings.options, ...tableOptions, columns: tableOptions?.columns, includeHeader: tableOptions?.includeHeader ?? true }), layout = new PdfTableLayout({ ...table, budget }, fonts);
           const caption = await prepareCaption(capturedCaption);
+          const continuationCaption = await prepareCaption(capturedContinuationCaption);
           const project = createRowProjector(table.options.columns, undefined, options.signal);
           let count = 0, started = false; columns = Math.max(columns, table.options.columns.length);
           const headings = await layout.headers(), headingHeight = headings.reduce((height, row) => height + row.height, 0);
@@ -119,7 +123,7 @@ export async function writePdfDocumentTo(blocks: Iterable<PdfDocumentBlock> | As
             if (!started) {
               const minimum = laidOut.lineHeight + table.padding * 2;
               await flushParagraphs((caption?.height ?? 0) + headingHeight + minimum);
-              await pages.beginTable(layout, headings, minimum, caption); started = true;
+              await pages.beginTable(layout, headings, minimum, caption, continuationCaption); started = true;
             }
             await pages.row(laidOut, keptHeading); count++; rows++;
             if (rows % 256 === 0) notifyProgress(options.onProgress, { phase: "rows", rows, bytes: objects.bytes });
@@ -130,7 +134,7 @@ export async function writePdfDocumentTo(blocks: Iterable<PdfDocumentBlock> | As
             if (!headings.length && !footer?.length) break;
             const minimum = footer?.length ? table.options.footer?.rows ? footer.reduce((height, row) => height + row.height, 0) :
               footer[0]!.lineHeight + table.padding * 2 : 0;
-            await flushParagraphs((caption?.height ?? 0) + headingHeight + minimum); await pages.beginTable(layout, headings, minimum, caption);
+            await flushParagraphs((caption?.height ?? 0) + headingHeight + minimum); await pages.beginTable(layout, headings, minimum, caption, continuationCaption);
           }
           if (footer) { if (table.options.footer?.rows) await pages.block(footer); else await pages.row(footer[0]!, keptFooterHeading); }
           await pages.endTable(); break;

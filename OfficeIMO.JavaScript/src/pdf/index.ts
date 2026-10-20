@@ -1,4 +1,10 @@
 export { writePdf, writePdfTo } from "./write.js";
+export { writeGroupedPdf, writeGroupedPdfTo } from "./grouped.js";
+export type { GroupedPdfOptions } from "./grouped-types.js";
+export type { PdfPageNumberLabels } from "./types.js";
+export type { BooleanText } from "../core/value-text.js";
+export { createGroupedReport } from "../core/grouped-report.js";
+export type { GroupedReportSource, GroupedReportOptions, GroupedReportEvent, GroupedReportSummary } from "../core/grouped-report.js";
 export { writePdfDocument, writePdfDocumentTo, pdfTable } from "./document.js";
 export type { PdfDocumentOptions, PdfDocumentBlock, PdfTableOptions, PdfTableBlock, PdfParagraphBlock, PdfParagraphStyle, PdfCaption, PdfListBlock, PdfListItem, PdfGroupBlock, PdfPageBreakBlock, PdfImageBlock, PdfRawImage, PdfJpegImage, PdfPngImage, PdfVectorBlock, PdfPathCommand } from "./document-types.js";
 export type { PdfTextRun, PdfText } from "./inline-types.js";

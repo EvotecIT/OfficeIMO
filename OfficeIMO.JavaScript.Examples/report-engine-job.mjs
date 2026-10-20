@@ -12,8 +12,12 @@ export const reportColumns = Object.freeze([
 /** Illustrative operational data, generated lazily with stable numeric and date values. */
 export function* operationalRows(count) {
   if (!Number.isSafeInteger(count) || count < 0 || count > 100000) throw new RangeError("Choose 0 through 100,000 services.");
+  for (let index = 0; index < count; index++) yield operationalRow(index);
+}
+
+function operationalRow(index) {
   const sites = ["Warsaw", "Łódź", "Praha", "Berlin"];
-  for (let index = 0; index < count; index++) yield [
+  return [
     "WEB-" + String(index + 1).padStart(6, "0"), sites[index % sites.length],
     index % 37 === 0 ? "Offline" : index % 11 === 0 ? "Attention" : "Healthy",
     (index % 97) / 10 + 4.75, 0.995 - (index % 17) / 10000,
@@ -21,7 +25,61 @@ export function* operationalRows(count) {
   ];
 }
 
+/** The host supplies the intended group ordering; the document engine never sorts or buffers records. */
+export function* operationalRowsBySite(count) {
+  if (!Number.isSafeInteger(count) || count < 0 || count > 100000) throw new RangeError("Choose 0 through 100,000 services.");
+  for (const residue of [3, 1, 2, 0]) for (let index = residue; index < count; index += 4) yield operationalRow(index);
+}
+
+// Explicit example translation resources. Engine grouping uses stable column keys and raw values.
+const groupedReportText = Object.freeze({
+  en: Object.freeze({ headers: { service: "Service", site: "Site", status: "Status", latency: "Latency (ms)", availability: "Availability", checked: "Checked (UTC)" },
+    group: "Group", site: "Site: ", subtotal: "Group total", total: "All selected services", records: "services", continued: " (continued)",
+    title: "Services by site", page: { prefix: "Page ", separator: " of ", suffix: "" }, booleanText: { true: "True", false: "False" } }),
+  pl: Object.freeze({ headers: { service: "Usługa", site: "Lokalizacja", status: "Stan", latency: "Opóźnienie (ms)", availability: "Dostępność", checked: "Sprawdzone (UTC)" },
+    group: "Grupa", site: "Lokalizacja: ", subtotal: "Suma grupy", total: "Wszystkie wybrane usługi", records: "usług", continued: " (ciąg dalszy)",
+    title: "Usługi według lokalizacji", page: { prefix: "Strona ", separator: " z ", suffix: "" }, booleanText: { true: "Tak", false: "Nie" } })
+});
+
+/** A thin grouped-report operation over an already ordered, selected portable capture. */
+export async function writeGroupedOperationalReport(api, { input = {}, rows, columns = reportColumns, sink, signal, onProgress }) {
+  const language = input.language ?? "en";
+  if (!Object.hasOwn(groupedReportText, language)) throw new TypeError("The grouped example supports en and pl report resources.");
+  const text = groupedReportText[language];
+  const selectedColumns = columns.map(column => ({ ...column,
+    ...(input.language !== undefined && text.headers[column.key] ? { header: text.headers[column.key] } : {}) }));
+  const totals = Object.fromEntries(["latency", "availability"].filter(key => selectedColumns.some(column => column.key === key)).map(key => [key, "average"]));
+  const report = api.createGroupedReport(rows, { columns: selectedColumns, groupBy: "site", totals, signal,
+    groupLabel: value => text.site + String(value ?? ""), maxGroups: 1000, limits: { maxRows: 100000, maxCells: 700000 } });
+  const common = { signal, onProgress, labelColumn: { header: text.group, width: 30 },
+    subtotalLabel: group => text.subtotal + " · " + group.rows.toLocaleString(language) + " " + text.records,
+    grandTotalLabel: summary => text.total + " · " + summary.rows.toLocaleString(language) + " " + text.records,
+    limits: { maxRows: 103001, maxCells: 800008, maxOutputBytes: 96 * 1024 * 1024 } };
+  if (input.format === "xlsx") {
+    const options = { ...common, dateMode: "utc", compression: input.compression ?? "auto",
+      sheet: { name: text.title, title: { text: text.title }, freezeHeader: true, freezeColumns: 1, rowHeight: 22,
+        headerFill: "163C75", print: { orientation: "landscape", repeatHeaders: true } },
+      groupStyle: { font: { bold: true, color: "163C75" }, fill: { color: "DBEAFE" } },
+      subtotalStyle: { font: { bold: true }, fill: { color: "EEF2F6" } }, grandTotalStyle: { font: { bold: true }, fill: { color: "DBEAFE" } } };
+    return sink === undefined ? api.writeGroupedXlsx(report, options) : api.writeGroupedXlsxTo(report, sink, options);
+  }
+  if (input.format !== "pdf") throw new TypeError("Grouped reports support Excel or PDF; CSV exports ordinary records.");
+  if (!input.fonts?.regular || !input.fonts?.bold) throw new TypeError("PDF requires the example's embedded regular and bold fonts.");
+  const fonts = { regular: await api.PdfFont.create(input.fonts.regular, { signal }), bold: await api.PdfFont.create(input.fonts.bold, { signal }) };
+  const decimal = new Intl.NumberFormat(language, { minimumFractionDigits: 1, maximumFractionDigits: 1 });
+  const percent = new Intl.NumberFormat(language, { style: "percent", minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  const options = { ...common, labelColumn: { header: text.group, width: 26 }, fonts, pageSize: "A4", orientation: "landscape", margins: 30,
+    fontSize: 9, pageNumberLabels: text.page, booleanText: text.booleanText, headerPresentation: { background: "163C75", color: "FFFFFF", bold: true },
+    continuationLabel: group => group.label + text.continued,
+    formatValue(value, context) { return value instanceof Date ? value.toISOString().slice(0, 16).replace("T", " ")
+      : typeof value === "number" && context.column.key === "latency" ? decimal.format(value)
+      : typeof value === "number" && context.column.key === "availability" ? percent.format(value) : String(value ?? ""); } };
+  return sink === undefined ? api.writeGroupedPdf(report, options) : api.writeGroupedPdfTo(report, sink, options);
+}
+
 export async function writeOperationalReport(api, { input, rows, sink, signal, onProgress }) {
+  if (input.layout !== undefined && input.layout !== "analysis" && input.layout !== "grouped") throw new TypeError("Choose analysis or grouped report layout.");
+  if (input.layout === "grouped") return writeGroupedOperationalReport(api, { input, rows, sink, signal, onProgress });
   const options = { signal, onProgress, limits: { maxRows: 100000, maxCells: 700000, maxOutputBytes: 96 * 1024 * 1024 } };
   if (input.format === "csv") return api.writeCsvTo(rows, sink, { ...options, columns: reportColumns, bom: true });
   if (input.format === "xlsx") return writeServiceAnalysis(api, { input, rows, sink, signal, onProgress });

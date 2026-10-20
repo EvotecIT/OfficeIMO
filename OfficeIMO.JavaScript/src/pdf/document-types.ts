@@ -20,6 +20,8 @@ export interface PdfTableBlock {
   readonly options: PdfTableOptions;
   /** Visible caption before the table, kept with its first heading/data fragment. */
   readonly caption?: PdfCaption;
+  /** Repeated before leaf headings when this table continues on another page. Tagged output is unsupported. */
+  readonly continuationCaption?: PdfCaption;
 }
 /** Reusable paragraph appearance, spacing and keep rules. Semantic roles remain on their content blocks. */
 export interface PdfParagraphStyle {

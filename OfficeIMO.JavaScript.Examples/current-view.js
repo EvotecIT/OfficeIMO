@@ -2,25 +2,27 @@
 document.addEventListener("DOMContentLoaded", () => {
   const table = document.querySelector("table"), status = document.getElementById("status");
   const header = table.tHead.rows[0], body = table.tBodies[0];
+  const fields = table.dataset.columnFields.split(" ");
+  [...header.cells].forEach((cell, index) => { cell.dataset.field = fields[index]; });
   const dataRows = () => [...body.rows];
   let descending = false;
   document.getElementById("filter").addEventListener("input", event => {
     const search = event.target.value.toLocaleLowerCase();
     for (const row of dataRows()) row.hidden = !row.textContent.toLocaleLowerCase().includes(search);
   });
-  function columnIndex(name) { return [...header.cells].findIndex(cell => cell.textContent.trim() === name); }
+  function columnIndex(field) { return [...header.cells].findIndex(cell => cell.dataset.field === field); }
   document.getElementById("sort").addEventListener("click", () => {
     descending = !descending;
-    const index = columnIndex("Name");
+    const index = columnIndex("name");
     dataRows().sort((a, b) => a.cells[index].textContent.localeCompare(b.cells[index].textContent) * (descending ? -1 : 1))
       .forEach(row => body.append(row));
   });
   document.getElementById("hide-site").addEventListener("click", () => {
-    const index = columnIndex("Site"), hide = !header.cells[index].hidden;
+    const index = columnIndex("site"), hide = !header.cells[index].hidden;
     for (const row of [header, ...dataRows()]) row.cells[index].hidden = hide;
   });
   document.getElementById("move-site").addEventListener("click", () => {
-    const index = columnIndex("Site");
+    const index = columnIndex("site");
     for (const row of [header, ...dataRows()]) {
       const site = row.cells[index];
       if (index === 0) row.append(site); else row.prepend(site);
@@ -34,9 +36,9 @@ document.addEventListener("DOMContentLoaded", () => {
       const indexes = [...header.cells].map((cell, index) => cell.hidden ? -1 : index).filter(index => index >= 0);
       if (!indexes.length) throw new Error("Show at least one column.");
       const columns = indexes.map(index => {
-        const name = header.cells[index].textContent.trim();
-        return { header: name, type: name === "Latency (ms)" ? "number" : "string", width: 20,
-          ...(name === "Latency (ms)" ? { format: "0.00" } : {}) };
+        const cell = header.cells[index], field = cell.dataset.field;
+        return { header: cell.textContent.trim(), key: field, type: field === "latency" ? "number" : "string", width: 20,
+          ...(field === "latency" ? { format: "0.00" } : {}) };
       });
       function* rows() {
         for (const row of dataRows()) if (!row.hidden) yield indexes.map((index, column) => {
@@ -50,7 +52,7 @@ document.addEventListener("DOMContentLoaded", () => {
         const headerStyle = book.styles.add({ font: { bold: true, color: "FFFFFF" }, fill: { color: "203864" }, verticalAlignment: "center" });
         await book.addWorksheet("Current view", { columns, freezeHeader: true, freezeColumns: 1,
           table: { name: "CurrentView", style: "TableStyleMedium9" }, headerStyle, headerHeight: 28, rowHeight: 22,
-          cellStyle: ({ column, value }) => column.header === "Latency (ms)" && value > 20
+          cellStyle: ({ column, value }) => column.key === "latency" && value > 20
             ? { fill: { color: "FCE4D6" }, font: { color: "9C0006", bold: true } } : undefined }).addRows(rows());
         blob = await book.toBlob();
       } else blob = await OfficeIMO.writeCsv(rows(), { columns, bom: true });

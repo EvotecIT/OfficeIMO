@@ -394,3 +394,29 @@ void editableAnalysisReport;
 
 // @ts-expect-error text comparison supports equality operators only
 const unsupportedTextOrdering: ConditionalFormat = { type: "cellIs", range: { column: "name" }, operator: "lessThan", value: "Łódź", style: {} };
+
+async function groupedAnalysis() {
+  const columns = [{ header: "Oddział", key: "site" }, { header: "Opóźnienie", key: "latency", type: "number" }] as const;
+  const records = [{ site: "Warsaw", latency: 12 }];
+  const grouping = { columns, groupBy: "site", totals: { latency: "average" }, limits: { maxRows: 100 } } as const;
+  const options = { labelColumn: { header: "Podsumowanie" },
+    subtotalLabel: (group: Extract<import("@evotecit/officeimo").GroupedReportEvent, { kind: "groupEnd" }>) => `${group.label}: ${group.rows}`,
+    grandTotalLabel: (summary: import("@evotecit/officeimo").GroupedReportSummary) => String(summary.rows) };
+  const source = xlsx.createGroupedReport(records, grouping);
+  const rootSource: import("@evotecit/officeimo").GroupedReportSource = source;
+  await xlsx.writeGroupedXlsx(rootSource, { ...options, collapseGroups: true, limits: { maxOutputBytes: 1000000 } });
+  await xlsx.writeGroupedXlsxTo(xlsx.createGroupedReport(records, grouping), new WritableStream<Uint8Array>(), options);
+  const pdf = await import("@evotecit/officeimo/pdf");
+  await pdf.writeGroupedPdf(pdf.createGroupedReport(records, grouping), { ...options,
+    pageNumberLabels: { prefix: "Strona ", separator: " z " }, booleanText: { true: "Tak", false: "Nie" } });
+  await pdf.writeGroupedPdfTo(pdf.createGroupedReport([], grouping), new WritableStream<Uint8Array>(), { ...options, includeGrandTotal: false });
+  const blank = new FormulaCell('IF(COUNT(A1:A2)=0,"",AVERAGE(A1:A2))', null);
+  void blank;
+  // @ts-expect-error output byte ceilings belong to the format writer, not the grouped row source
+  xlsx.createGroupedReport(records, { ...grouping, limits: { maxOutputBytes: 0 } });
+  // @ts-expect-error stable grouping fields are declared keys, not numeric display-column indices
+  xlsx.createGroupedReport(records, { ...grouping, groupBy: 1 });
+  // @ts-expect-error a display label is plain text, not a raw boolean
+  await writeCsv([[true]], { columns: [{ header: "Ready" }], booleanText: { true: true, false: "Nie" } });
+}
+void groupedAnalysis;

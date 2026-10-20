@@ -1,8 +1,9 @@
 import { executeWorkerExport } from "/assets/officeimo/officeimo-execution.mjs";
-import { operationalRows } from "/js/report-engine-job.mjs";
+import { operationalRows, operationalRowsBySite } from "/js/report-engine-job.mjs";
 
 const byId = id => document.getElementById(id);
 const form = byId("report-form"), rowSelect = byId("report-rows"), formatSelect = byId("report-format");
+const layoutSelect = byId("report-layout"), languageSelect = byId("report-language");
 const start = byId("report-generate"), cancel = byId("report-cancel"), status = byId("report-status");
 const progress = byId("report-progress"), download = byId("report-download"), measurement = byId("report-measurement");
 let active, downloadUrl;
@@ -11,7 +12,7 @@ function preview() {
   const count = Number(rowSelect.value), body = byId("report-preview");
   body.replaceChildren();
   let shown = 0;
-  for (const row of operationalRows(count)) {
+  for (const row of (layoutSelect.value === "grouped" ? operationalRowsBySite(count) : operationalRows(count))) {
     if (shown === 8) break;
     const tr = document.createElement("tr");
     for (const [index, value] of row.slice(0, 4).entries()) {
@@ -28,8 +29,20 @@ function preview() {
   byId("report-preview-count").textContent = "First " + shown + " of " + count.toLocaleString("en") + " services";
 }
 function busy(value) {
-  start.disabled = rowSelect.disabled = formatSelect.disabled = value; cancel.disabled = !value;
+  start.disabled = rowSelect.disabled = formatSelect.disabled = value;
+  layoutSelect.disabled = value || formatSelect.value === "csv";
+  languageSelect.disabled = value || layoutSelect.value !== "grouped" || formatSelect.value === "csv";
+  cancel.disabled = !value;
   form.setAttribute("aria-busy", String(value));
+}
+function clearResult() {
+  if (downloadUrl) { URL.revokeObjectURL(downloadUrl); downloadUrl = undefined; }
+  download.hidden = true; download.removeAttribute("href");
+  progress.value = 0; measurement.textContent = "";
+}
+function settingsChanged() {
+  clearResult(); preview(); busy(false);
+  status.textContent = "Ready. Choose a workload and generate a report.";
 }
 async function font(name, signal) {
   const response = await fetch("/assets/report-fonts/Carlito-" + name + ".ttf", { signal });
@@ -38,18 +51,21 @@ async function font(name, signal) {
 }
 form.addEventListener("submit", async event => {
   event.preventDefault(); if (active) return;
+  clearResult();
   const controller = new AbortController(), format = formatSelect.value, count = Number(rowSelect.value);
   active = { controller }; busy(true); progress.max = Math.max(1, count); progress.value = 0;
   status.textContent = "Preparing " + format.toUpperCase() + " report…"; measurement.textContent = "";
   const started = performance.now(), parts = [];
   let worker, accepted = 0;
   try {
-    const input = { format, rowCount: count, ...(format === "pdf" ? { fonts: { regular: await font("Regular", controller.signal), bold: await font("Bold", controller.signal) } } : {}) };
+    const layout = format === "csv" ? "analysis" : layoutSelect.value;
+    const input = { format, layout, ...(layout === "grouped" ? { language: languageSelect.value } : {}), rowCount: count,
+      ...(format === "pdf" ? { fonts: { regular: await font("Regular", controller.signal), bold: await font("Bold", controller.signal) } } : {}) };
     controller.signal.throwIfAborted();
     worker = new Worker("/js/report-engine-worker.mjs", { type: "module", name: "OfficeIMO report" });
     worker.addEventListener("error", event => { event.preventDefault(); controller.abort(new Error("The report worker could not run. Refresh the page and try again.")); });
     worker.addEventListener("messageerror", () => controller.abort(new Error("The report worker could not read a message.")));
-    const result = await executeWorkerExport(worker, operationalRows(count), { write(bytes) {
+    const result = await executeWorkerExport(worker, layout === "grouped" ? operationalRowsBySite(count) : operationalRows(count), { write(bytes) {
       accepted += bytes.length;
       if (accepted > 96 * 1024 * 1024) throw new Error("This download exceeds the workbench's 96 MiB limit. Choose fewer services.");
       parts.push(bytes.slice());
@@ -73,7 +89,10 @@ form.addEventListener("submit", async event => {
   } finally { parts.length = 0; worker?.terminate(); active = undefined; busy(false); }
 });
 cancel.addEventListener("click", () => { active?.controller.abort(new DOMException("Report cancelled", "AbortError")); cancel.disabled = true; status.textContent = "Cancelling…"; });
-rowSelect.addEventListener("change", preview);
+rowSelect.addEventListener("change", settingsChanged);
+layoutSelect.addEventListener("change", settingsChanged);
+languageSelect.addEventListener("change", settingsChanged);
+formatSelect.addEventListener("change", () => { if (formatSelect.value === "csv") layoutSelect.value = "analysis"; settingsChanged(); });
 addEventListener("pagehide", event => {
   active?.controller.abort(new DOMException("Page closed", "AbortError"));
   // A back/forward-cache entry keeps this document and its visible download.

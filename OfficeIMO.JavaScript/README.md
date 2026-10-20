@@ -185,6 +185,8 @@ const blob = await exportCanopy(capture, "xlsx", reportOptions);
 
 `exportCanopy(capture, format, options)` accepts `"xlsx"`, `"csv"` or `"pdf"`. `writeCanopyTo(capture, format, destination, options)` writes to a caller-owned sink or `WritableStream`; failed partial output remains caller-owned. Format options live in `xlsx`, `csv` and `pdf`, with common cancellation, limits and progress at the top level. Common limits override matching format limits. For Unicode PDF text, supply embedding-permitted TrueType fonts through `pdf.fonts`.
 
+`createCanopyExport` retains `type: "number"` for native numeric columns in a raw capture, so grouped metrics can use its columns directly. Display captures keep their rendered strings. Datetime metadata remains unforced because the preservation profile can intentionally produce exact ISO text rather than a `Date`.
+
 `columnOptions` is keyed by captured column ID. Settings for unselected columns are ignored, so one host format map can serve different visible/selected captures. `PdfFont` is exported from this entry as well as the PDF layer for constructing caller-supplied fonts.
 
 | Captured contract | Output behavior |
@@ -223,7 +225,7 @@ const onExport: GridHostOptions["onExport"] = async ({ capture, format, signal, 
 };
 ```
 
-This entry exports grid records. Collapsed visual groups do not remove their records, and group summary rows or tree outlines are not synthesized. Host report composition can add the writers' headings, totals and print layout explicitly. Workers consume a host-owned bounded capture/row bridge; a live CanopyX grid remains on the page. Pass the writer's signal to the same capture enumeration and release the bridge when the host cancels it.
+This entry exports grid records. Collapsed visual groups do not remove their records. The adapter exports records in the captured order; use the [grouped report writers](#grouped-analytical-reports) when an explicitly group-ordered capture needs summary rows and Excel outlines. Workers consume a host-owned bounded capture/row bridge; a live CanopyX grid remains on the page. Pass the writer's signal to the same capture enumeration and release the bridge when the host cancels it.
 
 ## PDF tables
 
@@ -270,6 +272,12 @@ The default writer handles scalar text layout for Latin, Greek, Cyrillic, Han, H
 `PdfLimits` includes shared row/cell/text/output ceilings plus `maxPages` (default 10,000), `maxColumns` (1,024), `maxCellCharacters` (1,000,000 UTF-16 units), `maxRowLines` (100,000), `maxFontBytes` (16 MiB across unique supplied fonts), `maxPageBytes` (8 MiB of drawing commands and link dictionaries), and `maxHyperlinks` (100,000 native annotations). A continued linked cell creates one annotation per page fragment; repeated linked headings also consume that limit. PDF cell/text budgets count rendered strings, headings, totals and page decorations; `maxRows` counts source rows. Resource failures never silently remove rows, columns or text. Native deflate compresses streams when available; `compression: false` or a missing native compressor produces valid uncompressed PDFs.
 
 Workers can call the same writers without a DOM. For a portable worker-to-page handoff, use `writePdfTo` and transfer byte chunks with acknowledgements; this also avoids WebKit worker Blob-read restrictions. Keep the row source and destination bridge bounded, and pass an `AbortSignal` to stop pending input or output. The caller owns disposal of partial bytes after failure, and the library releases borrowed stream locks without closing or aborting the destination.
+
+### Display language
+
+PDF and CSV accept `booleanText: { true: "Tak", false: "Nie" }`; defaults remain `True`/`False`. Explicit `ExportCell.text` or a column/format callback takes precedence. These are display choices: native XLSX booleans remain boolean cells. CSV applies normal quoting, text limits and formula protection to custom labels.
+
+PDF page counters accept `pageNumberLabels: { prefix: "Strona ", separator: " z ", suffix: "" }`. The compatibility default is `Page 1 of 3`. Labels are captured once and use the same font, geometry and text limits as the counter. Number/date formatting belongs to the host's explicit formatter or `ExportCell.text`; schema keys, Excel formulas and invariant defaults do not depend on translated headings or the machine's language.
 
 ### Compose a PDF report
 
@@ -867,7 +875,7 @@ saveBlob(await book.toBlob(), "service-analysis.xlsx");
 
 Changing a service status in Excel updates the summary and its chart. If Excel uses manual calculation, recalculate to refresh them. The executable [service report job](../OfficeIMO.JavaScript.Examples/report-engine-job.mjs) computes initial caches during the same pass that writes the selected source rows. Its counts cover all exported records; filtering those records later in Excel does not change the `COUNTIF` summaries.
 
-`FormulaCell(formula, cachedValue, style?)` accepts an explicit invariant Excel expression, a finite numeric initial result and an optional workbook-local style index. An optional leading `=` is removed. Expressions contain 1–8,192 UTF-16 units and reject XML-invalid characters even under the text-strip policy. Direct external-workbook and DDE references are unsupported. The author owns the expression's Excel semantics and cache accuracy; this is formula authoring, not a formula evaluator or sandbox. Ordinary strings remain literal values. Formula cells are supported in advanced worksheet rows, getters, custom-writer results and `footer.values`; portable table/CSV/PDF inputs and structured heading/footer matrices continue to accept resolved values. An explicit formula input cannot also pass through a custom column writer; return the formula from that writer instead.
+`FormulaCell(formula, cachedValue, style?)` accepts an explicit invariant Excel expression, a finite numeric initial result or `null` for a blank cached result, and an optional workbook-local style index. An optional leading `=` is removed. Expressions contain 1–8,192 UTF-16 units and reject XML-invalid characters even under the text-strip policy. Direct external-workbook and DDE references are unsupported. The author owns the expression's Excel semantics and cache accuracy; this is formula authoring, not a formula evaluator or sandbox. Ordinary strings remain literal values. Formula cells are supported in advanced worksheet rows, getters, custom-writer results and `footer.values`; portable table/CSV/PDF inputs and structured heading/footer matrices continue to accept resolved values. An explicit formula input cannot also pass through a custom column writer; return the formula from that writer instead.
 
 `worksheet.dataRange(column)` returns a quoted, absolute, finite A1 reference after the worksheet closes, or `undefined` for empty data. Select a unique declared column key or one-based column number. Titles, heading matrices and footers are excluded. The reference describes the exported rows and does not expand when users add rows later.
 
@@ -876,6 +884,49 @@ A chart's `data: { kind: "range", sheet, rowCount, categoryColumn, series }` bin
 `dataValidation` contains inline-list rules targeting a declared data column. Each rule supplies `type: "list"`, `column` and nonempty `items`. Items cannot contain commas, and the quoted list expression must fit Excel's 255 UTF-16-unit inline-source limit. `allowBlank` defaults to true; `showErrorMessage` defaults to true and `errorStyle` to `"stop"`. Optional `errorTitle` and `errorMessage` fit 32 and 255 UTF-16 units respectively. Rules follow the final exported data range, excluding headings and totals; empty sheets emit no validation elements. Excel validation is an editing aid, not a security boundary.
 
 Workbook limits include `maxFormulaCharacters` (1,000,000 authored UTF-16 units), `maxDataValidations` (1,000 captured rules) and `maxValidationTextCharacters` (1,000,000 captured UTF-16 units). Bound caches share `maxChartPoints` and `maxChartTextCharacters`; formula expressions also consume the general text budget. These limits apply across the workbook, including editing rules declared on empty sources.
+
+## Grouped analytical reports
+
+`createGroupedReport` supplies one shared, single-use stream to the XLSX or PDF grouped writer. It consumes rows already ordered into contiguous groups, such as a grid sorted by site. Every column has a unique stable `key`; translated or reordered headings never choose the grouping field or a metric. A closed group appearing again is rejected. The engine does not sort or retain all report rows.
+
+```ts
+import { createGroupedReport, writeGroupedXlsx, saveBlob } from "@evotecit/officeimo/xlsx";
+
+const columns = [
+  { header: "Site", key: "site" },
+  { header: "Service", key: "service" },
+  { header: "Latency", key: "latency", type: "number", format: "0.00" }
+] as const;
+const rows = [
+  { site: "Berlin", service: "Directory", latency: 12 },
+  { site: "Berlin", service: "DNS", latency: 18 },
+  { site: "Warsaw", service: "Directory", latency: 6 }
+];
+const report = createGroupedReport(rows, {
+  columns, groupBy: "site", totals: { latency: "average" },
+  groupLabel: value => String(value ?? ""),
+  limits: { maxRows: 100000, maxCells: 300000 }
+});
+const file = await writeGroupedXlsx(report, {
+  labelColumn: { header: "Summary", width: 30 },
+  subtotalLabel: group => `${group.label}: ${group.rows} services`,
+  grandTotalLabel: summary => `All ${summary.rows} services`,
+  sheet: { name: "Service analysis", freezeHeader: true },
+  collapseGroups: true,
+  limits: { maxOutputBytes: 96000000 }
+});
+saveBlob(file, "grouped-services.xlsx");
+```
+
+The leading label column preserves every original typed column, including a numeric first column. `sum`, `count`, `average`, `min` and `max` operate on explicitly numeric columns and accept finite numbers or null values. `count` counts numeric cells; `group.rows` and `summary.rows` count all records. Empty sum/count results are zero; empty average/min/max results are blank. Grand averages use all numeric records, including unequal group sizes, rather than averaging group averages.
+
+XLSX emits native outline controls and finite `SUBTOTAL` formulas with initial caches. Excel recalculates them after detail edits; manually collapsed rows remain included. Grouped sheets do not enable an Excel table or autofilter: filtering/selection belongs to the host capture before export. `includeGrandTotal: false` omits the final summary. Group labels, subtotal labels and grand labels are host-authored strings, so applications supply their own translations and terminology.
+
+For PDF, create a fresh source and call `writeGroupedPdf` or `writeGroupedPdfTo` from the same `/pdf` entry. It accepts the same required `labelColumn`, `subtotalLabel` and `grandTotalLabel`; ordinary PDF fonts, layout and display options apply. Each group repeats its captured label and leaf headings on continued pages. A subtotal can flow onto the next page under that repeated context; it is not kept with the last detail row. `continuationLabel` can supply explicit text such as `${group.label} — continued`. Empty reports retain requested headings with or without a grand total. The shared source computes the same metrics for both formats. Tagged grouped PDF output is explicitly unsupported while its group/table associations remain unqualified.
+
+`writeGroupedXlsxTo` and `writeGroupedPdfTo` await caller-owned destinations. Source and writer cancellation reach pending reads and writes; progress/result `rows` count data records. Generated group and summary rows still consume the format writer's row/cell/text budgets. Source `limits` cover only rows, cells and text; set `maxOutputBytes` on the selected writer. `maxGroups` defaults to 1,000 and `maxGroupKeyCharacters` to 1,000,000 retained UTF-16 units. The engine retains group identifiers for recurrence detection, aggregate state and one boundary lookahead, rather than group bodies.
+
+Group identity is locale independent: strings compare exactly, numbers and booleans keep their types, dates compare UTC milliseconds, and null/undefined share one empty group. Default date labels use ISO UTC text; use `groupLabel` for localized display. Use the factory and writer from the same package entry or standalone bundle. A source is consumed once; create another source, with a new iterable when necessary, for a second format. CSV remains a flat typed-record export.
 
 ## Live Excel conditional formatting
 
@@ -931,7 +982,7 @@ saveBlob(await writeCsv(rows, { columns, bom: true }), "status.csv");
 await writeCsvTo(rows, { write: bytes => uploadChunk(bytes) }, { columns });
 ```
 
-`uploadChunk` above stands for an application's asynchronous byte destination; its promise supplies backpressure. The library performs no network access itself. Both CSV entry points use RFC 4180 quoting, comma/semicolon/tab delimiters, CRLF by default, optional UTF-8 BOM and a final line ending. Alternative endings are LF and CR. Booleans are `True`/`False`; valid dates are UTC ISO 8601 with milliseconds. Numbers use JavaScript's invariant string representation.
+`uploadChunk` above stands for an application's asynchronous byte destination; its promise supplies backpressure. The library performs no network access itself. Both CSV entry points use RFC 4180 quoting, comma/semicolon/tab delimiters, CRLF by default, optional UTF-8 BOM and a final line ending. Alternative endings are LF and CR. Booleans default to `True`/`False`; `booleanText: { true: "Tak", false: "Nie" }` supplies explicit display labels. Valid dates are UTC ISO 8601 with milliseconds. Numbers use JavaScript's invariant string representation.
 
 Formula protection defaults to true and follows `OfficeIMO.CSV`: after leading ASCII spaces, a string beginning with `=`, `+`, `-`, `@`, tab, CR or LF gains an apostrophe. Typed negative numbers remain numeric. Set `formulaInjectionProtection: false` for trusted non-spreadsheet consumers. Widths and XLSX style/type options do not change CSV formatting.
 

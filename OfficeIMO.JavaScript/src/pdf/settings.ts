@@ -6,6 +6,7 @@ import type { TableSpanRows } from "../core/index.js";
 import type { PdfOptions, PdfMargins, PdfPageSize, PdfLimits } from "./types.js";
 import type { PdfDocumentOptions, PdfParagraphStyle } from "./document-types.js";
 import { captureParagraphStyles } from "./paragraph-styles.js";
+import { captureBooleanText } from "../core/value-text.js";
 import { positive, color, presentation } from "./presentation-settings.js";
 export { positive, color, presentation } from "./presentation-settings.js";
 const sizes: Readonly<Record<string, PdfPageSize>> = {
@@ -24,9 +25,17 @@ export interface PdfSettings {
 }
 export function settings(input: PdfOptions & Pick<PdfDocumentOptions, "paragraphStyles">, document = false): PdfSettings {
   const configuration = { ...input };
+  configuration.booleanText = captureBooleanText(configuration.booleanText);
   if (configuration.limits) configuration.limits = Object.freeze({ ...configuration.limits });
   if (configuration.pageSize && typeof configuration.pageSize === "object") configuration.pageSize = Object.freeze({ ...configuration.pageSize });
   if (configuration.margins && typeof configuration.margins === "object") configuration.margins = Object.freeze({ ...configuration.margins });
+  if (configuration.pageNumberLabels !== undefined) {
+    const labels = configuration.pageNumberLabels;
+    if (!labels || typeof labels !== "object" || Array.isArray(labels)) throw new TypeError("pageNumberLabels must provide literal text.");
+    const { prefix = "Page ", separator = " of ", suffix = "" } = labels;
+    if ([prefix, separator, suffix].some(value => typeof value !== "string")) throw new TypeError("Page-number labels must be text.");
+    configuration.pageNumberLabels = Object.freeze({ prefix, separator, suffix });
+  }
   const textShaper = configuration.textShaper, shapeLine = textShaper?.shapeLine;
   if (textShaper !== undefined && (!textShaper || typeof shapeLine !== "function")) throw new TypeError("textShaper must provide shapeLine.");
   if (configuration.textDirection !== undefined && !["auto", "ltr", "rtl"].includes(configuration.textDirection))

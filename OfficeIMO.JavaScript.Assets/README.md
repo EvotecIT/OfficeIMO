@@ -8,6 +8,8 @@ The XLSX assets support [live conditional formatting](../OfficeIMO.JavaScript/RE
 
 The XLSX assets also write [native editable Excel charts](../OfficeIMO.JavaScript/README.md#native-editable-excel-charts): clustered columns/bars, lines and pies with cached values and one hidden source worksheet per chart. These use Excel's chart drawing and editing; PNG images retain an existing rendering, and PDF graphics use the portable drawing contract.
 
+The [grouped report writers](../OfficeIMO.JavaScript/README.md#grouped-analytical-reports) consume explicitly group-ordered rows through one shared aggregation source. XLSX provides editable subtotals and native outlines; PDF provides group sections and continued-page context. Hosts supply translated labels and display policies.
+
 ## Use embedded assets
 
 ```csharp

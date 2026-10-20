@@ -53,6 +53,8 @@ export class PdfPages {
   private readonly externalObjects = new Map<string, number>();
   private tableElement: number | undefined;
   private tableHeadingsDrawn = false;
+  private continuationCaption: PdfPreparedParagraph | undefined;
+  private continuationCaptionPaints = 0;
   constructor(readonly objects: PdfObjects, private readonly baseSettings: PdfSettings, readonly fonts: PdfFontResources,
     private readonly parent: number, private readonly resources: number, private layout?: PdfTableLayout, private readonly structure?: PdfStructure, private readonly outlines?: PdfOutlines) {
     this.activeSettings = baseSettings;
@@ -61,7 +63,9 @@ export class PdfPages {
     const settings = this.settings, font = this.fonts.select(), max = settings.limits.maxPages;
     const digitWidth = Math.max(...Array.from({ length: Math.min(10, max) }, (_, i) => font.width(max < 10 ? 49 + i : 48 + i)));
     const countWidth = digitWidth * String(max).length * settings.fontSize / 1000;
-    const literals = wrapText("Page  of ", font, settings.fontSize, settings.page.width, 128, 1, false)[0]!.width;
+    const labels = settings.options.pageNumberLabels;
+    const literals = wrapText((labels?.prefix ?? "Page ") + (labels?.separator ?? " of ") + (labels?.suffix ?? ""), font,
+      settings.fontSize, Number.MAX_SAFE_INTEGER, settings.limits.maxCellCharacters, 1, false)[0]!.width;
     return literals + countWidth * 2 + 2;
   }
   get settings(): PdfSettings { return this.activeSettings; }
@@ -184,9 +188,11 @@ export class PdfPages {
     if (footerWidth <= 0 && footer) throw new RangeError("Page is too narrow for both footer text and page numbers.");
     this.decoration(footer, margins.left, margins.bottom / 2 - centerOffset, footerWidth);
     if (options.pageNumbers !== false) {
-      const x = page.width - margins.right - this.pageNumberWidth + 1, y = margins.bottom / 2 - centerOffset, label = "Page " + this.references.length + " of ";
-      const line = wrapText(label, font, fontSize, this.pageNumberWidth, 128, 1, false)[0]!;
-      this.settings.budget.cell(label);
+      const labels = options.pageNumberLabels, suffix = labels?.suffix ?? "";
+      const x = page.width - margins.right - this.pageNumberWidth + 1, y = margins.bottom / 2 - centerOffset,
+        label = (labels?.prefix ?? "Page ") + this.references.length + (labels?.separator ?? " of ");
+      const line = wrapText(label, font, fontSize, this.pageNumberWidth, this.settings.limits.maxCellCharacters, 1, false)[0]!;
+      this.settings.budget.cell(label + suffix);
       this.text(label, font, fontSize, x, y);
       this.add(this.artifact("q 1 0 0 1 " + pdfNumber(x + line.width) + " " + pdfNumber(y) + " cm /TotalPages Do Q\n", "Pagination"));
     }
@@ -195,8 +201,13 @@ export class PdfPages {
       if (options.title) await this.paragraph(options.title, { bold: true }, fontSize * 1.5, false, 1);
       if (options.messageTop) await this.paragraph(options.messageTop, {}, fontSize, false);
     }
-    const headers = preparedHeadings ?? (tableHeadings && this.layout ? await this.layout.headers() : []), headerHeight = headers.reduce((n, h) => n + h.height, 0);
-    this.continuationTop = page.height - margins.top - headerHeight;
+    const headers = preparedHeadings ?? (tableHeadings && this.layout ? await this.layout.headers() : []), headerHeight = headers.reduce((n, h) => n + h.height, 0),
+      continuation = tableHeadings && this.layout ? this.continuationCaption : undefined;
+    if (continuation?.lines.length) {
+      if (this.continuationCaptionPaints++ > 0) this.settings.budget.cell(continuation.text.text);
+      await this.paragraphs([continuation], headerHeight + lineHeight + this.settings.padding * 2, true);
+    }
+    this.continuationTop = page.height - margins.top - headerHeight - (continuation?.height ?? 0);
     if (this.y - headerHeight - lineHeight - this.settings.padding * 2 < margins.bottom) throw new RangeError("PDF title and repeated headings leave no room for a data line.");
     if (tableHeadings && this.layout && this.structure && this.tableElement === undefined) this.tableElement = this.structure.element("Table");
     await this.drawHeadings(headers);
@@ -313,9 +324,11 @@ export class PdfPages {
     }
   }
   /** Begin an independent table on the current page, retaining its headings on continuation pages. */
-  async beginTable(layout: PdfTableLayout, preparedHeadings?: readonly PdfLayoutRow[], minimumDataHeight = layout.lineHeight + this.settings.padding * 2, caption?: PdfPreparedParagraph): Promise<void> {
+  async beginTable(layout: PdfTableLayout, preparedHeadings?: readonly PdfLayoutRow[], minimumDataHeight = layout.lineHeight + this.settings.padding * 2, caption?: PdfPreparedParagraph,
+    continuationCaption?: PdfPreparedParagraph): Promise<void> {
     await this.ensureStarted();
     this.layout = layout;
+    this.continuationCaption = continuationCaption; this.continuationCaptionPaints = 0;
     this.tableElement = this.structure?.element("Table"); this.tableHeadingsDrawn = false;
     const headings = preparedHeadings ?? await layout.headers(), height = headings.reduce((n, row) => n + row.height, 0);
     if (caption) {
@@ -325,13 +338,13 @@ export class PdfPages {
     if (this.y - height - minimumDataHeight < this.settings.margins.bottom) {
       await this.finishPage(); await this.start(true, headings); return;
     }
-    this.continuationTop = this.settings.page.height - this.settings.margins.top - height;
+    this.continuationTop = this.settings.page.height - this.settings.margins.top - height - (continuationCaption?.height ?? 0);
     await this.drawHeadings(headings);
     this.dataTop = this.y;
   }
   async endTable(): Promise<void> {
     await this.structure?.complete(this.tableElement);
-    this.layout = undefined; this.tableElement = undefined; this.tableHeadingsDrawn = false; this.y -= 8;
+    this.layout = undefined; this.tableElement = undefined; this.tableHeadingsDrawn = false; this.continuationCaption = undefined; this.continuationCaptionPaints = 0; this.y -= 8;
   }
   async pageBreak(): Promise<void> { await this.ensureStarted(); await this.finishPage(); await this.start(false); }
   registerXObject(name: string, id: number): void { this.externalObjects.set(name, id); }
@@ -391,10 +404,10 @@ export class PdfPages {
     await this.structure?.complete(this.tableElement);
     await this.finishPage();
     if (this.totalPages) {
-      const font = this.fonts.select(), text = String(this.references.length), size = this.numberSettings!.fontSize;
-      this.settings.budget.cell(text);
+      const font = this.fonts.select(), count = String(this.references.length), text = count + (this.numberSettings!.options.pageNumberLabels?.suffix ?? ""), size = this.numberSettings!.fontSize;
+      this.settings.budget.cell(count);
       const content = "BT /" + font.name + " " + pdfNumber(size) + " Tf 1 0 0 1 0 0 Tm " + font.encode(text) + " Tj ET\n";
-      const width = wrapText(text, font, size, this.numberSettings!.page.width, 128, 1, false)[0]!.width;
+      const width = wrapText(text, font, size, this.numberSettings!.page.width, this.settings.limits.maxCellCharacters, 1, false)[0]!.width;
       const bottom = (font.program?.bbox[1] ?? -250) * size / 1000 - 1, top = (font.program?.bbox[3] ?? 1000) * size / 1000 + 1;
       await this.objects.stream(this.totalPages, content, "/Type /XObject /Subtype /Form /BBox [-1 " + pdfNumber(bottom) + " " + pdfNumber(width + 1) + " " + pdfNumber(top) + "] /Resources << /Font " + this.fonts.dictionary() + " >>", this.settings.options.compression !== false);
     }

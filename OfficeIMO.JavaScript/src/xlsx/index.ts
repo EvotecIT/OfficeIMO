@@ -1,5 +1,10 @@
 export { Workbook } from "./workbook.js";
 export { writeXlsx, writeXlsxTo } from "./write.js";
+export { writeGroupedXlsx, writeGroupedXlsxTo } from "./grouped.js";
+export type { GroupedXlsxOptions } from "./grouped.js";
+export type { RowOutline } from "./types.js";
+export { createGroupedReport } from "../core/grouped-report.js";
+export type { GroupedReportSource, GroupedReportOptions, GroupedReportEvent, GroupedReportSummary } from "../core/grouped-report.js";
 export type { XlsxOptions } from "./write.js";
 export type { XlsxColumn } from "./types.js";
 export { Worksheet } from "./worksheet.js";

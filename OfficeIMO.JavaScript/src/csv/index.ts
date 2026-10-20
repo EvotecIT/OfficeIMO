@@ -8,6 +8,9 @@ import type { ByteSink, OutputDestination } from "../core/sinks.js";
 import type { CellValue, Column, StreamOptions, ExportResult, TableSpanRows } from "../core/index.js";
 import { copyColumns, createRowProjector } from "../internal/rows.js";
 import { csvStructuredRows } from "./structured-rows.js";
+import { captureBooleanText } from "../core/value-text.js";
+import type { BooleanText } from "../core/value-text.js";
+export type { BooleanText } from "../core/value-text.js";
 export { saveBlob } from "../core/index.js";
 export { ExportCell } from "../core/presentation.js";
 export type { CellValue, Column, ColumnValueContext, Row, Rows, StreamOptions, ExportProgress, ExportResult, OutputDestination, ExportValue, CellPresentation } from "../core/index.js";
@@ -41,20 +44,22 @@ export interface CsvOptions<T = never> extends StreamOptions {
   readonly formulaInjectionProtection?: boolean;
   readonly quote?: "minimal" | "all" | "strings";
   readonly nullValue?: string;
+  /** Display policy only; defaults to the explicit compatibility strings True and False. */
+  readonly booleanText?: BooleanText;
 }
-function csvField(value: unknown, delimiter: string, protect: boolean, quote: NonNullable<CsvOptions["quote"]>, nullValue?: string): string {
+function csvField(value: unknown, delimiter: string, protect: boolean, quote: NonNullable<CsvOptions["quote"]>, booleanText: BooleanText, nullValue?: string): string {
   if (value == null && nullValue !== undefined) value = nullValue;
   let text: string;
   if (value == null) text = "";
   else if (isDate(value)) text = Number.isFinite(value.getTime()) ? value.toISOString() : "";
-  else if (typeof value === "boolean") text = value ? "True" : "False";
+  else if (typeof value === "boolean") text = booleanText[value ? "true" : "false"];
   else if (typeof value === "number") text = Number.isFinite(value) ? String(value) : "";
   else if (typeof value === "string") text = value;
   else {
     if (typeof (value as { then?: unknown }).then === "function") void Promise.resolve(value).catch(() => {});
     throw new TypeError("CSV cells and formatter results must be synchronous strings, numbers, booleans, Dates or null.");
   }
-  if (protect && typeof value === "string" && /^ *[=+\-@\t\r\n]/.test(text)) text = "'" + text;
+  if (protect && (typeof value === "string" || typeof value === "boolean") && /^ *[=+\-@\t\r\n]/.test(text)) text = "'" + text;
   return quote === "all" || (quote === "strings" && typeof value === "string") || text.includes(delimiter) || /["\r\n]/.test(text)
     ? '"' + text.replace(/"/g, '""') + '"' : text;
 }
@@ -68,6 +73,7 @@ export async function writeCsvTo(rows: Iterable<unknown> | AsyncIterable<unknown
 async function write(rows: Iterable<unknown> | AsyncIterable<unknown>, sink: ByteSink, options: CsvOptions): Promise<ExportResult> {
   beginTask();
   const columns = copyColumns(options.columns).map(c => Object.freeze(c)) as CsvColumn[], delimiter = options.delimiter ?? ",", lineEnding = options.lineEnding ?? "\r\n", quote = options.quote ?? "minimal";
+  const booleanText = captureBooleanText(options.booleanText);
   if (![",", ";", "\t"].includes(delimiter)) throw new RangeError("Delimiter must be comma, semicolon or tab.");
   if (!["\r\n", "\n", "\r"].includes(lineEnding)) throw new RangeError("Invalid line ending.");
   if (!["minimal", "all", "strings"].includes(quote)) throw new RangeError("Quoting must be minimal, all or strings.");
@@ -98,9 +104,9 @@ async function write(rows: Iterable<unknown> | AsyncIterable<unknown>, sink: Byt
       let value = !header && column.valueFormatter ? column.valueFormatter(raw as CellValue,
         { rowIndex: count, columnIndex: i, column, values: snapshot! }) : raw;
       if (value == null && options.nullValue !== undefined) value = options.nullValue;
-      budget.cell(value);
+      budget.cell(typeof value === "boolean" ? booleanText[value ? "true" : "false"] : value);
       checkAbort(signal);
-      text += (i ? delimiter : "") + csvField(value, delimiter, protect, quote, options.nullValue);
+      text += (i ? delimiter : "") + csvField(value, delimiter, protect, quote, booleanText, options.nullValue);
       if (text.length >= buffer.chunkSize || (i & 127) === 127 && taskYieldDue()) {
         if (buffer.append(text)) return buffer.flush().then(() => record(values, header, i + 1, snapshot));
         text = "";

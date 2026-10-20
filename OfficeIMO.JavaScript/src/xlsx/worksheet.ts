@@ -13,7 +13,7 @@ import { Cell, cellText, columnName, inlineText, excelDate, copyValue } from "./
 import { spreadsheetNamespace, colorArgb, validateStylePatch, copyStylePatch } from "./styles.js";
 import type { Workbook } from "./workbook.js";
 import type { SheetOptions, XlsxRows, XlsxColumn } from "./types.js";
-import type { RowStyleContext } from "./types.js";
+import type { RowStyleContext, RowOutline } from "./types.js";
 import type { CellStyle } from "./styles.js";
 import type { TableDefinition } from "./table.js";
 import { copyHyperlink, copyImage, hyperlinksXml, cellPosition } from "./attachments.js";
@@ -137,7 +137,10 @@ export class Worksheet<T = never> {
     if (options.headerFill !== undefined) colorArgb(options.headerFill);
     if (options.headerStyle !== undefined) book.styles.validateStyle(options.headerStyle);
     if (options.alternatingRowStyle !== undefined) book.styles.compose(0, options.alternatingRowStyle);
-    for (const callback of [options.rowStyle, options.cellStyle]) if (callback !== undefined && typeof callback !== "function") throw new TypeError("Style callbacks must be functions.");
+    for (const callback of [options.rowStyle, options.cellStyle, options.rowOutline]) if (callback !== undefined && typeof callback !== "function") throw new TypeError("Row and style callbacks must be functions.");
+    if (options.maxOutlineLevel !== undefined && (!Number.isInteger(options.maxOutlineLevel) || options.maxOutlineLevel < 0 || options.maxOutlineLevel > 7)) throw new RangeError("Maximum outline level must be an integer from zero through seven.");
+    if (options.rowOutline && options.maxOutlineLevel === undefined) throw new TypeError("A row outline callback requires maxOutlineLevel before streamed rows are written.");
+    if (!options.rowOutline && options.maxOutlineLevel !== undefined) throw new TypeError("maxOutlineLevel requires a row outline callback.");
     for (const height of [options.rowHeight, options.headerHeight])
       if (height !== undefined && (!Number.isFinite(height) || height <= 0 || height > 409)) throw new RangeError("Row height must be positive and at most 409 points.");
     if (options.freezeColumns !== undefined && (!Number.isInteger(options.freezeColumns) || options.freezeColumns < 0 || options.freezeColumns > columns.length || options.freezeColumns >= 16384)) throw new RangeError("Frozen columns must be within the declared columns and leave a valid scrollable column.");
@@ -231,7 +234,7 @@ export class Worksheet<T = never> {
     const prefix = '<c r="' + col.letter + row + '" s="' + style + '"';
     if (formula) this.book.retainFormula(formula.formula.length);
     this.book.budget.cell(formula ? formula.formula : value, reservedCharacters);
-    if (formula) return prefix + '>' + formulaXml(formula) + '</c>';
+    if (formula) return prefix + (value === null ? ' t="str"' : "") + '>' + formulaXml(formula) + '</c>';
     if (total) return prefix + (value === null ? ' t="str"' : "") + '><f>' + total.formula.replace(/"/g, "&quot;") + '</f><v>' + (value ?? "") + '</v></c>';
     if (value == null || (type === "number" && !Number.isFinite(value))) return prefix + '/>';
     if (value == null) return prefix + '/>';
@@ -242,14 +245,30 @@ export class Worksheet<T = never> {
   }
   private *rowXml(values: readonly unknown[], number: number, header: boolean, footer = false, title = false): Generator<string> {
     const height = title ? this.options.title?.height ?? 28 : header ? this.options.headerHeight : this.options.rowHeight;
-    const context = !header && !footer && (this.options.rowStyle || this.options.cellStyle) ? Object.freeze({ rowIndex: number - this.headerRows - 1, worksheetRow: number, sheetName: this.name,
+    const context = !header && !footer && (this.options.rowStyle || this.options.cellStyle || this.options.rowOutline) ? Object.freeze({ rowIndex: number - this.headerRows - 1, worksheetRow: number, sheetName: this.name,
       values: Object.freeze(this.columns.map((_, i) => values[i] instanceof FormulaCell ? (values[i] as FormulaCell).cachedValue : values[i] instanceof Cell || values[i] instanceof ExportCell ? (values[i] as Cell | ExportCell).value : values[i])) as readonly CellValue[] }) : undefined;
     const rowStyle = context && this.options.rowStyle?.(context);
     if (rowStyle !== undefined) validateStylePatch(rowStyle);
+    const outline = this.outline(context);
     const rowStyles = !header && (rowStyle || this.options.alternatingRowStyle) ? new Map<number, number>() : undefined;
-    yield '<row r="' + number + '"' + (height === undefined ? "" : ' ht="' + height + '" customHeight="1"') + '>';
+    yield '<row r="' + number + '"' + (height === undefined ? "" : ' ht="' + height + '" customHeight="1"') +
+      (outline?.level ? ' outlineLevel="' + outline.level + '"' : "") + (outline?.hidden ? ' hidden="1"' : "") + (outline?.collapsed ? ' collapsed="1"' : "") + '>';
     for (let i = 0; i < this.columns.length; i++) yield this.cell(values[i], i, number, header, rowStyle, context, rowStyles, footer, title);
     yield '</row>';
+  }
+  private outline(context: RowStyleContext | undefined): RowOutline | undefined {
+    if (!context || !this.options.rowOutline) return undefined;
+    const requested = this.options.rowOutline(context);
+    if (requested === undefined) return undefined;
+    if (requested === null || typeof requested !== "object" || Array.isArray(requested)) throw new TypeError("Row outline callbacks must return metadata or undefined.");
+    if (typeof (requested as { then?: unknown }).then === "function") {
+      void Promise.resolve(requested).catch(() => {});
+      throw new TypeError("Row outline callbacks must return synchronous metadata.");
+    }
+    const { level: requestedLevel, hidden, collapsed } = requested, level = requestedLevel ?? 0;
+    if (!Number.isInteger(level) || level < 0 || level > this.options.maxOutlineLevel!) throw new RangeError("Row outline level exceeds the declared maximum.");
+    for (const value of [hidden, collapsed]) if (value !== undefined && typeof value !== "boolean") throw new TypeError("Row outline flags must be booleans.");
+    return Object.freeze({ level, ...(hidden === undefined ? {} : { hidden }), ...(collapsed === undefined ? {} : { collapsed }) });
   }
   private writeRow(values: readonly unknown[], number: number, header: boolean, footer = false, title = false): void | Promise<void> {
     const chunks = this.rowXml(values, number, header, footer, title);
@@ -317,8 +336,10 @@ export class Worksheet<T = never> {
     const buffer = this.buffer = new ChunkedTextSink(this.entry, this.book.settings.signal), opts = this.options;
     const x = opts.freezeColumns ?? 0, y = opts.freezeHeader ? this.headerRows : 0;
     const pane = x && y ? "bottomRight" : x ? "topRight" : "bottomLeft", cell = columnName(x + 1) + (y + 1);
-    await buffer.write(xmlDeclaration + '<worksheet xmlns="' + spreadsheetNamespace + '" xmlns:r="' + officeRelationshipsNamespace + '">' + (opts.print ? '<sheetPr><pageSetUpPr fitToPage="1"/></sheetPr>' : "") + '<sheetViews><sheetView workbookViewId="0">' +
-      (x || y ? '<pane' + (x ? ' xSplit="' + x + '"' : "") + (y ? ' ySplit="' + y + '"' : "") + ' topLeftCell="' + cell + '" activePane="' + pane + '" state="frozen"/><selection pane="' + pane + '" activeCell="' + cell + '" sqref="' + cell + '"/>' : "") + '</sheetView></sheetViews>');
+    await buffer.write(xmlDeclaration + '<worksheet xmlns="' + spreadsheetNamespace + '" xmlns:r="' + officeRelationshipsNamespace + '">' +
+      (opts.print || opts.rowOutline ? '<sheetPr>' + (opts.rowOutline ? '<outlinePr summaryBelow="1" showOutlineSymbols="1"/>' : "") + (opts.print ? '<pageSetUpPr fitToPage="1"/>' : "") + '</sheetPr>' : "") + '<sheetViews><sheetView workbookViewId="0">' +
+      (x || y ? '<pane' + (x ? ' xSplit="' + x + '"' : "") + (y ? ' ySplit="' + y + '"' : "") + ' topLeftCell="' + cell + '" activePane="' + pane + '" state="frozen"/><selection pane="' + pane + '" activeCell="' + cell + '" sqref="' + cell + '"/>' : "") + '</sheetView></sheetViews>' +
+      (opts.rowOutline ? '<sheetFormatPr defaultRowHeight="15" outlineLevelRow="' + opts.maxOutlineLevel + '"/>' : ""));
     const defaultWidth = opts.defaultColumnWidth ?? (this.table ? 20 : undefined);
     if (this.columns.some((_, i) => this.layout.widths[i] !== undefined || defaultWidth !== undefined)) {
       await buffer.write('<cols>');
