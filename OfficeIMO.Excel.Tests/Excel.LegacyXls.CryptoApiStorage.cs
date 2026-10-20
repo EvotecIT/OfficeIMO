@@ -31,9 +31,33 @@ public sealed class ExcelLegacyCryptoApiStorageTests {
         Assert.Equal(0x12345678U, storage.StateBits);
         Assert.Equal(Encoding.UTF8.GetBytes("Inert encrypted nested payload"), result.Streams["ProofStorage/Nested/Contents"]);
         using var output = new MemoryStream(); document.SaveEncrypted(output, "new-password", ExcelFileFormat.Xls);
+        Assert.True(OfficeCompoundFileReader.TryRead(output.ToArray(), out OfficeCompoundFile? protectedOutput, out error), error);
+        Assert.DoesNotContain(protectedOutput!.Streams.Keys, name => name.StartsWith("ProofStorage/", StringComparison.OrdinalIgnoreCase));
+        Assert.False(protectedOutput.Streams.ContainsKey("\u0005SummaryInformation"));
+        var descriptor = Assert.Single(BiffRecordReader.ReadRecords(protectedOutput.Streams["Workbook"], new()), record => record.Type == 0x002f);
+        var session = BiffRc4CryptoApiEncryption.OpenSession(descriptor, "new-password");
+        Assert.True(session.EncryptsDocumentProperties);
+        Assert.Equal(3, OfficeBinaryEncryptedSummary.Decrypt(protectedOutput.Streams["encryption"], session, 1024 * 1024).Count);
+        foreach (var stream in original.Streams.Where(item => item.Key.StartsWith("_VBA_PROJECT_CUR/", StringComparison.OrdinalIgnoreCase)))
+            Assert.Equal(stream.Value, protectedOutput.Streams[stream.Key]);
         using var reloaded = ExcelDocument.LoadEncrypted(output, "new-password");
         Assert.Equal("CryptoAPI restored storage", reloaded.Sheets[0].CellAt(1, 1).GetValue<string>());
         Assert.Equal(4, reloaded.LegacyXlsChartSheets.Count);
+    }
+
+    [Fact]
+    public void Shared_summary_writer_matches_independent_descriptor_encoding_and_honors_bounds_and_cancellation() {
+        var session = OfficeBinaryRc4CryptoApiSession.Create("test-password", 128, true, out _);
+        var entries = new[] { ("\u0005SummaryInformation", true, Encoding.UTF8.GetBytes("Property vector")),
+            ("Załącznik", false, Encoding.UTF8.GetBytes("Opaque storage vector")) };
+        byte[] expected = EncodeSummary(entries, session);
+        var input = entries.Select(entry => new OfficeBinaryEncryptedSummary.Entry(entry.Item1, entry.Item2, entry.Item3)).ToArray();
+        Assert.Equal(expected, OfficeBinaryEncryptedSummary.Encrypt(input, session, expected.Length));
+        Assert.Throws<InvalidDataException>(() => OfficeBinaryEncryptedSummary.Encrypt(input, session, expected.Length - 1));
+        Assert.Throws<OperationCanceledException>(() => OfficeBinaryEncryptedSummary.Encrypt(input, session,
+            cancellationToken: new CancellationToken(canceled: true)));
+        Assert.Equal("Property vector", Encoding.UTF8.GetString(entries[0].Item3));
+        Assert.Equal("Opaque storage vector", Encoding.UTF8.GetString(entries[1].Item3));
     }
 
     [Fact]

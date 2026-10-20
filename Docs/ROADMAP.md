@@ -549,6 +549,7 @@ The [Draw API](../OfficeIMO.OpenDocument/README.md#create-and-edit-draw-document
 ### Spreadsheet and CSV delivery order
 
 - [ ] Extend [native XLS lifecycle support](officeimo.excel.legacy-xls-compatibility.md#preserve-imported-biff8-workbooks) to additional sheet kinds, broader formula grammar and editable chart content beyond the qualified worksheet, cell, style, calculation and encrypted-source profiles. Keep native carrier retention, chart editing and macro execution separate contracts; qualify each addition against independent producers and native consumers.
+- [ ] Qualify native Windows Excel production of CryptoAPI XLS with encrypted summary properties and embedded storage using the [corpus procedure and acceptance checks](../OfficeIMO.TestAssets/Documents/ExcelNativeEncryptionCorpus/README.md#remaining-windows-encrypted-summary-check). Retain the native input, FilePass/descriptor profile, producer version and load/edit/password-rotation/native SaveAs readbacks. Mac-produced embedded-storage evidence and native acceptance of OfficeIMO-produced encrypted properties do not establish this producer profile.
 
 - [ ] Extend authored XLSX future-function storage beyond `TEXTJOIN`, the [qualified `IFNA`/`MINIFS`/`MAXIFS` calls](../OfficeIMO.Excel/README.md#ifna-minifs-and-maxifs-formula-storage) and the four bounded array calls. Keep prefix handling in the shared Excel formula-storage owner, preserve literals and existing aliases, and pair each additional family with saved/reopened native recalculation.
 

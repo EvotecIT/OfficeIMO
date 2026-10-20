@@ -10,11 +10,12 @@ public sealed class ExcelLegacyNativeEncryptionTests {
     private static string Corpus => Path.Combine(RepositoryTestPaths.Find(), "OfficeIMO.TestAssets", "Documents", "ExcelNativeEncryptionCorpus");
 
     [Theory]
-    [InlineData(false)]
-    [InlineData(true)]
-    public void Native_readbacks_retain_edited_values_recalculated_formulas_properties_and_embedding(bool encrypted) {
-        string path = Path.Combine(Corpus, encrypted ? "excel-embedding.rotated-readback.xls" : "excel-embedding.edited-readback.xls");
-        using var document = encrypted ? ExcelDocument.LoadEncrypted(path, "new-password") : ExcelDocument.Load(path);
+    [InlineData("excel-embedding.edited-readback.xls", null)]
+    [InlineData("excel-embedding.rotated-readback.xls", "new-password")]
+    [InlineData("excel-embedding.cryptoapi-readback.xls", "new-password")]
+    public void Native_readbacks_retain_edited_values_recalculated_formulas_properties_and_embedding(string filename, string? password) {
+        string path = Path.Combine(Corpus, filename);
+        using var document = password != null ? ExcelDocument.LoadEncrypted(path, password) : ExcelDocument.Load(path);
         Assert.Equal("Edited native embedding", document.Sheets[0].CellAt(2, 1).GetValue<string>());
         Assert.Equal(42, document.Sheets[0].CellAt(1, 2).GetValue<double>());
         Assert.Equal(50, document.Sheets[0].CellAt(3, 2).GetValue<double>());
@@ -61,10 +62,35 @@ public sealed class ExcelLegacyNativeEncryptionTests {
 
         using var rotated = new MemoryStream();
         document.SaveEncrypted(rotated, "new-password", ExcelFileFormat.Xls);
+        OfficeCompoundFile protectedOutput = ReadCompound(rotated.ToArray());
+        Assert.DoesNotContain(protectedOutput.Streams.Keys, name => name.StartsWith(storageName + "/", StringComparison.OrdinalIgnoreCase));
+        BiffRecord rotatedFilePass = Assert.Single(BiffRecordReader.ReadRecords(protectedOutput.Streams["Workbook"], new()), record => record.Type == 0x002f);
+        var rotatedSession = BiffRc4CryptoApiEncryption.OpenSession(rotatedFilePass, "new-password");
+        var protectedStorage = Assert.Single(OfficeBinaryEncryptedSummary.Decrypt(protectedOutput.Streams["encryption"], rotatedSession, 1024 * 1024));
+        Assert.Equal(storageName, protectedStorage.Name);
+        Assert.Equal(expectedPackage, ReadCompound(protectedStorage.Bytes).Streams["Package"]);
         using var reloaded = ExcelDocument.LoadEncrypted(rotated, "new-password");
         Assert.Equal("Edited native embedding", reloaded.Sheets[0].CellAt(2, 1).GetValue<string>());
         Assert.Equal("Native encrypted auxiliary control", reloaded.BuiltinDocumentProperties.Title);
         Assert.Equal(expectedPackage, ReadCompound(reloaded.ToBytes(ExcelFileFormat.Xls)).Streams[storageName + "/Package"]);
+        reloaded.Sheets[0].CellValue(2, 1, "Second protected save");
+        using var second = new MemoryStream();
+        reloaded.SaveEncrypted(second, "third-password", ExcelFileFormat.Xls);
+        Assert.DoesNotContain(ReadCompound(second.ToArray()).Streams.Keys, name => name.StartsWith(storageName + "/", StringComparison.OrdinalIgnoreCase));
+        using var secondRead = ExcelDocument.LoadEncrypted(second, "third-password");
+        Assert.Equal("Second protected save", secondRead.Sheets[0].CellAt(2, 1).GetValue<string>());
+    }
+
+    [Fact]
+    public void CryptoApi_output_limit_failure_preserves_the_destination_and_encryption_intent() {
+        using var document = ExcelDocument.LoadEncrypted(Path.Combine(Corpus, "excel-native-embedding.encrypted.xls"), "test-password");
+        byte[] sentinel = { 1, 3, 5, 7 };
+        using var destination = new MemoryStream(); destination.Write(sentinel, 0, sentinel.Length);
+        Assert.Throws<InvalidDataException>(() => document.SaveEncrypted(destination, "new-password", ExcelFileFormat.Xls,
+            new ExcelSaveOptions { MaxInMemoryPackageBytes = 1024 }));
+        Assert.Equal(sentinel, destination.ToArray());
+        document.SaveEncrypted(destination, "new-password", ExcelFileFormat.Xls);
+        Assert.DoesNotContain(ReadCompound(destination.ToArray()).Streams.Keys, name => name.EndsWith("/Package", StringComparison.OrdinalIgnoreCase));
     }
 
     [Theory]

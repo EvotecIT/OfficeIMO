@@ -134,7 +134,11 @@ cancellation. Macro execution and editing chart content have separate contracts.
 ### Encrypted output
 
 Native encrypted XLS output uses classic BIFF8 RC4/MD5 with a 1–15 UTF-16-code-unit
-password. Retained pivot-cache and revision BIFF streams use the same encryption
+password. Sources with protected auxiliary entries retain RC4 CryptoAPI and their
+encrypted stream/storage descriptors on password rotation. These entries have no
+clear payload copy in OfficeIMO encrypted output; explicit plaintext saves decode
+them. The protection intent survives an in-memory plaintext snapshot so a later
+encrypted save does not silently downgrade it. Retained pivot-cache and revision BIFF streams use the same encryption
 session with independent stream-position accounting and the format's plaintext
 record exceptions. VBA and some compound metadata remain unencrypted according
 to the format. Supported CryptoAPI input also restores encrypted summary metadata

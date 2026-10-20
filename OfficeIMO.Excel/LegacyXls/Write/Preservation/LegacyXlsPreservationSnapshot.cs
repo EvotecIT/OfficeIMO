@@ -220,10 +220,9 @@ internal sealed class LegacyXlsPreservationPlan {
     internal byte[] Write(byte[]? filePass, long maximumBytes, CancellationToken token, ExcelNativeCalculationPolicy calculation = default) =>
         _changes != null && !calculation.ClearCachedResults && !calculation.RecalculateOnOpen ? _source.Write(_changes, filePass, maximumBytes, token)
             : _source.WriteEdits(_document, _edits, filePass, maximumBytes, token, bindings: _bindings, calculationChanged: _calculationChanged, calculation: calculation);
-    internal byte[] WriteEncrypted(byte[] filePass, string password, byte[] salt, long maximumBytes, ExcelNativeCalculationPolicy calculation = default) {
-        byte[] Encrypt(byte[] bytes) => OfficeIMO.Excel.LegacyXls.Biff.BiffRc4Encryption.EncryptWorkbookStream(bytes, password, salt);
+    internal byte[] WriteEncrypted(byte[] filePass, Func<byte[], byte[]> encrypt, long maximumBytes, ExcelNativeCalculationPolicy calculation = default) {
         return _changes != null && !calculation.ClearCachedResults && !calculation.RecalculateOnOpen
-            ? _source.Write(_changes, filePass, maximumBytes, CancellationToken.None, Encrypt)
-            : _source.WriteEdits(_document, _edits, filePass, maximumBytes, CancellationToken.None, Encrypt, _bindings, _calculationChanged, calculation);
+            ? _source.Write(_changes, filePass, maximumBytes, CancellationToken.None, encrypt)
+            : _source.WriteEdits(_document, _edits, filePass, maximumBytes, CancellationToken.None, encrypt, _bindings, _calculationChanged, calculation);
     }
 }

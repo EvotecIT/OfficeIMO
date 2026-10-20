@@ -8,6 +8,9 @@ Public Sub QualifyNativeEmbedding()
     Dim root As String
     Dim optionError As Long
     Dim optionMessage As String
+    Dim failureNumber As Long
+    Dim failureMessage As String
+    On Error GoTo Failed
 #If Mac Then
     root = ThisWorkbook.Path & "/"
 #Else
@@ -37,5 +40,10 @@ Public Sub QualifyNativeEmbedding()
     wb.Close SaveChanges:=False
     Exit Sub
 Failed:
-    ThisWorkbook.Worksheets(1).Cells(1, 26).Value2 = "Failure " & Err.Number & ": " & Err.Description
+    failureNumber = Err.Number
+    failureMessage = Err.Description
+    On Error Resume Next
+    If Not wb Is Nothing Then wb.Close SaveChanges:=False
+    ThisWorkbook.Worksheets(1).Cells(1, 26).Value2 = "Failure " & failureNumber & ": " & failureMessage
+    On Error GoTo 0
 End Sub

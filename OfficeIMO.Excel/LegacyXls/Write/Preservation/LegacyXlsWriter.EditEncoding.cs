@@ -32,11 +32,21 @@ internal static partial class LegacyXlsWriter {
         foreach (var edit in edits.Where(edit => edit.CacheOnly)) result.FormulaCaches.Add((edit.Sheet, edit.Address), edit.Cell!);
         edits = ExpandFormulaGroups(document, source, records, edits.Where(edit => !edit.CacheOnly).ToArray(), result, token, structure);
         var originalStyles = new Dictionary<(string Sheet, string Address), ushort>();
+        var requestedStyles = new Dictionary<string, Dictionary<(int Row, int Column), string>>(StringComparer.Ordinal);
+        foreach (var edit in edits.Where(edit => edit.PreserveStyle)) {
+            token.ThrowIfCancellationRequested();
+            ParseCellReference(edit.Address, out uint row, out int column);
+            if (!requestedStyles.TryGetValue(edit.Sheet, out var requested))
+                requestedStyles.Add(edit.Sheet, requested = new());
+            requested[(checked((int)row), column)] = edit.Address;
+        }
         foreach (var sheet in source.Worksheets) {
             string currentName = structure?.CurrentName(sheet.Name) ?? (structure == null ? sheet.Name : string.Empty);
+            if (!requestedStyles.TryGetValue(currentName, out var requested)) continue;
             foreach (var cell in sheet.Cells) {
                 token.ThrowIfCancellationRequested();
-                originalStyles[(currentName, A1.CellReference(cell.Row, cell.Column))] = cell.StyleIndex;
+                if (requested.TryGetValue((cell.Row, cell.Column), out string? address))
+                    originalStyles[(currentName, address)] = cell.StyleIndex;
             }
         }
         ushort? PreservedStyle(LegacyXlsCellEdit edit) => edit.PreserveStyle

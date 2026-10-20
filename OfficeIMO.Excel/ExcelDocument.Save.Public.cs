@@ -179,7 +179,7 @@ namespace OfficeIMO.Excel {
 
         /// <summary>
         /// Saves the workbook with password-to-open encryption selected by its destination extension.
-        /// XLSX/XLSM use Office package encryption, XLSB encrypts a native BIFF12 package, and XLS uses classic BIFF8 RC4.
+        /// XLSX/XLSM use Office package encryption, XLSB encrypts a native BIFF12 package, and XLS uses RC4 with CryptoAPI retained for protected auxiliary entries.
         /// An associated encrypted destination requires explicit persistence; no password is retained for SaveOnDispose.
         /// </summary>
         /// <param name="filePath">Destination path. When empty, uses the original <see cref="FilePath"/>.</param>

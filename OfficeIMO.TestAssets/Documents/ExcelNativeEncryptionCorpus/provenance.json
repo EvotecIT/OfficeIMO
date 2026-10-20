@@ -35,7 +35,8 @@
     "excel-native-embedding.encrypted.xls": "7a112d8517a597d73ac0222e1f79a0c35a457ea9e6c0d9a6b5e87f328d004307",
     "embedded-source.xlsx": "1e62cd684583567846dcb3de30244b634d2d05022d841563d4eb9385e28bb85a",
     "excel-embedding.edited-readback.xls": "179407fa00ced6a376d470048a9dba357832dd4bc32a01174bc0b1d97c34fb36",
-    "excel-embedding.rotated-readback.xls": "e54a2654e3503eb4a219e12b69c3cce54c114fd36e01b7258a5ec76df58c6c7f"
+    "excel-embedding.rotated-readback.xls": "e54a2654e3503eb4a219e12b69c3cce54c114fd36e01b7258a5ec76df58c6c7f",
+    "excel-embedding.cryptoapi-readback.xls": "45b6c75f3ccda351a6c4b63a25b5e9541540b8623621964ebcc6a7273704e372"
   },
   "nativeConsumer": {
     "sourceCandidate": "c7b307c104",
@@ -44,5 +45,13 @@
     "observed": "Both opened without repair/file-error prompts. Public API readbacks retain A2, B1=42, B3=50, exact title/subject and the embedded XLSX marker/42.",
     "encryptedReadbackPassword": "new-password",
     "limits": "Accessibility observations and artifact readback; rendered geometry and embedded-server activation were not inspected."
+  },
+  "protectedOutputQualification": {
+    "operation": "Import native encrypted source; plain snapshot, cell/formula edits, SaveEncrypted using new-password retaining CryptoAPI and encrypted-only MBD. Exact output opened without repair in native Excel, active sheet recalculated and SaveAs readback verified through public API.",
+    "readback": "excel-embedding.cryptoapi-readback.xls",
+    "password": "new-password",
+    "beforeNative": "FilePass4.2; one encrypted storage descriptor; no clear MBD/Package streams; title/subject intentionally plaintext in source profile.",
+    "verified": "A2 exact edit, B1=42, B3=50, exact title/subject, embedded marker/42. Native readback may recreate a clear mirror.",
+    "excelRuntimeSha256": "74c5b34238d13769683b4dc1b960f620bc9ea5f596cc918501883c831978fc08"
   }
 }

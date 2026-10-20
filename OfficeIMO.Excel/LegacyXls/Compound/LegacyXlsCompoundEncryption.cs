@@ -5,7 +5,7 @@ using OfficeIMO.Excel.LegacyXls.Diagnostics;
 namespace OfficeIMO.Excel.LegacyXls.Compound;
 
 /// <summary>Applies the workbook password independently to each required BIFF record stream.</summary>
-internal static class LegacyXlsCompoundEncryption {
+internal static partial class LegacyXlsCompoundEncryption {
     internal static bool IsAuxiliaryBiffStream(string name) =>
         name.StartsWith("_SX_DB_CUR/", StringComparison.OrdinalIgnoreCase)
         || string.Equals(name, "Revision Log", StringComparison.OrdinalIgnoreCase);
@@ -18,7 +18,7 @@ internal static class LegacyXlsCompoundEncryption {
 
     internal static OfficeCompoundFile RestorePlaintextStreams(OfficeCompoundFile source,
         byte[] originalWorkbook, byte[] decodedWorkbook, LegacyXlsImportOptions options,
-        List<LegacyXlsImportDiagnostic> diagnostics) {
+        List<LegacyXlsImportDiagnostic> diagnostics, IDictionary<string, bool> protectedEntries) {
         string workbookName = source.Streams.First(item => ReferenceEquals(item.Value, originalWorkbook)).Key;
         var streams = source.Streams.ToDictionary(item => item.Key, item => item.Value, StringComparer.OrdinalIgnoreCase);
         streams[workbookName] = decodedWorkbook;
@@ -36,13 +36,14 @@ internal static class LegacyXlsCompoundEncryption {
             var session = BiffRc4CryptoApiEncryption.OpenSession(filePass, options.Password!);
             streams.Remove("encryption");
             entries.RemoveAll(item => string.Equals(item.Path, "encryption", StringComparison.OrdinalIgnoreCase));
-            RestoreEncryptedSummary(summary, session, streams, entries, options);
+            RestoreEncryptedSummary(summary, session, streams, entries, options, protectedEntries);
         }
         return new OfficeCompoundFile(streams, entries, source.RootEntry);
     }
 
     private static void RestoreEncryptedSummary(byte[] encrypted, OfficeBinaryRc4CryptoApiSession session,
-        Dictionary<string, byte[]> streams, List<OfficeCompoundFileEntry> entries, LegacyXlsImportOptions options) {
+        Dictionary<string, byte[]> streams, List<OfficeCompoundFileEntry> entries, LegacyXlsImportOptions options,
+        IDictionary<string, bool> protectedEntries) {
         long decoded = 0;
         void Consume(long size) {
             options.CancellationToken.ThrowIfCancellationRequested();
@@ -57,6 +58,7 @@ internal static class LegacyXlsCompoundEncryption {
                 || item.Name.Equals("Book", StringComparison.OrdinalIgnoreCase)
                 || item.Name.Equals("encryption", StringComparison.OrdinalIgnoreCase))
                 throw new InvalidDataException("Encrypted summary contains a reserved XLS entry.");
+            protectedEntries.Add(item.Name, item.IsStream);
             if (item.IsStream) {
                 Add(item.Name, item.Bytes, new OfficeCompoundFileEntry(item.Name, item.Name, 2, item.Bytes.Length),
                     item.Name == "\u0005DocumentSummaryInformation");

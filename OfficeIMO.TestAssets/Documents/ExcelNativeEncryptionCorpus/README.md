@@ -15,7 +15,11 @@ OfficeIMO accepts matching copies and rejects conflicting payloads or identities
 OfficeIMO edits A2 to `Edited native embedding`, changes B1 to `40+2`, and saves
 plain and password-rotated XLS. Excel opens both exact outputs without repair
 prompts. After F9 and SaveAs, the checked-in readbacks retain A2, B1=42, B3=50,
-the title/subject and the embedded workbook's marker and value 42. This proves
+the title/subject and the embedded workbook's marker and value 42. The additional
+`excel-embedding.cryptoapi-readback.xls` qualifies encrypted-only output: OfficeIMO
+retains CryptoAPI and puts the embedding solely in its encrypted container before
+native open/recalculation/SaveAs. Its raw output contains no clear embedded package.
+Excel may recreate a clear mirror when it saves its own readback. This proves
 the named package-preservation cohort; it does not qualify OLE activation,
 external links, ActiveX, every embedded server or rendered geometry.
 
