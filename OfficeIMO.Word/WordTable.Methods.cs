@@ -13,8 +13,8 @@ namespace OfficeIMO.Word {
         /// <param name="initials">Provide initials of an author</param>
         /// <param name="comment">Provide comment to insert</param>
         public void AddComment(string author, string initials, string comment) {
-            TableCell[] cells = _table.Elements<TableRow>()
-                .SelectMany(static row => row.Elements<TableCell>())
+            TableCell[] cells = WordTableContent.Rows(_table)
+                .SelectMany(static row => WordTableContent.Cells(row))
                 .ToArray();
             TableCell? firstCell = cells.FirstOrDefault();
             TableCell? lastCell = cells.LastOrDefault();
@@ -224,7 +224,7 @@ namespace OfficeIMO.Word {
             try {
                 foreach (var row in Rows) {
                     // Work on raw OpenXml cells list to allow removals during iteration
-                    var cells = row._tableRow.ChildElements.OfType<TableCell>().ToList();
+                    var cells = WordTableContent.Cells(row._tableRow).ToList();
                     for (int i = 0; i < cells.Count; i++) {
                         var tc = cells[i];
                         var tcPr = tc.TableCellProperties;
@@ -236,7 +236,7 @@ namespace OfficeIMO.Word {
                             int groupEndIndex = i;
                             for (int j = i + 1; j < cells.Count; j++) {
                                 var nextPr = cells[j].TableCellProperties;
-                                if (nextPr?.HorizontalMerge?.Val?.Value == MergedCellValues.Continue) {
+                                if (nextPr?.HorizontalMerge is { } merge && merge.Val?.Value != MergedCellValues.Restart) {
                                     span++;
                                     groupEndIndex = j;
                                 } else {
@@ -316,7 +316,7 @@ namespace OfficeIMO.Word {
             }
 
             // Get the last row in the table
-            var lastRow = _table.Elements<TableRow>().LastOrDefault();
+            var lastRow = WordTableContent.Rows(_table).LastOrDefault();
             if (lastRow == null) {
                 throw new InvalidOperationException("The table does not contain any rows.");
             }
@@ -326,10 +326,10 @@ namespace OfficeIMO.Word {
             _document.AssignNewSdtIds(clonedRow);
 
             // Insert the new row after the last row
-            var insertedRow = lastRow.InsertAfterSelf(clonedRow);
+            WordTableContent.InsertRowAfter(_table, lastRow, clonedRow);
             InvalidateRowElements();
 
-            return GetOrCreateRow(insertedRow, initializeCells: true);
+            return GetOrCreateRow(clonedRow, initializeCells: true);
         }
 
         /// <summary>

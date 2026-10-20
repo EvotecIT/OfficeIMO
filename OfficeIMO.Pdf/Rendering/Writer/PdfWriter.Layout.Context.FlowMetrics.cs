@@ -225,7 +225,10 @@ internal static partial class PdfWriter {
                     }
                     // Keep the table's physical fit requirement, without adding
                     // its height to the following flow when painting restores y.
-                    deepest = Math.Min(deepest, y - blockHeight);
+                    double paintHeight = block is RowBlock row && keepWithNext
+                        ? MeasureRowBlockHeight(row, frameX, frameWidth, fontSize, firstVisualOnly: false, includeOverlayPaint: true)
+                        : blockHeight;
+                    deepest = Math.Min(deepest, y - paintHeight);
                     bool restoresTableFlow = false;
                     if (block is TableBlock overlay) {
                         PdfTableStyle style = overlay.Style ?? currentOpts.DefaultTableStyleSnapshot ?? TableStyles.Light();
@@ -567,7 +570,7 @@ internal static partial class PdfWriter {
         }
 
 
-        private double MeasureRowBlockHeight(RowBlock row, double frameX, double frameWidth, double fontSize, bool firstVisualOnly) {
+        private double MeasureRowBlockHeight(RowBlock row, double frameX, double frameWidth, double fontSize, bool firstVisualOnly, bool includeOverlayPaint = false) {
             int columns = row.Columns.Count;
             PdfRowStyle? rowStyle = row.StyleSnapshot ?? currentOpts.DefaultRowStyleSnapshot;
             double spacingBefore = ResolveTopLevelSpacingBefore(rowStyle?.SpacingBefore ?? 0D);
@@ -600,7 +603,8 @@ internal static partial class PdfWriter {
             var columnItems = BuildRowColumnItems(row, columnWidths);
             double contentHeight = 0D;
             foreach (var items in columnItems) {
-                contentHeight = Math.Max(contentHeight, MeasureRowKeepTogetherHeight(items));
+                var measurement = MeasureColumnSequence(items);
+                contentHeight = Math.Max(contentHeight, includeOverlayPaint ? measurement.PaintExtent : measurement.FlowAdvance);
             }
 
             return spacingBefore + contentHeight + (rowStyle?.SpacingAfter ?? 0D);

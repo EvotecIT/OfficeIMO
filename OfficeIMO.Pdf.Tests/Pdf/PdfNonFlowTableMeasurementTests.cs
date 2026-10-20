@@ -55,14 +55,16 @@ public sealed class PdfNonFlowTableMeasurementTests {
     }
 
     [Theory]
-    [InlineData(false)]
-    [InlineData(true)]
-    public void KeepWithNextOverlayTableReservesPaintWithoutAddingFlowAdvance(bool row) {
+    [InlineData(false, 182)]
+    [InlineData(true, 182)]
+    [InlineData(false, 194)]
+    [InlineData(true, 194)]
+    public void KeepWithNextOverlayTableReservesPaintWithoutAddingFlowAdvance(bool row, int leadingSpace) {
         var style = OverlayStyle(36D);
         style.KeepWithNext = true;
         var document = PdfDocument.Create(Options());
         document.Compose(compose => compose.Page(page => page.Content(content => {
-            content.Spacer(182D);
+            content.Spacer(leadingSpace);
             void AddSequence(PdfContentBuilder flow) {
                 flow.Paragraph(paragraph => paragraph.Text("LEAD"), style: new PdfParagraphStyle {
                     FontSize = 10D, LineSpacing = PdfLineSpacing.Exactly(12D),
@@ -76,7 +78,75 @@ public sealed class PdfNonFlowTableMeasurementTests {
         })));
 
         using var pdf = PdfPigDocument.Open(document.ToBytes());
-        var page = Assert.Single(pdf.GetPages());
+        var pages = pdf.GetPages().ToArray();
+        if (leadingSpace == 182) Assert.Single(pages);
+        var page = Assert.Single(pages, candidate => candidate.GetWords().Any(word => word.Text == "LEAD"));
+        var lead = Assert.Single(page.GetWords(), word => word.Text == "LEAD");
+        var following = Assert.Single(page.GetWords(), word => word.Text == "FOLLOWING");
+        Assert.Contains(page.GetWords(), word => word.Text == "OVERLAY");
+        Assert.Equal(12D, lead.Letters[0].StartBaseLine.Y - following.Letters[0].StartBaseLine.Y, 3);
+    }
+
+    [Theory]
+    [InlineData("row")]
+    [InlineData("panel")]
+    public void KeptColumnGroupsRetainOverlayPaintWithoutAddingItsFlow(string grouping) {
+        var document = PdfDocument.Create(Options());
+        document.Compose(compose => compose.Page(page => page.Content(content => {
+            content.Spacer(194D);
+            void AddSequence(PdfContentBuilder flow) {
+                flow.Paragraph(paragraph => paragraph.Text("LEAD"), style: ParagraphStyle());
+                flow.Table(new[] { new[] { "OVERLAY" } }, PdfAlign.Right, OverlayStyle(36D));
+                flow.Paragraph(paragraph => paragraph.Text("FOLLOWING"), style: ParagraphStyle());
+            }
+            content.Row(columns => {
+                if (grouping == "row") {
+                    columns.Style(new PdfRowStyle { KeepTogether = true }).PercentColumn(100D, AddSequence);
+                } else {
+                    columns.PercentColumn(100D, flow => flow.Panel(AddSequence, new PdfPanelStyle {
+                        PaddingX = 0, PaddingY = 0, SpacingBefore = 0, SpacingAfter = 0, KeepTogether = true
+                    }));
+                }
+            });
+        })));
+        using var pdf = PdfPigDocument.Open(document.ToBytes());
+        var page = Assert.Single(pdf.GetPages(), candidate => candidate.GetWords().Any(word => word.Text == "LEAD"));
+        var lead = Assert.Single(page.GetWords(), word => word.Text == "LEAD");
+        var following = Assert.Single(page.GetWords(), word => word.Text == "FOLLOWING");
+        Assert.Contains(page.GetWords(), word => word.Text == "OVERLAY");
+        Assert.Equal(12D, lead.Letters[0].StartBaseLine.Y - following.Letters[0].StartBaseLine.Y, 3);
+    }
+
+    [Theory]
+    [InlineData(false, 182)]
+    [InlineData(false, 194)]
+    [InlineData(true, 182)]
+    [InlineData(true, 194)]
+    public void KeptGroupsReserveOverlayExtentWhileFollowingTextUsesRestoredFlow(bool rowKeepsNext, int leadingSpace) {
+        var document = PdfDocument.Create(Options());
+        document.Compose(compose => compose.Page(page => page.Content(content => {
+            content.Spacer(leadingSpace);
+            content.Row(columns => {
+                if (rowKeepsNext) columns.Style(new PdfRowStyle { KeepWithNext = true });
+                columns.PercentColumn(100D, flow => {
+                    flow.Paragraph(paragraph => paragraph.Text("LEAD"), style: new PdfParagraphStyle {
+                        FontSize = 10D, LineSpacing = PdfLineSpacing.Exactly(12D),
+                        SpacingBefore = 0, SpacingAfter = 0, KeepWithNext = !rowKeepsNext
+                    });
+                    if (rowKeepsNext) flow.Table(new[] { new[] { "OVERLAY" } }, PdfAlign.Right, OverlayStyle(36D));
+                    else flow.Panel(panel => panel.Table(new[] { new[] { "OVERLAY" } }, PdfAlign.Right, OverlayStyle(36D)),
+                        new PdfPanelStyle {
+                            PaddingX = 0, PaddingY = 0, SpacingBefore = 0, SpacingAfter = 0, KeepWithNext = true
+                        });
+                    if (!rowKeepsNext) flow.Paragraph(paragraph => paragraph.Text("FOLLOWING"), style: ParagraphStyle());
+                });
+            });
+            if (rowKeepsNext) content.Paragraph(paragraph => paragraph.Text("FOLLOWING"), style: ParagraphStyle());
+        })));
+        using var pdf = PdfPigDocument.Open(document.ToBytes());
+        var pages = pdf.GetPages().ToArray();
+        if (leadingSpace == 182) Assert.Single(pages);
+        var page = Assert.Single(pages, candidate => candidate.GetWords().Any(word => word.Text == "LEAD"));
         var lead = Assert.Single(page.GetWords(), word => word.Text == "LEAD");
         var following = Assert.Single(page.GetWords(), word => word.Text == "FOLLOWING");
         Assert.Contains(page.GetWords(), word => word.Text == "OVERLAY");

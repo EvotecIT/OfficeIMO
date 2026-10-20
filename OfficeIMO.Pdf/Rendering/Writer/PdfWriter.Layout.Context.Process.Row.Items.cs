@@ -214,15 +214,6 @@ internal static partial class PdfWriter {
             return items;
         }
 
-        private double MeasureRowKeepTogetherHeight(System.Collections.Generic.List<ColItem> items) {
-            double total = 0D;
-            foreach (var item in items) {
-                total += MeasureColItemFullHeight(item, total);
-            }
-
-            return total;
-        }
-
         private double MeasureColKeepWithNextChainHeight(System.Collections.Generic.List<ColItem> items, int startIndex) {
             if ((uint)startIndex >= (uint)items.Count) {
                 return 0D;
@@ -246,11 +237,13 @@ internal static partial class PdfWriter {
                 }
                 if (item is ColGroupStart start) {
                     ColumnGroup group = start.Group;
-                    double fullHeight = MeasureColumnGroupHeight(group, 1D);
+                    var measurement = MeasureColumnGroup(group, 1D);
+                    double fullHeight = measurement.PaintExtent;
                     int following = itemIndex + group.ItemCount;
                     heights[itemIndex] = group.KeepTogether || group.Style?.KeepWithNext == true
                         ? fullHeight : MeasureColItemFirstVisualHeight(item);
-                    if (group.Style?.KeepWithNext == true && following < items.Count) heights[itemIndex] += heights[following];
+                    if (group.Style?.KeepWithNext == true && following < items.Count)
+                        heights[itemIndex] = Math.Max(fullHeight, measurement.FlowAdvance + heights[following]);
                     continue;
                 }
                 if (item is ColBookmark) {
@@ -271,9 +264,10 @@ internal static partial class PdfWriter {
                         : MeasureColItemFirstVisualHeight(item);
                 }
 
-                if (keepWithNext && nextItemIndex < items.Count) {
-                    itemHeight += heights[nextItemIndex];
-                }
+                double paintHeight = keepWithNext && item is ColTable table
+                    ? MeasureColumnTablePaintHeight(table, 1D) : itemHeight;
+                if (keepWithNext && nextItemIndex < items.Count) itemHeight += heights[nextItemIndex];
+                itemHeight = Math.Max(paintHeight, itemHeight);
 
                 heights[itemIndex] = itemHeight;
             }
@@ -340,7 +334,7 @@ internal static partial class PdfWriter {
 
 
             if (item is ColTable table) {
-                double height = ResolveColumnSpacingBefore(table.Style.SpacingBefore, consumedBefore) + table.CaptionHeight + GetTableRowsHeight(table.RowHeights, 0, table.RowHeights.Length, GetTableCellSpacing(table.Style)) + table.Style.SpacingAfter;
+                double height = MeasureColumnTablePaintHeight(table, consumedBefore);
                 return RestoresMeasuredTableFlow(table.Style, height, GetMaximumBlockContinuationHeight() - consumedBefore)
                     ? 0D : height;
             }

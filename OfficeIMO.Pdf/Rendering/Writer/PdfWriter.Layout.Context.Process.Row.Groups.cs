@@ -80,7 +80,8 @@ internal static partial class PdfWriter {
             double needed = group.KeepTogether ? fullHeight : before + padding + (group.Style?.FragmentPaddingReservation ?? 0D) + (group.Style?.FragmentBottomInset ?? 0D) + firstHeight;
             int nextItemIndex = itemIndex + group.ItemCount;
             if (group.Style?.KeepWithNext == true && nextItemIndex < items.Count) {
-                double keepHeight = fullHeight + MeasureColKeepWithNextChainHeight(items, nextItemIndex);
+                double keepHeight = Math.Max(fullHeight, MeasureColumnGroup(group, consumed).FlowAdvance
+                    + MeasureColKeepWithNextChainHeight(items, nextItemIndex));
                 if (keepHeight <= fullPageHeight + 0.001D) needed = Math.Max(needed, keepHeight);
             }
 
@@ -150,16 +151,7 @@ internal static partial class PdfWriter {
         }
 
         private double MeasureColumnGroupHeight(ColumnGroup group, double consumedBefore) {
-            double before = ResolveColumnSpacingBefore(group.Style?.SpacingBefore ?? 0D, consumedBefore);
-            double padding = group.Style?.TopPadding ?? 0D;
-            return before + padding + (group.Style?.BottomPadding ?? 0D) + MeasureColumnGroupContentHeight(group, consumedBefore + before + padding)
-                + (group.Style?.SpacingAfter ?? 0D);
-        }
-
-        private double MeasureColumnGroupContentHeight(ColumnGroup group, double initialConsumed) {
-            double total = 0D;
-            foreach (ColItem child in group.Children) total += MeasureColItemFullHeight(child, initialConsumed + total);
-            return total;
+            return MeasureColumnGroup(group, consumedBefore).PaintExtent;
         }
 
         private double MeasureColumnGroupFirstVisualHeight(ColumnGroup group) {
