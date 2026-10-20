@@ -9,6 +9,34 @@ public sealed class PdfNonFlowTableMeasurementTests {
     [InlineData("direct")]
     [InlineData("row")]
     [InlineData("panel")]
+    public void TallFooterOverlayReservesPhysicalPaintWhileFollowingTextUsesRestoredFlow(string layout) {
+        var document = PdfDocument.Create(Options());
+        document.Footer(footer => footer.Content(content => {
+            void AddStory(PdfContentBuilder story) {
+                story.Table(new[] { new[] { "OVERLAY" } }, PdfAlign.Right, OverlayStyle(60D));
+                story.Paragraph(paragraph => paragraph.Text("FOOTER"), style: ParagraphStyle());
+            }
+            if (layout == "row") content.Row(row => row.PercentColumn(100D, AddStory));
+            else if (layout == "panel") content.Panel(AddStory, new PdfPanelStyle {
+                PaddingX = 0, PaddingY = 0, SpacingBefore = 0, SpacingAfter = 0, KeepTogether = true
+            });
+            else AddStory(content);
+        }, 36D));
+        document.Paragraph(paragraph => paragraph.Text("BODY"));
+
+        using var pdf = PdfPigDocument.Open(document.ToBytes());
+        var page = Assert.Single(pdf.GetPages());
+        var overlay = Assert.Single(page.GetWords(), word => word.Text == "OVERLAY");
+        var footer = Assert.Single(page.GetWords(), word => word.Text == "FOOTER");
+        Assert.Equal(overlay.Letters[0].StartBaseLine.Y, footer.Letters[0].StartBaseLine.Y, 3);
+        Assert.True(footer.BoundingBox.Bottom >= 0D);
+        Assert.Contains(page.GetWords(), word => word.Text == "BODY");
+    }
+
+    [Theory]
+    [InlineData("direct")]
+    [InlineData("row")]
+    [InlineData("panel")]
     public void FooterOverlayTableDoesNotShiftFollowingFlow(string layout) {
         byte[] Render(bool overlay) {
             var document = PdfDocument.Create(Options());

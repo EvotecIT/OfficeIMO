@@ -15,7 +15,7 @@ public readonly record struct PdfReadObservation(
 
 internal sealed record PdfExpectedPage(IReadOnlyList<string> RequiredFragments);
 
-internal static class PdfBenchmarkValidation {
+internal static partial class PdfBenchmarkValidation {
     internal static PdfReadObservation ValidateGenerated(byte[] bytes, PdfBenchmarkScenario scenario, string engine) {
         if (bytes.Length < 5 || !bytes.AsSpan(0, 4).SequenceEqual("%PDF"u8)) {
             throw new InvalidDataException($"{engine} did not produce a PDF header for {scenario.Scale}.");

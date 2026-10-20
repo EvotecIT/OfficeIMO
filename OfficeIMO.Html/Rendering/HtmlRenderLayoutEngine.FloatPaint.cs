@@ -21,7 +21,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         foreach (HtmlRenderVisual visual in visuals) {
             // Existing positioned layers retain their order relative to normal
             // phases. A descendant context also keeps its enclosing clip intact.
-            if (HasNestedStackingContext(visual)) {
+            if (HasNestedStackingContext(visual) || ContainsPositionedFlowPaint(visual)) {
                 FlushNormal();
                 result.Add(visual.Translate(0D, 0D, result.Count));
             } else {
@@ -38,8 +38,17 @@ internal sealed partial class HtmlRenderLayoutEngine {
         !visual.IsOutOfFlowPaint && (visual.PaintChildren is not { Count: > 0 } children
             || children.Any(ContainsInFlowPaint));
 
+    // Local positioned layers already belong to their host's ordered bands.
+    // Transparent envelopes retain those bands; independent boxes keep their
+    // positioned descendants inside their own atomic or float paint phase.
+    private static bool ContainsPositionedFlowPaint(HtmlRenderVisual visual) =>
+        visual.IsOutOfFlowPaint
+        || visual.PaintPhase == HtmlRenderPaintPhase.Content
+            && GetFlowPaintChildren(visual)?.Any(ContainsPositionedFlowPaint) == true;
+
     private static bool ContainsDeferredFlowPaint(HtmlRenderVisual visual) =>
-        visual.PaintPhase is HtmlRenderPaintPhase.Float or HtmlRenderPaintPhase.Outline
+        visual.PaintPhase is HtmlRenderPaintPhase.BlockBackground or HtmlRenderPaintPhase.Float or HtmlRenderPaintPhase.Outline
+        || visual is HtmlRenderShape { IsCollapsedTableBorder: true }
         || visual.PaintPhase == HtmlRenderPaintPhase.Content && visual.StackingContext == null
             && GetFlowPaintChildren(visual)?.Any(ContainsDeferredFlowPaint) == true;
 
@@ -81,7 +90,61 @@ internal sealed partial class HtmlRenderLayoutEngine {
     /// <summary>Orders a box before an atomic formatting or effect envelope hides its phases.</summary>
     private static HtmlRenderFlowBlock OrderBoxFlowPaint(HtmlRenderFlowBlock block) {
         IEnumerable<HtmlRenderVisual> ordered = OrderFloatPaint(block.Visuals);
-        return ReferenceEquals(ordered, block.Visuals) ? block : block.WithVisuals(ordered);
+        bool changed = !ReferenceEquals(ordered, block.Visuals);
+        if (block.ContinuationGroups.Count == 0 && block.TrailingGroups.Count == 0) {
+            return changed ? block.WithVisuals(ordered) : block;
+        }
+        HtmlRenderContinuationGroup[] continuations = block.ContinuationGroups.Select(group => {
+            IEnumerable<HtmlRenderVisual> groupPaint = OrderFloatPaint(group.Visuals);
+            if (ReferenceEquals(groupPaint, group.Visuals)) return group;
+            changed = true;
+            return new HtmlRenderContinuationGroup(group.StartsAfter, group.EndsAt, group.Height, groupPaint);
+        }).ToArray();
+        HtmlRenderTrailingGroup[] trailing = block.TrailingGroups.Select(group => {
+            IEnumerable<HtmlRenderVisual> groupPaint = OrderFloatPaint(group.Visuals);
+            if (ReferenceEquals(groupPaint, group.Visuals)) return group;
+            changed = true;
+            return new HtmlRenderTrailingGroup(group.StartsAt, group.ContentEndsAt,
+                group.SourceEndsAt, group.Height, groupPaint);
+        }).ToArray();
+        return changed ? block.WithVisuals(ordered, continuationGroups: continuations, trailingGroups: trailing) : block;
+    }
+
+    /// <summary>Closes the same formatting boundary on ordinary and detached repeated fragments.</summary>
+    private static void CloseBoxFlowPaint(HtmlRenderFlowBlock block) {
+        if (block.ContinuationGroups.Count == 0 && block.TrailingGroups.Count == 0) {
+            foreach (HtmlRenderVisual visual in block.Visuals) visual.CloseFlowPaint();
+            return;
+        }
+        // Visual classes retain reference equality. A shared root crosses this
+        // boundary once even if more than one fragment channel retains it.
+        var closed = new HashSet<HtmlRenderVisual>();
+        foreach (HtmlRenderVisual visual in block.Visuals
+            .Concat(block.ContinuationGroups.SelectMany(group => group.Visuals))
+            .Concat(block.TrailingGroups.SelectMany(group => group.Visuals))) {
+            if (closed.Add(visual)) visual.CloseFlowPaint();
+        }
+    }
+
+    /// <summary>Recombines the paint phases of one source block's body and repeated table groups.</summary>
+    private static IEnumerable<HtmlRenderVisual> OrderRepeatedTableFragmentPaint(IReadOnlyList<HtmlRenderVisual> visuals) {
+        var roots = new List<HtmlRenderVisual>(visuals.Count);
+        foreach (HtmlRenderVisual visual in visuals) {
+            // A block's root envelope is atomic relative to outside siblings.
+            // Here all roots belong to that same block; its nested independent
+            // formatting/effect/stacking contexts retain their existing order.
+            if (visual.PaintPhase == HtmlRenderPaintPhase.Atomic && visual.StackingContext == null
+                && visual.AtomicSourcePaintPhase is { } sourcePhase) {
+                HtmlRenderVisual root = GetFlowPaintChildren(visual) is { } children
+                    ? CloneGroupWithChildren(visual, children)
+                    : visual.Translate(0D, 0D, visual.PaintOrder);
+                root.PaintPhase = sourcePhase;
+                roots.Add(root);
+            } else {
+                roots.Add(visual);
+            }
+        }
+        return OrderFloatPaint(roots);
     }
 
     private static List<HtmlRenderVisual> OrderPageFloatPaint(List<HtmlRenderVisual> visuals) {

@@ -17,7 +17,8 @@ internal static partial class HtmlPdfRenderedConverter {
             string family = ResolvePdfFontFamilyForText(font.FamilyName, text, font.IsBold,
                 font.IsItalic, descriptor, useInstalledFonts, measurementOptions);
             return ResolveNamedFaceMetrics(measurementOptions, family, text, font.Size,
-                font.IsBold, font.IsItalic, allowStyleFallback: true);
+                font.IsBold, font.IsItalic, allowStyleFallback: true)
+                ?? ResolveStandardFaceMetrics(measurementOptions, family, text, font.Size, font.IsBold, font.IsItalic);
         };
     }
 
@@ -282,6 +283,7 @@ internal static partial class HtmlPdfRenderedConverter {
         HtmlRenderDocument rendered,
         ISet<string> activeWebFontFamilies,
         ISet<PdfCore.PdfStandardFont> reservedFontSlots,
+        PdfCore.PdfEmbeddedFontFamily? preparedFamily,
         CancellationToken cancellationToken) {
         cancellationToken.ThrowIfCancellationRequested();
         if (pdf.Options.HasEmbeddedStandardFontFamily(PdfCore.PdfStandardFont.Helvetica)) {
@@ -296,6 +298,15 @@ internal static partial class HtmlPdfRenderedConverter {
             return;
         }
 
+        PdfCore.PdfEmbeddedFontFamily? family = preparedFamily ?? SelectLibraryDefaultSystemFontFamily(cancellationToken);
+        if (family == null) return;
+        pdf.Options.RegisterFontFamily(PdfCore.PdfStandardFont.Helvetica,
+            preparedFamily ?? CreateCoverageSafeFontFamily(family, textRuns));
+        reservedFontSlots.Add(PdfCore.PdfStandardFont.Helvetica);
+    }
+
+    // This list is library policy; it never follows a document-authored font name.
+    private static PdfCore.PdfEmbeddedFontFamily? SelectLibraryDefaultSystemFontFamily(CancellationToken cancellationToken) {
         foreach (string familyName in PdfCore.PdfOptions.DefaultDocumentFontFamilyFallback.Split(
                      new[] { ',', ';' },
                      StringSplitOptions.RemoveEmptyEntries)) {
@@ -307,12 +318,9 @@ internal static partial class HtmlPdfRenderedConverter {
                 continue;
             }
 
-            pdf.Options.RegisterFontFamily(
-                PdfCore.PdfStandardFont.Helvetica,
-                CreateCoverageSafeFontFamily(family, textRuns));
-            reservedFontSlots.Add(PdfCore.PdfStandardFont.Helvetica);
-            return;
+            return family;
         }
+        return null;
     }
 
     private static PdfCore.PdfEmbeddedFontFamily CreateCoverageSafeFontFamily(

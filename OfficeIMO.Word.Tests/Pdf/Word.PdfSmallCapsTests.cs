@@ -9,6 +9,44 @@ namespace OfficeIMO.Tests;
 
 public sealed class WordPdfSmallCapsTests {
     [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void InheritedSmallCapsRestoreFullSizeAfterLowercaseText(bool hyperlink) {
+        using WordDocument document = CreateDocument();
+        WordParagraph paragraph = document.AddParagraph();
+        if (hyperlink) paragraph.AddHyperLink("aB", new Uri("https://example.com/caps")).CapsStyle = WordCapsStyle.SmallCaps;
+        else {
+            paragraph.Text = "aB";
+            paragraph.SetSmallCaps();
+        }
+        using var pdf = OpenPdf(document);
+        Assert.Equal("AB", pdf.GetPage(1).Text);
+        Assert.Equal(new[] { 9.5D, 12D }, pdf.GetPage(1).Letters.Select(letter => letter.PointSize));
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void OriginalSmallCapsCapitalsRetainConfiguredTableFontSize(bool hyperlink) {
+        using WordDocument document = CreateDocument();
+        WordTable table = document.AddTable(1, 1);
+        table._tableProperties!.TableStyle?.Remove();
+        WordParagraph paragraph = table.Rows[0].Cells[0].Paragraphs[0];
+        if (hyperlink) paragraph.AddHyperLink("AB", new Uri("https://example.com/caps")).CapsStyle = WordCapsStyle.SmallCaps;
+        else {
+            paragraph.Text = "AB";
+            paragraph.SetSmallCaps();
+        }
+        WordToPdfOptions options = Options();
+        options.PdfOptions = new PdfOptions {
+            DefaultTableStyle = new PdfTableStyle { FontSize = 18D, HeaderRowCount = 0 }
+        };
+        using var pdf = PdfPigDocument.Open(document.ToPdfBytes(options));
+        Assert.Equal("AB", pdf.GetPage(1).Text);
+        Assert.All(pdf.GetPage(1).Letters, letter => Assert.Equal(18D, letter.PointSize, 3));
+    }
+
+    [Theory]
     [InlineData(2D, 1.5D)]
     [InlineData(3D, 2.5D)]
     [InlineData(4D, 3D)]

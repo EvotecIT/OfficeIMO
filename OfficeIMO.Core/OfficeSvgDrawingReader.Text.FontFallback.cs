@@ -52,7 +52,7 @@ public static partial class OfficeSvgDrawingReader {
 
     /// <summary>Combines fallback-face ink before applying paint, preserving one gradient/pattern bounding box.</summary>
     private static bool TryGetSvgTextRunContours(SvgTextRun run, OfficeFontFaceCollection fonts,
-        SvgElementReferenceRegistry references, int pointAllowance, out List<List<OfficePoint>> contours) {
+        SvgElementReferenceRegistry references, int pointAllowance, ref int unsupported, out List<List<OfficePoint>> contours) {
         contours = new List<List<OfficePoint>>();
         IReadOnlyList<SvgTextFontRun> parts = run.FontProgram != null
             ? new[] { new SvgTextFontRun(run.Text, run.FontProgram, run.Width / run.GlyphScale, run.TextDirection) }
@@ -72,6 +72,7 @@ public static partial class OfficeSvgDrawingReader {
             baselineOffset = Math.Max(0D, Math.Min(lineHeight, baselineOffset));
             OfficeManagedTextFallback shaped = OfficeManagedTextShaper.Resolve(
                 part.Text, bounded, part.Direction, references.CancellationToken);
+            if (shaped.Incomplete) unsupported++;
             string outlineText = shaped.Used ? shaped.Text : part.Text;
             List<List<OfficePoint>> ink = bounded is IOfficeCffBoundedFontProgram cff
                 ? cff.GetTextContoursBounded(outlineText, x, run.Baseline - baselineOffset, run.FontSize,

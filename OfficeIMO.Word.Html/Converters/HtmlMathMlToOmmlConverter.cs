@@ -6,14 +6,20 @@ namespace OfficeIMO.Word.Html {
     /// Projects the supported structural MathML subset used by HTML import into editable OMML.
     /// Unknown containers retain their supported descendants instead of flattening the whole formula.
     /// </summary>
-    internal static class HtmlMathMlToOmmlConverter {
+    internal sealed class HtmlMathMlToOmmlConverter {
         private const string OmmlNamespace = "http://schemas.openxmlformats.org/officeDocument/2006/math";
         private static readonly XNamespace M = OmmlNamespace;
 
-        internal static bool TryConvert(IElement math, out string omml) {
+        private bool _hasUnsupportedOperatorProperties;
+
+        private HtmlMathMlToOmmlConverter() { }
+
+        internal static bool TryConvert(IElement math, out string omml, out bool hasUnsupportedOperatorProperties) {
             if (math == null) throw new ArgumentNullException(nameof(math));
 
-            var content = ConvertChildren(math).ToList();
+            var converter = new HtmlMathMlToOmmlConverter();
+            var content = converter.ConvertChildren(math).ToList();
+            hasUnsupportedOperatorProperties = converter._hasUnsupportedOperatorProperties;
             if (content.Count == 0) {
                 omml = string.Empty;
                 return false;
@@ -27,7 +33,7 @@ namespace OfficeIMO.Word.Html {
             return true;
         }
 
-        private static IEnumerable<XElement> ConvertElement(IElement element) {
+        private IEnumerable<XElement> ConvertElement(IElement element) {
             string name = element.LocalName.ToLowerInvariant();
             switch (name) {
                 case "math":
@@ -42,9 +48,12 @@ namespace OfficeIMO.Word.Html {
                         !string.Equals(child.LocalName, "annotation", StringComparison.OrdinalIgnoreCase) &&
                         !string.Equals(child.LocalName, "annotation-xml", StringComparison.OrdinalIgnoreCase));
                     return semanticContent == null ? Enumerable.Empty<XElement>() : ConvertElement(semanticContent);
+                case "mo":
+                    _hasUnsupportedOperatorProperties |= WordMath.HasUnsupportedNativeOperatorProperties(
+                        element.GetAttribute("form"), element.GetAttribute("lspace"), element.GetAttribute("rspace"));
+                    return CreateTextRun(element.TextContent);
                 case "mi":
                 case "mn":
-                case "mo":
                 case "mtext":
                 case "ms":
                     return CreateTextRun(element.TextContent);
@@ -85,7 +94,7 @@ namespace OfficeIMO.Word.Html {
             }
         }
 
-        private static IEnumerable<XElement> ConvertChildren(IElement element) =>
+        private IEnumerable<XElement> ConvertChildren(IElement element) =>
             element.Children.SelectMany(ConvertElement);
 
         private static IEnumerable<XElement> CreateTextRun(string? text) {
@@ -93,7 +102,7 @@ namespace OfficeIMO.Word.Html {
             return Single(new XElement(M + "r", new XElement(M + "t", text)));
         }
 
-        private static XElement CreateFraction(IElement element) {
+        private XElement CreateFraction(IElement element) {
             IElement[] children = element.Children.ToArray();
             var fraction = new XElement(M + "f");
             string? fractionType = GetFractionType(element);
@@ -119,7 +128,7 @@ namespace OfficeIMO.Word.Html {
             return null;
         }
 
-        private static XElement CreateScript(IElement element, string type, string baseName, string scriptName) {
+        private XElement CreateScript(IElement element, string type, string baseName, string scriptName) {
             IElement[] children = element.Children.ToArray();
             return new XElement(
                 M + type,
@@ -127,7 +136,7 @@ namespace OfficeIMO.Word.Html {
                 CreateArgument(scriptName, children.ElementAtOrDefault(1)));
         }
 
-        private static XElement CreateThreePartScript(
+        private XElement CreateThreePartScript(
             IElement element,
             string type,
             string baseName,
@@ -141,13 +150,14 @@ namespace OfficeIMO.Word.Html {
                 CreateArgument(upperName, children.ElementAtOrDefault(2)));
         }
 
-        private static XElement CreateSquareRoot(IElement element) =>
+        private XElement CreateSquareRoot(IElement element) =>
             new XElement(
                 M + "rad",
                 new XElement(M + "radPr", new XElement(M + "degHide", new XAttribute(M + "val", "1"))),
+                new XElement(M + "deg"),
                 new XElement(M + "e", ConvertChildren(element)));
 
-        private static XElement CreateRoot(IElement element) {
+        private XElement CreateRoot(IElement element) {
             IElement[] children = element.Children.ToArray();
             return new XElement(
                 M + "rad",
@@ -155,7 +165,7 @@ namespace OfficeIMO.Word.Html {
                 CreateArgument("e", children.ElementAtOrDefault(0)));
         }
 
-        private static XElement CreateDelimiter(IElement element) {
+        private XElement CreateDelimiter(IElement element) {
             var properties = new XElement(M + "dPr");
             AddCharacterProperty(properties, "begChr", element.GetAttribute("open"));
             AddCharacterProperty(properties, "endChr", element.GetAttribute("close"));
@@ -175,7 +185,7 @@ namespace OfficeIMO.Word.Html {
             }
         }
 
-        private static XElement CreateMatrix(IElement element) {
+        private XElement CreateMatrix(IElement element) {
             var matrix = new XElement(M + "m");
             foreach (IElement rowElement in element.Children.Where(child =>
                          string.Equals(child.LocalName, "mtr", StringComparison.OrdinalIgnoreCase) ||
@@ -190,7 +200,7 @@ namespace OfficeIMO.Word.Html {
             return matrix;
         }
 
-        private static XElement CreateArgument(string name, IElement? element) =>
+        private XElement CreateArgument(string name, IElement? element) =>
             new XElement(M + name, element == null ? null : ConvertElement(element));
 
         private static IEnumerable<XElement> Single(XElement element) {

@@ -59,7 +59,18 @@ internal static partial class PdfWriter {
 
                     if (block is TableBlock overlay && RestoresMeasuredTableFlow(
                         overlay.Style ?? currentOpts.DefaultTableStyleSnapshot ?? TableStyles.Light(), height.Value,
-                        y - currentOpts.MarginBottom)) continue;
+                        y - currentOpts.MarginBottom)) {
+                        if (isRunningContent)
+                            measuredRunningPaintBottom = Math.Min(measuredRunningPaintBottom, y - height.Value);
+                        continue;
+                    }
+
+                    // Rows restore overlay cursors inside their columns. Their
+                    // paint extent still needs room below the running-story origin.
+                    if (isRunningContent && measuredNonFlowTablePaint && block is RowBlock row)
+                        measuredRunningPaintBottom = Math.Min(measuredRunningPaintBottom,
+                            y - MeasureRowBlockHeight(row, frameX, frameWidth, fontSize,
+                                firstVisualOnly: false, includeOverlayPaint: true));
 
                     if (floatingTables.Count > savedFloats.Length && block is not RichParagraphBlock && block is not SpacerBlock &&
                         block is not FlowBlock && block is not SemanticBlock && block is not LayerBlock)

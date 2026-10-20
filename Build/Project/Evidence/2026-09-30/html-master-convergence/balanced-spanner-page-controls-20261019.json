@@ -1,0 +1,1240 @@
+{
+  "schema": "officeimo.html.balanced-spanner-page-controls-qualification/v1",
+  "status": "qualified-bounded-static-checkpoint",
+  "recordedUtc": "2026-10-19T10:56:29.202617+00:00",
+  "implementation": {
+    "owner": "OfficeIMO.Html column source projection and shared page-fragment planner",
+    "contracts": [
+      "Ordinary auto/balanced spanning sets apply authored page-only before/after controls, fitting keeps and internal page-only breaks through the shared planner.",
+      "An ordinary sibling authored page force, named-page transition and applicable page-side request consume one logical transition. Distinct empty successor boundaries remain distinct.",
+      "At document entry, an empty leading spanner with ordinary page breaks before and after it does not insert an unentered leading page. Blank pages between distinct empty boundaries do not borrow following collapsed-table paint.",
+      "The final repeated table footer consumes its applied source boundary once. Following authored page/name/side transitions do not reopen the completed table or duplicate its header/footer.",
+      "Workflows recovery acquires and holds the existing canonical Core file-claim owner while deleting abandoned incomplete artifacts, and releases acquired claims in finally."
+    ],
+    "publicApiChange": false,
+    "newProductionDependency": false,
+    "providerChange": false
+  },
+  "sourceAttribution": {
+    "actualRenderTestAndPrivatePackageSourceHead": "c74287cff6e38ea352c61b6fd9a36a4e8a4c9b58",
+    "actualConsumerWorkflowAndModuleSourceHead": "84faaa0ab60125cc36e525b8263bd3f9d602b0da",
+    "renderSourceSeal": {
+      "evidence": {
+        "path": "integrated-v1-source.json",
+        "bytes": 3388179,
+        "sha256": "75a579cd0fb52d5b9a18090d50ae0af0afbc43d28a47963c32cb0b25ddd6a9e2"
+      },
+      "sourceInputs": 14571,
+      "qualificationInputs": 100
+    },
+    "fullImportedConsumerSourceSeal": {
+      "evidence": {
+        "path": "integrated-v2-consumer-source.json",
+        "bytes": 3430257,
+        "sha256": "86d723f9361f393cd0e3c3ba0a26e038e2bbd6fee1efe781c011df80954abf86"
+      },
+      "sourceInputs": 14729,
+      "qualificationInputs": 106
+    },
+    "sixUnchangedOwnerTreesAtConsumerHead": {
+      "OfficeIMO.Core": "f9eef96a8cc8640a009bc150c089ad88d91b2620",
+      "OfficeIMO.Pdf": "b575d592d8517e09ade3dc4af3443ddf21a0ac3a",
+      "OfficeIMO.Html.Core": "3804952eb46a7eb05a8976bb7f421fc8aa619d5e",
+      "OfficeIMO.Html.AngleSharp": "2b7f2b16754df243579efea6e88a9c35e0dce3a6",
+      "OfficeIMO.Html": "05f7b2401487b45cfa6bbc5098ef0f69ec40f4ea",
+      "OfficeIMO.SharedSource": "378654d27e9ba94a6143859f718ed6c9ef1facb2"
+    },
+    "ownerEquivalence": {
+      "path": "integrated-v2-static-source-equivalence.json",
+      "bytes": 12612,
+      "sha256": "e71ad8a9639c167439bfc6bc883dbd0d3c8cd34d0b52a25adc83ec72137b8150"
+    },
+    "changedCommonSealedInputs": [
+      "OfficeIMO.Workflows/OfficeWorkflowOutputRecoveryStore.cs"
+    ],
+    "boundary": "c742 executions and package bytes retain their original identity. Six owner trees are equal at 84f; the changed Workflows consumer has its own 84f tests/module execution. Later docs/evidence do not relabel those executions or the README embedded in private c742 packages.",
+    "integratedUpstreamMaster": "56d555ddef5895603c50f1312a5d78c045da84ef",
+    "upstreamMasterVerifiedBeforeCheckpointUtc": "2026-10-19T10:57:48.890292+00:00"
+  },
+  "actualRuntime": {
+    "binding": {
+      "path": "integrated-v1-runtime-binding.json",
+      "bytes": 7599,
+      "sha256": "d2c23e5793675a754a0928f161fd20981cc78244eb07dedc0ec0e02ab43c96ea"
+    },
+    "sevenDeployedDllSha256": {
+      "AngleSharp.Css.dll": "b9d58927495cbe8559015897d1ed5b18838ae658d52d0a9321bc5d9da6101f61",
+      "AngleSharp.dll": "ed9ebe8f1f6a8537f52a5aa607225d929de55f202bd6c1fa198e10bf82db2911",
+      "OfficeIMO.Core.dll": "ad29fbd9ecd7d764e4ffc8b1f0dfc0e6feb009f1cebce107d85e92b87db49acc",
+      "OfficeIMO.Html.AngleSharp.dll": "4a17ec701f3e62608c90c36efb4473e3b38f84290b3c2155f590efbb08695d4e",
+      "OfficeIMO.Html.Core.dll": "71c461c9b86c03581c73aa387277948de51b057692c008dd665089cc6196bfe9",
+      "OfficeIMO.Html.dll": "de1a863a0295bd497140681e35bfc0dfc53f9a52b010278ae8157763ee66cbfc",
+      "OfficeIMO.Pdf.dll": "f0c4ebc9359ff2304c75cdbbf0cc87d2916f17bdb3b14a65c1c2946390ec44bb"
+    },
+    "publicProbeSource": {
+      "path": "prep/public-probe/Program.cs",
+      "bytes": 20294,
+      "sha256": "374d4de62b1b062bd79933ad5b1363ebb8993a9114fddd83b57d052e4c4c6ef8"
+    },
+    "providerAssetsBoundByActualBuild": true
+  },
+  "fixtures": {
+    "stagingProvenance": {
+      "path": "portable-fixture-staging.json",
+      "bytes": 66280,
+      "sha256": "cf87bbeef4e18141545844576425d3f548bafad915de8c034439add1d1f8eac9"
+    },
+    "caseCount": 32,
+    "roleCounts": {
+      "preservation-control": 2,
+      "support-candidate": 26,
+      "diagnostic-boundary": 4
+    },
+    "profilesInObservedPageCountOrder": [
+      "PrintPaged",
+      "ScreenMediaPaged",
+      "ScreenFullPage",
+      "ScreenSnapshotPaged"
+    ],
+    "caseProfilePairs": 128,
+    "inputs": [
+      {
+        "case": "auto-spanner-before-control",
+        "role": "preservation-control",
+        "sourceInput": "prep/inputs/auto-spanner-before-control.html",
+        "repositoryPath": "Build/Project/Evidence/2026-09-30/html-master-convergence/balanced-spanner-page-controls-20261019/auto-spanner-before-control.html",
+        "bytes": 937,
+        "sha256": "639930ee7a2184d18ae384ff041227db6cdf18b9ce1ed6d0a55c2523a3f8b3b2",
+        "observedPages": [
+          2,
+          2,
+          1,
+          1
+        ]
+      },
+      {
+        "case": "balanced-unforced-control",
+        "role": "preservation-control",
+        "sourceInput": "prep/inputs/balanced-unforced-control.html",
+        "repositoryPath": "Build/Project/Evidence/2026-09-30/html-master-convergence/balanced-spanner-page-controls-20261019/balanced-unforced-control.html",
+        "bytes": 918,
+        "sha256": "f8ae70915bd67a0065daaefc0d4879bf417359a8819ae79912b61eb60ffa9df6",
+        "observedPages": [
+          1,
+          1,
+          1,
+          1
+        ]
+      },
+      {
+        "case": "balanced-spanner-before",
+        "role": "support-candidate",
+        "sourceInput": "prep/inputs/balanced-spanner-before.html",
+        "repositoryPath": "Build/Project/Evidence/2026-09-30/html-master-convergence/balanced-spanner-page-controls-20261019/balanced-spanner-before.html",
+        "bytes": 933,
+        "sha256": "7141d801c90988f6ec3851feacd67897b8b088fcc1639047fee4f67cebbfebe7",
+        "observedPages": [
+          2,
+          2,
+          1,
+          1
+        ]
+      },
+      {
+        "case": "balanced-spanner-after",
+        "role": "support-candidate",
+        "sourceInput": "prep/inputs/balanced-spanner-after.html",
+        "repositoryPath": "Build/Project/Evidence/2026-09-30/html-master-convergence/balanced-spanner-page-controls-20261019/balanced-spanner-after.html",
+        "bytes": 934,
+        "sha256": "c4f91d64dc4c7626158283ea58b28edbde98ddb32e6df44be06c781b402ce4d2",
+        "observedPages": [
+          2,
+          2,
+          1,
+          1
+        ]
+      },
+      {
+        "case": "balanced-internal-before-overrides-keep",
+        "role": "support-candidate",
+        "sourceInput": "prep/inputs/balanced-internal-before-overrides-keep.html",
+        "repositoryPath": "Build/Project/Evidence/2026-09-30/html-master-convergence/balanced-spanner-page-controls-20261019/balanced-internal-before-overrides-keep.html",
+        "bytes": 1091,
+        "sha256": "1aab3c51090f8aecbff2e9bccad995ed003d3940e68255f32f88fcbc8cec50e6",
+        "observedPages": [
+          2,
+          2,
+          1,
+          1
+        ]
+      },
+      {
+        "case": "balanced-internal-after-overrides-keep",
+        "role": "support-candidate",
+        "sourceInput": "prep/inputs/balanced-internal-after-overrides-keep.html",
+        "repositoryPath": "Build/Project/Evidence/2026-09-30/html-master-convergence/balanced-spanner-page-controls-20261019/balanced-internal-after-overrides-keep.html",
+        "bytes": 1089,
+        "sha256": "fa7d375ccd50ea7d47360b0c67d5fc345952b9777ff726f221d3fa4efc3bd7fe",
+        "observedPages": [
+          2,
+          2,
+          1,
+          1
+        ]
+      },
+      {
+        "case": "balanced-descendant-generated-linked",
+        "role": "support-candidate",
+        "sourceInput": "prep/inputs/balanced-descendant-generated-linked.html",
+        "repositoryPath": "Build/Project/Evidence/2026-09-30/html-master-convergence/balanced-spanner-page-controls-20261019/balanced-descendant-generated-linked.html",
+        "bytes": 1160,
+        "sha256": "5ad78028403c22af2c22bad420e662b1098514795f0e9d49d603ec2d2ea1bcb7",
+        "observedPages": [
+          2,
+          2,
+          1,
+          1
+        ]
+      },
+      {
+        "case": "balanced-partial-entry-before",
+        "role": "support-candidate",
+        "sourceInput": "prep/inputs/balanced-partial-entry-before.html",
+        "repositoryPath": "Build/Project/Evidence/2026-09-30/html-master-convergence/balanced-spanner-page-controls-20261019/balanced-partial-entry-before.html",
+        "bytes": 997,
+        "sha256": "81e77a1fd2e47c46f722e83a84458b51f06e3b4ab47d02cc02d407be13a00d5b",
+        "observedPages": [
+          2,
+          2,
+          1,
+          1
+        ]
+      },
+      {
+        "case": "balanced-partial-entry-keep-before",
+        "role": "support-candidate",
+        "sourceInput": "prep/inputs/balanced-partial-entry-keep-before.html",
+        "repositoryPath": "Build/Project/Evidence/2026-09-30/html-master-convergence/balanced-spanner-page-controls-20261019/balanced-partial-entry-keep-before.html",
+        "bytes": 1008,
+        "sha256": "11267bd99be45c803f145df5c1a52a2984842116d65f202e45c6ab31f3f475d4",
+        "observedPages": [
+          2,
+          2,
+          1,
+          1
+        ]
+      },
+      {
+        "case": "balanced-partial-entry-keep-after",
+        "role": "support-candidate",
+        "sourceInput": "prep/inputs/balanced-partial-entry-keep-after.html",
+        "repositoryPath": "Build/Project/Evidence/2026-09-30/html-master-convergence/balanced-spanner-page-controls-20261019/balanced-partial-entry-keep-after.html",
+        "bytes": 979,
+        "sha256": "9908e0a9b6d6cab03dd31eb6efe9434b4c34cf4b01d1813dfaed419332b41b9e",
+        "observedPages": [
+          2,
+          2,
+          1,
+          1
+        ]
+      },
+      {
+        "case": "balanced-adjacent-spanner-shared-boundary",
+        "role": "support-candidate",
+        "sourceInput": "prep/inputs/balanced-adjacent-spanner-shared-boundary.html",
+        "repositoryPath": "Build/Project/Evidence/2026-09-30/html-master-convergence/balanced-spanner-page-controls-20261019/balanced-adjacent-spanner-shared-boundary.html",
+        "bytes": 1024,
+        "sha256": "894abc350269bdf37499e2485e784bfebc4714eb5deed11f338f167013c32eb4",
+        "observedPages": [
+          2,
+          2,
+          1,
+          1
+        ]
+      },
+      {
+        "case": "balanced-empty-spanner-boundary",
+        "role": "support-candidate",
+        "sourceInput": "prep/inputs/balanced-empty-spanner-boundary.html",
+        "repositoryPath": "Build/Project/Evidence/2026-09-30/html-master-convergence/balanced-spanner-page-controls-20261019/balanced-empty-spanner-boundary.html",
+        "bytes": 1031,
+        "sha256": "48de430b6cda8b8ed21539e00182c54a12b4811ea58e44764e87a872ddde2fd9",
+        "observedPages": [
+          3,
+          3,
+          1,
+          1
+        ]
+      },
+      {
+        "case": "balanced-column-force-before-spanner",
+        "role": "support-candidate",
+        "sourceInput": "prep/inputs/balanced-column-force-before-spanner.html",
+        "repositoryPath": "Build/Project/Evidence/2026-09-30/html-master-convergence/balanced-spanner-page-controls-20261019/balanced-column-force-before-spanner.html",
+        "bytes": 976,
+        "sha256": "559d18cf1c8a4f05f3002f9555162124b91ab7a42b132e3eb36ca88a052bdb8e",
+        "observedPages": [
+          2,
+          2,
+          1,
+          1
+        ]
+      },
+      {
+        "case": "balanced-column-force-after-spanner",
+        "role": "support-candidate",
+        "sourceInput": "prep/inputs/balanced-column-force-after-spanner.html",
+        "repositoryPath": "Build/Project/Evidence/2026-09-30/html-master-convergence/balanced-spanner-page-controls-20261019/balanced-column-force-after-spanner.html",
+        "bytes": 974,
+        "sha256": "7c5491ef147a9479df358ecc4aa14e75ef0a615e30cff979d8e8c4c610a164a8",
+        "observedPages": [
+          2,
+          2,
+          1,
+          1
+        ]
+      },
+      {
+        "case": "boundary-balanced-long-overflow",
+        "role": "diagnostic-boundary",
+        "sourceInput": "prep/inputs/boundary-balanced-long-overflow.html",
+        "repositoryPath": "Build/Project/Evidence/2026-09-30/html-master-convergence/balanced-spanner-page-controls-20261019/boundary-balanced-long-overflow.html",
+        "bytes": 1767,
+        "sha256": "17a87bfd06c297be034bc544aa976572d7852d51bc5e18990ae2c76129d79997",
+        "observedPages": [
+          6,
+          6,
+          1,
+          1
+        ]
+      },
+      {
+        "case": "boundary-balanced-short-max-height",
+        "role": "diagnostic-boundary",
+        "sourceInput": "prep/inputs/boundary-balanced-short-max-height.html",
+        "repositoryPath": "Build/Project/Evidence/2026-09-30/html-master-convergence/balanced-spanner-page-controls-20261019/boundary-balanced-short-max-height.html",
+        "bytes": 1125,
+        "sha256": "d8b983504b43db1ea0828923058139c7ed4908b73d0f4e9ae3678cceca33944a",
+        "observedPages": [
+          4,
+          4,
+          1,
+          1
+        ]
+      },
+      {
+        "case": "boundary-transformed-balanced-host",
+        "role": "diagnostic-boundary",
+        "sourceInput": "prep/inputs/boundary-transformed-balanced-host.html",
+        "repositoryPath": "Build/Project/Evidence/2026-09-30/html-master-convergence/balanced-spanner-page-controls-20261019/boundary-transformed-balanced-host.html",
+        "bytes": 973,
+        "sha256": "249f98c8777afd0ada889d673158969ed209f6d202a1f56faad4e877b268a2d3",
+        "observedPages": [
+          1,
+          1,
+          1,
+          1
+        ]
+      },
+      {
+        "case": "boundary-nested-balanced-host",
+        "role": "diagnostic-boundary",
+        "sourceInput": "prep/inputs/boundary-nested-balanced-host.html",
+        "repositoryPath": "Build/Project/Evidence/2026-09-30/html-master-convergence/balanced-spanner-page-controls-20261019/boundary-nested-balanced-host.html",
+        "bytes": 1044,
+        "sha256": "ce0f59fd61a628f7ef532e6d68ddb4dd05d50a6d600897665e2f7c7e337e25b1",
+        "observedPages": [
+          1,
+          1,
+          1,
+          1
+        ]
+      },
+      {
+        "case": "initial-empty-auto",
+        "role": "support-candidate",
+        "sourceInput": "review-reproduction-v1/initial-empty-auto.html",
+        "repositoryPath": "Build/Project/Evidence/2026-09-30/html-master-convergence/balanced-spanner-page-controls-20261019/initial-empty-auto.html",
+        "bytes": 808,
+        "sha256": "fd276e76d727d49dab09ba6a2f1460947f4ee471fbe51c80141a6772b5c809cd",
+        "observedPages": [
+          1,
+          1,
+          1,
+          1
+        ]
+      },
+      {
+        "case": "initial-empty-balance",
+        "role": "support-candidate",
+        "sourceInput": "review-reproduction-v1/initial-empty-balance.html",
+        "repositoryPath": "Build/Project/Evidence/2026-09-30/html-master-convergence/balanced-spanner-page-controls-20261019/initial-empty-balance.html",
+        "bytes": 811,
+        "sha256": "227c3913faf6d2afd54707001d7494a3d1579547df4c60dab3a65c907e245e43",
+        "observedPages": [
+          1,
+          1,
+          1,
+          1
+        ]
+      },
+      {
+        "case": "named-after",
+        "role": "support-candidate",
+        "sourceInput": "review-reproduction-v1/named-after.html",
+        "repositoryPath": "Build/Project/Evidence/2026-09-30/html-master-convergence/balanced-spanner-page-controls-20261019/named-after.html",
+        "bytes": 779,
+        "sha256": "2beee806c1051a7218eae385f6349d4946905d66e0d2748f9c88f465a94351ec",
+        "observedPages": [
+          2,
+          2,
+          1,
+          1
+        ]
+      },
+      {
+        "case": "named-after-before",
+        "role": "support-candidate",
+        "sourceInput": "review-reproduction-v1/named-after-before.html",
+        "repositoryPath": "Build/Project/Evidence/2026-09-30/html-master-convergence/balanced-spanner-page-controls-20261019/named-after-before.html",
+        "bytes": 797,
+        "sha256": "f7df0be7a1df6bd20b1e90c837cbe868727075231553ac7ae2974ac8ae51eb14",
+        "observedPages": [
+          2,
+          2,
+          1,
+          1
+        ]
+      },
+      {
+        "case": "named-flex-gap",
+        "role": "support-candidate",
+        "sourceInput": "finish-prep/inputs/named-flex-gap.html",
+        "repositoryPath": "Build/Project/Evidence/2026-09-30/html-master-convergence/balanced-spanner-page-controls-20261019/named-flex-gap.html",
+        "bytes": 849,
+        "sha256": "13107f7b4405aa5ed0faa6b20d6d6f9a172a2814482535b490bac88a772ded6a",
+        "observedPages": [
+          2,
+          2,
+          1,
+          1
+        ]
+      },
+      {
+        "case": "named-flex-gap-before",
+        "role": "support-candidate",
+        "sourceInput": "finish-prep/inputs/named-flex-gap-before.html",
+        "repositoryPath": "Build/Project/Evidence/2026-09-30/html-master-convergence/balanced-spanner-page-controls-20261019/named-flex-gap-before.html",
+        "bytes": 867,
+        "sha256": "98514f0af8f956b1f658f5f698e9e5afbe946748c138022cbdbf77f9a8923662",
+        "observedPages": [
+          2,
+          2,
+          1,
+          1
+        ]
+      },
+      {
+        "case": "right-name",
+        "role": "support-candidate",
+        "sourceInput": "named-side-reproduction-v1/right-name.html",
+        "repositoryPath": "Build/Project/Evidence/2026-09-30/html-master-convergence/balanced-spanner-page-controls-20261019/right-name.html",
+        "bytes": 780,
+        "sha256": "61c83b01b16c5a99aa405bf504d6e21f12e11cf55425a690f63bdf197e603157",
+        "observedPages": [
+          3,
+          3,
+          1,
+          1
+        ]
+      },
+      {
+        "case": "right-name-before-page",
+        "role": "support-candidate",
+        "sourceInput": "named-side-reproduction-v1/right-name-before-page.html",
+        "repositoryPath": "Build/Project/Evidence/2026-09-30/html-master-convergence/balanced-spanner-page-controls-20261019/right-name-before-page.html",
+        "bytes": 798,
+        "sha256": "c529e02be3508d9901b0ce6d527d1da721ccafabbb66ea77ae21f7044cd73443",
+        "observedPages": [
+          3,
+          3,
+          1,
+          1
+        ]
+      },
+      {
+        "case": "flex-gap-right-name",
+        "role": "support-candidate",
+        "sourceInput": "finish-prep/inputs/flex-gap-right-name.html",
+        "repositoryPath": "Build/Project/Evidence/2026-09-30/html-master-convergence/balanced-spanner-page-controls-20261019/flex-gap-right-name.html",
+        "bytes": 850,
+        "sha256": "93a76e71ba466dcf0b7605bc4a8e2eeb5f719bddd0b17a4cd6f9a951a19fa046",
+        "observedPages": [
+          3,
+          3,
+          1,
+          1
+        ]
+      },
+      {
+        "case": "right-before-left-named",
+        "role": "support-candidate",
+        "sourceInput": "finish-prep/inputs/right-before-left-named.html",
+        "repositoryPath": "Build/Project/Evidence/2026-09-30/html-master-convergence/balanced-spanner-page-controls-20261019/right-before-left-named.html",
+        "bytes": 798,
+        "sha256": "ca595e5a323829d208808462650006c4ca43b5042579b07f415d997239fb8085",
+        "observedPages": [
+          2,
+          2,
+          1,
+          1
+        ]
+      },
+      {
+        "case": "footer-following-page",
+        "role": "support-candidate",
+        "sourceInput": "footer-boundary-reproduction-v1/footer-following-page.html",
+        "repositoryPath": "Build/Project/Evidence/2026-09-30/html-master-convergence/balanced-spanner-page-controls-20261019/footer-following-page.html",
+        "bytes": 753,
+        "sha256": "def8f3859340e9daa8fa6a47d3c8cf0a5efe05913ead056e8dbb2c1a150691f9",
+        "observedPages": [
+          3,
+          3,
+          1,
+          1
+        ]
+      },
+      {
+        "case": "footer-following-same-name",
+        "role": "support-candidate",
+        "sourceInput": "finish-prep/inputs/footer-following-same-name.html",
+        "repositoryPath": "Build/Project/Evidence/2026-09-30/html-master-convergence/balanced-spanner-page-controls-20261019/footer-following-same-name.html",
+        "bytes": 782,
+        "sha256": "3b556db68475d706195287d9e69fd502a58157f5a7b3f469d35fbf13aff4195a",
+        "observedPages": [
+          3,
+          3,
+          1,
+          1
+        ]
+      },
+      {
+        "case": "footer-following-left",
+        "role": "support-candidate",
+        "sourceInput": "finish-prep/inputs/footer-following-left.html",
+        "repositoryPath": "Build/Project/Evidence/2026-09-30/html-master-convergence/balanced-spanner-page-controls-20261019/footer-following-left.html",
+        "bytes": 753,
+        "sha256": "66bbc6c9dd2077ca11c41fddafabcf6d1a25a433c80771c83a4567ab0ef7b5ab",
+        "observedPages": [
+          4,
+          4,
+          1,
+          1
+        ]
+      },
+      {
+        "case": "footer-following-empty",
+        "role": "support-candidate",
+        "sourceInput": "finish-prep/inputs/footer-following-empty.html",
+        "repositoryPath": "Build/Project/Evidence/2026-09-30/html-master-convergence/balanced-spanner-page-controls-20261019/footer-following-empty.html",
+        "bytes": 807,
+        "sha256": "5f30b283162ac48eff4785cf15b93eb8f99b890cff159a317cb5b8f02470767f",
+        "observedPages": [
+          4,
+          4,
+          1,
+          1
+        ]
+      }
+    ],
+    "fontAliases": {
+      "regular.ttf": {
+        "repositoryPath": "OfficeIMO.TestAssets/Fonts/OfficeIMOBaselineSans-Regular.ttf",
+        "sha256": "00aca2988771998ff27738ff97c2cc8e71eb3013f206de5f205986b7de326af3"
+      },
+      "bold.ttf": {
+        "repositoryPath": "OfficeIMO.TestAssets/Fonts/OfficeIMOBaselineSans-Bold.ttf",
+        "sha256": "20bb7ad2e23beb5020313119f46fbc50a5ded598aaa1be4df719d3c017914b6c"
+      }
+    },
+    "fontResolution": "regular.ttf/bold.ttf use exact repository baseline font assets/hashes listed here; module smoke embeds those bytes in its separately bound self-contained input."
+  },
+  "publicContracts": {
+    "actualSourceHead": "c74287cff6e38ea352c61b6fd9a36a4e8a4c9b58",
+    "supportAndPreservationCases": 28,
+    "supportAndPreservationProfiles": 112,
+    "allThoseProfilesLossFreeAndStrictAccepted": true,
+    "sourceInventory": "Support/control cases preserve the complete declared source inventory once in logical and owning output, including generated labels in declared positions. Authored-only labels remain separately recorded; generated scene text does not establish authored DOM equivalence.",
+    "diagnosticBoundaryCases": [
+      {
+        "case": "boundary-balanced-long-overflow",
+        "typedLossAndStrictRejectionProfiles": [
+          "PrintPaged",
+          "ScreenMediaPaged"
+        ],
+        "diagnosticCodes": [
+          "HtmlRenderMultiColumnValueUnsupported"
+        ]
+      },
+      {
+        "case": "boundary-balanced-short-max-height",
+        "typedLossAndStrictRejectionProfiles": [
+          "PrintPaged",
+          "ScreenMediaPaged"
+        ],
+        "diagnosticCodes": [
+          "HtmlRenderMultiColumnValueUnsupported"
+        ]
+      },
+      {
+        "case": "boundary-transformed-balanced-host",
+        "typedLossAndStrictRejectionProfiles": [
+          "PrintPaged",
+          "ScreenMediaPaged"
+        ],
+        "diagnosticCodes": [
+          "HtmlRenderMultiColumnValueUnsupported"
+        ]
+      },
+      {
+        "case": "boundary-nested-balanced-host",
+        "typedLossAndStrictRejectionProfiles": [
+          "PrintPaged",
+          "ScreenMediaPaged",
+          "ScreenFullPage",
+          "ScreenSnapshotPaged"
+        ],
+        "diagnosticCodes": [
+          "HtmlRenderMultiColumnValueUnsupported"
+        ]
+      }
+    ],
+    "diagnosticDisposition": "All four boundaries report HtmlRenderMultiColumnValueUnsupported and strict rejection in PrintPaged/ScreenMediaPaged. Nested columns also report loss in both screen modes. Boundary inventories are retained as observations. ScreenSnapshotPaged has an explicit 800px viewport crop rather than a loss-free full-source promise.",
+    "applicableOwnPngPdfReplayProfiles": 96,
+    "ownReplayImagePages": 182,
+    "allApplicableOwnPngPdfReplayBytesEqual": true,
+    "screenFullPageReplayApplicable": false,
+    "freshPngArtifactsEqualToPrior": 610,
+    "freshSavedPdfBytesEqualToPrior": 96,
+    "outputEquivalence": {
+      "path": "integrated-v1-output-equivalence.json",
+      "bytes": 313959,
+      "sha256": "3cbbf1a079d5756224169826eb6583ca3ddc0e6ccc316b6fe3339eb04eccd715"
+    },
+    "savedPdfByteEquivalence": {
+      "path": "integrated-v1-pdf-byte-equivalence.json",
+      "bytes": 68263,
+      "sha256": "2664c82f73f0158e71ec2ef59a2aacd49701f0eb0bd9a7d2583beaee5fc5d8c5"
+    },
+    "visualTransferBoundary": "Fresh c742 PNG/SVG/font bytes, profile geometry/text/scene/diagnostics and 96 saved PDFs equal separately inspected 656 output. Only those bounded recorded observations transfer; no new native or independent-reader execution is implied."
+  },
+  "nativeEvidence": {
+    "producer": "Canonical HtmlTinkerX observers; Microsoft Edge 155.0.4283.62; macOS arm64",
+    "binding": {
+      "path": "../html-negative-flow-margins/native-observer-normal-weight/native-binding-v5-observer.json",
+      "bytes": 142232,
+      "sha256": "05b39df05c3a00baf32ab3e85746d96c6c6990fb2f4dfd33cf7406e03253636d"
+    },
+    "distinctInputs": 32,
+    "distinctPagedMediaPairs": 64,
+    "actualPagedPdfCaptures": 68,
+    "duplicatePagedPdfCaptures": 4,
+    "actualContinuousCaptures": 34,
+    "duplicateContinuousCaptures": 2,
+    "all34NativeReceiptsSuccessful": true,
+    "exactLoopbackInputsVerified": true,
+    "allOwnedServersClosedAndBrowserProcessesRestored": true,
+    "cohorts": [
+      {
+        "name": "original matrix",
+        "distinctNewInputs": 18,
+        "pagedPdfCaptures": 36,
+        "evidence": {
+          "path": "native-before-words.json",
+          "bytes": 113716,
+          "sha256": "e3f0377c0b42b9681931d7368a15e4d1edb4647c8c8aa9a1b8021761f1eec305"
+        }
+      },
+      {
+        "name": "empty and named boundaries",
+        "distinctNewInputs": 4,
+        "pagedPdfCaptures": 8,
+        "evidence": {
+          "path": "review-edge-v1.json",
+          "bytes": 3590,
+          "sha256": "23d3d2ccb4cb813fa2c49eadc68ecbc56a63e83ca2a97a554f51dbd7ac709551"
+        }
+      },
+      {
+        "name": "gap variants plus two repeated initial-empty controls",
+        "distinctNewInputs": 2,
+        "pagedPdfCaptures": 8,
+        "evidence": {
+          "path": "review-edge-gap-v1.json",
+          "bytes": 3887,
+          "sha256": "6ce2b2e4de1de32bfc85d41c7137c130d39c6a8d274e87e9de7fc37120671181"
+        }
+      },
+      {
+        "name": "named page and side",
+        "distinctNewInputs": 4,
+        "pagedPdfCaptures": 8,
+        "evidence": {
+          "path": "named-side-edge-v1.json",
+          "bytes": 4113,
+          "sha256": "69830c542d91bf4676e031cd7cc37d1aaab83e00470b1200d0bbb7be8ca91f48"
+        }
+      },
+      {
+        "name": "final repeated footer",
+        "distinctNewInputs": 4,
+        "pagedPdfCaptures": 8,
+        "evidence": {
+          "path": "footer-edge-v1.json",
+          "bytes": 4180,
+          "sha256": "c7550f79002a415caf6dc88aed0c6c65a17461bf77f7eba540191981cbd4d3af"
+        }
+      }
+    ],
+    "rootVisualDecision": {
+      "path": "candidate-v4-root-inspection.json",
+      "bytes": 8628,
+      "sha256": "dadd40f67554bfda5aa7e1822fecd034ebb7950ae7b8ade2edd40fb6cb7e80bf"
+    },
+    "mainWordComparisons": {
+      "path": "candidate-v4-native-words.json",
+      "bytes": 581783,
+      "sha256": "05e7997e9947367064a961ea44cfffc5c56d4bbecb89d97db6c945fdea8492d7"
+    },
+    "acceptance": "Bounded same-font page/source/word placement and actual visual inspection. Five package cases have eight accepted paged native contracts, two explicit authored-force disagreements and ten screen profiles with no native-conformance claim.",
+    "limits": [
+      "Authored force/keep behavior can differ from Edge; selected fixture agreement is not complete CSS fragmentation conformance.",
+      "Right plus named/plain Page retains authored right: product three pages with blank page two, Edge two. Following Left wins and gives two.",
+      "Footer Left retains product blank page three and Next on page four; Edge places Next on page three. The genuinely distinct empty successor preserves blank page three on both.",
+      "Screen-media Edge tables repeat header/footer once, product paged tables repeat twice, and Body3 placement differs; appearance equivalence is not accepted.",
+      "Glyph antialiasing, column-rule rasterization and viewport limits remain. Generated-label carrier/font records do not fabricate per-label DOM geometry."
+    ],
+    "fullBrowserParity": false
+  },
+  "tests": {
+    "fullHtml": [
+      {
+        "suite": "OfficeIMO.Html.Tests; Category!=Performance",
+        "framework": "net8.0",
+        "actualSourceHead": "c74287cff6e38ea352c61b6fd9a36a4e8a4c9b58",
+        "passed": 7145,
+        "failed": 0,
+        "notExecuted": 0,
+        "actualTrx": {
+          "path": "tests/integrated-v1-net8/integrated-v1-html-net8.trx",
+          "bytes": 10977812,
+          "sha256": "6efce5d624dba4a4ae7905102989b37999d05bbee1ffdacd9622e68aed5fb16e"
+        },
+        "actualReceipt": {
+          "path": "qualified-integrated-v1-html-net8.receipt.json",
+          "bytes": 1967,
+          "sha256": "d8a3c9cbfa16a14a7681d886e017417f65531507587359a5bc3ad3b43c34f897"
+        }
+      },
+      {
+        "suite": "OfficeIMO.Html.Tests; Category!=Performance",
+        "framework": "net10.0",
+        "actualSourceHead": "c74287cff6e38ea352c61b6fd9a36a4e8a4c9b58",
+        "passed": 7145,
+        "failed": 0,
+        "notExecuted": 0,
+        "actualTrx": {
+          "path": "tests/integrated-v1-net10/integrated-v1-html-net10.trx",
+          "bytes": 10992103,
+          "sha256": "adc8a9d1314df1bb11bc7d2d3c46e8a0fb25d9fc1acdceea2f85ad9aa5a34d4c"
+        },
+        "actualReceipt": {
+          "path": "qualified-integrated-v1-html-net10.receipt.json",
+          "bytes": 1970,
+          "sha256": "24553d0432ad7d4f0590b80ecbb59d44937d70177675742a750272a367b8a0c1"
+        }
+      }
+    ],
+    "affectedConsumers": [
+      {
+        "suite": "OfficeWorkflowStreamOutputTests; Category!=Performance",
+        "framework": "net8.0",
+        "actualSourceHead": "84faaa0ab60125cc36e525b8263bd3f9d602b0da",
+        "passed": 23,
+        "failed": 0,
+        "notExecuted": 0,
+        "actualTrx": {
+          "path": "integration-proof-integrated-v2/results/qualified-integration-workflow-claims-net8-v2.trx",
+          "bytes": 38780,
+          "sha256": "39771bcfe0840b714aafb9577ba839cadaaa98e6263f67be25416ba877784ac2"
+        },
+        "actualReceipt": {
+          "path": "qualified-integration-workflow-claims-net8-v2.receipt.json",
+          "bytes": 2070,
+          "sha256": "0a5f194a6363de84bcfa783e41d79d633362e066b9df25a9f9ce641eb324aad3"
+        }
+      },
+      {
+        "suite": "OfficeWorkflowStreamOutputTests; Category!=Performance",
+        "framework": "net10.0",
+        "actualSourceHead": "84faaa0ab60125cc36e525b8263bd3f9d602b0da",
+        "passed": 23,
+        "failed": 0,
+        "notExecuted": 0,
+        "actualTrx": {
+          "path": "integration-proof-integrated-v2/results/qualified-integration-workflow-claims-net10-v2.trx",
+          "bytes": 38827,
+          "sha256": "79f485be34ec239e93388c76616eb78643dd89a3ac4af5c1136e34782b87ff42"
+        },
+        "actualReceipt": {
+          "path": "qualified-integration-workflow-claims-net10-v2.receipt.json",
+          "bytes": 2072,
+          "sha256": "6b79c40e46f5db5c34f0cce43bb8e1382f5e835dcaed3513da55f46b59b63648"
+        }
+      },
+      {
+        "suite": "PSWriteOffice DocumentPdfCmdletTests; Category!=Performance",
+        "framework": "net8.0",
+        "actualSourceHead": "84faaa0ab60125cc36e525b8263bd3f9d602b0da",
+        "passed": 8,
+        "failed": 0,
+        "notExecuted": 0,
+        "actualTrx": {
+          "path": "integration-proof-integrated-v2/results/qualified-integration-ps-tests-integrated-v2.trx",
+          "bytes": 13773,
+          "sha256": "484780629cab5d3b02dd2d5f260d7ae2e613281485084c8658b4e38b7b4d8565"
+        },
+        "actualReceipt": {
+          "path": "qualified-integration-ps-tests-integrated-v2.receipt.json",
+          "bytes": 2081,
+          "sha256": "bde0b977f74c494c09f6c9791b42327b469b16d6612761d42226c775d40d7f5a"
+        }
+      }
+    ],
+    "executionPolicy": "Serialized suites; DOTNET_PROCESSOR_COUNT=3 and -m:3; performance measurements excluded."
+  },
+  "retainedRegression": {
+    "evidence": {
+      "path": "integrated-v1-retained.json",
+      "bytes": 25050837,
+      "sha256": "205a2c57fed811f259c54d0cd9b6326b33125e9b3c416decea740f699ed26a6f"
+    },
+    "actualRendererSourceHead": "c74287cff6e38ea352c61b6fd9a36a4e8a4c9b58",
+    "baselineSourceHead": "40f3aa4cd982ef93edf52ef2c4df4ad3f3afeec5",
+    "cases": 157,
+    "legacyCases": 106,
+    "publicCases": 51,
+    "publicCaseProfilePairs": 204,
+    "allMatched": true,
+    "unclassifiedDifferences": 0,
+    "boundary": "Genuine original host compile provenance is retained. Legacy observation contracts do not gain replay or native-conformance claims."
+  },
+  "privatePackageQualification": {
+    "actualSourceHead": "c74287cff6e38ea352c61b6fd9a36a4e8a4c9b58",
+    "packageBinding": {
+      "path": "qualification-prep/package-fresh/qualified-integrated-v1/package-binding.json",
+      "bytes": 26731,
+      "sha256": "1e4b9eaaa6c6ee6c75410809ee3eb5403e1852b3583ad6a248863ddfc12ec01a"
+    },
+    "consumerBinding": {
+      "path": "qualification-prep/package-fresh/qualified-integrated-v1/consumer-binding.json",
+      "bytes": 273918,
+      "sha256": "377fc83069d4e029c88065f94c8eb715a5fd2ed0ff9b4e56ee198191d4187f96"
+    },
+    "acceptance": {
+      "path": "qualification-prep/package-fresh/qualified-integrated-v1/acceptance.json",
+      "bytes": 110467,
+      "sha256": "8454c15864af476f134adb6fc19be4a26497dc4b44c7d3dad6b6e9ff5f124364"
+    },
+    "reviewedSelection": {
+      "path": "integrated-v1-package-reviewed-selection.json",
+      "bytes": 48534,
+      "sha256": "22a9186819e7d8266ac64dd5fefe298171e1c8cd5c1f685e8b61dc162c053dc8"
+    },
+    "freshOwnerCount": 5,
+    "freshCompiledAndPackedFrameworkAssets": 20,
+    "frameworks": [
+      "net472",
+      "netstandard2.0",
+      "net8.0",
+      "net10.0"
+    ],
+    "noOwnerAssetReuse": true,
+    "packages": [
+      {
+        "owner": "OfficeIMO.Core",
+        "archive": {
+          "path": "qualification-prep/package-fresh/qualified-integrated-v1/feed/OfficeIMO.Core.3.5.1.nupkg",
+          "bytes": 8461838,
+          "sha256": "0f026267903b0e019c7d598a951cf14de03dbef290b013a7126c702f7aceab6e"
+        },
+        "frameworkAssetSha256": {
+          "lib/net472/OfficeIMO.Core.dll": "35a80b52d470e758c0af9cb9874d01edb937f7673821e9c055aaf4ea6d914a73",
+          "lib/netstandard2.0/OfficeIMO.Core.dll": "676ea32f771ed2d57fe80d1d20dcbb37f623d84a2c30d28c49023345a2ee31ea",
+          "lib/net8.0/OfficeIMO.Core.dll": "fe4fcb78297d01f6d2f773e25e055c052b5b24fdef679f2be5a3c0130d9d7eb6",
+          "lib/net10.0/OfficeIMO.Core.dll": "28236b5f5365f5877aecbdd00f9c2b87f81bfe4d8c121c4f9f6434995d0037e8"
+        }
+      },
+      {
+        "owner": "OfficeIMO.Pdf",
+        "archive": {
+          "path": "qualification-prep/package-fresh/qualified-integrated-v1/feed/OfficeIMO.Pdf.3.5.1.nupkg",
+          "bytes": 13041228,
+          "sha256": "a39cce7d4bf32a247dc95d7182b3fae9278611ad593f734747d408f3bbb0e4c2"
+        },
+        "frameworkAssetSha256": {
+          "lib/net472/OfficeIMO.Pdf.dll": "048b71b6b0c29e354ca1c3f00145ff6bfbec30abd8d5b534a6baf46eb25c2cb6",
+          "lib/netstandard2.0/OfficeIMO.Pdf.dll": "e39c1866fcef2b9f7b3daf0d928297ec31cbba39d2b770634c9f39bddfa16081",
+          "lib/net8.0/OfficeIMO.Pdf.dll": "1417032b9b1b492c1ae7353a4706451dd90073526c0453baa6216b85727e6363",
+          "lib/net10.0/OfficeIMO.Pdf.dll": "48c10ac42066c5f5e2612bebe971102f15018d3c24edb68ee21ed1867fc2e311"
+        }
+      },
+      {
+        "owner": "OfficeIMO.Html.Core",
+        "archive": {
+          "path": "qualification-prep/package-fresh/qualified-integrated-v1/feed/OfficeIMO.Html.Core.3.5.1.nupkg",
+          "bytes": 324984,
+          "sha256": "ec40f66109718128b560ae45efe4fa14cc475d9badd96a2756e05774b525d7ff"
+        },
+        "frameworkAssetSha256": {
+          "lib/net472/OfficeIMO.Html.Core.dll": "9a63db0ccc84335bd235d41f55182e4585c65b26d414510f416c40be8532bf54",
+          "lib/netstandard2.0/OfficeIMO.Html.Core.dll": "5698aa84cd60d841d7ef299d3d0f111a9c998a1b46ec237362b62b654f672480",
+          "lib/net8.0/OfficeIMO.Html.Core.dll": "09df69608a82f47d605716d1f33db0a3b8cf6c083cf2fe621d68f740749123fd",
+          "lib/net10.0/OfficeIMO.Html.Core.dll": "303b9de7dae5944ffe536fe9e9f9df8b6f1f3acc3988825e394aacea9e4dd58a"
+        }
+      },
+      {
+        "owner": "OfficeIMO.Html.AngleSharp",
+        "archive": {
+          "path": "qualification-prep/package-fresh/qualified-integrated-v1/feed/OfficeIMO.Html.AngleSharp.3.5.1.nupkg",
+          "bytes": 103891,
+          "sha256": "2fb926fb6f1bc3772f98da49324dc38159605e3d03d0182185defba9b2058e2c"
+        },
+        "frameworkAssetSha256": {
+          "lib/net472/OfficeIMO.Html.AngleSharp.dll": "08f37222d01d42fb2ae92db17bb052430e5b9f6d85ecbae022ac49db594943a8",
+          "lib/netstandard2.0/OfficeIMO.Html.AngleSharp.dll": "4ff32d2361ac7070ae42cac95c31e0761b4e761e17f3757a6d422037151910b1",
+          "lib/net8.0/OfficeIMO.Html.AngleSharp.dll": "f408e09b9b51f66bf1eaf026f3b0e5e15f7f2ae1e295cf54cb535eece64d6d02",
+          "lib/net10.0/OfficeIMO.Html.AngleSharp.dll": "08130a1bca5f8fdb41830eb73dccf4881afbea6888f9ccbab027b7cb70633883"
+        }
+      },
+      {
+        "owner": "OfficeIMO.Html",
+        "archive": {
+          "path": "qualification-prep/package-fresh/qualified-integrated-v1/feed/OfficeIMO.Html.3.5.1.nupkg",
+          "bytes": 4594528,
+          "sha256": "ca1065bd21d7454757cdc0899a720ee6709b1427b526a777d98c14ecefe42258"
+        },
+        "frameworkAssetSha256": {
+          "lib/net472/OfficeIMO.Html.dll": "0521dcc0c89318a03e800c25839fff6611794244c20dbe59de20b410e5746775",
+          "lib/netstandard2.0/OfficeIMO.Html.dll": "41d7597c7354aa7fef61691a4192e008e9aad087645587da3a1a16a78316efb9",
+          "lib/net8.0/OfficeIMO.Html.dll": "a01efcf58bbfa9fe095f2336ed33c9e5f8507f2df56ad57bbd70fb31e09a498e",
+          "lib/net10.0/OfficeIMO.Html.dll": "c5a65f089c76deb00667217f3eda5f900a235ce6b811eb61bbc1090ee1c0b99f"
+        }
+      }
+    ],
+    "selectedCases": [
+      "balanced-spanner-before",
+      "balanced-spanner-after",
+      "balanced-descendant-generated-linked",
+      "balanced-partial-entry-before",
+      "balanced-empty-spanner-boundary"
+    ],
+    "profiles": [
+      "PrintPaged",
+      "ScreenMediaPaged",
+      "ScreenFullPage",
+      "ScreenSnapshotPaged"
+    ],
+    "caseProfilePairsPerConsumer": 20,
+    "consumers": [
+      {
+        "consumer": "net8",
+        "actualFramework": ".NET 8.0.23",
+        "architecture": "Arm64",
+        "inputCases": 5,
+        "caseProfilePairs": 20,
+        "allDeclaredContractsPassed": true,
+        "actualExecutable": {
+          "path": "qualification-prep/package-fresh/qualified-integrated-v1/out/net8/SpanningColumnPackagenet8.dll",
+          "bytes": 59904,
+          "sha256": "fddc6ff7585111d47b36361cb699ade6f8588a2800e3e965a4fd5b7fcf96493b"
+        },
+        "actualResult": {
+          "path": "qualification-prep/package-fresh/qualified-integrated-v1/results/net8/result.json",
+          "bytes": 106974,
+          "sha256": "cd36ce0c9b52cfbecc27fc4c9bc064e4b5df2b99cd21ff0b89da5e7b93e41c6d"
+        },
+        "actualReceipt": {
+          "path": "qualified-package-qualified-integrated-v1-run-net8.receipt.json",
+          "bytes": 2879,
+          "sha256": "f1288e370908932767fb6ae61a59d5b92b03ca97ae798186873481deb77d020e"
+        }
+      },
+      {
+        "consumer": "net10",
+        "actualFramework": ".NET 10.0.13",
+        "architecture": "Arm64",
+        "inputCases": 5,
+        "caseProfilePairs": 20,
+        "allDeclaredContractsPassed": true,
+        "actualExecutable": {
+          "path": "qualification-prep/package-fresh/qualified-integrated-v1/out/net10/SpanningColumnPackagenet10.dll",
+          "bytes": 59904,
+          "sha256": "1644994fd10d85a99355d1040ae790fb189fafd0453c1b6059c74db361be076a"
+        },
+        "actualResult": {
+          "path": "qualification-prep/package-fresh/qualified-integrated-v1/results/net10/result.json",
+          "bytes": 106982,
+          "sha256": "a54afcc43998f76a24cf0584986deb8a30ed0e1da3a8173fb3dd5a799f5b19aa"
+        },
+        "actualReceipt": {
+          "path": "qualified-package-qualified-integrated-v1-run-net10.receipt.json",
+          "bytes": 2882,
+          "sha256": "4204130be63c30aa2bdb14f643805a4fd720196a1d39dc123f75811d30d49c2b"
+        }
+      },
+      {
+        "consumer": "aot",
+        "actualFramework": ".NET 10.0.13",
+        "architecture": "Arm64",
+        "inputCases": 5,
+        "caseProfilePairs": 20,
+        "allDeclaredContractsPassed": true,
+        "actualExecutable": {
+          "path": "qualification-prep/package-fresh/qualified-integrated-v1/out/aot/SpanningColumnPackageaot",
+          "bytes": 33468248,
+          "sha256": "a83acbc0773fe77eddb5c1818fb70cf007db081e2c8f1625d23b2df89d375544"
+        },
+        "actualResult": {
+          "path": "qualification-prep/package-fresh/qualified-integrated-v1/results/aot/result.json",
+          "bytes": 105392,
+          "sha256": "7086b264a449fae1aefeaff8600f4dbb2b1bf1142398da12a4c52d337f024232"
+        },
+        "actualReceipt": {
+          "path": "qualified-package-qualified-integrated-v1-run-aot.receipt.json",
+          "bytes": 2828,
+          "sha256": "21b5fdb07dbebf2756ede6f34ba1034291cfd859df3d2c31c439c9b82abd2dcb"
+        }
+      }
+    ],
+    "ownPngPdfReplayBytesEqual": true,
+    "net8CrossRuntimePngEncodingDifferences": 32,
+    "net8InflatedScanlinesAndNonIdatChunksEqual": true,
+    "privateFeedAndCacheIsolated": true,
+    "packageReadmeSnapshot": "Original c742 source and packaged README bytes; later docs are not asserted to have been packed.",
+    "qualificationOnly": true,
+    "publicPackagePublication": false
+  },
+  "importedConsumerQualification": {
+    "actualSourceHead": "84faaa0ab60125cc36e525b8263bd3f9d602b0da",
+    "workflowRepairDisposition": {
+      "path": "workflow-claim-prep/qualified-disposition.json",
+      "bytes": 2922,
+      "sha256": "1f77a91c3557889f8b94b1407b8966cd6e08473a97b142ad93e3e833faf0a4ce"
+    },
+    "canonicalOwner": "Build/Build-Module.ps1",
+    "canonicalOptions": {
+      "RunMode": "Build",
+      "SignModule": false,
+      "IncludePackages": false,
+      "SkipInstall": true,
+      "PassThru": true
+    },
+    "buildTool": {
+      "name": "PSPublishModule",
+      "version": "3.0.170",
+      "binding": {
+        "path": "build-tool-binding.json",
+        "bytes": 22223,
+        "sha256": "40e39022bb3603d31f521c5cab2fb9724ae13ade044fece3ecadb3b466e28d8b"
+      },
+      "privateValidationCopy": true
+    },
+    "actualBuildObservation": {
+      "path": "integration-module-integrated-v2/build-observation.json",
+      "bytes": 1377197,
+      "sha256": "af6d05dab285f50d0e91d614f8f0c71e9d9304f546bc897ef478d59a8deb254b"
+    },
+    "actualBuildReceipt": {
+      "path": "integration-module-build-integrated-v2.receipt.json",
+      "bytes": 1810,
+      "sha256": "1c3f0dc78bd41bcfa05fc4eb3bb81aef0bbb4165e3bc0fa3aa958bdb1992fb80"
+    },
+    "qualifiedFinish": {
+      "path": "integration-module-integrated-v2/qualified-finish.json",
+      "bytes": 3243,
+      "sha256": "95ff1e77d2f77f7b96e9e7918a5b37d86108714b25658b30d4c47b96847bb61b"
+    },
+    "qualifiedFinishReceipt": {
+      "path": "qualified-integration-module-finish-integrated-v2b.receipt.json",
+      "bytes": 2156,
+      "sha256": "862bf5261c14ab01aa69c24835a089f4351069b8ab28350c1747efc216ba14a7"
+    },
+    "buildExitCode": 0,
+    "finishPhaseDidNotExecuteBuild": true,
+    "finishReverifiedSourceInputs": 14729,
+    "finishReverifiedQualificationInputs": 106,
+    "finishVerifiedCleanGit": true,
+    "generatedDocumentation": "543 incidental changed tracked outputs were archived with exact bytes/encoding-aware deltas and restored to their proven baseline. Root separately removed the preserved literal POSIX stray. Unknown changed paths: zero.",
+    "actualModuleInputsAndBinding": {
+      "path": "integration-smoke-inputs-integrated-v2.json",
+      "bytes": 39671,
+      "sha256": "cd00f33d5d948b8e34063fdc71705764f2a40b71db1b49fe9969d45f6a6d4757"
+    },
+    "moduleFilesBound": 136,
+    "shippedDllsBound": 129,
+    "actualLoadedAssembliesBound": 33,
+    "smoke": {
+      "path": "integration-module-smoke-integrated-v2/observations.json",
+      "bytes": 11846,
+      "sha256": "ce98a2a9e5644410e14d5c7b7b49484ab6a600ee8f0a2f24cc373b3a178ea764"
+    },
+    "smokeReceipt": {
+      "path": "qualified-integration-module-html-smoke-v2.receipt.json",
+      "bytes": 1731,
+      "sha256": "b3b1fbf0b3b834eb4162209718f5f345351aad405880ba4ca7d81b2b5a4b84ab"
+    },
+    "actualPageCount": 2,
+    "selectedImagePageIndex": 1,
+    "selectedImageDimensions": [
+      700,
+      140
+    ],
+    "sourcePageLabels": [
+      {
+        "page": 1,
+        "labels": [
+          "R03-P01",
+          "R03-P02"
+        ]
+      },
+      {
+        "page": 2,
+        "labels": [
+          "R03-S01",
+          "R03-T01",
+          "R03-T02",
+          "R03-AFTER01"
+        ]
+      }
+    ],
+    "cmdletPngBytesEqualDirectEngineAndPdfAndWorkflowReplay": true,
+    "rootViewedActualPage2": {
+      "path": "integration-module-smoke-root-inspection.json",
+      "bytes": 1697,
+      "sha256": "954564b875fcd571b621841ee5d7b089e752cad179ac8801a70dc8b9c4026379"
+    },
+    "publicPage2PixelEquivalence": {
+      "path": "integration-module-page2-public-equivalence.json",
+      "bytes": 903,
+      "sha256": "926c19a9dce9bbfa8538566bc67d97f2b622a95c47decb4b789c089317bc5fe0"
+    },
+    "publicEncodedPngBytesEqual": false,
+    "publicInflatedScanlinesAndNonIdatChunksEqual": true,
+    "boundary": "Separately bound self-contained font input and PSWriteOffice load context. Bounded page-two consumer proof, not broad native parity or public release."
+  },
+  "review": {
+    "historicalStaticDisposition": {
+      "path": "local-review-disposition.json",
+      "bytes": 4183,
+      "sha256": "5193c1c56421c55abd4fd8650dc029333ec1136dffc50122055a59873d90c159"
+    },
+    "actualWorkflowOwnerReview": {
+      "path": "workflow-claim-prep/qualified-disposition.json",
+      "bytes": 2922,
+      "sha256": "1f77a91c3557889f8b94b1407b8966cd6e08473a97b142ad93e3e833faf0a4ce"
+    },
+    "knownValidatedUnresolvedInScopeFinding": null,
+    "finalRequiredGates": {
+      "public32Cases128Profiles": true,
+      "nativeWordsAndRootVisualAdjudicationWithLimits": true,
+      "retained157": true,
+      "fiveFreshPackagesTwentyAssets": true,
+      "managed8Managed10MacArm64Aot": true,
+      "actualPowerShellTestsCanonicalModuleAndPage2Smoke": true
+    },
+    "boundary": "Historical review records retain pending gates true at their own recording times. Later actual records here close those gates. No historical receipt is rewritten and no new review was commissioned for receipt assembly."
+  },
+  "cleanup": {
+    "observedThroughUtc": "2026-10-19T10:45:53.446938+00:00",
+    "cumulativeRemovedLogicalBytes": 7010238788,
+    "retainedCurrentHtmlTests": {
+      "evidence": {
+        "path": "integrated-v1-test-subject-retention.json",
+        "bytes": 177631,
+        "sha256": "68010acf2ca0e90048c440e2d0ae7183b56006e6b5302a1e62bd1c5b60c5cb97"
+      },
+      "files": 775,
+      "bytes": 216998479
+    },
+    "retainedPackageCompileRestoreAttribution": {
+      "evidence": {
+        "path": "integrated-v1-package-retention.json",
+        "bytes": 364099,
+        "sha256": "2bd148a7a6a968abedb46f274606856f4de519b8808004c4ca79fd3c971cea2d"
+      },
+      "files": 375,
+      "bytes": 209093942
+    },
+    "retainedConsumerTests": {
+      "evidence": {
+        "path": "integrated-v2-consumer-test-retention.json",
+        "bytes": 295543,
+        "sha256": "80a92bd84af084753fc150288a737567ac095448a91c351f28cc2ecfbead4aa2"
+      },
+      "files": 1411,
+      "bytes": 411078030
+    },
+    "results": [
+      {
+        "path": "storage-test-compiler-result-20261019.json",
+        "bytes": 684,
+        "sha256": "8db2dd000fcc98b34d872e608f159f7d31f2a90ee47708e1852a8735ba938149"
+      },
+      {
+        "path": "storage-package-result-20261019.json",
+        "bytes": 938,
+        "sha256": "5455c9b85501bee1ad2195bb0a3c379633c264b71088a2ca59e238ac61fb006d"
+      },
+      {
+        "path": "storage-consumer-compiler-result-20261019.json",
+        "bytes": 718,
+        "sha256": "de467ba2957f0dede9c0f08bef398968b62a08168afcc1373c115c63169daefa"
+      }
+    ],
+    "boundary": "Immutable original bindings resolve cold paths through explicit retention maps. Packages, consumer executables, module products, results, source/native evidence and active worktree stay retained. No historical inspector re-execution implied.",
+    "finalStorageSnapshot": {
+      "evidence": {
+        "path": "storage-manifest-final-preparation.json",
+        "bytes": 319044,
+        "sha256": "2c1586328e958b78252de861ddda2a30580ccc5871cb629f322862bacb58efb6"
+      },
+      "retainedRegularFileBytes": 2509634254,
+      "excludedPreparationItself": true,
+      "verifiedCleanupTargetsAbsent": 45,
+      "scope": "Task-owned cold compiler/package expansions removed after byte-exact retention. Actual source, runtimes, native and public evidence, test subjects, module products, private next-priority tooling and durable state retained."
+    }
+  },
+  "remainingBoundary": [
+    "Specialized/nested column formatting, transformed/clipped hosts, definite/max-height overflow, changing page bands and internal named/page-side transitions outside the ordinary subset remain unqualified or diagnosed.",
+    "Native side, force/keep, screen-table repetition, glyph/rule rasterization and viewport discrepancies remain explicit.",
+    "Runtime/provider independence stays a separate programme subject; provider forks are not adopted here."
+  ],
+  "windowsProfiling": "Deferred by user; no Windows timing evidence claimed.",
+  "pathConvention": {
+    "repositoryPath": "Repository-root-relative; coordinator copies 32 fixture destinations byte-for-byte from bound staging inventory.",
+    "sourceInput": "Relative to retained html-column-page-controls evidence root.",
+    "evidencePath": "Other path/bytes/sha256 records are relative to that task evidence root; ../ identifies another retained task. Bulky evidence is referenced by hash rather than embedded."
+  },
+  "deliveryBoundary": {
+    "checkpointOnly": true,
+    "newPullRequestOpened": false,
+    "mergeOrPackagePublication": false,
+    "runtimeProviderForks": "feature/html-engine remains separate",
+    "programmeContinues": [
+      "shared Core/PDF text adoption",
+      "independent frozen-document and performance evidence",
+      "bounded typography, MathML and print qualification"
+    ]
+  }
+}

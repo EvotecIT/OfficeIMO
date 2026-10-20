@@ -193,8 +193,10 @@ public sealed class DrawingMissingSpaceMetricsTests {
         Assert.True(fonts.TryResolveFaceForText("\u2003", "Primary", OfficeFontFaceDescriptor.Regular, out OfficeFontFace? face));
         Assert.Equal("Primary", face!.FamilyName);
         Assert.False(face.Program.HasGlyphs("\u2003"));
-        // Existing ordinary whitespace/control handling does not acquire EM semantics.
-        Assert.True(face.Program.HasGlyphs(" \u00A0\t"));
+        // Controls still need no standalone mapping. Other absent spacing
+        // glyphs are not advertised as covered and acquire no EM synthesis.
+        Assert.True(face.Program.HasGlyphs("\t"));
+        Assert.False(face.Program.HasGlyphs(" \u00A0"));
         Assert.Equal(15D, face.Program.Measure(" \u00A0\t", 20D), 6);
     }
 
@@ -281,6 +283,69 @@ public sealed class DrawingMissingSpaceMetricsTests {
         Assert.True(fallback.Used);
         Assert.False(fallback.Incomplete);
         Assert.Equal("\u05D1\u2003\u05D0", fallback.Text);
+    }
+
+    [Theory]
+    [InlineData('\u202F', false)]
+    [InlineData('\u202F', true)]
+    [InlineData('\u2007', false)]
+    [InlineData('\u2007', true)]
+    public void UnmappedSpacingGlyphDoesNotClaimCoverage(char separator, bool cff) {
+        byte[] data = FontWithAdvance(250, 'A');
+        IOfficeFontProgram font = LoadFont(cff ? AsCff(data) : data);
+
+        Assert.False(font.TryGetGlyphMetrics(separator, out _, out _));
+        Assert.False(font.HasGlyphs(separator.ToString()));
+        var fonts = new OfficeFontFaceCollection().Add("Primary", cff ? AsCff(data) : data);
+        Assert.False(fonts.TryResolveFaceForText("A" + separator, "Primary", OfficeFontStyle.Regular, out _));
+        Assert.False(fonts.TryMeasureText(separator + "A", 20D, "Primary", OfficeFontStyle.Regular, out _));
+    }
+
+    [Theory]
+    [InlineData('\u202F')]
+    [InlineData('\u2007')]
+    public void MappedBlankSpacingGlyphStillClaimsCoverage(char separator) {
+        IOfficeFontProgram font = LoadFont(ManagedTextShapingTestAssets.CreateFontWithEmptyGlyphs(2, separator));
+
+        Assert.True(font.HasGlyphs(separator.ToString()));
+        Assert.True(font.TryGetGlyphMetrics(separator, out int glyph, out int advance));
+        Assert.True(glyph > 0);
+        Assert.True(advance > 0);
+        Assert.Empty(font.GetTextContours(separator.ToString(), 0D, 0D, 20D));
+    }
+
+    [Theory]
+    [InlineData('\u202F')]
+    [InlineData('\u2007')]
+    public void UnmappedSpacingGlyphSelectsARegisteredBlankFallback(char separator) {
+        var fonts = new OfficeFontFaceCollection()
+            .Add("Primary", FontWithAdvance(250, 'A'))
+            .Add("Fallback", ManagedTextShapingTestAssets.CreateFontWithEmptyGlyphs(2, separator))
+            .AddFallbackFamily("Fallback");
+        string space = separator.ToString();
+
+        Assert.True(fonts.TryResolveFaceForText(space, "Primary, Fallback", OfficeFontStyle.Regular, out OfficeFontFace? styled));
+        Assert.Equal("Fallback", styled!.FamilyName);
+        Assert.True(fonts.TryResolveFaceForText(space, "Primary", OfficeFontFaceDescriptor.Regular, out OfficeFontFace? numeric));
+        Assert.Equal("Fallback", numeric!.FamilyName);
+        Assert.Equal(new[] { "Primary", "Fallback", "Primary" },
+            fonts.PlanFallbackRuns("A" + space + "A", "Primary").Select(run => run.FamilyName));
+        Assert.True(fonts.TryMeasureText("A" + space + "A", 20D, "Primary", OfficeFontStyle.Regular, out double width));
+        Assert.Equal(20D, width, 6);
+    }
+
+    [Fact]
+    public void WhitespaceControlsStillInheritTheScopedCurrentFace() {
+        const string controls = "\t\r\n\v\f\u0085\u2028\u2029";
+        var fonts = new OfficeFontFaceCollection()
+            .Add("Primary", FontWithAdvance(250, 'A'), OfficeFontStyle.Regular, Ranges('A'));
+        OfficeFontFace primary = Assert.Single(fonts.Faces);
+
+        Assert.True(primary.Program.HasGlyphs(controls));
+        OfficeFontFallbackRun run = Assert.Single(fonts.PlanFallbackRuns("A" + controls + "A", "Primary"));
+        Assert.Equal(primary.ResourceFamilyName, run.FamilyName);
+        Assert.True(fonts.TryResolveFaceForText(run.Text, "Primary", OfficeFontStyle.Regular, out OfficeFontFace? face));
+        Assert.Same(primary, face);
     }
 
     private static IOfficeFontProgram LoadFont(byte[] data) =>

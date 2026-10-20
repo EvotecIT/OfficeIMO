@@ -12,17 +12,20 @@ internal sealed partial class HtmlRenderLayoutEngine {
         _operationBudget.ChargeLayoutOperations(count, _options.MaxLayoutOperations, source);
     }
 
-    private HtmlRenderFlowBlock LayoutElement(
+    private HtmlRenderFlowBlock LayoutElementCore(
         IElement element,
         double containingWidth,
         HtmlRenderBoxStyle style,
         HtmlRenderBoxStyle parentStyle,
         int depth,
-        IElement? continuationTarget = null,
-        int continuationLogicalCharacters = 0,
-        PagedFloatBoundary? pageBoundary = null,
-        IReadOnlyList<HtmlFloatExclusion>? inheritedFloats = null,
-        ICollection<HtmlFloatExclusion>? emittedFloats = null, InlineFloatContext? surroundingFloats = null) {
+        IElement? continuationTarget,
+        int continuationLogicalCharacters,
+        PagedFloatBoundary? pageBoundary,
+        IReadOnlyList<HtmlFloatExclusion>? inheritedFloats,
+        ICollection<HtmlFloatExclusion>? emittedFloats, InlineFloatContext? surroundingFloats,
+        out ConstrainedEntryRelayoutState? entryRelayout, out ConstrainedInteriorGap? interiorGap) {
+        entryRelayout = null;
+        interiorGap = null;
         IElement? root = _document.Body ?? _document.DocumentElement;
         bool tracksPageViewport = _options.Mode == HtmlRenderMode.Paged
             && depth == 1
@@ -33,6 +36,12 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 : block;
         EnsureDepth(depth, element);
         ChargeLayoutOperation(HtmlRenderStyleResolver.DescribeSource(element));
+        if (_deferredColumnWrappers.Contains(element)) {
+            // This resolved style belongs to the current element's layout pass.
+            // Keep its flex/grid placement and its painted entry in agreement.
+            style.MarginTop = 0D;
+            style.BreakBefore = HtmlPageBreakTarget.Page;
+        }
         bool continuesThisBox = continuationTarget != null
             && ContainsElementOrSelf(element, continuationTarget)
             && (!ReferenceEquals(element, continuationTarget) || continuationLogicalCharacters > 0);
@@ -42,7 +51,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
             style = ResolveOrdinaryIntrinsicWidths(element, style, containingWidth, depth);
             style = ResolveNormalFlowHorizontalAutoMargins(element, style, containingWidth);
         }
-        style = PrepareButtonChildStyle(element, style);
+        style = ResolveColumnFragmentStyle(element, PrepareButtonChildStyle(element, style));
         if (UsesButtonChildLayout(element) && !style.ExplicitWidth.HasValue) {
             // A native button remains intrinsically sized with display:block.
             // Its descendants still use normal layout, including styled boxes.
@@ -54,7 +63,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
         ReportUnsupportedFloatValues(element, style);
         ReportUnsupportedOverflowValues(element, style);
         ReportUnsupportedMultiColumnValues(element, style);
-        _layoutStyles[element] = style.Clone();
+        RememberColumnSourceStyle(element, style);
+        using OrdinaryPageSourceScope pageSourceScope = EnterOrdinaryPageSource(style);
         string tag = element.TagName.ToLowerInvariant();
         double? containingHeight = ResolveContainingBlockHeight(parentStyle);
         if (IsReplacedImageElementTag(tag)) return StampViewport(AttachElementMargins(ApplyElementPositioning(ApplyOverflowToSpecializedBlock(ApplySpecializedElementSemantics(LayoutImage(element, containingWidth, style), element, style), style, element, containingWidth), style, containingWidth, containingHeight, element), style, element));
@@ -74,7 +84,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
             flexBlock = ApplyElementSemantics(flexBlock, element, style);
             return StampViewport(AttachElementMargins(ApplyElementPositioning(ApplyOverflowToSpecializedBlock(flexBlock, style, element, containingWidth), style, containingWidth, containingHeight, element), style, element));
         }
-        if (style.Display == "grid" && TryLayoutGridContainer(element, containingWidth, style, depth, out HtmlRenderFlowBlock gridBlock)) {
+        if (style.Display == "grid" && TryLayoutGridContainer(element, containingWidth, style, depth, pageBoundary, out HtmlRenderFlowBlock gridBlock)) {
             gridBlock = ApplyElementSemantics(gridBlock, element, style);
             return StampViewport(AttachElementMargins(ApplyElementPositioning(ApplyOverflowToSpecializedBlock(gridBlock, style, element, containingWidth), style, containingWidth, containingHeight, element), style, element));
         }
@@ -83,6 +93,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
             return StampViewport(AttachElementMargins(ApplyElementPositioning(ApplyOverflowToSpecializedBlock(columnsBlock, style, element, containingWidth), style, containingWidth, containingHeight, element), style, element));
         }
 
+        using ConstrainedProjectionScope projectionScope = EnterConstrainedProjection(style);
         double availableWidth = Math.Max(1D, containingWidth - style.MarginLeft - style.MarginRight);
         double boxWidth = ResolveBoxWidth(availableWidth, style);
         double contentWidth = Math.Max(1D, boxWidth - style.HorizontalInsets);
@@ -98,6 +109,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         var contentVisuals = new List<HtmlRenderVisual>();
         var childPaintLayers = new List<FlowPaintLayer>();
         var contentBreakOffsets = new List<double>();
+        var contentSafeBreakRanges = new List<HtmlRenderBreakRange>();
         var contentAvoidBreakRanges = new List<HtmlRenderAvoidBreakRange>();
         var forcedBreaks = new List<HtmlRenderForcedBreak>();
         var lineBreakOffsets = new List<double>();
@@ -109,6 +121,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
         HtmlInlineLayout? inlineLayout = null;
         double contentHeight = 0D;
         bool usesBlockFormatting = HasBlockChildren(element, contentWidth, style, depth);
+        entryRelayout = CaptureConstrainedEntryRelayout(
+            element, style, projectionScope, pageBoundary, usesBlockFormatting);
         IElement? descendantContinuationTarget = continuationTarget != null && !ReferenceEquals(element, continuationTarget)
             ? continuationTarget
             : null;
@@ -137,11 +151,11 @@ internal sealed partial class HtmlRenderLayoutEngine {
         }
 
         if (!usesBlockFormatting || !usesVerticalBlockFormatting && children.Count == 0) {
-            HtmlListMarker? marker = tag == "li" ? ResolveListMarker(element, style, contentWidth) : null;
+            HtmlListMarker? marker = tag == "li" && IsFirstColumnSourceFragment(element) ? ResolveListMarker(element, style, contentWidth) : null;
             int skipped = ReferenceEquals(element, continuationTarget) ? continuationLogicalCharacters : 0;
             double extent = IsVerticalWritingMode(style.WritingMode)
                 ? ResolveVerticalInlineExtent(style, parentStyle, contentWidth) : contentWidth;
-            inlineLayout = LayoutInlineNodes(element.ChildNodes, extent, style, depth, marker, element, skipped, pageBoundary?.Shift(style.MarginTop + style.BorderTopWidth + style.PaddingTop), inheritedFloats, floatContext: contentFloats);
+            inlineLayout = LayoutInlineNodes(SelectedColumnChildNodes(element), extent, style, depth, marker, element, skipped, pageBoundary?.Shift(style.MarginTop + style.BorderTopWidth + style.PaddingTop), inheritedFloats, floatContext: contentFloats);
             if (inlineLayout.InterruptedFlow != null) {
                 children = new List<HtmlRenderFlowBlock> { inlineLayout.InterruptedFlow };
                 inlineLayout = null;
@@ -196,7 +210,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 children[lastIndex] = last.AdjustTrailingFlowSpace(Math.Min(Math.Max(0D, lastStyle.MarginBottom), floatOverhang));
             }
         }
-        _layoutStyles[element] = style.Clone();
+        RememberColumnSourceStyle(element, style);
 
         if (usesVerticalBlockFormatting) {
             ArrangeVerticalBlockChildren(
@@ -217,19 +231,16 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 : childPaintLayers);
         } else if (usesBlockFormatting) {
             string? childPageName = children.Count > 0 ? children[0].PageName : null;
+            object[] childBoundaries = CreateFlowBoundaries(children);
             for (int childIndex = 0; childIndex < children.Count; childIndex++) {
                 HtmlRenderFlowBlock child = children[childIndex];
                 double childStart = contentHeight;
                 if (childIndex > 0 && !string.Equals(childPageName, child.PageName, StringComparison.Ordinal)) {
-                    forcedBreaks.Add(new HtmlRenderForcedBreak(childStart, HtmlPageBreakTarget.Page, child.PageName, changesPageName: true));
+                    forcedBreaks.Add(new HtmlRenderForcedBreak(childStart, HtmlPageBreakTarget.Page, child.PageName,
+                        changesPageName: true, boundary: childBoundaries[childIndex]));
                 }
                 childPageName = child.PageName;
-                if (child.BreakBefore != HtmlPageBreakTarget.None) {
-                    forcedBreaks.Add(new HtmlRenderForcedBreak(childStart, child.BreakBefore));
-                }
-                foreach (HtmlRenderForcedBreak forcedBreak in child.ForcedBreaks) {
-                    forcedBreaks.Add(forcedBreak.Translate(childStart));
-                }
+                AppendChildForcedBreaks(children, childIndex, childStart, forcedBreaks, childBoundaries);
                 if (child.HasCollapsibleMargins && child.CollapsibleMarginBottom > 0.0001D
                     && child.Height > child.CollapsibleMarginBottom + 0.0001D && child.OwnerElement != null) {
                     // A break after the child's last painted line may leave only
@@ -254,13 +265,12 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 childPaintLayers.Add(new FlowPaintLayer(child, 0D, childStart, childPaintLayers.Count));
                 AppendKeepWithNextRange(children, childIndex, childStart, contentAvoidBreakRanges);
 
-                contentHeight += child.Height;
-                if (child.BreakAfter != HtmlPageBreakTarget.None) {
-                    forcedBreaks.Add(new HtmlRenderForcedBreak(contentHeight, child.BreakAfter));
-                }
-                if (child.AvoidBreakInside)
-                    contentAvoidBreakRanges.Add(new HtmlRenderAvoidBreakRange(childStart, contentHeight));
+                contentHeight += child.NormalFlowAdvance;
+                if (child.AvoidBreakInsideScope != HtmlFragmentationScope.None)
+                    contentAvoidBreakRanges.Add(new HtmlRenderAvoidBreakRange(
+                        childStart + child.PagedSourceEntryGap, contentHeight, Scope: child.AvoidBreakInsideScope));
                 contentAvoidBreakRanges.AddRange(child.AvoidBreakRanges.Select(range => range.Translate(childStart)));
+                contentSafeBreakRanges.AddRange(child.SafeBreakRanges.Select(range => range.Translate(childStart)));
                 foreach (double offset in child.BreakOffsets) {
                     // A child's zero offset is its entry, not a break inside it. The
                     // preceding sibling already contributes that boundary; forwarding
@@ -304,7 +314,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
             AppendFlowPaintLayers(contentVisuals, hasLocallyPositionedPseudo
                 ? childPaintLayers.Where(layer => !layer.Block.StackingZIndex.HasValue)
                 : childPaintLayers);
-            if (tag == "li" && children.Count > 0) {
+            if (tag == "li" && children.Count > 0 && IsFirstColumnSourceFragment(element)) {
                 HtmlListMarker? marker = ResolveListMarker(element, style, contentWidth);
                 if (marker?.IsOutside == true) {
                     AddOutsideMarkerForBlockChildren(contentVisuals, marker, contentWidth, style, element);
@@ -325,15 +335,73 @@ internal sealed partial class HtmlRenderLayoutEngine {
             contentVisuals.AddRange(inline.Visuals);
             contentHeight = inline.Height;
             contentBreakOffsets.AddRange(inline.BreakOffsets);
+            contentSafeBreakRanges.AddRange(inline.SafeBreakRanges);
             lineBreakOffsets.AddRange(inline.LineBreakOffsets);
             runningStringAssignments.AddRange(inline.RunningStringAssignments);
             forcedBreaks.AddRange(inline.ForcedBreaks);
             lineBreakGroups.AddRange(inline.LineBreakGroups);
+            contentAvoidBreakRanges.AddRange(inline.AvoidBreakRanges);
             continuationGroups.AddRange(inline.ContinuationGroups);
             trailingGroups.AddRange(inline.TrailingGroups);
         }
 
         if (ownsFloatContext) contentHeight = Math.Max(contentHeight, contentFloats.Bottom);
+
+        HtmlRenderFlowBlock? projectedContent = null;
+        double pagedEntryGap = 0D;
+        double forcedFollowingMinimum = 0D;
+        if (projectionScope.CanProject && pageBoundary.HasValue) {
+            // A first child's synthetic entry is before this owner's content,
+            // rather than an interval consumed by its authored height. Rebuild
+            // the whole owner there so later descendants discard stale gaps.
+            if (entryRelayout != null && _constrainedOverflowElements.Contains(element)
+                && childPaintLayers.Count > 0 && childPaintLayers[0].Block.PagedSourceEntryGap > 0.0001D
+                && TryRelayoutConstrainedEntry(element, containingWidth, parentStyle, depth,
+                    continuationTarget, continuationLogicalCharacters, pageBoundary.Value,
+                    inheritedFloats, emittedFloats, surroundingFloats, childPaintLayers[0].Block.PagedSourceEntryGap,
+                    entryRelayout, out HtmlRenderFlowBlock firstEntryReflowed)) return firstEntryReflowed;
+            double sourceExtent = Math.Max(contentHeight, inlineLayout?.PagedPaintExtent ?? 0D);
+            foreach (FlowPaintLayer child in childPaintLayers) {
+                CheckCancellation();
+                ChargeLayoutOperation("ordinary source projection extent");
+                sourceExtent = Math.Max(sourceExtent, child.Y + ResolveNormalFlowPaintExtent(child.Block));
+            }
+            ChargeLayoutOperations(1L + contentVisuals.Count + contentBreakOffsets.Count + lineBreakOffsets.Count
+                + lineBreakGroups.Count + continuationGroups.Count + trailingGroups.Count
+                + runningStringAssignments.Count + continuationBreakProgress.Count + forcedBreaks.Count
+                + contentAvoidBreakRanges.Count + contentSafeBreakRanges.Count,
+                "ordinary source projection metadata");
+            var source = new HtmlRenderFlowBlock(contentWidth, Math.Max(0D, contentHeight), contentVisuals,
+                HtmlPageBreakTarget.None, HtmlPageBreakTarget.None, style.AvoidBreakInside,
+                HtmlRenderStyleResolver.DescribeSource(element), contentBreakOffsets, lineBreakOffsets,
+                style.Orphans, style.Widows, lineBreakGroups, continuationGroups, trailingGroups,
+                unclampedHeight: contentHeight, runningStringAssignments: runningStringAssignments,
+                inlineBreakProgress: inlineLayout?.BreakProgress ?? continuationBreakProgress,
+                forcedBreaks: forcedBreaks, avoidBreakRanges: contentAvoidBreakRanges,
+                pagedPaintExtent: sourceExtent, safeBreakRanges: contentSafeBreakRanges);
+            projectedContent = ProjectOrdinaryContent(source,
+                pageBoundary.Value.Shift(style.MarginTop + style.BorderTopWidth + style.PaddingTop),
+                entryRelayout != null ? childPaintLayers : null, entryRelayout?.AllowsInteriorRelayout == true,
+                out pagedEntryGap, out interiorGap, out forcedFollowingMinimum);
+            if (interiorGap != null) return source;
+            if (pagedEntryGap > 0.0001D && entryRelayout != null
+                && TryRelayoutConstrainedEntry(element, containingWidth, parentStyle, depth,
+                    continuationTarget, continuationLogicalCharacters, pageBoundary.Value,
+                    inheritedFloats, emittedFloats, surroundingFloats, pagedEntryGap, entryRelayout,
+                    out HtmlRenderFlowBlock entryReflowed)) return entryReflowed;
+            contentVisuals.Clear(); contentVisuals.AddRange(projectedContent.Visuals);
+            contentHeight = projectedContent.NormalFlowAdvance;
+            contentBreakOffsets.Clear(); contentBreakOffsets.AddRange(projectedContent.BreakOffsets);
+            contentSafeBreakRanges.Clear(); contentSafeBreakRanges.AddRange(projectedContent.SafeBreakRanges);
+            contentAvoidBreakRanges.Clear(); contentAvoidBreakRanges.AddRange(projectedContent.AvoidBreakRanges);
+            lineBreakOffsets.Clear();
+            lineBreakGroups.Clear(); lineBreakGroups.AddRange(projectedContent.LineBreakGroups);
+            continuationGroups.Clear(); continuationGroups.AddRange(projectedContent.ContinuationGroups);
+            trailingGroups.Clear(); trailingGroups.AddRange(projectedContent.TrailingGroups);
+            runningStringAssignments.Clear(); runningStringAssignments.AddRange(projectedContent.RunningStringAssignments);
+            continuationBreakProgress.Clear(); continuationBreakProgress.AddRange(projectedContent.InlineBreakProgress);
+            forcedBreaks.Clear(); forcedBreaks.AddRange(projectedContent.ForcedBreaks);
+        }
 
         if (contentHeight <= 0D && style.ExplicitHeight == null && style.BackgroundColor == null && !style.HasBorderLayout) {
             contentHeight = tag == "div" || tag == "section" || tag == "article" ? 0D : style.LineHeight;
@@ -347,6 +415,10 @@ internal sealed partial class HtmlRenderLayoutEngine {
         double boxHeight = zeroHeightCollapsible ? 0D : ResolveBoxHeight(contentHeight, boxWidth, style,
             allowZeroHeight: contentHeight <= 0D && (style.Display == "block"
                 || style.Display == "flow-root" && hasZeroHeightOrdinaryContent));
+        bool hasOrdinaryFragmentSource = contentVisuals.Any(HasOrdinaryFragmentSource);
+        bool retainsConstrainedPaint = pageSourceScope.RetainsConstrainedPaint && _columnContentDepth == 0
+            && !IsAtomicPaginationOwner(style) && HasEffectiveConstrainedBlockHeight(style, boxHeight, contentHeight);
+        bool ownsConstrainedSource = pageSourceScope.IsOrdinary && retainsConstrainedPaint;
         if (_inlineFloatOverhangs.TryGetValue(element, out double inlineOverhang)) {
             double normalFlowBoxHeight = ResolveBoxHeight(Math.Max(0D, contentHeight - inlineOverhang), boxWidth, style);
             double floatBottom = style.BorderTopWidth + style.PaddingTop + contentHeight;
@@ -358,13 +430,17 @@ internal sealed partial class HtmlRenderLayoutEngine {
             else _inlineFloatOverhangs.Remove(element);
         }
         double unclampedOuterHeight = style.MarginTop + boxHeight + style.MarginBottom;
-        double outerHeight = unclampedOuterHeight;
-        // Truly empty boxes need no flow epsilon. Keep the specialized carrier
-        // for existing line/float/specialized content and its pagination policy.
+        // Margins change normal progression, not the nonnegative allocation
+        // used by the fragment planner. Keep existing paint/float carriers while
+        // retaining the signed normal advance independently.
         bool hasContentCarrier = contentVisuals.Any(ContainsInFlowPaint) || inlineLayout?.HasInFlowLineBoxes == true
             || inlineLayout?.FloatExclusions.Count > 0 || hasLocallyPositionedPseudo;
-        if (outerHeight < 0D || outerHeight == 0D && (boxHeight > 0D
-                || hasContentCarrier && !hasZeroHeightOrdinaryContent)) outerHeight = 0.01D;
+        double outerHeight = Math.Max(0D, unclampedOuterHeight);
+        // A float-only zero-height box retains its existing pagination carrier.
+        // A real box cancelled by negative margins has no such allocation.
+        bool retainsZeroHeightFlowCarrier = unclampedOuterHeight == 0D && boxHeight == 0D
+            && hasContentCarrier && !hasZeroHeightOrdinaryContent;
+        if (retainsZeroHeightFlowCarrier) outerHeight = HtmlRenderFlowBlock.ZeroHeightFlowCarrierAdvance;
         var visuals = new List<HtmlRenderVisual>();
         var overflowContent = new List<HtmlRenderVisual>();
         var positionedRunningStringAssignments = new List<HtmlCssRunningStringAssignment>();
@@ -422,29 +498,72 @@ internal sealed partial class HtmlRenderLayoutEngine {
 
         ReportUnsupportedLayout(element, style);
         double contentYForBreaks = contentY;
-        // Propagate only a child's explicit paged overhang. Ordinary child
-        // geometry in a zero-height panel must not enlarge its print flow.
+        // Auto-height wrappers import explicit overhang. An authored height
+        // constraint also retains its in-flow content beyond the used box.
         double pagedPaintExtent = _options.Mode == HtmlRenderMode.Paged && style.OverflowY == "visible"
             && childPaintLayers.Any(layer => layer.Block.PagedPaintExtent > layer.Block.Height + 0.0001D)
             ? childPaintLayers.Aggregate(outerHeight, (extent, layer) =>
                 Math.Max(extent, contentYForBreaks + layer.Y + layer.Block.PagedPaintExtent))
             : outerHeight;
+        if (style.MarginBottom < 0D)
+            pagedPaintExtent = Math.Max(pagedPaintExtent, style.MarginTop + boxHeight);
         if (_options.Mode == HtmlRenderMode.Paged && style.OverflowY == "visible" && inlineLayout != null
             && inlineLayout.PagedPaintExtent > inlineLayout.Height + 0.0001D) {
             pagedPaintExtent = Math.Max(pagedPaintExtent, contentYForBreaks + inlineLayout.PagedPaintExtent);
         }
-        HtmlRenderAvoidBreakRange? trailingBoxKeep = ResolveTrailingBoxKeepRange(style, contentHeight,
+        if (!usesVerticalBlockFormatting) {
+            pagedPaintExtent = ResolveConstrainedBlockPaintExtent(style, retainsConstrainedPaint, pagedPaintExtent,
+                contentYForBreaks, contentHeight, inlineLayout, childPaintLayers);
+            if (projectedContent != null)
+                pagedPaintExtent = Math.Max(pagedPaintExtent, contentYForBreaks + projectedContent.PagedPaintExtent);
+            AppendConstrainedBlockAllocationTail(style, ownsConstrainedSource && hasOrdinaryFragmentSource
+                && !contentFloats.HasFloats && !visuals.Any(ContainsPositionedFlowPaint), boxHeight, contentYForBreaks,
+                contentHeight, childPaintLayers, contentSafeBreakRanges,
+                pageBoundary?.PageHeight ?? _activePageGeometry.ContentHeight);
+        }
+        double columnOverflowExtent = outerHeight;
+        if (_columnContentDepth > 0 && style.OverflowY == "visible" && !usesVerticalBlockFormatting) {
+            columnOverflowExtent = Math.Max(columnOverflowExtent, ResolveColumnStaticPositionPaintExtent(visuals));
+            if (style.ExplicitHeight.HasValue || style.MaxHeight.HasValue || style.AspectRatio.HasValue)
+                columnOverflowExtent = Math.Max(columnOverflowExtent, contentYForBreaks + contentHeight);
+            columnOverflowExtent = AppendColumnChildOverflowFacts(childPaintLayers, contentYForBreaks,
+                columnOverflowExtent, contentBreakOffsets, contentSafeBreakRanges,
+                contentAvoidBreakRanges, forcedBreaks);
+        }
+        double? sourceContentHeight = !usesVerticalBlockFormatting && children.Any(child => child.UnfragmentedHeight.HasValue)
+            ? children.Sum(child => child.UnfragmentedHeight ?? child.Height) : null;
+        if (sourceContentHeight.HasValue && ownsFloatContext)
+            sourceContentHeight = Math.Max(sourceContentHeight.Value, contentFloats.Bottom);
+        // A projected column set can leave a retained source-allocation tail.
+        // Its last painted line need not travel with the wrapper's bottom edge.
+        HtmlRenderAvoidBreakRange? trailingBoxKeep = ResolveTrailingBoxKeepRange(style,
+            Math.Max(contentHeight, sourceContentHeight ?? 0D),
             outerHeight, contentYForBreaks, contentBreakOffsets, continuationBreakProgress);
         if (trailingBoxKeep.HasValue) contentAvoidBreakRanges.Add(trailingBoxKeep.Value);
         IEnumerable<double> breakOffsets = contentBreakOffsets.Select(offset => contentYForBreaks + offset)
             .Concat(new[] { outerHeight });
+        IEnumerable<HtmlRenderBreakRange> safeBreakRanges = contentSafeBreakRanges.Select(range => range.Translate(contentYForBreaks));
         bool hasPagedFloats = _options.Mode == HtmlRenderMode.Paged && contentFloats.HasFloats;
         if (pagedPaintExtent > outerHeight + 0.0001D || hasPagedFloats) {
             IReadOnlyList<(double Top, double Bottom)> atomicRanges = CollectAtomicParallelVisualRanges(visuals);
+            IReadOnlyList<InlineFloatPlacement> fragmentPlacements = hasPagedFloats
+                ? contentFloats.GetFragmentPlacements(contentYForBreaks) : Array.Empty<InlineFloatPlacement>();
             breakOffsets = hasPagedFloats
-                ? CollectSafeFloatBreaks(breakOffsets, contentFloats.GetFragmentPlacements(contentYForBreaks), atomicRanges,
+                ? CollectSafeFloatBreaks(breakOffsets, fragmentPlacements, atomicRanges,
                     pageBoundary?.PageHeight ?? _activePageGeometry.ContentHeight)
                 : breakOffsets.Where(offset => !CrossesAtomicParallelVisual(atomicRanges, offset));
+            safeBreakRanges = hasPagedFloats
+                ? CollectSafeFloatBreakRanges(safeBreakRanges, fragmentPlacements, atomicRanges,
+                    pageBoundary?.PageHeight ?? _activePageGeometry.ContentHeight)
+                : HtmlRenderBreakRange.Exclude(safeBreakRanges,
+                    atomicRanges.Select(range => new HtmlRenderBreakRange(range.Top, range.Bottom)));
+        }
+        if (contentSafeBreakRanges.Count > 0) {
+            // A short fixed-height child can paint over later normal-flow
+            // siblings without extending this wrapper's final flow height.
+            // Its blank source interval cannot cut those sibling carriers.
+            safeBreakRanges = ConstrainParallelPaintBreakRanges(
+                HtmlRenderBreakRange.Normalize(safeBreakRanges, Math.Max(pagedPaintExtent, columnOverflowExtent)), visuals);
         }
         if (children.Count == 0 && contentVisuals.Count == 0) {
             breakOffsets = breakOffsets.Concat(CollectPositionedContainerBreakOffsets(
@@ -472,6 +591,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
             pageName = children[0].PageName;
         }
 
+        if (columnOverflowExtent > outerHeight + 0.0001D)
+            RegisterColumnOverflowOpacity(element, style, depth);
         var block = new HtmlRenderFlowBlock(
             containingWidth,
             outerHeight,
@@ -493,421 +614,53 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 .Select(assignment => assignment.Translate(contentYForBreaks))
                 .Concat(positionedRunningStringAssignments)
                 .OrderBy(assignment => assignment.OrderOffset),
-            inlineBreakProgress: (inlineLayout?.BreakProgress ?? continuationBreakProgress).Select(progress =>
+            inlineBreakProgress: (projectedContent?.InlineBreakProgress ?? inlineLayout?.BreakProgress ?? continuationBreakProgress).Select(progress =>
                 new HtmlInlineBreakProgress(contentYForBreaks + progress.Offset, progress.LogicalCharacters, progress.OwnerElement, progress.IsBlockEntry, progress.PageStartDiscardableMargin, progress.IsBlockExit, progress.IsFlexGap)),
             inlineContinuationStart: ReferenceEquals(element, continuationTarget) ? continuationLogicalCharacters : 0,
             supportsInlineContinuationReflow: inlineLayout?.SupportsContinuationReflow == true
                 || continuationBreakProgress.Any(progress => !progress.IsBlockExit && progress.OwnerElement != null),
             forcedBreaks: forcedBreaks.Select(item => item.Translate(contentYForBreaks)),
             avoidBreakRanges: contentAvoidBreakRanges.Select(range => range.Translate(contentYForBreaks)),
-            pagedPaintExtent: pagedPaintExtent);
+            pagedPaintExtent: Math.Max(pagedPaintExtent, columnOverflowExtent),
+            safeBreakRanges: safeBreakRanges);
+        block.RetainsZeroHeightFlowCarrier = retainsZeroHeightFlowCarrier;
+        if (sourceContentHeight.HasValue) {
+            block.UnfragmentedHeight = Math.Max(0D, style.MarginTop + style.MarginBottom
+                + ResolveBoxHeight(sourceContentHeight.Value, boxWidth, style));
+        }
         if (ownsFloatContext) block = OrderBoxFlowPaint(block);
         block = ApplyElementSemantics(block, element, style);
-        if (ownsFloatContext) foreach (HtmlRenderVisual visual in block.Visuals) visual.PaintPhase = HtmlRenderPaintPhase.Atomic;
+        if (ownsFloatContext) CloseBoxFlowPaint(block);
         bool collapsesThrough = CanCollapseThroughEmptyBlock(style, usesBlockFormatting, children,
             contentVisuals, contentHeight, inlineLayout?.HasInFlowLineBoxes == true);
         HtmlRenderFlowBlock completed = StampViewport(AttachElementMargins(ApplyElementPositioning(block, style, containingWidth, containingHeight, element),
             style, element, collapsesThrough, collapsedTopGroup, collapsedBottomGroup));
+        if (forcedFollowingMinimum > 0.0001D) {
+            // Authored after controls carry following flow to their realized
+            // page boundary even when the CSS box has a constrained height.
+            // Before controls leave that independent authored advance intact.
+            double minimumAdvance = contentYForBreaks + forcedFollowingMinimum
+                + style.PaddingBottom + style.BorderBottomWidth + style.MarginBottom;
+            if (minimumAdvance > completed.NormalFlowAdvance + 0.0001D)
+                completed = completed.AdjustTrailingFlowSpace(completed.NormalFlowAdvance - minimumAdvance);
+        }
+        if (pagedEntryGap > 0.0001D) {
+            completed = completed.AdjustLeadingFlowSpace(-pagedEntryGap);
+            completed.PagedSourceEntryGap = pagedEntryGap;
+        }
+        if (projectionScope.CanProjectAtomic && pageBoundary.HasValue)
+            completed = ProjectAtomicOrdinaryBlock(completed, pageBoundary.Value,
+                style.MarginTop, style.MarginTop + boxHeight);
+        RememberConstrainedOverflow(element, ownsConstrainedSource && hasOrdinaryFragmentSource, completed);
+        if (columnOverflowExtent > completed.Height + 0.0001D) {
+            HtmlRenderFlowBlock overflow = completed.ForPagination();
+            completed = completed.WithVisuals(completed.Visuals, pagedPaintExtent: pagedPaintExtent);
+            completed.ColumnOverflowContent = overflow;
+        }
         completed.KnownNoInFlowLineBoxes = !usesBlockFormatting && inlineLayout?.HasInFlowLineBoxes == false;
         completed.HasZeroHeightOrdinaryContent = hasZeroHeightOrdinaryContent;
+        RecordColumnSourceFragmentSize(element, completed, style);
         return completed;
     }
 
-    private static HtmlRenderBoxStyle SuppressContinuationStartDecorations(HtmlRenderBoxStyle style) {
-        HtmlRenderBoxStyle continuation = style.Clone();
-        continuation.MarginTop = 0D;
-        continuation.PaddingTop = 0D;
-        continuation.Borders = new HtmlRenderBorderEdges(
-            continuation.Borders.Top.WithWidth(0D),
-            continuation.Borders.Right,
-            continuation.Borders.Bottom,
-            continuation.Borders.Left);
-        continuation.BreakBefore = HtmlPageBreakTarget.None;
-        continuation.StringSet = string.Empty;
-        return continuation;
-    }
-
-    private HtmlRenderFlowBlock AttachElementMargins(HtmlRenderFlowBlock block, HtmlRenderBoxStyle style, IElement element,
-        bool collapsesThrough = false, HtmlCollapsedMargin? topGroup = null, HtmlCollapsedMargin? bottomGroup = null) {
-        HtmlRenderFlowBlock attached = block.WithCollapsibleMargins(style.MarginTop, style.MarginBottom, element,
-            collapsesThrough, topGroup, bottomGroup);
-        IReadOnlyList<HtmlCssRunningStringAssignment> ownAssignments =
-            ResolveRunningStringAssignments(element, style, 0D);
-        return ownAssignments.Count == 0
-            ? attached
-            : attached.WithRunningStringAssignments(ownAssignments.Concat(attached.RunningStringAssignments));
-    }
-
-    private IReadOnlyList<HtmlCssRunningStringAssignment> ResolveRunningStringAssignments(
-        IElement element,
-        HtmlRenderBoxStyle style,
-        double offset) {
-        string source = HtmlRenderStyleResolver.DescribeSource(element);
-        IReadOnlyList<HtmlCssRunningStringAssignment> ownAssignments = HtmlCssRunningStringParser.ResolveAssignments(
-            element,
-            style.StringSet,
-            _options.MaxRunningStringCharacters,
-            count => ChargeLayoutOperations(count, source),
-            (contentElement, maximumCharacters, chargeOperations) =>
-                ResolveRunningStringContentText(
-                    contentElement,
-                    style,
-                    maximumCharacters,
-                    chargeOperations),
-            out bool limitExceeded);
-        if (limitExceeded) {
-            _diagnostics.Add(
-                ComponentName,
-                HtmlRenderDiagnosticCodes.RunningStringLimitExceeded,
-                "A CSS running-string value exceeded the configured character limit and was omitted.",
-                HtmlDiagnosticSeverity.Warning,
-                source,
-                "limit=" + _options.MaxRunningStringCharacters);
-        }
-        int documentOrder = GetDocumentOrder(element);
-        ownAssignments = ownAssignments
-            .Select(assignment => assignment.InDocumentOrder(documentOrder))
-            .ToList()
-            .AsReadOnly();
-        return Math.Abs(offset) <= 0.0001D
-            ? ownAssignments
-            : ownAssignments.Select(assignment => assignment.Translate(offset)).ToList().AsReadOnly();
-    }
-
-    private static bool CanCollapseParentMargin(HtmlRenderBoxStyle style, bool top) {
-        if (style.Display != "block" && style.Display != "list-item") return false;
-        if (style.OverflowX != "visible" || style.OverflowY != "visible") return false;
-        if (top) return style.BorderTopWidth <= 0D && style.PaddingTop <= 0D;
-        return style.BorderBottomWidth <= 0D
-            && style.PaddingBottom <= 0D
-            && !style.ExplicitHeight.HasValue
-            && (!style.MinHeight.HasValue || style.MinHeight.Value <= 0D);
-    }
-
-    private static bool CanCollapseThroughEmptyBlock(
-        HtmlRenderBoxStyle style,
-        bool usesBlockFormatting,
-        IReadOnlyList<HtmlRenderFlowBlock> children,
-        IReadOnlyList<HtmlRenderVisual> contentVisuals,
-        double contentHeight,
-        bool hasInFlowLineBoxes) {
-        if (style.Display != "block" || style.OverflowX != "visible" || style.OverflowY != "visible") return false;
-        if (style.BorderTopWidth > 0D || style.BorderBottomWidth > 0D || style.PaddingTop > 0D || style.PaddingBottom > 0D) return false;
-        if (style.ExplicitHeight.HasValue || style.AspectRatio.HasValue || style.MinHeight.HasValue && style.MinHeight.Value > 0D) return false;
-        if (usesBlockFormatting) return children.Count == 0 || children.All(child => child.CollapsesThrough);
-        return !hasInFlowLineBoxes && contentVisuals.Count == 0 && contentHeight <= 0.0001D;
-    }
-
-    private static bool CanUseZeroHeightForMarginCollapse(HtmlRenderBoxStyle style, HtmlRenderBoxStyle parentStyle, double contentHeight) =>
-        contentHeight <= 0.0001D
-        && style.Display == "block"
-        && parentStyle.Display != "flex"
-        && parentStyle.Display != "inline-flex"
-        && parentStyle.Display != "grid"
-        && parentStyle.Display != "inline-grid"
-        && style.BorderTopWidth <= 0D
-        && style.BorderBottomWidth <= 0D
-        && style.PaddingTop <= 0D
-        && style.PaddingBottom <= 0D
-        && !style.ExplicitHeight.HasValue
-        && !style.AspectRatio.HasValue
-        && (!style.MinHeight.HasValue || style.MinHeight.Value <= 0D);
-
-    private double FlushInlineNodes(ICollection<HtmlRenderFlowBlock> blocks, List<INode> nodes, double width, HtmlRenderBoxStyle style, IElement sourceElement, int depth, out bool hasInFlowLineBoxes, PagedFloatBoundary? pageBoundary = null, ICollection<HtmlFloatExclusion>? activeFloats = null, ICollection<HtmlFloatExclusion>? emittedFloats = null, double flowOffset = 0D, InlineFloatContext? floatContext = null) {
-        hasInFlowLineBoxes = false;
-        if (nodes.Count == 0) return 0D;
-        HtmlInlineLayout inline = LayoutInlineNodes(nodes, width, style, depth + 1, null, null,
-            pageBoundary: pageBoundary,
-            inheritedFloats: activeFloats?.Count > 0 ? activeFloats.Select(item => item.Shift(0D, -flowOffset)).ToArray() : null,
-            applyTextIndent: blocks.Count == 0, floatContext: floatContext);
-        if (activeFloats != null) {
-            foreach (HtmlFloatExclusion exclusion in inline.FloatExclusions) {
-                HtmlFloatExclusion positioned = exclusion.Shift(0D, flowOffset);
-                activeFloats.Add(positioned);
-                emittedFloats?.Add(positioned);
-            }
-        }
-        if (inline.Height > inline.NormalFlowHeight + 0.0001D) {
-            _inlineFloatOverhangs.TryGetValue(sourceElement, out double previousOverhang);
-            _inlineFloatOverhangs[sourceElement] = Math.Max(
-                previousOverhang,
-                inline.Height - inline.NormalFlowHeight);
-        }
-        hasInFlowLineBoxes = inline.HasInFlowLineBoxes == true
-            || inline.InterruptedFlow?.HasZeroHeightOrdinaryContent == true;
-        nodes.Clear();
-        if (inline.InterruptedFlow != null) {
-            blocks.Add(inline.InterruptedFlow);
-            return inline.Height;
-        }
-        if (inline.Visuals.Count == 0 && !hasInFlowLineBoxes) return 0D;
-        // A floated sibling does not consume normal-flow height before the
-        // following block. A block formatting context still contains its float.
-        bool containsFloat = EstablishesFloatContainingBlock(style);
-        double flowHeight = floatContext != null ? inline.NormalFlowHeight : activeFloats != null && (!containsFloat || HasMultiColumnLayout(style))
-            ? inline.NormalFlowHeight : inline.Height;
-        var block = new HtmlRenderFlowBlock(
-            width,
-            flowHeight,
-            inline.Visuals,
-            HtmlPageBreakTarget.None,
-            HtmlPageBreakTarget.None,
-            false,
-            HtmlRenderStyleResolver.DescribeSource(sourceElement),
-            inline.BreakOffsets,
-            inline.LineBreakOffsets,
-            style.Orphans,
-            style.Widows,
-            lineBreakGroups: inline.LineBreakGroups,
-            continuationGroups: inline.ContinuationGroups,
-            trailingGroups: inline.TrailingGroups,
-            pageName: style.PageName,
-            runningStringAssignments: inline.RunningStringAssignments,
-            forcedBreaks: inline.ForcedBreaks,
-            layoutViewportWidth: ActiveSurfaceWidth,
-            layoutViewportHeight: _activePageGeometry.Height,
-            pagedPaintExtent: inline.PagedPaintExtent);
-        block.HasZeroHeightOrdinaryContent = flowHeight == 0D && inline.HasInFlowLineBoxes == true;
-        blocks.Add(block);
-        return block.Height;
-    }
-
-    private static bool EstablishesFloatContainingBlock(HtmlRenderBoxStyle style) =>
-        style.Display is "flow-root" or "flex" or "inline-flex" or "grid" or "inline-grid"
-        || style.ColumnCount.HasValue || style.ColumnWidth.HasValue
-        || style.OverflowX is "auto" or "hidden" or "scroll"
-        || style.OverflowY is "auto" or "hidden" or "scroll";
-
-    private bool HasBlockChildren(IElement element, double width, HtmlRenderBoxStyle parentStyle, int depth) {
-        EnsureDepth(depth, element);
-        if (HasBlockGeneratedContent(element, HtmlPseudoElementKind.Before, width, parentStyle)
-            || HasBlockGeneratedContent(element, HtmlPseudoElementKind.After, width, parentStyle)) return true;
-        foreach (IElement child in element.Children) {
-            if (ShouldSkipElement(child)) continue;
-            HtmlRenderBoxStyle style = _styleResolver.Resolve(child, width, parentStyle);
-            if (style.FloatSide != "none") return true;
-            if (style.Display == "contents" && HasBlockChildren(child, width, style, depth + 1)) return true;
-            if (style.Display != "none" && ShouldExtractOutOfFlow(style) && !UsesInlineStaticPosition(child, style)) return true;
-            if (style.Display != "none" && HtmlRenderStyleResolver.IsBlockElement(child, style)) return true;
-            if (style.Display != "none" && ContainsFloatingDescendant(child, width, style, depth + 1)) return true;
-        }
-
-        return false;
-    }
-
-    private bool HasBlockGeneratedContent(IElement element, HtmlPseudoElementKind kind, double width, HtmlRenderBoxStyle parentStyle) {
-        if (!_generatedContent.TryGetContent(element, kind, out _)
-            || !_styleResolver.TryResolvePseudo(element, kind, width, parentStyle, out HtmlRenderBoxStyle style)) return false;
-        if (CanPositionGeneratedContentLocally(style, parentStyle)) return false;
-        return style.Display is "block" or "flow-root" or "list-item" or "flex" or "grid";
-    }
-
-    private static bool UsesInlineStaticPosition(IElement element, HtmlRenderBoxStyle style) {
-        if (style.Display == "inline-flex" || style.Display == "inline-grid" || style.Display == "inline-block") return true;
-        if (style.Display != "inline") return false;
-        return style.DisplayWasSpecified || !HtmlRenderStyleResolver.IsDefaultBlockElement(element);
-    }
-
-    private HtmlRenderFlowBlock LayoutHorizontalRule(IElement element, double containingWidth, HtmlRenderBoxStyle style) {
-        double availableWidth = Math.Max(1D, containingWidth - style.MarginLeft - style.MarginRight);
-        double width = ResolveBoxWidth(availableWidth, style);
-        double lineWidth = style.BorderWidth > 0D ? style.BorderWidth : 1D;
-        var shape = OfficeShape.Rectangle(width, lineWidth);
-        shape.FillColor = style.BorderColor;
-        shape.StrokeWidth = 0D;
-        double height = style.MarginTop + lineWidth + style.MarginBottom;
-        var visual = new HtmlRenderShape(shape, style.MarginLeft, style.MarginTop, 0, source: HtmlRenderStyleResolver.DescribeSource(element));
-        IReadOnlyList<HtmlRenderVisual> visuals = style.PaintVisible ? new[] { visual } : Array.Empty<HtmlRenderVisual>();
-        return new HtmlRenderFlowBlock(containingWidth, Math.Max(height, 0.01D), visuals, style.BreakBefore, style.BreakAfter, style.AvoidBreakInside, HtmlRenderStyleResolver.DescribeSource(element), pageName: style.PageName);
-    }
-
-    private double ResolveBoxWidth(double availableWidth, HtmlRenderBoxStyle style) {
-        double width = style.ExplicitWidth ?? (style.BorderBox ? availableWidth : Math.Max(1D, availableWidth - style.HorizontalInsets));
-        if (!style.BorderBox) width += style.HorizontalInsets;
-        if (style.MaxWidth.HasValue) width = Math.Min(width, style.MaxWidth.Value + (style.BorderBox ? 0D : style.HorizontalInsets));
-        if (style.MinWidth.HasValue) width = Math.Max(width, style.MinWidth.Value + (style.BorderBox ? 0D : style.HorizontalInsets));
-        return Math.Max(style.HorizontalInsets, Math.Max(1D, width));
-    }
-
-    private static double ResolveBoxHeight(double contentHeight, double boxWidth, HtmlRenderBoxStyle style, bool allowZeroHeight = false) {
-        double height;
-        bool usesAspectRatio = !style.ExplicitHeight.HasValue && style.AspectRatio.HasValue;
-        if (style.ExplicitHeight.HasValue) {
-            height = style.ExplicitHeight.Value;
-        } else if (style.AspectRatio.HasValue) {
-            double ratioWidth = style.BorderBox
-                ? boxWidth
-                : Math.Max(0D, boxWidth - style.HorizontalInsets);
-            height = ratioWidth / style.AspectRatio.Value;
-        } else {
-            height = contentHeight;
-        }
-        if (!style.BorderBox || !style.ExplicitHeight.HasValue && !usesAspectRatio) height += style.VerticalInsets;
-        if (style.MaxHeight.HasValue) height = Math.Min(height, style.MaxHeight.Value + (style.BorderBox ? 0D : style.VerticalInsets));
-        if (style.MinHeight.HasValue) height = Math.Max(height, style.MinHeight.Value + (style.BorderBox ? 0D : style.VerticalInsets));
-        return Math.Max(style.VerticalInsets, Math.Max(allowZeroHeight ? 0D : 0.01D, height));
-    }
-
-    private void ReportUnsupportedLayout(IElement element, HtmlRenderBoxStyle style) {
-        string display = style.Display;
-        if (display == "flex" || display == "inline-flex") {
-            AddUnsupported(HtmlRenderDiagnosticCodes.FlexLayoutPending, "This flex formatting case is not active yet; children use normal flow.", element);
-        } else if (display == "grid" || display == "inline-grid") {
-            AddUnsupported(HtmlRenderDiagnosticCodes.GridLayoutPending, "Grid layout is not yet active in the direct HTML renderer; children use normal flow.", element);
-        }
-    }
-
-    private bool ShouldSkipElement(IElement element) {
-        if (IsClosedDisclosureChild(element)) return true;
-        string tag = element.TagName.ToLowerInvariant();
-        if (tag == "input" && string.Equals(element.GetAttribute("type"), "hidden", StringComparison.OrdinalIgnoreCase)) return true;
-        return tag == "head" || tag == "style" || tag == "script" || tag == "template" || tag == "noscript" || tag == "meta" || tag == "link" || tag == "title" || tag == "base";
-    }
-
-    private void EnsureDepth(int depth, IElement element) {
-        if (depth <= _options.MaxLayoutDepth) return;
-        throw new HtmlDomLimitException(
-            HtmlRenderDiagnosticCodes.DepthLimitExceeded,
-            "HTML layout exceeded the configured maximum depth at " + HtmlRenderStyleResolver.DescribeSource(element) + ".",
-            nameof(HtmlRenderOptions.MaxLayoutDepth),
-            depth,
-            _options.MaxLayoutDepth);
-    }
-
-    private HtmlListMarker? ResolveListMarker(IElement element, HtmlRenderBoxStyle style, double containingWidth) {
-        bool hasPseudoStyle = _styleResolver.TryResolvePseudo(
-            element, HtmlPseudoElementKind.Marker, containingWidth, style, out HtmlRenderBoxStyle markerStyle);
-        if (_generatedContent.Suppresses(element, HtmlPseudoElementKind.Marker)) return null;
-
-        string? markerContent = null;
-        if (_generatedContent.TryGetContent(element, HtmlPseudoElementKind.Marker, out HtmlGeneratedContent generatedContent)
-            && generatedContent.Fragments.Any(fragment => fragment.Kind != HtmlGeneratedContentFragmentKind.Text)
-            && TryCreateGeneratedListMarker(element, markerStyle, containingWidth, generatedContent, out HtmlRenderFlowBlock generatedMarkerBlock)) {
-            return new HtmlListMarker(string.Empty, markerStyle, style.ListStylePosition, generatedMarkerBlock);
-        }
-        if (_generatedContent.TryGet(element, HtmlPseudoElementKind.Marker, out string generatedMarker)) {
-            markerContent = ApplyTextTransform(generatedMarker, markerStyle);
-        }
-        if (markerContent == null && TryCreateListImageMarker(element, style, hasPseudoStyle ? markerStyle : style, containingWidth, out HtmlRenderFlowBlock imageMarker)) {
-            return new HtmlListMarker(string.Empty, hasPseudoStyle ? markerStyle : style, style.ListStylePosition, imageMarker);
-        }
-        if (markerContent == null && string.Equals(style.ListStyleType, "none", StringComparison.OrdinalIgnoreCase)) return null;
-        IElement? parent = element.ParentElement;
-        if (markerContent == null && parent == null) markerContent = "• ";
-        bool ordered = parent != null && string.Equals(parent.TagName, "ol", StringComparison.OrdinalIgnoreCase);
-        string listStyle = style.ListStyleType.Length == 0 ? ordered ? "decimal" : "disc" : style.ListStyleType;
-        int ordinal = HtmlListSemantics.TryResolveOrdinal(element, out int resolvedOrdinal) ? resolvedOrdinal : 1;
-        if (markerContent == null && _counterStyles.TryFormatMarker(ordinal, listStyle, out string customMarker, out bool customMarkerLimited)) {
-            if (customMarkerLimited) ReportCounterRepresentationLimit(element, listStyle);
-            markerContent = customMarker.Length == 0 ? null : customMarker;
-        }
-        if (markerContent == null) {
-            if (!HtmlCounterStyleFormatter.TryFormat(ordinal, listStyle, out string marker, out bool markerLimited)) {
-                marker = ordered ? ordinal.ToString(System.Globalization.CultureInfo.InvariantCulture) : "•";
-            }
-            if (markerLimited) ReportCounterRepresentationLimit(element, listStyle);
-            if (marker.Length > 0) markerContent = marker + HtmlCounterStyleFormatter.MarkerSuffix(markerLimited ? "decimal" : listStyle);
-        }
-        if (string.IsNullOrEmpty(markerContent)) return null;
-        return new HtmlListMarker(markerContent!, hasPseudoStyle ? markerStyle : style, style.ListStylePosition);
-    }
-
-    private bool TryCreateGeneratedListMarker(
-        IElement element,
-        HtmlRenderBoxStyle markerStyle,
-        double containingWidth,
-        HtmlGeneratedContent content,
-        out HtmlRenderFlowBlock marker) {
-        string source = DescribePseudoSource(element, HtmlPseudoElementKind.Marker);
-        var runs = new List<HtmlInlineRun>();
-        AddGeneratedInlineFragments(content, element, markerStyle, null, source, containingWidth, 0D, 0D, runs);
-        runs = ApplyScopedFontFallbacks(runs);
-        if (runs.Count == 0) {
-            marker = null!;
-            return false;
-        }
-
-        HtmlInlineLayout inline = LayoutInlineRuns(runs, Math.Max(1D, containingWidth * 0.5D), markerStyle, element);
-        (double left, double top, double width, double height) = ResolveSemanticBounds(
-            inline.Visuals,
-            markerStyle.LineHeight,
-            inline.Height);
-        var label = new HtmlRenderSemanticGroup(
-            HtmlRenderSemanticGroupRole.ListLabel,
-            left,
-            top,
-            width,
-            height,
-            inline.Visuals,
-            0,
-            "list-marker");
-        marker = new HtmlRenderFlowBlock(
-            width,
-            Math.Max(0.01D, inline.Height),
-            new HtmlRenderVisual[] { label },
-            HtmlPageBreakTarget.None,
-            HtmlPageBreakTarget.None,
-            true,
-            source);
-        return true;
-    }
-
-    private bool TryCreateListImageMarker(
-        IElement element,
-        HtmlRenderBoxStyle listStyle,
-        HtmlRenderBoxStyle markerStyle,
-        double containingWidth,
-        out HtmlRenderFlowBlock marker) {
-        marker = null!;
-        if (string.Equals(listStyle.ListStyleImage, "none", StringComparison.OrdinalIgnoreCase)) return false;
-        IReadOnlyList<string> sources = HtmlResourcePipeline.ExtractCssUrls(listStyle.ListStyleImage);
-        if (sources.Count != 1) return false;
-        string sourceDescription = HtmlRenderStyleResolver.DescribeSource(element) + "::marker:list-style-image";
-        if (!TryResolveImageSource(sources[0], sourceDescription, out byte[]? bytes, out _, out OfficeImageInfo? imageInfo)
-            || bytes == null || imageInfo == null) return false;
-        IDocument? owner = element.Owner;
-        if (owner == null) return false;
-        IElement imageElement = owner.CreateElement("img");
-        imageElement.SetAttribute("src", sources[0]);
-        var imageStyle = new HtmlRenderBoxStyle {
-            Display = "inline",
-            PaintVisible = markerStyle.PaintVisible,
-            Font = markerStyle.Font,
-            Color = markerStyle.Color,
-            LineHeight = markerStyle.LineHeight,
-            InlineAlignmentLineHeight = markerStyle.InlineAlignmentLineHeight,
-            SemanticRole = "list-marker",
-            ApplyEmbeddedImageOrientation = listStyle.ApplyEmbeddedImageOrientation,
-            ImageResolutionDpi = listStyle.ImageResolutionDpi
-        };
-        double imageWidth = ResolveFloatingImageOuterWidth(imageElement, imageStyle);
-        HtmlRenderFlowBlock image = LayoutImage(imageElement, imageWidth, imageStyle);
-        var markerVisual = new HtmlRenderSemanticGroup(
-            HtmlRenderSemanticGroupRole.ListLabel,
-            0D,
-            0D,
-            Math.Max(0.01D, image.Width),
-            Math.Max(0.01D, image.Height),
-            image.Visuals,
-            0,
-            "list-marker");
-        marker = new HtmlRenderFlowBlock(
-            image.Width,
-            image.Height,
-            new[] { markerVisual },
-            HtmlPageBreakTarget.None,
-            HtmlPageBreakTarget.None,
-            true,
-            sourceDescription);
-        return true;
-    }
-
-    private void ReportCounterRepresentationLimit(IElement element, string style) {
-        AddUnsupported(
-            HtmlRenderDiagnosticCodes.CounterRepresentationLimitExceeded,
-            "A CSS counter representation exceeded the managed rendering budget and used a decimal fallback.",
-            element,
-            "list-style-type=" + style,
-            OfficeConversionLossKind.Approximation);
-    }
 }

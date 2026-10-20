@@ -93,6 +93,59 @@ public sealed class PdfPaintedGlyphPreservationTests {
         Assert.Equal(OfficeArabicTextShaper.ToLogicalText(visualText), painted);
     }
 
+    [Theory]
+    [InlineData(false, "גבא", false)]
+    [InlineData(true, "גבא", false)]
+    [InlineData(false, ArabicVisual, false)]
+    [InlineData(true, ArabicVisual, false)]
+    [InlineData(false, "גבא", true)]
+    [InlineData(true, "גבא", true)]
+    [InlineData(false, ArabicVisual, true)]
+    [InlineData(true, ArabicVisual, true)]
+    public void PreflightHonorsPaintedGlyphOwnershipAndRetainsLogicalWarnings(bool named, string text, bool preservesPaintedGlyphs) {
+        var report = new PdfConversionReport();
+        var options = new PdfOptions().SetTextShapingMode(PdfTextShapingMode.LatinLigatures)
+            .ReportDiagnosticsTo(report);
+        byte[] data = CreateDirectionalFont();
+        if (named) options.RegisterNamedFontFamily(new PdfEmbeddedFontFamily("Painted", data));
+        else options.EmbedStandardFont(PdfStandardFont.Helvetica, data, "Painted");
+        var run = new PdfTextRun(text, fontSize: 12D, fontFamily: named ? "Painted" : null)
+            .WithPaintedGlyphPreservation(preservesPaintedGlyphs);
+        PdfDocument document = PdfDocument.Create(options).Canvas(canvas => canvas.PositionedText(
+            new[] { run }, PdfCanvasTextStructureRole.Paragraph, 10D, 10D, 200D, 30D,
+            fontSize: 12D));
+
+        Assert.Empty(document.AnalyzeTextEncoding());
+        if (preservesPaintedGlyphs) report.RequireNoLoss();
+        else Assert.Contains(report.Warnings, warning => warning.Code == "unsupported-bidirectional-text-layout");
+
+        Assert.NotEmpty(document.ToBytes());
+        if (preservesPaintedGlyphs) report.RequireNoLoss();
+        else Assert.Contains(report.Warnings, warning => warning.Code == "unsupported-bidirectional-text-layout");
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void PaintedGlyphPreflightStillRejectsMissingFontGlyphs(bool named) {
+        var report = new PdfConversionReport();
+        var options = new PdfOptions().SetTextShapingMode(PdfTextShapingMode.LatinLigatures)
+            .ReportDiagnosticsTo(report);
+        byte[] data = ManagedTextShapingTestAssets.CreateFontWithDistinctGlyphs(' ', 'A');
+        if (named) options.RegisterNamedFontFamily(new PdfEmbeddedFontFamily("Painted", data));
+        else options.EmbedStandardFont(PdfStandardFont.Helvetica, data, "Painted");
+        var run = new PdfTextRun("א", fontFamily: named ? "Painted" : null)
+            .WithPaintedGlyphPreservation();
+        PdfDocument document = PdfDocument.Create(options).Canvas(canvas => canvas.PositionedText(
+            new[] { run }, PdfCanvasTextStructureRole.Paragraph, 10D, 10D, 200D, 30D));
+
+        PdfTextEncodingDiagnostic diagnostic = Assert.Single(document.AnalyzeTextEncoding());
+        Assert.Equal("U+05D0", diagnostic.CodePoint);
+        Assert.Equal("unsupported-text-glyph", diagnostic.Code);
+        Assert.ThrowsAny<ArgumentException>(() => document.ToBytes());
+        Assert.Contains(report.Warnings, warning => warning.Code == "unsupported-text-glyph");
+    }
+
     private static byte[] CreateDirectionalFont() => ManagedTextShapingTestAssets.CreateFontWithDistinctGlyphs(
         ' ', 'א', 'ב', 'ג', 'س', 'ل', 'ا', 'م', '\uFEB3', '\uFEE0', '\uFE8E', '\uFEE1');
 

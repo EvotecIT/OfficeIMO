@@ -88,7 +88,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
     }
 
     /// <summary>Resolves eligible cell content once against used height, without another row allocation or text-order advance.</summary>
-    private void ResolveTableCellPercentageContent(IReadOnlyList<TableRowLayout> rows, double spacing, int depth, bool paintSeparateBorders) {
+    private void ResolveTableCellPercentageContent(IReadOnlyList<TableRowLayout> rows, double spacing, int depth) {
         for (int index = 0; index < rows.Count; index++) {
             foreach (TableCellLayout cell in rows[index].Cells) {
                 TableCellPercentageContent? content = cell.PercentageContent;
@@ -107,7 +107,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 _nextLogicalTextOrder = content.LogicalTextOrderStart;
                 try {
                     HtmlInlineLayout resolved = LayoutTableCellContent(content.Cell, Math.Max(1D, cell.Width - cell.Style.HorizontalInsets),
-                        finalStyle, depth, paintSeparateBorders);
+                        finalStyle, depth);
                     if (_nextLogicalTextOrder - content.LogicalTextOrderStart == content.LogicalTextOrderCount) cell.Inline = resolved;
                     else Report(content, "cell relayout changed logical text allocation");
                 } finally {

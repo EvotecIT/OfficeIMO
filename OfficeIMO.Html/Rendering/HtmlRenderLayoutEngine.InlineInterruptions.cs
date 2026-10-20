@@ -37,7 +37,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 trailingGroups: inline.TrailingGroups, forcedBreaks: inline.ForcedBreaks,
                 pageName: paragraphStyle.PageName, runningStringAssignments: inline.RunningStringAssignments,
                 layoutViewportWidth: ActiveSurfaceWidth, layoutViewportHeight: _activePageGeometry.Height,
-                pagedPaintExtent: inline.PagedPaintExtent);
+                pagedPaintExtent: inline.PagedPaintExtent, avoidBreakRanges: inline.AvoidBreakRanges,
+                safeBreakRanges: inline.SafeBreakRanges);
             inlineBlock.HasZeroHeightOrdinaryContent = inline.Height == 0D && inline.HasInFlowLineBoxes == true;
             blocks.Add(inlineBlock);
         }
@@ -71,16 +72,19 @@ internal sealed partial class HtmlRenderLayoutEngine {
         var paintChunks = ordinaryChunks ? new List<InlinePaintCapture>() : null;
         var combined = new InlinePaintCapture(this);
         var breaks = new List<double>();
+        var safeBreakRanges = new List<HtmlRenderBreakRange>();
         var assignments = new List<HtmlCssRunningStringAssignment>();
         var forced = new List<HtmlRenderForcedBreak>();
         var lines = new List<HtmlRenderLineBreakGroup>();
         var continuations = new List<HtmlRenderContinuationGroup>();
         var trailing = new List<HtmlRenderTrailingGroup>();
+        var keeps = new List<HtmlRenderAvoidBreakRange>();
         double height = 0D;
         double paintExtent = 0D;
         bool rightToLeft = paragraphStyle.WritingMode == "vertical-rl" || paragraphStyle.WritingMode == "sideways-rl";
         double cursor = rightToLeft ? width : 0D;
         string? pageName = blocks.FirstOrDefault()?.PageName;
+        object[] flowBoundaries = CreateFlowBoundaries(blocks);
         for (int index = 0; index < blocks.Count; index++) {
             CheckCancellation();
             ChargeLayoutOperation("interrupted inline block capture");
@@ -100,6 +104,16 @@ internal sealed partial class HtmlRenderLayoutEngine {
             }
             double offsetX = 0D;
             double offsetY = vertical ? 0D : height;
+            if (!vertical) {
+                AppendKeepWithNextRange(blocks, index, offsetY, keeps);
+                if (block.AvoidBreakInsideScope != HtmlFragmentationScope.None)
+                    keeps.Add(new HtmlRenderAvoidBreakRange(offsetY, offsetY + block.Height, Scope: block.AvoidBreakInsideScope));
+                foreach (HtmlRenderAvoidBreakRange range in block.AvoidBreakRanges) {
+                    ChargeLayoutOperation("interrupted inline keep ranges");
+                    keeps.Add(range.Translate(offsetY));
+                }
+                safeBreakRanges.AddRange(block.SafeBreakRanges.Select(range => range.Translate(offsetY)));
+            }
             if (vertical) {
                 VerticalBlockBounds bounds = ResolveVerticalBlockBounds(block, paragraphStyle.LineHeight);
                 offsetX = rightToLeft ? cursor - bounds.Right : cursor - bounds.Left;
@@ -113,22 +127,27 @@ internal sealed partial class HtmlRenderLayoutEngine {
             }
             paintExtent = Math.Max(paintExtent, offsetY + block.PagedPaintExtent);
             if (index > 0 && !string.Equals(pageName, block.PageName, StringComparison.Ordinal)) {
-                forced.Add(new HtmlRenderForcedBreak(offsetY, HtmlPageBreakTarget.Page, block.PageName, changesPageName: true));
+                forced.Add(new HtmlRenderForcedBreak(offsetY, HtmlPageBreakTarget.Page, block.PageName,
+                    changesPageName: true, boundary: flowBoundaries[index]));
             }
             pageName = block.PageName;
-            if (block.BreakBefore != HtmlPageBreakTarget.None) forced.Add(new HtmlRenderForcedBreak(offsetY, block.BreakBefore));
-            foreach (HtmlRenderForcedBreak item in block.ForcedBreaks) forced.Add(item.Translate(offsetY));
+            if (!vertical) AppendChildForcedBreaks(blocks, index, offsetY, forced, flowBoundaries);
+            else {
+                if (block.BreakBefore != HtmlPageBreakTarget.None) forced.Add(new HtmlRenderForcedBreak(offsetY, block.BreakBefore));
+                foreach (HtmlRenderForcedBreak item in block.ForcedBreaks) forced.Add(item.Translate(offsetY));
+            }
             foreach (double offset in block.BreakOffsets) breaks.Add(offsetY + offset);
             foreach (HtmlRenderLineBreakGroup group in block.LineBreakGroups) lines.Add(group.Translate(offsetY));
             foreach (HtmlRenderContinuationGroup group in block.ContinuationGroups) continuations.Add(group.Translate(offsetX, offsetY));
             foreach (HtmlRenderTrailingGroup group in block.TrailingGroups) trailing.Add(group.Translate(offsetX, offsetY));
             foreach (HtmlCssRunningStringAssignment assignment in block.RunningStringAssignments) assignments.Add(assignment.Translate(offsetY));
-            height = vertical ? Math.Max(height, block.Height) : height + block.Height;
-            if (block.BreakAfter != HtmlPageBreakTarget.None) forced.Add(new HtmlRenderForcedBreak(height, block.BreakAfter));
+            height = vertical ? Math.Max(height, block.Height) : height + block.NormalFlowAdvance;
+            if (vertical && block.BreakAfter != HtmlPageBreakTarget.None)
+                forced.Add(new HtmlRenderForcedBreak(height, block.BreakAfter));
         }
         IReadOnlyList<HtmlRenderVisual> painted = ComposeInlinePositionedVisuals(
             combined.Visuals, combined.Owned, combined.Bounds, formattingContainer, isInlineContinuation: false, paintChunks: paintChunks);
-        var aggregate = new HtmlRenderFlowBlock(width, height, painted,
+        var aggregate = new HtmlRenderFlowBlock(width, Math.Max(0D, height), painted,
             HtmlPageBreakTarget.None, HtmlPageBreakTarget.None, false,
             formattingContainer == null ? "anonymous-block" : HtmlRenderStyleResolver.DescribeSource(formattingContainer),
             breaks, lineBreakGroups: lines, continuationGroups: continuations, trailingGroups: trailing,
@@ -139,11 +158,15 @@ internal sealed partial class HtmlRenderLayoutEngine {
             collapsesThrough: blocks.Count > 0 && blocks.All(block => block.CollapsesThrough),
             pageName: blocks.FirstOrDefault()?.PageName, runningStringAssignments: assignments, forcedBreaks: forced,
             layoutViewportWidth: ActiveSurfaceWidth, layoutViewportHeight: _activePageGeometry.Height,
-            pagedPaintExtent: paintExtent);
+            pagedPaintExtent: paintExtent, unclampedHeight: height, avoidBreakRanges: keeps,
+            safeBreakRanges: ConstrainParallelPaintBreakRanges(
+                HtmlRenderBreakRange.Normalize(safeBreakRanges, paintExtent), painted));
         aggregate.HasZeroHeightOrdinaryContent = height == 0D && hasInlineLineBoxes
             && blocks.All(block => block.Height == 0D);
         return new HtmlInlineLayout(painted, height, breaks, assignments, interruptedFlow: aggregate,
-            pagedPaintExtent: paintExtent, hasInFlowLineBoxes: hasInlineLineBoxes ? true : (bool?)null);
+            lineBreakGroups: aggregate.LineBreakGroups, avoidBreakRanges: aggregate.AvoidBreakRanges,
+            pagedPaintExtent: paintExtent, hasInFlowLineBoxes: hasInlineLineBoxes ? true : (bool?)null,
+            safeBreakRanges: aggregate.SafeBreakRanges);
     }
 
     private void CollapseInterruptedBlockMargins(List<HtmlRenderFlowBlock> blocks) {
@@ -152,6 +175,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
             CheckCancellation();
             ChargeLayoutOperation("interrupted inline margin scan");
             HtmlRenderFlowBlock block = blocks[index];
+            if (StartsPageMarginGroup(index > 0 ? blocks[index - 1] : null, block)) adjoining.Clear();
             if (!block.HasCollapsibleMargins) {
                 adjoining.Clear();
                 continue;

@@ -637,9 +637,12 @@ internal static partial class TextContentParser {
                     break;
                 case "W":
                 case "W*":
-                    if (clipPathBuilder.TryCreateClipPath(op == "W*" ? OfficeFillRule.EvenOdd : OfficeFillRule.NonZero, out PdfPageClipPath parsedClipPath)) {
-                        clipPath = textClippingBudget.ResolveActiveClip(clipPath, parsedClipPath);
+                    if (!clipPathBuilder.TryCreateClipPath(op == "W*" ? OfficeFillRule.EvenOdd : OfficeFillRule.NonZero, out PdfPageClipPath parsedClipPath)) {
+                        // An empty clipping path removes paint; it does not leave
+                        // text unclipped. Keep searchable source spans separately.
+                        parsedClipPath = PdfPageClipPath.Rectangle(0D, 0D, 0D, 0D);
                     }
+                    clipPath = textClippingBudget.ResolveActiveClip(clipPath, parsedClipPath);
 
                     args.Clear();
                     break;
@@ -2088,9 +2091,12 @@ internal static partial class TextContentParser {
                     break;
                 case "W":
                 case "W*":
-                    if (clipPathBuilder.TryCreateClipPath(op == "W*" ? OfficeFillRule.EvenOdd : OfficeFillRule.NonZero, out PdfPageClipPath parsedClipPath)) {
-                        clipPath = textClippingBudget.ResolveActiveClip(clipPath, parsedClipPath);
+                    if (!clipPathBuilder.TryCreateClipPath(op == "W*" ? OfficeFillRule.EvenOdd : OfficeFillRule.NonZero, out PdfPageClipPath parsedClipPath)) {
+                        // Form invocations inherit the same empty text clip as
+                        // direct text, including across nested graphics states.
+                        parsedClipPath = PdfPageClipPath.Rectangle(0D, 0D, 0D, 0D);
                     }
+                    clipPath = textClippingBudget.ResolveActiveClip(clipPath, parsedClipPath);
 
                     args.Clear();
                     break;

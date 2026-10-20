@@ -64,7 +64,22 @@ public sealed partial class OfficeDrawing {
         if (last is OfficeDrawingText text) text.PreservesPaintedGlyphs = true;
     }
 
-    /// <summary>Keeps editable logical text while the raster path paints the PDF glyph names.</summary>
+    /// <summary>Attaches retained glyphs to the last ordinary positioned text element.</summary>
+    internal void MarkLastTextWithPreparedShaping(OfficePreparedTextShaping prepared) {
+        if (prepared == null) throw new ArgumentNullException(nameof(prepared));
+        if (Elements.Count == 0) throw new InvalidOperationException("No text element is available for prepared shaping.");
+        OfficeDrawingElement last = Elements[Elements.Count - 1];
+        if (last is OfficeDrawingGroup group && group.InnerDrawing.Elements.Count > 0)
+            last = group.InnerDrawing.Elements[group.InnerDrawing.Elements.Count - 1];
+        if (last is not OfficeDrawingText text || text.WrapText || text.ShrinkToFit || text.StackedText ||
+            text.TextDirection == OfficeTextDirection.TopToBottom || text.RasterText.IndexOfAny(new[] { '\r', '\n' }) >= 0)
+            throw new InvalidOperationException("Prepared shaping requires one already-positioned horizontal text slice.");
+        if (!string.Equals(OfficeArabicTextShaper.ToLogicalText(text.Text), prepared.Text, StringComparison.Ordinal))
+            throw new ArgumentException("Prepared shaping must describe the complete text element.", nameof(prepared));
+        text.SetPaintedText(prepared.Text, prepared.Text);
+        text.PreparedShaping = prepared;
+    }
+
     internal void SetLastTextOutlineStroke(OfficeColor color, double width, bool fillSuppressed, IReadOnlyList<double>? dashPattern = null, double dashOffset = 0D) {
         if (Elements.Count == 0) return;
         OfficeDrawingElement last = Elements[Elements.Count - 1];

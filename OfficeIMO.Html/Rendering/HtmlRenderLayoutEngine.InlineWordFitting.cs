@@ -1,4 +1,5 @@
 using System.Text;
+using System.Globalization;
 
 namespace OfficeIMO.Html;
 
@@ -67,7 +68,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 || nonCjk!.Contains(point)) breaks[point] = true;
         }
         CheckCancellation();
-        return new InlineWordMap(this, mapped.ToArray(), breaks, paragraphStyle.PreventTextWrapping, styleSelector);
+        return new InlineWordMap(this, text, mapped.ToArray(), breaks, paragraphStyle.PreventTextWrapping, styleSelector);
     }
 
     private sealed class InlineWordFitting {
@@ -77,6 +78,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
             _map = new Lazy<InlineWordMap>(createMap);
             _consecutiveHyphenatedLines = consecutiveHyphenatedLines;
         }
+        internal UnicodeCategory? GetPrecedingCategory(HtmlInlineRun run, int sourceOffset) =>
+            _map.Value.GetPrecedingCategory(run, sourceOffset);
         internal bool CanBreakBefore(HtmlInlineRun run, int sourceOffset) => _map.Value.CanBreakBefore(run, sourceOffset);
         internal bool HasBreakInside(HtmlInlineRun run, int sourceStart, int sourceEnd) => _map.Value.HasBreakInside(run, sourceStart, sourceEnd);
         internal double PreviewWithContinuation(InlineLine line, HtmlInlineRun run, int sourceEnd,
@@ -87,6 +90,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
 
     private sealed class InlineWordMap {
         private readonly HtmlRenderLayoutEngine _owner;
+        private readonly string _source;
         private readonly InlineWordSourceRun[] _runs;
         private readonly Dictionary<HtmlInlineRun, int> _indices = new();
         private readonly int[] _previousBreak;
@@ -96,9 +100,10 @@ internal sealed partial class HtmlRenderLayoutEngine {
         private readonly Dictionary<(int Run, int Offset), InlineWordPreview[]> _continuations = new();
         private readonly Dictionary<(HtmlInlineRun Run, int End), int[]> _hyphenationBreaks = new();
 
-        internal InlineWordMap(HtmlRenderLayoutEngine owner, InlineWordSourceRun[] runs,
+        internal InlineWordMap(HtmlRenderLayoutEngine owner, string source, InlineWordSourceRun[] runs,
             bool[] breaks, bool preventWrapping, Func<HtmlInlineRun, HtmlRenderBoxStyle>? styleSelector) {
             _owner = owner;
+            _source = source;
             _runs = runs;
             _styleSelector = styleSelector;
             _preventWrapping = preventWrapping;
@@ -116,6 +121,9 @@ internal sealed partial class HtmlRenderLayoutEngine {
             }
         }
 
+        internal UnicodeCategory? GetPrecedingCategory(HtmlInlineRun run, int sourceOffset) =>
+            _indices.TryGetValue(run, out int index) ? GetPrecedingTextCategory(_source, _runs[index].Start + sourceOffset) : null;
+
         internal bool CanBreakBefore(HtmlInlineRun run, int sourceOffset) =>
             !_indices.TryGetValue(run, out int index)
             || _previousBreak[_runs[index].Start + sourceOffset] == _runs[index].Start + sourceOffset;
@@ -123,6 +131,31 @@ internal sealed partial class HtmlRenderLayoutEngine {
         internal bool HasBreakInside(HtmlInlineRun run, int sourceStart, int sourceEnd) =>
             sourceEnd > sourceStart && _indices.TryGetValue(run, out int index)
             && _previousBreak[_runs[index].Start + sourceEnd - 1] > _runs[index].Start + sourceStart;
+
+        // Shaping uses the same authored boundaries and Unicode opportunities as
+        // fitting. Source ownership is retained; identical text in another word
+        // is a different range, rather than a cache key for contextual glyphs.
+        internal IEnumerable<InlineWordSlice[]> CrossRunWords() {
+            int firstRun = 0;
+            for (int start = 0; start < _source.Length;) {
+                _owner.CheckCancellation();
+                int end = _nextBreak[start + 1];
+                while (firstRun < _runs.Length && _runs[firstRun].End <= start) firstRun++;
+                var pieces = new List<InlineWordSlice>();
+                for (int index = firstRun; index < _runs.Length && _runs[index].Start < end; index++) {
+                    _owner.CheckCancellation();
+                    _owner.ChargeLayoutOperation("inline shaping source range");
+                    InlineWordSourceRun source = _runs[index];
+                    int from = Math.Max(start, source.Start) - source.Start;
+                    int length = Math.Min(end, source.End) - source.Start - from;
+                    if (length > 0) pieces.Add(new InlineWordSlice(source.Run, from, length));
+                    else if (source.Run.InlineEdgeBoundary != null)
+                        pieces.Add(new InlineWordSlice(source.Run, 0, 0));
+                }
+                if (pieces.Count(static piece => piece.Length > 0) > 1) yield return pieces.ToArray();
+                start = end;
+            }
+        }
 
         /// <summary>Previews a source-mapped tail without consuming scopes or altering future runs.</summary>
         internal double PreviewWithContinuation(InlineLine line, HtmlInlineRun run, int sourceEnd,
@@ -148,7 +181,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                     string value = source.Run.Text.Substring(from, to - from).Replace("\u00AD", string.Empty);
                     if (to == source.Run.Text.Length && source.Run.EndsFirstLine) value += source.Run.FirstLineHyphen;
                     HtmlRenderBoxStyle style = _styleSelector?.Invoke(source.Run) ?? source.Run.Style;
-                    double width = _owner.MeasureInlineText(value, style);
+                    double width = _owner.MeasureInlineText(value, style, source.Run);
                     var hyphenatedWidths = new List<double>();
                     // The current token has already attempted its own hyphenation. Only
                     // later runs will reach the normal hyphenation path after this preview.
@@ -220,6 +253,15 @@ internal sealed partial class HtmlRenderLayoutEngine {
         internal double Width { get; }
         internal bool EndsRun { get; }
         internal IReadOnlyList<double> HyphenatedWidths { get; }
+    }
+
+    private readonly struct InlineWordSlice {
+        internal InlineWordSlice(HtmlInlineRun run, int offset, int length) {
+            Run = run; Offset = offset; Length = length;
+        }
+        internal HtmlInlineRun Run { get; }
+        internal int Offset { get; }
+        internal int Length { get; }
     }
 
     private sealed partial class InlineLine {

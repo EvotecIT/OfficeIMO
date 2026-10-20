@@ -133,6 +133,10 @@ internal static partial class HtmlPdfRenderedConverter {
         measurementOptions.TextShapingLanguageOverride = options.TextShapingLanguage;
         measurementOptions.SetTextShapingMode(options.TextShapingMode).SetTextShapingProvider(options.TextShapingProvider);
         if (options.FontFamily != null) measurementOptions.RegisterFontFamily(PdfCore.PdfStandardFont.Helvetica, options.FontFamily);
+        if (renderOptions.LibrarySelectedDefaultFontFamily != null) {
+            measurementOptions.RegisterFontFamily(PdfCore.PdfStandardFont.Helvetica,
+                renderOptions.LibrarySelectedDefaultFontFamily);
+        }
         renderOptions.AllowSystemFontFallback = renderOptions.AllowSystemFontFallback
             && options.ResourcePolicy.AllowSystemFontEmbedding;
         renderOptions.MathOnlySystemFontFallback = renderOptions.MathOnlySystemFontFallback
@@ -157,6 +161,9 @@ internal static partial class HtmlPdfRenderedConverter {
             allowFileUrls: options.ResourcePolicy.AllowLocalFileAccess ||
                 embeddedPackageResolver != null && options.ResourcePolicy.AllowEmbeddedPackageResources);
         HtmlRenderResourceResolver? hostResolver = renderOptions.ResourceResolver;
+        if (hostResolver != null && hostResolver == options.EmbeddedPackageConfiguredResourceResolver) {
+            hostResolver = options.EmbeddedPackageHostResourceResolver;
+        }
         if (embeddedPackageResolver != null || hostResolver != null) {
             renderOptions.ResourceResolver = async (request, cancellationToken) => {
                 if (embeddedPackageResolver != null && options.ResourcePolicy.AllowEmbeddedPackageResources) {
@@ -202,6 +209,7 @@ internal static partial class HtmlPdfRenderedConverter {
         target.TextFallbacks = source.TextFallbacks;
         target.TextShapingMode = source.TextShapingMode;
         target.FontFamily = source.FontFamily;
+        target.LibrarySelectedDefaultFontFamily = source.LibrarySelectedDefaultFontFamily;
         target.InteractiveFormControls = source.InteractiveFormControls;
         target.MathMlSourceModificationDate = source.MathMlSourceModificationDate;
         target.PrintLayoutWidthCssPixels = source.PrintLayoutWidthCssPixels;
@@ -213,6 +221,8 @@ internal static partial class HtmlPdfRenderedConverter {
         target.ResourcePolicy = source.ResourcePolicy.Clone();
         target.EmbeddedPackageResourceResolver = source.EmbeddedPackageResourceResolver;
         target.EmbeddedPackageHostResourceUrlPolicy = source.EmbeddedPackageHostResourceUrlPolicy?.Clone();
+        target.EmbeddedPackageConfiguredResourceResolver = source.EmbeddedPackageConfiguredResourceResolver;
+        target.EmbeddedPackageHostResourceResolver = source.EmbeddedPackageHostResourceResolver;
     }
 
     private readonly struct PreparedPdfRequest {
@@ -297,12 +307,14 @@ internal static partial class HtmlPdfRenderedConverter {
             if (options.ResourcePolicy.AllowDocumentFontEmbedding) {
                 RegisterUsedSystemFontFamilies(pdf, rendered, activeWebFontFamilies,
                     reservedFontSlots, cancellationToken);
-            } else if (activeTextFallbacks != PdfCore.PdfTextFallbackFeatures.None && options.FontFamily == null) {
+            } else if ((activeTextFallbacks != PdfCore.PdfTextFallbackFeatures.None
+                    || options.LibrarySelectedDefaultFontFamily != null) && options.FontFamily == null) {
                 RegisterLibrarySelectedDefaultSystemFontFamily(
                     pdf,
                     rendered,
                     activeWebFontFamilies,
                     reservedFontSlots,
+                    options.LibrarySelectedDefaultFontFamily,
                     cancellationToken);
             }
         }
@@ -439,6 +451,17 @@ internal static partial class HtmlPdfRenderedConverter {
                     interactiveFormControls, cancellationToken, textAsSpan, pageClip, logicalTextOwned, pagePaint));
             return;
         }
+        if (!textAsSpan && !logicalTextOwned && visual.SemanticSourceOrder.HasValue
+            && (visual is HtmlRenderText { IsPaintOnly: false } || visual is HtmlRenderLogicalTextGroup)) {
+            var anonymousContent = new PdfCore.PdfPageCanvas(allowOutOfPageCoordinates: true);
+            AddVisual(anonymousContent, visual, webFonts, imageResources, conversionReport, surfaceWidth, surfaceHeight,
+                interactiveFormControls, cancellationToken, textAsSpan: true, activeClip, logicalTextOwned, pagePaint);
+            if (HasCanvasContent(anonymousContent.Items))
+                canvas.Structure(PdfCore.PdfCanvasStructureRole.Paragraph, nested => nested.AddItems(anonymousContent.Items),
+                    new PdfCore.PdfCanvasStructureOptions { LogicalOrder = visual.SemanticSourceOrder });
+            else canvas.AddItems(anonymousContent.Items);
+            return;
+        }
         if (visual is HtmlRenderFormField formField) {
             bool fullyContained = !activeClip.HasValue || activeClip.Value.AllowsInteractiveWidgets && activeClip.Value.Contains(formField);
             AddFormField(canvas, formField, webFonts, imageResources, conversionReport, surfaceWidth, surfaceHeight, interactiveFormControls && fullyContained, cancellationToken, textAsSpan, activeClip, logicalTextOwned, pagePaint);
@@ -513,6 +536,7 @@ internal static partial class HtmlPdfRenderedConverter {
         }
 
         var style = new PdfCore.PdfFormFieldStyle {
+            LogicalOrder = field.SemanticSourceOrder,
             BackgroundColor = field.BackgroundColor.HasValue ? PdfCore.PdfColor.FromOfficeColorOrNull(field.BackgroundColor.Value) : null,
             BorderColor = field.BorderColor.HasValue ? PdfCore.PdfColor.FromOfficeColorOrNull(field.BorderColor.Value) : null,
             BorderWidth = field.BorderWidth * PointsPerCssPixel,
@@ -548,7 +572,7 @@ internal static partial class HtmlPdfRenderedConverter {
                 canvas.TextField(field.Name, field.Value, x, y, width, height, fontSize, style);
             }
             if (!field.IsPassword && !string.IsNullOrWhiteSpace(field.Value)) {
-                canvas.SearchableText(field.Value, x, y + Math.Min(height, fontSize));
+                canvas.SearchableText(field.Value, x, y + Math.Min(height, fontSize), logicalOrder: field.SemanticSourceOrder);
             }
         } else if (field.FieldKind == HtmlRenderFormFieldKind.CheckBox) {
             canvas.CheckBoxWithExportValue(field.Name, field.IsSelected, x, y, width, height, field.RadioOption ?? "Yes", field.Value, style);
@@ -567,7 +591,7 @@ internal static partial class HtmlPdfRenderedConverter {
             string searchableValue = string.Join(" ", searchableLabels
                 .Where(value => !string.IsNullOrWhiteSpace(value)));
             if (searchableValue.Length > 0) {
-                canvas.SearchableText(searchableValue, x, y + Math.Min(height, fontSize));
+                canvas.SearchableText(searchableValue, x, y + Math.Min(height, fontSize), logicalOrder: field.SemanticSourceOrder);
             }
         } else {
             canvas.RadioButtonWithExportValue(field.Name, field.RadioOption!, field.Value, field.IsSelected, x, y, width, height, style);

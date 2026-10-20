@@ -3,6 +3,7 @@ namespace OfficeIMO.Pdf;
 internal static partial class PdfWriter {
     private sealed partial class LayoutContext {
         private bool measuredNonFlowTablePaint;
+        private double measuredRunningPaintBottom = double.PositiveInfinity;
 
         private bool RestoresMeasuredTableFlow(PdfTableStyle style, double paintHeight, double availableHeight) {
             // Painting restores the cursor only when the table completes in the

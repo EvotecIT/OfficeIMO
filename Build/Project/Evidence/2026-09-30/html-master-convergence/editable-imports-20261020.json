@@ -1,0 +1,220 @@
+{
+  "schema": "officeimo.html.editable-import-qualification/v1",
+  "qualifiedUtc": "2026-10-20T00:03:30.791559+00:00",
+  "qualifiedProductionHead": "0b4d501034d243ae430397c534fb3bf8d6ad578f",
+  "baseStaticCheckpoint": "eb776e442c8dadbdf878facaed3c3d3ef7c87037",
+  "status": "editable-html-font-and-structured-math-import-qualified",
+  "pathContract": "Resolve R10_EVIDENCE_ROOT and REPOSITORY_ROOT from retained task state. Machine-local roots are not committed.",
+  "ownedBehavior": [
+    "Ordinary PowerPoint HTML runs use the existing computed CSS semantic owner, including inheritance and custom-property fallback; only marked native run/field spans enter metadata restoration.",
+    "Promoted/retained headings and document titles keep their own text and style instead of borrowing the first body run.",
+    "Supported MathML presentation content imports as editable Word OMML when an aria-label is present, including actual Word-exported HTML. Genuine text fallback and typed operator approximation diagnostics remain.",
+    "Square-root OMML retains its required empty degree argument. Both labelled and unlabelled roots pass the saved-document schema contract."
+  ],
+  "before": {
+    "observation": {
+      "path": "${R10_EVIDENCE_ROOT}/after-html-work-v1/import-before-observation.json",
+      "bytes": 8237,
+      "sha256": "4c6efa4e806297caa8e898ea68995a93141f68430afff82405a3e1b9c4688274"
+    },
+    "checks": 26,
+    "failed": 16,
+    "passed": 10,
+    "boundary": "Actual new contract tests against unchanged base production; production head plus test patch/source hashes retained. The later failing square-root schema check and harness-only package compile error are preserved separately."
+  },
+  "fullHtml": [
+    {
+      "framework": "net8.0",
+      "counters": {
+        "total": 7452,
+        "executed": 7452,
+        "passed": 7452,
+        "failed": 0,
+        "error": 0,
+        "timeout": 0,
+        "aborted": 0,
+        "inconclusive": 0,
+        "passedButRunAborted": 0,
+        "notRunnable": 0,
+        "notExecuted": 0,
+        "disconnected": 0,
+        "warning": 0,
+        "completed": 0,
+        "inProgress": 0,
+        "pending": 0
+      },
+      "execution": {
+        "path": "${R10_EVIDENCE_ROOT}/after-html-work-v1/import-full-html-net8-v1-execution.json",
+        "bytes": 2129,
+        "sha256": "31e6e89ec72ba6ffa02dde6b9caf9b8748c9d00db8923deb315ea09d95b189de"
+      },
+      "trx": {
+        "path": "${R10_EVIDENCE_ROOT}/after-html-work-v1/imports/trx/import-full-html-net8-v1.trx",
+        "bytes": 11710562,
+        "sha256": "ecb785593195c1be482d9d7c44e25160badb9a9200855649dfb653a6f3595a46"
+      }
+    },
+    {
+      "framework": "net10.0",
+      "counters": {
+        "total": 7452,
+        "executed": 7452,
+        "passed": 7452,
+        "failed": 0,
+        "error": 0,
+        "timeout": 0,
+        "aborted": 0,
+        "inconclusive": 0,
+        "passedButRunAborted": 0,
+        "notRunnable": 0,
+        "notExecuted": 0,
+        "disconnected": 0,
+        "warning": 0,
+        "completed": 0,
+        "inProgress": 0,
+        "pending": 0
+      },
+      "execution": {
+        "path": "${R10_EVIDENCE_ROOT}/after-html-work-v1/import-full-html-net10-v1-execution.json",
+        "bytes": 2159,
+        "sha256": "c1b26cda497d0a7013b025ef25ca88785a4b05e8d71387738355ede93793f6ff"
+      },
+      "trx": {
+        "path": "${R10_EVIDENCE_ROOT}/after-html-work-v1/imports/trx/import-full-html-net10-v1.trx",
+        "bytes": 11725467,
+        "sha256": "90d793c92a972f0e23b4889413f5c730e6aa88ecfc8d80ead0b09dfa4e05090b"
+      }
+    }
+  ],
+  "focused": {
+    "net8Passed": 43,
+    "net10Passed": 43,
+    "net8Execution": {
+      "path": "${R10_EVIDENCE_ROOT}/after-html-work-v1/import-after-net8-v1-execution.json",
+      "bytes": 2712,
+      "sha256": "35756f4ae73b481366ef7471d601c564e33673b04cea846fe8c151c4f4e7a9d0"
+    },
+    "net10Execution": {
+      "path": "${R10_EVIDENCE_ROOT}/after-html-work-v1/import-after-net10-v2-execution.json",
+      "bytes": 3788,
+      "sha256": "def00673fb5a95a558beea99e6cbc25577068f7faa9fd18bcdca6c64c9cd5249"
+    },
+    "attribution": "NET10 focused pass compiled the then-uncommitted repair bytes; final full suites and packages bind the clean committed candidate."
+  },
+  "review": {
+    "path": "${R10_EVIDENCE_ROOT}/after-html-work-v1/editable-import-review.json",
+    "bytes": 503,
+    "sha256": "7258bf4f5715ffb9981d77270378400bee60f07d431a3c85cc0832bda51c0f3d"
+  },
+  "privatePackages": {
+    "packageBinding": {
+      "path": "${R10_EVIDENCE_ROOT}/packages/after-html-adapters-v1/package-binding.json",
+      "bytes": 49327,
+      "sha256": "0cc931a65fef9477ce665b517c38ba957fef1629e40ab40a279df3578ce98279"
+    },
+    "consumerBinding": {
+      "path": "${R10_EVIDENCE_ROOT}/packages/after-html-adapters-v1/consumer-binding.json",
+      "bytes": 56812,
+      "sha256": "9bd7961cb2868ee5c221b0bc13ba7184b5f22906aa981b5ccf7a260aab8d68f6"
+    },
+    "reusedSourceContinuity": {
+      "path": "${R10_EVIDENCE_ROOT}/packages/after-html-adapters-v1/reused-source-continuity.json",
+      "bytes": 805,
+      "sha256": "aa07b99a5882da4202184531292c302dc72f71b046efdd31c9145c81c67b08e7"
+    },
+    "reusedFrameworkAssets": 24,
+    "freshFrameworkAssets": 12,
+    "freshOwners": [
+      "OfficeIMO.Word.Html",
+      "OfficeIMO.PowerPoint",
+      "OfficeIMO.PowerPoint.Html"
+    ],
+    "managedConsumers": [
+      {
+        "target": "word",
+        "framework": "net8.0",
+        "checks": 4,
+        "observation": {
+          "path": "${R10_EVIDENCE_ROOT}/packages/after-html-adapters-v1/word-successor-v2/results/net8.0/result.json",
+          "bytes": 5608,
+          "sha256": "fa5133c9906183ddf313f32e6b7859a43f1124359c9efdc5c87bbcc3613f5b92"
+        }
+      },
+      {
+        "target": "word",
+        "framework": "net10.0",
+        "checks": 4,
+        "observation": {
+          "path": "${R10_EVIDENCE_ROOT}/packages/after-html-adapters-v1/word-successor-v2/results/net10.0/result.json",
+          "bytes": 5623,
+          "sha256": "2fc84a6daed068b388f403c91c6ac21d22760fe72f18146d39cbf57d4885cd83"
+        }
+      },
+      {
+        "target": "ppt",
+        "framework": "net8.0",
+        "checks": 10,
+        "observation": {
+          "path": "${R10_EVIDENCE_ROOT}/packages/after-html-adapters-v1/results/ppt/net8.0/result.json",
+          "bytes": 14634,
+          "sha256": "907b955bee7f702dc690dd2339f62aabd353ebc85f867ba45340acb5d48d0ca2"
+        }
+      },
+      {
+        "target": "ppt",
+        "framework": "net10.0",
+        "checks": 10,
+        "observation": {
+          "path": "${R10_EVIDENCE_ROOT}/packages/after-html-adapters-v1/results/ppt/net10.0/result.json",
+          "bytes": 14678,
+          "sha256": "a8b0abfcf187c97a2edfe9bc0bb5784da00a26f2abba88189e6d25335cbbcf5f"
+        }
+      }
+    ],
+    "wordHarnessSuccessor": {
+      "path": "${R10_EVIDENCE_ROOT}/packages/after-html-adapters-v1/word-successor-v2/plan.json",
+      "bytes": 5489,
+      "sha256": "5de15479addb7fd840e2503777795535756750ee352d2ca19cc18848dc730817"
+    },
+    "publicRelease": false
+  },
+  "nativeOffice": {
+    "observation": {
+      "path": "${R10_EVIDENCE_ROOT}/after-html-work-v1/native-office/observation.json",
+      "bytes": 4984,
+      "sha256": "3b5d4f28eb8456daf422c56e21bbdc3a5e6002c505344256f14026909731d21e"
+    },
+    "closure": {
+      "path": "${R10_EVIDENCE_ROOT}/after-html-work-v1/native-office/closure.json",
+      "bytes": 257,
+      "sha256": "b2c6e16a03816ccba9f8b3171de742624cbc8cc9fb4042322f81d6f39d1242c5"
+    },
+    "apps": {
+      "Microsoft Word": {
+        "CFBundleIdentifier": "com.microsoft.Word",
+        "CFBundleShortVersionString": "16.113.4",
+        "CFBundleVersion": "16.113.26100421"
+      },
+      "Microsoft PowerPoint": {
+        "CFBundleIdentifier": "com.microsoft.Powerpoint",
+        "CFBundleShortVersionString": "16.113.4",
+        "CFBundleVersion": "16.113.26100421"
+      }
+    },
+    "selectedWordStructuresAccepted": true,
+    "selectedPowerPointFontAndContentAccepted": true,
+    "inputArtifactsUnchanged": true,
+    "boundary": "Selected macOS native open/render and ribbon-font observations. No general native fidelity, font-metric, accessibility or Windows acceptance."
+  },
+  "actualRuntimeAndMetadataRetention": {
+    "path": "${R10_EVIDENCE_ROOT}/after-html-work-v1/runtime-retention.json",
+    "bytes": 136652,
+    "sha256": "b09a8778b04290f39d9f148964fee37a03edc2796fb03203483c8da7829295e8"
+  },
+  "limits": [
+    "Static-renderer, PDF and shared Core production code remains unchanged from the prior qualified static checkpoint; this receipt qualifies editable import adapters.",
+    "Native Office evidence is limited to the selected compound equation, square root and heading/body PPTX. Raw consumer acceptance fields are not rewritten.",
+    "NET472 and netstandard2.0 package assets compile; managed consumer execution is NET8/NET10 on macOS. No adapter NativeAOT, Windows profiling or package-publication claim.",
+    "Existing broader MathML, PDF profile/readback, native appearance and manual-accessibility limits remain in the single product roadmap."
+  ]
+}

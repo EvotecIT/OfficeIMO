@@ -226,11 +226,9 @@ public sealed class HtmlEmptyInlineBlockBaselineTests {
     public void PdfEmptyStrutUsesTheFirstAvailableRegisteredFace(string families) {
         var options = new HtmlToPdfOptions { Margins = HtmlRenderMargins.All(0D), HonorCssPageRules = false };
         options.PdfOptions.RegisterNamedFontFamily(new PdfCore.PdfEmbeddedFontFamily("Pinned", FontBytes()));
-        Assert.True(options.PdfOptions.TryResolveNamedFontFace("Pinned", false, false, out var face));
-        Assert.True(options.PdfOptions.TryGetNamedFontProgram(face, out var program));
-        // The PDF program retains its existing integer metrics in 1000-em units.
-        double ascent = program!.GetAscender(16D);
-        double descent = Math.Max(0D, (20D + ascent + program.GetDescender(16D)) / 2D - ascent);
+        // The pinned hhea uses A1950/D550 at2048 units/em. Centering that
+        // raw face in20px leading leaves4.53125px below the atomic baseline.
+        const double descent = 4.53125D;
         string html = Source("<div><span id='fill' style='display:inline-block;width:40px;height:240px;background:lime'></span></div>" + Following, families: families);
         HtmlPdfRenderResult result = HtmlPdfRenderedConverter.Convert(HtmlConversionDocument.Parse(html), options);
 

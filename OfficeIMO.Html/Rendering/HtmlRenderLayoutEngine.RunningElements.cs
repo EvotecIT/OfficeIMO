@@ -11,6 +11,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         HtmlRenderBoxStyle parentStyle,
         int depth,
         double orderOffset = 0D) {
+        using var pageBoundaries = new DescendantPageBoundaryScope(this, retainsPageBoundaries: false);
         HtmlRenderBoxStyle captureStyle = style.Clone();
         captureStyle.Position = "static";
         captureStyle.ZIndex = "auto";

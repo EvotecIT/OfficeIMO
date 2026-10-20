@@ -1,11 +1,11 @@
 namespace OfficeIMO.Pdf;
 
 public sealed partial class PdfPageCanvas {
-    internal PdfPageCanvas SearchableText(string text, double x, double y) {
+    internal PdfPageCanvas SearchableText(string text, double x, double y, long? logicalOrder = null) {
         Guard.NotNullOrWhiteSpace(text, nameof(text));
         ValidateCanvasCoordinate(x, nameof(x));
         ValidateCanvasCoordinate(y, nameof(y));
-        _items.Add(new PdfCanvasSearchableTextItem(text, x, y));
+        _items.Add(new PdfCanvasSearchableTextItem(text, x, y) { LogicalOrder = logicalOrder });
         return this;
     }
 

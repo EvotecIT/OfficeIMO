@@ -20,9 +20,11 @@ public static partial class HtmlPowerPointConverterExtensions {
             firstSlideIndexes.Add(presentation.Slides.Count - 1);
             double contentTop = 30D;
             if (!string.IsNullOrWhiteSpace(section.Title)) {
-                HtmlSemanticBlock? titleBlock = section.Blocks.FirstOrDefault();
+                HtmlSemanticBlock? titleBlock = section.TitleHeading
+                    ?? section.Blocks.FirstOrDefault(block => block.Kind == HtmlSemanticBlockKind.Heading
+                        && string.Equals(block.Text, section.Title, StringComparison.Ordinal));
                 contentTop = ImportTextBox(titleBlock?.SourceElement, section.Title, slide, 30D, result, budget,
-                    MeasureGenericTitleHeight(section.Title), options);
+                    MeasureGenericTitleHeight(section.Title), options, titleBlock);
             }
 
             double pictureTop = contentTop;

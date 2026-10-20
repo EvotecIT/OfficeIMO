@@ -62,7 +62,7 @@ internal sealed class HtmlRenderVisualProjector {
         }
         if (visual is HtmlRenderPathClipGroup pathClipGroup) {
             return ProjectClipped(pathClipGroup.Visuals,
-                new ProjectionClip(pathClipGroup.ClipX, pathClipGroup.ClipY, pathClipGroup.Width, pathClipGroup.Height,
+                new ProjectionClip(pathClipGroup.ClipX, pathClipGroup.ClipY, pathClipGroup.ClipPath.Width, pathClipGroup.ClipPath.Height,
                     true, true, transform),
                 children => pathClipGroup.ProjectPaint(children, offsetX, offsetY, paintOrder));
         }
@@ -125,7 +125,10 @@ internal sealed class HtmlRenderVisualProjector {
             }
             if (projectedChildren.Count == 0) return null;
             CountVisual();
-            return create(projectedChildren);
+            HtmlRenderVisual result = create(projectedChildren);
+            result.SemanticSourceOrder = visual.SemanticSourceOrder;
+            result.SourceOrderScope = visual.SourceOrderScope;
+            return result;
         }
 
         HtmlRenderVisual? ProjectClipped(IEnumerable<HtmlRenderVisual> children, ProjectionClip clip,

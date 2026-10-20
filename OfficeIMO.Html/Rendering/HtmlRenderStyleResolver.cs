@@ -7,6 +7,7 @@ namespace OfficeIMO.Html;
 internal sealed partial class HtmlRenderStyleResolver {
     private readonly HtmlComputedStyleSet _computedStyles;
     private readonly HtmlRenderOptions _options;
+    private readonly HtmlRenderingFontDefaults? _fontDefaults;
     private readonly HtmlDiagnosticReport _diagnostics;
     private readonly System.Threading.CancellationToken _cancellationToken;
     private readonly HtmlRenderOperationBudget _operationBudget;
@@ -26,6 +27,7 @@ internal sealed partial class HtmlRenderStyleResolver {
         System.Threading.CancellationToken cancellationToken = default, HtmlRenderOperationBudget? operationBudget = null) {
         _computedStyles = computedStyles;
         _options = options;
+        _fontDefaults = computedStyles.FontDefaults ?? HtmlRenderingFontDefaults.ForRendering(options);
         _diagnostics = diagnostics;
         _measureCharacterAdvance = measureCharacterAdvance;
         _cancellationToken = cancellationToken;
@@ -35,6 +37,10 @@ internal sealed partial class HtmlRenderStyleResolver {
         _rootFontSize = options.DefaultFontSize;
         foreach (KeyValuePair<IElement, HtmlComputedStyle> entry in computedStyles.Elements) {
             if (!string.Equals(entry.Key.LocalName, "html", StringComparison.OrdinalIgnoreCase)) continue;
+            if (_fontDefaults.HasValue && entry.Value.FontSizeContext is HtmlFontSizeContext rootContext) {
+                _rootFontSize = rootContext.Pixels;
+                break;
+            }
             if (!entry.Value.IsImplicitlyInheritedValue("font-size")
                 && !entry.Value.IsInheritedValue("font-size")) {
                 _rootFontSize = ResolveFontSize(entry.Value.GetValue("font-size"),
@@ -144,6 +150,11 @@ internal sealed partial class HtmlRenderStyleResolver {
         _computedStyles.Elements.TryGetValue(element, out HtmlComputedStyle? computed)
         && computed.IsSpecifiedValue(propertyName);
 
+    /// <summary>Includes explicit CSS inheritance and resets, while rollback exposes the UA default.</summary>
+    internal bool IsPropertyAuthored(IElement element, string propertyName) =>
+        _computedStyles.Elements.TryGetValue(element, out HtmlComputedStyle? computed)
+        && HasAuthoredValue(computed, propertyName);
+
     private HtmlRenderBoxStyle ResolveCore(
         IElement element,
         HtmlComputedStyle computed,
@@ -169,9 +180,21 @@ internal sealed partial class HtmlRenderStyleResolver {
         _activeCharacterAdvance = ContainsCharacterUnit(fontSizeValue)
             ? _measureCharacterAdvance(parent ?? new HtmlRenderBoxStyle { Font = new OfficeFontInfo(_options.DefaultFontFamily, _options.DefaultFontSize) })
             : double.NaN;
-        double fontSize = ResolveComputedFontSize(tag, computed, fontSizeValue, parentFontSize,
-            pseudoElement, pseudoSemanticRole);
         string fontTag = pseudoElement ? string.Empty : tag;
+        string defaultFamily = !_fontDefaults.HasValue && !pseudoElement && (tag == "code" || tag == "pre" || tag == "kbd" || tag == "samp")
+            ? "Consolas"
+            : parent?.Font.FamilyName ?? _options.DefaultFontFamily;
+        // Explicit CSS inheritance uses the parent's surviving family, including
+        // Document mode's code tags whose unstyled fallback remains monospace.
+        if (computed.IsInheritedValue("font-family") && !computed.IsImplicitlyInheritedValue("font-family"))
+            defaultFamily = parent?.Font.FamilyName ?? _options.DefaultFontFamily;
+        string family = ResolveFontFamily(fontTag, computed, defaultFamily);
+        if (_fontDefaults.HasValue && HtmlFontSizePolicy.IsSoleGenericMonospace(family)) family = "monospace";
+        HtmlFontSizeContext? fontSizeContext = _fontDefaults.HasValue
+            ? ResolveBrowserFontSize(tag, computed, family, parent, pseudoElement, pseudoSemanticRole)
+            : null;
+        double fontSize = fontSizeContext?.Pixels ?? ResolveComputedFontSize(tag, computed, fontSizeValue, parentFontSize,
+            pseudoElement, pseudoSemanticRole);
         OfficeFontFaceDescriptor fontDescriptor = ResolveFontFaceDescriptor(
             fontTag,
             computed,
@@ -194,10 +217,6 @@ internal sealed partial class HtmlRenderStyleResolver {
         fontStyle &= ~(OfficeFontStyle.Bold | OfficeFontStyle.Italic);
         fontStyle |= fontDescriptor.ToStyle();
         OfficeTextDecorationStyle decorationStyle = ResolveTextDecorationStyle(computed.GetValue("text-decoration-style"));
-        string defaultFamily = !pseudoElement && (tag == "code" || tag == "pre" || tag == "kbd" || tag == "samp")
-            ? "Consolas"
-            : parent?.Font.FamilyName ?? _options.DefaultFontFamily;
-        string family = ResolveFontFamily(fontTag, computed, defaultFamily);
         string direction = ResolveDirection(computed.GetValue("direction"), parent?.Direction);
         string unicodeBidi = NormalizeCssValue(computed.GetValue("unicode-bidi"), "normal");
         string language = ResolveLanguage(element, parent?.Language);
@@ -222,7 +241,7 @@ internal sealed partial class HtmlRenderStyleResolver {
             : double.NaN;
         string fontPalette = ResolveInheritedKeyword(computed.GetValue("font-palette"), parent?.FontPalette, "normal");
 
-        double lineHeight = ResolveComputedLineHeight(computed, fontSize, parent, out double alignmentLineHeight);
+        double lineHeight = ResolveComputedLineHeight(computed, fontSize, parent, out double alignmentLineHeight, out bool usesNaturalLineHeight);
         string verticalAlign = ResolveTextVerticalAlign(pseudoElement ? string.Empty : tag, computed);
         int baselineLevel = ResolveTextBaselineLevel(verticalAlign, parent?.BaselineLevel ?? 0);
         double baselineOffset = ResolveTextBaselineOffset(
@@ -242,6 +261,7 @@ internal sealed partial class HtmlRenderStyleResolver {
             DisplayWasSpecified = computed.IsSpecifiedValue("display") || computed.IsInheritedValue("display"),
             PaintVisible = ResolvePaintVisibility(computed.GetValue("visibility"), parent),
             Font = new OfficeFontInfo(family, fontSize, fontDescriptor, fontStyle),
+            FontSizeContext = fontSizeContext,
             FontDescriptor = fontDescriptor,
             UnderlineStyle = propagatedUnderline && !ownsUnderline
                 ? parent!.UnderlineStyle
@@ -270,6 +290,7 @@ internal sealed partial class HtmlRenderStyleResolver {
             TextIndent = ResolveTextIndent(element, computed, fontSize, parent),
             CharacterAdvance = _activeCharacterAdvance,
             LineHeight = lineHeight,
+            UsesNaturalLineHeight = usesNaturalLineHeight,
             InlineAlignmentLineHeight = alignmentLineHeight,
             LetterSpacing = computed.IsInheritedValue("letter-spacing") && parent != null ? parent.LetterSpacing : ResolveTextSpacing(computed.GetValue("letter-spacing"), fontSize, parent?.LetterSpacing ?? 0D),
             WordSpacing = computed.IsInheritedValue("word-spacing") && parent != null ? parent.WordSpacing : ResolveTextSpacing(computed.GetValue("word-spacing"), fontSize, parent?.WordSpacing ?? 0D),
@@ -714,21 +735,8 @@ internal sealed partial class HtmlRenderStyleResolver {
     };
 
 
-    private static double ResolveDefaultTagFontSize(string tag, double inherited) {
-        switch (tag) {
-            case "h1": return inherited * 2D;
-            case "h2": return inherited * 1.5D;
-            case "h3": return inherited * 1.17D;
-            case "h4": return inherited;
-            case "h5": return inherited * 0.83D;
-            case "h6": return inherited * 0.67D;
-            case "small": return inherited * 0.83D;
-            case "sup":
-            case "sub": return inherited / 1.2D;
-            case "big": return inherited * 1.17D;
-            default: return inherited;
-        }
-    }
+    private static double ResolveDefaultTagFontSize(string tag, double inherited) =>
+        HtmlFontSizePolicy.ResolveHtmlDefault(tag, new HtmlFontSizeContext(inherited, true, string.Empty, false)).Pixels;
 
     internal static string ResolveDisplay(IElement element, string value, string webkitBoxOrient = "", bool hasLineClamp = false) {
         string tag = element.TagName.ToLowerInvariant();
@@ -742,7 +750,7 @@ internal sealed partial class HtmlRenderStyleResolver {
                 ? "block"
                 : "flex";
         }
-        if (!string.IsNullOrWhiteSpace(value)) return value.Trim().ToLowerInvariant();
+        if (!string.IsNullOrWhiteSpace(value)) return ResolveReplacedInternalDisplay(element, value.Trim().ToLowerInvariant());
         if (tag == "math" && string.Equals(element.GetAttribute("display"), "block", StringComparison.OrdinalIgnoreCase)) return "block";
         if (tag == "li") return "list-item";
         if (tag == "table") return "table";
@@ -858,7 +866,8 @@ internal sealed partial class HtmlRenderStyleResolver {
             style.MarginBottom = 8D;
             style.MarginLeft = 8D;
         }
-        if (tag == "p" || tag == "pre" || tag == "blockquote" || tag == "table" || tag == "figure" || tag == "ul" || tag == "ol") {
+        if (tag == "p" || tag == "pre" || tag == "blockquote" || tag == "figure" || tag == "ul" || tag == "ol"
+            || tag == "table" && _options.UserAgentStyles == HtmlRenderUserAgentStyleMode.Document) {
             style.MarginBottom = fontSize;
         } else if (tag.Length == 2 && tag[0] == 'h' && tag[1] >= '1' && tag[1] <= '6') {
             style.MarginTop = fontSize * 0.67D;
@@ -1202,12 +1211,21 @@ internal sealed partial class HtmlRenderStyleResolver {
         style.BreakAfter = ResolvePageBreakTarget(after);
         style.AvoidBreakBefore = IsAvoidPageBreak(before);
         style.AvoidBreakAfter = IsAvoidPageBreak(after);
+        style.AvoidBreakBeforeScope = ResolveAvoidBreakScope(before);
+        style.AvoidBreakAfterScope = ResolveAvoidBreakScope(after);
+        style.AvoidBreakInsideScope = ResolveAvoidBreakScope(inside);
+        if (before is "column" or "avoid-column") style.UnsupportedColumnBreaks = "break-before=" + before;
+        if (after is "column" or "avoid-column") style.UnsupportedColumnBreaks += ";break-after=" + after;
+        if (string.Equals(inside, "avoid-column", StringComparison.OrdinalIgnoreCase))
+            style.UnsupportedColumnBreaks += ";break-inside=avoid-column";
         style.AvoidBreakInside = string.Equals(inside, "avoid", StringComparison.OrdinalIgnoreCase)
             || string.Equals(inside, "avoid-page", StringComparison.OrdinalIgnoreCase)
             // Scroll containers establish an independent formatting context. Keep a
             // page-sized one intact when paginating, as Chromium does for WAI cards.
             || style.OverflowX is "auto" or "scroll"
             || style.OverflowY is "auto" or "scroll";
+        if (style.OverflowX is "auto" or "scroll" || style.OverflowY is "auto" or "scroll")
+            style.AvoidBreakInsideScope = HtmlFragmentationScope.All;
         style.Orphans = ReadPositiveInteger(computed.GetValue("orphans"), style.Orphans);
         style.Widows = ReadPositiveInteger(computed.GetValue("widows"), style.Widows);
         style.PageName = ResolvePageName(computed.GetValue("page"));
@@ -1216,6 +1234,14 @@ internal sealed partial class HtmlRenderStyleResolver {
     private static bool IsAvoidPageBreak(string value) =>
         string.Equals(value, "avoid", StringComparison.OrdinalIgnoreCase)
         || string.Equals(value, "avoid-page", StringComparison.OrdinalIgnoreCase);
+
+    /// <summary>Keeps page-specific and column-specific avoid values distinct during layout.</summary>
+    private static HtmlFragmentationScope ResolveAvoidBreakScope(string value) => value.Trim().ToLowerInvariant() switch {
+        "avoid" => HtmlFragmentationScope.All,
+        "avoid-page" => HtmlFragmentationScope.Page,
+        "avoid-column" => HtmlFragmentationScope.Column,
+        _ => HtmlFragmentationScope.None
+    };
 
     private static void ApplyPositioning(HtmlComputedStyle computed, HtmlRenderBoxStyle style) {
         string position = computed.GetValue("position");
@@ -1498,6 +1524,7 @@ internal sealed partial class HtmlRenderStyleResolver {
     private static double? ResolveDefiniteContentHeight(HtmlRenderBoxStyle? style) => style?.DefiniteContentHeight;
 
     private static HtmlPageBreakTarget ResolvePageBreakTarget(string value) {
+        if (value == "column") return HtmlPageBreakTarget.Column;
         if (value == "left" || value == "verso") return HtmlPageBreakTarget.Left;
         if (value == "right" || value == "recto") return HtmlPageBreakTarget.Right;
         if (value == "page" || value == "always") return HtmlPageBreakTarget.Page;

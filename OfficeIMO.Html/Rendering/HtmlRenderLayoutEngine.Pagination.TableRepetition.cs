@@ -3,6 +3,8 @@ namespace OfficeIMO.Html;
 internal sealed partial class HtmlRenderLayoutEngine {
     private HtmlRenderFlowBlock QualifySharedTableRepetition(HtmlRenderFlowBlock block) {
         if (block.ContinuationGroups.Count == 0 && block.TrailingGroups.Count == 0) return block;
+        var effectOwners = new HashSet<string>(StringComparer.Ordinal);
+        CollectEffectTableOwners(block.Visuals, false, new List<HtmlRenderClipGroup>(), effectOwners);
         var tablePaintEnds = new Dictionary<string, double>(StringComparer.Ordinal);
         double DiagnosticEnd(string? owner, double sourceEnd) {
             if (owner == null) return sourceEnd;
@@ -29,6 +31,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         var suppressed = new List<SuppressedTableRepeat>();
         var continuations = new List<HtmlRenderContinuationGroup>();
         foreach (var header in headers) {
+            bool hasEffect = header.Table?.StructureElementKey is { } headerOwner && effectOwners.Contains(headerOwner);
             bool parallel = false;
             foreach (var other in owners) {
                 ChargeLayoutOperation("parallel table header ownership");
@@ -39,8 +42,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
                     break;
                 }
             }
-            if (parallel) suppressed.Add(new SuppressedTableRepeat(header.Table?.StructureElementKey, header.Table?.Source, true,
-                header.Group.StartsAfter, DiagnosticEnd(header.Table?.StructureElementKey, header.Group.EndsAt)));
+            if (parallel || hasEffect) suppressed.Add(new SuppressedTableRepeat(header.Table?.StructureElementKey, header.Table?.Source, true,
+                header.Group.StartsAfter, DiagnosticEnd(header.Table?.StructureElementKey, header.Group.EndsAt), hasEffect));
             else continuations.Add(header.Group);
         }
 
@@ -48,14 +51,15 @@ internal sealed partial class HtmlRenderLayoutEngine {
         foreach (HtmlRenderTrailingGroup group in block.TrailingGroups) {
             HtmlRenderSemanticGroup? table = RepeatedTable(group.Visuals);
             string? owner = table?.StructureElementKey;
+            bool hasEffect = owner != null && effectOwners.Contains(owner);
             // Consuming a repeated footer advances the shared source offset past
             // its original footer. That interval must contain no other content.
             // Assess the complete scene so later anonymous chunks and ordinary
             // paragraphs participate alongside other floats.
             bool parallel = owner != null && HasForeignContentInTableFooterInterval(
                 block.Visuals, owner, group.ContentEndsAt, group.SourceEndsAt);
-            if (parallel) suppressed.Add(new SuppressedTableRepeat(owner, table?.Source, false,
-                group.StartsAt, DiagnosticEnd(owner, group.SourceEndsAt)));
+            if (parallel || hasEffect) suppressed.Add(new SuppressedTableRepeat(owner, table?.Source, false,
+                group.StartsAt, DiagnosticEnd(owner, group.SourceEndsAt), hasEffect));
             else trailing.Add(group);
         }
         if (suppressed.Count == 0) return block;
@@ -67,6 +71,33 @@ internal sealed partial class HtmlRenderLayoutEngine {
     private HtmlRenderSemanticGroup? RepeatedTable(IEnumerable<HtmlRenderVisual> visuals) =>
         EnumeratePageFloatVisuals(visuals).OfType<HtmlRenderSemanticGroup>()
             .FirstOrDefault(IsTableFormattingGroup);
+
+    // Detached repeats do not share their source table's isolated effect buffer.
+    // Keep the original occurrence rather than leaking opaque or unclipped copies.
+    private void CollectEffectTableOwners(IEnumerable<HtmlRenderVisual> visuals, bool insideEffect,
+        List<HtmlRenderClipGroup> clips, ISet<string> owners) {
+        foreach (HtmlRenderVisual visual in visuals) {
+            ChargeLayoutOperation("table repetition effect ownership");
+            bool hasEffect = insideEffect || visual is HtmlRenderEffectGroup or HtmlRenderPathClipGroup
+                or HtmlRenderClipGroup { LegacyClipOwnerNodeId: not null };
+            bool pushedClip = visual is HtmlRenderClipGroup { IsViewportOverflow: false, IsFlowFragment: false };
+            if (pushedClip) clips.Add((HtmlRenderClipGroup)visual);
+            if (visual is HtmlRenderSemanticGroup table && IsTableFormattingGroup(table)
+                && table.StructureElementKey is { } owner) {
+                bool tableHasEffect = hasEffect;
+                foreach (HtmlRenderClipGroup clip in clips) {
+                    ChargeLayoutOperation("table repetition clip ownership");
+                    tableHasEffect |= clip.ClipHorizontal && (table.X < clip.ClipX - 0.0001D
+                            || table.X + table.Width > clip.ClipX + clip.ClipWidth + 0.0001D)
+                        || clip.ClipVertical && (table.Y < clip.ClipY - 0.0001D
+                            || table.Y + table.Height > clip.ClipY + clip.ClipHeight + 0.0001D);
+                }
+                if (tableHasEffect) owners.Add(owner);
+            }
+            if (GetGroupChildren(visual) is { } children) CollectEffectTableOwners(children, hasEffect, clips, owners);
+            if (pushedClip) clips.RemoveAt(clips.Count - 1);
+        }
+    }
 
     private bool HasForeignContentInTableFooterInterval(IEnumerable<HtmlRenderVisual> visuals,
         string owner, double start, double end, double verticalTranslation = 0D) {
@@ -98,12 +129,13 @@ internal sealed partial class HtmlRenderLayoutEngine {
         return false;
     }
 
-    private void ReportParallelTableRepeatSuppressed(HtmlRenderFlowBlock block, string? owner, string? source, bool header) {
+    private void ReportTableRepeatSuppressed(HtmlRenderFlowBlock block, string? owner, string? source, bool header, bool hasEffect) {
         string code = header ? HtmlRenderDiagnosticCodes.TableHeaderRepeatSuppressed : HtmlRenderDiagnosticCodes.TableFooterRepeatSuppressed;
-        string detail = "parallel-table-repetition;" + (owner ?? block.Source);
+        string detail = (hasEffect ? "effect-table-repetition;" : "parallel-table-repetition;") + (owner ?? block.Source);
         if (!_reportedParallelTableRepeats.Add(code + ";" + detail)) return;
         _diagnostics.Add(ComponentName, code,
-            header ? "Parallel table headers retain their original source occurrence because independent repetition offsets are not qualified."
+            hasEffect ? "A table header or footer retains its original source occurrence because repeated paint cannot share its ancestor opacity, transform or clipping."
+                : header ? "Parallel table headers retain their original source occurrence because independent repetition offsets are not qualified."
                 : "A table footer retains its original source occurrence because repeating it would skip neighboring content.",
             HtmlDiagnosticSeverity.Warning, source ?? block.Source, detail, OfficeConversionLossKind.Approximation);
     }
@@ -114,10 +146,10 @@ internal sealed partial class HtmlRenderLayoutEngine {
             // Eligibility filtering is conservative. Report loss only when an
             // actual page boundary fragments the rejected table's content or paint.
             if (fragmentEnd > group.Start + 0.0001D && fragmentEnd < group.End - 0.0001D) {
-                ReportParallelTableRepeatSuppressed(block, group.Owner, group.Source, group.Header);
+                ReportTableRepeatSuppressed(block, group.Owner, group.Source, group.Header, group.HasEffect);
             }
         }
     }
 
-    private sealed record SuppressedTableRepeat(string? Owner, string? Source, bool Header, double Start, double End);
+    private sealed record SuppressedTableRepeat(string? Owner, string? Source, bool Header, double Start, double End, bool HasEffect);
 }

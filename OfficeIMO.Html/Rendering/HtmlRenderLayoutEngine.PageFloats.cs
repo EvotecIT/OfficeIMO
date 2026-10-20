@@ -31,6 +31,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
             HtmlRenderFlowBlock body;
             _layingOutPageFloatBody = true;
             try {
+                using var pageBoundaries = new DescendantPageBoundaryScope(this, retainsPageBoundaries: false);
                 body = LayoutElementWithoutEditableRegionMarker(element, width, bodyStyle, parentStyle, depth + 1).ForPagination();
             } finally {
                 _layingOutPageFloatBody = false;

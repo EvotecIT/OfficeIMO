@@ -274,10 +274,10 @@ namespace OfficeIMO.Word.Fluent {
                 return this;
             }
 
-            var row = _table.AddRow(_columns);
             var rows = WordTableContent.Rows(_table._table).ToList();
-            if (index - 1 < rows.Count - 1) {
-                TableRow reference = rows[index - 1];
+            TableRow? reference = index - 1 < rows.Count ? rows[index - 1] : null;
+            var row = _table.AddRow(_columns);
+            if (reference != null) {
                 row._tableRow.Remove();
                 WordTableContent.InsertRowBefore(_table._table, reference, row._tableRow);
                 _table.InvalidateRowElements();

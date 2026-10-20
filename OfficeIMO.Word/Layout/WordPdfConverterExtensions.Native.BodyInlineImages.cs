@@ -38,7 +38,8 @@ namespace OfficeIMO.Word.Pdf {
             System.Threading.CancellationToken cancellationToken, bool allowFrameOverflow) {
             try {
                 if (!allowFrameOverflow)
-                    return TryCreateNativeCellInlineImage(image, out inline, options, cancellationToken: cancellationToken);
+                    return TryCreateNativeCellInlineImage(image, out inline, options, cancellationToken: cancellationToken,
+                        reportPreparationWarnings: false);
                 inline = null;
                 // The ordinary body renderer owns unavailable-image diagnostics.
                 // A successful probe still maps crop diagnostics through options.
@@ -52,8 +53,7 @@ namespace OfficeIMO.Word.Pdf {
                     AllowFrameOverflow = true
                 });
                 return true;
-            }
-            catch (InvalidOperationException) {
+            } catch (InvalidOperationException) {
                 // The ordinary image path owns unavailable/linked-image diagnostics.
                 inline = null;
                 return false;

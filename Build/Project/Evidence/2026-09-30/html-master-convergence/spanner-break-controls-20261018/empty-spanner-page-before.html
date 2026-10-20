@@ -1,0 +1,22 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<title>empty-spanner-page-before</title>
+<style>
+@font-face{font-family:Witness;src:url(regular.ttf);font-weight:400}
+@font-face{font-family:Witness;src:url(bold.ttf);font-weight:700}
+@page{size:700px 140px;margin:20px}
+html,body{margin:0;background:white;font:14px/20px Witness}
+p{margin:0;orphans:1;widows:1}
+.columns{width:300px;column-count:2;column-gap:20px}
+.spanner{column-span:all;margin:0;font-weight:700;background:#eeeeee}
+</style>
+<section id="columns" class="columns" style="column-fill:auto">
+<p id="espag-p01">ESPAG-P01</p>
+<p id="espag-p02">ESPAG-P02</p>
+<div id="espag-empty" class="spanner" style="break-before:page"></div>
+<p id="espag-t01">ESPAG-T01</p>
+<p id="espag-t02">ESPAG-T02</p>
+</section>
+<p id="after">ESPAG-AFTER</p>
+</html>

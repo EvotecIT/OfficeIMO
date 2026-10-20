@@ -213,6 +213,12 @@ public static partial class HtmlPowerPointConverterExtensions {
                 if (paragraphBreak) paragraphs.Add(new List<TargetSemanticInline>());
                 else paragraphs[paragraphs.Count - 1].Add(TargetSemanticInline.LineBreak());
             } else if (child is IElement span && IsElement(span, "span")) {
+                // Ordinary HTML spans use the shared computed semantic runs below.
+                // This path restores explicitly authored native run/field metadata.
+                if (!string.Equals(span.GetAttribute("data-officeimo-powerpoint-run"), "true", StringComparison.OrdinalIgnoreCase)
+                    && !string.Equals(span.GetAttribute("data-officeimo-powerpoint-field"), "true", StringComparison.OrdinalIgnoreCase)) {
+                    return false;
+                }
                 paragraphs[paragraphs.Count - 1].Add(TargetSemanticInline.FromSpan(span));
             } else if (!string.IsNullOrEmpty(child.TextContent)) {
                 return false;

@@ -690,6 +690,12 @@ paragraph.AddText(" is editable Word math.");
 
 `WordDocument.AddEquation(...)` and `WordParagraph.AddEquation(...)` map the shared expression directly to native OMML. Existing equations expose `ToExpression()`, `SetExpression(...)`, and `ToDrawing(...)`; `WordMathMarkup` converts between OMML and `OfficeMathExpression`. The adapter covers matrices and multi-column equation arrays, left/right scripts, centered limits, skewed fractions, delimiter lists, n-ary operators, and decorations. Display-equation replacement retains `oMathParaPr` presentation metadata. Shared `Stack` and `StretchStack` nodes fail closed because OMML has no lossless equivalent; use `OfficeMath.EquationArray(...)` explicitly if that alternate layout is acceptable. The reusable AST stays in `OfficeIMO.Drawing`, while Word owns only the OMML adapter.
 
+Authored operator form and side-spacing metadata retained from MathML also fail
+with `NotSupportedException`; editable OMML does not preserve that presentation
+contract. Keep the MathML and use the shared renderer when those values must
+survive, or explicitly choose an editable projection without them.
+`WordDocument.AddEquation(...)` checks the expression before adding a paragraph.
+
 ### Convert Word content
 
 PDF export is included in `OfficeIMO.Word` through the first-party managed PDF engine. HTML and Markdown conversion use their adjacent adapter packages.

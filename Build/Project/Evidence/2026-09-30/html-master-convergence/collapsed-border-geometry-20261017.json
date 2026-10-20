@@ -1,0 +1,792 @@
+{
+  "schema": "officeimo.html.collapsed-border-geometry-qualification",
+  "qualifiedUtc": "2026-10-17T20:41:50.274601+00:00",
+  "source": {
+    "productionHead": "8a41ddb320ba792fba357332e5a2d0903d9d642a",
+    "branch": "fix/html-collapsed-border-geometry",
+    "base": "58b85f8cf3a6bbdd087754787c11fa33cd856d38",
+    "sourceInputs": 6607,
+    "sourceFileManifestSha256": "784c50704e8e27a166ef52632df3c93360bdb1a53d0457a45283f92f96eb079e",
+    "sourceBinding": {
+      "file": "stable-qualification-source-seal.json",
+      "bytes": 1192250,
+      "sha256": "3b9cfaaa70a698cf5b1643dffdb1b23731e2e3653edd4c96697a5f1ff9bccbdc"
+    },
+    "sdk": "10.0.113",
+    "runtimeProviderForksIncluded": false
+  },
+  "implemented": [
+    "One pre-layout winning-edge plan resolves six table border origins before intrinsic sizing, final content/percentage dimensions and paint; collapsed insets use half winning edges.",
+    "Collapsed padding, column hints, spanning interiors, centered multi-stroke rules and repeated-group source ownership share the table owner.",
+    "Fragment starts retain the complete incoming horizontal rule; safe fragment ends retain its upper half, matching the inspected native edge.",
+    "Replaced internal-display elements use the canonical used-display/anonymous-table owner and retain their own border paint.",
+    "PDF-capable MHTML image requests retain embedded CSS/CID resources with package permission independent from bounded host/file permissions."
+  ],
+  "inheritedUnchangedOwnerQualification": {
+    "referenceHead": "119645eb7483ba89fa48790dfdd7c80459e16125",
+    "owners": [
+      {
+        "owner": "OfficeIMO.Core",
+        "sourceFilesVerified": 1112,
+        "gitTree": "adfdc643eab15b28da11c0ca2a211512f06dd1a5",
+        "referenceHead": "119645eb7483ba89fa48790dfdd7c80459e16125",
+        "sameTree": true
+      },
+      {
+        "owner": "OfficeIMO.Pdf",
+        "sourceFilesVerified": 1475,
+        "gitTree": "b1b316ace5b668ccbc8e61cc5cb8ba59e32de68a",
+        "referenceHead": "119645eb7483ba89fa48790dfdd7c80459e16125",
+        "sameTree": true
+      },
+      {
+        "owner": "OfficeIMO.SharedSource",
+        "sourceFilesVerified": 63,
+        "gitTree": "dd1c89e2b292f90ebbf3107b130d377a8512306f",
+        "referenceHead": "119645eb7483ba89fa48790dfdd7c80459e16125",
+        "sameTree": true
+      }
+    ],
+    "sourceFilesVerified": 2650,
+    "priorReceiptSha256": "b4559d9d47d68f924dcab69b79e194e6abad19239bf2f8ba9728f8be61895d11",
+    "boundary": "Core/PDF/Drawing source and retained prior qualification are unchanged; no new full owner-suite claim."
+  },
+  "tests": [
+    {
+      "scope": "htmlNet8",
+      "passed": 6701,
+      "failed": 0,
+      "skipped": 0,
+      "actualTrx": {
+        "file": "trx/settled-qualification-net8.0/_evomini_2026-10-17_22_22_26.trx",
+        "bytes": 10210133,
+        "sha256": "3a8ce0f5efaee7ef7f3cc71243e0800425d350b2e1f827e298b0efb56b35fb64"
+      },
+      "receipt": {
+        "file": "framework-settled-net8.0-receipt.json",
+        "bytes": 1580,
+        "sha256": "17b43be62b250e9e598c91a865f476654cb7fa46437dacfc67d2f90750a6f128"
+      }
+    },
+    {
+      "scope": "htmlNet10",
+      "passed": 6701,
+      "failed": 0,
+      "skipped": 0,
+      "actualTrx": {
+        "file": "trx/settled-qualification-net10.0/_evomini_2026-10-17_22_20_25.trx",
+        "bytes": 10223536,
+        "sha256": "fbd2690226deaacce00183b46c1ebd1216f76cb150d2b6ff7b4a8a00d5f38a7b"
+      },
+      "receipt": {
+        "file": "framework-settled-net10.0-receipt.json",
+        "bytes": 1585,
+        "sha256": "fbe1e026ea28810277974584749197e35acc0da256b8bef3656e6ab485d0a97f"
+      }
+    },
+    {
+      "scope": "cliNet8",
+      "passed": 1,
+      "failed": 0,
+      "skipped": 0,
+      "actualTrx": {
+        "file": "trx/settled-cli-net8.0/_evomini_2026-10-17_22_25_16.trx",
+        "bytes": 2975,
+        "sha256": "573aecb75a2f7e640c972b72835528c39bd3bca8d742d09cdf2a7088c4147d15"
+      },
+      "receipt": {
+        "file": "cli-settled-mhtml-net8.0-receipt.json",
+        "bytes": 1895,
+        "sha256": "b6475396cbb51628ab992fa2107fa1e1046174de5406b19f4ca0317c3d58125d"
+      }
+    },
+    {
+      "scope": "cliNet10",
+      "passed": 1,
+      "failed": 0,
+      "skipped": 0,
+      "actualTrx": {
+        "file": "trx/settled-cli-net10.0/_evomini_2026-10-17_22_24_44.trx",
+        "bytes": 2978,
+        "sha256": "69e6748c58e77a83e4665d52e179226c09eed85789938a72369d8fee720afde6"
+      },
+      "receipt": {
+        "file": "cli-settled-mhtml-net10.0-receipt.json",
+        "bytes": 1900,
+        "sha256": "ac82c375cf43cae348e0ed836815029cf522703125a9c5b7e1cd8b6668723ac1"
+      }
+    }
+  ],
+  "packages": {
+    "privateVersion": "99.0.0-html-collapsed-border-geometry",
+    "count": 10,
+    "frameworkAssets": [
+      "net10.0",
+      "net472",
+      "net8.0",
+      "netstandard2.0"
+    ],
+    "artifacts": [
+      {
+        "id": "OfficeIMO.Core",
+        "file": "package-qualification/feed/OfficeIMO.Core.99.0.0-html-collapsed-border-geometry.nupkg",
+        "bytes": 8441782,
+        "sha256": "f79c3ad9b96b6200918f9c2867b426e82b0d05f3a3ed66d24fe7428c0f4b55d5",
+        "frameworkPayloadSha256": {
+          "net10.0": "ac45a936ab9d64e7d0505f3dd6b125d33d40d74e751e38673df17c3d9f4b7278",
+          "net472": "dbcacf7863b80dc6d2371324d4a1801db0801cbff717c0d8d9ba00cf47c0798e",
+          "net8.0": "b8f12df8e9f6cf9c6f6e01121618af213f94728b21cfd908345ecca66d55a2c7",
+          "netstandard2.0": "ffec275509505ae00b34d25738cc0654ab6336fc82a7ef9c6f5033033ebecc04"
+        }
+      },
+      {
+        "id": "OfficeIMO.Email",
+        "file": "package-qualification/feed/OfficeIMO.Email.99.0.0-html-collapsed-border-geometry.nupkg",
+        "bytes": 3033688,
+        "sha256": "821312a01a4c84908b19410c00bfa7aa6e035468f1da142126910063550c18da",
+        "frameworkPayloadSha256": {
+          "net10.0": "d3030324dc2aaea1c67058a6df02d0d05b9006ae3f8b2989767a9eeebac1e22c",
+          "net472": "b5a0b54bd1501077d8b7a2a14f23e412dac6835b290886706316a12514aeb789",
+          "net8.0": "784bf3a05cae44cd72f33830eef5d42e638ba82e86f8fec16116ede41c9080ca",
+          "netstandard2.0": "75b28f77854aa67500cb59752db1f07ede27b02e9ea1dbdc07bc148957444041"
+        }
+      },
+      {
+        "id": "OfficeIMO.Html",
+        "file": "package-qualification/feed/OfficeIMO.Html.99.0.0-html-collapsed-border-geometry.nupkg",
+        "bytes": 4307253,
+        "sha256": "c5677335e3dd22637819b34312ba5d0457bb0b37c6c061d1a9ae0ba6bd2bdfbb",
+        "frameworkPayloadSha256": {
+          "net10.0": "6a8b2ea07b5b77338954212c0a66b0b50b577e13a01f189b7adc8d07e9e83b9e",
+          "net472": "fd0d4ad5eee053a5e0d6ca7bbcd4c22de07d41ca33881eee1ca1d3ce74db0193",
+          "net8.0": "4099b59f857f2861c2f4c5d6934cf5b88245e2db3e77d807e1580f3276af192e",
+          "netstandard2.0": "5edff375fe7232eefbb394c2c5bee4110b39de902bb5ae0d1a3e0f0eafd51ebc"
+        }
+      },
+      {
+        "id": "OfficeIMO.Html.AngleSharp",
+        "file": "package-qualification/feed/OfficeIMO.Html.AngleSharp.99.0.0-html-collapsed-border-geometry.nupkg",
+        "bytes": 103961,
+        "sha256": "32f2a9e79770227caa357e63776baf3add7566b32158b3598c30fc3a478dae90",
+        "frameworkPayloadSha256": {
+          "net10.0": "39dee43c39490d869755a7457c701ac757a55a54ca27438c5dc4d5f47d15bf4f",
+          "net472": "4eeda34de30a8cb1e297b7e3c8abdc181db320f6e99b229ebb08e28d6b8891c6",
+          "net8.0": "345049b38b16c26dd74586e96faf9d2f5a3e3ca317ceca66cd240a630e996a37",
+          "netstandard2.0": "c919db61de9f94eb6ab11a1c717b78684cb852af124251c8a074d95cc6803739"
+        }
+      },
+      {
+        "id": "OfficeIMO.Html.Core",
+        "file": "package-qualification/feed/OfficeIMO.Html.Core.99.0.0-html-collapsed-border-geometry.nupkg",
+        "bytes": 325037,
+        "sha256": "2354bedab7037804d11e34bfdb8a644930987514da574c64c6ec704ec7ef9678",
+        "frameworkPayloadSha256": {
+          "net10.0": "bfa07ec9e8abe1ff5f32cb5548a61abd254a0cb16244105c0fdc25d85b359e96",
+          "net472": "bec94b03cc36f1b7bbf58be2888a7b1a25a442692ab8f8b584b9f5de45d0eabd",
+          "net8.0": "a44b0f8da1500a4c576e2e37424474ba555b21f2e88d6a47018e910ac39cbf88",
+          "netstandard2.0": "3804b2078e5d1e21b148a73083eecad0d53f430a625a4815878569a357cf9098"
+        }
+      },
+      {
+        "id": "OfficeIMO.Html.Pdf",
+        "file": "package-qualification/feed/OfficeIMO.Html.Pdf.99.0.0-html-collapsed-border-geometry.nupkg",
+        "bytes": 207725,
+        "sha256": "a9bfe3f04bc67b4e25bf4721ca89da67b97dac56634092d26d37f4480ecf5f44",
+        "frameworkPayloadSha256": {
+          "net10.0": "2850a5ef6432e41fb6fbcb723ffcacb203af174ddcfed812224c2044139f163c",
+          "net472": "2cdd6924b6a7d37db44b25f316d7ce0bc6f08f235f8fbaa18b19df9eee62b6fc",
+          "net8.0": "2c6dd6e4709fa299af37bc5ce467cfc0683490236d1340376918bb73a20e303c",
+          "netstandard2.0": "1c3c944de5f560e3b67bc13b7d8f9d0c02483a081639f98a5bb2435c2829bf2d"
+        }
+      },
+      {
+        "id": "OfficeIMO.Mhtml",
+        "file": "package-qualification/feed/OfficeIMO.Mhtml.99.0.0-html-collapsed-border-geometry.nupkg",
+        "bytes": 114781,
+        "sha256": "9c3e6611c0f8d8abe44c1a4b7a6c281940dad754745a68cdb64ffde90babe2f9",
+        "frameworkPayloadSha256": {
+          "net10.0": "60250f79a45061164f248e96157894fde257870f15b7a00dbaf41dc18efba589",
+          "net472": "aa1a5a85aa21f797f0cd223bf1c5eb1472e957f3fefbebe68286872dbd5083e4",
+          "net8.0": "fafcf04215314a4e365ecabf45468eaef2ded8afc901a503d993b19b7cdb1195",
+          "netstandard2.0": "3f230d165e10e1938e795452f13a3d07dc73268a63180498d5c3ffc615e6d420"
+        }
+      },
+      {
+        "id": "OfficeIMO.Mhtml.Pdf",
+        "file": "package-qualification/feed/OfficeIMO.Mhtml.Pdf.99.0.0-html-collapsed-border-geometry.nupkg",
+        "bytes": 42763,
+        "sha256": "350a6225d200fc13c6076f0b503f7f2f12979afb00bdd761620fa990ed24379b",
+        "frameworkPayloadSha256": {
+          "net10.0": "fc9071bed1ded11a07756899f57d97e7396b19ed91f69818a364956151b4f5f0",
+          "net472": "96857237ce3d69821fb767bca44b33130fa2773c692333a3421f27670aa682d9",
+          "net8.0": "8f1258923d19a11f519ea6459f849efe8776b9699d855c9c776dbab0f0b57c47",
+          "netstandard2.0": "221110f02e8b037b58fd9066c2f7e13be2c03becd0333c67f8042bbea43f818a"
+        }
+      },
+      {
+        "id": "OfficeIMO.Pdf",
+        "file": "package-qualification/feed/OfficeIMO.Pdf.99.0.0-html-collapsed-border-geometry.nupkg",
+        "bytes": 13041161,
+        "sha256": "93f7ee80753a9610608ccf5a8f6a9f4e9e52c590fa512c9b07c42481462a65e2",
+        "frameworkPayloadSha256": {
+          "net10.0": "862c7c8abe1bae7205b114019f2e39333441890d97f488522bc4768d3b3c12e1",
+          "net472": "d8afe10f92ea581f6b6fede731f7dcb3b9f249580490a4b68b07465273068093",
+          "net8.0": "2ea86b64510698c17a10befe7b5f2680ed751593f90a6ff65c6077685985f7d7",
+          "netstandard2.0": "c46659af33a625d98566661ae65403a45d3da750e86905601e51ca2bac9dc20a"
+        }
+      },
+      {
+        "id": "OfficeIMO.Rtf",
+        "file": "package-qualification/feed/OfficeIMO.Rtf.99.0.0-html-collapsed-border-geometry.nupkg",
+        "bytes": 1044422,
+        "sha256": "8f33303e26eb2c7e0a384fee43188b18159fff0ef98941bffa1c4e21a9806df0",
+        "frameworkPayloadSha256": {
+          "net10.0": "841ec68affe91362626bb31dda7b945992c6b86e4c509ce6986785f47c82d14e",
+          "net472": "33fd61fd18c965f200424f4d98ee716bc9d9bac21fd226f566c6595bda59d86e",
+          "net8.0": "638f21399e74c1a1866750ece1e8c421223867aac46a24faa3da5af64ac4601a",
+          "netstandard2.0": "fa402ed83f46e48086f3d1a9058544ac53a88f9bc1743d5098418156408a0eaa"
+        }
+      }
+    ],
+    "consumers": [
+      {
+        "name": "HtmlPackageConsumer",
+        "compiledFrameworks": [
+          "net10.0",
+          "net472",
+          "net8.0",
+          "netstandard2.0"
+        ],
+        "executedFrameworks": [
+          "net8.0",
+          "net10.0"
+        ],
+        "loadedOwnerCounts": {
+          "net8.0": 5,
+          "net10.0": 5
+        }
+      },
+      {
+        "name": "HtmlReverseConsumer",
+        "compiledFrameworks": [
+          "net10.0",
+          "net472",
+          "net8.0",
+          "netstandard2.0"
+        ],
+        "executedFrameworks": [
+          "net8.0",
+          "net10.0"
+        ],
+        "loadedOwnerCounts": {
+          "net8.0": 6,
+          "net10.0": 6
+        }
+      },
+      {
+        "name": "MhtmlPackageConsumer",
+        "compiledFrameworks": [
+          "net10.0",
+          "net472",
+          "net8.0",
+          "netstandard2.0"
+        ],
+        "executedFrameworks": [
+          "net8.0",
+          "net10.0"
+        ],
+        "loadedOwnerCounts": {
+          "net8.0": 10,
+          "net10.0": 10
+        }
+      }
+    ],
+    "managedExecutions": 6,
+    "sourceProjectReferences": false,
+    "publication": false
+  },
+  "nativeAot": {
+    "rid": "osx-arm64",
+    "packedOnly": true,
+    "publishAndExecution": "passed",
+    "nativeExecutableSha256": "dedd85680b010343a1d38976f81ee7318143f96a0a5bf9ee1ad728d7b7b36152",
+    "receipt": {
+      "file": "package-qualification/packed-aot-receipt.json",
+      "bytes": 10549,
+      "sha256": "3b5c27c05aa32108580994c87d1660b8ff0d19b27b99551dc6e6bd294677f24d"
+    }
+  },
+  "nativeAndManaged": {
+    "browser": "Microsoft Edge 155, headless Chromium on macOS arm64",
+    "browserOwner": "HtmlTinkerX 3.0.4; isolated validation only",
+    "settledControlAndReportProfiles": [
+      {
+        "case": "settled-standards-collapsed-border-control",
+        "profiles": [
+          {
+            "profile": "PrintPaged",
+            "pages": 1,
+            "pngPdfExact": true
+          },
+          {
+            "profile": "ScreenMediaPaged",
+            "pages": 1,
+            "pngPdfExact": true
+          },
+          {
+            "profile": "ScreenFullPage",
+            "pages": 1,
+            "pngPdfExact": null
+          },
+          {
+            "profile": "ScreenSnapshotPaged",
+            "pages": 1,
+            "pngPdfExact": true
+          }
+        ]
+      },
+      {
+        "case": "settled-collapsed-core-witness",
+        "profiles": [
+          {
+            "profile": "PrintPaged",
+            "pages": 1,
+            "pngPdfExact": true
+          },
+          {
+            "profile": "ScreenMediaPaged",
+            "pages": 1,
+            "pngPdfExact": true
+          },
+          {
+            "profile": "ScreenFullPage",
+            "pages": 1,
+            "pngPdfExact": null
+          },
+          {
+            "profile": "ScreenSnapshotPaged",
+            "pages": 1,
+            "pngPdfExact": true
+          }
+        ]
+      },
+      {
+        "case": "settled-collapsed-origin-witness",
+        "profiles": [
+          {
+            "profile": "PrintPaged",
+            "pages": 1,
+            "pngPdfExact": true
+          },
+          {
+            "profile": "ScreenMediaPaged",
+            "pages": 1,
+            "pngPdfExact": true
+          },
+          {
+            "profile": "ScreenFullPage",
+            "pages": 1,
+            "pngPdfExact": null
+          },
+          {
+            "profile": "ScreenSnapshotPaged",
+            "pages": 1,
+            "pngPdfExact": true
+          }
+        ]
+      },
+      {
+        "case": "settled-collapsed-span-height-witness",
+        "profiles": [
+          {
+            "profile": "PrintPaged",
+            "pages": 1,
+            "pngPdfExact": true
+          },
+          {
+            "profile": "ScreenMediaPaged",
+            "pages": 1,
+            "pngPdfExact": true
+          },
+          {
+            "profile": "ScreenFullPage",
+            "pages": 1,
+            "pngPdfExact": null
+          },
+          {
+            "profile": "ScreenSnapshotPaged",
+            "pages": 1,
+            "pngPdfExact": true
+          }
+        ]
+      },
+      {
+        "case": "settled-collapsed-paged-witness",
+        "profiles": [
+          {
+            "profile": "PrintPaged",
+            "pages": 4,
+            "pngPdfExact": true
+          },
+          {
+            "profile": "ScreenMediaPaged",
+            "pages": 4,
+            "pngPdfExact": true
+          },
+          {
+            "profile": "ScreenFullPage",
+            "pages": 1,
+            "pngPdfExact": null
+          },
+          {
+            "profile": "ScreenSnapshotPaged",
+            "pages": 1,
+            "pngPdfExact": true
+          }
+        ]
+      },
+      {
+        "case": "settled-collapsed-span-track-witness",
+        "profiles": [
+          {
+            "profile": "PrintPaged",
+            "pages": 1,
+            "pngPdfExact": true
+          },
+          {
+            "profile": "ScreenMediaPaged",
+            "pages": 1,
+            "pngPdfExact": true
+          },
+          {
+            "profile": "ScreenFullPage",
+            "pages": 1,
+            "pngPdfExact": null
+          },
+          {
+            "profile": "ScreenSnapshotPaged",
+            "pages": 1,
+            "pngPdfExact": true
+          }
+        ]
+      },
+      {
+        "case": "settled-managed-parallel-tables-portrait",
+        "profiles": [
+          {
+            "profile": "PrintPaged",
+            "pages": 6,
+            "pngPdfExact": true
+          },
+          {
+            "profile": "ScreenMediaPaged",
+            "pages": 6,
+            "pngPdfExact": true
+          },
+          {
+            "profile": "ScreenFullPage",
+            "pages": 1,
+            "pngPdfExact": null
+          },
+          {
+            "profile": "ScreenSnapshotPaged",
+            "pages": 5,
+            "pngPdfExact": true
+          }
+        ]
+      },
+      {
+        "case": "settled-managed-parallel-tables-landscape",
+        "profiles": [
+          {
+            "profile": "PrintPaged",
+            "pages": 6,
+            "pngPdfExact": true
+          },
+          {
+            "profile": "ScreenMediaPaged",
+            "pages": 6,
+            "pngPdfExact": true
+          },
+          {
+            "profile": "ScreenFullPage",
+            "pages": 1,
+            "pngPdfExact": null
+          },
+          {
+            "profile": "ScreenSnapshotPaged",
+            "pages": 5,
+            "pngPdfExact": true
+          }
+        ]
+      },
+      {
+        "case": "settled-managed-grid-queues-portrait",
+        "profiles": [
+          {
+            "profile": "PrintPaged",
+            "pages": 7,
+            "pngPdfExact": true
+          },
+          {
+            "profile": "ScreenMediaPaged",
+            "pages": 7,
+            "pngPdfExact": true
+          },
+          {
+            "profile": "ScreenFullPage",
+            "pages": 1,
+            "pngPdfExact": null
+          },
+          {
+            "profile": "ScreenSnapshotPaged",
+            "pages": 6,
+            "pngPdfExact": true
+          }
+        ]
+      },
+      {
+        "case": "settled-managed-grid-queues-landscape",
+        "profiles": [
+          {
+            "profile": "PrintPaged",
+            "pages": 8,
+            "pngPdfExact": true
+          },
+          {
+            "profile": "ScreenMediaPaged",
+            "pages": 8,
+            "pngPdfExact": true
+          },
+          {
+            "profile": "ScreenFullPage",
+            "pages": 1,
+            "pngPdfExact": null
+          },
+          {
+            "profile": "ScreenSnapshotPaged",
+            "pages": 7,
+            "pngPdfExact": true
+          }
+        ]
+      },
+      {
+        "case": "settled-repeat",
+        "profiles": [
+          {
+            "profile": "PrintPaged",
+            "pages": 2,
+            "pngPdfExact": true
+          },
+          {
+            "profile": "ScreenMediaPaged",
+            "pages": 2,
+            "pngPdfExact": true
+          },
+          {
+            "profile": "ScreenFullPage",
+            "pages": 1,
+            "pngPdfExact": null
+          },
+          {
+            "profile": "ScreenSnapshotPaged",
+            "pages": 2,
+            "pngPdfExact": true
+          }
+        ]
+      },
+      {
+        "case": "settled-contamination",
+        "profiles": [
+          {
+            "profile": "PrintPaged",
+            "pages": 4,
+            "pngPdfExact": true
+          },
+          {
+            "profile": "ScreenMediaPaged",
+            "pages": 4,
+            "pngPdfExact": true
+          },
+          {
+            "profile": "ScreenFullPage",
+            "pages": 1,
+            "pngPdfExact": null
+          },
+          {
+            "profile": "ScreenSnapshotPaged",
+            "pages": 3,
+            "pngPdfExact": true
+          }
+        ]
+      }
+    ],
+    "controls": {
+      "file": "qualified-analysis/settled-controls-summary.json",
+      "bytes": 737,
+      "sha256": "2a5c754b9cb07574b4a14e2fe0a9909e71de0c5d120cae3b4f5080500106af85"
+    },
+    "reports": {
+      "file": "qualified-analysis/final-qualification-8a41ddb.json",
+      "bytes": 11676,
+      "sha256": "e7c4d0c995cef1762c5bc3437567a85ad4d22d282d591fd0934da9cc2bc39744"
+    },
+    "frozenDevelopmentRegressions": {
+      "file": "qualified-analysis/settled-frozen-qualified.json",
+      "bytes": 24759,
+      "sha256": "fdff1627055c7a796fe0f3b0b4d9e7c97c598f75d56712cf92385124aeb37d38"
+    }
+  },
+  "review": {
+    "initialIndependentReadOnlyPasses": 1,
+    "initialTargetedConfirmations": 1,
+    "historicalIndependentReview": {
+      "file": "local-review-receipt.json",
+      "bytes": 4841,
+      "sha256": "ddb8d3245e521142aac737b3c46605eed017f3fb19576bc331ccc4dd53efd37f"
+    },
+    "additionalContractsClosure": "Retained in the independent receipt; exact reviewer and source identities remain explicit.",
+    "currentPrimarySafeEndAndMaterialFindingClosure": {
+      "file": "qualified-analysis/settled-safe-end-closure.json",
+      "bytes": 2378,
+      "sha256": "7d663cc2eb99107896f50d65d3d935a022fdb9e3f41c36ca43af93f7b461849c"
+    },
+    "unresolvedValidatedInScopeFindings": [],
+    "manualHostedReviewRequested": false
+  },
+  "limits": [
+    "Numeric collapsed geometry and named rendering/content contracts only; no universal CSS/browser appearance qualification.",
+    "Text-derived automatic column widths, some wrapping/break positions, specialized baselines, 3D border shading and complex junctions remain outside this acceptance.",
+    "Continued table background extents through unused fragment space remain open; the qualified cut-edge pixels do not close that background contract.",
+    "Historical complete-report corpus unavailable; four current reports are separately declared synthetic independent-producer inputs.",
+    "Native continuation-header/footer text extraction exceptions remain separate from managed exact-once/source-order/link contracts.",
+    "ScreenSnapshotPaged is continuous-scene slicing; reflow, repeated groups and exact-once extracted fragments are not its contract.",
+    "Frozen NWS/EPA archives are development regressions; responsive geometry, source fonts, clipping, wrapping and native screen page-count differences remain explicit in their receipt.",
+    "EPA native capture has external sprite/file-origin errors; retained errors are an oracle boundary, not silently waived resources.",
+    "Managed PNG equals its own direct PDF readback; this does not establish Edge pixel equality.",
+    "Windows profiling deferred; macOS arm64 package/AOT/native evidence does not establish Windows timing.",
+    "Runtime/provider forks remain on feature/html-engine; this static checkpoint does not qualify their dependencies or a current-master release."
+  ],
+  "evidence": {
+    "machineLocalRoot": "/Volumes/Samsung/Development/Scratch/html-collapsed-border-geometry",
+    "receipts": {
+      "sourceSeal": {
+        "file": "stable-qualification-source-seal.json",
+        "bytes": 1192250,
+        "sha256": "3b9cfaaa70a698cf5b1643dffdb1b23731e2e3653edd4c96697a5f1ff9bccbdc"
+      },
+      "htmlNet8": {
+        "file": "framework-settled-net8.0-receipt.json",
+        "bytes": 1580,
+        "sha256": "17b43be62b250e9e598c91a865f476654cb7fa46437dacfc67d2f90750a6f128"
+      },
+      "htmlNet10": {
+        "file": "framework-settled-net10.0-receipt.json",
+        "bytes": 1585,
+        "sha256": "fbe1e026ea28810277974584749197e35acc0da256b8bef3656e6ab485d0a97f"
+      },
+      "cliNet8": {
+        "file": "cli-settled-mhtml-net8.0-receipt.json",
+        "bytes": 1895,
+        "sha256": "b6475396cbb51628ab992fa2107fa1e1046174de5406b19f4ca0317c3d58125d"
+      },
+      "cliNet10": {
+        "file": "cli-settled-mhtml-net10.0-receipt.json",
+        "bytes": 1900,
+        "sha256": "ac82c375cf43cae348e0ed836815029cf522703125a9c5b7e1cd8b6668723ac1"
+      },
+      "packages": {
+        "file": "package-qualification/artifact-receipt.json",
+        "bytes": 24597,
+        "sha256": "f8b73b725fdbcfeb012a5bad67ed73d2a9898d9d9c751a1380419d6817502ef7"
+      },
+      "mhtmlPackages": {
+        "file": "mhtml-package-contract/artifact-receipt.json",
+        "bytes": 23981,
+        "sha256": "36b789b5d55902b1a849040ffb7516d019023b1ac4b22af29180f10d797c1f99"
+      },
+      "aot": {
+        "file": "package-qualification/packed-aot-receipt.json",
+        "bytes": 10549,
+        "sha256": "3b5c27c05aa32108580994c87d1660b8ff0d19b27b99551dc6e6bd294677f24d"
+      },
+      "renderRun": {
+        "file": "settled-report-control-run.json",
+        "bytes": 15480,
+        "sha256": "ebbbad90a39ad875bcbac13b3a57b12f4f444dd5fe8093ae410f29c340c79715"
+      },
+      "controls": {
+        "file": "qualified-analysis/settled-controls-summary.json",
+        "bytes": 737,
+        "sha256": "2a5c754b9cb07574b4a14e2fe0a9909e71de0c5d120cae3b4f5080500106af85"
+      },
+      "reports": {
+        "file": "qualified-analysis/final-qualification-8a41ddb.json",
+        "bytes": 11676,
+        "sha256": "e7c4d0c995cef1762c5bc3437567a85ad4d22d282d591fd0934da9cc2bc39744"
+      },
+      "frozen": {
+        "file": "qualified-analysis/settled-frozen-qualified.json",
+        "bytes": 24759,
+        "sha256": "fdff1627055c7a796fe0f3b0b4d9e7c97c598f75d56712cf92385124aeb37d38"
+      },
+      "independentReview": {
+        "file": "local-review-receipt.json",
+        "bytes": 4841,
+        "sha256": "ddb8d3245e521142aac737b3c46605eed017f3fb19576bc331ccc4dd53efd37f"
+      },
+      "safeEndClosure": {
+        "file": "qualified-analysis/settled-safe-end-closure.json",
+        "bytes": 2378,
+        "sha256": "7d663cc2eb99107896f50d65d3d935a022fdb9e3f41c36ca43af93f7b461849c"
+      },
+      "privateConsumerHarnessCorrection": {
+        "file": "package-smoke-assertion-correction.json",
+        "bytes": 2635,
+        "sha256": "951b59ef3c1723192052a9a2dae18d17f4119fad85c5f9971a43fc7af8fa79bb"
+      },
+      "mhtmlConsumerCompileCorrection": {
+        "file": "mhtml-smoke-compile-scope-correction.json",
+        "bytes": 3147,
+        "sha256": "21243df4e197c916bb3701abf36fbc24e01186ef2291a97435c4f01e0fc25c95"
+      },
+      "harnessQualificationContinuity": {
+        "file": "qualification-harness-continuity.json",
+        "bytes": 1477,
+        "sha256": "47c2a5ffef8ed7cffc9bacb5136a46293709caba974a7fceffccd7f1696a44b2"
+      },
+      "finalReportSvgCompaction": {
+        "file": "svg-archives/settled-report/compaction-receipt.json",
+        "bytes": 8375,
+        "sha256": "cb1c20360c9066ec1c2010b926f302ff388d3812c6051302726dbba8c610e293"
+      },
+      "finalFrozenSvgCompaction": {
+        "file": "svg-archives/settled-frozen/compaction-receipt.json",
+        "bytes": 3183,
+        "sha256": "3f8ff32182c000410ec8491a3a3526ce2e15cd67eb21915bbe43777755c29ba8"
+      },
+      "storageLedger": {
+        "file": "final-storage-ledger-receipt.json",
+        "bytes": 342,
+        "sha256": "f4daf81a8a7939ef6ac3a01f1ed1536611a0a5de2d896a8c538e5fc844dea265"
+      }
+    },
+    "runtimeArchives": {
+      "file": "storage-preparation/verified-runtime-archives.json",
+      "bytes": 2263,
+      "sha256": "1b6272e410a3318c78200540057562d9a8f00475381d409dd47439a2ea08f784"
+    },
+    "storage": {
+      "file": "cleanup-receipt.json",
+      "bytes": 9883,
+      "sha256": "3818f4e89d7f24c9e6bd31bf4f27c6a388d08e5a0da2de3838d4d560e9c2abe2"
+    },
+    "actualTrxRetained": true
+  },
+  "publication": {
+    "checkpointPushAuthorized": true,
+    "prOpened": false,
+    "mergeAuthorized": false,
+    "packagePublication": false
+  }
+}

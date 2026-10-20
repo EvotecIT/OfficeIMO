@@ -19,6 +19,10 @@ if (args.Length > 0 && string.Equals(args[0], "html-evidence", StringComparison.
     return await HtmlPdfEvidenceRunner.RunAsync(args);
 }
 
+if (args.Length > 0 && string.Equals(args[0], "html-mhtml-evidence", StringComparison.OrdinalIgnoreCase)) {
+    return await HtmlMhtmlEvidenceRunner.RunAsync(args);
+}
+
 if (args.Length > 0 && string.Equals(args[0], "html-evidence-worker", StringComparison.OrdinalIgnoreCase)) {
     return await HtmlPdfEvidenceWorker.RunAsync(args);
 }

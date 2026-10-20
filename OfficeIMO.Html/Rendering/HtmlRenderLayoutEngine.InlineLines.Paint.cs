@@ -241,6 +241,9 @@ internal sealed partial class HtmlRenderLayoutEngine {
                     IReadOnlyList<InlinePaintSegment> paintSegments = ResolveInlinePaintSegments(segment, x);
                     var textVisuals = new List<HtmlRenderVisual>(paintSegments.Count);
                     foreach (InlinePaintSegment paintSegment in paintSegments) {
+                        // Retained glyph paths cannot delegate decoration to SVG <text>.
+                        // Keep CSS decoration paint in the existing shared HTML owner.
+                        bool vectorDecoration = segment.Run.Style.VectorTextDecoration || paintSegment.PreparedShaping != null;
                         double frameWidth = Math.Min(Math.Max(0.01D, lineRight - paintSegment.X), paintSegment.Width + frameTolerance);
                         textVisuals.Add(new HtmlRenderText(
                             paintSegment.Text,
@@ -248,7 +251,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                             textY,
                             Math.Max(0.01D, frameWidth),
                             Math.Max(0.01D, paintHeight),
-                            segment.Run.Style.VectorTextDecoration
+                            vectorDecoration
                                 ? new OfficeFontInfo(segment.Run.Style.Font.FamilyName, segment.Run.Style.Font.Size,
                                     segment.Run.Style.FontDescriptor, segment.Run.Style.Font.Style & ~(OfficeFontStyle.Underline | OfficeFontStyle.Strikethrough))
                                 : segment.Run.Style.Font,
@@ -262,11 +265,11 @@ internal sealed partial class HtmlRenderLayoutEngine {
                             layoutY: lineY,
                             semanticNodeId: segment.Run.SemanticNodeId,
                             textAdvanceWidth: paintSegment.Advance,
-                            bidiVisualOrderResolved: segment.BidiResolved,
+                            bidiVisualOrderResolved: paintSegment.PreparedShaping == null && (segment.BidiResolved || paintSegment.BidiResolved),
                             semanticFragmentOrder: segment.Run.SemanticFragmentOrder,
                             logicalTextOrder: segment.Run.LogicalTextOrder,
-                            underlineStyle: segment.Run.Style.VectorTextDecoration ? OfficeTextDecorationStyle.None : segment.Run.Style.UnderlineStyle,
-                            strikethroughStyle: segment.Run.Style.VectorTextDecoration ? OfficeTextDecorationStyle.None : segment.Run.Style.StrikethroughStyle,
+                            underlineStyle: vectorDecoration ? OfficeTextDecorationStyle.None : segment.Run.Style.UnderlineStyle,
+                            strikethroughStyle: vectorDecoration ? OfficeTextDecorationStyle.None : segment.Run.Style.StrikethroughStyle,
                             baseline: segment.Run.Style.Baseline,
                             baselineLevel: segment.Run.Style.BaselineLevel,
                             baselineScale: segment.Run.Style.BaselineScale,
@@ -282,7 +285,9 @@ internal sealed partial class HtmlRenderLayoutEngine {
                                 paintSegment.X, anchorY, Math.Max(0.01D, Math.Max(paintSegment.Width, paintSegment.Advance)), anchorHeight),
                             ordinaryLineCarrier: ordinaryLineCarrier && segment.Run.Style.LineHeight >= segment.Run.Style.Font.Size
                                 && segment.Run.Style.Baseline == OfficeTextBaseline.Normal
-                                && segment.Run.Style.BaselineScale == 1D && segment.Run.Style.BaselineOffset == 0D));
+                                && segment.Run.Style.BaselineScale == 1D && segment.Run.Style.BaselineOffset == 0D)
+                            { SemanticSourceOrder = segment.Run.SemanticSourceOrder }
+                            .WithPreparedShaping(paintSegment.PreparedShaping));
                     }
                     HtmlRenderVisual textVisual = paintSegments.Count > 1 || segment.BidiResolved ||
                         !string.Equals(segment.Text, segment.LogicalText, StringComparison.Ordinal) ||
@@ -299,7 +304,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                             visuals.Count,
                             segment.Run.Source,
                             layoutY: lineY,
-                            layoutHeight: textLayoutHeight)
+                            layoutHeight: textLayoutHeight) { SemanticSourceOrder = segment.Run.SemanticSourceOrder }
                         : textVisuals[0];
                     AddInlineTextDecorations(visuals, ownedVisuals, segment.Run, formattingContainer, textVisuals, aboveText: false);
                     AddTextShadowVisuals(
@@ -333,7 +338,9 @@ internal sealed partial class HtmlRenderLayoutEngine {
                     Math.Max(0.01D, lineHeight),
                     lineVisuals,
                     lineVisualStart,
-                    paintLineSegments.FirstOrDefault()?.Run.Source));
+                    paintLineSegments.FirstOrDefault()?.Run.Source) {
+                    SemanticSourceOrder = paintLineSegments.Select(segment => segment.Run.SemanticSourceOrder).Min()
+                });
             }
 
             flowY = Math.Max(flowY, lineY + lineHeight);
@@ -379,6 +386,11 @@ internal sealed partial class HtmlRenderLayoutEngine {
         IEnumerable<double> pageBreakOffsets = localFloatPageHeight > 0D && hasFloats
             ? CollectSafeFloatBreaks(breakOffsets, floatPlacements!, CollectAtomicParallelVisualRanges(painted), localFloatPageHeight)
             : breakOffsets;
+        IReadOnlyList<HtmlRenderBreakRange> safeBreakRanges = hasFloats
+            ? CollectSafeFloatBreakRanges(Array.Empty<HtmlRenderBreakRange>(), floatPlacements!,
+                CollectAtomicParallelVisualRanges(painted), localFloatPageHeight)
+            : Array.Empty<HtmlRenderBreakRange>();
+        safeBreakRanges = ConstrainParallelPaintBreakRanges(safeBreakRanges, painted);
         return new HtmlInlineLayout(
             painted,
             height,
@@ -396,7 +408,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
             continuationGroups: continuationGroups,
             trailingGroups: trailingGroups,
             pagedPaintExtent: hasFloats ? floatPlacements!.Max(placement => placement.Bottom) : height,
-            hasInFlowLineBoxes: lines.Any(line => line.HasFlowContent || line.HasForcedBreak));
+            hasInFlowLineBoxes: lines.Any(line => line.HasFlowContent || line.HasForcedBreak),
+            safeBreakRanges: safeBreakRanges);
     }
 
 }

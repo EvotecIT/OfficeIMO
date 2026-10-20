@@ -5,6 +5,9 @@ public abstract partial class HtmlRenderVisual {
     // transforms also move paint, so Y - LayoutY cannot identify relative paint.
     internal double RelativePaintOffsetY { get; private set; }
     internal bool IsOutOfFlowPaint { get; private set; }
+    // An automatic vertical inset follows its static source point through
+    // columns without contributing to its containing box's normal advance.
+    internal bool FollowsColumnStaticPosition { get; private set; }
 
     internal HtmlRenderVisual TranslateRelativePaint(double offsetX, double offsetY, int paintOrder) {
         HtmlRenderVisual result = TranslatePaint(offsetX, offsetY, paintOrder);
@@ -21,7 +24,8 @@ public abstract partial class HtmlRenderVisual {
     }
 
     // Called only on a freshly translated positioned layer.
-    internal HtmlRenderVisual IdentifyOutOfFlowPaint() {
+    internal HtmlRenderVisual IdentifyOutOfFlowPaint(bool followsColumnStaticPosition = false) {
+        FollowsColumnStaticPosition = followsColumnStaticPosition;
         Mark(this);
         return this;
 
