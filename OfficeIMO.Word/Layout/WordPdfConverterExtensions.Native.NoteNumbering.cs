@@ -75,7 +75,7 @@ public static partial class WordPdfConverterExtensions {
             if (separatorMarkOmissionReported || options == null) return;
             separatorMarkOmissionReported = true;
             AddNativeExportWarning(options, "NativeFootnoteSeparatorMarkOmitted", "footnote separator",
-                "The source separator paragraph and its spacing are retained, but its separator rule mark is not painted because the native rule geometry is not qualified.");
+                "The separator paragraph and its spacing are retained, but its separator rule mark is not painted because the native rule geometry is not qualified.");
         }
 
         internal void ReportPlacementFallback(string? reason = null) {

@@ -23,13 +23,30 @@ public static partial class WordPdfConverterExtensions {
         }
         if (referenced.Count == 0) return;
         W.Footnotes? source = document._wordprocessingDocument.MainDocumentPart?.FootnotesPart?.Footnotes;
-        foreach (W.Footnote note in source?.Elements<W.Footnote>() ?? Enumerable.Empty<W.Footnote>()) {
-            if (!referenced.Contains(note.Id?.Value ?? 0) && note.Type?.Value != W.FootnoteEndnoteValues.Separator &&
-                note.Type?.Value != W.FootnoteEndnoteValues.ContinuationSeparator) continue;
+        IEnumerable<W.Footnote> ordinaryNotes = (source?.Elements<W.Footnote>() ?? Enumerable.Empty<W.Footnote>())
+            .Where(note => referenced.Contains(note.Id?.Value ?? 0) && note.Type?.Value != W.FootnoteEndnoteValues.Separator &&
+                note.Type?.Value != W.FootnoteEndnoteValues.ContinuationSeparator);
+        foreach (W.Footnote note in ordinaryNotes.Concat(new[] {
+            ResolveNativePageFootnoteSeparatorStory(source, continuation: false),
+            ResolveNativePageFootnoteSeparatorStory(source, continuation: true)
+        })) {
             foreach (W.Paragraph paragraph in note.Descendants<W.Paragraph>())
                 RegisterNativeParagraphContentFonts(new WordParagraph(document, paragraph), NativeTableRunStyleDefaults.Empty,
                     options, families, slots, embedSystemFonts, fonts);
         }
+    }
+
+    private static W.Footnote ResolveNativePageFootnoteSeparatorStory(W.Footnotes? source, bool continuation) {
+        W.FootnoteEndnoteValues type = continuation
+            ? W.FootnoteEndnoteValues.ContinuationSeparator : W.FootnoteEndnoteValues.Separator;
+        W.Footnote? stored = source?.Elements<W.Footnote>().FirstOrDefault(note => note.Type?.Value == type);
+        if (stored != null) return stored;
+        // Word supplies this story when the part omits it. Keep the projection
+        // detached and let the normal paragraph/font owners resolve its line.
+        OpenXmlElement mark = continuation ? new W.ContinuationSeparatorMark() : new W.SeparatorMark();
+        return new W.Footnote(new W.Paragraph(
+            new W.ParagraphProperties(new W.SpacingBetweenLines { Line = "240", LineRule = W.LineSpacingRuleValues.Auto }),
+            new W.Run(mark))) { Type = type, Id = continuation ? 0 : -1 };
     }
 
     private static IEnumerable<W.FootnoteReference> EnumerateNativeRunningFootnoteReferences(WordHeaderFooter story) =>
@@ -103,22 +120,22 @@ public static partial class WordPdfConverterExtensions {
             foreach (var source in sources) ReportNativeFootnoteFallbackContent(source.Source, options);
             return false;
         }
-        W.Footnote? separator = part?.Elements<W.Footnote>().FirstOrDefault(note => note.Type?.Value == W.FootnoteEndnoteValues.Separator);
-        W.Footnote? continuation = part?.Elements<W.Footnote>().FirstOrDefault(note => note.Type?.Value == W.FootnoteEndnoteValues.ContinuationSeparator);
-        if (separator != null && !CanProjectNativePageNote(separator, section, defaults, fonts) ||
-            continuation != null && !CanProjectNativePageNote(continuation, section, defaults, fonts)) {
+        W.Footnote separator = ResolveNativePageFootnoteSeparatorStory(part, continuation: false);
+        W.Footnote continuation = ResolveNativePageFootnoteSeparatorStory(part, continuation: true);
+        if (!CanProjectNativePageNote(separator, section, defaults, fonts) ||
+            !CanProjectNativePageNote(continuation, section, defaults, fonts)) {
             notes.ReportPlacementFallback();
             foreach (var source in sources) ReportNativeFootnoteFallbackContent(source.Source, options);
-            if (separator != null) ReportNativeFootnoteFallbackContent(separator, options);
-            if (continuation != null) ReportNativeFootnoteFallbackContent(continuation, options);
+            ReportNativeFootnoteFallbackContent(separator, options);
+            ReportNativeFootnoteFallbackContent(continuation, options);
             return false;
         }
         var noteOptions = new PdfCore.PdfFootnoteOptions {
             Placement = section.FootnoteSettings.Position == WordFootnotePosition.BeneathText
                 ? PdfCore.PdfFootnotePlacement.BeneathText : PdfCore.PdfFootnotePlacement.BottomOfPage,
-            Separator = separator == null ? null : content => RenderNativeNoteStory(content, separator, section,
+            Separator = content => RenderNativeNoteStory(content, separator, section,
                 notes, options, defaults, fonts, label: null),
-            ContinuationSeparator = continuation == null ? null : content => RenderNativeNoteStory(content, continuation,
+            ContinuationSeparator = content => RenderNativeNoteStory(content, continuation,
                 section, notes, options, defaults, fonts, label: null)
         };
         foreach (var item in sources) {
