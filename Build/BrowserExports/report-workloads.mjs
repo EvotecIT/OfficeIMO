@@ -60,7 +60,7 @@ async function run() {
   const example = fixture.kind === "editable-analysis" ? await import(pathToFileURL(input.example.path).href) : undefined;
   const file = await open(output, "w"), memoryBefore = process.memoryUsage(), loadBefore = os.loadavg(), cpuStart = process.cpuUsage();
   let outputBytes = 0, firstByteMs = null, last = performance.now(), maxTimerGapMs = 0, timerTicks = 0;
-  let produced = 0, enumerations = 0, returned = 0, writes = 0, firstDeliveryProducedRows;
+  let produced = 0, enumerations = 0, returned = 0, writes = 0, firstDeliveryProducedRows, acknowledgementOverlapWrites = 0, maxRowsAdvancedDuringAcknowledgement = 0;
   function* selectedRows() {
     enumerations++;
     try { for (const value of example.operationalRows(fixture.rows)) { produced++; yield value; } }
@@ -72,7 +72,8 @@ async function run() {
   const started = performance.now();
   const sink = { async write(bytes) {
     const before = produced; await file.writeFile(bytes);
-    if (example && produced !== before) throw Error("Selected rows advanced before the destination acknowledged its write.");
+    // Native compression has a bounded input/output pipeline; one compressed write may overlap source movement.
+    if (example && produced !== before) { acknowledgementOverlapWrites++; maxRowsAdvancedDuringAcknowledgement = Math.max(maxRowsAdvancedDuringAcknowledgement, produced - before); }
     firstByteMs ??= performance.now() - started; firstDeliveryProducedRows ??= produced; writes++; outputBytes += bytes.length;
   } };
   let blob, result;
@@ -94,17 +95,18 @@ async function run() {
     peakRssBytes, maxSampledHeapBytes, maxSampledExternalBytes, memoryBefore, memoryAfter, maxTimerGapMs, timerTicks, cpuMicroseconds: cpu,
     inputScope: example ? "Canonical lazy operationalRows and writeServiceAnalysis included: Unicode sites, typed values/dates, live Excel rules, three formula caches and one visible range chart. No retained source matrix. Imports/setup excluded; current-only diagnostics, no baseline ranking."
       : "Lazy deterministic row generation and portable cell construction included; no retained source matrix. Imports/setup excluded.",
-    ...(example ? { sourceContract: { produced, enumerations, returned, writes, firstDeliveryProducedRows, destinationBackpressure: true } } : {}),
+    ...(example ? { sourceContract: { produced, enumerations, returned, writes, firstDeliveryProducedRows, awaitedByteSink: true,
+      acknowledgementOverlapWrites, maxRowsAdvancedDuringAcknowledgement, nativeCompressionMayReadAhead: true } } : {}),
     outputScope: fixture.delivery === "sink" ? "Complete export through awaited regular-file writes; OS page cache applies; first byte is first sink acceptance." : "Complete Blob generation; later Blob read and file copy excluded; first-byte metric unavailable.",
     memoryScope: "Fresh Node process lifetime peakRSS through operation end includes import/native memory; sampled JS heap/external are separate and not additive. Sampling can miss synchronous peaks.",
     runtime: source, host: { node: process.version, platform: process.platform, arch: process.arch, release: os.release(), cpus: os.cpus().length, model: os.cpus()[0]?.model,
       loadBefore, loadAfter: os.loadavg(), priority: os.getPriority(), affinity: "not pinned; platform scheduler", pid: process.pid } };
 }
-async function validate() {
+async function validate(output = required("output")) {
   const input = await manifest(), fixture = input.cases.find(item => item.name === required("case"));
   if (!fixture) throw Error("Unknown workload.");
   if (sha(await readFile(path.join(path.dirname(fileURLToPath(import.meta.url)), "verify-report-workload.py"))) !== input.verifierSha256) throw Error("Independent verifier changed after preparation.");
-  const output = required("output"), bytes = await readFile(output); let proof;
+  const bytes = await readFile(output); let proof;
   if (fixture.format === "csv") {
     const expected = [titles.join(","), ...Array.from({ length: fixture.rows }, (_, index) => row(index).map(value => value instanceof Date ? value.toISOString() : value).join(","))].join("\r\n") + "\r\n";
     if (!bytes.equals(Buffer.from(expected))) throw Error("CSV differs from every expected value.");
@@ -136,7 +138,7 @@ async function contracts() {
   const source = input.engines.current;
   if (sha(await readFile(source.path)) !== source.sha256) throw Error("Current runtime changed before contract proof.");
   const api = await import(pathToFileURL(source.path).href), example = await import(pathToFileURL(input.example.path).href);
-  const output = path.resolve(required("output")), file = await open(output, "w");
+  const output = path.resolve(required("output")), storedOutput = output + ".store.xlsx", file = await open(storedOutput, "w");
   let produced = 0, enumerations = 0, returned = 0, writes = 0, bytes = 0, firstDeliveryProducedRows;
   const progress = [];
   async function* selected() {
@@ -150,10 +152,32 @@ async function contracts() {
     firstDeliveryProducedRows ??= produced; writes++; bytes += chunk.length;
   } };
   let result;
-  try { result = await example.writeServiceAnalysis(api, { rows: selected(), sink: destination, onProgress: event => progress.push(event.rows) }); }
+  try { result = await example.writeServiceAnalysis(api, { input: { compression: "store" }, rows: selected(), sink: destination, onProgress: event => progress.push(event.rows) }); }
   finally { await file.close(); }
   if (enumerations !== 1 || returned !== 1 || produced !== fixture.rows || result.rows !== fixture.rows || result.bytes !== bytes || progress.at(-1) !== fixture.rows)
     throw Error("Slow editable analysis violated source, progress or byte-sink delivery ownership.");
+  const storedComplete = await validate(storedOutput);
+  // Hold the first entry-data chunk. Native compression may fill its pipeline, but must stop before consuming the full source.
+  const compressedFile = await open(output, "w");
+  let autoProduced = 0, autoEnumerations = 0, autoReturned = 0, autoWrites = 0, autoBytes = 0, heldFrontier;
+  async function* compressedRows() {
+    autoEnumerations++;
+    try { for (const value of example.operationalRows(fixture.rows)) { autoProduced++; yield value; } }
+    finally { autoReturned++; }
+  }
+  let autoResult;
+  try { autoResult = await example.writeServiceAnalysis(api, { rows: compressedRows(), sink: { async write(chunk) {
+    if (autoWrites === 1) {
+      const before = autoProduced;
+      await new Promise(resolve => setTimeout(resolve, 100)); const after100ms = autoProduced;
+      await new Promise(resolve => setTimeout(resolve, 100)); const after200ms = autoProduced;
+      if (after100ms !== after200ms || after200ms >= fixture.rows) throw Error("Held native-compression output did not stop source consumption at a finite frontier.");
+      heldFrontier = { before, after100ms, after200ms, totalRows: fixture.rows, quiescentWhileHeld: true };
+    }
+    await compressedFile.writeFile(chunk); autoWrites++; autoBytes += chunk.length;
+  } } }); } finally { await compressedFile.close(); }
+  if (!heldFrontier || autoEnumerations !== 1 || autoReturned !== 1 || autoProduced !== fixture.rows || autoResult.rows !== fixture.rows || autoResult.bytes !== autoBytes)
+    throw Error("Compressed editable analysis violated its one-pass or byte-delivery contract.");
   const complete = await validate();
   const controller = new AbortController(), reason = new Error("Cancel the 100k selected analysis after 1000 rows");
   let cancelledRows = 0, cancelledReturns = 0, release, caught; const partial = [];
@@ -163,7 +187,7 @@ async function contracts() {
     finally { cancelledReturns++; release(); }
   }
   const cancelledDestination = { write(chunk) { partial.push(chunk.slice()); } };
-  try { await example.writeServiceAnalysis(api, { rows: cancelled(), sink: cancelledDestination, signal: controller.signal }); }
+  try { await example.writeServiceAnalysis(api, { input: { compression: "store" }, rows: cancelled(), sink: cancelledDestination, signal: controller.signal }); }
   catch (error) { caught = error; }
   if (caught !== reason || cancelledRows !== 1000) throw Error("Cancellation changed its original reason or row frontier.");
   await new Promise((resolve, reject) => {
@@ -175,7 +199,8 @@ async function contracts() {
   await manifest();
   if (sha(await readFile(source.path)) !== source.sha256) throw Error("Current runtime changed during contract proof.");
   return { passed: true, runtime: source, case: fixture.name, functionalProofNotTiming: true,
-    slowSink: { produced, enumerations, returned, writes, bytes, firstDeliveryProducedRows, progress: progress.at(-1), callerOwnedByteSink: true, acknowledgementDelayMs: 1 },
+    slowSink: { compression: "store", produced, enumerations, returned, writes, bytes, firstDeliveryProducedRows, progress: progress.at(-1), callerOwnedByteSink: true, acknowledgementDelayMs: 1, independentOutput: storedComplete },
+    nativeCompression: { produced: autoProduced, enumerations: autoEnumerations, returned: autoReturned, writes: autoWrites, bytes: autoBytes, heldFrontier },
     cancellation: { declaredRows: fixture.rows, consumedRows: cancelledRows, returned: cancelledReturns, originalReason: true, partialBytes: partialBytes.length, completedZip: false },
     independentOutput: complete };
 }

@@ -31,7 +31,10 @@ if ($Plan) { $result | Select-Object Scenario,Engine,Operation,IsSkipped; return
 foreach ($file in Get-ChildItem -LiteralPath $evidence -Filter 'sample.*' -Recurse -File) {
     $iteration = 0
     if (-not [int]::TryParse($file.Directory.Name, [ref] $iteration) -or $iteration -ge 0) { continue }
-    $measurement = Get-Content -LiteralPath (Join-Path $file.DirectoryName 'measurement.json') -Raw | ConvertFrom-Json
+    $measurementPath = Join-Path $file.DirectoryName 'measurement.json'
+    # A failed warmup has no measurement: preserve its partial output and the runner's actual error.
+    if (-not (Test-Path -LiteralPath $measurementPath -PathType Leaf)) { continue }
+    $measurement = Get-Content -LiteralPath $measurementPath -Raw | ConvertFrom-Json
     $proof = & $node $helper validate --manifest $manifest --case $measurement.case --output $file.FullName --qpdf $variables.Qpdf --pdftotext $variables.Pdftotext --python $variables.Python
     if ($LASTEXITCODE -ne 0 -or ($proof | ConvertFrom-Json).sha256 -ne $measurement.outputSha256) { throw 'Warmup output validation failed; report retained.' }
     $proof | Set-Content -LiteralPath (Join-Path $file.DirectoryName 'warmup-validation.json') -Encoding utf8
