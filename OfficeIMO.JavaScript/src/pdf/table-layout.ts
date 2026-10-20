@@ -8,8 +8,10 @@ import type { NumericAggregate } from "../internal/totals.js";
 import type { PdfFontResources, PdfFontResource } from "./font-resources.js";
 import type { PdfSettings } from "./settings.js";
 import { presentation, positive } from "./settings.js";
-import { displayText, wrapTextCooperatively } from "./text.js";
-import type { PdfTextLine } from "./text.js";
+import { displayText } from "./text.js";
+import { capturePdfText, wrapPdfText } from "./inline-text.js";
+import type { PdfInlineLine } from "./inline-text.js";
+import type { PdfText } from "./inline-types.js";
 
 export interface PdfLayoutCell {
   readonly first: number;
@@ -17,7 +19,7 @@ export interface PdfLayoutCell {
   readonly width: number;
   readonly font: PdfFontResource;
   readonly style: Readonly<CellPresentation>;
-  readonly lines: readonly PdfTextLine[];
+  readonly lines: readonly PdfInlineLine[];
   readonly lineHeight: number;
   readonly rowSpan?: number;
   readonly height?: number;
@@ -65,18 +67,31 @@ export class PdfTableLayout {
     this.totals = createTotals(columns, options.footer?.totals);
   }
   private async cell(value: ExportValue, first: number, span: number, row: number, style: CellPresentation): Promise<PdfLayoutCell> {
-    const { options, padding, fontSize, budget, limits } = this.settings, column = options.columns[first]!;
+    const { options, padding, fontSize, budget } = this.settings, column = options.columns[first]!;
     const own = value instanceof ExportCell ? value.presentation : undefined;
-    if (options.tagged && value instanceof ExportCell && value.link)
-      throw new TypeError("Tagged PDF link annotations are unsupported; use plain text cells.");
+    const link = value instanceof ExportCell && value.link ? copyExportLink(value.link) : undefined;
     const combined = presentation({ ...(column.alignment === undefined ? {} : { alignment: column.alignment }),
       ...(column.wrapText === undefined ? {} : { wrapText: column.wrapText }), ...style, ...own });
     const font = this.fonts.select(combined.bold, combined.italic), width = this.widths.slice(first, first + span).reduce((n, w) => n + w, 0);
-    const text = displayText(value, options, { rowIndex: row, columnIndex: first, column });
-    budget.cell(text);
-    return { first, span, width, font, style: combined, lineHeight: font.lineHeight(fontSize),
-      ...(value instanceof ExportCell && value.link ? { link: copyExportLink(value.link) } : {}),
-      lines: await wrapTextCooperatively(text, font, fontSize, width - padding * 2, limits.maxCellCharacters, limits.maxRowLines, combined.wrapText !== false, options.signal) };
+    const context = { rowIndex: row, columnIndex: first, column }, raw = value instanceof ExportCell ? value.value : value;
+    let text: PdfText;
+    if (options.formatRuns && row >= 0 && !(value instanceof ExportCell && value.text !== undefined)) {
+      const runs = options.formatRuns(raw, context);
+      if (!Array.isArray(runs)) {
+        if (runs && typeof (runs as { then?: unknown }).then === "function") void Promise.resolve(runs).catch(() => {});
+        throw new TypeError("formatRuns must return a synchronous array of PDF text runs.");
+      }
+      text = runs;
+    } else text = displayText(value, options, context);
+    const captured = capturePdfText(text, combined, this.settings, this.fonts);
+    if (options.tagged && link && !captured.text.trim()) throw new TypeError("Tagged PDF cell links require nonempty displayed text.");
+    if (link && captured.runs.some(run => run.link))
+      throw new TypeError("A PDF cell link cannot be combined with inline run links.");
+    budget.cell(captured.text, captured.text.length);
+    const lines = await wrapPdfText(captured, this.fonts, fontSize, width - padding * 2, this.settings, combined.wrapText !== false);
+    return { first, span, width, font, style: combined, lineHeight: lines.reduce((height, line) => Math.max(height, line.lineHeight), font.lineHeight(fontSize)),
+      ...(link ? { link } : {}),
+      lines };
   }
   private row(cells: readonly PdfLayoutCell[]): PdfLayoutRow {
     const lines = Math.max(1, ...cells.map(c => c.lines.length));

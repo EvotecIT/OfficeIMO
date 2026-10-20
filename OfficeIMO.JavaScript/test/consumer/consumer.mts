@@ -18,6 +18,40 @@ import type { DataTablesApi, DataTablesHost } from "@evotecit/officeimo/integrat
 import type { ExportLink } from "@evotecit/officeimo";
 import { createCanopyExport, exportCanopy, writeCanopyTo } from "@evotecit/officeimo/integrations/canopyx";
 import type { CanopyCapture } from "@evotecit/officeimo/integrations/canopyx";
+import { executeWorkerExport } from "@evotecit/officeimo/execution";
+import type { WorkerExportOptions } from "@evotecit/officeimo/execution";
+import type { PdfFontPreparationOptions } from "@evotecit/officeimo/pdf";
+import { createHarfBuzzTextShaper } from "@evotecit/officeimo/pdf/providers/harfbuzz";
+import type { PdfHarfBuzzModule, PdfBidiEngine } from "@evotecit/officeimo/pdf/providers/harfbuzz";
+import type { PdfTextShaper, PdfShapeLineRequest, PdfShapedRun } from "@evotecit/officeimo";
+function optionalTextProvider(harfbuzz: PdfHarfBuzzModule, bidi: PdfBidiEngine, regular: PdfFont, arabic: PdfFont) {
+  const provider = createHarfBuzzTextShaper({ harfbuzz, bidi, language: "ar" });
+  const replaceable: PdfTextShaper = provider;
+  const hostProvider: PdfTextShaper = { shapeLine(request: PdfShapeLineRequest): readonly PdfShapedRun[] { void request; return []; } };
+  void [replaceable, hostProvider];
+  void writePdfDocument([{ kind: "paragraph", text: [{ text: "Status: ", font: regular }, { text: "مرحبا", font: arabic }] }], { textShaper: provider, textDirection: "auto" });
+  // @ts-expect-error text run fonts are explicit registered PdfFont faces, not browser font-family names
+  const badFace: import("@evotecit/officeimo").PdfTextRun = { text: "Report", font: "Arial" };
+  // @ts-expect-error positioned glyph metrics must be numbers
+  const badGlyph: import("@evotecit/officeimo").PdfShapedGlyph = { id: 1, clusterStart: 0, clusterEnd: 1, xAdvance: "wide", yAdvance: 0, xOffset: 0, yOffset: 0 };
+  void [badGlyph, badFace];
+  provider.dispose();
+}
+void optionalTextProvider;
+async function workerExport(worker: Worker, capture: CanopyCapture, bytes: Uint8Array, signal: AbortSignal) {
+  const options: WorkerExportOptions = { signal, batchRows: 64, maxBatchCells: 1024, maxBatchCharacters: 100000, maxChunkBytes: 65536,
+    maxSetupBytes: 16000000, maxSetupNodes: 100000 };
+  const source = createCanopyExport(capture, "xlsx", { signal });
+  await executeWorkerExport(worker, source.rows(), new WritableStream<Uint8Array>(), { ...options, input: { columns: source.columns } });
+  const preparation: PdfFontPreparationOptions = { signal, maxBytes: 16000000 };
+  const regular = await PdfFont.create(bytes, preparation);
+  await writePdfDocument([{ kind: "paragraph", text: "Report" }], { fonts: { regular }, limits: { maxImageWorkingBytes: 64000000 } });
+  // @ts-expect-error worker handoff accepts portable projected arrays rather than domain objects
+  await executeWorkerExport(worker, [{ value: 1 }], new WritableStream<Uint8Array>());
+  // @ts-expect-error font preparation byte limits are numeric
+  await PdfFont.create(bytes, { maxBytes: "large" });
+}
+void workerExport;
 async function exportCanopyGrid(capture: CanopyCapture) {
   const source = createCanopyExport(capture, "xlsx", { tones: { warning: { background: "FFF2CC" } } });
   await writeXlsx(source.rows(), { columns: source.columns });
@@ -262,3 +296,30 @@ writePdf(domainRows, { columns: [{ header: "Name", value: async row => row.perso
 writePdf([[new Cell(1)]], { columns: [{ header: "Amount" }] });
 // @ts-expect-error final names are readonly
 sheet.name = "new name";
+
+// Native charts accept readonly snapshots through both public entrypoints.
+const nativeChartData = {
+  categories: ["Łódź", "Warsaw"],
+  series: [{ name: "Controllers", values: [12.5, 25], color: "2563EB" }]
+} as const satisfies import("@evotecit/officeimo/xlsx").ChartData;
+const nativeChart: import("@evotecit/officeimo/xlsx").WorksheetChart = {
+  type: "columnClustered", data: nativeChartData, row: 6, column: 1, width: 640, height: 360,
+  legend: "bottom", dataLabels: { showValue: true, position: "outsideEnd" },
+  categoryAxis: { title: "Site" }, valueAxis: { minimum: 0, maximum: 30, numberFormat: "0.0" }
+};
+const rootNativeChart: import("@evotecit/officeimo").WorksheetChart = nativeChart;
+const chartKinds: readonly import("@evotecit/officeimo").ChartType[] = ["columnClustered", "barClustered", "line", "pie"];
+const nativeChartSheet = new Workbook({ limits: { maxCharts: 4, maxChartPoints: 100, maxChartTextCharacters: 10000 } })
+  .addWorksheet("Native charts", { columns: [{ header: "Site", key: "site" }, { header: "Actual", key: "actual", type: "number" }], table: {} });
+await nativeChartSheet.addRows([{ site: "Łódź", actual: 12.5 }, { site: "Warsaw", actual: 25 }]);
+nativeChartSheet.addChart(rootNativeChart);
+void chartKinds;
+// @ts-expect-error the supported native chart vocabulary is explicit
+const unsupportedChartKind: import("@evotecit/officeimo/xlsx").ChartType = "scatter";
+// @ts-expect-error native chart values are numeric
+const invalidChartSeries: import("@evotecit/officeimo/xlsx").ChartSeries = { name: "Controllers", values: ["12.5"] };
+// @ts-expect-error chart input snapshots are readonly
+nativeChart.data.categories[0] = "changed";
+// @ts-expect-error arbitrary styling is outside the native chart contract
+const unsupportedChartStyle: import("@evotecit/officeimo/xlsx").WorksheetChart = { ...nativeChart, stacking: true };
+void [unsupportedChartKind, invalidChartSeries, unsupportedChartStyle];

@@ -34,10 +34,15 @@ export interface PdfSettings {
   readonly margins: PdfMargins;
   readonly fontSize: number;
   readonly padding: number;
-  readonly limits: Required<Pick<PdfLimits, "maxPages" | "maxColumns" | "maxCellCharacters" | "maxRowLines" | "maxFontBytes" | "maxPageBytes" | "maxHyperlinks" | "maxImageBytes" | "maxImagePixels" | "maxVectorCommands" | "maxDrawingElements" | "maxStructureElements" | "maxMarkedContentReferences">>;
+  readonly limits: Required<Pick<PdfLimits, "maxPages" | "maxColumns" | "maxCellCharacters" | "maxTextRuns" | "maxGroupBlocks" | "maxRowLines" | "maxFontBytes" | "maxPageBytes" | "maxHyperlinks" | "maxImageBytes" | "maxImagePixels" | "maxVectorCommands" | "maxDrawingElements" | "maxStructureElements" | "maxMarkedContentReferences">> & Pick<PdfLimits, "maxImageWorkingBytes">;
   readonly budget: ExportBudget;
 }
-export function settings(configuration: PdfOptions, document = false): PdfSettings {
+export function settings(input: PdfOptions, document = false): PdfSettings {
+  const configuration = { ...input };
+  const textShaper = configuration.textShaper, shapeLine = textShaper?.shapeLine;
+  if (textShaper !== undefined && (!textShaper || typeof shapeLine !== "function")) throw new TypeError("textShaper must provide shapeLine.");
+  if (configuration.textDirection !== undefined && !["auto", "ltr", "rtl"].includes(configuration.textDirection))
+    throw new TypeError("textDirection must be auto, ltr or rtl.");
   const columns = copyColumns(configuration?.columns).map(c => Object.freeze(c));
   if (!columns.length && !document) throw new TypeError("PDF tables need at least one declared column.");
   function copySpans(rows: TableSpanRows): TableSpanRows {
@@ -45,6 +50,7 @@ export function settings(configuration: PdfOptions, document = false): PdfSettin
     return Object.freeze(rows.map(row => Object.freeze(row.map(cell => cell ? Object.freeze({ ...cell }) : null))));
   }
   const options: PdfOptions = { ...configuration, columns,
+    ...(textShaper ? { textShaper: Object.freeze({ shapeLine: shapeLine!.bind(textShaper) }) } : {}),
     ...(configuration.tagged ? { tagged: Object.freeze({ ...configuration.tagged }) } : {}),
     ...(configuration.headerRows ? { headerRows: copySpans(configuration.headerRows) } : {}),
     ...(configuration.fonts ? { fonts: Object.freeze({ ...configuration.fonts }) } : {}),
@@ -56,7 +62,7 @@ export function settings(configuration: PdfOptions, document = false): PdfSettin
     headerPresentation: presentation({ background: "e7edf5", bold: true, ...configuration.headerPresentation }),
     footerPresentation: presentation({ background: "eef2f6", bold: true, ...configuration.footerPresentation }) };
   const budget = new ExportBudget(options.limits);
-  const limits = { maxPages: 10000, maxColumns: 1024, maxCellCharacters: 1000000, maxRowLines: 100000, maxFontBytes: 16 * 1024 * 1024, maxPageBytes: 8 * 1024 * 1024, maxHyperlinks: 100000,
+  const limits = { maxPages: 10000, maxColumns: 1024, maxCellCharacters: 1000000, maxTextRuns: 10000, maxGroupBlocks: 256, maxRowLines: 100000, maxFontBytes: 16 * 1024 * 1024, maxPageBytes: 8 * 1024 * 1024, maxHyperlinks: 100000,
     maxImageBytes: 32 * 1024 * 1024, maxImagePixels: 16 * 1024 * 1024, maxVectorCommands: 100000, maxDrawingElements: 100000,
     maxStructureElements: 1000000, maxMarkedContentReferences: 2000000 };
   for (const key of Object.keys(limits) as (keyof typeof limits)[]) {
@@ -76,7 +82,8 @@ export function settings(configuration: PdfOptions, document = false): PdfSettin
   if (options.wideTable !== undefined && !["fit", "reject"].includes(options.wideTable)) throw new TypeError("wideTable must be fit or reject.");
   for (const key of ["title", "messageTop", "messageBottom"] as const) if (options[key] !== undefined && typeof options[key] !== "string") throw new TypeError(key + " must be text.");
   for (const key of ["pageHeader", "pageFooter"] as const) if (options[key] !== undefined && typeof options[key] !== "string" && typeof options[key] !== "function") throw new TypeError(key + " must be text or a synchronous callback.");
-  if (options.formatValue !== undefined && typeof options.formatValue !== "function") throw new TypeError("formatValue must be a synchronous function.");
+  for (const key of ["formatValue", "formatRuns"] as const)
+    if (options[key] !== undefined && typeof options[key] !== "function") throw new TypeError(key + " must be a synchronous function.");
   for (const key of ["compression", "includeHeader", "pageNumbers"] as const) if (options[key] !== undefined && typeof options[key] !== "boolean") throw new TypeError(key + " must be boolean.");
   if (options.alternateRowColor !== undefined) color(options.alternateRowColor);
   if (options.footer?.values && options.footer.values.length > columns.length) throw new RangeError("Footer has more values than declared columns.");
@@ -90,5 +97,7 @@ export function settings(configuration: PdfOptions, document = false): PdfSettin
     if (options.headerRows || columns.some(column => column.groups?.length) || options.footer?.rows)
       throw new TypeError("Tagged PDF supports leaf column headings and ordinary footer cells; grouped headings and span matrices are unsupported.");
   }
-  return { options, page, margins, fontSize, padding, limits, budget };
+  const maxImageWorkingBytes = options.limits?.maxImageWorkingBytes;
+  return { options, page, margins, fontSize, padding,
+    limits: { ...limits, ...(maxImageWorkingBytes === undefined ? {} : { maxImageWorkingBytes }) }, budget };
 }

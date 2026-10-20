@@ -1707,6 +1707,113 @@ const _exports = Object.freeze({ createRowProjector: createRowProjector, copyCol
 return _exports;
 })();
 
+const _m24 = (() => {
+const { ChunkedTextSink } = _m5;
+
+const { escapeXml, xmlDeclaration } = _m10;
+
+const { officeRelationshipsNamespace } = _m7;
+
+const { columnName } = _m18;
+
+const chartNamespace = "http://schemas.openxmlformats.org/drawingml/2006/chart";
+const chartContentType = "application/vnd.openxmlformats-officedocument.drawingml.chart+xml";
+/** @internal Graphic frames share a drawing with worksheet images; their nonvisual IDs must be unique. */
+function chartAnchorXml(chart, objectId, policy) {
+    const size = ' cx="' + Math.round(chart.width * 9525) + '" cy="' + Math.round(chart.height * 9525) + '"';
+    return '<xdr:oneCellAnchor><xdr:from><xdr:col>' + (chart.column - 1) + '</xdr:col><xdr:colOff>0</xdr:colOff><xdr:row>' + (chart.row - 1) + '</xdr:row><xdr:rowOff>0</xdr:rowOff></xdr:from>' +
+        '<xdr:ext' + size + '/><xdr:graphicFrame macro=""><xdr:nvGraphicFramePr><xdr:cNvPr id="' + objectId + '" name="Chart ' + chart.id + '" descr="' + escapeXml(chart.description ?? chart.title ?? "", policy) + '"/>' +
+        '<xdr:cNvGraphicFramePr/></xdr:nvGraphicFramePr><xdr:xfrm><a:off x="0" y="0"/><a:ext cx="0" cy="0"/></xdr:xfrm><a:graphic><a:graphicData uri="' + chartNamespace + '">' +
+        '<c:chart xmlns:c="' + chartNamespace + '" r:id="chart' + chart.id + '"/></a:graphicData></a:graphic></xdr:graphicFrame><xdr:clientData/></xdr:oneCellAnchor>';
+}
+function titleXml(value, policy) {
+    return '<c:title><c:tx><c:rich><a:bodyPr/><a:lstStyle/><a:p><a:pPr><a:defRPr/></a:pPr><a:r><a:t xml:space="preserve">' +
+        escapeXml(value, policy) + '</a:t></a:r></a:p></c:rich></c:tx><c:overlay val="0"/></c:title>';
+}
+function* reference(kind, formula, values, policy) {
+    yield '<c:' + kind + 'Ref><c:f>' + escapeXml(formula, policy) + '</c:f><c:' + kind + 'Cache>';
+    if (kind === "num")
+        yield '<c:formatCode>General</c:formatCode>';
+    yield '<c:ptCount val="' + values.length + '"/>';
+    for (let i = 0; i < values.length; i++)
+        yield '<c:pt idx="' + i + '"><c:v xml:space="preserve">' + escapeXml(String(values[i]), policy) + '</c:v></c:pt>';
+    yield '</c:' + kind + 'Cache></c:' + kind + 'Ref>';
+}
+function labelsXml(chart, policy) {
+    const labels = chart.dataLabels;
+    if (!labels)
+        return "";
+    const positions = { center: "ctr", insideEnd: "inEnd", outsideEnd: "outEnd", bestFit: "bestFit", above: "t", below: "b", left: "l", right: "r" };
+    return '<c:dLbls>' + (labels.numberFormat === undefined ? "" : '<c:numFmt formatCode="' + escapeXml(labels.numberFormat, policy) + '" sourceLinked="0"/>') +
+        (labels.position === undefined ? "" : '<c:dLblPos val="' + positions[labels.position] + '"/>') + '<c:showLegendKey val="0"/><c:showVal val="' + (labels.showValue === false ? 0 : 1) +
+        '"/><c:showCatName val="' + (labels.showCategoryName ? 1 : 0) + '"/><c:showSerName val="' + (labels.showSeriesName ? 1 : 0) +
+        '"/><c:showPercent val="' + (labels.showPercent ? 1 : 0) + '"/><c:showBubbleSize val="0"/></c:dLbls>';
+}
+function axesXml(chart, policy) {
+    const horizontal = chart.type === "barClustered", value = chart.valueAxis;
+    const scaling = '<c:scaling><c:orientation val="minMax"/>' + (value?.maximum === undefined ? "" : '<c:max val="' + value.maximum + '"/>') +
+        (value?.minimum === undefined ? "" : '<c:min val="' + value.minimum + '"/>') + '</c:scaling>';
+    const ticks = '<c:majorTickMark val="none"/><c:minorTickMark val="none"/><c:tickLblPos val="nextTo"/>';
+    return '<c:catAx><c:axId val="1"/><c:scaling><c:orientation val="minMax"/></c:scaling><c:delete val="0"/><c:axPos val="' + (horizontal ? "l" : "b") + '"/>' +
+        (chart.categoryAxis?.title ? titleXml(chart.categoryAxis.title, policy) : "") + '<c:numFmt formatCode="General" sourceLinked="1"/>' + ticks +
+        '<c:crossAx val="2"/><c:crosses val="autoZero"/><c:auto val="1"/><c:lblAlgn val="ctr"/><c:lblOffset val="100"/><c:noMultiLvlLbl val="0"/></c:catAx>' +
+        '<c:valAx><c:axId val="2"/>' + scaling + '<c:delete val="0"/><c:axPos val="' + (horizontal ? "b" : "l") + '"/><c:majorGridlines/>' +
+        (value?.title ? titleXml(value.title, policy) : "") + '<c:numFmt formatCode="' + escapeXml(value?.numberFormat ?? "General", policy) + '" sourceLinked="' + (value?.numberFormat === undefined ? 1 : 0) + '"/>' + ticks +
+        '<c:crossAx val="1"/><c:crosses val="autoZero"/><c:crossBetween val="between"/></c:valAx>';
+}
+function* chartXml(chart, policy) {
+    const pie = chart.type === "pie", line = chart.type === "line", tag = pie ? "pieChart" : line ? "lineChart" : "barChart";
+    const source = "'" + chart.dataSheetName.replace(/'/g, "''") + "'!", end = chart.data.categories.length + 1;
+    yield xmlDeclaration + '<c:chartSpace xmlns:c="' + chartNamespace + '" xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" xmlns:r="' + officeRelationshipsNamespace + '"><c:date1904 val="0"/><c:lang val="en-US"/><c:chart>';
+    if (chart.title)
+        yield titleXml(chart.title, policy);
+    yield '<c:autoTitleDeleted val="' + (chart.title ? 0 : 1) + '"/><c:plotArea><c:layout/><c:' + tag + '>';
+    if (!pie)
+        yield line ? '<c:grouping val="standard"/>' : '<c:barDir val="' + (chart.type === "barClustered" ? "bar" : "col") + '"/><c:grouping val="clustered"/>';
+    yield '<c:varyColors val="' + (pie ? 1 : 0) + '"/>';
+    for (let i = 0; i < chart.data.series.length; i++) {
+        const series = chart.data.series[i], column = "$" + columnName(i + 2);
+        yield '<c:ser><c:idx val="' + i + '"/><c:order val="' + i + '"/><c:tx>';
+        yield* reference("str", source + column + "$1", [series.name], policy);
+        yield '</c:tx>';
+        if (series.color)
+            yield '<c:spPr>' + (line ? '<a:ln w="25400">' : "") + '<a:solidFill><a:srgbClr val="' + series.color + '"/></a:solidFill>' + (line ? '</a:ln>' : "") + '</c:spPr>';
+        if (!line && !pie)
+            yield '<c:invertIfNegative val="0"/>';
+        yield '<c:cat>';
+        yield* reference("str", source + '$A$2:$A$' + end, chart.data.categories, policy);
+        yield '</c:cat><c:val>';
+        yield* reference("num", source + column + "$2:" + column + "$" + end, series.values, policy);
+        yield '</c:val>' + (line ? '<c:smooth val="0"/>' : "") + '</c:ser>';
+    }
+    yield labelsXml(chart, policy);
+    if (!pie && !line)
+        yield '<c:gapWidth val="150"/><c:overlap val="0"/>';
+    if (!pie)
+        yield '<c:axId val="1"/><c:axId val="2"/>';
+    yield '</c:' + tag + '>';
+    if (!pie)
+        yield axesXml(chart, policy);
+    yield '</c:plotArea>';
+    if (chart.legend !== false) {
+        const position = { right: "r", bottom: "b", left: "l", top: "t" }[chart.legend ?? "right"];
+        yield '<c:legend><c:legendPos val="' + position + '"/><c:layout/><c:overlay val="0"/></c:legend>';
+    }
+    // Data sheets are hidden by design; Excel must still plot their source cells.
+    yield '<c:plotVisOnly val="0"/><c:dispBlanksAs val="gap"/><c:showDLblsOverMax val="0"/></c:chart></c:chartSpace>';
+}
+/** @internal Stream cache points through the existing bounded, cancellation-aware XML sink. */
+async function writeChartXml(chart, destination, policy, signal) {
+    const text = new ChunkedTextSink(destination, signal);
+    for (const fragment of chartXml(chart, policy))
+        if (text.append(fragment))
+            await text.flush();
+    await text.close();
+}
+const _exports = Object.freeze({ chartNamespace: chartNamespace, chartContentType: chartContentType, chartAnchorXml: chartAnchorXml, writeChartXml: writeChartXml });
+return _exports;
+})();
+
 const _m23 = (() => {
 const { cleanXml, escapeXml, escapeOoxmlAttribute, xmlDeclaration } = _m10;
 
@@ -1714,6 +1821,20 @@ const { copyExportLink } = _m20;
 
 const { officeRelationshipsNamespace } = _m7;
 
+const { chartAnchorXml } = _m24;
+
+/** @internal Native charts and images use the same drawing coordinate policy. */
+function copyDrawingAnchor(anchor, policy) {
+    if (!Number.isInteger(anchor.row) || anchor.row < 1 || anchor.row > 1048576 || !Number.isInteger(anchor.column) || anchor.column < 1 || anchor.column > 16384)
+        throw new RangeError("Drawing anchors must be one-based worksheet rows and columns.");
+    for (const size of [anchor.width, anchor.height])
+        if (!Number.isFinite(size) || size <= 0 || size > 100000)
+            throw new RangeError("Drawing display dimensions must be positive and at most 100,000 pixels.");
+    if (anchor.description !== undefined && typeof anchor.description !== "string")
+        throw new TypeError("Drawing description must be a string.");
+    return Object.freeze({ row: anchor.row, column: anchor.column, width: anchor.width, height: anchor.height,
+        ...(anchor.description === undefined ? {} : { description: cleanXml(anchor.description, policy) }) });
+}
 function cellPosition(reference) {
     const match = typeof reference === "string" && /^([A-Z]{1,3})([1-9][0-9]{0,6})$/.exec(reference);
     if (!match)
@@ -1739,20 +1860,15 @@ function copyImage(image, policy) {
     const header = new DataView(image.data.buffer, image.data.byteOffset, image.data.byteLength);
     if (!header.getUint32(16) || !header.getUint32(20))
         throw new RangeError("PNG dimensions must be positive.");
-    if (!Number.isInteger(image.row) || image.row < 1 || image.row > 1048576 || !Number.isInteger(image.column) || image.column < 1 || image.column > 16384)
-        throw new RangeError("Image anchors must be one-based worksheet rows and columns.");
-    for (const size of [image.width, image.height])
-        if (!Number.isFinite(size) || size <= 0 || size > 100000)
-            throw new RangeError("Image display dimensions must be positive and at most 100,000 pixels.");
-    return Object.freeze({ ...image, data: new Uint8Array(image.data),
-        ...(image.description === undefined ? {} : { description: cleanXml(image.description, policy) }) });
+    return Object.freeze({ ...copyDrawingAnchor(image, policy), data: new Uint8Array(image.data) });
 }
 function hyperlinksXml(links, policy, internal = []) {
     return '<hyperlinks>' + links.map((link, i) => '<hyperlink ref="' + link.cell + '" r:id="link' + (i + 1) + '"' +
         (link.tooltip === undefined ? "" : ' tooltip="' + escapeOoxmlAttribute(link.tooltip, policy) + '"') + '/>').join("") +
         internal.map(link => '<hyperlink ref="' + link.cell + '" location="' + escapeOoxmlAttribute(link.location, policy) + '"/>').join("") + '</hyperlinks>';
 }
-function drawingXml(images, policy) {
+/** @internal Package drawing serialization does not form part of the worksheet input contract. */
+function drawingXml(images, policy, charts = []) {
     const ns = "http://schemas.openxmlformats.org/drawingml/2006/";
     return xmlDeclaration + '<xdr:wsDr xmlns:xdr="' + ns + 'spreadsheetDrawing" xmlns:a="' + ns + 'main" xmlns:r="' + officeRelationshipsNamespace + '">' +
         images.map((image, i) => {
@@ -1761,14 +1877,14 @@ function drawingXml(images, policy) {
                 '<xdr:ext' + size + '/><xdr:pic><xdr:nvPicPr><xdr:cNvPr id="' + (i + 1) + '" name="Image ' + (i + 1) + '" descr="' + escapeXml(image.description ?? "", policy) + '"/><xdr:cNvPicPr/></xdr:nvPicPr>' +
                 '<xdr:blipFill><a:blip r:embed="image' + (i + 1) + '"/><a:stretch><a:fillRect/></a:stretch></xdr:blipFill>' +
                 '<xdr:spPr><a:xfrm><a:off x="0" y="0"/><a:ext' + size + '/></a:xfrm><a:prstGeom prst="rect"><a:avLst/></a:prstGeom></xdr:spPr></xdr:pic><xdr:clientData/></xdr:oneCellAnchor>';
-        }).join("") + '</xdr:wsDr>';
+        }).join("") + charts.map((chart, i) => chartAnchorXml(chart, images.length + i + 1, policy)).join("") + '</xdr:wsDr>';
 }
 const drawingContentType = "application/vnd.openxmlformats-officedocument.drawing+xml";
-const _exports = Object.freeze({ cellPosition: cellPosition, copyHyperlink: copyHyperlink, copyImage: copyImage, hyperlinksXml: hyperlinksXml, drawingXml: drawingXml, drawingContentType: drawingContentType });
+const _exports = Object.freeze({ copyDrawingAnchor: copyDrawingAnchor, cellPosition: cellPosition, copyHyperlink: copyHyperlink, copyImage: copyImage, hyperlinksXml: hyperlinksXml, drawingXml: drawingXml, drawingContentType: drawingContentType });
 return _exports;
 })();
 
-const _m25 = (() => {
+const _m26 = (() => {
 const { OfficeIMOError } = _m3;
 
 const { cellPosition } = _m23;
@@ -1872,7 +1988,7 @@ const _exports = Object.freeze({ MergeRegions: MergeRegions });
 return _exports;
 })();
 
-const _m26 = (() => {
+const _m27 = (() => {
 class NumericAggregate {
     operation;
     count = 0;
@@ -1919,7 +2035,7 @@ const _exports = Object.freeze({ NumericAggregate: NumericAggregate, createTotal
 return _exports;
 })();
 
-const _m24 = (() => {
+const _m25 = (() => {
 const { ExportCell } = _m19;
 
 const { isDate } = _m11;
@@ -1928,11 +2044,11 @@ const { Cell, cellText, columnName } = _m18;
 
 const { escapeOoxmlAttribute } = _m10;
 
-const { MergeRegions } = _m25;
+const { MergeRegions } = _m26;
 
 const { OfficeIMOError } = _m3;
 
-const { createTotals } = _m26;
+const { createTotals } = _m27;
 
 /** @internal A computed formula with a numeric cache; no public arbitrary-formula input. */
 class ComputedTotal {
@@ -2090,7 +2206,7 @@ const _exports = Object.freeze({ ComputedTotal: ComputedTotal, ReportLayout: Rep
 return _exports;
 })();
 
-const _m27 = (() => {
+const _m28 = (() => {
 const { cleanXml, escapeXml, escapeOoxmlAttribute } = _m10;
 
 const { cellPosition } = _m23;
@@ -2280,11 +2396,11 @@ const { copyHyperlink, copyImage, hyperlinksXml, cellPosition } = _m23;
 
 const { ExportCell, assertScalar } = _m19;
 
-const { ReportLayout, ComputedTotal, printXml } = _m24;
+const { ReportLayout, ComputedTotal, printXml } = _m25;
 
 const { cleanXml } = _m10;
 
-const { ConditionalFormats, prepareConditionalFormats } = _m27;
+const { ConditionalFormats, prepareConditionalFormats } = _m28;
 
 const { isDate } = _m11;
 
@@ -2299,6 +2415,7 @@ class Worksheet {
     name;
     table;
     preserved;
+    chartData;
     columns;
     project;
     declared;
@@ -2323,12 +2440,14 @@ class Worksheet {
     links = [];
     linkedCells = new Set();
     pictures = [];
+    nativeCharts = [];
     conditional;
-    constructor(book, name, options, table, preserved = false, conditional = []) {
+    constructor(book, name, options, table, preserved = false, conditional = [], chartData = false) {
         this.book = book;
         this.name = name;
         this.table = table;
         this.preserved = preserved;
+        this.chartData = chartData;
         this.columns = copyColumns(options.columns ?? [], true).map(c => Object.freeze(c));
         const alternate = options.alternatingRowStyle;
         this.options = { ...options, ...(options.autoSize ? { autoSize: { ...options.autoSize } } : {}),
@@ -2358,6 +2477,10 @@ class Worksheet {
     }
     /** @internal */
     static create(book, name, options, table, preserved = false, conditional) { return new Worksheet(book, name, options, table, preserved, conditional); }
+    /** @internal Generated source cells use the normal worksheet serializer and budgets. */
+    static createChartData(book, chart) {
+        return new Worksheet(book, chart.dataSheetName, { columns: [{ header: "Category" }, ...chart.data.series.map(series => ({ header: series.name, type: "number" }))] }, undefined, false, [], true);
+    }
     /** @internal Validate before allocating native compressor resources or registering the sheet name. */
     static validate(book, options) {
         for (const feature of ["dataValidation"])
@@ -2710,11 +2833,26 @@ class Worksheet {
             this.busy = false;
         }
     }
-    progress() { if (!this.preserved)
+    progress() { if (!this.preserved && !this.chartData)
         notifyProgress(this.book.settings.onProgress, { phase: "rows", rows: this.book.rowCount, sheetRows: this.count, sheetName: this.name }); }
     get rowCount() { return this.count; }
     /** @internal Preservation records are metadata, not report data rows. */
-    get reportRowCount() { return this.preserved ? 0 : this.count; }
+    get reportRowCount() { return this.preserved || this.chartData ? 0 : this.count; }
+    /** @internal Chart data is editable through Excel's Unhide worksheet command. */
+    get hidden() { return this.chartData; }
+    /** Capture a bounded native chart. Source cells and caches remain independent of later caller mutations. */
+    addChart(chart) {
+        this.book.assertOpen();
+        if (this.completion)
+            throw new OfficeIMOError("INVALID_STATE", "Worksheet is closed.");
+        if (this.failed)
+            throw this.error;
+        this.nativeCharts.push(this.book.registerChart(chart));
+    }
+    /** @internal */
+    get charts() { return this.nativeCharts; }
+    /** @internal Completed chart parts no longer need their source snapshots. */
+    releaseCharts() { this.nativeCharts.length = 0; }
     /** Register a PNG such as a chart; bytes are copied so the caller can reuse its buffer. */
     addImage(image) {
         this.book.assertOpen();
@@ -2819,7 +2957,7 @@ class Worksheet {
                 if (this.links.length || this.internalLinks.length)
                     await this.buffer.write(hyperlinksXml(this.links, this.book.settings.invalidCharacterPolicy, this.internalLinks));
                 await this.buffer.write(printXml(this.options.print, this.book.settings.invalidCharacterPolicy));
-                if (this.pictures.length)
+                if (this.pictures.length || this.nativeCharts.length)
                     await this.buffer.write('<drawing r:id="drawing"/>');
                 if (this.tableDefinition)
                     await this.buffer.write('<tableParts count="1"><tablePart r:id="table"/></tableParts>');
@@ -2838,13 +2976,13 @@ class Worksheet {
     /** @internal */
     takePrepared() { const prepared = this.prepared; this.prepared = undefined; return prepared; }
     /** @internal */
-    async discard(error) { this.failed = true; this.error = error; this.pending = []; this.pendingCharacters = 0; this.prepared = undefined; this.buffer = undefined; this.output.discard(); await this.entry?.discard(error); }
+    async discard(error) { this.failed = true; this.error = error; this.pending = []; this.pendingCharacters = 0; this.prepared = undefined; this.buffer = undefined; this.nativeCharts.length = 0; this.output.discard(); await this.entry?.discard(error); }
 }
 const _exports = Object.freeze({ Worksheet: Worksheet });
 return _exports;
 })();
 
-const _m28 = (() => {
+const _m29 = (() => {
 const { escapeOoxmlAttribute, escapeXml, xmlDeclaration } = _m10;
 
 const { cellText, columnName } = _m18;
@@ -2855,7 +2993,7 @@ const { ExportCell } = _m19;
 
 const { Cell } = _m18;
 
-const { totalFormula } = _m24;
+const { totalFormula } = _m25;
 
 function defineTable(id, options, columns, policy) {
     const name = options.name ?? "Table" + id;
@@ -2890,7 +3028,7 @@ const _exports = Object.freeze({ defineTable: defineTable, tableXml: tableXml })
 return _exports;
 })();
 
-const _m29 = (() => {
+const _m30 = (() => {
 const { OfficeIMOError } = _m3;
 
 const { cleanXml } = _m10;
@@ -2957,6 +3095,139 @@ const _exports = Object.freeze({ TextOverflow: TextOverflow, clipText: clipText 
 return _exports;
 })();
 
+const _m31 = (() => {
+const { checkAbort } = _m2;
+
+const { NotSupportedError, OfficeIMOError } = _m3;
+
+const { cleanXml } = _m10;
+
+const { copyDrawingAnchor } = _m23;
+
+function fields(value, allowed, context) {
+    if (!value || typeof value !== "object" || Array.isArray(value))
+        throw new TypeError(context + " must be an object.");
+    for (const key of Object.keys(value))
+        if (!allowed.includes(key))
+            throw new NotSupportedError(context + "." + key);
+}
+function snapshot(value, allowed, context) {
+    fields(value, allowed, context);
+    return { ...value };
+}
+/** @internal Preflight bounds before copying any chart data. Failed registration reserves nothing. */
+function prepareChart(input, policy, availablePoints, availableText, signal) {
+    checkAbort(signal);
+    input = snapshot(input, ["type", "data", "row", "column", "width", "height", "description", "title", "legend", "dataLabels", "categoryAxis", "valueAxis"], "chart");
+    if (!["columnClustered", "barClustered", "line", "pie"].includes(input.type))
+        throw new NotSupportedError("chart type " + input.type);
+    const type = input.type;
+    const { categories, series } = snapshot(input.data, ["categories", "series"], "chart.data");
+    if (!Array.isArray(categories) || !categories.length)
+        throw new TypeError("Chart categories must be a nonempty array of strings.");
+    if (!Array.isArray(series) || !series.length || series.length > 255)
+        throw new RangeError("A chart needs from 1 through 255 series.");
+    if (categories.length > 1048575)
+        throw new RangeError("Chart data must fit Excel's rows including its header.");
+    if (type === "pie" && series.length !== 1)
+        throw new TypeError("A pie chart supports exactly one series.");
+    const points = categories.length * series.length;
+    if (points > availablePoints)
+        throw new OfficeIMOError("RESOURCE_LIMIT", "maxChartPoints exceeded.");
+    let textCharacters = 0;
+    const text = (value, context) => {
+        if (typeof value !== "string")
+            throw new TypeError(context + " must be a string.");
+        if (value.length > 32767)
+            throw new RangeError(context + " exceeds 32,767 UTF-16 units.");
+        textCharacters += value.length;
+        if (textCharacters > availableText)
+            throw new OfficeIMOError("RESOURCE_LIMIT", "maxChartTextCharacters exceeded.");
+        return cleanXml(value, policy);
+    };
+    const optionalText = (value, context) => value === undefined ? undefined : text(value, context);
+    const title = optionalText(input.title, "Chart title"), description = optionalText(input.description, "Chart description");
+    const anchor = copyDrawingAnchor({ row: input.row, column: input.column, width: input.width, height: input.height,
+        ...(description === undefined ? {} : { description }) }, policy);
+    if (input.legend !== undefined && input.legend !== false && !["right", "bottom", "left", "top"].includes(input.legend))
+        throw new TypeError("Unsupported chart legend position.");
+    let dataLabels;
+    if (input.dataLabels !== undefined) {
+        const labels = snapshot(input.dataLabels, ["showValue", "showCategoryName", "showSeriesName", "showPercent", "position", "numberFormat"], "chart.dataLabels");
+        for (const key of ["showValue", "showCategoryName", "showSeriesName", "showPercent"])
+            if (labels[key] !== undefined && typeof labels[key] !== "boolean")
+                throw new TypeError("Chart label flags must be booleans.");
+        if (labels.showPercent && type !== "pie")
+            throw new TypeError("Percent data labels require a pie chart.");
+        const positions = type === "pie" ? ["center", "insideEnd", "outsideEnd", "bestFit"] : type === "line" ? ["center", "above", "below", "left", "right"] : ["center", "insideEnd", "outsideEnd"];
+        if (labels.position !== undefined && !positions.includes(labels.position))
+            throw new TypeError("Data label position is unsupported for this chart type.");
+        const numberFormat = optionalText(labels.numberFormat, "Data label number format");
+        if (numberFormat !== undefined && !numberFormat.trim())
+            throw new TypeError("Data label number format cannot be blank.");
+        dataLabels = Object.freeze({ ...labels, ...(numberFormat === undefined ? {} : { numberFormat }) });
+    }
+    if (type === "pie" && (input.categoryAxis !== undefined || input.valueAxis !== undefined))
+        throw new TypeError("Pie charts have no axes.");
+    let categoryAxis, valueAxis;
+    if (input.categoryAxis !== undefined) {
+        const axisTitle = optionalText(snapshot(input.categoryAxis, ["title"], "chart.categoryAxis").title, "Category axis title");
+        categoryAxis = Object.freeze(axisTitle === undefined ? {} : { title: axisTitle });
+    }
+    if (input.valueAxis !== undefined) {
+        const axis = snapshot(input.valueAxis, ["title", "minimum", "maximum", "numberFormat"], "chart.valueAxis");
+        for (const value of [axis.minimum, axis.maximum])
+            if (value !== undefined && !Number.isFinite(value))
+                throw new TypeError("Chart axis bounds must be finite numbers.");
+        if (axis.minimum !== undefined && axis.maximum !== undefined && axis.minimum >= axis.maximum)
+            throw new RangeError("Chart axis minimum must be below its maximum.");
+        const axisTitle = optionalText(axis.title, "Value axis title"), numberFormat = optionalText(axis.numberFormat, "Value axis number format");
+        if (numberFormat !== undefined && !numberFormat.trim())
+            throw new TypeError("Value axis number format cannot be blank.");
+        valueAxis = Object.freeze({ ...axis, ...(axisTitle === undefined ? {} : { title: axisTitle }), ...(numberFormat === undefined ? {} : { numberFormat }) });
+    }
+    // Length budgets precede allocation; each source property/array element is read once.
+    const copiedCategories = [], copiedSeries = [];
+    for (let i = 0; i < categories.length; i++) {
+        if ((i & 255) === 0)
+            checkAbort(signal);
+        copiedCategories.push(text(categories[i], "Chart category"));
+    }
+    for (const item of series) {
+        const captured = snapshot(item, ["name", "values", "color"], "chart.series");
+        const name = text(captured.name, "Chart series name"), values = captured.values, color = captured.color;
+        if (!Array.isArray(values) || values.length !== categories.length)
+            throw new TypeError("Chart series values must match the category count.");
+        if (color !== undefined && (typeof color !== "string" || !/^#?[0-9a-fA-F]{6}$/.test(color)))
+            throw new TypeError("Chart colors must be opaque six-digit RGB hex values.");
+        let positive = false;
+        const copiedValues = [];
+        for (let i = 0; i < values.length; i++) {
+            if ((i & 255) === 0)
+                checkAbort(signal);
+            const value = values[i];
+            if (typeof value !== "number" || !Number.isFinite(value))
+                throw new TypeError("Chart values must be finite numbers.");
+            if (type === "pie" && value < 0)
+                throw new RangeError("Pie charts require nonnegative values.");
+            if (value > 0)
+                positive = true;
+            copiedValues.push(value);
+        }
+        if (type === "pie" && !positive)
+            throw new RangeError("A pie chart needs at least one positive value.");
+        copiedSeries.push(Object.freeze({ name, values: Object.freeze(copiedValues), ...(color === undefined ? {} : { color: color.replace(/^#/, "").toUpperCase() }) }));
+    }
+    return Object.freeze({ ...anchor, type,
+        data: Object.freeze({ categories: Object.freeze(copiedCategories), series: Object.freeze(copiedSeries) }),
+        ...(title === undefined ? {} : { title }), ...(description === undefined ? {} : { description }),
+        ...(input.legend === undefined ? {} : { legend: input.legend }), ...(dataLabels === undefined ? {} : { dataLabels }),
+        ...(categoryAxis === undefined ? {} : { categoryAxis }), ...(valueAxis === undefined ? {} : { valueAxis }), points, textCharacters });
+}
+const _exports = Object.freeze({ prepareChart: prepareChart });
+return _exports;
+})();
+
 const _m1 = (() => {
 const { beginTask, checkAbort, pause, taskYieldDue } = _m2;
 
@@ -2980,11 +3251,15 @@ const { assertExportValue } = _m19;
 
 const { Worksheet } = _m21;
 
-const { defineTable, tableXml } = _m28;
+const { defineTable, tableXml } = _m29;
 
 const { drawingXml, drawingContentType } = _m23;
 
-const { TextOverflow } = _m29;
+const { TextOverflow } = _m30;
+
+const { prepareChart } = _m31;
+
+const { chartContentType, writeChartXml } = _m24;
 
 const xlsxMime = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
 const formatType = (name) => "application/vnd.openxmlformats-officedocument.spreadsheetml." + name + "+xml";
@@ -3017,6 +3292,9 @@ class Workbook {
     bufferedBytes = 0;
     mergedRanges = 0;
     conditionalFormats = 0;
+    nativeCharts = [];
+    chartPoints = 0;
+    chartTextCharacters = 0;
     /** @internal Shared budget across worksheet headers and data. */
     budget;
     /** @internal Immutable settings used by the worksheet owner. */
@@ -3059,7 +3337,7 @@ class Workbook {
     }
     workbookXml() {
         return xmlDeclaration + '<workbook xmlns="' + spreadsheetNamespace + '" xmlns:r="' + officeRelationshipsNamespace + '"><workbookPr date1904="0"/><bookViews><workbookView/></bookViews><sheets>' +
-            this.sheets.map((s, i) => '<sheet name="' + escapeOoxmlAttribute(s.name, this.settings.invalidCharacterPolicy) + '" sheetId="' + (i + 1) + '" r:id="rId' + (i + 1) + '"/>').join("") + '</sheets>' +
+            this.sheets.map((s, i) => '<sheet name="' + escapeOoxmlAttribute(s.name, this.settings.invalidCharacterPolicy) + '" sheetId="' + (i + 1) + '"' + (s.hidden ? ' state="hidden"' : "") + ' r:id="rId' + (i + 1) + '"/>').join("") + '</sheets>' +
             (this.sheets.some(s => s.printSettings) ? '<definedNames>' + this.sheets.map((s, i) => {
                 const quoted = "'" + s.name.replace(/'/g, "''") + "'!";
                 return s.printSettings ? '<definedName name="_xlnm.Print_Area" localSheetId="' + i + '">' + escapeOoxmlAttribute(quoted + '$A$1:$' + s.lastColumn + '$' + s.totalRows, this.settings.invalidCharacterPolicy) + '</definedName>' +
@@ -3087,7 +3365,7 @@ class Workbook {
         if (this.settings.oversizedText !== "preserve")
             throw new RangeError("Excel cell text exceeds 32,767 UTF-16 code units.");
         if (!this.overflow) {
-            this.checkSheetLimit(this.sheets.length + 1);
+            this.checkSheetLimit(this.sheets.length + this.nativeCharts.length + 1);
             this.budget.reserve(5, "SheetCellPartTextParts".length);
             this.overflow = new TextOverflow(sheetName("Text overflow", this.names, this.settings.invalidCharacterPolicy), this.settings.limits?.maxOverflowCharacters ?? 4000000, this.settings.invalidCharacterPolicy, (cells, characters, rows) => { this.budget.row(rows); this.budget.reserve(cells, characters); });
         }
@@ -3124,6 +3402,19 @@ class Workbook {
     /** @internal */
     checkConditionalFormats(count) { if (this.conditionalFormats + count > (this.settings.limits?.maxConditionalFormats ?? 1000))
         throw new OfficeIMOError("RESOURCE_LIMIT", "maxConditionalFormats exceeded."); }
+    /** @internal Reserve chart snapshots and their source-sheet names before any output is generated. */
+    registerChart(input) {
+        if (this.nativeCharts.length >= (this.settings.limits?.maxCharts ?? 100))
+            throw new OfficeIMOError("RESOURCE_LIMIT", "maxCharts exceeded.");
+        this.checkSheetLimit(this.sheets.length + this.nativeCharts.length + 1 + (this.overflow ? 1 : 0));
+        const chart = prepareChart(input, this.settings.invalidCharacterPolicy, (this.settings.limits?.maxChartPoints ?? 100000) - this.chartPoints, (this.settings.limits?.maxChartTextCharacters ?? 1000000) - this.chartTextCharacters, this.settings.signal);
+        const registered = Object.freeze({ ...chart, id: this.nativeCharts.length + 1,
+            dataSheetName: sheetName("Chart data " + (this.nativeCharts.length + 1), this.names, this.settings.invalidCharacterPolicy) });
+        this.nativeCharts.push(registered);
+        this.chartPoints += chart.points;
+        this.chartTextCharacters += chart.textCharacters;
+        return registered;
+    }
     /** @internal Streamed parts cannot interleave. Starting a new sheet completes the preceding one. */
     async openSheet(sheet) {
         if (this.activeSheet && this.activeSheet !== sheet) {
@@ -3141,13 +3432,14 @@ class Workbook {
         await Promise.allSettled(this.sheets.map(sheet => sheet.discard(error)));
         await this.package.discard(error);
         this.overflow?.clear();
+        this.nativeCharts.length = 0;
     }
     get worksheets() { return Object.freeze([...this.sheets]); }
     /** Total report data rows; excludes title/header/footer and preservation records. */
     get rowCount() { return this.sheets.reduce((sum, sheet) => sum + sheet.reportRowCount, 0); }
     addWorksheet(name, options = {}) {
         this.assertOpen();
-        this.checkSheetLimit(this.sheets.length + 1 + (this.overflow ? 1 : 0));
+        this.checkSheetLimit(this.sheets.length + this.nativeCharts.length + 1 + (this.overflow ? 1 : 0));
         // Validation/serialization use erased column metadata; projection later receives T rows.
         const metadata = options;
         const conditional = Worksheet.validate(this, metadata);
@@ -3222,9 +3514,9 @@ class Workbook {
                             checkAbort(this.settings.signal);
                         }
                     }
-                    if (sheet.images.length) {
+                    if (sheet.images.length || sheet.charts.length) {
                         const drawingUri = "/xl/drawings/drawing" + (i + 1) + ".xml";
-                        this.addXmlPart(drawingUri, drawingContentType, () => drawingXml(sheet.images, this.settings.invalidCharacterPolicy));
+                        this.addXmlPart(drawingUri, drawingContentType, () => drawingXml(sheet.images, this.settings.invalidCharacterPolicy, sheet.charts));
                         this.package.addRelationship(uri, { id: "drawing", type: officeRelationshipsNamespace + "/drawing", target: drawingUri });
                         for (let j = 0; j < sheet.images.length; j++) {
                             checkAbort(this.settings.signal);
@@ -3235,6 +3527,12 @@ class Workbook {
                                 await pause();
                                 checkAbort(this.settings.signal);
                             }
+                        }
+                        for (const chart of sheet.charts) {
+                            checkAbort(this.settings.signal);
+                            const chartUri = "/xl/charts/chart" + chart.id + ".xml";
+                            this.package.addPart({ uri: chartUri, contentType: chartContentType, data: sink => writeChartXml(chart, sink, this.settings.invalidCharacterPolicy, this.settings.signal) });
+                            this.package.addRelationship(drawingUri, { id: "chart" + chart.id, type: officeRelationshipsNamespace + "/chart", target: chartUri });
                         }
                     }
                 }
@@ -3247,6 +3545,17 @@ class Workbook {
                         this.package.addPrepared("/xl/worksheets/sheet" + this.sheets.length + ".xml", formatType("worksheet"), prepared);
                     this.overflow.clear();
                 }
+                for (const chart of this.nativeCharts) {
+                    checkAbort(this.settings.signal);
+                    const sheet = Worksheet.createChartData(this, chart);
+                    this.sheets.push(sheet);
+                    function* rows() { for (let i = 0; i < chart.data.categories.length; i++)
+                        yield [chart.data.categories[i], ...chart.data.series.map(series => series.values[i])]; }
+                    await sheet.finish(rows());
+                    const prepared = sheet.takePrepared();
+                    if (prepared)
+                        this.package.addPrepared("/xl/worksheets/sheet" + this.sheets.length + ".xml", formatType("worksheet"), prepared);
+                }
                 this.package.addRelationship("/", { id: "workbook", type: relationshipTypes.officeDocument, target: "/xl/workbook.xml" });
                 for (let i = 0; i < this.sheets.length; i++) {
                     checkAbort(this.settings.signal);
@@ -3258,6 +3567,9 @@ class Workbook {
                 }
                 this.package.addRelationship("/xl/workbook.xml", { id: "styles", type: relationshipTypes.styles, target: "/xl/styles.xml" });
                 const bytes = await this.package.finish();
+                for (const sheet of this.sheets)
+                    sheet.releaseCharts();
+                this.nativeCharts.length = 0;
                 notifyProgress(this.settings.onProgress, { phase: "complete", rows, bytes });
                 checkAbort(this.settings.signal);
                 this.state = "complete";
@@ -3290,7 +3602,7 @@ const _exports = Object.freeze({ Workbook: Workbook });
 return _exports;
 })();
 
-const _m31 = (() => {
+const _m33 = (() => {
 const { ExportCell, assertScalar } = _m19;
 
 function style(patch) {
@@ -3336,14 +3648,14 @@ const _exports = Object.freeze({ portableSheet: portableSheet, portableWorkbook:
 return _exports;
 })();
 
-const _m30 = (() => {
+const _m32 = (() => {
 const { withDestination } = _m5;
 
 const { copyColumns } = _m22;
 
 const { Workbook } = _m1;
 
-const { portableSheet, portableWorkbook } = _m31;
+const { portableSheet, portableWorkbook } = _m33;
 
 function prepare(options) {
     const columns = copyColumns(options?.columns);
@@ -3389,7 +3701,7 @@ const _exports = Object.freeze({ writeXlsx: writeXlsx, writeXlsxTo: writeXlsxTo 
 return _exports;
 })();
 
-const _m32 = (() => {
+const _m34 = (() => {
 
 
 
@@ -3437,7 +3749,7 @@ return _exports;
 
 const _m0 = (() => {
 
-const _exports = Object.freeze({ Workbook: _m1.Workbook, writeXlsx: _m30.writeXlsx, writeXlsxTo: _m30.writeXlsxTo, Worksheet: _m21.Worksheet, Cell: _m18.Cell, StyleRegistry: _m15.StyleRegistry, NumberFormats: _m15.NumberFormats, saveBlob: _m32.saveBlob, ExportCell: _m19.ExportCell });
+const _exports = Object.freeze({ Workbook: _m1.Workbook, writeXlsx: _m32.writeXlsx, writeXlsxTo: _m32.writeXlsxTo, Worksheet: _m21.Worksheet, Cell: _m18.Cell, StyleRegistry: _m15.StyleRegistry, NumberFormats: _m15.NumberFormats, saveBlob: _m34.saveBlob, ExportCell: _m19.ExportCell });
 return _exports;
 })();
 const { Workbook, writeXlsx, writeXlsxTo, Worksheet, Cell, StyleRegistry, NumberFormats, saveBlob, ExportCell } = _m0;

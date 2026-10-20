@@ -25,6 +25,8 @@ import { cleanXml } from "../xml/index.js";
 import { ConditionalFormats, prepareConditionalFormats } from "./conditional-formatting.js";
 import type { PreparedRule } from "./conditional-formatting.js";
 import { isDate } from "../core/dates.js";
+import type { WorksheetChart } from "./chart-types.js";
+import type { RegisteredChart } from "./charts.js";
 
 const maximumHyperlinks = 65530;
 function checkHyperlinkCount(count: number): void {
@@ -57,8 +59,9 @@ export class Worksheet<T = never> {
   private readonly links: Hyperlink[] = [];
   private readonly linkedCells = new Set<string>();
   private readonly pictures: WorksheetImage[] = [];
+  private readonly nativeCharts: RegisteredChart[] = [];
   private readonly conditional: ConditionalFormats;
-  private constructor(private readonly book: Workbook, readonly name: string, options: SheetOptions, private readonly table?: TableDefinition, private readonly preserved = false, conditional: readonly PreparedRule[] = []) {
+  private constructor(private readonly book: Workbook, readonly name: string, options: SheetOptions, private readonly table?: TableDefinition, private readonly preserved = false, conditional: readonly PreparedRule[] = [], private readonly chartData = false) {
     this.columns = copyColumns(options.columns ?? [], true).map(c => Object.freeze(c));
     const alternate = options.alternatingRowStyle;
     this.options = { ...options, ...(options.autoSize ? { autoSize: { ...options.autoSize } } : {}),
@@ -87,6 +90,10 @@ export class Worksheet<T = never> {
   }
   /** @internal */
   static create(book: Workbook, name: string, options: SheetOptions, table?: TableDefinition, preserved = false, conditional?: readonly PreparedRule[]): Worksheet { return new Worksheet(book, name, options, table, preserved, conditional); }
+  /** @internal Generated source cells use the normal worksheet serializer and budgets. */
+  static createChartData(book: Workbook, chart: RegisteredChart): Worksheet {
+    return new Worksheet(book, chart.dataSheetName, { columns: [{ header: "Category" }, ...chart.data.series.map(series => ({ header: series.name, type: "number" }))] }, undefined, false, [], true);
+  }
   /** @internal Validate before allocating native compressor resources or registering the sheet name. */
   static validate(book: Workbook, options: SheetOptions): readonly PreparedRule[] {
     for (const feature of ["dataValidation"] as const)
@@ -329,10 +336,23 @@ export class Worksheet<T = never> {
     } catch (error) { this.failed = true; this.error = error; await this.book.discard(error); throw error; }
     finally { this.busy = false; }
   }
-  private progress(): void { if (!this.preserved) notifyProgress(this.book.settings.onProgress, { phase: "rows", rows: this.book.rowCount, sheetRows: this.count, sheetName: this.name }); }
+  private progress(): void { if (!this.preserved && !this.chartData) notifyProgress(this.book.settings.onProgress, { phase: "rows", rows: this.book.rowCount, sheetRows: this.count, sheetName: this.name }); }
   get rowCount(): number { return this.count; }
   /** @internal Preservation records are metadata, not report data rows. */
-  get reportRowCount(): number { return this.preserved ? 0 : this.count; }
+  get reportRowCount(): number { return this.preserved || this.chartData ? 0 : this.count; }
+  /** @internal Chart data is editable through Excel's Unhide worksheet command. */
+  get hidden(): boolean { return this.chartData; }
+  /** Capture a bounded native chart. Source cells and caches remain independent of later caller mutations. */
+  addChart(chart: WorksheetChart): void {
+    this.book.assertOpen();
+    if (this.completion) throw new OfficeIMOError("INVALID_STATE", "Worksheet is closed.");
+    if (this.failed) throw this.error;
+    this.nativeCharts.push(this.book.registerChart(chart));
+  }
+  /** @internal */
+  get charts(): readonly RegisteredChart[] { return this.nativeCharts; }
+  /** @internal Completed chart parts no longer need their source snapshots. */
+  releaseCharts(): void { this.nativeCharts.length = 0; }
   /** Register a PNG such as a chart; bytes are copied so the caller can reuse its buffer. */
   addImage(image: WorksheetImage): void {
     this.book.assertOpen();
@@ -409,7 +429,7 @@ export class Worksheet<T = never> {
       for (const xml of this.conditional.xml(this.headerRows, this.count, this.totalRows)) await this.buffer!.write(xml);
       if (this.links.length || this.internalLinks.length) await this.buffer!.write(hyperlinksXml(this.links, this.book.settings.invalidCharacterPolicy, this.internalLinks));
       await this.buffer!.write(printXml(this.options.print, this.book.settings.invalidCharacterPolicy));
-      if (this.pictures.length) await this.buffer!.write('<drawing r:id="drawing"/>');
+      if (this.pictures.length || this.nativeCharts.length) await this.buffer!.write('<drawing r:id="drawing"/>');
       if (this.tableDefinition) await this.buffer!.write('<tableParts count="1"><tablePart r:id="table"/></tableParts>');
       await this.buffer!.write('</worksheet>'); await this.buffer!.close();
       const info = await this.entry!.close();
@@ -419,5 +439,5 @@ export class Worksheet<T = never> {
   /** @internal */
   takePrepared(): PreparedEntry | undefined { const prepared = this.prepared; this.prepared = undefined; return prepared; }
   /** @internal */
-  async discard(error: unknown): Promise<void> { this.failed = true; this.error = error; this.pending = []; this.pendingCharacters = 0; this.prepared = undefined; this.buffer = undefined; this.output.discard(); await this.entry?.discard(error); }
+  async discard(error: unknown): Promise<void> { this.failed = true; this.error = error; this.pending = []; this.pendingCharacters = 0; this.prepared = undefined; this.buffer = undefined; this.nativeCharts.length = 0; this.output.discard(); await this.entry?.discard(error); }
 }

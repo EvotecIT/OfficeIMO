@@ -2,17 +2,30 @@ import { cleanXml, escapeXml, escapeOoxmlAttribute, xmlDeclaration } from "../xm
 import type { InvalidCharacterPolicy } from "../xml/index.js";
 import { copyExportLink } from "../core/links.js";
 import { officeRelationshipsNamespace } from "../opc/index.js";
+import { chartAnchorXml } from "./chart-xml.js";
+import type { RegisteredChart } from "./charts.js";
 
 /** A link attached to an existing cell. Its value and presentation remain ordinary cell data. */
 export interface Hyperlink { readonly cell: string; readonly target: string; readonly tooltip?: string; }
-/** PNG bytes anchored at a one-based row/column, with display size in CSS pixels at 96 DPI. */
-export interface WorksheetImage {
-  readonly data: Uint8Array;
+/** One-based worksheet anchor and display size in CSS pixels at 96 DPI. */
+export interface WorksheetAnchor {
   readonly row: number;
   readonly column: number;
   readonly width: number;
   readonly height: number;
   readonly description?: string;
+}
+/** PNG bytes anchored in worksheet coordinates. */
+export interface WorksheetImage extends WorksheetAnchor { readonly data: Uint8Array; }
+
+/** @internal Native charts and images use the same drawing coordinate policy. */
+export function copyDrawingAnchor(anchor: WorksheetAnchor, policy: InvalidCharacterPolicy): WorksheetAnchor {
+  if (!Number.isInteger(anchor.row) || anchor.row < 1 || anchor.row > 1048576 || !Number.isInteger(anchor.column) || anchor.column < 1 || anchor.column > 16384)
+    throw new RangeError("Drawing anchors must be one-based worksheet rows and columns.");
+  for (const size of [anchor.width, anchor.height]) if (!Number.isFinite(size) || size <= 0 || size > 100000) throw new RangeError("Drawing display dimensions must be positive and at most 100,000 pixels.");
+  if (anchor.description !== undefined && typeof anchor.description !== "string") throw new TypeError("Drawing description must be a string.");
+  return Object.freeze({ row: anchor.row, column: anchor.column, width: anchor.width, height: anchor.height,
+    ...(anchor.description === undefined ? {} : { description: cleanXml(anchor.description, policy) }) });
 }
 
 export function cellPosition(reference: string): { row: number; column: number } {
@@ -37,11 +50,7 @@ export function copyImage(image: WorksheetImage, policy: InvalidCharacterPolicy)
     throw new TypeError("Images require PNG bytes with a valid signature and IHDR header.");
   const header = new DataView(image.data.buffer, image.data.byteOffset, image.data.byteLength);
   if (!header.getUint32(16) || !header.getUint32(20)) throw new RangeError("PNG dimensions must be positive.");
-  if (!Number.isInteger(image.row) || image.row < 1 || image.row > 1048576 || !Number.isInteger(image.column) || image.column < 1 || image.column > 16384)
-    throw new RangeError("Image anchors must be one-based worksheet rows and columns.");
-  for (const size of [image.width, image.height]) if (!Number.isFinite(size) || size <= 0 || size > 100000) throw new RangeError("Image display dimensions must be positive and at most 100,000 pixels.");
-  return Object.freeze({ ...image, data: new Uint8Array(image.data),
-    ...(image.description === undefined ? {} : { description: cleanXml(image.description, policy) }) });
+  return Object.freeze({ ...copyDrawingAnchor(image, policy), data: new Uint8Array(image.data) });
 }
 
 export function hyperlinksXml(links: readonly Hyperlink[], policy: InvalidCharacterPolicy, internal: readonly { cell: string; location: string }[] = []): string {
@@ -50,7 +59,8 @@ export function hyperlinksXml(links: readonly Hyperlink[], policy: InvalidCharac
     internal.map(link => '<hyperlink ref="' + link.cell + '" location="' + escapeOoxmlAttribute(link.location, policy) + '"/>').join("") + '</hyperlinks>';
 }
 
-export function drawingXml(images: readonly WorksheetImage[], policy: InvalidCharacterPolicy): string {
+/** @internal Package drawing serialization does not form part of the worksheet input contract. */
+export function drawingXml(images: readonly WorksheetImage[], policy: InvalidCharacterPolicy, charts: readonly RegisteredChart[] = []): string {
   const ns = "http://schemas.openxmlformats.org/drawingml/2006/";
   return xmlDeclaration + '<xdr:wsDr xmlns:xdr="' + ns + 'spreadsheetDrawing" xmlns:a="' + ns + 'main" xmlns:r="' + officeRelationshipsNamespace + '">' +
     images.map((image, i) => {
@@ -59,7 +69,7 @@ export function drawingXml(images: readonly WorksheetImage[], policy: InvalidCha
         '<xdr:ext' + size + '/><xdr:pic><xdr:nvPicPr><xdr:cNvPr id="' + (i + 1) + '" name="Image ' + (i + 1) + '" descr="' + escapeXml(image.description ?? "", policy) + '"/><xdr:cNvPicPr/></xdr:nvPicPr>' +
         '<xdr:blipFill><a:blip r:embed="image' + (i + 1) + '"/><a:stretch><a:fillRect/></a:stretch></xdr:blipFill>' +
         '<xdr:spPr><a:xfrm><a:off x="0" y="0"/><a:ext' + size + '/></a:xfrm><a:prstGeom prst="rect"><a:avLst/></a:prstGeom></xdr:spPr></xdr:pic><xdr:clientData/></xdr:oneCellAnchor>';
-    }).join("") + '</xdr:wsDr>';
+    }).join("") + charts.map((chart, i) => chartAnchorXml(chart, images.length + i + 1, policy)).join("") + '</xdr:wsDr>';
 }
 
 export const drawingContentType = "application/vnd.openxmlformats-officedocument.drawing+xml";

@@ -12,16 +12,21 @@ interface PngHeader {
 export interface PngPixels {
   readonly width: number;
   readonly height: number;
-  readonly components: 3 | 4;
+  readonly components: 3;
   readonly data: Uint8Array;
+  readonly alpha?: Uint8Array;
 }
 const signature = [137, 80, 78, 71, 13, 10, 26, 10];
 const unsupportedChunks = new Set(["PLTE", "tRNS", "iCCP", "sRGB", "gAMA", "cHRM", "cICP", "mDCV", "cLLI", "sBIT", "eXIf", "acTL", "fcTL", "fdAT"]);
 
 /** Decode the static unprofiled 8-bit RGB/RGBA profile without canvas or a second compression engine. */
-export async function pngPixels(inputSource: Uint8Array, maxPixels: number, signal?: AbortSignal): Promise<PngPixels> {
+export async function pngPixels(inputSource: Uint8Array, maxPixels: number, signal?: AbortSignal, maxWorkingBytes?: number): Promise<PngPixels> {
   checkAbort(signal);
   const shape = pngShape(inputSource, maxPixels);
+  const imagePixels = shape.width * shape.height;
+  const workingBytes = inputSource.length + imagePixels * shape.components + (shape.components === 4 ? shape.width * 8 : 0);
+  if (maxWorkingBytes !== undefined && workingBytes > maxWorkingBytes)
+    throw new OfficeIMOError("RESOURCE_LIMIT", "maxImageWorkingBytes exceeded by PNG source, image planes and scanlines.");
   const source = new Uint8Array(inputSource);
   const header = await pngHeader(source, shape, signal);
   checkAbort(signal);
@@ -37,7 +42,11 @@ export async function pngPixels(inputSource: Uint8Array, maxPixels: number, sign
   // All dimensions and the exact filtered length are bounded before allocating decoded pixels.
   if (!Number.isSafeInteger(expected) || expected > 0x7fffffff)
     throw new OfficeIMOError("RESOURCE_LIMIT", "PNG filtered data exceeds the supported decoded byte length.");
-  const pixels = new Uint8Array(rowBytes * height), view = new DataView(source.buffer, source.byteOffset, source.byteLength);
+  // RGBA is reconstructed one scanline at a time directly into PDF RGB/alpha planes.
+  // It never retains an additional full interleaved RGBA image.
+  const pixels = new Uint8Array(width * height * 3), alpha = components === 4 ? new Uint8Array(imagePixels) : undefined;
+  let previous = components === 4 ? new Uint8Array(rowBytes) : undefined, current = components === 4 ? new Uint8Array(rowBytes) : undefined;
+  const view = new DataView(source.buffer, source.byteOffset, source.byteLength);
   let chunk = header.firstData, position = chunk + 8, end = position + view.getUint32(chunk);
   const input = new ReadableStream<BufferSource>({ pull(controller) {
     checkAbort(signal);
@@ -51,7 +60,7 @@ export async function pngPixels(inputSource: Uint8Array, maxPixels: number, sign
     controller.enqueue(source.subarray(position, next)); position = next;
   } }, { highWaterMark: 0 });
   const reader = input.pipeThrough(stream).getReader();
-  let inflated = 0, output = 0, column = 0, filter = 0;
+  let inflated = 0, output = 0, rgbOutput = 0, alphaOutput = 0, column = 0, filter = 0;
   try {
     while (true) {
       const item = await withAbort(reader.read(), signal).catch(cause => {
@@ -67,20 +76,42 @@ export async function pngPixels(inputSource: Uint8Array, maxPixels: number, sign
           filter = value;
           if (filter > 4) throw new TypeError("Invalid PNG scanline filter.");
         } else {
-          const left = column > components ? pixels[output - components]! : 0;
-          const up = output >= rowBytes ? pixels[output - rowBytes]! : 0;
-          const upperLeft = column > components && output >= rowBytes ? pixels[output - rowBytes - components]! : 0;
-          pixels[output++] = value + (filter === 0 ? 0 : filter === 1 ? left : filter === 2 ? up :
-            filter === 3 ? Math.floor((left + up) / 2) : paeth(left, up, upperLeft));
+          const index = column - 1;
+          let decoded = value;
+          if (filter !== 0) {
+            const left = column > components ? current ? current[index - components]! : pixels[output - components]! : 0;
+            const up = previous ? previous[index]! : output >= rowBytes ? pixels[output - rowBytes]! : 0;
+            const upperLeft = column > components ? previous ? previous[index - components]! : output >= rowBytes ? pixels[output - rowBytes - components]! : 0 : 0;
+            decoded = (value + (filter === 1 ? left : filter === 2 ? up :
+              filter === 3 ? Math.floor((left + up) / 2) : paeth(left, up, upperLeft))) & 255;
+          }
+          if (current) current[index] = decoded;
+          else pixels[output] = decoded;
+          output++;
         }
-        column = column === rowBytes ? 0 : column + 1;
+        if (column === rowBytes) {
+          column = 0;
+          if (current && alpha) {
+            // Split each completed row once: no per-byte division or channel dispatch,
+            // and filter reconstruction still uses only these same two scanlines.
+            for (let c = 0; c < rowBytes; c += 4) {
+              pixels[rgbOutput++] = current[c]!;
+              pixels[rgbOutput++] = current[c + 1]!;
+              pixels[rgbOutput++] = current[c + 2]!;
+              alpha[alphaOutput++] = current[c + 3]!;
+              if ((c & 16383) === 16380) { if (taskYieldDue()) await pause(); checkAbort(signal); }
+            }
+            const completed = current; current = previous; previous = completed;
+          }
+        }
+        else column++;
         if ((p & 16383) === 16383) { if (taskYieldDue()) await pause(); checkAbort(signal); }
       }
       inflated += item.value.length;
       if (taskYieldDue()) await pause(); checkAbort(signal);
     }
     if (inflated !== expected) throw new TypeError("PNG inflated bytes must match the exact IHDR scanline length.");
-    return { width, height, components, data: pixels };
+    return { width, height, components: 3, data: pixels, ...(alpha ? { alpha } : {}) };
   } catch (error) {
     void reader.cancel(error).catch(() => {});
     throw error;

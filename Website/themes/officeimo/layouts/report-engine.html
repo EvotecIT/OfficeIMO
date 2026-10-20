@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>{{ page.title }} | {{ site.name }}</title>
+  {{ description_meta_html }}{{ canonical_html }}
+  <link rel="alternate" hreflang="en" href="{{ base_url }}{{ current_path }}" />
+  <link rel="alternate" hreflang="x-default" href="{{ base_url }}{{ current_path }}" />
+  {{ head_html }}{{ include "theme-init" }}{{ include "theme-tokens" }}
+  {{ assets.critical_css_html }}{{ assets.preloads_html }}{{ extra_css_html }}{{ assets.css_html }}
+  <link rel="stylesheet" href="/css/report-engine.css" />
+  {{ opengraph_html }}{{ structured_data_html }}
+</head>
+<body class="imo-body imo-body--page">
+  <a class="imo-skip-link" href="#content">Skip to main content</a>
+  {{ include "header" }}
+  <main id="content" class="imo-main imo-main--page">
+    <div class="imo-container imo-report-lab">
+      <header class="imo-report-lab__intro">
+        <p class="imo-section__eyebrow">OfficeIMO.JavaScript · runs on your device</p>
+        <h1>Make the report.<br />Keep the detail.</h1>
+        <p>One operational dataset. Typed Excel with editable charts, a composed PDF, or clean CSV. Try the engine with a few rows, then give it a larger workload.</p>
+      </header>
+      <section class="imo-report-lab__workbench" aria-labelledby="report-workbench-title">
+        <div class="imo-report-lab__controls">
+          <h2 id="report-workbench-title">Service health report</h2>
+          <p>Illustrative services across Warsaw, Łódź, Praha and Berlin.</p>
+          <form id="report-form">
+            <label for="report-rows">Services</label>
+            <select id="report-rows" name="rows">
+              <option value="100">100 · inspect the detail</option>
+              <option value="5000">5,000 · a larger report</option>
+              <option value="50000">50,000 · stress the workflow</option>
+              <option value="0">0 · empty view</option>
+            </select>
+            <label for="report-format">Document</label>
+            <select id="report-format" name="format">
+              <option value="xlsx">Excel · editable chart and data</option>
+              <option value="pdf">PDF · composed report</option>
+              <option value="csv">CSV · ordered values</option>
+            </select>
+            <div class="imo-report-lab__actions">
+              <button id="report-generate" class="imo-btn imo-btn-primary" type="submit" disabled>Generate report</button>
+              <button id="report-cancel" class="imo-btn imo-btn-ghost" type="button" disabled>Cancel</button>
+            </div>
+          </form>
+          <progress id="report-progress" max="100" value="0" aria-label="Report rows processed"></progress>
+          <p id="report-status" role="status" aria-live="polite">Loading the report controls…</p>
+          <a id="report-download" class="imo-btn imo-btn-primary" hidden>Download report</a>
+          <p id="report-measurement" class="imo-report-lab__measurement"></p>
+          <noscript><p>Enable JavaScript to generate a report. The API guide below remains available.</p></noscript>
+        </div>
+        <div class="imo-report-lab__preview">
+          <div class="imo-report-lab__preview-heading"><h2>Inside the report</h2><span id="report-preview-count">First 8 of 100 services</span></div>
+          <div class="imo-report-lab__table-scroll" tabindex="0" role="region" aria-label="Service data preview, scroll for more columns">
+            <table><caption>Illustrative service health data</caption><thead><tr><th scope="col">Service</th><th scope="col">Site</th><th scope="col">Status</th><th scope="col">Latency</th></tr></thead><tbody id="report-preview"></tbody></table>
+          </div>
+          <ul class="imo-report-lab__details"><li>Numbers and dates retain their types in Excel.</li><li>PDF headings stay with the following content.</li><li>Rows and output chunks cross the worker boundary in bounded batches.</li></ul>
+        </div>
+      </section>
+      <section class="imo-report-lab__explanation imo-prose" aria-label="Engine behavior and limits">{{ content }}</section>
+    </div>
+  </main>
+  {{ include "footer" }}{{ assets.js_html }}{{ extra_scripts_html }}
+  <script type="module" src="/js/report-engine-loader.mjs"></script>
+</body>
+</html>

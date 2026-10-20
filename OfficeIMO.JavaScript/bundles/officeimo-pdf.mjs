@@ -578,7 +578,13 @@ const sizes = {
     A3: { width: 841.89, height: 1190.551 }, A4: { width: 595.276, height: 841.89 }, A5: { width: 419.528, height: 595.276 },
     LETTER: { width: 612, height: 792 }, LEGAL: { width: 612, height: 1008 }, TABLOID: { width: 792, height: 1224 }
 };
-function settings(configuration, document = false) {
+function settings(input, document = false) {
+    const configuration = { ...input };
+    const textShaper = configuration.textShaper, shapeLine = textShaper?.shapeLine;
+    if (textShaper !== undefined && (!textShaper || typeof shapeLine !== "function"))
+        throw new TypeError("textShaper must provide shapeLine.");
+    if (configuration.textDirection !== undefined && !["auto", "ltr", "rtl"].includes(configuration.textDirection))
+        throw new TypeError("textDirection must be auto, ltr or rtl.");
     const columns = copyColumns(configuration?.columns).map(c => Object.freeze(c));
     if (!columns.length && !document)
         throw new TypeError("PDF tables need at least one declared column.");
@@ -587,6 +593,7 @@ function settings(configuration, document = false) {
         return Object.freeze(rows.map(row => Object.freeze(row.map(cell => cell ? Object.freeze({ ...cell }) : null))));
     }
     const options = { ...configuration, columns,
+        ...(textShaper ? { textShaper: Object.freeze({ shapeLine: shapeLine.bind(textShaper) }) } : {}),
         ...(configuration.tagged ? { tagged: Object.freeze({ ...configuration.tagged }) } : {}),
         ...(configuration.headerRows ? { headerRows: copySpans(configuration.headerRows) } : {}),
         ...(configuration.fonts ? { fonts: Object.freeze({ ...configuration.fonts }) } : {}),
@@ -598,7 +605,7 @@ function settings(configuration, document = false) {
         headerPresentation: presentation({ background: "e7edf5", bold: true, ...configuration.headerPresentation }),
         footerPresentation: presentation({ background: "eef2f6", bold: true, ...configuration.footerPresentation }) };
     const budget = new ExportBudget(options.limits);
-    const limits = { maxPages: 10000, maxColumns: 1024, maxCellCharacters: 1000000, maxRowLines: 100000, maxFontBytes: 16 * 1024 * 1024, maxPageBytes: 8 * 1024 * 1024, maxHyperlinks: 100000,
+    const limits = { maxPages: 10000, maxColumns: 1024, maxCellCharacters: 1000000, maxTextRuns: 10000, maxGroupBlocks: 256, maxRowLines: 100000, maxFontBytes: 16 * 1024 * 1024, maxPageBytes: 8 * 1024 * 1024, maxHyperlinks: 100000,
         maxImageBytes: 32 * 1024 * 1024, maxImagePixels: 16 * 1024 * 1024, maxVectorCommands: 100000, maxDrawingElements: 100000,
         maxStructureElements: 1000000, maxMarkedContentReferences: 2000000 };
     for (const key of Object.keys(limits)) {
@@ -633,8 +640,9 @@ function settings(configuration, document = false) {
     for (const key of ["pageHeader", "pageFooter"])
         if (options[key] !== undefined && typeof options[key] !== "string" && typeof options[key] !== "function")
             throw new TypeError(key + " must be text or a synchronous callback.");
-    if (options.formatValue !== undefined && typeof options.formatValue !== "function")
-        throw new TypeError("formatValue must be a synchronous function.");
+    for (const key of ["formatValue", "formatRuns"])
+        if (options[key] !== undefined && typeof options[key] !== "function")
+            throw new TypeError(key + " must be a synchronous function.");
     for (const key of ["compression", "includeHeader", "pageNumbers"])
         if (options[key] !== undefined && typeof options[key] !== "boolean")
             throw new TypeError(key + " must be boolean.");
@@ -659,7 +667,9 @@ function settings(configuration, document = false) {
         if (options.headerRows || columns.some(column => column.groups?.length) || options.footer?.rows)
             throw new TypeError("Tagged PDF supports leaf column headings and ordinary footer cells; grouped headings and span matrices are unsupported.");
     }
-    return { options, page, margins, fontSize, padding, limits, budget };
+    const maxImageWorkingBytes = options.limits?.maxImageWorkingBytes;
+    return { options, page, margins, fontSize, padding,
+        limits: { ...limits, ...(maxImageWorkingBytes === undefined ? {} : { maxImageWorkingBytes }) }, budget };
 }
 const _exports = Object.freeze({ positive: positive, color: color, presentation: presentation, settings: settings });
 return _exports;
@@ -827,13 +837,41 @@ return _exports;
 })();
 
 const _m19 = (() => {
-const { align4, checksum } = _m18;
+const { align4 } = _m18;
+
+const { checkAbort, pause, taskYieldDue } = _m3;
 
 /** Preserve glyph IDs and complete composite dependencies, as in OfficeIMO.Pdf's native subsetter. */
 function subsetTrueType(font, requested, characters) {
+    const scanner = subsetSteps(font, requested, characters);
+    while (true) {
+        const next = scanner.next();
+        if (next.done)
+            return next.value;
+    }
+}
+/** Build the same font bytes with cancellation and bounded cooperative scans. */
+async function subsetTrueTypeCooperatively(font, requested, characters, signal) {
+    checkAbort(signal);
+    const scanner = subsetSteps(font, requested, characters);
+    while (true) {
+        const next = scanner.next();
+        if (next.done) {
+            checkAbort(signal);
+            return next.value;
+        }
+        if (taskYieldDue())
+            await pause();
+        checkAbort(signal);
+    }
+}
+function* subsetSteps(font, requested, characters) {
     const glyphs = new Set([0, ...requested]), glyfTable = font.table("glyf"), queue = [...glyphs];
     const dependencies = new Map();
+    let scanned = 0;
     for (let i = 0; i < queue.length; i++) {
+        if ((++scanned & 1023) === 0)
+            yield;
         const glyph = queue[i];
         if (!Number.isInteger(glyph) || glyph < 0 || glyph >= font.glyphCount)
             throw new TypeError("Invalid subset glyph.");
@@ -856,6 +894,8 @@ function subsetTrueType(font, requested, characters) {
             if (component >= font.glyphCount)
                 throw new TypeError("Invalid TrueType composite dependency.");
             children.push(component);
+            if ((++scanned & 1023) === 0)
+                yield;
             if (!glyphs.has(component)) {
                 glyphs.add(component);
                 queue.push(component);
@@ -871,7 +911,9 @@ function subsetTrueType(font, requested, characters) {
     }
     // A malformed caller-provided font must not export recursive composite glyphs.
     const visited = new Set(), visiting = new Set();
-    function visit(glyph, depth) {
+    function* visit(glyph, depth) {
+        if ((++scanned & 1023) === 0)
+            yield;
         if (visiting.has(glyph))
             throw new TypeError("Cyclic TrueType composite dependency.");
         if (depth > 64)
@@ -880,37 +922,49 @@ function subsetTrueType(font, requested, characters) {
             return;
         visiting.add(glyph);
         for (const child of dependencies.get(glyph) ?? [])
-            visit(child, depth + 1);
+            yield* visit(child, depth + 1);
         visiting.delete(glyph);
         visited.add(glyph);
     }
     for (const glyph of glyphs)
-        visit(glyph, 0);
+        yield* visit(glyph, 0);
     const offsets = new Uint32Array(font.glyphCount + 1);
     let length = 0;
     for (let glyph = 0; glyph < font.glyphCount; glyph++) {
         offsets[glyph] = length;
         if (glyphs.has(glyph))
             length += align4(font.offsets[glyph + 1] - font.offsets[glyph]);
+        if ((glyph & 1023) === 1023)
+            yield;
     }
     offsets[font.glyphCount] = length;
     const glyf = new Uint8Array(length);
-    for (const glyph of glyphs)
-        glyf.set(font.bytes.subarray(glyfTable.offset + font.offsets[glyph], glyfTable.offset + font.offsets[glyph + 1]), offsets[glyph]);
+    for (const glyph of glyphs) {
+        yield* copyBytes(font.bytes.subarray(glyfTable.offset + font.offsets[glyph], glyfTable.offset + font.offsets[glyph + 1]), glyf, offsets[glyph]);
+        if ((++scanned & 1023) === 0)
+            yield;
+    }
     const loca = new Uint8Array(offsets.length * 4), locaView = new DataView(loca.buffer);
-    for (let i = 0; i < offsets.length; i++)
+    for (let i = 0; i < offsets.length; i++) {
         locaView.setUint32(i * 4, offsets[i]);
+        if ((i & 1023) === 1023)
+            yield;
+    }
     const retained = new Set(["OS/2", "cmap", "cvt ", "fpgm", "gasp", "glyf", "head", "hhea", "hmtx", "loca", "maxp", "name", "post", "prep"]);
-    const cmap = subsetCmap(characters), hmtx = subsetMetrics(font, glyphs);
-    const tables = [...font.tables].filter(([tag]) => retained.has(tag)).sort(([a], [b]) => a < b ? -1 : 1).map(([tag, table]) => {
-        const bytes = tag === "glyf" ? glyf : tag === "loca" ? loca : tag === "cmap" ? cmap : tag === "hmtx" ? hmtx : font.bytes.slice(table.offset, table.offset + table.length);
+    const cmap = yield* subsetCmap(characters), hmtx = yield* subsetMetrics(font, glyphs);
+    const tables = [];
+    for (const [tag, table] of [...font.tables].filter(([tag]) => retained.has(tag)).sort(([a], [b]) => a < b ? -1 : 1)) {
+        const existing = tag === "glyf" ? glyf : tag === "loca" ? loca : tag === "cmap" ? cmap : tag === "hmtx" ? hmtx : undefined;
+        const bytes = existing ?? new Uint8Array(table.length);
+        if (!existing)
+            yield* copyBytes(font.bytes.subarray(table.offset, table.offset + table.length), bytes);
         if (tag === "head") {
             const view = new DataView(bytes.buffer);
             view.setUint32(8, 0);
             view.setInt16(50, 1);
         }
-        return { tag, bytes };
-    });
+        tables.push({ tag, bytes });
+    }
     const size = 12 + tables.length * 16 + tables.reduce((n, t) => n + align4(t.bytes.length), 0), output = new Uint8Array(size), view = new DataView(output.buffer);
     view.setUint32(0, 0x10000);
     view.setUint16(4, tables.length);
@@ -919,27 +973,31 @@ function subsetTrueType(font, requested, characters) {
     view.setUint16(8, Math.log2(power));
     view.setUint16(10, tables.length * 16 - power * 16);
     let cursor = 12 + tables.length * 16, head = 0;
-    tables.forEach((table, i) => {
+    for (let i = 0; i < tables.length; i++) {
+        const table = tables[i];
         const p = 12 + i * 16;
         for (let j = 0; j < 4; j++)
             output[p + j] = table.tag.charCodeAt(j);
-        view.setUint32(p + 4, checksum(table.bytes));
+        view.setUint32(p + 4, yield* checksumSteps(table.bytes));
         view.setUint32(p + 8, cursor);
         view.setUint32(p + 12, table.bytes.length);
-        output.set(table.bytes, cursor);
+        yield* copyBytes(table.bytes, output, cursor);
         if (table.tag === "head")
             head = cursor;
         cursor += align4(table.bytes.length);
-    });
-    view.setUint32(head + 8, (0xb1b0afba - checksum(output)) >>> 0);
+    }
+    view.setUint32(head + 8, (0xb1b0afba - (yield* checksumSteps(output))) >>> 0);
     return output;
 }
 /** Keep original glyph IDs, advance widths and bearings for every selected/composite glyph.
  * Empty glyph slots have no outline; their unused metrics need not inflate the compressed subset. */
-function subsetMetrics(font, glyphs) {
+function* subsetMetrics(font, glyphs) {
+    let scanned = 0;
     const metrics = font.u16(font.table("hhea").offset + 34), table = font.table("hmtx");
     const result = new Uint8Array(metrics * 4 + (font.glyphCount - metrics) * 2);
     for (const glyph of glyphs) {
+        if ((++scanned & 1023) === 0)
+            yield;
         const first = glyph < metrics ? glyph * 4 : metrics * 4 + (glyph - metrics) * 2, length = glyph < metrics ? 4 : 2;
         result.set(font.bytes.subarray(table.offset + first, table.offset + first + length), first);
         if (glyph >= metrics) {
@@ -951,9 +1009,12 @@ function subsetMetrics(font, glyphs) {
     return result;
 }
 /** One Unicode format-12 map covers BMP and supplementary scalars without retaining unused coverage. */
-function subsetCmap(characters) {
+function* subsetCmap(characters) {
+    let scanned = 0;
     const entries = [...characters].sort(([a], [b]) => a - b), groups = [];
     for (const [scalar, glyph] of entries) {
+        if ((++scanned & 1023) === 0)
+            yield;
         const previous = groups.at(-1);
         if (previous && scalar === previous.last + 1 && glyph === previous.glyph + scalar - previous.first)
             previous.last = scalar;
@@ -968,15 +1029,34 @@ function subsetCmap(characters) {
     view.setUint16(12, 12);
     view.setUint32(16, result.length - 12);
     view.setUint32(24, groups.length);
-    groups.forEach((group, i) => {
+    for (let i = 0; i < groups.length; i++) {
+        const group = groups[i];
         const p = 28 + i * 12;
         view.setUint32(p, group.first);
         view.setUint32(p + 4, group.last);
         view.setUint32(p + 8, group.glyph);
-    });
+        if ((i & 1023) === 1023)
+            yield;
+    }
     return result;
 }
-const _exports = Object.freeze({ subsetTrueType: subsetTrueType });
+/** Copy owned font tables without one long native copy between cancellation points. */
+function* copyBytes(source, target, offset = 0) {
+    for (let first = 0; first < source.length; first += 65536) {
+        target.set(source.subarray(first, Math.min(source.length, first + 65536)), offset + first);
+        yield;
+    }
+}
+function* checksumSteps(bytes) {
+    let sum = 0;
+    for (let i = 0; i < bytes.length; i += 4) {
+        sum = (sum + (((bytes[i] ?? 0) * 0x1000000) + ((bytes[i + 1] ?? 0) << 16) + ((bytes[i + 2] ?? 0) << 8) + (bytes[i + 3] ?? 0))) >>> 0;
+        if ((i & 65535) === 65532)
+            yield;
+    }
+    return sum;
+}
+const _exports = Object.freeze({ subsetTrueType: subsetTrueType, subsetTrueTypeCooperatively: subsetTrueTypeCooperatively });
 return _exports;
 })();
 
@@ -985,11 +1065,13 @@ const { NotSupportedError } = _m4;
 
 const { FontReader } = _m18;
 
-const { subsetTrueType } = _m19;
+const { subsetTrueType, subsetTrueTypeCooperatively } = _m19;
+
+const { checkAbort, pause, taskYieldDue } = _m3;
 
 /** @internal Native TrueType outline profile shared with the C# PDF writer's glyph-preserving subset design. */
 class TrueTypeFont extends FontReader {
-    tables = new Map();
+    tables;
     glyphCount;
     units;
     ascent;
@@ -999,102 +1081,43 @@ class TrueTypeFont extends FontReader {
     offsets;
     canSubset;
     cmaps;
-    constructor(bytes) {
+    constructor(bytes, prepared) {
         super(bytes);
-        if (this.u32(0) !== 0x10000)
-            throw new NotSupportedError("PDF fonts require a static TrueType .ttf with glyf outlines; collections, CFF and WOFF are unsupported.");
-        const count = this.u16(4);
-        if (!count || count > 256)
-            throw new TypeError("Invalid TrueType table count.");
-        this.range(12, count * 16);
-        for (let i = 0; i < count; i++) {
-            const p = 12 + i * 16, tag = this.tag(p), offset = this.u32(p + 8), length = this.u32(p + 12);
-            this.range(offset, length);
-            if (this.tables.has(tag))
-                throw new TypeError("Duplicate TrueType table: " + tag);
-            this.tables.set(tag, { offset, length });
-        }
-        if (this.tables.has("fvar"))
-            throw new NotSupportedError("Instantiate a variable font as a static TrueType font before PDF export.");
-        const head = this.table("head", 54), maxp = this.table("maxp", 6), hhea = this.table("hhea", 36), os2 = this.table("OS/2", 10);
-        if (this.u32(head.offset + 12) !== 0x5f0f3cf5)
-            throw new TypeError("Invalid TrueType head magic.");
-        this.glyphCount = this.u16(maxp.offset + 4);
-        this.units = this.u16(head.offset + 18);
-        if (!this.glyphCount || this.units < 16 || this.units > 16384)
-            throw new TypeError("Invalid TrueType metrics.");
-        const fsType = this.u16(os2.offset + 8);
-        if (fsType & 0x202)
-            throw new NotSupportedError("The font's embedding permissions prohibit outline embedding.");
-        this.canSubset = !(fsType & 0x100);
-        const scale = 1000 / this.units;
-        this.ascent = this.i16(hhea.offset + 4) * scale;
-        this.descent = this.i16(hhea.offset + 6) * scale;
-        this.bbox = [36, 38, 40, 42].map(p => this.i16(head.offset + p) * scale);
-        const metrics = this.u16(hhea.offset + 34);
-        if (!metrics || metrics > this.glyphCount)
-            throw new TypeError("Invalid TrueType horizontal metric count.");
-        const hmtx = this.table("hmtx", metrics * 4 + (this.glyphCount - metrics) * 2);
-        this.widths = Array.from({ length: this.glyphCount }, (_, i) => this.u16(hmtx.offset + Math.min(i, metrics - 1) * 4) * scale);
-        const format = this.i16(head.offset + 50);
-        if (format !== 0 && format !== 1)
-            throw new TypeError("Unsupported TrueType loca index.");
-        const loca = this.table("loca", (this.glyphCount + 1) * (format ? 4 : 2)), glyf = this.table("glyf");
-        this.offsets = Array.from({ length: this.glyphCount + 1 }, (_, i) => format ? this.u32(loca.offset + i * 4) : this.u16(loca.offset + i * 2) * 2);
-        for (let i = 0; i <= this.glyphCount; i++)
-            if (this.offsets[i] > glyf.length || (i && this.offsets[i] < this.offsets[i - 1]))
-                throw new TypeError("Invalid TrueType glyph offsets.");
-        const cmap = this.table("cmap", 4), maps = [], validated = new Set();
-        const encodings = this.u16(cmap.offset + 2);
-        if (4 + encodings * 8 > cmap.length)
-            throw new TypeError("Invalid TrueType cmap directory.");
-        for (let i = 0; i < encodings; i++) {
-            const p = cmap.offset + 4 + i * 8, platform = this.u16(p), encoding = this.u16(p + 2), relative = this.u32(p + 4);
-            if (platform !== 0 && !(platform === 3 && (encoding === 1 || encoding === 10)))
-                continue;
-            if (relative + 4 > cmap.length)
-                throw new TypeError("Invalid cmap subtable offset.");
-            const offset = cmap.offset + relative, type = this.u16(offset);
-            if (type !== 4 && type !== 12)
-                continue;
-            // Encoding records may share a Unicode subtable; validate its contents once.
-            if (validated.has(offset))
-                continue;
-            if (type === 12 && relative + 16 > cmap.length)
-                throw new TypeError("Truncated cmap format 12.");
-            const length = type === 12 ? this.u32(offset + 4) : this.u16(offset + 2);
-            if (length < (type === 12 ? 16 : 16) || relative + length > cmap.length)
-                throw new TypeError("Invalid cmap length.");
-            if (type === 12) {
-                const groups = this.u32(offset + 12);
-                if (16 + groups * 12 > length)
-                    throw new TypeError("Invalid cmap groups.");
-                let previous = -1;
-                for (let j = 0; j < groups; j++) {
-                    const q = offset + 16 + j * 12, start = this.u32(q), end = this.u32(q + 4), glyph = this.u32(q + 8);
-                    if (start <= previous || start > end || end > 0x10ffff || glyph + end - start >= this.glyphCount)
-                        throw new TypeError("Invalid cmap scalar/glyph group.");
-                    previous = end;
+        const scanner = parseFont(this);
+        let data = prepared;
+        if (!data)
+            while (true) {
+                const next = scanner.next();
+                if (next.done) {
+                    data = next.value;
+                    break;
                 }
             }
-            else {
-                const segments = this.u16(offset + 6) / 2;
-                if (!Number.isInteger(segments) || !segments || 16 + segments * 8 > length)
-                    throw new TypeError("Invalid cmap segments.");
-                let previous = -1;
-                for (let j = 0; j < segments; j++) {
-                    const end = this.u16(offset + 14 + j * 2), start = this.u16(offset + 16 + segments * 2 + j * 2);
-                    if (end <= previous || start > end)
-                        throw new TypeError("Invalid cmap segment ordering.");
-                    previous = end;
-                }
+        this.tables = data.tables;
+        this.glyphCount = data.glyphCount;
+        this.units = data.units;
+        this.ascent = data.ascent;
+        this.descent = data.descent;
+        this.bbox = data.bbox;
+        this.widths = data.widths;
+        this.offsets = data.offsets;
+        this.canSubset = data.canSubset;
+        this.cmaps = data.cmaps;
+    }
+    /** Parse an owned immutable snapshot while allowing cancellation and host events between bounded scans. */
+    static async create(bytes, signal) {
+        checkAbort(signal);
+        const scanner = parseFont(new FontReader(bytes));
+        while (true) {
+            const next = scanner.next();
+            if (next.done) {
+                checkAbort(signal);
+                return new TrueTypeFont(bytes, next.value);
             }
-            validated.add(offset);
-            maps.push({ offset, length });
+            if (taskYieldDue())
+                await pause();
+            checkAbort(signal);
         }
-        this.cmaps = maps.sort((a, b) => this.u16(b.offset) - this.u16(a.offset));
-        if (!maps.length)
-            throw new NotSupportedError("TrueType font needs a Unicode cmap format 4 or 12.");
     }
     table(tag, minimum = 0) {
         const table = this.tables.get(tag);
@@ -1153,6 +1176,129 @@ class TrueTypeFont extends FontReader {
         return 0;
     }
     subset(glyphs, characters) { return this.canSubset ? subsetTrueType(this, glyphs, characters) : this.bytes; }
+    async subsetCooperatively(glyphs, characters, signal) {
+        checkAbort(signal);
+        return this.canSubset ? subsetTrueTypeCooperatively(this, glyphs, characters, signal) : this.bytes;
+    }
+}
+/** One parser serves synchronous construction and cooperative preparation. */
+function* parseFont(reader) {
+    const tables = new Map();
+    const table = (tag, minimum = 0) => {
+        const result = tables.get(tag);
+        if (!result || result.length < minimum)
+            throw new TypeError("Missing or truncated TrueType table: " + tag);
+        return result;
+    };
+    if (reader.u32(0) !== 0x10000)
+        throw new NotSupportedError("PDF fonts require a static TrueType .ttf with glyf outlines; collections, CFF and WOFF are unsupported.");
+    const count = reader.u16(4);
+    if (!count || count > 256)
+        throw new TypeError("Invalid TrueType table count.");
+    reader.range(12, count * 16);
+    for (let i = 0; i < count; i++) {
+        const p = 12 + i * 16, tag = reader.tag(p), offset = reader.u32(p + 8), length = reader.u32(p + 12);
+        reader.range(offset, length);
+        if (tables.has(tag))
+            throw new TypeError("Duplicate TrueType table: " + tag);
+        tables.set(tag, { offset, length });
+    }
+    if (tables.has("fvar"))
+        throw new NotSupportedError("Instantiate a variable font as a static TrueType font before PDF export.");
+    const head = table("head", 54), maxp = table("maxp", 6), hhea = table("hhea", 36), os2 = table("OS/2", 10);
+    if (reader.u32(head.offset + 12) !== 0x5f0f3cf5)
+        throw new TypeError("Invalid TrueType head magic.");
+    const glyphCount = reader.u16(maxp.offset + 4);
+    const units = reader.u16(head.offset + 18);
+    if (!glyphCount || units < 16 || units > 16384)
+        throw new TypeError("Invalid TrueType metrics.");
+    const fsType = reader.u16(os2.offset + 8);
+    if (fsType & 0x202)
+        throw new NotSupportedError("The font's embedding permissions prohibit outline embedding.");
+    const canSubset = !(fsType & 0x100);
+    const scale = 1000 / units;
+    const ascent = reader.i16(hhea.offset + 4) * scale;
+    const descent = reader.i16(hhea.offset + 6) * scale;
+    const bbox = [36, 38, 40, 42].map(p => reader.i16(head.offset + p) * scale);
+    const metrics = reader.u16(hhea.offset + 34);
+    if (!metrics || metrics > glyphCount)
+        throw new TypeError("Invalid TrueType horizontal metric count.");
+    const hmtx = table("hmtx", metrics * 4 + (glyphCount - metrics) * 2);
+    const widths = [];
+    for (let i = 0; i < glyphCount; i++) {
+        widths.push(reader.u16(hmtx.offset + Math.min(i, metrics - 1) * 4) * scale);
+        if ((i & 1023) === 1023)
+            yield;
+    }
+    const format = reader.i16(head.offset + 50);
+    if (format !== 0 && format !== 1)
+        throw new TypeError("Unsupported TrueType loca index.");
+    const loca = table("loca", (glyphCount + 1) * (format ? 4 : 2)), glyf = table("glyf");
+    const offsets = [];
+    for (let i = 0; i <= glyphCount; i++) {
+        offsets.push(format ? reader.u32(loca.offset + i * 4) : reader.u16(loca.offset + i * 2) * 2);
+        if ((i & 1023) === 1023)
+            yield;
+    }
+    for (let i = 0; i <= glyphCount; i++)
+        if (offsets[i] > glyf.length || (i && offsets[i] < offsets[i - 1]))
+            throw new TypeError("Invalid TrueType glyph offsets.");
+    const cmap = table("cmap", 4), maps = [], validated = new Set();
+    const encodings = reader.u16(cmap.offset + 2);
+    if (4 + encodings * 8 > cmap.length)
+        throw new TypeError("Invalid TrueType cmap directory.");
+    for (let i = 0; i < encodings; i++) {
+        const p = cmap.offset + 4 + i * 8, platform = reader.u16(p), encoding = reader.u16(p + 2), relative = reader.u32(p + 4);
+        if (platform !== 0 && !(platform === 3 && (encoding === 1 || encoding === 10)))
+            continue;
+        if (relative + 4 > cmap.length)
+            throw new TypeError("Invalid cmap subtable offset.");
+        const offset = cmap.offset + relative, type = reader.u16(offset);
+        if (type !== 4 && type !== 12)
+            continue;
+        // Encoding records may share a Unicode subtable; validate its contents once.
+        if (validated.has(offset))
+            continue;
+        if (type === 12 && relative + 16 > cmap.length)
+            throw new TypeError("Truncated cmap format 12.");
+        const length = type === 12 ? reader.u32(offset + 4) : reader.u16(offset + 2);
+        if (length < (type === 12 ? 16 : 16) || relative + length > cmap.length)
+            throw new TypeError("Invalid cmap length.");
+        if (type === 12) {
+            const groups = reader.u32(offset + 12);
+            if (16 + groups * 12 > length)
+                throw new TypeError("Invalid cmap groups.");
+            let previous = -1;
+            for (let j = 0; j < groups; j++) {
+                const q = offset + 16 + j * 12, start = reader.u32(q), end = reader.u32(q + 4), glyph = reader.u32(q + 8);
+                if (start <= previous || start > end || end > 0x10ffff || glyph + end - start >= glyphCount)
+                    throw new TypeError("Invalid cmap scalar/glyph group.");
+                previous = end;
+                if ((j & 1023) === 1023)
+                    yield;
+            }
+        }
+        else {
+            const segments = reader.u16(offset + 6) / 2;
+            if (!Number.isInteger(segments) || !segments || 16 + segments * 8 > length)
+                throw new TypeError("Invalid cmap segments.");
+            let previous = -1;
+            for (let j = 0; j < segments; j++) {
+                const end = reader.u16(offset + 14 + j * 2), start = reader.u16(offset + 16 + segments * 2 + j * 2);
+                if (end <= previous || start > end)
+                    throw new TypeError("Invalid cmap segment ordering.");
+                previous = end;
+                if ((j & 1023) === 1023)
+                    yield;
+            }
+        }
+        validated.add(offset);
+        maps.push({ offset, length });
+    }
+    const cmaps = maps.sort((a, b) => reader.u16(b.offset) - reader.u16(a.offset));
+    if (!maps.length)
+        throw new NotSupportedError("TrueType font needs a Unicode cmap format 4 or 12.");
+    return { tables, glyphCount, units, ascent, descent, bbox, widths, offsets, canSubset, cmaps };
 }
 const _exports = Object.freeze({ TrueTypeFont: TrueTypeFont });
 return _exports;
@@ -1160,6 +1306,8 @@ return _exports;
 
 const _m16 = (() => {
 const { TrueTypeFont } = _m17;
+
+const { beginTask, checkAbort } = _m3;
 
 const programs = new WeakMap();
 const fontBrand = Symbol.for("@evotecit/officeimo/PdfFont");
@@ -1190,6 +1338,27 @@ class PdfFont {
         void this.brand;
         Object.defineProperty(this, fontBrand, { value: true });
         Object.freeze(this);
+    }
+    /** Prepare the same immutable font with cooperative parsing and cancellation.
+     * The bounded source snapshot is synchronous so later host mutation cannot change the prepared font. */
+    static async create(bytes, options = {}) {
+        checkAbort(options.signal);
+        if (!(bytes instanceof Uint8Array))
+            throw new TypeError("PdfFont requires TrueType bytes as a Uint8Array.");
+        const maximum = options.maxBytes ?? 16 * 1024 * 1024;
+        if (!Number.isSafeInteger(maximum) || maximum < 0 || maximum > 64 * 1024 * 1024)
+            throw new RangeError("Font preparation maxBytes must be a nonnegative safe integer at most 64 MiB.");
+        if (bytes.length > maximum)
+            throw new RangeError("TrueType font exceeds the preparation byte limit.");
+        beginTask();
+        const program = await TrueTypeFont.create(new Uint8Array(bytes), options.signal);
+        checkAbort(options.signal);
+        const font = Object.create(PdfFont.prototype);
+        programs.set(font, program);
+        Object.defineProperty(font, "brand", { value: true });
+        Object.defineProperty(font, fontBrand, { value: true });
+        Object.freeze(font);
+        return font;
     }
     /** Return an independent copy, for storage or delivery to another worker. */
     toBytes() { return fontProgram(this).bytes.slice(); }
@@ -1597,11 +1766,15 @@ const { resolveScalar, selectFont, standardCode, validateFonts } = _m20;
 
 const { pdfNumber, unicodeHex } = _m14;
 
+const { checkAbort, pause, taskYieldDue } = _m3;
+
 class PdfFontResource {
     index;
     bold;
     italic;
+    font;
     shared;
+    signal;
     name;
     object;
     program;
@@ -1609,11 +1782,13 @@ class PdfFontResource {
     syntheticItalic;
     mappings = new Map();
     standardWidths = new Map();
-    constructor(index, bold, italic, font, objects, syntheticBold, syntheticItalic, shared) {
+    constructor(index, bold, italic, font, objects, syntheticBold, syntheticItalic, shared, signal) {
         this.index = index;
         this.bold = bold;
         this.italic = italic;
+        this.font = font;
         this.shared = shared;
+        this.signal = signal;
         this.name = shared?.name ?? "F" + index;
         this.object = shared?.object ?? objects.reserve();
         this.program = font ? fontProgram(font) : undefined;
@@ -1641,7 +1816,7 @@ class PdfFontResource {
         }
         if (this.mappings.size >= 65535)
             throw new OfficeIMOError("RESOURCE_LIMIT", "A PDF font supports at most 65,535 distinct Unicode scalars.");
-        const mapping = { cid: this.mappings.size + 1, glyph: resolved.glyph, width: resolved.width };
+        const mapping = { cid: this.mappings.size + 1, glyph: resolved.glyph, width: resolved.width, text: String.fromCodePoint(scalar) };
         this.mappings.set(scalar, mapping);
         return mapping.width;
     }
@@ -1659,7 +1834,24 @@ class PdfFontResource {
         }
         return "<" + hex + ">";
     }
+    /** Register an already validated shaped glyph. A glyph may need distinct CIDs for different logical clusters. */
+    encodeGlyph(glyph, text) {
+        if (this.shared)
+            return this.shared.encodeGlyph(glyph, text);
+        if (!this.program || !Number.isSafeInteger(glyph) || glyph <= 0 || glyph >= this.program.glyphCount)
+            throw new TypeError("Invalid shaped TrueType glyph.");
+        const key = glyph + ":" + text;
+        let mapping = this.mappings.get(key);
+        if (!mapping) {
+            if (this.mappings.size >= 65535)
+                throw new OfficeIMOError("RESOURCE_LIMIT", "A PDF font supports at most 65,535 distinct CID mappings.");
+            mapping = { cid: this.mappings.size + 1, glyph, width: this.program.widths[glyph], text };
+            this.mappings.set(key, mapping);
+        }
+        return "<" + mapping.cid.toString(16).padStart(4, "0") + ">";
+    }
     async write(objects, compression) {
+        checkAbort(this.signal);
         if (!this.program) {
             const name = "Helvetica" + (this.bold && this.italic ? "-BoldOblique" : this.bold ? "-Bold" : this.italic ? "-Oblique" : "");
             await objects.object(this.object, "<< /Type /Font /Subtype /Type1 /BaseFont /" + name + " /Encoding /WinAnsiEncoding >>");
@@ -1668,24 +1860,48 @@ class PdfFontResource {
         const program = this.program, entries = [...this.mappings], glyphs = new Set(entries.map(([, m]) => m.glyph));
         const fontName = (program.canSubset ? "OIMOAA+" : "") + "OfficeIMOFont" + this.index;
         const file = objects.reserve(), descriptor = objects.reserve(), cidFont = objects.reserve(), map = objects.reserve(), unicode = objects.reserve();
-        const subset = program.subset(glyphs, new Map(entries.map(([scalar, mapping]) => [scalar, mapping.glyph])));
+        const characters = new Map();
+        for (const [key, mapping] of entries) {
+            if (typeof key === "number")
+                characters.set(key, mapping.glyph);
+            else
+                for (const character of mapping.text) {
+                    const scalar = character.codePointAt(0), glyph = program.glyph(scalar);
+                    if (glyph) {
+                        characters.set(scalar, glyph);
+                        glyphs.add(glyph);
+                    }
+                }
+        }
+        const subset = await program.subsetCooperatively(glyphs, characters, this.signal);
         await objects.stream(file, subset, "/Length1 " + subset.length, compression);
         await objects.object(descriptor, "<< /Type /FontDescriptor /FontName /" + fontName + " /Flags 32 /FontBBox [" + program.bbox.map(pdfNumber).join(" ") +
             "] /ItalicAngle 0 /Ascent " + pdfNumber(program.ascent) + " /Descent " + pdfNumber(program.descent) + " /CapHeight " + pdfNumber(program.ascent) + " /StemV 80 /FontFile2 " + file + " 0 R >>");
         const mapping = new Uint8Array((entries.length + 1) * 2), view = new DataView(mapping.buffer);
-        for (const [, entry] of entries)
+        for (let i = 0; i < entries.length; i++) {
+            const entry = entries[i][1];
             view.setUint16(entry.cid * 2, entry.glyph);
+            if ((i & 1023) === 1023) {
+                if (taskYieldDue())
+                    await pause();
+                checkAbort(this.signal);
+            }
+        }
         await objects.stream(map, mapping, "", compression);
         await objects.object(cidFont, "<< /Type /Font /Subtype /CIDFontType2 /BaseFont /" + fontName +
             " /CIDSystemInfo << /Registry (Adobe) /Ordering (Identity) /Supplement 0 >> /FontDescriptor " + descriptor + " 0 R /CIDToGIDMap " + map + " 0 R" +
             (entries.length ? " /W [1 [" + entries.map(([, m]) => pdfNumber(m.width)).join(" ") + "]]" : "") + " >>");
         let cmap = "/CIDInit /ProcSet findresource begin\n12 dict begin\nbegincmap\n/CIDSystemInfo << /Registry (Adobe) /Ordering (UCS) /Supplement 0 >> def\n/CMapName /OfficeIMOUnicode def\n/CMapType 2 def\n1 begincodespacerange\n<0000> <FFFF>\nendcodespacerange\n";
-        for (let i = 0; i < entries.length; i += 100) {
-            const batch = entries.slice(i, i + 100);
+        const mapped = entries.filter(([, mapping]) => mapping.text.length);
+        for (let i = 0; i < mapped.length; i += 100) {
+            const batch = mapped.slice(i, i + 100);
             cmap += batch.length + " beginbfchar\n";
-            for (const [cp, m] of batch)
-                cmap += "<" + m.cid.toString(16).padStart(4, "0") + "> <" + unicodeHex(String.fromCodePoint(cp)) + ">\n";
+            for (const [, m] of batch)
+                cmap += "<" + m.cid.toString(16).padStart(4, "0") + "> <" + unicodeHex(m.text) + ">\n";
             cmap += "endbfchar\n";
+            if (taskYieldDue())
+                await pause();
+            checkAbort(this.signal);
         }
         cmap += "endcmap\nCMapName currentdict /CMap defineresource pop\nend\nend\n";
         await objects.stream(unicode, cmap, "", compression);
@@ -1695,27 +1911,55 @@ class PdfFontResource {
 class PdfFontResources {
     objects;
     fonts;
+    maxBytes;
+    signal;
     resources = [];
     selections = new Map();
     programs = new Map();
-    constructor(objects, fonts, maxBytes = 16 * 1024 * 1024) {
+    explicitSelections = new Map();
+    registered = new Set();
+    fontBytes = 0;
+    constructor(objects, fonts, maxBytes = 16 * 1024 * 1024, signal) {
         this.objects = objects;
         this.fonts = fonts;
+        this.maxBytes = maxBytes;
+        this.signal = signal;
         validateFonts(fonts, maxBytes);
+        for (const font of Object.values(fonts ?? {}))
+            this.registerFont(font);
     }
-    select(bold = false, italic = false) {
-        const key = String(bold) + String(italic), existing = this.selections.get(key);
+    /** The same operation budget covers unused declared faces and every explicit run face, once per identity. */
+    registerFont(font) {
+        if (this.registered.has(font))
+            return;
+        const bytes = fontProgram(font).bytes.length;
+        if (this.fontBytes + bytes > this.maxBytes)
+            throw new OfficeIMOError("RESOURCE_LIMIT", "maxFontBytes exceeded.");
+        this.fontBytes += bytes;
+        this.registered.add(font);
+    }
+    select(bold = false, italic = false, explicit) {
+        if (explicit)
+            this.registerFont(explicit);
+        let selections = this.selections;
+        if (explicit) {
+            const found = this.explicitSelections.get(explicit);
+            selections = found ?? new Map();
+            if (!found)
+                this.explicitSelections.set(explicit, selections);
+        }
+        const key = String(bold) + String(italic), existing = selections.get(key);
         if (existing)
             return existing;
-        const { font, syntheticBold, syntheticItalic } = selectFont(this.fonts, bold, italic);
+        const { font, syntheticBold, syntheticItalic } = explicit ? { font: explicit, syntheticBold: bold, syntheticItalic: italic } : selectFont(this.fonts, bold, italic);
         const shared = font ? this.programs.get(font) : undefined;
-        const resource = new PdfFontResource(this.resources.length + 1, bold, italic, font, this.objects, syntheticBold, syntheticItalic, shared);
+        const resource = new PdfFontResource(this.resources.length + 1, bold, italic, font, this.objects, syntheticBold, syntheticItalic, shared, this.signal);
         if (!shared) {
             this.resources.push(resource);
             if (font)
                 this.programs.set(font, resource);
         }
-        this.selections.set(key, resource);
+        selections.set(key, resource);
         return resource;
     }
     dictionary() { return "<< " + this.resources.map(f => "/" + f.name + " " + f.object + " 0 R").join(" ") + " >>"; }
@@ -1875,6 +2119,359 @@ const _exports = Object.freeze({ synchronousText: synchronousText, displayText: 
 return _exports;
 })();
 
+const _m26 = (() => {
+const { NotSupportedError, OfficeIMOError } = _m4;
+
+const { checkAbort, pause, taskYieldDue, withAbort } = _m3;
+
+const boundary = (text, at) => at === 0 || at === text.length || !(text.charCodeAt(at) >= 0xdc00 && text.charCodeAt(at) <= 0xdfff && text.charCodeAt(at - 1) >= 0xd800 && text.charCodeAt(at - 1) <= 0xdbff);
+/** Normalize physical line breaks/tabs with the scalar writer's semantics, retaining presentation ownership. */
+function parts(captured, maxLines) {
+    const result = [{ text: "", owners: [] }];
+    let owner = 0, end = captured.runs[0]?.text.length ?? 0;
+    for (let offset = 0; offset < captured.text.length;) {
+        while (offset >= end && owner < captured.runs.length - 1)
+            end += captured.runs[++owner].text.length;
+        const scalar = captured.text.codePointAt(offset), character = String.fromCodePoint(scalar);
+        offset += character.length;
+        if (scalar >= 0xd800 && scalar <= 0xdfff)
+            throw new TypeError("PDF text contains an unpaired UTF-16 surrogate.");
+        if (offset > end && owner < captured.runs.length - 1)
+            throw new NotSupportedError("A shaped presentation boundary cannot split a UTF-16 scalar.");
+        if (character === "\n" || character === "\r") {
+            if (character === "\r" && captured.text[offset] === "\n")
+                offset++;
+            if (result.length >= maxLines)
+                throw new OfficeIMOError("RESOURCE_LIMIT", "maxRowLines exceeded.");
+            result.push({ text: "", owners: [] });
+            continue;
+        }
+        if (scalar < 32 && scalar !== 9 || scalar >= 127 && scalar < 160)
+            throw new NotSupportedError("PDF text contains an unsupported control character.");
+        const value = character === "\t" ? "    " : character, part = result.at(-1);
+        if (part.text.length + value.length > 4096)
+            throw new OfficeIMOError("RESOURCE_LIMIT", "Shaped PDF text supports at most 4,096 UTF-16 units per physical paragraph.");
+        part.text += value;
+        for (let i = 0; i < value.length; i++)
+            part.owners.push(owner);
+    }
+    return result;
+}
+/** Validate a replaceable provider without trusting its font, glyph, metric or source-range claims. */
+function validate(output, part, start, end, faces, captured) {
+    if (!Array.isArray(output) || output.length > 32768)
+        throw new TypeError("Invalid shaped run array.");
+    let count = 0, width = 0;
+    const covered = new Uint8Array(end - start), intervals = new Map(), advances = new Map();
+    const copied = [];
+    for (const run of output) {
+        if (!run || !Array.isArray(run.glyphs) || !faces.some(face => face.font === run.font))
+            throw new TypeError("Shaping must use an exact registered PdfFont identity.");
+        count += run.glyphs.length;
+        if (count > 32768)
+            throw new OfficeIMOError("RESOURCE_LIMIT", "Shaped PDF text exceeded 32,768 glyphs.");
+        const glyphs = [];
+        for (const glyph of run.glyphs) {
+            const { id, clusterStart: a, clusterEnd: b, xAdvance, yAdvance, xOffset, yOffset } = glyph ?? {};
+            const face = faces[part.owners[a] ?? -1];
+            if (!face || face.font !== run.font || !face.program || !Number.isSafeInteger(id) || id <= 0 || id >= face.program.glyphCount)
+                throw new TypeError("Shaping returned an invalid glyph or font identity.");
+            if (!Number.isSafeInteger(a) || !Number.isSafeInteger(b) || a < start || b <= a || b > end || !boundary(part.text, a) || !boundary(part.text, b))
+                throw new TypeError("Shaping returned an invalid UTF-16 cluster range.");
+            if (![xAdvance, yAdvance, xOffset, yOffset].every(value => Number.isFinite(value) && Math.abs(value) <= 100000) || xAdvance < 0 || yAdvance !== 0)
+                throw new TypeError("Shaping requires finite bounded horizontal glyph metrics.");
+            const first = captured.runs[part.owners[a]];
+            for (let i = a; i < b; i++) {
+                const other = captured.runs[part.owners[i]];
+                if (faces[part.owners[i]].font !== run.font || first.style.bold !== other.style.bold || first.style.italic !== other.style.italic || first.style.color !== other.style.color || first.link !== other.link)
+                    throw new NotSupportedError("A PDF presentation, font or link boundary cannot split an indivisible shaped cluster.");
+                covered[i - start] = 1;
+            }
+            const previous = intervals.get(a);
+            if (previous !== undefined && previous !== b)
+                throw new TypeError("Inconsistent shaped cluster ranges.");
+            intervals.set(a, b);
+            advances.set(a, (advances.get(a) ?? 0) + xAdvance);
+            width += xAdvance;
+            glyphs.push(Object.freeze({ id, clusterStart: a, clusterEnd: b, xAdvance, yAdvance, xOffset, yOffset }));
+        }
+        copied.push(Object.freeze({ font: run.font, glyphs: Object.freeze(glyphs) }));
+    }
+    if (covered.some(value => !value))
+        throw new TypeError("Shaping omitted logical source text.");
+    const sorted = [...intervals].sort((a, b) => a[0] - b[0]);
+    let cursor = start;
+    for (const [a, b] of sorted) {
+        if (a !== cursor)
+            throw new TypeError("Shaped clusters overlap or leave a logical gap.");
+        cursor = b;
+    }
+    return { runs: copied, boundaries: sorted.map(([, b]) => b), advances, width };
+}
+/** Core-owned bounded line flow. Shape finalized lines again so Arabic joining reflects the actual break. */
+async function wrapShapedPdfText(captured, fonts, size, width, settings, wrap) {
+    const faces = captured.runs.map(run => fonts.select(run.style.bold, run.style.italic, run.font)), fallback = fonts.select();
+    if (faces.some((face, i) => !face.font && captured.runs[i].text.length))
+        throw new NotSupportedError("Shaped PDF text requires explicit embedded TrueType fonts.");
+    const lines = [], provider = settings.options.textShaper, signal = settings.options.signal;
+    const emit = (part, start, end, shaped) => {
+        if (lines.length >= settings.limits.maxRowLines)
+            throw new OfficeIMOError("RESOURCE_LIMIT", "maxRowLines exceeded.");
+        const segments = [];
+        let lineHeight = fallback.lineHeight(size), ascent = (fallback.program?.ascent ?? 800) * size / 1000;
+        const seen = new Set();
+        let owner = -1, segmentFont, glyphs = [], segmentWidth = 0;
+        const flush = () => {
+            if (owner < 0 || !segmentFont)
+                return;
+            const run = captured.runs[owner];
+            const logical = glyphs.filter(glyph => glyph.logicalText).sort((a, b) => a.clusterStart - b.clusterStart);
+            const actualText = logical.map(glyph => glyph.logicalText).join("");
+            segments.push({ text: actualText, actualText, logicalStart: Math.min(...glyphs.map(glyph => glyph.clusterStart)), width: segmentWidth * size / 1000, font: segmentFont, glyphs,
+                ...(run.style.color === undefined ? {} : { color: run.style.color }), ...(run.link ? { link: run.link } : {}) });
+            glyphs = [];
+            segmentWidth = 0;
+        };
+        for (const run of shaped?.runs ?? [])
+            for (const glyph of run.glyphs) {
+                const nextOwner = part.owners[glyph.clusterStart], face = faces[nextOwner];
+                if (owner !== nextOwner || segmentFont !== face) {
+                    flush();
+                    owner = nextOwner;
+                    segmentFont = face;
+                }
+                const logicalText = seen.has(glyph.clusterStart) ? "" : part.text.slice(glyph.clusterStart, glyph.clusterEnd);
+                seen.add(glyph.clusterStart);
+                glyphs.push({ ...glyph, logicalText });
+                segmentWidth += glyph.xAdvance;
+                lineHeight = Math.max(lineHeight, face.lineHeight(size));
+                ascent = Math.max(ascent, face.program.ascent * size / 1000);
+            }
+        flush();
+        const text = part.text.slice(start, end);
+        lines.push({ text, actualText: text, segments, width: (shaped?.width ?? 0) * size / 1000, lineHeight, ascent });
+    };
+    for (const part of parts(captured, settings.limits.maxRowLines)) {
+        checkAbort(signal);
+        if (!part.text) {
+            emit(part, 0, 0);
+            continue;
+        }
+        const runs = [];
+        for (let start = 0; start < part.text.length;) {
+            const owner = part.owners[start];
+            let end = start + 1;
+            while (end < part.text.length && part.owners[end] === owner)
+                end++;
+            runs.push(Object.freeze({ start, end, font: faces[owner].font }));
+            start = end;
+        }
+        Object.freeze(runs);
+        let calls = 0;
+        const shape = async (start, end) => {
+            if (++calls > 16385)
+                throw new OfficeIMOError("RESOURCE_LIMIT", "Shaped line fitting exceeded its bounded work limit.");
+            if (taskYieldDue())
+                await pause();
+            checkAbort(signal);
+            const output = await withAbort(Promise.resolve(provider.shapeLine(Object.freeze({ text: part.text, start, end, runs,
+                direction: settings.options.textDirection ?? "auto", ...(signal ? { signal } : {}) }))), signal);
+            checkAbort(signal);
+            return validate(output, part, start, end, faces, captured);
+        };
+        const initial = await shape(0, part.text.length), boundaries = initial.boundaries;
+        if (!wrap) {
+            if (initial.width * size / 1000 > width + .001)
+                throw new RangeError("Unwrapped PDF cell exceeds its column width.");
+            emit(part, 0, part.text.length, initial);
+            continue;
+        }
+        let from = 0;
+        while (from < boundaries.length) {
+            const start = from ? boundaries[from - 1] : 0;
+            let to = from, measured = 0, space = -1;
+            while (to < boundaries.length) {
+                const at = to ? boundaries[to - 1] : 0, advance = initial.advances.get(at) * size / 1000;
+                if (measured + advance > width + .001 && to > from)
+                    break;
+                measured += advance;
+                if (part.text[boundaries[to] - 1] === " ")
+                    space = to + 1;
+                to++;
+                if (measured > width + .001)
+                    break;
+            }
+            if (to < boundaries.length && space > from)
+                to = space;
+            let final = start === 0 && to === boundaries.length ? initial : await shape(start, boundaries[to - 1]);
+            if (final.width * size / 1000 > width + .001) {
+                let low = from + 1, high = to - 1, best, bestEnd = 0;
+                while (low <= high) {
+                    const mid = Math.floor((low + high) / 2), candidate = await shape(start, boundaries[mid - 1]);
+                    if (candidate.width * size / 1000 <= width + .001) {
+                        best = candidate;
+                        bestEnd = mid;
+                        low = mid + 1;
+                    }
+                    else
+                        high = mid - 1;
+                }
+                if (!best)
+                    throw new RangeError("PDF column is too narrow for an indivisible shaped cluster.");
+                final = best;
+                to = bestEnd;
+            }
+            emit(part, start, boundaries[to - 1], final);
+            from = to;
+        }
+    }
+    return lines;
+}
+const _exports = Object.freeze({ wrapShapedPdfText: wrapShapedPdfText });
+return _exports;
+})();
+
+const _m25 = (() => {
+const { OfficeIMOError } = _m4;
+
+const { copyExportLink } = _m9;
+
+const { checkAbort, pause, taskYieldDue } = _m3;
+
+const { presentation } = _m10;
+
+const { wrapShapedPdfText } = _m26;
+
+const { PdfFont } = _m16;
+
+/** @internal A run list is a PDF presentation value, never an alternate shared table value model. */
+function capturePdfText(value, base, settings, fonts, countEmpty = true) {
+    const input = typeof value === "string" ? [{ text: value }] : value;
+    if (!Array.isArray(input)) {
+        if (input && typeof input.then === "function")
+            void Promise.resolve(input).catch(() => { });
+        throw new TypeError("PDF text must be a string or a synchronous array of text runs.");
+    }
+    if (typeof value !== "string" && input.length > settings.limits.maxTextRuns)
+        throw new OfficeIMOError("RESOURCE_LIMIT", "maxTextRuns exceeded.");
+    let characters = 0;
+    const runs = [];
+    for (const run of input) {
+        if (!run || typeof run !== "object" || Object.keys(run).some(key => !["text", "bold", "italic", "color", "link", "font"].includes(key)))
+            throw new TypeError("PDF text runs support text, bold, italic, color, link and font.");
+        const { text, bold, italic, color, link, font } = run;
+        if (typeof text !== "string")
+            throw new TypeError("PDF run text must be a string.");
+        if (font !== undefined) {
+            if (!(font instanceof PdfFont))
+                throw new TypeError("A PDF run font must be a PdfFont.");
+            fonts.registerFont(font);
+        }
+        characters += text.length;
+        if (characters > settings.limits.maxCellCharacters)
+            throw new OfficeIMOError("RESOURCE_LIMIT", "maxCellCharacters exceeded.");
+        const style = presentation({ ...base, ...(bold === undefined ? {} : { bold }), ...(italic === undefined ? {} : { italic }), ...(color === undefined ? {} : { color }) });
+        if (settings.options.tagged && link !== undefined && text.length && !text.trim())
+            throw new TypeError("Tagged PDF inline links require nonempty displayed text.");
+        runs.push(Object.freeze({ text, style, ...(font === undefined ? {} : { font }), ...(link === undefined ? {} : { link: copyExportLink(link) }) }));
+    }
+    // Reserve before allocating a joined rich-text value or retaining it in a kept paragraph chain.
+    if (characters || countEmpty)
+        settings.budget.reserve(1, characters);
+    return Object.freeze({ text: runs.map(run => run.text).join(""), runs: Object.freeze(runs) });
+}
+/** @internal Greedy wrapping over the continuous text stream, preserving run emphasis and URI geometry. */
+async function wrapPdfText(captured, fonts, size, width, settings, wrap = true) {
+    if (settings.options.textShaper)
+        return wrapShapedPdfText(captured, fonts, size, width, settings, wrap);
+    const { signal } = settings.options, { text, runs } = captured;
+    checkAbort(signal);
+    const faces = runs.map(run => fonts.select(run.style.bold, run.style.italic, run.font));
+    const fallback = fonts.select(), lines = [];
+    let chars = [], advances = [], owners = [], measured = 0, breakAt = -1;
+    let runIndex = 0, runEnd = runs[0]?.text.length ?? 0, scanned = 0;
+    const emit = (count) => {
+        if (lines.length >= settings.limits.maxRowLines)
+            throw new OfficeIMOError("RESOURCE_LIMIT", "maxRowLines exceeded.");
+        const segments = [];
+        let lineWidth = 0, lineHeight = 0, ascent = 0;
+        for (let begin = 0; begin < count;) {
+            const owner = owners[begin], run = runs[owner], font = faces[owner];
+            let end = begin + 1;
+            while (end < count && owners[end] === owner)
+                end++;
+            const segmentWidth = advances.slice(begin, end).reduce((total, advance) => total + advance, 0);
+            segments.push({ text: chars.slice(begin, end).join(""), width: segmentWidth, font,
+                ...(run.style.color === undefined ? {} : { color: run.style.color }), ...(run.link ? { link: run.link } : {}) });
+            lineWidth += segmentWidth;
+            lineHeight = Math.max(lineHeight, font.lineHeight(size));
+            ascent = Math.max(ascent, (font.program?.ascent ?? 800) * size / 1000);
+            begin = end;
+        }
+        // Empty physical lines remain observable line breaks without creating zero-area links.
+        if (!segments.length) {
+            const font = faces[0] ?? fallback;
+            segments.push({ text: "", width: 0, font, ...(runs[0]?.style.color === undefined ? {} : { color: runs[0].style.color }) });
+            lineHeight = font.lineHeight(size);
+            ascent = (font.program?.ascent ?? 800) * size / 1000;
+        }
+        lines.push({ text: chars.slice(0, count).join(""), width: lineWidth, segments, lineHeight, ascent });
+        chars = chars.slice(count);
+        advances = advances.slice(count);
+        owners = owners.slice(count);
+        measured = advances.reduce((total, advance) => total + advance, 0);
+        breakAt = -1;
+        for (let i = 0; i < chars.length; i++)
+            if (chars[i] === " ")
+                breakAt = i;
+    };
+    const append = (character, owner) => {
+        const advance = faces[owner].width(character.codePointAt(0)) * size / 1000;
+        if (advance > width + .001)
+            throw new RangeError("PDF column is too narrow for a glyph. Increase page/column width or reduce padding/font size.");
+        if (measured + advance > width + .001) {
+            if (!wrap)
+                throw new RangeError("Unwrapped PDF cell exceeds its column width.");
+            emit(breakAt >= 0 ? breakAt + 1 : chars.length);
+            if (measured + advance > width + .001)
+                emit(chars.length);
+        }
+        chars.push(character);
+        advances.push(advance);
+        owners.push(owner);
+        measured += advance;
+        if (character === " ")
+            breakAt = chars.length - 1;
+    };
+    for (let offset = 0; offset < text.length;) {
+        while (offset >= runEnd && runIndex < runs.length - 1)
+            runEnd += runs[++runIndex].text.length;
+        const owner = runIndex, scalar = text.codePointAt(offset), character = String.fromCodePoint(scalar);
+        offset += character.length;
+        if (character === "\r" || character === "\n") {
+            if (character === "\r" && text[offset] === "\n")
+                offset++;
+            emit(chars.length);
+        }
+        else if (character === "\t") {
+            for (let i = 0; i < 4; i++)
+                append(" ", owner);
+        }
+        else
+            append(character, owner);
+        if ((++scanned & 4095) === 0) {
+            if (taskYieldDue())
+                await pause();
+            checkAbort(signal);
+        }
+    }
+    emit(chars.length);
+    return lines;
+}
+const _exports = Object.freeze({ capturePdfText: capturePdfText, wrapPdfText: wrapPdfText });
+return _exports;
+})();
+
 const _m22 = (() => {
 const { ExportCell } = _m7;
 
@@ -1886,7 +2483,9 @@ const { createTotals } = _m23;
 
 const { presentation, positive } = _m10;
 
-const { displayText, wrapTextCooperatively } = _m24;
+const { displayText } = _m24;
+
+const { capturePdfText, wrapPdfText } = _m25;
 
 class PdfTableLayout {
     settings;
@@ -1939,18 +2538,35 @@ class PdfTableLayout {
         this.totals = createTotals(columns, options.footer?.totals);
     }
     async cell(value, first, span, row, style) {
-        const { options, padding, fontSize, budget, limits } = this.settings, column = options.columns[first];
+        const { options, padding, fontSize, budget } = this.settings, column = options.columns[first];
         const own = value instanceof ExportCell ? value.presentation : undefined;
-        if (options.tagged && value instanceof ExportCell && value.link)
-            throw new TypeError("Tagged PDF link annotations are unsupported; use plain text cells.");
+        const link = value instanceof ExportCell && value.link ? copyExportLink(value.link) : undefined;
         const combined = presentation({ ...(column.alignment === undefined ? {} : { alignment: column.alignment }),
             ...(column.wrapText === undefined ? {} : { wrapText: column.wrapText }), ...style, ...own });
         const font = this.fonts.select(combined.bold, combined.italic), width = this.widths.slice(first, first + span).reduce((n, w) => n + w, 0);
-        const text = displayText(value, options, { rowIndex: row, columnIndex: first, column });
-        budget.cell(text);
-        return { first, span, width, font, style: combined, lineHeight: font.lineHeight(fontSize),
-            ...(value instanceof ExportCell && value.link ? { link: copyExportLink(value.link) } : {}),
-            lines: await wrapTextCooperatively(text, font, fontSize, width - padding * 2, limits.maxCellCharacters, limits.maxRowLines, combined.wrapText !== false, options.signal) };
+        const context = { rowIndex: row, columnIndex: first, column }, raw = value instanceof ExportCell ? value.value : value;
+        let text;
+        if (options.formatRuns && row >= 0 && !(value instanceof ExportCell && value.text !== undefined)) {
+            const runs = options.formatRuns(raw, context);
+            if (!Array.isArray(runs)) {
+                if (runs && typeof runs.then === "function")
+                    void Promise.resolve(runs).catch(() => { });
+                throw new TypeError("formatRuns must return a synchronous array of PDF text runs.");
+            }
+            text = runs;
+        }
+        else
+            text = displayText(value, options, context);
+        const captured = capturePdfText(text, combined, this.settings, this.fonts);
+        if (options.tagged && link && !captured.text.trim())
+            throw new TypeError("Tagged PDF cell links require nonempty displayed text.");
+        if (link && captured.runs.some(run => run.link))
+            throw new TypeError("A PDF cell link cannot be combined with inline run links.");
+        budget.cell(captured.text, captured.text.length);
+        const lines = await wrapPdfText(captured, this.fonts, fontSize, width - padding * 2, this.settings, combined.wrapText !== false);
+        return { first, span, width, font, style: combined, lineHeight: lines.reduce((height, line) => Math.max(height, line.lineHeight), font.lineHeight(fontSize)),
+            ...(link ? { link } : {}),
+            lines };
     }
     row(cells) {
         const lines = Math.max(1, ...cells.map(c => c.lines.length));
@@ -2020,16 +2636,17 @@ const _exports = Object.freeze({ PdfTableLayout: PdfTableLayout });
 return _exports;
 })();
 
-const _m26 = (() => {
+const _m28 = (() => {
 const { OfficeIMOError } = _m4;
 
 const { pdfNumber, unicodeHex } = _m14;
 
 const encoder = new TextEncoder();
 /** @internal URI actions are byte strings; tooltips are Unicode PDF text strings. */
-function linkAnnotation(link, x, bottom, width, height, maxBytes) {
+function linkAnnotation(link, x, bottom, width, height, maxBytes, structParent, page) {
     const prefix = "<< /Type /Annot /Subtype /Link /F 4 /Border [0 0 0] /Rect [" +
-        [x, bottom, x + width, bottom + height].map(pdfNumber).join(" ") + "] /A << /S /URI /URI <";
+        [x, bottom, x + width, bottom + height].map(pdfNumber).join(" ") + "]" +
+        (structParent === undefined ? "" : " /StructParent " + structParent) + (page === undefined ? "" : " /P " + page + " 0 R") + " /A << /S /URI /URI <";
     const suffix = "> >>" + (link.tooltip === undefined ? "" : " /Contents <feff") + " >>";
     const fixedBytes = prefix.length + suffix.length + (link.tooltip === undefined ? 0 : link.tooltip.length * 4 + 1);
     const limit = () => { throw new OfficeIMOError("RESOURCE_LIMIT", "maxPageBytes exceeded."); };
@@ -2064,7 +2681,7 @@ const _exports = Object.freeze({ linkAnnotation: linkAnnotation });
 return _exports;
 })();
 
-const _m25 = (() => {
+const _m27 = (() => {
 const { OfficeIMOError } = _m4;
 
 const { checkAbort } = _m3;
@@ -2075,7 +2692,7 @@ const { color } = _m10;
 
 const { wrapText, wrapTextCooperatively, synchronousText } = _m24;
 
-const { linkAnnotation } = _m26;
+const { linkAnnotation } = _m28;
 
 const { unicodeHex } = _m14;
 
@@ -2145,10 +2762,58 @@ class PdfPages {
         return this.structure ? "/Artifact << /Type /" + type + " >> BDC\n" + command + "EMC\n" : command;
     }
     text(text, font, size, x, baseline, foreground = "111827", element) {
-        const n = pdfNumber, shear = font.syntheticItalic ? .2126 : 0;
+        const n = pdfNumber, shear = font.syntheticItalic ? .213 : 0;
         const command = "q " + this.rgb(foreground) + " rg " + this.rgb(foreground) + " RG\nBT /" + font.name + " " + n(size) + " Tf " +
             (font.syntheticBold ? n(size * .025) + " w 2 Tr " : "0 Tr ") + "1 0 " + n(shear) + " 1 " + n(x) + " " + n(baseline) + " Tm " + font.encode(text) + " Tj ET Q\n";
         this.add(this.structure && element !== undefined ? this.structure.mark(element) + command + "EMC\n" : this.artifact(command, "Pagination"));
+    }
+    link(link, x, bottom, width, height, element) {
+        if (width <= 0)
+            return;
+        if (++this.hyperlinks > this.settings.limits.maxHyperlinks)
+            throw new OfficeIMOError("RESOURCE_LIMIT", "maxHyperlinks exceeded.");
+        const id = this.objects.reserve();
+        const parentKey = this.structure ? this.structure.annotation(element, id) : undefined;
+        const annotation = linkAnnotation(link, x, bottom, width, height, this.settings.limits.maxPageBytes - this.commandBytes, parentKey, this.structure ? this.current : undefined);
+        this.retainPageBytes(annotation.length);
+        this.annotations.push({ id, body: annotation });
+    }
+    inline(line, size, x, baseline, element) {
+        const lineActualText = !this.structure && line.actualText !== undefined && line.actualText.length > 0;
+        if (lineActualText)
+            this.add("/Span << /ActualText <FEFF" + unicodeHex(line.actualText) + "> >> BDC\n");
+        const marks = new Map();
+        if (line.actualText !== undefined && this.structure && element !== undefined) {
+            // Allocate MCIDs/Link children in logical order, then paint the independently positioned visual order.
+            for (const segment of [...line.segments].sort((a, b) => (a.logicalStart ?? 0) - (b.logicalStart ?? 0))) {
+                const owner = segment.link ? this.structure.link(element, segment.link) : element;
+                marks.set(segment, { owner, mark: this.structure.mark(owner, segment.actualText) });
+            }
+        }
+        for (const segment of line.segments) {
+            const registered = marks.get(segment), owner = registered?.owner ?? (segment.link && this.structure && element !== undefined ? this.structure.link(element, segment.link) : element);
+            if (segment.glyphs) {
+                const font = segment.font, n = pdfNumber, shear = font.syntheticItalic ? .213 : 0;
+                let cursor = x, command = "q " + this.rgb(segment.color ?? "111827") + " rg " + this.rgb(segment.color ?? "111827") + " RG\nBT /" + font.name + " " + n(size) + " Tf " +
+                    (font.syntheticBold ? n(size * .025) + " w 2 Tr " : "0 Tr ");
+                for (const glyph of segment.glyphs) {
+                    command += "1 0 " + n(shear) + " 1 " + n(cursor + (glyph.xOffset + shear * glyph.yOffset) * size / 1000) + " " + n(baseline + glyph.yOffset * size / 1000) + " Tm " + font.encodeGlyph(glyph.id, glyph.logicalText) + " Tj\n";
+                    cursor += glyph.xAdvance * size / 1000;
+                }
+                command += "ET Q\n";
+                this.add(this.structure && owner !== undefined ? (registered?.mark ?? this.structure.mark(owner, segment.actualText)) + command + "EMC\n" : this.artifact(command, "Pagination"));
+            }
+            else
+                this.text(segment.text, segment.font, size, x, baseline, segment.color, owner);
+            if (segment.link) {
+                const ascent = (segment.font.program?.ascent ?? 800) * size / 1000;
+                const descent = (segment.font.program?.descent ?? -200) * size / 1000;
+                this.link(segment.link, x, baseline + descent, segment.width, ascent - descent, owner);
+            }
+            x += segment.width;
+        }
+        if (lineActualText)
+            this.add("EMC\n");
     }
     decorationText(value) {
         if (value === undefined)
@@ -2228,18 +2893,13 @@ class PdfPages {
             if (cell.style.background)
                 this.add(this.artifact("q " + this.rgb(cell.style.background) + " rg " + n(x) + " " + n(this.y - cellHeight) + " " + n(cell.width) + " " + n(cellHeight) + " re f Q\n"));
             this.add(this.artifact("q 0.82 0.85 0.89 RG 0.4 w " + n(x) + " " + n(this.y - cellHeight) + " " + n(cell.width) + " " + n(cellHeight) + " re S Q\n"));
-            if (cell.link) {
-                if (++this.hyperlinks > this.settings.limits.maxHyperlinks)
-                    throw new OfficeIMOError("RESOURCE_LIMIT", "maxHyperlinks exceeded.");
-                const annotation = linkAnnotation(cell.link, x, this.y - cellHeight, cell.width, cellHeight, this.settings.limits.maxPageBytes - this.commandBytes);
-                this.retainPageBytes(annotation.length);
-                this.annotations.push(annotation);
-            }
+            const element = elements?.[index], owner = cell.link && this.structure && element !== undefined ? this.structure.link(element, cell.link) : element;
             for (let line = firstLine; line < Math.min(cell.lines.length, cell.height ? cell.lines.length : firstLine + lineCount); line++) {
                 const text = cell.lines[line], left = cell.style.alignment === "right" ? cell.width - padding - text.width : cell.style.alignment === "center" ? (cell.width - text.width) / 2 : padding;
-                const ascent = (cell.font.program?.ascent ?? 800) * fontSize / 1000;
-                this.text(text.text, cell.font, fontSize, x + left, this.y - padding - ascent - (line - firstLine) * (row.structured ? cell.lineHeight : row.lineHeight), cell.style.color, elements?.[index]);
+                this.inline(text, fontSize, x + left, this.y - padding - text.ascent - (line - firstLine) * (row.structured ? cell.lineHeight : row.lineHeight), owner);
             }
+            if (cell.link)
+                this.link(cell.link, x, this.y - cellHeight, cell.width, cellHeight, owner);
         }
         this.y -= row.structured ? row.height : height;
     }
@@ -2254,10 +2914,10 @@ class PdfPages {
         for (const row of rows)
             this.draw(row, 0, row.lines, this.rowElements(row));
     }
-    async row(row) {
+    async row(row, allowFirstFragment = false) {
         const elements = this.rowElements(row);
         const { margins, padding } = this.settings, full = this.continuationTop - margins.bottom;
-        if (row.height <= full + .001 && row.height > this.y - margins.bottom + .001) {
+        if (!allowFirstFragment && row.height <= full + .001 && row.height > this.y - margins.bottom + .001) {
             await this.finishPage();
             await this.start();
         }
@@ -2299,13 +2959,52 @@ class PdfPages {
         }
         this.y -= 8;
     }
+    /** Reserve a meaningful next fragment before painting a kept heading; never buffer a table. */
+    async reserveSpace(height, label = "Kept PDF content") {
+        const { page, margins } = this.settings, full = page.height - margins.top - margins.bottom;
+        if (height > full + .001)
+            throw new RangeError(label + " exceeds a fresh page's content area.");
+        if (height > this.y - margins.bottom + .001)
+            await this.pageBreak();
+    }
+    /** Paint bounded paragraphs with their captured layout and a measured next-block fragment. */
+    async paragraphs(paragraphs, nextHeight = 0, keepTogether = false) {
+        const visible = paragraphs.filter(paragraph => paragraph.lines.length > 0), reservations = new Array(visible.length).fill(0);
+        for (let i = visible.length - 1; i >= 0; i--) {
+            const paragraph = visible[i], next = visible[i + 1];
+            reservations[i] = paragraph.keepWithNext ? next ? next.keepTogether || next.keepWithNext ? next.height + reservations[i + 1] : next.firstHeight : nextHeight : 0;
+        }
+        if (keepTogether && visible.length)
+            await this.reserveSpace(visible.reduce((height, paragraph) => height + paragraph.height, 0) + reservations.at(-1), "Kept PDF paragraph group");
+        for (const [index, paragraph] of visible.entries()) {
+            if (paragraph.keepTogether || paragraph.keepWithNext)
+                await this.reserveSpace(paragraph.height + reservations[index], "Kept PDF paragraph chain");
+            const { margins, page } = this.settings;
+            if (paragraph.firstHeight > page.height - margins.top - margins.bottom + .001)
+                throw new RangeError("PDF page cannot fit a paragraph line and its leading spacing.");
+            if (this.y - paragraph.firstHeight < margins.bottom)
+                await this.pageBreak();
+            this.y -= paragraph.spaceBefore;
+            const element = this.structure?.element(paragraph.headingLevel ? "H" + paragraph.headingLevel : "P");
+            for (const line of paragraph.lines) {
+                if (line.lineHeight > page.height - margins.top - margins.bottom + .001)
+                    throw new RangeError("PDF page cannot fit a paragraph line at the selected font metrics.");
+                if (this.y - line.lineHeight < margins.bottom)
+                    await this.pageBreak();
+                const x = paragraph.style.alignment === "right" ? page.width - margins.right - line.width : paragraph.style.alignment === "center" ? margins.left + (page.width - margins.left - margins.right - line.width) / 2 : margins.left;
+                this.inline(line, paragraph.size, x, this.y - line.ascent, element);
+                this.y -= line.lineHeight;
+            }
+            this.y -= paragraph.spaceAfter;
+        }
+    }
     /** Begin an independent table on the current page, retaining its headings on continuation pages. */
-    async beginTable(layout) {
+    async beginTable(layout, preparedHeadings, minimumDataHeight = layout.lineHeight + this.settings.padding * 2) {
         this.layout = layout;
         this.tableElement = this.structure?.element("Table");
         this.tableHeadingsDrawn = false;
-        const headings = await layout.headers(), height = headings.reduce((n, row) => n + row.height, 0);
-        if (this.y - height - layout.lineHeight - this.settings.padding * 2 < this.settings.margins.bottom) {
+        const headings = preparedHeadings ?? await layout.headers(), height = headings.reduce((n, row) => n + row.height, 0);
+        if (this.y - height - minimumDataHeight < this.settings.margins.bottom) {
             await this.finishPage();
             await this.start(true, headings);
             return;
@@ -2317,6 +3016,11 @@ class PdfPages {
     endTable() { this.layout = undefined; this.tableElement = undefined; this.tableHeadingsDrawn = false; this.y -= 8; }
     async pageBreak() { await this.finishPage(); await this.start(false); }
     registerXObject(name, id) { this.externalObjects.set(name, id); }
+    /** Height after the existing fit-to-page graphic policy, used by heading keep constraints. */
+    graphicHeight(width, height) {
+        const { page, margins } = this.settings;
+        return height * Math.min(1, (page.width - margins.left - margins.right) / width, (page.height - margins.top - margins.bottom) / height);
+    }
     /** Place an indivisible graphic, preserving aspect ratio and scaling down to page bounds. */
     async graphic(width, height, alignment, paint, alternativeText) {
         const { page, margins } = this.settings, available = page.width - margins.left - margins.right;
@@ -2336,9 +3040,8 @@ class PdfPages {
         await this.objects.stream(contents, this.commands.join(""), "", options.compression !== false);
         const annotations = [];
         for (const annotation of this.annotations) {
-            const id = this.objects.reserve();
-            annotations.push(id);
-            await this.objects.object(id, annotation);
+            annotations.push(annotation.id);
+            await this.objects.object(annotation.id, annotation.body);
         }
         await this.objects.object(this.current, "<< /Type /Page /Parent " + this.parent + " 0 R /MediaBox [0 0 " + pdfNumber(page.width) + " " + pdfNumber(page.height) +
             "] /Resources " + this.resources + " 0 R /Contents " + contents + " 0 R" +
@@ -2373,7 +3076,7 @@ const _exports = Object.freeze({ PdfPages: PdfPages });
 return _exports;
 })();
 
-const _m27 = (() => {
+const _m29 = (() => {
 const { OfficeIMOError } = _m4;
 
 const { checkAbort } = _m3;
@@ -2388,10 +3091,12 @@ class PdfStructure {
     document;
     parentTree;
     elements = new Map();
-    pageEntries = [];
+    parentEntries = new Map();
+    links = new WeakMap();
     pageParents = [];
     pageId = 0;
-    pageCount = 0;
+    pageKey = 0;
+    nextParentKey = 0;
     references = 0;
     constructor(objects, settings) {
         this.objects = objects;
@@ -2413,25 +3118,50 @@ class PdfStructure {
         const row = this.element("TR", table);
         return headers.map(header => this.element(header ? "TH" : "TD", row, header ? " /A << /O /Table /Scope /Column >>" : ""));
     }
-    beginPage(pageId) { this.pageId = pageId; this.pageParents = []; this.pageCount++; }
+    beginPage(pageId) { this.pageId = pageId; this.pageParents = []; this.pageKey = this.nextParentKey++; }
+    /** A source link retains one logical identity when its text/annotation continues on another page. */
+    link(parent, identity) {
+        let parents = this.links.get(identity);
+        if (!parents) {
+            parents = new Map();
+            this.links.set(identity, parents);
+        }
+        const existing = parents.get(parent);
+        if (existing !== undefined)
+            return existing;
+        const id = this.element("Link", parent);
+        parents.set(parent, id);
+        return id;
+    }
+    /** Associate a native annotation in both directions: OBJR child and annotation ParentTree entry. */
+    annotation(elementId, annotationId) {
+        checkAbort(this.settings.options.signal);
+        const element = this.elements.get(elementId);
+        if (!element || element.role !== "Link")
+            throw new Error("Tagged link annotations require a logical Link owner.");
+        const key = this.nextParentKey++;
+        element.children.push("<< /Type /OBJR /Obj " + annotationId + " 0 R /Pg " + this.pageId + " 0 R >>");
+        this.parentEntries.set(key, elementId + " 0 R");
+        return key;
+    }
     /** Every MCID is local to its page; its parent entry points back to the owning logical element. */
-    mark(elementId) {
+    mark(elementId, actualText) {
         if (++this.references > this.settings.limits.maxMarkedContentReferences)
             throw new OfficeIMOError("RESOURCE_LIMIT", "maxMarkedContentReferences exceeded.");
         const element = this.elements.get(elementId);
         const mcid = this.pageParents.length;
         this.pageParents.push(elementId);
         element.children.push("<< /Type /MCR /Pg " + this.pageId + " 0 R /MCID " + mcid + " >>");
-        return "/" + element.role + " << /MCID " + mcid + " >> BDC\n";
+        return "/" + element.role + " << /MCID " + mcid + (actualText === undefined ? "" : " /ActualText <FEFF" + unicodeHex(actualText) + ">") + " >> BDC\n";
     }
-    get pageDictionary() { return " /StructParents " + (this.pageCount - 1) + " /Tabs /S"; }
+    get pageDictionary() { return " /StructParents " + this.pageKey + " /Tabs /S"; }
     get catalogDictionary() {
         return " /MarkInfo << /Marked true >> /Lang <feff" + unicodeHex(this.settings.options.tagged.language) + "> /StructTreeRoot " + this.root + " 0 R";
     }
     async finishPage() {
         const array = this.objects.reserve();
         await this.objects.object(array, "[" + this.pageParents.map(id => id + " 0 R").join(" ") + "]");
-        this.pageEntries.push((this.pageCount - 1) + " " + array + " 0 R");
+        this.parentEntries.set(this.pageKey, array + " 0 R");
         this.pageParents = [];
     }
     async finish() {
@@ -2440,9 +3170,9 @@ class PdfStructure {
             await this.objects.object(element.id, "<< /Type /StructElem /S /" + element.role + " /P " + element.parent +
                 " 0 R /K [" + element.children.join(" ") + "]" + element.attributes + " >>");
         }
-        await this.objects.object(this.parentTree, "<< /Nums [" + this.pageEntries.join(" ") + "] >>");
+        await this.objects.object(this.parentTree, "<< /Nums [" + [...this.parentEntries].sort(([left], [right]) => left - right).map(([key, value]) => key + " " + value).join(" ") + "] >>");
         await this.objects.object(this.root, "<< /Type /StructTreeRoot /K [" + this.document + " 0 R] /ParentTree " +
-            this.parentTree + " 0 R /ParentTreeNextKey " + this.pageCount + " >>");
+            this.parentTree + " 0 R /ParentTreeNextKey " + this.nextParentKey + " >>");
     }
 }
 /** Validate author intent even in untagged output so a later opt-in cannot silently change meaning. */
@@ -2476,9 +3206,9 @@ const { PdfFontResources } = _m15;
 
 const { PdfTableLayout } = _m22;
 
-const { PdfPages } = _m25;
+const { PdfPages } = _m27;
 
-const { PdfStructure } = _m27;
+const { PdfStructure } = _m29;
 
 /** One resource/catalog owner shared by table convenience exports and composed documents. */
 class PdfWriteSession {
@@ -2500,7 +3230,7 @@ class PdfWriteSession {
         this.resources = this.objects.reserve();
         this.info = this.objects.reserve();
         this.structure = settings.options.tagged ? new PdfStructure(this.objects, settings) : undefined;
-        this.fonts = new PdfFontResources(this.objects, settings.options.fonts, settings.limits.maxFontBytes);
+        this.fonts = new PdfFontResources(this.objects, settings.options.fonts, settings.limits.maxFontBytes, settings.options.signal);
         this.layout = table ? new PdfTableLayout(settings, this.fonts) : undefined;
         this.pages = new PdfPages(this.objects, settings, this.fonts, this.parent, this.resources, this.layout, this.structure);
     }
@@ -2593,7 +3323,7 @@ const _exports = Object.freeze({ writePdf: writePdf, writePdfTo: writePdfTo });
 return _exports;
 })();
 
-const _m31 = (() => {
+const _m33 = (() => {
 const crcTable = new Uint32Array(256).map((_, index) => {
     let value = index;
     for (let bit = 0; bit < 8; bit++)
@@ -2615,19 +3345,23 @@ const _exports = Object.freeze({ Crc32: Crc32 });
 return _exports;
 })();
 
-const _m30 = (() => {
+const _m32 = (() => {
 const { NotSupportedError, OfficeIMOError } = _m4;
 
 const { checkAbort, pause, taskYieldDue, withAbort } = _m3;
 
-const { Crc32 } = _m31;
+const { Crc32 } = _m33;
 
 const signature = [137, 80, 78, 71, 13, 10, 26, 10];
 const unsupportedChunks = new Set(["PLTE", "tRNS", "iCCP", "sRGB", "gAMA", "cHRM", "cICP", "mDCV", "cLLI", "sBIT", "eXIf", "acTL", "fcTL", "fdAT"]);
 /** Decode the static unprofiled 8-bit RGB/RGBA profile without canvas or a second compression engine. */
-async function pngPixels(inputSource, maxPixels, signal) {
+async function pngPixels(inputSource, maxPixels, signal, maxWorkingBytes) {
     checkAbort(signal);
     const shape = pngShape(inputSource, maxPixels);
+    const imagePixels = shape.width * shape.height;
+    const workingBytes = inputSource.length + imagePixels * shape.components + (shape.components === 4 ? shape.width * 8 : 0);
+    if (maxWorkingBytes !== undefined && workingBytes > maxWorkingBytes)
+        throw new OfficeIMOError("RESOURCE_LIMIT", "maxImageWorkingBytes exceeded by PNG source, image planes and scanlines.");
     const source = new Uint8Array(inputSource);
     const header = await pngHeader(source, shape, signal);
     checkAbort(signal);
@@ -2645,7 +3379,11 @@ async function pngPixels(inputSource, maxPixels, signal) {
     // All dimensions and the exact filtered length are bounded before allocating decoded pixels.
     if (!Number.isSafeInteger(expected) || expected > 0x7fffffff)
         throw new OfficeIMOError("RESOURCE_LIMIT", "PNG filtered data exceeds the supported decoded byte length.");
-    const pixels = new Uint8Array(rowBytes * height), view = new DataView(source.buffer, source.byteOffset, source.byteLength);
+    // RGBA is reconstructed one scanline at a time directly into PDF RGB/alpha planes.
+    // It never retains an additional full interleaved RGBA image.
+    const pixels = new Uint8Array(width * height * 3), alpha = components === 4 ? new Uint8Array(imagePixels) : undefined;
+    let previous = components === 4 ? new Uint8Array(rowBytes) : undefined, current = components === 4 ? new Uint8Array(rowBytes) : undefined;
+    const view = new DataView(source.buffer, source.byteOffset, source.byteLength);
     let chunk = header.firstData, position = chunk + 8, end = position + view.getUint32(chunk);
     const input = new ReadableStream({ pull(controller) {
             checkAbort(signal);
@@ -2664,7 +3402,7 @@ async function pngPixels(inputSource, maxPixels, signal) {
             position = next;
         } }, { highWaterMark: 0 });
     const reader = input.pipeThrough(stream).getReader();
-    let inflated = 0, output = 0, column = 0, filter = 0;
+    let inflated = 0, output = 0, rgbOutput = 0, alphaOutput = 0, column = 0, filter = 0;
     try {
         while (true) {
             const item = await withAbort(reader.read(), signal).catch(cause => {
@@ -2684,13 +3422,44 @@ async function pngPixels(inputSource, maxPixels, signal) {
                         throw new TypeError("Invalid PNG scanline filter.");
                 }
                 else {
-                    const left = column > components ? pixels[output - components] : 0;
-                    const up = output >= rowBytes ? pixels[output - rowBytes] : 0;
-                    const upperLeft = column > components && output >= rowBytes ? pixels[output - rowBytes - components] : 0;
-                    pixels[output++] = value + (filter === 0 ? 0 : filter === 1 ? left : filter === 2 ? up :
-                        filter === 3 ? Math.floor((left + up) / 2) : paeth(left, up, upperLeft));
+                    const index = column - 1;
+                    let decoded = value;
+                    if (filter !== 0) {
+                        const left = column > components ? current ? current[index - components] : pixels[output - components] : 0;
+                        const up = previous ? previous[index] : output >= rowBytes ? pixels[output - rowBytes] : 0;
+                        const upperLeft = column > components ? previous ? previous[index - components] : output >= rowBytes ? pixels[output - rowBytes - components] : 0 : 0;
+                        decoded = (value + (filter === 1 ? left : filter === 2 ? up :
+                            filter === 3 ? Math.floor((left + up) / 2) : paeth(left, up, upperLeft))) & 255;
+                    }
+                    if (current)
+                        current[index] = decoded;
+                    else
+                        pixels[output] = decoded;
+                    output++;
                 }
-                column = column === rowBytes ? 0 : column + 1;
+                if (column === rowBytes) {
+                    column = 0;
+                    if (current && alpha) {
+                        // Split each completed row once: no per-byte division or channel dispatch,
+                        // and filter reconstruction still uses only these same two scanlines.
+                        for (let c = 0; c < rowBytes; c += 4) {
+                            pixels[rgbOutput++] = current[c];
+                            pixels[rgbOutput++] = current[c + 1];
+                            pixels[rgbOutput++] = current[c + 2];
+                            alpha[alphaOutput++] = current[c + 3];
+                            if ((c & 16383) === 16380) {
+                                if (taskYieldDue())
+                                    await pause();
+                                checkAbort(signal);
+                            }
+                        }
+                        const completed = current;
+                        current = previous;
+                        previous = completed;
+                    }
+                }
+                else
+                    column++;
                 if ((p & 16383) === 16383) {
                     if (taskYieldDue())
                         await pause();
@@ -2704,7 +3473,7 @@ async function pngPixels(inputSource, maxPixels, signal) {
         }
         if (inflated !== expected)
             throw new TypeError("PNG inflated bytes must match the exact IHDR scanline length.");
-        return { width, height, components, data: pixels };
+        return { width, height, components: 3, data: pixels, ...(alpha ? { alpha } : {}) };
     }
     catch (error) {
         void reader.cancel(error).catch(() => { });
@@ -2798,12 +3567,12 @@ const _exports = Object.freeze({ pngPixels: pngPixels });
 return _exports;
 })();
 
-const _m29 = (() => {
+const _m31 = (() => {
 const { NotSupportedError, OfficeIMOError } = _m4;
 
 const { checkAbort, pause, taskYieldDue } = _m3;
 
-const { pngPixels } = _m30;
+const { pngPixels } = _m32;
 
 /** Shared document image resources; source objects are captured on first consumption. */
 class PdfDocumentImages {
@@ -2828,9 +3597,10 @@ class PdfDocumentImages {
         const byteLength = data.length;
         if (this.bytes + byteLength > limits.maxImageBytes)
             throw new OfficeIMOError("RESOURCE_LIMIT", "maxImageBytes exceeded.");
-        let width, height, components, decoded;
+        let width, height, components, decoded, decodedAlpha;
+        const maximumWorkingBytes = options.limits?.maxImageWorkingBytes;
         if (format === "png")
-            ({ width, height, components, data: decoded } = await pngPixels(data, limits.maxImagePixels, options.signal));
+            ({ width, height, components, data: decoded, alpha: decodedAlpha } = await pngPixels(data, limits.maxImagePixels, options.signal, maximumWorkingBytes));
         else if (format === "jpeg")
             ({ width, height, components } = jpegSize(data));
         else if (format === "rgb" || format === "rgba") {
@@ -2844,14 +3614,17 @@ class PdfDocumentImages {
             throw new OfficeIMOError("RESOURCE_LIMIT", "Image dimensions must be positive integers within maxImagePixels.");
         if ((format === "rgb" || format === "rgba") && byteLength !== width * height * components)
             throw new RangeError("Raw image bytes must match width × height × channels exactly.");
+        if (format !== "png" && maximumWorkingBytes !== undefined && byteLength + (components === 4 ? width * height : 0) > maximumWorkingBytes)
+            throw new OfficeIMOError("RESOURCE_LIMIT", "maxImageWorkingBytes exceeded by image snapshot and alpha plane.");
         checkAbort(options.signal);
         const id = this.objects.reserve(), name = "Image" + (this.images.size + 1);
         this.bytes += byteLength;
         const captured = decoded ?? new Uint8Array(data);
-        let pixels = captured, mask;
+        let pixels = captured, alpha = decodedAlpha, mask;
         if (components === 4) {
-            pixels = new Uint8Array(width * height * 3);
-            const alpha = new Uint8Array(width * height);
+            // Compact the owned RGBA snapshot in place. Forward writes never overwrite unread channels.
+            pixels = captured.subarray(0, width * height * 3);
+            alpha = new Uint8Array(width * height);
             for (let p = 0; p < alpha.length; p++) {
                 pixels[p * 3] = captured[p * 4];
                 pixels[p * 3 + 1] = captured[p * 4 + 1];
@@ -2863,6 +3636,8 @@ class PdfDocumentImages {
                     checkAbort(options.signal);
                 }
             }
+        }
+        if (alpha) {
             mask = this.objects.reserve();
             await this.objects.stream(mask, alpha, "/Type /XObject /Subtype /Image /Width " + width + " /Height " + height + " /ColorSpace /DeviceGray /BitsPerComponent 8", options.compression !== false);
         }
@@ -2925,7 +3700,7 @@ const _exports = Object.freeze({ PdfDocumentImages: PdfDocumentImages });
 return _exports;
 })();
 
-const _m32 = (() => {
+const _m34 = (() => {
 const { OfficeIMOError } = _m4;
 
 const { checkAbort, pause, taskYieldDue } = _m3;
@@ -3011,7 +3786,7 @@ const _exports = Object.freeze({ vectorCommands: vectorCommands });
 return _exports;
 })();
 
-const _m33 = (() => {
+const _m35 = (() => {
 const { NotSupportedError, OfficeIMOError } = _m4;
 
 const { checkAbort, pause, taskYieldDue } = _m3;
@@ -3257,8 +4032,78 @@ const _exports = Object.freeze({ checkDrawingBlock: checkDrawingBlock, prepareDr
 return _exports;
 })();
 
-const _m28 = (() => {
+const _m36 = (() => {
+const { OfficeIMOError } = _m4;
+
+const { capturePdfText, wrapPdfText } = _m25;
+
+const { positive, presentation } = _m10;
+
+/** @internal Copy public paragraph input before any cooperative layout or source enumeration. */
+function captureParagraph(block, settings, fonts) {
+    if (!block || block.kind !== "paragraph")
+        throw new TypeError("PDF paragraph groups accept paragraph blocks only.");
+    const { text, headingLevel, presentation: inputStyle, fontSize, keepTogether, keepWithNext, spaceBefore, spaceAfter } = block;
+    if (headingLevel !== undefined && (!Number.isInteger(headingLevel) || headingLevel < 1 || headingLevel > 6))
+        throw new TypeError("Paragraph headingLevel must be an integer from 1 through 6.");
+    if (inputStyle && Object.keys(inputStyle).some(key => !["bold", "italic", "color", "alignment"].includes(key)))
+        throw new TypeError("PDF paragraph presentation supports bold, italic, color and alignment.");
+    for (const [name, flag] of [["keepTogether", keepTogether], ["keepWithNext", keepWithNext]])
+        if (flag !== undefined && typeof flag !== "boolean")
+            throw new TypeError("Paragraph " + name + " must be boolean.");
+    const style = presentation(inputStyle), size = positive(fontSize ?? settings.fontSize, "Paragraph font size", 144);
+    const spacing = (value, fallback) => {
+        if (value === undefined)
+            return fallback;
+        if (!Number.isFinite(value) || value < 0 || value > 14400)
+            throw new RangeError("Paragraph spacing must be from zero through 14,400 points.");
+        return value;
+    };
+    return Object.freeze({ text: capturePdfText(text, style, settings, fonts, false), style, size,
+        ...(headingLevel === undefined ? {} : { headingLevel }), keepTogether: keepTogether ?? false, keepWithNext: keepWithNext ?? false,
+        spaceBefore: spacing(spaceBefore, 0), spaceAfter: spacing(spaceAfter, 8) });
+}
+/** @internal Layout is bounded by the same per-cell text and wrapped-line limits as table cells. */
+async function prepareParagraph(captured, settings, fonts) {
+    if (!captured.text.text)
+        return { ...captured, lines: [], height: 0, firstHeight: 0 };
+    settings.budget.cell(captured.text.text, captured.text.text.length);
+    const lines = await wrapPdfText(captured.text, fonts, captured.size, settings.page.width - settings.margins.left - settings.margins.right, settings);
+    return { ...captured, lines, height: captured.spaceBefore + lines.reduce((height, line) => height + line.lineHeight, 0) + captured.spaceAfter,
+        firstHeight: captured.spaceBefore + lines[0].lineHeight };
+}
+/** @internal Pending keep chains/groups cannot retain an unbounded report or consume a table source. */
+function checkParagraphBuffer(paragraphs, settings) {
+    if (paragraphs.length > settings.limits.maxGroupBlocks)
+        throw new OfficeIMOError("RESOURCE_LIMIT", "maxGroupBlocks exceeded.");
+    let characters = 0, runs = 0;
+    for (const paragraph of paragraphs) {
+        characters += paragraph.text.text.length;
+        runs += paragraph.text.runs.length;
+        if (characters > settings.limits.maxCellCharacters)
+            throw new OfficeIMOError("RESOURCE_LIMIT", "maxCellCharacters exceeded by a paragraph group or keep chain.");
+        if (runs > settings.limits.maxTextRuns)
+            throw new OfficeIMOError("RESOURCE_LIMIT", "maxTextRuns exceeded by a paragraph group or keep chain.");
+    }
+}
+/** @internal Minimum leading fragment compatible with the first visible paragraph's own keep requests. */
+function paragraphStartHeight(paragraphs) {
+    const visible = paragraphs.filter(paragraph => paragraph.lines.length > 0);
+    let required = 0;
+    for (let i = visible.length - 1; i >= 0; i--) {
+        const paragraph = visible[i];
+        required = paragraph.keepWithNext ? paragraph.height + required : paragraph.keepTogether ? paragraph.height : paragraph.firstHeight;
+    }
+    return required;
+}
+const _exports = Object.freeze({ captureParagraph: captureParagraph, prepareParagraph: prepareParagraph, checkParagraphBuffer: checkParagraphBuffer, paragraphStartHeight: paragraphStartHeight });
+return _exports;
+})();
+
+const _m30 = (() => {
 const { BlobByteSink, withDestination } = _m2;
+
+const { OfficeIMOError } = _m4;
 
 const { beginTask, checkAbort, consumeRows, pause, taskYieldDue } = _m3;
 
@@ -3266,7 +4111,7 @@ const { notifyProgress } = _m5;
 
 const { copyColumns, createRowProjector } = _m6;
 
-const { settings, presentation, positive } = _m10;
+const { settings } = _m10;
 
 const { pdfNumber: n } = _m14;
 
@@ -3274,13 +4119,15 @@ const { PdfTableLayout } = _m22;
 
 const { PdfWriteSession } = _m13;
 
-const { PdfDocumentImages } = _m29;
+const { PdfDocumentImages } = _m31;
 
-const { vectorCommands } = _m32;
+const { vectorCommands } = _m34;
 
-const { graphicAlternative } = _m27;
+const { graphicAlternative } = _m29;
 
-const { checkDrawingBlock, prepareDrawing } = _m33;
+const { checkDrawingBlock, prepareDrawing } = _m35;
+
+const { captureParagraph, prepareParagraph, checkParagraphBuffer, paragraphStartHeight } = _m36;
 
 /** Capture typed columns for a single-use table source in a composed document. */
 function pdfTable(rows, options) {
@@ -3307,37 +4154,78 @@ async function writePdfDocumentTo(blocks, destination, configuration = {}) {
     return withDestination(destination, async (sink) => {
         const session = new PdfWriteSession(sink, prepared), { objects, pages, fonts } = session, images = new PdfDocumentImages(objects, prepared);
         let rows = 0, columns = 0, commands = 0, drawingElements = 0;
+        let pending = [];
+        const flushParagraphs = async (nextHeight = 0) => {
+            const paragraphs = [];
+            for (const paragraph of pending)
+                paragraphs.push(await prepareParagraph(paragraph, prepared, fonts));
+            pending = [];
+            await pages.paragraphs(paragraphs, nextHeight);
+        };
         await session.start();
         await consumeRows(blocks, options.signal, async (block) => {
             if (!block || typeof block !== "object")
                 throw new TypeError("PDF document blocks must be objects.");
             switch (block.kind) {
                 case "paragraph": {
-                    const text = block.text, headingLevel = block.headingLevel, paragraphPresentation = block.presentation;
-                    if (typeof text !== "string")
-                        throw new TypeError("Paragraph text must be a string.");
-                    if (headingLevel !== undefined && (!Number.isInteger(headingLevel) || headingLevel < 1 || headingLevel > 6))
-                        throw new TypeError("Paragraph headingLevel must be an integer from 1 through 6.");
-                    if (paragraphPresentation && Object.keys(paragraphPresentation).some(key => !["bold", "italic", "color", "alignment"].includes(key)))
-                        throw new TypeError("PDF paragraph presentation supports bold, italic, color and alignment.");
-                    const style = presentation(paragraphPresentation), size = positive(block.fontSize ?? prepared.fontSize, "Paragraph font size", 144);
-                    if (text)
-                        await pages.paragraph(text, style, size, true, headingLevel);
+                    const paragraph = captureParagraph(block, prepared, fonts);
+                    if (!paragraph.text.text)
+                        break;
+                    if (pending.length || paragraph.keepWithNext) {
+                        pending.push(paragraph);
+                        checkParagraphBuffer(pending, prepared);
+                        if (!paragraph.keepWithNext)
+                            await flushParagraphs();
+                    }
+                    else
+                        await pages.paragraphs([await prepareParagraph(paragraph, prepared, fonts)]);
+                    break;
+                }
+                case "group": {
+                    const blocks = block.blocks, keepTogether = block.keepTogether;
+                    if (!Array.isArray(blocks))
+                        throw new TypeError("PDF paragraph group blocks must be an array.");
+                    if (keepTogether !== undefined && typeof keepTogether !== "boolean")
+                        throw new TypeError("PDF paragraph group keepTogether must be boolean.");
+                    if (blocks.length > prepared.limits.maxGroupBlocks)
+                        throw new OfficeIMOError("RESOURCE_LIMIT", "maxGroupBlocks exceeded.");
+                    const captured = [];
+                    for (const paragraph of blocks) {
+                        captured.push(captureParagraph(paragraph, prepared, fonts));
+                        checkParagraphBuffer(captured, prepared);
+                    }
+                    if (captured.filter(paragraph => paragraph.text.text).at(-1)?.keepWithNext)
+                        throw new TypeError("The last paragraph in a group cannot keepWithNext beyond the group's boundary.");
+                    const paragraphs = [];
+                    for (const paragraph of captured)
+                        paragraphs.push(await prepareParagraph(paragraph, prepared, fonts));
+                    if (!paragraphs.some(paragraph => paragraph.lines.length > 0))
+                        break;
+                    await flushParagraphs(keepTogether !== false ? paragraphs.reduce((height, paragraph) => height + paragraph.height, 0) : paragraphStartHeight(paragraphs));
+                    await pages.paragraphs(paragraphs, 0, keepTogether !== false);
                     break;
                 }
                 case "pageBreak":
+                    await flushParagraphs();
                     await pages.pageBreak();
                     break;
                 case "table": {
                     checkTableOptions(block.options);
                     const table = settings({ ...options, ...block.options, columns: block.options?.columns, includeHeader: block.options?.includeHeader ?? true }), layout = new PdfTableLayout({ ...table, budget }, fonts);
                     const project = createRowProjector(table.options.columns, undefined, options.signal);
-                    let count = 0;
+                    let count = 0, started = false;
                     columns = Math.max(columns, table.options.columns.length);
-                    await pages.beginTable(layout);
+                    const headings = await layout.headers(), headingHeight = headings.reduce((height, row) => height + row.height, 0);
                     await consumeRows(block.rows, options.signal, async (row) => {
                         budget.row(rows + 1);
-                        await pages.row(await layout.data(project(row, count), count));
+                        const laidOut = await layout.data(project(row, count), count), keptHeading = !started && pending.length > 0;
+                        if (!started) {
+                            const minimum = laidOut.lineHeight + prepared.padding * 2;
+                            await flushParagraphs(headingHeight + minimum);
+                            await pages.beginTable(layout, headings, minimum);
+                            started = true;
+                        }
+                        await pages.row(laidOut, keptHeading);
                         count++;
                         rows++;
                         if (rows % 256 === 0)
@@ -3346,12 +4234,20 @@ async function writePdfDocumentTo(blocks, destination, configuration = {}) {
                             await pause();
                         checkAbort(options.signal);
                     });
-                    const footer = await layout.footer(count);
+                    const footer = await layout.footer(count), keptFooterHeading = !started && pending.length > 0;
+                    if (!started) {
+                        if (!headings.length && !footer?.length)
+                            break;
+                        const minimum = footer?.length ? table.options.footer?.rows ? footer.reduce((height, row) => height + row.height, 0) :
+                            footer[0].lineHeight + prepared.padding * 2 : 0;
+                        await flushParagraphs(headingHeight + minimum);
+                        await pages.beginTable(layout, headings, minimum);
+                    }
                     if (footer) {
                         if (table.options.footer?.rows)
                             await pages.block(footer);
                         else
-                            await pages.row(footer[0]);
+                            await pages.row(footer[0], keptFooterHeading);
                     }
                     pages.endTable();
                     break;
@@ -3363,6 +4259,7 @@ async function writePdfDocumentTo(blocks, destination, configuration = {}) {
                     const height = displayHeight ?? width * image.height / image.width;
                     if (!Number.isFinite(width) || width <= 0 || !Number.isFinite(height) || height <= 0)
                         throw new RangeError("Image display dimensions must be finite and positive.");
+                    await flushParagraphs(pages.graphicHeight(width, height));
                     pages.registerXObject(image.name, image.id);
                     await pages.graphic(width, height, alignment, (x, y, w, h) => "q " + [w, 0, 0, h, x, y].map(n).join(" ") + " cm /" + image.name + " Do Q\n", alternative);
                     break;
@@ -3370,6 +4267,7 @@ async function writePdfDocumentTo(blocks, destination, configuration = {}) {
                 case "vector": {
                     const alternative = graphicAlternative(block, prepared), alignment = graphicAlignment(block.alignment), path = await vectorCommands(block, prepared, commands);
                     commands += path.count;
+                    await flushParagraphs(pages.graphicHeight(path.width, path.height));
                     await pages.graphic(path.width, path.height, alignment, (x, y, w, h) => "q " + [w / path.width, 0, 0, -h / path.height, x, y + h].map(n).join(" ") +
                         " cm 0 0 " + n(path.width) + " " + n(path.height) + " re W n\n" + path.content + "Q\n", alternative);
                     break;
@@ -3380,6 +4278,7 @@ async function writePdfDocumentTo(blocks, destination, configuration = {}) {
                     const drawing = await prepareDrawing(block.drawing, prepared, fonts, { commands, elements: drawingElements });
                     commands += drawing.commands;
                     drawingElements += drawing.elements;
+                    await flushParagraphs(pages.graphicHeight(drawing.width, drawing.height));
                     await pages.graphic(drawing.width, drawing.height, alignment, (x, y, w, h) => "q " + [w / drawing.width, 0, 0, -h / drawing.height, x, y + h].map(n).join(" ") +
                         " cm 0 0 " + n(drawing.width) + " " + n(drawing.height) + " re W n\n" + drawing.content + "Q\n", alternative);
                     break;
@@ -3390,6 +4289,7 @@ async function writePdfDocumentTo(blocks, destination, configuration = {}) {
                 await pause();
             checkAbort(options.signal);
         });
+        await flushParagraphs();
         if (options.messageBottom)
             await pages.paragraph(options.messageBottom);
         await session.finish();
@@ -3405,7 +4305,7 @@ function graphicAlignment(value) {
 }
 /** Per-table overrides cannot change the document's shared fonts, geometry or resource policy. */
 function checkTableOptions(options) {
-    const allowed = ["columns", "includeHeader", "headerRows", "footer", "headerPresentation", "footerPresentation", "alternateRowColor", "columnWidths", "wideTable", "formatValue"];
+    const allowed = ["columns", "includeHeader", "headerRows", "footer", "headerPresentation", "footerPresentation", "alternateRowColor", "columnWidths", "wideTable", "formatValue", "formatRuns"];
     if (!options || typeof options !== "object" || Object.keys(options).some(key => !allowed.includes(key)))
         throw new TypeError("Table options support columns, headings, footers, widths and presentation; document settings belong on writePdfDocument.");
 }
@@ -3413,7 +4313,7 @@ const _exports = Object.freeze({ pdfTable: pdfTable, writePdfDocument: writePdfD
 return _exports;
 })();
 
-const _m34 = (() => {
+const _m37 = (() => {
 const { fontProgram } = _m16;
 
 const { resolveScalar, selectFont, validateFonts } = _m20;
@@ -3452,7 +4352,7 @@ const _exports = Object.freeze({ preflightPdfText: preflightPdfText });
 return _exports;
 })();
 
-const _m35 = (() => {
+const _m38 = (() => {
 
 
 
@@ -3500,7 +4400,7 @@ return _exports;
 
 const _m0 = (() => {
 
-const _exports = Object.freeze({ writePdf: _m1.writePdf, writePdfTo: _m1.writePdfTo, writePdfDocument: _m28.writePdfDocument, writePdfDocumentTo: _m28.writePdfDocumentTo, pdfTable: _m28.pdfTable, PdfFont: _m16.PdfFont, preflightPdfText: _m34.preflightPdfText, ExportCell: _m7.ExportCell, saveBlob: _m35.saveBlob });
+const _exports = Object.freeze({ writePdf: _m1.writePdf, writePdfTo: _m1.writePdfTo, writePdfDocument: _m30.writePdfDocument, writePdfDocumentTo: _m30.writePdfDocumentTo, pdfTable: _m30.pdfTable, PdfFont: _m16.PdfFont, preflightPdfText: _m37.preflightPdfText, ExportCell: _m7.ExportCell, saveBlob: _m38.saveBlob });
 return _exports;
 })();
 const { writePdf, writePdfTo, writePdfDocument, writePdfDocumentTo, pdfTable, PdfFont, preflightPdfText, ExportCell, saveBlob } = _m0;

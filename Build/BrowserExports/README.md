@@ -60,7 +60,7 @@ dotnet run --project Build/BrowserExports/OfficeIMO.Browser.Interop.csproj -c Re
 npm --prefix OfficeIMO.JavaScript --script-shell pwsh run sizes -- "$evidence/sizes.json"
 ```
 
-`npm test` runs the strict compilation, committed-bundle check and Node tests. The separate consumer check imports every public subpath with strict compiler options and positive/negative type contracts. The npm consumer installs the real archive into an isolated application, uses the package's pinned test compiler, executes all subpaths and checks that no runtime dependencies were installed. The NuGet consumer restores the actual asset archive into a task-local package directory and verifies all twelve byte/hash contracts on .NET 8 and .NET 10.
+`npm test` runs the strict compilation, committed-bundle check and Node tests. The separate consumer check imports every public subpath with strict compiler options and positive/negative type contracts. The npm consumer installs the real archive into an isolated application, uses the package's pinned test compiler, executes all subpaths and checks that no runtime dependencies were installed. The NuGet consumer restores the actual asset archive into a task-local package directory and verifies all fourteen byte/hash contracts on .NET 8 and .NET 10.
 
 The shared XLSX manifest is `OfficeIMO.TestAssets/JavaScript/xlsx-writer.json`; CSV vectors are in `OfficeIMO.TestAssets/CSV/browser-exports.json`. A C# test invokes the Node fixture producer and validates every generated file using the shared `JavaScriptWorkbookContract`. Both OfficeIMO.Excel and OfficeIMO.Reader.Excel open the workbooks, expected cells/styles/parts are checked, and the Open XML SDK validates each document. The CSV contract compares TypeScript bytes with independently generated OfficeIMO.CSV bytes.
 
@@ -88,6 +88,36 @@ dotnet run --project Build/BrowserExports/OfficeIMO.Browser.Interop.csproj -c Re
 The measurement script compares actual inline-string worksheet XML with an equivalent shared-string representation using the same compressor, and measures the generated bundles. The scale runner writes 100,000 rows by 20 columns for XLSX/CSV, validates output and records responsiveness and available heap metrics. These timing/memory measurements do not become ordinary CI correctness envelopes.
 
 `Check-Excel.ps1` and `check-libreoffice.py` preserve optional application spot checks. They do not install, ship or invoke either application as a product dependency.
+
+## Worker execution and report workbench
+
+The optional execution entry has a focused three-engine lane for projected rows, portable cells and Dates, acknowledged output, cancellation, disposal, limits and reuse:
+
+```sh
+npm --prefix OfficeIMO.JavaScript run build
+npm --prefix OfficeIMO.JavaScript run test:browser -- "$evidence/execution" --execution
+```
+
+The website workbench uses the shared executable `OfficeIMO.JavaScript.Examples/report-engine-job.mjs` for its Excel, PDF and CSV exports. Serve the built website over loopback HTTP, then exercise actual controls and downloads:
+
+```sh
+dotnet run --project Build/BrowserExports/OfficeIMO.Browser.Interop.csproj -c Release -- . "$evidence/workbench" --report-engine --site-url=http://127.0.0.1:51381/report-engine/
+```
+
+This lane independently reads empty and populated exports, checks typed numbers and explicit UTC dates, and verifies chart formulas/caches. It also checks cancellation after progress, retry after font or module loading fails, keyboard navigation, compact/wide layouts, both themes and links from the neighboring converter. Captures still need visual inspection. Website build/deployment and assistive-technology acceptance are separate from these browser checks.
+
+## Image and font resource measurements
+
+Use a separately compiled baseline `dist` tree from a known source revision:
+
+```powershell
+./Build/BrowserExports/Run-ResourceComparison.ps1 -BaselineDist /path/to/baseline/dist -OutputRoot "$evidence/resources" -Plan
+./Build/BrowserExports/Run-ResourceComparison.ps1 -BaselineDist /path/to/baseline/dist -OutputRoot "$evidence/resources" -WarmupCount 1 -IterationCount 3
+```
+
+The opt-in runner delegates repetitions and rotated ordering to PSPublishModule/PowerForge. It requires Node, qpdf and Poppler's `pdftotext` for validation; these are not product dependencies. PNG cases measure complete uncompressed PDF Blob generation from deterministic filter-0, 8-bit RGBA inputs at 2048 and 4096 pixels square. Font cases measure intake of the supplied Carlito and Japanese TrueType files; their PDF generation is outside the measured interval. Complete PDF hashes, independently inspected image planes and extracted font text must pass for every sample, including warmups. Large PDFs are removed after successful validation.
+
+Results record the source graph and fixture hashes, raw samples, Node process peak RSS, memory snapshots, CPU time, timer gaps and host load/CPU context. Peak RSS includes process startup and native allocations, and is not JavaScript heap or whole-system memory. Timings on a busy, unpinned host describe that run; preserve losses and variation, and do not generalize this PNG profile to all images, font scripts or document formats. These measurements do not run as ordinary correctness gates.
 
 ## DataTables integration and comparisons
 

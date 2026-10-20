@@ -19,8 +19,9 @@ export class PdfDocumentImages {
     if (!(data instanceof Uint8Array)) throw new TypeError("PDF images require a byte array.");
     const byteLength = data.length;
     if (this.bytes + byteLength > limits.maxImageBytes) throw new OfficeIMOError("RESOURCE_LIMIT", "maxImageBytes exceeded.");
-    let width: number, height: number, components: number, decoded: Uint8Array | undefined;
-    if (format === "png") ({ width, height, components, data: decoded } = await pngPixels(data, limits.maxImagePixels, options.signal));
+    let width: number, height: number, components: number, decoded: Uint8Array | undefined, decodedAlpha: Uint8Array | undefined;
+    const maximumWorkingBytes = options.limits?.maxImageWorkingBytes;
+    if (format === "png") ({ width, height, components, data: decoded, alpha: decodedAlpha } = await pngPixels(data, limits.maxImagePixels, options.signal, maximumWorkingBytes));
     else if (format === "jpeg") ({ width, height, components } = jpegSize(data));
     else if (format === "rgb" || format === "rgba") {
       ({ width, height } = image as PdfRawImage); components = format === "rgba" ? 4 : 3;
@@ -29,17 +30,22 @@ export class PdfDocumentImages {
         !Number.isSafeInteger(width * height) || width * height > limits.maxImagePixels)
       throw new OfficeIMOError("RESOURCE_LIMIT", "Image dimensions must be positive integers within maxImagePixels.");
     if ((format === "rgb" || format === "rgba") && byteLength !== width * height * components) throw new RangeError("Raw image bytes must match width × height × channels exactly.");
+    if (format !== "png" && maximumWorkingBytes !== undefined && byteLength + (components === 4 ? width * height : 0) > maximumWorkingBytes)
+      throw new OfficeIMOError("RESOURCE_LIMIT", "maxImageWorkingBytes exceeded by image snapshot and alpha plane.");
     checkAbort(options.signal);
     const id = this.objects.reserve(), name = "Image" + (this.images.size + 1);
     this.bytes += byteLength;
     const captured = decoded ?? new Uint8Array(data);
-    let pixels = captured, mask: number | undefined;
+    let pixels = captured, alpha = decodedAlpha, mask: number | undefined;
     if (components === 4) {
-      pixels = new Uint8Array(width * height * 3); const alpha = new Uint8Array(width * height);
+      // Compact the owned RGBA snapshot in place. Forward writes never overwrite unread channels.
+      pixels = captured.subarray(0, width * height * 3); alpha = new Uint8Array(width * height);
       for (let p = 0; p < alpha.length; p++) {
         pixels[p * 3] = captured[p * 4]!; pixels[p * 3 + 1] = captured[p * 4 + 1]!; pixels[p * 3 + 2] = captured[p * 4 + 2]!; alpha[p] = captured[p * 4 + 3]!;
         if ((p & 16383) === 16383) { if (taskYieldDue()) await pause(); checkAbort(options.signal); }
       }
+    }
+    if (alpha) {
       mask = this.objects.reserve();
       await this.objects.stream(mask, alpha, "/Type /XObject /Subtype /Image /Width " + width + " /Height " + height + " /ColorSpace /DeviceGray /BitsPerComponent 8", options.compression !== false);
     }

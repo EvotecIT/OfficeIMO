@@ -1,6 +1,15 @@
 // report.worker.ts; compile this module with the application's worker configuration.
-import { writeXlsx, writeCsv } from "@evotecit/officeimo";
-import type { Column } from "@evotecit/officeimo";
+import { writeXlsx, writeCsv, writeXlsxTo } from "@evotecit/officeimo";
+import type { Column, ExportValue } from "@evotecit/officeimo";
+import { handleWorkerExports } from "@evotecit/officeimo/execution";
+
+function installBoundedExport(scope: DedicatedWorkerGlobalScope) {
+  return handleWorkerExports(scope, ({ input, rows, sink, signal, onProgress }) => {
+    const configuration = input as { readonly columns: readonly Column<readonly ExportValue[]>[] };
+    return writeXlsxTo(rows, sink, { columns: configuration.columns, signal, onProgress });
+  });
+}
+void installBoundedExport;
 
 interface Sale { customer: { name: string }; amount: number; seen: Date; }
 const columns: readonly Column<Sale>[] = [

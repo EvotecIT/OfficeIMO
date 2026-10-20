@@ -14,6 +14,8 @@
     "./xlsx": { "types": "./dist/xlsx/index.d.ts", "import": "./dist/xlsx/index.js" },
     "./csv": { "types": "./dist/csv/index.d.ts", "import": "./dist/csv/index.js" },
     "./pdf": { "types": "./dist/pdf/index.d.ts", "import": "./dist/pdf/index.js" },
+    "./pdf/providers/harfbuzz": { "types": "./dist/pdf/providers/harfbuzz.d.ts", "import": "./dist/pdf/providers/harfbuzz.js" },
+    "./execution": { "types": "./dist/execution/index.d.ts", "import": "./dist/execution/index.js" },
     "./integrations/datatables": { "types": "./dist/integrations/datatables/index.d.ts", "import": "./dist/integrations/datatables/index.js" },
     "./integrations/canopyx": { "types": "./dist/integrations/canopyx/index.d.ts", "import": "./dist/integrations/canopyx/index.js" },
     "./canopyx.js": "./bundles/officeimo-canopyx.js",
@@ -21,7 +23,8 @@
     "./classic.js": "./bundles/officeimo.js",
     "./xlsx.js": "./bundles/officeimo-xlsx.js",
     "./csv.js": "./bundles/officeimo-csv.js",
-    "./pdf.js": "./bundles/officeimo-pdf.js"
+    "./pdf.js": "./bundles/officeimo-pdf.js",
+    "./execution.js": "./bundles/officeimo-execution.js"
   },
   "files": ["dist", "bundles", "LICENSE", "README.md"],
   "scripts": {

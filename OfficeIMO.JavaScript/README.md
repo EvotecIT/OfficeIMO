@@ -1,6 +1,6 @@
 # OfficeIMO JavaScript
 
-`@evotecit/officeimo` provides strict TypeScript document libraries for evergreen browsers, Web Workers and Node 18 or newer. It writes streaming XLSX workbooks, UTF-8 CSV and paginated PDF tables with no runtime dependencies. One package owns seven public layers: `core`, `zip`, `xml`, `opc`, `xlsx`, `csv` and `pdf`.
+`@evotecit/officeimo` provides strict TypeScript document libraries for evergreen browsers, Web Workers and Node 18 or newer. It writes streaming XLSX workbooks, UTF-8 CSV and paginated PDF tables with no runtime dependencies. One package owns seven public layers: `core`, `zip`, `xml`, `opc`, `xlsx`, `csv` and `pdf`. The optional `execution` entry connects host-owned workers to those writers with bounded row and byte messages.
 
 ## Install
 
@@ -231,7 +231,7 @@ import { writePdf, PdfFont, ExportCell, saveBlob } from "@evotecit/officeimo";
 // Host-owned, embedding-permitted static TrueType font.
 const response = await fetch("/fonts/report-regular.ttf");
 if (!response.ok) throw new Error("Report font could not be loaded");
-const regular = new PdfFont(new Uint8Array(await response.arrayBuffer()));
+const regular = await PdfFont.create(new Uint8Array(await response.arrayBuffer()));
 const report = await writePdf([
   { city: "Łódź", amount: 12.5 }, { city: "Gdańsk", amount: -2 }
 ], {
@@ -257,11 +257,11 @@ Lengths are points, with 72 points per inch. Defaults are A4 portrait, 36-point 
 
 `Column.groups` provides simple grouped headings. `headerRows` replaces them with a rectangular `TableSpanRows` matrix: each anchor declares `{ value, columnSpan?, rowSpan? }`, and every covered position is `null`. `footer.rows` uses the same model instead of `footer.values`/`totals`. Matrices support up to 16 rows and must cover the declared columns without overlap. Repeated headings must leave space for data; a structured footer must fit below the headings on one page. Titles/messages, page headers/footers and final `Page N of M` labels are separate from the table. Message-only continuation pages retain page decorations without repeating table headings. Page decoration callbacks receive `pageNumber` and return a synchronous string. Page-number space is measured from the selected font and `maxPages`; for large fonts or narrow pages, reduce that limit or set `pageNumbers: false`. Table and paragraph heights respect the selected font face's ascent and descent.
 
-Without supplied fonts, PDF uses standard Helvetica with WinAnsi text. For Polish, Greek, Cyrillic, CJK or other supported Unicode scalars, supply an embedding-permitted static TrueType font containing those glyphs. `PdfFont` copies and validates bytes once and can be reused. Optional `bold`, `italic` and `boldItalic` faces preserve their real glyphs; missing faces use synthetic emphasis. Used glyphs and composite dependencies are embedded as a subset, with Unicode extraction maps. Font permissions can require full embedding or prohibit embedding, which fails visibly. Collections, CFF/WOFF and variable fonts require conversion to static TrueType before use. The library neither fetches fonts nor reads installed fonts; font licensing belongs to the host.
+Without supplied fonts, PDF uses standard Helvetica with WinAnsi text. For Polish, Greek, Cyrillic, CJK or other supported Unicode scalars, supply an embedding-permitted static TrueType font containing those glyphs. `PdfFont` copies and validates bytes once and can be reused. For cooperative parsing, use `await PdfFont.create(bytes, { signal, maxBytes })`; its default intake limit is 16 MiB and can be raised up to the constructor's 64 MiB ceiling. The source snapshot is taken before yielding, so later caller mutation cannot change the font. The synchronous constructor remains available. PDF finalization also cooperates with cancellation while building the glyph subset. Optional `bold`, `italic` and `boldItalic` faces preserve their real glyphs; missing faces use synthetic emphasis. Used glyphs and composite dependencies are embedded as a subset, with Unicode extraction maps. Font permissions can require full embedding or prohibit embedding, which fails visibly. Collections, CFF/WOFF and variable fonts require conversion to static TrueType before use. The library neither fetches fonts nor reads installed fonts; font licensing belongs to the host.
 
-Call `preflightPdfText(text, { fonts: { regular }, bold: true })` from `@evotecit/officeimo/pdf` to check a known text run before export. It returns `{ supported: true }` or the first issue with `code`, `message`, and a zero-based UTF-16 `index` in the original input; `scalar` identifies the original character and is absent for an unpaired surrogate. Codes distinguish `embedded-font-required`, `missing-glyph`, `unsupported-layout`, `unsupported-control` and `unpaired-surrogate`. The check uses the writer's font selection, line-break and tab rules. It checks only the supplied string, leaves row sources untouched, and does not establish wrapping, document resource limits or accessibility.
+Call `preflightPdfText(text, { fonts: { regular }, bold: true })` from `@evotecit/officeimo/pdf` to check a known scalar-layout run before export. It returns `{ supported: true }` or the first issue with `code`, `message`, and a zero-based UTF-16 `index` in the original input; `scalar` identifies the original character and is absent for an unpaired surrogate. Codes distinguish `embedded-font-required`, `missing-glyph`, `unsupported-layout`, `unsupported-control` and `unpaired-surrogate`. The check uses scalar font selection, line-break and tab rules; it does not invoke an optional shaping provider. It checks only the supplied string, leaves row sources untouched, and does not establish wrapping, document resource limits or accessibility.
 
-This writer handles scalar text layout for Latin, Greek, Cyrillic, Han, Hiragana, Katakana, precomposed Hangul and common symbols, including supplementary Unicode where the font provides it. If a supplied TrueType font lacks U+202F (narrow no-break space) but provides an inkless U+2009 (thin space), the writer uses that thin-space glyph and its advance while preserving U+202F in the PDF's Unicode map. Other missing glyphs, malformed surrogates, combining sequences, bidirectional text and scripts requiring shaping fail explicitly. It does not provide general HTML/SVG rendering or PDF/A. Composed documents support the bounded image and vector contracts below. Long text is wrapped and continued across pages without truncation; CRLF/CR become line breaks and tabs expand to four spaces for display.
+The default writer handles scalar text layout for Latin, Greek, Cyrillic, Han, Hiragana, Katakana, precomposed Hangul and common symbols, including supplementary Unicode where the font provides it. If a supplied TrueType font lacks U+202F (narrow no-break space) but provides an inkless U+2009 (thin space), the writer uses that thin-space glyph and its advance while preserving U+202F in the PDF's Unicode map. Other missing glyphs and malformed surrogates fail explicitly. Combining sequences, bidirectional text and scripts requiring shaping need the optional profile below. It does not provide general HTML/SVG rendering or PDF/A. Composed documents support the bounded image and vector contracts below. Long text is wrapped and continued across pages without truncation; CRLF/CR become line breaks and tabs expand to four spaces for display.
 
 `PdfLimits` includes shared row/cell/text/output ceilings plus `maxPages` (default 10,000), `maxColumns` (1,024), `maxCellCharacters` (1,000,000 UTF-16 units), `maxRowLines` (100,000), `maxFontBytes` (16 MiB across unique supplied fonts), `maxPageBytes` (8 MiB of drawing commands and link dictionaries), and `maxHyperlinks` (100,000 native annotations). A continued linked cell creates one annotation per page fragment; repeated linked headings also consume that limit. PDF cell/text budgets count rendered strings, headings, totals and page decorations; `maxRows` counts source rows. Resource failures never silently remove rows, columns or text. Native deflate compresses streams when available; `compression: false` or a missing native compressor produces valid uncompressed PDFs.
 
@@ -303,6 +303,35 @@ saveBlob(report, "sales-report.pdf");
 
 Document options own page geometry, fonts, padding, decorations and limits. Each table owns its columns, repeated headings, widths, presentation, formatter and totals. Paragraphs support their own font size, bold, italic, text color and horizontal alignment. The existing font and supported-script rules apply to every block. `writePdf` and `writePdfTo` remain convenient entry points for one table.
 
+Paragraph `text` can also be an array of `PdfTextRun` values. Each run supplies text and optional `bold`, `italic`, RGB `color`, an explicit `font` face or an HTTP(S)/mailto `link`. Wrapping preserves continuous text across run boundaries and gives each visible link fragment its own annotation:
+
+```ts
+const invoice = await writePdfDocument([
+  { kind: "group", blocks: [
+    { kind: "paragraph", text: "Invoice", headingLevel: 1, fontSize: 18 },
+    { kind: "paragraph", text: [
+      { text: "Customer: " }, { text: "Contoso", bold: true }
+    ] }
+  ] },
+  { kind: "paragraph", keepTogether: true, spaceAfter: 12, text: [
+    { text: "View the " },
+    { text: "payment details", color: "0563C1", link: { target: "https://example.com/invoices/42" } }
+  ] },
+  pdfTable([{ item: "Services", amount: 120 }], {
+    columns: [{ header: "Item", key: "item" }, { header: "Amount", key: "amount" }],
+    formatRuns: (value, cell) => [{
+      text: cell.columnIndex === 1 && typeof value === "number" ? value.toFixed(2) : String(value ?? ""),
+      bold: cell.columnIndex === 1
+    }]
+  })
+], { fonts: { regular }, tagged: { language: "en-US" } });
+saveBlob(invoice, "invoice.pdf");
+```
+
+`formatRuns(value, context)` is a synchronous PDF-only display callback for table data. It leaves raw values available to totals; `ExportCell.text`, including an explicit empty string, takes precedence. Whole-cell links and inline run links cannot overlap. The same static-font and supported-script rules apply to every run; styled text alone does not add shaping support. An explicit `font` is an exact `PdfFont` face. Bold/italic flags apply synthetic emphasis to that face; omit them when the supplied face already contains the desired emphasis. Distinct configured and explicit font identities share the document's `maxFontBytes` budget, including unused configured faces.
+
+Paragraphs accept `keepTogether`, `keepWithNext`, `spaceBefore` and `spaceAfter`. Spacing defaults to zero points before and eight after. `keepTogether` moves an intact paragraph to a fresh page when needed; `keepWithNext` keeps it with the next visible paragraph line, first table fragment or complete graphic. A `group` contains paragraphs only and stays together by default. Nested groups and other block kinds are rejected; a final visible kept paragraph cannot reach outside its group. Content that cannot fit on a fresh page fails explicitly. `maxTextRuns` defaults to 10,000 per cell/paragraph and across a paragraph group or kept chain; `maxGroupBlocks` defaults to 256. Groups and kept chains also share `maxCellCharacters` so pagination cannot retain an unbounded report body.
+
 Images accept `{ format: "png", data }`, `{ format: "jpeg", data }` or decoded `{ format: "rgb" | "rgba", width, height, data }` pixels. Raw pixels are row-major, 8 bits per channel, without row padding or premultiplied alpha. JPEG accepts 8-bit grayscale/RGB baseline, sequential and progressive frames. CMYK, ICC profiles, EXIF metadata and other component layouts fail explicitly; normalize color and orientation before supplying those JPEGs.
 
 PNG intake accepts complete static, noninterlaced, 8-bit RGB/RGBA images with no color-profile metadata. It checks chunk CRCs, critical chunk order, scanline filters and the exact inflated byte length. RGB samples pass unchanged into the PDF's DeviceRGB image; straight alpha becomes a separate soft mask. Indexed/grayscale images, 16-bit samples, interlacing, animation, EXIF, `tRNS`, `sBIT`, and color/profile chunks (`sRGB`, `gAMA`, `cHRM`, `iCCP`, `cICP`, `mDCV`, `cLLI`) fail explicitly; normalize those inputs first. PNG decoding requires native `DecompressionStream("deflate")` and returns `code: "PLATFORM_UNAVAILABLE"` when unavailable. Arbitrary SVG bytes are not decoded.
@@ -312,6 +341,54 @@ An image's optional display `width` and `height` use points. One omitted dimensi
 Vector blocks use explicit top-left bounds and `move`, `line`, `cubic` and `close` commands. A block paints one path with optional six-digit RGB `fill` and `stroke`, `strokeWidth`, and `fillRule: "nonzero" | "evenodd"`. Coordinates must stay inside the declared bounds. Painting is clipped to those bounds. Images and vectors support `alignment: "left" | "center" | "right"`. This path contract does not interpret SVG markup, CSS, gradients, text or external resources.
 
 Blocks and table rows are consumed once in order, with destination backpressure and cancellation. Pass a fresh source for each export. The result's `rows` sums the data rows across all tables; `columns` is the widest table. Row, cell, rendered-text, page, font, output and hyperlink limits cover the whole document. Graphics add `maxImageBytes` (32 MiB across distinct source image objects), `maxImagePixels` (16,777,216 pixels per image), and `maxVectorCommands` (100,000 commands across all vector blocks). Caller-owned destinations retain their normal partial-output and disposal contract.
+
+Set optional `maxImageWorkingBytes` to reject an image before allocating its owned source snapshot, decoded planes and PNG scanlines. There is no default ceiling for this extra budget. PNG RGBA data is decoded directly into RGB and alpha planes with two scanlines; raw RGBA compacts its owned snapshot before writing the alpha mask. The budget excludes caller-owned input, finished output and native inflater/compressor allocations, so it does not bound total JavaScript heap or process memory. `maxImageBytes`, `maxImagePixels` and `maxOutputBytes` remain separate limits.
+
+### Optional multilingual PDF shaping
+
+The `@evotecit/officeimo/pdf/providers/harfbuzz` entry adapts host-loaded HarfBuzz and bidi engines. Importing it loads neither engine nor WASM. The default package and bundles retain no external runtime dependencies; applications choosing this profile install and load its engines explicitly:
+
+```sh
+npm install harfbuzzjs bidi-js
+# TypeScript hosts also need the global type used by HarfBuzz's declarations:
+npm install --save-dev @types/emscripten
+```
+
+```js
+import * as harfbuzz from "harfbuzzjs";
+import bidiFactory from "bidi-js";
+import { PdfFont, writePdfDocument, saveBlob } from "@evotecit/officeimo/pdf";
+import { createHarfBuzzTextShaper } from "@evotecit/officeimo/pdf/providers/harfbuzz";
+
+async function loadFont(url) {
+  const response = await fetch(url);
+  if (!response.ok) throw new Error("Report font could not be loaded.");
+  return PdfFont.create(new Uint8Array(await response.arrayBuffer()));
+}
+const [latin, arabic] = await Promise.all([
+  loadFont("/fonts/Carlito-Regular.ttf"),
+  loadFont("/fonts/NotoSansArabic-Regular.ttf")
+]);
+const shaper = createHarfBuzzTextShaper({ harfbuzz, bidi: bidiFactory(), language: "ar" });
+try {
+  const report = await writePdfDocument([{ kind: "paragraph", text: [
+    { text: "Status: ", font: latin },
+    { text: "السَّلَامُ عَلَيْكُمْ", font: arabic, color: "175F97" },
+    { text: " (42)", font: latin }
+  ] }], { fonts: { regular: latin }, textShaper: shaper, textDirection: "auto" });
+  saveBlob(report, "multilingual-report.pdf");
+} finally { shaper.dispose(); }
+```
+
+The qualified adapter uses harfbuzzjs 1.6.3 and bidi-js 1.1.0, with a Unicode 13 repertoire of Latin, Arabic, common and inherited characters. It supports static TrueType faces, combining marks, Arabic joining and mixed-direction horizontal text in composed paragraphs and table cells. Supply fonts covering each run; no font discovery or fallback occurs. Other scripts, later Unicode repertoire, vertical text, variable/color fonts and general Unicode conformance are outside this profile. The provider's versioned character table carries its Unicode data license notice. Its engines remain separately loaded MIT-licensed packages. Browser hosts serve their ESM/WASM assets over HTTP(S) with the required CSP; the classic local-file assets do not bootstrap these engines.
+
+Shaping sees the whole physical paragraph and reorders each finalized line using paragraph direction. The writer owns word/cluster wrapping, pagination, glyph embedding, CID/Unicode mappings, links and logical structure. `textDirection` accepts `auto`, `ltr` or `rtl`. A presentation, font or link boundary inside an indivisible cluster fails explicitly. Legacy `title`, `messageTop`/`messageBottom`, page decorations, portable drawing text and `preflightPdfText` retain their scalar profile; use composed paragraphs for shaped headings or messages.
+
+Each shaped physical paragraph is limited to 4,096 UTF-16 units and each shaping call to 32,768 glyphs. One adapter caches at most 16 exact font identities. Cancellation runs between bounded synchronous WASM calls, and provider errors stop the export. `dispose()` drops strong font/buffer references and rejects later calls; HarfBuzz 1.6.3 releases native objects through finalizers, so deterministic WASM-heap release requires terminating the host-owned worker.
+
+Logical source clusters are retained in `ToUnicode` and `ActualText`; tagged content allocates its structure references in logical order before visual painting. Independent native extractors can apply their own bidi ordering to raw text. Copy/paste order, screen-reader behavior and PDF/UA acceptance remain separate qualification. TypeScript host assignability is checked with bundler resolution and the engines' own declarations; bidi-js's CommonJS default declaration has a separate NodeNext interop limitation.
+
+`PdfTextShaper` is the engine-independent replacement contract. It accepts exact registered fonts and logical UTF-16 ranges and returns positioned glyphs, without PDF commands or HarfBuzz types. The [owned text-engine roadmap](../Docs/ROADMAP.md#officeimo-owned-text-engines) scopes staged replacements behind that boundary.
 
 ### Portable drawings
 
@@ -364,7 +441,7 @@ const report = await writePdfDocument([
 ], { tagged: { language: "en-US" } });
 ```
 
-The supported table profile uses one leaf heading per column, tagged as `TH` with column scope. Empty heading cells use `TD`. Ordinary data and footer cells use `TD`. A table remains one `Table` with ordered `TR` and cell elements across pages; each continued paragraph or cell retains its logical identity. Repeated visual headings, table borders/backgrounds, page headers/footers and page numbers are artifacts. Grouped headings, `headerRows`, structured `footer.rows` and linked `ExportCell` values are rejected in tagged mode.
+The supported table profile uses one leaf heading per column, tagged as `TH` with column scope. Empty heading cells use `TD`. Ordinary data and footer cells use `TD`. A table remains one `Table` with ordered `TR` and cell elements across pages; each continued paragraph or cell retains its logical identity. Repeated visual headings, table borders/backgrounds, page headers/footers and page numbers are artifacts. Grouped headings, `headerRows` and structured `footer.rows` are rejected in tagged mode. Inline and whole-cell links use logical `Link` elements associated with their marked content and annotations across wrapping and page continuation; tagged links require a nonempty displayed label.
 
 Every image, vector or drawing block in tagged output requires either a nonempty `alternativeText` or `decorative: true`. Meaningful graphics become `Figure` elements with an alternative; decorative graphics are artifacts. Supplying both is an error. Figure alternatives count toward the cell/text budgets and obey `maxCellCharacters`. Choose alternatives and heading levels that express the report's meaning; the writer cannot infer them.
 
@@ -463,6 +540,8 @@ The library awaits byte acceptance and never closes a supplied sink. The destina
 
 Both CSV and XLSX accept optional `limits`: `maxRows` counts data rows per worksheet/export, including generated preservation rows; `maxCells` counts emitted cells, including titles, headings, footers and preservation records. `maxTextCharacters` counts UTF-16 units of string values, including CSV formatter/display/null-text results and XLSX titles, headings, footers, previews and full preservation records. Numeric/date encodings, CSV quoting and XML markup do not count toward that text limit. `maxOutputBytes` limits actual UTF-8 CSV or ZIP bytes accepted by the sink and also bounds compressed worksheet retention in Blob mode. XLSX also accepts `maxStyles`, `maxSheets`, `maxHyperlinks`, `maxImageBytes` and `maxMergedRanges`. The merge limit defaults to 10,000 across all worksheets, including generated title/group merges. Cell/text budgets are checked at row ingress, reserving generated cells/text before retaining input. Exceeding a ceiling throws `OfficeIMOError` with `code: "RESOURCE_LIMIT"`. Limits are nonnegative safe integers; `maxStyles` is from 1 through 64,000. No host-dependent timing or heap threshold is enforced by the library.
 
+Native XLSX charts add workbook-wide `maxCharts` (100 by default), `maxChartPoints` (100,000 numeric values across all series) and `maxChartTextCharacters` (1,000,000 UTF-16 units across chart metadata and category/series labels). Each chart's hidden source worksheet also counts toward `maxSheets`, and its cells obey the normal row, cell, text and output limits.
+
 XLSX rejects oversized text by default. Set `oversizedText: "preserve"` to write a bounded preview with an internal link to the full value on a `Text overflow` worksheet. Each overflow record identifies the source sheet/cell, one-based part number, text and total part count. Concatenate its `Text` values in part order to reconstruct the complete XML-valid value. Chunks never split a supplementary Unicode character. The same strip/reject policy applies to invalid XML characters. Preserve mode does not replace an existing external link on that cell; that conflict throws.
 
 ZIP entries cannot interleave, so preservation retains a bounded text spool until the report worksheets finish. `maxOverflowCharacters` defaults to 4,000,000 UTF-16 units. Width sampling has separate defaults of 100,000 retained cells and 1,000,000 UTF-16 units of encoded row XML, including markup, configurable through `maxBufferedCells` and `maxBufferedCharacters`. Automatic width sampling stops within these budgets; an explicitly requested sample that exceeds them fails visibly. Full cell values are preserved in both cases. CSV retains long text directly and is an alternative when Excel's cell/storage constraints do not suit the data.
@@ -498,50 +577,56 @@ async function exportSales(path: string, signal: AbortSignal) {
 
 ## Workers and paged sources
 
-Run the same writers inside an application-owned worker when export CPU work should leave the page. Fetch and yield pages inside the worker, or use a bounded request/acknowledgement bridge to a main-thread grid. Define getter functions in the worker; functions cannot be structured-cloned. Reconstruct `ExportCell` after cloning portable value/text/presentation records.
+Use `@evotecit/officeimo/execution` to send projected rows to an application-owned worker. The page keeps its grid and source I/O; the worker calls the normal format writer. `ExportCell` values retain their typed value, display text, presentation and links across the handoff, and Dates remain Dates.
 
-This worker example expects an application endpoint returning `{ rows: Sale[], next: string | null }`; convert JSON dates before yielding them:
+The page creates the worker and owns its lifetime:
 
 ```ts
-// report.worker.ts; compile this module with the application's worker configuration.
-import { writeXlsx, writeCsv } from "@evotecit/officeimo";
-import type { Column } from "@evotecit/officeimo";
+import { executeWorkerExport } from "@evotecit/officeimo/execution";
+import { BlobByteSink } from "@evotecit/officeimo/core";
+import { saveBlob } from "@evotecit/officeimo";
 
-interface Sale { customer: { name: string }; amount: number; seen: Date; }
-const columns: readonly Column<Sale>[] = [
-  { header: "Customer", value: row => row.customer.name },
-  { header: "Amount", key: "amount", type: "number", format: "0.00" },
-  { header: "Seen", key: "seen", type: "date", format: "yyyy-mm-dd" }
-];
-async function* pages(url: string, signal: AbortSignal): AsyncGenerator<Sale> {
-  let next: string | null = url;
-  while (next) {
-    const response: Response = await fetch(next, { signal });
-    if (!response.ok) throw new Error("Export source failed: " + response.status);
-    const page: { rows: Sale[]; next: string | null } = await response.json();
-    for (const row of page.rows) yield { ...row, seen: new Date(row.seen) };
-    next = page.next === null ? null : new URL(page.next, response.url).href;
-  }
+const worker = new Worker(new URL("./report.worker.js", import.meta.url), { type: "module" });
+const controller = new AbortController();
+const sink = new BlobByteSink();
+try {
+  await executeWorkerExport(worker, [["Contoso", 12.5]], sink, {
+    signal: controller.signal,
+    input: { columns: [{ header: "Customer" }, { header: "Amount", type: "number" }] }
+  });
+  saveBlob(sink.toBlob("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"), "sales.xlsx");
+} catch (error) {
+  sink.discard();
+  throw error;
+} finally {
+  worker.terminate();
 }
-let active: AbortController | undefined;
-self.onmessage = async ({ data }) => {
-  if (data.cancel) { active?.abort(); return; }
-  if (active) return; // One export at a time in this worker.
-  const controller = active = new AbortController();
-  try {
-    const write = data.format === "csv" ? writeCsv : writeXlsx;
-    const blob = await write(pages(data.url, controller.signal), {
-      columns, signal: controller.signal, dateMode: "utc",
-      limits: { maxRows: 1_000_000, maxCells: 8_000_000, maxOutputBytes: 512_000_000 },
-      onProgress: progress => self.postMessage({ progress })
-    });
-    self.postMessage({ blob });
-  } catch (error) { self.postMessage({ error: String(error) }); }
-  finally { active = undefined; }
-};
 ```
 
-The page creates `new Worker(new URL("./report.worker.js", import.meta.url), { type: "module" })`, sends `{ url, format }`, receives progress and a completed Blob, and sends `{ cancel: true }` to cancel. Terminate the worker when its host no longer needs it. Blob mode still retains the finished file; a bounded output bridge to `writeXlsxTo` or `writeCsvTo` avoids that retention. The executable [DataTables worker qualification](../Build/BrowserExports/datatables-worker.js) demonstrates 64-row requests, 64 KiB output acknowledgements, stored-compression fallback and cancellation without moving the DOM into the worker.
+The worker installs its chosen operation. Keep application callbacks here; functions cannot cross the messaging boundary:
+
+```ts
+// report.worker.ts
+import { handleWorkerExports } from "@evotecit/officeimo/execution";
+import { writeXlsxTo } from "@evotecit/officeimo";
+import type { Column, ExportValue } from "@evotecit/officeimo";
+
+const handler = handleWorkerExports(self, ({ input, rows, sink, signal, onProgress }) => {
+  const options = input as { columns: readonly Column<readonly ExportValue[]>[] };
+  return writeXlsxTo(rows, sink, { columns: options.columns, signal, onProgress });
+});
+// Call handler.dispose() if this worker stops accepting exports but remains alive.
+```
+
+`executeWorkerExport` returns `{ rows, columns, bytes }` and accepts a `ByteSink` or `WritableStream<Uint8Array>`. Use a destination rather than `BlobByteSink` when the completed file should not stay in memory. The worker operation can call CSV or PDF writers in the same way. One endpoint accepts one export at a time and can be reused after completion, failure or cancellation.
+
+The default handoff sends at most 64 rows and 65,536 selected cells per batch, with 1,000,000 UTF-16 units across values, display text, links and presentation strings. `batchRows`, `maxBatchCells` and `maxBatchCharacters` change these ceilings; one row must fit. Cell/text budgets can leave one captured lookahead row on the host. Output sends one chunk of at most 65,536 bytes at a time, controlled by `maxChunkBytes`, and awaits the destination before acknowledging it. Progress coalesces while an acknowledgement is pending and preserves its final update. These are message bounds, not a whole-process memory guarantee.
+
+`input` accepts plain records, arrays, Dates and `Uint8Array` bytes, with default `maxSetupBytes` of 16 MiB, `maxSetupNodes` of 100,000 and nesting up to 32 levels. The byte budget counts UTF-16 string storage and binary bytes. Functions, accessors, cycles, live grid objects and `PdfFont` instances are rejected. Send font bytes when needed and reconstruct them with `await PdfFont.create(bytes, { signal })` inside the operation. Configuration and row/output data are copied through structured cloning; caller-owned buffers are never detached.
+
+Pass an `AbortSignal` to the handoff and the same signal to host-owned page fetching and destination I/O. Cancellation rejects pending source/sink requests, invokes producer cleanup and removes transport listeners. The destination owns partial output. `handler.dispose()` cancels its active operation and removes its listeners; the host still owns worker termination and any object URL it created. Remote OfficeIMO errors retain their `code` and unsupported-feature identifier; a host callback failure or host cancellation preserves its original local reason.
+
+`createDataTablesExport(...).rows` and `createCanopyExport(...).rows()` already produce portable array rows. Supply those rows and their captured columns to the handoff while leaving selection, paging, revisions and source disposal with the owning integration. For an application API, yield pages from an async generator and convert JSON date strings before yielding. Getters that select domain fields run before the worker handoff, or are defined in the worker with its own source. The [worker qualification](../Build/BrowserExports/execution-contracts.js) exercises classic and module workers, backpressure, cancellation and disposal in Chromium, Firefox and WebKit.
 
 The table helpers and DataTables adapter own their workbook. Use portable `ExportCell` values and style definitions in report patches. Workbook-local column/header style IDs, numeric font/fill/border/format references and advanced `Cell` values require the `Workbook` API, where the caller can register those definitions. The convenience writers reject them instead of interpreting indexes from another workbook. Use `XlsxColumn<T>` for advanced columns with a registered style or `Cell` keys/getter results; `Column<T>` is the portable projection shared with CSV. Literal keys select scalar, nullable, date or `ExportCell` fields. Nested objects or arrays need explicit scalar getters for each selected column.
 
@@ -639,6 +724,49 @@ Native tables default unspecified column widths to 20 characters so date/time an
 Hyperlinks can also be supplied through `SheetOptions.hyperlinks`. Each link addresses one exported cell and uses an absolute HTTP, HTTPS or mailto URL. HTTP credentials, unsafe schemes and duplicate link cells are rejected. Links preserve the existing cell value and style; use a style patch for blue/underlined link text when desired.
 
 `sheet.addImage({ data: pngBytes, row: 6, column: 1, width: 640, height: 320, description: "Latency chart" })` places a PNG, such as a rendered chart, without changing table data. Supply a `Uint8Array` containing the complete PNG; the library checks its signature/IHDR and copies the bytes. Anchors are one-based; display dimensions are CSS pixels at 96 DPI. The writer embeds the image and a one-cell drawing anchor. It does not render charts or convert SVG. Multiple worksheets can each contain a table, links and images.
+
+## Native editable Excel charts
+
+`sheet.addChart` writes a native Excel chart with editable source cells, cached values, labels and axes. Choose `columnClustered`, `barClustered`, `line` or `pie`. PNGs supplied through `addImage` retain their rendered appearance; native charts use Excel's chart drawing and editing. PDF reports can use the [portable drawing contract](#portable-drawings) for already composed graphics.
+
+```ts
+import { Workbook, saveBlob } from "@evotecit/officeimo/xlsx";
+
+const rows = [
+  { site: "Łódź", actual: 12.5, target: 15 },
+  { site: "Warsaw", actual: 25, target: 15 },
+  { site: "Gdańsk", actual: 8, target: 15 }
+];
+const book = new Workbook();
+const sheet = book.addWorksheet("Controllers", {
+  columns: [
+    { header: "Site", key: "site" },
+    { header: "Actual", key: "actual", type: "number" },
+    { header: "Target", key: "target", type: "number" }
+  ],
+  table: {}
+});
+await sheet.addRows(rows);
+sheet.addChart({
+  type: "columnClustered", title: "Controllers by site",
+  data: {
+    categories: rows.map(row => row.site),
+    series: [
+      { name: "Actual", values: rows.map(row => row.actual), color: "2563EB" },
+      { name: "Target", values: rows.map(row => row.target), color: "94A3B8" }
+    ]
+  },
+  row: 6, column: 1, width: 640, height: 360,
+  legend: "bottom", dataLabels: { showValue: true, position: "outsideEnd" },
+  categoryAxis: { title: "Site" },
+  valueAxis: { title: "Controllers", minimum: 0, maximum: 30, numberFormat: "0.0" }
+});
+saveBlob(await book.toBlob(), "controllers.xlsx");
+```
+
+The chart captures its categories, series and options at `addChart`. Later caller mutations cannot change the export. Each chart gets one hidden source worksheet with a workbook-unique name, separate from the report table. Unhide that worksheet in Excel to edit the chart's data; changing the visible report cells does not update this snapshot. Hidden source sheets count in the result's `sheets`; source rows do not count as report `rows` or row progress. Images and native charts can share the same worksheet, in Blob or streamed output.
+
+Categories are strings; every series has the same number of finite numeric values. Series colors accept opaque six-digit RGB hex. Legends support `right` (the default), `bottom`, `left`, `top` or `false`. Column/bar/line charts support category/value axis titles, value bounds and number formats. Pie charts require one nonnegative series with at least one positive value and reject axes. Percent labels are available only for pie charts. Unsupported chart kinds, options and label positions fail explicitly; stacking, secondary axes, trendlines and arbitrary chart styles are outside this contract.
 
 ## Live Excel conditional formatting
 
@@ -806,7 +934,7 @@ Column writers synchronously convert a domain column type to a supported scalar 
 
 ## Portable classic scripts and the .NET asset package
 
-The archive exports `@evotecit/officeimo/classic.js`, `/xlsx.js`, `/csv.js` and `/pdf.js` for copying into a portable report. Load the chosen asset with a plain script tag:
+The archive exports `@evotecit/officeimo/classic.js`, `/xlsx.js`, `/csv.js`, `/pdf.js` and optional `/execution.js` for copying into a portable report. Load the chosen asset with a plain script tag:
 
 ```html
 <script src="officeimo.js"></script>
@@ -816,7 +944,7 @@ The archive exports `@evotecit/officeimo/classic.js`, `/xlsx.js`, `/csv.js` and 
 </script>
 ```
 
-The combined bundle exposes all seven namespaces on global `OfficeIMO` plus the established root helpers. The XLSX bundle exposes `core`, `zip`, `xml`, `opc`, `xlsx`; CSV exposes `core`, `csv`; PDF exposes `core`, `pdf`. The standalone bundles compose in either order. Classic scripts work from `file://` and in host-owned workers without a module loader. ES modules use normal import paths on HTTP(S) and in Node; browser local-file module policy can block `file://` imports.
+The combined bundle exposes all seven namespaces on global `OfficeIMO` plus the established root helpers. The XLSX bundle exposes `core`, `zip`, `xml`, `opc`, `xlsx`; CSV exposes `core`, `csv`; PDF exposes `core`, `pdf`. Load `officeimo-execution.js` beside the chosen writer to add `executeWorkerExport` and `handleWorkerExports` to `OfficeIMO`. The standalone bundles compose in either order. Classic scripts work from `file://` and in host-owned workers without a module loader. ES modules use normal import paths on HTTP(S) and in Node; browser local-file module policy can block `file://` imports.
 
 [OfficeIMO.JavaScript.Assets](../OfficeIMO.JavaScript.Assets/README.md) embeds the same committed TypeScript-built bundles in .NET. Its `JavaScriptAsset` API returns exact content and content-hashed filenames; consuming .NET applications require no Node tooling. Standalone `.mjs` assemblies preserve the asset package's module API. The npm subpaths remain genuine separate `tsc` modules with generated declarations.
 

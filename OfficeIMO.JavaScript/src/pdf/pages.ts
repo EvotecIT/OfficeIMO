@@ -1,6 +1,7 @@
 import { OfficeIMOError } from "../core/errors.js";
 import { checkAbort } from "../core/iteration.js";
 import type { CellPresentation } from "../core/index.js";
+import type { ExportLink } from "../core/index.js";
 import type { PdfObjects } from "./objects.js";
 import { pdfNumber } from "./objects.js";
 import { color } from "./settings.js";
@@ -11,6 +12,8 @@ import type { PdfFontResource, PdfFontResources } from "./font-resources.js";
 import { linkAnnotation } from "./annotations.js";
 import type { PdfStructure } from "./structure.js";
 import { unicodeHex } from "./objects.js";
+import type { PdfInlineLine } from "./inline-text.js";
+import type { PdfPreparedParagraph } from "./paragraph-layout.js";
 
 /** @internal One page of drawing commands and O(page count) references, never the complete report body. */
 export class PdfPages {
@@ -18,7 +21,7 @@ export class PdfPages {
   private current = 0;
   private commands: string[] = [];
   private commandBytes = 0;
-  private annotations: string[] = [];
+  private annotations: { readonly id: number; readonly body: string }[] = [];
   private hyperlinks = 0;
   private y = 0;
   private dataTop = 0;
@@ -60,10 +63,51 @@ export class PdfPages {
     return this.structure ? "/Artifact << /Type /" + type + " >> BDC\n" + command + "EMC\n" : command;
   }
   private text(text: string, font: PdfFontResource, size: number, x: number, baseline: number, foreground = "111827", element?: number): void {
-    const n = pdfNumber, shear = font.syntheticItalic ? .2126 : 0;
+    const n = pdfNumber, shear = font.syntheticItalic ? .213 : 0;
     const command = "q " + this.rgb(foreground) + " rg " + this.rgb(foreground) + " RG\nBT /" + font.name + " " + n(size) + " Tf " +
       (font.syntheticBold ? n(size * .025) + " w 2 Tr " : "0 Tr ") + "1 0 " + n(shear) + " 1 " + n(x) + " " + n(baseline) + " Tm " + font.encode(text) + " Tj ET Q\n";
     this.add(this.structure && element !== undefined ? this.structure.mark(element) + command + "EMC\n" : this.artifact(command, "Pagination"));
+  }
+  private link(link: ExportLink, x: number, bottom: number, width: number, height: number, element?: number): void {
+    if (width <= 0) return;
+    if (++this.hyperlinks > this.settings.limits.maxHyperlinks) throw new OfficeIMOError("RESOURCE_LIMIT", "maxHyperlinks exceeded.");
+    const id = this.objects.reserve();
+    const parentKey = this.structure ? this.structure.annotation(element!, id) : undefined;
+    const annotation = linkAnnotation(link, x, bottom, width, height, this.settings.limits.maxPageBytes - this.commandBytes, parentKey, this.structure ? this.current : undefined);
+    this.retainPageBytes(annotation.length); this.annotations.push({ id, body: annotation });
+  }
+  private inline(line: PdfInlineLine, size: number, x: number, baseline: number, element?: number): void {
+    const lineActualText = !this.structure && line.actualText !== undefined && line.actualText.length > 0;
+    if (lineActualText) this.add("/Span << /ActualText <FEFF" + unicodeHex(line.actualText!) + "> >> BDC\n");
+    const marks = new Map<PdfInlineLine["segments"][number], { owner: number; mark: string }>();
+    if (line.actualText !== undefined && this.structure && element !== undefined) {
+      // Allocate MCIDs/Link children in logical order, then paint the independently positioned visual order.
+      for (const segment of [...line.segments].sort((a, b) => (a.logicalStart ?? 0) - (b.logicalStart ?? 0))) {
+        const owner = segment.link ? this.structure.link(element, segment.link) : element;
+        marks.set(segment, { owner, mark: this.structure.mark(owner, segment.actualText) });
+      }
+    }
+    for (const segment of line.segments) {
+      const registered = marks.get(segment), owner = registered?.owner ?? (segment.link && this.structure && element !== undefined ? this.structure.link(element, segment.link) : element);
+      if (segment.glyphs) {
+        const font = segment.font, n = pdfNumber, shear = font.syntheticItalic ? .213 : 0;
+        let cursor = x, command = "q " + this.rgb(segment.color ?? "111827") + " rg " + this.rgb(segment.color ?? "111827") + " RG\nBT /" + font.name + " " + n(size) + " Tf " +
+          (font.syntheticBold ? n(size * .025) + " w 2 Tr " : "0 Tr ");
+        for (const glyph of segment.glyphs) {
+          command += "1 0 " + n(shear) + " 1 " + n(cursor + (glyph.xOffset + shear * glyph.yOffset) * size / 1000) + " " + n(baseline + glyph.yOffset * size / 1000) + " Tm " + font.encodeGlyph(glyph.id, glyph.logicalText) + " Tj\n";
+          cursor += glyph.xAdvance * size / 1000;
+        }
+        command += "ET Q\n";
+        this.add(this.structure && owner !== undefined ? (registered?.mark ?? this.structure.mark(owner, segment.actualText)) + command + "EMC\n" : this.artifact(command, "Pagination"));
+      } else this.text(segment.text, segment.font, size, x, baseline, segment.color, owner);
+      if (segment.link) {
+        const ascent = (segment.font.program?.ascent ?? 800) * size / 1000;
+        const descent = (segment.font.program?.descent ?? -200) * size / 1000;
+        this.link(segment.link, x, baseline + descent, segment.width, ascent - descent, owner);
+      }
+      x += segment.width;
+    }
+    if (lineActualText) this.add("EMC\n");
   }
   private decorationText(value: string | ((context: { pageNumber: number }) => string) | undefined): string {
     if (value === undefined) return "";
@@ -127,18 +171,12 @@ export class PdfPages {
       const x = this.layout.lefts[cell.first]!, cellHeight = cell.height ?? height;
       if (cell.style.background) this.add(this.artifact("q " + this.rgb(cell.style.background) + " rg " + n(x) + " " + n(this.y - cellHeight) + " " + n(cell.width) + " " + n(cellHeight) + " re f Q\n"));
       this.add(this.artifact("q 0.82 0.85 0.89 RG 0.4 w " + n(x) + " " + n(this.y - cellHeight) + " " + n(cell.width) + " " + n(cellHeight) + " re S Q\n"));
-      if (cell.link) {
-        if (++this.hyperlinks > this.settings.limits.maxHyperlinks) throw new OfficeIMOError("RESOURCE_LIMIT", "maxHyperlinks exceeded.");
-        const annotation = linkAnnotation(cell.link, x, this.y - cellHeight, cell.width, cellHeight,
-          this.settings.limits.maxPageBytes - this.commandBytes);
-        this.retainPageBytes(annotation.length);
-        this.annotations.push(annotation);
-      }
+      const element = elements?.[index], owner = cell.link && this.structure && element !== undefined ? this.structure.link(element, cell.link) : element;
       for (let line = firstLine; line < Math.min(cell.lines.length, cell.height ? cell.lines.length : firstLine + lineCount); line++) {
         const text = cell.lines[line]!, left = cell.style.alignment === "right" ? cell.width - padding - text.width : cell.style.alignment === "center" ? (cell.width - text.width) / 2 : padding;
-        const ascent = (cell.font.program?.ascent ?? 800) * fontSize / 1000;
-        this.text(text.text, cell.font, fontSize, x + left, this.y - padding - ascent - (line - firstLine) * (row.structured ? cell.lineHeight : row.lineHeight), cell.style.color, elements?.[index]);
+        this.inline(text, fontSize, x + left, this.y - padding - text.ascent - (line - firstLine) * (row.structured ? cell.lineHeight : row.lineHeight), owner);
       }
+      if (cell.link) this.link(cell.link, x, this.y - cellHeight, cell.width, cellHeight, owner);
     }
     this.y -= row.structured ? row.height : height;
   }
@@ -148,10 +186,10 @@ export class PdfPages {
     if (height > this.dataTop - bottom) throw new RangeError("A structured footer must fit on one page below the repeated headings.");
     for (const row of rows) this.draw(row, 0, row.lines, this.rowElements(row));
   }
-  async row(row: PdfLayoutRow): Promise<void> {
+  async row(row: PdfLayoutRow, allowFirstFragment = false): Promise<void> {
     const elements = this.rowElements(row);
     const { margins, padding } = this.settings, full = this.continuationTop - margins.bottom;
-    if (row.height <= full + .001 && row.height > this.y - margins.bottom + .001) { await this.finishPage(); await this.start(); }
+    if (!allowFirstFragment && row.height <= full + .001 && row.height > this.y - margins.bottom + .001) { await this.finishPage(); await this.start(); }
     let first = 0;
     while (first < row.lines) {
       let lines = Math.min(row.lines - first, Math.floor((this.y - margins.bottom - padding * 2 + .001) / row.lineHeight));
@@ -177,12 +215,42 @@ export class PdfPages {
     }
     this.y -= 8;
   }
+  /** Reserve a meaningful next fragment before painting a kept heading; never buffer a table. */
+  async reserveSpace(height: number, label = "Kept PDF content"): Promise<void> {
+    const { page, margins } = this.settings, full = page.height - margins.top - margins.bottom;
+    if (height > full + .001) throw new RangeError(label + " exceeds a fresh page's content area.");
+    if (height > this.y - margins.bottom + .001) await this.pageBreak();
+  }
+  /** Paint bounded paragraphs with their captured layout and a measured next-block fragment. */
+  async paragraphs(paragraphs: readonly PdfPreparedParagraph[], nextHeight = 0, keepTogether = false): Promise<void> {
+    const visible = paragraphs.filter(paragraph => paragraph.lines.length > 0), reservations = new Array<number>(visible.length).fill(0);
+    for (let i = visible.length - 1; i >= 0; i--) {
+      const paragraph = visible[i]!, next = visible[i + 1];
+      reservations[i] = paragraph.keepWithNext ? next ? next.keepTogether || next.keepWithNext ? next.height + reservations[i + 1]! : next.firstHeight : nextHeight : 0;
+    }
+    if (keepTogether && visible.length) await this.reserveSpace(visible.reduce((height, paragraph) => height + paragraph.height, 0) + reservations.at(-1)!, "Kept PDF paragraph group");
+    for (const [index, paragraph] of visible.entries()) {
+      if (paragraph.keepTogether || paragraph.keepWithNext) await this.reserveSpace(paragraph.height + reservations[index]!, "Kept PDF paragraph chain");
+      const { margins, page } = this.settings;
+      if (paragraph.firstHeight > page.height - margins.top - margins.bottom + .001) throw new RangeError("PDF page cannot fit a paragraph line and its leading spacing.");
+      if (this.y - paragraph.firstHeight < margins.bottom) await this.pageBreak();
+      this.y -= paragraph.spaceBefore;
+      const element = this.structure?.element(paragraph.headingLevel ? "H" + paragraph.headingLevel : "P");
+      for (const line of paragraph.lines) {
+        if (line.lineHeight > page.height - margins.top - margins.bottom + .001) throw new RangeError("PDF page cannot fit a paragraph line at the selected font metrics.");
+        if (this.y - line.lineHeight < margins.bottom) await this.pageBreak();
+        const x = paragraph.style.alignment === "right" ? page.width - margins.right - line.width : paragraph.style.alignment === "center" ? margins.left + (page.width - margins.left - margins.right - line.width) / 2 : margins.left;
+        this.inline(line, paragraph.size, x, this.y - line.ascent, element); this.y -= line.lineHeight;
+      }
+      this.y -= paragraph.spaceAfter;
+    }
+  }
   /** Begin an independent table on the current page, retaining its headings on continuation pages. */
-  async beginTable(layout: PdfTableLayout): Promise<void> {
+  async beginTable(layout: PdfTableLayout, preparedHeadings?: readonly PdfLayoutRow[], minimumDataHeight = layout.lineHeight + this.settings.padding * 2): Promise<void> {
     this.layout = layout;
     this.tableElement = this.structure?.element("Table"); this.tableHeadingsDrawn = false;
-    const headings = await layout.headers(), height = headings.reduce((n, row) => n + row.height, 0);
-    if (this.y - height - layout.lineHeight - this.settings.padding * 2 < this.settings.margins.bottom) {
+    const headings = preparedHeadings ?? await layout.headers(), height = headings.reduce((n, row) => n + row.height, 0);
+    if (this.y - height - minimumDataHeight < this.settings.margins.bottom) {
       await this.finishPage(); await this.start(true, headings); return;
     }
     this.continuationTop = this.settings.page.height - this.settings.margins.top - height;
@@ -192,6 +260,11 @@ export class PdfPages {
   endTable(): void { this.layout = undefined; this.tableElement = undefined; this.tableHeadingsDrawn = false; this.y -= 8; }
   async pageBreak(): Promise<void> { await this.finishPage(); await this.start(false); }
   registerXObject(name: string, id: number): void { this.externalObjects.set(name, id); }
+  /** Height after the existing fit-to-page graphic policy, used by heading keep constraints. */
+  graphicHeight(width: number, height: number): number {
+    const { page, margins } = this.settings;
+    return height * Math.min(1, (page.width - margins.left - margins.right) / width, (page.height - margins.top - margins.bottom) / height);
+  }
   /** Place an indivisible graphic, preserving aspect ratio and scaling down to page bounds. */
   async graphic(width: number, height: number, alignment: "left" | "center" | "right",
     paint: (left: number, bottom: number, width: number, height: number) => string, alternativeText?: string): Promise<void> {
@@ -209,8 +282,8 @@ export class PdfPages {
     await this.objects.stream(contents, this.commands.join(""), "", options.compression !== false);
     const annotations: number[] = [];
     for (const annotation of this.annotations) {
-      const id = this.objects.reserve(); annotations.push(id);
-      await this.objects.object(id, annotation);
+      annotations.push(annotation.id);
+      await this.objects.object(annotation.id, annotation.body);
     }
     await this.objects.object(this.current, "<< /Type /Page /Parent " + this.parent + " 0 R /MediaBox [0 0 " + pdfNumber(page.width) + " " + pdfNumber(page.height) +
       "] /Resources " + this.resources + " 0 R /Contents " + contents + " 0 R" +

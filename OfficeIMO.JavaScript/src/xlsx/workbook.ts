@@ -14,6 +14,10 @@ import { defineTable, tableXml } from "./table.js";
 import { drawingXml, drawingContentType } from "./attachments.js";
 import { TextOverflow } from "./preservation.js";
 import type { CellValueWriter, WorkbookOptions, SheetOptions, ExtraPart, XlsxExportResult } from "./types.js";
+import { prepareChart } from "./charts.js";
+import type { RegisteredChart } from "./charts.js";
+import type { WorksheetChart } from "./chart-types.js";
+import { chartContentType, writeChartXml } from "./chart-xml.js";
 
 const xlsxMime = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
 const formatType = (name: string) => "application/vnd.openxmlformats-officedocument.spreadsheetml." + name + "+xml";
@@ -45,6 +49,9 @@ export class Workbook {
   private bufferedBytes = 0;
   private mergedRanges = 0;
   private conditionalFormats = 0;
+  private readonly nativeCharts: RegisteredChart[] = [];
+  private chartPoints = 0;
+  private chartTextCharacters = 0;
   /** @internal Shared budget across worksheet headers and data. */
   readonly budget: ExportBudget;
   /** @internal Immutable settings used by the worksheet owner. */
@@ -79,7 +86,7 @@ export class Workbook {
   }
   private workbookXml(): string {
     return xmlDeclaration + '<workbook xmlns="' + spreadsheetNamespace + '" xmlns:r="' + officeRelationshipsNamespace + '"><workbookPr date1904="0"/><bookViews><workbookView/></bookViews><sheets>' +
-      this.sheets.map((s, i) => '<sheet name="' + escapeOoxmlAttribute(s.name, this.settings.invalidCharacterPolicy) + '" sheetId="' + (i + 1) + '" r:id="rId' + (i + 1) + '"/>').join("") + '</sheets>' +
+      this.sheets.map((s, i) => '<sheet name="' + escapeOoxmlAttribute(s.name, this.settings.invalidCharacterPolicy) + '" sheetId="' + (i + 1) + '"' + (s.hidden ? ' state="hidden"' : "") + ' r:id="rId' + (i + 1) + '"/>').join("") + '</sheets>' +
       (this.sheets.some(s => s.printSettings) ? '<definedNames>' + this.sheets.map((s, i) => {
         const quoted = "'" + s.name.replace(/'/g, "''") + "'!";
         return s.printSettings ? '<definedName name="_xlnm.Print_Area" localSheetId="' + i + '">' + escapeOoxmlAttribute(quoted + '$A$1:$' + s.lastColumn + '$' + s.totalRows, this.settings.invalidCharacterPolicy) + '</definedName>' +
@@ -99,7 +106,7 @@ export class Workbook {
   preserveText(sheet: string, cell: string, text: string): { preview: string; location: string } {
     if (this.settings.oversizedText !== "preserve") throw new RangeError("Excel cell text exceeds 32,767 UTF-16 code units.");
     if (!this.overflow) {
-      this.checkSheetLimit(this.sheets.length + 1);
+      this.checkSheetLimit(this.sheets.length + this.nativeCharts.length + 1);
       this.budget.reserve(5, "SheetCellPartTextParts".length);
       this.overflow = new TextOverflow(sheetName("Text overflow", this.names, this.settings.invalidCharacterPolicy), this.settings.limits?.maxOverflowCharacters ?? 4000000, this.settings.invalidCharacterPolicy, (cells, characters, rows) => { this.budget.row(rows); this.budget.reserve(cells, characters); });
     }
@@ -130,6 +137,17 @@ export class Workbook {
   checkMerges(count: number): void { if (this.mergedRanges + count > (this.settings.limits?.maxMergedRanges ?? 10000)) throw new OfficeIMOError("RESOURCE_LIMIT", "maxMergedRanges exceeded."); }
   /** @internal */
   checkConditionalFormats(count: number): void { if (this.conditionalFormats + count > (this.settings.limits?.maxConditionalFormats ?? 1000)) throw new OfficeIMOError("RESOURCE_LIMIT", "maxConditionalFormats exceeded."); }
+  /** @internal Reserve chart snapshots and their source-sheet names before any output is generated. */
+  registerChart(input: WorksheetChart): RegisteredChart {
+    if (this.nativeCharts.length >= (this.settings.limits?.maxCharts ?? 100)) throw new OfficeIMOError("RESOURCE_LIMIT", "maxCharts exceeded.");
+    this.checkSheetLimit(this.sheets.length + this.nativeCharts.length + 1 + (this.overflow ? 1 : 0));
+    const chart = prepareChart(input, this.settings.invalidCharacterPolicy, (this.settings.limits?.maxChartPoints ?? 100000) - this.chartPoints,
+      (this.settings.limits?.maxChartTextCharacters ?? 1000000) - this.chartTextCharacters, this.settings.signal);
+    const registered = Object.freeze({ ...chart, id: this.nativeCharts.length + 1,
+      dataSheetName: sheetName("Chart data " + (this.nativeCharts.length + 1), this.names, this.settings.invalidCharacterPolicy) });
+    this.nativeCharts.push(registered); this.chartPoints += chart.points; this.chartTextCharacters += chart.textCharacters;
+    return registered;
+  }
   /** @internal Streamed parts cannot interleave. Starting a new sheet completes the preceding one. */
   async openSheet(sheet: Worksheet): Promise<ZipEntry> {
     if (this.activeSheet && this.activeSheet !== sheet) {
@@ -145,13 +163,14 @@ export class Workbook {
     await Promise.allSettled(this.sheets.map(sheet => sheet.discard(error)));
     await this.package.discard(error);
     this.overflow?.clear();
+    this.nativeCharts.length = 0;
   }
   get worksheets(): readonly Worksheet[] { return Object.freeze([...this.sheets]); }
   /** Total report data rows; excludes title/header/footer and preservation records. */
   get rowCount(): number { return this.sheets.reduce((sum, sheet) => sum + sheet.reportRowCount, 0); }
   addWorksheet<T = never>(name: string, options: SheetOptions<T> = {}): Worksheet<T> {
     this.assertOpen();
-    this.checkSheetLimit(this.sheets.length + 1 + (this.overflow ? 1 : 0));
+    this.checkSheetLimit(this.sheets.length + this.nativeCharts.length + 1 + (this.overflow ? 1 : 0));
     // Validation/serialization use erased column metadata; projection later receives T rows.
     const metadata = options as unknown as SheetOptions;
     const conditional = Worksheet.validate(this, metadata);
@@ -207,9 +226,9 @@ export class Workbook {
             this.package.addRelationship(uri, { id: "link" + (j + 1), type: officeRelationshipsNamespace + "/hyperlink", target: sheet.hyperlinks[j]!.target, external: true });
             if ((j & 255) === 255 && taskYieldDue()) { await pause(); checkAbort(this.settings.signal); }
           }
-          if (sheet.images.length) {
+          if (sheet.images.length || sheet.charts.length) {
             const drawingUri = "/xl/drawings/drawing" + (i + 1) + ".xml";
-            this.addXmlPart(drawingUri, drawingContentType, () => drawingXml(sheet.images, this.settings.invalidCharacterPolicy));
+            this.addXmlPart(drawingUri, drawingContentType, () => drawingXml(sheet.images, this.settings.invalidCharacterPolicy, sheet.charts));
             this.package.addRelationship(uri, { id: "drawing", type: officeRelationshipsNamespace + "/drawing", target: drawingUri });
             for (let j = 0; j < sheet.images.length; j++) {
               checkAbort(this.settings.signal);
@@ -217,6 +236,12 @@ export class Workbook {
               this.package.addPart({ uri: imageUri, contentType: "image/png", data: sheet.images[j]!.data });
               this.package.addRelationship(drawingUri, { id: "image" + (j + 1), type: officeRelationshipsNamespace + "/image", target: imageUri });
               if ((j & 255) === 255 && taskYieldDue()) { await pause(); checkAbort(this.settings.signal); }
+            }
+            for (const chart of sheet.charts) {
+              checkAbort(this.settings.signal);
+              const chartUri = "/xl/charts/chart" + chart.id + ".xml";
+              this.package.addPart({ uri: chartUri, contentType: chartContentType, data: sink => writeChartXml(chart, sink, this.settings.invalidCharacterPolicy, this.settings.signal) });
+              this.package.addRelationship(drawingUri, { id: "chart" + chart.id, type: officeRelationshipsNamespace + "/chart", target: chartUri });
             }
           }
         }
@@ -227,6 +252,14 @@ export class Workbook {
           if (prepared) this.package.addPrepared("/xl/worksheets/sheet" + this.sheets.length + ".xml", formatType("worksheet"), prepared);
           this.overflow.clear();
         }
+        for (const chart of this.nativeCharts) {
+          checkAbort(this.settings.signal);
+          const sheet = Worksheet.createChartData(this, chart);
+          this.sheets.push(sheet);
+          function* rows() { for (let i = 0; i < chart.data.categories.length; i++) yield [chart.data.categories[i]!, ...chart.data.series.map(series => series.values[i]!)]; }
+          await sheet.finish(rows()); const prepared = sheet.takePrepared();
+          if (prepared) this.package.addPrepared("/xl/worksheets/sheet" + this.sheets.length + ".xml", formatType("worksheet"), prepared);
+        }
         this.package.addRelationship("/", { id: "workbook", type: relationshipTypes.officeDocument, target: "/xl/workbook.xml" });
         for (let i = 0; i < this.sheets.length; i++) {
           checkAbort(this.settings.signal);
@@ -235,6 +268,8 @@ export class Workbook {
         }
         this.package.addRelationship("/xl/workbook.xml", { id: "styles", type: relationshipTypes.styles, target: "/xl/styles.xml" });
         const bytes = await this.package.finish();
+        for (const sheet of this.sheets) sheet.releaseCharts();
+        this.nativeCharts.length = 0;
         notifyProgress(this.settings.onProgress, { phase: "complete", rows, bytes });
         checkAbort(this.settings.signal); this.state = "complete"; return { rows, sheets: this.sheets.length, bytes };
       } catch (error) {

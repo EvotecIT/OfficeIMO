@@ -27,7 +27,12 @@ async function inspectStructure(blob) {
   assert.equal(document.role, "Document"); assert.equal(document.parent, rootId);
   const numbers = pdf.objects.get(ref(root.body, "ParentTree")).body;
   const pageEntries = new Map([...numbers.matchAll(/(\d+) (\d+) 0 R/g)].map(match => [Number(match[1]), Number(match[2])]));
+  const keys = [...numbers.matchAll(/(\d+) (\d+) 0 R/g)].map(match => Number(match[1]));
+  assert.equal(new Set(keys).size, keys.length, "Page and annotation ParentTree keys must be unique");
+  assert.deepEqual(keys, [...keys].sort((left, right) => left - right));
+  assert.equal(Number(/\/ParentTreeNextKey (\d+)/.exec(root.body)[1]), Math.max(...keys) + 1);
   const marked = new Map();
+  const associatedAnnotations = new Set();
   for (const page of pdf.pages) {
     assert.match(page.body, /\/Tabs \/S/);
     const key = Number(/\/StructParents (\d+)/.exec(page.body)[1]);
@@ -41,6 +46,15 @@ async function inspectStructure(blob) {
       marked.set(page.id + ":" + mcid, { owner: owner.id, text: [...match[3].matchAll(/<([a-f0-9]*)> Tj/g)].map(m => Buffer.from(m[1], "hex").toString("latin1")).join("") });
     }
     assert.equal((page.content.match(/\bBDC\b/g) ?? []).length, (page.content.match(/\bEMC\b/g) ?? []).length);
+    for (const id of refs(/\/Annots \[([^\]]*)\]/.exec(page.body)?.[1] ?? "")) {
+      const annotation = pdf.objects.get(id), key = Number(/\/StructParent (\d+)/.exec(annotation.body)?.[1]);
+      const owner = elements.get(pageEntries.get(key));
+      assert.equal(owner?.role, "Link", "Every tagged annotation must point to its logical Link");
+      assert.equal(ref(annotation.body, "P"), page.id);
+      assert.ok(owner.kids.includes("<< /Type /OBJR /Obj " + id + " 0 R /Pg " + page.id + " 0 R >>"));
+      assert.ok(["P", "H1", "H2", "H3", "H4", "H5", "H6", "TD", "TH"].includes(elements.get(owner.parent)?.role));
+      assert.ok(!associatedAnnotations.has(id)); associatedAnnotations.add(id);
+    }
   }
   let contentCount = 0;
   for (const element of elements.values()) {
@@ -51,6 +65,8 @@ async function inspectStructure(blob) {
     });
   }
   assert.equal(contentCount, marked.size);
+  for (const element of elements.values()) for (const match of element.kids.matchAll(/<< \/Type \/OBJR \/Obj (\d+) 0 R \/Pg (\d+) 0 R >>/g))
+    assert.ok(associatedAnnotations.has(Number(match[1])), "Every OBJR must resolve to one annotated page");
   return { ...pdf, elements, document, marked };
 }
 
@@ -102,13 +118,35 @@ test("tagged profile rejects unsupported semantics instead of silently flattenin
     { columns, headerRows: [[{ value: "Group", columnSpan: 2 }, null]] },
     { columns, footer: { rows: [[{ value: "Total", columnSpan: 2 }, null]] } }])
     await assert.rejects(writePdf([{ name: "Item", amount: 1 }], { ...options, tagged }), /Tagged PDF supports leaf/);
-  await assert.rejects(writePdf([{ name: new ExportCell("Linked", { link: { target: "https://example.com" } }), amount: 1 }], { columns, tagged }), /Tagged PDF link/);
-  await assert.rejects(writePdfDocument([pdfTable([], { columns, footer: { values: [new ExportCell("Linked", { link: { target: "https://example.com" } })] } })], { tagged }), /Tagged PDF link/);
+  await assert.rejects(writePdf([{ name: new ExportCell(" ", { link: { target: "https://example.com" } }), amount: 1 }], { columns, tagged }), /nonempty displayed text/);
   for (const block of [{ kind: "image", image }, vector, { ...vector, alternativeText: " " }, { ...vector, alternativeText: "Chart", decorative: true }])
     await assert.rejects(writePdfDocument([block], { tagged }), /alternativeText|decorative/);
   for (const language of ["", "not_a_tag", "en--US", "en-US\0", 1])
     await assert.rejects(writePdfDocument([], { tagged: { language } }), /tagged.language/);
   await assert.rejects(writePdfDocument([{ kind: "paragraph", text: "Heading", headingLevel: 7 }], { tagged }), /headingLevel/);
+});
+
+test("tagged paragraph and table links associate text and each cross-page native annotation", async () => {
+  const long = "Linked report details ".repeat(65), cellText = "Linked table line\n".repeat(30);
+  const pdf = await inspectStructure(await writePdfDocument([
+    { kind: "paragraph", text: [{ text: "Before " }, { text: long, bold: true, link: { target: "https://example.com/report", tooltip: "Report details" } }, { text: "after" }] },
+    pdfTable([{ name: new ExportCell(cellText, { text: cellText, link: { target: "https://example.com/cell" } }), amount: 7 }], {
+      columns, formatRuns: (value, context) => context.columnIndex === 1
+        ? [{ text: String(value), link: { target: "https://example.com/amount" } }] : [{ text: String(value ?? "") }],
+      footer: { values: [new ExportCell("Footer", { text: "Footer", link: { target: "https://example.com/footer" } })], totals: { amount: "sum" } }
+    })
+  ], { tagged, pageSize: { width: 220, height: 180 }, margins: 24, pageNumbers: false, compression: false }));
+  const links = [...pdf.elements.values()].filter(element => element.role === "Link");
+  assert.equal(links.length, 5, "Each authored paragraph/cell run keeps one logical link identity");
+  const paragraphLink = links.find(element => pdf.elements.get(element.parent).role === "P");
+  assert.equal(paragraphLink.content.map(part => part.text).join(""), long);
+  assert.ok(new Set([...paragraphLink.kids.matchAll(/\/Pg (\d+) 0 R/g)].map(match => match[1])).size > 1);
+  const cellLink = links.find(element => element.content.map(part => part.text).join("") === cellText.replaceAll("\n", ""));
+  assert.ok(cellLink && cellLink.content.length > 20);
+  assert.ok([...pdf.objects.values()].filter(object => /\/Subtype \/Link/.test(object.body)).length > links.length);
+  await assert.rejects(writePdfDocument([{ kind: "paragraph", text: [{ text: " ", link: { target: "https://example.com" } }] }], { tagged }), /nonempty displayed text/);
+  await assert.rejects(writePdfDocument([{ kind: "paragraph", text: [{ text: "Link", link: { target: "https://example.com" } }] }],
+    { tagged, limits: { maxHyperlinks: 0 }, pageNumbers: false }), /maxHyperlinks/);
 });
 
 test("tagged structure and marked-content budgets fail visibly and release active sources", async () => {

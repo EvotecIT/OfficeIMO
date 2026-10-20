@@ -60,6 +60,12 @@ export interface WorkbookLimits extends ExportLimits {
   readonly maxConditionalFormats?: number;
   /** Unique conditional differential styles across the workbook; defaults to 1,000. */
   readonly maxDifferentialStyles?: number;
+  /** Native charts across the workbook; defaults to 100. Each chart owns one hidden data sheet. */
+  readonly maxCharts?: number;
+  /** Numeric cached data points across all chart series; defaults to 100,000. */
+  readonly maxChartPoints?: number;
+  /** Captured category/name/title/axis/label text across all charts; defaults to 1,000,000 UTF-16 units. */
+  readonly maxChartTextCharacters?: number;
 }
 export interface XlsxExportResult { readonly rows: number; readonly sheets: number; readonly bytes: number; }
 export interface SheetOptions<T = never> {

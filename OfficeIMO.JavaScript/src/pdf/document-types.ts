@@ -1,27 +1,43 @@
 import type { CellPresentation } from "../core/index.js";
 import type { PdfOptions } from "./types.js";
 import type { PdfDrawingBlock } from "./drawing-types.js";
+import type { PdfText } from "./inline-types.js";
 
 /** Page geometry, fonts, decorations and resource policy shared by every document block. */
 export interface PdfDocumentOptions extends Omit<PdfOptions<never>, "columns" | "includeHeader" | "headerRows" | "footer" |
-  "headerPresentation" | "footerPresentation" | "alternateRowColor" | "columnWidths" | "wideTable" | "formatValue"> {}
+  "headerPresentation" | "footerPresentation" | "alternateRowColor" | "columnWidths" | "wideTable" | "formatValue" | "formatRuns"> {}
 /** A table's own columns, repeated headings, presentation and numeric totals. */
 export type PdfTableOptions<T = never> = Pick<PdfOptions<T>, "columns" | "includeHeader" | "headerRows" | "footer" |
-  "headerPresentation" | "footerPresentation" | "alternateRowColor" | "columnWidths" | "wideTable" | "formatValue">;
+  "headerPresentation" | "footerPresentation" | "alternateRowColor" | "columnWidths" | "wideTable" | "formatValue" | "formatRuns">;
 /** Construct through pdfTable so column keys and getters are checked against the row type. */
 export interface PdfTableBlock {
   readonly kind: "table";
   readonly rows: Iterable<object> | AsyncIterable<object>;
   readonly options: PdfTableOptions;
 }
-/** Flowing scalar text, using the document's fonts and supported-script contract. */
+/** Flowing text and inline emphasis/links, using the document's fonts and supported-script contract. */
 export interface PdfParagraphBlock {
   readonly kind: "paragraph";
-  readonly text: string;
+  readonly text: PdfText;
   /** Heading level in tagged output; omitted text is a paragraph. Appearance uses presentation. */
   readonly headingLevel?: 1 | 2 | 3 | 4 | 5 | 6;
   readonly fontSize?: number;
   readonly presentation?: Pick<CellPresentation, "bold" | "italic" | "color" | "alignment">;
+  /** Move this paragraph intact; reject when its complete layout exceeds a fresh page. */
+  readonly keepTogether?: boolean;
+  /** Keep this paragraph with the next paragraph line, table heading/data fragment or complete graphic. */
+  readonly keepWithNext?: boolean;
+  /** Space in points, before this paragraph; default zero. */
+  readonly spaceBefore?: number;
+  /** Space in points, after this paragraph; default eight. */
+  readonly spaceAfter?: number;
+}
+/** An explicitly bounded group of paragraphs. Keeps stay within the group; other block kinds and nested groups are rejected. */
+export interface PdfGroupBlock {
+  readonly kind: "group";
+  readonly blocks: readonly PdfParagraphBlock[];
+  /** Keep the complete paragraph group on one page; reject an oversized group. Default true. */
+  readonly keepTogether?: boolean;
 }
 /** Explicitly finish the current page; the next block starts on a new page. */
 export interface PdfPageBreakBlock { readonly kind: "pageBreak"; }
@@ -68,4 +84,4 @@ export interface PdfVectorBlock {
   readonly decorative?: boolean;
 }
 /** Blocks are consumed once in order; each table owns its row source until that table completes. */
-export type PdfDocumentBlock = PdfParagraphBlock | PdfTableBlock | PdfPageBreakBlock | PdfImageBlock | PdfVectorBlock | PdfDrawingBlock;
+export type PdfDocumentBlock = PdfParagraphBlock | PdfGroupBlock | PdfTableBlock | PdfPageBreakBlock | PdfImageBlock | PdfVectorBlock | PdfDrawingBlock;

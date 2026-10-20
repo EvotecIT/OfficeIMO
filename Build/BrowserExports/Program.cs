@@ -24,6 +24,9 @@ if (args.Length == 2 && args[0] == "--validate-directory") {
 if (args.Length < 2) throw new ArgumentException("Usage: <repository> <evidence-directory> [--scale] [--limits] [--example=<directory>]");
 string repository = Path.GetFullPath(args[0]), evidence = Path.GetFullPath(args[1]);
 Directory.CreateDirectory(evidence);
+if (args.Contains("--execution")) { await ExecutionInterop.RunAsync(repository, evidence, args); return; }
+if (args.Contains("--shaping")) { await ShapingInterop.RunAsync(repository, evidence, args); return; }
+if (args.Contains("--report-engine")) { await ReportEngineInterop.RunAsync(repository, evidence, args); return; }
 if (args.Any(a => a.StartsWith("--canopy=", StringComparison.Ordinal))) { await CanopyInterop.RunAsync(repository, evidence, args); return; }
 if (args.Contains("--links")) { await PortableLinkInterop.RunAsync(repository, evidence, args); return; }
 if (args.Contains("--pdf")) { await PdfInterop.RunAsync(repository, evidence, args); return; }

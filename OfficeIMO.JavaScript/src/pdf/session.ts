@@ -21,7 +21,7 @@ export class PdfWriteSession {
     this.objects = new PdfObjects(sink, settings.options.signal, settings.options.limits?.maxOutputBytes);
     this.root = this.objects.reserve(); this.parent = this.objects.reserve(); this.resources = this.objects.reserve(); this.info = this.objects.reserve();
     this.structure = settings.options.tagged ? new PdfStructure(this.objects, settings) : undefined;
-    this.fonts = new PdfFontResources(this.objects, settings.options.fonts, settings.limits.maxFontBytes);
+    this.fonts = new PdfFontResources(this.objects, settings.options.fonts, settings.limits.maxFontBytes, settings.options.signal);
     this.layout = table ? new PdfTableLayout(settings, this.fonts) : undefined;
     this.pages = new PdfPages(this.objects, settings, this.fonts, this.parent, this.resources, this.layout, this.structure);
   }
