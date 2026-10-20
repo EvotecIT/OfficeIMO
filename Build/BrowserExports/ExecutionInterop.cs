@@ -15,6 +15,8 @@ internal static class ExecutionInterop {
         string script = File.ReadAllText(Path.Combine(repository, "Build", "BrowserExports", "execution-contracts.js"));
         string classicScript = File.ReadAllText(Path.Combine(repository, "OfficeIMO.JavaScript", "bundles", "officeimo.js"));
         string executionScript = File.ReadAllText(Path.Combine(repository, "OfficeIMO.JavaScript", "bundles", "officeimo-execution.js"));
+        string moduleScript = File.ReadAllText(Path.Combine(repository, "OfficeIMO.JavaScript", "bundles", "officeimo.mjs"));
+        string executionModule = File.ReadAllText(Path.Combine(repository, "OfficeIMO.JavaScript", "bundles", "officeimo-execution.mjs"));
         string font = Convert.ToBase64String(File.ReadAllBytes(Path.Combine(repository, "Website", "Apps", "OfficeIMO.Web.Converter", "Assets", "Fonts", "Carlito-Regular.ttf")));
         var reports = new List<object>();
         foreach (HtmlBrowserEngine engine in DataTablesInterop.Engines(args)) {
@@ -47,17 +49,18 @@ internal static class ExecutionInterop {
             await session.Page.AddScriptTagAsync(new() { Content = executionScript });
             await session.Page.AddScriptTagAsync(new() { Content = script });
             var results = new Dictionary<string, JsonElement>();
-            foreach (bool classic in new[] { false, true })
-                results[classic ? "classic" : "esm"] = await session.Page.EvaluateAsync<JsonElement>("args => runExecutionContracts(args)",
-                    new { moduleBase = moduleUri.AbsoluteUri.TrimEnd('/'), classicScript, executionScript, fontBase64 = font, classic });
+            foreach (string profile in new[] { "esm", "esm-bundled", "classic" })
+                results[profile] = await session.Page.EvaluateAsync<JsonElement>("args => runExecutionContracts(args)",
+                    new { moduleBase = moduleUri.AbsoluteUri.TrimEnd('/'), classicScript, executionScript, fontBase64 = font, profile });
             if (errors.Count != 0) throw new InvalidDataException(string.Join("; ", errors));
             var report = new { engine = engine.ToString(), browser = session.Browser?.Version, results, files, errors };
             reports.Add(report);
             File.WriteAllText(Path.Combine(output, "report.json"), JsonSerializer.Serialize(report, new JsonSerializerOptions { WriteIndented = true }));
-            Console.WriteLine($"Worker execution passed {engine}: {files.Count} independently read files, classic and ESM workers.");
+            Console.WriteLine($"Worker execution passed {engine}: {files.Count} independently read files, classic, dist ESM and standalone ESM workers.");
         }
         File.WriteAllText(Path.Combine(evidence, "execution-interop.json"), JsonSerializer.Serialize(new {
-            classicSha256 = Hash(classicScript), executionSha256 = Hash(executionScript), reports
+            classicSha256 = Hash(classicScript), executionSha256 = Hash(executionScript),
+            moduleSha256 = Hash(moduleScript), executionModuleSha256 = Hash(executionModule), reports
         }, new JsonSerializerOptions { WriteIndented = true }));
     }
     private static string Hash(string text) => Convert.ToHexString(SHA256.HashData(System.Text.Encoding.UTF8.GetBytes(text))).ToLowerInvariant();

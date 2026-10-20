@@ -12,7 +12,7 @@ New-BenchmarkSuite 'officeimo-engine-resources' -OutputRoot $evidence {
     Add-BenchmarkMetadata Contract 'Immutable baseline/current OfficeIMO JavaScript. Every output is byte-identical to baseline and independently checked. PNG cases measure complete uncompressed PDF Blob generation; font cases measure constructor versus PdfFont.create only, with later PDF generation/validation excluded.'
     Add-BenchmarkMetadata ProcessBoundary 'Fresh Node child per operation. Module/input loading excluded from EngineMs; fresh-process JIT and existing OS file caches apply. PowerForge wall/allocation metrics describe its PowerShell host and include child startup; compare EngineMs for the engine operation.'
     Add-BenchmarkMetadata MemoryBoundary 'Node process-lifetime peakRSS through operation end includes startup/input/native memory; not process tree. HeapUsed/external/arrayBuffers deltas are snapshots and overlapping categories, not peak totals. Font PDF generation happens after captured memory metrics.'
-    Add-BenchmarkMetadata LoadBoundary 'Normal development Mac under recorded per-sample load. No affinity pin; platform scheduler. Defaults warmup1/iterations3; actual counts recorded by shared runner. Rotated ordering, no outlier removal; losses and all raw samples retained.'
+    Add-BenchmarkMetadata LoadBoundary 'Normal development Mac under recorded per-sample load. No affinity pin; platform scheduler. Defaults warmup 1/iterations 3; actual counts recorded by shared runner. Rotated ordering, no outlier removal; losses and all raw samples retained.'
     Add-BenchmarkMetadata Manifest $manifest
     Add-BenchmarkMetadata HelperSha256 (Get-FileHash -LiteralPath $helper -Algorithm SHA256).Hash
     Add-BenchmarkCaseSource {
@@ -25,7 +25,7 @@ New-BenchmarkSuite 'officeimo-engine-resources' -OutputRoot $evidence {
     Set-BenchmarkSetup {
         param($case, $run)
         $retained = (Get-ChildItem -LiteralPath $evidence -Filter sample.pdf -Recurse -File | Measure-Object Length -Sum).Sum
-        if ($retained -gt 300MB) { throw 'Retained failed PDFs reached300MiB; inspect failures before generating more.' }
+        if ($retained -gt 300MB) { throw 'Retained failed PDFs reached 300 MiB; inspect failures before generating more.' }
         $run.PdfPath = Join-Path $run.OutputDirectory 'sample.pdf'
     }
     foreach ($lane in 'baseline','current') {

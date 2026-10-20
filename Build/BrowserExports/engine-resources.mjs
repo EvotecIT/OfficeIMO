@@ -109,7 +109,7 @@ async function prepare() {
   let cases = [];
   const dimensions = required("dimensions").split(",").map(Number);
   for (const dimension of dimensions) {
-    if (!Number.isSafeInteger(dimension) || dimension < 1 || dimension > 4096) throw Error("PNG dimensions must be integers through4096.");
+    if (!Number.isSafeInteger(dimension) || dimension < 1 || dimension > 4096) throw Error("PNG dimensions must be integers through 4096.");
   }
   let reused;
   if (options.reuse) {
@@ -180,7 +180,7 @@ async function run() {
       priority: os.getPriority(), affinity: "not pinned; platform scheduler", processId: process.pid, execArgv: process.execArgv },
     boundaries: { engineMs: fixture.kind === "font" ? "Font intake only; PDF generation/validation excluded" : "Full PNG decode and uncompressed PDF Blob generation; input read/import excluded",
       peakRssBytes: "Fresh Node process lifetime through measured-operation end; startup/input/native allocations included, later font-PDF generation excluded; no process-tree total",
-      maxTimerGapMs: "Largest observed2ms interval, including a trailing tick to observe synchronous blocking; no throughput gate",
+      maxTimerGapMs: "Largest observed 2 ms interval, including a trailing tick to observe synchronous blocking; no throughput gate",
       memoryDeltas: "Node memoryUsage snapshots; heapUsed is JS heap, external/arrayBuffers are separate overlapping native-backed categories; no sampled peak claim" } };
 }
 

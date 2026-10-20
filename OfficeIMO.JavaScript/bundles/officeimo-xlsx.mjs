@@ -154,19 +154,34 @@ return _exports;
 })();
 
 const _m3 = (() => {
+const errorBrand = Symbol.for("@evotecit/officeimo/OfficeIMOError");
+const unsupportedBrand = Symbol.for("@evotecit/officeimo/NotSupportedError");
 class OfficeIMOError extends Error {
     code;
+    static [Symbol.hasInstance](value) {
+        // Inherited checks on user subclasses must retain their own prototype identity.
+        if (this !== OfficeIMOError)
+            return Function.prototype[Symbol.hasInstance].call(this, value);
+        return !!value && typeof value === "object" && value[errorBrand] === true;
+    }
     constructor(code, message, options) {
         super(message, options);
         this.code = code;
+        Object.defineProperty(this, errorBrand, { value: true });
         this.name = "OfficeIMOError";
     }
 }
 class NotSupportedError extends OfficeIMOError {
     feature;
+    static [Symbol.hasInstance](value) {
+        if (this !== NotSupportedError)
+            return Function.prototype[Symbol.hasInstance].call(this, value);
+        return !!value && typeof value === "object" && value[unsupportedBrand] === true;
+    }
     constructor(feature) {
         super("NOT_SUPPORTED", feature + " is not supported yet.");
         this.feature = feature;
+        Object.defineProperty(this, unsupportedBrand, { value: true });
         this.name = "NotSupportedError";
     }
 }

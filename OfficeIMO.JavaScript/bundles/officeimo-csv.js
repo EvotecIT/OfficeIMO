@@ -160,29 +160,44 @@ _modules.set("1ae4f4554ececbf0fc1e5d32f40275e35f228dca922cfc0760ae681fd9690d7e",
 return _exports;
 })();
 
-const _m3 = _modules.get("dd969d5cbc3aef12718d139818e6c9d43dad3dcfea78483f90bae652bce46f53") ?? (() => {
+const _m3 = _modules.get("d5c945064d81fdd257960f48c421125e106e5f270427d170bb05587dd96a44ea") ?? (() => {
+const errorBrand = Symbol.for("@evotecit/officeimo/OfficeIMOError");
+const unsupportedBrand = Symbol.for("@evotecit/officeimo/NotSupportedError");
 class OfficeIMOError extends Error {
     code;
+    static [Symbol.hasInstance](value) {
+        // Inherited checks on user subclasses must retain their own prototype identity.
+        if (this !== OfficeIMOError)
+            return Function.prototype[Symbol.hasInstance].call(this, value);
+        return !!value && typeof value === "object" && value[errorBrand] === true;
+    }
     constructor(code, message, options) {
         super(message, options);
         this.code = code;
+        Object.defineProperty(this, errorBrand, { value: true });
         this.name = "OfficeIMOError";
     }
 }
 class NotSupportedError extends OfficeIMOError {
     feature;
+    static [Symbol.hasInstance](value) {
+        if (this !== NotSupportedError)
+            return Function.prototype[Symbol.hasInstance].call(this, value);
+        return !!value && typeof value === "object" && value[unsupportedBrand] === true;
+    }
     constructor(feature) {
         super("NOT_SUPPORTED", feature + " is not supported yet.");
         this.feature = feature;
+        Object.defineProperty(this, unsupportedBrand, { value: true });
         this.name = "NotSupportedError";
     }
 }
 const _exports = Object.freeze({ OfficeIMOError: OfficeIMOError, NotSupportedError: NotSupportedError });
-_modules.set("dd969d5cbc3aef12718d139818e6c9d43dad3dcfea78483f90bae652bce46f53", _exports);
+_modules.set("d5c945064d81fdd257960f48c421125e106e5f270427d170bb05587dd96a44ea", _exports);
 return _exports;
 })();
 
-const _m2 = _modules.get("30899b95dd5dd6f624c2452b62f806fd950961d21a48ccf9c2dfb3452abb67a9") ?? (() => {
+const _m2 = _modules.get("0c4bd256ca66b488390b27a6d197e5ba99ae051ae662621b67a5e80b0479eefc") ?? (() => {
 const { checkAbort, consumeRows, withAbort, pause, taskYieldDue } = _m1;
 
 const { OfficeIMOError } = _m3;
@@ -287,11 +302,11 @@ async function writeBytes(source, sink, signal) {
     });
 }
 const _exports = Object.freeze({ withDestination: withDestination, BlobByteSink: BlobByteSink, ChunkedTextSink: ChunkedTextSink, writeBytes: writeBytes });
-_modules.set("30899b95dd5dd6f624c2452b62f806fd950961d21a48ccf9c2dfb3452abb67a9", _exports);
+_modules.set("0c4bd256ca66b488390b27a6d197e5ba99ae051ae662621b67a5e80b0479eefc", _exports);
 return _exports;
 })();
 
-const _m4 = _modules.get("02ec6cf227afac6ead01cf24b9e3958c71ffd2616ecf0ad6b0baed551f39b86d") ?? (() => {
+const _m4 = _modules.get("18a4816e4da0a737c6adb2401db266074d04daa4ce20b4cb235931d2feaa950b") ?? (() => {
 const { OfficeIMOError } = _m3;
 
 /** @internal Check before accepting the next value or chunk. */
@@ -344,7 +359,7 @@ function boundedSink(sink, budget) {
         } };
 }
 const _exports = Object.freeze({ ExportBudget: ExportBudget, boundedSink: boundedSink });
-_modules.set("02ec6cf227afac6ead01cf24b9e3958c71ffd2616ecf0ad6b0baed551f39b86d", _exports);
+_modules.set("18a4816e4da0a737c6adb2401db266074d04daa4ce20b4cb235931d2feaa950b", _exports);
 return _exports;
 })();
 
@@ -512,7 +527,7 @@ _modules.set("e5f51523cbe24352ffc2ddc2cdf46cc1145e4215964526154f109ec9c0146386",
 return _exports;
 })();
 
-const _m10 = _modules.get("9e9621bba11170b44ed2da3db9d8769784402a320771933ef68ba6b9d9f10a31") ?? (() => {
+const _m10 = _modules.get("1f259ebae1c6a45d9f3f9104a88f628ac4be4ada959c13c25f67e2ced2d427a5") ?? (() => {
 
 
 
@@ -555,11 +570,11 @@ function saveBlob(blob, fileName) {
     }
 }
 const _exports = Object.freeze({ OfficeIMOError: _m3.OfficeIMOError, NotSupportedError: _m3.NotSupportedError, BlobByteSink: _m2.BlobByteSink, ChunkedTextSink: _m2.ChunkedTextSink, writeBytes: _m2.writeBytes, ExportCell: _m5.ExportCell, checkAbort: _m1.checkAbort, withAbort: _m1.withAbort, inputRows: _m1.inputRows, pause: _m1.pause, detectFeatures: detectFeatures, saveBlob: saveBlob });
-_modules.set("9e9621bba11170b44ed2da3db9d8769784402a320771933ef68ba6b9d9f10a31", _exports);
+_modules.set("1f259ebae1c6a45d9f3f9104a88f628ac4be4ada959c13c25f67e2ced2d427a5", _exports);
 return _exports;
 })();
 
-const _m0 = _modules.get("8d53c3ca40bb7f550fede378a9850d80d8bda9928e93cfbb2fb46a3e4faaffa4") ?? (() => {
+const _m0 = _modules.get("1c2818b35ef1f5081a997e32962196284d267f09a74adf45ef310af38a6c0d49") ?? (() => {
 const { beginTask, checkAbort, consumeRows, taskYieldDue, withAbort } = _m1;
 
 const { BlobByteSink, ChunkedTextSink, withDestination } = _m2;
@@ -693,7 +708,7 @@ async function writeCsv(rows, configuration) {
     }
 }
 const _exports = Object.freeze({ saveBlob: _m10.saveBlob, ExportCell: _m5.ExportCell, writeCsvTo: writeCsvTo, writeCsv: writeCsv });
-_modules.set("8d53c3ca40bb7f550fede378a9850d80d8bda9928e93cfbb2fb46a3e4faaffa4", _exports);
+_modules.set("1c2818b35ef1f5081a997e32962196284d267f09a74adf45ef310af38a6c0d49", _exports);
 return _exports;
 })();
 Object.assign(officeimo, _m0, { core: _m10, csv: _m0 });

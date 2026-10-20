@@ -160,29 +160,44 @@ _modules.set("1ae4f4554ececbf0fc1e5d32f40275e35f228dca922cfc0760ae681fd9690d7e",
 return _exports;
 })();
 
-const _m4 = _modules.get("dd969d5cbc3aef12718d139818e6c9d43dad3dcfea78483f90bae652bce46f53") ?? (() => {
+const _m4 = _modules.get("d5c945064d81fdd257960f48c421125e106e5f270427d170bb05587dd96a44ea") ?? (() => {
+const errorBrand = Symbol.for("@evotecit/officeimo/OfficeIMOError");
+const unsupportedBrand = Symbol.for("@evotecit/officeimo/NotSupportedError");
 class OfficeIMOError extends Error {
     code;
+    static [Symbol.hasInstance](value) {
+        // Inherited checks on user subclasses must retain their own prototype identity.
+        if (this !== OfficeIMOError)
+            return Function.prototype[Symbol.hasInstance].call(this, value);
+        return !!value && typeof value === "object" && value[errorBrand] === true;
+    }
     constructor(code, message, options) {
         super(message, options);
         this.code = code;
+        Object.defineProperty(this, errorBrand, { value: true });
         this.name = "OfficeIMOError";
     }
 }
 class NotSupportedError extends OfficeIMOError {
     feature;
+    static [Symbol.hasInstance](value) {
+        if (this !== NotSupportedError)
+            return Function.prototype[Symbol.hasInstance].call(this, value);
+        return !!value && typeof value === "object" && value[unsupportedBrand] === true;
+    }
     constructor(feature) {
         super("NOT_SUPPORTED", feature + " is not supported yet.");
         this.feature = feature;
+        Object.defineProperty(this, unsupportedBrand, { value: true });
         this.name = "NotSupportedError";
     }
 }
 const _exports = Object.freeze({ OfficeIMOError: OfficeIMOError, NotSupportedError: NotSupportedError });
-_modules.set("dd969d5cbc3aef12718d139818e6c9d43dad3dcfea78483f90bae652bce46f53", _exports);
+_modules.set("d5c945064d81fdd257960f48c421125e106e5f270427d170bb05587dd96a44ea", _exports);
 return _exports;
 })();
 
-const _m3 = _modules.get("30899b95dd5dd6f624c2452b62f806fd950961d21a48ccf9c2dfb3452abb67a9") ?? (() => {
+const _m3 = _modules.get("0c4bd256ca66b488390b27a6d197e5ba99ae051ae662621b67a5e80b0479eefc") ?? (() => {
 const { checkAbort, consumeRows, withAbort, pause, taskYieldDue } = _m2;
 
 const { OfficeIMOError } = _m4;
@@ -287,7 +302,7 @@ async function writeBytes(source, sink, signal) {
     });
 }
 const _exports = Object.freeze({ withDestination: withDestination, BlobByteSink: BlobByteSink, ChunkedTextSink: ChunkedTextSink, writeBytes: writeBytes });
-_modules.set("30899b95dd5dd6f624c2452b62f806fd950961d21a48ccf9c2dfb3452abb67a9", _exports);
+_modules.set("0c4bd256ca66b488390b27a6d197e5ba99ae051ae662621b67a5e80b0479eefc", _exports);
 return _exports;
 })();
 
@@ -392,7 +407,7 @@ _modules.set("f79dd9ca01bb1864831e26b384a6612a1eb631936d358dd2a008a894dbceb4fd",
 return _exports;
 })();
 
-const _m7 = _modules.get("9e9621bba11170b44ed2da3db9d8769784402a320771933ef68ba6b9d9f10a31") ?? (() => {
+const _m7 = _modules.get("1f259ebae1c6a45d9f3f9104a88f628ac4be4ada959c13c25f67e2ced2d427a5") ?? (() => {
 
 
 
@@ -435,11 +450,11 @@ function saveBlob(blob, fileName) {
     }
 }
 const _exports = Object.freeze({ OfficeIMOError: _m4.OfficeIMOError, NotSupportedError: _m4.NotSupportedError, BlobByteSink: _m3.BlobByteSink, ChunkedTextSink: _m3.ChunkedTextSink, writeBytes: _m3.writeBytes, ExportCell: _m8.ExportCell, checkAbort: _m2.checkAbort, withAbort: _m2.withAbort, inputRows: _m2.inputRows, pause: _m2.pause, detectFeatures: detectFeatures, saveBlob: saveBlob });
-_modules.set("9e9621bba11170b44ed2da3db9d8769784402a320771933ef68ba6b9d9f10a31", _exports);
+_modules.set("1f259ebae1c6a45d9f3f9104a88f628ac4be4ada959c13c25f67e2ced2d427a5", _exports);
 return _exports;
 })();
 
-const _m6 = _modules.get("3e3a7aee1bf2dd36743e5c3f2bfdf7a383b597e0cbbacc515996989c6a0472db") ?? (() => {
+const _m6 = _modules.get("8eb33d90bec94b69e5eba418ee5790f56edeb0e74c71368b709967293d46326a") ?? (() => {
 const { ExportCell, NotSupportedError, OfficeIMOError } = _m7;
 
 const { assertExportValue } = _m8;
@@ -609,11 +624,11 @@ function result(value) {
     return { rows: value.rows, columns: value.columns, bytes: value.bytes };
 }
 const _exports = Object.freeze({ protocol: protocol, message: message, bounds: bounds, captureInput: captureInput, captureRow: captureRow, restoreRows: restoreRows, captureProgress: captureProgress, wireError: wireError, restoreError: restoreError, result: result });
-_modules.set("3e3a7aee1bf2dd36743e5c3f2bfdf7a383b597e0cbbacc515996989c6a0472db", _exports);
+_modules.set("8eb33d90bec94b69e5eba418ee5790f56edeb0e74c71368b709967293d46326a", _exports);
 return _exports;
 })();
 
-const _m1 = _modules.get("5e8288eb3a0e69b18640d933fb8c6d9a2ce5ec0a949583d90dd89af41fcbae28") ?? (() => {
+const _m1 = _modules.get("d9b35d99c36fd77aff6439a948ce1c4ad47cd3cc68f8b8ad56270cd0371ba2b4") ?? (() => {
 const { checkAbort, inputRows, withAbort } = _m2;
 
 const { withDestination } = _m3;
@@ -781,11 +796,11 @@ async function executeWorkerExport(endpoint, rows, destination, options = {}) {
     }
 }
 const _exports = Object.freeze({ executeWorkerExport: executeWorkerExport });
-_modules.set("5e8288eb3a0e69b18640d933fb8c6d9a2ce5ec0a949583d90dd89af41fcbae28", _exports);
+_modules.set("d9b35d99c36fd77aff6439a948ce1c4ad47cd3cc68f8b8ad56270cd0371ba2b4", _exports);
 return _exports;
 })();
 
-const _m11 = _modules.get("c5e93f51d47cb4ef90c70adf597e7d09f86523730d67fc36de43758de393d4cb") ?? (() => {
+const _m11 = _modules.get("de403c11dbf9ee3806d2a8e7b016ac8d76798dc16b6a66b9383d7989c9fbb8f0") ?? (() => {
 const { checkAbort, withAbort } = _m2;
 
 const { OfficeIMOError } = _m4;
@@ -937,14 +952,14 @@ function handleWorkerExports(endpoint, operation) {
         } };
 }
 const _exports = Object.freeze({ handleWorkerExports: handleWorkerExports });
-_modules.set("c5e93f51d47cb4ef90c70adf597e7d09f86523730d67fc36de43758de393d4cb", _exports);
+_modules.set("de403c11dbf9ee3806d2a8e7b016ac8d76798dc16b6a66b9383d7989c9fbb8f0", _exports);
 return _exports;
 })();
 
-const _m0 = _modules.get("d2132198003eb4ed5bf9ca328c2a45d73bbf92ba3b7ce73fca7b107d23cad726") ?? (() => {
+const _m0 = _modules.get("d46c68cce608e4fc588d58f8708d767d4d5b2d2b6c307acc03aaf5165e496d5e") ?? (() => {
 
 const _exports = Object.freeze({ executeWorkerExport: _m1.executeWorkerExport, handleWorkerExports: _m11.handleWorkerExports });
-_modules.set("d2132198003eb4ed5bf9ca328c2a45d73bbf92ba3b7ce73fca7b107d23cad726", _exports);
+_modules.set("d46c68cce608e4fc588d58f8708d767d4d5b2d2b6c307acc03aaf5165e496d5e", _exports);
 return _exports;
 })();
 Object.assign(officeimo, _m0);

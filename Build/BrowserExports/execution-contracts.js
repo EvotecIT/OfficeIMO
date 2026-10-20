@@ -1,7 +1,10 @@
 // Product contracts use real host-owned Workers. HtmlTinkerX owns browser sessions.
-async function runExecutionContracts({ moduleBase, classicScript, executionScript, fontBase64, classic = false }) {
-  const api = classic ? globalThis.OfficeIMO : await import(moduleBase + '/index.js');
-  const execution = classic ? api : await import(moduleBase + '/execution/index.js');
+async function runExecutionContracts({ moduleBase, classicScript, executionScript, fontBase64, profile = 'esm' }) {
+  const classic = profile === 'classic', bundled = profile === 'esm-bundled';
+  const apiUrl = bundled ? new URL('../bundles/officeimo.mjs', moduleBase + '/').href : moduleBase + '/index.js';
+  const executionUrl = bundled ? new URL('../bundles/officeimo-execution.mjs', moduleBase + '/').href : moduleBase + '/execution/index.js';
+  const api = classic ? globalThis.OfficeIMO : await import(apiUrl);
+  const execution = classic ? api : await import(executionUrl);
   const require = (value, message) => { if (!value) throw Error(message); };
   const checks = [], metrics = [];
   const fontBytes = Uint8Array.from(atob(fontBase64), character => character.charCodeAt(0));
@@ -9,6 +12,8 @@ async function runExecutionContracts({ moduleBase, classicScript, executionScrip
   const workerBody = `
     const handler = execution.handleWorkerExports(self, async ({input,rows,sink,signal,onProgress}) => {
       if(input.mode === 'failure') throw new api.core.OfficeIMOError('RESOURCE_LIMIT','worker resource failure');
+      if(input.mode === 'unsupported') throw new api.core.NotSupportedError('standalone browser feature');
+      if(input.mode === 'writer-failure') return api.writeCsvTo(rows,sink,{signal,columns:[{header:'V'}],limits:{maxTextCharacters:1}});
       if(input.mode === 'dispose') { setTimeout(() => handler.dispose(),0); return new Promise(() => {}); }
       if(input.mode === 'progress') { for(let i=0;i<1000;i++) onProgress({phase:'rows',rows:i}); return {rows:999,columns:0,bytes:0}; }
       if(input.fallback) globalThis.CompressionStream = undefined;
@@ -18,7 +23,7 @@ async function runExecutionContracts({ moduleBase, classicScript, executionScrip
     });`;
   function worker() {
     const bootstrap = classic ? classicScript + '\n' + executionScript + '\nconst api=OfficeIMO,execution=OfficeIMO;\n' + workerBody
-      : 'import * as api from ' + JSON.stringify(moduleBase + '/index.js') + ';\nimport * as execution from ' + JSON.stringify(moduleBase + '/execution/index.js') + ';\n' + workerBody;
+      : 'import * as api from ' + JSON.stringify(apiUrl) + ';\nimport * as execution from ' + JSON.stringify(executionUrl) + ';\n' + workerBody;
     const url = URL.createObjectURL(new Blob([bootstrap], { type: 'text/javascript' }));
     const owned = new Worker(url, classic ? undefined : { type: 'module' }), listeners = new Set();
     const observed = { requests: 0, maxRows: 0, maxChunk: 0, progress: 0 };
@@ -43,7 +48,7 @@ async function runExecutionContracts({ moduleBase, classicScript, executionScrip
   async function save(name, chunks, contract = {}) {
     const data = new Uint8Array(await new Blob(chunks).arrayBuffer()); let text='';
     for(let first=0;first<data.length;first+=8192) text+=String.fromCharCode(...data.subarray(first,first+8192));
-    await writeExecutionFixture((classic?'classic-':'esm-')+name,btoa(text),JSON.stringify(contract));
+    await writeExecutionFixture(profile+'-'+name,btoa(text),JSON.stringify(contract));
   }
   async function rejection(promise, expected, label) { let error; try { await promise; } catch(caught) { error=caught; } require(error&&expected(error),label+': '+error); checks.push(label); }
   function rows() { return [
@@ -86,7 +91,9 @@ async function runExecutionContracts({ moduleBase, classicScript, executionScrip
     require(reused.rows===1,'Cancelled worker endpoint could not be reused');checks.push('reuse-after-'+phase+'-cancellation');
   });
   await withWorker(async owned => {
-    await rejection(execution.executeWorkerExport(owned.endpoint,[],{write(){}},{input:{mode:'failure'}}),error=>error.code==='RESOURCE_LIMIT','remote-error-code');
+    await rejection(execution.executeWorkerExport(owned.endpoint,[],{write(){}},{input:{mode:'failure'}}),error=>error.code==='RESOURCE_LIMIT'&&error instanceof api.core.OfficeIMOError,'remote-error-code');
+    await rejection(execution.executeWorkerExport(owned.endpoint,[],{write(){}},{input:{mode:'unsupported'}}),error=>error.code==='NOT_SUPPORTED'&&error.feature==='standalone browser feature'&&error instanceof api.core.NotSupportedError,'remote-unsupported-feature');
+    await rejection(execution.executeWorkerExport(owned.endpoint,[['oversized']],{write(){}},{input:{mode:'writer-failure'}}),error=>error.code==='RESOURCE_LIMIT'&&error instanceof api.core.OfficeIMOError,'writer-error-code');
     let last=0;
     const completed=await execution.executeWorkerExport(owned.endpoint,[],{write(){}},{input:{mode:'progress'},onProgress(progress){last=progress.rows;}});
     require(completed.rows===999&&last===999&&owned.observed.progress<=2,'Progress queue did not coalesce to bounded acknowledged updates');checks.push('coalesced-progress');
