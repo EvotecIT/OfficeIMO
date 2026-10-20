@@ -6,6 +6,31 @@ namespace OfficeIMO.Tests;
 
 public sealed class DrawingPositionedTextTransformTests {
     [Fact]
+    public void NestedPositionedTextPreservesStrokeDashAndSuppressedFill() {
+        var source = new OfficeDrawing(100D, 80D);
+        source.Fonts.Add("Nested stroke contract", ManagedTextShapingTestAssets.CreateFont('A'));
+        source.AddPositionedText("A", 20D, 20D, 20D, 30D,
+            new OfficeFontInfo("Nested stroke contract", 20D), OfficeColor.Black, textAdvanceWidth: 10D);
+        source.SetLastTextOutlineStroke(OfficeColor.Blue, 2D, fillSuppressed: true, new[] { 3D, 2D }, 1D);
+        var target = new OfficeDrawing(140D, 120D).AddDrawing(source, 15D, 10D).Clone();
+        OfficeRasterImage expected = OfficeDrawingRasterRenderer.Render(source, 2D, OfficeColor.White);
+        OfficeRasterImage actual = OfficeDrawingRasterRenderer.Render(target, 2D, OfficeColor.White);
+        int blueInk = 0;
+        for (int y = 0; y < expected.Height; y++) for (int x = 0; x < expected.Width; x++) {
+            OfficeColor pixel = expected.GetPixel(x, y);
+            if (pixel.R < 100 && pixel.G < 100 && pixel.B > 200) blueInk++;
+            Assert.Equal(pixel, actual.GetPixel(x + 30, y + 20));
+        }
+        Assert.True(blueInk > 50, "The source must paint a visible dashed blue outline with no fill.");
+        OfficeDrawingText copied = Assert.Single(target.Elements.OfType<OfficeDrawingText>());
+        Assert.Equal(OfficeColor.Blue, copied.OutlineStrokeColor);
+        Assert.Equal(2D, copied.OutlineStrokeWidth);
+        Assert.Equal(new[] { 3D, 2D }, copied.OutlineStrokeDashPattern);
+        Assert.Equal(1D, copied.OutlineStrokeDashOffset);
+        Assert.True(copied.FillSuppressed);
+    }
+
+    [Fact]
     public void NestedFrameRotationTransformsProviderShapedVerticalTextInRasterAndSvg() {
         const int size = 100;
         byte[] fontData = ManagedTextShapingTestAssets.CreateColorFont('A');

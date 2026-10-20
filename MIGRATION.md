@@ -1780,6 +1780,14 @@ Invoice PDF presentation now caps source XML, line text, line count, generated p
 
 Documents written by the earlier setter contain the smaller physical angle and are now read as that actual angle. Assigning `null` continues to clear the image rotation for both inline and floating images.
 
+### Word image crop lengths use the original image dimensions
+
+`WordImage.CropLeftCentimeters`, `CropTopCentimeters`, `CropRightCentimeters`, `CropBottomCentimeters` and the fluent `.Crop(left, top, right, bottom)` method now measure lengths against the original embedded image's physical size, using its pixel dimensions and per-axis resolution. Earlier versions stored centimeter-to-EMU values in fields that require DrawingML percentages, producing incorrect source crops.
+
+Reapply the intended centimeter values when regenerating documents created with the earlier setters. Existing DOCX crop percentages retain their native meaning; the reader cannot distinguish a deliberate percentage from an incorrectly written older value. A physical crop preserves the picture's displayed scale, resizes the frame and adjusts floating anchors for the source image's rotation and mirrors. Resizing afterward retains the source crop. Assigning `null` restores an edge.
+
+The raw `CropLeft`, `CropTop`, `CropRight` and `CropBottom` properties remain percentage APIs (`10000` is 10%) and leave the frame unchanged. Use them when that fixed-frame behavior is required, or when the embedded source's physical dimensions or anchor position cannot be resolved. Negative centimeter crops expand the DOCX frame with empty margins; Word-to-PDF currently warns with `NativeImageCropApproximated` because source outsets are not supported.
+
 ### Google Slides sync checkpoints
 
 `GoogleSlidesDiffPlanner.CreateCheckpoint` now records a hash-format version and uses culture- and runtime-independent numeric fingerprints. Previously persisted `GoogleSlidesSyncCheckpoint` values without a format version cannot be safely compared after upgrading; `BuildAsync` rejects them before contacting Google. Compare the source and remote presentation without the old checkpoint, reconcile any differences, then create and persist a new checkpoint with the observed revision and Drive version only when the two are synchronized. Do not mark old hashes as the new format.

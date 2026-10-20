@@ -10,10 +10,10 @@ internal static partial class PdfWriter {
             OfficeImageRenderPlan plan = OfficeImageRenderPlan.CreateTopLeft(block.Info.Width, block.Info.Height,
                 item.X, item.Y, block.Width, block.Height, style.Fit, style.SourceCrop?.ToOfficeImageSourceCrop() ?? default);
             OfficeImageProjection projection = plan.ToVisibleProjection(
-                rotationDegrees: -item.RotationAngle,
+                rotationDegrees: -item.RotationAngle - style.RotationAngle,
                 rotationCenterX: item.X + block.Width / 2D,
                 rotationCenterY: item.Y + block.Height / 2D,
-                flipHorizontal: item.HorizontalFlip, flipVertical: item.VerticalFlip);
+                flipHorizontal: item.HorizontalFlip ^ style.HorizontalFlip, flipVertical: item.VerticalFlip ^ style.VerticalFlip);
 
             if (item.Foreground) {
                 // The foreground image queue owns image streams, not vector forms.
@@ -44,9 +44,9 @@ internal static partial class PdfWriter {
             }
 
             PageImage geometry = CreatePageImage(block, style, item.X, bottomY, block.Width, block.Height);
-            geometry.RotationAngle = item.RotationAngle;
-            geometry.HorizontalFlip = item.HorizontalFlip;
-            geometry.VerticalFlip = item.VerticalFlip;
+            geometry.RotationAngle += item.RotationAngle;
+            geometry.HorizontalFlip ^= item.HorizontalFlip;
+            geometry.VerticalFlip ^= item.VerticalFlip;
             AddImageLinkAnnotation(block, style, geometry, item.X, bottomY, block.Width, block.Height);
             if (paragraphCanvasTop.HasValue) ReportAnchoredImagePageClipping(item, bottomY);
             DrawDebugCanvasItemBox(item.X, bottomY, block.Width, block.Height);

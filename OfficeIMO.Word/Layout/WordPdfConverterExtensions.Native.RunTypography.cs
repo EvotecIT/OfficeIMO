@@ -17,6 +17,7 @@ namespace OfficeIMO.Word.Pdf {
             string? FontFamily,
             PdfCore.PdfColor? Color,
             PdfCore.PdfColor? BackgroundColor) {
+            public bool SmallCaps { get; init; }
             public NativeTextSpacing TextSpacing { get; init; }
             public NativeTextSpacing ListMarkerTextSpacing { get; init; }
             public double EffectiveFontSize { get; init; }
@@ -33,15 +34,15 @@ namespace OfficeIMO.Word.Pdf {
             ref int tabIndex,
             NativeDocumentDefaults nativeDefaults,
             NativeFontMap nativeFontMap) {
-            ApplyNativeTextStyle(builder, paragraph, nativeDefaults: nativeDefaults, nativeFontMap: nativeFontMap);
-            AddNativeRunText(builder, ApplyNativeTextTransform(text, paragraph, nativeFontMap: nativeFontMap), tabStops, ref tabIndex);
+            NativeResolvedTextStyle style = ResolveNativeTextRunStyle(paragraph, nativeDefaults: nativeDefaults, nativeFontMap: nativeFontMap);
+            AddNativeCasedText(builder, text, style, tabStops, ref tabIndex);
             ResetNativeTextStyle(builder);
         }
 
-        private static string ApplyNativeTextTransform(string text, WordParagraph paragraph, WordParagraph? fallback = null, NativeTableRunStyleDefaults tableRunStyleDefaults = default, NativeDocumentDefaults? nativeDefaults = null, NativeFontMap? nativeFontMap = null) =>
-            ResolveNativeTextRunStyle(paragraph, fallback, tableRunStyleDefaults, nativeDefaults, nativeFontMap).AllCaps
-                ? text.ToUpperInvariant()
-                : text;
+        private static string ApplyNativeTextTransform(string text, WordParagraph paragraph, WordParagraph? fallback = null, NativeTableRunStyleDefaults tableRunStyleDefaults = default, NativeDocumentDefaults? nativeDefaults = null, NativeFontMap? nativeFontMap = null) {
+            NativeResolvedTextStyle style = ResolveNativeTextRunStyle(paragraph, fallback, tableRunStyleDefaults, nativeDefaults, nativeFontMap);
+            return style.AllCaps || style.SmallCaps ? text.ToUpperInvariant() : text;
+        }
 
         private static void ApplyNativeTextStyle(PdfCore.PdfParagraphBuilder builder, WordParagraph paragraph, WordParagraph? fallback = null, NativeDocumentDefaults? nativeDefaults = null, NativeFontMap? nativeFontMap = null) =>
             ApplyNativeTextStyle(builder, ResolveNativeTextRunStyle(paragraph, fallback, nativeDefaults: nativeDefaults, nativeFontMap: nativeFontMap));
@@ -83,31 +84,40 @@ namespace OfficeIMO.Word.Pdf {
             W.ParagraphMarkRunProperties? markerProperties = styleSource._paragraph?.ParagraphProperties?.ParagraphMarkRunProperties;
             NativeCharacterStyleDefaults markerCharacterStyle = GetNativeCharacterStyleDefaults(styleSource._document, markerProperties);
 
-            bool bold = ReadNativeOnOff(runProperties?.GetFirstChild<W.Bold>()) ?? characterStyleDefaults.Bold ?? styleDefaults.Bold ?? tableRunStyleDefaults.Bold ?? false;
-            bool italic = ReadNativeOnOff(runProperties?.GetFirstChild<W.Italic>()) ?? characterStyleDefaults.Italic ?? styleDefaults.Italic ?? tableRunStyleDefaults.Italic ?? false;
+            bool bold = ReadNativeOnOff(runProperties?.GetFirstChild<W.Bold>()) ?? characterStyleDefaults.Bold ?? styleDefaults.Bold ?? tableRunStyleDefaults.Bold ?? resolvedNativeDefaults.RunStyle.Bold ?? false;
+            bool italic = ReadNativeOnOff(runProperties?.GetFirstChild<W.Italic>()) ?? characterStyleDefaults.Italic ?? styleDefaults.Italic ?? tableRunStyleDefaults.Italic ?? resolvedNativeDefaults.RunStyle.Italic ?? false;
             OfficeTextDecorationStyle? directUnderlineStyle = MapNativeUnderlineStyle(runProperties?.GetFirstChild<W.Underline>());
             OfficeTextDecorationStyle underlineStyle = directUnderlineStyle ??
                 characterStyleDefaults.UnderlineStyle ??
                 styleDefaults.UnderlineStyle ??
                 tableRunStyleDefaults.UnderlineStyle ??
+                resolvedNativeDefaults.RunStyle.UnderlineStyle ??
                 OfficeTextDecorationStyle.None;
             OfficeTextDecorationStyle strikeStyle = MapNativeStrikeStyle(runProperties) ??
                 characterStyleDefaults.StrikeStyle ??
                 styleDefaults.StrikeStyle ??
                 tableRunStyleDefaults.StrikeStyle ??
+                resolvedNativeDefaults.RunStyle.StrikeStyle ??
                 OfficeTextDecorationStyle.None;
             bool allCaps =
                 ReadNativeOnOff(runProperties?.GetFirstChild<W.Caps>()) ??
-                ReadNativeOnOff(runProperties?.GetFirstChild<W.SmallCaps>()) ??
                 characterStyleDefaults.AllCaps ??
                 styleDefaults.AllCaps ??
                 tableRunStyleDefaults.AllCaps ??
+                resolvedNativeDefaults.RunStyle.AllCaps ??
+                false;
+            bool smallCaps =
+                ReadNativeOnOff(runProperties?.GetFirstChild<W.SmallCaps>()) ??
+                characterStyleDefaults.SmallCaps ??
+                styleDefaults.SmallCaps ??
+                tableRunStyleDefaults.SmallCaps ??
+                resolvedNativeDefaults.RunStyle.SmallCaps ??
                 false;
             PdfCore.PdfTextBaseline baseline = MapNativeTextBaseline(
                 runProperties?.GetFirstChild<W.VerticalTextAlignment>()?.Val?.Value ??
                 characterStyleDefaults.Baseline ??
                 styleDefaults.Baseline ??
-                tableRunStyleDefaults.Baseline);
+                tableRunStyleDefaults.Baseline ?? resolvedNativeDefaults.RunStyle.Baseline);
             double? fontSize = paragraph.FontSizePoints.HasValue && paragraph.FontSizePoints.Value > 0
                 ? paragraph.FontSizePoints.Value
                 : characterStyleDefaults.FontSize ?? styleDefaults.FontSize ?? tableRunStyleDefaults.FontSize;
@@ -118,12 +128,13 @@ namespace OfficeIMO.Word.Pdf {
 
             PdfCore.PdfColor? color = TryGetNativeRunColor(runProperties, out PdfCore.PdfColor? directColor)
                 ? directColor
-                : ParseNativeColor(characterStyleDefaults.ColorHex) ?? ParseNativeColor(styleDefaults.ColorHex) ?? tableRunStyleDefaults.Color ?? ParseNativeColor(tableRunStyleDefaults.ColorHex);
+                : ResolveNativeInheritedRunColor(characterStyleDefaults, styleDefaults, tableRunStyleDefaults, resolvedNativeDefaults);
             PdfCore.PdfColor? background = MapNativeHighlight(
                 WordRunFormatting.ResolveRunHighlight(paragraph, tableRunStyleDefaults.Highlight));
             background ??= ParseNativeColor(WordRunFormatting.ResolveRunShadingFillColorHex(paragraph));
 
             return new NativeResolvedTextStyle(bold, underlineStyle, italic, strikeStyle, allCaps, baseline, fontSize, font, fontFamily, color, background) {
+                SmallCaps = smallCaps,
                 EffectiveFontSize = fontSize ?? nativeFontMap?.DefaultFontSize ?? resolvedNativeDefaults.FontSize,
                 TextSpacing = resolvedNativeDefaults.TextSpacing.Merge(tableRunStyleDefaults.TextSpacing)
                     .Merge(styleDefaults.TextSpacing).Merge(characterStyleDefaults.TextSpacing).Merge(runProperties).Resolve(resolvedNativeDefaults.OpenTypeFeaturesEnabled),

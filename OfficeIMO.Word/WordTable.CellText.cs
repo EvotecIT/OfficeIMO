@@ -18,10 +18,7 @@ public partial class WordTable {
         if (columnIndex < 0) throw new ArgumentOutOfRangeException(nameof(columnIndex));
         List<TableRow> rows = GetRowElements();
         if ((uint)rowIndex >= (uint)rows.Count) throw new ArgumentOutOfRangeException(nameof(rowIndex));
-        TableCell? cell = rows[rowIndex].GetFirstChild<TableCell>();
-        for (int index = 0; index < columnIndex && cell != null; index++) {
-            cell = cell.NextSibling<TableCell>();
-        }
+        TableCell? cell = WordTableContent.Cells(rows[rowIndex]).ElementAtOrDefault(columnIndex);
         if (cell == null) throw new ArgumentOutOfRangeException(nameof(columnIndex));
 
         Paragraph paragraph = cell.GetFirstChild<Paragraph>() ?? cell.AppendChild(new Paragraph());

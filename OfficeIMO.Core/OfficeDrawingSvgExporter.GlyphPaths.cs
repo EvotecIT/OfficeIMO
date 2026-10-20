@@ -24,7 +24,7 @@ public static partial class OfficeDrawingSvgExporter {
                 "Prepared SVG glyphs require one unwrapped horizontal monochrome slice without decorations or specialized text geometry.");
             return false;
         }
-        bool logical = prepared == null && !text.PreservesPaintedGlyphs;
+        bool logical = prepared == null && !text.PreservesPaintedGlyphs && !text.GlyphTransform.HasValue;
         // Bound the first opt-in logical-text slice to printable ASCII. Complex
         // scripts, controls and bidi remain with the browser's shaping stack.
         if (logical && (text.TextDirection == OfficeTextDirection.RightToLeft ||
@@ -108,8 +108,10 @@ public static partial class OfficeDrawingSvgExporter {
             for (int index = 0; index < contour.Count; index++) {
                 token.ThrowIfCancellationRequested();
                 OfficePoint point = contour[index];
-                output.Append(index == 0 ? 'M' : 'L').Append(Format(x + point.X * scaleX))
-                    .Append(' ').Append(Format(y + point.Y)).Append(' ');
+                var placed = new OfficePoint(x + point.X * scaleX, y + point.Y);
+                if (text.GlyphTransform.HasValue) placed = text.GlyphTransform.Value.TransformPoint(placed);
+                output.Append(index == 0 ? 'M' : 'L').Append(Format(placed.X))
+                    .Append(' ').Append(Format(placed.Y)).Append(' ');
             }
             output.Append('Z');
         }

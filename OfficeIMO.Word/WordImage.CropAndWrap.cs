@@ -18,8 +18,9 @@ namespace OfficeIMO.Word {
     public partial class WordImage : WordElement {
 
         /// <summary>
-        /// Gets or sets the number of EMUs to crop from the top of the image.
+        /// Gets or sets the top source crop in thousandths of a percent; 100000 represents the full source height.
         /// </summary>
+        /// <remarks>Negative values extend the source window. Assigning this raw DrawingML value leaves the displayed image frame unchanged.</remarks>
         public int? CropTop {
             get {
                 var picture = GetPicture();
@@ -52,8 +53,9 @@ namespace OfficeIMO.Word {
         }
 
         /// <summary>
-        /// Gets or sets the number of EMUs to crop from the bottom of the image.
+        /// Gets or sets the bottom source crop in thousandths of a percent; 100000 represents the full source height.
         /// </summary>
+        /// <remarks>Negative values extend the source window. Assigning this raw DrawingML value leaves the displayed image frame unchanged.</remarks>
         public int? CropBottom {
             get {
                 var picture = GetPicture();
@@ -86,8 +88,9 @@ namespace OfficeIMO.Word {
         }
 
         /// <summary>
-        /// Gets or sets the number of EMUs to crop from the left side of the image.
+        /// Gets or sets the left source crop in thousandths of a percent; 100000 represents the full source width.
         /// </summary>
+        /// <remarks>Negative values extend the source window. Assigning this raw DrawingML value leaves the displayed image frame unchanged.</remarks>
         public int? CropLeft {
             get {
                 var picture = GetPicture();
@@ -120,8 +123,9 @@ namespace OfficeIMO.Word {
         }
 
         /// <summary>
-        /// Gets or sets the number of EMUs to crop from the right side of the image.
+        /// Gets or sets the right source crop in thousandths of a percent; 100000 represents the full source width.
         /// </summary>
+        /// <remarks>Negative values extend the source window. Assigning this raw DrawingML value leaves the displayed image frame unchanged.</remarks>
         public int? CropRight {
             get {
                 var picture = GetPicture();
@@ -149,82 +153,6 @@ namespace OfficeIMO.Word {
                         picture.BlipFill.SourceRectangle.Bottom == null) {
                         picture.BlipFill.SourceRectangle.Remove();
                     }
-                }
-            }
-        }
-
-        /// <summary>
-        /// Gets or sets the number of centimeters to crop from the top of the image.
-        /// </summary>
-        public double? CropTopCentimeters {
-            get {
-                if (CropTop != null) {
-                    return Helpers.ConvertEmusToCentimeters(CropTop.Value);
-                }
-                return null;
-            }
-            set {
-                if (value != null) {
-                    CropTop = Helpers.ConvertCentimetersToEmus(value.Value);
-                } else {
-                    CropTop = null;
-                }
-            }
-        }
-
-        /// <summary>
-        /// Gets or sets the number of centimeters to crop from the bottom of the image.
-        /// </summary>
-        public double? CropBottomCentimeters {
-            get {
-                if (CropBottom != null) {
-                    return Helpers.ConvertEmusToCentimeters(CropBottom.Value);
-                }
-                return null;
-            }
-            set {
-                if (value != null) {
-                    CropBottom = Helpers.ConvertCentimetersToEmus(value.Value);
-                } else {
-                    CropBottom = null;
-                }
-            }
-        }
-
-        /// <summary>
-        /// Gets or sets the number of centimeters to crop from the left side of the image.
-        /// </summary>
-        public double? CropLeftCentimeters {
-            get {
-                if (CropLeft != null) {
-                    return Helpers.ConvertEmusToCentimeters(CropLeft.Value);
-                }
-                return null;
-            }
-            set {
-                if (value != null) {
-                    CropLeft = Helpers.ConvertCentimetersToEmus(value.Value);
-                } else {
-                    CropLeft = null;
-                }
-            }
-        }
-
-        /// <summary>
-        /// Gets or sets the number of centimeters to crop from the right side of the image.
-        /// </summary>
-        public double? CropRightCentimeters {
-            get {
-                if (CropRight != null) {
-                    return Helpers.ConvertEmusToCentimeters(CropRight.Value);
-                }
-                return null;
-            }
-            set {
-                if (value != null) {
-                    CropRight = Helpers.ConvertCentimetersToEmus(value.Value);
-                } else {
-                    CropRight = null;
                 }
             }
         }

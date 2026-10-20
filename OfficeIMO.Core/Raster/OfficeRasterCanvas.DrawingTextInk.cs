@@ -117,8 +117,9 @@ public sealed partial class OfficeRasterCanvas {
                 return;
             }
             using var metricScope = canvas.PushFontMetricScale(canvas.FontMetricScale * text.FontMetricScale);
-            OfficeTransform inkTransform = text.HasFrameTransform
-                ? text.CreateFrameTransform().CreateDestinationTransform().Then(placement) : placement;
+            OfficeTransform inkTransform = text.GlyphTransform ?? OfficeTransform.Identity;
+            if (text.HasFrameTransform) inkTransform = inkTransform.Then(text.CreateFrameTransform().CreateDestinationTransform());
+            inkTransform = inkTransform.Then(placement);
             double sourceSize = Math.Max(.01D, text.Font.Size), size = sourceSize * text.BaselineScale;
             double lineHeight = text.LineHeight ?? text.Font.Size * 1.2D;
             string[] lines = text.RasterText.Replace("\r\n", "\n").Replace('\r', '\n').Split('\n');

@@ -15,14 +15,19 @@ namespace OfficeIMO.Word {
                 return 1;
             }
             int span = 1;
-            TableCell? continuation = cell.NextSibling<TableCell>();
-            while (continuation != null) {
+            TableRow? parentRow = cell.Ancestors<TableRow>().FirstOrDefault();
+            if (parentRow == null) return span;
+            bool foundAnchor = false;
+            foreach (TableCell continuation in WordTableContent.Cells(parentRow)) {
+                if (!foundAnchor) {
+                    foundAnchor = ReferenceEquals(continuation, cell);
+                    continue;
+                }
                 HorizontalMerge? merge = continuation.TableCellProperties?.HorizontalMerge;
                 if (merge == null || merge.Val?.Value == MergedCellValues.Restart) {
                     break;
                 }
                 span += GetGridWidth(continuation);
-                continuation = continuation.NextSibling<TableCell>();
             }
 
             return span;
@@ -55,10 +60,10 @@ namespace OfficeIMO.Word {
         }
 
         internal static bool TryGetLogicalColumn(TableCell target, out int logicalColumn) {
-            TableRow? row = target.Parent as TableRow;
+            TableRow? row = target.Ancestors<TableRow>().FirstOrDefault();
             logicalColumn = Math.Max(0, row?.TableRowProperties?.GetFirstChild<GridBefore>()?.Val?.Value ?? 0);
             if (row == null) return false;
-            foreach (TableCell cell in row.Elements<TableCell>()) {
+            foreach (TableCell cell in WordTableContent.Cells(row)) {
                 if (ReferenceEquals(cell, target)) {
                     return true;
                 }

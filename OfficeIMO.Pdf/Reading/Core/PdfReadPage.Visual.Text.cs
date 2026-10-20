@@ -27,6 +27,11 @@ public sealed partial class PdfReadPage {
             return;
         }
 
+        if (TryGetAffineTextLinearTransform(span, out OfficeTransform affineText)) {
+            AddAffineTextSpan(drawing, pageHeight, span, affineText, measuredPaint, pageContentBudget);
+            return;
+        }
+
         var frame = GetTextFrame(pageHeight, span.X, span.Y, span.FontSize, span.Text.Length, span.Advance);
         double height = frame.Height;
         double width = frame.Width;
@@ -315,6 +320,11 @@ public sealed partial class PdfReadPage {
             advance > 0D ? advance : frame.Width, OfficeTextAlignment.Left, OfficeTextFeatureSettings.Default, "", Math.Max(1D, span.FontSize),
             OfficeTextDecorationStyle.None, OfficeTextDecorationStyle.None);
         if (!bounds.HasInk && !includeEmptyFrame) return (0D, 0D, 0D, 0D);
+        if (TryGetAffineTextLinearTransform(span, out OfficeTransform affineText)) {
+            return OfficeTransform.Translate(-frame.X, -baseline).Then(affineText)
+                .Then(OfficeTransform.Translate(frame.X, baseline))
+                .TransformRectangleBounds(bounds.Left, bounds.Top, bounds.Right - bounds.Left, bounds.Bottom - bounds.Top);
+        }
         return GetTextFrameTransform(span, frame.X, baseline).CreateDestinationTransform()
             .TransformRectangleBounds(bounds.Left, bounds.Top, bounds.Right - bounds.Left, bounds.Bottom - bounds.Top);
     }

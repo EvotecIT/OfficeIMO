@@ -9,7 +9,7 @@ namespace OfficeIMO.Word {
         internal readonly TableRow _tableRow;
 
         /// <summary>
-        /// Return all cells for given row
+        /// Gets the row's cells in document order, including cells inside content controls and custom XML.
         /// </summary>
         public List<WordTableCell> Cells {
             get { return GetCells(readOnly: false); }
@@ -21,7 +21,7 @@ namespace OfficeIMO.Word {
         /// </summary>
         public List<WordTableCell> GetCells(bool readOnly = false) {
             var list = new List<WordTableCell>(_tableRow.ChildElements.Count);
-            foreach (TableCell cell in _tableRow.ChildElements.OfType<TableCell>()) {
+            foreach (TableCell cell in WordTableContent.Cells(_tableRow)) {
                 WordTableCell wordCell = GetOrCreateCell(cell, ensureCellProperties: !readOnly);
                 if (!readOnly) {
                     wordCell.AddTableCellProperties();
@@ -212,7 +212,7 @@ namespace OfficeIMO.Word {
             _wordTable = wordTable;
 
             if (initializeCells) {
-                foreach (TableCell cell in row.ChildElements.OfType<TableCell>()) {
+                foreach (TableCell cell in WordTableContent.Cells(row)) {
                     GetOrCreateCell(cell, ensureCellProperties: true);
                 }
             }

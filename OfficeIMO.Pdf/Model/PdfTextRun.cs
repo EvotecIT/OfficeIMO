@@ -155,8 +155,20 @@ public sealed partial class PdfTextRun {
     }
 
     private PdfTextRun(PdfInlineElement inlineElement)
-        : this(string.Empty) {
+        : this(inlineElement, (inlineElement as PdfInlineFormWidget)?.SourceRun) { }
+
+    private PdfTextRun(PdfInlineElement inlineElement, PdfTextRun? metricStyle)
+        : this(string.Empty, bold: metricStyle?.Bold ?? false, underline: metricStyle?.Underline ?? false,
+            color: metricStyle?.Color, italic: metricStyle?.Italic ?? false, strike: metricStyle?.Strike ?? false,
+            fontSize: metricStyle?.FontSize, font: metricStyle?.Font,
+            baseline: metricStyle?.Baseline ?? PdfTextBaseline.Normal,
+            backgroundColor: metricStyle?.BackgroundColor, fontFamily: metricStyle?.FontFamily,
+            underlineStyle: metricStyle?.UnderlineStyle ?? OfficeIMO.Drawing.OfficeTextDecorationStyle.None,
+            strikeStyle: metricStyle?.StrikeStyle ?? OfficeIMO.Drawing.OfficeTextDecorationStyle.None,
+            decorationColor: metricStyle?.DecorationColor) {
+        metricStyle?.CopyRunFormattingTo(this);
         InlineElement = inlineElement ?? throw new ArgumentNullException(nameof(inlineElement));
+        FormField = (inlineElement as PdfInlineFormWidget)?.Field;
     }
 
     /// <summary>Create a normal (unstyled) run.</summary>

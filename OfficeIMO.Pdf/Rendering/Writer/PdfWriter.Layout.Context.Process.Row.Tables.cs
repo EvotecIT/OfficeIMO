@@ -54,7 +54,8 @@ internal static partial class PdfWriter {
         if (state.Line == 0 && tableStyle.KeepWithNext && state.Index + 1 < items.Count) {
             double tableHeight = tableSpacingBefore + table.CaptionHeight + GetTableRowsHeight(table.RowHeights, 0, table.RowHeights.Length, columnTableRowGap) + tableStyle.SpacingAfter;
             double nextHeight = MeasureColKeepWithNextChainHeight(items, state.Index + 1);
-            double keepHeight = tableHeight + nextHeight;
+            double keepHeight = RestoresMeasuredTableFlow(tableStyle, tableHeight, state.Remaining)
+                ? Math.Max(tableHeight, nextHeight) : tableHeight + nextHeight;
             if (nextHeight > 0.001 && tableHeight <= maxContentHeight + 0.001 && keepHeight <= maxContentHeight + 0.001 && keepHeight > state.Remaining + 0.001) {
                 if (state.Consumed > 0) return false;
                 state.Remaining = 0;

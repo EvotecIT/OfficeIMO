@@ -73,14 +73,20 @@ internal static partial class PdfWriter {
             double fullHeight = MeasureColumnGroupHeight(group, consumed);
             double fullPageHeight = GetFullPageContentHeight() - activeGroups.Sum(active => active.Style?.FullFragmentPaddingReservation ?? 0D);
             double fullPageConsumed = activeGroups.Sum(active => active.Style?.GetFragmentTopPadding(isContinuation: true) ?? 0D);
-            if (group.KeepTogether && MeasureColumnGroupHeight(group, fullPageConsumed) > fullPageHeight + 0.001D) {
+            bool importedPictureOverflow = ColumnGroupContainsImportedPictureParagraph(group) &&
+                MeasureColumnGroupHeight(group, fullPageConsumed) > fullPageHeight + .001D;
+            if (group.KeepTogether && !importedPictureOverflow && MeasureColumnGroupHeight(group, fullPageConsumed) > fullPageHeight + 0.001D) {
                 throw new ArgumentException("Keep-together element or component content exceeds the available column height.");
             }
 
-            double needed = group.KeepTogether ? fullHeight : before + padding + (group.Style?.FragmentPaddingReservation ?? 0D) + (group.Style?.FragmentBottomInset ?? 0D) + firstHeight;
+            double needed = group.KeepTogether && !importedPictureOverflow ? fullHeight : before + padding + (group.Style?.FragmentPaddingReservation ?? 0D) + (group.Style?.FragmentBottomInset ?? 0D) + firstHeight;
+            // A source picture can overflow one fresh frame. The child renderer
+            // retains its full advance; this is only the group's entry reservation.
+            if (importedPictureOverflow) needed = Math.Min(needed, fullPageHeight);
             int nextItemIndex = itemIndex + group.ItemCount;
             if (group.Style?.KeepWithNext == true && nextItemIndex < items.Count) {
-                double keepHeight = fullHeight + MeasureColKeepWithNextChainHeight(items, nextItemIndex);
+                double keepHeight = Math.Max(fullHeight, MeasureColumnGroup(group, consumed).FlowAdvance
+                    + MeasureColKeepWithNextChainHeight(items, nextItemIndex));
                 if (keepHeight <= fullPageHeight + 0.001D) needed = Math.Max(needed, keepHeight);
             }
 
@@ -150,16 +156,13 @@ internal static partial class PdfWriter {
         }
 
         private double MeasureColumnGroupHeight(ColumnGroup group, double consumedBefore) {
-            double before = ResolveColumnSpacingBefore(group.Style?.SpacingBefore ?? 0D, consumedBefore);
-            double padding = group.Style?.TopPadding ?? 0D;
-            return before + padding + (group.Style?.BottomPadding ?? 0D) + MeasureColumnGroupContentHeight(group, consumedBefore + before + padding)
-                + (group.Style?.SpacingAfter ?? 0D);
+            return MeasureColumnGroup(group, consumedBefore).PaintExtent;
         }
 
-        private double MeasureColumnGroupContentHeight(ColumnGroup group, double initialConsumed) {
-            double total = 0D;
-            foreach (ColItem child in group.Children) total += MeasureColItemFullHeight(child, initialConsumed + total);
-            return total;
+        private static bool ColumnGroupContainsImportedPictureParagraph(ColumnGroup group) {
+            ColItem[] visual = group.Children.Where(child => child is not ColBookmark).Take(2).ToArray();
+            return visual.Length == 1 && visual[0] is ColPar paragraph &&
+                paragraph.Lines.Any(HasImportedOverflowPicture);
         }
 
         private double MeasureColumnGroupFirstVisualHeight(ColumnGroup group) {

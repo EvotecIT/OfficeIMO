@@ -156,8 +156,9 @@ namespace OfficeIMO.Word {
                                 textNode.Remove();
                                 contentNodesEncountered += CountContentUnits(ReadWordprocessingText(textNode));
                                 break;
-                            case TabChar tabChar:
-                                tabChar.Remove();
+                            case TabChar:
+                            case PositionalTab:
+                                child.Remove();
                                 contentNodesEncountered++;
                                 break;
                             case Break breakNode:
@@ -414,6 +415,7 @@ namespace OfficeIMO.Word {
                     builder.Append(mathText.Text);
                     return;
                 case TabChar:
+                case PositionalTab:
                     builder.Append('\t');
                     return;
                 case CarriageReturn:

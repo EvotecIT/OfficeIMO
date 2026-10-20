@@ -42,6 +42,8 @@ public abstract class PdfInlineElement {
 public sealed class PdfInlineImage : PdfInlineElement {
     internal ImageBlock Block { get; }
     internal int TableTextRotation { get; }
+    /// <summary>Imported flow pictures retain their authored frame beyond paragraph bounds.</summary>
+    internal bool AllowFrameOverflow { get; init; }
 
     /// <summary>Projects the inline frame onto turned text axes without decoding or changing the image payload.</summary>
     internal PdfInlineImage ForTableTextRotation(int rotation) => rotation == 0 ? this : new PdfInlineImage(this, rotation);
@@ -51,6 +53,7 @@ public sealed class PdfInlineImage : PdfInlineElement {
         Block = source.Block;
         Fit = source.Fit;
         TableTextRotation = rotation;
+        AllowFrameOverflow = source.AllowFrameOverflow;
     }
 
     /// <summary>Image fitting mode inside the requested inline frame.</summary>
@@ -64,22 +67,30 @@ public sealed class PdfInlineImage : PdfInlineElement {
         string? alternativeText = null,
         OfficeImageFit fit = OfficeImageFit.Contain,
         double baselineOffset = 0D)
-        : base(width, height, baselineOffset, alternativeText) {
-        PdfDocument.PreparedImage prepared = PdfDocument.PrepareImageBytes(imageBytes);
-        var style = new PdfImageStyle {
+        : this(imageBytes, width, height, new PdfImageStyle {
             Fit = fit,
             AlternativeText = alternativeText
-        };
-        PdfDocument.ValidateImageFitDimensions(prepared.Info, fit, nameof(fit));
+        }, baselineOffset) {
+    }
+
+    /// <summary>Creates an inline image with source crop, rotation, mirrors and alternate text from a reusable image style.</summary>
+    /// <remarks>The style is copied. Width and height describe the authored inline frame; rotation does not enlarge the line box.</remarks>
+    public PdfInlineImage(byte[] imageBytes, double width, double height, PdfImageStyle style, double baselineOffset)
+        : base(width, height, baselineOffset, style?.AlternativeText) {
+        Guard.NotNull(style, nameof(style));
+        PdfImageStyle imageStyle = style!;
+        PdfDocument.ValidateImageStyleForBox(imageStyle, width, height, nameof(style));
+        PdfDocument.PreparedImage prepared = PdfDocument.PrepareImageBytes(imageBytes);
+        PdfDocument.ValidateImageFitDimensions(prepared.Info, imageStyle.Fit, nameof(style));
         Block = new ImageBlock(
             prepared.Data,
             width,
             height,
             prepared.Info,
-            style,
+            imageStyle,
             useDataSnapshot: true,
             preparedStream: prepared.PreparedStream);
-        Fit = fit;
+        Fit = imageStyle.Fit;
     }
 }
 

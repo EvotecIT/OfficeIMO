@@ -15,11 +15,14 @@ using WordToPdfOptions = OfficeIMO.Word.Pdf.WordToPdfOptions;
 namespace OfficeIMO.Tests.Pdf;
 
 public partial class PdfDocumentRasterVisualBaselineTests {
+    /// <summary>Every pinned native export is executable regression evidence.</summary>
+    public static IEnumerable<object[]> NativeOfficeReferenceScenarios() {
+        string referenceDirectory = Path.Combine(GetPdfTestsProjectRoot(), "Pdf", "ReferenceBaselines");
+        return ReadReferenceCorpus(referenceDirectory).Scenarios.Select(scenario => new object[] { scenario.Id });
+    }
+
     [Theory]
-    [InlineData("word-native-report")]
-    [InlineData("word-business-delivery-summary")]
-    [InlineData("excel-native-daily-workbook")]
-    [InlineData("powerpoint-native-dense-layout")]
+    [MemberData(nameof(NativeOfficeReferenceScenarios))]
     public void NativeOfficeConverter_RemainsWithinPinnedMicrosoftOfficeReferenceDistance(string scenarioId) {
         string referenceDirectory = Path.Combine(GetPdfTestsProjectRoot(), "Pdf", "ReferenceBaselines");
         ReferenceCorpus corpus = ReadReferenceCorpus(referenceDirectory);

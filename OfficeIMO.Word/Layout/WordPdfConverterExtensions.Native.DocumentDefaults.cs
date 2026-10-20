@@ -9,6 +9,7 @@ namespace OfficeIMO.Word.Pdf {
             public NativeLatinFontFamilies FontFamilies { get; init; }
             public NativeComplexScriptDefaults ComplexScript { get; init; }
             public NativeTextSpacing TextSpacing { get; init; }
+            public NativeCharacterStyleDefaults RunStyle { get; init; }
             public bool OpenTypeFeaturesEnabled { get; init; }
             public NativeLineSpacing LineSpacing { get; init; }
             public NativeParagraphSpacing ParagraphSpacing { get; init; }
@@ -74,6 +75,18 @@ namespace OfficeIMO.Word.Pdf {
                 FontFamilies = fontFamilies,
                 ComplexScript = default(NativeComplexScriptDefaults).Merge(defaultRuns),
                 TextSpacing = default(NativeTextSpacing).Merge(defaultRuns),
+                RunStyle = new NativeCharacterStyleDefaults(null, null,
+                    ReadNativeOnOff(defaultRuns?.GetFirstChild<W.Bold>()),
+                    ReadNativeOnOff(defaultRuns?.GetFirstChild<W.Italic>()),
+                    MapNativeUnderlineStyle(defaultRuns?.GetFirstChild<W.Underline>()),
+                    MapNativeStrikeStyle(defaultRuns),
+                    null,
+                    ReadNativeOnOff(defaultRuns?.GetFirstChild<W.Caps>()),
+                    defaultRuns?.GetFirstChild<W.VerticalTextAlignment>()?.Val?.Value,
+                    defaultRuns?.GetFirstChild<W.Color>()?.Val?.Value,
+                    null) {
+                    SmallCaps = ReadNativeOnOff(defaultRuns?.GetFirstChild<W.SmallCaps>())
+                },
                 OpenTypeFeaturesEnabled = AreNativeOpenTypeFeaturesEnabled(document),
                 LineSpacing = ReadNativeLineSpacing(spacing, defaults.GetFirstChild<W.ParagraphPropertiesDefault>()?
                     .GetFirstChild<W.ParagraphPropertiesBaseStyle>()?.GetFirstChild<W.TextAlignment>()),
@@ -100,6 +113,18 @@ namespace OfficeIMO.Word.Pdf {
                 .GetFirstChild<W.ThemeFontLanguages>()?
                 .Val?
                 .Value;
+        }
+
+        private static OfficeIMO.Pdf.PdfColor? ResolveNativeInheritedRunColor(
+            NativeCharacterStyleDefaults characterStyle,
+            NativeParagraphStyleDefaults paragraphStyle,
+            NativeTableRunStyleDefaults tableStyle,
+            NativeDocumentDefaults documentDefaults) {
+            // A declared automatic color stops inheritance just like an explicit RGB color.
+            if (characterStyle.ColorHex != null) return ParseNativeColor(characterStyle.ColorHex);
+            if (paragraphStyle.ColorHex != null) return ParseNativeColor(paragraphStyle.ColorHex);
+            if (tableStyle.Color.HasValue) return tableStyle.Color;
+            return ParseNativeColor(tableStyle.ColorHex ?? documentDefaults.RunStyle.ColorHex);
         }
 
         private static double? GetNativeDefaultTabStopWidth(WordDocument? document) {

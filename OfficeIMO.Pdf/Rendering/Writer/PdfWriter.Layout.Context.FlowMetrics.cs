@@ -164,6 +164,16 @@ internal static partial class PdfWriter {
                 linesToReserve--;
                 height = MeasureReservedLines();
             }
+            if (CanOverflowImportedPictureLine(wrap.Lines[0])) {
+                double admissionHeight = Math.Max(0D, GetMaximumBlockContinuationHeight() -
+                    imageMeasurementReservedHeight - closingPadding);
+                if (height > admissionHeight + .001D) {
+                    // Admit the source picture on a fresh decorated frame; its
+                    // full line advance remains available to actual rendering.
+                    height = admissionHeight;
+                    overflow = PdfKeepTogetherOverflowBehavior.SplitAcrossPages;
+                }
+            }
             return (spacingBefore + height, overflow);
         }
 
@@ -223,8 +233,21 @@ internal static partial class PdfWriter {
                             blockHeight = MeasureFloatingParagraph(paragraph, frameX, frameWidth, fontSize, firstVisualOnly: !keepWithNext);
                         else AvoidFloatingBlock(blockHeight);
                     }
-                    y -= blockHeight;
-                    deepest = Math.Min(deepest, y);
+                    // Keep the table's physical fit requirement, without adding
+                    // its height to the following flow when painting restores y.
+                    double paintHeight = block is RowBlock row && keepWithNext
+                        ? MeasureRowBlockHeight(row, frameX, frameWidth, fontSize, firstVisualOnly: false, includeOverlayPaint: true)
+                        : blockHeight;
+                    deepest = Math.Min(deepest, y - paintHeight);
+                    bool restoresTableFlow = false;
+                    if (block is TableBlock overlay) {
+                        PdfTableStyle style = overlay.Style ?? currentOpts.DefaultTableStyleSnapshot ?? TableStyles.Light();
+                        if (!style.ConsumesVerticalFlow && style.Position == null)
+                            restoresTableFlow = RestoresMeasuredTableFlow(style,
+                                MeasureTableBlockHeight(overlay, frameWidth, fontSize, firstVisualOnly: false),
+                                y - currentOpts.MarginBottom);
+                    }
+                    if (!restoresTableFlow) y -= blockHeight;
                     if (!keepWithNext) {
                         break;
                     }
@@ -557,7 +580,7 @@ internal static partial class PdfWriter {
         }
 
 
-        private double MeasureRowBlockHeight(RowBlock row, double frameX, double frameWidth, double fontSize, bool firstVisualOnly) {
+        private double MeasureRowBlockHeight(RowBlock row, double frameX, double frameWidth, double fontSize, bool firstVisualOnly, bool includeOverlayPaint = false) {
             int columns = row.Columns.Count;
             PdfRowStyle? rowStyle = row.StyleSnapshot ?? currentOpts.DefaultRowStyleSnapshot;
             double spacingBefore = ResolveTopLevelSpacingBefore(rowStyle?.SpacingBefore ?? 0D);
@@ -590,7 +613,8 @@ internal static partial class PdfWriter {
             var columnItems = BuildRowColumnItems(row, columnWidths);
             double contentHeight = 0D;
             foreach (var items in columnItems) {
-                contentHeight = Math.Max(contentHeight, MeasureRowKeepTogetherHeight(items));
+                var measurement = MeasureColumnSequence(items);
+                contentHeight = Math.Max(contentHeight, includeOverlayPaint ? measurement.PaintExtent : measurement.FlowAdvance);
             }
 
             return spacingBefore + contentHeight + (rowStyle?.SpacingAfter ?? 0D);

@@ -44,7 +44,7 @@ internal static partial class PdfWriter {
             double characterSpacing = 0D, double fontMetricScale = 1D,
             int leadingSpaceCount = 1, double leadingSpaceRemainder = 0, double leadingSpaceUnitAdvance = 0,
             bool contributesLineBoxDescent = true, bool isLineBoxStrut = false,
-            bool preservesPaintedGlyphs = false) {
+            bool preservesPaintedGlyphs = false, PdfInlineFormField? formField = null) {
             Text = text;
             Bold = bold;
             Italic = italic;
@@ -92,6 +92,7 @@ internal static partial class PdfWriter {
             ContributesLineBoxDescent = contributesLineBoxDescent;
             IsLineBoxStrut = isLineBoxStrut;
             PreservesPaintedGlyphs = preservesPaintedGlyphs;
+            FormField = formField;
         }
 
         public string Text { get; }
@@ -132,13 +133,14 @@ internal static partial class PdfWriter {
         public PdfTextShowCommand? KerningCommand { get; set; }
         public double KerningAdvance { get; set; }
 
-        private RichSeg CopyKerningFrom(RichSeg source) {
+        private RichSeg CopyLayoutMetadataFrom(RichSeg source) {
             KerningCommand = source.KerningCommand;
             KerningAdvance = source.KerningAdvance;
             ContributesLineBoxDescent = source.ContributesLineBoxDescent;
             IsLineBoxStrut = source.IsLineBoxStrut;
             LineAlignmentRise = source.LineAlignmentRise;
             PreservesPaintedGlyphs = source.PreservesPaintedGlyphs;
+            FormField = source.FormField;
             return this;
         }
 
@@ -168,6 +170,7 @@ internal static partial class PdfWriter {
         public bool EndsWithTextSeparator { get; }
 
         public PdfInlineElement? InlineElement { get; }
+        public PdfInlineFormField? FormField { get; private set; }
 
         public PdfNamedFontFace? NamedFont { get; }
 
@@ -184,16 +187,16 @@ internal static partial class PdfWriter {
         public bool IsLineBoxStrut { get; private set; }
 
         public RichSeg WithEndsWithHardBreak() =>
-            new RichSeg(Text, Bold, Italic, Underline, Strike, Color, BackgroundColor, Uri, DestinationName, Contents, Font, FontSize, Baseline, MeasuredWidth, LeadingSpace, LeadingAdvance, LeadingSpaceIsExpandable, LeadingTabLeader, true, true, InlineElement, NamedFont, UnderlineStyle, StrikeStyle, DecorationColor, FeatureSettings, TextDirection, LeadingTabStop, LeadingUnderlineStyle, LeadingDecorationColor, LeadingDecorationFontSize, LeadingDecorationTextRise, LeadingIsTab, LeadingTabAlignment, HorizontalTextScaling, CharacterSpacing, FontMetricScale, LeadingSpaceCount, LeadingSpaceRemainder, LeadingSpaceUnitAdvance).CopyKerningFrom(this);
+            new RichSeg(Text, Bold, Italic, Underline, Strike, Color, BackgroundColor, Uri, DestinationName, Contents, Font, FontSize, Baseline, MeasuredWidth, LeadingSpace, LeadingAdvance, LeadingSpaceIsExpandable, LeadingTabLeader, true, true, InlineElement, NamedFont, UnderlineStyle, StrikeStyle, DecorationColor, FeatureSettings, TextDirection, LeadingTabStop, LeadingUnderlineStyle, LeadingDecorationColor, LeadingDecorationFontSize, LeadingDecorationTextRise, LeadingIsTab, LeadingTabAlignment, HorizontalTextScaling, CharacterSpacing, FontMetricScale, LeadingSpaceCount, LeadingSpaceRemainder, LeadingSpaceUnitAdvance).CopyLayoutMetadataFrom(this);
 
         public RichSeg WithEndsWithTextSeparator() =>
-            new RichSeg(Text, Bold, Italic, Underline, Strike, Color, BackgroundColor, Uri, DestinationName, Contents, Font, FontSize, Baseline, MeasuredWidth, LeadingSpace, LeadingAdvance, LeadingSpaceIsExpandable, LeadingTabLeader, EndsWithHardBreak, true, InlineElement, NamedFont, UnderlineStyle, StrikeStyle, DecorationColor, FeatureSettings, TextDirection, LeadingTabStop, LeadingUnderlineStyle, LeadingDecorationColor, LeadingDecorationFontSize, LeadingDecorationTextRise, LeadingIsTab, LeadingTabAlignment, HorizontalTextScaling, CharacterSpacing, FontMetricScale, LeadingSpaceCount, LeadingSpaceRemainder, LeadingSpaceUnitAdvance).CopyKerningFrom(this);
+            new RichSeg(Text, Bold, Italic, Underline, Strike, Color, BackgroundColor, Uri, DestinationName, Contents, Font, FontSize, Baseline, MeasuredWidth, LeadingSpace, LeadingAdvance, LeadingSpaceIsExpandable, LeadingTabLeader, EndsWithHardBreak, true, InlineElement, NamedFont, UnderlineStyle, StrikeStyle, DecorationColor, FeatureSettings, TextDirection, LeadingTabStop, LeadingUnderlineStyle, LeadingDecorationColor, LeadingDecorationFontSize, LeadingDecorationTextRise, LeadingIsTab, LeadingTabAlignment, HorizontalTextScaling, CharacterSpacing, FontMetricScale, LeadingSpaceCount, LeadingSpaceRemainder, LeadingSpaceUnitAdvance).CopyLayoutMetadataFrom(this);
 
         public RichSeg WithoutLink() =>
-            new RichSeg(Text, Bold, Italic, Underline, Strike, Color, BackgroundColor, null, null, null, Font, FontSize, Baseline, MeasuredWidth, LeadingSpace, LeadingAdvance, LeadingSpaceIsExpandable, LeadingTabLeader, EndsWithHardBreak, EndsWithTextSeparator, InlineElement, NamedFont, UnderlineStyle, StrikeStyle, DecorationColor, FeatureSettings, TextDirection, LeadingTabStop, LeadingUnderlineStyle, LeadingDecorationColor, LeadingDecorationFontSize, LeadingDecorationTextRise, LeadingIsTab, LeadingTabAlignment, HorizontalTextScaling, CharacterSpacing, FontMetricScale, LeadingSpaceCount, LeadingSpaceRemainder, LeadingSpaceUnitAdvance).CopyKerningFrom(this);
+            new RichSeg(Text, Bold, Italic, Underline, Strike, Color, BackgroundColor, null, null, null, Font, FontSize, Baseline, MeasuredWidth, LeadingSpace, LeadingAdvance, LeadingSpaceIsExpandable, LeadingTabLeader, EndsWithHardBreak, EndsWithTextSeparator, InlineElement, NamedFont, UnderlineStyle, StrikeStyle, DecorationColor, FeatureSettings, TextDirection, LeadingTabStop, LeadingUnderlineStyle, LeadingDecorationColor, LeadingDecorationFontSize, LeadingDecorationTextRise, LeadingIsTab, LeadingTabAlignment, HorizontalTextScaling, CharacterSpacing, FontMetricScale, LeadingSpaceCount, LeadingSpaceRemainder, LeadingSpaceUnitAdvance).CopyLayoutMetadataFrom(this);
 
         public RichSeg WithLeadingAdvance(double advance) =>
-            new RichSeg(Text, Bold, Italic, Underline, Strike, Color, BackgroundColor, Uri, DestinationName, Contents, Font, FontSize, Baseline, MeasuredWidth, advance > 0, advance, LeadingSpaceIsExpandable, LeadingTabLeader, EndsWithHardBreak, EndsWithTextSeparator, InlineElement, NamedFont, UnderlineStyle, StrikeStyle, DecorationColor, FeatureSettings, TextDirection, LeadingTabStop, LeadingUnderlineStyle, LeadingDecorationColor, LeadingDecorationFontSize, LeadingDecorationTextRise, LeadingIsTab, LeadingTabAlignment, HorizontalTextScaling, CharacterSpacing, FontMetricScale, LeadingSpaceCount, LeadingSpaceRemainder, LeadingSpaceUnitAdvance).CopyKerningFrom(this);
+            new RichSeg(Text, Bold, Italic, Underline, Strike, Color, BackgroundColor, Uri, DestinationName, Contents, Font, FontSize, Baseline, MeasuredWidth, advance > 0, advance, LeadingSpaceIsExpandable, LeadingTabLeader, EndsWithHardBreak, EndsWithTextSeparator, InlineElement, NamedFont, UnderlineStyle, StrikeStyle, DecorationColor, FeatureSettings, TextDirection, LeadingTabStop, LeadingUnderlineStyle, LeadingDecorationColor, LeadingDecorationFontSize, LeadingDecorationTextRise, LeadingIsTab, LeadingTabAlignment, HorizontalTextScaling, CharacterSpacing, FontMetricScale, LeadingSpaceCount, LeadingSpaceRemainder, LeadingSpaceUnitAdvance).CopyLayoutMetadataFrom(this);
     }
 
 }

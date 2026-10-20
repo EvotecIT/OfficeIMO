@@ -89,7 +89,7 @@ public sealed partial class OfficeDrawing {
         text.OutlineStrokeColor = color;
         text.OutlineStrokeWidth = width;
         text.FillSuppressed = fillSuppressed;
-        text.OutlineStrokeDashPattern = dashPattern;
+        text.OutlineStrokeDashPattern = dashPattern == null ? null : new List<double>(dashPattern).AsReadOnly();
         text.OutlineStrokeDashOffset = dashOffset;
     }
 
@@ -99,6 +99,15 @@ public sealed partial class OfficeDrawing {
         if (last is OfficeDrawingGroup group && group.InnerDrawing.Elements.Count > 0)
             last = group.InnerDrawing.Elements[group.InnerDrawing.Elements.Count - 1];
         if (last is OfficeDrawingText text) text.SetPaintedText(logicalText, paintedText);
+    }
+
+    /// <summary>Retains an affine glyph placement without transforming its outline pen.</summary>
+    internal void SetLastTextGlyphTransform(OfficeTransform transform) {
+        if (Elements.Count == 0) return;
+        OfficeDrawingElement last = Elements[Elements.Count - 1];
+        if (last is OfficeDrawingGroup group && group.InnerDrawing.Elements.Count > 0)
+            last = group.InnerDrawing.Elements[group.InnerDrawing.Elements.Count - 1];
+        if (last is OfficeDrawingText text) text.GlyphTransform = transform;
     }
 
     /// <summary>Adds a resolved source text run with its glyph advance and a destination-space rotation or mirror transform. Source text is clipped, never shortened with an ellipsis.</summary>

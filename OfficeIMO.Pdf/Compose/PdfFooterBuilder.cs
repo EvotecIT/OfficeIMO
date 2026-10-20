@@ -66,6 +66,27 @@ public sealed partial class PdfFooterBuilder {
     }
 
     /// <summary>Adds an image to the running footer.</summary>
+    public PdfFooterBuilder Image(PdfHeaderFooterImage image) {
+        Guard.NotNull(image, nameof(image));
+        _opts.AddFooterImageForCompose(image);
+        return this;
+    }
+
+    /// <summary>Adds an image with its reusable style to the page-1-only footer.</summary>
+    public PdfFooterBuilder FirstPageImage(PdfHeaderFooterImage image) {
+        Guard.NotNull(image, nameof(image));
+        _opts.AddFirstPageFooterImageForCompose(image);
+        return this;
+    }
+
+    /// <summary>Adds an image with its reusable style to the even-page-only footer.</summary>
+    public PdfFooterBuilder EvenPagesImage(PdfHeaderFooterImage image) {
+        Guard.NotNull(image, nameof(image));
+        _opts.AddEvenPageFooterImageForCompose(image);
+        return this;
+    }
+
+    /// <summary>Adds an image to the running footer.</summary>
     public PdfFooterBuilder Image(byte[] data, double width, double height, PdfAlign align = PdfAlign.Left, OfficeImageFit fit = OfficeImageFit.Stretch) =>
         Image(data, width, height, align, fit, alternativeText: null);
 
