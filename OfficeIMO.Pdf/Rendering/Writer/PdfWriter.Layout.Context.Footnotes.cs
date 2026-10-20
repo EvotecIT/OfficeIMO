@@ -155,6 +155,11 @@ internal static partial class PdfWriter {
             pageFootnoteSeparator = Array.Empty<FootnoteUnit>();
             pageFootnoteHeight = 0D;
             if (continuedFootnotes.Count == 0) return;
+            foreach (FootnoteCursor cursor in continuedFootnotes) {
+                PdfDocument.ValidateFootnoteBlocks(cursor.Note.Definition.Blocks, currentOpts);
+                PdfDocument.ValidateFootnoteBlocks(cursor.Note.Definition.Separator, currentOpts);
+                PdfDocument.ValidateFootnoteBlocks(cursor.Note.Definition.ContinuationSeparator, currentOpts);
+            }
             double usableWidth = currentOpts.PageWidth - currentOpts.MarginLeft - currentOpts.MarginRight;
             if (continuedFootnotes.Any(cursor => Math.Abs(cursor.Note.UsableWidth - usableWidth) > .001D))
                 throw new NotSupportedException("A continued footnote cannot cross a change in usable page width. Finish the note before changing page geometry.");

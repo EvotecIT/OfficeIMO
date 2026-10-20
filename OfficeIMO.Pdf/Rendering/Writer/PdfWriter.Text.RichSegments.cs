@@ -143,6 +143,7 @@ internal static partial class PdfWriter {
             PreservesPaintedGlyphs = source.PreservesPaintedGlyphs;
             FormField = source.FormField;
             FootnoteReference = source.FootnoteReference;
+            FootnoteReferenceOrigin = source.FootnoteReferenceOrigin;
             return this;
         }
 
@@ -174,6 +175,20 @@ internal static partial class PdfWriter {
         public PdfInlineElement? InlineElement { get; }
         public PdfInlineFormField? FormField { get; private set; }
         public PdfFootnoteDefinition? FootnoteReference { get; private set; }
+        public RichSeg? FootnoteReferenceOrigin { get; private set; }
+
+        public RichSeg WithFootnoteReferenceOrigin(RichSeg source) {
+            if (FootnoteReference != null) FootnoteReferenceOrigin = source.FootnoteReferenceOrigin ?? source;
+            return this;
+        }
+
+        // A buffered authored separator can split across lines. Its association
+        // transfers to the first emitted fragment, rather than every space slice.
+        public PdfFootnoteDefinition? TakeFootnoteReference() {
+            PdfFootnoteDefinition? reference = FootnoteReference;
+            FootnoteReference = null;
+            return reference;
+        }
 
         public PdfNamedFontFace? NamedFont { get; }
 

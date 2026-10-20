@@ -13,32 +13,39 @@ public sealed partial class PdfDocument {
         var content = BuildFlowBlocks(build);
         IReadOnlyList<IPdfBlock> first = separator == null ? Array.Empty<IPdfBlock>() : BuildFlowBlocks(separator);
         IReadOnlyList<IPdfBlock> continuation = continuationSeparator == null ? Array.Empty<IPdfBlock>() : BuildFlowBlocks(continuationSeparator);
-        ValidateFootnoteBlocks(content);
-        ValidateFootnoteBlocks(first);
-        ValidateFootnoteBlocks(continuation);
+        ValidateFootnoteBlocks(content, _options);
+        ValidateFootnoteBlocks(first, _options);
+        ValidateFootnoteBlocks(continuation, _options);
         if (content.Count == 0) throw new ArgumentException("A footnote must contain flow content.", nameof(build));
         return new PdfFootnoteDefinition(this, content, snapshot, first, continuation);
     }
 
-    private static void ValidateFootnoteBlocks(IReadOnlyList<IPdfBlock> blocks) {
+    internal static void ValidateFootnoteBlocks(IReadOnlyList<IPdfBlock> blocks, PdfOptions options) {
         foreach (IPdfBlock block in blocks) {
             switch (block) {
                 case RichParagraphBlock paragraph:
-                    if (paragraph.Style?.AnchoredCanvas != null || paragraph.Runs.Any(run => run.FootnoteReference != null || run.FormField != null))
+                    PdfParagraphStyle? paragraphStyle = paragraph.Style ?? options.DefaultParagraphStyleSnapshot;
+                    if (paragraphStyle?.AnchoredCanvas != null || paragraph.Runs.Any(run => run.FootnoteReference != null || run.FormField != null))
                         throw new NotSupportedException("Footnotes cannot contain recursive references, form fields, or anchored canvas content.");
-                    if (paragraph.Style?.KeepWithNext == true)
+                    if (paragraphStyle?.KeepWithNext == true)
                         throw new NotSupportedException("Footnote paragraphs do not support keep-with-next chains. Use paragraph keep-together or widow/orphan constraints.");
                     break;
+                case HorizontalRuleBlock rule:
+                    if ((rule.Style ?? options.DefaultHorizontalRuleStyleSnapshot)?.KeepWithNext == true)
+                        throw new NotSupportedException("Footnote horizontal rules do not support keep-with-next chains.");
+                    break;
+                case ImageBlock image:
+                    if ((image.Style ?? options.DefaultImageStyleSnapshot)?.KeepWithNext == true)
+                        throw new NotSupportedException("Footnote images do not support keep-with-next chains.");
+                    break;
                 case SpacerBlock:
-                case HorizontalRuleBlock:
-                case ImageBlock:
                 case BookmarkBlock:
                     break;
                 case FlowBlock { IsReplayable: false, StaticBlocks: { } children }:
                     var flow = (FlowBlock)block;
                     if (flow.Options.KeepTogether || flow.Options.ShowIf != null || flow.Options.MinimumRemainingHeight > 0D || flow.Options.OverflowBehavior != PdfFlowOverflowBehavior.Continue)
                         throw new NotSupportedException("Footnote flow groups cannot introduce conditional or whole-group pagination constraints.");
-                    ValidateFootnoteBlocks(children);
+                    ValidateFootnoteBlocks(children, options);
                     break;
                 default:
                     throw new NotSupportedException("Footnote flow does not support " + block.GetType().Name + ". Use paragraphs, images, rules, and spacers.");
@@ -54,7 +61,8 @@ public sealed partial class PdfDocument {
     private static void ValidateFootnoteBodyProfile(IPdfBlock block, PdfOptions options) {
         if (block is MultiColumnBlock or RowBlock or PdfCanvasBlock)
             throw new NotSupportedException("Page-associated footnotes require single-column body flow without page-canvas content.");
-        if (block is RichParagraphBlock { Style.AnchoredCanvas: not null } or HeadingBlock { Style.AnchoredCanvas: not null })
+        if (block is RichParagraphBlock paragraph && (paragraph.Style ?? options.DefaultParagraphStyleSnapshot)?.AnchoredCanvas != null ||
+            block is HeadingBlock { Style.AnchoredCanvas: not null })
             throw new NotSupportedException("Page-associated footnotes do not support anchored canvas body content.");
         if (block is ContainerBlock { Style.AnchoredCanvas: not null })
             throw new NotSupportedException("Page-associated footnotes do not support anchored canvas body content.");

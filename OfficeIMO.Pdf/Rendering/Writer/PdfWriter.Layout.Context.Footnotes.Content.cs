@@ -23,6 +23,11 @@ internal static partial class PdfWriter {
 
         private PreparedFootnote PrepareFootnote(PdfFootnoteDefinition definition) {
             PdfOptions noteOptions = footnotePageOptions ?? currentOpts;
+            // Page defaults can differ from those at definition capture. Reject any
+            // effective constraint that this fragment planner does not implement.
+            PdfDocument.ValidateFootnoteBlocks(definition.Blocks, noteOptions);
+            PdfDocument.ValidateFootnoteBlocks(definition.Separator, noteOptions);
+            PdfDocument.ValidateFootnoteBlocks(definition.ContinuationSeparator, noteOptions);
             var key = (definition, currentPageBaseOptions, noteOptions.PageWidth - noteOptions.MarginLeft - noteOptions.MarginRight);
             if (preparedFootnotes.TryGetValue(key, out PreparedFootnote? prepared)) return prepared;
             PdfOptions saved = currentOpts;
@@ -110,7 +115,8 @@ internal static partial class PdfWriter {
                 WriteRichParagraph(sb, paragraph, lines, heights, currentOpts,
                     FirstTextBaselineFromTop(ChooseNormal(currentOpts.DefaultFont), unit.Size, top), unit.Size, unit.Leading,
                     currentPage!.Annotations, currentOpts.MarginLeft + unit.X, unit.Width,
-                    structureType: "Note", markedContentId: markedContentId, structurePage: currentPage);
+                    structureType: "Note", markedContentId: markedContentId, structurePage: currentPage,
+                    hasFollowingParagraphLines: unit.ParagraphLine + 1 < unit.ParagraphLines);
             } else if (unit.Block is ImageBlock image) {
                 PdfImageStyle style = ResolveImageStyle(image, currentOpts);
                 double frameWidth = currentOpts.PageWidth - currentOpts.MarginLeft - currentOpts.MarginRight;

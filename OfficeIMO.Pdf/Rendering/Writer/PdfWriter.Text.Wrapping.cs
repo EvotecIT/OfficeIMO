@@ -41,6 +41,7 @@ internal static partial class PdfWriter {
         double pendingLeadingAdvance = 0;
         int pendingLeadingSpaceCount = 0;
         var pendingSpaceFragments = new List<PendingSpaceFragment>();
+        List<(List<RichSeg> Line, RichSeg Anchor, RichSeg? SpaceStyle)>? invisibleFootnoteAnchors = null;
         RichSeg? currentSpaceStyle = null;
         RichSeg? pendingTabSourceStyle = null;
         int pendingTabSourceLine = -1;
@@ -376,11 +377,14 @@ internal static partial class PdfWriter {
                 ? resolvedNamedFont
                 : null;
             double runFontSize = run.FontSize ?? fontSize;
-            if (text.Length == 0 && run.FootnoteReference != null) {
-                // Keep a zero-width association on the actual line without inventing a visible label.
-                lines[lines.Count - 1].Add(new RichSeg(string.Empty, bold, italic, underline, strike,
+            bool whitespaceFootnote = run.FootnoteReference != null && text.All(character => character is ' ' or '\t' or '\n');
+            if (whitespaceFootnote) {
+                // Defer invisible associations until wrapping is complete so an anchor
+                // never changes empty-line/leading-whitespace layout decisions.
+                invisibleFootnoteAnchors ??= new List<(List<RichSeg> Line, RichSeg Anchor, RichSeg? SpaceStyle)>();
+                invisibleFootnoteAnchors.Add((lines[lines.Count - 1], new RichSeg(string.Empty, bold, italic, underline, strike,
                     color, backgroundColor, uri, destinationName, contents, fontForRun, runFontSize, baseline, 0D,
-                    namedFont: currentRunNamedFont, footnoteReference: run.FootnoteReference));
+                    namedFont: currentRunNamedFont, footnoteReference: run.FootnoteReference), null));
             }
             currentRunDecorationTextRise += ResolveFontLineAlignmentRise(fontForRun, currentRunNamedFont,
                 currentRunDecorationFontSize, options, lineSpacing);
@@ -412,7 +416,13 @@ internal static partial class PdfWriter {
                 textDirection: run.TextDirection, leadingUnderlineStyle: currentRunUnderlineStyle,
                 leadingDecorationColor: currentRunUnderlineColor, leadingDecorationFontSize: currentRunDecorationFontSize,
                 leadingDecorationTextRise: currentRunDecorationTextRise,
-                horizontalTextScaling: currentRunHorizontalTextScaling, characterSpacing: currentRunCharacterSpacing, contributesLineBoxDescent: currentRunContributesDescent, formField: currentTextRun?.FormField) : null;
+                horizontalTextScaling: currentRunHorizontalTextScaling, characterSpacing: currentRunCharacterSpacing, contributesLineBoxDescent: currentRunContributesDescent, formField: currentTextRun?.FormField,
+                footnoteReference: whitespaceFootnote ? run.FootnoteReference : null) : null;
+            if (whitespaceFootnote && currentSpaceStyle != null) {
+                int index = invisibleFootnoteAnchors!.Count - 1;
+                var anchor = invisibleFootnoteAnchors[index];
+                invisibleFootnoteAnchors[index] = (anchor.Line, anchor.Anchor, currentSpaceStyle);
+            }
             if (run.InlineElement != null) {
                 oversizedWordContinuation = false;
                 PdfInlineElement inlineElement = run.InlineElement;
@@ -794,6 +804,19 @@ internal static partial class PdfWriter {
                     bool hadTab = text[nextWs] == '\t';
                     SetPendingSeparator(hadTab, spaceW, tabAlignment, tabLeader);
                 }
+            }
+        }
+        if (invisibleFootnoteAnchors != null) {
+            // Wrapping can discard a trailing space after it consumed the buffered
+            // reference. Only surviving fragments establish actual line ownership.
+            var survivingOrigins = new HashSet<RichSeg>(lines.SelectMany(line => line)
+                .Where(segment => segment.FootnoteReference != null && segment.FootnoteReferenceOrigin != null)
+                .Select(segment => segment.FootnoteReferenceOrigin!));
+            foreach (var anchor in invisibleFootnoteAnchors) {
+                if (anchor.SpaceStyle != null && survivingOrigins.Contains(anchor.SpaceStyle)) continue;
+                int index = anchor.Line.Count;
+                if (index > 0 && (anchor.Line[index - 1].EndsWithHardBreak || anchor.Line[index - 1].EndsWithTextSeparator)) index--;
+                anchor.Line.Insert(index, anchor.Anchor);
             }
         }
         if (lines.Count > 0 && lines[lines.Count - 1].Count == 0) { lines.RemoveAt(lines.Count - 1); }

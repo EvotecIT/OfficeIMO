@@ -474,7 +474,8 @@ internal static partial class PdfWriter {
                     firstLineWidth: sliceStartsAtFirstLine ? textFrame.FirstLineWidth : null,
                     topGaps: floatingLineGaps?.GetRange(lineIndex, take));
                 WriteRichParagraph(sb, rpb, sliceLines, sliceHeights, currentOpts, FirstTextBaselineFromTop(paragraphFont, size, y), size, leading, currentPage!.Annotations, textFrame.X, textFrame.Width, sliceStartsAtFirstLine ? textFrame.FirstLineX : null, sliceStartsAtFirstLine ? textFrame.FirstLineWidth : null, "P", markedContentId, currentPage,
-                    lineXOffsets: floatingLineOffsets?.GetRange(lineIndex, take), lineWidths: floatingLineWidths?.GetRange(lineIndex, take), lineTopGaps: floatingLineGaps?.GetRange(lineIndex, take));
+                    lineXOffsets: floatingLineOffsets?.GetRange(lineIndex, take), lineWidths: floatingLineWidths?.GetRange(lineIndex, take), lineTopGaps: floatingLineGaps?.GetRange(lineIndex, take),
+                    hasFollowingParagraphLines: lineIndex + take < lines.Count);
                 y -= heightSum;
                 lineIndex += take;
                 firstSegment = false;
