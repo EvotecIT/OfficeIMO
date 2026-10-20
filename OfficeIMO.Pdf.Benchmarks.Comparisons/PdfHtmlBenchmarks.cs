@@ -15,13 +15,14 @@ public class PdfHtmlBenchmarks {
     private HtmlBrowserSession? _browserSession;
     private byte[]? _officeImoResult;
     private byte[]? _peachPdfResult;
+    private byte[]? _pdfPeckerResult;
     private byte[]? _iTextPdfHtmlResult;
     private byte[]? _chromiumResult;
 
     [Params(PdfBenchmarkScale.Easy, PdfBenchmarkScale.Medium, PdfBenchmarkScale.High)]
     public PdfBenchmarkScale Scale { get; set; }
 
-    [GlobalSetup(Targets = new[] { nameof(OfficeIMO), nameof(PeachPDF), nameof(ITextPdfHtml) })]
+    [GlobalSetup(Targets = new[] { nameof(OfficeIMO), nameof(PeachPDF), nameof(PdfPecker), nameof(ITextPdfHtml) })]
     public void SetupManaged() {
         InitializeScenario();
     }
@@ -58,6 +59,10 @@ public class PdfHtmlBenchmarks {
         _peachPdfResult = HtmlPdfComparisonRenderers.RenderManaged(HtmlPdfComparisonEngine.PeachPDF, _html);
 
     [Benchmark]
+    public byte[] PdfPecker() =>
+        _pdfPeckerResult = HtmlPdfComparisonRenderers.RenderManaged(HtmlPdfComparisonEngine.PdfPecker, _html);
+
+    [Benchmark]
     public byte[] ITextPdfHtml() =>
         _iTextPdfHtmlResult = HtmlPdfComparisonRenderers.RenderManaged(HtmlPdfComparisonEngine.ITextPdfHtml, _html);
 
@@ -74,6 +79,9 @@ public class PdfHtmlBenchmarks {
 
     [GlobalCleanup(Target = nameof(PeachPDF))]
     public void ValidatePeachPDF() => Validate(nameof(PeachPDF), _peachPdfResult);
+
+    [GlobalCleanup(Target = nameof(PdfPecker))]
+    public void ValidatePdfPecker() => Validate(nameof(PdfPecker), _pdfPeckerResult);
 
     [GlobalCleanup(Target = nameof(ITextPdfHtml))]
     public void ValidateITextPdfHtml() => Validate(nameof(ITextPdfHtml), _iTextPdfHtmlResult);

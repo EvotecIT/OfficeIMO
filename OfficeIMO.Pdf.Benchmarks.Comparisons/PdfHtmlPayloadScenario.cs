@@ -15,9 +15,7 @@ internal sealed record PdfHtmlPayloadScenario(
     internal const int TargetUtf8Bytes = 21 * 1024;
 
     internal static PdfHtmlPayloadScenario Create(PdfHtmlPayloadKind kind) {
-        string fontFamily = kind == PdfHtmlPayloadKind.Multilingual
-            ? "'Carlito',sans-serif"
-            : "sans-serif";
+        const string fontFamily = "'Carlito',sans-serif";
         string prefix = kind == PdfHtmlPayloadKind.Table
             ? $"<!doctype html><html><head><meta charset='utf-8'><style>@page{{size:A4;margin:12mm}}body{{font:10pt {fontFamily}}}table{{width:100%;border-collapse:collapse}}td,th{{border:1px solid #789;padding:3px}}</style></head><body><h1>HTML-PDF-21K</h1><table><thead><tr><th>Id</th><th>Description</th><th>Amount</th></tr></thead><tbody>"
             : $"<!doctype html><html><head><meta charset='utf-8'><style>@page{{size:A4;margin:12mm}}body{{font:10pt {fontFamily}}}p{{margin:0 0 6pt}}</style></head><body><h1>HTML-PDF-21K</h1>";

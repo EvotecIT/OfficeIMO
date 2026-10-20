@@ -1070,10 +1070,10 @@ public sealed class PdfPrintProductionInspectorRegressionTests {
     }
 
     [Fact]
-    public void ContentStreamSequenceDecoderPreservesTokenBytesAcrossStreamBoundaries() {
+    public void ContentStreamSequenceDecoderSeparatesOperandsAcrossStreamBoundaries() {
         var streams = new[] {
-            new PdfStream(new PdfDictionary(), Encoding.ASCII.GetBytes("1")),
-            new PdfStream(new PdfDictionary(), Encoding.ASCII.GetBytes("0 0 m"))
+            new PdfStream(new PdfDictionary(), Encoding.ASCII.GetBytes("10")),
+            new PdfStream(new PdfDictionary(), Encoding.ASCII.GetBytes("0 m"))
         };
 
         Assert.True(PdfContentStreamSequenceDecoder.TryDecode(
@@ -1082,7 +1082,13 @@ public sealed class PdfPrintProductionInspectorRegressionTests {
             new PdfReadLimits(),
             enforcePageContentLimit: true,
             out string content));
-        Assert.Equal("10 0 m", content);
+        int operationCount = 0;
+        PdfContentStreamInterpreter.Interpret(content, 1, operation => {
+            operationCount++;
+            Assert.Equal("m", operation.Name);
+            Assert.Equal(new[] { 10D, 0D }, operation.Operands.Cast<double>());
+        });
+        Assert.Equal(1, operationCount);
     }
 
     [Fact]

@@ -46,7 +46,7 @@ internal static partial class PdfRedactionApplier {
         }
 
         if (allStreamsDecoded && contentSegments.Count > 0) {
-            string combinedContent = string.Concat(contentSegments);
+            string combinedContent = string.Join(PdfContentStreamSequenceDecoder.Separator.ToString(), contentSegments);
             TextObjectRewrite[] rewrites = FindMatchingTextObjectRewrites(
                 combinedContent,
                 textTargets,
@@ -71,7 +71,7 @@ internal static partial class PdfRedactionApplier {
                     scrubbed,
                     referenceCounts,
                     ref nextObjectNumber) || changed;
-                contentOffset += content.Length;
+                contentOffset += content.Length + 1;
             }
         } else {
             var graphicsState = new TextScrubGraphicsState();
@@ -177,7 +177,7 @@ internal static partial class PdfRedactionApplier {
 
         bool changed = false;
         if (allStreamsDecoded && contentSegments.Length > 0) {
-            string combinedContent = string.Concat(contentSegments);
+            string combinedContent = string.Join(PdfContentStreamSequenceDecoder.Separator.ToString(), contentSegments);
             TextFormScrubContentResult result = ScrubFormInvocations(objects, resources, xObjects, combinedContent, textTargets, pageFontDecoders, pageFontWidthProviders, pageVerticalWritingFonts, new[] { Matrix2D.Identity }, PdfTextStateSnapshot.Default, referenceCounts, new HashSet<int>(), limits, sourceStreamIdentities, ref nextObjectNumber);
             if (!string.Equals(result.Content, combinedContent, StringComparison.Ordinal)) {
                 PdfObject currentContentsObject = contentsObject;
@@ -522,7 +522,7 @@ internal static partial class PdfRedactionApplier {
     }
 
     private static RedactionTextBounds AddSpanBounds(RedactionTextBounds? current, PdfTextSpan span) {
-        PdfTextSpanBounds spanBounds = PdfTextSpanGeometry.GetAxisAlignedBounds(span);
+        PdfTextSpanBounds spanBounds = PdfTextSpanGeometry.GetRedactionBounds(span);
         double left = spanBounds.Left;
         double right = spanBounds.Right;
         double bottom = spanBounds.Bottom;

@@ -27,9 +27,9 @@ internal static class HtmlFontSizePolicy {
                 bool relativeKeyword = value is "smaller" or "larger";
                 resolved = new HtmlFontSizeContext(keyword, relativeKeyword && inherited.IsAbsolute,
                     relativeKeyword ? string.Empty : value, inherited.SoleGenericMonospace);
-            } else if (HtmlRenderCssValues.TryLength(value, lengthContext, out double pixels, out _, out HtmlCssMathExpression? expression)
-                && !double.IsNaN(pixels) && !double.IsInfinity(pixels) && pixels >= 0D) {
-                resolved = new HtmlFontSizeContext(pixels, IsAbsoluteLength(expression!, inherited.IsAbsolute),
+            } else if (HtmlRenderCssValues.TryLength(value, lengthContext, out double pixels, out bool calculated, out HtmlCssMathExpression? expression)
+                && !double.IsNaN(pixels) && !double.IsInfinity(pixels) && (pixels >= 0D || calculated)) {
+                resolved = new HtmlFontSizeContext(Math.Max(0D, pixels), IsAbsoluteLength(expression!, inherited.IsAbsolute),
                     string.Empty, inherited.SoleGenericMonospace);
             } else {
                 resolved = htmlDefault;

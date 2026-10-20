@@ -1,4 +1,5 @@
 using System.Collections.ObjectModel;
+using System.Threading;
 
 namespace OfficeIMO.Pdf;
 
@@ -16,6 +17,9 @@ public enum PdfProductionSplitReason {
 
 /// <summary>Controls page-count, content-boundary, and target-size PDF splitting.</summary>
 public sealed class PdfProductionSplitOptions {
+    /// <summary>Observes cancellation during boundary reading, artifact probes, and verification.</summary>
+    public CancellationToken CancellationToken { get; set; }
+
     /// <summary>Optional maximum number of source pages in one part.</summary>
     public int? MaximumPagesPerPart { get; set; }
 
@@ -105,8 +109,9 @@ internal static class PdfProductionSplitter {
     public static PdfProductionSplitResult Split(byte[] pdf, PdfProductionSplitOptions options, PdfLoadOptions? readOptions = null) {
         Guard.NotNull(pdf, nameof(pdf));
         Guard.NotNull(options, nameof(options));
+        options.CancellationToken.ThrowIfCancellationRequested();
         ValidateOptions(options);
-        (_, PdfReadDocument document) = PdfMutationPlanner.RequireFullRewriteDocument(pdf, PdfMutationOperation.ExtractPages, readOptions);
+        (_, PdfReadDocument document) = PdfMutationPlanner.RequireFullRewriteDocument(pdf, PdfMutationOperation.ExtractPages, readOptions, cancellationToken: options.CancellationToken);
         if (document.Pages.Count == 0) throw new ArgumentException("PDF does not contain any pages.", nameof(pdf));
 
         List<PlannedPart> planned = PlanStructuralBoundaries(document, options);
@@ -114,15 +119,17 @@ internal static class PdfProductionSplitter {
         int probeCount = 0;
         long cumulativeArtifactBytes = 0L;
         foreach (PlannedPart group in planned) {
+            options.CancellationToken.ThrowIfCancellationRequested();
             if (!options.TargetPartSizeBytes.HasValue) {
                 byte[] artifact = Extract(pdf, group.Pages, readOptions, options, ref probeCount, ref cumulativeArtifactBytes);
-                AddVerifiedPart(output, pdf, artifact, group.Pages, group.Reason, exceedsTarget: false, readOptions);
+                AddVerifiedPart(output, pdf, artifact, group.Pages, group.Reason, exceedsTarget: false, readOptions, options.CancellationToken);
                 continue;
             }
 
             SplitGroupByTargetSize(pdf, group, options, readOptions, output, ref probeCount, ref cumulativeArtifactBytes);
         }
 
+        options.CancellationToken.ThrowIfCancellationRequested();
         int[] emittedPages = output.SelectMany(static part => part.SourcePages).ToArray();
         int[] expectedPages = Enumerable.Range(1, document.Pages.Count).ToArray();
         if (!emittedPages.SequenceEqual(expectedPages)) throw new InvalidOperationException("Production split page coverage does not match the source document.");
@@ -138,8 +145,9 @@ internal static class PdfProductionSplitter {
         var current = new List<int>();
         StringComparison comparison = options.IgnoreBoundaryTextCase ? StringComparison.OrdinalIgnoreCase : StringComparison.Ordinal;
         for (int pageNumber = 1; pageNumber <= document.Pages.Count; pageNumber++) {
+            options.CancellationToken.ThrowIfCancellationRequested();
             bool beginsAtContentBoundary = !string.IsNullOrEmpty(options.BoundaryText) &&
-                Contains(document.Pages[pageNumber - 1].ExtractText(), options.BoundaryText!, comparison);
+                Contains(document.Pages[pageNumber - 1].ExtractText(options.CancellationToken), options.BoundaryText!, comparison);
             if (beginsAtContentBoundary && current.Count > 0) {
                 result.Add(new PlannedPart(current.ToArray(), PdfProductionSplitReason.ContentBoundary));
                 current.Clear();
@@ -177,7 +185,7 @@ internal static class PdfProductionSplitter {
             byte[] bestArtifact = Extract(source, bestPages, readOptions, options, ref probeCount, ref cumulativeArtifactBytes);
             if (bestArtifact.LongLength > targetBytes) {
                 PdfProductionSplitReason reason = remainingPages == 1 ? group.Reason : PdfProductionSplitReason.TargetSize;
-                AddVerifiedPart(output, source, bestArtifact, bestPages, reason, exceedsTarget: true, readOptions);
+                AddVerifiedPart(output, source, bestArtifact, bestPages, reason, exceedsTarget: true, readOptions, options.CancellationToken);
                 startIndex++;
                 continue;
             }
@@ -225,7 +233,7 @@ internal static class PdfProductionSplitter {
                 bestPages,
                 reachesGroupEnd ? group.Reason : PdfProductionSplitReason.TargetSize,
                 exceedsTarget: false,
-                readOptions);
+                readOptions, options.CancellationToken);
             startIndex += bestPageCount;
         }
     }
@@ -243,6 +251,7 @@ internal static class PdfProductionSplitter {
         PdfProductionSplitOptions options,
         ref int probeCount,
         ref long cumulativeArtifactBytes) {
+        options.CancellationToken.ThrowIfCancellationRequested();
         probeCount = checked(probeCount + 1);
         if (probeCount > options.MaximumArtifactProbes) {
             throw new InvalidOperationException("Production splitting exceeded the configured artifact-probe budget.");
@@ -253,7 +262,7 @@ internal static class PdfProductionSplitter {
         }
         byte[] artifact;
         try {
-            artifact = PdfPageExtractor.ExtractPages(source, pages, readOptions, remainingArtifactBytes);
+            artifact = PdfPageExtractor.ExtractPages(source, pages, readOptions, remainingArtifactBytes, cancellationToken: options.CancellationToken);
         } catch (InvalidDataException exception) {
             throw new InvalidOperationException("Production splitting exceeded the configured cumulative artifact-byte budget.", exception);
         }
@@ -271,10 +280,11 @@ internal static class PdfProductionSplitter {
         IEnumerable<int> pages,
         PdfProductionSplitReason reason,
         bool exceedsTarget,
-        PdfLoadOptions? readOptions) {
+        PdfLoadOptions? readOptions, CancellationToken cancellationToken) {
+        cancellationToken.ThrowIfCancellationRequested();
         int[] pageNumbers = pages.ToArray();
         PdfLoadOptions strictOptions = CreateStrictReadOptions(readOptions, source, artifact);
-        PdfReadDocument reopened = PdfReadDocument.Open(artifact, strictOptions);
+        PdfReadDocument reopened = PdfReadDocument.Open(artifact, strictOptions, cancellationToken);
         if (reopened.Pages.Count != pageNumbers.Length) throw new InvalidOperationException("Generated split artifact page count does not match its report.");
         output.Add(new PdfProductionSplitPart(
             output.Count + 1,

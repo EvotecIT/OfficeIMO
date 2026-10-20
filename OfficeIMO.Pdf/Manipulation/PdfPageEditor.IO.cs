@@ -1,23 +1,31 @@
 using OfficeIMO.Core.Internal;
+using System.Threading;
 namespace OfficeIMO.Pdf;
 
 internal static partial class PdfPageEditor {
-    private static byte[] ReadPath(string path) =>
-        PdfDocumentSource.FromPath(path, null).Bytes;
+    private static byte[] ReadPath(string path, PdfLoadOptions? readOptions = null, CancellationToken cancellationToken = default) =>
+        PdfDocumentSource.FromPath(path, readOptions, cancellationToken).Bytes;
 
-    private static byte[] ReadStream(Stream stream, string paramName) {
+    private static byte[] ReadStream(Stream stream, string paramName, PdfLoadOptions? readOptions = null, CancellationToken cancellationToken = default) {
         Guard.NotNull(stream, paramName);
         if (!stream.CanRead) {
             throw new ArgumentException("Stream must be readable.", paramName);
         }
 
-        return PdfDocumentSource.FromRemainingStream(stream, null).Bytes;
+        return PdfDocumentSource.FromRemainingStream(stream, readOptions, cancellationToken).Bytes;
     }
 
-    private static void WriteOutput(Stream outputStream, byte[] bytes) {
+    private static void WriteOutput(Stream outputStream, byte[] bytes, CancellationToken cancellationToken = default) {
         ValidateWritableOutputStream(outputStream);
 
-        outputStream.Write(bytes, 0, bytes.Length);
+        cancellationToken.ThrowIfCancellationRequested();
+        for (int offset = 0; offset < bytes.Length;) {
+            cancellationToken.ThrowIfCancellationRequested();
+            int count = Math.Min(64 * 1024, bytes.Length - offset);
+            outputStream.Write(bytes, offset, count);
+            offset += count;
+        }
+        cancellationToken.ThrowIfCancellationRequested();
     }
 
     private static void ValidateWritableOutputStream(Stream outputStream) {
@@ -27,11 +35,12 @@ internal static partial class PdfPageEditor {
         }
     }
 
-    private static void WriteOutput(string outputPath, byte[] bytes) {
+    private static void WriteOutput(string outputPath, byte[] bytes, CancellationToken cancellationToken = default) {
+        cancellationToken.ThrowIfCancellationRequested();
         string fullPath = ValidateOutputPath(outputPath);
         var directory = Path.GetDirectoryName(fullPath);
         if (!string.IsNullOrEmpty(directory)) Directory.CreateDirectory(directory);
-        OfficeFileCommit.WriteAllBytes(fullPath, bytes);
+        OfficeFileCommit.Write(fullPath, stream => WriteOutput(stream, bytes, cancellationToken), cancellationToken);
     }
 
     private static string ValidateOutputPath(string outputPath) {

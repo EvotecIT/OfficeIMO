@@ -171,15 +171,23 @@ internal static partial class PdfSanitizer {
     }
 
     /// <summary>Sanitizes a PDF from the current position of a readable stream.</summary>
-    public static PdfSanitizationResult Sanitize(Stream stream, PdfSanitizationOptions? options = null) {
+    public static PdfSanitizationResult Sanitize(Stream stream, PdfSanitizationOptions? options = null) =>
+        Sanitize(stream, options, readOptions: null);
+
+    /// <summary>Sanitizes remaining stream content using caller-selected limits, without closing the caller stream.</summary>
+    internal static PdfSanitizationResult Sanitize(Stream stream, PdfSanitizationOptions? options, PdfLoadOptions? readOptions) {
         System.Threading.CancellationToken cancellationToken = options?.CancellationToken ?? default;
-        return Sanitize(PdfDocumentSource.FromRemainingStream(stream, null, cancellationToken).Bytes, options);
+        return Sanitize(PdfDocumentSource.FromRemainingStream(stream, readOptions, cancellationToken).Bytes, options, readOptions);
     }
 
     /// <summary>Sanitizes a PDF file and returns the result without writing output automatically.</summary>
-    public static PdfSanitizationResult Sanitize(string inputPath, PdfSanitizationOptions? options = null) {
+    public static PdfSanitizationResult Sanitize(string inputPath, PdfSanitizationOptions? options = null) =>
+        Sanitize(inputPath, options, readOptions: null);
+
+    /// <summary>Sanitizes one bounded file snapshot using caller-selected limits and credentials.</summary>
+    internal static PdfSanitizationResult Sanitize(string inputPath, PdfSanitizationOptions? options, PdfLoadOptions? readOptions) {
         Guard.NotNullOrWhiteSpace(inputPath, nameof(inputPath));
         System.Threading.CancellationToken cancellationToken = options?.CancellationToken ?? default;
-        return Sanitize(PdfDocumentSource.FromPath(inputPath, null, cancellationToken).Bytes, options);
+        return Sanitize(PdfDocumentSource.FromPath(inputPath, readOptions, cancellationToken).Bytes, options, readOptions);
     }
 }

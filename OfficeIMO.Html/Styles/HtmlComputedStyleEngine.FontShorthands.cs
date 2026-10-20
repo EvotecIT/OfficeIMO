@@ -1,4 +1,5 @@
 using AngleSharp.Css.Parser;
+using OfficeIMO.Html.Css;
 
 namespace OfficeIMO.Html;
 
@@ -10,19 +11,23 @@ public static partial class HtmlComputedStyleEngine {
         "font-variant-ligatures", "font-variant-numeric"
     };
 
-    private static bool TryExpandFontShorthand(string value, out IReadOnlyList<KeyValuePair<string, string>> longhands) {
+    /// <summary>Expands a complete font shorthand through provider grammar while retaining owned container lengths.</summary>
+    internal static bool TryExpandFontShorthand(string value, out IReadOnlyList<KeyValuePair<string, string>> longhands) {
         if (IsCssWideKeyword(value.Trim())) {
             longhands = FontShorthandLonghands.Select(name => new KeyValuePair<string, string>(name, value)).ToArray();
             return true;
         }
         // Use the same CSS parser as stylesheet rules, retaining the declaration's
         // original cascade priority and order when applying its longhands.
-        var parsed = new CssParser().ParseDeclaration("font:" + value);
+        string providerValue = PreserveProviderLengths(value, out IReadOnlyDictionary<string, string> originals,
+            expression => ContainsContainerLength(expression) && (expression.IsCalculated || expression.Value >= 0D));
+        var parsed = new CssParser().ParseDeclaration("font:" + providerValue);
         var expanded = new List<KeyValuePair<string, string>>();
         if (parsed != null) {
             foreach (string name in FontShorthandLonghands) {
                 string resolved = parsed.GetPropertyValue(name);
-                if (!string.IsNullOrWhiteSpace(resolved)) expanded.Add(new KeyValuePair<string, string>(name, resolved));
+                if (!string.IsNullOrWhiteSpace(resolved)) expanded.Add(new KeyValuePair<string, string>(name,
+                    RestoreProviderLengths(resolved, originals)));
             }
         }
         if (!expanded.Any(item => item.Key == "font-size") || !expanded.Any(item => item.Key == "font-family")) {
@@ -42,6 +47,14 @@ public static partial class HtmlComputedStyleEngine {
         longhands = expanded;
         return true;
     }
+
+    // Retain only the newer units already handled by the owned numeric grammar;
+    // the provider continues to validate the complete font shorthand structure.
+    private static bool ContainsContainerLength(HtmlCssMathExpression expression) =>
+        expression.Unit == HtmlCssLengthUnit.Cqw || expression.Unit == HtmlCssLengthUnit.Cqh
+        || expression.Unit == HtmlCssLengthUnit.Cqi || expression.Unit == HtmlCssLengthUnit.Cqb
+        || expression.Unit == HtmlCssLengthUnit.Cqmin || expression.Unit == HtmlCssLengthUnit.Cqmax
+        || expression.Children.Any(ContainsContainerLength);
 
     private static void ResolveDeferredFontLonghands(Dictionary<string, string> properties, ISet<string> deferred,
         IReadOnlyDictionary<string, string>? parentProperties, ISet<string> inherited, ISet<string> reset, ISet<string> specified,

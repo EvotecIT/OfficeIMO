@@ -224,7 +224,7 @@ internal static partial class PdfRedactionPlanner {
             double right = double.MinValue;
             double top = double.MinValue;
             for (int index = 0; index < block.Spans.Count; index++) {
-                PdfTextSpanBounds spanBounds = PdfTextSpanGeometry.GetAxisAlignedBounds(block.Spans[index]);
+                PdfTextSpanBounds spanBounds = PdfTextSpanGeometry.GetRedactionBounds(block.Spans[index]);
                 left = Math.Min(left, spanBounds.Left);
                 bottom = Math.Min(bottom, spanBounds.Bottom);
                 right = Math.Max(right, spanBounds.Right);
@@ -246,7 +246,7 @@ internal static partial class PdfRedactionPlanner {
         double fontSize = GetEffectiveFontSize(block);
         double x = Math.Min(block.XStart, block.XEnd);
         double width = Math.Max(1D, Math.Abs(block.XEnd - block.XStart));
-        return new PdfTextSpanBounds(x, block.BaselineY - fontSize, x + width, block.BaselineY + fontSize * 0.5D);
+        return new PdfTextSpanBounds(x, block.BaselineY - fontSize * 0.25D, x + width, block.BaselineY + fontSize);
     }
 
     private static void AddAnnotationMatches(PdfRedactionArea area, IReadOnlyList<PdfPageInfo> pages, List<PdfRedactionMatch> matches) {
@@ -335,7 +335,7 @@ internal static partial class PdfRedactionPlanner {
         List<PdfRedactionMatch> matches) {
         for (int i = 0; i < spans.Count; i++) {
             PdfTextSpan span = spans[i];
-            PdfTextSpanBounds bounds = PdfTextSpanGeometry.GetAxisAlignedBounds(span);
+            PdfTextSpanBounds bounds = PdfTextSpanGeometry.GetRedactionBounds(span);
             if (!area.IntersectsRectangle(bounds.Left, bounds.Bottom, bounds.Width, bounds.Height)) continue;
             matches.Add(new PdfRedactionMatch(
                 PdfRedactionMatchKind.TextBlock,

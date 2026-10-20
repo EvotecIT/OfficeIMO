@@ -59,20 +59,36 @@ internal static class PdfSecurityEditor {
     public static PdfSecurityMutationResult Encrypt(
         string inputPath,
         string outputPath,
-        PdfStandardEncryptionOptions encryption) {
+        PdfStandardEncryptionOptions encryption) =>
+        Encrypt(inputPath, outputPath, encryption, sourceReadOptions: null, CancellationToken.None);
+
+    /// <summary>Encrypts bounded file input and checks cancellation before atomically publishing the proven rewrite.</summary>
+    internal static PdfSecurityMutationResult Encrypt(string inputPath, string outputPath, PdfStandardEncryptionOptions encryption,
+        PdfLoadOptions? sourceReadOptions, CancellationToken cancellationToken) {
         Guard.NotNullOrWhiteSpace(inputPath, nameof(inputPath));
         Guard.NotNullOrWhiteSpace(outputPath, nameof(outputPath));
-        PdfSecurityMutationResult result = Encrypt(PdfDocumentSource.FromPath(inputPath, null).Bytes, encryption);
-        OfficeFileCommit.WriteAllBytes(outputPath, result.Pdf);
+        Guard.NotNull(encryption, nameof(encryption));
+        PdfDocumentSource source = PdfDocumentSource.FromPath(inputPath, sourceReadOptions, cancellationToken);
+        PdfSecurityMutationResult result = Encrypt(source.Bytes, encryption, source.Options, cancellationToken: cancellationToken);
+        cancellationToken.ThrowIfCancellationRequested();
+        OfficeFileCommit.Write(outputPath, stream => OfficeStreamWriter.CopyBytes(stream, result.Pdf, cancellationToken), cancellationToken);
         return result;
     }
 
     /// <summary>Decrypts a Standard-security PDF file and writes the proven rewrite to a new path.</summary>
-    public static PdfSecurityMutationResult Decrypt(string inputPath, string outputPath, string ownerPassword) {
+    public static PdfSecurityMutationResult Decrypt(string inputPath, string outputPath, string ownerPassword) =>
+        Decrypt(inputPath, outputPath, ownerPassword, sourceReadOptions: null, CancellationToken.None);
+
+    /// <summary>Decrypts bounded file input and checks cancellation before atomically publishing the proven rewrite.</summary>
+    internal static PdfSecurityMutationResult Decrypt(string inputPath, string outputPath, string ownerPassword,
+        PdfLoadOptions? sourceReadOptions, CancellationToken cancellationToken) {
         Guard.NotNullOrWhiteSpace(inputPath, nameof(inputPath));
         Guard.NotNullOrWhiteSpace(outputPath, nameof(outputPath));
-        PdfSecurityMutationResult result = Decrypt(PdfDocumentSource.FromPath(inputPath, null).Bytes, ownerPassword);
-        OfficeFileCommit.WriteAllBytes(outputPath, result.Pdf);
+        Guard.NotNull(ownerPassword, nameof(ownerPassword));
+        PdfDocumentSource source = PdfDocumentSource.FromPath(inputPath, sourceReadOptions, cancellationToken);
+        PdfSecurityMutationResult result = Decrypt(source.Bytes, ownerPassword, source.Options, cancellationToken: cancellationToken);
+        cancellationToken.ThrowIfCancellationRequested();
+        OfficeFileCommit.Write(outputPath, stream => OfficeStreamWriter.CopyBytes(stream, result.Pdf, cancellationToken), cancellationToken);
         return result;
     }
 

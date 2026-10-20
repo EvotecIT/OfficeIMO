@@ -1,3 +1,5 @@
+param([string] $InspectionAssemblyDirectory)
+
 $ErrorActionPreference = 'Stop'
 Set-StrictMode -Version Latest
 
@@ -9,12 +11,18 @@ $temporaryRoot = Join-Path ([System.IO.Path]::GetTempPath()) (
 $pdfProjectPath = Join-Path $PSScriptRoot '../OfficeIMO.Pdf/OfficeIMO.Pdf.csproj'
 if ([System.Environment]::Version.Major -lt 8) { throw 'PDF artifact inspection requires PowerShell on .NET 8 or later.' }
 $inspectionFramework = [System.Environment]::Version.Major -ge 10 ? 'net10.0' : 'net8.0'
-$pdfAssemblyPath = Join-Path $PSScriptRoot "../OfficeIMO.Pdf/bin/Release/$inspectionFramework/OfficeIMO.Pdf.dll"
+if ([string]::IsNullOrWhiteSpace($InspectionAssemblyDirectory)) {
+    $InspectionAssemblyDirectory = Join-Path $PSScriptRoot "../OfficeIMO.Pdf/bin/Release/$inspectionFramework"
+}
+$pdfAssemblyPath = Join-Path $InspectionAssemblyDirectory 'OfficeIMO.Pdf.dll'
 if (-not (Test-Path -LiteralPath $pdfAssemblyPath -PathType Leaf)) {
+    if ($PSBoundParameters.ContainsKey('InspectionAssemblyDirectory')) {
+        throw 'The requested inspection assembly directory has not been built.'
+    }
     & dotnet build $pdfProjectPath -c Release -f $inspectionFramework --nologo
     if ($LASTEXITCODE -ne 0) { throw 'Could not build OfficeIMO.Pdf for artifact-exporter contracts.' }
 }
-Add-Type -Path (Join-Path $PSScriptRoot "../OfficeIMO.Pdf/bin/Release/$inspectionFramework/OfficeIMO.Core.dll")
+Add-Type -Path (Join-Path $InspectionAssemblyDirectory 'OfficeIMO.Core.dll')
 Add-Type -Path $pdfAssemblyPath
 
 function New-TestPdfBytes {
@@ -110,7 +118,7 @@ try {
     $reportPath = Join-Path $evidenceRoot 'html-pdf-evidence.json'
     $outputPath = Join-Path $temporaryRoot 'summary.json'
     $engines = @(
-        foreach ($engineName in @('OfficeIMO', 'PeachPDF', 'ITextPdfHtml', 'Chromium')) {
+        foreach ($engineName in @('OfficeIMO', 'PeachPDF', 'PdfPecker', 'ITextPdfHtml', 'Chromium')) {
             $outputs = @(
                 foreach ($iteration in 1..3) {
                     $slug = $engineName.ToLowerInvariant()
@@ -187,15 +195,24 @@ try {
             )
             [ordered]@{
                 engine = $engineName
+                package = $engineName -eq 'PdfPecker' ? [ordered]@{
+                    id = 'PdfPecker'
+                    version = '1.16.0'
+                    sourceCommit = ('3' * 40)
+                    license = 'MIT AND OFL-1.1 AND Bitstream-Vera AND APAFML AND BSD-3-Clause AND MIT-Modern-Variant AND Unicode-3.0 AND FSFAP AND LPPL-1.3c'
+                    licenseSha256 = ('a' * 64)
+                    thirdPartyNoticesSha256 = ('b' * 64)
+                    packageSha512 = ('A' * 86) + '=='
+                } : $null
                 status = 'Passed'
                 requestedIterations = 3
                 notRunAfterRejection = 0
                 timingComparable = $true
                 failures = @()
                 cancellation = [ordered]@{
-                    apiSupportsCancellation = $engineName -in @('OfficeIMO', 'Chromium')
-                    status = $engineName -in @('OfficeIMO', 'Chromium') ? 'Passed' : 'Unsupported'
-                    detail = $engineName -in @('OfficeIMO', 'Chromium') `
+                    apiSupportsCancellation = $engineName -in @('OfficeIMO', 'Chromium', 'PdfPecker')
+                    status = $engineName -in @('OfficeIMO', 'Chromium', 'PdfPecker') ? 'Passed' : 'Unsupported'
+                    detail = $engineName -in @('OfficeIMO', 'Chromium', 'PdfPecker') `
                         ? "An in-flight $engineName PDF request cancelled in 2 ms." `
                         : 'The compared public conversion entry point does not accept a CancellationToken.'
                 }
@@ -215,7 +232,7 @@ try {
         }
     )
     $report = [ordered]@{
-        schemaVersion = 3
+        schemaVersion = 4
         scale = 'High'
         iterations = 3
         allEnginesComparable = $true
@@ -255,7 +272,9 @@ try {
     $admittedReport = $report
     $admittedJson = $report | ConvertTo-Json -Depth 20
     $admissionCases = @(
-        @{ Name = 'legacy schema for new export'; Pattern = 'schema-v3'; Mutate = { param($value) $value.schemaVersion = 2 } }
+        @{ Name = 'missing PdfPecker engine'; Pattern = 'required Chromium'; Mutate = { param($value) $value.engines = @($value.engines | Where-Object engine -ne 'PdfPecker') } }
+        @{ Name = 'wrong PdfPecker package'; Pattern = 'exact PdfPecker package'; Mutate = { param($value) ($value.engines | Where-Object engine -eq 'PdfPecker').package.version = '1.15.0' } }
+        @{ Name = 'legacy schema for new export'; Pattern = 'schema-v4'; Mutate = { param($value) $value.schemaVersion = 2 } }
         @{ Name = 'false aggregate'; Pattern = 'aggregate comparison'; Mutate = { param($value) $value.allEnginesComparable = $false } }
         @{ Name = 'missing aggregate'; Pattern = 'aggregate comparison'; Mutate = { param($value) $value.PSObject.Properties.Remove('allEnginesComparable') } }
         @{ Name = 'rejected engine'; Pattern = 'not admitted'; Mutate = { param($value) $value.engines[0].status = 'Rejected' } }
@@ -283,6 +302,7 @@ try {
         try {
             & "$PSScriptRoot/Export-HtmlPdfArtifactEvidence.ps1" `
                 -EvidencePath $evidenceRoot `
+            -InspectionAssemblyDirectory $InspectionAssemblyDirectory `
                 -Platform $platform `
                 -OutputPath $outputPath
         } catch {
@@ -302,6 +322,7 @@ try {
     try {
         & "$PSScriptRoot/Export-HtmlPdfArtifactEvidence.ps1" `
             -EvidencePath $evidenceRoot `
+            -InspectionAssemblyDirectory $InspectionAssemblyDirectory `
             -Platform $platform `
             -OutputPath $outputPath
     } catch {
@@ -320,6 +341,7 @@ try {
     try {
         & "$PSScriptRoot/Export-HtmlPdfArtifactEvidence.ps1" `
             -EvidencePath $evidenceRoot `
+            -InspectionAssemblyDirectory $InspectionAssemblyDirectory `
             -Platform $platform `
             -OutputPath $outputPath
     } catch {
@@ -339,6 +361,7 @@ try {
     try {
         & "$PSScriptRoot/Export-HtmlPdfArtifactEvidence.ps1" `
             -EvidencePath $evidenceRoot `
+            -InspectionAssemblyDirectory $InspectionAssemblyDirectory `
             -Platform $platform `
             -OutputPath $outputPath
     } catch {
@@ -358,6 +381,7 @@ try {
     try {
         & "$PSScriptRoot/Export-HtmlPdfArtifactEvidence.ps1" `
             -EvidencePath $evidenceRoot `
+            -InspectionAssemblyDirectory $InspectionAssemblyDirectory `
             -Platform $platform `
             -OutputPath $outputPath
     } catch {
@@ -377,6 +401,7 @@ try {
     try {
         & "$PSScriptRoot/Export-HtmlPdfArtifactEvidence.ps1" `
             -EvidencePath $evidenceRoot `
+            -InspectionAssemblyDirectory $InspectionAssemblyDirectory `
             -Platform $platform `
             -OutputPath $outputPath
     } catch {
@@ -396,6 +421,7 @@ try {
     try {
         & "$PSScriptRoot/Export-HtmlPdfArtifactEvidence.ps1" `
             -EvidencePath $evidenceRoot `
+            -InspectionAssemblyDirectory $InspectionAssemblyDirectory `
             -Platform $platform `
             -OutputPath $outputPath
     } catch {
@@ -417,6 +443,7 @@ try {
     try {
         & "$PSScriptRoot/Export-HtmlPdfArtifactEvidence.ps1" `
             -EvidencePath $evidenceRoot `
+            -InspectionAssemblyDirectory $InspectionAssemblyDirectory `
             -Platform $platform `
             -OutputPath $outputPath
     } catch {
@@ -436,6 +463,7 @@ try {
     try {
         & "$PSScriptRoot/Export-HtmlPdfArtifactEvidence.ps1" `
             -EvidencePath $evidenceRoot `
+            -InspectionAssemblyDirectory $InspectionAssemblyDirectory `
             -Platform $platform `
             -OutputPath $outputPath
     } catch {
@@ -454,6 +482,7 @@ try {
     try {
         & "$PSScriptRoot/Export-HtmlPdfArtifactEvidence.ps1" `
             -EvidencePath $evidenceRoot `
+            -InspectionAssemblyDirectory $InspectionAssemblyDirectory `
             -Platform $platform `
             -OutputPath $outputPath
     } catch {
@@ -481,6 +510,7 @@ try {
     try {
         & "$PSScriptRoot/Export-HtmlPdfArtifactEvidence.ps1" `
             -EvidencePath $evidenceRoot `
+            -InspectionAssemblyDirectory $InspectionAssemblyDirectory `
             -Platform $platform `
             -OutputPath $outputPath
     } catch {
@@ -519,6 +549,7 @@ try {
     try {
         & "$PSScriptRoot/Export-HtmlPdfArtifactEvidence.ps1" `
             -EvidencePath $evidenceRoot `
+            -InspectionAssemblyDirectory $InspectionAssemblyDirectory `
             -Platform $platform `
             -OutputPath $outputPath
     } catch {
@@ -543,6 +574,7 @@ try {
     try {
         & "$PSScriptRoot/Export-HtmlPdfArtifactEvidence.ps1" `
             -EvidencePath $evidenceRoot `
+            -InspectionAssemblyDirectory $InspectionAssemblyDirectory `
             -Platform $platform `
             -OutputPath $outputPath
     } catch {
@@ -562,6 +594,7 @@ try {
     try {
         & "$PSScriptRoot/Export-HtmlPdfArtifactEvidence.ps1" `
             -EvidencePath $evidenceRoot `
+            -InspectionAssemblyDirectory $InspectionAssemblyDirectory `
             -Platform linux `
             -OutputPath $outputPath
     } catch {
@@ -580,6 +613,7 @@ try {
     try {
         & "$PSScriptRoot/Export-HtmlPdfArtifactEvidence.ps1" `
             -EvidencePath $evidenceRoot `
+            -InspectionAssemblyDirectory $InspectionAssemblyDirectory `
             -Platform linux `
             -OutputPath $outputPath
     } catch {
@@ -596,6 +630,7 @@ try {
     [System.IO.File]::WriteAllText($reportPath, $json, [System.Text.UTF8Encoding]::new($false))
     & "$PSScriptRoot/Export-HtmlPdfArtifactEvidence.ps1" `
         -EvidencePath $evidenceRoot `
+            -InspectionAssemblyDirectory $InspectionAssemblyDirectory `
         -Platform $platform `
         -OutputPath $outputPath
     if (-not (Test-Path -LiteralPath $outputPath -PathType Leaf)) {
@@ -610,6 +645,7 @@ try {
     try {
         & "$PSScriptRoot/Export-HtmlPdfArtifactEvidence.ps1" `
             -EvidencePath $evidenceRoot `
+            -InspectionAssemblyDirectory $InspectionAssemblyDirectory `
             -Platform $platform `
             -OutputPath $outputPath
     } catch {
@@ -644,6 +680,7 @@ try {
     [System.IO.File]::WriteAllText($reportPath, $json, [System.Text.UTF8Encoding]::new($false))
     & "$PSScriptRoot/Export-HtmlPdfArtifactEvidence.ps1" `
         -EvidencePath $evidenceRoot `
+            -InspectionAssemblyDirectory $InspectionAssemblyDirectory `
         -Platform $platform `
         -OutputPath $outputPath
     if (-not (Test-Path -LiteralPath $outputPath -PathType Leaf)) {
@@ -669,6 +706,7 @@ try {
     try {
         & "$PSScriptRoot/Export-HtmlPdfArtifactEvidence.ps1" `
             -EvidencePath $evidenceRoot `
+            -InspectionAssemblyDirectory $InspectionAssemblyDirectory `
             -Platform $platform `
             -OutputPath $outputPath
     } catch {
@@ -695,6 +733,7 @@ try {
     try {
         & "$PSScriptRoot/Export-HtmlPdfArtifactEvidence.ps1" `
             -EvidencePath $evidenceRoot `
+            -InspectionAssemblyDirectory $InspectionAssemblyDirectory `
             -Platform $platform `
             -OutputPath $outputPath
     } catch {
@@ -724,6 +763,7 @@ try {
     try {
         & "$PSScriptRoot/Export-HtmlPdfArtifactEvidence.ps1" `
             -EvidencePath $evidenceRoot `
+            -InspectionAssemblyDirectory $InspectionAssemblyDirectory `
             -Platform $platform `
             -OutputPath $outputPath
     } catch {
@@ -744,6 +784,7 @@ try {
     try {
         & "$PSScriptRoot/Export-HtmlPdfArtifactEvidence.ps1" `
             -EvidencePath $evidenceRoot `
+            -InspectionAssemblyDirectory $InspectionAssemblyDirectory `
             -Platform $platform `
             -OutputPath $outputPath
     } catch {
@@ -766,6 +807,7 @@ try {
         try {
             & "$PSScriptRoot/Export-HtmlPdfArtifactEvidence.ps1" `
                 -EvidencePath $evidenceRoot `
+            -InspectionAssemblyDirectory $InspectionAssemblyDirectory `
                 -Platform $platform `
                 -OutputPath $protectedOutputPath
         } catch {
@@ -794,6 +836,7 @@ try {
     try {
         & "$PSScriptRoot/Export-HtmlPdfArtifactEvidence.ps1" `
             -EvidencePath $evidenceRoot `
+            -InspectionAssemblyDirectory $InspectionAssemblyDirectory `
             -Platform $platform `
             -OutputPath $outputPath
     } catch {
@@ -828,6 +871,7 @@ try {
         try {
             & "$PSScriptRoot/Export-HtmlPdfArtifactEvidence.ps1" `
                 -EvidencePath $evidenceRoot `
+            -InspectionAssemblyDirectory $InspectionAssemblyDirectory `
                 -Platform $platform `
                 -OutputPath $outputPath
         } catch {

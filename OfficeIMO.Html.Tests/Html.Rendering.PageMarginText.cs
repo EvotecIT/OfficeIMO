@@ -97,10 +97,15 @@ public sealed partial class HtmlRenderingTests {
             """;
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, new HtmlRenderOptions { Mode = HtmlRenderMode.Paged });
         HtmlRenderPage page = Assert.Single(rendered.Pages);
-        HtmlRenderText margin = Assert.Single(page.Visuals.OfType<HtmlRenderText>(),
+        HtmlRenderClipGroup clip = Assert.Single(EnumerateRenderVisuals(page.Scene).OfType<HtmlRenderClipGroup>(),
+            item => item.Source == "@page @bottom-left");
+        HtmlRenderText margin = Assert.Single(EnumerateRenderVisuals(clip.Visuals).OfType<HtmlRenderText>(),
             text => text.Source == "@page @bottom-left");
-        Assert.Equal(12D, margin.Height, 3);
-        Assert.Equal(page.Height - 12D, margin.Y, 3);
+        Assert.Equal(12D, clip.ClipHeight, 3);
+        Assert.Equal(page.Height - 12D, clip.ClipY, 3);
+        Assert.True(clip.ClipVertical);
+        Assert.True(margin.Height > clip.ClipHeight);
+        Assert.Equal("Report Created Today With More Words Than Fit", margin.Text);
         Assert.Contains(rendered.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.GeneratedContentUnsupported
             && diagnostic.Source == "@page @bottom-left" && diagnostic.LossKind == OfficeConversionLossKind.Omission);
     }

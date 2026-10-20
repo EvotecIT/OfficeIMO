@@ -100,7 +100,7 @@ public sealed partial class OfficeRasterCanvas {
                 } else {
                     if (region._contours == null || region._contours.Count == 0) return;
                     contours = region._contours;
-                    if (TryGetAxisAlignedRectangle(contours, out double l, out double t, out double w, out double h))
+                    if (OfficeTextInkClip.TryGetAxisAlignedRectangle(contours, out double l, out double t, out double w, out double h))
                         rectangle = OfficeRasterClipRectangle.FromFractionalBounds(l, t, w - l, h - t);
                 }
                 if (rectangle.HasValue) rectangles = rectangles.HasValue

@@ -1,17 +1,18 @@
+using System.Threading;
 using OfficeIMO.Core.Internal;
 namespace OfficeIMO.Pdf;
 
 internal static partial class PdfStamper {
-    private static byte[] ReadPath(string path) =>
-        PdfDocumentSource.FromPath(path, null).Bytes;
+    private static byte[] ReadPath(string path, CancellationToken cancellationToken = default) =>
+        PdfDocumentSource.FromPath(path, null, cancellationToken).Bytes;
 
-    private static byte[] ReadStream(Stream stream, string paramName, PdfLoadOptions? readOptions = null) {
+    private static byte[] ReadStream(Stream stream, string paramName, PdfLoadOptions? readOptions = null, CancellationToken cancellationToken = default) {
         Guard.NotNull(stream, paramName);
         if (!stream.CanRead) {
             throw new ArgumentException("Stream must be readable.", paramName);
         }
 
-        return PdfDocumentSource.FromRemainingStream(stream, readOptions).Bytes;
+        return PdfDocumentSource.FromRemainingStream(stream, readOptions, cancellationToken).Bytes;
     }
 
     private static byte[] ReadImageStream(Stream stream, string paramName, PdfImageStampOptions? options) {
@@ -22,13 +23,13 @@ internal static partial class PdfStamper {
 
         return PdfImageInput.ReadRemainingStream(
             stream,
-            (options ?? new PdfImageStampOptions()).MaximumEncodedImageBytes);
+            (options ?? new PdfImageStampOptions()).MaximumEncodedImageBytes, options?.CancellationToken ?? default);
     }
 
-    private static void WriteOutput(Stream outputStream, byte[] bytes) {
+    private static void WriteOutput(Stream outputStream, byte[] bytes, CancellationToken cancellationToken = default) {
         ValidateWritableOutputStream(outputStream);
 
-        outputStream.Write(bytes, 0, bytes.Length);
+        OfficeStreamWriter.CopyBytes(outputStream, bytes, cancellationToken);
     }
 
     private static void ValidateWritableOutputStream(Stream outputStream) {
@@ -38,11 +39,12 @@ internal static partial class PdfStamper {
         }
     }
 
-    private static void WriteOutput(string outputPath, byte[] bytes) {
+    private static void WriteOutput(string outputPath, byte[] bytes, CancellationToken cancellationToken = default) {
         string fullPath = ValidateOutputPath(outputPath);
+        cancellationToken.ThrowIfCancellationRequested();
         var directory = Path.GetDirectoryName(fullPath);
         if (!string.IsNullOrEmpty(directory)) Directory.CreateDirectory(directory);
-        OfficeFileCommit.WriteAllBytes(fullPath, bytes);
+        OfficeFileCommit.Write(fullPath, stream => OfficeStreamWriter.CopyBytes(stream, bytes, cancellationToken), cancellationToken);
     }
 
     private static string ValidateOutputPath(string outputPath) {

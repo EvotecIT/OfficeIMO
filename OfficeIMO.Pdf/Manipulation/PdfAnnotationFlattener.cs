@@ -34,24 +34,31 @@ internal static partial class PdfAnnotationFlattener {
         out PdfGeneratedOutputGrowth generatedGrowth, out IReadOnlyDictionary<int, int> objectNumberMap,
         out int flattenedCount) {
         Guard.NotNull(pdf, nameof(pdf));
+        var cancellationToken = options?.CancellationToken ?? default;
+        cancellationToken.ThrowIfCancellationRequested();
         ValidateFlattenOptions(options);
-        _ = PdfMutationPlanner.RequireFullRewrite(pdf, PdfMutationOperation.ModifyAnnotations, readOptions);
+        _ = PdfMutationPlanner.RequireFullRewrite(pdf, PdfMutationOperation.ModifyAnnotations, readOptions, cancellationToken: cancellationToken);
 
-        var (objects, trailerRaw) = PdfSyntax.ParseObjects(pdf, readOptions);
+        var (objects, trailerRaw) = PdfSyntax.ParseObjects(pdf, readOptions, out _, out _, cancellationToken);
         int catalogObjectNumber = FindCatalogObjectNumber(objects, trailerRaw);
         if (catalogObjectNumber == 0) {
             throw new ArgumentException("PDF does not contain a readable catalog.", nameof(pdf));
         }
 
         int nextObjectNumber = objects.Keys.Count == 0 ? 1 : objects.Keys.Max() + 1;
-        PdfReadDocument read = PdfReadDocument.Open(pdf, readOptions);
+        PdfReadDocument read = PdfReadDocument.Open(pdf, readOptions, cancellationToken);
+        PdfFlattenedContentGrowth.ValidateSourceAppearances(read, cancellationToken);
         var pageNumbers = new Dictionary<int, int>();
-        for (int i = 0; i < read.Pages.Count; i++) pageNumbers[read.Pages[i].ObjectNumber] = i + 1;
+        for (int i = 0; i < read.Pages.Count; i++) {
+            cancellationToken.ThrowIfCancellationRequested();
+            pageNumbers[read.Pages[i].ObjectNumber] = i + 1;
+        }
         flattenedCount = FlattenPageVisualAnnotations(
             objects,
             ref nextObjectNumber,
             options,
             pageNumbers,
+            readOptions,
             out generatedGrowth);
         if (flattenedCount == 0) {
             generatedGrowth = default;
@@ -60,8 +67,8 @@ internal static partial class PdfAnnotationFlattener {
         }
 
         return RewriteAllObjects(objects, catalogObjectNumber, read.UncheckedMetadata, out objectNumberMap,
-            PdfSourceEncryptionContext.Create(read), PdfFileAssembler.ParseHeaderVersionOrDefault(PdfSyntax.GetHeaderVersion(pdf)),
-            pdf, readOptions, generatedGrowth);
+            PdfSourceEncryptionContext.Create(read, cancellationToken), PdfFileAssembler.ParseHeaderVersionOrDefault(PdfSyntax.GetHeaderVersion(pdf)),
+            pdf, readOptions, generatedGrowth, cancellationToken);
     }
 
     private static void ValidateFlattenOptions(PdfAnnotationFlattenOptions? options) {

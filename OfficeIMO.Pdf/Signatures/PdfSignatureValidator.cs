@@ -9,6 +9,10 @@ internal static class PdfSignatureValidator {
         return ValidateCore(pdf, cryptographyProvider: null, options, security: null);
     }
 
+    /// <summary>Validates signature structure using explicit read settings and cooperative cancellation.</summary>
+    internal static PdfSignatureValidationReport Validate(byte[] pdf, PdfLoadOptions? options, CancellationToken cancellationToken) =>
+        ValidateCore(pdf, cryptographyProvider: null, options, security: null, cancellationToken);
+
     /// <summary>Validates PDF signature structure and delegates CMS, trust, timestamp, and revocation policy to an optional provider.</summary>
     public static PdfSignatureValidationReport Validate(
         byte[] pdf,

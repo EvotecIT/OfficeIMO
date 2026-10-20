@@ -16,6 +16,7 @@ internal static class PdfDocumentObjectGraphRewriter {
         long? maximumOutputBytes = null,
         bool preserveSourceEncryption = true,
         Action<IReadOnlyDictionary<int, int>>? captureObjectNumbers = null,
+        Func<PdfGeneratedOutputGrowth>? getGeneratedOutputGrowth = null,
         CancellationToken cancellationToken = default) => RewriteCore(
             sourcePdf,
             sourceDocument: null,
@@ -23,7 +24,7 @@ internal static class PdfDocumentObjectGraphRewriter {
             outputEncryption,
             mutateObjectGraph,
             maximumOutputBytes,
-            preserveSourceEncryption, captureObjectNumbers, cancellationToken);
+            preserveSourceEncryption, captureObjectNumbers, getGeneratedOutputGrowth, cancellationToken);
 
     internal static byte[] Rewrite(
         byte[] sourcePdf,
@@ -34,6 +35,7 @@ internal static class PdfDocumentObjectGraphRewriter {
         long? maximumOutputBytes = null,
         bool preserveSourceEncryption = true,
         Action<IReadOnlyDictionary<int, int>>? captureObjectNumbers = null,
+        Func<PdfGeneratedOutputGrowth>? getGeneratedOutputGrowth = null,
         CancellationToken cancellationToken = default) => RewriteCore(
             sourcePdf,
             sourceDocument,
@@ -41,7 +43,7 @@ internal static class PdfDocumentObjectGraphRewriter {
             outputEncryption,
             mutateObjectGraph,
             maximumOutputBytes,
-            preserveSourceEncryption, captureObjectNumbers, cancellationToken);
+            preserveSourceEncryption, captureObjectNumbers, getGeneratedOutputGrowth, cancellationToken);
 
     private static byte[] RewriteCore(
         byte[] sourcePdf,
@@ -51,7 +53,7 @@ internal static class PdfDocumentObjectGraphRewriter {
         Func<Dictionary<int, PdfIndirectObject>, PdfDocumentSecurityInfo, int?>? mutateObjectGraph,
         long? maximumOutputBytes,
         bool preserveSourceEncryption, Action<IReadOnlyDictionary<int, int>>? captureObjectNumbers,
-        CancellationToken cancellationToken) {
+        Func<PdfGeneratedOutputGrowth>? getGeneratedOutputGrowth, CancellationToken cancellationToken) {
         Guard.NotNull(sourcePdf, nameof(sourcePdf));
         cancellationToken.ThrowIfCancellationRequested();
         if (maximumOutputBytes <= 0L) throw new ArgumentOutOfRangeException(nameof(maximumOutputBytes));
@@ -163,7 +165,7 @@ internal static class PdfDocumentObjectGraphRewriter {
                 maximumOutputBytes.Value,
                 cancellationToken);
             return sourceEncryption?.Protect(bounded, maximumOutputBytes,
-                generatedReadOptions: PdfLoadOptions.ForGeneratedOutput(sourceReadOptions, sourcePdf, bounded),
+                generatedReadOptions: PdfLoadOptions.ForGeneratedOutput(sourceReadOptions, sourcePdf, bounded, getGeneratedOutputGrowth?.Invoke() ?? default),
                 cancellationToken: cancellationToken) ?? bounded;
         }
 
@@ -196,7 +198,7 @@ internal static class PdfDocumentObjectGraphRewriter {
                 permanentFileId,
                 cancellationToken: cancellationToken);
         return sourceEncryption?.Protect(output,
-            generatedReadOptions: PdfLoadOptions.ForGeneratedOutput(sourceReadOptions, sourcePdf, output),
+            generatedReadOptions: PdfLoadOptions.ForGeneratedOutput(sourceReadOptions, sourcePdf, output, getGeneratedOutputGrowth?.Invoke() ?? default),
             cancellationToken: cancellationToken) ?? output;
     }
 

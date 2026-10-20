@@ -1,3 +1,5 @@
+using System.Threading;
+
 namespace OfficeIMO.Pdf;
 
 internal static partial class PdfPageEditor {
@@ -9,18 +11,24 @@ internal static partial class PdfPageEditor {
     }
 
     internal static byte[] RotatePagesWithReadOptions(byte[] pdf, int rotationDegrees, PdfLoadOptions? readOptions, params int[] pageNumbers) =>
-        RotatePageAttributes(pdf, rotationDegrees, readOptions, pageNumbers, relative: false);
+        RotatePageAttributes(pdf, rotationDegrees, readOptions, pageNumbers, relative: false, default);
 
     internal static byte[] RotatePagesByWithReadOptions(byte[] pdf, int rotationDegrees, PdfLoadOptions? readOptions, params int[] pageNumbers) =>
-        RotatePageAttributes(pdf, rotationDegrees, readOptions, pageNumbers, relative: true);
+        RotatePageAttributes(pdf, rotationDegrees, readOptions, pageNumbers, relative: true, default);
 
-    private static byte[] RotatePageAttributes(byte[] pdf, int rotationDegrees, PdfLoadOptions? readOptions, int[] pageNumbers, bool relative) {
+    internal static byte[] RotatePagesWithReadOptions(byte[] pdf, int rotationDegrees, PdfLoadOptions? readOptions, CancellationToken cancellationToken, params int[] pageNumbers) =>
+        RotatePageAttributes(pdf, rotationDegrees, readOptions, pageNumbers, relative: false, cancellationToken);
+
+    internal static byte[] RotatePagesByWithReadOptions(byte[] pdf, int rotationDegrees, PdfLoadOptions? readOptions, CancellationToken cancellationToken, params int[] pageNumbers) =>
+        RotatePageAttributes(pdf, rotationDegrees, readOptions, pageNumbers, relative: true, cancellationToken);
+
+    private static byte[] RotatePageAttributes(byte[] pdf, int rotationDegrees, PdfLoadOptions? readOptions, int[] pageNumbers, bool relative, CancellationToken cancellationToken) {
         Guard.NotNull(pdf, nameof(pdf));
         Guard.NotNull(pageNumbers, nameof(pageNumbers));
-        PdfMutationPlan plan = PdfMutationPlanner.Require(pdf, PdfMutationOperation.RotatePages, readOptions);
+        PdfMutationPlan plan = PdfMutationPlanner.Require(pdf, PdfMutationOperation.RotatePages, readOptions, cancellationToken: cancellationToken);
 
         int normalizedRotation = NormalizeRotation(rotationDegrees);
-        var document = PdfReadDocument.Open(pdf, readOptions);
+        var document = PdfReadDocument.Open(pdf, readOptions, cancellationToken);
         var selectedPages = pageNumbers.Length == 0
             ? Enumerable.Range(1, document.Pages.Count).ToArray()
             : pageNumbers;
@@ -30,6 +38,7 @@ internal static partial class PdfPageEditor {
         var overrides = new Dictionary<int, Dictionary<string, PdfObject>>();
 
         for (int i = 0; i < document.Pages.Count; i++) {
+            cancellationToken.ThrowIfCancellationRequested();
             int pageNumber = i + 1;
             if (selected.Contains(pageNumber)) {
                 overrides[document.Pages[i].ObjectNumber] = new Dictionary<string, PdfObject>(StringComparer.Ordinal) {
@@ -40,7 +49,7 @@ internal static partial class PdfPageEditor {
             }
         }
 
-        return WritePageAttributes(pdf, document, overrides, plan, readOptions);
+        return WritePageAttributes(pdf, document, overrides, plan, readOptions, cancellationToken);
     }
 
     /// <summary>

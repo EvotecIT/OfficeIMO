@@ -18,7 +18,7 @@ public sealed class PdfRedactionInteroperabilityCorpusTests {
             .SelectMany(static (page, index) => page.GetTextSpansIncludingHiddenOptionalContent(requireMappedText: true).Select(span => new {
                 PageNumber = index + 1,
                 Span = span,
-                Bounds = PdfTextSpanGeometry.GetAxisAlignedBounds(span)
+                Bounds = PdfTextSpanGeometry.GetRedactionBounds(span)
             }))
             .First(static item => !string.IsNullOrWhiteSpace(item.Span.Text) && item.Bounds.Width > 0D && item.Bounds.Height > 0D);
         PdfTextSpanBounds bounds = target.Bounds;

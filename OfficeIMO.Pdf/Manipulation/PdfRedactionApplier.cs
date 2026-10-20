@@ -220,21 +220,27 @@ internal static partial class PdfRedactionApplier {
         out IReadOnlyList<PdfRedactionMatch> appliedImageMatches) {
         Guard.NotNull(pdf, nameof(pdf));
         Guard.NotNull(areas, nameof(areas));
+        PdfRedactionApplyOptions effectiveOptions = applyOptions ?? new PdfRedactionApplyOptions();
+        effectiveOptions.CancellationToken.ThrowIfCancellationRequested();
         if (mutationOperation == PdfMutationOperation.ModifyPageContent &&
             (mutationScope == RedactionMutationScope.Text || mutationScope == RedactionMutationScope.Images) &&
             !paintMarks) {
-            PdfMutationPlanner.RequireCatalogPreservingPageContentRewrite(pdf, readOptions);
+            PdfMutationPlanner.RequireCatalogPreservingPageContentRewrite(pdf, readOptions, effectiveOptions.CancellationToken);
         } else {
-            _ = PdfMutationPlanner.RequireFullRewrite(pdf, mutationOperation, readOptions);
+            _ = PdfMutationPlanner.RequireFullRewrite(pdf, mutationOperation, readOptions, cancellationToken: effectiveOptions.CancellationToken);
         }
 
-        PdfRedactionArea[] areaArray = areas.ToArray();
+        var capturedAreas = new List<PdfRedactionArea>();
+        foreach (PdfRedactionArea area in areas) {
+            effectiveOptions.CancellationToken.ThrowIfCancellationRequested();
+            capturedAreas.Add(area);
+        }
+        effectiveOptions.CancellationToken.ThrowIfCancellationRequested();
+        PdfRedactionArea[] areaArray = capturedAreas.ToArray();
         if (areaArray.Length == 0) {
             throw new ArgumentException("At least one redaction area is required.", nameof(areas));
         }
 
-        PdfRedactionApplyOptions effectiveOptions = applyOptions ?? new PdfRedactionApplyOptions();
-        effectiveOptions.CancellationToken.ThrowIfCancellationRequested();
         if (effectiveOptions.MaximumDecodedImageBytes <= 0) throw new ArgumentOutOfRangeException(nameof(applyOptions), "Maximum decoded image bytes must be positive.");
         if (!IsFiniteNonNegative(effectiveOptions.AppearanceMergeDistance)) throw new ArgumentOutOfRangeException(nameof(applyOptions), "Appearance merge distance must be finite and non-negative.");
         if (!IsFinitePositive(effectiveOptions.AppearanceWidthQuantum)) throw new ArgumentOutOfRangeException(nameof(applyOptions), "Appearance width quantum must be finite and positive.");
@@ -310,7 +316,7 @@ internal static partial class PdfRedactionApplier {
         PdfRedactionApplyOptions? applyOptions = null,
         PdfTextLayoutOptions? layoutOptions = null,
         PdfLoadOptions? readOptions = null) {
-        WriteOutput(outputStream, Apply(pdf, areas, applyOptions, layoutOptions, readOptions));
+        WriteOutput(outputStream, Apply(pdf, areas, applyOptions, layoutOptions, readOptions), applyOptions?.CancellationToken ?? default);
     }
 
     /// <summary>
@@ -332,7 +338,7 @@ internal static partial class PdfRedactionApplier {
             applyOptions,
             layoutOptions,
             readOptions);
-        WriteOutput(fullOutputPath, redacted);
+        WriteOutput(fullOutputPath, redacted, cancellationToken);
     }
 
     /// <summary>
@@ -1209,23 +1215,23 @@ internal static partial class PdfRedactionApplier {
         System.Threading.CancellationToken cancellationToken) =>
         PdfDocumentSource.FromRemainingStream(stream, readOptions, cancellationToken).Bytes;
 
-    private static void WriteOutput(Stream outputStream, byte[] bytes) {
+    private static void WriteOutput(Stream outputStream, byte[] bytes, System.Threading.CancellationToken cancellationToken) {
         Guard.NotNull(outputStream, nameof(outputStream));
         if (!outputStream.CanWrite) {
             throw new ArgumentException("Stream must be writable.", nameof(outputStream));
         }
 
-        outputStream.Write(bytes, 0, bytes.Length);
+        OfficeStreamWriter.CopyBytes(outputStream, bytes, cancellationToken);
     }
 
-    private static void WriteOutput(string outputPath, byte[] bytes) {
+    private static void WriteOutput(string outputPath, byte[] bytes, System.Threading.CancellationToken cancellationToken) {
         string fullPath = ValidateOutputPath(outputPath);
         string? directory = Path.GetDirectoryName(fullPath);
         if (!string.IsNullOrEmpty(directory)) {
             Directory.CreateDirectory(directory);
         }
 
-        OfficeFileCommit.WriteAllBytes(fullPath, bytes);
+        OfficeFileCommit.Write(fullPath, stream => OfficeStreamWriter.CopyBytes(stream, bytes, cancellationToken), cancellationToken);
     }
 
     private static string ValidateOutputPath(string outputPath) {

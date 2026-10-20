@@ -1,11 +1,13 @@
 namespace OfficeIMO.Pdf;
 
 internal static partial class PdfFormFiller {
-    private static Dictionary<string, PdfFormFieldValue> ToFormFieldValues(IReadOnlyDictionary<string, string> fieldValues) {
+    private static Dictionary<string, PdfFormFieldValue> ToFormFieldValues(IReadOnlyDictionary<string, string> fieldValues, System.Threading.CancellationToken cancellationToken = default) {
+        cancellationToken.ThrowIfCancellationRequested();
         Guard.NotNull(fieldValues, nameof(fieldValues));
 
         var converted = new Dictionary<string, PdfFormFieldValue>(fieldValues.Count, StringComparer.Ordinal);
         foreach (var pair in fieldValues) {
+            cancellationToken.ThrowIfCancellationRequested();
             if (pair.Value is null) {
                 throw new ArgumentException("Field values cannot be null. Use an empty string to clear a text value.", nameof(fieldValues));
             }
@@ -16,13 +18,15 @@ internal static partial class PdfFormFiller {
         return converted;
     }
 
-    private static void ValidateFieldValues(IReadOnlyDictionary<string, PdfFormFieldValue> fieldValues) {
+    private static void ValidateFieldValues(IReadOnlyDictionary<string, PdfFormFieldValue> fieldValues, System.Threading.CancellationToken cancellationToken = default) {
+        cancellationToken.ThrowIfCancellationRequested();
         Guard.NotNull(fieldValues, nameof(fieldValues));
         if (fieldValues.Count == 0) {
             throw new ArgumentException("At least one field value is required.", nameof(fieldValues));
         }
 
         foreach (var pair in fieldValues) {
+            cancellationToken.ThrowIfCancellationRequested();
             if (string.IsNullOrWhiteSpace(pair.Key)) {
                 throw new ArgumentException("Field names cannot be empty or whitespace.", nameof(fieldValues));
             }
@@ -36,6 +40,7 @@ internal static partial class PdfFormFiller {
             }
 
             for (int i = 0; i < pair.Value.Values.Count; i++) {
+                cancellationToken.ThrowIfCancellationRequested();
                 if (pair.Value.Values[i] is null) {
                     throw new ArgumentException("Field values cannot contain null entries. Use an empty string to clear a text value.", nameof(fieldValues));
                 }

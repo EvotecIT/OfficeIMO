@@ -186,23 +186,11 @@ public partial class PdfInspectorTests {
             "PDF page content streams use unsupported filter(s): DCTDecode.");
     }
 
-    [Fact]
-    public void Preflight_ReportsUnsupportedFormXObjectFiltersAcrossSplitContentStreams() {
-        PdfDocumentPreflight report = PdfInspector.Preflight(BuildUnsupportedFormXObjectFilterSplitAcrossContentStreamsPdf());
-
-        Assert.False(report.CanRead);
-        Assert.False(report.CanRewrite);
-        Assert.NotNull(report.DocumentInfo);
-        Assert.Equal(1, report.DocumentInfo!.PageCount);
-        AssertReadBlocker(
-            report,
-            PdfReadBlockerKind.UnsupportedContentStreamFilter,
-            "PDF page content streams use unsupported filter(s): DCTDecode.");
-    }
-
-    [Fact]
-    public void Preflight_ReportsUnsupportedFormXObjectFiltersWhenNameTokenIsSplitAcrossContentStreams() {
-        PdfDocumentPreflight report = PdfInspector.Preflight(BuildUnsupportedFormXObjectFilterSplitAcrossContentStreamsPdf("q\n/Fm", "1 Do\nQ"));
+    [Theory]
+    [InlineData("q\n/Fm1 ", "Do\nQ")]
+    [InlineData("q\n/Fm1", "Do\nQ")]
+    public void Preflight_ReportsUnsupportedFormXObjectFiltersAcrossSplitContentStreams(string firstContent, string secondContent) {
+        PdfDocumentPreflight report = PdfInspector.Preflight(BuildUnsupportedFormXObjectFilterSplitAcrossContentStreamsPdf(firstContent, secondContent));
 
         Assert.False(report.CanRead);
         Assert.False(report.CanRewrite);

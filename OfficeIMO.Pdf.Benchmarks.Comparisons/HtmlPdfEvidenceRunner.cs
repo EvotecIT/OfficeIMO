@@ -57,7 +57,7 @@ internal static class HtmlPdfEvidenceRunner {
         bool artifactsAccepted = engineReports.All(engine => engine.Status == "Passed" && engine.TimingComparable);
         bool allEnginesComparable = artifactsAccepted && cancellationPassed && processTreeMemoryPassed;
         var report = new HtmlPdfEvidenceReport(
-            SchemaVersion: 3,
+            SchemaVersion: 4,
             GeneratedUtc: DateTimeOffset.UtcNow,
             Scale: scale.ToString(),
             Iterations: iterations,
@@ -129,6 +129,7 @@ internal static class HtmlPdfEvidenceRunner {
 
         HtmlPdfCancellationEvidence cancellation = engine switch {
             HtmlPdfComparisonEngine.OfficeIMO => await ProbeOfficeImoCancellationAsync(html).ConfigureAwait(false),
+            HtmlPdfComparisonEngine.PdfPecker => await PdfPeckerGenerator.ProbeCancellationAsync(html).ConfigureAwait(false),
             HtmlPdfComparisonEngine.Chromium => await ProbeChromiumCancellationAsync(html).ConfigureAwait(false),
             _ => new HtmlPdfCancellationEvidence(
                 ApiSupportsCancellation: false,
@@ -152,6 +153,7 @@ internal static class HtmlPdfEvidenceRunner {
             Engine: engine.ToString(),
             Owner: Owner(engine),
             AssemblyVersion: AssemblyVersion(engine),
+            Package: engine == HtmlPdfComparisonEngine.PdfPecker ? PdfPeckerPackageEvidence.Read() : null,
             ExecutionKind: engine == HtmlPdfComparisonEngine.Chromium
                 ? "Fresh worker process; Chromium through HtmlTinkerX"
                 : "Fresh managed worker process",
@@ -463,6 +465,7 @@ internal static class HtmlPdfEvidenceRunner {
     private static string Owner(HtmlPdfComparisonEngine engine) => engine switch {
         HtmlPdfComparisonEngine.OfficeIMO => "OfficeIMO.Html.Pdf",
         HtmlPdfComparisonEngine.PeachPDF => "PeachPDF",
+        HtmlPdfComparisonEngine.PdfPecker => "PdfPecker",
         HtmlPdfComparisonEngine.ITextPdfHtml => "iText pdfHTML",
         HtmlPdfComparisonEngine.Chromium => "HtmlTinkerX",
         _ => throw new ArgumentOutOfRangeException(nameof(engine), engine, null)
@@ -471,6 +474,7 @@ internal static class HtmlPdfEvidenceRunner {
     private static string EngineFileName(HtmlPdfComparisonEngine engine) => engine switch {
         HtmlPdfComparisonEngine.OfficeIMO => "officeimo",
         HtmlPdfComparisonEngine.PeachPDF => "peachpdf",
+        HtmlPdfComparisonEngine.PdfPecker => "pdfpecker",
         HtmlPdfComparisonEngine.ITextPdfHtml => "itext-pdfhtml",
         HtmlPdfComparisonEngine.Chromium => "chromium-htmltinkerx",
         _ => throw new ArgumentOutOfRangeException(nameof(engine), engine, null)
@@ -480,6 +484,7 @@ internal static class HtmlPdfEvidenceRunner {
         Assembly assembly = engine switch {
             HtmlPdfComparisonEngine.OfficeIMO => typeof(OfficeIMO.Html.Pdf.HtmlToPdfOptions).Assembly,
             HtmlPdfComparisonEngine.PeachPDF => typeof(PeachPDF.PdfGenerator).Assembly,
+            HtmlPdfComparisonEngine.PdfPecker => typeof(global::PdfPecker.HtmlToPdf).Assembly,
             HtmlPdfComparisonEngine.ITextPdfHtml => typeof(iText.Html2pdf.HtmlConverter).Assembly,
             HtmlPdfComparisonEngine.Chromium => typeof(HtmlBrowser).Assembly,
             _ => throw new ArgumentOutOfRangeException(nameof(engine), engine, null)
@@ -552,7 +557,7 @@ internal static class HtmlPdfEvidenceRunner {
 
     private static void WriteHelp() {
         Console.WriteLine("html-evidence --output <directory> [--scale Easy|Medium|High] [--iterations 2-10] [--require-external-rasterizer] [--require-clean-source]");
-        Console.WriteLine("Generates equivalent four-engine PDFs and machine-readable correctness, tagging, size, repeatability, cancellation, and isolated process-tree memory evidence.");
+        Console.WriteLine("Generates equivalent five-engine PDFs and machine-readable correctness, tagging, size, repeatability, cancellation, and isolated process-tree memory evidence.");
     }
 
     private static async Task<HtmlPdfCancellationEvidence> ProbeOfficeImoCancellationAsync(string html) {

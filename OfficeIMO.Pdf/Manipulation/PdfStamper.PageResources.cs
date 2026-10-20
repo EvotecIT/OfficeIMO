@@ -18,15 +18,7 @@ internal static partial class PdfStamper {
         Dictionary<int, PdfIndirectObject> objects,
         PdfObject contentsObject,
         ref int nextObjectNumber) {
-        var isolated = new PdfArray();
-        int saveStateObjectNumber = checked(nextObjectNumber++);
-        int restoreStateObjectNumber = checked(nextObjectNumber++);
-        objects[saveStateObjectNumber] = new PdfIndirectObject(saveStateObjectNumber, 0, new PdfStream(new PdfDictionary(), PdfEncoding.Latin1GetBytes("q\n")));
-        objects[restoreStateObjectNumber] = new PdfIndirectObject(restoreStateObjectNumber, 0, new PdfStream(new PdfDictionary(), PdfEncoding.Latin1GetBytes("\nQ\n")));
-        isolated.Items.Add(new PdfReference(saveStateObjectNumber, 0));
-        AppendContentEntries(objects, isolated, contentsObject);
-        isolated.Items.Add(new PdfReference(restoreStateObjectNumber, 0));
-        return isolated;
+        return PdfPageContentIsolation.Isolate(objects, contentsObject, ref nextObjectNumber);
     }
 
     private static Dictionary<string, PdfObject> BuildPageOverrides(

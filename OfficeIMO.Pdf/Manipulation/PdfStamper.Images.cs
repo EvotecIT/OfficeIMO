@@ -19,7 +19,7 @@ internal static partial class PdfStamper {
     /// Adds an image stamp to selected pages from the current position of a readable stream, or every page when no page selection is supplied.
     /// </summary>
     public static byte[] StampImage(Stream stream, byte[] imageBytes, PdfImageStampOptions? options = null) {
-        return StampImage(ReadStream(stream, nameof(stream)), imageBytes, options);
+        return StampImage(ReadStream(stream, nameof(stream), cancellationToken: options?.CancellationToken ?? default), imageBytes, options);
     }
 
     /// <summary>
@@ -27,7 +27,7 @@ internal static partial class PdfStamper {
     /// </summary>
     public static byte[] StampImage(Stream stream, Stream imageStream, PdfImageStampOptions? options = null) {
         return StampImage(
-            ReadStream(stream, nameof(stream)),
+            ReadStream(stream, nameof(stream), cancellationToken: options?.CancellationToken ?? default),
             ReadImageStream(imageStream, nameof(imageStream), options),
             options);
     }
@@ -36,34 +36,40 @@ internal static partial class PdfStamper {
     /// Adds an image stamp to selected pages and writes the result to <paramref name="outputStream"/>.
     /// </summary>
     public static void StampImage(byte[] pdf, Stream outputStream, byte[] imageBytes, PdfImageStampOptions? options = null) {
-        WriteOutput(outputStream, StampImage(pdf, imageBytes, options));
+        ValidateWritableOutputStream(outputStream);
+        WriteOutput(outputStream, StampImage(pdf, imageBytes, options), options?.CancellationToken ?? default);
     }
 
     /// <summary>
     /// Adds an image stamp from the current position of a readable image stream and writes the result to <paramref name="outputStream"/>.
     /// </summary>
     public static void StampImage(byte[] pdf, Stream outputStream, Stream imageStream, PdfImageStampOptions? options = null) {
-        WriteOutput(outputStream, StampImage(pdf, imageStream, options));
+        ValidateWritableOutputStream(outputStream);
+        WriteOutput(outputStream, StampImage(pdf, imageStream, options), options?.CancellationToken ?? default);
     }
 
     /// <summary>
     /// Adds an image stamp from the current position of a readable PDF stream and writes the result to <paramref name="outputStream"/>.
     /// </summary>
     public static void StampImage(Stream stream, Stream outputStream, byte[] imageBytes, PdfImageStampOptions? options = null) {
-        WriteOutput(outputStream, StampImage(stream, imageBytes, options));
+        ValidateWritableOutputStream(outputStream);
+        WriteOutput(outputStream, StampImage(stream, imageBytes, options), options?.CancellationToken ?? default);
     }
 
     /// <summary>
     /// Adds an image stamp from the current position of readable PDF and image streams and writes the result to <paramref name="outputStream"/>.
     /// </summary>
     public static void StampImage(Stream stream, Stream outputStream, Stream imageStream, PdfImageStampOptions? options = null) {
-        WriteOutput(outputStream, StampImage(stream, imageStream, options));
+        ValidateWritableOutputStream(outputStream);
+        WriteOutput(outputStream, StampImage(stream, imageStream, options), options?.CancellationToken ?? default);
     }
 
     private static byte[] StampImageCore(byte[] pdf, byte[] imageBytes, PdfImageStampOptions? options, bool watermarkDefaults, PdfLoadOptions? readOptions = null) {
         Guard.NotNull(pdf, nameof(pdf));
         Guard.NotNull(imageBytes, nameof(imageBytes));
-        PdfMutationPlanner.RequireCatalogPreservingPageContentRewrite(pdf, readOptions);
+        var cancellationToken = options?.CancellationToken ?? default;
+        cancellationToken.ThrowIfCancellationRequested();
+        PdfMutationPlanner.RequireCatalogPreservingPageContentRewrite(pdf, readOptions, cancellationToken);
         if (imageBytes.Length == 0) {
             throw new ArgumentException("Image bytes cannot be empty.", nameof(imageBytes));
         }
@@ -71,7 +77,7 @@ internal static partial class PdfStamper {
         var effectiveOptions = options ?? new PdfImageStampOptions();
         PdfImageInput.EnsureWithinLimit(imageBytes.LongLength, effectiveOptions.MaximumEncodedImageBytes);
         ValidateImageOptions(effectiveOptions);
-        PdfDocument.PreparedImage prepared = PdfDocument.PrepareImageDocumentSource(imageBytes, default);
+        PdfDocument.PreparedImage prepared = PdfDocument.PrepareImageDocumentSource(imageBytes, cancellationToken);
 
         if (!PdfWriter.TryBuildImageStream(
                 prepared,
@@ -82,8 +88,8 @@ internal static partial class PdfStamper {
             throw new NotSupportedException(unsupportedReason ?? "Image format is not supported.");
         }
 
-        Dictionary<int, PdfIndirectObject> objects = PdfSyntax.ParseObjects(pdf, readOptions).Map;
-        var document = PdfReadDocument.Open(pdf, readOptions);
+        Dictionary<int, PdfIndirectObject> objects = PdfSyntax.ParseObjects(pdf, readOptions, out _, out _, cancellationToken).Map;
+        var document = PdfReadDocument.Open(pdf, readOptions, cancellationToken);
         if (document.Pages.Count == 0) {
             throw new ArgumentException("PDF does not contain any pages.", nameof(pdf));
         }
@@ -101,6 +107,7 @@ internal static partial class PdfStamper {
             }, PdfFileAssembler.ResolveFileVersion(PdfSyntax.GetHeaderVersion(pdf), document.CatalogVersion));
 
             for (int i = 0; i < document.Pages.Count; i++) {
+                cancellationToken.ThrowIfCancellationRequested();
                 int pageNumber = i + 1;
                 if (!selectedSet.Contains(pageNumber)) continue;
                 var size = document.Pages[i].GetPageSize();
@@ -134,7 +141,7 @@ internal static partial class PdfStamper {
             return security.InfoObjectNumber.HasValue && rewrittenObjects.ContainsKey(security.InfoObjectNumber.Value)
                 ? security.InfoObjectNumber
                 : null;
-        });
+        }, cancellationToken: cancellationToken);
     }
 
     /// <summary>
@@ -145,7 +152,7 @@ internal static partial class PdfStamper {
         Guard.NotNull(outputPath, nameof(outputPath));
 
         string fullOutputPath = ValidateOutputPath(outputPath);
-        WriteOutput(fullOutputPath, StampImage(ReadPath(inputPath), imageBytes, options));
+        WriteOutput(fullOutputPath, StampImage(ReadPath(inputPath, options?.CancellationToken ?? default), imageBytes, options), options?.CancellationToken ?? default);
     }
 
     /// <summary>
@@ -155,7 +162,8 @@ internal static partial class PdfStamper {
         Guard.NotNullOrWhiteSpace(inputPath, nameof(inputPath));
         ValidateWritableOutputStream(outputStream);
 
-        WriteOutput(outputStream, StampImage(ReadPath(inputPath), imageBytes, options));
+        ValidateWritableOutputStream(outputStream);
+        WriteOutput(outputStream, StampImage(ReadPath(inputPath, options?.CancellationToken ?? default), imageBytes, options), options?.CancellationToken ?? default);
     }
 
     /// <summary>
@@ -166,7 +174,7 @@ internal static partial class PdfStamper {
         Guard.NotNull(outputPath, nameof(outputPath));
 
         string fullOutputPath = ValidateOutputPath(outputPath);
-        WriteOutput(fullOutputPath, StampImage(ReadPath(inputPath), imageStream, options));
+        WriteOutput(fullOutputPath, StampImage(ReadPath(inputPath, options?.CancellationToken ?? default), imageStream, options), options?.CancellationToken ?? default);
     }
 
     /// <summary>
@@ -176,7 +184,8 @@ internal static partial class PdfStamper {
         Guard.NotNullOrWhiteSpace(inputPath, nameof(inputPath));
         ValidateWritableOutputStream(outputStream);
 
-        WriteOutput(outputStream, StampImage(ReadPath(inputPath), imageStream, options));
+        ValidateWritableOutputStream(outputStream);
+        WriteOutput(outputStream, StampImage(ReadPath(inputPath, options?.CancellationToken ?? default), imageStream, options), options?.CancellationToken ?? default);
     }
 
     /// <summary>
@@ -186,7 +195,7 @@ internal static partial class PdfStamper {
         Guard.NotNull(outputPath, nameof(outputPath));
 
         string fullOutputPath = ValidateOutputPath(outputPath);
-        WriteOutput(fullOutputPath, StampImage(stream, imageBytes, options));
+        WriteOutput(fullOutputPath, StampImage(stream, imageBytes, options), options?.CancellationToken ?? default);
     }
 
     /// <summary>
@@ -196,7 +205,7 @@ internal static partial class PdfStamper {
         Guard.NotNull(outputPath, nameof(outputPath));
 
         string fullOutputPath = ValidateOutputPath(outputPath);
-        WriteOutput(fullOutputPath, StampImage(stream, imageStream, options));
+        WriteOutput(fullOutputPath, StampImage(stream, imageStream, options), options?.CancellationToken ?? default);
     }
 
     /// <summary>
@@ -205,7 +214,7 @@ internal static partial class PdfStamper {
     public static byte[] StampImageToBytes(string inputPath, byte[] imageBytes, PdfImageStampOptions? options = null) {
         Guard.NotNullOrWhiteSpace(inputPath, nameof(inputPath));
 
-        return StampImage(ReadPath(inputPath), imageBytes, options);
+        return StampImage(ReadPath(inputPath, options?.CancellationToken ?? default), imageBytes, options);
     }
 
     /// <summary>
@@ -214,7 +223,7 @@ internal static partial class PdfStamper {
     public static byte[] StampImageToBytes(string inputPath, Stream imageStream, PdfImageStampOptions? options = null) {
         Guard.NotNullOrWhiteSpace(inputPath, nameof(inputPath));
 
-        return StampImage(ReadPath(inputPath), imageStream, options);
+        return StampImage(ReadPath(inputPath, options?.CancellationToken ?? default), imageStream, options);
     }
 
     /// <summary>
@@ -239,7 +248,7 @@ internal static partial class PdfStamper {
     /// Simple PNG alpha and transparency soft masks are supported for compatible PNG inputs.
     /// </summary>
     public static byte[] WatermarkImage(Stream stream, byte[] imageBytes, PdfImageStampOptions? options = null) {
-        return WatermarkImage(ReadStream(stream, nameof(stream)), imageBytes, options);
+        return WatermarkImage(ReadStream(stream, nameof(stream), cancellationToken: options?.CancellationToken ?? default), imageBytes, options);
     }
 
     /// <summary>
@@ -248,7 +257,7 @@ internal static partial class PdfStamper {
     /// </summary>
     public static byte[] WatermarkImage(Stream stream, Stream imageStream, PdfImageStampOptions? options = null) {
         return WatermarkImage(
-            ReadStream(stream, nameof(stream)),
+            ReadStream(stream, nameof(stream), cancellationToken: options?.CancellationToken ?? default),
             ReadImageStream(imageStream, nameof(imageStream), options),
             options);
     }
@@ -258,7 +267,8 @@ internal static partial class PdfStamper {
     /// Simple PNG alpha and transparency soft masks are supported for compatible PNG inputs.
     /// </summary>
     public static void WatermarkImage(byte[] pdf, Stream outputStream, byte[] imageBytes, PdfImageStampOptions? options = null) {
-        WriteOutput(outputStream, WatermarkImage(pdf, imageBytes, options));
+        ValidateWritableOutputStream(outputStream);
+        WriteOutput(outputStream, WatermarkImage(pdf, imageBytes, options), options?.CancellationToken ?? default);
     }
 
     /// <summary>
@@ -266,7 +276,8 @@ internal static partial class PdfStamper {
     /// Simple PNG alpha and transparency soft masks are supported for compatible PNG inputs.
     /// </summary>
     public static void WatermarkImage(byte[] pdf, Stream outputStream, Stream imageStream, PdfImageStampOptions? options = null) {
-        WriteOutput(outputStream, WatermarkImage(pdf, imageStream, options));
+        ValidateWritableOutputStream(outputStream);
+        WriteOutput(outputStream, WatermarkImage(pdf, imageStream, options), options?.CancellationToken ?? default);
     }
 
     /// <summary>
@@ -274,7 +285,8 @@ internal static partial class PdfStamper {
     /// Simple PNG alpha and transparency soft masks are supported for compatible PNG inputs.
     /// </summary>
     public static void WatermarkImage(Stream stream, Stream outputStream, byte[] imageBytes, PdfImageStampOptions? options = null) {
-        WriteOutput(outputStream, WatermarkImage(stream, imageBytes, options));
+        ValidateWritableOutputStream(outputStream);
+        WriteOutput(outputStream, WatermarkImage(stream, imageBytes, options), options?.CancellationToken ?? default);
     }
 
     /// <summary>
@@ -282,7 +294,8 @@ internal static partial class PdfStamper {
     /// Simple PNG alpha and transparency soft masks are supported for compatible PNG inputs.
     /// </summary>
     public static void WatermarkImage(Stream stream, Stream outputStream, Stream imageStream, PdfImageStampOptions? options = null) {
-        WriteOutput(outputStream, WatermarkImage(stream, imageStream, options));
+        ValidateWritableOutputStream(outputStream);
+        WriteOutput(outputStream, WatermarkImage(stream, imageStream, options), options?.CancellationToken ?? default);
     }
 
     /// <summary>
@@ -294,7 +307,7 @@ internal static partial class PdfStamper {
         Guard.NotNull(outputPath, nameof(outputPath));
 
         string fullOutputPath = ValidateOutputPath(outputPath);
-        WriteOutput(fullOutputPath, WatermarkImage(ReadPath(inputPath), imageBytes, options));
+        WriteOutput(fullOutputPath, WatermarkImage(ReadPath(inputPath, options?.CancellationToken ?? default), imageBytes, options), options?.CancellationToken ?? default);
     }
 
     /// <summary>
@@ -305,7 +318,8 @@ internal static partial class PdfStamper {
         Guard.NotNullOrWhiteSpace(inputPath, nameof(inputPath));
         ValidateWritableOutputStream(outputStream);
 
-        WriteOutput(outputStream, WatermarkImage(ReadPath(inputPath), imageBytes, options));
+        ValidateWritableOutputStream(outputStream);
+        WriteOutput(outputStream, WatermarkImage(ReadPath(inputPath, options?.CancellationToken ?? default), imageBytes, options), options?.CancellationToken ?? default);
     }
 
     /// <summary>
@@ -317,7 +331,7 @@ internal static partial class PdfStamper {
         Guard.NotNull(outputPath, nameof(outputPath));
 
         string fullOutputPath = ValidateOutputPath(outputPath);
-        WriteOutput(fullOutputPath, WatermarkImage(ReadPath(inputPath), imageStream, options));
+        WriteOutput(fullOutputPath, WatermarkImage(ReadPath(inputPath, options?.CancellationToken ?? default), imageStream, options), options?.CancellationToken ?? default);
     }
 
     /// <summary>
@@ -328,7 +342,8 @@ internal static partial class PdfStamper {
         Guard.NotNullOrWhiteSpace(inputPath, nameof(inputPath));
         ValidateWritableOutputStream(outputStream);
 
-        WriteOutput(outputStream, WatermarkImage(ReadPath(inputPath), imageStream, options));
+        ValidateWritableOutputStream(outputStream);
+        WriteOutput(outputStream, WatermarkImage(ReadPath(inputPath, options?.CancellationToken ?? default), imageStream, options), options?.CancellationToken ?? default);
     }
 
     /// <summary>
@@ -339,7 +354,7 @@ internal static partial class PdfStamper {
         Guard.NotNull(outputPath, nameof(outputPath));
 
         string fullOutputPath = ValidateOutputPath(outputPath);
-        WriteOutput(fullOutputPath, WatermarkImage(stream, imageBytes, options));
+        WriteOutput(fullOutputPath, WatermarkImage(stream, imageBytes, options), options?.CancellationToken ?? default);
     }
 
     /// <summary>
@@ -350,7 +365,7 @@ internal static partial class PdfStamper {
         Guard.NotNull(outputPath, nameof(outputPath));
 
         string fullOutputPath = ValidateOutputPath(outputPath);
-        WriteOutput(fullOutputPath, WatermarkImage(stream, imageStream, options));
+        WriteOutput(fullOutputPath, WatermarkImage(stream, imageStream, options), options?.CancellationToken ?? default);
     }
 
     /// <summary>
@@ -360,7 +375,7 @@ internal static partial class PdfStamper {
     public static byte[] WatermarkImageToBytes(string inputPath, byte[] imageBytes, PdfImageStampOptions? options = null) {
         Guard.NotNullOrWhiteSpace(inputPath, nameof(inputPath));
 
-        return WatermarkImage(ReadPath(inputPath), imageBytes, options);
+        return WatermarkImage(ReadPath(inputPath, options?.CancellationToken ?? default), imageBytes, options);
     }
 
     /// <summary>
@@ -370,7 +385,7 @@ internal static partial class PdfStamper {
     public static byte[] WatermarkImageToBytes(string inputPath, Stream imageStream, PdfImageStampOptions? options = null) {
         Guard.NotNullOrWhiteSpace(inputPath, nameof(inputPath));
 
-        return WatermarkImage(ReadPath(inputPath), imageStream, options);
+        return WatermarkImage(ReadPath(inputPath, options?.CancellationToken ?? default), imageStream, options);
     }
 
     private static PdfImageStampOptions BuildImageWatermarkOptions(PdfImageStampOptions? options) {
@@ -381,6 +396,7 @@ internal static partial class PdfStamper {
         }
 
         var effective = new PdfImageStampOptions {
+            CancellationToken = options.CancellationToken,
             PageNumbers = options.PageNumbers,
             X = options.X,
             Y = options.Y,

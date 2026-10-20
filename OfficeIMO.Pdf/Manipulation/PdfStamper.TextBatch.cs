@@ -54,7 +54,7 @@ internal static partial class PdfStamper {
                 int restoreStateObjectNumber = nextObjectNumber++;
                 int stampObjectNumber = nextObjectNumber++;
                 rewrittenObjects[saveStateObjectNumber] = new PdfIndirectObject(saveStateObjectNumber, 0, new PdfStream(new PdfDictionary(), PdfEncoding.Latin1GetBytes("q\n")));
-                rewrittenObjects[restoreStateObjectNumber] = new PdfIndirectObject(restoreStateObjectNumber, 0, new PdfStream(new PdfDictionary(), PdfEncoding.Latin1GetBytes("Q\n")));
+                rewrittenObjects[restoreStateObjectNumber] = new PdfIndirectObject(restoreStateObjectNumber, 0, new PdfStream(new PdfDictionary(), PdfEncoding.Latin1GetBytes("\nQ\n")));
                 rewrittenObjects[stampObjectNumber] = new PdfIndirectObject(
                     stampObjectNumber,
                     0,

@@ -13,6 +13,15 @@ internal sealed class HtmlCssGeneratedContentTemplate {
     internal bool IsEmpty => _segments.Count == 0;
     internal bool ContainsRunningElement => _segments.Any(segment => segment.RunningElementName != null);
 
+    /// <summary>Names whose assigned text can contribute to this margin template.</summary>
+    internal IEnumerable<string> ReferencedRunningStringNames {
+        get {
+            foreach (Segment segment in _segments) {
+                if (segment.RunningStringName != null) yield return segment.RunningStringName;
+            }
+        }
+    }
+
     internal bool TryGetRunningElement(out string name, out HtmlCssRunningStringPosition position) {
         name = string.Empty;
         position = HtmlCssRunningStringPosition.First;
@@ -92,12 +101,12 @@ internal sealed class HtmlCssGeneratedContentTemplate {
         while (cursor < value.Length) {
             char current = value[cursor++];
             if (current == quote) {
-                text = result.ToString();
+                text = HtmlCssEscapeDecoder.Decode(result.ToString());
                 return true;
             }
 
-            if (current == '\\' && cursor < value.Length) current = value[cursor++];
-            result.Append(current);
+            if (current == '\\' && cursor < value.Length) result.Append(current).Append(value[cursor++]);
+            else result.Append(current);
         }
 
         text = string.Empty;

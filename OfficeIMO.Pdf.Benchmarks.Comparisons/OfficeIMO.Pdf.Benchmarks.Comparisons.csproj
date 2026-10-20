@@ -8,6 +8,7 @@
     <LangVersion>Latest</LangVersion>
     <IsPackable>false</IsPackable>
     <PeachPdfBenchmarkVersion>0.9.23</PeachPdfBenchmarkVersion>
+    <PdfPeckerBenchmarkVersion>1.16.0</PdfPeckerBenchmarkVersion>
     <QuestPdfBenchmarkVersion Condition="'$(QuestPdfBenchmarkVersion)' == ''">2026.5.0</QuestPdfBenchmarkVersion>
     <QuestPdfInternalAuthorization Condition="'$(QuestPdfInternalAuthorization)' == ''">false</QuestPdfInternalAuthorization>
     <HtmlTinkerXProjectPath Condition="'$(HtmlTinkerXProjectPath)' == '' and '$(HTMLTINKERX_PROJECT_PATH)' != ''">$(HTMLTINKERX_PROJECT_PATH)</HtmlTinkerXProjectPath>
@@ -15,6 +16,7 @@
 
   <ItemGroup>
     <AssemblyMetadata Include="PeachPdfBenchmarkVersion" Value="$(PeachPdfBenchmarkVersion)" />
+    <AssemblyMetadata Include="PdfPeckerBenchmarkVersion" Value="$(PdfPeckerBenchmarkVersion)" />
     <AssemblyMetadata Include="QuestPdfBenchmarkVersion" Value="$(QuestPdfBenchmarkVersion)" />
     <AssemblyMetadata Include="QuestPdfInternalAuthorization" Value="$(QuestPdfInternalAuthorization)" />
   </ItemGroup>
@@ -41,6 +43,7 @@
     <PackageReference Include="PdfPig" Version="0.1.15" />
     <PackageReference Include="PDFsharp-MigraDoc" Version="6.2.4" />
     <PackageReference Include="PeachPDF" Version="$(PeachPdfBenchmarkVersion)" />
+    <PackageReference Include="PdfPecker" Version="$(PdfPeckerBenchmarkVersion)" GeneratePathProperty="true" />
     <!--
       2026.5.0 is the last QuestPDF release whose embedded Community license
       grants eligible open-source projects the MIT license. Starting with
@@ -99,6 +102,9 @@
   </ItemGroup>
 
   <ItemGroup>
+    <None Include="$(PkgPdfPecker)/pdfpecker.nuspec;$(PkgPdfPecker)/LICENSE;$(PkgPdfPecker)/THIRD-PARTY-NOTICES.md;$(PkgPdfPecker)/pdfpecker.$(PdfPeckerBenchmarkVersion).nupkg.sha512"
+          Link="Licenses/PdfPecker/%(Filename)%(Extension)"
+          CopyToOutputDirectory="PreserveNewest" />
     <None Include="Corpus\pdf-corpus.json"
           CopyToOutputDirectory="PreserveNewest" />
     <None Update="Corpus\html-h10-page-selection.json"

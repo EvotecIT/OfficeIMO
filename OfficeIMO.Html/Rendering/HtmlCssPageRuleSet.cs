@@ -25,6 +25,10 @@ internal sealed class HtmlCssPageRuleSet {
 
     internal int RuleCount => _rules.Count;
 
+    // Page-context viewport fallback uses the caller's print paper, before @page overrides.
+    internal double? InitialPageWidth => _baseWidth;
+    internal double? InitialPageHeight => _baseHeight;
+
     internal HtmlCssPageGeometry ResolveGeometry(int pageNumber, string? pageName, HtmlRenderOptions options) {
         return ResolveGeometry(MatchingRules(pageNumber, pageName), options);
     }
@@ -195,7 +199,7 @@ internal sealed class HtmlCssPageRuleSet {
 
         var resolved = new Dictionary<HtmlCssPageMarginPosition, HtmlCssPageMarginTemplate>();
         foreach (KeyValuePair<HtmlCssPageMarginPosition, HtmlCssPageMarginCascade> pair in cascaded) {
-            if (pair.Value.TryBuild(pair.Key, geometry, options, out HtmlCssPageMarginTemplate? template)) {
+            if (pair.Value.TryBuild(pair.Key, _baseWidth ?? geometry.Width, _baseHeight ?? geometry.Height, options, out HtmlCssPageMarginTemplate? template)) {
                 resolved[pair.Key] = template!;
             }
         }
@@ -365,6 +369,7 @@ internal sealed class HtmlCssPageRuleSet {
         private HtmlCssPageCascadeValue _fontSize;
         private HtmlCssPageCascadeValue _fontWeight;
         private HtmlCssPageCascadeValue _fontStyle;
+        private HtmlCssPageCascadeValue _lineHeight;
         private HtmlCssPageCascadeValue _color;
         private HtmlCssPageCascadeValue _textAlign;
 
@@ -374,17 +379,19 @@ internal sealed class HtmlCssPageRuleSet {
             HtmlCssPageRuleSet.Consider(ref _fontSize, marginRule.FontSize, pageRule);
             HtmlCssPageRuleSet.Consider(ref _fontWeight, marginRule.FontWeight, pageRule);
             HtmlCssPageRuleSet.Consider(ref _fontStyle, marginRule.FontStyle, pageRule);
+            HtmlCssPageRuleSet.Consider(ref _lineHeight, marginRule.LineHeight, pageRule);
             HtmlCssPageRuleSet.Consider(ref _color, marginRule.Color, pageRule);
             HtmlCssPageRuleSet.Consider(ref _textAlign, marginRule.TextAlign, pageRule);
         }
 
-        internal bool TryBuild(HtmlCssPageMarginPosition position, HtmlCssPageGeometry geometry, HtmlRenderOptions options, out HtmlCssPageMarginTemplate? template) {
+        internal bool TryBuild(HtmlCssPageMarginPosition position, double viewportWidth, double viewportHeight, HtmlRenderOptions options, out HtmlCssPageMarginTemplate? template) {
             template = null;
             HtmlCssPageCascadeValue contentValue = ResolveLayerRevert(_content);
             HtmlCssPageCascadeValue fontFamilyValue = ResolveLayerRevert(_fontFamily);
             HtmlCssPageCascadeValue fontSizeCascadeValue = ResolveLayerRevert(_fontSize);
             HtmlCssPageCascadeValue fontWeightValue = ResolveLayerRevert(_fontWeight);
             HtmlCssPageCascadeValue fontStyleValue = ResolveLayerRevert(_fontStyle);
+            HtmlCssPageCascadeValue lineHeightValue = ResolveLayerRevert(_lineHeight);
             HtmlCssPageCascadeValue colorValue = ResolveLayerRevert(_color);
             HtmlCssPageCascadeValue textAlignValue = ResolveLayerRevert(_textAlign);
             if (!contentValue.HasValue || !HtmlCssGeneratedContentTemplate.TryParse(contentValue.Value, out HtmlCssGeneratedContentTemplate content)) return false;
@@ -392,10 +399,11 @@ internal sealed class HtmlCssPageRuleSet {
             string family = HtmlRenderCssValues.FontFamilyList(fontFamilyValue.HasValue ? fontFamilyValue.Value : string.Empty, options.DefaultFontFamily);
             string fontSizeValue = fontSizeCascadeValue.HasValue ? fontSizeCascadeValue.Value : string.Empty;
             double fontSize = options.DefaultFontSize;
-            if (!HtmlRenderCssValues.TryLength(fontSizeValue, options.DefaultFontSize, options.DefaultFontSize, options.DefaultFontSize, geometry.Width, geometry.Height, out fontSize)
-                || fontSize <= 0D) {
+            if (!HtmlRenderCssValues.TryLength(fontSizeValue, options.DefaultFontSize, options.DefaultFontSize, options.DefaultFontSize, viewportWidth, viewportHeight, double.NaN, double.NaN, out fontSize, out bool calculatedSize)
+                || fontSize < 0D && !calculatedSize) {
                 fontSize = options.DefaultFontSize;
             }
+            fontSize = Math.Max(0D, fontSize);
 
             OfficeFontStyle fontStyle = OfficeFontStyle.Regular;
             string weight = fontWeightValue.HasValue ? fontWeightValue.Value : string.Empty;
@@ -420,7 +428,8 @@ internal sealed class HtmlCssPageRuleSet {
                 content,
                 new OfficeFontInfo(family, fontSize, fontStyle),
                 color,
-                alignment);
+                alignment,
+                lineHeightValue.HasValue ? lineHeightValue.Value : string.Empty);
             return true;
         }
     }
@@ -506,6 +515,7 @@ internal sealed class HtmlCssPageMarginRule {
         HtmlCssPageDeclaration fontSize,
         HtmlCssPageDeclaration fontWeight,
         HtmlCssPageDeclaration fontStyle,
+        HtmlCssPageDeclaration lineHeight,
         HtmlCssPageDeclaration color,
         HtmlCssPageDeclaration textAlign) {
         Content = content;
@@ -513,6 +523,7 @@ internal sealed class HtmlCssPageMarginRule {
         FontSize = fontSize;
         FontWeight = fontWeight;
         FontStyle = fontStyle;
+        LineHeight = lineHeight;
         Color = color;
         TextAlign = textAlign;
     }
@@ -522,6 +533,7 @@ internal sealed class HtmlCssPageMarginRule {
     internal HtmlCssPageDeclaration FontSize { get; }
     internal HtmlCssPageDeclaration FontWeight { get; }
     internal HtmlCssPageDeclaration FontStyle { get; }
+    internal HtmlCssPageDeclaration LineHeight { get; }
     internal HtmlCssPageDeclaration Color { get; }
     internal HtmlCssPageDeclaration TextAlign { get; }
     internal bool IsEmpty => Content.Value.Length == 0
@@ -529,6 +541,7 @@ internal sealed class HtmlCssPageMarginRule {
         && FontSize.Value.Length == 0
         && FontWeight.Value.Length == 0
         && FontStyle.Value.Length == 0
+        && LineHeight.Value.Length == 0
         && Color.Value.Length == 0
         && TextAlign.Value.Length == 0;
 
@@ -539,6 +552,7 @@ internal sealed class HtmlCssPageMarginRule {
             Choose(earlier.FontSize, later.FontSize),
             Choose(earlier.FontWeight, later.FontWeight),
             Choose(earlier.FontStyle, later.FontStyle),
+            Choose(earlier.LineHeight, later.LineHeight),
             Choose(earlier.Color, later.Color),
             Choose(earlier.TextAlign, later.TextAlign));
 
@@ -596,12 +610,13 @@ internal readonly struct HtmlCssPageGeometryDeclaration {
 }
 
 internal sealed class HtmlCssPageMarginTemplate {
-    internal HtmlCssPageMarginTemplate(HtmlCssPageMarginPosition position, HtmlCssGeneratedContentTemplate content, OfficeFontInfo font, OfficeColor color, OfficeTextAlignment alignment) {
+    internal HtmlCssPageMarginTemplate(HtmlCssPageMarginPosition position, HtmlCssGeneratedContentTemplate content, OfficeFontInfo font, OfficeColor color, OfficeTextAlignment alignment, string lineHeight) {
         Position = position;
         Content = content;
         Font = font;
         Color = color;
         Alignment = alignment;
+        LineHeight = lineHeight;
     }
 
     internal HtmlCssPageMarginPosition Position { get; }
@@ -609,6 +624,8 @@ internal sealed class HtmlCssPageMarginTemplate {
     internal OfficeFontInfo Font { get; }
     internal OfficeColor Color { get; }
     internal OfficeTextAlignment Alignment { get; }
+    /// <summary>Cascaded CSS line height retained for resolution against the selected font during layout.</summary>
+    internal string LineHeight { get; }
 }
 
 internal enum HtmlCssPageSelector {

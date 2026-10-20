@@ -421,6 +421,7 @@
     var names = {
       'pdf-structured-generation-net10.0': 'PDF · structured generation',
       'pdf-html-generation-net10.0': 'PDF · HTML generation',
+      'pdf-html-21k-payload-net10.0': 'PDF · HTML text and tables',
       'pdf-merge-net10.0': 'PDF · merge',
       'pdf-split-net10.0': 'PDF · split',
       'pdf-page-selection-net10.0': 'PDF · page selection',

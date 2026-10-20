@@ -3,22 +3,29 @@ using System;
 namespace OfficeIMO.Pdf;
 
 internal static class PdfTextSpanGeometry {
-    internal static PdfTextSpanBounds GetAxisAlignedBounds(PdfTextSpan span) {
+    internal static PdfTextSpanBounds GetAxisAlignedBounds(PdfTextSpan span) =>
+        GetPaintedGlyphBounds(span, forRedaction: false);
+
+    /// <summary>Returns the glyph envelope used consistently by destructive redaction in PDF page coordinates.</summary>
+    /// <remarks>The positive text-space y axis is the ascent direction, including scaled and sheared text matrices.</remarks>
+    internal static PdfTextSpanBounds GetRedactionBounds(PdfTextSpan span) =>
+        GetPaintedGlyphBounds(span, forRedaction: true);
+
+    private static PdfTextSpanBounds GetPaintedGlyphBounds(PdfTextSpan span, bool forRedaction) {
         if (!TryGetPaintedGlyphGeometry(
             span,
             out double[] boundaries,
             out IReadOnlyList<int> glyphCharacterLengths,
             out IReadOnlyList<double> glyphPaintedAdvances)) {
-            return GetAxisAlignedBounds(span, 0D, span.Advance);
+            return forRedaction ? GetRedactionGlyphBounds(span, 0D, span.Advance) : GetAxisAlignedBounds(span, 0D, span.Advance);
         }
 
         PdfTextSpanBounds result = default;
         int characterOffset = 0;
         for (int index = 0; index < glyphCharacterLengths.Count; index++) {
-            PdfTextSpanBounds glyphBounds = GetAxisAlignedBounds(
-                span,
-                boundaries[characterOffset],
-                glyphPaintedAdvances[index]);
+            PdfTextSpanBounds glyphBounds = forRedaction
+                ? GetRedactionGlyphBounds(span, boundaries[characterOffset], glyphPaintedAdvances[index])
+                : GetAxisAlignedBounds(span, boundaries[characterOffset], glyphPaintedAdvances[index]);
             result = index == 0 ? glyphBounds : Union(result, glyphBounds);
             characterOffset += glyphCharacterLengths[index];
         }
@@ -29,7 +36,7 @@ internal static class PdfTextSpanGeometry {
         GetAxisAlignedBoundsCore(span, advanceOffset, advance, -1D, 0.5D);
 
     // PDF glyphs ascend along the positive baseline normal in page user space.
-    // Keep the legacy selection envelope above separate from precise redaction marks.
+    // Keep the legacy selection envelope above separate from destructive redaction marks.
     internal static PdfTextSpanBounds GetRedactionGlyphBounds(PdfTextSpan span, double advanceOffset, double advance) =>
         GetAxisAlignedBoundsCore(span, advanceOffset, advance, 1D, -0.25D, useSourceTransform: true);
 
@@ -52,8 +59,8 @@ internal static class PdfTextSpanGeometry {
         double normalX = -alongY * fontSize;
         double normalY = alongX * fontSize;
         if (useSourceTransform && span.TextToPageTransform is Matrix2D transform) {
-            normalX = transform.C * span.FontSize;
-            normalY = transform.D * span.FontSize;
+            normalX = transform.C * span.TextSpaceFontSize;
+            normalY = transform.D * span.TextSpaceFontSize;
         }
         double startX = span.X + alongX * advanceOffset;
         double startY = span.Y + alongY * advanceOffset;
@@ -102,8 +109,7 @@ internal static class PdfTextSpanGeometry {
 
     internal static bool IntersectsAreaAtCharacterLevel(PdfTextSpan span, PdfRedactionArea area) {
         if (!PdfTextAdvanceProjection.TryGetResolvedBoundaries(span, out double[] boundaries)) {
-            PdfTextSpanBounds bounds = area.RequiresGlyphRewrite
-                ? GetRedactionGlyphBounds(span, 0D, span.Advance) : GetAxisAlignedBounds(span);
+            PdfTextSpanBounds bounds = GetRedactionBounds(span);
             return area.IntersectsRectangle(bounds.Left, bounds.Bottom, bounds.Width, bounds.Height);
         }
 
@@ -120,8 +126,7 @@ internal static class PdfTextSpanGeometry {
             double endBoundary = boundaries[characterOffset + characterLength];
             double start = hasPaintedGlyphGeometry ? startBoundary : Math.Min(startBoundary, endBoundary);
             double advance = hasPaintedGlyphGeometry ? glyphPaintedAdvances[index] : Math.Abs(endBoundary - startBoundary);
-            PdfTextSpanBounds bounds = area.RequiresGlyphRewrite
-                ? GetRedactionGlyphBounds(span, start, advance) : GetAxisAlignedBounds(span, start, advance);
+            PdfTextSpanBounds bounds = GetRedactionGlyphBounds(span, start, advance);
             if (area.IntersectsRectangle(bounds.Left, bounds.Bottom, bounds.Width, bounds.Height)) return true;
             characterOffset += characterLength;
         }

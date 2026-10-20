@@ -278,18 +278,25 @@ public sealed class HtmlRenderText : HtmlRenderVisual {
             yield return this;
             yield break;
         }
+        // The complete frame retains the selected face's ink carrier; CSS leading
+        // controls only the distance between lines, including a legal zero advance.
+        double linePaintHeight = Math.Max(0.01D, Height - (WrappedLines.Count - 1) * LineHeight);
         for (int index = 0; index < WrappedLines.Count; index++) {
             double offsetY = index * LineHeight;
-            if (offsetY >= Height) yield break;
             OfficeTextLine line = WrappedLines[index];
             if (line.Text.Length == 0) continue;
-            yield return new HtmlRenderText(line.Text, X + line.OffsetX, Y + offsetY,
-                Math.Max(0.01D, Width - line.OffsetX), Math.Min(LineHeight, Height - offsetY),
-                Font, Color, Alignment, LineHeight, PaintOrder, LinkUri, Source, SemanticRole,
+            double availableWidth = Width - line.OffsetX;
+            double alignmentOffset = Alignment == OfficeTextAlignment.Center ? (availableWidth - line.Width) / 2D
+                : Alignment == OfficeTextAlignment.Right ? availableWidth - line.Width : 0D;
+            // Position each already-measured line once. Backend frame tolerance
+            // must not apply center/right alignment a second time.
+            yield return new HtmlRenderText(line.Text, X + line.OffsetX + alignmentOffset, Y + offsetY,
+                Math.Max(0.01D, line.Width), linePaintHeight,
+                Font, Color, OfficeTextAlignment.Left, LineHeight, PaintOrder, LinkUri, Source, SemanticRole,
                 LayoutY + offsetY, SemanticNodeId, line.Width, BidiVisualOrderResolved,
                 SemanticFragmentOrder, LogicalTextOrder, UnderlineStyle, StrikethroughStyle,
                 Baseline, BaselineLevel, BaselineScale, BaselineOffset, null,
-                DecorationColor, FeatureSettings, FontPalette, Math.Min(LineHeight, LayoutHeight),
+                DecorationColor, FeatureSettings, FontPalette, Math.Max(0.01D, LineHeight),
                 FontDescriptor, PaintTopOverflow, IsPaintOnly, LinkBounds, UsesOrdinaryLineCarrier) { SemanticSourceOrder = SemanticSourceOrder };
         }
     }

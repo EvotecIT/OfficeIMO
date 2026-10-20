@@ -2,11 +2,11 @@ using OfficeIMO.Pdf;
 
 namespace OfficeIMO.Examples.Showcase.Workflows;
 
-/// <summary>Creates a fillable equipment inspection form with named text, choice and checkbox fields.</summary>
+/// <summary>Creates an inspection form, fills a completed copy, and saves a permanent record.</summary>
 internal static class EquipmentInspection {
     internal static void Create(string folder) {
         PdfColor navy = PdfColor.FromRgb(23, 54, 93);
-        PdfDocument.Create(pdf => pdf.Content(content => content
+        PdfDocument template = PdfDocument.Create(pdf => pdf.Content(content => content
             .H1("Equipment inspection", PdfAlign.Left, navy)
             .Paragraph(p => p.Text("NORTHWIND / WORKPLACE OPERATIONS / FILLABLE CHECKLIST"))
             .Paragraph(p => p.Text("Record the inspection before returning equipment to the shared pool. This sample is not a safety certification."))
@@ -30,7 +30,19 @@ internal static class EquipmentInspection {
             .Paragraph(p => p.Bold("Follow-up note"))
             .TextField("follow-up", width: 450, height: 38)),
             new PdfOptions { DefaultFontSize = 10 })
-            .Meta(title: "Equipment inspection", author: "OfficeIMO")
-            .Save(Path.Combine(folder, "example.pdf"));
+            .Meta(title: "Equipment inspection", author: "OfficeIMO");
+        template.Save(Path.Combine(folder, "example.pdf"));
+
+        PdfDocument completed = template.Forms.Fill(new Dictionary<string, string> {
+            ["inspector"] = "Marta Nowak",
+            ["inspection-date"] = "2026-09-17",
+            ["casing-checked"] = "Yes",
+            ["operation-checked"] = "Yes",
+            ["accessories-checked"] = "Yes",
+            ["disposition"] = "Return to pool",
+            ["follow-up"] = "All accessories returned. Ready for the next booking."
+        });
+        completed.Save(Path.Combine(folder, "completed.pdf"));
+        completed.Forms.Flatten().Save(Path.Combine(folder, "record.pdf"));
     }
 }

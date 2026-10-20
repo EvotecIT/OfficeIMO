@@ -12,8 +12,10 @@ internal static class PeachPdfGenerator {
         };
         var generator = new PdfGenerator();
         if (additionalFont != null) {
-            using var fontStream = new MemoryStream(additionalFont.Regular, writable: false);
-            generator.AddFontFromStream(fontStream);
+            foreach (byte[] face in new[] { additionalFont.Regular, additionalFont.Bold, additionalFont.Italic, additionalFont.BoldItalic }.OfType<byte[]>()) {
+                using var fontStream = new MemoryStream(face, writable: false);
+                generator.AddFontFromStream(fontStream).GetAwaiter().GetResult();
+            }
         }
         var document = generator.GeneratePdf(html, config).GetAwaiter().GetResult();
         using var output = new MemoryStream();

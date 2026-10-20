@@ -24,8 +24,10 @@ internal static partial class PdfTextEditor {
             .Select(static hit => hit.Match).ToArray();
 
     internal static IReadOnlyList<PdfTextMatch> Find(byte[] pdf, string text, PdfTextSearchOptions? options,
-        PdfLoadOptions? readOptions, PdfRedactionSearchWorkBudget workBudget) =>
-        FindHits(pdf, text, options, readOptions, workBudget).Select(static hit => hit.Match).ToArray();
+        PdfLoadOptions? readOptions, PdfRedactionSearchWorkBudget workBudget,
+        System.Threading.CancellationToken cancellationToken = default) =>
+        FindHits(pdf, text, options, readOptions, workBudget, cancellationToken: cancellationToken)
+            .Select(static hit => hit.Match).ToArray();
 
     internal static TextMutationResult Add(byte[] pdf, PdfPageRegion region, string text, PdfTextEditOptions? options, PdfLoadOptions? readOptions) {
         Guard.NotNull(text, nameof(text));

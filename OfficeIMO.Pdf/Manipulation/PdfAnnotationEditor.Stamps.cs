@@ -11,12 +11,14 @@ internal static partial class PdfAnnotationEditor {
     public static PdfAnnotationEditResult AddStampAnnotation(byte[] pdf, PdfStampAnnotationOptions? options, PdfLoadOptions? readOptions) {
         Guard.NotNull(pdf, nameof(pdf));
         PdfStampAnnotationOptions effective = options ?? new PdfStampAnnotationOptions();
+        var cancellationToken = effective.CancellationToken;
+        cancellationToken.ThrowIfCancellationRequested();
         ValidateStampOptions(effective);
         byte[]? imageBytes = effective.GetImageBytes();
         PdfWriter.PdfImageStream? imageStream = null;
         if (imageBytes is not null) {
             PdfImageInput.EnsureWithinLimit(imageBytes.LongLength, effective.MaximumEncodedImageBytes);
-            PdfDocument.PreparedImage prepared = PdfDocument.PrepareImageDocumentSource(imageBytes, default);
+            PdfDocument.PreparedImage prepared = PdfDocument.PrepareImageDocumentSource(imageBytes, cancellationToken);
             if (!PdfWriter.TryBuildImageStream(prepared, effective.Width, effective.Height, out PdfWriter.PdfImageStream builtImage, out string? reason)) {
                 throw new NotSupportedException(reason ?? "Stamp image format is not supported.");
             }
@@ -26,9 +28,9 @@ internal static partial class PdfAnnotationEditor {
             pdf,
             PdfMutationOperation.ModifyAnnotations,
             readOptions,
-            executionPreference: effective.ExecutionPreference);
+            executionPreference: effective.ExecutionPreference, cancellationToken: cancellationToken);
 
-        var (objects, trailerRaw) = PdfSyntax.ParseObjects(pdf, readOptions);
+        var (objects, trailerRaw) = PdfSyntax.ParseObjects(pdf, readOptions, out _, out _, cancellationToken);
         int catalogObjectNumber = FindCatalogObjectNumber(objects, trailerRaw);
         if (catalogObjectNumber == 0) {
             throw new ArgumentException("PDF does not contain a readable catalog.", nameof(pdf));
@@ -99,15 +101,15 @@ internal static partial class PdfAnnotationEditor {
                 mutationPlan.Preflight.Probe.Security,
                 trailerRaw,
                 changedObjectNumbers,
-                encryptionHandler: GetAppendEncryptionHandler(objects, trailerRaw, readOptions, mutationPlan.Preflight.Probe.Security));
+                encryptionHandler: GetAppendEncryptionHandler(objects, trailerRaw, readOptions, mutationPlan.Preflight.Probe.Security), cancellationToken: cancellationToken);
             PdfLoadOptions outputReadOptions = PdfLoadOptions.ForGeneratedOutput(readOptions, pdf, appended, generatedGrowth);
-            PdfSignatureMutationReport proof = BuildAppendOnlyProof(pdf, appended, mutationPlan, readOptions, outputReadOptions);
+            PdfSignatureMutationReport proof = BuildAppendOnlyProof(pdf, appended, mutationPlan, readOptions, outputReadOptions, cancellationToken);
             return new PdfAnnotationEditResult(appended, 1, mutationPlan, proof, readOptions: outputReadOptions);
         }
 
-        PdfObjectGraphPruner.PruneUnreachableObjects(objects, catalogObjectNumber);
-        byte[] rewritten = RewriteAllObjects(objects, catalogObjectNumber, PdfReadDocument.Open(pdf, readOptions).UncheckedMetadata, pdf, out var numberMap);
-        return CreateFullRewriteResult(pdf, rewritten, 1, mutationPlan, annotationsChanged: true, readOptions: readOptions, generatedGrowth: generatedGrowth, objectNumberMap: numberMap);
+        PdfObjectGraphPruner.PruneUnreachableObjects(objects, catalogObjectNumber, cancellationToken);
+        byte[] rewritten = RewriteAllObjects(objects, catalogObjectNumber, PdfReadDocument.Open(pdf, readOptions, cancellationToken).UncheckedMetadata, pdf, out var numberMap, cancellationToken);
+        return CreateFullRewriteResult(pdf, rewritten, 1, mutationPlan, annotationsChanged: true, readOptions: readOptions, generatedGrowth: generatedGrowth, objectNumberMap: numberMap, cancellationToken: cancellationToken);
     }
 
     private static int AddAnnotationReference(

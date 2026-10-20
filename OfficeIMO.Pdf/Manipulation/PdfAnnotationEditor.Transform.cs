@@ -1,3 +1,5 @@
+using System.Threading;
+
 namespace OfficeIMO.Pdf;
 
 internal static partial class PdfAnnotationEditor {
@@ -6,28 +8,28 @@ internal static partial class PdfAnnotationEditor {
         int objectNumber,
         double deltaX,
         double deltaY,
-        PdfLoadOptions? readOptions) {
+        PdfLoadOptions? readOptions, CancellationToken cancellationToken = default) {
         ValidateTransformFinite(deltaX, nameof(deltaX));
         ValidateTransformFinite(deltaY, nameof(deltaY));
-        PdfMutationPlan mutationPlan = RequireAnnotationMutation(pdf, readOptions);
+        PdfMutationPlan mutationPlan = RequireAnnotationMutation(pdf, readOptions, cancellationToken: cancellationToken);
         PdfAnnotation annotation = GetTransformTarget(mutationPlan, objectNumber);
         var rectangle = new PdfPageRectangle(
             annotation.X1 + deltaX,
             annotation.Y1 + deltaY,
             annotation.X2 + deltaX,
             annotation.Y2 + deltaY);
-        return TransformAnnotation(pdf, annotation, rectangle, mutationPlan, readOptions);
+        return TransformAnnotation(pdf, annotation, rectangle, mutationPlan, readOptions, cancellationToken);
     }
 
     internal static PdfAnnotationEditResult ResizeAnnotation(
         byte[] pdf,
         int objectNumber,
         PdfPageRectangle rectangle,
-        PdfLoadOptions? readOptions) {
+        PdfLoadOptions? readOptions, CancellationToken cancellationToken = default) {
         Guard.NotNull(rectangle, nameof(rectangle));
-        PdfMutationPlan mutationPlan = RequireAnnotationMutation(pdf, readOptions);
+        PdfMutationPlan mutationPlan = RequireAnnotationMutation(pdf, readOptions, cancellationToken: cancellationToken);
         PdfAnnotation annotation = GetTransformTarget(mutationPlan, objectNumber);
-        return TransformAnnotation(pdf, annotation, rectangle, mutationPlan, readOptions);
+        return TransformAnnotation(pdf, annotation, rectangle, mutationPlan, readOptions, cancellationToken);
     }
 
     private static PdfAnnotationEditResult TransformAnnotation(
@@ -35,13 +37,14 @@ internal static partial class PdfAnnotationEditor {
         PdfAnnotation annotation,
         PdfPageRectangle target,
         PdfMutationPlan mutationPlan,
-        PdfLoadOptions? readOptions) {
+        PdfLoadOptions? readOptions, CancellationToken cancellationToken = default) {
         if (annotation.ObjectNumber is not int objectNumber) {
             throw new NotSupportedException("Direct annotation dictionaries cannot be transformed safely.");
         }
         var options = CreateTransformOptions(annotation, target,
             string.Equals(annotation.Subtype, "Line", StringComparison.OrdinalIgnoreCase)
-                ? ReadLineAuxiliaryGeometry(pdf, objectNumber, readOptions) : default);
+                ? ReadLineAuxiliaryGeometry(pdf, objectNumber, readOptions, cancellationToken) : default);
+        options.CancellationToken = cancellationToken;
         return UpdateAnnotation(pdf, objectNumber, options, mutationPlan, readOptions);
     }
 
@@ -178,8 +181,8 @@ internal static partial class PdfAnnotationEditor {
     private static LineAuxiliaryGeometry ReadLineAuxiliaryGeometry(
         byte[] pdf,
         int objectNumber,
-        PdfLoadOptions? readOptions) {
-        var (objects, _) = PdfSyntax.ParseObjects(pdf, readOptions);
+        PdfLoadOptions? readOptions, CancellationToken cancellationToken = default) {
+        var (objects, _) = PdfSyntax.ParseObjects(pdf, readOptions, out _, out _, cancellationToken);
         return ReadLineAuxiliaryGeometry(objects, objectNumber);
     }
 

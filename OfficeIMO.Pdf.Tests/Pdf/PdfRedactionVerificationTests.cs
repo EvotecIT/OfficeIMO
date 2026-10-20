@@ -245,6 +245,7 @@ public class PdfRedactionVerificationTests {
         PdfRedactionPlan plan = document.Redactions.Plan([
             new PdfRedactionArea(1, 60D, 64D, 30D, 0.5D, "split stream path")
         ]);
+        Assert.Contains(plan.Matches, static match => match.Kind == PdfRedactionMatchKind.VectorPath);
 
         PdfRedactionApplyResult result = document.Redactions.ApplyWithEvidence(
             plan,
@@ -1012,6 +1013,8 @@ public class PdfRedactionVerificationTests {
         PdfLogicalImage image = GetSingleImage(source);
         PdfRedactionArea area = CreateImageCoveringArea(image);
 
+        PdfRedactionPlan plan = PdfRedactionPlanner.Plan(source, new[] { area });
+        Assert.DoesNotContain(plan.Matches, match => match.Text?.Contains("Retained text after image", StringComparison.Ordinal) == true);
         byte[] redacted = PdfRedactionApplier.Apply(source, new[] { area });
 
         string text = PdfTextExtractor.ExtractAllText(redacted);
@@ -1396,6 +1399,7 @@ public class PdfRedactionVerificationTests {
             })
             .Paragraph(paragraph => paragraph.Text("Visible image redaction planning marker"))
             .Image(PdfPngTestImages.CreateRgbPng(3, 2), 48, 32, alternativeText: "Sensitive chart pixels")
+            .Spacer(8)
             .Paragraph(paragraph => paragraph.Text("Retained text after image"))
             .ToBytes();
     }
@@ -1648,7 +1652,7 @@ public class PdfRedactionVerificationTests {
     }
 
     private static byte[] BuildSplitStreamGraphicsStatePathPdf() {
-        const string firstContent = "q 1 0 0 1 20 0 cm 10 w 10 60 m";
+        const string firstContent = "q 1 0 0 1 20 0 cm 10 w 10 60 m\n";
         const string secondContent = "190 60 l S Q";
         return Encoding.ASCII.GetBytes(string.Join("\n", new[] {
             "%PDF-1.7",

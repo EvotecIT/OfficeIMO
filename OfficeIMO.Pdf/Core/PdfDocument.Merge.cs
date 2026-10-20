@@ -11,12 +11,20 @@ public sealed partial class PdfDocument {
     public static PdfDocument Merge(PdfMergeOptions options, IEnumerable<PdfDocument> documents) =>
         MergeResult(options, documents).RequireValue();
 
+    /// <summary>Merges documents using an explicit structure policy with cancellation through readback.</summary>
+    public static PdfDocument Merge(PdfMergeOptions options, IEnumerable<PdfDocument> documents, CancellationToken cancellationToken) =>
+        MergeResult(options, documents, cancellationToken).RequireValue();
+
     /// <summary>
     /// Merges caller-owned PDF byte payloads using an explicit structure policy.
     /// The inputs are consumed synchronously and are not retained by the returned document.
     /// </summary>
     public static PdfDocument MergeBytes(PdfMergeOptions options, IEnumerable<byte[]> pdfs) =>
         MergeBytesResult(options, pdfs).RequireValue();
+
+    /// <summary>Merges caller-owned PDF payloads using an explicit structure policy with cooperative cancellation.</summary>
+    public static PdfDocument MergeBytes(PdfMergeOptions options, IEnumerable<byte[]> pdfs, CancellationToken cancellationToken) =>
+        MergeBytesResult(options, pdfs, cancellationToken).RequireValue();
 
     /// <summary>
     /// Merges caller-owned PDF byte payloads using an explicit structure policy and returns the merged artifact directly.
@@ -31,6 +39,10 @@ public sealed partial class PdfDocument {
     /// </summary>
     public static byte[] MergeToBytes(PdfMergeOptions options, IEnumerable<byte[]> pdfs) =>
         MergeBytesResult(options, pdfs).OwnedBytes;
+
+    /// <summary>Merges caller-owned payloads with an explicit structure policy and cancellation, returning caller-owned bytes.</summary>
+    public static byte[] MergeToBytes(PdfMergeOptions options, IEnumerable<byte[]> pdfs, CancellationToken cancellationToken) =>
+        MergeBytesResult(options, pdfs, cancellationToken).OwnedBytes;
 
     /// <summary>Merges loaded or generated documents with an explicit structure policy and returns readback evidence.</summary>
     public static PdfMergeResult MergeResult(PdfMergeOptions options, params PdfDocument[] documents) =>
@@ -65,14 +77,18 @@ public sealed partial class PdfDocument {
     /// Merges caller-owned PDF byte payloads with an explicit structure policy and returns readback evidence.
     /// The inputs are consumed synchronously and are not retained by the result.
     /// </summary>
-    public static PdfMergeResult MergeBytesResult(PdfMergeOptions options, IEnumerable<byte[]> pdfs) {
+    public static PdfMergeResult MergeBytesResult(PdfMergeOptions options, IEnumerable<byte[]> pdfs) =>
+        MergeBytesResult(options, pdfs, CancellationToken.None);
+
+    /// <summary>Merges caller-owned payloads with cancellation through input enumeration, rewriting and readback.</summary>
+    public static PdfMergeResult MergeBytesResult(PdfMergeOptions options, IEnumerable<byte[]> pdfs, CancellationToken cancellationToken) {
         Guard.NotNull(options, nameof(options));
-        List<byte[]> sources = CollectMergeByteSources(pdfs, CancellationToken.None);
+        List<byte[]> sources = CollectMergeByteSources(pdfs, cancellationToken);
         var readOptions = new PdfLoadOptions[sources.Count];
         for (int index = 0; index < readOptions.Length; index++) {
             readOptions[index] = PdfLoadOptions.Default;
         }
-        return PdfMerger.MergeResult(options, sources, readOptions);
+        return PdfMerger.MergeResult(options, sources, readOptions, cancellationToken);
     }
 
     /// <summary>Merges this PDF with another loaded or generated PDF using an explicit structure policy.</summary>
@@ -87,5 +103,16 @@ public sealed partial class PdfDocument {
         Guard.NotNull(document, nameof(document));
         Guard.NotNull(options, nameof(options));
         return MergeResult(options, this, document);
+    }
+
+    /// <summary>Merges this PDF with another document using an explicit structure policy and cooperative cancellation.</summary>
+    public PdfDocument MergeWith(PdfDocument document, PdfMergeOptions options, CancellationToken cancellationToken) =>
+        MergeWithResult(document, options, cancellationToken).RequireValue();
+
+    /// <summary>Merges this PDF with another document with cancellation through rewriting and structure readback.</summary>
+    public PdfMergeResult MergeWithResult(PdfDocument document, PdfMergeOptions options, CancellationToken cancellationToken) {
+        Guard.NotNull(document, nameof(document));
+        Guard.NotNull(options, nameof(options));
+        return MergeResult(options, new[] { this, document }, cancellationToken);
     }
 }

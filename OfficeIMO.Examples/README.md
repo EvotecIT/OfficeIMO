@@ -19,6 +19,20 @@ dotnet run --project OfficeIMO.Examples/OfficeIMO.Examples.csproj -f net10.0 -- 
 dotnet run --project OfficeIMO.Examples/OfficeIMO.Examples.csproj -f net10.0 -- --onenote
 ```
 
+For complete PDF workflows, run one example at a time:
+
+```powershell
+dotnet run --project OfficeIMO.Examples/OfficeIMO.Examples.csproj -f net10.0 -- --showcase-workflows --showcase-example pdf-equipment-inspection
+dotnet run --project OfficeIMO.Examples/OfficeIMO.Examples.csproj -f net10.0 -- --showcase-workflows --showcase-example pdf-weekly-brief
+dotnet run --project OfficeIMO.Examples/OfficeIMO.Examples.csproj -f net10.0 -- --showcase-workflows --showcase-example pdf-branded-invoice
+```
+
+The inspection example creates a template, a filled copy and a permanent record.
+The weekly brief embeds its fonts and requests PDF/UA-1 output; check the saved
+file with an independent validator and review reading and navigation before
+making an accessibility claim. The invoice example captures one typed invoice
+and creates matching XML and a PDF with that XML embedded.
+
 ## Useful switches
 
 - `--pdf`: run the first-party PDF example set.

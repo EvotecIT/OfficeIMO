@@ -7,6 +7,12 @@ namespace OfficeIMO.Examples.Showcase.Workflows;
 internal static class WeeklyBrief {
     internal static void Create(string folder) {
         PdfColor navy = PdfColor.FromRgb(23, 54, 93);
+        string fonts = Path.Combine(AppContext.BaseDirectory, "Assets", "Fonts");
+        var options = new PdfOptions { DefaultFontSize = 11 }
+            .UseFontFamily(new PdfEmbeddedFontFamily("Carlito",
+                File.ReadAllBytes(Path.Combine(fonts, "Carlito-Regular.ttf")),
+                File.ReadAllBytes(Path.Combine(fonts, "Carlito-Bold.ttf"))))
+            .UsePdfUa(PdfComplianceProfile.PdfUa1);
         PdfDocument.Create(pdf => pdf.Content(content => content
             .H1("The week in delivery", PdfAlign.Left, navy)
             .Paragraph(p => p.Text("NORTHWIND / WEEK 38 / 2026"))
@@ -35,7 +41,7 @@ internal static class WeeklyBrief {
                 RowStripeFill = PdfColor.FromRgb(241, 245, 249), CellPaddingX = 8, CellPaddingY = 8
             })
             .Paragraph(p => p.Text("Prepared from sample data. Keep the brief focused on decisions and actions."))),
-            new PdfOptions { DefaultFontSize = 11 })
+            options)
             .Meta(title: "The week in delivery", author: "OfficeIMO")
             .Save(Path.Combine(folder, "example.pdf"));
     }
