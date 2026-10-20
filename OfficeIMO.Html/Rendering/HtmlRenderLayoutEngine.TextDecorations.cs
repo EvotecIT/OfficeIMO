@@ -8,9 +8,12 @@ internal sealed partial class HtmlRenderLayoutEngine {
         IDictionary<IElement, List<HtmlRenderVisual>> ownedVisuals, HtmlInlineRun run,
         IElement? formattingContainer, IReadOnlyList<HtmlRenderVisual> textVisuals, bool aboveText) {
         HtmlRenderBoxStyle style = run.Style;
-        if (!style.VectorTextDecoration) return;
+        bool hasPreparedText = textVisuals.OfType<HtmlRenderText>().Any(text => text.PreparedShaping != null);
+        if (!style.VectorTextDecoration && !hasPreparedText) return;
         double thickness = style.DecorationThickness ?? Math.Max(1D, style.Font.Size / 16D);
         foreach (HtmlRenderText text in textVisuals.OfType<HtmlRenderText>()) {
+            // Unprepared siblings retain their existing native text decorations.
+            if (!style.VectorTextDecoration && text.PreparedShaping == null) continue;
             double width = Math.Max(0D, text.TextAdvanceWidth ?? text.TextPaintWidth ?? text.Width);
             if (width <= 0D) continue;
             double baseline = text.Y + style.Font.Size;

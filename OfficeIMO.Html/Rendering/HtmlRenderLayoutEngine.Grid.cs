@@ -8,6 +8,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         double containingWidth,
         HtmlRenderBoxStyle style,
         int depth,
+        PagedFloatBoundary? pageBoundary,
         out HtmlRenderFlowBlock block) {
         block = null!;
         if (!TryCollectFlexItems(element, containingWidth, style, depth, captureRunningElements: true, out List<FlexItem> formattingItems, out List<HtmlCssRunningStringAssignment> runningElementAssignments)) return false;
@@ -143,6 +144,25 @@ internal sealed partial class HtmlRenderLayoutEngine {
         }
         ResolveGridVerticalOffsets(items, style, rows);
 
+        bool parallelTables = rowCount == 1 && !usesRowSubgrid && !declaredContentHeight.HasValue
+            && style.GridTemplateRows is "none" or "auto" && style.GridAutoRows == "auto"
+            && items.All(item => item.Row == 0 && item.RowSpan == 1 && Math.Abs(item.OffsetY) <= 0.0001D
+                && !item.HasExplicitHeight)
+            && CanProjectParallelTableItems(element, style, items.Select(item => item.Block!).ToArray(),
+                items.Select(item => item.Item.Style));
+        if (parallelTables && TryProjectParallelTableItems(element, contentWidth,
+            items.Select(item => item.Block!).ToArray(),
+            out IReadOnlyList<HtmlRenderFlowBlock> projectedItems)) {
+            for (int item = 0; item < projectedItems.Count; item++) items[item].Block = projectedItems[item];
+            rowSizes[0] = projectedItems.Max(item => item.Height);
+            naturalContentHeight = rowSizes[0];
+            boxHeight = ResolveBoxHeight(naturalContentHeight, boxWidth, style);
+            contentHeight = Math.Max(0D, boxHeight - style.VerticalInsets);
+            rows = ResolveGridAxisLayout(rowTracks, rowSizes, contentHeight, rowGap, style.AlignContent, source, "align-content");
+            RecordGridPositionedContainingRects(element, style, contentWidth, contentHeight, columns, rows,
+                columnLineNames, rowLineNames, explicitColumnCount, explicitRowCount, leadingColumnCount, leadingRowCount);
+        }
+
         double outerHeight = Math.Max(0.01D, style.MarginTop + boxHeight + style.MarginBottom);
         var visuals = new List<HtmlRenderVisual>();
         var positionedRunningStringAssignments = new List<HtmlCssRunningStringAssignment>();
@@ -203,9 +223,19 @@ internal sealed partial class HtmlRenderLayoutEngine {
         IEnumerable<HtmlRenderAvoidBreakRange> itemKeepRanges = items.SelectMany(item => {
             HtmlRenderFlowBlock itemBlock = item.Block!;
             IEnumerable<HtmlRenderAvoidBreakRange> ranges = itemBlock.AvoidBreakRanges;
-            if (itemBlock.AvoidBreakInside) ranges = ranges.Append(new HtmlRenderAvoidBreakRange(0D, itemBlock.Height));
+            if (itemBlock.AvoidBreakInsideScope != HtmlFragmentationScope.None)
+                ranges = ranges.Append(new HtmlRenderAvoidBreakRange(0D, itemBlock.Height, Scope: itemBlock.AvoidBreakInsideScope));
             return ranges.Select(range => range.Translate(contentY + rows.Positions[item.Row] + item.OffsetY));
         });
+        IReadOnlyList<HtmlRenderBreakRange> safeBreakRanges = CollectSafeParallelBreakRanges(
+            itemPaintLayers.Select(layer => (layer.Block, layer.Y)), outerHeight,
+            sourceRanges: EnumerateUnfragmentedAllocationBreakRanges(itemPaintLayers, outerHeight));
+        // Unprojected grid items do not lend repeat reservations to this shared
+        // cursor. Keep those table arrangements on their discrete fallback.
+        safeBreakRanges = HtmlRenderBreakRange.Exclude(safeBreakRanges, itemPaintLayers
+            .Where(layer => layer.Block.ContinuationGroups.Count > 0 || layer.Block.TrailingGroups.Count > 0)
+            .Select(layer => new HtmlRenderBreakRange(layer.Y, layer.Y + layer.Block.PagedPaintExtent)));
+        safeBreakRanges = ConstrainParallelPaintBreakRanges(safeBreakRanges, visuals);
         block = new HtmlRenderFlowBlock(
             containingWidth,
             outerHeight,
@@ -229,7 +259,9 @@ internal sealed partial class HtmlRenderLayoutEngine {
                     .Concat(itemPaintLayers.SelectMany(layer =>
                         layer.Block.RunningStringAssignments.Select(assignment => assignment.Translate(layer.Y))))
                     .Concat(positionedRunningStringAssignments),
-                outerHeight));
+                outerHeight),
+            safeBreakRanges: safeBreakRanges);
+        if (parallelTables) _parallelTableRegions[element] = block;
         return true;
     }
 
@@ -387,7 +419,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         double? declaredContentHeight) {
         var sizes = tracks.Select(track => track.Kind == GridTrackKind.Fixed ? Math.Max(track.Value, track.Minimum) : track.Minimum).ToList();
         foreach (GridItem item in items.OrderBy(item => item.RowSpan)) {
-            double required = item.Block!.Height;
+            double required = item.Block!.UnfragmentedHeight ?? item.Block.Height;
             double current = sizes.Skip(item.Row).Take(item.RowSpan).Sum() + gap * Math.Max(0, item.RowSpan - 1);
             double deficit = Math.Max(0D, required - current);
             if (deficit <= 0D) continue;
@@ -424,6 +456,12 @@ internal sealed partial class HtmlRenderLayoutEngine {
         if (vertical == "stretch" && !item.HasExplicitHeight && !HasVerticalAutoMargin(style)) {
             double targetBoxHeight = Math.Max(0.01D, cellHeight - style.MarginTop - style.MarginBottom);
             style.AutoHeightLayoutStretch = true;
+            double naturalBoxHeight = (item.Block!.UnfragmentedHeight ?? item.Block.Height)
+                - style.MarginTop - style.MarginBottom;
+            // An unchanged intrinsic column set retains auto height for page
+            // planning. A different track allocation remains a real constraint.
+            style.IntrinsicColumnHeightAllocation = HasMultiColumnLayout(style)
+                && Math.Abs(targetBoxHeight - naturalBoxHeight) <= 0.0001D;
             style.ExplicitHeight = style.BorderBox ? targetBoxHeight : Math.Max(0.01D, targetBoxHeight - style.VerticalInsets);
         }
         item.Item.Style = style;

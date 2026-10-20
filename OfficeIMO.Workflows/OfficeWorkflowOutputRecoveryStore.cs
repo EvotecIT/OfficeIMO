@@ -2,6 +2,7 @@ using System.Security.Cryptography;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using OfficeIMO.Core.Internal;
+using OfficeIMO.Core.Internal.IO;
 using OfficeIMO.Internal;
 
 namespace OfficeIMO.Workflows;
@@ -139,10 +140,26 @@ public sealed partial class OfficeWorkflowOutputRecoveryStore {
                 // Recheck under the lease before deleting anything, including an empty directory.
                 entries = Directory.EnumerateFileSystemEntries(directory).Take(17).ToArray();
                 if (entries.Length > 16 || entries.Any(path => !IsIncompleteFile(path))) continue;
-                string[] claims = entries.Where(IsCommitClaim).ToArray();
-                if (claims.Any(path => !OfficeFileCommit.TryDeleteAbandonedClaim(path))) continue;
-                foreach (string path in entries) {
-                    if (Path.GetFileName(path) != ".lease" && !claims.Contains(path, StringComparer.Ordinal)) File.Delete(path);
+                var claims = new List<OfficeFileCommitClaim>();
+                try {
+                    bool acquired = true;
+                    foreach (string target in GetCommitTargets(directory)) {
+                        if (!entries.Contains(OfficeFileCommitClaim.CreatePath(target), StringComparer.Ordinal)) continue;
+                        try { claims.Add(OfficeFileCommitClaim.Acquire(target)); }
+                        catch (Exception error) when (error is IOException or UnauthorizedAccessException) {
+                            acquired = false;
+                            break;
+                        }
+                    }
+                    if (!acquired) continue;
+                    // Keep the canonical claims through deletion. On Unix their owner
+                    // unlinks the same locked inode before releasing it; do not delete
+                    // a claim separately or race a successor's acquisition.
+                    foreach (string path in entries) {
+                        if (Path.GetFileName(path) != ".lease" && !IsCommitClaim(path)) File.Delete(path);
+                    }
+                } finally {
+                    foreach (OfficeFileCommitClaim claim in claims) claim.Dispose();
                 }
             }
             File.Delete(Path.Combine(directory, ".lease"));
@@ -161,11 +178,11 @@ public sealed partial class OfficeWorkflowOutputRecoveryStore {
             Guid.TryParseExact(name[temporaryPrefix.Length..^temporarySuffix.Length], "N", out _);
     }
 
-    private static bool IsCommitClaim(string path) {
-        string directory = Path.GetDirectoryName(path)!;
-        return Extensions.Select(extension => "output" + extension).Append("record.json")
-            .Any(name => string.Equals(path, OfficeFileCommit.CreateClaimPath(Path.Combine(directory, name)), StringComparison.Ordinal));
-    }
+    private static IEnumerable<string> GetCommitTargets(string directory) =>
+        Extensions.Select(extension => Path.Combine(directory, "output" + extension)).Append(Path.Combine(directory, "record.json"));
+
+    private static bool IsCommitClaim(string path) => GetCommitTargets(Path.GetDirectoryName(path)!)
+        .Any(target => string.Equals(path, OfficeFileCommitClaim.CreatePath(target), StringComparison.Ordinal));
 
     private OfficeWorkflowOutputRecovery? ReadRecord(string directory) {
         string id = Path.GetFileName(directory)[Prefix.Length..];

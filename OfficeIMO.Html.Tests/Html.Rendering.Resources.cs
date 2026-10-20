@@ -3,6 +3,7 @@ using System.Threading.Tasks;
 using System.Threading;
 using OfficeIMO.Drawing;
 using OfficeIMO.Html;
+using OfficeIMO.Html.Pdf;
 using OfficeIMO.Tests.Pdf;
 using Xunit;
 
@@ -51,8 +52,11 @@ public sealed partial class HtmlRenderingTests {
             && diagnostic.LossKind == OfficeConversionLossKind.None);
     }
 
-    [Fact]
-    public async Task HtmlRender_MissingCssImageOnlyReportsLossWhenPaintRequestsIt() {
+    [Theory]
+    [InlineData(HtmlRenderEncoder.DisplayList)]
+    [InlineData(HtmlRenderEncoder.Png)]
+    [InlineData(HtmlRenderEncoder.Pdf)]
+    public async Task HtmlRender_MissingCssImageOnlyReportsLossWhenPaintRequestsIt(HtmlRenderEncoder encoder) {
         const string stylesheet = ".unused { background-image: url('unused.png'); }"
             + ".used { background-image: url('used.png'); width: 20px; height: 20px; }";
         const string html = "<link rel='stylesheet' href='https://assets.example.test/site.css'>"
@@ -65,7 +69,17 @@ public sealed partial class HtmlRenderingTests {
             Margins = HtmlRenderMargins.All(0D)
         };
 
-        HtmlRenderDocument rendered = await HtmlRenderTestDriver.RenderAsync(html, options);
+        HtmlRenderDocument rendered;
+        if (encoder == HtmlRenderEncoder.DisplayList) rendered = await HtmlRenderTestDriver.RenderAsync(html, options);
+        else {
+            var pdfOptions = new HtmlToPdfOptions(options);
+            pdfOptions.ResourcePolicy.AllowRemoteResourceResolution = true;
+            var document = HtmlConversionDocument.Parse(html);
+            var request = HtmlRenderRequest.Create(HtmlRenderIntentProfile.PrintPaged, encoder, pdfOptions);
+            rendered = encoder == HtmlRenderEncoder.Pdf
+                ? (await document.RenderToPdfResultAsync(request)).RenderResult.Document
+                : (await HtmlRenderEngine.ExecuteAsync(document, request)).Document;
+        }
 
         HtmlDiagnostic unused = Assert.Single(rendered.Diagnostics, diagnostic =>
             diagnostic.Code == HtmlRenderDiagnosticCodes.ResourceUnavailable
@@ -78,6 +92,7 @@ public sealed partial class HtmlRenderingTests {
             && diagnostic.Source == "used.png");
         Assert.Equal(HtmlDiagnosticSeverity.Warning, used.Severity);
         Assert.Equal(OfficeConversionLossKind.Omission, used.LossKind);
+        Assert.Throws<HtmlConversionException>(() => rendered.RequireNoLoss());
     }
 
     [Fact]
@@ -429,11 +444,13 @@ public sealed partial class HtmlRenderingTests {
         Assert.Contains(rendered.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.ResourceByteLimitExceeded);
     }
 
-    [Fact]
-    public void HtmlRender_FontAndImageDataUrisShareOneOperationBudget() {
+    [Theory]
+    [InlineData("font/ttf")]
+    [InlineData("binary/octet-stream")]
+    public void HtmlRender_FontAndImageDataUrisShareOneOperationBudget(string contentType) {
         byte[] font = CreateHtmlRenderTestFont();
         string png = Convert.ToBase64String(PdfPngTestImages.CreateRgbPng(2, 2));
-        string html = "<style>@font-face{font-family:BudgetFont;src:url('data:font/ttf;base64,"
+        string html = "<style>@font-face{font-family:BudgetFont;src:url('data:" + contentType + ";base64,"
             + Convert.ToBase64String(font)
             + "')}p{font-family:BudgetFont}</style><p>Font marker</p><img id='over-count' src='data:image/png;base64,"
             + png

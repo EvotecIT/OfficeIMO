@@ -1036,7 +1036,7 @@ The request preserves aspect ratio, avoids upscaling, keeps the original when re
 
 Every format package builds on the same fluent export contract. `FitWithin(width, height)`, `FitWithinWidth(...)`, and `FitWithinHeight(...)` cap both raster and SVG output without enlarging smaller content. `ConfigureOptions(...)` exposes the complete provider-specific option object when no dedicated fluent shortcut exists. Batch limits, cancellation, progress, and `WithRenderTimeout(...)` apply to the complete operation, including streaming saves. Each batch result reports its zero-based `SequenceIndex`; `SequenceCount` is populated when the total is known before streaming or after a fluent builder materializes the complete result list.
 
-For raster complex text, set `TextShapingProvider` and optionally `TextShapingLanguage` on any shared image-export options or use `WithTextShaping(...)` on a fluent builder. `OfficeManagedTextShapingProvider.Instance` is the dependency-light built-in provider for a bounded Arabic-script subset (core and extended Persian/Urdu letters), with TrueType and OpenType CFF font loading. Drawing passes the selected font bytes, base direction, language, cancellation token, and Unicode source mapping to any provider, then caches the resolved run for measurement and painting. Mark attachment, required lam-alef ligatures, and broader GSUB/GPOS behavior require a complete shaping provider. If no provider accepts a complex run, the managed Arabic-script and bounded bidirectional fallback keeps common text visible and adds `IMAGE_TEXT_SHAPING_FALLBACK` as an approximation. This fallback preserves per-letter joining without claiming complete mark or required-ligature shaping. Set `Policy.RequireNoLoss = true` when that fallback is not acceptable.
+For raster complex text, set `TextShapingProvider` and optionally `TextShapingLanguage` on any shared image-export options or use `WithTextShaping(...)` on a fluent builder. `OfficeManagedTextShapingProvider.Instance` is the dependency-light built-in provider for a bounded Arabic-script subset (core and extended Persian/Urdu letters), with TrueType and OpenType CFF font loading. Drawing passes the selected font bytes, collection face, variation coordinates, base direction, language, cancellation token, and Unicode source mapping to any provider, then caches the resolved run for measurement and painting. Retained Drawing text keeps the selected program and glyph positions when divided between complete logical source clusters. Mark attachment, required lam-alef ligatures, and broader GSUB/GPOS behavior require a complete shaping provider. If no provider accepts a complex run, the managed Arabic-script and bounded bidirectional fallback keeps common text visible and adds `IMAGE_TEXT_SHAPING_FALLBACK` as an approximation. This fallback preserves per-letter joining without claiming complete mark or required-ligature shaping. Set `Policy.RequireNoLoss = true` when that fallback is not acceptable.
 
 ### Deterministic text measurement
 
@@ -1132,6 +1132,26 @@ rule settings. Font size is in points and `Dpi` controls drawing density. Optica
 selection and font tracking use the authored point size for both measurement and paint.
 Fonts are caller supplied; OfficeIMO.Core does not ship a math font or require a native
 rendering engine.
+
+MathML `mo` tokens retain explicit `prefix`, `infix`, or `postfix` form and
+independent `lspace`/`rspace` values in `em`, `px`, `%`, or unitless zero. In ordinary
+rows, form is inferred from the first and last non-space-like children when it is
+not authored; an only child uses infix form. A finite dictionary covers selected
+arithmetic, relation, fence, and punctuation operators; other entries use a
+deterministic fallback. Percentages scale each side's dictionary spacing, `em`
+uses the token's font size, and standalone rendering converts CSS pixels through
+`Dpi / 96`. Side spacing is applied outside a stretched glyph. Negative lengths,
+other units, and CSS expressions are outside this grammar. The full operator
+dictionary and embellished-operator contexts remain outside this subset. Scalar
+accent and bar operands retain these attributes when serialized back to MathML.
+A composite accent operand containing authored operator presentation fails with
+`DRAWING_MATH_OPERATOR_PRESENTATION` because the scalar accent model cannot
+preserve its separate operators.
+
+Word OMML writing rejects expressions retaining authored operator form or side
+spacing with `NotSupportedException`; retain MathML and use the shared renderer
+when those values must survive. Native OneNote writing rejects those properties
+with `ONENOTE_WRITE_MATH_LOSS`.
 
 The same immutable expression tree feeds native OneNote math and Word OMML adapters. The shared model includes right and left scripts, centered upper/lower limits, built-up and slashed fractions, delimiter lists, stacks, matrices, equation arrays, n-ary operators, accents, bars, boxes, and phantoms. OneNote maps all of those structures natively. Word maps the lossless OMML subset; `Stack` and `StretchStack` fail with `NotSupportedException` because OMML has no equivalent, and callers can choose `EquationArray` explicitly when that projection is intended. Drawing owns the AST, portable markup, measurement, and visual layout; each document package owns only its native codec. MathML and LaTeX parsing default to a nesting limit of 128 and expose bounded overloads; excessive nesting fails with `OfficeMathParseException.Code == "DRAWING_MATH_DEPTH"`.
 
@@ -1440,6 +1460,7 @@ TrueType font collection before selecting variation axes.
 - `OfficeMathExpression`, `OfficeMath`, MathML/LaTeX conversion, deterministic measurement, and `OfficeMathRenderer` for reusable structured equations.
 - `OfficeShape`, `OfficeDrawing`, gradients, shadows, transforms, clipping, and vector descriptors that format-specific packages can map into their own coordinate systems.
 - Linear and radial gradients support encoded sRGB and linear-light RGB interpolation. Use `gradient.WithColorInterpolation(OfficeGradientColorInterpolation.LinearRgb)` to create a detached linear-light gradient; `ColorInterpolation` reports its mode. Cloning, coordinate transforms, SVG import/export and raster output retain the mode. SVG `color-interpolation` inherits through CSS ancestors, including inline styles, independently of gradient template references.
+- `OfficeConicGradient.CreateDrawing` expands clockwise stops into clipped vector regions for the shared raster, SVG and PDF routes. Color sampling uses premultiplied alpha. Narrow transitions can reuse the unused flat-region sampling budget; their final endpoint paint continues into an adjacent matching plateau when the budget permits, preventing repeated edge coverage from tinting that plateau. Wrap and near-center antialiasing remain approximations, with differences between PDF consumers.
 - `OfficeRadialGradient.TransformCoordinates` preserves radial fields under affine rotation, shear and reflection. Its `CoordinateTransform` maps gradient coordinates into normalized shape coordinates; cloning and opacity changes retain that mapping. SVG import expands bounded radial repeat/reflect fields within the shared stop budget and retains other fields with `OfficeRadialGradient.WithSpreadMode(OfficeGradientSpreadMode.Repeat)` or `Reflect`. Cloning, transforms, raster sampling and SVG export preserve the spread mode. PDF export still requires finite expansion. Native boundary/exterior fields export as SVG 2 vector patterns with separate color and alpha composition. The shared SVG importer accepts shrinking-circle Pad, Repeat and Reflect fields, including point ends, and retains transparent regions outside ordinary SVG cones. Ordinary SVG point-focus boundary spreads retain their offset-weighted outside color and alpha; native XPS keeps its distinct endpoint rule. Pattern content retains its tile origin and stroke coverage offsets.
 - `OfficeChartSnapshot` and chart rendering primitives shared by PDF and Office exporters.
 - `OfficeRasterImage`, `OfficeRasterCanvas`, `OfficeRasterRenderTarget`, and `OfficeDrawingRasterRenderer` for shared dependency-free raster rendering.

@@ -1,0 +1,4258 @@
+{
+  "schema": "officeimo.html.rowspan-content-cuts-qualification/v1",
+  "recordedUtc": "2026-10-18T02:09:55.083622+00:00",
+  "milestone": "Safe within-row content and blank-tail fragmentation through ordinary rowspans",
+  "baseHead": "dc54055989cba8716be49661e5337e7693fb9cc3",
+  "qualifiedSourceHead": "22f87d75ec160108b16cb21b1c182aa979795565",
+  "qualifiedRenderingHead": "08925acda123903e580310dcb809603201e04c7a",
+  "publication": "Qualified branch checkpoint only; no PR, merge, signing, package publication or deployment in this batch.",
+  "implementation": {
+    "owner": "OfficeIMO.Html shared flow, table, parallel-item and column owners",
+    "publicApiChange": false,
+    "productionDependencyChange": false,
+    "changes": [
+      "Closed source-coordinate safe intervals supplement discrete content cuts in the shared fragment planner.",
+      "Preserve source slices, original row/cell identity, authored keeps, paragraph constraints and atomic content across reachable wrappers.",
+      "Qualify parallel cuts against every overlapping participant and retain constraints through column projection."
+    ],
+    "scope": "Ordinary horizontal content; transformed/vertical cells and nested tables retain conservative qualified boundaries."
+  },
+  "inputs": [
+    {
+      "case": "kept-link",
+      "fixture": "rowspan-content-cuts-kept-link-20261018.html",
+      "bytes": 1364,
+      "sha256": "37a5d8e5a1b70979252c3a00be1f21fc28036cf60904d6890bc4601aff0bdad3"
+    },
+    {
+      "case": "kept-link-288",
+      "fixture": "rowspan-content-cuts-kept-link-288-20261018.html",
+      "bytes": 1364,
+      "sha256": "916dd9368ae81eebc2a633ba5ecb79e175c6d7bae71117035d7aa55547f18211"
+    },
+    {
+      "case": "kept-link-300",
+      "fixture": "rowspan-content-cuts-kept-link-300-20261018.html",
+      "bytes": 1364,
+      "sha256": "2054efcbd4438054dcb7d2be5bf393211b9a4121900f2fa4c7f47cfe9983c8d0"
+    },
+    {
+      "case": "collapse",
+      "fixture": "rowspan-row-cuts-collapse-20261018.html",
+      "bytes": 1161,
+      "sha256": "b5dc1a98e9dfb6a9f256c0f53d8e6dd9c1246f466490f0ac6f2da7555feb2fee"
+    },
+    {
+      "case": "separate",
+      "fixture": "rowspan-row-cuts-separate-20261018.html",
+      "bytes": 1161,
+      "sha256": "98b28a2e6e69b91e852b6b873cb9741fd832c104b4f9fc9ea58397f71a8ff434"
+    },
+    {
+      "case": "review-columns",
+      "fixture": "rowspan-content-cuts-review-columns-20261018.html",
+      "bytes": 740,
+      "sha256": "cc6e7353f246d96639e5ef73877892997ad31ec13a16160a0db10a30f76b2387"
+    },
+    {
+      "case": "review-overlap",
+      "fixture": "rowspan-content-cuts-review-overlap-20261018.html",
+      "bytes": 839,
+      "sha256": "7d022d01ba4b6a6c301484b80bae52f7b220b7d2260ccc8341de83c5db163240"
+    },
+    {
+      "case": "review-inline-overlap",
+      "fixture": "rowspan-content-cuts-review-inline-overlap-20261018.html",
+      "bytes": 849,
+      "sha256": "8ef939e49750d86ab9e0a13e50c38d2677c31a6a90ab60227a4bbc916fdb237f"
+    }
+  ],
+  "assetMap": {
+    "regular.ttf": {
+      "repositoryPath": "OfficeIMO.TestAssets/Fonts/OfficeIMOBaselineSans-Regular.ttf",
+      "bytes": 105592,
+      "sha256": "00aca2988771998ff27738ff97c2cc8e71eb3013f206de5f205986b7de326af3"
+    },
+    "bold.ttf": {
+      "repositoryPath": "OfficeIMO.TestAssets/Fonts/OfficeIMOBaselineSans-Bold.ttf",
+      "bytes": 120288,
+      "sha256": "20bb7ad2e23beb5020313119f46fbc50a5ded598aaa1be4df719d3c017914b6c"
+    }
+  },
+  "publicPath": "HtmlSiteBundle.Load -> HtmlRenderRequest.Create -> HtmlRenderEngine.Execute / bundle.RenderToPdfResult -> ExportImages; exact scoped fonts, Browser UA, portable deterministic resources and no host fallback.",
+  "frameworks": {
+    "sourceHead": "22f87d75ec160108b16cb21b1c182aa979795565",
+    "metadata": {
+      "path": "final-framework-metadata-results.json",
+      "bytes": 1712,
+      "sha256": "0f16bee89b6fbee915bd065864ca88568dbf4d99d8ff8d506f5a07d589e8c34f"
+    },
+    "results": [
+      {
+        "framework": "net10.0",
+        "sourceHead": "22f87d75ec160108b16cb21b1c182aa979795565",
+        "trx": {
+          "path": "trx/final-metadata10/final10.trx",
+          "bytes": 10242832,
+          "sha256": "704dd15001ca1c526e011434cf6ce616300238c96295557a363ddf28ff9cc4c4"
+        },
+        "counters": {
+          "total": "6766",
+          "executed": "6766",
+          "passed": "6766",
+          "failed": "0",
+          "error": "0",
+          "timeout": "0",
+          "aborted": "0",
+          "inconclusive": "0",
+          "passedButRunAborted": "0",
+          "notRunnable": "0",
+          "notExecuted": "0",
+          "disconnected": "0",
+          "warning": "0",
+          "completed": "0",
+          "inProgress": "0",
+          "pending": "0"
+        },
+        "testAssemblySha256": "7e45dd33dc224ca6d3effccaf2aac5585546639e02d339e4f9f71cd768b54899",
+        "htmlAssemblySha256": "fa45915a92ac9042221866c272701632b973eccc04d263fa9c32c1c3fcc30f08"
+      },
+      {
+        "framework": "net8.0",
+        "sourceHead": "22f87d75ec160108b16cb21b1c182aa979795565",
+        "trx": {
+          "path": "trx/final-metadata8/final8.trx",
+          "bytes": 10229299,
+          "sha256": "bca13adf231047c0b497eb524c98de9a16b69d44f3471f9601eccadb81111e1d"
+        },
+        "counters": {
+          "total": "6766",
+          "executed": "6766",
+          "passed": "6766",
+          "failed": "0",
+          "error": "0",
+          "timeout": "0",
+          "aborted": "0",
+          "inconclusive": "0",
+          "passedButRunAborted": "0",
+          "notRunnable": "0",
+          "notExecuted": "0",
+          "disconnected": "0",
+          "warning": "0",
+          "completed": "0",
+          "inProgress": "0",
+          "pending": "0"
+        },
+        "testAssemblySha256": "fac29472207fda7b3cdb018c9a7878d35fb451c28bccfe7b34059d75fedb1628",
+        "htmlAssemblySha256": "a6b1a68f04fce8a821f520901872879465912dcb5d8c66902a13f1bc29962200"
+      }
+    ]
+  },
+  "review": {
+    "observations": {
+      "path": "independent-review.json",
+      "bytes": 1606,
+      "sha256": "5158987b71a0fd493b6bc8ed3f74e1dab0ff68095df85dd34de754c944a1c1c2"
+    },
+    "reviewedHead": "8b4b0731f134c49e1255b3846b876be13a98f131",
+    "closureHead": "08925acda123903e580310dcb809603201e04c7a",
+    "mode": "fresh independent read-only local pass; all29files plus reachable copies; no builds/edits by reviewer; one targeted read-only confirmation of two findings and reachable copies",
+    "focusedPassed": 397,
+    "findings": [
+      {
+        "priority": "P1",
+        "contract": "ordinary/interrupted wrappers can import table blank-tail cuts through subsequent overlapping text",
+        "reproduction": "trx/review-repro/review-repro.trx; both wrappers lose text on8b; both pass prior969 qualifiedHTML subject",
+        "classification": "introduced",
+        "fixOwners": [
+          "Blocks.cs",
+          "InlineInterruptions.cs"
+        ]
+      },
+      {
+        "priority": "P2",
+        "contract": "columns discard paragraph groups while importing intervals",
+        "reproduction": "sameTRX; direct8linesorphans4widows4 passes4/4; columns5/3fails",
+        "classification": "expanded qualified contract; oldsubject forced/lossy in both paths",
+        "fixOwners": [
+          "Columns.cs",
+          "Columns.Spanning.cs",
+          "Columns.Footnotes.cs",
+          "Columns.BreakRanges.cs"
+        ]
+      }
+    ],
+    "remainingFindings": [],
+    "confirmationAllowanceConsumed": true
+  },
+  "directRenderChecks": {
+    "manifest": {
+      "path": "sealed-final-captures.json",
+      "bytes": 182026,
+      "sha256": "df43a955740f8642b23994bf03ffff51e29062a0cff40d6ce6de9ec53d31d902"
+    },
+    "runtime": [
+      {
+        "name": "OfficeIMO.Html.dll",
+        "sha256": "fa45915a92ac9042221866c272701632b973eccc04d263fa9c32c1c3fcc30f08"
+      },
+      {
+        "name": "OfficeIMO.Pdf.dll",
+        "sha256": "ec423ce52a4532e3c5358a43017a9e25d896d0d9a1fa625b8139d90b67fd2b46"
+      },
+      {
+        "name": "OfficeIMO.Core.dll",
+        "sha256": "e72d22beded5d47f180377a8c52715e988970c91b5236456016bd59c5851a4fb"
+      },
+      {
+        "name": "OfficeIMO.Html.Core.dll",
+        "sha256": "8d0650086382b53d1c23a02aac7a1ee32ba000043805e5ce8f5cb581b55d9386"
+      },
+      {
+        "name": "OfficeIMO.Html.AngleSharp.dll",
+        "sha256": "cde67153e1b3f4395d5f3a8b992d48e6a9226ee1642252eb1be210a49dc89d22"
+      },
+      {
+        "name": "AngleSharp.dll",
+        "sha256": "ed9ebe8f1f6a8537f52a5aa607225d929de55f202bd6c1fa198e10bf82db2911"
+      },
+      {
+        "name": "AngleSharp.Css.dll",
+        "sha256": "b9d58927495cbe8559015897d1ed5b18838ae658d52d0a9321bc5d9da6101f61"
+      }
+    ],
+    "cases": [
+      {
+        "case": "kept-link",
+        "summary": {
+          "path": "sealed-final-kept-link/summary.json",
+          "bytes": 20858,
+          "sha256": "340bbf1e6dc6c02637372566c1dbf87d4d1939367586a71075390c9ab0534cbf"
+        },
+        "profiles": [
+          {
+            "profile": "PrintPaged",
+            "pages": 2,
+            "parity": true,
+            "pageGeometry": [
+              {
+                "Width": 400,
+                "Height": 286
+              },
+              {
+                "Width": 400,
+                "Height": 286
+              }
+            ],
+            "diagnostics": []
+          },
+          {
+            "profile": "ScreenMediaPaged",
+            "pages": 2,
+            "parity": true,
+            "pageGeometry": [
+              {
+                "Width": 400,
+                "Height": 286
+              },
+              {
+                "Width": 400,
+                "Height": 286
+              }
+            ],
+            "diagnostics": []
+          },
+          {
+            "profile": "ScreenFullPage",
+            "pages": 1,
+            "parity": null,
+            "pageGeometry": [
+              {
+                "Width": 800,
+                "Height": 1000
+              }
+            ],
+            "diagnostics": []
+          },
+          {
+            "profile": "ScreenSnapshotPaged",
+            "pages": 1,
+            "parity": true,
+            "pageGeometry": [
+              {
+                "Width": 800,
+                "Height": 1000
+              }
+            ],
+            "diagnostics": []
+          }
+        ]
+      },
+      {
+        "case": "kept-link-288",
+        "summary": {
+          "path": "sealed-final-kept-link-288/summary.json",
+          "bytes": 20858,
+          "sha256": "f959703999cfe6a3a5227f2bbd5f06ee81fd9b2fe88bc9eb6f1260426ff12f95"
+        },
+        "profiles": [
+          {
+            "profile": "PrintPaged",
+            "pages": 2,
+            "parity": true,
+            "pageGeometry": [
+              {
+                "Width": 400,
+                "Height": 288
+              },
+              {
+                "Width": 400,
+                "Height": 288
+              }
+            ],
+            "diagnostics": []
+          },
+          {
+            "profile": "ScreenMediaPaged",
+            "pages": 2,
+            "parity": true,
+            "pageGeometry": [
+              {
+                "Width": 400,
+                "Height": 288
+              },
+              {
+                "Width": 400,
+                "Height": 288
+              }
+            ],
+            "diagnostics": []
+          },
+          {
+            "profile": "ScreenFullPage",
+            "pages": 1,
+            "parity": null,
+            "pageGeometry": [
+              {
+                "Width": 800,
+                "Height": 1000
+              }
+            ],
+            "diagnostics": []
+          },
+          {
+            "profile": "ScreenSnapshotPaged",
+            "pages": 1,
+            "parity": true,
+            "pageGeometry": [
+              {
+                "Width": 800,
+                "Height": 1000
+              }
+            ],
+            "diagnostics": []
+          }
+        ]
+      },
+      {
+        "case": "kept-link-300",
+        "summary": {
+          "path": "sealed-final-kept-link-300/summary.json",
+          "bytes": 20856,
+          "sha256": "aa87c31ea3019a581f3669ad5305f85008593f387df7abcbcdc844a4db2b5c40"
+        },
+        "profiles": [
+          {
+            "profile": "PrintPaged",
+            "pages": 2,
+            "parity": true,
+            "pageGeometry": [
+              {
+                "Width": 400,
+                "Height": 300
+              },
+              {
+                "Width": 400,
+                "Height": 300
+              }
+            ],
+            "diagnostics": []
+          },
+          {
+            "profile": "ScreenMediaPaged",
+            "pages": 2,
+            "parity": true,
+            "pageGeometry": [
+              {
+                "Width": 400,
+                "Height": 300
+              },
+              {
+                "Width": 400,
+                "Height": 300
+              }
+            ],
+            "diagnostics": []
+          },
+          {
+            "profile": "ScreenFullPage",
+            "pages": 1,
+            "parity": null,
+            "pageGeometry": [
+              {
+                "Width": 800,
+                "Height": 1000
+              }
+            ],
+            "diagnostics": []
+          },
+          {
+            "profile": "ScreenSnapshotPaged",
+            "pages": 1,
+            "parity": true,
+            "pageGeometry": [
+              {
+                "Width": 800,
+                "Height": 1000
+              }
+            ],
+            "diagnostics": []
+          }
+        ]
+      },
+      {
+        "case": "collapse",
+        "summary": {
+          "path": "sealed-final-collapse/summary.json",
+          "bytes": 19579,
+          "sha256": "15950b0e085c283068f2cdeafcca714d6e5aae97870a859be91f4f2aa1f6383e"
+        },
+        "profiles": [
+          {
+            "profile": "PrintPaged",
+            "pages": 2,
+            "parity": true,
+            "pageGeometry": [
+              {
+                "Width": 400,
+                "Height": 278
+              },
+              {
+                "Width": 400,
+                "Height": 278
+              }
+            ],
+            "diagnostics": []
+          },
+          {
+            "profile": "ScreenMediaPaged",
+            "pages": 2,
+            "parity": true,
+            "pageGeometry": [
+              {
+                "Width": 400,
+                "Height": 278
+              },
+              {
+                "Width": 400,
+                "Height": 278
+              }
+            ],
+            "diagnostics": []
+          },
+          {
+            "profile": "ScreenFullPage",
+            "pages": 1,
+            "parity": null,
+            "pageGeometry": [
+              {
+                "Width": 800,
+                "Height": 1000
+              }
+            ],
+            "diagnostics": []
+          },
+          {
+            "profile": "ScreenSnapshotPaged",
+            "pages": 1,
+            "parity": true,
+            "pageGeometry": [
+              {
+                "Width": 800,
+                "Height": 1000
+              }
+            ],
+            "diagnostics": []
+          }
+        ]
+      },
+      {
+        "case": "separate",
+        "summary": {
+          "path": "sealed-final-separate/summary.json",
+          "bytes": 18195,
+          "sha256": "2b11201dc4401058f79ff574efeae443dfb3493e71a05dc06eeb613150870c94"
+        },
+        "profiles": [
+          {
+            "profile": "PrintPaged",
+            "pages": 2,
+            "parity": true,
+            "pageGeometry": [
+              {
+                "Width": 400,
+                "Height": 286
+              },
+              {
+                "Width": 400,
+                "Height": 286
+              }
+            ],
+            "diagnostics": []
+          },
+          {
+            "profile": "ScreenMediaPaged",
+            "pages": 2,
+            "parity": true,
+            "pageGeometry": [
+              {
+                "Width": 400,
+                "Height": 286
+              },
+              {
+                "Width": 400,
+                "Height": 286
+              }
+            ],
+            "diagnostics": []
+          },
+          {
+            "profile": "ScreenFullPage",
+            "pages": 1,
+            "parity": null,
+            "pageGeometry": [
+              {
+                "Width": 800,
+                "Height": 1000
+              }
+            ],
+            "diagnostics": []
+          },
+          {
+            "profile": "ScreenSnapshotPaged",
+            "pages": 1,
+            "parity": true,
+            "pageGeometry": [
+              {
+                "Width": 800,
+                "Height": 1000
+              }
+            ],
+            "diagnostics": []
+          }
+        ]
+      },
+      {
+        "case": "review-columns",
+        "summary": {
+          "path": "sealed-final-review-columns/summary.json",
+          "bytes": 12655,
+          "sha256": "3c97fac8d63659ba506276780131681a73da1b4eb019e3b33f18e779248acd62"
+        },
+        "profiles": [
+          {
+            "profile": "PrintPaged",
+            "pages": 6,
+            "parity": true,
+            "pageGeometry": [
+              {
+                "Width": 700,
+                "Height": 140
+              },
+              {
+                "Width": 700,
+                "Height": 140
+              },
+              {
+                "Width": 700,
+                "Height": 140
+              },
+              {
+                "Width": 700,
+                "Height": 140
+              },
+              {
+                "Width": 700,
+                "Height": 140
+              },
+              {
+                "Width": 700,
+                "Height": 140
+              }
+            ],
+            "diagnostics": []
+          },
+          {
+            "profile": "ScreenMediaPaged",
+            "pages": 6,
+            "parity": true,
+            "pageGeometry": [
+              {
+                "Width": 700,
+                "Height": 140
+              },
+              {
+                "Width": 700,
+                "Height": 140
+              },
+              {
+                "Width": 700,
+                "Height": 140
+              },
+              {
+                "Width": 700,
+                "Height": 140
+              },
+              {
+                "Width": 700,
+                "Height": 140
+              },
+              {
+                "Width": 700,
+                "Height": 140
+              }
+            ],
+            "diagnostics": []
+          },
+          {
+            "profile": "ScreenFullPage",
+            "pages": 1,
+            "parity": null,
+            "pageGeometry": [
+              {
+                "Width": 800,
+                "Height": 1000
+              }
+            ],
+            "diagnostics": []
+          },
+          {
+            "profile": "ScreenSnapshotPaged",
+            "pages": 1,
+            "parity": true,
+            "pageGeometry": [
+              {
+                "Width": 800,
+                "Height": 1000
+              }
+            ],
+            "diagnostics": []
+          }
+        ]
+      },
+      {
+        "case": "review-overlap",
+        "summary": {
+          "path": "sealed-final-review-overlap/summary.json",
+          "bytes": 21977,
+          "sha256": "61018f4fa72782ca0917a2f5285c5a15f3caabbbaed47158dacb292555c7117e"
+        },
+        "profiles": [
+          {
+            "profile": "PrintPaged",
+            "pages": 5,
+            "parity": true,
+            "pageGeometry": [
+              {
+                "Width": 400,
+                "Height": 140
+              },
+              {
+                "Width": 400,
+                "Height": 140
+              },
+              {
+                "Width": 400,
+                "Height": 140
+              },
+              {
+                "Width": 400,
+                "Height": 140
+              },
+              {
+                "Width": 400,
+                "Height": 140
+              }
+            ],
+            "diagnostics": []
+          },
+          {
+            "profile": "ScreenMediaPaged",
+            "pages": 5,
+            "parity": true,
+            "pageGeometry": [
+              {
+                "Width": 400,
+                "Height": 140
+              },
+              {
+                "Width": 400,
+                "Height": 140
+              },
+              {
+                "Width": 400,
+                "Height": 140
+              },
+              {
+                "Width": 400,
+                "Height": 140
+              },
+              {
+                "Width": 400,
+                "Height": 140
+              }
+            ],
+            "diagnostics": []
+          },
+          {
+            "profile": "ScreenFullPage",
+            "pages": 1,
+            "parity": null,
+            "pageGeometry": [
+              {
+                "Width": 800,
+                "Height": 1000
+              }
+            ],
+            "diagnostics": []
+          },
+          {
+            "profile": "ScreenSnapshotPaged",
+            "pages": 1,
+            "parity": true,
+            "pageGeometry": [
+              {
+                "Width": 800,
+                "Height": 1000
+              }
+            ],
+            "diagnostics": []
+          }
+        ]
+      },
+      {
+        "case": "review-inline-overlap",
+        "summary": {
+          "path": "sealed-final-review-inline-overlap/summary.json",
+          "bytes": 22229,
+          "sha256": "cc9513d0f4ed1b0a98035a95ae88eb63b330411fde2fd81310f750ecc6c65a01"
+        },
+        "profiles": [
+          {
+            "profile": "PrintPaged",
+            "pages": 5,
+            "parity": true,
+            "pageGeometry": [
+              {
+                "Width": 400,
+                "Height": 140
+              },
+              {
+                "Width": 400,
+                "Height": 140
+              },
+              {
+                "Width": 400,
+                "Height": 140
+              },
+              {
+                "Width": 400,
+                "Height": 140
+              },
+              {
+                "Width": 400,
+                "Height": 140
+              }
+            ],
+            "diagnostics": []
+          },
+          {
+            "profile": "ScreenMediaPaged",
+            "pages": 5,
+            "parity": true,
+            "pageGeometry": [
+              {
+                "Width": 400,
+                "Height": 140
+              },
+              {
+                "Width": 400,
+                "Height": 140
+              },
+              {
+                "Width": 400,
+                "Height": 140
+              },
+              {
+                "Width": 400,
+                "Height": 140
+              },
+              {
+                "Width": 400,
+                "Height": 140
+              }
+            ],
+            "diagnostics": []
+          },
+          {
+            "profile": "ScreenFullPage",
+            "pages": 1,
+            "parity": null,
+            "pageGeometry": [
+              {
+                "Width": 800,
+                "Height": 1000
+              }
+            ],
+            "diagnostics": []
+          },
+          {
+            "profile": "ScreenSnapshotPaged",
+            "pages": 1,
+            "parity": true,
+            "pageGeometry": [
+              {
+                "Width": 800,
+                "Height": 1000
+              }
+            ],
+            "diagnostics": []
+          }
+        ]
+      }
+    ],
+    "artifacts": [
+      {
+        "path": "sealed-final-kept-link/PrintPaged-01-scene.png",
+        "bytes": 8087,
+        "sha256": "9fa0b05a9819da70cb508e16140defa824883aafa39b5152491bac2a1f2e2225"
+      },
+      {
+        "path": "sealed-final-kept-link/PrintPaged-01.png",
+        "bytes": 8366,
+        "sha256": "838e31691e9add9de5595fd91d82ced7adfe3b58f3d8f7689dd020ca98a3669d"
+      },
+      {
+        "path": "sealed-final-kept-link/PrintPaged-01.svg",
+        "bytes": 330959,
+        "sha256": "6113d4f440d11aca81dcd95a379cf1b34b0dfdfb49f29dcaf4535efeb479c7c6"
+      },
+      {
+        "path": "sealed-final-kept-link/PrintPaged-02-scene.png",
+        "bytes": 3796,
+        "sha256": "914c04342f869050be2176a35c07f67c97c3ee7b0911b6b2b59d01dbef2164e5"
+      },
+      {
+        "path": "sealed-final-kept-link/PrintPaged-02.png",
+        "bytes": 3817,
+        "sha256": "46f25fed8092a6418a38c4ee180ee49dd776c593d5738e3c06a25cb5f96a61c9"
+      },
+      {
+        "path": "sealed-final-kept-link/PrintPaged-02.svg",
+        "bytes": 326891,
+        "sha256": "ce8bbc729cd6d90cddab7fd0aee6408cae1643b2cd2823346e6f2b8b327a14dc"
+      },
+      {
+        "path": "sealed-final-kept-link/PrintPaged.pdf",
+        "bytes": 33226,
+        "sha256": "923fbfacedf259e531d24ba417f83324dee4993716c3f014188d84417ed3fd20"
+      },
+      {
+        "path": "sealed-final-kept-link/ScreenFullPage-01-scene.png",
+        "bytes": 13298,
+        "sha256": "9635ae7dfdff3fa5ec66d83ee315facf8013902eea323e3e565de8cad0aab73a"
+      },
+      {
+        "path": "sealed-final-kept-link/ScreenFullPage-01.png",
+        "bytes": 13335,
+        "sha256": "61646206e7339120e0eb6e29b7fd4d8f547ff8f9ab5b7cdde9c81f55e21cf785"
+      },
+      {
+        "path": "sealed-final-kept-link/ScreenFullPage-01.svg",
+        "bytes": 330282,
+        "sha256": "3f55de7b0643c65a428047a819d0708afae5665d786c553f3783084efe54e1f9"
+      },
+      {
+        "path": "sealed-final-kept-link/ScreenMediaPaged-01-scene.png",
+        "bytes": 8087,
+        "sha256": "9fa0b05a9819da70cb508e16140defa824883aafa39b5152491bac2a1f2e2225"
+      },
+      {
+        "path": "sealed-final-kept-link/ScreenMediaPaged-01.png",
+        "bytes": 8366,
+        "sha256": "838e31691e9add9de5595fd91d82ced7adfe3b58f3d8f7689dd020ca98a3669d"
+      },
+      {
+        "path": "sealed-final-kept-link/ScreenMediaPaged-01.svg",
+        "bytes": 330959,
+        "sha256": "6113d4f440d11aca81dcd95a379cf1b34b0dfdfb49f29dcaf4535efeb479c7c6"
+      },
+      {
+        "path": "sealed-final-kept-link/ScreenMediaPaged-02-scene.png",
+        "bytes": 3796,
+        "sha256": "914c04342f869050be2176a35c07f67c97c3ee7b0911b6b2b59d01dbef2164e5"
+      },
+      {
+        "path": "sealed-final-kept-link/ScreenMediaPaged-02.png",
+        "bytes": 3817,
+        "sha256": "46f25fed8092a6418a38c4ee180ee49dd776c593d5738e3c06a25cb5f96a61c9"
+      },
+      {
+        "path": "sealed-final-kept-link/ScreenMediaPaged-02.svg",
+        "bytes": 326891,
+        "sha256": "ce8bbc729cd6d90cddab7fd0aee6408cae1643b2cd2823346e6f2b8b327a14dc"
+      },
+      {
+        "path": "sealed-final-kept-link/ScreenMediaPaged.pdf",
+        "bytes": 33226,
+        "sha256": "923fbfacedf259e531d24ba417f83324dee4993716c3f014188d84417ed3fd20"
+      },
+      {
+        "path": "sealed-final-kept-link/ScreenSnapshotPaged-01-scene.png",
+        "bytes": 13298,
+        "sha256": "9635ae7dfdff3fa5ec66d83ee315facf8013902eea323e3e565de8cad0aab73a"
+      },
+      {
+        "path": "sealed-final-kept-link/ScreenSnapshotPaged-01.png",
+        "bytes": 13335,
+        "sha256": "61646206e7339120e0eb6e29b7fd4d8f547ff8f9ab5b7cdde9c81f55e21cf785"
+      },
+      {
+        "path": "sealed-final-kept-link/ScreenSnapshotPaged-01.svg",
+        "bytes": 330282,
+        "sha256": "3f55de7b0643c65a428047a819d0708afae5665d786c553f3783084efe54e1f9"
+      },
+      {
+        "path": "sealed-final-kept-link/ScreenSnapshotPaged.pdf",
+        "bytes": 20602,
+        "sha256": "b56dea1c3e80e9fe8392729bf81328622d8ff8983eb8a156e3e7f43813113ffb"
+      },
+      {
+        "path": "sealed-final-kept-link-288/PrintPaged-01-scene.png",
+        "bytes": 8097,
+        "sha256": "25ecaab71ba5b7eb8f5b0e023c9551dc78f81f0b49bdb9170172778fcc4c7bf8"
+      },
+      {
+        "path": "sealed-final-kept-link-288/PrintPaged-01.png",
+        "bytes": 8378,
+        "sha256": "f4c4b1fd291ca1abb49cd32c69a45e37079ecdf95dbef909aa08ce82c04f725b"
+      },
+      {
+        "path": "sealed-final-kept-link-288/PrintPaged-01.svg",
+        "bytes": 330953,
+        "sha256": "fffc25c944797cf6043f0d1c065487bef773dcb9ef29fabac130ace82c75ea5a"
+      },
+      {
+        "path": "sealed-final-kept-link-288/PrintPaged-02-scene.png",
+        "bytes": 3804,
+        "sha256": "9b7523cbe441e072c3b085dc118a566143440272263f9e7250d421f52ceada4d"
+      },
+      {
+        "path": "sealed-final-kept-link-288/PrintPaged-02.png",
+        "bytes": 3808,
+        "sha256": "2da16c3ab10b8a48dfc70296490467bdd2aea3f885da1101021e7c6539814617"
+      },
+      {
+        "path": "sealed-final-kept-link-288/PrintPaged-02.svg",
+        "bytes": 326893,
+        "sha256": "c228742f96f02a5baab40f49bdff764f385128fe4b65c455abffb6b060081082"
+      },
+      {
+        "path": "sealed-final-kept-link-288/PrintPaged.pdf",
+        "bytes": 33230,
+        "sha256": "eb5a1088bd895585fb250ceb047a34fc47ea3f54a36e7320d0dbfbeb0b732a95"
+      },
+      {
+        "path": "sealed-final-kept-link-288/ScreenFullPage-01-scene.png",
+        "bytes": 13298,
+        "sha256": "9635ae7dfdff3fa5ec66d83ee315facf8013902eea323e3e565de8cad0aab73a"
+      },
+      {
+        "path": "sealed-final-kept-link-288/ScreenFullPage-01.png",
+        "bytes": 13335,
+        "sha256": "61646206e7339120e0eb6e29b7fd4d8f547ff8f9ab5b7cdde9c81f55e21cf785"
+      },
+      {
+        "path": "sealed-final-kept-link-288/ScreenFullPage-01.svg",
+        "bytes": 330282,
+        "sha256": "3f55de7b0643c65a428047a819d0708afae5665d786c553f3783084efe54e1f9"
+      },
+      {
+        "path": "sealed-final-kept-link-288/ScreenMediaPaged-01-scene.png",
+        "bytes": 8097,
+        "sha256": "25ecaab71ba5b7eb8f5b0e023c9551dc78f81f0b49bdb9170172778fcc4c7bf8"
+      },
+      {
+        "path": "sealed-final-kept-link-288/ScreenMediaPaged-01.png",
+        "bytes": 8378,
+        "sha256": "f4c4b1fd291ca1abb49cd32c69a45e37079ecdf95dbef909aa08ce82c04f725b"
+      },
+      {
+        "path": "sealed-final-kept-link-288/ScreenMediaPaged-01.svg",
+        "bytes": 330953,
+        "sha256": "fffc25c944797cf6043f0d1c065487bef773dcb9ef29fabac130ace82c75ea5a"
+      },
+      {
+        "path": "sealed-final-kept-link-288/ScreenMediaPaged-02-scene.png",
+        "bytes": 3804,
+        "sha256": "9b7523cbe441e072c3b085dc118a566143440272263f9e7250d421f52ceada4d"
+      },
+      {
+        "path": "sealed-final-kept-link-288/ScreenMediaPaged-02.png",
+        "bytes": 3808,
+        "sha256": "2da16c3ab10b8a48dfc70296490467bdd2aea3f885da1101021e7c6539814617"
+      },
+      {
+        "path": "sealed-final-kept-link-288/ScreenMediaPaged-02.svg",
+        "bytes": 326893,
+        "sha256": "c228742f96f02a5baab40f49bdff764f385128fe4b65c455abffb6b060081082"
+      },
+      {
+        "path": "sealed-final-kept-link-288/ScreenMediaPaged.pdf",
+        "bytes": 33230,
+        "sha256": "eb5a1088bd895585fb250ceb047a34fc47ea3f54a36e7320d0dbfbeb0b732a95"
+      },
+      {
+        "path": "sealed-final-kept-link-288/ScreenSnapshotPaged-01-scene.png",
+        "bytes": 13298,
+        "sha256": "9635ae7dfdff3fa5ec66d83ee315facf8013902eea323e3e565de8cad0aab73a"
+      },
+      {
+        "path": "sealed-final-kept-link-288/ScreenSnapshotPaged-01.png",
+        "bytes": 13335,
+        "sha256": "61646206e7339120e0eb6e29b7fd4d8f547ff8f9ab5b7cdde9c81f55e21cf785"
+      },
+      {
+        "path": "sealed-final-kept-link-288/ScreenSnapshotPaged-01.svg",
+        "bytes": 330282,
+        "sha256": "3f55de7b0643c65a428047a819d0708afae5665d786c553f3783084efe54e1f9"
+      },
+      {
+        "path": "sealed-final-kept-link-288/ScreenSnapshotPaged.pdf",
+        "bytes": 20602,
+        "sha256": "b56dea1c3e80e9fe8392729bf81328622d8ff8983eb8a156e3e7f43813113ffb"
+      },
+      {
+        "path": "sealed-final-kept-link-300/PrintPaged-01-scene.png",
+        "bytes": 8146,
+        "sha256": "adaa5ea6bfd1ac2ad489f37142ec8a21353e3dc1a22b8c87616e991481b93049"
+      },
+      {
+        "path": "sealed-final-kept-link-300/PrintPaged-01.png",
+        "bytes": 8424,
+        "sha256": "4bbaf7d069ce8aed0bf40251264f524636e020551d6f331dc52327dfee2a6a71"
+      },
+      {
+        "path": "sealed-final-kept-link-300/PrintPaged-01.svg",
+        "bytes": 330953,
+        "sha256": "3b13cf18bd1ff322a655d7450ddcade75319e17a55079a5f74c6486ad83c6986"
+      },
+      {
+        "path": "sealed-final-kept-link-300/PrintPaged-02-scene.png",
+        "bytes": 3751,
+        "sha256": "565d40d3b7f98e563a758539515eb8151994e98a118640c78246e73b5137ea70"
+      },
+      {
+        "path": "sealed-final-kept-link-300/PrintPaged-02.png",
+        "bytes": 3754,
+        "sha256": "7222b7e998b18781f455a370c79c6e349ee49b5345891d1991b0d1e77c631c0e"
+      },
+      {
+        "path": "sealed-final-kept-link-300/PrintPaged-02.svg",
+        "bytes": 326893,
+        "sha256": "0d39cbe79f0abeaf988c8993d245b51beb2e1bf52fd098176bdd9366f4cd26e5"
+      },
+      {
+        "path": "sealed-final-kept-link-300/PrintPaged.pdf",
+        "bytes": 33219,
+        "sha256": "62c5ac5834dc2287a4d8a260ee6f6f967c2ad9c65179a6aa084ffa2915e7f112"
+      },
+      {
+        "path": "sealed-final-kept-link-300/ScreenFullPage-01-scene.png",
+        "bytes": 13298,
+        "sha256": "9635ae7dfdff3fa5ec66d83ee315facf8013902eea323e3e565de8cad0aab73a"
+      },
+      {
+        "path": "sealed-final-kept-link-300/ScreenFullPage-01.png",
+        "bytes": 13335,
+        "sha256": "61646206e7339120e0eb6e29b7fd4d8f547ff8f9ab5b7cdde9c81f55e21cf785"
+      },
+      {
+        "path": "sealed-final-kept-link-300/ScreenFullPage-01.svg",
+        "bytes": 330282,
+        "sha256": "3f55de7b0643c65a428047a819d0708afae5665d786c553f3783084efe54e1f9"
+      },
+      {
+        "path": "sealed-final-kept-link-300/ScreenMediaPaged-01-scene.png",
+        "bytes": 8146,
+        "sha256": "adaa5ea6bfd1ac2ad489f37142ec8a21353e3dc1a22b8c87616e991481b93049"
+      },
+      {
+        "path": "sealed-final-kept-link-300/ScreenMediaPaged-01.png",
+        "bytes": 8424,
+        "sha256": "4bbaf7d069ce8aed0bf40251264f524636e020551d6f331dc52327dfee2a6a71"
+      },
+      {
+        "path": "sealed-final-kept-link-300/ScreenMediaPaged-01.svg",
+        "bytes": 330953,
+        "sha256": "3b13cf18bd1ff322a655d7450ddcade75319e17a55079a5f74c6486ad83c6986"
+      },
+      {
+        "path": "sealed-final-kept-link-300/ScreenMediaPaged-02-scene.png",
+        "bytes": 3751,
+        "sha256": "565d40d3b7f98e563a758539515eb8151994e98a118640c78246e73b5137ea70"
+      },
+      {
+        "path": "sealed-final-kept-link-300/ScreenMediaPaged-02.png",
+        "bytes": 3754,
+        "sha256": "7222b7e998b18781f455a370c79c6e349ee49b5345891d1991b0d1e77c631c0e"
+      },
+      {
+        "path": "sealed-final-kept-link-300/ScreenMediaPaged-02.svg",
+        "bytes": 326893,
+        "sha256": "0d39cbe79f0abeaf988c8993d245b51beb2e1bf52fd098176bdd9366f4cd26e5"
+      },
+      {
+        "path": "sealed-final-kept-link-300/ScreenMediaPaged.pdf",
+        "bytes": 33219,
+        "sha256": "62c5ac5834dc2287a4d8a260ee6f6f967c2ad9c65179a6aa084ffa2915e7f112"
+      },
+      {
+        "path": "sealed-final-kept-link-300/ScreenSnapshotPaged-01-scene.png",
+        "bytes": 13298,
+        "sha256": "9635ae7dfdff3fa5ec66d83ee315facf8013902eea323e3e565de8cad0aab73a"
+      },
+      {
+        "path": "sealed-final-kept-link-300/ScreenSnapshotPaged-01.png",
+        "bytes": 13335,
+        "sha256": "61646206e7339120e0eb6e29b7fd4d8f547ff8f9ab5b7cdde9c81f55e21cf785"
+      },
+      {
+        "path": "sealed-final-kept-link-300/ScreenSnapshotPaged-01.svg",
+        "bytes": 330282,
+        "sha256": "3f55de7b0643c65a428047a819d0708afae5665d786c553f3783084efe54e1f9"
+      },
+      {
+        "path": "sealed-final-kept-link-300/ScreenSnapshotPaged.pdf",
+        "bytes": 20602,
+        "sha256": "b56dea1c3e80e9fe8392729bf81328622d8ff8983eb8a156e3e7f43813113ffb"
+      },
+      {
+        "path": "sealed-final-collapse/PrintPaged-01-scene.png",
+        "bytes": 6721,
+        "sha256": "127b7276b0bf7a78504665f65235c9db04ddb8b7e955ea303787debd94357d3a"
+      },
+      {
+        "path": "sealed-final-collapse/PrintPaged-01.png",
+        "bytes": 6702,
+        "sha256": "980913c97ac2a5b71993303a8caed42cd2dc0d19a6234ce25a257c225fb266f4"
+      },
+      {
+        "path": "sealed-final-collapse/PrintPaged-01.svg",
+        "bytes": 332632,
+        "sha256": "880a92b75c5ba66bce31a082b09e0480a239a298cfb77519d8b0dfd8ae3d496b"
+      },
+      {
+        "path": "sealed-final-collapse/PrintPaged-02-scene.png",
+        "bytes": 4009,
+        "sha256": "44b613ff4eefcdb34a1330d8d4d194e5efd8cf4535a027b0575763e13b468347"
+      },
+      {
+        "path": "sealed-final-collapse/PrintPaged-02.png",
+        "bytes": 4029,
+        "sha256": "c39f180ecd81f1a8642c5d025436623f28c3a341aabb3cf88cb8259de09f7180"
+      },
+      {
+        "path": "sealed-final-collapse/PrintPaged-02.svg",
+        "bytes": 330214,
+        "sha256": "a3f2ae46a4d315f2be680a2a7880bb674a2962b03ac261b3543cde0632c10320"
+      },
+      {
+        "path": "sealed-final-collapse/PrintPaged.pdf",
+        "bytes": 30996,
+        "sha256": "642dc2a12df1bb841f5b93d2d057d616c38487f226a4e1740b01124f46fe8cab"
+      },
+      {
+        "path": "sealed-final-collapse/ScreenFullPage-01-scene.png",
+        "bytes": 11349,
+        "sha256": "98c062a3e29bae22fae820c22725519ae2759ca3d94e5505cb1cb6e276e99b01"
+      },
+      {
+        "path": "sealed-final-collapse/ScreenFullPage-01.png",
+        "bytes": 11338,
+        "sha256": "ac7d6482a0662a4ddae7d3d5e5b4c498f511e51a192d92cba5799db3ceeba0fc"
+      },
+      {
+        "path": "sealed-final-collapse/ScreenFullPage-01.svg",
+        "bytes": 332397,
+        "sha256": "2bb715acde3a13470eb94c9aa7d8e56392f1e1dff6217c09778affa6c7a1ea0d"
+      },
+      {
+        "path": "sealed-final-collapse/ScreenMediaPaged-01-scene.png",
+        "bytes": 6721,
+        "sha256": "127b7276b0bf7a78504665f65235c9db04ddb8b7e955ea303787debd94357d3a"
+      },
+      {
+        "path": "sealed-final-collapse/ScreenMediaPaged-01.png",
+        "bytes": 6702,
+        "sha256": "980913c97ac2a5b71993303a8caed42cd2dc0d19a6234ce25a257c225fb266f4"
+      },
+      {
+        "path": "sealed-final-collapse/ScreenMediaPaged-01.svg",
+        "bytes": 332632,
+        "sha256": "880a92b75c5ba66bce31a082b09e0480a239a298cfb77519d8b0dfd8ae3d496b"
+      },
+      {
+        "path": "sealed-final-collapse/ScreenMediaPaged-02-scene.png",
+        "bytes": 4009,
+        "sha256": "44b613ff4eefcdb34a1330d8d4d194e5efd8cf4535a027b0575763e13b468347"
+      },
+      {
+        "path": "sealed-final-collapse/ScreenMediaPaged-02.png",
+        "bytes": 4029,
+        "sha256": "c39f180ecd81f1a8642c5d025436623f28c3a341aabb3cf88cb8259de09f7180"
+      },
+      {
+        "path": "sealed-final-collapse/ScreenMediaPaged-02.svg",
+        "bytes": 330214,
+        "sha256": "a3f2ae46a4d315f2be680a2a7880bb674a2962b03ac261b3543cde0632c10320"
+      },
+      {
+        "path": "sealed-final-collapse/ScreenMediaPaged.pdf",
+        "bytes": 30996,
+        "sha256": "642dc2a12df1bb841f5b93d2d057d616c38487f226a4e1740b01124f46fe8cab"
+      },
+      {
+        "path": "sealed-final-collapse/ScreenSnapshotPaged-01-scene.png",
+        "bytes": 11349,
+        "sha256": "98c062a3e29bae22fae820c22725519ae2759ca3d94e5505cb1cb6e276e99b01"
+      },
+      {
+        "path": "sealed-final-collapse/ScreenSnapshotPaged-01.png",
+        "bytes": 11338,
+        "sha256": "ac7d6482a0662a4ddae7d3d5e5b4c498f511e51a192d92cba5799db3ceeba0fc"
+      },
+      {
+        "path": "sealed-final-collapse/ScreenSnapshotPaged-01.svg",
+        "bytes": 332397,
+        "sha256": "2bb715acde3a13470eb94c9aa7d8e56392f1e1dff6217c09778affa6c7a1ea0d"
+      },
+      {
+        "path": "sealed-final-collapse/ScreenSnapshotPaged.pdf",
+        "bytes": 17387,
+        "sha256": "c225bc11bac6b00f4f6e843c2e8c34131ebe14ac1f3f7d654e14c81bca2f997e"
+      },
+      {
+        "path": "sealed-final-separate/PrintPaged-01-scene.png",
+        "bytes": 6737,
+        "sha256": "6de7c8fe000a87e5f50bcc4ef336b871152799c5b7e9e233723179ec8c03a885"
+      },
+      {
+        "path": "sealed-final-separate/PrintPaged-01.png",
+        "bytes": 6717,
+        "sha256": "8d75d25371bc22a4a9e96cce61b2c776d52940d4ef596c1316000e41cc9223c9"
+      },
+      {
+        "path": "sealed-final-separate/PrintPaged-01.svg",
+        "bytes": 330961,
+        "sha256": "cdcb0a39c38dde98a299a225c49c71ba75d8e298e12dc4bce5ea1d568e3c07e8"
+      },
+      {
+        "path": "sealed-final-separate/PrintPaged-02-scene.png",
+        "bytes": 4013,
+        "sha256": "2276788f3800d09321c53710b9708d093c6d4749594b996bd71275e3a3477780"
+      },
+      {
+        "path": "sealed-final-separate/PrintPaged-02.png",
+        "bytes": 4030,
+        "sha256": "7252177a92ee4e248811e8b345649e21336fb16a7754aafd7611da76c47c4e8b"
+      },
+      {
+        "path": "sealed-final-separate/PrintPaged-02.svg",
+        "bytes": 328772,
+        "sha256": "1318b5c028c7fe2d2ad0e4d865a04098b38a2bf34fa169f7ef8ab07a8557002c"
+      },
+      {
+        "path": "sealed-final-separate/PrintPaged.pdf",
+        "bytes": 30727,
+        "sha256": "2063569e8883373af494cba1e7f2a436a6604a85ff8ce7d47f38b01275a8a8c5"
+      },
+      {
+        "path": "sealed-final-separate/ScreenFullPage-01-scene.png",
+        "bytes": 11329,
+        "sha256": "3b2206b20fab140781dc2e8a14f2d80381c769a49d9265b81076ae1beee03211"
+      },
+      {
+        "path": "sealed-final-separate/ScreenFullPage-01.png",
+        "bytes": 11317,
+        "sha256": "3b78b486c309d317ac43e7d1212496944f848f423120fdfb8a6cc430237af69b"
+      },
+      {
+        "path": "sealed-final-separate/ScreenFullPage-01.svg",
+        "bytes": 329911,
+        "sha256": "624fe661c4a7539ad152df0ff3e6b7cd7aedc41c6680d9b6fac13c54acf4f406"
+      },
+      {
+        "path": "sealed-final-separate/ScreenMediaPaged-01-scene.png",
+        "bytes": 6737,
+        "sha256": "6de7c8fe000a87e5f50bcc4ef336b871152799c5b7e9e233723179ec8c03a885"
+      },
+      {
+        "path": "sealed-final-separate/ScreenMediaPaged-01.png",
+        "bytes": 6717,
+        "sha256": "8d75d25371bc22a4a9e96cce61b2c776d52940d4ef596c1316000e41cc9223c9"
+      },
+      {
+        "path": "sealed-final-separate/ScreenMediaPaged-01.svg",
+        "bytes": 330961,
+        "sha256": "cdcb0a39c38dde98a299a225c49c71ba75d8e298e12dc4bce5ea1d568e3c07e8"
+      },
+      {
+        "path": "sealed-final-separate/ScreenMediaPaged-02-scene.png",
+        "bytes": 4013,
+        "sha256": "2276788f3800d09321c53710b9708d093c6d4749594b996bd71275e3a3477780"
+      },
+      {
+        "path": "sealed-final-separate/ScreenMediaPaged-02.png",
+        "bytes": 4030,
+        "sha256": "7252177a92ee4e248811e8b345649e21336fb16a7754aafd7611da76c47c4e8b"
+      },
+      {
+        "path": "sealed-final-separate/ScreenMediaPaged-02.svg",
+        "bytes": 328772,
+        "sha256": "1318b5c028c7fe2d2ad0e4d865a04098b38a2bf34fa169f7ef8ab07a8557002c"
+      },
+      {
+        "path": "sealed-final-separate/ScreenMediaPaged.pdf",
+        "bytes": 30727,
+        "sha256": "2063569e8883373af494cba1e7f2a436a6604a85ff8ce7d47f38b01275a8a8c5"
+      },
+      {
+        "path": "sealed-final-separate/ScreenSnapshotPaged-01-scene.png",
+        "bytes": 11329,
+        "sha256": "3b2206b20fab140781dc2e8a14f2d80381c769a49d9265b81076ae1beee03211"
+      },
+      {
+        "path": "sealed-final-separate/ScreenSnapshotPaged-01.png",
+        "bytes": 11317,
+        "sha256": "3b78b486c309d317ac43e7d1212496944f848f423120fdfb8a6cc430237af69b"
+      },
+      {
+        "path": "sealed-final-separate/ScreenSnapshotPaged-01.svg",
+        "bytes": 329911,
+        "sha256": "624fe661c4a7539ad152df0ff3e6b7cd7aedc41c6680d9b6fac13c54acf4f406"
+      },
+      {
+        "path": "sealed-final-separate/ScreenSnapshotPaged.pdf",
+        "bytes": 17198,
+        "sha256": "f94570fc0b6319c55cea8cc841d8d2253c6c070606809022fbce6346f494e7fe"
+      },
+      {
+        "path": "sealed-final-review-columns/PrintPaged-01-scene.png",
+        "bytes": 3490,
+        "sha256": "cff19e3bb01324b6a9164c6292b54f379ccf669e5ece7a01cbf826862d75a113"
+      },
+      {
+        "path": "sealed-final-review-columns/PrintPaged-01.png",
+        "bytes": 3543,
+        "sha256": "acb14606f4c1f96513873b01ed1aa9491459ec5d62efb115d5b0f9719ad7531d"
+      },
+      {
+        "path": "sealed-final-review-columns/PrintPaged-01.svg",
+        "bytes": 315522,
+        "sha256": "054ae318f58f4293d595ea1adf37cb546fac3a9910e8088c6919368e9a0ce831"
+      },
+      {
+        "path": "sealed-final-review-columns/PrintPaged-02-scene.png",
+        "bytes": 3616,
+        "sha256": "2d89597d1981ba867bd0a5bb88ba402a06e3f9d3424af4e5428c2044a6349f08"
+      },
+      {
+        "path": "sealed-final-review-columns/PrintPaged-02.png",
+        "bytes": 3696,
+        "sha256": "40d2ca7bd534848356cfe0aea5d8b4b355e8e651ba71373e58da33dc11fe348a"
+      },
+      {
+        "path": "sealed-final-review-columns/PrintPaged-02.svg",
+        "bytes": 315612,
+        "sha256": "c59a2974d36afc8e39355c4306bd1302dd1909a0190c02802c6560768745f7bb"
+      },
+      {
+        "path": "sealed-final-review-columns/PrintPaged-03-scene.png",
+        "bytes": 183,
+        "sha256": "11dc1cd451ede0befa844afc6096d3895f13895b0cd9abe11f40dfea72e71f11"
+      },
+      {
+        "path": "sealed-final-review-columns/PrintPaged-03.png",
+        "bytes": 183,
+        "sha256": "11dc1cd451ede0befa844afc6096d3895f13895b0cd9abe11f40dfea72e71f11"
+      },
+      {
+        "path": "sealed-final-review-columns/PrintPaged-03.svg",
+        "bytes": 302292,
+        "sha256": "612b3dd57e90169ca6588c13af563662ef8d6ffbfe06e98fee155c3d58c85042"
+      },
+      {
+        "path": "sealed-final-review-columns/PrintPaged-04-scene.png",
+        "bytes": 183,
+        "sha256": "11dc1cd451ede0befa844afc6096d3895f13895b0cd9abe11f40dfea72e71f11"
+      },
+      {
+        "path": "sealed-final-review-columns/PrintPaged-04.png",
+        "bytes": 183,
+        "sha256": "11dc1cd451ede0befa844afc6096d3895f13895b0cd9abe11f40dfea72e71f11"
+      },
+      {
+        "path": "sealed-final-review-columns/PrintPaged-04.svg",
+        "bytes": 302292,
+        "sha256": "b18f5118ea662f3832109918261d324a42d8cad9eae20d628ba027e9a415e42d"
+      },
+      {
+        "path": "sealed-final-review-columns/PrintPaged-05-scene.png",
+        "bytes": 183,
+        "sha256": "11dc1cd451ede0befa844afc6096d3895f13895b0cd9abe11f40dfea72e71f11"
+      },
+      {
+        "path": "sealed-final-review-columns/PrintPaged-05.png",
+        "bytes": 183,
+        "sha256": "11dc1cd451ede0befa844afc6096d3895f13895b0cd9abe11f40dfea72e71f11"
+      },
+      {
+        "path": "sealed-final-review-columns/PrintPaged-05.svg",
+        "bytes": 302292,
+        "sha256": "0f1d5cc71fca5c519f1502c4744b29fa72bd364a75cb842b33482059d3e89b96"
+      },
+      {
+        "path": "sealed-final-review-columns/PrintPaged-06-scene.png",
+        "bytes": 1167,
+        "sha256": "d7b68af5d7b74ae1ca19519df2eb9eb0d23d863c61c84511ea1eefe990df42a5"
+      },
+      {
+        "path": "sealed-final-review-columns/PrintPaged-06.png",
+        "bytes": 1167,
+        "sha256": "d7b68af5d7b74ae1ca19519df2eb9eb0d23d863c61c84511ea1eefe990df42a5"
+      },
+      {
+        "path": "sealed-final-review-columns/PrintPaged-06.svg",
+        "bytes": 313491,
+        "sha256": "52993414c073406235c7e4edb4928e9488fde1d79ed0c2bf1c72e6ff0f3ab9c9"
+      },
+      {
+        "path": "sealed-final-review-columns/PrintPaged.pdf",
+        "bytes": 23818,
+        "sha256": "bd2f9e8e8b37fca4fae919785d2f6858cdd2aa168ef469c290a82193ba5ee32b"
+      },
+      {
+        "path": "sealed-final-review-columns/ScreenFullPage-01-scene.png",
+        "bytes": 11010,
+        "sha256": "d93557b23bf24c95373a49b7d527252f13b0448348b7ff24f554dcb2cf6197da"
+      },
+      {
+        "path": "sealed-final-review-columns/ScreenFullPage-01.png",
+        "bytes": 11123,
+        "sha256": "bc41376848231606fec96323d998ef9258483ae0478bb86c35cf71dce6db4408"
+      },
+      {
+        "path": "sealed-final-review-columns/ScreenFullPage-01.svg",
+        "bytes": 318707,
+        "sha256": "5d7d9cc99de952deef4c1d691943c85db471531c9ab5e23ed304ff09e3f68699"
+      },
+      {
+        "path": "sealed-final-review-columns/ScreenMediaPaged-01-scene.png",
+        "bytes": 3490,
+        "sha256": "cff19e3bb01324b6a9164c6292b54f379ccf669e5ece7a01cbf826862d75a113"
+      },
+      {
+        "path": "sealed-final-review-columns/ScreenMediaPaged-01.png",
+        "bytes": 3543,
+        "sha256": "acb14606f4c1f96513873b01ed1aa9491459ec5d62efb115d5b0f9719ad7531d"
+      },
+      {
+        "path": "sealed-final-review-columns/ScreenMediaPaged-01.svg",
+        "bytes": 315522,
+        "sha256": "054ae318f58f4293d595ea1adf37cb546fac3a9910e8088c6919368e9a0ce831"
+      },
+      {
+        "path": "sealed-final-review-columns/ScreenMediaPaged-02-scene.png",
+        "bytes": 3616,
+        "sha256": "2d89597d1981ba867bd0a5bb88ba402a06e3f9d3424af4e5428c2044a6349f08"
+      },
+      {
+        "path": "sealed-final-review-columns/ScreenMediaPaged-02.png",
+        "bytes": 3696,
+        "sha256": "40d2ca7bd534848356cfe0aea5d8b4b355e8e651ba71373e58da33dc11fe348a"
+      },
+      {
+        "path": "sealed-final-review-columns/ScreenMediaPaged-02.svg",
+        "bytes": 315612,
+        "sha256": "c59a2974d36afc8e39355c4306bd1302dd1909a0190c02802c6560768745f7bb"
+      },
+      {
+        "path": "sealed-final-review-columns/ScreenMediaPaged-03-scene.png",
+        "bytes": 183,
+        "sha256": "11dc1cd451ede0befa844afc6096d3895f13895b0cd9abe11f40dfea72e71f11"
+      },
+      {
+        "path": "sealed-final-review-columns/ScreenMediaPaged-03.png",
+        "bytes": 183,
+        "sha256": "11dc1cd451ede0befa844afc6096d3895f13895b0cd9abe11f40dfea72e71f11"
+      },
+      {
+        "path": "sealed-final-review-columns/ScreenMediaPaged-03.svg",
+        "bytes": 302292,
+        "sha256": "612b3dd57e90169ca6588c13af563662ef8d6ffbfe06e98fee155c3d58c85042"
+      },
+      {
+        "path": "sealed-final-review-columns/ScreenMediaPaged-04-scene.png",
+        "bytes": 183,
+        "sha256": "11dc1cd451ede0befa844afc6096d3895f13895b0cd9abe11f40dfea72e71f11"
+      },
+      {
+        "path": "sealed-final-review-columns/ScreenMediaPaged-04.png",
+        "bytes": 183,
+        "sha256": "11dc1cd451ede0befa844afc6096d3895f13895b0cd9abe11f40dfea72e71f11"
+      },
+      {
+        "path": "sealed-final-review-columns/ScreenMediaPaged-04.svg",
+        "bytes": 302292,
+        "sha256": "b18f5118ea662f3832109918261d324a42d8cad9eae20d628ba027e9a415e42d"
+      },
+      {
+        "path": "sealed-final-review-columns/ScreenMediaPaged-05-scene.png",
+        "bytes": 183,
+        "sha256": "11dc1cd451ede0befa844afc6096d3895f13895b0cd9abe11f40dfea72e71f11"
+      },
+      {
+        "path": "sealed-final-review-columns/ScreenMediaPaged-05.png",
+        "bytes": 183,
+        "sha256": "11dc1cd451ede0befa844afc6096d3895f13895b0cd9abe11f40dfea72e71f11"
+      },
+      {
+        "path": "sealed-final-review-columns/ScreenMediaPaged-05.svg",
+        "bytes": 302292,
+        "sha256": "0f1d5cc71fca5c519f1502c4744b29fa72bd364a75cb842b33482059d3e89b96"
+      },
+      {
+        "path": "sealed-final-review-columns/ScreenMediaPaged-06-scene.png",
+        "bytes": 1167,
+        "sha256": "d7b68af5d7b74ae1ca19519df2eb9eb0d23d863c61c84511ea1eefe990df42a5"
+      },
+      {
+        "path": "sealed-final-review-columns/ScreenMediaPaged-06.png",
+        "bytes": 1167,
+        "sha256": "d7b68af5d7b74ae1ca19519df2eb9eb0d23d863c61c84511ea1eefe990df42a5"
+      },
+      {
+        "path": "sealed-final-review-columns/ScreenMediaPaged-06.svg",
+        "bytes": 313491,
+        "sha256": "52993414c073406235c7e4edb4928e9488fde1d79ed0c2bf1c72e6ff0f3ab9c9"
+      },
+      {
+        "path": "sealed-final-review-columns/ScreenMediaPaged.pdf",
+        "bytes": 23818,
+        "sha256": "bd2f9e8e8b37fca4fae919785d2f6858cdd2aa168ef469c290a82193ba5ee32b"
+      },
+      {
+        "path": "sealed-final-review-columns/ScreenSnapshotPaged-01-scene.png",
+        "bytes": 11010,
+        "sha256": "d93557b23bf24c95373a49b7d527252f13b0448348b7ff24f554dcb2cf6197da"
+      },
+      {
+        "path": "sealed-final-review-columns/ScreenSnapshotPaged-01.png",
+        "bytes": 11123,
+        "sha256": "bc41376848231606fec96323d998ef9258483ae0478bb86c35cf71dce6db4408"
+      },
+      {
+        "path": "sealed-final-review-columns/ScreenSnapshotPaged-01.svg",
+        "bytes": 318707,
+        "sha256": "5d7d9cc99de952deef4c1d691943c85db471531c9ab5e23ed304ff09e3f68699"
+      },
+      {
+        "path": "sealed-final-review-columns/ScreenSnapshotPaged.pdf",
+        "bytes": 10753,
+        "sha256": "ccfab8f519fd2ce9beac8a7471296a630abaadaea879068d35c99453f7679aec"
+      },
+      {
+        "path": "sealed-final-review-overlap/PrintPaged-01-scene.png",
+        "bytes": 3009,
+        "sha256": "84c087104e3e7f28f4ee7f284759a8f95da4af8e2e7be51c63d06bcf03dcfb18"
+      },
+      {
+        "path": "sealed-final-review-overlap/PrintPaged-01.png",
+        "bytes": 2938,
+        "sha256": "c53159bbcbe44f175f6a0a796cd2cbc55cdeccf37a211c852249058fff04a043"
+      },
+      {
+        "path": "sealed-final-review-overlap/PrintPaged-01.svg",
+        "bytes": 316828,
+        "sha256": "8b2205d3bf56a82ed69f195ee300ddbdf1da37711fda028c44b9a189236d513b"
+      },
+      {
+        "path": "sealed-final-review-overlap/PrintPaged-02-scene.png",
+        "bytes": 2481,
+        "sha256": "e9b65f2d1ffd00850de814b4eefec36244764e7eb2455c24606930902749c154"
+      },
+      {
+        "path": "sealed-final-review-overlap/PrintPaged-02.png",
+        "bytes": 2487,
+        "sha256": "ac13eac7987358c609a907853764d3b462aa41b82b2411c228862a7cb26afbac"
+      },
+      {
+        "path": "sealed-final-review-overlap/PrintPaged-02.svg",
+        "bytes": 316455,
+        "sha256": "25896a42d62dba8cab034a8309cc9ed11bfd4e5c133f4ecda6258dd19c1079bf"
+      },
+      {
+        "path": "sealed-final-review-overlap/PrintPaged-03-scene.png",
+        "bytes": 2218,
+        "sha256": "6e64e4028b9e767560ec95cb7332da3ee2f0cade9ddaac8e25083db1a6dc5bb6"
+      },
+      {
+        "path": "sealed-final-review-overlap/PrintPaged-03.png",
+        "bytes": 2172,
+        "sha256": "377235c5dad6f4f3c317c7b38982891273df3a9c2ced67daf2f7d33f53edc27d"
+      },
+      {
+        "path": "sealed-final-review-overlap/PrintPaged-03.svg",
+        "bytes": 316044,
+        "sha256": "ddb8d93303828e2db5acffb466f8b08ca2ed86d26c8f2503edd63712069356c9"
+      },
+      {
+        "path": "sealed-final-review-overlap/PrintPaged-04-scene.png",
+        "bytes": 2330,
+        "sha256": "e362bfeeb91a0790a88f413977e72dd6639fbe96043c8822193d386473a287bf"
+      },
+      {
+        "path": "sealed-final-review-overlap/PrintPaged-04.png",
+        "bytes": 2350,
+        "sha256": "70095ef6a54f599a7f1a0d29566ff126ea3f6b89f15df3f1690645814a33bc82"
+      },
+      {
+        "path": "sealed-final-review-overlap/PrintPaged-04.svg",
+        "bytes": 316388,
+        "sha256": "a999b62be7c3e09a967f7aead36520c98509faceb3b30ab7c7246bfca3d9a7f2"
+      },
+      {
+        "path": "sealed-final-review-overlap/PrintPaged-05-scene.png",
+        "bytes": 2075,
+        "sha256": "e6efd67829f65e2ff43d02aa374424466fd9c2d68bbbbb40ec9f2958045128a7"
+      },
+      {
+        "path": "sealed-final-review-overlap/PrintPaged-05.png",
+        "bytes": 2056,
+        "sha256": "8a981a9925b97ff49687af82352af6170d516f446d4569c83ebd846974037ab9"
+      },
+      {
+        "path": "sealed-final-review-overlap/PrintPaged-05.svg",
+        "bytes": 314806,
+        "sha256": "410a4c6c915429f4508cde6ce8aa8d7a6748064e7c53923f7e7881908a158312"
+      },
+      {
+        "path": "sealed-final-review-overlap/PrintPaged.pdf",
+        "bytes": 41266,
+        "sha256": "181feaff5b57667b6092dd45900547ba44296bf6fc5afd226119b39bde8fcca5"
+      },
+      {
+        "path": "sealed-final-review-overlap/ScreenFullPage-01-scene.png",
+        "bytes": 23525,
+        "sha256": "43347abe53198abab5eb42607b9f0eb04a5c80115c5a1b64ed175350fae35f39"
+      },
+      {
+        "path": "sealed-final-review-overlap/ScreenFullPage-01.png",
+        "bytes": 23425,
+        "sha256": "efc31121d37c21c348e57a3866d98e3a2f169ca44c3900404268527380e8b2c0"
+      },
+      {
+        "path": "sealed-final-review-overlap/ScreenFullPage-01.svg",
+        "bytes": 323061,
+        "sha256": "1b4534665aeb4715549de453bd1d17c90fb4a85e10c359c99e29f7a217952e6c"
+      },
+      {
+        "path": "sealed-final-review-overlap/ScreenMediaPaged-01-scene.png",
+        "bytes": 3009,
+        "sha256": "84c087104e3e7f28f4ee7f284759a8f95da4af8e2e7be51c63d06bcf03dcfb18"
+      },
+      {
+        "path": "sealed-final-review-overlap/ScreenMediaPaged-01.png",
+        "bytes": 2938,
+        "sha256": "c53159bbcbe44f175f6a0a796cd2cbc55cdeccf37a211c852249058fff04a043"
+      },
+      {
+        "path": "sealed-final-review-overlap/ScreenMediaPaged-01.svg",
+        "bytes": 316828,
+        "sha256": "8b2205d3bf56a82ed69f195ee300ddbdf1da37711fda028c44b9a189236d513b"
+      },
+      {
+        "path": "sealed-final-review-overlap/ScreenMediaPaged-02-scene.png",
+        "bytes": 2481,
+        "sha256": "e9b65f2d1ffd00850de814b4eefec36244764e7eb2455c24606930902749c154"
+      },
+      {
+        "path": "sealed-final-review-overlap/ScreenMediaPaged-02.png",
+        "bytes": 2487,
+        "sha256": "ac13eac7987358c609a907853764d3b462aa41b82b2411c228862a7cb26afbac"
+      },
+      {
+        "path": "sealed-final-review-overlap/ScreenMediaPaged-02.svg",
+        "bytes": 316455,
+        "sha256": "25896a42d62dba8cab034a8309cc9ed11bfd4e5c133f4ecda6258dd19c1079bf"
+      },
+      {
+        "path": "sealed-final-review-overlap/ScreenMediaPaged-03-scene.png",
+        "bytes": 2218,
+        "sha256": "6e64e4028b9e767560ec95cb7332da3ee2f0cade9ddaac8e25083db1a6dc5bb6"
+      },
+      {
+        "path": "sealed-final-review-overlap/ScreenMediaPaged-03.png",
+        "bytes": 2172,
+        "sha256": "377235c5dad6f4f3c317c7b38982891273df3a9c2ced67daf2f7d33f53edc27d"
+      },
+      {
+        "path": "sealed-final-review-overlap/ScreenMediaPaged-03.svg",
+        "bytes": 316044,
+        "sha256": "ddb8d93303828e2db5acffb466f8b08ca2ed86d26c8f2503edd63712069356c9"
+      },
+      {
+        "path": "sealed-final-review-overlap/ScreenMediaPaged-04-scene.png",
+        "bytes": 2330,
+        "sha256": "e362bfeeb91a0790a88f413977e72dd6639fbe96043c8822193d386473a287bf"
+      },
+      {
+        "path": "sealed-final-review-overlap/ScreenMediaPaged-04.png",
+        "bytes": 2350,
+        "sha256": "70095ef6a54f599a7f1a0d29566ff126ea3f6b89f15df3f1690645814a33bc82"
+      },
+      {
+        "path": "sealed-final-review-overlap/ScreenMediaPaged-04.svg",
+        "bytes": 316388,
+        "sha256": "a999b62be7c3e09a967f7aead36520c98509faceb3b30ab7c7246bfca3d9a7f2"
+      },
+      {
+        "path": "sealed-final-review-overlap/ScreenMediaPaged-05-scene.png",
+        "bytes": 2075,
+        "sha256": "e6efd67829f65e2ff43d02aa374424466fd9c2d68bbbbb40ec9f2958045128a7"
+      },
+      {
+        "path": "sealed-final-review-overlap/ScreenMediaPaged-05.png",
+        "bytes": 2056,
+        "sha256": "8a981a9925b97ff49687af82352af6170d516f446d4569c83ebd846974037ab9"
+      },
+      {
+        "path": "sealed-final-review-overlap/ScreenMediaPaged-05.svg",
+        "bytes": 314806,
+        "sha256": "410a4c6c915429f4508cde6ce8aa8d7a6748064e7c53923f7e7881908a158312"
+      },
+      {
+        "path": "sealed-final-review-overlap/ScreenMediaPaged.pdf",
+        "bytes": 41266,
+        "sha256": "181feaff5b57667b6092dd45900547ba44296bf6fc5afd226119b39bde8fcca5"
+      },
+      {
+        "path": "sealed-final-review-overlap/ScreenSnapshotPaged-01-scene.png",
+        "bytes": 23525,
+        "sha256": "43347abe53198abab5eb42607b9f0eb04a5c80115c5a1b64ed175350fae35f39"
+      },
+      {
+        "path": "sealed-final-review-overlap/ScreenSnapshotPaged-01.png",
+        "bytes": 23425,
+        "sha256": "efc31121d37c21c348e57a3866d98e3a2f169ca44c3900404268527380e8b2c0"
+      },
+      {
+        "path": "sealed-final-review-overlap/ScreenSnapshotPaged-01.svg",
+        "bytes": 323061,
+        "sha256": "1b4534665aeb4715549de453bd1d17c90fb4a85e10c359c99e29f7a217952e6c"
+      },
+      {
+        "path": "sealed-final-review-overlap/ScreenSnapshotPaged.pdf",
+        "bytes": 13447,
+        "sha256": "53fe3f694a82c3aad477f7130b422e7f9d38becc53cd94938a0819595d155a6d"
+      },
+      {
+        "path": "sealed-final-review-inline-overlap/PrintPaged-01-scene.png",
+        "bytes": 2910,
+        "sha256": "15d8799b41d0d4b7bfabd21c787af06c28c6113d7c672ce8b779d9a55e6f646d"
+      },
+      {
+        "path": "sealed-final-review-inline-overlap/PrintPaged-01.png",
+        "bytes": 2851,
+        "sha256": "615677c3cf911c716d4ddda4f13ca539b264999132e93c4b899b500599602f68"
+      },
+      {
+        "path": "sealed-final-review-inline-overlap/PrintPaged-01.svg",
+        "bytes": 316828,
+        "sha256": "64362567094791cec8974dda50558966e136a32b485671ef447b3ee17374cec7"
+      },
+      {
+        "path": "sealed-final-review-inline-overlap/PrintPaged-02-scene.png",
+        "bytes": 2387,
+        "sha256": "30e2e2345e19e29a04127c778e8aa12b151b5f3af83b21fca986a66ccbfac288"
+      },
+      {
+        "path": "sealed-final-review-inline-overlap/PrintPaged-02.png",
+        "bytes": 2410,
+        "sha256": "60838c8cf9d25ddb243149c9f5cd43cceb831a18bbdcdb26d5b8d2ade1cd638a"
+      },
+      {
+        "path": "sealed-final-review-inline-overlap/PrintPaged-02.svg",
+        "bytes": 316455,
+        "sha256": "c57a3d4109a6b217ed3559e33d4bd82438d938c55f7af49dc34626d8246c9dbb"
+      },
+      {
+        "path": "sealed-final-review-inline-overlap/PrintPaged-03-scene.png",
+        "bytes": 2186,
+        "sha256": "a786c2fd14dbed53125899bfa138a7f91726b83d165e75ab589fc5375783ba6a"
+      },
+      {
+        "path": "sealed-final-review-inline-overlap/PrintPaged-03.png",
+        "bytes": 2148,
+        "sha256": "16d49815394ff925c3566c8a4ca0f9fa2cc1a2c84eccd4d8f98fb6f540c18943"
+      },
+      {
+        "path": "sealed-final-review-inline-overlap/PrintPaged-03.svg",
+        "bytes": 316044,
+        "sha256": "7b4bc4d2d9779f590bfd4912ffaec152587937a4c71c06f5af04d248faa734af"
+      },
+      {
+        "path": "sealed-final-review-inline-overlap/PrintPaged-04-scene.png",
+        "bytes": 2264,
+        "sha256": "f1abe9c5b199e89d86bf7707fdca3c217829ebf39aee6acc0a0cb9a81f022fcd"
+      },
+      {
+        "path": "sealed-final-review-inline-overlap/PrintPaged-04.png",
+        "bytes": 2276,
+        "sha256": "166701a275b69fdc8fe63cf7314e7514597435cd30fe32a34fadcbbb2e5bcf01"
+      },
+      {
+        "path": "sealed-final-review-inline-overlap/PrintPaged-04.svg",
+        "bytes": 316388,
+        "sha256": "5f5f534a98aeaa848bae3b4f0582387c22bf8b37d19893adf71cbeba6d9ea819"
+      },
+      {
+        "path": "sealed-final-review-inline-overlap/PrintPaged-05-scene.png",
+        "bytes": 2067,
+        "sha256": "906bc90cb3fa331fd1d37f7c09e589a3323acba2444db7d80043feeed5df4034"
+      },
+      {
+        "path": "sealed-final-review-inline-overlap/PrintPaged-05.png",
+        "bytes": 2057,
+        "sha256": "77d6681cfdcbc42d64e2e43dcdea47fdea22c27312549ed05bd58d70374c90cc"
+      },
+      {
+        "path": "sealed-final-review-inline-overlap/PrintPaged-05.svg",
+        "bytes": 314806,
+        "sha256": "6cd0cfea78ec340b8820fd93b601a25a02a6ea00eae88490286f7f4a020362ef"
+      },
+      {
+        "path": "sealed-final-review-inline-overlap/PrintPaged.pdf",
+        "bytes": 54415,
+        "sha256": "f953d1db94af0ef502fc821220f92683fe186b2b58637d1d5f7ea144db858fab"
+      },
+      {
+        "path": "sealed-final-review-inline-overlap/ScreenFullPage-01-scene.png",
+        "bytes": 22999,
+        "sha256": "d1d45206067f0caf74ee28b1e4da91c891ee169a790d2fe0d3de2f6cbc5baf4b"
+      },
+      {
+        "path": "sealed-final-review-inline-overlap/ScreenFullPage-01.png",
+        "bytes": 23120,
+        "sha256": "8bcee4076b311d0b5230908162c4682b038e074d31a6addb54db6acfe9197f63"
+      },
+      {
+        "path": "sealed-final-review-inline-overlap/ScreenFullPage-01.svg",
+        "bytes": 323061,
+        "sha256": "a987ab54c40a6af40c6e2b1a731796eae139f67d722018d00012db5cc1ead287"
+      },
+      {
+        "path": "sealed-final-review-inline-overlap/ScreenMediaPaged-01-scene.png",
+        "bytes": 2910,
+        "sha256": "15d8799b41d0d4b7bfabd21c787af06c28c6113d7c672ce8b779d9a55e6f646d"
+      },
+      {
+        "path": "sealed-final-review-inline-overlap/ScreenMediaPaged-01.png",
+        "bytes": 2851,
+        "sha256": "615677c3cf911c716d4ddda4f13ca539b264999132e93c4b899b500599602f68"
+      },
+      {
+        "path": "sealed-final-review-inline-overlap/ScreenMediaPaged-01.svg",
+        "bytes": 316828,
+        "sha256": "64362567094791cec8974dda50558966e136a32b485671ef447b3ee17374cec7"
+      },
+      {
+        "path": "sealed-final-review-inline-overlap/ScreenMediaPaged-02-scene.png",
+        "bytes": 2387,
+        "sha256": "30e2e2345e19e29a04127c778e8aa12b151b5f3af83b21fca986a66ccbfac288"
+      },
+      {
+        "path": "sealed-final-review-inline-overlap/ScreenMediaPaged-02.png",
+        "bytes": 2410,
+        "sha256": "60838c8cf9d25ddb243149c9f5cd43cceb831a18bbdcdb26d5b8d2ade1cd638a"
+      },
+      {
+        "path": "sealed-final-review-inline-overlap/ScreenMediaPaged-02.svg",
+        "bytes": 316455,
+        "sha256": "c57a3d4109a6b217ed3559e33d4bd82438d938c55f7af49dc34626d8246c9dbb"
+      },
+      {
+        "path": "sealed-final-review-inline-overlap/ScreenMediaPaged-03-scene.png",
+        "bytes": 2186,
+        "sha256": "a786c2fd14dbed53125899bfa138a7f91726b83d165e75ab589fc5375783ba6a"
+      },
+      {
+        "path": "sealed-final-review-inline-overlap/ScreenMediaPaged-03.png",
+        "bytes": 2148,
+        "sha256": "16d49815394ff925c3566c8a4ca0f9fa2cc1a2c84eccd4d8f98fb6f540c18943"
+      },
+      {
+        "path": "sealed-final-review-inline-overlap/ScreenMediaPaged-03.svg",
+        "bytes": 316044,
+        "sha256": "7b4bc4d2d9779f590bfd4912ffaec152587937a4c71c06f5af04d248faa734af"
+      },
+      {
+        "path": "sealed-final-review-inline-overlap/ScreenMediaPaged-04-scene.png",
+        "bytes": 2264,
+        "sha256": "f1abe9c5b199e89d86bf7707fdca3c217829ebf39aee6acc0a0cb9a81f022fcd"
+      },
+      {
+        "path": "sealed-final-review-inline-overlap/ScreenMediaPaged-04.png",
+        "bytes": 2276,
+        "sha256": "166701a275b69fdc8fe63cf7314e7514597435cd30fe32a34fadcbbb2e5bcf01"
+      },
+      {
+        "path": "sealed-final-review-inline-overlap/ScreenMediaPaged-04.svg",
+        "bytes": 316388,
+        "sha256": "5f5f534a98aeaa848bae3b4f0582387c22bf8b37d19893adf71cbeba6d9ea819"
+      },
+      {
+        "path": "sealed-final-review-inline-overlap/ScreenMediaPaged-05-scene.png",
+        "bytes": 2067,
+        "sha256": "906bc90cb3fa331fd1d37f7c09e589a3323acba2444db7d80043feeed5df4034"
+      },
+      {
+        "path": "sealed-final-review-inline-overlap/ScreenMediaPaged-05.png",
+        "bytes": 2057,
+        "sha256": "77d6681cfdcbc42d64e2e43dcdea47fdea22c27312549ed05bd58d70374c90cc"
+      },
+      {
+        "path": "sealed-final-review-inline-overlap/ScreenMediaPaged-05.svg",
+        "bytes": 314806,
+        "sha256": "6cd0cfea78ec340b8820fd93b601a25a02a6ea00eae88490286f7f4a020362ef"
+      },
+      {
+        "path": "sealed-final-review-inline-overlap/ScreenMediaPaged.pdf",
+        "bytes": 54415,
+        "sha256": "f953d1db94af0ef502fc821220f92683fe186b2b58637d1d5f7ea144db858fab"
+      },
+      {
+        "path": "sealed-final-review-inline-overlap/ScreenSnapshotPaged-01-scene.png",
+        "bytes": 22999,
+        "sha256": "d1d45206067f0caf74ee28b1e4da91c891ee169a790d2fe0d3de2f6cbc5baf4b"
+      },
+      {
+        "path": "sealed-final-review-inline-overlap/ScreenSnapshotPaged-01.png",
+        "bytes": 23120,
+        "sha256": "8bcee4076b311d0b5230908162c4682b038e074d31a6addb54db6acfe9197f63"
+      },
+      {
+        "path": "sealed-final-review-inline-overlap/ScreenSnapshotPaged-01.svg",
+        "bytes": 323061,
+        "sha256": "a987ab54c40a6af40c6e2b1a731796eae139f67d722018d00012db5cc1ead287"
+      },
+      {
+        "path": "sealed-final-review-inline-overlap/ScreenSnapshotPaged.pdf",
+        "bytes": 25048,
+        "sha256": "9f95254d688ff4a1eec8b61019e117749e61fdebb3ef91e0f66133d11633349a"
+      }
+    ],
+    "canonicalPngBoundary": "Canonical PNG equals independently generated PDF replay for applicable profiles; ScreenFullPage has no PDF replay check.",
+    "directDrawingSceneComparison": {
+      "byteIdenticalPages": 8,
+      "differentPages": 60,
+      "boundary": "Separate direct-drawing comparison renderer; no identity claim with canonical PDF-backed PNG."
+    },
+    "nativeReuseBinding": {
+      "comparedExports": 228,
+      "changed": [],
+      "exports": [
+        {
+          "case": "kept-link",
+          "filename": "PrintPaged-01-scene.png",
+          "sha256": "9fa0b05a9819da70cb508e16140defa824883aafa39b5152491bac2a1f2e2225"
+        },
+        {
+          "case": "kept-link",
+          "filename": "PrintPaged-01.png",
+          "sha256": "838e31691e9add9de5595fd91d82ced7adfe3b58f3d8f7689dd020ca98a3669d"
+        },
+        {
+          "case": "kept-link",
+          "filename": "PrintPaged-01.svg",
+          "sha256": "6113d4f440d11aca81dcd95a379cf1b34b0dfdfb49f29dcaf4535efeb479c7c6"
+        },
+        {
+          "case": "kept-link",
+          "filename": "PrintPaged-02-scene.png",
+          "sha256": "914c04342f869050be2176a35c07f67c97c3ee7b0911b6b2b59d01dbef2164e5"
+        },
+        {
+          "case": "kept-link",
+          "filename": "PrintPaged-02.png",
+          "sha256": "46f25fed8092a6418a38c4ee180ee49dd776c593d5738e3c06a25cb5f96a61c9"
+        },
+        {
+          "case": "kept-link",
+          "filename": "PrintPaged-02.svg",
+          "sha256": "ce8bbc729cd6d90cddab7fd0aee6408cae1643b2cd2823346e6f2b8b327a14dc"
+        },
+        {
+          "case": "kept-link",
+          "filename": "PrintPaged.pdf",
+          "sha256": "923fbfacedf259e531d24ba417f83324dee4993716c3f014188d84417ed3fd20"
+        },
+        {
+          "case": "kept-link",
+          "filename": "ScreenFullPage-01-scene.png",
+          "sha256": "9635ae7dfdff3fa5ec66d83ee315facf8013902eea323e3e565de8cad0aab73a"
+        },
+        {
+          "case": "kept-link",
+          "filename": "ScreenFullPage-01.png",
+          "sha256": "61646206e7339120e0eb6e29b7fd4d8f547ff8f9ab5b7cdde9c81f55e21cf785"
+        },
+        {
+          "case": "kept-link",
+          "filename": "ScreenFullPage-01.svg",
+          "sha256": "3f55de7b0643c65a428047a819d0708afae5665d786c553f3783084efe54e1f9"
+        },
+        {
+          "case": "kept-link",
+          "filename": "ScreenMediaPaged-01-scene.png",
+          "sha256": "9fa0b05a9819da70cb508e16140defa824883aafa39b5152491bac2a1f2e2225"
+        },
+        {
+          "case": "kept-link",
+          "filename": "ScreenMediaPaged-01.png",
+          "sha256": "838e31691e9add9de5595fd91d82ced7adfe3b58f3d8f7689dd020ca98a3669d"
+        },
+        {
+          "case": "kept-link",
+          "filename": "ScreenMediaPaged-01.svg",
+          "sha256": "6113d4f440d11aca81dcd95a379cf1b34b0dfdfb49f29dcaf4535efeb479c7c6"
+        },
+        {
+          "case": "kept-link",
+          "filename": "ScreenMediaPaged-02-scene.png",
+          "sha256": "914c04342f869050be2176a35c07f67c97c3ee7b0911b6b2b59d01dbef2164e5"
+        },
+        {
+          "case": "kept-link",
+          "filename": "ScreenMediaPaged-02.png",
+          "sha256": "46f25fed8092a6418a38c4ee180ee49dd776c593d5738e3c06a25cb5f96a61c9"
+        },
+        {
+          "case": "kept-link",
+          "filename": "ScreenMediaPaged-02.svg",
+          "sha256": "ce8bbc729cd6d90cddab7fd0aee6408cae1643b2cd2823346e6f2b8b327a14dc"
+        },
+        {
+          "case": "kept-link",
+          "filename": "ScreenMediaPaged.pdf",
+          "sha256": "923fbfacedf259e531d24ba417f83324dee4993716c3f014188d84417ed3fd20"
+        },
+        {
+          "case": "kept-link",
+          "filename": "ScreenSnapshotPaged-01-scene.png",
+          "sha256": "9635ae7dfdff3fa5ec66d83ee315facf8013902eea323e3e565de8cad0aab73a"
+        },
+        {
+          "case": "kept-link",
+          "filename": "ScreenSnapshotPaged-01.png",
+          "sha256": "61646206e7339120e0eb6e29b7fd4d8f547ff8f9ab5b7cdde9c81f55e21cf785"
+        },
+        {
+          "case": "kept-link",
+          "filename": "ScreenSnapshotPaged-01.svg",
+          "sha256": "3f55de7b0643c65a428047a819d0708afae5665d786c553f3783084efe54e1f9"
+        },
+        {
+          "case": "kept-link",
+          "filename": "ScreenSnapshotPaged.pdf",
+          "sha256": "b56dea1c3e80e9fe8392729bf81328622d8ff8983eb8a156e3e7f43813113ffb"
+        },
+        {
+          "case": "kept-link-288",
+          "filename": "PrintPaged-01-scene.png",
+          "sha256": "25ecaab71ba5b7eb8f5b0e023c9551dc78f81f0b49bdb9170172778fcc4c7bf8"
+        },
+        {
+          "case": "kept-link-288",
+          "filename": "PrintPaged-01.png",
+          "sha256": "f4c4b1fd291ca1abb49cd32c69a45e37079ecdf95dbef909aa08ce82c04f725b"
+        },
+        {
+          "case": "kept-link-288",
+          "filename": "PrintPaged-01.svg",
+          "sha256": "fffc25c944797cf6043f0d1c065487bef773dcb9ef29fabac130ace82c75ea5a"
+        },
+        {
+          "case": "kept-link-288",
+          "filename": "PrintPaged-02-scene.png",
+          "sha256": "9b7523cbe441e072c3b085dc118a566143440272263f9e7250d421f52ceada4d"
+        },
+        {
+          "case": "kept-link-288",
+          "filename": "PrintPaged-02.png",
+          "sha256": "2da16c3ab10b8a48dfc70296490467bdd2aea3f885da1101021e7c6539814617"
+        },
+        {
+          "case": "kept-link-288",
+          "filename": "PrintPaged-02.svg",
+          "sha256": "c228742f96f02a5baab40f49bdff764f385128fe4b65c455abffb6b060081082"
+        },
+        {
+          "case": "kept-link-288",
+          "filename": "PrintPaged.pdf",
+          "sha256": "eb5a1088bd895585fb250ceb047a34fc47ea3f54a36e7320d0dbfbeb0b732a95"
+        },
+        {
+          "case": "kept-link-288",
+          "filename": "ScreenFullPage-01-scene.png",
+          "sha256": "9635ae7dfdff3fa5ec66d83ee315facf8013902eea323e3e565de8cad0aab73a"
+        },
+        {
+          "case": "kept-link-288",
+          "filename": "ScreenFullPage-01.png",
+          "sha256": "61646206e7339120e0eb6e29b7fd4d8f547ff8f9ab5b7cdde9c81f55e21cf785"
+        },
+        {
+          "case": "kept-link-288",
+          "filename": "ScreenFullPage-01.svg",
+          "sha256": "3f55de7b0643c65a428047a819d0708afae5665d786c553f3783084efe54e1f9"
+        },
+        {
+          "case": "kept-link-288",
+          "filename": "ScreenMediaPaged-01-scene.png",
+          "sha256": "25ecaab71ba5b7eb8f5b0e023c9551dc78f81f0b49bdb9170172778fcc4c7bf8"
+        },
+        {
+          "case": "kept-link-288",
+          "filename": "ScreenMediaPaged-01.png",
+          "sha256": "f4c4b1fd291ca1abb49cd32c69a45e37079ecdf95dbef909aa08ce82c04f725b"
+        },
+        {
+          "case": "kept-link-288",
+          "filename": "ScreenMediaPaged-01.svg",
+          "sha256": "fffc25c944797cf6043f0d1c065487bef773dcb9ef29fabac130ace82c75ea5a"
+        },
+        {
+          "case": "kept-link-288",
+          "filename": "ScreenMediaPaged-02-scene.png",
+          "sha256": "9b7523cbe441e072c3b085dc118a566143440272263f9e7250d421f52ceada4d"
+        },
+        {
+          "case": "kept-link-288",
+          "filename": "ScreenMediaPaged-02.png",
+          "sha256": "2da16c3ab10b8a48dfc70296490467bdd2aea3f885da1101021e7c6539814617"
+        },
+        {
+          "case": "kept-link-288",
+          "filename": "ScreenMediaPaged-02.svg",
+          "sha256": "c228742f96f02a5baab40f49bdff764f385128fe4b65c455abffb6b060081082"
+        },
+        {
+          "case": "kept-link-288",
+          "filename": "ScreenMediaPaged.pdf",
+          "sha256": "eb5a1088bd895585fb250ceb047a34fc47ea3f54a36e7320d0dbfbeb0b732a95"
+        },
+        {
+          "case": "kept-link-288",
+          "filename": "ScreenSnapshotPaged-01-scene.png",
+          "sha256": "9635ae7dfdff3fa5ec66d83ee315facf8013902eea323e3e565de8cad0aab73a"
+        },
+        {
+          "case": "kept-link-288",
+          "filename": "ScreenSnapshotPaged-01.png",
+          "sha256": "61646206e7339120e0eb6e29b7fd4d8f547ff8f9ab5b7cdde9c81f55e21cf785"
+        },
+        {
+          "case": "kept-link-288",
+          "filename": "ScreenSnapshotPaged-01.svg",
+          "sha256": "3f55de7b0643c65a428047a819d0708afae5665d786c553f3783084efe54e1f9"
+        },
+        {
+          "case": "kept-link-288",
+          "filename": "ScreenSnapshotPaged.pdf",
+          "sha256": "b56dea1c3e80e9fe8392729bf81328622d8ff8983eb8a156e3e7f43813113ffb"
+        },
+        {
+          "case": "kept-link-300",
+          "filename": "PrintPaged-01-scene.png",
+          "sha256": "adaa5ea6bfd1ac2ad489f37142ec8a21353e3dc1a22b8c87616e991481b93049"
+        },
+        {
+          "case": "kept-link-300",
+          "filename": "PrintPaged-01.png",
+          "sha256": "4bbaf7d069ce8aed0bf40251264f524636e020551d6f331dc52327dfee2a6a71"
+        },
+        {
+          "case": "kept-link-300",
+          "filename": "PrintPaged-01.svg",
+          "sha256": "3b13cf18bd1ff322a655d7450ddcade75319e17a55079a5f74c6486ad83c6986"
+        },
+        {
+          "case": "kept-link-300",
+          "filename": "PrintPaged-02-scene.png",
+          "sha256": "565d40d3b7f98e563a758539515eb8151994e98a118640c78246e73b5137ea70"
+        },
+        {
+          "case": "kept-link-300",
+          "filename": "PrintPaged-02.png",
+          "sha256": "7222b7e998b18781f455a370c79c6e349ee49b5345891d1991b0d1e77c631c0e"
+        },
+        {
+          "case": "kept-link-300",
+          "filename": "PrintPaged-02.svg",
+          "sha256": "0d39cbe79f0abeaf988c8993d245b51beb2e1bf52fd098176bdd9366f4cd26e5"
+        },
+        {
+          "case": "kept-link-300",
+          "filename": "PrintPaged.pdf",
+          "sha256": "62c5ac5834dc2287a4d8a260ee6f6f967c2ad9c65179a6aa084ffa2915e7f112"
+        },
+        {
+          "case": "kept-link-300",
+          "filename": "ScreenFullPage-01-scene.png",
+          "sha256": "9635ae7dfdff3fa5ec66d83ee315facf8013902eea323e3e565de8cad0aab73a"
+        },
+        {
+          "case": "kept-link-300",
+          "filename": "ScreenFullPage-01.png",
+          "sha256": "61646206e7339120e0eb6e29b7fd4d8f547ff8f9ab5b7cdde9c81f55e21cf785"
+        },
+        {
+          "case": "kept-link-300",
+          "filename": "ScreenFullPage-01.svg",
+          "sha256": "3f55de7b0643c65a428047a819d0708afae5665d786c553f3783084efe54e1f9"
+        },
+        {
+          "case": "kept-link-300",
+          "filename": "ScreenMediaPaged-01-scene.png",
+          "sha256": "adaa5ea6bfd1ac2ad489f37142ec8a21353e3dc1a22b8c87616e991481b93049"
+        },
+        {
+          "case": "kept-link-300",
+          "filename": "ScreenMediaPaged-01.png",
+          "sha256": "4bbaf7d069ce8aed0bf40251264f524636e020551d6f331dc52327dfee2a6a71"
+        },
+        {
+          "case": "kept-link-300",
+          "filename": "ScreenMediaPaged-01.svg",
+          "sha256": "3b13cf18bd1ff322a655d7450ddcade75319e17a55079a5f74c6486ad83c6986"
+        },
+        {
+          "case": "kept-link-300",
+          "filename": "ScreenMediaPaged-02-scene.png",
+          "sha256": "565d40d3b7f98e563a758539515eb8151994e98a118640c78246e73b5137ea70"
+        },
+        {
+          "case": "kept-link-300",
+          "filename": "ScreenMediaPaged-02.png",
+          "sha256": "7222b7e998b18781f455a370c79c6e349ee49b5345891d1991b0d1e77c631c0e"
+        },
+        {
+          "case": "kept-link-300",
+          "filename": "ScreenMediaPaged-02.svg",
+          "sha256": "0d39cbe79f0abeaf988c8993d245b51beb2e1bf52fd098176bdd9366f4cd26e5"
+        },
+        {
+          "case": "kept-link-300",
+          "filename": "ScreenMediaPaged.pdf",
+          "sha256": "62c5ac5834dc2287a4d8a260ee6f6f967c2ad9c65179a6aa084ffa2915e7f112"
+        },
+        {
+          "case": "kept-link-300",
+          "filename": "ScreenSnapshotPaged-01-scene.png",
+          "sha256": "9635ae7dfdff3fa5ec66d83ee315facf8013902eea323e3e565de8cad0aab73a"
+        },
+        {
+          "case": "kept-link-300",
+          "filename": "ScreenSnapshotPaged-01.png",
+          "sha256": "61646206e7339120e0eb6e29b7fd4d8f547ff8f9ab5b7cdde9c81f55e21cf785"
+        },
+        {
+          "case": "kept-link-300",
+          "filename": "ScreenSnapshotPaged-01.svg",
+          "sha256": "3f55de7b0643c65a428047a819d0708afae5665d786c553f3783084efe54e1f9"
+        },
+        {
+          "case": "kept-link-300",
+          "filename": "ScreenSnapshotPaged.pdf",
+          "sha256": "b56dea1c3e80e9fe8392729bf81328622d8ff8983eb8a156e3e7f43813113ffb"
+        },
+        {
+          "case": "collapse",
+          "filename": "PrintPaged-01-scene.png",
+          "sha256": "127b7276b0bf7a78504665f65235c9db04ddb8b7e955ea303787debd94357d3a"
+        },
+        {
+          "case": "collapse",
+          "filename": "PrintPaged-01.png",
+          "sha256": "980913c97ac2a5b71993303a8caed42cd2dc0d19a6234ce25a257c225fb266f4"
+        },
+        {
+          "case": "collapse",
+          "filename": "PrintPaged-01.svg",
+          "sha256": "880a92b75c5ba66bce31a082b09e0480a239a298cfb77519d8b0dfd8ae3d496b"
+        },
+        {
+          "case": "collapse",
+          "filename": "PrintPaged-02-scene.png",
+          "sha256": "44b613ff4eefcdb34a1330d8d4d194e5efd8cf4535a027b0575763e13b468347"
+        },
+        {
+          "case": "collapse",
+          "filename": "PrintPaged-02.png",
+          "sha256": "c39f180ecd81f1a8642c5d025436623f28c3a341aabb3cf88cb8259de09f7180"
+        },
+        {
+          "case": "collapse",
+          "filename": "PrintPaged-02.svg",
+          "sha256": "a3f2ae46a4d315f2be680a2a7880bb674a2962b03ac261b3543cde0632c10320"
+        },
+        {
+          "case": "collapse",
+          "filename": "PrintPaged.pdf",
+          "sha256": "642dc2a12df1bb841f5b93d2d057d616c38487f226a4e1740b01124f46fe8cab"
+        },
+        {
+          "case": "collapse",
+          "filename": "ScreenFullPage-01-scene.png",
+          "sha256": "98c062a3e29bae22fae820c22725519ae2759ca3d94e5505cb1cb6e276e99b01"
+        },
+        {
+          "case": "collapse",
+          "filename": "ScreenFullPage-01.png",
+          "sha256": "ac7d6482a0662a4ddae7d3d5e5b4c498f511e51a192d92cba5799db3ceeba0fc"
+        },
+        {
+          "case": "collapse",
+          "filename": "ScreenFullPage-01.svg",
+          "sha256": "2bb715acde3a13470eb94c9aa7d8e56392f1e1dff6217c09778affa6c7a1ea0d"
+        },
+        {
+          "case": "collapse",
+          "filename": "ScreenMediaPaged-01-scene.png",
+          "sha256": "127b7276b0bf7a78504665f65235c9db04ddb8b7e955ea303787debd94357d3a"
+        },
+        {
+          "case": "collapse",
+          "filename": "ScreenMediaPaged-01.png",
+          "sha256": "980913c97ac2a5b71993303a8caed42cd2dc0d19a6234ce25a257c225fb266f4"
+        },
+        {
+          "case": "collapse",
+          "filename": "ScreenMediaPaged-01.svg",
+          "sha256": "880a92b75c5ba66bce31a082b09e0480a239a298cfb77519d8b0dfd8ae3d496b"
+        },
+        {
+          "case": "collapse",
+          "filename": "ScreenMediaPaged-02-scene.png",
+          "sha256": "44b613ff4eefcdb34a1330d8d4d194e5efd8cf4535a027b0575763e13b468347"
+        },
+        {
+          "case": "collapse",
+          "filename": "ScreenMediaPaged-02.png",
+          "sha256": "c39f180ecd81f1a8642c5d025436623f28c3a341aabb3cf88cb8259de09f7180"
+        },
+        {
+          "case": "collapse",
+          "filename": "ScreenMediaPaged-02.svg",
+          "sha256": "a3f2ae46a4d315f2be680a2a7880bb674a2962b03ac261b3543cde0632c10320"
+        },
+        {
+          "case": "collapse",
+          "filename": "ScreenMediaPaged.pdf",
+          "sha256": "642dc2a12df1bb841f5b93d2d057d616c38487f226a4e1740b01124f46fe8cab"
+        },
+        {
+          "case": "collapse",
+          "filename": "ScreenSnapshotPaged-01-scene.png",
+          "sha256": "98c062a3e29bae22fae820c22725519ae2759ca3d94e5505cb1cb6e276e99b01"
+        },
+        {
+          "case": "collapse",
+          "filename": "ScreenSnapshotPaged-01.png",
+          "sha256": "ac7d6482a0662a4ddae7d3d5e5b4c498f511e51a192d92cba5799db3ceeba0fc"
+        },
+        {
+          "case": "collapse",
+          "filename": "ScreenSnapshotPaged-01.svg",
+          "sha256": "2bb715acde3a13470eb94c9aa7d8e56392f1e1dff6217c09778affa6c7a1ea0d"
+        },
+        {
+          "case": "collapse",
+          "filename": "ScreenSnapshotPaged.pdf",
+          "sha256": "c225bc11bac6b00f4f6e843c2e8c34131ebe14ac1f3f7d654e14c81bca2f997e"
+        },
+        {
+          "case": "separate",
+          "filename": "PrintPaged-01-scene.png",
+          "sha256": "6de7c8fe000a87e5f50bcc4ef336b871152799c5b7e9e233723179ec8c03a885"
+        },
+        {
+          "case": "separate",
+          "filename": "PrintPaged-01.png",
+          "sha256": "8d75d25371bc22a4a9e96cce61b2c776d52940d4ef596c1316000e41cc9223c9"
+        },
+        {
+          "case": "separate",
+          "filename": "PrintPaged-01.svg",
+          "sha256": "cdcb0a39c38dde98a299a225c49c71ba75d8e298e12dc4bce5ea1d568e3c07e8"
+        },
+        {
+          "case": "separate",
+          "filename": "PrintPaged-02-scene.png",
+          "sha256": "2276788f3800d09321c53710b9708d093c6d4749594b996bd71275e3a3477780"
+        },
+        {
+          "case": "separate",
+          "filename": "PrintPaged-02.png",
+          "sha256": "7252177a92ee4e248811e8b345649e21336fb16a7754aafd7611da76c47c4e8b"
+        },
+        {
+          "case": "separate",
+          "filename": "PrintPaged-02.svg",
+          "sha256": "1318b5c028c7fe2d2ad0e4d865a04098b38a2bf34fa169f7ef8ab07a8557002c"
+        },
+        {
+          "case": "separate",
+          "filename": "PrintPaged.pdf",
+          "sha256": "2063569e8883373af494cba1e7f2a436a6604a85ff8ce7d47f38b01275a8a8c5"
+        },
+        {
+          "case": "separate",
+          "filename": "ScreenFullPage-01-scene.png",
+          "sha256": "3b2206b20fab140781dc2e8a14f2d80381c769a49d9265b81076ae1beee03211"
+        },
+        {
+          "case": "separate",
+          "filename": "ScreenFullPage-01.png",
+          "sha256": "3b78b486c309d317ac43e7d1212496944f848f423120fdfb8a6cc430237af69b"
+        },
+        {
+          "case": "separate",
+          "filename": "ScreenFullPage-01.svg",
+          "sha256": "624fe661c4a7539ad152df0ff3e6b7cd7aedc41c6680d9b6fac13c54acf4f406"
+        },
+        {
+          "case": "separate",
+          "filename": "ScreenMediaPaged-01-scene.png",
+          "sha256": "6de7c8fe000a87e5f50bcc4ef336b871152799c5b7e9e233723179ec8c03a885"
+        },
+        {
+          "case": "separate",
+          "filename": "ScreenMediaPaged-01.png",
+          "sha256": "8d75d25371bc22a4a9e96cce61b2c776d52940d4ef596c1316000e41cc9223c9"
+        },
+        {
+          "case": "separate",
+          "filename": "ScreenMediaPaged-01.svg",
+          "sha256": "cdcb0a39c38dde98a299a225c49c71ba75d8e298e12dc4bce5ea1d568e3c07e8"
+        },
+        {
+          "case": "separate",
+          "filename": "ScreenMediaPaged-02-scene.png",
+          "sha256": "2276788f3800d09321c53710b9708d093c6d4749594b996bd71275e3a3477780"
+        },
+        {
+          "case": "separate",
+          "filename": "ScreenMediaPaged-02.png",
+          "sha256": "7252177a92ee4e248811e8b345649e21336fb16a7754aafd7611da76c47c4e8b"
+        },
+        {
+          "case": "separate",
+          "filename": "ScreenMediaPaged-02.svg",
+          "sha256": "1318b5c028c7fe2d2ad0e4d865a04098b38a2bf34fa169f7ef8ab07a8557002c"
+        },
+        {
+          "case": "separate",
+          "filename": "ScreenMediaPaged.pdf",
+          "sha256": "2063569e8883373af494cba1e7f2a436a6604a85ff8ce7d47f38b01275a8a8c5"
+        },
+        {
+          "case": "separate",
+          "filename": "ScreenSnapshotPaged-01-scene.png",
+          "sha256": "3b2206b20fab140781dc2e8a14f2d80381c769a49d9265b81076ae1beee03211"
+        },
+        {
+          "case": "separate",
+          "filename": "ScreenSnapshotPaged-01.png",
+          "sha256": "3b78b486c309d317ac43e7d1212496944f848f423120fdfb8a6cc430237af69b"
+        },
+        {
+          "case": "separate",
+          "filename": "ScreenSnapshotPaged-01.svg",
+          "sha256": "624fe661c4a7539ad152df0ff3e6b7cd7aedc41c6680d9b6fac13c54acf4f406"
+        },
+        {
+          "case": "separate",
+          "filename": "ScreenSnapshotPaged.pdf",
+          "sha256": "f94570fc0b6319c55cea8cc841d8d2253c6c070606809022fbce6346f494e7fe"
+        },
+        {
+          "case": "review-columns",
+          "filename": "PrintPaged-01-scene.png",
+          "sha256": "cff19e3bb01324b6a9164c6292b54f379ccf669e5ece7a01cbf826862d75a113"
+        },
+        {
+          "case": "review-columns",
+          "filename": "PrintPaged-01.png",
+          "sha256": "acb14606f4c1f96513873b01ed1aa9491459ec5d62efb115d5b0f9719ad7531d"
+        },
+        {
+          "case": "review-columns",
+          "filename": "PrintPaged-01.svg",
+          "sha256": "054ae318f58f4293d595ea1adf37cb546fac3a9910e8088c6919368e9a0ce831"
+        },
+        {
+          "case": "review-columns",
+          "filename": "PrintPaged-02-scene.png",
+          "sha256": "2d89597d1981ba867bd0a5bb88ba402a06e3f9d3424af4e5428c2044a6349f08"
+        },
+        {
+          "case": "review-columns",
+          "filename": "PrintPaged-02.png",
+          "sha256": "40d2ca7bd534848356cfe0aea5d8b4b355e8e651ba71373e58da33dc11fe348a"
+        },
+        {
+          "case": "review-columns",
+          "filename": "PrintPaged-02.svg",
+          "sha256": "c59a2974d36afc8e39355c4306bd1302dd1909a0190c02802c6560768745f7bb"
+        },
+        {
+          "case": "review-columns",
+          "filename": "PrintPaged-03-scene.png",
+          "sha256": "11dc1cd451ede0befa844afc6096d3895f13895b0cd9abe11f40dfea72e71f11"
+        },
+        {
+          "case": "review-columns",
+          "filename": "PrintPaged-03.png",
+          "sha256": "11dc1cd451ede0befa844afc6096d3895f13895b0cd9abe11f40dfea72e71f11"
+        },
+        {
+          "case": "review-columns",
+          "filename": "PrintPaged-03.svg",
+          "sha256": "612b3dd57e90169ca6588c13af563662ef8d6ffbfe06e98fee155c3d58c85042"
+        },
+        {
+          "case": "review-columns",
+          "filename": "PrintPaged-04-scene.png",
+          "sha256": "11dc1cd451ede0befa844afc6096d3895f13895b0cd9abe11f40dfea72e71f11"
+        },
+        {
+          "case": "review-columns",
+          "filename": "PrintPaged-04.png",
+          "sha256": "11dc1cd451ede0befa844afc6096d3895f13895b0cd9abe11f40dfea72e71f11"
+        },
+        {
+          "case": "review-columns",
+          "filename": "PrintPaged-04.svg",
+          "sha256": "b18f5118ea662f3832109918261d324a42d8cad9eae20d628ba027e9a415e42d"
+        },
+        {
+          "case": "review-columns",
+          "filename": "PrintPaged-05-scene.png",
+          "sha256": "11dc1cd451ede0befa844afc6096d3895f13895b0cd9abe11f40dfea72e71f11"
+        },
+        {
+          "case": "review-columns",
+          "filename": "PrintPaged-05.png",
+          "sha256": "11dc1cd451ede0befa844afc6096d3895f13895b0cd9abe11f40dfea72e71f11"
+        },
+        {
+          "case": "review-columns",
+          "filename": "PrintPaged-05.svg",
+          "sha256": "0f1d5cc71fca5c519f1502c4744b29fa72bd364a75cb842b33482059d3e89b96"
+        },
+        {
+          "case": "review-columns",
+          "filename": "PrintPaged-06-scene.png",
+          "sha256": "d7b68af5d7b74ae1ca19519df2eb9eb0d23d863c61c84511ea1eefe990df42a5"
+        },
+        {
+          "case": "review-columns",
+          "filename": "PrintPaged-06.png",
+          "sha256": "d7b68af5d7b74ae1ca19519df2eb9eb0d23d863c61c84511ea1eefe990df42a5"
+        },
+        {
+          "case": "review-columns",
+          "filename": "PrintPaged-06.svg",
+          "sha256": "52993414c073406235c7e4edb4928e9488fde1d79ed0c2bf1c72e6ff0f3ab9c9"
+        },
+        {
+          "case": "review-columns",
+          "filename": "PrintPaged.pdf",
+          "sha256": "bd2f9e8e8b37fca4fae919785d2f6858cdd2aa168ef469c290a82193ba5ee32b"
+        },
+        {
+          "case": "review-columns",
+          "filename": "ScreenFullPage-01-scene.png",
+          "sha256": "d93557b23bf24c95373a49b7d527252f13b0448348b7ff24f554dcb2cf6197da"
+        },
+        {
+          "case": "review-columns",
+          "filename": "ScreenFullPage-01.png",
+          "sha256": "bc41376848231606fec96323d998ef9258483ae0478bb86c35cf71dce6db4408"
+        },
+        {
+          "case": "review-columns",
+          "filename": "ScreenFullPage-01.svg",
+          "sha256": "5d7d9cc99de952deef4c1d691943c85db471531c9ab5e23ed304ff09e3f68699"
+        },
+        {
+          "case": "review-columns",
+          "filename": "ScreenMediaPaged-01-scene.png",
+          "sha256": "cff19e3bb01324b6a9164c6292b54f379ccf669e5ece7a01cbf826862d75a113"
+        },
+        {
+          "case": "review-columns",
+          "filename": "ScreenMediaPaged-01.png",
+          "sha256": "acb14606f4c1f96513873b01ed1aa9491459ec5d62efb115d5b0f9719ad7531d"
+        },
+        {
+          "case": "review-columns",
+          "filename": "ScreenMediaPaged-01.svg",
+          "sha256": "054ae318f58f4293d595ea1adf37cb546fac3a9910e8088c6919368e9a0ce831"
+        },
+        {
+          "case": "review-columns",
+          "filename": "ScreenMediaPaged-02-scene.png",
+          "sha256": "2d89597d1981ba867bd0a5bb88ba402a06e3f9d3424af4e5428c2044a6349f08"
+        },
+        {
+          "case": "review-columns",
+          "filename": "ScreenMediaPaged-02.png",
+          "sha256": "40d2ca7bd534848356cfe0aea5d8b4b355e8e651ba71373e58da33dc11fe348a"
+        },
+        {
+          "case": "review-columns",
+          "filename": "ScreenMediaPaged-02.svg",
+          "sha256": "c59a2974d36afc8e39355c4306bd1302dd1909a0190c02802c6560768745f7bb"
+        },
+        {
+          "case": "review-columns",
+          "filename": "ScreenMediaPaged-03-scene.png",
+          "sha256": "11dc1cd451ede0befa844afc6096d3895f13895b0cd9abe11f40dfea72e71f11"
+        },
+        {
+          "case": "review-columns",
+          "filename": "ScreenMediaPaged-03.png",
+          "sha256": "11dc1cd451ede0befa844afc6096d3895f13895b0cd9abe11f40dfea72e71f11"
+        },
+        {
+          "case": "review-columns",
+          "filename": "ScreenMediaPaged-03.svg",
+          "sha256": "612b3dd57e90169ca6588c13af563662ef8d6ffbfe06e98fee155c3d58c85042"
+        },
+        {
+          "case": "review-columns",
+          "filename": "ScreenMediaPaged-04-scene.png",
+          "sha256": "11dc1cd451ede0befa844afc6096d3895f13895b0cd9abe11f40dfea72e71f11"
+        },
+        {
+          "case": "review-columns",
+          "filename": "ScreenMediaPaged-04.png",
+          "sha256": "11dc1cd451ede0befa844afc6096d3895f13895b0cd9abe11f40dfea72e71f11"
+        },
+        {
+          "case": "review-columns",
+          "filename": "ScreenMediaPaged-04.svg",
+          "sha256": "b18f5118ea662f3832109918261d324a42d8cad9eae20d628ba027e9a415e42d"
+        },
+        {
+          "case": "review-columns",
+          "filename": "ScreenMediaPaged-05-scene.png",
+          "sha256": "11dc1cd451ede0befa844afc6096d3895f13895b0cd9abe11f40dfea72e71f11"
+        },
+        {
+          "case": "review-columns",
+          "filename": "ScreenMediaPaged-05.png",
+          "sha256": "11dc1cd451ede0befa844afc6096d3895f13895b0cd9abe11f40dfea72e71f11"
+        },
+        {
+          "case": "review-columns",
+          "filename": "ScreenMediaPaged-05.svg",
+          "sha256": "0f1d5cc71fca5c519f1502c4744b29fa72bd364a75cb842b33482059d3e89b96"
+        },
+        {
+          "case": "review-columns",
+          "filename": "ScreenMediaPaged-06-scene.png",
+          "sha256": "d7b68af5d7b74ae1ca19519df2eb9eb0d23d863c61c84511ea1eefe990df42a5"
+        },
+        {
+          "case": "review-columns",
+          "filename": "ScreenMediaPaged-06.png",
+          "sha256": "d7b68af5d7b74ae1ca19519df2eb9eb0d23d863c61c84511ea1eefe990df42a5"
+        },
+        {
+          "case": "review-columns",
+          "filename": "ScreenMediaPaged-06.svg",
+          "sha256": "52993414c073406235c7e4edb4928e9488fde1d79ed0c2bf1c72e6ff0f3ab9c9"
+        },
+        {
+          "case": "review-columns",
+          "filename": "ScreenMediaPaged.pdf",
+          "sha256": "bd2f9e8e8b37fca4fae919785d2f6858cdd2aa168ef469c290a82193ba5ee32b"
+        },
+        {
+          "case": "review-columns",
+          "filename": "ScreenSnapshotPaged-01-scene.png",
+          "sha256": "d93557b23bf24c95373a49b7d527252f13b0448348b7ff24f554dcb2cf6197da"
+        },
+        {
+          "case": "review-columns",
+          "filename": "ScreenSnapshotPaged-01.png",
+          "sha256": "bc41376848231606fec96323d998ef9258483ae0478bb86c35cf71dce6db4408"
+        },
+        {
+          "case": "review-columns",
+          "filename": "ScreenSnapshotPaged-01.svg",
+          "sha256": "5d7d9cc99de952deef4c1d691943c85db471531c9ab5e23ed304ff09e3f68699"
+        },
+        {
+          "case": "review-columns",
+          "filename": "ScreenSnapshotPaged.pdf",
+          "sha256": "ccfab8f519fd2ce9beac8a7471296a630abaadaea879068d35c99453f7679aec"
+        },
+        {
+          "case": "review-overlap",
+          "filename": "PrintPaged-01-scene.png",
+          "sha256": "84c087104e3e7f28f4ee7f284759a8f95da4af8e2e7be51c63d06bcf03dcfb18"
+        },
+        {
+          "case": "review-overlap",
+          "filename": "PrintPaged-01.png",
+          "sha256": "c53159bbcbe44f175f6a0a796cd2cbc55cdeccf37a211c852249058fff04a043"
+        },
+        {
+          "case": "review-overlap",
+          "filename": "PrintPaged-01.svg",
+          "sha256": "8b2205d3bf56a82ed69f195ee300ddbdf1da37711fda028c44b9a189236d513b"
+        },
+        {
+          "case": "review-overlap",
+          "filename": "PrintPaged-02-scene.png",
+          "sha256": "e9b65f2d1ffd00850de814b4eefec36244764e7eb2455c24606930902749c154"
+        },
+        {
+          "case": "review-overlap",
+          "filename": "PrintPaged-02.png",
+          "sha256": "ac13eac7987358c609a907853764d3b462aa41b82b2411c228862a7cb26afbac"
+        },
+        {
+          "case": "review-overlap",
+          "filename": "PrintPaged-02.svg",
+          "sha256": "25896a42d62dba8cab034a8309cc9ed11bfd4e5c133f4ecda6258dd19c1079bf"
+        },
+        {
+          "case": "review-overlap",
+          "filename": "PrintPaged-03-scene.png",
+          "sha256": "6e64e4028b9e767560ec95cb7332da3ee2f0cade9ddaac8e25083db1a6dc5bb6"
+        },
+        {
+          "case": "review-overlap",
+          "filename": "PrintPaged-03.png",
+          "sha256": "377235c5dad6f4f3c317c7b38982891273df3a9c2ced67daf2f7d33f53edc27d"
+        },
+        {
+          "case": "review-overlap",
+          "filename": "PrintPaged-03.svg",
+          "sha256": "ddb8d93303828e2db5acffb466f8b08ca2ed86d26c8f2503edd63712069356c9"
+        },
+        {
+          "case": "review-overlap",
+          "filename": "PrintPaged-04-scene.png",
+          "sha256": "e362bfeeb91a0790a88f413977e72dd6639fbe96043c8822193d386473a287bf"
+        },
+        {
+          "case": "review-overlap",
+          "filename": "PrintPaged-04.png",
+          "sha256": "70095ef6a54f599a7f1a0d29566ff126ea3f6b89f15df3f1690645814a33bc82"
+        },
+        {
+          "case": "review-overlap",
+          "filename": "PrintPaged-04.svg",
+          "sha256": "a999b62be7c3e09a967f7aead36520c98509faceb3b30ab7c7246bfca3d9a7f2"
+        },
+        {
+          "case": "review-overlap",
+          "filename": "PrintPaged-05-scene.png",
+          "sha256": "e6efd67829f65e2ff43d02aa374424466fd9c2d68bbbbb40ec9f2958045128a7"
+        },
+        {
+          "case": "review-overlap",
+          "filename": "PrintPaged-05.png",
+          "sha256": "8a981a9925b97ff49687af82352af6170d516f446d4569c83ebd846974037ab9"
+        },
+        {
+          "case": "review-overlap",
+          "filename": "PrintPaged-05.svg",
+          "sha256": "410a4c6c915429f4508cde6ce8aa8d7a6748064e7c53923f7e7881908a158312"
+        },
+        {
+          "case": "review-overlap",
+          "filename": "PrintPaged.pdf",
+          "sha256": "181feaff5b57667b6092dd45900547ba44296bf6fc5afd226119b39bde8fcca5"
+        },
+        {
+          "case": "review-overlap",
+          "filename": "ScreenFullPage-01-scene.png",
+          "sha256": "43347abe53198abab5eb42607b9f0eb04a5c80115c5a1b64ed175350fae35f39"
+        },
+        {
+          "case": "review-overlap",
+          "filename": "ScreenFullPage-01.png",
+          "sha256": "efc31121d37c21c348e57a3866d98e3a2f169ca44c3900404268527380e8b2c0"
+        },
+        {
+          "case": "review-overlap",
+          "filename": "ScreenFullPage-01.svg",
+          "sha256": "1b4534665aeb4715549de453bd1d17c90fb4a85e10c359c99e29f7a217952e6c"
+        },
+        {
+          "case": "review-overlap",
+          "filename": "ScreenMediaPaged-01-scene.png",
+          "sha256": "84c087104e3e7f28f4ee7f284759a8f95da4af8e2e7be51c63d06bcf03dcfb18"
+        },
+        {
+          "case": "review-overlap",
+          "filename": "ScreenMediaPaged-01.png",
+          "sha256": "c53159bbcbe44f175f6a0a796cd2cbc55cdeccf37a211c852249058fff04a043"
+        },
+        {
+          "case": "review-overlap",
+          "filename": "ScreenMediaPaged-01.svg",
+          "sha256": "8b2205d3bf56a82ed69f195ee300ddbdf1da37711fda028c44b9a189236d513b"
+        },
+        {
+          "case": "review-overlap",
+          "filename": "ScreenMediaPaged-02-scene.png",
+          "sha256": "e9b65f2d1ffd00850de814b4eefec36244764e7eb2455c24606930902749c154"
+        },
+        {
+          "case": "review-overlap",
+          "filename": "ScreenMediaPaged-02.png",
+          "sha256": "ac13eac7987358c609a907853764d3b462aa41b82b2411c228862a7cb26afbac"
+        },
+        {
+          "case": "review-overlap",
+          "filename": "ScreenMediaPaged-02.svg",
+          "sha256": "25896a42d62dba8cab034a8309cc9ed11bfd4e5c133f4ecda6258dd19c1079bf"
+        },
+        {
+          "case": "review-overlap",
+          "filename": "ScreenMediaPaged-03-scene.png",
+          "sha256": "6e64e4028b9e767560ec95cb7332da3ee2f0cade9ddaac8e25083db1a6dc5bb6"
+        },
+        {
+          "case": "review-overlap",
+          "filename": "ScreenMediaPaged-03.png",
+          "sha256": "377235c5dad6f4f3c317c7b38982891273df3a9c2ced67daf2f7d33f53edc27d"
+        },
+        {
+          "case": "review-overlap",
+          "filename": "ScreenMediaPaged-03.svg",
+          "sha256": "ddb8d93303828e2db5acffb466f8b08ca2ed86d26c8f2503edd63712069356c9"
+        },
+        {
+          "case": "review-overlap",
+          "filename": "ScreenMediaPaged-04-scene.png",
+          "sha256": "e362bfeeb91a0790a88f413977e72dd6639fbe96043c8822193d386473a287bf"
+        },
+        {
+          "case": "review-overlap",
+          "filename": "ScreenMediaPaged-04.png",
+          "sha256": "70095ef6a54f599a7f1a0d29566ff126ea3f6b89f15df3f1690645814a33bc82"
+        },
+        {
+          "case": "review-overlap",
+          "filename": "ScreenMediaPaged-04.svg",
+          "sha256": "a999b62be7c3e09a967f7aead36520c98509faceb3b30ab7c7246bfca3d9a7f2"
+        },
+        {
+          "case": "review-overlap",
+          "filename": "ScreenMediaPaged-05-scene.png",
+          "sha256": "e6efd67829f65e2ff43d02aa374424466fd9c2d68bbbbb40ec9f2958045128a7"
+        },
+        {
+          "case": "review-overlap",
+          "filename": "ScreenMediaPaged-05.png",
+          "sha256": "8a981a9925b97ff49687af82352af6170d516f446d4569c83ebd846974037ab9"
+        },
+        {
+          "case": "review-overlap",
+          "filename": "ScreenMediaPaged-05.svg",
+          "sha256": "410a4c6c915429f4508cde6ce8aa8d7a6748064e7c53923f7e7881908a158312"
+        },
+        {
+          "case": "review-overlap",
+          "filename": "ScreenMediaPaged.pdf",
+          "sha256": "181feaff5b57667b6092dd45900547ba44296bf6fc5afd226119b39bde8fcca5"
+        },
+        {
+          "case": "review-overlap",
+          "filename": "ScreenSnapshotPaged-01-scene.png",
+          "sha256": "43347abe53198abab5eb42607b9f0eb04a5c80115c5a1b64ed175350fae35f39"
+        },
+        {
+          "case": "review-overlap",
+          "filename": "ScreenSnapshotPaged-01.png",
+          "sha256": "efc31121d37c21c348e57a3866d98e3a2f169ca44c3900404268527380e8b2c0"
+        },
+        {
+          "case": "review-overlap",
+          "filename": "ScreenSnapshotPaged-01.svg",
+          "sha256": "1b4534665aeb4715549de453bd1d17c90fb4a85e10c359c99e29f7a217952e6c"
+        },
+        {
+          "case": "review-overlap",
+          "filename": "ScreenSnapshotPaged.pdf",
+          "sha256": "53fe3f694a82c3aad477f7130b422e7f9d38becc53cd94938a0819595d155a6d"
+        },
+        {
+          "case": "review-inline-overlap",
+          "filename": "PrintPaged-01-scene.png",
+          "sha256": "15d8799b41d0d4b7bfabd21c787af06c28c6113d7c672ce8b779d9a55e6f646d"
+        },
+        {
+          "case": "review-inline-overlap",
+          "filename": "PrintPaged-01.png",
+          "sha256": "615677c3cf911c716d4ddda4f13ca539b264999132e93c4b899b500599602f68"
+        },
+        {
+          "case": "review-inline-overlap",
+          "filename": "PrintPaged-01.svg",
+          "sha256": "64362567094791cec8974dda50558966e136a32b485671ef447b3ee17374cec7"
+        },
+        {
+          "case": "review-inline-overlap",
+          "filename": "PrintPaged-02-scene.png",
+          "sha256": "30e2e2345e19e29a04127c778e8aa12b151b5f3af83b21fca986a66ccbfac288"
+        },
+        {
+          "case": "review-inline-overlap",
+          "filename": "PrintPaged-02.png",
+          "sha256": "60838c8cf9d25ddb243149c9f5cd43cceb831a18bbdcdb26d5b8d2ade1cd638a"
+        },
+        {
+          "case": "review-inline-overlap",
+          "filename": "PrintPaged-02.svg",
+          "sha256": "c57a3d4109a6b217ed3559e33d4bd82438d938c55f7af49dc34626d8246c9dbb"
+        },
+        {
+          "case": "review-inline-overlap",
+          "filename": "PrintPaged-03-scene.png",
+          "sha256": "a786c2fd14dbed53125899bfa138a7f91726b83d165e75ab589fc5375783ba6a"
+        },
+        {
+          "case": "review-inline-overlap",
+          "filename": "PrintPaged-03.png",
+          "sha256": "16d49815394ff925c3566c8a4ca0f9fa2cc1a2c84eccd4d8f98fb6f540c18943"
+        },
+        {
+          "case": "review-inline-overlap",
+          "filename": "PrintPaged-03.svg",
+          "sha256": "7b4bc4d2d9779f590bfd4912ffaec152587937a4c71c06f5af04d248faa734af"
+        },
+        {
+          "case": "review-inline-overlap",
+          "filename": "PrintPaged-04-scene.png",
+          "sha256": "f1abe9c5b199e89d86bf7707fdca3c217829ebf39aee6acc0a0cb9a81f022fcd"
+        },
+        {
+          "case": "review-inline-overlap",
+          "filename": "PrintPaged-04.png",
+          "sha256": "166701a275b69fdc8fe63cf7314e7514597435cd30fe32a34fadcbbb2e5bcf01"
+        },
+        {
+          "case": "review-inline-overlap",
+          "filename": "PrintPaged-04.svg",
+          "sha256": "5f5f534a98aeaa848bae3b4f0582387c22bf8b37d19893adf71cbeba6d9ea819"
+        },
+        {
+          "case": "review-inline-overlap",
+          "filename": "PrintPaged-05-scene.png",
+          "sha256": "906bc90cb3fa331fd1d37f7c09e589a3323acba2444db7d80043feeed5df4034"
+        },
+        {
+          "case": "review-inline-overlap",
+          "filename": "PrintPaged-05.png",
+          "sha256": "77d6681cfdcbc42d64e2e43dcdea47fdea22c27312549ed05bd58d70374c90cc"
+        },
+        {
+          "case": "review-inline-overlap",
+          "filename": "PrintPaged-05.svg",
+          "sha256": "6cd0cfea78ec340b8820fd93b601a25a02a6ea00eae88490286f7f4a020362ef"
+        },
+        {
+          "case": "review-inline-overlap",
+          "filename": "PrintPaged.pdf",
+          "sha256": "f953d1db94af0ef502fc821220f92683fe186b2b58637d1d5f7ea144db858fab"
+        },
+        {
+          "case": "review-inline-overlap",
+          "filename": "ScreenFullPage-01-scene.png",
+          "sha256": "d1d45206067f0caf74ee28b1e4da91c891ee169a790d2fe0d3de2f6cbc5baf4b"
+        },
+        {
+          "case": "review-inline-overlap",
+          "filename": "ScreenFullPage-01.png",
+          "sha256": "8bcee4076b311d0b5230908162c4682b038e074d31a6addb54db6acfe9197f63"
+        },
+        {
+          "case": "review-inline-overlap",
+          "filename": "ScreenFullPage-01.svg",
+          "sha256": "a987ab54c40a6af40c6e2b1a731796eae139f67d722018d00012db5cc1ead287"
+        },
+        {
+          "case": "review-inline-overlap",
+          "filename": "ScreenMediaPaged-01-scene.png",
+          "sha256": "15d8799b41d0d4b7bfabd21c787af06c28c6113d7c672ce8b779d9a55e6f646d"
+        },
+        {
+          "case": "review-inline-overlap",
+          "filename": "ScreenMediaPaged-01.png",
+          "sha256": "615677c3cf911c716d4ddda4f13ca539b264999132e93c4b899b500599602f68"
+        },
+        {
+          "case": "review-inline-overlap",
+          "filename": "ScreenMediaPaged-01.svg",
+          "sha256": "64362567094791cec8974dda50558966e136a32b485671ef447b3ee17374cec7"
+        },
+        {
+          "case": "review-inline-overlap",
+          "filename": "ScreenMediaPaged-02-scene.png",
+          "sha256": "30e2e2345e19e29a04127c778e8aa12b151b5f3af83b21fca986a66ccbfac288"
+        },
+        {
+          "case": "review-inline-overlap",
+          "filename": "ScreenMediaPaged-02.png",
+          "sha256": "60838c8cf9d25ddb243149c9f5cd43cceb831a18bbdcdb26d5b8d2ade1cd638a"
+        },
+        {
+          "case": "review-inline-overlap",
+          "filename": "ScreenMediaPaged-02.svg",
+          "sha256": "c57a3d4109a6b217ed3559e33d4bd82438d938c55f7af49dc34626d8246c9dbb"
+        },
+        {
+          "case": "review-inline-overlap",
+          "filename": "ScreenMediaPaged-03-scene.png",
+          "sha256": "a786c2fd14dbed53125899bfa138a7f91726b83d165e75ab589fc5375783ba6a"
+        },
+        {
+          "case": "review-inline-overlap",
+          "filename": "ScreenMediaPaged-03.png",
+          "sha256": "16d49815394ff925c3566c8a4ca0f9fa2cc1a2c84eccd4d8f98fb6f540c18943"
+        },
+        {
+          "case": "review-inline-overlap",
+          "filename": "ScreenMediaPaged-03.svg",
+          "sha256": "7b4bc4d2d9779f590bfd4912ffaec152587937a4c71c06f5af04d248faa734af"
+        },
+        {
+          "case": "review-inline-overlap",
+          "filename": "ScreenMediaPaged-04-scene.png",
+          "sha256": "f1abe9c5b199e89d86bf7707fdca3c217829ebf39aee6acc0a0cb9a81f022fcd"
+        },
+        {
+          "case": "review-inline-overlap",
+          "filename": "ScreenMediaPaged-04.png",
+          "sha256": "166701a275b69fdc8fe63cf7314e7514597435cd30fe32a34fadcbbb2e5bcf01"
+        },
+        {
+          "case": "review-inline-overlap",
+          "filename": "ScreenMediaPaged-04.svg",
+          "sha256": "5f5f534a98aeaa848bae3b4f0582387c22bf8b37d19893adf71cbeba6d9ea819"
+        },
+        {
+          "case": "review-inline-overlap",
+          "filename": "ScreenMediaPaged-05-scene.png",
+          "sha256": "906bc90cb3fa331fd1d37f7c09e589a3323acba2444db7d80043feeed5df4034"
+        },
+        {
+          "case": "review-inline-overlap",
+          "filename": "ScreenMediaPaged-05.png",
+          "sha256": "77d6681cfdcbc42d64e2e43dcdea47fdea22c27312549ed05bd58d70374c90cc"
+        },
+        {
+          "case": "review-inline-overlap",
+          "filename": "ScreenMediaPaged-05.svg",
+          "sha256": "6cd0cfea78ec340b8820fd93b601a25a02a6ea00eae88490286f7f4a020362ef"
+        },
+        {
+          "case": "review-inline-overlap",
+          "filename": "ScreenMediaPaged.pdf",
+          "sha256": "f953d1db94af0ef502fc821220f92683fe186b2b58637d1d5f7ea144db858fab"
+        },
+        {
+          "case": "review-inline-overlap",
+          "filename": "ScreenSnapshotPaged-01-scene.png",
+          "sha256": "d1d45206067f0caf74ee28b1e4da91c891ee169a790d2fe0d3de2f6cbc5baf4b"
+        },
+        {
+          "case": "review-inline-overlap",
+          "filename": "ScreenSnapshotPaged-01.png",
+          "sha256": "8bcee4076b311d0b5230908162c4682b038e074d31a6addb54db6acfe9197f63"
+        },
+        {
+          "case": "review-inline-overlap",
+          "filename": "ScreenSnapshotPaged-01.svg",
+          "sha256": "a987ab54c40a6af40c6e2b1a731796eae139f67d722018d00012db5cc1ead287"
+        },
+        {
+          "case": "review-inline-overlap",
+          "filename": "ScreenSnapshotPaged.pdf",
+          "sha256": "9f95254d688ff4a1eec8b61019e117749e61fdebb3ef91e0f66133d11633349a"
+        }
+      ]
+    }
+  },
+  "native": {
+    "mainObservations": {
+      "path": "native-observations.json",
+      "bytes": 16658,
+      "sha256": "f087db20c5fc7479a10bce5afeb13089576652e183e88c8eb39203816a6bdeb4"
+    },
+    "mainControls": [
+      {
+        "model": "kept-link",
+        "profile": "PrintPaged",
+        "freshReference": true,
+        "nativePages": 2,
+        "currentPages": 2,
+        "bodyPageAssignmentMatches": true,
+        "repeatedGroups": true,
+        "sourceOnce": true,
+        "pixels": [
+          {
+            "page": 1,
+            "nativeSize": [
+              400,
+              287
+            ],
+            "currentSize": [
+              400,
+              286
+            ],
+            "canvas": [
+              400,
+              287
+            ],
+            "rgbMae": 1.8695673635307781,
+            "pixelsOver10": 3165,
+            "pixels": 114800
+          },
+          {
+            "page": 2,
+            "nativeSize": [
+              400,
+              287
+            ],
+            "currentSize": [
+              400,
+              286
+            ],
+            "canvas": [
+              400,
+              287
+            ],
+            "rgbMae": 0.7011933797909408,
+            "pixelsOver10": 835,
+            "pixels": 114800
+          }
+        ]
+      },
+      {
+        "model": "kept-link",
+        "profile": "ScreenMediaPaged",
+        "freshReference": true,
+        "nativePages": 2,
+        "currentPages": 2,
+        "bodyPageAssignmentMatches": true,
+        "repeatedGroups": true,
+        "sourceOnce": true,
+        "pixels": [
+          {
+            "page": 1,
+            "nativeSize": [
+              400,
+              287
+            ],
+            "currentSize": [
+              400,
+              286
+            ],
+            "canvas": [
+              400,
+              287
+            ],
+            "rgbMae": 1.8695673635307781,
+            "pixelsOver10": 3165,
+            "pixels": 114800
+          },
+          {
+            "page": 2,
+            "nativeSize": [
+              400,
+              287
+            ],
+            "currentSize": [
+              400,
+              286
+            ],
+            "canvas": [
+              400,
+              287
+            ],
+            "rgbMae": 0.7011933797909408,
+            "pixelsOver10": 835,
+            "pixels": 114800
+          }
+        ]
+      },
+      {
+        "model": "kept-link-288",
+        "profile": "PrintPaged",
+        "freshReference": true,
+        "nativePages": 2,
+        "currentPages": 2,
+        "bodyPageAssignmentMatches": true,
+        "repeatedGroups": true,
+        "sourceOnce": true,
+        "pixels": [
+          {
+            "page": 1,
+            "nativeSize": [
+              400,
+              288
+            ],
+            "currentSize": [
+              400,
+              288
+            ],
+            "canvas": [
+              400,
+              288
+            ],
+            "rgbMae": 1.8630758101851852,
+            "pixelsOver10": 3165,
+            "pixels": 115200
+          },
+          {
+            "page": 2,
+            "nativeSize": [
+              400,
+              288
+            ],
+            "currentSize": [
+              400,
+              288
+            ],
+            "canvas": [
+              400,
+              288
+            ],
+            "rgbMae": 0.6987586805555556,
+            "pixelsOver10": 835,
+            "pixels": 115200
+          }
+        ]
+      },
+      {
+        "model": "kept-link-288",
+        "profile": "ScreenMediaPaged",
+        "freshReference": true,
+        "nativePages": 2,
+        "currentPages": 2,
+        "bodyPageAssignmentMatches": true,
+        "repeatedGroups": true,
+        "sourceOnce": true,
+        "pixels": [
+          {
+            "page": 1,
+            "nativeSize": [
+              400,
+              288
+            ],
+            "currentSize": [
+              400,
+              288
+            ],
+            "canvas": [
+              400,
+              288
+            ],
+            "rgbMae": 1.8630758101851852,
+            "pixelsOver10": 3165,
+            "pixels": 115200
+          },
+          {
+            "page": 2,
+            "nativeSize": [
+              400,
+              288
+            ],
+            "currentSize": [
+              400,
+              288
+            ],
+            "canvas": [
+              400,
+              288
+            ],
+            "rgbMae": 0.6987586805555556,
+            "pixelsOver10": 835,
+            "pixels": 115200
+          }
+        ]
+      },
+      {
+        "model": "kept-link-300",
+        "profile": "PrintPaged",
+        "freshReference": true,
+        "nativePages": 2,
+        "currentPages": 2,
+        "bodyPageAssignmentMatches": true,
+        "repeatedGroups": true,
+        "sourceOnce": true,
+        "pixels": [
+          {
+            "page": 1,
+            "nativeSize": [
+              400,
+              300
+            ],
+            "currentSize": [
+              400,
+              300
+            ],
+            "canvas": [
+              400,
+              300
+            ],
+            "rgbMae": 1.7885527777777779,
+            "pixelsOver10": 3165,
+            "pixels": 120000
+          },
+          {
+            "page": 2,
+            "nativeSize": [
+              400,
+              300
+            ],
+            "currentSize": [
+              400,
+              300
+            ],
+            "canvas": [
+              400,
+              300
+            ],
+            "rgbMae": 0.6708083333333333,
+            "pixelsOver10": 835,
+            "pixels": 120000
+          }
+        ]
+      },
+      {
+        "model": "kept-link-300",
+        "profile": "ScreenMediaPaged",
+        "freshReference": true,
+        "nativePages": 2,
+        "currentPages": 2,
+        "bodyPageAssignmentMatches": true,
+        "repeatedGroups": true,
+        "sourceOnce": true,
+        "pixels": [
+          {
+            "page": 1,
+            "nativeSize": [
+              400,
+              300
+            ],
+            "currentSize": [
+              400,
+              300
+            ],
+            "canvas": [
+              400,
+              300
+            ],
+            "rgbMae": 1.7885527777777779,
+            "pixelsOver10": 3165,
+            "pixels": 120000
+          },
+          {
+            "page": 2,
+            "nativeSize": [
+              400,
+              300
+            ],
+            "currentSize": [
+              400,
+              300
+            ],
+            "canvas": [
+              400,
+              300
+            ],
+            "rgbMae": 0.6708083333333333,
+            "pixelsOver10": 835,
+            "pixels": 120000
+          }
+        ]
+      },
+      {
+        "model": "collapse",
+        "profile": "PrintPaged",
+        "freshReference": false,
+        "nativePages": 2,
+        "currentPages": 2,
+        "bodyPageAssignmentMatches": true,
+        "repeatedGroups": true,
+        "sourceOnce": true,
+        "pixels": [
+          {
+            "page": 1,
+            "nativeSize": [
+              400,
+              279
+            ],
+            "currentSize": [
+              400,
+              278
+            ],
+            "canvas": [
+              400,
+              279
+            ],
+            "rgbMae": 1.1749820788530465,
+            "pixelsOver10": 2026,
+            "pixels": 111600
+          },
+          {
+            "page": 2,
+            "nativeSize": [
+              400,
+              279
+            ],
+            "currentSize": [
+              400,
+              278
+            ],
+            "canvas": [
+              400,
+              279
+            ],
+            "rgbMae": 0.6421117084826762,
+            "pixelsOver10": 1007,
+            "pixels": 111600
+          }
+        ]
+      },
+      {
+        "model": "collapse",
+        "profile": "ScreenMediaPaged",
+        "freshReference": false,
+        "nativePages": 2,
+        "currentPages": 2,
+        "bodyPageAssignmentMatches": true,
+        "repeatedGroups": true,
+        "sourceOnce": true,
+        "pixels": [
+          {
+            "page": 1,
+            "nativeSize": [
+              400,
+              279
+            ],
+            "currentSize": [
+              400,
+              278
+            ],
+            "canvas": [
+              400,
+              279
+            ],
+            "rgbMae": 1.1749820788530465,
+            "pixelsOver10": 2026,
+            "pixels": 111600
+          },
+          {
+            "page": 2,
+            "nativeSize": [
+              400,
+              279
+            ],
+            "currentSize": [
+              400,
+              278
+            ],
+            "canvas": [
+              400,
+              279
+            ],
+            "rgbMae": 0.6421117084826762,
+            "pixelsOver10": 1007,
+            "pixels": 111600
+          }
+        ]
+      },
+      {
+        "model": "separate",
+        "profile": "PrintPaged",
+        "freshReference": false,
+        "nativePages": 2,
+        "currentPages": 2,
+        "bodyPageAssignmentMatches": true,
+        "repeatedGroups": true,
+        "sourceOnce": true,
+        "pixels": [
+          {
+            "page": 1,
+            "nativeSize": [
+              400,
+              287
+            ],
+            "currentSize": [
+              400,
+              286
+            ],
+            "canvas": [
+              400,
+              287
+            ],
+            "rgbMae": 6.469163763066202,
+            "pixelsOver10": 6613,
+            "pixels": 114800
+          },
+          {
+            "page": 2,
+            "nativeSize": [
+              400,
+              287
+            ],
+            "currentSize": [
+              400,
+              286
+            ],
+            "canvas": [
+              400,
+              287
+            ],
+            "rgbMae": 6.600101626016261,
+            "pixelsOver10": 6596,
+            "pixels": 114800
+          }
+        ]
+      },
+      {
+        "model": "separate",
+        "profile": "ScreenMediaPaged",
+        "freshReference": false,
+        "nativePages": 2,
+        "currentPages": 2,
+        "bodyPageAssignmentMatches": true,
+        "repeatedGroups": true,
+        "sourceOnce": true,
+        "pixels": [
+          {
+            "page": 1,
+            "nativeSize": [
+              400,
+              287
+            ],
+            "currentSize": [
+              400,
+              286
+            ],
+            "canvas": [
+              400,
+              287
+            ],
+            "rgbMae": 6.469163763066202,
+            "pixelsOver10": 6613,
+            "pixels": 114800
+          },
+          {
+            "page": 2,
+            "nativeSize": [
+              400,
+              287
+            ],
+            "currentSize": [
+              400,
+              286
+            ],
+            "canvas": [
+              400,
+              287
+            ],
+            "rgbMae": 6.600101626016261,
+            "pixelsOver10": 6596,
+            "pixels": 114800
+          }
+        ]
+      }
+    ],
+    "vectorSvg": {
+      "observations": {
+        "path": "svg-native-observations.json",
+        "bytes": 9005,
+        "sha256": "795c006afaaf420fa9a6e244c10c4c6e56ec096e21c5c6dbc3fc2f0963cc835f"
+      },
+      "records": 20,
+      "uniqueSvgBytes": 10,
+      "boundary": "Exact SVG bytes isolated in data image documents; Actual96dpiPDF rasters; no scaling/cropping/masking; sameorigin whitepadding; rawmetrics,no pixelparityclaim"
+    },
+    "reviewObservations": {
+      "path": "review-native-observations.json",
+      "bytes": 6515,
+      "sha256": "7aab2efb7e03f6fe27205967b81f83f2cd7f3dbc2f95621518f84a0f11e10822"
+    },
+    "reviewControls": [
+      {
+        "case": "review-overlap",
+        "profile": "PrintPaged",
+        "nativePages": 5,
+        "currentPages": 5,
+        "nativeBodyPages": [
+          [
+            "OVER-01",
+            "OVER-02",
+            "OVER-03",
+            "OVER-04"
+          ],
+          [
+            "OVER-05",
+            "OVER-06",
+            "OVER-07",
+            "OVER-08",
+            "OVER-09"
+          ],
+          [
+            "OVER-10",
+            "OVER-11",
+            "OVER-12",
+            "OVER-13",
+            "OVER-14"
+          ],
+          [
+            "OVER-15",
+            "OVER-16",
+            "OVER-17",
+            "OVER-18",
+            "OVER-19"
+          ],
+          [
+            "OVER-20"
+          ]
+        ],
+        "currentBodyPages": [
+          [
+            "OVER-01",
+            "OVER-02",
+            "OVER-03",
+            "OVER-04"
+          ],
+          [
+            "OVER-05",
+            "OVER-06",
+            "OVER-07",
+            "OVER-08",
+            "OVER-09"
+          ],
+          [
+            "OVER-10",
+            "OVER-11",
+            "OVER-12",
+            "OVER-13",
+            "OVER-14"
+          ],
+          [
+            "OVER-15",
+            "OVER-16",
+            "OVER-17",
+            "OVER-18",
+            "OVER-19"
+          ],
+          [
+            "OVER-20"
+          ]
+        ],
+        "sourceOnce": true,
+        "nativeBodyPageAssignmentMatches": true,
+        "boundary": "Bothwrapperroutesretainall20sourcewordsonsamepagesasEdge"
+      },
+      {
+        "case": "review-overlap",
+        "profile": "ScreenMediaPaged",
+        "nativePages": 5,
+        "currentPages": 5,
+        "nativeBodyPages": [
+          [
+            "OVER-01",
+            "OVER-02",
+            "OVER-03",
+            "OVER-04"
+          ],
+          [
+            "OVER-05",
+            "OVER-06",
+            "OVER-07",
+            "OVER-08",
+            "OVER-09"
+          ],
+          [
+            "OVER-10",
+            "OVER-11",
+            "OVER-12",
+            "OVER-13",
+            "OVER-14"
+          ],
+          [
+            "OVER-15",
+            "OVER-16",
+            "OVER-17",
+            "OVER-18",
+            "OVER-19"
+          ],
+          [
+            "OVER-20"
+          ]
+        ],
+        "currentBodyPages": [
+          [
+            "OVER-01",
+            "OVER-02",
+            "OVER-03",
+            "OVER-04"
+          ],
+          [
+            "OVER-05",
+            "OVER-06",
+            "OVER-07",
+            "OVER-08",
+            "OVER-09"
+          ],
+          [
+            "OVER-10",
+            "OVER-11",
+            "OVER-12",
+            "OVER-13",
+            "OVER-14"
+          ],
+          [
+            "OVER-15",
+            "OVER-16",
+            "OVER-17",
+            "OVER-18",
+            "OVER-19"
+          ],
+          [
+            "OVER-20"
+          ]
+        ],
+        "sourceOnce": true,
+        "nativeBodyPageAssignmentMatches": true,
+        "boundary": "Bothwrapperroutesretainall20sourcewordsonsamepagesasEdge"
+      },
+      {
+        "case": "review-inline-overlap",
+        "profile": "PrintPaged",
+        "nativePages": 5,
+        "currentPages": 5,
+        "nativeBodyPages": [
+          [
+            "OVER-01",
+            "OVER-02",
+            "OVER-03",
+            "OVER-04"
+          ],
+          [
+            "OVER-05",
+            "OVER-06",
+            "OVER-07",
+            "OVER-08",
+            "OVER-09"
+          ],
+          [
+            "OVER-10",
+            "OVER-11",
+            "OVER-12",
+            "OVER-13",
+            "OVER-14"
+          ],
+          [
+            "OVER-15",
+            "OVER-16",
+            "OVER-17",
+            "OVER-18",
+            "OVER-19"
+          ],
+          [
+            "OVER-20"
+          ]
+        ],
+        "currentBodyPages": [
+          [
+            "OVER-01",
+            "OVER-02",
+            "OVER-03",
+            "OVER-04"
+          ],
+          [
+            "OVER-05",
+            "OVER-06",
+            "OVER-07",
+            "OVER-08",
+            "OVER-09"
+          ],
+          [
+            "OVER-10",
+            "OVER-11",
+            "OVER-12",
+            "OVER-13",
+            "OVER-14"
+          ],
+          [
+            "OVER-15",
+            "OVER-16",
+            "OVER-17",
+            "OVER-18",
+            "OVER-19"
+          ],
+          [
+            "OVER-20"
+          ]
+        ],
+        "sourceOnce": true,
+        "nativeBodyPageAssignmentMatches": true,
+        "boundary": "Bothwrapperroutesretainall20sourcewordsonsamepagesasEdge"
+      },
+      {
+        "case": "review-inline-overlap",
+        "profile": "ScreenMediaPaged",
+        "nativePages": 5,
+        "currentPages": 5,
+        "nativeBodyPages": [
+          [
+            "OVER-01",
+            "OVER-02",
+            "OVER-03",
+            "OVER-04"
+          ],
+          [
+            "OVER-05",
+            "OVER-06",
+            "OVER-07",
+            "OVER-08",
+            "OVER-09"
+          ],
+          [
+            "OVER-10",
+            "OVER-11",
+            "OVER-12",
+            "OVER-13",
+            "OVER-14"
+          ],
+          [
+            "OVER-15",
+            "OVER-16",
+            "OVER-17",
+            "OVER-18",
+            "OVER-19"
+          ],
+          [
+            "OVER-20"
+          ]
+        ],
+        "currentBodyPages": [
+          [
+            "OVER-01",
+            "OVER-02",
+            "OVER-03",
+            "OVER-04"
+          ],
+          [
+            "OVER-05",
+            "OVER-06",
+            "OVER-07",
+            "OVER-08",
+            "OVER-09"
+          ],
+          [
+            "OVER-10",
+            "OVER-11",
+            "OVER-12",
+            "OVER-13",
+            "OVER-14"
+          ],
+          [
+            "OVER-15",
+            "OVER-16",
+            "OVER-17",
+            "OVER-18",
+            "OVER-19"
+          ],
+          [
+            "OVER-20"
+          ]
+        ],
+        "sourceOnce": true,
+        "nativeBodyPageAssignmentMatches": true,
+        "boundary": "Bothwrapperroutesretainall20sourcewordsonsamepagesasEdge"
+      },
+      {
+        "case": "review-columns",
+        "profile": "PrintPaged",
+        "nativePages": 5,
+        "currentPages": 6,
+        "nativeBodyPages": [
+          [
+            "LONG-1",
+            "LONG-2",
+            "LONG-3",
+            "LONG-4",
+            "LONG-5",
+            "LONG-6",
+            "LONG-7",
+            "LONG-8"
+          ],
+          [],
+          [],
+          [],
+          []
+        ],
+        "currentBodyPages": [
+          [
+            "LONG-1",
+            "LONG-2",
+            "LONG-3",
+            "LONG-4"
+          ],
+          [
+            "LONG-5",
+            "LONG-6",
+            "LONG-7",
+            "LONG-8"
+          ],
+          [],
+          [],
+          [],
+          []
+        ],
+        "sourceOnce": true,
+        "nativeBodyPageAssignmentMatches": false,
+        "boundary": "Existing tall-column sourcearrangement; per-pageinter-column reflow remainsopen"
+      },
+      {
+        "case": "review-columns",
+        "profile": "ScreenMediaPaged",
+        "nativePages": 5,
+        "currentPages": 6,
+        "nativeBodyPages": [
+          [
+            "LONG-1",
+            "LONG-2",
+            "LONG-3",
+            "LONG-4",
+            "LONG-5",
+            "LONG-6",
+            "LONG-7",
+            "LONG-8"
+          ],
+          [],
+          [],
+          [],
+          []
+        ],
+        "currentBodyPages": [
+          [
+            "LONG-1",
+            "LONG-2",
+            "LONG-3",
+            "LONG-4"
+          ],
+          [
+            "LONG-5",
+            "LONG-6",
+            "LONG-7",
+            "LONG-8"
+          ],
+          [],
+          [],
+          [],
+          []
+        ],
+        "sourceOnce": true,
+        "nativeBodyPageAssignmentMatches": false,
+        "boundary": "Existing tall-column sourcearrangement; per-pageinter-column reflow remainsopen"
+      }
+    ],
+    "artifactBinding": {
+      "path": "final-artifact-binding.json",
+      "bytes": 44066,
+      "sha256": "bef4d42aa7f8da925418a5e23ad01b1a236b56df7ef1ec996dd3bedbf9a7efbf"
+    },
+    "initialFinalBinding": {
+      "path": "initial-final-export-binding.json",
+      "bytes": 230,
+      "sha256": "e1e56b6f933bf136b4d7fdf5b4110bbba9fb151a4447ddcb1802abb21b565eb0"
+    },
+    "directDrawingSceneComparison": {
+      "byteIdenticalPages": 8,
+      "differentPages": 60,
+      "boundary": "Separate direct drawing comparison renderer; no identity claim"
+    },
+    "svgDisposition": {
+      "path": "svg-native-disposition.json",
+      "bytes": 1909,
+      "sha256": "9614e2ce6a058dd332816ab8d4d21d059f33ccb724c201daeb232735c8877a62"
+    },
+    "pixelBoundary": "Actual96dpiPDF rasters; sameorigin; no scaling,cropping,masking; smallerpageswhitepadded; nativePDFroundingretained. No fullpagepixel-equalityclaim.",
+    "columnBoundary": "No native multicolumn pagination parity: native uses two columns on page 1 and five pages; managed retains all source text with a 4/4 paragraph split and six pages. Per-page inter-column flow remains open."
+  },
+  "packages": {
+    "qualificationOnly": true,
+    "packageBinding": {
+      "path": "package-proof/package-binding.json",
+      "bytes": 1273,
+      "sha256": "a847bab3957b9097077eaaa6e5004b795775e33e32781c8e2ec8f29d45217aeb"
+    },
+    "sourceSeal": {
+      "path": "package-proof/source-seal.json",
+      "bytes": 566157,
+      "sha256": "613cdbf598c7ce863bccc1a3b0d2a8d692aaba4e9e03bd8504107fe08a29a096"
+    },
+    "consumerBinding": {
+      "path": "package-proof/consumer-binding.json",
+      "bytes": 12265,
+      "sha256": "5f756a19d37d8a028991b5cb55b1e7cb71c86c83c4c8c70467e6dcaec72c591e"
+    },
+    "htmlFrameworkAssets": [
+      "lib/net10.0/OfficeIMO.Html.dll",
+      "lib/net472/OfficeIMO.Html.dll",
+      "lib/net8.0/OfficeIMO.Html.dll",
+      "lib/netstandard2.0/OfficeIMO.Html.dll"
+    ],
+    "package": {
+      "path": "package-proof/feed/OfficeIMO.Html.3.5.1.nupkg",
+      "bytes": 4391884,
+      "sha256": "b275e8829ef16cd72af741fa9f388f924a824fa10d55f46873257dc8f7ac2c71"
+    },
+    "consumers": {
+      "net8": {
+        "framework": ".NET 8.0.23",
+        "architecture": "Arm64",
+        "profileCases": 6,
+        "pages": 12,
+        "allPngEqualPdfReplay": true,
+        "runtime": [
+          {
+            "name": "OfficeIMO.Html.dll",
+            "sha256": "d0a89b94d1f401e328ccdeabc7288940e5ac4a61591e0c074d348db1706fc8e9"
+          },
+          {
+            "name": "OfficeIMO.Core.dll",
+            "sha256": "a362329bad4b0b58300c3a1e8dfd7e22572967a2062a25e95c1d272704d45745"
+          },
+          {
+            "name": "OfficeIMO.Pdf.dll",
+            "sha256": "edf777fc0a06d0c690149c762da1396a960a8879cfd4cf89b9a9fa8bf9fe18a0"
+          },
+          {
+            "name": "OfficeIMO.Html.Core.dll",
+            "sha256": "5237b60cad0f485afeb08ba20420eaf8d7ba879cc71c8254fac7051dfc58343a"
+          },
+          {
+            "name": "OfficeIMO.Html.AngleSharp.dll",
+            "sha256": "9b5f0ab4528db3a7f493d6d665fd090037084b3c449531b9c77ed3e02f620cfd"
+          },
+          {
+            "name": "AngleSharp.dll",
+            "sha256": "84966b244fb11f4d016435a1e4e7850d4a7a376a4125645409e231910d315ef7"
+          },
+          {
+            "name": "AngleSharp.Css.dll",
+            "sha256": "7abe152798a7b53c1715cc934537469fb5fd8db424e5f56acec23bf7db22471c"
+          }
+        ]
+      },
+      "net10": {
+        "framework": ".NET 10.0.13",
+        "architecture": "Arm64",
+        "profileCases": 6,
+        "pages": 12,
+        "allPngEqualPdfReplay": true,
+        "runtime": [
+          {
+            "name": "OfficeIMO.Html.dll",
+            "sha256": "effebb3c28c2937521f14999343eb0148f64a8f0f312299aabe04364a183a42e"
+          },
+          {
+            "name": "OfficeIMO.Core.dll",
+            "sha256": "3ae3f310207d16c18cd58d108ec6d67a51fca0695c1b655c906e56165cd17fdb"
+          },
+          {
+            "name": "OfficeIMO.Pdf.dll",
+            "sha256": "7b69af831dd055360ecf4beb28859f643c80e7efa3ee2d101805ca49dfd9a0aa"
+          },
+          {
+            "name": "OfficeIMO.Html.Core.dll",
+            "sha256": "5ff8b4205a8e72a44bd7b32a16f42959a9ccfbce4976fa70798d61cc9c9f78c3"
+          },
+          {
+            "name": "OfficeIMO.Html.AngleSharp.dll",
+            "sha256": "813c4bd479ac2f26a8c14250d5280a9fd804ca850e8d6cfb4a1591b589c3f2e7"
+          },
+          {
+            "name": "AngleSharp.dll",
+            "sha256": "ed9ebe8f1f6a8537f52a5aa607225d929de55f202bd6c1fa198e10bf82db2911"
+          },
+          {
+            "name": "AngleSharp.Css.dll",
+            "sha256": "b9d58927495cbe8559015897d1ed5b18838ae658d52d0a9321bc5d9da6101f61"
+          }
+        ]
+      },
+      "aot": {
+        "framework": ".NET 10.0.13",
+        "architecture": "Arm64",
+        "profileCases": 6,
+        "pages": 12,
+        "allPngEqualPdfReplay": true,
+        "runtime": {
+          "executableSha256": "13c12ac7ad447ddc0985e911ede3e0a961fa03de8524280d7bc243cc23362bef",
+          "runtimeIdentifier": "osx-arm64"
+        }
+      }
+    },
+    "boundary": "Four packed HTML framework assets compiled; net8/net10 and osx-arm64 AOT run exact within-row and row-tail controls. Legacy assets compiled without Windows/.NET Framework execution claim. Four unchanged owner packages reused with identical source trees; no publication."
+  },
+  "broaderReports": {
+    "authoredCases": 4,
+    "profiles": 16,
+    "pngPages": 81,
+    "exactPngAndOrderedSceneRecordsUnchanged": true,
+    "observations": {
+      "path": "report-regression-comparison.json",
+      "bytes": 128009,
+      "sha256": "7e73ffe2bffbd815ea889f529c6488dbe6a7b45177be58fc036c725b543847cc"
+    },
+    "noChangeBinding": {
+      "path": "report-regression-no-change-binding.json",
+      "bytes": 127762,
+      "sha256": "338f7451d71efacefd139cd9fbe679d405f312fe71490a04b90f8cf2871603fb"
+    },
+    "boundary": "Managed regression against retained managed reports; no new native report or SVG corpus claim."
+  },
+  "remainingBoundary": "Native per-page inter-column flow remains open before MathML layout; this receipt does not establish native multicolumn pagination parity.",
+  "windowsProfiling": "Deferred per user. Legacy framework package assets compiled on macOS; no Windows/.NET Framework execution claim.",
+  "machineEvidence": {
+    "pathConvention": "All evidence paths are relative to the task evidence root; fixtures and font paths are repository-relative.",
+    "storageSummary": {
+      "path": "storage-final-summary.json",
+      "bytes": 5950,
+      "sha256": "a25acc3b64e973193ba32d0e40a344f999a31ef7282817bc577e5444a4150079"
+    },
+    "logicalBytesRemoved": 3156789538,
+    "retainedLogicalBytes": 677249998,
+    "removed": [
+      {
+        "path": "build",
+        "beforeBytes": 1686829913,
+        "absent": true
+      },
+      {
+        "path": "package-proof/pack-graph",
+        "beforeBytes": 323976322,
+        "absent": true
+      },
+      {
+        "path": "package-proof/graphs",
+        "beforeBytes": 381294944,
+        "absent": true
+      },
+      {
+        "path": "package-proof/candidate-cache",
+        "beforeBytes": 763712466,
+        "absent": true
+      },
+      {
+        "path": "package-proof/http-cache",
+        "beforeBytes": 11279,
+        "absent": true
+      },
+      {
+        "path": "package-proof/nuget-scratch",
+        "beforeBytes": 0,
+        "absent": true
+      },
+      {
+        "path": "package-proof/tmp",
+        "beforeBytes": 0,
+        "absent": true
+      },
+      {
+        "path": "package-proof/cli-home",
+        "beforeBytes": 1230,
+        "absent": true
+      },
+      {
+        "path": "tmp",
+        "beforeBytes": 651618,
+        "absent": true
+      },
+      {
+        "path": "cli-home",
+        "beforeBytes": 1230,
+        "absent": true
+      },
+      {
+        "path": "native-qualified-svg-atlas",
+        "beforeBytes": 140306,
+        "absent": true
+      },
+      {
+        "path": "native-isolated-svg-atlas",
+        "beforeBytes": 170230,
+        "absent": true
+      }
+    ],
+    "retained": [
+      {
+        "path": ".",
+        "logicalBytes": 677249998,
+        "reason": "Exact tested/rendered subjects, private packages and native executable, source/fonts, native and managed comparison evidence, actualTRX and concise reproduction records; size measured before this summary."
+      }
+    ],
+    "activeSessionsReleased": true,
+    "locksReleased": true,
+    "boundaries": [
+      "Active source worktree retained; no PR or merge authorized.",
+      "Protected prior scratch and runtime/provider branch preserved.",
+      "Primary unrelated edits and shared caches unchanged.",
+      "All selected build/private-cache/temp expansions removed; no uncertain or locked selected target remains."
+    ]
+  }
+}

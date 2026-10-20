@@ -593,17 +593,20 @@ public static partial class HtmlComputedStyleEngine {
             HtmlCssMediaContext context,
             double width,
             double height,
-            HtmlRenderMediaFeatures? features = null) {
+            HtmlRenderMediaFeatures? features = null,
+            HtmlRenderingFontDefaults? fontDefaults = null) {
             Context = context;
             Width = width;
             Height = height;
             Features = features ?? new HtmlRenderMediaFeatures();
+            FontDefaults = fontDefaults;
         }
 
         internal HtmlCssMediaContext Context { get; }
         internal double Width { get; }
         internal double Height { get; }
         internal HtmlRenderMediaFeatures Features { get; }
+        internal HtmlRenderingFontDefaults? FontDefaults { get; }
 
         internal static MediaEnvironment CreateDefault(
             HtmlCssMediaContext context,

@@ -1,5 +1,6 @@
 using OfficeIMO.Email;
 using OfficeIMO.Html;
+using OfficeIMO.Html.Pdf;
 using System.Text;
 
 namespace OfficeIMO.Mhtml;
@@ -195,6 +196,22 @@ public sealed partial class MhtmlDocument {
         options.BaseUri ??= BaseUri;
         options.UrlPolicy ??= HtmlUrlPolicy.CreateOfficeIMOProfile();
         HtmlUrlPolicy fallbackResourceUrlPolicy = (options.ResourceUrlPolicy ?? options.UrlPolicy).Clone();
+        bool includeEmbeddedResources = true;
+        HtmlToPdfOptions? pdfOptions = options as HtmlToPdfOptions;
+        if (pdfOptions != null) {
+            // Image requests prepare PDF-capable options too. Keep archive bytes separate
+            // from host resolution so the PDF policy can allow one without allowing the other.
+            if (options.ResourceResolver?.Target is ManagedResourceResolver previous
+                && ReferenceEquals(previous.Document, this)) {
+                fallbackResourceUrlPolicy = HtmlUrlPolicy.Intersect(
+                    previous.FallbackResourceUrlPolicy, fallbackResourceUrlPolicy);
+            }
+            includeEmbeddedResources = pdfOptions.ResourcePolicy.AllowEmbeddedPackageResources;
+            pdfOptions.EmbeddedPackageResourceResolver = includeEmbeddedResources
+                ? CreateResourceResolver()
+                : null;
+            pdfOptions.EmbeddedPackageHostResourceUrlPolicy = fallbackResourceUrlPolicy.Clone();
+        }
         HtmlUrlPolicy resourceUrlPolicy = fallbackResourceUrlPolicy.Clone();
         if (resourceUrlPolicy.RestrictUrlSchemes) {
             resourceUrlPolicy.AllowedUrlSchemes.Add("cid");
@@ -202,11 +219,18 @@ public sealed partial class MhtmlDocument {
         }
         resourceUrlPolicy.DisallowFileUrls = false;
         options.ResourceUrlPolicy = resourceUrlPolicy;
-        options.ResourceResolver = new ManagedResourceResolver(
+        var resolver = new ManagedResourceResolver(
             this,
             fallbackResourceUrlPolicy,
             remoteResourcePolicy,
-            includeEmbeddedResources: true).ResolveAsync;
+            includeEmbeddedResources);
+        options.ResourceResolver = resolver.ResolveAsync;
+        if (pdfOptions != null) {
+            pdfOptions.EmbeddedPackageConfiguredResourceResolver = options.ResourceResolver;
+            // Display-list callers retain the general archive resolver. PDF and image
+            // preparation use this host-only view after checking package permission.
+            pdfOptions.EmbeddedPackageHostResourceResolver = resolver.WithEmbeddedResolution(false).ResolveAsync;
+        }
     }
 
     /// <summary>
@@ -536,6 +560,7 @@ public sealed partial class MhtmlDocument {
         }
 
         internal MhtmlDocument Document { get; }
+        internal HtmlUrlPolicy FallbackResourceUrlPolicy => _fallbackResourceUrlPolicy;
 
         internal ManagedResourceResolver WithEmbeddedResolution(bool includeEmbeddedResources) =>
             includeEmbeddedResources == _includeEmbeddedResources

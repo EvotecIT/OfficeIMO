@@ -10,12 +10,17 @@ public static partial class HtmlComputedStyleEngine {
         IDictionary<string, string> properties,
         ISet<string> resetProperties,
         ISet<string> originRevertedProperties,
-        IDictionary<string, HtmlCssCascadeTrace>? cascadeTraces) {
+        IDictionary<string, HtmlCssCascadeTrace>? cascadeTraces,
+        HtmlRenderingFontDefaults? fontDefaults = null) {
         foreach (string property in resetProperties) {
-            if (property is not ("font-weight" or "font-style") || originRevertedProperties.Contains(property)) continue;
-            properties[property] = "normal";
+            if (originRevertedProperties.Contains(property)) continue;
+            string? initial = property is "font-weight" or "font-style" ? "normal"
+                : property == "font-family" && fontDefaults.HasValue ? fontDefaults.Value.StandardFamily
+                : null;
+            if (initial == null) continue;
+            properties[property] = initial;
             if (cascadeTraces != null && cascadeTraces.TryGetValue(property, out HtmlCssCascadeTrace? trace)) {
-                cascadeTraces[property] = new HtmlCssCascadeTrace(property, "normal",
+                cascadeTraces[property] = new HtmlCssCascadeTrace(property, initial,
                     false, true, trace.Candidates);
             }
         }
@@ -50,9 +55,19 @@ public static partial class HtmlComputedStyleEngine {
         ISet<string> resetProperties,
         ISet<string> originRevertedProperties,
         IDictionary<string, HtmlCssCascadePriority> cascadePriorities,
-        IDictionary<string, HtmlCssCascadeTrace>? cascadeTraces) {
-        if (element.NamespaceUri != "http://www.w3.org/1999/xhtml") return;
+        IDictionary<string, HtmlCssCascadeTrace>? cascadeTraces,
+        HtmlRenderingFontDefaults? fontDefaults = null) {
         string tag = element.LocalName;
+        if (fontDefaults.HasValue && tag == "math"
+            && element.NamespaceUri == "http://www.w3.org/1998/Math/MathML") {
+            ApplyHtmlUserAgentDefault("font-family", "math", declarations.ContainsKey("font-family"), properties,
+                inheritedProperties, resetProperties, originRevertedProperties, cascadePriorities, cascadeTraces);
+        }
+        if (element.NamespaceUri != "http://www.w3.org/1999/xhtml") return;
+        if (fontDefaults.HasValue && (tag is "pre" or "code" or "kbd" or "samp")) {
+            ApplyHtmlUserAgentDefault("font-family", "monospace", declarations.ContainsKey("font-family"), properties,
+                inheritedProperties, resetProperties, originRevertedProperties, cascadePriorities, cascadeTraces);
+        }
         if (tag is "i" or "em" or "cite" or "dfn" or "var" or "address") {
             ApplyHtmlUserAgentDefault("font-style", "italic", declarations.ContainsKey("font-style"), properties,
                 inheritedProperties, resetProperties, originRevertedProperties, cascadePriorities, cascadeTraces);

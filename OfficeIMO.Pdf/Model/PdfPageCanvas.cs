@@ -104,7 +104,9 @@ public sealed partial class PdfPageCanvas {
     }
 
     /// <summary>Groups absolute canvas content as one tagged figure with alternative text.</summary>
-    public PdfPageCanvas Figure(string alternativeText, Action<PdfPageCanvas> build) {
+    public PdfPageCanvas Figure(string alternativeText, Action<PdfPageCanvas> build) => Figure(alternativeText, build, logicalOrder: null);
+
+    internal PdfPageCanvas Figure(string alternativeText, Action<PdfPageCanvas> build, long? logicalOrder) {
         Guard.NotNullOrWhiteSpace(alternativeText, nameof(alternativeText));
         Guard.NotNull(build, nameof(build));
         var nestedCanvas = new PdfPageCanvas(allowOutOfPageCoordinates: true);
@@ -112,7 +114,7 @@ public sealed partial class PdfPageCanvas {
         if (nestedCanvas.Items.Count == 0) {
             throw new ArgumentException("Canvas figures require at least one content item.", nameof(build));
         }
-        _items.Add(new PdfCanvasFigureItem(alternativeText.Trim(), nestedCanvas.Items));
+        _items.Add(new PdfCanvasFigureItem(alternativeText.Trim(), nestedCanvas.Items, logicalOrder));
         return this;
     }
 
@@ -322,7 +324,7 @@ public sealed partial class PdfPageCanvas {
         bool horizontalFlip = false, bool verticalFlip = false, uint zOrder = 0) => ImageShared(PdfCanvasImageResource.Create(bytes),
             x, y, width, height, horizontalFlip: horizontalFlip, verticalFlip: verticalFlip, foreground: true, foregroundZOrder: zOrder);
 
-    internal PdfPageCanvas ImageShared(PdfCanvasImageResource imageResource, double x, double y, double width, double height, PdfImageStyle? style = null, string? linkUri = null, string? linkContents = null, string? alternativeText = null, double rotationAngle = 0D, bool horizontalFlip = false, bool verticalFlip = false, bool foreground = false, uint foregroundZOrder = 0) {
+    internal PdfPageCanvas ImageShared(PdfCanvasImageResource imageResource, double x, double y, double width, double height, PdfImageStyle? style = null, string? linkUri = null, string? linkContents = null, string? alternativeText = null, double rotationAngle = 0D, bool horizontalFlip = false, bool verticalFlip = false, bool foreground = false, uint foregroundZOrder = 0, long? logicalOrder = null) {
         Guard.NotNull(imageResource, nameof(imageResource));
         ValidateCanvasCoordinate(x, nameof(x));
         ValidateCanvasCoordinate(y, nameof(y));
@@ -350,7 +352,7 @@ public sealed partial class PdfPageCanvas {
             linkUri,
             linkContents,
             useDataSnapshot: true,
-            preparedStream: imageResource.PreparedStream), x, y, rotationAngle, horizontalFlip, verticalFlip, foreground, foregroundZOrder));
+            preparedStream: imageResource.PreparedStream), x, y, rotationAngle, horizontalFlip, verticalFlip, foreground, foregroundZOrder, logicalOrder));
         return this;
     }
 
@@ -690,13 +692,15 @@ internal sealed class PdfCanvasArtifactItem : PdfCanvasItem {
 }
 
 internal sealed class PdfCanvasFigureItem : PdfCanvasItem {
-    public PdfCanvasFigureItem(string alternativeText, IReadOnlyList<PdfCanvasItem> items)
+    public PdfCanvasFigureItem(string alternativeText, IReadOnlyList<PdfCanvasItem> items, long? logicalOrder = null)
         : base(0D, 0D) {
         AlternativeText = alternativeText;
         Items = items;
+        LogicalOrder = logicalOrder;
     }
 
     public string AlternativeText { get; }
+    internal long? LogicalOrder { get; }
     public IReadOnlyList<PdfCanvasItem> Items { get; }
 }
 
@@ -734,6 +738,7 @@ internal sealed class PdfCanvasTextItem : PdfCanvasItem {
     public double? FontSize { get; }
     public double? LineHeight { get; }
     public PdfCanvasTextStructureRole StructureRole { get; }
+    internal long? LogicalOrder { get; set; }
     internal bool PreservePositionedText { get; set; }
     internal double? PositionedAdvanceWidth { get; set; }
     internal double PositionedClipTopOverflow { get; set; }
@@ -787,7 +792,7 @@ internal sealed class PdfCanvasDrawingItem : PdfCanvasItem {
 }
 
 internal sealed class PdfCanvasImageItem : PdfCanvasItem {
-    public PdfCanvasImageItem(ImageBlock block, double x, double y, double rotationAngle, bool horizontalFlip, bool verticalFlip, bool foreground = false, uint foregroundZOrder = 0)
+    public PdfCanvasImageItem(ImageBlock block, double x, double y, double rotationAngle, bool horizontalFlip, bool verticalFlip, bool foreground = false, uint foregroundZOrder = 0, long? logicalOrder = null)
         : base(x, y) {
         Block = block;
         RotationAngle = rotationAngle;
@@ -795,8 +800,10 @@ internal sealed class PdfCanvasImageItem : PdfCanvasItem {
         VerticalFlip = verticalFlip;
         Foreground = foreground;
         ForegroundZOrder = foregroundZOrder;
+        LogicalOrder = logicalOrder;
     }
 
+    internal long? LogicalOrder { get; }
     public ImageBlock Block { get; }
     public double RotationAngle { get; }
     public bool HorizontalFlip { get; }

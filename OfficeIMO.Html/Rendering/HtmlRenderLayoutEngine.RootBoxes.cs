@@ -3,6 +3,14 @@ using AngleSharp.Dom;
 namespace OfficeIMO.Html;
 
 internal sealed partial class HtmlRenderLayoutEngine {
+    /// <summary>Resolves a body layout root against its document element's inherited used values.</summary>
+    private HtmlRenderBoxStyle ResolveRootStyle(IElement root, double contentWidth) {
+        HtmlRenderBoxStyle? parentStyle = root.ParentElement == null
+            ? null
+            : _styleResolver.Resolve(root.ParentElement, contentWidth);
+        return _styleResolver.Resolve(root, contentWidth, parentStyle);
+    }
+
     private void ConfigureRootSurface(IElement root, HtmlRenderBoxStyle rootStyle, double contentWidth) {
         _surfaceRootElement = root;
         _surfaceRootStyle = rootStyle;
@@ -28,6 +36,11 @@ internal sealed partial class HtmlRenderLayoutEngine {
 
     private HtmlRenderFlowBlock LayoutRootBox(IElement root, double width, HtmlRenderBoxStyle style,
         IElement? continuationTarget = null, int continuationLogicalCharacters = 0, PagedFloatBoundary? pageBoundary = null) {
+        if (style.Display == "contents") {
+            IReadOnlyList<HtmlRenderFlowBlock> children = BuildChildBlocks(root, width, style, 0,
+                continuationTarget, continuationLogicalCharacters, pageBoundary);
+            return BuildNormalFlowSurface(children, width, root, retainsRootReflow: true);
+        }
         var boxStyle = style.Clone();
         // The canvas owns a propagated background. Paint the root border and content
         // without compositing a translucent background a second time over that canvas.

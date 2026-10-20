@@ -1,0 +1,438 @@
+{
+  "schema": "officeimo.html.math-operator-print-qualification/v1",
+  "status": "bounded-math-operator-and-archival-print-qualified-native-appearance-open",
+  "qualifiedUtc": "2026-10-19T23:28:00.126989+00:00",
+  "intendedRepositoryPath": "Build/Project/Evidence/2026-09-30/html-master-convergence/math-operator-print-20261020.json",
+  "pathContract": {
+    "syntax": "${NAME}/relative/path",
+    "roots": [
+      "R10_EVIDENCE_ROOT",
+      "R7_EVIDENCE_ROOT",
+      "REPOSITORY_ROOT",
+      "SYSTEM_FONT_ROOT"
+    ],
+    "machinePaths": "Resolve roots from retained task state; machine paths are not committed here."
+  },
+  "source": {
+    "qualifiedProductionHead": "a25fe34255fbde336c782299a062b9f5d373cf5a",
+    "parentCheckpoint": "1093c5c4598310581efe22df72bb393e645f4bbe",
+    "sourceSeal": {
+      "path": "${R10_EVIDENCE_ROOT}/math-final-source-v6.json",
+      "bytes": 1153363,
+      "sha256": "8540e97ed39ee0123924bd00951edcd70626c0b9051d1deb68ee6b64968d8817"
+    },
+    "sourceInputCount": 5567,
+    "initialQualificationInputCount": 46,
+    "wordObserverSuccessorInputs": {
+      "path": "${R10_EVIDENCE_ROOT}/packages/r10-final-word-v3/plan.json",
+      "bytes": 16477,
+      "sha256": "29ddb05a838412acfbdd33c974e47049b632629b0f4e3d77b5436a7431166834"
+    },
+    "ownerContinuity": {
+      "path": "${R10_EVIDENCE_ROOT}/final-flow-owner-source-continuity-v1.json",
+      "bytes": 1600,
+      "sha256": "9e2480afda8189d89ccd072a2e43f5ef7ac4dcffffb81a7449c5bb4fc25d4373"
+    },
+    "actualRuntimeRetention": {
+      "path": "${R10_EVIDENCE_ROOT}/retained-runtimes/math-after-a25/manifest.json",
+      "bytes": 4924,
+      "sha256": "39d1e3f5bc9dbddddab5425dee4e27b680105cea8dd8a726a9eed724a88093f9"
+    }
+  },
+  "ownedContract": [
+    "MathML operators retain authored form and independent supported lspace/rspace; ordinary-row inference and the bounded dictionary supply defaults.",
+    "HTML math maps supported CSS pixel spacing through the shared Core drawing owner; scalar accents/bars preserve represented operator metadata and unsupported composite projection rejects silent loss.",
+    "Word native equations and OneNote native math reject retained presentation they cannot represent before document mutation; editable HTML conversion reports its projection losses.",
+    "Forced or effective named-page boundaries preserve incoming margins in supported ordinary/column-flex/interrupted flows. Owners that omit those controls retain ordinary source-flow margin collapse; repeated child placement discards abandoned float effects.",
+    "Emitted tagged Formula supplements satisfy the PDF/A-4f embedded-file presence gate. Shared PDF indirect-object framing retains required line boundaries."
+  ],
+  "fullHtml": [
+    {
+      "framework": "net8.0",
+      "sourceHead": "a25fe34255fbde336c782299a062b9f5d373cf5a",
+      "counters": {
+        "total": 7436,
+        "executed": 7436,
+        "passed": 7436,
+        "failed": 0,
+        "error": 0,
+        "timeout": 0,
+        "aborted": 0,
+        "inconclusive": 0,
+        "passedButRunAborted": 0,
+        "notRunnable": 0,
+        "notExecuted": 0,
+        "disconnected": 0,
+        "warning": 0,
+        "completed": 0,
+        "inProgress": 0,
+        "pending": 0
+      },
+      "execution": {
+        "path": "${R10_EVIDENCE_ROOT}/print-margin-owner-final-html-full-net8-v1-execution.json",
+        "bytes": 1799,
+        "sha256": "0e41bcaf2dfdf39c3470bb14688b36eb6ba453241343416d762f38e7ad2d1a6c"
+      },
+      "trx": {
+        "path": "${R10_EVIDENCE_ROOT}/trx/print-margin-owner-final-html-full-net8-v1.trx",
+        "bytes": 11341818,
+        "sha256": "cf3b2813d5c1255432882f5e962abb396b5345a661ee5a51eef9fa215a1fc3b5"
+      }
+    },
+    {
+      "framework": "net10.0",
+      "sourceHead": "a25fe34255fbde336c782299a062b9f5d373cf5a",
+      "counters": {
+        "total": 7436,
+        "executed": 7436,
+        "passed": 7436,
+        "failed": 0,
+        "error": 0,
+        "timeout": 0,
+        "aborted": 0,
+        "inconclusive": 0,
+        "passedButRunAborted": 0,
+        "notRunnable": 0,
+        "notExecuted": 0,
+        "disconnected": 0,
+        "warning": 0,
+        "completed": 0,
+        "inProgress": 0,
+        "pending": 0
+      },
+      "execution": {
+        "path": "${R10_EVIDENCE_ROOT}/print-margin-owner-final-html-full-net10-v1-execution.json",
+        "bytes": 1803,
+        "sha256": "f661149628ed28de049b24511d5662c7e4d0d1ac7c85f046826a43f7f71fc1a6"
+      },
+      "trx": {
+        "path": "${R10_EVIDENCE_ROOT}/trx/print-margin-owner-final-html-full-net10-v1.trx",
+        "bytes": 11356691,
+        "sha256": "64efd8526dcacd3afdb899029bafb14a31e322c2a47e691b082dedf968599302"
+      }
+    }
+  ],
+  "unchangedPdfOwnerFullSuites": [
+    {
+      "framework": "net8.0",
+      "sourceHead": "3ae144641d49cd6de8e146d5eaa17c2eaaac8e9e",
+      "counters": {
+        "total": 11571,
+        "executed": 11571,
+        "passed": 11571,
+        "failed": 0,
+        "error": 0,
+        "timeout": 0,
+        "aborted": 0,
+        "inconclusive": 0,
+        "passedButRunAborted": 0,
+        "notRunnable": 0,
+        "notExecuted": 0,
+        "disconnected": 0,
+        "warning": 0,
+        "completed": 0,
+        "inProgress": 0,
+        "pending": 0
+      },
+      "execution": {
+        "path": "${R10_EVIDENCE_ROOT}/print-framing-pdf-full-net8-v1-execution.json",
+        "bytes": 1806,
+        "sha256": "bfe54ea6b5cdc5245520f877c7f6c66e0297ab4a537f451caf670b93ac34dfbf"
+      },
+      "trx": {
+        "path": "${R10_EVIDENCE_ROOT}/trx/print-framing-pdf-full-net8-v1.trx",
+        "bytes": 17471968,
+        "sha256": "93db419c5cedff307122cddfd6eb76d719bd904f89395d2de28a0d4c44465cb5"
+      }
+    },
+    {
+      "framework": "net10.0",
+      "sourceHead": "3ae144641d49cd6de8e146d5eaa17c2eaaac8e9e",
+      "counters": {
+        "total": 11571,
+        "executed": 11571,
+        "passed": 11571,
+        "failed": 0,
+        "error": 0,
+        "timeout": 0,
+        "aborted": 0,
+        "inconclusive": 0,
+        "passedButRunAborted": 0,
+        "notRunnable": 0,
+        "notExecuted": 0,
+        "disconnected": 0,
+        "warning": 0,
+        "completed": 0,
+        "inProgress": 0,
+        "pending": 0
+      },
+      "execution": {
+        "path": "${R10_EVIDENCE_ROOT}/print-framing-pdf-full-net10-v1-execution.json",
+        "bytes": 1810,
+        "sha256": "c5bc42275fe4327ffe5bcfc8daf2f35cb446a56f6ccefabb839bede46c3a2fc1"
+      },
+      "trx": {
+        "path": "${R10_EVIDENCE_ROOT}/trx/print-framing-pdf-full-net10-v1.trx",
+        "bytes": 17495111,
+        "sha256": "ae413a3b2e73fcad8afcba24725204ac2836816c3835ee82a7d76a663b9d25de"
+      }
+    }
+  ],
+  "review": {
+    "marginOwnerClosure": {
+      "path": "${R10_EVIDENCE_ROOT}/forced-margin-review-closure-v1.json",
+      "bytes": 2870,
+      "sha256": "11be6b4638c9319b52deb3629c82962389186c6221bc199e403f92657285eaf9"
+    },
+    "mathReview": {
+      "path": "${R10_EVIDENCE_ROOT}/review-wave-f42-v1.json",
+      "bytes": 3298,
+      "sha256": "1d5f02f44c22b72e353def829cd2f6d3017ea0d13aa7155c25308c4d32837f03"
+    },
+    "archivePresenceReview": {
+      "path": "${R10_EVIDENCE_ROOT}/archive-attachment-review-v1.json",
+      "bytes": 1316,
+      "sha256": "d19408db03bab6f341bf5bd035f091204323a17e0b656de96975f66fc4559419"
+    },
+    "pdfFramingReview": {
+      "path": "${R10_EVIDENCE_ROOT}/archive-indirect-framing-review-v1.json",
+      "bytes": 937,
+      "sha256": "e79697386fc5e74cb23761b595d14bca5e8d27120d569d7fdb807659fcb45c49"
+    }
+  },
+  "mathRendering": {
+    "producer": {
+      "path": "${R10_EVIDENCE_ROOT}/prep/public-after-v4/producer.json",
+      "bytes": 3046,
+      "sha256": "bd0a06ac28cf482d323c9772b946e455f65d57fd5f36db0f06abce2cbcaa7b47"
+    },
+    "capture": {
+      "path": "${R10_EVIDENCE_ROOT}/public-after-v4/capture-receipt.json",
+      "bytes": 48363,
+      "sha256": "aef7e58db69edef0cba60ef8171e47ce9ee1a7779312d8cca9ea1f7a8fefc42a"
+    },
+    "numericObservations": {
+      "path": "${R10_EVIDENCE_ROOT}/public-after-numeric-v4.json",
+      "bytes": 307589,
+      "sha256": "b794be412c0228558bbfa1f3f7bdf6f9f68d4dd9565e4801c66f34c751aeadde"
+    },
+    "svgSideObservations": {
+      "path": "${R10_EVIDENCE_ROOT}/public-after-svg-sides-v4.json",
+      "bytes": 233750,
+      "sha256": "68d301c06a86dd9e2a82e16c51fa63947b2eb1a87044218361b0b3eab58e5c43"
+    },
+    "rootAdjudication": {
+      "path": "${R10_EVIDENCE_ROOT}/final-render-adjudication-v1.json",
+      "bytes": 6947,
+      "sha256": "e0f3fdbd5bdb75cf8504aaf8bf1477a96929fa7aa51dd15d922696b2d7ce2768"
+    },
+    "fixtures": 4,
+    "profiles": 4,
+    "runs": 16,
+    "sourceTextUnchangedRuns": 16,
+    "pdfLogicalTextUnchangedRuns": 12,
+    "ownPagedPngEqualsPdfPairs": 12,
+    "selectedIndependentSideObservations": 24,
+    "maximumIndependentSideResidualCss": 0.01825,
+    "selectedSideToleranceCss": 0.03125,
+    "selectedSideSpacingAccepted": true,
+    "font": {
+      "path": "${SYSTEM_FONT_ROOT}/STIXTwoMath.otf",
+      "bytes": 838652,
+      "sha256": "3a5f3f26f40d5698b3c62dd085d48d6663696a3f80825aab8b553d5097518e8c"
+    }
+  },
+  "archivalPrint": {
+    "fixture": {
+      "path": "${R10_EVIDENCE_ROOT}/prep/professional-print-proof-prep-v5/inputs/archive-report-archive-math.html",
+      "bytes": 3179,
+      "sha256": "cb8897f85a2a15da43863ccb769131537aee3d77cb35ebbfa58c4dbd04724573"
+    },
+    "sourceAudit": {
+      "path": "${R10_EVIDENCE_ROOT}/professional-print-proof-v7/final-audit.json",
+      "bytes": 8649,
+      "sha256": "815845e96ddf2e1ea9be929783409981cca29b23bd27099943ac4149a4611455"
+    },
+    "frameworks": [
+      {
+        "framework": "net10.0",
+        "sourceBuildPdf": {
+          "path": "${R10_EVIDENCE_ROOT}/professional-print-proof-v7/a4f-strict-net10/report.pdf",
+          "bytes": 49184,
+          "sha256": "5d489f8955b32a4190ac5f1bd13304bb5bdd9a3c1584dff8b5a88fed5507e6b7"
+        },
+        "packagePdf": {
+          "path": "${R10_EVIDENCE_ROOT}/professional-print-package-v3/a4f-strict-net10/report.pdf",
+          "bytes": 49184,
+          "sha256": "5d489f8955b32a4190ac5f1bd13304bb5bdd9a3c1584dff8b5a88fed5507e6b7"
+        },
+        "sourceAndPackagePdfBytesIdentical": true,
+        "pageCount": 2,
+        "sourceMarkers": 18,
+        "headingYMinPt": 50.22,
+        "edgeHeadingYMinPt": 50.217771,
+        "headingResidualPt": 0.0022289999999998145,
+        "externalProfile": "PDF/A-4f",
+        "actualExternalResult": {
+          "passedRules": "109",
+          "failedRules": "0",
+          "passedChecks": "2619",
+          "failedChecks": "0"
+        },
+        "packageQualification": {
+          "path": "${R10_EVIDENCE_ROOT}/professional-print-package-v3/result-net10.json",
+          "bytes": 37547,
+          "sha256": "aec1a2eba9dfd28c8f9d2f77a36b55df91d97251e60b2981b4ff750215f48a9d"
+        },
+        "independentGraph": {
+          "path": "${R10_EVIDENCE_ROOT}/professional-print-package-v3/a4f-strict-net10/independent-graph.json",
+          "bytes": 1879,
+          "sha256": "4d598e8791b7d1a4bae0d56722aa93b275938f8ea4e5d7f62d6cc1424f80d3c2"
+        },
+        "ownPngPdfReplay": {
+          "path": "${R10_EVIDENCE_ROOT}/professional-print-package-v3/a4f-strict-net10/own-image-replay.json",
+          "bytes": 5122,
+          "sha256": "0ed7767b47639c3672261935a9f4ffd433f28d2d09a8af5821375eaaf53a6ab9"
+        },
+        "nativeObservation": {
+          "path": "${R10_EVIDENCE_ROOT}/professional-print-package-v3/a4f-strict-net10/native-comparison-observation.json",
+          "bytes": 15621,
+          "sha256": "740fe1daee84497723dd3b47ae102da5d506ccff7be3de6b2ececbbb346910b5"
+        },
+        "actualProof": {
+          "path": "${R10_EVIDENCE_ROOT}/professional-print-package-v3/a4f-strict-net10/proof/proof-observation.json",
+          "bytes": 14090,
+          "sha256": "86eb228cc00095db8984c0f3363ff124d084563afe3812a4e9fd07c9087bf520"
+        }
+      },
+      {
+        "framework": "net8.0",
+        "sourceBuildPdf": {
+          "path": "${R10_EVIDENCE_ROOT}/professional-print-proof-v7/a4f-strict-net8/report.pdf",
+          "bytes": 48997,
+          "sha256": "0f77e0b8a4fca4cbc1433b8091985698a5db022317e5486c0671e94e2ebb7d5e"
+        },
+        "packagePdf": {
+          "path": "${R10_EVIDENCE_ROOT}/professional-print-package-v3/a4f-strict-net8/report.pdf",
+          "bytes": 48997,
+          "sha256": "0f77e0b8a4fca4cbc1433b8091985698a5db022317e5486c0671e94e2ebb7d5e"
+        },
+        "sourceAndPackagePdfBytesIdentical": true,
+        "pageCount": 2,
+        "sourceMarkers": 18,
+        "headingYMinPt": 50.22,
+        "edgeHeadingYMinPt": 50.217771,
+        "headingResidualPt": 0.0022289999999998145,
+        "externalProfile": "PDF/A-4f",
+        "actualExternalResult": {
+          "passedRules": "109",
+          "failedRules": "0",
+          "passedChecks": "2619",
+          "failedChecks": "0"
+        },
+        "packageQualification": {
+          "path": "${R10_EVIDENCE_ROOT}/professional-print-package-v3/result-net8.json",
+          "bytes": 37503,
+          "sha256": "22e91619e4f2ebbfaf82561ebe789170262a00d52ea0e27be9781dacc04a9bc9"
+        },
+        "independentGraph": {
+          "path": "${R10_EVIDENCE_ROOT}/professional-print-package-v3/a4f-strict-net8/independent-graph.json",
+          "bytes": 1878,
+          "sha256": "15f32fc6551cd6968debf9ae6ba6ab1fe675c210608aa2588283fba90a382f2b"
+        },
+        "ownPngPdfReplay": {
+          "path": "${R10_EVIDENCE_ROOT}/professional-print-package-v3/a4f-strict-net8/own-image-replay.json",
+          "bytes": 5117,
+          "sha256": "7948fa42a3dd056d36bd9a516af0bd3b34357220c6f5c743864f0c22af0c3759"
+        },
+        "nativeObservation": {
+          "path": "${R10_EVIDENCE_ROOT}/professional-print-package-v3/a4f-strict-net8/native-comparison-observation.json",
+          "bytes": 15611,
+          "sha256": "679160caa9fda479a176a78db7213f78835c9719858adab9424c9182a2e3ccc6"
+        },
+        "actualProof": {
+          "path": "${R10_EVIDENCE_ROOT}/professional-print-package-v3/a4f-strict-net8/proof/proof-observation.json",
+          "bytes": 14076,
+          "sha256": "83e06f31c3edcc1d7108266d8bbd5164c913b867e9c63de9b08160f9561f4cde"
+        }
+      }
+    ],
+    "validator": {
+      "cliVersion": "1.30.0",
+      "packagedDistribution": "1.30.3",
+      "javaVersion": "17.0.18",
+      "actualVersionExecution": {
+        "path": "${R10_EVIDENCE_ROOT}/print-verapdf-version-v1-execution.json",
+        "bytes": 1522,
+        "sha256": "d5b347720c4443bfabc38b7e93ab75824f29a5973aebf42ac1607b04aa128e24"
+      }
+    },
+    "sameCatalogFilespecAndFormulaAf": true,
+    "exactAuthoredSupplementBytes": 116,
+    "missingEvidenceWrongArtifactWrongProfileRejected": true,
+    "allSavedPdfPagesVisuallyInspected": true,
+    "nativeBrowser": "Edge 155, unchanged frozen fixture/font reference",
+    "sourceOwnPngEqualsPdfPairs": 4,
+    "packageOwnPngEqualsPdfPairs": 4
+  },
+  "privatePackages": {
+    "version": "3.5.3",
+    "published": false,
+    "owners": [
+      "OfficeIMO.Core",
+      "OfficeIMO.Pdf",
+      "OfficeIMO.Html.Core",
+      "OfficeIMO.Html.AngleSharp",
+      "OfficeIMO.Html",
+      "OfficeIMO.Word",
+      "OfficeIMO.Word.Html"
+    ],
+    "frameworkAssets": 28,
+    "frameworks": [
+      "net472",
+      "netstandard2.0",
+      "net8.0",
+      "net10.0"
+    ],
+    "packageBinding": {
+      "path": "${R10_EVIDENCE_ROOT}/packages/r10-final-v2/package-binding.json",
+      "bytes": 36556,
+      "sha256": "ce8fece57db464ea857ec060c6b2d80ad68a9269b0a48401d47eb3fc2aecad29"
+    },
+    "consumerBinding": {
+      "path": "${R10_EVIDENCE_ROOT}/packages/r10-final-v2/consumer-binding.json",
+      "bytes": 294935,
+      "sha256": "320a3b780e568a952d12495dd6d11c52a29f740d776fae24fefcfa585c1e5753"
+    },
+    "htmlConsumers": [
+      "net8.0",
+      "net10.0",
+      "macOS arm64 NativeAOT"
+    ],
+    "wordConsumers": [
+      "net8.0",
+      "net10.0"
+    ],
+    "r8ChecksPerHtmlConsumer": 17,
+    "r9ContractsPerHtmlConsumer": 4,
+    "r10ContractsPerHtmlConsumer": 7,
+    "wordManagedContractsPerConsumer": 10,
+    "historicalCases": 6,
+    "historicalProfilesPerHtmlConsumer": 4,
+    "boundary": "NET472/netstandard2.0 assets are inspected, not runtime/Windows proof. Word and archive NativeAOT are not claimed. Corrected Word observer retains the original compile failure; original HTML/AOT executions and package archives were reused without rerun."
+  },
+  "nativeFullAppearanceAccepted": false,
+  "limits": [
+    "Full-page pixel equivalence with Edge is not established; selected native geometry and all markers/pages are accepted.",
+    "Existing math fence/default-script and font/ink placement residuals remain outside the selected authored-side contract.",
+    "Archive native/public note line wrapping and footer font/ink differ; broader native appearance remains unqualified.",
+    "One CSS-pixel image borders can cover opposite raster edges differently at96dpi; prior384dpi controls show allfour bands in both savedPDFs.",
+    "Exact archival cohort uses builtin sRGB. Own page1 raster routes both report ICC-output-intent transparency approximation; own equality is not color-managed press proof.",
+    "Actual veraPDF stderr retains the CFF ROS warning; no extra font-wide certification is inferred.",
+    "PDF/X press ICC/vendor preflight and manual accessibility remain outside this accepted cohort.",
+    "Raw producer acceptance fields remain unchanged. ScreenFullPage has no PDF comparator and is excluded from12paged PDF logical/pixel pairs.",
+    "PDF/A-4f saved-artifact readback does not independently enforce its catalog EmbeddedFiles name tree or all PDF/A-2/base PDF/A-4 attachment restrictions. Exact external validation remains required.",
+    "Runtime/provider forks are excluded. Windows profiling is deferred.",
+    "Source tests, native observations, private packages and external conformance are separate proof; no PR or package publication is implied."
+  ]
+}

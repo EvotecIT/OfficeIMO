@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<title>rule-page-after-following-spanner</title>
+<style>
+@font-face{font-family:Witness;src:url(regular.ttf);font-weight:400}
+@font-face{font-family:Witness;src:url(bold.ttf);font-weight:700}
+@page{size:700px 140px;margin:20px}
+html,body{margin:0;background:white;font:14px/20px Witness}
+p{margin:0;orphans:1;widows:1}
+.columns{width:300px;column-count:2;column-gap:20px}
+.spanner{column-span:all;margin:0;font-weight:700;background:#eeeeee}
+</style>
+<section id="columns" class="columns" style="column-fill:auto;height:160px;column-rule:1px solid blue">
+<p id="rpapg-p01">RPAPG-P01</p>
+<p id="rpapg-p02">RPAPG-P02</p>
+<p id="rpapg-s01" class="spanner" style="break-after:page">RPAPG-S01</p>
+<p id="rpapg-m01">RPAPG-M01</p>
+<p id="rpapg-m02">RPAPG-M02</p>
+<p id="rpapg-m03">RPAPG-M03</p>
+<p id="rpapg-m04">RPAPG-M04</p>
+<p id="rpapg-s02" class="spanner" style="break-before:page">RPAPG-S02</p>
+<p id="rpapg-t01">RPAPG-T01</p>
+<p id="rpapg-t02">RPAPG-T02</p>
+<p id="rpapg-t03">RPAPG-T03</p>
+<p id="rpapg-t04">RPAPG-T04</p>
+<p id="rpapg-t05">RPAPG-T05</p>
+<p id="rpapg-t06">RPAPG-T06</p>
+<p id="rpapg-t07">RPAPG-T07</p>
+<p id="rpapg-t08">RPAPG-T08</p>
+</section>
+<p id="after">RPAPG-AFTER</p>
+</html>

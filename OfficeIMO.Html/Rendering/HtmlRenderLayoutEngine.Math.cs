@@ -57,7 +57,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
             _diagnostics.Add(
                 ComponentName,
                 HtmlRenderDiagnosticCodes.MathMlContentUnsupported,
-                "MathML content outside the bounded Presentation MathML subset used the shared parser's deterministic child-content fallback.",
+                "MathML presentation outside the bounded subset used a deterministic approximation.",
                 HtmlDiagnosticSeverity.Warning,
                 source,
                 unsupportedElement,
@@ -72,6 +72,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
             MatrixGap = Math.Max(4D, style.Font.Size * 0.5D),
             // CSS sizes are already drawing units, so no point-to-pixel conversion is applied here.
             Dpi = 72D,
+            MathMlPixelScale = 1D,
             DisplayStyle = !shrinkToFit,
             Fonts = _fonts,
             TokenPaintText = token => tokenPaint.TryGetValue(token, out string? painted) ? painted : null
@@ -130,7 +131,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
             source);
         mathVisuals.Add(new HtmlRenderSemanticGroup(
             HtmlRenderSemanticGroupRole.Formula, contentX, contentY, contentSize.Width, contentSize.Height,
-            new[] { logicalVisual }, 0, source, alternativeText: alternativeText, mathMlSource: mathMlSource));
+            new[] { logicalVisual }, 0, source, alternativeText: alternativeText, mathMlSource: mathMlSource,
+            logicalOrder: GetSemanticSourceOrder(element)));
 
         HtmlResolvedBorderRadii outerRadii = ResolveBoxRadii(style, boxWidth, boxHeight, element, source);
         HtmlResolvedBorderRadii contentRadii = outerRadii.Inset(
@@ -205,11 +207,34 @@ internal sealed partial class HtmlRenderLayoutEngine {
     }
 
     private static bool TryFindUnsupportedMathMlElement(IElement math, out string localName) {
-        foreach (IElement element in math.QuerySelectorAll("*")) {
+        foreach (IElement element in EnumerateMathMlPresentation(math)) {
             string candidate = element.LocalName.ToLowerInvariant();
             if (candidate == "mstyle" && TryFindIgnoredMathMlPresentationAttribute(element, out string attribute)) {
                 localName = "mstyle[" + attribute + "]";
                 return true;
+            }
+            if (candidate == "mo") {
+                foreach (string spacing in new[] { "lspace", "rspace" }) {
+                    string? value = element.GetAttribute(spacing);
+                    if (value == null || OfficeMathOperatorSpacing.NormalizeLength(value) != null) continue;
+                    localName = "mo[" + spacing + "]";
+                    return true;
+                }
+                bool hasOverrides = OfficeMathOperatorSpacing.NormalizeForm(element.GetAttribute("form")) != null
+                    || element.HasAttribute("lspace") || element.HasAttribute("rspace");
+                IElement? spacingOwner = element.ParentElement;
+                while (spacingOwner != null && spacingOwner.LocalName.ToLowerInvariant() is "mrow" or "mstyle" or "semantics") {
+                    int children = MathMlPresentationChildren(spacingOwner).Count();
+                    if (children != 1) break;
+                    spacingOwner = spacingOwner.ParentElement;
+                }
+                string? parent = spacingOwner?.LocalName.ToLowerInvariant();
+                if (hasOverrides && parent is not ("math" or "mrow" or "mstyle")
+                    && !(parent is "msqrt" or "mtd" or "mphantom" or "menclose"
+                        && MathMlPresentationChildren(spacingOwner!).Count() > 1)) {
+                    localName = "mo[operator-spacing-in-" + parent + "]";
+                    return true;
+                }
             }
             if (candidate == "menclose") {
                 string notation = element.GetAttribute("notation")?.Trim() ?? string.Empty;
@@ -224,6 +249,24 @@ internal sealed partial class HtmlRenderLayoutEngine {
         }
         localName = string.Empty;
         return false;
+    }
+
+    // Match the shared parser: annotations are inert and semantics selects one presentation child.
+    private static IEnumerable<IElement> MathMlPresentationChildren(IElement element) {
+        IEnumerable<IElement> children = element.Children.Where(child =>
+            !string.Equals(child.LocalName, "annotation", StringComparison.OrdinalIgnoreCase)
+            && !string.Equals(child.LocalName, "annotation-xml", StringComparison.OrdinalIgnoreCase));
+        return string.Equals(element.LocalName, "semantics", StringComparison.OrdinalIgnoreCase)
+            ? children.Take(1) : children;
+    }
+
+    private static IEnumerable<IElement> EnumerateMathMlPresentation(IElement root) {
+        var pending = new Stack<IElement>(MathMlPresentationChildren(root).Reverse());
+        while (pending.Count > 0) {
+            IElement element = pending.Pop();
+            yield return element;
+            foreach (IElement child in MathMlPresentationChildren(element).Reverse()) pending.Push(child);
+        }
     }
 
     private static bool TryFindIgnoredMathMlPresentationAttribute(IElement element, out string attribute) {

@@ -121,7 +121,7 @@ internal static partial class PdfWriter {
             return markedContentId;
         }
 
-        private int? RegisterFigureStructureElement(string alternativeText, PageStructElement? parentElement) {
+        private int? RegisterFigureStructureElement(string alternativeText, PageStructElement? parentElement, long? logicalOrder = null) {
             if (_suppressCanvasStructureRegistration || !emitGeneratedStructure || currentPage == null) {
                 return null;
             }
@@ -131,7 +131,8 @@ internal static partial class PdfWriter {
                 MarkedContentId = markedContentId,
                 StructureType = "Figure",
                 AlternativeText = alternativeText,
-                ParentElement = parentElement ?? ResolveFlowSemanticParent()
+                ParentElement = parentElement ?? ResolveFlowSemanticParent(),
+                LogicalOrder = logicalOrder
             });
             return markedContentId;
         }

@@ -16,6 +16,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         ICollection<HtmlInlineRun> runs) {
         if (!_footnoteNumbers.TryGetValue(element, out int number)) number = _footnoteEntries.Count + 1;
         if (!_footnoteEntries.ContainsKey(element)) {
+            using var pageBoundaries = new DescendantPageBoundaryScope(this, retainsPageBoundaries: false);
             HtmlRenderBoxStyle noteStyle = style.Clone();
             noteStyle.FloatSide = "none";
             noteStyle.ClearSide = "none";
@@ -258,6 +259,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
 
     private void RelayoutFootnoteEntry(HtmlFootnoteEntry entry, double pageContentWidth) {
         if (Math.Abs(entry.PageContentWidth - pageContentWidth) <= 0.0001D) return;
+        using var pageBoundaries = new DescendantPageBoundaryScope(this, retainsPageBoundaries: false);
         HtmlRenderFlowBlock? markerBlock = null;
         double markerGutter = entry.SuppressMarker ? 0D : FootnoteMarkerGutter;
         if (!entry.SuppressMarker

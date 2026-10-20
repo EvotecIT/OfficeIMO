@@ -1,0 +1,23 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<title>avoid-before-final-definite</title>
+<style>
+@font-face{font-family:Witness;src:url(regular.ttf);font-weight:400}
+@font-face{font-family:Witness;src:url(bold.ttf);font-weight:700}
+@page{size:700px 140px;margin:20px}
+html,body{margin:0;background:white;font:14px/20px Witness}
+p{margin:0;orphans:1;widows:1}
+.columns{width:300px;column-count:2;column-gap:20px}
+.spanner{column-span:all;margin:0;font-weight:700;background:#eeeeee}
+</style>
+<section id="columns" class="columns" style="column-fill:auto;height:100px">
+<p id="joran-s01" class="spanner">JORAN-S01</p>
+<p id="joran-t01">JORAN-T01</p>
+<p id="joran-t02">JORAN-T02</p>
+<p id="joran-t03">JORAN-T03</p>
+<p id="joran-t04">JORAN-T04</p>
+<p id="joran-t05" style="break-before:avoid-column">JORAN-T05</p>
+</section>
+<p id="after">JORAN-AFTER</p>
+</html>

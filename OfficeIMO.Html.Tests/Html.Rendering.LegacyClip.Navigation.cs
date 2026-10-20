@@ -8,6 +8,29 @@ namespace OfficeIMO.Tests;
 
 public sealed partial class HtmlRenderingTests {
     [Theory]
+    [InlineData("inset(0 100% 0 0)")]
+    [InlineData("inset(100% 0 0 0)")]
+    public void HtmlPathClip_EmptySnapshotExcludesPaintAndTextButPreservesIncomingTargets(string clipPath) {
+        string html = "<style>html,body{margin:0;font:14px/20px sans-serif}p{margin:0}</style>"
+            + "<a href='#target'>Go</a><div id='target' style='clip-path:" + clipPath + "'>Hidden</div><p>After</p>";
+        var options = new HtmlRenderOptions {
+            ViewportWidth = 300D, ViewportHeight = 100D,
+            PageSize = new OfficePageSize(300D / 96D, 100D / 96D), Margins = HtmlRenderMargins.All(0D)
+        };
+        HtmlConversionDocument source = HtmlConversionDocument.Parse(html);
+        HtmlRenderRequest request = HtmlRenderRequest.Create(
+            HtmlRenderIntentProfile.ScreenSnapshotPaged, HtmlRenderEncoder.Pdf, options);
+        HtmlRenderDocument rendered = HtmlRenderEngine.Execute(source, request).Document;
+        PdfCore.PdfDocumentInfo info = PdfCore.PdfInspector.Inspect(source.RenderToPdfBytes(request));
+
+        Assert.Contains("Go", rendered.Text, StringComparison.Ordinal);
+        Assert.Contains("After", rendered.Text, StringComparison.Ordinal);
+        Assert.DoesNotContain("Hidden", rendered.Text, StringComparison.Ordinal);
+        Assert.Equal(new[] { "html-fragment:target" }, info.NamedDestinationNames);
+        Assert.Equal(new[] { "html-fragment:target" }, info.LinkDestinationNames);
+    }
+
+    [Theory]
     [InlineData("absolute", false)]
     [InlineData("absolute", true)]
     [InlineData("fixed", false)]

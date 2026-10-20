@@ -76,7 +76,8 @@ public static partial class HtmlComputedStyleEngine {
         IReadOnlyList<string> names = ResolveContainerNames(style);
         var expanded = new List<ContainerQueryContext>(contexts.Count + 1);
         expanded.AddRange(contexts);
-        expanded.Add(new ContainerQueryContext(names, type, width, height, fontSize, inheritedFontSize, rootFontSize, style.Properties));
+        expanded.Add(new ContainerQueryContext(names, type, width, height, fontSize, inheritedFontSize, rootFontSize,
+            style.Properties, style.FontSizeContext));
         return expanded.AsReadOnly();
     }
 
@@ -289,7 +290,27 @@ public static partial class HtmlComputedStyleEngine {
         double inheritedFontSize = 16D,
         double rootFontSize = 16D,
         double containerUnitWidth = double.NaN,
-        double containerUnitHeight = double.NaN) {
+        double containerUnitHeight = double.NaN,
+        string tag = "",
+        HtmlFontSizeContext? inheritedContext = null) {
+        if (environment.FontDefaults is HtmlRenderingFontDefaults defaults) {
+            HtmlFontSizeContext inherited = inheritedContext ?? defaults.Initial;
+            string family = HtmlRenderCssValues.FontFamilyList(style.GetValue("font-family"), defaults.StandardFamily);
+            HtmlFontSizeContext resolved = HtmlFontSizePolicy.Resolve(style, inherited, family, defaults,
+                HtmlFontSizePolicy.ResolveHtmlDefault(tag, inherited, browser: true), new OfficeIMO.Html.Css.HtmlCssLengthResolutionContext {
+                    PercentageReference = inherited.Pixels,
+                    FontSize = inherited.Pixels,
+                    RootFontSize = rootFontSize,
+                    ViewportWidth = environment.Width,
+                    ViewportHeight = environment.Height,
+                    ContainerWidth = double.IsNaN(containerUnitWidth) ? null : containerUnitWidth,
+                    ContainerHeight = double.IsNaN(containerUnitHeight) ? null : containerUnitHeight,
+                    ContainerInlineSize = double.IsNaN(containerUnitWidth) ? null : containerUnitWidth,
+                    ContainerBlockSize = double.IsNaN(containerUnitHeight) ? null : containerUnitHeight
+                });
+            style.FontSizeContext = resolved;
+            return resolved.Pixels;
+        }
         if (style.IsResetValue("font-size")) return 16D;
         if (style.IsInheritedValue("font-size")) return inheritedFontSize;
         string value = style.GetValue("font-size").Trim().ToLowerInvariant();

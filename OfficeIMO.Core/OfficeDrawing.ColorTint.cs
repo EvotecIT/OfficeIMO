@@ -29,6 +29,7 @@ public sealed partial class OfficeDrawing {
                     text.FontPalette,
                     text.TextDirection) { PreservesPaintedGlyphs = text.PreservesPaintedGlyphs, FontMetricScale = text.FontMetricScale, ClipToFrame = text.ClipToFrame };
                 ((OfficeDrawingText)replacement).SetPaintedText(text.Text, text.RasterText);
+                ((OfficeDrawingText)replacement).PreparedShaping = text.PreparedShaping;
             } else if (current is OfficeDrawingRichText richText) {
                 var runs = new List<OfficeRichTextRun>(richText.Runs.Count);
                 for (int runIndex = 0; runIndex < richText.Runs.Count; runIndex++) {

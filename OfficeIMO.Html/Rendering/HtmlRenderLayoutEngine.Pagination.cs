@@ -47,8 +47,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
             }
 
             if (!hasPageContent) currentPageName = block.PageName;
-            HtmlPageBreakTarget breakBefore = ResolveForcedBreakAt(block.ForcedBreaks, 0D);
-            if (breakBefore == HtmlPageBreakTarget.None) breakBefore = block.BreakBefore;
+            HtmlPageBreakTarget breakBefore = ResolveRootBreakBefore(block);
             if (breakBefore != HtmlPageBreakTarget.None) {
                 ApplyBreakBefore(breakBefore, pages, ref visuals, ref y, ref pageGeometry, currentPageName);
                 pageWidth = pageGeometry.Width;
@@ -96,6 +95,43 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 block = RelayoutTopLevelBlockForPage(block, pageGeometry).ForPagination();
             }
 
+            if (TryRelayoutConstrainedOverflow(block,
+                ResolvePageBodyBottom(pages.Count + 1, pageGeometry) - y, contentHeight,
+                pages.Count + 1, pageGeometry, out HtmlRenderFlowBlock constrainedBlock))
+                block = constrainedBlock.ForPagination();
+
+            // Auto-height columns need the physical capacity even when their
+            // initial balanced source box fits. Run after whole-block keep
+            // decisions so the mapping starts on the page that owns the box.
+            bool columnAware = false;
+            while (TryRelayoutBlockForColumns(block, 0D,
+                ResolvePageBodyBottom(pages.Count + 1, pageGeometry) - y, contentHeight,
+                pages.Count + 1, pageGeometry, out HtmlRenderFlowBlock columnBlock)) {
+                block = columnBlock.ForPagination();
+                columnAware = true;
+            }
+            var consumedBoundaries = new HashSet<object>();
+            ConsumeUnenteredPageBoundaries(block, consumedBoundaries);
+            foreach (HtmlRenderForcedBreak item in block.ForcedBreaks) {
+                CheckCancellation();
+                ChargeLayoutOperation("leading page boundary consumption");
+                if (item.Edge == HtmlRenderBreakEdge.Leading && !item.Projected && IsForcedPageBreak(item.Target))
+                    consumedBoundaries.Add(item.Boundary);
+            }
+            if (columnAware && hasPageContent) {
+                HtmlRenderForcedBreak? columnBreak = ResolveForcedBoundaryAt(block.ForcedBreaks, 0D);
+                if (columnBreak != null) {
+                    ApplyBreakBefore(columnBreak.Target, pages, ref visuals, ref y, ref pageGeometry, currentPageName);
+                    // The retained column mapping can insert a synthetic entry
+                    // break. Consume that event without swallowing a distinct
+                    // empty sibling boundary at the same source position.
+                    ConsumePagedForcedBreak(block, columnBreak, consumedBoundaries);
+                    pageWidth = pageGeometry.Width;
+                    pageHeight = pageGeometry.Height;
+                    contentHeight = ResolvePageBodyContentHeight(pages.Count + 1, pageGeometry);
+                }
+            }
+
             if (block.Height <= ResolvePageBodyBottom(pages.Count + 1, pageGeometry) - y && !HasInternalForcedBreak(block)) {
                 AddTranslatedVisuals(visuals, block.Visuals, pageGeometry.Margins.Left, y, block);
                 RecordRunningStringAssignments(block, 0D, block.Height, y);
@@ -106,6 +142,16 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 while (blockOffset < block.Height - 0.0001D) {
                     CheckCancellation();
                     double flexAvailable = ResolvePageBodyBottom(pages.Count + 1, pageGeometry) - y;
+                    if (TryRelayoutBlockForColumns(block, blockOffset, flexAvailable, contentHeight,
+                        pages.Count + 1, pageGeometry, out HtmlRenderFlowBlock columnBlock)) {
+                        block = QualifySharedTableRepetition(columnBlock.ForPagination());
+                        continue;
+                    }
+                    if (TryRelayoutBlockForParallelTables(block, blockOffset, flexAvailable, contentHeight,
+                        pages.Count + 1, pageGeometry, out HtmlRenderFlowBlock parallelBlock)) {
+                        block = QualifySharedTableRepetition(parallelBlock.ForPagination());
+                        continue;
+                    }
                     if (!_pagedFlexAlignedBlocks.Contains(block)
                         && flexAvailable > 0.0001D
                         && block.Height > blockOffset + flexAvailable + 0.0001D
@@ -114,111 +160,54 @@ internal sealed partial class HtmlRenderLayoutEngine {
                         block = QualifySharedTableRepetition(alignedFlexBlock.ForPagination());
                         _pagedFlexAlignedBlocks.Add(block);
                     }
-                    HtmlRenderContinuationGroup? continuationGroup = block.ContinuationGroups.FirstOrDefault(group => group.AppliesAt(blockOffset));
-                    bool repeatContinuation = blockOffset > 0.0001D && continuationGroup != null && continuationGroup.Visuals.Count > 0 && continuationGroup.Height > 0D;
-                    double continuationHeight = repeatContinuation ? continuationGroup!.Height : 0D;
                     double rawAvailable = ResolvePageBodyBottom(pages.Count + 1, pageGeometry) - y;
-                    HtmlRenderTrailingGroup? trailingGroup = ResolveTrailingGroup(block, blockOffset, Math.Max(0D, rawAvailable - continuationHeight), contentHeight, out double fragmentLimit);
-                    bool repeatTrailing = trailingGroup != null && trailingGroup.Visuals.Count > 0 && trailingGroup.Height > 0D;
-                    double trailingHeight = repeatTrailing ? trailingGroup!.Height : 0D;
-                    double available = rawAvailable - continuationHeight - trailingHeight;
-                    bool forcedBreakFits = TryGetNextForcedBreak(block.ForcedBreaks, blockOffset, out HtmlRenderForcedBreak? forcedBreak)
-                        && forcedBreak!.Offset <= fragmentLimit + 0.0001D
-                        && forcedBreak.Offset <= blockOffset + available + 0.0001D;
-                    double fragmentEnd = forcedBreakFits
-                        ? forcedBreak!.Offset
-                        : available > 0.0001D
-                            ? FindFragmentEnd(block, blockOffset, available, fragmentLimit, contentHeight, repeatTrailing ? trailingGroup : null)
-                            : blockOffset;
-                    if (fragmentEnd <= blockOffset + 0.0001D) {
-                        if (y > ResolvePageBodyTop(pages.Count + 1, pageGeometry) + 0.0001D
-                            || _pageFloatPlan.ReservedHeight(pages.Count + 1, "top") > 0D
-                            || _pageFloatPlan.ReservedHeight(pages.Count + 1, "bottom") > 0D) {
-                            CommitPage(pages, visuals, pageGeometry, currentPageName);
-                            BeginPage(currentPageName);
-                            continue;
-                        }
-
-                        bool originalContinuation = repeatContinuation;
-                        bool originalTrailing = repeatTrailing;
-                        bool foundFallback = false;
-                        if (originalContinuation) {
-                            double candidateAvailable = rawAvailable - trailingHeight;
-                            double candidateEnd = candidateAvailable > 0.0001D
-                                ? FindFragmentEnd(block, blockOffset, candidateAvailable, fragmentLimit, contentHeight, repeatTrailing ? trailingGroup : null)
-                                : blockOffset;
-                            if (candidateEnd > blockOffset + 0.0001D) {
-                                repeatContinuation = false;
-                                continuationHeight = 0D;
-                                available = candidateAvailable;
-                                fragmentEnd = candidateEnd;
-                                foundFallback = true;
-                            }
-                        }
-
-                        if (!foundFallback && originalTrailing) {
-                            double candidateAvailable = rawAvailable - (originalContinuation ? continuationGroup!.Height : 0D);
-                            double candidateEnd = candidateAvailable > 0.0001D
-                                ? FindFragmentEnd(block, blockOffset, candidateAvailable, fragmentLimit, contentHeight)
-                                : blockOffset;
-                            if (candidateEnd > blockOffset + 0.0001D) {
-                                repeatContinuation = originalContinuation;
-                                continuationHeight = repeatContinuation ? continuationGroup!.Height : 0D;
-                                repeatTrailing = false;
-                                trailingHeight = 0D;
-                                available = candidateAvailable;
-                                fragmentEnd = candidateEnd;
-                                foundFallback = true;
-                            }
-                        }
-
-                        if (!foundFallback && originalContinuation && originalTrailing) {
-                            double candidateEnd = FindFragmentEnd(block, blockOffset, rawAvailable, fragmentLimit, contentHeight);
-                            if (candidateEnd > blockOffset + 0.0001D) {
-                                repeatContinuation = false;
-                                continuationHeight = 0D;
-                                repeatTrailing = false;
-                                trailingHeight = 0D;
-                                available = rawAvailable;
-                                fragmentEnd = candidateEnd;
-                                foundFallback = true;
-                            }
-                        }
-
-                        if (foundFallback) {
-                            if (originalContinuation && !repeatContinuation) {
-                                _diagnostics.Add(ComponentName, HtmlRenderDiagnosticCodes.TableHeaderRepeatSuppressed, "A repeated table header was suppressed because it left no safe body-row break on an empty page.", HtmlDiagnosticSeverity.Warning, block.Source);
-                            }
-
-                            if (originalTrailing && !repeatTrailing) {
-                                _diagnostics.Add(ComponentName, HtmlRenderDiagnosticCodes.TableFooterRepeatSuppressed, "A repeated table footer was suppressed because it left no safe body-row break on an empty page.", HtmlDiagnosticSeverity.Warning, block.Source);
-                            }
-                        } else {
-                            repeatContinuation = false;
-                            continuationHeight = 0D;
-                            repeatTrailing = false;
-                            trailingHeight = 0D;
-                            available = Math.Max(0D, rawAvailable);
-                            fragmentEnd = Math.Min(fragmentLimit, blockOffset + available);
-                            _diagnostics.Add(ComponentName, HtmlRenderDiagnosticCodes.ForcedFragment, "A layout block had no safe break opportunity within one page and was force-fragmented.", HtmlDiagnosticSeverity.Warning, block.Source);
-                        }
+                    PagedBlockFragment? plan = PlanPagedFragment(block, blockOffset, rawAvailable, contentHeight,
+                        canForceFragment: y <= ResolvePageBodyTop(pages.Count + 1, pageGeometry) + 0.0001D
+                            && _pageFloatPlan.ReservedHeight(pages.Count + 1, "top") <= 0D
+                            && _pageFloatPlan.ReservedHeight(pages.Count + 1, "bottom") <= 0D,
+                        consumedBoundaries: consumedBoundaries, includeProjectedBoundaries: true);
+                    if (plan == null) {
+                        CommitPage(pages, visuals, pageGeometry, currentPageName);
+                        BeginPage(currentPageName);
+                        continue;
                     }
+                    ReportPagedFragmentLoss(block, plan);
+                    if (plan.AuthoredBreak != null) ConsumePagedForcedBreak(block, plan.AuthoredBreak, consumedBoundaries);
+                    HtmlRenderContinuationGroup? continuationGroup = plan.Header;
+                    HtmlRenderTrailingGroup? trailingGroup = plan.Footer;
+                    bool repeatContinuation = continuationGroup != null;
+                    bool repeatTrailing = trailingGroup != null;
+                    double continuationHeight = plan.HeaderHeight;
+                    double trailingHeight = plan.FooterHeight;
+                    double fragmentEnd = plan.End;
+                    var fragmentVisuals = new List<HtmlRenderVisual>();
 
                     ReportSharedTableRepetitionLoss(block, fragmentEnd);
                     if (repeatContinuation) {
-                        AddTranslatedVisuals(visuals, continuationGroup!.Visuals, pageGeometry.Margins.Left, y, block);
+                        foreach (HtmlRenderVisual visual in continuationGroup!.Visuals) {
+                            fragmentVisuals.Add(visual.Translate(0D, y, fragmentVisuals.Count));
+                        }
                         y += continuationHeight;
                     }
 
-                    IReadOnlyList<HtmlRenderVisual> fragment = SliceBlockVisuals(block, blockOffset, fragmentEnd,
-                        fragmentEnd < block.Height - 0.0001D ? blockOffset + available : null);
-                    AddTranslatedVisuals(visuals, fragment, pageGeometry.Margins.Left, y, block);
-                    RecordRunningStringAssignments(block, blockOffset, fragmentEnd, y);
+                    // An empty authored page owns no source paint or assignments.
+                    // In particular it cannot copy a collapsed table boundary or
+                    // a terminal navigation anchor from the following fragment.
+                    bool consumesSource = fragmentEnd > blockOffset + 0.0001D;
+                    IReadOnlyList<HtmlRenderVisual> fragment = consumesSource
+                        ? SliceBlockVisuals(block, blockOffset, fragmentEnd, ResolvePagedBackgroundWindow(blockOffset, plan))
+                        : Array.Empty<HtmlRenderVisual>();
+                    foreach (HtmlRenderVisual visual in fragment) {
+                        fragmentVisuals.Add(visual.Translate(0D, y, fragmentVisuals.Count));
+                    }
+                    if (consumesSource) RecordRunningStringAssignments(block, blockOffset, fragmentEnd, y);
                     y += fragmentEnd - blockOffset;
                     blockOffset = fragmentEnd;
                     bool finishedTableFooter = false;
                     if (repeatTrailing) {
-                        AddTranslatedVisuals(visuals, trailingGroup!.Visuals, pageGeometry.Margins.Left, y, block);
+                        foreach (HtmlRenderVisual visual in trailingGroup!.Visuals) {
+                            fragmentVisuals.Add(visual.Translate(0D, y, fragmentVisuals.Count));
+                        }
                         y += trailingHeight;
                         if (blockOffset >= trailingGroup.ContentEndsAt - 0.0001D) {
                             blockOffset = trailingGroup.SourceEndsAt;
@@ -226,15 +215,33 @@ internal sealed partial class HtmlRenderLayoutEngine {
                         }
                     }
 
+                    AddTranslatedVisuals(visuals, repeatContinuation || repeatTrailing
+                        ? OrderRepeatedTableFragmentPaint(fragmentVisuals) : fragmentVisuals,
+                        pageGeometry.Margins.Left, 0D, block);
+
                     if (blockOffset < block.Height - 0.0001D) {
+                        HtmlRenderForcedBreak? authoredBreak = plan.AuthoredBreak;
+                        if (finishedTableFooter && authoredBreak == null) {
+                            // A final footer advances from its body end to its
+                            // source end. A following boundary skipped by that
+                            // jump must be consumed with this transition.
+                            ChargeLayoutOperations(2L * block.ForcedBreaks.Count, "completed table footer boundary cursor");
+                            if (TryGetNextForcedBreak(block.ForcedBreaks, blockOffset, out HtmlRenderForcedBreak? footerBreak,
+                                consumedBoundaries, includeProjectedBoundaries: true)
+                                && footerBreak!.Offset <= blockOffset + 0.0001D) authoredBreak = footerBreak;
+                        }
                         // A wrapper can contain content after the completed table.
                         // Let that content use the space after its final footer.
                         if (finishedTableFooter
-                            && ResolveForcedBreakAt(block.ForcedBreaks, blockOffset) == HtmlPageBreakTarget.None
+                            && authoredBreak == null
                             && string.Equals(ResolvePageNameAt(block.ForcedBreaks, blockOffset, currentPageName), currentPageName, StringComparison.Ordinal)
                             && y < ResolvePageBodyBottom(pages.Count + 1, pageGeometry) - 0.0001D) continue;
+                        if (authoredBreak != null && plan.AuthoredBreak == null)
+                            ConsumePagedForcedBreak(block, authoredBreak, consumedBoundaries);
                         HtmlInlineBreakProgress? continuationProgress = ResolveInlineContinuationProgress(block, blockOffset);
-                        string? nextPageName = ResolvePageNameAt(block.ForcedBreaks, blockOffset, currentPageName);
+                        string? nextPageName = authoredBreak is { ChangesPageName: true } namedBreak
+                            ? namedBreak.PageName
+                            : ResolvePageNameAt(block.ForcedBreaks, blockOffset, currentPageName, authoredBreak?.Boundary);
                         ExtendPagedBodyBackgroundThroughFragmentSlack(block, pageGeometry, visuals, y);
                         CommitPage(pages, visuals, pageGeometry, currentPageName);
                         BeginPage(nextPageName);
@@ -242,7 +249,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
                         pageWidth = pageGeometry.Width;
                         pageHeight = pageGeometry.Height;
                         contentHeight = ResolvePageBodyContentHeight(pages.Count + 1, pageGeometry);
-                        HtmlPageBreakTarget internalBreak = ResolveForcedBreakAt(block.ForcedBreaks, blockOffset);
+                        HtmlPageBreakTarget internalBreak = authoredBreak?.Target
+                            ?? ResolveForcedBreakAt(block.ForcedBreaks, blockOffset);
                         if (internalBreak != HtmlPageBreakTarget.None) {
                             EnsurePageSide(internalBreak, pages, ref visuals, ref y, ref pageGeometry, currentPageName);
                             pageWidth = pageGeometry.Width;
@@ -264,9 +272,12 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 }
             }
 
-            HtmlPageBreakTarget breakAfter = ResolveForcedBreakAt(block.ForcedBreaks, block.Height);
-            if (block.BreakAfter != HtmlPageBreakTarget.None) breakAfter = block.BreakAfter;
+            HtmlPageBreakTarget breakAfter = ResolveRootBreakAfter(block);
             if (breakAfter != HtmlPageBreakTarget.None && index < blocks.Count - 1) {
+                // Resolve both sides of this sibling boundary before inserting
+                // parity pages. A following Left must not inherit blank pages
+                // already inserted for the preceding sibling's Right.
+                breakAfter = CombineForcedPageTargets(breakAfter, ResolveRootBreakBefore(blocks[index + 1]));
                 CommitPage(pages, visuals, pageGeometry, currentPageName);
                 BeginPage(currentPageName);
                 EnsurePageSide(breakAfter, pages, ref visuals, ref y, ref pageGeometry, currentPageName);

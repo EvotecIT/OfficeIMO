@@ -36,7 +36,7 @@ public sealed partial class HtmlRenderingTests {
     }
 
     [Fact]
-    public void HtmlMargins_NegativeCollapsedPairsDoNotInflateFollowingFlow() {
+    public void HtmlMargins_NegativeCollapsedPairsRetainTheirSignedFollowingFlow() {
         const string html = "<div style='margin:0'>"
             + "<div id='first' style='height:10px;margin:0 0 -100px;background:red'></div>"
             + "<div id='second' style='height:10px;margin:-100px 0 0;background:blue'></div>"
@@ -51,7 +51,7 @@ public sealed partial class HtmlRenderingTests {
         });
 
         HtmlRenderShape tail = Assert.Single(rendered.Pages[0].Visuals.OfType<HtmlRenderShape>(), shape => shape.Source == "div#tail");
-        Assert.InRange(tail.Y, 9.9D, 10.1D);
+        Assert.InRange(tail.Y, -80.1D, -79.9D);
     }
 
     [Fact]

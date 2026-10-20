@@ -6,12 +6,13 @@ namespace OfficeIMO.Tests;
 
 public sealed partial class HtmlRenderingTests {
     [Theory]
-    [InlineData("שלום ", "עולם", "םלוע םולש")]
-    [InlineData("سلام ", "بكم", "\uFEE2\uFEDC\uFE91 \uFEE1\uFE8E\uFEE0\uFEB3")]
+    [InlineData("שלום ", "עולם", "םלוע םולש", false)]
+    [InlineData("سلام ", "بكم", "\uFEE2\uFEDC\uFE91 \uFEE1\uFE8E\uFEE0\uFEB3", true)]
     public void HtmlRenderer_OrdersPlainRtlWordsAcrossStyledInlineRuns(
         string firstWord,
         string secondWord,
-        string expectedVisualText) {
+        string expectedVisualText,
+        bool expectedShapingLoss) {
         string html = "<p style='margin:0;width:400px;direction:ltr'>"
             + "<span style='color:#ff0000'>" + firstWord + "</span>"
             + "<span style='color:#0000ff'>" + secondWord + "</span></p>";
@@ -25,6 +26,9 @@ public sealed partial class HtmlRenderingTests {
         Assert.Equal(expectedVisualText, string.Concat(text.Select(static run => run.Text)));
         Assert.Contains(firstWord + secondWord, rendered.Text, StringComparison.Ordinal);
         Assert.All(text, static run => Assert.True(run.BidiVisualOrderResolved));
+        Assert.Equal(expectedShapingLoss, rendered.Diagnostics.Any(diagnostic =>
+            diagnostic.Code == HtmlRenderDiagnosticCodes.ComplexTextShapingUnsupported
+            && diagnostic.LossKind == OfficeConversionLossKind.Approximation));
         Assert.Contains(text, static run => run.Color == OfficeColor.FromRgb(255, 0, 0));
         Assert.Contains(text, static run => run.Color == OfficeColor.FromRgb(0, 0, 255));
     }

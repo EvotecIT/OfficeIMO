@@ -1,0 +1,1316 @@
+{
+  "schema": 1,
+  "qualifiedUtc": "2026-10-17T15:04:40.643234+00:00",
+  "scope": "Conic wrap/centre diagnosis and bounded consumer observations; evidence and roadmap update only. No production or test source change.",
+  "source": {
+    "base": "09cc799eab8fe237004e0c0b4b42e530a15ef882",
+    "owners": {
+      "OfficeIMO.Core": "eb4683225c55dbfda558e73ea505d07fa79de624",
+      "OfficeIMO.Pdf": "571e952bc6c939b6f3cc16439299ffc593540ed0",
+      "OfficeIMO.Html.Core": "3804952eb46a7eb05a8976bb7f421fc8aa619d5e",
+      "OfficeIMO.Html.AngleSharp": "2b7f2b16754df243579efea6e88a9c35e0dce3a6",
+      "OfficeIMO.Html": "77d1c97d1db40846405dc08894b54c792cf3b800",
+      "OfficeIMO.Drawing.Tests": "75265178346497da84f17ec8dd86cc8cf5d6d65a",
+      "OfficeIMO.Html.Tests": "88ebf72c423a50ddb3bae6169a4c912410d38700",
+      "OfficeIMO.Pdf.Tests": "b14c5f426bd0debbcbaa59b393a1043801616d61"
+    },
+    "branch": "fix/html-conic-interpolation",
+    "unchangedProductionAndTestTrees": true,
+    "sdk": "10.0.113",
+    "currentRuntimeBinding": {
+      "file": "source-runtime-binding.json",
+      "bytes": 2360,
+      "sha256": "017f77f59d7d97fa6e1ca400ddf5e714c4d56c9ce735d346de435e7f3d4964d4"
+    },
+    "executedRuntime": [
+      {
+        "name": "OfficeIMO.Html.Core.dll",
+        "sha256": "f358befb4fea63b378453b3e15e4b2dc07e8541e89ec99a4bbce9f0f5fe449c1",
+        "bytes": 150016
+      },
+      {
+        "name": "OfficeIMO.Html.AngleSharp.dll",
+        "sha256": "31f91ff4cd3436b63debd7f882cc43701c4e32143b8f6bd5f63a58f51596a8ab",
+        "bytes": 48640
+      },
+      {
+        "name": "AngleSharp.dll",
+        "sha256": "ed9ebe8f1f6a8537f52a5aa607225d929de55f202bd6c1fa198e10bf82db2911",
+        "bytes": 1083904
+      },
+      {
+        "name": "TableProbe.dll",
+        "sha256": "1357f8c8cab3efe29f8f69269dc2eb4a0e7a95f29d4f9473cc8f0370bc1444f0",
+        "bytes": 22528
+      },
+      {
+        "name": "OfficeIMO.Core.dll",
+        "sha256": "96f44924d92fc9e34884e5777f018b6efb8fca0cf48dbebbd6ea44ac9d4a2cd5",
+        "bytes": 4860416
+      },
+      {
+        "name": "AngleSharp.Css.dll",
+        "sha256": "b9d58927495cbe8559015897d1ed5b18838ae658d52d0a9321bc5d9da6101f61",
+        "bytes": 616448
+      },
+      {
+        "name": "OfficeIMO.Pdf.dll",
+        "sha256": "c29090f727adc0ee33627fd6c003f470866db58e15bb96f65a0cfc0d5070ca01",
+        "bytes": 8220160
+      },
+      {
+        "name": "OfficeIMO.Html.dll",
+        "sha256": "c5c67651d70cf85e421f5f592e47674e1b85ce487f9b68e4f9830fdef26fc201",
+        "bytes": 2671616
+      }
+    ],
+    "finalReplayBinding": {
+      "file": "final-replay-binding.json",
+      "bytes": 856,
+      "sha256": "92b1192e7cfc8e23de9878101048b43dc2c2495f03221bf5a824f598176fa2f9"
+    }
+  },
+  "native": {
+    "environment": {
+      "edgeUa": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/155.0.0.0 Safari/537.36 Edg/155.0.0.0",
+      "poppler": "pdftoppm version 26.09.0\nCopyright 2005-2026 The Poppler Developers - http://poppler.freedesktop.org\nCopyright 1996-2011, 2022 Glyph & Cog, LLC",
+      "os": "ProductName:\t\tmacOS\nProductVersion:\t\t27.0.1\nBuildVersion:\t\t26A434"
+    },
+    "browserOwner": "HtmlTinkerX3.0.4; existing Edge executable and compatible canonical Playwright driver; test-only",
+    "viewportCssPx": [
+      800,
+      1000
+    ],
+    "qualitySegments": 360,
+    "cases": [
+      {
+        "id": "smooth-variable",
+        "gradient": "conic-gradient(rgba(255 0 0 /25%),rgba(0 0 255 /75%))",
+        "x": 32,
+        "y": 32,
+        "width": 180,
+        "height": 180
+      },
+      {
+        "id": "smooth-opaque",
+        "gradient": "conic-gradient(red,blue)",
+        "x": 272,
+        "y": 32,
+        "width": 180,
+        "height": 180
+      },
+      {
+        "id": "smooth-common",
+        "gradient": "conic-gradient(rgba(255 0 0 /50%),rgba(0 0 255 /50%))",
+        "x": 512,
+        "y": 32,
+        "width": 180,
+        "height": 180
+      },
+      {
+        "id": "smooth-rotated",
+        "gradient": "conic-gradient(from 17deg,rgba(255 0 0 /25%),rgba(0 0 255 /75%))",
+        "x": 32,
+        "y": 272,
+        "width": 180,
+        "height": 180
+      },
+      {
+        "id": "closed-turn",
+        "gradient": "conic-gradient(red,blue,red)",
+        "x": 272,
+        "y": 272,
+        "width": 180,
+        "height": 180
+      },
+      {
+        "id": "corner-variable",
+        "gradient": "conic-gradient(at 0% 0%,rgba(255 0 0 /25%),rgba(0 0 255 /75%))",
+        "x": 512,
+        "y": 272,
+        "width": 180,
+        "height": 180
+      },
+      {
+        "id": "flat-variable",
+        "gradient": "conic-gradient(rgba(255 0 0 /25%) 0deg 90deg,rgba(0 0 255 /75%) 90deg 360deg)",
+        "x": 32,
+        "y": 512,
+        "width": 180,
+        "height": 180
+      },
+      {
+        "id": "plateau-early",
+        "gradient": "conic-gradient(rgba(255 0 0 /25%) 0deg,rgba(0 0 255 /75%) 10deg 360deg)",
+        "x": 272,
+        "y": 512,
+        "width": 180,
+        "height": 180
+      },
+      {
+        "id": "plateau-late",
+        "gradient": "conic-gradient(rgba(255 0 0 /25%) 0deg 350deg,rgba(0 0 255 /75%) 360deg)",
+        "x": 512,
+        "y": 512,
+        "width": 180,
+        "height": 180
+      }
+    ],
+    "media": [
+      "print",
+      "screen"
+    ],
+    "comparisonOutputs": [
+      "Native HTML screenshot",
+      "Native Edge PDF through Poppler",
+      "Native Edge PDF through macOS CoreGraphics",
+      "OfficeIMO PNG",
+      "OfficeIMO scene raster",
+      "OfficeIMO PDF through Poppler",
+      "OfficeIMO PDF through macOS CoreGraphics",
+      "OfficeIMO SVG through Edge"
+    ],
+    "fullRegionMetrics": [
+      {
+        "case": "smooth-variable",
+        "media": "print",
+        "pixelsPerRegion": 32400,
+        "againstNativeScreenshot": {
+          "edgePdfPoppler": {
+            "pixels": 32400,
+            "meanAbsoluteChannelDelta": 0.9367489711934156,
+            "maxChannelDelta": 152,
+            "pixelsAnyChannelDeltaGt2": 526,
+            "pixelsGreenDeficitGt2": 0
+          },
+          "edgePdfQuartz": {
+            "pixels": 32400,
+            "meanAbsoluteChannelDelta": 0.5290226337448559,
+            "maxChannelDelta": 144,
+            "pixelsAnyChannelDeltaGt2": 104,
+            "pixelsGreenDeficitGt2": 2
+          },
+          "managedPng": {
+            "pixels": 32400,
+            "meanAbsoluteChannelDelta": 0.32058641975308644,
+            "maxChannelDelta": 6,
+            "pixelsAnyChannelDeltaGt2": 5,
+            "pixelsGreenDeficitGt2": 1
+          },
+          "managedScene": {
+            "pixels": 32400,
+            "meanAbsoluteChannelDelta": 0.32058641975308644,
+            "maxChannelDelta": 6,
+            "pixelsAnyChannelDeltaGt2": 5,
+            "pixelsGreenDeficitGt2": 1
+          },
+          "managedPdfPoppler": {
+            "pixels": 32400,
+            "meanAbsoluteChannelDelta": 0.5428497942386832,
+            "maxChannelDelta": 55,
+            "pixelsAnyChannelDeltaGt2": 246,
+            "pixelsGreenDeficitGt2": 93
+          },
+          "managedPdfQuartz": {
+            "pixels": 32400,
+            "meanAbsoluteChannelDelta": 0.33252057613168723,
+            "maxChannelDelta": 18,
+            "pixelsAnyChannelDeltaGt2": 127,
+            "pixelsGreenDeficitGt2": 0
+          },
+          "managedSvgEdge": {
+            "pixels": 32400,
+            "meanAbsoluteChannelDelta": 0.3547119341563786,
+            "maxChannelDelta": 2,
+            "pixelsAnyChannelDeltaGt2": 0,
+            "pixelsGreenDeficitGt2": 0
+          }
+        }
+      },
+      {
+        "case": "smooth-opaque",
+        "media": "print",
+        "pixelsPerRegion": 32400,
+        "againstNativeScreenshot": {
+          "edgePdfPoppler": {
+            "pixels": 32400,
+            "meanAbsoluteChannelDelta": 0.28291152263374486,
+            "maxChannelDelta": 32,
+            "pixelsAnyChannelDeltaGt2": 252,
+            "pixelsGreenDeficitGt2": 0
+          },
+          "edgePdfQuartz": {
+            "pixels": 32400,
+            "meanAbsoluteChannelDelta": 0.26258230452674897,
+            "maxChannelDelta": 16,
+            "pixelsAnyChannelDeltaGt2": 37,
+            "pixelsGreenDeficitGt2": 0
+          },
+          "managedPng": {
+            "pixels": 32400,
+            "meanAbsoluteChannelDelta": 0.27487654320987653,
+            "maxChannelDelta": 6,
+            "pixelsAnyChannelDeltaGt2": 10,
+            "pixelsGreenDeficitGt2": 0
+          },
+          "managedScene": {
+            "pixels": 32400,
+            "meanAbsoluteChannelDelta": 0.27487654320987653,
+            "maxChannelDelta": 6,
+            "pixelsAnyChannelDeltaGt2": 10,
+            "pixelsGreenDeficitGt2": 0
+          },
+          "managedPdfPoppler": {
+            "pixels": 32400,
+            "meanAbsoluteChannelDelta": 0.4607818930041152,
+            "maxChannelDelta": 166,
+            "pixelsAnyChannelDeltaGt2": 627,
+            "pixelsGreenDeficitGt2": 0
+          },
+          "managedPdfQuartz": {
+            "pixels": 32400,
+            "meanAbsoluteChannelDelta": 0.3830349794238683,
+            "maxChannelDelta": 32,
+            "pixelsAnyChannelDeltaGt2": 448,
+            "pixelsGreenDeficitGt2": 0
+          },
+          "managedSvgEdge": {
+            "pixels": 32400,
+            "meanAbsoluteChannelDelta": 0.27877572016460905,
+            "maxChannelDelta": 2,
+            "pixelsAnyChannelDeltaGt2": 0,
+            "pixelsGreenDeficitGt2": 0
+          }
+        }
+      },
+      {
+        "case": "smooth-common",
+        "media": "print",
+        "pixelsPerRegion": 32400,
+        "againstNativeScreenshot": {
+          "edgePdfPoppler": {
+            "pixels": 32400,
+            "meanAbsoluteChannelDelta": 0.8620679012345679,
+            "maxChannelDelta": 31,
+            "pixelsAnyChannelDeltaGt2": 308,
+            "pixelsGreenDeficitGt2": 0
+          },
+          "edgePdfQuartz": {
+            "pixels": 32400,
+            "meanAbsoluteChannelDelta": 0.6479012345679013,
+            "maxChannelDelta": 66,
+            "pixelsAnyChannelDeltaGt2": 105,
+            "pixelsGreenDeficitGt2": 0
+          },
+          "managedPng": {
+            "pixels": 32400,
+            "meanAbsoluteChannelDelta": 0.5684465020576132,
+            "maxChannelDelta": 3,
+            "pixelsAnyChannelDeltaGt2": 3,
+            "pixelsGreenDeficitGt2": 0
+          },
+          "managedScene": {
+            "pixels": 32400,
+            "meanAbsoluteChannelDelta": 0.5684465020576132,
+            "maxChannelDelta": 3,
+            "pixelsAnyChannelDeltaGt2": 3,
+            "pixelsGreenDeficitGt2": 0
+          },
+          "managedPdfPoppler": {
+            "pixels": 32400,
+            "meanAbsoluteChannelDelta": 0.693858024691358,
+            "maxChannelDelta": 85,
+            "pixelsAnyChannelDeltaGt2": 228,
+            "pixelsGreenDeficitGt2": 0
+          },
+          "managedPdfQuartz": {
+            "pixels": 32400,
+            "meanAbsoluteChannelDelta": 0.5446707818930041,
+            "maxChannelDelta": 16,
+            "pixelsAnyChannelDeltaGt2": 76,
+            "pixelsGreenDeficitGt2": 0
+          },
+          "managedSvgEdge": {
+            "pixels": 32400,
+            "meanAbsoluteChannelDelta": 0.5884259259259259,
+            "maxChannelDelta": 2,
+            "pixelsAnyChannelDeltaGt2": 0,
+            "pixelsGreenDeficitGt2": 0
+          }
+        }
+      },
+      {
+        "case": "smooth-rotated",
+        "media": "print",
+        "pixelsPerRegion": 32400,
+        "againstNativeScreenshot": {
+          "edgePdfPoppler": {
+            "pixels": 32400,
+            "meanAbsoluteChannelDelta": 0.8192283950617284,
+            "maxChannelDelta": 182,
+            "pixelsAnyChannelDeltaGt2": 433,
+            "pixelsGreenDeficitGt2": 80
+          },
+          "edgePdfQuartz": {
+            "pixels": 32400,
+            "meanAbsoluteChannelDelta": 0.3943621399176955,
+            "maxChannelDelta": 180,
+            "pixelsAnyChannelDeltaGt2": 159,
+            "pixelsGreenDeficitGt2": 81
+          },
+          "managedPng": {
+            "pixels": 32400,
+            "meanAbsoluteChannelDelta": 0.3967181069958848,
+            "maxChannelDelta": 116,
+            "pixelsAnyChannelDeltaGt2": 92,
+            "pixelsGreenDeficitGt2": 54
+          },
+          "managedScene": {
+            "pixels": 32400,
+            "meanAbsoluteChannelDelta": 0.3966975308641975,
+            "maxChannelDelta": 116,
+            "pixelsAnyChannelDeltaGt2": 92,
+            "pixelsGreenDeficitGt2": 54
+          },
+          "managedPdfPoppler": {
+            "pixels": 32400,
+            "meanAbsoluteChannelDelta": 0.5809567901234568,
+            "maxChannelDelta": 127,
+            "pixelsAnyChannelDeltaGt2": 230,
+            "pixelsGreenDeficitGt2": 56
+          },
+          "managedPdfQuartz": {
+            "pixels": 32400,
+            "meanAbsoluteChannelDelta": 0.4075514403292181,
+            "maxChannelDelta": 114,
+            "pixelsAnyChannelDeltaGt2": 204,
+            "pixelsGreenDeficitGt2": 50
+          },
+          "managedSvgEdge": {
+            "pixels": 32400,
+            "meanAbsoluteChannelDelta": 0.45579218106995883,
+            "maxChannelDelta": 126,
+            "pixelsAnyChannelDeltaGt2": 61,
+            "pixelsGreenDeficitGt2": 31
+          }
+        }
+      },
+      {
+        "case": "closed-turn",
+        "media": "print",
+        "pixelsPerRegion": 32400,
+        "againstNativeScreenshot": {
+          "edgePdfPoppler": {
+            "pixels": 32400,
+            "meanAbsoluteChannelDelta": 0.49488683127572014,
+            "maxChannelDelta": 64,
+            "pixelsAnyChannelDeltaGt2": 1077,
+            "pixelsGreenDeficitGt2": 0
+          },
+          "edgePdfQuartz": {
+            "pixels": 32400,
+            "meanAbsoluteChannelDelta": 0.31530864197530867,
+            "maxChannelDelta": 35,
+            "pixelsAnyChannelDeltaGt2": 216,
+            "pixelsGreenDeficitGt2": 0
+          },
+          "managedPng": {
+            "pixels": 32400,
+            "meanAbsoluteChannelDelta": 0.47640946502057613,
+            "maxChannelDelta": 27,
+            "pixelsAnyChannelDeltaGt2": 114,
+            "pixelsGreenDeficitGt2": 0
+          },
+          "managedScene": {
+            "pixels": 32400,
+            "meanAbsoluteChannelDelta": 0.47636831275720165,
+            "maxChannelDelta": 27,
+            "pixelsAnyChannelDeltaGt2": 114,
+            "pixelsGreenDeficitGt2": 0
+          },
+          "managedPdfPoppler": {
+            "pixels": 32400,
+            "meanAbsoluteChannelDelta": 0.6325102880658436,
+            "maxChannelDelta": 128,
+            "pixelsAnyChannelDeltaGt2": 1888,
+            "pixelsGreenDeficitGt2": 0
+          },
+          "managedPdfQuartz": {
+            "pixels": 32400,
+            "meanAbsoluteChannelDelta": 0.5749382716049383,
+            "maxChannelDelta": 49,
+            "pixelsAnyChannelDeltaGt2": 1572,
+            "pixelsGreenDeficitGt2": 0
+          },
+          "managedSvgEdge": {
+            "pixels": 32400,
+            "meanAbsoluteChannelDelta": 0.4647942386831276,
+            "maxChannelDelta": 2,
+            "pixelsAnyChannelDeltaGt2": 0,
+            "pixelsGreenDeficitGt2": 0
+          }
+        }
+      },
+      {
+        "case": "corner-variable",
+        "media": "print",
+        "pixelsPerRegion": 32400,
+        "againstNativeScreenshot": {
+          "edgePdfPoppler": {
+            "pixels": 32400,
+            "meanAbsoluteChannelDelta": 0.541059670781893,
+            "maxChannelDelta": 17,
+            "pixelsAnyChannelDeltaGt2": 7,
+            "pixelsGreenDeficitGt2": 3
+          },
+          "edgePdfQuartz": {
+            "pixels": 32400,
+            "meanAbsoluteChannelDelta": 0.23241769547325103,
+            "maxChannelDelta": 3,
+            "pixelsAnyChannelDeltaGt2": 2,
+            "pixelsGreenDeficitGt2": 0
+          },
+          "managedPng": {
+            "pixels": 32400,
+            "meanAbsoluteChannelDelta": 0.308940329218107,
+            "maxChannelDelta": 4,
+            "pixelsAnyChannelDeltaGt2": 1,
+            "pixelsGreenDeficitGt2": 0
+          },
+          "managedScene": {
+            "pixels": 32400,
+            "meanAbsoluteChannelDelta": 0.308940329218107,
+            "maxChannelDelta": 4,
+            "pixelsAnyChannelDeltaGt2": 1,
+            "pixelsGreenDeficitGt2": 0
+          },
+          "managedPdfPoppler": {
+            "pixels": 32400,
+            "meanAbsoluteChannelDelta": 0.44809670781893,
+            "maxChannelDelta": 16,
+            "pixelsAnyChannelDeltaGt2": 39,
+            "pixelsGreenDeficitGt2": 1
+          },
+          "managedPdfQuartz": {
+            "pixels": 32400,
+            "meanAbsoluteChannelDelta": 0.2918724279835391,
+            "maxChannelDelta": 12,
+            "pixelsAnyChannelDeltaGt2": 18,
+            "pixelsGreenDeficitGt2": 0
+          },
+          "managedSvgEdge": {
+            "pixels": 32400,
+            "meanAbsoluteChannelDelta": 0.32405349794238686,
+            "maxChannelDelta": 2,
+            "pixelsAnyChannelDeltaGt2": 0,
+            "pixelsGreenDeficitGt2": 0
+          }
+        }
+      },
+      {
+        "case": "flat-variable",
+        "media": "print",
+        "pixelsPerRegion": 32400,
+        "againstNativeScreenshot": {
+          "edgePdfPoppler": {
+            "pixels": 32400,
+            "meanAbsoluteChannelDelta": 0.3977777777777778,
+            "maxChannelDelta": 152,
+            "pixelsAnyChannelDeltaGt2": 184,
+            "pixelsGreenDeficitGt2": 90
+          },
+          "edgePdfQuartz": {
+            "pixels": 32400,
+            "meanAbsoluteChannelDelta": 0.487962962962963,
+            "maxChannelDelta": 144,
+            "pixelsAnyChannelDeltaGt2": 182,
+            "pixelsGreenDeficitGt2": 90
+          },
+          "managedPng": {
+            "pixels": 32400,
+            "meanAbsoluteChannelDelta": 0.041666666666666664,
+            "maxChannelDelta": 1,
+            "pixelsAnyChannelDeltaGt2": 0,
+            "pixelsGreenDeficitGt2": 0
+          },
+          "managedScene": {
+            "pixels": 32400,
+            "meanAbsoluteChannelDelta": 0.041666666666666664,
+            "maxChannelDelta": 1,
+            "pixelsAnyChannelDeltaGt2": 0,
+            "pixelsGreenDeficitGt2": 0
+          },
+          "managedPdfPoppler": {
+            "pixels": 32400,
+            "meanAbsoluteChannelDelta": 0.1111111111111111,
+            "maxChannelDelta": 38,
+            "pixelsAnyChannelDeltaGt2": 90,
+            "pixelsGreenDeficitGt2": 0
+          },
+          "managedPdfQuartz": {
+            "pixels": 32400,
+            "meanAbsoluteChannelDelta": 0.041666666666666664,
+            "maxChannelDelta": 1,
+            "pixelsAnyChannelDeltaGt2": 0,
+            "pixelsGreenDeficitGt2": 0
+          },
+          "managedSvgEdge": {
+            "pixels": 32400,
+            "meanAbsoluteChannelDelta": 0.041666666666666664,
+            "maxChannelDelta": 1,
+            "pixelsAnyChannelDeltaGt2": 0,
+            "pixelsGreenDeficitGt2": 0
+          }
+        }
+      },
+      {
+        "case": "plateau-early",
+        "media": "print",
+        "pixelsPerRegion": 32400,
+        "againstNativeScreenshot": {
+          "edgePdfPoppler": {
+            "pixels": 32400,
+            "meanAbsoluteChannelDelta": 0.37279835390946503,
+            "maxChannelDelta": 178,
+            "pixelsAnyChannelDeltaGt2": 891,
+            "pixelsGreenDeficitGt2": 0
+          },
+          "edgePdfQuartz": {
+            "pixels": 32400,
+            "meanAbsoluteChannelDelta": 0.27309670781893003,
+            "maxChannelDelta": 168,
+            "pixelsAnyChannelDeltaGt2": 619,
+            "pixelsGreenDeficitGt2": 0
+          },
+          "managedPng": {
+            "pixels": 32400,
+            "meanAbsoluteChannelDelta": 0.14929012345679013,
+            "maxChannelDelta": 70,
+            "pixelsAnyChannelDeltaGt2": 754,
+            "pixelsGreenDeficitGt2": 654
+          },
+          "managedScene": {
+            "pixels": 32400,
+            "meanAbsoluteChannelDelta": 0.14924897119341562,
+            "maxChannelDelta": 70,
+            "pixelsAnyChannelDeltaGt2": 754,
+            "pixelsGreenDeficitGt2": 654
+          },
+          "managedPdfPoppler": {
+            "pixels": 32400,
+            "meanAbsoluteChannelDelta": 0.1529320987654321,
+            "maxChannelDelta": 68,
+            "pixelsAnyChannelDeltaGt2": 769,
+            "pixelsGreenDeficitGt2": 661
+          },
+          "managedPdfQuartz": {
+            "pixels": 32400,
+            "meanAbsoluteChannelDelta": 0.14746913580246915,
+            "maxChannelDelta": 76,
+            "pixelsAnyChannelDeltaGt2": 762,
+            "pixelsGreenDeficitGt2": 654
+          },
+          "managedSvgEdge": {
+            "pixels": 32400,
+            "meanAbsoluteChannelDelta": 0.13443415637860082,
+            "maxChannelDelta": 49,
+            "pixelsAnyChannelDeltaGt2": 746,
+            "pixelsGreenDeficitGt2": 658
+          }
+        }
+      },
+      {
+        "case": "plateau-late",
+        "media": "print",
+        "pixelsPerRegion": 32400,
+        "againstNativeScreenshot": {
+          "edgePdfPoppler": {
+            "pixels": 32400,
+            "meanAbsoluteChannelDelta": 0.4390843621399177,
+            "maxChannelDelta": 111,
+            "pixelsAnyChannelDeltaGt2": 782,
+            "pixelsGreenDeficitGt2": 78
+          },
+          "edgePdfQuartz": {
+            "pixels": 32400,
+            "meanAbsoluteChannelDelta": 0.38089506172839505,
+            "maxChannelDelta": 115,
+            "pixelsAnyChannelDeltaGt2": 420,
+            "pixelsGreenDeficitGt2": 23
+          },
+          "managedPng": {
+            "pixels": 32400,
+            "meanAbsoluteChannelDelta": 0.30676954732510286,
+            "maxChannelDelta": 67,
+            "pixelsAnyChannelDeltaGt2": 726,
+            "pixelsGreenDeficitGt2": 705
+          },
+          "managedScene": {
+            "pixels": 32400,
+            "meanAbsoluteChannelDelta": 0.3067283950617284,
+            "maxChannelDelta": 67,
+            "pixelsAnyChannelDeltaGt2": 726,
+            "pixelsGreenDeficitGt2": 705
+          },
+          "managedPdfPoppler": {
+            "pixels": 32400,
+            "meanAbsoluteChannelDelta": 0.35917695473251027,
+            "maxChannelDelta": 92,
+            "pixelsAnyChannelDeltaGt2": 830,
+            "pixelsGreenDeficitGt2": 810
+          },
+          "managedPdfQuartz": {
+            "pixels": 32400,
+            "meanAbsoluteChannelDelta": 0.29867283950617285,
+            "maxChannelDelta": 62,
+            "pixelsAnyChannelDeltaGt2": 717,
+            "pixelsGreenDeficitGt2": 694
+          },
+          "managedSvgEdge": {
+            "pixels": 32400,
+            "meanAbsoluteChannelDelta": 0.2978909465020576,
+            "maxChannelDelta": 26,
+            "pixelsAnyChannelDeltaGt2": 728,
+            "pixelsGreenDeficitGt2": 712
+          }
+        }
+      },
+      {
+        "case": "smooth-variable",
+        "media": "screen",
+        "pixelsPerRegion": 32400,
+        "againstNativeScreenshot": {
+          "edgePdfPoppler": {
+            "pixels": 32400,
+            "meanAbsoluteChannelDelta": 0.9367489711934156,
+            "maxChannelDelta": 152,
+            "pixelsAnyChannelDeltaGt2": 526,
+            "pixelsGreenDeficitGt2": 0
+          },
+          "edgePdfQuartz": {
+            "pixels": 32400,
+            "meanAbsoluteChannelDelta": 0.5290226337448559,
+            "maxChannelDelta": 144,
+            "pixelsAnyChannelDeltaGt2": 104,
+            "pixelsGreenDeficitGt2": 2
+          },
+          "managedPng": {
+            "pixels": 32400,
+            "meanAbsoluteChannelDelta": 0.32058641975308644,
+            "maxChannelDelta": 6,
+            "pixelsAnyChannelDeltaGt2": 5,
+            "pixelsGreenDeficitGt2": 1
+          },
+          "managedScene": {
+            "pixels": 32400,
+            "meanAbsoluteChannelDelta": 0.32058641975308644,
+            "maxChannelDelta": 6,
+            "pixelsAnyChannelDeltaGt2": 5,
+            "pixelsGreenDeficitGt2": 1
+          },
+          "managedPdfPoppler": {
+            "pixels": 32400,
+            "meanAbsoluteChannelDelta": 0.5428497942386832,
+            "maxChannelDelta": 55,
+            "pixelsAnyChannelDeltaGt2": 246,
+            "pixelsGreenDeficitGt2": 93
+          },
+          "managedPdfQuartz": {
+            "pixels": 32400,
+            "meanAbsoluteChannelDelta": 0.33252057613168723,
+            "maxChannelDelta": 18,
+            "pixelsAnyChannelDeltaGt2": 127,
+            "pixelsGreenDeficitGt2": 0
+          },
+          "managedSvgEdge": {
+            "pixels": 32400,
+            "meanAbsoluteChannelDelta": 0.3547119341563786,
+            "maxChannelDelta": 2,
+            "pixelsAnyChannelDeltaGt2": 0,
+            "pixelsGreenDeficitGt2": 0
+          }
+        }
+      },
+      {
+        "case": "smooth-opaque",
+        "media": "screen",
+        "pixelsPerRegion": 32400,
+        "againstNativeScreenshot": {
+          "edgePdfPoppler": {
+            "pixels": 32400,
+            "meanAbsoluteChannelDelta": 0.28291152263374486,
+            "maxChannelDelta": 32,
+            "pixelsAnyChannelDeltaGt2": 252,
+            "pixelsGreenDeficitGt2": 0
+          },
+          "edgePdfQuartz": {
+            "pixels": 32400,
+            "meanAbsoluteChannelDelta": 0.26258230452674897,
+            "maxChannelDelta": 16,
+            "pixelsAnyChannelDeltaGt2": 37,
+            "pixelsGreenDeficitGt2": 0
+          },
+          "managedPng": {
+            "pixels": 32400,
+            "meanAbsoluteChannelDelta": 0.27487654320987653,
+            "maxChannelDelta": 6,
+            "pixelsAnyChannelDeltaGt2": 10,
+            "pixelsGreenDeficitGt2": 0
+          },
+          "managedScene": {
+            "pixels": 32400,
+            "meanAbsoluteChannelDelta": 0.27487654320987653,
+            "maxChannelDelta": 6,
+            "pixelsAnyChannelDeltaGt2": 10,
+            "pixelsGreenDeficitGt2": 0
+          },
+          "managedPdfPoppler": {
+            "pixels": 32400,
+            "meanAbsoluteChannelDelta": 0.4607818930041152,
+            "maxChannelDelta": 166,
+            "pixelsAnyChannelDeltaGt2": 627,
+            "pixelsGreenDeficitGt2": 0
+          },
+          "managedPdfQuartz": {
+            "pixels": 32400,
+            "meanAbsoluteChannelDelta": 0.3830349794238683,
+            "maxChannelDelta": 32,
+            "pixelsAnyChannelDeltaGt2": 448,
+            "pixelsGreenDeficitGt2": 0
+          },
+          "managedSvgEdge": {
+            "pixels": 32400,
+            "meanAbsoluteChannelDelta": 0.27877572016460905,
+            "maxChannelDelta": 2,
+            "pixelsAnyChannelDeltaGt2": 0,
+            "pixelsGreenDeficitGt2": 0
+          }
+        }
+      },
+      {
+        "case": "smooth-common",
+        "media": "screen",
+        "pixelsPerRegion": 32400,
+        "againstNativeScreenshot": {
+          "edgePdfPoppler": {
+            "pixels": 32400,
+            "meanAbsoluteChannelDelta": 0.8620679012345679,
+            "maxChannelDelta": 31,
+            "pixelsAnyChannelDeltaGt2": 308,
+            "pixelsGreenDeficitGt2": 0
+          },
+          "edgePdfQuartz": {
+            "pixels": 32400,
+            "meanAbsoluteChannelDelta": 0.6479012345679013,
+            "maxChannelDelta": 66,
+            "pixelsAnyChannelDeltaGt2": 105,
+            "pixelsGreenDeficitGt2": 0
+          },
+          "managedPng": {
+            "pixels": 32400,
+            "meanAbsoluteChannelDelta": 0.5684465020576132,
+            "maxChannelDelta": 3,
+            "pixelsAnyChannelDeltaGt2": 3,
+            "pixelsGreenDeficitGt2": 0
+          },
+          "managedScene": {
+            "pixels": 32400,
+            "meanAbsoluteChannelDelta": 0.5684465020576132,
+            "maxChannelDelta": 3,
+            "pixelsAnyChannelDeltaGt2": 3,
+            "pixelsGreenDeficitGt2": 0
+          },
+          "managedPdfPoppler": {
+            "pixels": 32400,
+            "meanAbsoluteChannelDelta": 0.693858024691358,
+            "maxChannelDelta": 85,
+            "pixelsAnyChannelDeltaGt2": 228,
+            "pixelsGreenDeficitGt2": 0
+          },
+          "managedPdfQuartz": {
+            "pixels": 32400,
+            "meanAbsoluteChannelDelta": 0.5446707818930041,
+            "maxChannelDelta": 16,
+            "pixelsAnyChannelDeltaGt2": 76,
+            "pixelsGreenDeficitGt2": 0
+          },
+          "managedSvgEdge": {
+            "pixels": 32400,
+            "meanAbsoluteChannelDelta": 0.5884259259259259,
+            "maxChannelDelta": 2,
+            "pixelsAnyChannelDeltaGt2": 0,
+            "pixelsGreenDeficitGt2": 0
+          }
+        }
+      },
+      {
+        "case": "smooth-rotated",
+        "media": "screen",
+        "pixelsPerRegion": 32400,
+        "againstNativeScreenshot": {
+          "edgePdfPoppler": {
+            "pixels": 32400,
+            "meanAbsoluteChannelDelta": 0.8192283950617284,
+            "maxChannelDelta": 182,
+            "pixelsAnyChannelDeltaGt2": 433,
+            "pixelsGreenDeficitGt2": 80
+          },
+          "edgePdfQuartz": {
+            "pixels": 32400,
+            "meanAbsoluteChannelDelta": 0.3943621399176955,
+            "maxChannelDelta": 180,
+            "pixelsAnyChannelDeltaGt2": 159,
+            "pixelsGreenDeficitGt2": 81
+          },
+          "managedPng": {
+            "pixels": 32400,
+            "meanAbsoluteChannelDelta": 0.3967181069958848,
+            "maxChannelDelta": 116,
+            "pixelsAnyChannelDeltaGt2": 92,
+            "pixelsGreenDeficitGt2": 54
+          },
+          "managedScene": {
+            "pixels": 32400,
+            "meanAbsoluteChannelDelta": 0.3966975308641975,
+            "maxChannelDelta": 116,
+            "pixelsAnyChannelDeltaGt2": 92,
+            "pixelsGreenDeficitGt2": 54
+          },
+          "managedPdfPoppler": {
+            "pixels": 32400,
+            "meanAbsoluteChannelDelta": 0.5809567901234568,
+            "maxChannelDelta": 127,
+            "pixelsAnyChannelDeltaGt2": 230,
+            "pixelsGreenDeficitGt2": 56
+          },
+          "managedPdfQuartz": {
+            "pixels": 32400,
+            "meanAbsoluteChannelDelta": 0.4075514403292181,
+            "maxChannelDelta": 114,
+            "pixelsAnyChannelDeltaGt2": 204,
+            "pixelsGreenDeficitGt2": 50
+          },
+          "managedSvgEdge": {
+            "pixels": 32400,
+            "meanAbsoluteChannelDelta": 0.45579218106995883,
+            "maxChannelDelta": 126,
+            "pixelsAnyChannelDeltaGt2": 61,
+            "pixelsGreenDeficitGt2": 31
+          }
+        }
+      },
+      {
+        "case": "closed-turn",
+        "media": "screen",
+        "pixelsPerRegion": 32400,
+        "againstNativeScreenshot": {
+          "edgePdfPoppler": {
+            "pixels": 32400,
+            "meanAbsoluteChannelDelta": 0.49488683127572014,
+            "maxChannelDelta": 64,
+            "pixelsAnyChannelDeltaGt2": 1077,
+            "pixelsGreenDeficitGt2": 0
+          },
+          "edgePdfQuartz": {
+            "pixels": 32400,
+            "meanAbsoluteChannelDelta": 0.31530864197530867,
+            "maxChannelDelta": 35,
+            "pixelsAnyChannelDeltaGt2": 216,
+            "pixelsGreenDeficitGt2": 0
+          },
+          "managedPng": {
+            "pixels": 32400,
+            "meanAbsoluteChannelDelta": 0.47640946502057613,
+            "maxChannelDelta": 27,
+            "pixelsAnyChannelDeltaGt2": 114,
+            "pixelsGreenDeficitGt2": 0
+          },
+          "managedScene": {
+            "pixels": 32400,
+            "meanAbsoluteChannelDelta": 0.47636831275720165,
+            "maxChannelDelta": 27,
+            "pixelsAnyChannelDeltaGt2": 114,
+            "pixelsGreenDeficitGt2": 0
+          },
+          "managedPdfPoppler": {
+            "pixels": 32400,
+            "meanAbsoluteChannelDelta": 0.6325102880658436,
+            "maxChannelDelta": 128,
+            "pixelsAnyChannelDeltaGt2": 1888,
+            "pixelsGreenDeficitGt2": 0
+          },
+          "managedPdfQuartz": {
+            "pixels": 32400,
+            "meanAbsoluteChannelDelta": 0.5749382716049383,
+            "maxChannelDelta": 49,
+            "pixelsAnyChannelDeltaGt2": 1572,
+            "pixelsGreenDeficitGt2": 0
+          },
+          "managedSvgEdge": {
+            "pixels": 32400,
+            "meanAbsoluteChannelDelta": 0.4647942386831276,
+            "maxChannelDelta": 2,
+            "pixelsAnyChannelDeltaGt2": 0,
+            "pixelsGreenDeficitGt2": 0
+          }
+        }
+      },
+      {
+        "case": "corner-variable",
+        "media": "screen",
+        "pixelsPerRegion": 32400,
+        "againstNativeScreenshot": {
+          "edgePdfPoppler": {
+            "pixels": 32400,
+            "meanAbsoluteChannelDelta": 0.541059670781893,
+            "maxChannelDelta": 17,
+            "pixelsAnyChannelDeltaGt2": 7,
+            "pixelsGreenDeficitGt2": 3
+          },
+          "edgePdfQuartz": {
+            "pixels": 32400,
+            "meanAbsoluteChannelDelta": 0.23241769547325103,
+            "maxChannelDelta": 3,
+            "pixelsAnyChannelDeltaGt2": 2,
+            "pixelsGreenDeficitGt2": 0
+          },
+          "managedPng": {
+            "pixels": 32400,
+            "meanAbsoluteChannelDelta": 0.308940329218107,
+            "maxChannelDelta": 4,
+            "pixelsAnyChannelDeltaGt2": 1,
+            "pixelsGreenDeficitGt2": 0
+          },
+          "managedScene": {
+            "pixels": 32400,
+            "meanAbsoluteChannelDelta": 0.308940329218107,
+            "maxChannelDelta": 4,
+            "pixelsAnyChannelDeltaGt2": 1,
+            "pixelsGreenDeficitGt2": 0
+          },
+          "managedPdfPoppler": {
+            "pixels": 32400,
+            "meanAbsoluteChannelDelta": 0.44809670781893,
+            "maxChannelDelta": 16,
+            "pixelsAnyChannelDeltaGt2": 39,
+            "pixelsGreenDeficitGt2": 1
+          },
+          "managedPdfQuartz": {
+            "pixels": 32400,
+            "meanAbsoluteChannelDelta": 0.2918724279835391,
+            "maxChannelDelta": 12,
+            "pixelsAnyChannelDeltaGt2": 18,
+            "pixelsGreenDeficitGt2": 0
+          },
+          "managedSvgEdge": {
+            "pixels": 32400,
+            "meanAbsoluteChannelDelta": 0.32405349794238686,
+            "maxChannelDelta": 2,
+            "pixelsAnyChannelDeltaGt2": 0,
+            "pixelsGreenDeficitGt2": 0
+          }
+        }
+      },
+      {
+        "case": "flat-variable",
+        "media": "screen",
+        "pixelsPerRegion": 32400,
+        "againstNativeScreenshot": {
+          "edgePdfPoppler": {
+            "pixels": 32400,
+            "meanAbsoluteChannelDelta": 0.3977777777777778,
+            "maxChannelDelta": 152,
+            "pixelsAnyChannelDeltaGt2": 184,
+            "pixelsGreenDeficitGt2": 90
+          },
+          "edgePdfQuartz": {
+            "pixels": 32400,
+            "meanAbsoluteChannelDelta": 0.487962962962963,
+            "maxChannelDelta": 144,
+            "pixelsAnyChannelDeltaGt2": 182,
+            "pixelsGreenDeficitGt2": 90
+          },
+          "managedPng": {
+            "pixels": 32400,
+            "meanAbsoluteChannelDelta": 0.041666666666666664,
+            "maxChannelDelta": 1,
+            "pixelsAnyChannelDeltaGt2": 0,
+            "pixelsGreenDeficitGt2": 0
+          },
+          "managedScene": {
+            "pixels": 32400,
+            "meanAbsoluteChannelDelta": 0.041666666666666664,
+            "maxChannelDelta": 1,
+            "pixelsAnyChannelDeltaGt2": 0,
+            "pixelsGreenDeficitGt2": 0
+          },
+          "managedPdfPoppler": {
+            "pixels": 32400,
+            "meanAbsoluteChannelDelta": 0.1111111111111111,
+            "maxChannelDelta": 38,
+            "pixelsAnyChannelDeltaGt2": 90,
+            "pixelsGreenDeficitGt2": 0
+          },
+          "managedPdfQuartz": {
+            "pixels": 32400,
+            "meanAbsoluteChannelDelta": 0.041666666666666664,
+            "maxChannelDelta": 1,
+            "pixelsAnyChannelDeltaGt2": 0,
+            "pixelsGreenDeficitGt2": 0
+          },
+          "managedSvgEdge": {
+            "pixels": 32400,
+            "meanAbsoluteChannelDelta": 0.041666666666666664,
+            "maxChannelDelta": 1,
+            "pixelsAnyChannelDeltaGt2": 0,
+            "pixelsGreenDeficitGt2": 0
+          }
+        }
+      },
+      {
+        "case": "plateau-early",
+        "media": "screen",
+        "pixelsPerRegion": 32400,
+        "againstNativeScreenshot": {
+          "edgePdfPoppler": {
+            "pixels": 32400,
+            "meanAbsoluteChannelDelta": 0.37279835390946503,
+            "maxChannelDelta": 178,
+            "pixelsAnyChannelDeltaGt2": 891,
+            "pixelsGreenDeficitGt2": 0
+          },
+          "edgePdfQuartz": {
+            "pixels": 32400,
+            "meanAbsoluteChannelDelta": 0.27309670781893003,
+            "maxChannelDelta": 168,
+            "pixelsAnyChannelDeltaGt2": 619,
+            "pixelsGreenDeficitGt2": 0
+          },
+          "managedPng": {
+            "pixels": 32400,
+            "meanAbsoluteChannelDelta": 0.14929012345679013,
+            "maxChannelDelta": 70,
+            "pixelsAnyChannelDeltaGt2": 754,
+            "pixelsGreenDeficitGt2": 654
+          },
+          "managedScene": {
+            "pixels": 32400,
+            "meanAbsoluteChannelDelta": 0.14924897119341562,
+            "maxChannelDelta": 70,
+            "pixelsAnyChannelDeltaGt2": 754,
+            "pixelsGreenDeficitGt2": 654
+          },
+          "managedPdfPoppler": {
+            "pixels": 32400,
+            "meanAbsoluteChannelDelta": 0.1529320987654321,
+            "maxChannelDelta": 68,
+            "pixelsAnyChannelDeltaGt2": 769,
+            "pixelsGreenDeficitGt2": 661
+          },
+          "managedPdfQuartz": {
+            "pixels": 32400,
+            "meanAbsoluteChannelDelta": 0.14746913580246915,
+            "maxChannelDelta": 76,
+            "pixelsAnyChannelDeltaGt2": 762,
+            "pixelsGreenDeficitGt2": 654
+          },
+          "managedSvgEdge": {
+            "pixels": 32400,
+            "meanAbsoluteChannelDelta": 0.13443415637860082,
+            "maxChannelDelta": 49,
+            "pixelsAnyChannelDeltaGt2": 746,
+            "pixelsGreenDeficitGt2": 658
+          }
+        }
+      },
+      {
+        "case": "plateau-late",
+        "media": "screen",
+        "pixelsPerRegion": 32400,
+        "againstNativeScreenshot": {
+          "edgePdfPoppler": {
+            "pixels": 32400,
+            "meanAbsoluteChannelDelta": 0.4390843621399177,
+            "maxChannelDelta": 111,
+            "pixelsAnyChannelDeltaGt2": 782,
+            "pixelsGreenDeficitGt2": 78
+          },
+          "edgePdfQuartz": {
+            "pixels": 32400,
+            "meanAbsoluteChannelDelta": 0.38089506172839505,
+            "maxChannelDelta": 115,
+            "pixelsAnyChannelDeltaGt2": 420,
+            "pixelsGreenDeficitGt2": 23
+          },
+          "managedPng": {
+            "pixels": 32400,
+            "meanAbsoluteChannelDelta": 0.30676954732510286,
+            "maxChannelDelta": 67,
+            "pixelsAnyChannelDeltaGt2": 726,
+            "pixelsGreenDeficitGt2": 705
+          },
+          "managedScene": {
+            "pixels": 32400,
+            "meanAbsoluteChannelDelta": 0.3067283950617284,
+            "maxChannelDelta": 67,
+            "pixelsAnyChannelDeltaGt2": 726,
+            "pixelsGreenDeficitGt2": 705
+          },
+          "managedPdfPoppler": {
+            "pixels": 32400,
+            "meanAbsoluteChannelDelta": 0.35917695473251027,
+            "maxChannelDelta": 92,
+            "pixelsAnyChannelDeltaGt2": 830,
+            "pixelsGreenDeficitGt2": 810
+          },
+          "managedPdfQuartz": {
+            "pixels": 32400,
+            "meanAbsoluteChannelDelta": 0.29867283950617285,
+            "maxChannelDelta": 62,
+            "pixelsAnyChannelDeltaGt2": 717,
+            "pixelsGreenDeficitGt2": 694
+          },
+          "managedSvgEdge": {
+            "pixels": 32400,
+            "meanAbsoluteChannelDelta": 0.2978909465020576,
+            "maxChannelDelta": 26,
+            "pixelsAnyChannelDeltaGt2": 728,
+            "pixelsGreenDeficitGt2": 712
+          }
+        }
+      }
+    ],
+    "rawComparisons": {
+      "file": "final-comparison.json",
+      "bytes": 183966,
+      "sha256": "5034e6f8db18d1b83848f3de9dfdfe35ad9bbf4a534903edfcd310a20de5fdb7"
+    },
+    "visualInspection": "All nine print contacts inspected at normal reading size (180 CSS px); rotated wrap, centre and narrow plateau differences retained. Metrics compare entire180x180regions; no angular exclusion or increased tolerance.",
+    "ownedBrowserAndServersReleased": true
+  },
+  "result": {
+    "confirmedNewInterpolationDefect": false,
+    "residualRetained": true,
+    "centeredVariableAlphaFullRegionGreenDeficitGt2": {
+      "managedScene": 1,
+      "managedPdfPoppler": 93,
+      "managedPdfQuartz": 0,
+      "managedSvgEdge": 0
+    },
+    "interpretation": "Observed PDF appearance depends on the consumer; the same vector PDF has a larger wrap stripe in Poppler than in CoreGraphics. Edge-generated PDF also differs from Edge screenshots. These observations do not identify a new shared interpolation defect or close exact near-origin/wrap appearance. Rotated and narrow interpolation controls retain explicit differences.",
+    "rejectedExperiment": {
+      "change": "Coverage fallback phase 0.0 to 0.5; authored hard-stop selection unchanged",
+      "effect": "93 full-region managed-PDF green deficits above 2 remain; key wrap/origin witnesses unchanged; phase change removed",
+      "productionOwnerRestoredByteForByte": true,
+      "record": {
+        "file": "experiment-plan.json",
+        "bytes": 707,
+        "sha256": "95619911cde2e06ba76588af4731f5db86e332694a276b4e817a045f2587c0a4"
+      }
+    }
+  },
+  "contracts": {
+    "renderCases": 9,
+    "mediaContexts": 2,
+    "fullRoiComparisons": 18,
+    "pagedPngPdfEquivalentSets": 6,
+    "profiles": 4,
+    "onePageAllProfiles": true,
+    "pdfImages": 0,
+    "svgImageElements": 0
+  },
+  "managed": [
+    {
+      "framework": "net8.0",
+      "passed": 6,
+      "failed": 0,
+      "skipped": 0,
+      "file": "trx/net8.0/_evomini_2026-10-17_16_59_16.trx",
+      "bytes": 10203,
+      "sha256": "a0e2e121273c6954cdbd5ebaf1d749e14649d0f62df1b02c179ee0ac4bee1527"
+    },
+    {
+      "framework": "net10.0",
+      "passed": 6,
+      "failed": 0,
+      "skipped": 0,
+      "file": "trx/net10.0/_evomini_2026-10-17_16_57_59.trx",
+      "bytes": 10216,
+      "sha256": "63d31e7352dc01160f169b0f34a0d60bad389eca5caa083c8c35784b4c3f7330"
+    }
+  ],
+  "retainedPriorQualification": {
+    "receipt": "auto-table-columns-20261017.json",
+    "qualifiedProductionSource": "6f504ca449814e91cb0ccb6b1eb27f49048c5611",
+    "fullHtmlPerFramework": 6588,
+    "frameworks": [
+      "net8.0",
+      "net10.0"
+    ],
+    "packagesAndConsumers": "Four framework assets, private package consumers and macOS arm64 NativeAOT from the unchanged parent source remain valid; not rerun for evidence-only edits.",
+    "drawingPdfOwners": "Current production trees equal parent; parent/static-receipt qualification is retained rather than claiming a new broad run."
+  },
+  "reproduce": {
+    "frozenControlHtml": "<!doctype html><style>@page{size:800px 1000px;margin:0}body{margin:0;background:white}</style><div id=\"smooth-variable\" style=\"position:absolute;left:32px;top:32px;width:180px;height:180px;background:#00ff00 conic-gradient(rgba(255 0 0 /25%),rgba(0 0 255 /75%))\"></div><div id=\"smooth-opaque\" style=\"position:absolute;left:272px;top:32px;width:180px;height:180px;background:#00ff00 conic-gradient(red,blue)\"></div><div id=\"smooth-common\" style=\"position:absolute;left:512px;top:32px;width:180px;height:180px;background:#00ff00 conic-gradient(rgba(255 0 0 /50%),rgba(0 0 255 /50%))\"></div><div id=\"smooth-rotated\" style=\"position:absolute;left:32px;top:272px;width:180px;height:180px;background:#00ff00 conic-gradient(from 17deg,rgba(255 0 0 /25%),rgba(0 0 255 /75%))\"></div><div id=\"closed-turn\" style=\"position:absolute;left:272px;top:272px;width:180px;height:180px;background:#00ff00 conic-gradient(red,blue,red)\"></div><div id=\"corner-variable\" style=\"position:absolute;left:512px;top:272px;width:180px;height:180px;background:#00ff00 conic-gradient(at 0% 0%,rgba(255 0 0 /25%),rgba(0 0 255 /75%))\"></div><div id=\"flat-variable\" style=\"position:absolute;left:32px;top:512px;width:180px;height:180px;background:#00ff00 conic-gradient(rgba(255 0 0 /25%) 0deg 90deg,rgba(0 0 255 /75%) 90deg 360deg)\"></div><div id=\"plateau-early\" style=\"position:absolute;left:272px;top:512px;width:180px;height:180px;background:#00ff00 conic-gradient(rgba(255 0 0 /25%) 0deg,rgba(0 0 255 /75%) 10deg 360deg)\"></div><div id=\"plateau-late\" style=\"position:absolute;left:512px;top:512px;width:180px;height:180px;background:#00ff00 conic-gradient(rgba(255 0 0 /25%) 0deg 350deg,rgba(0 0 255 /75%) 360deg)\"></div>",
+    "singleControlHtml": "<!doctype html><style>@page{size:800px 1000px;margin:0}body{margin:0;background:white}.box{position:absolute;left:32px;top:60px;width:180px;height:180px;background:#00ff00 conic-gradient(rgba(255 0 0 /25%),rgba(0 0 255 /75%))}</style><div class=\"box\"></div>",
+    "inputHashes": {
+      "conic.html": "43d65f0c8eb94d344102074d779dc4f8082903a53caf169cdc57979f6e5eabd9",
+      "controls.html": "d31fccb2138d6598dcf9a69e10420ba7be5cb7d7086ab53fa01a9bedba8393f2",
+      "svg-controls.html": "52f5830a8adb58aa7d81b1a4c32d9ec00fdd210ddd646fa8b10e0c8944002a2b",
+      "controls.svg": "9b692737c7f8c1612d25865d667da99eb9aa423705838aed805206561828203d"
+    },
+    "managedOptions": {
+      "viewport": [
+        800,
+        1000
+      ],
+      "pageSizeInches": [
+        8.333333333333334,
+        10.416666666666666
+      ],
+      "marginsCssPx": 0,
+      "resourcePolicy": "PdfResourcePolicy.CreatePortableDeterministic()",
+      "userAgentStyles": "Browser",
+      "conicQualitySegments": 360,
+      "profiles": [
+        "PrintPaged",
+        "ScreenMediaPaged",
+        "ScreenFullPage",
+        "ScreenSnapshotPaged"
+      ]
+    },
+    "managedRoute": "HtmlRenderEngine.Execute(document,HtmlRenderRequest.Create(profile,HtmlRenderEncoder.Png,options)).ExportImages(); compare each paged export byte-for-byte with RenderToPdfResult(...).ToBytes() read through PdfReadDocument.ExportImages(Png,Scale=96/72). SVG uses the same request and scene.",
+    "nativeRoute": "Serve frozen inputs on 127.0.0.1; HtmlTinkerX owns a headless Edge session; block non-loopback requests, await fonts/images, capture print/screen screenshots and CSS-size PDFs. Host emitted SVG in a block image at its original 800 by 1000 size. Render PDFs at 96 dpi with Poppler and CoreGraphics.",
+    "focusedTests": "dotnet test OfficeIMO.Html.Tests/OfficeIMO.Html.Tests.csproj -c Release -f <net8.0|net10.0> -m:3 --filter FullyQualifiedName~Conic",
+    "producerArchive": {
+      "file": "qualified-producer.zip",
+      "bytes": 9026494,
+      "sha256": "6ff6ea76d724e3aa8e978e4445e4ac33419f3908ec5e2b11216e1b6aa2bc32e2",
+      "entries": 22,
+      "crcVerified": true,
+      "source": "Unmodified09cc799eabproduction owner trees; current native8output comparisonproducer",
+      "entryPoint": "producer/TableProbe.dll"
+    }
+  },
+  "limits": [
+    "These are bounded static rendering observations, not full browser-appearance acceptance.",
+    "Per-channel threshold 2 is a descriptive metric, not a newly relaxed acceptance gate. Full-region distributions and raw witnesses are retained.",
+    "Default 360 segment approximation and consumer antialiasing remain visible at authored discontinuities, narrow interpolation spans and the centre.",
+    "No Windows profiling, physical print, interactive runtime or provider-fork adoption.",
+    "No new public API, production dependency, package publication, PR or merge."
+  ],
+  "publication": {
+    "checkpointPushAuthorized": true,
+    "pr": false,
+    "merge": false,
+    "runtimeProviderBranchUnchanged": "feature/html-engine"
+  },
+  "evidenceRoot": "/Volumes/Samsung/Development/Scratch/html-conic-interpolation",
+  "storage": {
+    "logicalBytesRemoved": 1966196888,
+    "targetsAbsent": true,
+    "retainedLogicalBytes": 25495694,
+    "retainedRoot": "/Volumes/Samsung/Development/Scratch/html-conic-interpolation",
+    "retentionReason": "Frozen fixtures, actual focused TRX, decisive PDF/PNG/SVG and native controls, rejected experiment evidence, runtime/source hashes and compact qualified producer ZIP; no expanded builds/packages/caches."
+  }
+}

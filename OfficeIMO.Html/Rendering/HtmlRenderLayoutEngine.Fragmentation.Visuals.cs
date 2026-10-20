@@ -3,12 +3,12 @@ using OfficeIMO.Drawing;
 namespace OfficeIMO.Html;
 
 internal sealed partial class HtmlRenderLayoutEngine {
-    private IReadOnlyList<HtmlRenderVisual> SliceBlockVisuals(HtmlRenderFlowBlock block, double start, double end, double? fragmentBackgroundEnd = null) {
+    private IReadOnlyList<HtmlRenderVisual> SliceBlockVisuals(HtmlRenderFlowBlock block, double start, double end, PagedBackgroundWindow? backgroundWindow = null) {
         return SliceVisuals(block.Visuals, start, end, includeEndAnchor: end >= block.PagedPaintExtent - 0.0001D,
-            fragmentBackgroundEnd: fragmentBackgroundEnd);
+            backgroundWindow: backgroundWindow);
     }
 
-    private IReadOnlyList<HtmlRenderVisual> SliceVisuals(IEnumerable<HtmlRenderVisual> sourceVisuals, double start, double end, bool includeEndAnchor = false, double? fragmentBackgroundEnd = null) {
+    private IReadOnlyList<HtmlRenderVisual> SliceVisuals(IEnumerable<HtmlRenderVisual> sourceVisuals, double start, double end, bool includeEndAnchor = false, PagedBackgroundWindow? backgroundWindow = null) {
         var fragment = new List<HtmlRenderVisual>();
         foreach (HtmlRenderVisual visual in sourceVisuals) {
             int firstFragment = fragment.Count;
@@ -36,25 +36,51 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 } else if (visual is HtmlRenderClipGroup { ClipVertical: false } visibleVerticalClip) {
                     visualBottom = Math.Max(visualBottom, MaximumScrollBottom(visibleVerticalClip.Visuals));
                 }
+                if (visual is HtmlRenderShape { CollapsedBorderBoundaryY: double boundary }
+                    && Math.Abs(boundary - start) <= 0.0001D) {
+                    // A resumed fragment retains both sides of its starting rule.
+                    // The preceding fragment clips that rule at its ending centerline.
+                    fragment.Add(visual.Translate(0D, -start, fragment.Count));
+                    continue;
+                }
+
                 double intersectionTop = Math.Max(start, visualTop);
                 double intersectionBottom = Math.Min(end, visualBottom);
                 if (intersectionBottom <= intersectionTop + 0.0001D && !containsFlowAnchor) continue;
 
-                if (visual is HtmlRenderShape { CanExtendFragmentBackground: true, LinkUri: null } background
-                    && fragmentBackgroundEnd.HasValue && fragmentBackgroundEnd.Value > end + 0.0001D
-                    && visualBottom > end + 0.0001D) {
-                    // A kept child can leave slack before the page edge. Continue only its
-                    // ancestor's plain background paint; content and CSS flow still end at the safe cut.
-                    OfficeShape fill = OfficeShape.Rectangle(background.Width,
-                        Math.Max(background.Height, fragmentBackgroundEnd.Value - background.Y));
-                    fill.FillColor = background.InnerShape.FillColor;
-                    fill.StrokeWidth = 0D;
-                    HtmlRenderShape extended = background.CopyStackingContextTo(new HtmlRenderShape(fill,
-                        background.X, background.Y, background.PaintOrder, source: background.Source,
-                        layoutY: background.LayoutY, layoutHeight: background.LayoutHeight));
+                if (_options.Mode == HtmlRenderMode.Paged
+                    && visual is HtmlRenderShape { CanExtendFragmentColumnRule: true, LinkUri: null } rule
+                    && backgroundWindow is { } ruleWindow
+                    && Math.Abs(visualBottom - end) <= 0.0001D
+                    && ruleWindow.End > end + 0.0001D) {
+                    // A page break before the next spanner ends this column set, while its
+                    // rule reaches the physical page edge. Keep the source cut
+                    // so the extended paint cannot recur beside the next spanner.
+                    HtmlRenderShape extended = ExtendFragmentColumnRule(rule, ruleWindow.End);
                     fragment.Add(CreateVerticallyClippedVisualFragment(extended, start,
-                        intersectionTop, fragmentBackgroundEnd.Value, fragment.Count));
+                        intersectionTop, ruleWindow.End, fragment.Count));
                     continue;
+                }
+
+                if (visual is HtmlRenderShape { CanExtendFragmentBackground: true, LinkUri: null } background
+                    && backgroundWindow is { } window) {
+                    double paintBottom = visualBottom > end + 0.0001D
+                        ? Math.Max(intersectionBottom, window.ResolveEnd(visualBottom)) : intersectionBottom;
+                    if (paintBottom > intersectionBottom + 0.0001D) {
+                        // Only ancestor backdrop paint spans footer reservations and safe-cut slack.
+                        // Source content and the CSS flow retain the original slice window.
+                        OfficeShape fill = OfficeShape.Rectangle(background.Width,
+                            Math.Max(background.Height, paintBottom - background.Y));
+                        fill.FillColor = background.InnerShape.FillColor;
+                        fill.StrokeWidth = 0D;
+                        HtmlRenderShape extended = background.CopyStackingContextTo(new HtmlRenderShape(fill,
+                            background.X, background.Y, background.PaintOrder, source: background.Source,
+                            layoutY: background.LayoutY, layoutHeight: background.LayoutHeight));
+                        fragment.Add(CreateVerticallyClippedVisualFragment(extended, start,
+                            intersectionTop, paintBottom, fragment.Count));
+                        AppendFragmentSideBorders(fragment, background, start, intersectionBottom, paintBottom);
+                        continue;
+                    }
                 }
 
                 bool fullyContained = visualTop >= start - 0.0001D && visualBottom <= end + 0.0001D;
@@ -64,7 +90,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 }
 
                 if (visual is HtmlRenderClipGroup clipGroup) {
-                    IReadOnlyList<HtmlRenderVisual> children = SliceVisuals(clipGroup.Visuals, start, end, includeEndAnchor, fragmentBackgroundEnd);
+                    IReadOnlyList<HtmlRenderVisual> children = SliceVisuals(clipGroup.Visuals, start, end, includeEndAnchor, backgroundWindow);
                     if (children.Count > 0) {
                         fragment.Add(new HtmlRenderClipGroup(
                             clipGroup.ClipX,
@@ -83,7 +109,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 }
 
                 if (visual is HtmlRenderSemanticGroup semanticGroup) {
-                    IReadOnlyList<HtmlRenderVisual> children = SliceVisuals(semanticGroup.Visuals, start, end, includeEndAnchor, fragmentBackgroundEnd);
+                    IReadOnlyList<HtmlRenderVisual> children = SliceVisuals(semanticGroup.Visuals, start, end, includeEndAnchor, backgroundWindow);
                     if (children.Count > 0) {
                         fragment.Add(new HtmlRenderSemanticGroup(
                             semanticGroup.Role,
@@ -104,7 +130,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 }
 
                 if (visual is HtmlRenderLayoutRegion layoutRegion) {
-                    IReadOnlyList<HtmlRenderVisual> children = SliceVisuals(layoutRegion.Visuals, start, end, includeEndAnchor, fragmentBackgroundEnd);
+                    IReadOnlyList<HtmlRenderVisual> children = SliceVisuals(layoutRegion.Visuals, start, end, includeEndAnchor, backgroundWindow);
                     fragment.Add(new HtmlRenderLayoutRegion(
                         layoutRegion.SourceKey,
                         layoutRegion.RegionKind,
@@ -143,7 +169,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 }
 
                 if (visual is HtmlRenderLogicalTextGroup logicalTextGroup) {
-                    IReadOnlyList<HtmlRenderVisual> children = SliceVisuals(logicalTextGroup.Visuals, start, end, includeEndAnchor, fragmentBackgroundEnd);
+                    IReadOnlyList<HtmlRenderVisual> children = SliceVisuals(logicalTextGroup.Visuals, start, end, includeEndAnchor, backgroundWindow);
                     if (children.Count > 0) {
                         fragment.Add(new HtmlRenderLogicalTextGroup(
                             ResolveLogicalText(children, logicalTextGroup.Text),
@@ -155,7 +181,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                             fragment.Count,
                             logicalTextGroup.Source,
                             logicalTextGroup.LayoutY - start,
-                            logicalScope: logicalTextGroup.LogicalScope));
+                            logicalScope: logicalTextGroup.LogicalScope) { SemanticSourceOrder = logicalTextGroup.SemanticSourceOrder });
                     }
                     continue;
                 }
@@ -200,10 +226,9 @@ internal sealed partial class HtmlRenderLayoutEngine {
                     continue;
                 }
 
-                if (visual is HtmlRenderPathClipGroup pathClip && containsFlowAnchor) {
-                    // Atomic paint clipping keeps the complete child tree on
-                    // each page. Source points must instead belong only to
-                    // their fragment; retain the same path and outer paint clip.
+                if (visual is HtmlRenderPathClipGroup pathClip) {
+                    // Keep one source occurrence of text and flow anchors while
+                    // retaining the authored path in its original coordinates.
                     IReadOnlyList<HtmlRenderVisual> children = SliceVisuals(pathClip.Visuals, start, end, includeEndAnchor);
                     if (children.Count > 0) {
                         var slicedPath = new HtmlRenderPathClipGroup(pathClip.ClipX, pathClip.ClipY - start,
@@ -220,7 +245,6 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 if (visual is HtmlRenderImage
                     || visual is HtmlRenderDrawing
                     || visual is HtmlRenderImagePattern
-                    || visual is HtmlRenderPathClipGroup
                     || visual is HtmlRenderShape
                     || visual is HtmlRenderAnchorFragment) {
                     fragment.Add(CreateVerticallyClippedVisualFragment(visual, start, intersectionTop, intersectionBottom, fragment.Count));

@@ -13,6 +13,9 @@ public class PdfFormFieldStyle {
     private PdfFormFieldBorderStyle _borderStyle = PdfFormFieldBorderStyle.Solid;
     private double _cornerRadius;
 
+    /// <summary>Source sibling order retained independently from widget serialization order.</summary>
+    internal long? LogicalOrder { get; set; }
+
     /// <summary>Background fill color. Set to null for transparent field appearance streams.</summary>
     public PdfColor? BackgroundColor { get; set; } = PdfColor.White;
 
@@ -207,7 +210,8 @@ public class PdfFormFieldStyle {
             MaxLength = MaxLength,
             TextAlignment = TextAlignment,
             AlternateName = AlternateName,
-            MappingName = MappingName
+            MappingName = MappingName,
+            LogicalOrder = LogicalOrder
         };
     }
 

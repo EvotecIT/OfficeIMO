@@ -50,6 +50,7 @@
     </EmbeddedResource>
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="..\OfficeIMO.SharedSource\IO\OfficeFileCommitClaim.cs" Link="Internal\IO\OfficeFileCommitClaim.cs" />
     <Compile Include="..\OfficeIMO.SharedSource\Compound\OfficeCompoundDocumentDetector.cs" Link="Internal\Compound\OfficeCompoundDocumentDetector.cs" />
     <Compile Include="..\OfficeIMO.SharedSource\Compound\OfficeCompoundFile.cs" Link="Internal\Compound\OfficeCompoundFile.cs" />
     <Compile Include="..\OfficeIMO.SharedSource\Compound\OfficeCompoundFileEntry.cs" Link="Internal\Compound\OfficeCompoundFileEntry.cs" />

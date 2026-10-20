@@ -5,8 +5,10 @@ namespace OfficeIMO.Html;
 
 internal sealed partial class HtmlRenderStyleResolver {
     private double ResolveComputedLineHeight(HtmlComputedStyle computed, double fontSize, HtmlRenderBoxStyle? parent,
-        out double alignmentLineHeight) {
+        out double alignmentLineHeight, out bool usesNaturalLineHeight) {
         string value = computed.GetValue("line-height").Trim();
+        usesNaturalLineHeight = !_options.HasExplicitDefaultLineHeight
+            && (value.Length == 0 || value.Equals("normal", StringComparison.OrdinalIgnoreCase));
         // Numbers and normal remain font-relative; explicit lengths and percentages
         // inherit their computed value, including across more than one font change.
         if (computed.IsInheritedValue("line-height") && parent != null

@@ -69,6 +69,7 @@ public static partial class OfficeDrawingRasterRenderer {
 
     private static void RenderPositionedTextLines(OfficeRasterCanvas canvas, OfficeDrawingText text, double scale,
         double x, double y, double width, double height) {
+        using var preparedScope = canvas.PushPreparedShaping(text.PreparedShaping);
         IReadOnlyList<double>? dash = text.OutlineStrokeDashPattern;
         if (dash != null && scale != 1D) {
             var scaled = new double[dash.Count];
@@ -185,6 +186,11 @@ public static partial class OfficeDrawingRasterRenderer {
     }
 
     internal static void RenderText(OfficeRasterCanvas canvas, OfficeDrawingText text, double scale, long maximumRasterPixels) {
+        using var preparedScope = canvas.PushPreparedShaping(text.PreparedShaping);
+        RenderTextCore(canvas, text, scale, maximumRasterPixels);
+    }
+
+    private static void RenderTextCore(OfficeRasterCanvas canvas, OfficeDrawingText text, double scale, long maximumRasterPixels) {
         using var metricScope = canvas.PushFontMetricScale(canvas.FontMetricScale * text.FontMetricScale);
         using var faceScope = canvas.PushTextFace(text.Font.Face);
         var (contentX, contentY, contentWidth, contentHeight) = ResolveTextContentRectangle(text, scale);

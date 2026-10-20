@@ -4,17 +4,26 @@ namespace OfficeIMO.Drawing;
 
 /// <summary>Font-unit line metrics used by document layout, independently of PDF descriptor rounding.</summary>
 internal readonly struct OfficeOpenTypeLineMetrics {
-    private OfficeOpenTypeLineMetrics(double horizontalAdvance, double ascent, double descent, OfficeOpenTypeDeviceMetrics? deviceMetrics) {
+    private OfficeOpenTypeLineMetrics(double horizontalAdvance, double ascent, double descent, OfficeOpenTypeDeviceMetrics? deviceMetrics,
+        double hheaAscent, double hheaDescent, double hheaLineGap) {
         HorizontalAdvanceRatio = horizontalAdvance;
         AscentRatio = ascent;
         DescentRatio = descent;
         _deviceMetrics = deviceMetrics;
+        HheaAscentRatio = hheaAscent;
+        HheaDescentRatio = hheaDescent;
+        HheaLineGapRatio = hheaLineGap;
     }
 
     private readonly OfficeOpenTypeDeviceMetrics? _deviceMetrics;
     internal double HorizontalAdvanceRatio { get; }
     internal double AscentRatio { get; }
     internal double DescentRatio { get; }
+
+    // CSS uses the horizontal header independently of Word's OS/2/VDMX policy.
+    internal double HheaAscentRatio { get; }
+    internal double HheaDescentRatio { get; }
+    internal double HheaLineGapRatio { get; }
 
     // Device metrics affect alignment inside a line, independently of its advance.
     internal void GetDeviceMetrics(double fontSize, double pointsPerPixel, out double ascent, out double descent) {
@@ -56,7 +65,9 @@ internal readonly struct OfficeOpenTypeLineMetrics {
         }
         return advance > 0
             ? new OfficeOpenTypeLineMetrics(advance / (double)reader.UnitsPerEm, ascent / (double)reader.UnitsPerEm,
-                descent / (double)reader.UnitsPerEm, OfficeOpenTypeDeviceMetrics.TryRead(reader))
+                descent / (double)reader.UnitsPerEm, OfficeOpenTypeDeviceMetrics.TryRead(reader),
+                reader.Ascender / (double)reader.UnitsPerEm, -reader.Descender / (double)reader.UnitsPerEm,
+                reader.LineGap / (double)reader.UnitsPerEm)
             : null;
     }
 }

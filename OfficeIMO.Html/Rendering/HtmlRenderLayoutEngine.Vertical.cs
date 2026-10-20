@@ -182,7 +182,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 sourceWidth,
                 verticalVisuals,
                 0,
-                source);
+                source) { SemanticSourceOrder = GetSemanticSourceOrder(element) };
         return new HtmlInlineLayout(
             new[] { verticalVisual },
             sourceWidth,
@@ -208,7 +208,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                     var glyphs = new List<HtmlRenderVisual>();
                     AppendVerticalText(glyphs, text, axisTransform, textOrientation, rightToLeftBlocks, source);
                     result.Add(new HtmlRenderLogicalTextGroup(text.Text, 0D, 0D,
-                        destinationWidth, destinationHeight, glyphs, result.Count, text.Source));
+                        destinationWidth, destinationHeight, glyphs, result.Count, text.Source) { SemanticSourceOrder = text.SemanticSourceOrder });
                 } else {
                     AppendVerticalText(result, text, axisTransform, textOrientation, rightToLeftBlocks, source);
                 }
@@ -255,7 +255,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                     destinationHeight,
                     children,
                     result.Count,
-                    logical.Source));
+                    logical.Source) { SemanticSourceOrder = logical.SemanticSourceOrder });
                 continue;
             }
 
@@ -335,7 +335,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 visual.DecorationColor,
                 visual.FeatureSettings,
                 visual.FontPalette,
-                fontDescriptor: visual.FontDescriptor);
+                fontDescriptor: visual.FontDescriptor) { SemanticSourceOrder = visual.SemanticSourceOrder };
             if (upright) {
                 destination.Add(glyph.Translate(0D, 0D, destination.Count));
                 continue;

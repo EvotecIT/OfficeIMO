@@ -76,7 +76,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                     viewportHeight: useSvgViewport ? placement.FullHeight : null,
                     requireAuthoredRasterSafety: IsInlineSvgElement(element)) && svgDrawing != null) {
                     AddSvgImageVisual(objectVisuals, svgDrawing, bytes, imageX, imageY, placement, alternativeText,
-                        link, sourceDescription);
+                        link, sourceDescription, GetSemanticSourceOrder(element));
                     addedObject = true;
                 }
             } else {
@@ -91,7 +91,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                     alternativeText,
                     link,
                     sourceDescription,
-                    placement.SourceCrop));
+                    placement.SourceCrop) { SemanticSourceOrder = GetSemanticSourceOrder(element) });
                 addedObject = true;
             }
         }
@@ -412,7 +412,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
         ReplacedObjectPlacement placement,
         string? alternativeText,
         string? link,
-        string sourceDescription) {
+        string sourceDescription,
+        int? semanticSourceOrder) {
         double visibleX = imageX + placement.X;
         double visibleY = imageY + placement.Y;
         if (!placement.SourceCrop.HasCrop) {
@@ -428,7 +429,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 sourceDescription,
                 imageBytes: imageBytes,
                 imageContentType: "image/svg+xml",
-                sourceCrop: placement.SourceCrop));
+                sourceCrop: placement.SourceCrop) { SemanticSourceOrder = semanticSourceOrder });
             return;
         }
 
@@ -450,7 +451,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
             imageX: visibleX,
             imageY: visibleY,
             imageWidth: placement.Width,
-            imageHeight: placement.Height);
+            imageHeight: placement.Height) { SemanticSourceOrder = semanticSourceOrder };
         visuals.Add(new HtmlRenderClipGroup(
             visibleX,
             visibleY,

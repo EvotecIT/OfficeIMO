@@ -1,0 +1,3152 @@
+{
+  "schema": "officeimo.html.spanner-break-controls-qualification/v1",
+  "status": "qualified-bounded-static-branch-checkpoint",
+  "recordedUtc": "2026-10-18T10:16:04.670957+00:00",
+  "baseHead": "07bbd947c77b51625d002f27e04c2828308aeea1",
+  "qualifiedSourceHead": "a5ed5c201fce866f5d9c95970b76e75db1daedfd",
+  "sourceTrees": {
+    "OfficeIMO.Core": "768aefa57ba30faf6f83347d76468f37e72043bf",
+    "OfficeIMO.Html": "b9e65b0037cd506e30329ca3872d542ba7826a4d",
+    "OfficeIMO.Html.Core": "3804952eb46a7eb05a8976bb7f421fc8aa619d5e",
+    "OfficeIMO.Html.AngleSharp": "2b7f2b16754df243579efea6e88a9c35e0dce3a6",
+    "OfficeIMO.Pdf": "b1b316ace5b668ccbc8e61cc5cb8ba59e32de68a",
+    "OfficeIMO.SharedSource": "378654d27e9ba94a6143859f718ed6c9ef1facb2",
+    "OfficeIMO.Html.Tests": "b4a7b87d33e67c5450be683ba9341743417fc021",
+    "Directory.Build.props": "75c225a157144cf23d2e688fa9bf379fbc9a1a13",
+    "Directory.Build.targets": "d74a9894d591deb1a8b8739f291114bc0d4ec309",
+    "Directory.Packages.props": null,
+    "global.json": "64b312f8364bc8d0bdc88994e960ed46379e22c0",
+    "NuGet.Config": null,
+    "Build/Compatibility/IsExternalInit.cs": "fb3b1e36d01add9c6194e6eed0951b8e1dbef36a"
+  },
+  "implementation": {
+    "owner": "OfficeIMO.Html canonical column/page planners and fragment paint; existing shared paragraph, boundary and shape metadata owners are reused.",
+    "publicApiChange": false,
+    "productionDependencyChange": false
+  },
+  "supportedContract": [
+    "Eligible ordinary horizontal auto-fill column hosts honor direct full-width spanners' own forced page-before/page-after targets and fitting page keeps through the canonical page planner.",
+    "Terminal columns use the physical origin after those page jumps and keeps, including partial-page entry and left/right parity.",
+    "Preceding column rules can fill unused page-body space before a forced spanner page break while source coordinates and fragment membership stay unchanged.",
+    "Direct spanner column-only controls are inactive without an outer column context. Page controls are inactive in continuous and snapshot layout."
+  ],
+  "assetMap": {
+    "regular.ttf": {
+      "bytes": 105592,
+      "sha256": "00aca2988771998ff27738ff97c2cc8e71eb3013f206de5f205986b7de326af3",
+      "repositoryPath": "OfficeIMO.TestAssets/Fonts/OfficeIMOBaselineSans-Regular.ttf"
+    },
+    "bold.ttf": {
+      "bytes": 120288,
+      "sha256": "20bb7ad2e23beb5020313119f46fbc50a5ded598aaa1be4df719d3c017914b6c",
+      "repositoryPath": "OfficeIMO.TestAssets/Fonts/OfficeIMOBaselineSans-Bold.ttf"
+    }
+  },
+  "priorPortableReceipt": {
+    "bytes": 945070,
+    "sha256": "ef449b41747294481e497f398b50bdb733115e85105e624b6c63a65aabb9914b",
+    "repositoryPath": "Build/Project/Evidence/2026-09-30/html-master-convergence/spanning-column-fragmentation-20261018.json"
+  },
+  "relatedCoreReaderReceipts": [
+    {
+      "bytes": 5162,
+      "sha256": "977b7794f34324697d964c4dcd7a744721cd32dc9f739b5ce2a75032a319caa5",
+      "repositoryPath": "Build/Project/Evidence/2026-10-18/core-image-save-publication.json"
+    },
+    {
+      "bytes": 6798,
+      "sha256": "869f655450fddd5ffa07890a1f1017ddf3994ae00ae66c2c6d6c176351da66b4",
+      "repositoryPath": "Build/Project/Evidence/2026-10-18/reader-file-publication.json"
+    }
+  ],
+  "sourceSeal": {
+    "bytes": 1195748,
+    "sha256": "43b8ba2bbc4fe8019780372d2f2c5315c5372eca6bbb3670b21b90be702f99a7",
+    "path": "qualified-source.json"
+  },
+  "acceptedMatrix": {
+    "bytes": 99153,
+    "sha256": "aec8144186be15ae92d909c20ea96b4f39b6d809d0db40bf735070da7fa0b9ec",
+    "path": "accepted-fixture-matrix.json"
+  },
+  "actualCapturedSubject": {
+    "binding": {
+      "bytes": 20445,
+      "sha256": "b88c2902cb0b37ca2871af84a223e982944cc007cb0e7442c0458f71caa98eb9",
+      "path": "qualified-renderer-binding.json"
+    },
+    "runtimeDllSha256": {
+      "AngleSharp.Css.dll": "b9d58927495cbe8559015897d1ed5b18838ae658d52d0a9321bc5d9da6101f61",
+      "AngleSharp.dll": "ed9ebe8f1f6a8537f52a5aa607225d929de55f202bd6c1fa198e10bf82db2911",
+      "OfficeIMO.Core.dll": "ab40f9578d3870b9aa97f057937774ce30003e01208401c4a2b1cf9c801b7511",
+      "OfficeIMO.Html.AngleSharp.dll": "20028a2f3ff48c56cebfcabaea0d912f5d7bf7051f7a9dd88a6112e06f4638db",
+      "OfficeIMO.Html.Core.dll": "3acf00f6fed676807366053b2e0f3a6d04ae8032558915c7949b96abc7f35a6e",
+      "OfficeIMO.Html.dll": "f3bfa4f4d14f495f16f846250ac02bbdacd42bd0fbd47ace885ef274f2f262ab",
+      "OfficeIMO.Pdf.dll": "d2bf04d8000e43681d09f8e1aa90547d3c47e97e755b58e94cc3e10e52e3a006",
+      "RowSpanProbe.dll": "6d86e5205dd93923d77038a7117d0cb00fd9fc65683b0e292095263eea9bef7b"
+    }
+  },
+  "frameworks": {
+    "status": "passed",
+    "focused": {
+      "passed": 177,
+      "failed": 0,
+      "trx": {
+        "bytes": 271504,
+        "sha256": "7e88c1cc28e75ce020faea841485436e3d5a733da70a813968106beece9b7374",
+        "path": "retained-producers/qualification-final/trx/focused-net10.trx"
+      }
+    },
+    "results": [
+      {
+        "framework": "net10.0",
+        "passed": 6925,
+        "failed": 0,
+        "trx": {
+          "bytes": 10723532,
+          "sha256": "17789dd4bc2840409978c4d41dfa2fa3c4470fcd77c652728df031415416e203",
+          "path": "retained-producers/qualification-final/trx/net10.0/full-net10.0.trx"
+        }
+      },
+      {
+        "framework": "net8.0",
+        "passed": 6925,
+        "failed": 0,
+        "trx": {
+          "bytes": 10709681,
+          "sha256": "05a88b8d33731f824c79d4cd7df406de1d4b6a3a42ae2ddad45881746e0c330d",
+          "path": "retained-producers/qualification-final/trx/net8.0/full-net8.0.trx"
+        }
+      }
+    ],
+    "evidence": {
+      "bytes": 79908,
+      "sha256": "bea51bfb612998ba727fa3b77ed06d9b5db08b98fa8465018ca01e3803edc6a8",
+      "path": "qualification-final-results.json"
+    }
+  },
+  "packages": {
+    "status": "passed",
+    "qualificationOnly": true,
+    "publicRelease": false,
+    "packages": {
+      "OfficeIMO.Core": {
+        "bytes": 8450348,
+        "sha256": "ece27366dc82c165b28ba6eb0ef7e7224f1e1c2fdfee90a161ec959436d7f45f",
+        "path": "package-proof/feed/OfficeIMO.Core.3.5.1.nupkg"
+      },
+      "OfficeIMO.Pdf": {
+        "bytes": 13040940,
+        "sha256": "8e54c9302db28a9d4924bed2dfcaf4bd51244339a9b61f5f912d690bfb0b88cd",
+        "path": "package-proof/feed/OfficeIMO.Pdf.3.5.1.nupkg"
+      },
+      "OfficeIMO.Html.Core": {
+        "bytes": 324884,
+        "sha256": "9cb7b0525d152cc6e24788e28d902554ebf9c73ae1aaaf8a5c628e20f6dd5fed",
+        "path": "package-proof/feed/OfficeIMO.Html.Core.3.5.1.nupkg"
+      },
+      "OfficeIMO.Html.AngleSharp": {
+        "bytes": 103773,
+        "sha256": "8c1ea098627b0373904cce14c23a01fbbf0d73189e1e3d48ebbc4904cc0e9f1f",
+        "path": "package-proof/feed/OfficeIMO.Html.AngleSharp.3.5.1.nupkg"
+      },
+      "OfficeIMO.Html": {
+        "bytes": 4469476,
+        "sha256": "45b889817cf7b369e06773688a1db5528db47c6eda4d847119bb018acebc8904",
+        "path": "package-proof/feed/OfficeIMO.Html.3.5.1.nupkg"
+      }
+    },
+    "frameworkAssets": [
+      "net472",
+      "netstandard2.0",
+      "net8.0",
+      "net10.0"
+    ],
+    "consumers": [
+      {
+        "consumer": "net8",
+        "architecture": "Arm64",
+        "caseProfilePairs": 128,
+        "result": {
+          "bytes": 338083,
+          "sha256": "253f1c21345cd628d3fabbfce4c025c82ca643d55e7dd98916dce7620bfab489",
+          "path": "package-proof/results/net8/result.json"
+        },
+        "executable": {
+          "bytes": 41472,
+          "sha256": "6ef924e1365cf1d3d59a92feb8058118bd6d7261a77208bf4b833a76f6c02b8a",
+          "path": "package-proof/out/net8/SpanningColumnPackagenet8.dll"
+        }
+      },
+      {
+        "consumer": "net10",
+        "architecture": "Arm64",
+        "caseProfilePairs": 128,
+        "result": {
+          "bytes": 338091,
+          "sha256": "5cc03549e71b705a218c13c142f5ffe9e9d8eed455f6d9c5762b6128b45de8c6",
+          "path": "package-proof/results/net10/result.json"
+        },
+        "executable": {
+          "bytes": 41472,
+          "sha256": "3a2fccf678c37af6189ba3deb5347397b928333a548383530c148061016eaa67",
+          "path": "package-proof/out/net10/SpanningColumnPackagenet10.dll"
+        }
+      },
+      {
+        "consumer": "aot",
+        "architecture": "Arm64",
+        "caseProfilePairs": 128,
+        "result": {
+          "bytes": 336747,
+          "sha256": "b488b33598cf0f0841c2bf145e54354ab92a7b01dbfe4174a151f47260ad9cd7",
+          "path": "package-proof/results/aot/result.json"
+        },
+        "executable": {
+          "bytes": 33236408,
+          "sha256": "31bcf7a900aef0df8a119f153ff493755b5055f8c7e480dc2199b8620be60074",
+          "path": "package-proof/out/aot/SpanningColumnPackageaot"
+        }
+      }
+    ],
+    "binding": {
+      "bytes": 21315,
+      "sha256": "869fea8c873cf2b75461e4bc01668b7795de6ddf1e645408f3bb482f46803873",
+      "path": "package-proof/package-binding.json"
+    },
+    "consumerBinding": {
+      "bytes": 1592376,
+      "sha256": "6f99ac12134734080bc3863e68056b1cf779c95e732c7e8aa969a8baddacd81b",
+      "path": "package-proof/consumer-binding.json"
+    },
+    "acceptance": {
+      "bytes": 1097124,
+      "sha256": "3b5495d33f838641f3973f1aa0deb938db2864b30935b5618844f0fe92f8dce3",
+      "path": "package-acceptance.json"
+    },
+    "boundary": "net8/net10 and macOS arm64 NativeAOT execute; net472/netstandard2.0 assets compile only. No Windows execution or public release."
+  },
+  "regressions": {
+    "spanner": {
+      "cases": 34,
+      "identical": true,
+      "evidence": {
+        "bytes": 538744,
+        "sha256": "94e08d89091885b90969f9ff49b77916f1e3a363c1ad77320d3ac29bd515ee12",
+        "path": "spanner-regression-results.json"
+      }
+    },
+    "ordinary": {
+      "totals": {
+        "cases": 35,
+        "profiles": 140,
+        "publicPngPages": 194,
+        "scenePngPages": 194,
+        "svgPages": 194,
+        "pdfs": 105
+      },
+      "identical": true,
+      "evidence": {
+        "bytes": 1871629,
+        "sha256": "a0e51e04787838a935395ff793571ba015218d9761a5e5289557198b20308f3e",
+        "path": "ordinary-regression-a5ed5c201fce-comparison.json"
+      },
+      "noChangeBinding": {
+        "bytes": 1871358,
+        "sha256": "38afd65000d9aa051dc28ee9c6739be9d07b352988e43a30371d3ddc9f5d2dc3",
+        "path": "ordinary-regression-a5ed5c201fce-no-change-binding.json"
+      }
+    },
+    "report": {
+      "totals": {
+        "captures": 4,
+        "profiles": 16,
+        "pngPages": 81
+      },
+      "identical": true,
+      "evidence": {
+        "bytes": 14717194,
+        "sha256": "e8769dea4ad94ea620606a02a070b17dd314b41372dc7177e32dcd4a0f0616dc",
+        "path": "report-regression-a5ed5c201fce-comparison.json"
+      },
+      "noChangeBinding": {
+        "bytes": 14716924,
+        "sha256": "ce09519fe90996ff7aff05803fbcdf5afacb0142c09fb8156e8bbdd6c34b5478",
+        "path": "report-regression-a5ed5c201fce-no-change-binding.json"
+      }
+    }
+  },
+  "svg": {
+    "pages": 28,
+    "passed": true,
+    "inspectedContacts": 8,
+    "evidence": {
+      "bytes": 5003069,
+      "sha256": "0988f22d38e1be8c17b7122c278460a1fa17e5519e7a23c1a69e0dba466859b5",
+      "path": "qualified-svg-analysis/results.json"
+    },
+    "visualInspection": {
+      "bytes": 3507,
+      "sha256": "de07cfbb9eee2bc2eee2d709c1e2caaa8e8a427d626a9e60a17ffaffca0d7f81",
+      "path": "visual-inspection.json"
+    },
+    "rasterPolicy": "Independent Poppler rasterization of native Edge SVG PDFs and qualified product PDFs at actual normal 96dpi. Whole unmasked pages, same-origin white padding for page rounding only; no crop, scaling, registration, mask or synthetic scene PNG. Raw MAE and difference maps remain descriptive.",
+    "boundary": "Native rendering of exact exported SVG bytes is separate from native HTML and managed PNG/PDF replay. No pixel-identical native appearance claim."
+  },
+  "nativeHtmlVisual": {
+    "pages": 12,
+    "inspectedContacts": 4,
+    "evidence": {
+      "bytes": 1544,
+      "sha256": "7766642930cb28f4c026b24aa03d5bd44898fb2ba09b4219b7380e8aecfe188d",
+      "path": "native-html-visual-inspection.json"
+    },
+    "observations": "All12 original96dpi Edge HTML/product PDF pairs were visually inspected. Full-width headings, all tail labels, following paragraph and actual page-edge rule extents agree in these two native-matched subjects. Edge retains tiny blue boundary dots on the later spanner/following page; product correctly clips the rule there. Font and line antialiasing differs slightly. No pixel-identical native claim.",
+    "boundary": "Two native-matched cases only. Tiny native blue edge dots and font antialiasing residuals do not establish general pixel equality."
+  },
+  "invoice": {
+    "profiles": [
+      "PrintPaged",
+      "ScreenMediaPaged"
+    ],
+    "pagesPerProfile": 2,
+    "pageItemCounts": [
+      18,
+      3
+    ],
+    "all21RowsRetained": true,
+    "repeatedHeader": true,
+    "multilingualLogicalText": true,
+    "pngEqualsPdfReplay": true,
+    "evidence": {
+      "bytes": 354051,
+      "sha256": "b70af1e4e87261d11daa1c84dce7d593d8cbb9d3a0a22f8b4e203fe12039cc6d",
+      "path": "invoice-regression-a5ed5c201fce-binding.json"
+    },
+    "summary": {
+      "bytes": 86210,
+      "sha256": "c21e5c4e1d3bee25629109d702bbfe010a25bb033f51d6a45fb69a7a6ef70cf1",
+      "path": "invoice-regression-a5ed5c201fce-capture/summary.json"
+    },
+    "boundary": "Exact audit input and new HtmlToPdfOptions() defaults; historical Edge155 two-page controls lack resolved OS-font byte hashes. No current native font-byte or pixel-equivalence claim."
+  },
+  "logicalSceneSupplement": {
+    "bytes": 117616,
+    "sha256": "0207c669126211ca0f7138376a6cda97f980bd912072b2eac8fb8439a24072a6",
+    "path": "logical-scene-supplement.json"
+  },
+  "snapshotBridge": {
+    "bytes": 413086,
+    "sha256": "838757f436d7dda43041377db3e07fe8f05edf94d2ec269b9ec8dc5201ad1582",
+    "path": "snapshot-qualification-bridge-logical.json"
+  },
+  "independentReview": {
+    "mode": "fresh strictly read-only local pass; no builds/tests/producers/browser",
+    "findings": 0,
+    "evidence": {
+      "bytes": 906,
+      "sha256": "2c28ae10f556fcbfef25548e803c244f4cc5652a439c5805582bb93c7f1da870",
+      "path": "review-disposition.json"
+    }
+  },
+  "nativeClassificationCounts": {
+    "native-interop-witness": 22,
+    "native-difference": 7,
+    "native-paint-boundary": 3
+  },
+  "cases": [
+    {
+      "case": "auto-free-final-sequential",
+      "fixture": "Build/Project/Evidence/2026-09-30/html-master-convergence/spanning-column-fragmentation-20261018/auto-free-final-sequential.html",
+      "bytes": 853,
+      "sha256": "b471393f00de0f4e72aa36a658995557a59998944ea632ed1219fa55ad781b5e",
+      "classification": "native-interop-witness",
+      "boundaryProfiles": [],
+      "boundaryReason": null,
+      "sourceLabelCount": 8,
+      "profiles": [
+        {
+          "profile": "PrintPaged",
+          "pages": 2,
+          "sourceLabelsRetainedOnce": true,
+          "expectationKind": "native-supported",
+          "pngEqualsPdfReplay": true,
+          "replayDpi": 96
+        },
+        {
+          "profile": "ScreenMediaPaged",
+          "pages": 2,
+          "sourceLabelsRetainedOnce": true,
+          "expectationKind": "native-supported",
+          "pngEqualsPdfReplay": true,
+          "replayDpi": 96
+        },
+        {
+          "profile": "ScreenFullPage",
+          "pages": 1,
+          "sourceLabelsRetainedOnce": true,
+          "expectationKind": "native-supported",
+          "pngEqualsPdfReplay": null,
+          "replayDpi": null
+        },
+        {
+          "profile": "ScreenSnapshotPaged",
+          "pages": 1,
+          "sourceLabelsRetainedOnce": true,
+          "expectationKind": "native-supported",
+          "pngEqualsPdfReplay": true,
+          "replayDpi": 96
+        }
+      ],
+      "summary": {
+        "bytes": 9595,
+        "sha256": "089cf6e57ee09fedf2486ee84c74ad82a32c0bc641512824ef2fda08eb99eb9a",
+        "path": "qualified-auto-free-final-sequential/summary.json"
+      },
+      "captureReceipt": {
+        "bytes": 1620,
+        "sha256": "fb5b9147b230b6201002034d0a472c6a0523d1b1eab001199dc0f9bed633b9ea",
+        "path": "qualified-auto-free-final-sequential.receipt.json"
+      },
+      "nativeArtifacts": [
+        {
+          "bytes": 14043,
+          "sha256": "9fadc3e890c24601fbdb197be4e9e54d12897a2f370beb20e3b29b6df894c2a8",
+          "path": "native-auto-free-final-sequential/print.pdf"
+        },
+        {
+          "bytes": 14043,
+          "sha256": "a8aecd1f986b8f74f443ce4d5775371ea377f81b5e453be385cb30989283412f",
+          "path": "native-auto-free-final-sequential/screen.pdf"
+        },
+        {
+          "bytes": 5373,
+          "sha256": "99846589d992acc10458dad3ab3a3ce7b888cf7a6c5482ab7d278586c6d28b72",
+          "path": "native-auto-free-final-sequential/print.json"
+        },
+        {
+          "bytes": 5373,
+          "sha256": "99846589d992acc10458dad3ab3a3ce7b888cf7a6c5482ab7d278586c6d28b72",
+          "path": "native-auto-free-final-sequential/screen.json"
+        },
+        {
+          "bytes": 2,
+          "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+          "path": "native-auto-free-final-sequential/errors.json"
+        }
+      ],
+      "nativeLifecycleReceipt": {
+        "bytes": 301,
+        "sha256": "5c4340816f5fe28be8d7ab051c3663bee2186ffeda5676131e21db0be8917514",
+        "path": "native-auto-free-final-sequential-receipt.json"
+      }
+    },
+    {
+      "case": "spanner-before-page-diagnostic-boundary",
+      "fixture": "Build/Project/Evidence/2026-09-30/html-master-convergence/spanning-column-fragmentation-20261018/spanner-before-page-diagnostic-boundary.html",
+      "bytes": 828,
+      "sha256": "d0d662891c71f42179c27d6fde5825d6fd981f75f608748952637849a88c2a4f",
+      "classification": "native-interop-witness",
+      "boundaryProfiles": [],
+      "boundaryReason": null,
+      "sourceLabelCount": 6,
+      "profiles": [
+        {
+          "profile": "PrintPaged",
+          "pages": 2,
+          "sourceLabelsRetainedOnce": true,
+          "expectationKind": "native-supported",
+          "pngEqualsPdfReplay": true,
+          "replayDpi": 96
+        },
+        {
+          "profile": "ScreenMediaPaged",
+          "pages": 2,
+          "sourceLabelsRetainedOnce": true,
+          "expectationKind": "native-supported",
+          "pngEqualsPdfReplay": true,
+          "replayDpi": 96
+        },
+        {
+          "profile": "ScreenFullPage",
+          "pages": 1,
+          "sourceLabelsRetainedOnce": true,
+          "expectationKind": "native-supported",
+          "pngEqualsPdfReplay": null,
+          "replayDpi": null
+        },
+        {
+          "profile": "ScreenSnapshotPaged",
+          "pages": 1,
+          "sourceLabelsRetainedOnce": true,
+          "expectationKind": "native-supported",
+          "pngEqualsPdfReplay": true,
+          "replayDpi": 96
+        }
+      ],
+      "summary": {
+        "bytes": 8062,
+        "sha256": "78bf3b9daac06405f818dad0bb4531135ea78fa55d356d3b35a8f7b89e235009",
+        "path": "qualified-spanner-before-page-diagnostic-boundary/summary.json"
+      },
+      "captureReceipt": {
+        "bytes": 1646,
+        "sha256": "46074cd525cd3b46c339bc8e4425610ea66e688ed494016ccf64f089e306f4d8",
+        "path": "qualified-spanner-before-page-diagnostic-boundary.receipt.json"
+      },
+      "nativeArtifacts": [
+        {
+          "bytes": 12891,
+          "sha256": "a8e137f7805ccc14a19ed6105400d3ddc5511a85c24d343dc71c416f0a7a6acb",
+          "path": "native-spanner-before-page-diagnostic-boundary/print.pdf"
+        },
+        {
+          "bytes": 12891,
+          "sha256": "a8e137f7805ccc14a19ed6105400d3ddc5511a85c24d343dc71c416f0a7a6acb",
+          "path": "native-spanner-before-page-diagnostic-boundary/screen.pdf"
+        },
+        {
+          "bytes": 4185,
+          "sha256": "b51541120f4f809dc6f7a6d7786e2689e12b5fb5d603339049e036a658318b7d",
+          "path": "native-spanner-before-page-diagnostic-boundary/print.json"
+        },
+        {
+          "bytes": 4185,
+          "sha256": "b51541120f4f809dc6f7a6d7786e2689e12b5fb5d603339049e036a658318b7d",
+          "path": "native-spanner-before-page-diagnostic-boundary/screen.json"
+        },
+        {
+          "bytes": 2,
+          "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+          "path": "native-spanner-before-page-diagnostic-boundary/errors.json"
+        }
+      ],
+      "nativeLifecycleReceipt": {
+        "bytes": 301,
+        "sha256": "ee7004bb13c48914efa8f476c7a464b4e1ee4f17a7c19f08c846f27d0f7226a2",
+        "path": "native-spanner-before-page-diagnostic-boundary-receipt.json"
+      }
+    },
+    {
+      "case": "spanner-after-page-diagnostic-boundary",
+      "fixture": "Build/Project/Evidence/2026-09-30/html-master-convergence/spanning-column-fragmentation-20261018/spanner-after-page-diagnostic-boundary.html",
+      "bytes": 826,
+      "sha256": "a3e838e438ddd9d1c30600a950048bdfd883068d7c690ac4b0d5e13baa56eae0",
+      "classification": "native-difference",
+      "boundaryProfiles": [
+        "PrintPaged",
+        "ScreenMediaPaged"
+      ],
+      "boundaryReason": "Edge ignores an applicable page force after a direct spanner when a local column set follows. OfficeIMO honors the CSS force; native equivalence is not claimed.",
+      "sourceLabelCount": 6,
+      "profiles": [
+        {
+          "profile": "PrintPaged",
+          "pages": 2,
+          "sourceLabelsRetainedOnce": true,
+          "expectationKind": "documented-boundary",
+          "pngEqualsPdfReplay": true,
+          "replayDpi": 96
+        },
+        {
+          "profile": "ScreenMediaPaged",
+          "pages": 2,
+          "sourceLabelsRetainedOnce": true,
+          "expectationKind": "documented-boundary",
+          "pngEqualsPdfReplay": true,
+          "replayDpi": 96
+        },
+        {
+          "profile": "ScreenFullPage",
+          "pages": 1,
+          "sourceLabelsRetainedOnce": true,
+          "expectationKind": "native-supported",
+          "pngEqualsPdfReplay": null,
+          "replayDpi": null
+        },
+        {
+          "profile": "ScreenSnapshotPaged",
+          "pages": 1,
+          "sourceLabelsRetainedOnce": true,
+          "expectationKind": "native-supported",
+          "pngEqualsPdfReplay": true,
+          "replayDpi": 96
+        }
+      ],
+      "summary": {
+        "bytes": 8058,
+        "sha256": "8b241f3d1d8781dd7085802003e550ea0eea4e8099fb1bb1c3d97266d3ece5ac",
+        "path": "qualified-spanner-after-page-diagnostic-boundary/summary.json"
+      },
+      "captureReceipt": {
+        "bytes": 1644,
+        "sha256": "f3eb898c7ef5b30b92dbb6ed71752d8e67f574842b2cf446ce788a25ee29bf2e",
+        "path": "qualified-spanner-after-page-diagnostic-boundary.receipt.json"
+      },
+      "nativeArtifacts": [
+        {
+          "bytes": 12480,
+          "sha256": "4211238f55a5803f51bfe2f1c115188dfc95b2e90fc64622719e01c254332c72",
+          "path": "native-spanner-after-page-diagnostic-boundary/print.pdf"
+        },
+        {
+          "bytes": 12480,
+          "sha256": "19a66a1f652ecd14fdb46f54edbcca81024053e251f395b91466c0f40921d64b",
+          "path": "native-spanner-after-page-diagnostic-boundary/screen.pdf"
+        },
+        {
+          "bytes": 4195,
+          "sha256": "1a5f2f678fc36028ca0105281ab370ccaa60a1d0655c906ebc902e2966a33bf0",
+          "path": "native-spanner-after-page-diagnostic-boundary/print.json"
+        },
+        {
+          "bytes": 4195,
+          "sha256": "1a5f2f678fc36028ca0105281ab370ccaa60a1d0655c906ebc902e2966a33bf0",
+          "path": "native-spanner-after-page-diagnostic-boundary/screen.json"
+        },
+        {
+          "bytes": 2,
+          "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+          "path": "native-spanner-after-page-diagnostic-boundary/errors.json"
+        }
+      ],
+      "nativeLifecycleReceipt": {
+        "bytes": 301,
+        "sha256": "cd54094d1dea3396ffdda8eda0fb46bb7a6eb7a8b82dcafcea2e3d58dd7d775c",
+        "path": "native-spanner-after-page-diagnostic-boundary-receipt.json"
+      }
+    },
+    {
+      "case": "last-before-spanner-after-column",
+      "fixture": "Build/Project/Evidence/2026-09-30/html-master-convergence/spanning-column-fragmentation-20261018/last-before-spanner-after-column.html",
+      "bytes": 822,
+      "sha256": "fa42a720d7b3e54485d4eb3baf8d074617fc2a6bc9762aca27fcb419c3c137fe",
+      "classification": "native-interop-witness",
+      "boundaryProfiles": [],
+      "boundaryReason": null,
+      "sourceLabelCount": 6,
+      "profiles": [
+        {
+          "profile": "PrintPaged",
+          "pages": 1,
+          "sourceLabelsRetainedOnce": true,
+          "expectationKind": "native-supported",
+          "pngEqualsPdfReplay": true,
+          "replayDpi": 96
+        },
+        {
+          "profile": "ScreenMediaPaged",
+          "pages": 1,
+          "sourceLabelsRetainedOnce": true,
+          "expectationKind": "native-supported",
+          "pngEqualsPdfReplay": true,
+          "replayDpi": 96
+        },
+        {
+          "profile": "ScreenFullPage",
+          "pages": 1,
+          "sourceLabelsRetainedOnce": true,
+          "expectationKind": "native-supported",
+          "pngEqualsPdfReplay": null,
+          "replayDpi": null
+        },
+        {
+          "profile": "ScreenSnapshotPaged",
+          "pages": 1,
+          "sourceLabelsRetainedOnce": true,
+          "expectationKind": "native-supported",
+          "pngEqualsPdfReplay": true,
+          "replayDpi": 96
+        }
+      ],
+      "summary": {
+        "bytes": 7878,
+        "sha256": "dddbe5e02c6636a29f1db402c12637e8bd1e257f103e1e291c90a7549af1938e",
+        "path": "qualified-last-before-spanner-after-column/summary.json"
+      },
+      "captureReceipt": {
+        "bytes": 1632,
+        "sha256": "705d2879d36bced21baf861ebb17af7e8055f65b87cb98b7564385e31a051a55",
+        "path": "qualified-last-before-spanner-after-column.receipt.json"
+      },
+      "nativeArtifacts": [
+        {
+          "bytes": 12634,
+          "sha256": "40a4f44119e8872b27aa1e66ae31d3acd0b97e54d8b7cc2bea4175576c4bf80a",
+          "path": "native-last-before-spanner-after-column/print.pdf"
+        },
+        {
+          "bytes": 12634,
+          "sha256": "40a4f44119e8872b27aa1e66ae31d3acd0b97e54d8b7cc2bea4175576c4bf80a",
+          "path": "native-last-before-spanner-after-column/screen.pdf"
+        },
+        {
+          "bytes": 4195,
+          "sha256": "a814a9346223a2901bb909ded7bd1711c5b0e7d8d9b17fd01751bbea6bbc0e0c",
+          "path": "native-last-before-spanner-after-column/print.json"
+        },
+        {
+          "bytes": 4195,
+          "sha256": "a814a9346223a2901bb909ded7bd1711c5b0e7d8d9b17fd01751bbea6bbc0e0c",
+          "path": "native-last-before-spanner-after-column/screen.json"
+        },
+        {
+          "bytes": 2,
+          "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+          "path": "native-last-before-spanner-after-column/errors.json"
+        }
+      ],
+      "nativeLifecycleReceipt": {
+        "bytes": 301,
+        "sha256": "c9582907aaeeee0d82306298d12ef3db387a2d82383228eca360a9b23ae3d550",
+        "path": "native-last-before-spanner-after-column-receipt.json"
+      }
+    },
+    {
+      "case": "first-after-spanner-before-column",
+      "fixture": "Build/Project/Evidence/2026-09-30/html-master-convergence/spanning-column-fragmentation-20261018/first-after-spanner-before-column.html",
+      "bytes": 824,
+      "sha256": "8be8eb48247e10a749476ba920f206a323078c445c534153415db9a07283baf8",
+      "classification": "native-interop-witness",
+      "boundaryProfiles": [],
+      "boundaryReason": null,
+      "sourceLabelCount": 6,
+      "profiles": [
+        {
+          "profile": "PrintPaged",
+          "pages": 1,
+          "sourceLabelsRetainedOnce": true,
+          "expectationKind": "native-supported",
+          "pngEqualsPdfReplay": true,
+          "replayDpi": 96
+        },
+        {
+          "profile": "ScreenMediaPaged",
+          "pages": 1,
+          "sourceLabelsRetainedOnce": true,
+          "expectationKind": "native-supported",
+          "pngEqualsPdfReplay": true,
+          "replayDpi": 96
+        },
+        {
+          "profile": "ScreenFullPage",
+          "pages": 1,
+          "sourceLabelsRetainedOnce": true,
+          "expectationKind": "native-supported",
+          "pngEqualsPdfReplay": null,
+          "replayDpi": null
+        },
+        {
+          "profile": "ScreenSnapshotPaged",
+          "pages": 1,
+          "sourceLabelsRetainedOnce": true,
+          "expectationKind": "native-supported",
+          "pngEqualsPdfReplay": true,
+          "replayDpi": 96
+        }
+      ],
+      "summary": {
+        "bytes": 7893,
+        "sha256": "7750cd7de4d1262d443d3a43531cba7c06ecd955d9dbb6f3db60be45af175959",
+        "path": "qualified-first-after-spanner-before-column/summary.json"
+      },
+      "captureReceipt": {
+        "bytes": 1634,
+        "sha256": "2ea177c7394bdb1a9085c0ff3c29cdbcafa8f446d426368bb1ee6604c2632cd0",
+        "path": "qualified-first-after-spanner-before-column.receipt.json"
+      },
+      "nativeArtifacts": [
+        {
+          "bytes": 12353,
+          "sha256": "b97294d0f72315f18692e6871f0057137e86fbf56645131d7ed8f518dcd233c6",
+          "path": "native-first-after-spanner-before-column/print.pdf"
+        },
+        {
+          "bytes": 12353,
+          "sha256": "b97294d0f72315f18692e6871f0057137e86fbf56645131d7ed8f518dcd233c6",
+          "path": "native-first-after-spanner-before-column/screen.pdf"
+        },
+        {
+          "bytes": 4199,
+          "sha256": "940c9a08bed1e92e3ededa903bdf9c7c6c45c1ffa8be244605782db62c09ace4",
+          "path": "native-first-after-spanner-before-column/print.json"
+        },
+        {
+          "bytes": 4199,
+          "sha256": "940c9a08bed1e92e3ededa903bdf9c7c6c45c1ffa8be244605782db62c09ace4",
+          "path": "native-first-after-spanner-before-column/screen.json"
+        },
+        {
+          "bytes": 2,
+          "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+          "path": "native-first-after-spanner-before-column/errors.json"
+        }
+      ],
+      "nativeLifecycleReceipt": {
+        "bytes": 301,
+        "sha256": "ed7fe8f900dcabe164bf200a07ce3876af8d0d6897f7564d451d8e2c39c1baed",
+        "path": "native-first-after-spanner-before-column-receipt.json"
+      }
+    },
+    {
+      "case": "leading-adjacent-trailing-spanners",
+      "fixture": "Build/Project/Evidence/2026-09-30/html-master-convergence/spanning-column-fragmentation-20261018/leading-adjacent-trailing-spanners.html",
+      "bytes": 829,
+      "sha256": "d48f299953963d17f65e990cdb8f4b4710b41a8899e4f776d64998ce31e67bed",
+      "classification": "native-interop-witness",
+      "boundaryProfiles": [],
+      "boundaryReason": null,
+      "sourceLabelCount": 6,
+      "profiles": [
+        {
+          "profile": "PrintPaged",
+          "pages": 1,
+          "sourceLabelsRetainedOnce": true,
+          "expectationKind": "native-supported",
+          "pngEqualsPdfReplay": true,
+          "replayDpi": 96
+        },
+        {
+          "profile": "ScreenMediaPaged",
+          "pages": 1,
+          "sourceLabelsRetainedOnce": true,
+          "expectationKind": "native-supported",
+          "pngEqualsPdfReplay": true,
+          "replayDpi": 96
+        },
+        {
+          "profile": "ScreenFullPage",
+          "pages": 1,
+          "sourceLabelsRetainedOnce": true,
+          "expectationKind": "native-supported",
+          "pngEqualsPdfReplay": null,
+          "replayDpi": null
+        },
+        {
+          "profile": "ScreenSnapshotPaged",
+          "pages": 1,
+          "sourceLabelsRetainedOnce": true,
+          "expectationKind": "native-supported",
+          "pngEqualsPdfReplay": true,
+          "replayDpi": 96
+        }
+      ],
+      "summary": {
+        "bytes": 7792,
+        "sha256": "10b7076d466849e1a9a7ad8966dc697e9b3f63b967577067863763a893e6f5ba",
+        "path": "qualified-leading-adjacent-trailing-spanners/summary.json"
+      },
+      "captureReceipt": {
+        "bytes": 1636,
+        "sha256": "b8b4eb695d69272f7f8bba2e2c005b3a2a955a716605cc6a28824917dce66de6",
+        "path": "qualified-leading-adjacent-trailing-spanners.receipt.json"
+      },
+      "nativeArtifacts": [
+        {
+          "bytes": 13215,
+          "sha256": "cc5b0c79c9a14602a0f6f3c532db266b05fb08928d16c53bbd5e789dc62ec3d4",
+          "path": "native-leading-adjacent-trailing-spanners/print.pdf"
+        },
+        {
+          "bytes": 13215,
+          "sha256": "cc5b0c79c9a14602a0f6f3c532db266b05fb08928d16c53bbd5e789dc62ec3d4",
+          "path": "native-leading-adjacent-trailing-spanners/screen.pdf"
+        },
+        {
+          "bytes": 4184,
+          "sha256": "82c396c0ba37b54c52a1e254cb274233bdde5b9c2f47d20bb1e0b647a8b61bd7",
+          "path": "native-leading-adjacent-trailing-spanners/print.json"
+        },
+        {
+          "bytes": 4184,
+          "sha256": "82c396c0ba37b54c52a1e254cb274233bdde5b9c2f47d20bb1e0b647a8b61bd7",
+          "path": "native-leading-adjacent-trailing-spanners/screen.json"
+        },
+        {
+          "bytes": 2,
+          "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+          "path": "native-leading-adjacent-trailing-spanners/errors.json"
+        }
+      ],
+      "nativeLifecycleReceipt": {
+        "bytes": 301,
+        "sha256": "02a9dc8940e875eacc726bdad7aad1d7b428501f590e04688636adde886f4818",
+        "path": "native-leading-adjacent-trailing-spanners-receipt.json"
+      }
+    },
+    {
+      "case": "forced-column-overrides-final-keep",
+      "fixture": "Build/Project/Evidence/2026-09-30/html-master-convergence/spanning-column-fragmentation-20261018/forced-column-overrides-final-keep.html",
+      "bytes": 889,
+      "sha256": "2de0771e47235128d0adcf1af4e9167d49348bdae4500842b3258f561712977e",
+      "classification": "native-interop-witness",
+      "boundaryProfiles": [],
+      "boundaryReason": null,
+      "sourceLabelCount": 6,
+      "profiles": [
+        {
+          "profile": "PrintPaged",
+          "pages": 2,
+          "sourceLabelsRetainedOnce": true,
+          "expectationKind": "native-supported",
+          "pngEqualsPdfReplay": true,
+          "replayDpi": 96
+        },
+        {
+          "profile": "ScreenMediaPaged",
+          "pages": 2,
+          "sourceLabelsRetainedOnce": true,
+          "expectationKind": "native-supported",
+          "pngEqualsPdfReplay": true,
+          "replayDpi": 96
+        },
+        {
+          "profile": "ScreenFullPage",
+          "pages": 1,
+          "sourceLabelsRetainedOnce": true,
+          "expectationKind": "native-supported",
+          "pngEqualsPdfReplay": null,
+          "replayDpi": null
+        },
+        {
+          "profile": "ScreenSnapshotPaged",
+          "pages": 1,
+          "sourceLabelsRetainedOnce": true,
+          "expectationKind": "native-supported",
+          "pngEqualsPdfReplay": true,
+          "replayDpi": 96
+        }
+      ],
+      "summary": {
+        "bytes": 8011,
+        "sha256": "2f972d5593a7461ae2155fbc3242f6dac4350ef72104ecc783d2689e896d5444",
+        "path": "qualified-forced-column-overrides-final-keep/summary.json"
+      },
+      "captureReceipt": {
+        "bytes": 1636,
+        "sha256": "d623421df85658c4f136f7376c18cae10034e0cc0d2536f8cd6d80588e400f7f",
+        "path": "qualified-forced-column-overrides-final-keep.receipt.json"
+      },
+      "nativeArtifacts": [
+        {
+          "bytes": 13446,
+          "sha256": "366d0c07adab60c629faf329dd591cbf75e680a00c4e06e43e70af359ea33dfc",
+          "path": "native-forced-column-overrides-final-keep/print.pdf"
+        },
+        {
+          "bytes": 13446,
+          "sha256": "366d0c07adab60c629faf329dd591cbf75e680a00c4e06e43e70af359ea33dfc",
+          "path": "native-forced-column-overrides-final-keep/screen.pdf"
+        },
+        {
+          "bytes": 4844,
+          "sha256": "29aae07ac771909cf127320db64386fd23a109e9ab71b1c5a5661268bec2d8e2",
+          "path": "native-forced-column-overrides-final-keep/print.json"
+        },
+        {
+          "bytes": 4844,
+          "sha256": "29aae07ac771909cf127320db64386fd23a109e9ab71b1c5a5661268bec2d8e2",
+          "path": "native-forced-column-overrides-final-keep/screen.json"
+        },
+        {
+          "bytes": 2,
+          "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+          "path": "native-forced-column-overrides-final-keep/errors.json"
+        }
+      ],
+      "nativeLifecycleReceipt": {
+        "bytes": 301,
+        "sha256": "6f943ba3eac55631660ca4bb294fde7779d95533c13db98a71dac1b7eadd6b7f",
+        "path": "native-forced-column-overrides-final-keep-receipt.json"
+      }
+    },
+    {
+      "case": "rule-spanning-fixed-160-long-eighteen",
+      "fixture": "Build/Project/Evidence/2026-09-30/html-master-convergence/spanning-column-fragmentation-20261018/rule-spanning-fixed-160-long-eighteen.html",
+      "bytes": 1325,
+      "sha256": "6f8778d993905f5ae2ca54bfb95df3727e67ca946c036d6790ed734e341ec77f",
+      "classification": "native-interop-witness",
+      "boundaryProfiles": [],
+      "boundaryReason": null,
+      "sourceLabelCount": 22,
+      "profiles": [
+        {
+          "profile": "PrintPaged",
+          "pages": 2,
+          "sourceLabelsRetainedOnce": true,
+          "expectationKind": "native-supported",
+          "pngEqualsPdfReplay": true,
+          "replayDpi": 96
+        },
+        {
+          "profile": "ScreenMediaPaged",
+          "pages": 2,
+          "sourceLabelsRetainedOnce": true,
+          "expectationKind": "native-supported",
+          "pngEqualsPdfReplay": true,
+          "replayDpi": 96
+        },
+        {
+          "profile": "ScreenFullPage",
+          "pages": 1,
+          "sourceLabelsRetainedOnce": true,
+          "expectationKind": "native-supported",
+          "pngEqualsPdfReplay": null,
+          "replayDpi": null
+        },
+        {
+          "profile": "ScreenSnapshotPaged",
+          "pages": 1,
+          "sourceLabelsRetainedOnce": true,
+          "expectationKind": "native-supported",
+          "pngEqualsPdfReplay": true,
+          "replayDpi": 96
+        }
+      ],
+      "summary": {
+        "bytes": 20192,
+        "sha256": "39932b400492534be5fe55a3cfe1c6618dbc067b5e7343936b343031388670c9",
+        "path": "qualified-rule-spanning-fixed-160-long-eighteen/summary.json"
+      },
+      "captureReceipt": {
+        "bytes": 1642,
+        "sha256": "da8a0af6e99a602728369bb2df3f3584c5d57b53503c860de68b7cdb653ea47a",
+        "path": "qualified-rule-spanning-fixed-160-long-eighteen.receipt.json"
+      },
+      "nativeArtifacts": [
+        {
+          "bytes": 18118,
+          "sha256": "254edb7b60ba4c532211420f07111c4a235e077e291276fefe68bc59761f0461",
+          "path": "native-rule-spanning-fixed-160-long-eighteen/print.pdf"
+        },
+        {
+          "bytes": 18118,
+          "sha256": "254edb7b60ba4c532211420f07111c4a235e077e291276fefe68bc59761f0461",
+          "path": "native-rule-spanning-fixed-160-long-eighteen/screen.pdf"
+        },
+        {
+          "bytes": 13602,
+          "sha256": "c14d35c9f8f5f499f32663b96fe5ed908b158bc357ff8c1125ac20e02c497f26",
+          "path": "native-rule-spanning-fixed-160-long-eighteen/print.json"
+        },
+        {
+          "bytes": 13602,
+          "sha256": "c14d35c9f8f5f499f32663b96fe5ed908b158bc357ff8c1125ac20e02c497f26",
+          "path": "native-rule-spanning-fixed-160-long-eighteen/screen.json"
+        },
+        {
+          "bytes": 2,
+          "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+          "path": "native-rule-spanning-fixed-160-long-eighteen/errors.json"
+        }
+      ],
+      "nativeLifecycleReceipt": {
+        "bytes": 301,
+        "sha256": "2a4772c0f6c530c8a5456b3c009533400677d4513a359a20c653fba565ff8d24",
+        "path": "native-rule-spanning-fixed-160-long-eighteen-receipt.json"
+      }
+    },
+    {
+      "case": "spanner-before-column-middle",
+      "fixture": "Build/Project/Evidence/2026-09-30/html-master-convergence/spanner-break-controls-20261018/spanner-before-column-middle.html",
+      "bytes": 819,
+      "sha256": "88741cb7c84dddaec199e90439c36ef3e021bc2aa2d92de4d4fbc5eb69a55b80",
+      "classification": "native-interop-witness",
+      "boundaryProfiles": [],
+      "boundaryReason": null,
+      "sourceLabelCount": 6,
+      "profiles": [
+        {
+          "profile": "PrintPaged",
+          "pages": 1,
+          "sourceLabelsRetainedOnce": true,
+          "expectationKind": "native-supported",
+          "pngEqualsPdfReplay": true,
+          "replayDpi": 96
+        },
+        {
+          "profile": "ScreenMediaPaged",
+          "pages": 1,
+          "sourceLabelsRetainedOnce": true,
+          "expectationKind": "native-supported",
+          "pngEqualsPdfReplay": true,
+          "replayDpi": 96
+        },
+        {
+          "profile": "ScreenFullPage",
+          "pages": 1,
+          "sourceLabelsRetainedOnce": true,
+          "expectationKind": "native-supported",
+          "pngEqualsPdfReplay": null,
+          "replayDpi": null
+        },
+        {
+          "profile": "ScreenSnapshotPaged",
+          "pages": 1,
+          "sourceLabelsRetainedOnce": true,
+          "expectationKind": "native-supported",
+          "pngEqualsPdfReplay": true,
+          "replayDpi": 96
+        }
+      ],
+      "summary": {
+        "bytes": 7869,
+        "sha256": "15ea12c7350a04685c3351f66121524313f69af51400301d244d2562d616a29c",
+        "path": "qualified-spanner-before-column-middle/summary.json"
+      },
+      "captureReceipt": {
+        "bytes": 1624,
+        "sha256": "b9dd4f0aa2b7f971c6e34ccdf9e9b13dacf40f88689b94ff0947a3dc4894025c",
+        "path": "qualified-spanner-before-column-middle.receipt.json"
+      },
+      "nativeArtifacts": [
+        {
+          "bytes": 12896,
+          "sha256": "6c26c65d250cf83894c13b94fcf7e1e1023eb55de46251f9d0abca865452e046",
+          "path": "native-spanner-before-column-middle/print.pdf"
+        },
+        {
+          "bytes": 12896,
+          "sha256": "6c26c65d250cf83894c13b94fcf7e1e1023eb55de46251f9d0abca865452e046",
+          "path": "native-spanner-before-column-middle/screen.pdf"
+        },
+        {
+          "bytes": 4201,
+          "sha256": "25236eecb2bee3982fafcceaa03b299662f9498f774e3773a747d0e905f8607d",
+          "path": "native-spanner-before-column-middle/print.json"
+        },
+        {
+          "bytes": 4201,
+          "sha256": "25236eecb2bee3982fafcceaa03b299662f9498f774e3773a747d0e905f8607d",
+          "path": "native-spanner-before-column-middle/screen.json"
+        },
+        {
+          "bytes": 2,
+          "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+          "path": "native-spanner-before-column-middle/errors.json"
+        }
+      ],
+      "nativeLifecycleReceipt": {
+        "bytes": 301,
+        "sha256": "6521eea812480ea617191c010a2141943de803a3e82953c6235d09f019305af3",
+        "path": "native-spanner-before-column-middle-receipt.json"
+      }
+    },
+    {
+      "case": "spanner-after-column-middle",
+      "fixture": "Build/Project/Evidence/2026-09-30/html-master-convergence/spanner-break-controls-20261018/spanner-after-column-middle.html",
+      "bytes": 817,
+      "sha256": "5ba7f777ac580423f6dd50b80959cac94366b5d08834315340e6f2554a0f41d6",
+      "classification": "native-interop-witness",
+      "boundaryProfiles": [],
+      "boundaryReason": null,
+      "sourceLabelCount": 6,
+      "profiles": [
+        {
+          "profile": "PrintPaged",
+          "pages": 1,
+          "sourceLabelsRetainedOnce": true,
+          "expectationKind": "native-supported",
+          "pngEqualsPdfReplay": true,
+          "replayDpi": 96
+        },
+        {
+          "profile": "ScreenMediaPaged",
+          "pages": 1,
+          "sourceLabelsRetainedOnce": true,
+          "expectationKind": "native-supported",
+          "pngEqualsPdfReplay": true,
+          "replayDpi": 96
+        },
+        {
+          "profile": "ScreenFullPage",
+          "pages": 1,
+          "sourceLabelsRetainedOnce": true,
+          "expectationKind": "native-supported",
+          "pngEqualsPdfReplay": null,
+          "replayDpi": null
+        },
+        {
+          "profile": "ScreenSnapshotPaged",
+          "pages": 1,
+          "sourceLabelsRetainedOnce": true,
+          "expectationKind": "native-supported",
+          "pngEqualsPdfReplay": true,
+          "replayDpi": 96
+        }
+      ],
+      "summary": {
+        "bytes": 7902,
+        "sha256": "62968590630149edb8888dca5278ee916db542020d8c9052d8c66a1b50bdad6e",
+        "path": "qualified-spanner-after-column-middle/summary.json"
+      },
+      "captureReceipt": {
+        "bytes": 1622,
+        "sha256": "b7120204f651e715840db5ed8bae461b25bb35d615be7bc071cc4329816ff043",
+        "path": "qualified-spanner-after-column-middle.receipt.json"
+      },
+      "nativeArtifacts": [
+        {
+          "bytes": 12713,
+          "sha256": "991ea227789c7bfc4f15ad205324e52f3b26c24579fab8e1bffe3fe6b365a426",
+          "path": "native-spanner-after-column-middle/print.pdf"
+        },
+        {
+          "bytes": 12713,
+          "sha256": "991ea227789c7bfc4f15ad205324e52f3b26c24579fab8e1bffe3fe6b365a426",
+          "path": "native-spanner-after-column-middle/screen.pdf"
+        },
+        {
+          "bytes": 4197,
+          "sha256": "061b2196aeba57bd3a989e33f3e48b61e647640ae8f727d487a55a2c318f9907",
+          "path": "native-spanner-after-column-middle/print.json"
+        },
+        {
+          "bytes": 4197,
+          "sha256": "061b2196aeba57bd3a989e33f3e48b61e647640ae8f727d487a55a2c318f9907",
+          "path": "native-spanner-after-column-middle/screen.json"
+        },
+        {
+          "bytes": 2,
+          "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+          "path": "native-spanner-after-column-middle/errors.json"
+        }
+      ],
+      "nativeLifecycleReceipt": {
+        "bytes": 301,
+        "sha256": "45e788d0fe75d16224b49adb46f74bda847fb50e236825404c9e19dc93030b0f",
+        "path": "native-spanner-after-column-middle-receipt.json"
+      }
+    },
+    {
+      "case": "spanner-both-column-middle",
+      "fixture": "Build/Project/Evidence/2026-09-30/html-master-convergence/spanner-break-controls-20261018/spanner-both-column-middle.html",
+      "bytes": 836,
+      "sha256": "abfb3add5dd57a0cb97a21e7c5e5ea0bb051aeb1d1fc5fe9bc03b89698b8a848",
+      "classification": "native-interop-witness",
+      "boundaryProfiles": [],
+      "boundaryReason": null,
+      "sourceLabelCount": 6,
+      "profiles": [
+        {
+          "profile": "PrintPaged",
+          "pages": 1,
+          "sourceLabelsRetainedOnce": true,
+          "expectationKind": "native-supported",
+          "pngEqualsPdfReplay": true,
+          "replayDpi": 96
+        },
+        {
+          "profile": "ScreenMediaPaged",
+          "pages": 1,
+          "sourceLabelsRetainedOnce": true,
+          "expectationKind": "native-supported",
+          "pngEqualsPdfReplay": true,
+          "replayDpi": 96
+        },
+        {
+          "profile": "ScreenFullPage",
+          "pages": 1,
+          "sourceLabelsRetainedOnce": true,
+          "expectationKind": "native-supported",
+          "pngEqualsPdfReplay": null,
+          "replayDpi": null
+        },
+        {
+          "profile": "ScreenSnapshotPaged",
+          "pages": 1,
+          "sourceLabelsRetainedOnce": true,
+          "expectationKind": "native-supported",
+          "pngEqualsPdfReplay": true,
+          "replayDpi": 96
+        }
+      ],
+      "summary": {
+        "bytes": 7881,
+        "sha256": "d7fb8eea587e3382ae3a39fb52d305ddfb03efd8d0cfaa98420c8bf8b3149f39",
+        "path": "qualified-spanner-both-column-middle/summary.json"
+      },
+      "captureReceipt": {
+        "bytes": 1620,
+        "sha256": "a56138afcb7ecac10780b7e7139fe4e1398cafc5dc4cba5b383a217d27f018d4",
+        "path": "qualified-spanner-both-column-middle.receipt.json"
+      },
+      "nativeArtifacts": [
+        {
+          "bytes": 12547,
+          "sha256": "b31b2973f4d15a65c53abeafff80d15d38327dea3badddb5e5f13cd5dbdf8528",
+          "path": "native-spanner-both-column-middle/print.pdf"
+        },
+        {
+          "bytes": 12547,
+          "sha256": "b31b2973f4d15a65c53abeafff80d15d38327dea3badddb5e5f13cd5dbdf8528",
+          "path": "native-spanner-both-column-middle/screen.pdf"
+        },
+        {
+          "bytes": 4201,
+          "sha256": "c5b9987c7e9ab533b101701d8227f0e4381a0169fdbb011311058edc48dfb053",
+          "path": "native-spanner-both-column-middle/print.json"
+        },
+        {
+          "bytes": 4201,
+          "sha256": "c5b9987c7e9ab533b101701d8227f0e4381a0169fdbb011311058edc48dfb053",
+          "path": "native-spanner-both-column-middle/screen.json"
+        },
+        {
+          "bytes": 2,
+          "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+          "path": "native-spanner-both-column-middle/errors.json"
+        }
+      ],
+      "nativeLifecycleReceipt": {
+        "bytes": 301,
+        "sha256": "062356cdf362e15b82c666afd80a17d015b14b3a9cbe5b14483082389eb9f39b",
+        "path": "native-spanner-both-column-middle-receipt.json"
+      }
+    },
+    {
+      "case": "spanner-page-before-ordinary-after-column",
+      "fixture": "Build/Project/Evidence/2026-09-30/html-master-convergence/spanner-break-controls-20261018/spanner-page-before-ordinary-after-column.html",
+      "bytes": 857,
+      "sha256": "2e2ec2a93ad6e0eaa747ee433ea23196416006b0af9b6599c23d161a04fdd141",
+      "classification": "native-interop-witness",
+      "boundaryProfiles": [],
+      "boundaryReason": null,
+      "sourceLabelCount": 6,
+      "profiles": [
+        {
+          "profile": "PrintPaged",
+          "pages": 2,
+          "sourceLabelsRetainedOnce": true,
+          "expectationKind": "native-supported",
+          "pngEqualsPdfReplay": true,
+          "replayDpi": 96
+        },
+        {
+          "profile": "ScreenMediaPaged",
+          "pages": 2,
+          "sourceLabelsRetainedOnce": true,
+          "expectationKind": "native-supported",
+          "pngEqualsPdfReplay": true,
+          "replayDpi": 96
+        },
+        {
+          "profile": "ScreenFullPage",
+          "pages": 1,
+          "sourceLabelsRetainedOnce": true,
+          "expectationKind": "native-supported",
+          "pngEqualsPdfReplay": null,
+          "replayDpi": null
+        },
+        {
+          "profile": "ScreenSnapshotPaged",
+          "pages": 1,
+          "sourceLabelsRetainedOnce": true,
+          "expectationKind": "native-supported",
+          "pngEqualsPdfReplay": true,
+          "replayDpi": 96
+        }
+      ],
+      "summary": {
+        "bytes": 8065,
+        "sha256": "5e393537f868c0c3df385429fc6e9886c9f502ede719d4e7615470c45800599e",
+        "path": "qualified-spanner-page-before-ordinary-after-column/summary.json"
+      },
+      "captureReceipt": {
+        "bytes": 1650,
+        "sha256": "104b70730eba07f64ad17c39155efbf233b1e67a30f0c7affee002bbc1677514",
+        "path": "qualified-spanner-page-before-ordinary-after-column.receipt.json"
+      },
+      "nativeArtifacts": [
+        {
+          "bytes": 13546,
+          "sha256": "2310b36fd78e5c9cef0ddf14964fdec5b00d3114cf7645fd967a04f517284d71",
+          "path": "native-spanner-page-before-ordinary-after-column/print.pdf"
+        },
+        {
+          "bytes": 13546,
+          "sha256": "2310b36fd78e5c9cef0ddf14964fdec5b00d3114cf7645fd967a04f517284d71",
+          "path": "native-spanner-page-before-ordinary-after-column/screen.pdf"
+        },
+        {
+          "bytes": 4193,
+          "sha256": "dee4e022161c9419272a0f94df6a803fd15e0afe278b1de987eb579e4bf75c9a",
+          "path": "native-spanner-page-before-ordinary-after-column/print.json"
+        },
+        {
+          "bytes": 4193,
+          "sha256": "dee4e022161c9419272a0f94df6a803fd15e0afe278b1de987eb579e4bf75c9a",
+          "path": "native-spanner-page-before-ordinary-after-column/screen.json"
+        },
+        {
+          "bytes": 2,
+          "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+          "path": "native-spanner-page-before-ordinary-after-column/errors.json"
+        }
+      ],
+      "nativeLifecycleReceipt": {
+        "bytes": 301,
+        "sha256": "8d2306fc34f2a640f8d1e1a3e5a1dec1fbb1f68f0aabdf33469e599a53a93ec1",
+        "path": "native-spanner-page-before-ordinary-after-column-receipt.json"
+      }
+    },
+    {
+      "case": "spanner-page-after-ordinary-before-column",
+      "fixture": "Build/Project/Evidence/2026-09-30/html-master-convergence/spanner-break-controls-20261018/spanner-page-after-ordinary-before-column.html",
+      "bytes": 857,
+      "sha256": "e58ac762ac993428627eeefb86714576205227c01b79e6a4578a2268ebdf5ebf",
+      "classification": "native-difference",
+      "boundaryProfiles": [
+        "PrintPaged",
+        "ScreenMediaPaged"
+      ],
+      "boundaryReason": "Edge ignores the spanner page-after force before a following authored column boundary. OfficeIMO honors the page force; native equivalence is not claimed.",
+      "sourceLabelCount": 6,
+      "profiles": [
+        {
+          "profile": "PrintPaged",
+          "pages": 2,
+          "sourceLabelsRetainedOnce": true,
+          "expectationKind": "documented-boundary",
+          "pngEqualsPdfReplay": true,
+          "replayDpi": 96
+        },
+        {
+          "profile": "ScreenMediaPaged",
+          "pages": 2,
+          "sourceLabelsRetainedOnce": true,
+          "expectationKind": "documented-boundary",
+          "pngEqualsPdfReplay": true,
+          "replayDpi": 96
+        },
+        {
+          "profile": "ScreenFullPage",
+          "pages": 1,
+          "sourceLabelsRetainedOnce": true,
+          "expectationKind": "native-supported",
+          "pngEqualsPdfReplay": null,
+          "replayDpi": null
+        },
+        {
+          "profile": "ScreenSnapshotPaged",
+          "pages": 1,
+          "sourceLabelsRetainedOnce": true,
+          "expectationKind": "native-supported",
+          "pngEqualsPdfReplay": true,
+          "replayDpi": 96
+        }
+      ],
+      "summary": {
+        "bytes": 8094,
+        "sha256": "e64ee9f8ceb2b4811b7cf869474c1db932eb2e314f95a34de771a455ad91ce93",
+        "path": "qualified-spanner-page-after-ordinary-before-column/summary.json"
+      },
+      "captureReceipt": {
+        "bytes": 1650,
+        "sha256": "4840c265ae619fc82c03ccc42d0d02769549e68cff6ff3547013cac29d6c465a",
+        "path": "qualified-spanner-page-after-ordinary-before-column.receipt.json"
+      },
+      "nativeArtifacts": [
+        {
+          "bytes": 12731,
+          "sha256": "643aaeb5ff47a74e4795d9e401b560e491f8a4f64cb96b082047edb425b478d4",
+          "path": "native-spanner-page-after-ordinary-before-column/print.pdf"
+        },
+        {
+          "bytes": 12731,
+          "sha256": "643aaeb5ff47a74e4795d9e401b560e491f8a4f64cb96b082047edb425b478d4",
+          "path": "native-spanner-page-after-ordinary-before-column/screen.pdf"
+        },
+        {
+          "bytes": 4192,
+          "sha256": "3d6095eacd5def3cc8aa56c81560f15843456de2325f9828d91b97f7042ef472",
+          "path": "native-spanner-page-after-ordinary-before-column/print.json"
+        },
+        {
+          "bytes": 4192,
+          "sha256": "3d6095eacd5def3cc8aa56c81560f15843456de2325f9828d91b97f7042ef472",
+          "path": "native-spanner-page-after-ordinary-before-column/screen.json"
+        },
+        {
+          "bytes": 2,
+          "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+          "path": "native-spanner-page-after-ordinary-before-column/errors.json"
+        }
+      ],
+      "nativeLifecycleReceipt": {
+        "bytes": 301,
+        "sha256": "a0f31e6fd789e2fd6f4d52338d9542ef4c029e68e1a47c2114cb37b537bc1601",
+        "path": "native-spanner-page-after-ordinary-before-column-receipt.json"
+      }
+    },
+    {
+      "case": "spanner-keep-before-avoid-page",
+      "fixture": "Build/Project/Evidence/2026-09-30/html-master-convergence/spanner-break-controls-20261018/spanner-keep-before-avoid-page.html",
+      "bytes": 1081,
+      "sha256": "7fbe25ec19db8644beaf0ede4a477a8daca74e30fc40e4866950f6f35c6150a4",
+      "classification": "native-interop-witness",
+      "boundaryProfiles": [],
+      "boundaryReason": null,
+      "sourceLabelCount": 13,
+      "profiles": [
+        {
+          "profile": "PrintPaged",
+          "pages": 3,
+          "sourceLabelsRetainedOnce": true,
+          "expectationKind": "native-supported",
+          "pngEqualsPdfReplay": true,
+          "replayDpi": 96
+        },
+        {
+          "profile": "ScreenMediaPaged",
+          "pages": 3,
+          "sourceLabelsRetainedOnce": true,
+          "expectationKind": "native-supported",
+          "pngEqualsPdfReplay": true,
+          "replayDpi": 96
+        },
+        {
+          "profile": "ScreenFullPage",
+          "pages": 1,
+          "sourceLabelsRetainedOnce": true,
+          "expectationKind": "native-supported",
+          "pngEqualsPdfReplay": null,
+          "replayDpi": null
+        },
+        {
+          "profile": "ScreenSnapshotPaged",
+          "pages": 1,
+          "sourceLabelsRetainedOnce": true,
+          "expectationKind": "native-supported",
+          "pngEqualsPdfReplay": true,
+          "replayDpi": 96
+        }
+      ],
+      "summary": {
+        "bytes": 13443,
+        "sha256": "1d72947d4aabd2f0c79e0548dc8f7c5bc86b18f6b9e4043e1ba4f375525f5162",
+        "path": "qualified-spanner-keep-before-avoid-page/summary.json"
+      },
+      "captureReceipt": {
+        "bytes": 1628,
+        "sha256": "1bb77b0405553b2a69e7a67490c6c04b4e90fa2c0a64317e08edcf3c240e053c",
+        "path": "qualified-spanner-keep-before-avoid-page.receipt.json"
+      },
+      "nativeArtifacts": [
+        {
+          "bytes": 16347,
+          "sha256": "c6ef352d099cadd8f07f3c95ac30b7e03cef57188f19432535f8fcd82b421859",
+          "path": "native-spanner-keep-before-avoid-page/print.pdf"
+        },
+        {
+          "bytes": 16347,
+          "sha256": "c6ef352d099cadd8f07f3c95ac30b7e03cef57188f19432535f8fcd82b421859",
+          "path": "native-spanner-keep-before-avoid-page/screen.pdf"
+        },
+        {
+          "bytes": 8768,
+          "sha256": "924ef6f66c0e72b4a2e4f23b66f3c3e0e72f0254d859de3cf5411cc9452f720a",
+          "path": "native-spanner-keep-before-avoid-page/print.json"
+        },
+        {
+          "bytes": 8768,
+          "sha256": "924ef6f66c0e72b4a2e4f23b66f3c3e0e72f0254d859de3cf5411cc9452f720a",
+          "path": "native-spanner-keep-before-avoid-page/screen.json"
+        },
+        {
+          "bytes": 2,
+          "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+          "path": "native-spanner-keep-before-avoid-page/errors.json"
+        }
+      ],
+      "nativeLifecycleReceipt": {
+        "bytes": 301,
+        "sha256": "8fe7068455e418ff9a47f2603677d3144b7978c97604923689a9996f58b819e5",
+        "path": "native-spanner-keep-before-avoid-page-receipt.json"
+      }
+    },
+    {
+      "case": "spanner-keep-before-avoid-column",
+      "fixture": "Build/Project/Evidence/2026-09-30/html-master-convergence/spanner-break-controls-20261018/spanner-keep-before-avoid-column.html",
+      "bytes": 1085,
+      "sha256": "327116a1472309b17026cf4a98c38d353fc5cef112304856c7e0abfcc9da8bdc",
+      "classification": "native-interop-witness",
+      "boundaryProfiles": [],
+      "boundaryReason": null,
+      "sourceLabelCount": 13,
+      "profiles": [
+        {
+          "profile": "PrintPaged",
+          "pages": 3,
+          "sourceLabelsRetainedOnce": true,
+          "expectationKind": "native-supported",
+          "pngEqualsPdfReplay": true,
+          "replayDpi": 96
+        },
+        {
+          "profile": "ScreenMediaPaged",
+          "pages": 3,
+          "sourceLabelsRetainedOnce": true,
+          "expectationKind": "native-supported",
+          "pngEqualsPdfReplay": true,
+          "replayDpi": 96
+        },
+        {
+          "profile": "ScreenFullPage",
+          "pages": 1,
+          "sourceLabelsRetainedOnce": true,
+          "expectationKind": "native-supported",
+          "pngEqualsPdfReplay": null,
+          "replayDpi": null
+        },
+        {
+          "profile": "ScreenSnapshotPaged",
+          "pages": 1,
+          "sourceLabelsRetainedOnce": true,
+          "expectationKind": "native-supported",
+          "pngEqualsPdfReplay": true,
+          "replayDpi": 96
+        }
+      ],
+      "summary": {
+        "bytes": 13488,
+        "sha256": "2495f5d7b51ecacc46684e526338a7c9f3b0f2ddc5347ca9da18d77d5914b93b",
+        "path": "qualified-spanner-keep-before-avoid-column/summary.json"
+      },
+      "captureReceipt": {
+        "bytes": 1632,
+        "sha256": "06c31389c2d2ab0a5efd5d5bd567f81b697212b6a540cf37462e22e49b80917d",
+        "path": "qualified-spanner-keep-before-avoid-column.receipt.json"
+      },
+      "nativeArtifacts": [
+        {
+          "bytes": 16434,
+          "sha256": "84c9596e48136041ce0ea979e39e8fe3a0e08c650c85a4e2d4eb91121d0a96f3",
+          "path": "native-spanner-keep-before-avoid-column/print.pdf"
+        },
+        {
+          "bytes": 16434,
+          "sha256": "84c9596e48136041ce0ea979e39e8fe3a0e08c650c85a4e2d4eb91121d0a96f3",
+          "path": "native-spanner-keep-before-avoid-column/screen.pdf"
+        },
+        {
+          "bytes": 8772,
+          "sha256": "5fd146181c0fce0690396a16bb7e57f57d77bbb3b792dd3a6a6a254bd99e5e73",
+          "path": "native-spanner-keep-before-avoid-column/print.json"
+        },
+        {
+          "bytes": 8772,
+          "sha256": "5fd146181c0fce0690396a16bb7e57f57d77bbb3b792dd3a6a6a254bd99e5e73",
+          "path": "native-spanner-keep-before-avoid-column/screen.json"
+        },
+        {
+          "bytes": 2,
+          "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+          "path": "native-spanner-keep-before-avoid-column/errors.json"
+        }
+      ],
+      "nativeLifecycleReceipt": {
+        "bytes": 301,
+        "sha256": "9e06f3ba5edc7b6a5bc5658f04ae33d2de36eba52abd3109ce63fcecfd956691",
+        "path": "native-spanner-keep-before-avoid-column-receipt.json"
+      }
+    },
+    {
+      "case": "spanner-keep-after-avoid-page",
+      "fixture": "Build/Project/Evidence/2026-09-30/html-master-convergence/spanner-break-controls-20261018/spanner-keep-after-avoid-page.html",
+      "bytes": 1015,
+      "sha256": "ab91c76dba953f7e3d4d45c3f6dd0358e12aa0ae581fba64888ff6e03d10b9f8",
+      "classification": "native-difference",
+      "boundaryProfiles": [
+        "PrintPaged",
+        "ScreenMediaPaged"
+      ],
+      "boundaryReason": "Edge separates the spanner from its following fitting content despite avoid-page. OfficeIMO applies the shared page keep; native equivalence is not claimed.",
+      "sourceLabelCount": 12,
+      "profiles": [
+        {
+          "profile": "PrintPaged",
+          "pages": 3,
+          "sourceLabelsRetainedOnce": true,
+          "expectationKind": "documented-boundary",
+          "pngEqualsPdfReplay": true,
+          "replayDpi": 96
+        },
+        {
+          "profile": "ScreenMediaPaged",
+          "pages": 3,
+          "sourceLabelsRetainedOnce": true,
+          "expectationKind": "documented-boundary",
+          "pngEqualsPdfReplay": true,
+          "replayDpi": 96
+        },
+        {
+          "profile": "ScreenFullPage",
+          "pages": 1,
+          "sourceLabelsRetainedOnce": true,
+          "expectationKind": "native-supported",
+          "pngEqualsPdfReplay": null,
+          "replayDpi": null
+        },
+        {
+          "profile": "ScreenSnapshotPaged",
+          "pages": 1,
+          "sourceLabelsRetainedOnce": true,
+          "expectationKind": "native-supported",
+          "pngEqualsPdfReplay": true,
+          "replayDpi": 96
+        }
+      ],
+      "summary": {
+        "bytes": 12746,
+        "sha256": "ef06d5987dd83c755d5ab2ce70085dd5ad6ee947c6af7b997488ea5ac760657e",
+        "path": "qualified-spanner-keep-after-avoid-page/summary.json"
+      },
+      "captureReceipt": {
+        "bytes": 1626,
+        "sha256": "6902940efd9d767d0157e32206b51403a9e95f8188b733ce3f865db9c3efde03",
+        "path": "qualified-spanner-keep-after-avoid-page.receipt.json"
+      },
+      "nativeArtifacts": [
+        {
+          "bytes": 14757,
+          "sha256": "fc4648e14219a551008e1ee379fac5e3605214396d73b0f9b255979b91913fb3",
+          "path": "native-spanner-keep-after-avoid-page/print.pdf"
+        },
+        {
+          "bytes": 14757,
+          "sha256": "fc4648e14219a551008e1ee379fac5e3605214396d73b0f9b255979b91913fb3",
+          "path": "native-spanner-keep-after-avoid-page/screen.pdf"
+        },
+        {
+          "bytes": 7571,
+          "sha256": "791385fd87a8e586200a21256b25486b3df37a8867ddddec133e08bf63704c21",
+          "path": "native-spanner-keep-after-avoid-page/print.json"
+        },
+        {
+          "bytes": 7571,
+          "sha256": "791385fd87a8e586200a21256b25486b3df37a8867ddddec133e08bf63704c21",
+          "path": "native-spanner-keep-after-avoid-page/screen.json"
+        },
+        {
+          "bytes": 2,
+          "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+          "path": "native-spanner-keep-after-avoid-page/errors.json"
+        }
+      ],
+      "nativeLifecycleReceipt": {
+        "bytes": 301,
+        "sha256": "594b2c31ebf71ade4475a494dd8dc77cb7240110dced9d38474bab6b02a44fce",
+        "path": "native-spanner-keep-after-avoid-page-receipt.json"
+      }
+    },
+    {
+      "case": "spanner-keep-after-avoid-column",
+      "fixture": "Build/Project/Evidence/2026-09-30/html-master-convergence/spanner-break-controls-20261018/spanner-keep-after-avoid-column.html",
+      "bytes": 1019,
+      "sha256": "41b9b767c43ee990b79c849f029c8900f1f95493d59dd46d5a970d13dc94958f",
+      "classification": "native-interop-witness",
+      "boundaryProfiles": [],
+      "boundaryReason": null,
+      "sourceLabelCount": 12,
+      "profiles": [
+        {
+          "profile": "PrintPaged",
+          "pages": 2,
+          "sourceLabelsRetainedOnce": true,
+          "expectationKind": "native-supported",
+          "pngEqualsPdfReplay": true,
+          "replayDpi": 96
+        },
+        {
+          "profile": "ScreenMediaPaged",
+          "pages": 2,
+          "sourceLabelsRetainedOnce": true,
+          "expectationKind": "native-supported",
+          "pngEqualsPdfReplay": true,
+          "replayDpi": 96
+        },
+        {
+          "profile": "ScreenFullPage",
+          "pages": 1,
+          "sourceLabelsRetainedOnce": true,
+          "expectationKind": "native-supported",
+          "pngEqualsPdfReplay": null,
+          "replayDpi": null
+        },
+        {
+          "profile": "ScreenSnapshotPaged",
+          "pages": 1,
+          "sourceLabelsRetainedOnce": true,
+          "expectationKind": "native-supported",
+          "pngEqualsPdfReplay": true,
+          "replayDpi": 96
+        }
+      ],
+      "summary": {
+        "bytes": 12463,
+        "sha256": "b6f4c182d26a515f16f80f79b9f0a405502fadaa0715a50a391c8eadbf3c7527",
+        "path": "qualified-spanner-keep-after-avoid-column/summary.json"
+      },
+      "captureReceipt": {
+        "bytes": 1630,
+        "sha256": "72e4092539a8b90a0e71e73a5659f8d853966b1d7a9349940f62c5100b21db00",
+        "path": "qualified-spanner-keep-after-avoid-column.receipt.json"
+      },
+      "nativeArtifacts": [
+        {
+          "bytes": 15014,
+          "sha256": "11280ed01a9dd74df8b2fd6f8c5808e6f1d7aa016baebe78f29396c41be39e80",
+          "path": "native-spanner-keep-after-avoid-column/print.pdf"
+        },
+        {
+          "bytes": 15014,
+          "sha256": "11280ed01a9dd74df8b2fd6f8c5808e6f1d7aa016baebe78f29396c41be39e80",
+          "path": "native-spanner-keep-after-avoid-column/screen.pdf"
+        },
+        {
+          "bytes": 7605,
+          "sha256": "20fb2a5da1042d4d32a24f69fa5018bf7100bc68d48bbb495eebf7a34d016057",
+          "path": "native-spanner-keep-after-avoid-column/print.json"
+        },
+        {
+          "bytes": 7605,
+          "sha256": "20fb2a5da1042d4d32a24f69fa5018bf7100bc68d48bbb495eebf7a34d016057",
+          "path": "native-spanner-keep-after-avoid-column/screen.json"
+        },
+        {
+          "bytes": 2,
+          "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+          "path": "native-spanner-keep-after-avoid-column/errors.json"
+        }
+      ],
+      "nativeLifecycleReceipt": {
+        "bytes": 301,
+        "sha256": "73721a72054820d3686f359bdcacb50d8aa512038557af4eccb1617f04121111",
+        "path": "native-spanner-keep-after-avoid-column-receipt.json"
+      }
+    },
+    {
+      "case": "spanner-keep-inside-avoid-page-fitting",
+      "fixture": "Build/Project/Evidence/2026-09-30/html-master-convergence/spanner-break-controls-20261018/spanner-keep-inside-avoid-page-fitting.html",
+      "bytes": 1057,
+      "sha256": "e8e1d4691dc64a447e36efdcb7312ef066298893364e58cae062705c615f90fa",
+      "classification": "native-interop-witness",
+      "boundaryProfiles": [],
+      "boundaryReason": null,
+      "sourceLabelCount": 12,
+      "profiles": [
+        {
+          "profile": "PrintPaged",
+          "pages": 3,
+          "sourceLabelsRetainedOnce": true,
+          "expectationKind": "native-supported",
+          "pngEqualsPdfReplay": true,
+          "replayDpi": 96
+        },
+        {
+          "profile": "ScreenMediaPaged",
+          "pages": 3,
+          "sourceLabelsRetainedOnce": true,
+          "expectationKind": "native-supported",
+          "pngEqualsPdfReplay": true,
+          "replayDpi": 96
+        },
+        {
+          "profile": "ScreenFullPage",
+          "pages": 1,
+          "sourceLabelsRetainedOnce": true,
+          "expectationKind": "native-supported",
+          "pngEqualsPdfReplay": null,
+          "replayDpi": null
+        },
+        {
+          "profile": "ScreenSnapshotPaged",
+          "pages": 1,
+          "sourceLabelsRetainedOnce": true,
+          "expectationKind": "native-supported",
+          "pngEqualsPdfReplay": true,
+          "replayDpi": 96
+        }
+      ],
+      "summary": {
+        "bytes": 12725,
+        "sha256": "b6d81b3b56de2b57c7926f3911e426d6c5e3bd2897be8bac676a6f6e2b5deff7",
+        "path": "qualified-spanner-keep-inside-avoid-page-fitting/summary.json"
+      },
+      "captureReceipt": {
+        "bytes": 1644,
+        "sha256": "8c7f8eeca1a8f0a81da18a1acc4372589b44a0e433cc096bd6795aa60c6127dc",
+        "path": "qualified-spanner-keep-inside-avoid-page-fitting.receipt.json"
+      },
+      "nativeArtifacts": [
+        {
+          "bytes": 16060,
+          "sha256": "d66a370a1f3a67064967f814c29e93255b3fdc74b2014923cad503f11e311ab1",
+          "path": "native-spanner-keep-inside-avoid-page-fitting/print.pdf"
+        },
+        {
+          "bytes": 16060,
+          "sha256": "d66a370a1f3a67064967f814c29e93255b3fdc74b2014923cad503f11e311ab1",
+          "path": "native-spanner-keep-inside-avoid-page-fitting/screen.pdf"
+        },
+        {
+          "bytes": 8258,
+          "sha256": "de2ff674156ef8f795613a2e03990b9a00ccf37b8a8064febfdfd386602991f9",
+          "path": "native-spanner-keep-inside-avoid-page-fitting/print.json"
+        },
+        {
+          "bytes": 8258,
+          "sha256": "de2ff674156ef8f795613a2e03990b9a00ccf37b8a8064febfdfd386602991f9",
+          "path": "native-spanner-keep-inside-avoid-page-fitting/screen.json"
+        },
+        {
+          "bytes": 2,
+          "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+          "path": "native-spanner-keep-inside-avoid-page-fitting/errors.json"
+        }
+      ],
+      "nativeLifecycleReceipt": {
+        "bytes": 301,
+        "sha256": "82e50787d893d0f61ee600f60bfb75988388eadb18f66e0c0fabfe146063213c",
+        "path": "native-spanner-keep-inside-avoid-page-fitting-receipt.json"
+      }
+    },
+    {
+      "case": "spanner-keep-inside-avoid-column-fitting",
+      "fixture": "Build/Project/Evidence/2026-09-30/html-master-convergence/spanner-break-controls-20261018/spanner-keep-inside-avoid-column-fitting.html",
+      "bytes": 1061,
+      "sha256": "7b314f70999c89ebe5a58b862e99201ee87636776042df4b106fda9210963fad",
+      "classification": "native-interop-witness",
+      "boundaryProfiles": [],
+      "boundaryReason": null,
+      "sourceLabelCount": 12,
+      "profiles": [
+        {
+          "profile": "PrintPaged",
+          "pages": 2,
+          "sourceLabelsRetainedOnce": true,
+          "expectationKind": "native-supported",
+          "pngEqualsPdfReplay": true,
+          "replayDpi": 96
+        },
+        {
+          "profile": "ScreenMediaPaged",
+          "pages": 2,
+          "sourceLabelsRetainedOnce": true,
+          "expectationKind": "native-supported",
+          "pngEqualsPdfReplay": true,
+          "replayDpi": 96
+        },
+        {
+          "profile": "ScreenFullPage",
+          "pages": 1,
+          "sourceLabelsRetainedOnce": true,
+          "expectationKind": "native-supported",
+          "pngEqualsPdfReplay": null,
+          "replayDpi": null
+        },
+        {
+          "profile": "ScreenSnapshotPaged",
+          "pages": 1,
+          "sourceLabelsRetainedOnce": true,
+          "expectationKind": "native-supported",
+          "pngEqualsPdfReplay": true,
+          "replayDpi": 96
+        }
+      ],
+      "summary": {
+        "bytes": 12412,
+        "sha256": "2de43ea1e81b36aad3d5ecc599707810e19db9055bb92fb2e0565b7ccd9fdfcc",
+        "path": "qualified-spanner-keep-inside-avoid-column-fitting/summary.json"
+      },
+      "captureReceipt": {
+        "bytes": 1648,
+        "sha256": "6b8878a417eb256c0deef0d05e560186ac6eb3112fb419b27e2f23f38b50ce6a",
+        "path": "qualified-spanner-keep-inside-avoid-column-fitting.receipt.json"
+      },
+      "nativeArtifacts": [
+        {
+          "bytes": 15660,
+          "sha256": "d5411d495633e023ac0fe83dbc68fe321d97a65431aab5066ced11f15f3138f8",
+          "path": "native-spanner-keep-inside-avoid-column-fitting/print.pdf"
+        },
+        {
+          "bytes": 15660,
+          "sha256": "d5411d495633e023ac0fe83dbc68fe321d97a65431aab5066ced11f15f3138f8",
+          "path": "native-spanner-keep-inside-avoid-column-fitting/screen.pdf"
+        },
+        {
+          "bytes": 8263,
+          "sha256": "c242f11f977dd8af5cbe045c01f4b5acc418c85376436448b613f3c7c58dcd85",
+          "path": "native-spanner-keep-inside-avoid-column-fitting/print.json"
+        },
+        {
+          "bytes": 8263,
+          "sha256": "c242f11f977dd8af5cbe045c01f4b5acc418c85376436448b613f3c7c58dcd85",
+          "path": "native-spanner-keep-inside-avoid-column-fitting/screen.json"
+        },
+        {
+          "bytes": 2,
+          "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+          "path": "native-spanner-keep-inside-avoid-column-fitting/errors.json"
+        }
+      ],
+      "nativeLifecycleReceipt": {
+        "bytes": 301,
+        "sha256": "724537b670d8d7535fe9de472eaa4971c41130390577b96eb3ab2476086dd063",
+        "path": "native-spanner-keep-inside-avoid-column-fitting-receipt.json"
+      }
+    },
+    {
+      "case": "first-spanner-page-before",
+      "fixture": "Build/Project/Evidence/2026-09-30/html-master-convergence/spanner-break-controls-20261018/first-spanner-page-before.html",
+      "bytes": 750,
+      "sha256": "98ae16625c1bf9afc0c386448fe5223a0ae1f1bd1bf8b6b578338300211a91be",
+      "classification": "native-interop-witness",
+      "boundaryProfiles": [],
+      "boundaryReason": null,
+      "sourceLabelCount": 4,
+      "profiles": [
+        {
+          "profile": "PrintPaged",
+          "pages": 1,
+          "sourceLabelsRetainedOnce": true,
+          "expectationKind": "native-supported",
+          "pngEqualsPdfReplay": true,
+          "replayDpi": 96
+        },
+        {
+          "profile": "ScreenMediaPaged",
+          "pages": 1,
+          "sourceLabelsRetainedOnce": true,
+          "expectationKind": "native-supported",
+          "pngEqualsPdfReplay": true,
+          "replayDpi": 96
+        },
+        {
+          "profile": "ScreenFullPage",
+          "pages": 1,
+          "sourceLabelsRetainedOnce": true,
+          "expectationKind": "native-supported",
+          "pngEqualsPdfReplay": null,
+          "replayDpi": null
+        },
+        {
+          "profile": "ScreenSnapshotPaged",
+          "pages": 1,
+          "sourceLabelsRetainedOnce": true,
+          "expectationKind": "native-supported",
+          "pngEqualsPdfReplay": true,
+          "replayDpi": 96
+        }
+      ],
+      "summary": {
+        "bytes": 6241,
+        "sha256": "f56a1e01ea5db66201d0f39a9935b7a60607fc644e9cea359d83a96a285b595f",
+        "path": "qualified-first-spanner-page-before/summary.json"
+      },
+      "captureReceipt": {
+        "bytes": 1618,
+        "sha256": "883ae8c5ee9774a8f12b2136a23e0c6a35bbe030227d52d1022e240b93ed27e1",
+        "path": "qualified-first-spanner-page-before.receipt.json"
+      },
+      "nativeArtifacts": [
+        {
+          "bytes": 12135,
+          "sha256": "7f69d6392d4eb1e31f974475f88672cf5ea608f60daf99b41ab65239c49ac7a8",
+          "path": "native-first-spanner-page-before/print.pdf"
+        },
+        {
+          "bytes": 12135,
+          "sha256": "7f69d6392d4eb1e31f974475f88672cf5ea608f60daf99b41ab65239c49ac7a8",
+          "path": "native-first-spanner-page-before/screen.pdf"
+        },
+        {
+          "bytes": 2993,
+          "sha256": "c624fbd26d5f206ea44a6529612be2562add1db6350e7da704f622df99898bce",
+          "path": "native-first-spanner-page-before/print.json"
+        },
+        {
+          "bytes": 2993,
+          "sha256": "c624fbd26d5f206ea44a6529612be2562add1db6350e7da704f622df99898bce",
+          "path": "native-first-spanner-page-before/screen.json"
+        },
+        {
+          "bytes": 2,
+          "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+          "path": "native-first-spanner-page-before/errors.json"
+        }
+      ],
+      "nativeLifecycleReceipt": {
+        "bytes": 301,
+        "sha256": "1c6bd8c2e0a3d402af5d694d77bcc701675890fca1851b4c7c213b6482352d58",
+        "path": "native-first-spanner-page-before-receipt.json"
+      }
+    },
+    {
+      "case": "last-spanner-page-after",
+      "fixture": "Build/Project/Evidence/2026-09-30/html-master-convergence/spanner-break-controls-20261018/last-spanner-page-after.html",
+      "bytes": 747,
+      "sha256": "9052e5d675dcb6ac25468a38454dacc72c0ae708857786eb62c9fac7f4688b05",
+      "classification": "native-interop-witness",
+      "boundaryProfiles": [],
+      "boundaryReason": null,
+      "sourceLabelCount": 4,
+      "profiles": [
+        {
+          "profile": "PrintPaged",
+          "pages": 2,
+          "sourceLabelsRetainedOnce": true,
+          "expectationKind": "native-supported",
+          "pngEqualsPdfReplay": true,
+          "replayDpi": 96
+        },
+        {
+          "profile": "ScreenMediaPaged",
+          "pages": 2,
+          "sourceLabelsRetainedOnce": true,
+          "expectationKind": "native-supported",
+          "pngEqualsPdfReplay": true,
+          "replayDpi": 96
+        },
+        {
+          "profile": "ScreenFullPage",
+          "pages": 1,
+          "sourceLabelsRetainedOnce": true,
+          "expectationKind": "native-supported",
+          "pngEqualsPdfReplay": null,
+          "replayDpi": null
+        },
+        {
+          "profile": "ScreenSnapshotPaged",
+          "pages": 1,
+          "sourceLabelsRetainedOnce": true,
+          "expectationKind": "native-supported",
+          "pngEqualsPdfReplay": true,
+          "replayDpi": 96
+        }
+      ],
+      "summary": {
+        "bytes": 6599,
+        "sha256": "6c261df8d15f71d0e19def27b155c032034fc2fdb200130f57387177e340df32",
+        "path": "qualified-last-spanner-page-after/summary.json"
+      },
+      "captureReceipt": {
+        "bytes": 1614,
+        "sha256": "601e399d0471a20ac0f1a400977880afea81dc439beaf34280d501e008717f99",
+        "path": "qualified-last-spanner-page-after.receipt.json"
+      },
+      "nativeArtifacts": [
+        {
+          "bytes": 12799,
+          "sha256": "533758d02b2b7f364208a274277e589332a3e2c34aace5e348651138adbd5d03",
+          "path": "native-last-spanner-page-after/print.pdf"
+        },
+        {
+          "bytes": 12799,
+          "sha256": "533758d02b2b7f364208a274277e589332a3e2c34aace5e348651138adbd5d03",
+          "path": "native-last-spanner-page-after/screen.pdf"
+        },
+        {
+          "bytes": 3013,
+          "sha256": "7edebacd1399b92a33dd922feb18c858c8c7d96a7020178b1a80de75a9b9bf68",
+          "path": "native-last-spanner-page-after/print.json"
+        },
+        {
+          "bytes": 3013,
+          "sha256": "7edebacd1399b92a33dd922feb18c858c8c7d96a7020178b1a80de75a9b9bf68",
+          "path": "native-last-spanner-page-after/screen.json"
+        },
+        {
+          "bytes": 2,
+          "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+          "path": "native-last-spanner-page-after/errors.json"
+        }
+      ],
+      "nativeLifecycleReceipt": {
+        "bytes": 301,
+        "sha256": "3a153c45737a9fb6fa61ca79a9dafd0428afa416d0f1b014a2d16f112e685fb6",
+        "path": "native-last-spanner-page-after-receipt.json"
+      }
+    },
+    {
+      "case": "adjacent-spanners-page-before",
+      "fixture": "Build/Project/Evidence/2026-09-30/html-master-convergence/spanner-break-controls-20261018/adjacent-spanners-page-before.html",
+      "bytes": 866,
+      "sha256": "09fcd46fd55ad5628324b5b7ea43a60ed2516b4931bcdb4ceab5dc4f7fe7513b",
+      "classification": "native-interop-witness",
+      "boundaryProfiles": [],
+      "boundaryReason": null,
+      "sourceLabelCount": 7,
+      "profiles": [
+        {
+          "profile": "PrintPaged",
+          "pages": 2,
+          "sourceLabelsRetainedOnce": true,
+          "expectationKind": "native-supported",
+          "pngEqualsPdfReplay": true,
+          "replayDpi": 96
+        },
+        {
+          "profile": "ScreenMediaPaged",
+          "pages": 2,
+          "sourceLabelsRetainedOnce": true,
+          "expectationKind": "native-supported",
+          "pngEqualsPdfReplay": true,
+          "replayDpi": 96
+        },
+        {
+          "profile": "ScreenFullPage",
+          "pages": 1,
+          "sourceLabelsRetainedOnce": true,
+          "expectationKind": "native-supported",
+          "pngEqualsPdfReplay": null,
+          "replayDpi": null
+        },
+        {
+          "profile": "ScreenSnapshotPaged",
+          "pages": 1,
+          "sourceLabelsRetainedOnce": true,
+          "expectationKind": "native-supported",
+          "pngEqualsPdfReplay": true,
+          "replayDpi": 96
+        }
+      ],
+      "summary": {
+        "bytes": 8792,
+        "sha256": "e6492099d671f414403d0b9c0454a2b8790315f1d7f86127106849dcd696d234",
+        "path": "qualified-adjacent-spanners-page-before/summary.json"
+      },
+      "captureReceipt": {
+        "bytes": 1626,
+        "sha256": "c2d390b3a6c7a8c5f9bf99300098ead990b953792c9b20f2c372d6200e7f3dba",
+        "path": "qualified-adjacent-spanners-page-before.receipt.json"
+      },
+      "nativeArtifacts": [
+        {
+          "bytes": 13594,
+          "sha256": "751b95783b07c98b2f9f0705e8ddebb7aae64da5bb148e8cb8c5f3f4799948bf",
+          "path": "native-adjacent-spanners-page-before/print.pdf"
+        },
+        {
+          "bytes": 13594,
+          "sha256": "751b95783b07c98b2f9f0705e8ddebb7aae64da5bb148e8cb8c5f3f4799948bf",
+          "path": "native-adjacent-spanners-page-before/screen.pdf"
+        },
+        {
+          "bytes": 4765,
+          "sha256": "34d0c8d5fadb3ad3db66c2af794c774115a213cce892e15225d0e1136df64ea0",
+          "path": "native-adjacent-spanners-page-before/print.json"
+        },
+        {
+          "bytes": 4765,
+          "sha256": "34d0c8d5fadb3ad3db66c2af794c774115a213cce892e15225d0e1136df64ea0",
+          "path": "native-adjacent-spanners-page-before/screen.json"
+        },
+        {
+          "bytes": 2,
+          "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+          "path": "native-adjacent-spanners-page-before/errors.json"
+        }
+      ],
+      "nativeLifecycleReceipt": {
+        "bytes": 301,
+        "sha256": "0f6a14ea2f6082b73751f6375582fabc7fb9b0e5a2a23c8820678edabd67acae",
+        "path": "native-adjacent-spanners-page-before-receipt.json"
+      }
+    },
+    {
+      "case": "empty-spanner-page-before",
+      "fixture": "Build/Project/Evidence/2026-09-30/html-master-convergence/spanner-break-controls-20261018/empty-spanner-page-before.html",
+      "bytes": 811,
+      "sha256": "f6de4058d6b2340a31ef077f26acb2a1d4d7b2094276705912c12ccaa19db159",
+      "classification": "native-interop-witness",
+      "boundaryProfiles": [],
+      "boundaryReason": null,
+      "sourceLabelCount": 5,
+      "profiles": [
+        {
+          "profile": "PrintPaged",
+          "pages": 2,
+          "sourceLabelsRetainedOnce": true,
+          "expectationKind": "native-supported",
+          "pngEqualsPdfReplay": true,
+          "replayDpi": 96
+        },
+        {
+          "profile": "ScreenMediaPaged",
+          "pages": 2,
+          "sourceLabelsRetainedOnce": true,
+          "expectationKind": "native-supported",
+          "pngEqualsPdfReplay": true,
+          "replayDpi": 96
+        },
+        {
+          "profile": "ScreenFullPage",
+          "pages": 1,
+          "sourceLabelsRetainedOnce": true,
+          "expectationKind": "native-supported",
+          "pngEqualsPdfReplay": null,
+          "replayDpi": null
+        },
+        {
+          "profile": "ScreenSnapshotPaged",
+          "pages": 1,
+          "sourceLabelsRetainedOnce": true,
+          "expectationKind": "native-supported",
+          "pngEqualsPdfReplay": true,
+          "replayDpi": 96
+        }
+      ],
+      "summary": {
+        "bytes": 7326,
+        "sha256": "027ec3ab00ee3e476cdf96f4197ea812334cfadad5d9e14ab71795257f055724",
+        "path": "qualified-empty-spanner-page-before/summary.json"
+      },
+      "captureReceipt": {
+        "bytes": 1618,
+        "sha256": "1c144c83152e4f77e17b9555f51094ddb5412d26476c14a8173859517e09c044",
+        "path": "qualified-empty-spanner-page-before.receipt.json"
+      },
+      "nativeArtifacts": [
+        {
+          "bytes": 8429,
+          "sha256": "a2c7d0f9d47bb1519bb5b22e3e8590f1bcd452dae882b2b10c84903a1caa8346",
+          "path": "native-empty-spanner-page-before/print.pdf"
+        },
+        {
+          "bytes": 8429,
+          "sha256": "a2c7d0f9d47bb1519bb5b22e3e8590f1bcd452dae882b2b10c84903a1caa8346",
+          "path": "native-empty-spanner-page-before/screen.pdf"
+        },
+        {
+          "bytes": 4051,
+          "sha256": "b8cc638735d3b1de1b920d84b0950e64e5cffda542ac9a4f636a7a8bff72da4f",
+          "path": "native-empty-spanner-page-before/print.json"
+        },
+        {
+          "bytes": 4051,
+          "sha256": "b8cc638735d3b1de1b920d84b0950e64e5cffda542ac9a4f636a7a8bff72da4f",
+          "path": "native-empty-spanner-page-before/screen.json"
+        },
+        {
+          "bytes": 2,
+          "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+          "path": "native-empty-spanner-page-before/errors.json"
+        }
+      ],
+      "nativeLifecycleReceipt": {
+        "bytes": 301,
+        "sha256": "82c0e462d3e32dc4c53a4cb57b9d3d9a32668ce3e358f5814c8e31184227dc37",
+        "path": "native-empty-spanner-page-before-receipt.json"
+      }
+    },
+    {
+      "case": "forced-page-overrides-ordinary-keep",
+      "fixture": "Build/Project/Evidence/2026-09-30/html-master-convergence/spanner-break-controls-20261018/forced-page-overrides-ordinary-keep.html",
+      "bytes": 855,
+      "sha256": "3e1dad12d326b350230eebf3d4eba5883df4cf9c92ffef297f0248deaa558ab4",
+      "classification": "native-interop-witness",
+      "boundaryProfiles": [],
+      "boundaryReason": null,
+      "sourceLabelCount": 6,
+      "profiles": [
+        {
+          "profile": "PrintPaged",
+          "pages": 2,
+          "sourceLabelsRetainedOnce": true,
+          "expectationKind": "native-supported",
+          "pngEqualsPdfReplay": true,
+          "replayDpi": 96
+        },
+        {
+          "profile": "ScreenMediaPaged",
+          "pages": 2,
+          "sourceLabelsRetainedOnce": true,
+          "expectationKind": "native-supported",
+          "pngEqualsPdfReplay": true,
+          "replayDpi": 96
+        },
+        {
+          "profile": "ScreenFullPage",
+          "pages": 1,
+          "sourceLabelsRetainedOnce": true,
+          "expectationKind": "native-supported",
+          "pngEqualsPdfReplay": null,
+          "replayDpi": null
+        },
+        {
+          "profile": "ScreenSnapshotPaged",
+          "pages": 1,
+          "sourceLabelsRetainedOnce": true,
+          "expectationKind": "native-supported",
+          "pngEqualsPdfReplay": true,
+          "replayDpi": 96
+        }
+      ],
+      "summary": {
+        "bytes": 8023,
+        "sha256": "5ccbcfc09325434ed2f734327922b87fe961213f75982fbf8a11a6b3502635de",
+        "path": "qualified-forced-page-overrides-ordinary-keep/summary.json"
+      },
+      "captureReceipt": {
+        "bytes": 1638,
+        "sha256": "7586cd92061b958b831d9b2cecc9ac45b68c92589985e552d0cd37cf9a860acf",
+        "path": "qualified-forced-page-overrides-ordinary-keep.receipt.json"
+      },
+      "nativeArtifacts": [
+        {
+          "bytes": 13058,
+          "sha256": "da20e1aefae76485202ffbf321ad1262a7d67c80362a53e2ec36499772b6e8b6",
+          "path": "native-forced-page-overrides-ordinary-keep/print.pdf"
+        },
+        {
+          "bytes": 13058,
+          "sha256": "da20e1aefae76485202ffbf321ad1262a7d67c80362a53e2ec36499772b6e8b6",
+          "path": "native-forced-page-overrides-ordinary-keep/screen.pdf"
+        },
+        {
+          "bytes": 4174,
+          "sha256": "0bc4d19aa26a94d0be43d6e3bb8d222570034a28a3443e66719acf682e5b76eb",
+          "path": "native-forced-page-overrides-ordinary-keep/print.json"
+        },
+        {
+          "bytes": 4174,
+          "sha256": "0bc4d19aa26a94d0be43d6e3bb8d222570034a28a3443e66719acf682e5b76eb",
+          "path": "native-forced-page-overrides-ordinary-keep/screen.json"
+        },
+        {
+          "bytes": 2,
+          "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+          "path": "native-forced-page-overrides-ordinary-keep/errors.json"
+        }
+      ],
+      "nativeLifecycleReceipt": {
+        "bytes": 301,
+        "sha256": "b962a957d5897abcae4639e615cc6abc6b1303cd378e1ab8ef6b797f78b7b40f",
+        "path": "native-forced-page-overrides-ordinary-keep-receipt.json"
+      }
+    },
+    {
+      "case": "rule-page-before-partial-entry-tail",
+      "fixture": "Build/Project/Evidence/2026-09-30/html-master-convergence/spanner-break-controls-20261018/rule-page-before-partial-entry-tail.html",
+      "bytes": 1440,
+      "sha256": "0482da97d9296408afa4851183385a6e4ebfaf9be73b327000afb6aa60852405",
+      "classification": "native-paint-boundary",
+      "boundaryProfiles": [
+        "PrintPaged",
+        "ScreenMediaPaged"
+      ],
+      "boundaryReason": "Finite-height overflow produces different print shrink and screen-media pagination. Edge clips three labels and scales its print output. Candidate source, replay and observed placement are checked; native or complete finite-overflow conformance is not claimed.",
+      "sourceLabelCount": 24,
+      "profiles": [
+        {
+          "profile": "PrintPaged",
+          "pages": 2,
+          "sourceLabelsRetainedOnce": true,
+          "expectationKind": "documented-boundary",
+          "pngEqualsPdfReplay": true,
+          "replayDpi": 96
+        },
+        {
+          "profile": "ScreenMediaPaged",
+          "pages": 3,
+          "sourceLabelsRetainedOnce": true,
+          "expectationKind": "documented-boundary",
+          "pngEqualsPdfReplay": true,
+          "replayDpi": 96
+        },
+        {
+          "profile": "ScreenFullPage",
+          "pages": 1,
+          "sourceLabelsRetainedOnce": true,
+          "expectationKind": "native-supported",
+          "pngEqualsPdfReplay": null,
+          "replayDpi": null
+        },
+        {
+          "profile": "ScreenSnapshotPaged",
+          "pages": 1,
+          "sourceLabelsRetainedOnce": true,
+          "expectationKind": "native-supported",
+          "pngEqualsPdfReplay": true,
+          "replayDpi": 96
+        }
+      ],
+      "summary": {
+        "bytes": 22390,
+        "sha256": "fb4ab0e1afa649616939ec19811b53e38eefa9c2dac31945bf4f840a780ddbc0",
+        "path": "qualified-rule-page-before-partial-entry-tail/summary.json"
+      },
+      "captureReceipt": {
+        "bytes": 1638,
+        "sha256": "0558e65abcd6a23f9c9660ddd7f75ee64022dea52d72671e53e6cc7b822b2faa",
+        "path": "qualified-rule-page-before-partial-entry-tail.receipt.json"
+      },
+      "nativeArtifacts": [
+        {
+          "bytes": 17687,
+          "sha256": "059459679824b0f17c73bbc7222cab766eef81b420e59f54523fc65173ced316",
+          "path": "native-rule-page-before-partial-entry-tail/print.pdf"
+        },
+        {
+          "bytes": 17687,
+          "sha256": "059459679824b0f17c73bbc7222cab766eef81b420e59f54523fc65173ced316",
+          "path": "native-rule-page-before-partial-entry-tail/screen.pdf"
+        },
+        {
+          "bytes": 14735,
+          "sha256": "b7527269d605615ac26dee033d15cf7c612682c4a4dae45a58bb4a79f184cfac",
+          "path": "native-rule-page-before-partial-entry-tail/print.json"
+        },
+        {
+          "bytes": 14735,
+          "sha256": "b7527269d605615ac26dee033d15cf7c612682c4a4dae45a58bb4a79f184cfac",
+          "path": "native-rule-page-before-partial-entry-tail/screen.json"
+        },
+        {
+          "bytes": 2,
+          "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+          "path": "native-rule-page-before-partial-entry-tail/errors.json"
+        }
+      ],
+      "nativeLifecycleReceipt": {
+        "bytes": 301,
+        "sha256": "aa1b4fa6f1314b18be1b9b094628f27921e4352149b24cb361739fcc8310ab13",
+        "path": "native-rule-page-before-partial-entry-tail-receipt.json"
+      }
+    },
+    {
+      "case": "rule-page-after-following-spanner",
+      "fixture": "Build/Project/Evidence/2026-09-30/html-master-convergence/spanner-break-controls-20261018/rule-page-after-following-spanner.html",
+      "bytes": 1255,
+      "sha256": "32a760060b17ec02d396e9cd1ab3c1bcec816f2f9fd4c18e853bfbbde698340c",
+      "classification": "native-difference",
+      "boundaryProfiles": [
+        "PrintPaged",
+        "ScreenMediaPaged"
+      ],
+      "boundaryReason": "Edge ignores page-after before the next column set and second spanner. OfficeIMO applies the force; native equivalence is not claimed.",
+      "sourceLabelCount": 17,
+      "profiles": [
+        {
+          "profile": "PrintPaged",
+          "pages": 3,
+          "sourceLabelsRetainedOnce": true,
+          "expectationKind": "documented-boundary",
+          "pngEqualsPdfReplay": true,
+          "replayDpi": 96
+        },
+        {
+          "profile": "ScreenMediaPaged",
+          "pages": 3,
+          "sourceLabelsRetainedOnce": true,
+          "expectationKind": "documented-boundary",
+          "pngEqualsPdfReplay": true,
+          "replayDpi": 96
+        },
+        {
+          "profile": "ScreenFullPage",
+          "pages": 1,
+          "sourceLabelsRetainedOnce": true,
+          "expectationKind": "native-supported",
+          "pngEqualsPdfReplay": null,
+          "replayDpi": null
+        },
+        {
+          "profile": "ScreenSnapshotPaged",
+          "pages": 1,
+          "sourceLabelsRetainedOnce": true,
+          "expectationKind": "native-supported",
+          "pngEqualsPdfReplay": true,
+          "replayDpi": 96
+        }
+      ],
+      "summary": {
+        "bytes": 16578,
+        "sha256": "25e88d49c0f5286f36690c53ebd1a9aaa27692870db51d6e53ee37a8bb58860e",
+        "path": "qualified-rule-page-after-following-spanner/summary.json"
+      },
+      "captureReceipt": {
+        "bytes": 1634,
+        "sha256": "692e9ea349b8c7b83929825809a0aecbda9a388546b363b743326be1be8ba9c1",
+        "path": "qualified-rule-page-after-following-spanner.receipt.json"
+      },
+      "nativeArtifacts": [
+        {
+          "bytes": 16968,
+          "sha256": "555cbf72313d6a4babfa2d51bb065ed2d77f94d0ac338ff5361422e54ff1a62d",
+          "path": "native-rule-page-after-following-spanner/print.pdf"
+        },
+        {
+          "bytes": 16968,
+          "sha256": "555cbf72313d6a4babfa2d51bb065ed2d77f94d0ac338ff5361422e54ff1a62d",
+          "path": "native-rule-page-after-following-spanner/screen.pdf"
+        },
+        {
+          "bytes": 10688,
+          "sha256": "2bfaafae36316f684ad2cb59fb35c3c936c22d49ee2fd71b7b60025570eba155",
+          "path": "native-rule-page-after-following-spanner/print.json"
+        },
+        {
+          "bytes": 10688,
+          "sha256": "2bfaafae36316f684ad2cb59fb35c3c936c22d49ee2fd71b7b60025570eba155",
+          "path": "native-rule-page-after-following-spanner/screen.json"
+        },
+        {
+          "bytes": 2,
+          "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+          "path": "native-rule-page-after-following-spanner/errors.json"
+        }
+      ],
+      "nativeLifecycleReceipt": {
+        "bytes": 301,
+        "sha256": "06a400a906ba3409219f3d12fc6d4b668a7e91cc3d2c5c2b6abe57b3f7c4168b",
+        "path": "native-rule-page-after-following-spanner-receipt.json"
+      }
+    },
+    {
+      "case": "rule-page-before-auto-partial-entry-tail",
+      "fixture": "Build/Project/Evidence/2026-09-30/html-master-convergence/spanner-break-controls-20261018/rule-page-before-auto-partial-entry-tail.html",
+      "bytes": 1432,
+      "sha256": "c04915b97e028ebee1cc4fc361766a51b4b7bb8c96d386a3dba2482c73f97ee9",
+      "classification": "native-interop-witness",
+      "boundaryProfiles": [],
+      "boundaryReason": null,
+      "sourceLabelCount": 24,
+      "profiles": [
+        {
+          "profile": "PrintPaged",
+          "pages": 4,
+          "sourceLabelsRetainedOnce": true,
+          "expectationKind": "native-supported",
+          "pngEqualsPdfReplay": true,
+          "replayDpi": 96
+        },
+        {
+          "profile": "ScreenMediaPaged",
+          "pages": 4,
+          "sourceLabelsRetainedOnce": true,
+          "expectationKind": "native-supported",
+          "pngEqualsPdfReplay": true,
+          "replayDpi": 96
+        },
+        {
+          "profile": "ScreenFullPage",
+          "pages": 1,
+          "sourceLabelsRetainedOnce": true,
+          "expectationKind": "native-supported",
+          "pngEqualsPdfReplay": null,
+          "replayDpi": null
+        },
+        {
+          "profile": "ScreenSnapshotPaged",
+          "pages": 1,
+          "sourceLabelsRetainedOnce": true,
+          "expectationKind": "native-supported",
+          "pngEqualsPdfReplay": true,
+          "replayDpi": 96
+        }
+      ],
+      "summary": {
+        "bytes": 22001,
+        "sha256": "49cee39acce282d4afcf8a7894879f7d667e78f63ff3518b61f607a4b25a5071",
+        "path": "qualified-rule-page-before-auto-partial-entry-tail/summary.json"
+      },
+      "captureReceipt": {
+        "bytes": 1648,
+        "sha256": "0c4e7bbdbb929ac1582de2bcb2da88e6524cb39dc26f548557bdbceab8edb211",
+        "path": "qualified-rule-page-before-auto-partial-entry-tail.receipt.json"
+      },
+      "nativeArtifacts": [
+        {
+          "bytes": 19491,
+          "sha256": "b555418dcc71c403a71fc58b49a523e5a85051746175497df541e0ad06acd51a",
+          "path": "native-rule-page-before-auto-partial-entry-tail/print.pdf"
+        },
+        {
+          "bytes": 19491,
+          "sha256": "b555418dcc71c403a71fc58b49a523e5a85051746175497df541e0ad06acd51a",
+          "path": "native-rule-page-before-auto-partial-entry-tail/screen.pdf"
+        },
+        {
+          "bytes": 14634,
+          "sha256": "d5e7575fe1bebc29b826a30c01be26ff7fcf82ddb25802a3be5f624e788234a3",
+          "path": "native-rule-page-before-auto-partial-entry-tail/print.json"
+        },
+        {
+          "bytes": 14634,
+          "sha256": "d5e7575fe1bebc29b826a30c01be26ff7fcf82ddb25802a3be5f624e788234a3",
+          "path": "native-rule-page-before-auto-partial-entry-tail/screen.json"
+        },
+        {
+          "bytes": 2,
+          "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+          "path": "native-rule-page-before-auto-partial-entry-tail/errors.json"
+        }
+      ],
+      "nativeLifecycleReceipt": {
+        "bytes": 301,
+        "sha256": "0baeff26a69a4703d4c1242ae929ded33969100ec7b5200261c7d644240fdfad",
+        "path": "native-rule-page-before-auto-partial-entry-tail-receipt.json"
+      }
+    },
+    {
+      "case": "spanner-keep-before-page-tight",
+      "fixture": "Build/Project/Evidence/2026-09-30/html-master-convergence/spanner-break-controls-20261018/spanner-keep-before-page-tight.html",
+      "bytes": 946,
+      "sha256": "3d9f14fb18faffee0c53bd473339d897934d28600f6faaba915dfb186a445580",
+      "classification": "native-difference",
+      "boundaryProfiles": [
+        "PrintPaged",
+        "ScreenMediaPaged"
+      ],
+      "boundaryReason": "Edge separates the preceding column row from the spanner despite a fitting avoid-page range. OfficeIMO retains the fitting range; native equivalence is not claimed.",
+      "sourceLabelCount": 6,
+      "profiles": [
+        {
+          "profile": "PrintPaged",
+          "pages": 2,
+          "sourceLabelsRetainedOnce": true,
+          "expectationKind": "documented-boundary",
+          "pngEqualsPdfReplay": true,
+          "replayDpi": 96
+        },
+        {
+          "profile": "ScreenMediaPaged",
+          "pages": 2,
+          "sourceLabelsRetainedOnce": true,
+          "expectationKind": "documented-boundary",
+          "pngEqualsPdfReplay": true,
+          "replayDpi": 96
+        },
+        {
+          "profile": "ScreenFullPage",
+          "pages": 1,
+          "sourceLabelsRetainedOnce": true,
+          "expectationKind": "native-supported",
+          "pngEqualsPdfReplay": null,
+          "replayDpi": null
+        },
+        {
+          "profile": "ScreenSnapshotPaged",
+          "pages": 1,
+          "sourceLabelsRetainedOnce": true,
+          "expectationKind": "native-supported",
+          "pngEqualsPdfReplay": true,
+          "replayDpi": 96
+        }
+      ],
+      "summary": {
+        "bytes": 8102,
+        "sha256": "953fd1e340844e4033c637b27cf8fea17b9a44d3c1ce94b053579e7af1473527",
+        "path": "qualified-spanner-keep-before-page-tight/summary.json"
+      },
+      "captureReceipt": {
+        "bytes": 1628,
+        "sha256": "1fde215b01b07de86eb163b686de8503b364db6222680881d352969549f69754",
+        "path": "qualified-spanner-keep-before-page-tight.receipt.json"
+      },
+      "nativeArtifacts": [
+        {
+          "bytes": 13203,
+          "sha256": "682b6e78e5cb8231b8939887477f27a559dfad0a3f431d8931f913662085da86",
+          "path": "native-spanner-keep-before-page-tight/print.pdf"
+        },
+        {
+          "bytes": 13203,
+          "sha256": "682b6e78e5cb8231b8939887477f27a559dfad0a3f431d8931f913662085da86",
+          "path": "native-spanner-keep-before-page-tight/screen.pdf"
+        },
+        {
+          "bytes": 4082,
+          "sha256": "3aa986e4557e2ce664779255a9febefda6fc4f4b954ad904031d4a218e45052a",
+          "path": "native-spanner-keep-before-page-tight/print.json"
+        },
+        {
+          "bytes": 4082,
+          "sha256": "3aa986e4557e2ce664779255a9febefda6fc4f4b954ad904031d4a218e45052a",
+          "path": "native-spanner-keep-before-page-tight/screen.json"
+        },
+        {
+          "bytes": 2,
+          "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+          "path": "native-spanner-keep-before-page-tight/errors.json"
+        }
+      ],
+      "nativeLifecycleReceipt": {
+        "bytes": 301,
+        "sha256": "93ab96e3ef2036b873d7a2cf342c60a252875d1e941fed5117d4d08bcea05a70",
+        "path": "native-spanner-keep-before-page-tight-receipt.json"
+      }
+    },
+    {
+      "case": "spanner-keep-after-page-tight",
+      "fixture": "Build/Project/Evidence/2026-09-30/html-master-convergence/spanner-break-controls-20261018/spanner-keep-after-page-tight.html",
+      "bytes": 944,
+      "sha256": "15a93401eebb7a04a809be61180c72b139274ee7b40029f86ccc62f6344ce71f",
+      "classification": "native-difference",
+      "boundaryProfiles": [
+        "PrintPaged",
+        "ScreenMediaPaged"
+      ],
+      "boundaryReason": "Edge separates the spanner from the next first line despite a fitting avoid-page range. OfficeIMO retains the fitting range; native equivalence is not claimed.",
+      "sourceLabelCount": 6,
+      "profiles": [
+        {
+          "profile": "PrintPaged",
+          "pages": 2,
+          "sourceLabelsRetainedOnce": true,
+          "expectationKind": "documented-boundary",
+          "pngEqualsPdfReplay": true,
+          "replayDpi": 96
+        },
+        {
+          "profile": "ScreenMediaPaged",
+          "pages": 2,
+          "sourceLabelsRetainedOnce": true,
+          "expectationKind": "documented-boundary",
+          "pngEqualsPdfReplay": true,
+          "replayDpi": 96
+        },
+        {
+          "profile": "ScreenFullPage",
+          "pages": 1,
+          "sourceLabelsRetainedOnce": true,
+          "expectationKind": "native-supported",
+          "pngEqualsPdfReplay": null,
+          "replayDpi": null
+        },
+        {
+          "profile": "ScreenSnapshotPaged",
+          "pages": 1,
+          "sourceLabelsRetainedOnce": true,
+          "expectationKind": "native-supported",
+          "pngEqualsPdfReplay": true,
+          "replayDpi": 96
+        }
+      ],
+      "summary": {
+        "bytes": 7976,
+        "sha256": "73aa6f6bc66fcf4eff6137a43e75fab9fe1ba2763d965165e400f4d141837e8a",
+        "path": "qualified-spanner-keep-after-page-tight/summary.json"
+      },
+      "captureReceipt": {
+        "bytes": 1626,
+        "sha256": "4d4bdf1efd7aefd164f7e11d9d4f56cf31eb36bb966522ed6a8bdf2b27cfa92b",
+        "path": "qualified-spanner-keep-after-page-tight.receipt.json"
+      },
+      "nativeArtifacts": [
+        {
+          "bytes": 12978,
+          "sha256": "f11bdb438fe39faa7a6fc8d3c3b043cd1d8903e78f40f266828f96903f6c01fe",
+          "path": "native-spanner-keep-after-page-tight/print.pdf"
+        },
+        {
+          "bytes": 12978,
+          "sha256": "f11bdb438fe39faa7a6fc8d3c3b043cd1d8903e78f40f266828f96903f6c01fe",
+          "path": "native-spanner-keep-after-page-tight/screen.pdf"
+        },
+        {
+          "bytes": 4101,
+          "sha256": "aa74b5afd84d4e79526d065848419dffd7c85db4bacadce43f70af6408920fe6",
+          "path": "native-spanner-keep-after-page-tight/print.json"
+        },
+        {
+          "bytes": 4101,
+          "sha256": "aa74b5afd84d4e79526d065848419dffd7c85db4bacadce43f70af6408920fe6",
+          "path": "native-spanner-keep-after-page-tight/screen.json"
+        },
+        {
+          "bytes": 2,
+          "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+          "path": "native-spanner-keep-after-page-tight/errors.json"
+        }
+      ],
+      "nativeLifecycleReceipt": {
+        "bytes": 301,
+        "sha256": "5390bd3d8af08f030602242e65d549e2d267dcd634fa05aaf3c084e9d33eeb43",
+        "path": "native-spanner-keep-after-page-tight-receipt.json"
+      }
+    },
+    {
+      "case": "spanner-before-right-auto-partial-entry-tail",
+      "fixture": "Build/Project/Evidence/2026-09-30/html-master-convergence/spanner-break-controls-20261018/spanner-before-right-auto-partial-entry-tail.html",
+      "bytes": 1437,
+      "sha256": "6be88720817cc155b28f2ad794ff01255f5d412bc7259fa1330c4e378f14467b",
+      "classification": "native-difference",
+      "boundaryProfiles": [
+        "PrintPaged",
+        "ScreenMediaPaged"
+      ],
+      "boundaryReason": "Edge treats the right-page target as a plain page break. OfficeIMO preserves right-page parity with a blank second page; native equivalence is not claimed.",
+      "sourceLabelCount": 24,
+      "profiles": [
+        {
+          "profile": "PrintPaged",
+          "pages": 5,
+          "sourceLabelsRetainedOnce": true,
+          "expectationKind": "documented-boundary",
+          "pngEqualsPdfReplay": true,
+          "replayDpi": 96
+        },
+        {
+          "profile": "ScreenMediaPaged",
+          "pages": 5,
+          "sourceLabelsRetainedOnce": true,
+          "expectationKind": "documented-boundary",
+          "pngEqualsPdfReplay": true,
+          "replayDpi": 96
+        },
+        {
+          "profile": "ScreenFullPage",
+          "pages": 1,
+          "sourceLabelsRetainedOnce": true,
+          "expectationKind": "native-supported",
+          "pngEqualsPdfReplay": null,
+          "replayDpi": null
+        },
+        {
+          "profile": "ScreenSnapshotPaged",
+          "pages": 1,
+          "sourceLabelsRetainedOnce": true,
+          "expectationKind": "native-supported",
+          "pngEqualsPdfReplay": true,
+          "replayDpi": 96
+        }
+      ],
+      "summary": {
+        "bytes": 22281,
+        "sha256": "dcdac38d7d6e480ef3842ef931074ae98394749d97afcaf7641693b354d372b6",
+        "path": "qualified-spanner-before-right-auto-partial-entry-tail/summary.json"
+      },
+      "captureReceipt": {
+        "bytes": 1656,
+        "sha256": "201b03d28eb6aca8151a02a5146eac2dbd475138f8edd64bff9b5c1699d9428e",
+        "path": "qualified-spanner-before-right-auto-partial-entry-tail.receipt.json"
+      },
+      "nativeArtifacts": [
+        {
+          "bytes": 19098,
+          "sha256": "66ff2ed1ce41e2d3d7340fab5bcc3b57d6a3be70465e9b10a2f197570c16a6cb",
+          "path": "native-spanner-before-right-auto-partial-entry-tail/print.pdf"
+        },
+        {
+          "bytes": 19098,
+          "sha256": "66ff2ed1ce41e2d3d7340fab5bcc3b57d6a3be70465e9b10a2f197570c16a6cb",
+          "path": "native-spanner-before-right-auto-partial-entry-tail/screen.pdf"
+        },
+        {
+          "bytes": 14622,
+          "sha256": "174c5c3f8975347e11cde4eefdd1d5674b4a14931fc387b09838c652e2b85f2b",
+          "path": "native-spanner-before-right-auto-partial-entry-tail/print.json"
+        },
+        {
+          "bytes": 14622,
+          "sha256": "174c5c3f8975347e11cde4eefdd1d5674b4a14931fc387b09838c652e2b85f2b",
+          "path": "native-spanner-before-right-auto-partial-entry-tail/screen.json"
+        },
+        {
+          "bytes": 2,
+          "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+          "path": "native-spanner-before-right-auto-partial-entry-tail/errors.json"
+        }
+      ],
+      "nativeLifecycleReceipt": {
+        "bytes": 301,
+        "sha256": "223e8c83300225588284b7823f2708fda758301c7092b2e4a57ba2823152aae9",
+        "path": "native-spanner-before-right-auto-partial-entry-tail-receipt.json"
+      }
+    },
+    {
+      "case": "rule-page-before-relative-partial-entry-tail",
+      "fixture": "Build/Project/Evidence/2026-09-30/html-master-convergence/spanner-break-controls-20261018/rule-page-before-relative-partial-entry-tail.html",
+      "bytes": 1463,
+      "sha256": "3bbb1ad42c70cfea43abf3a1879bce47f3a5550d19d92d8254082394c9f1e7ae",
+      "classification": "native-paint-boundary",
+      "boundaryProfiles": [
+        "PrintPaged",
+        "ScreenMediaPaged"
+      ],
+      "boundaryReason": "Root observed repeated painted native PDF text across physical page edges for the relative-position witness (RPRLP-T04, RPRLP-T08, RPRLP-T13, RPRLP-T18). The candidate retains each logical source token once. First-page rule ink matches the native witness, but native PDF token multiplicity is a paint/extraction boundary. Accepted candidate preservation/export positions apply only to the declared paged profiles; no native or specification conformance is claimed there.",
+      "sourceLabelCount": 24,
+      "profiles": [
+        {
+          "profile": "PrintPaged",
+          "pages": 4,
+          "sourceLabelsRetainedOnce": true,
+          "expectationKind": "documented-boundary",
+          "pngEqualsPdfReplay": true,
+          "replayDpi": 96
+        },
+        {
+          "profile": "ScreenMediaPaged",
+          "pages": 4,
+          "sourceLabelsRetainedOnce": true,
+          "expectationKind": "documented-boundary",
+          "pngEqualsPdfReplay": true,
+          "replayDpi": 96
+        },
+        {
+          "profile": "ScreenFullPage",
+          "pages": 1,
+          "sourceLabelsRetainedOnce": true,
+          "expectationKind": "native-supported",
+          "pngEqualsPdfReplay": null,
+          "replayDpi": null
+        },
+        {
+          "profile": "ScreenSnapshotPaged",
+          "pages": 1,
+          "sourceLabelsRetainedOnce": true,
+          "expectationKind": "native-supported",
+          "pngEqualsPdfReplay": true,
+          "replayDpi": 96
+        }
+      ],
+      "summary": {
+        "bytes": 20052,
+        "sha256": "d8dea8510602cb386436de7d1910894c0a5a900a3082ccff68cdd2f86433f21f",
+        "path": "qualified-rule-page-before-relative-partial-entry-tail/summary.json"
+      },
+      "captureReceipt": {
+        "bytes": 1656,
+        "sha256": "b4a216c7574b2254fe1f8dedd5a879189cee466190f5f6e872fb0e024579f326",
+        "path": "qualified-rule-page-before-relative-partial-entry-tail.receipt.json"
+      },
+      "nativeArtifacts": [
+        {
+          "bytes": 19262,
+          "sha256": "c5d19a3a1715bdefbe9058f6793b19b0c01d8ce0902bfe5a7804a8862e1429aa",
+          "path": "native-rule-page-before-relative-partial-entry-tail/print.pdf"
+        },
+        {
+          "bytes": 19262,
+          "sha256": "c5d19a3a1715bdefbe9058f6793b19b0c01d8ce0902bfe5a7804a8862e1429aa",
+          "path": "native-rule-page-before-relative-partial-entry-tail/screen.pdf"
+        },
+        {
+          "bytes": 14593,
+          "sha256": "62bad1d5da09d2ddd13d71849c76f286bfc5740f20d31e1185dfdc881a8afe27",
+          "path": "native-rule-page-before-relative-partial-entry-tail/print.json"
+        },
+        {
+          "bytes": 14593,
+          "sha256": "62bad1d5da09d2ddd13d71849c76f286bfc5740f20d31e1185dfdc881a8afe27",
+          "path": "native-rule-page-before-relative-partial-entry-tail/screen.json"
+        },
+        {
+          "bytes": 2,
+          "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+          "path": "native-rule-page-before-relative-partial-entry-tail/errors.json"
+        }
+      ],
+      "nativeLifecycleReceipt": {
+        "bytes": 301,
+        "sha256": "0e0863225170de40c19d686f3fcbd81a9e795022cae4dcaf4b6b8fd13c625907",
+        "path": "native-rule-page-before-relative-partial-entry-tail-receipt.json"
+      }
+    },
+    {
+      "case": "rule-page-before-relative-negative-partial-entry-tail",
+      "fixture": "Build/Project/Evidence/2026-09-30/html-master-convergence/spanner-break-controls-20261018/rule-page-before-relative-negative-partial-entry-tail.html",
+      "bytes": 1473,
+      "sha256": "a6a0b952ac9b5dabf1aeb5179147fe0438bce687f71a0042d20c389600a11d31",
+      "classification": "native-paint-boundary",
+      "boundaryProfiles": [
+        "PrintPaged",
+        "ScreenMediaPaged"
+      ],
+      "boundaryReason": "Root observed repeated painted native PDF text across physical page edges for the relative-position witness (RPRLN-S01, RPRLN-T09, RPRLN-T14). The candidate retains each logical source token once. First-page rule ink matches the native witness, but native PDF token multiplicity is a paint/extraction boundary. Accepted candidate preservation/export positions apply only to the declared paged profiles; no native or specification conformance is claimed there.",
+      "sourceLabelCount": 24,
+      "profiles": [
+        {
+          "profile": "PrintPaged",
+          "pages": 4,
+          "sourceLabelsRetainedOnce": true,
+          "expectationKind": "documented-boundary",
+          "pngEqualsPdfReplay": true,
+          "replayDpi": 96
+        },
+        {
+          "profile": "ScreenMediaPaged",
+          "pages": 4,
+          "sourceLabelsRetainedOnce": true,
+          "expectationKind": "documented-boundary",
+          "pngEqualsPdfReplay": true,
+          "replayDpi": 96
+        },
+        {
+          "profile": "ScreenFullPage",
+          "pages": 1,
+          "sourceLabelsRetainedOnce": true,
+          "expectationKind": "native-supported",
+          "pngEqualsPdfReplay": null,
+          "replayDpi": null
+        },
+        {
+          "profile": "ScreenSnapshotPaged",
+          "pages": 1,
+          "sourceLabelsRetainedOnce": true,
+          "expectationKind": "native-supported",
+          "pngEqualsPdfReplay": true,
+          "replayDpi": 96
+        }
+      ],
+      "summary": {
+        "bytes": 20445,
+        "sha256": "0d884786604cc66cedb12d1c668cb1a0fd88f929aa596604faad7b0449421fa2",
+        "path": "qualified-rule-page-before-relative-negative-partial-entry-tail/summary.json"
+      },
+      "captureReceipt": {
+        "bytes": 1674,
+        "sha256": "7abf62192a2a9dd8f63030d1abb600ab9710cea09bf341c1ac026f3c555c0dea",
+        "path": "qualified-rule-page-before-relative-negative-partial-entry-tail.receipt.json"
+      },
+      "nativeArtifacts": [
+        {
+          "bytes": 19404,
+          "sha256": "5eeddb93a3eec93d1b12368bdd4aa56b7a79cb911fee56a7dbcc628dd11c32a4",
+          "path": "native-rule-page-before-relative-negative-partial-entry-tail/print.pdf"
+        },
+        {
+          "bytes": 19404,
+          "sha256": "5eeddb93a3eec93d1b12368bdd4aa56b7a79cb911fee56a7dbcc628dd11c32a4",
+          "path": "native-rule-page-before-relative-negative-partial-entry-tail/screen.pdf"
+        },
+        {
+          "bytes": 14667,
+          "sha256": "aed028baf6e78dffd2bd1438716bfbc428d4ae5ec5367da934514cb2d3e0490c",
+          "path": "native-rule-page-before-relative-negative-partial-entry-tail/print.json"
+        },
+        {
+          "bytes": 14667,
+          "sha256": "aed028baf6e78dffd2bd1438716bfbc428d4ae5ec5367da934514cb2d3e0490c",
+          "path": "native-rule-page-before-relative-negative-partial-entry-tail/screen.json"
+        },
+        {
+          "bytes": 2,
+          "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+          "path": "native-rule-page-before-relative-negative-partial-entry-tail/errors.json"
+        }
+      ],
+      "nativeLifecycleReceipt": {
+        "bytes": 301,
+        "sha256": "633ac8e0a857ec773851e40b99ffa947613f3a4ceb6273be9444f91d6d424d64",
+        "path": "native-rule-page-before-relative-negative-partial-entry-tail-receipt.json"
+      }
+    }
+  ],
+  "remainingBoundary": [
+    "Descendant or fragmented spanners and forced breaks inside spanners retain the diagnosed boundary.",
+    "Page controls on balanced or otherwise ineligible hosts, nested columns, transformed/vertical regions and atomic/floating hosts remain outside this per-page subset.",
+    "Changing page geometry or reserved body space, height-dependent alignment, tall column notes/figures and broader flex/grid intrinsic sizing retain their existing qualification limits.",
+    "Pre-spanner sets retain source balancing across page cuts; balanced spanning overflow can retain a diagnosed paint/following-flow approximation.",
+    "The seven native-difference cases and three native-paint-boundary cases retain the paged-profile boundaries recorded per case. Their native outputs do not establish equivalence for the differing behavior.",
+    "The relative-position witnesses retain native PDF paint/text-extraction differences. Matching first-page rule ink does not establish native glyph/token equivalence.",
+    "Windows profiling remains deferred. Local managed proof and unsigned private package proof do not establish Windows execution, public publication, hosted CI/review or deployment."
+  ],
+  "windowsProfiling": "Deferred by explicit user instruction.",
+  "publication": "Branch checkpoint only. No PR, merge, signed/public package release or deployment is established."
+}

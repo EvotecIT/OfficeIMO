@@ -1,0 +1,17 @@
+<!doctype html><html lang="en"><meta charset="utf-8"><title>spanner-keep-after-page-tight</title><style>
+@font-face{font-family:Witness;src:url(regular.ttf);font-weight:400}
+@font-face{font-family:Witness;src:url(bold.ttf);font-weight:700}
+@page{size:700px 140px;margin:20px}
+html,body{margin:0;background:white;font:14px/20px Witness}
+p{margin:0;orphans:1;widows:1}
+.columns{width:300px;column-count:2;column-gap:20px}
+.spanner{column-span:all;margin:0;font-weight:700;background:#eeeeee}
+</style><style>.columns{width:300px;column-count:2;column-gap:20px}.spanner{column-span:all;font-weight:700;background:#eee}</style><p id="kat-entry" style="height:60px">KAT-ENTRY</p>
+<section id="columns" class="columns" style="column-fill:auto">
+<p id="kat-p01">KAT-P01</p>
+<p id="kat-p02">KAT-P02</p>
+<p id="kat-s01" class="spanner" style="break-after:avoid-page">KAT-S01</p>
+<p id="kat-t01">KAT-T01</p>
+</section>
+<p id="after">KAT-AFTER</p>
+</html>

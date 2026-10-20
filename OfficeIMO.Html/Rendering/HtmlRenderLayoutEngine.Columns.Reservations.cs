@@ -45,23 +45,24 @@ internal sealed partial class HtmlRenderLayoutEngine {
     /// </summary>
     private MultiColumnPlan ResolveColumnReservedLayout(
         IElement owner, IReadOnlyList<HtmlRenderFlowBlock> children, MultiColumnPlan body,
-        double width, double height) {
+        double width, double height, ColumnPageBands? pageBands = null) {
         HtmlFootnoteEntry[] entries = _footnoteEntries.Values.Where(e => ReferenceEquals(e.ColumnOwner, owner))
             .OrderBy(e => e.Number).ToArray();
         ColumnEdgeFloatEntry[] floatEntries = _columnEdgeFloatEntries.Values.Where(e => ReferenceEquals(e.Owner, owner))
             .OrderBy(e => GetDocumentOrder(e.Element)).ToArray();
         if (entries.Length == 0 && floatEntries.Length == 0) return body;
-        ColumnEdgeFloatPlan floats = PlanColumnEdgeFloats(body, floatEntries, height, null, null);
-        ColumnNotePlan notes = PlanColumnNotes(body, entries, width, height, null, floats);
+        ColumnEdgeFloatPlan floats = PlanColumnEdgeFloats(body, floatEntries, height, null, null, pageBands);
+        ColumnNotePlan notes = PlanColumnNotes(body, entries, width, height, null, floats, pageBands);
         int maximumPasses = Math.Min(64, Math.Max(8, entries.Length + floatEntries.Length + 4));
         for (int pass = 0; pass < maximumPasses; pass++) {
             CheckCancellation();
-            body = BuildMultiColumnPlan(children, height, _options.MaxColumnCount, throwOnLimit: true, notes, floats);
-            ColumnEdgeFloatPlan nextFloats = PlanColumnEdgeFloats(body, floatEntries, height, floats, notes);
-            ColumnNotePlan nextNotes = PlanColumnNotes(body, entries, width, height, notes, nextFloats);
+            body = BuildMultiColumnPlan(children, height, _options.MaxColumnCount, throwOnLimit: true, notes, floats, pageBands);
+            ColumnEdgeFloatPlan nextFloats = PlanColumnEdgeFloats(body, floatEntries, height, floats, notes, pageBands);
+            ColumnNotePlan nextNotes = PlanColumnNotes(body, entries, width, height, notes, nextFloats, pageBands);
             if (nextNotes.EquivalentTo(notes) && nextFloats.EquivalentTo(floats)) {
-                body = AppendColumnNoteFragments(body, nextNotes, width, height);
-                return AppendColumnEdgeFloatFragments(body, nextFloats, nextNotes, height);
+                body = AppendColumnNoteFragments(body, nextNotes, width, height, pageBands);
+                return AppendColumnEdgeFloatFragments(body, nextFloats, nextNotes, height, pageBands)
+                    .WithReservations(nextNotes, nextFloats);
             }
             notes = nextNotes;
             floats = nextFloats;

@@ -21,7 +21,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
             && isFinalContentToken
             && line.HasFlowContent
             && wordFitting.CanBreakBefore(run, sourceStartOffset)
-            && InlineLine.PreviewEmptyLineAdvance(run, MeasureInlineText(token.PaintText, run.Style)) <= line.AvailableWidth + 0.0001D) {
+            && InlineLine.PreviewEmptyLineAdvance(run, MeasureInlineText(token.PaintText, run.Style, run)) <= line.AvailableWidth + 0.0001D) {
             CommitFloatLine(lines, ref line, ref y, context, lineHeight);
         }
         if (line.HasFlowContent && run.Style.HyphenateLimitZone > 0D
@@ -37,7 +37,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 || CountConsecutiveHyphenatedLines(lines) < run.Style.HyphenateLimitLines.Value;
             int selectedEnd = -1;
             bool selectedIsBreak = false;
-            double remainderWidth = MeasureInlineText(token.PaintText.Substring(start), run.Style);
+            double remainderWidth = MeasureInlineText(token.PaintText.Substring(start), run.Style, run);
             double remainderAdvance = previewContinuation && start == 0
                 ? wordFitting.PreviewWithContinuation(line, run, sourceEndOffset, remainderWidth)
                 : line.PreviewAdvance(run, remainderWidth);
@@ -69,7 +69,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
             string paintChunk = token.PaintText.Substring(start, selectedEnd - start)
                 + (selectedIsBreak ? run.Style.HyphenateCharacter : string.Empty);
             string logicalChunk = token.LogicalText.Substring(start, selectedEnd - start);
-            line.Add(new InlineSegment(paintChunk, MeasureInlineText(paintChunk, run.Style), run, logicalChunk));
+            line.Add(new InlineSegment(paintChunk, MeasureInlineText(paintChunk, run.Style, run), run, logicalChunk));
             start = selectedEnd;
             if (selectedIsBreak) {
                 line.EndsWithHyphenation = true;
@@ -96,7 +96,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
         if (paintToken.Length != logicalToken.Length) return false;
         IReadOnlyList<int> breaks = GetHtmlPreferredBreakPositions(
             paintToken,
-            allowCjkBreaks: run.Style.WordBreak != "keep-all");
+            allowCjkBreaks: run.Style.WordBreak != "keep-all",
+            wordFitting.GetPrecedingCategory(run, sourceStartOffset));
         if (breaks.Count == 0) return false;
 
         int start = 0;
@@ -104,7 +105,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
             if (end <= start || end > paintToken.Length) continue;
             string paintChunk = paintToken.Substring(start, end - start);
             string logicalChunk = logicalToken.Substring(start, end - start);
-            double chunkWidth = MeasureInlineText(paintChunk, run.Style);
+            double chunkWidth = MeasureInlineText(paintChunk, run.Style, run);
             bool completesToken = end == paintToken.Length;
             int sourceStart = sourceStartOffset + (start < sourceBoundaries.Count ? sourceBoundaries[start] : start);
             int sourceEnd = completesToken ? sourceEndOffset

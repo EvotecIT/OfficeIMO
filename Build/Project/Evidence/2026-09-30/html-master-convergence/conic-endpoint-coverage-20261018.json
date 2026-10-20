@@ -1,0 +1,684 @@
+{
+  "schema": 1,
+  "qualifiedDate": "2026-10-18",
+  "scope": "Bounded continuous endpoint coverage for narrow conic ramps; not exact native appearance, full browser acceptance or release qualification.",
+  "source": {
+    "base": "7b5f9e6abc3cf489c2e021b6afa77ffe396d1b02",
+    "qualifiedImplementationAndTests": "d48f9f06c0810196f2138a8a7870d6d8c352eef6",
+    "archivedRegressionBaseline": "8cfcb7b7d346d8be4315b4428d417cb86a99bf64",
+    "branch": "fix/html-conic-endpoint-coverage",
+    "trees": {
+      "OfficeIMO.Core": "525d802ec173c3c71a40862ced43308f2b5fe779",
+      "OfficeIMO.Drawing.Tests": "06d9a7e0d26731d743801dde0b16a9dd375b2ebc",
+      "OfficeIMO.Html": "cf374c0a03f18e37c83ef41076524b4a5bba8578",
+      "OfficeIMO.Pdf": "b1b316ace5b668ccbc8e61cc5cb8ba59e32de68a"
+    },
+    "publicApiChanges": false,
+    "productionDependencyChanges": false,
+    "providerMoves": false,
+    "selectedSourceSha256": {
+      "OfficeIMO.Core/OfficeConicGradient.Drawing.cs": "03db079787866b19467f995fd8a61478c2bbc8e3817a5a1bf4cb8c12b4b58b56",
+      "OfficeIMO.Drawing.Tests/Drawing.ConicGradientPaint.cs": "d08876771bd0ea1fda69da827cf01d4611760982c62ff189c292ed4c0debec2a"
+    }
+  },
+  "behavior": [
+    "Continue only final endpoint paint into its adjacent authored equal-color plateau when the existing fan budget permits.",
+    "Keep earlier ramp colors within their authored span; place the continuation edge inside equal paint, clear of its far boundary.",
+    "Charge every constructed fan before clipping, and union subdivisions in the same color/alpha paint run.",
+    "Retain authored stops, premultiplied sampling, vector export and the existing narrow-ramp/interior/plateau contracts."
+  ],
+  "tests": {
+    "runs": [
+      {
+        "scope": "regressions-before",
+        "passed": 0,
+        "failed": 4,
+        "skipped": 0,
+        "machineEvidence": "trx/regressions-before/_evomini_2026-10-18_00_27_47.trx",
+        "sha256": "5a9c0bfa398b7840da6354478fd5bdc134c26bda5453a3aac3beea5f56d0e457"
+      },
+      {
+        "scope": "conic10",
+        "passed": 35,
+        "failed": 0,
+        "skipped": 0,
+        "machineEvidence": "trx/conic10/_evomini_2026-10-18_00_27_54.trx",
+        "sha256": "23f3c59ab2d53ce58bcb9172662abaee1e8eff750c16d5d0792667afd3488a3b"
+      },
+      {
+        "scope": "drawing8-full",
+        "passed": 5745,
+        "failed": 0,
+        "skipped": 4,
+        "machineEvidence": "trx/drawing8-full/_evomini_2026-10-18_00_32_40.trx",
+        "sha256": "93e2be22837193bb5f6d95ac081dc9dfc5a750ec902b60e574141a5b4716f76b"
+      },
+      {
+        "scope": "drawing10-full",
+        "passed": 5745,
+        "failed": 0,
+        "skipped": 4,
+        "machineEvidence": "trx/drawing10-full/_evomini_2026-10-18_00_28_09.trx",
+        "sha256": "9fb03e211a62dcfebfdf96866cb98cf8db193071afe311b0e06fb9c69138a6f6"
+      }
+    ],
+    "newEndpointRows": {
+      "beforeFailed": 4,
+      "afterPassed": 4,
+      "transitions": [
+        "early",
+        "late"
+      ],
+      "startAnglesDegrees": [
+        0,
+        17
+      ],
+      "radiusPixelsInclusive": [
+        64,
+        85
+      ],
+      "plateauSideAngleDegreesExclusive": [
+        0,
+        2
+      ],
+      "maximumEndpointDistancePixels": 0.75,
+      "background": "Lime",
+      "maximumRgbDelta": 2,
+      "compositeAlpha": 255
+    },
+    "preservedConsumerChecks": "Two 333-pixel interior bands, exact adjacent raw RGBA plateau bands and SVG without images.",
+    "existingSkips": "Four existing opt-in codec cancellation cases in each complete Drawing run.",
+    "affectedHtmlGradientBackgroundConicNet10": {
+      "passed": 271,
+      "failed": 0
+    },
+    "affectedHtmlGradientBackgroundConicNet8": {
+      "passed": 271,
+      "failed": 0
+    },
+    "savingRace": "Pre-existing saving-race issue remains open; a green .NET10 run does not establish a fix."
+  },
+  "native": {
+    "browser": "Microsoft Edge 155.0.4283.60",
+    "owner": "HtmlTinkerX 3.0.4; existing driver 1.63.0; no production dependency",
+    "mainViewportCssPixels": [
+      800,
+      1000
+    ],
+    "mainCases": 9,
+    "mediaContexts": [
+      "print",
+      "screen"
+    ],
+    "mainWholeRegionRows": 18,
+    "profiles": 4,
+    "onePageAllProfiles": true,
+    "mainPngPdfEquivalentSets": 3,
+    "supplementViewportCssPixels": [
+      420,
+      420
+    ],
+    "supplementCases": 4,
+    "supplementQualities": [
+      12,
+      360,
+      4096
+    ],
+    "supplementWholeRegionRows": 24,
+    "supplementPngPdfEquivalentSets": 1,
+    "supplementFailures": [],
+    "pixelsPerRegion": 32400,
+    "angularOrCenterExclusions": [],
+    "threshold2IsDescriptiveNotAcceptance": true,
+    "pdfImages": 0,
+    "svgImages": 0,
+    "nativeHtmlPixelsAndGeometryExactlyMatchPrior": true,
+    "nativeSvgPixelsChanged": 0,
+    "nativeSvgByteAndPixelBindings": {
+      "beforeSvgSha256": "7e91d094416fc51be9c16997e89f011323f0cc64d2013fdc4db0d17caec82cc8",
+      "afterSvgSha256": "b86fca8b1add0af2424c067c422fd2b5b80fe14d20678d3fc81d7f4d42aaca40",
+      "servedSvgSha256": "b86fca8b1add0af2424c067c422fd2b5b80fe14d20678d3fc81d7f4d42aaca40",
+      "beforeAndAfterNativeSvgPngSha256": "fd74412fe9a93a0d2a460e41355b9f40c0e5c117039624e70bb45ae655a1d3d2"
+    },
+    "nativeSvgContract": "Emitted SVG and served SVG bytes changed; fresh Edge pixels remain unchanged, so no native SVG appearance improvement is claimed.",
+    "visualInspection": "Coordinator inspected final contacts and q12/q4096 renders at normal reading size.",
+    "ownershipReleased": "Browser receipts show no remaining task browser processes; loopback servers closed."
+  },
+  "wholeRegionObservations": {
+    "reference": "Fresh native HTML screenshot; before is protected candidate2, after is the qualified candidate.",
+    "pairOrder": [
+      "before",
+      "after"
+    ],
+    "rows": [
+      {
+        "case": "plateau-early",
+        "route": "managedPng",
+        "meanChannelDeltaBeforeAfter": [
+          0.073549383,
+          0.024372428
+        ],
+        "maxChannelDeltaBeforeAfter": [
+          102,
+          43
+        ],
+        "pixelsGt2BeforeAfter": [
+          118,
+          66
+        ],
+        "changed": 97,
+        "worsened": 4,
+        "newPixelsGt2": 1
+      },
+      {
+        "case": "plateau-early",
+        "route": "managedScene",
+        "meanChannelDeltaBeforeAfter": [
+          0.073631687,
+          0.024393004
+        ],
+        "maxChannelDeltaBeforeAfter": [
+          102,
+          43
+        ],
+        "pixelsGt2BeforeAfter": [
+          118,
+          66
+        ],
+        "changed": 97,
+        "worsened": 4,
+        "newPixelsGt2": 1
+      },
+      {
+        "case": "plateau-early",
+        "route": "managedSvgEdge",
+        "meanChannelDeltaBeforeAfter": [
+          0.028076132,
+          0.028076132
+        ],
+        "maxChannelDeltaBeforeAfter": [
+          49,
+          49
+        ],
+        "pixelsGt2BeforeAfter": [
+          155,
+          155
+        ],
+        "changed": 0,
+        "worsened": 0,
+        "newPixelsGt2": 0
+      },
+      {
+        "case": "plateau-early",
+        "route": "managedPdfPoppler",
+        "meanChannelDeltaBeforeAfter": [
+          0.084074074,
+          0.031923868
+        ],
+        "maxChannelDeltaBeforeAfter": [
+          70,
+          38
+        ],
+        "pixelsGt2BeforeAfter": [
+          222,
+          169
+        ],
+        "changed": 81,
+        "worsened": 3,
+        "newPixelsGt2": 2
+      },
+      {
+        "case": "plateau-early",
+        "route": "managedPdfQuartz",
+        "meanChannelDeltaBeforeAfter": [
+          0.076923868,
+          0.025030864
+        ],
+        "maxChannelDeltaBeforeAfter": [
+          108,
+          46
+        ],
+        "pixelsGt2BeforeAfter": [
+          132,
+          81
+        ],
+        "changed": 97,
+        "worsened": 2,
+        "newPixelsGt2": 1
+      },
+      {
+        "case": "plateau-late",
+        "route": "managedPng",
+        "meanChannelDeltaBeforeAfter": [
+          0.222510288,
+          0.187160494
+        ],
+        "maxChannelDeltaBeforeAfter": [
+          82,
+          41
+        ],
+        "pixelsGt2BeforeAfter": [
+          130,
+          77
+        ],
+        "changed": 96,
+        "worsened": 8,
+        "newPixelsGt2": 3
+      },
+      {
+        "case": "plateau-late",
+        "route": "managedScene",
+        "meanChannelDeltaBeforeAfter": [
+          0.222510288,
+          0.187139918
+        ],
+        "maxChannelDeltaBeforeAfter": [
+          82,
+          41
+        ],
+        "pixelsGt2BeforeAfter": [
+          130,
+          77
+        ],
+        "changed": 96,
+        "worsened": 8,
+        "newPixelsGt2": 3
+      },
+      {
+        "case": "plateau-late",
+        "route": "managedSvgEdge",
+        "meanChannelDeltaBeforeAfter": [
+          0.188024691,
+          0.188024691
+        ],
+        "maxChannelDeltaBeforeAfter": [
+          25,
+          25
+        ],
+        "pixelsGt2BeforeAfter": [
+          124,
+          124
+        ],
+        "changed": 0,
+        "worsened": 0,
+        "newPixelsGt2": 0
+      },
+      {
+        "case": "plateau-late",
+        "route": "managedPdfPoppler",
+        "meanChannelDeltaBeforeAfter": [
+          0.275843621,
+          0.242211934
+        ],
+        "maxChannelDeltaBeforeAfter": [
+          51,
+          51
+        ],
+        "pixelsGt2BeforeAfter": [
+          467,
+          411
+        ],
+        "changed": 80,
+        "worsened": 7,
+        "newPixelsGt2": 4
+      },
+      {
+        "case": "plateau-late",
+        "route": "managedPdfQuartz",
+        "meanChannelDeltaBeforeAfter": [
+          0.225781893,
+          0.191707819
+        ],
+        "maxChannelDeltaBeforeAfter": [
+          80,
+          43
+        ],
+        "pixelsGt2BeforeAfter": [
+          195,
+          139
+        ],
+        "changed": 97,
+        "worsened": 9,
+        "newPixelsGt2": 0
+      }
+    ],
+    "qualification": "Complete 32,400-pixel regions; some individual errors worsen despite lower aggregate errors. These are observations, not exact native-appearance acceptance.",
+    "otherSevenMainControlsChangedPixels": 0
+  },
+  "endpointDiagnostics": {
+    "lenses": "The named 2px rays and radius restrictions are diagnostic only; the whole-region record has no exclusions.",
+    "publicPngRows": [
+      {
+        "case": "plateau-early",
+        "diagnosticRayPixels": 301,
+        "rayMaxDeltaBeforeAfter": [
+          66,
+          11
+        ],
+        "rayPixelsGt2BeforeAfter": [
+          80,
+          29
+        ],
+        "newCorridorPixels": 15,
+        "corridorMaxAnalyticDeltaAfter": 0,
+        "originRadiusLe4MaxDeltaAfter": 43,
+        "originPixelsGt2After": 4
+      },
+      {
+        "case": "plateau-late",
+        "diagnosticRayPixels": 301,
+        "rayMaxDeltaBeforeAfter": [
+          45,
+          8
+        ],
+        "rayPixelsGt2BeforeAfter": [
+          85,
+          33
+        ],
+        "newCorridorPixels": 15,
+        "corridorMaxAnalyticDeltaAfter": 0,
+        "originRadiusLe4MaxDeltaAfter": 26,
+        "originPixelsGt2After": 4
+      }
+    ],
+    "remoteContinuationRayRadiusGe16ChangedPixels": 0,
+    "remainingOriginContract": "Near-origin residuals remain; four pixels exceed delta2 inside radius4 in each main narrow-ramp case."
+  },
+  "runtime": {
+    "htmlProducer": {
+      "OfficeIMO.Core.dll": {
+        "bytes": 4864512,
+        "sha256": "2e4fa867a3b6ea061b456b788dcc7f4855a57677c93ff07017d781973614871d"
+      },
+      "OfficeIMO.Html.dll": {
+        "bytes": 2712576,
+        "sha256": "f3ba58fe0e1387c6c7dd679a25ba96169ddf9fac0082c061ecaefec2ad39f94a"
+      },
+      "OfficeIMO.Pdf.dll": {
+        "bytes": 8220160,
+        "sha256": "599cd5662085e2dbc14eaf1072d0cdd1ee29c2ab088758def99127187ec3ddcd"
+      }
+    },
+    "identityBoundary": "Build outputs can differ in binary hash; source trees and each actual producer/package consumer are bound separately."
+  },
+  "package": {
+    "id": "OfficeIMO.Core",
+    "version": "3.5.1",
+    "privateQualificationOnly": true,
+    "bytes": 8448555,
+    "sha256": "e989ae843b6362ec65d3fb77eda661f0e8cfdfb12176cc6d3735644fd8de2897",
+    "runtimeDependencies": [],
+    "assets": [
+      {
+        "asset": "lib/net10.0/OfficeIMO.Core.dll",
+        "bytes": 4864512,
+        "sha256": "3ae3f310207d16c18cd58d108ec6d67a51fca0695c1b655c906e56165cd17fdb"
+      },
+      {
+        "asset": "lib/net472/OfficeIMO.Core.dll",
+        "bytes": 4815360,
+        "sha256": "3c74223db9cc6cb882f1b06f4b47fc29c58e019f8dcfe2b07d0b3a7460b69b36"
+      },
+      {
+        "asset": "lib/net8.0/OfficeIMO.Core.dll",
+        "bytes": 4861952,
+        "sha256": "a362329bad4b0b58300c3a1e8dfd7e22572967a2062a25e95c1d272704d45745"
+      },
+      {
+        "asset": "lib/netstandard2.0/OfficeIMO.Core.dll",
+        "bytes": 4814848,
+        "sha256": "2430020e1cf76a7d88a1dd36c1398379665bbdea7f4067d30a88ddc50ee8fd23"
+      }
+    ],
+    "consumers": [
+      {
+        "consumer": "net8",
+        "asset": "lib/net8.0/OfficeIMO.Core.dll",
+        "receiptSha256": "c84815243682fab8793f66cadb77cfd99208feb215d7e4a46200fea9852ea9ea",
+        "executableOrAssemblySha256": "36d4501eadd036ebc5cfe9eaee5b5c007be7df915adddae55f9e42290fdfad37",
+        "corridorWitnesses": [
+          15,
+          19,
+          15,
+          16
+        ],
+        "maximumCorridorRgbDelta": 0
+      },
+      {
+        "consumer": "net10",
+        "asset": "lib/net10.0/OfficeIMO.Core.dll",
+        "receiptSha256": "dfeddd22ef78cb482afb5d6179116617980c74b0f94d5e56d5f478b15019ddd9",
+        "executableOrAssemblySha256": "08554722d15fb6aaa2e7229253a4f240262dadb3ead2224f3a68d1e3932d550a",
+        "corridorWitnesses": [
+          15,
+          19,
+          15,
+          16
+        ],
+        "maximumCorridorRgbDelta": 0
+      },
+      {
+        "consumer": "legacy-netstandard",
+        "asset": "lib/netstandard2.0/OfficeIMO.Core.dll",
+        "receiptSha256": "05da735c6e5fde619169630f34baeae26afb866b388598da8e2e0a4f85f06e8b",
+        "executableOrAssemblySha256": "c3921ff3e94b6e36c3c92c4b01ebba71a7dee584c40897cc33da948a5de7fdbc",
+        "corridorWitnesses": [
+          15,
+          19,
+          15,
+          16
+        ],
+        "maximumCorridorRgbDelta": 0
+      },
+      {
+        "consumer": "legacy-net472",
+        "asset": "lib/net472/OfficeIMO.Core.dll",
+        "receiptSha256": "1d96ca329137c6f89376522a38ae2ccd6b11ed9292871dc246d28fad19e67835",
+        "executableOrAssemblySha256": "63bf990501dcff0c36180a7423b2c5c5185fbf2b47551300235d93f2ed0b91b5",
+        "corridorWitnesses": [
+          15,
+          19,
+          15,
+          16
+        ],
+        "maximumCorridorRgbDelta": 0
+      },
+      {
+        "consumer": "aot",
+        "asset": "lib/net10.0/OfficeIMO.Core.dll",
+        "receiptSha256": "dcc012c74d6ea2a5239ebd7390df5dc39eaa73c913ddb26c9d040e4372d2a421",
+        "executableOrAssemblySha256": "1806d8ad002b5e1c3ec70d9b1edbe247285f33e5d383f6ea25f6a6a8fffbe632",
+        "corridorWitnesses": [
+          15,
+          19,
+          15,
+          16
+        ],
+        "maximumCorridorRgbDelta": 0
+      }
+    ],
+    "ordinaryCoreCacheUnchanged": true,
+    "legacyBoundary": "Actual net472/netstandard2.0 packed assets executed on .NET10/macOS; no native Windows/.NET Framework proof.",
+    "aotBoundary": "Native executable smoke plus hash-bound package/ILCompiler inputs; no claim of a loaded DLL hash inside NativeAOT",
+    "runtimeRetention": "Verified archive contains 25 producer/runtime files; six raw asset graphs retained separately."
+  },
+  "reproduction": {
+    "source": "Use the qualified commit and pinned SDK from global.json; configure an explicit scratch output directory.",
+    "focusedCommand": "dotnet test OfficeIMO.Drawing.Tests/OfficeIMO.Drawing.Tests.csproj -c Release -f net10.0 --filter FullyQualifiedName~DrawingConicGradientPaintTests -m:3 --logger trx",
+    "drawingCommands": [
+      "dotnet test OfficeIMO.Drawing.Tests/OfficeIMO.Drawing.Tests.csproj -c Release -f net8.0 -m:3 --logger trx",
+      "dotnet test OfficeIMO.Drawing.Tests/OfficeIMO.Drawing.Tests.csproj -c Release -f net10.0 -m:3 --logger trx"
+    ],
+    "nativeProcedure": "Replay the hash-bound main and supplemental HTML/font inputs through the retained Core/HTML probes and HtmlTinkerX runner; compare complete regions against fresh native HTML, PDF and SVG consumers.",
+    "packageProcedure": "Execute package-proof/run-plan.json one stage at a time with the supplied stable head: private pack, inspect all four actual assets, run five consumers including osx-arm64 NativeAOT, then bind receipts.",
+    "cacheBoundary": "Private candidate cache; ordinary NuGet packages are read-only sources. No public publication, persistent system package installation or certificate-store access."
+  },
+  "machineEvidence": {
+    "root": "/Volumes/Samsung/Development/Scratch/html-conic-field-feasibility",
+    "protectedBaselineRoot": "/Volumes/Samsung/Development/Scratch/html-conic-alpha-boundaries",
+    "pathBoundary": "Machine-local retained evidence paths, not portable defaults. Hashes identify the exact inputs and receipts.",
+    "artifacts": [
+      {
+        "machineEvidence": "inputs/controls.html",
+        "bytes": 1692,
+        "sha256": "d31fccb2138d6598dcf9a69e10420ba7be5cb7d7086ab53fa01a9bedba8393f2"
+      },
+      {
+        "machineEvidence": "inputs/regular.ttf",
+        "bytes": 105592,
+        "sha256": "00aca2988771998ff27738ff97c2cc8e71eb3013f206de5f205986b7de326af3"
+      },
+      {
+        "machineEvidence": "inputs/bold.ttf",
+        "bytes": 120288,
+        "sha256": "20bb7ad2e23beb5020313119f46fbc50a5ded598aaa1be4df719d3c017914b6c"
+      },
+      {
+        "machineEvidence": "case-manifest.json",
+        "bytes": 1582,
+        "sha256": "87ef08f500e8691ed660297ad6a12e050ff7d57872cefeeadbe687acbea3b69b"
+      },
+      {
+        "machineEvidence": "diagnostic-design/inputs/plateaus.html",
+        "bytes": 897,
+        "sha256": "499b3d76acedad02d99da554cbe82940a8fd9affd5c907d6950df56387c00fd5"
+      },
+      {
+        "machineEvidence": "diagnostic-design/cases.json",
+        "bytes": 871,
+        "sha256": "fb3edde2505d84d822c7d66fee7bc66b53c34b627fc1717135066c72d4ce9e16"
+      },
+      {
+        "machineEvidence": "candidate-source-runtime-binding.json",
+        "bytes": 2578,
+        "sha256": "44d01b4d88ed5487ec78ba01a648099a4b5ccd885d64f9dafa0adb9d9832d2ee"
+      },
+      {
+        "machineEvidence": "candidate-comparison.json",
+        "bytes": 241148,
+        "sha256": "cf2f568795817c0019aa112cd38e238242f07e57c8edf09d469c3c911f909db2"
+      },
+      {
+        "machineEvidence": "analysis/endpoint-comparison.json",
+        "bytes": 222257,
+        "sha256": "3be0199cf8b971d89d916f0912ee2203ee2136b6148e4c1ea024f609e3927f94"
+      },
+      {
+        "machineEvidence": "diagnostic-design/endpoint-final-comparison.json",
+        "bytes": 75844,
+        "sha256": "f56aea751bc5d9b92a66ed856aa87ae5d69bc753d8d9ed24ee51cbe6f21cc030"
+      },
+      {
+        "machineEvidence": "diagnostic-design/endpoint-final/summary.json",
+        "bytes": 6532,
+        "sha256": "1a043315364763796800a544845e5eb7f735eaa08db225363ac36fac6e7c391e"
+      },
+      {
+        "machineEvidence": "native-baseline-binding.json",
+        "bytes": 1105,
+        "sha256": "2585cfb1812964408c63be5aa65aa8df2038b39e720a9416ab73b2b7134901b5"
+      },
+      {
+        "machineEvidence": "before-core/binding.json",
+        "bytes": 571,
+        "sha256": "f5de7aa65cb01f873b8e6b2010393466786a42ec9ef86065e1dcb0c627a96f03"
+      },
+      {
+        "machineEvidence": "package-proof/run-plan.json",
+        "bytes": 11796,
+        "sha256": "00958bdb2c7cf5856d544a2fbbd7faffa049fe8e4ca2ae3a0b707c299054c2ec"
+      },
+      {
+        "machineEvidence": "package-proof/Program.cs",
+        "bytes": 8814,
+        "sha256": "0687e5378294c45601564c3e06ba0cea5b25121f3c3cfe14b052453c26599c01"
+      },
+      {
+        "machineEvidence": "package-proof/source-seal.json",
+        "bytes": 198333,
+        "sha256": "20d4e3e02c1f58ec9ed246ae60914f908fe74421d094c82f0555fc77b3e8c656"
+      },
+      {
+        "machineEvidence": "package-proof/package-binding.json",
+        "bytes": 1671,
+        "sha256": "774c7f66bbbfec3fc5af82a673cc844d734c52aa9d4a88d0e7d7b32fc72d66e4"
+      },
+      {
+        "machineEvidence": "package-proof/consumer-binding.json",
+        "bytes": 7807,
+        "sha256": "3437f61af0b58b4084384e13a07ad27210b7d1c3d5ed905931e34f27bce867b8"
+      },
+      {
+        "machineEvidence": "runtime-archives/package-runtime-manifest.json",
+        "bytes": 7878,
+        "sha256": "2e0814d630b315ccba15936433135ddf9b3e8ff890e3aadd72ddc0833ad067e4"
+      },
+      {
+        "machineEvidence": "cleanup-package-receipt.json",
+        "bytes": 5019,
+        "sha256": "6c642dee9f14ba486a301cf0fce983471e892b4af3be568e9b7807b01640c6a6"
+      },
+      {
+        "machineEvidence": "candidate/PrintPaged-01.png",
+        "sha256": "0e57f069b5e0760f844cc668ee872a7d30ca47cf413e8a06187cbbd276e8ea2a"
+      },
+      {
+        "machineEvidence": "candidate/PrintPaged-01.svg",
+        "sha256": "b86fca8b1add0af2424c067c422fd2b5b80fe14d20678d3fc81d7f4d42aaca40"
+      },
+      {
+        "machineEvidence": "inputs/controls.svg",
+        "sha256": "b86fca8b1add0af2424c067c422fd2b5b80fe14d20678d3fc81d7f4d42aaca40"
+      },
+      {
+        "machineEvidence": "native-controls/print.png",
+        "sha256": "12545a74f1f15b5a29ed733f2688faf5fe77fbf7660e91b7ced30738fbab7531"
+      },
+      {
+        "machineEvidence": "native-controls/print.json",
+        "sha256": "61be106877885a5a82615ef1bb4b073d1ccd66de145e96b15467b2d078e9c845"
+      },
+      {
+        "machineEvidence": "native-svg-candidate/print.png",
+        "sha256": "fd74412fe9a93a0d2a460e41355b9f40c0e5c117039624e70bb45ae655a1d3d2"
+      }
+    ]
+  },
+  "review": {
+    "kind": "One targeted confirmation of the endpoint fix; no new full review",
+    "coordinatorAgent": "/root/conic_endpoint_confirmation",
+    "findings": [],
+    "targetedConfirmationAllowanceUsed": 1
+  },
+  "openLimits": [
+    "Wrap, origin, high-density cumulative sampling and consumer-specific PDF differences remain open.",
+    "Native SVG appearance is preserved; its pixels do not improve in this candidate.",
+    "Whole-region errors are not monotonically better at every pixel; retain worsened counts and origin residuals above.",
+    "ColorDodge/unpremultiplication experiment is not implemented because color-management and alpha-bias risks require separate proof.",
+    "No PR, merge, release, Windows qualification or provider migration is established by this receipt."
+  ],
+  "storage": {
+    "packageExpansionLogicalBytesRemoved": 909562562,
+    "midrunReceipt": "cleanup-package-receipt.json",
+    "finalCleanup": {
+      "state": "complete; verified exact generated expansions absent; maintenance lock released",
+      "additionalLogicalBytesRemoved": 2290715224,
+      "totalLogicalBytesRemoved": 3200277786,
+      "retainedLogicalBytes": 131958714,
+      "retainedPathsAndReasons": [
+        {
+          "path": "/Volumes/Samsung/Development/Scratch/html-conic-field-feasibility",
+          "reason": "Decisive native raster/PDF/SVG comparisons, inputs/fonts, raw TRX, private package, actual producer archives and source bindings"
+        },
+        {
+          "path": "/Volumes/Samsung/Development/Scratch/html-conic-alpha-boundaries",
+          "reason": "Protected previous qualified baseline and before-regression/browser producers"
+        },
+        {
+          "path": "/Volumes/Samsung/Development/GitHub/_worktrees/OfficeIMO-html-report-pagination",
+          "reason": "Active source worktree; no PR or merge authorized"
+        }
+      ]
+    }
+  }
+}

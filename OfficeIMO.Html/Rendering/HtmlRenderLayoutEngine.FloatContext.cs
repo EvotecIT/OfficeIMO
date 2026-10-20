@@ -71,6 +71,16 @@ internal sealed partial class HtmlRenderLayoutEngine {
         internal InlineFloatContext At(double width, double x, double y) =>
             new InlineFloatContext(width, _placements, _originX + x, _originY + y, _inheritedFloats, _originatingPageExclusions);
 
+        /// <summary>Retains preceding floats while a child layout may need to be abandoned and repeated.</summary>
+        internal (int Placements, int Exclusions) CapturePlacementState() =>
+            (_placements.Count, _originatingPageExclusions.Count);
+
+        /// <summary>Discards only the effects appended by an abandoned child layout.</summary>
+        internal void RestorePlacementState((int Placements, int Exclusions) state) {
+            _placements.RemoveRange(state.Placements, _placements.Count - state.Placements);
+            _originatingPageExclusions.RemoveRange(state.Exclusions, _originatingPageExclusions.Count - state.Exclusions);
+        }
+
         private void Register(InlineFloatPlacement placement) => _placements.Add(
             new InlineFloatPlacement(placement.Run, placement.X + _originX, placement.Y + _originY, placement.Width, placement.Height));
 

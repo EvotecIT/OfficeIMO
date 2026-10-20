@@ -142,6 +142,10 @@ public static class OfficeMath {
         string? separatorCharacter = null,
         bool naryUpperOnly = false,
         bool? stretchy = null,
-        bool? largeOperator = null) =>
-        new OfficeMathExpression(kind, text, children, character, secondaryCharacter, rowCount, columnCount, separatorCharacter, naryUpperOnly, stretchy, largeOperator);
+        bool? largeOperator = null,
+        string? operatorForm = null,
+        string? operatorLeftSpace = null,
+        string? operatorRightSpace = null) =>
+        new OfficeMathExpression(kind, text, children, character, secondaryCharacter, rowCount, columnCount, separatorCharacter, naryUpperOnly,
+            stretchy, largeOperator, operatorForm, operatorLeftSpace, operatorRightSpace);
 }

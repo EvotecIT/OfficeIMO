@@ -1,0 +1,20 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<title>avoid-column-group-120-after-120</title>
+<style>
+@font-face{font-family:Witness;src:url(regular.ttf);font-weight:400}
+@font-face{font-family:Witness;src:url(bold.ttf);font-weight:700}
+@page{size:700px 140px;margin:20px}
+html,body{margin:0;background:white;font:14px/20px Witness}
+p{margin:0;orphans:1;widows:1}
+.columns{width:300px;column-count:2;column-gap:20px}
+</style>
+<section id="columns" class="columns" style="column-fill:auto">
+<p id="xenia-l"><span id="xenia-l01">XENIA-L01</span><br><span id="xenia-l02">XENIA-L02</span><br><span id="xenia-l03">XENIA-L03</span><br><span id="xenia-l04">XENIA-L04</span><br><span id="xenia-l05">XENIA-L05</span><br><span id="xenia-l06">XENIA-L06</span></p>
+<div id="xenia-group" style="break-inside:avoid-column">
+<p id="xenia-g"><span id="xenia-g01">XENIA-G01</span><br><span id="xenia-g02">XENIA-G02</span><br><span id="xenia-g03">XENIA-G03</span><br><span id="xenia-g04">XENIA-G04</span><br><span id="xenia-g05">XENIA-G05</span><br><span id="xenia-g06">XENIA-G06</span></p>
+</div>
+</section>
+<p id="after">XENIA-AFTER</p>
+</html>

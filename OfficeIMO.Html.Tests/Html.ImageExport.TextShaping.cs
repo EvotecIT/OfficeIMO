@@ -128,6 +128,46 @@ public sealed partial class HtmlRenderingTests {
             item.Code == HtmlRenderDiagnosticCodes.ComplexTextShapingUnsupported);
     }
 
+    [Theory]
+    [InlineData(false, false)]
+    [InlineData(true, false)]
+    [InlineData(true, true)]
+    public void HtmlRenderer_ReportsUnpositionedMarksBeforePaintedGlyphExport(bool explicitManaged, bool explicitFeatures) {
+        string features = explicitFeatures ? "font-feature-settings:'kern' 1;" : string.Empty;
+        HtmlConversionDocument document = HtmlConversionDocument.Parse(
+            "<p style=\"" + features + "font-family:'OfficeIMO Shaping Test'\">e\u0301 \u0627\u064E</p>");
+        var options = new HtmlRenderOptions {
+            ViewportWidth = 180D,
+            TextShapingProvider = explicitManaged ? OfficeManagedTextShapingProvider.Instance : null
+        };
+        options.Fonts.Add(ManagedTextShapingTestAssets.FamilyName,
+            ManagedTextShapingTestAssets.CreateFont(' ', 'e', 0x0301, 0x0627, 0xFE8D, 0x064E));
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(document, options);
+
+        Assert.Contains(rendered.Diagnostics, diagnostic => diagnostic.LossKind == OfficeConversionLossKind.Approximation
+            && (diagnostic.Code == HtmlRenderDiagnosticCodes.ComplexTextShapingUnsupported
+                || diagnostic.Code == HtmlRenderDiagnosticCodes.OpenTypeFeatureUnsupported));
+        Assert.Throws<HtmlConversionException>(() => rendered.RequireNoLoss());
+    }
+
+    [Fact]
+    public void HtmlRenderer_ConfiguredProviderCanAcceptCombiningMarks() {
+        HtmlConversionDocument document = HtmlConversionDocument.Parse(
+            "<p style=\"font-family:'OfficeIMO Shaping Test'\">e\u0301</p>");
+        var options = new HtmlRenderOptions {
+            ViewportWidth = 180D,
+            FidelityPolicy = HtmlRenderFidelityPolicy.RequireNoLoss,
+            TextShapingProvider = new ManagedTextShapingTestAssets.RecordingProvider()
+        };
+        options.Fonts.Add(ManagedTextShapingTestAssets.FamilyName, ManagedTextShapingTestAssets.CreateFont('e', 0x0301));
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(document, options);
+
+        Assert.DoesNotContain(rendered.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.ComplexTextShapingUnsupported);
+        rendered.RequireNoLoss();
+    }
+
     [Fact]
     public void HtmlRasterExport_ReachesTheSharedTextShapingProvider() {
         HtmlConversionDocument document = HtmlConversionDocument.Parse(
@@ -165,6 +205,73 @@ public sealed partial class HtmlRenderingTests {
         Assert.True(cache.TryGet("token-0", font, out double measured));
         Assert.Equal(0D, measured);
         Assert.False(cache.TryGet(new string('x', HtmlShapedTextMeasurementCache.MaximumCacheableTextCharacters + 1), font, out _));
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void HtmlRenderer_ReportsUnfulfilledRequiredArabicLigatures(bool explicitManaged) {
+        const string text = "\u0644\u0627";
+        HtmlConversionDocument document = HtmlConversionDocument.Parse(
+            "<p style=\"font-family:'OfficeIMO Shaping Test'\">" + text + "</p>");
+        var options = new HtmlRenderOptions {
+            ViewportWidth = 180D,
+            TextShapingProvider = explicitManaged ? OfficeManagedTextShapingProvider.Instance : null
+        };
+        options.Fonts.Add(ManagedTextShapingTestAssets.FamilyName,
+            ManagedTextShapingTestAssets.CreateFont(0x0644, 0x0627, 0xFEDF, 0xFE8E));
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(document, options);
+
+        HtmlDiagnostic diagnostic = Assert.Single(rendered.Diagnostics, item =>
+            item.Code == HtmlRenderDiagnosticCodes.ComplexTextShapingUnsupported);
+        Assert.Equal(OfficeConversionLossKind.Approximation, diagnostic.LossKind);
+        Assert.Equal("provider-declined", diagnostic.Detail);
+        Assert.Throws<HtmlConversionException>(() => rendered.RequireNoLoss());
+    }
+
+    [Fact]
+    public void HtmlRenderer_ConfiguredProviderCanOwnRequiredArabicLigatures() {
+        const string text = "\u0644\u0627";
+        var provider = new ManagedTextShapingTestAssets.RecordingProvider();
+        HtmlConversionDocument document = HtmlConversionDocument.Parse(
+            "<p style=\"font-family:'OfficeIMO Shaping Test'\">" + text + "</p>");
+        var options = new HtmlRenderOptions {
+            ViewportWidth = 180D,
+            FidelityPolicy = HtmlRenderFidelityPolicy.RequireNoLoss,
+            TextShapingProvider = provider
+        };
+        options.Fonts.Add(ManagedTextShapingTestAssets.FamilyName,
+            ManagedTextShapingTestAssets.CreateFont(0x0644, 0x0627, 0xFEDF, 0xFE8E));
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(document, options);
+
+        Assert.Contains(provider.Requests, request => request.Text == text);
+        Assert.DoesNotContain(rendered.Diagnostics, diagnostic =>
+            diagnostic.Code == HtmlRenderDiagnosticCodes.ComplexTextShapingUnsupported);
+        rendered.RequireNoLoss();
+        // This proves provider acceptance, not actual Arabic glyph/cluster fidelity.
+        // Use the already-shipped optional HarfBuzz owner and exact native font for visual qualification.
+    }
+
+    [Fact]
+    public void HtmlRenderer_HonorsExplicitDisabledRequiredLigatures() {
+        HtmlConversionDocument document = HtmlConversionDocument.Parse(
+            "<p style=\"font-feature-settings:'rlig' 0;font-family:'OfficeIMO Shaping Test'\">\u0644\u0627</p>");
+        var options = new HtmlRenderOptions {
+            ViewportWidth = 180D,
+            FidelityPolicy = HtmlRenderFidelityPolicy.RequireNoLoss,
+            TextShapingProvider = OfficeManagedTextShapingProvider.Instance
+        };
+        options.Fonts.Add(ManagedTextShapingTestAssets.FamilyName,
+            ManagedTextShapingTestAssets.CreateFont(0x0644, 0x0627, 0xFEDF, 0xFE8E));
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(document, options);
+
+        Assert.DoesNotContain(rendered.Diagnostics, diagnostic =>
+            diagnostic.Code == HtmlRenderDiagnosticCodes.ComplexTextShapingUnsupported
+            || diagnostic.Code == HtmlRenderDiagnosticCodes.OpenTypeFeatureUnsupported);
+        rendered.RequireNoLoss();
     }
 
     private sealed class FixedAdvanceTextShapingProvider : IOfficeTextShapingProvider {
