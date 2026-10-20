@@ -53,7 +53,7 @@ internal static partial class PdfRedactionApplier {
                     IncludeTextRenderingMode3 = true,
                     PageNumbers = new[] { pageNumber }
                 };
-                if (PdfTextEditor.Find(output, literal, nativeOptions, outputOptions, workBudget).Count > 0)
+                if (PdfTextEditor.Find(output, literal, nativeOptions, outputOptions, workBudget, cancellationToken).Count > 0)
                     ThrowSurvivingText(pageNumber);
             }
             PdfLogicalTextBlock[] rewrittenBlocks = rewrittenBlocksByPage != null &&

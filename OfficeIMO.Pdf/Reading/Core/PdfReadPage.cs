@@ -2322,7 +2322,8 @@ public sealed partial class PdfReadPage {
         var builder = new System.Text.StringBuilder();
         var entries = new List<PageContentStreamOffset>();
         foreach (PageContentStreamEntry entry in GetContentStreamObjects()) {
-            if (builder.Length > 0) builder.Append('\n');
+            // Preserve concatenated bytes just as mutation does. Conforming writers split only at lexical
+            // boundaries; inserting whitespace would recover malformed token splits differently here.
             entries.Add(new PageContentStreamOffset(builder.Length, entry.ObjectNumber));
             builder.Append(PdfEncoding.Latin1GetString(pageContentBudget.Decode(entry.Stream)));
         }

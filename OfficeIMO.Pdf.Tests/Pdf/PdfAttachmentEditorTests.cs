@@ -6,6 +6,43 @@ namespace OfficeIMO.Tests.Pdf;
 
 public class PdfAttachmentEditorTests {
     [Fact]
+    public void EditKeepsRaisedReadLimitsThroughSavedAttachmentChecks() {
+        string nested = new string('[', 130) + "1" + new string(']', 130);
+        byte[][] objects = {
+            PdfObjectBytes.WrapIndirectObject(1, "<< /Type /Catalog /Pages 2 0 R /Custom " + nested + " >>\n"),
+            PdfObjectBytes.WrapIndirectObject(2, "<< /Type /Pages /Kids [3 0 R] /Count 1 >>\n"),
+            PdfObjectBytes.WrapIndirectObject(3, "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 200 200] /Contents 4 0 R >>\n"),
+            PdfObjectBytes.WrapIndirectObject(4, PdfObjectBytes.WrapStreamBody("<< /Length 0 >>", Array.Empty<byte>()))
+        };
+        byte[] source = PdfFileAssembler.Assemble(objects, 1, 0);
+        byte[] snapshot = (byte[])source.Clone();
+        Assert.Throws<PdfReadLimitException>(() => PdfDocument.Load(source).Inspect());
+        PdfDocument document = PdfDocument.Load(source, new PdfLoadOptions {
+            Limits = new PdfReadLimits { MaxObjectNestingDepth = 256, MaxInputBytes = source.LongLength }
+        });
+
+        PdfAttachmentEditResult added = document.Attachments.Add(new PdfEmbeddedFile("review.txt", Encoding.UTF8.GetBytes("review"), "text/plain"));
+        PdfAttachmentEditResult renamed = added.ToDocument().Attachments.Rename("review.txt", "approved.txt");
+        PdfAttachmentEditResult replaced = renamed.ToDocument().Attachments.Replace("approved.txt",
+            new PdfEmbeddedFile("approved.txt", Encoding.UTF8.GetBytes("approved"), "text/plain"));
+        PdfAttachmentEditResult removed = replaced.ToDocument().Attachments.Remove("approved.txt");
+
+        foreach (PdfAttachmentEditResult result in new[] { added, renamed, replaced, removed }) {
+            Assert.True(result.IsValid);
+            Assert.True(result.PreservationReport.IsPreserved);
+            PdfDocument saved = result.ToDocument();
+            Assert.Equal(256, saved.ReadOptions.Limits.MaxObjectNestingDepth);
+            Assert.True(saved.ReadOptions.Limits.MaxInputBytes >= result.ToBytes().LongLength);
+            Assert.Single(saved.Inspect().Pages);
+            Assert.Throws<PdfReadLimitException>(() => PdfDocument.Load(result.ToBytes()).Inspect());
+        }
+        Assert.Equal("approved", Encoding.UTF8.GetString(Assert.Single(replaced.ToDocument().Attachments.Extract()).Bytes));
+        Assert.Empty(removed.ToDocument().Attachments.Extract());
+        Assert.Equal(snapshot, source);
+        Assert.Equal(source, document.ToBytes());
+    }
+
+    [Fact]
     public void Edit_AddsReplacesRenamesRemovesAndValidatesAttachmentMetadata() {
         byte[] source = PdfDocument.Create()
             .Paragraph(p => p.Text("Attachment edit proof"))

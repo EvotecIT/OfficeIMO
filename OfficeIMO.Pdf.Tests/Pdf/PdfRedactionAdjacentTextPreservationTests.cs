@@ -56,6 +56,28 @@ public sealed class PdfRedactionAdjacentTextPreservationTests {
         Assert.Equal(bytes, source.ToBytes());
     }
 
+    [Theory]
+    [InlineData(12D, 0D, 0D, 12D)]
+    [InlineData(2D, 0D, 0.5D, 3D)]
+    [InlineData(0D, 2D, -3D, 0.5D)]
+    public void PageFontNormalizationPreservesTheAuthoredRedactionEnvelope(double a, double b, double c, double d) {
+        var span = new PdfTextSpan("Account", "F1", 1D, 72D, 674D, 100D, null, true,
+            Math.Atan2(b, a) * 180D / Math.PI, "Helvetica", null,
+            restampFontSize: Math.Sqrt(c * c + d * d),
+            textToPageTransform: new Matrix2D(a, b, c, d, 72D, 674D));
+        PdfTextSpanBounds expected = PdfTextSpanGeometry.GetRedactionBounds(span);
+        PdfTextSpan normalized = span.WithPageFontSize();
+
+        foreach (PdfTextSpan clone in new[] { normalized, normalized.WithVisualText("Account"),
+            normalized.WithOffset(0D, 0D), normalized.WithCanRestamp(false) }) {
+            PdfTextSpanBounds actual = PdfTextSpanGeometry.GetRedactionBounds(clone);
+            Assert.Equal(expected.Left, actual.Left, 8);
+            Assert.Equal(expected.Bottom, actual.Bottom, 8);
+            Assert.Equal(expected.Right, actual.Right, 8);
+            Assert.Equal(expected.Top, actual.Top, 8);
+        }
+    }
+
     private static void AssertSavedText(byte[] output) {
         using var independent = UglyToad.PdfPig.PdfDocument.Open(output);
         string text = string.Concat(independent.GetPage(1).Text.Where(character => !char.IsWhiteSpace(character)));

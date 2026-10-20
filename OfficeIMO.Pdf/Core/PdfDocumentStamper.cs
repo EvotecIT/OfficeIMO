@@ -17,7 +17,7 @@ public sealed partial class PdfDocumentStamper {
 
     /// <summary>Creates a new PDF with text stamped above existing content using explicit target read options.</summary>
     public PdfDocument Text(string text, PdfTextStampOptions? options, PdfLoadOptions? readOptions) {
-        return _document.ApplyMutation(input => PdfStamper.StampText(input, text, options, readOptions ?? _document.ReadOptions), cancellationToken: options?.CancellationToken ?? default);
+        return _document.ApplyMutation(input => PdfStamper.StampText(input, text, options, readOptions ?? _document.ReadOptions), readOptions, cancellationToken: options?.CancellationToken ?? default);
     }
 
     /// <summary>
@@ -34,7 +34,7 @@ public sealed partial class PdfDocumentStamper {
 
     /// <summary>Creates a text watermark behind existing content using explicit target read options.</summary>
     public PdfDocument TextWatermark(string text, PdfTextStampOptions? options, PdfLoadOptions? readOptions) {
-        return _document.ApplyMutation(input => PdfStamper.WatermarkText(input, text, options, readOptions ?? _document.ReadOptions), cancellationToken: options?.CancellationToken ?? default);
+        return _document.ApplyMutation(input => PdfStamper.WatermarkText(input, text, options, readOptions ?? _document.ReadOptions), readOptions, cancellationToken: options?.CancellationToken ?? default);
     }
 
     /// <summary>
@@ -53,7 +53,7 @@ public sealed partial class PdfDocumentStamper {
     public PdfDocument Image(byte[] imageBytes, PdfImageStampOptions? options, PdfLoadOptions? readOptions) {
         Guard.NotNull(imageBytes, nameof(imageBytes));
         PdfImageInput.EnsureWithinLimit(imageBytes.LongLength, (options ?? new PdfImageStampOptions()).MaximumEncodedImageBytes);
-        return _document.ApplyMutation(input => PdfStamper.StampImage(input, imageBytes, options, readOptions ?? _document.ReadOptions), cancellationToken: options?.CancellationToken ?? default);
+        return _document.ApplyMutation(input => PdfStamper.StampImage(input, imageBytes, options, readOptions ?? _document.ReadOptions), readOptions, cancellationToken: options?.CancellationToken ?? default);
     }
 
     /// <summary>
@@ -91,7 +91,7 @@ public sealed partial class PdfDocumentStamper {
     public PdfDocument ImageWatermark(byte[] imageBytes, PdfImageStampOptions? options, PdfLoadOptions? readOptions) {
         Guard.NotNull(imageBytes, nameof(imageBytes));
         PdfImageInput.EnsureWithinLimit(imageBytes.LongLength, (options ?? new PdfImageStampOptions()).MaximumEncodedImageBytes);
-        return _document.ApplyMutation(input => PdfStamper.WatermarkImage(input, imageBytes, options, readOptions ?? _document.ReadOptions), cancellationToken: options?.CancellationToken ?? default);
+        return _document.ApplyMutation(input => PdfStamper.WatermarkImage(input, imageBytes, options, readOptions ?? _document.ReadOptions), readOptions, cancellationToken: options?.CancellationToken ?? default);
     }
 
     /// <summary>
@@ -126,7 +126,7 @@ public sealed partial class PdfDocumentStamper {
     /// <summary>Imports one page from another PDF above selected pages using explicit target read options.</summary>
     public PdfDocument OverlayPage(byte[] sourcePdf, PdfPageOverlayOptions? options, PdfLoadOptions? targetReadOptions) {
         Guard.NotNull(sourcePdf, nameof(sourcePdf));
-        return _document.ApplyMutation(input => PdfStamper.OverlayPage(input, sourcePdf, options, targetReadOptions ?? _document.ReadOptions), cancellationToken: options?.CancellationToken ?? default);
+        return _document.ApplyMutation(input => PdfStamper.OverlayPage(input, sourcePdf, options, targetReadOptions ?? _document.ReadOptions), targetReadOptions, cancellationToken: options?.CancellationToken ?? default);
     }
 
     /// <summary>Imports one page from a readable PDF stream above selected pages.</summary>
@@ -175,7 +175,7 @@ public sealed partial class PdfDocumentStamper {
     /// <summary>Imports one page from another PDF below selected pages using explicit target read options.</summary>
     public PdfDocument UnderlayPage(byte[] sourcePdf, PdfPageOverlayOptions? options, PdfLoadOptions? targetReadOptions) {
         Guard.NotNull(sourcePdf, nameof(sourcePdf));
-        return _document.ApplyMutation(input => PdfStamper.UnderlayPage(input, sourcePdf, options, targetReadOptions ?? _document.ReadOptions), cancellationToken: options?.CancellationToken ?? default);
+        return _document.ApplyMutation(input => PdfStamper.UnderlayPage(input, sourcePdf, options, targetReadOptions ?? _document.ReadOptions), targetReadOptions, cancellationToken: options?.CancellationToken ?? default);
     }
 
     /// <summary>Imports one page from a readable PDF stream below selected pages.</summary>

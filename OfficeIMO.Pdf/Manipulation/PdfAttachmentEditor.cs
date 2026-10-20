@@ -61,6 +61,7 @@ internal static class PdfAttachmentEditor {
         if (validations.Any(static validation => !validation.IsValid)) throw new InvalidOperationException("PDF attachment post-save validation failed; the artifact was not returned.");
         var preservationOptions = new PdfRewritePreservationOptions {
             OriginalReadOptions = readOptions,
+            RewrittenReadOptions = outputReadOptions,
             PreserveAnnotations = !removedFileAttachmentAnnotations,
             PreserveEmbeddedFiles = false,
             PreserveRevisionStructure = false

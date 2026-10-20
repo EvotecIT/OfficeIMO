@@ -36,7 +36,7 @@ internal static class PdfTextSpanGeometry {
         GetAxisAlignedBoundsCore(span, advanceOffset, advance, -1D, 0.5D);
 
     // PDF glyphs ascend along the positive baseline normal in page user space.
-    // Keep the legacy selection envelope above separate from precise redaction marks.
+    // Keep the legacy selection envelope above separate from destructive redaction marks.
     internal static PdfTextSpanBounds GetRedactionGlyphBounds(PdfTextSpan span, double advanceOffset, double advance) =>
         GetAxisAlignedBoundsCore(span, advanceOffset, advance, 1D, -0.25D, useSourceTransform: true);
 
@@ -59,8 +59,8 @@ internal static class PdfTextSpanGeometry {
         double normalX = -alongY * fontSize;
         double normalY = alongX * fontSize;
         if (useSourceTransform && span.TextToPageTransform is Matrix2D transform) {
-            normalX = transform.C * span.FontSize;
-            normalY = transform.D * span.FontSize;
+            normalX = transform.C * span.TextSpaceFontSize;
+            normalY = transform.D * span.TextSpaceFontSize;
         }
         double startX = span.X + alongX * advanceOffset;
         double startY = span.Y + alongY * advanceOffset;
