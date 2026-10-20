@@ -67,6 +67,28 @@ public sealed partial class HtmlRenderingTests {
         Assert.Equal(OfficeFontStyle.Bold | OfficeFontStyle.Italic, margin.Font.Style);
     }
 
+    [Theory]
+    [InlineData("\\000041 LPHA", "ALPHA")]
+    [InlineData("\\1F600", "😀")]
+    public void HtmlPageMarginContainerUnits_GeneratedStringsUseTheSharedCssEscapeDecoder(string authored, string expected) {
+        Assert.True(HtmlCssGeneratedContentTemplate.TryParse("'" + authored + "'", out HtmlCssGeneratedContentTemplate content));
+        Assert.Equal(expected, content.Render(1, 1));
+    }
+
+    [Fact]
+    public void HtmlPageMarginContainerUnits_EscapedLineBreakRetainsTheAuthoredLineAdvance() {
+        var options = PageMarginTypographyOptions();
+        options.PageSize = new OfficePageSize(360D / 96D, 480D / 96D);
+        string html = PageMarginTypographySource("font:16px/10cqw Pinned", "ALPHA\\A BETA");
+        HtmlRenderPage page = Assert.Single(HtmlRenderEngine.Render(HtmlConversionDocument.Parse(html), options).Pages);
+
+        Assert.Equal("ALPHA\nBETA", PageMarginTypographyText(page).Text);
+        OfficeDrawingText[] lines = PageMarginTypographyDrawingText(page.CreateDrawing())
+            .Where(text => text.Text == "ALPHA" || text.Text == "BETA").ToArray();
+        Assert.Equal(2, lines.Length);
+        Assert.Equal(36D, lines[1].Y - lines[0].Y, 6);
+    }
+
     [Fact]
     public void HtmlPageMarginContainerUnits_RepeatedBlocksAndLayerRevertRetainTheWinningLeading() {
         const string html = """

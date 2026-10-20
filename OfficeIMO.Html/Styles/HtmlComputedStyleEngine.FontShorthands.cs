@@ -11,6 +11,7 @@ public static partial class HtmlComputedStyleEngine {
         "font-variant-ligatures", "font-variant-numeric"
     };
 
+    /// <summary>Expands a complete font shorthand through provider grammar while retaining owned container lengths.</summary>
     internal static bool TryExpandFontShorthand(string value, out IReadOnlyList<KeyValuePair<string, string>> longhands) {
         if (IsCssWideKeyword(value.Trim())) {
             longhands = FontShorthandLonghands.Select(name => new KeyValuePair<string, string>(name, value)).ToArray();
