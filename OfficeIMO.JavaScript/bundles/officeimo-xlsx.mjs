@@ -1529,6 +1529,27 @@ const { isDate } = _m11;
 const { copyExportLink } = _m20;
 
 const exportCellBrand = Symbol.for("@evotecit/officeimo/ExportCell");
+/** @internal Capture only portable scalar presentation fields before retaining or cloning a cell. */
+function copyCellPresentation(value) {
+    if (!value || typeof value !== "object" || Array.isArray(value))
+        throw new TypeError("Cell presentation must be an object.");
+    const result = {};
+    for (const key of ["background", "color", "numberFormat", "bold", "italic", "wrapText", "alignment"]) {
+        const field = value[key];
+        if (field === undefined)
+            continue;
+        if (["bold", "italic", "wrapText"].includes(key)) {
+            if (typeof field !== "boolean")
+                throw new TypeError("Cell presentation " + key + " must be boolean.");
+        }
+        else if (typeof field !== "string")
+            throw new TypeError("Cell presentation " + key + " must be text.");
+        if (key === "alignment" && !["left", "center", "right", "fill", "justify", "distributed"].includes(field))
+            throw new TypeError("Invalid cell presentation alignment.");
+        result[key] = field;
+    }
+    return Object.freeze(result);
+}
 /** One resolved value/presentation decision that can be reused across exports. Strings remain literal data. */
 class ExportCell {
     value;
@@ -1542,7 +1563,7 @@ class ExportCell {
             throw new TypeError("Display text must be a string.");
         assertScalar(value);
         this.text = options.text;
-        this.presentation = options.presentation === undefined ? undefined : Object.freeze({ ...options.presentation });
+        this.presentation = options.presentation === undefined ? undefined : copyCellPresentation(options.presentation);
         this.link = options.link === undefined ? undefined : copyExportLink(options.link);
         Object.defineProperty(this, exportCellBrand, { value: true });
         Object.freeze(this);
@@ -1563,7 +1584,7 @@ function assertExportValue(value) {
         return;
     assertScalar(value);
 }
-const _exports = Object.freeze({ ExportCell: ExportCell, assertScalar: assertScalar, assertExportValue: assertExportValue });
+const _exports = Object.freeze({ copyCellPresentation: copyCellPresentation, ExportCell: ExportCell, assertScalar: assertScalar, assertExportValue: assertExportValue });
 return _exports;
 })();
 
@@ -2050,6 +2071,84 @@ const _exports = Object.freeze({ NumericAggregate: NumericAggregate, createTotal
 return _exports;
 })();
 
+const _m29 = (() => {
+const { assertExportValue } = _m19;
+
+/** Validate one small, rectangular heading/footer matrix before any drawing. */
+function tableSpans(rows, columns) {
+    if (!Array.isArray(rows) || !rows.length || rows.length > 16)
+        throw new RangeError("Spanned headings/footers need from 1 through 16 rows.");
+    const covered = Array.from({ length: rows.length }, () => new Uint8Array(columns));
+    return rows.map((row, level) => {
+        if (!Array.isArray(row) || row.length !== columns)
+            throw new TypeError("Spanned rows must have the declared column count.");
+        const anchors = [];
+        for (let first = 0; first < columns; first++) {
+            const cell = row[first];
+            if (covered[level][first]) {
+                if (cell !== null)
+                    throw new TypeError("Covered heading/footer cells must be null.");
+                continue;
+            }
+            if (!cell || typeof cell !== "object")
+                throw new TypeError("Uncovered heading/footer cells need an anchor value.");
+            const span = cell.columnSpan ?? 1, rowSpan = cell.rowSpan ?? 1;
+            if (!Number.isInteger(span) || !Number.isInteger(rowSpan) || span < 1 || rowSpan < 1 || first + span > columns || level + rowSpan > rows.length)
+                throw new RangeError("Heading/footer spans must stay inside the declared matrix.");
+            assertExportValue(cell.value);
+            for (let r = level; r < level + rowSpan; r++)
+                for (let c = first; c < first + span; c++) {
+                    if (covered[r][c])
+                        throw new TypeError("Heading/footer spans overlap.");
+                    if ((r !== level || c !== first) && rows[r]?.[c] !== null)
+                        throw new TypeError("Covered heading/footer cells must be null.");
+                    covered[r][c] = 1;
+                }
+            anchors.push(Object.freeze({ first, span, rowSpan, value: cell.value }));
+        }
+        return Object.freeze(anchors);
+    });
+}
+const _exports = Object.freeze({ tableSpans: tableSpans });
+return _exports;
+})();
+
+const _m28 = (() => {
+const { ExportCell } = _m19;
+
+const { tableSpans } = _m29;
+
+const { copyValue, columnName } = _m18;
+
+/** Bounded heading/footer values and relative merges captured before row production. */
+class StructuredRows {
+    values;
+    ranges;
+    constructor(rows, columns) {
+        const anchors = tableSpans(rows, columns), ranges = [];
+        this.values = anchors.map((row, level) => {
+            const values = Array(columns).fill(undefined);
+            for (const anchor of row) {
+                values[anchor.first] = copyValue(anchor.value);
+                if (anchor.span > 1 || anchor.rowSpan > 1)
+                    ranges.push({ first: anchor.first + 1, last: anchor.first + anchor.span, top: level + 1, bottom: level + anchor.rowSpan });
+            }
+            return Object.freeze(values);
+        });
+        this.ranges = ranges;
+    }
+    get mergeCount() { return this.ranges.length; }
+    merges(offset) { return this.ranges.map(r => columnName(r.first) + (r.top + offset) + ":" + columnName(r.last) + (r.bottom + offset)); }
+    /** A native filter/table requires one real leaf cell for each declared column. */
+    matchesLeaf(headers) {
+        const last = this.values.length;
+        return !this.ranges.some(r => r.bottom === last) && this.values[last - 1].every((value, index) => (value instanceof ExportCell ? value.value : value) === headers[index]);
+    }
+}
+const _exports = Object.freeze({ StructuredRows: StructuredRows });
+return _exports;
+})();
+
 const _m25 = (() => {
 const { ExportCell } = _m19;
 
@@ -2064,6 +2163,8 @@ const { MergeRegions } = _m26;
 const { OfficeIMOError } = _m3;
 
 const { createTotals } = _m27;
+
+const { StructuredRows } = _m28;
 
 /** @internal A computed formula with a numeric cache; no public arbitrary-formula input. */
 class ComputedTotal {
@@ -2087,6 +2188,9 @@ class ReportLayout {
     regions;
     widths;
     sampleRows;
+    structuredFooter;
+    footerRows;
+    mergeCount;
     aggregates;
     constructor(columns, options, policy, maximumMerges = 10000, maximumSampleCells = 100000) {
         this.columns = columns;
@@ -2102,36 +2206,54 @@ class ReportLayout {
                 throw new RangeError("Title height must be positive and at most 409 points.");
         }
         const depth = Math.max(0, ...columns.map(c => c.groups?.length ?? 0));
-        if (depth > 16)
-            throw new RangeError("Grouped headings support at most 16 levels.");
-        if (depth && options.includeHeader === false)
-            throw new TypeError("Grouped headings require leaf headers.");
+        if (options.headerRows === undefined) {
+            if (depth > 16)
+                throw new RangeError("Grouped headings support at most 16 levels.");
+            if (depth && options.includeHeader === false)
+                throw new TypeError("Grouped headings require leaf headers.");
+        }
         const headings = [], merges = [];
         if (titleRows && columns.length > 1)
             merges.push("A1:" + columnName(columns.length) + "1");
-        for (let level = 0; level < depth; level++) {
-            const values = columns.map(c => c.groups?.[level] ?? "");
-            for (const value of values)
-                cellText(value, policy);
-            for (let first = 0; first < columns.length;) {
-                let last = first;
-                const prefix = JSON.stringify(columns[first].groups?.slice(0, level + 1));
-                while (last + 1 < columns.length && values[first] && JSON.stringify(columns[last + 1].groups?.slice(0, level + 1)) === prefix)
-                    last++;
-                if (last > first) {
-                    merges.push(columnName(first + 1) + (level + 1 + titleRows) + ":" + columnName(last + 1) + (level + 1 + titleRows));
-                    for (let i = first + 1; i <= last; i++)
-                        values[i] = "";
-                }
-                first = last + 1;
-            }
-            headings.push(values);
+        if (options.headerRows !== undefined && options.includeHeader !== false) {
+            const structured = new StructuredRows(options.headerRows, columns.length);
+            if ((options.table || options.autoFilter) && !structured.matchesLeaf(columns.map(c => c.header)))
+                throw new TypeError("Native tables and autofilters require an unmerged final heading row matching the declared leaf headers.");
+            headings.push(...structured.values);
+            merges.push(...structured.merges(titleRows));
         }
-        this.headerRows = titleRows + (columns.length && options.includeHeader !== false ? depth + 1 : 0);
+        else if (options.includeHeader !== false) {
+            for (let level = 0; level < depth; level++) {
+                const values = columns.map(c => c.groups?.[level] ?? "");
+                for (const value of values)
+                    cellText(value, policy);
+                for (let first = 0; first < columns.length;) {
+                    let last = first;
+                    const prefix = JSON.stringify(columns[first].groups?.slice(0, level + 1));
+                    while (last + 1 < columns.length && values[first] && JSON.stringify(columns[last + 1].groups?.slice(0, level + 1)) === prefix)
+                        last++;
+                    if (last > first) {
+                        merges.push(columnName(first + 1) + (level + 1 + titleRows) + ":" + columnName(last + 1) + (level + 1 + titleRows));
+                        for (let i = first + 1; i <= last; i++)
+                            values[i] = "";
+                    }
+                    first = last + 1;
+                }
+                headings.push(values);
+            }
+            if (columns.length)
+                headings.push(columns.map(c => c.header));
+        }
+        this.headerRows = titleRows + headings.length;
         this.firstHeaderRow = columns.length && options.includeHeader !== false ? titleRows + 1 : 0;
         if (options.mergedCells !== undefined && !Array.isArray(options.mergedCells))
             throw new TypeError("Merged ranges must be an array.");
-        if (options.mergedCells && options.mergedCells.length + merges.length > maximumMerges)
+        if (options.footer?.rows !== undefined && (options.footer.values !== undefined || options.footer.totals !== undefined))
+            throw new TypeError("Structured footer rows cannot accompany footer values or totals.");
+        this.structuredFooter = options.footer?.rows === undefined ? undefined : new StructuredRows(options.footer.rows, columns.length);
+        this.footerRows = this.structuredFooter?.values.length ?? (options.footer ? 1 : 0);
+        this.mergeCount = merges.length + (options.mergedCells?.length ?? 0) + (this.structuredFooter?.mergeCount ?? 0);
+        if (this.mergeCount > maximumMerges)
             throw new OfficeIMOError("RESOURCE_LIMIT", "maxMergedRanges exceeded.");
         this.regions = new MergeRegions([...merges, ...(options.mergedCells ?? [])], columns.length, maximumMerges);
         if (options.table)
@@ -2153,6 +2275,10 @@ class ReportLayout {
         this.aggregates = createTotals(columns, options.footer?.totals);
         if (options.print)
             validatePrint(options.print, policy);
+    }
+    /** Resolve appended footer coordinates only after the streamed data row count is known. */
+    finalRegions(rows, maximumMerges) {
+        return this.structuredFooter ? new MergeRegions([...this.merges, ...this.structuredFooter.merges(this.headerRows + rows)], this.columns.length, maximumMerges) : this.regions;
     }
     sample(values) {
         const min = this.options.autoSize?.minWidth ?? 8, max = this.options.autoSize?.maxWidth ?? 60;
@@ -2221,7 +2347,7 @@ const _exports = Object.freeze({ ComputedTotal: ComputedTotal, ReportLayout: Rep
 return _exports;
 })();
 
-const _m28 = (() => {
+const _m30 = (() => {
 const { cleanXml, escapeXml, escapeOoxmlAttribute } = _m10;
 
 const { cellPosition } = _m23;
@@ -2415,7 +2541,7 @@ const { ReportLayout, ComputedTotal, printXml } = _m25;
 
 const { cleanXml } = _m10;
 
-const { ConditionalFormats, prepareConditionalFormats } = _m28;
+const { ConditionalFormats, prepareConditionalFormats } = _m30;
 
 const { isDate } = _m11;
 
@@ -2447,6 +2573,7 @@ class Worksheet {
     count = 0;
     headerRows;
     layout;
+    completedRegions;
     titleStyle;
     pending = [];
     pendingCharacters = 0;
@@ -2506,7 +2633,7 @@ class Worksheet {
         const conditional = prepareConditionalFormats(options.conditionalFormats, columns, book.settings.invalidCharacterPolicy);
         book.styles.checkDifferentials(conditional.flatMap(rule => rule.style ? [rule.style] : []));
         const layout = new ReportLayout(columns, options, book.settings.invalidCharacterPolicy, book.settings.limits?.maxMergedRanges ?? 10000, book.settings.limits?.maxBufferedCells ?? 100000);
-        book.checkMerges(layout.merges.length);
+        book.checkMerges(layout.mergeCount);
         if (options.title?.style)
             validateStylePatch(options.title.style);
         if (options.title)
@@ -2575,7 +2702,7 @@ class Worksheet {
         if (value instanceof ExportCell)
             value = value.value;
         const suppliedStyle = value instanceof Cell ? value.style : undefined;
-        const covered = this.layout.regions.covered(i + 1, row);
+        const covered = (this.completedRegions ?? this.layout.regions).covered(i + 1, row);
         const input = value instanceof Cell ? value.value : value, emptyCovered = covered && (input == null || input === "");
         if (!header && !footer && col.column.type && !emptyCovered) {
             const writer = this.book.writerFor(col.column.type);
@@ -2743,12 +2870,21 @@ class Worksheet {
                 characters += this.options.title.text.length;
             if (this.layout.firstHeaderRow) {
                 for (const heading of this.layout.headings)
-                    for (const text of heading)
-                        characters += text.length;
-                for (const column of this.columns)
-                    characters += column.header.length;
+                    for (const value of heading) {
+                        const raw = value instanceof ExportCell || value instanceof Cell ? value.value : value;
+                        if (typeof raw === "string")
+                            characters += raw.length;
+                    }
             }
-            if (this.options.footer)
+            if (this.layout.structuredFooter) {
+                for (const row of this.layout.structuredFooter.values)
+                    for (const value of row) {
+                        const raw = value instanceof ExportCell ? value.value : value;
+                        if (typeof raw === "string")
+                            characters += raw.length;
+                    }
+            }
+            else if (this.options.footer)
                 for (let i = 0; i < this.columns.length; i++) {
                     const column = this.columns[i], totals = this.options.footer.totals;
                     if (totals && Object.prototype.hasOwnProperty.call(totals, column.key ?? column.header))
@@ -2757,7 +2893,7 @@ class Worksheet {
                     if (typeof raw === "string")
                         characters += raw.length;
                 }
-            this.book.budget.reserve(this.columns.length * (this.headerRows + (this.options.footer ? 1 : 0)), characters);
+            this.book.budget.reserve(this.columns.length * (this.headerRows + this.layout.footerRows), characters);
         }
         this.reservedLayout = true;
     }
@@ -2788,7 +2924,6 @@ class Worksheet {
         if (this.layout.firstHeaderRow) {
             for (let i = 0; i < this.layout.headings.length; i++)
                 await this.writeRow(this.layout.headings[i], i + this.layout.firstHeaderRow, true);
-            await this.writeRow(this.columns.map(c => c.header), this.headerRows, true);
         }
         for (const row of this.pending)
             for (const chunk of row)
@@ -2824,7 +2959,7 @@ class Worksheet {
                 progress();
             };
             await consumeRows(rows, this.book.settings.signal, row => {
-                if (this.count + this.headerRows + (this.options.footer ? 1 : 0) >= 1048576)
+                if (this.count + this.headerRows + this.layout.footerRows >= 1048576)
                     throw new RangeError("Excel supports at most 1,048,576 rows including headers and footers; split the sheet.");
                 this.book.budget.row(this.count + 1);
                 if (!this.columns.length)
@@ -2915,17 +3050,17 @@ class Worksheet {
     /** @internal */
     get firstHeaderRow() { return this.layout.firstHeaderRow; }
     /** @internal */
-    get mergeCount() { return this.layout.merges.length; }
+    get mergeCount() { return this.layout.mergeCount; }
     /** @internal */
     get conditionalFormatCount() { return this.conditional.count; }
     /** @internal */
-    get totalRows() { return Math.max(1, this.headerRows + this.count + (this.options.footer ? 1 : 0)); }
+    get totalRows() { return Math.max(1, this.headerRows + this.count + this.layout.footerRows); }
     /** @internal */
     get lastColumn() { return columnName(Math.max(1, this.columns.length)); }
     /** @internal */
     get printSettings() { return this.options.print; }
     /** @internal */
-    get footerSettings() { return this.options.footer; }
+    get footerSettings() { return this.layout.structuredFooter ? undefined : this.options.footer; }
     /** Complete this worksheet. A streamed workbook can then start its next worksheet. */
     async close() {
         this.book.assertOpen();
@@ -2947,11 +3082,14 @@ class Worksheet {
             throw this.error;
         return this.completion = (async () => {
             try {
-                this.layout.regions.validateRows(this.totalRows);
+                const regions = this.completedRegions = this.layout.finalRegions(this.count, this.book.settings.limits?.maxMergedRanges ?? 10000);
+                regions.validateRows(this.totalRows);
                 for (const link of this.links) {
                     const position = cellPosition(link.cell);
                     if (position.column > this.columns.length || position.row > this.totalRows)
                         throw new RangeError("Hyperlinks must address cells within the exported rows and columns.");
+                    if (regions.covered(position.column, position.row))
+                        throw new TypeError("Hyperlinks cannot address a covered merged cell.");
                 }
                 await this.start();
                 if (preservedRows)
@@ -2960,13 +3098,17 @@ class Worksheet {
                         await this.writeRow(this.project(row, this.count), this.headerRows + this.count + 1, false);
                         this.count++;
                     }
-                if (this.options.footer)
+                if (this.layout.structuredFooter) {
+                    for (let index = 0; index < this.layout.footerRows; index++)
+                        await this.writeRow(this.layout.structuredFooter.values[index], this.headerRows + this.count + index + 1, false, true);
+                }
+                else if (this.options.footer)
                     await this.writeRow(this.layout.footer(this.count), this.headerRows + this.count + 1, false, true);
                 await this.buffer.write('</sheetData>');
                 if (this.options.autoFilter && this.headerRows && !this.tableDefinition)
                     await this.buffer.write('<autoFilter ref="A' + this.headerRows + ':' + columnName(this.columns.length) + (this.count + this.headerRows) + '"/>');
-                if (this.layout.merges.length)
-                    await this.buffer.write('<mergeCells count="' + this.layout.merges.length + '">' + this.layout.merges.map(ref => '<mergeCell ref="' + ref + '"/>').join("") + '</mergeCells>');
+                if (regions.references.length)
+                    await this.buffer.write('<mergeCells count="' + regions.references.length + '">' + regions.references.map(ref => '<mergeCell ref="' + ref + '"/>').join("") + '</mergeCells>');
                 for (const xml of this.conditional.xml(this.headerRows, this.count, this.totalRows))
                     await this.buffer.write(xml);
                 if (this.links.length || this.internalLinks.length)
@@ -2997,7 +3139,7 @@ const _exports = Object.freeze({ Worksheet: Worksheet });
 return _exports;
 })();
 
-const _m29 = (() => {
+const _m31 = (() => {
 const { escapeOoxmlAttribute, escapeXml, xmlDeclaration } = _m10;
 
 const { cellText, columnName } = _m18;
@@ -3043,7 +3185,7 @@ const _exports = Object.freeze({ defineTable: defineTable, tableXml: tableXml })
 return _exports;
 })();
 
-const _m30 = (() => {
+const _m32 = (() => {
 const { OfficeIMOError } = _m3;
 
 const { cleanXml } = _m10;
@@ -3110,7 +3252,7 @@ const _exports = Object.freeze({ TextOverflow: TextOverflow, clipText: clipText 
 return _exports;
 })();
 
-const _m31 = (() => {
+const _m33 = (() => {
 const { checkAbort } = _m2;
 
 const { NotSupportedError, OfficeIMOError } = _m3;
@@ -3266,13 +3408,13 @@ const { assertExportValue } = _m19;
 
 const { Worksheet } = _m21;
 
-const { defineTable, tableXml } = _m29;
+const { defineTable, tableXml } = _m31;
 
 const { drawingXml, drawingContentType } = _m23;
 
-const { TextOverflow } = _m30;
+const { TextOverflow } = _m32;
 
-const { prepareChart } = _m31;
+const { prepareChart } = _m33;
 
 const { chartContentType, writeChartXml } = _m24;
 
@@ -3310,6 +3452,20 @@ class Workbook {
     nativeCharts = [];
     chartPoints = 0;
     chartTextCharacters = 0;
+    registering = false;
+    /** Caller-owned property getters may run during capture; they cannot register another workbook object. */
+    registration(action) {
+        this.assertOpen();
+        if (this.registering)
+            throw new OfficeIMOError("INVALID_STATE", "Workbook registrations cannot be reentered from input getters.");
+        this.registering = true;
+        try {
+            return action();
+        }
+        finally {
+            this.registering = false;
+        }
+    }
     /** @internal Shared budget across worksheet headers and data. */
     budget;
     /** @internal Immutable settings used by the worksheet owner. */
@@ -3419,16 +3575,19 @@ class Workbook {
         throw new OfficeIMOError("RESOURCE_LIMIT", "maxConditionalFormats exceeded."); }
     /** @internal Reserve chart snapshots and their source-sheet names before any output is generated. */
     registerChart(input) {
-        if (this.nativeCharts.length >= (this.settings.limits?.maxCharts ?? 100))
-            throw new OfficeIMOError("RESOURCE_LIMIT", "maxCharts exceeded.");
-        this.checkSheetLimit(this.sheets.length + this.nativeCharts.length + 1 + (this.overflow ? 1 : 0));
-        const chart = prepareChart(input, this.settings.invalidCharacterPolicy, (this.settings.limits?.maxChartPoints ?? 100000) - this.chartPoints, (this.settings.limits?.maxChartTextCharacters ?? 1000000) - this.chartTextCharacters, this.settings.signal);
-        const registered = Object.freeze({ ...chart, id: this.nativeCharts.length + 1,
-            dataSheetName: sheetName("Chart data " + (this.nativeCharts.length + 1), this.names, this.settings.invalidCharacterPolicy) });
-        this.nativeCharts.push(registered);
-        this.chartPoints += chart.points;
-        this.chartTextCharacters += chart.textCharacters;
-        return registered;
+        return this.registration(() => {
+            if (this.nativeCharts.length >= (this.settings.limits?.maxCharts ?? 100))
+                throw new OfficeIMOError("RESOURCE_LIMIT", "maxCharts exceeded.");
+            this.checkSheetLimit(this.sheets.length + this.nativeCharts.length + 1 + (this.overflow ? 1 : 0));
+            const chart = prepareChart(input, this.settings.invalidCharacterPolicy, (this.settings.limits?.maxChartPoints ?? 100000) - this.chartPoints, (this.settings.limits?.maxChartTextCharacters ?? 1000000) - this.chartTextCharacters, this.settings.signal);
+            this.assertOpen();
+            const registered = Object.freeze({ ...chart, id: this.nativeCharts.length + 1,
+                dataSheetName: sheetName("Chart data " + (this.nativeCharts.length + 1), this.names, this.settings.invalidCharacterPolicy) });
+            this.nativeCharts.push(registered);
+            this.chartPoints += chart.points;
+            this.chartTextCharacters += chart.textCharacters;
+            return registered;
+        });
     }
     /** @internal Streamed parts cannot interleave. Starting a new sheet completes the preceding one. */
     async openSheet(sheet) {
@@ -3453,31 +3612,33 @@ class Workbook {
     /** Total report data rows; excludes title/header/footer and preservation records. */
     get rowCount() { return this.sheets.reduce((sum, sheet) => sum + sheet.reportRowCount, 0); }
     addWorksheet(name, options = {}) {
-        this.assertOpen();
-        this.checkSheetLimit(this.sheets.length + this.nativeCharts.length + 1 + (this.overflow ? 1 : 0));
-        // Validation/serialization use erased column metadata; projection later receives T rows.
-        const metadata = options;
-        const conditional = Worksheet.validate(this, metadata);
-        let tableOptions = options.table;
-        if (tableOptions && tableOptions.name === undefined) {
-            let suffix = this.tableCount + 1;
-            while (this.tableNames.has(("Table" + suffix).toLowerCase()))
-                suffix++;
-            tableOptions = { ...tableOptions, name: "Table" + suffix };
-        }
-        const table = tableOptions ? defineTable(this.tableCount + 1, tableOptions, options.columns ?? [], this.settings.invalidCharacterPolicy) : undefined;
-        if (table && this.tableNames.has(table.name.toLowerCase()))
-            throw new TypeError("Duplicate Excel table name: " + table.name);
-        const sheet = Worksheet.create(this, sheetName(name, this.names, this.settings.invalidCharacterPolicy, false), metadata, table, false, conditional);
-        this.names.add(sheet.name.toLowerCase());
-        this.mergedRanges += sheet.mergeCount;
-        this.conditionalFormats += sheet.conditionalFormatCount;
-        if (table) {
-            this.tableNames.add(table.name.toLowerCase());
-            this.tableCount++;
-        }
-        this.sheets.push(sheet);
-        return sheet;
+        return this.registration(() => {
+            this.checkSheetLimit(this.sheets.length + this.nativeCharts.length + 1 + (this.overflow ? 1 : 0));
+            // Validation/serialization use erased column metadata; projection later receives T rows.
+            const metadata = options;
+            const conditional = Worksheet.validate(this, metadata);
+            let tableOptions = options.table;
+            if (tableOptions && tableOptions.name === undefined) {
+                let suffix = this.tableCount + 1;
+                while (this.tableNames.has(("Table" + suffix).toLowerCase()))
+                    suffix++;
+                tableOptions = { ...tableOptions, name: "Table" + suffix };
+            }
+            const table = tableOptions ? defineTable(this.tableCount + 1, tableOptions, options.columns ?? [], this.settings.invalidCharacterPolicy) : undefined;
+            if (table && this.tableNames.has(table.name.toLowerCase()))
+                throw new TypeError("Duplicate Excel table name: " + table.name);
+            const sheet = Worksheet.create(this, sheetName(name, this.names, this.settings.invalidCharacterPolicy, false), metadata, table, false, conditional);
+            this.assertOpen();
+            this.names.add(sheet.name.toLowerCase());
+            this.mergedRanges += sheet.mergeCount;
+            this.conditionalFormats += sheet.conditionalFormatCount;
+            if (table) {
+                this.tableNames.add(table.name.toLowerCase());
+                this.tableCount++;
+            }
+            this.sheets.push(sheet);
+            return sheet;
+        });
     }
     addPart(part) {
         this.assertOpen();
@@ -3617,7 +3778,7 @@ const _exports = Object.freeze({ Workbook: Workbook });
 return _exports;
 })();
 
-const _m33 = (() => {
+const _m35 = (() => {
 const { ExportCell, assertScalar } = _m19;
 
 function style(patch) {
@@ -3663,14 +3824,14 @@ const _exports = Object.freeze({ portableSheet: portableSheet, portableWorkbook:
 return _exports;
 })();
 
-const _m32 = (() => {
+const _m34 = (() => {
 const { withDestination } = _m5;
 
 const { copyColumns } = _m22;
 
 const { Workbook } = _m1;
 
-const { portableSheet, portableWorkbook } = _m33;
+const { portableSheet, portableWorkbook } = _m35;
 
 function prepare(options) {
     const columns = copyColumns(options?.columns);
@@ -3716,7 +3877,7 @@ const _exports = Object.freeze({ writeXlsx: writeXlsx, writeXlsxTo: writeXlsxTo 
 return _exports;
 })();
 
-const _m34 = (() => {
+const _m36 = (() => {
 
 
 
@@ -3764,7 +3925,7 @@ return _exports;
 
 const _m0 = (() => {
 
-const _exports = Object.freeze({ Workbook: _m1.Workbook, writeXlsx: _m32.writeXlsx, writeXlsxTo: _m32.writeXlsxTo, Worksheet: _m21.Worksheet, Cell: _m18.Cell, StyleRegistry: _m15.StyleRegistry, NumberFormats: _m15.NumberFormats, saveBlob: _m34.saveBlob, ExportCell: _m19.ExportCell });
+const _exports = Object.freeze({ Workbook: _m1.Workbook, writeXlsx: _m34.writeXlsx, writeXlsxTo: _m34.writeXlsxTo, Worksheet: _m21.Worksheet, Cell: _m18.Cell, StyleRegistry: _m15.StyleRegistry, NumberFormats: _m15.NumberFormats, saveBlob: _m36.saveBlob, ExportCell: _m19.ExportCell });
 return _exports;
 })();
 const { Workbook, writeXlsx, writeXlsxTo, Worksheet, Cell, StyleRegistry, NumberFormats, saveBlob, ExportCell } = _m0;

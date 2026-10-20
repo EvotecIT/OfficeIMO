@@ -97,7 +97,7 @@ export async function writePdfDocumentTo(blocks: Iterable<PdfDocumentBlock> | As
             await flushParagraphs(headingHeight + minimum); await pages.beginTable(layout, headings, minimum);
           }
           if (footer) { if (table.options.footer?.rows) await pages.block(footer); else await pages.row(footer[0]!, keptFooterHeading); }
-          pages.endTable(); break;
+          await pages.endTable(); break;
         }
         case "image": {
           const displayWidth = block.width, displayHeight = block.height;

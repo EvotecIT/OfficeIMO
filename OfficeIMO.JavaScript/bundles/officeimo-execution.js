@@ -362,12 +362,33 @@ _modules.set("e3ffb91cf46091b5b178d3d4d7b158f52cf21d2ee0e7dfe1fb5140810fd7fecb",
 return _exports;
 })();
 
-const _m8 = _modules.get("f79dd9ca01bb1864831e26b384a6612a1eb631936d358dd2a008a894dbceb4fd") ?? (() => {
+const _m8 = _modules.get("e82510c997dbd6cf069962d55524e2098a69054a85d1f20374c693e3ccf3c0f6") ?? (() => {
 const { isDate } = _m9;
 
 const { copyExportLink } = _m10;
 
 const exportCellBrand = Symbol.for("@evotecit/officeimo/ExportCell");
+/** @internal Capture only portable scalar presentation fields before retaining or cloning a cell. */
+function copyCellPresentation(value) {
+    if (!value || typeof value !== "object" || Array.isArray(value))
+        throw new TypeError("Cell presentation must be an object.");
+    const result = {};
+    for (const key of ["background", "color", "numberFormat", "bold", "italic", "wrapText", "alignment"]) {
+        const field = value[key];
+        if (field === undefined)
+            continue;
+        if (["bold", "italic", "wrapText"].includes(key)) {
+            if (typeof field !== "boolean")
+                throw new TypeError("Cell presentation " + key + " must be boolean.");
+        }
+        else if (typeof field !== "string")
+            throw new TypeError("Cell presentation " + key + " must be text.");
+        if (key === "alignment" && !["left", "center", "right", "fill", "justify", "distributed"].includes(field))
+            throw new TypeError("Invalid cell presentation alignment.");
+        result[key] = field;
+    }
+    return Object.freeze(result);
+}
 /** One resolved value/presentation decision that can be reused across exports. Strings remain literal data. */
 class ExportCell {
     value;
@@ -381,7 +402,7 @@ class ExportCell {
             throw new TypeError("Display text must be a string.");
         assertScalar(value);
         this.text = options.text;
-        this.presentation = options.presentation === undefined ? undefined : Object.freeze({ ...options.presentation });
+        this.presentation = options.presentation === undefined ? undefined : copyCellPresentation(options.presentation);
         this.link = options.link === undefined ? undefined : copyExportLink(options.link);
         Object.defineProperty(this, exportCellBrand, { value: true });
         Object.freeze(this);
@@ -402,12 +423,12 @@ function assertExportValue(value) {
         return;
     assertScalar(value);
 }
-const _exports = Object.freeze({ ExportCell: ExportCell, assertScalar: assertScalar, assertExportValue: assertExportValue });
-_modules.set("f79dd9ca01bb1864831e26b384a6612a1eb631936d358dd2a008a894dbceb4fd", _exports);
+const _exports = Object.freeze({ copyCellPresentation: copyCellPresentation, ExportCell: ExportCell, assertScalar: assertScalar, assertExportValue: assertExportValue });
+_modules.set("e82510c997dbd6cf069962d55524e2098a69054a85d1f20374c693e3ccf3c0f6", _exports);
 return _exports;
 })();
 
-const _m7 = _modules.get("1f259ebae1c6a45d9f3f9104a88f628ac4be4ada959c13c25f67e2ced2d427a5") ?? (() => {
+const _m7 = _modules.get("97dacbe85bf625b99292d4344a4fe63b8e283d38065aafc4a5a967e6623c3934") ?? (() => {
 
 
 
@@ -450,14 +471,16 @@ function saveBlob(blob, fileName) {
     }
 }
 const _exports = Object.freeze({ OfficeIMOError: _m4.OfficeIMOError, NotSupportedError: _m4.NotSupportedError, BlobByteSink: _m3.BlobByteSink, ChunkedTextSink: _m3.ChunkedTextSink, writeBytes: _m3.writeBytes, ExportCell: _m8.ExportCell, checkAbort: _m2.checkAbort, withAbort: _m2.withAbort, inputRows: _m2.inputRows, pause: _m2.pause, detectFeatures: detectFeatures, saveBlob: saveBlob });
-_modules.set("1f259ebae1c6a45d9f3f9104a88f628ac4be4ada959c13c25f67e2ced2d427a5", _exports);
+_modules.set("97dacbe85bf625b99292d4344a4fe63b8e283d38065aafc4a5a967e6623c3934", _exports);
 return _exports;
 })();
 
-const _m6 = _modules.get("8eb33d90bec94b69e5eba418ee5790f56edeb0e74c71368b709967293d46326a") ?? (() => {
+const _m6 = _modules.get("f0508de77770dc5714e897db4a449d8e09957c81b40df8c33b1237fc1e223552") ?? (() => {
 const { ExportCell, NotSupportedError, OfficeIMOError } = _m7;
 
-const { assertExportValue } = _m8;
+const { assertExportValue, assertScalar, copyCellPresentation } = _m8;
+
+const { copyExportLink } = _m10;
 
 const { isDate } = _m9;
 
@@ -496,7 +519,7 @@ function captureInput(input, limits) {
             accept(8);
             return new Date(value.getTime());
         }
-        if (value instanceof Uint8Array) {
+        if (ArrayBuffer.isView(value) && Object.prototype.toString.call(value) === "[object Uint8Array]") {
             accept(value.byteLength);
             return new Uint8Array(value);
         }
@@ -505,7 +528,10 @@ function captureInput(input, limits) {
         if (ancestors.has(value))
             throw new TypeError("Worker configuration cannot contain cycles.");
         const prototype = Object.getPrototypeOf(value);
-        if (!Array.isArray(value) && prototype !== Object.prototype && prototype !== null)
+        const constructor = prototype == null ? undefined : Object.getOwnPropertyDescriptor(prototype, "constructor")?.value;
+        const plain = prototype === null || Object.getPrototypeOf(prototype) === null && typeof constructor === "function" &&
+            Function.prototype.toString.call(constructor) === Function.prototype.toString.call(Object);
+        if (!Array.isArray(value) && !plain)
             throw new TypeError("Worker configuration supports plain records, arrays, Dates and Uint8Array bytes; reconstruct font instances in the worker.");
         ancestors.add(value);
         try {
@@ -554,17 +580,21 @@ function captureRow(row) {
         assertExportValue(value);
         if (!(value instanceof ExportCell))
             return { value: scalar(value) };
+        const cellValue = value.value, text = value.text, presentation = value.presentation, link = value.link;
+        assertScalar(cellValue);
+        if (text !== undefined && typeof text !== "string")
+            throw new TypeError("Display text must be a string.");
         const options = {
-            ...(value.text === undefined ? {} : { text: value.text }),
-            ...(value.presentation === undefined ? {} : { presentation: { ...value.presentation } }),
-            ...(value.link === undefined ? {} : { link: { ...value.link } })
+            ...(text === undefined ? {} : { text }),
+            ...(presentation === undefined ? {} : { presentation: copyCellPresentation(presentation) }),
+            ...(link === undefined ? {} : { link: copyExportLink(link) })
         };
-        characters += value.text?.length ?? 0;
+        characters += text?.length ?? 0;
         for (const entry of Object.values(options.presentation ?? {}))
             if (typeof entry === "string")
                 characters += entry.length;
-        characters += (value.link?.target.length ?? 0) + (value.link?.tooltip?.length ?? 0);
-        return { value: scalar(value.value), options };
+        characters += (options.link?.target.length ?? 0) + (options.link?.tooltip?.length ?? 0);
+        return { value: scalar(cellValue), options };
     });
     return { cells, characters };
 }
@@ -624,11 +654,11 @@ function result(value) {
     return { rows: value.rows, columns: value.columns, bytes: value.bytes };
 }
 const _exports = Object.freeze({ protocol: protocol, message: message, bounds: bounds, captureInput: captureInput, captureRow: captureRow, restoreRows: restoreRows, captureProgress: captureProgress, wireError: wireError, restoreError: restoreError, result: result });
-_modules.set("8eb33d90bec94b69e5eba418ee5790f56edeb0e74c71368b709967293d46326a", _exports);
+_modules.set("f0508de77770dc5714e897db4a449d8e09957c81b40df8c33b1237fc1e223552", _exports);
 return _exports;
 })();
 
-const _m1 = _modules.get("d9b35d99c36fd77aff6439a948ce1c4ad47cd3cc68f8b8ad56270cd0371ba2b4") ?? (() => {
+const _m1 = _modules.get("6b4eb1480a39b645c251ba0b61b9d3604a153d10e9d30fc9441b902e692acb81") ?? (() => {
 const { checkAbort, inputRows, withAbort } = _m2;
 
 const { withDestination } = _m3;
@@ -796,11 +826,11 @@ async function executeWorkerExport(endpoint, rows, destination, options = {}) {
     }
 }
 const _exports = Object.freeze({ executeWorkerExport: executeWorkerExport });
-_modules.set("d9b35d99c36fd77aff6439a948ce1c4ad47cd3cc68f8b8ad56270cd0371ba2b4", _exports);
+_modules.set("6b4eb1480a39b645c251ba0b61b9d3604a153d10e9d30fc9441b902e692acb81", _exports);
 return _exports;
 })();
 
-const _m11 = _modules.get("de403c11dbf9ee3806d2a8e7b016ac8d76798dc16b6a66b9383d7989c9fbb8f0") ?? (() => {
+const _m11 = _modules.get("a9ee7ce910a2167b3bf5dbce2408c01a43dca6317c2fcc9dd5b55b53336f5de7") ?? (() => {
 const { checkAbort, withAbort } = _m2;
 
 const { OfficeIMOError } = _m4;
@@ -952,14 +982,14 @@ function handleWorkerExports(endpoint, operation) {
         } };
 }
 const _exports = Object.freeze({ handleWorkerExports: handleWorkerExports });
-_modules.set("de403c11dbf9ee3806d2a8e7b016ac8d76798dc16b6a66b9383d7989c9fbb8f0", _exports);
+_modules.set("a9ee7ce910a2167b3bf5dbce2408c01a43dca6317c2fcc9dd5b55b53336f5de7", _exports);
 return _exports;
 })();
 
-const _m0 = _modules.get("d46c68cce608e4fc588d58f8708d767d4d5b2d2b6c307acc03aaf5165e496d5e") ?? (() => {
+const _m0 = _modules.get("5d8e1aa681ff381e798a3dc861de8dc0f24f07193b47b2b0f011dbad73084073") ?? (() => {
 
 const _exports = Object.freeze({ executeWorkerExport: _m1.executeWorkerExport, handleWorkerExports: _m11.handleWorkerExports });
-_modules.set("d46c68cce608e4fc588d58f8708d767d4d5b2d2b6c307acc03aaf5165e496d5e", _exports);
+_modules.set("5d8e1aa681ff381e798a3dc861de8dc0f24f07193b47b2b0f011dbad73084073", _exports);
 return _exports;
 })();
 Object.assign(officeimo, _m0);

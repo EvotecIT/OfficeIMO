@@ -20,7 +20,7 @@ export class PdfDocumentImages {
     const byteLength = data.length;
     if (this.bytes + byteLength > limits.maxImageBytes) throw new OfficeIMOError("RESOURCE_LIMIT", "maxImageBytes exceeded.");
     let width: number, height: number, components: number, decoded: Uint8Array | undefined, decodedAlpha: Uint8Array | undefined;
-    const maximumWorkingBytes = options.limits?.maxImageWorkingBytes;
+    const maximumWorkingBytes = limits.maxImageWorkingBytes;
     if (format === "png") ({ width, height, components, data: decoded, alpha: decodedAlpha } = await pngPixels(data, limits.maxImagePixels, options.signal, maximumWorkingBytes));
     else if (format === "jpeg") ({ width, height, components } = jpegSize(data));
     else if (format === "rgb" || format === "rgba") {
@@ -47,12 +47,12 @@ export class PdfDocumentImages {
     }
     if (alpha) {
       mask = this.objects.reserve();
-      await this.objects.stream(mask, alpha, "/Type /XObject /Subtype /Image /Width " + width + " /Height " + height + " /ColorSpace /DeviceGray /BitsPerComponent 8", options.compression !== false);
+      await this.objects.stream(mask, alpha, "/Type /XObject /Subtype /Image /Width " + width + " /Height " + height + " /ColorSpace /DeviceGray /BitsPerComponent 8", options.compression !== false, true);
     }
     const dictionary = "/Type /XObject /Subtype /Image /Width " + width + " /Height " + height + " /ColorSpace /" +
       (components === 1 ? "DeviceGray" : "DeviceRGB") + " /BitsPerComponent 8" + (mask ? " /SMask " + mask + " 0 R" : "") +
       (format === "jpeg" ? " /Filter /DCTDecode" : "");
-    await this.objects.stream(id, pixels, dictionary, format === "jpeg" ? false : options.compression !== false);
+    await this.objects.stream(id, pixels, dictionary, format === "jpeg" ? false : options.compression !== false, true);
     const resource = { name, id, width, height }; this.images.set(image, resource); return resource;
   }
 }

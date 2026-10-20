@@ -91,6 +91,24 @@ async function runExecutionContracts({ moduleBase, classicScript, executionScrip
     require(reused.rows===1,'Cancelled worker endpoint could not be reused');checks.push('reuse-after-'+phase+'-cancellation');
   });
   await withWorker(async owned => {
+    const invalid = {value:0,presentation:{background:{payload:'x'.repeat(1000000)}},[Symbol.for('@evotecit/officeimo/ExportCell')]:true};
+    await rejection(execution.executeWorkerExport(owned.endpoint,[[invalid]],{write(){}},
+      {input:{format:'csv',columns:[{header:'Value'}]},maxBatchCharacters:1}),
+      error=>error instanceof TypeError&&/background must be text/.test(error.message),'presentation-graph-rejected-before-clone');
+    require(owned.observed.maxRows===0&&owned.listeners.size===0,'Malformed presentation crossed the worker row boundary');
+  });
+  await withWorker(async owned => {
+    const frame=document.createElement('iframe');document.body.appendChild(frame);
+    try {
+      const realm=frame.contentWindow,input=realm.JSON.parse('{"format":"csv","columns":[{"header":"Value"}],"metadata":{"title":"iframe report"}}');
+      input.fontBytes=new realm.Uint8Array([1,2,3]);
+      // CSV does not need a font; keep the foreign bytes in portable report metadata.
+      input.metadata.bytes=input.fontBytes;delete input.fontBytes;
+      const completed=await execution.executeWorkerExport(owned.endpoint,[],{write(){}},{input});
+      require(completed.rows===0&&owned.listeners.size===0,'Foreign-realm setup did not complete');checks.push('iframe-portable-setup');
+    } finally {frame.remove();}
+  });
+  await withWorker(async owned => {
     await rejection(execution.executeWorkerExport(owned.endpoint,[],{write(){}},{input:{mode:'failure'}}),error=>error.code==='RESOURCE_LIMIT'&&error instanceof api.core.OfficeIMOError,'remote-error-code');
     await rejection(execution.executeWorkerExport(owned.endpoint,[],{write(){}},{input:{mode:'unsupported'}}),error=>error.code==='NOT_SUPPORTED'&&error.feature==='standalone browser feature'&&error instanceof api.core.NotSupportedError,'remote-unsupported-feature');
     await rejection(execution.executeWorkerExport(owned.endpoint,[['oversized']],{write(){}},{input:{mode:'writer-failure'}}),error=>error.code==='RESOURCE_LIMIT'&&error instanceof api.core.OfficeIMOError,'writer-error-code');

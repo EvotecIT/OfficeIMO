@@ -150,14 +150,15 @@ export class PdfPages {
     this.continuationTop = page.height - margins.top - headerHeight;
     if (this.y - headerHeight - lineHeight - this.settings.padding * 2 < margins.bottom) throw new RangeError("PDF title and repeated headings leave no room for a data line.");
     if (tableHeadings && this.layout && this.structure && this.tableElement === undefined) this.tableElement = this.structure.element("Table");
-    this.drawHeadings(headers);
+    await this.drawHeadings(headers);
     this.dataTop = this.y;
   }
-  private drawHeadings(headers: readonly PdfLayoutRow[]): void {
+  private async drawHeadings(headers: readonly PdfLayoutRow[]): Promise<void> {
     for (const header of headers) {
       const elements = this.structure && this.tableElement !== undefined && !this.tableHeadingsDrawn ?
         this.structure.tableRow(this.tableElement, header.cells.map(cell => cell.lines.some(line => line.text.trim().length > 0))) : undefined;
       this.draw(header, 0, header.lines, elements);
+      await this.structure?.completeRow(elements);
     }
     if (headers.length) this.tableHeadingsDrawn = true;
   }
@@ -184,7 +185,10 @@ export class PdfPages {
     const height = rows.reduce((n, row) => n + row.height, 0), bottom = this.settings.margins.bottom;
     if (height > this.y - bottom) { await this.finishPage(); await this.start(); }
     if (height > this.dataTop - bottom) throw new RangeError("A structured footer must fit on one page below the repeated headings.");
-    for (const row of rows) this.draw(row, 0, row.lines, this.rowElements(row));
+    for (const row of rows) {
+      const elements = this.rowElements(row); this.draw(row, 0, row.lines, elements);
+      await this.structure?.completeRow(elements);
+    }
   }
   async row(row: PdfLayoutRow, allowFirstFragment = false): Promise<void> {
     const elements = this.rowElements(row);
@@ -198,6 +202,7 @@ export class PdfPages {
       this.draw(row, first, lines, elements); first += lines;
       if (first < row.lines) { await this.finishPage(); await this.start(); }
     }
+    await this.structure?.completeRow(elements);
   }
   async paragraph(text: string, style: CellPresentation = {}, size = this.settings.fontSize, paginate = true, headingLevel?: number): Promise<void> {
     const { margins, page, limits } = this.settings, font = this.fonts.select(style.bold, style.italic), lineHeight = font.lineHeight(size);
@@ -214,6 +219,7 @@ export class PdfPages {
       this.y -= lineHeight;
     }
     this.y -= 8;
+    await this.structure?.complete(element);
   }
   /** Reserve a meaningful next fragment before painting a kept heading; never buffer a table. */
   async reserveSpace(height: number, label = "Kept PDF content"): Promise<void> {
@@ -243,6 +249,7 @@ export class PdfPages {
         this.inline(line, paragraph.size, x, this.y - line.ascent, element); this.y -= line.lineHeight;
       }
       this.y -= paragraph.spaceAfter;
+      await this.structure?.complete(element);
     }
   }
   /** Begin an independent table on the current page, retaining its headings on continuation pages. */
@@ -254,10 +261,13 @@ export class PdfPages {
       await this.finishPage(); await this.start(true, headings); return;
     }
     this.continuationTop = this.settings.page.height - this.settings.margins.top - height;
-    this.drawHeadings(headings);
+    await this.drawHeadings(headings);
     this.dataTop = this.y;
   }
-  endTable(): void { this.layout = undefined; this.tableElement = undefined; this.tableHeadingsDrawn = false; this.y -= 8; }
+  async endTable(): Promise<void> {
+    await this.structure?.complete(this.tableElement);
+    this.layout = undefined; this.tableElement = undefined; this.tableHeadingsDrawn = false; this.y -= 8;
+  }
   async pageBreak(): Promise<void> { await this.finishPage(); await this.start(false); }
   registerXObject(name: string, id: number): void { this.externalObjects.set(name, id); }
   /** Height after the existing fit-to-page graphic policy, used by heading keep constraints. */
@@ -276,6 +286,7 @@ export class PdfPages {
     const command = paint(left, this.y - height, width, height);
     const element = this.structure && alternativeText !== undefined ? this.structure.element("Figure", this.structure.document, " /Alt <feff" + unicodeHex(alternativeText) + ">") : undefined;
     this.add(this.structure && element !== undefined ? this.structure.mark(element) + command + "EMC\n" : this.artifact(command)); this.y -= height + 8;
+    await this.structure?.complete(element);
   }
   private async finishPage(): Promise<void> {
     const contents = this.objects.reserve(), { page, options } = this.settings;
@@ -294,6 +305,7 @@ export class PdfPages {
     await this.objects.flush();
   }
   async finish(): Promise<void> {
+    await this.structure?.complete(this.tableElement);
     await this.finishPage();
     if (this.totalPages) {
       const font = this.fonts.select(), text = String(this.references.length), size = this.settings.fontSize;

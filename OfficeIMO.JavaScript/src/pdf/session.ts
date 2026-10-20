@@ -18,7 +18,7 @@ export class PdfWriteSession {
   private readonly resources: number;
   private readonly info: number;
   constructor(sink: ByteSink, private readonly settings: PdfSettings, table = false) {
-    this.objects = new PdfObjects(sink, settings.options.signal, settings.options.limits?.maxOutputBytes);
+    this.objects = new PdfObjects(sink, settings.options.signal, settings.budget.limits.maxOutputBytes);
     this.root = this.objects.reserve(); this.parent = this.objects.reserve(); this.resources = this.objects.reserve(); this.info = this.objects.reserve();
     this.structure = settings.options.tagged ? new PdfStructure(this.objects, settings) : undefined;
     this.fonts = new PdfFontResources(this.objects, settings.options.fonts, settings.limits.maxFontBytes, settings.options.signal);

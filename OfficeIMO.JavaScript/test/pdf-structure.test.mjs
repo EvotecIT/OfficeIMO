@@ -25,9 +25,22 @@ async function inspectStructure(blob) {
   }]));
   const document = elements.get(refs(/\/K \[([^\]]*)\]/.exec(root.body)[1])[0]);
   assert.equal(document.role, "Document"); assert.equal(document.parent, rootId);
-  const numbers = pdf.objects.get(ref(root.body, "ParentTree")).body;
-  const pageEntries = new Map([...numbers.matchAll(/(\d+) (\d+) 0 R/g)].map(match => [Number(match[1]), Number(match[2])]));
-  const keys = [...numbers.matchAll(/(\d+) (\d+) 0 R/g)].map(match => Number(match[1]));
+  const entries = [];
+  function numberTree(id, root = true) {
+    const body = pdf.objects.get(id).body, kids = /\/Kids \[([^\]]*)\]/.exec(body);
+    const before = entries.length;
+    if (kids) {
+      const nodes = refs(kids[1]); assert.ok(nodes.length <= 64);
+      for (const child of nodes) numberTree(child, false);
+    } else {
+      const numbers = /\/Nums \[([^\]]*)\]/.exec(body)[1];
+      const values = [...numbers.matchAll(/(\d+) (\d+) 0 R/g)].map(match => [Number(match[1]), Number(match[2])]);
+      assert.ok(values.length <= 64); entries.push(...values);
+    }
+    if (!root) assert.match(body, new RegExp("/Limits \\[" + entries[before][0] + " " + entries.at(-1)[0] + "\\]"));
+  }
+  numberTree(ref(root.body, "ParentTree"));
+  const pageEntries = new Map(entries), keys = entries.map(([key]) => key);
   assert.equal(new Set(keys).size, keys.length, "Page and annotation ParentTree keys must be unique");
   assert.deepEqual(keys, [...keys].sort((left, right) => left - right));
   assert.equal(Number(/\/ParentTreeNextKey (\d+)/.exec(root.body)[1]), Math.max(...keys) + 1);
@@ -223,4 +236,27 @@ test("cancelling tagged page output returns rows and blocks and releases the cal
   const destination = new WritableStream({ write() { writes++; abort.abort(Error("tagged output cancelled")); } });
   await assert.rejects(writePdfDocumentTo(blocks(), destination, { tagged, signal: abort.signal, compression: false, pageSize: "A5" }), /tagged output cancelled/);
   assert.equal(writes, 1); assert.equal(rowsReturned, 1); assert.equal(blocksReturned, 1); assert.equal(destination.locked, false);
+});
+
+test("tagged streamed tables finalize completed rows and bound multi-level ParentTree nodes", async () => {
+  const chunks = [], shared = new ExportCell("Open record", { text: "Open record", link: { target: "https://example.com/record" } });
+  let completedRowsObserved = false, sourceClosed = false;
+  async function* rows() {
+    try {
+      for (let i = 0; i < 2100; i++) {
+        if (i === 200) assert.ok(completedRowsObserved, "Finished logical rows must reach the sink before source exhaustion");
+        yield { name: shared, amount: shared };
+      }
+    } finally { sourceClosed = true; }
+  }
+  const result = await writePdfDocumentTo([pdfTable(rows(), { columns })], { write(bytes) {
+    const chunk = bytes.slice(); chunks.push(chunk);
+    completedRowsObserved ||= Buffer.from(chunk).toString("latin1").includes("/S /TR ");
+  } }, { tagged, compression: false, pageNumbers: false });
+  assert.equal(result.rows, 2100); assert.ok(sourceClosed);
+  const pdf = await inspectStructure(new Blob(chunks));
+  const table = [...pdf.elements.values()].find(element => element.role === "Table");
+  assert.equal(refs(table.kids).length, 2101);
+  assert.equal([...pdf.elements.values()].filter(element => element.role === "Link").length, 4200);
+  assert.equal([...pdf.objects.values()].filter(object => /\/Subtype \/Link/.test(object.body)).length, 4200);
 });

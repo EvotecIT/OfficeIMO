@@ -1,6 +1,6 @@
 ---
-title: Report workbench
-description: "Generate typed Excel, PDF and CSV service reports locally. Try editable charts, rich PDF tables, worker execution, progress and cancellation on the same dataset."
+title: JavaScript report workbench
+description: "Generate typed Excel, PDF and CSV service reports locally. Try editable charts, rich tables, worker execution, progress and cancellation."
 layout: report-engine
 ---
 

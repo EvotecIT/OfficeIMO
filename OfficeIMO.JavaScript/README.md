@@ -139,15 +139,19 @@ CSS classes and computed DOM styles are not copied automatically. CSV retains va
 | Whole-matrix `customizeData` | Rejected | Supported; cannot combine with source-index `project` |
 | Body memory | Selected row indexes and bounded cell batches | Complete Buttons matrix, then batched writing |
 | Horizontal grouped headers | Preserved through shared column group paths | Same |
-| Vertical spans, blank spanning groups, adjacent separate equal group paths | PDF preserves structured headings by default. XLSX/CSV reject these shapes; `headings: "leaf"` selects one heading row | Same |
-| Footers | PDF preserves up to 16 structured rows. XLSX/CSV support one unmerged row; `includeFooter: false` omits footers | Same |
+| Vertical spans, blank spanning groups, adjacent separate equal group paths | PDF preserves structured headings by default. XLSX/CSV preserve them with `headings: "structured"`; CSV also needs an explicit span rule. `headings: "leaf"` selects one heading row | Same |
+| Footers | Structured exports preserve up to 16 physical rows; XLSX native table/filter constraints and CSV flattening apply. `includeFooter: false` omits footers | Same |
 | Server-side processing | Rejected unless `serverSide: "loaded"` acknowledges loaded rows only | Same |
 
 Qualified pairs are DataTables 2.3.7/Buttons 3.2.6 and DataTables 3.1.3/Buttons 4.1.2, including Select and ColReorder. TypeScript 5.9.3 consumer checks use bundler resolution. The newer pair has duplicate upstream declaration index signatures and requires `skipLibCheck`; OfficeIMO's declarations remain strictly checked. This declaration limit is separate from browser interoperability.
 
-`createDataTablesExport(DataTable, table, options)` exposes readonly `columns`, heading rows, optional footer, `rowCount` and a single-use async `rows` source. `headings: "structured"` additionally exposes `headerStructure`/`footerStructure` for PDF's span matrices. Selection/headings are captured immediately; batched body values are read during iteration. Each batch replaces bounded cell indexes through public API result-set operations, without rescanning the table's rows. Batched exports require one table per API instance. Keep table data and column layout stable until export finishes. `batchRows` defaults to 4,096; `maxBatchCells` defaults to 65,536, can lower the effective row count per batch and must fit one row. Cancellation is checked between cells and yielding occurs during formatting and between batches. A synchronous DataTables renderer cannot be interrupted while it runs.
+`createDataTablesExport(DataTable, table, options)` exposes readonly `columns`, heading rows, optional footer, `rowCount` and a single-use async `rows` source. `headings: "structured"` additionally exposes `headerStructure`/`footerStructure` for the writers' span matrices. Selection/headings are captured immediately; batched body values are read during iteration. Each batch replaces bounded cell indexes through public API result-set operations, without rescanning the table's rows. Batched exports require one table per API instance. Keep table data and column layout stable until export finishes. `batchRows` defaults to 4,096; `maxBatchCells` defaults to 65,536, can lower the effective row count per batch and must fit one row. Cancellation is checked between cells and yielding occurs during formatting and between batches. A synchronous DataTables renderer cannot be interrupted while it runs.
+
+For an XLSX heading whose final physical row contains a merged or covered cell, use `headings: "structured", sheet: { autoFilter: false }`. Native filters and Excel tables require an unmerged final row matching the declared column labels. Structured footer rows sit outside a native table. For CSV, choose `headings: "structured", csv: { spanMode: "repeat" }` to repeat each anchor across its covered positions, or `"anchors"` to leave covered fields empty. Each physical row is retained. Existing grouped defaults remain unchanged.
 
 The PDF button accepts native `title`, `messageTop`, `messageBottom`, `pageSize`, `orientation`, `header: false` and `footer: false` settings. Omitted titles/messages inherit registration defaults; an explicit `null` clears that field. Text and filename resolution use the installed Buttons API. Supply writer options through `pdf` in registration defaults, or `officeimo: { pdf: ... }` on one button. Per-button PDF settings override only the supplied fields, retaining omitted fonts, metadata and layout settings; nested font profiles and footer objects replace their whole field. Native `header: false` and `footer: false` also suppress replacement table headings and footers. Native document-definition `customize` callbacks are rejected; use typed PDF options and portable `ExportCell` presentation. `pdf.footer` replaces the grid's footer when supplied. Unicode PDF exports require `pdf.fonts`, as described below.
+
+Compressed PDF streams write output chunks progressively with an indirect length. Tagged reports serialize completed logical rows, paragraphs and graphics during export, retaining open content and compact references needed by the PDF object graph. ParentTree indexing uses bounded nodes. Total PDF memory still includes fonts, images, the current page, object offsets and retained parent references; Blob output additionally retains the completed file. Resource limits remain cumulative across completed structures.
 
 Direct sink output avoids retaining the finished file. Blob exports and registered download buttons retain it; caller-owned sinks own partial bytes after failure. The grid still holds its input. Server-side full-data export needs an application-owned paged source passed directly to the writers with the server's filter/order contract.
 
@@ -672,6 +676,28 @@ const regions = book.addWorksheet("Summary", {
 await regions.addRows([["Report summary", null], [null, null], ["End", null]]);
 ```
 
+`sheet.headerRows` replaces inferred group/leaf headings with a rectangular `TableSpanRows` matrix. Each anchor carries a typed `value` and optional `columnSpan`/`rowSpan`; covered positions are `null`. `sheet.footer.rows` uses the same shape after the data and is mutually exclusive with `footer.values`/`footer.totals`. Both matrices are captured before consuming the source. Heading/footer rows do not increase data-row progress or completion counts. `includeHeader: false` suppresses replacement headings too.
+
+```ts
+const columns = [{ header: "ID" }, { header: "Asset" }, { header: "State" }, { header: "Score", type: "number" }] as const;
+const headerRows = [
+  [{ value: "Identity", columnSpan: 2 }, null, { value: "Assessment", columnSpan: 2 }, null],
+  columns.map(column => ({ value: column.header }))
+];
+const footerRows = [
+  [{ value: "Source", rowSpan: 2 }, { value: "Operational snapshot", columnSpan: 3 }, null, null],
+  [null, { value: "Owner reviewed", columnSpan: 3 }, null, null]
+];
+const book = new Workbook();
+const sheet = book.addWorksheet("Assessment", {
+  columns, headerRows, footer: { rows: footerRows }, table: {}, freezeHeader: true
+});
+await sheet.addRows([["0001", "Controller", "Healthy", 99.3]]);
+const workbook = await book.finish();
+```
+
+The final heading row above is unmerged and matches the leaf labels, so a native table/filter can use it. Other rectangular headings are supported when table/filtering is disabled. Explicit span matrices retain separate adjacent groups even when their labels are equal.
+
 `footer.values` supplies explicit typed footer cells in column order. `footer.totals` maps unambiguous column keys (or headers without keys) to `sum`, `count`, `average`, `min` or `max`. Aggregation uses the finite numbers written to Excel, including converted date serials and column-writer results, and retains only the state needed by each column's operation. Count means numeric count and uses General format rather than a column's date format. Formulas use `SUBTOTAL`, with cached values for readers; averages/minima/maxima remain blank when no visible numeric value exists, including when filtering hides every numeric row. Their guarded expressions are registered as custom table totals so native Excel sees consistent formula metadata. Totals respond to Excel filtering; strings supplied as ordinary values never become formulas. A sum outside JavaScript's finite numeric range fails visibly.
 
 `autoSize` inspects a leading sample of up to 100 rows by default, then starts the worksheet. Automatic sampling shortens the sample to fit the cell and encoded-text buffer budgets, including on wide tables. An explicit `sampleRows` can reach Excel's row capacity and fails if the sample exceeds a buffer budget. Inspecting a complete table requires enough `maxBufferedCells` and `maxBufferedCharacters` capacity for its serialized rows; keep the default leading sample when early streamed output and bounded memory matter. Sampling can span append calls. Each sampled row is validated and serialized once; custom value/style callbacks do not run again when the sample is written. Widths use an approximate character count, preferring `ExportCell.text`, clamped to `minWidth`/`maxWidth`; column `width` wins. This is bounded sizing rather than font measurement.
@@ -839,6 +865,8 @@ const blob = await writeCsv([{ name: "Łódź", healthy: false }], {
 ```
 
 `quote` defaults to `"minimal"`; `"all"` quotes every field and `"strings"` always quotes string values. Required delimiter, quote and newline escaping applies in every mode. `nullValue` replaces null/undefined values and receives the same protection and quoting as other strings. Formatters run on data only; their context contains zero-based data `rowIndex` and `columnIndex`, column definition and original projected `values`. Both Blob and caller-owned sink APIs share these options. CSV retains long text that exceeds Excel's per-cell text limit.
+
+`headerRows` and `footer: { rows }` accept the same rectangular matrices as XLSX. CSV preserves their physical rows and requires `spanMode` whenever an emitted matrix spans cells: `"repeat"` writes the anchor value in every covered field; `"anchors"` writes it once and leaves covered fields empty. `includeHeader: false` suppresses the heading matrix. Display selection, quoting and formula protection still apply; column value formatters run only on data rows. Metadata rows do not increase data-row progress or completion counts.
 
 The [shared vectors](../OfficeIMO.TestAssets/CSV/browser-exports.json) qualify byte-identical output with C#. The C# date lane uses `UseUtc = true` and `DateTimeFormat = "yyyy-MM-dd'T'HH:mm:ss.fff'Z'"`. JavaScript and .NET use their own floating-point formatting conventions; equality is qualified for the shared numeric vectors, not every possible double.
 

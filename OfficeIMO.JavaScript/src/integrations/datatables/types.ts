@@ -53,7 +53,7 @@ export interface DataTablesOptions extends StreamOptions {
   readonly batchRows?: number;
   /** Maximum cells per projection batch, default 65,536. One row must fit. */
   readonly maxBatchCells?: number;
-  /** Grouped accepts horizontal spans; leaf selects one row; structured preserves rectangles for PDF. */
+  /** Grouped accepts horizontal spans; leaf selects one row; structured preserves XLSX/PDF rectangles or explicitly flattens CSV spans. */
   readonly headings?: "grouped" | "leaf" | "structured";
   readonly includeFooter?: boolean;
   /** Server-side tables require explicit acknowledgement that only loaded rows are available. */
@@ -78,8 +78,8 @@ export interface DataTablesWriteOptions extends DataTablesOptions {
   readonly limits?: WorkbookLimits & PdfLimits;
   readonly sheetName?: string;
   readonly workbook?: Omit<PortableWorkbookOptions, "signal" | "onProgress" | "limits">;
-  readonly sheet?: Omit<PortableSheetOptions, "includeHeader">;
-  readonly csv?: Omit<CsvOptions, "columns" | "includeHeader" | "signal" | "onProgress" | "limits">;
+  readonly sheet?: PortableSheetOptions;
+  readonly csv?: Omit<CsvOptions, "columns" | "signal" | "onProgress" | "limits">;
   readonly pdf?: Omit<PdfOptions, "columns" | "signal" | "onProgress" | "limits">;
 }
 export interface DataTablesButtonOptions extends DataTablesWriteOptions {

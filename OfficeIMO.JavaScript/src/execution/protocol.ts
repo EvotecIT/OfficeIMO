@@ -1,5 +1,6 @@
 import { ExportCell, NotSupportedError, OfficeIMOError } from "../core/index.js";
-import { assertExportValue } from "../core/presentation.js";
+import { assertExportValue, assertScalar, copyCellPresentation } from "../core/presentation.js";
+import { copyExportLink } from "../core/links.js";
 import { isDate } from "../core/dates.js";
 import type { CellValue, ErrorCode, ExportProgress, ExportResult, ExportValue } from "../core/index.js";
 import type { ExportCellOptions } from "../core/presentation.js";
@@ -52,11 +53,16 @@ export function captureInput(input: unknown, limits: Bounds): unknown {
     accept(typeof value === "string" ? value.length * 2 : 0);
     if (value == null || ["string", "number", "boolean"].includes(typeof value)) return value;
     if (isDate(value)) { accept(8); return new Date(value.getTime()); }
-    if (value instanceof Uint8Array) { accept(value.byteLength); return new Uint8Array(value); }
+    if (ArrayBuffer.isView(value) && Object.prototype.toString.call(value) === "[object Uint8Array]") {
+      accept(value.byteLength); return new Uint8Array(value as Uint8Array);
+    }
     if (typeof value !== "object") throw new TypeError("Worker configuration requires portable data without functions or symbols.");
     if (ancestors.has(value)) throw new TypeError("Worker configuration cannot contain cycles.");
     const prototype: unknown = Object.getPrototypeOf(value);
-    if (!Array.isArray(value) && prototype !== Object.prototype && prototype !== null)
+    const constructor = prototype == null ? undefined : Object.getOwnPropertyDescriptor(prototype, "constructor")?.value;
+    const plain = prototype === null || Object.getPrototypeOf(prototype) === null && typeof constructor === "function" &&
+      Function.prototype.toString.call(constructor) === Function.prototype.toString.call(Object);
+    if (!Array.isArray(value) && !plain)
       throw new TypeError("Worker configuration supports plain records, arrays, Dates and Uint8Array bytes; reconstruct font instances in the worker.");
     ancestors.add(value);
     try {
@@ -94,15 +100,18 @@ export function captureRow(row: readonly ExportValue[]): { readonly cells: reado
   const cells = row.map(value => {
     assertExportValue(value);
     if (!(value instanceof ExportCell)) return { value: scalar(value) };
+    const cellValue = value.value, text = value.text, presentation = value.presentation, link = value.link;
+    assertScalar(cellValue);
+    if (text !== undefined && typeof text !== "string") throw new TypeError("Display text must be a string.");
     const options: ExportCellOptions = {
-      ...(value.text === undefined ? {} : { text: value.text }),
-      ...(value.presentation === undefined ? {} : { presentation: { ...value.presentation } }),
-      ...(value.link === undefined ? {} : { link: { ...value.link } })
+      ...(text === undefined ? {} : { text }),
+      ...(presentation === undefined ? {} : { presentation: copyCellPresentation(presentation) }),
+      ...(link === undefined ? {} : { link: copyExportLink(link) })
     };
-    characters += value.text?.length ?? 0;
+    characters += text?.length ?? 0;
     for (const entry of Object.values(options.presentation ?? {})) if (typeof entry === "string") characters += entry.length;
-    characters += (value.link?.target.length ?? 0) + (value.link?.tooltip?.length ?? 0);
-    return { value: scalar(value.value), options };
+    characters += (options.link?.target.length ?? 0) + (options.link?.tooltip?.length ?? 0);
+    return { value: scalar(cellValue), options };
   });
   return { cells, characters };
 }

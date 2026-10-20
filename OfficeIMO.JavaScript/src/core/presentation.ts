@@ -21,6 +21,22 @@ export interface ExportCellOptions {
   /** XLSX/PDF retain the external link. CSV emits ordinary value/display text. */
   readonly link?: ExportLink;
 }
+/** @internal Capture only portable scalar presentation fields before retaining or cloning a cell. */
+export function copyCellPresentation(value: CellPresentation): Readonly<CellPresentation> {
+  if (!value || typeof value !== "object" || Array.isArray(value)) throw new TypeError("Cell presentation must be an object.");
+  const result: Record<string, unknown> = {};
+  for (const key of ["background", "color", "numberFormat", "bold", "italic", "wrapText", "alignment"] as const) {
+    const field = value[key];
+    if (field === undefined) continue;
+    if (["bold", "italic", "wrapText"].includes(key)) {
+      if (typeof field !== "boolean") throw new TypeError("Cell presentation " + key + " must be boolean.");
+    } else if (typeof field !== "string") throw new TypeError("Cell presentation " + key + " must be text.");
+    if (key === "alignment" && !["left", "center", "right", "fill", "justify", "distributed"].includes(field as string))
+      throw new TypeError("Invalid cell presentation alignment.");
+    result[key] = field;
+  }
+  return Object.freeze(result);
+}
 /** One resolved value/presentation decision that can be reused across exports. Strings remain literal data. */
 export class ExportCell {
   static [Symbol.hasInstance](value: unknown): boolean { return !!value && typeof value === "object" && (value as Record<symbol, unknown>)[exportCellBrand] === true; }
@@ -31,7 +47,7 @@ export class ExportCell {
     if (options.text !== undefined && typeof options.text !== "string") throw new TypeError("Display text must be a string.");
     assertScalar(value);
     this.text = options.text;
-    this.presentation = options.presentation === undefined ? undefined : Object.freeze({ ...options.presentation });
+    this.presentation = options.presentation === undefined ? undefined : copyCellPresentation(options.presentation);
     this.link = options.link === undefined ? undefined : copyExportLink(options.link);
     Object.defineProperty(this, exportCellBrand, { value: true });
     Object.freeze(this);

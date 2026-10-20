@@ -75,7 +75,7 @@ export class PdfFontResource {
       else for (const character of mapping.text) { const scalar = character.codePointAt(0)!, glyph = program.glyph(scalar); if (glyph) { characters.set(scalar, glyph); glyphs.add(glyph); } }
     }
     const subset = await program.subsetCooperatively(glyphs, characters, this.signal);
-    await objects.stream(file, subset, "/Length1 " + subset.length, compression);
+    await objects.stream(file, subset, "/Length1 " + subset.length, compression, true);
     await objects.object(descriptor, "<< /Type /FontDescriptor /FontName /" + fontName + " /Flags 32 /FontBBox [" + program.bbox.map(pdfNumber).join(" ") +
       "] /ItalicAngle 0 /Ascent " + pdfNumber(program.ascent) + " /Descent " + pdfNumber(program.descent) + " /CapHeight " + pdfNumber(program.ascent) + " /StemV 80 /FontFile2 " + file + " 0 R >>");
     const mapping = new Uint8Array((entries.length + 1) * 2), view = new DataView(mapping.buffer);
@@ -83,7 +83,7 @@ export class PdfFontResource {
       const entry = entries[i]![1]; view.setUint16(entry.cid * 2, entry.glyph);
       if ((i & 1023) === 1023) { if (taskYieldDue()) await pause(); checkAbort(this.signal); }
     }
-    await objects.stream(map, mapping, "", compression);
+    await objects.stream(map, mapping, "", compression, true);
     await objects.object(cidFont, "<< /Type /Font /Subtype /CIDFontType2 /BaseFont /" + fontName +
       " /CIDSystemInfo << /Registry (Adobe) /Ordering (Identity) /Supplement 0 >> /FontDescriptor " + descriptor + " 0 R /CIDToGIDMap " + map + " 0 R" +
       (entries.length ? " /W [1 [" + entries.map(([, m]) => pdfNumber(m.width)).join(" ") + "]]" : "") + " >>");

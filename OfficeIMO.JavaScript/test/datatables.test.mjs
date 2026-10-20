@@ -400,7 +400,7 @@ test("PDF replacement footer does not validate unused source footer spans", asyn
   assert.ok(omitted.includes("Metrics")); assert.ok(!omitted.includes("Unused footer"));
 });
 
-test("PDF preserves DataTables vertical headers, blank spans and multiple footer rows", async () => {
+test("structured DataTables exports preserve vertical headers, blank spans, typed rows and multiple footer rows", async () => {
   const { host, table } = fixture(); const native = table.buttons.exportData;
   table.buttons.exportData = options => {
     const data = native(options);
@@ -410,7 +410,36 @@ test("PDF preserves DataTables vertical headers, blank spans and multiple footer
   };
   const pdf = await inspectPdf(await exportDataTable(host, table, "pdf", { columnOptions: { 0: { header: "Customer" } }, pdf: { compression: false } }));
   for (const text of ["Customer", "Amount", "first", "second", "Totals", "20", "Approved"]) assert.ok(pdf.text.includes(text), text);
-  await assert.rejects(exportDataTable(host, table, "csv", { headings: "structured" }), /require PDF/);
+  const common = { headings: "structured", columnOptions: { 0: { header: "Customer" }, 1: { type: "number" } } };
+  const book = await readZip(await exportDataTable(host, table, "xlsx", { ...common, sheet: { autoFilter: false } }));
+  const sheet = book.get("xl/worksheets/sheet1.xml").content;
+  for (const range of ["A1:A2", "A5:A6"]) assert.ok(sheet.includes('ref="' + range + '"'), range);
+  assert.match(sheet, /<c r="B3"[^>]*><v>7.5<\/v>/);
+  for (const text of ["Customer", "Amount", "first", "second", "Totals", "20", "Approved"]) assert.ok(sheet.includes(text), text);
+  await assert.rejects(exportDataTable(host, table, "csv", common), /spanMode/);
+  for (const spanMode of ["anchors", "repeat"]) {
+    const progress = [], chunks = [];
+    const result = await writeDataTableTo(host, table, "csv", { write: bytes => chunks.push(bytes.slice()) }, { ...common, limits: { maxRows: 2 }, csv: { spanMode }, onProgress: event => progress.push(event) });
+    const repeated = spanMode === "repeat";
+    assert.equal(Buffer.concat(chunks).toString(), "Customer,\r\n" + (repeated ? "Customer" : "") + ",Amount\r\nfirst,7.5\r\nsecond,12.5\r\nTotals,20\r\n" + (repeated ? "Totals" : "") + ",Approved\r\n");
+    assert.equal(result.rows, 2); assert.equal(progress.at(-1).rows, 2); assert.equal(progress.at(-1).totalRows, 2);
+  }
   table.buttons.exportData = options => { const data = native(options); data.headerStructure = [[{ title: "Both", colspan: 2, rowspan: 1 }, null]]; return data; };
   await assert.rejects(exportDataTable(host, table, "pdf", { columnOptions: { 1: { header: "Override" } } }), /spanning leaf/);
+});
+
+test("structured XLSX and CSV replacements omit unused source matrices before validating spans", async () => {
+  for (const format of ["xlsx", "csv"]) {
+    const { host, table } = fixture(), original = table.buttons.exportData;
+    table.buttons.exportData = options => { const data = original(options); data.headerStructure = Array.from({ length: 17 }, () => [null, null]); data.footerStructure = data.headerStructure; return data; };
+    const rows = [[{ value: "Replacement" }, { value: "Amount" }]], footer = { rows: [[{ value: "Finished" }, { value: 20 }]] };
+    const options = { headings: "structured", ...(format === "xlsx" ? { sheet: { headerRows: rows, footer, autoFilter: false } } : { csv: { headerRows: rows, footer } }) };
+    const blob = await exportDataTable(host, table, format, options);
+    const text = format === "csv" ? await blob.text() : (await readZip(blob)).get("xl/worksheets/sheet1.xml").content;
+    assert.ok(text.includes("Replacement")); assert.ok(text.includes("Finished")); assert.ok(text.includes("first"));
+    const suppressed = await exportDataTable(host, table, format, { headings: "structured", includeFooter: false,
+      ...(format === "xlsx" ? { sheet: { includeHeader: false } } : { csv: { includeHeader: false } }) });
+    const suppressedText = format === "csv" ? await suppressed.text() : (await readZip(suppressed)).get("xl/worksheets/sheet1.xml").content;
+    assert.ok(suppressedText.includes("first")); assert.ok(!suppressedText.includes("Replacement"));
+  }
 });

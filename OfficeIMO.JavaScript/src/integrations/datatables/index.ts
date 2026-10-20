@@ -1,6 +1,5 @@
 import { BlobByteSink, checkAbort, saveBlob } from "../../core/index.js";
 import type { OutputDestination, ExportResult } from "../../core/index.js";
-import { concatRows } from "../../core/iteration.js";
 import { notifyProgress } from "../../core/progress.js";
 import { writeCsvTo } from "../../csv/index.js";
 import { writeXlsxTo } from "../../xlsx/index.js";
@@ -8,7 +7,7 @@ import { writePdfTo } from "../../pdf/index.js";
 import { portableSheet, portableWorkbook } from "../../xlsx/portable.js";
 import { call, member } from "./api.js";
 import { value } from "./headings.js";
-import { captureDataTablesExport, createDataTablesExport } from "./snapshot.js";
+import { captureDataTablesExport } from "./snapshot.js";
 import type { DataTablesApi, DataTablesButtonOptions, DataTablesHost, DataTablesWriteOptions } from "./types.js";
 export { createDataTablesExport } from "./snapshot.js";
 export { ExportCell } from "../../core/presentation.js";
@@ -20,18 +19,21 @@ export type { DataTablesApi, DataTablesHost, DataTablesOptions, DataTablesExport
 export async function writeDataTableTo(host: DataTablesHost, table: DataTablesApi, format: "xlsx" | "csv" | "pdf", destination: OutputDestination,
   options: DataTablesWriteOptions = {}): Promise<ExportResult> {
   if (format !== "xlsx" && format !== "csv" && format !== "pdf") throw new TypeError("DataTables export format must be xlsx, csv or pdf.");
-  if (format !== "pdf" && options.headings === "structured") throw new TypeError("Structured headings require PDF output; use grouped or leaf for Excel/CSV.");
   portableSheet(options.sheet); portableWorkbook(options.workbook);
-  const source = format === "pdf" ? captureDataTablesExport(host, table, { ...options, headings: options.headings ?? "structured" }, {
-    header: options.pdf?.includeHeader === false || options.pdf?.headerRows !== undefined,
-    footer: options.pdf?.footer !== undefined
-  }) : createDataTablesExport(host, table, options), signal = options.signal;
+  const replacementXlsxFooter = options.sheet?.footer && [options.sheet.footer.rows, options.sheet.footer.values, options.sheet.footer.totals].some(value => value !== undefined);
+  const source = captureDataTablesExport(host, table, { ...options, ...(format === "pdf" ? { headings: options.headings ?? "structured" } : {}) }, {
+    header: format === "pdf" ? options.pdf?.includeHeader === false || options.pdf?.headerRows !== undefined
+      : format === "xlsx" ? options.sheet?.includeHeader === false || options.sheet?.headerRows !== undefined
+        : options.csv?.includeHeader === false || options.csv?.headerRows !== undefined,
+    footer: format === "pdf" ? options.pdf?.footer !== undefined : format === "xlsx" ? Boolean(replacementXlsxFooter) : options.csv?.footer !== undefined
+  }), signal = options.signal;
   let result: ExportResult;
   const stream = { ...(signal ? { signal } : {}), ...(options.limits ? { limits: options.limits } : {}) };
   if (format === "xlsx") {
-    const footer = source.footer || options.sheet?.footer ? { values: source.footer ?? [], ...options.sheet?.footer } : undefined;
+    const sourceFooter = source.footerStructure ? { rows: source.footerStructure } : source.footer ? { values: source.footer } : undefined;
+    const footer = replacementXlsxFooter ? options.sheet?.footer : sourceFooter || options.sheet?.footer ? { ...sourceFooter, ...options.sheet?.footer } : undefined;
     result = await writeXlsxTo(source.rows, destination, { ...options.workbook, ...stream, columns: source.columns,
-      sheet: { ...options.sheet, name: options.sheetName ?? "Data", ...(footer ? { footer } : {}) },
+      sheet: { ...options.sheet, name: options.sheetName ?? "Data", ...(source.headerStructure && options.sheet?.includeHeader !== false && options.sheet?.headerRows === undefined ? { headerRows: source.headerStructure } : {}), ...(footer ? { footer } : {}) },
       ...(options.onProgress ? { onProgress: event => notifyProgress(options.onProgress, { ...event, totalRows: source.rowCount }) } : {}) });
   } else if (format === "pdf") {
     const footer = options.pdf?.footer ?? (source.footerStructure ? { rows: source.footerStructure } : source.footer ? { values: source.footer } : undefined);
@@ -40,14 +42,11 @@ export async function writeDataTableTo(host: DataTablesHost, table: DataTablesAp
       ...(footer ? { footer } : {}),
       ...(options.onProgress ? { onProgress: event => notifyProgress(options.onProgress, { ...event, totalRows: source.rowCount }) } : {}) });
   } else {
-    const headingCount = source.headers.length, footerCount = source.footer ? 1 : 0;
-    const rows = concatRows(source.headers, source.rows, source.footer ? [source.footer] : []);
-    result = await writeCsvTo(rows, destination, { ...options.csv, ...stream, columns: source.columns, includeHeader: false,
-      ...(options.limits?.maxRows !== undefined ? { limits: { ...options.limits, maxRows: Math.min(Number.MAX_SAFE_INTEGER, options.limits.maxRows + headingCount + footerCount) } } : {}),
-      onProgress: event => {
-        const rowCount = Math.max(0, Math.min(source.rowCount, event.rows - headingCount));
-        notifyProgress(options.onProgress, { ...event, rows: rowCount, totalRows: source.rowCount });
-      } });
+    const footer = options.csv?.footer ?? (source.footerStructure ? { rows: source.footerStructure }
+      : source.footer ? { rows: [source.footer.map(value => ({ value }))] } : undefined);
+    result = await writeCsvTo(source.rows, destination, { ...options.csv, ...stream, columns: source.columns,
+      ...(options.csv?.includeHeader !== false && options.csv?.headerRows === undefined ? { headerRows: source.headerStructure ?? source.headers.map(row => row.map(value => ({ value }))) } : {}), ...(footer ? { footer } : {}),
+      ...(options.onProgress ? { onProgress: event => notifyProgress(options.onProgress, { ...event, totalRows: source.rowCount }) } : {}) });
   }
   checkAbort(signal);
   return { rows: source.rowCount, columns: source.columns.length, bytes: result.bytes };

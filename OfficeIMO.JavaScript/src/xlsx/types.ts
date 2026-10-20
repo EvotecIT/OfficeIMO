@@ -1,4 +1,4 @@
-import type { ColumnSettings, CellValue, StreamOptions } from "../core/index.js";
+import type { ColumnSettings, CellValue, StreamOptions, TableSpanRows } from "../core/index.js";
 import type { ProjectedColumn } from "../internal/columns.js";
 import type { ExportLimits } from "../core/limits.js";
 import type { InvalidCharacterPolicy } from "../xml/index.js";
@@ -71,6 +71,8 @@ export interface XlsxExportResult { readonly rows: number; readonly sheets: numb
 export interface SheetOptions<T = never> {
   readonly columns?: readonly XlsxColumn<T>[];
   readonly includeHeader?: boolean;
+  /** Replaces inferred group/leaf headings with a rectangular matrix; covered positions are null. */
+  readonly headerRows?: TableSpanRows;
   readonly freezeHeader?: boolean;
   readonly autoFilter?: boolean;
   readonly boldHeader?: boolean;
@@ -107,6 +109,8 @@ export interface AutoSizeOptions {
 }
 export type TotalOperation = "sum" | "count" | "average" | "min" | "max";
 export interface FooterOptions {
+  /** Explicit rectangular footer, outside the native table. Cannot accompany values or totals. */
+  readonly rows?: TableSpanRows;
   /** One explicit value per declared column; computed totals replace the corresponding value. */
   readonly values?: readonly (ExportValue | Cell)[];
   readonly totals?: Readonly<Record<string, TotalOperation>>;

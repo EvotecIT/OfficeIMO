@@ -119,6 +119,19 @@ The opt-in runner delegates repetitions and rotated ordering to PSPublishModule/
 
 Results record the source graph and fixture hashes, raw samples, Node process peak RSS, memory snapshots, CPU time, timer gaps and host load/CPU context. Peak RSS includes process startup and native allocations, and is not JavaScript heap or whole-system memory. Timings on a busy, unpinned host describe that run; preserve losses and variation, and do not generalize this PNG profile to all images, font scripts or document formats. These measurements do not run as ordinary correctness gates.
 
+## Complete report workload comparison
+
+`Run-ReportWorkloads.ps1` compares an immutable standalone OfficeIMO module with the current module through the shared PowerForge benchmark runner:
+
+```powershell
+./Build/BrowserExports/Run-ReportWorkloads.ps1 -BaselineBundle /path/to/baseline/officeimo.mjs -OutputRoot "$evidence/reports" -Plan
+./Build/BrowserExports/Run-ReportWorkloads.ps1 -BaselineBundle /path/to/baseline/officeimo.mjs -OutputRoot "$evidence/reports" -WarmupCount 1 -IterationCount 3
+```
+
+The six-column inventory/assessment corpus contains literal identifiers, asset names, report statuses, numbers and UTC dates. Cases cover CSV, plain/styled XLSX, compressed PDF, and tagged reports at 10,000 and 100,000 rows. Sink and Blob cases have separate delivery contracts. Lazy input construction is included; module loading and independent validation are excluded from engine time. Every measured and warmup artifact must pass independent value readback; PDFs also pass qpdf and tagged-cell checks. Successful bulky outputs are removed after validation, while failures and their measurements remain visible.
+
+Reports retain source/input hashes, all rotated samples, time to first sink acceptance, completion time, output bytes, process-lifetime peak RSS, sampled JavaScript heap and timer gaps. Peak RSS includes native/runtime/startup memory; sampled heap can miss synchronous peaks. Blob output retains the completed document, and compression can retain native working memory. These opt-in observations apply to the declared workload and host, rather than ordinary CI timing thresholds or a constant-memory guarantee.
+
 ## DataTables integration and comparisons
 
 The optional grid integration is qualified against the version pairs in `comparison-assets.json`. The downloaded MIT-licensed assets are test-only and hash-checked; they never enter npm, NuGet or product build dependencies. The `bundled` pair identifies the assessed HtmlForgeX asset versions, while `current` identifies the pinned current comparison pair. Updating this manifest is an intentional comparison-input change.

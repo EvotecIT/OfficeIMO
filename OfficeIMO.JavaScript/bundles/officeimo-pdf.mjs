@@ -356,6 +356,27 @@ const { isDate } = _m8;
 const { copyExportLink } = _m9;
 
 const exportCellBrand = Symbol.for("@evotecit/officeimo/ExportCell");
+/** @internal Capture only portable scalar presentation fields before retaining or cloning a cell. */
+function copyCellPresentation(value) {
+    if (!value || typeof value !== "object" || Array.isArray(value))
+        throw new TypeError("Cell presentation must be an object.");
+    const result = {};
+    for (const key of ["background", "color", "numberFormat", "bold", "italic", "wrapText", "alignment"]) {
+        const field = value[key];
+        if (field === undefined)
+            continue;
+        if (["bold", "italic", "wrapText"].includes(key)) {
+            if (typeof field !== "boolean")
+                throw new TypeError("Cell presentation " + key + " must be boolean.");
+        }
+        else if (typeof field !== "string")
+            throw new TypeError("Cell presentation " + key + " must be text.");
+        if (key === "alignment" && !["left", "center", "right", "fill", "justify", "distributed"].includes(field))
+            throw new TypeError("Invalid cell presentation alignment.");
+        result[key] = field;
+    }
+    return Object.freeze(result);
+}
 /** One resolved value/presentation decision that can be reused across exports. Strings remain literal data. */
 class ExportCell {
     value;
@@ -369,7 +390,7 @@ class ExportCell {
             throw new TypeError("Display text must be a string.");
         assertScalar(value);
         this.text = options.text;
-        this.presentation = options.presentation === undefined ? undefined : Object.freeze({ ...options.presentation });
+        this.presentation = options.presentation === undefined ? undefined : copyCellPresentation(options.presentation);
         this.link = options.link === undefined ? undefined : copyExportLink(options.link);
         Object.defineProperty(this, exportCellBrand, { value: true });
         Object.freeze(this);
@@ -390,7 +411,7 @@ function assertExportValue(value) {
         return;
     assertScalar(value);
 }
-const _exports = Object.freeze({ ExportCell: ExportCell, assertScalar: assertScalar, assertExportValue: assertExportValue });
+const _exports = Object.freeze({ copyCellPresentation: copyCellPresentation, ExportCell: ExportCell, assertScalar: assertScalar, assertExportValue: assertExportValue });
 return _exports;
 })();
 
@@ -595,6 +616,8 @@ const sizes = {
 };
 function settings(input, document = false) {
     const configuration = { ...input };
+    if (configuration.limits)
+        configuration.limits = Object.freeze({ ...configuration.limits });
     const textShaper = configuration.textShaper, shapeLine = textShaper?.shapeLine;
     if (textShaper !== undefined && (!textShaper || typeof shapeLine !== "function"))
         throw new TypeError("textShaper must provide shapeLine.");
@@ -755,55 +778,73 @@ class PdfObjects {
     }
     async object(id, body) {
         this.start(id);
-        await this.text(id + " 0 obj\n" + body + "\nendobj\n");
+        if (typeof body === "string") {
+            await this.text(id + " 0 obj\n" + body + "\nendobj\n");
+            return;
+        }
+        // Logical parent arrays can be large. Coalesce small tokens without materializing the whole object.
+        let chunk = id + " 0 obj\n";
+        for (const part of body) {
+            for (let offset = 0; offset < part.length;) {
+                const end = Math.min(part.length, offset + 32768 - chunk.length);
+                chunk += part.slice(offset, end);
+                offset = end;
+                if (chunk.length === 32768) {
+                    // Keep a trailing high surrogate with the next token, matching one-shot UTF-8 encoding.
+                    const code = chunk.charCodeAt(chunk.length - 1), length = code >= 0xd800 && code <= 0xdbff ? chunk.length - 1 : chunk.length;
+                    await this.text(chunk.slice(0, length));
+                    chunk = chunk.slice(length);
+                }
+            }
+        }
+        await this.text(chunk + "\nendobj\n");
     }
     start(id) {
         if (!Number.isInteger(id) || id <= 0 || id >= this.offsets.length || this.offsets[id] !== undefined)
             throw new Error("Invalid PDF object state.");
         this.offsets[id] = this.bytes;
     }
-    async stream(id, source, dictionary = "", compression = true) {
-        let bytes = typeof source === "string" ? this.encoder.encode(source) : source, compressed = false;
+    async stream(id, source, dictionary = "", compression = true, owned = false) {
+        const bytes = typeof source === "string" ? this.encoder.encode(source) : source;
+        let compressor;
         if (compression && typeof CompressionStream === "function" && bytes.length) {
-            let compressor;
             try {
                 compressor = new CompressionStream("deflate");
             }
             catch { /* PDF streams can remain uncompressed. */ }
-            if (compressor) {
-                const sourceBytes = new Uint8Array(bytes);
-                const input = new ReadableStream({ start(controller) { controller.enqueue(sourceBytes); controller.close(); } });
-                const reader = input.pipeThrough(compressor).getReader(), chunks = [];
-                let length = 0, complete = false;
-                try {
-                    while (true) {
-                        const next = await withAbort(reader.read(), this.signal);
-                        if (next.done) {
-                            complete = true;
-                            break;
-                        }
-                        chunks.push(next.value);
-                        length += next.value.length;
-                    }
-                }
-                finally {
-                    if (!complete)
-                        void reader.cancel(this.signal?.reason).catch(() => { });
-                    reader.releaseLock();
-                }
-                bytes = new Uint8Array(length);
-                let offset = 0;
-                for (const chunk of chunks) {
-                    bytes.set(chunk, offset);
-                    offset += chunk.length;
-                }
-                compressed = true;
-            }
         }
-        this.start(id);
-        await this.text(id + " 0 obj\n<< /Length " + bytes.length + (compressed ? " /Filter /FlateDecode" : "") + " " + dictionary + " >>\nstream\n");
-        await this.raw(bytes);
-        await this.text("\nendstream\nendobj\n");
+        if (!compressor) {
+            this.start(id);
+            await this.text(id + " 0 obj\n<< /Length " + bytes.length + " " + dictionary + " >>\nstream\n");
+            await this.raw(bytes);
+            await this.text("\nendstream\nendobj\n");
+            return;
+        }
+        // Verified internal producers can transfer immutable ownership; other byte sources retain the defensive snapshot.
+        const sourceBytes = typeof source === "string" || owned ? bytes : new Uint8Array(bytes);
+        const input = new ReadableStream({ start(controller) { controller.enqueue(sourceBytes); controller.close(); } });
+        const reader = input.pipeThrough(compressor).getReader(), lengthId = this.reserve();
+        let length = 0, complete = false;
+        try {
+            this.start(id);
+            await this.text(id + " 0 obj\n<< /Length " + lengthId + " 0 R /Filter /FlateDecode " + dictionary + " >>\nstream\n");
+            while (true) {
+                const next = await withAbort(reader.read(), this.signal);
+                if (next.done) {
+                    complete = true;
+                    break;
+                }
+                length += next.value.length;
+                await this.raw(next.value);
+            }
+            await this.text("\nendstream\nendobj\n");
+            await this.object(lengthId, String(length));
+        }
+        finally {
+            if (!complete)
+                void reader.cancel(this.signal?.reason).catch(() => { });
+            reader.releaseLock();
+        }
     }
     async finish(root, info) {
         if (this.offsets.slice(1).some(offset => offset === undefined))
@@ -1889,7 +1930,7 @@ class PdfFontResource {
                 }
         }
         const subset = await program.subsetCooperatively(glyphs, characters, this.signal);
-        await objects.stream(file, subset, "/Length1 " + subset.length, compression);
+        await objects.stream(file, subset, "/Length1 " + subset.length, compression, true);
         await objects.object(descriptor, "<< /Type /FontDescriptor /FontName /" + fontName + " /Flags 32 /FontBBox [" + program.bbox.map(pdfNumber).join(" ") +
             "] /ItalicAngle 0 /Ascent " + pdfNumber(program.ascent) + " /Descent " + pdfNumber(program.descent) + " /CapHeight " + pdfNumber(program.ascent) + " /StemV 80 /FontFile2 " + file + " 0 R >>");
         const mapping = new Uint8Array((entries.length + 1) * 2), view = new DataView(mapping.buffer);
@@ -1902,7 +1943,7 @@ class PdfFontResource {
                 checkAbort(this.signal);
             }
         }
-        await objects.stream(map, mapping, "", compression);
+        await objects.stream(map, mapping, "", compression, true);
         await objects.object(cidFont, "<< /Type /Font /Subtype /CIDFontType2 /BaseFont /" + fontName +
             " /CIDSystemInfo << /Registry (Adobe) /Ordering (Identity) /Supplement 0 >> /FontDescriptor " + descriptor + " 0 R /CIDToGIDMap " + map + " 0 R" +
             (entries.length ? " /W [1 [" + entries.map(([, m]) => pdfNumber(m.width)).join(" ") + "]]" : "") + " >>");
@@ -2884,14 +2925,15 @@ class PdfPages {
             throw new RangeError("PDF title and repeated headings leave no room for a data line.");
         if (tableHeadings && this.layout && this.structure && this.tableElement === undefined)
             this.tableElement = this.structure.element("Table");
-        this.drawHeadings(headers);
+        await this.drawHeadings(headers);
         this.dataTop = this.y;
     }
-    drawHeadings(headers) {
+    async drawHeadings(headers) {
         for (const header of headers) {
             const elements = this.structure && this.tableElement !== undefined && !this.tableHeadingsDrawn ?
                 this.structure.tableRow(this.tableElement, header.cells.map(cell => cell.lines.some(line => line.text.trim().length > 0))) : undefined;
             this.draw(header, 0, header.lines, elements);
+            await this.structure?.completeRow(elements);
         }
         if (headers.length)
             this.tableHeadingsDrawn = true;
@@ -2926,8 +2968,11 @@ class PdfPages {
         }
         if (height > this.dataTop - bottom)
             throw new RangeError("A structured footer must fit on one page below the repeated headings.");
-        for (const row of rows)
-            this.draw(row, 0, row.lines, this.rowElements(row));
+        for (const row of rows) {
+            const elements = this.rowElements(row);
+            this.draw(row, 0, row.lines, elements);
+            await this.structure?.completeRow(elements);
+        }
     }
     async row(row, allowFirstFragment = false) {
         const elements = this.rowElements(row);
@@ -2953,6 +2998,7 @@ class PdfPages {
                 await this.start();
             }
         }
+        await this.structure?.completeRow(elements);
     }
     async paragraph(text, style = {}, size = this.settings.fontSize, paginate = true, headingLevel) {
         const { margins, page, limits } = this.settings, font = this.fonts.select(style.bold, style.italic), lineHeight = font.lineHeight(size);
@@ -2973,6 +3019,7 @@ class PdfPages {
             this.y -= lineHeight;
         }
         this.y -= 8;
+        await this.structure?.complete(element);
     }
     /** Reserve a meaningful next fragment before painting a kept heading; never buffer a table. */
     async reserveSpace(height, label = "Kept PDF content") {
@@ -3011,6 +3058,7 @@ class PdfPages {
                 this.y -= line.lineHeight;
             }
             this.y -= paragraph.spaceAfter;
+            await this.structure?.complete(element);
         }
     }
     /** Begin an independent table on the current page, retaining its headings on continuation pages. */
@@ -3025,10 +3073,16 @@ class PdfPages {
             return;
         }
         this.continuationTop = this.settings.page.height - this.settings.margins.top - height;
-        this.drawHeadings(headings);
+        await this.drawHeadings(headings);
         this.dataTop = this.y;
     }
-    endTable() { this.layout = undefined; this.tableElement = undefined; this.tableHeadingsDrawn = false; this.y -= 8; }
+    async endTable() {
+        await this.structure?.complete(this.tableElement);
+        this.layout = undefined;
+        this.tableElement = undefined;
+        this.tableHeadingsDrawn = false;
+        this.y -= 8;
+    }
     async pageBreak() { await this.finishPage(); await this.start(false); }
     registerXObject(name, id) { this.externalObjects.set(name, id); }
     /** Height after the existing fit-to-page graphic policy, used by heading keep constraints. */
@@ -3049,6 +3103,7 @@ class PdfPages {
         const element = this.structure && alternativeText !== undefined ? this.structure.element("Figure", this.structure.document, " /Alt <feff" + unicodeHex(alternativeText) + ">") : undefined;
         this.add(this.structure && element !== undefined ? this.structure.mark(element) + command + "EMC\n" : this.artifact(command));
         this.y -= height + 8;
+        await this.structure?.complete(element);
     }
     async finishPage() {
         const contents = this.objects.reserve(), { page, options } = this.settings;
@@ -3070,6 +3125,7 @@ class PdfPages {
         await this.objects.flush();
     }
     async finish() {
+        await this.structure?.complete(this.tableElement);
         await this.finishPage();
         if (this.totalPages) {
             const font = this.fonts.select(), text = String(this.references.length), size = this.settings.fontSize;
@@ -3091,6 +3147,68 @@ const _exports = Object.freeze({ PdfPages: PdfPages });
 return _exports;
 })();
 
+const _m30 = (() => {
+/** @internal Incremental PDF number tree: at most 64 entries/children per retained level. */
+class PdfParentTree {
+    objects;
+    root;
+    entries = [];
+    levels = [];
+    lastKey = -1;
+    constructor(objects, root) {
+        this.objects = objects;
+        this.root = root;
+    }
+    async append(key, value) {
+        if (key <= this.lastKey)
+            throw new Error("PDF ParentTree keys must be appended in increasing order.");
+        this.lastKey = key;
+        this.entries.push({ key, value });
+        if (this.entries.length === 64)
+            await this.leaf();
+    }
+    async leaf() {
+        if (!this.entries.length)
+            return;
+        const id = this.objects.reserve(), first = this.entries[0].key, last = this.entries.at(-1).key;
+        const body = "<< /Limits [" + first + " " + last + "] /Nums [" + this.entries.map(entry => entry.key + " " + entry.value + " 0 R").join(" ") + "] >>";
+        this.entries.length = 0;
+        await this.objects.object(id, body);
+        await this.node({ id, first, last }, 0);
+    }
+    async node(node, level) {
+        const nodes = this.levels[level] ??= [];
+        nodes.push(node);
+        if (nodes.length === 64) {
+            const parent = await this.branch(nodes);
+            nodes.length = 0;
+            await this.node(parent, level + 1);
+        }
+    }
+    async branch(nodes) {
+        const id = this.objects.reserve(), first = nodes[0].first, last = nodes.at(-1).last;
+        await this.objects.object(id, "<< /Limits [" + first + " " + last + "] /Kids [" + nodes.map(node => node.id + " 0 R").join(" ") + "] >>");
+        return { id, first, last };
+    }
+    async finish() {
+        await this.leaf();
+        // Lower levels contain the newest tail; combine it upward after all older siblings.
+        for (let level = 0; level < this.levels.length - 1; level++) {
+            const nodes = this.levels[level];
+            if (nodes.length) {
+                const parent = await this.branch(nodes);
+                nodes.length = 0;
+                await this.node(parent, level + 1);
+            }
+        }
+        const nodes = this.levels.at(-1) ?? [];
+        await this.objects.object(this.root, nodes.length ? "<< /Kids [" + nodes.map(node => node.id + " 0 R").join(" ") + "] >>" : "<< /Nums [] >>");
+    }
+}
+const _exports = Object.freeze({ PdfParentTree: PdfParentTree });
+return _exports;
+})();
+
 const _m29 = (() => {
 const { OfficeIMOError } = _m4;
 
@@ -3098,7 +3216,9 @@ const { checkAbort } = _m3;
 
 const { unicodeHex } = _m14;
 
-/** @internal Logical elements outlive page painting so split paragraphs/cells keep one identity. */
+const { PdfParentTree } = _m30;
+
+/** @internal Only open logical elements retain content; completed subtrees retain compact parent references. */
 class PdfStructure {
     objects;
     settings;
@@ -3106,27 +3226,30 @@ class PdfStructure {
     document;
     parentTree;
     elements = new Map();
-    parentEntries = new Map();
+    parentTreeWriter;
+    annotations = [];
     links = new WeakMap();
     pageParents = [];
     pageId = 0;
     pageKey = 0;
     nextParentKey = 0;
     references = 0;
+    allocated = 0;
     constructor(objects, settings) {
         this.objects = objects;
         this.settings = settings;
         this.root = objects.reserve();
         this.parentTree = objects.reserve();
+        this.parentTreeWriter = new PdfParentTree(objects, this.parentTree);
         this.document = this.element("Document", this.root);
     }
     element(role, parent = this.document, attributes = "") {
         checkAbort(this.settings.options.signal);
-        if (this.elements.size >= this.settings.limits.maxStructureElements)
+        if (++this.allocated > this.settings.limits.maxStructureElements)
             throw new OfficeIMOError("RESOURCE_LIMIT", "maxStructureElements exceeded.");
-        const id = this.objects.reserve(), element = { id, parent, role, children: [], attributes };
+        const id = this.objects.reserve(), element = { id, parent, role, children: [], attributes, linkIdentities: [] };
         this.elements.set(id, element);
-        this.elements.get(parent)?.children.push(id + " 0 R");
+        this.elements.get(parent)?.children.push(id);
         return id;
     }
     tableRow(table, headers) {
@@ -3146,6 +3269,7 @@ class PdfStructure {
             return existing;
         const id = this.element("Link", parent);
         parents.set(parent, id);
+        this.elements.get(parent).linkIdentities.push(identity);
         return id;
     }
     /** Associate a native annotation in both directions: OBJR child and annotation ParentTree entry. */
@@ -3156,7 +3280,7 @@ class PdfStructure {
             throw new Error("Tagged link annotations require a logical Link owner.");
         const key = this.nextParentKey++;
         element.children.push("<< /Type /OBJR /Obj " + annotationId + " 0 R /Pg " + this.pageId + " 0 R >>");
-        this.parentEntries.set(key, elementId + " 0 R");
+        this.annotations.push({ key, owner: elementId });
         return key;
     }
     /** Every MCID is local to its page; its parent entry points back to the owning logical element. */
@@ -3164,6 +3288,8 @@ class PdfStructure {
         if (++this.references > this.settings.limits.maxMarkedContentReferences)
             throw new OfficeIMOError("RESOURCE_LIMIT", "maxMarkedContentReferences exceeded.");
         const element = this.elements.get(elementId);
+        if (!element)
+            throw new Error("Marked content requires an open logical owner.");
         const mcid = this.pageParents.length;
         this.pageParents.push(elementId);
         element.children.push("<< /Type /MCR /Pg " + this.pageId + " 0 R /MCID " + mcid + " >>");
@@ -3176,16 +3302,58 @@ class PdfStructure {
     async finishPage() {
         const array = this.objects.reserve();
         await this.objects.object(array, "[" + this.pageParents.map(id => id + " 0 R").join(" ") + "]");
-        this.parentEntries.set(this.pageKey, array + " 0 R");
+        await this.parentTreeWriter.append(this.pageKey, array);
+        for (const annotation of this.annotations)
+            await this.parentTreeWriter.append(annotation.key, annotation.owner);
+        this.annotations.length = 0;
         this.pageParents = [];
     }
-    async finish() {
-        for (const element of this.elements.values()) {
-            checkAbort(this.settings.options.signal);
-            await this.objects.object(element.id, "<< /Type /StructElem /S /" + element.role + " /P " + element.parent +
-                " 0 R /K [" + element.children.join(" ") + "]" + element.attributes + " >>");
+    /** Complete only after the last fragment/annotation; split content keeps the same owner until then. */
+    async complete(id) {
+        if (id === undefined)
+            return;
+        const element = this.elements.get(id);
+        if (!element)
+            return;
+        for (const child of element.children)
+            if (typeof child === "number" && this.elements.has(child))
+                await this.complete(child);
+        checkAbort(this.settings.options.signal);
+        const prefix = "<< /Type /StructElem /S /" + element.role + " /P " + element.parent + " 0 R /K [";
+        const remaining = 32768 - prefix.length - element.attributes.length - 4;
+        let children = "", small = remaining >= 0;
+        if (small)
+            for (const child of element.children) {
+                const token = typeof child === "number" ? child + " 0 R " : child + " ";
+                if (children.length + token.length > remaining) {
+                    small = false;
+                    break;
+                }
+                children += token;
+            }
+        // Most table cells/rows fit in one encoding. Large parents and alternatives remain streamed.
+        await this.objects.object(id, small ? prefix + children + "]" + element.attributes + " >>" : this.body(element));
+        for (const identity of element.linkIdentities) {
+            const parents = this.links.get(identity);
+            parents?.delete(id);
+            if (!parents?.size)
+                this.links.delete(identity);
         }
-        await this.objects.object(this.parentTree, "<< /Nums [" + [...this.parentEntries].sort(([left], [right]) => left - right).map(([key, value]) => key + " " + value).join(" ") + "] >>");
+        this.elements.delete(id);
+    }
+    *body(element) {
+        yield "<< /Type /StructElem /S /" + element.role + " /P " + element.parent + " 0 R /K [";
+        for (const child of element.children)
+            yield typeof child === "number" ? child + " 0 R " : child + " ";
+        yield "]" + element.attributes + " >>";
+    }
+    async completeRow(cells) {
+        if (cells?.length)
+            await this.complete(this.elements.get(cells[0])?.parent);
+    }
+    async finish() {
+        await this.complete(this.document);
+        await this.parentTreeWriter.finish();
         await this.objects.object(this.root, "<< /Type /StructTreeRoot /K [" + this.document + " 0 R] /ParentTree " +
             this.parentTree + " 0 R /ParentTreeNextKey " + this.nextParentKey + " >>");
     }
@@ -3239,7 +3407,7 @@ class PdfWriteSession {
     info;
     constructor(sink, settings, table = false) {
         this.settings = settings;
-        this.objects = new PdfObjects(sink, settings.options.signal, settings.options.limits?.maxOutputBytes);
+        this.objects = new PdfObjects(sink, settings.options.signal, settings.budget.limits.maxOutputBytes);
         this.root = this.objects.reserve();
         this.parent = this.objects.reserve();
         this.resources = this.objects.reserve();
@@ -3338,7 +3506,7 @@ const _exports = Object.freeze({ writePdf: writePdf, writePdfTo: writePdfTo });
 return _exports;
 })();
 
-const _m33 = (() => {
+const _m34 = (() => {
 const crcTable = new Uint32Array(256).map((_, index) => {
     let value = index;
     for (let bit = 0; bit < 8; bit++)
@@ -3360,12 +3528,12 @@ const _exports = Object.freeze({ Crc32: Crc32 });
 return _exports;
 })();
 
-const _m32 = (() => {
+const _m33 = (() => {
 const { NotSupportedError, OfficeIMOError } = _m4;
 
 const { checkAbort, pause, taskYieldDue, withAbort } = _m3;
 
-const { Crc32 } = _m33;
+const { Crc32 } = _m34;
 
 const signature = [137, 80, 78, 71, 13, 10, 26, 10];
 const unsupportedChunks = new Set(["PLTE", "tRNS", "iCCP", "sRGB", "gAMA", "cHRM", "cICP", "mDCV", "cLLI", "sBIT", "eXIf", "acTL", "fcTL", "fdAT"]);
@@ -3582,12 +3750,12 @@ const _exports = Object.freeze({ pngPixels: pngPixels });
 return _exports;
 })();
 
-const _m31 = (() => {
+const _m32 = (() => {
 const { NotSupportedError, OfficeIMOError } = _m4;
 
 const { checkAbort, pause, taskYieldDue } = _m3;
 
-const { pngPixels } = _m32;
+const { pngPixels } = _m33;
 
 /** Shared document image resources; source objects are captured on first consumption. */
 class PdfDocumentImages {
@@ -3613,7 +3781,7 @@ class PdfDocumentImages {
         if (this.bytes + byteLength > limits.maxImageBytes)
             throw new OfficeIMOError("RESOURCE_LIMIT", "maxImageBytes exceeded.");
         let width, height, components, decoded, decodedAlpha;
-        const maximumWorkingBytes = options.limits?.maxImageWorkingBytes;
+        const maximumWorkingBytes = limits.maxImageWorkingBytes;
         if (format === "png")
             ({ width, height, components, data: decoded, alpha: decodedAlpha } = await pngPixels(data, limits.maxImagePixels, options.signal, maximumWorkingBytes));
         else if (format === "jpeg")
@@ -3654,12 +3822,12 @@ class PdfDocumentImages {
         }
         if (alpha) {
             mask = this.objects.reserve();
-            await this.objects.stream(mask, alpha, "/Type /XObject /Subtype /Image /Width " + width + " /Height " + height + " /ColorSpace /DeviceGray /BitsPerComponent 8", options.compression !== false);
+            await this.objects.stream(mask, alpha, "/Type /XObject /Subtype /Image /Width " + width + " /Height " + height + " /ColorSpace /DeviceGray /BitsPerComponent 8", options.compression !== false, true);
         }
         const dictionary = "/Type /XObject /Subtype /Image /Width " + width + " /Height " + height + " /ColorSpace /" +
             (components === 1 ? "DeviceGray" : "DeviceRGB") + " /BitsPerComponent 8" + (mask ? " /SMask " + mask + " 0 R" : "") +
             (format === "jpeg" ? " /Filter /DCTDecode" : "");
-        await this.objects.stream(id, pixels, dictionary, format === "jpeg" ? false : options.compression !== false);
+        await this.objects.stream(id, pixels, dictionary, format === "jpeg" ? false : options.compression !== false, true);
         const resource = { name, id, width, height };
         this.images.set(image, resource);
         return resource;
@@ -3715,7 +3883,7 @@ const _exports = Object.freeze({ PdfDocumentImages: PdfDocumentImages });
 return _exports;
 })();
 
-const _m34 = (() => {
+const _m35 = (() => {
 const { OfficeIMOError } = _m4;
 
 const { checkAbort, pause, taskYieldDue } = _m3;
@@ -3801,7 +3969,7 @@ const _exports = Object.freeze({ vectorCommands: vectorCommands });
 return _exports;
 })();
 
-const _m35 = (() => {
+const _m36 = (() => {
 const { NotSupportedError, OfficeIMOError } = _m4;
 
 const { checkAbort, pause, taskYieldDue } = _m3;
@@ -4047,7 +4215,7 @@ const _exports = Object.freeze({ checkDrawingBlock: checkDrawingBlock, prepareDr
 return _exports;
 })();
 
-const _m36 = (() => {
+const _m37 = (() => {
 const { OfficeIMOError } = _m4;
 
 const { capturePdfText, wrapPdfText } = _m25;
@@ -4115,7 +4283,7 @@ const _exports = Object.freeze({ captureParagraph: captureParagraph, preparePara
 return _exports;
 })();
 
-const _m30 = (() => {
+const _m31 = (() => {
 const { BlobByteSink, withDestination } = _m2;
 
 const { OfficeIMOError } = _m4;
@@ -4134,15 +4302,15 @@ const { PdfTableLayout } = _m22;
 
 const { PdfWriteSession } = _m13;
 
-const { PdfDocumentImages } = _m31;
+const { PdfDocumentImages } = _m32;
 
-const { vectorCommands } = _m34;
+const { vectorCommands } = _m35;
 
 const { graphicAlternative } = _m29;
 
-const { checkDrawingBlock, prepareDrawing } = _m35;
+const { checkDrawingBlock, prepareDrawing } = _m36;
 
-const { captureParagraph, prepareParagraph, checkParagraphBuffer, paragraphStartHeight } = _m36;
+const { captureParagraph, prepareParagraph, checkParagraphBuffer, paragraphStartHeight } = _m37;
 
 /** Capture typed columns for a single-use table source in a composed document. */
 function pdfTable(rows, options) {
@@ -4264,7 +4432,7 @@ async function writePdfDocumentTo(blocks, destination, configuration = {}) {
                         else
                             await pages.row(footer[0], keptFooterHeading);
                     }
-                    pages.endTable();
+                    await pages.endTable();
                     break;
                 }
                 case "image": {
@@ -4328,7 +4496,7 @@ const _exports = Object.freeze({ pdfTable: pdfTable, writePdfDocument: writePdfD
 return _exports;
 })();
 
-const _m37 = (() => {
+const _m38 = (() => {
 const { fontProgram } = _m16;
 
 const { resolveScalar, selectFont, validateFonts } = _m20;
@@ -4367,7 +4535,7 @@ const _exports = Object.freeze({ preflightPdfText: preflightPdfText });
 return _exports;
 })();
 
-const _m38 = (() => {
+const _m39 = (() => {
 
 
 
@@ -4415,7 +4583,7 @@ return _exports;
 
 const _m0 = (() => {
 
-const _exports = Object.freeze({ writePdf: _m1.writePdf, writePdfTo: _m1.writePdfTo, writePdfDocument: _m30.writePdfDocument, writePdfDocumentTo: _m30.writePdfDocumentTo, pdfTable: _m30.pdfTable, PdfFont: _m16.PdfFont, preflightPdfText: _m37.preflightPdfText, ExportCell: _m7.ExportCell, saveBlob: _m38.saveBlob });
+const _exports = Object.freeze({ writePdf: _m1.writePdf, writePdfTo: _m1.writePdfTo, writePdfDocument: _m31.writePdfDocument, writePdfDocumentTo: _m31.writePdfDocumentTo, pdfTable: _m31.pdfTable, PdfFont: _m16.PdfFont, preflightPdfText: _m38.preflightPdfText, ExportCell: _m7.ExportCell, saveBlob: _m39.saveBlob });
 return _exports;
 })();
 const { writePdf, writePdfTo, writePdfDocument, writePdfDocumentTo, pdfTable, PdfFont, preflightPdfText, ExportCell, saveBlob } = _m0;

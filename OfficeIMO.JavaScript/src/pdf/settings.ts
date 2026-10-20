@@ -39,6 +39,7 @@ export interface PdfSettings {
 }
 export function settings(input: PdfOptions, document = false): PdfSettings {
   const configuration = { ...input };
+  if (configuration.limits) configuration.limits = Object.freeze({ ...configuration.limits });
   const textShaper = configuration.textShaper, shapeLine = textShaper?.shapeLine;
   if (textShaper !== undefined && (!textShaper || typeof shapeLine !== "function")) throw new TypeError("textShaper must provide shapeLine.");
   if (configuration.textDirection !== undefined && !["auto", "ltr", "rtl"].includes(configuration.textDirection))

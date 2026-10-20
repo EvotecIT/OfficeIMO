@@ -397,6 +397,27 @@ const { isDate } = _m6;
 const { copyExportLink } = _m7;
 
 const exportCellBrand = Symbol.for("@evotecit/officeimo/ExportCell");
+/** @internal Capture only portable scalar presentation fields before retaining or cloning a cell. */
+function copyCellPresentation(value) {
+    if (!value || typeof value !== "object" || Array.isArray(value))
+        throw new TypeError("Cell presentation must be an object.");
+    const result = {};
+    for (const key of ["background", "color", "numberFormat", "bold", "italic", "wrapText", "alignment"]) {
+        const field = value[key];
+        if (field === undefined)
+            continue;
+        if (["bold", "italic", "wrapText"].includes(key)) {
+            if (typeof field !== "boolean")
+                throw new TypeError("Cell presentation " + key + " must be boolean.");
+        }
+        else if (typeof field !== "string")
+            throw new TypeError("Cell presentation " + key + " must be text.");
+        if (key === "alignment" && !["left", "center", "right", "fill", "justify", "distributed"].includes(field))
+            throw new TypeError("Invalid cell presentation alignment.");
+        result[key] = field;
+    }
+    return Object.freeze(result);
+}
 /** One resolved value/presentation decision that can be reused across exports. Strings remain literal data. */
 class ExportCell {
     value;
@@ -410,7 +431,7 @@ class ExportCell {
             throw new TypeError("Display text must be a string.");
         assertScalar(value);
         this.text = options.text;
-        this.presentation = options.presentation === undefined ? undefined : Object.freeze({ ...options.presentation });
+        this.presentation = options.presentation === undefined ? undefined : copyCellPresentation(options.presentation);
         this.link = options.link === undefined ? undefined : copyExportLink(options.link);
         Object.defineProperty(this, exportCellBrand, { value: true });
         Object.freeze(this);
@@ -431,7 +452,7 @@ function assertExportValue(value) {
         return;
     assertScalar(value);
 }
-const _exports = Object.freeze({ ExportCell: ExportCell, assertScalar: assertScalar, assertExportValue: assertExportValue });
+const _exports = Object.freeze({ copyCellPresentation: copyCellPresentation, ExportCell: ExportCell, assertScalar: assertScalar, assertExportValue: assertExportValue });
 return _exports;
 })();
 
@@ -512,7 +533,77 @@ const _exports = Object.freeze({ createRowProjector: createRowProjector, copyCol
 return _exports;
 })();
 
+const _m11 = (() => {
+const { assertExportValue } = _m5;
+
+/** Validate one small, rectangular heading/footer matrix before any drawing. */
+function tableSpans(rows, columns) {
+    if (!Array.isArray(rows) || !rows.length || rows.length > 16)
+        throw new RangeError("Spanned headings/footers need from 1 through 16 rows.");
+    const covered = Array.from({ length: rows.length }, () => new Uint8Array(columns));
+    return rows.map((row, level) => {
+        if (!Array.isArray(row) || row.length !== columns)
+            throw new TypeError("Spanned rows must have the declared column count.");
+        const anchors = [];
+        for (let first = 0; first < columns; first++) {
+            const cell = row[first];
+            if (covered[level][first]) {
+                if (cell !== null)
+                    throw new TypeError("Covered heading/footer cells must be null.");
+                continue;
+            }
+            if (!cell || typeof cell !== "object")
+                throw new TypeError("Uncovered heading/footer cells need an anchor value.");
+            const span = cell.columnSpan ?? 1, rowSpan = cell.rowSpan ?? 1;
+            if (!Number.isInteger(span) || !Number.isInteger(rowSpan) || span < 1 || rowSpan < 1 || first + span > columns || level + rowSpan > rows.length)
+                throw new RangeError("Heading/footer spans must stay inside the declared matrix.");
+            assertExportValue(cell.value);
+            for (let r = level; r < level + rowSpan; r++)
+                for (let c = first; c < first + span; c++) {
+                    if (covered[r][c])
+                        throw new TypeError("Heading/footer spans overlap.");
+                    if ((r !== level || c !== first) && rows[r]?.[c] !== null)
+                        throw new TypeError("Covered heading/footer cells must be null.");
+                    covered[r][c] = 1;
+                }
+            anchors.push(Object.freeze({ first, span, rowSpan, value: cell.value }));
+        }
+        return Object.freeze(anchors);
+    });
+}
+const _exports = Object.freeze({ tableSpans: tableSpans });
+return _exports;
+})();
+
 const _m10 = (() => {
+const { ExportCell } = _m5;
+
+const { isDate } = _m6;
+
+const { tableSpans } = _m11;
+
+/** Snapshot small report matrices; flattening is an explicit format decision, never inferred from labels. */
+function csvStructuredRows(rows, columns, mode) {
+    const anchors = tableSpans(rows, columns), output = anchors.map(() => Array(columns).fill(""));
+    for (let row = 0; row < anchors.length; row++)
+        for (const anchor of anchors[row]) {
+            if ((anchor.span > 1 || anchor.rowSpan > 1) && mode === undefined)
+                throw new TypeError("CSV spanned headings/footers require an explicit spanMode: repeat or anchors.");
+            const source = anchor.value, raw = source instanceof ExportCell ? source.value : source;
+            const value = isDate(raw) ? source instanceof ExportCell ? new ExportCell(new Date(raw.getTime()), {
+                ...(source.text === undefined ? {} : { text: source.text }), ...(source.presentation ? { presentation: source.presentation } : {}), ...(source.link ? { link: source.link } : {})
+            }) : new Date(raw.getTime()) : source;
+            for (let r = row; r < row + (mode === "repeat" ? anchor.rowSpan : 1); r++)
+                for (let c = anchor.first; c < anchor.first + (mode === "repeat" ? anchor.span : 1); c++)
+                    output[r][c] = value;
+        }
+    return output;
+}
+const _exports = Object.freeze({ csvStructuredRows: csvStructuredRows });
+return _exports;
+})();
+
+const _m12 = (() => {
 
 
 
@@ -573,6 +664,8 @@ const { notifyProgress } = _m8;
 
 const { copyColumns, createRowProjector } = _m9;
 
+const { csvStructuredRows } = _m10;
+
 
 
 
@@ -618,6 +711,10 @@ async function write(rows, sink, options) {
         throw new RangeError("valueMode must be raw or display.");
     if (options.nullValue !== undefined && typeof options.nullValue !== "string")
         throw new TypeError("nullValue must be a string.");
+    if (options.spanMode !== undefined && options.spanMode !== "repeat" && options.spanMode !== "anchors")
+        throw new TypeError("CSV spanMode must be repeat or anchors.");
+    const headings = options.includeHeader === false ? [] : options.headerRows === undefined ? columns.length ? [columns.map(c => c.header)] : [] : csvStructuredRows(options.headerRows, columns.length, options.spanMode);
+    const footers = options.footer === undefined ? [] : csvStructuredRows(options.footer.rows, columns.length, options.spanMode);
     for (const column of columns)
         if (column.valueFormatter !== undefined && typeof column.valueFormatter !== "function")
             throw new TypeError("CSV value formatters must be functions.");
@@ -656,8 +753,8 @@ async function write(rows, sink, options) {
         if (buffer.append(text + lineEnding))
             return buffer.flush().then(() => { notifyProgress(options.onProgress, { phase: "rows", rows: count + (header ? 0 : 1) }); });
     }
-    if (options.includeHeader !== false && columns.length)
-        await record(columns.map(c => c.header), true);
+    for (const heading of headings)
+        await record(heading, true);
     await consumeRows(rows, signal, row => {
         budget.row(count + 1);
         const pending = record(project(row, count));
@@ -665,6 +762,8 @@ async function write(rows, sink, options) {
             return pending.then(() => { count++; });
         count++;
     });
+    for (const footer of footers)
+        await record(footer, true);
     await buffer.close();
     notifyProgress(options.onProgress, { phase: "complete", rows: count, bytes });
     checkAbort(signal);
@@ -691,7 +790,7 @@ async function writeCsv(rows, configuration) {
         throw error;
     }
 }
-const _exports = Object.freeze({ saveBlob: _m10.saveBlob, ExportCell: _m5.ExportCell, writeCsvTo: writeCsvTo, writeCsv: writeCsv });
+const _exports = Object.freeze({ saveBlob: _m12.saveBlob, ExportCell: _m5.ExportCell, writeCsvTo: writeCsvTo, writeCsv: writeCsv });
 return _exports;
 })();
 const { saveBlob, ExportCell, writeCsvTo, writeCsv } = _m0;

@@ -48,9 +48,9 @@ export interface PdfLimits extends ExportLimits {
   readonly maxVectorCommands?: number;
   /** Total path, text and group elements across portable drawing blocks. */
   readonly maxDrawingElements?: number;
-  /** Logical structure elements retained by a tagged document, including Document, rows and cells. */
+  /** Total logical structure elements created across a tagged document, including Document, rows and cells. */
   readonly maxStructureElements?: number;
-  /** Cross-page content references retained by the structure tree, including continued cells. */
+  /** Total marked-content references created across the document, including continued cells. */
   readonly maxMarkedContentReferences?: number;
 }
 export type PdfTotal = "sum" | "count" | "average" | "min" | "max";

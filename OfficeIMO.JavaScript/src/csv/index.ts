@@ -5,8 +5,9 @@ import { ExportCell } from "../core/presentation.js";
 import { isDate } from "../core/dates.js";
 import { notifyProgress } from "../core/progress.js";
 import type { ByteSink, OutputDestination } from "../core/sinks.js";
-import type { CellValue, Column, StreamOptions, ExportResult } from "../core/index.js";
+import type { CellValue, Column, StreamOptions, ExportResult, TableSpanRows } from "../core/index.js";
 import { copyColumns, createRowProjector } from "../internal/rows.js";
+import { csvStructuredRows } from "./structured-rows.js";
 export { saveBlob } from "../core/index.js";
 export { ExportCell } from "../core/presentation.js";
 export type { CellValue, Column, ColumnValueContext, Row, Rows, StreamOptions, ExportProgress, ExportResult, OutputDestination, ExportValue, CellPresentation } from "../core/index.js";
@@ -31,6 +32,12 @@ export interface CsvOptions<T = never> extends StreamOptions {
   readonly lineEnding?: "\r\n" | "\n" | "\r";
   readonly bom?: boolean;
   readonly includeHeader?: boolean;
+  /** Replaces the ordinary leaf header; each physical matrix row is emitted. */
+  readonly headerRows?: TableSpanRows;
+  /** Appended report metadata, excluded from data-row progress and completion counts. */
+  readonly footer?: { readonly rows: TableSpanRows };
+  /** Required when an emitted header/footer spans cells. Repeat fills covered positions; anchors leaves them empty. */
+  readonly spanMode?: "repeat" | "anchors";
   readonly formulaInjectionProtection?: boolean;
   readonly quote?: "minimal" | "all" | "strings";
   readonly nullValue?: string;
@@ -66,6 +73,9 @@ async function write(rows: Iterable<unknown> | AsyncIterable<unknown>, sink: Byt
   if (!["minimal", "all", "strings"].includes(quote)) throw new RangeError("Quoting must be minimal, all or strings.");
   if (options.valueMode !== undefined && !["raw", "display"].includes(options.valueMode)) throw new RangeError("valueMode must be raw or display.");
   if (options.nullValue !== undefined && typeof options.nullValue !== "string") throw new TypeError("nullValue must be a string.");
+  if (options.spanMode !== undefined && options.spanMode !== "repeat" && options.spanMode !== "anchors") throw new TypeError("CSV spanMode must be repeat or anchors.");
+  const headings = options.includeHeader === false ? [] : options.headerRows === undefined ? columns.length ? [columns.map(c => c.header)] : [] : csvStructuredRows(options.headerRows, columns.length, options.spanMode);
+  const footers = options.footer === undefined ? [] : csvStructuredRows(options.footer.rows, columns.length, options.spanMode);
   for (const column of columns) if (column.valueFormatter !== undefined && typeof column.valueFormatter !== "function") throw new TypeError("CSV value formatters must be functions.");
   const budget = new ExportBudget(options.limits);
   let bytes = 0;
@@ -98,13 +108,14 @@ async function write(rows: Iterable<unknown> | AsyncIterable<unknown>, sink: Byt
     }
     if (buffer.append(text + lineEnding)) return buffer.flush().then(() => { notifyProgress(options.onProgress, { phase: "rows", rows: count + (header ? 0 : 1) }); });
   }
-  if (options.includeHeader !== false && columns.length) await record(columns.map(c => c.header), true);
+  for (const heading of headings) await record(heading, true);
   await consumeRows(rows, signal, row => {
     budget.row(count + 1);
     const pending = record(project(row, count));
     if (pending) return pending.then(() => { count++; });
     count++;
   });
+  for (const footer of footers) await record(footer, true);
   await buffer.close(); notifyProgress(options.onProgress, { phase: "complete", rows: count, bytes }); checkAbort(signal);
   return { rows: count, columns: columns.length, bytes };
 }

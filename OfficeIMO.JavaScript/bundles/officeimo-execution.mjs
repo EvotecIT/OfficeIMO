@@ -356,6 +356,27 @@ const { isDate } = _m9;
 const { copyExportLink } = _m10;
 
 const exportCellBrand = Symbol.for("@evotecit/officeimo/ExportCell");
+/** @internal Capture only portable scalar presentation fields before retaining or cloning a cell. */
+function copyCellPresentation(value) {
+    if (!value || typeof value !== "object" || Array.isArray(value))
+        throw new TypeError("Cell presentation must be an object.");
+    const result = {};
+    for (const key of ["background", "color", "numberFormat", "bold", "italic", "wrapText", "alignment"]) {
+        const field = value[key];
+        if (field === undefined)
+            continue;
+        if (["bold", "italic", "wrapText"].includes(key)) {
+            if (typeof field !== "boolean")
+                throw new TypeError("Cell presentation " + key + " must be boolean.");
+        }
+        else if (typeof field !== "string")
+            throw new TypeError("Cell presentation " + key + " must be text.");
+        if (key === "alignment" && !["left", "center", "right", "fill", "justify", "distributed"].includes(field))
+            throw new TypeError("Invalid cell presentation alignment.");
+        result[key] = field;
+    }
+    return Object.freeze(result);
+}
 /** One resolved value/presentation decision that can be reused across exports. Strings remain literal data. */
 class ExportCell {
     value;
@@ -369,7 +390,7 @@ class ExportCell {
             throw new TypeError("Display text must be a string.");
         assertScalar(value);
         this.text = options.text;
-        this.presentation = options.presentation === undefined ? undefined : Object.freeze({ ...options.presentation });
+        this.presentation = options.presentation === undefined ? undefined : copyCellPresentation(options.presentation);
         this.link = options.link === undefined ? undefined : copyExportLink(options.link);
         Object.defineProperty(this, exportCellBrand, { value: true });
         Object.freeze(this);
@@ -390,7 +411,7 @@ function assertExportValue(value) {
         return;
     assertScalar(value);
 }
-const _exports = Object.freeze({ ExportCell: ExportCell, assertScalar: assertScalar, assertExportValue: assertExportValue });
+const _exports = Object.freeze({ copyCellPresentation: copyCellPresentation, ExportCell: ExportCell, assertScalar: assertScalar, assertExportValue: assertExportValue });
 return _exports;
 })();
 
@@ -443,7 +464,9 @@ return _exports;
 const _m6 = (() => {
 const { ExportCell, NotSupportedError, OfficeIMOError } = _m7;
 
-const { assertExportValue } = _m8;
+const { assertExportValue, assertScalar, copyCellPresentation } = _m8;
+
+const { copyExportLink } = _m10;
 
 const { isDate } = _m9;
 
@@ -482,7 +505,7 @@ function captureInput(input, limits) {
             accept(8);
             return new Date(value.getTime());
         }
-        if (value instanceof Uint8Array) {
+        if (ArrayBuffer.isView(value) && Object.prototype.toString.call(value) === "[object Uint8Array]") {
             accept(value.byteLength);
             return new Uint8Array(value);
         }
@@ -491,7 +514,10 @@ function captureInput(input, limits) {
         if (ancestors.has(value))
             throw new TypeError("Worker configuration cannot contain cycles.");
         const prototype = Object.getPrototypeOf(value);
-        if (!Array.isArray(value) && prototype !== Object.prototype && prototype !== null)
+        const constructor = prototype == null ? undefined : Object.getOwnPropertyDescriptor(prototype, "constructor")?.value;
+        const plain = prototype === null || Object.getPrototypeOf(prototype) === null && typeof constructor === "function" &&
+            Function.prototype.toString.call(constructor) === Function.prototype.toString.call(Object);
+        if (!Array.isArray(value) && !plain)
             throw new TypeError("Worker configuration supports plain records, arrays, Dates and Uint8Array bytes; reconstruct font instances in the worker.");
         ancestors.add(value);
         try {
@@ -540,17 +566,21 @@ function captureRow(row) {
         assertExportValue(value);
         if (!(value instanceof ExportCell))
             return { value: scalar(value) };
+        const cellValue = value.value, text = value.text, presentation = value.presentation, link = value.link;
+        assertScalar(cellValue);
+        if (text !== undefined && typeof text !== "string")
+            throw new TypeError("Display text must be a string.");
         const options = {
-            ...(value.text === undefined ? {} : { text: value.text }),
-            ...(value.presentation === undefined ? {} : { presentation: { ...value.presentation } }),
-            ...(value.link === undefined ? {} : { link: { ...value.link } })
+            ...(text === undefined ? {} : { text }),
+            ...(presentation === undefined ? {} : { presentation: copyCellPresentation(presentation) }),
+            ...(link === undefined ? {} : { link: copyExportLink(link) })
         };
-        characters += value.text?.length ?? 0;
+        characters += text?.length ?? 0;
         for (const entry of Object.values(options.presentation ?? {}))
             if (typeof entry === "string")
                 characters += entry.length;
-        characters += (value.link?.target.length ?? 0) + (value.link?.tooltip?.length ?? 0);
-        return { value: scalar(value.value), options };
+        characters += (options.link?.target.length ?? 0) + (options.link?.tooltip?.length ?? 0);
+        return { value: scalar(cellValue), options };
     });
     return { cells, characters };
 }

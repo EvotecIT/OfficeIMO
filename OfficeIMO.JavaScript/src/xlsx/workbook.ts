@@ -52,6 +52,14 @@ export class Workbook {
   private readonly nativeCharts: RegisteredChart[] = [];
   private chartPoints = 0;
   private chartTextCharacters = 0;
+  private registering = false;
+  /** Caller-owned property getters may run during capture; they cannot register another workbook object. */
+  private registration<T>(action: () => T): T {
+    this.assertOpen();
+    if (this.registering) throw new OfficeIMOError("INVALID_STATE", "Workbook registrations cannot be reentered from input getters.");
+    this.registering = true;
+    try { return action(); } finally { this.registering = false; }
+  }
   /** @internal Shared budget across worksheet headers and data. */
   readonly budget: ExportBudget;
   /** @internal Immutable settings used by the worksheet owner. */
@@ -139,14 +147,17 @@ export class Workbook {
   checkConditionalFormats(count: number): void { if (this.conditionalFormats + count > (this.settings.limits?.maxConditionalFormats ?? 1000)) throw new OfficeIMOError("RESOURCE_LIMIT", "maxConditionalFormats exceeded."); }
   /** @internal Reserve chart snapshots and their source-sheet names before any output is generated. */
   registerChart(input: WorksheetChart): RegisteredChart {
-    if (this.nativeCharts.length >= (this.settings.limits?.maxCharts ?? 100)) throw new OfficeIMOError("RESOURCE_LIMIT", "maxCharts exceeded.");
-    this.checkSheetLimit(this.sheets.length + this.nativeCharts.length + 1 + (this.overflow ? 1 : 0));
-    const chart = prepareChart(input, this.settings.invalidCharacterPolicy, (this.settings.limits?.maxChartPoints ?? 100000) - this.chartPoints,
-      (this.settings.limits?.maxChartTextCharacters ?? 1000000) - this.chartTextCharacters, this.settings.signal);
-    const registered = Object.freeze({ ...chart, id: this.nativeCharts.length + 1,
-      dataSheetName: sheetName("Chart data " + (this.nativeCharts.length + 1), this.names, this.settings.invalidCharacterPolicy) });
-    this.nativeCharts.push(registered); this.chartPoints += chart.points; this.chartTextCharacters += chart.textCharacters;
-    return registered;
+    return this.registration(() => {
+      if (this.nativeCharts.length >= (this.settings.limits?.maxCharts ?? 100)) throw new OfficeIMOError("RESOURCE_LIMIT", "maxCharts exceeded.");
+      this.checkSheetLimit(this.sheets.length + this.nativeCharts.length + 1 + (this.overflow ? 1 : 0));
+      const chart = prepareChart(input, this.settings.invalidCharacterPolicy, (this.settings.limits?.maxChartPoints ?? 100000) - this.chartPoints,
+        (this.settings.limits?.maxChartTextCharacters ?? 1000000) - this.chartTextCharacters, this.settings.signal);
+      this.assertOpen();
+      const registered = Object.freeze({ ...chart, id: this.nativeCharts.length + 1,
+        dataSheetName: sheetName("Chart data " + (this.nativeCharts.length + 1), this.names, this.settings.invalidCharacterPolicy) });
+      this.nativeCharts.push(registered); this.chartPoints += chart.points; this.chartTextCharacters += chart.textCharacters;
+      return registered;
+    });
   }
   /** @internal Streamed parts cannot interleave. Starting a new sheet completes the preceding one. */
   async openSheet(sheet: Worksheet): Promise<ZipEntry> {
@@ -169,25 +180,27 @@ export class Workbook {
   /** Total report data rows; excludes title/header/footer and preservation records. */
   get rowCount(): number { return this.sheets.reduce((sum, sheet) => sum + sheet.reportRowCount, 0); }
   addWorksheet<T = never>(name: string, options: SheetOptions<T> = {}): Worksheet<T> {
-    this.assertOpen();
-    this.checkSheetLimit(this.sheets.length + this.nativeCharts.length + 1 + (this.overflow ? 1 : 0));
-    // Validation/serialization use erased column metadata; projection later receives T rows.
-    const metadata = options as unknown as SheetOptions;
-    const conditional = Worksheet.validate(this, metadata);
-    let tableOptions = options.table;
-    if (tableOptions && tableOptions.name === undefined) {
-      let suffix = this.tableCount + 1;
-      while (this.tableNames.has(("Table" + suffix).toLowerCase())) suffix++;
-      tableOptions = { ...tableOptions, name: "Table" + suffix };
-    }
-    const table = tableOptions ? defineTable(this.tableCount + 1, tableOptions, options.columns ?? [], this.settings.invalidCharacterPolicy) : undefined;
-    if (table && this.tableNames.has(table.name.toLowerCase())) throw new TypeError("Duplicate Excel table name: " + table.name);
-    const sheet = Worksheet.create(this, sheetName(name, this.names, this.settings.invalidCharacterPolicy, false), metadata, table, false, conditional);
-    this.names.add(sheet.name.toLowerCase());
-    this.mergedRanges += sheet.mergeCount;
-    this.conditionalFormats += sheet.conditionalFormatCount;
-    if (table) { this.tableNames.add(table.name.toLowerCase()); this.tableCount++; }
-    this.sheets.push(sheet); return sheet;
+    return this.registration(() => {
+      this.checkSheetLimit(this.sheets.length + this.nativeCharts.length + 1 + (this.overflow ? 1 : 0));
+      // Validation/serialization use erased column metadata; projection later receives T rows.
+      const metadata = options as unknown as SheetOptions;
+      const conditional = Worksheet.validate(this, metadata);
+      let tableOptions = options.table;
+      if (tableOptions && tableOptions.name === undefined) {
+        let suffix = this.tableCount + 1;
+        while (this.tableNames.has(("Table" + suffix).toLowerCase())) suffix++;
+        tableOptions = { ...tableOptions, name: "Table" + suffix };
+      }
+      const table = tableOptions ? defineTable(this.tableCount + 1, tableOptions, options.columns ?? [], this.settings.invalidCharacterPolicy) : undefined;
+      if (table && this.tableNames.has(table.name.toLowerCase())) throw new TypeError("Duplicate Excel table name: " + table.name);
+      const sheet = Worksheet.create(this, sheetName(name, this.names, this.settings.invalidCharacterPolicy, false), metadata, table, false, conditional);
+      this.assertOpen();
+      this.names.add(sheet.name.toLowerCase());
+      this.mergedRanges += sheet.mergeCount;
+      this.conditionalFormats += sheet.conditionalFormatCount;
+      if (table) { this.tableNames.add(table.name.toLowerCase()); this.tableCount++; }
+      this.sheets.push(sheet); return sheet;
+    });
   }
   addPart(part: ExtraPart): void {
     this.assertOpen();
