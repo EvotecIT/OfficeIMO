@@ -6,8 +6,8 @@ using System.Text;
 namespace OfficeIMO.Excel.LegacyXls.Write {
     internal sealed partial class LegacyXlsStyleTable {
         internal static LegacyXlsStyleTable CreatePreserving(ExcelDocument document, IReadOnlyList<ExcelSheet> sheets,
-            LegacyXlsFontTable fonts, IReadOnlyList<BiffRecord> source) {
-            var generated = Create(document, sheets, fonts);
+            LegacyXlsFontTable fonts, IReadOnlyList<BiffRecord> source, IEnumerable<uint> referencedStyleIndexes) {
+            var generated = Create(document, sheets, fonts, referencedStyleIndexes);
             int nativeCount = source.Count(record => record.Type == 0x00e0);
             var nativeFormats = source.Where(record => record.Type == 0x041e).ToDictionary(
                 record => BiffRecordReader.ReadUInt16(record.Payload, 0), record => record.Payload);
