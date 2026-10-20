@@ -70,7 +70,8 @@ namespace OfficeIMO.Word.Pdf {
                 color: ParseNativeColor(properties?.Color?.Val?.Value),
                 italic: HasNativeOnOff(properties?.Italic),
                 strike: HasNativeOnOff(properties?.Strike),
-                fontSize: style.FontSize ?? GetNativeVmlRunFontSize(properties),
+                fontSize: style.FontSize ?? (style.SmallCaps && !style.AllCaps
+                    ? style.EffectiveFontSize : GetNativeVmlRunFontSize(properties)),
                 font: GetNativeVmlRunFont(properties)));
 
         private static void AddNativeVmlTextPathRuns(List<PdfCore.PdfTextRun> runs, WordDocument document, OpenXmlElement element) {

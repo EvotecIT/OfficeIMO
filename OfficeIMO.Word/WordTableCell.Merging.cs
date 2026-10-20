@@ -7,8 +7,9 @@ public partial class WordTableCell {
     /// <param name="cellsCount">Number of additional cells to merge after this cell.</param>
     /// <param name="copyParagraphs">Moves merged cells' paragraphs into this cell when true; otherwise clears them.</param>
     public void MergeHorizontally(int cellsCount, bool copyParagraphs = false) {
+        TableCell[] targets = WordTableContent.CellsAfter(_tableCell, cellsCount).ToArray();
         HorizontalMerge = WordCellMerge.Restart;
-        foreach (TableCell next in WordTableContent.CellsAfter(_tableCell, cellsCount)) {
+        foreach (TableCell next in targets) {
             MergeParagraphs(next, copyParagraphs);
             TableCellProperties properties = GetOrCreateTableCellProperties(next);
             properties.HorizontalMerge = new HorizontalMerge { Val = MergedCellValues.Continue };
@@ -19,8 +20,9 @@ public partial class WordTableCell {
     /// <summary>Removes horizontal merge declarations from this cell and the specified following logical cells.</summary>
     /// <param name="cellsCount">Number of additional cells to split after this cell.</param>
     public void SplitHorizontally(int cellsCount) {
+        TableCell[] targets = WordTableContent.CellsAfter(_tableCell, cellsCount).ToArray();
         HorizontalMerge = null;
-        foreach (TableCell next in WordTableContent.CellsAfter(_tableCell, cellsCount))
+        foreach (TableCell next in targets)
             GetOrCreateTableCellProperties(next).HorizontalMerge?.Remove();
     }
 
@@ -28,8 +30,9 @@ public partial class WordTableCell {
     /// <param name="cellsCount">Number of additional rows to merge below this cell.</param>
     /// <param name="copyParagraphs">Moves merged cells' paragraphs into this cell when true; otherwise clears them.</param>
     public void MergeVertically(int cellsCount, bool copyParagraphs = false) {
+        TableCell[] targets = WordTableContent.CellsBelow(_tableCell, cellsCount).ToArray();
         VerticalMerge = WordCellMerge.Restart;
-        foreach (TableCell next in WordTableContent.CellsBelow(_tableCell, cellsCount)) {
+        foreach (TableCell next in targets) {
             MergeParagraphs(next, copyParagraphs);
             TableCellProperties properties = GetOrCreateTableCellProperties(next);
             properties.VerticalMerge = new VerticalMerge { Val = MergedCellValues.Continue };
@@ -40,8 +43,9 @@ public partial class WordTableCell {
     /// <summary>Removes vertical merge declarations from this cell and cells at the same logical index below it.</summary>
     /// <param name="cellsCount">Number of additional rows to split below this cell.</param>
     public void SplitVertically(int cellsCount) {
+        TableCell[] targets = WordTableContent.CellsBelow(_tableCell, cellsCount).ToArray();
         VerticalMerge = null;
-        foreach (TableCell next in WordTableContent.CellsBelow(_tableCell, cellsCount))
+        foreach (TableCell next in targets)
             GetOrCreateTableCellProperties(next).VerticalMerge?.Remove();
     }
 

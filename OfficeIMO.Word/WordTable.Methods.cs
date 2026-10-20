@@ -347,6 +347,11 @@ namespace OfficeIMO.Word {
                 return;
             }
 
+            // Validate every selected row's logical containers before the first
+            // horizontal merge changes the rectangle's content or declarations.
+            foreach (TableRow row in WordTableContent.Rows(_table).Skip(rowIndex).Take(rowSpan))
+                _ = WordTableContent.Cells(row).ToArray();
+
             for (int r = rowIndex; r < rowIndex + rowSpan; r++) {
                 Rows[r].Cells[columnIndex].MergeHorizontally(colSpan - 1, copyParagraphs);
             }

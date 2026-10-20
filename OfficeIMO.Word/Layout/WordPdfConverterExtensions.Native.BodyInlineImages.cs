@@ -31,8 +31,12 @@ namespace OfficeIMO.Word.Pdf {
         }
         private static bool TryCreateNativeBodyInlineImage(WordImage image, out PdfCore.PdfTextRun? inline, WordToPdfOptions? options,
             System.Threading.CancellationToken cancellationToken) {
-            try { return TryCreateNativeCellInlineImage(image, out inline, options, cancellationToken: cancellationToken); }
-            catch (InvalidOperationException) {
+            try {
+                // A failed probe falls back to the ordinary body-image renderer,
+                // which owns preparation diagnostics for this image.
+                return TryCreateNativeCellInlineImage(image, out inline, options, cancellationToken: cancellationToken,
+                    reportPreparationWarnings: false);
+            } catch (InvalidOperationException) {
                 // The ordinary image path owns unavailable/linked-image diagnostics.
                 inline = null;
                 return false;

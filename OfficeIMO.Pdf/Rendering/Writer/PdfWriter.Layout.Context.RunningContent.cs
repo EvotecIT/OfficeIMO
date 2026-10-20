@@ -91,8 +91,8 @@ internal static partial class PdfWriter {
             IReadOnlyList<IPdfBlock>? footerBlocks = footer == null ? null : MaterializeRunningContent(footer, context);
             bool usesPageContext = header?.UsesPageContext == true || footer?.UsesPageContext == true;
             bool headerHasNonFlowTablePaint = false, footerHasNonFlowTablePaint = false;
-            double? measuredHeader = header == null ? 0D : MeasureRunningContent(source, header, headerBlocks!, out headerHasNonFlowTablePaint);
-            double? measuredFooter = footer == null ? 0D : MeasureRunningContent(source, footer, footerBlocks!, out footerHasNonFlowTablePaint);
+            double? measuredHeader = header == null ? 0D : MeasureRunningContent(source, header, headerBlocks!, true, out headerHasNonFlowTablePaint);
+            double? measuredFooter = footer == null ? 0D : MeasureRunningContent(source, footer, footerBlocks!, false, out footerHasNonFlowTablePaint);
             bool fallbackHeader = !measuredHeader.HasValue;
             bool fallbackFooter = !measuredFooter.HasValue;
             if (fallbackHeader) header = null;
@@ -243,7 +243,7 @@ internal static partial class PdfWriter {
         }
 
         private double? MeasureRunningContent(PdfOptions source, PdfRunningContent definition, IReadOnlyList<IPdfBlock> blocks,
-            out bool hasNonFlowTablePaint) {
+            bool isHeader, out bool hasNonFlowTablePaint) {
             hasNonFlowTablePaint = false;
             if (blocks.Count == 0) return 0D;
             double start = source.PageHeight - definition.DistanceFromEdge;
@@ -265,11 +265,16 @@ internal static partial class PdfWriter {
                 if (definition.AllowTextFallback) return null;
                 throw new NotSupportedException("Running PDF content must contain bounded, measurable flow; page breaks, deferred flow and page canvases are unsupported.");
             }
-            if (height.Value > start + .001D) {
+            double paintHeight = Math.Max(height.Value, start - measure.measuredRunningPaintBottom);
+            // A footer grows upward from its edge distance. Reserve only the
+            // extra origin height needed to keep restored overlay paint on-page.
+            double reservedHeight = isHeader ? height.Value
+                : Math.Max(height.Value, paintHeight - definition.DistanceFromEdge);
+            if (paintHeight > start + .001D || reservedHeight > start + .001D) {
                 if (definition.AllowTextFallback) return null;
                 throw new InvalidOperationException("Running PDF content exceeds the physical page height.");
             }
-            return height.Value;
+            return reservedHeight;
         }
 
         private void RenderRunningContent(PdfOptions source, IReadOnlyList<IPdfBlock> blocks, double start, double height,
