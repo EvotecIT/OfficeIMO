@@ -24,11 +24,13 @@ internal static partial class PdfWriter {
                 foreach (IPdfBlock child in ExpandTransparentMeasurementBlocks(columns.Blocks)) {
                     if (IsNonVisualFlowMarker(child) || child is ColumnBreakBlock ||
                         child is SpacerBlock { Height: <= .001D }) continue;
-                    return child is RichParagraphBlock paragraph && CanOverflowImportedExactLine(EffectiveParagraphStyle(paragraph));
+                    return child is RichParagraphBlock paragraph && (CanOverflowImportedExactLine(EffectiveParagraphStyle(paragraph)) ||
+                        paragraph.Runs.Any(run => run.InlineElement is PdfInlineImage { AllowFrameOverflow: true }));
                 }
                 return false;
             }
-            return block is RichParagraphBlock exactParagraph && CanOverflowImportedExactLine(EffectiveParagraphStyle(exactParagraph));
+            return block is RichParagraphBlock exactParagraph && (CanOverflowImportedExactLine(EffectiveParagraphStyle(exactParagraph)) ||
+                exactParagraph.Runs.Any(run => run.InlineElement is PdfInlineImage { AllowFrameOverflow: true }));
         }
 
         // A paragraph continuation can reclaim an optional imported header's

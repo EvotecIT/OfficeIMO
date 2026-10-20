@@ -24,7 +24,15 @@ internal static partial class PdfWriter {
             // Preserved spaces carry their source font for painting and later
             // remeasurement. They have no visible glyph to move the line baseline.
             if (segment.Text.Length == 0 && segment.LeadingSpace && segment.InlineElement == null) continue;
-            if (segment.InlineElement is { } inline) {
+            if (segment.InlineElement is PdfInlineFormWidget { SourceRun: not null } widget) {
+                GetInlineFormWidgetLineMetrics(widget, baseFont, fontSize, options, spacing,
+                    out double runAscent, out double runDescent);
+                ascent = Math.Max(ascent, runAscent);
+                if (segment.ContributesLineBoxDescent) {
+                    bodyAscent = Math.Max(bodyAscent, runAscent);
+                    descent = Math.Max(descent, runDescent);
+                }
+            } else if (segment.InlineElement is { } inline) {
                 ascent = Math.Max(ascent, inline.BaselineOffset + inline.Height);
                 inlineAscent = Math.Max(inlineAscent, inline.BaselineOffset + inline.Height);
                 descent = Math.Max(descent, -inline.BaselineOffset);
@@ -63,6 +71,24 @@ internal static partial class PdfWriter {
         } else {
             ascent = rise + GetAscenderForOptions(font, namedFont, size, options);
             descent = GetDescenderForOptions(font, namedFont, size, options) - rise;
+        }
+    }
+
+    // A source glyph keeps its text line-box policy even when its ink is owned
+    // by an editable widget. Its annotation rectangle is a separate paint box.
+    private static void GetInlineFormWidgetLineMetrics(PdfInlineFormWidget widget, PdfStandardFont baseFont,
+        double fontSize, PdfOptions? options, PdfLineSpacing? spacing, out double ascent, out double descent) {
+        ascent = 0D;
+        descent = 0D;
+        foreach (PdfTextRun run in NormalizeFallbackRuns(new[] { widget.SourceRun! }, baseFont, options)) {
+            PdfStandardFont font = ResolveFontForRun(run, baseFont);
+            PdfNamedFontFace? namedFont = options != null &&
+                options.TryResolveNamedFontFace(run.FontFamily, run.Bold, run.Italic, out PdfNamedFontFace resolved)
+                    ? resolved : null;
+            GetRichRunLineMetrics(font, namedFont, run.FontSize ?? fontSize, run.Baseline,
+                options, spacing, out double runAscent, out double runDescent);
+            ascent = Math.Max(ascent, runAscent);
+            if (run.ContributesLineBoxDescent) descent = Math.Max(descent, runDescent);
         }
     }
 

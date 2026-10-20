@@ -164,6 +164,16 @@ internal static partial class PdfWriter {
                 linesToReserve--;
                 height = MeasureReservedLines();
             }
+            if (CanOverflowImportedPictureLine(wrap.Lines[0])) {
+                double admissionHeight = Math.Max(0D, GetMaximumBlockContinuationHeight() -
+                    imageMeasurementReservedHeight - closingPadding);
+                if (height > admissionHeight + .001D) {
+                    // Admit the source picture on a fresh decorated frame; its
+                    // full line advance remains available to actual rendering.
+                    height = admissionHeight;
+                    overflow = PdfKeepTogetherOverflowBehavior.SplitAcrossPages;
+                }
+            }
             return (spacingBefore + height, overflow);
         }
 

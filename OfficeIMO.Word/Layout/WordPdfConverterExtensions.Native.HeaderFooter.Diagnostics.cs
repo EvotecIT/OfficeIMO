@@ -48,14 +48,18 @@ namespace OfficeIMO.Word.Pdf {
         }
 
         private static void ConfigureNativeHeaderFooter(PdfCore.PdfPageBuilder page, WordSection section, WordToPdfOptions? options, double headerMarginExpansion, double footerMarginExpansion, NativeFontMap nativeFontMap, IReadOnlyDictionary<WordParagraph, (int Level, string Marker)> listMarkers) {
-            RecordNativeHeaderFooterDiagnostics(section.ResolveDefaultHeader(), options, "default header");
-            RecordNativeHeaderFooterDiagnostics(section.ResolveFirstHeader(), options, "first header");
-            RecordNativeHeaderFooterDiagnostics(section.ResolveEvenHeader(), options, "even header");
-            RecordNativeHeaderFooterDiagnostics(section.ResolveDefaultFooter(), options, "default footer");
-            RecordNativeHeaderFooterDiagnostics(section.ResolveFirstFooter(), options, "first footer");
-            RecordNativeHeaderFooterDiagnostics(section.ResolveEvenFooter(), options, "even footer");
-            ApplyNativeSectionWatermark(page, section, options);
             bool hasEvenPageStory = section.DocumentOddEvenSettingEnabled;
+            RecordNativeHeaderFooterDiagnostics(section.ResolveDefaultHeader(), options, "default header");
+            if (section.DifferentFirstPage)
+                RecordNativeHeaderFooterDiagnostics(section.ResolveFirstHeader(), options, "first header");
+            if (hasEvenPageStory)
+                RecordNativeHeaderFooterDiagnostics(section.ResolveEvenHeader(), options, "even header");
+            RecordNativeHeaderFooterDiagnostics(section.ResolveDefaultFooter(), options, "default footer");
+            if (section.DifferentFirstPage)
+                RecordNativeHeaderFooterDiagnostics(section.ResolveFirstFooter(), options, "first footer");
+            if (hasEvenPageStory)
+                RecordNativeHeaderFooterDiagnostics(section.ResolveEvenFooter(), options, "even footer");
+            ApplyNativeSectionWatermark(page, section, options);
             page.Options.UsePageNumberParityForHeaderFooter = true;
 
             // Flat projections still supply field-numbering metadata. Their
@@ -304,18 +308,20 @@ namespace OfficeIMO.Word.Pdf {
                 return;
             }
 
+            var diagnosedParagraphs = new HashSet<W.Paragraph>();
             foreach (WordElement element in headerFooter.Elements) {
-                RecordNativeHeaderFooterElementDiagnostics(element, options, source);
+                RecordNativeHeaderFooterElementDiagnostics(element, options, source, diagnosedParagraphs);
             }
         }
 
-        private static void RecordNativeHeaderFooterElementDiagnostics(WordElement element, WordToPdfOptions options, string source) {
+        private static void RecordNativeHeaderFooterElementDiagnostics(WordElement element, WordToPdfOptions options, string source,
+            HashSet<W.Paragraph> diagnosedParagraphs) {
             switch (element) {
                 case WordParagraph paragraph:
-                    RecordNativeHeaderFooterParagraphDiagnostics(paragraph, options, source);
+                    RecordNativeHeaderFooterParagraphDiagnostics(paragraph, options, source, diagnosedParagraphs);
                     break;
                 case WordTable table:
-                    RecordNativeHeaderFooterTableDiagnostics(table, options, source + " table");
+                    RecordNativeHeaderFooterTableDiagnostics(table, options, source + " table", diagnosedParagraphs);
                     break;
                 case WordEmbeddedDocument:
                     AddNativeExportWarning(
@@ -327,7 +333,8 @@ namespace OfficeIMO.Word.Pdf {
             }
         }
 
-        private static void RecordNativeHeaderFooterTableDiagnostics(WordTable table, WordToPdfOptions options, string source) {
+        private static void RecordNativeHeaderFooterTableDiagnostics(WordTable table, WordToPdfOptions options, string source,
+            HashSet<W.Paragraph> diagnosedParagraphs) {
             foreach (WordTableRow row in table.Rows) {
                 foreach (WordTableCell cell in row.Cells) {
                     List<WordElement> cellElements = EnumerateNativeTableCellElements(cell).ToList();
@@ -336,13 +343,14 @@ namespace OfficeIMO.Word.Pdf {
                     }
 
                     foreach (WordElement element in cellElements) {
-                        RecordNativeHeaderFooterElementDiagnostics(element, options, source);
+                        RecordNativeHeaderFooterElementDiagnostics(element, options, source, diagnosedParagraphs);
                     }
                 }
             }
         }
 
-        private static void RecordNativeHeaderFooterParagraphDiagnostics(WordParagraph paragraph, WordToPdfOptions options, string source) {
+        private static void RecordNativeHeaderFooterParagraphDiagnostics(WordParagraph paragraph, WordToPdfOptions options, string source,
+            HashSet<W.Paragraph> diagnosedParagraphs) {
             if (paragraph.Shape != null && CreateNativeShape(paragraph.Shape) == null) {
                 AddNativeExportWarning(
                     options,
@@ -350,6 +358,19 @@ namespace OfficeIMO.Word.Pdf {
                     source,
                     "Word header and footer shapes without supported geometry are not mapped by the OfficeIMO PDF engine yet.");
             }
+
+            if (paragraph.IsEquation && string.IsNullOrWhiteSpace(GetNativeEquationText(paragraph))) {
+                AddNativeExportWarning(
+                    options,
+                    "NativeHeaderFooterEquationUnsupported",
+                    source,
+                    "Equations in Word headers and footers are not mapped by the OfficeIMO PDF engine yet.");
+            }
+
+            // Elements expose separate run wrappers over the same source
+            // paragraph. Keep the run-specific checks above, but inspect its
+            // shared XML content only once, including paragraphs in tables.
+            if (paragraph._paragraph != null && !diagnosedParagraphs.Add(paragraph._paragraph)) return;
 
             if (HasNativeUnsupportedHeaderFooterTextBox(paragraph)) {
                 AddNativeExportWarning(
@@ -362,14 +383,6 @@ namespace OfficeIMO.Word.Pdf {
             // Running-story callbacks paint diagrams after the conversion report is captured.
             // Qualify their semantic projection now so omissions and approximations reach that report.
             RecordNativeHeaderFooterSmartArtDiagnostics(paragraph, options, source);
-
-            if (paragraph.IsEquation && string.IsNullOrWhiteSpace(GetNativeEquationText(paragraph))) {
-                AddNativeExportWarning(
-                    options,
-                    "NativeHeaderFooterEquationUnsupported",
-                    source,
-                    "Equations in Word headers and footers are not mapped by the OfficeIMO PDF engine yet.");
-            }
 
             if (HasNativeUnsupportedHeaderFooterContentControl(paragraph)) {
                 AddNativeExportWarning(

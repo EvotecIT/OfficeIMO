@@ -215,6 +215,6 @@ internal static partial class PdfWriter {
             ResolveFontForRun(run, baseFont), run.FontSize ?? fontSize, run.Baseline, 0D, namedFont: named,
             featureSettings: run.FeatureSettings, textDirection: run.TextDirection,
             horizontalTextScaling: run.HorizontalTextScaling, characterSpacing: run.CharacterSpacing,
-            preservesPaintedGlyphs: run.PreservesPaintedGlyphs);
+            preservesPaintedGlyphs: run.PreservesPaintedGlyphs, formField: run.FormField);
     }
 }

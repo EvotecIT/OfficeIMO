@@ -543,7 +543,9 @@ namespace OfficeIMO.Word.Pdf {
 
         private static List<PdfCore.PdfTextRun> CreateNativeCellParagraphRuns(WordParagraph paragraph, NativeNoteNumbering? footnoteNumbersById, NativeTableStyleDefaults tableStyleDefaults, NativeDocumentDefaults nativeDefaults, NativeFontMap? nativeFontMap = null, IReadOnlyDictionary<DocumentFormat.OpenXml.OpenXmlElement, PdfCore.PdfTextRun>? inlineImages = null) {
             var result = new List<PdfCore.PdfTextRun>();
-            List<WordParagraph> runs = GetNativeRunningContentRuns(paragraph, nativeDefaults.RunningContentContext);
+            List<WordParagraph> runs = nativeDefaults.RunningContentContext == null
+                ? GetNativeRuns(paragraph, includeInlineContentControls: true)
+                : GetNativeRunningContentRuns(paragraph, nativeDefaults.RunningContentContext);
             bool hasEquationContent = WordEquation.GetOccurrences(paragraph._document, paragraph._paragraph).Count > 0;
             string content = hasEquationContent
                 ? AppendNativeTextWithEquation(paragraph.Text, paragraph)
@@ -558,10 +560,16 @@ namespace OfficeIMO.Word.Pdf {
             IReadOnlyList<WordTabStop> tabStops = GetNativeParagraphEffectiveTabStops(paragraph);
             int tabIndex = 0;
             IReadOnlyList<W.SdtRun> repeatingSectionControls = GetNativeRepeatingSectionControls(paragraph);
+            var inlineControls = new NativeInlineContentControlProjection(tableCell: true);
 
             if ((hasRenderableRuns || hasInlineImages) && !hasEquationContent) {
                 foreach (WordParagraph run in runs) {
                     if (IsNativeHiddenTextRun(run, paragraph)) {
+                        continue;
+                    }
+                    if (inlineControls.TryCreateRuns(run, tableStyleDefaults, nativeDefaults, nativeFontMap,
+                        tabStops, ref tabIndex, out IReadOnlyList<PdfCore.PdfTextRun> controlRuns)) {
+                        result.AddRange(controlRuns);
                         continue;
                     }
                     if (run.IsImage && run.Image != null) {
@@ -722,6 +730,7 @@ namespace OfficeIMO.Word.Pdf {
         }
 
         private static bool CanMergeNativeCellTextRuns(PdfCore.PdfTextRun left, PdfCore.PdfTextRun right) =>
+            ReferenceEquals(left.FormField, right.FormField) &&
             left.LinkUri == null &&
             left.LinkDestinationName == null &&
             right.LinkUri == null &&

@@ -64,6 +64,15 @@ internal static partial class PdfWriter {
             return;
         }
 
+        if (inlineElement is PdfInlineFormWidget inlineWidget) {
+            if (page == null) throw new InvalidOperationException("Inline form fields require an active output page.");
+            FormFieldAnnotation annotation = CreateInlineFormAnnotation(inlineWidget.Field, x, bottom,
+                x + inlineWidget.Width, bottom + inlineWidget.Height, parentElementIndex);
+            annotation.InlineWidgetBaseline = -inlineWidget.BaselineOffset;
+            page.FormFields.Add(annotation);
+            return;
+        }
+
         PdfInlineBox inlineBox = (PdfInlineBox)inlineElement;
         bool tagged = options.TaggedStructureMode == PdfTaggedStructureMode.CatalogMarkers;
         int? figureMarkedContentId = RegisterInlineFigureStructureElement(page, options, inlineElement.AlternativeText, parentElementIndex);
@@ -105,7 +114,7 @@ internal static partial class PdfWriter {
         }
     }
 
-    private static void WriteRichParagraph(StringBuilder sb, RichParagraphBlock block, System.Collections.Generic.List<System.Collections.Generic.List<RichSeg>> lines, System.Collections.Generic.List<double> lineHeights, PdfOptions opts, double startY, double fontSize, double defaultLeading, System.Collections.Generic.List<LinkAnnotation> annots, double? xOverride = null, double? widthOverride = null, double? firstLineXOverride = null, double? firstLineWidthOverride = null, string? structureType = null, int? markedContentId = null, LayoutResult.Page? structurePage = null, System.Collections.Generic.IReadOnlyList<PdfAlign?>? lineAlignments = null, System.Collections.Generic.IReadOnlyList<double>? lineXOffsets = null, System.Collections.Generic.IReadOnlyList<double>? lineWidths = null, bool suppressActualText = false, System.Collections.Generic.IReadOnlyList<double>? lineTopGaps = null, PdfStandardFont? baselineFont = null, string? foregroundGraphicsState = null, string? decorationGraphicsState = null) {
+    private static void WriteRichParagraph(StringBuilder sb, RichParagraphBlock block, System.Collections.Generic.List<System.Collections.Generic.List<RichSeg>> lines, System.Collections.Generic.List<double> lineHeights, PdfOptions opts, double startY, double fontSize, double defaultLeading, System.Collections.Generic.List<LinkAnnotation> annots, double? xOverride = null, double? widthOverride = null, double? firstLineXOverride = null, double? firstLineWidthOverride = null, string? structureType = null, int? markedContentId = null, LayoutResult.Page? structurePage = null, System.Collections.Generic.IReadOnlyList<PdfAlign?>? lineAlignments = null, System.Collections.Generic.IReadOnlyList<double>? lineXOffsets = null, System.Collections.Generic.IReadOnlyList<double>? lineWidths = null, bool suppressActualText = false, System.Collections.Generic.IReadOnlyList<double>? lineTopGaps = null, PdfStandardFont? baselineFont = null, string? foregroundGraphicsState = null, string? decorationGraphicsState = null, bool captureInlineForms = true) {
         double widthContent = opts.PageWidth - opts.MarginLeft - opts.MarginRight;
         double widthUsed = widthOverride ?? widthContent;
         System.Collections.Generic.List<(double X1, double X2, double Y, PdfColor Color, OfficeIMO.Drawing.OfficeTextDecorationStyle Style)>? underlines = null;
@@ -141,7 +150,7 @@ internal static partial class PdfWriter {
             var segs = lines[li];
             bool hasLineBackground = false;
             for (int si = 0; si < segs.Count; si++) {
-                if (segs[si].BackgroundColor.HasValue) {
+                if (segs[si].BackgroundColor.HasValue && (!captureInlineForms || segs[si].FormField == null)) {
                     hasLineBackground = true;
                     break;
                 }
@@ -192,7 +201,7 @@ internal static partial class PdfWriter {
                 double wSeg = GetRichSegmentWidth(s);
                 if (backgroundBidi != null) {
                     // Word and gap occupy separate visual positions; highlight each.
-                    if (s.BackgroundColor.HasValue && leadingAdvance > 0D) {
+                    if (s.BackgroundColor.HasValue && (!captureInlineForms || s.FormField == null) && leadingAdvance > 0D) {
                         double gapFontSize = EffectiveRichFontSize(s.FontSize, s.Baseline);
                         double gapBaseline = lineY + TextRiseForBaseline(s.FontSize, s.Baseline) + s.LineAlignmentRise;
                         double gapAscent = GetAscenderForOptions(s.Font, s.NamedFont, gapFontSize, opts);
@@ -204,7 +213,7 @@ internal static partial class PdfWriter {
                     xCursor = dx + backgroundBidi.VisualX[si];
                     leadingAdvance = 0D;
                 }
-                if (s.BackgroundColor.HasValue && (wSeg > 0 || leadingAdvance > 0)) {
+                if (s.BackgroundColor.HasValue && (!captureInlineForms || s.FormField == null) && (wSeg > 0 || leadingAdvance > 0)) {
                     double runFontSize = EffectiveRichFontSize(s.FontSize, s.Baseline);
                     double textRise = TextRiseForBaseline(s.FontSize, s.Baseline) + s.LineAlignmentRise;
                     double asc = GetAscenderForOptions(s.Font, s.NamedFont, runFontSize, opts);
@@ -327,9 +336,11 @@ internal static partial class PdfWriter {
                         hasLinkTarget && s.LeadingSpace && s.LeadingTabLeader == PdfTabLeaderStyle.None && s.InlineElement == null);
                 }
 
+                double inlineFormLeadingAdvance = 0D;
                 if (s.LeadingSpace) {
                     double baseGap = s.LeadingAdvance;
                     double gap = baseGap + (s.LeadingSpaceIsExpandable ? wordSpacing * s.LeadingSpaceCount : 0);
+                    inlineFormLeadingAdvance = gap;
                     if (bidi != null) {
                         xCursor = dx + bidi.GapX[si];
                         content.TextMatrix(lineXOrigin + xCursor, lineY);
@@ -383,6 +394,9 @@ internal static partial class PdfWriter {
                     double inlineX = s.InlineElement is PdfInlineImage { TableTextRotation: > 0 }
                         ? lineXOrigin + lineWidthUsed - xCursor - s.InlineElement.Width
                         : lineXOrigin + xCursor;
+                    bool pictureClip = BeginImportedPictureClip(sb, s.InlineElement,
+                        (block.Style ?? opts.DefaultParagraphStyleSnapshot)?.LineSpacing, inlineX, lineY,
+                        startY + GetAscenderForOptions(baselineFont ?? ChooseNormal(opts.DefaultFont), fontSize, opts), opts.PageWidth);
                     AppendInlineElement(
                         s.InlineElement is PdfInlineImage { TableTextRotation: not 0 }
                             ? uprightCellImages ??= new StringBuilder()
@@ -393,6 +407,7 @@ internal static partial class PdfWriter {
                         opts,
                         structurePage,
                         textStructElementIndex);
+                    if (pictureClip) new ContentStreamBuilder(sb).RestoreState();
                     xCursor += s.InlineElement.Width;
                     content = new ContentStreamBuilder(sb)
                         .BeginText()
@@ -404,6 +419,17 @@ internal static partial class PdfWriter {
                 }
 
                 double wSeg = GetRichSegmentWidth(s);
+                if (captureInlineForms && s.FormField != null) {
+                    if (structurePage == null) throw new InvalidOperationException("Inline form text requires an active output page.");
+                    if (bidi != null) xCursor = dx + bidi.VisualX[si];
+                    CaptureInlineFormText(structurePage, s, lineXOrigin + xCursor, lineY,
+                        block.DefaultColor ?? opts.DefaultTextColor, opts, textStructElementIndex, inlineFormLeadingAdvance);
+                    xCursor += wSeg;
+                    ResetRichTextSpacing(content, s.HorizontalTextScaling, s.CharacterSpacing, pdfWordSpacing);
+                    content.TextMatrix(lineXOrigin + xCursor, lineY);
+                    continue;
+                }
+
                 int? linkMarkedContentId = null;
                 int? linkStructElementIndex = null;
                 if (hasLinkTarget && opts.TaggedStructureMode == PdfTaggedStructureMode.CatalogMarkers && structurePage != null) {

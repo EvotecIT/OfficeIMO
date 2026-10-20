@@ -26,6 +26,15 @@ namespace OfficeIMO.Word.Pdf {
             public double? MeasureText(PdfCore.PdfTextRun run) => _resolvedOptions == null
                 ? null : PdfCore.PdfWriter.MeasurePositionedText(run, _resolvedOptions);
 
+            public PdfCore.PdfWriter.PositionedTextBoxMeasurement? MeasureTextBox(PdfCore.PdfTextRun run) => _resolvedOptions == null
+                ? null : PdfCore.PdfWriter.MeasurePositionedTextBox(run, _resolvedOptions);
+
+            public void ReportCheckBoxAppearanceFallback(string fieldName, bool isChecked) =>
+                _report?.Add(new PdfCore.PdfConversionWarning("OfficeIMO.Word.Pdf",
+                    "NativeCheckBoxGlyphAppearanceUnavailable", "word:contentControl[" + fieldName + "]",
+                    "The authored " + (isChecked ? "checked" : "unchecked") +
+                    " glyph could not be represented by the available PDF fonts; the field uses the standard check box appearance for that state."));
+
             public PdfCore.PdfWriter.CanvasTextBoxMeasurement? MeasureCanvasTextBox(
                 IReadOnlyList<PdfCore.PdfTextRun> runs, double width, double height, PdfCore.PdfCanvasTextBoxStyle style) =>
                 _resolvedOptions == null ? null : PdfCore.PdfWriter.MeasureCanvasTextBox(runs, width, height, style, _resolvedOptions);

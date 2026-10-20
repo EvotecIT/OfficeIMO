@@ -204,14 +204,17 @@ internal static partial class PdfWriter {
                                 }
                             }
 
-                            if (paragraphStyle?.KeepTogether == true && line == 0) {
+                            if (paragraphStyle?.KeepTogether == true && line == 0 &&
+                                !(lines.Count == 1 && CanOverflowImportedPictureLine(lines[0]))) {
                                 double paragraphHeight = spacingBefore + heights.Sum() + spacingAfter;
                                 double availableHeight = GetFullPageContentHeight() - activeGroups.Sum(group => (group.Style?.FullFragmentPaddingReservation ?? 0D));
-                                if (paragraphHeight > availableHeight + 0.001) {
+                                bool importedPictureOverflow = paragraphHeight > availableHeight + .001D &&
+                                    lines.Any(HasImportedOverflowPicture);
+                                if (paragraphHeight > availableHeight + 0.001 && !importedPictureOverflow) {
                                     throw new ArgumentException("Paragraph height exceeds the available page content height.");
                                 }
 
-                                if (paragraphHeight > remain + 0.001) {
+                                if (paragraphHeight > remain + 0.001 && !importedPictureOverflow) {
                                     if (consumed > 0) break;
                                     remain = 0;
                                     break;
@@ -235,6 +238,10 @@ internal static partial class PdfWriter {
 
                             double resumedTopPadding = activeGroups.Sum(group => group.Style?.GetFragmentTopPadding(isContinuation: true) ?? 0D);
                             bool canMoveParagraph = consumed > resumedTopPadding + 0.001D || y < GetCurrentFramePageStartY() - 0.001D;
+                            if (take == 0 && !canMoveParagraph && CanOverflowImportedPictureLine(lines[start])) {
+                                take = 1;
+                                hsum = heights[start];
+                            }
                             if (TryApplyWidowControl(paragraphStyle, lines.Count, start, ref take, ref hsum, heights, canMoveParagraph)) {
                                 break;
                             }

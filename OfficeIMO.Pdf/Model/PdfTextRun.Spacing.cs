@@ -36,6 +36,7 @@ public sealed partial class PdfTextRun {
         IsLineBoxStrut = source.IsLineBoxStrut;
         PreservesPaintedGlyphs = source.PreservesPaintedGlyphs;
         RelativeTabStop = source.RelativeTabStop;
+        FormField = source.FormField;
         return this;
     }
 

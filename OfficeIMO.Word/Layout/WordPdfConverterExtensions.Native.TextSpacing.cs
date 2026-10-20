@@ -65,9 +65,7 @@ namespace OfficeIMO.Word.Pdf {
         }
 
         private static PdfCore.PdfTextRun CopyNativeTextSpacing(PdfCore.PdfTextRun source, PdfCore.PdfTextRun target) =>
-            target.WithHorizontalTextScaling(source.HorizontalTextScaling)
-                .WithCharacterSpacing(source.CharacterSpacing)
-                .WithFeatureSettings(source.FeatureSettings);
+            target.WithSpacingFrom(source);
 
         private static NativeTextSpacing ResolveNativeListMarkerTextSpacing(WordDocumentTraversal.ListInfo info, NativeTextSpacing inherited) {
             if (info.MarkerCharacterScale is < 1 or > 600)

@@ -42,6 +42,8 @@ public abstract class PdfInlineElement {
 public sealed class PdfInlineImage : PdfInlineElement {
     internal ImageBlock Block { get; }
     internal int TableTextRotation { get; }
+    /// <summary>Imported flow pictures retain their authored frame beyond paragraph bounds.</summary>
+    internal bool AllowFrameOverflow { get; init; }
 
     /// <summary>Projects the inline frame onto turned text axes without decoding or changing the image payload.</summary>
     internal PdfInlineImage ForTableTextRotation(int rotation) => rotation == 0 ? this : new PdfInlineImage(this, rotation);
@@ -51,6 +53,7 @@ public sealed class PdfInlineImage : PdfInlineElement {
         Block = source.Block;
         Fit = source.Fit;
         TableTextRotation = rotation;
+        AllowFrameOverflow = source.AllowFrameOverflow;
     }
 
     /// <summary>Image fitting mode inside the requested inline frame.</summary>

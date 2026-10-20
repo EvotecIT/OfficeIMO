@@ -31,6 +31,10 @@ Premium claim rule: A converter can be marked externally-verified only when its 
 | html | advanced-css-fragmentation-typography-and-svg-effects | supported-with-approximation | html-static-market-corpus, html-css-resource-policy |
 | html | javascript-and-interactive-browser-state | unsupported | html-css-resource-policy |
 
+## Detailed Conversion Contracts
+
+- [Word-to-PDF layout and controls](../OfficeIMO.Word.Pdf/README.md#word-to-pdf-layout)
+
 ## Current Direct And Composed Routes
 
 | Route | Formats | Status | Implementation owner | Contract evidence | Diagnostic contract |

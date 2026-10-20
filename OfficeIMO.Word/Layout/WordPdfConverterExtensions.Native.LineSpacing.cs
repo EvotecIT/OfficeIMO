@@ -42,7 +42,11 @@ namespace OfficeIMO.Word.Pdf {
             public double? Resolve(double fontSize, double naturalLineHeight) {
                 if (GridPitch.HasValue && fontSize > 0D)
                     return ToPdfLineSpacing(naturalLineHeight)!.GetAdvance(fontSize) / fontSize;
-                if (!Value.HasValue) return null;
+                // An undeclared line value still uses the effective font's
+                // natural box, just as ToPdfLineSpacing does for visible text.
+                // Empty paragraphs and object spacing measure this value
+                // directly instead of entering the rich-text layout engine.
+                if (!Value.HasValue) return naturalLineHeight;
                 if (Rule == null || Rule == W.LineSpacingRuleValues.Auto) {
                     return Math.Max(0.01D, naturalLineHeight * (Value.Value / 240D));
                 }
