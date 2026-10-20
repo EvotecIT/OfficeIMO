@@ -151,6 +151,15 @@ The six-column inventory/assessment corpus contains literal identifiers, asset n
 
 Reports retain source/input hashes, all rotated samples, time to first sink acceptance, completion time, output bytes, process-lifetime peak RSS, sampled JavaScript heap and timer gaps. Peak RSS includes native/runtime/startup memory; sampled heap can miss synchronous peaks. Blob output retains the completed document, and compression can retain native working memory. These opt-in observations apply to the declared workload and host, rather than ordinary CI timing thresholds or a constant-memory guarantee.
 
+The editable service-analysis case calls the shared report example with 100,000 rows, live status rules, three numeric formulas and a chart bound to the visible summary. Run it separately as current-only diagnostics; an older snapshot report performs different work and is not its comparison baseline:
+
+```powershell
+./Build/BrowserExports/Run-ReportWorkloads.ps1 -BaselineBundle /path/to/baseline/officeimo.mjs -OutputRoot "$evidence/editable-analysis" -Cases editable-analysis-xlsx-100000-sink -Engine current -Compare:$false -WarmupCount 1 -IterationCount 3
+node Build/BrowserExports/report-workloads.mjs contracts --manifest "$evidence/editable-analysis/workloads.json" --case editable-analysis-xlsx-100000-sink --output "$evidence/editable-analysis/functional.xlsx" --python python3
+```
+
+Independent readback checks every source cell, finite formula/cache ranges, validation and chart references, and the two visible sheets. The separate functional run checks slow stored output, cancellation and source release, plus a held compressed-data write. Native compression can buffer input while a compressed write awaits acknowledgement; the functional observation checks that source consumption stops before the complete input drains rather than assuming that every compressed write stops it immediately. Keep these observations outside throughput measurements.
+
 ## DataTables integration and comparisons
 
 The optional grid integration is qualified against the version pairs in `comparison-assets.json`. The downloaded MIT-licensed assets are test-only and hash-checked; they never enter npm, NuGet or product build dependencies. The `bundled` pair identifies the assessed HtmlForgeX asset versions, while `current` identifies the pinned current comparison pair. Updating this manifest is an intentional comparison-input change.
