@@ -1,0 +1,285 @@
+{
+  "schemaVersion": 1,
+  "date": "2026-10-20",
+  "scope": "Two-page HTML report generated through the public managed PDF/UA APIs. These results qualify these saved artifacts; they do not establish arbitrary HTML accessibility or manual assistive-technology acceptance.",
+  "sourceBase": "acde5aa40f55a79421006e123c6e55591ab4be5d",
+  "host": {
+    "os": "macOS 27.0.1",
+    "architecture": "arm64",
+    "sdk": "10.0.113"
+  },
+  "sample": {
+    "html": "OfficeIMO.Examples/Converters/Html/Content/Reports/accessibility-review.html",
+    "htmlSha256": "463c85682525095b6e321527d369558c7a847ad5e2e873d45767520723449ad9",
+    "generator": "OfficeIMO.Examples/Converters/Html/HtmlAccessibleReport.cs",
+    "command": "dotnet run --project OfficeIMO.Examples/OfficeIMO.Examples.csproj -c Release -f net10.0 -- --html-accessible",
+    "generatorSha256": "fc7f22835cfa230d34413d01a5cdb98adb7fbc9f684d39e77682e4f27123dca2",
+    "realExamplesCommand": "passed; both output hashes match the profile artifacts recorded below"
+  },
+  "fonts": [
+    {
+      "path": "Website/Apps/OfficeIMO.Web.Converter/Assets/Fonts/Carlito-Regular.ttf",
+      "sha256": "f6418f708baede9789daef5d458c0f53d2a888af9820e8062934e504fedc6595"
+    },
+    {
+      "path": "Website/Apps/OfficeIMO.Web.Converter/Assets/Fonts/Carlito-Bold.ttf",
+      "sha256": "bb5d20f79b82599ec72983597437373a80f2d2085fa91fc144fd74e876a594db"
+    }
+  ],
+  "profiles": [
+    {
+      "profile": "PdfUa1",
+      "sha256": "ba695f6bd455ae0197de7ac13b508506e0f3f18c090a0347a6cfa3325ed6d56b",
+      "bytes": 110316,
+      "pages": 2,
+      "structureElements": 107,
+      "independentValidation": {
+        "tool": "veraPDF CLI 1.30.0",
+        "profile": "PDF/UA-1 validation profile",
+        "compliant": true,
+        "passedRules": 106,
+        "failedRules": 0,
+        "passedChecks": 3943,
+        "failedChecks": 0
+      }
+    },
+    {
+      "profile": "PdfUa2",
+      "sha256": "97d1dd8b86ee713c5bb76eece1b1320e7dc908e89438aa5c3e6c5caaa721ab4a",
+      "bytes": 112134,
+      "pages": 2,
+      "structureElements": 107,
+      "independentValidation": {
+        "tool": "veraPDF CLI 1.30.0",
+        "profile": "PDF/UA-2 + Tagged PDF validation profile",
+        "compliant": true,
+        "passedRules": 1728,
+        "failedRules": 0,
+        "passedChecks": 6985,
+        "failedChecks": 0
+      }
+    }
+  ],
+  "visualReview": {
+    "status": "passed",
+    "renderer": "Poppler pdftoppm 26.09.0",
+    "command": "pdftoppm -scale-to 1100 -png <saved-PdfUa2.pdf> report",
+    "pages": [
+      {
+        "page": 1,
+        "sha256": "eb5176d22240a8e8efc3055f00021d260f647e86bfe24879dce2e38c2790572d"
+      },
+      {
+        "page": 2,
+        "sha256": "caa288d1e710d90b8da52a7d72b247ab5216b6f68d1808a0d8dbc4beb5fccfef"
+      }
+    ],
+    "observed": [
+      "Both complete pages inspected at normal reading size",
+      "Table borders, headers and all three body rows visible",
+      "Named figure and decorative rule remain painted",
+      "Checkbox and internal-link text remain visible",
+      "Two column groups remain legible without overlap",
+      "Return link on page two is visible; both cross-page named targets and link actions are checked through the public reader"
+    ]
+  },
+  "manualAssistiveTechnology": {
+    "status": "not-verified",
+    "procedure": "OfficeIMO.Html/PDF.md#accessibility-validation",
+    "remaining": [
+      "Heading navigation",
+      "Table header announcements",
+      "List and column reading order",
+      "Figure description quality",
+      "Link navigation and checkbox label",
+      "Exclusion of decorative paint and page numbers"
+    ]
+  },
+  "runtimeDependencies": {
+    "managedRenderer": "No Chromium runtime required",
+    "optionalBrowserOwner": "HtmlTinkerX 3.0.5",
+    "newProductionDependencies": []
+  },
+  "implementationPatchSha256": "603c44447b5e58ba751859ee225b5b60084599c11e1509fb1e272e257b24d267",
+  "implementationPatchScope": [
+    "OfficeIMO.Html",
+    "OfficeIMO.Pdf"
+  ],
+  "optionalBrowserContainer": {
+    "status": "passed",
+    "source": "Build/PackageSmoke/OfficeIMO.Html.Pdf.Browser/Dockerfile",
+    "imageId": "sha256:7da99c34b351515a0aa776cbf89578b2a74ae32ae5c4596a103d513120ccc7f4",
+    "architecture": "arm64",
+    "os": "linux",
+    "dotnetRuntime": "10.0.13",
+    "playwright": "1.63.0",
+    "htmlTinkerXVersion": "3.0.5",
+    "htmlTinkerXRepositoryCommit": "fb6fe7f8e8c74e1af9c63765d5a33627cfd171b8",
+    "runtimeUid": 1654,
+    "runtimeNetwork": "none",
+    "contract": [
+      "JavaScript executes before capture",
+      "Output reopens through the public PDF reader",
+      "Executed heading text is retained",
+      "Tagged structure is retained"
+    ],
+    "pdfSha256": "f144e18acbf35f9f4040a0616a33ecad8141dfbc2699a23408b68bdd20d0838d",
+    "pdfBytes": 15271,
+    "scopeLimit": "Linux arm64 container, not Linux x64 or native Windows execution",
+    "consumerAssemblySha256": "73ea24336bc3fa17f519dc392c2e6734c95c65e5e599808e15fbb05d4f247c64",
+    "macOSPackageCapture": {
+      "status": "passed",
+      "frameworks": [
+        "net8.0",
+        "net10.0"
+      ],
+      "command": "Build/Test-HtmlPdfBrowserPackages.ps1 -OfficeIMOVersion 3.5.1 -Capture -PublishPath <new-directory>"
+    },
+    "generationBoundary": "The capture qualifies the unchanged browser bridge, provisioning, JavaScript execution and PDF readback path. Native-writer navigation fixes are qualified separately by the final managed tests and package consumers."
+  },
+  "independentReview": {
+    "fullReadOnlyPass": "completed; two navigation binding findings reproduced and fixed",
+    "targetedConfirmation": "completed; no additional actionable findings",
+    "regressions": "10 failing cases before remediation; 69 focused checks passed afterward",
+    "status": "initial candidate reviewed; subsequent defect-class closure recorded under reviewRemediation",
+    "scopeHead": "7f2141f223c3ec598a8eded7b39974390c8690f6"
+  },
+  "tests": [
+    {
+      "project": "OfficeIMO.Html.Tests",
+      "framework": "net10.0",
+      "filter": "Category!=Performance",
+      "passed": 6641,
+      "failed": 0,
+      "skipped": 0
+    },
+    {
+      "project": "OfficeIMO.Pdf.Tests",
+      "framework": "net10.0",
+      "filter": "Category!=Performance",
+      "passed": 11571,
+      "failed": 0,
+      "skipped": 0
+    }
+  ],
+  "packageQualification": {
+    "status": "passed",
+    "command": "Build/Test-HtmlPackages.ps1 -Version 3.5.1",
+    "packages": [
+      {
+        "file": "OfficeIMO.Core.3.5.1.nupkg",
+        "sha256": "05af47e0d6809b43092cb29306763ddb455bc608f11b2778afedd271526cdd40"
+      },
+      {
+        "file": "OfficeIMO.Email.3.5.1.nupkg",
+        "sha256": "67c1d548f4287527221a5d5762446bb7bc963eaf2c7d4dc2b4aa23cb9802814e"
+      },
+      {
+        "file": "OfficeIMO.Excel.3.5.1.nupkg",
+        "sha256": "16e4181db27255b6268d6bee65c8ff0e2f62d3aeae1548c72472180f8a843ebb"
+      },
+      {
+        "file": "OfficeIMO.Excel.Html.3.5.1.nupkg",
+        "sha256": "25f3f6982e517370556114a886956f1c8f47b9ea49c1f4a3a72e006843c8cf17"
+      },
+      {
+        "file": "OfficeIMO.Html.3.5.1.nupkg",
+        "sha256": "579ba66666d9d1dc3c3798a0879086ee6a465bef60c11b9fe6b5ceecb0349256"
+      },
+      {
+        "file": "OfficeIMO.Html.AngleSharp.3.5.1.nupkg",
+        "sha256": "efd552685000d142534f6af3834da42934cc87d3716ece49c417fa221feb1bf2"
+      },
+      {
+        "file": "OfficeIMO.Html.Core.3.5.1.nupkg",
+        "sha256": "d8ab2dcc1480c87cb7745ea525fc0c3bcd247e9ecf403e77bd3659e0b692041c"
+      },
+      {
+        "file": "OfficeIMO.Html.Pdf.3.5.1.nupkg",
+        "sha256": "ceebf6065378781de809a88b07458d17cac1d92cdff9a2a6a5044a8b0b9bb87c"
+      },
+      {
+        "file": "OfficeIMO.Html.Rtf.3.5.1.nupkg",
+        "sha256": "db915afcb546607015b16648aab22d260f347b95f600aae22618de0e44d5001a"
+      },
+      {
+        "file": "OfficeIMO.Markdown.3.5.1.nupkg",
+        "sha256": "e3d75da7a77407428f584cdae39c79b2aca4393434dd6737b784eb34d6f4c658"
+      },
+      {
+        "file": "OfficeIMO.Markdown.Html.3.5.1.nupkg",
+        "sha256": "f1b965a2573969d3e6ec53b1d2357d5b5aee4a139ee50dbaaaa80a269656efd4"
+      },
+      {
+        "file": "OfficeIMO.Mhtml.3.5.1.nupkg",
+        "sha256": "525d24a656ca1964b3b9ab5333a4d08ff01d492d565f6ad8fe1f41214f11de28"
+      },
+      {
+        "file": "OfficeIMO.Mhtml.Pdf.3.5.1.nupkg",
+        "sha256": "d35c611ee93abc26ef61502470b73208b34e3de8b0473df165b29848b55e1b38"
+      },
+      {
+        "file": "OfficeIMO.Pdf.3.5.1.nupkg",
+        "sha256": "d7f956082578c8f82fd60260117e7272ee662935a32dc377db4a96943f3fa662"
+      },
+      {
+        "file": "OfficeIMO.PowerPoint.3.5.1.nupkg",
+        "sha256": "ce437b553b094e677c7013f6bb830820a4a1cef6e40e2da81c98f2794e9bfc8a"
+      },
+      {
+        "file": "OfficeIMO.PowerPoint.Html.3.5.1.nupkg",
+        "sha256": "82cd7f6fb6629280a976f206a853e8966ec39e963fa690b4cd9e7966dcae39a9"
+      },
+      {
+        "file": "OfficeIMO.Rtf.3.5.1.nupkg",
+        "sha256": "a06fe92087121ea725edf41523b8b4235143310f3c0fcc23b99e1c9edb94de87"
+      },
+      {
+        "file": "OfficeIMO.Word.3.5.1.nupkg",
+        "sha256": "d57831f092bcb204c06e5a22d2ea8488302458c19654562d1a8f1c50e7853536"
+      },
+      {
+        "file": "OfficeIMO.Word.Html.3.5.1.nupkg",
+        "sha256": "8f39803f9570b378f55eedc7824106654a09f0324b52ee2757e84e556731c059"
+      }
+    ],
+    "packagedFrameworks": [
+      "netstandard2.0",
+      "net8.0",
+      "net10.0",
+      "net472"
+    ],
+    "consumerFrameworksExecuted": [
+      "net8.0",
+      "net10.0"
+    ],
+    "consumerProjects": [
+      "OfficeIMO.Html.Document.PackageSmoke",
+      "OfficeIMO.Html.PackageSmoke"
+    ],
+    "limitation": "net472 was compiled and packed, not executed on macOS.",
+    "sourceHead": "7f2141f223c3ec598a8eded7b39974390c8690f6",
+    "implementationPatchSha256": "32227c04b2974f1e4f4a60f22ce16fcda44842df59bcf88d776d06a5e56fde08",
+    "scope": "Packed public API baseline before review remediation; later native writer behavior is exercised by the current managed regression suites and report artifacts."
+  },
+  "reviewRemediation": {
+    "baseHead": "7f2141f223c3ec598a8eded7b39974390c8690f6",
+    "reproducedFailingRegressions": 16,
+    "focusedHtmlPassed": 22,
+    "focusedPdfPassed": 39,
+    "closure": "Completed one bounded read-only closure pass. Its mixed-child clipping finding was reproduced in six strict-UA2 cases and fixed with source-admission links; surviving siblings are retained without text or geometry matching. Primary full-suite and refreshed artifact qualification is recorded in this report.",
+    "contracts": [
+      "Decorative raster and SVG image-only anchors retain named URI or internal links outside artifact paint",
+      "Native list item bookmarks target LI in normal and row-column flow",
+      "Forward-only PDF 2.0 named-link objects are reserved and completed once, including optional missing structure targets",
+      "Clipped images and form/radio widgets fall forward through actual source admissions to the first surviving sibling, including siblings already laid out inside the same clip",
+      "Explicit canvas artifacts classify raster paint as decorative for compliance evidence",
+      "Browser publish paths use the same absolute target for collision checking and publishing",
+      "The report has return navigation to service checks"
+    ],
+    "pathGuard": "Reproduced from outside the repository, then verified rejection of the existing resolved target before dotnet runs.",
+    "frozenReviewPatchGitBlob": "903279e5989f58d55212f2bd5cab9498a7915334",
+    "finalSourceExampleBytes": "Both final-source CLI outputs match the independently validated profile hashes exactly."
+  },
+  "implementationPatchCommand": "git diff --binary --full-index <sourceBase> -- OfficeIMO.Html OfficeIMO.Pdf"
+}

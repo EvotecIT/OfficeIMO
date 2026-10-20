@@ -238,6 +238,11 @@ namespace OfficeIMO.Examples {
                 return;
             }
 
+            if (HasArgument(args, "--html-accessible")) {
+                Html.Html.Example_HtmlAccessibleReport(folderPath, HasArgument(args, "--open-pdf"));
+                return;
+            }
+
             if (HasArgument(args, "--html-direct")) {
                 Html.Html.Example_Html11_DirectOutputs(folderPath, HasArgument(args, "--open-pdf"));
                 return;

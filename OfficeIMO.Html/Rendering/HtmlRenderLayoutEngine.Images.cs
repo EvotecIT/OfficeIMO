@@ -53,7 +53,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
         double imageX = style.MarginLeft + style.BorderLeftWidth + style.PaddingLeft;
         double imageY = style.MarginTop + style.BorderTopWidth + style.PaddingTop;
         string? link = inheritedLink ?? ResolveAncestorLink(element);
-        string? alternativeText = element.GetAttribute("alt") ?? element.GetAttribute("aria-label");
+        bool decorative = HtmlAccessibilitySemantics.IsDecorativeImage(element);
+        string? alternativeText = decorative ? null : HtmlAccessibilitySemantics.GetImageAccessibleName(element);
         ReplacedObjectPlacement placement = ResolveReplacedObjectPlacement(
             style,
             contentSize.Width,
@@ -129,7 +130,33 @@ internal sealed partial class HtmlRenderLayoutEngine {
         if (!style.PaintVisible) visuals.Clear();
 
         double outerHeight = style.MarginTop + boxHeight + style.MarginBottom;
-        return new HtmlRenderFlowBlock(containingWidth, outerHeight, visuals, style.BreakBefore, style.BreakAfter, style.AvoidBreakInside, sourceDescription, pageName: style.PageName);
+        var block = new HtmlRenderFlowBlock(containingWidth, outerHeight, visuals, style.BreakBefore, style.BreakAfter, style.AvoidBreakInside, sourceDescription, pageName: style.PageName);
+        if (!decorative || style.SemanticArtifact) return block;
+        block = WrapSemanticBlock(block, HtmlRenderSemanticGroupRole.Artifact, sourceDescription,
+            "html-decorative-image:" + GetSemanticNodeId(element).ToString(System.Globalization.CultureInfo.InvariantCulture));
+        // Artifact paint must not suppress an enclosing anchor's interaction.
+        if (link != null && style.PaintVisible && placement.IsVisible) {
+            var interactions = new List<HtmlRenderVisual>(block.Visuals);
+            var linkArea = OfficeShape.Rectangle(placement.Width, placement.Height);
+            linkArea.FillColor = OfficeColor.Transparent;
+            linkArea.StrokeWidth = 0D;
+            var hitArea = new HtmlRenderShape(linkArea, imageX + placement.X, imageY + placement.Y,
+                0, link, ResolveImageLinkDescription(element, sourceDescription));
+            AddBoxClipVisuals(interactions, new[] { hitArea }, imageX, imageY, contentSize.Width,
+                contentSize.Height, contentRadii, sourceDescription + ":link-clip");
+            block = block.WithVisuals(interactions);
+        }
+        return block;
+    }
+
+    /// <summary>Names a decorative image's separate link interaction from its enclosing anchor.</summary>
+    private static string ResolveImageLinkDescription(IElement element, string fallback) {
+        for (IElement? current = element; current != null; current = current.ParentElement) {
+            if (!current.LocalName.Equals("a", StringComparison.OrdinalIgnoreCase)) continue;
+            string name = HtmlAccessibilitySemantics.GetAccessibleName(current, includeTextFallback: true);
+            return string.IsNullOrWhiteSpace(name) ? fallback : name;
+        }
+        return fallback;
     }
 
     private double ResolveFloatingImageOuterWidth(IElement element, HtmlRenderBoxStyle style) {

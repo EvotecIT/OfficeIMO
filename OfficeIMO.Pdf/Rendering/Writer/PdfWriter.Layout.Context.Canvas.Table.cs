@@ -346,7 +346,7 @@ internal static partial class PdfWriter {
                     GetTableRowFont(currentOpts, rowUsesBold), fontSize, leading, runFontSizeScale, orientedParagraph, orientedRole, orientedId,
                     diagnosticTransform: CreateCanvasRotationTransform(item.X, currentOpts.PageHeight - item.Y - item.Height, item.Width, item.Height, item.RotationAngle));
                 MarkRichFonts(cell.Runs, forceBold: rowUsesBold);
-                AddTableCellNamedDestinationName(cell.NamedDestinationName, cellTop);
+                AddTableCellNamedDestinationName(cell.NamedDestinationName, cellTop, orientedId);
                 if (HasCellLinkTarget(cell.LinkUri, cell.LinkDestinationName))
                     currentPage!.Annotations.Add(new LinkAnnotation { X1 = cellX, Y1 = cellBottom, X2 = cellX + cellWidth, Y2 = cellTop,
                         Uri = cell.LinkUri, DestinationName = cell.LinkDestinationName, Contents = cell.LinkContents ?? cell.Text });
@@ -449,7 +449,7 @@ internal static partial class PdfWriter {
                 lineXOffsets: visibleXOffsets,
                 lineWidths: visibleWidths, baselineFont: cellFont);
             MarkRichFonts(cell.Runs, forceBold: rowUsesBold);
-            AddTableCellNamedDestinationName(cell.NamedDestinationName, cellTop);
+            AddTableCellNamedDestinationName(cell.NamedDestinationName, cellTop, markedContentId);
             if (cell.Images.Count > 0 || cell.CheckBoxes.Count > 0 || cell.FormFields.Count > 0) {
                 if (CanRenderTableCellCheckBoxInline(cell, lines, 0, lineCount)) {
                     RenderTableCellInlineCheckBox(currentPage!, cell, align, lines.Lines[0], cellX + padLeft, innerWidth, AdjustRichLineBaseline(firstBaseline, lines.Lines[0], currentOpts, fontSize, cellFont));

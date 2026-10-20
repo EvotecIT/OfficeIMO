@@ -19,7 +19,7 @@ internal static partial class PdfWriter {
 
         private void QueueFloatingBookmark(string name) {
             EnsurePage();
-            var destination = new PageNamedDestination { Name = name, Y = y };
+            var destination = new PageNamedDestination { Name = name, Y = y, AttachToNextStructure = true };
             currentPage!.NamedDestinations.Add(destination);
             pendingFloatingBookmarks.Add((currentPage, destination));
         }

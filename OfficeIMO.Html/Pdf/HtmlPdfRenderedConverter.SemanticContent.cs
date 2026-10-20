@@ -53,11 +53,12 @@ internal static partial class HtmlPdfRenderedConverter {
             RowSpan = group.RowSpan,
             HeaderScope = MapTableHeaderScope(group.HeaderScope),
             StructureElementKey = group.StructureElementKey,
+            ListNumbering = group.Role == HtmlRenderSemanticGroupRole.List ? MapListNumbering(group.ListStyleType) : null,
             LogicalOrder = group.LogicalOrder
         };
         if (group.Role == HtmlRenderSemanticGroupRole.Formula && group.MathMlSource != null)
             pagePaint?.MathMlFiles.Attach(options, group.MathMlSource, cancellationToken);
-        bool childTextAsSpan = textAsSpan || IsTextContentGroup(group.Role);
+        bool childTextAsSpan = textAsSpan || IsTextContentGroup(group.Role) || group.Role == HtmlRenderSemanticGroupRole.ListLabel;
         string logicalText = string.Empty;
         bool hasLogicalText = IsTextContentGroup(group.Role)
             && TryResolveReorderedLogicalText(group.Visuals, out logicalText);
@@ -83,6 +84,20 @@ internal static partial class HtmlPdfRenderedConverter {
             else nested.AddItems(content.Items);
         }, options);
     }
+
+    private static PdfCore.PdfListNumbering MapListNumbering(string? style) => style switch {
+        "none" => PdfCore.PdfListNumbering.None,
+        "disc" => PdfCore.PdfListNumbering.Disc,
+        "circle" => PdfCore.PdfListNumbering.Circle,
+        "square" => PdfCore.PdfListNumbering.Square,
+        "decimal" or "decimal-leading-zero" => PdfCore.PdfListNumbering.DecimalNumbers,
+        "upper-roman" => PdfCore.PdfListNumbering.UpperRoman,
+        "lower-roman" => PdfCore.PdfListNumbering.LowerRoman,
+        "upper-alpha" or "upper-latin" => PdfCore.PdfListNumbering.UpperAlpha,
+        "lower-alpha" or "lower-latin" => PdfCore.PdfListNumbering.LowerAlpha,
+        // CSS counter styles without a PDF 1.7 equivalent retain their painted labels.
+        _ => PdfCore.PdfListNumbering.None
+    };
 
     private static PdfCore.PdfCanvasStructureRole MapSemanticGroupRole(HtmlRenderSemanticGroupRole role) {
         if (role == HtmlRenderSemanticGroupRole.Section) return PdfCore.PdfCanvasStructureRole.Section;

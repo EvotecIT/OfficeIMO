@@ -73,7 +73,7 @@ internal static partial class PdfWriter {
         private readonly System.Collections.Generic.HashSet<PdfLayoutPositionCapture> initializedPositionCaptures = new System.Collections.Generic.HashSet<PdfLayoutPositionCapture>();
         private readonly System.Collections.Generic.List<PdfLayerDefinition> activeLayers = new System.Collections.Generic.List<PdfLayerDefinition>();
         private readonly System.Collections.Generic.List<ContainerRenderScope> activeContainerScopes = new System.Collections.Generic.List<ContainerRenderScope>();
-        private readonly System.Collections.Generic.Dictionary<(string Key, string Type, PageStructElement? Parent, string Scope, int Columns, int Rows, string AlternativeText, string? Language), PageStructElement> canvasStructureElements = new System.Collections.Generic.Dictionary<(string, string, PageStructElement?, string, int, int, string, string?), PageStructElement>();
+        private readonly System.Collections.Generic.Dictionary<(string Key, string Type, PageStructElement? Parent, string Scope, int Columns, int Rows, string AlternativeText, string? Language, PdfListNumbering? Numbering), PageStructElement> canvasStructureElements = new System.Collections.Generic.Dictionary<(string, string, PageStructElement?, string, int, int, string, string?, PdfListNumbering?), PageStructElement>();
 
         public LayoutContext(
             PdfOptions options,

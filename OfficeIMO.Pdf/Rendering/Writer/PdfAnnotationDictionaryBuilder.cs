@@ -33,7 +33,7 @@ internal static partial class PdfAnnotationDictionaryBuilder {
             " >>\n";
     }
 
-    internal static string BuildGoToNamedDestinationLinkAnnotation(double x1, double y1, double x2, double y2, string destinationName, string? contents = null, int? structParentIndex = null) {
+    internal static string BuildGoToNamedDestinationLinkAnnotation(double x1, double y1, double x2, double y2, string destinationName, string? contents = null, int? structParentIndex = null, int? structureElementId = null) {
         ValidateRectangle(x1, y1, x2, y2);
         Guard.NotNullOrWhiteSpace(destinationName, nameof(destinationName));
 
@@ -44,6 +44,7 @@ internal static partial class PdfAnnotationDictionaryBuilder {
             FormatCoordinate(y2) +
             "] /A << /S /GoTo /D " +
             PdfSyntaxEscaper.LiteralTextString(destinationName) +
+            (structureElementId.HasValue ? " /SD [" + PdfSyntaxEscaper.IndirectReference(structureElementId.Value) + " /Fit]" : string.Empty) +
             " >>" +
             BuildStructParentEntry(structParentIndex) +
             " >>\n";
@@ -331,7 +332,7 @@ internal static partial class PdfAnnotationDictionaryBuilder {
         var sb = new StringBuilder();
         sb.Append("<< /FT /Btn /T ")
             .Append(PdfSyntaxEscaper.TextString(name))
-            .Append(BuildFormFieldMetadataEntries(style))
+            .Append(BuildFormFieldMetadataEntries(style, isWidget: false))
             .Append(BuildFieldFlagsEntry(style, 49152))
             .Append(" /V /")
             .Append(PdfSyntaxEscaper.Name(value))
@@ -379,6 +380,7 @@ internal static partial class PdfAnnotationDictionaryBuilder {
             "] /F 4 /AS /" +
             PdfSyntaxEscaper.Name(stateName) +
             BuildFormFieldAlternateNameEntry(style) +
+            BuildContentsEntry(style?.AlternateName) +
             BuildMkEntry(style) +
             BuildBorderStyleEntry(style) +
             " /AP << /N << /Off " +
@@ -421,7 +423,7 @@ internal static partial class PdfAnnotationDictionaryBuilder {
             ? string.Empty
             : " /Contents " + PdfSyntaxEscaper.LiteralTextString(contents!);
 
-    private static string BuildFormFieldMetadataEntries(PdfFormFieldStyle? style) {
+    private static string BuildFormFieldMetadataEntries(PdfFormFieldStyle? style, bool isWidget = true) {
         if (style == null) {
             return string.Empty;
         }
@@ -436,6 +438,8 @@ internal static partial class PdfAnnotationDictionaryBuilder {
             sb.Append(" /TM ")
                 .Append(PdfSyntaxEscaper.TextString(style.MappingName!));
         }
+
+        if (isWidget) sb.Append(BuildContentsEntry(style.AlternateName));
 
         return sb.ToString();
     }

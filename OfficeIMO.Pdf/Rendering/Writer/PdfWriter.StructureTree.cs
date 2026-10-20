@@ -95,6 +95,13 @@ internal static partial class PdfWriter {
                 string? language = element.Language;
                 if (string.Equals(language, InheritedStructureLanguage(element, structureParents, documentLanguage), StringComparison.OrdinalIgnoreCase)) language = null;
                 structElement = PdfStructTreeRootDictionaryBuilder.WithStructureMetadata(structElement, namespaceId, language, StructureId(element));
+                if (element.StructureType == "L" && element.ListNumbering.HasValue) {
+                    PdfListNumbering numbering = element.ListNumbering.Value;
+                    if (!pdf20 && numbering >= PdfListNumbering.Ordered)
+                        throw new NotSupportedException("The selected list numbering attribute requires PDF 2.0.");
+                    structElement = structElement.Insert(structElement.LastIndexOf(">>", StringComparison.Ordinal),
+                        " /A << /O /List /ListNumbering /" + (numbering == PdfListNumbering.DecimalNumbers ? "Decimal" : numbering.ToString()) + " >> ");
+                }
                 ReplaceObject(objects, element.ObjectId, structElement);
             }
 

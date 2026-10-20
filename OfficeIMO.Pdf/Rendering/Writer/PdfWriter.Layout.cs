@@ -25,6 +25,7 @@ internal static partial class PdfWriter {
     private sealed class ColBookmark : ColItem { public BookmarkBlock Block = null!; public ColBookmark() { Kind = "B"; } }
     private sealed class ColSpacer : ColItem { public SpacerBlock Block = null!; public ColSpacer() { Kind = "SPACE"; } }
     private sealed class ColListItem : ColItem {
+        public PdfListNumbering? ListNumbering;
         public System.Collections.Generic.IReadOnlyList<PdfTextRun> Runs = null!;
         public System.Collections.Generic.List<System.Collections.Generic.List<RichSeg>> Lines = null!;
         public System.Collections.Generic.List<double> Heights = null!;
