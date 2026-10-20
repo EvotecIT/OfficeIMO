@@ -5,6 +5,10 @@ namespace OfficeIMO.Pdf;
 
 /// <summary>Decodes the ordered streams that form one logical PDF content stream.</summary>
 internal static class PdfContentStreamSequenceDecoder {
+    // A content array separates lexical tokens. LF also terminates a trailing comment, so it
+    // cannot swallow the following stream. Keep readers, rewrites and imported forms aligned.
+    internal const char Separator = '\n';
+
     internal static bool TryDecode(
         IReadOnlyList<PdfStream> streams,
         Dictionary<int, PdfIndirectObject> objects,
@@ -33,6 +37,7 @@ internal static class PdfContentStreamSequenceDecoder {
                     limits.MaxPageContentBytes,
                     decodedBytes);
             }
+            if (index > 0) builder.Append(Separator);
             builder.Append(PdfEncoding.Latin1GetString(decoded));
         }
 

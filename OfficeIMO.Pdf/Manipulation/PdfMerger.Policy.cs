@@ -14,7 +14,6 @@ internal static partial class PdfMerger {
         cancellationToken.ThrowIfCancellationRequested();
         PdfMergePolicy policy = options?.Policy ?? new PdfMergePolicy();
         Guard.NotNull(policy, nameof(policy));
-        ValidateTaggedFormMergePolicy(sources, primarySourceIndex, policy);
         if (outputSourceIndexes is not null && outputSourceIndexes.Length != sources.Sum(static source => source.PageObjectNumbers.Length)) {
             throw new InvalidOperationException("PDF merge output page ownership does not match the imported page count.");
         }

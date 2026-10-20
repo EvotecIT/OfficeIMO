@@ -147,6 +147,32 @@ public class PdfUtilityAdmissionCancellationTests {
     }
 
     [Fact]
+    public void ResultOverloadsPreserveArgumentValidationWithCancellation() {
+        byte[] source = CreatePdf();
+        PdfDocument document = PdfDocument.Load(source);
+        Action[] nullInputs = {
+            () => document.Pages.ExtractResult((PdfPageSelection)null!, CancellationToken.None),
+            () => document.Pages.ExtractResult((PdfPageSelector)null!, CancellationToken.None),
+            () => document.Pages.SplitResult((IReadOnlyList<PdfPageSelection>)null!, CancellationToken.None),
+            () => document.Pages.SplitResult((IEnumerable<PdfPageRange>)null!, CancellationToken.None)
+        };
+        foreach (Action route in nullInputs) Assert.Throws<ArgumentNullException>(route);
+
+        PdfOperationResult<IReadOnlyList<PdfDocument>> ordinary = document.Pages.SplitResult(Array.Empty<PdfPageSelection>());
+        PdfOperationResult<IReadOnlyList<PdfDocument>> cancellable = document.Pages.SplitResult(Array.Empty<PdfPageSelection>(), CancellationToken.None);
+        Assert.False(ordinary.Succeeded);
+        Assert.False(cancellable.Succeeded);
+        Assert.IsType<ArgumentException>(ordinary.Exception);
+        Assert.IsType<ArgumentException>(cancellable.Exception);
+        Assert.Null(cancellable.Value);
+
+        using var cancellation = new CancellationTokenSource();
+        cancellation.Cancel();
+        Assert.Throws<OperationCanceledException>(() => document.Pages.SplitResult(Array.Empty<PdfPageSelection>(), cancellation.Token));
+        Assert.Equal(source, document.ToBytes());
+    }
+
+    [Fact]
     public void ImportRejectsCallerSourceLimitsForBytesAndStreamsWithoutChangingTarget() {
         byte[] pdf = CreatePdf();
         var options = new PdfPageImportOptions {

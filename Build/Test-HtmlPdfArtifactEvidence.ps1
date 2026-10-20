@@ -24,6 +24,7 @@ $inputHash = $null
 $inputSize = $null
 $commonTextLength = $null
 $evidenceSchemaVersion = $null
+$pdfPeckerPackageSha512 = $null
 # Schema 2 is retained only for these unchanged committed archive payloads.
 # Hashes cover UTF-8 JSON with LF newlines; source freshness checks still apply.
 $archivedSchema2SummaryHashes = @{
@@ -140,6 +141,13 @@ foreach ($platform in @('windows', 'linux')) {
                 [string] $package.Value.thirdPartyNoticesSha256 -notmatch '^[0-9a-f]{64}$' -or
                 [string] $package.Value.packageSha512 -notmatch '^[A-Za-z0-9+/]{86}==$') {
                 throw 'Committed evidence lacks the exact PdfPecker package and license identity.'
+            }
+            $currentPackageSha512 = [string] $package.Value.packageSha512
+            if ($null -eq $pdfPeckerPackageSha512) {
+                $pdfPeckerPackageSha512 = $currentPackageSha512
+            } elseif (-not [string]::Equals(
+                $pdfPeckerPackageSha512, $currentPackageSha512, [System.StringComparison]::Ordinal)) {
+                throw 'Windows and Linux HTML/PDF artifact evidence must use the same PdfPecker package archive SHA-512.'
             }
         }
         if ($currentSchemaVersion -ge 3) {

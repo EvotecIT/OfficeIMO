@@ -61,6 +61,24 @@ internal static partial class PdfMerger {
         return PdfPageExtractor.Assemble(serialized, catalogId, infoId, fileVersion, cancellationToken);
     }
 
+    /// <summary>Rejects catalog edits whose existing editors cannot preserve a tagged graph, before assembly.</summary>
+    private static void ValidateTaggedMergePolicy(IReadOnlyList<ImportedSource> sources,
+        int primarySourceIndex, PdfMergePolicy policy) {
+        if (!sources.Any(source => PdfTaggedPageOrganizer.IsTagged(source.Document))) return;
+        if (policy.Metadata == PdfMergeStructureMode.Drop || policy.Metadata == PdfMergeStructureMode.Combine)
+            throw new NotSupportedException("Tagged PDF merge cannot drop or combine metadata. KeepPrimary or RejectIncoming preserves the tagged document catalog.");
+        if (policy.Outlines == PdfMergeStructureMode.Drop || policy.Outlines == PdfMergeStructureMode.Combine)
+            throw new NotSupportedException("Tagged PDF merge cannot drop or combine outlines. KeepPrimary or RejectIncoming preserves the tagged document catalog.");
+        bool anyAttachments = sources.Any(source => source.Document.Attachments.Count > 0);
+        bool incomingAttachments = sources.Where((source, index) => index != primarySourceIndex)
+            .Any(source => source.Document.Attachments.Count > 0);
+        if (policy.Attachments == PdfMergeStructureMode.Combine ||
+            policy.Attachments == PdfMergeStructureMode.Drop && anyAttachments ||
+            policy.Attachments == PdfMergeStructureMode.KeepPrimary && incomingAttachments)
+            throw new NotSupportedException("Tagged PDF merge cannot rewrite attachments. KeepPrimary supports primary attachments when incoming sources have none; RejectIncoming rejects sources that contain attachments.");
+        ValidateTaggedFormMergePolicy(sources, primarySourceIndex, policy);
+    }
+
     private static void ValidateTaggedFormMergePolicy(IReadOnlyList<ImportedSource> sources,
         int primarySourceIndex, PdfMergePolicy policy) {
         bool taggedFields = sources.Any(source => source.FormFieldCount > 0 && PdfTaggedPageOrganizer.IsTagged(source.Document));

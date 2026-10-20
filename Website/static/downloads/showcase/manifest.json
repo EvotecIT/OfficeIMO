@@ -1661,24 +1661,24 @@
     {
       "id": "pdf-weekly-brief-example.pdf",
       "path": "/downloads/showcase/workflows/pdf-weekly-brief/example.pdf",
-      "bytes": 7907,
-      "sha256": "f1392227bd11841db59f31fc7128c1714ee7b2fa751745814cf6fc0774f41e94",
+      "bytes": 28494,
+      "sha256": "fdf3d56e20b250eec4ee9e1ad803aa5b5cb17ae44647cbc9004bcb463d45e9c5",
       "generator": "dotnet run --project OfficeIMO.Examples -f net10.0 -- --showcase-workflows --showcase-example pdf-weekly-brief",
       "evidence": "The linked C# example generates this file. The page images are rendered from the downloadable PDF with Poppler."
     },
     {
       "id": "pdf-weekly-brief-preview.png",
       "path": "/downloads/showcase/workflows/pdf-weekly-brief/preview.png",
-      "bytes": 84372,
-      "sha256": "0252341c651b2492730a72a52c8ba0d63dc71ad2573d4728b59630b09d51ea70",
+      "bytes": 73213,
+      "sha256": "fa86adf93c3c73960aa77a206942562722a615caabae81696cecb1d5d12fffed",
       "generator": "Poppler pdftocairo page 1 render of the generated PDF",
       "evidence": "The linked C# example generates this file. The page images are rendered from the downloadable PDF with Poppler."
     },
     {
       "id": "pdf-weekly-brief-source",
       "path": "/downloads/showcase/workflows/pdf-weekly-brief/WeeklyBrief.cs.txt",
-      "bytes": 2328,
-      "sha256": "b7e83e39d8920d50202a727bfba16b7bd91f30755eefb3ac8b7e01a5f5d67a47",
+      "bytes": 2712,
+      "sha256": "e8cb09b0e1a296a052415c63946e4716d6676c9844e92c4f78d5e97822b63223",
       "generator": "Copy the generating C# source from the repository",
       "evidence": "Complete C# source for the walkthrough example."
     },
@@ -2109,24 +2109,24 @@
     {
       "id": "pdf-equipment-inspection-example.pdf",
       "path": "/downloads/showcase/workflows/pdf-equipment-inspection/example.pdf",
-      "bytes": 9301,
-      "sha256": "fcb43f9765d92629fb1b9cf195401c38add7d653018713fa082e90e044a074c2",
+      "bytes": 5915,
+      "sha256": "3e29da818c65a6012e23e21da0f558008f5e339335104de1ad97566338126cff",
       "generator": "dotnet run --project OfficeIMO.Examples -f net10.0 -- --showcase-workflows --showcase-example pdf-equipment-inspection",
       "evidence": "The linked C# example generates this file. The page images are rendered from the downloadable PDF with Poppler. Interactive structures are inspected separately from the static preview."
     },
     {
       "id": "pdf-equipment-inspection-preview.png",
       "path": "/downloads/showcase/workflows/pdf-equipment-inspection/preview.png",
-      "bytes": 59190,
-      "sha256": "265eb740e58eabae440ead0817c34ed1f822028eba0b2f4df96fd09a073df883",
+      "bytes": 60128,
+      "sha256": "ad57c7e5302d57b584eb4862e7d864651eb4dc36e36d5125bee2e6e07b05f7e0",
       "generator": "Poppler pdftocairo page 1 render of the generated PDF",
       "evidence": "The linked C# example generates this file. The page images are rendered from the downloadable PDF with Poppler. Interactive structures are inspected separately from the static preview."
     },
     {
       "id": "pdf-equipment-inspection-source",
       "path": "/downloads/showcase/workflows/pdf-equipment-inspection/EquipmentInspection.cs.txt",
-      "bytes": 2049,
-      "sha256": "23ee8a948c7cf4d4c7266791c660084bef925925f100134d4847fc01f8778f13",
+      "bytes": 2657,
+      "sha256": "d6d53f80371484b2f09786811e5bfd4261cd2140832d22e1f4436b8374b074be",
       "generator": "Copy the generating C# source from the repository",
       "evidence": "Complete C# source for the walkthrough example."
     },

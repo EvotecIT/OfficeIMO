@@ -1017,7 +1017,7 @@ public partial class PdfRedactionApplierTests {
     }
 
     [Fact]
-    public void Apply_PreservesTokensSplitAcrossPageContentStreamsWhenLocatingForms() {
+    public void Apply_ScrubsFormTextPositionedByTransformOperandsSplitAcrossContentStreams() {
         byte[] source = BuildSplitFormTransformOperandRedactionSource();
         PdfTextSpan span = Assert.Single(PdfReadDocument.Open(source).Pages[0].GetTextSpans(),
             item => item.Text == "Split form secret");
@@ -1311,8 +1311,8 @@ public partial class PdfRedactionApplierTests {
             "2 0 obj\n<< /Type /Pages /Count 1 /Kids [3 0 R] /MediaBox [0 0 612 792] /Resources << /Font << /F1 4 0 R >> >> >>\nendobj",
             "3 0 obj\n<< /Type /Page /Parent 2 0 R /Contents [5 0 R 6 0 R] >>\nendobj",
             "4 0 obj\n<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>\nendobj",
-            BuildStreamObject(5, Encoding.ASCII.GetBytes("q\n2 0 0 2 1")),
-            BuildStreamObject(6, Encoding.ASCII.GetBytes("00 100 cm\nBT\n/F1 12 Tf\n0 0 Td\n(Split operand secret) Tj\nET\nQ\n"))
+            BuildStreamObject(5, Encoding.ASCII.GetBytes("q\n2 0 0 2 100")),
+            BuildStreamObject(6, Encoding.ASCII.GetBytes("100 cm\nBT\n/F1 12 Tf\n0 0 Td\n(Split operand secret) Tj\nET\nQ\n"))
         };
 
         return BuildPdf(objects, rootObjectNumber: 1);
@@ -1616,8 +1616,8 @@ public partial class PdfRedactionApplierTests {
             "2 0 obj\n<< /Type /Pages /Count 1 /Kids [3 0 R] /MediaBox [0 0 612 792] >>\nendobj",
             "3 0 obj\n<< /Type /Page /Parent 2 0 R /Resources << /XObject << /Fm1 7 0 R >> >> /Contents [5 0 R 6 0 R] >>\nendobj",
             "4 0 obj\n<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>\nendobj",
-            BuildStreamObject(5, Encoding.ASCII.GetBytes("q\n1 0 0 1 1")),
-            BuildStreamObject(6, Encoding.ASCII.GetBytes("00 100 cm\n/Fm1 Do\nQ\n")),
+            BuildStreamObject(5, Encoding.ASCII.GetBytes("q\n1 0 0 1 100")),
+            BuildStreamObject(6, Encoding.ASCII.GetBytes("100 cm\n/Fm1 Do\nQ\n")),
             BuildStreamObject(7, Encoding.ASCII.GetBytes(formContent), "/Type /XObject /Subtype /Form /BBox [0 0 220 40] /Resources << /Font << /F1 4 0 R >> >>")
         };
 
