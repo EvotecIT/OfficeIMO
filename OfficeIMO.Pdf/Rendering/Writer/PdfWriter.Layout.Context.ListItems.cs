@@ -2,6 +2,18 @@ namespace OfficeIMO.Pdf;
 
 internal static partial class PdfWriter {
     private sealed partial class LayoutContext {
+        private PdfListNumbering ResolveListNumbering(PdfListBlock block) {
+            bool custom = block.RichItems.Any(item => item.Marker != null);
+            if (!custom) return block.IsNumbered ? PdfListNumbering.DecimalNumbers : PdfListNumbering.Disc;
+            if (currentOpts.FileVersion < PdfFileVersion.Pdf20) return PdfListNumbering.None;
+            return block.IsNumbered ? PdfListNumbering.Ordered : PdfListNumbering.Unordered;
+        }
+
+        private void SetListNumbering(int? index, PdfListBlock block) {
+            if (index.HasValue && currentPage != null)
+                currentPage.StructElements[index.Value].ListNumbering = ResolveListNumbering(block);
+        }
+
         private void RenderListItem(PreparedListLayout prepared, int itemIndex, IList<IPdfBlock> blockList, int blockIndex,
             ref int? listStructureElementIndex, ref LayoutResult.Page? listStructurePage) {
             PreparedListItem preparedItem = prepared.Items[itemIndex];
@@ -111,6 +123,7 @@ internal static partial class PdfWriter {
 
                 double baselineY = FirstTextBaselineFromTop(listFont, size, y);
                 int? listElementIndex = firstSegment ? EnsurePageStructureContainer("L", ref listStructureElementIndex, ref listStructurePage) : null;
+                SetListNumbering(listElementIndex, prepared.Block);
                 int? listItemElementIndex = firstSegment ? RegisterStructureContainer("LI", listElementIndex) : null;
                 if (firstSegment) {
                     if (listItemElementIndex.HasValue && currentPage != null) {
@@ -118,7 +131,7 @@ internal static partial class PdfWriter {
                     }
 
                     if (!string.IsNullOrEmpty(bookmarkName)) {
-                        AddNamedDestinationName(bookmarkName!, y);
+                        AddNamedDestinationName(bookmarkName!, y, listItemElement);
                     }
 
                     var markerLines = new System.Collections.Generic.List<string>(1) { marker };

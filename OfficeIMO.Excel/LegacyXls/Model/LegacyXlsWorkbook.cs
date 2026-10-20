@@ -47,6 +47,9 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
 
         internal OfficeCompoundFile? SourceCompoundFile { get; private set; }
 
+        /// <summary>Names and kinds of auxiliary entries that must remain protected on an encrypted save.</summary>
+        internal Dictionary<string, bool> EncryptedSummaryEntries { get; } = new(StringComparer.OrdinalIgnoreCase);
+
         /// <summary>Gets whether the workbook stream was successfully decrypted from password-to-open protection.</summary>
         public bool WasEncryptedSource { get; internal set; }
 
@@ -695,7 +698,7 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
             LegacyXlsWorkbook parsedWorkbook = LegacyBiffWorkbookParser.Parse(workbookStream, options, out byte[] decodedSource);
             if (parsedWorkbook.WasEncryptedSource && !ReferenceEquals(workbookStream, decodedSource)) {
                 compoundFile = LegacyXlsCompoundEncryption.RestorePlaintextStreams(compoundFile,
-                    workbookStream, decodedSource, options, parsedWorkbook.MutableDiagnostics);
+                    workbookStream, decodedSource, options, parsedWorkbook.MutableDiagnostics, parsedWorkbook.EncryptedSummaryEntries);
             }
             parsedWorkbook.SourceCompoundFile = compoundFile;
             options.CancellationToken.ThrowIfCancellationRequested();

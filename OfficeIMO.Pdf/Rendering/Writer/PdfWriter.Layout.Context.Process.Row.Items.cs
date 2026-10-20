@@ -62,6 +62,7 @@ internal static partial class PdfWriter {
                         TableCellTextLayout layout = preparedItem.TextLayout;
                         var markerPlacement = GetListMarkerPlacement(prepared, preparedItem);
                         listItems.Add(new ColListItem {
+                            ListNumbering = ResolveListNumbering(list),
                             Runs = item.Runs,
                             Lines = layout.Lines,
                             Heights = layout.LineHeights,

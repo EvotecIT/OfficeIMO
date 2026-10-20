@@ -5,6 +5,7 @@ public sealed class PdfCanvasStructureOptions {
     private string? _alternativeText;
     private string? _language;
     private PdfCanvasTableHeaderScope? _headerScope;
+    private PdfListNumbering? _listNumbering;
     private int _columnSpan = 1;
     private int _rowSpan = 1;
     private List<PdfEmbeddedFile>? _associatedFiles;
@@ -15,6 +16,16 @@ public sealed class PdfCanvasStructureOptions {
     internal string? StructureElementKey { get; set; }
     /// <summary>Explicit sibling order supplied by an owning source adapter; null retains arrival order.</summary>
     internal long? LogicalOrder { get; set; }
+
+    /// <summary>Semantic label style for a List container. Null leaves the attribute unspecified.</summary>
+    public PdfListNumbering? ListNumbering {
+        get => _listNumbering;
+        set {
+            if (value.HasValue && (value.Value < PdfListNumbering.None || value.Value > PdfListNumbering.Description))
+                throw new ArgumentOutOfRangeException(nameof(ListNumbering));
+            _listNumbering = value;
+        }
+    }
 
     /// <summary>Alternative text associated with the structure container.</summary>
     public string? AlternativeText {
@@ -126,6 +137,7 @@ public sealed class PdfCanvasStructureOptions {
             _totalAssociatedFileBytes = _totalAssociatedFileBytes,
             StructureElementKey = StructureElementKey,
             LogicalOrder = LogicalOrder,
+            ListNumbering = ListNumbering,
             _associatedFiles = _associatedFiles == null ? null : new List<PdfEmbeddedFile>(_associatedFiles)
         };
     }

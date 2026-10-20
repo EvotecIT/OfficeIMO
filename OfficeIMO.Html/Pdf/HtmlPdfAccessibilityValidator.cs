@@ -1,7 +1,6 @@
 using System.Collections.Generic;
 using System.Linq;
-using AngleSharp.Dom;
-using AngleSharp.Html.Dom;
+using System.Threading;
 using PdfCore = OfficeIMO.Pdf;
 
 namespace OfficeIMO.Html.Pdf;
@@ -52,44 +51,45 @@ public static class HtmlPdfAccessibilityValidator {
     /// Use this overload when source-only omissions, such as an image without an accessible name,
     /// must remain diagnosable after conversion.
     /// </summary>
+    /// <remarks>
+    /// Assumes default print CSS without caller or externally resolved stylesheets. For generated
+    /// documents, use <see cref="Validate(HtmlPdfRenderRequestResult, CancellationToken)"/> to inspect
+    /// the operation's retained source evidence instead of recomputing source styles.
+    /// </remarks>
     public static HtmlPdfAccessibilityValidationResult Validate(HtmlConversionDocument sourceDocument, byte[] pdfBytes) {
         if (sourceDocument == null) throw new ArgumentNullException(nameof(sourceDocument));
         HtmlPdfAccessibilityValidationResult artifactResult = Validate(pdfBytes);
         var issues = new List<HtmlPdfAccessibilityIssue>(artifactResult.Issues);
-        IHtmlDocument document = sourceDocument.CreateNativeDocumentForConversion(HtmlCssMediaContext.Print);
-        IReadOnlyDictionary<IElement, HtmlComputedStyle> styles = HtmlComputedStyleEngine.Compute(document, HtmlCssMediaContext.Print);
-        foreach (IElement element in document.QuerySelectorAll("img,input[type=image],svg")) {
-            if (IsExcludedFromAccessibilityValidation(element, styles)) continue;
-            bool explicitlyDecorative = element.TagName.Equals("IMG", StringComparison.OrdinalIgnoreCase)
-                && element.HasAttribute("alt")
-                && string.IsNullOrWhiteSpace(element.GetAttribute("alt"));
-            if (!explicitlyDecorative && string.IsNullOrWhiteSpace(HtmlAccessibilitySemantics.GetImageAccessibleName(element))) {
-                AddError(issues, "HtmlPdfAccessibilityImageNameMissing", "A rendered source image does not declare an accessible name or an explicit decorative alternative.");
-            }
-        }
+        var document = sourceDocument.CreateNativeDocumentForConversion(HtmlCssMediaContext.Print);
+        var styles = HtmlComputedStyleEngine.Compute(document, HtmlCssMediaContext.Print);
+        AddMissingImageNames(issues, HtmlAccessibilitySourceInspection.CountImagesMissingNames(document, styles));
         return new HtmlPdfAccessibilityValidationResult(issues.AsReadOnly());
     }
 
-    private static bool IsExcludedFromAccessibilityValidation(
-        IElement element,
-        IReadOnlyDictionary<IElement, HtmlComputedStyle> styles) {
-        bool isImageInput = element.TagName.Equals("INPUT", StringComparison.OrdinalIgnoreCase);
-        if (!isImageInput &&
-            (HtmlAccessibilitySemantics.ContainsToken(element.GetAttribute("role"), "none") ||
-             HtmlAccessibilitySemantics.ContainsToken(element.GetAttribute("role"), "presentation"))) return true;
+    /// <summary>
+    /// Validates the PDF and source image-name evidence retained by its render operation.
+    /// Uses the effective media, viewport, caller and resolved stylesheets without fetching resources again.
+    /// </summary>
+    /// <remarks>
+    /// Source checks cover CSS-visible source images before output page selection and clipping.
+    /// Validate before modifying the returned PDF. This bounded check does not certify PDF/UA conformance.
+    /// </remarks>
+    public static HtmlPdfAccessibilityValidationResult Validate(HtmlPdfRenderRequestResult rendered,
+        CancellationToken cancellationToken = default) {
+        if (rendered == null) throw new ArgumentNullException(nameof(rendered));
+        cancellationToken.ThrowIfCancellationRequested();
+        int missingNames = rendered.RenderResult.Document.SourceImagesMissingNames
+            ?? throw new InvalidOperationException("The render result does not retain source accessibility evidence.");
+        HtmlPdfAccessibilityValidationResult artifactResult = Validate(rendered.ToBytes(cancellationToken));
+        cancellationToken.ThrowIfCancellationRequested();
+        var issues = new List<HtmlPdfAccessibilityIssue>(artifactResult.Issues);
+        AddMissingImageNames(issues, missingNames);
+        return new HtmlPdfAccessibilityValidationResult(issues.AsReadOnly());
+    }
 
-        if (styles.TryGetValue(element, out HtmlComputedStyle? elementStyle)) {
-            string visibility = elementStyle.GetValue("visibility").Trim();
-            if (visibility.Equals("hidden", StringComparison.OrdinalIgnoreCase) ||
-                visibility.Equals("collapse", StringComparison.OrdinalIgnoreCase)) return true;
-        }
-
-        for (IElement? current = element; current != null; current = current.ParentElement) {
-            if (current.HasAttribute("hidden") || !isImageInput && HtmlAccessibilitySemantics.IsAriaHidden(current)) return true;
-            if (styles.TryGetValue(current, out HtmlComputedStyle? style) &&
-                style.GetValue("display").Trim().Equals("none", StringComparison.OrdinalIgnoreCase)) return true;
-        }
-        return false;
+    private static void AddMissingImageNames(ICollection<HtmlPdfAccessibilityIssue> issues, int count) {
+        for (int index = 0; index < count; index++)
+            AddError(issues, "HtmlPdfAccessibilityImageNameMissing", "A rendered source image does not declare an accessible name or an explicit decorative alternative.");
     }
 
     /// <summary>Validates language, tag roots, parent-tree evidence, hierarchy links, marked content, tables, lists, links, and figure alternate text.</summary>

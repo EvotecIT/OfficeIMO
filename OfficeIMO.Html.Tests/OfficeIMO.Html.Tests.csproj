@@ -13,6 +13,9 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <Compile Include="../OfficeIMO.Examples/Converters/Html/HtmlAccessibleReport.cs" Link="Examples/HtmlAccessibleReport.cs" />
+    <None Include="../OfficeIMO.Examples/Converters/Html/Content/Reports/accessibility-review.html" Link="Reports/accessibility-review.html" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="../Website/Apps/OfficeIMO.Web.Converter/Assets/Fonts/Carlito-Regular.ttf;../Website/Apps/OfficeIMO.Web.Converter/Assets/Fonts/Carlito-Bold.ttf;../Website/Apps/OfficeIMO.Web.Converter/Assets/Fonts/OFL-Carlito.txt" Link="Fonts/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
     <Compile Include="..\OfficeIMO.TestAssets\SvgPaintedText.cs" Link="Shared\SvgPaintedText.cs" />
     <Compile Include="..\OfficeIMO.TestAssets\RepositoryTestPaths.cs" Link="Shared\RepositoryTestPaths.cs" />
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="18.5.1" />

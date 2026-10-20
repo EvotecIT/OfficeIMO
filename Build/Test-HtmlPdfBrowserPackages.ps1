@@ -2,11 +2,23 @@ param(
     [string] $HtmlTinkerXPackagePath,
     [string] $OfficeIMOVersion = '3.3.0',
     [version] $MinimumHtmlTinkerXVersion = '3.0.1',
-    [string] $ExpectedHtmlTinkerXCommit
+    [string] $ExpectedHtmlTinkerXCommit,
+    [switch] $Capture,
+    [string] $PublishPath
 )
 
 $ErrorActionPreference = 'Stop'
 Set-StrictMode -Version Latest
+$repositoryRoot = (Resolve-Path -LiteralPath (Join-Path $PSScriptRoot '..')).Path
+if (-not [string]::IsNullOrWhiteSpace($PublishPath)) {
+    if (-not [System.IO.Path]::IsPathRooted($PublishPath)) {
+        $PublishPath = Join-Path $repositoryRoot $PublishPath
+    }
+    $PublishPath = [System.IO.Path]::GetFullPath($PublishPath)
+}
+if (-not [string]::IsNullOrWhiteSpace($PublishPath) -and (Test-Path -LiteralPath $PublishPath)) {
+    throw "Choose a new publish directory: $PublishPath"
+}
 
 function Invoke-DotNet {
     param([Parameter(ValueFromRemainingArguments)][string[]] $Arguments)
@@ -78,7 +90,6 @@ function Assert-HtmlTinkerXIdentity {
     }
 }
 
-$repositoryRoot = (Resolve-Path -LiteralPath (Join-Path $PSScriptRoot '..')).Path
 $browserProjectPath = Join-Path $repositoryRoot 'OfficeIMO.Html.Pdf.Browser/OfficeIMO.Html.Pdf.Browser.csproj'
 [xml] $browserProject = Get-Content -LiteralPath $browserProjectPath -Raw
 $configuredVersionText = [string] $browserProject.Project.PropertyGroup.HtmlTinkerXVersion
@@ -117,14 +128,16 @@ try {
     Invoke-DotNet new nugetconfig --output $configDirectory --force
     Invoke-DotNet nuget add source $feedPath --name OfficeIMOLocal --configfile $configPath
 
+    $coreFrameworks = '--property:TargetFrameworks="netstandard2.0;net8.0;net10.0;net472"'
     foreach ($project in @(
             'OfficeIMO.Core/OfficeIMO.Core.csproj',
             'OfficeIMO.Pdf/OfficeIMO.Pdf.csproj')) {
-        Invoke-DotNet restore $project --artifacts-path $artifactsPath --configfile $configPath --packages $packagesPath --no-http-cache --force-evaluate
-        Invoke-DotNet pack $project --configuration Release --artifacts-path $artifactsPath --no-restore --output $feedPath --property:PackageVersion=$OfficeIMOVersion
+        Invoke-DotNet restore $project $coreFrameworks --artifacts-path $artifactsPath --configfile $configPath --packages $packagesPath --no-http-cache --force-evaluate
+        Invoke-DotNet pack $project $coreFrameworks --configuration Release --artifacts-path $artifactsPath --no-restore --output $feedPath --property:PackageVersion=$OfficeIMOVersion
     }
 
     $browserProperties = @(
+        '--property:TargetFrameworks="net8.0;net10.0;net472"',
         "--property:PackageVersion=$OfficeIMOVersion",
         "--property:HtmlTinkerXVersion=$htmlTinkerXVersion"
     )
@@ -147,12 +160,20 @@ try {
     $frameworks = if ($IsWindows) { @('net472', 'net8.0', 'net10.0') } else { @('net8.0', 'net10.0') }
     foreach ($framework in $frameworks) {
         Invoke-DotNet run --project $consumerProjectPath --configuration Release --framework $framework --artifacts-path $artifactsPath --no-restore @consumerProperties
+        if ($Capture) {
+            Invoke-DotNet run --project $consumerProjectPath --configuration Release --framework $framework --artifacts-path $artifactsPath --no-build --no-restore @consumerProperties -- --capture (Join-Path $workingPath "browser-$framework.pdf")
+        }
+    }
+
+    if (-not [string]::IsNullOrWhiteSpace($PublishPath)) {
+        Invoke-DotNet publish $consumerProjectPath --configuration Release --framework net10.0 --artifacts-path $artifactsPath --no-restore --output $PublishPath @consumerProperties
     }
 
     Write-Host "Validated packed OfficeIMO browser PDF APIs against HtmlTinkerX $htmlTinkerXVersion."
 } finally {
     Pop-Location
     if (Test-Path -LiteralPath $workingPath) {
-        Remove-Item -LiteralPath $workingPath -Recurse -Force
+        # This fresh private qualification directory contains NuGet dotfiles on Unix.
+        [System.IO.Directory]::Delete($workingPath, $true)
     }
 }

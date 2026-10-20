@@ -26,6 +26,7 @@ internal static partial class PdfWriter {
                 ParentElement = semanticParent,
                 Language = ResolveStructureLanguage(parentElementIndex, semanticParent)
             });
+            BindPendingStructureDestinations(currentPage.StructElements[elementIndex]);
             return elementIndex;
         }
 
@@ -45,6 +46,7 @@ internal static partial class PdfWriter {
                 Language = (parentElement ?? ResolveFlowSemanticParent())?.Language ?? currentOpts.Language
             };
             currentPage.StructElements.Add(element);
+            BindPendingStructureDestinations(element);
             return element;
         }
 
@@ -67,6 +69,9 @@ internal static partial class PdfWriter {
             }
 
             PageStructElement? semanticParent = parentElementIndex.HasValue ? null : ResolveFlowSemanticParent();
+            PageStructElement? textParent = parentElementIndex.HasValue
+                ? currentPage.StructElements[parentElementIndex.Value] : semanticParent;
+            if (structureType == "P" && textParent?.StructureType == "Lbl") structureType = "Span";
             int markedContentId = currentPage.NextMarkedContentId++;
             var element = new PageStructElement {
                 MarkedContentId = markedContentId,
@@ -80,6 +85,7 @@ internal static partial class PdfWriter {
             };
             element.Language = ResolveStructureLanguage(element.ParentElementIndex, element.ParentElement);
             currentPage.StructElements.Add(element);
+            BindPendingStructureDestinations(element);
             return markedContentId;
         }
 
@@ -88,6 +94,7 @@ internal static partial class PdfWriter {
                 return null;
             }
 
+            if (structureType == "P" && (parentElement ?? ResolveFlowSemanticParent())?.StructureType == "Lbl") structureType = "Span";
             int markedContentId = currentPage.NextMarkedContentId++;
             var element = new PageStructElement {
                 MarkedContentId = markedContentId,
@@ -100,6 +107,7 @@ internal static partial class PdfWriter {
             };
             element.Language = ResolveStructureLanguage(element.ParentElementIndex, element.ParentElement);
             currentPage.StructElements.Add(element);
+            BindPendingStructureDestinations(element);
             return markedContentId;
         }
 
@@ -118,6 +126,7 @@ internal static partial class PdfWriter {
                 ParentElement = semanticParent,
                 Language = ResolveStructureLanguage(parentElementIndex, semanticParent)
             });
+            BindPendingStructureDestinations(currentPage.StructElements[currentPage.StructElements.Count - 1]);
             return markedContentId;
         }
 
@@ -133,6 +142,7 @@ internal static partial class PdfWriter {
                 AlternativeText = alternativeText,
                 ParentElement = parentElement ?? ResolveFlowSemanticParent()
             });
+            BindPendingStructureDestinations(currentPage.StructElements[currentPage.StructElements.Count - 1]);
             return markedContentId;
         }
 

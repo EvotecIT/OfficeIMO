@@ -403,7 +403,7 @@ internal static partial class HtmlPdfRenderedConverter {
                 HtmlRenderBookmarkState.Open => PdfCore.PdfOutlineState.Open,
                 HtmlRenderBookmarkState.Closed => PdfCore.PdfOutlineState.Closed,
                 _ => PdfCore.PdfOutlineState.Default
-            }, headingDocumentOrder[heading]);
+            }, headingDocumentOrder[heading], "html-element:" + heading.SemanticNodeId.ToString(System.Globalization.CultureInfo.InvariantCulture));
         }
     }
 

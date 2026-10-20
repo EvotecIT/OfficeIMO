@@ -1,5 +1,4 @@
 using OfficeIMO.Core.Internal;
-using System.Text;
 using System.Threading;
 
 namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
@@ -22,40 +21,10 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
                 DocumentSummaryInformationStream,
                 OfficeOlePropertySetWriter
                     .DocumentSummaryInformationFormatId);
-            var streams = new[] {
-                (Name: SummaryInformationStream, Bytes: summary),
-                (Name: DocumentSummaryInformationStream,
-                    Bytes: documentSummary)
-            };
-            using var output = new MemoryStream();
-            output.Write(new byte[8], 0, 8);
-            var descriptors = new List<EncryptedStreamDescriptor>(
-                streams.Length);
-            for (ushort block = 0; block < streams.Length; block++) {
-                byte[] encrypted = (byte[])streams[block].Bytes.Clone();
-                session.TransformInPlace(encrypted, 0, encrypted.Length,
-                    block);
-                int offset = checked((int)output.Position);
-                output.Write(encrypted, 0, encrypted.Length);
-                descriptors.Add(new EncryptedStreamDescriptor(offset,
-                    encrypted.Length, block, isStream: true,
-                    streams[block].Name));
-            }
-
-            int descriptorOffset = checked((int)output.Position);
-            byte[] descriptorBytes = WriteDescriptors(descriptors);
-            session.TransformInPlace(descriptorBytes, 0,
-                descriptorBytes.Length, blockNumber: 0);
-            output.Write(descriptorBytes, 0, descriptorBytes.Length);
-            byte[] result = output.ToArray();
-            var header = new byte[8];
-            WriteUInt32(header, 0, unchecked((uint)descriptorOffset));
-            WriteUInt32(header, 4,
-                unchecked((uint)descriptorBytes.Length));
-            session.TransformInPlace(header, 0, header.Length,
-                blockNumber: 0);
-            Buffer.BlockCopy(header, 0, result, 0, header.Length);
-            return result;
+            return OfficeBinaryEncryptedSummary.Encrypt(new[] {
+                new OfficeBinaryEncryptedSummary.Entry(SummaryInformationStream, true, summary),
+                new OfficeBinaryEncryptedSummary.Entry(DocumentSummaryInformationStream, true, documentSummary)
+            }, session);
         }
 
         internal static byte[] CreateEmptyDocumentSummaryInformation() =>
@@ -110,29 +79,6 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
                 OfficeOlePropertySetWriter.CreateSection(
                     Array.Empty<OfficeOleProperty>())));
         }
-
-        private static byte[] WriteDescriptors(
-            IReadOnlyList<EncryptedStreamDescriptor> entries) {
-            using var output = new MemoryStream();
-            WriteUInt32(output, unchecked((uint)entries.Count));
-            foreach (EncryptedStreamDescriptor entry in entries) {
-                if (entry.Name.Length == 0 || entry.Name.Length > byte.MaxValue) {
-                    throw new InvalidDataException(
-                        "An EncryptedSummary stream name must contain 1 through 255 characters.");
-                }
-                WriteUInt32(output, unchecked((uint)entry.StreamOffset));
-                WriteUInt32(output, unchecked((uint)entry.StreamSize));
-                WriteUInt16(output, entry.BlockNumber);
-                output.WriteByte(unchecked((byte)entry.Name.Length));
-                output.WriteByte(entry.IsStream ? (byte)0x01 : (byte)0x00);
-                WriteUInt32(output, 0);
-                byte[] nameBytes = Encoding.Unicode.GetBytes(entry.Name);
-                output.Write(nameBytes, 0, nameBytes.Length);
-                WriteUInt16(output, 0);
-            }
-            return output.ToArray();
-        }
-
 
         internal static void AddStorageReplacements(
             IDictionary<string, byte[]> replacements, string storageName,
@@ -192,49 +138,5 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
             replacements.Add(path, bytes);
         }
 
-        private static void WriteUInt16(Stream stream, ushort value) {
-            stream.WriteByte(unchecked((byte)value));
-            stream.WriteByte(unchecked((byte)(value >> 8)));
-        }
-
-        private static void WriteUInt32(Stream stream, uint value) {
-            stream.WriteByte(unchecked((byte)value));
-            stream.WriteByte(unchecked((byte)(value >> 8)));
-            stream.WriteByte(unchecked((byte)(value >> 16)));
-            stream.WriteByte(unchecked((byte)(value >> 24)));
-        }
-
-        private static byte[] CopyBytes(byte[] source, int offset,
-            int length) {
-            var result = new byte[length];
-            Buffer.BlockCopy(source, offset, result, 0, length);
-            return result;
-        }
-
-        private static void WriteUInt32(byte[] bytes, int offset,
-            uint value) {
-            bytes[offset] = unchecked((byte)value);
-            bytes[offset + 1] = unchecked((byte)(value >> 8));
-            bytes[offset + 2] = unchecked((byte)(value >> 16));
-            bytes[offset + 3] = unchecked((byte)(value >> 24));
-        }
-
-        private sealed class EncryptedStreamDescriptor {
-            internal EncryptedStreamDescriptor(int streamOffset,
-                int streamSize, ushort blockNumber, bool isStream,
-                string name) {
-                StreamOffset = streamOffset;
-                StreamSize = streamSize;
-                BlockNumber = blockNumber;
-                IsStream = isStream;
-                Name = name;
-            }
-
-            internal int StreamOffset { get; }
-            internal int StreamSize { get; }
-            internal ushort BlockNumber { get; }
-            internal bool IsStream { get; }
-            internal string Name { get; }
-        }
     }
 }

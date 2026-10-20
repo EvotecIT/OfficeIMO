@@ -79,13 +79,14 @@ public sealed class HtmlRenderSemanticGroup : HtmlRenderVisual {
         double? layoutHeight = null,
         string? alternativeText = null,
         HtmlMathMlSource? mathMlSource = null,
-        int? logicalOrder = null)
+        int? logicalOrder = null, string? listStyleType = null)
         : base(HtmlRenderVisualKind.SemanticGroup, x, y, width, height, paintOrder, null, source, layoutY, layoutHeight) {
         Role = role;
         AlternativeText = alternativeText;
         MathMlSource = mathMlSource;
         StructureElementKey = structureElementKey;
         LogicalOrder = logicalOrder;
+        ListStyleType = listStyleType;
         ColumnSpan = columnSpan;
         RowSpan = rowSpan;
         HeaderScope = headerScope;
@@ -109,13 +110,14 @@ public sealed class HtmlRenderSemanticGroup : HtmlRenderVisual {
         double layoutHeight,
         string? alternativeText,
         HtmlMathMlSource? mathMlSource,
-        int? logicalOrder)
+        int? logicalOrder, string? listStyleType)
         : base(HtmlRenderVisualKind.SemanticGroup, x, y, width, height, paintOrder, null, source, layoutY, layoutHeight) {
         Role = role;
         AlternativeText = alternativeText;
         MathMlSource = mathMlSource;
         StructureElementKey = structureElementKey;
         LogicalOrder = logicalOrder;
+        ListStyleType = listStyleType;
         ColumnSpan = columnSpan;
         RowSpan = rowSpan;
         HeaderScope = headerScope;
@@ -127,6 +129,9 @@ public sealed class HtmlRenderSemanticGroup : HtmlRenderVisual {
 
     /// <summary>Accessible description retained across paint transforms and page fragments.</summary>
     public string? AlternativeText { get; }
+
+    /// <summary>Computed CSS marker style for a List semantic group.</summary>
+    public string? ListStyleType { get; }
 
     /// <summary>Recoverable formula source retained across paint transforms and page fragments, or null for other content.</summary>
     public HtmlMathMlSource? MathMlSource { get; }
@@ -155,14 +160,14 @@ public sealed class HtmlRenderSemanticGroup : HtmlRenderVisual {
     public IReadOnlyList<HtmlRenderVisual> Visuals => _visuals;
 
     internal override HtmlRenderVisual TranslateCore(double offsetX, double offsetY, int paintOrder) =>
-        new HtmlRenderSemanticGroup(Role, X + offsetX, Y + offsetY, Width, Height, TranslateVisuals(offsetX, offsetY, translatePaint: false), paintOrder, Source, ColumnSpan, RowSpan, HeaderScope, LayoutY + offsetY, StructureElementKey, LayoutHeight, AlternativeText, MathMlSource, LogicalOrder);
+        new HtmlRenderSemanticGroup(Role, X + offsetX, Y + offsetY, Width, Height, TranslateVisuals(offsetX, offsetY, translatePaint: false), paintOrder, Source, ColumnSpan, RowSpan, HeaderScope, LayoutY + offsetY, StructureElementKey, LayoutHeight, AlternativeText, MathMlSource, LogicalOrder, ListStyleType);
 
     internal override HtmlRenderVisual TranslatePaintCore(double offsetX, double offsetY, int paintOrder) =>
-        new HtmlRenderSemanticGroup(Role, X + offsetX, Y + offsetY, Width, Height, TranslateVisuals(offsetX, offsetY, translatePaint: true), paintOrder, Source, ColumnSpan, RowSpan, HeaderScope, LayoutY, StructureElementKey, LayoutHeight, AlternativeText, MathMlSource, LogicalOrder);
+        new HtmlRenderSemanticGroup(Role, X + offsetX, Y + offsetY, Width, Height, TranslateVisuals(offsetX, offsetY, translatePaint: true), paintOrder, Source, ColumnSpan, RowSpan, HeaderScope, LayoutY, StructureElementKey, LayoutHeight, AlternativeText, MathMlSource, LogicalOrder, ListStyleType);
 
     internal HtmlRenderVisual ProjectPaint(IEnumerable<HtmlRenderVisual> visuals, double offsetX, double offsetY, int paintOrder) =>
         new HtmlRenderSemanticGroup(Role, X + offsetX, Y + offsetY, Width, Height, visuals,
-            paintOrder, Source, ColumnSpan, RowSpan, HeaderScope, LayoutY, StructureElementKey, LayoutHeight, AlternativeText, MathMlSource, LogicalOrder);
+            paintOrder, Source, ColumnSpan, RowSpan, HeaderScope, LayoutY, StructureElementKey, LayoutHeight, AlternativeText, MathMlSource, LogicalOrder, ListStyleType);
 
     private static ReadOnlyCollection<HtmlRenderVisual> OrderVisuals(IEnumerable<HtmlRenderVisual> visuals) {
         if (visuals == null) throw new ArgumentNullException(nameof(visuals));
