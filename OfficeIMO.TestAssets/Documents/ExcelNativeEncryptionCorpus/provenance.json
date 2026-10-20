@@ -1,0 +1,38 @@
+{
+  "schemaVersion": 1,
+  "producer": "Microsoft Excel for Mac",
+  "version": "16.113.4 (26100421)",
+  "locale": "pl-PL",
+  "generatedUtc": "2026-10-20T07:18:41.904123+00:00",
+  "method": "Self-authored QualifyNativeEmbedding run explicitly through native Macro dialog. Creates a separate workbook, inserts owned embedded-source.xlsx via OLEObjects.Add, saves plain XLS and CryptoAPI password-to-open XLS. Native output workbook has no macro project. No application security settings changed.",
+  "password": "test-password",
+  "expected": {
+    "title": "Native encrypted auxiliary control",
+    "subject": "Native encrypted nested storage",
+    "sheet": "Native",
+    "A1": "Native encrypted embedding control",
+    "B1": 42,
+    "B2": 8,
+    "B3": 50,
+    "B4": 1,
+    "sourcePackageMarker": "Owned embedded native control"
+  },
+  "encryptionProfile": {
+    "filePassVersion": "4.2",
+    "flags": "0x0c",
+    "propertyStreams": "plaintext",
+    "encryptedEntries": "one embedding storage; no document-property descriptors",
+    "nativeMirror": "same class/state and stream bytes outside encrypted container; root timestamps differ"
+  },
+  "limits": [
+    "Native-producer encrypted document properties are not qualified by this cohort. The explicit-provider option call returned error 5; the properties-only attempt also saved plaintext property streams.",
+    "This qualifies an embedded XLSX package, not arbitrary OLE activation, links, ActiveX or every embedded server.",
+    "Stored marker and successful native SaveAs prove execution of the self-authored controller only."
+  ],
+  "regenerationSource": "Build/Verification/ExcelLegacyEmbeddingOracle.bas",
+  "files": {
+    "excel-native-embedding.plain.xls": "c629a05b1b6e25545ae00c9627064ef796c3d17b84c21aacc99407fe30977e5d",
+    "excel-native-embedding.encrypted.xls": "7a112d8517a597d73ac0222e1f79a0c35a457ea9e6c0d9a6b5e87f328d004307",
+    "embedded-source.xlsx": "1e62cd684583567846dcb3de30244b634d2d05022d841563d4eb9385e28bb85a"
+  }
+}

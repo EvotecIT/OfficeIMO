@@ -53,11 +53,11 @@ internal static class LegacyXlsCompoundEncryption {
             (isStream, size) => { if (isStream) Consume(size); }, options.CancellationToken);
         var restored = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         foreach (var item in decodedEntries) {
+            if (item.Name.Equals("Workbook", StringComparison.OrdinalIgnoreCase)
+                || item.Name.Equals("Book", StringComparison.OrdinalIgnoreCase)
+                || item.Name.Equals("encryption", StringComparison.OrdinalIgnoreCase))
+                throw new InvalidDataException("Encrypted summary contains a reserved XLS entry.");
             if (item.IsStream) {
-                if (item.Name.Equals("Workbook", StringComparison.OrdinalIgnoreCase)
-                    || item.Name.Equals("Book", StringComparison.OrdinalIgnoreCase)
-                    || item.Name.Equals("encryption", StringComparison.OrdinalIgnoreCase))
-                    throw new InvalidDataException("Encrypted summary contains a reserved XLS stream.");
                 Add(item.Name, item.Bytes, new OfficeCompoundFileEntry(item.Name, item.Name, 2, item.Bytes.Length),
                     item.Name == "\u0005DocumentSummaryInformation");
                 continue;
@@ -67,8 +67,10 @@ internal static class LegacyXlsCompoundEncryption {
                 streamSizeValidator: (_, size) => Consume(size), preserveResourceLimits: true);
             if (!OfficeCompoundFileReader.TryRead(item.Bytes, readOptions, out OfficeCompoundFile? storage, out string? error) || storage == null)
                 throw new InvalidDataException("Encrypted XLS storage is not a valid compound file: " + error);
-            if (entries.Any(entry => string.Equals(entry.Path, item.Name, StringComparison.OrdinalIgnoreCase)))
-                throw new InvalidDataException("Encrypted XLS storage collides with an existing compound entry.");
+            if (entries.Any(entry => string.Equals(entry.Path, item.Name, StringComparison.OrdinalIgnoreCase))) {
+                ValidateStorageMirror(item.Name, storage, streams, entries, options);
+                continue;
+            }
             entries.Add(OfficeCompoundStorage.Repath(storage.RootEntry, item.Name, item.Name, 1));
             foreach (var entry in storage.Entries.Where(entry => !entry.IsFallback && entry.ObjectType != 5)) {
                 string path = item.Name + "/" + entry.Path;
@@ -77,8 +79,12 @@ internal static class LegacyXlsCompoundEncryption {
                 if (entries.Count > 65536) throw new InvalidDataException("Decrypted XLS compound directory exceeds the entry limit.");
             }
         }
-        if (!restored.Contains("\u0005SummaryInformation") || !restored.Contains("\u0005DocumentSummaryInformation"))
+        bool hasSummary = restored.Contains("\u0005SummaryInformation");
+        bool hasDocumentSummary = restored.Contains("\u0005DocumentSummaryInformation");
+        if (session.EncryptsDocumentProperties && (!hasSummary || !hasDocumentSummary))
             throw new InvalidDataException("The XLS encrypted summary must carry both document-property streams.");
+        if (!session.EncryptsDocumentProperties && (hasSummary || hasDocumentSummary))
+            throw new InvalidDataException("Encrypted XLS document properties disagree with the password descriptor flags.");
 
         void Add(string path, byte[] bytes, OfficeCompoundFileEntry entry, bool replacePlaceholder) {
             if (!restored.Add(path) || (!replacePlaceholder && streams.ContainsKey(path)))
@@ -87,6 +93,38 @@ internal static class LegacyXlsCompoundEncryption {
             entries.RemoveAll(existing => string.Equals(existing.Path, path, StringComparison.OrdinalIgnoreCase));
             entries.Add(entry);
         }
+    }
+
+    /// <summary>Accepts the equivalent clear storage copy emitted alongside encrypted embeddings by native Excel.</summary>
+    private static void ValidateStorageMirror(string name, OfficeCompoundFile storage,
+        Dictionary<string, byte[]> streams, List<OfficeCompoundFileEntry> entries, LegacyXlsImportOptions options) {
+        const string collision = "Encrypted XLS storage conflicts with an existing compound entry.";
+        string prefix = name + "/";
+        var actual = entries.Where(entry => !entry.IsFallback
+            && (entry.Path.Equals(name, StringComparison.OrdinalIgnoreCase)
+                || entry.Path.StartsWith(prefix, StringComparison.OrdinalIgnoreCase)))
+            .ToDictionary(entry => entry.Path, StringComparer.OrdinalIgnoreCase);
+        var expected = storage.Entries.Where(entry => !entry.IsFallback && entry.ObjectType != 5).ToArray();
+        if (actual.Count != expected.Length + 1 || !actual.TryGetValue(name, out var root)
+            || root.ObjectType != 1 || root.ClassId != storage.RootEntry.ClassId
+            || root.StateBits != storage.RootEntry.StateBits)
+            throw new InvalidDataException(collision);
+        // Native storage serialization resets creation time and snapshots modification
+        // time independently. Compare hierarchy, identities and bytes; retain the clear
+        // directory's timestamps when the two payloads are otherwise equivalent.
+        foreach (var entry in expected) {
+            options.CancellationToken.ThrowIfCancellationRequested();
+            string path = prefix + entry.Path;
+            if (!actual.TryGetValue(path, out var mirror) || mirror.ObjectType != entry.ObjectType
+                || mirror.ClassId != entry.ClassId || mirror.StateBits != entry.StateBits)
+                throw new InvalidDataException(collision);
+            if (entry.IsStream && (!streams.TryGetValue(path, out var bytes)
+                || !bytes.SequenceEqual(storage.Streams[entry.Path])))
+                throw new InvalidDataException(collision);
+        }
+        if (streams.Keys.Count(path => path.StartsWith(prefix, StringComparison.OrdinalIgnoreCase))
+            != expected.Count(entry => entry.IsStream))
+            throw new InvalidDataException(collision);
     }
 
     private static BiffRecord FindFilePass(byte[] bytes) {

@@ -24,13 +24,15 @@ namespace OfficeIMO.Excel.LegacyXls.Write {
 
         internal IReadOnlyList<byte[]> StyleRecords { get; }
 
-        internal static LegacyXlsStyleTable Create(ExcelDocument document, IReadOnlyList<ExcelSheet> sheets, LegacyXlsFontTable fontTable) {
+        internal static LegacyXlsStyleTable Create(ExcelDocument document, IReadOnlyList<ExcelSheet> sheets, LegacyXlsFontTable fontTable,
+            IEnumerable<uint>? referencedStyleIndexes = null) {
             if (document == null) throw new ArgumentNullException(nameof(document));
             if (sheets == null) throw new ArgumentNullException(nameof(sheets));
             if (fontTable == null) throw new ArgumentNullException(nameof(fontTable));
 
-            SortedSet<uint> openXmlStyleIndexes = CollectReferencedStyleIndexes(sheets);
-            openXmlStyleIndexes.Add(0U);
+            SortedSet<uint> openXmlStyleIndexes = referencedStyleIndexes == null
+                ? CollectReferencedStyleIndexes(sheets) : new SortedSet<uint>(referencedStyleIndexes);
+            if (referencedStyleIndexes == null) openXmlStyleIndexes.Add(0U);
 
             Stylesheet? stylesheet = document.WorkbookPartRoot?.WorkbookStylesPart?.Stylesheet;
             List<CellFormat> openXmlCellFormats = stylesheet?.CellFormats?.Elements<CellFormat>().ToList() ?? new List<CellFormat>();

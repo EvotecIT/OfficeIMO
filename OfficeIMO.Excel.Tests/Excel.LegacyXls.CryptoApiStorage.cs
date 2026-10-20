@@ -101,7 +101,7 @@ public sealed class ExcelLegacyCryptoApiStorageTests {
         }, removedPaths: new[] { storageName, "\u0005SummaryInformation" });
     }
 
-    private static byte[] EncodeSummary((string Name, bool IsStream, byte[] Bytes)[] entries, OfficeBinaryRc4CryptoApiSession session) {
+    internal static byte[] EncodeSummary((string Name, bool IsStream, byte[] Bytes)[] entries, OfficeBinaryRc4CryptoApiSession session) {
         using var output = new MemoryStream(); using var data = new BinaryWriter(output, Encoding.Unicode, true);
         data.Write(new byte[8]);
         using var descriptions = new MemoryStream(); using var descriptors = new BinaryWriter(descriptions, Encoding.Unicode, true);

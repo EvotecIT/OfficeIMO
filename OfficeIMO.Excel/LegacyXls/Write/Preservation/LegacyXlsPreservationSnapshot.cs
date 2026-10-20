@@ -66,7 +66,8 @@ internal sealed partial class LegacyXlsPreservationSnapshot {
             bool preserveFormula = existed && exists && previous!.CacheMetadata == current!.CacheMetadata
                 && (previous.IsFormula && current.IsFormula || previous.Text == current.Text && previous.Kind == current.Kind);
             bool cacheOnly = preserveFormula && previous!.IsFormula && previous.Style == current!.Style;
-            edits.Add(new LegacyXlsCellEdit(name, key.Item2, exists ? (Cell)current!.Cell.CloneNode(true) : null, cacheOnly, preserveFormula));
+            edits.Add(new LegacyXlsCellEdit(name, key.Item2, exists ? (Cell)current!.Cell.CloneNode(true) : null,
+                cacheOnly, preserveFormula, existed && exists && previous!.Style == current!.Style));
             if (!existed || !exists || previous!.Metadata != current!.Metadata || previous.Style != current.Style || previous.IsFormula || current.IsFormula || current.Formatting.Length != 0) { literalOnly = false; continue; }
             var change = new LegacyXlsLiteralEdit(name, key.Item2, current.Text, current.Kind);
             if (!_source.CanApply(change)) literalOnly = false;
