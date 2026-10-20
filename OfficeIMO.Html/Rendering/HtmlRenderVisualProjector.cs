@@ -127,6 +127,7 @@ internal sealed class HtmlRenderVisualProjector {
             CountVisual();
             HtmlRenderVisual result = create(projectedChildren);
             result.SemanticSourceOrder = visual.SemanticSourceOrder;
+            result.SourceOrderScope = visual.SourceOrderScope;
             return result;
         }
 

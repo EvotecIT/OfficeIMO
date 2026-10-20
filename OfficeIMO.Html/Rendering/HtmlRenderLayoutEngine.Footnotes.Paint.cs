@@ -9,6 +9,9 @@ internal sealed partial class HtmlRenderLayoutEngine {
         double x, double cursorY, double width) {
         string marker = entry.MarkerContent
             + (chunk.Start > 0.0001D ? "\u00a0(cont.)" : string.Empty);
+        // Generated markers belong to the authored note's source position,
+        // independently of the page area where its body fragment paints.
+        int? sourceOrder = GetSemanticSourceOrder(entry.Element);
         double markerGutter = entry.MarkerGutter;
         IReadOnlyList<HtmlRenderVisual> body = SliceBlockVisuals(entry.Block, chunk.Start, chunk.End);
         var children = new List<HtmlRenderVisual>();
@@ -44,9 +47,10 @@ internal sealed partial class HtmlRenderLayoutEngine {
                         layoutY: null,
                         semanticNodeId: null,
                         textAdvanceWidth: null,
+                        logicalTextOrder: _nextLogicalTextOrder++,
                         featureSettings: entry.MarkerStyle.TextFeatureSettings,
                         fontPalette: entry.MarkerStyle.FontPalette,
-                        fontDescriptor: entry.MarkerStyle.FontDescriptor));
+                        fontDescriptor: entry.MarkerStyle.FontDescriptor) { SemanticSourceOrder = sourceOrder });
                 }
             } else if (entry.MarkerStyle.Font.Size > 0D) {
                 children.Add(new HtmlRenderText(
@@ -66,9 +70,10 @@ internal sealed partial class HtmlRenderLayoutEngine {
                     layoutY: null,
                     semanticNodeId: null,
                     textAdvanceWidth: null,
+                    logicalTextOrder: _nextLogicalTextOrder++,
                     featureSettings: entry.MarkerStyle.TextFeatureSettings,
                     fontPalette: entry.MarkerStyle.FontPalette,
-                    fontDescriptor: entry.MarkerStyle.FontDescriptor));
+                    fontDescriptor: entry.MarkerStyle.FontDescriptor) { SemanticSourceOrder = sourceOrder });
             }
         }
         foreach (HtmlRenderVisual visual in body) {

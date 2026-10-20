@@ -58,6 +58,13 @@ public abstract partial class HtmlRenderVisual {
     // Source adapters retain semantic placement separately from paint and fragment arrival.
     internal int? SemanticSourceOrder { get; set; }
 
+    /// <summary>
+    /// A boundary whose children use a different DOM source coordinate space.
+    /// Extraction orders the boundary at <see cref="SemanticSourceOrder"/> in its
+    /// parent document, then orders the child document independently.
+    /// </summary>
+    internal HtmlRenderSourceOrderScope? SourceOrderScope { get; set; }
+
     // A repeated table fragment reopens only its enclosing formatting context.
     // Remember this closure's immediate phase, including an already-atomic
     // nested box, instead of guessing from the visual's shape or children.
@@ -91,7 +98,12 @@ public abstract partial class HtmlRenderVisual {
 
     internal T CopyStackingContextTo<T>(T result) where T : HtmlRenderVisual {
         result.PaintPhase = PaintPhase;
-        result.SemanticSourceOrder = SemanticSourceOrder;
+        // A rebuilt embedded viewport retains its parent-document source entry
+        // even when a promoted child supplies the surrounding paint metadata.
+        if (result.SourceOrderScope == null) {
+            result.SemanticSourceOrder = SemanticSourceOrder;
+            result.SourceOrderScope = SourceOrderScope;
+        }
         result.AtomicSourcePaintPhase = AtomicSourcePaintPhase;
         result.StackingContext = StackingContext;
         result.PaintProjectionIdentity = PaintProjectionIdentity;
@@ -125,3 +137,6 @@ public abstract partial class HtmlRenderVisual {
 }
 
 internal enum HtmlRenderPaintPhase { Content, BlockBackground, Float, Atomic, Outline }
+
+/// <summary>Shared identity of projected fragments from one independently ordered embedded document.</summary>
+internal sealed class HtmlRenderSourceOrderScope { }

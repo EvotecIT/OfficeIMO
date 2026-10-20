@@ -103,6 +103,119 @@ public sealed partial class HtmlRenderingTests {
     }
 
     [Theory]
+    [InlineData("absolute", false)]
+    [InlineData("fixed", false)]
+    [InlineData("absolute", true)]
+    [InlineData("fixed", true)]
+    public void HtmlPositionedText_RetainsOrderBesideMissingImageAlternative(string position, bool longAlternative) {
+        string alternative = longAlternative ? "Start" + new string('a', 1100) + "End" : "Alt";
+        string html = PositionedLogicalStyles + "<p>Lead</p><img src='missing.png' alt='" + alternative
+            + "' style='width:40px;height:20px'>" + PositionedLogicalElement(position, "span", "Positioned", 80)
+            + "<p>Tail</p>";
+
+        HtmlRenderDocument rendered = HtmlRenderEngine.Render(HtmlConversionDocument.Parse(html), PositionedLogicalOptions());
+
+        Assert.Equal("Lead" + alternative + "PositionedTail", WithoutPositionedLogicalWhitespace(rendered.Text));
+    }
+
+    [Theory]
+    [InlineData("absolute", "outside", false)]
+    [InlineData("fixed", "outside", false)]
+    [InlineData("absolute", "inside", false)]
+    [InlineData("fixed", "inside", false)]
+    [InlineData("absolute", "outside", true)]
+    [InlineData("fixed", "outside", true)]
+    public void HtmlPositionedText_RetainsOrderBesideDefaultListMarker(
+        string position, string markerPosition, bool blockChild) {
+        string item = blockChild ? "<p>List</p>" : "List";
+        string html = PositionedLogicalStyles + "<p>Lead</p><ul style='list-style-position:" + markerPosition
+            + "'><li>" + item + "</li></ul>" + PositionedLogicalElement(position, "span", "Positioned", 80)
+            + "<p>Tail</p>";
+
+        HtmlRenderDocument rendered = HtmlRenderEngine.Render(HtmlConversionDocument.Parse(html), PositionedLogicalOptions());
+
+        Assert.Equal("Lead•ListPositionedTail", WithoutPositionedLogicalWhitespace(rendered.Text));
+    }
+
+    [Theory]
+    [InlineData("absolute")]
+    [InlineData("fixed")]
+    public void HtmlPositionedText_RetainsOrderBesidePagedFootnote(string position) {
+        string html = PositionedLogicalStyles + "<style>.note{float:footnote}</style>"
+            + "<p>Lead<span class='note'>Note</span></p>"
+            + PositionedLogicalElement(position, "span", "Positioned", 80) + "<p>Tail</p>";
+        HtmlRenderOptions options = PositionedLogicalOptions();
+        options.Mode = HtmlRenderMode.Paged;
+
+        HtmlRenderDocument rendered = HtmlRenderEngine.Render(HtmlConversionDocument.Parse(html), options);
+
+        Assert.Single(rendered.Pages);
+        Assert.Equal("Lead11NotePositionedTail", WithoutPositionedLogicalWhitespace(rendered.Text));
+    }
+
+    [Theory]
+    [InlineData(HtmlRenderIntentProfile.ScreenFullPage)]
+    [InlineData(HtmlRenderIntentProfile.PrintPaged)]
+    [InlineData(HtmlRenderIntentProfile.ScreenSnapshotPaged)]
+    public void HtmlLogicalText_EmbeddedDocumentCoordinatesRemainScopedThroughPaging(HtmlRenderIntentProfile profile) {
+        string html = PositionedLogicalStyles + PositionedLogicalParagraphs("Lead", 4)
+            + PositionedLogicalFrame(PositionedLogicalParagraphs("Frame", 6)) + "<p>Tail</p>";
+        HtmlRenderOptions options = PositionedLogicalOptions();
+        options.PageSize = new OfficePageSize(300D / HtmlRenderOptions.CssPixelsPerInch, 120D / HtmlRenderOptions.CssPixelsPerInch);
+        HtmlRenderDocument rendered = HtmlRenderEngine.Execute(HtmlConversionDocument.Parse(html),
+            HtmlRenderRequest.Create(profile, options: options)).Document;
+
+        Assert.Equal("Lead0Lead1Lead2Lead3Frame0Frame1Frame2Frame3Frame4Frame5Tail",
+            WithoutPositionedLogicalWhitespace(rendered.Text));
+        if (profile == HtmlRenderIntentProfile.ScreenSnapshotPaged) Assert.True(rendered.Pages.Count > 1);
+    }
+
+    [Theory]
+    [InlineData("section", false)]
+    [InlineData("artifact", true)]
+    public void HtmlLogicalText_EmbeddedDocumentScopeHonorsExplicitSemantics(string role, bool artifact) {
+        string html = PositionedLogicalStyles + PositionedLogicalParagraphs("Lead", 4)
+            + PositionedLogicalFrame(PositionedLogicalParagraphs("Frame", 6), "-officeimo-pdf-tag-type:" + role)
+            + "<p>Tail</p>";
+
+        HtmlRenderDocument rendered = HtmlRenderEngine.Render(HtmlConversionDocument.Parse(html), PositionedLogicalOptions());
+
+        string expected = "Lead0Lead1Lead2Lead3" + (artifact ? string.Empty : "Frame0Frame1Frame2Frame3Frame4Frame5") + "Tail";
+        Assert.Equal(expected, WithoutPositionedLogicalWhitespace(rendered.Text));
+    }
+
+    [Theory]
+    [InlineData("absolute")]
+    [InlineData("fixed")]
+    public void HtmlPositionedText_RetainsIndependentNestedFrameScopes(string position) {
+        string inner = PositionedLogicalFrame(PositionedLogicalParagraphs("Inner", 2), height: 60);
+        string first = PositionedLogicalFrame("<p>OuterBefore</p>" + inner + "<p>OuterAfter</p>");
+        string second = PositionedLogicalFrame("<p>SecondFrame</p>", height: 40);
+        string html = PositionedLogicalStyles + PositionedLogicalParagraphs("Lead", 4) + first
+            + PositionedLogicalElement(position, "span", "Positioned", 80) + "<p>Between</p>" + second + "<p>Tail</p>";
+
+        HtmlRenderDocument rendered = HtmlRenderEngine.Render(HtmlConversionDocument.Parse(html), PositionedLogicalOptions());
+
+        Assert.Equal("Lead0Lead1Lead2Lead3OuterBeforeInner0Inner1OuterAfterPositionedBetweenSecondFrameTail",
+            WithoutPositionedLogicalWhitespace(rendered.Text));
+    }
+
+    [Theory]
+    [InlineData("absolute")]
+    [InlineData("fixed")]
+    public void HtmlPositionedText_EmbeddedStackingFragmentsRetainOneChildSourceScope(string position) {
+        string child = "<p>FrameBefore</p><span style='position:" + position
+            + ";left:0;top:80px;z-index:3'>FramePositioned</span><p>FrameAfter</p>";
+        string html = PositionedLogicalStyles + PositionedLogicalParagraphs("Lead", 4)
+            + PositionedLogicalFrame(child) + "<p>Tail</p>";
+
+        HtmlRenderDocument rendered = HtmlRenderEngine.Render(HtmlConversionDocument.Parse(html), PositionedLogicalOptions());
+
+        Assert.Equal("Lead0Lead1Lead2Lead3FrameBeforeFramePositionedFrameAfterTail",
+            WithoutPositionedLogicalWhitespace(rendered.Text));
+    }
+
+    [Theory]
     [InlineData(false, true)]
     [InlineData(true, true)]
     [InlineData(true, false)]
@@ -154,6 +267,13 @@ public sealed partial class HtmlRenderingTests {
     private static string PositionedLogicalElement(string position, string tag, string text, int top) =>
         "<" + tag + " style='position:" + position + ";left:20px;top:" + top
         + "px;width:160px;height:20px'><span>" + text + "</span></" + tag + ">";
+
+    private static string PositionedLogicalParagraphs(string prefix, int count) =>
+        string.Concat(Enumerable.Range(0, count).Select(index => "<p>" + prefix + index + "</p>"));
+
+    private static string PositionedLogicalFrame(string content, string style = "", int height = 160) =>
+        "<iframe style='display:block;width:240px;height:" + height + "px;" + style + "' srcdoc=\""
+        + System.Net.WebUtility.HtmlEncode(PositionedLogicalStyles + content) + "\"></iframe>";
 
     private static HtmlRenderOptions PositionedLogicalOptions() => new() {
         Mode = HtmlRenderMode.Continuous,

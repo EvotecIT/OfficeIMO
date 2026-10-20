@@ -61,9 +61,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         outsideMarkerStyle.PreserveWhitespace = true;
         outsideMarkerStyle.BreakSpaces = true;
         var markerRuns = new List<HtmlInlineRun> {
-            marker.IsImage
-                ? new HtmlInlineRun(marker.Image!, outsideMarkerStyle, null, "list-marker", ownerElement: generatedContentOwner, isReplacedImage: true)
-                : new HtmlInlineRun(marker.Content, outsideMarkerStyle, null, "list-marker", ownerElement: generatedContentOwner)
+            CreateListMarkerRun(marker, generatedContentOwner, outsideMarkerStyle)
         };
         ApplyPendingInlineTextTransforms(markerRuns);
         markerRuns = ApplyScopedFontFallbacks(markerRuns);
@@ -113,10 +111,15 @@ internal sealed partial class HtmlRenderLayoutEngine {
             safeBreakRanges: body.SafeBreakRanges);
     }
 
-    private static HtmlInlineRun CreateListMarkerRun(HtmlListMarker marker, IElement? owner) =>
-        marker.IsImage
-            ? new HtmlInlineRun(marker.Image!, marker.Style, null, "list-marker", ownerElement: owner, isReplacedImage: true)
-            : new HtmlInlineRun(marker.Content, marker.Style, null, "list-marker", ownerElement: owner);
+    /// <summary>Keeps default marker text at its list item's source entry across every marker layout route.</summary>
+    private HtmlInlineRun CreateListMarkerRun(HtmlListMarker marker, IElement? owner, HtmlRenderBoxStyle? style = null) {
+        HtmlRenderBoxStyle effectiveStyle = style ?? marker.Style;
+        HtmlInlineRun run = marker.IsImage
+            ? new HtmlInlineRun(marker.Image!, effectiveStyle, null, "list-marker", ownerElement: owner, isReplacedImage: true)
+            : new HtmlInlineRun(marker.Content, effectiveStyle, null, "list-marker", ownerElement: owner);
+        run.SemanticSourceOrder = owner == null ? null : GetSemanticSourceOrder(owner);
+        return run;
+    }
 
     private void AddOutsideMarkerForBlockChildren(
         ICollection<HtmlRenderVisual> visuals,

@@ -58,7 +58,10 @@ internal sealed partial class HtmlRenderLayoutEngine {
             clipVertical: true,
             clippedChildren,
             visuals.Count,
-            source + ":frame-viewport"));
+            source + ":frame-viewport") {
+            SemanticSourceOrder = GetSemanticSourceOrder(element),
+            SourceOrderScope = new HtmlRenderSourceOrderScope()
+        });
 
         ReportReplacedElementFallbacks(style, element);
         AddBoxOutlinePaint(visuals, style, style.MarginLeft, style.MarginTop, boxWidth, boxHeight, element);

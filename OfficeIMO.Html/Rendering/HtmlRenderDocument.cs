@@ -93,7 +93,13 @@ public sealed class HtmlRenderDocument : global::OfficeIMO.IOfficeConversionRepo
     }
 
     private static IEnumerable<string> EnumerateLogicalText(IEnumerable<HtmlRenderVisual> visuals) {
-        foreach (HtmlRenderVisual visual in OrderForLogicalText(visuals)) {
+        List<HtmlRenderVisual> ordered = OrderForLogicalText(visuals).ToList();
+        var scopes = ordered.Where(visual => visual.SourceOrderScope != null
+            && visual is not HtmlRenderLogicalTextGroup
+            && visual is not HtmlRenderSemanticGroup { Role: HtmlRenderSemanticGroupRole.Artifact })
+            .ToLookup(visual => visual.SourceOrderScope!);
+        var emittedScopes = new HashSet<HtmlRenderSourceOrderScope>();
+        foreach (HtmlRenderVisual visual in ordered) {
             if (visual is HtmlRenderSemanticGroup { Role: HtmlRenderSemanticGroupRole.Artifact }) {
                 continue;
             }
@@ -104,6 +110,16 @@ public sealed class HtmlRenderDocument : global::OfficeIMO.IOfficeConversionRepo
                     string visibleText = string.Concat(EnumerateLogicalText(logicalTextGroup.Visuals));
                     if (visibleText.Length > 0) yield return visibleText;
                 }
+                continue;
+            }
+            if (visual.SourceOrderScope is HtmlRenderSourceOrderScope scope) {
+                if (!emittedScopes.Add(scope)) continue;
+                // Stack promotion can split one viewport into several paint
+                // envelopes. Reunite only this page's sibling fragments before
+                // entering the embedded document's own coordinate space.
+                IEnumerable<HtmlRenderVisual> scopedChildren = scopes[scope]
+                    .SelectMany(fragment => ChildVisuals(fragment) ?? Array.Empty<HtmlRenderVisual>());
+                foreach (string textValue in EnumerateLogicalText(scopedChildren)) yield return textValue;
                 continue;
             }
             if (visual is HtmlRenderText text) {
@@ -153,10 +169,11 @@ public sealed class HtmlRenderDocument : global::OfficeIMO.IOfficeConversionRepo
     private static IEnumerable<HtmlRenderVisual> EnumerateLogicalTextOwners(IEnumerable<HtmlRenderVisual> visuals) {
         foreach (HtmlRenderVisual visual in visuals.OrderBy(item => item.PaintOrder)) {
             if (visual is HtmlRenderSemanticGroup { Role: HtmlRenderSemanticGroupRole.Artifact }) continue;
-            if (visual is HtmlRenderText or HtmlRenderLogicalTextGroup
+            if (visual.SourceOrderScope != null
+                || visual is HtmlRenderText or HtmlRenderLogicalTextGroup
                 || visual is HtmlRenderSemanticGroup { Role: HtmlRenderSemanticGroupRole.Formula }) {
-                // A formula owns the DOM coordinate of its drawing-backed text
-                // replacement, whose children need not contain text visuals.
+                // Embedded documents keep their parent source entry. Formulas
+                // own the DOM coordinate of drawing-backed text replacements.
                 yield return visual;
                 continue;
             }

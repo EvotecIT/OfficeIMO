@@ -118,7 +118,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
             callStyle,
             link,
             source,
-            ownerElement: element));
+            ownerElement: element) { SemanticSourceOrder = GetSemanticSourceOrder(element) });
     }
 
     private void AddFootnoteCallDestination(

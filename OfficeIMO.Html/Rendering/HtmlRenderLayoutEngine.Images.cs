@@ -104,7 +104,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 link, sourceDescription, isAtomicReplacedPlaceholder: true));
             if (!string.IsNullOrWhiteSpace(alternativeText)) {
                 AddMissingImageAlternativeText(objectVisuals, alternativeText!, imageX + placement.X,
-                    imageY + placement.Y, placement.Width, placement.Height, style, link, sourceDescription);
+                    imageY + placement.Y, placement.Width, placement.Height, style, link, sourceDescription,
+                    GetSemanticSourceOrder(element));
             }
         }
         HtmlResolvedBorderRadii outerRadii = ResolveBoxRadii(style, boxWidth, boxHeight, element, sourceDescription);
@@ -532,7 +533,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
         string.Join(" ", value.Split(new[] { ' ', '\t', '\r', '\n', '\f' }, StringSplitOptions.RemoveEmptyEntries));
 
     private void AddMissingImageAlternativeText(ICollection<HtmlRenderVisual> visuals, string alternativeText,
-        double x, double y, double width, double height, HtmlRenderBoxStyle style, string? link, string source) {
+        double x, double y, double width, double height, HtmlRenderBoxStyle style, string? link, string source,
+        int? sourceOrder) {
         double horizontalInset = Math.Min(4D, width / 4D);
         double verticalInset = Math.Min(4D, height / 4D);
         double textWidth = Math.Max(0.01D, width - horizontalInset * 2D);
@@ -568,7 +570,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 null,
                 false,
                 null,
-                null,
+                _nextLogicalTextOrder++,
                 style.UnderlineStyle,
                 style.StrikethroughStyle,
                 style.Baseline,
@@ -578,13 +580,15 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 decorationColor: style.DecorationColor,
                 featureSettings: style.TextFeatureSettings,
                 fontPalette: style.FontPalette,
-                fontDescriptor: style.FontDescriptor));
+                fontDescriptor: style.FontDescriptor) { SemanticSourceOrder = sourceOrder });
         }
         if (wrappedLength < normalized.Length) {
             textVisuals.Add(new HtmlRenderText(
                 normalized.Substring(wrappedLength), x + horizontalInset, y + height + lineHeight,
                 textWidth, lineHeight, style.Font, style.Color, OfficeTextAlignment.Left,
-                lineHeight, textVisuals.Count, link, source, "figure-alternative-text"));
+                lineHeight, textVisuals.Count, link, source, "figure-alternative-text",
+                layoutY: null, semanticNodeId: null, textAdvanceWidth: null,
+                logicalTextOrder: _nextLogicalTextOrder++) { SemanticSourceOrder = sourceOrder });
         }
         if (textVisuals.Count > 0) {
             visuals.Add(new HtmlRenderClipGroup(x, y, width, height, true, true,
