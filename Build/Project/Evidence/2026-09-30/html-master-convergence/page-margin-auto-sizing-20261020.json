@@ -1,8 +1,9 @@
 {
   "schema": "officeimo.html.page-margin-auto-sizing-qualification/v1",
   "status": "qualified-bounded-static-checkpoint",
-  "recordedUtc": "2026-10-20T22:28:34.589789+00:00",
-  "qualifiedSourceHead": "735b4b07d80c3c0d89369d71b17d0b80b743aa6c",
+  "qualificationMode": "fresh-dependency-composition-with-historical-full-html-and-native-proof",
+  "recordedUtc": "2026-10-20T23:53:38.361367+00:00",
+  "qualifiedSourceHead": "6224dfa4d61fb76b35ba0df1755aed11c7d77462",
   "base": "33d062b583cb7beb8b13e86fb54bd45f563037b0",
   "scope": [
     "Horizontal automatic top/bottom margin allocation from generated-text and running-source intrinsic contributions.",
@@ -12,37 +13,1118 @@
   ],
   "source": {
     "sourceSeal": {
-      "path": "$TASK_ROOT/source-seal-735b4b0.json",
-      "bytes": 12124101,
-      "sha256": "7c39ea2ef173350a7fe9f8e1d94f4dd7c7aab663283d6590195beaacd98955e4"
+      "path": "$TASK_ROOT/source-seal-6224dfa.json",
+      "bytes": 12124907,
+      "sha256": "a84a8fc46bebf1c5e215790a06e072bdde1313b206bfa348c83c884f20aab804"
     },
-    "trackedSourceInputs": 58034,
-    "gitTree": "73756cdbd1d13e54055b7b0e59ac50dc41d7431b"
+    "trackedSourceInputs": 58038,
+    "gitTree": "c8cebb1d1be97bb47588534ee6f6238d534f07f3"
+  },
+  "historicalQualification": {
+    "sourceHead": "735b4b07d80c3c0d89369d71b17d0b80b743aa6c",
+    "receipt": {
+      "path": "$TASK_ROOT/portable-auto-sizing-qualification-v5.json",
+      "bytes": 39843,
+      "sha256": "f7062d66799a92d437dbfffb4d82c46bbdb2ad67fd43cb4d345dacc9893e31e8"
+    },
+    "trackedAtCompositionSource": {
+      "revision": "6224dfa4d61fb76b35ba0df1755aed11c7d77462",
+      "path": "Build/Project/Evidence/2026-09-30/html-master-convergence/page-margin-auto-sizing-20261020.json",
+      "sha256": "f7062d66799a92d437dbfffb4d82c46bbdb2ad67fd43cb4d345dacc9893e31e8"
+    },
+    "embeddedReceipt": {
+      "schema": "officeimo.html.page-margin-auto-sizing-qualification/v1",
+      "status": "qualified-bounded-static-checkpoint",
+      "recordedUtc": "2026-10-20T22:28:34.589789+00:00",
+      "qualifiedSourceHead": "735b4b07d80c3c0d89369d71b17d0b80b743aa6c",
+      "base": "33d062b583cb7beb8b13e86fb54bd45f563037b0",
+      "scope": [
+        "Horizontal automatic top/bottom margin allocation from generated-text and running-source intrinsic contributions.",
+        "Empty-generated versus absent content; counters and running strings resolve before common text/element allocation.",
+        "Canonical nested table grid and specialized native-control/image ownership; repeated measurement budget and cancellation.",
+        "No new public API or production dependency; earlier cqw/inherited typography contracts retain their original evidence."
+      ],
+      "source": {
+        "sourceSeal": {
+          "path": "$TASK_ROOT/source-seal-735b4b0.json",
+          "bytes": 12124101,
+          "sha256": "7c39ea2ef173350a7fe9f8e1d94f4dd7c7aab663283d6590195beaacd98955e4"
+        },
+        "trackedSourceInputs": 58034,
+        "gitTree": "73756cdbd1d13e54055b7b0e59ac50dc41d7431b"
+      },
+      "integration": {
+        "standaloneH3": "6db894e7eb95dd33ad380f419067460debe6651d",
+        "priorCombinedV4": "368b56f7a7acfb56f9e43caf0dd878bafd9b345c",
+        "historicalFoundationCandidate": "7179a0ddd113fd43d513bb948c1bbc23acbac504",
+        "historicalFoundationProductionQualifiedElsewhere": "83efd2a3fae54cd66c10cd0cf77fe6751649d874",
+        "repairedFoundationCandidate": "5800b68e06d4ff68e842a0712ccbc0a95d460b7e",
+        "master": "33d062b583cb7beb8b13e86fb54bd45f563037b0",
+        "method": "ordinary merges",
+        "htmlProductionTreesUnchangedFromH3": [
+          "OfficeIMO.Html",
+          "OfficeIMO.Html.Core",
+          "OfficeIMO.Html.AngleSharp"
+        ],
+        "coreAndHtmlProductionUnchangedFromV4": true,
+        "testOnlyCompatibilityAmendment": {
+          "path": "OfficeIMO.Html.Tests/Html.Rendering.PageMarginFontPreparation.cs",
+          "source": {
+            "path": "$CHECKOUT/OfficeIMO.Html.Tests/Html.Rendering.PageMarginFontPreparation.cs",
+            "bytes": 3252,
+            "sha256": "28cd3d5bc94d82f4fa192b677dadef4b6c07d6d884a332d98fe570260467aef7"
+          },
+          "diffSha256": "9a10738f6cf2ff06f30124c5a307158ae202376993f0f876e955f83ccc598335",
+          "diff": "diff --git a/OfficeIMO.Html.Tests/Html.Rendering.PageMarginFontPreparation.cs b/OfficeIMO.Html.Tests/Html.Rendering.PageMarginFontPreparation.cs\nindex 786a10e47d..07ef9a9252 100644\n--- a/OfficeIMO.Html.Tests/Html.Rendering.PageMarginFontPreparation.cs\n+++ b/OfficeIMO.Html.Tests/Html.Rendering.PageMarginFontPreparation.cs\n@@ -18,7 +18,7 @@ public sealed partial class HtmlRenderingTests {\n     [InlineData(\"fixed\")]\n     public void HtmlPageMarginFontPreparation_GlobalPositionedAssignmentsShareTheLayoutBudget(string position) {\n         string html = PageMarginFontBudgetSource(referenced: true, attributeValue: false)\n-            .Replace(\"</style>\", \"#assignment{position:\" + position + \";left:0;top:0}</style>\", StringComparison.Ordinal);\n+            .Replace(\"</style>\", \"#assignment{position:\" + position + \";left:0;top:0}</style>\");\n \n         AssertPageMarginFontBudget(html);\n     }"
+        }
+      },
+      "priorContracts": {
+        "cqw": {
+          "path": "$CHECKOUT/Build/Project/Evidence/2026-09-30/html-master-convergence/page-margin-cqw-20261020.json",
+          "bytes": 256823,
+          "sha256": "c301c6c51c9698f89c2825c09b2b69b9404cced87c45972ed636d9495d9feb50"
+        },
+        "inheritance": {
+          "path": "$CHECKOUT/Build/Project/Evidence/2026-09-30/html-master-convergence/page-margin-inheritance-20261020.json",
+          "bytes": 13895,
+          "sha256": "57cf0502f662c42e00cede58191df23c76f849a36caffb8ec412db4a76c6d6c4"
+        },
+        "typography": {
+          "path": "$CHECKOUT/Build/Project/Evidence/2026-09-30/html-master-convergence/page-margin-typography-20261020.json",
+          "bytes": 112092,
+          "sha256": "c874c1cccc1727e478563f9f8cebc70cba35e7e7e61054599e24d98b04e47df3"
+        }
+      },
+      "fullHtmlTests": [
+        {
+          "framework": "net8",
+          "passed": 7682,
+          "failed": 0,
+          "skipped": 0,
+          "trx": {
+            "path": "$TASK_ROOT/trx/full-html-net8-v5/full-html-net8-v5.trx",
+            "bytes": 11779720,
+            "sha256": "c651500b631d8ec8ecdc31f174224f340341db1940cd83bcfd494642946161b9"
+          },
+          "execution": {
+            "path": "$TASK_ROOT/full-html-net8-v5-execution.json",
+            "bytes": 1619,
+            "sha256": "64dfad5e1f88429011645798ad525299f04ecc65aa00aab0e6102adb9beba56e"
+          },
+          "sourceHead": "735b4b07d80c3c0d89369d71b17d0b80b743aa6c"
+        },
+        {
+          "framework": "net10",
+          "passed": 7682,
+          "failed": 0,
+          "skipped": 0,
+          "trx": {
+            "path": "$TASK_ROOT/trx/full-html-net10-v5/full-html-net10-v5.trx",
+            "bytes": 11795085,
+            "sha256": "744160368b2cb1e927b2275ac6ec1fdf90fddc1aab8b7983c3b1b7de92c28849"
+          },
+          "execution": {
+            "path": "$TASK_ROOT/full-html-net10-v5-execution.json",
+            "bytes": 1619,
+            "sha256": "6a08398897c15362ae31f027a11bf5fdae5a9ca9c5670c954b77dfd319b30be7"
+          },
+          "sourceHead": "735b4b07d80c3c0d89369d71b17d0b80b743aa6c"
+        }
+      ],
+      "sourceRendering": {
+        "observationsPerFramework": 20,
+        "ownPngPdfReplayEqualPerFramework": 20,
+        "crossFrameworkDecodedRgbaEqual": 20,
+        "crossFrameworkSceneSavedTextEqual": 20,
+        "crossFrameworkEncodedPngEqual": 0,
+        "crossFrameworkReceipt": {
+          "path": "$TASK_ROOT/candidate-comparison-v5/cross-framework-equivalence.json",
+          "bytes": 21115,
+          "sha256": "78cae1f534ea51c21bf001805a06dedc1987a92057bb6fabacaefb85ef6ef2cc"
+        },
+        "net8": {
+          "path": "$TASK_ROOT/package-source-net8-v5/summary.json",
+          "bytes": 257604,
+          "sha256": "122136dd6956fe28a042d943d4edcc5878beb2e04dc25e009a71207e0dea0128"
+        },
+        "net10": {
+          "path": "$TASK_ROOT/package-source-net10-v5/summary.json",
+          "bytes": 257671,
+          "sha256": "70af7ad658244831db1d400bb37cdadb1161ee8744e6f80191bfdf54827433f0"
+        },
+        "approval": {
+          "path": "$TASK_ROOT/root-render-acceptance-repaired.json",
+          "bytes": 6905,
+          "sha256": "a3276755c73f8651bf44a9d85028a59a26982bf67106ca62d4c1e49a59ccf183"
+        },
+        "exactPerObservationDiagnostics": [
+          {
+            "fixture": "01-literal-centre-repro",
+            "profile": "PrintPaged",
+            "pngDiagnostics": [],
+            "pdfDiagnostics": [],
+            "pngHasLoss": false,
+            "pdfHasLoss": false,
+            "approvalReason": null
+          },
+          {
+            "fixture": "01-literal-centre-repro",
+            "profile": "ScreenMediaPaged",
+            "pngDiagnostics": [],
+            "pdfDiagnostics": [],
+            "pngHasLoss": false,
+            "pdfHasLoss": false,
+            "approvalReason": null
+          },
+          {
+            "fixture": "02-asymmetric-centre",
+            "profile": "PrintPaged",
+            "pngDiagnostics": [],
+            "pdfDiagnostics": [],
+            "pngHasLoss": false,
+            "pdfHasLoss": false,
+            "approvalReason": null
+          },
+          {
+            "fixture": "02-asymmetric-centre",
+            "profile": "ScreenMediaPaged",
+            "pngDiagnostics": [],
+            "pdfDiagnostics": [],
+            "pngHasLoss": false,
+            "pdfHasLoss": false,
+            "approvalReason": null
+          },
+          {
+            "fixture": "03-centre-missing-edge",
+            "profile": "PrintPaged",
+            "pngDiagnostics": [],
+            "pdfDiagnostics": [],
+            "pngHasLoss": false,
+            "pdfHasLoss": false,
+            "approvalReason": null
+          },
+          {
+            "fixture": "03-centre-missing-edge",
+            "profile": "ScreenMediaPaged",
+            "pngDiagnostics": [],
+            "pdfDiagnostics": [],
+            "pngHasLoss": false,
+            "pdfHasLoss": false,
+            "approvalReason": null
+          },
+          {
+            "fixture": "04-no-centre-unequal-edges",
+            "profile": "PrintPaged",
+            "pngDiagnostics": [],
+            "pdfDiagnostics": [],
+            "pngHasLoss": false,
+            "pdfHasLoss": false,
+            "approvalReason": null
+          },
+          {
+            "fixture": "04-no-centre-unequal-edges",
+            "profile": "ScreenMediaPaged",
+            "pngDiagnostics": [],
+            "pdfDiagnostics": [],
+            "pngHasLoss": false,
+            "pdfHasLoss": false,
+            "approvalReason": null
+          },
+          {
+            "fixture": "05-moderate-intrinsic-constraint",
+            "profile": "PrintPaged",
+            "pngDiagnostics": [],
+            "pdfDiagnostics": [],
+            "pngHasLoss": false,
+            "pdfHasLoss": false,
+            "approvalReason": null
+          },
+          {
+            "fixture": "05-moderate-intrinsic-constraint",
+            "profile": "ScreenMediaPaged",
+            "pngDiagnostics": [],
+            "pdfDiagnostics": [],
+            "pngHasLoss": false,
+            "pdfHasLoss": false,
+            "approvalReason": null
+          },
+          {
+            "fixture": "06-severe-intrinsic-constraint",
+            "profile": "PrintPaged",
+            "pngDiagnostics": [],
+            "pdfDiagnostics": [],
+            "pngHasLoss": false,
+            "pdfHasLoss": false,
+            "approvalReason": null
+          },
+          {
+            "fixture": "06-severe-intrinsic-constraint",
+            "profile": "ScreenMediaPaged",
+            "pngDiagnostics": [],
+            "pdfDiagnostics": [],
+            "pngHasLoss": false,
+            "pdfHasLoss": false,
+            "approvalReason": null
+          },
+          {
+            "fixture": "07-none-versus-empty-literal",
+            "profile": "PrintPaged",
+            "pngDiagnostics": [],
+            "pdfDiagnostics": [],
+            "pngHasLoss": false,
+            "pdfHasLoss": false,
+            "approvalReason": null
+          },
+          {
+            "fixture": "07-none-versus-empty-literal",
+            "profile": "ScreenMediaPaged",
+            "pngDiagnostics": [],
+            "pdfDiagnostics": [],
+            "pngHasLoss": false,
+            "pdfHasLoss": false,
+            "approvalReason": null
+          },
+          {
+            "fixture": "08-empty-running-string",
+            "profile": "PrintPaged",
+            "pngDiagnostics": [],
+            "pdfDiagnostics": [],
+            "pngHasLoss": false,
+            "pdfHasLoss": false,
+            "approvalReason": null
+          },
+          {
+            "fixture": "08-empty-running-string",
+            "profile": "ScreenMediaPaged",
+            "pngDiagnostics": [],
+            "pdfDiagnostics": [],
+            "pngHasLoss": false,
+            "pdfHasLoss": false,
+            "approvalReason": null
+          },
+          {
+            "fixture": "09-running-element-common-strip",
+            "profile": "PrintPaged",
+            "pngDiagnostics": [],
+            "pdfDiagnostics": [],
+            "pngHasLoss": false,
+            "pdfHasLoss": false,
+            "approvalReason": null
+          },
+          {
+            "fixture": "09-running-element-common-strip",
+            "profile": "ScreenMediaPaged",
+            "pngDiagnostics": [],
+            "pdfDiagnostics": [],
+            "pngHasLoss": false,
+            "pdfHasLoss": false,
+            "approvalReason": null
+          },
+          {
+            "fixture": "10-bottom-strip-selected-face",
+            "profile": "PrintPaged",
+            "pngDiagnostics": [],
+            "pdfDiagnostics": [],
+            "pngHasLoss": false,
+            "pdfHasLoss": false,
+            "approvalReason": null
+          },
+          {
+            "fixture": "10-bottom-strip-selected-face",
+            "profile": "ScreenMediaPaged",
+            "pngDiagnostics": [],
+            "pdfDiagnostics": [],
+            "pngHasLoss": false,
+            "pdfHasLoss": false,
+            "approvalReason": null
+          }
+        ]
+      },
+      "native": {
+        "engine": "Edge155.0.4283.62 via qualified HtmlTinkerX3.0.4 host",
+        "actualPinnedFontPdfObservations": 20,
+        "normalLiteralSameInputObservations": 14,
+        "severeConstraintBoundaryObservations": 2,
+        "dynamicUnsupportedByNativeObservations": 4,
+        "historicalCapture": {
+          "path": "$TASK_ROOT/native/execution.json",
+          "bytes": 90203,
+          "sha256": "9d7b2c9ee83e17f7d85c099e02c7f79b4c100f5f81a9f5cfcce6345ec86ae22c"
+        },
+        "freshCombinedComparison": {
+          "path": "$TASK_ROOT/candidate-comparison-v5/comparison.json",
+          "bytes": 1026265,
+          "sha256": "c5e5e7ee7e99d1c6ab6c4b30fc5744dc565b38b655be4aaaf9d0b6325c230749"
+        },
+        "rootApproval": {
+          "path": "$TASK_ROOT/root-render-acceptance-repaired.json",
+          "bytes": 6905,
+          "sha256": "a3276755c73f8651bf44a9d85028a59a26982bf67106ca62d4c1e49a59ccf183"
+        },
+        "boundaries": [
+          "Horizontal automatic widths only; authored margin-box width/min/max/padding/border and side/vertical geometry unchanged",
+          "Provider/runtime forks remain separate; Windows profiling deferred",
+          "Full framework/package qualification recorded separately; this file approves actual render/native/allocation observations only"
+        ],
+        "dispatch": {
+          "summary": {
+            "path": "$TASK_ROOT/dispatch-repro-v4-repaired-pinned-net10/summary.json",
+            "bytes": 335969,
+            "sha256": "7e16c82bf40351ab4a68eb009d17271fc4fda21aec1b0b1196e72d5496f53333"
+          },
+          "rootImageBinding": {
+            "path": "$TASK_ROOT/dispatch-visual-repaired/bindings.json",
+            "bytes": 13259,
+            "sha256": "2d05b6d90a00cf0679597687642202a3b0f9c0ae78fc42119dc3cdaad38fcc75"
+          },
+          "observations": 12,
+          "ownPngPdfReplayEqual": 12,
+          "typedLosses": 0
+        }
+      },
+      "privatePackages": {
+        "version": "3.5.10",
+        "freshPackages": 5,
+        "freshFrameworkAssets": 20,
+        "reusedFrameworkAssets": 0,
+        "packageBinding": {
+          "path": "$TASK_ROOT/packages/auto-sizing-v5/package-binding.json",
+          "bytes": 23771,
+          "sha256": "beddd22c5840c613f9b89527a7f765e4c223a5115bb734bcb0740945b23ebb5b"
+        },
+        "consumerBinding": {
+          "path": "$TASK_ROOT/packages/auto-sizing-v5/consumer-binding.json",
+          "bytes": 61134,
+          "sha256": "df8d1b3c38a15891b9de0788ae175e8beb9b6e4961c80ef7140efbf0f9baae1d"
+        },
+        "packages": [
+          {
+            "id": "OfficeIMO.Core",
+            "version": "3.5.10",
+            "artifact": {
+              "path": "$TASK_ROOT/packages/auto-sizing-v5/feed/OfficeIMO.Core.3.5.10.nupkg",
+              "bytes": 8760271,
+              "sha256": "142222ecd487bd865763f4aa6d7d3191d702f9fba82eff7e4d1eae5231581417"
+            },
+            "assets": {
+              "lib/net472/OfficeIMO.Core.dll": "6ec10af217e0dfd9814e6b01ae89c012468a9218b0234826a01b7f7dbca1e523",
+              "lib/netstandard2.0/OfficeIMO.Core.dll": "8a591a0c9d0cadd2a8ee8bb9734636ef9e4c5cc093c05131de2ee681385bd27c",
+              "lib/net8.0/OfficeIMO.Core.dll": "219ca6ab6393323002155543fec1f6bbffb790b85adf704d4f80aceb5bd36e7e",
+              "lib/net10.0/OfficeIMO.Core.dll": "ac137ee71110927370c988ba2dbc775be6cff669202109aa15f32479acf2b770"
+            },
+            "nuspec": {
+              "entry": "OfficeIMO.Core.nuspec",
+              "bytes": 1629,
+              "sha256": "bf0ac6cae39adfbea33d8ea9c1b701b4c5cf14aa360fd8e1aeacf2874414ff3a",
+              "packageId": "OfficeIMO.Core",
+              "version": "3.5.10",
+              "repository": {
+                "type": "git",
+                "url": "https://github.com/EvotecIT/OfficeIMO",
+                "commit": "735b4b07d80c3c0d89369d71b17d0b80b743aa6c"
+              },
+              "dependencyGroups": {
+                "net472": [],
+                "net8.0": [],
+                "net10.0": [],
+                "netstandard2.0": []
+              }
+            }
+          },
+          {
+            "id": "OfficeIMO.Html",
+            "version": "3.5.10",
+            "artifact": {
+              "path": "$TASK_ROOT/packages/auto-sizing-v5/feed/OfficeIMO.Html.3.5.10.nupkg",
+              "bytes": 4720362,
+              "sha256": "86a706dbefda1aeaa347bf677f1b5bfa87c59df8572402c58206467e0e0670a5"
+            },
+            "assets": {
+              "lib/net472/OfficeIMO.Html.dll": "c5290318c78a8b2d57d715b28b6e6666e624a320b880c9ecd045ea29ddd83369",
+              "lib/netstandard2.0/OfficeIMO.Html.dll": "8e7fbdd92d001bfafa6fbd0e2f481b59c390d77bc807d9a429222a0d04072eac",
+              "lib/net8.0/OfficeIMO.Html.dll": "35ab3edc2a99aa1cf15dad1000fd90d9ac0fd53c079abed0952532619dc51036",
+              "lib/net10.0/OfficeIMO.Html.dll": "ef9a7fdd151a02afc44b7200f305c1a1a0be8c6d219464df55c9871d4803bfe6"
+            },
+            "nuspec": {
+              "entry": "OfficeIMO.Html.nuspec",
+              "bytes": 3515,
+              "sha256": "1fd0dad2ebdea8d5a9ff1bd649e5a557aab8a29da878fd0941cde4175b3ad14d",
+              "packageId": "OfficeIMO.Html",
+              "version": "3.5.10",
+              "repository": {
+                "type": "git",
+                "url": "https://github.com/EvotecIT/OfficeIMO",
+                "commit": "735b4b07d80c3c0d89369d71b17d0b80b743aa6c"
+              },
+              "dependencyGroups": {
+                "net472": [
+                  {
+                    "id": "OfficeIMO.Core",
+                    "version": "3.5.10",
+                    "exclude": "Build,Analyzers"
+                  },
+                  {
+                    "id": "OfficeIMO.Html.AngleSharp",
+                    "version": "3.5.10",
+                    "exclude": "Build,Analyzers"
+                  },
+                  {
+                    "id": "OfficeIMO.Html.Core",
+                    "version": "3.5.10",
+                    "exclude": "Build,Analyzers"
+                  },
+                  {
+                    "id": "OfficeIMO.Pdf",
+                    "version": "3.5.10",
+                    "exclude": "Build,Analyzers"
+                  },
+                  {
+                    "id": "AngleSharp",
+                    "version": "1.8.3",
+                    "exclude": "Build,Analyzers"
+                  },
+                  {
+                    "id": "AngleSharp.Css",
+                    "version": "1.1.3",
+                    "exclude": "Build,Analyzers"
+                  }
+                ],
+                "net8.0": [
+                  {
+                    "id": "OfficeIMO.Core",
+                    "version": "3.5.10",
+                    "exclude": "Build,Analyzers"
+                  },
+                  {
+                    "id": "OfficeIMO.Html.AngleSharp",
+                    "version": "3.5.10",
+                    "exclude": "Build,Analyzers"
+                  },
+                  {
+                    "id": "OfficeIMO.Html.Core",
+                    "version": "3.5.10",
+                    "exclude": "Build,Analyzers"
+                  },
+                  {
+                    "id": "OfficeIMO.Pdf",
+                    "version": "3.5.10",
+                    "exclude": "Build,Analyzers"
+                  },
+                  {
+                    "id": "AngleSharp",
+                    "version": "1.8.3",
+                    "exclude": "Build,Analyzers"
+                  },
+                  {
+                    "id": "AngleSharp.Css",
+                    "version": "1.1.3",
+                    "exclude": "Build,Analyzers"
+                  }
+                ],
+                "net10.0": [
+                  {
+                    "id": "OfficeIMO.Core",
+                    "version": "3.5.10",
+                    "exclude": "Build,Analyzers"
+                  },
+                  {
+                    "id": "OfficeIMO.Html.AngleSharp",
+                    "version": "3.5.10",
+                    "exclude": "Build,Analyzers"
+                  },
+                  {
+                    "id": "OfficeIMO.Html.Core",
+                    "version": "3.5.10",
+                    "exclude": "Build,Analyzers"
+                  },
+                  {
+                    "id": "OfficeIMO.Pdf",
+                    "version": "3.5.10",
+                    "exclude": "Build,Analyzers"
+                  },
+                  {
+                    "id": "AngleSharp",
+                    "version": "1.8.3",
+                    "exclude": "Build,Analyzers"
+                  },
+                  {
+                    "id": "AngleSharp.Css",
+                    "version": "1.1.3",
+                    "exclude": "Build,Analyzers"
+                  }
+                ],
+                "netstandard2.0": [
+                  {
+                    "id": "OfficeIMO.Core",
+                    "version": "3.5.10",
+                    "exclude": "Build,Analyzers"
+                  },
+                  {
+                    "id": "OfficeIMO.Html.AngleSharp",
+                    "version": "3.5.10",
+                    "exclude": "Build,Analyzers"
+                  },
+                  {
+                    "id": "OfficeIMO.Html.Core",
+                    "version": "3.5.10",
+                    "exclude": "Build,Analyzers"
+                  },
+                  {
+                    "id": "OfficeIMO.Pdf",
+                    "version": "3.5.10",
+                    "exclude": "Build,Analyzers"
+                  },
+                  {
+                    "id": "AngleSharp",
+                    "version": "1.8.3",
+                    "exclude": "Build,Analyzers"
+                  },
+                  {
+                    "id": "AngleSharp.Css",
+                    "version": "1.1.3",
+                    "exclude": "Build,Analyzers"
+                  }
+                ]
+              }
+            }
+          },
+          {
+            "id": "OfficeIMO.Html.AngleSharp",
+            "version": "3.5.10",
+            "artifact": {
+              "path": "$TASK_ROOT/packages/auto-sizing-v5/feed/OfficeIMO.Html.AngleSharp.3.5.10.nupkg",
+              "bytes": 104178,
+              "sha256": "453ae4f228222ed55b30fd05e0c73f7f617e3e25028c9521e9d073d8f7f0e153"
+            },
+            "assets": {
+              "lib/net472/OfficeIMO.Html.AngleSharp.dll": "d3c4a34a3e03bbd83fc0f781a9e8fb375e0da8c3c362ebe9a2824950eecedc3e",
+              "lib/netstandard2.0/OfficeIMO.Html.AngleSharp.dll": "1f15ece13132766c723c2a75f220c77d102ea4ed8f424d39c4e8d3c7d4fca7fa",
+              "lib/net8.0/OfficeIMO.Html.AngleSharp.dll": "821b62d5c955cc9f11b2bdd6bc6269aec0411c07baa39676ebca218a6e0a1773",
+              "lib/net10.0/OfficeIMO.Html.AngleSharp.dll": "55b5862a38fe0a0b0b5246b11bb990a4f36c7e8302df0b7060c15438f017151a"
+            },
+            "nuspec": {
+              "entry": "OfficeIMO.Html.AngleSharp.nuspec",
+              "bytes": 1884,
+              "sha256": "3551fbbe7bc72a204d9edc17b72dc7101f99aaf136ef0209c0bc5198f18a66e1",
+              "packageId": "OfficeIMO.Html.AngleSharp",
+              "version": "3.5.10",
+              "repository": {
+                "type": "git",
+                "url": "https://github.com/EvotecIT/OfficeIMO",
+                "commit": "735b4b07d80c3c0d89369d71b17d0b80b743aa6c"
+              },
+              "dependencyGroups": {
+                "net472": [
+                  {
+                    "id": "OfficeIMO.Html.Core",
+                    "version": "3.5.10",
+                    "exclude": "Build,Analyzers"
+                  },
+                  {
+                    "id": "AngleSharp",
+                    "version": "1.8.3",
+                    "exclude": "Build,Analyzers"
+                  },
+                  {
+                    "id": "System.Text.Encoding.CodePages",
+                    "version": "8.0.0",
+                    "exclude": "Build,Analyzers"
+                  }
+                ],
+                "net8.0": [
+                  {
+                    "id": "OfficeIMO.Html.Core",
+                    "version": "3.5.10",
+                    "exclude": "Build,Analyzers"
+                  },
+                  {
+                    "id": "AngleSharp",
+                    "version": "1.8.3",
+                    "exclude": "Build,Analyzers"
+                  }
+                ],
+                "net10.0": [
+                  {
+                    "id": "OfficeIMO.Html.Core",
+                    "version": "3.5.10",
+                    "exclude": "Build,Analyzers"
+                  },
+                  {
+                    "id": "AngleSharp",
+                    "version": "1.8.3",
+                    "exclude": "Build,Analyzers"
+                  }
+                ],
+                "netstandard2.0": [
+                  {
+                    "id": "OfficeIMO.Html.Core",
+                    "version": "3.5.10",
+                    "exclude": "Build,Analyzers"
+                  },
+                  {
+                    "id": "AngleSharp",
+                    "version": "1.8.3",
+                    "exclude": "Build,Analyzers"
+                  },
+                  {
+                    "id": "System.Text.Encoding.CodePages",
+                    "version": "8.0.0",
+                    "exclude": "Build,Analyzers"
+                  }
+                ]
+              }
+            }
+          },
+          {
+            "id": "OfficeIMO.Html.Core",
+            "version": "3.5.10",
+            "artifact": {
+              "path": "$TASK_ROOT/packages/auto-sizing-v5/feed/OfficeIMO.Html.Core.3.5.10.nupkg",
+              "bytes": 325280,
+              "sha256": "76e9e590c37168986d16ea885cb7b8bb25b95a58083e200ce48e3438ec2c5260"
+            },
+            "assets": {
+              "lib/net472/OfficeIMO.Html.Core.dll": "e071fec65fcdcfe9e5eb012ef0a7ad2b0ec270ffc508deb94a68ae40de7df76b",
+              "lib/netstandard2.0/OfficeIMO.Html.Core.dll": "5b74b797a76d2cf1e15fdeb389b84f405226f8a00877d2ea0e1e7ee071ececab",
+              "lib/net8.0/OfficeIMO.Html.Core.dll": "5d1250e75f5301a655acb92bbf5e4807d61a5231ced71525a576a3e2a8d0fd83",
+              "lib/net10.0/OfficeIMO.Html.Core.dll": "319ed7685f960d9b075d628ee1ba1db7367a43300761a2a74b39dad9ecc99b2c"
+            },
+            "nuspec": {
+              "entry": "OfficeIMO.Html.Core.nuspec",
+              "bytes": 935,
+              "sha256": "b26b36398392a2ffef569eac136c0586f8b18fe11b687a467869a10e93853ad9",
+              "packageId": "OfficeIMO.Html.Core",
+              "version": "3.5.10",
+              "repository": {
+                "type": "git",
+                "url": "https://github.com/EvotecIT/OfficeIMO",
+                "commit": "735b4b07d80c3c0d89369d71b17d0b80b743aa6c"
+              },
+              "dependencyGroups": {
+                "net472": [],
+                "net8.0": [],
+                "net10.0": [],
+                "netstandard2.0": []
+              }
+            }
+          },
+          {
+            "id": "OfficeIMO.Pdf",
+            "version": "3.5.10",
+            "artifact": {
+              "path": "$TASK_ROOT/packages/auto-sizing-v5/feed/OfficeIMO.Pdf.3.5.10.nupkg",
+              "bytes": 13801141,
+              "sha256": "c3592199b91dcaf3cee5dfcf1c68f0571d075859d4f8885b38da65576436b2a0"
+            },
+            "assets": {
+              "lib/net472/OfficeIMO.Pdf.dll": "d1eefebf81b3f1133544442e295690147da7ddae028c89584d2e847d330624c2",
+              "lib/netstandard2.0/OfficeIMO.Pdf.dll": "390a9772686d0e9a7dbc1964758169c1b8fa09186e51ae6b59919159d4a7b54c",
+              "lib/net8.0/OfficeIMO.Pdf.dll": "4fa6e37ff359296695abd0020851838e0e2366b2f7336eb91186567c33ce2e60",
+              "lib/net10.0/OfficeIMO.Pdf.dll": "a10069a14832cd3c818910fcb8e5db884b8006d13695229e3aa36ef03e2b3831"
+            },
+            "nuspec": {
+              "entry": "OfficeIMO.Pdf.nuspec",
+              "bytes": 1549,
+              "sha256": "deb1bb3bfc4ba088eac5d51fda81f7007c87c11a12701fd19202551be239b622",
+              "packageId": "OfficeIMO.Pdf",
+              "version": "3.5.10",
+              "repository": {
+                "type": "git",
+                "url": "https://github.com/EvotecIT/OfficeIMO",
+                "commit": "735b4b07d80c3c0d89369d71b17d0b80b743aa6c"
+              },
+              "dependencyGroups": {
+                "net472": [
+                  {
+                    "id": "OfficeIMO.Core",
+                    "version": "3.5.10",
+                    "exclude": "Build,Analyzers"
+                  }
+                ],
+                "net8.0": [
+                  {
+                    "id": "OfficeIMO.Core",
+                    "version": "3.5.10",
+                    "exclude": "Build,Analyzers"
+                  }
+                ],
+                "net10.0": [
+                  {
+                    "id": "OfficeIMO.Core",
+                    "version": "3.5.10",
+                    "exclude": "Build,Analyzers"
+                  }
+                ],
+                "netstandard2.0": [
+                  {
+                    "id": "OfficeIMO.Core",
+                    "version": "3.5.10",
+                    "exclude": "Build,Analyzers"
+                  }
+                ]
+              }
+            }
+          }
+        ],
+        "consumers": [
+          {
+            "label": "net8",
+            "framework": ".NET 8.0.23",
+            "observations": 20,
+            "passed": true,
+            "ownPngPdfReplayEqual": 20,
+            "matchingFrameworkSourcePngEqual": 20,
+            "result": {
+              "path": "$TASK_ROOT/packages/auto-sizing-v5/results/net8/result.json",
+              "bytes": 150352,
+              "sha256": "3584eb13aeba674177015c2bf1f83779e7c87cf84317d0c288772e94a57d7b8b"
+            },
+            "executedBinary": {
+              "path": "$SDK_ROOT/dotnet",
+              "bytes": 141392,
+              "sha256": "11b517e7b00d0efa20e9b3ab6fe433f135d828a4c95c9c6ca7a9cf1328b6ada4"
+            },
+            "dynamicCodeSupported": true,
+            "architecture": "Arm64"
+          },
+          {
+            "label": "net10",
+            "framework": ".NET 10.0.13",
+            "observations": 20,
+            "passed": true,
+            "ownPngPdfReplayEqual": 20,
+            "matchingFrameworkSourcePngEqual": 20,
+            "result": {
+              "path": "$TASK_ROOT/packages/auto-sizing-v5/results/net10/result.json",
+              "bytes": 150421,
+              "sha256": "9aabe5a851be5c5307fb188917aee8b22126622ff1579cb02cc23d9fa983556e"
+            },
+            "executedBinary": {
+              "path": "$SDK_ROOT/dotnet",
+              "bytes": 141392,
+              "sha256": "11b517e7b00d0efa20e9b3ab6fe433f135d828a4c95c9c6ca7a9cf1328b6ada4"
+            },
+            "dynamicCodeSupported": true,
+            "architecture": "Arm64"
+          },
+          {
+            "label": "aot",
+            "framework": ".NET 10.0.13",
+            "observations": 20,
+            "passed": true,
+            "ownPngPdfReplayEqual": 20,
+            "matchingFrameworkSourcePngEqual": 20,
+            "result": {
+              "path": "$TASK_ROOT/packages/auto-sizing-v5/results/aot/result.json",
+              "bytes": 148595,
+              "sha256": "6c8df3d506c8510472f926ebd07152cee60a04a196e541a253520adb7b03dea9"
+            },
+            "executedBinary": {
+              "path": "$TASK_ROOT/packages/auto-sizing-v5/out/aot/PageMarginAutoSizingPackageaot",
+              "bytes": 34345936,
+              "sha256": "5f175c313fb47e79475f17d57fb7513c30ad6e80d0279882f6d2dd2fe836b985"
+            },
+            "dynamicCodeSupported": false,
+            "architecture": "Arm64"
+          }
+        ],
+        "actualStageExecutions": [
+          {
+            "path": "$TASK_ROOT/auto-sizing-v5-preflight-execution.json",
+            "bytes": 1649,
+            "sha256": "ac8580282f28f577a472660a3db58dcdd8220c11036e9822cf28083747f1e4a2"
+          },
+          {
+            "path": "$TASK_ROOT/auto-sizing-v5-source-restore-execution.json",
+            "bytes": 2524,
+            "sha256": "78ea0a8e6e1a21fc497690d689a89dbb37ca5350fd2c455ee6cf77aaaadd5a4d"
+          },
+          {
+            "path": "$TASK_ROOT/auto-sizing-v5-source-build-execution.json",
+            "bytes": 2555,
+            "sha256": "a1cadbdc4127130ce9057e3ed9f4bff1aabbb84192086c0ff63fd60f7caf62e9"
+          },
+          {
+            "path": "$TASK_ROOT/auto-sizing-v5-pack-officeimo-core-execution.json",
+            "bytes": 2577,
+            "sha256": "899a95d201a4714d88f3669b50511882d460fddac851ca13314bf8e43e3d9a06"
+          },
+          {
+            "path": "$TASK_ROOT/auto-sizing-v5-pack-officeimo-pdf-execution.json",
+            "bytes": 2573,
+            "sha256": "da7ae68ba987d528d0f7fa679909f442fe95119a848fb4c94d43585d1cb8f37e"
+          },
+          {
+            "path": "$TASK_ROOT/auto-sizing-v5-pack-officeimo-html-core-execution.json",
+            "bytes": 2597,
+            "sha256": "305900b0ab931a8fd36d504c1216790ce0275d5fdb1e4627a6a457c6a92112e9"
+          },
+          {
+            "path": "$TASK_ROOT/auto-sizing-v5-pack-officeimo-html-anglesharp-execution.json",
+            "bytes": 2621,
+            "sha256": "ac307dc3d482b5405b45005c0f7a9f96296582081972563daaa3d2d2860416a7"
+          },
+          {
+            "path": "$TASK_ROOT/auto-sizing-v5-pack-officeimo-html-execution.json",
+            "bytes": 2574,
+            "sha256": "abb74bf7fdc8bec3d1bc5f40e7bbe55e132ba719286d03ca57923b9ae716370e"
+          },
+          {
+            "path": "$TASK_ROOT/auto-sizing-v5-inspect-packages-execution.json",
+            "bytes": 1669,
+            "sha256": "09edec4249a3509990ecae046fcb74db9aba673406401da39f30bdadf23edc04"
+          },
+          {
+            "path": "$TASK_ROOT/auto-sizing-v5-aot-publish-execution.json",
+            "bytes": 2404,
+            "sha256": "d4555489c2fd61ce82aaa56b2e3990120faaa789caed7d9acf6068a0acf4e340"
+          },
+          {
+            "path": "$TASK_ROOT/auto-sizing-v5-aot-run-execution.json",
+            "bytes": 1943,
+            "sha256": "f552f652135499b796d445ff3abc119b1ebf8e5505225a022f23c28a64bd8132"
+          },
+          {
+            "path": "$TASK_ROOT/auto-sizing-v5-net8-build-execution.json",
+            "bytes": 2339,
+            "sha256": "37b684df6a2bd06c0533827354a6e4dbadbb2fe7dd6d7baee65d5bd5a6043a9c"
+          },
+          {
+            "path": "$TASK_ROOT/auto-sizing-v5-net8-run-execution.json",
+            "bytes": 1996,
+            "sha256": "5f1680d9f9c666a25f7084bccb5daf0e3c74be2829a07acabe5c582fbda9cbef"
+          },
+          {
+            "path": "$TASK_ROOT/auto-sizing-v5-net10-build-execution.json",
+            "bytes": 2351,
+            "sha256": "32bbec84b6bdd09e4ee3f69c150d17c0598fa1083a5b51330505f2fcae30442e"
+          },
+          {
+            "path": "$TASK_ROOT/auto-sizing-v5-net10-run-execution.json",
+            "bytes": 2008,
+            "sha256": "8dc962f47ac42c1419a9879158e56faae188852b79af0065b79db3b4062d3aef"
+          },
+          {
+            "path": "$TASK_ROOT/auto-sizing-v5-inspect-consumers-execution.json",
+            "bytes": 1672,
+            "sha256": "7d85535a9af7becb57706132695907c178ac1963923e3841ae5844d2d5cbeb62"
+          }
+        ],
+        "publicRelease": false
+      },
+      "localReview": {
+        "historicalH3Adjudication": {
+          "path": "$TASK_ROOT/root-render-acceptance-h3.json",
+          "bytes": 4413,
+          "sha256": "0136ec9443c459014fafba978132bc3d4d7a3d8f2388c956a33f16a200a44111"
+        },
+        "originalReviewAndTargetedConfirmation": {
+          "fullPass": "4700..7d38364 read-only independent; three findings reproduced/fixed",
+          "targetedConfirmation": "7d38364..6c693df read-only independent; initial3confirmedfixed, one eligibility finding reproduced and fixed",
+          "h3OwnerClosure": "ROOT inspected all4table-intrinsic calls and shared eligibility predicate against actual specialized dispatch; focused296 and actual12before/after proof close the requested guard. No additional independent pass claimed."
+        },
+        "combinedRootAdjudication": {
+          "path": "$TASK_ROOT/root-render-acceptance-repaired.json",
+          "bytes": 6905,
+          "sha256": "a3276755c73f8651bf44a9d85028a59a26982bf67106ca62d4c1e49a59ccf183"
+        },
+        "boundary": "No new independent H3 or combined-source review is claimed."
+      },
+      "historicalStandaloneH3FullHtmlTests": [
+        {
+          "framework": "net8",
+          "passed": 7682,
+          "failed": 0,
+          "skipped": 0,
+          "trx": {
+            "path": "$TASK_ROOT/trx/full-html-net8-v3/full-html-net8-v3.trx",
+            "bytes": 11779720,
+            "sha256": "5f482a19dff6c495099e18334ea7ab7465bd2b5bb7ee7d3b5988427829ebb340"
+          },
+          "execution": {
+            "path": "$TASK_ROOT/full-html-net8-v3-execution.json",
+            "bytes": 1614,
+            "sha256": "900ee80a5fd162e8f7e7e3f1816ff5a15a527adacb49c3851987f90e7b3c0ce5"
+          },
+          "sourceHead": "6db894e7eb95dd33ad380f419067460debe6651d"
+        },
+        {
+          "framework": "net10",
+          "passed": 7682,
+          "failed": 0,
+          "skipped": 0,
+          "trx": {
+            "path": "$TASK_ROOT/trx/full-html-net10-v3/full-html-net10-v3.trx",
+            "bytes": 11795085,
+            "sha256": "1e289198e4c7ba175066202b2f926adca768782ac01277886458a5370706f7c2"
+          },
+          "execution": {
+            "path": "$TASK_ROOT/full-html-net10-v3-execution.json",
+            "bytes": 1619,
+            "sha256": "8e3c8dbe056d4c8f3dd4e59b03921c9ef4066e4f515904c57b6759e9260c3dd7"
+          },
+          "sourceHead": "6db894e7eb95dd33ad380f419067460debe6651d"
+        }
+      ],
+      "storage": {
+        "status": "completed-scoped-cleanup",
+        "removedLogicalBytesThisPass": 3523113871,
+        "cleanup": {
+          "path": "$TASK_ROOT/cleanup-v5-result.json",
+          "bytes": 6803,
+          "sha256": "5b7f666d73836219bc5ea62c933ea9ea054368e58e7a262ad511963a1af6278c"
+        },
+        "ledgerAppend": {
+          "path": "$TASK_ROOT/prep/storage-ledger-v5/append-receipt.json",
+          "bytes": 2970,
+          "sha256": "d5dab5a4bbfb852b64f37b0c3542d3b966c32d45f89588fa9f1be23c2d8ea0bf"
+        },
+        "archive": {
+          "path": "$TASK_ROOT/retained/auto-sizing-v5-runtime-metadata.zip",
+          "bytes": 12964197,
+          "sha256": "a3a993097eccd0761da141880d1dd47ee029a74f49494cac4a0dc7fc5007e2d4"
+        },
+        "archiveReadback": {
+          "path": "$TASK_ROOT/retained/auto-sizing-v5-runtime-metadata.json",
+          "bytes": 522733,
+          "sha256": "24b5a3b54fc6f1bfe6ba14c3a644abded5dabd0037fbdfe2730edac0dfc994a3"
+        },
+        "archivedEntries": 363,
+        "retiredGraphs": [
+          {
+            "path": "$TASK_ROOT/build-tests-v5",
+            "files": 2838,
+            "logicalBytes": 1751304767,
+            "preRemovalTreeMetadataSha256": "f645fef28e33e1d89cc1e265416e2a527b80210ad9f2df0c1b6402a9c22aad94",
+            "verifiedAbsent": true,
+            "nativeExitCode": 1,
+            "recoveryExitCode": 0
+          },
+          {
+            "path": "$TASK_ROOT/build-package-v5",
+            "files": 443,
+            "logicalBytes": 339157719,
+            "preRemovalTreeMetadataSha256": "df78da765adb3ede20bb88d9c75c6cfb6478039c868253707adeef393e113b29",
+            "verifiedAbsent": true,
+            "nativeExitCode": 1,
+            "recoveryExitCode": 0
+          },
+          {
+            "path": "$TASK_ROOT/build-package-witness-v5",
+            "files": 222,
+            "logicalBytes": 55883605,
+            "preRemovalTreeMetadataSha256": "9fe1fe58910c3f5108d7347d3df48feedcde86f4bb55d7e0b56909fa47eeadf0",
+            "verifiedAbsent": true,
+            "nativeExitCode": 1,
+            "recoveryExitCode": 0
+          },
+          {
+            "path": "$TASK_ROOT/package-witness-private-v5",
+            "files": 1095,
+            "logicalBytes": 192867368,
+            "preRemovalTreeMetadataSha256": "2d09046679f5a369ce74389d5faa2bca96ad2989a5775ed4d717a29a45f8210e",
+            "verifiedAbsent": true,
+            "nativeExitCode": 1,
+            "recoveryExitCode": 0
+          },
+          {
+            "path": "$TASK_ROOT/build-dispatch-repro-v4-repaired",
+            "files": 21,
+            "logicalBytes": 294594,
+            "preRemovalTreeMetadataSha256": "2cf42f6b7141eb6fb8d9e22e24259b6fa0b7149af895250da65cbf656a231f58",
+            "verifiedAbsent": true,
+            "nativeExitCode": 1,
+            "recoveryExitCode": 0
+          },
+          {
+            "path": "$TASK_ROOT/packages/auto-sizing-v5/consumer-graph",
+            "files": 267,
+            "logicalBytes": 411536109,
+            "preRemovalTreeMetadataSha256": "c88af69e017fc72c64a523e9ca3b3ef6c39a6d48f8acb81a07e15e39499d93ef",
+            "verifiedAbsent": true,
+            "nativeExitCode": 1,
+            "recoveryExitCode": 0
+          },
+          {
+            "path": "$TASK_ROOT/packages/auto-sizing-v5/candidate-cache",
+            "files": 2381,
+            "logicalBytes": 769393873,
+            "preRemovalTreeMetadataSha256": "3de7ead8cc5d7e05c2b764db30170fab865962907bd97088672455f8f385ca5a",
+            "verifiedAbsent": true,
+            "nativeExitCode": 1,
+            "recoveryExitCode": 0
+          },
+          {
+            "path": "$TASK_ROOT/packages/auto-sizing-v5/nuget-scratch",
+            "files": 48,
+            "logicalBytes": 0,
+            "preRemovalTreeMetadataSha256": "6fa274a9058a7c5dacf842fcde7d9e139c6fa81b4bcab9ced09b168fa7793678",
+            "verifiedAbsent": true,
+            "nativeExitCode": 0,
+            "recoveryExitCode": null
+          },
+          {
+            "path": "$TASK_ROOT/tmp",
+            "files": 117,
+            "logicalBytes": 2670203,
+            "preRemovalTreeMetadataSha256": "9fd1ff26d193d23b830e247c03e07552456e672644cb6d391ccc1abbc5f69cac",
+            "verifiedAbsent": true,
+            "nativeExitCode": 1,
+            "recoveryExitCode": 0
+          },
+          {
+            "path": "$TASK_ROOT/cli-home",
+            "files": 14,
+            "logicalBytes": 5633,
+            "preRemovalTreeMetadataSha256": "4e7e4ced735e339a5d22e068b1005a37b1030b035cb23b14dc5064c968a8d2c0",
+            "verifiedAbsent": true,
+            "nativeExitCode": 1,
+            "recoveryExitCode": 0
+          }
+        ],
+        "boundary": "Only the explicitly bound final cleanup is claimed; original H1-H3 receipts remain historical."
+      },
+      "remaining": [
+        "Authored margin-box width/min/max constraints, padding, border and side/vertical geometry remain outside this profile.",
+        "Ordinary intrinsic-width keywords on specialized formatting owners retain their existing open scope.",
+        "Severe unbreakable native overflow/clipping differs from owned emergency wrapping; dynamic Edge support is absent.",
+        "Runtime/provider forks remain separate; Windows profiling deferred. No universal appearance, accessibility or native Windows claim."
+      ],
+      "delivery": {
+        "checkpointBranch": "fix/html-page-margin-inheritance",
+        "prOpened": false,
+        "merge": "authorized only after normal current-head CI/review gates",
+        "packagePublication": "not authorized"
+      },
+      "collector": {
+        "path": "$TASK_ROOT/prep/final-receipt-v5/collect.py",
+        "bytes": 29464,
+        "sha256": "12efb1f123adc56a8b063754c5cd48496f23c8659c550cb6fcb5cbc533b4b0d8"
+      }
+    },
+    "boundary": "Exact f706 original qualification. Full HTML suites, prior packages, native captures and review remain bound to their original heads; they are not rerun or relabelled."
   },
   "integration": {
-    "standaloneH3": "6db894e7eb95dd33ad380f419067460debe6651d",
-    "priorCombinedV4": "368b56f7a7acfb56f9e43caf0dd878bafd9b345c",
-    "historicalFoundationCandidate": "7179a0ddd113fd43d513bb948c1bbc23acbac504",
-    "historicalFoundationProductionQualifiedElsewhere": "83efd2a3fae54cd66c10cd0cf77fe6751649d874",
-    "repairedFoundationCandidate": "5800b68e06d4ff68e842a0712ccbc0a95d460b7e",
-    "master": "33d062b583cb7beb8b13e86fb54bd45f563037b0",
-    "method": "ordinary merges",
-    "htmlProductionTreesUnchangedFromH3": [
-      "OfficeIMO.Html",
-      "OfficeIMO.Html.Core",
-      "OfficeIMO.Html.AngleSharp"
+    "method": "ordinary merge",
+    "parents": [
+      "f304fa1d1eb0e6df7573555fe5d2446998d31c6e",
+      "1a23f5e5b4910eb3185e4f2f492b8783fe8ca4ae"
     ],
-    "coreAndHtmlProductionUnchangedFromV4": true,
-    "testOnlyCompatibilityAmendment": {
-      "path": "OfficeIMO.Html.Tests/Html.Rendering.PageMarginFontPreparation.cs",
-      "source": {
-        "path": "$CHECKOUT/OfficeIMO.Html.Tests/Html.Rendering.PageMarginFontPreparation.cs",
-        "bytes": 3252,
-        "sha256": "28cd3d5bc94d82f4fa192b677dadef4b6c07d6d884a332d98fe570260467aef7"
-      },
-      "diffSha256": "9a10738f6cf2ff06f30124c5a307158ae202376993f0f876e955f83ccc598335",
-      "diff": "diff --git a/OfficeIMO.Html.Tests/Html.Rendering.PageMarginFontPreparation.cs b/OfficeIMO.Html.Tests/Html.Rendering.PageMarginFontPreparation.cs\nindex 786a10e47d..07ef9a9252 100644\n--- a/OfficeIMO.Html.Tests/Html.Rendering.PageMarginFontPreparation.cs\n+++ b/OfficeIMO.Html.Tests/Html.Rendering.PageMarginFontPreparation.cs\n@@ -18,7 +18,7 @@ public sealed partial class HtmlRenderingTests {\n     [InlineData(\"fixed\")]\n     public void HtmlPageMarginFontPreparation_GlobalPositionedAssignmentsShareTheLayoutBudget(string position) {\n         string html = PageMarginFontBudgetSource(referenced: true, attributeValue: false)\n-            .Replace(\"</style>\", \"#assignment{position:\" + position + \";left:0;top:0}</style>\", StringComparison.Ordinal);\n+            .Replace(\"</style>\", \"#assignment{position:\" + position + \";left:0;top:0}</style>\");\n \n         AssertPageMarginFontBudget(html);\n     }"
-    }
+    "finalPublishedPdfOwner": "1a23f5e5b4910eb3185e4f2f492b8783fe8ca4ae",
+    "priorQualifiedDependency": "5800b68e06d4ff68e842a0712ccbc0a95d460b7e",
+    "historicalHtmlQualification": "735b4b07d80c3c0d89369d71b17d0b80b743aa6c",
+    "htmlRuntimeAndTestsUnchangedFromHistorical": true,
+    "htmlDocumentationOnlyChanges": [
+      "OfficeIMO.Html/README.md"
+    ],
+    "pdfProductionDelta": [
+      "OfficeIMO.Pdf/Manipulation/PdfMerger.Tagged.cs",
+      "OfficeIMO.Pdf/Manipulation/PdfMerger.cs",
+      "OfficeIMO.Pdf/Manipulation/PdfTaggedPageOrganizer.ImportStructure.cs",
+      "OfficeIMO.Pdf/Manipulation/PdfTaggedPageOrganizer.Structure.cs",
+      "OfficeIMO.Pdf/Reading/Core/PdfReadDocument.TaggedContent.cs"
+    ],
+    "coreImpactOwner": "ROOT separate workflow"
   },
   "priorContracts": {
     "cqw": {
@@ -97,31 +1179,50 @@
       "sourceHead": "735b4b07d80c3c0d89369d71b17d0b80b743aa6c"
     }
   ],
+  "fullHtmlTestsBoundary": {
+    "sourceHead": "735b4b07d80c3c0d89369d71b17d0b80b743aa6c",
+    "rerunForLatestComposition": false,
+    "reason": "HTML runtime/test source is unchanged. Current dependency composition is separately exercised by fresh52source and60packaged saved-PDF/Open replay observations; no new full-suite pass is claimed."
+  },
   "sourceRendering": {
+    "sourceHead": "6224dfa4d61fb76b35ba0df1755aed11c7d77462",
     "observationsPerFramework": 20,
+    "mainObservations": 40,
     "ownPngPdfReplayEqualPerFramework": 20,
+    "dispatchObservations": 12,
+    "dispatchOwnPngPdfReplayEqual": 12,
     "crossFrameworkDecodedRgbaEqual": 20,
     "crossFrameworkSceneSavedTextEqual": 20,
     "crossFrameworkEncodedPngEqual": 0,
     "crossFrameworkReceipt": {
-      "path": "$TASK_ROOT/candidate-comparison-v5/cross-framework-equivalence.json",
+      "path": "$TASK_ROOT/candidate-comparison-v6/cross-framework-equivalence.json",
       "bytes": 21115,
-      "sha256": "78cae1f534ea51c21bf001805a06dedc1987a92057bb6fabacaefb85ef6ef2cc"
+      "sha256": "5f0f189e39a47b69073d59282a864541529936cbaa67f84b82a9b7f6b3c3107d"
     },
     "net8": {
-      "path": "$TASK_ROOT/package-source-net8-v5/summary.json",
+      "path": "$TASK_ROOT/package-source-net8-v6/summary.json",
       "bytes": 257604,
-      "sha256": "122136dd6956fe28a042d943d4edcc5878beb2e04dc25e009a71207e0dea0128"
+      "sha256": "85b03c1388bf5703ed5bc7cadb033606236ce7994ed6a81c9c9076f02ab6d11e"
     },
     "net10": {
-      "path": "$TASK_ROOT/package-source-net10-v5/summary.json",
+      "path": "$TASK_ROOT/package-source-net10-v6/summary.json",
       "bytes": 257671,
-      "sha256": "70af7ad658244831db1d400bb37cdadb1161ee8744e6f80191bfdf54827433f0"
+      "sha256": "77800fa40899bdc68a4b56b5bdae822716f750d6616444e6a46482cb420c0666"
+    },
+    "dispatch": {
+      "path": "$TASK_ROOT/dispatch-source-v6/summary.json",
+      "bytes": 334286,
+      "sha256": "c90cc4430b92a95542603dddff5d53006601b3cd168a6a07676c0851d1892074"
+    },
+    "identityToHistorical735b": {
+      "path": "$TASK_ROOT/candidate-comparison-v6/source-identity.json",
+      "bytes": 43248,
+      "sha256": "93a675c9cacb4489846e7f206087fca6660ac8b2d211c140ec7c658b23c852ef"
     },
     "approval": {
-      "path": "$TASK_ROOT/root-render-acceptance-repaired.json",
-      "bytes": 6905,
-      "sha256": "a3276755c73f8651bf44a9d85028a59a26982bf67106ca62d4c1e49a59ccf183"
+      "path": "$TASK_ROOT/root-render-acceptance-v6.json",
+      "bytes": 3703,
+      "sha256": "c2ad31f1463bdc38d38eb809cce79ad957bc2b6a5f7eedc6550ca16d70dc48c2"
     },
     "exactPerObservationDiagnostics": [
       {
@@ -131,7 +1232,7 @@
         "pdfDiagnostics": [],
         "pngHasLoss": false,
         "pdfHasLoss": false,
-        "approvalReason": null
+        "approvalReason": "ROOT checked actual fresh6224 observations on both frameworks against retained735b; exact typed diagnostic/loss inventory unchanged."
       },
       {
         "fixture": "01-literal-centre-repro",
@@ -140,7 +1241,7 @@
         "pdfDiagnostics": [],
         "pngHasLoss": false,
         "pdfHasLoss": false,
-        "approvalReason": null
+        "approvalReason": "ROOT checked actual fresh6224 observations on both frameworks against retained735b; exact typed diagnostic/loss inventory unchanged."
       },
       {
         "fixture": "02-asymmetric-centre",
@@ -149,7 +1250,7 @@
         "pdfDiagnostics": [],
         "pngHasLoss": false,
         "pdfHasLoss": false,
-        "approvalReason": null
+        "approvalReason": "ROOT checked actual fresh6224 observations on both frameworks against retained735b; exact typed diagnostic/loss inventory unchanged."
       },
       {
         "fixture": "02-asymmetric-centre",
@@ -158,7 +1259,7 @@
         "pdfDiagnostics": [],
         "pngHasLoss": false,
         "pdfHasLoss": false,
-        "approvalReason": null
+        "approvalReason": "ROOT checked actual fresh6224 observations on both frameworks against retained735b; exact typed diagnostic/loss inventory unchanged."
       },
       {
         "fixture": "03-centre-missing-edge",
@@ -167,7 +1268,7 @@
         "pdfDiagnostics": [],
         "pngHasLoss": false,
         "pdfHasLoss": false,
-        "approvalReason": null
+        "approvalReason": "ROOT checked actual fresh6224 observations on both frameworks against retained735b; exact typed diagnostic/loss inventory unchanged."
       },
       {
         "fixture": "03-centre-missing-edge",
@@ -176,7 +1277,7 @@
         "pdfDiagnostics": [],
         "pngHasLoss": false,
         "pdfHasLoss": false,
-        "approvalReason": null
+        "approvalReason": "ROOT checked actual fresh6224 observations on both frameworks against retained735b; exact typed diagnostic/loss inventory unchanged."
       },
       {
         "fixture": "04-no-centre-unequal-edges",
@@ -185,7 +1286,7 @@
         "pdfDiagnostics": [],
         "pngHasLoss": false,
         "pdfHasLoss": false,
-        "approvalReason": null
+        "approvalReason": "ROOT checked actual fresh6224 observations on both frameworks against retained735b; exact typed diagnostic/loss inventory unchanged."
       },
       {
         "fixture": "04-no-centre-unequal-edges",
@@ -194,7 +1295,7 @@
         "pdfDiagnostics": [],
         "pngHasLoss": false,
         "pdfHasLoss": false,
-        "approvalReason": null
+        "approvalReason": "ROOT checked actual fresh6224 observations on both frameworks against retained735b; exact typed diagnostic/loss inventory unchanged."
       },
       {
         "fixture": "05-moderate-intrinsic-constraint",
@@ -203,7 +1304,7 @@
         "pdfDiagnostics": [],
         "pngHasLoss": false,
         "pdfHasLoss": false,
-        "approvalReason": null
+        "approvalReason": "ROOT checked actual fresh6224 observations on both frameworks against retained735b; exact typed diagnostic/loss inventory unchanged."
       },
       {
         "fixture": "05-moderate-intrinsic-constraint",
@@ -212,7 +1313,7 @@
         "pdfDiagnostics": [],
         "pngHasLoss": false,
         "pdfHasLoss": false,
-        "approvalReason": null
+        "approvalReason": "ROOT checked actual fresh6224 observations on both frameworks against retained735b; exact typed diagnostic/loss inventory unchanged."
       },
       {
         "fixture": "06-severe-intrinsic-constraint",
@@ -221,7 +1322,7 @@
         "pdfDiagnostics": [],
         "pngHasLoss": false,
         "pdfHasLoss": false,
-        "approvalReason": null
+        "approvalReason": "ROOT checked actual fresh6224 observations on both frameworks against retained735b; exact typed diagnostic/loss inventory unchanged."
       },
       {
         "fixture": "06-severe-intrinsic-constraint",
@@ -230,7 +1331,7 @@
         "pdfDiagnostics": [],
         "pngHasLoss": false,
         "pdfHasLoss": false,
-        "approvalReason": null
+        "approvalReason": "ROOT checked actual fresh6224 observations on both frameworks against retained735b; exact typed diagnostic/loss inventory unchanged."
       },
       {
         "fixture": "07-none-versus-empty-literal",
@@ -239,7 +1340,7 @@
         "pdfDiagnostics": [],
         "pngHasLoss": false,
         "pdfHasLoss": false,
-        "approvalReason": null
+        "approvalReason": "ROOT checked actual fresh6224 observations on both frameworks against retained735b; exact typed diagnostic/loss inventory unchanged."
       },
       {
         "fixture": "07-none-versus-empty-literal",
@@ -248,7 +1349,7 @@
         "pdfDiagnostics": [],
         "pngHasLoss": false,
         "pdfHasLoss": false,
-        "approvalReason": null
+        "approvalReason": "ROOT checked actual fresh6224 observations on both frameworks against retained735b; exact typed diagnostic/loss inventory unchanged."
       },
       {
         "fixture": "08-empty-running-string",
@@ -257,7 +1358,7 @@
         "pdfDiagnostics": [],
         "pngHasLoss": false,
         "pdfHasLoss": false,
-        "approvalReason": null
+        "approvalReason": "ROOT checked actual fresh6224 observations on both frameworks against retained735b; exact typed diagnostic/loss inventory unchanged."
       },
       {
         "fixture": "08-empty-running-string",
@@ -266,7 +1367,7 @@
         "pdfDiagnostics": [],
         "pngHasLoss": false,
         "pdfHasLoss": false,
-        "approvalReason": null
+        "approvalReason": "ROOT checked actual fresh6224 observations on both frameworks against retained735b; exact typed diagnostic/loss inventory unchanged."
       },
       {
         "fixture": "09-running-element-common-strip",
@@ -275,7 +1376,7 @@
         "pdfDiagnostics": [],
         "pngHasLoss": false,
         "pdfHasLoss": false,
-        "approvalReason": null
+        "approvalReason": "ROOT checked actual fresh6224 observations on both frameworks against retained735b; exact typed diagnostic/loss inventory unchanged."
       },
       {
         "fixture": "09-running-element-common-strip",
@@ -284,7 +1385,7 @@
         "pdfDiagnostics": [],
         "pngHasLoss": false,
         "pdfHasLoss": false,
-        "approvalReason": null
+        "approvalReason": "ROOT checked actual fresh6224 observations on both frameworks against retained735b; exact typed diagnostic/loss inventory unchanged."
       },
       {
         "fixture": "10-bottom-strip-selected-face",
@@ -293,7 +1394,7 @@
         "pdfDiagnostics": [],
         "pngHasLoss": false,
         "pdfHasLoss": false,
-        "approvalReason": null
+        "approvalReason": "ROOT checked actual fresh6224 observations on both frameworks against retained735b; exact typed diagnostic/loss inventory unchanged."
       },
       {
         "fixture": "10-bottom-strip-selected-face",
@@ -302,92 +1403,141 @@
         "pdfDiagnostics": [],
         "pngHasLoss": false,
         "pdfHasLoss": false,
-        "approvalReason": null
+        "approvalReason": "ROOT checked actual fresh6224 observations on both frameworks against retained735b; exact typed diagnostic/loss inventory unchanged."
+      }
+    ],
+    "actualStageExecutions": [
+      {
+        "path": "$TASK_ROOT/auto-sizing-v6-source-witness-net8-build-execution.json",
+        "bytes": 2486,
+        "sha256": "60a53c80138fd59b133c94e91e067d1a4cd1a1541954f9faff7121dbe27a6965"
+      },
+      {
+        "path": "$TASK_ROOT/auto-sizing-v6-source-witness-net8-run-execution.json",
+        "bytes": 1959,
+        "sha256": "20a6b159f7a7ed7580cb73608a4ae6cc99f1d91cd5955ced0baa982346b7dd9f"
+      },
+      {
+        "path": "$TASK_ROOT/auto-sizing-v6-source-witness-net10-build-execution.json",
+        "bytes": 2485,
+        "sha256": "4cbc91b119e0b1378135fbcfb7dc2333edaf893a566d3c127e5e2b7c024a74d3"
+      },
+      {
+        "path": "$TASK_ROOT/auto-sizing-v6-source-witness-net10-run-execution.json",
+        "bytes": 1966,
+        "sha256": "ab8f69cbfe0621284658541aa1f0b51c22f2e17deb3b9876ab144b6130ba3c46"
+      },
+      {
+        "path": "$TASK_ROOT/auto-sizing-v6-dispatch-build-execution.json",
+        "bytes": 2433,
+        "sha256": "cd78b86d5368f02620ef551f50abcfb9c958527751576e6b768372afc9c913c1"
+      },
+      {
+        "path": "$TASK_ROOT/auto-sizing-v6-dispatch-run-execution.json",
+        "bytes": 2072,
+        "sha256": "2d9eedbd531b6d559d6d3e88c0c8cc9abd75ce7bd73f68b5dbe9733b22e555b9"
       }
     ]
   },
   "native": {
-    "engine": "Edge155.0.4283.62 via qualified HtmlTinkerX3.0.4 host",
+    "qualifiedByHistoricalReceiptAtSourceHead": "735b4b07d80c3c0d89369d71b17d0b80b743aa6c",
+    "historicalProof": {
+      "engine": "Edge155.0.4283.62 via qualified HtmlTinkerX3.0.4 host",
+      "actualPinnedFontPdfObservations": 20,
+      "normalLiteralSameInputObservations": 14,
+      "severeConstraintBoundaryObservations": 2,
+      "dynamicUnsupportedByNativeObservations": 4,
+      "historicalCapture": {
+        "path": "$TASK_ROOT/native/execution.json",
+        "bytes": 90203,
+        "sha256": "9d7b2c9ee83e17f7d85c099e02c7f79b4c100f5f81a9f5cfcce6345ec86ae22c"
+      },
+      "freshCombinedComparison": {
+        "path": "$TASK_ROOT/candidate-comparison-v5/comparison.json",
+        "bytes": 1026265,
+        "sha256": "c5e5e7ee7e99d1c6ab6c4b30fc5744dc565b38b655be4aaaf9d0b6325c230749"
+      },
+      "rootApproval": {
+        "path": "$TASK_ROOT/root-render-acceptance-repaired.json",
+        "bytes": 6905,
+        "sha256": "a3276755c73f8651bf44a9d85028a59a26982bf67106ca62d4c1e49a59ccf183"
+      },
+      "boundaries": [
+        "Horizontal automatic widths only; authored margin-box width/min/max/padding/border and side/vertical geometry unchanged",
+        "Provider/runtime forks remain separate; Windows profiling deferred",
+        "Full framework/package qualification recorded separately; this file approves actual render/native/allocation observations only"
+      ],
+      "dispatch": {
+        "summary": {
+          "path": "$TASK_ROOT/dispatch-repro-v4-repaired-pinned-net10/summary.json",
+          "bytes": 335969,
+          "sha256": "7e16c82bf40351ab4a68eb009d17271fc4fda21aec1b0b1196e72d5496f53333"
+        },
+        "rootImageBinding": {
+          "path": "$TASK_ROOT/dispatch-visual-repaired/bindings.json",
+          "bytes": 13259,
+          "sha256": "2d05b6d90a00cf0679597687642202a3b0f9c0ae78fc42119dc3cdaad38fcc75"
+        },
+        "observations": 12,
+        "ownPngPdfReplayEqual": 12,
+        "typedLosses": 0
+      }
+    },
+    "captureRepeatedForLatestComposition": false,
     "actualPinnedFontPdfObservations": 20,
-    "normalLiteralSameInputObservations": 14,
-    "severeConstraintBoundaryObservations": 2,
-    "dynamicUnsupportedByNativeObservations": 4,
-    "historicalCapture": {
-      "path": "$TASK_ROOT/native/execution.json",
-      "bytes": 90203,
-      "sha256": "9d7b2c9ee83e17f7d85c099e02c7f79b4c100f5f81a9f5cfcce6345ec86ae22c"
-    },
-    "freshCombinedComparison": {
-      "path": "$TASK_ROOT/candidate-comparison-v5/comparison.json",
+    "currentSourceComparedToHistoricalNative": {
+      "path": "$TASK_ROOT/candidate-comparison-v6/comparison.json",
       "bytes": 1026265,
-      "sha256": "c5e5e7ee7e99d1c6ab6c4b30fc5744dc565b38b655be4aaaf9d0b6325c230749"
+      "sha256": "08b3a4a2002a00687f7e5af04cc084af418dce2ad1895c3102029198d59b4eb9"
     },
-    "rootApproval": {
-      "path": "$TASK_ROOT/root-render-acceptance-repaired.json",
-      "bytes": 6905,
-      "sha256": "a3276755c73f8651bf44a9d85028a59a26982bf67106ca62d4c1e49a59ccf183"
+    "currentCompositionApproval": {
+      "path": "$TASK_ROOT/root-render-acceptance-v6.json",
+      "bytes": 3703,
+      "sha256": "c2ad31f1463bdc38d38eb809cce79ad957bc2b6a5f7eedc6550ca16d70dc48c2"
     },
-    "boundaries": [
-      "Horizontal automatic widths only; authored margin-box width/min/max/padding/border and side/vertical geometry unchanged",
-      "Provider/runtime forks remain separate; Windows profiling deferred",
-      "Full framework/package qualification recorded separately; this file approves actual render/native/allocation observations only"
-    ],
-    "dispatch": {
-      "summary": {
-        "path": "$TASK_ROOT/dispatch-repro-v4-repaired-pinned-net10/summary.json",
-        "bytes": 335969,
-        "sha256": "7e16c82bf40351ab4a68eb009d17271fc4fda21aec1b0b1196e72d5496f53333"
-      },
-      "rootImageBinding": {
-        "path": "$TASK_ROOT/dispatch-visual-repaired/bindings.json",
-        "bytes": 13259,
-        "sha256": "2d05b6d90a00cf0679597687642202a3b0f9c0ae78fc42119dc3cdaad38fcc75"
-      },
-      "observations": 12,
-      "ownPngPdfReplayEqual": 12,
-      "typedLosses": 0
-    }
+    "boundary": "Twenty exact-input/font Edge captures retained at original producer binding.14ordinary literal observations accepted within prior metric offsets;2severe overflow differences and4dynamic unsupportedEdge observations remain explicit. ROOT viewed all4fresh paired contacts at6224 and confirmed unchanged bounded appearance. No new browsercapture or universal/dynamic/native/accessibility claim."
   },
   "privatePackages": {
-    "version": "3.5.10",
+    "sourceHead": "6224dfa4d61fb76b35ba0df1755aed11c7d77462",
+    "version": "3.5.13",
     "freshPackages": 5,
     "freshFrameworkAssets": 20,
     "reusedFrameworkAssets": 0,
     "packageBinding": {
-      "path": "$TASK_ROOT/packages/auto-sizing-v5/package-binding.json",
+      "path": "$TASK_ROOT/packages/auto-sizing-v6/package-binding.json",
       "bytes": 23771,
-      "sha256": "beddd22c5840c613f9b89527a7f765e4c223a5115bb734bcb0740945b23ebb5b"
+      "sha256": "fbe9fca0e805b2e9e9a9eb4781628ea64460eec2b638fe1b60db00b8a416f152"
     },
     "consumerBinding": {
-      "path": "$TASK_ROOT/packages/auto-sizing-v5/consumer-binding.json",
+      "path": "$TASK_ROOT/packages/auto-sizing-v6/consumer-binding.json",
       "bytes": 61134,
-      "sha256": "df8d1b3c38a15891b9de0788ae175e8beb9b6e4961c80ef7140efbf0f9baae1d"
+      "sha256": "2b5c107a66f42b0120f30a02350501c53f7f2b233c3df85fd3b18a537d29ab7d"
     },
     "packages": [
       {
         "id": "OfficeIMO.Core",
-        "version": "3.5.10",
+        "version": "3.5.13",
         "artifact": {
-          "path": "$TASK_ROOT/packages/auto-sizing-v5/feed/OfficeIMO.Core.3.5.10.nupkg",
-          "bytes": 8760271,
-          "sha256": "142222ecd487bd865763f4aa6d7d3191d702f9fba82eff7e4d1eae5231581417"
+          "path": "$TASK_ROOT/packages/auto-sizing-v6/feed/OfficeIMO.Core.3.5.13.nupkg",
+          "bytes": 8760274,
+          "sha256": "412cf4fd8494c58767b6da876842f74b580dce5f8dd06f658240f156b33d0093"
         },
         "assets": {
-          "lib/net472/OfficeIMO.Core.dll": "6ec10af217e0dfd9814e6b01ae89c012468a9218b0234826a01b7f7dbca1e523",
-          "lib/netstandard2.0/OfficeIMO.Core.dll": "8a591a0c9d0cadd2a8ee8bb9734636ef9e4c5cc093c05131de2ee681385bd27c",
-          "lib/net8.0/OfficeIMO.Core.dll": "219ca6ab6393323002155543fec1f6bbffb790b85adf704d4f80aceb5bd36e7e",
-          "lib/net10.0/OfficeIMO.Core.dll": "ac137ee71110927370c988ba2dbc775be6cff669202109aa15f32479acf2b770"
+          "lib/net472/OfficeIMO.Core.dll": "bf6cae5e63b44f76b102c4544913b339239f3fd864eb8df61f4dc5f23f5435d0",
+          "lib/netstandard2.0/OfficeIMO.Core.dll": "2769361fb33c85ac77328fa0e373f150a5862a4f5289d511909bc2eb3db7ddee",
+          "lib/net8.0/OfficeIMO.Core.dll": "10891e8c04a3712c87482a351cd97aa021879a8e0e7dcceef05cf27b59e5fd75",
+          "lib/net10.0/OfficeIMO.Core.dll": "1b34ea0f361586285623a1b364f6505ff6e26add93107f805f1dc3243258aacc"
         },
         "nuspec": {
           "entry": "OfficeIMO.Core.nuspec",
           "bytes": 1629,
-          "sha256": "bf0ac6cae39adfbea33d8ea9c1b701b4c5cf14aa360fd8e1aeacf2874414ff3a",
+          "sha256": "0830ddc9a2209d352b28002910060fef2e927e99dea7ba6f73aa8f917aa9c5cc",
           "packageId": "OfficeIMO.Core",
-          "version": "3.5.10",
+          "version": "3.5.13",
           "repository": {
             "type": "git",
             "url": "https://github.com/EvotecIT/OfficeIMO",
-            "commit": "735b4b07d80c3c0d89369d71b17d0b80b743aa6c"
+            "commit": "6224dfa4d61fb76b35ba0df1755aed11c7d77462"
           },
           "dependencyGroups": {
             "net472": [],
@@ -399,49 +1549,49 @@
       },
       {
         "id": "OfficeIMO.Html",
-        "version": "3.5.10",
+        "version": "3.5.13",
         "artifact": {
-          "path": "$TASK_ROOT/packages/auto-sizing-v5/feed/OfficeIMO.Html.3.5.10.nupkg",
-          "bytes": 4720362,
-          "sha256": "86a706dbefda1aeaa347bf677f1b5bfa87c59df8572402c58206467e0e0670a5"
+          "path": "$TASK_ROOT/packages/auto-sizing-v6/feed/OfficeIMO.Html.3.5.13.nupkg",
+          "bytes": 4720423,
+          "sha256": "1657f457348b44ea4e1eb8f1453911a39866b5da31f994493e013cf91b52022a"
         },
         "assets": {
-          "lib/net472/OfficeIMO.Html.dll": "c5290318c78a8b2d57d715b28b6e6666e624a320b880c9ecd045ea29ddd83369",
-          "lib/netstandard2.0/OfficeIMO.Html.dll": "8e7fbdd92d001bfafa6fbd0e2f481b59c390d77bc807d9a429222a0d04072eac",
-          "lib/net8.0/OfficeIMO.Html.dll": "35ab3edc2a99aa1cf15dad1000fd90d9ac0fd53c079abed0952532619dc51036",
-          "lib/net10.0/OfficeIMO.Html.dll": "ef9a7fdd151a02afc44b7200f305c1a1a0be8c6d219464df55c9871d4803bfe6"
+          "lib/net472/OfficeIMO.Html.dll": "3b29357caada3a90672f93114e4dac011fb29d7f25289f47e4011a7697664e20",
+          "lib/netstandard2.0/OfficeIMO.Html.dll": "287ab5f68a2f26be26f233685879850db11c60c2d7a0f3a4ac44f303107804ca",
+          "lib/net8.0/OfficeIMO.Html.dll": "0a4d8a51b3196c1b5d3910aefac03b790b4e8d85bd56f85fe69dd6f96e0f3d53",
+          "lib/net10.0/OfficeIMO.Html.dll": "54e360d4b1a71e420da065227b089ce99c7511ecad642337b4ef6023e8adc3b5"
         },
         "nuspec": {
           "entry": "OfficeIMO.Html.nuspec",
           "bytes": 3515,
-          "sha256": "1fd0dad2ebdea8d5a9ff1bd649e5a557aab8a29da878fd0941cde4175b3ad14d",
+          "sha256": "0c3dd478db1e282b5e04532b32d124211d2f2b36c2040c29c0325bb7fe1779d3",
           "packageId": "OfficeIMO.Html",
-          "version": "3.5.10",
+          "version": "3.5.13",
           "repository": {
             "type": "git",
             "url": "https://github.com/EvotecIT/OfficeIMO",
-            "commit": "735b4b07d80c3c0d89369d71b17d0b80b743aa6c"
+            "commit": "6224dfa4d61fb76b35ba0df1755aed11c7d77462"
           },
           "dependencyGroups": {
             "net472": [
               {
                 "id": "OfficeIMO.Core",
-                "version": "3.5.10",
+                "version": "3.5.13",
                 "exclude": "Build,Analyzers"
               },
               {
                 "id": "OfficeIMO.Html.AngleSharp",
-                "version": "3.5.10",
+                "version": "3.5.13",
                 "exclude": "Build,Analyzers"
               },
               {
                 "id": "OfficeIMO.Html.Core",
-                "version": "3.5.10",
+                "version": "3.5.13",
                 "exclude": "Build,Analyzers"
               },
               {
                 "id": "OfficeIMO.Pdf",
-                "version": "3.5.10",
+                "version": "3.5.13",
                 "exclude": "Build,Analyzers"
               },
               {
@@ -458,22 +1608,22 @@
             "net8.0": [
               {
                 "id": "OfficeIMO.Core",
-                "version": "3.5.10",
+                "version": "3.5.13",
                 "exclude": "Build,Analyzers"
               },
               {
                 "id": "OfficeIMO.Html.AngleSharp",
-                "version": "3.5.10",
+                "version": "3.5.13",
                 "exclude": "Build,Analyzers"
               },
               {
                 "id": "OfficeIMO.Html.Core",
-                "version": "3.5.10",
+                "version": "3.5.13",
                 "exclude": "Build,Analyzers"
               },
               {
                 "id": "OfficeIMO.Pdf",
-                "version": "3.5.10",
+                "version": "3.5.13",
                 "exclude": "Build,Analyzers"
               },
               {
@@ -490,22 +1640,22 @@
             "net10.0": [
               {
                 "id": "OfficeIMO.Core",
-                "version": "3.5.10",
+                "version": "3.5.13",
                 "exclude": "Build,Analyzers"
               },
               {
                 "id": "OfficeIMO.Html.AngleSharp",
-                "version": "3.5.10",
+                "version": "3.5.13",
                 "exclude": "Build,Analyzers"
               },
               {
                 "id": "OfficeIMO.Html.Core",
-                "version": "3.5.10",
+                "version": "3.5.13",
                 "exclude": "Build,Analyzers"
               },
               {
                 "id": "OfficeIMO.Pdf",
-                "version": "3.5.10",
+                "version": "3.5.13",
                 "exclude": "Build,Analyzers"
               },
               {
@@ -522,22 +1672,22 @@
             "netstandard2.0": [
               {
                 "id": "OfficeIMO.Core",
-                "version": "3.5.10",
+                "version": "3.5.13",
                 "exclude": "Build,Analyzers"
               },
               {
                 "id": "OfficeIMO.Html.AngleSharp",
-                "version": "3.5.10",
+                "version": "3.5.13",
                 "exclude": "Build,Analyzers"
               },
               {
                 "id": "OfficeIMO.Html.Core",
-                "version": "3.5.10",
+                "version": "3.5.13",
                 "exclude": "Build,Analyzers"
               },
               {
                 "id": "OfficeIMO.Pdf",
-                "version": "3.5.10",
+                "version": "3.5.13",
                 "exclude": "Build,Analyzers"
               },
               {
@@ -556,34 +1706,34 @@
       },
       {
         "id": "OfficeIMO.Html.AngleSharp",
-        "version": "3.5.10",
+        "version": "3.5.13",
         "artifact": {
-          "path": "$TASK_ROOT/packages/auto-sizing-v5/feed/OfficeIMO.Html.AngleSharp.3.5.10.nupkg",
-          "bytes": 104178,
-          "sha256": "453ae4f228222ed55b30fd05e0c73f7f617e3e25028c9521e9d073d8f7f0e153"
+          "path": "$TASK_ROOT/packages/auto-sizing-v6/feed/OfficeIMO.Html.AngleSharp.3.5.13.nupkg",
+          "bytes": 104158,
+          "sha256": "a053d1618eb398afbb5e7791f5dc01f8fb4ce29162177078156bcbd5b40299cd"
         },
         "assets": {
-          "lib/net472/OfficeIMO.Html.AngleSharp.dll": "d3c4a34a3e03bbd83fc0f781a9e8fb375e0da8c3c362ebe9a2824950eecedc3e",
-          "lib/netstandard2.0/OfficeIMO.Html.AngleSharp.dll": "1f15ece13132766c723c2a75f220c77d102ea4ed8f424d39c4e8d3c7d4fca7fa",
-          "lib/net8.0/OfficeIMO.Html.AngleSharp.dll": "821b62d5c955cc9f11b2bdd6bc6269aec0411c07baa39676ebca218a6e0a1773",
-          "lib/net10.0/OfficeIMO.Html.AngleSharp.dll": "55b5862a38fe0a0b0b5246b11bb990a4f36c7e8302df0b7060c15438f017151a"
+          "lib/net472/OfficeIMO.Html.AngleSharp.dll": "54b72b5b5de1fd487554ee0418831e60c915ade54d4bb9d64bf6b8a6abb29deb",
+          "lib/netstandard2.0/OfficeIMO.Html.AngleSharp.dll": "983714d9371c6545efc7092147cfb76ad9b0c4fae04a96a65ac5b0f9ff89d08a",
+          "lib/net8.0/OfficeIMO.Html.AngleSharp.dll": "686d7a92c3d330aa97f7403ad6b644e47cdbda677ccad0019fe8bec7ae848ed7",
+          "lib/net10.0/OfficeIMO.Html.AngleSharp.dll": "f223e3c3cfc7f743b8f86029bc5a97b8ffd110e8e55ee61215d2fab78d0f01c7"
         },
         "nuspec": {
           "entry": "OfficeIMO.Html.AngleSharp.nuspec",
           "bytes": 1884,
-          "sha256": "3551fbbe7bc72a204d9edc17b72dc7101f99aaf136ef0209c0bc5198f18a66e1",
+          "sha256": "daaa95c4c34a3bd82ffd253b8d8705d279ebdbc92d8fe98edae541e4499d8f28",
           "packageId": "OfficeIMO.Html.AngleSharp",
-          "version": "3.5.10",
+          "version": "3.5.13",
           "repository": {
             "type": "git",
             "url": "https://github.com/EvotecIT/OfficeIMO",
-            "commit": "735b4b07d80c3c0d89369d71b17d0b80b743aa6c"
+            "commit": "6224dfa4d61fb76b35ba0df1755aed11c7d77462"
           },
           "dependencyGroups": {
             "net472": [
               {
                 "id": "OfficeIMO.Html.Core",
-                "version": "3.5.10",
+                "version": "3.5.13",
                 "exclude": "Build,Analyzers"
               },
               {
@@ -600,7 +1750,7 @@
             "net8.0": [
               {
                 "id": "OfficeIMO.Html.Core",
-                "version": "3.5.10",
+                "version": "3.5.13",
                 "exclude": "Build,Analyzers"
               },
               {
@@ -612,7 +1762,7 @@
             "net10.0": [
               {
                 "id": "OfficeIMO.Html.Core",
-                "version": "3.5.10",
+                "version": "3.5.13",
                 "exclude": "Build,Analyzers"
               },
               {
@@ -624,7 +1774,7 @@
             "netstandard2.0": [
               {
                 "id": "OfficeIMO.Html.Core",
-                "version": "3.5.10",
+                "version": "3.5.13",
                 "exclude": "Build,Analyzers"
               },
               {
@@ -643,28 +1793,28 @@
       },
       {
         "id": "OfficeIMO.Html.Core",
-        "version": "3.5.10",
+        "version": "3.5.13",
         "artifact": {
-          "path": "$TASK_ROOT/packages/auto-sizing-v5/feed/OfficeIMO.Html.Core.3.5.10.nupkg",
+          "path": "$TASK_ROOT/packages/auto-sizing-v6/feed/OfficeIMO.Html.Core.3.5.13.nupkg",
           "bytes": 325280,
-          "sha256": "76e9e590c37168986d16ea885cb7b8bb25b95a58083e200ce48e3438ec2c5260"
+          "sha256": "00000bcc23eda4581e85c7dfdb5922e8916d7bf8ec9e453dc549e8625169f791"
         },
         "assets": {
-          "lib/net472/OfficeIMO.Html.Core.dll": "e071fec65fcdcfe9e5eb012ef0a7ad2b0ec270ffc508deb94a68ae40de7df76b",
-          "lib/netstandard2.0/OfficeIMO.Html.Core.dll": "5b74b797a76d2cf1e15fdeb389b84f405226f8a00877d2ea0e1e7ee071ececab",
-          "lib/net8.0/OfficeIMO.Html.Core.dll": "5d1250e75f5301a655acb92bbf5e4807d61a5231ced71525a576a3e2a8d0fd83",
-          "lib/net10.0/OfficeIMO.Html.Core.dll": "319ed7685f960d9b075d628ee1ba1db7367a43300761a2a74b39dad9ecc99b2c"
+          "lib/net472/OfficeIMO.Html.Core.dll": "7f091d29bc00876c32c450e51d625c701345b0fa47158adf1120f12f1ba8855c",
+          "lib/netstandard2.0/OfficeIMO.Html.Core.dll": "279079c24988f4ffa68e4c27a73d89408040aaf98fecbaa26ff40c33f7029505",
+          "lib/net8.0/OfficeIMO.Html.Core.dll": "dc6716c43d7a2336ba7ba74286a3f8c6e40af36549af8c2d672b15fc1095cea2",
+          "lib/net10.0/OfficeIMO.Html.Core.dll": "5bb88c1963f9603805a26d3e142b4a8aa0cec6f640cc3cffd26faea11148ff48"
         },
         "nuspec": {
           "entry": "OfficeIMO.Html.Core.nuspec",
           "bytes": 935,
-          "sha256": "b26b36398392a2ffef569eac136c0586f8b18fe11b687a467869a10e93853ad9",
+          "sha256": "1231be4fb1c1eb51906c10bb5432b213c755afcdf54b78720b18985309d310c6",
           "packageId": "OfficeIMO.Html.Core",
-          "version": "3.5.10",
+          "version": "3.5.13",
           "repository": {
             "type": "git",
             "url": "https://github.com/EvotecIT/OfficeIMO",
-            "commit": "735b4b07d80c3c0d89369d71b17d0b80b743aa6c"
+            "commit": "6224dfa4d61fb76b35ba0df1755aed11c7d77462"
           },
           "dependencyGroups": {
             "net472": [],
@@ -676,55 +1826,55 @@
       },
       {
         "id": "OfficeIMO.Pdf",
-        "version": "3.5.10",
+        "version": "3.5.13",
         "artifact": {
-          "path": "$TASK_ROOT/packages/auto-sizing-v5/feed/OfficeIMO.Pdf.3.5.10.nupkg",
-          "bytes": 13801141,
-          "sha256": "c3592199b91dcaf3cee5dfcf1c68f0571d075859d4f8885b38da65576436b2a0"
+          "path": "$TASK_ROOT/packages/auto-sizing-v6/feed/OfficeIMO.Pdf.3.5.13.nupkg",
+          "bytes": 13804055,
+          "sha256": "64c1f4d018102bbd22bfa7cd8934146988f87e891edfa7b39d2f123828f86f72"
         },
         "assets": {
-          "lib/net472/OfficeIMO.Pdf.dll": "d1eefebf81b3f1133544442e295690147da7ddae028c89584d2e847d330624c2",
-          "lib/netstandard2.0/OfficeIMO.Pdf.dll": "390a9772686d0e9a7dbc1964758169c1b8fa09186e51ae6b59919159d4a7b54c",
-          "lib/net8.0/OfficeIMO.Pdf.dll": "4fa6e37ff359296695abd0020851838e0e2366b2f7336eb91186567c33ce2e60",
-          "lib/net10.0/OfficeIMO.Pdf.dll": "a10069a14832cd3c818910fcb8e5db884b8006d13695229e3aa36ef03e2b3831"
+          "lib/net472/OfficeIMO.Pdf.dll": "2569345e8e4c2cd50de5e247a367932f4b2b89079b67c1d73cdbf2ad6f279e4f",
+          "lib/netstandard2.0/OfficeIMO.Pdf.dll": "41ccc1cbacc50f2d1cebd919988ce11bc83b665669243fae85f07f874831c4f6",
+          "lib/net8.0/OfficeIMO.Pdf.dll": "9b055491e52f0fe8d173d3c0ebb951896e30c4d74f2f8d5048a3b7d4909511f0",
+          "lib/net10.0/OfficeIMO.Pdf.dll": "b2bff4a46d1cd5531ee2bfe2ab6aaeb08bd856de485f61a92ccfbbf4b1b86646"
         },
         "nuspec": {
           "entry": "OfficeIMO.Pdf.nuspec",
           "bytes": 1549,
-          "sha256": "deb1bb3bfc4ba088eac5d51fda81f7007c87c11a12701fd19202551be239b622",
+          "sha256": "564f5339021fe6ee40001b30a3fac6b23f2f2d9ff06ebd3330be9661aee43d41",
           "packageId": "OfficeIMO.Pdf",
-          "version": "3.5.10",
+          "version": "3.5.13",
           "repository": {
             "type": "git",
             "url": "https://github.com/EvotecIT/OfficeIMO",
-            "commit": "735b4b07d80c3c0d89369d71b17d0b80b743aa6c"
+            "commit": "6224dfa4d61fb76b35ba0df1755aed11c7d77462"
           },
           "dependencyGroups": {
             "net472": [
               {
                 "id": "OfficeIMO.Core",
-                "version": "3.5.10",
+                "version": "3.5.13",
                 "exclude": "Build,Analyzers"
               }
             ],
             "net8.0": [
               {
                 "id": "OfficeIMO.Core",
-                "version": "3.5.10",
+                "version": "3.5.13",
                 "exclude": "Build,Analyzers"
               }
             ],
             "net10.0": [
               {
                 "id": "OfficeIMO.Core",
-                "version": "3.5.10",
+                "version": "3.5.13",
                 "exclude": "Build,Analyzers"
               }
             ],
             "netstandard2.0": [
               {
                 "id": "OfficeIMO.Core",
-                "version": "3.5.10",
+                "version": "3.5.13",
                 "exclude": "Build,Analyzers"
               }
             ]
@@ -741,9 +1891,9 @@
         "ownPngPdfReplayEqual": 20,
         "matchingFrameworkSourcePngEqual": 20,
         "result": {
-          "path": "$TASK_ROOT/packages/auto-sizing-v5/results/net8/result.json",
-          "bytes": 150352,
-          "sha256": "3584eb13aeba674177015c2bf1f83779e7c87cf84317d0c288772e94a57d7b8b"
+          "path": "$TASK_ROOT/packages/auto-sizing-v6/results/net8/result.json",
+          "bytes": 152952,
+          "sha256": "73fe9dc94554c438328d1cc612dfb15e1d983db4e46713fa4e3dd4bf5562ea81"
         },
         "executedBinary": {
           "path": "$SDK_ROOT/dotnet",
@@ -761,9 +1911,9 @@
         "ownPngPdfReplayEqual": 20,
         "matchingFrameworkSourcePngEqual": 20,
         "result": {
-          "path": "$TASK_ROOT/packages/auto-sizing-v5/results/net10/result.json",
-          "bytes": 150421,
-          "sha256": "9aabe5a851be5c5307fb188917aee8b22126622ff1579cb02cc23d9fa983556e"
+          "path": "$TASK_ROOT/packages/auto-sizing-v6/results/net10/result.json",
+          "bytes": 153021,
+          "sha256": "4f681f7fa88e4c208730649cbee98f3ae4ff2b0591492da30e18462b94132d3f"
         },
         "executedBinary": {
           "path": "$SDK_ROOT/dotnet",
@@ -781,14 +1931,14 @@
         "ownPngPdfReplayEqual": 20,
         "matchingFrameworkSourcePngEqual": 20,
         "result": {
-          "path": "$TASK_ROOT/packages/auto-sizing-v5/results/aot/result.json",
-          "bytes": 148595,
-          "sha256": "6c8df3d506c8510472f926ebd07152cee60a04a196e541a253520adb7b03dea9"
+          "path": "$TASK_ROOT/packages/auto-sizing-v6/results/aot/result.json",
+          "bytes": 151195,
+          "sha256": "abeb6f549b9c56fc8bb3928e71fa04d55ad1e2910aea064a300efc70951d076c"
         },
         "executedBinary": {
-          "path": "$TASK_ROOT/packages/auto-sizing-v5/out/aot/PageMarginAutoSizingPackageaot",
+          "path": "$TASK_ROOT/packages/auto-sizing-v6/out/aot/PageMarginAutoSizingPackageaot",
           "bytes": 34345936,
-          "sha256": "5f175c313fb47e79475f17d57fb7513c30ad6e80d0279882f6d2dd2fe836b985"
+          "sha256": "d19d5f67476ee4707a4cf361a61efcee6e877be43ff516970ea7a5db1e497dfb"
         },
         "dynamicCodeSupported": false,
         "architecture": "Arm64"
@@ -796,259 +1946,188 @@
     ],
     "actualStageExecutions": [
       {
-        "path": "$TASK_ROOT/auto-sizing-v5-preflight-execution.json",
+        "path": "$TASK_ROOT/auto-sizing-v6-preflight-execution.json",
         "bytes": 1649,
-        "sha256": "ac8580282f28f577a472660a3db58dcdd8220c11036e9822cf28083747f1e4a2"
+        "sha256": "4e7549e10b9856ad87fb2054e583f53d9305a0d69fcf1adfc5598e5f9489228f"
       },
       {
-        "path": "$TASK_ROOT/auto-sizing-v5-source-restore-execution.json",
+        "path": "$TASK_ROOT/auto-sizing-v6-source-restore-execution.json",
         "bytes": 2524,
-        "sha256": "78ea0a8e6e1a21fc497690d689a89dbb37ca5350fd2c455ee6cf77aaaadd5a4d"
+        "sha256": "7de47b2953eab129346410e1b086c876dfdb70471aa010fadbdbecbc39c8ed5e"
       },
       {
-        "path": "$TASK_ROOT/auto-sizing-v5-source-build-execution.json",
+        "path": "$TASK_ROOT/auto-sizing-v6-source-build-execution.json",
         "bytes": 2555,
-        "sha256": "a1cadbdc4127130ce9057e3ed9f4bff1aabbb84192086c0ff63fd60f7caf62e9"
+        "sha256": "758d4e3d07463ee0f7e85814ad3f3894a7fca162bd94e83c602874081181c0b1"
       },
       {
-        "path": "$TASK_ROOT/auto-sizing-v5-pack-officeimo-core-execution.json",
+        "path": "$TASK_ROOT/auto-sizing-v6-pack-officeimo-core-execution.json",
         "bytes": 2577,
-        "sha256": "899a95d201a4714d88f3669b50511882d460fddac851ca13314bf8e43e3d9a06"
+        "sha256": "475c71b492879d61b2582a872248c804091fea8f5ad7ce71598eb6c284469e0c"
       },
       {
-        "path": "$TASK_ROOT/auto-sizing-v5-pack-officeimo-pdf-execution.json",
-        "bytes": 2573,
-        "sha256": "da7ae68ba987d528d0f7fa679909f442fe95119a848fb4c94d43585d1cb8f37e"
+        "path": "$TASK_ROOT/auto-sizing-v6-pack-officeimo-pdf-execution.json",
+        "bytes": 2580,
+        "sha256": "7f5a5bb9dfc1bb4ddd71f7d7513dabd30560b63f9f5bc850ca71239f92bfeec7"
       },
       {
-        "path": "$TASK_ROOT/auto-sizing-v5-pack-officeimo-html-core-execution.json",
-        "bytes": 2597,
-        "sha256": "305900b0ab931a8fd36d504c1216790ce0275d5fdb1e4627a6a457c6a92112e9"
+        "path": "$TASK_ROOT/auto-sizing-v6-pack-officeimo-html-core-execution.json",
+        "bytes": 2596,
+        "sha256": "f2381743db73eef0ffaa88a05da1a3a1b0691ad583042d6fa52c197afef782ac"
       },
       {
-        "path": "$TASK_ROOT/auto-sizing-v5-pack-officeimo-html-anglesharp-execution.json",
-        "bytes": 2621,
-        "sha256": "ac307dc3d482b5405b45005c0f7a9f96296582081972563daaa3d2d2860416a7"
+        "path": "$TASK_ROOT/auto-sizing-v6-pack-officeimo-html-anglesharp-execution.json",
+        "bytes": 2628,
+        "sha256": "146dc25a5e60595bdb685845b57f88f53dbeef63ce0c74246f8ecfbb0ef71df1"
       },
       {
-        "path": "$TASK_ROOT/auto-sizing-v5-pack-officeimo-html-execution.json",
-        "bytes": 2574,
-        "sha256": "abb74bf7fdc8bec3d1bc5f40e7bbe55e132ba719286d03ca57923b9ae716370e"
+        "path": "$TASK_ROOT/auto-sizing-v6-pack-officeimo-html-execution.json",
+        "bytes": 2577,
+        "sha256": "6048896d4db7cc15d26d56b449a515d51bc8f5497ab6142be8942d72e912cfe0"
       },
       {
-        "path": "$TASK_ROOT/auto-sizing-v5-inspect-packages-execution.json",
-        "bytes": 1669,
-        "sha256": "09edec4249a3509990ecae046fcb74db9aba673406401da39f30bdadf23edc04"
+        "path": "$TASK_ROOT/auto-sizing-v6-inspect-packages-execution.json",
+        "bytes": 1662,
+        "sha256": "8cd19465abdfc5042e02d201625e0ffc36508cecc3ad81a17adddab88b868fb4"
       },
       {
-        "path": "$TASK_ROOT/auto-sizing-v5-aot-publish-execution.json",
-        "bytes": 2404,
-        "sha256": "d4555489c2fd61ce82aaa56b2e3990120faaa789caed7d9acf6068a0acf4e340"
+        "path": "$TASK_ROOT/auto-sizing-v6-aot-publish-execution.json",
+        "bytes": 2403,
+        "sha256": "f4116a071b7d992d5c66a3911299976e413a49105e177c293a7ec5fa26065015"
       },
       {
-        "path": "$TASK_ROOT/auto-sizing-v5-aot-run-execution.json",
+        "path": "$TASK_ROOT/auto-sizing-v6-aot-run-execution.json",
         "bytes": 1943,
-        "sha256": "f552f652135499b796d445ff3abc119b1ebf8e5505225a022f23c28a64bd8132"
+        "sha256": "3878fc671163260199a4d229c60437c93457503fe7298b5bb86f1ac4db6a9e2d"
       },
       {
-        "path": "$TASK_ROOT/auto-sizing-v5-net8-build-execution.json",
+        "path": "$TASK_ROOT/auto-sizing-v6-net8-build-execution.json",
         "bytes": 2339,
-        "sha256": "37b684df6a2bd06c0533827354a6e4dbadbb2fe7dd6d7baee65d5bd5a6043a9c"
+        "sha256": "ae867f97869b140662e5d14a9323169a779e5bfa83094f9798692c871fe34a71"
       },
       {
-        "path": "$TASK_ROOT/auto-sizing-v5-net8-run-execution.json",
+        "path": "$TASK_ROOT/auto-sizing-v6-net8-run-execution.json",
         "bytes": 1996,
-        "sha256": "5f1680d9f9c666a25f7084bccb5daf0e3c74be2829a07acabe5c582fbda9cbef"
+        "sha256": "59cc735acef0e5040b2e2533556ab22fc2762c19978dfb9cd46407504db2f8b4"
       },
       {
-        "path": "$TASK_ROOT/auto-sizing-v5-net10-build-execution.json",
+        "path": "$TASK_ROOT/auto-sizing-v6-net10-build-execution.json",
         "bytes": 2351,
-        "sha256": "32bbec84b6bdd09e4ee3f69c150d17c0598fa1083a5b51330505f2fcae30442e"
+        "sha256": "402517b3ddf8276492553f485b230453dc9a9d1863d652be3ee438e901d34d76"
       },
       {
-        "path": "$TASK_ROOT/auto-sizing-v5-net10-run-execution.json",
-        "bytes": 2008,
-        "sha256": "8dc962f47ac42c1419a9879158e56faae188852b79af0065b79db3b4062d3aef"
+        "path": "$TASK_ROOT/auto-sizing-v6-net10-run-execution.json",
+        "bytes": 2001,
+        "sha256": "e97f6aacf3bdc1b7bec1c5604f10951e581f18436bd496ad01a4b1cfc81b1c52"
       },
       {
-        "path": "$TASK_ROOT/auto-sizing-v5-inspect-consumers-execution.json",
-        "bytes": 1672,
-        "sha256": "7d85535a9af7becb57706132695907c178ac1963923e3841ae5844d2d5cbeb62"
+        "path": "$TASK_ROOT/auto-sizing-v6-inspect-consumers-execution.json",
+        "bytes": 1663,
+        "sha256": "c43b4539f5672ae944734ab3839c3b7f96f3589bcf7a5d4f11cd697d38398096"
       }
     ],
     "publicRelease": false
   },
   "localReview": {
-    "historicalH3Adjudication": {
-      "path": "$TASK_ROOT/root-render-acceptance-h3.json",
-      "bytes": 4413,
-      "sha256": "0136ec9443c459014fafba978132bc3d4d7a3d8f2388c956a33f16a200a44111"
+    "historicalQualificationReview": {
+      "historicalH3Adjudication": {
+        "path": "$TASK_ROOT/root-render-acceptance-h3.json",
+        "bytes": 4413,
+        "sha256": "0136ec9443c459014fafba978132bc3d4d7a3d8f2388c956a33f16a200a44111"
+      },
+      "originalReviewAndTargetedConfirmation": {
+        "fullPass": "4700..7d38364 read-only independent; three findings reproduced/fixed",
+        "targetedConfirmation": "7d38364..6c693df read-only independent; initial3confirmedfixed, one eligibility finding reproduced and fixed",
+        "h3OwnerClosure": "ROOT inspected all4table-intrinsic calls and shared eligibility predicate against actual specialized dispatch; focused296 and actual12before/after proof close the requested guard. No additional independent pass claimed."
+      },
+      "combinedRootAdjudication": {
+        "path": "$TASK_ROOT/root-render-acceptance-repaired.json",
+        "bytes": 6905,
+        "sha256": "a3276755c73f8651bf44a9d85028a59a26982bf67106ca62d4c1e49a59ccf183"
+      },
+      "boundary": "No new independent H3 or combined-source review is claimed."
     },
-    "originalReviewAndTargetedConfirmation": {
-      "fullPass": "4700..7d38364 read-only independent; three findings reproduced/fixed",
-      "targetedConfirmation": "7d38364..6c693df read-only independent; initial3confirmedfixed, one eligibility finding reproduced and fixed",
-      "h3OwnerClosure": "ROOT inspected all4table-intrinsic calls and shared eligibility predicate against actual specialized dispatch; focused296 and actual12before/after proof close the requested guard. No additional independent pass claimed."
-    },
-    "combinedRootAdjudication": {
-      "path": "$TASK_ROOT/root-render-acceptance-repaired.json",
-      "bytes": 6905,
-      "sha256": "a3276755c73f8651bf44a9d85028a59a26982bf67106ca62d4c1e49a59ccf183"
-    },
-    "boundary": "No new independent H3 or combined-source review is claimed."
+    "currentDisposition": "Retain existing HTML full+targeted review and closure at original scope; no HTMLproductionchange/newfullreview for dependencycomposition. PDF coordinator owns tagged traversal/merge changes.",
+    "boundary": "No new HTML code review or native browser capture is claimed; PDF owner retains its own final-source review/qualification."
   },
-  "historicalStandaloneH3FullHtmlTests": [
+  "setupDisclosures": [
     {
-      "framework": "net8",
-      "passed": 7682,
-      "failed": 0,
-      "skipped": 0,
-      "trx": {
-        "path": "$TASK_ROOT/trx/full-html-net8-v3/full-html-net8-v3.trx",
-        "bytes": 11779720,
-        "sha256": "5f482a19dff6c495099e18334ea7ab7465bd2b5bb7ee7d3b5988427829ebb340"
+      "reportedBy": "ROOT coordination",
+      "category": "scratch-acceptance-preparation",
+      "description": "An initial acceptance bind encountered diagnostic-null template slots. ROOT filled the exact20row inventory from actual source observations before package plan binding and before any package role.",
+      "independentFailureReceipt": null,
+      "productFailureClaimed": false,
+      "correctedAcceptance": {
+        "path": "$TASK_ROOT/prep/package-v6/acceptance.json",
+        "bytes": 17202,
+        "sha256": "0b0a34ac7035f3ff63de85deb56018e9959cda91e32bcf6ee52032036eb215ac"
       },
-      "execution": {
-        "path": "$TASK_ROOT/full-html-net8-v3-execution.json",
-        "bytes": 1614,
-        "sha256": "900ee80a5fd162e8f7e7e3f1816ff5a15a527adacb49c3851987f90e7b3c0ce5"
-      },
-      "sourceHead": "6db894e7eb95dd33ad380f419067460debe6651d"
-    },
-    {
-      "framework": "net10",
-      "passed": 7682,
-      "failed": 0,
-      "skipped": 0,
-      "trx": {
-        "path": "$TASK_ROOT/trx/full-html-net10-v3/full-html-net10-v3.trx",
-        "bytes": 11795085,
-        "sha256": "1e289198e4c7ba175066202b2f926adca768782ac01277886458a5370706f7c2"
-      },
-      "execution": {
-        "path": "$TASK_ROOT/full-html-net10-v3-execution.json",
-        "bytes": 1619,
-        "sha256": "8e3c8dbe056d4c8f3dd4e59b03921c9ef4066e4f515904c57b6759e9260c3dd7"
-      },
-      "sourceHead": "6db894e7eb95dd33ad380f419067460debe6651d"
+      "boundary": "Reported setup attempt remains separate from actual successful source/package role receipts. No discarded or failed attempt is counted as passing product evidence."
     }
   ],
   "storage": {
     "status": "completed-scoped-cleanup",
-    "removedLogicalBytesThisPass": 3523113871,
+    "removedLogicalBytesThisPass": 1769202353,
     "cleanup": {
-      "path": "$TASK_ROOT/cleanup-v5-result.json",
-      "bytes": 6803,
-      "sha256": "5b7f666d73836219bc5ea62c933ea9ea054368e58e7a262ad511963a1af6278c"
+      "path": "$TASK_ROOT/cleanup-v6-result.json",
+      "bytes": 6817,
+      "sha256": "29770fc125fca54dc9716b560916ca110be921e74f4ae93a6c9d36131131935c"
     },
     "ledgerAppend": {
-      "path": "$TASK_ROOT/prep/storage-ledger-v5/append-receipt.json",
-      "bytes": 2970,
-      "sha256": "d5dab5a4bbfb852b64f37b0c3542d3b966c32d45f89588fa9f1be23c2d8ea0bf"
+      "path": "$TASK_ROOT/prep/storage-ledger-v6/append-receipt.json",
+      "bytes": 2980,
+      "sha256": "e64ab6e462dc54c0b1cfd46889cef84d609d3336938a3cb801d7eaa9a81207f2"
     },
     "archive": {
-      "path": "$TASK_ROOT/retained/auto-sizing-v5-runtime-metadata.zip",
-      "bytes": 12964197,
-      "sha256": "a3a993097eccd0761da141880d1dd47ee029a74f49494cac4a0dc7fc5007e2d4"
+      "path": "$TASK_ROOT/retained/auto-sizing-v6-runtime-metadata.zip",
+      "bytes": 8808089,
+      "sha256": "1946de990906450972da3137e884d630f1685f689fb70b5e1c17a4b482cf6658"
     },
     "archiveReadback": {
-      "path": "$TASK_ROOT/retained/auto-sizing-v5-runtime-metadata.json",
-      "bytes": 522733,
-      "sha256": "24b5a3b54fc6f1bfe6ba14c3a644abded5dabd0037fbdfe2730edac0dfc994a3"
+      "path": "$TASK_ROOT/retained/auto-sizing-v6-runtime-metadata.json",
+      "bytes": 486317,
+      "sha256": "93e01c1e5034513b68f1b0d4b30ce54d0fdd383950aafd115fd208417925e3fc"
     },
-    "archivedEntries": 363,
+    "archivedEntries": 344,
     "retiredGraphs": [
       {
-        "path": "$TASK_ROOT/build-tests-v5",
-        "files": 2838,
-        "logicalBytes": 1751304767,
-        "preRemovalTreeMetadataSha256": "f645fef28e33e1d89cc1e265416e2a527b80210ad9f2df0c1b6402a9c22aad94",
-        "verifiedAbsent": true,
-        "nativeExitCode": 1,
-        "recoveryExitCode": 0
+        "path": "$TASK_ROOT/build-package-v6",
+        "logicalBytes": 339184107
       },
       {
-        "path": "$TASK_ROOT/build-package-v5",
-        "files": 443,
-        "logicalBytes": 339157719,
-        "preRemovalTreeMetadataSha256": "df78da765adb3ede20bb88d9c75c6cfb6478039c868253707adeef393e113b29",
-        "verifiedAbsent": true,
-        "nativeExitCode": 1,
-        "recoveryExitCode": 0
+        "path": "$TASK_ROOT/build-package-witness-v6",
+        "logicalBytes": 55888259
       },
       {
-        "path": "$TASK_ROOT/build-package-witness-v5",
-        "files": 222,
-        "logicalBytes": 55883605,
-        "preRemovalTreeMetadataSha256": "9fe1fe58910c3f5108d7347d3df48feedcde86f4bb55d7e0b56909fa47eeadf0",
-        "verifiedAbsent": true,
-        "nativeExitCode": 1,
-        "recoveryExitCode": 0
+        "path": "$TASK_ROOT/package-witness-private-v6",
+        "logicalBytes": 192878647
       },
       {
-        "path": "$TASK_ROOT/package-witness-private-v5",
-        "files": 1095,
-        "logicalBytes": 192867368,
-        "preRemovalTreeMetadataSha256": "2d09046679f5a369ce74389d5faa2bca96ad2989a5775ed4d717a29a45f8210e",
-        "verifiedAbsent": true,
-        "nativeExitCode": 1,
-        "recoveryExitCode": 0
+        "path": "$TASK_ROOT/build-dispatch-v6",
+        "logicalBytes": 294281
       },
       {
-        "path": "$TASK_ROOT/build-dispatch-repro-v4-repaired",
-        "files": 21,
-        "logicalBytes": 294594,
-        "preRemovalTreeMetadataSha256": "2cf42f6b7141eb6fb8d9e22e24259b6fa0b7149af895250da65cbf656a231f58",
-        "verifiedAbsent": true,
-        "nativeExitCode": 1,
-        "recoveryExitCode": 0
+        "path": "$TASK_ROOT/packages/auto-sizing-v6/consumer-graph",
+        "logicalBytes": 411546801
       },
       {
-        "path": "$TASK_ROOT/packages/auto-sizing-v5/consumer-graph",
-        "files": 267,
-        "logicalBytes": 411536109,
-        "preRemovalTreeMetadataSha256": "c88af69e017fc72c64a523e9ca3b3ef6c39a6d48f8acb81a07e15e39499d93ef",
-        "verifiedAbsent": true,
-        "nativeExitCode": 1,
-        "recoveryExitCode": 0
+        "path": "$TASK_ROOT/packages/auto-sizing-v6/candidate-cache",
+        "logicalBytes": 769404633
       },
       {
-        "path": "$TASK_ROOT/packages/auto-sizing-v5/candidate-cache",
-        "files": 2381,
-        "logicalBytes": 769393873,
-        "preRemovalTreeMetadataSha256": "3de7ead8cc5d7e05c2b764db30170fab865962907bd97088672455f8f385ca5a",
-        "verifiedAbsent": true,
-        "nativeExitCode": 1,
-        "recoveryExitCode": 0
-      },
-      {
-        "path": "$TASK_ROOT/packages/auto-sizing-v5/nuget-scratch",
-        "files": 48,
-        "logicalBytes": 0,
-        "preRemovalTreeMetadataSha256": "6fa274a9058a7c5dacf842fcde7d9e139c6fa81b4bcab9ced09b168fa7793678",
-        "verifiedAbsent": true,
-        "nativeExitCode": 0,
-        "recoveryExitCode": null
+        "path": "$TASK_ROOT/packages/auto-sizing-v6/nuget-scratch",
+        "logicalBytes": 0
       },
       {
         "path": "$TASK_ROOT/tmp",
-        "files": 117,
-        "logicalBytes": 2670203,
-        "preRemovalTreeMetadataSha256": "9fd1ff26d193d23b830e247c03e07552456e672644cb6d391ccc1abbc5f69cac",
-        "verifiedAbsent": true,
-        "nativeExitCode": 1,
-        "recoveryExitCode": 0
+        "logicalBytes": 0
       },
       {
         "path": "$TASK_ROOT/cli-home",
-        "files": 14,
-        "logicalBytes": 5633,
-        "preRemovalTreeMetadataSha256": "4e7e4ced735e339a5d22e068b1005a37b1030b035cb23b14dc5064c968a8d2c0",
-        "verifiedAbsent": true,
-        "nativeExitCode": 1,
-        "recoveryExitCode": 0
+        "logicalBytes": 5625
       }
     ],
-    "boundary": "Only the explicitly bound final cleanup is claimed; original H1-H3 receipts remain historical."
+    "boundary": "Only current V6 cleanup is claimed; all V5 and earlier cleanup receipts remain historical."
   },
   "remaining": [
     "Authored margin-box width/min/max constraints, padding, border and side/vertical geometry remain outside this profile.",
@@ -1063,8 +2142,8 @@
     "packagePublication": "not authorized"
   },
   "collector": {
-    "path": "$TASK_ROOT/prep/final-receipt-v5/collect.py",
-    "bytes": 29464,
-    "sha256": "12efb1f123adc56a8b063754c5cd48496f23c8659c550cb6fcb5cbc533b4b0d8"
+    "path": "$TASK_ROOT/prep/final-receipt-v6/collect.py",
+    "bytes": 30900,
+    "sha256": "f190d79190ae790115b77234d5e10fe03548542157c8a78c184f6b4a7752d31f"
   }
 }
