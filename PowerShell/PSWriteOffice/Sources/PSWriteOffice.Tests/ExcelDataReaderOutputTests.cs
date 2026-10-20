@@ -100,6 +100,72 @@ public sealed class ExcelDataReaderOutputTests
         }
     }
 
+    [Fact]
+    public void OverwritePreservesAReadOnlyDestination()
+    {
+        var directory = Path.Combine(Path.GetTempPath(), $"PSWriteOffice-reader-{Guid.NewGuid():N}");
+        Directory.CreateDirectory(directory);
+        var destination = Path.Combine(directory, "report.xlsx");
+        var originalAttributes = FileAttributes.Normal;
+        try
+        {
+            var original = new byte[] { 1, 2, 3, 4 };
+            File.WriteAllBytes(destination, original);
+            originalAttributes = File.GetAttributes(destination);
+            File.SetAttributes(destination, originalAttributes | FileAttributes.ReadOnly);
+            using (var rows = CreateRows())
+            using (var reader = rows.CreateDataReader())
+            {
+                Assert.Throws<UnauthorizedAccessException>(() => ExcelDocumentService.WriteDataReaderPackage(
+                    destination, reader, new ExcelTabularWriteOptions(), overwrite: true));
+                Assert.False(reader.IsClosed);
+            }
+
+            Assert.Equal(original, File.ReadAllBytes(destination));
+            Assert.True((File.GetAttributes(destination) & FileAttributes.ReadOnly) != 0);
+            Assert.Equal(new[] { destination }, Directory.GetFileSystemEntries(directory));
+        }
+        finally
+        {
+            if (File.Exists(destination)) File.SetAttributes(destination, originalAttributes);
+            Directory.Delete(directory, recursive: true);
+        }
+    }
+
+    [Fact]
+    public void OverwritePreservesRestrictiveUnixDestinationPermissions()
+    {
+        if (OperatingSystem.IsWindows()) return;
+        var directory = Path.Combine(Path.GetTempPath(), $"PSWriteOffice-reader-{Guid.NewGuid():N}");
+        Directory.CreateDirectory(directory);
+        try
+        {
+            var destination = Path.Combine(directory, "report.xlsx");
+            File.WriteAllText(destination, "existing output");
+            var ownerOnly = UnixFileMode.UserRead | UnixFileMode.UserWrite;
+            File.SetUnixFileMode(destination, ownerOnly);
+            using (var rows = CreateRows())
+            using (var reader = rows.CreateDataReader())
+            {
+                var result = ExcelDocumentService.WriteDataReaderPackage(
+                    destination, reader, new ExcelTabularWriteOptions(), overwrite: true);
+                Assert.Equal(1, result.RowCount);
+                Assert.False(reader.IsClosed);
+            }
+
+            Assert.Equal(ownerOnly, File.GetUnixFileMode(destination));
+            using (var workbook = ExcelDocument.Load(destination))
+            {
+                Assert.Equal("first", Assert.Single(workbook.Sheets).CellAt(2, 1).GetValue<string>());
+            }
+            Assert.Equal(new[] { destination }, Directory.GetFileSystemEntries(directory));
+        }
+        finally
+        {
+            Directory.Delete(directory, recursive: true);
+        }
+    }
+
     private static DataTable CreateRows()
     {
         var rows = new DataTable();

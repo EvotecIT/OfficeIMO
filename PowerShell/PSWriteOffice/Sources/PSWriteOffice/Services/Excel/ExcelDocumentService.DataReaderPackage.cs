@@ -59,7 +59,8 @@ internal static partial class ExcelDocumentService
                 stream.Flush();
             }
 
-            CommitDataReaderPackage(temporaryPath, targetPath, overwrite);
+            OfficeFileCommit.CommitTemporaryFileAtomically(temporaryPath, targetPath,
+                overwrite ? OfficeFileCommit.ConflictPolicy.Replace : OfficeFileCommit.ConflictPolicy.FailIfExists);
             temporaryPath = string.Empty;
             return result;
         }
@@ -70,25 +71,5 @@ internal static partial class ExcelDocumentService
                 File.Delete(temporaryPath);
             }
         }
-    }
-
-    private static void CommitDataReaderPackage(string temporaryPath, string targetPath, bool overwrite)
-    {
-        if (!File.Exists(targetPath))
-        {
-            File.Move(temporaryPath, targetPath);
-            return;
-        }
-
-        if (!overwrite)
-        {
-            throw new IOException($"File '{targetPath}' already exists.");
-        }
-
-#if FRAMEWORK
-        File.Replace(temporaryPath, targetPath, null);
-#else
-        File.Move(temporaryPath, targetPath, overwrite: true);
-#endif
     }
 }
