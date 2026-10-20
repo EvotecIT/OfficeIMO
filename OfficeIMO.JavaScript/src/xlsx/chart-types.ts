@@ -68,6 +68,8 @@ export interface ChartValueAxis {
 export interface WorksheetChart extends WorksheetAnchor {
   readonly type: ChartType;
   readonly data: ChartData | ChartRangeData;
+  /** Optional language metadata, for example pl-PL. Omitted metadata leaves the choice to Excel. */
+  readonly language?: string;
   readonly title?: string;
   /** The legend is on the right by default. */
   readonly legend?: "right" | "bottom" | "left" | "top" | false;

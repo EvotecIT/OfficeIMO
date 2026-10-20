@@ -12,7 +12,7 @@ test("DataTables rejects workbook-local style IDs before reading the source or d
   let sourceRead = false, written = false;
   table.page.info = () => { sourceRead = true; throw new Error("source read"); };
   assert.throws(() => createDataTablesExport(host, table, { columnOptions: { 0: { style: 1 } } }), /Workbook-local/);
-  await assert.rejects(writeDataTableTo(host, table, "xlsx", { write() { written = true; } }, { sheet: { headerStyle: 1 } }), /Workbook-local/);
+  await assert.rejects(writeDataTableTo(host, table, "xlsx", { write() { written = true; } }, { xlsx: { sheet: { headerStyle: 1 } } }), /Workbook-local/);
   assert.equal(sourceRead, false); assert.equal(written, false);
 });
 
@@ -20,10 +20,10 @@ test("adapter portable presentation rejects component IDs and advanced Cells in 
   const { host, table } = fixture();
   for (const sheet of [{ alternatingRowStyle: { font: 0 } }, { title: { text: "Title", style: { fill: 0 } } },
     { footer: { style: { border: 0 } } }, { rowStyle: () => ({ numberFormat: 0 }) }, { cellStyle: () => ({ font: 0 }) }])
-    await assert.rejects(exportDataTable(host, table, "xlsx", { sheet }), /Workbook-local/);
+    await assert.rejects(exportDataTable(host, table, "xlsx", { xlsx: { sheet } }), /Workbook-local/);
   const { Cell } = await import("../dist/xlsx/index.js");
-  await assert.rejects(exportDataTable(host, table, "xlsx", { sheet: { footer: { values: [new Cell(1, 0)] } } }), TypeError);
-  await assert.rejects(exportDataTable(host, table, "xlsx", { columnOptions: { 1: { type: "custom" } }, workbook: { cellValueWriters: { custom: v => new Cell(v, 0) } } }), TypeError);
+  await assert.rejects(exportDataTable(host, table, "xlsx", { xlsx: { sheet: { footer: { values: [new Cell(1, 0)] } } } }), TypeError);
+  await assert.rejects(exportDataTable(host, table, "xlsx", { columnOptions: { 1: { type: "custom" } }, xlsx: { cellValueWriters: { custom: v => new Cell(v, 0) } } }), TypeError);
 });
 
 // Contract-shaped external API: deliberately returns batch cells in a different order.
@@ -411,7 +411,7 @@ test("structured DataTables exports preserve vertical headers, blank spans, type
   const pdf = await inspectPdf(await exportDataTable(host, table, "pdf", { columnOptions: { 0: { header: "Customer" } }, pdf: { compression: false } }));
   for (const text of ["Customer", "Amount", "first", "second", "Totals", "20", "Approved"]) assert.ok(pdf.text.includes(text), text);
   const common = { headings: "structured", columnOptions: { 0: { header: "Customer" }, 1: { type: "number" } } };
-  const book = await readZip(await exportDataTable(host, table, "xlsx", { ...common, sheet: { autoFilter: false } }));
+  const book = await readZip(await exportDataTable(host, table, "xlsx", { ...common, xlsx: { sheet: { autoFilter: false } } }));
   const sheet = book.get("xl/worksheets/sheet1.xml").content;
   for (const range of ["A1:A2", "A5:A6"]) assert.ok(sheet.includes('ref="' + range + '"'), range);
   assert.match(sheet, /<c r="B3"[^>]*><v>7.5<\/v>/);
@@ -433,13 +433,61 @@ test("structured XLSX and CSV replacements omit unused source matrices before va
     const { host, table } = fixture(), original = table.buttons.exportData;
     table.buttons.exportData = options => { const data = original(options); data.headerStructure = Array.from({ length: 17 }, () => [null, null]); data.footerStructure = data.headerStructure; return data; };
     const rows = [[{ value: "Replacement" }, { value: "Amount" }]], footer = { rows: [[{ value: "Finished" }, { value: 20 }]] };
-    const options = { headings: "structured", ...(format === "xlsx" ? { sheet: { headerRows: rows, footer, autoFilter: false } } : { csv: { headerRows: rows, footer } }) };
+    const options = { headings: "structured", ...(format === "xlsx" ? { xlsx: { sheet: { headerRows: rows, footer, autoFilter: false } } } : { csv: { headerRows: rows, footer } }) };
     const blob = await exportDataTable(host, table, format, options);
     const text = format === "csv" ? await blob.text() : (await readZip(blob)).get("xl/worksheets/sheet1.xml").content;
     assert.ok(text.includes("Replacement")); assert.ok(text.includes("Finished")); assert.ok(text.includes("first"));
     const suppressed = await exportDataTable(host, table, format, { headings: "structured", includeFooter: false,
-      ...(format === "xlsx" ? { sheet: { includeHeader: false } } : { csv: { includeHeader: false } }) });
+      ...(format === "xlsx" ? { xlsx: { sheet: { includeHeader: false } } } : { csv: { includeHeader: false } }) });
     const suppressedText = format === "csv" ? await suppressed.text() : (await readZip(suppressed)).get("xl/worksheets/sheet1.xml").content;
     assert.ok(suppressedText.includes("first")); assert.ok(!suppressedText.includes("Replacement"));
+  }
+});
+
+test("DataTables captures structural settings and column overrides before host callbacks", async () => {
+  const { host, table } = fixture({ grouped: false });
+  let headers = 0, bodies = 0;
+  class Override { get header() { headers++; return "Customer"; } }
+  class Format { get body() { bodies++; return v => v; } }
+  class Settings {
+    get exportOptions() { return { format: new Format() }; }
+    get columnOptions() { return { 0: new Override() }; }
+    get includeFooter() { return false; }
+  }
+  const blob = await exportDataTable(host, table, "csv", new Settings());
+  assert.equal(await blob.text(), "Customer,Amount\r\nfirst,7.5\r\nsecond,12.5\r\n");
+  assert.equal(headers, 1); assert.equal(bodies, 1);
+});
+
+test("format row limits survive undefined common overrides and explicit shared limits win", async () => {
+  for (const format of ["xlsx", "csv", "pdf"]) {
+    const { host, table } = fixture({ grouped: false });
+    class Limits { get maxRows() { return 1; } }
+    await assert.rejects(exportDataTable(host, table, format, { [format]: { limits: new Limits() }, limits: { maxRows: undefined } }), /maxRows/);
+    await exportDataTable(host, table, format, { [format]: { limits: { maxRows: 1 } }, limits: { maxRows: 2 } });
+  }
+  const { host, table } = fixture();
+  await assert.rejects(exportDataTable(host, table, "xlsx", { sheetName: "Old" }), /xlsx.sheet.name/);
+});
+
+test("partial XLSX button settings inherit registration workbook and sheet policy", async () => {
+  const { host, table } = fixture({ grouped: false });
+  let delivered, failure;
+  registerDataTablesButtons(host, { xlsx: { dateMode: "utc", sheet: { freezeHeader: true, autoFilter: false } },
+    save: blob => { delivered = blob; }, onError: error => { failure = error; } });
+  await new Promise(resolve => host.ext.buttons.officeimoExcel.action(null, table, null, { officeimo: { xlsx: { sheet: { name: "Analysis" } } } }, resolve));
+  assert.equal(failure, undefined);
+  const book = await readZip(delivered), worksheet = book.get("xl/worksheets/sheet1.xml").content;
+  assert.match(book.get("xl/workbook.xml").content, /name="Analysis"/);
+  assert.match(worksheet, /state="frozen"/); assert.doesNotMatch(worksheet, /<autoFilter/);
+});
+
+test("common DataTables limits are captured once and shared by source and destination owners", async () => {
+  for (const format of ["xlsx", "csv", "pdf"]) {
+    const { host, table } = fixture({ grouped: false });
+    let reads = 0;
+    const limits = { get maxRows() { return ++reads === 1 ? 2 : 0; } };
+    await exportDataTable(host, table, format, { limits });
+    assert.equal(reads, 1, format);
   }
 });

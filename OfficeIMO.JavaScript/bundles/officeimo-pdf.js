@@ -344,25 +344,27 @@ _modules.set("501f5fccaecb27d9e514b74cf64893649e50616692250593d120ca315b510c04",
 return _exports;
 })();
 
-const _m9 = _modules.get("e3ffb91cf46091b5b178d3d4d7b158f52cf21d2ee0e7dfe1fb5140810fd7fecb") ?? (() => {
+const _m9 = _modules.get("d363b84eac65064b2e372063af61a4e9e5c576501693c862628297c812ba7832") ?? (() => {
 /** @internal One target policy shared by document writers and portable cells. */
 function copyExportLink(link) {
-    if (!link || typeof link !== "object" || typeof link.target !== "string" ||
-        !/^(?:https?:\/\/|mailto:)/i.test(link.target) || /[\u0000-\u0020\u007f]/.test(link.target))
+    if (!link || typeof link !== "object")
         throw new TypeError("Hyperlinks require an absolute HTTP, HTTPS or mailto target without whitespace or controls.");
-    const url = new URL(link.target);
+    const { target, tooltip } = link;
+    if (typeof target !== "string" || !/^(?:https?:\/\/|mailto:)/i.test(target) || /[\u0000-\u0020\u007f]/.test(target))
+        throw new TypeError("Hyperlinks require an absolute HTTP, HTTPS or mailto target without whitespace or controls.");
+    const url = new URL(target);
     if ((url.protocol === "http:" || url.protocol === "https:") && (!url.hostname || url.username || url.password))
         throw new TypeError("Hyperlink HTTP targets need a host and must not contain credentials.");
-    if (link.tooltip !== undefined && typeof link.tooltip !== "string")
+    if (tooltip !== undefined && typeof tooltip !== "string")
         throw new TypeError("Hyperlink tooltip must be text.");
-    return Object.freeze({ target: url.href, ...(link.tooltip === undefined ? {} : { tooltip: link.tooltip }) });
+    return Object.freeze({ target: url.href, ...(tooltip === undefined ? {} : { tooltip }) });
 }
 const _exports = Object.freeze({ copyExportLink: copyExportLink });
-_modules.set("e3ffb91cf46091b5b178d3d4d7b158f52cf21d2ee0e7dfe1fb5140810fd7fecb", _exports);
+_modules.set("d363b84eac65064b2e372063af61a4e9e5c576501693c862628297c812ba7832", _exports);
 return _exports;
 })();
 
-const _m7 = _modules.get("e82510c997dbd6cf069962d55524e2098a69054a85d1f20374c693e3ccf3c0f6") ?? (() => {
+const _m7 = _modules.get("732224f6995c2478cf33a6ed01f3e3d3dcccb159a731d6db9280104bd5040fc5") ?? (() => {
 const { isDate } = _m8;
 
 const { copyExportLink } = _m9;
@@ -398,12 +400,13 @@ class ExportCell {
     link;
     constructor(value, options = {}) {
         this.value = value;
-        if (options.text !== undefined && typeof options.text !== "string")
+        const { text, presentation, link } = options;
+        if (text !== undefined && typeof text !== "string")
             throw new TypeError("Display text must be a string.");
         assertScalar(value);
-        this.text = options.text;
-        this.presentation = options.presentation === undefined ? undefined : copyCellPresentation(options.presentation);
-        this.link = options.link === undefined ? undefined : copyExportLink(options.link);
+        this.text = text;
+        this.presentation = presentation === undefined ? undefined : copyCellPresentation(presentation);
+        this.link = link === undefined ? undefined : copyExportLink(link);
         Object.defineProperty(this, exportCellBrand, { value: true });
         Object.freeze(this);
     }
@@ -424,16 +427,38 @@ function assertExportValue(value) {
     assertScalar(value);
 }
 const _exports = Object.freeze({ copyCellPresentation: copyCellPresentation, ExportCell: ExportCell, assertScalar: assertScalar, assertExportValue: assertExportValue });
-_modules.set("e82510c997dbd6cf069962d55524e2098a69054a85d1f20374c693e3ccf3c0f6", _exports);
+_modules.set("732224f6995c2478cf33a6ed01f3e3d3dcccb159a731d6db9280104bd5040fc5", _exports);
 return _exports;
 })();
 
-const _m6 = _modules.get("e85a36bd24ab3d2a76d9f7f91acfb694cd557ee50fa511ee735697646cdcc7ee") ?? (() => {
+const _m10 = _modules.get("50b3c10b690ceff693c8c5f809195ba6845b20e60f408e791a750d2ecbd5c669") ?? (() => {
+/** Capture a structural option record before validation or asynchronous work.
+ * Own fields and supported prototype accessors are read once. Nested values remain
+ * borrowed until their owning format captures or validates them. */
+function captureFields(input, fields) {
+    const captured = { ...input };
+    for (const field of fields) {
+        if (Object.hasOwn(captured, field))
+            continue;
+        const value = input[field];
+        if (value !== undefined)
+            captured[field] = value;
+    }
+    return captured;
+}
+const _exports = Object.freeze({ captureFields: captureFields });
+_modules.set("50b3c10b690ceff693c8c5f809195ba6845b20e60f408e791a750d2ecbd5c669", _exports);
+return _exports;
+})();
+
+const _m6 = _modules.get("c15eede1e0b2a0a81c7153114bbb20e411413650f1c70c29bbda627241c59dbd") ?? (() => {
 const { assertExportValue } = _m7;
 
 const { checkAbort } = _m3;
 
 const { isDate } = _m8;
+
+const { captureFields } = _m10;
 
 function createRowProjector(columns, worksheet, signal, validate = assertExportValue) {
     const getters = columns.some(column => column.value);
@@ -471,28 +496,43 @@ function createRowProjector(columns, worksheet, signal, validate = assertExportV
         });
     };
 }
+/** @internal Shared metadata fields for full columns and adapter-owned partial overrides. */
+const columnOptionFields = ["header", "key", "value", "width", "type", "format", "wrapText", "alignment", "groups", "style", "valueFormatter"];
 function copyColumns(columns, workbookStyles = false) {
     if (!Array.isArray(columns))
         throw new TypeError("Declare the columns in export order.");
     return columns.map(c => {
-        if (!workbookStyles && c?.style !== undefined)
-            throw new TypeError("Workbook-local column styles require the advanced Workbook API; use portable ExportCell presentation.");
-        if (!c || typeof c.header !== "string" || (c.key !== undefined && typeof c.key !== "string"))
+        if (!c || typeof c !== "object" && typeof c !== "function")
             throw new TypeError("Each column needs a string header and an optional string key.");
-        if (c.value !== undefined && typeof c.value !== "function")
+        // Own extension metadata remains available to its format owner. Capture the
+        // supported structural fields even when a class exposes prototype getters.
+        const captured = captureFields(c, columnOptionFields);
+        if (!workbookStyles && captured.style !== undefined)
+            throw new TypeError("Workbook-local column styles require the advanced Workbook API; use portable ExportCell presentation.");
+        if (typeof captured.header !== "string" || (captured.key !== undefined && typeof captured.key !== "string"))
+            throw new TypeError("Each column needs a string header and an optional string key.");
+        if (captured.value !== undefined && typeof captured.value !== "function")
             throw new TypeError("Column value getters must be functions.");
-        if (c.groups !== undefined && (!Array.isArray(c.groups) || c.groups.some((group) => typeof group !== "string")))
-            throw new TypeError("Column groups must be an array of strings.");
-        return { ...c, ...(c.groups ? { groups: Object.freeze([...c.groups]) } : {}) };
+        if (captured.groups !== undefined) {
+            if (!Array.isArray(captured.groups))
+                throw new TypeError("Column groups must be an array of strings.");
+            const groups = Array.from(captured.groups);
+            if (groups.some(group => typeof group !== "string"))
+                throw new TypeError("Column groups must be an array of strings.");
+            return { ...captured, groups: Object.freeze(groups) };
+        }
+        return captured;
     });
 }
-const _exports = Object.freeze({ createRowProjector: createRowProjector, copyColumns: copyColumns });
-_modules.set("e85a36bd24ab3d2a76d9f7f91acfb694cd557ee50fa511ee735697646cdcc7ee", _exports);
+const _exports = Object.freeze({ createRowProjector: createRowProjector, columnOptionFields: columnOptionFields, copyColumns: copyColumns });
+_modules.set("c15eede1e0b2a0a81c7153114bbb20e411413650f1c70c29bbda627241c59dbd", _exports);
 return _exports;
 })();
 
-const _m11 = _modules.get("18a4816e4da0a737c6adb2401db266074d04daa4ce20b4cb235931d2feaa950b") ?? (() => {
+const _m12 = _modules.get("42faf379960e5674a6fdfa8c8fca0bb68bbd74587231248d2524d7004def3671") ?? (() => {
 const { OfficeIMOError } = _m4;
+
+const { captureFields } = _m10;
 
 /** @internal Check before accepting the next value or chunk. */
 class ExportBudget {
@@ -502,10 +542,15 @@ class ExportBudget {
     reservedText = 0;
     limits;
     constructor(limits = {}) {
-        for (const [key, value] of Object.entries(limits))
+        if (!limits || typeof limits !== "object" || Array.isArray(limits))
+            throw new TypeError("Export limits must be an object.");
+        // Capture before validation. Supported class getters are ordinary structural
+        // options too, and an accessor must not change the ceiling after validation.
+        const captured = captureFields(limits, ["maxRows", "maxCells", "maxTextCharacters", "maxOutputBytes"]);
+        for (const [key, value] of Object.entries(captured))
             if (value !== undefined && (!Number.isSafeInteger(value) || value < 0))
                 throw new RangeError(key + " must be a nonnegative safe integer.");
-        this.limits = Object.freeze({ ...limits });
+        this.limits = Object.freeze(captured);
     }
     check(kind, value) {
         const maximum = this.limits[kind];
@@ -544,13 +589,57 @@ function boundedSink(sink, budget) {
         } };
 }
 const _exports = Object.freeze({ ExportBudget: ExportBudget, boundedSink: boundedSink });
-_modules.set("18a4816e4da0a737c6adb2401db266074d04daa4ce20b4cb235931d2feaa950b", _exports);
+_modules.set("42faf379960e5674a6fdfa8c8fca0bb68bbd74587231248d2524d7004def3671", _exports);
 return _exports;
 })();
 
-const _m12 = _modules.get("50d72b3cc5ae343bc2bc18e09da4907a7ddc65761f5458e5e77a95837c5fc6a5") ?? (() => {
+const _m14 = _modules.get("e95bb0e3f342d1379b67a3d541fa808e06361da8460169a6aec152ee7deb69b2") ?? (() => {
+const { ExportCell, assertExportValue } = _m7;
+
+const { isDate } = _m8;
+
+/** Copy portable values when an operation retains metadata or a projected row beyond its producer's turn. */
+function copyExportValue(value) {
+    assertExportValue(value);
+    if (isDate(value))
+        return new Date(Date.prototype.getTime.call(value));
+    if (value instanceof ExportCell) {
+        const { value: scalar, text, presentation, link } = value;
+        return new ExportCell(isDate(scalar) ? new Date(Date.prototype.getTime.call(scalar)) : scalar, { ...(text === undefined ? {} : { text }), ...(presentation === undefined ? {} : { presentation }),
+            ...(link === undefined ? {} : { link }) });
+    }
+    return value;
+}
+const _exports = Object.freeze({ copyExportValue: copyExportValue });
+_modules.set("e95bb0e3f342d1379b67a3d541fa808e06361da8460169a6aec152ee7deb69b2", _exports);
+return _exports;
+})();
+
+const _m13 = _modules.get("d56b24243cff6f3552a2f7b45521af4491494375ec76117e9ac1ebb047ce02da") ?? (() => {
 const { assertExportValue } = _m7;
 
+const { copyExportValue } = _m14;
+
+/** Capture a bounded public matrix before validation or asynchronous report production can revisit its fields. */
+function captureTableSpans(rows, columns) {
+    if (!Array.isArray(rows) || !rows.length || rows.length > 16)
+        throw new RangeError("Spanned headings/footers need from 1 through 16 rows.");
+    const captured = rows.map(row => {
+        if (!Array.isArray(row) || row.length !== columns)
+            throw new TypeError("Spanned rows must have the declared column count.");
+        return Object.freeze(row.map(cell => {
+            if (cell === null)
+                return null;
+            if (!cell || typeof cell !== "object")
+                throw new TypeError("Uncovered heading/footer cells need an anchor value.");
+            const { value, columnSpan, rowSpan } = cell;
+            return Object.freeze({ value: copyExportValue(value), ...(columnSpan === undefined ? {} : { columnSpan }),
+                ...(rowSpan === undefined ? {} : { rowSpan }) });
+        }));
+    });
+    tableSpans(captured, columns);
+    return Object.freeze(captured);
+}
 /** Validate one small, rectangular heading/footer matrix before any drawing. */
 function tableSpans(rows, columns) {
     if (!Array.isArray(rows) || !rows.length || rows.length > 16)
@@ -572,7 +661,8 @@ function tableSpans(rows, columns) {
             const span = cell.columnSpan ?? 1, rowSpan = cell.rowSpan ?? 1;
             if (!Number.isInteger(span) || !Number.isInteger(rowSpan) || span < 1 || rowSpan < 1 || first + span > columns || level + rowSpan > rows.length)
                 throw new RangeError("Heading/footer spans must stay inside the declared matrix.");
-            assertExportValue(cell.value);
+            const value = cell.value;
+            assertExportValue(value);
             for (let r = level; r < level + rowSpan; r++)
                 for (let c = first; c < first + span; c++) {
                     if (covered[r][c])
@@ -581,17 +671,19 @@ function tableSpans(rows, columns) {
                         throw new TypeError("Covered heading/footer cells must be null.");
                     covered[r][c] = 1;
                 }
-            anchors.push(Object.freeze({ first, span, rowSpan, value: cell.value }));
+            anchors.push(Object.freeze({ first, span, rowSpan, value }));
         }
         return Object.freeze(anchors);
     });
 }
-const _exports = Object.freeze({ tableSpans: tableSpans });
-_modules.set("50d72b3cc5ae343bc2bc18e09da4907a7ddc65761f5458e5e77a95837c5fc6a5", _exports);
+const _exports = Object.freeze({ captureTableSpans: captureTableSpans, tableSpans: tableSpans });
+_modules.set("d56b24243cff6f3552a2f7b45521af4491494375ec76117e9ac1ebb047ce02da", _exports);
 return _exports;
 })();
 
-const _m14 = _modules.get("d789b68418bcb7e6c25c814c3f0a49eb90d4e9830dfe00ada9a382072f4ea802") ?? (() => {
+const _m16 = _modules.get("49927994ccf68595c9211828bccb16a874fa149bda2ea904d369d9943e93bc58") ?? (() => {
+const { captureFields } = _m10;
+
 /** Pure validation shared by document settings and named paragraph styles. */
 function positive(value, name, max = 14400) {
     if (!Number.isFinite(value) || value <= 0 || value > max)
@@ -607,7 +699,7 @@ function color(value) {
 function presentation(value = {}) {
     if (!value || typeof value !== "object")
         throw new TypeError("PDF presentation must be an object.");
-    const snapshot = { ...value };
+    const snapshot = captureFields(value, ["background", "color", "numberFormat", "bold", "italic", "wrapText", "alignment"]);
     if (snapshot.background !== undefined)
         color(snapshot.background);
     if (snapshot.color !== undefined)
@@ -620,14 +712,14 @@ function presentation(value = {}) {
     return Object.freeze(snapshot);
 }
 const _exports = Object.freeze({ positive: positive, color: color, presentation: presentation });
-_modules.set("d789b68418bcb7e6c25c814c3f0a49eb90d4e9830dfe00ada9a382072f4ea802", _exports);
+_modules.set("49927994ccf68595c9211828bccb16a874fa149bda2ea904d369d9943e93bc58", _exports);
 return _exports;
 })();
 
-const _m13 = _modules.get("277073b2f994d88db9eadaf0c63734f154ae8613aa7f68119afd19fc79a2c257") ?? (() => {
+const _m15 = _modules.get("278e6adc6a5d4491e688589ef165bd1aa9cc74f557da6f9d6bdf53ecc0c6df47") ?? (() => {
 const { OfficeIMOError } = _m4;
 
-const { positive, presentation } = _m14;
+const { positive, presentation } = _m16;
 
 const fields = ["fontSize", "presentation", "keepTogether", "keepWithNext", "spaceBefore", "spaceAfter"];
 const presentationFields = ["bold", "italic", "color", "alignment"];
@@ -694,11 +786,11 @@ function resolveParagraphStyle(name, overrides, styles) {
         ...(named.presentation || captured.presentation ? { presentation: Object.freeze({ ...named.presentation, ...captured.presentation }) } : {}) });
 }
 const _exports = Object.freeze({ captureParagraphStyle: captureParagraphStyle, captureParagraphStyles: captureParagraphStyles, resolveParagraphStyle: resolveParagraphStyle });
-_modules.set("277073b2f994d88db9eadaf0c63734f154ae8613aa7f68119afd19fc79a2c257", _exports);
+_modules.set("278e6adc6a5d4491e688589ef165bd1aa9cc74f557da6f9d6bdf53ecc0c6df47", _exports);
 return _exports;
 })();
 
-const _m15 = _modules.get("9b33d9107e62ba8299c576072de40d24a261464f118de4ace64f23154fc78307") ?? (() => {
+const _m17 = _modules.get("9b33d9107e62ba8299c576072de40d24a261464f118de4ace64f23154fc78307") ?? (() => {
 /** Compatibility display policy; hosts can supply labels without changing typed source values. */
 const defaultBooleanText = Object.freeze({ true: "True", false: "False" });
 /** @internal Capture display policy once, before source iteration or asynchronous output. */
@@ -717,20 +809,24 @@ _modules.set("9b33d9107e62ba8299c576072de40d24a261464f118de4ace64f23154fc78307",
 return _exports;
 })();
 
-const _m10 = _modules.get("1856d558fff0d8ff4b87ad1c9e9db106069b4d397149b0a517f8190a5b599011") ?? (() => {
+const _m11 = _modules.get("79bbfe5b07c083dffc14c1d971fedb38cbab8eaa8f5e4f08b977016012586126") ?? (() => {
 const { OfficeIMOError } = _m4;
 
-const { ExportBudget } = _m11;
+const { ExportBudget } = _m12;
 
 const { copyColumns } = _m6;
 
-const { tableSpans } = _m12;
+const { captureTableSpans } = _m13;
 
-const { captureParagraphStyles } = _m13;
+const { copyExportValue } = _m14;
 
-const { captureBooleanText } = _m15;
+const { captureFields } = _m10;
 
-const { positive, color, presentation } = _m14;
+const { captureParagraphStyles } = _m15;
+
+const { captureBooleanText } = _m17;
+
+const { positive, color, presentation } = _m16;
 
 
 
@@ -738,15 +834,49 @@ const sizes = {
     A3: { width: 841.89, height: 1190.551 }, A4: { width: 595.276, height: 841.89 }, A5: { width: 419.528, height: 595.276 },
     LETTER: { width: 612, height: 792 }, LEGAL: { width: 612, height: 1008 }, TABLOID: { width: 792, height: 1224 }
 };
+/** @internal Shared capture schema for thin format adapters and the grouped writer. */
+const pdfOptionFields = ["columns", "signal", "onProgress", "limits", "textShaper", "textDirection", "pageSize", "orientation", "margins", "fonts", "tagged", "fontSize",
+    "title", "messageTop", "messageBottom", "includeHeader", "headerRows", "footer", "headerPresentation", "footerPresentation", "alternateRowColor", "padding",
+    "columnWidths", "wideTable", "pageHeader", "pageFooter", "pageNumbers", "pageNumberLabels", "booleanText", "formatValue", "formatRuns", "compression", "paragraphStyles"];
+/** @internal Complete PDF limit schema used when a host combines format and shared limits. */
+const pdfLimitFields = ["maxRows", "maxCells", "maxTextCharacters", "maxOutputBytes", "maxPages", "maxColumns", "maxCellCharacters", "maxTextRuns", "maxGroupBlocks", "maxRowLines",
+    "maxFontBytes", "maxPageBytes", "maxHyperlinks", "maxImageBytes", "maxImagePixels", "maxImageWorkingBytes", "maxVectorCommands", "maxDrawingElements", "maxStructureElements",
+    "maxMarkedContentReferences", "maxSections", "maxBookmarks", "maxListItems", "maxParagraphStyles"];
+/** @internal Capture supported structural properties once, including class-based options with prototype accessors. */
+function capturePdfOptions(input) {
+    if (!input || typeof input !== "object" || Array.isArray(input))
+        throw new TypeError("PDF options must be an object.");
+    return captureFields(input, pdfOptionFields);
+}
+/** @internal Capture the complete PDF budget before an adapter adds its shared row/output limits. */
+function capturePdfLimits(input) {
+    if (!input || typeof input !== "object" || Array.isArray(input))
+        throw new TypeError("PDF limits must be an object.");
+    const captured = captureFields(input, pdfLimitFields);
+    for (const [key, value] of Object.entries(captured))
+        if (value !== undefined && (!Number.isSafeInteger(value) || value < 0))
+            throw new RangeError(key + " must be a nonnegative safe integer.");
+    return Object.freeze(captured);
+}
+function captureFooter(input, columns) {
+    if (!input || typeof input !== "object" || Array.isArray(input))
+        throw new TypeError("PDF footer must be an object.");
+    const { values, totals, rows } = input;
+    if (values !== undefined && !Array.isArray(values))
+        throw new TypeError("PDF footer values must be an array.");
+    return Object.freeze({ ...(values === undefined ? {} : { values: Object.freeze(values.map(copyExportValue)) }),
+        ...(totals === undefined ? {} : { totals: Object.freeze({ ...totals }) }),
+        ...(rows === undefined ? {} : { rows: captureTableSpans(rows, columns) }) });
+}
 function settings(input, document = false) {
-    const configuration = { ...input };
+    const configuration = { ...capturePdfOptions(input) };
     configuration.booleanText = captureBooleanText(configuration.booleanText);
-    if (configuration.limits)
-        configuration.limits = Object.freeze({ ...configuration.limits });
+    if (configuration.limits !== undefined)
+        configuration.limits = capturePdfLimits(configuration.limits);
     if (configuration.pageSize && typeof configuration.pageSize === "object")
-        configuration.pageSize = Object.freeze({ ...configuration.pageSize });
+        configuration.pageSize = Object.freeze(captureFields(configuration.pageSize, ["width", "height"]));
     if (configuration.margins && typeof configuration.margins === "object")
-        configuration.margins = Object.freeze({ ...configuration.margins });
+        configuration.margins = Object.freeze(captureFields(configuration.margins, ["top", "right", "bottom", "left"]));
     if (configuration.pageNumberLabels !== undefined) {
         const labels = configuration.pageNumberLabels;
         if (!labels || typeof labels !== "object" || Array.isArray(labels))
@@ -761,25 +891,21 @@ function settings(input, document = false) {
         throw new TypeError("textShaper must provide shapeLine.");
     if (configuration.textDirection !== undefined && !["auto", "ltr", "rtl"].includes(configuration.textDirection))
         throw new TypeError("textDirection must be auto, ltr or rtl.");
-    const columns = copyColumns(configuration?.columns).map(c => Object.freeze(c));
+    const columns = document ? [] : copyColumns(configuration.columns).map(c => Object.freeze(c));
+    if (document)
+        configuration.includeHeader = false;
     if (!columns.length && !document)
         throw new TypeError("PDF tables need at least one declared column.");
-    function copySpans(rows) {
-        tableSpans(rows, columns.length);
-        return Object.freeze(rows.map(row => Object.freeze(row.map(cell => cell ? Object.freeze({ ...cell }) : null))));
-    }
+    const capturedFonts = configuration.fonts === undefined ? undefined : captureFields(configuration.fonts, ["regular", "bold", "italic", "boldItalic"]);
     const options = { ...configuration, columns,
         ...(textShaper ? { textShaper: Object.freeze({ shapeLine: shapeLine.bind(textShaper) }) } : {}),
-        ...(configuration.tagged ? { tagged: Object.freeze({ ...configuration.tagged }) } : {}),
-        ...(configuration.headerRows ? { headerRows: copySpans(configuration.headerRows) } : {}),
-        ...(configuration.fonts ? { fonts: Object.freeze({ ...configuration.fonts }) } : {}),
+        ...(configuration.tagged ? { tagged: Object.freeze(captureFields(configuration.tagged, ["language"])) } : {}),
+        ...(configuration.headerRows ? { headerRows: captureTableSpans(configuration.headerRows, columns.length) } : {}),
+        ...(capturedFonts ? { fonts: Object.freeze(capturedFonts) } : {}),
         ...(configuration.columnWidths ? { columnWidths: Object.freeze([...configuration.columnWidths]) } : {}),
-        ...(configuration.footer ? { footer: Object.freeze({ ...configuration.footer,
-                ...(configuration.footer.rows ? { rows: copySpans(configuration.footer.rows) } : {}),
-                ...(configuration.footer.values ? { values: Object.freeze([...configuration.footer.values]) } : {}),
-                ...(configuration.footer.totals ? { totals: Object.freeze({ ...configuration.footer.totals }) } : {}) }) } : {}),
-        headerPresentation: presentation({ background: "e7edf5", bold: true, ...configuration.headerPresentation }),
-        footerPresentation: presentation({ background: "eef2f6", bold: true, ...configuration.footerPresentation }) };
+        ...(configuration.footer === undefined ? {} : { footer: captureFooter(configuration.footer, columns.length) }),
+        headerPresentation: Object.freeze({ background: "e7edf5", bold: true, ...presentation(configuration.headerPresentation) }),
+        footerPresentation: Object.freeze({ background: "eef2f6", bold: true, ...presentation(configuration.footerPresentation) }) };
     const budget = new ExportBudget(options.limits);
     const limits = { maxPages: 10000, maxColumns: 1024, maxCellCharacters: 1000000, maxTextRuns: 10000, maxGroupBlocks: 256, maxRowLines: 100000, maxFontBytes: 16 * 1024 * 1024, maxPageBytes: 8 * 1024 * 1024, maxHyperlinks: 100000,
         maxImageBytes: 32 * 1024 * 1024, maxImagePixels: 16 * 1024 * 1024, maxVectorCommands: 100000, maxDrawingElements: 100000,
@@ -849,12 +975,12 @@ function settings(input, document = false) {
     return { options: { ...options, paragraphStyles }, paragraphStyles, page, margins, fontSize, padding,
         limits: { ...limits, ...(maxImageWorkingBytes === undefined ? {} : { maxImageWorkingBytes }) }, budget };
 }
-const _exports = Object.freeze({ positive: _m14.positive, color: _m14.color, presentation: _m14.presentation, settings: settings });
-_modules.set("1856d558fff0d8ff4b87ad1c9e9db106069b4d397149b0a517f8190a5b599011", _exports);
+const _exports = Object.freeze({ positive: _m16.positive, color: _m16.color, presentation: _m16.presentation, pdfOptionFields: pdfOptionFields, pdfLimitFields: pdfLimitFields, capturePdfOptions: capturePdfOptions, capturePdfLimits: capturePdfLimits, settings: settings });
+_modules.set("79bbfe5b07c083dffc14c1d971fedb38cbab8eaa8f5e4f08b977016012586126", _exports);
 return _exports;
 })();
 
-const _m17 = _modules.get("5424d3dd13b6ba1c76052de820b3d99e9bac24c012ea36e41b04fd99c779ee8c") ?? (() => {
+const _m19 = _modules.get("5424d3dd13b6ba1c76052de820b3d99e9bac24c012ea36e41b04fd99c779ee8c") ?? (() => {
 const { checkAbort, withAbort, pause, taskYieldDue } = _m3;
 
 const { OfficeIMOError } = _m4;
@@ -1005,7 +1131,7 @@ _modules.set("5424d3dd13b6ba1c76052de820b3d99e9bac24c012ea36e41b04fd99c779ee8c",
 return _exports;
 })();
 
-const _m21 = _modules.get("1e169e6ecdeceff319b5da4bf01f4c653c1a3d9e8ad696b141bf8ac52d9f446c") ?? (() => {
+const _m23 = _modules.get("1e169e6ecdeceff319b5da4bf01f4c653c1a3d9e8ad696b141bf8ac52d9f446c") ?? (() => {
 /** @internal Bounded big-endian reader used for caller-provided TrueType programs. */
 class FontReader {
     bytes;
@@ -1035,8 +1161,8 @@ _modules.set("1e169e6ecdeceff319b5da4bf01f4c653c1a3d9e8ad696b141bf8ac52d9f446c",
 return _exports;
 })();
 
-const _m22 = _modules.get("0534e48516ba3859978bb5f21d4ddfb17b4276c5e4650a7c7d6d384c25f6b681") ?? (() => {
-const { align4 } = _m21;
+const _m24 = _modules.get("0534e48516ba3859978bb5f21d4ddfb17b4276c5e4650a7c7d6d384c25f6b681") ?? (() => {
+const { align4 } = _m23;
 
 const { checkAbort, pause, taskYieldDue } = _m3;
 
@@ -1260,12 +1386,12 @@ _modules.set("0534e48516ba3859978bb5f21d4ddfb17b4276c5e4650a7c7d6d384c25f6b681",
 return _exports;
 })();
 
-const _m20 = _modules.get("77a2a9756cb6f59426300e1b3e601bd68acacdd40e6c30fbeb3cc99607c84891") ?? (() => {
+const _m22 = _modules.get("77a2a9756cb6f59426300e1b3e601bd68acacdd40e6c30fbeb3cc99607c84891") ?? (() => {
 const { NotSupportedError } = _m4;
 
-const { FontReader } = _m21;
+const { FontReader } = _m23;
 
-const { subsetTrueType, subsetTrueTypeCooperatively } = _m22;
+const { subsetTrueType, subsetTrueTypeCooperatively } = _m24;
 
 const { checkAbort, pause, taskYieldDue } = _m3;
 
@@ -1505,8 +1631,8 @@ _modules.set("77a2a9756cb6f59426300e1b3e601bd68acacdd40e6c30fbeb3cc99607c84891",
 return _exports;
 })();
 
-const _m19 = _modules.get("832d36356946811343532af7b630ef1c2016b6a48d0897282f4be774e20a1de2") ?? (() => {
-const { TrueTypeFont } = _m20;
+const _m21 = _modules.get("832d36356946811343532af7b630ef1c2016b6a48d0897282f4be774e20a1de2") ?? (() => {
+const { TrueTypeFont } = _m22;
 
 const { beginTask, checkAbort } = _m3;
 
@@ -1569,7 +1695,7 @@ _modules.set("832d36356946811343532af7b630ef1c2016b6a48d0897282f4be774e20a1de2",
 return _exports;
 })();
 
-const _m24 = _modules.get("1ed4965a6e2963a91190baa8a58ada8ce0edde8fe653bcb6609002e872af0d61") ?? (() => {
+const _m26 = _modules.get("1ed4965a6e2963a91190baa8a58ada8ce0edde8fe653bcb6609002e872af0d61") ?? (() => {
 // Generated by scripts/pdf-widths.mjs from OfficeIMO.Pdf's Adobe AFM-derived metrics.
 const helveticaWidths = new Map([
     [32, [278, 278]],
@@ -1892,12 +2018,12 @@ _modules.set("1ed4965a6e2963a91190baa8a58ada8ce0edde8fe653bcb6609002e872af0d61",
 return _exports;
 })();
 
-const _m23 = _modules.get("cb116ec8bc322f9c03d14c60009ac989d78b64636b24d77b44f5eece758dfbde") ?? (() => {
+const _m25 = _modules.get("cb116ec8bc322f9c03d14c60009ac989d78b64636b24d77b44f5eece758dfbde") ?? (() => {
 const { OfficeIMOError } = _m4;
 
-const { PdfFont, fontProgram } = _m19;
+const { PdfFont, fontProgram } = _m21;
 
-const { helveticaWidths } = _m24;
+const { helveticaWidths } = _m26;
 
 const winAnsiExtras = new Map([0x20ac, 0, 0x201a, 0x192, 0x201e, 0x2026, 0x2020, 0x2021, 0x2c6, 0x2030, 0x160, 0x2039, 0x152, 0, 0x17d, 0, 0, 0x2018, 0x2019, 0x201c, 0x201d, 0x2022, 0x2013, 0x2014, 0x2dc, 0x2122, 0x161, 0x203a, 0x153, 0, 0x17e, 0x178].map((cp, i) => [cp, i + 128]));
 /** @internal Called after scalar support succeeds when encoding a standard-font run. */
@@ -1961,14 +2087,14 @@ _modules.set("cb116ec8bc322f9c03d14c60009ac989d78b64636b24d77b44f5eece758dfbde",
 return _exports;
 })();
 
-const _m18 = _modules.get("1b9b0585e9faa850e57fc123c307e79711fd1fb6e877b9f14dff1995a019d5b4") ?? (() => {
+const _m20 = _modules.get("1b9b0585e9faa850e57fc123c307e79711fd1fb6e877b9f14dff1995a019d5b4") ?? (() => {
 const { NotSupportedError, OfficeIMOError } = _m4;
 
-const { fontProgram } = _m19;
+const { fontProgram } = _m21;
 
-const { resolveScalar, selectFont, standardCode, validateFonts } = _m23;
+const { resolveScalar, selectFont, standardCode, validateFonts } = _m25;
 
-const { pdfNumber, unicodeHex } = _m17;
+const { pdfNumber, unicodeHex } = _m19;
 
 const { checkAbort, pause, taskYieldDue } = _m3;
 
@@ -2173,7 +2299,7 @@ _modules.set("1b9b0585e9faa850e57fc123c307e79711fd1fb6e877b9f14dff1995a019d5b4",
 return _exports;
 })();
 
-const _m26 = _modules.get("c9fde2c438e186da56f740105fcd41c265fdfdd855a4f1b811d556a02387479b") ?? (() => {
+const _m28 = _modules.get("c9fde2c438e186da56f740105fcd41c265fdfdd855a4f1b811d556a02387479b") ?? (() => {
 class NumericAggregate {
     operation;
     count = 0;
@@ -2221,7 +2347,7 @@ _modules.set("c9fde2c438e186da56f740105fcd41c265fdfdd855a4f1b811d556a02387479b",
 return _exports;
 })();
 
-const _m27 = _modules.get("713b8b9b34c6752ebf9e1e47253806b3c8b6635c225fed4b194fb6a16128cbfd") ?? (() => {
+const _m29 = _modules.get("4201fbf42dfbfff0db44c5296d810e8eb98e2be18116bac5c8dc4b6046f72e71") ?? (() => {
 const { OfficeIMOError } = _m4;
 
 const { ExportCell, assertExportValue } = _m7;
@@ -2230,7 +2356,7 @@ const { checkAbort, pause, taskYieldDue } = _m3;
 
 const { isDate } = _m8;
 
-const { defaultBooleanText } = _m15;
+const { defaultBooleanText } = _m17;
 
 function synchronousText(value, name) {
     if (typeof value === "string")
@@ -2324,11 +2450,11 @@ function* wrapSteps(text, font, size, width, maxCharacters, maxLines, wrap) {
     return lines;
 }
 const _exports = Object.freeze({ synchronousText: synchronousText, displayText: displayText, wrapText: wrapText, wrapTextCooperatively: wrapTextCooperatively });
-_modules.set("713b8b9b34c6752ebf9e1e47253806b3c8b6635c225fed4b194fb6a16128cbfd", _exports);
+_modules.set("4201fbf42dfbfff0db44c5296d810e8eb98e2be18116bac5c8dc4b6046f72e71", _exports);
 return _exports;
 })();
 
-const _m29 = _modules.get("1a586388978acf7fd9edef2207a526d0d36336e55020e79c863580e612e9d775") ?? (() => {
+const _m31 = _modules.get("1a586388978acf7fd9edef2207a526d0d36336e55020e79c863580e612e9d775") ?? (() => {
 const { NotSupportedError, OfficeIMOError } = _m4;
 
 const { checkAbort, pause, taskYieldDue, withAbort } = _m3;
@@ -2541,18 +2667,18 @@ _modules.set("1a586388978acf7fd9edef2207a526d0d36336e55020e79c863580e612e9d775",
 return _exports;
 })();
 
-const _m28 = _modules.get("a786bdbd451cebd446465ce241faa34c2cdf066a84e5e68822dfdc78e901b26a") ?? (() => {
+const _m30 = _modules.get("6654f65ef9c7d94436440b18d8ce8648608576d47ecc20e3bf1c37914cb93a00") ?? (() => {
 const { NotSupportedError, OfficeIMOError } = _m4;
 
 const { copyExportLink } = _m9;
 
 const { checkAbort, pause, taskYieldDue } = _m3;
 
-const { presentation, color } = _m10;
+const { presentation, color } = _m11;
 
-const { wrapShapedPdfText } = _m29;
+const { wrapShapedPdfText } = _m31;
 
-const { PdfFont } = _m19;
+const { PdfFont } = _m21;
 
 /** @internal A run list is a PDF presentation value, never an alternate shared table value model. */
 function capturePdfText(value, base, settings, fonts, countEmpty = true) {
@@ -2691,24 +2817,24 @@ async function wrapPdfText(captured, fonts, size, width, settings, wrap = true) 
     return lines;
 }
 const _exports = Object.freeze({ capturePdfText: capturePdfText, wrapPdfText: wrapPdfText });
-_modules.set("a786bdbd451cebd446465ce241faa34c2cdf066a84e5e68822dfdc78e901b26a", _exports);
+_modules.set("6654f65ef9c7d94436440b18d8ce8648608576d47ecc20e3bf1c37914cb93a00", _exports);
 return _exports;
 })();
 
-const _m25 = _modules.get("4937f4faa1e979141639daec6bb6fabdbf24dbac71f2a441cbedfefe6b476693") ?? (() => {
+const _m27 = _modules.get("74e3c62a5e1bf436f2a1e5e8f0c4dca4a25c6a037076ce5e251e8630aa81d54f") ?? (() => {
 const { ExportCell } = _m7;
 
 const { copyExportLink } = _m9;
 
-const { tableSpans } = _m12;
+const { tableSpans } = _m13;
 
-const { createTotals } = _m26;
+const { createTotals } = _m28;
 
-const { presentation, positive } = _m10;
+const { presentation, positive } = _m11;
 
-const { displayText } = _m27;
+const { displayText } = _m29;
 
-const { capturePdfText, wrapPdfText } = _m28;
+const { capturePdfText, wrapPdfText } = _m30;
 
 class PdfTableLayout {
     settings;
@@ -2856,14 +2982,14 @@ class PdfTableLayout {
     }
 }
 const _exports = Object.freeze({ PdfTableLayout: PdfTableLayout });
-_modules.set("4937f4faa1e979141639daec6bb6fabdbf24dbac71f2a441cbedfefe6b476693", _exports);
+_modules.set("74e3c62a5e1bf436f2a1e5e8f0c4dca4a25c6a037076ce5e251e8630aa81d54f", _exports);
 return _exports;
 })();
 
-const _m31 = _modules.get("c5f5a4892d01de11258381c667d72e97f69410f87c8ddb307be3a7bbb3d6857a") ?? (() => {
+const _m33 = _modules.get("c5f5a4892d01de11258381c667d72e97f69410f87c8ddb307be3a7bbb3d6857a") ?? (() => {
 const { OfficeIMOError } = _m4;
 
-const { pdfNumber, unicodeHex } = _m17;
+const { pdfNumber, unicodeHex } = _m19;
 
 const encoder = new TextEncoder();
 /** @internal URI actions are byte strings; tooltips are Unicode PDF text strings. */
@@ -2906,10 +3032,12 @@ _modules.set("c5f5a4892d01de11258381c667d72e97f69410f87c8ddb307be3a7bbb3d6857a",
 return _exports;
 })();
 
-const _m32 = _modules.get("c96c0d1447d047ab9d1d03612cf6618933273fb72bc145d7d77efafdf0f6c95f") ?? (() => {
+const _m34 = _modules.get("93a48e0c780b5ff91a51fef40169622179fe47eb3f3bd159989ce92f83b57b80") ?? (() => {
 const { OfficeIMOError } = _m4;
 
-const { unicodeHex } = _m17;
+const { unicodeHex } = _m19;
+
+const { captureFields } = _m10;
 
 /** @internal Capture bookmark metadata before source enumeration or cooperative layout. */
 function captureBookmark(value, settings) {
@@ -2942,19 +3070,19 @@ function captureSection(block, settings) {
         throw new TypeError("PDF section headingStyle must be nonempty text.");
     return Object.freeze({ kind: "section", title: checked.title, level: checked.level, includeHeading, bookmark,
         ...(headingStyle === undefined ? {} : { headingStyle }),
-        ...(pageSize === undefined ? {} : { pageSize: typeof pageSize === "object" ? Object.freeze({ ...pageSize }) : pageSize }),
+        ...(pageSize === undefined ? {} : { pageSize: typeof pageSize === "object" ? Object.freeze(captureFields(pageSize, ["width", "height"])) : pageSize }),
         ...(orientation === undefined ? {} : { orientation }),
-        ...(margins === undefined ? {} : { margins: typeof margins === "object" ? Object.freeze({ ...margins }) : margins }),
+        ...(margins === undefined ? {} : { margins: typeof margins === "object" ? Object.freeze(captureFields(margins, ["top", "right", "bottom", "left"])) : margins }),
         ...(pageHeader === undefined ? {} : { pageHeader }), ...(pageFooter === undefined ? {} : { pageFooter }),
         ...(pageNumbers === undefined ? {} : { pageNumbers }) });
 }
 const _exports = Object.freeze({ captureBookmark: captureBookmark, captureSection: captureSection });
-_modules.set("c96c0d1447d047ab9d1d03612cf6618933273fb72bc145d7d77efafdf0f6c95f", _exports);
+_modules.set("93a48e0c780b5ff91a51fef40169622179fe47eb3f3bd159989ce92f83b57b80", _exports);
 return _exports;
 })();
 
-const _m33 = _modules.get("c7ecf05c10bbd55083f2fb1d63ec3ac91437cfe5dd3797e181cb9c200269fe90") ?? (() => {
-const { settings } = _m10;
+const _m35 = _modules.get("bd6e2b0a0d1886f342c5cdf4cd11957c5a170fb74b52ef3df7954270a846c549") ?? (() => {
+const { settings } = _m11;
 
 /** @internal Every section derives from captured document defaults, never the preceding section. */
 function sectionSettings(base, section) {
@@ -2968,28 +3096,28 @@ function sectionSettings(base, section) {
     return { ...base, page: derived.page, margins: derived.margins, options };
 }
 const _exports = Object.freeze({ sectionSettings: sectionSettings });
-_modules.set("c7ecf05c10bbd55083f2fb1d63ec3ac91437cfe5dd3797e181cb9c200269fe90", _exports);
+_modules.set("bd6e2b0a0d1886f342c5cdf4cd11957c5a170fb74b52ef3df7954270a846c549", _exports);
 return _exports;
 })();
 
-const _m30 = _modules.get("f746ccb06c0c0ecef5d8700f89ed42fe9ad134b5938e56709991f28c05ed6e23") ?? (() => {
+const _m32 = _modules.get("710b572817c32272baffeb3ebf805910ba783002ef7601dc3b35480d67d05a25") ?? (() => {
 const { OfficeIMOError } = _m4;
 
 const { checkAbort } = _m3;
 
-const { pdfNumber } = _m17;
+const { pdfNumber } = _m19;
 
-const { color } = _m10;
+const { color } = _m11;
 
-const { wrapText, wrapTextCooperatively, synchronousText } = _m27;
+const { wrapText, wrapTextCooperatively, synchronousText } = _m29;
 
-const { linkAnnotation } = _m31;
+const { linkAnnotation } = _m33;
 
-const { unicodeHex } = _m17;
+const { unicodeHex } = _m19;
 
-const { captureSection, captureBookmark } = _m32;
+const { captureSection, captureBookmark } = _m34;
 
-const { sectionSettings } = _m33;
+const { sectionSettings } = _m35;
 
 /** @internal One page of drawing commands and O(page count) references, never the complete report body. */
 class PdfPages {
@@ -3494,11 +3622,11 @@ class PdfPages {
     }
 }
 const _exports = Object.freeze({ PdfPages: PdfPages });
-_modules.set("f746ccb06c0c0ecef5d8700f89ed42fe9ad134b5938e56709991f28c05ed6e23", _exports);
+_modules.set("710b572817c32272baffeb3ebf805910ba783002ef7601dc3b35480d67d05a25", _exports);
 return _exports;
 })();
 
-const _m35 = _modules.get("7a58e8ccb5164de51db14e39ca9695af6487c354df909509f0ae6bfac8ae3887") ?? (() => {
+const _m37 = _modules.get("7a58e8ccb5164de51db14e39ca9695af6487c354df909509f0ae6bfac8ae3887") ?? (() => {
 /** @internal Incremental PDF number tree: at most 64 entries/children per retained level. */
 class PdfParentTree {
     objects;
@@ -3561,14 +3689,14 @@ _modules.set("7a58e8ccb5164de51db14e39ca9695af6487c354df909509f0ae6bfac8ae3887",
 return _exports;
 })();
 
-const _m34 = _modules.get("2cd5f38c92477650ddc26f5e7372fb391c6f73ae494885e2f782ff89a278bf91") ?? (() => {
+const _m36 = _modules.get("2cd5f38c92477650ddc26f5e7372fb391c6f73ae494885e2f782ff89a278bf91") ?? (() => {
 const { OfficeIMOError } = _m4;
 
 const { checkAbort } = _m3;
 
-const { unicodeHex } = _m17;
+const { unicodeHex } = _m19;
 
-const { PdfParentTree } = _m35;
+const { PdfParentTree } = _m37;
 
 /** @internal Only open logical elements retain content; completed subtrees retain compact parent references. */
 class PdfStructure {
@@ -3741,12 +3869,12 @@ _modules.set("2cd5f38c92477650ddc26f5e7372fb391c6f73ae494885e2f782ff89a278bf91",
 return _exports;
 })();
 
-const _m36 = _modules.get("17b4517717b5af10b7d5ee3b55a2a3283703a52f715041a491f16fcb0efc19d6") ?? (() => {
+const _m38 = _modules.get("17b4517717b5af10b7d5ee3b55a2a3283703a52f715041a491f16fcb0efc19d6") ?? (() => {
 const { OfficeIMOError } = _m4;
 
 const { checkAbort } = _m3;
 
-const { pdfNumber, unicodeHex } = _m17;
+const { pdfNumber, unicodeHex } = _m19;
 
 /** @internal Bounded native bookmarks; destinations are captured only when their content is painted. */
 class PdfOutlines {
@@ -3800,18 +3928,18 @@ _modules.set("17b4517717b5af10b7d5ee3b55a2a3283703a52f715041a491f16fcb0efc19d6",
 return _exports;
 })();
 
-const _m16 = _modules.get("7957edc2989af2d272f30de1154fce0f56f52bd750ef50685117aa0cc7c31360") ?? (() => {
-const { PdfObjects, unicodeHex } = _m17;
+const _m18 = _modules.get("577f9336ea16ce7e309fc3206d6dd9986868be5d7757ef0484595b2860c439fe") ?? (() => {
+const { PdfObjects, unicodeHex } = _m19;
 
-const { PdfFontResources } = _m18;
+const { PdfFontResources } = _m20;
 
-const { PdfTableLayout } = _m25;
+const { PdfTableLayout } = _m27;
 
-const { PdfPages } = _m30;
+const { PdfPages } = _m32;
 
-const { PdfStructure } = _m34;
+const { PdfStructure } = _m36;
 
-const { PdfOutlines } = _m36;
+const { PdfOutlines } = _m38;
 
 /** One resource/catalog owner shared by table convenience exports and composed documents. */
 class PdfWriteSession {
@@ -3861,11 +3989,11 @@ class PdfWriteSession {
     }
 }
 const _exports = Object.freeze({ PdfWriteSession: PdfWriteSession });
-_modules.set("7957edc2989af2d272f30de1154fce0f56f52bd750ef50685117aa0cc7c31360", _exports);
+_modules.set("577f9336ea16ce7e309fc3206d6dd9986868be5d7757ef0484595b2860c439fe", _exports);
 return _exports;
 })();
 
-const _m1 = _modules.get("6df636992faa09b6b10c190c2357f656dcb4fcbc17ef8451f87bf9bda79c1c39") ?? (() => {
+const _m1 = _modules.get("29d1e04582c6a197294867c371604f1b99831a93136abcf5bc46cfb39579ac7d") ?? (() => {
 const { BlobByteSink, withDestination } = _m2;
 
 const { beginTask, checkAbort, consumeRows, pause, taskYieldDue } = _m3;
@@ -3874,9 +4002,9 @@ const { notifyProgress } = _m5;
 
 const { createRowProjector } = _m6;
 
-const { settings } = _m10;
+const { settings } = _m11;
 
-const { PdfWriteSession } = _m16;
+const { PdfWriteSession } = _m18;
 
 async function writePdf(rows, configuration) {
     const sink = new BlobByteSink();
@@ -3928,24 +4056,26 @@ async function writePdfTo(rows, destination, configuration) {
     });
 }
 const _exports = Object.freeze({ writePdf: writePdf, writePdfTo: writePdfTo });
-_modules.set("6df636992faa09b6b10c190c2357f656dcb4fcbc17ef8451f87bf9bda79c1c39", _exports);
+_modules.set("29d1e04582c6a197294867c371604f1b99831a93136abcf5bc46cfb39579ac7d", _exports);
 return _exports;
 })();
 
-const _m38 = _modules.get("a14509a5de615c6f14351ee20bddbae877f6cb56ede3069a15b4a5d243f2b4b2") ?? (() => {
-const { ExportCell, assertExportValue } = _m7;
+const _m40 = _modules.get("2fd47b8fb38db22ea1876babbd9c3970e9c9d378131e692d27e6ac415d34544d") ?? (() => {
+const { ExportCell } = _m7;
 
 const { isDate } = _m8;
 
 const { checkAbort, inputRows, pause, taskYieldDue } = _m3;
 
-const { ExportBudget } = _m11;
+const { ExportBudget } = _m12;
 
 const { OfficeIMOError } = _m4;
 
 const { copyColumns, createRowProjector } = _m6;
 
-const { createTotals } = _m26;
+const { createTotals } = _m28;
+
+const { copyExportValue } = _m14;
 
 const sources = new WeakMap();
 /** @internal Writers accept the owned immutable event source rather than trusting caller-authored event protocols. */
@@ -3990,16 +4120,6 @@ function maximum(value, fallback, name) {
         throw new RangeError(name + " must be a nonnegative safe integer.");
     return result;
 }
-function copyValue(value) {
-    assertExportValue(value);
-    if (isDate(value))
-        return new Date(Date.prototype.getTime.call(value));
-    if (value instanceof ExportCell) {
-        const scalar = value.value, text = value.text, presentation = value.presentation, link = value.link;
-        return new ExportCell(isDate(scalar) ? new Date(Date.prototype.getTime.call(scalar)) : scalar, { ...(text === undefined ? {} : { text }), ...(presentation === undefined ? {} : { presentation }), ...(link === undefined ? {} : { link }) });
-    }
-    return value ?? null;
-}
 function scalar(value) { return value instanceof ExportCell ? value.value : value; }
 function identity(value) {
     if (value == null)
@@ -4031,11 +4151,9 @@ function createGroupedReport(rows, options) {
         throw new TypeError("Grouped source limits must be an object.");
     if (limits !== undefined && "maxOutputBytes" in limits)
         throw new TypeError("Set maxOutputBytes on the format writer, not the grouped source.");
-    const capturedLimits = limits === undefined ? undefined : { ...limits };
     if (!Array.isArray(selected) || !selected.length)
         throw new TypeError("A grouped report needs declared columns.");
-    const captured = selected.map(column => ({ ...column }));
-    const columns = copyColumns(captured);
+    const columns = copyColumns(selected);
     const keys = columns.map(column => column.key);
     if (keys.some(key => typeof key !== "string" || key.length === 0) || new Set(keys).size !== keys.length)
         throw new TypeError("Grouped report columns need unique, nonempty stable keys.");
@@ -4051,7 +4169,7 @@ function createGroupedReport(rows, options) {
             throw new TypeError("Grouped numeric totals require a column declared with type:number.");
     const maxGroups = maximum(requestedGroups, 1000, "maxGroups");
     const maxCharacters = maximum(requestedCharacters, 1000000, "maxGroupKeyCharacters");
-    const budget = new ExportBudget(capturedLimits);
+    const budget = new ExportBudget(limits);
     const portable = Object.freeze(columns.map(column => {
         const { value: _getter, ...metadata } = column;
         return Object.freeze(metadata);
@@ -4080,7 +4198,7 @@ function createGroupedReport(rows, options) {
             const snapshot = Array.isArray(input) ? Array.from(input) : input;
             const projected = project(snapshot, rowCount), values = [];
             for (let column = 0; column < columns.length; column++)
-                values.push(copyValue(projected[column]));
+                values.push(copyExportValue(projected[column]) ?? null);
             checkAbort(signal);
             const next = identity(scalar(values[groupColumn]));
             if (next.id !== currentId) {
@@ -4147,11 +4265,11 @@ function createGroupedReport(rows, options) {
     return source;
 }
 const _exports = Object.freeze({ assertGroupedReportSource: assertGroupedReportSource, groupedReportEvents: groupedReportEvents, groupedReportOperation: groupedReportOperation, createGroupedReport: createGroupedReport });
-_modules.set("a14509a5de615c6f14351ee20bddbae877f6cb56ede3069a15b4a5d243f2b4b2", _exports);
+_modules.set("2fd47b8fb38db22ea1876babbd9c3970e9c9d378131e692d27e6ac415d34544d", _exports);
 return _exports;
 })();
 
-const _m42 = _modules.get("790c15edc51b308be3e7d8222630d407f8c79c31ab21ba0b9f92c00f44ab4021") ?? (() => {
+const _m44 = _modules.get("790c15edc51b308be3e7d8222630d407f8c79c31ab21ba0b9f92c00f44ab4021") ?? (() => {
 const crcTable = new Uint32Array(256).map((_, index) => {
     let value = index;
     for (let bit = 0; bit < 8; bit++)
@@ -4174,12 +4292,12 @@ _modules.set("790c15edc51b308be3e7d8222630d407f8c79c31ab21ba0b9f92c00f44ab4021",
 return _exports;
 })();
 
-const _m41 = _modules.get("93cd0a0782cf8422936851ade68f30471906ea3d2d31fc8f5c5ff8be267c9f7e") ?? (() => {
+const _m43 = _modules.get("93cd0a0782cf8422936851ade68f30471906ea3d2d31fc8f5c5ff8be267c9f7e") ?? (() => {
 const { NotSupportedError, OfficeIMOError } = _m4;
 
 const { checkAbort, pause, taskYieldDue, withAbort } = _m3;
 
-const { Crc32 } = _m42;
+const { Crc32 } = _m44;
 
 const signature = [137, 80, 78, 71, 13, 10, 26, 10];
 const unsupportedChunks = new Set(["PLTE", "tRNS", "iCCP", "sRGB", "gAMA", "cHRM", "cICP", "mDCV", "cLLI", "sBIT", "eXIf", "acTL", "fcTL", "fdAT"]);
@@ -4397,12 +4515,12 @@ _modules.set("93cd0a0782cf8422936851ade68f30471906ea3d2d31fc8f5c5ff8be267c9f7e",
 return _exports;
 })();
 
-const _m40 = _modules.get("d5b31c21eb17feaf02518fddbbf7d0a45c0159e8473b08eb4a8be0a7a45cb654") ?? (() => {
+const _m42 = _modules.get("d5b31c21eb17feaf02518fddbbf7d0a45c0159e8473b08eb4a8be0a7a45cb654") ?? (() => {
 const { NotSupportedError, OfficeIMOError } = _m4;
 
 const { checkAbort, pause, taskYieldDue } = _m3;
 
-const { pngPixels } = _m41;
+const { pngPixels } = _m43;
 
 /** Shared document image resources; source objects are captured on first consumption. */
 class PdfDocumentImages {
@@ -4531,14 +4649,14 @@ _modules.set("d5b31c21eb17feaf02518fddbbf7d0a45c0159e8473b08eb4a8be0a7a45cb654",
 return _exports;
 })();
 
-const _m43 = _modules.get("a9f0932877cd216264b815e9071d98eeaef68174d3f9c9b7a05fc5ccdc3e2ba2") ?? (() => {
+const _m45 = _modules.get("2d51a16a36f9569605cd7a6d17b9923ea2139d8a53db79d59e119afc0a1e48c8") ?? (() => {
 const { OfficeIMOError } = _m4;
 
 const { checkAbort, pause, taskYieldDue } = _m3;
 
-const { color, positive } = _m10;
+const { color, positive } = _m11;
 
-const { pdfNumber: n } = _m17;
+const { pdfNumber: n } = _m19;
 
 /** Capture and serialize one bounded display path, with no markup parser or resource loading. */
 async function vectorCommands(block, settings, used) {
@@ -4614,18 +4732,18 @@ async function vectorCommands(block, settings, used) {
             commands.join("") + (fill !== undefined && stroke !== undefined ? "B" : fill !== undefined ? "f" : "S") + (fill !== undefined && fillRule === "evenodd" ? "*" : "") + "\n" };
 }
 const _exports = Object.freeze({ vectorCommands: vectorCommands });
-_modules.set("a9f0932877cd216264b815e9071d98eeaef68174d3f9c9b7a05fc5ccdc3e2ba2", _exports);
+_modules.set("2d51a16a36f9569605cd7a6d17b9923ea2139d8a53db79d59e119afc0a1e48c8", _exports);
 return _exports;
 })();
 
-const _m44 = _modules.get("32e0227f504e070d6c6ee133bcc699b27562c1faaff50eb209f762f2ed95fa51") ?? (() => {
+const _m46 = _modules.get("8f3e1598cfefafb094c62cfd5246d96939aabf02f4f0904cc6ebc5f5e38c1c16") ?? (() => {
 const { NotSupportedError, OfficeIMOError } = _m4;
 
 const { checkAbort, pause, taskYieldDue } = _m3;
 
-const { color, positive } = _m10;
+const { color, positive } = _m11;
 
-const { pdfNumber: n } = _m17;
+const { pdfNumber: n } = _m19;
 
 /** Portable drawings are an exact schema: unsupported data must never be silently discarded. */
 function record(value, keys, name) {
@@ -4861,20 +4979,22 @@ async function prepareDrawing(drawing, settings, fonts, used) {
     return { width: captured.width, height: captured.height, content: fragments.join(""), commands: captured.commands, elements: captured.elements };
 }
 const _exports = Object.freeze({ checkDrawingBlock: checkDrawingBlock, prepareDrawing: prepareDrawing });
-_modules.set("32e0227f504e070d6c6ee133bcc699b27562c1faaff50eb209f762f2ed95fa51", _exports);
+_modules.set("8f3e1598cfefafb094c62cfd5246d96939aabf02f4f0904cc6ebc5f5e38c1c16", _exports);
 return _exports;
 })();
 
-const _m45 = _modules.get("6d4117a8e02e37a0878585f48ef9ffd2fc24c76642a6f4ade7abc20fc5d1cc06") ?? (() => {
+const _m47 = _modules.get("98a2b1f621ee4c6824b26cd046c9e029abc842f2553a99928a6a98fd37f3c3e5") ?? (() => {
 const { OfficeIMOError } = _m4;
 
-const { capturePdfText, wrapPdfText } = _m28;
+const { capturePdfText, wrapPdfText } = _m30;
 
-const { positive } = _m10;
+const { positive } = _m11;
 
-const { resolveParagraphStyle } = _m13;
+const { resolveParagraphStyle } = _m15;
 
-const { captureBookmark } = _m32;
+const { captureBookmark } = _m34;
+
+const { captureFields } = _m10;
 
 /** @internal Copy public paragraph input before any cooperative layout or source enumeration. */
 function captureParagraph(block, settings, fonts) {
@@ -4900,7 +5020,8 @@ function captureCaption(caption, settings, fonts) {
     if (!caption || typeof caption !== "object" || Array.isArray(caption) ||
         Object.keys(caption).some(key => !["text", "style", "fontSize", "presentation", "spaceBefore", "spaceAfter"].includes(key)))
         throw new TypeError("PDF captions support text, style, fontSize, presentation, spaceBefore and spaceAfter.");
-    return captureParagraph({ ...caption, kind: "paragraph", keepTogether: true, keepWithNext: true }, settings, fonts);
+    return captureParagraph({ ...captureFields(caption, ["text", "style", "fontSize", "presentation", "spaceBefore", "spaceAfter"]),
+        kind: "paragraph", keepTogether: true, keepWithNext: true }, settings, fonts);
 }
 /** @internal Layout is bounded by the same per-cell text and wrapped-line limits as table cells. */
 async function prepareParagraph(captured, settings, fonts, width = settings.page.width - settings.margins.left - settings.margins.right) {
@@ -4936,16 +5057,16 @@ function paragraphStartHeight(paragraphs) {
     return required;
 }
 const _exports = Object.freeze({ captureParagraph: captureParagraph, captureCaption: captureCaption, prepareParagraph: prepareParagraph, checkParagraphBuffer: checkParagraphBuffer, paragraphStartHeight: paragraphStartHeight });
-_modules.set("6d4117a8e02e37a0878585f48ef9ffd2fc24c76642a6f4ade7abc20fc5d1cc06", _exports);
+_modules.set("98a2b1f621ee4c6824b26cd046c9e029abc842f2553a99928a6a98fd37f3c3e5", _exports);
 return _exports;
 })();
 
-const _m46 = _modules.get("575b8112ccc8d3b2529714813b998307718864b35395ffa6684e4fab61876233") ?? (() => {
-const { capturePdfText, wrapPdfText } = _m28;
+const _m48 = _modules.get("1e620e7c6c8244fd6eed09ceff142b1576e5f72bec01433f4f90d0316bcce408") ?? (() => {
+const { capturePdfText, wrapPdfText } = _m30;
 
-const { captureParagraph, prepareParagraph } = _m45;
+const { captureParagraph, prepareParagraph } = _m47;
 
-const { resolveParagraphStyle } = _m13;
+const { resolveParagraphStyle } = _m15;
 
 function captureListOptions(block, settings) {
     const { items, ordered = false, start: inputStart, itemStyle, indent, markerGap } = block;
@@ -4994,11 +5115,11 @@ async function prepareListItem(item, index, options, settings, fonts) {
             height: paragraph.height + lineHeight - first.lineHeight, firstHeight: paragraph.spaceBefore + lineHeight } };
 }
 const _exports = Object.freeze({ captureListOptions: captureListOptions, prepareListItem: prepareListItem });
-_modules.set("575b8112ccc8d3b2529714813b998307718864b35395ffa6684e4fab61876233", _exports);
+_modules.set("1e620e7c6c8244fd6eed09ceff142b1576e5f72bec01433f4f90d0316bcce408", _exports);
 return _exports;
 })();
 
-const _m39 = _modules.get("5c38d74ff5c0110a296395bef9128a3d532995d3394546b0609d898d4f359c2e") ?? (() => {
+const _m41 = _modules.get("94006d75d5e43e51ab51c37ed2a3e4b74cb8cec52518978d6eb626217e88a39d") ?? (() => {
 const { BlobByteSink, withDestination } = _m2;
 
 const { OfficeIMOError } = _m4;
@@ -5009,32 +5130,35 @@ const { notifyProgress } = _m5;
 
 const { copyColumns, createRowProjector } = _m6;
 
-const { settings } = _m10;
+const { captureFields } = _m10;
 
-const { pdfNumber: n } = _m17;
+const { settings } = _m11;
 
-const { PdfTableLayout } = _m25;
+const { pdfNumber: n } = _m19;
 
-const { PdfWriteSession } = _m16;
+const { PdfTableLayout } = _m27;
 
-const { PdfDocumentImages } = _m40;
+const { PdfWriteSession } = _m18;
 
-const { vectorCommands } = _m43;
+const { PdfDocumentImages } = _m42;
 
-const { graphicAlternative } = _m34;
+const { vectorCommands } = _m45;
 
-const { checkDrawingBlock, prepareDrawing } = _m44;
+const { graphicAlternative } = _m36;
 
-const { captureParagraph, captureCaption, prepareParagraph, checkParagraphBuffer, paragraphStartHeight } = _m45;
+const { checkDrawingBlock, prepareDrawing } = _m46;
 
-const { captureListOptions, prepareListItem } = _m46;
+const { captureParagraph, captureCaption, prepareParagraph, checkParagraphBuffer, paragraphStartHeight } = _m47;
 
-const { captureSection } = _m32;
+const { captureListOptions, prepareListItem } = _m48;
 
+const { captureSection } = _m34;
+
+const tableOptionFields = ["columns", "includeHeader", "headerRows", "footer", "headerPresentation", "footerPresentation", "alternateRowColor", "columnWidths", "wideTable", "formatValue", "formatRuns"];
 /** Capture typed columns for a single-use table source in a composed document. */
 function pdfTable(rows, options) {
-    checkTableOptions(options);
-    return Object.freeze({ kind: "table", rows, options: Object.freeze({ ...options, columns: Object.freeze(copyColumns(options?.columns)) }) });
+    const captured = captureTableOptions(options);
+    return Object.freeze({ kind: "table", rows, options: Object.freeze({ ...captured, columns: Object.freeze(copyColumns(captured.columns)) }) });
 }
 /** Write sequential report blocks to a PDF Blob, retaining finished output proportional to file size. */
 async function writePdfDocument(blocks, options = {}) {
@@ -5050,7 +5174,7 @@ async function writePdfDocument(blocks, options = {}) {
 }
 /** Stream composed pages with backpressure. Rows sum all tables; columns reports the widest table. */
 async function writePdfDocumentTo(blocks, destination, configuration = {}) {
-    const prepared = settings({ ...configuration, columns: [], includeHeader: false }, true), { options, budget } = prepared;
+    const prepared = settings(configuration, true), { options, budget } = prepared;
     beginTask();
     checkAbort(options.signal);
     return withDestination(destination, async (sink) => {
@@ -5149,8 +5273,8 @@ async function writePdfDocumentTo(blocks, destination, configuration = {}) {
                     await pages.pageBreak();
                     break;
                 case "table": {
-                    const { options: tableOptions, rows: source, caption: inputCaption, continuationCaption: inputContinuationCaption } = block;
-                    checkTableOptions(tableOptions);
+                    const { options: inputTableOptions, rows: source, caption: inputCaption, continuationCaption: inputContinuationCaption } = block;
+                    const tableOptions = captureTableOptions(inputTableOptions);
                     const capturedCaption = snapshotCaption(inputCaption);
                     if (inputContinuationCaption !== undefined && options.tagged)
                         throw new TypeError("Tagged PDF table continuation captions are unsupported.");
@@ -5258,18 +5382,18 @@ function graphicAlignment(value) {
     return value ?? "left";
 }
 /** Per-table overrides cannot change the document's shared fonts, geometry or resource policy. */
-function checkTableOptions(options) {
-    const allowed = ["columns", "includeHeader", "headerRows", "footer", "headerPresentation", "footerPresentation", "alternateRowColor", "columnWidths", "wideTable", "formatValue", "formatRuns"];
-    if (!options || typeof options !== "object" || Object.keys(options).some(key => !allowed.includes(key)))
+function captureTableOptions(options) {
+    if (!options || typeof options !== "object" || Object.keys(options).some(key => !tableOptionFields.includes(key)))
         throw new TypeError("Table options support columns, headings, footers, widths and presentation; document settings belong on writePdfDocument.");
+    return captureFields(options, tableOptionFields);
 }
 const _exports = Object.freeze({ pdfTable: pdfTable, writePdfDocument: writePdfDocument, writePdfDocumentTo: writePdfDocumentTo });
-_modules.set("5c38d74ff5c0110a296395bef9128a3d532995d3394546b0609d898d4f359c2e", _exports);
+_modules.set("94006d75d5e43e51ab51c37ed2a3e4b74cb8cec52518978d6eb626217e88a39d", _exports);
 return _exports;
 })();
 
-const _m37 = _modules.get("990f8b523f545b925faa5e29c90fa7f975a12161d4669cc05de80adef718ee09") ?? (() => {
-const { assertGroupedReportSource, groupedReportOperation } = _m38;
+const _m39 = _modules.get("047b0bc57f601d332b626a20aaab29175737304a222a88edac48bfc5c1e76a4d") ?? (() => {
+const { assertGroupedReportSource, groupedReportOperation } = _m40;
 
 const { BlobByteSink } = _m2;
 
@@ -5277,12 +5401,15 @@ const { notifyProgress } = _m5;
 
 const { ExportCell } = _m7;
 
-const { pdfTable, writePdfDocumentTo } = _m39;
+const { pdfTable, writePdfDocumentTo } = _m41;
 
-const { settings } = _m10;
+const { settings, pdfOptionFields } = _m11;
 
-const { synchronousText } = _m27;
+const { synchronousText } = _m29;
 
+const { captureFields } = _m10;
+
+const groupedOptionFields = [...pdfOptionFields, "labelColumn", "subtotalLabel", "grandTotalLabel", "includeGrandTotal", "continuationLabel"];
 /** Stream contiguous analytical groups through the ordinary PDF document/table writer. No group body is retained. */
 async function writeGroupedPdf(report, configuration) {
     const sink = new BlobByteSink();
@@ -5301,7 +5428,7 @@ async function writeGroupedPdfTo(report, destination, configuration) {
     assertGroupedReportSource(report);
     if (!configuration || typeof configuration !== "object")
         throw new TypeError("Grouped PDF options are required.");
-    const { labelColumn, subtotalLabel, grandTotalLabel, includeGrandTotal = true, continuationLabel, ...input } = configuration;
+    const { labelColumn, subtotalLabel, grandTotalLabel, includeGrandTotal = true, continuationLabel, ...input } = captureFields(configuration, groupedOptionFields);
     if (!labelColumn || typeof labelColumn !== "object")
         throw new TypeError("Grouped PDF needs a leading labelColumn.");
     const { header, width } = labelColumn;
@@ -5402,14 +5529,14 @@ async function writeGroupedPdfTo(report, destination, configuration) {
     }
 }
 const _exports = Object.freeze({ writeGroupedPdf: writeGroupedPdf, writeGroupedPdfTo: writeGroupedPdfTo });
-_modules.set("990f8b523f545b925faa5e29c90fa7f975a12161d4669cc05de80adef718ee09", _exports);
+_modules.set("047b0bc57f601d332b626a20aaab29175737304a222a88edac48bfc5c1e76a4d", _exports);
 return _exports;
 })();
 
-const _m47 = _modules.get("6ac9b32affc9008e5bd8620fd3792022dfdcd4e0fe51c678bb2ba26bcbe95fd9") ?? (() => {
-const { fontProgram } = _m19;
+const _m49 = _modules.get("6ac9b32affc9008e5bd8620fd3792022dfdcd4e0fe51c678bb2ba26bcbe95fd9") ?? (() => {
+const { fontProgram } = _m21;
 
-const { resolveScalar, selectFont, validateFonts } = _m23;
+const { resolveScalar, selectFont, validateFonts } = _m25;
 
 /**
  * Check one text run against the writer's selected font and scalar-layout rules.
@@ -5446,7 +5573,7 @@ _modules.set("6ac9b32affc9008e5bd8620fd3792022dfdcd4e0fe51c678bb2ba26bcbe95fd9",
 return _exports;
 })();
 
-const _m48 = _modules.get("aea31b22440d61d117c049dd9d718f429961b8ee04907ea1f38bd7b959eafce2") ?? (() => {
+const _m50 = _modules.get("92a5caf41908d96c8f0b8cd4e63f7d2b7cf979e69e8b59694b39a0b3176ece3c") ?? (() => {
 
 
 
@@ -5490,16 +5617,16 @@ function saveBlob(blob, fileName) {
         setTimeout(() => URL.revokeObjectURL(url), 30000);
     }
 }
-const _exports = Object.freeze({ OfficeIMOError: _m4.OfficeIMOError, NotSupportedError: _m4.NotSupportedError, BlobByteSink: _m2.BlobByteSink, ChunkedTextSink: _m2.ChunkedTextSink, writeBytes: _m2.writeBytes, ExportCell: _m7.ExportCell, createGroupedReport: _m38.createGroupedReport, checkAbort: _m3.checkAbort, withAbort: _m3.withAbort, inputRows: _m3.inputRows, pause: _m3.pause, detectFeatures: detectFeatures, saveBlob: saveBlob });
-_modules.set("aea31b22440d61d117c049dd9d718f429961b8ee04907ea1f38bd7b959eafce2", _exports);
+const _exports = Object.freeze({ OfficeIMOError: _m4.OfficeIMOError, NotSupportedError: _m4.NotSupportedError, BlobByteSink: _m2.BlobByteSink, ChunkedTextSink: _m2.ChunkedTextSink, writeBytes: _m2.writeBytes, ExportCell: _m7.ExportCell, createGroupedReport: _m40.createGroupedReport, checkAbort: _m3.checkAbort, withAbort: _m3.withAbort, inputRows: _m3.inputRows, pause: _m3.pause, detectFeatures: detectFeatures, saveBlob: saveBlob });
+_modules.set("92a5caf41908d96c8f0b8cd4e63f7d2b7cf979e69e8b59694b39a0b3176ece3c", _exports);
 return _exports;
 })();
 
-const _m0 = _modules.get("c732d5bc377e6d9828263d3ce3a79b6bd16bb1089803ed8466c8d05a3cc3d00c") ?? (() => {
+const _m0 = _modules.get("ee1f59f8e7704ea6061f281e511fec1330de5a5329195ec512a34496ba8a1bc4") ?? (() => {
 
-const _exports = Object.freeze({ writePdf: _m1.writePdf, writePdfTo: _m1.writePdfTo, writeGroupedPdf: _m37.writeGroupedPdf, writeGroupedPdfTo: _m37.writeGroupedPdfTo, createGroupedReport: _m38.createGroupedReport, writePdfDocument: _m39.writePdfDocument, writePdfDocumentTo: _m39.writePdfDocumentTo, pdfTable: _m39.pdfTable, PdfFont: _m19.PdfFont, preflightPdfText: _m47.preflightPdfText, ExportCell: _m7.ExportCell, saveBlob: _m48.saveBlob });
-_modules.set("c732d5bc377e6d9828263d3ce3a79b6bd16bb1089803ed8466c8d05a3cc3d00c", _exports);
+const _exports = Object.freeze({ writePdf: _m1.writePdf, writePdfTo: _m1.writePdfTo, writeGroupedPdf: _m39.writeGroupedPdf, writeGroupedPdfTo: _m39.writeGroupedPdfTo, createGroupedReport: _m40.createGroupedReport, writePdfDocument: _m41.writePdfDocument, writePdfDocumentTo: _m41.writePdfDocumentTo, pdfTable: _m41.pdfTable, PdfFont: _m21.PdfFont, preflightPdfText: _m49.preflightPdfText, ExportCell: _m7.ExportCell, saveBlob: _m50.saveBlob });
+_modules.set("ee1f59f8e7704ea6061f281e511fec1330de5a5329195ec512a34496ba8a1bc4", _exports);
 return _exports;
 })();
-Object.assign(officeimo, _m0, { core: _m48, pdf: _m0 });
+Object.assign(officeimo, _m0, { core: _m50, pdf: _m0 });
 })(globalThis);

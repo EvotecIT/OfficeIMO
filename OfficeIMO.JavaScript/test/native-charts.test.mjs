@@ -122,6 +122,34 @@ test("chart input getters and array values are captured once before asynchronous
   for (const key of ["data", "title", "categories", "series", "name", "values", "category", "value"]) assert.equal(calls.get(key), 1, key + " is read once.");
 });
 
+test("snapshot chart array growth cannot exceed the preflighted numeric point budget", async () => {
+  const categories = ["A"], series = [{ name: "S", values: [1, 2] }];
+  Object.defineProperty(categories, 0, { get() { if (categories.length === 1) categories.push("B"); return "A"; }, enumerable: true });
+  const book = new Workbook({ compression: "store", limits: { maxChartPoints: 1 } }), sheet = book.addWorksheet("Report");
+  assert.throws(() => sheet.addChart(chart("line", { categories, series })), /match the category count/);
+  let extraReads = 0;
+  const selected = [{ name: "S", values: [1] }];
+  Object.defineProperty(selected, 0, { get() {
+    if (selected.length === 1) Object.defineProperty(selected, 1, { enumerable: true, get() { extraReads++; return { name: "Unexpected", values: [2] }; } });
+    return { name: "S", values: [1] };
+  }, enumerable: true });
+  sheet.addChart(chart("line", { categories: ["A"], series: selected }));
+  const zip = await readZip(await book.toBlob()), xml = chartXml(zip, 1);
+  assert.equal(extraReads, 0); assert.equal((xml.match(/<c:ser>/g) ?? []).length, 1);
+  assert.match(xml, /<c:numCache><c:formatCode>General<\/c:formatCode><c:ptCount val="1"/);
+  assert.ok(!zip.has("xl/charts/chart2.xml"));
+});
+
+test("native chart language is explicit canonical metadata with no forced report locale", async () => {
+  const book = new Workbook({ compression: "store" }), sheet = book.addWorksheet("Report");
+  sheet.addChart(chart("line", { categories: ["Łódź"], series: [{ name: "Wynik", values: [1] }] }));
+  sheet.addChart({ ...chart("line", { categories: ["Łódź"], series: [{ name: "Wynik", values: [1] }] }), language: "pl-pl" });
+  for (const language of ["", "Polish language", "en_US", 42]) assert.throws(() => sheet.addChart({ ...chart(), language }), /language/);
+  const zip = await readZip(await book.toBlob());
+  assert.doesNotMatch(chartXml(zip, 1), /<c:lang/);
+  assert.match(chartXml(zip, 2), /<c:lang val="pl-PL"\/>/);
+});
+
 test("streamed worksheets retain their charts after closing and use distinct source-sheet and relationship identities", async () => {
   const chunks = []; let writing = false;
   const book = new Workbook({ compression: "store", sink: { async write(bytes) {

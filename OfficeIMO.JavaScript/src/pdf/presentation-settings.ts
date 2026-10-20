@@ -1,4 +1,5 @@
 import type { CellPresentation } from "../core/index.js";
+import { captureFields } from "../internal/capture.js";
 
 /** Pure validation shared by document settings and named paragraph styles. */
 export function positive(value: number, name: string, max = 14400): number {
@@ -12,7 +13,7 @@ export function color(value: string): string {
 }
 export function presentation(value: CellPresentation = {}): Readonly<CellPresentation> {
   if (!value || typeof value !== "object") throw new TypeError("PDF presentation must be an object.");
-  const snapshot = { ...value };
+  const snapshot = captureFields(value, ["background", "color", "numberFormat", "bold", "italic", "wrapText", "alignment"]);
   if (snapshot.background !== undefined) color(snapshot.background);
   if (snapshot.color !== undefined) color(snapshot.color);
   for (const key of ["bold", "italic", "wrapText"] as const) if (snapshot[key] !== undefined && typeof snapshot[key] !== "boolean") throw new TypeError("PDF presentation " + key + " must be boolean.");

@@ -297,8 +297,29 @@ const _exports = Object.freeze({ withDestination: withDestination, BlobByteSink:
 return _exports;
 })();
 
+const _m5 = (() => {
+/** Capture a structural option record before validation or asynchronous work.
+ * Own fields and supported prototype accessors are read once. Nested values remain
+ * borrowed until their owning format captures or validates them. */
+function captureFields(input, fields) {
+    const captured = { ...input };
+    for (const field of fields) {
+        if (Object.hasOwn(captured, field))
+            continue;
+        const value = input[field];
+        if (value !== undefined)
+            captured[field] = value;
+    }
+    return captured;
+}
+const _exports = Object.freeze({ captureFields: captureFields });
+return _exports;
+})();
+
 const _m4 = (() => {
 const { OfficeIMOError } = _m3;
+
+const { captureFields } = _m5;
 
 /** @internal Check before accepting the next value or chunk. */
 class ExportBudget {
@@ -308,10 +329,15 @@ class ExportBudget {
     reservedText = 0;
     limits;
     constructor(limits = {}) {
-        for (const [key, value] of Object.entries(limits))
+        if (!limits || typeof limits !== "object" || Array.isArray(limits))
+            throw new TypeError("Export limits must be an object.");
+        // Capture before validation. Supported class getters are ordinary structural
+        // options too, and an accessor must not change the ceiling after validation.
+        const captured = captureFields(limits, ["maxRows", "maxCells", "maxTextCharacters", "maxOutputBytes"]);
+        for (const [key, value] of Object.entries(captured))
             if (value !== undefined && (!Number.isSafeInteger(value) || value < 0))
                 throw new RangeError(key + " must be a nonnegative safe integer.");
-        this.limits = Object.freeze({ ...limits });
+        this.limits = Object.freeze(captured);
     }
     check(kind, value) {
         const maximum = this.limits[kind];
@@ -353,7 +379,7 @@ const _exports = Object.freeze({ ExportBudget: ExportBudget, boundedSink: bounde
 return _exports;
 })();
 
-const _m6 = (() => {
+const _m7 = (() => {
 /** @internal Recognize native Date values across iframe realms without trusting a string tag. */
 function isDate(value) {
     if (value === null || typeof value !== "object")
@@ -374,27 +400,29 @@ const _exports = Object.freeze({ isDate: isDate });
 return _exports;
 })();
 
-const _m7 = (() => {
+const _m8 = (() => {
 /** @internal One target policy shared by document writers and portable cells. */
 function copyExportLink(link) {
-    if (!link || typeof link !== "object" || typeof link.target !== "string" ||
-        !/^(?:https?:\/\/|mailto:)/i.test(link.target) || /[\u0000-\u0020\u007f]/.test(link.target))
+    if (!link || typeof link !== "object")
         throw new TypeError("Hyperlinks require an absolute HTTP, HTTPS or mailto target without whitespace or controls.");
-    const url = new URL(link.target);
+    const { target, tooltip } = link;
+    if (typeof target !== "string" || !/^(?:https?:\/\/|mailto:)/i.test(target) || /[\u0000-\u0020\u007f]/.test(target))
+        throw new TypeError("Hyperlinks require an absolute HTTP, HTTPS or mailto target without whitespace or controls.");
+    const url = new URL(target);
     if ((url.protocol === "http:" || url.protocol === "https:") && (!url.hostname || url.username || url.password))
         throw new TypeError("Hyperlink HTTP targets need a host and must not contain credentials.");
-    if (link.tooltip !== undefined && typeof link.tooltip !== "string")
+    if (tooltip !== undefined && typeof tooltip !== "string")
         throw new TypeError("Hyperlink tooltip must be text.");
-    return Object.freeze({ target: url.href, ...(link.tooltip === undefined ? {} : { tooltip: link.tooltip }) });
+    return Object.freeze({ target: url.href, ...(tooltip === undefined ? {} : { tooltip }) });
 }
 const _exports = Object.freeze({ copyExportLink: copyExportLink });
 return _exports;
 })();
 
-const _m5 = (() => {
-const { isDate } = _m6;
+const _m6 = (() => {
+const { isDate } = _m7;
 
-const { copyExportLink } = _m7;
+const { copyExportLink } = _m8;
 
 const exportCellBrand = Symbol.for("@evotecit/officeimo/ExportCell");
 /** @internal Capture only portable scalar presentation fields before retaining or cloning a cell. */
@@ -427,12 +455,13 @@ class ExportCell {
     link;
     constructor(value, options = {}) {
         this.value = value;
-        if (options.text !== undefined && typeof options.text !== "string")
+        const { text, presentation, link } = options;
+        if (text !== undefined && typeof text !== "string")
             throw new TypeError("Display text must be a string.");
         assertScalar(value);
-        this.text = options.text;
-        this.presentation = options.presentation === undefined ? undefined : copyCellPresentation(options.presentation);
-        this.link = options.link === undefined ? undefined : copyExportLink(options.link);
+        this.text = text;
+        this.presentation = presentation === undefined ? undefined : copyCellPresentation(presentation);
+        this.link = link === undefined ? undefined : copyExportLink(link);
         Object.defineProperty(this, exportCellBrand, { value: true });
         Object.freeze(this);
     }
@@ -456,7 +485,7 @@ const _exports = Object.freeze({ copyCellPresentation: copyCellPresentation, Exp
 return _exports;
 })();
 
-const _m8 = (() => {
+const _m9 = (() => {
 /** @internal Notify synchronously; observe an accidental promise before rejecting its unsupported use. */
 function notifyProgress(callback, progress) {
     if (!callback)
@@ -471,12 +500,14 @@ const _exports = Object.freeze({ notifyProgress: notifyProgress });
 return _exports;
 })();
 
-const _m9 = (() => {
-const { assertExportValue } = _m5;
+const _m10 = (() => {
+const { assertExportValue } = _m6;
 
 const { checkAbort } = _m1;
 
-const { isDate } = _m6;
+const { isDate } = _m7;
+
+const { captureFields } = _m5;
 
 function createRowProjector(columns, worksheet, signal, validate = assertExportValue) {
     const getters = columns.some(column => column.value);
@@ -514,28 +545,84 @@ function createRowProjector(columns, worksheet, signal, validate = assertExportV
         });
     };
 }
+/** @internal Shared metadata fields for full columns and adapter-owned partial overrides. */
+const columnOptionFields = ["header", "key", "value", "width", "type", "format", "wrapText", "alignment", "groups", "style", "valueFormatter"];
 function copyColumns(columns, workbookStyles = false) {
     if (!Array.isArray(columns))
         throw new TypeError("Declare the columns in export order.");
     return columns.map(c => {
-        if (!workbookStyles && c?.style !== undefined)
-            throw new TypeError("Workbook-local column styles require the advanced Workbook API; use portable ExportCell presentation.");
-        if (!c || typeof c.header !== "string" || (c.key !== undefined && typeof c.key !== "string"))
+        if (!c || typeof c !== "object" && typeof c !== "function")
             throw new TypeError("Each column needs a string header and an optional string key.");
-        if (c.value !== undefined && typeof c.value !== "function")
+        // Own extension metadata remains available to its format owner. Capture the
+        // supported structural fields even when a class exposes prototype getters.
+        const captured = captureFields(c, columnOptionFields);
+        if (!workbookStyles && captured.style !== undefined)
+            throw new TypeError("Workbook-local column styles require the advanced Workbook API; use portable ExportCell presentation.");
+        if (typeof captured.header !== "string" || (captured.key !== undefined && typeof captured.key !== "string"))
+            throw new TypeError("Each column needs a string header and an optional string key.");
+        if (captured.value !== undefined && typeof captured.value !== "function")
             throw new TypeError("Column value getters must be functions.");
-        if (c.groups !== undefined && (!Array.isArray(c.groups) || c.groups.some((group) => typeof group !== "string")))
-            throw new TypeError("Column groups must be an array of strings.");
-        return { ...c, ...(c.groups ? { groups: Object.freeze([...c.groups]) } : {}) };
+        if (captured.groups !== undefined) {
+            if (!Array.isArray(captured.groups))
+                throw new TypeError("Column groups must be an array of strings.");
+            const groups = Array.from(captured.groups);
+            if (groups.some(group => typeof group !== "string"))
+                throw new TypeError("Column groups must be an array of strings.");
+            return { ...captured, groups: Object.freeze(groups) };
+        }
+        return captured;
     });
 }
-const _exports = Object.freeze({ createRowProjector: createRowProjector, copyColumns: copyColumns });
+const _exports = Object.freeze({ createRowProjector: createRowProjector, columnOptionFields: columnOptionFields, copyColumns: copyColumns });
 return _exports;
 })();
 
-const _m11 = (() => {
-const { assertExportValue } = _m5;
+const _m13 = (() => {
+const { ExportCell, assertExportValue } = _m6;
 
+const { isDate } = _m7;
+
+/** Copy portable values when an operation retains metadata or a projected row beyond its producer's turn. */
+function copyExportValue(value) {
+    assertExportValue(value);
+    if (isDate(value))
+        return new Date(Date.prototype.getTime.call(value));
+    if (value instanceof ExportCell) {
+        const { value: scalar, text, presentation, link } = value;
+        return new ExportCell(isDate(scalar) ? new Date(Date.prototype.getTime.call(scalar)) : scalar, { ...(text === undefined ? {} : { text }), ...(presentation === undefined ? {} : { presentation }),
+            ...(link === undefined ? {} : { link }) });
+    }
+    return value;
+}
+const _exports = Object.freeze({ copyExportValue: copyExportValue });
+return _exports;
+})();
+
+const _m12 = (() => {
+const { assertExportValue } = _m6;
+
+const { copyExportValue } = _m13;
+
+/** Capture a bounded public matrix before validation or asynchronous report production can revisit its fields. */
+function captureTableSpans(rows, columns) {
+    if (!Array.isArray(rows) || !rows.length || rows.length > 16)
+        throw new RangeError("Spanned headings/footers need from 1 through 16 rows.");
+    const captured = rows.map(row => {
+        if (!Array.isArray(row) || row.length !== columns)
+            throw new TypeError("Spanned rows must have the declared column count.");
+        return Object.freeze(row.map(cell => {
+            if (cell === null)
+                return null;
+            if (!cell || typeof cell !== "object")
+                throw new TypeError("Uncovered heading/footer cells need an anchor value.");
+            const { value, columnSpan, rowSpan } = cell;
+            return Object.freeze({ value: copyExportValue(value), ...(columnSpan === undefined ? {} : { columnSpan }),
+                ...(rowSpan === undefined ? {} : { rowSpan }) });
+        }));
+    });
+    tableSpans(captured, columns);
+    return Object.freeze(captured);
+}
 /** Validate one small, rectangular heading/footer matrix before any drawing. */
 function tableSpans(rows, columns) {
     if (!Array.isArray(rows) || !rows.length || rows.length > 16)
@@ -557,7 +644,8 @@ function tableSpans(rows, columns) {
             const span = cell.columnSpan ?? 1, rowSpan = cell.rowSpan ?? 1;
             if (!Number.isInteger(span) || !Number.isInteger(rowSpan) || span < 1 || rowSpan < 1 || first + span > columns || level + rowSpan > rows.length)
                 throw new RangeError("Heading/footer spans must stay inside the declared matrix.");
-            assertExportValue(cell.value);
+            const value = cell.value;
+            assertExportValue(value);
             for (let r = level; r < level + rowSpan; r++)
                 for (let c = first; c < first + span; c++) {
                     if (covered[r][c])
@@ -566,33 +654,26 @@ function tableSpans(rows, columns) {
                         throw new TypeError("Covered heading/footer cells must be null.");
                     covered[r][c] = 1;
                 }
-            anchors.push(Object.freeze({ first, span, rowSpan, value: cell.value }));
+            anchors.push(Object.freeze({ first, span, rowSpan, value }));
         }
         return Object.freeze(anchors);
     });
 }
-const _exports = Object.freeze({ tableSpans: tableSpans });
+const _exports = Object.freeze({ captureTableSpans: captureTableSpans, tableSpans: tableSpans });
 return _exports;
 })();
 
-const _m10 = (() => {
-const { ExportCell } = _m5;
-
-const { isDate } = _m6;
-
-const { tableSpans } = _m11;
+const _m11 = (() => {
+const { captureTableSpans, tableSpans } = _m12;
 
 /** Snapshot small report matrices; flattening is an explicit format decision, never inferred from labels. */
 function csvStructuredRows(rows, columns, mode) {
-    const anchors = tableSpans(rows, columns), output = anchors.map(() => Array(columns).fill(""));
+    const anchors = tableSpans(captureTableSpans(rows, columns), columns), output = anchors.map(() => Array(columns).fill(""));
     for (let row = 0; row < anchors.length; row++)
         for (const anchor of anchors[row]) {
             if ((anchor.span > 1 || anchor.rowSpan > 1) && mode === undefined)
                 throw new TypeError("CSV spanned headings/footers require an explicit spanMode: repeat or anchors.");
-            const source = anchor.value, raw = source instanceof ExportCell ? source.value : source;
-            const value = isDate(raw) ? source instanceof ExportCell ? new ExportCell(new Date(raw.getTime()), {
-                ...(source.text === undefined ? {} : { text: source.text }), ...(source.presentation ? { presentation: source.presentation } : {}), ...(source.link ? { link: source.link } : {})
-            }) : new Date(raw.getTime()) : source;
+            const value = anchor.value;
             for (let r = row; r < row + (mode === "repeat" ? anchor.rowSpan : 1); r++)
                 for (let c = anchor.first; c < anchor.first + (mode === "repeat" ? anchor.span : 1); c++)
                     output[r][c] = value;
@@ -603,7 +684,7 @@ const _exports = Object.freeze({ csvStructuredRows: csvStructuredRows });
 return _exports;
 })();
 
-const _m12 = (() => {
+const _m14 = (() => {
 /** Compatibility display policy; hosts can supply labels without changing typed source values. */
 const defaultBooleanText = Object.freeze({ true: "True", false: "False" });
 /** @internal Capture display policy once, before source iteration or asynchronous output. */
@@ -622,6 +703,20 @@ return _exports;
 })();
 
 const _m15 = (() => {
+const { captureFields } = _m5;
+
+/** @internal Share the format's capture policy with thin adapters before they compose options. */
+function captureCsvOptions(input) {
+    if (!input || typeof input !== "object")
+        throw new TypeError("CSV options are required.");
+    return captureFields(input, ["columns", "signal", "limits", "onProgress", "valueMode", "delimiter", "lineEnding", "bom", "includeHeader", "headerRows",
+        "footer", "spanMode", "formulaInjectionProtection", "quote", "nullValue", "booleanText"]);
+}
+const _exports = Object.freeze({ captureCsvOptions: captureCsvOptions });
+return _exports;
+})();
+
+const _m18 = (() => {
 class NumericAggregate {
     operation;
     count = 0;
@@ -668,10 +763,10 @@ const _exports = Object.freeze({ NumericAggregate: NumericAggregate, createTotal
 return _exports;
 })();
 
-const _m14 = (() => {
-const { ExportCell, assertExportValue } = _m5;
+const _m17 = (() => {
+const { ExportCell } = _m6;
 
-const { isDate } = _m6;
+const { isDate } = _m7;
 
 const { checkAbort, inputRows, pause, taskYieldDue } = _m1;
 
@@ -679,9 +774,11 @@ const { ExportBudget } = _m4;
 
 const { OfficeIMOError } = _m3;
 
-const { copyColumns, createRowProjector } = _m9;
+const { copyColumns, createRowProjector } = _m10;
 
-const { createTotals } = _m15;
+const { createTotals } = _m18;
+
+const { copyExportValue } = _m13;
 
 const sources = new WeakMap();
 /** @internal Writers accept the owned immutable event source rather than trusting caller-authored event protocols. */
@@ -726,16 +823,6 @@ function maximum(value, fallback, name) {
         throw new RangeError(name + " must be a nonnegative safe integer.");
     return result;
 }
-function copyValue(value) {
-    assertExportValue(value);
-    if (isDate(value))
-        return new Date(Date.prototype.getTime.call(value));
-    if (value instanceof ExportCell) {
-        const scalar = value.value, text = value.text, presentation = value.presentation, link = value.link;
-        return new ExportCell(isDate(scalar) ? new Date(Date.prototype.getTime.call(scalar)) : scalar, { ...(text === undefined ? {} : { text }), ...(presentation === undefined ? {} : { presentation }), ...(link === undefined ? {} : { link }) });
-    }
-    return value ?? null;
-}
 function scalar(value) { return value instanceof ExportCell ? value.value : value; }
 function identity(value) {
     if (value == null)
@@ -767,11 +854,9 @@ function createGroupedReport(rows, options) {
         throw new TypeError("Grouped source limits must be an object.");
     if (limits !== undefined && "maxOutputBytes" in limits)
         throw new TypeError("Set maxOutputBytes on the format writer, not the grouped source.");
-    const capturedLimits = limits === undefined ? undefined : { ...limits };
     if (!Array.isArray(selected) || !selected.length)
         throw new TypeError("A grouped report needs declared columns.");
-    const captured = selected.map(column => ({ ...column }));
-    const columns = copyColumns(captured);
+    const columns = copyColumns(selected);
     const keys = columns.map(column => column.key);
     if (keys.some(key => typeof key !== "string" || key.length === 0) || new Set(keys).size !== keys.length)
         throw new TypeError("Grouped report columns need unique, nonempty stable keys.");
@@ -787,7 +872,7 @@ function createGroupedReport(rows, options) {
             throw new TypeError("Grouped numeric totals require a column declared with type:number.");
     const maxGroups = maximum(requestedGroups, 1000, "maxGroups");
     const maxCharacters = maximum(requestedCharacters, 1000000, "maxGroupKeyCharacters");
-    const budget = new ExportBudget(capturedLimits);
+    const budget = new ExportBudget(limits);
     const portable = Object.freeze(columns.map(column => {
         const { value: _getter, ...metadata } = column;
         return Object.freeze(metadata);
@@ -816,7 +901,7 @@ function createGroupedReport(rows, options) {
             const snapshot = Array.isArray(input) ? Array.from(input) : input;
             const projected = project(snapshot, rowCount), values = [];
             for (let column = 0; column < columns.length; column++)
-                values.push(copyValue(projected[column]));
+                values.push(copyExportValue(projected[column]) ?? null);
             checkAbort(signal);
             const next = identity(scalar(values[groupColumn]));
             if (next.id !== currentId) {
@@ -886,7 +971,7 @@ const _exports = Object.freeze({ assertGroupedReportSource: assertGroupedReportS
 return _exports;
 })();
 
-const _m13 = (() => {
+const _m16 = (() => {
 
 
 
@@ -930,7 +1015,7 @@ function saveBlob(blob, fileName) {
         setTimeout(() => URL.revokeObjectURL(url), 30000);
     }
 }
-const _exports = Object.freeze({ OfficeIMOError: _m3.OfficeIMOError, NotSupportedError: _m3.NotSupportedError, BlobByteSink: _m2.BlobByteSink, ChunkedTextSink: _m2.ChunkedTextSink, writeBytes: _m2.writeBytes, ExportCell: _m5.ExportCell, createGroupedReport: _m14.createGroupedReport, checkAbort: _m1.checkAbort, withAbort: _m1.withAbort, inputRows: _m1.inputRows, pause: _m1.pause, detectFeatures: detectFeatures, saveBlob: saveBlob });
+const _exports = Object.freeze({ OfficeIMOError: _m3.OfficeIMOError, NotSupportedError: _m3.NotSupportedError, BlobByteSink: _m2.BlobByteSink, ChunkedTextSink: _m2.ChunkedTextSink, writeBytes: _m2.writeBytes, ExportCell: _m6.ExportCell, createGroupedReport: _m17.createGroupedReport, checkAbort: _m1.checkAbort, withAbort: _m1.withAbort, inputRows: _m1.inputRows, pause: _m1.pause, detectFeatures: detectFeatures, saveBlob: saveBlob });
 return _exports;
 })();
 
@@ -941,17 +1026,19 @@ const { BlobByteSink, ChunkedTextSink, withDestination } = _m2;
 
 const { ExportBudget, boundedSink } = _m4;
 
-const { ExportCell } = _m5;
+const { ExportCell } = _m6;
 
-const { isDate } = _m6;
+const { isDate } = _m7;
 
-const { notifyProgress } = _m8;
+const { notifyProgress } = _m9;
 
-const { copyColumns, createRowProjector } = _m9;
+const { copyColumns, createRowProjector } = _m10;
 
-const { csvStructuredRows } = _m10;
+const { csvStructuredRows } = _m11;
 
-const { captureBooleanText } = _m12;
+const { captureBooleanText } = _m14;
+
+const { captureCsvOptions } = _m15;
 
 
 
@@ -982,7 +1069,7 @@ function csvField(value, delimiter, protect, quote, booleanText, nullValue) {
         ? '"' + text.replace(/"/g, '""') + '"' : text;
 }
 async function writeCsvTo(rows, destination, configuration) {
-    const options = configuration;
+    const options = captureCsvOptions(configuration);
     return withDestination(destination, sink => write(rows, sink, options));
 }
 async function write(rows, sink, options) {
@@ -1058,7 +1145,7 @@ async function write(rows, sink, options) {
     return { rows: count, columns: columns.length, bytes };
 }
 async function writeCsv(rows, configuration) {
-    const options = configuration;
+    const options = captureCsvOptions(configuration);
     const sink = new BlobByteSink();
     try {
         let completedRows = 0;
@@ -1078,7 +1165,7 @@ async function writeCsv(rows, configuration) {
         throw error;
     }
 }
-const _exports = Object.freeze({ saveBlob: _m13.saveBlob, ExportCell: _m5.ExportCell, writeCsvTo: writeCsvTo, writeCsv: writeCsv });
+const _exports = Object.freeze({ saveBlob: _m16.saveBlob, ExportCell: _m6.ExportCell, writeCsvTo: writeCsvTo, writeCsv: writeCsv });
 return _exports;
 })();
 const { saveBlob, ExportCell, writeCsvTo, writeCsv } = _m0;

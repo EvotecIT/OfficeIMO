@@ -6,6 +6,7 @@ import { checkAbort, withAbort, pause, taskYieldDue } from "../core/iteration.js
 import { OfficeIMOError } from "../core/errors.js";
 import { BlobByteSink, writeBytes } from "../core/sinks.js";
 import type { ByteSink, ByteSource } from "../core/sinks.js";
+import { captureFields } from "../internal/capture.js";
 
 export interface ZipWriterOptions { readonly compression?: Compression; readonly signal?: AbortSignal; readonly maxOutputBytes?: number; }
 /** An appendable entry. Await writes and close it before opening another entry. */
@@ -43,10 +44,14 @@ export class ZipWriter {
   private offset = 0;
   private active: ZipEntry | undefined;
   private state: "open" | "writing" | "finished" | "failed" = "open";
-  constructor(sink?: ByteSink, private readonly options: ZipWriterOptions = {}) {
-    if (options.maxOutputBytes !== undefined && (!Number.isSafeInteger(options.maxOutputBytes) || options.maxOutputBytes < 0)) throw new RangeError("maxOutputBytes must be a nonnegative safe integer.");
-    if (options.compression !== undefined && options.compression !== "auto" && options.compression !== "store")
+  private readonly options: Readonly<ZipWriterOptions>;
+  constructor(sink?: ByteSink, options: ZipWriterOptions = {}) {
+    const captured = captureFields(options, ["compression", "signal", "maxOutputBytes"]);
+    const { compression, maxOutputBytes } = captured;
+    if (maxOutputBytes !== undefined && (!Number.isSafeInteger(maxOutputBytes) || maxOutputBytes < 0)) throw new RangeError("maxOutputBytes must be a nonnegative safe integer.");
+    if (compression !== undefined && compression !== "auto" && compression !== "store")
       throw new RangeError("compression must be auto or store.");
+    this.options = Object.freeze(captured);
     this.owned = sink ? undefined : new BlobByteSink(); this.sink = sink ?? this.owned!;
   }
   private async emit(bytes: Uint8Array): Promise<void> {

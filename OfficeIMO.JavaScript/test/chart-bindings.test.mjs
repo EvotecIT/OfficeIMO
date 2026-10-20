@@ -135,3 +135,26 @@ test("cancelling a bound source preserves its reason instead of finalizing an in
   await assert.rejects(book.finish(), error => error === reason);
   assert.equal(Buffer.concat(chunks).indexOf(Buffer.from([0x50, 0x4b, 0x05, 0x06])), -1);
 });
+
+test("bound charts capture structural range and series fields once like snapshot charts", async () => {
+  const reads = new Map(), capture = (key, value) => { reads.set(key, (reads.get(key) ?? 0) + 1); return value; };
+  const book = new Workbook({ compression: "store" }), sheet = book.addWorksheet("Services", { columns });
+  class Series {
+    get column() { return capture("column", "count"); }
+    get name() { return capture("name", "Selected count"); }
+    get color() { return capture("color", "#203864"); }
+  }
+  class Range {
+    get kind() { return capture("kind", "range"); }
+    get sheet() { return capture("sheet", sheet); }
+    get rowCount() { return capture("rowCount", 3); }
+    get categoryColumn() { return capture("categoryColumn", "status"); }
+    get series() { return capture("series", [new Series()]); }
+  }
+  sheet.addChart({ ...bound(sheet), data: new Range() });
+  await sheet.addRows([["Healthy", 84], ["Attention", 8], ["Offline", 3]]);
+  const chart = xml(await readZip(await book.toBlob()));
+  assert.match(chart, /<c:tx><c:v>Selected count<\/c:v><\/c:tx>/);
+  assert.match(chart, /<a:srgbClr val="203864"/);
+  for (const [key, count] of reads) assert.equal(count, 1, key);
+});

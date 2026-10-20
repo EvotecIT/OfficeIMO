@@ -25,7 +25,7 @@ export function captureParagraphStyle(input: PdfParagraphStyle): Readonly<PdfPar
     throw new TypeError("PDF paragraph presentation supports bold, italic, color and alignment.");
   return Object.freeze({
     ...(fontSize === undefined ? {} : { fontSize }),
-    ...(inputPresentation === undefined ? {} : { presentation: presentation(inputPresentation) }),
+    ...(inputPresentation === undefined ? {} : { presentation: presentation(inputPresentation) as NonNullable<PdfParagraphStyle["presentation"]> }),
     ...(keepTogether === undefined ? {} : { keepTogether }), ...(keepWithNext === undefined ? {} : { keepWithNext }),
     ...(spaceBefore === undefined ? {} : { spaceBefore }), ...(spaceAfter === undefined ? {} : { spaceAfter })
   });

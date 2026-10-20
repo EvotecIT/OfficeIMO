@@ -10,6 +10,8 @@ import { copyStylePatch } from "./styles.js";
 import { portableSheet } from "./portable.js";
 import type { PortableCellStyle, PortableSheetOptions } from "./portable.js";
 import type { WorkbookOptions, XlsxColumn } from "./types.js";
+import { captureFields } from "../internal/capture.js";
+import { sheetOptionFields, workbookOptionFields } from "./options.js";
 
 type GroupEnd = Extract<GroupedReportEvent, { readonly kind: "groupEnd" }>;
 type Complete = Extract<GroupedReportEvent, { readonly kind: "complete" }>;
@@ -36,9 +38,10 @@ const subtotalOperations = { average: 1, count: 2, max: 4, min: 5, sum: 9 } as c
 function prepare(report: GroupedReportSource, configuration: GroupedXlsxOptions): GroupedXlsxOptions {
   assertGroupedReportSource(report);
   if (!configuration || typeof configuration !== "object") throw new TypeError("Grouped XLSX options require host-authored labels.");
-  const options = { ...configuration }, sheet = { ...options.sheet };
+  const options = captureFields(configuration, [...workbookOptionFields, "labelColumn", "subtotalLabel", "grandTotalLabel", "includeGrandTotal", "collapseGroups", "sheet", "groupStyle", "subtotalStyle", "grandTotalStyle"] as readonly (keyof GroupedXlsxOptions)[]);
+  const sheet = captureFields(options.sheet ?? {}, [...sheetOptionFields, "name"] as readonly (keyof NonNullable<GroupedXlsxOptions["sheet"]>)[]);
   if (!options.labelColumn || typeof options.labelColumn !== "object") throw new TypeError("Grouped XLSX needs a leading label column.");
-  const labelColumn = { ...options.labelColumn };
+  const labelColumn = captureFields(options.labelColumn, ["header", "width", "wrapText", "alignment"]);
   if (typeof labelColumn.header !== "string") throw new TypeError("The leading label column needs a string header.");
   for (const label of [options.subtotalLabel, options.grandTotalLabel]) if (typeof label !== "function") throw new TypeError("Grouped summary labels must be functions.");
   for (const flag of [options.includeGrandTotal, options.collapseGroups]) if (flag !== undefined && typeof flag !== "boolean") throw new TypeError("Grouped XLSX flags must be booleans.");

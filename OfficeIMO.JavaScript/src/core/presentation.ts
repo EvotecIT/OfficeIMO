@@ -44,11 +44,12 @@ export class ExportCell {
   readonly presentation: Readonly<CellPresentation> | undefined;
   readonly link: Readonly<ExportLink> | undefined;
   constructor(readonly value: CellValue, options: ExportCellOptions = {}) {
-    if (options.text !== undefined && typeof options.text !== "string") throw new TypeError("Display text must be a string.");
+    const { text, presentation, link } = options;
+    if (text !== undefined && typeof text !== "string") throw new TypeError("Display text must be a string.");
     assertScalar(value);
-    this.text = options.text;
-    this.presentation = options.presentation === undefined ? undefined : copyCellPresentation(options.presentation);
-    this.link = options.link === undefined ? undefined : copyExportLink(options.link);
+    this.text = text;
+    this.presentation = presentation === undefined ? undefined : copyCellPresentation(presentation);
+    this.link = link === undefined ? undefined : copyExportLink(link);
     Object.defineProperty(this, exportCellBrand, { value: true });
     Object.freeze(this);
   }

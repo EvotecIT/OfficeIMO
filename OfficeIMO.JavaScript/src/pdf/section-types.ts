@@ -2,6 +2,7 @@ import type { PdfOptions } from "./types.js";
 import type { PdfSettings } from "./settings.js";
 import { OfficeIMOError } from "../core/errors.js";
 import { unicodeHex } from "./objects.js";
+import { captureFields } from "../internal/capture.js";
 
 /** A native PDF outline entry whose destination follows the paragraph's actual painted position. */
 export interface PdfBookmark {
@@ -40,9 +41,9 @@ export function captureSection(block: PdfSectionBlock, settings: PdfSettings): R
   if (headingStyle !== undefined && (typeof headingStyle !== "string" || !headingStyle.trim())) throw new TypeError("PDF section headingStyle must be nonempty text.");
   return Object.freeze({ kind: "section", title: checked.title, level: checked.level!, includeHeading, bookmark,
     ...(headingStyle === undefined ? {} : { headingStyle }),
-    ...(pageSize === undefined ? {} : { pageSize: typeof pageSize === "object" ? Object.freeze({ ...pageSize }) : pageSize }),
+    ...(pageSize === undefined ? {} : { pageSize: typeof pageSize === "object" ? Object.freeze(captureFields(pageSize, ["width", "height"])) : pageSize }),
     ...(orientation === undefined ? {} : { orientation }),
-    ...(margins === undefined ? {} : { margins: typeof margins === "object" ? Object.freeze({ ...margins }) : margins }),
+    ...(margins === undefined ? {} : { margins: typeof margins === "object" ? Object.freeze(captureFields(margins, ["top", "right", "bottom", "left"])) : margins }),
     ...(pageHeader === undefined ? {} : { pageHeader }), ...(pageFooter === undefined ? {} : { pageFooter }),
     ...(pageNumbers === undefined ? {} : { pageNumbers }) });
 }

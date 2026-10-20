@@ -43,7 +43,7 @@ globalThis.runDataTablesContracts = async function (workerScript) {
     const text = await csv.text();
     check(text === "Identity and amount,,State\r\nName,Amount,Status\r\nvisible-c,7.5,Łódź 🧪\r\nvisible-a,12.5,'=status\r\nTotals,20,Checked\r\n", mode + ' CSV value contract');
     await deliver(mode + '.csv', csv);
-    const book = await O.exportDataTable(D, table, 'xlsx', { ...options, mode, sheet: { table: { style: 'TableStyleMedium2' }, print: { repeatHeaders: true } } });
+    const book = await O.exportDataTable(D, table, 'xlsx', { ...options, mode, xlsx: { sheet: { table: { style: 'TableStyleMedium2' }, print: { repeatHeaders: true } } } });
     await deliver(mode + '.xlsx', book); reports.push({ mode, rows: source.rowCount, columns: source.columns.length });
   }
   // A real column reorder and explicit selected:null must also work without relying on cell-array ordering.
@@ -115,10 +115,10 @@ globalThis.runDataTablesContracts = async function (workerScript) {
     columns: [{type:'string'},{type:'num'},{type:'string'},{visible:false}], select:true,colReorder:true,order:[[1,'asc']],layout:{topStart:null} });
   try {
     structured.search('000').draw(); structured.rows([0,2]).select();
-    const settings = {headings:'structured',workbook:{dateMode:'utc'},exportOptions:{columns:':visible'},columnOptions:{1:{type:'number',format:'0.00'},2:{type:'date',format:'yyyy-mm-dd'}},
+    const settings = {headings:'structured',xlsx:{dateMode:'utc'},exportOptions:{columns:':visible'},columnOptions:{1:{type:'number',format:'0.00'},2:{type:'date',format:'yyyy-mm-dd'}},
       project:(value,context)=>context.sourceColumnIndex===2?new Date(value):value};
     for(const mode of ['batched','compatibility']) {
-      const workbook=await O.exportDataTable(D,structured,'xlsx',{...settings,mode,sheet:{autoFilter:false,freezeHeader:true,print:{repeatHeaders:true}}});
+      const workbook=await O.exportDataTable(D,structured,'xlsx',{...settings,mode,xlsx:{...settings.xlsx,sheet:{autoFilter:false,freezeHeader:true,print:{repeatHeaders:true}}}});
       await deliver('structured-'+mode+'.xlsx',workbook);
       for(const spanMode of ['anchors','repeat']) {
         const csv=await O.exportDataTable(D,structured,'csv',{...settings,mode,csv:{spanMode}}), repeated=spanMode==='repeat';

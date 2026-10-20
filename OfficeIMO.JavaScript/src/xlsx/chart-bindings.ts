@@ -3,6 +3,7 @@ import { NotSupportedError, OfficeIMOError } from "../core/errors.js";
 import { cleanXml } from "../xml/index.js";
 import type { InvalidCharacterPolicy } from "../xml/index.js";
 import type { ChartColumn, ChartData, ChartRangeData, ChartRangeSeries, ChartType } from "./chart-types.js";
+import { captureFields } from "../internal/capture.js";
 
 /** @internal Workbook-owned identity, column resolution and finite A1 references. */
 export interface ResolvedChartBinding {
@@ -43,7 +44,7 @@ export interface PreparedChartBinding {
 function record(value: unknown, allowed: readonly string[], context: string): Record<string, unknown> {
   if (!value || typeof value !== "object" || Array.isArray(value)) throw new TypeError(context + " must be an object.");
   for (const key of Object.keys(value)) if (!allowed.includes(key)) throw new NotSupportedError(context + "." + key);
-  return { ...value };
+  return captureFields(value as Record<string, unknown>, allowed);
 }
 
 function column(value: unknown): asserts value is ChartColumn {

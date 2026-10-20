@@ -7,8 +7,11 @@ import type { Column, ColumnValueContext, ExportValue, ExportResult, OutputDesti
 import { pdfTable, writePdfDocumentTo } from "./document.js";
 import type { PdfDocumentBlock, PdfDocumentOptions, PdfTableOptions } from "./document-types.js";
 import type { GroupedPdfOptions } from "./grouped-types.js";
-import { settings } from "./settings.js";
+import { settings, pdfOptionFields } from "./settings.js";
 import { synchronousText } from "./text.js";
+import { captureFields } from "../internal/capture.js";
+
+const groupedOptionFields = [...pdfOptionFields, "labelColumn", "subtotalLabel", "grandTotalLabel", "includeGrandTotal", "continuationLabel"] as readonly (keyof GroupedPdfOptions)[];
 
 /** Stream contiguous analytical groups through the ordinary PDF document/table writer. No group body is retained. */
 export async function writeGroupedPdf(report: GroupedReportSource, configuration: GroupedPdfOptions): Promise<Blob> {
@@ -23,7 +26,7 @@ export async function writeGroupedPdfTo(report: GroupedReportSource, destination
   configuration: GroupedPdfOptions): Promise<ExportResult> {
   assertGroupedReportSource(report);
   if (!configuration || typeof configuration !== "object") throw new TypeError("Grouped PDF options are required.");
-  const { labelColumn, subtotalLabel, grandTotalLabel, includeGrandTotal = true, continuationLabel, ...input } = configuration;
+  const { labelColumn, subtotalLabel, grandTotalLabel, includeGrandTotal = true, continuationLabel, ...input } = captureFields(configuration, groupedOptionFields);
   if (!labelColumn || typeof labelColumn !== "object") throw new TypeError("Grouped PDF needs a leading labelColumn.");
   const { header, width } = labelColumn;
   if (typeof header !== "string") throw new TypeError("The grouped label column header must be text.");

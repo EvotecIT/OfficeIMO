@@ -28,7 +28,7 @@ import { isDate } from "../core/dates.js";
 import type { WorksheetChart } from "./chart-types.js";
 import type { RegisteredChart } from "./charts.js";
 import type { MergeRegions } from "./regions.js";
-import { FormulaCell, formulaXml } from "./formula.js";
+import { FormulaCell, formulaXml, isSubtotalFormula } from "./formula.js";
 import { prepareDataValidations, dataValidationsXml } from "./validation.js";
 import type { PreparedValidations } from "./validation.js";
 import { qualifiedCell, qualifiedColumnRange, resolveDataColumn } from "./ranges.js";
@@ -156,7 +156,7 @@ export class Worksheet<T = never> {
     }
     return { conditional, validations };
   }
-  private cell(value: unknown, i: number, row: number, header = false, rowStyle?: CellStyle, context?: RowStyleContext, rowStyles?: Map<number, number>, footer = false, title = false): string {
+  private cell(value: unknown, i: number, row: number, header = false, rowStyle?: CellStyle, context?: RowStyleContext, rowStyles?: Map<number, number>, footer = false, title = false, visible = true): string {
     const col = this.declared[i]!;
     const total = value instanceof ComputedTotal ? value : undefined;
     if (total) value = total.value;
@@ -228,7 +228,7 @@ export class Worksheet<T = never> {
     }
     if (link) this.appendHyperlink({ cell: col.letter + row, ...link });
     if (type === "date") value = excelDate(value as Date, this.book.settings.dateMode);
-    if (!header && !footer) this.layout.accept(i, value as CellValue);
+    if (!header && !footer && visible && (!formula || !isSubtotalFormula(formula))) this.layout.accept(i, value as CellValue);
     if (!header && !footer && this.chartSources.length)
       for (const binding of this.chartSources) binding.observe(row - this.headerRows - 1, i + 1, value);
     const prefix = '<c r="' + col.letter + row + '" s="' + style + '"';
@@ -253,7 +253,7 @@ export class Worksheet<T = never> {
     const rowStyles = !header && (rowStyle || this.options.alternatingRowStyle) ? new Map<number, number>() : undefined;
     yield '<row r="' + number + '"' + (height === undefined ? "" : ' ht="' + height + '" customHeight="1"') +
       (outline?.level ? ' outlineLevel="' + outline.level + '"' : "") + (outline?.hidden ? ' hidden="1"' : "") + (outline?.collapsed ? ' collapsed="1"' : "") + '>';
-    for (let i = 0; i < this.columns.length; i++) yield this.cell(values[i], i, number, header, rowStyle, context, rowStyles, footer, title);
+    for (let i = 0; i < this.columns.length; i++) yield this.cell(values[i], i, number, header, rowStyle, context, rowStyles, footer, title, outline?.hidden !== true);
     yield '</row>';
   }
   private outline(context: RowStyleContext | undefined): RowOutline | undefined {
@@ -429,8 +429,7 @@ export class Worksheet<T = never> {
     this.book.assertOpen();
     if (this.completion) throw new OfficeIMOError("INVALID_STATE", "Worksheet is closed.");
     if (this.failed) throw this.error;
-    if (image.data instanceof Uint8Array) this.book.checkImage(image.data.length);
-    const copied = copyImage(image, this.book.settings.invalidCharacterPolicy);
+    const copied = copyImage(image, this.book.settings.invalidCharacterPolicy, bytes => this.book.checkImage(bytes));
     this.book.retainImage(copied.data.length); this.pictures.push(copied);
   }
   /** Attach an external report link to a cell without changing its literal value. */

@@ -322,8 +322,30 @@ _modules.set("0c4bd256ca66b488390b27a6d197e5ba99ae051ae662621b67a5e80b0479eefc",
 return _exports;
 })();
 
-const _m6 = _modules.get("18a4816e4da0a737c6adb2401db266074d04daa4ce20b4cb235931d2feaa950b") ?? (() => {
+const _m7 = _modules.get("50b3c10b690ceff693c8c5f809195ba6845b20e60f408e791a750d2ecbd5c669") ?? (() => {
+/** Capture a structural option record before validation or asynchronous work.
+ * Own fields and supported prototype accessors are read once. Nested values remain
+ * borrowed until their owning format captures or validates them. */
+function captureFields(input, fields) {
+    const captured = { ...input };
+    for (const field of fields) {
+        if (Object.hasOwn(captured, field))
+            continue;
+        const value = input[field];
+        if (value !== undefined)
+            captured[field] = value;
+    }
+    return captured;
+}
+const _exports = Object.freeze({ captureFields: captureFields });
+_modules.set("50b3c10b690ceff693c8c5f809195ba6845b20e60f408e791a750d2ecbd5c669", _exports);
+return _exports;
+})();
+
+const _m6 = _modules.get("42faf379960e5674a6fdfa8c8fca0bb68bbd74587231248d2524d7004def3671") ?? (() => {
 const { OfficeIMOError } = _m3;
+
+const { captureFields } = _m7;
 
 /** @internal Check before accepting the next value or chunk. */
 class ExportBudget {
@@ -333,10 +355,15 @@ class ExportBudget {
     reservedText = 0;
     limits;
     constructor(limits = {}) {
-        for (const [key, value] of Object.entries(limits))
+        if (!limits || typeof limits !== "object" || Array.isArray(limits))
+            throw new TypeError("Export limits must be an object.");
+        // Capture before validation. Supported class getters are ordinary structural
+        // options too, and an accessor must not change the ceiling after validation.
+        const captured = captureFields(limits, ["maxRows", "maxCells", "maxTextCharacters", "maxOutputBytes"]);
+        for (const [key, value] of Object.entries(captured))
             if (value !== undefined && (!Number.isSafeInteger(value) || value < 0))
                 throw new RangeError(key + " must be a nonnegative safe integer.");
-        this.limits = Object.freeze({ ...limits });
+        this.limits = Object.freeze(captured);
     }
     check(kind, value) {
         const maximum = this.limits[kind];
@@ -375,11 +402,11 @@ function boundedSink(sink, budget) {
         } };
 }
 const _exports = Object.freeze({ ExportBudget: ExportBudget, boundedSink: boundedSink });
-_modules.set("18a4816e4da0a737c6adb2401db266074d04daa4ce20b4cb235931d2feaa950b", _exports);
+_modules.set("42faf379960e5674a6fdfa8c8fca0bb68bbd74587231248d2524d7004def3671", _exports);
 return _exports;
 })();
 
-const _m8 = _modules.get("8ece66b561682170c879991995105163f4c484c8355d5e451fc6f52a9fbc3f82") ?? (() => {
+const _m9 = _modules.get("8ece66b561682170c879991995105163f4c484c8355d5e451fc6f52a9fbc3f82") ?? (() => {
 const { OfficeIMOError } = _m3;
 
 /** Canonical absolute OPC part URI. ASCII URI spelling; Unicode must be UTF-8 percent encoded. */
@@ -427,7 +454,7 @@ _modules.set("8ece66b561682170c879991995105163f4c484c8355d5e451fc6f52a9fbc3f82",
 return _exports;
 })();
 
-const _m10 = _modules.get("47668dc33afddf93a09736e08c39f34d52518f2bf719e5ef386363758f42e4b7") ?? (() => {
+const _m11 = _modules.get("47668dc33afddf93a09736e08c39f34d52518f2bf719e5ef386363758f42e4b7") ?? (() => {
 const { OfficeIMOError } = _m3;
 
 const { ChunkedTextSink } = _m5;
@@ -509,7 +536,7 @@ _modules.set("47668dc33afddf93a09736e08c39f34d52518f2bf719e5ef386363758f42e4b7",
 return _exports;
 })();
 
-const _m11 = _modules.get("501f5fccaecb27d9e514b74cf64893649e50616692250593d120ca315b510c04") ?? (() => {
+const _m12 = _modules.get("501f5fccaecb27d9e514b74cf64893649e50616692250593d120ca315b510c04") ?? (() => {
 /** @internal Recognize native Date values across iframe realms without trusting a string tag. */
 function isDate(value) {
     if (value === null || typeof value !== "object")
@@ -531,10 +558,10 @@ _modules.set("501f5fccaecb27d9e514b74cf64893649e50616692250593d120ca315b510c04",
 return _exports;
 })();
 
-const _m9 = _modules.get("75f1dfdbbf7685a7bfd416b8d7d4b82698a1852f973cf0264456086cf8c20723") ?? (() => {
-const { escapeXml, xmlDeclaration } = _m10;
+const _m10 = _modules.get("75f1dfdbbf7685a7bfd416b8d7d4b82698a1852f973cf0264456086cf8c20723") ?? (() => {
+const { escapeXml, xmlDeclaration } = _m11;
 
-const { isDate } = _m11;
+const { isDate } = _m12;
 
 function corePropertiesXml(properties = {}, policy = "strip") {
     const created = properties.created ?? new Date(), modified = properties.modified ?? created;
@@ -557,7 +584,7 @@ _modules.set("75f1dfdbbf7685a7bfd416b8d7d4b82698a1852f973cf0264456086cf8c20723",
 return _exports;
 })();
 
-const _m14 = _modules.get("790c15edc51b308be3e7d8222630d407f8c79c31ab21ba0b9f92c00f44ab4021") ?? (() => {
+const _m15 = _modules.get("790c15edc51b308be3e7d8222630d407f8c79c31ab21ba0b9f92c00f44ab4021") ?? (() => {
 const crcTable = new Uint32Array(256).map((_, index) => {
     let value = index;
     for (let bit = 0; bit < 8; bit++)
@@ -580,12 +607,12 @@ _modules.set("790c15edc51b308be3e7d8222630d407f8c79c31ab21ba0b9f92c00f44ab4021",
 return _exports;
 })();
 
-const _m13 = _modules.get("34b448ff5052fe659ccb250d80fc2a0b13ab82890f50132ef5c9e51da369a582") ?? (() => {
+const _m14 = _modules.get("34b448ff5052fe659ccb250d80fc2a0b13ab82890f50132ef5c9e51da369a582") ?? (() => {
 const { checkAbort, withAbort } = _m2;
 
 const { OfficeIMOError } = _m3;
 
-const { Crc32 } = _m14;
+const { Crc32 } = _m15;
 
 
 
@@ -707,21 +734,23 @@ class EntryWriter {
         this.reader?.releaseLock();
     }
 }
-const _exports = Object.freeze({ Crc32: _m14.Crc32, zipLimit: zipLimit, zipSize: zipSize, EntryWriter: EntryWriter });
+const _exports = Object.freeze({ Crc32: _m15.Crc32, zipLimit: zipLimit, zipSize: zipSize, EntryWriter: EntryWriter });
 _modules.set("34b448ff5052fe659ccb250d80fc2a0b13ab82890f50132ef5c9e51da369a582", _exports);
 return _exports;
 })();
 
-const _m12 = _modules.get("8edbe4803cf10099e2fdb1e8a900657abf6ef1176991da59d9dbb9480d4330d4") ?? (() => {
+const _m13 = _modules.get("53914e4230a60c806e87bf93d0dd4b81a2231a3164338132ddecf451fd85622d") ?? (() => {
 
 
-const { EntryWriter, zipSize } = _m13;
+const { EntryWriter, zipSize } = _m14;
 
 const { checkAbort, withAbort, pause, taskYieldDue } = _m2;
 
 const { OfficeIMOError } = _m3;
 
 const { BlobByteSink, writeBytes } = _m5;
+
+const { captureFields } = _m7;
 
 const encoder = new TextEncoder();
 function validateEntryName(name) {
@@ -750,7 +779,6 @@ function header(signature, length, name = new Uint8Array()) {
 }
 /** Sequential ZIP writer. Entry bytes use data descriptors; only central-directory metadata is retained. */
 class ZipWriter {
-    options;
     sink;
     owned;
     names = new Set();
@@ -758,12 +786,15 @@ class ZipWriter {
     offset = 0;
     active;
     state = "open";
+    options;
     constructor(sink, options = {}) {
-        this.options = options;
-        if (options.maxOutputBytes !== undefined && (!Number.isSafeInteger(options.maxOutputBytes) || options.maxOutputBytes < 0))
+        const captured = captureFields(options, ["compression", "signal", "maxOutputBytes"]);
+        const { compression, maxOutputBytes } = captured;
+        if (maxOutputBytes !== undefined && (!Number.isSafeInteger(maxOutputBytes) || maxOutputBytes < 0))
             throw new RangeError("maxOutputBytes must be a nonnegative safe integer.");
-        if (options.compression !== undefined && options.compression !== "auto" && options.compression !== "store")
+        if (compression !== undefined && compression !== "auto" && compression !== "store")
             throw new RangeError("compression must be auto or store.");
+        this.options = Object.freeze(captured);
         this.owned = sink ? undefined : new BlobByteSink();
         this.sink = sink ?? this.owned;
     }
@@ -943,29 +974,31 @@ class ZipWriter {
         return this.owned.toBlob(type);
     }
 }
-const _exports = Object.freeze({ Crc32: _m13.Crc32, validateEntryName: validateEntryName, ZipWriter: ZipWriter });
-_modules.set("8edbe4803cf10099e2fdb1e8a900657abf6ef1176991da59d9dbb9480d4330d4", _exports);
+const _exports = Object.freeze({ Crc32: _m14.Crc32, validateEntryName: validateEntryName, ZipWriter: ZipWriter });
+_modules.set("53914e4230a60c806e87bf93d0dd4b81a2231a3164338132ddecf451fd85622d", _exports);
 return _exports;
 })();
 
-const _m7 = _modules.get("6fc1694b7861f479386cc928cb7ef478d05da6026ec94e60c03f24f1658ae1e1") ?? (() => {
+const _m8 = _modules.get("dc23f0d0e5a5985b964144b5fd24837da22b6ecbe931d10fe07f51e3febab88c") ?? (() => {
 
 
 
 
-const { partUri, relationshipPartUri, relativePartTarget } = _m8;
+const { partUri, relationshipPartUri, relativePartTarget } = _m9;
 
-const { corePropertiesXml, appPropertiesXml } = _m9;
+const { corePropertiesXml, appPropertiesXml } = _m10;
 
-const { ZipWriter } = _m12;
+const { ZipWriter } = _m13;
 
 const { ChunkedTextSink } = _m5;
 
 const { OfficeIMOError } = _m3;
 
-const { escapeXml, xmlDeclaration } = _m10;
+const { escapeXml, xmlDeclaration } = _m11;
 
 const { checkAbort, pause, taskYieldDue } = _m2;
+
+const { captureFields } = _m7;
 
 const relationshipsNamespace = "http://schemas.openxmlformats.org/package/2006/relationships";
 const officeRelationshipsNamespace = "http://schemas.openxmlformats.org/officeDocument/2006/relationships";
@@ -1008,7 +1041,6 @@ class ContentTypes {
 }
 /** Format-neutral part and relationship owner. A source iterable is consumed once at finalization. */
 class OpcPackage {
-    options;
     types = new ContentTypes();
     parts = new Map();
     directories = new Set();
@@ -1016,9 +1048,10 @@ class OpcPackage {
     state = "open";
     result;
     zip;
+    options;
     constructor(options = {}) {
-        this.options = options;
-        this.zip = new ZipWriter(options.sink, options);
+        this.options = Object.freeze(captureFields(options, ["compression", "signal", "maxOutputBytes", "invalidCharacterPolicy", "sink"]));
+        this.zip = new ZipWriter(this.options.sink, this.options);
     }
     open() { if (this.state !== "open")
         throw new OfficeIMOError("INVALID_STATE", "OPC package is finalized."); }
@@ -1190,12 +1223,12 @@ class OpcPackage {
         await this.zip.discard(error);
     }
 }
-const _exports = Object.freeze({ partUri: _m8.partUri, relationshipPartUri: _m8.relationshipPartUri, relativePartTarget: _m8.relativePartTarget, corePropertiesXml: _m9.corePropertiesXml, appPropertiesXml: _m9.appPropertiesXml, relationshipsNamespace: relationshipsNamespace, officeRelationshipsNamespace: officeRelationshipsNamespace, contentTypesNamespace: contentTypesNamespace, relationshipTypes: relationshipTypes, ContentTypes: ContentTypes, OpcPackage: OpcPackage });
-_modules.set("6fc1694b7861f479386cc928cb7ef478d05da6026ec94e60c03f24f1658ae1e1", _exports);
+const _exports = Object.freeze({ partUri: _m9.partUri, relationshipPartUri: _m9.relationshipPartUri, relativePartTarget: _m9.relativePartTarget, corePropertiesXml: _m10.corePropertiesXml, appPropertiesXml: _m10.appPropertiesXml, relationshipsNamespace: relationshipsNamespace, officeRelationshipsNamespace: officeRelationshipsNamespace, contentTypesNamespace: contentTypesNamespace, relationshipTypes: relationshipTypes, ContentTypes: ContentTypes, OpcPackage: OpcPackage });
+_modules.set("dc23f0d0e5a5985b964144b5fd24837da22b6ecbe931d10fe07f51e3febab88c", _exports);
 return _exports;
 })();
 
-const _m16 = _modules.get("204def412284dfb11df9aececd57c8c0455db2927ebdb483dd255e7b29f6f359") ?? (() => {
+const _m17 = _modules.get("204def412284dfb11df9aececd57c8c0455db2927ebdb483dd255e7b29f6f359") ?? (() => {
 function colorArgb(value) {
     if (typeof value !== "string" || !/^#?(?:[0-9a-f]{6}|[0-9a-f]{8})$/i.test(value))
         throw new TypeError("Color must be RGB or ARGB hex.");
@@ -1207,12 +1240,12 @@ _modules.set("204def412284dfb11df9aececd57c8c0455db2927ebdb483dd255e7b29f6f359",
 return _exports;
 })();
 
-const _m17 = _modules.get("27f56318b4276c3e6f79cfb300855315ff9cd1897d4748fa2f306b2deef98c36") ?? (() => {
+const _m18 = _modules.get("27f56318b4276c3e6f79cfb300855315ff9cd1897d4748fa2f306b2deef98c36") ?? (() => {
 const { OfficeIMOError } = _m3;
 
-const { cleanXml, escapeOoxmlAttribute } = _m10;
+const { cleanXml, escapeOoxmlAttribute } = _m11;
 
-const { colorArgb } = _m16;
+const { colorArgb } = _m17;
 
 /** @internal Reject unsupported properties rather than silently losing presentation. */
 function fields(value, allowed, label) {
@@ -1318,14 +1351,14 @@ _modules.set("27f56318b4276c3e6f79cfb300855315ff9cd1897d4748fa2f306b2deef98c36",
 return _exports;
 })();
 
-const _m15 = _modules.get("bf7ec82677b616a41d07306ba385b32456bc03509817c13bbe65a1ba390a6253") ?? (() => {
-const { escapeOoxmlAttribute, cleanXml, xmlDeclaration } = _m10;
+const _m16 = _modules.get("bf7ec82677b616a41d07306ba385b32456bc03509817c13bbe65a1ba390a6253") ?? (() => {
+const { escapeOoxmlAttribute, cleanXml, xmlDeclaration } = _m11;
 
 const { OfficeIMOError } = _m3;
 
-const { colorArgb } = _m16;
+const { colorArgb } = _m17;
 
-const { DifferentialStyles } = _m17;
+const { DifferentialStyles } = _m18;
 
 
 
@@ -1527,33 +1560,35 @@ class StyleRegistry {
         }).join("") + '</cellXfs><cellStyles count="1"><cellStyle name="Normal" xfId="0" builtinId="0"/></cellStyles>' + this.differential.toXml() + '</styleSheet>';
     }
 }
-const _exports = Object.freeze({ colorArgb: _m16.colorArgb, spreadsheetNamespace: spreadsheetNamespace, NumberFormats: NumberFormats, validateStylePatch: validateStylePatch, copyStylePatch: copyStylePatch, StyleRegistry: StyleRegistry });
+const _exports = Object.freeze({ colorArgb: _m17.colorArgb, spreadsheetNamespace: spreadsheetNamespace, NumberFormats: NumberFormats, validateStylePatch: validateStylePatch, copyStylePatch: copyStylePatch, StyleRegistry: StyleRegistry });
 _modules.set("bf7ec82677b616a41d07306ba385b32456bc03509817c13bbe65a1ba390a6253", _exports);
 return _exports;
 })();
 
-const _m20 = _modules.get("e3ffb91cf46091b5b178d3d4d7b158f52cf21d2ee0e7dfe1fb5140810fd7fecb") ?? (() => {
+const _m21 = _modules.get("d363b84eac65064b2e372063af61a4e9e5c576501693c862628297c812ba7832") ?? (() => {
 /** @internal One target policy shared by document writers and portable cells. */
 function copyExportLink(link) {
-    if (!link || typeof link !== "object" || typeof link.target !== "string" ||
-        !/^(?:https?:\/\/|mailto:)/i.test(link.target) || /[\u0000-\u0020\u007f]/.test(link.target))
+    if (!link || typeof link !== "object")
         throw new TypeError("Hyperlinks require an absolute HTTP, HTTPS or mailto target without whitespace or controls.");
-    const url = new URL(link.target);
+    const { target, tooltip } = link;
+    if (typeof target !== "string" || !/^(?:https?:\/\/|mailto:)/i.test(target) || /[\u0000-\u0020\u007f]/.test(target))
+        throw new TypeError("Hyperlinks require an absolute HTTP, HTTPS or mailto target without whitespace or controls.");
+    const url = new URL(target);
     if ((url.protocol === "http:" || url.protocol === "https:") && (!url.hostname || url.username || url.password))
         throw new TypeError("Hyperlink HTTP targets need a host and must not contain credentials.");
-    if (link.tooltip !== undefined && typeof link.tooltip !== "string")
+    if (tooltip !== undefined && typeof tooltip !== "string")
         throw new TypeError("Hyperlink tooltip must be text.");
-    return Object.freeze({ target: url.href, ...(link.tooltip === undefined ? {} : { tooltip: link.tooltip }) });
+    return Object.freeze({ target: url.href, ...(tooltip === undefined ? {} : { tooltip }) });
 }
 const _exports = Object.freeze({ copyExportLink: copyExportLink });
-_modules.set("e3ffb91cf46091b5b178d3d4d7b158f52cf21d2ee0e7dfe1fb5140810fd7fecb", _exports);
+_modules.set("d363b84eac65064b2e372063af61a4e9e5c576501693c862628297c812ba7832", _exports);
 return _exports;
 })();
 
-const _m19 = _modules.get("e82510c997dbd6cf069962d55524e2098a69054a85d1f20374c693e3ccf3c0f6") ?? (() => {
-const { isDate } = _m11;
+const _m20 = _modules.get("732224f6995c2478cf33a6ed01f3e3d3dcccb159a731d6db9280104bd5040fc5") ?? (() => {
+const { isDate } = _m12;
 
-const { copyExportLink } = _m20;
+const { copyExportLink } = _m21;
 
 const exportCellBrand = Symbol.for("@evotecit/officeimo/ExportCell");
 /** @internal Capture only portable scalar presentation fields before retaining or cloning a cell. */
@@ -1586,12 +1621,13 @@ class ExportCell {
     link;
     constructor(value, options = {}) {
         this.value = value;
-        if (options.text !== undefined && typeof options.text !== "string")
+        const { text, presentation, link } = options;
+        if (text !== undefined && typeof text !== "string")
             throw new TypeError("Display text must be a string.");
         assertScalar(value);
-        this.text = options.text;
-        this.presentation = options.presentation === undefined ? undefined : copyCellPresentation(options.presentation);
-        this.link = options.link === undefined ? undefined : copyExportLink(options.link);
+        this.text = text;
+        this.presentation = presentation === undefined ? undefined : copyCellPresentation(presentation);
+        this.link = link === undefined ? undefined : copyExportLink(link);
         Object.defineProperty(this, exportCellBrand, { value: true });
         Object.freeze(this);
     }
@@ -1612,18 +1648,21 @@ function assertExportValue(value) {
     assertScalar(value);
 }
 const _exports = Object.freeze({ copyCellPresentation: copyCellPresentation, ExportCell: ExportCell, assertScalar: assertScalar, assertExportValue: assertExportValue });
-_modules.set("e82510c997dbd6cf069962d55524e2098a69054a85d1f20374c693e3ccf3c0f6", _exports);
+_modules.set("732224f6995c2478cf33a6ed01f3e3d3dcccb159a731d6db9280104bd5040fc5", _exports);
 return _exports;
 })();
 
-const _m21 = _modules.get("90212f7288ab8830f0ce72490c6d55d2b709797b3c0fd8b1b64fe29b338a68f6") ?? (() => {
+const _m22 = _modules.get("6d0c9930eb0b5d96d92b93ba72759417a324dfd119a592c5a2ee4de0ff3495ec") ?? (() => {
 const { NotSupportedError } = _m3;
 
-const { cleanXml, escapeXml } = _m10;
+const { cleanXml, escapeXml } = _m11;
 
 const formulaCells = new WeakSet();
-/** @internal Reject direct external-workbook and DDE references without interpreting Excel expressions. */
-function localReferences(formula) {
+const nestedAggregateCells = new WeakSet();
+/** Reject external references and identify nested total functions without evaluating Excel expressions. */
+function inspectReferences(formula) {
+    let subtotal = false;
+    const identifier = /[\p{L}_\\][\p{L}\p{N}\p{M}_.\\]*/uy;
     for (let i = 0; i < formula.length; i++) {
         const character = formula[i];
         if (character === '"') {
@@ -1667,10 +1706,19 @@ function localReferences(formula) {
         }
         else if (character === "|")
             throw new NotSupportedError("DDE formulas");
+        else {
+            identifier.lastIndex = i;
+            const token = identifier.exec(formula);
+            if (token) {
+                if (["SUBTOTAL", "AGGREGATE", "_XLFN.AGGREGATE"].includes(token[0].toUpperCase()) && /^\s*\(/.test(formula.slice(identifier.lastIndex)))
+                    subtotal = true;
+                i = identifier.lastIndex - 1;
+            }
+        }
     }
+    return subtotal;
 }
-/** @internal Excel invariant expression text, stored without its optional leading equals sign. */
-function formulaText(value) {
+function captureFormula(value) {
     if (typeof value !== "string")
         throw new TypeError("Formula text must be a string.");
     const text = value.trim().replace(/^=/, "");
@@ -1678,10 +1726,9 @@ function formulaText(value) {
         throw new RangeError("Formulas require 1 through 8,192 characters.");
     // Text stripping could change a calculation, so formulas always reject invalid XML characters.
     cleanXml(text, "reject");
-    localReferences(text);
-    return text;
+    return { text, subtotal: inspectReferences(text) };
 }
-/** An authored Excel formula and its initial numeric or blank result. The writer stores both without evaluating the expression. */
+/** An authored XLSX storage expression and its initial numeric or blank result. Future functions retain their required _xlfn prefixes; the writer does not evaluate or normalize function names. */
 class FormulaCell {
     cachedValue;
     style;
@@ -1692,34 +1739,61 @@ class FormulaCell {
     constructor(formula, cachedValue, style) {
         this.cachedValue = cachedValue;
         this.style = style;
-        this.formula = formulaText(formula);
+        const captured = captureFormula(formula);
+        this.formula = captured.text;
         if (cachedValue !== null && (typeof cachedValue !== "number" || !Number.isFinite(cachedValue)))
             throw new TypeError("Formula caches must be finite numbers or null for a blank result.");
         if (style !== undefined && (!Number.isSafeInteger(style) || style < 0))
             throw new RangeError("Formula style indexes must be nonnegative safe integers.");
         formulaCells.add(this);
+        if (captured.subtotal)
+            nestedAggregateCells.add(this);
         Object.freeze(this);
     }
 }
+/** @internal Excel excludes cells containing SUBTOTAL or AGGREGATE expressions from a generated SUBTOTAL. */
+function isSubtotalFormula(cell) { return nestedAggregateCells.has(cell); }
 /** @internal The worksheet owns the cell coordinate, style and cumulative formula budget. */
 function formulaXml(cell) {
     if (!(cell instanceof FormulaCell))
         throw new TypeError("Formula cells must be created with FormulaCell.");
     return "<f>" + escapeXml(cell.formula, "reject") + "</f><v>" + (cell.cachedValue ?? "") + "</v>";
 }
-const _exports = Object.freeze({ formulaText: formulaText, FormulaCell: FormulaCell, formulaXml: formulaXml });
-_modules.set("90212f7288ab8830f0ce72490c6d55d2b709797b3c0fd8b1b64fe29b338a68f6", _exports);
+const _exports = Object.freeze({ FormulaCell: FormulaCell, isSubtotalFormula: isSubtotalFormula, formulaXml: formulaXml });
+_modules.set("6d0c9930eb0b5d96d92b93ba72759417a324dfd119a592c5a2ee4de0ff3495ec", _exports);
 return _exports;
 })();
 
-const _m18 = _modules.get("b28fabd7dc31a22f4f712ef98f0014ec0ea0c1d351133f2aa1474ee454c62471") ?? (() => {
-const { cleanXml, escapeXml } = _m10;
+const _m23 = _modules.get("e95bb0e3f342d1379b67a3d541fa808e06361da8460169a6aec152ee7deb69b2") ?? (() => {
+const { ExportCell, assertExportValue } = _m20;
 
-const { ExportCell, assertExportValue, assertScalar } = _m19;
+const { isDate } = _m12;
 
-const { isDate } = _m11;
+/** Copy portable values when an operation retains metadata or a projected row beyond its producer's turn. */
+function copyExportValue(value) {
+    assertExportValue(value);
+    if (isDate(value))
+        return new Date(Date.prototype.getTime.call(value));
+    if (value instanceof ExportCell) {
+        const { value: scalar, text, presentation, link } = value;
+        return new ExportCell(isDate(scalar) ? new Date(Date.prototype.getTime.call(scalar)) : scalar, { ...(text === undefined ? {} : { text }), ...(presentation === undefined ? {} : { presentation }),
+            ...(link === undefined ? {} : { link }) });
+    }
+    return value;
+}
+const _exports = Object.freeze({ copyExportValue: copyExportValue });
+_modules.set("e95bb0e3f342d1379b67a3d541fa808e06361da8460169a6aec152ee7deb69b2", _exports);
+return _exports;
+})();
 
-const { FormulaCell } = _m21;
+const _m19 = _modules.get("45bcbd0fd875662d537921217d5e747170e665dedc70927041f59d5782ed21b0") ?? (() => {
+const { cleanXml, escapeXml } = _m11;
+
+const { assertExportValue, assertScalar } = _m20;
+
+const { FormulaCell } = _m22;
+
+const { copyExportValue } = _m23;
 
 /** A typed value plus a workbook-local style index. */
 class Cell {
@@ -1741,13 +1815,11 @@ function assertXlsxValue(value) {
 }
 /** @internal Buffered samples and footer definitions capture mutable Date values. */
 function copyValue(value) {
-    if (isDate(value))
-        return new Date(value.getTime());
-    if (value instanceof Cell && isDate(value.value))
-        return new Cell(new Date(value.value.getTime()), value.style);
-    if (value instanceof ExportCell && isDate(value.value))
-        return new ExportCell(new Date(value.value.getTime()), { ...(value.text === undefined ? {} : { text: value.text }), ...(value.presentation ? { presentation: value.presentation } : {}), ...(value.link ? { link: value.link } : {}) });
-    return value;
+    if (value instanceof FormulaCell)
+        return value;
+    if (value instanceof Cell)
+        return Object.freeze(new Cell(copyExportValue(value.value), value.style));
+    return copyExportValue(value);
 }
 function cellText(value, policy = "strip") {
     const text = cleanXml(value, policy);
@@ -1806,16 +1878,18 @@ function excelDate(date, mode) {
     return (time - Date.UTC(1899, 11, 31)) / 86400000 + (time >= Date.UTC(1900, 2, 1) ? 1 : 0);
 }
 const _exports = Object.freeze({ Cell: Cell, assertXlsxValue: assertXlsxValue, copyValue: copyValue, cellText: cellText, inlineText: inlineText, columnName: columnName, sheetName: sheetName, excelDate: excelDate });
-_modules.set("b28fabd7dc31a22f4f712ef98f0014ec0ea0c1d351133f2aa1474ee454c62471", _exports);
+_modules.set("45bcbd0fd875662d537921217d5e747170e665dedc70927041f59d5782ed21b0", _exports);
 return _exports;
 })();
 
-const _m23 = _modules.get("e85a36bd24ab3d2a76d9f7f91acfb694cd557ee50fa511ee735697646cdcc7ee") ?? (() => {
-const { assertExportValue } = _m19;
+const _m24 = _modules.get("c15eede1e0b2a0a81c7153114bbb20e411413650f1c70c29bbda627241c59dbd") ?? (() => {
+const { assertExportValue } = _m20;
 
 const { checkAbort } = _m2;
 
-const { isDate } = _m11;
+const { isDate } = _m12;
+
+const { captureFields } = _m7;
 
 function createRowProjector(columns, worksheet, signal, validate = assertExportValue) {
     const getters = columns.some(column => column.value);
@@ -1853,34 +1927,113 @@ function createRowProjector(columns, worksheet, signal, validate = assertExportV
         });
     };
 }
+/** @internal Shared metadata fields for full columns and adapter-owned partial overrides. */
+const columnOptionFields = ["header", "key", "value", "width", "type", "format", "wrapText", "alignment", "groups", "style", "valueFormatter"];
 function copyColumns(columns, workbookStyles = false) {
     if (!Array.isArray(columns))
         throw new TypeError("Declare the columns in export order.");
     return columns.map(c => {
-        if (!workbookStyles && c?.style !== undefined)
-            throw new TypeError("Workbook-local column styles require the advanced Workbook API; use portable ExportCell presentation.");
-        if (!c || typeof c.header !== "string" || (c.key !== undefined && typeof c.key !== "string"))
+        if (!c || typeof c !== "object" && typeof c !== "function")
             throw new TypeError("Each column needs a string header and an optional string key.");
-        if (c.value !== undefined && typeof c.value !== "function")
+        // Own extension metadata remains available to its format owner. Capture the
+        // supported structural fields even when a class exposes prototype getters.
+        const captured = captureFields(c, columnOptionFields);
+        if (!workbookStyles && captured.style !== undefined)
+            throw new TypeError("Workbook-local column styles require the advanced Workbook API; use portable ExportCell presentation.");
+        if (typeof captured.header !== "string" || (captured.key !== undefined && typeof captured.key !== "string"))
+            throw new TypeError("Each column needs a string header and an optional string key.");
+        if (captured.value !== undefined && typeof captured.value !== "function")
             throw new TypeError("Column value getters must be functions.");
-        if (c.groups !== undefined && (!Array.isArray(c.groups) || c.groups.some((group) => typeof group !== "string")))
-            throw new TypeError("Column groups must be an array of strings.");
-        return { ...c, ...(c.groups ? { groups: Object.freeze([...c.groups]) } : {}) };
+        if (captured.groups !== undefined) {
+            if (!Array.isArray(captured.groups))
+                throw new TypeError("Column groups must be an array of strings.");
+            const groups = Array.from(captured.groups);
+            if (groups.some(group => typeof group !== "string"))
+                throw new TypeError("Column groups must be an array of strings.");
+            return { ...captured, groups: Object.freeze(groups) };
+        }
+        return captured;
     });
 }
-const _exports = Object.freeze({ createRowProjector: createRowProjector, copyColumns: copyColumns });
-_modules.set("e85a36bd24ab3d2a76d9f7f91acfb694cd557ee50fa511ee735697646cdcc7ee", _exports);
+const _exports = Object.freeze({ createRowProjector: createRowProjector, columnOptionFields: columnOptionFields, copyColumns: copyColumns });
+_modules.set("c15eede1e0b2a0a81c7153114bbb20e411413650f1c70c29bbda627241c59dbd", _exports);
 return _exports;
 })();
 
-const _m25 = _modules.get("6438b372d2e914b9330352b8b50dccd9c9505c22950ffcb048e798a58a1db204") ?? (() => {
+const _m25 = _modules.get("d56b24243cff6f3552a2f7b45521af4491494375ec76117e9ac1ebb047ce02da") ?? (() => {
+const { assertExportValue } = _m20;
+
+const { copyExportValue } = _m23;
+
+/** Capture a bounded public matrix before validation or asynchronous report production can revisit its fields. */
+function captureTableSpans(rows, columns) {
+    if (!Array.isArray(rows) || !rows.length || rows.length > 16)
+        throw new RangeError("Spanned headings/footers need from 1 through 16 rows.");
+    const captured = rows.map(row => {
+        if (!Array.isArray(row) || row.length !== columns)
+            throw new TypeError("Spanned rows must have the declared column count.");
+        return Object.freeze(row.map(cell => {
+            if (cell === null)
+                return null;
+            if (!cell || typeof cell !== "object")
+                throw new TypeError("Uncovered heading/footer cells need an anchor value.");
+            const { value, columnSpan, rowSpan } = cell;
+            return Object.freeze({ value: copyExportValue(value), ...(columnSpan === undefined ? {} : { columnSpan }),
+                ...(rowSpan === undefined ? {} : { rowSpan }) });
+        }));
+    });
+    tableSpans(captured, columns);
+    return Object.freeze(captured);
+}
+/** Validate one small, rectangular heading/footer matrix before any drawing. */
+function tableSpans(rows, columns) {
+    if (!Array.isArray(rows) || !rows.length || rows.length > 16)
+        throw new RangeError("Spanned headings/footers need from 1 through 16 rows.");
+    const covered = Array.from({ length: rows.length }, () => new Uint8Array(columns));
+    return rows.map((row, level) => {
+        if (!Array.isArray(row) || row.length !== columns)
+            throw new TypeError("Spanned rows must have the declared column count.");
+        const anchors = [];
+        for (let first = 0; first < columns; first++) {
+            const cell = row[first];
+            if (covered[level][first]) {
+                if (cell !== null)
+                    throw new TypeError("Covered heading/footer cells must be null.");
+                continue;
+            }
+            if (!cell || typeof cell !== "object")
+                throw new TypeError("Uncovered heading/footer cells need an anchor value.");
+            const span = cell.columnSpan ?? 1, rowSpan = cell.rowSpan ?? 1;
+            if (!Number.isInteger(span) || !Number.isInteger(rowSpan) || span < 1 || rowSpan < 1 || first + span > columns || level + rowSpan > rows.length)
+                throw new RangeError("Heading/footer spans must stay inside the declared matrix.");
+            const value = cell.value;
+            assertExportValue(value);
+            for (let r = level; r < level + rowSpan; r++)
+                for (let c = first; c < first + span; c++) {
+                    if (covered[r][c])
+                        throw new TypeError("Heading/footer spans overlap.");
+                    if ((r !== level || c !== first) && rows[r]?.[c] !== null)
+                        throw new TypeError("Covered heading/footer cells must be null.");
+                    covered[r][c] = 1;
+                }
+            anchors.push(Object.freeze({ first, span, rowSpan, value }));
+        }
+        return Object.freeze(anchors);
+    });
+}
+const _exports = Object.freeze({ captureTableSpans: captureTableSpans, tableSpans: tableSpans });
+_modules.set("d56b24243cff6f3552a2f7b45521af4491494375ec76117e9ac1ebb047ce02da", _exports);
+return _exports;
+})();
+
+const _m28 = _modules.get("165b3a61497fba06033e6c64a54725acaff72d6a6a7e1cc8214801fd4e01acf8") ?? (() => {
 const { ChunkedTextSink } = _m5;
 
-const { escapeXml, xmlDeclaration } = _m10;
+const { escapeXml, xmlDeclaration } = _m11;
 
-const { officeRelationshipsNamespace } = _m7;
+const { officeRelationshipsNamespace } = _m8;
 
-const { columnName } = _m18;
+const { columnName } = _m19;
 
 const chartNamespace = "http://schemas.openxmlformats.org/drawingml/2006/chart";
 const chartContentType = "application/vnd.openxmlformats-officedocument.drawingml.chart+xml";
@@ -1930,7 +2083,8 @@ function axesXml(chart, policy) {
 function* chartXml(chart, policy) {
     const pie = chart.type === "pie", line = chart.type === "line", tag = pie ? "pieChart" : line ? "lineChart" : "barChart";
     const source = "'" + chart.dataSheetName.replace(/'/g, "''") + "'!", end = chart.data.categories.length + 1;
-    yield xmlDeclaration + '<c:chartSpace xmlns:c="' + chartNamespace + '" xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" xmlns:r="' + officeRelationshipsNamespace + '"><c:date1904 val="0"/><c:lang val="en-US"/><c:chart>';
+    yield xmlDeclaration + '<c:chartSpace xmlns:c="' + chartNamespace + '" xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" xmlns:r="' + officeRelationshipsNamespace + '"><c:date1904 val="0"/>' +
+        (chart.language === undefined ? "" : '<c:lang val="' + escapeXml(chart.language, policy) + '"/>') + '<c:chart>';
     if (chart.title)
         yield titleXml(chart.title, policy);
     yield '<c:autoTitleDeleted val="' + (chart.title ? 0 : 1) + '"/><c:plotArea><c:layout/><c:' + tag + '>';
@@ -1981,21 +2135,24 @@ async function writeChartXml(chart, destination, policy, signal) {
     await text.close();
 }
 const _exports = Object.freeze({ chartNamespace: chartNamespace, chartContentType: chartContentType, chartAnchorXml: chartAnchorXml, writeChartXml: writeChartXml });
-_modules.set("6438b372d2e914b9330352b8b50dccd9c9505c22950ffcb048e798a58a1db204", _exports);
+_modules.set("165b3a61497fba06033e6c64a54725acaff72d6a6a7e1cc8214801fd4e01acf8", _exports);
 return _exports;
 })();
 
-const _m24 = _modules.get("d5060d3b805ecf5cf58e71506c5c3a8a164331911a7ae4c67c34f443f05b9b18") ?? (() => {
-const { cleanXml, escapeXml, escapeOoxmlAttribute, xmlDeclaration } = _m10;
+const _m27 = _modules.get("232333a881bfaad6580cd5835046a353f3fab7bfca3c797fca3e4000fdd32a35") ?? (() => {
+const { cleanXml, escapeXml, escapeOoxmlAttribute, xmlDeclaration } = _m11;
 
-const { copyExportLink } = _m20;
+const { copyExportLink } = _m21;
 
-const { officeRelationshipsNamespace } = _m7;
+const { officeRelationshipsNamespace } = _m8;
 
-const { chartAnchorXml } = _m25;
+const { chartAnchorXml } = _m28;
+
+const { captureFields } = _m7;
 
 /** @internal Native charts and images use the same drawing coordinate policy. */
 function copyDrawingAnchor(anchor, policy) {
+    anchor = captureFields(anchor, ["row", "column", "width", "height", "description"]);
     if (!Number.isInteger(anchor.row) || anchor.row < 1 || anchor.row > 1048576 || !Number.isInteger(anchor.column) || anchor.column < 1 || anchor.column > 16384)
         throw new RangeError("Drawing anchors must be one-based worksheet rows and columns.");
     for (const size of [anchor.width, anchor.height])
@@ -2019,12 +2176,16 @@ function cellPosition(reference) {
     return { row, column };
 }
 function copyHyperlink(link, policy) {
+    link = captureFields(link, ["cell", "target", "tooltip"]);
     cellPosition(link.cell);
     const copied = copyExportLink(link);
     return Object.freeze({ cell: link.cell, target: copied.target,
         ...(copied.tooltip === undefined ? {} : { tooltip: cleanXml(copied.tooltip, policy) }) });
 }
-function copyImage(image, policy) {
+function copyImage(image, policy, checkBytes) {
+    image = captureFields(image, ["data", "row", "column", "width", "height", "description"]);
+    if (image.data instanceof Uint8Array)
+        checkBytes?.(image.data.length);
     if (!(image.data instanceof Uint8Array) || image.data.length < 33 ||
         ![137, 80, 78, 71, 13, 10, 26, 10, 0, 0, 0, 13, 73, 72, 68, 82].every((byte, i) => image.data[i] === byte))
         throw new TypeError("Images require PNG bytes with a valid signature and IHDR header.");
@@ -2052,14 +2213,14 @@ function drawingXml(images, policy, charts = []) {
 }
 const drawingContentType = "application/vnd.openxmlformats-officedocument.drawing+xml";
 const _exports = Object.freeze({ copyDrawingAnchor: copyDrawingAnchor, cellPosition: cellPosition, copyHyperlink: copyHyperlink, copyImage: copyImage, hyperlinksXml: hyperlinksXml, drawingXml: drawingXml, drawingContentType: drawingContentType });
-_modules.set("d5060d3b805ecf5cf58e71506c5c3a8a164331911a7ae4c67c34f443f05b9b18", _exports);
+_modules.set("232333a881bfaad6580cd5835046a353f3fab7bfca3c797fca3e4000fdd32a35", _exports);
 return _exports;
 })();
 
-const _m27 = _modules.get("78cd749f9f71cc76dea966ad204ca2a98df15607aacc9127d169b3413e55ef85") ?? (() => {
+const _m30 = _modules.get("6229467971176c70a1fbce7478a6ae748f9a7d27fe28ca5ed1cc32e309f7015f") ?? (() => {
 const { OfficeIMOError } = _m3;
 
-const { cellPosition } = _m24;
+const { cellPosition } = _m27;
 
 function indexRows(regions) {
     if (!regions.length)
@@ -2157,11 +2318,11 @@ class MergeRegions {
         throw new RangeError("Merged ranges must stay within exported rows."); }
 }
 const _exports = Object.freeze({ MergeRegions: MergeRegions });
-_modules.set("78cd749f9f71cc76dea966ad204ca2a98df15607aacc9127d169b3413e55ef85", _exports);
+_modules.set("6229467971176c70a1fbce7478a6ae748f9a7d27fe28ca5ed1cc32e309f7015f", _exports);
 return _exports;
 })();
 
-const _m28 = _modules.get("c9fde2c438e186da56f740105fcd41c265fdfdd855a4f1b811d556a02387479b") ?? (() => {
+const _m31 = _modules.get("c9fde2c438e186da56f740105fcd41c265fdfdd855a4f1b811d556a02387479b") ?? (() => {
 class NumericAggregate {
     operation;
     count = 0;
@@ -2209,55 +2370,12 @@ _modules.set("c9fde2c438e186da56f740105fcd41c265fdfdd855a4f1b811d556a02387479b",
 return _exports;
 })();
 
-const _m30 = _modules.get("50d72b3cc5ae343bc2bc18e09da4907a7ddc65761f5458e5e77a95837c5fc6a5") ?? (() => {
-const { assertExportValue } = _m19;
+const _m32 = _modules.get("b9d400aa8d995edccef22cef96a0e14cb28ce2071c42d8cf29de94d74fe82355") ?? (() => {
+const { ExportCell } = _m20;
 
-/** Validate one small, rectangular heading/footer matrix before any drawing. */
-function tableSpans(rows, columns) {
-    if (!Array.isArray(rows) || !rows.length || rows.length > 16)
-        throw new RangeError("Spanned headings/footers need from 1 through 16 rows.");
-    const covered = Array.from({ length: rows.length }, () => new Uint8Array(columns));
-    return rows.map((row, level) => {
-        if (!Array.isArray(row) || row.length !== columns)
-            throw new TypeError("Spanned rows must have the declared column count.");
-        const anchors = [];
-        for (let first = 0; first < columns; first++) {
-            const cell = row[first];
-            if (covered[level][first]) {
-                if (cell !== null)
-                    throw new TypeError("Covered heading/footer cells must be null.");
-                continue;
-            }
-            if (!cell || typeof cell !== "object")
-                throw new TypeError("Uncovered heading/footer cells need an anchor value.");
-            const span = cell.columnSpan ?? 1, rowSpan = cell.rowSpan ?? 1;
-            if (!Number.isInteger(span) || !Number.isInteger(rowSpan) || span < 1 || rowSpan < 1 || first + span > columns || level + rowSpan > rows.length)
-                throw new RangeError("Heading/footer spans must stay inside the declared matrix.");
-            assertExportValue(cell.value);
-            for (let r = level; r < level + rowSpan; r++)
-                for (let c = first; c < first + span; c++) {
-                    if (covered[r][c])
-                        throw new TypeError("Heading/footer spans overlap.");
-                    if ((r !== level || c !== first) && rows[r]?.[c] !== null)
-                        throw new TypeError("Covered heading/footer cells must be null.");
-                    covered[r][c] = 1;
-                }
-            anchors.push(Object.freeze({ first, span, rowSpan, value: cell.value }));
-        }
-        return Object.freeze(anchors);
-    });
-}
-const _exports = Object.freeze({ tableSpans: tableSpans });
-_modules.set("50d72b3cc5ae343bc2bc18e09da4907a7ddc65761f5458e5e77a95837c5fc6a5", _exports);
-return _exports;
-})();
+const { tableSpans } = _m25;
 
-const _m29 = _modules.get("2fce7409e4512941828e4cb61cc0c7178117c4d895644866e75b5896268c6d1d") ?? (() => {
-const { ExportCell } = _m19;
-
-const { tableSpans } = _m30;
-
-const { copyValue, columnName } = _m18;
+const { copyValue, columnName } = _m19;
 
 /** Bounded heading/footer values and relative merges captured before row production. */
 class StructuredRows {
@@ -2285,28 +2403,28 @@ class StructuredRows {
     }
 }
 const _exports = Object.freeze({ StructuredRows: StructuredRows });
-_modules.set("2fce7409e4512941828e4cb61cc0c7178117c4d895644866e75b5896268c6d1d", _exports);
+_modules.set("b9d400aa8d995edccef22cef96a0e14cb28ce2071c42d8cf29de94d74fe82355", _exports);
 return _exports;
 })();
 
-const _m26 = _modules.get("9095d3014c93aea1f9c7aafe2d8e2a27c9540f43bd0b922aef9bd5c45c922a2f") ?? (() => {
-const { ExportCell } = _m19;
+const _m29 = _modules.get("98f80eeeab810a44b2d0f978b1183fde285255c94afda8d2d74a267be10a9479") ?? (() => {
+const { ExportCell } = _m20;
 
-const { isDate } = _m11;
+const { isDate } = _m12;
 
-const { Cell, cellText, columnName } = _m18;
+const { Cell, cellText, columnName } = _m19;
 
-const { FormulaCell } = _m21;
+const { FormulaCell } = _m22;
 
-const { escapeOoxmlAttribute } = _m10;
+const { escapeOoxmlAttribute } = _m11;
 
-const { MergeRegions } = _m27;
+const { MergeRegions } = _m30;
 
 const { OfficeIMOError } = _m3;
 
-const { createTotals } = _m28;
+const { createTotals } = _m31;
 
-const { StructuredRows } = _m29;
+const { StructuredRows } = _m32;
 
 /** @internal A computed formula with a numeric cache; no public arbitrary-formula input. */
 class ComputedTotal {
@@ -2486,12 +2604,12 @@ function printXml(options, policy) {
             (options.footer === undefined ? "" : '<oddFooter>' + escapeOoxmlAttribute("&C" + options.footer.replace(/&/g, "&&"), policy) + '</oddFooter>') + '</headerFooter>' : "");
 }
 const _exports = Object.freeze({ ComputedTotal: ComputedTotal, ReportLayout: ReportLayout, totalFormula: totalFormula, printXml: printXml });
-_modules.set("9095d3014c93aea1f9c7aafe2d8e2a27c9540f43bd0b922aef9bd5c45c922a2f", _exports);
+_modules.set("98f80eeeab810a44b2d0f978b1183fde285255c94afda8d2d74a267be10a9479", _exports);
 return _exports;
 })();
 
-const _m32 = _modules.get("f7fc6576bda76fe292a36f49732e48ea034dd11f986a468b5390b7262224baef") ?? (() => {
-const { columnName } = _m18;
+const _m34 = _modules.get("4d984092c5be653d0d5c8c910638fe0c0d560f8e74ea34c1a7b52b24be29fbf5") ?? (() => {
+const { columnName } = _m19;
 
 /** @internal Data-column selectors use stable keys or one-based worksheet columns. */
 function resolveDataColumn(columns, value, context = "Data") {
@@ -2517,22 +2635,22 @@ function qualifiedCell(sheetName, column, row) {
     return qualifiedColumnRange(sheetName, column, row, 1).split(":")[0];
 }
 const _exports = Object.freeze({ resolveDataColumn: resolveDataColumn, qualifiedColumnRange: qualifiedColumnRange, qualifiedCell: qualifiedCell });
-_modules.set("f7fc6576bda76fe292a36f49732e48ea034dd11f986a468b5390b7262224baef", _exports);
+_modules.set("4d984092c5be653d0d5c8c910638fe0c0d560f8e74ea34c1a7b52b24be29fbf5", _exports);
 return _exports;
 })();
 
-const _m31 = _modules.get("8050f5133c02ff7060c925a987145fcd542a371689fc5182bc30410d8a51e15f") ?? (() => {
-const { cleanXml, escapeXml, escapeOoxmlAttribute } = _m10;
+const _m33 = _modules.get("48b4301c9dec7056858870ed8eddd4eabb388d4e3271b0e46ac1aff31ed28091") ?? (() => {
+const { cleanXml, escapeXml, escapeOoxmlAttribute } = _m11;
 
-const { cellPosition } = _m24;
+const { cellPosition } = _m27;
 
-const { columnName } = _m18;
+const { columnName } = _m19;
 
-const { colorArgb } = _m16;
+const { colorArgb } = _m17;
 
-const { fields, optionalBoolean, differentialXml } = _m17;
+const { fields, optionalBoolean, differentialXml } = _m18;
 
-const { resolveDataColumn } = _m32;
+const { resolveDataColumn } = _m34;
 
 function target(range, columns) {
     if (typeof range === "string") {
@@ -2687,22 +2805,22 @@ class ConditionalFormats {
     }
 }
 const _exports = Object.freeze({ prepareConditionalFormats: prepareConditionalFormats, ConditionalFormats: ConditionalFormats });
-_modules.set("8050f5133c02ff7060c925a987145fcd542a371689fc5182bc30410d8a51e15f", _exports);
+_modules.set("48b4301c9dec7056858870ed8eddd4eabb388d4e3271b0e46ac1aff31ed28091", _exports);
 return _exports;
 })();
 
-const _m33 = _modules.get("4e41b91ec418d849c10087fae7751d8167d45f123e0f2ab2bff2131aed635221") ?? (() => {
+const _m35 = _modules.get("d756157c87f3ee2012c15039b50585f6a4ed48bd472dee5716e6092cc4b01f07") ?? (() => {
 const { OfficeIMOError } = _m3;
 
 const { checkAbort } = _m2;
 
-const { cleanXml, escapeOoxmlAttribute, escapeXml } = _m10;
+const { cleanXml, escapeOoxmlAttribute, escapeXml } = _m11;
 
-const { fields, optionalBoolean } = _m17;
+const { fields, optionalBoolean } = _m18;
 
-const { columnName } = _m18;
+const { columnName } = _m19;
 
-const { resolveDataColumn } = _m32;
+const { resolveDataColumn } = _m34;
 
 function message(value, maximum, name) {
     if (value === undefined)
@@ -2791,11 +2909,11 @@ function* dataValidationsXml(prepared, headerRows, dataRows) {
     yield '</dataValidations>';
 }
 const _exports = Object.freeze({ prepareDataValidations: prepareDataValidations, dataValidationsXml: dataValidationsXml });
-_modules.set("4e41b91ec418d849c10087fae7751d8167d45f123e0f2ab2bff2131aed635221", _exports);
+_modules.set("d756157c87f3ee2012c15039b50585f6a4ed48bd472dee5716e6092cc4b01f07", _exports);
 return _exports;
 })();
 
-const _m22 = _modules.get("e459ec1e73dec4c58f4b2f13881c0ff38ca5253347e743f621b62e0e563a231b") ?? (() => {
+const _m26 = _modules.get("23bfde122ce39db8a8c797af4b897804424e07bab1d2ebd81b1a4f4cfc4544aa") ?? (() => {
 const { checkAbort, consumeRows, inputRows, pause, taskYieldDue } = _m2;
 
 const { ChunkedTextSink, BlobByteSink } = _m5;
@@ -2804,35 +2922,35 @@ const { OfficeIMOError } = _m3;
 
 const { notifyProgress } = _m4;
 
-const { copyColumns, createRowProjector } = _m23;
+const { copyColumns, createRowProjector } = _m24;
 
-const { EntryWriter } = _m13;
+const { EntryWriter } = _m14;
 
-const { xmlDeclaration } = _m10;
+const { xmlDeclaration } = _m11;
 
-const { officeRelationshipsNamespace } = _m7;
+const { officeRelationshipsNamespace } = _m8;
 
-const { Cell, cellText, columnName, inlineText, excelDate, copyValue } = _m18;
+const { Cell, cellText, columnName, inlineText, excelDate, copyValue } = _m19;
 
-const { spreadsheetNamespace, colorArgb, validateStylePatch, copyStylePatch } = _m15;
+const { spreadsheetNamespace, colorArgb, validateStylePatch, copyStylePatch } = _m16;
 
-const { copyHyperlink, copyImage, hyperlinksXml, cellPosition } = _m24;
+const { copyHyperlink, copyImage, hyperlinksXml, cellPosition } = _m27;
 
-const { ExportCell, assertScalar } = _m19;
+const { ExportCell, assertScalar } = _m20;
 
-const { ReportLayout, ComputedTotal, printXml } = _m26;
+const { ReportLayout, ComputedTotal, printXml } = _m29;
 
-const { cleanXml } = _m10;
+const { cleanXml } = _m11;
 
-const { ConditionalFormats, prepareConditionalFormats } = _m31;
+const { ConditionalFormats, prepareConditionalFormats } = _m33;
 
-const { isDate } = _m11;
+const { isDate } = _m12;
 
-const { FormulaCell, formulaXml } = _m21;
+const { FormulaCell, formulaXml, isSubtotalFormula } = _m22;
 
-const { prepareDataValidations, dataValidationsXml } = _m33;
+const { prepareDataValidations, dataValidationsXml } = _m35;
 
-const { qualifiedCell, qualifiedColumnRange, resolveDataColumn } = _m32;
+const { qualifiedCell, qualifiedColumnRange, resolveDataColumn } = _m34;
 
 const maximumHyperlinks = 65530;
 function checkHyperlinkCount(count) {
@@ -2992,7 +3110,7 @@ class Worksheet {
         }
         return { conditional, validations };
     }
-    cell(value, i, row, header = false, rowStyle, context, rowStyles, footer = false, title = false) {
+    cell(value, i, row, header = false, rowStyle, context, rowStyles, footer = false, title = false, visible = true) {
         const col = this.declared[i];
         const total = value instanceof ComputedTotal ? value : undefined;
         if (total)
@@ -3094,7 +3212,7 @@ class Worksheet {
             this.appendHyperlink({ cell: col.letter + row, ...link });
         if (type === "date")
             value = excelDate(value, this.book.settings.dateMode);
-        if (!header && !footer)
+        if (!header && !footer && visible && (!formula || !isSubtotalFormula(formula)))
             this.layout.accept(i, value);
         if (!header && !footer && this.chartSources.length)
             for (const binding of this.chartSources)
@@ -3131,7 +3249,7 @@ class Worksheet {
         yield '<row r="' + number + '"' + (height === undefined ? "" : ' ht="' + height + '" customHeight="1"') +
             (outline?.level ? ' outlineLevel="' + outline.level + '"' : "") + (outline?.hidden ? ' hidden="1"' : "") + (outline?.collapsed ? ' collapsed="1"' : "") + '>';
         for (let i = 0; i < this.columns.length; i++)
-            yield this.cell(values[i], i, number, header, rowStyle, context, rowStyles, footer, title);
+            yield this.cell(values[i], i, number, header, rowStyle, context, rowStyles, footer, title, outline?.hidden !== true);
         yield '</row>';
     }
     outline(context) {
@@ -3374,9 +3492,7 @@ class Worksheet {
             throw new OfficeIMOError("INVALID_STATE", "Worksheet is closed.");
         if (this.failed)
             throw this.error;
-        if (image.data instanceof Uint8Array)
-            this.book.checkImage(image.data.length);
-        const copied = copyImage(image, this.book.settings.invalidCharacterPolicy);
+        const copied = copyImage(image, this.book.settings.invalidCharacterPolicy, bytes => this.book.checkImage(bytes));
         this.book.retainImage(copied.data.length);
         this.pictures.push(copied);
     }
@@ -3508,22 +3624,22 @@ class Worksheet {
     async discard(error) { this.failed = true; this.error = error; this.pending = []; this.pendingCharacters = 0; this.prepared = undefined; this.buffer = undefined; this.nativeCharts.length = 0; this.chartSources.length = 0; this.output.discard(); await this.entry?.discard(error); }
 }
 const _exports = Object.freeze({ Worksheet: Worksheet });
-_modules.set("e459ec1e73dec4c58f4b2f13881c0ff38ca5253347e743f621b62e0e563a231b", _exports);
+_modules.set("23bfde122ce39db8a8c797af4b897804424e07bab1d2ebd81b1a4f4cfc4544aa", _exports);
 return _exports;
 })();
 
-const _m34 = _modules.get("39892d4d3947a80285164f4f140f02314e7a3ee76281472ff121d68d96a613e5") ?? (() => {
-const { escapeOoxmlAttribute, escapeXml, xmlDeclaration } = _m10;
+const _m36 = _modules.get("33e4ac8191b8bb277db33b18533495a9ab488b7fb778277f3b3cee259763b780") ?? (() => {
+const { escapeOoxmlAttribute, escapeXml, xmlDeclaration } = _m11;
 
-const { cellText, columnName } = _m18;
+const { cellText, columnName } = _m19;
 
-const { spreadsheetNamespace } = _m15;
+const { spreadsheetNamespace } = _m16;
 
-const { ExportCell } = _m19;
+const { ExportCell } = _m20;
 
-const { Cell } = _m18;
+const { Cell } = _m19;
 
-const { totalFormula } = _m26;
+const { totalFormula } = _m29;
 
 function defineTable(id, options, columns, policy) {
     const name = options.name ?? "Table" + id;
@@ -3555,14 +3671,14 @@ function tableXml(table, rowCount, policy, headerRow = 1, footer) {
         '" showColumnStripes="' + (options.bandedColumns ? 1 : 0) + '"/></table>';
 }
 const _exports = Object.freeze({ defineTable: defineTable, tableXml: tableXml });
-_modules.set("39892d4d3947a80285164f4f140f02314e7a3ee76281472ff121d68d96a613e5", _exports);
+_modules.set("33e4ac8191b8bb277db33b18533495a9ab488b7fb778277f3b3cee259763b780", _exports);
 return _exports;
 })();
 
-const _m35 = _modules.get("9c165af1760666d37381c410b96136694d28d86e1e5fcf4847f2d1087bb952f4") ?? (() => {
+const _m37 = _modules.get("9c165af1760666d37381c410b96136694d28d86e1e5fcf4847f2d1087bb952f4") ?? (() => {
 const { OfficeIMOError } = _m3;
 
-const { cleanXml } = _m10;
+const { cleanXml } = _m11;
 
 /** @internal Overflow is deliberately bounded: ZIP worksheet entries cannot be interleaved. */
 class TextOverflow {
@@ -3627,12 +3743,37 @@ _modules.set("9c165af1760666d37381c410b96136694d28d86e1e5fcf4847f2d1087bb952f4",
 return _exports;
 })();
 
-const _m37 = _modules.get("8f80a11f802734d2d686ba3e39a1c60bcaa55314e5e32d49b8a833e3dddc18ea") ?? (() => {
+const _m38 = _modules.get("e00bc0213b723678d050e3e1f11b39ed3d6b0b0fd6a39b403beb1a6bef69e282") ?? (() => {
+const { captureFields } = _m7;
+
+/** @internal The workbook owner captures these settings before validation or adapter merging. */
+const workbookOptionFields = ["signal", "onProgress", "limits", "sink", "dateMode", "compression", "invalidCharacterPolicy", "appProperties", "cellValueWriters", "oversizedText", "creator", "title", "subject", "description", "created", "modified"];
+/** @internal Worksheet settings also used by the portable sheet owner. */
+const sheetOptionFields = ["columns", "includeHeader", "headerRows", "freezeHeader", "autoFilter", "boldHeader", "headerFill", "headerStyle", "alternatingRowStyle", "rowStyle", "cellStyle", "rowOutline", "maxOutlineLevel", "rowHeight", "headerHeight", "defaultColumnWidth", "freezeColumns", "table", "autoSize", "footer", "print", "title", "mergedCells", "hyperlinks", "conditionalFormats", "dataValidation"];
+/** @internal Includes inherited format-specific ceilings before a wrapper combines stream settings. */
+const workbookLimitFields = ["maxRows", "maxCells", "maxTextCharacters", "maxOutputBytes", "maxStyles", "maxSheets", "maxOverflowCharacters", "maxHyperlinks", "maxImageBytes", "maxBufferedCells", "maxBufferedCharacters", "maxMergedRanges", "maxConditionalFormats", "maxDifferentialStyles", "maxCharts", "maxChartPoints", "maxChartTextCharacters", "maxFormulaCharacters", "maxDataValidations", "maxValidationTextCharacters"];
+/** @internal Capture the workbook's known ceilings without dropping supported prototype fields. */
+function captureWorkbookLimits(limits) {
+    return captureFields(limits, workbookLimitFields);
+}
+/** @internal One immutable-input capture for direct workbooks and thin portable writers. */
+function captureWorkbookOptions(options) {
+    const captured = captureFields(options, workbookOptionFields);
+    return { ...captured, ...(captured.limits === undefined ? {} : { limits: captureWorkbookLimits(captured.limits) }) };
+}
+const _exports = Object.freeze({ workbookOptionFields: workbookOptionFields, sheetOptionFields: sheetOptionFields, workbookLimitFields: workbookLimitFields, captureWorkbookLimits: captureWorkbookLimits, captureWorkbookOptions: captureWorkbookOptions });
+_modules.set("e00bc0213b723678d050e3e1f11b39ed3d6b0b0fd6a39b403beb1a6bef69e282", _exports);
+return _exports;
+})();
+
+const _m40 = _modules.get("bd66b325c9055258132735218be91a78281910aaac042bcac4c5b0f594e35379") ?? (() => {
 const { checkAbort } = _m2;
 
 const { NotSupportedError, OfficeIMOError } = _m3;
 
-const { cleanXml } = _m10;
+const { cleanXml } = _m11;
+
+const { captureFields } = _m7;
 
 function record(value, allowed, context) {
     if (!value || typeof value !== "object" || Array.isArray(value))
@@ -3640,7 +3781,7 @@ function record(value, allowed, context) {
     for (const key of Object.keys(value))
         if (!allowed.includes(key))
             throw new NotSupportedError(context + "." + key);
-    return { ...value };
+    return captureFields(value, allowed);
 }
 function column(value) {
     if (typeof value === "string" ? !value.length : typeof value !== "number" || !Number.isInteger(value) || value < 1 || value > 16384)
@@ -3753,20 +3894,22 @@ function prepareChartBinding(input, descriptor, budgets, signal, type = "columnC
         }, finish });
 }
 const _exports = Object.freeze({ captureChartRange: captureChartRange, prepareChartBinding: prepareChartBinding });
-_modules.set("8f80a11f802734d2d686ba3e39a1c60bcaa55314e5e32d49b8a833e3dddc18ea", _exports);
+_modules.set("bd66b325c9055258132735218be91a78281910aaac042bcac4c5b0f594e35379", _exports);
 return _exports;
 })();
 
-const _m36 = _modules.get("37e80f2dc885ed66e486cc8e934abb80100e6fcceb2a682c675f7fa142b03314") ?? (() => {
+const _m39 = _modules.get("c612a6a257977bbdb9b2adfbfdd93f74ffc4531cb7f0b2c6707f2d081b07c360") ?? (() => {
 const { checkAbort } = _m2;
 
 const { NotSupportedError, OfficeIMOError } = _m3;
 
-const { cleanXml } = _m10;
+const { cleanXml } = _m11;
 
-const { copyDrawingAnchor } = _m24;
+const { copyDrawingAnchor } = _m27;
 
-const { captureChartRange, prepareChartBinding } = _m37;
+const { captureFields } = _m7;
+
+const { captureChartRange, prepareChartBinding } = _m40;
 
 function fields(value, allowed, context) {
     if (!value || typeof value !== "object" || Array.isArray(value))
@@ -3777,12 +3920,12 @@ function fields(value, allowed, context) {
 }
 function snapshot(value, allowed, context) {
     fields(value, allowed, context);
-    return { ...value };
+    return captureFields(value, allowed);
 }
 /** @internal Preflight bounds before copying any chart data. Failed registration reserves nothing. */
 function prepareChart(input, policy, availablePoints, availableText, signal, resolveBinding) {
     checkAbort(signal);
-    input = snapshot(input, ["type", "data", "row", "column", "width", "height", "description", "title", "legend", "dataLabels", "categoryAxis", "valueAxis"], "chart");
+    input = snapshot(input, ["type", "data", "row", "column", "width", "height", "description", "title", "language", "legend", "dataLabels", "categoryAxis", "valueAxis"], "chart");
     if (!["columnClustered", "barClustered", "line", "pie"].includes(input.type))
         throw new NotSupportedError("chart type " + input.type);
     const type = input.type;
@@ -3791,15 +3934,20 @@ function prepareChart(input, policy, availablePoints, availableText, signal, res
     if (!bound)
         fields(requested, ["categories", "series"], "chart.data");
     const categories = bound ? undefined : requested.categories, series = bound?.series ?? requested.series;
-    if (!bound && (!Array.isArray(categories) || !categories.length))
+    if (!bound && !Array.isArray(categories))
         throw new TypeError("Chart categories must be a nonempty array of strings.");
-    if (!Array.isArray(series) || !series.length || series.length > 255)
+    if (!Array.isArray(series))
         throw new RangeError("A chart needs from 1 through 255 series.");
-    if (!bound && categories.length > 1048575)
+    const categoryCount = bound?.rowCount ?? categories.length, seriesCount = series.length;
+    if (!categoryCount)
+        throw new TypeError("Chart categories must be a nonempty array of strings.");
+    if (!seriesCount || seriesCount > 255)
+        throw new RangeError("A chart needs from 1 through 255 series.");
+    if (!bound && categoryCount > 1048575)
         throw new RangeError("Chart data must fit Excel's rows including its header.");
-    if (type === "pie" && series.length !== 1)
+    if (type === "pie" && seriesCount !== 1)
         throw new TypeError("A pie chart supports exactly one series.");
-    const points = (bound?.rowCount ?? categories.length) * series.length;
+    const points = categoryCount * seriesCount;
     if (points > availablePoints)
         throw new OfficeIMOError("RESOURCE_LIMIT", "maxChartPoints exceeded.");
     let textCharacters = 0;
@@ -3815,6 +3963,18 @@ function prepareChart(input, policy, availablePoints, availableText, signal, res
     };
     const optionalText = (value, context) => value === undefined ? undefined : text(value, context);
     const title = optionalText(input.title, "Chart title"), description = optionalText(input.description, "Chart description");
+    const requestedLanguage = optionalText(input.language, "Chart language");
+    let language;
+    if (requestedLanguage !== undefined) {
+        try {
+            language = Intl.getCanonicalLocales(requestedLanguage)[0];
+            if (!language)
+                throw new RangeError();
+        }
+        catch {
+            throw new TypeError("Chart language must be a language tag such as pl or pl-PL.");
+        }
+    }
     const anchor = copyDrawingAnchor({ row: input.row, column: input.column, width: input.width, height: input.height,
         ...(description === undefined ? {} : { description }) }, policy);
     if (input.legend !== undefined && input.legend !== false && !["right", "bottom", "left", "top"].includes(input.legend))
@@ -3855,6 +4015,7 @@ function prepareChart(input, policy, availablePoints, availableText, signal, res
         valueAxis = Object.freeze({ ...axis, ...(axisTitle === undefined ? {} : { title: axisTitle }), ...(numberFormat === undefined ? {} : { numberFormat }) });
     }
     const common = { ...anchor, type,
+        ...(language === undefined ? {} : { language }),
         ...(title === undefined ? {} : { title }), ...(description === undefined ? {} : { description }),
         ...(input.legend === undefined ? {} : { legend: input.legend }), ...(dataLabels === undefined ? {} : { dataLabels }),
         ...(categoryAxis === undefined ? {} : { categoryAxis }), ...(valueAxis === undefined ? {} : { valueAxis }) };
@@ -3868,21 +4029,22 @@ function prepareChart(input, policy, availablePoints, availableText, signal, res
     // Length budgets precede allocation; each source property/array element is read once.
     const categoryValues = categories;
     const copiedCategories = [], copiedSeries = [];
-    for (let i = 0; i < categoryValues.length; i++) {
+    for (let i = 0; i < categoryCount; i++) {
         if ((i & 255) === 0)
             checkAbort(signal);
         copiedCategories.push(text(categoryValues[i], "Chart category"));
     }
-    for (const item of series) {
+    for (let seriesIndex = 0; seriesIndex < seriesCount; seriesIndex++) {
+        const item = series[seriesIndex];
         const captured = snapshot(item, ["name", "values", "color"], "chart.series");
         const name = text(captured.name, "Chart series name"), values = captured.values, color = captured.color;
-        if (!Array.isArray(values) || values.length !== categoryValues.length)
+        if (!Array.isArray(values) || values.length !== categoryCount)
             throw new TypeError("Chart series values must match the category count.");
         if (color !== undefined && (typeof color !== "string" || !/^#?[0-9a-fA-F]{6}$/.test(color)))
             throw new TypeError("Chart colors must be opaque six-digit RGB hex values.");
         let positive = false;
         const copiedValues = [];
-        for (let i = 0; i < values.length; i++) {
+        for (let i = 0; i < categoryCount; i++) {
             if ((i & 255) === 0)
                 checkAbort(signal);
             const value = values[i];
@@ -3903,11 +4065,11 @@ function prepareChart(input, policy, availablePoints, availableText, signal, res
         points, textCharacters });
 }
 const _exports = Object.freeze({ prepareChart: prepareChart });
-_modules.set("37e80f2dc885ed66e486cc8e934abb80100e6fcceb2a682c675f7fa142b03314", _exports);
+_modules.set("c612a6a257977bbdb9b2adfbfdd93f74ffc4531cb7f0b2c6707f2d081b07c360", _exports);
 return _exports;
 })();
 
-const _m1 = _modules.get("5875c2e0d0c21112618f2e1ee9dfb021f5d6e76c435ee695d444e8ae0883b8e1") ?? (() => {
+const _m1 = _modules.get("16816e2efd4566bee592e868e7b3218ffde9ffdcf2ac9c476012c0119f884970") ?? (() => {
 const { beginTask, checkAbort, pause, taskYieldDue } = _m2;
 
 const { OfficeIMOError } = _m3;
@@ -3918,32 +4080,59 @@ const { ChunkedTextSink } = _m5;
 
 const { ExportBudget } = _m6;
 
-const { OpcPackage, officeRelationshipsNamespace, relationshipTypes, corePropertiesXml } = _m7;
+const { OpcPackage, officeRelationshipsNamespace, relationshipTypes, corePropertiesXml } = _m8;
 
-const { escapeOoxmlAttribute, cleanXml, xmlDeclaration } = _m10;
+const { escapeOoxmlAttribute, cleanXml, xmlDeclaration } = _m11;
 
-const { StyleRegistry, spreadsheetNamespace } = _m15;
+const { StyleRegistry, spreadsheetNamespace } = _m16;
 
-const { sheetName, assertXlsxValue } = _m18;
+const { sheetName, assertXlsxValue, copyValue } = _m19;
 
-const { assertExportValue } = _m19;
+const { copyColumns } = _m24;
 
-const { Worksheet } = _m22;
+const { captureFields } = _m7;
 
-const { defineTable, tableXml } = _m34;
+const { captureTableSpans } = _m25;
 
-const { drawingXml, drawingContentType } = _m24;
+const { assertExportValue } = _m20;
 
-const { TextOverflow } = _m35;
+const { Worksheet } = _m26;
 
-const { prepareChart } = _m36;
+const { defineTable, tableXml } = _m36;
 
-const { qualifiedColumnRange, resolveDataColumn } = _m32;
+const { copyHyperlink, drawingXml, drawingContentType } = _m27;
 
-const { chartContentType, writeChartXml } = _m25;
+const { TextOverflow } = _m37;
+
+const { captureWorkbookOptions, sheetOptionFields } = _m38;
+
+const { prepareChart } = _m39;
+
+const { qualifiedColumnRange, resolveDataColumn } = _m34;
+
+const { chartContentType, writeChartXml } = _m28;
 
 const xlsxMime = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
 const formatType = (name) => "application/vnd.openxmlformats-officedocument.spreadsheetml." + name + "+xml";
+/** Capture registered worksheet metadata before preflight and construction inspect it. */
+function captureSheet(options, policy) {
+    const captured = captureFields(options, sheetOptionFields);
+    const columns = copyColumns(captured.columns ?? [], true);
+    const footer = captured.footer && captureFields(captured.footer, ["rows", "values", "totals", "style"]);
+    const print = captured.print && captureFields(captured.print, ["paper", "orientation", "fitToWidth", "fitToHeight", "repeatHeaders", "margins", "header", "footer"]);
+    return { ...captured, columns,
+        ...(captured.headerRows === undefined ? {} : { headerRows: captureTableSpans(captured.headerRows, columns.length) }),
+        ...(footer ? { footer: { ...footer,
+                ...(footer.rows === undefined ? {} : { rows: captureTableSpans(footer.rows, columns.length) }),
+                ...(footer.values === undefined ? {} : { values: footer.values.map(copyValue) }) } } : {}),
+        ...(captured.table ? { table: captureFields(captured.table, ["name", "style", "bandedRows", "bandedColumns", "firstColumn", "lastColumn"]) } : {}),
+        ...(captured.autoSize ? { autoSize: captureFields(captured.autoSize, ["sampleRows", "minWidth", "maxWidth"]) } : {}),
+        ...(captured.title ? { title: captureFields(captured.title, ["text", "style", "height"]) } : {}),
+        ...(print ? { print: { ...print, ...(print.margins === undefined ? {} : {
+                    margins: captureFields(print.margins, ["left", "right", "top", "bottom", "header", "footer"])
+                }) } } : {}),
+        ...(captured.hyperlinks ? { hyperlinks: captured.hyperlinks.map(link => copyHyperlink(link, policy)) } : {}) };
+}
 /** Streaming writer model; append rows through Worksheets, then finalize once. */
 class Workbook {
     portableValues = false;
@@ -4000,6 +4189,7 @@ class Workbook {
     /** @internal Immutable settings used by the worksheet owner. */
     settings;
     constructor(options = {}) {
+        options = captureWorkbookOptions(options);
         const dateMode = options.dateMode ?? "local", compression = options.compression ?? "auto", policy = options.invalidCharacterPolicy ?? "strip";
         if (dateMode !== "local" && dateMode !== "utc")
             throw new RangeError("dateMode must be local or utc.");
@@ -4188,7 +4378,7 @@ class Workbook {
         return this.registration(() => {
             this.checkSheetLimit(this.sheets.length + this.chartSourceSheets + 1 + (this.overflow ? 1 : 0));
             // Validation/serialization use erased column metadata; projection later receives T rows.
-            const metadata = { ...options };
+            const metadata = captureSheet(options, this.settings.invalidCharacterPolicy);
             const prepared = Worksheet.validate(this, metadata);
             let tableOptions = metadata.table;
             if (tableOptions && tableOptions.name === undefined) {
@@ -4354,12 +4544,16 @@ class Workbook {
     }
 }
 const _exports = Object.freeze({ Workbook: Workbook });
-_modules.set("5875c2e0d0c21112618f2e1ee9dfb021f5d6e76c435ee695d444e8ae0883b8e1", _exports);
+_modules.set("16816e2efd4566bee592e868e7b3218ffde9ffdcf2ac9c476012c0119f884970", _exports);
 return _exports;
 })();
 
-const _m39 = _modules.get("7d71d7c188ee5bebaddb23ed313c597285a187c3f62e49244b7788154fdc6960") ?? (() => {
-const { ExportCell, assertScalar } = _m19;
+const _m42 = _modules.get("89111eab1f3857529c2d0cd849f16598097e62bd73841211b9c66ccc7b1b7ca2") ?? (() => {
+const { ExportCell, assertScalar } = _m20;
+
+const { captureWorkbookOptions, sheetOptionFields } = _m38;
+
+const { captureFields } = _m7;
 
 function style(patch) {
     for (const component of ["font", "fill", "border", "numberFormat"])
@@ -4374,6 +4568,7 @@ function value(result) {
 }
 /** @internal Qualify the portable boundary before source/destination activity. */
 function portableSheet(options = {}) {
+    options = captureFields(options, sheetOptionFields);
     if (options.headerStyle !== undefined)
         throw new TypeError("Workbook-local header styles require the advanced Workbook API; use boldHeader and headerFill.");
     style(options.alternatingRowStyle);
@@ -4389,6 +4584,7 @@ function portableSheet(options = {}) {
 }
 /** @internal Keep custom writers inside the same portable value contract. */
 function portableWorkbook(options = {}) {
+    options = captureWorkbookOptions(options);
     const writers = options.cellValueWriters;
     if (!writers)
         return options;
@@ -4401,22 +4597,27 @@ function portableWorkbook(options = {}) {
     return { ...options, cellValueWriters: wrapped };
 }
 const _exports = Object.freeze({ portableSheet: portableSheet, portableWorkbook: portableWorkbook });
-_modules.set("7d71d7c188ee5bebaddb23ed313c597285a187c3f62e49244b7788154fdc6960", _exports);
+_modules.set("89111eab1f3857529c2d0cd849f16598097e62bd73841211b9c66ccc7b1b7ca2", _exports);
 return _exports;
 })();
 
-const _m38 = _modules.get("002d4084f32269be4b082d54fa5dbac930d3d7e06a4a609b4b797632eb2a0aec") ?? (() => {
+const _m41 = _modules.get("4d0b66295c22dd414cade48765cccb969f03c746746304d566219b6070aca3e3") ?? (() => {
 const { withDestination } = _m5;
 
-const { copyColumns } = _m23;
+const { copyColumns } = _m24;
 
 const { Workbook } = _m1;
 
-const { portableSheet, portableWorkbook } = _m39;
+const { portableSheet, portableWorkbook } = _m42;
+
+const { captureFields } = _m7;
+
+const { sheetOptionFields, workbookOptionFields } = _m38;
 
 function prepare(options) {
-    const columns = copyColumns(options?.columns);
-    return { ...portableWorkbook(options), columns, sheet: { ...portableSheet(options.sheet), ...(options.sheet?.name === undefined ? {} : { name: options.sheet.name }) } };
+    options = captureFields(options, [...workbookOptionFields, "columns", "sheet"]);
+    const columns = copyColumns(options.columns), sheet = options.sheet && captureFields(options.sheet, [...sheetOptionFields, "name"]);
+    return { ...portableWorkbook(options), columns, sheet: { ...portableSheet(sheet), ...(sheet?.name === undefined ? {} : { name: sheet.name }) } };
 }
 function worksheet(book, options) {
     const { name = "Data", ...sheet } = options.sheet ?? {};
@@ -4455,14 +4656,14 @@ async function writeXlsxTo(rows, destination, configuration) {
     });
 }
 const _exports = Object.freeze({ writeXlsx: writeXlsx, writeXlsxTo: writeXlsxTo });
-_modules.set("002d4084f32269be4b082d54fa5dbac930d3d7e06a4a609b4b797632eb2a0aec", _exports);
+_modules.set("4d0b66295c22dd414cade48765cccb969f03c746746304d566219b6070aca3e3", _exports);
 return _exports;
 })();
 
-const _m41 = _modules.get("a14509a5de615c6f14351ee20bddbae877f6cb56ede3069a15b4a5d243f2b4b2") ?? (() => {
-const { ExportCell, assertExportValue } = _m19;
+const _m44 = _modules.get("2fd47b8fb38db22ea1876babbd9c3970e9c9d378131e692d27e6ac415d34544d") ?? (() => {
+const { ExportCell } = _m20;
 
-const { isDate } = _m11;
+const { isDate } = _m12;
 
 const { checkAbort, inputRows, pause, taskYieldDue } = _m2;
 
@@ -4470,9 +4671,11 @@ const { ExportBudget } = _m6;
 
 const { OfficeIMOError } = _m3;
 
-const { copyColumns, createRowProjector } = _m23;
+const { copyColumns, createRowProjector } = _m24;
 
-const { createTotals } = _m28;
+const { createTotals } = _m31;
+
+const { copyExportValue } = _m23;
 
 const sources = new WeakMap();
 /** @internal Writers accept the owned immutable event source rather than trusting caller-authored event protocols. */
@@ -4517,16 +4720,6 @@ function maximum(value, fallback, name) {
         throw new RangeError(name + " must be a nonnegative safe integer.");
     return result;
 }
-function copyValue(value) {
-    assertExportValue(value);
-    if (isDate(value))
-        return new Date(Date.prototype.getTime.call(value));
-    if (value instanceof ExportCell) {
-        const scalar = value.value, text = value.text, presentation = value.presentation, link = value.link;
-        return new ExportCell(isDate(scalar) ? new Date(Date.prototype.getTime.call(scalar)) : scalar, { ...(text === undefined ? {} : { text }), ...(presentation === undefined ? {} : { presentation }), ...(link === undefined ? {} : { link }) });
-    }
-    return value ?? null;
-}
 function scalar(value) { return value instanceof ExportCell ? value.value : value; }
 function identity(value) {
     if (value == null)
@@ -4558,11 +4751,9 @@ function createGroupedReport(rows, options) {
         throw new TypeError("Grouped source limits must be an object.");
     if (limits !== undefined && "maxOutputBytes" in limits)
         throw new TypeError("Set maxOutputBytes on the format writer, not the grouped source.");
-    const capturedLimits = limits === undefined ? undefined : { ...limits };
     if (!Array.isArray(selected) || !selected.length)
         throw new TypeError("A grouped report needs declared columns.");
-    const captured = selected.map(column => ({ ...column }));
-    const columns = copyColumns(captured);
+    const columns = copyColumns(selected);
     const keys = columns.map(column => column.key);
     if (keys.some(key => typeof key !== "string" || key.length === 0) || new Set(keys).size !== keys.length)
         throw new TypeError("Grouped report columns need unique, nonempty stable keys.");
@@ -4578,7 +4769,7 @@ function createGroupedReport(rows, options) {
             throw new TypeError("Grouped numeric totals require a column declared with type:number.");
     const maxGroups = maximum(requestedGroups, 1000, "maxGroups");
     const maxCharacters = maximum(requestedCharacters, 1000000, "maxGroupKeyCharacters");
-    const budget = new ExportBudget(capturedLimits);
+    const budget = new ExportBudget(limits);
     const portable = Object.freeze(columns.map(column => {
         const { value: _getter, ...metadata } = column;
         return Object.freeze(metadata);
@@ -4607,7 +4798,7 @@ function createGroupedReport(rows, options) {
             const snapshot = Array.isArray(input) ? Array.from(input) : input;
             const projected = project(snapshot, rowCount), values = [];
             for (let column = 0; column < columns.length; column++)
-                values.push(copyValue(projected[column]));
+                values.push(copyExportValue(projected[column]) ?? null);
             checkAbort(signal);
             const next = identity(scalar(values[groupColumn]));
             if (next.id !== currentId) {
@@ -4674,24 +4865,28 @@ function createGroupedReport(rows, options) {
     return source;
 }
 const _exports = Object.freeze({ assertGroupedReportSource: assertGroupedReportSource, groupedReportEvents: groupedReportEvents, groupedReportOperation: groupedReportOperation, createGroupedReport: createGroupedReport });
-_modules.set("a14509a5de615c6f14351ee20bddbae877f6cb56ede3069a15b4a5d243f2b4b2", _exports);
+_modules.set("2fd47b8fb38db22ea1876babbd9c3970e9c9d378131e692d27e6ac415d34544d", _exports);
 return _exports;
 })();
 
-const _m40 = _modules.get("436a5913d872b7d616b9a62f68233f3fba757e84b7f2c9279dd740c0175231cd") ?? (() => {
-const { assertGroupedReportSource, groupedReportOperation } = _m41;
+const _m43 = _modules.get("6aeafa4afa90af51d1497ee76eb0b06f3c04bfbd10727705e9bfcf4376a397c1") ?? (() => {
+const { assertGroupedReportSource, groupedReportOperation } = _m44;
 
 const { withDestination } = _m5;
 
 const { Workbook } = _m1;
 
-const { FormulaCell } = _m21;
+const { FormulaCell } = _m22;
 
-const { columnName } = _m18;
+const { columnName } = _m19;
 
-const { copyStylePatch } = _m15;
+const { copyStylePatch } = _m16;
 
-const { portableSheet } = _m39;
+const { portableSheet } = _m42;
+
+const { captureFields } = _m7;
+
+const { sheetOptionFields, workbookOptionFields } = _m38;
 
 const unsupported = ["columns", "headerRows", "footer", "table", "mergedCells", "hyperlinks", "conditionalFormats", "dataValidation", "rowStyle", "cellStyle", "rowOutline", "maxOutlineLevel"];
 const subtotalOperations = { average: 1, count: 2, max: 4, min: 5, sum: 9 };
@@ -4699,10 +4894,11 @@ function prepare(report, configuration) {
     assertGroupedReportSource(report);
     if (!configuration || typeof configuration !== "object")
         throw new TypeError("Grouped XLSX options require host-authored labels.");
-    const options = { ...configuration }, sheet = { ...options.sheet };
+    const options = captureFields(configuration, [...workbookOptionFields, "labelColumn", "subtotalLabel", "grandTotalLabel", "includeGrandTotal", "collapseGroups", "sheet", "groupStyle", "subtotalStyle", "grandTotalStyle"]);
+    const sheet = captureFields(options.sheet ?? {}, [...sheetOptionFields, "name"]);
     if (!options.labelColumn || typeof options.labelColumn !== "object")
         throw new TypeError("Grouped XLSX needs a leading label column.");
-    const labelColumn = { ...options.labelColumn };
+    const labelColumn = captureFields(options.labelColumn, ["header", "width", "wrapText", "alignment"]);
     if (typeof labelColumn.header !== "string")
         throw new TypeError("The leading label column needs a string header.");
     for (const label of [options.subtotalLabel, options.grandTotalLabel])
@@ -4810,11 +5006,11 @@ async function writeGroupedXlsxTo(report, destination, options) {
     return withDestination(destination, async (sink) => (await write(report, prepared, sink)).result);
 }
 const _exports = Object.freeze({ writeGroupedXlsx: writeGroupedXlsx, writeGroupedXlsxTo: writeGroupedXlsxTo });
-_modules.set("436a5913d872b7d616b9a62f68233f3fba757e84b7f2c9279dd740c0175231cd", _exports);
+_modules.set("6aeafa4afa90af51d1497ee76eb0b06f3c04bfbd10727705e9bfcf4376a397c1", _exports);
 return _exports;
 })();
 
-const _m42 = _modules.get("aea31b22440d61d117c049dd9d718f429961b8ee04907ea1f38bd7b959eafce2") ?? (() => {
+const _m45 = _modules.get("92a5caf41908d96c8f0b8cd4e63f7d2b7cf979e69e8b59694b39a0b3176ece3c") ?? (() => {
 
 
 
@@ -4858,16 +5054,16 @@ function saveBlob(blob, fileName) {
         setTimeout(() => URL.revokeObjectURL(url), 30000);
     }
 }
-const _exports = Object.freeze({ OfficeIMOError: _m3.OfficeIMOError, NotSupportedError: _m3.NotSupportedError, BlobByteSink: _m5.BlobByteSink, ChunkedTextSink: _m5.ChunkedTextSink, writeBytes: _m5.writeBytes, ExportCell: _m19.ExportCell, createGroupedReport: _m41.createGroupedReport, checkAbort: _m2.checkAbort, withAbort: _m2.withAbort, inputRows: _m2.inputRows, pause: _m2.pause, detectFeatures: detectFeatures, saveBlob: saveBlob });
-_modules.set("aea31b22440d61d117c049dd9d718f429961b8ee04907ea1f38bd7b959eafce2", _exports);
+const _exports = Object.freeze({ OfficeIMOError: _m3.OfficeIMOError, NotSupportedError: _m3.NotSupportedError, BlobByteSink: _m5.BlobByteSink, ChunkedTextSink: _m5.ChunkedTextSink, writeBytes: _m5.writeBytes, ExportCell: _m20.ExportCell, createGroupedReport: _m44.createGroupedReport, checkAbort: _m2.checkAbort, withAbort: _m2.withAbort, inputRows: _m2.inputRows, pause: _m2.pause, detectFeatures: detectFeatures, saveBlob: saveBlob });
+_modules.set("92a5caf41908d96c8f0b8cd4e63f7d2b7cf979e69e8b59694b39a0b3176ece3c", _exports);
 return _exports;
 })();
 
-const _m0 = _modules.get("d07160b64d7a074749f50550d84bbd1722185f5254f2de3cdf7628aa9d204ee7") ?? (() => {
+const _m0 = _modules.get("176d56338a4a3570dbf164451df1fc3c51e9019746a9f71acee527e6b254263c") ?? (() => {
 
-const _exports = Object.freeze({ Workbook: _m1.Workbook, writeXlsx: _m38.writeXlsx, writeXlsxTo: _m38.writeXlsxTo, writeGroupedXlsx: _m40.writeGroupedXlsx, writeGroupedXlsxTo: _m40.writeGroupedXlsxTo, createGroupedReport: _m41.createGroupedReport, Worksheet: _m22.Worksheet, Cell: _m18.Cell, FormulaCell: _m21.FormulaCell, StyleRegistry: _m15.StyleRegistry, NumberFormats: _m15.NumberFormats, saveBlob: _m42.saveBlob, ExportCell: _m19.ExportCell });
-_modules.set("d07160b64d7a074749f50550d84bbd1722185f5254f2de3cdf7628aa9d204ee7", _exports);
+const _exports = Object.freeze({ Workbook: _m1.Workbook, writeXlsx: _m41.writeXlsx, writeXlsxTo: _m41.writeXlsxTo, writeGroupedXlsx: _m43.writeGroupedXlsx, writeGroupedXlsxTo: _m43.writeGroupedXlsxTo, createGroupedReport: _m44.createGroupedReport, Worksheet: _m26.Worksheet, Cell: _m19.Cell, FormulaCell: _m22.FormulaCell, StyleRegistry: _m16.StyleRegistry, NumberFormats: _m16.NumberFormats, saveBlob: _m45.saveBlob, ExportCell: _m20.ExportCell });
+_modules.set("176d56338a4a3570dbf164451df1fc3c51e9019746a9f71acee527e6b254263c", _exports);
 return _exports;
 })();
-Object.assign(officeimo, _m0, { core: _m42, zip: _m12, xml: _m10, opc: _m7, xlsx: _m0 });
+Object.assign(officeimo, _m0, { core: _m45, zip: _m13, xml: _m11, opc: _m8, xlsx: _m0 });
 })(globalThis);

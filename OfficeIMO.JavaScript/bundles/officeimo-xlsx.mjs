@@ -312,8 +312,29 @@ const _exports = Object.freeze({ withDestination: withDestination, BlobByteSink:
 return _exports;
 })();
 
+const _m7 = (() => {
+/** Capture a structural option record before validation or asynchronous work.
+ * Own fields and supported prototype accessors are read once. Nested values remain
+ * borrowed until their owning format captures or validates them. */
+function captureFields(input, fields) {
+    const captured = { ...input };
+    for (const field of fields) {
+        if (Object.hasOwn(captured, field))
+            continue;
+        const value = input[field];
+        if (value !== undefined)
+            captured[field] = value;
+    }
+    return captured;
+}
+const _exports = Object.freeze({ captureFields: captureFields });
+return _exports;
+})();
+
 const _m6 = (() => {
 const { OfficeIMOError } = _m3;
+
+const { captureFields } = _m7;
 
 /** @internal Check before accepting the next value or chunk. */
 class ExportBudget {
@@ -323,10 +344,15 @@ class ExportBudget {
     reservedText = 0;
     limits;
     constructor(limits = {}) {
-        for (const [key, value] of Object.entries(limits))
+        if (!limits || typeof limits !== "object" || Array.isArray(limits))
+            throw new TypeError("Export limits must be an object.");
+        // Capture before validation. Supported class getters are ordinary structural
+        // options too, and an accessor must not change the ceiling after validation.
+        const captured = captureFields(limits, ["maxRows", "maxCells", "maxTextCharacters", "maxOutputBytes"]);
+        for (const [key, value] of Object.entries(captured))
             if (value !== undefined && (!Number.isSafeInteger(value) || value < 0))
                 throw new RangeError(key + " must be a nonnegative safe integer.");
-        this.limits = Object.freeze({ ...limits });
+        this.limits = Object.freeze(captured);
     }
     check(kind, value) {
         const maximum = this.limits[kind];
@@ -368,7 +394,7 @@ const _exports = Object.freeze({ ExportBudget: ExportBudget, boundedSink: bounde
 return _exports;
 })();
 
-const _m8 = (() => {
+const _m9 = (() => {
 const { OfficeIMOError } = _m3;
 
 /** Canonical absolute OPC part URI. ASCII URI spelling; Unicode must be UTF-8 percent encoded. */
@@ -415,7 +441,7 @@ const _exports = Object.freeze({ partUri: partUri, relationshipPartUri: relation
 return _exports;
 })();
 
-const _m10 = (() => {
+const _m11 = (() => {
 const { OfficeIMOError } = _m3;
 
 const { ChunkedTextSink } = _m5;
@@ -496,7 +522,7 @@ const _exports = Object.freeze({ xmlDeclaration: xmlDeclaration, cleanXml: clean
 return _exports;
 })();
 
-const _m11 = (() => {
+const _m12 = (() => {
 /** @internal Recognize native Date values across iframe realms without trusting a string tag. */
 function isDate(value) {
     if (value === null || typeof value !== "object")
@@ -517,10 +543,10 @@ const _exports = Object.freeze({ isDate: isDate });
 return _exports;
 })();
 
-const _m9 = (() => {
-const { escapeXml, xmlDeclaration } = _m10;
+const _m10 = (() => {
+const { escapeXml, xmlDeclaration } = _m11;
 
-const { isDate } = _m11;
+const { isDate } = _m12;
 
 function corePropertiesXml(properties = {}, policy = "strip") {
     const created = properties.created ?? new Date(), modified = properties.modified ?? created;
@@ -542,7 +568,7 @@ const _exports = Object.freeze({ corePropertiesXml: corePropertiesXml, appProper
 return _exports;
 })();
 
-const _m14 = (() => {
+const _m15 = (() => {
 const crcTable = new Uint32Array(256).map((_, index) => {
     let value = index;
     for (let bit = 0; bit < 8; bit++)
@@ -564,12 +590,12 @@ const _exports = Object.freeze({ Crc32: Crc32 });
 return _exports;
 })();
 
-const _m13 = (() => {
+const _m14 = (() => {
 const { checkAbort, withAbort } = _m2;
 
 const { OfficeIMOError } = _m3;
 
-const { Crc32 } = _m14;
+const { Crc32 } = _m15;
 
 
 
@@ -691,20 +717,22 @@ class EntryWriter {
         this.reader?.releaseLock();
     }
 }
-const _exports = Object.freeze({ Crc32: _m14.Crc32, zipLimit: zipLimit, zipSize: zipSize, EntryWriter: EntryWriter });
+const _exports = Object.freeze({ Crc32: _m15.Crc32, zipLimit: zipLimit, zipSize: zipSize, EntryWriter: EntryWriter });
 return _exports;
 })();
 
-const _m12 = (() => {
+const _m13 = (() => {
 
 
-const { EntryWriter, zipSize } = _m13;
+const { EntryWriter, zipSize } = _m14;
 
 const { checkAbort, withAbort, pause, taskYieldDue } = _m2;
 
 const { OfficeIMOError } = _m3;
 
 const { BlobByteSink, writeBytes } = _m5;
+
+const { captureFields } = _m7;
 
 const encoder = new TextEncoder();
 function validateEntryName(name) {
@@ -733,7 +761,6 @@ function header(signature, length, name = new Uint8Array()) {
 }
 /** Sequential ZIP writer. Entry bytes use data descriptors; only central-directory metadata is retained. */
 class ZipWriter {
-    options;
     sink;
     owned;
     names = new Set();
@@ -741,12 +768,15 @@ class ZipWriter {
     offset = 0;
     active;
     state = "open";
+    options;
     constructor(sink, options = {}) {
-        this.options = options;
-        if (options.maxOutputBytes !== undefined && (!Number.isSafeInteger(options.maxOutputBytes) || options.maxOutputBytes < 0))
+        const captured = captureFields(options, ["compression", "signal", "maxOutputBytes"]);
+        const { compression, maxOutputBytes } = captured;
+        if (maxOutputBytes !== undefined && (!Number.isSafeInteger(maxOutputBytes) || maxOutputBytes < 0))
             throw new RangeError("maxOutputBytes must be a nonnegative safe integer.");
-        if (options.compression !== undefined && options.compression !== "auto" && options.compression !== "store")
+        if (compression !== undefined && compression !== "auto" && compression !== "store")
             throw new RangeError("compression must be auto or store.");
+        this.options = Object.freeze(captured);
         this.owned = sink ? undefined : new BlobByteSink();
         this.sink = sink ?? this.owned;
     }
@@ -926,28 +956,30 @@ class ZipWriter {
         return this.owned.toBlob(type);
     }
 }
-const _exports = Object.freeze({ Crc32: _m13.Crc32, validateEntryName: validateEntryName, ZipWriter: ZipWriter });
+const _exports = Object.freeze({ Crc32: _m14.Crc32, validateEntryName: validateEntryName, ZipWriter: ZipWriter });
 return _exports;
 })();
 
-const _m7 = (() => {
+const _m8 = (() => {
 
 
 
 
-const { partUri, relationshipPartUri, relativePartTarget } = _m8;
+const { partUri, relationshipPartUri, relativePartTarget } = _m9;
 
-const { corePropertiesXml, appPropertiesXml } = _m9;
+const { corePropertiesXml, appPropertiesXml } = _m10;
 
-const { ZipWriter } = _m12;
+const { ZipWriter } = _m13;
 
 const { ChunkedTextSink } = _m5;
 
 const { OfficeIMOError } = _m3;
 
-const { escapeXml, xmlDeclaration } = _m10;
+const { escapeXml, xmlDeclaration } = _m11;
 
 const { checkAbort, pause, taskYieldDue } = _m2;
+
+const { captureFields } = _m7;
 
 const relationshipsNamespace = "http://schemas.openxmlformats.org/package/2006/relationships";
 const officeRelationshipsNamespace = "http://schemas.openxmlformats.org/officeDocument/2006/relationships";
@@ -990,7 +1022,6 @@ class ContentTypes {
 }
 /** Format-neutral part and relationship owner. A source iterable is consumed once at finalization. */
 class OpcPackage {
-    options;
     types = new ContentTypes();
     parts = new Map();
     directories = new Set();
@@ -998,9 +1029,10 @@ class OpcPackage {
     state = "open";
     result;
     zip;
+    options;
     constructor(options = {}) {
-        this.options = options;
-        this.zip = new ZipWriter(options.sink, options);
+        this.options = Object.freeze(captureFields(options, ["compression", "signal", "maxOutputBytes", "invalidCharacterPolicy", "sink"]));
+        this.zip = new ZipWriter(this.options.sink, this.options);
     }
     open() { if (this.state !== "open")
         throw new OfficeIMOError("INVALID_STATE", "OPC package is finalized."); }
@@ -1172,11 +1204,11 @@ class OpcPackage {
         await this.zip.discard(error);
     }
 }
-const _exports = Object.freeze({ partUri: _m8.partUri, relationshipPartUri: _m8.relationshipPartUri, relativePartTarget: _m8.relativePartTarget, corePropertiesXml: _m9.corePropertiesXml, appPropertiesXml: _m9.appPropertiesXml, relationshipsNamespace: relationshipsNamespace, officeRelationshipsNamespace: officeRelationshipsNamespace, contentTypesNamespace: contentTypesNamespace, relationshipTypes: relationshipTypes, ContentTypes: ContentTypes, OpcPackage: OpcPackage });
+const _exports = Object.freeze({ partUri: _m9.partUri, relationshipPartUri: _m9.relationshipPartUri, relativePartTarget: _m9.relativePartTarget, corePropertiesXml: _m10.corePropertiesXml, appPropertiesXml: _m10.appPropertiesXml, relationshipsNamespace: relationshipsNamespace, officeRelationshipsNamespace: officeRelationshipsNamespace, contentTypesNamespace: contentTypesNamespace, relationshipTypes: relationshipTypes, ContentTypes: ContentTypes, OpcPackage: OpcPackage });
 return _exports;
 })();
 
-const _m16 = (() => {
+const _m17 = (() => {
 function colorArgb(value) {
     if (typeof value !== "string" || !/^#?(?:[0-9a-f]{6}|[0-9a-f]{8})$/i.test(value))
         throw new TypeError("Color must be RGB or ARGB hex.");
@@ -1187,12 +1219,12 @@ const _exports = Object.freeze({ colorArgb: colorArgb });
 return _exports;
 })();
 
-const _m17 = (() => {
+const _m18 = (() => {
 const { OfficeIMOError } = _m3;
 
-const { cleanXml, escapeOoxmlAttribute } = _m10;
+const { cleanXml, escapeOoxmlAttribute } = _m11;
 
-const { colorArgb } = _m16;
+const { colorArgb } = _m17;
 
 /** @internal Reject unsupported properties rather than silently losing presentation. */
 function fields(value, allowed, label) {
@@ -1297,14 +1329,14 @@ const _exports = Object.freeze({ fields: fields, optionalBoolean: optionalBoolea
 return _exports;
 })();
 
-const _m15 = (() => {
-const { escapeOoxmlAttribute, cleanXml, xmlDeclaration } = _m10;
+const _m16 = (() => {
+const { escapeOoxmlAttribute, cleanXml, xmlDeclaration } = _m11;
 
 const { OfficeIMOError } = _m3;
 
-const { colorArgb } = _m16;
+const { colorArgb } = _m17;
 
-const { DifferentialStyles } = _m17;
+const { DifferentialStyles } = _m18;
 
 
 
@@ -1506,31 +1538,33 @@ class StyleRegistry {
         }).join("") + '</cellXfs><cellStyles count="1"><cellStyle name="Normal" xfId="0" builtinId="0"/></cellStyles>' + this.differential.toXml() + '</styleSheet>';
     }
 }
-const _exports = Object.freeze({ colorArgb: _m16.colorArgb, spreadsheetNamespace: spreadsheetNamespace, NumberFormats: NumberFormats, validateStylePatch: validateStylePatch, copyStylePatch: copyStylePatch, StyleRegistry: StyleRegistry });
+const _exports = Object.freeze({ colorArgb: _m17.colorArgb, spreadsheetNamespace: spreadsheetNamespace, NumberFormats: NumberFormats, validateStylePatch: validateStylePatch, copyStylePatch: copyStylePatch, StyleRegistry: StyleRegistry });
 return _exports;
 })();
 
-const _m20 = (() => {
+const _m21 = (() => {
 /** @internal One target policy shared by document writers and portable cells. */
 function copyExportLink(link) {
-    if (!link || typeof link !== "object" || typeof link.target !== "string" ||
-        !/^(?:https?:\/\/|mailto:)/i.test(link.target) || /[\u0000-\u0020\u007f]/.test(link.target))
+    if (!link || typeof link !== "object")
         throw new TypeError("Hyperlinks require an absolute HTTP, HTTPS or mailto target without whitespace or controls.");
-    const url = new URL(link.target);
+    const { target, tooltip } = link;
+    if (typeof target !== "string" || !/^(?:https?:\/\/|mailto:)/i.test(target) || /[\u0000-\u0020\u007f]/.test(target))
+        throw new TypeError("Hyperlinks require an absolute HTTP, HTTPS or mailto target without whitespace or controls.");
+    const url = new URL(target);
     if ((url.protocol === "http:" || url.protocol === "https:") && (!url.hostname || url.username || url.password))
         throw new TypeError("Hyperlink HTTP targets need a host and must not contain credentials.");
-    if (link.tooltip !== undefined && typeof link.tooltip !== "string")
+    if (tooltip !== undefined && typeof tooltip !== "string")
         throw new TypeError("Hyperlink tooltip must be text.");
-    return Object.freeze({ target: url.href, ...(link.tooltip === undefined ? {} : { tooltip: link.tooltip }) });
+    return Object.freeze({ target: url.href, ...(tooltip === undefined ? {} : { tooltip }) });
 }
 const _exports = Object.freeze({ copyExportLink: copyExportLink });
 return _exports;
 })();
 
-const _m19 = (() => {
-const { isDate } = _m11;
+const _m20 = (() => {
+const { isDate } = _m12;
 
-const { copyExportLink } = _m20;
+const { copyExportLink } = _m21;
 
 const exportCellBrand = Symbol.for("@evotecit/officeimo/ExportCell");
 /** @internal Capture only portable scalar presentation fields before retaining or cloning a cell. */
@@ -1563,12 +1597,13 @@ class ExportCell {
     link;
     constructor(value, options = {}) {
         this.value = value;
-        if (options.text !== undefined && typeof options.text !== "string")
+        const { text, presentation, link } = options;
+        if (text !== undefined && typeof text !== "string")
             throw new TypeError("Display text must be a string.");
         assertScalar(value);
-        this.text = options.text;
-        this.presentation = options.presentation === undefined ? undefined : copyCellPresentation(options.presentation);
-        this.link = options.link === undefined ? undefined : copyExportLink(options.link);
+        this.text = text;
+        this.presentation = presentation === undefined ? undefined : copyCellPresentation(presentation);
+        this.link = link === undefined ? undefined : copyExportLink(link);
         Object.defineProperty(this, exportCellBrand, { value: true });
         Object.freeze(this);
     }
@@ -1592,14 +1627,17 @@ const _exports = Object.freeze({ copyCellPresentation: copyCellPresentation, Exp
 return _exports;
 })();
 
-const _m21 = (() => {
+const _m22 = (() => {
 const { NotSupportedError } = _m3;
 
-const { cleanXml, escapeXml } = _m10;
+const { cleanXml, escapeXml } = _m11;
 
 const formulaCells = new WeakSet();
-/** @internal Reject direct external-workbook and DDE references without interpreting Excel expressions. */
-function localReferences(formula) {
+const nestedAggregateCells = new WeakSet();
+/** Reject external references and identify nested total functions without evaluating Excel expressions. */
+function inspectReferences(formula) {
+    let subtotal = false;
+    const identifier = /[\p{L}_\\][\p{L}\p{N}\p{M}_.\\]*/uy;
     for (let i = 0; i < formula.length; i++) {
         const character = formula[i];
         if (character === '"') {
@@ -1643,10 +1681,19 @@ function localReferences(formula) {
         }
         else if (character === "|")
             throw new NotSupportedError("DDE formulas");
+        else {
+            identifier.lastIndex = i;
+            const token = identifier.exec(formula);
+            if (token) {
+                if (["SUBTOTAL", "AGGREGATE", "_XLFN.AGGREGATE"].includes(token[0].toUpperCase()) && /^\s*\(/.test(formula.slice(identifier.lastIndex)))
+                    subtotal = true;
+                i = identifier.lastIndex - 1;
+            }
+        }
     }
+    return subtotal;
 }
-/** @internal Excel invariant expression text, stored without its optional leading equals sign. */
-function formulaText(value) {
+function captureFormula(value) {
     if (typeof value !== "string")
         throw new TypeError("Formula text must be a string.");
     const text = value.trim().replace(/^=/, "");
@@ -1654,10 +1701,9 @@ function formulaText(value) {
         throw new RangeError("Formulas require 1 through 8,192 characters.");
     // Text stripping could change a calculation, so formulas always reject invalid XML characters.
     cleanXml(text, "reject");
-    localReferences(text);
-    return text;
+    return { text, subtotal: inspectReferences(text) };
 }
-/** An authored Excel formula and its initial numeric or blank result. The writer stores both without evaluating the expression. */
+/** An authored XLSX storage expression and its initial numeric or blank result. Future functions retain their required _xlfn prefixes; the writer does not evaluate or normalize function names. */
 class FormulaCell {
     cachedValue;
     style;
@@ -1668,33 +1714,59 @@ class FormulaCell {
     constructor(formula, cachedValue, style) {
         this.cachedValue = cachedValue;
         this.style = style;
-        this.formula = formulaText(formula);
+        const captured = captureFormula(formula);
+        this.formula = captured.text;
         if (cachedValue !== null && (typeof cachedValue !== "number" || !Number.isFinite(cachedValue)))
             throw new TypeError("Formula caches must be finite numbers or null for a blank result.");
         if (style !== undefined && (!Number.isSafeInteger(style) || style < 0))
             throw new RangeError("Formula style indexes must be nonnegative safe integers.");
         formulaCells.add(this);
+        if (captured.subtotal)
+            nestedAggregateCells.add(this);
         Object.freeze(this);
     }
 }
+/** @internal Excel excludes cells containing SUBTOTAL or AGGREGATE expressions from a generated SUBTOTAL. */
+function isSubtotalFormula(cell) { return nestedAggregateCells.has(cell); }
 /** @internal The worksheet owns the cell coordinate, style and cumulative formula budget. */
 function formulaXml(cell) {
     if (!(cell instanceof FormulaCell))
         throw new TypeError("Formula cells must be created with FormulaCell.");
     return "<f>" + escapeXml(cell.formula, "reject") + "</f><v>" + (cell.cachedValue ?? "") + "</v>";
 }
-const _exports = Object.freeze({ formulaText: formulaText, FormulaCell: FormulaCell, formulaXml: formulaXml });
+const _exports = Object.freeze({ FormulaCell: FormulaCell, isSubtotalFormula: isSubtotalFormula, formulaXml: formulaXml });
 return _exports;
 })();
 
-const _m18 = (() => {
-const { cleanXml, escapeXml } = _m10;
+const _m23 = (() => {
+const { ExportCell, assertExportValue } = _m20;
 
-const { ExportCell, assertExportValue, assertScalar } = _m19;
+const { isDate } = _m12;
 
-const { isDate } = _m11;
+/** Copy portable values when an operation retains metadata or a projected row beyond its producer's turn. */
+function copyExportValue(value) {
+    assertExportValue(value);
+    if (isDate(value))
+        return new Date(Date.prototype.getTime.call(value));
+    if (value instanceof ExportCell) {
+        const { value: scalar, text, presentation, link } = value;
+        return new ExportCell(isDate(scalar) ? new Date(Date.prototype.getTime.call(scalar)) : scalar, { ...(text === undefined ? {} : { text }), ...(presentation === undefined ? {} : { presentation }),
+            ...(link === undefined ? {} : { link }) });
+    }
+    return value;
+}
+const _exports = Object.freeze({ copyExportValue: copyExportValue });
+return _exports;
+})();
 
-const { FormulaCell } = _m21;
+const _m19 = (() => {
+const { cleanXml, escapeXml } = _m11;
+
+const { assertExportValue, assertScalar } = _m20;
+
+const { FormulaCell } = _m22;
+
+const { copyExportValue } = _m23;
 
 /** A typed value plus a workbook-local style index. */
 class Cell {
@@ -1716,13 +1788,11 @@ function assertXlsxValue(value) {
 }
 /** @internal Buffered samples and footer definitions capture mutable Date values. */
 function copyValue(value) {
-    if (isDate(value))
-        return new Date(value.getTime());
-    if (value instanceof Cell && isDate(value.value))
-        return new Cell(new Date(value.value.getTime()), value.style);
-    if (value instanceof ExportCell && isDate(value.value))
-        return new ExportCell(new Date(value.value.getTime()), { ...(value.text === undefined ? {} : { text: value.text }), ...(value.presentation ? { presentation: value.presentation } : {}), ...(value.link ? { link: value.link } : {}) });
-    return value;
+    if (value instanceof FormulaCell)
+        return value;
+    if (value instanceof Cell)
+        return Object.freeze(new Cell(copyExportValue(value.value), value.style));
+    return copyExportValue(value);
 }
 function cellText(value, policy = "strip") {
     const text = cleanXml(value, policy);
@@ -1784,12 +1854,14 @@ const _exports = Object.freeze({ Cell: Cell, assertXlsxValue: assertXlsxValue, c
 return _exports;
 })();
 
-const _m23 = (() => {
-const { assertExportValue } = _m19;
+const _m24 = (() => {
+const { assertExportValue } = _m20;
 
 const { checkAbort } = _m2;
 
-const { isDate } = _m11;
+const { isDate } = _m12;
+
+const { captureFields } = _m7;
 
 function createRowProjector(columns, worksheet, signal, validate = assertExportValue) {
     const getters = columns.some(column => column.value);
@@ -1827,33 +1899,111 @@ function createRowProjector(columns, worksheet, signal, validate = assertExportV
         });
     };
 }
+/** @internal Shared metadata fields for full columns and adapter-owned partial overrides. */
+const columnOptionFields = ["header", "key", "value", "width", "type", "format", "wrapText", "alignment", "groups", "style", "valueFormatter"];
 function copyColumns(columns, workbookStyles = false) {
     if (!Array.isArray(columns))
         throw new TypeError("Declare the columns in export order.");
     return columns.map(c => {
-        if (!workbookStyles && c?.style !== undefined)
-            throw new TypeError("Workbook-local column styles require the advanced Workbook API; use portable ExportCell presentation.");
-        if (!c || typeof c.header !== "string" || (c.key !== undefined && typeof c.key !== "string"))
+        if (!c || typeof c !== "object" && typeof c !== "function")
             throw new TypeError("Each column needs a string header and an optional string key.");
-        if (c.value !== undefined && typeof c.value !== "function")
+        // Own extension metadata remains available to its format owner. Capture the
+        // supported structural fields even when a class exposes prototype getters.
+        const captured = captureFields(c, columnOptionFields);
+        if (!workbookStyles && captured.style !== undefined)
+            throw new TypeError("Workbook-local column styles require the advanced Workbook API; use portable ExportCell presentation.");
+        if (typeof captured.header !== "string" || (captured.key !== undefined && typeof captured.key !== "string"))
+            throw new TypeError("Each column needs a string header and an optional string key.");
+        if (captured.value !== undefined && typeof captured.value !== "function")
             throw new TypeError("Column value getters must be functions.");
-        if (c.groups !== undefined && (!Array.isArray(c.groups) || c.groups.some((group) => typeof group !== "string")))
-            throw new TypeError("Column groups must be an array of strings.");
-        return { ...c, ...(c.groups ? { groups: Object.freeze([...c.groups]) } : {}) };
+        if (captured.groups !== undefined) {
+            if (!Array.isArray(captured.groups))
+                throw new TypeError("Column groups must be an array of strings.");
+            const groups = Array.from(captured.groups);
+            if (groups.some(group => typeof group !== "string"))
+                throw new TypeError("Column groups must be an array of strings.");
+            return { ...captured, groups: Object.freeze(groups) };
+        }
+        return captured;
     });
 }
-const _exports = Object.freeze({ createRowProjector: createRowProjector, copyColumns: copyColumns });
+const _exports = Object.freeze({ createRowProjector: createRowProjector, columnOptionFields: columnOptionFields, copyColumns: copyColumns });
 return _exports;
 })();
 
 const _m25 = (() => {
+const { assertExportValue } = _m20;
+
+const { copyExportValue } = _m23;
+
+/** Capture a bounded public matrix before validation or asynchronous report production can revisit its fields. */
+function captureTableSpans(rows, columns) {
+    if (!Array.isArray(rows) || !rows.length || rows.length > 16)
+        throw new RangeError("Spanned headings/footers need from 1 through 16 rows.");
+    const captured = rows.map(row => {
+        if (!Array.isArray(row) || row.length !== columns)
+            throw new TypeError("Spanned rows must have the declared column count.");
+        return Object.freeze(row.map(cell => {
+            if (cell === null)
+                return null;
+            if (!cell || typeof cell !== "object")
+                throw new TypeError("Uncovered heading/footer cells need an anchor value.");
+            const { value, columnSpan, rowSpan } = cell;
+            return Object.freeze({ value: copyExportValue(value), ...(columnSpan === undefined ? {} : { columnSpan }),
+                ...(rowSpan === undefined ? {} : { rowSpan }) });
+        }));
+    });
+    tableSpans(captured, columns);
+    return Object.freeze(captured);
+}
+/** Validate one small, rectangular heading/footer matrix before any drawing. */
+function tableSpans(rows, columns) {
+    if (!Array.isArray(rows) || !rows.length || rows.length > 16)
+        throw new RangeError("Spanned headings/footers need from 1 through 16 rows.");
+    const covered = Array.from({ length: rows.length }, () => new Uint8Array(columns));
+    return rows.map((row, level) => {
+        if (!Array.isArray(row) || row.length !== columns)
+            throw new TypeError("Spanned rows must have the declared column count.");
+        const anchors = [];
+        for (let first = 0; first < columns; first++) {
+            const cell = row[first];
+            if (covered[level][first]) {
+                if (cell !== null)
+                    throw new TypeError("Covered heading/footer cells must be null.");
+                continue;
+            }
+            if (!cell || typeof cell !== "object")
+                throw new TypeError("Uncovered heading/footer cells need an anchor value.");
+            const span = cell.columnSpan ?? 1, rowSpan = cell.rowSpan ?? 1;
+            if (!Number.isInteger(span) || !Number.isInteger(rowSpan) || span < 1 || rowSpan < 1 || first + span > columns || level + rowSpan > rows.length)
+                throw new RangeError("Heading/footer spans must stay inside the declared matrix.");
+            const value = cell.value;
+            assertExportValue(value);
+            for (let r = level; r < level + rowSpan; r++)
+                for (let c = first; c < first + span; c++) {
+                    if (covered[r][c])
+                        throw new TypeError("Heading/footer spans overlap.");
+                    if ((r !== level || c !== first) && rows[r]?.[c] !== null)
+                        throw new TypeError("Covered heading/footer cells must be null.");
+                    covered[r][c] = 1;
+                }
+            anchors.push(Object.freeze({ first, span, rowSpan, value }));
+        }
+        return Object.freeze(anchors);
+    });
+}
+const _exports = Object.freeze({ captureTableSpans: captureTableSpans, tableSpans: tableSpans });
+return _exports;
+})();
+
+const _m28 = (() => {
 const { ChunkedTextSink } = _m5;
 
-const { escapeXml, xmlDeclaration } = _m10;
+const { escapeXml, xmlDeclaration } = _m11;
 
-const { officeRelationshipsNamespace } = _m7;
+const { officeRelationshipsNamespace } = _m8;
 
-const { columnName } = _m18;
+const { columnName } = _m19;
 
 const chartNamespace = "http://schemas.openxmlformats.org/drawingml/2006/chart";
 const chartContentType = "application/vnd.openxmlformats-officedocument.drawingml.chart+xml";
@@ -1903,7 +2053,8 @@ function axesXml(chart, policy) {
 function* chartXml(chart, policy) {
     const pie = chart.type === "pie", line = chart.type === "line", tag = pie ? "pieChart" : line ? "lineChart" : "barChart";
     const source = "'" + chart.dataSheetName.replace(/'/g, "''") + "'!", end = chart.data.categories.length + 1;
-    yield xmlDeclaration + '<c:chartSpace xmlns:c="' + chartNamespace + '" xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" xmlns:r="' + officeRelationshipsNamespace + '"><c:date1904 val="0"/><c:lang val="en-US"/><c:chart>';
+    yield xmlDeclaration + '<c:chartSpace xmlns:c="' + chartNamespace + '" xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" xmlns:r="' + officeRelationshipsNamespace + '"><c:date1904 val="0"/>' +
+        (chart.language === undefined ? "" : '<c:lang val="' + escapeXml(chart.language, policy) + '"/>') + '<c:chart>';
     if (chart.title)
         yield titleXml(chart.title, policy);
     yield '<c:autoTitleDeleted val="' + (chart.title ? 0 : 1) + '"/><c:plotArea><c:layout/><c:' + tag + '>';
@@ -1957,17 +2108,20 @@ const _exports = Object.freeze({ chartNamespace: chartNamespace, chartContentTyp
 return _exports;
 })();
 
-const _m24 = (() => {
-const { cleanXml, escapeXml, escapeOoxmlAttribute, xmlDeclaration } = _m10;
+const _m27 = (() => {
+const { cleanXml, escapeXml, escapeOoxmlAttribute, xmlDeclaration } = _m11;
 
-const { copyExportLink } = _m20;
+const { copyExportLink } = _m21;
 
-const { officeRelationshipsNamespace } = _m7;
+const { officeRelationshipsNamespace } = _m8;
 
-const { chartAnchorXml } = _m25;
+const { chartAnchorXml } = _m28;
+
+const { captureFields } = _m7;
 
 /** @internal Native charts and images use the same drawing coordinate policy. */
 function copyDrawingAnchor(anchor, policy) {
+    anchor = captureFields(anchor, ["row", "column", "width", "height", "description"]);
     if (!Number.isInteger(anchor.row) || anchor.row < 1 || anchor.row > 1048576 || !Number.isInteger(anchor.column) || anchor.column < 1 || anchor.column > 16384)
         throw new RangeError("Drawing anchors must be one-based worksheet rows and columns.");
     for (const size of [anchor.width, anchor.height])
@@ -1991,12 +2145,16 @@ function cellPosition(reference) {
     return { row, column };
 }
 function copyHyperlink(link, policy) {
+    link = captureFields(link, ["cell", "target", "tooltip"]);
     cellPosition(link.cell);
     const copied = copyExportLink(link);
     return Object.freeze({ cell: link.cell, target: copied.target,
         ...(copied.tooltip === undefined ? {} : { tooltip: cleanXml(copied.tooltip, policy) }) });
 }
-function copyImage(image, policy) {
+function copyImage(image, policy, checkBytes) {
+    image = captureFields(image, ["data", "row", "column", "width", "height", "description"]);
+    if (image.data instanceof Uint8Array)
+        checkBytes?.(image.data.length);
     if (!(image.data instanceof Uint8Array) || image.data.length < 33 ||
         ![137, 80, 78, 71, 13, 10, 26, 10, 0, 0, 0, 13, 73, 72, 68, 82].every((byte, i) => image.data[i] === byte))
         throw new TypeError("Images require PNG bytes with a valid signature and IHDR header.");
@@ -2027,10 +2185,10 @@ const _exports = Object.freeze({ copyDrawingAnchor: copyDrawingAnchor, cellPosit
 return _exports;
 })();
 
-const _m27 = (() => {
+const _m30 = (() => {
 const { OfficeIMOError } = _m3;
 
-const { cellPosition } = _m24;
+const { cellPosition } = _m27;
 
 function indexRows(regions) {
     if (!regions.length)
@@ -2131,7 +2289,7 @@ const _exports = Object.freeze({ MergeRegions: MergeRegions });
 return _exports;
 })();
 
-const _m28 = (() => {
+const _m31 = (() => {
 class NumericAggregate {
     operation;
     count = 0;
@@ -2178,54 +2336,12 @@ const _exports = Object.freeze({ NumericAggregate: NumericAggregate, createTotal
 return _exports;
 })();
 
-const _m30 = (() => {
-const { assertExportValue } = _m19;
+const _m32 = (() => {
+const { ExportCell } = _m20;
 
-/** Validate one small, rectangular heading/footer matrix before any drawing. */
-function tableSpans(rows, columns) {
-    if (!Array.isArray(rows) || !rows.length || rows.length > 16)
-        throw new RangeError("Spanned headings/footers need from 1 through 16 rows.");
-    const covered = Array.from({ length: rows.length }, () => new Uint8Array(columns));
-    return rows.map((row, level) => {
-        if (!Array.isArray(row) || row.length !== columns)
-            throw new TypeError("Spanned rows must have the declared column count.");
-        const anchors = [];
-        for (let first = 0; first < columns; first++) {
-            const cell = row[first];
-            if (covered[level][first]) {
-                if (cell !== null)
-                    throw new TypeError("Covered heading/footer cells must be null.");
-                continue;
-            }
-            if (!cell || typeof cell !== "object")
-                throw new TypeError("Uncovered heading/footer cells need an anchor value.");
-            const span = cell.columnSpan ?? 1, rowSpan = cell.rowSpan ?? 1;
-            if (!Number.isInteger(span) || !Number.isInteger(rowSpan) || span < 1 || rowSpan < 1 || first + span > columns || level + rowSpan > rows.length)
-                throw new RangeError("Heading/footer spans must stay inside the declared matrix.");
-            assertExportValue(cell.value);
-            for (let r = level; r < level + rowSpan; r++)
-                for (let c = first; c < first + span; c++) {
-                    if (covered[r][c])
-                        throw new TypeError("Heading/footer spans overlap.");
-                    if ((r !== level || c !== first) && rows[r]?.[c] !== null)
-                        throw new TypeError("Covered heading/footer cells must be null.");
-                    covered[r][c] = 1;
-                }
-            anchors.push(Object.freeze({ first, span, rowSpan, value: cell.value }));
-        }
-        return Object.freeze(anchors);
-    });
-}
-const _exports = Object.freeze({ tableSpans: tableSpans });
-return _exports;
-})();
+const { tableSpans } = _m25;
 
-const _m29 = (() => {
-const { ExportCell } = _m19;
-
-const { tableSpans } = _m30;
-
-const { copyValue, columnName } = _m18;
+const { copyValue, columnName } = _m19;
 
 /** Bounded heading/footer values and relative merges captured before row production. */
 class StructuredRows {
@@ -2256,24 +2372,24 @@ const _exports = Object.freeze({ StructuredRows: StructuredRows });
 return _exports;
 })();
 
-const _m26 = (() => {
-const { ExportCell } = _m19;
+const _m29 = (() => {
+const { ExportCell } = _m20;
 
-const { isDate } = _m11;
+const { isDate } = _m12;
 
-const { Cell, cellText, columnName } = _m18;
+const { Cell, cellText, columnName } = _m19;
 
-const { FormulaCell } = _m21;
+const { FormulaCell } = _m22;
 
-const { escapeOoxmlAttribute } = _m10;
+const { escapeOoxmlAttribute } = _m11;
 
-const { MergeRegions } = _m27;
+const { MergeRegions } = _m30;
 
 const { OfficeIMOError } = _m3;
 
-const { createTotals } = _m28;
+const { createTotals } = _m31;
 
-const { StructuredRows } = _m29;
+const { StructuredRows } = _m32;
 
 /** @internal A computed formula with a numeric cache; no public arbitrary-formula input. */
 class ComputedTotal {
@@ -2456,8 +2572,8 @@ const _exports = Object.freeze({ ComputedTotal: ComputedTotal, ReportLayout: Rep
 return _exports;
 })();
 
-const _m32 = (() => {
-const { columnName } = _m18;
+const _m34 = (() => {
+const { columnName } = _m19;
 
 /** @internal Data-column selectors use stable keys or one-based worksheet columns. */
 function resolveDataColumn(columns, value, context = "Data") {
@@ -2486,18 +2602,18 @@ const _exports = Object.freeze({ resolveDataColumn: resolveDataColumn, qualified
 return _exports;
 })();
 
-const _m31 = (() => {
-const { cleanXml, escapeXml, escapeOoxmlAttribute } = _m10;
+const _m33 = (() => {
+const { cleanXml, escapeXml, escapeOoxmlAttribute } = _m11;
 
-const { cellPosition } = _m24;
+const { cellPosition } = _m27;
 
-const { columnName } = _m18;
+const { columnName } = _m19;
 
-const { colorArgb } = _m16;
+const { colorArgb } = _m17;
 
-const { fields, optionalBoolean, differentialXml } = _m17;
+const { fields, optionalBoolean, differentialXml } = _m18;
 
-const { resolveDataColumn } = _m32;
+const { resolveDataColumn } = _m34;
 
 function target(range, columns) {
     if (typeof range === "string") {
@@ -2655,18 +2771,18 @@ const _exports = Object.freeze({ prepareConditionalFormats: prepareConditionalFo
 return _exports;
 })();
 
-const _m33 = (() => {
+const _m35 = (() => {
 const { OfficeIMOError } = _m3;
 
 const { checkAbort } = _m2;
 
-const { cleanXml, escapeOoxmlAttribute, escapeXml } = _m10;
+const { cleanXml, escapeOoxmlAttribute, escapeXml } = _m11;
 
-const { fields, optionalBoolean } = _m17;
+const { fields, optionalBoolean } = _m18;
 
-const { columnName } = _m18;
+const { columnName } = _m19;
 
-const { resolveDataColumn } = _m32;
+const { resolveDataColumn } = _m34;
 
 function message(value, maximum, name) {
     if (value === undefined)
@@ -2758,7 +2874,7 @@ const _exports = Object.freeze({ prepareDataValidations: prepareDataValidations,
 return _exports;
 })();
 
-const _m22 = (() => {
+const _m26 = (() => {
 const { checkAbort, consumeRows, inputRows, pause, taskYieldDue } = _m2;
 
 const { ChunkedTextSink, BlobByteSink } = _m5;
@@ -2767,35 +2883,35 @@ const { OfficeIMOError } = _m3;
 
 const { notifyProgress } = _m4;
 
-const { copyColumns, createRowProjector } = _m23;
+const { copyColumns, createRowProjector } = _m24;
 
-const { EntryWriter } = _m13;
+const { EntryWriter } = _m14;
 
-const { xmlDeclaration } = _m10;
+const { xmlDeclaration } = _m11;
 
-const { officeRelationshipsNamespace } = _m7;
+const { officeRelationshipsNamespace } = _m8;
 
-const { Cell, cellText, columnName, inlineText, excelDate, copyValue } = _m18;
+const { Cell, cellText, columnName, inlineText, excelDate, copyValue } = _m19;
 
-const { spreadsheetNamespace, colorArgb, validateStylePatch, copyStylePatch } = _m15;
+const { spreadsheetNamespace, colorArgb, validateStylePatch, copyStylePatch } = _m16;
 
-const { copyHyperlink, copyImage, hyperlinksXml, cellPosition } = _m24;
+const { copyHyperlink, copyImage, hyperlinksXml, cellPosition } = _m27;
 
-const { ExportCell, assertScalar } = _m19;
+const { ExportCell, assertScalar } = _m20;
 
-const { ReportLayout, ComputedTotal, printXml } = _m26;
+const { ReportLayout, ComputedTotal, printXml } = _m29;
 
-const { cleanXml } = _m10;
+const { cleanXml } = _m11;
 
-const { ConditionalFormats, prepareConditionalFormats } = _m31;
+const { ConditionalFormats, prepareConditionalFormats } = _m33;
 
-const { isDate } = _m11;
+const { isDate } = _m12;
 
-const { FormulaCell, formulaXml } = _m21;
+const { FormulaCell, formulaXml, isSubtotalFormula } = _m22;
 
-const { prepareDataValidations, dataValidationsXml } = _m33;
+const { prepareDataValidations, dataValidationsXml } = _m35;
 
-const { qualifiedCell, qualifiedColumnRange, resolveDataColumn } = _m32;
+const { qualifiedCell, qualifiedColumnRange, resolveDataColumn } = _m34;
 
 const maximumHyperlinks = 65530;
 function checkHyperlinkCount(count) {
@@ -2955,7 +3071,7 @@ class Worksheet {
         }
         return { conditional, validations };
     }
-    cell(value, i, row, header = false, rowStyle, context, rowStyles, footer = false, title = false) {
+    cell(value, i, row, header = false, rowStyle, context, rowStyles, footer = false, title = false, visible = true) {
         const col = this.declared[i];
         const total = value instanceof ComputedTotal ? value : undefined;
         if (total)
@@ -3057,7 +3173,7 @@ class Worksheet {
             this.appendHyperlink({ cell: col.letter + row, ...link });
         if (type === "date")
             value = excelDate(value, this.book.settings.dateMode);
-        if (!header && !footer)
+        if (!header && !footer && visible && (!formula || !isSubtotalFormula(formula)))
             this.layout.accept(i, value);
         if (!header && !footer && this.chartSources.length)
             for (const binding of this.chartSources)
@@ -3094,7 +3210,7 @@ class Worksheet {
         yield '<row r="' + number + '"' + (height === undefined ? "" : ' ht="' + height + '" customHeight="1"') +
             (outline?.level ? ' outlineLevel="' + outline.level + '"' : "") + (outline?.hidden ? ' hidden="1"' : "") + (outline?.collapsed ? ' collapsed="1"' : "") + '>';
         for (let i = 0; i < this.columns.length; i++)
-            yield this.cell(values[i], i, number, header, rowStyle, context, rowStyles, footer, title);
+            yield this.cell(values[i], i, number, header, rowStyle, context, rowStyles, footer, title, outline?.hidden !== true);
         yield '</row>';
     }
     outline(context) {
@@ -3337,9 +3453,7 @@ class Worksheet {
             throw new OfficeIMOError("INVALID_STATE", "Worksheet is closed.");
         if (this.failed)
             throw this.error;
-        if (image.data instanceof Uint8Array)
-            this.book.checkImage(image.data.length);
-        const copied = copyImage(image, this.book.settings.invalidCharacterPolicy);
+        const copied = copyImage(image, this.book.settings.invalidCharacterPolicy, bytes => this.book.checkImage(bytes));
         this.book.retainImage(copied.data.length);
         this.pictures.push(copied);
     }
@@ -3474,18 +3588,18 @@ const _exports = Object.freeze({ Worksheet: Worksheet });
 return _exports;
 })();
 
-const _m34 = (() => {
-const { escapeOoxmlAttribute, escapeXml, xmlDeclaration } = _m10;
+const _m36 = (() => {
+const { escapeOoxmlAttribute, escapeXml, xmlDeclaration } = _m11;
 
-const { cellText, columnName } = _m18;
+const { cellText, columnName } = _m19;
 
-const { spreadsheetNamespace } = _m15;
+const { spreadsheetNamespace } = _m16;
 
-const { ExportCell } = _m19;
+const { ExportCell } = _m20;
 
-const { Cell } = _m18;
+const { Cell } = _m19;
 
-const { totalFormula } = _m26;
+const { totalFormula } = _m29;
 
 function defineTable(id, options, columns, policy) {
     const name = options.name ?? "Table" + id;
@@ -3520,10 +3634,10 @@ const _exports = Object.freeze({ defineTable: defineTable, tableXml: tableXml })
 return _exports;
 })();
 
-const _m35 = (() => {
+const _m37 = (() => {
 const { OfficeIMOError } = _m3;
 
-const { cleanXml } = _m10;
+const { cleanXml } = _m11;
 
 /** @internal Overflow is deliberately bounded: ZIP worksheet entries cannot be interleaved. */
 class TextOverflow {
@@ -3587,12 +3701,36 @@ const _exports = Object.freeze({ TextOverflow: TextOverflow, clipText: clipText 
 return _exports;
 })();
 
-const _m37 = (() => {
+const _m38 = (() => {
+const { captureFields } = _m7;
+
+/** @internal The workbook owner captures these settings before validation or adapter merging. */
+const workbookOptionFields = ["signal", "onProgress", "limits", "sink", "dateMode", "compression", "invalidCharacterPolicy", "appProperties", "cellValueWriters", "oversizedText", "creator", "title", "subject", "description", "created", "modified"];
+/** @internal Worksheet settings also used by the portable sheet owner. */
+const sheetOptionFields = ["columns", "includeHeader", "headerRows", "freezeHeader", "autoFilter", "boldHeader", "headerFill", "headerStyle", "alternatingRowStyle", "rowStyle", "cellStyle", "rowOutline", "maxOutlineLevel", "rowHeight", "headerHeight", "defaultColumnWidth", "freezeColumns", "table", "autoSize", "footer", "print", "title", "mergedCells", "hyperlinks", "conditionalFormats", "dataValidation"];
+/** @internal Includes inherited format-specific ceilings before a wrapper combines stream settings. */
+const workbookLimitFields = ["maxRows", "maxCells", "maxTextCharacters", "maxOutputBytes", "maxStyles", "maxSheets", "maxOverflowCharacters", "maxHyperlinks", "maxImageBytes", "maxBufferedCells", "maxBufferedCharacters", "maxMergedRanges", "maxConditionalFormats", "maxDifferentialStyles", "maxCharts", "maxChartPoints", "maxChartTextCharacters", "maxFormulaCharacters", "maxDataValidations", "maxValidationTextCharacters"];
+/** @internal Capture the workbook's known ceilings without dropping supported prototype fields. */
+function captureWorkbookLimits(limits) {
+    return captureFields(limits, workbookLimitFields);
+}
+/** @internal One immutable-input capture for direct workbooks and thin portable writers. */
+function captureWorkbookOptions(options) {
+    const captured = captureFields(options, workbookOptionFields);
+    return { ...captured, ...(captured.limits === undefined ? {} : { limits: captureWorkbookLimits(captured.limits) }) };
+}
+const _exports = Object.freeze({ workbookOptionFields: workbookOptionFields, sheetOptionFields: sheetOptionFields, workbookLimitFields: workbookLimitFields, captureWorkbookLimits: captureWorkbookLimits, captureWorkbookOptions: captureWorkbookOptions });
+return _exports;
+})();
+
+const _m40 = (() => {
 const { checkAbort } = _m2;
 
 const { NotSupportedError, OfficeIMOError } = _m3;
 
-const { cleanXml } = _m10;
+const { cleanXml } = _m11;
+
+const { captureFields } = _m7;
 
 function record(value, allowed, context) {
     if (!value || typeof value !== "object" || Array.isArray(value))
@@ -3600,7 +3738,7 @@ function record(value, allowed, context) {
     for (const key of Object.keys(value))
         if (!allowed.includes(key))
             throw new NotSupportedError(context + "." + key);
-    return { ...value };
+    return captureFields(value, allowed);
 }
 function column(value) {
     if (typeof value === "string" ? !value.length : typeof value !== "number" || !Number.isInteger(value) || value < 1 || value > 16384)
@@ -3716,16 +3854,18 @@ const _exports = Object.freeze({ captureChartRange: captureChartRange, prepareCh
 return _exports;
 })();
 
-const _m36 = (() => {
+const _m39 = (() => {
 const { checkAbort } = _m2;
 
 const { NotSupportedError, OfficeIMOError } = _m3;
 
-const { cleanXml } = _m10;
+const { cleanXml } = _m11;
 
-const { copyDrawingAnchor } = _m24;
+const { copyDrawingAnchor } = _m27;
 
-const { captureChartRange, prepareChartBinding } = _m37;
+const { captureFields } = _m7;
+
+const { captureChartRange, prepareChartBinding } = _m40;
 
 function fields(value, allowed, context) {
     if (!value || typeof value !== "object" || Array.isArray(value))
@@ -3736,12 +3876,12 @@ function fields(value, allowed, context) {
 }
 function snapshot(value, allowed, context) {
     fields(value, allowed, context);
-    return { ...value };
+    return captureFields(value, allowed);
 }
 /** @internal Preflight bounds before copying any chart data. Failed registration reserves nothing. */
 function prepareChart(input, policy, availablePoints, availableText, signal, resolveBinding) {
     checkAbort(signal);
-    input = snapshot(input, ["type", "data", "row", "column", "width", "height", "description", "title", "legend", "dataLabels", "categoryAxis", "valueAxis"], "chart");
+    input = snapshot(input, ["type", "data", "row", "column", "width", "height", "description", "title", "language", "legend", "dataLabels", "categoryAxis", "valueAxis"], "chart");
     if (!["columnClustered", "barClustered", "line", "pie"].includes(input.type))
         throw new NotSupportedError("chart type " + input.type);
     const type = input.type;
@@ -3750,15 +3890,20 @@ function prepareChart(input, policy, availablePoints, availableText, signal, res
     if (!bound)
         fields(requested, ["categories", "series"], "chart.data");
     const categories = bound ? undefined : requested.categories, series = bound?.series ?? requested.series;
-    if (!bound && (!Array.isArray(categories) || !categories.length))
+    if (!bound && !Array.isArray(categories))
         throw new TypeError("Chart categories must be a nonempty array of strings.");
-    if (!Array.isArray(series) || !series.length || series.length > 255)
+    if (!Array.isArray(series))
         throw new RangeError("A chart needs from 1 through 255 series.");
-    if (!bound && categories.length > 1048575)
+    const categoryCount = bound?.rowCount ?? categories.length, seriesCount = series.length;
+    if (!categoryCount)
+        throw new TypeError("Chart categories must be a nonempty array of strings.");
+    if (!seriesCount || seriesCount > 255)
+        throw new RangeError("A chart needs from 1 through 255 series.");
+    if (!bound && categoryCount > 1048575)
         throw new RangeError("Chart data must fit Excel's rows including its header.");
-    if (type === "pie" && series.length !== 1)
+    if (type === "pie" && seriesCount !== 1)
         throw new TypeError("A pie chart supports exactly one series.");
-    const points = (bound?.rowCount ?? categories.length) * series.length;
+    const points = categoryCount * seriesCount;
     if (points > availablePoints)
         throw new OfficeIMOError("RESOURCE_LIMIT", "maxChartPoints exceeded.");
     let textCharacters = 0;
@@ -3774,6 +3919,18 @@ function prepareChart(input, policy, availablePoints, availableText, signal, res
     };
     const optionalText = (value, context) => value === undefined ? undefined : text(value, context);
     const title = optionalText(input.title, "Chart title"), description = optionalText(input.description, "Chart description");
+    const requestedLanguage = optionalText(input.language, "Chart language");
+    let language;
+    if (requestedLanguage !== undefined) {
+        try {
+            language = Intl.getCanonicalLocales(requestedLanguage)[0];
+            if (!language)
+                throw new RangeError();
+        }
+        catch {
+            throw new TypeError("Chart language must be a language tag such as pl or pl-PL.");
+        }
+    }
     const anchor = copyDrawingAnchor({ row: input.row, column: input.column, width: input.width, height: input.height,
         ...(description === undefined ? {} : { description }) }, policy);
     if (input.legend !== undefined && input.legend !== false && !["right", "bottom", "left", "top"].includes(input.legend))
@@ -3814,6 +3971,7 @@ function prepareChart(input, policy, availablePoints, availableText, signal, res
         valueAxis = Object.freeze({ ...axis, ...(axisTitle === undefined ? {} : { title: axisTitle }), ...(numberFormat === undefined ? {} : { numberFormat }) });
     }
     const common = { ...anchor, type,
+        ...(language === undefined ? {} : { language }),
         ...(title === undefined ? {} : { title }), ...(description === undefined ? {} : { description }),
         ...(input.legend === undefined ? {} : { legend: input.legend }), ...(dataLabels === undefined ? {} : { dataLabels }),
         ...(categoryAxis === undefined ? {} : { categoryAxis }), ...(valueAxis === undefined ? {} : { valueAxis }) };
@@ -3827,21 +3985,22 @@ function prepareChart(input, policy, availablePoints, availableText, signal, res
     // Length budgets precede allocation; each source property/array element is read once.
     const categoryValues = categories;
     const copiedCategories = [], copiedSeries = [];
-    for (let i = 0; i < categoryValues.length; i++) {
+    for (let i = 0; i < categoryCount; i++) {
         if ((i & 255) === 0)
             checkAbort(signal);
         copiedCategories.push(text(categoryValues[i], "Chart category"));
     }
-    for (const item of series) {
+    for (let seriesIndex = 0; seriesIndex < seriesCount; seriesIndex++) {
+        const item = series[seriesIndex];
         const captured = snapshot(item, ["name", "values", "color"], "chart.series");
         const name = text(captured.name, "Chart series name"), values = captured.values, color = captured.color;
-        if (!Array.isArray(values) || values.length !== categoryValues.length)
+        if (!Array.isArray(values) || values.length !== categoryCount)
             throw new TypeError("Chart series values must match the category count.");
         if (color !== undefined && (typeof color !== "string" || !/^#?[0-9a-fA-F]{6}$/.test(color)))
             throw new TypeError("Chart colors must be opaque six-digit RGB hex values.");
         let positive = false;
         const copiedValues = [];
-        for (let i = 0; i < values.length; i++) {
+        for (let i = 0; i < categoryCount; i++) {
             if ((i & 255) === 0)
                 checkAbort(signal);
             const value = values[i];
@@ -3876,32 +4035,59 @@ const { ChunkedTextSink } = _m5;
 
 const { ExportBudget } = _m6;
 
-const { OpcPackage, officeRelationshipsNamespace, relationshipTypes, corePropertiesXml } = _m7;
+const { OpcPackage, officeRelationshipsNamespace, relationshipTypes, corePropertiesXml } = _m8;
 
-const { escapeOoxmlAttribute, cleanXml, xmlDeclaration } = _m10;
+const { escapeOoxmlAttribute, cleanXml, xmlDeclaration } = _m11;
 
-const { StyleRegistry, spreadsheetNamespace } = _m15;
+const { StyleRegistry, spreadsheetNamespace } = _m16;
 
-const { sheetName, assertXlsxValue } = _m18;
+const { sheetName, assertXlsxValue, copyValue } = _m19;
 
-const { assertExportValue } = _m19;
+const { copyColumns } = _m24;
 
-const { Worksheet } = _m22;
+const { captureFields } = _m7;
 
-const { defineTable, tableXml } = _m34;
+const { captureTableSpans } = _m25;
 
-const { drawingXml, drawingContentType } = _m24;
+const { assertExportValue } = _m20;
 
-const { TextOverflow } = _m35;
+const { Worksheet } = _m26;
 
-const { prepareChart } = _m36;
+const { defineTable, tableXml } = _m36;
 
-const { qualifiedColumnRange, resolveDataColumn } = _m32;
+const { copyHyperlink, drawingXml, drawingContentType } = _m27;
 
-const { chartContentType, writeChartXml } = _m25;
+const { TextOverflow } = _m37;
+
+const { captureWorkbookOptions, sheetOptionFields } = _m38;
+
+const { prepareChart } = _m39;
+
+const { qualifiedColumnRange, resolveDataColumn } = _m34;
+
+const { chartContentType, writeChartXml } = _m28;
 
 const xlsxMime = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
 const formatType = (name) => "application/vnd.openxmlformats-officedocument.spreadsheetml." + name + "+xml";
+/** Capture registered worksheet metadata before preflight and construction inspect it. */
+function captureSheet(options, policy) {
+    const captured = captureFields(options, sheetOptionFields);
+    const columns = copyColumns(captured.columns ?? [], true);
+    const footer = captured.footer && captureFields(captured.footer, ["rows", "values", "totals", "style"]);
+    const print = captured.print && captureFields(captured.print, ["paper", "orientation", "fitToWidth", "fitToHeight", "repeatHeaders", "margins", "header", "footer"]);
+    return { ...captured, columns,
+        ...(captured.headerRows === undefined ? {} : { headerRows: captureTableSpans(captured.headerRows, columns.length) }),
+        ...(footer ? { footer: { ...footer,
+                ...(footer.rows === undefined ? {} : { rows: captureTableSpans(footer.rows, columns.length) }),
+                ...(footer.values === undefined ? {} : { values: footer.values.map(copyValue) }) } } : {}),
+        ...(captured.table ? { table: captureFields(captured.table, ["name", "style", "bandedRows", "bandedColumns", "firstColumn", "lastColumn"]) } : {}),
+        ...(captured.autoSize ? { autoSize: captureFields(captured.autoSize, ["sampleRows", "minWidth", "maxWidth"]) } : {}),
+        ...(captured.title ? { title: captureFields(captured.title, ["text", "style", "height"]) } : {}),
+        ...(print ? { print: { ...print, ...(print.margins === undefined ? {} : {
+                    margins: captureFields(print.margins, ["left", "right", "top", "bottom", "header", "footer"])
+                }) } } : {}),
+        ...(captured.hyperlinks ? { hyperlinks: captured.hyperlinks.map(link => copyHyperlink(link, policy)) } : {}) };
+}
 /** Streaming writer model; append rows through Worksheets, then finalize once. */
 class Workbook {
     portableValues = false;
@@ -3958,6 +4144,7 @@ class Workbook {
     /** @internal Immutable settings used by the worksheet owner. */
     settings;
     constructor(options = {}) {
+        options = captureWorkbookOptions(options);
         const dateMode = options.dateMode ?? "local", compression = options.compression ?? "auto", policy = options.invalidCharacterPolicy ?? "strip";
         if (dateMode !== "local" && dateMode !== "utc")
             throw new RangeError("dateMode must be local or utc.");
@@ -4146,7 +4333,7 @@ class Workbook {
         return this.registration(() => {
             this.checkSheetLimit(this.sheets.length + this.chartSourceSheets + 1 + (this.overflow ? 1 : 0));
             // Validation/serialization use erased column metadata; projection later receives T rows.
-            const metadata = { ...options };
+            const metadata = captureSheet(options, this.settings.invalidCharacterPolicy);
             const prepared = Worksheet.validate(this, metadata);
             let tableOptions = metadata.table;
             if (tableOptions && tableOptions.name === undefined) {
@@ -4315,8 +4502,12 @@ const _exports = Object.freeze({ Workbook: Workbook });
 return _exports;
 })();
 
-const _m39 = (() => {
-const { ExportCell, assertScalar } = _m19;
+const _m42 = (() => {
+const { ExportCell, assertScalar } = _m20;
+
+const { captureWorkbookOptions, sheetOptionFields } = _m38;
+
+const { captureFields } = _m7;
 
 function style(patch) {
     for (const component of ["font", "fill", "border", "numberFormat"])
@@ -4331,6 +4522,7 @@ function value(result) {
 }
 /** @internal Qualify the portable boundary before source/destination activity. */
 function portableSheet(options = {}) {
+    options = captureFields(options, sheetOptionFields);
     if (options.headerStyle !== undefined)
         throw new TypeError("Workbook-local header styles require the advanced Workbook API; use boldHeader and headerFill.");
     style(options.alternatingRowStyle);
@@ -4346,6 +4538,7 @@ function portableSheet(options = {}) {
 }
 /** @internal Keep custom writers inside the same portable value contract. */
 function portableWorkbook(options = {}) {
+    options = captureWorkbookOptions(options);
     const writers = options.cellValueWriters;
     if (!writers)
         return options;
@@ -4361,18 +4554,23 @@ const _exports = Object.freeze({ portableSheet: portableSheet, portableWorkbook:
 return _exports;
 })();
 
-const _m38 = (() => {
+const _m41 = (() => {
 const { withDestination } = _m5;
 
-const { copyColumns } = _m23;
+const { copyColumns } = _m24;
 
 const { Workbook } = _m1;
 
-const { portableSheet, portableWorkbook } = _m39;
+const { portableSheet, portableWorkbook } = _m42;
+
+const { captureFields } = _m7;
+
+const { sheetOptionFields, workbookOptionFields } = _m38;
 
 function prepare(options) {
-    const columns = copyColumns(options?.columns);
-    return { ...portableWorkbook(options), columns, sheet: { ...portableSheet(options.sheet), ...(options.sheet?.name === undefined ? {} : { name: options.sheet.name }) } };
+    options = captureFields(options, [...workbookOptionFields, "columns", "sheet"]);
+    const columns = copyColumns(options.columns), sheet = options.sheet && captureFields(options.sheet, [...sheetOptionFields, "name"]);
+    return { ...portableWorkbook(options), columns, sheet: { ...portableSheet(sheet), ...(sheet?.name === undefined ? {} : { name: sheet.name }) } };
 }
 function worksheet(book, options) {
     const { name = "Data", ...sheet } = options.sheet ?? {};
@@ -4414,10 +4612,10 @@ const _exports = Object.freeze({ writeXlsx: writeXlsx, writeXlsxTo: writeXlsxTo 
 return _exports;
 })();
 
-const _m41 = (() => {
-const { ExportCell, assertExportValue } = _m19;
+const _m44 = (() => {
+const { ExportCell } = _m20;
 
-const { isDate } = _m11;
+const { isDate } = _m12;
 
 const { checkAbort, inputRows, pause, taskYieldDue } = _m2;
 
@@ -4425,9 +4623,11 @@ const { ExportBudget } = _m6;
 
 const { OfficeIMOError } = _m3;
 
-const { copyColumns, createRowProjector } = _m23;
+const { copyColumns, createRowProjector } = _m24;
 
-const { createTotals } = _m28;
+const { createTotals } = _m31;
+
+const { copyExportValue } = _m23;
 
 const sources = new WeakMap();
 /** @internal Writers accept the owned immutable event source rather than trusting caller-authored event protocols. */
@@ -4472,16 +4672,6 @@ function maximum(value, fallback, name) {
         throw new RangeError(name + " must be a nonnegative safe integer.");
     return result;
 }
-function copyValue(value) {
-    assertExportValue(value);
-    if (isDate(value))
-        return new Date(Date.prototype.getTime.call(value));
-    if (value instanceof ExportCell) {
-        const scalar = value.value, text = value.text, presentation = value.presentation, link = value.link;
-        return new ExportCell(isDate(scalar) ? new Date(Date.prototype.getTime.call(scalar)) : scalar, { ...(text === undefined ? {} : { text }), ...(presentation === undefined ? {} : { presentation }), ...(link === undefined ? {} : { link }) });
-    }
-    return value ?? null;
-}
 function scalar(value) { return value instanceof ExportCell ? value.value : value; }
 function identity(value) {
     if (value == null)
@@ -4513,11 +4703,9 @@ function createGroupedReport(rows, options) {
         throw new TypeError("Grouped source limits must be an object.");
     if (limits !== undefined && "maxOutputBytes" in limits)
         throw new TypeError("Set maxOutputBytes on the format writer, not the grouped source.");
-    const capturedLimits = limits === undefined ? undefined : { ...limits };
     if (!Array.isArray(selected) || !selected.length)
         throw new TypeError("A grouped report needs declared columns.");
-    const captured = selected.map(column => ({ ...column }));
-    const columns = copyColumns(captured);
+    const columns = copyColumns(selected);
     const keys = columns.map(column => column.key);
     if (keys.some(key => typeof key !== "string" || key.length === 0) || new Set(keys).size !== keys.length)
         throw new TypeError("Grouped report columns need unique, nonempty stable keys.");
@@ -4533,7 +4721,7 @@ function createGroupedReport(rows, options) {
             throw new TypeError("Grouped numeric totals require a column declared with type:number.");
     const maxGroups = maximum(requestedGroups, 1000, "maxGroups");
     const maxCharacters = maximum(requestedCharacters, 1000000, "maxGroupKeyCharacters");
-    const budget = new ExportBudget(capturedLimits);
+    const budget = new ExportBudget(limits);
     const portable = Object.freeze(columns.map(column => {
         const { value: _getter, ...metadata } = column;
         return Object.freeze(metadata);
@@ -4562,7 +4750,7 @@ function createGroupedReport(rows, options) {
             const snapshot = Array.isArray(input) ? Array.from(input) : input;
             const projected = project(snapshot, rowCount), values = [];
             for (let column = 0; column < columns.length; column++)
-                values.push(copyValue(projected[column]));
+                values.push(copyExportValue(projected[column]) ?? null);
             checkAbort(signal);
             const next = identity(scalar(values[groupColumn]));
             if (next.id !== currentId) {
@@ -4632,20 +4820,24 @@ const _exports = Object.freeze({ assertGroupedReportSource: assertGroupedReportS
 return _exports;
 })();
 
-const _m40 = (() => {
-const { assertGroupedReportSource, groupedReportOperation } = _m41;
+const _m43 = (() => {
+const { assertGroupedReportSource, groupedReportOperation } = _m44;
 
 const { withDestination } = _m5;
 
 const { Workbook } = _m1;
 
-const { FormulaCell } = _m21;
+const { FormulaCell } = _m22;
 
-const { columnName } = _m18;
+const { columnName } = _m19;
 
-const { copyStylePatch } = _m15;
+const { copyStylePatch } = _m16;
 
-const { portableSheet } = _m39;
+const { portableSheet } = _m42;
+
+const { captureFields } = _m7;
+
+const { sheetOptionFields, workbookOptionFields } = _m38;
 
 const unsupported = ["columns", "headerRows", "footer", "table", "mergedCells", "hyperlinks", "conditionalFormats", "dataValidation", "rowStyle", "cellStyle", "rowOutline", "maxOutlineLevel"];
 const subtotalOperations = { average: 1, count: 2, max: 4, min: 5, sum: 9 };
@@ -4653,10 +4845,11 @@ function prepare(report, configuration) {
     assertGroupedReportSource(report);
     if (!configuration || typeof configuration !== "object")
         throw new TypeError("Grouped XLSX options require host-authored labels.");
-    const options = { ...configuration }, sheet = { ...options.sheet };
+    const options = captureFields(configuration, [...workbookOptionFields, "labelColumn", "subtotalLabel", "grandTotalLabel", "includeGrandTotal", "collapseGroups", "sheet", "groupStyle", "subtotalStyle", "grandTotalStyle"]);
+    const sheet = captureFields(options.sheet ?? {}, [...sheetOptionFields, "name"]);
     if (!options.labelColumn || typeof options.labelColumn !== "object")
         throw new TypeError("Grouped XLSX needs a leading label column.");
-    const labelColumn = { ...options.labelColumn };
+    const labelColumn = captureFields(options.labelColumn, ["header", "width", "wrapText", "alignment"]);
     if (typeof labelColumn.header !== "string")
         throw new TypeError("The leading label column needs a string header.");
     for (const label of [options.subtotalLabel, options.grandTotalLabel])
@@ -4767,7 +4960,7 @@ const _exports = Object.freeze({ writeGroupedXlsx: writeGroupedXlsx, writeGroupe
 return _exports;
 })();
 
-const _m42 = (() => {
+const _m45 = (() => {
 
 
 
@@ -4811,13 +5004,13 @@ function saveBlob(blob, fileName) {
         setTimeout(() => URL.revokeObjectURL(url), 30000);
     }
 }
-const _exports = Object.freeze({ OfficeIMOError: _m3.OfficeIMOError, NotSupportedError: _m3.NotSupportedError, BlobByteSink: _m5.BlobByteSink, ChunkedTextSink: _m5.ChunkedTextSink, writeBytes: _m5.writeBytes, ExportCell: _m19.ExportCell, createGroupedReport: _m41.createGroupedReport, checkAbort: _m2.checkAbort, withAbort: _m2.withAbort, inputRows: _m2.inputRows, pause: _m2.pause, detectFeatures: detectFeatures, saveBlob: saveBlob });
+const _exports = Object.freeze({ OfficeIMOError: _m3.OfficeIMOError, NotSupportedError: _m3.NotSupportedError, BlobByteSink: _m5.BlobByteSink, ChunkedTextSink: _m5.ChunkedTextSink, writeBytes: _m5.writeBytes, ExportCell: _m20.ExportCell, createGroupedReport: _m44.createGroupedReport, checkAbort: _m2.checkAbort, withAbort: _m2.withAbort, inputRows: _m2.inputRows, pause: _m2.pause, detectFeatures: detectFeatures, saveBlob: saveBlob });
 return _exports;
 })();
 
 const _m0 = (() => {
 
-const _exports = Object.freeze({ Workbook: _m1.Workbook, writeXlsx: _m38.writeXlsx, writeXlsxTo: _m38.writeXlsxTo, writeGroupedXlsx: _m40.writeGroupedXlsx, writeGroupedXlsxTo: _m40.writeGroupedXlsxTo, createGroupedReport: _m41.createGroupedReport, Worksheet: _m22.Worksheet, Cell: _m18.Cell, FormulaCell: _m21.FormulaCell, StyleRegistry: _m15.StyleRegistry, NumberFormats: _m15.NumberFormats, saveBlob: _m42.saveBlob, ExportCell: _m19.ExportCell });
+const _exports = Object.freeze({ Workbook: _m1.Workbook, writeXlsx: _m41.writeXlsx, writeXlsxTo: _m41.writeXlsxTo, writeGroupedXlsx: _m43.writeGroupedXlsx, writeGroupedXlsxTo: _m43.writeGroupedXlsxTo, createGroupedReport: _m44.createGroupedReport, Worksheet: _m26.Worksheet, Cell: _m19.Cell, FormulaCell: _m22.FormulaCell, StyleRegistry: _m16.StyleRegistry, NumberFormats: _m16.NumberFormats, saveBlob: _m45.saveBlob, ExportCell: _m20.ExportCell });
 return _exports;
 })();
 const { Workbook, writeXlsx, writeXlsxTo, writeGroupedXlsx, writeGroupedXlsxTo, createGroupedReport, Worksheet, Cell, FormulaCell, StyleRegistry, NumberFormats, saveBlob, ExportCell } = _m0;

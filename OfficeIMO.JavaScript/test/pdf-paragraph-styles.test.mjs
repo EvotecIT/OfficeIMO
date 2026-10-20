@@ -38,6 +38,8 @@ test("named appearance leaves semantic heading roles explicit", async () => {
 test("named style definitions reject unsupported semantics and enforce their cap before source or destination work", async () => {
   for (const named of [{ style: "base" }, { headingLevel: 1 }, { presentation: { background: "FFFFFF" } }])
     await assert.rejects(writePdfDocument([], { paragraphStyles: { invalid: named } }), /paragraph styles|paragraph presentation/);
+  for (const alignment of ["fill", "justify", "distributed"])
+    await assert.rejects(writePdfDocument([], { paragraphStyles: { invalid: { presentation: { alignment } } } }), /alignment/);
   for (const style of ["missing", "toString"])
     await assert.rejects(writePdfDocument([{ kind: "paragraph", text: "Text", style }]), /Unknown PDF paragraph style/);
   let produced = 0, writes = 0;

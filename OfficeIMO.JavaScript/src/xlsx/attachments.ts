@@ -4,6 +4,7 @@ import { copyExportLink } from "../core/links.js";
 import { officeRelationshipsNamespace } from "../opc/index.js";
 import { chartAnchorXml } from "./chart-xml.js";
 import type { RegisteredChart } from "./charts.js";
+import { captureFields } from "../internal/capture.js";
 
 /** A link attached to an existing cell. Its value and presentation remain ordinary cell data. */
 export interface Hyperlink { readonly cell: string; readonly target: string; readonly tooltip?: string; }
@@ -20,6 +21,7 @@ export interface WorksheetImage extends WorksheetAnchor { readonly data: Uint8Ar
 
 /** @internal Native charts and images use the same drawing coordinate policy. */
 export function copyDrawingAnchor(anchor: WorksheetAnchor, policy: InvalidCharacterPolicy): WorksheetAnchor {
+  anchor = captureFields(anchor, ["row", "column", "width", "height", "description"]);
   if (!Number.isInteger(anchor.row) || anchor.row < 1 || anchor.row > 1048576 || !Number.isInteger(anchor.column) || anchor.column < 1 || anchor.column > 16384)
     throw new RangeError("Drawing anchors must be one-based worksheet rows and columns.");
   for (const size of [anchor.width, anchor.height]) if (!Number.isFinite(size) || size <= 0 || size > 100000) throw new RangeError("Drawing display dimensions must be positive and at most 100,000 pixels.");
@@ -38,13 +40,16 @@ export function cellPosition(reference: string): { row: number; column: number }
 }
 
 export function copyHyperlink(link: Hyperlink, policy: InvalidCharacterPolicy): Hyperlink {
+  link = captureFields(link, ["cell", "target", "tooltip"]);
   cellPosition(link.cell);
   const copied = copyExportLink(link);
   return Object.freeze({ cell: link.cell, target: copied.target,
     ...(copied.tooltip === undefined ? {} : { tooltip: cleanXml(copied.tooltip, policy) }) });
 }
 
-export function copyImage(image: WorksheetImage, policy: InvalidCharacterPolicy): WorksheetImage {
+export function copyImage(image: WorksheetImage, policy: InvalidCharacterPolicy, checkBytes?: (bytes: number) => void): WorksheetImage {
+  image = captureFields(image, ["data", "row", "column", "width", "height", "description"]);
+  if (image.data instanceof Uint8Array) checkBytes?.(image.data.length);
   if (!(image.data instanceof Uint8Array) || image.data.length < 33 ||
       ![137, 80, 78, 71, 13, 10, 26, 10, 0, 0, 0, 13, 73, 72, 68, 82].every((byte, i) => image.data[i] === byte))
     throw new TypeError("Images require PNG bytes with a valid signature and IHDR header.");

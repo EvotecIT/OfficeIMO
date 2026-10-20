@@ -26,7 +26,9 @@ export interface PdfTableBlock {
 /** Reusable paragraph appearance, spacing and keep rules. Semantic roles remain on their content blocks. */
 export interface PdfParagraphStyle {
   readonly fontSize?: number;
-  readonly presentation?: Pick<CellPresentation, "bold" | "italic" | "color" | "alignment">;
+  readonly presentation?: Omit<Pick<CellPresentation, "bold" | "italic" | "color" | "alignment">, "alignment"> & {
+    readonly alignment?: "left" | "center" | "right";
+  };
   /** Move this paragraph intact; reject when its complete layout exceeds a fresh page. */
   readonly keepTogether?: boolean;
   /** Keep this paragraph with the next paragraph line, table heading/data fragment or complete graphic. */

@@ -1,5 +1,5 @@
 import type { CellValue, Column, ExportLimits } from "./index.js";
-import { ExportCell, assertExportValue } from "./presentation.js";
+import { ExportCell } from "./presentation.js";
 import type { ExportValue } from "./presentation.js";
 import { isDate } from "./dates.js";
 import { checkAbort, inputRows, pause, taskYieldDue } from "./iteration.js";
@@ -9,6 +9,7 @@ import { copyColumns, createRowProjector } from "../internal/rows.js";
 import type { ProjectionColumn } from "../internal/columns.js";
 import { createTotals } from "../internal/totals.js";
 import type { NumericAggregate, TotalOperation } from "../internal/totals.js";
+import { copyExportValue } from "../internal/export-values.js";
 
 export type { TotalOperation } from "../internal/totals.js";
 
@@ -51,7 +52,10 @@ export type GroupedReportEvent =
   | ({ readonly kind: "groupEnd"; readonly rows: number; readonly totals: readonly (number | null)[] } & GroupIdentity)
   | ({ readonly kind: "complete" } & GroupedReportSummary);
 
+declare const groupedReportSource: unique symbol;
 export interface GroupedReportSource {
+  /** Factory-owned source. Call createGroupedReport rather than implementing its event protocol. */
+  readonly [groupedReportSource]: true;
   /** Captured portable metadata in export order. Values have already been projected into positional rows. */
   readonly columns: readonly Column<readonly ExportValue[]>[];
   readonly groupBy: string;
@@ -96,17 +100,6 @@ function maximum(value: number | undefined, fallback: number, name: string): num
   return result;
 }
 
-function copyValue(value: unknown): ExportValue {
-  assertExportValue(value);
-  if (isDate(value)) return new Date(Date.prototype.getTime.call(value));
-  if (value instanceof ExportCell) {
-    const scalar = value.value, text = value.text, presentation = value.presentation, link = value.link;
-    return new ExportCell(isDate(scalar) ? new Date(Date.prototype.getTime.call(scalar)) : scalar,
-      { ...(text === undefined ? {} : { text }), ...(presentation === undefined ? {} : { presentation }), ...(link === undefined ? {} : { link }) });
-  }
-  return value ?? null;
-}
-
 function scalar(value: ExportValue): CellValue { return value instanceof ExportCell ? value.value : value; }
 
 function identity(value: CellValue): { key: CellValue; id: string; text: string } {
@@ -138,10 +131,8 @@ export function createGroupedReport<T>(rows: Iterable<T> | AsyncIterable<T>, opt
     throw new TypeError("Grouped source limits must be an object.");
   if (limits !== undefined && "maxOutputBytes" in limits)
     throw new TypeError("Set maxOutputBytes on the format writer, not the grouped source.");
-  const capturedLimits = limits === undefined ? undefined : { ...limits };
   if (!Array.isArray(selected) || !selected.length) throw new TypeError("A grouped report needs declared columns.");
-  const captured = selected.map(column => ({ ...column })) as ProjectionColumn[];
-  const columns = copyColumns(captured);
+  const columns = copyColumns(selected as readonly ProjectionColumn[]);
   const keys = columns.map(column => column.key);
   if (keys.some(key => typeof key !== "string" || key.length === 0) || new Set(keys).size !== keys.length)
     throw new TypeError("Grouped report columns need unique, nonempty stable keys.");
@@ -155,7 +146,7 @@ export function createGroupedReport<T>(rows: Iterable<T> | AsyncIterable<T>, opt
       throw new TypeError("Grouped numeric totals require a column declared with type:number.");
   const maxGroups = maximum(requestedGroups, 1000, "maxGroups");
   const maxCharacters = maximum(requestedCharacters, 1000000, "maxGroupKeyCharacters");
-  const budget = new ExportBudget(capturedLimits);
+  const budget = new ExportBudget(limits);
   const portable = Object.freeze(columns.map(column => {
     const { value: _getter, ...metadata } = column;
     return Object.freeze(metadata);
@@ -181,7 +172,7 @@ export function createGroupedReport<T>(rows: Iterable<T> | AsyncIterable<T>, opt
       // Copy positional input once before the shared projector validates and inspects its values.
       const snapshot = Array.isArray(input) ? Array.from(input) : input;
       const projected = project(snapshot, rowCount), values: ExportValue[] = [];
-      for (let column = 0; column < columns.length; column++) values.push(copyValue(projected[column]));
+      for (let column = 0; column < columns.length; column++) values.push(copyExportValue(projected[column]) ?? null);
       checkAbort(signal);
       const next = identity(scalar(values[groupColumn]));
       if (next.id !== currentId) {
@@ -226,7 +217,7 @@ export function createGroupedReport<T>(rows: Iterable<T> | AsyncIterable<T>, opt
     checkAbort(signal);
     yield Object.freeze({ kind: "complete", rows: rowCount, groups, totals: result(grand) });
   }
-  const source = Object.freeze({ columns: portable, groupBy, totals, events });
+  const source = Object.freeze({ columns: portable, groupBy, totals, events }) as GroupedReportSource;
   sources.set(source, { signal: sourceSignal, events: eventsFor });
   return source;
 }

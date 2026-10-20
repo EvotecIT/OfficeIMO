@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { Workbook } from "../dist/xlsx/index.js";
+import { Workbook, Cell } from "../dist/xlsx/index.js";
 import { readZip } from "./zip-reader.mjs";
 
 const chart = () => ({ type: "line", data: { categories: ["A"], series: [{ name: "S", values: [1] }] }, row: 1, column: 1, width: 200, height: 100 });
@@ -37,6 +37,24 @@ test("worksheet option getters cannot reenter sheet or chart registration and fa
     assert.doesNotMatch(zip.get("xl/workbook.xml").content, /Nested|Outer \(2\)/);
     assert.ok(zip.has("xl/charts/chart1.xml")); assert.ok(!zip.has("xl/charts/chart2.xml"));
   }
+});
+
+test("workbook and worksheet registration capture supported option and column properties once", async () => {
+  let limitReads = 0, optionsReads = 0, headerReads = 0, writes = 0;
+  const limits = { get maxOutputBytes() { limitReads++; return limitReads === 1 ? 0 : 1000000; } };
+  const book = new Workbook({ get limits() { optionsReads++; return limits; }, sink: { write() { writes++; } } });
+  await assert.rejects(book.finish(), { code: "RESOURCE_LIMIT" });
+  assert.equal(limitReads, 1); assert.equal(optionsReads, 1); assert.equal(writes, 0);
+  const inherited = new Workbook({ limits: Object.create({ maxCharts: 0 }) }), report = inherited.addWorksheet("Report");
+  assert.throws(() => report.addChart(chart()), { code: "RESOURCE_LIMIT" });
+  const footer = new Cell(42), captured = new Workbook({ compression: "store" });
+  const sheet = captured.addWorksheet("Captured", { columns: [{ get header() { headerReads++; return headerReads === 1 ? "Amount" : "Changed"; }, key: "amount", type: "number" }], table: {}, footer: { values: [footer] } });
+  footer.value = 99;
+  await sheet.addRows([{ amount: 10 }]);
+  const zip = await readZip(await captured.toBlob()), xml = zip.get("xl/worksheets/sheet1.xml").content;
+  assert.equal(headerReads, 1); assert.match(xml, />Amount<\/t>/); assert.match(xml, /r="A3"[^>]*><v>42<\/v>/);
+  assert.match(zip.get("xl/tables/table1.xml").content, /name="Amount"/);
+  await inherited.finish();
 });
 
 test("chart and worksheet capture recheck preservation sheets allocated by a getter before committing", async () => {

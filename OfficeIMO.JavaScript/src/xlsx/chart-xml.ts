@@ -57,7 +57,8 @@ function axesXml(chart: RegisteredChart, policy: InvalidCharacterPolicy): string
 function* chartXml(chart: RegisteredChart, policy: InvalidCharacterPolicy): Generator<string> {
   const pie = chart.type === "pie", line = chart.type === "line", tag = pie ? "pieChart" : line ? "lineChart" : "barChart";
   const source = "'" + chart.dataSheetName.replace(/'/g, "''") + "'!", end = chart.data.categories.length + 1;
-  yield xmlDeclaration + '<c:chartSpace xmlns:c="' + chartNamespace + '" xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" xmlns:r="' + officeRelationshipsNamespace + '"><c:date1904 val="0"/><c:lang val="en-US"/><c:chart>';
+  yield xmlDeclaration + '<c:chartSpace xmlns:c="' + chartNamespace + '" xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" xmlns:r="' + officeRelationshipsNamespace + '"><c:date1904 val="0"/>' +
+    (chart.language === undefined ? "" : '<c:lang val="' + escapeXml(chart.language, policy) + '"/>') + '<c:chart>';
   if (chart.title) yield titleXml(chart.title, policy);
   yield '<c:autoTitleDeleted val="' + (chart.title ? 0 : 1) + '"/><c:plotArea><c:layout/><c:' + tag + '>';
   if (!pie) yield line ? '<c:grouping val="standard"/>' : '<c:barDir val="' + (chart.type === "barClustered" ? "bar" : "col") + '"/><c:grouping val="clustered"/>';

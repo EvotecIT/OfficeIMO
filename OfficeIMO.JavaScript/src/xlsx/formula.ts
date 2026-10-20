@@ -2,9 +2,12 @@ import { NotSupportedError } from "../core/errors.js";
 import { cleanXml, escapeXml } from "../xml/index.js";
 
 const formulaCells = new WeakSet<object>();
+const nestedAggregateCells = new WeakSet<object>();
 
-/** @internal Reject direct external-workbook and DDE references without interpreting Excel expressions. */
-function localReferences(formula: string): void {
+/** Reject external references and identify nested total functions without evaluating Excel expressions. */
+function inspectReferences(formula: string): boolean {
+  let subtotal = false;
+  const identifier = /[\p{L}_\\][\p{L}\p{N}\p{M}_.\\]*/uy;
   for (let i = 0; i < formula.length; i++) {
     const character = formula[i];
     if (character === '"') {
@@ -36,34 +39,46 @@ function localReferences(formula: string): void {
         throw new NotSupportedError("external-workbook formulas");
       i--;
     } else if (character === "|") throw new NotSupportedError("DDE formulas");
+    else {
+      identifier.lastIndex = i;
+      const token = identifier.exec(formula);
+      if (token) {
+        if (["SUBTOTAL", "AGGREGATE", "_XLFN.AGGREGATE"].includes(token[0].toUpperCase()) && /^\s*\(/.test(formula.slice(identifier.lastIndex))) subtotal = true;
+        i = identifier.lastIndex - 1;
+      }
+    }
   }
+  return subtotal;
 }
 
-/** @internal Excel invariant expression text, stored without its optional leading equals sign. */
-export function formulaText(value: string): string {
+function captureFormula(value: string): { readonly text: string; readonly subtotal: boolean } {
   if (typeof value !== "string") throw new TypeError("Formula text must be a string.");
   const text = value.trim().replace(/^=/, "");
   if (!text.trim() || text.length > 8192) throw new RangeError("Formulas require 1 through 8,192 characters.");
   // Text stripping could change a calculation, so formulas always reject invalid XML characters.
   cleanXml(text, "reject");
-  localReferences(text);
-  return text;
+  return { text, subtotal: inspectReferences(text) };
 }
 
-/** An authored Excel formula and its initial numeric or blank result. The writer stores both without evaluating the expression. */
+/** An authored XLSX storage expression and its initial numeric or blank result. Future functions retain their required _xlfn prefixes; the writer does not evaluate or normalize function names. */
 export class FormulaCell {
   static [Symbol.hasInstance](value: unknown): boolean {
     return value !== null && typeof value === "object" && formulaCells.has(value);
   }
   readonly formula: string;
   constructor(formula: string, readonly cachedValue: number | null, readonly style?: number) {
-    this.formula = formulaText(formula);
+    const captured = captureFormula(formula);
+    this.formula = captured.text;
     if (cachedValue !== null && (typeof cachedValue !== "number" || !Number.isFinite(cachedValue))) throw new TypeError("Formula caches must be finite numbers or null for a blank result.");
     if (style !== undefined && (!Number.isSafeInteger(style) || style < 0)) throw new RangeError("Formula style indexes must be nonnegative safe integers.");
     formulaCells.add(this);
+    if (captured.subtotal) nestedAggregateCells.add(this);
     Object.freeze(this);
   }
 }
+
+/** @internal Excel excludes cells containing SUBTOTAL or AGGREGATE expressions from a generated SUBTOTAL. */
+export function isSubtotalFormula(cell: FormulaCell): boolean { return nestedAggregateCells.has(cell); }
 
 /** @internal The worksheet owns the cell coordinate, style and cumulative formula budget. */
 export function formulaXml(cell: FormulaCell): string {

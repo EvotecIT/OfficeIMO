@@ -6,14 +6,19 @@ import { ExportBudget } from "../core/limits.js";
 import type { ZipEntry } from "../zip/index.js";
 import { OpcPackage, officeRelationshipsNamespace, relationshipTypes, corePropertiesXml } from "../opc/index.js";
 import { escapeOoxmlAttribute, cleanXml, xmlDeclaration } from "../xml/index.js";
+import type { InvalidCharacterPolicy } from "../xml/index.js";
 import { StyleRegistry, spreadsheetNamespace } from "./styles.js";
-import { sheetName, assertXlsxValue } from "./values.js";
+import { sheetName, assertXlsxValue, copyValue } from "./values.js";
+import { copyColumns } from "../internal/rows.js";
+import { captureFields } from "../internal/capture.js";
+import { captureTableSpans } from "../internal/table-spans.js";
 import { assertExportValue } from "../core/presentation.js";
 import { Worksheet } from "./worksheet.js";
 import { defineTable, tableXml } from "./table.js";
-import { drawingXml, drawingContentType } from "./attachments.js";
+import { copyHyperlink, drawingXml, drawingContentType } from "./attachments.js";
 import { TextOverflow } from "./preservation.js";
 import type { CellValueWriter, WorkbookOptions, SheetOptions, ExtraPart, XlsxExportResult } from "./types.js";
+import { captureWorkbookOptions, sheetOptionFields } from "./options.js";
 import { prepareChart } from "./charts.js";
 import type { RegisteredChart } from "./charts.js";
 import type { WorksheetChart, ChartRangeData } from "./chart-types.js";
@@ -23,6 +28,25 @@ import { chartContentType, writeChartXml } from "./chart-xml.js";
 
 const xlsxMime = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
 const formatType = (name: string) => "application/vnd.openxmlformats-officedocument.spreadsheetml." + name + "+xml";
+
+/** Capture registered worksheet metadata before preflight and construction inspect it. */
+function captureSheet(options: SheetOptions, policy: InvalidCharacterPolicy): SheetOptions {
+  const captured = captureFields(options, sheetOptionFields);
+  const columns = copyColumns(captured.columns ?? [], true);
+  const footer = captured.footer && captureFields(captured.footer, ["rows", "values", "totals", "style"]);
+  const print = captured.print && captureFields(captured.print, ["paper", "orientation", "fitToWidth", "fitToHeight", "repeatHeaders", "margins", "header", "footer"]);
+  return { ...captured, columns,
+    ...(captured.headerRows === undefined ? {} : { headerRows: captureTableSpans(captured.headerRows, columns.length) }),
+    ...(footer ? { footer: { ...footer,
+      ...(footer.rows === undefined ? {} : { rows: captureTableSpans(footer.rows, columns.length) }),
+      ...(footer.values === undefined ? {} : { values: footer.values.map(copyValue) as NonNullable<SheetOptions["footer"]>["values"] & {} }) } } : {}),
+    ...(captured.table ? { table: captureFields(captured.table, ["name", "style", "bandedRows", "bandedColumns", "firstColumn", "lastColumn"]) } : {}),
+    ...(captured.autoSize ? { autoSize: captureFields(captured.autoSize, ["sampleRows", "minWidth", "maxWidth"]) } : {}),
+    ...(captured.title ? { title: captureFields(captured.title, ["text", "style", "height"]) } : {}),
+    ...(print ? { print: { ...print, ...(print.margins === undefined ? {} : {
+      margins: captureFields(print.margins, ["left", "right", "top", "bottom", "header", "footer"]) }) } } : {}),
+    ...(captured.hyperlinks ? { hyperlinks: captured.hyperlinks.map(link => copyHyperlink(link, policy)) } : {}) };
+}
 
 /** Streaming writer model; append rows through Worksheets, then finalize once. */
 export class Workbook {
@@ -72,6 +96,7 @@ export class Workbook {
   /** @internal Immutable settings used by the worksheet owner. */
   readonly settings: Readonly<WorkbookOptions & { dateMode: "local" | "utc"; compression: "auto" | "store"; invalidCharacterPolicy: "strip" | "reject" }>;
   constructor(options: WorkbookOptions = {}) {
+    options = captureWorkbookOptions(options);
     const dateMode = options.dateMode ?? "local", compression = options.compression ?? "auto", policy = options.invalidCharacterPolicy ?? "strip";
     if (dateMode !== "local" && dateMode !== "utc") throw new RangeError("dateMode must be local or utc.");
     if (compression !== "auto" && compression !== "store") throw new RangeError("compression must be auto or store.");
@@ -231,7 +256,7 @@ export class Workbook {
     return this.registration(() => {
       this.checkSheetLimit(this.sheets.length + this.chartSourceSheets + 1 + (this.overflow ? 1 : 0));
       // Validation/serialization use erased column metadata; projection later receives T rows.
-      const metadata = { ...options } as unknown as SheetOptions;
+      const metadata = captureSheet(options as unknown as SheetOptions, this.settings.invalidCharacterPolicy);
       const prepared = Worksheet.validate(this, metadata);
       let tableOptions = metadata.table;
       if (tableOptions && tableOptions.name === undefined) {

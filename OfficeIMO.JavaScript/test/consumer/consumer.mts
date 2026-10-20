@@ -1,4 +1,4 @@
-import { core, zip, xml, opc, xlsx, csv, ExportCell, writeXlsx, writeXlsxTo, preflightPdfText as rootPreflightPdfText } from "@evotecit/officeimo";
+import { core, zip, xml, opc, xlsx, csv, ExportCell, writeXlsx, writeXlsxTo, preflightPdfText as rootPreflightPdfText, OfficeIMOError as RootOfficeIMOError, detectFeatures as rootDetectFeatures } from "@evotecit/officeimo";
 import { BlobByteSink, ChunkedTextSink, detectFeatures, NotSupportedError } from "@evotecit/officeimo/core";
 import { ZipWriter, Crc32 } from "@evotecit/officeimo/zip";
 import { XmlWriter, escapeXml } from "@evotecit/officeimo/xml";
@@ -77,15 +77,17 @@ async function exportGrid(host: DataTablesHost, table: DataTablesApi) {
   const source = createDataTablesExport(host, table, { exportOptions: { columns: ':visible', modifier: { selected: null } },
     project: value => new ExportCell(value instanceof ExportCell ? value.value : value, { presentation: { bold: true } }) });
   void source.rowCount;
-  await exportDataTable(host, table, 'xlsx', { sheet: { table: {} }, columnOptions: { 1: { type: 'number', format: '0.00' } } });
+  // @ts-expect-error workbook settings belong in xlsx
+  await exportDataTable(host, table, 'xlsx', { workbook: { dateMode: 'utc' } });
+  await exportDataTable(host, table, 'xlsx', { xlsx: { sheet: { table: {} } }, columnOptions: { 1: { type: 'number', format: '0.00' } } });
   // @ts-expect-error adapter columns use portable presentation, not private workbook IDs
   await exportDataTable(host, table, 'xlsx', { columnOptions: { 0: { style: 1 } } });
   // @ts-expect-error header style IDs belong to the advanced Workbook API
-  await exportDataTable(host, table, 'xlsx', { sheet: { headerStyle: 1 } });
+  await exportDataTable(host, table, 'xlsx', { xlsx: { sheet: { headerStyle: 1 } } });
   // @ts-expect-error portable style patches contain definitions, not workbook component indexes
-  await exportDataTable(host, table, 'xlsx', { sheet: { alternatingRowStyle: { font: 0 } } });
+  await exportDataTable(host, table, 'xlsx', { xlsx: { sheet: { alternatingRowStyle: { font: 0 } } } });
   // @ts-expect-error custom adapter writers return portable values
-  await exportDataTable(host, table, 'xlsx', { workbook: { cellValueWriters: { custom: v => new Cell(v, 0) } } });
+  await exportDataTable(host, table, 'xlsx', { xlsx: { cellValueWriters: { custom: v => new Cell(v, 0) } } });
   await writeDataTableTo(host, table, 'csv', { write() {} }, { serverSide: 'loaded', csv: { quote: 'all' } });
   registerDataTablesButtons(host, { save: async (blob, filename) => { void [blob, filename]; } });
   await exportDataTable(host, table, 'pdf', { pdf: { orientation: 'landscape', title: 'Report' } });
@@ -404,11 +406,17 @@ async function groupedAnalysis() {
     grandTotalLabel: (summary: import("@evotecit/officeimo").GroupedReportSummary) => String(summary.rows) };
   const source = xlsx.createGroupedReport(records, grouping);
   const rootSource: import("@evotecit/officeimo").GroupedReportSource = source;
+  // @ts-expect-error grouped sources belong to createGroupedReport, not structural substitutes
+  const fakeSource: import("@evotecit/officeimo").GroupedReportSource = { columns: source.columns, events: source.events };
+  void fakeSource;
   await xlsx.writeGroupedXlsx(rootSource, { ...options, collapseGroups: true, limits: { maxOutputBytes: 1000000 } });
   await xlsx.writeGroupedXlsxTo(xlsx.createGroupedReport(records, grouping), new WritableStream<Uint8Array>(), options);
   const pdf = await import("@evotecit/officeimo/pdf");
   await pdf.writeGroupedPdf(pdf.createGroupedReport(records, grouping), { ...options,
     pageNumberLabels: { prefix: "Strona ", separator: " z " }, booleanText: { true: "Tak", false: "Nie" } });
+  // @ts-expect-error grouped PDF does not offer tagged leaf-table output
+  const taggedGroup: import("@evotecit/officeimo").GroupedPdfOptions = { ...options, tagged: { language: "pl" } };
+  void taggedGroup;
   await pdf.writeGroupedPdfTo(pdf.createGroupedReport([], grouping), new WritableStream<Uint8Array>(), { ...options, includeGrandTotal: false });
   const blank = new FormulaCell('IF(COUNT(A1:A2)=0,"",AVERAGE(A1:A2))', null);
   void blank;
@@ -420,3 +428,10 @@ async function groupedAnalysis() {
   await writeCsv([[true]], { columns: [{ header: "Ready" }], booleanText: { true: true, false: "Nie" } });
 }
 void groupedAnalysis;
+
+const pdfTotal: import("@evotecit/officeimo").PdfTotal = "sum";
+const rootError = new RootOfficeIMOError("INVALID_STATE", "Stopped");
+void [pdfTotal, rootError.code, rootDetectFeatures()];
+// @ts-expect-error PDF paragraph alignment is left, center or right
+const unsupportedParagraphAlignment: import("@evotecit/officeimo").PdfParagraphStyle = { presentation: { alignment: "justify" } };
+void unsupportedParagraphAlignment;

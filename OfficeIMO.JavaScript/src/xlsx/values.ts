@@ -1,9 +1,9 @@
 import { cleanXml, escapeXml } from "../xml/index.js";
 import type { InvalidCharacterPolicy } from "../xml/index.js";
 import type { CellValue } from "../core/index.js";
-import { ExportCell, assertExportValue, assertScalar } from "../core/presentation.js";
-import { isDate } from "../core/dates.js";
+import { assertExportValue, assertScalar } from "../core/presentation.js";
 import { FormulaCell } from "./formula.js";
+import { copyExportValue } from "../internal/export-values.js";
 
 /** A typed value plus a workbook-local style index. */
 export class Cell {
@@ -17,10 +17,9 @@ export function assertXlsxValue(value: unknown): void {
 }
 /** @internal Buffered samples and footer definitions capture mutable Date values. */
 export function copyValue(value: unknown): unknown {
-  if (isDate(value)) return new Date(value.getTime());
-  if (value instanceof Cell && isDate(value.value)) return new Cell(new Date(value.value.getTime()), value.style);
-  if (value instanceof ExportCell && isDate(value.value)) return new ExportCell(new Date(value.value.getTime()), { ...(value.text === undefined ? {} : { text: value.text }), ...(value.presentation ? { presentation: value.presentation } : {}), ...(value.link ? { link: value.link } : {}) });
-  return value;
+  if (value instanceof FormulaCell) return value;
+  if (value instanceof Cell) return Object.freeze(new Cell(copyExportValue(value.value) as CellValue, value.style));
+  return copyExportValue(value);
 }
 
 export function cellText(value: unknown, policy: InvalidCharacterPolicy = "strip"): string {

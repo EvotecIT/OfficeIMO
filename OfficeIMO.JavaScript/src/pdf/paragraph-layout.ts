@@ -9,6 +9,7 @@ import { positive } from "./settings.js";
 import { resolveParagraphStyle } from "./paragraph-styles.js";
 import { captureBookmark } from "./section-types.js";
 import type { PdfBookmark } from "./section-types.js";
+import { captureFields } from "../internal/capture.js";
 
 export interface PdfCapturedParagraph {
   readonly text: PdfCapturedText;
@@ -49,7 +50,8 @@ export function captureCaption(caption: PdfCaption, settings: PdfSettings, fonts
   if (!caption || typeof caption !== "object" || Array.isArray(caption) ||
     Object.keys(caption).some(key => !["text", "style", "fontSize", "presentation", "spaceBefore", "spaceAfter"].includes(key)))
     throw new TypeError("PDF captions support text, style, fontSize, presentation, spaceBefore and spaceAfter.");
-  return captureParagraph({ ...caption, kind: "paragraph", keepTogether: true, keepWithNext: true }, settings, fonts);
+  return captureParagraph({ ...captureFields(caption, ["text", "style", "fontSize", "presentation", "spaceBefore", "spaceAfter"]),
+    kind: "paragraph", keepTogether: true, keepWithNext: true }, settings, fonts);
 }
 /** @internal Layout is bounded by the same per-cell text and wrapped-line limits as table cells. */
 export async function prepareParagraph(captured: PdfCapturedParagraph, settings: PdfSettings, fonts: PdfFontResources,

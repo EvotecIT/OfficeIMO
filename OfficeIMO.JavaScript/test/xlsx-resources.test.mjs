@@ -23,6 +23,31 @@ test("XLSX image admission rejects over-budget bytes before a defensive allocati
   }
 });
 
+test("attachment prototype getters are captured once before validation, budgets and drawing serialization", async () => {
+  const reads = new Map(), read = (key, value) => { reads.set(key, (reads.get(key) ?? 0) + 1); return value; };
+  class Image {
+    get data() { return read("data", png); }
+    get row() { return read("row", 1); }
+    get column() { return read("column", 1); }
+    get width() { return read("width", reads.has("width") ? 100001 : 100); }
+    get height() { return read("height", 100); }
+    get description() { return read("description", "Captured image"); }
+  }
+  let cells = 0;
+  class Link {
+    get cell() { return ++cells === 1 ? "A1" : "A0"; }
+    get target() { return read("target", "https://example.com/report"); }
+    get tooltip() { return read("tooltip", "Report"); }
+  }
+  const book = new Workbook({ compression: "store", limits: { maxImageBytes: png.length } }), sheet = book.addWorksheet("Report", { columns: [{ header: "Value" }] });
+  await sheet.addRows([["Report"]]); sheet.addImage(new Image()); sheet.addHyperlink(new Link());
+  const { readZip } = await import("./zip-reader.mjs"), zip = await readZip(await book.toBlob());
+  for (const [key, count] of reads) assert.equal(count, 1, key);
+  assert.equal(cells, 1);
+  assert.match(zip.get("xl/drawings/drawing1.xml").content, /<xdr:ext cx="952500" cy="952500"/);
+  assert.match(zip.get("xl/worksheets/sheet1.xml").content, /hyperlink ref="A1"/);
+});
+
 test("the worksheet hyperlink ceiling includes external and text-preservation links", async () => {
   const book = new Workbook({ compression: "store", oversizedText: "preserve" });
   const links = Array.from({ length: 65529 }, (_, i) => ({ cell: "A" + (i + 1), target: "https://example.com/" + i }));

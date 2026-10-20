@@ -3,6 +3,7 @@ import { NotSupportedError, OfficeIMOError } from "../core/errors.js";
 import { cleanXml } from "../xml/index.js";
 import type { InvalidCharacterPolicy } from "../xml/index.js";
 import { copyDrawingAnchor } from "./attachments.js";
+import { captureFields } from "../internal/capture.js";
 import { captureChartRange, prepareChartBinding } from "./chart-bindings.js";
 import type { PreparedChartBinding, ResolvedChartBinding } from "./chart-bindings.js";
 import type { WorksheetChart, ChartData, ChartRangeData, ChartDataLabels, ChartType } from "./chart-types.js";
@@ -29,25 +30,28 @@ function fields(value: unknown, allowed: readonly string[], context: string): as
 
 function snapshot<T extends object>(value: T, allowed: readonly string[], context: string): T {
   fields(value, allowed, context);
-  return { ...value };
+  return captureFields(value, allowed) as T;
 }
 
 /** @internal Preflight bounds before copying any chart data. Failed registration reserves nothing. */
 export function prepareChart(input: WorksheetChart, policy: InvalidCharacterPolicy, availablePoints: number, availableText: number,
   signal?: AbortSignal, resolveBinding?: ResolveChartBinding): PreparedChart {
   checkAbort(signal);
-  input = snapshot(input, ["type", "data", "row", "column", "width", "height", "description", "title", "legend", "dataLabels", "categoryAxis", "valueAxis"], "chart");
+  input = snapshot(input, ["type", "data", "row", "column", "width", "height", "description", "title", "language", "legend", "dataLabels", "categoryAxis", "valueAxis"], "chart");
   if (!["columnClustered", "barClustered", "line", "pie"].includes(input.type)) throw new NotSupportedError("chart type " + input.type);
   const type: ChartType = input.type;
   const requested = snapshot(input.data as unknown as Record<string, unknown>, ["kind", "sheet", "firstRow", "rowCount", "categoryColumn", "categories", "series"], "chart.data");
   const bound = requested.kind === "range" ? captureChartRange(requested) : undefined;
   if (!bound) fields(requested, ["categories", "series"], "chart.data");
   const categories = bound ? undefined : requested.categories, series = bound?.series ?? requested.series;
-  if (!bound && (!Array.isArray(categories) || !categories.length)) throw new TypeError("Chart categories must be a nonempty array of strings.");
-  if (!Array.isArray(series) || !series.length || series.length > 255) throw new RangeError("A chart needs from 1 through 255 series.");
-  if (!bound && (categories as readonly unknown[]).length > 1048575) throw new RangeError("Chart data must fit Excel's rows including its header.");
-  if (type === "pie" && series.length !== 1) throw new TypeError("A pie chart supports exactly one series.");
-  const points = (bound?.rowCount ?? (categories as readonly unknown[]).length) * series.length;
+  if (!bound && !Array.isArray(categories)) throw new TypeError("Chart categories must be a nonempty array of strings.");
+  if (!Array.isArray(series)) throw new RangeError("A chart needs from 1 through 255 series.");
+  const categoryCount = bound?.rowCount ?? (categories as readonly unknown[]).length, seriesCount = series.length;
+  if (!categoryCount) throw new TypeError("Chart categories must be a nonempty array of strings.");
+  if (!seriesCount || seriesCount > 255) throw new RangeError("A chart needs from 1 through 255 series.");
+  if (!bound && categoryCount > 1048575) throw new RangeError("Chart data must fit Excel's rows including its header.");
+  if (type === "pie" && seriesCount !== 1) throw new TypeError("A pie chart supports exactly one series.");
+  const points = categoryCount * seriesCount;
   if (points > availablePoints) throw new OfficeIMOError("RESOURCE_LIMIT", "maxChartPoints exceeded.");
   let textCharacters = 0;
   const text = (value: unknown, context: string): string => {
@@ -59,6 +63,12 @@ export function prepareChart(input: WorksheetChart, policy: InvalidCharacterPoli
   };
   const optionalText = (value: unknown, context: string) => value === undefined ? undefined : text(value, context);
   const title = optionalText(input.title, "Chart title"), description = optionalText(input.description, "Chart description");
+  const requestedLanguage = optionalText(input.language, "Chart language");
+  let language: string | undefined;
+  if (requestedLanguage !== undefined) {
+    try { language = Intl.getCanonicalLocales(requestedLanguage)[0]; if (!language) throw new RangeError(); }
+    catch { throw new TypeError("Chart language must be a language tag such as pl or pl-PL."); }
+  }
   const anchor = copyDrawingAnchor({ row: input.row, column: input.column, width: input.width, height: input.height,
     ...(description === undefined ? {} : { description }) }, policy);
   if (input.legend !== undefined && input.legend !== false && !["right", "bottom", "left", "top"].includes(input.legend)) throw new TypeError("Unsupported chart legend position.");
@@ -89,6 +99,7 @@ export function prepareChart(input: WorksheetChart, policy: InvalidCharacterPoli
     valueAxis = Object.freeze({ ...axis, ...(axisTitle === undefined ? {} : { title: axisTitle }), ...(numberFormat === undefined ? {} : { numberFormat }) });
   }
   const common = { ...anchor, type,
+    ...(language === undefined ? {} : { language }),
     ...(title === undefined ? {} : { title }), ...(description === undefined ? {} : { description }),
     ...(input.legend === undefined ? {} : { legend: input.legend }), ...(dataLabels === undefined ? {} : { dataLabels }),
     ...(categoryAxis === undefined ? {} : { categoryAxis }), ...(valueAxis === undefined ? {} : { valueAxis }) };
@@ -101,15 +112,16 @@ export function prepareChart(input: WorksheetChart, policy: InvalidCharacterPoli
   // Length budgets precede allocation; each source property/array element is read once.
   const categoryValues = categories as readonly unknown[];
   const copiedCategories: string[] = [], copiedSeries = [];
-  for (let i = 0; i < categoryValues.length; i++) { if ((i & 255) === 0) checkAbort(signal); copiedCategories.push(text(categoryValues[i], "Chart category")); }
-  for (const item of series) {
+  for (let i = 0; i < categoryCount; i++) { if ((i & 255) === 0) checkAbort(signal); copiedCategories.push(text(categoryValues[i], "Chart category")); }
+  for (let seriesIndex = 0; seriesIndex < seriesCount; seriesIndex++) {
+    const item = series[seriesIndex];
     const captured = snapshot(item, ["name", "values", "color"], "chart.series");
     const name = text(captured.name, "Chart series name"), values = captured.values, color = captured.color;
-    if (!Array.isArray(values) || values.length !== categoryValues.length) throw new TypeError("Chart series values must match the category count.");
+    if (!Array.isArray(values) || values.length !== categoryCount) throw new TypeError("Chart series values must match the category count.");
     if (color !== undefined && (typeof color !== "string" || !/^#?[0-9a-fA-F]{6}$/.test(color))) throw new TypeError("Chart colors must be opaque six-digit RGB hex values.");
     let positive = false;
     const copiedValues: number[] = [];
-    for (let i = 0; i < values.length; i++) {
+    for (let i = 0; i < categoryCount; i++) {
       if ((i & 255) === 0) checkAbort(signal);
       const value: unknown = values[i];
       if (typeof value !== "number" || !Number.isFinite(value)) throw new TypeError("Chart values must be finite numbers.");

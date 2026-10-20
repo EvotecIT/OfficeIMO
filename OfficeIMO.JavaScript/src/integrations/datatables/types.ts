@@ -1,6 +1,6 @@
 import type { Column, ExportValue, StreamOptions, TableSpanRows } from "../../core/index.js";
 import type { CsvOptions } from "../../csv/index.js";
-import type { PortableSheetOptions, PortableWorkbookOptions, WorkbookLimits } from "../../xlsx/index.js";
+import type { XlsxOptions, WorkbookLimits } from "../../xlsx/index.js";
 import type { PdfOptions, PdfLimits } from "../../pdf/index.js";
 
 /** Structural interoperability boundary; importing this adapter never imports DataTables. */
@@ -76,11 +76,10 @@ export interface DataTablesExport {
 }
 export interface DataTablesWriteOptions extends DataTablesOptions {
   readonly limits?: WorkbookLimits & PdfLimits;
-  readonly sheetName?: string;
-  readonly workbook?: Omit<PortableWorkbookOptions, "signal" | "onProgress" | "limits">;
-  readonly sheet?: PortableSheetOptions;
-  readonly csv?: Omit<CsvOptions, "columns" | "signal" | "onProgress" | "limits">;
-  readonly pdf?: Omit<PdfOptions, "columns" | "signal" | "onProgress" | "limits">;
+  /** The same single-table settings accepted by writeXlsx; the capture supplies columns. */
+  readonly xlsx?: Omit<XlsxOptions, "columns" | "signal" | "onProgress">;
+  readonly csv?: Omit<CsvOptions, "columns" | "signal" | "onProgress">;
+  readonly pdf?: Omit<PdfOptions, "columns" | "signal" | "onProgress">;
 }
 export interface DataTablesButtonOptions extends DataTablesWriteOptions {
   readonly filename?: string | ((configuration: unknown, table: DataTablesApi) => string);

@@ -4,6 +4,7 @@ import { beginTask, checkAbort, consumeRows, pause, taskYieldDue } from "../core
 import { notifyProgress } from "../core/progress.js";
 import type { ExportResult, ExportValue, OutputDestination } from "../core/index.js";
 import { copyColumns, createRowProjector } from "../internal/rows.js";
+import { captureFields } from "../internal/capture.js";
 import { settings } from "./settings.js";
 import { pdfNumber as n } from "./objects.js";
 import { PdfTableLayout } from "./table-layout.js";
@@ -17,11 +18,14 @@ import { captureParagraph, captureCaption, prepareParagraph, checkParagraphBuffe
 import type { PdfCapturedParagraph } from "./paragraph-layout.js";
 import { captureListOptions, prepareListItem } from "./list-layout.js";
 import { captureSection } from "./section-types.js";
+import type { PdfOptions } from "./types.js";
+
+const tableOptionFields = ["columns", "includeHeader", "headerRows", "footer", "headerPresentation", "footerPresentation", "alternateRowColor", "columnWidths", "wideTable", "formatValue", "formatRuns"] as const;
 
 /** Capture typed columns for a single-use table source in a composed document. */
 export function pdfTable<T extends object>(rows: Iterable<T> | AsyncIterable<T>, options: PdfTableOptions<NoInfer<T>>): PdfTableBlock {
-  checkTableOptions(options);
-  return Object.freeze({ kind: "table", rows, options: Object.freeze({ ...options, columns: Object.freeze(copyColumns(options?.columns)) }) }) as PdfTableBlock;
+  const captured = captureTableOptions(options);
+  return Object.freeze({ kind: "table", rows, options: Object.freeze({ ...captured, columns: Object.freeze(copyColumns(captured.columns)) }) }) as PdfTableBlock;
 }
 /** Write sequential report blocks to a PDF Blob, retaining finished output proportional to file size. */
 export async function writePdfDocument(blocks: Iterable<PdfDocumentBlock> | AsyncIterable<PdfDocumentBlock>, options: PdfDocumentOptions = {}): Promise<Blob> {
@@ -32,7 +36,7 @@ export async function writePdfDocument(blocks: Iterable<PdfDocumentBlock> | Asyn
 /** Stream composed pages with backpressure. Rows sum all tables; columns reports the widest table. */
 export async function writePdfDocumentTo(blocks: Iterable<PdfDocumentBlock> | AsyncIterable<PdfDocumentBlock>, destination: OutputDestination,
   configuration: PdfDocumentOptions = {}): Promise<ExportResult> {
-  const prepared = settings({ ...configuration, columns: [], includeHeader: false }, true), { options, budget } = prepared;
+  const prepared = settings(configuration as PdfOptions, true), { options, budget } = prepared;
   beginTask(); checkAbort(options.signal);
   return withDestination(destination, async sink => {
     const session = new PdfWriteSession(sink, prepared), { objects, pages, fonts } = session, images = new PdfDocumentImages(objects, prepared);
@@ -105,8 +109,8 @@ export async function writePdfDocumentTo(blocks: Iterable<PdfDocumentBlock> | As
         }
         case "pageBreak": await flushParagraphs(); await pages.pageBreak(); break;
         case "table": {
-          const { options: tableOptions, rows: source, caption: inputCaption, continuationCaption: inputContinuationCaption } = block;
-          checkTableOptions(tableOptions);
+          const { options: inputTableOptions, rows: source, caption: inputCaption, continuationCaption: inputContinuationCaption } = block;
+          const tableOptions = captureTableOptions(inputTableOptions);
           const capturedCaption = snapshotCaption(inputCaption);
           if (inputContinuationCaption !== undefined && options.tagged)
             throw new TypeError("Tagged PDF table continuation captions are unsupported.");
@@ -186,8 +190,8 @@ function graphicAlignment(value: string | undefined): "left" | "center" | "right
   return value as "left" | "center" | "right" | undefined ?? "left";
 }
 /** Per-table overrides cannot change the document's shared fonts, geometry or resource policy. */
-function checkTableOptions(options: unknown): void {
-  const allowed = ["columns", "includeHeader", "headerRows", "footer", "headerPresentation", "footerPresentation", "alternateRowColor", "columnWidths", "wideTable", "formatValue", "formatRuns"];
-  if (!options || typeof options !== "object" || Object.keys(options).some(key => !allowed.includes(key)))
+function captureTableOptions<T>(options: PdfTableOptions<T>): PdfTableOptions<T> {
+  if (!options || typeof options !== "object" || Object.keys(options).some(key => !(tableOptionFields as readonly string[]).includes(key)))
     throw new TypeError("Table options support columns, headings, footers, widths and presentation; document settings belong on writePdfDocument.");
+  return captureFields(options, tableOptionFields);
 }

@@ -184,3 +184,12 @@ test("Canopy writer formats preserve typed XLSX, resolved PDF text, links and kn
   await fixture("canopy-report.xlsx", xlsx); await fixture("canopy-report.pdf", pdf);
   await assert.rejects(exportCanopy(input, "csv", { ...options, onProgress: async () => { throw new Error("async progress"); } }), /synchronous/);
 });
+
+test("Canopy adapter retains format ceilings while explicit common limits override them", async () => {
+  const input = capture([{ id: "r1", cells: { Name: cell("one") } }, { id: "r2", cells: { Name: cell("two") } }]);
+  for (const format of ["xlsx", "csv", "pdf"]) {
+    class Limits { get maxRows() { return 1; } }
+    await assert.rejects(exportCanopy(input, format, { [format]: { limits: new Limits() }, limits: { maxRows: undefined } }), /maxRows/);
+    await exportCanopy(input, format, { [format]: { limits: { maxRows: 1 } }, limits: { maxRows: 2 } });
+  }
+});

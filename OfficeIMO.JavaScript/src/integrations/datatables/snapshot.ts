@@ -1,12 +1,15 @@
 import { checkAbort, pause, rowsFromBatches, taskYieldDue } from "../../core/iteration.js";
 import { ExportBudget } from "../../core/limits.js";
 import type { Column, ExportValue } from "../../core/index.js";
+import { captureFields } from "../../internal/capture.js";
+import { columnOptionFields } from "../../internal/rows.js";
 import { array, call, indexes, member } from "./api.js";
 import { headings, text, value } from "./headings.js";
 import type { DataTablesApi, DataTablesExport, DataTablesExportOptions, DataTablesHost, DataTablesOptions } from "./types.js";
 
 function safeOptions(options: DataTablesExportOptions): DataTablesExportOptions {
-  const format = options.format ? { ...options.format } : undefined, customize = options.customizeData;
+  options = captureFields(options, ["rows", "columns", "modifier", "orthogonal", "stripHtml", "stripNewlines", "decodeEntities", "escapeExcelFormula", "trim", "format", "customizeData"]);
+  const format = options.format && captureFields(options.format, ["header", "footer", "body"]), customize = options.customizeData;
   return { ...options, ...(format ? { format: {
     ...(format.header ? { header: (v: unknown, c: number, n: unknown) => value(format.header!(v, c, n)) } : {}),
     ...(format.footer ? { footer: (v: unknown, c: number, n: unknown) => value(format.footer!(v, c, n)) } : {}),
@@ -26,6 +29,12 @@ export function createDataTablesExport(host: DataTablesHost, table: DataTablesAp
 /** @internal Writers omit source structures only when their output explicitly suppresses or replaces them. */
 export function captureDataTablesExport(host: DataTablesHost, table: DataTablesApi, options: DataTablesOptions = {},
   omitted?: { readonly header?: boolean; readonly footer?: boolean }): DataTablesExport {
+  options = captureFields(options, ["mode", "exportOptions", "batchRows", "maxBatchCells", "headings", "includeFooter", "serverSide", "columnOptions", "project", "signal", "limits", "onProgress"]);
+  if (options.columnOptions !== undefined) {
+    const columnOptions = Object.fromEntries(Object.entries(options.columnOptions).map(([index, column]) => [index,
+      captureFields(column, columnOptionFields as readonly (keyof typeof column)[])]));
+    options = { ...options, columnOptions };
+  }
   for (const column of Object.values(options.columnOptions ?? {}))
     if ((column as { style?: unknown }).style !== undefined) throw new TypeError("Workbook-local column styles require the advanced Workbook API; use portable ExportCell presentation.");
   const mode = options.mode ?? "batched", headingMode = options.headings ?? "grouped";

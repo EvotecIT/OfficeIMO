@@ -29,6 +29,37 @@ test("explicit formula caches retain numeric styles, callbacks, totals and one a
   }
 });
 
+test("generated footer caches follow hidden-row and nested total semantics without treating literal captions as functions", async () => {
+  for (const streamed of [false, true]) {
+    const chunks = [], operations = ["sum", "count", "average", "min", "max"], letters = ["A", "B", "C", "D", "E"];
+    const book = new Workbook({ compression: "store", ...(streamed ? { sink: { write(bytes) { chunks.push(bytes.slice()); } } } : {}) });
+    let outlines = 0;
+    const sheet = book.addWorksheet("Totals", {
+      columns: operations.map(header => ({ header, key: header, type: "number" })),
+      footer: { totals: Object.fromEntries(operations.map(operation => [operation, operation])) }, autoSize: { sampleRows: 1 }, maxOutlineLevel: 1,
+      rowOutline({ rowIndex }) { outlines++; return { level: 1, hidden: rowIndex === 1 }; }
+    });
+    await sheet.addRows([operations.map(() => 10), operations.map(() => 20),
+      letters.map(letter => new FormulaCell(`SUBTOTAL(9,${letter}2:${letter}3)`, 30)),
+      letters.map(letter => new FormulaCell(`IF(COUNT(${letter}2:${letter}3)=0,"",subtotal (9,${letter}2:${letter}3))`, 30)),
+      letters.map(letter => new FormulaCell(`_xlfn.AGGREGATE(9,0,${letter}2:${letter}3)`, 30)),
+      operations.map(() => new FormulaCell('IF("SUBTOTAL(9)"<>"",4,0)', 4))]);
+    assert.equal(outlines, 6, "visibility is captured once per row");
+    const empty = book.addWorksheet("Hidden", { columns: [{ header: "Amount", key: "amount" }], footer: { totals: { amount: "average" } }, maxOutlineLevel: 1, rowOutline: () => ({ hidden: true }) });
+    await empty.addRows([[10]]);
+    await book.addWorksheet("SUBTOTAL(9)", { columns: [{ header: "Amount" }] }).addRows([[7]]);
+    await book.addWorksheet("Source", { columns: [{ header: "SUBTOTAL(9)" }], table: { name: "Metrics" } }).addRows([[7]]);
+    const controls = book.addWorksheet("Captions", { columns: ["quoted", "structured"].map(header => ({ header, key: header })), footer: { totals: { quoted: "sum", structured: "sum" } } });
+    await controls.addRows([[new FormulaCell("'SUBTOTAL(9)'!A2", 7), new FormulaCell("SUM(Metrics[SUBTOTAL(9)])", 7)]]);
+    await book.finish();
+    const zip = await readZip(streamed ? new Blob(chunks) : await book.toBlob()), xml = zip.get("xl/worksheets/sheet1.xml").content;
+    for (const [index, value] of [14, 2, 7, 4, 10].entries()) assert.match(xml, new RegExp(`r="${letters[index]}8"[^>]*><f>.*?<\\/f><v>${value}<\\/v>`));
+    assert.match(zip.get("xl/worksheets/sheet2.xml").content, /r="A3"[^>]*t="str"><f>.*?<\/f><v><\/v>/);
+    const captions = zip.get("xl/worksheets/sheet5.xml").content;
+    for (const letter of ["A", "B"]) assert.match(captions, new RegExp(`r="${letter}3"[^>]*><f>.*?<\\/f><v>7<\\/v>`));
+  }
+});
+
 test("column getters, custom writers and explicit footers preserve authored formula cells", async () => {
   let writes = 0, gets = 0;
   const book = new Workbook({ cellValueWriters: { calculated(value) { writes++; return new FormulaCell(value ? "1+1" : "0", value ? 2 : 0); } } });

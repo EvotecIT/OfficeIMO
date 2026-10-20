@@ -6,6 +6,7 @@ import type { ExportResult, OutputDestination } from "../core/index.js";
 import { bounds, captureInput, captureProgress, captureRow, message, protocol, restoreError, result, wireError } from "./protocol.js";
 import type { WireCell, WireMessage } from "./protocol.js";
 import type { ExportWorkerEndpoint, WorkerExportOptions, WorkerExportRows } from "./types.js";
+import { captureFields } from "../internal/capture.js";
 
 const active = new WeakSet<ExportWorkerEndpoint>();
 let sequence = 0;
@@ -14,8 +15,10 @@ let sequence = 0;
  * The host owns the worker, source I/O and partial destination bytes. No caller-owned buffer is transferred. */
 export async function executeWorkerExport(endpoint: ExportWorkerEndpoint, rows: WorkerExportRows, destination: OutputDestination,
   options: WorkerExportOptions = {}): Promise<ExportResult> {
-  checkAbort(options.signal);
-  const limits = bounds(options), input = captureInput(options.input, limits);
+  const captured = captureFields(options, ["input", "signal", "onProgress", "batchRows", "maxBatchCells", "maxBatchCharacters", "maxChunkBytes", "maxSetupBytes", "maxSetupNodes"]);
+  const signal = captured.signal, onProgress = captured.onProgress;
+  checkAbort(signal);
+  const limits = bounds(captured), input = captureInput(captured.input, limits);
   if (active.has(endpoint)) throw new OfficeIMOError("INVALID_STATE", "A worker endpoint already has an active export.");
   active.add(endpoint);
   try { return await withDestination(destination, sink => new Promise<ExportResult>((resolve, reject) => {
@@ -26,7 +29,7 @@ export async function executeWorkerExport(endpoint: ExportWorkerEndpoint, rows: 
     const post = (payload: Omit<WireMessage, "protocol" | "job">) => endpoint.postMessage({ protocol, job, ...payload });
     function cleanup(): void {
       endpoint.removeEventListener("message", receive); endpoint.removeEventListener("error", broken); endpoint.removeEventListener("messageerror", broken);
-      options.signal?.removeEventListener("abort", aborted);
+      signal?.removeEventListener("abort", aborted);
       // A producer's stuck or rejected cleanup must not replace or delay export completion.
       if (!exhausted) void iterator.return(undefined).catch(() => {});
       pending = undefined;
@@ -40,7 +43,7 @@ export async function executeWorkerExport(endpoint: ExportWorkerEndpoint, rows: 
       try { post({ kind: "cancel", error: wireError(error) }); } catch { /* A disconnected worker cannot receive cancellation. */ }
       cleanup(); reject(error);
     }
-    const aborted = () => { try { checkAbort(options.signal); } catch (error) { fail(error); } };
+    const aborted = () => { try { checkAbort(signal); } catch (error) { fail(error); } };
     const broken: EventListener = event => fail(new Error((event as ErrorEvent).message || "Worker messaging failed."));
     async function read(id: number): Promise<void> {
       if (reading) throw new OfficeIMOError("INVALID_STATE", "Only one worker row request may be pending.");
@@ -89,14 +92,14 @@ export async function executeWorkerExport(endpoint: ExportWorkerEndpoint, rows: 
           if (!Number.isSafeInteger(data.id) || data.id! < 1) throw new TypeError("Invalid worker request identifier.");
           if (data.kind === "requestRows") void read(data.id!).catch(fail);
           else if (data.kind === "output") void write(data).catch(fail);
-          else if (data.kind === "progress") { if (!data.progress) throw new TypeError("Invalid worker progress."); notifyProgress(options.onProgress, captureProgress(data.progress, limits)); post({ kind: "ack", id: data.id! }); }
+          else if (data.kind === "progress") { if (!data.progress) throw new TypeError("Invalid worker progress."); notifyProgress(onProgress, captureProgress(data.progress, limits)); post({ kind: "ack", id: data.id! }); }
           else throw new TypeError("Unexpected worker export message.");
         }
       } catch (error) { fail(error); }
     };
     endpoint.addEventListener("message", receive); endpoint.addEventListener("error", broken); endpoint.addEventListener("messageerror", broken);
-    options.signal?.addEventListener("abort", aborted, { once: true });
-    try { endpoint.start?.(); checkAbort(options.signal); post({ kind: "start", input, bounds: limits }); }
+    signal?.addEventListener("abort", aborted, { once: true });
+    try { endpoint.start?.(); checkAbort(signal); post({ kind: "start", input, bounds: limits }); }
     catch (error) { fail(error); }
   })); } finally { active.delete(endpoint); }
 }
