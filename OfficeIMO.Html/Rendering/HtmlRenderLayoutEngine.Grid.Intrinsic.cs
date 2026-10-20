@@ -106,15 +106,16 @@ internal sealed partial class HtmlRenderLayoutEngine {
     private double ResolveGridMinContentContribution(FlexItem item, double availableSize, int depth = 1) =>
         ResolveGridContentContributions(item, availableSize, depth).Minimum;
 
-    private (double Minimum, double Maximum) ResolveGridContentContributions(FlexItem item, double availableSize, int depth, bool includeDescendantInsets = false) {
+    private (double Minimum, double Maximum) ResolveGridContentContributions(FlexItem item, double availableSize, int depth,
+        bool includeDescendantInsets = false, Func<string, IntrinsicTextRun, double>? measure = null) {
         HtmlRenderBoxStyle style = item.Style;
         if (!style.HasIntrinsicWidths && TryResolveDefiniteGridContribution(item, availableSize, out double definite)) return (definite, definite);
         IReadOnlyList<IntrinsicTextRun> textRuns = ResolveInFlowIntrinsicTextRuns(item, availableSize, depth,
             includeDescendantInsets: includeDescendantInsets || style.HasIntrinsicWidths);
         double replaced = ResolveDescendantReplacedGridContribution(item, availableSize);
-        double minimum = Math.Max(textRuns.Count == 0 ? 1D : MeasureMinContentRuns(textRuns),
+        double minimum = Math.Max(textRuns.Count == 0 ? 1D : MeasureMinContentRuns(textRuns, measure),
             ResolveDescendantReplacedGridContribution(item, availableSize, minimum: true));
-        double maximum = Math.Max(textRuns.Count == 0 ? 1D : MeasureMaxContentRuns(textRuns), replaced);
+        double maximum = Math.Max(textRuns.Count == 0 ? 1D : MeasureMaxContentRuns(textRuns, measure), replaced);
         return style.HasIntrinsicWidths ? ResolveOrdinaryIntrinsicContributions(style, minimum, maximum, availableSize)
             : (ResolveGridMeasuredContribution(style, minimum), ResolveGridMeasuredContribution(style, maximum));
     }

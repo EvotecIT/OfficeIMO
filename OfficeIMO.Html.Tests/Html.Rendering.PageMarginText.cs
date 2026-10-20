@@ -10,23 +10,28 @@ public sealed partial class HtmlRenderingTests {
     [Fact]
     public void HtmlPdf_PageMarginTimestampPaintsWithinItsWrappedFrame() {
         const string footer = "Data as of 21 Sep 2026 01:59 UTC · Generated 1 Oct 2026 22:41 UTC";
-        string html = "<style>@page { size:A4; margin:16mm 14mm 18mm; "
+        string html = "<style>@page { size:600px 840px; margin:16mm 14mm 18mm; "
             + "@bottom-left { content:'" + footer + "'; font:8pt/1.2 Calibri, Carlito, 'Segoe UI', sans-serif; } "
             + "@bottom-center {content:'Internal';font:8pt sans-serif} "
             + "@bottom-right {content:'Page 1';font:8pt sans-serif} } body,p {margin:0}</style><p>Body</p>";
-        byte[] pdf = HtmlConversionDocument.Parse(html).ToPdfBytes();
+        HtmlPdfRenderRequestResult result = HtmlConversionDocument.Parse(html).RenderToPdfResult(
+            HtmlRenderRequest.Create(HtmlRenderIntentProfile.PrintPaged, HtmlRenderEncoder.Pdf));
+        HtmlRenderPage rendered = Assert.Single(result.RenderResult.Document.Pages);
+        HtmlRenderText margin = PageMarginTypographyText(rendered, "bottom-left");
+        byte[] pdf = result.ToBytes();
         var page = Assert.Single(PdfCore.PdfReadDocument.Open(pdf,
             new PdfCore.PdfLoadOptions { IncludeArtifactText = true }).Pages);
-        var spans = page.GetTextSpans().Where(span => span.Y < 50D && span.X < 210D).ToArray();
+        var spans = page.GetTextSpans().Where(span => span.Y < rendered.Margins.Bottom * 0.75D
+            && span.X >= margin.X * 0.75D - 0.001D
+            && span.X < (margin.X + margin.Width) * 0.75D - 0.001D).ToArray();
         string actual = string.Concat(string.Concat(spans.Select(span => span.Text)).Where(c => !char.IsWhiteSpace(c)));
         Assert.Equal(string.Concat(footer.Where(c => !char.IsWhiteSpace(c))), actual);
         Assert.True(spans.Select(span => Math.Round(span.Y, 2)).Distinct().Count() >= 2,
             "The full footer must paint on multiple baselines rather than extending into its peer margin boxes.");
-        Assert.All(spans, span => Assert.InRange(span.X + span.Advance, 0D, 211.6536D));
-        HtmlRenderPage rendered = Assert.Single(HtmlRenderTestDriver.Render(html,
-            new HtmlRenderOptions { Mode = HtmlRenderMode.Paged }).Pages);
+        Assert.All(spans, span => Assert.InRange(span.X + span.Advance, 0D, (margin.X + margin.Width) * 0.75D + 0.001D));
         var drawingLines = rendered.CreateDrawing().Elements.OfType<OfficeDrawingText>()
-            .Where(text => text.Y > 1000D && text.X < 280D).ToArray();
+            .Where(text => text.Y > rendered.Height - rendered.Margins.Bottom
+                && text.X >= margin.X - 0.001D && text.X < margin.X + margin.Width - 0.001D).ToArray();
         Assert.True(drawingLines.Select(text => text.Y).Distinct().Count() >= 2);
         Assert.Equal(string.Concat(footer.Where(c => !char.IsWhiteSpace(c))),
             string.Concat(string.Concat(drawingLines.Select(text => text.Text)).Where(c => !char.IsWhiteSpace(c))));
@@ -56,7 +61,7 @@ public sealed partial class HtmlRenderingTests {
     [InlineData("top-left-corner")]
     [InlineData("left-middle")]
     public void HtmlRender_PageMarginTextWrapsWithoutDroppingItsLastWords(string position) {
-        string html = "<style>@page { size:300px 300px; margin:60px; @" + position
+        string html = "<style>@page { size:200px 300px; margin:60px; @" + position
             + " { content:'Report Created Today'; font:10px Arial; } "
             + (position == "bottom-left" ? "@bottom-center {content:'I';font:10px Arial} @bottom-right {content:'R';font:10px Arial}" : string.Empty)
             + (position == "top-center" ? "@top-left {content:'L';font:10px Arial} @top-right {content:'R';font:10px Arial}" : string.Empty)

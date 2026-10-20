@@ -5,7 +5,11 @@ using AngleSharp.Dom;
 namespace OfficeIMO.Html;
 
 internal sealed partial class HtmlRenderLayoutEngine {
-    private double MeasureMinContentRuns(IReadOnlyList<IntrinsicTextRun> runs) {
+    /// <summary>Measures existing intrinsic breaks, optionally sharing the caller's font measurement and work accounting.</summary>
+    private double MeasureMinContentRuns(IReadOnlyList<IntrinsicTextRun> runs,
+        Func<string, IntrinsicTextRun, double>? measure = null) {
+        double Measure(string value, IntrinsicTextRun run) => measure != null
+            ? measure(value, run) : MeasureInlineText(value, run.Style, run);
         double maximum = 1D;
         double current = 0D;
         // Indentation contributes to required width without shifting the
@@ -66,8 +70,9 @@ internal sealed partial class HtmlRenderLayoutEngine {
             if (run.Text.Length > 0) precedingCategory = GetPrecedingTextCategory(run.Text, run.Text.Length);
             if (run.Style.PreventTextWrapping) {
                 AddAdvance(run.Text.IndexOf('\t') >= 0
-                    ? MeasureTabExpandedText(run.Text, run.Style, current)
-                    : MeasureInlineText(run.Text, run.Style, run));
+                    ? MeasureTabExpandedText(run.Text, run.Style, current,
+                        measure == null ? null : value => Measure(value, run))
+                    : Measure(run.Text, run));
                 continue;
             }
             int start = 0;
@@ -80,7 +85,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                     if (breakEverywhere) {
                         IReadOnlyList<string> elements = OfficeTextElements.Split(token);
                         for (int part = 0; part < elements.Count; part++) {
-                            AddAdvance(MeasureInlineText(elements[part], run.Style, run));
+                            AddAdvance(Measure(elements[part], run));
                             if (part < elements.Count - 1) FinishSegment();
                         }
                     } else {
@@ -94,15 +99,15 @@ internal sealed partial class HtmlRenderLayoutEngine {
                             if (end <= segmentStart || end > paintToken.Length) continue;
                             string segment = paintToken.Substring(segmentStart, end - segmentStart);
                             if (hyphenationBreaks.Contains(end)) segment += run.Style.HyphenateCharacter;
-                            AddAdvance(MeasureInlineText(segment, run.Style, run));
+                            AddAdvance(Measure(segment, run));
                             FinishSegment();
                             segmentStart = end;
                         }
-                        if (segmentStart < paintToken.Length) AddAdvance(MeasureInlineText(paintToken.Substring(segmentStart), run.Style, run));
+                        if (segmentStart < paintToken.Length) AddAdvance(Measure(paintToken.Substring(segmentStart), run));
                     }
                 }
                 if (!atEnd) {
-                    if (run.Style.BreakSpaces) AddAdvance(MeasureInlineText(run.Text[index].ToString(), run.Style, run));
+                    if (run.Style.BreakSpaces) AddAdvance(Measure(run.Text[index].ToString(), run));
                     FinishSegment();
                     start = index + 1;
                 }
@@ -112,7 +117,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
         return maximum;
     }
 
-    private double MeasureMaxContentRuns(IReadOnlyList<IntrinsicTextRun> runs) {
+    private double MeasureMaxContentRuns(IReadOnlyList<IntrinsicTextRun> runs,
+        Func<string, IntrinsicTextRun, double>? measure = null) {
         double maximum = 1D;
         double current = 0D;
         double firstLineIndent = 0D;
@@ -137,15 +143,18 @@ internal sealed partial class HtmlRenderLayoutEngine {
             current += run.IsReplaced
                 ? run.ReplacedWidth
                 : run.Text.IndexOf('\t') >= 0
-                    ? MeasureTabExpandedText(run.Text, run.Style, current)
-                    : MeasureMaxContentTextRun(run);
+                    ? MeasureTabExpandedText(run.Text, run.Style, current,
+                        measure == null ? null : value => measure(value, run))
+                    : MeasureMaxContentTextRun(run, measure);
         }
         FinishLine();
         return maximum;
     }
 
-    private double MeasureMaxContentTextRun(IntrinsicTextRun run) {
-        double fullWidth = MeasureInlineText(run.Text, run.Style, run);
+    private double MeasureMaxContentTextRun(IntrinsicTextRun run,
+        Func<string, IntrinsicTextRun, double>? measure = null) {
+        double Measure(string value) => measure != null ? measure(value, run) : MeasureInlineText(value, run.Style, run);
+        double fullWidth = Measure(run.Text);
         if (!run.Text.Any(IsCollapsibleCssWhitespace)) return fullWidth;
 
         // Inline layout measures separate words and spaces. Some font shapers
@@ -153,7 +162,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         // an auto-sized flex/grid item wrap despite using its max-content width.
         double inlineWidth = 0D;
         foreach (string token in Tokenize(run.Text, run.Style.PreserveWhitespace, run.Style.BreakSpaces)) {
-            inlineWidth += MeasureInlineText(!run.Style.PreserveWhitespace && IsWhitespaceToken(token) ? " " : token, run.Style, run);
+            inlineWidth += Measure(!run.Style.PreserveWhitespace && IsWhitespaceToken(token) ? " " : token);
         }
         return Math.Max(fullWidth, inlineWidth);
     }

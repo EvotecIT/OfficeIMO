@@ -95,7 +95,7 @@ public sealed partial class HtmlRenderingTests {
     [Fact]
     public void HtmlPageMarginTypography_TightWrappedFooterPaintsEveryWordAsAnArtifact() {
         const string footer = "ALPHA BETA GAMMA DELTA";
-        string html = "<style>@page{size:166px 160px;margin:20px 20px 32px;"
+        string html = "<style>@page{size:130px 160px;margin:20px 20px 32px;"
             + "@bottom-left{content:'" + footer + "';font:10px/8px Pinned}"
             + "@bottom-center{content:'C';font:10px/8px Pinned}"
             + "@bottom-right{content:'R';font:10px/8px Pinned}}"
