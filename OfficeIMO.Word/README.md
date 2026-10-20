@@ -294,6 +294,21 @@ title.FontSizePoints = 24;
 title.KerningMinimumFontSizePoints = 8;
 ```
 
+### Footnotes and endnotes
+
+Add notes to body paragraphs, including paragraphs in table cells:
+
+```csharp
+document.AddParagraph("A statement with supporting detail.")
+    .AddFootNote("The supporting detail.");
+
+var cell = document.AddTable(1, 1).Rows[0].Cells[0];
+cell.Paragraphs[0].Text = "A statement in a table.";
+cell.Paragraphs[0].AddEndNote("Additional background.");
+```
+
+The document and section `FootNotes` and `EndNotes` collections include references in nested tables and follow their body source order. Each collected note retains its own reference, including when several references share a run. Edit its `Paragraphs` or call `Remove()` to change the selected note while preserving sibling references and surrounding text. `AddFootNote` rejects header and footer paragraphs before changing the document.
+
 ### Tables with structure
 
 ```csharp

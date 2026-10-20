@@ -9,14 +9,17 @@ namespace OfficeIMO.Word {
         private WordDocument _document;
         private readonly Paragraph _paragraph;
         private readonly Run _run;
+        private readonly FootnoteReference? _reference;
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="WordFootNote"/> class.
+        /// Initializes a note handle for an exact reference child, or the run's first reference
+        /// when a paragraph's singular note property creates the handle.
         /// </summary>
-        internal WordFootNote(WordDocument document, Paragraph paragraph, Run run) {
+        internal WordFootNote(WordDocument document, Paragraph paragraph, Run run, FootnoteReference? reference = null) {
             this._document = document;
             this._paragraph = paragraph;
             this._run = run;
+            this._reference = reference ?? run.Elements<FootnoteReference>().FirstOrDefault();
         }
 
         /// <summary>
@@ -27,8 +30,7 @@ namespace OfficeIMO.Word {
         /// </summary>
         public List<WordParagraph>? Paragraphs {
             get {
-                var footNoteReference = _run.ChildElements.OfType<FootnoteReference>().FirstOrDefault();
-                var referenceId = footNoteReference?.Id?.Value ?? 0;
+                var referenceId = _reference?.Id?.Value ?? 0;
 
                 if (referenceId != 0) {
                     var footnotesPart = _document._wordprocessingDocument.MainDocumentPart?.FootnotesPart;
@@ -65,17 +67,15 @@ namespace OfficeIMO.Word {
         /// </summary>
         public long? ReferenceId {
             get {
-                var footNoteReference = _run.ChildElements.OfType<FootnoteReference>().FirstOrDefault();
-                return footNoteReference?.Id?.Value;
+                return _reference?.Id?.Value;
             }
         }
 
         /// <summary>
-        /// Remove FootNote from document
+        /// Removes this footnote and its reference, preserving other content in the reference run.
         /// </summary>
         public void Remove() {
-            var footNoteReference = _run.ChildElements.OfType<FootnoteReference>().FirstOrDefault();
-            var referenceId = footNoteReference?.Id?.Value ?? 0;
+            var referenceId = _reference?.Id?.Value ?? 0;
 
             var footnotesPart = _document._wordprocessingDocument.MainDocumentPart?.FootnotesPart;
             var footNotes = footnotesPart?.Footnotes?.ChildElements.OfType<Footnote>().ToList();
@@ -87,7 +87,12 @@ namespace OfficeIMO.Word {
                 }
             }
 
-            _run.Remove();
+            if (_reference?.Parent == _run) {
+                _reference.Remove();
+                if (_run.Parent != null && _run.ChildElements.All(child => child is RunProperties)) {
+                    _run.Remove();
+                }
+            }
         }
 
         internal static WordParagraph AddFootNote(WordDocument document, WordParagraph wordParagraph, WordParagraph footerWordParagraph) {
