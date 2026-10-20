@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "license": "CC0-1.0",
-  "provenance": "Owned macro-free controls. Data!A1:A4=10,20,30,40; B1:B4=2,3,4,5; C1:C2=-100,110. Formulas!D1:D21 contains the cases below, initially cached as -999. F1:F4 is the ABS(Data!A1:A4) fixed array, initially cached as -999. Native Excel opens each plain/encrypted control without repair or file-error warnings, recalculates with F9, and saves the paired readback before tab navigation. No external links, RTD servers or VBA are present or executed.",
+  "provenance": "Owned macro-free controls. Data!A1:A4=10,20,30,40; B1:B4=2,3,4,5; C1:C2=-100,110. Formulas!D1:D24 contains the cases below, initially cached as -999. F1:F4 is the ABS(Data!A1:A4) fixed array, initially cached as -999. H1 is fixed-array SUM(ABS(Data!A1:A4)); I1 is fixed-array SUM(Data!A1:A4*Data!B1:B4), both initially cached as -999. XLS additionally has fixed-array SUM(IF(Data!A1:A4>0,Data!A1:A4,0)) at J1; nesting control functions under arbitrary XLSB functions remains outside its writer grammar. Native Excel opens each plain/encrypted control without repair or file-error warnings, recalculates with F9, and saves the paired readback before tab navigation. No external links, RTD servers or VBA are present or executed.",
   "nativeProducer": {
     "application": "Microsoft Excel for Mac",
     "version": "16.113.4",
@@ -13,49 +13,49 @@
       "path": "officeimo-functions.xls",
       "producer": "OfficeIMO",
       "encrypted": false,
-      "sha256": "a9574f86fede0554cbf0ee59e1c81bedf18d6f21db9600812209b013b160488b"
+      "sha256": "dddc48affd643aeb79f62ddf7f2981ade5a94cdce4626477e63f49fe7cfb47b7"
     },
     {
       "path": "excel-functions.xls",
       "producer": "Microsoft Excel",
       "encrypted": false,
-      "sha256": "f15f5e310813662c39986f559090a4be423a5e344af867c0534704f27b14a40c"
+      "sha256": "8744d36ed0034e056e5ed33405e6e6311b4d0d22ddf2f0e0b007d231b892eaa5"
     },
     {
       "path": "officeimo-functions.encrypted.xls",
       "producer": "OfficeIMO",
       "encrypted": true,
-      "sha256": "364d9e0cbe3b30b3ef55d626912af18a342f54e3bb7acd737c20d2bdbacd068d"
+      "sha256": "c8f3d9cff7900057710d0e05d417de64b74b011326e2d143979aa6e9fc92dfa4"
     },
     {
       "path": "excel-functions.encrypted.xls",
       "producer": "Microsoft Excel",
       "encrypted": true,
-      "sha256": "f230ab9804a3b8edd1c8f54bd2931bff65018a175282cd17ed0bfef7d1faef4f"
+      "sha256": "7230aa295d7e90d99ae69b3818a6b8d31b45e205b12de2cc454d9b664b839645"
     },
     {
       "path": "officeimo-functions.xlsb",
       "producer": "OfficeIMO",
       "encrypted": false,
-      "sha256": "e8fb4c0a31b0da399031779fd150ac6cd4e7a43ac76a3e71554b4a1749d52596"
+      "sha256": "e645a4c046b8d096a6f40a6126c94d4d1b84d91dca8e1e72958a7140ff8d79b1"
     },
     {
       "path": "excel-functions.xlsb",
       "producer": "Microsoft Excel",
       "encrypted": false,
-      "sha256": "216b655e0aaf6ab788e2f13e14095708ce6cfc6c4684b2f6af5b5673ebd672fb"
+      "sha256": "1ee2d451e94f38d6bdc176cc946ccc15af5806e46917de42aa13e805d338e6c4"
     },
     {
       "path": "officeimo-functions.encrypted.xlsb",
       "producer": "OfficeIMO",
       "encrypted": true,
-      "sha256": "4bb3d17e13ceba714e35b6bd9e53f99eee4d3932b857d837672012ddcc5f0347"
+      "sha256": "4412a8e0b38e31b302a22e1b7da5bae6189c13789a20824ad711832e2a805d46"
     },
     {
       "path": "excel-functions.encrypted.xlsb",
       "producer": "Microsoft Excel",
       "encrypted": true,
-      "sha256": "a5af56d4c17ea8715d488da1f71c8a59dc839728c98f9856e10e762f9111ca48"
+      "sha256": "40d0360f1829a4a49c495ec0659940f4601b2481743713744e7f5890a9a39715"
     }
   ],
   "cases": [
@@ -184,6 +184,24 @@
       "column": 4,
       "formula": "IF(1,CHOOSE(2,10,20,30),0)",
       "expected": 20
+    },
+    {
+      "row": 22,
+      "column": 4,
+      "formula": "ROWS(ABS(Data!A1:A4))",
+      "expected": 4
+    },
+    {
+      "row": 23,
+      "column": 4,
+      "formula": "COLUMNS(ABS(Data!A1:D1))",
+      "expected": 4
+    },
+    {
+      "row": 24,
+      "column": 4,
+      "formula": "MODE(ABS(Data!B1:B4-3))",
+      "expected": 1
     }
   ],
   "array": {
@@ -195,5 +213,36 @@
       30,
       40
     ]
-  }
+  },
+  "additionalArrayCases": [
+    {
+      "row": 1,
+      "column": 8,
+      "formula": "SUM(ABS(Data!A1:A4))",
+      "expected": 100,
+      "formats": [
+        "xls",
+        "xlsb"
+      ]
+    },
+    {
+      "row": 1,
+      "column": 9,
+      "formula": "SUM(Data!A1:A4*Data!B1:B4)",
+      "expected": 400,
+      "formats": [
+        "xls",
+        "xlsb"
+      ]
+    },
+    {
+      "row": 1,
+      "column": 10,
+      "formula": "SUM(IF(Data!A1:A4>0,Data!A1:A4,0))",
+      "expected": 100,
+      "formats": [
+        "xls"
+      ]
+    }
+  ]
 }

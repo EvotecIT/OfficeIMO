@@ -186,7 +186,14 @@ namespace OfficeIMO.Excel.LegacyXls.Write {
                         offset += checked(2 + (((flags & 0x01) != 0) ? characterCount * 2 : characterCount));
                         break;
                     case 0x19:
-                        offset += 3;
+                        if (offset + 3 > relativeTokens.Length) return false;
+                        int attributeBytes = 3;
+                        if ((relativeTokens[offset] & 0x04) != 0) {
+                            int choices = relativeTokens[offset + 1] | relativeTokens[offset + 2] << 8;
+                            attributeBytes = checked(attributeBytes + (choices + 1) * 2);
+                        }
+                        if (attributeBytes > relativeTokens.Length - offset) return false;
+                        offset += attributeBytes;
                         break;
                     case 0x1c:
                         offset += 1;

@@ -43,25 +43,32 @@ namespace OfficeIMO.Excel {
             }
             if (stack.Count != 1) { reason = "The native formula expression cannot be typed safely."; return false; }
             // Walk iteratively: formula size, rather than CLR recursion depth, bounds this operation.
-            var pending = new Stack<(Node Node, byte Type)>(); pending.Push((stack.Pop(), resultType));
+            var pending = new Stack<(Node Node, byte Type, bool ArrayEvaluation)>(); pending.Push((stack.Pop(), resultType, false));
             while (pending.Count != 0) {
                 var work = pending.Pop(); Node node = work.Node; byte required = work.Type;
                 TypeToken token = node.Token; int kind = token.Code & 0x1f;
                 if (token.Function.HasValue) {
                     string name = BiffFormulaFunctionMetadata.TryGetKnownFunctionName(token.Function.Value, out string? known) ? known! : string.Empty;
                     byte output = required == Reference ? ReturnsReference(name) ? Reference : ReturnsArray(name) ? Array : Value : required;
+                    // Array evaluation survives scalar functions and value operators even when
+                    // an aggregate requests its argument as a reference. Reference-returning
+                    // functions keep scalar address/size arguments outside that evaluation.
+                    bool scalarFunction = !ReturnsReference(name) && !ReturnsArray(name);
+                    bool conditionalFunction = name is "IF" or "CHOOSE";
+                    bool arrayEvaluation = (scalarFunction || conditionalFunction) && (work.ArrayEvaluation || output == Array);
+                    if ((scalarFunction || conditionalFunction) && work.ArrayEvaluation) output = Array;
                     bytes[token.Offset] = (byte)(kind | output);
                     for (int index = 0; index < node.Children.Length; index++) {
                         byte argument = ArgumentType(name, index);
                         if (argument == 0) argument = output; // IF/CHOOSE result branches follow the requested result class.
-                        else if (argument == Value && output == Array) argument = Array;
-                        pending.Push((node.Children[index], argument));
+                        else if (argument == Value && output == Array && (scalarFunction || conditionalFunction)) argument = Array;
+                        pending.Push((node.Children[index], argument, arrayEvaluation));
                     }
                 } else if (node.Children.Length != 0) {
                     byte operand = token.Code == 0x15 ? required : token.Code is 0x0f or 0x10 or 0x11 ? Reference : required == Array ? Array : Value;
-                    foreach (Node child in node.Children) pending.Push((child, operand));
+                    foreach (Node child in node.Children) pending.Push((child, operand, work.ArrayEvaluation));
                 } else if (token.Code >= 0x20 && kind is 0x03 or 0x04 or 0x05 or 0x0a or 0x0b or 0x0c or 0x0d or 0x19 or 0x1a or 0x1b or 0x1c or 0x1d) {
-                    bytes[token.Offset] = (byte)(kind | required);
+                    bytes[token.Offset] = (byte)(kind | (required == Value && work.ArrayEvaluation ? Array : required));
                 }
             }
             return true;

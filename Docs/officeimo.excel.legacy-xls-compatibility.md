@@ -144,8 +144,8 @@ for security limits and the native XLSB profile. Workbook/sheet protection is a
 separate contract.
 
 The [native formula corpus](../OfficeIMO.TestAssets/Documents/ExcelFormulaOperandCorpus/manifest.json)
-qualifies 21 aggregate, range-returning, lookup, financial, IF and CHOOSE cases,
-plus a fixed array, in plain and password-encrypted XLS and XLSB. Excel recalculates
+qualifies 24 aggregate, range-returning, lookup, financial, IF and CHOOSE cases,
+plus direct and nested fixed-array cases, in plain and password-encrypted XLS and XLSB. Excel recalculates
 the controls and saves readbacks with the expected values. Native operand classes
 retain whole-range and array semantics; unsupported writer grammar remains subject
 to the preflight described above.

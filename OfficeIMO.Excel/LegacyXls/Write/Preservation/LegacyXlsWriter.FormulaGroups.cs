@@ -127,7 +127,6 @@ internal static partial class LegacyXlsWriter {
             || scanned.Last().TokenOffset + 1 + scanned.Last().OperandByteCount != tokens.Length)
             throw new NotSupportedException("The shared formula token layout cannot be materialized safely.");
         int row = BiffRecordReader.ReadUInt16(formula, 0), column = BiffRecordReader.ReadUInt16(formula, 2);
-        bool legacy3d = false;
         foreach (var item in scanned) {
             byte kind = (byte)(item.Token & 0x1f);
             if (item.Token < 0x20 || kind is not 0x0c and not 0x0d and not 0x1a and not 0x1b) continue;
@@ -135,14 +134,11 @@ internal static partial class LegacyXlsWriter {
             if (kind is 0x0c or 0x0d) {
                 tokens[item.TokenOffset] = (byte)(item.Token - 8); // RefN/AreaN -> Ref/Area, retaining the operand class.
             } else {
-                legacy3d = true;
                 offset += 2; // 3D operands retain their token and external-sheet index.
             }
             if (kind is 0x0c or 0x1a) Resolve(offset, offset + 2);
             else { Resolve(offset, offset + 4); Resolve(offset + 2, offset + 6); }
         }
-        if (legacy3d && !ExcelNativeFormulaOperandTypes.TryApply(tokens, binary12: false, ExcelNativeFormulaOperandTypes.Value, out string? typeReason))
-            throw new NotSupportedException("The legacy shared 3D formula cannot be materialized safely: " + typeReason);
         byte[] expanded = new byte[checked(22 + shared.Length - 10)];
         Buffer.BlockCopy(formula, 0, expanded, 0, 22); expanded[14] &= 0xf7; // no longer shared
         WriteUInt16(expanded, 20, checked((ushort)tokens.Length)); Buffer.BlockCopy(tokens, 0, expanded, 22, tokens.Length);

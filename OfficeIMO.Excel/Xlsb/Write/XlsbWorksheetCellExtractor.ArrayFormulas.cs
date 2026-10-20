@@ -17,8 +17,13 @@ internal static partial class XlsbWorksheetCellExtractor {
                 return (position.Row, position.Col, position.Row, position.Col, cell);
             }));
         foreach (var anchor in arrays) {
-            if (!A1.TryParseRange(anchor.CellFormula!.Reference?.Value ?? string.Empty, out int top, out int left, out int bottom, out int right))
-                throw new NotSupportedException("The native XLSB array formula requires a rectangular range.");
+            string referenceText = anchor.CellFormula!.Reference?.Value ?? string.Empty;
+            if (!A1.TryParseRange(referenceText, out int top, out int left, out int bottom, out int right)) {
+                // Native Excel writes single-cell CSE groups as e.g. H1, not H1:H1.
+                if (!A1.TryParseCellReferenceFast(referenceText, out top, out left))
+                    throw new NotSupportedException("The native XLSB array formula requires a rectangular range.");
+                bottom = top; right = left;
+            }
             var address = A1.ParseCellRef(anchor.CellReference!.Value!);
             if (address.Row != top || address.Col != left || bottom > 1_048_576 || right > 16_384)
                 throw new NotSupportedException("The native XLSB array owner must be the top-left cell of a valid worksheet range.");
