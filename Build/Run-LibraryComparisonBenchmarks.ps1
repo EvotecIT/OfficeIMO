@@ -54,6 +54,7 @@ param(
     [string] $HtmlTinkerXRoot = $env:HTMLTINKERX_ROOT,
     [string] $OutputRoot = (Join-Path ([System.IO.Path]::GetTempPath()) 'OfficeIMO\Benchmarks\Runs'),
     [string] $PowerForgeRoot = $env:POWERFORGE_ROOT,
+    [string] $BuildArtifactsPath,
     [ValidateSet('net8.0', 'net10.0')]
     [string] $PowerForgeFramework = 'net8.0',
     [UInt64] $AffinityMask = 0,
@@ -519,7 +520,7 @@ $definitions = [ordered]@{
         IdentityVariables = @('scale')
         ExpectedCases = @(
             foreach ($scale in @('Easy', 'Medium', 'High')) {
-                foreach ($engine in @('OfficeIMO', 'PeachPDF', 'ITextPdfHtml', 'Chromium')) {
+                foreach ($engine in @('OfficeIMO', 'PeachPDF', 'PdfPecker', 'ITextPdfHtml', 'Chromium')) {
                     "$engine|Scale=$scale"
                 }
             }
@@ -533,7 +534,7 @@ $definitions = [ordered]@{
         IdentityVariables = @('payload')
         ExpectedCases = @(
             foreach ($payload in @('PlainText', 'Table', 'Multilingual')) {
-                foreach ($engine in @('OfficeIMO', 'PeachPDF')) {
+                foreach ($engine in @('OfficeIMO', 'PeachPDF', 'PdfPecker')) {
                     "$engine|Payload=$payload"
                 }
             }
@@ -981,9 +982,39 @@ foreach ($name in $selected) {
         if ($null -eq $peachVersionNode -or [string] $peachVersionNode.InnerText -notmatch '^\d+\.\d+\.\d+$') {
             throw 'The HTML comparison must declare an exact PeachPDF package version.'
         }
+        $provenanceMetadata['benchmark.fixture.html.font.profile'] = 'SharedCarlitoRegularBold'
         $peachVersion = [string] $peachVersionNode.InnerText
         $provenanceMetadata['benchmark.package.peachpdf.version'] = $peachVersion
         $provenanceMetadata['benchmark.dependency.peachpdf.version'] = $peachVersion
+        $pdfPeckerVersionNode = $pdfComparisonProject.SelectSingleNode('//PdfPeckerBenchmarkVersion')
+        if ($null -eq $pdfPeckerVersionNode -or [string] $pdfPeckerVersionNode.InnerText -notmatch '^\d+\.\d+\.\d+$') {
+            throw 'The HTML comparison must declare an exact PdfPecker package version.'
+        }
+        $pdfPeckerVersion = [string] $pdfPeckerVersionNode.InnerText
+        $provenanceMetadata['benchmark.package.pdfpecker.version'] = $pdfPeckerVersion
+        $provenanceMetadata['benchmark.dependency.pdfpecker.version'] = $pdfPeckerVersion
+        $provenanceMetadata['benchmark.dependency.pdfpecker.license'] = 'MIT AND OFL-1.1 AND Bitstream-Vera AND APAFML AND BSD-3-Clause AND MIT-Modern-Variant AND Unicode-3.0 AND FSFAP AND LPPL-1.3c'
+        $provenanceMetadata['benchmark.dependency.pdfpecker.licenseUrl'] =
+            "https://www.nuget.org/packages/PdfPecker/$pdfPeckerVersion/License"
+        $packageEvidencePath = Join-Path $artifactsPath 'pdfpecker-package.json'
+        $packageEvidenceArguments = @(
+            'run', '-c', 'Release', '-f', $Framework,
+            '--project', (Join-Path $repositoryRoot $definition.Project)
+        )
+        if (-not [string]::IsNullOrWhiteSpace($BuildArtifactsPath)) {
+            $packageEvidenceArguments += @('--artifacts-path', [System.IO.Path]::GetFullPath($BuildArtifactsPath))
+        }
+        $packageEvidenceArguments += @('--', 'html-package-evidence', '--output', $packageEvidencePath)
+        & dotnet @packageEvidenceArguments
+        if ($LASTEXITCODE -ne 0) { throw 'Could not inspect the restored PdfPecker comparison package.' }
+        $packageEvidence = Get-Content -LiteralPath $packageEvidencePath -Raw | ConvertFrom-Json
+        if ($packageEvidence.id -cne 'PdfPecker' -or $packageEvidence.version -cne $pdfPeckerVersion) {
+            throw 'The restored PdfPecker comparison package does not match the declared version.'
+        }
+        $provenanceMetadata['benchmark.dependency.pdfpecker.license'] = [string] $packageEvidence.license
+        foreach ($field in @('sourceCommit', 'licenseSha256', 'thirdPartyNoticesSha256', 'packageSha512')) {
+            $provenanceMetadata["benchmark.dependency.pdfpecker.$field"] = [string] $packageEvidence.$field
+        }
         foreach ($face in @('Regular', 'Bold')) {
             $fontPath = Join-Path $repositoryRoot "Website/Apps/OfficeIMO.Web.Converter/Assets/Fonts/Carlito-$face.ttf"
             $provenanceMetadata["benchmark.fixture.html.font.$($face.ToLowerInvariant()).sha256"] =
@@ -1019,6 +1050,9 @@ foreach ($name in $selected) {
         '-f', $Framework,
         '--project', (Join-Path $repositoryRoot $definition.Project)
     )
+    if (-not [string]::IsNullOrWhiteSpace($BuildArtifactsPath)) {
+        $arguments += @('--artifacts-path', [System.IO.Path]::GetFullPath($BuildArtifactsPath))
+    }
     if ($name -like 'word*') {
         $arguments += '-p:AcceptNPOIOSMFLicense=true'
     }
@@ -1082,6 +1116,9 @@ foreach ($name in $selected) {
             'validate',
             '--json', $sizeEvidencePath
         )
+        if (-not [string]::IsNullOrWhiteSpace($BuildArtifactsPath)) {
+            $sizeArguments = $sizeArguments[0..6] + @('--artifacts-path', [System.IO.Path]::GetFullPath($BuildArtifactsPath)) + $sizeArguments[7..($sizeArguments.Count - 1)]
+        }
         Push-Location -LiteralPath $repositoryRoot
         try {
             & dotnet @sizeArguments

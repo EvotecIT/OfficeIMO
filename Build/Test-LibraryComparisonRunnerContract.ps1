@@ -137,8 +137,13 @@ $pdfHtml = @(
 )
 if ($pdfHtml.Count -ne 1 -or
     $pdfHtml[0].ComparisonId -ne 'pdf-html-generation-net10.0' -or
-    $pdfHtml[0].ExpectedCaseCount -ne 12) {
-    throw 'The HTML-to-PDF comparison plan does not require all four engines at all three scales.'
+    $pdfHtml[0].ExpectedCaseCount -ne 15) {
+    throw 'The HTML-to-PDF comparison plan does not require all five engines at all three scales.'
+}
+
+$pdfHtmlPayload = @(& $runner -Workload pdfhtmlpayload -RunMode quick -PlanOnly)
+if ($pdfHtmlPayload.Count -ne 1 -or $pdfHtmlPayload[0].ExpectedCaseCount -ne 9) {
+    throw 'The exact 21 KiB HTML comparison plan does not require all three engines and payloads.'
 }
 
 $unrelated = @(

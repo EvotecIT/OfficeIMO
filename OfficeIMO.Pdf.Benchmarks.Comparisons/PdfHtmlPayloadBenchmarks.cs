@@ -14,9 +14,10 @@ namespace OfficeIMO.Pdf.Benchmarks.Comparisons;
 [RankColumn]
 public class PdfHtmlPayloadBenchmarks {
     private PdfHtmlPayloadScenario _scenario = null!;
-    private PdfEmbeddedFontFamily? _multilingualFont;
+    private PdfEmbeddedFontFamily? _sharedFont;
     private byte[]? _officeImoResult;
     private byte[]? _peachPdfResult;
+    private byte[]? _pdfPeckerResult;
 
     [Params(PdfHtmlPayloadKind.PlainText, PdfHtmlPayloadKind.Table, PdfHtmlPayloadKind.Multilingual)]
     public PdfHtmlPayloadKind Payload { get; set; }
@@ -24,20 +25,26 @@ public class PdfHtmlPayloadBenchmarks {
     [GlobalSetup]
     public void Setup() {
         _scenario = PdfHtmlPayloadScenario.Create(Payload);
-        if (Payload == PdfHtmlPayloadKind.Multilingual) {
-            _multilingualFont = new PdfEmbeddedFontFamily(
-                "Carlito",
-                PdfBenchmarkAssets.CarlitoRegular);
-        }
+        _sharedFont = new PdfEmbeddedFontFamily(
+            "Carlito",
+            PdfBenchmarkAssets.CarlitoRegular,
+            PdfBenchmarkAssets.CarlitoBold);
     }
 
     [Benchmark(Baseline = true)]
     public byte[] OfficeIMO() =>
-        _officeImoResult = OfficeImoPdfGenerator.GenerateHtml(_scenario.Html, _multilingualFont);
+        _officeImoResult = OfficeImoPdfGenerator.GenerateHtml(_scenario.Html, _sharedFont);
 
     [Benchmark]
     public byte[] PeachPDF() =>
-        _peachPdfResult = PeachPdfGenerator.Generate(_scenario.Html, _multilingualFont);
+        _peachPdfResult = PeachPdfGenerator.Generate(_scenario.Html, _sharedFont);
+
+    [Benchmark]
+    public byte[] PdfPecker() =>
+        _pdfPeckerResult = PdfPeckerGenerator.Generate(_scenario.Html, _sharedFont);
+
+    [GlobalCleanup(Target = nameof(PdfPecker))]
+    public void ValidatePdfPecker() => Validate(nameof(PdfPecker), _pdfPeckerResult);
 
     [GlobalCleanup(Target = nameof(OfficeIMO))]
     public void ValidateOfficeIMO() => Validate(nameof(OfficeIMO), _officeImoResult);
@@ -45,7 +52,8 @@ public class PdfHtmlPayloadBenchmarks {
     [GlobalCleanup(Target = nameof(PeachPDF))]
     public void ValidatePeachPDF() => Validate(nameof(PeachPDF), _peachPdfResult);
 
-    private void Validate(string engine, byte[]? bytes) {
+    /// <summary>Validates the same artifact contract for timings and the correctness-only evidence runner.</summary>
+    internal PdfReadObservation Validate(string engine, byte[]? bytes) {
         if (bytes == null) {
             throw new InvalidDataException($"{engine} did not return a result for {_scenario.Kind}.");
         }
@@ -75,13 +83,12 @@ public class PdfHtmlPayloadBenchmarks {
         }
 
         ValidateTaggedStructure(engine, bytes);
-        if (_scenario.Kind == PdfHtmlPayloadKind.Multilingual) {
-            ValidateSharedMultilingualFont(engine, bytes);
-        }
+        ValidateSharedFont(engine, bytes);
 
         Console.WriteLine(
             $"HTML_PDF_EVIDENCE engine={engine} payload={_scenario.Kind} htmlBytes={PdfHtmlPayloadScenario.TargetUtf8Bytes} " +
             $"pdfBytes={bytes.Length} pages={observation.PageCount} textLength={observation.TextLength}");
+        return observation;
     }
 
     private static void ValidateTaggedStructure(string engine, byte[] bytes) {
@@ -95,10 +102,10 @@ public class PdfHtmlPayloadBenchmarks {
         }
     }
 
-    private void ValidateSharedMultilingualFont(string engine, byte[] bytes) {
-        PdfEmbeddedFontFamily font = _multilingualFont
-            ?? throw new InvalidOperationException("The multilingual benchmark font was not initialized.");
-        PdfBenchmarkValidation.ValidateSharedFontUse(bytes, engine, font.FamilyName, "Ε");
+    private void ValidateSharedFont(string engine, byte[] bytes) {
+        PdfEmbeddedFontFamily font = _sharedFont
+            ?? throw new InvalidOperationException("The shared benchmark font was not initialized.");
+        PdfBenchmarkValidation.ValidateSharedFontUse(bytes, engine, font.FamilyName, requireBold: true);
     }
 
     private static string NormalizeMultilingualText(string value) {

@@ -39,14 +39,14 @@ foreach ($platform in @('windows', 'linux')) {
     if ($summary.schemaVersion -ne 1 -or
         [string] $summary.format -ne 'officeimo.html-pdf-artifact-evidence-summary' -or
         [string] $summary.platform -ne $platform -or
-        [int] $summary.artifactBundle.artifactCount -ne 37 -or
+        [int] $summary.artifactBundle.artifactCount -ne (1 + 9 * @($report.engines).Count) -or
         [long] $summary.artifactBundle.totalBytes -le 0 -or
         [string] $summary.artifactBundle.manifestSha256 -notmatch '^[0-9a-f]{64}$') {
         throw "Committed $platform HTML/PDF artifact evidence has an invalid summary contract."
     }
 
     $manifest = @($summary.artifactBundle.artifacts | Sort-Object relativePath)
-    if ($manifest.Count -ne 37 -or
+    if ($manifest.Count -ne (1 + 9 * @($report.engines).Count) -or
         @($manifest | Group-Object { $_.relativePath } | Where-Object { $_.Count -ne 1 }).Count -ne 0 -or
         @($manifest | Where-Object { $_.sizeBytes -le 0 -or $_.sha256 -notmatch '^[0-9a-f]{64}$' }).Count -ne 0) {
         throw "Committed $platform HTML/PDF artifact manifest is incomplete."
@@ -66,7 +66,7 @@ foreach ($platform in @('windows', 'linux')) {
 
     $expectedOs = $platform -eq 'windows' ? 'windows' : 'linux|ubuntu'
     if (($report.schemaVersion -isnot [int] -and $report.schemaVersion -isnot [long]) -or
-        $report.schemaVersion -notin @(2, 3) -or
+        $report.schemaVersion -notin @(2, 3, 4) -or
         [string] $report.scale -ne 'High' -or
         [int] $report.iterations -ne 3 -or
         [string] $report.environment.osDescription -notmatch "(?i)$expectedOs" -or
@@ -77,6 +77,10 @@ foreach ($platform in @('windows', 'linux')) {
     }
 
     $currentSchemaVersion = [int] $report.schemaVersion
+    $expectedEngines = $currentSchemaVersion -eq 4 `
+        ? @('OfficeIMO', 'PeachPDF', 'PdfPecker', 'ITextPdfHtml', 'Chromium') `
+        : @('OfficeIMO', 'PeachPDF', 'ITextPdfHtml', 'Chromium')
+    $expectedCancellation['PdfPecker'] = @{ Supports = $true; Status = 'Passed' }
     if ($null -eq $evidenceSchemaVersion) {
         $evidenceSchemaVersion = $currentSchemaVersion
     } elseif ($evidenceSchemaVersion -ne $currentSchemaVersion) {
@@ -94,7 +98,7 @@ foreach ($platform in @('windows', 'linux')) {
         if ($null -eq $allEnginesComparable -or
             $allEnginesComparable.Value -isnot [bool] -or
             $allEnginesComparable.Value -ne $true) {
-            throw "Committed $platform schema-3 evidence has not admitted all engines for comparison."
+            throw "Committed $platform schema-$currentSchemaVersion evidence has not admitted all engines for comparison."
         }
     }
 
@@ -120,17 +124,30 @@ foreach ($platform in @('windows', 'linux')) {
     $expectedEngineSet = @($expectedEngines | Sort-Object) -join '|'
     if ($engines.Count -ne $expectedEngines.Count -or
         $actualEngineSet -ne $expectedEngineSet) {
-        throw "Committed $platform HTML/PDF artifact evidence does not cover all four required engines."
+        throw "Committed $platform HTML/PDF artifact evidence does not cover the required engines for its schema."
     }
 
     foreach ($engineName in $expectedEngines) {
         $engine = @($engines | Where-Object engine -eq $engineName)[0]
-        if ($currentSchemaVersion -eq 3) {
+        if ($currentSchemaVersion -eq 4 -and $engineName -eq 'PdfPecker') {
+            $package = $engine.PSObject.Properties['package']
+            if ($null -eq $package -or $null -eq $package.Value -or
+                [string] $package.Value.id -cne 'PdfPecker' -or
+                [string] $package.Value.version -cne '1.16.0' -or
+                [string] $package.Value.sourceCommit -notmatch '^[0-9a-f]{40}$' -or
+                [string] $package.Value.license -cne 'MIT AND OFL-1.1 AND Bitstream-Vera AND APAFML AND BSD-3-Clause AND MIT-Modern-Variant AND Unicode-3.0 AND FSFAP AND LPPL-1.3c' -or
+                [string] $package.Value.licenseSha256 -notmatch '^[0-9a-f]{64}$' -or
+                [string] $package.Value.thirdPartyNoticesSha256 -notmatch '^[0-9a-f]{64}$' -or
+                [string] $package.Value.packageSha512 -notmatch '^[A-Za-z0-9+/]{86}==$') {
+                throw 'Committed evidence lacks the exact PdfPecker package and license identity.'
+            }
+        }
+        if ($currentSchemaVersion -ge 3) {
             foreach ($propertyName in @('status', 'requestedIterations', 'notRunAfterRejection',
                     'timingComparable', 'memoryComparable', 'failures', 'determinism')) {
                 $property = $engine.PSObject.Properties[$propertyName]
                 if ($null -eq $property -or $null -eq $property.Value) {
-                    throw "Committed $platform $engineName schema-3 evidence lacks '$propertyName'."
+                    throw "Committed $platform $engineName schema-$currentSchemaVersion evidence lacks '$propertyName'."
                 }
             }
             if ($engine.status -cne 'Passed' -or
@@ -144,7 +161,7 @@ foreach ($platform in @('windows', 'linux')) {
                 $engine.memoryComparable -ne $true -or
                 $engine.failures -isnot [array] -or
                 $engine.failures.Count -ne 0) {
-                throw "Committed $platform $engineName schema-3 evidence is rejected, incomplete, or noncomparable."
+                throw "Committed $platform $engineName schema-$currentSchemaVersion evidence is rejected, incomplete, or noncomparable."
             }
         }
         $cancellation = $expectedCancellation[$engineName]
@@ -238,5 +255,5 @@ if ($untrackedMeasuredPaths.Count -ne 0) {
     throw "Measured HTML/PDF artifact sources contain untracked files: $($untrackedMeasuredPaths -join ', ')"
 }
 
-$schemaDescription = if ($evidenceSchemaVersion -eq 2) { 'archived schema-2 contract' } else { 'schema-3 admission contract' }
+$schemaDescription = if ($evidenceSchemaVersion -eq 2) { 'archived schema-2 contract' } else { "schema-$evidenceSchemaVersion admission contract" }
 Write-Host "Current-source Windows/Linux HTML/PDF artifact evidence verified with $schemaDescription at OfficeIMO $officeCommit and HtmlTinkerX $browserCommit."
