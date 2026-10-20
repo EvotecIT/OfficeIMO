@@ -116,10 +116,14 @@ public sealed partial class HtmlRenderingTests {
             .Select(text => text.Text).ToArray();
         foreach (int index in Enumerable.Range(0, shortRows)) Assert.Single(allText, text => text == "Short" + index.ToString("D2"));
         foreach (int index in Enumerable.Range(0, longRows)) Assert.Single(allText, text => text == "Long" + index.ToString("D2"));
-        Assert.Single(allText, text => text == "ShortHeader");
-        Assert.Single(allText, text => text == "LongHeader");
-        Assert.Single(allText, text => text == "ShortFooter");
-        Assert.Single(allText, text => text == "LongFooter");
+        foreach (HtmlRenderPage page in rendered.Pages) {
+            string[] text = page.Visuals.OfType<HtmlRenderText>().Select(item => item.Text).ToArray();
+            foreach (string name in new[] { "Short", "Long" }) {
+                int expected = text.Any(item => IsParallelReportRow(item, name)) ? 1 : 0;
+                Assert.Equal(expected, text.Count(item => item == name + "Header"));
+                Assert.Equal(expected, text.Count(item => item == name + "Footer"));
+            }
+        }
 
         string pdfText = PdfCore.PdfReadDocument.Open(HtmlConversionDocument.Parse(html).ToPdfBytes(new HtmlToPdfOptions {
             PageSize = new OfficePageSize(220D / HtmlRenderOptions.CssPixelsPerInch, 65D / HtmlRenderOptions.CssPixelsPerInch),

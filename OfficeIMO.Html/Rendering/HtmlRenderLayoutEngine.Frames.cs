@@ -58,13 +58,16 @@ internal sealed partial class HtmlRenderLayoutEngine {
             clipVertical: true,
             clippedChildren,
             visuals.Count,
-            source + ":frame-viewport"));
+            source + ":frame-viewport") {
+            SemanticSourceOrder = GetSemanticSourceOrder(element),
+            SourceOrderScope = new HtmlRenderSourceOrderScope()
+        });
 
         ReportReplacedElementFallbacks(style, element);
         AddBoxOutlinePaint(visuals, style, style.MarginLeft, style.MarginTop, boxWidth, boxHeight, element);
         if (!style.PaintVisible) visuals.Clear();
         double outerHeight = style.MarginTop + boxHeight + style.MarginBottom;
-        return new HtmlRenderFlowBlock(
+        var block = new HtmlRenderFlowBlock(
             containingWidth,
             outerHeight,
             visuals,
@@ -73,6 +76,14 @@ internal sealed partial class HtmlRenderLayoutEngine {
             style.AvoidBreakInside,
             source,
             pageName: style.PageName);
+        // Both block and inline frames enter here. Their child documents use
+        // local source coordinates, scoped at the frame's parent DOM position.
+        // Explicit roles and artifacts keep their existing caller-owned scope.
+        if (style.SemanticArtifact || style.SemanticGroupRoleOverride.HasValue) return block;
+        string structureElementKey = "html-element:" + GetSemanticNodeId(element)
+            .ToString(System.Globalization.CultureInfo.InvariantCulture);
+        return WrapSemanticBlock(block, HtmlRenderSemanticGroupRole.Division, source,
+            structureElementKey, GetSemanticSourceOrder(element));
     }
 
     private IReadOnlyList<HtmlRenderVisual> RenderFrameContent(

@@ -17,7 +17,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
             if (string.IsNullOrWhiteSpace(text.Data) || parentStyle.Font.Size <= 0D) return true;
             string source = HtmlRenderStyleResolver.DescribeSource(text.ParentElement ?? throw new InvalidOperationException("A flex text node has no parent element.")) + "::anonymous-flex-item";
             IElement owner = text.ParentElement!;
-            items.Add(new FlexItem(text.Data, owner, source, ResolveAncestorLink(owner), CreateAnonymousFlexStyle(parentStyle), sourceIndex++, paintAnonymousBox: false));
+            items.Add(new FlexItem(text.Data, owner, source, ResolveAncestorLink(owner), CreateAnonymousFlexStyle(parentStyle), sourceIndex++, paintAnonymousBox: false) { SemanticSourceOrder = GetSemanticSourceOrder(text) });
             return true;
         }
 
@@ -65,7 +65,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
             return true;
         }
         if (style.Position != "static" && style.Position != "relative" && style.Position != "sticky") return false;
-        items.Add(new FlexItem(element, BlockifyFlexItemStyle(style), sourceIndex++));
+        items.Add(new FlexItem(element, BlockifyFlexItemStyle(style), sourceIndex++) { SemanticSourceOrder = GetSemanticSourceOrder(element) });
         return true;
     }
 
@@ -91,11 +91,12 @@ internal sealed partial class HtmlRenderLayoutEngine {
             ResolveAncestorLink(element),
             BlockifyFlexItemStyle(style),
             sourceIndex++,
-            paintAnonymousBox: true));
+            paintAnonymousBox: true) { SemanticSourceOrder = GetGeneratedSemanticSourceOrder(element, kind) });
     }
 
     private HtmlRenderFlowBlock LayoutFlexItem(FlexItem item, double containingWidth, HtmlRenderBoxStyle parentStyle, int depth,
-        PagedFloatBoundary? pageBoundary = null) {
+        PagedFloatBoundary? pageBoundary = null, bool retainsPageBoundaries = false) {
+        using var pageBoundaries = new DescendantPageBoundaryScope(this, retainsPageBoundaries);
         HtmlRenderFlowBlock block = item.Element != null
             ? LayoutElement(item.Element, containingWidth, item.Style, parentStyle, depth, pageBoundary: pageBoundary)
             : LayoutAnonymousFlexItem(item, containingWidth, parentStyle);
@@ -177,6 +178,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
     private static HtmlRenderBoxStyle CreateAnonymousBoxStyle(HtmlRenderBoxStyle parentStyle, string display, string semanticRole) => new HtmlRenderBoxStyle {
         Display = display,
         Font = parentStyle.Font,
+        FontSizeContext = parentStyle.FontSizeContext,
         FontDescriptor = parentStyle.FontDescriptor,
         PaintVisible = parentStyle.PaintVisible,
         UnderlineStyle = parentStyle.UnderlineStyle,
@@ -196,6 +198,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         Color = parentStyle.Color,
         Alignment = parentStyle.Alignment,
         LineHeight = parentStyle.LineHeight,
+        UsesNaturalLineHeight = parentStyle.UsesNaturalLineHeight,
         InlineAlignmentLineHeight = parentStyle.InlineAlignmentLineHeight,
         PreserveWhitespace = parentStyle.PreserveWhitespace,
         TextTransform = parentStyle.TextTransform,

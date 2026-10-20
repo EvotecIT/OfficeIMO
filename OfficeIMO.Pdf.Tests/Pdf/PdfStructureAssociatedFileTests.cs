@@ -230,12 +230,46 @@ public sealed class PdfStructureAssociatedFileTests {
         Assert.Equal(PdfComplianceRequirementStatus.Missing, attachments.Status);
     }
 
-    private static PdfDocument ArchivalFormula(PdfComplianceProfile profile, DateTimeOffset? modificationDate) {
+    [Theory]
+    [InlineData(PdfObjectSerializationMode.Buffered)]
+    [InlineData(PdfObjectSerializationMode.ForwardOnly)]
+    public void RequiredPdfA4FCountsFormulaSupplementInEmittedEmbeddedFilesTree(PdfObjectSerializationMode serialization) {
+        var document = ArchivalFormula(PdfComplianceProfile.PdfA4F,
+            new DateTimeOffset(2026, 1, 1, 0, 0, 0, TimeSpan.Zero), serialization);
+
+        byte[] bytes = document.ToBytes();
+
+        Assert.True(PdfInspector.Inspect(bytes).HasEmbeddedFiles);
+        PdfRawDocumentView raw = PdfReadDocument.Open(bytes).RawStructure();
+        Assert.Equal("x.xml", FileName(raw, Assert.Single(raw.Objects, IsFormula)));
+        Assert.Equal(FirstMath, Encoding.UTF8.GetString(Assert.Single(PdfAttachmentExtractor.ExtractAttachments(bytes)).Bytes));
+        Assert.Equal(PdfComplianceRequirementStatus.Satisfied,
+            Assert.Single(document.AssessCompliance(PdfComplianceProfile.PdfA4F).Requirements,
+                requirement => requirement.Id == "pdfa4f-embedded-files").Status);
+    }
+
+    [Fact]
+    public void RequiredPdfA4FDoesNotCountSupplementsSuppressedByDisabledTagging() {
+        var document = ArchivalFormula(PdfComplianceProfile.PdfA4F,
+            new DateTimeOffset(2026, 1, 1, 0, 0, 0, TimeSpan.Zero), tagged: false);
+        using var destination = new MemoryStream();
+
+        var error = Assert.Throws<InvalidOperationException>(() => document.Save(destination));
+
+        Assert.Contains("pdfa4f-embedded-files", error.Message);
+        Assert.Equal(0, destination.Length);
+    }
+
+    private static PdfDocument ArchivalFormula(PdfComplianceProfile profile, DateTimeOffset? modificationDate,
+        PdfObjectSerializationMode serialization = PdfObjectSerializationMode.Buffered, bool tagged = true) {
         string? fontPath = PdfComplianceTestFonts.FindBundledOpenTypeCffFont();
         Assert.NotNull(fontPath);
-        var options = new PdfOptions { IncludeStandardFontToUnicodeMaps = true }
+        var options = new PdfOptions {
+            IncludeStandardFontToUnicodeMaps = true,
+            ObjectSerializationMode = serialization,
+            TaggedStructureMode = tagged ? PdfTaggedStructureMode.CatalogMarkers : PdfTaggedStructureMode.None
+        }
             .ConfigurePdfAGroundwork(profile, "en-US").RequireCompliance(profile)
-            .EnableTaggedPdfCatalogMarkers()
             .EmbedStandardFont(PdfStandardFont.Helvetica, File.ReadAllBytes(fontPath!), "OfficeIMO Source Serif");
         var structure = new PdfCanvasStructureOptions().AddAssociatedFile(new PdfEmbeddedFile("x.xml", Encoding.UTF8.GetBytes(FirstMath), "application/mathml+xml", PdfAssociatedFileRelationship.Supplement, modificationDate: modificationDate));
         return PdfDocument.Create(options).Canvas(canvas => canvas.Structure(PdfCanvasStructureRole.Formula, nested => nested.Text("x", 20, 20, 40, 20), structure));

@@ -24,7 +24,7 @@ internal static class PdfOptimizationFileAssembler {
                     objects.AddSegments(
                         PdfEncoding.Latin1GetBytes((i + 1).ToString(CultureInfo.InvariantCulture) + " 0 obj\n"),
                         bodies[i],
-                        PdfEncoding.Latin1GetBytes("endobj\n"));
+                        PdfObjectBytes.CreateIndirectObjectSuffix(bodies[i]));
                 }
                 PdfFileAssembler.Assemble(
                     boundedOutput,
@@ -206,7 +206,7 @@ internal static class PdfOptimizationFileAssembler {
     private static void WriteIndirectObject(Stream output, int objectNumber, byte[] body) {
         Write(output, PdfEncoding.Latin1GetBytes(objectNumber.ToString(CultureInfo.InvariantCulture) + " 0 obj\n"));
         Write(output, body);
-        Write(output, PdfEncoding.Latin1GetBytes("endobj\n"));
+        Write(output, PdfObjectBytes.CreateIndirectObjectSuffix(body));
     }
 
     private static void WriteXrefStream(

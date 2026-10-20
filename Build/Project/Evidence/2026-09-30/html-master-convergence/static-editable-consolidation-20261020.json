@@ -1,0 +1,292 @@
+{
+  "schema": "officeimo.html-static-editable-master-consolidation/v1",
+  "capturedUtc": "2026-10-20T07:31:05.978446+00:00",
+  "baseMaster": "acde5aa40f55a79421006e123c6e55591ab4be5d",
+  "selectedCheckpoint": "78bdd2dfaea423f958cf06eefd7cc5324d6c720d",
+  "qualifiedProductionHead": "0930e36ac0ecbe4629632ec028d3f2497a092b97",
+  "sourceSeal": {
+    "path": "${HTML_CONSOLIDATION_EVIDENCE_ROOT}/source-seal.json",
+    "bytes": 8835556,
+    "sha256": "32474bec1f84c03e668662bdd45af6c218e977e61cfda01fc4c01614a1220b02"
+  },
+  "sealedInputCount": 41196,
+  "scope": "Qualified static HTML layout/text/PDF/image/MathML/archival contracts, approved atomic image and Reader/Workflows publication owners, editable Word/PPT imports. Separate NPOI benchmark repair excluded.",
+  "mergeResolution": "One opt-in comparison HtmlTinkerX version conflict: retain current master3.0.5. Production source merged without conflict.",
+  "sourceSuites": [
+    {
+      "name": "drawing-full-net10",
+      "passed": 6042,
+      "failed": 0,
+      "total": 6047,
+      "skipped": 5,
+      "trx": {
+        "path": "${HTML_CONSOLIDATION_EVIDENCE_ROOT}/trx/drawing-full-net10.trx",
+        "bytes": 9208556,
+        "sha256": "b3a8f70e34b9a7243c33d5524c3abbb902fa6010ad61fd7ea63b100b7ac17ac6"
+      },
+      "execution": {
+        "path": "${HTML_CONSOLIDATION_EVIDENCE_ROOT}/drawing-full-net10-execution.json",
+        "bytes": 1679,
+        "sha256": "be22265154be2bd76b5d749534329c41a28ebe2a04cd7eafb1ac2a8cba4fe4fb"
+      }
+    },
+    {
+      "name": "html-full-net10",
+      "passed": 7452,
+      "failed": 0,
+      "total": 7452,
+      "skipped": 0,
+      "trx": {
+        "path": "${HTML_CONSOLIDATION_EVIDENCE_ROOT}/trx/html-full-net10.trx",
+        "bytes": 11382675,
+        "sha256": "468a512b51f62bcdd99364a37cee5edba846b6b2a8e7fb0292938a9ece8539b6"
+      },
+      "execution": {
+        "path": "${HTML_CONSOLIDATION_EVIDENCE_ROOT}/html-full-net10-execution.json",
+        "bytes": 1665,
+        "sha256": "133588383d6f6da6bce0884c0b2b5d9084a1dd646f0d6466d0cf8b18f2c2ca73"
+      }
+    },
+    {
+      "name": "html-full-net8",
+      "passed": 7452,
+      "failed": 0,
+      "total": 7452,
+      "skipped": 0,
+      "trx": {
+        "path": "${HTML_CONSOLIDATION_EVIDENCE_ROOT}/trx/html-full-net8.trx",
+        "bytes": 11367770,
+        "sha256": "a42ea45e0c3157f189cef7151d71698585d6ed298512b528023bbb81fd166f9e"
+      },
+      "execution": {
+        "path": "${HTML_CONSOLIDATION_EVIDENCE_ROOT}/html-full-net8-execution.json",
+        "bytes": 1662,
+        "sha256": "4778f1577757d0ea2c0f483faf4d12607b36f5547c203b2f6195bfb2a1065b1c"
+      }
+    },
+    {
+      "name": "pdf-full-net10",
+      "passed": 11574,
+      "failed": 0,
+      "total": 11574,
+      "skipped": 0,
+      "trx": {
+        "path": "${HTML_CONSOLIDATION_EVIDENCE_ROOT}/trx/pdf-full-net10.trx",
+        "bytes": 17499695,
+        "sha256": "2f57b1963f02091a71600f1aad7723dff8ea1c05ad6f9ab647147a8b073ca27b"
+      },
+      "execution": {
+        "path": "${HTML_CONSOLIDATION_EVIDENCE_ROOT}/pdf-full-net10-execution.json",
+        "bytes": 1666,
+        "sha256": "c2b9598abff4bf3206cd50f2031d683aea9f60f6431e13ab0f6a451cc0393c66"
+      }
+    },
+    {
+      "name": "pdf-full-net8",
+      "passed": 11574,
+      "failed": 0,
+      "total": 11574,
+      "skipped": 0,
+      "trx": {
+        "path": "${HTML_CONSOLIDATION_EVIDENCE_ROOT}/trx/pdf-full-net8.trx",
+        "bytes": 17476546,
+        "sha256": "e6746d0c6d55d8b9caae66b56431fba929fcc11cad4ddf9bcd2e406751eaf5cb"
+      },
+      "execution": {
+        "path": "${HTML_CONSOLIDATION_EVIDENCE_ROOT}/pdf-full-net8-execution.json",
+        "bytes": 1657,
+        "sha256": "1435d3ed48ae165cf1f95fff3fadee7d23331067d53a611ef2df5538f48cb9d7"
+      }
+    },
+    {
+      "name": "portable-fonts-net10",
+      "passed": 6,
+      "failed": 0,
+      "total": 6,
+      "skipped": 0,
+      "trx": {
+        "path": "${HTML_CONSOLIDATION_EVIDENCE_ROOT}/trx/portable-fonts-net10.trx",
+        "bytes": 11717,
+        "sha256": "865135e128f3602745765876e2d7dc6688e47945e672a21c943d12c879eadc53"
+      },
+      "execution": {
+        "path": "${HTML_CONSOLIDATION_EVIDENCE_ROOT}/portable-fonts-net10-execution.json",
+        "bytes": 1728,
+        "sha256": "59a7102a734cbbc201a5c0d1de1d8f3872c517778863c596f4b2107b8b546fc9"
+      }
+    },
+    {
+      "name": "portable-fonts-net8",
+      "passed": 6,
+      "failed": 0,
+      "total": 6,
+      "skipped": 0,
+      "trx": {
+        "path": "${HTML_CONSOLIDATION_EVIDENCE_ROOT}/trx/portable-fonts-net8.trx",
+        "bytes": 11704,
+        "sha256": "8ad9c35fcbf12bd582af2f89d293a4428dd7c09f8d76cf461d96eba7a87fdab1"
+      },
+      "execution": {
+        "path": "${HTML_CONSOLIDATION_EVIDENCE_ROOT}/portable-fonts-net8-execution.json",
+        "bytes": 1717,
+        "sha256": "adbf7a9f5e0e45174fd089313b708a869c8e1f59a32511a0221ba97413f4c9aa"
+      }
+    },
+    {
+      "name": "word-svg-net10",
+      "passed": 12,
+      "failed": 0,
+      "total": 12,
+      "skipped": 0,
+      "trx": {
+        "path": "${HTML_CONSOLIDATION_EVIDENCE_ROOT}/trx/word-svg-net10.trx",
+        "bytes": 19194,
+        "sha256": "61bcb1657d3abcd722a556ca25664a50f6880c1b2a2d498e36afabdebb0aaf10"
+      },
+      "execution": {
+        "path": "${HTML_CONSOLIDATION_EVIDENCE_ROOT}/word-svg-net10-execution.json",
+        "bytes": 1683,
+        "sha256": "6d26f90d6959f8b41b06e99cf1cb995a3ddf579cc5e2036d1558123607aed422"
+      }
+    },
+    {
+      "name": "word-svg-net8",
+      "passed": 12,
+      "failed": 0,
+      "total": 12,
+      "skipped": 0,
+      "trx": {
+        "path": "${HTML_CONSOLIDATION_EVIDENCE_ROOT}/trx/word-svg-net8.trx",
+        "bytes": 19169,
+        "sha256": "cba2a21975535eb1d2f47f63b3a78cb5c991cb5fd37effc18308bff324451554"
+      },
+      "execution": {
+        "path": "${HTML_CONSOLIDATION_EVIDENCE_ROOT}/word-svg-net8-execution.json",
+        "bytes": 1679,
+        "sha256": "f79f1bb68fd1ea55c9f35300810733bea9a69d08b703cb3ab62db04a51a5c879"
+      }
+    }
+  ],
+  "comparisonBuilds": {
+    "comparison-build-net100": {
+      "path": "${HTML_CONSOLIDATION_EVIDENCE_ROOT}/comparison-build-net100-execution.json",
+      "bytes": 1500,
+      "sha256": "8f37264650d779709a507774faabd3831155e0e8eeed9bebac535aeb51f6e18a"
+    },
+    "comparison-build-net80": {
+      "path": "${HTML_CONSOLIDATION_EVIDENCE_ROOT}/comparison-build-net80-execution.json",
+      "bytes": 1496,
+      "sha256": "4e8d80483c543f31d4204ba50705055b4723648910a4f70326216efff7ae1ace"
+    }
+  },
+  "privatePackages": {
+    "freshPackages": 9,
+    "frameworkAssets": 36,
+    "frameworks": [
+      "net472",
+      "netstandard2.0",
+      "net8.0",
+      "net10.0"
+    ],
+    "reusedPackages": 0,
+    "packageBinding": {
+      "path": "${HTML_CONSOLIDATION_EVIDENCE_ROOT}/packages/consolidation-v1/package-binding.json",
+      "bytes": 45835,
+      "sha256": "a34417589e4c2773bf59594a4f82a1c862c9d34bf86423c7d6e159b04c5d9d6e"
+    },
+    "consumerBinding": {
+      "path": "${HTML_CONSOLIDATION_EVIDENCE_ROOT}/packages/consolidation-v1/consumer-binding.json",
+      "bytes": 341228,
+      "sha256": "82973885bff4b5b2578231e2a8019fb94f59d4ddc50e39f08fcc9840b39552b5"
+    },
+    "consumers": 11,
+    "htmlConsumers": "NET8/NET10 and executed osx-arm64 NativeAOT with exact package/provider/runtime bindings",
+    "invoice": "2pages on both frameworks; all7export parity controls each pass; explicit caller font matches retained CLI policy",
+    "editableImports": "4Word plus10PowerPoint public contracts each framework; actual saved/reopened DOCX/PPTX and exact package modules retained"
+  },
+  "archive": [
+    {
+      "framework": "net8.0",
+      "pages": 2,
+      "ownPagedPngPdfPairs": 2,
+      "CanClaimConformance": true,
+      "validatorDetails": {
+        "passedRules": "109",
+        "failedRules": "0",
+        "passedChecks": "2619",
+        "failedChecks": "0"
+      },
+      "proof": {
+        "path": "${HTML_CONSOLIDATION_EVIDENCE_ROOT}/packages/consolidation-v1/results/archive/net8.0/proof/proof-observation.json",
+        "bytes": 14235,
+        "sha256": "b0c42a578e59b73a84fba850e25a03c7a069873a201769eaca4896e909564fb2"
+      },
+      "negativeControlsRejectMissingWrongArtifactWrongProfile": true
+    },
+    {
+      "framework": "net10.0",
+      "pages": 2,
+      "ownPagedPngPdfPairs": 2,
+      "CanClaimConformance": true,
+      "validatorDetails": {
+        "passedRules": "109",
+        "failedRules": "0",
+        "passedChecks": "2619",
+        "failedChecks": "0"
+      },
+      "proof": {
+        "path": "${HTML_CONSOLIDATION_EVIDENCE_ROOT}/packages/consolidation-v1/results/archive/net10.0/proof/proof-observation.json",
+        "bytes": 14249,
+        "sha256": "fbfd2ea38ad9775a431a068f94cd104dd0d87e880cbc832f96dacb7a1662e39f"
+      },
+      "negativeControlsRejectMissingWrongArtifactWrongProfile": true
+    }
+  ],
+  "mathReplay": {
+    "fixtures": 4,
+    "profilesPerFixture": 4,
+    "unchangedPngGeometryLogicalTextObservations": 16,
+    "ownPagedPngPdfPairs": 12,
+    "receipt": {
+      "path": "${HTML_CONSOLIDATION_EVIDENCE_ROOT}/math-only-successor-v2/capture-receipt.json",
+      "bytes": 7459,
+      "sha256": "ac1f90c7e9e55164ab8ff01934c1c3a0402c1ce9d9c642b21d26cb4dcc2e9bbe"
+    },
+    "failedOriginalHarness": {
+      "path": "${HTML_CONSOLIDATION_EVIDENCE_ROOT}/replay-executions/math-observer-bind-execution.json",
+      "bytes": 1750,
+      "sha256": "abd26a8b8951001d828d780a218f8df7e88c0c2c4e26816a98e02a081ec8922f"
+    },
+    "classification": "Scratch-only runtime lookup failed before execution; original packet preserved and new math-only successor uses actual verified package consumer DLLs."
+  },
+  "visualObservation": "ROOT viewed fresh NET10 invoice2pages, archive2pages, four real-font Math printcases and two bounded geometry controls. No new required defect in selected sample. Broader native appearance remains open; original Edge/Office receipts retain their original source/artifact binding, with exact current Math PNG/geometry/logical-text continuity.",
+  "nativeLimits": [
+    "No new browser/Office native capture or universal fidelity claim",
+    "Known fence/font/script and archive fullappearance residuals remain documented",
+    "Manual accessibility, broader script/font/platform qualification and PDF/X press conditions remain open"
+  ],
+  "retention": {
+    "sourceRuntimeArchive": {
+      "path": "${HTML_CONSOLIDATION_EVIDENCE_ROOT}/runtime-retention.json",
+      "bytes": 409,
+      "sha256": "4225f1c2a2a9b18e2e797677d2136a67c9e46c7d643c552235a6eea81355acc9"
+    },
+    "packageSourceBuildAndRestoreArchive": {
+      "path": "${HTML_CONSOLIDATION_EVIDENCE_ROOT}/package-runtime-retention.json",
+      "bytes": 353,
+      "sha256": "fa958b5d39adaa53e2264f32746e54c73fd43eb1123968d173037510e97a60ab"
+    },
+    "storage": {
+      "path": "${HTML_CONSOLIDATION_EVIDENCE_ROOT}/storage-result.json",
+      "bytes": 1549,
+      "sha256": "8df98ec3784562b91fd7b94b6272e7230936de562bdea622020ff39a7111ff57"
+    }
+  },
+  "runtimeProviderForks": {
+    "branch": "feature/html-engine",
+    "head": "72130c73a64747bc7016da6f46c4f2607e91633f",
+    "included": false
+  },
+  "windowsProfiling": "deferred",
+  "publication": "One ready-for-review OfficeIMO PR authorized; no merge or package publication"
+}

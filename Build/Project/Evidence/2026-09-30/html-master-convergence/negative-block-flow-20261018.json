@@ -1,0 +1,2351 @@
+{
+  "schema": "officeimo.html.negative-block-flow-qualification/v1",
+  "status": "qualified-bounded-static-branch-checkpoint",
+  "recordedUtc": "2026-10-18T17:00:41.897561+00:00",
+  "qualifiedSourceHead": "6c086226c47e8f3c07d54b3732a5b42acf7c98b6",
+  "repositoryReceiptPath": "Build/Project/Evidence/2026-09-30/html-master-convergence/negative-block-flow-20261018.json",
+  "implementation": {
+    "owner": "OfficeIMO.Html normal-flow, column, float/table, root reflow, overflow and existing paint-phase owners",
+    "publicApiChange": false,
+    "productionDependencyChange": false,
+    "behavior": "Ordinary horizontal block flow preserves signed top/bottom margins, including negative net advance. Following source placement and physical paint/overflow extent have separate owners. Review remediation retains column overflow, root display:contents reflow, earlier float bands, cell paint tails/clips and existing paint-phase ordering."
+  },
+  "sourceSeal": {
+    "path": "candidate6-source.json",
+    "bytes": 1382456,
+    "sha256": "a7514781a051d6e441862ef64f6121fc3a6ab4ac0c94bb5319cd2b92384af6d8",
+    "sealedInputs": 6811
+  },
+  "fixtureMatrix": {
+    "path": "qualification-final/fixture-matrix.json",
+    "bytes": 25761,
+    "sha256": "f12c8b00891391422c1de141e3cf2ca7a80f702d9f3504b510aae1ffdd2f48ca"
+  },
+  "acceptedMatrix": {
+    "path": "candidate6-root-acceptance.json",
+    "bytes": 50815,
+    "sha256": "313524fa9c6eee303f9e0a32e53cfa95fb8119f1c802f2e924858cb60a7cc294"
+  },
+  "actualCapturedSubject": {
+    "path": "candidate6-runtime-binding.json",
+    "bytes": 3568,
+    "sha256": "3a13ac39533b39281419f6cde04d6e6d3aaeef2d5c35719f433f063c72d7e600"
+  },
+  "actualSubjectRetention": {
+    "path": "candidate6-runtime-retention.json",
+    "bytes": 4125,
+    "sha256": "2f87db2a66e796bad97e167d69c03dc38506d4f35b718f7bb27dcfb004625485"
+  },
+  "runtimeDllSha256": {
+    "AngleSharp.Css.dll": "b9d58927495cbe8559015897d1ed5b18838ae658d52d0a9321bc5d9da6101f61",
+    "AngleSharp.dll": "ed9ebe8f1f6a8537f52a5aa607225d929de55f202bd6c1fa198e10bf82db2911",
+    "OfficeIMO.Core.dll": "89a9c770c94faa297b03a632c5a9d6f70f25e70ccf8589fc044797e69b00efed",
+    "OfficeIMO.Html.AngleSharp.dll": "3debdc6610cc8c825db457f41d69076c599c9b6948d8a817c3d63a593ddb21d6",
+    "OfficeIMO.Html.Core.dll": "be2a344431edafb4c31107406eea29b836f8be704ea47ce906a1feb1ac542209",
+    "OfficeIMO.Html.dll": "1669bed9a71daf32d04abc4197ea6a94846cddd81ab3e1d8d320cda1514ccec5",
+    "OfficeIMO.Pdf.dll": "714107fa1743578ad4e0f025e3fd9b784feb2c29121a3c7de2d16556c95fcc44"
+  },
+  "assetMap": {
+    "regular.ttf": {
+      "repositoryPath": "OfficeIMO.TestAssets/Fonts/OfficeIMOBaselineSans-Regular.ttf",
+      "sha256": "00aca2988771998ff27738ff97c2cc8e71eb3013f206de5f205986b7de326af3"
+    },
+    "bold.ttf": {
+      "repositoryPath": "OfficeIMO.TestAssets/Fonts/OfficeIMOBaselineSans-Bold.ttf",
+      "sha256": "20bb7ad2e23beb5020313119f46fbc50a5ded598aaa1be4df719d3c017914b6c"
+    }
+  },
+  "probeSources": [
+    {
+      "source": {
+        "path": "qualification-prep/Program.cs",
+        "bytes": 20294,
+        "sha256": "374d4de62b1b062bd79933ad5b1363ebb8993a9114fddd83b57d052e4c4c6ef8"
+      },
+      "portableSourceReference": {
+        "receipt": "descendant-spanner-fragmentation-20261018.json",
+        "jsonPointer": "/probeSources/0/portableSource"
+      }
+    },
+    {
+      "source": {
+        "path": "qualification-prep/NegativeFlowProbe.csproj",
+        "bytes": 694,
+        "sha256": "655e301d953598a74243368421fbe1772d7f57c2e33956311c2a8de73e1b7aa0"
+      },
+      "portableSource": "<Project Sdk=\"Microsoft.NET.Sdk\">\n  <PropertyGroup>\n    <OutputType>Exe</OutputType>\n    <TargetFramework>net10.0</TargetFramework>\n    <ImplicitUsings>enable</ImplicitUsings>\n    <Nullable>enable</Nullable>\n    <EnableDefaultCompileItems>false</EnableDefaultCompileItems>\n    <AssemblyName>DescendantSpannerProbe</AssemblyName>\n    <OfficeIMORepository Condition=\"'$(OfficeIMORepository)' == ''\">/Volumes/Samsung/Development/GitHub/_worktrees/OfficeIMO-html-negative-flow-margins</OfficeIMORepository>\n  </PropertyGroup>\n  <ItemGroup>\n    <Compile Include=\"Program.cs\" />\n    <ProjectReference Include=\"$(OfficeIMORepository)/OfficeIMO.Html/OfficeIMO.Html.csproj\" />\n  </ItemGroup>\n</Project>\n"
+    }
+  ],
+  "counts": {
+    "fixtures": 20,
+    "caseProfilePairs": 80,
+    "publicPngPages": 130,
+    "publicSvgPages": 130,
+    "applicablePngPdfReplayPages": 110,
+    "publicPngEqualsDirectSceneRasterPages": 79,
+    "directSceneRasterDifferentPages": 51,
+    "diagnosedPartialSourceProfiles": 2,
+    "boundary": "110 public paged PNG/PDF replay pages are exact. Direct scene raster comparison is a different contract: 51 of 130 pages differ. No blanket raster-route equivalence claim."
+  },
+  "frameworks": {
+    "status": "passed-current-local-html",
+    "categoryPerformanceExcluded": true,
+    "results": {
+      "focused-net10": {
+        "passed": 101,
+        "failed": 0,
+        "actualTrx": {
+          "path": "qualified-candidate6-focused-net10-tests/_evomini_2026-10-18_18_02_32.trx",
+          "bytes": 155008,
+          "sha256": "09b92a1f7fc0db98e5a6a4113e6e35bfb772f3d5790fb0d76f8fe759d15fd109"
+        },
+        "actualReceipt": {
+          "path": "qualified-candidate6-focused-net10.receipt.json",
+          "bytes": 1532,
+          "sha256": "11d17fdf00e6cbe9d5d98044674fdee9c5a2379210a3c0163d7a8743a9310d74"
+        }
+      },
+      "full-net10": {
+        "passed": 7010,
+        "failed": 0,
+        "actualTrx": {
+          "path": "qualified-candidate6-full-net10-tests/_evomini_2026-10-18_18_06_17.trx",
+          "bytes": 10635105,
+          "sha256": "c0739140e48513e629b1586ad832ed7e5d2bf9a873f86b49ee3a4df9253650bd"
+        },
+        "actualReceipt": {
+          "path": "qualified-candidate6-full-net10.receipt.json",
+          "bytes": 988,
+          "sha256": "9c44043d7294dc345a97bcaa8715bf4be4326a42478e33b137938a79c68ec43b"
+        }
+      },
+      "full-net8": {
+        "passed": 7010,
+        "failed": 0,
+        "actualTrx": {
+          "path": "qualified-candidate6-full-net8-tests/_evomini_2026-10-18_18_14_53.trx",
+          "bytes": 10621084,
+          "sha256": "45e7ef7d4d782df6a85736ef8dd0be792518c7e2e7d9602be178ecf0c1912613"
+        },
+        "actualReceipt": {
+          "path": "qualified-candidate6-full-net8.receipt.json",
+          "bytes": 948,
+          "sha256": "1868eb35eab22aea0c5457c83ac7c4acd49adfa77573b6dd0b3a1debf56aa59e"
+        }
+      }
+    },
+    "actualCompleteTestSubjectRetention": {
+      "path": "candidate6-test-subject-retention.json",
+      "bytes": 496034,
+      "sha256": "300ebe90e8fbad6b169bb037577cdf5ef6afa21031327ead9f98ea158a124bf5"
+    },
+    "boundary": "101 focused checks and 7010 full HTML checks on each framework. Actual complete subjects archived; archive is not a post-load module trace or external CI result."
+  },
+  "packages": {
+    "status": "qualified-current-private-package-consumers",
+    "privateVersion": "3.5.1",
+    "freshOwner": "OfficeIMO.Html",
+    "frameworkAssets": [
+      "net472",
+      "netstandard2.0",
+      "net8.0",
+      "net10.0"
+    ],
+    "inspectedV2PackageBinding": {
+      "path": "package-prep/qualified-candidate6-v2/package-binding.json",
+      "bytes": 22147,
+      "sha256": "da0ac1a07d38281de431efcaac4c1a9785736b7d43d40eb31af8302929e945c8"
+    },
+    "reusedOwners": [
+      "OfficeIMO.Core",
+      "OfficeIMO.Pdf",
+      "OfficeIMO.Html.Core",
+      "OfficeIMO.Html.AngleSharp"
+    ],
+    "reusedPackageSourceHead": "e757f0c55061e8d6f09ef82a54f388c2545df298",
+    "unchangedOwnerAndSharedInputCount": 2709,
+    "unchangedOwnerLineage": {
+      "path": "package-prep/unchanged-owner-lineage.json",
+      "bytes": 908174,
+      "sha256": "90474d23278c671371ba5e9c9581a0eb4aff369814f5a768c7c6d32d5c483c16"
+    },
+    "expectedConsumers": [
+      "net8",
+      "net10",
+      "osx-arm64 NativeAOT"
+    ],
+    "expectedActualCaseProfilePairsPerConsumer": 20,
+    "consumerBinding": {
+      "path": "package-prep/qualified-candidate6-v4/consumer-binding.json",
+      "bytes": 189669,
+      "sha256": "f1e827be8aa573bb15dc824a65eb67b21bc4d6a172e3939a7707dab516662543"
+    },
+    "finalPackageSourceAndAssetVerification": {
+      "path": "package-prep/qualified-candidate6-v4/package-build-retirement.json",
+      "bytes": 44205,
+      "sha256": "a29fe39572a6082eec5a2a15629e350215432b6f81f32819ef016b00f9efe8d8"
+    },
+    "boundary": "One fresh Html nupkg has four compiled assets. Four source-equivalent owner nupkgs retain exact e757 lineage and 16 assets. Standard net8/net10 consumers bind seven actual loaded owner/provider DLLs to their framework-selected package assets. AOT binds its actual executable and package/RID graph, without a seven-DLL post-load claim. Rejected zero-work and inspector-assumption records remain retained; no product change, repack or rerender was needed for the acceptance/inspection corrections.",
+    "actualRunObservation": "Three actual existing package-only consumers each executed all five inputs across four profiles; independent final inspection passed. NativeAOT ran as the actual macOS arm64 executable.",
+    "crossRuntimePngObservation": {
+      "evidence": {
+        "path": "package-prep/candidate6-net8-png-encoding-observation.json",
+        "bytes": 14906,
+        "sha256": "6e6ff7c13358b5c7febde586cb9827d0efd0ddfcc1e00037a69b840e3ac4bfff"
+      },
+      "net8ComparedWithCanonicalNet10": {
+        "pages": 41,
+        "encodedBytesEqual": false,
+        "nonIdatChunksEqual": true,
+        "inflatedIdatScanlinesIncludingFilterBytesEqual": true
+      },
+      "net10AndAotComparedWithCanonicalNet10": {
+        "pagesPerConsumer": 41,
+        "encodedBytesEqual": true
+      },
+      "boundary": "Exact cross-runtime decoded scanlines and unchanged non-IDAT chunks do not imply identical compressed PNG bytes. Actual PNG/PDF replay equality is checked within each consumer independently. No re-render or rebuild is required for the inspection correction.",
+      "finalInspection": {
+        "path": "package-prep/qualified-candidate6-v4/consumer-binding.json",
+        "bytes": 189669,
+        "sha256": "f1e827be8aa573bb15dc824a65eb67b21bc4d6a172e3939a7707dab516662543"
+      }
+    },
+    "actualInspectionHarness": {
+      "path": "package-prep/package-inspect-candidate6-v6.py",
+      "bytes": 40965,
+      "sha256": "4e78d21449416a4219d01e2caf797e8c4dbbf629c386a47dfa7ee72f47c20b17"
+    },
+    "inspectionLineage": {
+      "path": "package-prep/consumer-inspection-lineage-v6.json",
+      "bytes": 10784,
+      "sha256": "aff5adb1d3836638ff91d8dfe7e2f24abe3bae9bf1a5f2c85b2246a5141d0501"
+    },
+    "actualConsumers": {
+      "net8": {
+        "result": {
+          "path": "package-prep/qualified-candidate6-v4/results/net8/result.json",
+          "bytes": 76364,
+          "sha256": "2a6ff235e8e9826633733fd2a344abaec4381528140449fe93417038e6e6e9b9"
+        },
+        "framework": ".NET 8.0.23",
+        "architecture": "Arm64",
+        "caseProfilePairs": 20,
+        "pngPages": 41,
+        "pngPdfReplayPages": 36,
+        "diagnosedPartialSourceProfiles": 2
+      },
+      "net10": {
+        "result": {
+          "path": "package-prep/qualified-candidate6-v4/results/net10/result.json",
+          "bytes": 76372,
+          "sha256": "26dde27021e637dff8c450e39939691fe0c6725ad6287791df057d103aaa87f9"
+        },
+        "framework": ".NET 10.0.13",
+        "architecture": "Arm64",
+        "caseProfilePairs": 20,
+        "pngPages": 41,
+        "pngPdfReplayPages": 36,
+        "diagnosedPartialSourceProfiles": 2
+      },
+      "aot": {
+        "result": {
+          "path": "package-prep/qualified-candidate6-v4/results/aot/result.json",
+          "bytes": 74896,
+          "sha256": "d6ea389bf0dcdf88fb88958eb5a175f5dced7dd573a096792b10ac00253e1c03"
+        },
+        "framework": ".NET 10.0.13",
+        "architecture": "Arm64",
+        "caseProfilePairs": 20,
+        "pngPages": 41,
+        "pngPdfReplayPages": 36,
+        "diagnosedPartialSourceProfiles": 2
+      }
+    }
+  },
+  "regressions": {
+    "status": "qualified-with-exact-intentional-order-deltas",
+    "expectedCases": 106,
+    "actualComparison": {
+      "path": "retained-regression-proof/candidate6-retained-v3-comparison.json",
+      "bytes": 68037080,
+      "sha256": "9ffdd70f0e632c399a7a9fac355c58392290391a179447576ec1f8238fb5e7d1"
+    },
+    "acceptedDeltaBinding": {
+      "path": "candidate6-retained-root-acceptance.json",
+      "bytes": 12126,
+      "sha256": "de93e5f3d070d66984ce2a9f60f2fadc4ef291787fb0d37091319e8a303c93d4"
+    },
+    "observedRawDifferencesFromCoordinator": 16,
+    "coordinatorObservation": "Every raw difference remains retained and individually classified: twelve unchanged-element SVG order changes on three ordinary cases, plus shape-array order changes in four report summaries. All PNG/font bytes, source counts and inventories, 317 PDF page/text/word-bound signatures and all other summary fields retain their exact gates. Actual Edge screenshots close the three representative changed Print SVG pairs.",
+    "boundary": "Compare against actual qualified e757 output, including the eight prior accepted paint corrections. No old waiver transfers. PDF word boxes and public text-run geometry are separate evidence; no individual encoded-glyph claim.",
+    "structuralDeltaAnalysis": {
+      "path": "final-retained-delta-prep.json",
+      "bytes": 41604,
+      "sha256": "494e0a00a60f6d19f12a01edc756495dc9a943feb989f113a2bf226fecdf5d60"
+    },
+    "actualExecutionHarness": {
+      "path": "retained-regression-proof/regression-v3.py",
+      "bytes": 29265,
+      "sha256": "baad9ec28a4d8cc60fa61495a474d117bf200135c035ff7f5ee2a64cfeb9e29b"
+    },
+    "caseCount": 106,
+    "unchangedCases": 99,
+    "intentionallyReorderedCases": 7,
+    "rawAllMatched": false,
+    "rawDifferenceCount": 16,
+    "allContractAccepted": true
+  },
+  "svgHost": {
+    "status": "qualified-bounded-three-pair-emitted-svg-consumer",
+    "actualBinding": {
+      "path": "retained-svg-native/edge-svg-iframe-comparison.json",
+      "bytes": 5755,
+      "sha256": "f75f67c1a6fe0c16f76166d6f9addb058a9ac9ba577b0819d4ec86d96da53af8"
+    },
+    "boundary": "Exact unchanged emitted first-page PrintPaged SVGs are hosted at their authored 700x140 dimensions in explicit HTML iframes. Complete 800x1000 captures compare pixel-for-pixel without masks; root inspected all three pairs. Remaining profile SVG deltas are structurally verified. Outer Witness face availability is separate from embedded SVG font use; iframe FontFaceSet and individual encoded glyph geometry are not inspected. The standalone SVG FullPage screenshot timeout remains recorded separately.",
+    "controller": {
+      "path": "retained-svg-native/native-screen-v3.py",
+      "bytes": 19053,
+      "sha256": "a41456170336f21256ec94f6b1b835f0cb3cd8af3ddb39cb3b26c9e9de724f83"
+    },
+    "standaloneFailure": {
+      "path": "retained-svg-native/standalone-screenshot-failure.json",
+      "bytes": 1728,
+      "sha256": "616d75d48d8fb8d656f3d83973369d1a92d50c3d3747857fae80bc624b24ed06"
+    },
+    "all3FullImagePairsPixelEqual": true,
+    "rootViewedAllPairs": true,
+    "allOwnedResourcesReleased": true
+  },
+  "nativeHtmlVisual": {
+    "status": "root-accepted-bounded-owned-contract",
+    "actualRootAcceptance": {
+      "path": "candidate6-root-acceptance.json",
+      "bytes": 50815,
+      "sha256": "313524fa9c6eee303f9e0a32e53cfa95fb8119f1c802f2e924858cb60a7cc294"
+    },
+    "actualPublicAggregate": {
+      "path": "candidate6-final-controls.json",
+      "bytes": 41109,
+      "sha256": "a289089fee27928db05e95ddd7cbc0246c78436f24ab469286c4e44be36af39c"
+    },
+    "actualCurrentArtifactEquality": {
+      "path": "candidate6-vs-candidate5-visual-delta.json",
+      "bytes": 4906,
+      "sha256": "138a41cb4cd5159c7e37f6a3c6d78bd8a0ea2852bb76df2c74f9e37bac5a31b0"
+    },
+    "nativeObservationLedger": {
+      "path": "native-review-observations.json",
+      "bytes": 2938,
+      "sha256": "c68436e4d13f1254c7d30a2d7b3743573c888c20cfb13ff2ef3894581d49bf80"
+    },
+    "browser": "Microsoft Edge 155.0.4283.62",
+    "browserFrameworkSha256": "ca963b896c0a9641f0c592e69e13e6d43780e4c28d7b4bc202c9f6561fdc5599",
+    "canonicalBrowserOwner": {
+      "package": "HtmlTinkerX",
+      "version": "3.0.4",
+      "sourceCommit": "41b60907ef6891c5f4c8d5a2090daaf1063bdc8e"
+    },
+    "nativeObserverBinding": {
+      "path": "native-observer-normal-weight/native-binding-v5-observer.json",
+      "bytes": 142232,
+      "sha256": "05b39df05c3a00baf32ab3e85746d96c6c6990fb2f4dfd33cf7406e03253636d"
+    },
+    "visualCarryForward": "Current 20-case PNG/SVG/PDF bytes and raw PDF text-span/link observations match the reviewed actual previous subject. The current phase-owner changes additionally have four root-inspected native/before/after contacts.",
+    "phaseOwnerObservation": {
+      "path": "phase-owner-observations/observations.json",
+      "bytes": 164349,
+      "sha256": "30e5246ac3004861893a9bf91874d9aaf85fcf6a0e2de1c3c9eaf2e4ffc2b3fa"
+    },
+    "generalNativeConformance": false,
+    "sourceTextLimit": "Poppler may split a label into adjacent word boxes. Reconstructed labels/raw spans and owned source remain separate from word-box appearance and resolved visibility."
+  },
+  "reviews": {
+    "initialIndependentPass": {
+      "path": "first-review-wave.json",
+      "bytes": 2063,
+      "sha256": "386bfcc9d717c932793b90887a5d2a3089e8d4b59cdfefaaa66a0dc124ff49ce"
+    },
+    "targetedConfirmationPacket": {
+      "path": "targeted-review-packet.json",
+      "bytes": 3434,
+      "sha256": "2e5d93fcf6d9a76f371f2dc82979591792491564242495d68bdb45a24bbbf554"
+    },
+    "coordinatorRetainedTargetedOutcome": {
+      "evidence": {
+        "path": "final-handoff-prep/source-snapshots/continuation-state-at-draft.json",
+        "bytes": 13655,
+        "sha256": "7aeaccb0d04881ef719cd976cbaa2b76ca24269b79e66f6133e67a5e76f4e563"
+      },
+      "jsonPointer": "/targetedConfirmation",
+      "record": {
+        "head": "2c4937ef4b281dec881bbea7fac3b923c67071ef",
+        "result": "Accepted listednegativeflowfixesbefore fullsuite6feedbackwasincorporated",
+        "boundary": "coverage-incomplete for newly exposed phaseordering/temporarygeometry/semanticprojection interactions; do not treat broadpaintowner settled",
+        "next": "After boundedremediation andfocusedproof, one non-overlappingclosureinspectionlimitedtheseexposedcontracts/siblings. No repeatedfullnegativeflowreview."
+      },
+      "boundary": "Coordinator-retained agent outcome, not an invented transcript or independently executable test."
+    },
+    "currentNonoverlappingOwnerClosure": {
+      "evidence": {
+        "path": "phase-owner-closure-result.json",
+        "bytes": 437,
+        "sha256": "409c1748a23c6ea5a8d128a5e283b2a95fb90ccdc185b63c0a8a85148bc2c339"
+      },
+      "head": "6c086226c47e8f3c07d54b3732a5b42acf7c98b6",
+      "result": "No concrete consequential defect; acceptasshaped; focused101currentandrootfull7010subsequentlypass",
+      "boundary": "Read-only inspection of newly exposed paint-phase/temporary-geometry/semantic-projection contracts; original negative-flow review was not repeated."
+    },
+    "finalRootUnresolvedFindingReconciliation": "All reproduced findings in the selected signed-flow and paint-owner boundary are fixed, focused/native/full-framework/package/regression proof passes, and every retained output delta is explicitly accounted for. Existing unsupported native boundaries remain open in the canonical roadmap.",
+    "knownUnresolvedValidatedInScopeP0ToP2": 0,
+    "scope": "This bounded negative-flow/paint-owner checkpoint; not a claim that the whole HTML programme has no open work."
+  },
+  "cases": [
+    {
+      "case": "negative-top-original",
+      "input": {
+        "path": "inputs/negative-margin-flow-control.html",
+        "bytes": 804,
+        "sha256": "332cf97bb1dac2d0ccac926f9eae4b51e22fe3d767a316bc9ca4b2e7fc0a77f9"
+      },
+      "portableHtml": "<!doctype html>\n<html lang=\"en\">\n<meta charset=\"utf-8\">\n<title>opacity-spanner-relative-overlap</title>\n<style>\n@font-face{font-family:Witness;src:url(regular.ttf);font-weight:400}\n@font-face{font-family:Witness;src:url(bold.ttf);font-weight:700}\n@page{size:700px 140px;margin:20px}\nhtml,body{margin:0;background:white;font:14px/20px Witness}\np,h2{margin:0;font:inherit;orphans:1;widows:1}\na{color:inherit;text-decoration:none}\n.columns{width:300px;column-count:2;column-gap:20px;column-fill:auto;column-rule:2px solid #0066cc}\n.spanner{column-span:all;margin:0;font-weight:700;background:#eeeeee}\n#spanner{background:#ff0000}\n</style>\n<div style=\"height:80px\" id=\"first\">N31-P01</div>\n<div id=\"overlap\" style=\"height:25px;margin-top:-45px;background:green\">N31-X01</div>\n<p id=\"after\">N31-A01</p></html>",
+      "actualSummary": {
+        "path": "candidate6-final-controls-negative-top-original/summary.json",
+        "bytes": 97205,
+        "sha256": "acaef669f5e5385ced158346e1205a1054378036d41f79b06bd681fbda2181ee"
+      },
+      "captureReceipt": {
+        "path": "candidate6-final-controls-negative-top-original.receipt.json",
+        "bytes": 1937,
+        "sha256": "a912bf9ad6d8bdefe51f0270d346575e12f42d82ef37d18969f9c5c1e45be65c"
+      },
+      "acceptedOwnedVisualContract": true,
+      "generalNativeConformance": false,
+      "retainedLimits": [],
+      "profiles": {
+        "PrintPaged": {
+          "pages": 1,
+          "sourceLabels": 3,
+          "retainedLabels": [
+            "N31-P01",
+            "N31-X01",
+            "N31-A01"
+          ],
+          "omittedLabels": [],
+          "completeSourceInventory": true,
+          "hasLoss": false,
+          "requireNoLossThrows": false,
+          "pngEqualsPdfReplay": true,
+          "diagnosticCodes": []
+        },
+        "ScreenMediaPaged": {
+          "pages": 1,
+          "sourceLabels": 3,
+          "retainedLabels": [
+            "N31-P01",
+            "N31-X01",
+            "N31-A01"
+          ],
+          "omittedLabels": [],
+          "completeSourceInventory": true,
+          "hasLoss": false,
+          "requireNoLossThrows": false,
+          "pngEqualsPdfReplay": true,
+          "diagnosticCodes": []
+        },
+        "ScreenFullPage": {
+          "pages": 1,
+          "sourceLabels": 3,
+          "retainedLabels": [
+            "N31-P01",
+            "N31-X01",
+            "N31-A01"
+          ],
+          "omittedLabels": [],
+          "completeSourceInventory": true,
+          "hasLoss": false,
+          "requireNoLossThrows": false,
+          "pngEqualsPdfReplay": null,
+          "diagnosticCodes": []
+        },
+        "ScreenSnapshotPaged": {
+          "pages": 1,
+          "sourceLabels": 3,
+          "retainedLabels": [
+            "N31-P01",
+            "N31-X01",
+            "N31-A01"
+          ],
+          "omittedLabels": [],
+          "completeSourceInventory": true,
+          "hasLoss": false,
+          "requireNoLossThrows": false,
+          "pngEqualsPdfReplay": true,
+          "diagnosticCodes": []
+        }
+      }
+    },
+    {
+      "case": "negative-bottom-flow-control",
+      "input": {
+        "path": "inputs/negative-bottom-flow-control.html",
+        "bytes": 565,
+        "sha256": "f9d22b02981c79d3dfb3aa7d1bee389bc030ed0e17fa9006cc1a3574ea75702f"
+      },
+      "portableHtml": "<!doctype html>\n<html lang=\"en\"><meta charset=\"utf-8\"><title>Negative bottom margin</title>\n<style>\n@font-face{font-family:Witness;src:url(regular.ttf);font-weight:400}\n@font-face{font-family:Witness;src:url(bold.ttf);font-weight:700}\n@page{size:700px 140px;margin:20px}\nhtml,body{margin:0;background:white;font:14px/20px Witness}\np{margin:0;font:inherit;orphans:1;widows:1}\n</style>\n<div id=\"first\" style=\"height:60px\">NFM02-P01</div>\n<div id=\"overlap\" style=\"height:25px;margin-bottom:-45px;background:#00aa00\">NFM02-X01</div>\n<p id=\"after\">NFM02-A01</p>\n</html>\n",
+      "actualSummary": {
+        "path": "candidate6-final-controls-negative-bottom-flow-control/summary.json",
+        "bytes": 97144,
+        "sha256": "fecab88fd43f273ecc1b6d38c4bbe75562d10c734eaf30df2192d8382c2561a9"
+      },
+      "captureReceipt": {
+        "path": "candidate6-final-controls-negative-bottom-flow-control.receipt.json",
+        "bytes": 1944,
+        "sha256": "fc7f277b5168160d49c39709fbe4eaf2261d5e28170bbc75d653fb379ccf4cf2"
+      },
+      "acceptedOwnedVisualContract": true,
+      "generalNativeConformance": false,
+      "retainedLimits": [],
+      "profiles": {
+        "PrintPaged": {
+          "pages": 1,
+          "sourceLabels": 3,
+          "retainedLabels": [
+            "NFM02-P01",
+            "NFM02-X01",
+            "NFM02-A01"
+          ],
+          "omittedLabels": [],
+          "completeSourceInventory": true,
+          "hasLoss": false,
+          "requireNoLossThrows": false,
+          "pngEqualsPdfReplay": true,
+          "diagnosticCodes": []
+        },
+        "ScreenMediaPaged": {
+          "pages": 1,
+          "sourceLabels": 3,
+          "retainedLabels": [
+            "NFM02-P01",
+            "NFM02-X01",
+            "NFM02-A01"
+          ],
+          "omittedLabels": [],
+          "completeSourceInventory": true,
+          "hasLoss": false,
+          "requireNoLossThrows": false,
+          "pngEqualsPdfReplay": true,
+          "diagnosticCodes": []
+        },
+        "ScreenFullPage": {
+          "pages": 1,
+          "sourceLabels": 3,
+          "retainedLabels": [
+            "NFM02-P01",
+            "NFM02-X01",
+            "NFM02-A01"
+          ],
+          "omittedLabels": [],
+          "completeSourceInventory": true,
+          "hasLoss": false,
+          "requireNoLossThrows": false,
+          "pngEqualsPdfReplay": null,
+          "diagnosticCodes": []
+        },
+        "ScreenSnapshotPaged": {
+          "pages": 1,
+          "sourceLabels": 3,
+          "retainedLabels": [
+            "NFM02-P01",
+            "NFM02-X01",
+            "NFM02-A01"
+          ],
+          "omittedLabels": [],
+          "completeSourceInventory": true,
+          "hasLoss": false,
+          "requireNoLossThrows": false,
+          "pngEqualsPdfReplay": true,
+          "diagnosticCodes": []
+        }
+      }
+    },
+    {
+      "case": "zero-net-top-flow-control",
+      "input": {
+        "path": "inputs/zero-net-top-flow-control.html",
+        "bytes": 567,
+        "sha256": "6751b9d7f77f3a0f317ebf1e748d5a4dae6def415b33f1fa07c2562cafa36d3e"
+      },
+      "portableHtml": "<!doctype html>\n<html lang=\"en\"><meta charset=\"utf-8\"><title>Zero net top-margin advance</title>\n<style>\n@font-face{font-family:Witness;src:url(regular.ttf);font-weight:400}\n@font-face{font-family:Witness;src:url(bold.ttf);font-weight:700}\n@page{size:700px 140px;margin:20px}\nhtml,body{margin:0;background:white;font:14px/20px Witness}\np{margin:0;font:inherit;orphans:1;widows:1}\n</style>\n<div id=\"first\" style=\"height:80px\">NFM03-P01</div>\n<div id=\"overlap\" style=\"height:25px;margin-top:-25px;background:#00aa00\">NFM03-X01</div>\n<p id=\"after\">NFM03-A01</p>\n</html>\n",
+      "actualSummary": {
+        "path": "candidate6-final-controls-zero-net-top-flow-control/summary.json",
+        "bytes": 97190,
+        "sha256": "ee431ea0e996d29dc36ff75107fe7f90d81789539410d7572495580ec5dc0304"
+      },
+      "captureReceipt": {
+        "path": "candidate6-final-controls-zero-net-top-flow-control.receipt.json",
+        "bytes": 1938,
+        "sha256": "e5ac827c443e580b87f62ba611300bb902f0257bab113822d160cdc8c1d3bb56"
+      },
+      "acceptedOwnedVisualContract": true,
+      "generalNativeConformance": false,
+      "retainedLimits": [],
+      "profiles": {
+        "PrintPaged": {
+          "pages": 1,
+          "sourceLabels": 3,
+          "retainedLabels": [
+            "NFM03-P01",
+            "NFM03-X01",
+            "NFM03-A01"
+          ],
+          "omittedLabels": [],
+          "completeSourceInventory": true,
+          "hasLoss": false,
+          "requireNoLossThrows": false,
+          "pngEqualsPdfReplay": true,
+          "diagnosticCodes": []
+        },
+        "ScreenMediaPaged": {
+          "pages": 1,
+          "sourceLabels": 3,
+          "retainedLabels": [
+            "NFM03-P01",
+            "NFM03-X01",
+            "NFM03-A01"
+          ],
+          "omittedLabels": [],
+          "completeSourceInventory": true,
+          "hasLoss": false,
+          "requireNoLossThrows": false,
+          "pngEqualsPdfReplay": true,
+          "diagnosticCodes": []
+        },
+        "ScreenFullPage": {
+          "pages": 1,
+          "sourceLabels": 3,
+          "retainedLabels": [
+            "NFM03-P01",
+            "NFM03-X01",
+            "NFM03-A01"
+          ],
+          "omittedLabels": [],
+          "completeSourceInventory": true,
+          "hasLoss": false,
+          "requireNoLossThrows": false,
+          "pngEqualsPdfReplay": null,
+          "diagnosticCodes": []
+        },
+        "ScreenSnapshotPaged": {
+          "pages": 1,
+          "sourceLabels": 3,
+          "retainedLabels": [
+            "NFM03-P01",
+            "NFM03-X01",
+            "NFM03-A01"
+          ],
+          "omittedLabels": [],
+          "completeSourceInventory": true,
+          "hasLoss": false,
+          "requireNoLossThrows": false,
+          "pngEqualsPdfReplay": true,
+          "diagnosticCodes": []
+        }
+      }
+    },
+    {
+      "case": "nested-negative-top-flow-control",
+      "input": {
+        "path": "inputs/nested-negative-top-flow-control.html",
+        "bytes": 675,
+        "sha256": "9682065ca9f140d83b1d65112ceb9c6da4fecbb99c4df92c5833e966174c107e"
+      },
+      "portableHtml": "<!doctype html>\n<html lang=\"en\"><meta charset=\"utf-8\"><title>Nested signed flow</title>\n<style>\n@font-face{font-family:Witness;src:url(regular.ttf);font-weight:400}\n@font-face{font-family:Witness;src:url(bold.ttf);font-weight:700}\n@page{size:700px 140px;margin:20px}\nhtml,body{margin:0;background:white;font:14px/20px Witness}\np{margin:0;font:inherit;orphans:1;widows:1}\n</style>\n<div id=\"wrapper\" style=\"border:2px solid #224466;padding:8px;width:300px\">\n<div id=\"first\" style=\"height:40px\">NFM04-P01</div>\n<div id=\"overlap\" style=\"height:25px;margin-top:-45px;background:#00aa00\">NFM04-X01</div>\n<p id=\"inner-after\">NFM04-A01</p>\n</div>\n<p id=\"after\">NFM04-A02</p>\n</html>\n",
+      "actualSummary": {
+        "path": "candidate6-final-controls-nested-negative-top-flow-control/summary.json",
+        "bytes": 143100,
+        "sha256": "af53cf68c68691e407e956ff1c3b6566bc835210efc63611a1b44b7ba97d6c1e"
+      },
+      "captureReceipt": {
+        "path": "candidate6-final-controls-nested-negative-top-flow-control.receipt.json",
+        "bytes": 1952,
+        "sha256": "24edfff382e0fa1182f257ce92da6129b0ce133ccadb056945fbb60c5838aa70"
+      },
+      "acceptedOwnedVisualContract": true,
+      "generalNativeConformance": false,
+      "retainedLimits": [],
+      "profiles": {
+        "PrintPaged": {
+          "pages": 1,
+          "sourceLabels": 4,
+          "retainedLabels": [
+            "NFM04-P01",
+            "NFM04-X01",
+            "NFM04-A01",
+            "NFM04-A02"
+          ],
+          "omittedLabels": [],
+          "completeSourceInventory": true,
+          "hasLoss": false,
+          "requireNoLossThrows": false,
+          "pngEqualsPdfReplay": true,
+          "diagnosticCodes": []
+        },
+        "ScreenMediaPaged": {
+          "pages": 1,
+          "sourceLabels": 4,
+          "retainedLabels": [
+            "NFM04-P01",
+            "NFM04-X01",
+            "NFM04-A01",
+            "NFM04-A02"
+          ],
+          "omittedLabels": [],
+          "completeSourceInventory": true,
+          "hasLoss": false,
+          "requireNoLossThrows": false,
+          "pngEqualsPdfReplay": true,
+          "diagnosticCodes": []
+        },
+        "ScreenFullPage": {
+          "pages": 1,
+          "sourceLabels": 4,
+          "retainedLabels": [
+            "NFM04-P01",
+            "NFM04-X01",
+            "NFM04-A01",
+            "NFM04-A02"
+          ],
+          "omittedLabels": [],
+          "completeSourceInventory": true,
+          "hasLoss": false,
+          "requireNoLossThrows": false,
+          "pngEqualsPdfReplay": null,
+          "diagnosticCodes": []
+        },
+        "ScreenSnapshotPaged": {
+          "pages": 1,
+          "sourceLabels": 4,
+          "retainedLabels": [
+            "NFM04-P01",
+            "NFM04-X01",
+            "NFM04-A01",
+            "NFM04-A02"
+          ],
+          "omittedLabels": [],
+          "completeSourceInventory": true,
+          "hasLoss": false,
+          "requireNoLossThrows": false,
+          "pngEqualsPdfReplay": true,
+          "diagnosticCodes": []
+        }
+      }
+    },
+    {
+      "case": "negative-bottom-retained-overflow",
+      "input": {
+        "path": "inputs/negative-bottom-retained-overflow.html",
+        "bytes": 680,
+        "sha256": "94a7aa365094f1ce1b49ef75cae557a319f9550d5128eb03d8a6e83d03568fd9"
+      },
+      "portableHtml": "<!doctype html>\n<html lang=\"en\"><meta charset=\"utf-8\"><title>Negative advance retains overflow</title>\n<style>\n@font-face{font-family:Witness;src:url(regular.ttf);font-weight:400}\n@font-face{font-family:Witness;src:url(bold.ttf);font-weight:700}\n@page{size:700px 140px;margin:20px}\nhtml,body{margin:0;background:white;font:14px/20px Witness}\np{margin:0;font:inherit;orphans:1;widows:1}\n</style>\n<div id=\"first\" style=\"height:40px\">NFM05-P01</div>\n<div id=\"overlap\" style=\"height:25px;margin-bottom:-45px;background:#00aa00\">\n<p id=\"overflow-line-1\">NFM05-X01</p><p id=\"overflow-line-2\">NFM05-X02</p><p id=\"overflow-line-3\">NFM05-X03</p>\n</div>\n<p id=\"after\">NFM05-A01</p>\n</html>\n",
+      "actualSummary": {
+        "path": "candidate6-final-controls-negative-bottom-retained-overflow/summary.json",
+        "bytes": 133684,
+        "sha256": "4314fc3e45374b3bc895db16fe4f9e40c6f11f281817a7466a0ef19a0ee5b14f"
+      },
+      "captureReceipt": {
+        "path": "candidate6-final-controls-negative-bottom-retained-overflow.receipt.json",
+        "bytes": 1954,
+        "sha256": "21fb12ac31ca272ce3aab9dba745844ef5dd667f3d5c5dc5bfaf1d99dcfe29e8"
+      },
+      "acceptedOwnedVisualContract": true,
+      "generalNativeConformance": false,
+      "retainedLimits": [],
+      "profiles": {
+        "PrintPaged": {
+          "pages": 1,
+          "sourceLabels": 5,
+          "retainedLabels": [
+            "NFM05-P01",
+            "NFM05-X01",
+            "NFM05-X02",
+            "NFM05-X03",
+            "NFM05-A01"
+          ],
+          "omittedLabels": [],
+          "completeSourceInventory": true,
+          "hasLoss": false,
+          "requireNoLossThrows": false,
+          "pngEqualsPdfReplay": true,
+          "diagnosticCodes": []
+        },
+        "ScreenMediaPaged": {
+          "pages": 1,
+          "sourceLabels": 5,
+          "retainedLabels": [
+            "NFM05-P01",
+            "NFM05-X01",
+            "NFM05-X02",
+            "NFM05-X03",
+            "NFM05-A01"
+          ],
+          "omittedLabels": [],
+          "completeSourceInventory": true,
+          "hasLoss": false,
+          "requireNoLossThrows": false,
+          "pngEqualsPdfReplay": true,
+          "diagnosticCodes": []
+        },
+        "ScreenFullPage": {
+          "pages": 1,
+          "sourceLabels": 5,
+          "retainedLabels": [
+            "NFM05-P01",
+            "NFM05-X01",
+            "NFM05-X02",
+            "NFM05-X03",
+            "NFM05-A01"
+          ],
+          "omittedLabels": [],
+          "completeSourceInventory": true,
+          "hasLoss": false,
+          "requireNoLossThrows": false,
+          "pngEqualsPdfReplay": null,
+          "diagnosticCodes": []
+        },
+        "ScreenSnapshotPaged": {
+          "pages": 1,
+          "sourceLabels": 5,
+          "retainedLabels": [
+            "NFM05-P01",
+            "NFM05-X01",
+            "NFM05-X02",
+            "NFM05-X03",
+            "NFM05-A01"
+          ],
+          "omittedLabels": [],
+          "completeSourceInventory": true,
+          "hasLoss": false,
+          "requireNoLossThrows": false,
+          "pngEqualsPdfReplay": true,
+          "diagnosticCodes": []
+        }
+      }
+    },
+    {
+      "case": "positive-margin-flow-control",
+      "input": {
+        "path": "inputs/positive-margin-flow-control.html",
+        "bytes": 561,
+        "sha256": "7c730cd6b6eb183baccb674edece4a6bc77ffadccec2660f05be0ee30fe536db"
+      },
+      "portableHtml": "<!doctype html>\n<html lang=\"en\"><meta charset=\"utf-8\"><title>Positive margin control</title>\n<style>\n@font-face{font-family:Witness;src:url(regular.ttf);font-weight:400}\n@font-face{font-family:Witness;src:url(bold.ttf);font-weight:700}\n@page{size:700px 140px;margin:20px}\nhtml,body{margin:0;background:white;font:14px/20px Witness}\np{margin:0;font:inherit;orphans:1;widows:1}\n</style>\n<div id=\"first\" style=\"height:40px\">NFM06-P01</div>\n<div id=\"overlap\" style=\"height:25px;margin-top:5px;background:#00aa00\">NFM06-X01</div>\n<p id=\"after\">NFM06-A01</p>\n</html>\n",
+      "actualSummary": {
+        "path": "candidate6-final-controls-positive-margin-flow-control/summary.json",
+        "bytes": 97143,
+        "sha256": "50863232ccb25efeedb5f24c1eddc54e62d65876bd07c45500de20223821d03b"
+      },
+      "captureReceipt": {
+        "path": "candidate6-final-controls-positive-margin-flow-control.receipt.json",
+        "bytes": 1944,
+        "sha256": "37b818d134a566daabab330b4570e6250a9ce5897eda211128122a0629f900bc"
+      },
+      "acceptedOwnedVisualContract": true,
+      "generalNativeConformance": false,
+      "retainedLimits": [],
+      "profiles": {
+        "PrintPaged": {
+          "pages": 1,
+          "sourceLabels": 3,
+          "retainedLabels": [
+            "NFM06-P01",
+            "NFM06-X01",
+            "NFM06-A01"
+          ],
+          "omittedLabels": [],
+          "completeSourceInventory": true,
+          "hasLoss": false,
+          "requireNoLossThrows": false,
+          "pngEqualsPdfReplay": true,
+          "diagnosticCodes": []
+        },
+        "ScreenMediaPaged": {
+          "pages": 1,
+          "sourceLabels": 3,
+          "retainedLabels": [
+            "NFM06-P01",
+            "NFM06-X01",
+            "NFM06-A01"
+          ],
+          "omittedLabels": [],
+          "completeSourceInventory": true,
+          "hasLoss": false,
+          "requireNoLossThrows": false,
+          "pngEqualsPdfReplay": true,
+          "diagnosticCodes": []
+        },
+        "ScreenFullPage": {
+          "pages": 1,
+          "sourceLabels": 3,
+          "retainedLabels": [
+            "NFM06-P01",
+            "NFM06-X01",
+            "NFM06-A01"
+          ],
+          "omittedLabels": [],
+          "completeSourceInventory": true,
+          "hasLoss": false,
+          "requireNoLossThrows": false,
+          "pngEqualsPdfReplay": null,
+          "diagnosticCodes": []
+        },
+        "ScreenSnapshotPaged": {
+          "pages": 1,
+          "sourceLabels": 3,
+          "retainedLabels": [
+            "NFM06-P01",
+            "NFM06-X01",
+            "NFM06-A01"
+          ],
+          "omittedLabels": [],
+          "completeSourceInventory": true,
+          "hasLoss": false,
+          "requireNoLossThrows": false,
+          "pngEqualsPdfReplay": true,
+          "diagnosticCodes": []
+        }
+      }
+    },
+    {
+      "case": "opacity-spanner-overlapping-sibling",
+      "input": {
+        "path": "inputs/opacity-spanner-overlapping-sibling.html",
+        "bytes": 1123,
+        "sha256": "10634c73bc07581ffd42fcc1c504fbddc336c554290d2a8e4237ec0f755590b4"
+      },
+      "portableHtml": "<!doctype html>\n<html lang=\"en\">\n<meta charset=\"utf-8\">\n<title>opacity-spanner-overlapping-sibling</title>\n<style>\n@font-face{font-family:Witness;src:url(regular.ttf);font-weight:400}\n@font-face{font-family:Witness;src:url(bold.ttf);font-weight:700}\n@page{size:700px 140px;margin:20px}\nhtml,body{margin:0;background:white;font:14px/20px Witness}\np,h2{margin:0;font:inherit;orphans:1;widows:1}\na{color:inherit;text-decoration:none}\n.columns{width:300px;column-count:2;column-gap:20px;column-fill:auto;column-rule:2px solid #0066cc}\n.spanner{column-span:all;margin:0;font-weight:700;background:#eeeeee}\n#spanner{background:#ff0000}\n</style>\n<section id=\"columns\" class=\"columns\" style=\"background:#0000ff\">\n<div id=\"wrapper\" style=\"opacity:.5;background:#ff0000\">\n<p id=\"n25-p01\">N25-P01</p>\n<p id=\"n25-p02\">N25-P02</p>\n<div id=\"spanner\" class=\"spanner\">\n<p id=\"n25-s01\"><a id=\"n25-s01-link\" href=\"#after\">N25-S01</a></p>\n</div>\n<p id=\"n25-t01\">N25-T01</p>\n<p id=\"n25-t02\">N25-T02</p>\n</div>\n</section>\n<div id=\"overlap\" style=\"height:25px;margin-top:-45px;background:#00ff00\">N25-X01</div>\n<p id=\"after\">N25-A01</p>\n</html>\n",
+      "actualSummary": {
+        "path": "candidate6-final-controls-opacity-spanner-overlapping-sibling/summary.json",
+        "bytes": 316536,
+        "sha256": "9b5e58e19de6bdcd5e4041431b8f824f14cc23e3b692b533a274a243ea1bb2f7"
+      },
+      "captureReceipt": {
+        "path": "candidate6-final-controls-opacity-spanner-overlapping-sibling.receipt.json",
+        "bytes": 1958,
+        "sha256": "9facb28ba5f76fc1301eafe616b524f03d6cbb58030a63644442f3ba7f492f0d"
+      },
+      "acceptedOwnedVisualContract": true,
+      "generalNativeConformance": false,
+      "retainedLimits": [
+        "The existing extracted-spanner ancestor-opacity appearance differs from Edge and remains open."
+      ],
+      "profiles": {
+        "PrintPaged": {
+          "pages": 1,
+          "sourceLabels": 7,
+          "retainedLabels": [
+            "N25-P01",
+            "N25-P02",
+            "N25-S01",
+            "N25-T01",
+            "N25-T02",
+            "N25-X01",
+            "N25-A01"
+          ],
+          "omittedLabels": [],
+          "completeSourceInventory": true,
+          "hasLoss": false,
+          "requireNoLossThrows": false,
+          "pngEqualsPdfReplay": true,
+          "diagnosticCodes": []
+        },
+        "ScreenMediaPaged": {
+          "pages": 1,
+          "sourceLabels": 7,
+          "retainedLabels": [
+            "N25-P01",
+            "N25-P02",
+            "N25-S01",
+            "N25-T01",
+            "N25-T02",
+            "N25-X01",
+            "N25-A01"
+          ],
+          "omittedLabels": [],
+          "completeSourceInventory": true,
+          "hasLoss": false,
+          "requireNoLossThrows": false,
+          "pngEqualsPdfReplay": true,
+          "diagnosticCodes": []
+        },
+        "ScreenFullPage": {
+          "pages": 1,
+          "sourceLabels": 7,
+          "retainedLabels": [
+            "N25-P01",
+            "N25-P02",
+            "N25-S01",
+            "N25-T01",
+            "N25-T02",
+            "N25-X01",
+            "N25-A01"
+          ],
+          "omittedLabels": [],
+          "completeSourceInventory": true,
+          "hasLoss": false,
+          "requireNoLossThrows": false,
+          "pngEqualsPdfReplay": null,
+          "diagnosticCodes": []
+        },
+        "ScreenSnapshotPaged": {
+          "pages": 1,
+          "sourceLabels": 7,
+          "retainedLabels": [
+            "N25-P01",
+            "N25-P02",
+            "N25-S01",
+            "N25-T01",
+            "N25-T02",
+            "N25-X01",
+            "N25-A01"
+          ],
+          "omittedLabels": [],
+          "completeSourceInventory": true,
+          "hasLoss": false,
+          "requireNoLossThrows": false,
+          "pngEqualsPdfReplay": true,
+          "diagnosticCodes": []
+        }
+      }
+    },
+    {
+      "case": "direct-columns-negative-top-flow-control",
+      "input": {
+        "path": "inputs/direct-columns-negative-top-flow-control.html",
+        "bytes": 755,
+        "sha256": "39e005931b18b486b15c0a7d1a08b02c59c9685b9522436557c7fc622de8f8d0"
+      },
+      "portableHtml": "<!doctype html>\n<html lang=\"en\"><meta charset=\"utf-8\"><title>Direct column child negative normal-flow advance</title>\n<style>\n@font-face{font-family:Witness;src:url(regular.ttf);font-weight:400}\n@font-face{font-family:Witness;src:url(bold.ttf);font-weight:700}\n@page{size:700px 140px;margin:20px}\nhtml,body{margin:0;background:white;font:14px/20px Witness}\np{margin:0;font:inherit;orphans:1;widows:1}\n</style>\n<section id=\"columns\" style=\"width:300px;height:80px;column-count:2;column-gap:20px;column-fill:auto;background:#eeeeff\">\n<div id=\"first\" style=\"height:60px\">NFM08-P01</div>\n<div id=\"overlap\" style=\"height:25px;margin-top:-45px;background:#00aa00\">NFM08-X01</div>\n<p id=\"after\">NFM08-A01</p>\n</section>\n<p id=\"outer-after\">NFM08-A02</p>\n</html>\n",
+      "actualSummary": {
+        "path": "candidate6-final-controls-direct-columns-negative-top-flow-control/summary.json",
+        "bytes": 131734,
+        "sha256": "3eef2b1cd57d1f1be738fe6c859aa35e8b76073d73357d53676c81546d7e9ecb"
+      },
+      "captureReceipt": {
+        "path": "candidate6-final-controls-direct-columns-negative-top-flow-control.receipt.json",
+        "bytes": 1968,
+        "sha256": "de70643898247368871c3792039d91d2ee109f127aea65e12b81344f32285e62"
+      },
+      "acceptedOwnedVisualContract": true,
+      "generalNativeConformance": false,
+      "retainedLimits": [],
+      "profiles": {
+        "PrintPaged": {
+          "pages": 1,
+          "sourceLabels": 4,
+          "retainedLabels": [
+            "NFM08-P01",
+            "NFM08-X01",
+            "NFM08-A01",
+            "NFM08-A02"
+          ],
+          "omittedLabels": [],
+          "completeSourceInventory": true,
+          "hasLoss": false,
+          "requireNoLossThrows": false,
+          "pngEqualsPdfReplay": true,
+          "diagnosticCodes": []
+        },
+        "ScreenMediaPaged": {
+          "pages": 1,
+          "sourceLabels": 4,
+          "retainedLabels": [
+            "NFM08-P01",
+            "NFM08-X01",
+            "NFM08-A01",
+            "NFM08-A02"
+          ],
+          "omittedLabels": [],
+          "completeSourceInventory": true,
+          "hasLoss": false,
+          "requireNoLossThrows": false,
+          "pngEqualsPdfReplay": true,
+          "diagnosticCodes": []
+        },
+        "ScreenFullPage": {
+          "pages": 1,
+          "sourceLabels": 4,
+          "retainedLabels": [
+            "NFM08-P01",
+            "NFM08-X01",
+            "NFM08-A01",
+            "NFM08-A02"
+          ],
+          "omittedLabels": [],
+          "completeSourceInventory": true,
+          "hasLoss": false,
+          "requireNoLossThrows": false,
+          "pngEqualsPdfReplay": null,
+          "diagnosticCodes": []
+        },
+        "ScreenSnapshotPaged": {
+          "pages": 1,
+          "sourceLabels": 4,
+          "retainedLabels": [
+            "NFM08-P01",
+            "NFM08-X01",
+            "NFM08-A01",
+            "NFM08-A02"
+          ],
+          "omittedLabels": [],
+          "completeSourceInventory": true,
+          "hasLoss": false,
+          "requireNoLossThrows": false,
+          "pngEqualsPdfReplay": true,
+          "diagnosticCodes": []
+        }
+      }
+    },
+    {
+      "case": "tall-negative-bottom-retained-overflow",
+      "input": {
+        "path": "inputs/tall-negative-bottom-retained-overflow.html",
+        "bytes": 701,
+        "sha256": "ed9a143f040750ee5f7a6076d07ff4f844ca4273d91a431fc5f3f33342d4b8e9"
+      },
+      "portableHtml": "<!doctype html>\n<html lang=\"en\"><meta charset=\"utf-8\"><title>Tall negative bottom margin retains visible overflow</title>\n<style>\n@font-face{font-family:Witness;src:url(regular.ttf);font-weight:400}\n@font-face{font-family:Witness;src:url(bold.ttf);font-weight:700}\n@page{size:700px 140px;margin:20px}\nhtml,body{margin:0;background:white;font:14px/20px Witness}\np{margin:0;font:inherit;orphans:1;widows:1}\n</style>\n<div id=\"first\" style=\"height:1060px\">NFM09-P01</div>\n<div id=\"overlap\" style=\"height:25px;margin-bottom:-45px;background:#00aa00\">\n<p id=\"overflow-line-1\">NFM09-X01</p><p id=\"overflow-line-2\">NFM09-X02</p><p id=\"overflow-line-3\">NFM09-X03</p>\n</div>\n<p id=\"after\">NFM09-A01</p>\n</html>\n",
+      "actualSummary": {
+        "path": "candidate6-final-controls-tall-negative-bottom-retained-overflow/summary.json",
+        "bytes": 381147,
+        "sha256": "6bd25e9c0ca1a670f575e18868206d3ae1199cc893226692bf2405498415a742"
+      },
+      "captureReceipt": {
+        "path": "candidate6-final-controls-tall-negative-bottom-retained-overflow.receipt.json",
+        "bytes": 1964,
+        "sha256": "efb7993b297e988c767de76b3901caa759102be85ffa1bacabf130dfd75f8d31"
+      },
+      "acceptedOwnedVisualContract": true,
+      "generalNativeConformance": false,
+      "retainedLimits": [
+        "Print and screen-media pagination retain three of five source labels: X02/X03 are omitted with diagnosed loss and strict rejection. Current 11 pages versus Edge 12 is not accepted native conformance or full-source retention. Continuous height 1120 and two snapshot pages retain all five labels."
+      ],
+      "profiles": {
+        "PrintPaged": {
+          "pages": 11,
+          "sourceLabels": 5,
+          "retainedLabels": [
+            "NFM09-P01",
+            "NFM09-X01",
+            "NFM09-A01"
+          ],
+          "omittedLabels": [
+            "NFM09-X02",
+            "NFM09-X03"
+          ],
+          "completeSourceInventory": false,
+          "hasLoss": true,
+          "requireNoLossThrows": true,
+          "pngEqualsPdfReplay": true,
+          "diagnosticCodes": [
+            "HtmlRenderForcedFragment",
+            "HtmlRenderVisualFragmentUnsupported"
+          ]
+        },
+        "ScreenMediaPaged": {
+          "pages": 11,
+          "sourceLabels": 5,
+          "retainedLabels": [
+            "NFM09-P01",
+            "NFM09-X01",
+            "NFM09-A01"
+          ],
+          "omittedLabels": [
+            "NFM09-X02",
+            "NFM09-X03"
+          ],
+          "completeSourceInventory": false,
+          "hasLoss": true,
+          "requireNoLossThrows": true,
+          "pngEqualsPdfReplay": true,
+          "diagnosticCodes": [
+            "HtmlRenderForcedFragment",
+            "HtmlRenderVisualFragmentUnsupported"
+          ]
+        },
+        "ScreenFullPage": {
+          "pages": 1,
+          "sourceLabels": 5,
+          "retainedLabels": [
+            "NFM09-P01",
+            "NFM09-X01",
+            "NFM09-X02",
+            "NFM09-X03",
+            "NFM09-A01"
+          ],
+          "omittedLabels": [],
+          "completeSourceInventory": true,
+          "hasLoss": false,
+          "requireNoLossThrows": false,
+          "pngEqualsPdfReplay": null,
+          "diagnosticCodes": []
+        },
+        "ScreenSnapshotPaged": {
+          "pages": 2,
+          "sourceLabels": 5,
+          "retainedLabels": [
+            "NFM09-P01",
+            "NFM09-X01",
+            "NFM09-X02",
+            "NFM09-X03",
+            "NFM09-A01"
+          ],
+          "omittedLabels": [],
+          "completeSourceInventory": true,
+          "hasLoss": false,
+          "requireNoLossThrows": false,
+          "pngEqualsPdfReplay": true,
+          "diagnosticCodes": []
+        }
+      }
+    },
+    {
+      "case": "negative-collapsed-pair-original",
+      "input": {
+        "path": "inputs/negative-collapsed-pair-original.html",
+        "bytes": 246,
+        "sha256": "3f9f12b1aeef995d5d286f52b068da30e5898ad679e9a713c0235b1cf21e7801"
+      },
+      "portableHtml": "<div style='margin:0'><div id='first' style='height:10px;margin:0 0 -100px;background:red'></div><div id='second' style='height:10px;margin:-100px 0 0;background:blue'></div><div id='tail' style='height:10px;margin:0;background:lime'></div></div>",
+      "actualSummary": {
+        "path": "candidate6-final-controls-negative-collapsed-pair-original/summary.json",
+        "bytes": 50733,
+        "sha256": "39effdc49fc0862cdf35320c1165b7a361b1faf9cc2837ec8c00e9b5c26217ea"
+      },
+      "captureReceipt": {
+        "path": "candidate6-final-controls-negative-collapsed-pair-original.receipt.json",
+        "bytes": 1952,
+        "sha256": "2be2d34c54454bbc453e5c7212905270922219c4586861ccecf9599c55bfdebf"
+      },
+      "acceptedOwnedVisualContract": true,
+      "generalNativeConformance": false,
+      "retainedLimits": [
+        "Bodytext-free;no independentcontinuousnativeimage;actualscreenDOM/print source geometry retained separately."
+      ],
+      "profiles": {
+        "PrintPaged": {
+          "pages": 1,
+          "sourceLabels": 0,
+          "retainedLabels": [],
+          "omittedLabels": [],
+          "completeSourceInventory": true,
+          "hasLoss": false,
+          "requireNoLossThrows": false,
+          "pngEqualsPdfReplay": true,
+          "diagnosticCodes": []
+        },
+        "ScreenMediaPaged": {
+          "pages": 1,
+          "sourceLabels": 0,
+          "retainedLabels": [],
+          "omittedLabels": [],
+          "completeSourceInventory": true,
+          "hasLoss": false,
+          "requireNoLossThrows": false,
+          "pngEqualsPdfReplay": true,
+          "diagnosticCodes": []
+        },
+        "ScreenFullPage": {
+          "pages": 1,
+          "sourceLabels": 0,
+          "retainedLabels": [],
+          "omittedLabels": [],
+          "completeSourceInventory": true,
+          "hasLoss": false,
+          "requireNoLossThrows": false,
+          "pngEqualsPdfReplay": null,
+          "diagnosticCodes": []
+        },
+        "ScreenSnapshotPaged": {
+          "pages": 1,
+          "sourceLabels": 0,
+          "retainedLabels": [],
+          "omittedLabels": [],
+          "completeSourceInventory": true,
+          "hasLoss": false,
+          "requireNoLossThrows": false,
+          "pngEqualsPdfReplay": true,
+          "diagnosticCodes": []
+        }
+      }
+    },
+    {
+      "case": "column-overflow",
+      "input": {
+        "path": "qualification-v5/inputs/column-overflow.html",
+        "bytes": 720,
+        "sha256": "451a171f66716090405693e7a124d6c6fb9f4a5564280973f4728bb2465f78f2"
+      },
+      "portableHtml": "<!doctype html><style>@font-face{font-family:Witness;src:url(regular.ttf)}@font-face{font-family:Witness;src:url(bold.ttf);font-weight:700}@page{size:700px 140px;margin:20px}html,body{margin:0;padding:0;font:14px/20px Witness}p{margin:0;orphans:1;widows:1}div,section{padding:0;border:0}</style><section id='columns' style='width:220px;height:60px;column-count:2;column-gap:20px;column-fill:auto'><div id='finite' style='height:20px;background:#eee'><p id='line1'>RV1-L01</p><p id='line2'>RV1-L02</p><p id='line3'>RV1-L03</p><p id='line4'>RV1-L04</p><p id='line5'>RV1-L05</p><p id='line6'>RV1-L06</p></div><div id='negative' style='height:10px;margin-top:-20px;background:green'></div><p id='tail'>RV1-TAIL</p></section>",
+      "actualSummary": {
+        "path": "candidate6-final-controls-column-overflow/summary.json",
+        "bytes": 167620,
+        "sha256": "1e6b6efff70e0c01fe08c06fd598a2331c8fcc895310ad4622752db4042199dc"
+      },
+      "captureReceipt": {
+        "path": "candidate6-final-controls-column-overflow.receipt.json",
+        "bytes": 1935,
+        "sha256": "6071e23997a8a08d69d8e974cd41a93c1e22d76ff7c6dd99de9ef49908d2d5c6"
+      },
+      "acceptedOwnedVisualContract": true,
+      "generalNativeConformance": false,
+      "retainedLimits": [],
+      "profiles": {
+        "PrintPaged": {
+          "pages": 1,
+          "sourceLabels": 7,
+          "retainedLabels": [
+            "RV1-L01",
+            "RV1-L02",
+            "RV1-L03",
+            "RV1-L04",
+            "RV1-L05",
+            "RV1-L06",
+            "RV1-TAIL"
+          ],
+          "omittedLabels": [],
+          "completeSourceInventory": true,
+          "hasLoss": false,
+          "requireNoLossThrows": false,
+          "pngEqualsPdfReplay": true,
+          "diagnosticCodes": []
+        },
+        "ScreenMediaPaged": {
+          "pages": 1,
+          "sourceLabels": 7,
+          "retainedLabels": [
+            "RV1-L01",
+            "RV1-L02",
+            "RV1-L03",
+            "RV1-L04",
+            "RV1-L05",
+            "RV1-L06",
+            "RV1-TAIL"
+          ],
+          "omittedLabels": [],
+          "completeSourceInventory": true,
+          "hasLoss": false,
+          "requireNoLossThrows": false,
+          "pngEqualsPdfReplay": true,
+          "diagnosticCodes": []
+        },
+        "ScreenFullPage": {
+          "pages": 1,
+          "sourceLabels": 7,
+          "retainedLabels": [
+            "RV1-L01",
+            "RV1-L02",
+            "RV1-L03",
+            "RV1-L04",
+            "RV1-L05",
+            "RV1-L06",
+            "RV1-TAIL"
+          ],
+          "omittedLabels": [],
+          "completeSourceInventory": true,
+          "hasLoss": false,
+          "requireNoLossThrows": false,
+          "pngEqualsPdfReplay": null,
+          "diagnosticCodes": []
+        },
+        "ScreenSnapshotPaged": {
+          "pages": 1,
+          "sourceLabels": 7,
+          "retainedLabels": [
+            "RV1-L01",
+            "RV1-L02",
+            "RV1-L03",
+            "RV1-L04",
+            "RV1-L05",
+            "RV1-L06",
+            "RV1-TAIL"
+          ],
+          "omittedLabels": [],
+          "completeSourceInventory": true,
+          "hasLoss": false,
+          "requireNoLossThrows": false,
+          "pngEqualsPdfReplay": true,
+          "diagnosticCodes": []
+        }
+      }
+    },
+    {
+      "case": "float-rewind",
+      "input": {
+        "path": "qualification-v5/inputs/float-rewind.html",
+        "bytes": 726,
+        "sha256": "76bbd281bc0107b5f09cdf1edab73166923bd1fd436c31ad4a91351d62ee5d0a"
+      },
+      "portableHtml": "<!doctype html><style>@font-face{font-family:Witness;src:url(regular.ttf)}@font-face{font-family:Witness;src:url(bold.ttf);font-weight:700}@page{size:700px 140px;margin:20px}html,body{margin:0;padding:0;font:14px/20px Witness}p{margin:0;orphans:1;widows:1}div,section{padding:0;border:0}</style><section id='columns' style='width:220px;height:120px;column-count:2;column-gap:20px;column-fill:auto'><div id='floating' style='float:left;width:40px;height:60px;background:red'></div><div id='spacer' style='height:80px'></div><div id='negative' style='height:10px;margin-top:-60px;background:green'></div><div id='bfc' style='display:flow-root;width:50px;height:10px;background:blue;font:8px/10px Witness'>RV2-BFC</div></section>",
+      "actualSummary": {
+        "path": "candidate6-final-controls-float-rewind/summary.json",
+        "bytes": 89105,
+        "sha256": "d0c31bda4d07e4bf9991b76ad4c949307fcb3e2b08ae49595f5710e7fe3ff614"
+      },
+      "captureReceipt": {
+        "path": "candidate6-final-controls-float-rewind.receipt.json",
+        "bytes": 1929,
+        "sha256": "6681b9accdb09bcaab172190cbc57b717e3b35b2ed677d0e2cc49c4ae580f0f3"
+      },
+      "acceptedOwnedVisualContract": true,
+      "generalNativeConformance": false,
+      "retainedLimits": [],
+      "profiles": {
+        "PrintPaged": {
+          "pages": 2,
+          "sourceLabels": 1,
+          "retainedLabels": [
+            "RV2-BFC"
+          ],
+          "omittedLabels": [],
+          "completeSourceInventory": true,
+          "hasLoss": false,
+          "requireNoLossThrows": false,
+          "pngEqualsPdfReplay": true,
+          "diagnosticCodes": []
+        },
+        "ScreenMediaPaged": {
+          "pages": 2,
+          "sourceLabels": 1,
+          "retainedLabels": [
+            "RV2-BFC"
+          ],
+          "omittedLabels": [],
+          "completeSourceInventory": true,
+          "hasLoss": false,
+          "requireNoLossThrows": false,
+          "pngEqualsPdfReplay": true,
+          "diagnosticCodes": []
+        },
+        "ScreenFullPage": {
+          "pages": 1,
+          "sourceLabels": 1,
+          "retainedLabels": [
+            "RV2-BFC"
+          ],
+          "omittedLabels": [],
+          "completeSourceInventory": true,
+          "hasLoss": false,
+          "requireNoLossThrows": false,
+          "pngEqualsPdfReplay": null,
+          "diagnosticCodes": []
+        },
+        "ScreenSnapshotPaged": {
+          "pages": 1,
+          "sourceLabels": 1,
+          "retainedLabels": [
+            "RV2-BFC"
+          ],
+          "omittedLabels": [],
+          "completeSourceInventory": true,
+          "hasLoss": false,
+          "requireNoLossThrows": false,
+          "pngEqualsPdfReplay": true,
+          "diagnosticCodes": []
+        }
+      }
+    },
+    {
+      "case": "contents-single",
+      "input": {
+        "path": "qualification-v5/inputs/contents-single.html",
+        "bytes": 453,
+        "sha256": "af249a6613bb0a3d70cd4fca74cee7d3c8163770072f52f015cd2904d70f38ac"
+      },
+      "portableHtml": "<!doctype html><style>@font-face{font-family:Witness;src:url(regular.ttf)}@font-face{font-family:Witness;src:url(bold.ttf);font-weight:700}@page{size:700px 140px;margin:20px}html,body{margin:0;padding:0;font:14px/20px Witness}p{margin:0;orphans:1;widows:1}div,section{padding:0;border:0}</style><style>body{display:contents}</style><div style='height:80px'>RV3-FIRST</div><div style='height:25px;margin-top:-45px'>RV3-OVER</div><p id='tail'>RV3-TAIL</p>",
+      "actualSummary": {
+        "path": "candidate6-final-controls-contents-single/summary.json",
+        "bytes": 66532,
+        "sha256": "f880c2d7e67aa998b8091f5d9c14d985abd384b6076a7e97252a6a3bdda9dfb8"
+      },
+      "captureReceipt": {
+        "path": "candidate6-final-controls-contents-single.receipt.json",
+        "bytes": 1935,
+        "sha256": "ceacac3f40d7122cb4927e60bfc6ae56ee5770d628c242e909b3cad8aca1e18d"
+      },
+      "acceptedOwnedVisualContract": true,
+      "generalNativeConformance": false,
+      "retainedLimits": [],
+      "profiles": {
+        "PrintPaged": {
+          "pages": 1,
+          "sourceLabels": 3,
+          "retainedLabels": [
+            "RV3-FIRST",
+            "RV3-OVER",
+            "RV3-TAIL"
+          ],
+          "omittedLabels": [],
+          "completeSourceInventory": true,
+          "hasLoss": false,
+          "requireNoLossThrows": false,
+          "pngEqualsPdfReplay": true,
+          "diagnosticCodes": []
+        },
+        "ScreenMediaPaged": {
+          "pages": 1,
+          "sourceLabels": 3,
+          "retainedLabels": [
+            "RV3-FIRST",
+            "RV3-OVER",
+            "RV3-TAIL"
+          ],
+          "omittedLabels": [],
+          "completeSourceInventory": true,
+          "hasLoss": false,
+          "requireNoLossThrows": false,
+          "pngEqualsPdfReplay": true,
+          "diagnosticCodes": []
+        },
+        "ScreenFullPage": {
+          "pages": 1,
+          "sourceLabels": 3,
+          "retainedLabels": [
+            "RV3-FIRST",
+            "RV3-OVER",
+            "RV3-TAIL"
+          ],
+          "omittedLabels": [],
+          "completeSourceInventory": true,
+          "hasLoss": false,
+          "requireNoLossThrows": false,
+          "pngEqualsPdfReplay": null,
+          "diagnosticCodes": []
+        },
+        "ScreenSnapshotPaged": {
+          "pages": 1,
+          "sourceLabels": 3,
+          "retainedLabels": [
+            "RV3-FIRST",
+            "RV3-OVER",
+            "RV3-TAIL"
+          ],
+          "omittedLabels": [],
+          "completeSourceInventory": true,
+          "hasLoss": false,
+          "requireNoLossThrows": false,
+          "pngEqualsPdfReplay": true,
+          "diagnosticCodes": []
+        }
+      }
+    },
+    {
+      "case": "contents-reflow",
+      "input": {
+        "path": "qualification-v5/inputs/contents-reflow.html",
+        "bytes": 804,
+        "sha256": "c62117c8f12a5a4eb2f51ff8afa36b45fda91c923bd82d03092a5152ce37ee5e"
+      },
+      "portableHtml": "<!doctype html><style>@font-face{font-family:Witness;src:url(regular.ttf)}@font-face{font-family:Witness;src:url(bold.ttf);font-weight:700}@page{size:700px 140px;margin:20px}html,body{margin:0;padding:0;font:14px/20px Witness}p{margin:0;orphans:1;widows:1}div,section{padding:0;border:0}</style><style>body{display:contents}@page:left{size:260px 140px;margin:20px}</style><div style='height:80px'>RV3-FIRST</div><div style='height:25px;margin-top:-45px'>RV3-OVER</div><p id='tail'>RV3-W01 RV3-W02 RV3-W03 RV3-W04 RV3-W05 RV3-W06 RV3-W07 RV3-W08 RV3-W09 RV3-W10 RV3-W11 RV3-W12 RV3-W13 RV3-W14 RV3-W15 RV3-W16 RV3-W17 RV3-W18 RV3-W19 RV3-W20 RV3-W21 RV3-W22 RV3-W23 RV3-W24 RV3-W25 RV3-W26 RV3-W27 RV3-W28 RV3-W29 RV3-W30 RV3-W31 RV3-W32 RV3-W33 RV3-W34 RV3-W35 RV3-W36 RV3-W37 RV3-W38 RV3-W39 RV3-W40</p>",
+      "actualSummary": {
+        "path": "candidate6-final-controls-contents-reflow/summary.json",
+        "bytes": 134881,
+        "sha256": "c5afa7b6c97d151712991916f2a1abe55131c6a0b4cf58cd06145ef2e0acad86"
+      },
+      "captureReceipt": {
+        "path": "candidate6-final-controls-contents-reflow.receipt.json",
+        "bytes": 1935,
+        "sha256": "141a79730c41d3643cb73409e05ff72e52bf3a15a4f14277407de26bc50f40b7"
+      },
+      "acceptedOwnedVisualContract": true,
+      "generalNativeConformance": false,
+      "retainedLimits": [],
+      "profiles": {
+        "PrintPaged": {
+          "pages": 2,
+          "sourceLabels": 42,
+          "retainedLabels": [
+            "RV3-FIRST",
+            "RV3-OVER",
+            "RV3-W01",
+            "RV3-W02",
+            "RV3-W03",
+            "RV3-W04",
+            "RV3-W05",
+            "RV3-W06",
+            "RV3-W07",
+            "RV3-W08",
+            "RV3-W09",
+            "RV3-W10",
+            "RV3-W11",
+            "RV3-",
+            "W12",
+            "RV3-W13",
+            "RV3-W14",
+            "RV3-W15",
+            "RV3-W16",
+            "RV3-W17",
+            "RV3-W18",
+            "RV3-W19",
+            "RV3-W20",
+            "RV3-W21",
+            "RV3-W22",
+            "RV3-W23",
+            "RV3-W24",
+            "RV3-W25",
+            "RV3-W26",
+            "RV3-",
+            "W27",
+            "RV3-W28",
+            "RV3-W29",
+            "RV3-W30",
+            "RV3-W31",
+            "RV3-W32",
+            "RV3-W33",
+            "RV3-",
+            "W34",
+            "RV3-W35",
+            "RV3-W36",
+            "RV3-W37",
+            "RV3-W38",
+            "RV3-W39",
+            "RV3-W40"
+          ],
+          "omittedLabels": [
+            "RV3-W12",
+            "RV3-W27",
+            "RV3-W34"
+          ],
+          "completeSourceInventory": false,
+          "hasLoss": false,
+          "requireNoLossThrows": false,
+          "pngEqualsPdfReplay": true,
+          "diagnosticCodes": []
+        },
+        "ScreenMediaPaged": {
+          "pages": 2,
+          "sourceLabels": 42,
+          "retainedLabels": [
+            "RV3-FIRST",
+            "RV3-OVER",
+            "RV3-W01",
+            "RV3-W02",
+            "RV3-W03",
+            "RV3-W04",
+            "RV3-W05",
+            "RV3-W06",
+            "RV3-W07",
+            "RV3-W08",
+            "RV3-W09",
+            "RV3-W10",
+            "RV3-W11",
+            "RV3-",
+            "W12",
+            "RV3-W13",
+            "RV3-W14",
+            "RV3-W15",
+            "RV3-W16",
+            "RV3-W17",
+            "RV3-W18",
+            "RV3-W19",
+            "RV3-W20",
+            "RV3-W21",
+            "RV3-W22",
+            "RV3-W23",
+            "RV3-W24",
+            "RV3-W25",
+            "RV3-W26",
+            "RV3-",
+            "W27",
+            "RV3-W28",
+            "RV3-W29",
+            "RV3-W30",
+            "RV3-W31",
+            "RV3-W32",
+            "RV3-W33",
+            "RV3-",
+            "W34",
+            "RV3-W35",
+            "RV3-W36",
+            "RV3-W37",
+            "RV3-W38",
+            "RV3-W39",
+            "RV3-W40"
+          ],
+          "omittedLabels": [
+            "RV3-W12",
+            "RV3-W27",
+            "RV3-W34"
+          ],
+          "completeSourceInventory": false,
+          "hasLoss": false,
+          "requireNoLossThrows": false,
+          "pngEqualsPdfReplay": true,
+          "diagnosticCodes": []
+        },
+        "ScreenFullPage": {
+          "pages": 1,
+          "sourceLabels": 42,
+          "retainedLabels": [
+            "RV3-FIRST",
+            "RV3-OVER",
+            "RV3-W01",
+            "RV3-W02",
+            "RV3-W03",
+            "RV3-W04",
+            "RV3-W05",
+            "RV3-W06",
+            "RV3-W07",
+            "RV3-W08",
+            "RV3-W09",
+            "RV3-W10",
+            "RV3-W11",
+            "RV3-W12",
+            "RV3-W13",
+            "RV3-W14",
+            "RV3-W15",
+            "RV3-W16",
+            "RV3-W17",
+            "RV3-W18",
+            "RV3-W19",
+            "RV3-W20",
+            "RV3-W21",
+            "RV3-W22",
+            "RV3-W23",
+            "RV3-W24",
+            "RV3-W25",
+            "RV3-W26",
+            "RV3-W27",
+            "RV3-W28",
+            "RV3-W29",
+            "RV3-W30",
+            "RV3-W31",
+            "RV3-W32",
+            "RV3-W33",
+            "RV3-W34",
+            "RV3-W35",
+            "RV3-W36",
+            "RV3-W37",
+            "RV3-W38",
+            "RV3-W39",
+            "RV3-W40"
+          ],
+          "omittedLabels": [],
+          "completeSourceInventory": true,
+          "hasLoss": false,
+          "requireNoLossThrows": false,
+          "pngEqualsPdfReplay": null,
+          "diagnosticCodes": []
+        },
+        "ScreenSnapshotPaged": {
+          "pages": 1,
+          "sourceLabels": 42,
+          "retainedLabels": [
+            "RV3-FIRST",
+            "RV3-OVER",
+            "RV3-W01",
+            "RV3-W02",
+            "RV3-W03",
+            "RV3-W04",
+            "RV3-W05",
+            "RV3-W06",
+            "RV3-W07",
+            "RV3-W08",
+            "RV3-W09",
+            "RV3-W10",
+            "RV3-W11",
+            "RV3-W12",
+            "RV3-W13",
+            "RV3-W14",
+            "RV3-W15",
+            "RV3-W16",
+            "RV3-W17",
+            "RV3-W18",
+            "RV3-W19",
+            "RV3-W20",
+            "RV3-W21",
+            "RV3-W22",
+            "RV3-W23",
+            "RV3-W24",
+            "RV3-W25",
+            "RV3-W26",
+            "RV3-W27",
+            "RV3-W28",
+            "RV3-W29",
+            "RV3-W30",
+            "RV3-W31",
+            "RV3-W32",
+            "RV3-W33",
+            "RV3-W34",
+            "RV3-W35",
+            "RV3-W36",
+            "RV3-W37",
+            "RV3-W38",
+            "RV3-W39",
+            "RV3-W40"
+          ],
+          "omittedLabels": [],
+          "completeSourceInventory": true,
+          "hasLoss": false,
+          "requireNoLossThrows": false,
+          "pngEqualsPdfReplay": true,
+          "diagnosticCodes": []
+        }
+      }
+    },
+    {
+      "case": "table-overflow",
+      "input": {
+        "path": "qualification-v5/inputs/table-overflow.html",
+        "bytes": 602,
+        "sha256": "4c3cba06e9a9bfaaf4377a19ef1e30ab17b3e56ec5e9a60710a97b7c11258363"
+      },
+      "portableHtml": "<!doctype html><style>@font-face{font-family:Witness;src:url(regular.ttf)}@font-face{font-family:Witness;src:url(bold.ttf);font-weight:700}@page{size:700px 140px;margin:20px}html,body{margin:0;padding:0;font:14px/20px Witness}p{margin:0;orphans:1;widows:1}div,section{padding:0;border:0}</style><style>table,td{margin:0;border:0;padding:0;border-spacing:0}</style><table id='table'><tr><td><div style='height:80px'>RV4-FIRST</div><div id='overlap' style='height:25px;margin-bottom:-45px;background:green'>RV4-OVER</div><div id='tail' style='height:20px;background:blue'>RV4-TAIL</div></td></tr></table>",
+      "actualSummary": {
+        "path": "candidate6-final-controls-table-overflow/summary.json",
+        "bytes": 140536,
+        "sha256": "c9af08d33b94f8d1014d92b5c7fc9fc85f2be41ea24c610225bdea0cbc5e2e7d"
+      },
+      "captureReceipt": {
+        "path": "candidate6-final-controls-table-overflow.receipt.json",
+        "bytes": 1933,
+        "sha256": "fdd2d2f8e3e8c1a63f7eacba452ed3c0d72f4cb8b84f8d8a1d477913212c71a7"
+      },
+      "acceptedOwnedVisualContract": true,
+      "generalNativeConformance": false,
+      "retainedLimits": [],
+      "profiles": {
+        "PrintPaged": {
+          "pages": 2,
+          "sourceLabels": 3,
+          "retainedLabels": [
+            "RV4-FIRST",
+            "RV4-OVER",
+            "RV4-TAIL"
+          ],
+          "omittedLabels": [],
+          "completeSourceInventory": true,
+          "hasLoss": false,
+          "requireNoLossThrows": false,
+          "pngEqualsPdfReplay": true,
+          "diagnosticCodes": []
+        },
+        "ScreenMediaPaged": {
+          "pages": 2,
+          "sourceLabels": 3,
+          "retainedLabels": [
+            "RV4-FIRST",
+            "RV4-OVER",
+            "RV4-TAIL"
+          ],
+          "omittedLabels": [],
+          "completeSourceInventory": true,
+          "hasLoss": false,
+          "requireNoLossThrows": false,
+          "pngEqualsPdfReplay": true,
+          "diagnosticCodes": []
+        },
+        "ScreenFullPage": {
+          "pages": 1,
+          "sourceLabels": 3,
+          "retainedLabels": [
+            "RV4-FIRST",
+            "RV4-OVER",
+            "RV4-TAIL"
+          ],
+          "omittedLabels": [],
+          "completeSourceInventory": true,
+          "hasLoss": false,
+          "requireNoLossThrows": false,
+          "pngEqualsPdfReplay": null,
+          "diagnosticCodes": []
+        },
+        "ScreenSnapshotPaged": {
+          "pages": 1,
+          "sourceLabels": 3,
+          "retainedLabels": [
+            "RV4-FIRST",
+            "RV4-OVER",
+            "RV4-TAIL"
+          ],
+          "omittedLabels": [],
+          "completeSourceInventory": true,
+          "hasLoss": false,
+          "requireNoLossThrows": false,
+          "pngEqualsPdfReplay": true,
+          "diagnosticCodes": []
+        }
+      }
+    },
+    {
+      "case": "float-table-empty",
+      "input": {
+        "path": "qualification-v5/inputs/float-table-empty.html",
+        "bytes": 353,
+        "sha256": "9646bf1afe02e1975777ae1738e4b1ddce476904d3f366bae4c297abe64935a6"
+      },
+      "portableHtml": "<!doctype html><style>@page{size:600px 300px;margin:0}html,body{margin:0;padding:0;font-size:0;line-height:0}table,td{padding:0;border:0;border-spacing:0}td{height:40px}</style><span id='float' style='float:left;width:300px;height:120px;background:red'></span><table id='grid' style='width:200px;margin:0 auto;background:blue'><tr><td></td></tr></table>",
+      "actualSummary": {
+        "path": "candidate6-final-controls-float-table-empty/summary.json",
+        "bytes": 59006,
+        "sha256": "b570d7bbefa43476ba6879525ea25252f01f704edfc289310a57d99592c7aab4"
+      },
+      "captureReceipt": {
+        "path": "candidate6-final-controls-float-table-empty.receipt.json",
+        "bytes": 1939,
+        "sha256": "29c2e3e2851ee36a449f57a3c3d0b88c4a54c04216445edfc3be369f6201b1f5"
+      },
+      "acceptedOwnedVisualContract": true,
+      "generalNativeConformance": false,
+      "retainedLimits": [
+        "Bodytext-free;no independentcontinuousnativeimage;actualscreenDOM/print source geometry retained separately."
+      ],
+      "profiles": {
+        "PrintPaged": {
+          "pages": 1,
+          "sourceLabels": 0,
+          "retainedLabels": [],
+          "omittedLabels": [],
+          "completeSourceInventory": true,
+          "hasLoss": false,
+          "requireNoLossThrows": false,
+          "pngEqualsPdfReplay": true,
+          "diagnosticCodes": []
+        },
+        "ScreenMediaPaged": {
+          "pages": 1,
+          "sourceLabels": 0,
+          "retainedLabels": [],
+          "omittedLabels": [],
+          "completeSourceInventory": true,
+          "hasLoss": false,
+          "requireNoLossThrows": false,
+          "pngEqualsPdfReplay": true,
+          "diagnosticCodes": []
+        },
+        "ScreenFullPage": {
+          "pages": 1,
+          "sourceLabels": 0,
+          "retainedLabels": [],
+          "omittedLabels": [],
+          "completeSourceInventory": true,
+          "hasLoss": false,
+          "requireNoLossThrows": false,
+          "pngEqualsPdfReplay": null,
+          "diagnosticCodes": []
+        },
+        "ScreenSnapshotPaged": {
+          "pages": 1,
+          "sourceLabels": 0,
+          "retainedLabels": [],
+          "omittedLabels": [],
+          "completeSourceInventory": true,
+          "hasLoss": false,
+          "requireNoLossThrows": false,
+          "pngEqualsPdfReplay": true,
+          "diagnosticCodes": []
+        }
+      }
+    },
+    {
+      "case": "float-table-parallel",
+      "input": {
+        "path": "qualification-v5/inputs/float-table-parallel.html",
+        "bytes": 482,
+        "sha256": "ead6b55e6d3b36da6115bf2d35b18385d1aaed8b62eeca44e546b5fe7d733417"
+      },
+      "portableHtml": "<!doctype html><style>@page{size:600px 300px;margin:0}html,body{margin:0;padding:0;font-size:0;line-height:0}table,td{padding:0;border:0;border-spacing:0}td{height:40px}</style><main style='display:flex'><article style='width:600px'><div style='height:260px'></div><p style='margin:0'><span id='float' style='float:left;width:300px;height:120px;background:red'></span></p><table id='grid' style='width:200px;margin:0 auto;background:blue'><tr><td></td></tr></table></article></main>",
+      "actualSummary": {
+        "path": "candidate6-final-controls-float-table-parallel/summary.json",
+        "bytes": 86193,
+        "sha256": "b0e9ce35861b714333650a7db74a59b2b95094e21ffd9377c2edad52118e0551"
+      },
+      "captureReceipt": {
+        "path": "candidate6-final-controls-float-table-parallel.receipt.json",
+        "bytes": 1945,
+        "sha256": "7176d6ac36c70f99562da050be98b403e0d7a863fc14416e3e714048a498ecea"
+      },
+      "acceptedOwnedVisualContract": true,
+      "generalNativeConformance": false,
+      "retainedLimits": [
+        "The existing engine defers the float/table band together to page 2; Edge splits the float while placing the table on page 1. Shared band ownership is retained, not native split-float positioning. No native continuous screenshot is claimed for this font-free control."
+      ],
+      "profiles": {
+        "PrintPaged": {
+          "pages": 2,
+          "sourceLabels": 0,
+          "retainedLabels": [],
+          "omittedLabels": [],
+          "completeSourceInventory": true,
+          "hasLoss": false,
+          "requireNoLossThrows": false,
+          "pngEqualsPdfReplay": true,
+          "diagnosticCodes": []
+        },
+        "ScreenMediaPaged": {
+          "pages": 2,
+          "sourceLabels": 0,
+          "retainedLabels": [],
+          "omittedLabels": [],
+          "completeSourceInventory": true,
+          "hasLoss": false,
+          "requireNoLossThrows": false,
+          "pngEqualsPdfReplay": true,
+          "diagnosticCodes": []
+        },
+        "ScreenFullPage": {
+          "pages": 1,
+          "sourceLabels": 0,
+          "retainedLabels": [],
+          "omittedLabels": [],
+          "completeSourceInventory": true,
+          "hasLoss": false,
+          "requireNoLossThrows": false,
+          "pngEqualsPdfReplay": null,
+          "diagnosticCodes": []
+        },
+        "ScreenSnapshotPaged": {
+          "pages": 1,
+          "sourceLabels": 0,
+          "retainedLabels": [],
+          "omittedLabels": [],
+          "completeSourceInventory": true,
+          "hasLoss": false,
+          "requireNoLossThrows": false,
+          "pngEqualsPdfReplay": true,
+          "diagnosticCodes": []
+        }
+      }
+    },
+    {
+      "case": "relative-inline-fullpage-overflow",
+      "input": {
+        "path": "qualification-v5/inputs/relative-inline-fullpage-overflow.html",
+        "bytes": 502,
+        "sha256": "7986570637b22977946bf0b327f535d65906761d8cbe7e87c16a12777f8b019b"
+      },
+      "portableHtml": "<!doctype html><style>@font-face{font-family:Witness;src:url(regular.ttf)}@font-face{font-family:Witness;src:url(bold.ttf);font-weight:700}@page{size:700px 140px;margin:20px}html,body{margin:0;padding:0;font:14px/20px Witness}p{margin:0;orphans:1;widows:1}</style><div style='height:1060px'></div><p id='paragraph'><span id='outer' style='position:relative;left:7px;top:3px'>RV5-Outer<span id='inner' style='position:relative;left:5px;top:2px'>RV5-Inner</span></span><span id='tail'>RV5-Tail</span></p>",
+      "actualSummary": {
+        "path": "candidate6-final-controls-relative-inline-fullpage-overflow/summary.json",
+        "bytes": 175540,
+        "sha256": "c72dc3d3484f374bba5a1dc862e4a6deea0037a9766c95bf51df8ba1fdfa269f"
+      },
+      "captureReceipt": {
+        "path": "candidate6-final-controls-relative-inline-fullpage-overflow.receipt.json",
+        "bytes": 1971,
+        "sha256": "e57f9da1dc36a32bb7ca6f62822b2af6c66d95d12f9b067868f0da3a91541087"
+      },
+      "acceptedOwnedVisualContract": true,
+      "generalNativeConformance": false,
+      "retainedLimits": [
+        "Continuous extent is 1085 versus Edge 1083 because line-carrier and font-box extents differ. Text placement is preserved; exact native font-box scroll extent and tall fixed-box pagination remain outside this checkpoint."
+      ],
+      "profiles": {
+        "PrintPaged": {
+          "pages": 11,
+          "sourceLabels": 3,
+          "retainedLabels": [
+            "RV5-Outer",
+            "RV5-Inner",
+            "RV5-Tail"
+          ],
+          "omittedLabels": [],
+          "completeSourceInventory": true,
+          "hasLoss": true,
+          "requireNoLossThrows": true,
+          "pngEqualsPdfReplay": true,
+          "diagnosticCodes": [
+            "HtmlRenderForcedFragment"
+          ]
+        },
+        "ScreenMediaPaged": {
+          "pages": 11,
+          "sourceLabels": 3,
+          "retainedLabels": [
+            "RV5-Outer",
+            "RV5-Inner",
+            "RV5-Tail"
+          ],
+          "omittedLabels": [],
+          "completeSourceInventory": true,
+          "hasLoss": true,
+          "requireNoLossThrows": true,
+          "pngEqualsPdfReplay": true,
+          "diagnosticCodes": [
+            "HtmlRenderForcedFragment"
+          ]
+        },
+        "ScreenFullPage": {
+          "pages": 1,
+          "sourceLabels": 3,
+          "retainedLabels": [
+            "RV5-Outer",
+            "RV5-Inner",
+            "RV5-Tail"
+          ],
+          "omittedLabels": [],
+          "completeSourceInventory": true,
+          "hasLoss": false,
+          "requireNoLossThrows": false,
+          "pngEqualsPdfReplay": null,
+          "diagnosticCodes": []
+        },
+        "ScreenSnapshotPaged": {
+          "pages": 2,
+          "sourceLabels": 3,
+          "retainedLabels": [
+            "RV5-Outer",
+            "RV5-Inner",
+            "RV5-Tail"
+          ],
+          "omittedLabels": [],
+          "completeSourceInventory": true,
+          "hasLoss": false,
+          "requireNoLossThrows": false,
+          "pngEqualsPdfReplay": true,
+          "diagnosticCodes": []
+        }
+      }
+    },
+    {
+      "case": "table-overflow-hidden",
+      "input": {
+        "path": "qualification-v5/inputs/table-overflow-hidden.html",
+        "bytes": 636,
+        "sha256": "2c8a6973c9c5f673db4399eb4abd4273f5d8eff5e358c7e13706955e4e370b40"
+      },
+      "portableHtml": "<!doctype html><style>@font-face{font-family:Witness;src:url(regular.ttf)}@font-face{font-family:Witness;src:url(bold.ttf);font-weight:700}@page{size:700px 140px;margin:20px}html,body{margin:0;padding:0;font:14px/20px Witness}p{margin:0;orphans:1;widows:1}div,section{padding:0;border:0}</style><style>table,td{margin:0;border:0;padding:0;border-spacing:0}</style><style>td{overflow:hidden}</style><table id='table'><tr><td><div style='height:80px'>RV4-FIRST</div><div id='overlap' style='height:25px;margin-bottom:-45px;background:green'>RV4-OVER</div><div id='tail' style='height:20px;background:blue'>RV4-TAIL</div></td></tr></table>",
+      "actualSummary": {
+        "path": "candidate6-final-controls-table-overflow-hidden/summary.json",
+        "bytes": 119680,
+        "sha256": "582508a1827ab679255fe7665e44e4d6318b3d284bfda67db81edf1d553ade94"
+      },
+      "captureReceipt": {
+        "path": "candidate6-final-controls-table-overflow-hidden.receipt.json",
+        "bytes": 1947,
+        "sha256": "11bf092058cb26d4291d04541f46a618c360a882ccb5cb6a108d348b10aed10c"
+      },
+      "acceptedOwnedVisualContract": true,
+      "generalNativeConformance": false,
+      "retainedLimits": [
+        "Shared authored cell-clip geometry and pixel contracts pass. Exact native clipped-cell print fragments remain unqualified: Edge print uses two pages with different ink, and continuous clip differs from hidden. Snapshot omission outside the authored clip is separate from unsupported source loss."
+      ],
+      "profiles": {
+        "PrintPaged": {
+          "pages": 1,
+          "sourceLabels": 3,
+          "retainedLabels": [
+            "RV4-FIRST",
+            "RV4-OVER",
+            "RV4-TAIL"
+          ],
+          "omittedLabels": [],
+          "completeSourceInventory": true,
+          "hasLoss": false,
+          "requireNoLossThrows": false,
+          "pngEqualsPdfReplay": true,
+          "diagnosticCodes": []
+        },
+        "ScreenMediaPaged": {
+          "pages": 1,
+          "sourceLabels": 3,
+          "retainedLabels": [
+            "RV4-FIRST",
+            "RV4-OVER",
+            "RV4-TAIL"
+          ],
+          "omittedLabels": [],
+          "completeSourceInventory": true,
+          "hasLoss": false,
+          "requireNoLossThrows": false,
+          "pngEqualsPdfReplay": true,
+          "diagnosticCodes": []
+        },
+        "ScreenFullPage": {
+          "pages": 1,
+          "sourceLabels": 3,
+          "retainedLabels": [
+            "RV4-FIRST",
+            "RV4-OVER",
+            "RV4-TAIL"
+          ],
+          "omittedLabels": [],
+          "completeSourceInventory": true,
+          "hasLoss": false,
+          "requireNoLossThrows": false,
+          "pngEqualsPdfReplay": null,
+          "diagnosticCodes": []
+        },
+        "ScreenSnapshotPaged": {
+          "pages": 1,
+          "sourceLabels": 3,
+          "retainedLabels": [
+            "RV4-FIRST",
+            "RV4-TAIL"
+          ],
+          "omittedLabels": [
+            "RV4-OVER"
+          ],
+          "completeSourceInventory": false,
+          "hasLoss": false,
+          "requireNoLossThrows": false,
+          "pngEqualsPdfReplay": true,
+          "diagnosticCodes": []
+        }
+      }
+    },
+    {
+      "case": "table-overflow-clip",
+      "input": {
+        "path": "qualification-v5/inputs/table-overflow-clip.html",
+        "bytes": 634,
+        "sha256": "5c17243c4f5ab1f3ac3e515098380fd71a78f29de40d9f01fa12fa9fda48f0de"
+      },
+      "portableHtml": "<!doctype html><style>@font-face{font-family:Witness;src:url(regular.ttf)}@font-face{font-family:Witness;src:url(bold.ttf);font-weight:700}@page{size:700px 140px;margin:20px}html,body{margin:0;padding:0;font:14px/20px Witness}p{margin:0;orphans:1;widows:1}div,section{padding:0;border:0}</style><style>table,td{margin:0;border:0;padding:0;border-spacing:0}</style><style>td{overflow:clip}</style><table id='table'><tr><td><div style='height:80px'>RV4-FIRST</div><div id='overlap' style='height:25px;margin-bottom:-45px;background:green'>RV4-OVER</div><div id='tail' style='height:20px;background:blue'>RV4-TAIL</div></td></tr></table>",
+      "actualSummary": {
+        "path": "candidate6-final-controls-table-overflow-clip/summary.json",
+        "bytes": 119678,
+        "sha256": "afbbc8e27b121fdc1f3ef9ab26f54bffc01f8bd1c649560ad4f62bc6e05464ad"
+      },
+      "captureReceipt": {
+        "path": "candidate6-final-controls-table-overflow-clip.receipt.json",
+        "bytes": 1943,
+        "sha256": "7cfd68a889c22c6ad959b286ca9ed00588d54da3ce02ac9645bdddf15a1f2d77"
+      },
+      "acceptedOwnedVisualContract": true,
+      "generalNativeConformance": false,
+      "retainedLimits": [
+        "Shared authored cell-clip geometry and pixel contracts pass. Exact native clipped-cell print fragments remain unqualified: Edge print uses two pages with different ink, and continuous clip differs from hidden. Snapshot omission outside the authored clip is separate from unsupported source loss."
+      ],
+      "profiles": {
+        "PrintPaged": {
+          "pages": 1,
+          "sourceLabels": 3,
+          "retainedLabels": [
+            "RV4-FIRST",
+            "RV4-OVER",
+            "RV4-TAIL"
+          ],
+          "omittedLabels": [],
+          "completeSourceInventory": true,
+          "hasLoss": false,
+          "requireNoLossThrows": false,
+          "pngEqualsPdfReplay": true,
+          "diagnosticCodes": []
+        },
+        "ScreenMediaPaged": {
+          "pages": 1,
+          "sourceLabels": 3,
+          "retainedLabels": [
+            "RV4-FIRST",
+            "RV4-OVER",
+            "RV4-TAIL"
+          ],
+          "omittedLabels": [],
+          "completeSourceInventory": true,
+          "hasLoss": false,
+          "requireNoLossThrows": false,
+          "pngEqualsPdfReplay": true,
+          "diagnosticCodes": []
+        },
+        "ScreenFullPage": {
+          "pages": 1,
+          "sourceLabels": 3,
+          "retainedLabels": [
+            "RV4-FIRST",
+            "RV4-OVER",
+            "RV4-TAIL"
+          ],
+          "omittedLabels": [],
+          "completeSourceInventory": true,
+          "hasLoss": false,
+          "requireNoLossThrows": false,
+          "pngEqualsPdfReplay": null,
+          "diagnosticCodes": []
+        },
+        "ScreenSnapshotPaged": {
+          "pages": 1,
+          "sourceLabels": 3,
+          "retainedLabels": [
+            "RV4-FIRST",
+            "RV4-TAIL"
+          ],
+          "omittedLabels": [
+            "RV4-OVER"
+          ],
+          "completeSourceInventory": false,
+          "hasLoss": false,
+          "requireNoLossThrows": false,
+          "pngEqualsPdfReplay": true,
+          "diagnosticCodes": []
+        }
+      }
+    }
+  ],
+  "remainingBoundary": [
+    "Tall fixed-height PrintPaged/ScreenMediaPaged: current 11 pages versus native 12; X02/X03 source is omitted with actual loss, HtmlRenderVisualFragmentUnsupported and strict rejection. Source completeness/native paged conformance are not accepted. Full-page 1120px and two snapshot pages retain all five labels.",
+    "Relative inline continuous extent is 1085 versus native 1083 because line-carrier/font-box extents differ. Actual text placement is retained; exact native font-box scroll extent is not claimed.",
+    "Pre-existing extracted-spanner ancestor opacity paint and float/table atomic deferral versus native float splitting remain separate limits.",
+    "Native hidden/clip printed behavior differs from continuous clipping. Current cell clipping follows the shared clip owner; exact native clipped-fragment appearance is not qualified.",
+    "Direct scene raster bytes differ on 51 of 130 current pages, separately from exact public paged PNG/PDF replay.",
+    "No complete CSS/browser runtime, generic native appearance, individual encoded-glyph geometry, package publication or Windows profiling claim.",
+    "Cross-runtime PNG encoding: all 41 net8 package images have identical non-IDAT chunks and exact inflated scanlines relative to canonical net10, but different compressed bytes. Net10 and AOT match the 41 canonical PNG bytes. Final independent package inspection passes with these separate gates."
+  ],
+  "cleanup": {
+    "status": "complete-scoped-cleanup-and-retention",
+    "actualReceipt": {
+      "path": "final-cleanup-result.json",
+      "bytes": 49176,
+      "sha256": "8e03aa810db4075affe8a46bb350ee2d9de956791174641efce1fe4fcdb50bc5"
+    },
+    "logicalBytesRemoved": 3521531860,
+    "retainedPathsAndSizes": [
+      {
+        "path": "retained-regression-proof",
+        "logicalBytes": 917678913,
+        "purpose": "Two actual106case rendercorpora plus source-bound public probe runtimes and explicit delta/retirement records."
+      },
+      {
+        "path": "package-prep",
+        "logicalBytes": 210136017,
+        "purpose": "Private packages, exact managed/native consumer subjects and results, source/provider bindings and copied build metadata."
+      },
+      {
+        "path": "retained-test-subjects",
+        "logicalBytes": 196125664,
+        "purpose": "Complete actual .NET8/.NET10 subjects from the full7010-check suites."
+      },
+      {
+        "path": "retained-producers",
+        "logicalBytes": 81474388,
+        "purpose": "Actual before/current public seven-DLL renderers and their exact producer files."
+      }
+    ],
+    "boundary": "31 unique completed task-generated graph/cache/temp targets are absent. Exact retained runtimes, test subjects, packages and mapped metadata are reverified. Shared caches, primary checkout, other worktrees and native history are preserved. Prior qualification evidence remains deliberately retained for static integration.",
+    "ledgerRegistration": {
+      "path": "storage-ledger-registration.json",
+      "bytes": 711,
+      "sha256": "f9414f6fb634285925dc0c6e2913d79b5e9da50fc26aa3d2b2b2abbd32d70d0b"
+    },
+    "retainedLogicalBytes": 1771815054,
+    "otherRetainedEvidenceLogicalBytes": 366400072,
+    "otherRetainedEvidence": "Exact native/public controls, fonts, actual TRX/logs, source manifests and decisive visual observations; full per-path inventory remains in the bound storage receipt."
+  },
+  "windowsProfiling": "deferred",
+  "publication": {
+    "branch": "fix/html-negative-flow-margins",
+    "qualifiedProductionSource": "6c086226c47e8f3c07d54b3732a5b42acf7c98b6",
+    "checkpointPushAuthorized": true,
+    "sourceQualificationOnly": true,
+    "pullRequestOpenedForThisBatch": false,
+    "merge": false,
+    "packagePublication": false,
+    "providerRuntimeForks": {
+      "branch": "feature/html-engine",
+      "qualifiedBoundaryHead": "72130c73a64747bc7016da6f46c4f2607e91633f",
+      "includedInStaticCheckpoint": false
+    },
+    "boundary": "This receipt qualifies production source. The containing metadata/roadmap commit and remote checkpoint are verified separately; no self-referential commit hash or external CI claim."
+  },
+  "pathConvention": "Evidence paths are relative to the deliberately retained negative-flow evidence root. prior-checkpoint/ names the prior source-equivalent spanner evidence root. Embedded fixture/probe sources and repository font paths provide portable reproduction; machine-local task state maps retained archives and exact original/retired paths."
+}

@@ -1,0 +1,923 @@
+{
+  "schema": "officeimo.html-static-editable-merged-qualification/v1",
+  "capturedUtc": "2026-10-20T13:09:09.192522+00:00",
+  "qualifiedProductionHead": "2d4a98f462e5f86872f74b2bd373c7285eb5afd0",
+  "sourceSeal": {
+    "path": "${HTML_CONSOLIDATION_EVIDENCE_ROOT}/master-convergence/source-seal-2d4a98.json",
+    "bytes": 8852136,
+    "sha256": "19be04d8be7657a94ec5dd3cec6b87a0dc0a2aa3261b268cdf3f0a9f419475cf"
+  },
+  "sealedInputCount": 41249,
+  "scope": "Combined positioned logical-order and upstream accessibility/navigation integration; exact merged-source PDF/HTML/Reader suites, fresh source builds/nine packs, public consumers and current-artifact archival replay.",
+  "historicalProvenance": {
+    "receipts": [
+      {
+        "repositoryPath": "Build/Project/Evidence/2026-09-30/html-master-convergence/static-editable-consolidation-20261020.json",
+        "bytes": 11288,
+        "sha256": "15f21064cdfc04b3c3327e8cfd9b5ab923ebbc77923ed0054fe1671170e2edbd",
+        "qualifiedProductionHead": "0930e36ac0ecbe4629632ec028d3f2497a092b97",
+        "sourceSeal": {
+          "path": "${HTML_CONSOLIDATION_EVIDENCE_ROOT}/source-seal.json",
+          "bytes": 8835556,
+          "sha256": "32474bec1f84c03e668662bdd45af6c218e977e61cfda01fc4c01614a1220b02"
+        }
+      },
+      {
+        "repositoryPath": "Build/Project/Evidence/2026-09-30/html-master-convergence/static-editable-ci-remediation-20261020.json",
+        "bytes": 26858,
+        "sha256": "52e814da62f2e8081cb0311ba7299e7992befc6bf5d3d347ae4485c915fa32c2",
+        "qualifiedProductionHead": "8d1caa76b9d342e3a2a6752312a3adc535b9d649",
+        "sourceSeal": {
+          "path": "${HTML_CONSOLIDATION_EVIDENCE_ROOT}/ci-wave1/source-seal-8d1.json",
+          "bytes": 8835996,
+          "sha256": "680dee93115b32f3b8678da7dbded6d721b115b5cad7eac6bc8d8b4c6f82bfee"
+        }
+      }
+    ],
+    "unchangedWaveOneInputs": 41151,
+    "changedWaveOneInputs": [
+      "OfficeIMO.Core/Internal/OfficeBinaryEncryptedSummary.cs",
+      "OfficeIMO.Html.Tests/Html.Rendering.AccessibilityValidation.cs",
+      "OfficeIMO.Html.Tests/OfficeIMO.Html.Tests.csproj",
+      "OfficeIMO.Html/PDF.md",
+      "OfficeIMO.Html/Pdf/HtmlPdfAccessibilityValidator.cs",
+      "OfficeIMO.Html/Pdf/HtmlPdfRenderedConverter.SemanticContent.cs",
+      "OfficeIMO.Html/Pdf/HtmlPdfRenderedConverter.cs",
+      "OfficeIMO.Html/Rendering/HtmlRenderClipGroup.cs",
+      "OfficeIMO.Html/Rendering/HtmlRenderDocument.cs",
+      "OfficeIMO.Html/Rendering/HtmlRenderEngine.cs",
+      "OfficeIMO.Html/Rendering/HtmlRenderLayoutEngine.Footnotes.Paint.cs",
+      "OfficeIMO.Html/Rendering/HtmlRenderLayoutEngine.Footnotes.cs",
+      "OfficeIMO.Html/Rendering/HtmlRenderLayoutEngine.Fragmentation.Visuals.cs",
+      "OfficeIMO.Html/Rendering/HtmlRenderLayoutEngine.Frames.cs",
+      "OfficeIMO.Html/Rendering/HtmlRenderLayoutEngine.Images.cs",
+      "OfficeIMO.Html/Rendering/HtmlRenderLayoutEngine.Lists.cs",
+      "OfficeIMO.Html/Rendering/HtmlRenderLayoutEngine.Semantics.cs",
+      "OfficeIMO.Html/Rendering/HtmlRenderLayoutEngine.Text.InlineRunCollection.cs",
+      "OfficeIMO.Html/Rendering/HtmlRenderLayoutEngine.Text.cs",
+      "OfficeIMO.Html/Rendering/HtmlRenderLayoutEngine.Vertical.cs",
+      "OfficeIMO.Html/Rendering/HtmlRenderSemanticGroup.cs",
+      "OfficeIMO.Html/Rendering/HtmlRenderVisual.cs",
+      "OfficeIMO.Html/Rendering/HtmlRenderVisualProjector.cs",
+      "OfficeIMO.Pdf/Model/PdfCanvasStructureOptions.cs",
+      "OfficeIMO.Pdf/Model/PdfPageCanvas.cs",
+      "OfficeIMO.Pdf/README.md",
+      "OfficeIMO.Pdf/Rendering/PdfWriter.cs",
+      "OfficeIMO.Pdf/Rendering/Writer/PdfAnnotationDictionaryBuilder.cs",
+      "OfficeIMO.Pdf/Rendering/Writer/PdfOutlineDictionaryBuilder.cs",
+      "OfficeIMO.Pdf/Rendering/Writer/PdfWriter.Layout.Context.Canvas.Navigation.cs",
+      "OfficeIMO.Pdf/Rendering/Writer/PdfWriter.Layout.Context.Canvas.Table.cs",
+      "OfficeIMO.Pdf/Rendering/Writer/PdfWriter.Layout.Context.Canvas.cs",
+      "OfficeIMO.Pdf/Rendering/Writer/PdfWriter.Layout.Context.Drawing.cs",
+      "OfficeIMO.Pdf/Rendering/Writer/PdfWriter.Layout.Context.FloatingTables.cs",
+      "OfficeIMO.Pdf/Rendering/Writer/PdfWriter.Layout.Context.Forms.cs",
+      "OfficeIMO.Pdf/Rendering/Writer/PdfWriter.Layout.Context.ListItems.cs",
+      "OfficeIMO.Pdf/Rendering/Writer/PdfWriter.Layout.Context.Process.Row.Items.cs",
+      "OfficeIMO.Pdf/Rendering/Writer/PdfWriter.Layout.Context.Process.Row.cs",
+      "OfficeIMO.Pdf/Rendering/Writer/PdfWriter.Layout.Context.Process.Text.cs",
+      "OfficeIMO.Pdf/Rendering/Writer/PdfWriter.Layout.Context.Structure.cs",
+      "OfficeIMO.Pdf/Rendering/Writer/PdfWriter.Layout.Context.Text.cs",
+      "OfficeIMO.Pdf/Rendering/Writer/PdfWriter.Layout.Context.cs",
+      "OfficeIMO.Pdf/Rendering/Writer/PdfWriter.Layout.cs",
+      "OfficeIMO.Pdf/Rendering/Writer/PdfWriter.NamedDestinations.cs",
+      "OfficeIMO.Pdf/Rendering/Writer/PdfWriter.Objects.cs",
+      "OfficeIMO.Pdf/Rendering/Writer/PdfWriter.StructureTree.cs",
+      "OfficeIMO.PowerPoint/LegacyPpt/Internal/LegacyPptEncryptedSummary.cs",
+      "OfficeIMO.Reader.Tests/Reader.FileCommitClaims.Windows.cs"
+    ],
+    "addedInputs": [
+      "Build/PackageSmoke/OfficeIMO.Html.Pdf.Browser/Dockerfile",
+      "Build/PackageSmoke/OfficeIMO.Html.Pdf.Browser/Program.cs",
+      "Build/PackageSmoke/OfficeIMO.Html/Program.cs",
+      "Build/Test-HtmlPackages.ps1",
+      "Build/Test-HtmlPdfBrowserPackages.ps1",
+      "Build/Verification/ExcelLegacyEmbeddingOracle.bas",
+      "Docs/ROADMAP.md",
+      "Docs/officeimo.excel.legacy-xls-compatibility.md",
+      "OfficeIMO.Core/Internal/OfficeBinaryEncryptedSummary.Write.cs",
+      "OfficeIMO.Examples/Converters/Html/Content/Reports/accessibility-review.html",
+      "OfficeIMO.Examples/Converters/Html/HtmlAccessibleReport.cs",
+      "OfficeIMO.Examples/Converters/Html/README.md",
+      "OfficeIMO.Examples/Program.cs",
+      "OfficeIMO.Excel.Tests/Excel.LegacyXls.AuxiliaryEncryption.cs",
+      "OfficeIMO.Excel.Tests/Excel.LegacyXls.CryptoApiStorage.cs",
+      "OfficeIMO.Excel.Tests/Excel.LegacyXls.NativeEncryption.cs",
+      "OfficeIMO.Excel.Tests/Excel.LegacyXls.StructureEditing.cs",
+      "OfficeIMO.Excel/COMPATIBILITY.md",
+      "OfficeIMO.Excel/ExcelDocument.LegacyXlsState.cs",
+      "OfficeIMO.Excel/ExcelDocument.Save.Encrypted.cs",
+      "OfficeIMO.Excel/ExcelDocument.Save.Public.cs",
+      "OfficeIMO.Excel/LegacyXls/Compound/LegacyXlsCompoundEncryption.Write.cs",
+      "OfficeIMO.Excel/LegacyXls/Compound/LegacyXlsCompoundEncryption.cs",
+      "OfficeIMO.Excel/LegacyXls/Model/LegacyXlsWorkbook.cs",
+      "OfficeIMO.Excel/LegacyXls/Write/LegacyXlsStyleTable.cs",
+      "OfficeIMO.Excel/LegacyXls/Write/LegacyXlsWriter.Encryption.cs",
+      "OfficeIMO.Excel/LegacyXls/Write/LegacyXlsWriter.cs",
+      "OfficeIMO.Excel/LegacyXls/Write/Preservation/LegacyXlsPreservationSnapshot.cs",
+      "OfficeIMO.Excel/LegacyXls/Write/Preservation/LegacyXlsStyleTable.Preservation.cs",
+      "OfficeIMO.Excel/LegacyXls/Write/Preservation/LegacyXlsWriter.EditEncoding.cs",
+      "OfficeIMO.Excel/LegacyXls/Write/Preservation/LegacyXlsWriter.FormulaGroups.cs",
+      "OfficeIMO.Excel/README.md",
+      "OfficeIMO.Html.Pdf.Browser/README.md",
+      "OfficeIMO.Html.Tests/Html.PdfAccessibilityReport.cs",
+      "OfficeIMO.Html.Tests/Html.Rendering.PositionedLogicalOrder.cs",
+      "OfficeIMO.Html/Accessibility/HtmlAccessibilitySemantics.Images.cs",
+      "OfficeIMO.Html/Accessibility/HtmlAccessibilitySourceInspection.cs",
+      "OfficeIMO.Pdf.Tests/Pdf/PdfGeneratedAccessibilityTests.cs",
+      "OfficeIMO.Pdf.Tests/Pdf/PdfGeneratedNavigationRegressionTests.cs",
+      "OfficeIMO.Pdf/Enums/PdfListNumbering.cs",
+      "OfficeIMO.Pdf/Rendering/Writer/PdfWriter.Layout.Context.Canvas.Clipping.cs",
+      "OfficeIMO.Pdf/Rendering/Writer/PdfWriter.StructureDestinations.cs",
+      "OfficeIMO.TestAssets/Documents/ExcelNativeEncryptionCorpus/README.md",
+      "OfficeIMO.TestAssets/Documents/ExcelNativeEncryptionCorpus/embedded-source.xlsx",
+      "OfficeIMO.TestAssets/Documents/ExcelNativeEncryptionCorpus/excel-embedding.cryptoapi-readback.xls",
+      "OfficeIMO.TestAssets/Documents/ExcelNativeEncryptionCorpus/excel-embedding.edited-readback.xls",
+      "OfficeIMO.TestAssets/Documents/ExcelNativeEncryptionCorpus/excel-embedding.rotated-readback.xls",
+      "OfficeIMO.TestAssets/Documents/ExcelNativeEncryptionCorpus/excel-native-embedding.encrypted.xls",
+      "OfficeIMO.TestAssets/Documents/ExcelNativeEncryptionCorpus/excel-native-embedding.plain.xls",
+      "OfficeIMO.TestAssets/Documents/ExcelNativeEncryptionCorpus/provenance.json"
+    ],
+    "boundary": "Original full HTML/PDF/Math/selected native evidence and wave-one claim proof retain their own exact heads/artifact bindings. Only the explicitly listed final lanes and new replay are current wave-two proof.",
+    "preintegrationWaveTwo": {
+      "receipt": {
+        "path": "${HTML_CONSOLIDATION_EVIDENCE_ROOT}/ci-wave2/portable-wave2-qualification.json",
+        "bytes": 37666,
+        "sha256": "d3f68bd916d8ab650f2c8770002fe57f4de919990b147fd4b9e0f94a5c609b0b"
+      },
+      "qualifiedProductionHead": "122ad83e9079c00d3ab1f1cf5587b19bd1fc9aa5",
+      "sourceSeal": {
+        "path": "${HTML_CONSOLIDATION_EVIDENCE_ROOT}/ci-wave2/source-seal-122ad83.json",
+        "bytes": 8836808,
+        "sha256": "9d1ff7ddb37aa9736d7ebbccb0d8df3471030c8af8f48765fec51e770f29b33a"
+      },
+      "boundary": "Immutable preintegration wave-two proof retains its original source,14-stage package inheritance and v4 consumer/validator artifact bindings. It is historical context; no122 package/source/runtime result counts as current merged-head proof."
+    }
+  },
+  "sourceSuites": [
+    {
+      "name": "html-converged-focused-net10",
+      "project": "OfficeIMO.Html.Tests/OfficeIMO.Html.Tests.csproj",
+      "framework": "net10.0",
+      "reportedCounters": {
+        "total": 109,
+        "executed": 109,
+        "passed": 109,
+        "failed": 0,
+        "error": 0,
+        "timeout": 0,
+        "aborted": 0,
+        "inconclusive": 0,
+        "passedButRunAborted": 0,
+        "notRunnable": 0,
+        "notExecuted": 0,
+        "disconnected": 0,
+        "warning": 0,
+        "completed": 0,
+        "inProgress": 0,
+        "pending": 0
+      },
+      "reportedNotExecuted": 0,
+      "trx": {
+        "path": "${HTML_CONSOLIDATION_EVIDENCE_ROOT}/master-convergence/trx/html-converged-focused-net10.trx",
+        "bytes": 174771,
+        "sha256": "c8cf6b0cdb2cd3d92077567b17ebafdd76ea873e07dfd036a8e1fa465f0a9afe"
+      },
+      "receipt": {
+        "path": "${HTML_CONSOLIDATION_EVIDENCE_ROOT}/master-convergence/html-converged-focused-net10-execution.json",
+        "bytes": 2207,
+        "sha256": "6e40456f263d9e71b66823f609d63d593448cadae5ea6dd39dd20a6f8bda1e47"
+      },
+      "log": {
+        "path": "${HTML_CONSOLIDATION_EVIDENCE_ROOT}/master-convergence/logs/html-converged-focused-net10.log",
+        "bytes": 15246,
+        "sha256": "7912391bce4ae77a2083a0ff073169f1d113b16ecf63eb643253ebcc24ed413d"
+      }
+    },
+    {
+      "name": "pdf-converged-full-net10",
+      "project": "OfficeIMO.Pdf.Tests/OfficeIMO.Pdf.Tests.csproj",
+      "framework": "net10.0",
+      "reportedCounters": {
+        "total": 11608,
+        "executed": 11608,
+        "passed": 11608,
+        "failed": 0,
+        "error": 0,
+        "timeout": 0,
+        "aborted": 0,
+        "inconclusive": 0,
+        "passedButRunAborted": 0,
+        "notRunnable": 0,
+        "notExecuted": 0,
+        "disconnected": 0,
+        "warning": 0,
+        "completed": 0,
+        "inProgress": 0,
+        "pending": 0
+      },
+      "reportedNotExecuted": 0,
+      "trx": {
+        "path": "${HTML_CONSOLIDATION_EVIDENCE_ROOT}/master-convergence/trx/pdf-converged-full-net10.trx",
+        "bytes": 17994707,
+        "sha256": "90846eedb483b1cc2da120fcfb5c52c0daf848915cc82ecfbec0e241c16393a4"
+      },
+      "receipt": {
+        "path": "${HTML_CONSOLIDATION_EVIDENCE_ROOT}/master-convergence/pdf-converged-full-net10-execution.json",
+        "bytes": 1766,
+        "sha256": "3c61b32386f38b8f6f6a194fde9aa4de8c4334028de272c1073bc1ded4426673"
+      },
+      "log": {
+        "path": "${HTML_CONSOLIDATION_EVIDENCE_ROOT}/master-convergence/logs/pdf-converged-full-net10.log",
+        "bytes": 23603,
+        "sha256": "43414c25317c8ba8e1a782a37fd2d3d500b4d3be9e14b3e4334d23625e66c6d0"
+      }
+    },
+    {
+      "name": "pdf-converged-full-net8",
+      "project": "OfficeIMO.Pdf.Tests/OfficeIMO.Pdf.Tests.csproj",
+      "framework": "net8.0",
+      "reportedCounters": {
+        "total": 11608,
+        "executed": 11608,
+        "passed": 11608,
+        "failed": 0,
+        "error": 0,
+        "timeout": 0,
+        "aborted": 0,
+        "inconclusive": 0,
+        "passedButRunAborted": 0,
+        "notRunnable": 0,
+        "notExecuted": 0,
+        "disconnected": 0,
+        "warning": 0,
+        "completed": 0,
+        "inProgress": 0,
+        "pending": 0
+      },
+      "reportedNotExecuted": 0,
+      "trx": {
+        "path": "${HTML_CONSOLIDATION_EVIDENCE_ROOT}/master-convergence/trx/pdf-converged-full-net8.trx",
+        "bytes": 17971490,
+        "sha256": "9d0124d9ef49733ee815af45776bce441c5f7a2ae3584a4cf9afddc3ed5380b6"
+      },
+      "receipt": {
+        "path": "${HTML_CONSOLIDATION_EVIDENCE_ROOT}/master-convergence/pdf-converged-full-net8-execution.json",
+        "bytes": 1762,
+        "sha256": "2ae77d279d6cc70927510ac1715b12c9a6a9bf337636c4a16ab113564345f8c4"
+      },
+      "log": {
+        "path": "${HTML_CONSOLIDATION_EVIDENCE_ROOT}/master-convergence/logs/pdf-converged-full-net8.log",
+        "bytes": 19258,
+        "sha256": "98084090268f53d788c76e77fbb0b8f9837a3b4f315eb435f702aeb3ae35296e"
+      }
+    },
+    {
+      "name": "html-converged-full-net10",
+      "project": "OfficeIMO.Html.Tests/OfficeIMO.Html.Tests.csproj",
+      "framework": "net10.0",
+      "reportedCounters": {
+        "total": 7519,
+        "executed": 7519,
+        "passed": 7519,
+        "failed": 0,
+        "error": 0,
+        "timeout": 0,
+        "aborted": 0,
+        "inconclusive": 0,
+        "passedButRunAborted": 0,
+        "notRunnable": 0,
+        "notExecuted": 0,
+        "disconnected": 0,
+        "warning": 0,
+        "completed": 0,
+        "inProgress": 0,
+        "pending": 0
+      },
+      "reportedNotExecuted": 0,
+      "trx": {
+        "path": "${HTML_CONSOLIDATION_EVIDENCE_ROOT}/master-convergence/trx/html-converged-full-net10.trx",
+        "bytes": 11773392,
+        "sha256": "839087c8f5bdf51c7f0c6cceb56621b76b09101402b44ef1f1d5b69162cf98bd"
+      },
+      "receipt": {
+        "path": "${HTML_CONSOLIDATION_EVIDENCE_ROOT}/master-convergence/html-converged-full-net10-execution.json",
+        "bytes": 1815,
+        "sha256": "a83c00c0f924c18ccd64094cf6c6d1eb1a69f945fee3754a7d66ad58ef91a97e"
+      },
+      "log": {
+        "path": "${HTML_CONSOLIDATION_EVIDENCE_ROOT}/master-convergence/logs/html-converged-full-net10.log",
+        "bytes": 526,
+        "sha256": "bbfc52080432396910a691585145e98d65401b7a8d162d4d5c968ba5dc374e2a"
+      }
+    },
+    {
+      "name": "html-converged-full-net8",
+      "project": "OfficeIMO.Html.Tests/OfficeIMO.Html.Tests.csproj",
+      "framework": "net8.0",
+      "reportedCounters": {
+        "total": 7519,
+        "executed": 7519,
+        "passed": 7519,
+        "failed": 0,
+        "error": 0,
+        "timeout": 0,
+        "aborted": 0,
+        "inconclusive": 0,
+        "passedButRunAborted": 0,
+        "notRunnable": 0,
+        "notExecuted": 0,
+        "disconnected": 0,
+        "warning": 0,
+        "completed": 0,
+        "inProgress": 0,
+        "pending": 0
+      },
+      "reportedNotExecuted": 0,
+      "trx": {
+        "path": "${HTML_CONSOLIDATION_EVIDENCE_ROOT}/master-convergence/trx/html-converged-full-net8.trx",
+        "bytes": 11758353,
+        "sha256": "428696d9de60412b204aacc6ed3e07d1414be027a83532287345507248e2447f"
+      },
+      "receipt": {
+        "path": "${HTML_CONSOLIDATION_EVIDENCE_ROOT}/master-convergence/html-converged-full-net8-execution.json",
+        "bytes": 1768,
+        "sha256": "86f6836f3135c3895da56a9f98bc7620fa1a866f89ea7ec311e47fa11db203c4"
+      },
+      "log": {
+        "path": "${HTML_CONSOLIDATION_EVIDENCE_ROOT}/master-convergence/logs/html-converged-full-net8.log",
+        "bytes": 8077,
+        "sha256": "e533e35832d2c3199414fa3f776ea26c20e9c51a1a139e8fc706719cf02d1cd8"
+      }
+    },
+    {
+      "name": "reader-converged-claims-net8",
+      "project": "OfficeIMO.Reader.Tests/OfficeIMO.Reader.Tests.csproj",
+      "framework": "net8.0",
+      "reportedCounters": {
+        "total": 10,
+        "executed": 10,
+        "passed": 10,
+        "failed": 0,
+        "error": 0,
+        "timeout": 0,
+        "aborted": 0,
+        "inconclusive": 0,
+        "passedButRunAborted": 0,
+        "notRunnable": 0,
+        "notExecuted": 0,
+        "disconnected": 0,
+        "warning": 0,
+        "completed": 0,
+        "inProgress": 0,
+        "pending": 0
+      },
+      "reportedNotExecuted": 0,
+      "trx": {
+        "path": "${HTML_CONSOLIDATION_EVIDENCE_ROOT}/master-convergence/trx/reader-converged-claims-net8.trx",
+        "bytes": 17890,
+        "sha256": "c9727bd85b8689258bef164d3df8fbf2d581c0cf29d6763ff716e233a565826b"
+      },
+      "receipt": {
+        "path": "${HTML_CONSOLIDATION_EVIDENCE_ROOT}/master-convergence/reader-converged-claims-net8-execution.json",
+        "bytes": 1871,
+        "sha256": "b13faa1e61da5bafbd3f1f13bf490777cd2ca1a22a8a31f37866d7bfff50e333"
+      },
+      "log": {
+        "path": "${HTML_CONSOLIDATION_EVIDENCE_ROOT}/master-convergence/logs/reader-converged-claims-net8.log",
+        "bytes": 21455,
+        "sha256": "ca8ba1aa4f1908d1dc990f1b41a9893ae4c8897d3474fb80c93c2d619359c183"
+      },
+      "platformEvidence": {
+        "host": "macOS",
+        "crossPlatformChecksExercised": 6,
+        "windowsGuardedReportedPasses": 4,
+        "windowsGuardedBehaviourExecutedLocally": false,
+        "windowsGuardedEvidence": "Compiled/guard-return only on macOS; native Windows CI remains pending.",
+        "windowsCaseNames": [
+          "OfficeIMO.Reader.Tests.ReaderWindowsFileCommitClaimTests.SharedClaimAcquisitionPreservesPersistentWindowsAccessFailures(coreClaim: False)",
+          "OfficeIMO.Reader.Tests.ReaderWindowsFileCommitClaimTests.SharedClaimAcquisitionPreservesPersistentWindowsAccessFailures(coreClaim: True)",
+          "OfficeIMO.Reader.Tests.ReaderWindowsFileCommitClaimTests.SharedClaimAcquisitionRecoversWhenWindowsCompletesPendingDeletion(coreClaim: True)",
+          "OfficeIMO.Reader.Tests.ReaderWindowsFileCommitClaimTests.SharedClaimAcquisitionRecoversWhenWindowsCompletesPendingDeletion(coreClaim: False)"
+        ]
+      }
+    },
+    {
+      "name": "reader-converged-claims-net10",
+      "project": "OfficeIMO.Reader.Tests/OfficeIMO.Reader.Tests.csproj",
+      "framework": "net10.0",
+      "reportedCounters": {
+        "total": 10,
+        "executed": 10,
+        "passed": 10,
+        "failed": 0,
+        "error": 0,
+        "timeout": 0,
+        "aborted": 0,
+        "inconclusive": 0,
+        "passedButRunAborted": 0,
+        "notRunnable": 0,
+        "notExecuted": 0,
+        "disconnected": 0,
+        "warning": 0,
+        "completed": 0,
+        "inProgress": 0,
+        "pending": 0
+      },
+      "reportedNotExecuted": 0,
+      "trx": {
+        "path": "${HTML_CONSOLIDATION_EVIDENCE_ROOT}/master-convergence/trx/reader-converged-claims-net10.trx",
+        "bytes": 17911,
+        "sha256": "2a359f77c57ba295d519e96ba132b7cc64e51c531c7bb8a67609104186f04951"
+      },
+      "receipt": {
+        "path": "${HTML_CONSOLIDATION_EVIDENCE_ROOT}/master-convergence/reader-converged-claims-net10-execution.json",
+        "bytes": 1875,
+        "sha256": "e5564a43af35e84270cbf9b8495525b31625b21b5da4e880d5be8860434a7e28"
+      },
+      "log": {
+        "path": "${HTML_CONSOLIDATION_EVIDENCE_ROOT}/master-convergence/logs/reader-converged-claims-net10.log",
+        "bytes": 15061,
+        "sha256": "abdf1c0cee9a4ca2c176f4bec373eef9f3b62f2fe1c87362324a77aed3afba6f"
+      },
+      "platformEvidence": {
+        "host": "macOS",
+        "crossPlatformChecksExercised": 6,
+        "windowsGuardedReportedPasses": 4,
+        "windowsGuardedBehaviourExecutedLocally": false,
+        "windowsGuardedEvidence": "Compiled/guard-return only on macOS; native Windows CI remains pending.",
+        "windowsCaseNames": [
+          "OfficeIMO.Reader.Tests.ReaderWindowsFileCommitClaimTests.SharedClaimAcquisitionRecoversWhenWindowsCompletesPendingDeletion(coreClaim: False)",
+          "OfficeIMO.Reader.Tests.ReaderWindowsFileCommitClaimTests.SharedClaimAcquisitionPreservesPersistentWindowsAccessFailures(coreClaim: False)",
+          "OfficeIMO.Reader.Tests.ReaderWindowsFileCommitClaimTests.SharedClaimAcquisitionRecoversWhenWindowsCompletesPendingDeletion(coreClaim: True)",
+          "OfficeIMO.Reader.Tests.ReaderWindowsFileCommitClaimTests.SharedClaimAcquisitionPreservesPersistentWindowsAccessFailures(coreClaim: True)"
+        ]
+      }
+    }
+  ],
+  "net472CompileOnly": [
+    {
+      "name": "html-converged-net472",
+      "project": "OfficeIMO.Html.Tests/OfficeIMO.Html.Tests.csproj",
+      "framework": "net472",
+      "compilePassed": true,
+      "runtimeExecuted": false,
+      "receipt": {
+        "path": "${HTML_CONSOLIDATION_EVIDENCE_ROOT}/master-convergence/html-converged-net472-execution.json",
+        "bytes": 1554,
+        "sha256": "947cdc5a4063adb48735a16f50296c81c95d2996744840645f0732fc226d43cf"
+      },
+      "log": {
+        "path": "${HTML_CONSOLIDATION_EVIDENCE_ROOT}/master-convergence/logs/html-converged-net472.log",
+        "bytes": 14930,
+        "sha256": "a5ad8465282419c5daf572e45f62114109924ba1c6f78901df7fd1a3b08319f9"
+      }
+    },
+    {
+      "name": "reader-converged-net472",
+      "project": "OfficeIMO.Reader.Tests/OfficeIMO.Reader.Tests.csproj",
+      "framework": "net472",
+      "compilePassed": true,
+      "runtimeExecuted": false,
+      "receipt": {
+        "path": "${HTML_CONSOLIDATION_EVIDENCE_ROOT}/master-convergence/reader-converged-net472-execution.json",
+        "bytes": 1562,
+        "sha256": "f1fa01f317ae97d2db5a4c5d678050a98dbc39dcf7a681d0a9ae2c976939acb9"
+      },
+      "log": {
+        "path": "${HTML_CONSOLIDATION_EVIDENCE_ROOT}/master-convergence/logs/reader-converged-net472.log",
+        "bytes": 22010,
+        "sha256": "2e86fd47f6d1dbaaa579df59dcd7ca6692e580a8e74bea123e750322a9391dde"
+      }
+    }
+  ],
+  "privatePackages": {
+    "plan": {
+      "path": "${HTML_CONSOLIDATION_EVIDENCE_ROOT}/ci-wave2/prep/package-v5/plan.json",
+      "bytes": 12617460,
+      "sha256": "e20b17bf33ca7f64720fa3df24d0117a840818b7507afcf6165e4d0f48dfaa7f"
+    },
+    "successfulCleanHeadCommands": 37,
+    "executionAndLogInventorySha256": "ec5c7e439bd1d17633f8b2672f8487cd3e9e5dbf9e7dbdc6c1f8265d54257b60",
+    "version": "3.5.5",
+    "freshPackages": 9,
+    "frameworkAssets": 36,
+    "reusedPackages": 0,
+    "freshSourceRestoreBuildStages": 4,
+    "freshActualPackStages": 9,
+    "packageBinding": {
+      "path": "${HTML_CONSOLIDATION_EVIDENCE_ROOT}/ci-wave2/packages/package-v5/package-binding.json",
+      "bytes": 46379,
+      "sha256": "86403d0f819930422e0702419288f2edea60e7be133e02bc244c47809195c577"
+    },
+    "consumerBinding": {
+      "path": "${HTML_CONSOLIDATION_EVIDENCE_ROOT}/ci-wave2/packages/package-v5/consumer-binding.json",
+      "bytes": 345951,
+      "sha256": "26c33fae2f789a42c40cbeb6f5b5c9056698c91fe2b92318afa2bcce1519c977"
+    },
+    "packages": [
+      {
+        "packageId": "OfficeIMO.Core",
+        "path": "${HTML_CONSOLIDATION_EVIDENCE_ROOT}/ci-wave2/packages/package-v5/feed/OfficeIMO.Core.3.5.5.nupkg",
+        "bytes": 8752970,
+        "sha256": "f7f06b8d038abe822f5a7657c19d9ae7121fc7a2ec90e92863f0c9bcd400215d"
+      },
+      {
+        "packageId": "OfficeIMO.Pdf",
+        "path": "${HTML_CONSOLIDATION_EVIDENCE_ROOT}/ci-wave2/packages/package-v5/feed/OfficeIMO.Pdf.3.5.5.nupkg",
+        "bytes": 13679354,
+        "sha256": "777f0c1415008eb2cf7ae76e9b7f2a01a722a3721c0cc591cf0aae280e4fcf57"
+      },
+      {
+        "packageId": "OfficeIMO.Html.Core",
+        "path": "${HTML_CONSOLIDATION_EVIDENCE_ROOT}/ci-wave2/packages/package-v5/feed/OfficeIMO.Html.Core.3.5.5.nupkg",
+        "bytes": 325373,
+        "sha256": "5ab0d6e6b17bd4025d784dbd1f2e732844fb96d54dbd9a5cf9407d18be704460"
+      },
+      {
+        "packageId": "OfficeIMO.Html.AngleSharp",
+        "path": "${HTML_CONSOLIDATION_EVIDENCE_ROOT}/ci-wave2/packages/package-v5/feed/OfficeIMO.Html.AngleSharp.3.5.5.nupkg",
+        "bytes": 104235,
+        "sha256": "f1fafb5353c4b6420dad2b3f18a0724f46d9f2ebaca096720ec6879f7b2b75ea"
+      },
+      {
+        "packageId": "OfficeIMO.Html",
+        "path": "${HTML_CONSOLIDATION_EVIDENCE_ROOT}/ci-wave2/packages/package-v5/feed/OfficeIMO.Html.3.5.5.nupkg",
+        "bytes": 4685896,
+        "sha256": "93b929025a892fba1b2bbe962eb55ec53320029c355c62bc5e932c627cbfc43a"
+      },
+      {
+        "packageId": "OfficeIMO.Word",
+        "path": "${HTML_CONSOLIDATION_EVIDENCE_ROOT}/ci-wave2/packages/package-v5/feed/OfficeIMO.Word.3.5.5.nupkg",
+        "bytes": 7505639,
+        "sha256": "9e3a089330cb1bdb17022b1123409dcc8a42ede49a76312043c06d0c02a2e0dd"
+      },
+      {
+        "packageId": "OfficeIMO.Word.Html",
+        "path": "${HTML_CONSOLIDATION_EVIDENCE_ROOT}/ci-wave2/packages/package-v5/feed/OfficeIMO.Word.Html.3.5.5.nupkg",
+        "bytes": 822928,
+        "sha256": "ccff825cd88c3c33408630fb72d9735bf46898c5bd561e43e9d610cabd5a4bf5"
+      },
+      {
+        "packageId": "OfficeIMO.PowerPoint",
+        "path": "${HTML_CONSOLIDATION_EVIDENCE_ROOT}/ci-wave2/packages/package-v5/feed/OfficeIMO.PowerPoint.3.5.5.nupkg",
+        "bytes": 4653304,
+        "sha256": "7c8c0eaff34a64af36cf3a1f3583dcff0ed813eb7c73136e61915240b12bdc38"
+      },
+      {
+        "packageId": "OfficeIMO.PowerPoint.Html",
+        "path": "${HTML_CONSOLIDATION_EVIDENCE_ROOT}/ci-wave2/packages/package-v5/feed/OfficeIMO.PowerPoint.Html.3.5.5.nupkg",
+        "bytes": 291647,
+        "sha256": "21eb4a1feefe0708e68e11c5f0cd8773d0bdf3518418993cb13031de14f733a8"
+      }
+    ],
+    "publicConsumers": [
+      {
+        "name": "html-net8",
+        "result": {
+          "path": "${HTML_CONSOLIDATION_EVIDENCE_ROOT}/ci-wave2/packages/package-v5/results/html/net8/result.json",
+          "bytes": 518333,
+          "sha256": "a890129cd0765d248056cfa73821e057fa0a53a0d660e17eb6d0c5374ea78710"
+        },
+        "executable": {
+          "path": "${HTML_CONSOLIDATION_EVIDENCE_ROOT}/ci-wave2/packages/package-v5/out/html/net8/SpanningColumnPackagenet8.dll",
+          "bytes": 120320,
+          "sha256": "89c9956d134e3f577eeefb38a6d50011eea2293da99e933f538866de3fb7bdec"
+        },
+        "historicalCaseProfilePairs": 24,
+        "r8Checks": 17,
+        "r9Checks": 4,
+        "r10Checks": 7,
+        "logicalOrder": {
+          "checks": 32,
+          "coreExactHtmlAndTaggedSourceOrder": 26,
+          "printOnlyDefaultFootnotes": 2,
+          "printOnlyCustomTextAndMixedFootnotes": 4,
+          "spatialCompleteContentChecks": 32,
+          "ownPngPdfPairs": 32,
+          "actualArtifactInventorySha256": "366f8d28ec5ef3f7dfdf749d07f0339a2cdb17d26e051f3b53639f842712a127",
+          "publicApi": "PdfReadDocument.TaggedContent roots/structure/marked references plus PdfReadPage.GetTextSpans; public RawStructure page Contents supplies pdfPageContentStreamObjectNumbers. Explicit form streams match exactly; null MCR matches null or exact page streams, never arbitrary forms.",
+          "boundary": "ExtractText is spatial. HTML DOM order, tagged reading order, footnote Note ownership and pixel replay are separate contracts; no full tagged=HTML assumption for notes."
+        }
+      },
+      {
+        "name": "html-net10",
+        "result": {
+          "path": "${HTML_CONSOLIDATION_EVIDENCE_ROOT}/ci-wave2/packages/package-v5/results/html/net10/result.json",
+          "bytes": 518469,
+          "sha256": "4d764124642a84108baecf11192eefe08f88213fa2f105dbc8c4bb6881a56c53"
+        },
+        "executable": {
+          "path": "${HTML_CONSOLIDATION_EVIDENCE_ROOT}/ci-wave2/packages/package-v5/out/html/net10/SpanningColumnPackagenet10.dll",
+          "bytes": 120320,
+          "sha256": "8c5fab3eff4a017a94a70a6df8ff25f140c0fa272a710e2284987f5dc8cfbe77"
+        },
+        "historicalCaseProfilePairs": 24,
+        "r8Checks": 17,
+        "r9Checks": 4,
+        "r10Checks": 7,
+        "logicalOrder": {
+          "checks": 32,
+          "coreExactHtmlAndTaggedSourceOrder": 26,
+          "printOnlyDefaultFootnotes": 2,
+          "printOnlyCustomTextAndMixedFootnotes": 4,
+          "spatialCompleteContentChecks": 32,
+          "ownPngPdfPairs": 32,
+          "actualArtifactInventorySha256": "b323ed4670e5b3fcb6f3afc4e203ae938fe9b21cf254a60414a1f864d08e7434",
+          "publicApi": "PdfReadDocument.TaggedContent roots/structure/marked references plus PdfReadPage.GetTextSpans; public RawStructure page Contents supplies pdfPageContentStreamObjectNumbers. Explicit form streams match exactly; null MCR matches null or exact page streams, never arbitrary forms.",
+          "boundary": "ExtractText is spatial. HTML DOM order, tagged reading order, footnote Note ownership and pixel replay are separate contracts; no full tagged=HTML assumption for notes."
+        }
+      },
+      {
+        "name": "html-aot",
+        "result": {
+          "path": "${HTML_CONSOLIDATION_EVIDENCE_ROOT}/ci-wave2/packages/package-v5/results/html/aot/result.json",
+          "bytes": 516707,
+          "sha256": "b65395390d8b7a6e132badf8631340ce1a38fc6863ef7114c9f62c267970f6b3"
+        },
+        "executable": {
+          "path": "${HTML_CONSOLIDATION_EVIDENCE_ROOT}/ci-wave2/packages/package-v5/out/html/aot/SpanningColumnPackageaot",
+          "bytes": 34992504,
+          "sha256": "bd4299ee48f1f464ebc7b91426f17b8fe424d08b3ed3fa4bf4b9ed07693cbd2c"
+        },
+        "historicalCaseProfilePairs": 24,
+        "r8Checks": 17,
+        "r9Checks": 4,
+        "r10Checks": 7,
+        "logicalOrder": {
+          "checks": 32,
+          "coreExactHtmlAndTaggedSourceOrder": 26,
+          "printOnlyDefaultFootnotes": 2,
+          "printOnlyCustomTextAndMixedFootnotes": 4,
+          "spatialCompleteContentChecks": 32,
+          "ownPngPdfPairs": 32,
+          "actualArtifactInventorySha256": "f587195fbabd2b510df68218da7a8aacb274dee9550df4d181cf0e5aba3fe6b3",
+          "publicApi": "PdfReadDocument.TaggedContent roots/structure/marked references plus PdfReadPage.GetTextSpans; public RawStructure page Contents supplies pdfPageContentStreamObjectNumbers. Explicit form streams match exactly; null MCR matches null or exact page streams, never arbitrary forms.",
+          "boundary": "ExtractText is spatial. HTML DOM order, tagged reading order, footnote Note ownership and pixel replay are separate contracts; no full tagged=HTML assumption for notes."
+        },
+        "nativeAotExecuted": true
+      },
+      {
+        "name": "invoice-net8.0",
+        "result": {
+          "path": "${HTML_CONSOLIDATION_EVIDENCE_ROOT}/ci-wave2/packages/package-v5/results/invoice/net8.0/summary.json",
+          "bytes": 548340,
+          "sha256": "cb0a1f4c804d94228cf4a4b691c7bbcb04d4019f7905509e56d9e87207544ca2"
+        },
+        "executable": {
+          "path": "${HTML_CONSOLIDATION_EVIDENCE_ROOT}/ci-wave2/packages/package-v5/out/invoice/net8.0/InvoiceReplayProbe.dll",
+          "bytes": 39936,
+          "sha256": "612fe8914cf450c33d3b966a0ff0421e02944504624a5cd75672b30754c8294b"
+        },
+        "pages": 2,
+        "exportParityRoutesPassed": 7,
+        "arabicContextForms": 9
+      },
+      {
+        "name": "invoice-net10.0",
+        "result": {
+          "path": "${HTML_CONSOLIDATION_EVIDENCE_ROOT}/ci-wave2/packages/package-v5/results/invoice/net10.0/summary.json",
+          "bytes": 548340,
+          "sha256": "fbe28366f20b6b061b2530ab311538750594d231a0c3c3598276a0feacaecfb4"
+        },
+        "executable": {
+          "path": "${HTML_CONSOLIDATION_EVIDENCE_ROOT}/ci-wave2/packages/package-v5/out/invoice/net10.0/InvoiceReplayProbe.dll",
+          "bytes": 39936,
+          "sha256": "5ee9cfc0fac64e1ca7befaefa66eadb5785526cdf58c4f0926cd5f58c7136dba"
+        },
+        "pages": 2,
+        "exportParityRoutesPassed": 7,
+        "arabicContextForms": 9
+      },
+      {
+        "name": "archive-net8.0",
+        "result": {
+          "path": "${HTML_CONSOLIDATION_EVIDENCE_ROOT}/ci-wave2/packages/package-v5/results/archive/net8.0/observation.json",
+          "bytes": 68136,
+          "sha256": "6abcb51e3fa159854c32c456c7e0f2f4fa8a2d550211e3be53c408744151ac6c"
+        },
+        "executable": {
+          "path": "${HTML_CONSOLIDATION_EVIDENCE_ROOT}/ci-wave2/packages/package-v5/out/archive/net8.0/HtmlPrintProbe.dll",
+          "bytes": 78848,
+          "sha256": "42c75aea9af6aa81776f4999beeb148bfeab763c3edaaa2987915d8d63424374"
+        },
+        "pages": 2,
+        "ownPagedPngPdfPairs": 2
+      },
+      {
+        "name": "archive-net10.0",
+        "result": {
+          "path": "${HTML_CONSOLIDATION_EVIDENCE_ROOT}/ci-wave2/packages/package-v5/results/archive/net10.0/observation.json",
+          "bytes": 68151,
+          "sha256": "ecdb6bd572c1c03f0ddd46ef0285877fa4e47dddbf204ec34262660de94763f4"
+        },
+        "executable": {
+          "path": "${HTML_CONSOLIDATION_EVIDENCE_ROOT}/ci-wave2/packages/package-v5/out/archive/net10.0/HtmlPrintProbe.dll",
+          "bytes": 78848,
+          "sha256": "638acc3d8dbd18431051c6243113bcd5848965b4eb8eb2b6b8df7abf1de9abcf"
+        },
+        "pages": 2,
+        "ownPagedPngPdfPairs": 2
+      },
+      {
+        "name": "word-net8.0",
+        "result": {
+          "path": "${HTML_CONSOLIDATION_EVIDENCE_ROOT}/ci-wave2/packages/package-v5/results/word/net8.0/result.json",
+          "bytes": 5496,
+          "sha256": "8ab57b273a412f01cb229765091be8c2c260e0de00e7d505921f4b8d3f41489f"
+        },
+        "executable": {
+          "path": "${HTML_CONSOLIDATION_EVIDENCE_ROOT}/ci-wave2/packages/package-v5/out/word/net8.0/WordLabelledMathPackageProbe.dll",
+          "bytes": 28672,
+          "sha256": "cd6417a1bba3ff5d52c10226e8f683e8d852ddce2e5ec504bbf29fef4bdbb6e3"
+        },
+        "savedReopenedContracts": 4
+      },
+      {
+        "name": "word-net10.0",
+        "result": {
+          "path": "${HTML_CONSOLIDATION_EVIDENCE_ROOT}/ci-wave2/packages/package-v5/results/word/net10.0/result.json",
+          "bytes": 5511,
+          "sha256": "dcfc9fc8ea9b073d6be57c0ab0fab16759c3dd7f3efb1fcdc2d46ba38452d2cc"
+        },
+        "executable": {
+          "path": "${HTML_CONSOLIDATION_EVIDENCE_ROOT}/ci-wave2/packages/package-v5/out/word/net10.0/WordLabelledMathPackageProbe.dll",
+          "bytes": 28672,
+          "sha256": "fe39e482ec3e0c9c01c1186ab707316fbd1a82a93d414ab760ca4a478d96f494"
+        },
+        "savedReopenedContracts": 4
+      },
+      {
+        "name": "ppt-net8.0",
+        "result": {
+          "path": "${HTML_CONSOLIDATION_EVIDENCE_ROOT}/ci-wave2/packages/package-v5/results/ppt/net8.0/result.json",
+          "bytes": 14844,
+          "sha256": "6a6cc08d858b92815331b6cc1faa558d5627d52ce56b336ada8124a1fd5e20b1"
+        },
+        "executable": {
+          "path": "${HTML_CONSOLIDATION_EVIDENCE_ROOT}/ci-wave2/packages/package-v5/out/ppt/net8.0/PowerPointComputedFontsPackageProbe.dll",
+          "bytes": 25088,
+          "sha256": "f2f5260374765818e60be80d5320ca5f3c3893232948be250c9d9e0413733a31"
+        },
+        "savedReopenedContracts": 10
+      },
+      {
+        "name": "ppt-net10.0",
+        "result": {
+          "path": "${HTML_CONSOLIDATION_EVIDENCE_ROOT}/ci-wave2/packages/package-v5/results/ppt/net10.0/result.json",
+          "bytes": 14888,
+          "sha256": "37a83e94cc66eea8858d569d7e90683c26b85ad636a9882a58c45ff2bd5baadc"
+        },
+        "executable": {
+          "path": "${HTML_CONSOLIDATION_EVIDENCE_ROOT}/ci-wave2/packages/package-v5/out/ppt/net10.0/PowerPointComputedFontsPackageProbe.dll",
+          "bytes": 25088,
+          "sha256": "ee5c1d0cfe7d21d7581066890a9962cb851080bd421dcb568e12670dce13f6bc"
+        },
+        "savedReopenedContracts": 10
+      }
+    ]
+  },
+  "archive": {
+    "plan": {
+      "path": "${HTML_CONSOLIDATION_EVIDENCE_ROOT}/ci-wave2/prep/archive-validator-v5/plan.json",
+      "bytes": 12537991,
+      "sha256": "2eb48f0a25b03c18d5a90880f0100348ac59a693270daf1af9f55e553033faf9"
+    },
+    "successfulCleanHeadCommands": 8,
+    "executionAndLogInventorySha256": "28056b8ed4b1db483997b79cfb7ae82076b2b7e5e98eef1f4ff08960b6e8744b",
+    "qualification": {
+      "path": "${HTML_CONSOLIDATION_EVIDENCE_ROOT}/ci-wave2/archive-validator-v5/qualification.json",
+      "bytes": 6467,
+      "sha256": "578a946d0e4457cfda382f8ae032bf92365c9c27e1e3e61b180663b38258b7f8"
+    },
+    "positiveProofs": 2,
+    "rejectedBindingNegatives": 6,
+    "frameworks": [
+      {
+        "framework": "net8.0",
+        "artifact": {
+          "path": "${HTML_CONSOLIDATION_EVIDENCE_ROOT}/ci-wave2/packages/package-v5/results/archive/net8.0/report.pdf",
+          "bytes": 49063,
+          "sha256": "3966ec01f668127d83e685b4b3bd82c96fae2335cea84e74bf0cca3485800af9"
+        },
+        "proof": {
+          "path": "${HTML_CONSOLIDATION_EVIDENCE_ROOT}/ci-wave2/archive-validator-v5/net8.0/proof/proof-observation.json",
+          "bytes": 14232,
+          "sha256": "356dbc260f63f8056f1c3084b4dc81e510f8ef1eb9dee4cf989604fc158c4c86"
+        },
+        "validatorVersion": "1.30.0",
+        "positiveCanClaimConformance": true,
+        "missingWrongArtifactWrongProfileRejected": true
+      },
+      {
+        "framework": "net10.0",
+        "artifact": {
+          "path": "${HTML_CONSOLIDATION_EVIDENCE_ROOT}/ci-wave2/packages/package-v5/results/archive/net10.0/report.pdf",
+          "bytes": 49250,
+          "sha256": "061c6f87bcb3f53bcc1df4ec5f211e997ca69aaff4c6df359b015120d783f5bb"
+        },
+        "proof": {
+          "path": "${HTML_CONSOLIDATION_EVIDENCE_ROOT}/ci-wave2/archive-validator-v5/net10.0/proof/proof-observation.json",
+          "bytes": 14246,
+          "sha256": "c1708ab4fef40958838f4c34e6fc2e304ff55867f232bd0a942b7e611f9a15c3"
+        },
+        "validatorVersion": "1.30.0",
+        "positiveCanClaimConformance": true,
+        "missingWrongArtifactWrongProfileRejected": true
+      }
+    ]
+  },
+  "finalGates": {
+    "readOnlyClosure": {
+      "receipt": {
+        "path": "${HTML_CONSOLIDATION_EVIDENCE_ROOT}/master-convergence/final-merge-closure.json",
+        "bytes": 1434,
+        "sha256": "1d33feaa30184f67b08b8983dcc1a73025ecbb4d5e14028bf1ad378711f8830d"
+      },
+      "reviewer": "/root/html_master_interaction_review",
+      "fullPasses": 1,
+      "unresolvedRequiredFindings": 0,
+      "scope": "Only newly merged masterc8404474 interactions:5conflictresolutions andreachableHTMLsemantic/ListStyleType/LogicalOrder/clones+PDFreservednavigationidentity/clipping/annotationcallers. OriginalHTMLownerpass1full+1targetedandboundedprimaryremediationretainedseparately; this is not anotherfullreviewoftheoriginalbatch.",
+      "disposition": "Acceptintegration shape subjecttobroaderlocalproofandcurrentheadPRgates. NopublicAPI/dependencyapprovalgapfromcombination; no universalappearance/accessibilityacceptance."
+    },
+    "visual": {
+      "receipt": {
+        "path": "${HTML_CONSOLIDATION_EVIDENCE_ROOT}/master-convergence/visual-continuity.json",
+        "bytes": 7569,
+        "sha256": "6146c7c3931731d6e8997cc68859aa102aaf90da0768bdd8f882e19da30d52e0"
+      },
+      "rootObservedImageCount": 10,
+      "actualCaptureInventorySha256": "46ba3403a901f8eac9f1f5decd7be0c153074ea0f57cae4f73446235a4ee6e7b",
+      "observations": "ROOT viewed all eight current real-font invoice/archive pages (both .NET frameworks) and two bounded positioned-footnote/frame source-scope scenes. Invoice retains two pages, rows 1\u201321, repeated header, narrow totals, page numbers, margin text and nonblank multilingual content. The archive report retains two pages, styled text, colours, gradient, alpha, table, link and formula; spacing and crop match qualified controls. Ten exact image hashes match their own preintegration v4 observations. Synthetic source-scope scenes intentionally use their embedded synthetic glyph font; they prove geometry/content/route contracts, not readable-font or universal appearance acceptance. Previously questioned faint invoice margin text is present in both current frames and exact prior images, so no margin-box defect remains.",
+      "boundary": "No new Edge, native Office, assistive-technology, physical-print or Windows-profiling capture. Historical producer observations retain original source/artifact bindings; native appearance and general accessibility claims stay bounded."
+    }
+  },
+  "retention": {
+    "providedReceipts": [
+      {
+        "receipt": {
+          "path": "${HTML_CONSOLIDATION_EVIDENCE_ROOT}/master-convergence/source-runtime-retention.json",
+          "bytes": 5248,
+          "sha256": "7ad9777736433af5a2d4e4ed039bcc78f15dcddcd647df1342b2801457bcab45"
+        },
+        "archive": {
+          "path": "${HTML_CONSOLIDATION_EVIDENCE_ROOT}/master-convergence/source-runtimes-and-metadata.zip",
+          "bytes": 112364805,
+          "sha256": "c2326eedb2788c5b547ff04741f6ad72d18792d7ff250c3fd37ed5264db26418"
+        },
+        "historicalFileBindings": 15322,
+        "allEntriesCRCAndHashReadback": true,
+        "attribution": "Archive receipt plus final source/graph executions; no unrecorded native runtime claim."
+      },
+      {
+        "receipt": {
+          "path": "${HTML_CONSOLIDATION_EVIDENCE_ROOT}/master-convergence/probe-runtime-retention.json",
+          "bytes": 1669,
+          "sha256": "bb3ef1ec3341785c17873475ae162dab973770df5f5143e357a269239173e07e"
+        },
+        "archive": {
+          "path": "${HTML_CONSOLIDATION_EVIDENCE_ROOT}/master-convergence/probe-runtimes-and-metadata.zip",
+          "bytes": 134501,
+          "sha256": "04c3e9baefc995a32fc9093c7f71456a45f74c92e6f0edf3c6fcb39085fc60d1"
+        },
+        "historicalFileBindings": 42,
+        "allEntriesCRCAndHashReadback": true,
+        "attribution": "Archive receipt plus final source/graph executions; no unrecorded native runtime claim."
+      }
+    ],
+    "boundary": "No runtime-archive retention claim when none is supplied; required package/consumer subjects must remain readable for collection."
+  },
+  "runtimeProviderForks": {
+    "branch": "feature/html-engine",
+    "head": "72130c73a64747bc7016da6f46c4f2607e91633f",
+    "included": false
+  },
+  "windowsProfiling": "deferred",
+  "limits": [
+    "Four Windows-guarded Reader cases per managed framework are reported Passed by TRX but guard-return/compile-only on macOS; native Windows runtime/CI remains pending.",
+    "net472 establishes compilation only. No current Windows runtime pass is inferred from local TRX.",
+    "PDF ExtractText is spatial; complete content/token inventory is separate from public tagged reading order. Notes retain separately qualified marker/body ownership and call ordering.",
+    "Current PDF/A-4f conformance applies only to the two exact validated saved artifacts; no new universal native appearance, manual accessibility, PDF/X or physical-print acceptance.",
+    "Current merged-head package proof requires all37 v5 stages, including fresh source restore/builds and nine packs/36 assets. Preintegration122 source/package/consumer proof remains historical and is never relabelled.",
+    "Original and wave-one proof remains historical; runtime/provider forks remain excluded and Windows profiling stays deferred."
+  ],
+  "publication": {
+    "pullRequest": "https://github.com/EvotecIT/OfficeIMO/pull/3127",
+    "nativeWindowsCI": "pending",
+    "pullRequestMergePerformed": false,
+    "packagePublicationPerformed": false,
+    "releasePerformed": false
+  },
+  "collector": {
+    "source": {
+      "path": "${HTML_CONSOLIDATION_EVIDENCE_ROOT}/ci-wave2/prep/receipt-v4/collect.py",
+      "bytes": 42022,
+      "sha256": "116285527a388f7092d1a29c79ad3d424bb50473085ec271ba6124d5ed04f630"
+    },
+    "inputs": {
+      "path": "${HTML_CONSOLIDATION_EVIDENCE_ROOT}/ci-wave2/prep/receipt-v4/inputs.json",
+      "bytes": 8106,
+      "sha256": "4866a42f7d8f63b2a7be9ee87980321edd769d0729a23c04cfc7319b25bb8f69"
+    },
+    "mode": "Read-only inspection of existing proof, then one fresh scratch JSON write."
+  }
+}

@@ -91,7 +91,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 item.Block = LayoutFlexItem(item, Math.Max(1D, item.MainSize), style, depth + 1);
             }
 
-            line.CrossSize = line.Items.Count == 0 ? 0D : line.Items.Max(item => item.Block!.Height);
+            line.CrossSize = line.Items.Count == 0 ? 0D : ResolveRowFlexLineCrossSize(line.Items, style);
         }
 
         double rowGap = lines.Count > 1 ? style.RowGap : 0D;
@@ -124,10 +124,10 @@ internal sealed partial class HtmlRenderLayoutEngine {
                         item.Block = LayoutFlexItem(item, Math.Max(1D, item.MainSize), style, depth + 1,
                             pageBoundary.Value.Shift(contentYForBoundary + line.CrossOffset + item.CrossOffset));
                     }
-                    line.CrossSize = line.Items.Count == 0 ? 0D : line.Items.Max(item => item.Block!.Height);
+                    line.CrossSize = line.Items.Count == 0 ? 0D : ResolveRowFlexLineCrossSize(line.Items, style);
                     RestretchRowFlexSiblings(line.Items, style, line.CrossSize, depth,
                         pageBoundary.Value.Shift(contentYForBoundary + line.CrossOffset));
-                    line.CrossSize = line.Items.Count == 0 ? 0D : line.Items.Max(item => item.Block!.Height);
+                    line.CrossSize = line.Items.Count == 0 ? 0D : ResolveRowFlexLineCrossSize(line.Items, style);
                 }
                 naturalCrossSize = lines.Sum(line => line.CrossSize) + rowGap * Math.Max(0, lines.Count - 1);
                 crossSize = ResolveFlexCrossSize(style, naturalCrossSize);
@@ -142,6 +142,21 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 if (lineGeometryStable && currentItemOffsets.Select((offset, index) =>
                         Math.Abs(offset - previousItemOffsets[index])).All(change => change <= 0.0001D)) break;
             }
+        }
+
+        bool parallelTables = style.FlexWrap == "nowrap" && style.FlexDirection == "row" && lines.Count == 1
+            && Math.Abs(lines[0].CrossOffset) <= 0.0001D
+            && lines[0].Items.All(item => Math.Abs(item.CrossOffset) <= 0.0001D && !item.HasExplicitCrossSize)
+            && CanProjectParallelTableItems(element, style, lines[0].Items.Select(item => item.Block!).ToArray(),
+                lines[0].Items.Select(item => item.Style));
+        if (parallelTables && TryProjectParallelTableItems(element, contentWidth,
+            lines[0].Items.Select(item => item.Block!).ToArray(),
+            out IReadOnlyList<HtmlRenderFlowBlock> projectedItems)) {
+            for (int item = 0; item < projectedItems.Count; item++) lines[0].Items[item].Block = projectedItems[item];
+            lines[0].CrossSize = projectedItems.Max(item => item.Height);
+            naturalCrossSize = lines[0].CrossSize;
+            crossSize = ResolveFlexCrossSize(style, naturalCrossSize);
+            ResolveFlexLineOffsets(lines, style, crossSize, rowGap, HtmlRenderStyleResolver.DescribeSource(element));
         }
 
         if (pageBoundary.HasValue && style.FlexWrap == "nowrap" && lines.Count == 1
@@ -255,7 +270,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
             ? lines.SelectMany(line => line.Items.SelectMany(item => {
                 HtmlRenderFlowBlock itemBlock = item.Block!;
                 IEnumerable<HtmlRenderAvoidBreakRange> ranges = itemBlock.AvoidBreakRanges;
-                if (itemBlock.AvoidBreakInside) ranges = ranges.Append(new HtmlRenderAvoidBreakRange(0D, itemBlock.Height));
+                if (itemBlock.AvoidBreakInsideScope != HtmlFragmentationScope.None)
+                    ranges = ranges.Append(new HtmlRenderAvoidBreakRange(0D, itemBlock.Height, Scope: itemBlock.AvoidBreakInsideScope));
                 return ranges.Select(range => range.Translate(contentY + line.CrossOffset + item.CrossOffset));
             }))
             : Array.Empty<HtmlRenderAvoidBreakRange>();
@@ -266,6 +282,15 @@ internal sealed partial class HtmlRenderLayoutEngine {
             && style.ExplicitHeight.HasValue && style.OverflowY == "visible"
             ? Math.Max(outerHeight, MaximumScrollBottom(visuals))
             : outerHeight;
+        IReadOnlyList<HtmlRenderBreakRange> safeBreakRanges = CollectSafeParallelBreakRanges(
+            itemPaintLayers.Select(layer => (layer.Block, layer.Y)), pagedPaintExtent);
+        // Only the selected item can lend repeated groups to the shared cursor.
+        // Preserve the discrete fallback for other repeated-table arrangements.
+        safeBreakRanges = HtmlRenderBreakRange.Exclude(safeBreakRanges, itemPaintLayers
+            .Where(layer => (layer.Block.ContinuationGroups.Count > 0 || layer.Block.TrailingGroups.Count > 0)
+                && !repeatingItems.Any(pair => ReferenceEquals(pair.Item.Block, layer.Block)))
+            .Select(layer => new HtmlRenderBreakRange(layer.Y, layer.Y + layer.Block.PagedPaintExtent)));
+        safeBreakRanges = ConstrainParallelPaintBreakRanges(safeBreakRanges, visuals);
 
         block = new HtmlRenderFlowBlock(
             containingWidth,
@@ -294,9 +319,11 @@ internal sealed partial class HtmlRenderLayoutEngine {
             inlineBreakProgress: continuationBreakProgress,
             supportsInlineContinuationReflow: wrapLineProgress.Count > 0,
             avoidBreakRanges: lineKeepRanges.Concat(itemKeepRanges),
-            pagedPaintExtent: pagedPaintExtent);
+            pagedPaintExtent: pagedPaintExtent,
+            safeBreakRanges: safeBreakRanges);
         if (_options.Mode == HtmlRenderMode.Paged) {
             _pagedRowFlexBlocks[element] = block;
+            if (parallelTables) _parallelTableRegions[element] = block;
             if (style.FlexWrap == "nowrap" && lines.Count == 1 && CanAlignPagedRowFlex(element, style, lines[0])) {
                 _pagedRowFlexEligibleElements.Add(element);
                 _pagedRowFlexLines[element] = lines[0];
@@ -384,7 +411,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         double? declaredMinimum = vertical ? style.MinHeight : style.MinWidth;
         double? declaredMaximum = vertical ? style.MaxHeight : style.MaxWidth;
         double minimum = declaredMinimum.HasValue ? declaredMinimum.Value + nonContent
-            : vertical ? 0D : item.AutomaticMinimumMainSize;
+            : item.AutomaticMinimumMainSize;
         double maximum = declaredMaximum.HasValue ? declaredMaximum.Value + nonContent : double.PositiveInfinity;
         // Border-box dimensions cannot shrink below their padding and borders.
         return Math.Max(insets + margins, Math.Max(minimum, Math.Min(maximum, Math.Max(0D, value))));
@@ -397,6 +424,15 @@ internal sealed partial class HtmlRenderLayoutEngine {
             : style.ExplicitHeight.Value;
     }
 
+    /// <summary>Stretch allocations retain their source height; start-aligned flows use their projected cross extent.</summary>
+    private double ResolveRowFlexLineCrossSize(IReadOnlyList<FlexItem> items, HtmlRenderBoxStyle containerStyle) {
+        bool retainsAllocation = items.Any(item => !item.HasExplicitCrossSize
+            && !item.Style.MarginTopAuto && !item.Style.MarginBottomAuto
+            && ResolveFlexAlignment(item.Style.AlignSelf, containerStyle.AlignItems) == "stretch");
+        return items.Max(item => retainsAllocation
+            ? item.Block!.UnfragmentedHeight ?? item.Block.Height : item.Block!.Height);
+    }
+
     private void StretchFlexItems(IReadOnlyList<FlexItem> items, HtmlRenderBoxStyle containerStyle, double crossSize, int depth) {
         foreach (FlexItem item in items) {
             string alignment = ResolveFlexAlignment(item.Style.AlignSelf, containerStyle.AlignItems);
@@ -404,6 +440,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
             double targetBoxHeight = Math.Max(0.01D, crossSize - item.Style.MarginTop - item.Style.MarginBottom);
             var stretchedStyle = item.Style.Clone();
             stretchedStyle.AutoHeightLayoutStretch = true;
+            stretchedStyle.IntrinsicColumnHeightAllocation = HasMultiColumnLayout(item.Style)
+                && Math.Abs(crossSize - (item.Block!.UnfragmentedHeight ?? item.Block.Height)) <= 0.0001D;
             stretchedStyle.ExplicitHeight = stretchedStyle.BorderBox
                 ? targetBoxHeight
                 : Math.Max(0.01D, targetBoxHeight - stretchedStyle.VerticalInsets);
@@ -422,6 +460,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
             double targetBoxHeight = Math.Max(0.01D, crossSize - item.Style.MarginTop - item.Style.MarginBottom);
             HtmlRenderBoxStyle stretchedStyle = item.Style.Clone();
             stretchedStyle.AutoHeightLayoutStretch = true;
+            stretchedStyle.IntrinsicColumnHeightAllocation = HasMultiColumnLayout(item.Style)
+                && Math.Abs(crossSize - (item.Block!.UnfragmentedHeight ?? item.Block.Height)) <= 0.0001D;
             stretchedStyle.ExplicitHeight = stretchedStyle.BorderBox
                 ? targetBoxHeight
                 : Math.Max(0.01D, targetBoxHeight - stretchedStyle.VerticalInsets);
@@ -575,6 +615,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         internal List<FlattenedSemanticPlacement> FlattenedSemanticPlacements { get; } = new List<FlattenedSemanticPlacement>();
         internal HtmlRenderBoxStyle Style { get; set; }
         internal int SourceIndex { get; }
+        internal int? SemanticSourceOrder { get; set; }
         internal double Basis { get; set; }
         internal double AutomaticMinimumMainSize { get; set; }
         internal double MainSize { get; set; }

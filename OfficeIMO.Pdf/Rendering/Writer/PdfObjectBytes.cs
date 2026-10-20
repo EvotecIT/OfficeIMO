@@ -18,7 +18,7 @@ internal static class PdfObjectBytes {
         if (objectNumber < 1) throw new ArgumentOutOfRangeException(nameof(objectNumber), "PDF object number must be positive.");
         cancellationToken.ThrowIfCancellationRequested();
         byte[] prefix = PdfEncoding.Latin1GetBytes(objectNumber.ToString(CultureInfo.InvariantCulture) + " 0 obj\n");
-        byte[] suffix = PdfEncoding.Latin1GetBytes("endobj\n");
+        byte[] suffix = CreateIndirectObjectSuffix(body);
         var result = new byte[checked(prefix.Length + body.Length + suffix.Length)];
         Buffer.BlockCopy(prefix, 0, result, 0, prefix.Length);
         for (int offset = 0; offset < body.Length; offset += 65536) {
@@ -43,7 +43,14 @@ internal static class PdfObjectBytes {
         return Concat(
             PdfEncoding.Latin1GetBytes(objectNumber.ToString(CultureInfo.InvariantCulture) + " " + generation.ToString(CultureInfo.InvariantCulture) + " obj\n"),
             body,
-            PdfEncoding.Latin1GetBytes("endobj\n"));
+            CreateIndirectObjectSuffix(body));
+    }
+
+    // PDF/A requires an EOL before endobj. Preserve the body, including any existing EOL.
+    internal static byte[] CreateIndirectObjectSuffix(byte[] body) {
+        Guard.NotNull(body, nameof(body));
+        bool endsWithEol = body.Length > 0 && (body[body.Length - 1] == '\n' || body[body.Length - 1] == '\r');
+        return PdfEncoding.Latin1GetBytes(endsWithEol ? "endobj\n" : "\nendobj\n");
     }
 
     internal static byte[] WrapStreamObject(int objectNumber, string dictionary, byte[] content) {

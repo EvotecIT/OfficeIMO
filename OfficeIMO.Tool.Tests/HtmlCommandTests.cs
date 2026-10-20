@@ -158,7 +158,8 @@ public sealed class HtmlCommandTests {
         using var svgReader = new StreamReader(archive.GetEntry("pages/page-0001.svg")!.Open(), Encoding.UTF8);
         string svg = await svgReader.ReadToEndAsync();
         Assert.Contains("Bundled", svg, StringComparison.Ordinal);
-        Assert.DoesNotContain("StylesheetResourceUnavailable", error.ToString(), StringComparison.Ordinal);
+        Assert.Contains("#336699", svg, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain(HtmlRenderDiagnosticCodes.ResourceUnavailable, error.ToString(), StringComparison.Ordinal);
     }
 
     [Fact]

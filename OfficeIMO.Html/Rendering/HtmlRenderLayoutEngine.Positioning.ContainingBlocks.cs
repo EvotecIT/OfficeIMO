@@ -10,7 +10,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
     /// </summary>
     private IElement? ResolveTransformedContainingBlock(IElement? directParent, HtmlRenderBoxStyle? directParentStyle = null) {
         double referenceWidth = Math.Max(1D, ActiveSurfaceWidth - ActiveMargins.Left - ActiveMargins.Right);
-        for (IElement? ancestor = directParent; ancestor != null; ancestor = ancestor.ParentElement) {
+        for (IElement? ancestor = directParent; ancestor != null; ancestor = ResolveColumnContainingParent(ancestor)) {
             HtmlRenderBoxStyle style = ReferenceEquals(ancestor, directParent) && directParentStyle != null
                 ? directParentStyle
                 : _styleResolver.Resolve(ancestor, referenceWidth);

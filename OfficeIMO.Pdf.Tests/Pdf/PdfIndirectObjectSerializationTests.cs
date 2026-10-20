@@ -7,6 +7,32 @@ namespace OfficeIMO.Tests.Pdf;
 
 public class PdfIndirectObjectSerializationTests {
     [Theory]
+    [InlineData(0, "")]
+    [InlineData(0, "\n")]
+    [InlineData(0, "\r\n")]
+    [InlineData(1, "")]
+    [InlineData(1, "\n")]
+    [InlineData(1, "\r\n")]
+    [InlineData(2, "")]
+    [InlineData(2, "\n")]
+    [InlineData(2, "\r\n")]
+    public void IndirectObjectsKeepTheirBodyAndPlaceEndKeywordAfterEol(int route, string ending) {
+        const string function = "<< /FunctionType 2 /Domain [0 1] /C0 [0 0 0] /C1 [1 1 1] /N 1 >>";
+        byte[] body = PdfEncoding.Latin1GetBytes(function + ending);
+        int generation = route == 1 ? 7 : 0;
+
+        byte[] serialized = route switch {
+            0 => PdfObjectBytes.WrapIndirectObject(42, body),
+            1 => PdfObjectBytes.WrapIndirectObject(42, generation, body),
+            _ => PdfObjectBytes.WrapIndirectObjectCancellable(42, body, CancellationToken.None)
+        };
+
+        Assert.Equal("42 " + generation + " obj\n" + function + (ending.Length == 0 ? "\n" : ending) + "endobj\n",
+            PdfEncoding.Latin1GetString(serialized));
+        Assert.Equal(PdfEncoding.Latin1GetBytes(function + ending), body);
+    }
+
+    [Theory]
     [InlineData(false)]
     [InlineData(true)]
     public void ParsedByteStringsPreserveAllBytesAndTheirSerializedLimit(bool hexadecimal) {

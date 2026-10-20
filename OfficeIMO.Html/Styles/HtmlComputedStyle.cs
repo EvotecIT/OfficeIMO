@@ -75,6 +75,9 @@ public sealed class HtmlComputedStyle {
     /// </summary>
     public double? ResolvedFontSizePoints { get; internal set; }
 
+    // Retain CSS size provenance independently of the selected physical face.
+    internal HtmlFontSizeContext? FontSizeContext { get; set; }
+
     /// <summary>Gets a computed property value or an empty string when no value is known.</summary>
     public string GetValue(string propertyName) {
         if (string.IsNullOrWhiteSpace(propertyName)) {
@@ -188,6 +191,7 @@ public sealed class HtmlComputedStyle {
                     pair => pair.Value,
                     HtmlCssPropertyNameComparer.Instance));
         style.ResolvedFontSizePoints = ResolvedFontSizePoints;
+        style.FontSizeContext = FontSizeContext;
         return style;
     }
 

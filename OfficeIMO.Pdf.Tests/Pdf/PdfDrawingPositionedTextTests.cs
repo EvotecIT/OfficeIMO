@@ -2,11 +2,61 @@ using System;
 using System.Linq;
 using OfficeIMO.Drawing;
 using OfficeIMO.Pdf;
+using OfficeIMO.TestAssets;
 using Xunit;
 
 namespace OfficeIMO.Tests.Pdf;
 
 public sealed class PdfDrawingPositionedTextTests {
+    [Fact]
+    public void CanvasDrawingKeepsPreparedGlyphInkAndLogicalTextThroughProfileAliases() {
+        const string family = "Prepared Font";
+        byte[] retainedData = ManagedTextShapingTestAssets.CreateFontWithDistinctGlyphOutlines('A', 'B');
+        OfficeTrueTypeFont program = Assert.IsType<OfficeTrueTypeFont>(OfficeTrueTypeFont.TryLoad(retainedData));
+        var result = new OfficeTextShapingResult(new[] {
+            // Logical A deliberately paints the wider B outline, followed by a second cluster glyph.
+            new OfficeShapedGlyph(2, "A", 0, 1000, 100, 200),
+            OfficeShapedGlyph.CreatePositionedUnicodeContinuation(1, 0, 0, 0, 200, -100)
+        }, OfficeTextDirection.LeftToRight);
+        var prepared = new OfficePreparedTextShaping(program, "A", result);
+        var drawing = new OfficeDrawing(100D, 80D).AddPositionedText("A", 10D, 20D, 80D, 40D,
+            new OfficeFontInfo(family, 20D), OfficeColor.Black, textAdvanceWidth: prepared.Measure(20D));
+        drawing.Fonts.Add(family, retainedData);
+        drawing.MarkLastTextWithPreparedShaping(prepared);
+
+        // A scoped profile alias would clone with a conflicting program and clear the retained carrier.
+        var profileFonts = new OfficeFontFaceCollection().Add(family,
+            ManagedTextShapingTestAssets.CreateFont('A'), OfficeFontStyle.Regular,
+            new OfficeFontUnicodeRangeSet(new[] { new OfficeFontUnicodeRange('A', 'A') }));
+        Assert.NotEqual(family, Assert.Single(profileFonts.Faces).ResourceFamilyName);
+        var options = new PdfOptions {
+            PageWidth = 100D, PageHeight = 80D,
+            MarginLeft = 0D, MarginRight = 0D, MarginTop = 0D, MarginBottom = 0D
+        }.UseRenderingProfile(new OfficeRenderingProfile("prepared-alias", profileFonts));
+        byte[] bytes = PdfDocument.Create(options)
+            .Canvas(canvas => canvas.Drawing(drawing, 0D, 0D, 100D, 80D)).ToBytes();
+        PdfReadDocument loaded = PdfReadDocument.Open(bytes);
+        Assert.Equal("A", loaded.ExtractText().Trim());
+        Assert.Empty(PdfDocument.Load(bytes).Reader.Images());
+
+        // Independent rectangle geometry proves the selected glyph IDs, offsets, pen advance and continuation.
+        // Positioned text uses the alphabetic baseline at frame Y + source font size = 40.
+        OfficeShape first = OfficeShape.Rectangle(12D, 14D);
+        first.FillColor = OfficeColor.Black;
+        first.StrokeColor = null;
+        OfficeShape continuation = OfficeShape.Rectangle(8D, 14D);
+        continuation.FillColor = OfficeColor.Black;
+        continuation.StrokeColor = null;
+        var reference = new OfficeDrawing(100D, 80D)
+            .AddShape(first, 12D, 22D).AddShape(continuation, 34D, 28D);
+        OfficeRasterImage expected = OfficeDrawingRasterRenderer.Render(reference, background: OfficeColor.White);
+        OfficeRasterImage actual = OfficeDrawingRasterRenderer.Render(
+            loaded.Pages[0].ToDrawing(), background: OfficeColor.White);
+        Assert.Equal(OfficeColor.Black, actual.GetPixel(15, 25));
+        Assert.Equal(OfficeColor.Black, actual.GetPixel(38, 32));
+        Assert.Equal(expected.GetPixels(), actual.GetPixels());
+    }
+
     [Fact]
     public void SinglePositionedLineKeepsItsExplicitAdvance() {
         var drawing = new OfficeDrawing(100, 80).AddPositionedText("A", 10, 10, 80, 60,

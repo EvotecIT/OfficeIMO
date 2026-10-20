@@ -1,0 +1,92 @@
+{
+  "schemaVersion": 1,
+  "classification": "synthetic-independent-producer",
+  "sourceRepository": "https://github.com/EvotecIT/HtmlForgeX",
+  "sourceCommit": "119635f967f3238a10f3aecb4a122b4ca295f3fa",
+  "sourceProject": "HtmlForgeX/HtmlForgeX.csproj",
+  "sourceRootResolution": "Explicit HtmlForgeXSourceRoot MSBuild property; otherwise EVOTEC_GITHUB_ROOT/HtmlForgeX.",
+  "binding": "Opt-in ProjectReference; outside the OfficeIMO solution and product runtime dependencies.",
+  "apisInspected": [
+    "Table.AddHeaders, Table.AddRow(TableCell[]), Table.AddFooters, TableCell.FromElement, TableCell.TextCell",
+    "MonitoringGrid.Panel, MonitoringPanel.Link, MonitoringPanel.Content",
+    "MonitoringTable.Headers, MonitoringTable.Row, MonitoringTable.Footer, MonitoringTable.Settings",
+    "MonitoringAlertQueue.AddAlert, MonitoringAlertQueue.Settings",
+    "HtmlTag.AddChild, HtmlTag.Id, HtmlTag.Attribute(HtmlBooleanAttribute.Open, bool), Anchor"
+  ],
+  "scriptFreeEmission": "Serialize components without attaching them to a Document. Component ToString output is placed in a local typed HTML shell with embedded fonts and CSS. No library scripts are registered or stripped.",
+  "footerBoundaries": {
+    "Table": "Produces thead/tbody/tfoot fragments. One tiny semantic table shell encloses the typed output. Real tfoot repetition is an acceptance target.",
+    "MonitoringTable": "Footer(string) is a terminal sibling div outside the table. It must appear once and is not a repeating row-group footer.",
+    "MonitoringAlertQueue": "No typed footer API. Fixture adds a declared terminal paragraph after the queue. Queue row identifiers are exact visible title labels; no per-row DOM id API exists."
+  },
+  "contract": {
+    "path": "../synthetic-report-contract.json",
+    "originalQualificationBytesSha256": "2252271cf15cb7d7073ba59505e4a55308b0aa958907107f775d8909618162a3",
+    "portableBytesSha256": "272081f419a1e874d4f3a804c1179a145cd5e975e363592bf6644b8f618cbe34",
+    "canonicalContentSha256": "03e3d1135c453b4d8573ff12553c259e6a68c4c03758ae725604f13054344066",
+    "canonicalization": "UTF-8 JSON with recursively sorted object keys, original array order, literal non-ASCII characters, no insignificant whitespace, and no trailing newline. The portable file adds one LF after that canonical content.",
+    "semanticChange": "None. Only formatting and object-key order differ from the original qualified declaration.",
+    "declarationBoundary": "The report and inventory values predate report rendering. The corrected font profile predates successful managed complete-report rendering."
+  },
+  "fontProfile": {
+    "family": "Carlito",
+    "license": "SIL Open Font License 1.1",
+    "copyright": "Copyright 2013 The Carlito Project Authors (https://github.com/googlefonts/carlito), with Reserved Font Name \"Carlito\"",
+    "sourceRepository": "https://github.com/EvotecIT/ChartForgeX",
+    "sourceDirectory": "ChartForgeX.Examples/Fixtures/Fonts/Carlito",
+    "upstreamSource": "https://github.com/google/fonts/tree/3dd78844021e948ceb633d1dcee3f7885561b5d9/ofl/carlito",
+    "licenseSourceFile": "OFL.txt",
+    "licenseSha256": "ecd848e05cf9ac95f4565491833b06c9fff3b17f396f8d8df06f77f432a793ac",
+    "inputRootResolution": "Explicit --inputs argument; each contract font fileName is relative to that root.",
+    "files": [
+      {
+        "role": "regular",
+        "sourceFile": "Carlito-Regular.ttf",
+        "inputFile": "report-fonts/regular.ttf",
+        "bytes": 628032,
+        "sha256": "f6418f708baede9789daef5d458c0f53d2a888af9820e8062934e504fedc6595",
+        "embeddingFsType": 0
+      },
+      {
+        "role": "bold",
+        "sourceFile": "Carlito-Bold.ttf",
+        "inputFile": "report-fonts/bold.ttf",
+        "bytes": 682468,
+        "sha256": "bb5d20f79b82599ec72983597437373a80f2d2085fa91fc144fd74e876a594db",
+        "embeddingFsType": 0
+      }
+    ],
+    "distributionBoundary": "Fonts are supplied by the operator and embedded in generated reports; no fonts or other binaries are stored in this producer directory."
+  },
+  "expectedHtmlInputs": [
+    {
+      "fileName": "parallel-tables-portrait.html",
+      "report": "parallel-tables",
+      "variant": "portrait",
+      "bytes": 1793835,
+      "sha256": "3ab0d88ebf1c69b3ae415b80d3c4ded9827d63dba81a4e9db9f70bce772a1877"
+    },
+    {
+      "fileName": "parallel-tables-landscape.html",
+      "report": "parallel-tables",
+      "variant": "landscape",
+      "bytes": 1793839,
+      "sha256": "3042d42d37c2f4b97c4b176b836a17ccc053431c093c4f6265fc8a42caa5117a"
+    },
+    {
+      "fileName": "grid-queues-portrait.html",
+      "report": "grid-queues",
+      "variant": "portrait",
+      "bytes": 1847555,
+      "sha256": "a04ea2c0c301b730a1f2aa5cac00421173dd09909462ef4e339386f46ef079e6"
+    },
+    {
+      "fileName": "grid-queues-landscape.html",
+      "report": "grid-queues",
+      "variant": "landscape",
+      "bytes": 1847559,
+      "sha256": "8b1d67688375ac8723445787f19a7f46dd21bbef91be7676ef3d0efd77af34bc"
+    }
+  ],
+  "outputReceipt": "producer-receipt.json binds the actual contract bytes, source-binding manifest bytes, HtmlForgeX assembly identity, and generated HTML hashes."
+}

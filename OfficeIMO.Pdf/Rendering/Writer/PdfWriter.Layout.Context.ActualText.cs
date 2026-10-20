@@ -5,13 +5,13 @@ namespace OfficeIMO.Pdf;
 internal static partial class PdfWriter {
     private sealed partial class LayoutContext {
         private void RenderLogicalText(string actualText, double anchorX, double anchorY, Action drawPaint,
-            double width = 0D, double height = 0D) {
+            double width = 0D, double height = 0D, long? logicalOrder = null) {
             // One replacement owns both the paint and its invisible anchor. Artifact marking
             // alone does not stop independent readers from extracting the painted glyphs again.
             bool paintOnly = actualText.Length == 0;
             bool hasBounds = width > 0D && height > 0D;
             int? markedContentId = paintOnly
-                ? null : RegisterTextStructureElement("Span", _canvasStructureParentElement);
+                ? null : RegisterTextStructureElement("Span", _canvasStructureParentElement, logicalOrder: logicalOrder);
             // Secondary paint has no second structure-tree owner. Classify it as
             // an artifact while retaining its empty replacement and interactions.
             if (paintOnly) sb.Append("/Artifact << /Type /Layout >> BDC\n");

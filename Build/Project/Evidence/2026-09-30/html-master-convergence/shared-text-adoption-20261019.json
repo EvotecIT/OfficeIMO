@@ -1,0 +1,608 @@
+{
+  "schema": "officeimo.html.shared-text-adoption-qualification/v1",
+  "status": "bounded-shared-text-qualification-passed",
+  "preparedUtc": "2026-10-19T15:57:04.896074+00:00",
+  "proposalOnly": false,
+  "rootFinalAcceptance": {
+    "accepted": true,
+    "scope": "Selected shared Core/PDF HTML text contract, five same-font complex-text cases, static preservation witness, explicit default diagnostics/strict behavior and package consumers. Broader fonts/scripts/variation/platform/managed-mark and required-ligature work remains open.",
+    "reviewedUtc": "2026-10-19T16:02:00.472441+00:00"
+  },
+  "sourceAttribution": {
+    "qualifiedProductionHead": "31c746803ae1ae93947a2dd2ab0bad0cd8622ec4",
+    "sourceSeal": {
+      "path": "candidate-v12-source.json",
+      "bytes": 2904181,
+      "sha256": "5b9a84aff8e1afb9f66f293544d0049f9e05c49785085afbb1044216f2d1ba11"
+    },
+    "sourceInputs": 14033,
+    "qualificationInputs": 105,
+    "staticObserverComposition": {
+      "path": "candidate-v12-static-default-staging.json",
+      "bytes": 7815,
+      "sha256": "fad033605493d2490f673e41bec3e2be26335ec54b81fbbd858c4fa3613dfd28"
+    },
+    "sameSevenCurrentDefaultModules": {
+      "path": "candidate-v12-static-default-dll-equality.json",
+      "bytes": 2078,
+      "sha256": "b888ddd2c3ac1cbc6fbb07de3d4af4056d69d8eedfada2686588f0b741101a8e"
+    },
+    "finalTestAndXmlCommentCommit": "69c0ae6035b7b3c8ce65278470c37f5fdd31fd11",
+    "finalTestAndCommentSeal": {
+      "path": "candidate-v13-source.json",
+      "bytes": 2904701,
+      "sha256": "54a80ff4b6329e09db999000cb2b60eb2b0a26959dd9d94bea565a93d9fcfa02"
+    },
+    "implementationContinuity": {
+      "path": "candidate-v13-production-continuity.json",
+      "bytes": 724,
+      "sha256": "c10911760e90a8171580cad3452659a0fcc62e00f9e604241ca2a5a07493baf3"
+    },
+    "qualificationBoundary": "Rendering/package/provider/native observations retain production31c746 identity. The subsequent69c0ae commit changes three test fixtures and one XML summary; exact changed-path inventory and whole production-file comment substitution show no executable implementation change. Full shared suites are attributed to69c0ae."
+  },
+  "ownedContract": [
+    "Core owns bidi, line breaking, font/glyph selection and prepared contextual shaping; HTML carries the selected glyph positions and contours across inline paint boundaries into raster, SVG and PDF output.",
+    "Prepared no-ink glyphs retain their logical text, advance and eligible external links without adding visible ink.",
+    "Paragraph direction, neutral punctuation, exact face/variation identity and retained Core drawing-copy paths remain shared contracts.",
+    "Default managed approximation diagnostics and strict-loss rejection remain visible; the existing optional HarfBuzz provider does not become a default dependency."
+  ],
+  "defaultManagedObservation": {
+    "report": {
+      "path": "candidate-v12-default.json",
+      "bytes": 214055,
+      "sha256": "dbef1580529e5917e576606868a9606fbedb2bc7b639eb0f0f3b2e0d4b6e5b4b"
+    },
+    "diagnosticIdentities": {
+      "path": "candidate-v12-default-diagnostic-identities.json",
+      "bytes": 17726,
+      "sha256": "bdb0c62ba611438538969e98a11389b331a072e977755b2be0a3ea370094f340"
+    },
+    "framework": "net10.0",
+    "cases": 5,
+    "profiles": 20,
+    "executionComplete": true,
+    "captureError": null,
+    "noLossProfilesObserved": 8,
+    "diagnosedLossProfilesObserved": 12,
+    "strictRejectsEveryDiagnosedHtmlLossObserved": true,
+    "applicableOwnPngPdfReplays": 15,
+    "allApplicableOwnPngPdfReplaysExactObserved": true,
+    "lossCases": [
+      "joining-and-styles",
+      "mixed-wrap-narrow",
+      "mixed-wrap-wide"
+    ],
+    "retainedLossIdentities": [
+      "HtmlRenderComplexTextShapingUnsupported",
+      "unsupported-font-mark-positioning",
+      "unsupported-mark-positioning-or-joiner-shaping"
+    ],
+    "boundary": "All 20 profiles execute; 12 retain diagnosed managed mark/required-ligature limitations and reject strict mode. Complete no-loss shaping and default native appearance are not claimed. Informational font-embedding-cost/CanvasTextPaintOverflow records are retained separately. Source-recall and appearance acceptance fields in the raw observer remain unassigned; root must bind any later decision explicitly."
+  },
+  "configuredOptionalProviderObservation": {
+    "defaultDependencyChanged": false,
+    "frameworks": [
+      {
+        "framework": "net8.0",
+        "report": {
+          "path": "candidate-v12-optional-net8.json",
+          "bytes": 56123,
+          "sha256": "b25c407d884b0f2c5adead257b347090204a3fba53546dc4d4ffa84a76ca07f6"
+        },
+        "profiles": 20,
+        "executionComplete": true,
+        "allStagesNoLossObserved": true,
+        "actualNativeLoadProof": {
+          "path": "candidate-v12-optional-net8-native-load-proof.json",
+          "bytes": 3931,
+          "sha256": "bbb16830ea079a8bf36c0f66b84d948ceb2ce77e483f95946663dbee32256367"
+        }
+      },
+      {
+        "framework": "net10.0",
+        "report": {
+          "path": "candidate-v12-optional-net10.json",
+          "bytes": 56251,
+          "sha256": "d26cc33e617474719088e28aaae5916bc895dc0fdf4721352aec85e67996db99"
+        },
+        "profiles": 20,
+        "executionComplete": true,
+        "allStagesNoLossObserved": true,
+        "actualNativeLoadProof": {
+          "path": "candidate-v12-optional-net10-native-load-proof.json",
+          "bytes": 3949,
+          "sha256": "5173514b7e3c2d5f350eaf8cb1b731cec04317054300916e248bc7b0c31e3b68"
+        }
+      }
+    ],
+    "currentPixelContinuity": {
+      "path": "candidate-v12-final-render-continuity.json",
+      "bytes": 90120,
+      "sha256": "c62af460fb9735505b0446231a6352c47557be2cd85e90a876d7cd7cae0138bb"
+    },
+    "imagesEachFrameworkCompared": 55,
+    "boundary": "All selected profiles have no diagnosed loss and 15 applicable exact own PNG/PDF replays per framework. Native loader logs establish the actual deployed library. This is the selected existing optional provider/font/profile cohort; it is not arbitrary-font or universal shaping acceptance."
+  },
+  "independentNativeAppearance": {
+    "reference": {
+      "path": "r7-text-edge-v4.json",
+      "bytes": 5012,
+      "sha256": "6650b216f67456be54c03f269e0e4393f5c0a2dba9e819b32428b787f65584b3"
+    },
+    "pagedCurrentContinuity": {
+      "path": "paged-native-inspection-v12/continuity.json",
+      "bytes": 33172,
+      "sha256": "495db9c7c4d5611d8bd813b1380ff21c50925d0d5f9f17084b896c1eabf1318a"
+    },
+    "inspectedPriorPagedDecision": {
+      "path": "paged-native-inspection-v10/inspection.json",
+      "bytes": 2680,
+      "sha256": "dcbd615b3d338370bf2eee9fef92de3517b2937bbe454c94d1bebc5ad960a3c1"
+    },
+    "currentPrintScreenProfilesAccounted": 20,
+    "allExactToIndependentlyInspectedV10Observed": true,
+    "currentNet10DistinctPdfFreshPopplerRenders": 5,
+    "boundary": "Exact PDF-byte or actual independent raster continuity transfers only the selected same-font five-case print/screen Edge appearance. Native source remains originally frozen Edge155. Broader fonts/scripts/production profiles and Windows performance are not inferred."
+  },
+  "latinStaticWitness": {
+    "case": "balanced-spanner-before",
+    "summary": {
+      "path": "candidate-v12-static-balanced-spanner-before/summary.json",
+      "bytes": 293134,
+      "sha256": "acd86b35e8d9dc637bd87a2fe5ce0a0b6b0a7b72a4e435beb0798a753d0f1103"
+    },
+    "currentRootAdjudication": {
+      "path": "static-native-adjudication-v12/root-adjudication.json",
+      "bytes": 7239,
+      "sha256": "a186a72b064f4db13771bfdd502dba34e9741463db1e42a437daa66440c07fe7"
+    },
+    "rootAcceptedCurrentStaticReferences": true,
+    "pagesByProfile": [
+      {
+        "profile": "PrintPaged",
+        "pages": 2
+      },
+      {
+        "profile": "ScreenMediaPaged",
+        "pages": 2
+      },
+      {
+        "profile": "ScreenFullPage",
+        "pages": 1
+      },
+      {
+        "profile": "ScreenSnapshotPaged",
+        "pages": 1
+      }
+    ],
+    "boundary": "The original c742 geometry, logical text and direct-scene pixels remain attributed to their actual source. Six current public PNG rule-antialiasing changes are explicitly adjudicated by root against retained same-input/font Edge controls and independent Poppler. Original PNG hashes are not claimed unchanged."
+  },
+  "rawUnicodeConformance": {
+    "unicodeVersion": "16.0.0",
+    "frameworks": [
+      {
+        "framework": "net8.0",
+        "report": {
+          "path": "r7-unicode-net8-current-v12.json",
+          "bytes": 14288,
+          "sha256": "62d79a1f7682bd2e63c570e05c8ac498b00314610c70cb36966b4d7faecd8b17"
+        },
+        "currentCandidatePassedObserved": true,
+        "runs": [
+          {
+            "corpus": "BidiCharacterTest-16.0.0",
+            "dataRows": 91707,
+            "cases": 91707,
+            "failedCases": 0,
+            "complete": true
+          },
+          {
+            "corpus": "LineBreakTest-16.0.0",
+            "dataRows": 16672,
+            "cases": 16672,
+            "failedCases": 0,
+            "complete": true
+          },
+          {
+            "corpus": "BidiTest-16.0.0",
+            "dataRows": 490846,
+            "cases": 770241,
+            "failedCases": 0,
+            "complete": true
+          }
+        ]
+      },
+      {
+        "framework": "net10.0",
+        "report": {
+          "path": "r7-unicode-net10-current-v12.json",
+          "bytes": 14179,
+          "sha256": "e1e76b43148bcc21c4a1d4bf23483223a31ba4521b5a5fa75234dc32d3c5f2a9"
+        },
+        "currentCandidatePassedObserved": true,
+        "runs": [
+          {
+            "corpus": "BidiCharacterTest-16.0.0",
+            "dataRows": 91707,
+            "cases": 91707,
+            "failedCases": 0,
+            "complete": true
+          },
+          {
+            "corpus": "LineBreakTest-16.0.0",
+            "dataRows": 16672,
+            "cases": 16672,
+            "failedCases": 0,
+            "complete": true
+          },
+          {
+            "corpus": "BidiTest-16.0.0",
+            "dataRows": 490846,
+            "cases": 770241,
+            "failedCases": 0,
+            "complete": true
+          }
+        ]
+      }
+    ],
+    "boundary": "Official raw bidi/line-break corpus cases do not establish text shaping, P1/L3/L4, character-specific bracket coverage, public grapheme/CJK/soft-hyphen tailoring, CSS layout, native appearance or PDF extraction. Runtime identities and public tailoring are recorded separately by the actual reports."
+  },
+  "completedTestObservations": [
+    {
+      "suite": "HTML functional excluding opt-in performance and the separate six-provider visual aggregate",
+      "framework": "net8.0",
+      "actualSourceHead": "65fe75b5cdada7ae53a00214836ccc4755cf4f43",
+      "counters": {
+        "total": "7268",
+        "executed": "7268",
+        "passed": "7268",
+        "failed": "0",
+        "error": "0",
+        "timeout": "0",
+        "aborted": "0",
+        "inconclusive": "0",
+        "passedButRunAborted": "0",
+        "notRunnable": "0",
+        "notExecuted": "0",
+        "disconnected": "0",
+        "warning": "0",
+        "completed": "0",
+        "inProgress": "0",
+        "pending": "0"
+      },
+      "receipt": {
+        "path": "qualified-candidate-v11-html-net8-without-premium-v1.receipt.json",
+        "bytes": 2170,
+        "sha256": "29d3e65f4a9b88e86bf6340d016c616ff2b936d562945f67fcf6544aed9be7a4"
+      },
+      "trx": {
+        "path": "tests/configured-context/qualified-candidate-v11-html-net8-without-premium-v1.trx",
+        "bytes": 11258111,
+        "sha256": "15b8d22727a80570029ea9310344c7444805d0a87f5e97990a0e6b4cf89c6a7f"
+      }
+    },
+    {
+      "suite": "Conversion catalog and aggregate of all six image-provider baselines",
+      "framework": "net8.0",
+      "actualSourceHead": "31c746803ae1ae93947a2dd2ab0bad0cd8622ec4",
+      "receipt": {
+        "path": "qualified-candidate-v12-catalog-premium-net8-v1.receipt.json",
+        "bytes": 2226,
+        "sha256": "7fcd9b8da0f17d654ae411d3423ccee070aeed9c5d48d5ee59447018ca00e08d"
+      },
+      "counters": {
+        "total": "4",
+        "executed": "4",
+        "passed": "4",
+        "failed": "0",
+        "error": "0",
+        "timeout": "0",
+        "aborted": "0",
+        "inconclusive": "0",
+        "passedButRunAborted": "0",
+        "notRunnable": "0",
+        "notExecuted": "0",
+        "disconnected": "0",
+        "warning": "0",
+        "completed": "0",
+        "inProgress": "0",
+        "pending": "0"
+      }
+    },
+    {
+      "suite": "HTML functional excluding opt-in performance and the separate six-provider visual aggregate",
+      "framework": "net10.0",
+      "actualSourceHead": "65fe75b5cdada7ae53a00214836ccc4755cf4f43",
+      "counters": {
+        "total": "7268",
+        "executed": "7268",
+        "passed": "7268",
+        "failed": "0",
+        "error": "0",
+        "timeout": "0",
+        "aborted": "0",
+        "inconclusive": "0",
+        "passedButRunAborted": "0",
+        "notRunnable": "0",
+        "notExecuted": "0",
+        "disconnected": "0",
+        "warning": "0",
+        "completed": "0",
+        "inProgress": "0",
+        "pending": "0"
+      },
+      "receipt": {
+        "path": "qualified-candidate-v11-html-net10-without-premium-v1.receipt.json",
+        "bytes": 2172,
+        "sha256": "8586f73e2c7cd4ce56d33c40c5fd50e125c1bffbc18a0c1befbd84f2768be0ba"
+      },
+      "trx": {
+        "path": "tests/configured-context/qualified-candidate-v11-html-net10-without-premium-v1.trx",
+        "bytes": 11272648,
+        "sha256": "10431c42fb7bf8681ba757233386553cd3dbd1b4266a320b86ac232567f1321e"
+      }
+    },
+    {
+      "suite": "Conversion catalog and aggregate of all six image-provider baselines",
+      "framework": "net10.0",
+      "actualSourceHead": "31c746803ae1ae93947a2dd2ab0bad0cd8622ec4",
+      "receipt": {
+        "path": "qualified-candidate-v12-catalog-premium-net10-v1.receipt.json",
+        "bytes": 2228,
+        "sha256": "273fea5e90b9d86b0eb00a2f14f9ba180b249a2c08abdb960faa125782d1e14d"
+      },
+      "counters": {
+        "total": "4",
+        "executed": "4",
+        "passed": "4",
+        "failed": "0",
+        "error": "0",
+        "timeout": "0",
+        "aborted": "0",
+        "inconclusive": "0",
+        "passedButRunAborted": "0",
+        "notRunnable": "0",
+        "notExecuted": "0",
+        "disconnected": "0",
+        "warning": "0",
+        "completed": "0",
+        "inProgress": "0",
+        "pending": "0"
+      }
+    }
+  ],
+  "baselineChanges": {
+    "html": {
+      "path": "premium-baseline-adjudication-v1.json",
+      "bytes": 2487,
+      "sha256": "b1f00f4baea0610bc6d795e93136b1e11f6bcfbb3c1c8c1e89028a04bb75e92a"
+    },
+    "emailAndEpub": {
+      "path": "premium-email-epub-baseline-adjudication-v1.json",
+      "bytes": 3432,
+      "sha256": "3271a3e99c3047c2e89486ea5b39866e64f0d4ff83875b9522680b01c4a21cc9"
+    },
+    "boundary": "Root-adjudicated actual public PNG updates; unchanged layout/font identity, independent writer/reader controls and public replay are retained. No tolerance, font, input or snapshot-update-mode change."
+  },
+  "deliveryBoundary": {
+    "checkpointOnly": true,
+    "newPullRequestOpened": false,
+    "mergeOrPackagePublication": false,
+    "runtimeProviderForks": "Remain on feature/html-engine",
+    "windowsProfiling": "Deferred by user",
+    "broaderFontsScriptsPlatformsAndNativeAppearance": "Open; not inferred from the selected cohort"
+  },
+  "pathConvention": {
+    "evidencePath": "Relative to retained html-shared-text-adoption task evidence root. Bulky task evidence is referenced by path, bytes and SHA256 instead of embedded.",
+    "qualificationState": "Root-adjudicated bounded qualification. Raw runs retain their actual source heads; branch publication, package release and broader native acceptance are separate.",
+    "repositoryDestination": "Build/Project/Evidence/2026-09-30/html-master-convergence/shared-text-adoption-20261019.json"
+  },
+  "packageConsumers": {
+    "status": "passed",
+    "sourceHead": "31c746803ae1ae93947a2dd2ab0bad0cd8622ec4",
+    "packages": 5,
+    "frameworkAssets": 20,
+    "consumers": [
+      "net8.0",
+      "net10.0",
+      "osx-arm64 NativeAOT"
+    ],
+    "caseProfilePairsEach": 24,
+    "negativeControlsEach": 2,
+    "net8ExactPngComparisons": 26,
+    "packageBinding": {
+      "path": "package-prep-v3/qualified-candidate-v12/package-binding.json",
+      "bytes": 25591,
+      "sha256": "791b0e4273cbc5a9336da29ff67fc3e50cf98884ec430879eecba7a8f2676271"
+    },
+    "consumerBinding": {
+      "path": "package-prep-v3/qualified-candidate-v12/consumer-binding.json",
+      "bytes": 170607,
+      "sha256": "e06a460207e5958eb59c0ec119dd1e22eade2c24ad530bd82c6d65cd568e8da4"
+    },
+    "inspectionSupplement": {
+      "path": "package-inspection-v4/actual-inspection.json",
+      "bytes": 840,
+      "sha256": "bdefb6d3975ff0016bb699867b1a09c3ff676f2be7dfae603ac1afdb57f4a2bd"
+    },
+    "boundary": "Actual builds and consumer runs retain frozenv3 plan/source. Fresh inspection-only canonical successor admits the observed indexed8 format; CRC/framing, palette and ordered non-IDAT chunks, exact inflated scanlines remain mandatory forNET8, whole PNG hashes forNET10/AOT. No new build or source relabel. Default dependency route only; managed typed loss remains accepted solely as an explicit diagnostic/strict contract. No package publication."
+  },
+  "powershellConsumer": {
+    "status": "passed",
+    "sourceHead": "31c746803ae1ae93947a2dd2ab0bad0cd8622ec4",
+    "historicalModuleSourceHead": "84faaa0ab60125cc36e525b8263bd3f9d602b0da",
+    "composition": {
+      "path": "ps-consumer-current-v12/composition.json",
+      "bytes": 95797,
+      "sha256": "1aab603f8c69d27cbd6e17cceeb6959a30e55f74158ff17f13f18a22eefd767b"
+    },
+    "observations": {
+      "path": "ps-consumer-current-v12/smoke/observations.json",
+      "bytes": 11783,
+      "sha256": "726b7bbd27c1b2ad9c756f575f7168440412529e4d42e7a2ffc3d1748ba94c8f"
+    },
+    "execution": {
+      "path": "ps-consumer-current-v12/execution.json",
+      "bytes": 2381,
+      "sha256": "bc704753a70223ff51d18ffb4a6dd7fd4c341d202ded5cc916312d0b32bb3492"
+    },
+    "pageCount": 2,
+    "selectedImagePageIndex": 1,
+    "pngEqualsDirectEngine": true,
+    "pngEqualsPdfReplay": true,
+    "pngEqualsWorkflowPdfReplay": true,
+    "boundary": "Unchanged exercised HTML wrapper source in retained R6 module, composed with seven exact currentNET8 package-consumer modules;33actual loaded assemblies bound. HistoricalOrigins in composition are pre-replacement staging observations; replacedModules and actual smoke inputs bind final bytes. Not a current whole-module rebuild or native mixed-script certificate."
+  },
+  "fullSharedSuites": {
+    "createdUtc": "2026-10-19T16:02:00.472441+00:00",
+    "sourceHead": "69c0ae6035b7b3c8ce65278470c37f5fdd31fd11",
+    "sourceManifest": {
+      "path": "candidate-v13-source.json",
+      "bytes": 2904701,
+      "sha256": "54a80ff4b6329e09db999000cb2b60eb2b0a26959dd9d94bea565a93d9fcfa02"
+    },
+    "productionContinuity": {
+      "path": "candidate-v13-production-continuity.json",
+      "bytes": 724,
+      "sha256": "c10911760e90a8171580cad3452659a0fcc62e00f9e604241ca2a5a07493baf3"
+    },
+    "allRequiredSuitesPassed": true,
+    "rows": [
+      {
+        "owner": "drawing",
+        "framework": "net8.0",
+        "passed": 6005,
+        "total": 6009,
+        "skipped": 4,
+        "actualReceipt": {
+          "path": "qualified-candidate-v13-drawing-net8-full.receipt.json",
+          "bytes": 2093,
+          "sha256": "6a56a0c61120926669339dd665273d598820d2a9705cc15f1699782e2696692b"
+        },
+        "trx": {
+          "path": "tests/configured-context/qualified-candidate-v13-drawing-net8-full.trx",
+          "bytes": 9290231,
+          "sha256": "44277e601908e7d8157f27c1c85466de57ed5e155ac84ae64aeb0397010d93e3"
+        }
+      },
+      {
+        "owner": "drawing",
+        "framework": "net10.0",
+        "passed": 6005,
+        "total": 6009,
+        "skipped": 4,
+        "actualReceipt": {
+          "path": "qualified-candidate-v13-drawing-net10-full.receipt.json",
+          "bytes": 2095,
+          "sha256": "339be698a688d2a1b1f2b49187591d86df26e367705764edf4cf0fc176112c16"
+        },
+        "trx": {
+          "path": "tests/configured-context/qualified-candidate-v13-drawing-net10-full.trx",
+          "bytes": 9302250,
+          "sha256": "092b668ab8d41cae07fc01451a85f202be269b049ed5af2e1f62a6849a94273c"
+        }
+      },
+      {
+        "owner": "pdf",
+        "framework": "net8.0",
+        "passed": 11559,
+        "total": 11559,
+        "skipped": 0,
+        "actualReceipt": {
+          "path": "qualified-candidate-v13-pdf-net8-full.receipt.json",
+          "bytes": 2081,
+          "sha256": "d043ba8b47ff6b646c3a965b5d2da63d73728e899b491b8232c3dd046baecf6a"
+        },
+        "trx": {
+          "path": "tests/configured-context/qualified-candidate-v13-pdf-net8-full.trx",
+          "bytes": 17753832,
+          "sha256": "be24ae82a54e2c5b54ad0d0b102eecf585115353978f38ee074cdd61b80fdb7d"
+        }
+      },
+      {
+        "owner": "pdf",
+        "framework": "net10.0",
+        "passed": 11559,
+        "total": 11559,
+        "skipped": 0,
+        "actualReceipt": {
+          "path": "qualified-candidate-v13-pdf-net10-full.receipt.json",
+          "bytes": 2083,
+          "sha256": "9007f097709bfba80824fa0db141c13250f644569c7f6a36d44aeaead5078e11"
+        },
+        "trx": {
+          "path": "tests/configured-context/qualified-candidate-v13-pdf-net10-full.trx",
+          "bytes": 17776951,
+          "sha256": "3d7e828b4306476a904f24782719f27711d0c8714b0ba247eec020e0bbbf1783"
+        }
+      }
+    ],
+    "scope": "Full correctness suites excluding Category=Performance. Actual raw TRX and source-verified command receipts retained. Existing Drawing skips remain explicit; timings are not benchmarks."
+  },
+  "qualificationGates": [
+    {
+      "gate": "Five packages/twenty assets/three package consumers",
+      "status": "passed",
+      "evidence": {
+        "path": "package-prep-v3/qualified-candidate-v12/consumer-binding.json",
+        "bytes": 170607,
+        "sha256": "e06a460207e5958eb59c0ec119dd1e22eade2c24ad530bd82c6d65cd568e8da4"
+      }
+    },
+    {
+      "gate": "Full Drawing/PDFNET8/NET10 correctness suites",
+      "status": "passed",
+      "evidence": {
+        "path": "qualified-candidate-v13-full-shared-matrix.json",
+        "bytes": 2997,
+        "sha256": "c07686405cd3eebc58e1c6785519f9cfbc1af304ac6146a9bc259c346e57653e"
+      }
+    },
+    {
+      "gate": "Affected PowerShell HTML consumer/current dependency composition",
+      "status": "passed",
+      "evidence": {
+        "path": "ps-consumer-current-v12/smoke/observations.json",
+        "bytes": 11783,
+        "sha256": "726b7bbd27c1b2ad9c756f575f7168440412529e4d42e7a2ffc3d1748ba94c8f"
+      }
+    },
+    {
+      "gate": "Executable implementation continuity after test/API-comment correction",
+      "status": "passed",
+      "evidence": {
+        "path": "candidate-v13-production-continuity.json",
+        "bytes": 724,
+        "sha256": "c10911760e90a8171580cad3452659a0fcc62e00f9e604241ca2a5a07493baf3"
+      }
+    }
+  ],
+  "localReview": {
+    "mode": "One fresh independent read-only pass and one targeted confirmation, recorded in native same-task history. No repeated full review solely for later SHA changes.",
+    "initialCandidate": "f984a2a1dec9bdf00a87f5cd57f57bcb4da64dad",
+    "confirmedCandidate": "07653be284b75cee705ffb920eb935dde2e653a4",
+    "closedContracts": [
+      "Core drawing copy/tint retains prepared glyph carriers.",
+      "Decoration-only inline boundaries preserve contextual joining.",
+      "Explicit paragraph direction preserves neutral punctuation and wrapped ordering.",
+      "Empty-ink carriers preserve logical text and eligible external links."
+    ],
+    "confirmationFindingDisposition": "The confirmation exposed the empty-ink carrier finding; root reproduced linked/unlinked siblings, repaired65fe75b5cdada7ae53a00214836ccc4755cf4f43 and passed61focused checks. Final full HTML/Drawing/PDF and selected native pixel continuity retain coverage.",
+    "unresolvedValidatedFindingsInSelectedScope": 0,
+    "boundary": "Typography nested-strike propagation remains separately recorded for a fresh bounded reproduction. Wider font/script/platform acceptance is not implied."
+  },
+  "storageCleanup": {
+    "completion": {
+      "path": "cleanup-candidate-prep/cleanup-v13-completion.json",
+      "bytes": 1481,
+      "sha256": "a7f7606e92886b76c6146e9a4173733032088150102d900667603964d05f57f0"
+    },
+    "logicalBytesRemovedThisWave": 170721275,
+    "cumulativeLogicalBytesRemoved": 665735169,
+    "protectedHashesReverified": 889,
+    "restoreMetadataHashesReverified": 70,
+    "retainedTaskRoot": "html-shared-text-adoption",
+    "retainedLogicalBytesSnapshot": 7730376522,
+    "retention": "Active programme: retain the current full test graph for the next shared-owner milestone, bound producer/package/consumer/native evidence and frozen source/font inputs. Review cold output again before the next heavy qualification and compact the final graph when the selected goal finishes."
+  }
+}

@@ -144,6 +144,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
             && Math.Abs(block.Width - availableWidth) <= 0.0001D) return block;
 
         var geometry = new HtmlCssPageGeometry(page.Width, page.Height, page.Margins);
+        using var pageBoundaries = new DescendantPageBoundaryScope(this, retainsPageBoundaries: false);
         SetActivePageGeometry(geometry);
         HtmlRenderBoxStyle style = _styleResolver.Resolve(snapshot.Element, availableWidth, snapshot.ParentStyle);
         style.Position = "static";

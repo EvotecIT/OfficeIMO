@@ -217,6 +217,21 @@ public sealed partial class OfficeTrueTypeFont {
             _advanceHeight = height;
         }
 
+        private ShapedTextRun(OfficeTrueTypeFont font, ShapedTextRun source) {
+            _font = font;
+            _glyphs = source._glyphs;
+            Direction = source.Direction;
+            _advanceWidth = source._advanceWidth;
+            _advanceHeight = source._advanceHeight;
+            _trackingGlyphCount = source._trackingGlyphCount;
+        }
+
+        // Output-scale tracking changes its evaluation size, not the retained glyph positions.
+        internal ShapedTextRun WithMetricFont(OfficeTrueTypeFont font) =>
+            ReferenceEquals(font, _font) ? this : new ShapedTextRun(font, this);
+
+        internal bool HasNegativeAdvance => _advanceWidth < 0L;
+        internal bool HasZeroTrackedAdvance => _advanceWidth == 0L && _font._tracking != null;
         internal OfficeTextDirection Direction { get; }
 
         internal double Measure(double fontSize) => Direction == OfficeTextDirection.TopToBottom

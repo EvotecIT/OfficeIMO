@@ -3,6 +3,9 @@ using AngleSharp.Dom;
 namespace OfficeIMO.Html;
 
 internal sealed partial class HtmlRenderLayoutEngine {
+    private int _columnContentDepth;
+    private int _columnBreakFallbackDepth;
+
     private IReadOnlyList<HtmlRenderFlowBlock> BuildMultiColumnChildBlocks(
         IElement element,
         IEnumerable<INode> nodes,
@@ -10,10 +13,29 @@ internal sealed partial class HtmlRenderLayoutEngine {
         HtmlRenderBoxStyle style,
         int depth,
         bool includeGeneratedBefore = true,
-        bool includeGeneratedAfter = true) {
-        if (!ContainsFloatingDescendant(element, width, style, depth)) {
-            return BuildChildBlocks(element, nodes, width, style, depth,
+        bool includeGeneratedAfter = true,
+        bool ordinaryColumnBreaks = true) {
+        bool hasFloats = ContainsFloatingDescendant(element, width, style, depth);
+        bool fallback = !ordinaryColumnBreaks || hasFloats;
+        _columnContentDepth++;
+        if (fallback) _columnBreakFallbackDepth++;
+        try {
+            return BuildMultiColumnChildBlocksCore(element, nodes, width, style, depth,
+                includeGeneratedBefore, includeGeneratedAfter, hasFloats);
+        } finally {
+            if (fallback) _columnBreakFallbackDepth--;
+            _columnContentDepth--;
+        }
+    }
+
+    private IReadOnlyList<HtmlRenderFlowBlock> BuildMultiColumnChildBlocksCore(
+        IElement element, IEnumerable<INode> nodes, double width, HtmlRenderBoxStyle style, int depth,
+        bool includeGeneratedBefore, bool includeGeneratedAfter, bool hasFloats) {
+        if (!hasFloats) {
+            IReadOnlyList<HtmlRenderFlowBlock> ordinary = BuildChildBlocks(element, nodes, width, style, depth,
                 includeGeneratedBefore, includeGeneratedAfter);
+            return HasSignedFlowAllocation(ordinary)
+                ? new[] { BuildNormalFlowSurface(ordinary, width, element) } : ordinary;
         }
 
         // Share the ordinary float exclusions between sibling paragraphs. The
@@ -23,11 +45,13 @@ internal sealed partial class HtmlRenderLayoutEngine {
         IReadOnlyList<HtmlRenderFlowBlock> children = BuildChildBlocks(
             element, nodes, width, style, depth, includeGeneratedBefore, includeGeneratedAfter,
             emittedFloats: exclusions);
-        if (exclusions.Count == 0) return children;
+        if (exclusions.Count == 0) return HasSignedFlowAllocation(children)
+            ? new[] { BuildNormalFlowSurface(children, width, element) } : children;
 
         var visuals = new List<HtmlRenderVisual>();
         var layers = new List<FlowPaintLayer>();
         var offsets = new SortedSet<double>();
+        var safeBreakRanges = new List<HtmlRenderBreakRange>();
         var lineGroups = new List<HtmlRenderLineBreakGroup>();
         var keeps = new List<HtmlRenderAvoidBreakRange>();
         var runningStrings = new List<HtmlCssRunningStringAssignment>();
@@ -36,6 +60,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         var continuationGroups = new List<HtmlRenderContinuationGroup>();
         var trailingGroups = new List<HtmlRenderTrailingGroup>();
         double height = 0D;
+        object[] childBoundaries = CreateFlowBoundaries(children);
         for (int index = 0; index < children.Count; index++) {
             HtmlRenderFlowBlock child = children[index];
             layers.Add(new FlowPaintLayer(child, 0D, height, index));
@@ -48,23 +73,22 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 if (!isAnonymousFloatTail) offsets.Add(height + offset);
             }
             lineGroups.AddRange(child.LineBreakGroups.Select(group => group.Translate(height)));
+            // Painted float tails can overlap the next normal-flow child. They
+            // cannot carry that child's legal cuts into its content.
+            safeBreakRanges.AddRange(HtmlRenderBreakRange.Normalize(child.SafeBreakRanges, child.Height)
+                .Select(range => range.Translate(height)));
             AppendKeepWithNextRange(children, index, height, keeps);
-            if (child.AvoidBreakInside) keeps.Add(new HtmlRenderAvoidBreakRange(height, height + child.Height));
+            if (child.AvoidBreakInsideScope != HtmlFragmentationScope.None)
+                keeps.Add(new HtmlRenderAvoidBreakRange(height, height + child.Height, Scope: child.AvoidBreakInsideScope));
             keeps.AddRange(child.AvoidBreakRanges.Select(range => range.Translate(height)));
             runningStrings.AddRange(child.RunningStringAssignments.Select(item => item.Translate(height)));
             progress.AddRange(child.InlineBreakProgress.Select(item => new HtmlInlineBreakProgress(
                 height + item.Offset, item.LogicalCharacters, item.OwnerElement,
                 item.IsBlockEntry, item.PageStartDiscardableMargin, item.IsBlockExit, item.IsFlexGap)));
-            if (child.BreakBefore != HtmlPageBreakTarget.None) {
-                forcedBreaks.Add(new HtmlRenderForcedBreak(height, child.BreakBefore));
-            }
-            forcedBreaks.AddRange(child.ForcedBreaks.Select(item => item.Translate(height)));
+            AppendChildForcedBreaks(children, index, height, forcedBreaks, childBoundaries);
             continuationGroups.AddRange(child.ContinuationGroups.Select(group => group.Translate(0D, height)));
             trailingGroups.AddRange(child.TrailingGroups.Select(group => group.Translate(0D, height)));
-            height += child.Height;
-            if (child.BreakAfter != HtmlPageBreakTarget.None) {
-                forcedBreaks.Add(new HtmlRenderForcedBreak(height, child.BreakAfter));
-            }
+            height += child.NormalFlowAdvance;
         }
         AppendFlowPaintLayers(visuals, layers);
         height = Math.Max(height, exclusions.Max(item => item.Bottom));
@@ -74,7 +98,9 @@ internal sealed partial class HtmlRenderLayoutEngine {
             false, HtmlRenderStyleResolver.DescribeSource(element), offsets,
             lineBreakGroups: lineGroups, continuationGroups: continuationGroups,
             trailingGroups: trailingGroups, runningStringAssignments: runningStrings,
-            inlineBreakProgress: progress, forcedBreaks: forcedBreaks, avoidBreakRanges: keeps) };
+            inlineBreakProgress: progress, forcedBreaks: forcedBreaks, avoidBreakRanges: keeps,
+            safeBreakRanges: HtmlRenderBreakRange.Exclude(safeBreakRanges,
+                exclusions.Select(item => new HtmlRenderBreakRange(item.Y, item.Bottom)))) };
     }
 
     private void RemoveColumnBreaksInsideFloats(SortedSet<double> offsets, IReadOnlyList<HtmlFloatExclusion> exclusions) {

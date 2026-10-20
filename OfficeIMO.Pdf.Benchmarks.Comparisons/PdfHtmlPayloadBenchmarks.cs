@@ -98,26 +98,8 @@ public class PdfHtmlPayloadBenchmarks {
     private void ValidateSharedMultilingualFont(string engine, byte[] bytes) {
         PdfEmbeddedFontFamily font = _multilingualFont
             ?? throw new InvalidOperationException("The multilingual benchmark font was not initialized.");
-        string expectedFont = NormalizeFontName(font.FamilyName);
-        bool embedded = Encoding.Latin1.GetString(bytes).Contains("/FontFile", StringComparison.Ordinal);
-        bool usedForGreek = false;
-        using (var stream = new MemoryStream(bytes, writable: false)) {
-            using UglyToad.PdfPig.PdfDocument document = UglyToad.PdfPig.PdfDocument.Open(stream);
-            usedForGreek = document.GetPages()
-                .SelectMany(page => page.Letters)
-                .Any(letter =>
-                    letter.Value.Contains('Ε') &&
-                    NormalizeFontName(letter.FontName ?? string.Empty).Contains(expectedFont, StringComparison.Ordinal));
-        }
-
-        if (!embedded || !usedForGreek) {
-            throw new InvalidDataException(
-                $"{engine} did not embed and use the shared '{font.FamilyName}' font for multilingual text.");
-        }
+        PdfBenchmarkValidation.ValidateSharedFontUse(bytes, engine, font.FamilyName, "Ε");
     }
-
-    private static string NormalizeFontName(string value) =>
-        new(value.Where(char.IsLetterOrDigit).Select(char.ToUpperInvariant).ToArray());
 
     private static string NormalizeMultilingualText(string value) {
         string logical = OfficeArabicTextShaper.ToLogicalText(PdfBenchmarkValidation.Normalize(value));

@@ -9,10 +9,10 @@ internal sealed partial class HtmlRenderLayoutEngine {
         HtmlGeneratedContent content,
         string? link,
         string source,
-        double containingWidth) {
+        double containingWidth, int? semanticSourceOrder = null) {
         var runs = new List<HtmlInlineRun>();
         AddGeneratedInlineFragments(content, element, style, link, source, containingWidth, 0D, 0D, runs,
-            insideGeneratedBox: true);
+            insideGeneratedBox: true, semanticSourceOrder: semanticSourceOrder);
         runs = ApplyScopedFontFallbacks(runs);
         double availableWidth = Math.Max(1D, containingWidth - style.MarginLeft - style.MarginRight);
         double boxWidth;

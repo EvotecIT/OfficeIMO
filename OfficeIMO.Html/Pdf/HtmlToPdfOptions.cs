@@ -21,14 +21,19 @@ public sealed class HtmlToPdfOptions : HtmlRenderOptions {
     private int _maxOutlinedTextCharactersPerRun = 16_384;
     private int _maxOutlinedTextPathCommands = 1_000_000;
     private double? _printLayoutWidthCssPixels;
-    private PdfCore.PdfResourcePolicy _resourcePolicy = PdfCore.PdfResourcePolicy.CreateDefault();
+    private PdfCore.PdfResourcePolicy _resourcePolicy = PdfCore.PdfResourcePolicy.CreateLibraryFontDefault();
     private PdfCore.PdfOptions _documentOptions = new PdfCore.PdfOptions {
         CompressContentStreams = true
     }.EnableTaggedPdfCatalogMarkers();
 
     internal HtmlRenderResourceResolver? EmbeddedPackageResourceResolver { get; set; }
     internal HtmlUrlPolicy? EmbeddedPackageHostResourceUrlPolicy { get; set; }
+    // Retain the container resolver identity so a caller's later replacement remains authoritative.
+    internal HtmlRenderResourceResolver? EmbeddedPackageConfiguredResourceResolver { get; set; }
+    internal HtmlRenderResourceResolver? EmbeddedPackageHostResourceResolver { get; set; }
     internal DrawingCore.OfficePageSize? PrintOutputPageSize { get; set; }
+    // One approved library-selected face snapshot supplies both layout and PDF paint.
+    internal PdfCore.PdfEmbeddedFontFamily? LibrarySelectedDefaultFontFamily { get; set; }
     /// <summary>Creates direct paged HTML-to-PDF options using the standard defaults.</summary>
     public HtmlToPdfOptions() {
         Mode = HtmlRenderMode.Paged;
@@ -141,7 +146,7 @@ public sealed class HtmlToPdfOptions : HtmlRenderOptions {
         set => base.TextShapingProvider = value;
     }
 
-    /// <summary>Host-resource policy. Defaults to balanced conversion: system fonts and bounded in-source resources are allowed, while local and remote reads are denied.</summary>
+    /// <summary>Host-resource policy. Defaults to library-selected installed fonts and bounded in-source resources; document-selected host fonts, local files and remote reads are disabled.</summary>
     public PdfCore.PdfResourcePolicy ResourcePolicy {
         get => _resourcePolicy;
         set => _resourcePolicy = value ?? throw new ArgumentNullException(nameof(value));
@@ -162,6 +167,7 @@ public sealed class HtmlToPdfOptions : HtmlRenderOptions {
         TextFallbacks = source.TextFallbacks;
         TextShapingMode = source.TextShapingMode;
         FontFamily = source.FontFamily;
+        LibrarySelectedDefaultFontFamily = source.LibrarySelectedDefaultFontFamily;
         InteractiveFormControls = source.InteractiveFormControls;
         MathMlSourceModificationDate = source.MathMlSourceModificationDate;
         PrintLayoutWidthCssPixels = source.PrintLayoutWidthCssPixels;
@@ -174,5 +180,7 @@ public sealed class HtmlToPdfOptions : HtmlRenderOptions {
         ResourcePolicy = source.ResourcePolicy.Clone();
         EmbeddedPackageResourceResolver = source.EmbeddedPackageResourceResolver;
         EmbeddedPackageHostResourceUrlPolicy = source.EmbeddedPackageHostResourceUrlPolicy?.Clone();
+        EmbeddedPackageConfiguredResourceResolver = source.EmbeddedPackageConfiguredResourceResolver;
+        EmbeddedPackageHostResourceResolver = source.EmbeddedPackageHostResourceResolver;
     }
 }

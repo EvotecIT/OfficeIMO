@@ -101,7 +101,13 @@ public sealed class HtmlRenderDocument : global::OfficeIMO.IOfficeConversionRepo
     }
 
     private static IEnumerable<string> EnumerateLogicalText(IEnumerable<HtmlRenderVisual> visuals) {
-        foreach (HtmlRenderVisual visual in OrderForLogicalText(visuals)) {
+        List<HtmlRenderVisual> ordered = OrderForLogicalText(visuals).ToList();
+        var scopes = ordered.Where(visual => visual.SourceOrderScope != null
+            && visual is not HtmlRenderLogicalTextGroup
+            && visual is not HtmlRenderSemanticGroup { Role: HtmlRenderSemanticGroupRole.Artifact })
+            .ToLookup(visual => visual.SourceOrderScope!);
+        var emittedScopes = new HashSet<HtmlRenderSourceOrderScope>();
+        foreach (HtmlRenderVisual visual in ordered) {
             if (visual is HtmlRenderSemanticGroup { Role: HtmlRenderSemanticGroupRole.Artifact }) {
                 continue;
             }
@@ -112,6 +118,16 @@ public sealed class HtmlRenderDocument : global::OfficeIMO.IOfficeConversionRepo
                     string visibleText = string.Concat(EnumerateLogicalText(logicalTextGroup.Visuals));
                     if (visibleText.Length > 0) yield return visibleText;
                 }
+                continue;
+            }
+            if (visual.SourceOrderScope is HtmlRenderSourceOrderScope scope) {
+                if (!emittedScopes.Add(scope)) continue;
+                // Stack promotion can split one viewport into several paint
+                // envelopes. Reunite only this page's sibling fragments before
+                // entering the embedded document's own coordinate space.
+                IEnumerable<HtmlRenderVisual> scopedChildren = scopes[scope]
+                    .SelectMany(fragment => ChildVisuals(fragment) ?? Array.Empty<HtmlRenderVisual>());
+                foreach (string textValue in EnumerateLogicalText(scopedChildren)) yield return textValue;
                 continue;
             }
             if (visual is HtmlRenderText text) {
@@ -127,11 +143,27 @@ public sealed class HtmlRenderDocument : global::OfficeIMO.IOfficeConversionRepo
 
     private static IEnumerable<HtmlRenderVisual> OrderForLogicalText(IEnumerable<HtmlRenderVisual> visuals) {
         List<HtmlRenderVisual> ordered = visuals.OrderBy(item => item.PaintOrder).ToList();
+        // Semantic, clip and effect envelopes own paint, rather than one atomic
+        // text value. A lifted positioned descendant must still interleave with
+        // their ordinary text. Keep actual logical-text replacements atomic.
+        var sourceOwners = EnumerateLogicalTextOwners(ordered).Select((visual, sequence) => {
+            int? logicalOrder = ResolveLogicalTextOrder(visual, out bool containsText, out int? sourceOrder);
+            return (Visual: visual, SourceOrder: sourceOrder, LogicalOrder: logicalOrder, ContainsText: containsText, Sequence: sequence);
+        }).ToList();
+        // Positioned layout can be cached before or after surrounding flow. DOM
+        // coordinates share one ordering space; layout-discovery counters do not.
+        if (sourceOwners.Any(owner => owner.ContainsText)
+            && sourceOwners.All(owner => !owner.ContainsText || owner.SourceOrder.HasValue)) return sourceOwners
+            .OrderBy(owner => owner.SourceOrder ?? int.MaxValue)
+            .ThenBy(owner => owner.LogicalOrder ?? int.MaxValue)
+            .ThenBy(owner => owner.Sequence)
+            .Select(owner => owner.Visual);
+
         var logicalOrders = new Dictionary<HtmlRenderVisual, int?>();
         bool hasLogicalText = false;
         bool allTextIsOrdered = true;
         foreach (HtmlRenderVisual visual in ordered) {
-            int? logicalOrder = ResolveLogicalTextOrder(visual, out bool containsText);
+            int? logicalOrder = ResolveLogicalTextOrder(visual, out bool containsText, out _);
             logicalOrders[visual] = logicalOrder;
             hasLogicalText |= containsText;
             if (containsText && !logicalOrder.HasValue) allTextIsOrdered = false;
@@ -142,40 +174,58 @@ public sealed class HtmlRenderDocument : global::OfficeIMO.IOfficeConversionRepo
             .ThenBy(visual => visual.PaintOrder);
     }
 
-    private static int? ResolveLogicalTextOrder(HtmlRenderVisual visual, out bool containsText) {
+    private static IEnumerable<HtmlRenderVisual> EnumerateLogicalTextOwners(IEnumerable<HtmlRenderVisual> visuals) {
+        foreach (HtmlRenderVisual visual in visuals.OrderBy(item => item.PaintOrder)) {
+            if (visual is HtmlRenderSemanticGroup { Role: HtmlRenderSemanticGroupRole.Artifact }) continue;
+            if (visual.SourceOrderScope != null
+                || visual is HtmlRenderText or HtmlRenderLogicalTextGroup
+                || visual is HtmlRenderSemanticGroup { Role: HtmlRenderSemanticGroupRole.Formula }) {
+                // Embedded documents keep their parent source entry. Formulas
+                // own the DOM coordinate of drawing-backed text replacements.
+                yield return visual;
+                continue;
+            }
+            IEnumerable<HtmlRenderVisual>? children = ChildVisuals(visual);
+            if (children == null) continue;
+            foreach (HtmlRenderVisual child in EnumerateLogicalTextOwners(children)) yield return child;
+        }
+    }
+
+    private static int? ResolveLogicalTextOrder(HtmlRenderVisual visual, out bool containsText, out int? sourceOrder) {
+        sourceOrder = null;
         if (visual is HtmlRenderSemanticGroup { Role: HtmlRenderSemanticGroupRole.Artifact }) {
             containsText = false;
             return null;
         }
         if (visual is HtmlRenderText text) {
             containsText = true;
+            sourceOrder = text.SemanticSourceOrder;
             return text.LogicalTextOrder;
         }
-        if (visual is HtmlRenderLogicalTextGroup logicalTextGroup) {
-            if (logicalTextGroup.IsFlowAnchor) {
-                containsText = false;
-                return null;
-            }
-            int? logicalOrder = null;
-            foreach (HtmlRenderVisual child in logicalTextGroup.Visuals) {
-                int? childOrder = ResolveLogicalTextOrder(child, out _);
-                if (childOrder.HasValue && (!logicalOrder.HasValue || childOrder.Value < logicalOrder.Value)) logicalOrder = childOrder;
-            }
-            containsText = true;
-            return logicalOrder;
+        if (visual is HtmlRenderLogicalTextGroup { IsFlowAnchor: true }) {
+            containsText = false;
+            return null;
         }
         IEnumerable<HtmlRenderVisual>? children = ChildVisuals(visual);
         if (children == null) {
             containsText = false;
             return null;
         }
-        containsText = false;
+        containsText = visual is HtmlRenderLogicalTextGroup;
         int? order = null;
         foreach (HtmlRenderVisual child in children) {
-            int? childOrder = ResolveLogicalTextOrder(child, out bool childContainsText);
+            int? childOrder = ResolveLogicalTextOrder(child, out bool childContainsText, out int? childSourceOrder);
             containsText |= childContainsText;
+            // A positioned visual keeps its own logical position. Only its
+            // contribution to an ordinary containing group's aggregate is omitted,
+            // so an early cached child cannot move that whole group forward.
+            if (child.IsOutOfFlowPaint && !visual.IsOutOfFlowPaint) continue;
             if (childOrder.HasValue && (!order.HasValue || childOrder.Value < order.Value)) order = childOrder;
+            if (childSourceOrder.HasValue && (!sourceOrder.HasValue || childSourceOrder.Value < sourceOrder.Value)) sourceOrder = childSourceOrder;
         }
+        sourceOrder = visual.SemanticSourceOrder
+            ?? (visual is HtmlRenderSemanticGroup semanticGroup ? semanticGroup.LogicalOrder : null)
+            ?? sourceOrder;
         return order;
     }
 

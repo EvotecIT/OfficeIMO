@@ -970,7 +970,7 @@ internal static partial class PdfWriter {
                                 byte[] positionedSelectedBytes = PdfEncoding.Latin1GetBytes(positionedSelectedAppearance);
                                 string positionedSelectedDictionary = PdfAcroFormDictionaryBuilder.BuildCheckBoxAppearanceStreamDictionary(widgetWidth, widgetHeight, positionedSelectedBytes.Length);
                                 int positionedSelectedAppearanceId = AddStreamObject(objects, positionedSelectedDictionary, positionedSelectedBytes);
-                                AnnotationStructureReference? widgetStructureReference = RegisterAnnotationStructureReference(page, markInfo, ref nextStructParentIndex, "Form", widgetFrame.StructureParentElementIndex, widgetFrame.StructureParentElement, widgetFrame.NavigationTarget);
+                                AnnotationStructureReference? widgetStructureReference = RegisterAnnotationStructureReference(page, markInfo, ref nextStructParentIndex, "Form", widgetFrame.StructureParentElementIndex, widgetFrame.StructureParentElement, logicalOrder: widgetFrame.Style.LogicalOrder, reservedElement: widgetFrame.NavigationTarget);
                                 string widget = PdfAnnotationDictionaryBuilder.BuildRadioButtonWidgetAnnotation(
                                     widgetFrame.X1,
                                     widgetFrame.Y1,
@@ -1008,7 +1008,7 @@ internal static partial class PdfWriter {
 
                         var widgetObjectIds = new List<int>(field.Options.Count);
                         for (int optionIndex = 0; optionIndex < field.Options.Count; optionIndex++) {
-                            AnnotationStructureReference? widgetStructureReference = RegisterAnnotationStructureReference(page, markInfo, ref nextStructParentIndex, "Form", field.StructureParentElementIndex, field.StructureParentElement, optionIndex == 0 ? field.NavigationTarget : null);
+                            AnnotationStructureReference? widgetStructureReference = RegisterAnnotationStructureReference(page, markInfo, ref nextStructParentIndex, "Form", field.StructureParentElementIndex, field.StructureParentElement, logicalOrder: field.Style.LogicalOrder, reservedElement: optionIndex == 0 ? field.NavigationTarget : null);
                             double widgetTop = field.Y2 - optionIndex * (field.ButtonSize + field.ButtonGap);
                             double widgetBottom = widgetTop - field.ButtonSize;
                             double widgetLeft = field.X1;
@@ -1037,7 +1037,7 @@ internal static partial class PdfWriter {
                         continue;
                     }
 
-                    AnnotationStructureReference? formWidgetStructureReference = RegisterAnnotationStructureReference(page, markInfo, ref nextStructParentIndex, "Form", field.StructureParentElementIndex, field.StructureParentElement, field.NavigationTarget);
+                    AnnotationStructureReference? formWidgetStructureReference = RegisterAnnotationStructureReference(page, markInfo, ref nextStructParentIndex, "Form", field.StructureParentElementIndex, field.StructureParentElement, logicalOrder: field.Style.LogicalOrder, reservedElement: field.NavigationTarget);
                     if (field.Kind == FormFieldAnnotationKind.CheckBox) {
                         string offAppearance = PdfAcroFormDictionaryBuilder.BuildCheckBoxAppearanceContent(appearanceWidth, appearanceHeight, selected: false, field.Style);
                         byte[] offAppearanceBytes = PdfEncoding.Latin1GetBytes(offAppearance);
@@ -1576,6 +1576,7 @@ internal static partial class PdfWriter {
             element.AlternativeText = image.AlternativeText!;
             element.ParentElementIndex = image.StructureParentElementIndex;
             element.ParentElement = image.StructureParentElement;
+            element.LogicalOrder = image.LogicalOrder;
             page.StructElements.Add(element);
         }
     }
@@ -1600,7 +1601,7 @@ internal static partial class PdfWriter {
         }
     }
 
-    private static AnnotationStructureReference? RegisterAnnotationStructureReference(LayoutResult.Page page, bool markInfo, ref int nextStructParentIndex, string structureType, int? parentElementIndex = null, PageStructElement? parentElement = null, PageStructElement? reservedElement = null) {
+    private static AnnotationStructureReference? RegisterAnnotationStructureReference(LayoutResult.Page page, bool markInfo, ref int nextStructParentIndex, string structureType, int? parentElementIndex = null, PageStructElement? parentElement = null, long? logicalOrder = null, PageStructElement? reservedElement = null) {
         if (!markInfo) {
             return null;
         }
@@ -1614,6 +1615,7 @@ internal static partial class PdfWriter {
         element.AnnotationStructParentIndex = reference.StructParentIndex;
         element.ParentElementIndex = parentElementIndex;
         element.ParentElement = parentElement;
+        element.LogicalOrder = logicalOrder;
         page.StructElements.Add(element);
         return reference;
     }

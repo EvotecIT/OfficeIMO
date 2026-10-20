@@ -18,12 +18,15 @@ internal sealed class HtmlComputedStyleSet {
 
     internal HtmlComputedStyleSet(
         IReadOnlyDictionary<IElement, HtmlComputedStyle> elements,
-        IReadOnlyDictionary<IElement, HtmlPseudoElementStylePair> pseudoElements) {
+        IReadOnlyDictionary<IElement, HtmlPseudoElementStylePair> pseudoElements,
+        HtmlRenderingFontDefaults? fontDefaults = null) {
         Elements = elements ?? throw new ArgumentNullException(nameof(elements));
+        FontDefaults = fontDefaults;
         _pseudoElements = pseudoElements ?? throw new ArgumentNullException(nameof(pseudoElements));
     }
 
     internal IReadOnlyDictionary<IElement, HtmlComputedStyle> Elements { get; }
+    internal HtmlRenderingFontDefaults? FontDefaults { get; }
 
     internal bool HasPseudoElements => _pseudoElements.Count > 0;
 

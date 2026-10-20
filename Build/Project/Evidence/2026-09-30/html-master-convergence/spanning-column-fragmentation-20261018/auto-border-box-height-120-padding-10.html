@@ -1,0 +1,23 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<title>auto-border-box-height-120-padding-10</title>
+<style>
+@font-face{font-family:Witness;src:url(regular.ttf);font-weight:400}
+@font-face{font-family:Witness;src:url(bold.ttf);font-weight:700}
+@page{size:700px 140px;margin:20px}
+html,body{margin:0;background:white;font:14px/20px Witness}
+p{margin:0;orphans:1;widows:1}
+.columns{width:300px;column-count:2;column-gap:20px}
+</style>
+<section id="columns" class="columns" style="column-fill:auto;box-sizing:border-box;height:120px;padding:10px">
+<p id="xylor-p01">XYLOR-P01</p>
+<p id="xylor-p02">XYLOR-P02</p>
+<p id="xylor-s01" style="column-span:all;font-weight:700;background:#eeeeee">XYLOR-S01</p>
+<p id="xylor-t01">XYLOR-T01</p>
+<p id="xylor-t02">XYLOR-T02</p>
+<p id="xylor-t03">XYLOR-T03</p>
+<p id="xylor-t04">XYLOR-T04</p>
+</section>
+<p id="after">XYLOR-AFTER</p>
+</html>

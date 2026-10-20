@@ -1,0 +1,564 @@
+{
+  "schema": "officeimo.html.paged-column-flow-qualification/v1",
+  "recordedUtc": "2026-10-18T03:13:47.558865+00:00",
+  "milestone": "Physical-page planning for ordinary horizontal auto-fill column regions",
+  "baseHead": "68abf1279b17f6f185cac912fabf14f3c8c4b356",
+  "integratedMaster": "479670095ea9efb1e38681c8d244150551220db6",
+  "qualifiedSourceHead": "70714a2ba5d961d818fa750a77fc3b39146827ff",
+  "sourceTrees": {
+    "OfficeIMO.Html": "3727825297721ae2f1a39ebbcc6f76b2bf0e2165",
+    "OfficeIMO.Html.Core": "3804952eb46a7eb05a8976bb7f421fc8aa619d5e",
+    "OfficeIMO.Html.AngleSharp": "2b7f2b16754df243579efea6e88a9c35e0dce3a6",
+    "OfficeIMO.Core": "525d802ec173c3c71a40862ced43308f2b5fe779",
+    "OfficeIMO.Pdf": "b1b316ace5b668ccbc8e61cc5cb8ba59e32de68a",
+    "OfficeIMO.SharedSource": "dd1c89e2b292f90ebbf3107b130d377a8512306f"
+  },
+  "publication": "Qualified branch checkpoint only. No PR, merge, signing, package publication or deployment for this batch.",
+  "implementation": {
+    "owner": "OfficeIMO.Html shared column planner, completed flow placements and paginator",
+    "publicApiChange": false,
+    "productionDependencyChange": false,
+    "changes": [
+      "Use remaining first-page capacity and fresh body capacity for later column bands.",
+      "Preserve paragraph and atomic constraints, whole-set deferral, authored box height, unused column height, source identity and links.",
+      "Discover regions by completed flow position, preserve an unchanged natural flex item auto-height basis, and continue past retained fallback regions.",
+      "Retain diagnosed source layout when page geometry or reserved body space changes, or vertical alignment can move the region as its height changes."
+    ]
+  },
+  "inputs": [
+    {
+      "case": "tall-columns",
+      "fixture": "paged-columns-tall-20261018.html",
+      "bytes": 740,
+      "sha256": "cc6e7353f246d96639e5ef73877892997ad31ec13a16160a0db10a30f76b2387"
+    },
+    {
+      "case": "partial-tall-columns-40",
+      "fixture": "paged-columns-partial40-20261018.html",
+      "bytes": 778,
+      "sha256": "8ce532150bf4a6d585712bb86aec558d629fa3f62fed435ee7e16efd504d9044"
+    },
+    {
+      "case": "auto-six",
+      "fixture": "paged-columns-auto-six-20261018.html",
+      "bytes": 314,
+      "sha256": "1fa8321d1df4ce4d7131c50f471ba04f0ff7472544d4c0dd733a8345fee175ca"
+    },
+    {
+      "case": "auto-flow",
+      "fixture": "paged-columns-auto-flow-20261018.html",
+      "bytes": 658,
+      "sha256": "5bcb3cc8a760a59186ae94c1f0195f4dcb0488dba0b9eb55cda52aa55f303184"
+    },
+    {
+      "case": "tall-ordinary",
+      "fixture": "paged-columns-tall-ordinary-20261018.html",
+      "bytes": 671,
+      "sha256": "fa9e101a55662fbd8adf92436fb1e6f0724f3b61147a6f958a85692fe52a9e60"
+    },
+    {
+      "case": "short-overflow",
+      "fixture": "paged-columns-short-overflow-20261018.html",
+      "bytes": 502,
+      "sha256": "64265a7b7afc886e7911ef0fa2019a5cf54bd24b148128d0d55de70b460d41c5"
+    },
+    {
+      "case": "inner-page-break",
+      "fixture": "paged-columns-inner-break-20261018.html",
+      "bytes": 320,
+      "sha256": "343bcfd89c099c2dc1ff2348125dad9213646a09965b0180b69bfd53f464ef62"
+    },
+    {
+      "case": "assist-inline-block-columns",
+      "fixture": "paged-columns-inline-host-20261018.html",
+      "bytes": 559,
+      "sha256": "c7745524fcfdf0c9d7aa2aec9519c5cc2d0366da888a572117c997c0f692abd7"
+    },
+    {
+      "case": "assist-float-columns",
+      "fixture": "paged-columns-float-host-20261018.html",
+      "bytes": 561,
+      "sha256": "14aba2df4bc57bf72ff01bd748ae1bc850d7ebef929d3048058395012458b798"
+    },
+    {
+      "case": "assist-sequential-auto-columns",
+      "fixture": "paged-columns-sequential-20261018.html",
+      "bytes": 557,
+      "sha256": "65ce025334909aa26a8b009831799543762a054ecbade3a1b1008e0ca69baccb"
+    },
+    {
+      "case": "assist-sequential-deferred-columns",
+      "fixture": "paged-columns-deferred-sequential-20261018.html",
+      "bytes": 719,
+      "sha256": "836c8dded98cc54f4bc0d6860d8ba3b9caff8b82c324928f3db916f27cf586d9"
+    },
+    {
+      "case": "assist-sequential-flex-order",
+      "fixture": "paged-columns-flex-order-20261018.html",
+      "bytes": 550,
+      "sha256": "d86d27ae9c10a429f8cc8e2238d82b16482326a78457d494d503af67839c4f9a"
+    },
+    {
+      "case": "assist-centered-parallel-auto-columns",
+      "fixture": "paged-columns-centered-flex-20261018.html",
+      "bytes": 656,
+      "sha256": "83b357e4ba14de02476d98d64539a9fc83a5af7d7a38613c257f6e0d508d548a"
+    },
+    {
+      "case": "review-short-before-auto",
+      "fixture": "paged-columns-review-rejected-sibling-20261018.html",
+      "bytes": 765,
+      "sha256": "c0dff758fd97db96a78dc0a52d160f491ce30214834cd831d1aff1a8d61f272b"
+    }
+  ],
+  "assetMap": {
+    "regular.ttf": {
+      "repositoryPath": "OfficeIMO.TestAssets/Fonts/OfficeIMOBaselineSans-Regular.ttf",
+      "bytes": 105592,
+      "sha256": "00aca2988771998ff27738ff97c2cc8e71eb3013f206de5f205986b7de326af3"
+    },
+    "bold.ttf": {
+      "repositoryPath": "OfficeIMO.TestAssets/Fonts/OfficeIMOBaselineSans-Bold.ttf",
+      "bytes": 120288,
+      "sha256": "20bb7ad2e23beb5020313119f46fbc50a5ded598aaa1be4df719d3c017914b6c"
+    }
+  },
+  "publicPath": "HtmlSiteBundle.Load -> HtmlRenderRequest.Create -> HtmlRenderEngine.Execute / bundle.RenderToPdfResult -> ExportImages; exact bundled fonts, Browser UA, portable resources, no host font fallback.",
+  "frameworks": {
+    "sourceHead": "70714a2ba5d961d818fa750a77fc3b39146827ff",
+    "evidence": {
+      "path": "final-framework-results.json",
+      "bytes": 20337,
+      "sha256": "a33361227590f1de67a695320cebee977d106d1471fc8d86d27820cf65820010"
+    },
+    "results": [
+      {
+        "framework": "net10.0",
+        "passed": 6783,
+        "failed": 0,
+        "actualTrx": {
+          "path": "trx/closure-net10/closure-net10.trx",
+          "bytes": 10159712,
+          "sha256": "38d5538442f94e732003bb86dc01c149e92daad7d14f19f85c10eec7f5acdb56"
+        }
+      },
+      {
+        "framework": "net8.0",
+        "passed": 6783,
+        "failed": 0,
+        "actualTrx": {
+          "path": "trx/closure-net8/closure-net8.trx",
+          "bytes": 10146145,
+          "sha256": "f09a031d47aa3c6e6e6c12489087cc96dcc91b6a641d7f658b0a9fec6a10cd94"
+        }
+      }
+    ],
+    "retainedSubjects": {
+      "path": "retained-producer-binding.json",
+      "bytes": 22734,
+      "sha256": "94d7baa0645508e4ef5a059838b5e7bbf66160bb07d2e491c91b8213b888dc94"
+    },
+    "boundary": "Full correctness suites on macOS arm64, .NET 8.0.23 and .NET 10.0.13 with SDK 10.0.113. Three pre-existing xUnit analyzer warnings; no build errors. No Windows timing claim."
+  },
+  "review": {
+    "reviewedHead": "79c81a5205e24c1003a43c52bb5ec4a7c776b6c3",
+    "remediationHead": "70714a2ba5d961d818fa750a77fc3b39146827ff",
+    "fullPasses": 1,
+    "targetedConfirmations": 1,
+    "boundary": "candidate-reviewed",
+    "unresolvedValidatedInScopeFindings": 0,
+    "productApiDisposition": "accept as shaped; existing canonical owner, no new public API/dependency",
+    "finding": "Introduced P2: a retained short-height or unsupported-geometry region could hide an eligible parallel sibling. Reproduced with public exports against Edge, fixed through the shared discovery owner, covered by two regressions, and confirmed in the one targeted follow-up."
+  },
+  "directRenderChecks": {
+    "sourceHead": "70714a2ba5d961d818fa750a77fc3b39146827ff",
+    "evidence": {
+      "path": "qualified-render-captures.json",
+      "bytes": 368236,
+      "sha256": "8da9fb7c0d6c3f91959ea396dd7b4336865320762163d1c68d022935423c6486"
+    },
+    "cases": 14,
+    "profiles": 56,
+    "pngEqualsIndependentPdfReplayProfiles": 42,
+    "priorRenderingHead": "79c81a5205e24c1003a43c52bb5ec4a7c776b6c3",
+    "allThirteenPriorExportSetsUnchanged": true,
+    "boundary": "Canonical PNG matches an independently generated and reopened PDF. Direct drawing PNG is a separate comparison renderer, not a byte-identity contract. ScreenFullPage and ScreenSnapshotPaged retain their prior exports."
+  },
+  "native": {
+    "engine": "Microsoft Edge 155 on macOS through HtmlTinkerX 3.0.4 and the existing Playwright 1.63 driver",
+    "qualifiedCases": [
+      {
+        "case": "tall-columns",
+        "profiles": [
+          {
+            "profile": "PrintPaged",
+            "nativePages": 5,
+            "candidatePages": 5,
+            "sourceOnce": true,
+            "pageAndColumnAssignmentsMatch": true,
+            "maxBboxDeltaCssPx": 0.0062386666666611745,
+            "rawRgbMae": 0.4847095985327084,
+            "maxPageRawRgbMae": 2.193845526798451
+          },
+          {
+            "profile": "ScreenMediaPaged",
+            "nativePages": 5,
+            "candidatePages": 5,
+            "sourceOnce": true,
+            "pageAndColumnAssignmentsMatch": true,
+            "maxBboxDeltaCssPx": 0.0062386666666611745,
+            "rawRgbMae": 0.4847095985327084,
+            "maxPageRawRgbMae": 2.193845526798451
+          }
+        ]
+      },
+      {
+        "case": "partial-tall-columns-40",
+        "profiles": [
+          {
+            "profile": "PrintPaged",
+            "nativePages": 6,
+            "candidatePages": 6,
+            "sourceOnce": true,
+            "pageAndColumnAssignmentsMatch": true,
+            "maxBboxDeltaCssPx": 0.0062386666666611745,
+            "rawRgbMae": 0.46262482168330954,
+            "maxPageRawRgbMae": 2.193845526798451
+          },
+          {
+            "profile": "ScreenMediaPaged",
+            "nativePages": 6,
+            "candidatePages": 6,
+            "sourceOnce": true,
+            "pageAndColumnAssignmentsMatch": true,
+            "maxBboxDeltaCssPx": 0.0062386666666611745,
+            "rawRgbMae": 0.46262482168330954,
+            "maxPageRawRgbMae": 2.193845526798451
+          }
+        ]
+      },
+      {
+        "case": "auto-six",
+        "profiles": [
+          {
+            "profile": "PrintPaged",
+            "nativePages": 2,
+            "candidatePages": 2,
+            "sourceOnce": true,
+            "pageAndColumnAssignmentsMatch": true,
+            "maxBboxDeltaCssPx": 0.0062386666666611745,
+            "rawRgbMae": 0.6528734460974118,
+            "maxPageRawRgbMae": 1.076044426329733
+          },
+          {
+            "profile": "ScreenMediaPaged",
+            "nativePages": 2,
+            "candidatePages": 2,
+            "sourceOnce": true,
+            "pageAndColumnAssignmentsMatch": true,
+            "maxBboxDeltaCssPx": 0.0062386666666611745,
+            "rawRgbMae": 0.6528734460974118,
+            "maxPageRawRgbMae": 1.076044426329733
+          }
+        ]
+      },
+      {
+        "case": "auto-flow",
+        "profiles": [
+          {
+            "profile": "PrintPaged",
+            "nativePages": 3,
+            "candidatePages": 3,
+            "sourceOnce": true,
+            "pageAndColumnAssignmentsMatch": true,
+            "maxBboxDeltaCssPx": 0.0062386666666611745,
+            "rawRgbMae": 2.8523809523809525,
+            "maxPageRawRgbMae": 3.5012635011208477
+          },
+          {
+            "profile": "ScreenMediaPaged",
+            "nativePages": 3,
+            "candidatePages": 3,
+            "sourceOnce": true,
+            "pageAndColumnAssignmentsMatch": true,
+            "maxBboxDeltaCssPx": 0.0062386666666611745,
+            "rawRgbMae": 2.8523809523809525,
+            "maxPageRawRgbMae": 3.5012635011208477
+          }
+        ]
+      },
+      {
+        "case": "tall-ordinary",
+        "profiles": [
+          {
+            "profile": "PrintPaged",
+            "nativePages": 5,
+            "candidatePages": 5,
+            "sourceOnce": true,
+            "pageAndColumnAssignmentsMatch": true,
+            "maxBboxDeltaCssPx": 0.0062386666666611745,
+            "rawRgbMae": 1.7114285714285715,
+            "maxPageRawRgbMae": 3.5012635011208477
+          },
+          {
+            "profile": "ScreenMediaPaged",
+            "nativePages": 5,
+            "candidatePages": 5,
+            "sourceOnce": true,
+            "pageAndColumnAssignmentsMatch": true,
+            "maxBboxDeltaCssPx": 0.0062386666666611745,
+            "rawRgbMae": 1.7114285714285715,
+            "maxPageRawRgbMae": 3.5012635011208477
+          }
+        ]
+      },
+      {
+        "case": "inner-page-break",
+        "profiles": [
+          {
+            "profile": "PrintPaged",
+            "nativePages": 5,
+            "candidatePages": 5,
+            "sourceOnce": true,
+            "pageAndColumnAssignmentsMatch": true,
+            "maxBboxDeltaCssPx": 0.0062373333333312075,
+            "rawRgbMae": 0.23981862645200733,
+            "maxPageRawRgbMae": 0.969390666394946
+          },
+          {
+            "profile": "ScreenMediaPaged",
+            "nativePages": 5,
+            "candidatePages": 5,
+            "sourceOnce": true,
+            "pageAndColumnAssignmentsMatch": true,
+            "maxBboxDeltaCssPx": 0.0062373333333312075,
+            "rawRgbMae": 0.23981862645200733,
+            "maxPageRawRgbMae": 0.969390666394946
+          }
+        ]
+      },
+      {
+        "case": "assist-sequential-auto-columns",
+        "profiles": [
+          {
+            "profile": "PrintPaged",
+            "nativePages": 3,
+            "candidatePages": 3,
+            "sourceOnce": true,
+            "pageAndColumnAssignmentsMatch": true,
+            "maxBboxDeltaCssPx": 0.0062386666666611745,
+            "rawRgbMae": 0.9441919706541675,
+            "maxPageRawRgbMae": 1.0258202567760342
+          },
+          {
+            "profile": "ScreenMediaPaged",
+            "nativePages": 3,
+            "candidatePages": 3,
+            "sourceOnce": true,
+            "pageAndColumnAssignmentsMatch": true,
+            "maxBboxDeltaCssPx": 0.0062386666666611745,
+            "rawRgbMae": 0.9441919706541675,
+            "maxPageRawRgbMae": 1.0258202567760342
+          }
+        ]
+      },
+      {
+        "case": "assist-sequential-deferred-columns",
+        "profiles": [
+          {
+            "profile": "PrintPaged",
+            "nativePages": 3,
+            "candidatePages": 3,
+            "sourceOnce": true,
+            "pageAndColumnAssignmentsMatch": true,
+            "maxBboxDeltaCssPx": 0.0062386666666611745,
+            "rawRgbMae": 1.662339514978602,
+            "maxPageRawRgbMae": 3.1255858976971673
+          },
+          {
+            "profile": "ScreenMediaPaged",
+            "nativePages": 3,
+            "candidatePages": 3,
+            "sourceOnce": true,
+            "pageAndColumnAssignmentsMatch": true,
+            "maxBboxDeltaCssPx": 0.0062386666666611745,
+            "rawRgbMae": 1.662339514978602,
+            "maxPageRawRgbMae": 3.1255858976971673
+          }
+        ]
+      }
+    ],
+    "pageComparisons": 64,
+    "maxBboxDeltaCssPx": 0.0062386666666611745,
+    "analysis": {
+      "path": "qualified-native-analysis/analysis.json",
+      "bytes": 561059,
+      "sha256": "3f4ba547f6528557be5120593ab4d020cfb904e2d64567696edd643ece9291b5"
+    },
+    "findings": {
+      "path": "qualified-native-analysis/findings.json",
+      "bytes": 38800,
+      "sha256": "cb877f55e60882d969311a187614a21a596eeb5a026007885b948c6fb08f9281"
+    },
+    "method": "Exact HTTP inputs and font bytes; font/image readiness; source multiplicity, page/column and bbox checks; unmasked 96 dpi Poppler rasters with same-origin white padding only for rounding. Representative actual contacts inspected. No crop, scale, mask or pixel-parity claim. Agent-owned browsers and servers released.",
+    "svg": {
+      "sourceHead": "70714a2ba5d961d818fa750a77fc3b39146827ff",
+      "pages": 26,
+      "searchableTextAndGeometryVerified": true,
+      "sourcePagesVector": true,
+      "maxBboxDeltaCssPx": 0.01248666666666054,
+      "maxRawPageRgbMae": 0.0931730181373548,
+      "evidence": {
+        "path": "qualified-svg-analysis/results.json",
+        "bytes": 13901,
+        "sha256": "0b1ebff62ebbead69302e3afa11f9056779efebded43c044464801d5aaa09115"
+      },
+      "method": "Exact SVGs loaded as separate SVG image documents at their intrinsic 700 x 140 extent, preserving independent ID scopes. Print and screen atlas replay, source text and all page geometry checked; representative actual contacts inspected."
+    }
+  },
+  "packages": {
+    "qualificationOnly": true,
+    "publicRelease": false,
+    "sourceHead": "70714a2ba5d961d818fa750a77fc3b39146827ff",
+    "frameworkAssets": [
+      "net472",
+      "netstandard2.0",
+      "net8.0",
+      "net10.0"
+    ],
+    "packedHtml": {
+      "package": {
+        "path": "package-proof/feed/OfficeIMO.Html.3.5.1.nupkg",
+        "bytes": 4412634,
+        "sha256": "6eb62b97f7f89131ef318c8a0aeeb6a1622432b3cb8c55b2e026f29360ebeab0"
+      },
+      "assets": {
+        "lib/net472/OfficeIMO.Html.dll": "31efef89c196721659aadd351f6108110e082ba69595cfde452562f7ac570ef9",
+        "lib/netstandard2.0/OfficeIMO.Html.dll": "4aebbd48cadfc3731f069624caaff7ae5ed4e09cabe26958d4ca59e01838a7e5",
+        "lib/net8.0/OfficeIMO.Html.dll": "e33c60efc9a23cd8a40b99dbe2930699d483f74c71b3cec6ae51e45716b417fe",
+        "lib/net10.0/OfficeIMO.Html.dll": "fc5aae9d56cc41d1cab97914b4a3ffc6352fec970b333ba566243e1200616fe5"
+      },
+      "sha512": "xNeCSDtgOOa+jjOi2RkD++GHIkKzhu0hy+L0P0Q0LW+b6Ngv5vJO6o7cFQU9zmhbeZ2dM3gU6ILhcZMkgq0cvw=="
+    },
+    "consumers": [
+      {
+        "target": "net8",
+        "cases": 6,
+        "sourceOnce": true,
+        "pageAndColumnPlacement": true,
+        "pdfPagePlacement": true,
+        "pngEqualsPdfReplay": true,
+        "executedArtifact": {
+          "path": "package-proof/out/net8/PagedColumnsPackagenet8.dll",
+          "bytes": 24064,
+          "sha256": "2e508af275ba4c4d0b9048cd21947afc4cc839ff8eae5f95457707c80a835bf8"
+        },
+        "result": {
+          "path": "package-proof/results/net8/result.json",
+          "bytes": 13476,
+          "sha256": "f1fa62010da8c48b8f0fe7d0210746f32b6e63ecb8c9fdf2f8385e4b6caf5874"
+        }
+      },
+      {
+        "target": "net10",
+        "cases": 6,
+        "sourceOnce": true,
+        "pageAndColumnPlacement": true,
+        "pdfPagePlacement": true,
+        "pngEqualsPdfReplay": true,
+        "executedArtifact": {
+          "path": "package-proof/out/net10/PagedColumnsPackagenet10.dll",
+          "bytes": 24064,
+          "sha256": "ebc48969d726613377a0ba38dfc1e27bf5aa608d2f6784d22cdf8702b8e79a12"
+        },
+        "result": {
+          "path": "package-proof/results/net10/result.json",
+          "bytes": 13484,
+          "sha256": "8139a33bc6abe0dfd6e1adc255b0d6ec9d5f1907d65f0b06460640ec1b2126d0"
+        }
+      },
+      {
+        "target": "aot",
+        "cases": 6,
+        "sourceOnce": true,
+        "pageAndColumnPlacement": true,
+        "pdfPagePlacement": true,
+        "pngEqualsPdfReplay": true,
+        "executedArtifact": {
+          "path": "package-proof/out/aot/PagedColumnsPackageaot",
+          "bytes": 32954824,
+          "sha256": "58d0c27f3a73907a1d86db91a13a0450edfe1910989658ba0f0641ec70398350"
+        },
+        "result": {
+          "path": "package-proof/results/aot/result.json",
+          "bytes": 12168,
+          "sha256": "b2e8f1e9e28841313bfffec3b4ca67c10bddf53be89aba83225a76c5d23ed45e"
+        }
+      }
+    ],
+    "sourceSeal": {
+      "path": "package-proof/source-seal.json",
+      "bytes": 1061288,
+      "sha256": "a8ad4aa96eca8e87f710c36a4661f465953d59307f1b639d0d1934eb650a2850"
+    },
+    "binding": {
+      "path": "package-proof/package-binding.json",
+      "bytes": 5038,
+      "sha256": "195eae1cee17f387bd859c8cd71c3c9f5d5a355ccd45b0fdf5547d7d40767a19"
+    },
+    "consumerBinding": {
+      "path": "package-proof/consumer-binding.json",
+      "bytes": 51838,
+      "sha256": "0f673155fe1cbac07c2248c976058bb1b0c9a5963507a066ddacff6dade4c329"
+    },
+    "retainedResolutionGraphs": {
+      "path": "package-proof/retained-graph-binding.json",
+      "bytes": 1883,
+      "sha256": "a6fef2360b98b9c408e1b6e494fbf701c773e525b55fc461fd9981a5e538ff21"
+    },
+    "retainedPackageAndRuntimeArchive": {
+      "path": "retained-package-binding.json",
+      "bytes": 9296,
+      "sha256": "a50fe4d033253de7a49ec2e5bd9a7ab0f62ffa29f0894a80ed86623bbe645466"
+    },
+    "boundary": "Four assets compiled and packed. net8/net10 loaded DLLs match the exact private assets; osx-arm64 NativeAOT execution and package resolution bind to the same qualified inputs. Four unchanged Core/Pdf/Html.Core/Html.AngleSharp packages retain their prior source-tree, shared-input and package-hash proof. No legacy framework execution or public release claim."
+  },
+  "broaderReports": {
+    "cases": 4,
+    "profiles": 16,
+    "pngPages": 81,
+    "pngAndOrderedScenesUnchanged": true,
+    "evidence": {
+      "path": "report-regression-comparison.json",
+      "bytes": 126489,
+      "sha256": "eecc3970f6732ba0783e673c8381bb92e0073043e9d91d282c8d47876996782d"
+    },
+    "binding": {
+      "path": "report-regression-no-change-binding.json",
+      "bytes": 126250,
+      "sha256": "1a1af18d70e5e7516107acea148fbf2fbf9c4b64ca987a7bd6119717cefc7b9d"
+    },
+    "boundary": "Managed regression against the protected prior four-report baseline, not new native appearance acceptance."
+  },
+  "remainingBoundary": [
+    "Short fixed-height overflow retains all source content; the independent short-height control clips/scales inline overflow and has a different page count.",
+    "Spanning partitions, nested or transformed/vertical regions, atomic/floating hosts, tall column notes and figures, changing page geometry and height-dependent alignment require wider qualification.",
+    "Indefinite continuous auto-fill and flex/grid intrinsic block sizing remain open. The reordered column-flex control now matches body page/column placement, but its following paragraph remains 20 CSS px above Edge; no full flex geometry claim.",
+    "Native text antialiasing and general unfamiliar-page acceptance remain distinct from the bounded geometry controls."
+  ],
+  "windowsProfiling": "Deferred by explicit user instruction.",
+  "storage": {
+    "logicalBytesRemoved": 3313791510,
+    "retainedApproximateBytes": 528829557,
+    "evidence": {
+      "path": "storage-final-summary.json",
+      "bytes": 827,
+      "sha256": "0b5e144584240eb8c073c96a5c2b002d8aecde23afe012954f21d2ef3ea079f2"
+    },
+    "reason": "Actual subjects, private packages/native executable, TRX, exact inputs and decisive native evidence retained. Superseded build/private-cache/temp/render outputs removed. Shared caches, prior evidence and the active worktrees preserved."
+  },
+  "machineEvidence": {
+    "root": "Machine-local scratch: html-paged-column-flow under the configured development scratch root.",
+    "qualificationPath": "HtmlTinkerX browser oracle and OfficeIMO public API probes; no product browser/runtime dependency added."
+  }
+}

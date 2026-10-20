@@ -3,6 +3,8 @@ using AngleSharp.Dom;
 namespace OfficeIMO.Html;
 
 internal sealed class HtmlRenderFlowBlock {
+    internal const double ZeroHeightFlowCarrierAdvance = 0.01D;
+
     internal HtmlRenderFlowBlock(
         double width,
         double height,
@@ -41,7 +43,8 @@ internal sealed class HtmlRenderFlowBlock {
         HtmlCollapsedMargin? collapsibleMarginTopGroup = null,
         HtmlCollapsedMargin? collapsibleMarginBottomGroup = null,
         IEnumerable<HtmlRenderAvoidBreakRange>? avoidBreakRanges = null,
-        double? pagedPaintExtent = null) {
+        double? pagedPaintExtent = null,
+        IEnumerable<HtmlRenderBreakRange>? safeBreakRanges = null) {
         Width = width;
         Height = height;
         PagedPaintExtent = pagedPaintExtent.HasValue && !double.IsNaN(pagedPaintExtent.Value) && !double.IsInfinity(pagedPaintExtent.Value)
@@ -54,6 +57,7 @@ internal sealed class HtmlRenderFlowBlock {
         BreakBefore = breakBefore;
         BreakAfter = breakAfter;
         AvoidBreakInside = avoidBreakInside;
+        AvoidBreakInsideScope = avoidBreakInside ? HtmlFragmentationScope.All : HtmlFragmentationScope.None;
         Source = source;
         var offsets = new SortedSet<double> { 0D, PagedPaintExtent };
         if (breakOffsets != null) {
@@ -63,6 +67,7 @@ internal sealed class HtmlRenderFlowBlock {
         }
 
         BreakOffsets = offsets.ToList().AsReadOnly();
+        SafeBreakRanges = HtmlRenderBreakRange.Normalize(safeBreakRanges ?? Array.Empty<HtmlRenderBreakRange>(), PagedPaintExtent);
         AvoidBreakRanges = new List<HtmlRenderAvoidBreakRange>(avoidBreakRanges ?? Array.Empty<HtmlRenderAvoidBreakRange>())
             .Where(range => range.Start >= -0.0001D && range.End <= PagedPaintExtent + 0.0001D && range.End > range.Start + 0.0001D)
             .ToList()
@@ -127,15 +132,31 @@ internal sealed class HtmlRenderFlowBlock {
 
     internal double Width { get; }
     internal double Height { get; }
-    // CSS flow advances by Height; visible painted overflow may need later print pages.
+    // Fragment allocation remains nonnegative even when normal flow moves back.
     internal double PagedPaintExtent { get; }
     internal double UnclampedHeight { get; }
+    /// <summary>
+    /// Signed distance to the following normal-flow sibling. Negative margins
+    /// can move that sibling above this block's entry without making its paint
+    /// or fragmentation allocation negative.
+    /// </summary>
+    internal double NormalFlowAdvance => RetainsZeroHeightFlowCarrier && UnclampedHeight == 0D
+        ? ZeroHeightFlowCarrierAdvance : UnclampedHeight;
+    /// <summary>
+    /// Retains the established dispatch slot of a zero-height float/specialized
+    /// paint carrier. This role is never inferred for a real box cancelled by margins.
+    /// </summary>
+    internal bool RetainsZeroHeightFlowCarrier { get; set; }
     internal IReadOnlyList<HtmlRenderVisual> Visuals { get; }
     internal HtmlPageBreakTarget BreakBefore { get; }
     internal HtmlPageBreakTarget BreakAfter { get; }
     internal bool AvoidBreakInside { get; }
+    /// <summary>Retains column-only keeps independently of the page-effective legacy flag.</summary>
+    internal HtmlFragmentationScope AvoidBreakInsideScope { get; set; }
     internal string Source { get; }
     internal IReadOnlyList<double> BreakOffsets { get; }
+    /// <summary>Closed source-coordinate intervals that can supply page-break candidates.</summary>
+    internal IReadOnlyList<HtmlRenderBreakRange> SafeBreakRanges { get; }
     internal IReadOnlyList<HtmlRenderAvoidBreakRange> AvoidBreakRanges { get; }
     internal IReadOnlyList<HtmlRenderForcedBreak> ForcedBreaks { get; }
     internal IReadOnlyList<HtmlRenderLineBreakGroup> LineBreakGroups { get; }
@@ -150,6 +171,8 @@ internal sealed class HtmlRenderFlowBlock {
     internal HtmlCollapsedMargin CollapsibleMarginTopGroup { get; }
     internal HtmlCollapsedMargin CollapsibleMarginBottomGroup { get; }
     internal IElement? OwnerElement { get; }
+    /// <summary>Stable first DOM node for an anonymous ordinary source replay; element boxes retain their real owner.</summary>
+    internal INode? SourceEntryNode { get; set; }
     internal bool CollapsesThrough { get; }
     internal IReadOnlyList<HtmlCssRunningStringAssignment> RunningStringAssignments { get; }
     internal IReadOnlyList<HtmlInlineBreakProgress> InlineBreakProgress { get; }
@@ -158,6 +181,8 @@ internal sealed class HtmlRenderFlowBlock {
     internal double LayoutViewportWidth { get; }
     internal double LayoutViewportHeight { get; }
     internal double LeadingFlowAdjustment { get; }
+    /// <summary>Destination-only space inserted before this source, excluded from its authored keep.</summary>
+    internal double PagedSourceEntryGap { get; set; }
     // Stamped on the final ordinary LayoutElement result, for its immediate inline
     // consumer. Derived/specialized blocks remain unqualified rather than guessed empty.
     internal bool KnownNoInFlowLineBoxes { get; set; }
@@ -165,13 +190,31 @@ internal sealed class HtmlRenderFlowBlock {
     // positive. Preserve that fact through margin removal and paint grouping.
     internal bool HasZeroHeightOrdinaryContent { get; set; }
 
-    private HtmlRenderFlowBlock CopyOrdinaryContentFact(HtmlRenderFlowBlock block) {
+    /// <summary>Outer block advance before physical column-page projection, when available.</summary>
+    internal double? UnfragmentedHeight { get; set; }
+
+    /// <summary>Full in-flow paint metrics for visible column overflow, independent of this box's normal advance.</summary>
+    internal HtmlRenderFlowBlock? ColumnOverflowContent { get; set; }
+
+    private HtmlRenderFlowBlock CopyLayoutFacts(HtmlRenderFlowBlock block, double unfragmentedAdjustment = 0D,
+        double? columnOverflowLeadingAdjustment = null) {
+        block.AvoidBreakInsideScope = AvoidBreakInsideScope;
+        block.RetainsZeroHeightFlowCarrier = RetainsZeroHeightFlowCarrier;
         block.HasZeroHeightOrdinaryContent = HasZeroHeightOrdinaryContent;
+        block.PagedSourceEntryGap = PagedSourceEntryGap;
+        block.SourceEntryNode = SourceEntryNode;
+        block.UnfragmentedHeight = UnfragmentedHeight.HasValue
+            ? Math.Max(0D, UnfragmentedHeight.Value + unfragmentedAdjustment) : null;
+        if (ColumnOverflowContent is { } overflow) {
+            HtmlRenderFlowBlock adjusted = columnOverflowLeadingAdjustment.HasValue
+                ? overflow.AdjustLeadingFlowSpace(columnOverflowLeadingAdjustment.Value) : overflow;
+            block.ColumnOverflowContent = adjusted.WithVisuals(block.Visuals);
+        }
         return block;
     }
 
     internal HtmlRenderFlowBlock WithLayoutViewport(double width, double height) =>
-        CopyOrdinaryContentFact(new HtmlRenderFlowBlock(
+        CopyLayoutFacts(new HtmlRenderFlowBlock(
             Width,
             Height,
             Visuals,
@@ -203,10 +246,11 @@ internal sealed class HtmlRenderFlowBlock {
             collapsibleMarginTopGroup: CollapsibleMarginTopGroup,
             collapsibleMarginBottomGroup: CollapsibleMarginBottomGroup,
             avoidBreakRanges: AvoidBreakRanges,
-            pagedPaintExtent: PagedPaintExtent));
+            pagedPaintExtent: PagedPaintExtent,
+            safeBreakRanges: SafeBreakRanges));
 
     internal HtmlRenderFlowBlock TranslateRelativePaint(double offsetX, double offsetY) =>
-        CopyOrdinaryContentFact(new HtmlRenderFlowBlock(
+        CopyLayoutFacts(new HtmlRenderFlowBlock(
             Width,
             Height,
             Visuals.Select(visual => visual.TranslateRelativePaint(offsetX, offsetY, visual.PaintOrder)),
@@ -238,11 +282,12 @@ internal sealed class HtmlRenderFlowBlock {
             collapsibleMarginTopGroup: CollapsibleMarginTopGroup,
             collapsibleMarginBottomGroup: CollapsibleMarginBottomGroup,
             avoidBreakRanges: AvoidBreakRanges,
-            pagedPaintExtent: PagedPaintExtent));
+            pagedPaintExtent: PagedPaintExtent,
+            safeBreakRanges: SafeBreakRanges));
 
     internal HtmlRenderFlowBlock WithStacking(int zIndex, int sourceOrder) {
         var context = new HtmlRenderStackingContext(zIndex, sourceOrder);
-        return CopyOrdinaryContentFact(new HtmlRenderFlowBlock(
+        return CopyLayoutFacts(new HtmlRenderFlowBlock(
             Width,
             Height,
             Visuals.Select(visual => visual.WithStackingContext(context)),
@@ -274,13 +319,15 @@ internal sealed class HtmlRenderFlowBlock {
             collapsibleMarginTopGroup: CollapsibleMarginTopGroup,
             collapsibleMarginBottomGroup: CollapsibleMarginBottomGroup,
             avoidBreakRanges: AvoidBreakRanges,
-            pagedPaintExtent: PagedPaintExtent));
+            pagedPaintExtent: PagedPaintExtent,
+            safeBreakRanges: SafeBreakRanges));
     }
 
     internal HtmlRenderFlowBlock WithVisuals(IEnumerable<HtmlRenderVisual> visuals, double? pagedPaintExtent = null,
         double pagedBreakTranslation = 0D, IEnumerable<HtmlRenderContinuationGroup>? continuationGroups = null,
-        IEnumerable<HtmlRenderTrailingGroup>? trailingGroups = null, double? width = null, double? height = null) =>
-        CopyOrdinaryContentFact(new HtmlRenderFlowBlock(
+        IEnumerable<HtmlRenderTrailingGroup>? trailingGroups = null, double? width = null, double? height = null,
+        IEnumerable<HtmlRenderForcedBreak>? forcedBreaks = null) =>
+        CopyLayoutFacts(new HtmlRenderFlowBlock(
             width ?? Width,
             height ?? Height,
             visuals,
@@ -310,7 +357,7 @@ internal sealed class HtmlRenderFlowBlock {
             inlineBreakProgress: InlineBreakProgress,
             inlineContinuationStart: InlineContinuationStart,
             supportsInlineContinuationReflow: SupportsInlineContinuationReflow,
-            forcedBreaks: ForcedBreaks,
+            forcedBreaks: forcedBreaks ?? ForcedBreaks,
             layoutViewportWidth: LayoutViewportWidth,
             layoutViewportHeight: LayoutViewportHeight,
             leadingFlowAdjustment: LeadingFlowAdjustment,
@@ -319,11 +366,14 @@ internal sealed class HtmlRenderFlowBlock {
             avoidBreakRanges: pagedBreakTranslation > 0D
                 ? AvoidBreakRanges.Select(range => range.Translate(pagedBreakTranslation))
                 : AvoidBreakRanges,
-            pagedPaintExtent: pagedPaintExtent ?? PagedPaintExtent));
+            pagedPaintExtent: pagedPaintExtent ?? PagedPaintExtent,
+            safeBreakRanges: pagedBreakTranslation > 0D
+                ? SafeBreakRanges.Select(range => range.Translate(pagedBreakTranslation))
+                : SafeBreakRanges));
 
     internal HtmlRenderFlowBlock ForPagination() {
         if (PagedPaintExtent <= Height + 0.0001D) return this;
-        return CopyOrdinaryContentFact(new HtmlRenderFlowBlock(
+        return CopyLayoutFacts(new HtmlRenderFlowBlock(
             Width,
             PagedPaintExtent,
             Visuals,
@@ -354,15 +404,18 @@ internal sealed class HtmlRenderFlowBlock {
             leadingFlowAdjustment: LeadingFlowAdjustment,
             collapsibleMarginTopGroup: CollapsibleMarginTopGroup,
             collapsibleMarginBottomGroup: CollapsibleMarginBottomGroup,
-            avoidBreakRanges: AvoidBreakRanges));
+            avoidBreakRanges: AvoidBreakRanges,
+            safeBreakRanges: SafeBreakRanges));
     }
 
     internal HtmlRenderFlowBlock AdjustLeadingFlowSpace(double adjustment) {
         if (Math.Abs(adjustment) <= 0.0001D) return this;
         double adjustedUnclampedHeight = UnclampedHeight - adjustment;
-        double adjustedHeight = HasZeroHeightOrdinaryContent && adjustedUnclampedHeight == 0D
-            ? 0D : Math.Max(0.01D, adjustedUnclampedHeight);
-        return CopyOrdinaryContentFact(new HtmlRenderFlowBlock(
+        double adjustedHeight = RetainsZeroHeightFlowCarrier && adjustedUnclampedHeight == 0D
+            ? ZeroHeightFlowCarrierAdvance : Math.Max(0D, adjustedUnclampedHeight);
+        double adjustedPaintExtent = PagedPaintExtent > Math.Max(0D, UnclampedHeight) + 0.0001D
+            ? Math.Max(adjustedHeight, PagedPaintExtent - adjustment) : adjustedHeight;
+        return CopyLayoutFacts(new HtmlRenderFlowBlock(
             Width,
             adjustedHeight,
             Visuals.Select((visual, index) => visual.Translate(0D, -adjustment, index)),
@@ -394,13 +447,15 @@ internal sealed class HtmlRenderFlowBlock {
             collapsibleMarginTopGroup: CollapsibleMarginTopGroup,
             collapsibleMarginBottomGroup: CollapsibleMarginBottomGroup,
             avoidBreakRanges: AvoidBreakRanges.Select(range =>
-                new HtmlRenderAvoidBreakRange(Math.Max(0D, range.Start - adjustment), range.End - adjustment, range.Soft)),
-            pagedPaintExtent: Math.Max(adjustedHeight, PagedPaintExtent - adjustment)));
+                new HtmlRenderAvoidBreakRange(Math.Max(0D, range.Start - adjustment), range.End - adjustment, range.Soft, range.Scope)),
+            pagedPaintExtent: adjustedPaintExtent,
+            safeBreakRanges: SafeBreakRanges.Select(range => range.Translate(-adjustment))), -adjustment,
+            columnOverflowLeadingAdjustment: adjustment);
     }
 
     internal HtmlRenderFlowBlock WithCollapsibleMargins(double top, double bottom, IElement ownerElement,
         bool collapsesThrough = false, HtmlCollapsedMargin? topGroup = null, HtmlCollapsedMargin? bottomGroup = null) =>
-        CopyOrdinaryContentFact(new HtmlRenderFlowBlock(
+        CopyLayoutFacts(new HtmlRenderFlowBlock(
             Width,
             Height,
             Visuals,
@@ -434,10 +489,11 @@ internal sealed class HtmlRenderFlowBlock {
             collapsibleMarginTopGroup: topGroup,
             collapsibleMarginBottomGroup: bottomGroup,
             avoidBreakRanges: AvoidBreakRanges,
-            pagedPaintExtent: PagedPaintExtent));
+            pagedPaintExtent: PagedPaintExtent,
+            safeBreakRanges: SafeBreakRanges));
 
     internal HtmlRenderFlowBlock WithRunningStringAssignments(IEnumerable<HtmlCssRunningStringAssignment> assignments) =>
-        CopyOrdinaryContentFact(new HtmlRenderFlowBlock(
+        CopyLayoutFacts(new HtmlRenderFlowBlock(
             Width,
             Height,
             Visuals,
@@ -469,15 +525,20 @@ internal sealed class HtmlRenderFlowBlock {
             collapsibleMarginTopGroup: CollapsibleMarginTopGroup,
             collapsibleMarginBottomGroup: CollapsibleMarginBottomGroup,
             avoidBreakRanges: AvoidBreakRanges,
-            pagedPaintExtent: PagedPaintExtent));
+            pagedPaintExtent: PagedPaintExtent,
+            safeBreakRanges: SafeBreakRanges));
 
     internal HtmlRenderFlowBlock AdjustTrailingFlowSpace(double adjustment) {
         if (Math.Abs(adjustment) <= 0.0001D) return this;
         double adjustedUnclampedHeight = UnclampedHeight - adjustment;
-        double adjustedHeight = HasZeroHeightOrdinaryContent && adjustedUnclampedHeight == 0D
-            ? 0D : Math.Max(0.01D, adjustedUnclampedHeight);
-        double adjustedPaintExtent = Math.Max(adjustedHeight, PagedPaintExtent - adjustment);
-        return CopyOrdinaryContentFact(new HtmlRenderFlowBlock(
+        double adjustedHeight = RetainsZeroHeightFlowCarrier && adjustedUnclampedHeight == 0D
+            ? ZeroHeightFlowCarrierAdvance : Math.Max(0D, adjustedUnclampedHeight);
+        // Removing a trailing margin changes advance without translating paint.
+        // A retained overhang therefore keeps its original painted endpoint.
+        double adjustedPaintExtent = PagedPaintExtent > Math.Max(0D, UnclampedHeight) + 0.0001D
+            ? Math.Max(adjustedHeight, PagedPaintExtent)
+            : Math.Max(adjustedHeight, PagedPaintExtent - adjustment);
+        return CopyLayoutFacts(new HtmlRenderFlowBlock(
             Width,
             adjustedHeight,
             Visuals,
@@ -509,30 +570,56 @@ internal sealed class HtmlRenderFlowBlock {
             collapsibleMarginTopGroup: CollapsibleMarginTopGroup,
             collapsibleMarginBottomGroup: CollapsibleMarginBottomGroup,
             avoidBreakRanges: AvoidBreakRanges.Select(range => range.WithEnd(Math.Min(range.End, adjustedPaintExtent))),
-            pagedPaintExtent: adjustedPaintExtent));
+            pagedPaintExtent: adjustedPaintExtent,
+            safeBreakRanges: SafeBreakRanges), -adjustment);
     }
 }
 
-internal readonly record struct HtmlRenderAvoidBreakRange(double Start, double End, bool Soft = false) {
-    internal HtmlRenderAvoidBreakRange Translate(double offset) => new HtmlRenderAvoidBreakRange(Start + offset, End + offset, Soft);
-    internal HtmlRenderAvoidBreakRange WithEnd(double end) => new HtmlRenderAvoidBreakRange(Start, end, Soft);
+internal readonly record struct HtmlRenderAvoidBreakRange(double Start, double End, bool Soft = false,
+    HtmlFragmentationScope Scope = HtmlFragmentationScope.All) {
+    internal HtmlRenderAvoidBreakRange Translate(double offset) => new HtmlRenderAvoidBreakRange(Start + offset, End + offset, Soft, Scope);
+    internal HtmlRenderAvoidBreakRange WithEnd(double end) => new HtmlRenderAvoidBreakRange(Start, end, Soft, Scope);
 }
 
 internal sealed class HtmlRenderForcedBreak {
-    internal HtmlRenderForcedBreak(double offset, HtmlPageBreakTarget target, string? pageName = null, bool changesPageName = false) {
+    internal HtmlRenderForcedBreak(double offset, HtmlPageBreakTarget target, string? pageName = null, bool changesPageName = false,
+        object? boundary = null, HtmlRenderBreakEdge edge = HtmlRenderBreakEdge.Interior,
+        bool isAfter = false, bool projected = false, bool advancesFollowingFlow = false) {
         Offset = offset;
         Target = target;
         PageName = pageName;
         ChangesPageName = changesPageName;
+        Boundary = boundary ?? new object();
+        Edge = edge;
+        IsAfter = isAfter;
+        Projected = projected;
+        AdvancesFollowingFlow = advancesFollowingFlow;
     }
 
     internal double Offset { get; }
     internal HtmlPageBreakTarget Target { get; }
     internal string? PageName { get; }
     internal bool ChangesPageName { get; }
+    // Distinct empty siblings can share an offset; their flow boundaries cannot.
+    internal object Boundary { get; }
+    internal HtmlRenderBreakEdge Edge { get; }
+    /// <summary>Retains authored after provenance when before and after controls share a sibling boundary.</summary>
+    internal bool IsAfter { get; }
+    /// <summary>The source offset already includes the page-entry spacing for this event.</summary>
+    internal bool Projected { get; }
+    /// <summary>A realized after boundary must advance constrained following flow.</summary>
+    internal bool AdvancesFollowingFlow { get; }
 
-    internal HtmlRenderForcedBreak Translate(double offset) => new HtmlRenderForcedBreak(Offset + offset, Target, PageName, ChangesPageName);
+    internal HtmlRenderForcedBreak Translate(double offset) => new HtmlRenderForcedBreak(Offset + offset, Target, PageName, ChangesPageName, Boundary, Edge, IsAfter, Projected, AdvancesFollowingFlow);
+    internal HtmlRenderForcedBreak AtBoundary(double offset, object boundary, HtmlRenderBreakEdge edge) =>
+        new HtmlRenderForcedBreak(offset, Target, PageName, ChangesPageName, boundary, edge, IsAfter, Projected, AdvancesFollowingFlow);
+    /// <summary>Marks an authored boundary whose destination spacing is now represented in the retained source.</summary>
+    internal HtmlRenderForcedBreak ProjectAt(double offset, bool forceFollowingFlow = false) =>
+        new HtmlRenderForcedBreak(offset, Target, PageName, ChangesPageName, Boundary, Edge, IsAfter, projected: true,
+            advancesFollowingFlow: AdvancesFollowingFlow || forceFollowingFlow);
 }
+
+internal enum HtmlRenderBreakEdge { Interior, Leading, Trailing }
 
 internal sealed class HtmlRenderContinuationGroup {
     internal HtmlRenderContinuationGroup(double startsAfter, double endsAt, double height, IEnumerable<HtmlRenderVisual> visuals) {
@@ -633,210 +720,6 @@ internal sealed class HtmlRenderLineBreakGroup {
         new HtmlRenderLineBreakGroup(Offsets.Select(value => value + offset), Orphans, Widows, HasImplicitFinalLine, Start + offset, End + offset, CheckInteriorBreaks, FinalLineMarginBreak);
 }
 
-internal sealed class HtmlInlineRun {
-    internal HtmlInlineRun(
-        IEnumerable<HtmlCssRunningStringAssignment> runningElementAssignments,
-        HtmlRenderBoxStyle style,
-        string source) {
-        RunningElementAssignments = new List<HtmlCssRunningStringAssignment>(runningElementAssignments).AsReadOnly();
-        RunningElementAssignment = RunningElementAssignments.FirstOrDefault();
-        Text = string.Empty;
-        LogicalText = string.Empty;
-        Style = style;
-        Source = source;
-        SemanticRole = style.SemanticRole;
-    }
-
-    internal HtmlInlineRun(
-        IElement runningStringElement,
-        HtmlRenderBoxStyle style,
-        string source) {
-        RunningStringElement = runningStringElement;
-        Text = string.Empty;
-        LogicalText = string.Empty;
-        Style = style;
-        Source = source;
-        SemanticRole = style.SemanticRole;
-    }
-
-    internal HtmlInlineRun(
-        string text,
-        HtmlRenderBoxStyle style,
-        string? linkUri,
-        string source,
-        double paintOffsetX = 0D,
-        double paintOffsetY = 0D,
-        IElement? ownerElement = null,
-        IElement? positionedMarkerElement = null,
-        string? logicalText = null,
-        bool textTransformPending = false,
-        string? leaderPattern = null) {
-        Text = text;
-        LogicalText = logicalText ?? text;
-        Style = style;
-        LinkUri = linkUri;
-        Source = source;
-        PaintOffsetX = paintOffsetX;
-        PaintOffsetY = paintOffsetY;
-        OwnerElement = ownerElement;
-        PositionedMarkerElement = positionedMarkerElement;
-        SemanticRole = style.SemanticRole;
-        TextTransformPending = textTransformPending;
-        LeaderPattern = leaderPattern;
-    }
-
-    internal HtmlInlineRun(
-        HtmlRenderFlowBlock atomicBlock,
-        HtmlRenderBoxStyle style,
-        string? linkUri,
-        string source,
-        double paintOffsetX = 0D,
-        double paintOffsetY = 0D,
-        IElement? ownerElement = null,
-        bool isReplacedImage = false,
-        double? atomicBaseline = null,
-        bool isBlockInterruption = false, bool isFlowMarker = false) {
-        AtomicBlock = atomicBlock;
-        Text = string.Empty;
-        LogicalText = string.Empty;
-        Style = style;
-        LinkUri = linkUri;
-        Source = source;
-        PaintOffsetX = paintOffsetX;
-        PaintOffsetY = paintOffsetY;
-        OwnerElement = ownerElement;
-        IsReplacedImage = isReplacedImage;
-        AtomicBaseline = atomicBaseline;
-        IsBlockInterruption = isBlockInterruption;
-        IsFlowMarker = isFlowMarker;
-        SemanticRole = style.SemanticRole;
-    }
-
-    internal HtmlInlineRun(
-        HtmlRenderFlowBlock floatingBlock,
-        HtmlRenderBoxStyle style,
-        string? linkUri,
-        string source,
-        string floatSide,
-        string clearSide,
-        IElement ownerElement) {
-        FloatingBlock = floatingBlock;
-        Text = string.Empty;
-        LogicalText = string.Empty;
-        Style = style;
-        LinkUri = linkUri;
-        Source = source;
-        FloatSide = floatSide;
-        ClearSide = clearSide;
-        OwnerElement = ownerElement;
-        SemanticRole = style.SemanticRole;
-    }
-
-    internal string Text { get; private set; }
-    internal string LogicalText { get; private set; }
-    internal HtmlRenderFlowBlock? AtomicBlock { get; }
-    internal HtmlRenderFlowBlock? FloatingBlock { get; }
-    internal HtmlRenderBoxStyle Style { get; }
-    internal string? LinkUri { get; }
-    internal string Source { get; }
-    internal double PaintOffsetX { get; }
-    internal double PaintOffsetY { get; }
-    internal IElement? OwnerElement { get; }
-    internal IElement? PositionedMarkerElement { get; }
-    internal IElement? RunningStringElement { get; }
-    internal HtmlCssRunningStringAssignment? RunningElementAssignment { get; }
-    internal IReadOnlyList<HtmlCssRunningStringAssignment> RunningElementAssignments { get; } = Array.Empty<HtmlCssRunningStringAssignment>();
-    internal bool IsReplacedImage { get; }
-    internal double? AtomicBaseline { get; }
-    internal bool HasEmptyInlineBlockBaseline { get; set; }
-    internal bool IsBlockInterruption { get; }
-    internal bool IsFlowMarker { get; }
-    internal HtmlInlineEdgeBoundary? InlineEdgeBoundary { get; set; }
-    internal IReadOnlyList<HtmlInlineEdgeScope> InlineEdgeScopes { get; set; } = Array.Empty<HtmlInlineEdgeScope>();
-    // Inline line-box metrics also belong to wrappers without decoration edges.
-    internal IReadOnlyList<HtmlRenderBoxStyle> InlineStrutStyles { get; set; } = Array.Empty<HtmlRenderBoxStyle>();
-    internal double InlineClosingAdvance { get; set; }
-    internal bool InlineTokenEndsRun { get; set; }
-    internal bool IsEmptyInlineBox { get; set; }
-    internal bool IsInlineStrutMarker { get; set; }
-    // Removed zero-font source text may retain a CSS whitespace opportunity without content or advance.
-    internal bool IsSuppressedWhitespaceBreak { get; set; }
-    internal string SemanticRole { get; private set; }
-    internal int? SemanticNodeId { get; private set; }
-    internal int? SemanticFragmentOrder { get; private set; }
-    internal int? LogicalTextOrder { get; private set; }
-    internal HtmlRenderSemanticGroupRole? InlineSemanticGroupRole { get; private set; }
-    internal string? InlineSemanticGroupKey { get; private set; }
-    internal string? BookmarkAnchorText { get; private set; }
-    internal string FloatSide { get; } = "none";
-    internal string ClearSide { get; } = "none";
-    internal bool TextTransformPending { get; private set; }
-    // Suppressed text participates in casing and first-letter selection before paint.
-    internal bool IsTextTransformContextOnly { get; set; }
-    internal string? LeaderPattern { get; }
-    internal bool IsFirstLetter { get; private set; }
-    // A pseudo-element split retains the whole word's break decisions and logical text.
-    internal HtmlRenderLayoutEngine.HyphenationToken? PreparedHyphenation { get; set; }
-    internal bool EndsFirstLine { get; set; }
-    internal string FirstLineHyphen { get; set; } = string.Empty;
-
-    internal void CompleteTextTransform(string text) {
-        Text = text;
-        LogicalText = text;
-        TextTransformPending = false;
-    }
-
-    internal void AssignSemanticNode(string role, int nodeId, string? bookmarkAnchorText = null, int? semanticFragmentOrder = null) {
-        SemanticNodeId = nodeId;
-        SemanticFragmentOrder = semanticFragmentOrder;
-        BookmarkAnchorText = bookmarkAnchorText;
-        if (!SemanticRole.StartsWith("generated-", StringComparison.Ordinal)) {
-            SemanticRole = role;
-        }
-    }
-
-    internal void AssignLogicalTextOrder(int order) => LogicalTextOrder = order;
-
-    internal void AssignInlineSemanticGroup(HtmlRenderSemanticGroupRole role, string structureElementKey) {
-        InlineSemanticGroupRole = role;
-        InlineSemanticGroupKey = structureElementKey;
-    }
-
-    internal HtmlInlineRun CloneText(string text, string logicalText, HtmlRenderBoxStyle style, bool isFirstLetter = false) {
-        var clone = new HtmlInlineRun(
-            text,
-            style,
-            LinkUri,
-            Source,
-            PaintOffsetX,
-            PaintOffsetY,
-            OwnerElement,
-            PositionedMarkerElement,
-            logicalText,
-            TextTransformPending,
-            LeaderPattern) {
-            SemanticRole = SemanticRole,
-            SemanticNodeId = SemanticNodeId,
-            SemanticFragmentOrder = SemanticFragmentOrder,
-            LogicalTextOrder = LogicalTextOrder,
-            InlineSemanticGroupRole = InlineSemanticGroupRole,
-            InlineSemanticGroupKey = InlineSemanticGroupKey,
-            BookmarkAnchorText = BookmarkAnchorText,
-            IsTextTransformContextOnly = style.Font.Size <= 0D,
-            IsFirstLetter = isFirstLetter,
-            PreparedHyphenation = PreparedHyphenation,
-            EndsFirstLine = EndsFirstLine,
-            FirstLineHyphen = FirstLineHyphen,
-            InlineEdgeScopes = InlineEdgeScopes,
-            InlineStrutStyles = InlineStrutStyles,
-            IsInlineStrutMarker = IsInlineStrutMarker,
-            IsSuppressedWhitespaceBreak = IsSuppressedWhitespaceBreak,
-            InlineClosingAdvance = InlineClosingAdvance,
-            InlineTokenEndsRun = InlineTokenEndsRun
-        };
-        return clone;
-    }
-}
 
 internal readonly struct HtmlFloatExclusion {
     internal HtmlFloatExclusion(double x, double y, double width, double height, string side) {

@@ -239,15 +239,21 @@ internal sealed class OfficeOpenTypeCffFont : IOfficeCffBoundedFontProgram, IOff
         System.Threading.CancellationToken cancellationToken = default) => _kerning.PositionRun(glyphs, scalars, cancellationToken);
 
     public double MeasureShapedText(string text, OfficeTextShapingResult result, double fontSize) {
-        PositionedGlyph[] glyphs = ValidateShapedGlyphs(text, result);
+        long advance = GetShapedTextAdvance(text, result);
         ValidateSize(fontSize);
+        return Math.Abs(advance * Scale(fontSize));
+    }
+
+    // Retain the same signed measure when qualifying a logical slice for independent painting.
+    internal long GetShapedTextAdvance(string text, OfficeTextShapingResult result) {
+        PositionedGlyph[] glyphs = ValidateShapedGlyphs(text, result);
         long advance = 0;
         for (int index = 0; index < glyphs.Length; index++) {
             advance = checked(advance + (result.Direction == OfficeTextDirection.TopToBottom
                 ? glyphs[index].AdvanceHeight
                 : glyphs[index].AdvanceWidth));
         }
-        return Math.Abs(advance * Scale(fontSize));
+        return advance;
     }
 
     public List<List<OfficePoint>> GetShapedTextContours(

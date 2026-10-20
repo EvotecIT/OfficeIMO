@@ -173,7 +173,11 @@ format check does not establish visual equivalence to a browser or source applic
 
 Keep data binding outside the renderer. Build finalized, encoded HTML with Razor, Scriban, Handlebars, or the template system already used by the application, then pass that HTML to `HtmlConversionDocument.Parse`. OfficeIMO does not execute JavaScript or template expressions while rendering.
 
-In paged output, table cells measure and wrap through the shared layout engine. A leading `<thead>` and a trailing `<tfoot>` repeat on each table fragment. Use `<tfoot>` for a genuine repeating table footer; put a subtotal or grand-total card that must appear once after the table and give it `break-inside: avoid`.
+In paged output, table cells measure and wrap through the shared layout engine. A leading `<thead>` and a trailing `<tfoot>` repeat on each table fragment. Use `<tfoot>` for a genuine repeating table footer; put a subtotal or grand-total card that must appear once after the table and give it `break-inside: avoid`. Top-aligned, auto-height tables in one horizontal flex row or one ordinary auto grid row can continue independently, including their repeated groups and following content. See the [parallel-table contract and limits](README.md) before using more complex fragmenting containers.
+
+Ordinary rowspans can cross a safe row boundary without moving their whole row group to the next page. Authored cell, row, row-group and nested block keeps remain effective, and a cut must preserve text lines, atomic content and paragraph widows/orphans. The fragments retain the original cell identity and source alignment. Fragment-specific middle/bottom alignment, internal row breaks through spans and width-changing span reflow remain outside this bounded contract; changing geometry retains source layout with `HtmlRenderPagePseudoGeometryPending`.
+
+Rectangular, fully opaque table backgrounds with automatic height continue through unused space after a safe row cut. Tables with `border-collapse: separate` carry their own solid left and right borders through that space; collapsed grid rules stay with their rows. Table paint stays behind row-group, row and cell colors. Row-group and row backgrounds stay beneath cell fills, including cells spanning later rows. Repeated headers retain that table backdrop beneath their own colors. Footer reservations remain inside the continuing backdrop, and the final fragment ends after its footer. Background continuation uses static, untransformed boxes without background images, shadows or additional clipping. When detached repetition cannot preserve ancestor opacity, transforms or paint clipping, the table retains its original header and footer paint instead of repeating it outside that effect. If pagination crosses that table, `HtmlRenderTableHeaderRepeatSuppressed` and `HtmlRenderTableFooterRepeatSuppressed` report the approximation; `RequireNoLoss` rejects it.
 
 ```html
 <table>
@@ -206,15 +210,33 @@ This bounds completed PDF page and object payloads and avoids buffering the fina
 
 ## Paged-media and PDF semantics
 
-Flex content keeps its source hierarchy in the tagged reading order when CSS `order`, reverse directions or pagination change where it is painted. Repeated table headers and continued list/table content retain their semantic ancestors across pages. This preserves logical ownership without changing the visual layout; manual assistive-technology review remains a separate accessibility requirement.
+Tagged output retains source hierarchy for supported text, images and rendered form controls. Inline images stay between their surrounding text, and local-frame content stays within its source-positioned frame scope. Anonymous or generated text and logical `ActualText` replacements retain their source ownership and sequence across paint layers. Flex content keeps that hierarchy when CSS `order`, reverse directions or pagination change where it is painted. Repeated table headers and continued list/table content retain their semantic ancestors across pages. Manual assistive-technology review remains a separate accessibility requirement.
 
 The managed path supports named page rules, margin boxes, page counters, running strings, and running elements. It also maps headings and CSS bookmark controls to PDF outlines, maps supported semantic roles to the tagged structure tree, and marks repeated decorative margin content as PDF artifacts. Presentation MathML keeps its vector paint and searchable logical text inside a tagged `Formula` container. Its description follows the shared accessible-name resolution, then `alttext`, then the logical expression. Tagged formulas carry UTF-8 `application/mathml+xml` associated-file supplements. Exact original standalone MathML survives document cloning and unrelated edits; changed or recovered formulas carry current namespace-aware MathML with a normalization diagnostic. Hidden formulas and untagged output do not emit formula attachments. These associations select PDF 2.0, or PDF 1.7 when configured PDF/A-3 groundwork permits them. Association metadata alone does not establish PDF/A or PDF/UA conformance.
+
+MathML operator spacing uses the [shared rendering contract](README.md#direct-html-rendering)
+for both PDF and paged image output. Supported form and side spacing affect the
+same retained drawing. Unsupported side syntax or detected authored operator presentation in unqualified
+embellished contexts retains approximation diagnostics; source attachments do not make those visual
+approximations lossless.
 
 An explicit standalone PDF/UA-1 request cannot retain these Formula attachments: PDF/UA-1 requires PDF 1.7, while native structure-associated files require PDF 2.0. `RequireCompliance(PdfComplianceProfile.PdfUa1)` rejects that combination before writing output. Setting `FileVersion` to `Pdf17` does not override the attachment requirement. The converter never drops MathML or changes the requested profile automatically. Callers needing both PDF/UA-1 and the source supplements can explicitly configure PDF/A-3 groundwork alongside PDF/UA-1, provide `MathMlSourceModificationDate` and embedded fonts, and validate the resulting bytes against both profiles. A PDF 2.0 profile is a separate caller choice and requires its own qualification.
 
 Column notes retain note bodies as `Note` elements with unique IDs. Linked call markers remain in their originating paragraph, and return links remain in the note. The logical body follows column flow; notes follow the body of the page on which they start, with continuations belonging to the same note. These structural guarantees do not replace assistive-technology reading-order review.
 
 Set `HtmlToPdfOptions.MathMlSourceModificationDate` when an archival profile requires a modification date for embedded sources. The renderer does not invent dates.
+
+An emitted tagged Formula MathML supplement can satisfy PDF/A-4f's embedded-file
+requirement. For reproducible archival output, supply text and mathematical fonts
+explicitly, set `MathMlSourceModificationDate`, request the profile, and validate the
+exact saved PDF. See the [PDF compliance contract](../OfficeIMO.Pdf/README.md#generate-and-assess-validator-backed-pdfa)
+for saved-artifact checks and external validation requirements.
+
+The [math and archive qualification](../Build/Project/Evidence/2026-09-30/html-master-convergence/math-operator-print-20261020.json) records the selected
+ordinary-row operator fixtures and tagged PDF/A-4f archive with explicit fonts,
+complete page content, Formula supplement identity, native print comparison,
+saved-PDF rendering, exact-artifact external validation and packaged public
+consumers. Its declared fixture, font, platform and framework scope applies.
 
 ```html
 <style>
@@ -334,6 +356,8 @@ PDF and image export require glyph coverage in the selected embedded fonts. Miss
 
 The first-party font engine loads policy-approved TrueType-glyf OpenType, WOFF 1, CFF/CFF2, and TrueType or CFF2 variable fonts. Single-face WOFF 2 decoding is built in on .NET 8 and newer; extract and register individual faces from WOFF 2 font collections. Static faces remain eligible for PDF embedding, including supported OpenType features. Color glyphs and feature-bearing color fonts retain palette-aware outlines. Variable instances and text that requires vector paint use outlines plus logical `ActualText`, preserving extraction and accessibility.
 
+Font resources may use a recognized font MIME type or the generic `application/octet-stream` and `binary/octet-stream` types. The font decoder still validates their bytes; a generic type does not make an invalid font usable. These routes share resource-count, source-byte, decoded-byte, operation and cancellation limits.
+
 PDF outline expansion remains bounded. The selected program must implement
 `IOfficeBoundedFontProgram`; conversion carries cancellation into contour expansion
 and enforces `MaxOutlinedTextCharactersPerRun` plus the operation-wide
@@ -369,6 +393,8 @@ options.MaxOutlinedTextCharactersPerRun = 16_384;
 options.MaxOutlinedTextPathCommands = 1_000_000;
 ```
 
+HTML uses the shared Core/PDF owners for bidirectional ordering, line breaking and bounded Arabic per-letter joining. Combining-mark attachment and required lam-alef ligatures need a complete shaping provider. The managed fallback preserves logical searchable text and reports approximation loss; strict mode rejects that fallback.
+
 For complete OpenType GSUB/GPOS shaping, add the optional `OfficeIMO.Drawing.HarfBuzz` adapter and assign its provider to the same options object used by PDF and image output:
 
 ```csharp
@@ -380,6 +406,14 @@ var options = new HtmlToPdfOptions {
 };
 options.Fonts.Add("Report Arabic", File.ReadAllBytes("ReportArabic.ttf"));
 ```
+
+Configured providers can retain an ordinary horizontal RTL Arabic word across eligible inline paint boundaries. Each piece must share the selected bounded monochrome font program, collection face and variation coordinates, with matching font size, language, direction and OpenType features. Letter spacing must be zero, source partitions must preserve complete logical clusters, and slice advances must add up to the complete word. Glyph IDs, offsets, advances and continuation glyphs stay with their logical source through measurement and painting. Forced breaks, bidi controls, emergency word wrapping, inline insets and differing shaping settings lie outside this retained-context subset.
+
+Paragraph bidi also supplies the direction for neutral punctuation. With zero letter and word spacing, eligible horizontal RTL slices retain the provider result requested with that resolved direction, so later output does not infer a new direction from punctuation alone. Font, provider, color-glyph or cluster-retention failures in an otherwise eligible context report `HtmlRenderComplexTextShapingUnsupported`.
+
+HTML PDF output paints admitted glyphs as vector outlines with logical `ActualText` for extraction and accessibility, alongside supported decoration paint. A positive-advance run with no visible outline still keeps its logical text and eligible link bounds. Absence of ink alone does not trigger fresh shaping. Provider acceptance and a clean report do not establish native appearance for every font or script.
+
+`HtmlRenderPage.CreateDrawing()` also carries admitted glyphs into Drawing output. Generic PDF export through `PdfPageCanvas.Drawing(...)` accepts retained text as unwrapped positioned monochrome slices; attached text decorations, padding, indentation, outline strokes and specialized metric geometry are outside that route and fail explicitly. Separate decoration shapes already present in the Drawing use normal shape output.
 
 Hosts that ship the OfficeIMO portable browser font set can activate its layout
 aliases, fallback order, PDF embedding, and substitutions through one reusable
@@ -472,9 +506,9 @@ foreach (var diagnostic in svgResult.Diagnostics) {
 }
 ```
 
-Resource resolution is opt-in. `PdfResourcePolicy` is the host-access gate for local files, remote resolver calls, data URIs, embedded package resources, and installed fonts. `HtmlUrlPolicy` independently validates URL syntax and schemes; timeouts, byte limits, count limits, and stylesheet-depth limits inherited from `HtmlRenderOptions` bound resources after access is granted. The balanced default allows installed fonts plus bounded data URIs and MHTML package parts, but does not call local or remote resolvers. Portable deterministic mode disables installed-font discovery explicitly.
+Resource resolution is opt-in. `PdfResourcePolicy` is the host-access gate for local files, remote resolver calls, data URIs, embedded package resources, and installed fonts. `HtmlUrlPolicy` independently validates URL syntax and schemes; timeouts, byte limits, count limits, and stylesheet-depth limits inherited from `HtmlRenderOptions` bound resources after access is granted. HTML defaults to `PdfResourcePolicy.CreateLibraryFontDefault()`: library-selected installed fonts, bounded data URIs and MHTML package parts are allowed; document-selected host fonts and local or remote resolver calls are disabled. Set `AllowDocumentFontEmbedding` explicitly to use installed families named by the document. Portable deterministic mode disables installed-font discovery explicitly.
 
-Under the balanced policy, MathML can use the renderer's fixed mathematical font
+Under the default policy, MathML can use the renderer's fixed mathematical font
 families when a supported installed face is available. CSS cannot use that fallback
 list to select another named host font. `AllowDocumentFontEmbedding` still gates
 document-selected host families and installed system-UI lists. Disable

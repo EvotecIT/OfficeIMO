@@ -6,10 +6,11 @@ internal sealed partial class HtmlRenderLayoutEngine {
     private HtmlRenderFlowBlock ApplyElementSemantics(HtmlRenderFlowBlock block, IElement element, HtmlRenderBoxStyle style) {
         RegisterBookmark(element, style);
         ReportUnsupportedSemanticTag(element, style);
-        block = AddTargetPageAnchor(block, element, Math.Max(0D, style.MarginTop));
+        if (IsFirstColumnSourceFragment(element))
+            block = AddTargetPageAnchor(block, element, Math.Max(0D, style.MarginTop));
         int nodeId = GetSemanticNodeId(element);
         string structureElementKey = "html-element:" + nodeId.ToString(System.Globalization.CultureInfo.InvariantCulture);
-        if (ShouldAssignNavigationNode(style) && !style.BookmarkSuppressed) {
+        if (IsFirstColumnSourceFragment(element) && ShouldAssignNavigationNode(style) && !style.BookmarkSuppressed) {
             string anchorText = ResolveBookmarkAnchorText(element, style);
             if (anchorText.Length > 0 && !ContainsBookmarkAnchor(block.Visuals, nodeId)) {
                 block = block.WithVisuals(block.Visuals.Concat(new HtmlRenderVisual[] {
@@ -27,7 +28,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
         }
         HtmlRenderFlowBlock listBlock = style.SemanticArtifact || style.SemanticGroupRoleOverride.HasValue
             ? block
-            : ApplyListSemantics(block, element, structureElementKey, listStyleType: style.ListStyleType);
+            : ApplyListSemantics(block, element, structureElementKey,
+                logicalOrder: GetSemanticSourceOrder(element), listStyleType: style.ListStyleType);
         HtmlRenderSemanticGroupRole role;
         if (style.SemanticArtifact) role = HtmlRenderSemanticGroupRole.Artifact;
         else if (style.SemanticGroupRoleOverride.HasValue) role = style.SemanticGroupRoleOverride.Value;
@@ -35,10 +37,14 @@ internal sealed partial class HtmlRenderLayoutEngine {
             // Each flex container supplies the parent scope for item source indices.
             // Independent untagged rows must not interleave their logical children.
             if (style.Display == "flex" || style.Display == "inline-flex") role = HtmlRenderSemanticGroupRole.Division;
+            else if (TryGetColumnSourceFragment(element, out _)
+                || _columnSourceFlowContext?.OpacityOwners.ContainsKey(element) == true)
+                role = HtmlRenderSemanticGroupRole.Division;
             else return WrapEditableLayoutRegion(listBlock, element, style);
         }
         HtmlRenderFlowBlock semanticBlock = WrapSemanticBlock(listBlock, role,
-            HtmlRenderStyleResolver.DescribeSource(element), structureElementKey, listStyleType: style.ListStyleType);
+            HtmlRenderStyleResolver.DescribeSource(element), structureElementKey,
+            logicalOrder: GetSemanticSourceOrder(element), listStyleType: style.ListStyleType);
         return WrapEditableLayoutRegion(semanticBlock, element, style);
     }
 
@@ -131,7 +137,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
             ? HtmlRenderSemanticGroupRole.Artifact
             : style.SemanticGroupRoleOverride!.Value;
         HtmlRenderFlowBlock semanticBlock = WrapSemanticBlock(block, role,
-            HtmlRenderStyleResolver.DescribeSource(element), structureElementKey, listStyleType: style.ListStyleType);
+            HtmlRenderStyleResolver.DescribeSource(element), structureElementKey,
+            logicalOrder: GetSemanticSourceOrder(element), listStyleType: style.ListStyleType);
         return WrapEditableLayoutRegion(semanticBlock, element, style);
     }
 
@@ -242,7 +249,9 @@ internal sealed partial class HtmlRenderLayoutEngine {
         HtmlRenderFlowBlock block,
         FlattenedSemanticBoundary boundary,
         bool firstFragment, int? logicalOrder = null) {
+        logicalOrder = GetSemanticSourceOrder(boundary.Element) ?? logicalOrder;
         double anchorTop = Math.Max(0D, block.CollapsibleMarginTop);
+        firstFragment &= IsFirstColumnSourceFragment(boundary.Element);
         if (firstFragment) block = AddTargetPageAnchor(block, boundary.Element, anchorTop);
         string anchorText = boundary.AnchorText.Length > 0
             ? boundary.AnchorText
