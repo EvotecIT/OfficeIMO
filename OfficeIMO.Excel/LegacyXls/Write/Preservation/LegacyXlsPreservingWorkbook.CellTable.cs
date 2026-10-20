@@ -56,6 +56,7 @@ internal sealed partial class LegacyXlsPreservingWorkbook {
             var rows = new SortedDictionary<ushort, byte[]>();
             List<BiffRecord>? previousCell = null;
             for (int i = begin; i < _records.Count; i++) {
+                token.ThrowIfCancellationRequested();
                 var record = _records[i]; byte[] payload = record.Payload;
                 if (record.Type == 0x0809) { depth++; continue; }
                 if (record.Type == 0x000a) { if (--depth == 0) break; continue; }
@@ -106,17 +107,25 @@ internal sealed partial class LegacyXlsPreservingWorkbook {
             layout.Replace[index] = new[] { new OutputRecord(index, 0x020b, indexPayload) };
             var dbKeys = new List<int>(); var table = new List<OutputRecord>(); long position = 0;
             void Emit(OutputRecord record) { table.Add(record); position += 4 + record.Payload.Length; }
+            var cellsByRow = cells.GroupBy(cell => cell.Key.Row).ToDictionary(group => group.Key, group => group.ToArray());
+            int nextRow = 0;
             for (uint block = first; block < after; block += 32) {
-                var blockRows = rowNumbers.Where(row => row >= block && row < block + 32).ToArray();
+                token.ThrowIfCancellationRequested();
+                int blockStart = nextRow;
+                while (nextRow < rowNumbers.Length && rowNumbers[nextRow] < block + 32) nextRow++;
+                var blockRows = new ushort[nextRow - blockStart];
+                Array.Copy(rowNumbers, blockStart, blockRows, 0, blockRows.Length);
                 long firstRow = position;
                 foreach (ushort row in blockRows) {
-                    ushort[] columns = cells.Keys.Where(key => key.Row == row).Select(key => key.Column).ToArray();
+                    token.ThrowIfCancellationRequested();
+                    ushort[] columns = cellsByRow.TryGetValue(row, out var rowCells) ? rowCells.Select(cell => cell.Key.Column).ToArray() : Array.Empty<ushort>();
                     Emit(layout.New(0x0208, LegacyXlsWriter.EncodePreservedRow(row, columns, rows[row].Length == 0 ? null : rows[row])));
                 }
                 var firstCells = new List<long>();
                 foreach (ushort row in blockRows) {
-                    var rowCells = cells.Where(item => item.Key.Row == row).ToArray();
-                    if (rowCells.Length > 0) firstCells.Add(position);
+                    token.ThrowIfCancellationRequested();
+                    if (!cellsByRow.TryGetValue(row, out var rowCells)) continue;
+                    firstCells.Add(position);
                     foreach (var cell in rowCells) foreach (var record in cell.Value) Emit(layout.New(record.Type, record.Payload));
                 }
                 var db = layout.New(0x00d7, LegacyXlsWriter.EncodePreservedDbCell(firstRow, firstCells, position));

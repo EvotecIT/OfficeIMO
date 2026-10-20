@@ -115,7 +115,7 @@ namespace OfficeIMO.Excel.Xlsb.Read {
                 FormulaBytes = tokens,
                 FormulaPayloadBytes = CopyTail(record.Data, formulaPayloadOffset)
             };
-            if (XlsbFormulaTextReader.TryRead(tokens, out string? formulaText, workbook)) {
+            if (XlsbFormulaTextReader.TryRead(tokens, out string? formulaText, workbook, workbook.Sheets.ToList().FindIndex(sheet => sheet.PartName == partName))) {
                 cell.FormulaText = formulaText;
             } else if (!(tokens.Length == 5 && tokens[0] == 1)) {
                 workbook.AddDiagnostic(new XlsbImportDiagnostic(

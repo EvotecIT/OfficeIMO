@@ -69,6 +69,31 @@ internal static partial class LegacyXlsWriter {
                 if (!encoding.NativeFormulaCells.ContainsKey((currentName, edit.Address)) && nativeCells.TryGetValue(edit.Address, out var native))
                     encoding.NativeFormulaCells[(currentName, edit.Address)] = native;
         }
+        // An array's followers may be existing blank/style-only cells, so a newly
+        // authored owner can be the only snapshot delta. Emit its entire range.
+        foreach (var sheet in document.Sheets) {
+            var cells = sheet.WorksheetPart.Worksheet!.Descendants<Cell>()
+                .Where(cell => cell.CellReference?.Value != null).ToDictionary(cell => cell.CellReference!.Value!, StringComparer.Ordinal);
+            foreach (var owner in cells.Values.Where(cell => cell.CellFormula?.FormulaType?.Value == CellFormulaValues.Array)) {
+                var ownerKey = (sheet.Name, owner.CellReference!.Value!);
+                if (!result.TryGetValue(ownerKey, out var ownerEdit) || ownerEdit.PreserveFormula) continue;
+                string[] range = (owner.CellFormula!.Reference?.Value ?? string.Empty).Split(':');
+                if (range.Length is < 1 or > 2) throw new NotSupportedException("Invalid native array formula range.");
+                var first = A1.ParseCellRef(range[0]); var last = A1.ParseCellRef(range[range.Length - 1]);
+                if (first.Row < 1 || last.Row > 65536 || first.Col < 1 || last.Col > 256 || first.Row > last.Row || first.Col > last.Col)
+                    throw new NotSupportedException("Native XLS array formulas require an ordered range within rows 1–65536 and columns 1–256.");
+                for (int row = first.Row; row <= last.Row; row++) {
+                    token.ThrowIfCancellationRequested();
+                    for (int column = first.Col; column <= last.Col; column++) {
+                        string address = A1.CellReference(row, column);
+                        if (!cells.TryGetValue(address, out var member)) throw new NotSupportedException("Every native array formula member requires a cell.");
+                        var key = (sheet.Name, address);
+                        encoding.NativeFormulaCells.Remove(key); encoding.FormulaCaches.Remove(key);
+                        result[key] = new LegacyXlsCellEdit(sheet.Name, address, (Cell)member.CloneNode(true));
+                    }
+                }
+            }
+        }
         return result.Values.ToArray();
     }
 

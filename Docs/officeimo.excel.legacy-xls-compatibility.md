@@ -143,6 +143,12 @@ and nested storage for subsequent native preservation saves. See the
 for security limits and the native XLSB profile. Workbook/sheet protection is a
 separate contract.
 
+Native Excel opens the encrypted pivot control with its total of 13,210 and
+retained chart, and opens and saves a writable copy of the revision control.
+Revision-history UI editing is not qualified on macOS. CryptoAPI encrypted-summary
+metadata and nested storage have bounded synthetic and independent cipher-vector
+coverage; native-producer qualification of that metadata profile is not included.
+
 ## Detailed import assessment
 
 ```csharp

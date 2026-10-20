@@ -20,7 +20,7 @@ namespace OfficeIMO.Excel.Xlsb.Biff12 {
         private const int RangePrecedence = 9;
         private const int AtomPrecedence = 10;
 
-        internal static bool TryRead(byte[] tokens, out string? formulaText, XlsbWorkbook? workbook = null) {
+        internal static bool TryRead(byte[] tokens, out string? formulaText, XlsbWorkbook? workbook = null, int sheetIndex = -1) {
             if (tokens == null) throw new ArgumentNullException(nameof(tokens));
 
             formulaText = null;
@@ -135,7 +135,13 @@ namespace OfficeIMO.Excel.Xlsb.Biff12 {
                     case 0x43:
                     case 0x63:
                         if (!TryReadUInt32(tokens, ref offset, out uint nameId) || workbook == null || nameId == 0 || nameId > workbook.DefinedNames.Count) return false;
-                        stack.Push(new FormulaExpression(workbook.DefinedNames[(int)nameId - 1].Name, AtomPrecedence));
+                        var name = workbook.DefinedNames[(int)nameId - 1];
+                        // A bare name resolves against the formula's sheet. Preserve native tokens
+                        // when that spelling would select a different scoped binding.
+                        if (name.LocalSheetIndex != uint.MaxValue && name.LocalSheetIndex != sheetIndex) return false;
+                        if (name.LocalSheetIndex == uint.MaxValue && workbook.DefinedNames.Any(candidate => candidate.LocalSheetIndex != uint.MaxValue
+                            && (sheetIndex < 0 || candidate.LocalSheetIndex == sheetIndex) && string.Equals(candidate.Name, name.Name, StringComparison.OrdinalIgnoreCase))) return false;
+                        stack.Push(new FormulaExpression(name.Name, AtomPrecedence));
                         break;
                     case 0x3A:
                     case 0x5A:

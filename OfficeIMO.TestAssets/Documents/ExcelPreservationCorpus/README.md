@@ -28,3 +28,17 @@ hashes remained unchanged after inspection. The encrypted control uses the publi
 test password `test-password`; it contains the same inert VBA project. These
 controls cover preservation during supported edits, not chart editing or macro
 execution. See `provenance.json` for artifact hashes and acceptance details.
+
+The `officeimo-lifecycle` controls exercise worksheet rename, add, remove and
+reorder while retaining the populated chart and inert VBA hosts. The encrypted
+controls use `test-password`. Native Excel accepts all four without repair and
+recalculates the added sheet's cross-sheet formula to 43. The paired
+`excel-lifecycle-readback` files were saved by Excel before tab navigation, so
+their tab order and VBA identities can be checked independently.
+
+The `excel-array-readback` files were saved by native Excel after reopening an
+OfficeIMO two-cell array formula, styling its follower and clearing its caches.
+Excel recognizes both array members and recalculates them to 5. These fixtures
+protect native group import and cache/identity contracts; they do not establish
+unrestricted array calculation. Exact procedures and hashes are in
+`provenance.json`.

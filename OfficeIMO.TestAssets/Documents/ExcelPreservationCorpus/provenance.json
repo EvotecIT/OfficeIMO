@@ -13,7 +13,15 @@
     "excel-populated-macro.xls": "9e8d4df75a4dc02e85dd5c1e576c4677d6733d0e2df4547a11474e13635772a3",
     "officeimo-populated-edited.xlsb": "91537d01d68ff7279eef8bd48e01594011c065e02421973c255d1334be17c685",
     "officeimo-populated-edited.xls": "7b78a24b1ddee6793337d91b7bb2cd23c79a52895355eea5dc46eadff591b78f",
-    "officeimo-populated-encrypted.xls": "a68d76964280fba3fa765809577d4e59680b61c7a9d2ba5f5544507a843e5d39"
+    "officeimo-populated-encrypted.xls": "a68d76964280fba3fa765809577d4e59680b61c7a9d2ba5f5544507a843e5d39",
+    "officeimo-lifecycle.xls": "0d77b3344af92b1ff3fcc05f259efe533337a0fd1f4915ad3d46e3a2057f6590",
+    "officeimo-lifecycle-encrypted.xls": "bd4d11ee48921dfb7e641788e52c6950d593f3ba33da08b29a32137ca72cdb1f",
+    "officeimo-lifecycle.xlsb": "0f0a24496a52bbeafae905698b2a4c2249de3d164ca0e7b537a7c775c71584ae",
+    "officeimo-lifecycle-encrypted.xlsb": "3c2dad5451e51259f86440889674788270b398e598b7758ecbdb67c3d36f1a73",
+    "excel-lifecycle-readback.xls": "b732173656d91ce69f1a2a1b904ceb7b94948e9695385688a6b054c46436db41",
+    "excel-lifecycle-readback.xlsb": "08882d88401b81b5f083f180c6e47c90ad95a51be2051e7a0cc131a2838b21b2",
+    "excel-array-readback.xls": "843903af6a5ec2cde5d2346b3ee7efb3b06e468d2f51ff29a0b0d064e3136e35",
+    "excel-array-readback.xlsb": "0efb094181d9df0fecdcfc730e69acd0d95e852ed56113499a7f7e813ac849d4"
   },
   "populatedChartControl": {
     "source": "populated-chart-control.xlsm extends the inert XLSM control with one constant bar series: Alpha=10, Beta=20, Gamma=30. The chart target was resolved from the drawing relationship; no source VBA was changed.",
@@ -24,5 +32,13 @@
       "password": "test-password",
       "scope": "Existing text literal edit with chart-sheet and compound VBA stream preservation. Other chart sheets retained structurally; no chart editing or macro execution qualification."
     }
+  },
+  "extendedNativeEditing": {
+    "dateUtc": "2026-10-19/20",
+    "sourceCandidate": "c3f2e8b872",
+    "lifecycle": "OfficeIMO loads excel-populated-macro.xls/xlsb; renames graphs2 to Sales Łódź and changes A1 to42; reorders it last; removes graphs1; adds Added data with text A1 and formula A2=Sales Łódź!A1+1. Native Excel accepts the exact plain/encrypted controls without repair with macros disabled, displays the Alpha10/Beta20/Gamma30 chart, and explicitly recalculates A2 to43. XLSB corrected view flags select only b_chart, not Added data. Native readbacks saved before tab navigation preserve original order and host identities.",
+    "arrays": "Fresh two-cell B1:B2 array SUM(A1:A2), inputs2/3 and caches5; import, bold B2, unrelated A4 edit, then clear caches on native plain/encrypted writes. Native Excel accepts all four, F9 computes both5 and recognizes B2 as an array member. Native plain readbacks retain the owner/range and cached results.",
+    "password": "test-password",
+    "limits": "No macro execution, arbitrary chart editing, or revision-history UI editing qualification."
   }
 }

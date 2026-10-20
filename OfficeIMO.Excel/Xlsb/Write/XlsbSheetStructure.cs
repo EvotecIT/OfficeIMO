@@ -83,7 +83,12 @@ internal sealed class XlsbSheetStructure {
             byte[] edited = ExcelLegacyVbaHostEditor.Reconcile(bytes, Bindings,
                 _source.Worksheets.ToDictionary(sheet => sheet.Name, sheet => (string?)sheet.Properties?.CodeName, StringComparer.Ordinal),
                 document.NativeXlsbPreservation.AllocatedCodeNames, NewCodeNames);
-            if (!ReferenceEquals(bytes, edited)) replacements[_source.VbaProjectPartName] = edited;
+            if (!ReferenceEquals(bytes, edited)) {
+                var project = _source.RelatedParts[_source.VbaProjectPartName];
+                if (project.Relationships.Values.Any(relationship => relationship.Type.IndexOf("vbaProjectSignature", StringComparison.OrdinalIgnoreCase) >= 0))
+                    throw new NotSupportedException("Native XLSB worksheet host changes cannot invalidate a signed VBA project. Remove its signatures explicitly before editing the worksheet collection.");
+                replacements[_source.VbaProjectPartName] = edited;
+            }
         }
     }
 
