@@ -1467,6 +1467,10 @@ class StyleRegistry {
             ...(typeof overlay.border === "object" ? { border: { ...this.borders[source.border], ...overlay.border } } : {})
         });
     }
+    /** @internal Typed headings retain header appearance and the column's date number format. */
+    dateHeader(base, dateStyle) {
+        return this.compose(base, { numberFormat: this.styles[this.validateStyle(dateStyle)].numberFormat });
+    }
     /** @internal Column shorthand and header style composition. */
     forColumn(column, header = false, fill, date = false) {
         const base = !header && column.style !== undefined ? this.styles[this.validateStyle(column.style)] : undefined;
@@ -2553,12 +2557,13 @@ function checkHyperlinkCount(count) {
 /** Worksheet rows are written once in order; the model retains compressed output rather than source data. */
 class Worksheet {
     book;
-    name;
     table;
     preserved;
     chartData;
     columns;
     project;
+    /** Final unique workbook name, captured before row projection begins. */
+    name;
     declared;
     options;
     entry;
@@ -2586,7 +2591,6 @@ class Worksheet {
     conditional;
     constructor(book, name, options, table, preserved = false, conditional = [], chartData = false) {
         this.book = book;
-        this.name = name;
         this.table = table;
         this.preserved = preserved;
         this.chartData = chartData;
@@ -2601,7 +2605,6 @@ class Worksheet {
         this.layout = new ReportLayout(this.columns, this.options, book.settings.invalidCharacterPolicy, book.settings.limits?.maxMergedRanges ?? 10000, book.settings.limits?.maxBufferedCells ?? 100000);
         this.titleStyle = options.title ? book.styles.compose(book.styles.compose(0, { font: { bold: true, size: 18 } }), this.options.title.style ?? {}) : 0;
         this.headerRows = this.layout.headerRows;
-        this.project = createRowProjector(this.columns, { sheetName: this.name, firstDataRow: this.headerRows + 1 }, book.settings.signal, book.valueValidator);
         for (const link of options.hyperlinks ?? []) {
             const copied = copyHyperlink(link, book.settings.invalidCharacterPolicy);
             this.links.push(copied);
@@ -2616,6 +2619,10 @@ class Worksheet {
         // Register conditional styles only after worksheet construction can no longer reject its options.
         this.conditional = new ConditionalFormats(conditional, book.styles);
         book.retainLink(this.links.length);
+        // Application getters may allocate an overflow sheet while metadata is captured.
+        // Resolve the name only after those callbacks, before binding any row context.
+        this.name = typeof name === "function" ? name() : name;
+        this.project = createRowProjector(this.columns, { sheetName: this.name, firstDataRow: this.headerRows + 1 }, book.settings.signal, book.valueValidator);
     }
     /** @internal */
     static create(book, name, options, table, preserved = false, conditional) { return new Worksheet(book, name, options, table, preserved, conditional); }
@@ -2729,6 +2736,8 @@ class Worksheet {
         if (!header && !footer && value != null && col.column.type && !this.book.writerFor(col.column.type) && col.column.type !== type)
             throw new TypeError("Cell " + col.letter + row + " does not match column type " + col.column.type + ".");
         let style = explicitStyle === undefined ? header ? col.headerStyle : total?.operation === "count" ? 0 : type === "date" ? col.dateStyle : col.style : this.book.styles.validateStyle(explicitStyle);
+        if (header && type === "date" && explicitStyle === undefined && this.options.headerStyle === undefined)
+            style = this.book.styles.dateHeader(style, col.dateStyle);
         if (title)
             style = this.titleStyle;
         if (!header && !footer) {
@@ -3581,6 +3590,8 @@ class Workbook {
             this.checkSheetLimit(this.sheets.length + this.nativeCharts.length + 1 + (this.overflow ? 1 : 0));
             const chart = prepareChart(input, this.settings.invalidCharacterPolicy, (this.settings.limits?.maxChartPoints ?? 100000) - this.chartPoints, (this.settings.limits?.maxChartTextCharacters ?? 1000000) - this.chartTextCharacters, this.settings.signal);
             this.assertOpen();
+            // Input getters may append rows to an existing sheet and allocate text preservation.
+            this.checkSheetLimit(this.sheets.length + this.nativeCharts.length + 1 + (this.overflow ? 1 : 0));
             const registered = Object.freeze({ ...chart, id: this.nativeCharts.length + 1,
                 dataSheetName: sheetName("Chart data " + (this.nativeCharts.length + 1), this.names, this.settings.invalidCharacterPolicy) });
             this.nativeCharts.push(registered);
@@ -3627,8 +3638,10 @@ class Workbook {
             const table = tableOptions ? defineTable(this.tableCount + 1, tableOptions, options.columns ?? [], this.settings.invalidCharacterPolicy) : undefined;
             if (table && this.tableNames.has(table.name.toLowerCase()))
                 throw new TypeError("Duplicate Excel table name: " + table.name);
-            const sheet = Worksheet.create(this, sheetName(name, this.names, this.settings.invalidCharacterPolicy, false), metadata, table, false, conditional);
+            sheetName(name, this.names, this.settings.invalidCharacterPolicy, false);
+            const sheet = Worksheet.create(this, () => sheetName(name, this.names, this.settings.invalidCharacterPolicy, false), metadata, table, false, conditional);
             this.assertOpen();
+            this.checkSheetLimit(this.sheets.length + this.nativeCharts.length + 1 + (this.overflow ? 1 : 0));
             this.names.add(sheet.name.toLowerCase());
             this.mergedRanges += sheet.mergeCount;
             this.conditionalFormats += sheet.conditionalFormatCount;

@@ -1,11 +1,11 @@
-import { OfficeIMOError } from "../core/errors.js";
+import { NotSupportedError, OfficeIMOError } from "../core/errors.js";
 import { copyExportLink } from "../core/links.js";
 import { checkAbort, pause, taskYieldDue } from "../core/iteration.js";
 import type { CellPresentation, ExportLink } from "../core/index.js";
 import type { PdfFontResource, PdfFontResources } from "./font-resources.js";
 import type { PdfText, PdfTextRun } from "./inline-types.js";
 import type { PdfSettings } from "./settings.js";
-import { presentation } from "./settings.js";
+import { presentation, color } from "./settings.js";
 import { wrapShapedPdfText } from "./shaped-text.js";
 import type { PdfShapedGlyph } from "./text-shaping-types.js";
 import { PdfFont } from "./font.js";
@@ -112,6 +112,16 @@ export async function wrapPdfText(captured: PdfCapturedText, fonts: PdfFontResou
   for (let offset = 0; offset < text.length;) {
     while (offset >= runEnd && runIndex < runs.length - 1) runEnd += runs[++runIndex]!.text.length;
     const owner = runIndex, scalar = text.codePointAt(offset)!, character = String.fromCodePoint(scalar);
+    if (offset + character.length > runEnd && runIndex < runs.length - 1) {
+      let next = runIndex + 1; while (!runs[next]!.text.length) next++;
+      const first = runs[owner]!, other = runs[next]!, firstFace = faces[owner]!, nextFace = faces[next]!;
+      const sameFace = firstFace.font === nextFace.font && (firstFace.font ?
+        firstFace.syntheticBold === nextFace.syntheticBold && firstFace.syntheticItalic === nextFace.syntheticItalic :
+        firstFace.bold === nextFace.bold && firstFace.italic === nextFace.italic);
+      if (!sameFace || color(first.style.color ?? "111827") !== color(other.style.color ?? "111827") ||
+        first.link?.target !== other.link?.target || first.link?.tooltip !== other.link?.tooltip)
+        throw new NotSupportedError("A PDF presentation boundary cannot split a UTF-16 scalar.");
+    }
     offset += character.length;
     if (character === "\r" || character === "\n") {
       if (character === "\r" && text[offset] === "\n") offset++;

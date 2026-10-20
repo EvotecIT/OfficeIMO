@@ -48,6 +48,34 @@ test("separate equal heading groups remain separate and structured footers stay 
   assert.doesNotMatch(xml, /<autoFilter/);
 });
 
+test("typed structured dates retain their number format through header, footer and cell presentation", async () => {
+  const book = new Workbook({ dateMode: "utc", compression: "store" }), date = new Date("2026-10-20T00:00:00Z");
+  const columnStyle = book.styles.add({ numberFormat: "yyyy" });
+  const values = () => [date, new ExportCell(date, { presentation: { background: "E2F0D9", bold: false } }),
+    new ExportCell(date, { presentation: { numberFormat: "dd mmm yyyy" } }), date];
+  const sheet = book.addWorksheet("Dates", {
+    columns: [{ header: "Plain", type: "date", format: "yyyy-mm-dd" }, { header: "Presented", type: "date", format: "yyyy-mm-dd" },
+      { header: "Override", type: "date", format: "yyyy-mm-dd" }, { header: "Registered", type: "date", style: columnStyle }],
+    headerRows: [values().map(value => ({ value }))], footer: { rows: [values().map(value => ({ value }))], style: { font: { italic: true } } },
+    cellStyle: () => ({ font: { color: "123456" } })
+  });
+  await sheet.addRows([values()]);
+  const explicitHeader = book.styles.add({ font: { bold: true }, numberFormat: "0.000" });
+  book.addWorksheet("Explicit", { columns: [{ header: "Date", type: "date", format: "yyyy-mm-dd" }], headerStyle: explicitHeader, headerRows: [[{ value: date }]] });
+  const zip = await readZip(await book.toBlob()), styles = zip.get("xl/styles.xml").content, xml = zip.get("xl/worksheets/sheet1.xml").content;
+  const xfs = [...styles.match(/<cellXfs[^>]*>([\s\S]*?)<\/cellXfs>/)[1].matchAll(/<xf\b[^>]*numFmtId="(\d+)"[^>]*>/g)].map(match => Number(match[1]));
+  const formats = new Map([...styles.matchAll(/<numFmt numFmtId="(\d+)" formatCode="([^"]+)"\/>/g)].map(match => [Number(match[1]), match[2]]));
+  const format = (source, ref) => formats.get(xfs[Number(source.match(new RegExp('<c r="' + ref + '" s="(\\d+)"'))[1])]);
+  for (let row = 1; row <= 3; row++) {
+    for (const [column, expected] of [["A", "yyyy-mm-dd"], ["B", "yyyy-mm-dd"], ["C", "dd mmm yyyy"], ["D", "yyyy"]]) {
+      assert.equal(format(xml, column + row), expected, column + row);
+      assert.match(xml, new RegExp('<c r="' + column + row + '"[^>]*><v>46315<\\/v>'));
+    }
+  }
+  assert.equal(format(zip.get("xl/worksheets/sheet2.xml").content, "A1"), "0.000");
+  assert.match(styles, /fgColor rgb="FFE2F0D9"/); assert.match(styles, /<i\/>/); assert.match(styles, /color rgb="FF123456"/);
+});
+
 test("structured XLSX validation prevents hidden metadata, invalid native headings and budget bypasses", async () => {
   for (const option of [{ table: {} }, { autoFilter: true }]) assert.throws(() => new Workbook().addWorksheet("Bad", { columns: columns(), headerRows: vertical(), ...option }), /unmerged final heading/);
   assert.throws(() => new Workbook().addWorksheet("Bad", { columns: columns(), footer: { rows: vertical(), values: [] } }), /cannot accompany/);

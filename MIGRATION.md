@@ -776,6 +776,10 @@ Worksheet `mergedCells`, `hyperlinks` and the documented native `conditionalForm
 
 JavaScript worksheet/chart registration rejects nested registration from an option, column or style getter with `OfficeIMOError` code `INVALID_STATE`. Prepare dependent inputs before calling `addWorksheet` or `addChart`; ordinary registration remains available after a rejected call.
 
+PDF rich-text runs cannot assign different fonts, colours or link metadata to the two UTF-16 units of one supplementary character. Supply the complete character in a single run. The scalar writer accepts a pair split across effectively identical runs; it rejects a presentation boundary instead of silently using the first run's styling.
+
+Composed PDF sections inherit captured document defaults rather than the preceding section. Specify `orientation: "landscape"` on each landscape section; the next section without that override restores the document orientation. Page decoration callbacks also receive section number, section-local page number and optional section title. Existing global `pageNumber` stays continuous.
+
 Portable `ExportCell.presentation` contains only the declared scalar fields. Invalid field types are rejected when captured, and undeclared fields are omitted. Supply a string color/number format, boolean emphasis/wrapping flags and a supported alignment rather than DOM objects or nested style graphs.
 
 Hosts adopting [OfficeIMO.JavaScript.Assets](OfficeIMO.JavaScript.Assets/README.md) can export a reader's current table view without a server callback. Pass the filtered and sorted rows with only the visible columns in their displayed order. Keep full-dataset, build-time Excel generation on OfficeIMO.Excel. Use the embedded classic asset for single-file reports and `file://` bundles; ES-module loading can be blocked by local-file origin policy.

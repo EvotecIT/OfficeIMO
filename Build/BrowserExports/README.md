@@ -39,6 +39,25 @@ This route serves modules over loopback HTTP and runs the same contracts against
 
 The PDF lane checks Chromium, Firefox and WebKit, native/uncompressed/fallback streams, Polish text, Japanese text, supplementary symbols, repeated and spanned headings, multirow footers, totals, oversized text, paged input, slow sinks, cancellation and resource ceilings. Worker output transfers byte chunks to avoid WebKit worker Blob-read restrictions. Every document must open without repair in `OfficeIMO.Pdf`; ordered row IDs, complete long text, headings and expected values are independently checked. DataTables button scenarios run when verified comparison assets are provided. The ordinary workflow runs both installed pairs without host-timing gates. `--scale` records diagnostic durations and validates every cell in plain/styled tables at 10,000 and 100,000 rows with four/twenty columns; large PDFs are deleted immediately after readback. Rendered-page inspection with an independent PDF application remains separate visual proof.
 
+## Professional PDF report qualification
+
+`--pdf-professional` exercises the [executable service report](../../OfficeIMO.JavaScript.Examples/report-engine-job.mjs) over real filtered/selected DataTables and CanopyX captures. It runs Chromium, Firefox and WebKit with fresh sources for Blob and awaited sink delivery, producing twelve reports. The report uses a portrait summary/findings section, a captioned ChartForgeX-produced figure, a landscape inventory appendix and a portrait closing section. Summary metadata is supplied before the single-use inventory stream; the report does not enumerate that stream to compute its opening summary.
+
+Serve the repository root through one loopback HTTP origin, including the current `OfficeIMO.JavaScript/dist` modules and `OfficeIMO.JavaScript.Examples/report-engine-job.mjs`. Run the interop entry directly with that origin, the [verified DataTables assets](#datatables-integration-and-comparisons) and the selected CanopyX source checkout:
+
+```powershell
+$origin = 'http://127.0.0.1:8765' # Existing server serving this repository root.
+dotnet run --project Build/BrowserExports/OfficeIMO.Browser.Interop.csproj -c Release --artifacts-path "$evidence/pdf-professional/build" -- . "$evidence/pdf-professional" --pdf-professional "--module-url=$origin/OfficeIMO.JavaScript/dist" "--example-url=$origin/OfficeIMO.JavaScript.Examples/report-engine-job.mjs" "--comparison-assets=$assets" "--canopy=$canopySource"
+```
+
+Both URLs must use the same loopback HTTP authority. The lane records and rechecks the module graph, classic bundle, executable example, fixture and native grid hashes. DataTables uses the current installed stack and classic writer; CanopyX uses the module writer. Both profiles retain their real filter, selection, column order, typed values and resolved display contract. A delayed destination verifies backpressure, and cancellation during appendix enumeration must return the active source and release the stream lock.
+
+The separate `OfficeIMO.Pdf` reader checks every selected cell and ordered ID, excludes hidden/unselected values, opens each file without repair, and verifies portrait/landscape page boxes, repeated headings, running section context, continuous page totals, bookmark hierarchy/destinations, finding links and list/caption ownership. Repeated visual headings and running decorations are inspected with artifact text enabled; logical reading order is checked without those artifacts. `professional-pdf-interop.json` and each browser/profile directory retain the compact reports and PDFs for independent inspection.
+
+Run independent PDF syntax/text tools and inspect rendered opening, list continuation, caption/figure, first/continued appendix and closing pages separately. Reader success does not establish visual quality, assistive-technology behavior or PDF/UA conformance. This qualification lane and its native grid/browser dependencies remain opt-in and test-only.
+
+## Build and package checks
+
 The verification runner uses the repository's pinned .NET SDK, Node 18 or newer and PowerShell 7 for the wrapper commands. Browser installation, sessions and captures use the existing test-only HtmlTinkerX/Playwright package. The runner is outside the normal solution and is not packable; neither distributed OfficeIMO package acquires browser tooling. Excel and LibreOffice spot checks remain optional independent application proof.
 
 The `--links` correctness lane qualifies portable cell links in all three browser engines. It checks numeric/date XLSX values and relationship coordinates through both managed readers and the Open XML SDK, then reads PDF URI actions, Unicode tooltips and page-fragment rectangles independently. Classic and compression-fallback lanes produce Blobs; the worker lane writes to a byte destination and transfers chunks to avoid host-specific worker Blob read limitations. Each lane also checks raw/display CSV semantics. Use `--validate-links <fixture-directory>` to read the captured small link fixtures without launching a browser.

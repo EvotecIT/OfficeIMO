@@ -153,6 +153,8 @@ export class Workbook {
       const chart = prepareChart(input, this.settings.invalidCharacterPolicy, (this.settings.limits?.maxChartPoints ?? 100000) - this.chartPoints,
         (this.settings.limits?.maxChartTextCharacters ?? 1000000) - this.chartTextCharacters, this.settings.signal);
       this.assertOpen();
+      // Input getters may append rows to an existing sheet and allocate text preservation.
+      this.checkSheetLimit(this.sheets.length + this.nativeCharts.length + 1 + (this.overflow ? 1 : 0));
       const registered = Object.freeze({ ...chart, id: this.nativeCharts.length + 1,
         dataSheetName: sheetName("Chart data " + (this.nativeCharts.length + 1), this.names, this.settings.invalidCharacterPolicy) });
       this.nativeCharts.push(registered); this.chartPoints += chart.points; this.chartTextCharacters += chart.textCharacters;
@@ -193,8 +195,10 @@ export class Workbook {
       }
       const table = tableOptions ? defineTable(this.tableCount + 1, tableOptions, options.columns ?? [], this.settings.invalidCharacterPolicy) : undefined;
       if (table && this.tableNames.has(table.name.toLowerCase())) throw new TypeError("Duplicate Excel table name: " + table.name);
-      const sheet = Worksheet.create(this, sheetName(name, this.names, this.settings.invalidCharacterPolicy, false), metadata, table, false, conditional);
+      sheetName(name, this.names, this.settings.invalidCharacterPolicy, false);
+      const sheet = Worksheet.create(this, () => sheetName(name, this.names, this.settings.invalidCharacterPolicy, false), metadata, table, false, conditional);
       this.assertOpen();
+      this.checkSheetLimit(this.sheets.length + this.nativeCharts.length + 1 + (this.overflow ? 1 : 0));
       this.names.add(sheet.name.toLowerCase());
       this.mergedRanges += sheet.mergeCount;
       this.conditionalFormats += sheet.conditionalFormatCount;

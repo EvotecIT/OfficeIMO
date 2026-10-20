@@ -44,7 +44,7 @@ form.addEventListener("submit", async event => {
   const started = performance.now(), parts = [];
   let worker, accepted = 0;
   try {
-    const input = { format, ...(format === "pdf" ? { fonts: { regular: await font("Regular", controller.signal), bold: await font("Bold", controller.signal) } } : {}) };
+    const input = { format, rowCount: count, ...(format === "pdf" ? { fonts: { regular: await font("Regular", controller.signal), bold: await font("Bold", controller.signal) } } : {}) };
     controller.signal.throwIfAborted();
     worker = new Worker("/js/report-engine-worker.mjs", { type: "module", name: "OfficeIMO report" });
     worker.addEventListener("error", event => { event.preventDefault(); controller.abort(new Error("The report worker could not run. Refresh the page and try again.")); });

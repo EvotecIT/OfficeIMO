@@ -323,3 +323,23 @@ nativeChart.data.categories[0] = "changed";
 // @ts-expect-error arbitrary styling is outside the native chart contract
 const unsupportedChartStyle: import("@evotecit/officeimo/xlsx").WorksheetChart = { ...nativeChart, stacking: true };
 void [unsupportedChartKind, invalidChartSeries, unsupportedChartStyle];
+
+async function professionalPdfReport(rows: AsyncIterable<{ service: string; latency: number }>, destination: WritableStream<Uint8Array>) {
+  const style: import("@evotecit/officeimo/pdf").PdfParagraphStyle = { fontSize: 12, presentation: { bold: true }, spaceAfter: 6 };
+  const section: import("@evotecit/officeimo").PdfSectionBlock = { kind: "section", title: "Service review", headingStyle: "heading" };
+  const bookmark: import("@evotecit/officeimo/pdf").PdfBookmark = { title: "Actions", level: 2 };
+  const finding: import("@evotecit/officeimo").PdfListItem = { text: [{ text: "Assign an owner. ", bold: true }, { text: "Check the next result." }] };
+  const caption: import("@evotecit/officeimo/pdf").PdfCaption = { text: "Table 1. Selected services", style: "caption" };
+  const blocks: import("@evotecit/officeimo").PdfDocumentBlock[] = [section,
+    { kind: "paragraph", text: "Actions", headingLevel: 2, style: "heading", bookmark },
+    { kind: "list", ordered: true, items: [finding], itemStyle: "body" },
+    { kind: "section", title: "Inventory", level: 2, orientation: "landscape" },
+    { ...pdfTable(rows, { columns: [{ header: "Service", key: "service" }, { header: "Latency", key: "latency", type: "number" }] }), caption },
+    { kind: "section", title: "Conclusions" }, { kind: "paragraph", text: "Retain this scope.", style: "body" }
+  ];
+  const options: import("@evotecit/officeimo/pdf").PdfDocumentOptions = { paragraphStyles: { heading: style, body: {}, caption: { fontSize: 9 } },
+    pageHeader(context) { return `${context.pageNumber}: ${context.sectionTitle ?? "Report"} / ${context.sectionNumber}.${context.sectionPageNumber}`; },
+    limits: { maxSections: 8, maxBookmarks: 32, maxListItems: 100, maxParagraphStyles: 4 } };
+  return writePdfDocumentTo(blocks, destination, options);
+}
+void professionalPdfReport;

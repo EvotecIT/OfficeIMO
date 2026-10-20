@@ -29,12 +29,13 @@ export class PdfStructure {
   private nextParentKey = 0;
   private references = 0;
   private allocated = 0;
+  private section: number | undefined;
   constructor(private readonly objects: PdfObjects, private readonly settings: PdfSettings) {
     this.root = objects.reserve(); this.parentTree = objects.reserve();
     this.parentTreeWriter = new PdfParentTree(objects, this.parentTree);
     this.document = this.element("Document", this.root);
   }
-  element(role: string, parent = this.document, attributes = ""): number {
+  element(role: string, parent = this.section ?? this.document, attributes = ""): number {
     checkAbort(this.settings.options.signal);
     if (++this.allocated > this.settings.limits.maxStructureElements)
       throw new OfficeIMOError("RESOURCE_LIMIT", "maxStructureElements exceeded.");
@@ -42,6 +43,11 @@ export class PdfStructure {
     this.elements.set(id, element);
     this.elements.get(parent)?.children.push(id);
     return id;
+  }
+  /** Flat visual sections share the same logical Document and cumulative resource policy. */
+  async beginSection(): Promise<void> {
+    await this.complete(this.section);
+    this.section = this.element("Sect", this.document);
   }
   tableRow(table: number, headers: readonly boolean[]): readonly number[] {
     const row = this.element("TR", table);

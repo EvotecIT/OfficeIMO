@@ -16,5 +16,7 @@ export type { PdfOptions, PdfPageSize, PdfMargins, PdfFonts, PdfLimits, PdfTagge
 export type { PdfTextPreflightOptions, PdfTextPreflightResult, PdfTextIssueCode } from "./pdf/index.js";
 export type { PdfFontPreparationOptions } from "./pdf/index.js";
 export type { PdfTextDirection, PdfShapingRun, PdfShapedGlyph, PdfShapedRun, PdfShapeLineRequest, PdfTextShaper } from "./pdf/index.js";
-export type { PdfDocumentOptions, PdfDocumentBlock, PdfTableOptions, PdfTableBlock, PdfParagraphBlock, PdfGroupBlock, PdfPageBreakBlock, PdfImageBlock, PdfRawImage, PdfJpegImage, PdfPngImage, PdfVectorBlock, PdfPathCommand, PdfTextRun, PdfText } from "./pdf/index.js";
+export type { PdfDocumentOptions, PdfDocumentBlock, PdfTableOptions, PdfTableBlock, PdfParagraphBlock, PdfParagraphStyle, PdfCaption, PdfListBlock, PdfListItem, PdfGroupBlock, PdfPageBreakBlock, PdfImageBlock, PdfRawImage, PdfJpegImage, PdfPngImage, PdfVectorBlock, PdfPathCommand, PdfTextRun, PdfText } from "./pdf/index.js";
 export type { PdfDrawing, PdfDrawingBlock, PdfDrawingElement, PdfDrawingPath, PdfDrawingText, PdfDrawingGroup, PdfDrawingClip, PdfDrawingFont } from "./pdf/index.js";
+
+export type { PdfSectionBlock, PdfBookmark } from "./pdf/section-types.js";

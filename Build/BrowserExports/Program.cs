@@ -9,6 +9,12 @@ if (args.Length == 2 && args[0] == "--validate-links") {
     foreach (string file in files) Console.WriteLine(JsonSerializer.Serialize(PortableLinkVerifier.Verify(file)));
     return;
 }
+if (args.Length == 2 && args[0] == "--validate-professional") {
+    string[] files = Directory.GetFiles(Path.GetFullPath(args[1]), "*.pdf", SearchOption.AllDirectories);
+    if (files.Length == 0) throw new InvalidDataException("No professional PDF fixtures to validate.");
+    foreach (string file in files) Console.WriteLine(JsonSerializer.Serialize(ProfessionalPdfVerifier.Verify(file)));
+    return;
+}
 if (args.Length == 2 && args[0] == "--validate") {
     WorkbookVerifier.Verify(Path.GetFullPath(args[1]));
     Console.WriteLine("Workbook passed OfficeIMO loading and Open XML validation.");
@@ -26,6 +32,7 @@ string repository = Path.GetFullPath(args[0]), evidence = Path.GetFullPath(args[
 Directory.CreateDirectory(evidence);
 if (args.Contains("--execution")) { await ExecutionInterop.RunAsync(repository, evidence, args); return; }
 if (args.Contains("--shaping")) { await ShapingInterop.RunAsync(repository, evidence, args); return; }
+if (args.Contains("--pdf-professional")) { await ProfessionalPdfInterop.RunAsync(repository, evidence, args); return; }
 if (args.Contains("--report-engine")) { await ReportEngineInterop.RunAsync(repository, evidence, args); return; }
 if (args.Any(a => a.StartsWith("--canopy=", StringComparison.Ordinal))) { await CanopyInterop.RunAsync(repository, evidence, args); return; }
 if (args.Contains("--links")) { await PortableLinkInterop.RunAsync(repository, evidence, args); return; }

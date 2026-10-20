@@ -52,6 +52,14 @@ export interface PdfLimits extends ExportLimits {
   readonly maxStructureElements?: number;
   /** Total marked-content references created across the document, including continued cells. */
   readonly maxMarkedContentReferences?: number;
+  /** Section boundaries across one composed document. */
+  readonly maxSections?: number;
+  /** Native outline entries across one composed document. */
+  readonly maxBookmarks?: number;
+  /** Streamed list items across one composed document. */
+  readonly maxListItems?: number;
+  /** Captured named paragraph styles in a composed document. */
+  readonly maxParagraphStyles?: number;
 }
 export type PdfTotal = "sum" | "count" | "average" | "min" | "max";
 export interface PdfTableFooter {
@@ -61,7 +69,14 @@ export interface PdfTableFooter {
   /** Structured alternative to values/totals; includes horizontal and vertical spans. */
   readonly rows?: TableSpanRows;
 }
-export interface PdfPageContext { readonly pageNumber: number; }
+export interface PdfPageContext {
+  readonly pageNumber: number;
+  /** One-based section number; an unsectioned document uses section one. */
+  readonly sectionNumber: number;
+  /** One-based physical page within the current section. */
+  readonly sectionPageNumber: number;
+  readonly sectionTitle?: string;
+}
 export interface PdfOptions<T = never> extends Omit<StreamOptions, "limits"> {
   /** Optional provider for composed paragraphs and table cells. Legacy decorations remain scalar text. */
   readonly textShaper?: PdfTextShaper;

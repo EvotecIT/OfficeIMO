@@ -38,3 +38,46 @@ test("worksheet option getters cannot reenter sheet or chart registration and fa
     assert.ok(zip.has("xl/charts/chart1.xml")); assert.ok(!zip.has("xl/charts/chart2.xml"));
   }
 });
+
+test("chart and worksheet capture recheck preservation sheets allocated by a getter before committing", async () => {
+  for (const registering of ["chart", "worksheet"]) {
+    const book = new Workbook({ oversizedText: "preserve", limits: { maxSheets: 2 } });
+    const report = book.addWorksheet("Report", { columns: [{ header: "Value" }], autoSize: { sampleRows: 1 } });
+    let pending;
+    const capture = () => { pending ??= report.addRows([["x".repeat(32768)]]); };
+    const attempt = registering === "chart" ? () => {
+      const source = chart();
+      report.addChart({ ...source, get data() { capture(); return source.data; } });
+    } : () => book.addWorksheet("Rejected", { columns: [{ get header() { capture(); return "Value"; } }] });
+    assert.throws(attempt, error => error.code === "RESOURCE_LIMIT" && /maxSheets/.test(error.message));
+    await pending;
+    await report.addRows([[42]]);
+    assert.throws(() => book.addWorksheet("No capacity"), error => error.code === "RESOURCE_LIMIT" && /maxSheets/.test(error.message));
+    assert.throws(() => report.addChart(chart()), error => error.code === "RESOURCE_LIMIT" && /maxSheets/.test(error.message));
+    const zip = await readZip(await book.toBlob()), result = await book.finish();
+    assert.equal(result.sheets, 2); assert.equal(result.rows, 2);
+    assert.match(zip.get("xl/workbook.xml").content, /name="Text overflow"/);
+    assert.doesNotMatch(zip.get("xl/workbook.xml").content, /Rejected|No capacity|Chart data/);
+    assert.ok(!zip.has("xl/charts/chart1.xml"));
+    assert.match(zip.get("xl/worksheets/sheet1.xml").content, /<v>42<\/v>/);
+  }
+});
+
+
+test("worksheet naming commits after option capture can allocate a preservation sheet", async () => {
+  const book = new Workbook({ oversizedText: "preserve", limits: { maxSheets: 3 } });
+  const report = book.addWorksheet("Report", { columns: [{ header: "Value" }], autoSize: { sampleRows: 1 } });
+  let reads = 0, pending;
+  const outer = book.addWorksheet("Text overflow", { get columns() {
+    if (++reads === 2) pending = report.addRows([["x".repeat(32768)]]);
+    return [{ header: "Sheet", value: (_row, context) => context.sheetName }, { header: "Value", key: "value" }];
+  } });
+  await pending; await outer.addRows([{ value: 42 }]);
+  assert.equal(outer.name, "Text overflow (2)");
+  const zip = await readZip(await book.toBlob()), xml = zip.get("xl/workbook.xml").content;
+  const names = [...xml.matchAll(/<sheet name="([^"]+)"/g)].map(match => match[1]);
+  assert.deepEqual(names, ["Report", "Text overflow (2)", "Text overflow"]);
+  assert.equal(new Set(names.map(name => name.toLowerCase())).size, names.length);
+  assert.match(zip.get("xl/worksheets/sheet2.xml").content, /Text overflow \(2\)/);
+  assert.match(zip.get("xl/worksheets/sheet2.xml").content, /<v>42<\/v>/);
+});

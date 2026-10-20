@@ -1872,6 +1872,10 @@ class StyleRegistry {
             ...(typeof overlay.border === "object" ? { border: { ...this.borders[source.border], ...overlay.border } } : {})
         });
     }
+    /** @internal Typed headings retain header appearance and the column's date number format. */
+    dateHeader(base, dateStyle) {
+        return this.compose(base, { numberFormat: this.styles[this.validateStyle(dateStyle)].numberFormat });
+    }
     /** @internal Column shorthand and header style composition. */
     forColumn(column, header = false, fill, date = false) {
         const base = !header && column.style !== undefined ? this.styles[this.validateStyle(column.style)] : undefined;
@@ -2772,12 +2776,13 @@ function checkHyperlinkCount(count) {
 /** Worksheet rows are written once in order; the model retains compressed output rather than source data. */
 class Worksheet {
     book;
-    name;
     table;
     preserved;
     chartData;
     columns;
     project;
+    /** Final unique workbook name, captured before row projection begins. */
+    name;
     declared;
     options;
     entry;
@@ -2805,7 +2810,6 @@ class Worksheet {
     conditional;
     constructor(book, name, options, table, preserved = false, conditional = [], chartData = false) {
         this.book = book;
-        this.name = name;
         this.table = table;
         this.preserved = preserved;
         this.chartData = chartData;
@@ -2820,7 +2824,6 @@ class Worksheet {
         this.layout = new ReportLayout(this.columns, this.options, book.settings.invalidCharacterPolicy, book.settings.limits?.maxMergedRanges ?? 10000, book.settings.limits?.maxBufferedCells ?? 100000);
         this.titleStyle = options.title ? book.styles.compose(book.styles.compose(0, { font: { bold: true, size: 18 } }), this.options.title.style ?? {}) : 0;
         this.headerRows = this.layout.headerRows;
-        this.project = createRowProjector(this.columns, { sheetName: this.name, firstDataRow: this.headerRows + 1 }, book.settings.signal, book.valueValidator);
         for (const link of options.hyperlinks ?? []) {
             const copied = copyHyperlink(link, book.settings.invalidCharacterPolicy);
             this.links.push(copied);
@@ -2835,6 +2838,10 @@ class Worksheet {
         // Register conditional styles only after worksheet construction can no longer reject its options.
         this.conditional = new ConditionalFormats(conditional, book.styles);
         book.retainLink(this.links.length);
+        // Application getters may allocate an overflow sheet while metadata is captured.
+        // Resolve the name only after those callbacks, before binding any row context.
+        this.name = typeof name === "function" ? name() : name;
+        this.project = createRowProjector(this.columns, { sheetName: this.name, firstDataRow: this.headerRows + 1 }, book.settings.signal, book.valueValidator);
     }
     /** @internal */
     static create(book, name, options, table, preserved = false, conditional) { return new Worksheet(book, name, options, table, preserved, conditional); }
@@ -2948,6 +2955,8 @@ class Worksheet {
         if (!header && !footer && value != null && col.column.type && !this.book.writerFor(col.column.type) && col.column.type !== type)
             throw new TypeError("Cell " + col.letter + row + " does not match column type " + col.column.type + ".");
         let style = explicitStyle === undefined ? header ? col.headerStyle : total?.operation === "count" ? 0 : type === "date" ? col.dateStyle : col.style : this.book.styles.validateStyle(explicitStyle);
+        if (header && type === "date" && explicitStyle === undefined && this.options.headerStyle === undefined)
+            style = this.book.styles.dateHeader(style, col.dateStyle);
         if (title)
             style = this.titleStyle;
         if (!header && !footer) {
@@ -3800,6 +3809,8 @@ class Workbook {
             this.checkSheetLimit(this.sheets.length + this.nativeCharts.length + 1 + (this.overflow ? 1 : 0));
             const chart = prepareChart(input, this.settings.invalidCharacterPolicy, (this.settings.limits?.maxChartPoints ?? 100000) - this.chartPoints, (this.settings.limits?.maxChartTextCharacters ?? 1000000) - this.chartTextCharacters, this.settings.signal);
             this.assertOpen();
+            // Input getters may append rows to an existing sheet and allocate text preservation.
+            this.checkSheetLimit(this.sheets.length + this.nativeCharts.length + 1 + (this.overflow ? 1 : 0));
             const registered = Object.freeze({ ...chart, id: this.nativeCharts.length + 1,
                 dataSheetName: sheetName("Chart data " + (this.nativeCharts.length + 1), this.names, this.settings.invalidCharacterPolicy) });
             this.nativeCharts.push(registered);
@@ -3846,8 +3857,10 @@ class Workbook {
             const table = tableOptions ? defineTable(this.tableCount + 1, tableOptions, options.columns ?? [], this.settings.invalidCharacterPolicy) : undefined;
             if (table && this.tableNames.has(table.name.toLowerCase()))
                 throw new TypeError("Duplicate Excel table name: " + table.name);
-            const sheet = Worksheet.create(this, sheetName(name, this.names, this.settings.invalidCharacterPolicy, false), metadata, table, false, conditional);
+            sheetName(name, this.names, this.settings.invalidCharacterPolicy, false);
+            const sheet = Worksheet.create(this, () => sheetName(name, this.names, this.settings.invalidCharacterPolicy, false), metadata, table, false, conditional);
             this.assertOpen();
+            this.checkSheetLimit(this.sheets.length + this.nativeCharts.length + 1 + (this.overflow ? 1 : 0));
             this.names.add(sheet.name.toLowerCase());
             this.mergedRanges += sheet.mergeCount;
             this.conditionalFormats += sheet.conditionalFormatCount;
@@ -4102,15 +4115,8 @@ const _exports = Object.freeze({ Workbook: _m15.Workbook, writeXlsx: _m38.writeX
 return _exports;
 })();
 
-const _m42 = (() => {
-const { OfficeIMOError } = _m2;
-
-const { ExportBudget } = _m10;
-
-const { copyColumns } = _m11;
-
-const { tableSpans } = _m13;
-
+const _m44 = (() => {
+/** Pure validation shared by document settings and named paragraph styles. */
 function positive(value, name, max = 14400) {
     if (!Number.isFinite(value) || value <= 0 || value > max)
         throw new RangeError(name + " must be positive and at most " + max + ".");
@@ -4137,6 +4143,98 @@ function presentation(value = {}) {
         throw new TypeError("PDF table alignment supports left, center and right.");
     return Object.freeze(snapshot);
 }
+const _exports = Object.freeze({ positive: positive, color: color, presentation: presentation });
+return _exports;
+})();
+
+const _m43 = (() => {
+const { OfficeIMOError } = _m2;
+
+const { positive, presentation } = _m44;
+
+const fields = ["fontSize", "presentation", "keepTogether", "keepWithNext", "spaceBefore", "spaceAfter"];
+const presentationFields = ["bold", "italic", "color", "alignment"];
+/** @internal Copy only paragraph appearance and keep rules, without semantics or an inheritance graph. */
+function captureParagraphStyle(input) {
+    if (input && typeof input.then === "function") {
+        void Promise.resolve(input).catch(() => { });
+        throw new TypeError("PDF paragraph styles must be synchronous objects.");
+    }
+    if (!input || typeof input !== "object" || Array.isArray(input) || Object.keys(input).some(key => !fields.includes(key)))
+        throw new TypeError("PDF paragraph styles support fontSize, presentation, keepTogether, keepWithNext, spaceBefore and spaceAfter.");
+    const { fontSize, presentation: inputPresentation, keepTogether, keepWithNext, spaceBefore, spaceAfter } = input;
+    if (fontSize !== undefined)
+        positive(fontSize, "Paragraph font size", 144);
+    for (const [name, flag] of [["keepTogether", keepTogether], ["keepWithNext", keepWithNext]])
+        if (flag !== undefined && typeof flag !== "boolean")
+            throw new TypeError("Paragraph " + name + " must be boolean.");
+    for (const value of [spaceBefore, spaceAfter])
+        if (value !== undefined && (!Number.isFinite(value) || value < 0 || value > 14400))
+            throw new RangeError("Paragraph spacing must be from zero through 14,400 points.");
+    if (inputPresentation !== undefined && (!inputPresentation || typeof inputPresentation !== "object" || Array.isArray(inputPresentation) ||
+        Object.keys(inputPresentation).some(key => !presentationFields.includes(key))))
+        throw new TypeError("PDF paragraph presentation supports bold, italic, color and alignment.");
+    return Object.freeze({
+        ...(fontSize === undefined ? {} : { fontSize }),
+        ...(inputPresentation === undefined ? {} : { presentation: presentation(inputPresentation) }),
+        ...(keepTogether === undefined ? {} : { keepTogether }), ...(keepWithNext === undefined ? {} : { keepWithNext }),
+        ...(spaceBefore === undefined ? {} : { spaceBefore }), ...(spaceAfter === undefined ? {} : { spaceAfter })
+    });
+}
+/** @internal Snapshot a bounded own-property registry before any report source is enumerated. */
+function captureParagraphStyles(input, maximum) {
+    if (!Number.isSafeInteger(maximum) || maximum < 0)
+        throw new RangeError("maxParagraphStyles must be a nonnegative safe integer.");
+    const result = Object.create(null);
+    if (input === undefined)
+        return Object.freeze(result);
+    if (input && typeof input.then === "function") {
+        void Promise.resolve(input).catch(() => { });
+        throw new TypeError("paragraphStyles must be a synchronous record.");
+    }
+    if (!input || typeof input !== "object" || Array.isArray(input))
+        throw new TypeError("paragraphStyles must be a record of named paragraph styles.");
+    const names = Object.keys(input);
+    if (names.length > maximum)
+        throw new OfficeIMOError("RESOURCE_LIMIT", "maxParagraphStyles exceeded.");
+    for (const name of names) {
+        if (!name.trim())
+            throw new TypeError("Paragraph style names must be nonempty text.");
+        result[name] = captureParagraphStyle(input[name]);
+    }
+    return Object.freeze(result);
+}
+/** @internal Explicit values win; member-wise presentation preserves the remaining named appearance. */
+function resolveParagraphStyle(name, overrides, styles) {
+    let named = {};
+    if (name !== undefined) {
+        if (typeof name !== "string" || !Object.prototype.hasOwnProperty.call(styles, name))
+            throw new TypeError("Unknown PDF paragraph style: " + String(name));
+        named = styles[name];
+    }
+    const captured = captureParagraphStyle(overrides);
+    return Object.freeze({ ...named, ...captured,
+        ...(named.presentation || captured.presentation ? { presentation: Object.freeze({ ...named.presentation, ...captured.presentation }) } : {}) });
+}
+const _exports = Object.freeze({ captureParagraphStyle: captureParagraphStyle, captureParagraphStyles: captureParagraphStyles, resolveParagraphStyle: resolveParagraphStyle });
+return _exports;
+})();
+
+const _m42 = (() => {
+const { OfficeIMOError } = _m2;
+
+const { ExportBudget } = _m10;
+
+const { copyColumns } = _m11;
+
+const { tableSpans } = _m13;
+
+const { captureParagraphStyles } = _m43;
+
+const { positive, color, presentation } = _m44;
+
+
+
 const sizes = {
     A3: { width: 841.89, height: 1190.551 }, A4: { width: 595.276, height: 841.89 }, A5: { width: 419.528, height: 595.276 },
     LETTER: { width: 612, height: 792 }, LEGAL: { width: 612, height: 1008 }, TABLOID: { width: 792, height: 1224 }
@@ -4145,6 +4243,10 @@ function settings(input, document = false) {
     const configuration = { ...input };
     if (configuration.limits)
         configuration.limits = Object.freeze({ ...configuration.limits });
+    if (configuration.pageSize && typeof configuration.pageSize === "object")
+        configuration.pageSize = Object.freeze({ ...configuration.pageSize });
+    if (configuration.margins && typeof configuration.margins === "object")
+        configuration.margins = Object.freeze({ ...configuration.margins });
     const textShaper = configuration.textShaper, shapeLine = textShaper?.shapeLine;
     if (textShaper !== undefined && (!textShaper || typeof shapeLine !== "function"))
         throw new TypeError("textShaper must provide shapeLine.");
@@ -4172,12 +4274,14 @@ function settings(input, document = false) {
     const budget = new ExportBudget(options.limits);
     const limits = { maxPages: 10000, maxColumns: 1024, maxCellCharacters: 1000000, maxTextRuns: 10000, maxGroupBlocks: 256, maxRowLines: 100000, maxFontBytes: 16 * 1024 * 1024, maxPageBytes: 8 * 1024 * 1024, maxHyperlinks: 100000,
         maxImageBytes: 32 * 1024 * 1024, maxImagePixels: 16 * 1024 * 1024, maxVectorCommands: 100000, maxDrawingElements: 100000,
-        maxStructureElements: 1000000, maxMarkedContentReferences: 2000000 };
+        maxStructureElements: 1000000, maxMarkedContentReferences: 2000000,
+        maxListItems: 100000, maxParagraphStyles: 256, maxSections: 1000, maxBookmarks: 10000 };
     for (const key of Object.keys(limits)) {
         const override = options.limits?.[key];
         if (override !== undefined)
             limits[key] = override;
     }
+    const paragraphStyles = captureParagraphStyles(options.paragraphStyles, limits.maxParagraphStyles);
     if (columns.length > limits.maxColumns)
         throw new OfficeIMOError("RESOURCE_LIMIT", "maxColumns exceeded.");
     const size = typeof options.pageSize === "string" || options.pageSize === undefined ? sizes[options.pageSize ?? "A4"] : options.pageSize;
@@ -4233,14 +4337,14 @@ function settings(input, document = false) {
             throw new TypeError("Tagged PDF supports leaf column headings and ordinary footer cells; grouped headings and span matrices are unsupported.");
     }
     const maxImageWorkingBytes = options.limits?.maxImageWorkingBytes;
-    return { options, page, margins, fontSize, padding,
+    return { options: { ...options, paragraphStyles }, paragraphStyles, page, margins, fontSize, padding,
         limits: { ...limits, ...(maxImageWorkingBytes === undefined ? {} : { maxImageWorkingBytes }) }, budget };
 }
-const _exports = Object.freeze({ positive: positive, color: color, presentation: presentation, settings: settings });
+const _exports = Object.freeze({ positive: _m44.positive, color: _m44.color, presentation: _m44.presentation, settings: settings });
 return _exports;
 })();
 
-const _m44 = (() => {
+const _m46 = (() => {
 const { checkAbort, withAbort, pause, taskYieldDue } = _m4;
 
 const { OfficeIMOError } = _m2;
@@ -4390,7 +4494,7 @@ const _exports = Object.freeze({ pdfNumber: pdfNumber, unicodeHex: unicodeHex, P
 return _exports;
 })();
 
-const _m48 = (() => {
+const _m50 = (() => {
 /** @internal Bounded big-endian reader used for caller-provided TrueType programs. */
 class FontReader {
     bytes;
@@ -4419,8 +4523,8 @@ const _exports = Object.freeze({ FontReader: FontReader, checksum: checksum, ali
 return _exports;
 })();
 
-const _m49 = (() => {
-const { align4 } = _m48;
+const _m51 = (() => {
+const { align4 } = _m50;
 
 const { checkAbort, pause, taskYieldDue } = _m4;
 
@@ -4643,12 +4747,12 @@ const _exports = Object.freeze({ subsetTrueType: subsetTrueType, subsetTrueTypeC
 return _exports;
 })();
 
-const _m47 = (() => {
+const _m49 = (() => {
 const { NotSupportedError } = _m2;
 
-const { FontReader } = _m48;
+const { FontReader } = _m50;
 
-const { subsetTrueType, subsetTrueTypeCooperatively } = _m49;
+const { subsetTrueType, subsetTrueTypeCooperatively } = _m51;
 
 const { checkAbort, pause, taskYieldDue } = _m4;
 
@@ -4887,8 +4991,8 @@ const _exports = Object.freeze({ TrueTypeFont: TrueTypeFont });
 return _exports;
 })();
 
-const _m46 = (() => {
-const { TrueTypeFont } = _m47;
+const _m48 = (() => {
+const { TrueTypeFont } = _m49;
 
 const { beginTask, checkAbort } = _m4;
 
@@ -4950,7 +5054,7 @@ const _exports = Object.freeze({ fontProgram: fontProgram, PdfFont: PdfFont });
 return _exports;
 })();
 
-const _m51 = (() => {
+const _m53 = (() => {
 // Generated by scripts/pdf-widths.mjs from OfficeIMO.Pdf's Adobe AFM-derived metrics.
 const helveticaWidths = new Map([
     [32, [278, 278]],
@@ -5272,12 +5376,12 @@ const _exports = Object.freeze({ helveticaWidths: helveticaWidths });
 return _exports;
 })();
 
-const _m50 = (() => {
+const _m52 = (() => {
 const { OfficeIMOError } = _m2;
 
-const { PdfFont, fontProgram } = _m46;
+const { PdfFont, fontProgram } = _m48;
 
-const { helveticaWidths } = _m51;
+const { helveticaWidths } = _m53;
 
 const winAnsiExtras = new Map([0x20ac, 0, 0x201a, 0x192, 0x201e, 0x2026, 0x2020, 0x2021, 0x2c6, 0x2030, 0x160, 0x2039, 0x152, 0, 0x17d, 0, 0, 0x2018, 0x2019, 0x201c, 0x201d, 0x2022, 0x2013, 0x2014, 0x2dc, 0x2122, 0x161, 0x203a, 0x153, 0, 0x17e, 0x178].map((cp, i) => [cp, i + 128]));
 /** @internal Called after scalar support succeeds when encoding a standard-font run. */
@@ -5340,14 +5444,14 @@ const _exports = Object.freeze({ standardCode: standardCode, resolveScalar: reso
 return _exports;
 })();
 
-const _m45 = (() => {
+const _m47 = (() => {
 const { NotSupportedError, OfficeIMOError } = _m2;
 
-const { fontProgram } = _m46;
+const { fontProgram } = _m48;
 
-const { resolveScalar, selectFont, standardCode, validateFonts } = _m50;
+const { resolveScalar, selectFont, standardCode, validateFonts } = _m52;
 
-const { pdfNumber, unicodeHex } = _m44;
+const { pdfNumber, unicodeHex } = _m46;
 
 const { checkAbort, pause, taskYieldDue } = _m4;
 
@@ -5551,7 +5655,7 @@ const _exports = Object.freeze({ PdfFontResource: PdfFontResource, PdfFontResour
 return _exports;
 })();
 
-const _m53 = (() => {
+const _m55 = (() => {
 const { OfficeIMOError } = _m2;
 
 const { ExportCell, assertExportValue } = _m5;
@@ -5655,7 +5759,7 @@ const _exports = Object.freeze({ synchronousText: synchronousText, displayText: 
 return _exports;
 })();
 
-const _m55 = (() => {
+const _m57 = (() => {
 const { NotSupportedError, OfficeIMOError } = _m2;
 
 const { checkAbort, pause, taskYieldDue, withAbort } = _m4;
@@ -5867,18 +5971,18 @@ const _exports = Object.freeze({ wrapShapedPdfText: wrapShapedPdfText });
 return _exports;
 })();
 
-const _m54 = (() => {
-const { OfficeIMOError } = _m2;
+const _m56 = (() => {
+const { NotSupportedError, OfficeIMOError } = _m2;
 
 const { copyExportLink } = _m7;
 
 const { checkAbort, pause, taskYieldDue } = _m4;
 
-const { presentation } = _m42;
+const { presentation, color } = _m42;
 
-const { wrapShapedPdfText } = _m55;
+const { wrapShapedPdfText } = _m57;
 
-const { PdfFont } = _m46;
+const { PdfFont } = _m48;
 
 /** @internal A run list is a PDF presentation value, never an alternate shared table value model. */
 function capturePdfText(value, base, settings, fonts, countEmpty = true) {
@@ -5983,6 +6087,18 @@ async function wrapPdfText(captured, fonts, size, width, settings, wrap = true) 
         while (offset >= runEnd && runIndex < runs.length - 1)
             runEnd += runs[++runIndex].text.length;
         const owner = runIndex, scalar = text.codePointAt(offset), character = String.fromCodePoint(scalar);
+        if (offset + character.length > runEnd && runIndex < runs.length - 1) {
+            let next = runIndex + 1;
+            while (!runs[next].text.length)
+                next++;
+            const first = runs[owner], other = runs[next], firstFace = faces[owner], nextFace = faces[next];
+            const sameFace = firstFace.font === nextFace.font && (firstFace.font ?
+                firstFace.syntheticBold === nextFace.syntheticBold && firstFace.syntheticItalic === nextFace.syntheticItalic :
+                firstFace.bold === nextFace.bold && firstFace.italic === nextFace.italic);
+            if (!sameFace || color(first.style.color ?? "111827") !== color(other.style.color ?? "111827") ||
+                first.link?.target !== other.link?.target || first.link?.tooltip !== other.link?.tooltip)
+                throw new NotSupportedError("A PDF presentation boundary cannot split a UTF-16 scalar.");
+        }
         offset += character.length;
         if (character === "\r" || character === "\n") {
             if (character === "\r" && text[offset] === "\n")
@@ -6008,7 +6124,7 @@ const _exports = Object.freeze({ capturePdfText: capturePdfText, wrapPdfText: wr
 return _exports;
 })();
 
-const _m52 = (() => {
+const _m54 = (() => {
 const { ExportCell } = _m5;
 
 const { copyExportLink } = _m7;
@@ -6019,9 +6135,9 @@ const { createTotals } = _m32;
 
 const { presentation, positive } = _m42;
 
-const { displayText } = _m53;
+const { displayText } = _m55;
 
-const { capturePdfText, wrapPdfText } = _m54;
+const { capturePdfText, wrapPdfText } = _m56;
 
 class PdfTableLayout {
     settings;
@@ -6172,10 +6288,10 @@ const _exports = Object.freeze({ PdfTableLayout: PdfTableLayout });
 return _exports;
 })();
 
-const _m57 = (() => {
+const _m59 = (() => {
 const { OfficeIMOError } = _m2;
 
-const { pdfNumber, unicodeHex } = _m44;
+const { pdfNumber, unicodeHex } = _m46;
 
 const encoder = new TextEncoder();
 /** @internal URI actions are byte strings; tooltips are Unicode PDF text strings. */
@@ -6217,30 +6333,99 @@ const _exports = Object.freeze({ linkAnnotation: linkAnnotation });
 return _exports;
 })();
 
-const _m56 = (() => {
+const _m60 = (() => {
+const { OfficeIMOError } = _m2;
+
+const { unicodeHex } = _m46;
+
+/** @internal Capture bookmark metadata before source enumeration or cooperative layout. */
+function captureBookmark(value, settings) {
+    if (value === undefined)
+        return undefined;
+    if (!value || typeof value !== "object")
+        throw new TypeError("PDF bookmark must provide a title and optional level.");
+    const { title, level = 1 } = value;
+    if (typeof title !== "string" || !title.trim())
+        throw new TypeError("PDF bookmark title must be nonempty text.");
+    if (title.length > settings.limits.maxCellCharacters)
+        throw new OfficeIMOError("RESOURCE_LIMIT", "maxCellCharacters exceeded by bookmark title.");
+    if (!Number.isInteger(level) || level < 1 || level > 6)
+        throw new TypeError("PDF bookmark level must be an integer from 1 through 6.");
+    unicodeHex(title);
+    return Object.freeze({ title, level });
+}
+/** @internal Sections capture only geometry/decorations; fonts, styles and resource policy remain document-owned. */
+function captureSection(block, settings) {
+    if (!block || block.kind !== "section")
+        throw new TypeError("PDF section boundary required.");
+    if (Object.keys(block).some(key => !["kind", "title", "level", "includeHeading", "bookmark", "headingStyle", "pageSize", "orientation", "margins", "pageHeader", "pageFooter", "pageNumbers"].includes(key)))
+        throw new TypeError("PDF sections support title, heading/bookmark controls, page geometry and decorations only.");
+    const { title, level, includeHeading = true, bookmark = true, headingStyle, pageSize, orientation, margins, pageHeader, pageFooter, pageNumbers } = block;
+    const checked = captureBookmark({ title, ...(level === undefined ? {} : { level }) }, settings);
+    for (const [name, value] of [["includeHeading", includeHeading], ["bookmark", bookmark], ["pageNumbers", pageNumbers]])
+        if (value !== undefined && typeof value !== "boolean")
+            throw new TypeError("PDF section " + name + " must be boolean.");
+    if (headingStyle !== undefined && (typeof headingStyle !== "string" || !headingStyle.trim()))
+        throw new TypeError("PDF section headingStyle must be nonempty text.");
+    return Object.freeze({ kind: "section", title: checked.title, level: checked.level, includeHeading, bookmark,
+        ...(headingStyle === undefined ? {} : { headingStyle }),
+        ...(pageSize === undefined ? {} : { pageSize: typeof pageSize === "object" ? Object.freeze({ ...pageSize }) : pageSize }),
+        ...(orientation === undefined ? {} : { orientation }),
+        ...(margins === undefined ? {} : { margins: typeof margins === "object" ? Object.freeze({ ...margins }) : margins }),
+        ...(pageHeader === undefined ? {} : { pageHeader }), ...(pageFooter === undefined ? {} : { pageFooter }),
+        ...(pageNumbers === undefined ? {} : { pageNumbers }) });
+}
+const _exports = Object.freeze({ captureBookmark: captureBookmark, captureSection: captureSection });
+return _exports;
+})();
+
+const _m61 = (() => {
+const { settings } = _m42;
+
+/** @internal Every section derives from captured document defaults, never the preceding section. */
+function sectionSettings(base, section) {
+    const { pageSize, orientation, margins, pageHeader, pageFooter, pageNumbers } = section;
+    const options = { ...base.options,
+        ...(pageSize === undefined ? {} : { pageSize }), ...(orientation === undefined ? {} : { orientation }),
+        ...(margins === undefined ? {} : { margins }), ...(pageHeader === undefined ? {} : { pageHeader }),
+        ...(pageFooter === undefined ? {} : { pageFooter }), ...(pageNumbers === undefined ? {} : { pageNumbers }) };
+    // Reuse the existing public normalizer; section changes cannot acquire new limits or reset counters.
+    const derived = settings(options, true);
+    return { ...base, page: derived.page, margins: derived.margins, options };
+}
+const _exports = Object.freeze({ sectionSettings: sectionSettings });
+return _exports;
+})();
+
+const _m58 = (() => {
 const { OfficeIMOError } = _m2;
 
 const { checkAbort } = _m4;
 
-const { pdfNumber } = _m44;
+const { pdfNumber } = _m46;
 
 const { color } = _m42;
 
-const { wrapText, wrapTextCooperatively, synchronousText } = _m53;
+const { wrapText, wrapTextCooperatively, synchronousText } = _m55;
 
-const { linkAnnotation } = _m57;
+const { linkAnnotation } = _m59;
 
-const { unicodeHex } = _m44;
+const { unicodeHex } = _m46;
+
+const { captureSection, captureBookmark } = _m60;
+
+const { sectionSettings } = _m61;
 
 /** @internal One page of drawing commands and O(page count) references, never the complete report body. */
 class PdfPages {
     objects;
-    settings;
+    baseSettings;
     fonts;
     parent;
     resources;
     layout;
     structure;
+    outlines;
     references = [];
     current = 0;
     commands = [];
@@ -6251,30 +6436,68 @@ class PdfPages {
     dataTop = 0;
     continuationTop = 0;
     totalPages;
-    pageNumberWidth;
+    numberSettings;
+    activeSettings;
+    pendingPage;
+    bodyAdded = false;
+    sectionCount = 0;
+    sectionPages = 0;
+    sectionTitle;
+    pendingBookmarks = [];
+    pageNumberWidth = 0;
     colors = new Map();
     externalObjects = new Map();
     tableElement;
     tableHeadingsDrawn = false;
-    constructor(objects, settings, fonts, parent, resources, layout, structure) {
+    constructor(objects, baseSettings, fonts, parent, resources, layout, structure, outlines) {
         this.objects = objects;
-        this.settings = settings;
+        this.baseSettings = baseSettings;
         this.fonts = fonts;
         this.parent = parent;
         this.resources = resources;
         this.layout = layout;
         this.structure = structure;
-        this.totalPages = settings.options.pageNumbers === false ? undefined : objects.reserve();
-        this.pageNumberWidth = 0;
-        if (this.totalPages && settings.limits.maxPages > 0) {
-            const font = fonts.select(), max = settings.limits.maxPages;
-            const digitWidth = Math.max(...Array.from({ length: Math.min(10, max) }, (_, i) => font.width(max < 10 ? 49 + i : 48 + i)));
-            const countWidth = digitWidth * String(max).length * settings.fontSize / 1000;
-            const literals = wrapText("Page  of ", font, settings.fontSize, settings.page.width, 128, 1, false)[0].width;
-            this.pageNumberWidth = literals + countWidth * 2 + 2;
-            if (this.pageNumberWidth > settings.page.width - settings.margins.left - settings.margins.right)
-                throw new RangeError("Page is too narrow for page numbers at the declared maxPages and font size.");
+        this.outlines = outlines;
+        this.activeSettings = baseSettings;
+    }
+    measurePageNumbers() {
+        const settings = this.settings, font = this.fonts.select(), max = settings.limits.maxPages;
+        const digitWidth = Math.max(...Array.from({ length: Math.min(10, max) }, (_, i) => font.width(max < 10 ? 49 + i : 48 + i)));
+        const countWidth = digitWidth * String(max).length * settings.fontSize / 1000;
+        const literals = wrapText("Page  of ", font, settings.fontSize, settings.page.width, 128, 1, false)[0].width;
+        return literals + countWidth * 2 + 2;
+    }
+    get settings() { return this.activeSettings; }
+    async ensureStarted() { if (!this.current)
+        await this.start(false); }
+    /** Section changes consume no rows and do not manufacture an empty transition page. */
+    async beginSection(block) {
+        const captured = captureSection(block, this.baseSettings), active = sectionSettings(this.baseSettings, captured);
+        if (++this.sectionCount > this.baseSettings.limits.maxSections)
+            throw new OfficeIMOError("RESOURCE_LIMIT", "maxSections exceeded.");
+        if (this.current) {
+            if (this.bodyAdded)
+                await this.finishPage();
+            else {
+                this.pendingPage = this.current;
+                this.current = 0;
+            }
         }
+        this.activeSettings = active;
+        this.sectionPages = 0;
+        this.sectionTitle = captured.title;
+        await this.structure?.beginSection();
+        return captured;
+    }
+    addBookmark(bookmark) {
+        const captured = captureBookmark(bookmark, this.settings);
+        if ((this.outlines?.count ?? 0) + this.pendingBookmarks.length >= this.settings.limits.maxBookmarks)
+            throw new OfficeIMOError("RESOURCE_LIMIT", "maxBookmarks exceeded.");
+        this.settings.budget.cell(captured.title);
+        if (this.current)
+            this.outlines?.add(captured, this.current, this.y);
+        else
+            this.pendingBookmarks.push(captured);
     }
     add(command) {
         this.retainPageBytes(command.length);
@@ -6355,7 +6578,7 @@ class PdfPages {
         if (value === undefined)
             return "";
         checkAbort(this.settings.options.signal);
-        return synchronousText(typeof value === "function" ? value({ pageNumber: this.references.length }) : value, "Page header/footer");
+        return synchronousText(typeof value === "function" ? value(Object.freeze({ pageNumber: this.references.length, sectionNumber: this.sectionCount || 1, sectionPageNumber: this.sectionPages, ...(this.sectionTitle === undefined ? {} : { sectionTitle: this.sectionTitle }) })) : value, "Page header/footer");
     }
     decoration(text, x, y, width) {
         if (!text)
@@ -6365,34 +6588,53 @@ class PdfPages {
         this.text(lines[0].text, font, this.settings.fontSize, x, y);
     }
     async start(tableHeadings = true, preparedHeadings) {
-        if (this.references.length >= this.settings.limits.maxPages)
+        if (this.pendingPage === undefined && this.references.length >= this.settings.limits.maxPages)
             throw new OfficeIMOError("RESOURCE_LIMIT", "maxPages exceeded.");
         const { page, margins, options, fontSize } = this.settings;
         const lineHeight = this.fonts.select().lineHeight(fontSize);
-        this.current = this.objects.reserve();
-        this.references.push(this.current);
+        if (this.pendingPage !== undefined) {
+            this.current = this.pendingPage;
+            this.pendingPage = undefined;
+        }
+        else {
+            this.current = this.objects.reserve();
+            this.references.push(this.current);
+        }
         this.commands = [];
+        this.annotations = [];
         this.commandBytes = 0;
+        this.bodyAdded = false;
+        this.sectionPages++;
+        if (options.pageNumbers !== false) {
+            this.totalPages ??= this.objects.reserve();
+            this.numberSettings ??= this.settings;
+            if (!this.pageNumberWidth)
+                this.pageNumberWidth = this.measurePageNumbers();
+            if (this.pageNumberWidth > page.width - margins.left - margins.right)
+                throw new RangeError("Page is too narrow for page numbers at the declared maxPages and font size.");
+        }
         this.structure?.beginPage(this.current);
         this.y = page.height - margins.top;
         const header = this.decorationText(options.pageHeader), footer = this.decorationText(options.pageFooter);
         if (header && margins.top < lineHeight + 4)
             throw new RangeError("Top margin is too small for a page header.");
-        if ((footer || this.totalPages) && margins.bottom < lineHeight + 4)
+        if ((footer || options.pageNumbers !== false) && margins.bottom < lineHeight + 4)
             throw new RangeError("Bottom margin is too small for page decorations.");
         const font = this.fonts.select(), centerOffset = ((font.program?.ascent ?? 800) + (font.program?.descent ?? -200)) * fontSize / 2000;
         this.decoration(header, margins.left, page.height - margins.top / 2 - centerOffset, page.width - margins.left - margins.right);
-        const footerWidth = page.width - margins.left - margins.right - (this.totalPages ? this.pageNumberWidth + this.settings.padding * 2 : 0);
+        const footerWidth = page.width - margins.left - margins.right - (options.pageNumbers !== false ? this.pageNumberWidth + this.settings.padding * 2 : 0);
         if (footerWidth <= 0 && footer)
             throw new RangeError("Page is too narrow for both footer text and page numbers.");
         this.decoration(footer, margins.left, margins.bottom / 2 - centerOffset, footerWidth);
-        if (this.totalPages) {
+        if (options.pageNumbers !== false) {
             const x = page.width - margins.right - this.pageNumberWidth + 1, y = margins.bottom / 2 - centerOffset, label = "Page " + this.references.length + " of ";
             const line = wrapText(label, font, fontSize, this.pageNumberWidth, 128, 1, false)[0];
             this.settings.budget.cell(label);
             this.text(label, font, fontSize, x, y);
             this.add(this.artifact("q 1 0 0 1 " + pdfNumber(x + line.width) + " " + pdfNumber(y) + " cm /TotalPages Do Q\n", "Pagination"));
         }
+        for (const bookmark of this.pendingBookmarks.splice(0))
+            this.outlines?.add(bookmark, this.current, this.y);
         if (this.references.length === 1) {
             if (options.title)
                 await this.paragraph(options.title, { bold: true }, fontSize * 1.5, false, 1);
@@ -6424,6 +6666,7 @@ class PdfPages {
     draw(row, firstLine, lineCount, elements) {
         if (!this.layout)
             throw new Error("A table layout is required before drawing rows.");
+        this.bodyAdded = true;
         const { padding, fontSize } = this.settings, n = pdfNumber, height = lineCount * row.lineHeight + padding * 2;
         for (const [index, cell] of row.cells.entries()) {
             const x = this.layout.lefts[cell.first], cellHeight = cell.height ?? height;
@@ -6481,6 +6724,7 @@ class PdfPages {
         await this.structure?.completeRow(elements);
     }
     async paragraph(text, style = {}, size = this.settings.fontSize, paginate = true, headingLevel) {
+        await this.ensureStarted();
         const { margins, page, limits } = this.settings, font = this.fonts.select(style.bold, style.italic), lineHeight = font.lineHeight(size);
         this.settings.budget.cell(text);
         const lines = await wrapTextCooperatively(text, font, size, page.width - margins.left - margins.right, limits.maxCellCharacters, limits.maxRowLines, true, this.settings.options.signal);
@@ -6495,6 +6739,7 @@ class PdfPages {
                 await this.start(false);
             }
             const x = style.alignment === "right" ? page.width - margins.right - line.width : style.alignment === "center" ? margins.left + (page.width - margins.left - margins.right - line.width) / 2 : margins.left;
+            this.bodyAdded = true;
             this.text(line.text, font, size, x, this.y - (font.program?.ascent ?? 800) * size / 1000, style.color, element);
             this.y -= lineHeight;
         }
@@ -6503,6 +6748,7 @@ class PdfPages {
     }
     /** Reserve a meaningful next fragment before painting a kept heading; never buffer a table. */
     async reserveSpace(height, label = "Kept PDF content") {
+        await this.ensureStarted();
         const { page, margins } = this.settings, full = page.height - margins.top - margins.bottom;
         if (height > full + .001)
             throw new RangeError(label + " exceeds a fresh page's content area.");
@@ -6510,8 +6756,12 @@ class PdfPages {
             await this.pageBreak();
     }
     /** Paint bounded paragraphs with their captured layout and a measured next-block fragment. */
-    async paragraphs(paragraphs, nextHeight = 0, keepTogether = false) {
-        const visible = paragraphs.filter(paragraph => paragraph.lines.length > 0), reservations = new Array(visible.length).fill(0);
+    async paragraphs(paragraphs, nextHeight = 0, keepTogether = false, frame = {}) {
+        const visible = paragraphs.filter(paragraph => paragraph.lines.length > 0);
+        if (!visible.length)
+            return;
+        await this.ensureStarted();
+        const reservations = new Array(visible.length).fill(0);
         for (let i = visible.length - 1; i >= 0; i--) {
             const paragraph = visible[i], next = visible[i + 1];
             reservations[i] = paragraph.keepWithNext ? next ? next.keepTogether || next.keepWithNext ? next.height + reservations[i + 1] : next.firstHeight : nextHeight : 0;
@@ -6527,26 +6777,39 @@ class PdfPages {
             if (this.y - paragraph.firstHeight < margins.bottom)
                 await this.pageBreak();
             this.y -= paragraph.spaceBefore;
-            const element = this.structure?.element(paragraph.headingLevel ? "H" + paragraph.headingLevel : "P");
+            if (paragraph.bookmark)
+                this.addBookmark(paragraph.bookmark);
+            const element = this.structure?.element(frame.role ?? (paragraph.headingLevel ? "H" + paragraph.headingLevel : "P"), frame.parent);
+            let firstLine = true;
             for (const line of paragraph.lines) {
                 if (line.lineHeight > page.height - margins.top - margins.bottom + .001)
                     throw new RangeError("PDF page cannot fit a paragraph line at the selected font metrics.");
                 if (this.y - line.lineHeight < margins.bottom)
                     await this.pageBreak();
-                const x = paragraph.style.alignment === "right" ? page.width - margins.right - line.width : paragraph.style.alignment === "center" ? margins.left + (page.width - margins.left - margins.right - line.width) / 2 : margins.left;
+                const left = margins.left + (frame.indent ?? 0), width = page.width - margins.right - left;
+                const x = paragraph.style.alignment === "right" ? page.width - margins.right - line.width : paragraph.style.alignment === "center" ? left + (width - line.width) / 2 : left;
+                if (firstLine && frame.marker)
+                    this.inline(frame.marker.line, paragraph.size, left - frame.marker.gap - frame.marker.line.width, this.y - line.ascent, frame.marker.owner);
+                this.bodyAdded = true;
                 this.inline(line, paragraph.size, x, this.y - line.ascent, element);
                 this.y -= line.lineHeight;
+                firstLine = false;
             }
             this.y -= paragraph.spaceAfter;
             await this.structure?.complete(element);
         }
     }
     /** Begin an independent table on the current page, retaining its headings on continuation pages. */
-    async beginTable(layout, preparedHeadings, minimumDataHeight = layout.lineHeight + this.settings.padding * 2) {
+    async beginTable(layout, preparedHeadings, minimumDataHeight = layout.lineHeight + this.settings.padding * 2, caption) {
+        await this.ensureStarted();
         this.layout = layout;
         this.tableElement = this.structure?.element("Table");
         this.tableHeadingsDrawn = false;
         const headings = preparedHeadings ?? await layout.headers(), height = headings.reduce((n, row) => n + row.height, 0);
+        if (caption) {
+            await this.reserveSpace(caption.height + height + minimumDataHeight, "Kept PDF table caption and first data fragment");
+            await this.paragraphs([caption], height + minimumDataHeight, true, { role: "Caption", ...(this.tableElement === undefined ? {} : { parent: this.tableElement }) });
+        }
         if (this.y - height - minimumDataHeight < this.settings.margins.bottom) {
             await this.finishPage();
             await this.start(true, headings);
@@ -6563,7 +6826,7 @@ class PdfPages {
         this.tableHeadingsDrawn = false;
         this.y -= 8;
     }
-    async pageBreak() { await this.finishPage(); await this.start(false); }
+    async pageBreak() { await this.ensureStarted(); await this.finishPage(); await this.start(false); }
     registerXObject(name, id) { this.externalObjects.set(name, id); }
     /** Height after the existing fit-to-page graphic policy, used by heading keep constraints. */
     graphicHeight(width, height) {
@@ -6571,19 +6834,36 @@ class PdfPages {
         return height * Math.min(1, (page.width - margins.left - margins.right) / width, (page.height - margins.top - margins.bottom) / height);
     }
     /** Place an indivisible graphic, preserving aspect ratio and scaling down to page bounds. */
-    async graphic(width, height, alignment, paint, alternativeText) {
+    async graphic(width, height, alignment, paint, alternativeText, caption) {
+        await this.ensureStarted();
         const { page, margins } = this.settings, available = page.width - margins.left - margins.right;
         const scale = Math.min(1, available / width, (page.height - margins.top - margins.bottom) / height);
         width *= scale;
         height *= scale;
+        const element = this.structure && alternativeText !== undefined ? this.structure.element("Figure", undefined, " /Alt <feff" + unicodeHex(alternativeText) + ">") : undefined;
+        if (caption) {
+            if (alternativeText === undefined)
+                throw new TypeError("A captioned PDF graphic requires alternativeText and cannot be decorative.");
+            await this.reserveSpace(caption.height + height, "Kept PDF graphic and caption");
+            await this.paragraphs([caption], height, true, { role: "Caption", ...(element === undefined ? {} : { parent: element }) });
+        }
         if (this.y - height < margins.bottom)
             await this.pageBreak();
         const left = alignment === "right" ? page.width - margins.right - width : alignment === "center" ? margins.left + (available - width) / 2 : margins.left;
         const command = paint(left, this.y - height, width, height);
-        const element = this.structure && alternativeText !== undefined ? this.structure.element("Figure", this.structure.document, " /Alt <feff" + unicodeHex(alternativeText) + ">") : undefined;
+        this.bodyAdded = true;
         this.add(this.structure && element !== undefined ? this.structure.mark(element) + command + "EMC\n" : this.artifact(command));
         this.y -= height + 8;
         await this.structure?.complete(element);
+    }
+    async listItem(item, listOwner) {
+        await this.ensureStarted();
+        if (this.structure && listOwner === undefined)
+            throw new Error("A tagged list item requires a logical list owner.");
+        const li = this.structure?.element("LI", listOwner), label = li === undefined ? undefined : this.structure.element("Lbl", li), body = li === undefined ? undefined : this.structure.element("LBody", li);
+        await this.paragraphs([item.paragraph], 0, false, { ...(body === undefined ? {} : { parent: body }), role: "P", indent: item.indent,
+            marker: { line: item.marker, gap: item.markerGap, ...(label === undefined ? {} : { owner: label }) } });
+        await this.structure?.complete(li);
     }
     async finishPage() {
         const contents = this.objects.reserve(), { page, options } = this.settings;
@@ -6602,16 +6882,18 @@ class PdfPages {
         this.commands = [];
         this.annotations = [];
         this.commandBytes = 0;
+        this.current = 0;
         await this.objects.flush();
     }
     async finish() {
+        await this.ensureStarted();
         await this.structure?.complete(this.tableElement);
         await this.finishPage();
         if (this.totalPages) {
-            const font = this.fonts.select(), text = String(this.references.length), size = this.settings.fontSize;
+            const font = this.fonts.select(), text = String(this.references.length), size = this.numberSettings.fontSize;
             this.settings.budget.cell(text);
             const content = "BT /" + font.name + " " + pdfNumber(size) + " Tf 1 0 0 1 0 0 Tm " + font.encode(text) + " Tj ET\n";
-            const width = wrapText(text, font, size, this.settings.page.width, 128, 1, false)[0].width;
+            const width = wrapText(text, font, size, this.numberSettings.page.width, 128, 1, false)[0].width;
             const bottom = (font.program?.bbox[1] ?? -250) * size / 1000 - 1, top = (font.program?.bbox[3] ?? 1000) * size / 1000 + 1;
             await this.objects.stream(this.totalPages, content, "/Type /XObject /Subtype /Form /BBox [-1 " + pdfNumber(bottom) + " " + pdfNumber(width + 1) + " " + pdfNumber(top) + "] /Resources << /Font " + this.fonts.dictionary() + " >>", this.settings.options.compression !== false);
         }
@@ -6627,7 +6909,7 @@ const _exports = Object.freeze({ PdfPages: PdfPages });
 return _exports;
 })();
 
-const _m59 = (() => {
+const _m63 = (() => {
 /** @internal Incremental PDF number tree: at most 64 entries/children per retained level. */
 class PdfParentTree {
     objects;
@@ -6689,14 +6971,14 @@ const _exports = Object.freeze({ PdfParentTree: PdfParentTree });
 return _exports;
 })();
 
-const _m58 = (() => {
+const _m62 = (() => {
 const { OfficeIMOError } = _m2;
 
 const { checkAbort } = _m4;
 
-const { unicodeHex } = _m44;
+const { unicodeHex } = _m46;
 
-const { PdfParentTree } = _m59;
+const { PdfParentTree } = _m63;
 
 /** @internal Only open logical elements retain content; completed subtrees retain compact parent references. */
 class PdfStructure {
@@ -6715,6 +6997,7 @@ class PdfStructure {
     nextParentKey = 0;
     references = 0;
     allocated = 0;
+    section;
     constructor(objects, settings) {
         this.objects = objects;
         this.settings = settings;
@@ -6723,7 +7006,7 @@ class PdfStructure {
         this.parentTreeWriter = new PdfParentTree(objects, this.parentTree);
         this.document = this.element("Document", this.root);
     }
-    element(role, parent = this.document, attributes = "") {
+    element(role, parent = this.section ?? this.document, attributes = "") {
         checkAbort(this.settings.options.signal);
         if (++this.allocated > this.settings.limits.maxStructureElements)
             throw new OfficeIMOError("RESOURCE_LIMIT", "maxStructureElements exceeded.");
@@ -6731,6 +7014,11 @@ class PdfStructure {
         this.elements.set(id, element);
         this.elements.get(parent)?.children.push(id);
         return id;
+    }
+    /** Flat visual sections share the same logical Document and cumulative resource policy. */
+    async beginSection() {
+        await this.complete(this.section);
+        this.section = this.element("Sect", this.document);
     }
     tableRow(table, headers) {
         const row = this.element("TR", table);
@@ -6862,16 +7150,76 @@ const _exports = Object.freeze({ PdfStructure: PdfStructure, graphicAlternative:
 return _exports;
 })();
 
-const _m43 = (() => {
-const { PdfObjects, unicodeHex } = _m44;
+const _m64 = (() => {
+const { OfficeIMOError } = _m2;
 
-const { PdfFontResources } = _m45;
+const { checkAbort } = _m4;
 
-const { PdfTableLayout } = _m52;
+const { pdfNumber, unicodeHex } = _m46;
 
-const { PdfPages } = _m56;
+/** @internal Bounded native bookmarks; destinations are captured only when their content is painted. */
+class PdfOutlines {
+    objects;
+    settings;
+    root;
+    items = [];
+    top = [];
+    stack = [];
+    constructor(objects, settings) {
+        this.objects = objects;
+        this.settings = settings;
+    }
+    add(bookmark, page, y) {
+        checkAbort(this.settings.options.signal);
+        if (this.items.length >= this.settings.limits.maxBookmarks)
+            throw new OfficeIMOError("RESOURCE_LIMIT", "maxBookmarks exceeded.");
+        this.root ??= this.objects.reserve();
+        const level = bookmark.level ?? 1;
+        while (this.stack.length && this.stack.at(-1).level >= level)
+            this.stack.pop();
+        const parent = this.stack.at(-1), siblings = parent?.children ?? this.top, previous = siblings.at(-1);
+        const item = { id: this.objects.reserve(), title: bookmark.title, page, y, level,
+            parent: parent?.id ?? this.root, children: [], previous: previous?.id, next: undefined };
+        if (previous)
+            previous.next = item.id;
+        siblings.push(item);
+        this.items.push(item);
+        this.stack.push(item);
+    }
+    get count() { return this.items.length; }
+    get catalogDictionary() { return this.root === undefined ? "" : " /Outlines " + this.root + " 0 R"; }
+    async finish() {
+        if (this.root === undefined)
+            return;
+        const descendants = new Map();
+        for (const item of [...this.items].reverse())
+            descendants.set(item.id, item.children.reduce((n, child) => n + 1 + descendants.get(child.id), 0));
+        for (const item of this.items) {
+            checkAbort(this.settings.options.signal);
+            await this.objects.object(item.id, "<< /Title <feff" + unicodeHex(item.title) + "> /Parent " + item.parent + " 0 R" +
+                (item.previous === undefined ? "" : " /Prev " + item.previous + " 0 R") + (item.next === undefined ? "" : " /Next " + item.next + " 0 R") +
+                (item.children.length ? " /First " + item.children[0].id + " 0 R /Last " + item.children.at(-1).id + " 0 R /Count " + descendants.get(item.id) : "") +
+                " /Dest [" + item.page + " 0 R /XYZ null " + pdfNumber(item.y) + " null] >>");
+        }
+        await this.objects.object(this.root, "<< /Type /Outlines /First " + this.top[0].id + " 0 R /Last " + this.top.at(-1).id + " 0 R /Count " + this.items.length + " >>");
+    }
+}
+const _exports = Object.freeze({ PdfOutlines: PdfOutlines });
+return _exports;
+})();
 
-const { PdfStructure } = _m58;
+const _m45 = (() => {
+const { PdfObjects, unicodeHex } = _m46;
+
+const { PdfFontResources } = _m47;
+
+const { PdfTableLayout } = _m54;
+
+const { PdfPages } = _m58;
+
+const { PdfStructure } = _m62;
+
+const { PdfOutlines } = _m64;
 
 /** One resource/catalog owner shared by table convenience exports and composed documents. */
 class PdfWriteSession {
@@ -6881,6 +7229,7 @@ class PdfWriteSession {
     pages;
     layout;
     structure;
+    outlines;
     root;
     parent;
     resources;
@@ -6893,14 +7242,16 @@ class PdfWriteSession {
         this.resources = this.objects.reserve();
         this.info = this.objects.reserve();
         this.structure = settings.options.tagged ? new PdfStructure(this.objects, settings) : undefined;
+        this.outlines = new PdfOutlines(this.objects, settings);
         this.fonts = new PdfFontResources(this.objects, settings.options.fonts, settings.limits.maxFontBytes, settings.options.signal);
         this.layout = table ? new PdfTableLayout(settings, this.fonts) : undefined;
-        this.pages = new PdfPages(this.objects, settings, this.fonts, this.parent, this.resources, this.layout, this.structure);
+        this.pages = new PdfPages(this.objects, settings, this.fonts, this.parent, this.resources, this.layout, this.structure, this.outlines);
     }
     async start() {
         await this.objects.text("%PDF-1.7\n");
         await this.objects.raw(Uint8Array.of(0x25, 0xe2, 0xe3, 0xcf, 0xd3, 0x0a));
-        await this.pages.start(this.layout !== undefined);
+        if (this.layout)
+            await this.pages.start(true);
     }
     async finish() {
         const { options } = this.settings, { objects, fonts, pages } = this;
@@ -6911,7 +7262,8 @@ class PdfWriteSession {
         await objects.object(this.parent, "<< /Type /Pages /Count " + pages.references.length + " /Kids [" + pages.references.map(id => id + " 0 R").join(" ") + "] >>");
         if (this.structure)
             await this.structure.finish();
-        await objects.object(this.root, "<< /Type /Catalog /Pages " + this.parent + " 0 R" + (this.structure?.catalogDictionary ?? "") + " >>");
+        await this.outlines.finish();
+        await objects.object(this.root, "<< /Type /Catalog /Pages " + this.parent + " 0 R" + (this.structure?.catalogDictionary ?? "") + this.outlines.catalogDictionary + " >>");
         await objects.object(this.info, "<< /Producer (OfficeIMO.js)" + (options.title === undefined ? "" : " /Title <feff" + unicodeHex(options.title) + ">") + " >>");
         await objects.finish(this.root, this.info);
     }
@@ -6931,7 +7283,7 @@ const { createRowProjector } = _m11;
 
 const { settings } = _m42;
 
-const { PdfWriteSession } = _m43;
+const { PdfWriteSession } = _m45;
 
 async function writePdf(rows, configuration) {
     const sink = new BlobByteSink();
@@ -6986,7 +7338,7 @@ const _exports = Object.freeze({ writePdf: writePdf, writePdfTo: writePdfTo });
 return _exports;
 })();
 
-const _m62 = (() => {
+const _m67 = (() => {
 const { NotSupportedError, OfficeIMOError } = _m2;
 
 const { checkAbort, pause, taskYieldDue, withAbort } = _m4;
@@ -7208,12 +7560,12 @@ const _exports = Object.freeze({ pngPixels: pngPixels });
 return _exports;
 })();
 
-const _m61 = (() => {
+const _m66 = (() => {
 const { NotSupportedError, OfficeIMOError } = _m2;
 
 const { checkAbort, pause, taskYieldDue } = _m4;
 
-const { pngPixels } = _m62;
+const { pngPixels } = _m67;
 
 /** Shared document image resources; source objects are captured on first consumption. */
 class PdfDocumentImages {
@@ -7341,14 +7693,14 @@ const _exports = Object.freeze({ PdfDocumentImages: PdfDocumentImages });
 return _exports;
 })();
 
-const _m63 = (() => {
+const _m68 = (() => {
 const { OfficeIMOError } = _m2;
 
 const { checkAbort, pause, taskYieldDue } = _m4;
 
 const { color, positive } = _m42;
 
-const { pdfNumber: n } = _m44;
+const { pdfNumber: n } = _m46;
 
 /** Capture and serialize one bounded display path, with no markup parser or resource loading. */
 async function vectorCommands(block, settings, used) {
@@ -7427,14 +7779,14 @@ const _exports = Object.freeze({ vectorCommands: vectorCommands });
 return _exports;
 })();
 
-const _m64 = (() => {
+const _m69 = (() => {
 const { NotSupportedError, OfficeIMOError } = _m2;
 
 const { checkAbort, pause, taskYieldDue } = _m4;
 
 const { color, positive } = _m42;
 
-const { pdfNumber: n } = _m44;
+const { pdfNumber: n } = _m46;
 
 /** Portable drawings are an exact schema: unsupported data must never be silently discarded. */
 function record(value, keys, name) {
@@ -7443,7 +7795,7 @@ function record(value, keys, name) {
     return value;
 }
 function checkDrawingBlock(value) {
-    record(value, ["kind", "drawing", "alignment", "alternativeText", "decorative"], "drawing block");
+    record(value, ["kind", "drawing", "alignment", "alternativeText", "decorative", "caption"], "drawing block");
 }
 function coordinate(value) {
     if (typeof value !== "number" || !Number.isFinite(value) || Math.abs(value) > 1000000)
@@ -7673,43 +8025,49 @@ const _exports = Object.freeze({ checkDrawingBlock: checkDrawingBlock, prepareDr
 return _exports;
 })();
 
-const _m65 = (() => {
+const _m70 = (() => {
 const { OfficeIMOError } = _m2;
 
-const { capturePdfText, wrapPdfText } = _m54;
+const { capturePdfText, wrapPdfText } = _m56;
 
-const { positive, presentation } = _m42;
+const { positive } = _m42;
+
+const { resolveParagraphStyle } = _m43;
+
+const { captureBookmark } = _m60;
 
 /** @internal Copy public paragraph input before any cooperative layout or source enumeration. */
 function captureParagraph(block, settings, fonts) {
     if (!block || block.kind !== "paragraph")
         throw new TypeError("PDF paragraph groups accept paragraph blocks only.");
-    const { text, headingLevel, presentation: inputStyle, fontSize, keepTogether, keepWithNext, spaceBefore, spaceAfter } = block;
+    const { text, headingLevel, presentation: inputStyle, fontSize, keepTogether, keepWithNext, spaceBefore, spaceAfter, style: styleName, bookmark: inputBookmark } = block;
     if (headingLevel !== undefined && (!Number.isInteger(headingLevel) || headingLevel < 1 || headingLevel > 6))
         throw new TypeError("Paragraph headingLevel must be an integer from 1 through 6.");
-    if (inputStyle && Object.keys(inputStyle).some(key => !["bold", "italic", "color", "alignment"].includes(key)))
-        throw new TypeError("PDF paragraph presentation supports bold, italic, color and alignment.");
-    for (const [name, flag] of [["keepTogether", keepTogether], ["keepWithNext", keepWithNext]])
-        if (flag !== undefined && typeof flag !== "boolean")
-            throw new TypeError("Paragraph " + name + " must be boolean.");
-    const style = presentation(inputStyle), size = positive(fontSize ?? settings.fontSize, "Paragraph font size", 144);
-    const spacing = (value, fallback) => {
-        if (value === undefined)
-            return fallback;
-        if (!Number.isFinite(value) || value < 0 || value > 14400)
-            throw new RangeError("Paragraph spacing must be from zero through 14,400 points.");
-        return value;
-    };
+    const resolved = resolveParagraphStyle(styleName, {
+        ...(fontSize === undefined ? {} : { fontSize }), ...(inputStyle === undefined ? {} : { presentation: inputStyle }),
+        ...(keepTogether === undefined ? {} : { keepTogether }), ...(keepWithNext === undefined ? {} : { keepWithNext }),
+        ...(spaceBefore === undefined ? {} : { spaceBefore }), ...(spaceAfter === undefined ? {} : { spaceAfter })
+    }, settings.paragraphStyles);
+    const style = resolved.presentation ?? Object.freeze({}), size = positive(resolved.fontSize ?? settings.fontSize, "Paragraph font size", 144);
+    const bookmark = captureBookmark(inputBookmark, settings);
     return Object.freeze({ text: capturePdfText(text, style, settings, fonts, false), style, size,
-        ...(headingLevel === undefined ? {} : { headingLevel }), keepTogether: keepTogether ?? false, keepWithNext: keepWithNext ?? false,
-        spaceBefore: spacing(spaceBefore, 0), spaceAfter: spacing(spaceAfter, 8) });
+        ...(headingLevel === undefined ? {} : { headingLevel }), ...(bookmark === undefined ? {} : { bookmark }),
+        keepTogether: resolved.keepTogether ?? false, keepWithNext: resolved.keepWithNext ?? false,
+        spaceBefore: resolved.spaceBefore ?? 0, spaceAfter: resolved.spaceAfter ?? 8 });
+}
+/** @internal Captions reuse rich text layout while their actual table/figure supplies the semantic owner. */
+function captureCaption(caption, settings, fonts) {
+    if (!caption || typeof caption !== "object" || Array.isArray(caption) ||
+        Object.keys(caption).some(key => !["text", "style", "fontSize", "presentation", "spaceBefore", "spaceAfter"].includes(key)))
+        throw new TypeError("PDF captions support text, style, fontSize, presentation, spaceBefore and spaceAfter.");
+    return captureParagraph({ ...caption, kind: "paragraph", keepTogether: true, keepWithNext: true }, settings, fonts);
 }
 /** @internal Layout is bounded by the same per-cell text and wrapped-line limits as table cells. */
-async function prepareParagraph(captured, settings, fonts) {
+async function prepareParagraph(captured, settings, fonts, width = settings.page.width - settings.margins.left - settings.margins.right) {
     if (!captured.text.text)
         return { ...captured, lines: [], height: 0, firstHeight: 0 };
     settings.budget.cell(captured.text.text, captured.text.text.length);
-    const lines = await wrapPdfText(captured.text, fonts, captured.size, settings.page.width - settings.margins.left - settings.margins.right, settings);
+    const lines = await wrapPdfText(captured.text, fonts, captured.size, positive(width, "Paragraph width"), settings);
     return { ...captured, lines, height: captured.spaceBefore + lines.reduce((height, line) => height + line.lineHeight, 0) + captured.spaceAfter,
         firstHeight: captured.spaceBefore + lines[0].lineHeight };
 }
@@ -7737,11 +8095,68 @@ function paragraphStartHeight(paragraphs) {
     }
     return required;
 }
-const _exports = Object.freeze({ captureParagraph: captureParagraph, prepareParagraph: prepareParagraph, checkParagraphBuffer: checkParagraphBuffer, paragraphStartHeight: paragraphStartHeight });
+const _exports = Object.freeze({ captureParagraph: captureParagraph, captureCaption: captureCaption, prepareParagraph: prepareParagraph, checkParagraphBuffer: checkParagraphBuffer, paragraphStartHeight: paragraphStartHeight });
 return _exports;
 })();
 
-const _m60 = (() => {
+const _m71 = (() => {
+const { capturePdfText, wrapPdfText } = _m56;
+
+const { captureParagraph, prepareParagraph } = _m70;
+
+const { resolveParagraphStyle } = _m43;
+
+function captureListOptions(block, settings) {
+    const { items, ordered = false, start: inputStart, itemStyle, indent, markerGap } = block;
+    const start = inputStart === undefined ? 1 : inputStart;
+    if (typeof ordered !== "boolean")
+        throw new TypeError("PDF list ordered must be boolean.");
+    if (!Number.isSafeInteger(start) || start < 1)
+        throw new RangeError("PDF list start must be a positive safe integer.");
+    if (!ordered && inputStart !== undefined)
+        throw new TypeError("PDF list start requires ordered:true.");
+    for (const [name, value] of [["indent", indent], ["markerGap", markerGap]])
+        if (value !== undefined && (!Number.isFinite(value) || value < 0 || value > 14400))
+            throw new RangeError("PDF list " + name + " must be from zero through 14,400 points.");
+    if (resolveParagraphStyle(itemStyle, {}, settings.paragraphStyles).keepWithNext)
+        throw new TypeError("PDF list item styles cannot use keepWithNext.");
+    return Object.freeze({ items, ordered, start, ...(itemStyle === undefined ? {} : { itemStyle }),
+        ...(indent === undefined ? {} : { indent }), ...(markerGap === undefined ? {} : { markerGap }) });
+}
+/** Capture the whole rich item before layout can yield; marker and body share fonts, bounds and cancellation. */
+async function prepareListItem(item, index, options, settings, fonts) {
+    if (!item || typeof item !== "object" || Array.isArray(item) || Object.keys(item).some(key => !["text", "style", "keepTogether"].includes(key)))
+        throw new TypeError("PDF list items support text, style and keepTogether.");
+    if (!Number.isSafeInteger(index) || index < 0 || !Number.isSafeInteger(options.start + index))
+        throw new RangeError("PDF list numbering must remain within positive safe integers.");
+    const { text, style = options.itemStyle, keepTogether } = item;
+    const captured = captureParagraph({ kind: "paragraph", text, ...(style === undefined ? {} : { style }),
+        ...(keepTogether === undefined ? {} : { keepTogether }) }, settings, fonts);
+    if (captured.keepWithNext)
+        throw new TypeError("PDF list item styles cannot use keepWithNext.");
+    if (!captured.text.text.trim().length)
+        throw new TypeError("PDF list items require nonempty text.");
+    const markerText = options.ordered ? String(options.start + index) + "." : "•";
+    const capturedMarker = capturePdfText(markerText, captured.style, settings, fonts);
+    settings.budget.cell(markerText, markerText.length);
+    const width = settings.page.width - settings.margins.left - settings.margins.right;
+    const marker = (await wrapPdfText(capturedMarker, fonts, captured.size, width, settings, false))[0];
+    const markerGap = options.markerGap ?? captured.size / 2, indent = options.indent ?? Math.max(captured.size * 2, marker.width + markerGap);
+    if (marker.width + markerGap > indent + .001)
+        throw new RangeError("PDF list indent cannot fit its marker and gap.");
+    if (indent >= width)
+        throw new RangeError("PDF list indent leaves no body text area.");
+    const paragraph = await prepareParagraph(captured, settings, fonts, width - indent), first = paragraph.lines[0];
+    const lineHeight = Math.max(first.lineHeight, marker.lineHeight), ascent = Math.max(first.ascent, marker.ascent);
+    return { marker, indent, markerGap, paragraph: { ...paragraph,
+            lines: [{ ...first, lineHeight, ascent }, ...paragraph.lines.slice(1)],
+            height: paragraph.height + lineHeight - first.lineHeight, firstHeight: paragraph.spaceBefore + lineHeight } };
+}
+const _exports = Object.freeze({ captureListOptions: captureListOptions, prepareListItem: prepareListItem });
+return _exports;
+})();
+
+const _m65 = (() => {
 const { BlobByteSink, withDestination } = _m3;
 
 const { OfficeIMOError } = _m2;
@@ -7754,21 +8169,25 @@ const { copyColumns, createRowProjector } = _m11;
 
 const { settings } = _m42;
 
-const { pdfNumber: n } = _m44;
+const { pdfNumber: n } = _m46;
 
-const { PdfTableLayout } = _m52;
+const { PdfTableLayout } = _m54;
 
-const { PdfWriteSession } = _m43;
+const { PdfWriteSession } = _m45;
 
-const { PdfDocumentImages } = _m61;
+const { PdfDocumentImages } = _m66;
 
-const { vectorCommands } = _m63;
+const { vectorCommands } = _m68;
 
-const { graphicAlternative } = _m58;
+const { graphicAlternative } = _m62;
 
-const { checkDrawingBlock, prepareDrawing } = _m64;
+const { checkDrawingBlock, prepareDrawing } = _m69;
 
-const { captureParagraph, prepareParagraph, checkParagraphBuffer, paragraphStartHeight } = _m65;
+const { captureParagraph, captureCaption, prepareParagraph, checkParagraphBuffer, paragraphStartHeight } = _m70;
+
+const { captureListOptions, prepareListItem } = _m71;
+
+const { captureSection } = _m60;
 
 /** Capture typed columns for a single-use table source in a composed document. */
 function pdfTable(rows, options) {
@@ -7794,32 +8213,69 @@ async function writePdfDocumentTo(blocks, destination, configuration = {}) {
     checkAbort(options.signal);
     return withDestination(destination, async (sink) => {
         const session = new PdfWriteSession(sink, prepared), { objects, pages, fonts } = session, images = new PdfDocumentImages(objects, prepared);
-        let rows = 0, columns = 0, commands = 0, drawingElements = 0;
+        let rows = 0, columns = 0, commands = 0, drawingElements = 0, listItems = 0;
         let pending = [];
         const flushParagraphs = async (nextHeight = 0) => {
             const paragraphs = [];
             for (const paragraph of pending)
-                paragraphs.push(await prepareParagraph(paragraph, prepared, fonts));
+                paragraphs.push(await prepareParagraph(paragraph, pages.settings, fonts));
             pending = [];
             await pages.paragraphs(paragraphs, nextHeight);
         };
+        const enqueueParagraph = async (block) => {
+            const paragraph = captureParagraph(block, pages.settings, fonts);
+            if (!paragraph.text.text)
+                return;
+            if (pending.length || paragraph.keepWithNext) {
+                pending.push(paragraph);
+                checkParagraphBuffer(pending, pages.settings);
+                if (!paragraph.keepWithNext)
+                    await flushParagraphs();
+            }
+            else
+                await pages.paragraphs([await prepareParagraph(paragraph, pages.settings, fonts)]);
+        };
+        const prepareCaption = async (captured) => captured === undefined ? undefined : prepareParagraph(captured, pages.settings, fonts);
+        const snapshotCaption = (caption) => caption === undefined ? undefined : captureCaption(caption, pages.settings, fonts);
         await session.start();
         await consumeRows(blocks, options.signal, async (block) => {
             if (!block || typeof block !== "object")
                 throw new TypeError("PDF document blocks must be objects.");
             switch (block.kind) {
-                case "paragraph": {
-                    const paragraph = captureParagraph(block, prepared, fonts);
-                    if (!paragraph.text.text)
-                        break;
-                    if (pending.length || paragraph.keepWithNext) {
-                        pending.push(paragraph);
-                        checkParagraphBuffer(pending, prepared);
-                        if (!paragraph.keepWithNext)
-                            await flushParagraphs();
-                    }
-                    else
-                        await pages.paragraphs([await prepareParagraph(paragraph, prepared, fonts)]);
+                case "section": {
+                    const capturedSection = captureSection(block, prepared);
+                    await flushParagraphs();
+                    const section = await pages.beginSection(capturedSection);
+                    if (section.includeHeading)
+                        await enqueueParagraph({ kind: "paragraph", text: section.title,
+                            headingLevel: section.level, ...(section.headingStyle === undefined ?
+                                { fontSize: pages.settings.fontSize * 1.5, presentation: { bold: true } } : { style: section.headingStyle }),
+                            keepTogether: true, keepWithNext: true,
+                            ...(section.bookmark ? { bookmark: { title: section.title, level: section.level } } : {}) });
+                    else if (section.bookmark)
+                        pages.addBookmark({ title: section.title, level: section.level });
+                    break;
+                }
+                case "paragraph":
+                    await enqueueParagraph(block);
+                    break;
+                case "list": {
+                    const captured = captureListOptions(block, pages.settings);
+                    let count = 0, owner;
+                    await consumeRows(captured.items, options.signal, async (item) => {
+                        if (++listItems > prepared.limits.maxListItems)
+                            throw new OfficeIMOError("RESOURCE_LIMIT", "maxListItems exceeded.");
+                        const laidOut = await prepareListItem(item, count++, captured, pages.settings, fonts);
+                        if (count === 1) {
+                            await flushParagraphs(laidOut.paragraph.keepTogether ? laidOut.paragraph.height : laidOut.paragraph.firstHeight);
+                            owner = session.structure?.element("L");
+                        }
+                        await pages.listItem(laidOut, owner);
+                        if (taskYieldDue())
+                            await pause();
+                        checkAbort(options.signal);
+                    });
+                    await session.structure?.complete(owner);
                     break;
                 }
                 case "group": {
@@ -7832,14 +8288,14 @@ async function writePdfDocumentTo(blocks, destination, configuration = {}) {
                         throw new OfficeIMOError("RESOURCE_LIMIT", "maxGroupBlocks exceeded.");
                     const captured = [];
                     for (const paragraph of blocks) {
-                        captured.push(captureParagraph(paragraph, prepared, fonts));
+                        captured.push(captureParagraph(paragraph, pages.settings, fonts));
                         checkParagraphBuffer(captured, prepared);
                     }
                     if (captured.filter(paragraph => paragraph.text.text).at(-1)?.keepWithNext)
                         throw new TypeError("The last paragraph in a group cannot keepWithNext beyond the group's boundary.");
                     const paragraphs = [];
                     for (const paragraph of captured)
-                        paragraphs.push(await prepareParagraph(paragraph, prepared, fonts));
+                        paragraphs.push(await prepareParagraph(paragraph, pages.settings, fonts));
                     if (!paragraphs.some(paragraph => paragraph.lines.length > 0))
                         break;
                     await flushParagraphs(keepTogether !== false ? paragraphs.reduce((height, paragraph) => height + paragraph.height, 0) : paragraphStartHeight(paragraphs));
@@ -7851,19 +8307,22 @@ async function writePdfDocumentTo(blocks, destination, configuration = {}) {
                     await pages.pageBreak();
                     break;
                 case "table": {
-                    checkTableOptions(block.options);
-                    const table = settings({ ...options, ...block.options, columns: block.options?.columns, includeHeader: block.options?.includeHeader ?? true }), layout = new PdfTableLayout({ ...table, budget }, fonts);
+                    const { options: tableOptions, rows: source, caption: inputCaption } = block;
+                    checkTableOptions(tableOptions);
+                    const capturedCaption = snapshotCaption(inputCaption);
+                    const table = settings({ ...pages.settings.options, ...tableOptions, columns: tableOptions?.columns, includeHeader: tableOptions?.includeHeader ?? true }), layout = new PdfTableLayout({ ...table, budget }, fonts);
+                    const caption = await prepareCaption(capturedCaption);
                     const project = createRowProjector(table.options.columns, undefined, options.signal);
                     let count = 0, started = false;
                     columns = Math.max(columns, table.options.columns.length);
                     const headings = await layout.headers(), headingHeight = headings.reduce((height, row) => height + row.height, 0);
-                    await consumeRows(block.rows, options.signal, async (row) => {
+                    await consumeRows(source, options.signal, async (row) => {
                         budget.row(rows + 1);
-                        const laidOut = await layout.data(project(row, count), count), keptHeading = !started && pending.length > 0;
+                        const laidOut = await layout.data(project(row, count), count), keptHeading = !started && (pending.length > 0 || !!caption?.lines.length);
                         if (!started) {
-                            const minimum = laidOut.lineHeight + prepared.padding * 2;
-                            await flushParagraphs(headingHeight + minimum);
-                            await pages.beginTable(layout, headings, minimum);
+                            const minimum = laidOut.lineHeight + table.padding * 2;
+                            await flushParagraphs((caption?.height ?? 0) + headingHeight + minimum);
+                            await pages.beginTable(layout, headings, minimum, caption);
                             started = true;
                         }
                         await pages.row(laidOut, keptHeading);
@@ -7875,14 +8334,14 @@ async function writePdfDocumentTo(blocks, destination, configuration = {}) {
                             await pause();
                         checkAbort(options.signal);
                     });
-                    const footer = await layout.footer(count), keptFooterHeading = !started && pending.length > 0;
+                    const footer = await layout.footer(count), keptFooterHeading = !started && (pending.length > 0 || !!caption?.lines.length);
                     if (!started) {
                         if (!headings.length && !footer?.length)
                             break;
                         const minimum = footer?.length ? table.options.footer?.rows ? footer.reduce((height, row) => height + row.height, 0) :
-                            footer[0].lineHeight + prepared.padding * 2 : 0;
-                        await flushParagraphs(headingHeight + minimum);
-                        await pages.beginTable(layout, headings, minimum);
+                            footer[0].lineHeight + table.padding * 2 : 0;
+                        await flushParagraphs((caption?.height ?? 0) + headingHeight + minimum);
+                        await pages.beginTable(layout, headings, minimum, caption);
                     }
                     if (footer) {
                         if (table.options.footer?.rows)
@@ -7894,34 +8353,42 @@ async function writePdfDocumentTo(blocks, destination, configuration = {}) {
                     break;
                 }
                 case "image": {
-                    const displayWidth = block.width, displayHeight = block.height;
-                    const alternative = graphicAlternative(block, prepared), alignment = graphicAlignment(block.alignment), image = await images.prepare(block.image);
+                    const { width: displayWidth, height: displayHeight, image: inputImage, caption: inputCaption } = block;
+                    const capturedCaption = snapshotCaption(inputCaption), alternative = graphicAlternative(block, pages.settings), alignment = graphicAlignment(block.alignment);
+                    if (capturedCaption && alternative === undefined)
+                        throw new TypeError("A captioned PDF graphic requires alternativeText and cannot be decorative.");
+                    const image = await images.prepare(inputImage), caption = await prepareCaption(capturedCaption);
                     const width = displayWidth ?? (displayHeight === undefined ? image.width * .75 : displayHeight * image.width / image.height);
                     const height = displayHeight ?? width * image.height / image.width;
                     if (!Number.isFinite(width) || width <= 0 || !Number.isFinite(height) || height <= 0)
                         throw new RangeError("Image display dimensions must be finite and positive.");
-                    await flushParagraphs(pages.graphicHeight(width, height));
+                    await flushParagraphs((caption?.height ?? 0) + pages.graphicHeight(width, height));
                     pages.registerXObject(image.name, image.id);
-                    await pages.graphic(width, height, alignment, (x, y, w, h) => "q " + [w, 0, 0, h, x, y].map(n).join(" ") + " cm /" + image.name + " Do Q\n", alternative);
+                    await pages.graphic(width, height, alignment, (x, y, w, h) => "q " + [w, 0, 0, h, x, y].map(n).join(" ") + " cm /" + image.name + " Do Q\n", alternative, caption);
                     break;
                 }
                 case "vector": {
-                    const alternative = graphicAlternative(block, prepared), alignment = graphicAlignment(block.alignment), path = await vectorCommands(block, prepared, commands);
+                    const capturedCaption = snapshotCaption(block.caption), alternative = graphicAlternative(block, pages.settings), alignment = graphicAlignment(block.alignment);
+                    if (capturedCaption && alternative === undefined)
+                        throw new TypeError("A captioned PDF graphic requires alternativeText and cannot be decorative.");
+                    const path = await vectorCommands(block, pages.settings, commands), caption = await prepareCaption(capturedCaption);
                     commands += path.count;
-                    await flushParagraphs(pages.graphicHeight(path.width, path.height));
+                    await flushParagraphs((caption?.height ?? 0) + pages.graphicHeight(path.width, path.height));
                     await pages.graphic(path.width, path.height, alignment, (x, y, w, h) => "q " + [w / path.width, 0, 0, -h / path.height, x, y + h].map(n).join(" ") +
-                        " cm 0 0 " + n(path.width) + " " + n(path.height) + " re W n\n" + path.content + "Q\n", alternative);
+                        " cm 0 0 " + n(path.width) + " " + n(path.height) + " re W n\n" + path.content + "Q\n", alternative, caption);
                     break;
                 }
                 case "drawing": {
                     checkDrawingBlock(block);
-                    const alternative = graphicAlternative(block, prepared), alignment = graphicAlignment(block.alignment);
-                    const drawing = await prepareDrawing(block.drawing, prepared, fonts, { commands, elements: drawingElements });
+                    const inputDrawing = block.drawing, capturedCaption = snapshotCaption(block.caption), alternative = graphicAlternative(block, pages.settings), alignment = graphicAlignment(block.alignment);
+                    if (capturedCaption && alternative === undefined)
+                        throw new TypeError("A captioned PDF graphic requires alternativeText and cannot be decorative.");
+                    const drawing = await prepareDrawing(inputDrawing, pages.settings, fonts, { commands, elements: drawingElements }), caption = await prepareCaption(capturedCaption);
                     commands += drawing.commands;
                     drawingElements += drawing.elements;
-                    await flushParagraphs(pages.graphicHeight(drawing.width, drawing.height));
+                    await flushParagraphs((caption?.height ?? 0) + pages.graphicHeight(drawing.width, drawing.height));
                     await pages.graphic(drawing.width, drawing.height, alignment, (x, y, w, h) => "q " + [w / drawing.width, 0, 0, -h / drawing.height, x, y + h].map(n).join(" ") +
-                        " cm 0 0 " + n(drawing.width) + " " + n(drawing.height) + " re W n\n" + drawing.content + "Q\n", alternative);
+                        " cm 0 0 " + n(drawing.width) + " " + n(drawing.height) + " re W n\n" + drawing.content + "Q\n", alternative, caption);
                     break;
                 }
                 default: throw new TypeError("Unsupported PDF document block.");
@@ -7954,10 +8421,10 @@ const _exports = Object.freeze({ pdfTable: pdfTable, writePdfDocument: writePdfD
 return _exports;
 })();
 
-const _m66 = (() => {
-const { fontProgram } = _m46;
+const _m72 = (() => {
+const { fontProgram } = _m48;
 
-const { resolveScalar, selectFont, validateFonts } = _m50;
+const { resolveScalar, selectFont, validateFonts } = _m52;
 
 /**
  * Check one text run against the writer's selected font and scalar-layout rules.
@@ -7995,11 +8462,11 @@ return _exports;
 
 const _m40 = (() => {
 
-const _exports = Object.freeze({ writePdf: _m41.writePdf, writePdfTo: _m41.writePdfTo, writePdfDocument: _m60.writePdfDocument, writePdfDocumentTo: _m60.writePdfDocumentTo, pdfTable: _m60.pdfTable, PdfFont: _m46.PdfFont, preflightPdfText: _m66.preflightPdfText, ExportCell: _m5.ExportCell, saveBlob: _m1.saveBlob });
+const _exports = Object.freeze({ writePdf: _m41.writePdf, writePdfTo: _m41.writePdfTo, writePdfDocument: _m65.writePdfDocument, writePdfDocumentTo: _m65.writePdfDocumentTo, pdfTable: _m65.pdfTable, PdfFont: _m48.PdfFont, preflightPdfText: _m72.preflightPdfText, ExportCell: _m5.ExportCell, saveBlob: _m1.saveBlob });
 return _exports;
 })();
 
-const _m67 = (() => {
+const _m73 = (() => {
 /** @internal Runtime-checked calls across the optional third-party API boundary. */
 function call(owner, name, ...args) {
     const fn = member(owner, name);
@@ -8031,12 +8498,12 @@ const _exports = Object.freeze({ call: call, member: member, array: array, index
 return _exports;
 })();
 
-const _m68 = (() => {
+const _m74 = (() => {
 const { ExportCell, assertExportValue } = _m5;
 
 const { tableSpans } = _m13;
 
-const { member } = _m67;
+const { member } = _m73;
 
 /** @internal */
 function value(input) {
@@ -8104,14 +8571,14 @@ const _exports = Object.freeze({ value: value, text: text, headings: headings })
 return _exports;
 })();
 
-const _m69 = (() => {
+const _m75 = (() => {
 const { checkAbort, pause, rowsFromBatches, taskYieldDue } = _m4;
 
 const { ExportBudget } = _m10;
 
-const { array, call, indexes, member } = _m67;
+const { array, call, indexes, member } = _m73;
 
-const { headings, text, value } = _m68;
+const { headings, text, value } = _m74;
 
 function safeOptions(options) {
     const format = options.format ? { ...options.format } : undefined, customize = options.customizeData;
@@ -8323,11 +8790,11 @@ const { writePdfTo } = _m40;
 
 const { portableSheet, portableWorkbook } = _m39;
 
-const { call, member } = _m67;
+const { call, member } = _m73;
 
-const { value } = _m68;
+const { value } = _m74;
 
-const { captureDataTablesExport } = _m69;
+const { captureDataTablesExport } = _m75;
 
 
 
@@ -8464,7 +8931,7 @@ function registerDataTablesButtons(host, options = {}) {
         };
     }
 }
-const _exports = Object.freeze({ createDataTablesExport: _m69.createDataTablesExport, ExportCell: _m5.ExportCell, PdfFont: _m46.PdfFont, writeDataTableTo: writeDataTableTo, exportDataTable: exportDataTable, registerDataTablesButtons: registerDataTablesButtons });
+const _exports = Object.freeze({ createDataTablesExport: _m75.createDataTablesExport, ExportCell: _m5.ExportCell, PdfFont: _m48.PdfFont, writeDataTableTo: writeDataTableTo, exportDataTable: exportDataTable, registerDataTablesButtons: registerDataTablesButtons });
 return _exports;
 })();
 const { createDataTablesExport, ExportCell, PdfFont, writeDataTableTo, exportDataTable, registerDataTablesButtons } = _m0;

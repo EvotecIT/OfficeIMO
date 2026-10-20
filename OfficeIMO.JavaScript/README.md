@@ -259,7 +259,7 @@ PDF uses `ExportCell.text` first, then a synchronous `formatValue(value, context
 
 Lengths are points, with 72 points per inch. Defaults are A4 portrait, 36-point margins, 9-point text, 4-point cell padding and page numbers. Named sizes are A3, A4, A5, LETTER, LEGAL and TABLOID; custom `{ width, height }` sizes are accepted. `columnWidths` supplies point widths; otherwise `Column.width` uses the width of the font's zero character. `wideTable: "fit"` fits column widths within the printable width while retaining font size and wrapping text. `"reject"` rejects widths that exceed the page. A column that cannot fit one glyph fails explicitly. Use a wider page, fewer columns or a smaller font for very wide reports.
 
-`Column.groups` provides simple grouped headings. `headerRows` replaces them with a rectangular `TableSpanRows` matrix: each anchor declares `{ value, columnSpan?, rowSpan? }`, and every covered position is `null`. `footer.rows` uses the same model instead of `footer.values`/`totals`. Matrices support up to 16 rows and must cover the declared columns without overlap. Repeated headings must leave space for data; a structured footer must fit below the headings on one page. Titles/messages, page headers/footers and final `Page N of M` labels are separate from the table. Message-only continuation pages retain page decorations without repeating table headings. Page decoration callbacks receive `pageNumber` and return a synchronous string. Page-number space is measured from the selected font and `maxPages`; for large fonts or narrow pages, reduce that limit or set `pageNumbers: false`. Table and paragraph heights respect the selected font face's ascent and descent.
+`Column.groups` provides simple grouped headings. `headerRows` replaces them with a rectangular `TableSpanRows` matrix: each anchor declares `{ value, columnSpan?, rowSpan? }`, and every covered position is `null`. `footer.rows` uses the same model instead of `footer.values`/`totals`. Matrices support up to 16 rows and must cover the declared columns without overlap. Repeated headings must leave space for data; a structured footer must fit below the headings on one page. Titles/messages, page headers/footers and final `Page N of M` labels are separate from the table. Message-only continuation pages retain page decorations without repeating table headings. Page decoration callbacks receive the [page and section context](#compose-a-pdf-report) and return a synchronous string. Page-number space is measured from the selected font and `maxPages`; for large fonts or narrow pages, reduce that limit or set `pageNumbers: false`. Table and paragraph heights respect the selected font face's ascent and descent.
 
 Without supplied fonts, PDF uses standard Helvetica with WinAnsi text. For Polish, Greek, Cyrillic, CJK or other supported Unicode scalars, supply an embedding-permitted static TrueType font containing those glyphs. `PdfFont` copies and validates bytes once and can be reused. For cooperative parsing, use `await PdfFont.create(bytes, { signal, maxBytes })`; its default intake limit is 16 MiB and can be raised up to the constructor's 64 MiB ceiling. The source snapshot is taken before yielding, so later caller mutation cannot change the font. The synchronous constructor remains available. PDF finalization also cooperates with cancellation while building the glyph subset. Optional `bold`, `italic` and `boldItalic` faces preserve their real glyphs; missing faces use synthetic emphasis. Used glyphs and composite dependencies are embedded as a subset, with Unicode extraction maps. Font permissions can require full embedding or prohibit embedding, which fails visibly. Collections, CFF/WOFF and variable fonts require conversion to static TrueType before use. The library neither fetches fonts nor reads installed fonts; font licensing belongs to the host.
 
@@ -273,39 +273,74 @@ Workers can call the same writers without a DOM. For a portable worker-to-page h
 
 ### Compose a PDF report
 
-`writePdfDocument` combines paragraphs, independently paginated tables, images, vector paths, portable drawings and explicit page breaks. `writePdfDocumentTo` writes the same blocks to a caller-owned destination. `pdfTable` checks each table's columns and getters against its row type.
+`writePdfDocument` combines sections, paragraphs, lists, independently paginated tables, images, vector paths, portable drawings and explicit page breaks. `writePdfDocumentTo` writes the same blocks to a caller-owned destination. `pdfTable` checks each table's columns and getters against its row type.
 
 ```ts
 import { writePdfDocument, pdfTable, saveBlob } from "@evotecit/officeimo";
+import type { PdfDocumentBlock, PdfListItem } from "@evotecit/officeimo";
 
 const columns = [
-  { header: "Item", key: "name" },
-  { header: "Amount", key: "amount", alignment: "right" }
+  { header: "Service", key: "service" },
+  { header: "Owner", key: "owner" },
+  { header: "Status", key: "status" },
+  { header: "Latency (ms)", key: "latency", alignment: "right" }
 ] as const;
-const badge = {
-  format: "rgba" as const, width: 2, height: 2,
-  data: Uint8Array.of(0, 128, 200, 255, 245, 160, 30, 255,
-                     0, 128, 200, 128, 245, 160, 30, 128)
-};
-const report = await writePdfDocument([
-  { kind: "paragraph", text: "Sales report", fontSize: 18,
-    presentation: { bold: true, color: "14532D" } },
-  { kind: "image", image: badge, width: 40, height: 40 },
-  { kind: "vector", width: 80, height: 30, fill: "217346", commands: [
-    { op: "move", x: 1, y: 29 }, { op: "line", x: 79, y: 29 },
-    { op: "line", x: 79, y: 1 }, { op: "close" }
-  ] },
-  pdfTable([{ name: "Services", amount: 120 }], {
-    columns, footer: { values: ["Total"], totals: { amount: "sum" } }
-  }),
-  { kind: "pageBreak" },
-  { kind: "paragraph", text: "Adjustments" },
-  pdfTable([{ name: "Credit", amount: -20 }], { columns })
-], { pageSize: "A4", pageFooter: "Sales report" });
-saveBlob(report, "sales-report.pdf");
+async function* findings(): AsyncGenerator<PdfListItem> {
+  yield { text: [{ text: "Review service latency. ", bold: true },
+    { text: "Assign an owner and record the recovery action." }], keepTogether: true };
+  yield { text: "Retain this inventory as the baseline for the next review." };
+}
+async function* inventory() {
+  yield { service: "Directory", owner: "Operations", status: "Review", latency: 120 };
+  yield { service: "Resolver", owner: "Network", status: "Healthy", latency: 8 };
+}
+async function* blocks(): AsyncGenerator<PdfDocumentBlock> {
+  yield { kind: "section", title: "Service review", level: 1, headingStyle: "title" };
+  yield { kind: "paragraph", text: "Two services were checked.", style: "body" };
+  yield { kind: "paragraph", text: "Findings", headingLevel: 2, style: "heading",
+    bookmark: { title: "Findings", level: 2 } };
+  yield { kind: "list", ordered: true, itemStyle: "finding", items: findings() };
+  yield { kind: "vector", width: 120, height: 40, fill: "217346", commands: [
+    { op: "move", x: 1, y: 39 }, { op: "line", x: 119, y: 39 },
+    { op: "line", x: 119, y: 1 }, { op: "close" }
+  ], alternativeText: "Illustrative rising service-health indicator.",
+    caption: { text: "Figure 1. Review indicator.", style: "caption" } };
+  yield { kind: "section", title: "Inventory appendix", level: 2,
+    headingStyle: "heading", orientation: "landscape" };
+  yield { ...pdfTable(inventory(), { columns }),
+    caption: { text: "Table 1. Checked services.", style: "caption" } };
+  // Omitted geometry restores the document's portrait defaults.
+  yield { kind: "section", title: "Next actions", level: 2, headingStyle: "heading" };
+  yield { kind: "list", itemStyle: "finding", items: [
+    { text: "Assign each open finding to an owner.", keepTogether: true }
+  ] };
+}
+const report = await writePdfDocument(blocks(), {
+  pageSize: "A4", orientation: "portrait", tagged: { language: "en" },
+  paragraphStyles: {
+    title: { fontSize: 20, presentation: { bold: true, color: "163C75" } },
+    heading: { fontSize: 14, presentation: { bold: true }, keepWithNext: true },
+    body: { fontSize: 10, spaceAfter: 10 },
+    finding: { fontSize: 10, spaceAfter: 8 },
+    caption: { fontSize: 9, presentation: { italic: true, color: "475569" } }
+  },
+  pageHeader: context => context.sectionTitle ?? "Service review",
+  pageFooter: context => `Section ${context.sectionNumber} / ${context.sectionPageNumber}`
+});
+saveBlob(report, "service-review.pdf");
 ```
 
-Document options own page geometry, fonts, padding, decorations and limits. Each table owns its columns, repeated headings, widths, presentation, formatter and totals. Paragraphs support their own font size, bold, italic, text color and horizontal alignment. The existing font and supported-script rules apply to every block. `writePdf` and `writePdfTo` remain convenient entry points for one table.
+Document options own fonts, padding, default page geometry, decorations and limits. Each table owns its columns, repeated headings, widths, presentation, formatter and totals. The existing font and supported-script rules apply to every block. `writePdf` and `writePdfTo` remain convenient entry points for one table. The [executable service report](../OfficeIMO.JavaScript.Examples/report-engine-job.mjs) shows the same composition over a caller-owned selected row source and summary metadata.
+
+A `section` is a flat boundary for following blocks. Its `title` and optional `level` (1–6, default 1) supply a visible heading and native bookmark by default. `headingStyle` selects the heading's named appearance; `includeHeading: false` hides that heading and `bookmark: false` omits its outline entry. A boundary starts a fresh page after visible content; first or consecutive unpainted sections do not create blank transition pages. Each section derives omitted `pageSize`, `orientation`, `margins`, `pageHeader`, `pageFooter` and `pageNumbers` from the captured document defaults, rather than the preceding section. Page numbers remain continuous. Header/footer callbacks receive `pageNumber`, one-based `sectionNumber` and `sectionPageNumber`, and optional `sectionTitle`; they must return text synchronously. A paragraph's `bookmark: { title, level? }` follows its actual first painted line, including a heading moved by a keep rule.
+
+`paragraphStyles` is a captured record of names to `fontSize`, `presentation` (`bold`, `italic`, text `color` and horizontal `alignment`), spacing and keep rules. Paragraph `style` selects one definition; explicit fields override it, and explicit presentation members merge with the named presentation. Styles have no inheritance and do not imply semantic headings: use `headingLevel` explicitly. Unknown names fail. The registry is shared across sections.
+
+A `list` consumes synchronous or asynchronous `items` once. Each item has `text: PdfText`, optional `style` and `keepTogether`; its style replaces the list's `itemStyle` name. `ordered: true` uses decimal markers, with optional positive safe-integer `start`; otherwise it uses bullets. `start` is valid only for ordered lists. `indent` and `markerGap` are point lengths for hanging body text. The marker stays with the first body line and is not repeated on continuation pages. Nested lists and other nested blocks are unsupported; styles resolving to `keepWithNext: true` are rejected for items. An empty list adds no content or page break. An empty document still produces one PDF page; an explicit `pageBreak` remains a real page break.
+
+Attach `caption: { text, style?, fontSize?, presentation?, spaceBefore?, spaceAfter? }` to a table, image, vector or drawing block. It appears before the owned content and stays with the first table heading/data fragment or the whole graphic. Captioned graphics require nonempty `alternativeText` and cannot be decorative, including in untagged output. Captions and kept content must fit together on a fresh page; reduce a graphic's display dimensions if necessary. Labels such as “Table 1” are authored text: automatic numbering, after-content captions and cross-references are unsupported.
+
+The document-wide composition limits are `maxSections` (default 1,000), `maxBookmarks` (10,000), `maxListItems` (100,000) and `maxParagraphStyles` (256). They accept nonnegative safe integers and share the existing cumulative text, cell, page, font and output budgets. Section boundaries do not reset these budgets. Bookmark titles consume the text and cell budgets once as outline metadata, including when their visible heading is omitted.
 
 Paragraph `text` can also be an array of `PdfTextRun` values. Each run supplies text and optional `bold`, `italic`, RGB `color`, an explicit `font` face or an HTTP(S)/mailto `link`. Wrapping preserves continuous text across run boundaries and gives each visible link fragment its own annotation:
 
@@ -418,7 +453,8 @@ const drawing: PdfDrawing = {
   ]
 };
 const report = await writePdfDocument([
-  { kind: "drawing", drawing, alternativeText: "Sales increased through the quarter." }
+  { kind: "drawing", drawing, alternativeText: "Sales increased through the quarter.",
+    caption: { text: "Figure 1. Quarterly sales.", presentation: { italic: true } } }
 ], { tagged: { language: "en-US" } });
 ```
 
@@ -431,6 +467,8 @@ The wire format rejects unknown properties, versions, commands and element kinds
 ### Tagged PDF reports
 
 Set `tagged: { language: "en-US" }` on a PDF writer to emit a logical structure tree. The language must be a locale identifier accepted by `Intl.getCanonicalLocales`. Composed paragraphs use `P` by default; `headingLevel: 1` through `6` selects `H1` through `H6` without changing the visual presentation. The document-level `title` uses `H1`; top/bottom messages use `P`.
+
+Sections are `Sect` elements beneath one shared `Document`. Lists use `L` with ordered `LI` children, each containing a marker `Lbl` and a paragraph in `LBody`; a continued item retains that identity across pages. Captions are `Caption` children of their actual `Table` or `Figure`, before the owned content in reading order. Native bookmarks provide navigation destinations separately from these semantic roles.
 
 ```ts
 import { writePdfDocument, pdfTable } from "@evotecit/officeimo";
@@ -449,7 +487,7 @@ The supported table profile uses one leaf heading per column, tagged as `TH` wit
 
 Every image, vector or drawing block in tagged output requires either a nonempty `alternativeText` or `decorative: true`. Meaningful graphics become `Figure` elements with an alternative; decorative graphics are artifacts. Supplying both is an error. Figure alternatives count toward the cell/text budgets and obey `maxCellCharacters`. Choose alternatives and heading levels that express the report's meaning; the writer cannot infer them.
 
-`maxStructureElements` (default 1,000,000) bounds retained logical elements, including `Document`, tables, rows, cells and figures. `maxMarkedContentReferences` (2,000,000) bounds their references to painted content, including continued cell lines. These limits apply across the document. Untagged output remains the default.
+`maxStructureElements` (default 1,000,000) bounds the total logical elements created, including `Document`, sections, lists, captions, tables, rows, cells and figures. `maxMarkedContentReferences` (2,000,000) bounds the total references created for painted content, including continued cell lines. These cumulative limits include completed elements and apply across the document. Untagged output remains the default.
 
 This profile provides structure for supported reports. It does not claim accessible PDF or PDF/UA conformance. Assistive-technology reading, navigation and author-supplied semantics require manual acceptance; see the [remaining accessibility work](../Docs/ROADMAP.md#officeimo-javascript).
 
