@@ -107,11 +107,13 @@ namespace OfficeIMO.Word {
 
         /// <summary>
         /// Gets or sets the horizontal alignment of the table within the page.
+        /// Logical start/end values read from a document resolve using the table's declared direction.
         /// </summary>
         public WordTableAlignment? Alignment {
             get {
                 if (_tableProperties != null && _tableProperties.TableJustification != null) {
-                    return _tableProperties.TableJustification.Val?.Value.ToOfficeEnum();
+                    return WordTableAlignmentResolver.Read(_tableProperties.TableJustification,
+                        WordTableAlignmentResolver.IsRightToLeft(_tableProperties)).ToOfficeEnum();
                 }
 
                 return null;
@@ -255,13 +257,13 @@ namespace OfficeIMO.Word {
         public int RowsCount => this.Rows.Count;
 
         /// <summary>
-        /// Gets the collection of rows belonging to the table.
+        /// Gets the table's rows in document order, including rows inside content controls and custom XML.
         /// </summary>
         public List<WordTableRow> Rows {
             get {
                 var list = new List<WordTableRow>(_table.ChildElements.Count);
 
-                foreach (TableRow row in _table.ChildElements.OfType<TableRow>()) {
+                foreach (TableRow row in WordTableContent.Rows(_table)) {
                     list.Add(GetOrCreateRow(row, initializeCells: true));
                 }
 
@@ -409,10 +411,10 @@ namespace OfficeIMO.Word {
             document.MarkTableNormalizationRequired();
             _table = table;
             _document = document;
-            _rowElements = table.Elements<TableRow>().ToList();
+            _rowElements = WordTableContent.Rows(table).ToList();
 
             if (initializeChildren) {
-                foreach (TableRow row in table.ChildElements.OfType<TableRow>().ToList()) {
+                foreach (TableRow row in WordTableContent.Rows(table).ToList()) {
                     GetOrCreateRow(row, initializeCells: true);
                 }
             }
@@ -523,7 +525,7 @@ namespace OfficeIMO.Word {
         }
 
         private List<TableRow> GetRowElements() {
-            return _rowElements ??= _table.Elements<TableRow>().ToList();
+            return _rowElements ??= WordTableContent.Rows(_table).ToList();
         }
 
         internal void InvalidateRowElements() {

@@ -58,7 +58,8 @@ namespace OfficeIMO.Word.Pdf {
                 return;
             }
 
-            runs.Add(CreateNativeVmlTextRun(value, properties, style));
+            foreach (NativeCasedTextSegment segment in GetNativeCasedTextSegments(value, style))
+                runs.Add(CreateNativeVmlTextRun(segment.Text, properties, segment.Style));
         }
 
         private static PdfCore.PdfTextRun CreateNativeVmlTextRun(string value, W.RunProperties? properties, NativeResolvedTextStyle style) =>
@@ -69,7 +70,7 @@ namespace OfficeIMO.Word.Pdf {
                 color: ParseNativeColor(properties?.Color?.Val?.Value),
                 italic: HasNativeOnOff(properties?.Italic),
                 strike: HasNativeOnOff(properties?.Strike),
-                fontSize: GetNativeVmlRunFontSize(properties),
+                fontSize: style.FontSize ?? GetNativeVmlRunFontSize(properties),
                 font: GetNativeVmlRunFont(properties)));
 
         private static void AddNativeVmlTextPathRuns(List<PdfCore.PdfTextRun> runs, WordDocument document, OpenXmlElement element) {
@@ -127,11 +128,6 @@ namespace OfficeIMO.Word.Pdf {
             if (!string.IsNullOrWhiteSpace(propertyValue) &&
                 (string.Equals(value, text, StringComparison.Ordinal) || IsNativeVmlPlaceholderText(value))) {
                 value = PreserveNativeVmlPlaceholderSpacing(text, propertyValue!);
-            }
-
-            W.RunProperties? properties = run.RunProperties;
-            if (HasNativeOnOff(properties?.Caps) || HasNativeOnOff(properties?.SmallCaps)) {
-                value = value.ToUpperInvariant();
             }
 
             return value;

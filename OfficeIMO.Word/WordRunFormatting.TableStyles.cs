@@ -15,8 +15,8 @@ internal static partial class WordRunFormatting {
     /// </summary>
     internal static IEnumerable<OpenXmlCompositeElement> EnumerateTableRunPropertySources(WordParagraph paragraph) {
         TableCell? cell = paragraph._paragraph.Ancestors<TableCell>().FirstOrDefault();
-        TableRow? row = cell?.Parent as TableRow;
-        Table? table = row?.Parent as Table;
+        TableRow? row = cell?.Ancestors<TableRow>().FirstOrDefault();
+        Table? table = row?.Ancestors<Table>().FirstOrDefault();
         if (cell == null || row == null || table == null) yield break;
 
         Styles? styles = paragraph._document?._wordprocessingDocument?.MainDocumentPart?.StyleDefinitionsPart?.Styles;

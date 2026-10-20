@@ -142,6 +142,676 @@
       "maximumMeanAbsoluteError": 14.2,
       "maximumRootMeanSquareError": 47.0,
       "maximumMeanLuminanceError": 18.5
+    },
+    {
+      "id": "word-image-inline-crop",
+      "converterId": "word",
+      "producer": "Microsoft Word",
+      "producerVersion": "16.0.20430.20182",
+      "exportPreset": "standard-print-export",
+      "sourcePath": "word-image-inline-crop.docx",
+      "sourceSha256": "74a716ab666a7d31a178034f9814d0a6618a17c02059a9d091f1baac10aa30d8",
+      "referencePdfPath": "microsoft-word-windows-image-inline-crop.pdf",
+      "referencePdfSha256": "5d070ff3b78f76050a8ff03933edf963199ec557d8fba5f89111055a4e1f19f0",
+      "producerEnvironment": {
+        "suite": "Microsoft Word for Microsoft 365",
+        "productVersion": "16.0.20430.20182",
+        "operatingSystem": "Windows 11"
+      },
+      "sanitization": {
+        "source": "Repository-authored synthetic DOCX control exported independently by desktop Microsoft Word",
+        "replacements": "Creator and last modifier use OfficeIMO synthetic controls; personal company and manager metadata removed."
+      },
+      "qualification": "Same DOCX exported by native Word and OfficeIMO; complete page comparison plus focused geometry/format regression tests. Finite control, not a universal fidelity claim. Raster budgets include observed Windows system fonts and Linux font substitution; glyph sizing and picture geometry have separate regression assertions.",
+      "pages": [
+        {
+          "number": 1,
+          "widthPoints": 612.0,
+          "heightPoints": 792.0,
+          "rasterWidth": 612,
+          "rasterHeight": 792,
+          "measuredDifferentPixelRatio": 0.007097,
+          "measuredMeanAbsoluteError": 0.416451,
+          "measuredRootMeanSquareError": 9.329994,
+          "measuredMeanLuminanceError": 0.469375
+        }
+      ],
+      "maximumDifferentPixelRatio": 0.0151,
+      "maximumMeanAbsoluteError": 0.773,
+      "maximumRootMeanSquareError": 12.646,
+      "maximumMeanLuminanceError": 0.927,
+      "platformComparisonMeasurements": {
+        "Windows": {
+          "differentPixelRatio": 0.007097114940252195,
+          "meanAbsoluteError": 0.41645107116920843,
+          "rootMeanSquareError": 9.329994413711427,
+          "meanLuminanceError": 0.46937476150392815
+        },
+        "Linux": {
+          "differentPixelRatio": 0.010918003565062388,
+          "meanAbsoluteError": 0.518949709513435,
+          "rootMeanSquareError": 9.704660311863938,
+          "meanLuminanceError": 0.6060363801412887
+        }
+      }
+    },
+    {
+      "id": "word-image-anchored-transforms",
+      "converterId": "word",
+      "producer": "Microsoft Word",
+      "producerVersion": "16.0.20430.20182",
+      "exportPreset": "standard-print-export",
+      "sourcePath": "word-image-anchored-transforms.docx",
+      "sourceSha256": "ee90b051ae26d5185493e8d1b1b3eb49993b7893fb3dfc675bee597171295575",
+      "referencePdfPath": "microsoft-word-windows-image-anchored-transforms.pdf",
+      "referencePdfSha256": "bc6560106a2b3313ba4dd7a1b6903ccea3ad56bd207d4f207262d916787e7675",
+      "producerEnvironment": {
+        "suite": "Microsoft Word for Microsoft 365",
+        "productVersion": "16.0.20430.20182",
+        "operatingSystem": "Windows 11"
+      },
+      "sanitization": {
+        "source": "Repository-authored synthetic DOCX control exported independently by desktop Microsoft Word",
+        "replacements": "Creator and last modifier use OfficeIMO synthetic controls; personal company and manager metadata removed."
+      },
+      "qualification": "Same DOCX exported by native Word and OfficeIMO; complete page comparison plus focused geometry/format regression tests. Finite control, not a universal fidelity claim. Raster budgets include observed Windows system fonts and Linux font substitution; glyph sizing and picture geometry have separate regression assertions.",
+      "pages": [
+        {
+          "number": 1,
+          "widthPoints": 612.0,
+          "heightPoints": 792.0,
+          "rasterWidth": 612,
+          "rasterHeight": 792,
+          "measuredDifferentPixelRatio": 0.074247,
+          "measuredMeanAbsoluteError": 0.353181,
+          "measuredRootMeanSquareError": 7.288356,
+          "measuredMeanLuminanceError": 0.440682
+        }
+      ],
+      "maximumDifferentPixelRatio": 0.0964,
+      "maximumMeanAbsoluteError": 0.707,
+      "maximumRootMeanSquareError": 10.246,
+      "maximumMeanLuminanceError": 0.906,
+      "platformComparisonMeasurements": {
+        "Windows": {
+          "differentPixelRatio": 0.07424737571796396,
+          "meanAbsoluteError": 0.35318101356704296,
+          "rootMeanSquareError": 7.288356242845045,
+          "meanLuminanceError": 0.4406819931339543
+        },
+        "Linux": {
+          "differentPixelRatio": 0.07866656763715588,
+          "meanAbsoluteError": 0.46416060110913054,
+          "rootMeanSquareError": 7.7052624722516985,
+          "meanLuminanceError": 0.5886547765233416
+        }
+      }
+    },
+    {
+      "id": "word-image-table-crop",
+      "converterId": "word",
+      "producer": "Microsoft Word",
+      "producerVersion": "16.0.20430.20182",
+      "exportPreset": "standard-print-export",
+      "sourcePath": "word-image-table-crop.docx",
+      "sourceSha256": "afea52e5ea1eb85852fc278260d9d2a104af246a2c579790275ed481de8c6571",
+      "referencePdfPath": "microsoft-word-windows-image-table-crop.pdf",
+      "referencePdfSha256": "4c345bb9974dea9e9a7497476ef3c83ad469b061ad807228594d9ecf107a3744",
+      "producerEnvironment": {
+        "suite": "Microsoft Word for Microsoft 365",
+        "productVersion": "16.0.20430.20182",
+        "operatingSystem": "Windows 11"
+      },
+      "sanitization": {
+        "source": "Repository-authored synthetic DOCX control exported independently by desktop Microsoft Word",
+        "replacements": "Creator and last modifier use OfficeIMO synthetic controls; personal company and manager metadata removed."
+      },
+      "qualification": "Same DOCX exported by native Word and OfficeIMO; complete page comparison plus focused geometry/format regression tests. Finite control, not a universal fidelity claim. Raster budgets include observed Windows system fonts and Linux font substitution; glyph sizing and picture geometry have separate regression assertions.",
+      "pages": [
+        {
+          "number": 1,
+          "widthPoints": 612.0,
+          "heightPoints": 792.0,
+          "rasterWidth": 612,
+          "rasterHeight": 792,
+          "measuredDifferentPixelRatio": 0.006237,
+          "measuredMeanAbsoluteError": 0.519362,
+          "measuredRootMeanSquareError": 10.63919,
+          "measuredMeanLuminanceError": 0.679206
+        }
+      ],
+      "maximumDifferentPixelRatio": 0.0151,
+      "maximumMeanAbsoluteError": 0.891,
+      "maximumRootMeanSquareError": 14.063,
+      "maximumMeanLuminanceError": 1.172,
+      "platformComparisonMeasurements": {
+        "Windows": {
+          "differentPixelRatio": 0.006236796065227437,
+          "meanAbsoluteError": 0.5193618166963755,
+          "rootMeanSquareError": 10.639189875844252,
+          "meanLuminanceError": 0.6792064897339407
+        },
+        "Linux": {
+          "differentPixelRatio": 0.010957202746418433,
+          "meanAbsoluteError": 0.6177662037037037,
+          "rootMeanSquareError": 10.886134811268024,
+          "meanLuminanceError": 0.8104123390770448
+        }
+      }
+    },
+    {
+      "id": "word-image-header-crop",
+      "converterId": "word",
+      "producer": "Microsoft Word",
+      "producerVersion": "16.0.20430.20182",
+      "exportPreset": "standard-print-export",
+      "sourcePath": "word-image-header-crop.docx",
+      "sourceSha256": "7afc9513eaac88a8175a659f560660dc52ebb89f7fca3c6920f79d424d04b9c0",
+      "referencePdfPath": "microsoft-word-windows-image-header-crop.pdf",
+      "referencePdfSha256": "39270da7eb7a37693191449012502168bf348bd69d4533255d18122eab62aed0",
+      "producerEnvironment": {
+        "suite": "Microsoft Word for Microsoft 365",
+        "productVersion": "16.0.20430.20182",
+        "operatingSystem": "Windows 11"
+      },
+      "sanitization": {
+        "source": "Repository-authored synthetic DOCX control exported independently by desktop Microsoft Word",
+        "replacements": "Creator and last modifier use OfficeIMO synthetic controls; personal company and manager metadata removed."
+      },
+      "qualification": "Same DOCX exported by native Word and OfficeIMO; complete page comparison plus focused geometry/format regression tests. Finite control, not a universal fidelity claim. Raster budgets include observed Windows system fonts and Linux font substitution; glyph sizing and picture geometry have separate regression assertions.",
+      "pages": [
+        {
+          "number": 1,
+          "widthPoints": 612.0,
+          "heightPoints": 792.0,
+          "rasterWidth": 612,
+          "rasterHeight": 792,
+          "measuredDifferentPixelRatio": 0.014555,
+          "measuredMeanAbsoluteError": 0.678416,
+          "measuredRootMeanSquareError": 9.420592,
+          "measuredMeanLuminanceError": 0.883633
+        }
+      ],
+      "maximumDifferentPixelRatio": 0.0236,
+      "maximumMeanAbsoluteError": 1.219,
+      "maximumRootMeanSquareError": 13.959,
+      "maximumMeanLuminanceError": 1.616,
+      "platformComparisonMeasurements": {
+        "Windows": {
+          "differentPixelRatio": 0.014555274971941638,
+          "meanAbsoluteError": 0.6784161054994389,
+          "rootMeanSquareError": 9.420591810027927,
+          "meanLuminanceError": 0.8836328513897141
+        },
+        "Linux": {
+          "differentPixelRatio": 0.018006866046081732,
+          "meanAbsoluteError": 0.8909473616887833,
+          "rootMeanSquareError": 10.798991289377897,
+          "meanLuminanceError": 1.179889809038096
+        }
+      }
+    },
+    {
+      "id": "word-smallcaps-mixed-styles",
+      "converterId": "word",
+      "producer": "Microsoft Word",
+      "producerVersion": "16.0.20430.20182",
+      "exportPreset": "standard-print-export",
+      "sourcePath": "word-smallcaps-mixed-styles.docx",
+      "sourceSha256": "5514dace42abfcc41965ff83091d4f08775028fdadd1054d77fe5c6fc3d42ac9",
+      "referencePdfPath": "microsoft-word-windows-smallcaps-mixed-styles.pdf",
+      "referencePdfSha256": "c34aff2f37752a2a780c15590f061f48c94fbaf14120c4eb66ee6344d6e45b8e",
+      "producerEnvironment": {
+        "suite": "Microsoft Word for Microsoft 365",
+        "productVersion": "16.0.20430.20182",
+        "operatingSystem": "Windows 11"
+      },
+      "sanitization": {
+        "source": "Repository-authored synthetic DOCX control exported independently by desktop Microsoft Word",
+        "replacements": "Creator and last modifier use OfficeIMO synthetic controls; personal company and manager metadata removed."
+      },
+      "qualification": "Same DOCX exported by native Word and OfficeIMO; complete page comparison plus focused geometry/format regression tests. Finite control, not a universal fidelity claim. Raster budgets include observed Windows system fonts and Linux font substitution; glyph sizing and picture geometry have separate regression assertions.",
+      "pages": [
+        {
+          "number": 1,
+          "widthPoints": 612.0,
+          "heightPoints": 792.0,
+          "rasterWidth": 612,
+          "rasterHeight": 792,
+          "measuredDifferentPixelRatio": 0.026144,
+          "measuredMeanAbsoluteError": 1.080641,
+          "measuredRootMeanSquareError": 12.910496,
+          "measuredMeanLuminanceError": 1.440855
+        }
+      ],
+      "maximumDifferentPixelRatio": 0.0421,
+      "maximumMeanAbsoluteError": 2.136,
+      "maximumRootMeanSquareError": 19.052,
+      "maximumMeanLuminanceError": 2.848,
+      "platformComparisonMeasurements": {
+        "Windows": {
+          "differentPixelRatio": 0.026143790849673203,
+          "meanAbsoluteError": 1.0806409685086156,
+          "rootMeanSquareError": 12.910495693975934,
+          "meanLuminanceError": 1.4408546246781542
+        },
+        "Linux": {
+          "differentPixelRatio": 0.03338738694130851,
+          "meanAbsoluteError": 1.6552411368587838,
+          "rootMeanSquareError": 15.043624566639531,
+          "meanLuminanceError": 2.2069881824783786
+        }
+      }
+    },
+    {
+      "id": "word-docdefaults-run-style",
+      "converterId": "word",
+      "producer": "Microsoft Word",
+      "producerVersion": "16.0.20430.20182",
+      "exportPreset": "standard-print-export",
+      "sourcePath": "word-docdefaults-run-style.docx",
+      "sourceSha256": "0eff910a8c83d94479f8cbe42f888958316327f4e9788d00c7d520dbed024515",
+      "referencePdfPath": "microsoft-word-windows-docdefaults-run-style.pdf",
+      "referencePdfSha256": "d268fc75e091500826fd63a8e41685e92c84cd3f4a047994da8a91f92e520f85",
+      "producerEnvironment": {
+        "suite": "Microsoft Word for Microsoft 365",
+        "productVersion": "16.0.20430.20182",
+        "operatingSystem": "Windows 11"
+      },
+      "sanitization": {
+        "source": "Repository-authored synthetic DOCX control exported independently by desktop Microsoft Word",
+        "replacements": "Creator and last modifier use OfficeIMO synthetic controls; personal company and manager metadata removed."
+      },
+      "qualification": "Same DOCX exported by native Word and OfficeIMO; complete page comparison plus focused geometry/format regression tests. Finite control, not a universal fidelity claim. Raster budgets include observed Windows system fonts and Linux font substitution; glyph sizing and picture geometry have separate regression assertions.",
+      "pages": [
+        {
+          "number": 1,
+          "widthPoints": 612.0,
+          "heightPoints": 792.0,
+          "rasterWidth": 612,
+          "rasterHeight": 792,
+          "measuredDifferentPixelRatio": 0.014644,
+          "measuredMeanAbsoluteError": 0.446429,
+          "measuredRootMeanSquareError": 6.906922,
+          "measuredMeanLuminanceError": 0.560786
+        }
+      ],
+      "maximumDifferentPixelRatio": 0.0239,
+      "maximumMeanAbsoluteError": 0.93,
+      "maximumRootMeanSquareError": 10.492,
+      "maximumMeanLuminanceError": 1.166,
+      "platformComparisonMeasurements": {
+        "Windows": {
+          "differentPixelRatio": 0.014643988908694791,
+          "meanAbsoluteError": 0.4464291608899452,
+          "rootMeanSquareError": 6.906922099294298,
+          "meanLuminanceError": 0.5607856477355252
+        },
+        "Linux": {
+          "differentPixelRatio": 0.01824618736383442,
+          "meanAbsoluteError": 0.6497078629431571,
+          "rootMeanSquareError": 7.910167989178224,
+          "meanLuminanceError": 0.8048843628276183
+        }
+      }
+    },
+    {
+      "id": "word-positional-tabs-indent-inherited-right30",
+      "converterId": "word",
+      "producer": "Microsoft Word",
+      "producerVersion": "16.0.20430.20182",
+      "exportPreset": "standard-print-export",
+      "sourcePath": "word-positional-tabs-indent-inherited-right30.docx",
+      "sourceSha256": "0863221e56e4d024c422d9467edec61eb676710d2718588d35cf08a132c68c94",
+      "referencePdfPath": "microsoft-word-windows-positional-tabs-indent-inherited-right30.pdf",
+      "referencePdfSha256": "315ca1168fcdfe1bbb3422ac71ef90a60cd0486d7c09ec3b4be4f70e7cfaf108",
+      "producerEnvironment": {
+        "suite": "Microsoft Word for Microsoft 365",
+        "productVersion": "16.0.20430.20182",
+        "operatingSystem": "Windows 11"
+      },
+      "sanitization": {
+        "source": "Repository-authored synthetic DOCX control exported independently by desktop Microsoft Word",
+        "replacements": "Standalone synthetic package with no document properties, external relationships or third-party carrier content."
+      },
+      "qualification": "Same DOCX exported by native Word and OfficeIMO; complete page comparison plus focused geometry/format regression tests. Finite control, not a universal fidelity claim. Raster budgets include observed Windows system fonts and Linux font substitution; glyph sizing and picture geometry have separate regression assertions.",
+      "pages": [
+        {
+          "number": 1,
+          "widthPoints": 399.96,
+          "heightPoints": 500.04,
+          "rasterWidth": 400,
+          "rasterHeight": 501,
+          "measuredDifferentPixelRatio": 0.001876,
+          "measuredMeanAbsoluteError": 0.019465,
+          "measuredRootMeanSquareError": 0.854328,
+          "measuredMeanLuminanceError": 0.025953
+        }
+      ],
+      "maximumDifferentPixelRatio": 0.0049,
+      "maximumMeanAbsoluteError": 0.2,
+      "maximumRootMeanSquareError": 2.57,
+      "maximumMeanLuminanceError": 0.266,
+      "platformComparisonMeasurements": {
+        "Windows": {
+          "differentPixelRatio": 0.00187624750499002,
+          "meanAbsoluteError": 0.01946482035928144,
+          "rootMeanSquareError": 0.8543280968140917,
+          "meanLuminanceError": 0.025953093812375243
+        },
+        "Linux": {
+          "differentPixelRatio": 0.0024451097804391217,
+          "meanAbsoluteError": 0.04146706586826347,
+          "rootMeanSquareError": 1.3086395321667845,
+          "meanLuminanceError": 0.05528942115768463
+        }
+      }
+    },
+    {
+      "id": "word-positional-tabs-indent",
+      "converterId": "word",
+      "producer": "Microsoft Word",
+      "producerVersion": "16.0.20430.20182",
+      "exportPreset": "standard-print-export",
+      "sourcePath": "word-positional-tabs-indent.docx",
+      "sourceSha256": "a3d005eb51f555d66dd67cb3a25b89b657e0eed4b5eb1ad7ce62f6c696c84d29",
+      "referencePdfPath": "microsoft-word-windows-positional-tabs-indent.pdf",
+      "referencePdfSha256": "63c7971a444d0365a81a4d8bc32b07364446b095e8a6e3fbeef4598a8aa68cfb",
+      "producerEnvironment": {
+        "suite": "Microsoft Word for Microsoft 365",
+        "productVersion": "16.0.20430.20182",
+        "operatingSystem": "Windows 11"
+      },
+      "sanitization": {
+        "source": "Repository-authored synthetic DOCX control exported independently by desktop Microsoft Word",
+        "replacements": "Standalone synthetic package with no document properties, external relationships or third-party carrier content."
+      },
+      "qualification": "Same DOCX exported by native Word and OfficeIMO; complete page comparison plus focused geometry/format regression tests. Finite control, not a universal fidelity claim. Raster budgets include observed Windows system fonts and Linux font substitution; glyph sizing and picture geometry have separate regression assertions.",
+      "pages": [
+        {
+          "number": 1,
+          "widthPoints": 399.96,
+          "heightPoints": 500.04,
+          "rasterWidth": 400,
+          "rasterHeight": 501,
+          "measuredDifferentPixelRatio": 0.001951,
+          "measuredMeanAbsoluteError": 0.02308,
+          "measuredRootMeanSquareError": 0.950333,
+          "measuredMeanLuminanceError": 0.030773
+        }
+      ],
+      "maximumDifferentPixelRatio": 0.005,
+      "maximumMeanAbsoluteError": 0.204,
+      "maximumRootMeanSquareError": 2.698,
+      "maximumMeanLuminanceError": 0.272,
+      "platformComparisonMeasurements": {
+        "Windows": {
+          "differentPixelRatio": 0.0019510978043912176,
+          "meanAbsoluteError": 0.023080089820359282,
+          "rootMeanSquareError": 0.9503328285553121,
+          "meanLuminanceError": 0.030773453093812367
+        },
+        "Linux": {
+          "differentPixelRatio": 0.0024600798403193614,
+          "meanAbsoluteError": 0.044880239520958085,
+          "rootMeanSquareError": 1.4147400895422748,
+          "meanLuminanceError": 0.05984031936127745
+        }
+      }
+    },
+    {
+      "id": "word-positional-tabs-margin-inherited-right30",
+      "converterId": "word",
+      "producer": "Microsoft Word",
+      "producerVersion": "16.0.20430.20182",
+      "exportPreset": "standard-print-export",
+      "sourcePath": "word-positional-tabs-margin-inherited-right30.docx",
+      "sourceSha256": "564c24ed5231085014444bf53fa76d3de69e7e797d92106adbf075e7eb1d9ad1",
+      "referencePdfPath": "microsoft-word-windows-positional-tabs-margin-inherited-right30.pdf",
+      "referencePdfSha256": "360d61bc875a7573ecfea8ce3cb252cbeac275e90ced00de9705236da645b12d",
+      "producerEnvironment": {
+        "suite": "Microsoft Word for Microsoft 365",
+        "productVersion": "16.0.20430.20182",
+        "operatingSystem": "Windows 11"
+      },
+      "sanitization": {
+        "source": "Repository-authored synthetic DOCX control exported independently by desktop Microsoft Word",
+        "replacements": "Standalone synthetic package with no document properties, external relationships or third-party carrier content."
+      },
+      "qualification": "Same DOCX exported by native Word and OfficeIMO; complete page comparison plus focused geometry/format regression tests. Finite control, not a universal fidelity claim. Raster budgets include observed Windows system fonts and Linux font substitution; glyph sizing and picture geometry have separate regression assertions.",
+      "pages": [
+        {
+          "number": 1,
+          "widthPoints": 399.96,
+          "heightPoints": 500.04,
+          "rasterWidth": 400,
+          "rasterHeight": 501,
+          "measuredDifferentPixelRatio": 0.001861,
+          "measuredMeanAbsoluteError": 0.018301,
+          "measuredRootMeanSquareError": 0.813987,
+          "measuredMeanLuminanceError": 0.024401
+        }
+      ],
+      "maximumDifferentPixelRatio": 0.005,
+      "maximumMeanAbsoluteError": 0.201,
+      "maximumRootMeanSquareError": 2.586,
+      "maximumMeanLuminanceError": 0.267,
+      "platformComparisonMeasurements": {
+        "Windows": {
+          "differentPixelRatio": 0.0018612774451097804,
+          "meanAbsoluteError": 0.018300898203592816,
+          "rootMeanSquareError": 0.8139870086797462,
+          "meanLuminanceError": 0.024401197604790415
+        },
+        "Linux": {
+          "differentPixelRatio": 0.0024600798403193614,
+          "meanAbsoluteError": 0.04217440119760479,
+          "rootMeanSquareError": 1.3213060019912888,
+          "meanLuminanceError": 0.05623253493013972
+        }
+      }
+    },
+    {
+      "id": "word-positional-tabs-margin",
+      "converterId": "word",
+      "producer": "Microsoft Word",
+      "producerVersion": "16.0.20430.20182",
+      "exportPreset": "standard-print-export",
+      "sourcePath": "word-positional-tabs-margin.docx",
+      "sourceSha256": "38d674696fb2aac5e27cd261281532d052123c55721cd15b04b60e90b7fa085f",
+      "referencePdfPath": "microsoft-word-windows-positional-tabs-margin.pdf",
+      "referencePdfSha256": "ac825c1fa3b5465112ef96cf50ce4ec578d98264ca3ed28b169c395fc28e02b8",
+      "producerEnvironment": {
+        "suite": "Microsoft Word for Microsoft 365",
+        "productVersion": "16.0.20430.20182",
+        "operatingSystem": "Windows 11"
+      },
+      "sanitization": {
+        "source": "Repository-authored synthetic DOCX control exported independently by desktop Microsoft Word",
+        "replacements": "Standalone synthetic package with no document properties, external relationships or third-party carrier content."
+      },
+      "qualification": "Same DOCX exported by native Word and OfficeIMO; complete page comparison plus focused geometry/format regression tests. Finite control, not a universal fidelity claim. Raster budgets include observed Windows system fonts and Linux font substitution; glyph sizing and picture geometry have separate regression assertions.",
+      "pages": [
+        {
+          "number": 1,
+          "widthPoints": 399.96,
+          "heightPoints": 500.04,
+          "rasterWidth": 400,
+          "rasterHeight": 501,
+          "measuredDifferentPixelRatio": 0.001936,
+          "measuredMeanAbsoluteError": 0.021916,
+          "measuredRootMeanSquareError": 0.914238,
+          "measuredMeanLuminanceError": 0.029222
+        }
+      ],
+      "maximumDifferentPixelRatio": 0.005,
+      "maximumMeanAbsoluteError": 0.205,
+      "maximumRootMeanSquareError": 2.712,
+      "maximumMeanLuminanceError": 0.273,
+      "platformComparisonMeasurements": {
+        "Windows": {
+          "differentPixelRatio": 0.001936127744510978,
+          "meanAbsoluteError": 0.02191616766467066,
+          "rootMeanSquareError": 0.9142378455978254,
+          "meanLuminanceError": 0.029221556886227545
+        },
+        "Linux": {
+          "differentPixelRatio": 0.0024750499001996006,
+          "meanAbsoluteError": 0.0455875748502994,
+          "rootMeanSquareError": 1.4264647372811523,
+          "meanLuminanceError": 0.06078343313373254
+        }
+      }
+    },
+    {
+      "id": "word-positional-tabs-indent-multiword",
+      "converterId": "word",
+      "producer": "Microsoft Word",
+      "producerVersion": "16.0.20430.20182",
+      "exportPreset": "standard-print-export",
+      "sourcePath": "word-positional-tabs-indent-multiword.docx",
+      "sourceSha256": "b73d954e448c6e9e3b5b560b52b538d1bdec4deb6beb1f32f277942c17b5272a",
+      "referencePdfPath": "microsoft-word-windows-positional-tabs-indent-multiword.pdf",
+      "referencePdfSha256": "1d6927ecc89a830897adc0740d69594449e708e5075c3061146f63ab2f192078",
+      "producerEnvironment": {
+        "suite": "Microsoft Word for Microsoft 365",
+        "productVersion": "16.0.20430.20182",
+        "operatingSystem": "Windows 11"
+      },
+      "sanitization": {
+        "source": "Repository-authored synthetic DOCX control exported independently by desktop Microsoft Word",
+        "replacements": "Standalone synthetic package with no document properties, external relationships or third-party carrier content."
+      },
+      "qualification": "Same DOCX exported by native Word and OfficeIMO; complete page comparison plus focused geometry/format regression tests. Finite control, not a universal fidelity claim. Raster budgets include observed Windows system fonts and Linux font substitution; glyph sizing and picture geometry have separate regression assertions.",
+      "pages": [
+        {
+          "number": 1,
+          "widthPoints": 399.96,
+          "heightPoints": 500.04,
+          "rasterWidth": 400,
+          "rasterHeight": 501,
+          "measuredDifferentPixelRatio": 0.003268,
+          "measuredMeanAbsoluteError": 0.036411,
+          "measuredRootMeanSquareError": 1.310567,
+          "measuredMeanLuminanceError": 0.048548
+        }
+      ],
+      "maximumDifferentPixelRatio": 0.0071,
+      "maximumMeanAbsoluteError": 0.241,
+      "maximumRootMeanSquareError": 3.176,
+      "maximumMeanLuminanceError": 0.322,
+      "platformComparisonMeasurements": {
+        "Windows": {
+          "differentPixelRatio": 0.0032684630738522955,
+          "meanAbsoluteError": 0.03641092814371257,
+          "rootMeanSquareError": 1.310567082542634,
+          "meanLuminanceError": 0.04854790419161677
+        },
+        "Linux": {
+          "differentPixelRatio": 0.004246506986027944,
+          "meanAbsoluteError": 0.07615269461077845,
+          "rootMeanSquareError": 1.8130308431803783,
+          "meanLuminanceError": 0.10153692614770458
+        }
+      }
+    },
+    {
+      "id": "word-positional-tabs-margin-multiword",
+      "converterId": "word",
+      "producer": "Microsoft Word",
+      "producerVersion": "16.0.20430.20182",
+      "exportPreset": "standard-print-export",
+      "sourcePath": "word-positional-tabs-margin-multiword.docx",
+      "sourceSha256": "f9dcb2b316ee69beb0f5b9e62aeb498ec325245264179e501f58fdeeb99fe919",
+      "referencePdfPath": "microsoft-word-windows-positional-tabs-margin-multiword.pdf",
+      "referencePdfSha256": "dc45f73147632b9eb856aa89946cd36e7c4708eb2d5f5d155bf09fde7d08915f",
+      "producerEnvironment": {
+        "suite": "Microsoft Word for Microsoft 365",
+        "productVersion": "16.0.20430.20182",
+        "operatingSystem": "Windows 11"
+      },
+      "sanitization": {
+        "source": "Repository-authored synthetic DOCX control exported independently by desktop Microsoft Word",
+        "replacements": "Standalone synthetic package with no document properties, external relationships or third-party carrier content."
+      },
+      "qualification": "Same DOCX exported by native Word and OfficeIMO; complete page comparison plus focused geometry/format regression tests. Finite control, not a universal fidelity claim. Raster budgets include observed Windows system fonts and Linux font substitution; glyph sizing and picture geometry have separate regression assertions.",
+      "pages": [
+        {
+          "number": 1,
+          "widthPoints": 399.96,
+          "heightPoints": 500.04,
+          "rasterWidth": 400,
+          "rasterHeight": 501,
+          "measuredDifferentPixelRatio": 0.003378,
+          "measuredMeanAbsoluteError": 0.045487,
+          "measuredRootMeanSquareError": 1.497763,
+          "measuredMeanLuminanceError": 0.060649
+        }
+      ],
+      "maximumDifferentPixelRatio": 0.0071,
+      "maximumMeanAbsoluteError": 0.25,
+      "maximumRootMeanSquareError": 3.366,
+      "maximumMeanLuminanceError": 0.334,
+      "platformComparisonMeasurements": {
+        "Windows": {
+          "differentPixelRatio": 0.003378243512974052,
+          "meanAbsoluteError": 0.04548652694610778,
+          "rootMeanSquareError": 1.4977628027073087,
+          "meanLuminanceError": 0.06064870259481037
+        },
+        "Linux": {
+          "differentPixelRatio": 0.004281437125748503,
+          "meanAbsoluteError": 0.08352170658682635,
+          "rootMeanSquareError": 1.9718044336472362,
+          "meanLuminanceError": 0.1113622754491018
+        }
+      }
+    },
+    {
+      "id": "word-nonflow-footer-bounded",
+      "converterId": "word",
+      "producer": "Microsoft Word",
+      "producerVersion": "16.0.20430.20182",
+      "exportPreset": "standard-print-export",
+      "sourcePath": "word-nonflow-footer-bounded.docx",
+      "sourceSha256": "c1d3eda6b2985cb64d47b1dfd96de08f8aa87e6160acd607cadd8326b11ab82f",
+      "referencePdfPath": "microsoft-word-windows-nonflow-footer-bounded.pdf",
+      "referencePdfSha256": "6248ecb6b83be3fce1c443240d5cd25a8b4f341f773acec2f5c37a4c121048b1",
+      "producerEnvironment": {
+        "suite": "Microsoft Word for Microsoft 365",
+        "productVersion": "16.0.20430.20182",
+        "operatingSystem": "Windows 11"
+      },
+      "sanitization": {
+        "source": "Repository-authored synthetic DOCX control exported independently by desktop Microsoft Word",
+        "replacements": "Standalone synthetic package with no document properties, external relationships or third-party carrier content."
+      },
+      "qualification": "Same DOCX exported by native Word and OfficeIMO; complete page comparison plus focused geometry/format regression tests. Finite control, not a universal fidelity claim.",
+      "pages": [
+        {
+          "number": 1,
+          "widthPoints": 399.96,
+          "heightPoints": 500.04,
+          "rasterWidth": 400,
+          "rasterHeight": 501,
+          "measuredDifferentPixelRatio": 0.005714,
+          "measuredMeanAbsoluteError": 0.310692,
+          "measuredRootMeanSquareError": 6.259074,
+          "measuredMeanLuminanceError": 0.441939
+        }
+      ],
+      "maximumDifferentPixelRatio": 0.0089,
+      "maximumMeanAbsoluteError": 0.523,
+      "maximumRootMeanSquareError": 8.511,
+      "maximumMeanLuminanceError": 0.73,
+      "platformComparisonMeasurements": {
+        "Windows": {
+          "differentPixelRatio": 0.005713572854291417,
+          "meanAbsoluteError": 0.3106923652694611,
+          "rootMeanSquareError": 6.259073951993773,
+          "meanLuminanceError": 0.4419393612774451
+        }
+      }
     }
   ]
 }

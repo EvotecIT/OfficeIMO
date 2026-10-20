@@ -334,6 +334,17 @@ var paragraph = document.AddParagraph();
 paragraph.AddImage("logo.png", width: 160, height: 64);
 ```
 
+Crop an embedded picture using lengths measured on the original image:
+
+```csharp
+paragraph.Image.CropLeftCentimeters = 0.5;
+paragraph.Image.CropRightCentimeters = 0.25;
+```
+
+The centimeter properties use the source image's pixel dimensions and horizontal or vertical resolution. They keep the displayed image scale and resize its frame, so the same crop selects the same source area after resizing. Floating pictures also adjust their anchor to keep the original picture in place, including rotation and mirrors. Assign `null` to restore an edge. The fluent `.Crop(left, top, right, bottom)` method applies all four centimeter values together.
+
+The raw `CropLeft`, `CropTop`, `CropRight` and `CropBottom` properties use DrawingML percentages: `10000` means 10% of the original dimension. They leave the displayed frame unchanged. Negative centimeter crops expand the DOCX frame with empty margins; Word-to-PDF currently reports `NativeImageCropApproximated` for these source outsets. Physical cropping requires a readable embedded source and a floating position that can be resolved without pagination; use raw percentages when only the source selection should change.
+
 Use `paragraph.Image.Clone(destinationParagraph)` to copy an image to another paragraph,
 header, footer, or document. The destination owns its image relationships and fresh DrawingML
 identifiers. Cloning preserves VML shapes and their referenced definitions, and remaps

@@ -9,6 +9,29 @@ namespace OfficeIMO.Tests;
 
 public sealed class WordRunTableBackgroundTests {
     [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void WrappedTableRowsAndCellsRetainInheritedRunPaint(bool highlight) {
+        using WordDocument document = CreateTableBackground("first-row", highlight);
+        var options = new WordToPdfOptions {
+            IncludePageNumbers = false, ResourcePolicy = PdfResourcePolicy.CreatePortableDeterministic()
+        };
+        using (PdfPigDocument plain = PdfPigDocument.Open(document.ToPdfBytes(options)))
+            Assert.Equal((0D, 0D, 1D), PaintAt(plain.GetPage(1), "BACKGROUND"));
+
+        Table table = document.Tables.Single()._table;
+        TableRow row = table.Elements<TableRow>().Single();
+        TableCell cell = row.Elements<TableCell>().Single();
+        row.ReplaceChild(new SdtCell(new SdtContentCell((TableCell)cell.CloneNode(true))), cell);
+        table.ReplaceChild(new SdtRow(new SdtContentRow((TableRow)row.CloneNode(true))), row);
+        using WordDocument loaded = WordDocument.Load(new MemoryStream(document.ToBytes()));
+        using PdfPigDocument wrapped = PdfPigDocument.Open(loaded.ToPdfBytes(options));
+        Assert.Equal((0D, 0D, 1D), PaintAt(wrapped.GetPage(1), "BACKGROUND"));
+        Assert.Single(loaded.Tables.Single().Rows);
+        Assert.Single(loaded.Tables.Single().Rows[0].Cells);
+    }
+
+    [Theory]
     [InlineData("whole", false)]
     [InlineData("first-row", false)]
     [InlineData("inherited", false)]

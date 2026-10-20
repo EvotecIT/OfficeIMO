@@ -627,6 +627,18 @@ namespace OfficeIMO.Word.Pdf {
         }
 
         private static void AddNativeCellRun(List<PdfCore.PdfTextRun> target, WordParagraph run, NativeTableStyleDefaults tableStyleDefaults, NativeDocumentDefaults nativeDefaults, NativeFontMap? nativeFontMap, IReadOnlyList<WordTabStop> tabStops, ref int tabIndex) {
+            if (HasNativePositionalTabs(run)) {
+                if (IsNativeHiddenTextRun(run)) return;
+                foreach (var child in run.EnumerateEffectiveRunContent()) {
+                    if (child is W.PositionalTab positionalTab) {
+                        target.Add(CreateNativePositionalTab(positionalTab, run, nativeDefaults, tableStyleDefaults));
+                    } else {
+                        WordParagraph view = CreateNativeRunContentView(run, new[] { child });
+                        AddNativeCellRun(target, view.Text, view, tableStyleDefaults, nativeDefaults, nativeFontMap, tabStops, ref tabIndex);
+                    }
+                }
+                return;
+            }
             AddNativeCellRun(target, run.Text, run, tableStyleDefaults, nativeDefaults, nativeFontMap, tabStops, ref tabIndex);
         }
 
@@ -640,7 +652,7 @@ namespace OfficeIMO.Word.Pdf {
                 return;
             }
 
-            AddNativeCellTextRuns(target, text, value => CreateNativeCellTextRun(value, run, tableStyleDefaults, nativeDefaults, nativeFontMap), tabStops, ref tabIndex);
+            AddNativeCasedCellTextRuns(target, text, run, tableStyleDefaults, nativeDefaults, nativeFontMap, tabStops, ref tabIndex);
         }
 
         private static void AddNativeCellEquationContent(List<PdfCore.PdfTextRun> target, WordParagraph paragraph, NativeTableStyleDefaults tableStyleDefaults, NativeDocumentDefaults nativeDefaults, NativeFontMap? nativeFontMap, IReadOnlyList<WordTabStop> tabStops, ref int tabIndex) {
@@ -653,11 +665,23 @@ namespace OfficeIMO.Word.Pdf {
         }
 
         private static void AddNativeCellText(List<PdfCore.PdfTextRun> target, string text, WordParagraph paragraph, NativeTableStyleDefaults tableStyleDefaults, NativeDocumentDefaults nativeDefaults, NativeFontMap? nativeFontMap, IReadOnlyList<WordTabStop> tabStops, ref int tabIndex) {
-            AddNativeCellTextRuns(target, text, value => CreateNativeCellTextRun(value, paragraph, tableStyleDefaults, nativeDefaults, nativeFontMap), tabStops, ref tabIndex);
+            AddNativeCasedCellTextRuns(target, text, paragraph, tableStyleDefaults, nativeDefaults, nativeFontMap, tabStops, ref tabIndex);
         }
 
         private static void AddNativeCellHyperLinkRun(List<PdfCore.PdfTextRun> target, string text, WordParagraph paragraph, WordHyperLink hyperlink, NativeTableStyleDefaults tableStyleDefaults, NativeDocumentDefaults nativeDefaults, NativeFontMap? nativeFontMap, IReadOnlyList<WordTabStop> tabStops, ref int tabIndex) {
-            AddNativeCellTextRuns(target, text, value => CreateNativeCellLinkRun(value, paragraph, hyperlink, tableStyleDefaults, nativeDefaults, nativeFontMap), tabStops, ref tabIndex);
+            AddNativeCasedCellTextRuns(target, text, paragraph, tableStyleDefaults, nativeDefaults, nativeFontMap, tabStops, ref tabIndex, hyperlink);
+        }
+
+        private static void AddNativeCasedCellTextRuns(List<PdfCore.PdfTextRun> target, string text, WordParagraph paragraph,
+            NativeTableStyleDefaults tableStyleDefaults, NativeDocumentDefaults nativeDefaults, NativeFontMap? nativeFontMap,
+            IReadOnlyList<WordTabStop> tabStops, ref int tabIndex, WordHyperLink? hyperlink = null) {
+            NativeResolvedTextStyle style = ResolveNativeTextRunStyle(paragraph, tableRunStyleDefaults: tableStyleDefaults.RunStyle,
+                nativeDefaults: nativeDefaults, nativeFontMap: nativeFontMap);
+            foreach (NativeCasedTextSegment segment in GetNativeCasedTextSegments(text, style)) {
+                AddNativeCellTextRuns(target, segment.Text, value => hyperlink == null
+                    ? CreateNativeCellTextRun(value, paragraph, tableStyleDefaults, nativeDefaults, nativeFontMap, segment.Style)
+                    : CreateNativeCellLinkRun(value, paragraph, hyperlink, tableStyleDefaults, nativeDefaults, nativeFontMap, segment.Style), tabStops, ref tabIndex);
+            }
         }
 
         private static void AddNativeCellTextRuns(List<PdfCore.PdfTextRun> target, string text, Func<string, PdfCore.PdfTextRun> createRun, IReadOnlyList<WordTabStop> tabStops, ref int tabIndex) {
@@ -724,8 +748,8 @@ namespace OfficeIMO.Word.Pdf {
             Equals(left.Color, right.Color) &&
             Equals(left.BackgroundColor, right.BackgroundColor);
 
-        private static PdfCore.PdfTextRun CreateNativeCellTextRun(string text, WordParagraph paragraph, NativeTableStyleDefaults tableStyleDefaults = default, NativeDocumentDefaults? nativeDefaults = null, NativeFontMap? nativeFontMap = null) {
-            NativeResolvedTextStyle style = ResolveNativeTextRunStyle(paragraph, tableRunStyleDefaults: tableStyleDefaults.RunStyle, nativeDefaults: nativeDefaults, nativeFontMap: nativeFontMap);
+        private static PdfCore.PdfTextRun CreateNativeCellTextRun(string text, WordParagraph paragraph, NativeTableStyleDefaults tableStyleDefaults = default, NativeDocumentDefaults? nativeDefaults = null, NativeFontMap? nativeFontMap = null, NativeResolvedTextStyle? resolvedStyle = null) {
+            NativeResolvedTextStyle style = resolvedStyle ?? ResolveNativeTextRunStyle(paragraph, tableRunStyleDefaults: tableStyleDefaults.RunStyle, nativeDefaults: nativeDefaults, nativeFontMap: nativeFontMap);
             return style.ApplyTo(new PdfCore.PdfTextRun(
                 ApplyNativeTextTransform(text, paragraph, tableRunStyleDefaults: tableStyleDefaults.RunStyle, nativeDefaults: nativeDefaults, nativeFontMap: nativeFontMap),
                 bold: style.Bold,
@@ -743,16 +767,16 @@ namespace OfficeIMO.Word.Pdf {
                 strikeStyle: style.StrikeStyle));
         }
 
-        private static PdfCore.PdfTextRun CreateNativeCellLinkRun(string text, WordParagraph paragraph, WordHyperLink hyperlink, NativeTableStyleDefaults tableStyleDefaults = default, NativeDocumentDefaults? nativeDefaults = null, NativeFontMap? nativeFontMap = null) {
+        private static PdfCore.PdfTextRun CreateNativeCellLinkRun(string text, WordParagraph paragraph, WordHyperLink hyperlink, NativeTableStyleDefaults tableStyleDefaults = default, NativeDocumentDefaults? nativeDefaults = null, NativeFontMap? nativeFontMap = null, NativeResolvedTextStyle? resolvedStyle = null) {
             Uri? uri = hyperlink.Uri;
             string? linkUri = uri != null && uri.IsAbsoluteUri ? uri.AbsoluteUri : null;
             string? destinationName = linkUri != null || string.IsNullOrWhiteSpace(hyperlink.Anchor) ? null : hyperlink.Anchor;
             if (linkUri == null && destinationName == null) {
-                return CreateNativeCellTextRun(text, paragraph, tableStyleDefaults, nativeDefaults, nativeFontMap);
+                return CreateNativeCellTextRun(text, paragraph, tableStyleDefaults, nativeDefaults, nativeFontMap, resolvedStyle);
             }
 
             string? contents = string.IsNullOrWhiteSpace(hyperlink.Tooltip) ? null : hyperlink.Tooltip;
-            NativeResolvedTextStyle style = ResolveNativeTextRunStyle(paragraph, tableRunStyleDefaults: tableStyleDefaults.RunStyle, nativeDefaults: nativeDefaults, nativeFontMap: nativeFontMap);
+            NativeResolvedTextStyle style = resolvedStyle ?? ResolveNativeTextRunStyle(paragraph, tableRunStyleDefaults: tableStyleDefaults.RunStyle, nativeDefaults: nativeDefaults, nativeFontMap: nativeFontMap);
             return style.ApplyTo(new PdfCore.PdfTextRun(
                 ApplyNativeTextTransform(text, paragraph, tableRunStyleDefaults: tableStyleDefaults.RunStyle, nativeDefaults: nativeDefaults, nativeFontMap: nativeFontMap),
                 bold: style.Bold,

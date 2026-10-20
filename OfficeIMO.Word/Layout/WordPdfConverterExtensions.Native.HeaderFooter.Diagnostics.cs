@@ -254,11 +254,11 @@ namespace OfficeIMO.Word.Pdf {
         private static void AddNativeHeaderImages(PdfCore.PdfHeaderBuilder header, IReadOnlyList<NativeHeaderFooterImage> images, W.HeaderFooterValues variant) {
             foreach (NativeHeaderFooterImage image in images) {
                 if (variant == W.HeaderFooterValues.First) {
-                    header.FirstPageImage(image.Data, image.Width, image.Height, image.Align);
+                    header.FirstPageImage(image.ToPdfImage());
                 } else if (variant == W.HeaderFooterValues.Even) {
-                    header.EvenPagesImage(image.Data, image.Width, image.Height, image.Align);
+                    header.EvenPagesImage(image.ToPdfImage());
                 } else {
-                    header.Image(image.Data, image.Width, image.Height, image.Align);
+                    header.Image(image.ToPdfImage());
                 }
             }
         }
@@ -278,11 +278,11 @@ namespace OfficeIMO.Word.Pdf {
         private static void AddNativeFooterImages(PdfCore.PdfFooterBuilder footer, IReadOnlyList<NativeHeaderFooterImage> images, W.HeaderFooterValues variant) {
             foreach (NativeHeaderFooterImage image in images) {
                 if (variant == W.HeaderFooterValues.First) {
-                    footer.FirstPageImage(image.Data, image.Width, image.Height, image.Align);
+                    footer.FirstPageImage(image.ToPdfImage());
                 } else if (variant == W.HeaderFooterValues.Even) {
-                    footer.EvenPagesImage(image.Data, image.Width, image.Height, image.Align);
+                    footer.EvenPagesImage(image.ToPdfImage());
                 } else {
-                    footer.Image(image.Data, image.Width, image.Height, image.Align);
+                    footer.Image(image.ToPdfImage());
                 }
             }
         }

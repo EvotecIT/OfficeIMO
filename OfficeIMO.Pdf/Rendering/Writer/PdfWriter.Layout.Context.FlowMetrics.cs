@@ -223,8 +223,18 @@ internal static partial class PdfWriter {
                             blockHeight = MeasureFloatingParagraph(paragraph, frameX, frameWidth, fontSize, firstVisualOnly: !keepWithNext);
                         else AvoidFloatingBlock(blockHeight);
                     }
-                    y -= blockHeight;
-                    deepest = Math.Min(deepest, y);
+                    // Keep the table's physical fit requirement, without adding
+                    // its height to the following flow when painting restores y.
+                    deepest = Math.Min(deepest, y - blockHeight);
+                    bool restoresTableFlow = false;
+                    if (block is TableBlock overlay) {
+                        PdfTableStyle style = overlay.Style ?? currentOpts.DefaultTableStyleSnapshot ?? TableStyles.Light();
+                        if (!style.ConsumesVerticalFlow && style.Position == null)
+                            restoresTableFlow = RestoresMeasuredTableFlow(style,
+                                MeasureTableBlockHeight(overlay, frameWidth, fontSize, firstVisualOnly: false),
+                                y - currentOpts.MarginBottom);
+                    }
+                    if (!restoresTableFlow) y -= blockHeight;
                     if (!keepWithNext) {
                         break;
                     }

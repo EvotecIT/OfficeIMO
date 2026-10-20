@@ -57,6 +57,10 @@ internal static partial class PdfWriter {
                         return null;
                     }
 
+                    if (block is TableBlock overlay && RestoresMeasuredTableFlow(
+                        overlay.Style ?? currentOpts.DefaultTableStyleSnapshot ?? TableStyles.Light(), height.Value,
+                        y - currentOpts.MarginBottom)) continue;
+
                     if (floatingTables.Count > savedFloats.Length && block is not RichParagraphBlock && block is not SpacerBlock &&
                         block is not FlowBlock && block is not SemanticBlock && block is not LayerBlock)
                         AvoidFloatingBlock(height.Value);
@@ -149,7 +153,9 @@ internal static partial class PdfWriter {
             }
 
             double height = MeasureKeepWithNextBlockHeight(block, frameX, frameWidth, fontSize);
-            return height > 0D || block is SpacerBlock or ShapeBlock ? height : null;
+            // A row containing only overlay tables can have visible paint and
+            // a valid zero flow advance.
+            return height > 0D || block is SpacerBlock or ShapeBlock or RowBlock ? height : null;
         }
 
         // Resolve against this frame after image scaling. The same padded block

@@ -81,6 +81,12 @@ public sealed class PdfImageStyle {
         }
     }
 
+    /// <summary>Mirrors the cropped image horizontally about its destination frame center before rotation.</summary>
+    public bool HorizontalFlip { get; set; }
+
+    /// <summary>Mirrors the cropped image vertically about its destination frame center before rotation.</summary>
+    public bool VerticalFlip { get; set; }
+
     /// <summary>Optional alternate text for meaningful generated images.</summary>
     public string? AlternativeText {
         get => _alternativeText;
@@ -105,6 +111,8 @@ public sealed class PdfImageStyle {
             KeepWithNext = KeepWithNext,
             ScaleDownToFit = ScaleDownToFit,
             RotationAngle = RotationAngle,
+            HorizontalFlip = HorizontalFlip,
+            VerticalFlip = VerticalFlip,
             AlternativeText = AlternativeText
         };
     }

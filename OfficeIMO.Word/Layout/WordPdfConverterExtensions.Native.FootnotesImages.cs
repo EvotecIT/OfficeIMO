@@ -255,7 +255,8 @@ namespace OfficeIMO.Word.Pdf {
             if (image._Image?.Anchor != null && options != null)
                 AddNativeExportWarning(options, "NativeAnchoredImageFlowed", source,
                     "The image's wrap, anchor or transform is outside the fixed-placement contract; it was placed in document flow.");
-            RenderNativeFlowObject(pdf, paragraphSpacing, flow => flow.Image(preparedBytes, width, height, align));
+            RenderNativeFlowObject(pdf, paragraphSpacing, flow => flow.Image(preparedBytes, width, height, align,
+                CreateNativeImageStyle(image, options, source)));
             return true;
         }
 

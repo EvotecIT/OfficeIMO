@@ -340,7 +340,9 @@ internal static partial class PdfWriter {
 
 
             if (item is ColTable table) {
-                return ResolveColumnSpacingBefore(table.Style.SpacingBefore, consumedBefore) + table.CaptionHeight + GetTableRowsHeight(table.RowHeights, 0, table.RowHeights.Length, GetTableCellSpacing(table.Style)) + table.Style.SpacingAfter;
+                double height = ResolveColumnSpacingBefore(table.Style.SpacingBefore, consumedBefore) + table.CaptionHeight + GetTableRowsHeight(table.RowHeights, 0, table.RowHeights.Length, GetTableCellSpacing(table.Style)) + table.Style.SpacingAfter;
+                return RestoresMeasuredTableFlow(table.Style, height, GetMaximumBlockContinuationHeight() - consumedBefore)
+                    ? 0D : height;
             }
 
             if (item is ColRule rule) {

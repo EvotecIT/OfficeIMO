@@ -319,8 +319,8 @@ public sealed partial class PdfPageCanvas {
 
     /// <summary>Adds an image above page flow. Intended for root page canvases, outside clipping and effect groups.</summary>
     internal PdfPageCanvas ForegroundImage(byte[] bytes, double x, double y, double width, double height,
-        bool horizontalFlip = false, bool verticalFlip = false, uint zOrder = 0) => ImageShared(PdfCanvasImageResource.Create(bytes),
-            x, y, width, height, horizontalFlip: horizontalFlip, verticalFlip: verticalFlip, foreground: true, foregroundZOrder: zOrder);
+        bool horizontalFlip = false, bool verticalFlip = false, uint zOrder = 0, PdfImageStyle? style = null) => ImageShared(PdfCanvasImageResource.Create(bytes),
+            x, y, width, height, style: style, horizontalFlip: horizontalFlip, verticalFlip: verticalFlip, foreground: true, foregroundZOrder: zOrder);
 
     internal PdfPageCanvas ImageShared(PdfCanvasImageResource imageResource, double x, double y, double width, double height, PdfImageStyle? style = null, string? linkUri = null, string? linkContents = null, string? alternativeText = null, double rotationAngle = 0D, bool horizontalFlip = false, bool verticalFlip = false, bool foreground = false, uint foregroundZOrder = 0) {
         Guard.NotNull(imageResource, nameof(imageResource));

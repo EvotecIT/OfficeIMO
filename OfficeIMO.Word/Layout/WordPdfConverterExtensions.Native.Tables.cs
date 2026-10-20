@@ -148,7 +148,7 @@ namespace OfficeIMO.Word.Pdf {
                     AddNativeExportWarning(options,
                         "NativePositionedTableWrapApproximation",
                         "table",
-                        "Positioned table wrapping in a multi-column section is approximated.");
+                        "Positioned table wrapping in a flow container without positioned-table support is approximated.");
                 }
                 if (pdf.SupportsPositionedTables) {
                     style.Position = CreateNativeTablePosition(tablePosition,
@@ -609,6 +609,7 @@ namespace OfficeIMO.Word.Pdf {
                 !conditionalStyle.UnderlineStyle.HasValue &&
                 !conditionalStyle.StrikeStyle.HasValue &&
                 !conditionalStyle.AllCaps.HasValue &&
+                !conditionalStyle.SmallCaps.HasValue &&
                 !conditionalStyle.Baseline.HasValue &&
                 !conditionalStyle.Highlight.HasValue &&
                 !conditionalStyle.CellVerticalAlignment.HasValue &&
@@ -654,6 +655,7 @@ namespace OfficeIMO.Word.Pdf {
                     UnderlineStyle = conditionalStyle.UnderlineStyle ?? runStyle.UnderlineStyle,
                     StrikeStyle = conditionalStyle.StrikeStyle ?? runStyle.StrikeStyle,
                     AllCaps = conditionalStyle.AllCaps ?? runStyle.AllCaps,
+                    SmallCaps = conditionalStyle.SmallCaps ?? runStyle.SmallCaps,
                     Baseline = conditionalStyle.Baseline ?? runStyle.Baseline,
                     Color = conditionalStyle.TextColor ?? runStyle.Color,
                     Highlight = conditionalStyle.Highlight ?? runStyle.Highlight

@@ -98,7 +98,8 @@ namespace OfficeIMO.Word.Pdf {
 
             double width = image.Width.HasValue ? image.Width.Value * 72D / 96D : 144D;
             double height = image.Height.HasValue ? image.Height.Value * 72D / 96D : 144D;
-            images.Add(new NativeHeaderFooterImage(preparedBytes, width, height, align));
+            images.Add(new NativeHeaderFooterImage(preparedBytes, width, height, align,
+                CreateNativeImageStyle(image, options, source)));
         }
 
         private static void AddNativeHeaderFooterTableShapes(List<NativeHeaderFooterShape> shapes, WordTable table) {
@@ -141,17 +142,21 @@ namespace OfficeIMO.Word.Pdf {
         }
 
         private sealed class NativeHeaderFooterImage {
-            public NativeHeaderFooterImage(byte[] data, double width, double height, PdfCore.PdfAlign align) {
+            public NativeHeaderFooterImage(byte[] data, double width, double height, PdfCore.PdfAlign align, PdfCore.PdfImageStyle style) {
                 Data = data;
                 Width = width;
                 Height = height;
                 Align = align;
+                Style = style;
             }
 
             public byte[] Data { get; }
             public double Width { get; }
             public double Height { get; }
             public PdfCore.PdfAlign Align { get; }
+            public PdfCore.PdfImageStyle Style { get; }
+
+            public PdfCore.PdfHeaderFooterImage ToPdfImage() => new(Data, Width, Height, Align, Style);
         }
 
         private sealed class NativeHeaderFooterShape {

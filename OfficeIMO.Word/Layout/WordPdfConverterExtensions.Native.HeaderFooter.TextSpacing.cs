@@ -14,19 +14,20 @@ namespace OfficeIMO.Word.Pdf {
                 ResolveNativeTextRunStyle(paragraph, nativeFontMap: fontMap).TextSpacing);
             bool hasLiteralPageTokens = false;
             foreach (var item in GetNativeHeaderFooterVisibleTextRuns(paragraph)) {
-                NativeHeaderFooterStyledReplacement? replacement = CreateNativeHeaderFooterSpacingReplacement(
-                    paragraph, item.Run, item.Text, item.IsField, fontMap);
-                if (replacement == null) continue;
-                hasSpacing |= replacement.StyledRun.HorizontalTextScaling != 100D || replacement.StyledRun.CharacterSpacing != 0D;
-                hasSpacing |= replacement.StyledRun.FeatureSettings.TryGetValue("kern", out int kerning) && kerning != 0;
-                hasSpacing |= new[] { "liga", "clig", "dlig", "hlig" }.Any(feature =>
-                    replacement.StyledRun.FeatureSettings.TryGetValue(feature, out int enabled) && enabled != 0);
-                string text = replacement.SerializedText;
-                hasLiteralPageTokens |= !item.IsField &&
-                    (text.IndexOf("{page}", StringComparison.OrdinalIgnoreCase) >= 0 ||
-                     text.IndexOf("{pages}", StringComparison.OrdinalIgnoreCase) >= 0 ||
-                     text.IndexOf("{documentpages}", StringComparison.OrdinalIgnoreCase) >= 0);
-                replacements.Add(replacement);
+                hasSpacing |= ResolveNativeTextRunStyle(item.Run, paragraph, nativeFontMap: fontMap).SmallCaps;
+                foreach (NativeHeaderFooterStyledReplacement replacement in CreateNativeHeaderFooterSpacingReplacements(
+                    paragraph, item.Run, item.Text, item.IsField, fontMap)) {
+                    hasSpacing |= replacement.StyledRun.HorizontalTextScaling != 100D || replacement.StyledRun.CharacterSpacing != 0D;
+                    hasSpacing |= replacement.StyledRun.FeatureSettings.TryGetValue("kern", out int kerning) && kerning != 0;
+                    hasSpacing |= new[] { "liga", "clig", "dlig", "hlig" }.Any(feature =>
+                        replacement.StyledRun.FeatureSettings.TryGetValue(feature, out int enabled) && enabled != 0);
+                    string text = replacement.SerializedText;
+                    hasLiteralPageTokens |= !item.IsField &&
+                        (text.IndexOf("{page}", StringComparison.OrdinalIgnoreCase) >= 0 ||
+                         text.IndexOf("{pages}", StringComparison.OrdinalIgnoreCase) >= 0 ||
+                         text.IndexOf("{documentpages}", StringComparison.OrdinalIgnoreCase) >= 0);
+                    replacements.Add(replacement);
+                }
             }
             // Keep authored braces distinct from fields even when another paragraph enables styled output.
             return hasSpacing || hasLiteralPageTokens ? replacements : null;
@@ -43,12 +44,16 @@ namespace OfficeIMO.Word.Pdf {
                 : GetNativeRuns(paragraph).Select(run => (run, run.Text, false));
         }
 
-        private static NativeHeaderFooterStyledReplacement? CreateNativeHeaderFooterSpacingReplacement(
+        private static IEnumerable<NativeHeaderFooterStyledReplacement> CreateNativeHeaderFooterSpacingReplacements(
             WordParagraph paragraph, WordParagraph run, string sourceText, bool fieldToken, NativeFontMap? fontMap) {
-            if (IsNativeHiddenTextRun(run, paragraph) || string.IsNullOrEmpty(sourceText)) return null;
+            if (IsNativeHiddenTextRun(run, paragraph) || string.IsNullOrEmpty(sourceText)) yield break;
             NativeResolvedTextStyle style = ResolveNativeTextRunStyle(run, paragraph, nativeFontMap: fontMap);
-            string text = fieldToken ? sourceText : ApplyNativeTextTransform(sourceText, run, paragraph, nativeFontMap: fontMap);
-            return new NativeHeaderFooterStyledReplacement(text, CreateNativeHeaderFooterStyledTextRun(text, style, 0D), fieldToken);
+            if (fieldToken) {
+                yield return new NativeHeaderFooterStyledReplacement(sourceText, CreateNativeHeaderFooterStyledTextRun(sourceText, style, 0D), true);
+                yield break;
+            }
+            foreach (NativeCasedTextSegment segment in GetNativeCasedTextSegments(sourceText, style))
+                yield return new NativeHeaderFooterStyledReplacement(segment.Text, CreateNativeHeaderFooterStyledTextRun(segment.Text, segment.Style, 0D));
         }
     }
 }

@@ -35,6 +35,7 @@ public sealed partial class PdfTextRun {
         ContributesLineBoxDescent = source.ContributesLineBoxDescent;
         IsLineBoxStrut = source.IsLineBoxStrut;
         PreservesPaintedGlyphs = source.PreservesPaintedGlyphs;
+        RelativeTabStop = source.RelativeTabStop;
         return this;
     }
 

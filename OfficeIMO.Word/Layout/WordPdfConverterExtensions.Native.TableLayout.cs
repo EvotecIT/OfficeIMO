@@ -652,7 +652,7 @@ namespace OfficeIMO.Word.Pdf {
 
         private static W.TableRowAlignmentValues? ResolveNativeTableAlignment(WordTable table, NativeTableStyleDefaults tableStyleDefaults) =>
             ResolveNativeTablePositionAlignment(table._tableProperties?.TablePositionProperties) ??
-            table.Alignment.ToOpenXml() ??
+            WordTableAlignmentResolver.Read(table._tableProperties?.TableJustification, tableStyleDefaults.RightToLeft) ??
             tableStyleDefaults.Alignment;
 
         private static W.TableRowAlignmentValues? ResolveNativeTablePositionAlignment(W.TablePositionProperties? position) {

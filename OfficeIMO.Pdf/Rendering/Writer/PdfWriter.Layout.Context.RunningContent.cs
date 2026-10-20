@@ -90,8 +90,9 @@ internal static partial class PdfWriter {
             IReadOnlyList<IPdfBlock>? headerBlocks = header == null ? null : MaterializeRunningContent(header, context);
             IReadOnlyList<IPdfBlock>? footerBlocks = footer == null ? null : MaterializeRunningContent(footer, context);
             bool usesPageContext = header?.UsesPageContext == true || footer?.UsesPageContext == true;
-            double? measuredHeader = header == null ? 0D : MeasureRunningContent(source, header, headerBlocks!);
-            double? measuredFooter = footer == null ? 0D : MeasureRunningContent(source, footer, footerBlocks!);
+            bool headerHasNonFlowTablePaint = false, footerHasNonFlowTablePaint = false;
+            double? measuredHeader = header == null ? 0D : MeasureRunningContent(source, header, headerBlocks!, out headerHasNonFlowTablePaint);
+            double? measuredFooter = footer == null ? 0D : MeasureRunningContent(source, footer, footerBlocks!, out footerHasNonFlowTablePaint);
             bool fallbackHeader = !measuredHeader.HasValue;
             bool fallbackFooter = !measuredFooter.HasValue;
             if (fallbackHeader) header = null;
@@ -165,10 +166,12 @@ internal static partial class PdfWriter {
             currentPage.HasDynamicRunningContent = usesPageContext;
             yStart = source.PageHeight - top;
             y = yStart;
-            if (header != null && headerHeight > 0D)
-                RenderRunningContent(source, headerBlocks!, source.PageHeight - header.DistanceFromEdge, headerHeight, isHeader: true);
-            if (footer != null && footerHeight > 0D)
-                RenderRunningContent(source, footerBlocks!, footer.DistanceFromEdge + footerHeight, footerHeight, isHeader: false);
+            if (header != null && (headerHeight > 0D || headerHasNonFlowTablePaint))
+                RenderRunningContent(source, headerBlocks!, source.PageHeight - header.DistanceFromEdge, headerHeight,
+                    isHeader: true, headerHasNonFlowTablePaint);
+            if (footer != null && (footerHeight > 0D || footerHasNonFlowTablePaint))
+                RenderRunningContent(source, footerBlocks!, footer.DistanceFromEdge + footerHeight, footerHeight,
+                    isHeader: false, footerHasNonFlowTablePaint);
 
             static double Exclusion(PdfRunningContent? content, double height, double physicalMargin) =>
                 content == null || (height <= 0D && !content.ReserveDistanceWhenEmpty) ? physicalMargin
@@ -239,7 +242,9 @@ internal static partial class PdfWriter {
             }
         }
 
-        private double? MeasureRunningContent(PdfOptions source, PdfRunningContent definition, IReadOnlyList<IPdfBlock> blocks) {
+        private double? MeasureRunningContent(PdfOptions source, PdfRunningContent definition, IReadOnlyList<IPdfBlock> blocks,
+            out bool hasNonFlowTablePaint) {
+            hasNonFlowTablePaint = false;
             if (blocks.Count == 0) return 0D;
             double start = source.PageHeight - definition.DistanceFromEdge;
             if (start <= 0D) {
@@ -255,6 +260,7 @@ internal static partial class PdfWriter {
             measure.yStart = start;
             measure.y = start;
             double? height = measure.MeasureBlockSequence(blocks, frame.MarginLeft, width, frame.DefaultFontSize);
+            hasNonFlowTablePaint = measure.measuredNonFlowTablePaint;
             if (!height.HasValue) {
                 if (definition.AllowTextFallback) return null;
                 throw new NotSupportedException("Running PDF content must contain bounded, measurable flow; page breaks, deferred flow and page canvases are unsupported.");
@@ -266,10 +272,15 @@ internal static partial class PdfWriter {
             return height.Value;
         }
 
-        private void RenderRunningContent(PdfOptions source, IReadOnlyList<IPdfBlock> blocks, double start, double height, bool isHeader) {
+        private void RenderRunningContent(PdfOptions source, IReadOnlyList<IPdfBlock> blocks, double start, double height,
+            bool isHeader, bool hasNonFlowTablePaint) {
             // Match the existing continuation tolerance: exact sums can differ by a
             // floating-point ulp when the final paragraph is tested for available room.
-            PdfOptions frame = GetRunningFrameOptions(source, source.PageHeight - start, Math.Max(0D, start - height - .001D));
+            // Overlay tables paint below the unchanged flow cursor. Let that
+            // paint use the physical page while the final y check still enforces
+            // the measured flow reservation. Ordinary stories keep their frame.
+            PdfOptions frame = GetRunningFrameOptions(source, source.PageHeight - start,
+                hasNonFlowTablePaint ? 0D : Math.Max(0D, start - height - .001D));
             using var story = new LayoutContext(frame, cancellationToken: cancellationToken,
                 sharedPageContents: pageContents, isRunningContent: true,
                 drawingPatternAnnotations: drawingPatternAnnotations);

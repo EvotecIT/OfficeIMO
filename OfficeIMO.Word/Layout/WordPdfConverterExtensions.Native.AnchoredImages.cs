@@ -11,9 +11,7 @@ public static partial class WordPdfConverterExtensions {
         WordParagraph? paragraph, WordToPdfOptions? options, string source) {
         if (image._Image?.Anchor == null ||
             !WordDrawingLayoutReader.TryRead(image._Image, out WordDrawingLayoutSnapshot layout) ||
-            layout.Wrap != WordDrawingWrapKind.None || layout.UsesSimplePosition ||
-            (image.CropTop ?? 0) != 0 || (image.CropBottom ?? 0) != 0 ||
-            (image.CropLeft ?? 0) != 0 || (image.CropRight ?? 0) != 0 || (image.Rotation ?? 0) != 0)
+            layout.Wrap != WordDrawingWrapKind.None)
             return false;
 
         WordSection? section = paragraph?.GetBodySection();
@@ -34,15 +32,14 @@ public static partial class WordPdfConverterExtensions {
                 pdf.PageSize.Height, margins.Top, margins.Bottom, height, true, out double y)) return false;
 
         var imageCanvas = new PdfCore.PdfPageCanvas();
+        PdfCore.PdfImageStyle imageStyle = CreateNativeImageStyle(image, options, source);
         // Effects retain signed producer offsets without weakening the public canvas coordinate contract.
         imageCanvas.Effect(OfficeTransform.Translate(x, y), 1D, content => {
             if (layout.BehindDocument)
-                content.Image(bytes, 0D, 0D, width, height,
-                    horizontalFlip: image.HorizontalFlip ?? false, verticalFlip: image.VerticalFlip ?? false);
+                content.Image(bytes, 0D, 0D, width, height, style: imageStyle);
             else
                 content.ForegroundImage(bytes, 0D, 0D, width, height,
-                    horizontalFlip: image.HorizontalFlip ?? false, verticalFlip: image.VerticalFlip ?? false,
-                    zOrder: layout.RelativeHeight);
+                    zOrder: layout.RelativeHeight, style: imageStyle);
         });
         IReadOnlyList<PdfCore.PdfCanvasItem> items = imageCanvas.Items;
         if (marginX) items = new PdfCore.PdfCanvasItem[] { new PdfCore.PdfCanvasMarginAnchorItem(items, margins.Left) };

@@ -685,8 +685,7 @@ namespace OfficeIMO.Word.Pdf {
                 AddNativeEquationContent(builder, paragraph, tabStops, ref tabIndex, options, nativeDefaults, nativeFontMap);
             } else if (!projectedContentOnly && paragraph.IsHyperLink && paragraph.Hyperlink != null && !IsNativeHiddenTextRun(paragraph) && !string.IsNullOrEmpty(paragraph.Hyperlink.Text)) {
                 NativeResolvedTextStyle style = ResolveNativeTextRunStyle(paragraph, nativeDefaults: nativeDefaults, nativeFontMap: nativeFontMap);
-                ApplyNativeTextStyle(builder, style);
-                AddNativeHyperLinkRun(builder, paragraph.Hyperlink.Text, paragraph.Hyperlink, tabStops, ref tabIndex, style);
+                AddNativeCasedText(builder, paragraph.Hyperlink.Text, style, tabStops, ref tabIndex, paragraph.Hyperlink);
                 ResetNativeTextStyle(builder);
             } else {
                 AddNativeText(builder, content, paragraph, tabStops, ref tabIndex, nativeDefaults, nativeFontMap);
@@ -1102,6 +1101,19 @@ namespace OfficeIMO.Word.Pdf {
             WordToPdfOptions? options,
             NativeDocumentDefaults nativeDefaults,
             NativeFontMap nativeFontMap) {
+            if (HasNativePositionalTabs(run)) {
+                if (IsNativeHiddenTextRun(run, paragraphStyleFallback)) return;
+                foreach (var child in run.EnumerateEffectiveRunContent()) {
+                    if (child is W.PositionalTab positionalTab) {
+                        builder.Runs(new[] { CreateNativePositionalTab(positionalTab, paragraphStyleFallback, nativeDefaults) });
+                    } else {
+                        WordParagraph view = CreateNativeRunContentView(run, new[] { child });
+                        AddNativeRun(builder, view.Text, view, paragraphStyleFallback, tabStops, ref tabIndex,
+                            options, nativeDefaults, nativeFontMap);
+                    }
+                }
+                return;
+            }
             AddNativeRun(builder, run.Text, run, paragraphStyleFallback, tabStops, ref tabIndex, options, nativeDefaults, nativeFontMap);
         }
 
@@ -1121,13 +1133,7 @@ namespace OfficeIMO.Word.Pdf {
 
             NativeResolvedTextStyle style = ResolveNativeTextRunStyle(run, paragraphStyleFallback, nativeDefaults: nativeDefaults, nativeFontMap: nativeFontMap);
             style = style with { FontSize = style.FontSize ?? nativeFontMap.DefaultFontSize ?? nativeDefaults.FontSize };
-            ApplyNativeTextStyle(builder, style);
-
-            if (run.IsHyperLink && run.Hyperlink != null) {
-                AddNativeHyperLinkRun(builder, ApplyNativeTextTransform(text, run, paragraphStyleFallback, nativeFontMap: nativeFontMap), run.Hyperlink, tabStops, ref tabIndex, style);
-            } else {
-                AddNativeRunText(builder, ApplyNativeTextTransform(text, run, paragraphStyleFallback, nativeFontMap: nativeFontMap), tabStops, ref tabIndex);
-            }
+            AddNativeCasedText(builder, text, style, tabStops, ref tabIndex, run.IsHyperLink ? run.Hyperlink : null);
 
             ResetNativeTextStyle(builder);
         }

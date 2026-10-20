@@ -675,9 +675,9 @@ internal static partial class PdfWriter {
             PageImage pageImage = CreatePageImage(block, imageStyle, item.X, bottomY, block.Width, block.Height);
             pageImage.SuppressAccessibilityWrapper = _suppressCanvasAccessibilityWrappers;
             pageImage.StructureParentElement = _canvasStructureParentElement;
-            pageImage.RotationAngle = item.RotationAngle;
-            pageImage.HorizontalFlip = item.HorizontalFlip;
-            pageImage.VerticalFlip = item.VerticalFlip;
+            pageImage.RotationAngle += item.RotationAngle;
+            pageImage.HorizontalFlip ^= item.HorizontalFlip;
+            pageImage.VerticalFlip ^= item.VerticalFlip;
             ReserveImageNavigationTarget(pageImage);
             currentPage!.Images.Add(pageImage);
             pageImage.IsForeground = item.Foreground;
