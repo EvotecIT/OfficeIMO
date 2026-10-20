@@ -89,10 +89,8 @@ internal sealed class PdfFlattenedContentGrowth {
                     PdfObjectLookup.ResolveChainCancellable(_objects, xObject, _cancellationToken) is not PdfStream stream ||
                     stream.Dictionary.Get<PdfName>("Subtype")?.Name != "Form") return;
                 // A nested form clipped to an empty box paints nothing and needs no stream decoding.
-                if (stream.Dictionary.Items.ContainsKey("BBox") &&
-                    !PdfAppearancePlacement.TryRead(stream.Dictionary,
-                        value => PdfObjectLookup.ResolveChainCancellable(_objects, value, _cancellationToken),
-                        0D, 0D, 1D, 1D, out _, out _)) return;
+                if (PdfAppearancePlacement.IsKnownEmpty(stream.Dictionary,
+                    value => PdfObjectLookup.ResolveChainCancellable(_objects, value, _cancellationToken), 1D, 1D)) return;
                 invoked.Add((stream, _firstGeneratedObject.HasValue && xObject is PdfReference reference &&
                     reference.ObjectNumber >= _firstGeneratedObject.Value));
             }, maxNestingDepth: _limits.MaxContentNestingDepth,

@@ -17,7 +17,8 @@ public sealed partial class PdfReadPage {
             if (annotation is null || IsHiddenAnnotation(annotation) ||
                 !TryReadRectangle(annotation.Items.TryGetValue("Rect", out PdfObject? rectangle) ? rectangle : null, out var bounds) ||
                 !TryGetNormalAppearanceStream(annotation, out PdfStream stream) ||
-                !TryCreateAnnotationAppearanceTransform(bounds, stream.Dictionary, out _)) continue;
+                PdfAppearancePlacement.IsKnownEmpty(stream.Dictionary, ResolveObject,
+                    bounds.X2 - bounds.X1, bounds.Y2 - bounds.Y1)) continue;
             PdfDictionary? resources = ResolveDictionary(stream.Dictionary.Items.TryGetValue("Resources", out PdfObject? resource) ? resource : null) ?? pageResources;
             visit(stream, resources);
         }

@@ -199,6 +199,49 @@ public sealed partial class PdfEmptyAppearanceTests {
         Assert.Equal(source, document.ToBytes());
     }
 
+    [Theory]
+    [InlineData(false, false)]
+    [InlineData(false, true)]
+    [InlineData(true, false)]
+    [InlineData(true, true)]
+    public void UnknownAppearancePlacementStillRequiresOriginalDecodeAdmission(bool nested, bool missingBox) {
+        byte[] source = ReplaceCompressedAppearance(BuildPdf("[0 0 20 20]", "[0 0 20 20]", widgetOn: true), 5,
+            new string(' ', 4096) + "0 g 0 0 20 20 re f");
+        source = PdfDocumentObjectGraphRewriter.Rewrite(source, null, null, (objects, security) => {
+            PdfDictionary widget = Assert.IsType<PdfDictionary>(Assert.Single(objects.Values,
+                item => item.Value is PdfDictionary dictionary && dictionary.Get<PdfStringObj>("T")?.Value == "agree").Value);
+            var appearances = (PdfDictionary)widget.Items["AP"];
+            var states = (PdfDictionary)appearances.Items["N"];
+            int number = ((PdfReference)states.Items["Yes"]).ObjectNumber;
+            var compressed = (PdfStream)objects[number].Value;
+            var originalDictionary = new PdfDictionary();
+            foreach (var item in compressed.Dictionary.Items) originalDictionary.Items[item.Key] = item.Value;
+            if (missingBox) compressed.Dictionary.Items.Remove("BBox");
+            else compressed.Dictionary.Items["BBox"] = new PdfName("Malformed");
+            if (nested) {
+                int child = objects.Keys.Max() + 1;
+                objects[child] = new PdfIndirectObject(child, 0, compressed);
+                originalDictionary.Items.Remove("Filter");
+                var xObjects = new PdfDictionary(); xObjects.Items["Child"] = new PdfReference(child, 0);
+                var resources = new PdfDictionary(); resources.Items["XObject"] = xObjects;
+                originalDictionary.Items["Resources"] = resources;
+                objects[number] = new PdfIndirectObject(number, 0,
+                    new PdfStream(originalDictionary, Encoding.ASCII.GetBytes("/Child Do\n")));
+            }
+            return security.InfoObjectNumber;
+        });
+        PdfDocument document = PdfDocument.Load(source, new PdfLoadOptions { Limits = new PdfReadLimits {
+            MaxDecodedStreamBytes = 64
+        }});
+
+        PdfReadLimitException exception = Assert.Throws<PdfReadLimitException>(() =>
+            document.Forms.Edit(edit => edit.SetDefaultValue("agree", "Yes")));
+
+        Assert.Equal(PdfReadLimitKind.DecodedStreamBytes, exception.Kind);
+        Assert.Equal(64, exception.Limit);
+        Assert.Equal(source, document.ToBytes());
+    }
+
     private static byte[] ReplaceCompressedAppearance(byte[] source, int number, string content) =>
         PdfDocumentObjectGraphRewriter.Rewrite(source, null, null, (objects, security) => {
             var original = (PdfStream)objects[number].Value;
