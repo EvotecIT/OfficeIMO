@@ -9,6 +9,10 @@ public sealed class PdfFormFillerOptions {
     private PdfConversionReport? _diagnosticsReport;
     private string _diagnosticsConverter = "OfficeIMO.Pdf";
 
+    /// <summary>Cooperatively cancels source reading, field changes, appearance generation, and output verification.</summary>
+    /// <remarks>Cancellation leaves the source unchanged. A caller-owned destination stream can retain bytes already written.</remarks>
+    public System.Threading.CancellationToken CancellationToken { get; set; }
+
     /// <summary>Maximum XFDF source length accepted before XML materialization.</summary>
     public int MaxXfdfDocumentCharacters { get; set; } = PdfFormDataSet.DefaultMaxXfdfDocumentCharacters;
 

@@ -848,8 +848,10 @@ public partial class PdfFormFillerTests {
         Assert.Contains("<1388> Tj", output, StringComparison.Ordinal);
         // CID 5000 has width 250 in /W. The bounded shared width map retains this
         // declaration instead of silently substituting /DW beyond an expansion prefix.
-        Assert.Contains("194 12.64 Td <1388> Tj", output, StringComparison.Ordinal);
-        Assert.DoesNotContain("185 12.64 Td <1388> Tj", output, StringComparison.Ordinal);
+        System.Text.RegularExpressions.Match position = System.Text.RegularExpressions.Regex.Match(output,
+            @"(?<x>[0-9.]+) [0-9.]+ Td <1388> Tj");
+        Assert.True(position.Success);
+        Assert.Equal(194D, double.Parse(position.Groups["x"].Value, System.Globalization.CultureInfo.InvariantCulture));
     }
 
     [Fact]

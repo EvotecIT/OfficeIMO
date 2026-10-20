@@ -373,8 +373,11 @@ public class PdfAcroFormEditorTests {
         Assert.Equal(490D, widget.Y2, 3);
     }
 
-    [Fact]
-    public void Edit_MoveRejectsCrossPageUnsignedSignatureWithResourceLessAppearance() {
+    [Theory]
+    [InlineData("missing-box")]
+    [InlineData("invalid-box")]
+    [InlineData("invalid-matrix")]
+    public void Edit_MoveRejectsCrossPageUnsignedSignatureWithResourceLessAppearance(string placement) {
         byte[] source = PdfDocument.Create()
             .Paragraph(p => p.Text("First page"))
             .PageBreak()
@@ -384,7 +387,15 @@ public class PdfAcroFormEditorTests {
         source = PdfDocumentObjectGraphRewriter.Rewrite(source, null, null, (objects, security) => {
             PdfDictionary widget = Assert.IsType<PdfDictionary>(Assert.Single(objects.Values, static item =>
                 item.Value is PdfDictionary dictionary && dictionary.Get<PdfStringObj>("T")?.Value == "Approval").Value);
-            var normalAppearance = new PdfStream(new PdfDictionary(), Encoding.ASCII.GetBytes("q Q"));
+            var appearanceDictionary = new PdfDictionary();
+            if (placement == "invalid-box") appearanceDictionary.Items["BBox"] = new PdfName("Malformed");
+            if (placement == "invalid-matrix") {
+                var box = new PdfArray();
+                foreach (double value in new[] { 0D, 0D, 180D, 40D }) box.Items.Add(new PdfNumber(value));
+                appearanceDictionary.Items["BBox"] = box;
+                appearanceDictionary.Items["Matrix"] = new PdfName("Malformed");
+            }
+            var normalAppearance = new PdfStream(appearanceDictionary, Encoding.ASCII.GetBytes("q Q"));
             int appearanceObjectNumber = objects.Keys.Max() + 1;
             objects[appearanceObjectNumber] = new PdfIndirectObject(appearanceObjectNumber, 0, normalAppearance);
             var appearances = new PdfDictionary();

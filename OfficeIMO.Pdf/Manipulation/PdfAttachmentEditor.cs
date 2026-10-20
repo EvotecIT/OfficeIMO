@@ -1,4 +1,5 @@
 using System.Security.Cryptography;
+using System.Threading;
 
 namespace OfficeIMO.Pdf;
 
@@ -9,13 +10,14 @@ internal static class PdfAttachmentEditor {
         byte[] pdf,
         Action<PdfAttachmentEditSession> edit,
         PdfLoadOptions? readOptions = null,
-        long? maxDecodedAttachmentBytes = null) {
+        long? maxDecodedAttachmentBytes = null, CancellationToken cancellationToken = default) {
+        cancellationToken.ThrowIfCancellationRequested();
         Guard.NotNull(pdf, nameof(pdf)); Guard.NotNull(edit, nameof(edit));
-        PdfMutationPlan plan = PdfMutationPlanner.RequireFullRewrite(pdf, PdfMutationOperation.ModifyAttachments, readOptions);
-        PdfReadDocument document = PdfReadDocument.Open(pdf, readOptions);
+        PdfMutationPlan plan = PdfMutationPlanner.RequireFullRewrite(pdf, PdfMutationOperation.ModifyAttachments, readOptions, cancellationToken: cancellationToken);
+        PdfReadDocument document = PdfReadDocument.Open(pdf, readOptions, cancellationToken);
         IReadOnlyList<PdfExtractedAttachment> existing = maxDecodedAttachmentBytes.HasValue
-            ? PdfAttachmentExtractor.ExtractAttachments(document, static _ => true, maxDecodedAttachmentBytes.Value)
-            : PdfAttachmentExtractor.ExtractAttachments(document);
+            ? PdfAttachmentExtractor.ExtractAttachments(document, static _ => true, maxDecodedAttachmentBytes.Value, cancellationToken: cancellationToken)
+            : document.ExtractAttachments(cancellationToken);
         if (maxDecodedAttachmentBytes.HasValue) {
             long projectedBytes = 0;
             foreach (PdfExtractedAttachment attachment in existing) {
@@ -37,7 +39,9 @@ internal static class PdfAttachmentEditor {
                     attachment.ModificationDate),
                 attachment.FileSpecObjectNumber,
                 attachment.EmbeddedFileObjectNumber)), maximumTargetBytes);
+        cancellationToken.ThrowIfCancellationRequested();
         edit(session);
+        cancellationToken.ThrowIfCancellationRequested();
         IReadOnlyList<PdfAttachmentEditEntry> targetEntries = session.SnapshotEntries();
         PdfEmbeddedFile[] target = targetEntries
             .Select(static entry => entry.Attachment)
@@ -46,22 +50,23 @@ internal static class PdfAttachmentEditor {
         bool removedFileAttachmentAnnotations = false;
         byte[] output = PdfDocumentObjectGraphRewriter.Rewrite(pdf, readOptions, null, (objects, security) => {
             removedFileAttachmentAnnotations = RewriteAttachmentGraph(
-                objects, security, targetEntries, retainedOriginalNames);
+                objects, security, targetEntries, retainedOriginalNames, cancellationToken);
             return security.InfoObjectNumber.HasValue && objects.ContainsKey(security.InfoObjectNumber.Value) ? security.InfoObjectNumber : null;
-        });
+        }, cancellationToken: cancellationToken);
         PdfLoadOptions outputReadOptions = PdfLoadOptions.WithMinimumInputBytes(
             PdfLoadOptions.Resolve(readOptions),
             output.LongLength);
-        IReadOnlyList<PdfAttachmentValidation> validations = Validate(output, target, outputReadOptions);
-        ValidateAttachmentGraph(output, target.Length, outputReadOptions);
+        IReadOnlyList<PdfAttachmentValidation> validations = Validate(output, target, outputReadOptions, cancellationToken);
+        ValidateAttachmentGraph(output, target.Length, outputReadOptions, cancellationToken);
         if (validations.Any(static validation => !validation.IsValid)) throw new InvalidOperationException("PDF attachment post-save validation failed; the artifact was not returned.");
         var preservationOptions = new PdfRewritePreservationOptions {
             OriginalReadOptions = readOptions,
+            RewrittenReadOptions = outputReadOptions,
             PreserveAnnotations = !removedFileAttachmentAnnotations,
             PreserveEmbeddedFiles = false,
             PreserveRevisionStructure = false
         };
-        PdfRewritePreservationReport preservation = PdfRewritePreservation.AssertPreserved(pdf, output, preservationOptions);
+        PdfRewritePreservationReport preservation = PdfRewritePreservation.AssertPreserved(pdf, output, preservationOptions, cancellationToken);
         return new PdfAttachmentEditResult(output, plan, preservation, validations, outputReadOptions);
     }
 
@@ -78,12 +83,12 @@ internal static class PdfAttachmentEditor {
         Dictionary<int, PdfIndirectObject> objects,
         PdfDocumentSecurityInfo security,
         IReadOnlyList<PdfAttachmentEditEntry> attachments,
-        IReadOnlyDictionary<string, string> retainedOriginalNames) {
+        IReadOnlyDictionary<string, string> retainedOriginalNames, CancellationToken cancellationToken) {
         if (!security.RootObjectNumber.HasValue || !objects.TryGetValue(security.RootObjectNumber.Value, out PdfIndirectObject? root) || root.Value is not PdfDictionary catalog) throw new InvalidOperationException("PDF catalog is not readable.");
         List<FileAttachmentAnnotation> fileAttachmentAnnotations = CaptureFileAttachmentAnnotations(objects);
         PdfDictionary? names = ResolveDictionary(objects, catalog.Items.TryGetValue("Names", out PdfObject? namesObject) ? namesObject : null);
         names?.Items.Remove("EmbeddedFiles");
-        RemoveExistingEmbeddedFileGraph(objects);
+        RemoveExistingEmbeddedFileGraph(objects, cancellationToken);
         PdfAssociatedFileGraph.RemoveAssociatedFileReferences(objects);
         if (attachments.Count == 0) {
             return ReconnectFileAttachmentAnnotations(
@@ -137,9 +142,10 @@ internal static class PdfAttachmentEditor {
             fileSpecificationsByOriginalEmbeddedFile);
     }
 
-    private static void RemoveExistingEmbeddedFileGraph(Dictionary<int, PdfIndirectObject> objects) {
+    private static void RemoveExistingEmbeddedFileGraph(Dictionary<int, PdfIndirectObject> objects, CancellationToken cancellationToken) {
         var removedObjectNumbers = new HashSet<int>();
         foreach (PdfIndirectObject indirect in objects.Values) {
+            cancellationToken.ThrowIfCancellationRequested();
             PdfDictionary? dictionary = indirect.Value is PdfStream stream
                 ? stream.Dictionary
                 : indirect.Value as PdfDictionary;
@@ -364,11 +370,12 @@ internal static class PdfAttachmentEditor {
         }
     }
 
-    private static void ValidateAttachmentGraph(byte[] pdf, int expectedCount, PdfLoadOptions? readOptions) {
-        var (objects, _) = PdfSyntax.ParseObjects(pdf, readOptions);
+    private static void ValidateAttachmentGraph(byte[] pdf, int expectedCount, PdfLoadOptions? readOptions, CancellationToken cancellationToken) {
+        var (objects, _) = PdfSyntax.ParseObjects(pdf, readOptions, out _, out _, cancellationToken);
         int embeddedStreams = 0;
         int fileSpecifications = 0;
         foreach (PdfIndirectObject indirect in objects.Values) {
+            cancellationToken.ThrowIfCancellationRequested();
             PdfDictionary? dictionary = indirect.Value is PdfStream stream
                 ? stream.Dictionary
                 : indirect.Value as PdfDictionary;
@@ -402,11 +409,12 @@ internal static class PdfAttachmentEditor {
         return dictionary;
     }
 
-    private static System.Collections.ObjectModel.ReadOnlyCollection<PdfAttachmentValidation> Validate(byte[] pdf, PdfEmbeddedFile[] target, PdfLoadOptions readOptions) {
-        IReadOnlyList<PdfExtractedAttachment> actual = PdfAttachmentExtractor.ExtractAttachments(PdfReadDocument.Open(pdf, readOptions));
+    private static System.Collections.ObjectModel.ReadOnlyCollection<PdfAttachmentValidation> Validate(byte[] pdf, PdfEmbeddedFile[] target, PdfLoadOptions readOptions, CancellationToken cancellationToken) {
+        IReadOnlyList<PdfExtractedAttachment> actual = PdfReadDocument.Open(pdf, readOptions, cancellationToken).ExtractAttachments(cancellationToken);
         var unmatched = actual.ToList();
         var result = new List<PdfAttachmentValidation>(target.Length);
         foreach (PdfEmbeddedFile expected in target) {
+            cancellationToken.ThrowIfCancellationRequested();
             byte[] data = expected.DataSnapshot;
             int foundIndex = unmatched.FindIndex(item =>
                 string.Equals(item.FileName, expected.FileName, StringComparison.Ordinal) &&

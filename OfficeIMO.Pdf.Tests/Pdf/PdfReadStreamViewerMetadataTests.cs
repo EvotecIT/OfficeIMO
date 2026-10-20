@@ -60,7 +60,7 @@ public partial class PdfReadStreamTests {
         Assert.True(PdfInspector.Inspect(PdfPageExtractor.ExtractPages(taggedPdf, 1)).HasTaggedContent);
         Assert.True(PdfInspector.Inspect(Assert.Single(PdfPageExtractor.SplitPages(taggedPdf))).HasTaggedContent);
         AssertTagged(() => PdfMetadataEditor.UpdateMetadata(taggedPdf, title: "Updated"));
-        AssertTagged(() => PdfMerger.Merge(taggedPdf));
+        Assert.True(PdfInspector.Inspect(PdfMerger.Merge(taggedPdf)).HasTaggedContent);
         AssertTagged(() => PdfStamper.StampText(taggedPdf, "STAMP"));
 
         static void AssertTagged(Action action) {

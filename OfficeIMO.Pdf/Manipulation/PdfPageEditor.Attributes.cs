@@ -60,7 +60,7 @@ internal static partial class PdfPageEditor {
             readOptions, pdf, output, new PdfGeneratedOutputGrowth(additionalRevisions: 1));
         PdfSignatureMutationReport proof = PdfSignatureMutationAnalyzer.Analyze(
             pdf, output, plan.Operation,
-            readOptions: readOptions, afterReadOptions: outputOptions);
+            readOptions: readOptions, afterReadOptions: outputOptions, cancellationToken: cancellationToken);
         if (!proof.IsPreservedAppendOnlyMutation) {
             throw new InvalidOperationException("The page-attribute update did not preserve the input prefix, revision chain, and existing signature byte ranges.");
         }

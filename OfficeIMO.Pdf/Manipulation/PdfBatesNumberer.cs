@@ -44,6 +44,9 @@ public sealed class PdfBatesDocument {
 
 /// <summary>Controls continuous Bates numbering across one or more PDFs.</summary>
 public sealed class PdfBatesNumberingOptions {
+    /// <summary>Cancels input enumeration, numbering, rendering, and output preservation checks.</summary>
+    public System.Threading.CancellationToken CancellationToken { get; set; }
+
     /// <summary>First numeric value assigned to a selected page.</summary>
     public long StartNumber { get; set; } = 1L;
 
@@ -164,20 +167,29 @@ public static class PdfBatesNumberer {
     /// <summary>Numbers the supplied documents continuously and returns output and preservation evidence.</summary>
     public static PdfBatesBatchResult Apply(IEnumerable<PdfBatesDocument> documents, PdfBatesNumberingOptions? options = null) {
         Guard.NotNull(documents, nameof(documents));
-        PdfBatesDocument[] inputs = documents.ToArray();
+        PdfBatesNumberingOptions effective = options ?? new PdfBatesNumberingOptions();
+        var cancellationToken = effective.CancellationToken;
+        cancellationToken.ThrowIfCancellationRequested();
+        var inputList = new List<PdfBatesDocument>();
+        foreach (PdfBatesDocument input in documents) {
+            cancellationToken.ThrowIfCancellationRequested();
+            inputList.Add(input);
+        }
+        cancellationToken.ThrowIfCancellationRequested();
+        PdfBatesDocument[] inputs = inputList.ToArray();
         if (inputs.Length == 0) throw new ArgumentException("At least one PDF must be supplied.", nameof(documents));
         if (inputs.Any(static document => document is null)) throw new ArgumentException("Bates-numbering inputs cannot contain null documents.", nameof(documents));
 
-        PdfBatesNumberingOptions effective = options ?? new PdfBatesNumberingOptions();
         ValidateOptions(effective);
         long nextNumber = effective.StartNumber;
         var allAssignments = new List<PdfBatesAssignment>();
         var documentResults = new List<PdfBatesDocumentResult>(inputs.Length);
 
         for (int documentIndex = 0; documentIndex < inputs.Length; documentIndex++) {
+            cancellationToken.ThrowIfCancellationRequested();
             PdfBatesDocument input = inputs[documentIndex];
             byte[] source = input.GetBytes();
-            PdfReadDocument read = PdfReadDocument.Open(source, input.ReadOptions);
+            PdfReadDocument read = PdfReadDocument.Open(source, input.ReadOptions, cancellationToken);
             if (read.Pages.Count == 0) throw new ArgumentException("PDF input " + documentIndex.ToString(CultureInfo.InvariantCulture) + " does not contain any pages.", nameof(documents));
             IReadOnlyList<int> selectedPages = (input.TargetPages ?? effective.TargetPages)?.Resolve(read.Pages.Count) ??
                 Enumerable.Range(1, read.Pages.Count).ToArray();
@@ -189,6 +201,7 @@ public static class PdfBatesNumberer {
                 : input.Name!;
             var assignments = new List<PdfBatesAssignment>(selectedPages.Count);
             foreach (int pageNumber in selectedPages) {
+                cancellationToken.ThrowIfCancellationRequested();
                 string text = BuildText(nextNumber, effective);
                 assignments.Add(new PdfBatesAssignment(documentIndex, documentName, pageNumber, nextNumber, text));
                 nextNumber = checked(nextNumber + 1L);
@@ -203,6 +216,7 @@ public static class PdfBatesNumberer {
                     (canvas, context) => AddNumber(canvas, context, assignmentByPage[context.PageNumber].Text, effective),
                     out generatedGrowth,
                     new PdfCanvasStampOptions {
+                        CancellationToken = cancellationToken,
                         TargetPages = PdfPageSelector.Parse(string.Join(",", selectedPages.Select(static page => page.ToString(CultureInfo.InvariantCulture))))
                     },
                     input.ReadOptions);
@@ -212,13 +226,14 @@ public static class PdfBatesNumberer {
                 output,
                 options: null,
                 originalReadOptions: input.ReadOptions,
-                rewrittenReadOptions: outputReadOptions);
+                rewrittenReadOptions: outputReadOptions, cancellationToken: cancellationToken);
             preservation.ThrowIfFailed();
             var readOnlyAssignments = new ReadOnlyCollection<PdfBatesAssignment>(assignments);
             documentResults.Add(new PdfBatesDocumentResult(documentIndex, documentName, output, readOnlyAssignments, preservation, outputReadOptions));
             allAssignments.AddRange(assignments);
         }
 
+        cancellationToken.ThrowIfCancellationRequested();
         return new PdfBatesBatchResult(
             new ReadOnlyCollection<PdfBatesDocumentResult>(documentResults),
             new ReadOnlyCollection<PdfBatesAssignment>(allAssignments),

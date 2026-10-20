@@ -34,11 +34,13 @@ internal static class PdfMutationPlanner {
             cancellationToken: cancellationToken);
 
     /// <summary>Allows the canonical catalog-rooted page-content rewriter to preserve an existing AcroForm graph.</summary>
-    internal static void RequireCatalogPreservingPageContentRewrite(byte[] pdf, PdfLoadOptions? options = null) {
+    internal static void RequireCatalogPreservingPageContentRewrite(byte[] pdf, PdfLoadOptions? options = null, CancellationToken cancellationToken = default) {
+        cancellationToken.ThrowIfCancellationRequested();
         Guard.NotNull(pdf, nameof(pdf));
-        PdfDocumentPreflight preflight = PdfInspector.Preflight(pdf, options);
+        PdfDocumentPreflight preflight = PdfInspector.Preflight(pdf, options, cancellationToken);
         bool supported = preflight.CanRead;
         for (int index = 0; supported && index < preflight.RewriteBlockers.Count; index++) {
+            cancellationToken.ThrowIfCancellationRequested();
             PdfRewriteBlockerKind blocker = preflight.RewriteBlockers[index].Kind;
             if (blocker == PdfRewriteBlockerKind.Forms) continue;
             if (blocker == PdfRewriteBlockerKind.Encryption &&
@@ -51,7 +53,7 @@ internal static class PdfMutationPlanner {
                 pdf,
                 PdfMutationOperation.ModifyPageContent,
                 executionPreference: PdfMutationExecutionPreference.RequireFullRewrite,
-                options: options));
+                options: options, cancellationToken: cancellationToken));
         }
     }
 
@@ -127,7 +129,7 @@ internal static class PdfMutationPlanner {
             operation,
             fieldNames,
             PdfMutationExecutionPreference.RequireFullRewrite,
-            effectiveOptions);
+            effectiveOptions, cancellationToken: cancellationToken);
         if (!plan.CanExecute) {
             // Blocked plans escape through PdfMutationBlockedException. Rebuild them from the
             // complete public preflight contract so diagnostics never imply that content
@@ -144,7 +146,7 @@ internal static class PdfMutationPlanner {
                     operation,
                     fieldNames,
                     PdfMutationExecutionPreference.RequireFullRewrite,
-                    effectiveOptions);
+                    effectiveOptions, cancellationToken: cancellationToken);
             }
             plan.Preflight.RethrowTypedReadFailure();
             throw new PdfMutationBlockedException(plan);
@@ -177,7 +179,7 @@ internal static class PdfMutationPlanner {
         cancellationToken.ThrowIfCancellationRequested();
         PdfDocumentPreflight preflight = PdfInspector.Preflight(pdf, options, cancellationToken);
         cancellationToken.ThrowIfCancellationRequested();
-        PdfMutationPlan plan = Plan(preflight, pdf, operation, fieldNames, executionPreference, options, signatureProfile);
+        PdfMutationPlan plan = Plan(preflight, pdf, operation, fieldNames, executionPreference, options, signatureProfile, cancellationToken);
         cancellationToken.ThrowIfCancellationRequested();
         return plan;
     }
@@ -188,9 +190,10 @@ internal static class PdfMutationPlanner {
         PdfMutationOperation operation,
         PdfLoadOptions? options = null,
         IEnumerable<string>? fieldNames = null,
-        PdfMutationExecutionPreference executionPreference = PdfMutationExecutionPreference.Automatic) {
-        PdfDocumentSource source = PdfDocumentSource.FromRemainingStream(input, options);
-        return Plan(source.Bytes, operation, source.Options, fieldNames, executionPreference);
+        PdfMutationExecutionPreference executionPreference = PdfMutationExecutionPreference.Automatic,
+        CancellationToken cancellationToken = default) {
+        PdfDocumentSource source = PdfDocumentSource.FromRemainingStream(input, options, cancellationToken);
+        return Plan(source.Bytes, operation, source.Options, fieldNames, executionPreference, cancellationToken: cancellationToken);
     }
 
     /// <summary>Plans a mutation for a PDF file.</summary>
@@ -199,9 +202,10 @@ internal static class PdfMutationPlanner {
         PdfMutationOperation operation,
         PdfLoadOptions? options = null,
         IEnumerable<string>? fieldNames = null,
-        PdfMutationExecutionPreference executionPreference = PdfMutationExecutionPreference.Automatic) {
-        PdfDocumentSource source = PdfDocumentSource.FromPath(inputPath, options);
-        return Plan(source.Bytes, operation, source.Options, fieldNames, executionPreference);
+        PdfMutationExecutionPreference executionPreference = PdfMutationExecutionPreference.Automatic,
+        CancellationToken cancellationToken = default) {
+        PdfDocumentSource source = PdfDocumentSource.FromPath(inputPath, options, cancellationToken);
+        return Plan(source.Bytes, operation, source.Options, fieldNames, executionPreference, cancellationToken: cancellationToken);
     }
 
     /// <summary>Plans a mutation from an existing general preflight report.</summary>
@@ -229,15 +233,18 @@ internal static class PdfMutationPlanner {
         IEnumerable<string>? fieldNames = null,
         PdfMutationExecutionPreference executionPreference = PdfMutationExecutionPreference.Automatic,
         PdfLoadOptions? options = null,
-        PdfSignatureProfile? signatureProfile = null) {
+        PdfSignatureProfile? signatureProfile = null,
+        CancellationToken cancellationToken = default) {
         Guard.NotNull(preflight, nameof(preflight));
         Guard.NotNull(pdf, nameof(pdf));
+        cancellationToken.ThrowIfCancellationRequested();
         bool finalizationReservationValidated = operation != PdfMutationOperation.FinalizeExternalSignature ||
             PdfIncrementalUpdater.HasFinalizableExternalSignatureReservation(pdf, preflight.Probe.Security);
         // A raw trailer is insufficient to prove metadata preservation after structural parsing failed.
         bool metadataPreservationValidated = !RequiresMetadataPreservationValidation(operation) ||
             (preflight.UncheckedDocumentInfo is not null &&
-                PdfIncrementalUpdater.CanPreserveXmpMetadataAppendOnly(pdf, options));
+                PdfIncrementalUpdater.CanPreserveXmpMetadataAppendOnly(pdf, options, cancellationToken));
+        cancellationToken.ThrowIfCancellationRequested();
         return PlanCore(preflight, operation, fieldNames, executionPreference, finalizationReservationValidated, metadataPreservationValidated, signatureProfile);
     }
 
@@ -669,6 +676,7 @@ internal static class PdfMutationPlanner {
                 Add(proofs, PdfMutationProof.VisualRendering);
                 break;
             case PdfMutationOperation.MergeDocuments:
+                Add(proofs, PdfMutationProof.TaggedStructureReadback);
                 Add(proofs, PdfMutationProof.PageStructureReadback);
                 Add(proofs, PdfMutationProof.FormFieldReadback);
                 Add(proofs, PdfMutationProof.AttachmentReadback);
@@ -1162,7 +1170,7 @@ internal static class PdfMutationPlanner {
         }
 
         if (operation == PdfMutationOperation.MergeDocuments) {
-            return blocker != PdfRewriteBlockerKind.Forms;
+            return blocker != PdfRewriteBlockerKind.Forms && blocker != PdfRewriteBlockerKind.TaggedContent;
         }
 
         if (operation == PdfMutationOperation.ModifyAcroForm) {

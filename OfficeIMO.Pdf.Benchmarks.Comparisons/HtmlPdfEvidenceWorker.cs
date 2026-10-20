@@ -17,7 +17,7 @@ internal static class HtmlPdfEvidenceWorker {
     internal static async Task<int> RunAsync(string[] args) {
         string engineValue = ReadRequiredOption(args, "--engine");
         if (!Enum.TryParse(engineValue, ignoreCase: true, out HtmlPdfComparisonEngine engine) || !Enum.IsDefined(engine)) {
-            throw new ArgumentException("--engine must be OfficeIMO, PeachPDF, ITextPdfHtml, or Chromium.");
+            throw new ArgumentException("--engine must be OfficeIMO, PeachPDF, PdfPecker, ITextPdfHtml, or Chromium.");
         }
 
         string htmlPath = Path.GetFullPath(ReadRequiredOption(args, "--html"));

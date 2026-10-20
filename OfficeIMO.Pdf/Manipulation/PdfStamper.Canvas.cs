@@ -18,14 +18,16 @@ internal static partial class PdfStamper {
         Guard.NotNull(pdf, nameof(pdf));
         Guard.NotNull(build, nameof(build));
         PdfCanvasStampOptions effective = options ?? new PdfCanvasStampOptions();
+        var cancellationToken = effective.CancellationToken;
+        cancellationToken.ThrowIfCancellationRequested();
         PdfOptions? renderingOptions = effective.RenderingOptionsSnapshot;
         if (renderingOptions is not null && renderingOptions.TaggedStructureMode != PdfTaggedStructureMode.None) {
             throw new NotSupportedException("Existing-page canvas stamping is visual-only and cannot preserve a generated tagged structure tree. Use untagged rendering options or a document authoring path that owns the target structure tree.");
         }
         PdfOptions? canvasRenderingOptions = renderingOptions?.CloneForCanvasStampRendering();
-        _ = PdfMutationPlanner.RequireFullRewrite(pdf, PdfMutationOperation.ModifyPageContent, readOptions);
+        _ = PdfMutationPlanner.RequireFullRewrite(pdf, PdfMutationOperation.ModifyPageContent, readOptions, cancellationToken: cancellationToken);
 
-        PdfReadDocument target = PdfReadDocument.Open(pdf, readOptions);
+        PdfReadDocument target = PdfReadDocument.Open(pdf, readOptions, cancellationToken);
         if (target.Pages.Count == 0) {
             throw new ArgumentException("PDF does not contain any pages.", nameof(pdf));
         }
@@ -36,12 +38,14 @@ internal static partial class PdfStamper {
         int maximumGeneratedPageBytes = 0;
         long totalGeneratedBytes = 0L;
         for (int selectedIndex = 0; selectedIndex < selectedPages.Count; selectedIndex++) {
+            cancellationToken.ThrowIfCancellationRequested();
             int pageNumber = selectedPages[selectedIndex];
             PdfReadPage page = target.Pages[pageNumber - 1];
             (double width, double height, _) = page.GetImportGeometry();
             var context = new PdfStampPageContext(pageNumber, target.Pages.Count, width, height, page.GetRotationDegrees());
             var canvas = new PdfPageCanvas();
             build(canvas, context);
+            cancellationToken.ThrowIfCancellationRequested();
             RejectNonVisualCanvasItems(canvas.Items);
 
             PdfOptions overlayOptions = canvasRenderingOptions?.Clone() ?? new PdfOptions();
@@ -54,13 +58,14 @@ internal static partial class PdfStamper {
             overlayOptions.Encryption = null;
             byte[] overlay = PdfDocument.Create(overlayOptions)
                 .Canvas(generatedCanvas => CopyCanvasItems(canvas, generatedCanvas))
-                .ToBytes();
+                .ToBytes(cancellationToken);
             int generatedPageBytes = overlay.Length > int.MaxValue - 1024 ? int.MaxValue : overlay.Length + 1024;
             maximumGeneratedPageBytes = Math.Max(maximumGeneratedPageBytes, generatedPageBytes);
             totalGeneratedBytes = totalGeneratedBytes > long.MaxValue - generatedPageBytes
                 ? long.MaxValue
                 : totalGeneratedBytes + generatedPageBytes;
             var pageOptions = new PdfPageOverlayOptions {
+                CancellationToken = cancellationToken,
                 ContentIdentifier = effective.ContentIdentifier,
                 WatermarkSettings = effective.WatermarkSettings,
                 TargetPages = PdfPageSelector.Parse(pageNumber.ToString(System.Globalization.CultureInfo.InvariantCulture)),
@@ -91,7 +96,7 @@ internal static partial class PdfStamper {
             additionalPrintProductionContexts: selectedPages.Count,
             additionalPrintProductionOperations: totalGeneratedBytes >= int.MaxValue / 2L
                 ? int.MaxValue : (int)(totalGeneratedBytes * 2L));
-        return StampPageSetCore(pdf, requests, readOptions);
+        return StampPageSetCore(pdf, requests, readOptions, cancellationToken: cancellationToken);
     }
 
     private static void CopyCanvasItems(PdfPageCanvas source, PdfPageCanvas target) {

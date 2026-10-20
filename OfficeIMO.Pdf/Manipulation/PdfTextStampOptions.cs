@@ -4,6 +4,9 @@ namespace OfficeIMO.Pdf;
 /// Options used when adding a simple text stamp or watermark to parsed PDF pages.
 /// </summary>
 public sealed class PdfTextStampOptions {
+    /// <summary>Cancels input reading, PDF processing, and output publication for this operation.</summary>
+    public System.Threading.CancellationToken CancellationToken { get; set; }
+
     private int[]? _pageNumbers;
     private double? _x;
     private double? _y;

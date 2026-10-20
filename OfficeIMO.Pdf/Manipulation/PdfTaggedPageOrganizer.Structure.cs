@@ -32,7 +32,7 @@ internal static partial class PdfTaggedPageOrganizer {
         foreach (int number in numbers) Visit(objects[number].Value);
     }
 
-    private static void PruneStructure(Dictionary<int, PdfIndirectObject> objects, PdfDictionary catalog,
+    internal static void PruneStructure(Dictionary<int, PdfIndirectObject> objects, PdfDictionary catalog,
         HashSet<int> removedPages, HashSet<int> removedAnnotations, CancellationToken token) {
         if (!catalog.Items.TryGetValue("StructTreeRoot", out var value) || PdfObjectLookup.Resolve(objects, value) is not PdfDictionary root)
             throw new InvalidOperationException("The tagged document requires a readable structure-tree root.");

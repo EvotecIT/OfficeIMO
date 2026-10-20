@@ -4,6 +4,9 @@ namespace OfficeIMO.Pdf;
 
 /// <summary>Controls placement of a source PDF page imported as a Form XObject onto target pages.</summary>
 public sealed class PdfPageOverlayOptions {
+    /// <summary>Cancels input reading, PDF processing, and output publication for this operation.</summary>
+    public System.Threading.CancellationToken CancellationToken { get; set; }
+
     internal string? ContentIdentifier { get; set; }
     internal PdfWatermarkOptions? WatermarkSettings { get; set; }
     private int _sourcePageNumber = 1;
@@ -91,6 +94,7 @@ public sealed class PdfPageOverlayOptions {
     }
 
     internal PdfPageOverlayOptions Clone(bool? behindContent = null) => new PdfPageOverlayOptions {
+        CancellationToken = CancellationToken,
         ContentIdentifier = ContentIdentifier,
         WatermarkSettings = WatermarkSettings?.Clone(),
         SourcePageNumber = SourcePageNumber,

@@ -1,3 +1,5 @@
+using System.Threading;
+
 namespace OfficeIMO.Pdf;
 
 internal static partial class PdfPageEditor {
@@ -8,6 +10,9 @@ internal static partial class PdfPageEditor {
 
     internal static byte[] SetPageBoxWithReadOptions(byte[] pdf, PdfPageBoundaryBox box, double left, double bottom, double right, double top, PdfLoadOptions? readOptions, params int[] pageNumbers) =>
         SetPageBoxWithReadOptions(pdf, GetPageBoxName(box), left, bottom, right, top, readOptions, pageNumbers);
+
+    internal static byte[] SetPageBoxWithReadOptions(byte[] pdf, PdfPageBoundaryBox box, double left, double bottom, double right, double top, PdfLoadOptions? readOptions, CancellationToken cancellationToken, params int[] pageNumbers) =>
+        SetPageBoxWithReadOptions(pdf, GetPageBoxName(box), left, bottom, right, top, readOptions, cancellationToken, pageNumbers);
 
     /// <summary>Sets the media box for selected pages, or every page when no page numbers are supplied.</summary>
     public static byte[] SetMediaBox(byte[] pdf, double left, double bottom, double right, double top, params int[] pageNumbers) =>
@@ -36,14 +41,17 @@ internal static partial class PdfPageEditor {
         return SetPageBoxWithReadOptions(pdf, boxName, left, bottom, right, top, readOptions: null, pageNumbers);
     }
 
-    internal static byte[] SetPageBoxWithReadOptions(byte[] pdf, string boxName, double left, double bottom, double right, double top, PdfLoadOptions? readOptions, params int[] pageNumbers) {
+    internal static byte[] SetPageBoxWithReadOptions(byte[] pdf, string boxName, double left, double bottom, double right, double top, PdfLoadOptions? readOptions, params int[] pageNumbers) =>
+        SetPageBoxWithReadOptions(pdf, boxName, left, bottom, right, top, readOptions, default, pageNumbers);
+
+    internal static byte[] SetPageBoxWithReadOptions(byte[] pdf, string boxName, double left, double bottom, double right, double top, PdfLoadOptions? readOptions, CancellationToken cancellationToken, params int[] pageNumbers) {
         Guard.NotNull(pdf, nameof(pdf));
         Guard.NotNull(pageNumbers, nameof(pageNumbers));
         string normalizedBoxName = NormalizePageBoxName(boxName);
         ValidatePageBoxCoordinates(left, bottom, right, top);
-        PdfMutationPlan plan = PdfMutationPlanner.Require(pdf, PdfMutationOperation.ModifyPageAttributes, readOptions);
+        PdfMutationPlan plan = PdfMutationPlanner.Require(pdf, PdfMutationOperation.ModifyPageAttributes, readOptions, cancellationToken: cancellationToken);
 
-        var document = PdfReadDocument.Open(pdf, readOptions);
+        var document = PdfReadDocument.Open(pdf, readOptions, cancellationToken);
         var selectedPages = pageNumbers.Length == 0
             ? Enumerable.Range(1, document.Pages.Count).ToArray()
             : pageNumbers;
@@ -52,6 +60,7 @@ internal static partial class PdfPageEditor {
         var selected = new HashSet<int>(selectedPages);
         var overrides = new Dictionary<int, Dictionary<string, PdfObject>>();
         for (int i = 0; i < document.Pages.Count; i++) {
+            cancellationToken.ThrowIfCancellationRequested();
             int pageNumber = i + 1;
             if (!selected.Contains(pageNumber)) {
                 continue;
@@ -62,7 +71,7 @@ internal static partial class PdfPageEditor {
             };
         }
 
-        return WritePageAttributes(pdf, document, overrides, plan, readOptions);
+        return WritePageAttributes(pdf, document, overrides, plan, readOptions, cancellationToken);
     }
 
     internal static byte[] SetPageBoxesWithReadOptions(byte[] pdf, IReadOnlyList<PdfProductionFixupProposal> proposals,

@@ -144,7 +144,7 @@ internal static partial class PdfAcroFormDictionaryBuilder {
         } else if (effectiveStyle.IsComb && effectiveStyle.MaxLength.HasValue) {
             content += BuildCombTextFieldAppearanceContent(width, height, displayValue, fontSize, effectiveStyle, effectiveFontResourceName, encodeTextSegmentHex, measureTextSegmentWidth, encodeTextSegments);
         } else {
-            double baseline = singleLineBaseline ?? Math.Max(2D, (height - fontSize) / 2D + fontSize * 0.72D);
+            double baseline = singleLineBaseline ?? GetSingleLineTextBaseline(height, fontSize);
             double measuredTextWidth = textWidth.HasValue ? textWidth.Value : MeasureTextAppearanceSegment(displayValue, fontSize, measureTextSegmentWidth);
             double textX = CalculateAlignedTextX(availableTextWidth, measuredTextWidth, effectiveAlignment);
             string clippedValue = availableTextWidth <= 0.001D ? string.Empty : displayValue;
@@ -154,6 +154,9 @@ internal static partial class PdfAcroFormDictionaryBuilder {
 
         return content + "Q\n";
     }
+
+    /// <summary>Centers nominal text ascent and descent consistently in authored, regenerated and transient widget appearances.</summary>
+    internal static double GetSingleLineTextBaseline(double height, double fontSize) => Math.Max(2D, height / 2D - fontSize * 0.4D);
 
     internal static string GetTextFieldAppearanceDisplayValue(string value, PdfFormFieldStyle? style) {
         Guard.NotNull(value, nameof(value));
@@ -316,7 +319,7 @@ internal static partial class PdfAcroFormDictionaryBuilder {
     private static string BuildCombTextFieldAppearanceContent(double width, double height, string displayValue, double fontSize, PdfFormFieldStyle effectiveStyle, string fontResourceName, Func<string, string?>? encodeTextSegmentHex, Func<string, double, double>? measureTextSegmentWidth, Func<string, IReadOnlyList<PdfTextAppearanceSegment>>? encodeTextSegments) {
         int cellCount = effectiveStyle.MaxLength!.Value;
         double cellWidth = width / cellCount;
-        double baseline = Math.Max(2D, (height - fontSize) / 2D + fontSize * 0.72D);
+        double baseline = GetSingleLineTextBaseline(height, fontSize);
         var content = new StringBuilder();
         int glyphIndex = 0;
         for (int valueIndex = 0; valueIndex < displayValue.Length && glyphIndex < cellCount; glyphIndex++) {

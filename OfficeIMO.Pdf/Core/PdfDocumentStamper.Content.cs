@@ -11,7 +11,7 @@ public sealed partial class PdfDocumentStamper {
         PdfCanvasStampOptions? options = null,
         PdfLoadOptions? readOptions = null) {
         Guard.NotNull(build, nameof(build));
-        return _document.ApplyMutation(input => PdfStamper.StampCanvas(input, build, options, readOptions ?? _document.ReadOptions));
+        return _document.ApplyMutation(input => PdfStamper.StampCanvas(input, build, options, readOptions ?? _document.ReadOptions), readOptions, cancellationToken: options?.CancellationToken ?? default);
     }
 
     /// <summary>Stamps the same arbitrary visual canvas content onto selected existing pages.</summary>
@@ -34,6 +34,7 @@ public sealed partial class PdfDocumentStamper {
             PdfPreflightCapability.ManipulatePages,
             PdfMutationOperation.ModifyPageContent,
             _ => Content(build, stampOptions, options),
-            options: options);
+            options: options,
+            cancellationToken: stampOptions?.CancellationToken ?? default);
     }
 }

@@ -28,16 +28,25 @@ internal static class PdfFormData {
     public static string ExportXfdf(byte[] pdf, PdfLoadOptions? options = null) => Export(pdf, options).ToXfdf();
     /// <summary>Imports typed form data through the validated full-rewrite filler.</summary>
     public static byte[] Import(byte[] pdf, PdfFormDataSet data, PdfFormFillerOptions? options = null) => Import(pdf, data, options, readOptions: null);
-    internal static byte[] Import(byte[] pdf, PdfFormDataSet data, PdfFormFillerOptions? options, PdfLoadOptions? readOptions) { Guard.NotNull(data, nameof(data)); return PdfFormFiller.FillFields(pdf, data.ToFieldValues(), options, readOptions); }
+    internal static byte[] Import(byte[] pdf, PdfFormDataSet data, PdfFormFillerOptions? options, PdfLoadOptions? readOptions) =>
+        Import(pdf, data, options, readOptions, out _);
+    internal static byte[] Import(byte[] pdf, PdfFormDataSet data, PdfFormFillerOptions? options,
+        PdfLoadOptions? readOptions, out PdfLoadOptions outputReadOptions) {
+        Guard.NotNull(data, nameof(data));
+        return PdfFormFiller.FillFields(pdf, data.ToFieldValues(), options, readOptions, out outputReadOptions);
+    }
     /// <summary>Imports XFDF through the validated full-rewrite filler.</summary>
     public static byte[] ImportXfdf(byte[] pdf, string xfdf, PdfFormFillerOptions? options = null) => ImportXfdf(pdf, xfdf, options, readOptions: null);
-    internal static byte[] ImportXfdf(byte[] pdf, string xfdf, PdfFormFillerOptions? options, PdfLoadOptions? readOptions) {
+    internal static byte[] ImportXfdf(byte[] pdf, string xfdf, PdfFormFillerOptions? options, PdfLoadOptions? readOptions) =>
+        ImportXfdf(pdf, xfdf, options, readOptions, out _);
+    internal static byte[] ImportXfdf(byte[] pdf, string xfdf, PdfFormFillerOptions? options,
+        PdfLoadOptions? readOptions, out PdfLoadOptions outputReadOptions) {
         PdfFormFillerOptions effective = options ?? new PdfFormFillerOptions();
         PdfFormDataSet data = PdfFormDataSet.ParseXfdf(
             xfdf,
             effective.MaxXfdfFields,
             effective.MaxXfdfValueCharacters,
             effective.MaxXfdfDocumentCharacters);
-        return Import(pdf, data, effective, readOptions);
+        return Import(pdf, data, effective, readOptions, out outputReadOptions);
     }
 }

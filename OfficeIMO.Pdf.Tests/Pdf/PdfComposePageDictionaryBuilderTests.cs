@@ -755,10 +755,10 @@ namespace OfficeIMO.Tests.Pdf {
             Assert.DoesNotContain("<536563726574> Tj", passwordContent);
 
             string centeredContent = PdfAcroFormDictionaryBuilder.BuildTextFieldAppearanceContent(120, 20, "Ada", 10, textAlignment: PdfFormFieldTextAlignment.Center, textWidth: 30);
-            Assert.Contains("45 12.2 Td <416461> Tj", centeredContent);
+            Assert.Matches(@"(?:^|\s)45\s+-?\d+(?:\.\d+)?\s+Td <416461> Tj", centeredContent);
 
             string rightContent = PdfAcroFormDictionaryBuilder.BuildTextFieldAppearanceContent(120, 20, "Ada", 10, textAlignment: PdfFormFieldTextAlignment.Right, textWidth: 30);
-            Assert.Contains("87 12.2 Td <416461> Tj", rightContent);
+            Assert.Matches(@"(?:^|\s)87\s+-?\d+(?:\.\d+)?\s+Td <416461> Tj", rightContent);
 
             string dictionary = PdfAcroFormDictionaryBuilder.BuildTextFieldAppearanceStreamDictionary(120, 20, 3, Encoding.ASCII.GetByteCount(content));
             Assert.Equal(

@@ -42,9 +42,7 @@ internal static partial class PdfWriter {
                 if (glyphId > 0) {
                     // One glyph avoids accumulating the outline engine's design-unit or tracking
                     // advances. The writer's rounded PDF advances below own every origin.
-                    var shaped = new OfficeTextShapingResult(new[] { new OfficeShapedGlyph(glyphId, "x", 0) });
-                    double ascent = ((IOfficeFontBaselineMetrics)outline).BaselineOffset(size);
-                    var contours = outline.GetShapedTextContoursBounded("x", shaped, 0D, -ascent, size, 65536, cancellationToken);
+                    var contours = DiagnosticGlyphOutline(outline, glyphId, size);
                     double shear = currentOpts.NeedsSyntheticOblique(segment.Font, segment.NamedFont) ? ContentStreamBuilder.SyntheticObliqueShear : 0D;
                     foreach (var contour in contours) for (int p = 0; p < contour.Count; p++) {
                         OfficePoint point = contour[p];
@@ -92,7 +90,12 @@ internal static partial class PdfWriter {
             if (_diagnosticFonts.TryGetValue(data, out var cached)) return cached;
             IOfficeBoundedFontProgram font = (IOfficeBoundedFontProgram?)OfficeTrueTypeFont.TryLoad(data)
                 ?? OfficeOpenTypeCffFont.TryLoad(data, null, out _) ?? throw new NotSupportedException("The selected PDF font has no inspectable outline program.");
-            if (_diagnosticFonts.Count >= 64) _diagnosticFonts.Clear();
+            if (_diagnosticFonts.Count >= 64) {
+                _diagnosticFonts.Clear();
+                // Outline keys retain their parsed font. Release them with the font cache.
+                _diagnosticGlyphContours.Clear();
+                _diagnosticGlyphPointCount = 0;
+            }
             _diagnosticFonts.Add(data, font);
             return font;
         }

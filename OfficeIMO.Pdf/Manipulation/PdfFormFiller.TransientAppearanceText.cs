@@ -15,8 +15,7 @@ internal static partial class PdfFormFiller {
         double fontSize = ReadWidgetAppearanceFontSize(defaultAppearance, height);
         content = PdfAcroFormDictionaryBuilder.BuildTextFieldAppearanceContent(width, height, text, fontSize, style,
             encodedTextHex: plan?.EncodedTextHex, fontResourceName: fontName,
-            encodeTextSegmentHex: plan?.EncodeTextSegmentHex, measureTextSegmentWidth: plan?.MeasureTextSegmentWidth,
-            singleLineBaseline: Math.Max(2D, height / 2D - fontSize * 0.4D));
+            encodeTextSegmentHex: plan?.EncodeTextSegmentHex, measureTextSegmentWidth: plan?.MeasureTextSegmentWidth);
         return true;
     }
 

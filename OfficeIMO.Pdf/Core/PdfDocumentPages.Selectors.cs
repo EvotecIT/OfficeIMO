@@ -1,3 +1,5 @@
+using System.Threading;
+
 namespace OfficeIMO.Pdf;
 
 public sealed partial class PdfDocumentPages {
@@ -97,9 +99,10 @@ public sealed partial class PdfDocumentPages {
             options);
     }
 
-    private PdfPageSelection ResolveSelector(PdfPageSelector selector, PdfLoadOptions? options) {
+    private PdfPageSelection ResolveSelector(PdfPageSelector selector, PdfLoadOptions? options, CancellationToken cancellationToken = default) {
+        cancellationToken.ThrowIfCancellationRequested();
         Guard.NotNull(selector, nameof(selector));
-        int pageCount = GetSelectionPageCount(options);
+        int pageCount = GetSelectionPageCount(options, cancellationToken);
         if (pageCount < 1) {
             throw new InvalidOperationException("PDF does not contain any readable pages.");
         }
@@ -108,7 +111,7 @@ public sealed partial class PdfDocumentPages {
     }
 
     // Selection resolution needs page geometry, not permission to extract logical content.
-    private int GetSelectionPageCount(PdfLoadOptions? options) =>
-        (_document.GetOpenedReadDocumentFactory(options)?.Invoke() ??
-            PdfReadDocument.Open(_document.GetBytesForOperation(), options)).Pages.Count;
+    private int GetSelectionPageCount(PdfLoadOptions? options, CancellationToken cancellationToken = default) =>
+        (_document.GetOpenedReadDocumentFactory(options, cancellationToken)?.Invoke() ??
+            PdfReadDocument.Open(_document.GetBytesForOperation(cancellationToken), options, cancellationToken)).Pages.Count;
 }

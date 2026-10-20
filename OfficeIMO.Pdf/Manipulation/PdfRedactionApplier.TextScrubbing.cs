@@ -522,7 +522,7 @@ internal static partial class PdfRedactionApplier {
     }
 
     private static RedactionTextBounds AddSpanBounds(RedactionTextBounds? current, PdfTextSpan span) {
-        PdfTextSpanBounds spanBounds = PdfTextSpanGeometry.GetAxisAlignedBounds(span);
+        PdfTextSpanBounds spanBounds = PdfTextSpanGeometry.GetRedactionBounds(span);
         double left = spanBounds.Left;
         double right = spanBounds.Right;
         double bottom = spanBounds.Bottom;

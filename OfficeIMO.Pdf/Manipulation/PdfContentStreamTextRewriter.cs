@@ -291,7 +291,7 @@ internal static class PdfContentStreamTextRewriter {
         PdfTextSpan[] spans,
         IReadOnlyList<PdfContentStreamTextRewriteTarget> targets) {
         for (int spanIndex = 0; spanIndex < spans.Length; spanIndex++) {
-            PdfTextSpanBounds bounds = PdfTextSpanGeometry.GetAxisAlignedBounds(spans[spanIndex]);
+            PdfTextSpanBounds bounds = PdfTextSpanGeometry.GetRedactionBounds(spans[spanIndex]);
             for (int targetIndex = 0; targetIndex < targets.Count; targetIndex++) {
                 if (targets[targetIndex].Intersects(bounds, spans[spanIndex].TextRenderingMode)) return true;
             }
@@ -355,9 +355,7 @@ internal static class PdfContentStreamTextRewriter {
                     : 1D;
                 double advance = Math.Abs(glyph.Width1000 / 1000D * fontSize * horizontalScaling * baselineScale);
                 for (int targetIndex = 0; targetIndex < targets.Count; targetIndex++) {
-                    PdfTextSpanBounds bounds = targets[targetIndex].Area.RequiresGlyphRewrite
-                        ? PdfTextSpanGeometry.GetRedactionGlyphBounds(span, offset, advance)
-                        : PdfTextSpanGeometry.GetAxisAlignedBounds(span, offset, advance);
+                    PdfTextSpanBounds bounds = PdfTextSpanGeometry.GetRedactionGlyphBounds(span, offset, advance);
                     if (targets[targetIndex].Intersects(bounds, span.TextRenderingMode)) {
                         remove = true;
                         break;

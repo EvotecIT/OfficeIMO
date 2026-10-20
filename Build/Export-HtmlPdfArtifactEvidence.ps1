@@ -7,7 +7,9 @@ param(
     [string] $Platform,
 
     [Parameter(Mandatory)]
-    [string] $OutputPath
+    [string] $OutputPath,
+
+    [string] $InspectionAssemblyDirectory
 )
 
 $ErrorActionPreference = 'Stop'
@@ -28,8 +30,11 @@ $pathComparison = if ([System.Environment]::OSVersion.Platform -eq [System.Platf
 $report = Get-Content -LiteralPath $reportPath -Raw | ConvertFrom-Json
 if ([System.Environment]::Version.Major -lt 8) { throw 'PDF artifact inspection requires PowerShell on .NET 8 or later.' }
 $inspectionFramework = [System.Environment]::Version.Major -ge 10 ? 'net10.0' : 'net8.0'
-$pdfAssemblyPath = Join-Path $PSScriptRoot "../OfficeIMO.Pdf/bin/Release/$inspectionFramework/OfficeIMO.Pdf.dll"
-$coreAssemblyPath = Join-Path $PSScriptRoot "../OfficeIMO.Pdf/bin/Release/$inspectionFramework/OfficeIMO.Core.dll"
+if ([string]::IsNullOrWhiteSpace($InspectionAssemblyDirectory)) {
+    $InspectionAssemblyDirectory = Join-Path $PSScriptRoot "../OfficeIMO.Pdf/bin/Release/$inspectionFramework"
+}
+$pdfAssemblyPath = Join-Path $InspectionAssemblyDirectory 'OfficeIMO.Pdf.dll'
+$coreAssemblyPath = Join-Path $InspectionAssemblyDirectory 'OfficeIMO.Core.dll'
 if (-not (Test-Path -LiteralPath $pdfAssemblyPath -PathType Leaf) -or
     -not (Test-Path -LiteralPath $coreAssemblyPath -PathType Leaf)) {
     throw "HTML/PDF artifact evidence requires a Release $inspectionFramework OfficeIMO.Pdf build for independent PDF and preview inspection."
@@ -38,11 +43,11 @@ Add-Type -Path (Resolve-Path -LiteralPath $coreAssemblyPath).Path
 Add-Type -Path (Resolve-Path -LiteralPath $pdfAssemblyPath).Path
 
 if (($report.schemaVersion -isnot [int] -and $report.schemaVersion -isnot [long]) -or
-    $report.schemaVersion -ne 3 -or
+     $report.schemaVersion -ne 4 -or
     [string] $report.scale -ne 'High' -or
     ($report.iterations -isnot [int] -and $report.iterations -isnot [long]) -or
     $report.iterations -lt 3) {
-    throw 'HTML/PDF artifact evidence must be a schema-v3 High-scale run with at least three iterations.'
+    throw 'HTML/PDF artifact evidence must be a schema-v4 High-scale run with at least three iterations.'
 }
 if ($null -eq $report.PSObject.Properties['allEnginesComparable'] -or
     $report.allEnginesComparable -isnot [bool] -or
@@ -168,18 +173,19 @@ if ($actualOsFamily -ne $expectedOsFamily -or
     throw "HTML/PDF artifact evidence is not a $expectedOsFamily run with an external rasterizer."
 }
 
-$expectedEngines = @('Chromium', 'ITextPdfHtml', 'OfficeIMO', 'PeachPDF')
+$expectedEngines = @('Chromium', 'ITextPdfHtml', 'OfficeIMO', 'PeachPDF', 'PdfPecker')
 $expectedCancellation = @{
     Chromium = @{ Supports = $true; Status = 'Passed' }
     OfficeIMO = @{ Supports = $true; Status = 'Passed' }
     ITextPdfHtml = @{ Supports = $false; Status = 'Unsupported' }
     PeachPDF = @{ Supports = $false; Status = 'Unsupported' }
+    PdfPecker = @{ Supports = $true; Status = 'Passed' }
 }
 $engines = @($report.engines)
 $actualEngines = @($engines | ForEach-Object { [string] $_.engine } | Sort-Object)
 if ($engines.Count -ne $expectedEngines.Count -or
     @(Compare-Object -ReferenceObject $expectedEngines -DifferenceObject $actualEngines).Count -ne 0) {
-    throw 'HTML/PDF artifact evidence must contain exactly the required Chromium, ITextPdfHtml, OfficeIMO, and PeachPDF engines.'
+    throw 'HTML/PDF artifact evidence must contain exactly the required Chromium, ITextPdfHtml, OfficeIMO, PeachPDF, and PdfPecker engines.'
 }
 
 foreach ($engine in $engines) {
@@ -196,6 +202,19 @@ foreach ($engine in $engines) {
         $engine.failures -isnot [array] -or @($engine.failures).Count -ne 0 -or
         $null -eq $engine.determinism) {
         throw "HTML/PDF artifact evidence engine '$engineName' is not admitted as a complete comparable run."
+    }
+    if ($engineName -eq 'PdfPecker') {
+        $package = $engine.PSObject.Properties['package']
+        if ($null -eq $package -or $null -eq $package.Value -or
+            [string] $package.Value.id -cne 'PdfPecker' -or
+            [string] $package.Value.version -cne '1.16.0' -or
+            [string] $package.Value.sourceCommit -notmatch '^[0-9a-f]{40}$' -or
+            [string] $package.Value.license -cne 'MIT AND OFL-1.1 AND Bitstream-Vera AND APAFML AND BSD-3-Clause AND MIT-Modern-Variant AND Unicode-3.0 AND FSFAP AND LPPL-1.3c' -or
+            [string] $package.Value.licenseSha256 -notmatch '^[0-9a-f]{64}$' -or
+            [string] $package.Value.thirdPartyNoticesSha256 -notmatch '^[0-9a-f]{64}$' -or
+            [string] $package.Value.packageSha512 -notmatch '^[A-Za-z0-9+/]{86}==$') {
+            throw 'HTML/PDF artifact evidence lacks the exact PdfPecker package and license identity.'
+        }
     }
     $outputs = @($engine.outputs)
     $iterations = @($outputs | ForEach-Object { [int] $_.iteration } | Sort-Object -Unique)

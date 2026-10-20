@@ -56,7 +56,7 @@ internal static partial class PdfPageEditor {
                     int prefix = AddNormalizationObject(objects, ref nextObject,
                         new PdfStream(new PdfDictionary(), Encoding.ASCII.GetBytes("q\n" + NormalizationMatrixCommand(ToMatrix(transform)))));
                     int suffix = AddNormalizationObject(objects, ref nextObject,
-                        new PdfStream(new PdfDictionary(), Encoding.ASCII.GetBytes("Q\n")));
+                        new PdfStream(new PdfDictionary(), Encoding.ASCII.GetBytes("\nQ\n")));
                     page.Items.TryGetValue("Contents", out PdfObject? contents);
                     page.Items["Contents"] = BuildResizedContentsArray(objects, contents, prefix, suffix);
                     page.Items["Rotate"] = new PdfNumber(0);

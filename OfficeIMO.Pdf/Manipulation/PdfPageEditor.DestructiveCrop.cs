@@ -7,29 +7,36 @@ internal static partial class PdfPageEditor {
     /// Destructively crops selected pages by replacing the retained visual rectangle with an opaque raster page.
     /// Original selected-page content streams, resources, and annotations are not retained in the rewritten object graph.
     /// </summary>
-    public static PdfDestructiveCropResult DestructiveCropPages(byte[] pdf, double left, double bottom, double right, double top, PdfDestructiveCropOptions? options = null, params int[] pageNumbers) {
+    public static PdfDestructiveCropResult DestructiveCropPages(byte[] pdf, double left, double bottom, double right, double top, PdfDestructiveCropOptions? options = null, params int[] pageNumbers) =>
+        DestructiveCropPages(pdf, left, bottom, right, top, options, null, pageNumbers);
+
+    internal static PdfDestructiveCropResult DestructiveCropPages(byte[] pdf, double left, double bottom, double right, double top, PdfDestructiveCropOptions? options, PdfLoadOptions? readOptions, params int[] pageNumbers) {
         Guard.NotNull(pdf, nameof(pdf)); Guard.NotNull(pageNumbers, nameof(pageNumbers)); ValidatePageBoxCoordinates(left, bottom, right, top);
         PdfDestructiveCropOptions effective = options ?? new PdfDestructiveCropOptions();
+        var cancellationToken = effective.CancellationToken;
+        cancellationToken.ThrowIfCancellationRequested();
         if (effective.Dpi <= 0D || double.IsNaN(effective.Dpi) || double.IsInfinity(effective.Dpi)) throw new ArgumentOutOfRangeException(nameof(options), "Destructive crop DPI must be positive and finite.");
         if (effective.MaxPixelsPerPage <= 0) throw new ArgumentOutOfRangeException(nameof(options), "Maximum pixels per page must be positive.");
-        PdfMutationPlan pageTreePlan = PdfMutationPlanner.RequireFullRewrite(pdf, PdfMutationOperation.ModifyPageTree);
-        PdfMutationPlan contentPlan = PdfMutationPlanner.RequireFullRewrite(pdf, PdfMutationOperation.ModifyPageContent);
-        PdfReadDocument source = PdfReadDocument.Open(pdf);
+        PdfMutationPlan pageTreePlan = PdfMutationPlanner.RequireFullRewrite(pdf, PdfMutationOperation.ModifyPageTree, readOptions, cancellationToken: cancellationToken);
+        PdfMutationPlan contentPlan = PdfMutationPlanner.RequireFullRewrite(pdf, PdfMutationOperation.ModifyPageContent, readOptions, cancellationToken: cancellationToken);
+        PdfReadDocument source = PdfReadDocument.Open(pdf, readOptions, cancellationToken);
         int[] selected = pageNumbers.Length == 0 ? Enumerable.Range(1, source.Pages.Count).ToArray() : pageNumbers;
         ValidatePageNumbers(selected, source.Pages.Count, nameof(pageNumbers));
         EnsureNoSelectedFormWidgets(source, selected);
 
-        byte[] translated = CropAndTranslatePages(pdf, left, bottom, right, top, selected);
+        byte[] translated = CropAndTranslatePages(pdf, left, bottom, right, top, readOptions, cancellationToken, selected);
+        PdfLoadOptions translatedReadOptions = PdfLoadOptions.ForGeneratedOutput(readOptions, pdf, translated);
         var renderOptions = new PdfPageRenderOptions { Format = PdfPageRenderFormat.Png, Dpi = effective.Dpi, Background = effective.Background, MaxPages = selected.Length, MaxPixelsPerPage = effective.MaxPixelsPerPage, ContinueOnError = false };
-        IReadOnlyList<PdfPageRenderResult> renders = PdfPageImageRenderer.RenderPages(translated, PdfPageSelection.From(selected), renderOptions);
+        IReadOnlyList<PdfPageRenderResult> renders = PdfPageImageRenderer.RenderPages(translated, PdfPageSelection.From(selected), renderOptions, translatedReadOptions, cancellationToken);
         ValidateDestructiveCropRenders(renders, effective);
-        PdfReadDocument translatedDocument = PdfReadDocument.Open(translated);
+        PdfReadDocument translatedDocument = PdfReadDocument.Open(translated, translatedReadOptions, cancellationToken);
         var renderByPage = renders.ToDictionary(static render => render.PageNumber);
         var selectedSet = new HashSet<int>(selected);
 
-        byte[] output = PdfDocumentObjectGraphRewriter.Rewrite(translated, null, null, (objects, security) => {
+        byte[] output = PdfDocumentObjectGraphRewriter.Rewrite(translated, translatedReadOptions, null, (objects, security) => {
             int nextObjectNumber = objects.Keys.Max() + 1;
             for (int pageIndex = 0; pageIndex < translatedDocument.Pages.Count; pageIndex++) {
+                cancellationToken.ThrowIfCancellationRequested();
                 int pageNumber = pageIndex + 1;
                 if (!selectedSet.Contains(pageNumber)) continue;
                 PdfReadPage readPage = translatedDocument.Pages[pageIndex];
@@ -50,15 +57,17 @@ internal static partial class PdfPageEditor {
                 page.Items.Remove("Annots"); page.Items.Remove("StructParents"); page.Items.Remove("Thumb");
             }
             return security.InfoObjectNumber.HasValue && objects.ContainsKey(security.InfoObjectNumber.Value) ? security.InfoObjectNumber : null;
-        });
+        }, cancellationToken: cancellationToken);
 
-        PdfReadDocument verified = PdfReadDocument.Open(output);
+        PdfLoadOptions outputReadOptions = PdfLoadOptions.ForGeneratedOutput(translatedReadOptions, translated, output);
+        PdfReadDocument verified = PdfReadDocument.Open(output, outputReadOptions, cancellationToken);
         foreach (int pageNumber in selected) {
-            if (!string.IsNullOrWhiteSpace(verified.Pages[pageNumber - 1].ExtractText())) throw new InvalidOperationException("Destructive crop validation found extractable text on a replaced page.");
+            cancellationToken.ThrowIfCancellationRequested();
+            if (!string.IsNullOrWhiteSpace(verified.Pages[pageNumber - 1].ExtractText(cancellationToken))) throw new InvalidOperationException("Destructive crop validation found extractable text on a replaced page.");
             if (verified.Pages[pageNumber - 1].GetAnnotations().Count != 0) throw new InvalidOperationException("Destructive crop validation found a live annotation on a replaced page.");
         }
         var preservationOptions = new PdfRewritePreservationOptions { PreservePageGeometry = false, PreserveAnnotations = false, PreserveLinkAnnotations = false, PreserveRevisionStructure = false };
-        PdfRewritePreservationReport preservation = PdfRewritePreservation.AssertPreserved(pdf, output, preservationOptions);
+        PdfRewritePreservationReport preservation = PdfRewritePreservation.AssertPreserved(pdf, output, preservationOptions, readOptions, outputReadOptions, cancellationToken);
         return new PdfDestructiveCropResult(output, pageTreePlan, contentPlan, preservation, renders);
     }
 

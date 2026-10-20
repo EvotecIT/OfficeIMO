@@ -2,6 +2,9 @@ namespace OfficeIMO.Pdf;
 
 /// <summary>Updates for a single indirect PDF annotation during a safe full rewrite.</summary>
 public sealed class PdfAnnotationUpdateOptions {
+    /// <summary>Cancels input reading, PDF processing, and output publication for this operation.</summary>
+    public System.Threading.CancellationToken CancellationToken { get; set; }
+
     /// <summary>Preferred mutation mode. Automatic uses a full rewrite when safe and append-only when required.</summary>
     public PdfMutationExecutionPreference ExecutionPreference { get; set; } = PdfMutationExecutionPreference.Automatic;
 

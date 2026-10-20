@@ -784,6 +784,110 @@
       ]
     },
     {
+      "comparisonId": "pdf-html-21k-payload-net10.0",
+      "platform": "macos",
+      "runMode": "full",
+      "generatedUtc": "2026-10-20T20:29:40.055245+00:00",
+      "publish": true,
+      "resultPath": "/data/benchmarks/library-comparisons/pdf-html-21k-payload-net10.0-macos-full.json",
+      "resultSha256": "12462e973eb18b39ccf081d83c8217cf8d8b68753cb08fbe31b2a9baddc698a6",
+      "artifactDestinationSha256": "3b1357d46c1c9226cd9cf818d7807b9f019d99a00dc12933e0dfa5f57a96eb41",
+      "artifactFileName": "pdf-html-21k-payload-net10.0-macos-full.json",
+      "artifactRelativePath": "pdf-html-21k-payload-net10.0-macos-full.json",
+      "suite": "OfficeIMO.Pdf.Html21KiBPayload",
+      "environment": {
+        "osFamily": "macOS",
+        "osDescription": "macOS 27.0.1 (26A434) [Darwin 27.0.0]",
+        "osArchitecture": "Arm64",
+        "processArchitecture": "Arm64",
+        "processorName": "Apple M4",
+        "physicalProcessorCount": 1,
+        "physicalCoreCount": 10,
+        "logicalCoreCount": 10,
+        "runtimeVersion": ".NET 10.0.13 (10.0.13, 10.0.1326.50504)",
+        "dotNetSdkVersion": "10.0.113",
+        "runner": "BenchmarkDotNet",
+        "machineName": ""
+      },
+      "compatibility": {
+        "suite": "OfficeIMO.Pdf.Html21KiBPayload",
+        "environment.runtimeVersion": ".NET 10.0.13 (10.0.13, 10.0.1326.50504)",
+        "environment.dotNetSdkVersion": "10.0.113",
+        "environment.runner": "BenchmarkDotNet",
+        "environment.osArchitecture": "Arm64",
+        "environment.processArchitecture": "Arm64",
+        "environment.processorName": "Apple M4",
+        "environment.physicalProcessorCount": "1",
+        "environment.physicalCoreCount": "10",
+        "environment.logicalCoreCount": "10",
+        "benchmark.workload.shape.sha256": "2b68bb3ca765120382575ea6bbe9d2cd74b255e02c70b6bc7a5c9d10d71909a2",
+        "benchmark.fixture.html.font.bold.sha256": "bb5d20f79b82599ec72983597437373a80f2d2085fa91fc144fd74e876a594db",
+        "benchmark.fixture.html.font.profile": "SharedCarlitoRegularBold",
+        "benchmark.fixture.html.font.regular.sha256": "f6418f708baede9789daef5d458c0f53d2a888af9820e8062934e504fedc6595",
+        "benchmark.package.pdfpecker.version": "1.16.0",
+        "benchmark.package.peachpdf.version": "0.9.23",
+        "benchmark.workload.framework": "net10.0",
+        "benchmark.workload.id": "pdf-html-21k-payload-net10.0",
+        "benchmark.workload.sourceCommit": "83efd2a3fae54cd66c10cd0cf77fe6751649d874",
+        "gitSha": "83efd2a3fae54cd66c10cd0cf77fe6751649d874",
+        "runMode": "full"
+      },
+      "comparable": true,
+      "compatibilityIssues": []
+    },
+    {
+      "comparisonId": "pdf-html-21k-payload-net10.0",
+      "platform": "macos",
+      "runMode": "quick",
+      "generatedUtc": "2026-10-20T20:33:57.704998+00:00",
+      "publish": false,
+      "resultPath": "/data/benchmarks/library-comparisons/pdf-html-21k-payload-net10.0-macos-quick.json",
+      "resultSha256": "f97bc0708c24fab02ddae7dccb828a9143f467e8fdde9522fcfbd96dc79da21d",
+      "artifactDestinationSha256": "d9f253616c41b5f3c0684ac100404594ef56a5cd380a4b0b39a7f713b7a09bac",
+      "artifactFileName": "pdf-html-21k-payload-net10.0-macos-quick.json",
+      "artifactRelativePath": "pdf-html-21k-payload-net10.0-macos-quick.json",
+      "suite": "OfficeIMO.Pdf.Html21KiBPayload",
+      "environment": {
+        "osFamily": "macOS",
+        "osDescription": "macOS 27.0.1 (26A434) [Darwin 27.0.0]",
+        "osArchitecture": "Arm64",
+        "processArchitecture": "Arm64",
+        "processorName": "Apple M4",
+        "physicalProcessorCount": 1,
+        "physicalCoreCount": 10,
+        "logicalCoreCount": 10,
+        "runtimeVersion": ".NET 10.0.13 (10.0.13, 10.0.1326.50504)",
+        "dotNetSdkVersion": "10.0.113",
+        "runner": "BenchmarkDotNet",
+        "machineName": ""
+      },
+      "compatibility": {
+        "suite": "OfficeIMO.Pdf.Html21KiBPayload",
+        "environment.runtimeVersion": ".NET 10.0.13 (10.0.13, 10.0.1326.50504)",
+        "environment.dotNetSdkVersion": "10.0.113",
+        "environment.runner": "BenchmarkDotNet",
+        "environment.osArchitecture": "Arm64",
+        "environment.processArchitecture": "Arm64",
+        "environment.processorName": "Apple M4",
+        "environment.physicalProcessorCount": "1",
+        "environment.physicalCoreCount": "10",
+        "environment.logicalCoreCount": "10",
+        "benchmark.workload.shape.sha256": "93f8e8b77ed3de7c013da9c559ce34f4d7f700e5ebe03edc9886a663471c1099",
+        "benchmark.fixture.html.font.bold.sha256": "bb5d20f79b82599ec72983597437373a80f2d2085fa91fc144fd74e876a594db",
+        "benchmark.fixture.html.font.profile": "SharedCarlitoRegularBold",
+        "benchmark.fixture.html.font.regular.sha256": "f6418f708baede9789daef5d458c0f53d2a888af9820e8062934e504fedc6595",
+        "benchmark.package.pdfpecker.version": "1.16.0",
+        "benchmark.package.peachpdf.version": "0.9.23",
+        "benchmark.workload.framework": "net10.0",
+        "benchmark.workload.id": "pdf-html-21k-payload-net10.0",
+        "benchmark.workload.sourceCommit": "e73fe92971ce63790b10f8f285fcd8e11e17dcb9",
+        "gitSha": "e73fe92971ce63790b10f8f285fcd8e11e17dcb9",
+        "runMode": "quick"
+      },
+      "comparable": true,
+      "compatibilityIssues": []
+    },
+    {
       "comparisonId": "pdf-html-generation-net10.0",
       "platform": "linux",
       "runMode": "full",
@@ -1670,6 +1774,58 @@
         "quick"
       ],
       "latestUtc": "2026-07-31T12:49:02.003238+02:00"
+    },
+    {
+      "comparisonId": "pdf-html-21k-payload-net10.0",
+      "runMode": "full",
+      "platform": "windows",
+      "available": false,
+      "runModes": [],
+      "latestUtc": null
+    },
+    {
+      "comparisonId": "pdf-html-21k-payload-net10.0",
+      "runMode": "full",
+      "platform": "linux",
+      "available": false,
+      "runModes": [],
+      "latestUtc": null
+    },
+    {
+      "comparisonId": "pdf-html-21k-payload-net10.0",
+      "runMode": "full",
+      "platform": "macos",
+      "available": true,
+      "runModes": [
+        "full"
+      ],
+      "latestUtc": "2026-10-20T20:29:40.055245+00:00"
+    },
+    {
+      "comparisonId": "pdf-html-21k-payload-net10.0",
+      "runMode": "quick",
+      "platform": "windows",
+      "available": false,
+      "runModes": [],
+      "latestUtc": null
+    },
+    {
+      "comparisonId": "pdf-html-21k-payload-net10.0",
+      "runMode": "quick",
+      "platform": "linux",
+      "available": false,
+      "runModes": [],
+      "latestUtc": null
+    },
+    {
+      "comparisonId": "pdf-html-21k-payload-net10.0",
+      "runMode": "quick",
+      "platform": "macos",
+      "available": true,
+      "runModes": [
+        "quick"
+      ],
+      "latestUtc": "2026-10-20T20:33:57.704998+00:00"
     },
     {
       "comparisonId": "pdf-html-generation-net10.0",

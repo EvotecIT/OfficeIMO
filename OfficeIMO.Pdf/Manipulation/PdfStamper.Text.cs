@@ -7,7 +7,9 @@ internal static partial class PdfStamper {
     public static byte[] StampText(byte[] pdf, string text, PdfTextStampOptions? options = null, PdfLoadOptions? readOptions = null) {
         Guard.NotNull(pdf, nameof(pdf));
         Guard.NotNull(text, nameof(text));
-        _ = PdfMutationPlanner.RequireFullRewrite(pdf, PdfMutationOperation.ModifyPageContent, readOptions);
+        var cancellationToken = options?.CancellationToken ?? default;
+        cancellationToken.ThrowIfCancellationRequested();
+        _ = PdfMutationPlanner.RequireFullRewrite(pdf, PdfMutationOperation.ModifyPageContent, readOptions, cancellationToken: cancellationToken);
         if (text.Length == 0) {
             throw new ArgumentException("Stamp text cannot be empty.", nameof(text));
         }
@@ -15,8 +17,8 @@ internal static partial class PdfStamper {
         var effectiveOptions = options ?? new PdfTextStampOptions();
         ValidateOptions(effectiveOptions);
 
-        var (objects, trailerRaw) = PdfSyntax.ParseObjects(pdf, readOptions);
-        var document = PdfReadDocument.Open(pdf, readOptions);
+        var (objects, trailerRaw) = PdfSyntax.ParseObjects(pdf, readOptions, out _, out _, cancellationToken);
+        var document = PdfReadDocument.Open(pdf, readOptions, cancellationToken);
         if (document.Pages.Count == 0) {
             throw new ArgumentException("PDF does not contain any pages.", nameof(pdf));
         }
@@ -32,6 +34,7 @@ internal static partial class PdfStamper {
         int nextObjectNumber = objects.Count == 0 ? 1 : objects.Keys.Max() + 1;
 
         for (int i = 0; i < document.Pages.Count; i++) {
+            cancellationToken.ThrowIfCancellationRequested();
             int pageNumber = i + 1;
             if (!selectedSet.Contains(pageNumber)) {
                 continue;
@@ -53,28 +56,30 @@ internal static partial class PdfStamper {
         }
 
         PdfFileVersion fileVersion = PdfPageExtractor.GetSourceFileVersion(pdf);
-        return PdfPageExtractor.ExtractPages(objects, document.UncheckedMetadata, pageObjectNumbers, overrides, additionalObjects, PdfPageExtractor.ExtractCatalogRewriteState(objects, trailerRaw, document), fileVersion);
+        return PdfPageExtractor.ExtractPages(objects, document.UncheckedMetadata, pageObjectNumbers, overrides, additionalObjects, PdfPageExtractor.ExtractCatalogRewriteState(objects, trailerRaw, document, cancellationToken), fileVersion, cancellationToken: cancellationToken);
     }
 
     /// <summary>
     /// Adds a simple text stamp to selected pages from the current position of a readable stream, or every page when no page selection is supplied.
     /// </summary>
     public static byte[] StampText(Stream stream, string text, PdfTextStampOptions? options = null) {
-        return StampText(ReadStream(stream, nameof(stream)), text, options);
+        return StampText(ReadStream(stream, nameof(stream), cancellationToken: options?.CancellationToken ?? default), text, options);
     }
 
     /// <summary>
     /// Adds a simple text stamp to selected pages and writes the result to <paramref name="outputStream"/>.
     /// </summary>
     public static void StampText(byte[] pdf, Stream outputStream, string text, PdfTextStampOptions? options = null) {
-        WriteOutput(outputStream, StampText(pdf, text, options));
+        ValidateWritableOutputStream(outputStream);
+        WriteOutput(outputStream, StampText(pdf, text, options), options?.CancellationToken ?? default);
     }
 
     /// <summary>
     /// Adds a simple text stamp to selected pages from the current position of a readable stream and writes the result to <paramref name="outputStream"/>.
     /// </summary>
     public static void StampText(Stream stream, Stream outputStream, string text, PdfTextStampOptions? options = null) {
-        WriteOutput(outputStream, StampText(stream, text, options));
+        ValidateWritableOutputStream(outputStream);
+        WriteOutput(outputStream, StampText(stream, text, options), options?.CancellationToken ?? default);
     }
 
     /// <summary>
@@ -84,7 +89,7 @@ internal static partial class PdfStamper {
         Guard.NotNull(outputPath, nameof(outputPath));
 
         string fullOutputPath = ValidateOutputPath(outputPath);
-        WriteOutput(fullOutputPath, StampText(stream, text, options));
+        WriteOutput(fullOutputPath, StampText(stream, text, options), options?.CancellationToken ?? default);
     }
 
     /// <summary>
@@ -93,7 +98,7 @@ internal static partial class PdfStamper {
     public static byte[] StampTextToBytes(string inputPath, string text, PdfTextStampOptions? options = null) {
         Guard.NotNullOrWhiteSpace(inputPath, nameof(inputPath));
 
-        return StampText(ReadPath(inputPath), text, options);
+        return StampText(ReadPath(inputPath, options?.CancellationToken ?? default), text, options);
     }
 
     /// <summary>
@@ -103,7 +108,8 @@ internal static partial class PdfStamper {
         Guard.NotNullOrWhiteSpace(inputPath, nameof(inputPath));
         ValidateWritableOutputStream(outputStream);
 
-        WriteOutput(outputStream, StampText(ReadPath(inputPath), text, options));
+        ValidateWritableOutputStream(outputStream);
+        WriteOutput(outputStream, StampText(ReadPath(inputPath, options?.CancellationToken ?? default), text, options), options?.CancellationToken ?? default);
     }
 
     /// <summary>
@@ -114,7 +120,7 @@ internal static partial class PdfStamper {
         Guard.NotNull(outputPath, nameof(outputPath));
 
         string fullOutputPath = ValidateOutputPath(outputPath);
-        WriteOutput(fullOutputPath, StampText(ReadPath(inputPath), text, options));
+        WriteOutput(fullOutputPath, StampText(ReadPath(inputPath, options?.CancellationToken ?? default), text, options), options?.CancellationToken ?? default);
     }
 
     /// <summary>
@@ -123,14 +129,16 @@ internal static partial class PdfStamper {
     public static byte[] WatermarkText(byte[] pdf, string text, PdfTextStampOptions? options = null, PdfLoadOptions? readOptions = null) {
         Guard.NotNull(pdf, nameof(pdf));
         Guard.NotNull(text, nameof(text));
-        _ = PdfMutationPlanner.RequireFullRewrite(pdf, PdfMutationOperation.ModifyPageContent, readOptions);
+        var cancellationToken = options?.CancellationToken ?? default;
+        cancellationToken.ThrowIfCancellationRequested();
+        _ = PdfMutationPlanner.RequireFullRewrite(pdf, PdfMutationOperation.ModifyPageContent, readOptions, cancellationToken: cancellationToken);
         if (text.Length == 0) {
             throw new ArgumentException("Watermark text cannot be empty.", nameof(text));
         }
 
         var effectiveOptions = BuildWatermarkOptions(options);
-        var (objects, trailerRaw) = PdfSyntax.ParseObjects(pdf, readOptions);
-        var document = PdfReadDocument.Open(pdf, readOptions);
+        var (objects, trailerRaw) = PdfSyntax.ParseObjects(pdf, readOptions, out _, out _, cancellationToken);
+        var document = PdfReadDocument.Open(pdf, readOptions, cancellationToken);
         if (document.Pages.Count == 0) {
             throw new ArgumentException("PDF does not contain any pages.", nameof(pdf));
         }
@@ -146,6 +154,7 @@ internal static partial class PdfStamper {
         int nextObjectNumber = objects.Count == 0 ? 1 : objects.Keys.Max() + 1;
 
         for (int i = 0; i < document.Pages.Count; i++) {
+            cancellationToken.ThrowIfCancellationRequested();
             int pageNumber = i + 1;
             if (!selectedSet.Contains(pageNumber)) {
                 continue;
@@ -168,28 +177,30 @@ internal static partial class PdfStamper {
         }
 
         PdfFileVersion fileVersion = PdfPageExtractor.GetSourceFileVersion(pdf);
-        return PdfPageExtractor.ExtractPages(objects, document.UncheckedMetadata, pageObjectNumbers, overrides, additionalObjects, PdfPageExtractor.ExtractCatalogRewriteState(objects, trailerRaw, document), fileVersion);
+        return PdfPageExtractor.ExtractPages(objects, document.UncheckedMetadata, pageObjectNumbers, overrides, additionalObjects, PdfPageExtractor.ExtractCatalogRewriteState(objects, trailerRaw, document, cancellationToken), fileVersion, cancellationToken: cancellationToken);
     }
 
     /// <summary>
     /// Adds a large diagonal text watermark to selected pages from the current position of a readable stream, or every page when no page selection is supplied.
     /// </summary>
     public static byte[] WatermarkText(Stream stream, string text, PdfTextStampOptions? options = null) {
-        return WatermarkText(ReadStream(stream, nameof(stream)), text, options);
+        return WatermarkText(ReadStream(stream, nameof(stream), cancellationToken: options?.CancellationToken ?? default), text, options);
     }
 
     /// <summary>
     /// Adds a large diagonal text watermark to selected pages and writes the result to <paramref name="outputStream"/>.
     /// </summary>
     public static void WatermarkText(byte[] pdf, Stream outputStream, string text, PdfTextStampOptions? options = null) {
-        WriteOutput(outputStream, WatermarkText(pdf, text, options));
+        ValidateWritableOutputStream(outputStream);
+        WriteOutput(outputStream, WatermarkText(pdf, text, options), options?.CancellationToken ?? default);
     }
 
     /// <summary>
     /// Adds a large diagonal text watermark to selected pages from the current position of a readable stream and writes the result to <paramref name="outputStream"/>.
     /// </summary>
     public static void WatermarkText(Stream stream, Stream outputStream, string text, PdfTextStampOptions? options = null) {
-        WriteOutput(outputStream, WatermarkText(stream, text, options));
+        ValidateWritableOutputStream(outputStream);
+        WriteOutput(outputStream, WatermarkText(stream, text, options), options?.CancellationToken ?? default);
     }
 
     /// <summary>
@@ -199,7 +210,7 @@ internal static partial class PdfStamper {
         Guard.NotNull(outputPath, nameof(outputPath));
 
         string fullOutputPath = ValidateOutputPath(outputPath);
-        WriteOutput(fullOutputPath, WatermarkText(stream, text, options));
+        WriteOutput(fullOutputPath, WatermarkText(stream, text, options), options?.CancellationToken ?? default);
     }
 
     /// <summary>
@@ -208,7 +219,7 @@ internal static partial class PdfStamper {
     public static byte[] WatermarkTextToBytes(string inputPath, string text, PdfTextStampOptions? options = null) {
         Guard.NotNullOrWhiteSpace(inputPath, nameof(inputPath));
 
-        return WatermarkText(ReadPath(inputPath), text, options);
+        return WatermarkText(ReadPath(inputPath, options?.CancellationToken ?? default), text, options);
     }
 
     /// <summary>
@@ -218,7 +229,8 @@ internal static partial class PdfStamper {
         Guard.NotNullOrWhiteSpace(inputPath, nameof(inputPath));
         ValidateWritableOutputStream(outputStream);
 
-        WriteOutput(outputStream, WatermarkText(ReadPath(inputPath), text, options));
+        ValidateWritableOutputStream(outputStream);
+        WriteOutput(outputStream, WatermarkText(ReadPath(inputPath, options?.CancellationToken ?? default), text, options), options?.CancellationToken ?? default);
     }
 
     /// <summary>
@@ -229,7 +241,7 @@ internal static partial class PdfStamper {
         Guard.NotNull(outputPath, nameof(outputPath));
 
         string fullOutputPath = ValidateOutputPath(outputPath);
-        WriteOutput(fullOutputPath, WatermarkText(ReadPath(inputPath), text, options));
+        WriteOutput(fullOutputPath, WatermarkText(ReadPath(inputPath, options?.CancellationToken ?? default), text, options), options?.CancellationToken ?? default);
     }
     private static PdfTextStampOptions BuildWatermarkOptions(PdfTextStampOptions? options) {
         if (options is null) {

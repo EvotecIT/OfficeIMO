@@ -6,15 +6,14 @@ internal static partial class PdfAnnotationFlattener {
         ref int nextObjectNumber,
         PdfAnnotationFlattenOptions? options,
         Dictionary<int, int> pageNumbers,
+        PdfLoadOptions? readOptions,
         out PdfGeneratedOutputGrowth generatedGrowth) {
+        var cancellationToken = options?.CancellationToken ?? default;
+        cancellationToken.ThrowIfCancellationRequested();
         int flattenedCount = 0;
-        int maximumContentBytes = 0;
-        long totalContentBytes = 0L;
-        int maximumContentOperations = 0;
-        int maximumContentOperands = 0;
-        int addedContentContexts = 0;
-        int totalContentOperations = 0;
+        var growth = new PdfFlattenedContentGrowth(objects, readOptions, nextObjectNumber, cancellationToken);
         foreach (var entry in objects.OrderBy(pair => pair.Key).ToArray()) {
+            cancellationToken.ThrowIfCancellationRequested();
             if (entry.Value.Value is not PdfDictionary page ||
                 page.Get<PdfName>("Type")?.Name != "Page" ||
                 !page.Items.TryGetValue("Annots", out var annotsObject) ||
@@ -28,6 +27,7 @@ internal static partial class PdfAnnotationFlattener {
             var flattenedAnnotationObjectNumbers = new HashSet<int>();
             int flattenedOnPage = 0;
             for (int i = 0; i < annots.Items.Count; i++) {
+                cancellationToken.ThrowIfCancellationRequested();
                 PdfObject annotObject = annots.Items[i];
                 PdfDictionary? annotation = ResolveDictionary(objects, annotObject);
                 if (annotation == null || TryReadName(objects, annotation, "Subtype") is not string subtype ||
@@ -80,36 +80,15 @@ internal static partial class PdfAnnotationFlattener {
             int contentObjectNumber = nextObjectNumber++;
             PdfStream contentStream = CreateContentStream(content);
             objects[contentObjectNumber] = new PdfIndirectObject(contentObjectNumber, 0, contentStream);
-            addedContentContexts++;
-            int addedOperations = SaturatingMultiply(pageAnnotations.Count, 4);
-            totalContentOperations = totalContentOperations > int.MaxValue - addedOperations
-                ? int.MaxValue : totalContentOperations + addedOperations;
-            AppendPageContent(objects, page, contentObjectNumber);
-            maximumContentBytes = Math.Max(maximumContentBytes, contentStream.Data.Length);
-            totalContentBytes = totalContentBytes > long.MaxValue - contentStream.Data.LongLength
-                ? long.MaxValue
-                : totalContentBytes + contentStream.Data.LongLength;
-            maximumContentOperations = Math.Max(maximumContentOperations, SaturatingMultiply(pageAnnotations.Count, 4));
-            maximumContentOperands = Math.Max(maximumContentOperands, SaturatingMultiply(pageAnnotations.Count, 7));
+            int isolationBytes = PdfPageContentIsolation.Append(objects, page, contentObjectNumber,
+                ref nextObjectNumber, cancellationToken);
+            growth.AddPage(page, contentStream, isolationBytes);
         }
 
-        generatedGrowth = new PdfGeneratedOutputGrowth(
-            minimumRawStreamBytes: maximumContentBytes,
-            minimumDecodedStreamBytes: maximumContentBytes,
-            additionalTotalDecodedStreamBytes: totalContentBytes,
-            additionalPageContentBytes: maximumContentBytes,
-            additionalRetainedContentBytes: totalContentBytes,
-            additionalContentOperations: maximumContentOperations,
-            additionalContentOperands: maximumContentOperands,
-            additionalContentNestingDepth: addedContentContexts == 0 ? 0 : 1,
-            additionalPrintProductionContexts: addedContentContexts,
-            additionalPrintProductionOperations: totalContentOperations > int.MaxValue / 2
-                ? int.MaxValue : totalContentOperations * 2);
+        cancellationToken.ThrowIfCancellationRequested();
+        generatedGrowth = growth.ToGrowth();
         return flattenedCount;
     }
-
-    private static int SaturatingMultiply(int value, int multiplier) =>
-        value > int.MaxValue / multiplier ? int.MaxValue : value * multiplier;
 
     private static bool MatchesFlattenSelector(PdfObject annotation, string subtype, PdfAnnotationFlattenOptions? options) {
         if (options == null) return true;

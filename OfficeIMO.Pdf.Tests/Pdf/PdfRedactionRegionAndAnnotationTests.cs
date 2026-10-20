@@ -52,17 +52,15 @@ public sealed class PdfRedactionRegionAndAnnotationTests {
         PdfTextSpan[] spans = PdfReadDocument.Open(source.ToBytes()).Pages[0].GetTextSpans().ToArray();
         PdfTextSpan remove = Assert.Single(spans, static span => span.Text.Contains("REMOVE-EXACT", StringComparison.Ordinal));
         PdfTextSpan keep = Assert.Single(spans, static span => span.Text.Contains("KEEP-OUTSIDE-SHAPE", StringComparison.Ordinal));
-        PdfTextSpanBounds removeBounds = PdfTextSpanGeometry.GetAxisAlignedBounds(remove);
-        PdfTextSpanBounds keepBounds = PdfTextSpanGeometry.GetAxisAlignedBounds(keep);
+        PdfTextSpanBounds removeBounds = PdfTextSpanGeometry.GetRedactionBounds(remove);
+        PdfTextSpanBounds keepBounds = PdfTextSpanGeometry.GetRedactionBounds(keep);
         double tailLeft = Math.Max(removeBounds.Right, keepBounds.Right) + 20D;
         PdfRedactionRegion region = PdfRedactionRegion.Polygon(1, new[] {
             new PdfRedactionPoint(removeBounds.Left - 2, removeBounds.Bottom - 2),
             new PdfRedactionPoint(tailLeft, removeBounds.Bottom - 2),
             new PdfRedactionPoint(tailLeft, keepBounds.Bottom - 2),
             new PdfRedactionPoint(tailLeft + 10, keepBounds.Bottom - 2),
-            new PdfRedactionPoint(tailLeft + 10, keepBounds.Top + 2),
-            new PdfRedactionPoint(tailLeft, keepBounds.Top + 2),
-            new PdfRedactionPoint(tailLeft, removeBounds.Top + 2),
+            new PdfRedactionPoint(tailLeft + 10, removeBounds.Top + 2),
             new PdfRedactionPoint(removeBounds.Left - 2, removeBounds.Top + 2)
         });
 

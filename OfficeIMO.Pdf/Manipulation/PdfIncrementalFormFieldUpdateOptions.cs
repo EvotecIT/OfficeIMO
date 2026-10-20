@@ -2,6 +2,9 @@ namespace OfficeIMO.Pdf;
 
 /// <summary>Options for append-only AcroForm field updates.</summary>
 public sealed class PdfIncrementalFormFieldUpdateOptions {
+    /// <summary>Cancellation observed during source admission, field traversal and append-only serialization.</summary>
+    public System.Threading.CancellationToken CancellationToken { get; set; }
+
     /// <summary>Set AcroForm /NeedAppearances so viewers may regenerate appearances.</summary>
     public bool KeepNeedAppearances { get; set; } = true;
 

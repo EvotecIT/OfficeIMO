@@ -1,3 +1,4 @@
+using System.Threading;
 namespace OfficeIMO.Pdf;
 
 internal static partial class PdfStamper {
@@ -22,9 +23,10 @@ internal static partial class PdfStamper {
     }
 
     private static void RemoveWatermarksOutsideTargets(Dictionary<int, PdfIndirectObject> objects, int[] pages,
-        Dictionary<int, Dictionary<string, PdfObject>> overrides, IReadOnlyList<PageStampRequest> requests) {
+        Dictionary<int, Dictionary<string, PdfObject>> overrides, IReadOnlyList<PageStampRequest> requests, CancellationToken cancellationToken) {
         var targets = new Dictionary<string, HashSet<int>>(StringComparer.Ordinal);
         foreach (var request in requests) {
+            cancellationToken.ThrowIfCancellationRequested();
             if (request.Options.ContentIdentifier is not { } identifier) continue;
             if (!targets.TryGetValue(identifier, out var selected)) targets[identifier] = selected = new HashSet<int>();
             foreach (int page in request.Options.TargetPages?.Resolve(pages.Length) ?? Enumerable.Range(1, pages.Length).ToArray())
@@ -32,6 +34,7 @@ internal static partial class PdfStamper {
         }
         if (targets.Count == 0) return;
         for (int index = 0; index < pages.Length; index++) {
+            cancellationToken.ThrowIfCancellationRequested();
             int pageObjectNumber = pages[index];
             var page = (PdfDictionary)objects[pageObjectNumber].Value;
             overrides.TryGetValue(pageObjectNumber, out var pageOverride);

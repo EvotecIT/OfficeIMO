@@ -8,7 +8,9 @@ internal static partial class PdfAnnotationEditor {
     /// <summary>Flattens selected supported visual annotations using explicit read limits or credentials.</summary>
     public static PdfAnnotationEditResult FlattenAnnotations(byte[] pdf, PdfAnnotationFlattenOptions? options, PdfLoadOptions? readOptions) {
         Guard.NotNull(pdf, nameof(pdf));
-        PdfMutationPlan plan = PdfMutationPlanner.RequireFullRewrite(pdf, PdfMutationOperation.ModifyAnnotations, readOptions);
+        var cancellationToken = options?.CancellationToken ?? default;
+        cancellationToken.ThrowIfCancellationRequested();
+        PdfMutationPlan plan = PdfMutationPlanner.RequireFullRewrite(pdf, PdfMutationOperation.ModifyAnnotations, readOptions, cancellationToken: cancellationToken);
         byte[] output = PdfAnnotationFlattener.FlattenVisualAnnotations(
             pdf,
             options,
@@ -17,7 +19,7 @@ internal static partial class PdfAnnotationEditor {
             out IReadOnlyDictionary<int, int> objectNumberMap,
             out int affected);
         PdfLoadOptions outputReadOptions = PdfLoadOptions.ForGeneratedOutput(readOptions, pdf, output, generatedGrowth);
-        return CreateFullRewriteResult(pdf, output, affected, plan, annotationsChanged: affected > 0, readOptions: readOptions, rewrittenReadOptions: outputReadOptions, objectNumberMap: objectNumberMap);
+        return CreateFullRewriteResult(pdf, output, affected, plan, annotationsChanged: affected > 0, readOptions: readOptions, rewrittenReadOptions: outputReadOptions, objectNumberMap: objectNumberMap, cancellationToken: cancellationToken);
     }
 
 }

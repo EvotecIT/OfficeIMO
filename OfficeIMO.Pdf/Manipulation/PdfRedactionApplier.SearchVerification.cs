@@ -53,7 +53,7 @@ internal static partial class PdfRedactionApplier {
                     IncludeTextRenderingMode3 = true,
                     PageNumbers = new[] { pageNumber }
                 };
-                if (PdfTextEditor.Find(output, literal, nativeOptions, outputOptions, workBudget).Count > 0)
+                if (PdfTextEditor.Find(output, literal, nativeOptions, outputOptions, workBudget, cancellationToken).Count > 0)
                     ThrowSurvivingText(pageNumber);
             }
             PdfLogicalTextBlock[] rewrittenBlocks = rewrittenBlocksByPage != null &&
@@ -80,7 +80,7 @@ internal static partial class PdfRedactionApplier {
                 foreach (PdfLogicalTextBlock block in rewrittenBlocks) {
                     cancellationToken.ThrowIfCancellationRequested();
                     foreach (PdfTextSpan span in block.Spans)
-                        rewrittenSpans.Add((span, PdfTextSpanGeometry.GetAxisAlignedBounds(span)));
+                        rewrittenSpans.Add((span, PdfTextSpanGeometry.GetRedactionBounds(span)));
                 }
                 Dictionary<int, string> wrappedLiterals = PdfRedactionPlanner.MatchLiteralsAcrossBlocks(
                     sourceBlocks, literals, comparison, workBudget, static _ => true, cancellationToken,
@@ -98,7 +98,7 @@ internal static partial class PdfRedactionApplier {
                     if (!selected) continue;
                     foreach (PdfTextSpan span in block.Spans) {
                         if (string.IsNullOrEmpty(span.Text)) continue;
-                        PdfTextSpanBounds sourceBounds = PdfTextSpanGeometry.GetAxisAlignedBounds(span);
+                        PdfTextSpanBounds sourceBounds = PdfTextSpanGeometry.GetRedactionBounds(span);
                         foreach (PdfRedactionArea area in page.Value) {
                             cancellationToken.ThrowIfCancellationRequested();
                             workBudget.Charge(1L);

@@ -1,3 +1,5 @@
+using System.Threading;
+
 namespace OfficeIMO.Pdf;
 
 public sealed partial class PdfDocumentPages {
@@ -7,7 +9,7 @@ public sealed partial class PdfDocumentPages {
     public PdfDocument Append(PdfDocument sourceDocument, PdfPageImportOptions? importOptions = null) {
         Guard.NotNull(sourceDocument, nameof(sourceDocument));
         return Append(
-            sourceDocument.GetBytesForOperation(),
+            sourceDocument.GetBytesForOperation(importOptions?.CancellationToken ?? default),
             ResolveSourceImportOptions(importOptions, sourceDocument.ReadOptions));
     }
 
@@ -17,7 +19,7 @@ public sealed partial class PdfDocumentPages {
     public PdfDocument Append(PdfDocument sourceDocument, PdfPageSelection sourceSelection, PdfPageImportOptions? importOptions = null) {
         Guard.NotNull(sourceDocument, nameof(sourceDocument));
         return Append(
-            sourceDocument.GetBytesForOperation(),
+            sourceDocument.GetBytesForOperation(importOptions?.CancellationToken ?? default),
             sourceSelection,
             ResolveSourceImportOptions(importOptions, sourceDocument.ReadOptions));
     }
@@ -41,7 +43,7 @@ public sealed partial class PdfDocumentPages {
 
     private PdfDocument Append(byte[] sourcePdf, PdfPageSelection sourceSelection, PdfPageImportOptions? importOptions, PdfLoadOptions targetReadOptions) {
         Guard.NotNull(sourceSelection, nameof(sourceSelection));
-        return Import(sourcePdf, ImportPlacement.Append, insertBeforePageNumber: null, GetSelectedSourcePages(sourcePdf, sourceSelection, importOptions?.SourceReadOptions), importOptions, targetReadOptions);
+        return Import(sourcePdf, ImportPlacement.Append, insertBeforePageNumber: null, GetSelectedSourcePages(sourcePdf, sourceSelection, importOptions?.SourceReadOptions, importOptions?.CancellationToken ?? default), importOptions, targetReadOptions);
     }
 
     /// <summary>
@@ -80,7 +82,7 @@ public sealed partial class PdfDocumentPages {
     public PdfOperationResult<PdfDocument> AppendResult(PdfDocument sourceDocument, PdfPageImportOptions? importOptions = null, PdfLoadOptions? options = null) {
         Guard.NotNull(sourceDocument, nameof(sourceDocument));
         PdfPageImportOptions effectiveImportOptions = ResolveSourceImportOptions(importOptions, sourceDocument.ReadOptions);
-        return _document.TryMutationOperation("Append pages", PdfPreflightCapability.ManipulatePages, PdfMutationOperation.ImportPages, () => Append(sourceDocument.GetBytesForOperation(), effectiveImportOptions, options ?? _document.ReadOptions), options);
+        return _document.TryMutationOperation("Append pages", PdfPreflightCapability.ManipulatePages, PdfMutationOperation.ImportPages, () => Append(sourceDocument.GetBytesForOperation(importOptions?.CancellationToken ?? default), effectiveImportOptions, options ?? _document.ReadOptions), options, cancellationToken: effectiveImportOptions.CancellationToken);
     }
 
     /// <summary>
@@ -90,7 +92,7 @@ public sealed partial class PdfDocumentPages {
         Guard.NotNull(sourceDocument, nameof(sourceDocument));
         Guard.NotNull(sourceSelection, nameof(sourceSelection));
         PdfPageImportOptions effectiveImportOptions = ResolveSourceImportOptions(importOptions, sourceDocument.ReadOptions);
-        return _document.TryMutationOperation("Append pages", PdfPreflightCapability.ManipulatePages, PdfMutationOperation.ImportPages, () => Append(sourceDocument.GetBytesForOperation(), sourceSelection, effectiveImportOptions, options ?? _document.ReadOptions), options);
+        return _document.TryMutationOperation("Append pages", PdfPreflightCapability.ManipulatePages, PdfMutationOperation.ImportPages, () => Append(sourceDocument.GetBytesForOperation(importOptions?.CancellationToken ?? default), sourceSelection, effectiveImportOptions, options ?? _document.ReadOptions), options, cancellationToken: effectiveImportOptions.CancellationToken);
     }
 
     /// <summary>
@@ -98,7 +100,7 @@ public sealed partial class PdfDocumentPages {
     /// </summary>
     public PdfOperationResult<PdfDocument> AppendResult(byte[] sourcePdf, PdfPageImportOptions? importOptions = null, PdfLoadOptions? options = null) {
         Guard.NotNull(sourcePdf, nameof(sourcePdf));
-        return _document.TryMutationOperation("Append pages", PdfPreflightCapability.ManipulatePages, PdfMutationOperation.ImportPages, () => Append(sourcePdf, importOptions, options ?? _document.ReadOptions), options);
+        return _document.TryMutationOperation("Append pages", PdfPreflightCapability.ManipulatePages, PdfMutationOperation.ImportPages, () => Append(sourcePdf, importOptions, options ?? _document.ReadOptions), options, cancellationToken: importOptions?.CancellationToken ?? default);
     }
 
     /// <summary>
@@ -107,7 +109,7 @@ public sealed partial class PdfDocumentPages {
     public PdfOperationResult<PdfDocument> AppendResult(byte[] sourcePdf, PdfPageSelection sourceSelection, PdfPageImportOptions? importOptions = null, PdfLoadOptions? options = null) {
         Guard.NotNull(sourcePdf, nameof(sourcePdf));
         Guard.NotNull(sourceSelection, nameof(sourceSelection));
-        return _document.TryMutationOperation("Append pages", PdfPreflightCapability.ManipulatePages, PdfMutationOperation.ImportPages, () => Append(sourcePdf, sourceSelection, importOptions, options ?? _document.ReadOptions), options);
+        return _document.TryMutationOperation("Append pages", PdfPreflightCapability.ManipulatePages, PdfMutationOperation.ImportPages, () => Append(sourcePdf, sourceSelection, importOptions, options ?? _document.ReadOptions), options, cancellationToken: importOptions?.CancellationToken ?? default);
     }
 
     /// <summary>
@@ -115,7 +117,7 @@ public sealed partial class PdfDocumentPages {
     /// </summary>
     public PdfOperationResult<PdfDocument> AppendResult(Stream sourceStream, PdfPageImportOptions? importOptions = null, PdfLoadOptions? options = null) {
         Guard.NotNull(sourceStream, nameof(sourceStream));
-        return _document.TryMutationOperation("Append pages", PdfPreflightCapability.ManipulatePages, PdfMutationOperation.ImportPages, () => Append(ReadSourceStream(sourceStream, importOptions), importOptions, options ?? _document.ReadOptions), options);
+        return _document.TryMutationOperation("Append pages", PdfPreflightCapability.ManipulatePages, PdfMutationOperation.ImportPages, () => Append(ReadSourceStream(sourceStream, importOptions), importOptions, options ?? _document.ReadOptions), options, cancellationToken: importOptions?.CancellationToken ?? default);
     }
 
     /// <summary>
@@ -124,7 +126,7 @@ public sealed partial class PdfDocumentPages {
     public PdfOperationResult<PdfDocument> AppendResult(Stream sourceStream, PdfPageSelection sourceSelection, PdfPageImportOptions? importOptions = null, PdfLoadOptions? options = null) {
         Guard.NotNull(sourceStream, nameof(sourceStream));
         Guard.NotNull(sourceSelection, nameof(sourceSelection));
-        return _document.TryMutationOperation("Append pages", PdfPreflightCapability.ManipulatePages, PdfMutationOperation.ImportPages, () => Append(ReadSourceStream(sourceStream, importOptions), sourceSelection, importOptions, options ?? _document.ReadOptions), options);
+        return _document.TryMutationOperation("Append pages", PdfPreflightCapability.ManipulatePages, PdfMutationOperation.ImportPages, () => Append(ReadSourceStream(sourceStream, importOptions), sourceSelection, importOptions, options ?? _document.ReadOptions), options, cancellationToken: importOptions?.CancellationToken ?? default);
     }
 
     /// <summary>
@@ -132,7 +134,7 @@ public sealed partial class PdfDocumentPages {
     /// </summary>
     public PdfOperationResult<PdfDocument> AppendResult(string sourcePath, PdfPageImportOptions? importOptions = null, PdfLoadOptions? options = null) {
         Guard.NotNullOrWhiteSpace(sourcePath, nameof(sourcePath));
-        return _document.TryMutationOperation("Append pages", PdfPreflightCapability.ManipulatePages, PdfMutationOperation.ImportPages, () => Append(ReadSourcePath(sourcePath, importOptions), importOptions, options ?? _document.ReadOptions), options);
+        return _document.TryMutationOperation("Append pages", PdfPreflightCapability.ManipulatePages, PdfMutationOperation.ImportPages, () => Append(ReadSourcePath(sourcePath, importOptions), importOptions, options ?? _document.ReadOptions), options, cancellationToken: importOptions?.CancellationToken ?? default);
     }
 
     /// <summary>
@@ -141,7 +143,7 @@ public sealed partial class PdfDocumentPages {
     public PdfOperationResult<PdfDocument> AppendResult(string sourcePath, PdfPageSelection sourceSelection, PdfPageImportOptions? importOptions = null, PdfLoadOptions? options = null) {
         Guard.NotNullOrWhiteSpace(sourcePath, nameof(sourcePath));
         Guard.NotNull(sourceSelection, nameof(sourceSelection));
-        return _document.TryMutationOperation("Append pages", PdfPreflightCapability.ManipulatePages, PdfMutationOperation.ImportPages, () => Append(ReadSourcePath(sourcePath, importOptions), sourceSelection, importOptions, options ?? _document.ReadOptions), options);
+        return _document.TryMutationOperation("Append pages", PdfPreflightCapability.ManipulatePages, PdfMutationOperation.ImportPages, () => Append(ReadSourcePath(sourcePath, importOptions), sourceSelection, importOptions, options ?? _document.ReadOptions), options, cancellationToken: importOptions?.CancellationToken ?? default);
     }
 
     /// <summary>
@@ -150,7 +152,7 @@ public sealed partial class PdfDocumentPages {
     public PdfDocument Prepend(PdfDocument sourceDocument, PdfPageImportOptions? importOptions = null) {
         Guard.NotNull(sourceDocument, nameof(sourceDocument));
         return Prepend(
-            sourceDocument.GetBytesForOperation(),
+            sourceDocument.GetBytesForOperation(importOptions?.CancellationToken ?? default),
             ResolveSourceImportOptions(importOptions, sourceDocument.ReadOptions));
     }
 
@@ -160,7 +162,7 @@ public sealed partial class PdfDocumentPages {
     public PdfDocument Prepend(PdfDocument sourceDocument, PdfPageSelection sourceSelection, PdfPageImportOptions? importOptions = null) {
         Guard.NotNull(sourceDocument, nameof(sourceDocument));
         return Prepend(
-            sourceDocument.GetBytesForOperation(),
+            sourceDocument.GetBytesForOperation(importOptions?.CancellationToken ?? default),
             sourceSelection,
             ResolveSourceImportOptions(importOptions, sourceDocument.ReadOptions));
     }
@@ -184,7 +186,7 @@ public sealed partial class PdfDocumentPages {
 
     private PdfDocument Prepend(byte[] sourcePdf, PdfPageSelection sourceSelection, PdfPageImportOptions? importOptions, PdfLoadOptions targetReadOptions) {
         Guard.NotNull(sourceSelection, nameof(sourceSelection));
-        return Import(sourcePdf, ImportPlacement.Prepend, insertBeforePageNumber: null, GetSelectedSourcePages(sourcePdf, sourceSelection, importOptions?.SourceReadOptions), importOptions, targetReadOptions);
+        return Import(sourcePdf, ImportPlacement.Prepend, insertBeforePageNumber: null, GetSelectedSourcePages(sourcePdf, sourceSelection, importOptions?.SourceReadOptions, importOptions?.CancellationToken ?? default), importOptions, targetReadOptions);
     }
 
     /// <summary>
@@ -223,7 +225,7 @@ public sealed partial class PdfDocumentPages {
     public PdfOperationResult<PdfDocument> PrependResult(PdfDocument sourceDocument, PdfPageImportOptions? importOptions = null, PdfLoadOptions? options = null) {
         Guard.NotNull(sourceDocument, nameof(sourceDocument));
         PdfPageImportOptions effectiveImportOptions = ResolveSourceImportOptions(importOptions, sourceDocument.ReadOptions);
-        return _document.TryMutationOperation("Prepend pages", PdfPreflightCapability.ManipulatePages, PdfMutationOperation.ImportPages, () => Prepend(sourceDocument.GetBytesForOperation(), effectiveImportOptions, options ?? _document.ReadOptions), options);
+        return _document.TryMutationOperation("Prepend pages", PdfPreflightCapability.ManipulatePages, PdfMutationOperation.ImportPages, () => Prepend(sourceDocument.GetBytesForOperation(importOptions?.CancellationToken ?? default), effectiveImportOptions, options ?? _document.ReadOptions), options, cancellationToken: effectiveImportOptions.CancellationToken);
     }
 
     /// <summary>
@@ -233,7 +235,7 @@ public sealed partial class PdfDocumentPages {
         Guard.NotNull(sourceDocument, nameof(sourceDocument));
         Guard.NotNull(sourceSelection, nameof(sourceSelection));
         PdfPageImportOptions effectiveImportOptions = ResolveSourceImportOptions(importOptions, sourceDocument.ReadOptions);
-        return _document.TryMutationOperation("Prepend pages", PdfPreflightCapability.ManipulatePages, PdfMutationOperation.ImportPages, () => Prepend(sourceDocument.GetBytesForOperation(), sourceSelection, effectiveImportOptions, options ?? _document.ReadOptions), options);
+        return _document.TryMutationOperation("Prepend pages", PdfPreflightCapability.ManipulatePages, PdfMutationOperation.ImportPages, () => Prepend(sourceDocument.GetBytesForOperation(importOptions?.CancellationToken ?? default), sourceSelection, effectiveImportOptions, options ?? _document.ReadOptions), options, cancellationToken: effectiveImportOptions.CancellationToken);
     }
 
     /// <summary>
@@ -241,7 +243,7 @@ public sealed partial class PdfDocumentPages {
     /// </summary>
     public PdfOperationResult<PdfDocument> PrependResult(byte[] sourcePdf, PdfPageImportOptions? importOptions = null, PdfLoadOptions? options = null) {
         Guard.NotNull(sourcePdf, nameof(sourcePdf));
-        return _document.TryMutationOperation("Prepend pages", PdfPreflightCapability.ManipulatePages, PdfMutationOperation.ImportPages, () => Prepend(sourcePdf, importOptions, options ?? _document.ReadOptions), options);
+        return _document.TryMutationOperation("Prepend pages", PdfPreflightCapability.ManipulatePages, PdfMutationOperation.ImportPages, () => Prepend(sourcePdf, importOptions, options ?? _document.ReadOptions), options, cancellationToken: importOptions?.CancellationToken ?? default);
     }
 
     /// <summary>
@@ -250,7 +252,7 @@ public sealed partial class PdfDocumentPages {
     public PdfOperationResult<PdfDocument> PrependResult(byte[] sourcePdf, PdfPageSelection sourceSelection, PdfPageImportOptions? importOptions = null, PdfLoadOptions? options = null) {
         Guard.NotNull(sourcePdf, nameof(sourcePdf));
         Guard.NotNull(sourceSelection, nameof(sourceSelection));
-        return _document.TryMutationOperation("Prepend pages", PdfPreflightCapability.ManipulatePages, PdfMutationOperation.ImportPages, () => Prepend(sourcePdf, sourceSelection, importOptions, options ?? _document.ReadOptions), options);
+        return _document.TryMutationOperation("Prepend pages", PdfPreflightCapability.ManipulatePages, PdfMutationOperation.ImportPages, () => Prepend(sourcePdf, sourceSelection, importOptions, options ?? _document.ReadOptions), options, cancellationToken: importOptions?.CancellationToken ?? default);
     }
 
     /// <summary>
@@ -258,7 +260,7 @@ public sealed partial class PdfDocumentPages {
     /// </summary>
     public PdfOperationResult<PdfDocument> PrependResult(Stream sourceStream, PdfPageImportOptions? importOptions = null, PdfLoadOptions? options = null) {
         Guard.NotNull(sourceStream, nameof(sourceStream));
-        return _document.TryMutationOperation("Prepend pages", PdfPreflightCapability.ManipulatePages, PdfMutationOperation.ImportPages, () => Prepend(ReadSourceStream(sourceStream, importOptions), importOptions, options ?? _document.ReadOptions), options);
+        return _document.TryMutationOperation("Prepend pages", PdfPreflightCapability.ManipulatePages, PdfMutationOperation.ImportPages, () => Prepend(ReadSourceStream(sourceStream, importOptions), importOptions, options ?? _document.ReadOptions), options, cancellationToken: importOptions?.CancellationToken ?? default);
     }
 
     /// <summary>
@@ -267,7 +269,7 @@ public sealed partial class PdfDocumentPages {
     public PdfOperationResult<PdfDocument> PrependResult(Stream sourceStream, PdfPageSelection sourceSelection, PdfPageImportOptions? importOptions = null, PdfLoadOptions? options = null) {
         Guard.NotNull(sourceStream, nameof(sourceStream));
         Guard.NotNull(sourceSelection, nameof(sourceSelection));
-        return _document.TryMutationOperation("Prepend pages", PdfPreflightCapability.ManipulatePages, PdfMutationOperation.ImportPages, () => Prepend(ReadSourceStream(sourceStream, importOptions), sourceSelection, importOptions, options ?? _document.ReadOptions), options);
+        return _document.TryMutationOperation("Prepend pages", PdfPreflightCapability.ManipulatePages, PdfMutationOperation.ImportPages, () => Prepend(ReadSourceStream(sourceStream, importOptions), sourceSelection, importOptions, options ?? _document.ReadOptions), options, cancellationToken: importOptions?.CancellationToken ?? default);
     }
 
     /// <summary>
@@ -275,7 +277,7 @@ public sealed partial class PdfDocumentPages {
     /// </summary>
     public PdfOperationResult<PdfDocument> PrependResult(string sourcePath, PdfPageImportOptions? importOptions = null, PdfLoadOptions? options = null) {
         Guard.NotNullOrWhiteSpace(sourcePath, nameof(sourcePath));
-        return _document.TryMutationOperation("Prepend pages", PdfPreflightCapability.ManipulatePages, PdfMutationOperation.ImportPages, () => Prepend(ReadSourcePath(sourcePath, importOptions), importOptions, options ?? _document.ReadOptions), options);
+        return _document.TryMutationOperation("Prepend pages", PdfPreflightCapability.ManipulatePages, PdfMutationOperation.ImportPages, () => Prepend(ReadSourcePath(sourcePath, importOptions), importOptions, options ?? _document.ReadOptions), options, cancellationToken: importOptions?.CancellationToken ?? default);
     }
 
     /// <summary>
@@ -284,7 +286,7 @@ public sealed partial class PdfDocumentPages {
     public PdfOperationResult<PdfDocument> PrependResult(string sourcePath, PdfPageSelection sourceSelection, PdfPageImportOptions? importOptions = null, PdfLoadOptions? options = null) {
         Guard.NotNullOrWhiteSpace(sourcePath, nameof(sourcePath));
         Guard.NotNull(sourceSelection, nameof(sourceSelection));
-        return _document.TryMutationOperation("Prepend pages", PdfPreflightCapability.ManipulatePages, PdfMutationOperation.ImportPages, () => Prepend(ReadSourcePath(sourcePath, importOptions), sourceSelection, importOptions, options ?? _document.ReadOptions), options);
+        return _document.TryMutationOperation("Prepend pages", PdfPreflightCapability.ManipulatePages, PdfMutationOperation.ImportPages, () => Prepend(ReadSourcePath(sourcePath, importOptions), sourceSelection, importOptions, options ?? _document.ReadOptions), options, cancellationToken: importOptions?.CancellationToken ?? default);
     }
 
     /// <summary>
@@ -295,7 +297,7 @@ public sealed partial class PdfDocumentPages {
         Guard.NotNull(sourceDocument, nameof(sourceDocument));
         return Insert(
             insertBeforePageNumber,
-            sourceDocument.GetBytesForOperation(),
+            sourceDocument.GetBytesForOperation(importOptions?.CancellationToken ?? default),
             ResolveSourceImportOptions(importOptions, sourceDocument.ReadOptions));
     }
 
@@ -307,7 +309,7 @@ public sealed partial class PdfDocumentPages {
         Guard.NotNull(sourceDocument, nameof(sourceDocument));
         return Insert(
             insertBeforePageNumber,
-            sourceDocument.GetBytesForOperation(),
+            sourceDocument.GetBytesForOperation(importOptions?.CancellationToken ?? default),
             sourceSelection,
             ResolveSourceImportOptions(importOptions, sourceDocument.ReadOptions));
     }
@@ -333,7 +335,7 @@ public sealed partial class PdfDocumentPages {
 
     private PdfDocument Insert(int insertBeforePageNumber, byte[] sourcePdf, PdfPageSelection sourceSelection, PdfPageImportOptions? importOptions, PdfLoadOptions targetReadOptions) {
         Guard.NotNull(sourceSelection, nameof(sourceSelection));
-        return Import(sourcePdf, ImportPlacement.Insert, insertBeforePageNumber, GetSelectedSourcePages(sourcePdf, sourceSelection, importOptions?.SourceReadOptions), importOptions, targetReadOptions);
+        return Import(sourcePdf, ImportPlacement.Insert, insertBeforePageNumber, GetSelectedSourcePages(sourcePdf, sourceSelection, importOptions?.SourceReadOptions, importOptions?.CancellationToken ?? default), importOptions, targetReadOptions);
     }
 
     /// <summary>
@@ -376,7 +378,7 @@ public sealed partial class PdfDocumentPages {
     public PdfOperationResult<PdfDocument> InsertResult(int insertBeforePageNumber, PdfDocument sourceDocument, PdfPageImportOptions? importOptions = null, PdfLoadOptions? options = null) {
         Guard.NotNull(sourceDocument, nameof(sourceDocument));
         PdfPageImportOptions effectiveImportOptions = ResolveSourceImportOptions(importOptions, sourceDocument.ReadOptions);
-        return _document.TryMutationOperation("Insert pages", PdfPreflightCapability.ManipulatePages, PdfMutationOperation.ImportPages, () => Insert(insertBeforePageNumber, sourceDocument.GetBytesForOperation(), effectiveImportOptions, options ?? _document.ReadOptions), options);
+        return _document.TryMutationOperation("Insert pages", PdfPreflightCapability.ManipulatePages, PdfMutationOperation.ImportPages, () => Insert(insertBeforePageNumber, sourceDocument.GetBytesForOperation(importOptions?.CancellationToken ?? default), effectiveImportOptions, options ?? _document.ReadOptions), options, cancellationToken: effectiveImportOptions.CancellationToken);
     }
 
     /// <summary>
@@ -386,7 +388,7 @@ public sealed partial class PdfDocumentPages {
         Guard.NotNull(sourceDocument, nameof(sourceDocument));
         Guard.NotNull(sourceSelection, nameof(sourceSelection));
         PdfPageImportOptions effectiveImportOptions = ResolveSourceImportOptions(importOptions, sourceDocument.ReadOptions);
-        return _document.TryMutationOperation("Insert pages", PdfPreflightCapability.ManipulatePages, PdfMutationOperation.ImportPages, () => Insert(insertBeforePageNumber, sourceDocument.GetBytesForOperation(), sourceSelection, effectiveImportOptions, options ?? _document.ReadOptions), options);
+        return _document.TryMutationOperation("Insert pages", PdfPreflightCapability.ManipulatePages, PdfMutationOperation.ImportPages, () => Insert(insertBeforePageNumber, sourceDocument.GetBytesForOperation(importOptions?.CancellationToken ?? default), sourceSelection, effectiveImportOptions, options ?? _document.ReadOptions), options, cancellationToken: effectiveImportOptions.CancellationToken);
     }
 
     /// <summary>
@@ -394,7 +396,7 @@ public sealed partial class PdfDocumentPages {
     /// </summary>
     public PdfOperationResult<PdfDocument> InsertResult(int insertBeforePageNumber, byte[] sourcePdf, PdfPageImportOptions? importOptions = null, PdfLoadOptions? options = null) {
         Guard.NotNull(sourcePdf, nameof(sourcePdf));
-        return _document.TryMutationOperation("Insert pages", PdfPreflightCapability.ManipulatePages, PdfMutationOperation.ImportPages, () => Insert(insertBeforePageNumber, sourcePdf, importOptions, options ?? _document.ReadOptions), options);
+        return _document.TryMutationOperation("Insert pages", PdfPreflightCapability.ManipulatePages, PdfMutationOperation.ImportPages, () => Insert(insertBeforePageNumber, sourcePdf, importOptions, options ?? _document.ReadOptions), options, cancellationToken: importOptions?.CancellationToken ?? default);
     }
 
     /// <summary>
@@ -403,7 +405,7 @@ public sealed partial class PdfDocumentPages {
     public PdfOperationResult<PdfDocument> InsertResult(int insertBeforePageNumber, byte[] sourcePdf, PdfPageSelection sourceSelection, PdfPageImportOptions? importOptions = null, PdfLoadOptions? options = null) {
         Guard.NotNull(sourcePdf, nameof(sourcePdf));
         Guard.NotNull(sourceSelection, nameof(sourceSelection));
-        return _document.TryMutationOperation("Insert pages", PdfPreflightCapability.ManipulatePages, PdfMutationOperation.ImportPages, () => Insert(insertBeforePageNumber, sourcePdf, sourceSelection, importOptions, options ?? _document.ReadOptions), options);
+        return _document.TryMutationOperation("Insert pages", PdfPreflightCapability.ManipulatePages, PdfMutationOperation.ImportPages, () => Insert(insertBeforePageNumber, sourcePdf, sourceSelection, importOptions, options ?? _document.ReadOptions), options, cancellationToken: importOptions?.CancellationToken ?? default);
     }
 
     /// <summary>
@@ -411,7 +413,7 @@ public sealed partial class PdfDocumentPages {
     /// </summary>
     public PdfOperationResult<PdfDocument> InsertResult(int insertBeforePageNumber, Stream sourceStream, PdfPageImportOptions? importOptions = null, PdfLoadOptions? options = null) {
         Guard.NotNull(sourceStream, nameof(sourceStream));
-        return _document.TryMutationOperation("Insert pages", PdfPreflightCapability.ManipulatePages, PdfMutationOperation.ImportPages, () => Insert(insertBeforePageNumber, ReadSourceStream(sourceStream, importOptions), importOptions, options ?? _document.ReadOptions), options);
+        return _document.TryMutationOperation("Insert pages", PdfPreflightCapability.ManipulatePages, PdfMutationOperation.ImportPages, () => Insert(insertBeforePageNumber, ReadSourceStream(sourceStream, importOptions), importOptions, options ?? _document.ReadOptions), options, cancellationToken: importOptions?.CancellationToken ?? default);
     }
 
     /// <summary>
@@ -420,7 +422,7 @@ public sealed partial class PdfDocumentPages {
     public PdfOperationResult<PdfDocument> InsertResult(int insertBeforePageNumber, Stream sourceStream, PdfPageSelection sourceSelection, PdfPageImportOptions? importOptions = null, PdfLoadOptions? options = null) {
         Guard.NotNull(sourceStream, nameof(sourceStream));
         Guard.NotNull(sourceSelection, nameof(sourceSelection));
-        return _document.TryMutationOperation("Insert pages", PdfPreflightCapability.ManipulatePages, PdfMutationOperation.ImportPages, () => Insert(insertBeforePageNumber, ReadSourceStream(sourceStream, importOptions), sourceSelection, importOptions, options ?? _document.ReadOptions), options);
+        return _document.TryMutationOperation("Insert pages", PdfPreflightCapability.ManipulatePages, PdfMutationOperation.ImportPages, () => Insert(insertBeforePageNumber, ReadSourceStream(sourceStream, importOptions), sourceSelection, importOptions, options ?? _document.ReadOptions), options, cancellationToken: importOptions?.CancellationToken ?? default);
     }
 
     /// <summary>
@@ -428,7 +430,7 @@ public sealed partial class PdfDocumentPages {
     /// </summary>
     public PdfOperationResult<PdfDocument> InsertResult(int insertBeforePageNumber, string sourcePath, PdfPageImportOptions? importOptions = null, PdfLoadOptions? options = null) {
         Guard.NotNullOrWhiteSpace(sourcePath, nameof(sourcePath));
-        return _document.TryMutationOperation("Insert pages", PdfPreflightCapability.ManipulatePages, PdfMutationOperation.ImportPages, () => Insert(insertBeforePageNumber, ReadSourcePath(sourcePath, importOptions), importOptions, options ?? _document.ReadOptions), options);
+        return _document.TryMutationOperation("Insert pages", PdfPreflightCapability.ManipulatePages, PdfMutationOperation.ImportPages, () => Insert(insertBeforePageNumber, ReadSourcePath(sourcePath, importOptions), importOptions, options ?? _document.ReadOptions), options, cancellationToken: importOptions?.CancellationToken ?? default);
     }
 
     /// <summary>
@@ -437,7 +439,7 @@ public sealed partial class PdfDocumentPages {
     public PdfOperationResult<PdfDocument> InsertResult(int insertBeforePageNumber, string sourcePath, PdfPageSelection sourceSelection, PdfPageImportOptions? importOptions = null, PdfLoadOptions? options = null) {
         Guard.NotNullOrWhiteSpace(sourcePath, nameof(sourcePath));
         Guard.NotNull(sourceSelection, nameof(sourceSelection));
-        return _document.TryMutationOperation("Insert pages", PdfPreflightCapability.ManipulatePages, PdfMutationOperation.ImportPages, () => Insert(insertBeforePageNumber, ReadSourcePath(sourcePath, importOptions), sourceSelection, importOptions, options ?? _document.ReadOptions), options);
+        return _document.TryMutationOperation("Insert pages", PdfPreflightCapability.ManipulatePages, PdfMutationOperation.ImportPages, () => Insert(insertBeforePageNumber, ReadSourcePath(sourcePath, importOptions), sourceSelection, importOptions, options ?? _document.ReadOptions), options, cancellationToken: importOptions?.CancellationToken ?? default);
     }
 
     private PdfDocument Import(byte[] sourcePdf, ImportPlacement placement, int? insertBeforePageNumber, int[] sourcePageNumbers, PdfPageImportOptions? importOptions, PdfLoadOptions targetReadOptions) {
@@ -445,7 +447,9 @@ public sealed partial class PdfDocumentPages {
         Guard.NotNull(sourcePageNumbers, nameof(sourcePageNumbers));
 
         PdfPageImportOptions effectiveOptions = importOptions ?? new PdfPageImportOptions();
-        byte[] targetPdf = _document.GetBytesForOperation();
+        CancellationToken cancellationToken = effectiveOptions.CancellationToken;
+        cancellationToken.ThrowIfCancellationRequested();
+        byte[] targetPdf = _document.GetBytesForOperation(cancellationToken);
         byte[] imported = placement switch {
             ImportPlacement.Append => PdfPageImporter.AppendPages(effectiveOptions, targetPdf, sourcePdf, targetReadOptions, sourcePageNumbers),
             ImportPlacement.Prepend => PdfPageImporter.PrependPages(effectiveOptions, targetPdf, sourcePdf, targetReadOptions, sourcePageNumbers),
@@ -457,13 +461,15 @@ public sealed partial class PdfDocumentPages {
             targetPdf,
             imported,
             readOptions: targetReadOptions,
-            operationName: placement.ToString());
+            operationName: placement.ToString(),
+            cancellationToken: cancellationToken);
     }
 
-    private static int[] GetSelectedSourcePages(byte[] sourcePdf, PdfPageSelection sourceSelection, PdfLoadOptions? sourceReadOptions) {
+    private static int[] GetSelectedSourcePages(byte[] sourcePdf, PdfPageSelection sourceSelection, PdfLoadOptions? sourceReadOptions, CancellationToken cancellationToken) {
+        cancellationToken.ThrowIfCancellationRequested();
         Guard.NotNull(sourcePdf, nameof(sourcePdf));
         Guard.NotNull(sourceSelection, nameof(sourceSelection));
-        int pageCount = PdfInspector.Inspect(sourcePdf, sourceReadOptions).PageCount;
+        int pageCount = PdfReadDocument.Open(sourcePdf, sourceReadOptions, cancellationToken).Pages.Count;
         return sourceSelection.ToPageNumbers(pageCount, nameof(sourceSelection));
     }
 
@@ -471,12 +477,13 @@ public sealed partial class PdfDocumentPages {
         Guard.NotNull(sourceReadOptions, nameof(sourceReadOptions));
         return new PdfPageImportOptions {
             FlattenVisualAnnotations = importOptions?.FlattenVisualAnnotations ?? false,
+            CancellationToken = importOptions?.CancellationToken ?? default,
             SourceReadOptions = importOptions?.SourceReadOptions ?? sourceReadOptions
         };
     }
 
     private static byte[] ReadSourcePath(string sourcePath, PdfPageImportOptions? importOptions) =>
-        PdfDocumentSource.FromPath(sourcePath, importOptions?.SourceReadOptions).Bytes;
+        PdfDocumentSource.FromPath(sourcePath, importOptions?.SourceReadOptions, importOptions?.CancellationToken ?? default).Bytes;
 
     private static byte[] ReadSourceStream(Stream sourceStream, PdfPageImportOptions? importOptions) {
         Guard.NotNull(sourceStream, nameof(sourceStream));
@@ -484,7 +491,7 @@ public sealed partial class PdfDocumentPages {
             throw new ArgumentException("Stream must be readable.", nameof(sourceStream));
         }
 
-        return PdfDocumentSource.FromRemainingStream(sourceStream, importOptions?.SourceReadOptions).Bytes;
+        return PdfDocumentSource.FromRemainingStream(sourceStream, importOptions?.SourceReadOptions, importOptions?.CancellationToken ?? default).Bytes;
     }
 
     private enum ImportPlacement {

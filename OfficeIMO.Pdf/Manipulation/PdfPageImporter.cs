@@ -1,4 +1,5 @@
 using OfficeIMO.Core.Internal;
+using System.Threading;
 using System.Globalization;
 
 namespace OfficeIMO.Pdf;
@@ -562,9 +563,9 @@ internal static partial class PdfPageImporter {
     private static byte[] ReadPath(string path) =>
         PdfDocumentSource.FromPath(path, null).Bytes;
 
-    private static void WriteOutput(Stream outputStream, byte[] bytes) {
+    private static void WriteOutput(Stream outputStream, byte[] bytes, CancellationToken cancellationToken = default) {
         ValidateWritableOutputStream(outputStream);
-        outputStream.Write(bytes, 0, bytes.Length);
+        OfficeStreamWriter.CopyBytes(outputStream, bytes, cancellationToken);
     }
 
     private static void ValidateWritableOutputStream(Stream outputStream) {
@@ -574,14 +575,14 @@ internal static partial class PdfPageImporter {
         }
     }
 
-    private static void WriteOutput(string outputPath, byte[] bytes) {
+    private static void WriteOutput(string outputPath, byte[] bytes, CancellationToken cancellationToken = default) {
         string fullPath = ValidateOutputPath(outputPath);
         var directory = Path.GetDirectoryName(fullPath);
         if (!string.IsNullOrEmpty(directory)) {
             Directory.CreateDirectory(directory);
         }
 
-        OfficeFileCommit.WriteAllBytes(fullPath, bytes);
+        OfficeFileCommit.Write(fullPath, stream => OfficeStreamWriter.CopyBytes(stream, bytes, cancellationToken), cancellationToken);
     }
 
     private static string ValidateOutputPath(string outputPath) {

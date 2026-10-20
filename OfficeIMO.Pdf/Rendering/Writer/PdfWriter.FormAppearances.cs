@@ -70,7 +70,7 @@ internal static partial class PdfWriter {
                 ensureFont,
                 resources);
         } else {
-            double baseline = Math.Max(2D, (height - fontSize) / 2D + fontSize * 0.72D);
+            double baseline = PdfAcroFormDictionaryBuilder.GetSingleLineTextBaseline(height, fontSize);
             string line = availableTextWidth <= 0.001D ? string.Empty : displayValue;
             AppendFormFieldTextAppearanceLine(
                 sb,
@@ -235,7 +235,7 @@ internal static partial class PdfWriter {
         List<(string Name, int Id)> fontResources) {
         int cellCount = effectiveStyle.MaxLength!.Value;
         double cellWidth = width / cellCount;
-        double baseline = Math.Max(2D, (height - fontSize) / 2D + fontSize * 0.72D);
+        double baseline = PdfAcroFormDictionaryBuilder.GetSingleLineTextBaseline(height, fontSize);
         int glyphIndex = 0;
         for (int valueIndex = 0; valueIndex < displayValue.Length && glyphIndex < cellCount; glyphIndex++) {
             int scalarLength = GetScalarUtf16Length(displayValue, valueIndex);
