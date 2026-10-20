@@ -101,6 +101,74 @@ public sealed class WordNoteCollectionTests {
     }
 
     [Theory]
+    [InlineData(false, false)]
+    [InlineData(false, true)]
+    [InlineData(true, false)]
+    [InlineData(true, true)]
+    public void RevisionOnlyFootnoteReferencesDoNotBecomeSyntheticLiveNotes(bool movedFrom, bool orphanDefinition) {
+        byte[] source = CreateRevisionOnlyFootnote(movedFrom, orphanDefinition);
+        var expected = ReadRevisionFootnoteSource(source);
+        Assert.Single(expected.References);
+        Assert.Equal(orphanDefinition ? 2 : 1, expected.Definitions.Length);
+
+        using WordDocument document = WordDocument.Load(new MemoryStream(source));
+        Assert.Empty(document.Sections[0].FootNotes);
+        Assert.Empty(document.FootNotes);
+        Assert.Empty(document.ValidateDocument());
+        byte[] saved = document.ToBytes();
+        var actual = ReadRevisionFootnoteSource(saved);
+        Assert.Equal(expected.References, actual.References);
+        Assert.Equal(expected.Definitions, actual.Definitions);
+        Assert.Equal(expected.Revisions, actual.Revisions);
+
+        using WordDocument restored = WordDocument.Load(new MemoryStream(saved));
+        Assert.Empty(restored.Sections[0].FootNotes);
+        Assert.Empty(restored.FootNotes);
+        Assert.Empty(restored.ValidateDocument());
+        var rewritten = ReadRevisionFootnoteSource(restored.ToBytes());
+        Assert.Equal(expected.References, rewritten.References);
+        Assert.Equal(expected.Definitions, rewritten.Definitions);
+        Assert.Equal(expected.Revisions, rewritten.Revisions);
+    }
+
+    private static byte[] CreateRevisionOnlyFootnote(bool movedFrom, bool orphanDefinition) {
+        using WordDocument document = WordDocument.Create();
+        document.AddTable(1, 1).Rows[0].Cells[0].Paragraphs[0]
+            .AddText("revision owner").AddFootNote("revision definition");
+        if (orphanDefinition) {
+            document.AddParagraph("orphan owner").AddFootNote("orphan definition").Remove();
+        }
+
+        using var imported = new MemoryStream();
+        byte[] original = document.ToBytes();
+        imported.Write(original, 0, original.Length);
+        imported.Position = 0;
+        using (WordprocessingDocument package = WordprocessingDocument.Open(imported, true)) {
+            Run referenceRun = Assert.Single(package.MainDocumentPart!.Document.Body!.Descendants<Run>(),
+                run => run.Elements<FootnoteReference>().Any());
+            OpenXmlCompositeElement revision = movedFrom
+                ? new MoveFromRun { Id = "1", Author = "OfficeIMO Tests" }
+                : new DeletedRun { Id = "1", Author = "OfficeIMO Tests" };
+            referenceRun.InsertBeforeSelf(revision);
+            referenceRun.Remove();
+            revision.Append(referenceRun);
+            package.MainDocumentPart.Document.Save();
+        }
+        return imported.ToArray();
+    }
+
+    private static (string[] References, string[] Definitions, string[] Revisions) ReadRevisionFootnoteSource(byte[] bytes) {
+        using WordprocessingDocument package = WordprocessingDocument.Open(new MemoryStream(bytes), false);
+        Body body = package.MainDocumentPart!.Document.Body!;
+        return (
+            body.Descendants<FootnoteReference>().Select(reference => reference.OuterXml).ToArray(),
+            package.MainDocumentPart.FootnotesPart!.Footnotes!.Elements<Footnote>()
+                .Where(note => note.Type == null).Select(note => note.OuterXml).ToArray(),
+            body.Descendants().Where(element => element is DeletedRun || element is MoveFromRun)
+                .Select(element => element.OuterXml).ToArray());
+    }
+
+    [Theory]
     [InlineData(false)]
     [InlineData(true)]
     public void SeveralSameKindNotesInOneImportedRunKeepIndependentIdentityAndSiblingContent(bool endnotes) {

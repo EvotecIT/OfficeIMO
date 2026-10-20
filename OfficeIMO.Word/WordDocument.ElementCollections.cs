@@ -89,8 +89,10 @@ namespace OfficeIMO.Word {
                 foreach (var section in this.Sections) {
                     list.AddRange(section.FootNotes);
                 }
-                if (list.Count == 0) {
-                    // Fallback: enumerate footnotes part when no body references were materialized yet.
+                if (list.Count == 0 &&
+                    _wordprocessingDocument.MainDocumentPart?.Document?.Body?.Descendants<FootnoteReference>().Any() != true) {
+                    // Preserve orphan-definition access only when the body stores no references,
+                    // including references excluded from the final view by tracked revisions.
                     var footnotes = _wordprocessingDocument.MainDocumentPart?.FootnotesPart?.Footnotes;
                     if (footnotes != null) {
                         foreach (var fn in footnotes.ChildElements.OfType<DocumentFormat.OpenXml.Wordprocessing.Footnote>()) {
