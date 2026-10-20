@@ -1354,6 +1354,161 @@
       "record": "final/invoice-speed/qualification.json",
       "bytes": 24066,
       "sha256": "19c7368dfaf1b3e855e1efd1cb96658abdae8b44329003b72602fcdcd134dab6"
+    },
+    {
+      "record": "review-remediation/ci/ci-wave-classification.json",
+      "bytes": 2444,
+      "sha256": "23275e2f8db88d1f03ea9263bc499b35bca6124c8f21aa11ccd59273c5187f35"
+    },
+    {
+      "record": "review-remediation/ci/html-net472-result.json",
+      "bytes": 1351,
+      "sha256": "d472c914c4490ce7f0cb381fa8513bbee916c68bb22f6ed877541b37c1dfdb73"
+    },
+    {
+      "record": "review-remediation/ci/showcase-and-fixture-result.json",
+      "bytes": 2259,
+      "sha256": "01bfd5d7a2a0ef999b8d1c6c99d5bdd1ef9e42c74bbd9da2421c0cb5b57dcb34"
+    },
+    {
+      "record": "review-remediation/ci/showcase-generation.json",
+      "bytes": 1736,
+      "sha256": "a08c6e92331a5bff931749616a4dbed784b64fd9da4f8e35d4b12e4f2dc390e6"
+    },
+    {
+      "record": "review-remediation/closure-review.json",
+      "bytes": 1316,
+      "sha256": "cd0f897736454a9d4fe3de51dbbb71149a5049906d38c3e9d48f4ab89a9d0e2f"
+    },
+    {
+      "record": "review-remediation/evidence/qualification.json",
+      "bytes": 15243,
+      "sha256": "c9c313ab70b635cc59b6b06e2aa881f5262bd1df12b1e2dcfaef33a65ae0d9ca"
+    },
+    {
+      "record": "review-remediation/finding-ledger.json",
+      "bytes": 4024,
+      "sha256": "97e27a2bba0f2e98a999436ad21dd8268d6a57ee4031dd75be40c69954024c02"
+    },
+    {
+      "record": "review-remediation/packages/evidence/native/runtime-binding.json",
+      "bytes": 246,
+      "sha256": "8f4e6d6dfd1b2859bf194e38e44b715c62be44b79ec0c530cdf8e351d66c8156"
+    },
+    {
+      "record": "review-remediation/packages/evidence/net10.0/runtime-binding.json",
+      "bytes": 681,
+      "sha256": "00c3139144e4e3301e4906cacb0a17f0cdbff2c0b4749936b05c1c83c5f04eb5"
+    },
+    {
+      "record": "review-remediation/packages/evidence/net8.0/runtime-binding.json",
+      "bytes": 679,
+      "sha256": "25a49238c74802331baefb790fd78d5fbc636dddb45264c8fc687846fdcd88b0"
+    },
+    {
+      "record": "review-remediation/packages/qualification-state.json",
+      "bytes": 13422,
+      "sha256": "eeb31ce4cc082e533d3555d193f418de4aa0a7c8ffdfb476b8fa383618da966c"
+    },
+    {
+      "record": "review-remediation/packages/standards/PdfUa1-first.pdf.json",
+      "bytes": 1647,
+      "sha256": "3b14c8e4b7aef077379ba67fab460c6ae9d8f261ea8b7fc4b5118228e2e6acf3"
+    },
+    {
+      "record": "review-remediation/packages/standards/PdfUa1-merged.pdf.json",
+      "bytes": 1648,
+      "sha256": "bb6b91d328854dad1cee711116ebd9ea1367f193e38afc32cfb549f8b5f04a01"
+    },
+    {
+      "record": "review-remediation/packages/standards/PdfUa2-first.pdf.json",
+      "bytes": 1661,
+      "sha256": "d785e51ff66b04ba0f2f7a9e5b52f4abe42967eb9074682227723ba24b7d0131"
+    },
+    {
+      "record": "review-remediation/packages/standards/PdfUa2-merged.pdf.json",
+      "bytes": 1662,
+      "sha256": "1092a709d194e491b2acc015b5b19bc018ff16d5f45db9950fc736a99feab5e8"
+    },
+    {
+      "record": "review-remediation/packages/standards/qualification.json",
+      "bytes": 26951,
+      "sha256": "aebc7e9ad2166b44184004d3bfd64a7bc2966519d809f4978369e5c1bec33848"
+    },
+    {
+      "record": "review-remediation/packages/standards/weekly-example.pdf.json",
+      "bytes": 1650,
+      "sha256": "1c1cb8e2d405e8c2f6125c99be2c194922bc71ddc76f4c07858f6dc3b3c0afa8"
+    },
+    {
+      "record": "review-remediation/root/binary-net10-during-tests.json",
+      "bytes": 1637,
+      "sha256": "d68e56ef3cc167862735cdde6f220dd5039201ca0d42f3fd8e92daa85b56d077"
+    },
+    {
+      "record": "review-remediation/root/binary-net8-during-tests.json",
+      "bytes": 1635,
+      "sha256": "8db5a7341b13eebe9a933e9cee9dff70ea0714caee36aed1f4b527a0f28a271a"
+    },
+    {
+      "record": "review-remediation/root/performance-boundary.json",
+      "bytes": 1611,
+      "sha256": "fd8dcd335938a82d5628a306c2b2f49becf0a6296aec46a20ecb1eb31edd4b0a"
+    },
+    {
+      "record": "review-remediation/root/qualification.json",
+      "bytes": 1077279,
+      "sha256": "d37740de7b468708f557492bfdc3dd8cf42ee66242f0c467bf895415855d8204"
+    },
+    {
+      "record": "review-remediation/root/results/build-net10.0.log",
+      "bytes": 28789,
+      "sha256": "9981260b439afd6eb25141511d394c3a0e3e351c5cacaefdc1edbd95c23bdd85"
+    },
+    {
+      "record": "review-remediation/root/results/build-net8.0.log",
+      "bytes": 28695,
+      "sha256": "b262c557b1779a06b7004034e3a6aae827f8c30b6acbfa7b317180d27b10657a"
+    },
+    {
+      "record": "review-remediation/root/results/focused-net10.0.log",
+      "bytes": 769,
+      "sha256": "7b5baa159806fe0825a14044ad95938fdb95ef889637e6d87916056f0048fd7d"
+    },
+    {
+      "record": "review-remediation/root/results/full-net10.0.log",
+      "bytes": 764,
+      "sha256": "d3f4ad431fd7fd710bf389e53c1aa7a5215ff763dde3b896e54155a219ab5fad"
+    },
+    {
+      "record": "review-remediation/root/results/full-net8.0.log",
+      "bytes": 605,
+      "sha256": "71537ecadf823d04950238a7d00062251253ee87ab5d69ecc7675e13380f8841"
+    },
+    {
+      "record": "review-remediation/root/workflow-qualification.json",
+      "bytes": 1544,
+      "sha256": "1b31e2e49167ebef29c24c9f0cf5dd2020dbda0f636b3a17b77a2c3afe3c8ab7"
+    },
+    {
+      "record": "review-remediation/streams/evidence.md",
+      "bytes": 7007,
+      "sha256": "f0907763b6976e7c973da7930faaba0128ad515d4b7f1df195938bc7ef4b1fd0"
+    },
+    {
+      "record": "review-remediation/streams/native-import-results.json",
+      "bytes": 4094,
+      "sha256": "5f137485dcaa0871a2581f8049bb78a0852c63007beae75a8f4f85bd85641049"
+    },
+    {
+      "record": "review-remediation/streams/native-results.json",
+      "bytes": 3170,
+      "sha256": "7a79dd0987388ba149dfd4be678fb9886746bd6866570881988119cd908249f2"
+    },
+    {
+      "record": "review-remediation/streams/sources.json",
+      "bytes": 1753,
+      "sha256": "125acb1a5be65c2decf3da99f88a85b27ba95daa4a91bbeb32c7bd16c66f10a3"
     }
   ],
   "reproduction": {
@@ -1864,425 +2019,6 @@
         "OfficeIMO.Pdf.Benchmarks.Comparisons": "47a31eba97fe18f6702377306bb1f50d6545d54b"
       },
       "boundary": "The benchmark launcher changed after product qualification; normal builds may refresh assembly metadata. Each lane retains its original assembly hashes and source checkpoint. No binary identity across builds is implied."
-    }
-  },
-  "finalCandidate": {
-    "productSourceHead": "83efd2a3fae54cd66c10cd0cf77fe6751649d874",
-    "fullPdfCorrectness": {
-      "status": "Passed",
-      "sourceHead": "83efd2a3fae54cd66c10cd0cf77fe6751649d874",
-      "frameworks": [
-        {
-          "framework": "net8.0",
-          "passed": 11778,
-          "failed": 0,
-          "skipped": 0,
-          "binarySha256": {
-            "OfficeIMO.Core": "33fcff2d251f3db68d93766861b19eba9f5986ca24103a1028022203a88572b1",
-            "OfficeIMO.Pdf": "951ccd5c2442e9dda1742741d9d90ad02ea31b73ca3b234ea48753df8be256c7",
-            "OfficeIMO.Html": "cf67dd7f2a63f5e272738807db17e83aa6c41fc1774ecc30fa20c6856e22ea32",
-            "OfficeIMO.Html.Pdf": "5dfe4753f0631619f0ee942c0845866a3b123ece708825e4ff52d5dd78013915",
-            "OfficeIMO.Pdf.Tests": "77c5235eaddf85ea2f254b4832a320da70652ce6af4d22d6e9c145b3be0878f1"
-          },
-          "binaryHashesUnchangedDuringTests": true
-        },
-        {
-          "framework": "net10.0",
-          "passed": 11778,
-          "failed": 0,
-          "skipped": 0,
-          "binarySha256": {
-            "OfficeIMO.Core": "70f87f6cc602c76ce1e395886be5799d8f52f9ebe46bc33cde750fc939e41abe",
-            "OfficeIMO.Pdf": "8c826806f8593cb743ef86d7185609046b8b668cb135c98e7c56b1795853d6fc",
-            "OfficeIMO.Html": "774c709615816d239ebd49442290493e38c1828c67b9989594a0366506c54fe0",
-            "OfficeIMO.Html.Pdf": "87ea3b57eef3d2fe5cd1591ba9d61cafda2696f5dfba9380c64fa48c08a1b9c3",
-            "OfficeIMO.Pdf.Tests": "411c7d92dba2bcda74d013c7246aaa958a2d905cfe615cd8850ace5aad91c3b2"
-          },
-          "binaryHashesUnchangedDuringTests": true
-        }
-      ]
-    },
-    "packageAndNativeConsumers": {
-      "sourceHead": "83efd2a3fae54cd66c10cd0cf77fe6751649d874",
-      "scope": "Isolated private package qualification, not public publication. All four targets packed; NET8 and NET10 consumers executed; actual osx-arm64 NativeAOT consumer executed. No NET472 or netstandard runtime execution claimed.",
-      "version": "3.5.2-local.pdfspeed.1",
-      "result": "Passed",
-      "log": {
-        "path": "qualification-speed.log",
-        "sha256": "b1658c683181c3db1315086eadf31d992d49185f18734938a3daf0eb42759c1b"
-      },
-      "packages": [
-        {
-          "id": "OfficeIMO.Core",
-          "path": "feed/OfficeIMO.Core.3.5.2-local.pdfspeed.1.nupkg",
-          "bytes": 8753358,
-          "sha256": "43d212ce3af560528d042c816f955d1db4ec0d6b6ab146fb041890714ca262e7",
-          "targetDllSha256": {
-            "lib/net10.0/OfficeIMO.Core.dll": "43f5bb06f0831b3514b601f9d5cf7dae1ab973e1679fb40fda68e7564ac2153a",
-            "lib/net472/OfficeIMO.Core.dll": "b8dbac90b8c885c1cd083423c26654ef5b1d826bdc17ca66e579c389f613e96f",
-            "lib/net8.0/OfficeIMO.Core.dll": "765b0063693c1e060afeafc89bf40b8f66195decef5d759446ac768e33172846",
-            "lib/netstandard2.0/OfficeIMO.Core.dll": "5b90dae2172d8b3e5f102965a84bd7a297bec7a705f0537a19452102a6a78229"
-          }
-        },
-        {
-          "id": "OfficeIMO.Pdf",
-          "path": "feed/OfficeIMO.Pdf.3.5.2-local.pdfspeed.1.nupkg",
-          "bytes": 13797864,
-          "sha256": "67335233729314d9643e1a2ec2b088205f2d840795f152436572a66baabc27a1",
-          "targetDllSha256": {
-            "lib/net10.0/OfficeIMO.Pdf.dll": "ed909e9e9803d249b547a0ee775735b7525b42d6bab90ec1f545e1bea916f47c",
-            "lib/net472/OfficeIMO.Pdf.dll": "d00415c65773e7603de5080baca22327b6947dc80a505fc6f756f560b8e4d174",
-            "lib/net8.0/OfficeIMO.Pdf.dll": "d652677c526078628072239c97f4d04bc1606c3ccb8bcc4ef93aad4710b98058",
-            "lib/netstandard2.0/OfficeIMO.Pdf.dll": "841fd9be24475174825aa3c6a4e442f21abd104f415fde9936981413ff24284c"
-          }
-        }
-      ],
-      "managedConsumers": [
-        {
-          "framework": "net8.0",
-          "result": "Passed",
-          "loadedDllSha256": {
-            "OfficeIMO.Core": "765b0063693c1e060afeafc89bf40b8f66195decef5d759446ac768e33172846",
-            "OfficeIMO.Pdf": "d652677c526078628072239c97f4d04bc1606c3ccb8bcc4ef93aad4710b98058"
-          },
-          "outputs": "evidence/net8.0"
-        },
-        {
-          "framework": "net10.0",
-          "result": "Passed",
-          "loadedDllSha256": {
-            "OfficeIMO.Core": "43f5bb06f0831b3514b601f9d5cf7dae1ab973e1679fb40fda68e7564ac2153a",
-            "OfficeIMO.Pdf": "ed909e9e9803d249b547a0ee775735b7525b42d6bab90ec1f545e1bea916f47c"
-          },
-          "outputs": "evidence/net10.0"
-        }
-      ],
-      "nativeConsumer": {
-        "runtime": "osx-arm64",
-        "framework": "net10.0",
-        "result": "Passed",
-        "executableBytes": 27553920,
-        "executableSha256": "c2c9e90b1d884b1799c974579be49c916c863c50f72c6e210a985741028acd91",
-        "outputs": "evidence/native"
-      }
-    },
-    "savedArtifactStandards": {
-      "sourceHead": "83efd2a3fae54cd66c10cd0cf77fe6751649d874",
-      "scope": "Saved NativeAOT examples, automated PDF/UA checks only; manual assistive-technology acceptance is not established.",
-      "syntax": [
-        {
-          "path": "evidence/native/PdfUa1-first.pdf",
-          "sha256": "52a4a23ef4436df2987ba1f72cab58623a668f3336ea5a89058f1f802e5fc909",
-          "exitCode": 0
-        },
-        {
-          "path": "evidence/native/PdfUa1-merged.pdf",
-          "sha256": "6795988b77b1b24e74d7c63e60fdac2d59b9971a33ad53f2e9c3275239a7c5fc",
-          "exitCode": 0
-        },
-        {
-          "path": "evidence/native/PdfUa1-second.pdf",
-          "sha256": "f712e44ad1882542e5e3569b0ed4f63f1c1ea4efb53b5a5dbe69834c4973a597",
-          "exitCode": 0
-        },
-        {
-          "path": "evidence/native/PdfUa2-first.pdf",
-          "sha256": "fbb067c432319fe1deba0a9e9fa6999cdee58bf7360cb606a21a267448deccf4",
-          "exitCode": 0
-        },
-        {
-          "path": "evidence/native/PdfUa2-merged.pdf",
-          "sha256": "062f353ff3334c496a9394b4be52e87511e253e2ed64252309eaa4b3737959a6",
-          "exitCode": 0
-        },
-        {
-          "path": "evidence/native/PdfUa2-second.pdf",
-          "sha256": "b1cef834032b365c30d082bb235bae7d9b81fa36473e867cabb5e190bce2e5b5",
-          "exitCode": 0
-        },
-        {
-          "path": "evidence/native/docs/report.pdf",
-          "sha256": "5746b200bf90ef82e9683dfed3b6361315ae3b06c37c55a053cd85e591b62176",
-          "exitCode": 0
-        },
-        {
-          "path": "evidence/native/docs/selected-pages.pdf",
-          "sha256": "4ce831ba5dbc805576e1492df5dedb55fc1eb923b4f50e60134b36e7c2798a5f",
-          "exitCode": 0
-        },
-        {
-          "path": "evidence/native/first.pdf",
-          "sha256": "3bdd9d60fa762e41a28db94d7609a249f4f688d767db63c0eddb23dc6db4df39",
-          "exitCode": 0
-        },
-        {
-          "path": "evidence/native/forms/completed.pdf",
-          "sha256": "dcf08d594fc047ddb54facc9d5864cae6271a1ed477af0d6292ddaf93a4df1f3",
-          "exitCode": 0
-        },
-        {
-          "path": "evidence/native/forms/example.pdf",
-          "sha256": "3e29da818c65a6012e23e21da0f558008f5e339335104de1ad97566338126cff",
-          "exitCode": 0
-        },
-        {
-          "path": "evidence/native/forms/record.pdf",
-          "sha256": "16dd3902688c424dfa5a52be2894eb97fe6120485470f5a86db3d7203e1a6842",
-          "exitCode": 0
-        },
-        {
-          "path": "evidence/native/merged.pdf",
-          "sha256": "5746b200bf90ef82e9683dfed3b6361315ae3b06c37c55a053cd85e591b62176",
-          "exitCode": 0
-        },
-        {
-          "path": "evidence/native/review/contract-redacted.pdf",
-          "sha256": "2bd5b75c7a0e57bf7a2f6339778955b2dad1505475ffe903aea2b7cfda7dc944",
-          "exitCode": 0
-        },
-        {
-          "path": "evidence/native/review/contract.pdf",
-          "sha256": "522b27d2222e6679ca233ce8eaeccd2c64278c4a9c58d3976577206a0a89d15b",
-          "exitCode": 0
-        },
-        {
-          "path": "evidence/native/second.pdf",
-          "sha256": "a975c164b7d41af55a7bc4ecab8c10f527ca44426668ad0e2529750b48c3744e",
-          "exitCode": 0
-        },
-        {
-          "path": "evidence/native/weekly/example.pdf",
-          "sha256": "fdf3d56e20b250eec4ee9e1ad803aa5b5cb17ae44647cbc9004bcb463d45e9c5",
-          "exitCode": 0
-        },
-        {
-          "path": "evidence/net10.0/PdfUa1-first.pdf",
-          "sha256": "52a4a23ef4436df2987ba1f72cab58623a668f3336ea5a89058f1f802e5fc909",
-          "exitCode": 0
-        },
-        {
-          "path": "evidence/net10.0/PdfUa1-merged.pdf",
-          "sha256": "6795988b77b1b24e74d7c63e60fdac2d59b9971a33ad53f2e9c3275239a7c5fc",
-          "exitCode": 0
-        },
-        {
-          "path": "evidence/net10.0/PdfUa1-second.pdf",
-          "sha256": "f712e44ad1882542e5e3569b0ed4f63f1c1ea4efb53b5a5dbe69834c4973a597",
-          "exitCode": 0
-        },
-        {
-          "path": "evidence/net10.0/PdfUa2-first.pdf",
-          "sha256": "fbb067c432319fe1deba0a9e9fa6999cdee58bf7360cb606a21a267448deccf4",
-          "exitCode": 0
-        },
-        {
-          "path": "evidence/net10.0/PdfUa2-merged.pdf",
-          "sha256": "062f353ff3334c496a9394b4be52e87511e253e2ed64252309eaa4b3737959a6",
-          "exitCode": 0
-        },
-        {
-          "path": "evidence/net10.0/PdfUa2-second.pdf",
-          "sha256": "b1cef834032b365c30d082bb235bae7d9b81fa36473e867cabb5e190bce2e5b5",
-          "exitCode": 0
-        },
-        {
-          "path": "evidence/net10.0/docs/report.pdf",
-          "sha256": "5746b200bf90ef82e9683dfed3b6361315ae3b06c37c55a053cd85e591b62176",
-          "exitCode": 0
-        },
-        {
-          "path": "evidence/net10.0/docs/selected-pages.pdf",
-          "sha256": "4ce831ba5dbc805576e1492df5dedb55fc1eb923b4f50e60134b36e7c2798a5f",
-          "exitCode": 0
-        },
-        {
-          "path": "evidence/net10.0/first.pdf",
-          "sha256": "3bdd9d60fa762e41a28db94d7609a249f4f688d767db63c0eddb23dc6db4df39",
-          "exitCode": 0
-        },
-        {
-          "path": "evidence/net10.0/forms/completed.pdf",
-          "sha256": "dcf08d594fc047ddb54facc9d5864cae6271a1ed477af0d6292ddaf93a4df1f3",
-          "exitCode": 0
-        },
-        {
-          "path": "evidence/net10.0/forms/example.pdf",
-          "sha256": "3e29da818c65a6012e23e21da0f558008f5e339335104de1ad97566338126cff",
-          "exitCode": 0
-        },
-        {
-          "path": "evidence/net10.0/forms/record.pdf",
-          "sha256": "16dd3902688c424dfa5a52be2894eb97fe6120485470f5a86db3d7203e1a6842",
-          "exitCode": 0
-        },
-        {
-          "path": "evidence/net10.0/merged.pdf",
-          "sha256": "5746b200bf90ef82e9683dfed3b6361315ae3b06c37c55a053cd85e591b62176",
-          "exitCode": 0
-        },
-        {
-          "path": "evidence/net10.0/review/contract-redacted.pdf",
-          "sha256": "2bd5b75c7a0e57bf7a2f6339778955b2dad1505475ffe903aea2b7cfda7dc944",
-          "exitCode": 0
-        },
-        {
-          "path": "evidence/net10.0/review/contract.pdf",
-          "sha256": "522b27d2222e6679ca233ce8eaeccd2c64278c4a9c58d3976577206a0a89d15b",
-          "exitCode": 0
-        },
-        {
-          "path": "evidence/net10.0/second.pdf",
-          "sha256": "a975c164b7d41af55a7bc4ecab8c10f527ca44426668ad0e2529750b48c3744e",
-          "exitCode": 0
-        },
-        {
-          "path": "evidence/net10.0/weekly/example.pdf",
-          "sha256": "fdf3d56e20b250eec4ee9e1ad803aa5b5cb17ae44647cbc9004bcb463d45e9c5",
-          "exitCode": 0
-        },
-        {
-          "path": "evidence/net8.0/PdfUa1-first.pdf",
-          "sha256": "acc2e8858144e98230411bd74b6fad3a1a36451d9d01176309c14941482223d5",
-          "exitCode": 0
-        },
-        {
-          "path": "evidence/net8.0/PdfUa1-merged.pdf",
-          "sha256": "a6754ac75a1e264ff1b6eff6eef6cb971754fc1ea895679b0d61488a51cf7e82",
-          "exitCode": 0
-        },
-        {
-          "path": "evidence/net8.0/PdfUa1-second.pdf",
-          "sha256": "3d18126610ed00f7fc6eaeb04c65124cb6c74f63afa42a082c93b1f478d26eca",
-          "exitCode": 0
-        },
-        {
-          "path": "evidence/net8.0/PdfUa2-first.pdf",
-          "sha256": "4e02bd63cd50e94e2fe88cb391b9d8e896c6ca45e2e76de4a44a915d8117cb96",
-          "exitCode": 0
-        },
-        {
-          "path": "evidence/net8.0/PdfUa2-merged.pdf",
-          "sha256": "a2c458d7e650c81396b77f0105068ceebf336a3c8275f8f7c60a1f1925d9287e",
-          "exitCode": 0
-        },
-        {
-          "path": "evidence/net8.0/PdfUa2-second.pdf",
-          "sha256": "c9057ed5033b96441f4809a2086d31de351e5670aafda3d926641cf7492c5d0e",
-          "exitCode": 0
-        },
-        {
-          "path": "evidence/net8.0/docs/report.pdf",
-          "sha256": "7f7d7d34556255c0f33e6f09bd69f405bfd3d9f7db3f9c9f255adbddfcd00049",
-          "exitCode": 0
-        },
-        {
-          "path": "evidence/net8.0/docs/selected-pages.pdf",
-          "sha256": "4b08fba65c2e828bdc508cccf68571ec2594b6af43624c1a662a33ec459b0bf7",
-          "exitCode": 0
-        },
-        {
-          "path": "evidence/net8.0/first.pdf",
-          "sha256": "dca9085844ddb327ee0470a8e0235f39a940d3f70091bc0c5902bbd13362a621",
-          "exitCode": 0
-        },
-        {
-          "path": "evidence/net8.0/forms/completed.pdf",
-          "sha256": "3d8bb80fb09fb0bb3f430b78d263fc09a8be09e0ffea88d189329da2e56d5f5e",
-          "exitCode": 0
-        },
-        {
-          "path": "evidence/net8.0/forms/example.pdf",
-          "sha256": "34c1d086725ab68fa12c4ef50a258e4961e1a0ae30733945f07ed5b8b505bf01",
-          "exitCode": 0
-        },
-        {
-          "path": "evidence/net8.0/forms/record.pdf",
-          "sha256": "6c890fe74bc78fb17d8fe7c293756768e546c8f074dfd1a597d3b894a601791d",
-          "exitCode": 0
-        },
-        {
-          "path": "evidence/net8.0/merged.pdf",
-          "sha256": "7f7d7d34556255c0f33e6f09bd69f405bfd3d9f7db3f9c9f255adbddfcd00049",
-          "exitCode": 0
-        },
-        {
-          "path": "evidence/net8.0/review/contract-redacted.pdf",
-          "sha256": "2bd5b75c7a0e57bf7a2f6339778955b2dad1505475ffe903aea2b7cfda7dc944",
-          "exitCode": 0
-        },
-        {
-          "path": "evidence/net8.0/review/contract.pdf",
-          "sha256": "4f183440ceaf248d911b7270e0927fbb7f0eb257dbf5bcbe758829e79dbac3c6",
-          "exitCode": 0
-        },
-        {
-          "path": "evidence/net8.0/second.pdf",
-          "sha256": "85937dd0e2a002647585fa6a1278b83dcfe3b9a5025d525ebd1793f9858f114a",
-          "exitCode": 0
-        },
-        {
-          "path": "evidence/net8.0/weekly/example.pdf",
-          "sha256": "f506cdbeb62b8fb69f99b27a756d4637d9376a5b49a902df81806ffe30973911",
-          "exitCode": 0
-        }
-      ],
-      "profiles": [
-        {
-          "path": "evidence/native/PdfUa1-first.pdf",
-          "sha256": "52a4a23ef4436df2987ba1f72cab58623a668f3336ea5a89058f1f802e5fc909",
-          "profile": "ua1",
-          "exitCode": 0,
-          "compliant": [
-            true
-          ]
-        },
-        {
-          "path": "evidence/native/PdfUa1-merged.pdf",
-          "sha256": "6795988b77b1b24e74d7c63e60fdac2d59b9971a33ad53f2e9c3275239a7c5fc",
-          "profile": "ua1",
-          "exitCode": 0,
-          "compliant": [
-            true
-          ]
-        },
-        {
-          "path": "evidence/native/PdfUa2-first.pdf",
-          "sha256": "fbb067c432319fe1deba0a9e9fa6999cdee58bf7360cb606a21a267448deccf4",
-          "profile": "ua2",
-          "exitCode": 0,
-          "compliant": [
-            true
-          ]
-        },
-        {
-          "path": "evidence/native/PdfUa2-merged.pdf",
-          "sha256": "062f353ff3334c496a9394b4be52e87511e253e2ed64252309eaa4b3737959a6",
-          "profile": "ua2",
-          "exitCode": 0,
-          "compliant": [
-            true
-          ]
-        },
-        {
-          "path": "evidence/native/weekly/example.pdf",
-          "sha256": "fdf3d56e20b250eec4ee9e1ad803aa5b5cb17ae44647cbc9004bcb463d45e9c5",
-          "profile": "ua1",
-          "exitCode": 0,
-          "compliant": [
-            true
-          ]
-        }
-      ]
-    },
-    "productTrees": {
-      "OfficeIMO.Core": "b58fdaacc54bb78d29812106a71951ecb2023f18",
-      "OfficeIMO.Pdf": "2400cd13254c78584de11e96254b16838ebfc294",
-      "OfficeIMO.Html": "061160ce204ee6a52cec724760f444aa040c5d8b",
-      "OfficeIMO.Html.Pdf": "61bae61ce83a9b466077668d5de7b307a3569b97",
-      "OfficeIMO.Pdf.Tests": "4fba9d70cefa06ac1af8398260238cd6dd363112",
-      "OfficeIMO.Html.Tests": "e56a0ae5efbacbb693d1247c06cdc6b959a49a97",
-      "OfficeIMO.Examples": "99d42e7e38936231f190e09e26e6abe11b548b34",
-      "OfficeIMO.Pdf.Benchmarks.Comparisons": "47a31eba97fe18f6702377306bb1f50d6545d54b"
     }
   },
   "performance": {
@@ -7001,6 +6737,1344 @@
       "boundaryState": "current",
       "confirmationUsed": false,
       "limits": "Not a GitHub approval or merge-readiness declaration; root owns canonical performance/full tests/package/native/external gates"
+    }
+  },
+  "performanceCheckpoint": {
+    "productSourceHead": "83efd2a3fae54cd66c10cd0cf77fe6751649d874",
+    "fullPdfCorrectness": {
+      "status": "Passed",
+      "sourceHead": "83efd2a3fae54cd66c10cd0cf77fe6751649d874",
+      "frameworks": [
+        {
+          "framework": "net8.0",
+          "passed": 11778,
+          "failed": 0,
+          "skipped": 0,
+          "binarySha256": {
+            "OfficeIMO.Core": "33fcff2d251f3db68d93766861b19eba9f5986ca24103a1028022203a88572b1",
+            "OfficeIMO.Pdf": "951ccd5c2442e9dda1742741d9d90ad02ea31b73ca3b234ea48753df8be256c7",
+            "OfficeIMO.Html": "cf67dd7f2a63f5e272738807db17e83aa6c41fc1774ecc30fa20c6856e22ea32",
+            "OfficeIMO.Html.Pdf": "5dfe4753f0631619f0ee942c0845866a3b123ece708825e4ff52d5dd78013915",
+            "OfficeIMO.Pdf.Tests": "77c5235eaddf85ea2f254b4832a320da70652ce6af4d22d6e9c145b3be0878f1"
+          },
+          "binaryHashesUnchangedDuringTests": true
+        },
+        {
+          "framework": "net10.0",
+          "passed": 11778,
+          "failed": 0,
+          "skipped": 0,
+          "binarySha256": {
+            "OfficeIMO.Core": "70f87f6cc602c76ce1e395886be5799d8f52f9ebe46bc33cde750fc939e41abe",
+            "OfficeIMO.Pdf": "8c826806f8593cb743ef86d7185609046b8b668cb135c98e7c56b1795853d6fc",
+            "OfficeIMO.Html": "774c709615816d239ebd49442290493e38c1828c67b9989594a0366506c54fe0",
+            "OfficeIMO.Html.Pdf": "87ea3b57eef3d2fe5cd1591ba9d61cafda2696f5dfba9380c64fa48c08a1b9c3",
+            "OfficeIMO.Pdf.Tests": "411c7d92dba2bcda74d013c7246aaa958a2d905cfe615cd8850ace5aad91c3b2"
+          },
+          "binaryHashesUnchangedDuringTests": true
+        }
+      ]
+    },
+    "packageAndNativeConsumers": {
+      "sourceHead": "83efd2a3fae54cd66c10cd0cf77fe6751649d874",
+      "scope": "Isolated private package qualification, not public publication. All four targets packed; NET8 and NET10 consumers executed; actual osx-arm64 NativeAOT consumer executed. No NET472 or netstandard runtime execution claimed.",
+      "version": "3.5.2-local.pdfspeed.1",
+      "result": "Passed",
+      "log": {
+        "path": "qualification-speed.log",
+        "sha256": "b1658c683181c3db1315086eadf31d992d49185f18734938a3daf0eb42759c1b"
+      },
+      "packages": [
+        {
+          "id": "OfficeIMO.Core",
+          "path": "feed/OfficeIMO.Core.3.5.2-local.pdfspeed.1.nupkg",
+          "bytes": 8753358,
+          "sha256": "43d212ce3af560528d042c816f955d1db4ec0d6b6ab146fb041890714ca262e7",
+          "targetDllSha256": {
+            "lib/net10.0/OfficeIMO.Core.dll": "43f5bb06f0831b3514b601f9d5cf7dae1ab973e1679fb40fda68e7564ac2153a",
+            "lib/net472/OfficeIMO.Core.dll": "b8dbac90b8c885c1cd083423c26654ef5b1d826bdc17ca66e579c389f613e96f",
+            "lib/net8.0/OfficeIMO.Core.dll": "765b0063693c1e060afeafc89bf40b8f66195decef5d759446ac768e33172846",
+            "lib/netstandard2.0/OfficeIMO.Core.dll": "5b90dae2172d8b3e5f102965a84bd7a297bec7a705f0537a19452102a6a78229"
+          }
+        },
+        {
+          "id": "OfficeIMO.Pdf",
+          "path": "feed/OfficeIMO.Pdf.3.5.2-local.pdfspeed.1.nupkg",
+          "bytes": 13797864,
+          "sha256": "67335233729314d9643e1a2ec2b088205f2d840795f152436572a66baabc27a1",
+          "targetDllSha256": {
+            "lib/net10.0/OfficeIMO.Pdf.dll": "ed909e9e9803d249b547a0ee775735b7525b42d6bab90ec1f545e1bea916f47c",
+            "lib/net472/OfficeIMO.Pdf.dll": "d00415c65773e7603de5080baca22327b6947dc80a505fc6f756f560b8e4d174",
+            "lib/net8.0/OfficeIMO.Pdf.dll": "d652677c526078628072239c97f4d04bc1606c3ccb8bcc4ef93aad4710b98058",
+            "lib/netstandard2.0/OfficeIMO.Pdf.dll": "841fd9be24475174825aa3c6a4e442f21abd104f415fde9936981413ff24284c"
+          }
+        }
+      ],
+      "managedConsumers": [
+        {
+          "framework": "net8.0",
+          "result": "Passed",
+          "loadedDllSha256": {
+            "OfficeIMO.Core": "765b0063693c1e060afeafc89bf40b8f66195decef5d759446ac768e33172846",
+            "OfficeIMO.Pdf": "d652677c526078628072239c97f4d04bc1606c3ccb8bcc4ef93aad4710b98058"
+          },
+          "outputs": "evidence/net8.0"
+        },
+        {
+          "framework": "net10.0",
+          "result": "Passed",
+          "loadedDllSha256": {
+            "OfficeIMO.Core": "43f5bb06f0831b3514b601f9d5cf7dae1ab973e1679fb40fda68e7564ac2153a",
+            "OfficeIMO.Pdf": "ed909e9e9803d249b547a0ee775735b7525b42d6bab90ec1f545e1bea916f47c"
+          },
+          "outputs": "evidence/net10.0"
+        }
+      ],
+      "nativeConsumer": {
+        "runtime": "osx-arm64",
+        "framework": "net10.0",
+        "result": "Passed",
+        "executableBytes": 27553920,
+        "executableSha256": "c2c9e90b1d884b1799c974579be49c916c863c50f72c6e210a985741028acd91",
+        "outputs": "evidence/native"
+      }
+    },
+    "savedArtifactStandards": {
+      "sourceHead": "83efd2a3fae54cd66c10cd0cf77fe6751649d874",
+      "scope": "Saved NativeAOT examples, automated PDF/UA checks only; manual assistive-technology acceptance is not established.",
+      "syntax": [
+        {
+          "path": "evidence/native/PdfUa1-first.pdf",
+          "sha256": "52a4a23ef4436df2987ba1f72cab58623a668f3336ea5a89058f1f802e5fc909",
+          "exitCode": 0
+        },
+        {
+          "path": "evidence/native/PdfUa1-merged.pdf",
+          "sha256": "6795988b77b1b24e74d7c63e60fdac2d59b9971a33ad53f2e9c3275239a7c5fc",
+          "exitCode": 0
+        },
+        {
+          "path": "evidence/native/PdfUa1-second.pdf",
+          "sha256": "f712e44ad1882542e5e3569b0ed4f63f1c1ea4efb53b5a5dbe69834c4973a597",
+          "exitCode": 0
+        },
+        {
+          "path": "evidence/native/PdfUa2-first.pdf",
+          "sha256": "fbb067c432319fe1deba0a9e9fa6999cdee58bf7360cb606a21a267448deccf4",
+          "exitCode": 0
+        },
+        {
+          "path": "evidence/native/PdfUa2-merged.pdf",
+          "sha256": "062f353ff3334c496a9394b4be52e87511e253e2ed64252309eaa4b3737959a6",
+          "exitCode": 0
+        },
+        {
+          "path": "evidence/native/PdfUa2-second.pdf",
+          "sha256": "b1cef834032b365c30d082bb235bae7d9b81fa36473e867cabb5e190bce2e5b5",
+          "exitCode": 0
+        },
+        {
+          "path": "evidence/native/docs/report.pdf",
+          "sha256": "5746b200bf90ef82e9683dfed3b6361315ae3b06c37c55a053cd85e591b62176",
+          "exitCode": 0
+        },
+        {
+          "path": "evidence/native/docs/selected-pages.pdf",
+          "sha256": "4ce831ba5dbc805576e1492df5dedb55fc1eb923b4f50e60134b36e7c2798a5f",
+          "exitCode": 0
+        },
+        {
+          "path": "evidence/native/first.pdf",
+          "sha256": "3bdd9d60fa762e41a28db94d7609a249f4f688d767db63c0eddb23dc6db4df39",
+          "exitCode": 0
+        },
+        {
+          "path": "evidence/native/forms/completed.pdf",
+          "sha256": "dcf08d594fc047ddb54facc9d5864cae6271a1ed477af0d6292ddaf93a4df1f3",
+          "exitCode": 0
+        },
+        {
+          "path": "evidence/native/forms/example.pdf",
+          "sha256": "3e29da818c65a6012e23e21da0f558008f5e339335104de1ad97566338126cff",
+          "exitCode": 0
+        },
+        {
+          "path": "evidence/native/forms/record.pdf",
+          "sha256": "16dd3902688c424dfa5a52be2894eb97fe6120485470f5a86db3d7203e1a6842",
+          "exitCode": 0
+        },
+        {
+          "path": "evidence/native/merged.pdf",
+          "sha256": "5746b200bf90ef82e9683dfed3b6361315ae3b06c37c55a053cd85e591b62176",
+          "exitCode": 0
+        },
+        {
+          "path": "evidence/native/review/contract-redacted.pdf",
+          "sha256": "2bd5b75c7a0e57bf7a2f6339778955b2dad1505475ffe903aea2b7cfda7dc944",
+          "exitCode": 0
+        },
+        {
+          "path": "evidence/native/review/contract.pdf",
+          "sha256": "522b27d2222e6679ca233ce8eaeccd2c64278c4a9c58d3976577206a0a89d15b",
+          "exitCode": 0
+        },
+        {
+          "path": "evidence/native/second.pdf",
+          "sha256": "a975c164b7d41af55a7bc4ecab8c10f527ca44426668ad0e2529750b48c3744e",
+          "exitCode": 0
+        },
+        {
+          "path": "evidence/native/weekly/example.pdf",
+          "sha256": "fdf3d56e20b250eec4ee9e1ad803aa5b5cb17ae44647cbc9004bcb463d45e9c5",
+          "exitCode": 0
+        },
+        {
+          "path": "evidence/net10.0/PdfUa1-first.pdf",
+          "sha256": "52a4a23ef4436df2987ba1f72cab58623a668f3336ea5a89058f1f802e5fc909",
+          "exitCode": 0
+        },
+        {
+          "path": "evidence/net10.0/PdfUa1-merged.pdf",
+          "sha256": "6795988b77b1b24e74d7c63e60fdac2d59b9971a33ad53f2e9c3275239a7c5fc",
+          "exitCode": 0
+        },
+        {
+          "path": "evidence/net10.0/PdfUa1-second.pdf",
+          "sha256": "f712e44ad1882542e5e3569b0ed4f63f1c1ea4efb53b5a5dbe69834c4973a597",
+          "exitCode": 0
+        },
+        {
+          "path": "evidence/net10.0/PdfUa2-first.pdf",
+          "sha256": "fbb067c432319fe1deba0a9e9fa6999cdee58bf7360cb606a21a267448deccf4",
+          "exitCode": 0
+        },
+        {
+          "path": "evidence/net10.0/PdfUa2-merged.pdf",
+          "sha256": "062f353ff3334c496a9394b4be52e87511e253e2ed64252309eaa4b3737959a6",
+          "exitCode": 0
+        },
+        {
+          "path": "evidence/net10.0/PdfUa2-second.pdf",
+          "sha256": "b1cef834032b365c30d082bb235bae7d9b81fa36473e867cabb5e190bce2e5b5",
+          "exitCode": 0
+        },
+        {
+          "path": "evidence/net10.0/docs/report.pdf",
+          "sha256": "5746b200bf90ef82e9683dfed3b6361315ae3b06c37c55a053cd85e591b62176",
+          "exitCode": 0
+        },
+        {
+          "path": "evidence/net10.0/docs/selected-pages.pdf",
+          "sha256": "4ce831ba5dbc805576e1492df5dedb55fc1eb923b4f50e60134b36e7c2798a5f",
+          "exitCode": 0
+        },
+        {
+          "path": "evidence/net10.0/first.pdf",
+          "sha256": "3bdd9d60fa762e41a28db94d7609a249f4f688d767db63c0eddb23dc6db4df39",
+          "exitCode": 0
+        },
+        {
+          "path": "evidence/net10.0/forms/completed.pdf",
+          "sha256": "dcf08d594fc047ddb54facc9d5864cae6271a1ed477af0d6292ddaf93a4df1f3",
+          "exitCode": 0
+        },
+        {
+          "path": "evidence/net10.0/forms/example.pdf",
+          "sha256": "3e29da818c65a6012e23e21da0f558008f5e339335104de1ad97566338126cff",
+          "exitCode": 0
+        },
+        {
+          "path": "evidence/net10.0/forms/record.pdf",
+          "sha256": "16dd3902688c424dfa5a52be2894eb97fe6120485470f5a86db3d7203e1a6842",
+          "exitCode": 0
+        },
+        {
+          "path": "evidence/net10.0/merged.pdf",
+          "sha256": "5746b200bf90ef82e9683dfed3b6361315ae3b06c37c55a053cd85e591b62176",
+          "exitCode": 0
+        },
+        {
+          "path": "evidence/net10.0/review/contract-redacted.pdf",
+          "sha256": "2bd5b75c7a0e57bf7a2f6339778955b2dad1505475ffe903aea2b7cfda7dc944",
+          "exitCode": 0
+        },
+        {
+          "path": "evidence/net10.0/review/contract.pdf",
+          "sha256": "522b27d2222e6679ca233ce8eaeccd2c64278c4a9c58d3976577206a0a89d15b",
+          "exitCode": 0
+        },
+        {
+          "path": "evidence/net10.0/second.pdf",
+          "sha256": "a975c164b7d41af55a7bc4ecab8c10f527ca44426668ad0e2529750b48c3744e",
+          "exitCode": 0
+        },
+        {
+          "path": "evidence/net10.0/weekly/example.pdf",
+          "sha256": "fdf3d56e20b250eec4ee9e1ad803aa5b5cb17ae44647cbc9004bcb463d45e9c5",
+          "exitCode": 0
+        },
+        {
+          "path": "evidence/net8.0/PdfUa1-first.pdf",
+          "sha256": "acc2e8858144e98230411bd74b6fad3a1a36451d9d01176309c14941482223d5",
+          "exitCode": 0
+        },
+        {
+          "path": "evidence/net8.0/PdfUa1-merged.pdf",
+          "sha256": "a6754ac75a1e264ff1b6eff6eef6cb971754fc1ea895679b0d61488a51cf7e82",
+          "exitCode": 0
+        },
+        {
+          "path": "evidence/net8.0/PdfUa1-second.pdf",
+          "sha256": "3d18126610ed00f7fc6eaeb04c65124cb6c74f63afa42a082c93b1f478d26eca",
+          "exitCode": 0
+        },
+        {
+          "path": "evidence/net8.0/PdfUa2-first.pdf",
+          "sha256": "4e02bd63cd50e94e2fe88cb391b9d8e896c6ca45e2e76de4a44a915d8117cb96",
+          "exitCode": 0
+        },
+        {
+          "path": "evidence/net8.0/PdfUa2-merged.pdf",
+          "sha256": "a2c458d7e650c81396b77f0105068ceebf336a3c8275f8f7c60a1f1925d9287e",
+          "exitCode": 0
+        },
+        {
+          "path": "evidence/net8.0/PdfUa2-second.pdf",
+          "sha256": "c9057ed5033b96441f4809a2086d31de351e5670aafda3d926641cf7492c5d0e",
+          "exitCode": 0
+        },
+        {
+          "path": "evidence/net8.0/docs/report.pdf",
+          "sha256": "7f7d7d34556255c0f33e6f09bd69f405bfd3d9f7db3f9c9f255adbddfcd00049",
+          "exitCode": 0
+        },
+        {
+          "path": "evidence/net8.0/docs/selected-pages.pdf",
+          "sha256": "4b08fba65c2e828bdc508cccf68571ec2594b6af43624c1a662a33ec459b0bf7",
+          "exitCode": 0
+        },
+        {
+          "path": "evidence/net8.0/first.pdf",
+          "sha256": "dca9085844ddb327ee0470a8e0235f39a940d3f70091bc0c5902bbd13362a621",
+          "exitCode": 0
+        },
+        {
+          "path": "evidence/net8.0/forms/completed.pdf",
+          "sha256": "3d8bb80fb09fb0bb3f430b78d263fc09a8be09e0ffea88d189329da2e56d5f5e",
+          "exitCode": 0
+        },
+        {
+          "path": "evidence/net8.0/forms/example.pdf",
+          "sha256": "34c1d086725ab68fa12c4ef50a258e4961e1a0ae30733945f07ed5b8b505bf01",
+          "exitCode": 0
+        },
+        {
+          "path": "evidence/net8.0/forms/record.pdf",
+          "sha256": "6c890fe74bc78fb17d8fe7c293756768e546c8f074dfd1a597d3b894a601791d",
+          "exitCode": 0
+        },
+        {
+          "path": "evidence/net8.0/merged.pdf",
+          "sha256": "7f7d7d34556255c0f33e6f09bd69f405bfd3d9f7db3f9c9f255adbddfcd00049",
+          "exitCode": 0
+        },
+        {
+          "path": "evidence/net8.0/review/contract-redacted.pdf",
+          "sha256": "2bd5b75c7a0e57bf7a2f6339778955b2dad1505475ffe903aea2b7cfda7dc944",
+          "exitCode": 0
+        },
+        {
+          "path": "evidence/net8.0/review/contract.pdf",
+          "sha256": "4f183440ceaf248d911b7270e0927fbb7f0eb257dbf5bcbe758829e79dbac3c6",
+          "exitCode": 0
+        },
+        {
+          "path": "evidence/net8.0/second.pdf",
+          "sha256": "85937dd0e2a002647585fa6a1278b83dcfe3b9a5025d525ebd1793f9858f114a",
+          "exitCode": 0
+        },
+        {
+          "path": "evidence/net8.0/weekly/example.pdf",
+          "sha256": "f506cdbeb62b8fb69f99b27a756d4637d9376a5b49a902df81806ffe30973911",
+          "exitCode": 0
+        }
+      ],
+      "profiles": [
+        {
+          "path": "evidence/native/PdfUa1-first.pdf",
+          "sha256": "52a4a23ef4436df2987ba1f72cab58623a668f3336ea5a89058f1f802e5fc909",
+          "profile": "ua1",
+          "exitCode": 0,
+          "compliant": [
+            true
+          ]
+        },
+        {
+          "path": "evidence/native/PdfUa1-merged.pdf",
+          "sha256": "6795988b77b1b24e74d7c63e60fdac2d59b9971a33ad53f2e9c3275239a7c5fc",
+          "profile": "ua1",
+          "exitCode": 0,
+          "compliant": [
+            true
+          ]
+        },
+        {
+          "path": "evidence/native/PdfUa2-first.pdf",
+          "sha256": "fbb067c432319fe1deba0a9e9fa6999cdee58bf7360cb606a21a267448deccf4",
+          "profile": "ua2",
+          "exitCode": 0,
+          "compliant": [
+            true
+          ]
+        },
+        {
+          "path": "evidence/native/PdfUa2-merged.pdf",
+          "sha256": "062f353ff3334c496a9394b4be52e87511e253e2ed64252309eaa4b3737959a6",
+          "profile": "ua2",
+          "exitCode": 0,
+          "compliant": [
+            true
+          ]
+        },
+        {
+          "path": "evidence/native/weekly/example.pdf",
+          "sha256": "fdf3d56e20b250eec4ee9e1ad803aa5b5cb17ae44647cbc9004bcb463d45e9c5",
+          "profile": "ua1",
+          "exitCode": 0,
+          "compliant": [
+            true
+          ]
+        }
+      ]
+    },
+    "productTrees": {
+      "OfficeIMO.Core": "b58fdaacc54bb78d29812106a71951ecb2023f18",
+      "OfficeIMO.Pdf": "2400cd13254c78584de11e96254b16838ebfc294",
+      "OfficeIMO.Html": "061160ce204ee6a52cec724760f444aa040c5d8b",
+      "OfficeIMO.Html.Pdf": "61bae61ce83a9b466077668d5de7b307a3569b97",
+      "OfficeIMO.Pdf.Tests": "4fba9d70cefa06ac1af8398260238cd6dd363112",
+      "OfficeIMO.Html.Tests": "e56a0ae5efbacbb693d1247c06cdc6b959a49a97",
+      "OfficeIMO.Examples": "99d42e7e38936231f190e09e26e6abe11b548b34",
+      "OfficeIMO.Pdf.Benchmarks.Comparisons": "47a31eba97fe18f6702377306bb1f50d6545d54b"
+    }
+  },
+  "finalCandidate": {
+    "productSourceHead": "5800b68e06d4ff68e842a0712ccbc0a95d460b7e",
+    "status": "Completed selected first-wave local qualification; external delivery gates remain separate",
+    "sourceBinding": {
+      "testedBuildBaseHead": "7179a0ddd113fd43d513bb948c1bbc23acbac504",
+      "sourceFilesUnchangedDuringValidation": true,
+      "sourceFileCount": 4113,
+      "sourceManifestSha256": "2679574109bf5e5fb3b52b907703824263fe5bac96b5e22397faa144a9a98384",
+      "boundary": "Exact PE hashes identify tested binaries. Their build base/embedded commit is retained separately from the consolidated source commit.",
+      "consolidatedCommitComparison": {
+        "fileCount": 4113,
+        "manifestSha256": "2679574109bf5e5fb3b52b907703824263fe5bac96b5e22397faa144a9a98384",
+        "matchesFinalCommit": true,
+        "mismatchedPaths": []
+      }
+    },
+    "fullPdfCorrectness": {
+      "status": "Passed",
+      "frameworks": [
+        {
+          "framework": "net8.0",
+          "status": "Passed",
+          "passed": 11795,
+          "failed": 0,
+          "skipped": 0,
+          "total": 11795,
+          "binarySha256": {
+            "OfficeIMO.Core": "b9a7ccf175d93ce01e0ae0c491f5945bde008e59e98c94823aef1c3ebebcfee3",
+            "OfficeIMO.Pdf": "874f4ee7dfdd04450ce48b641cf062d940eb0ac9bae426fb7e52980293965120",
+            "OfficeIMO.Html": "50afe0b468b38188298efe75c0bc4f93614d701b5f6512183082c1f9591b50d7",
+            "OfficeIMO.Html.Pdf": "1b38f7efd831c5a5b0db1e62614d8b0ca68f225c59aa79f7017a153669a137e5",
+            "OfficeIMO.Pdf.Tests": "1006dd9370a1fcbc7f2c44b773c03e5c0cad36d533fcfb25d13313fe45e4b213"
+          },
+          "binaryHashesUnchangedDuringTests": true
+        },
+        {
+          "framework": "net10.0",
+          "status": "Passed",
+          "passed": 11795,
+          "failed": 0,
+          "skipped": 0,
+          "total": 11795,
+          "binarySha256": {
+            "OfficeIMO.Core": "0e217dcbe5098b6bd911d60c131558f8b404fbbeea5a458d6dcd00ed392e6812",
+            "OfficeIMO.Pdf": "ec16a9ea3f8ccabe7c74937de68951d3031bf2f1fd7019a97466770d218bf988",
+            "OfficeIMO.Html": "bcd9f6daf6ed99f50e8ef0b9f46e6707ea449ad30614c80e6445db5e8bd6bb28",
+            "OfficeIMO.Html.Pdf": "b06474769b96af7cef4a0cbf716035f4a966cb0aa5271eeba12ec0d92f41a3a5",
+            "OfficeIMO.Pdf.Tests": "6e3f4ad86b425c7205eaaf0b2c309c9c4754e666e2e5699c1114b2702621252e"
+          },
+          "binaryHashesUnchangedDuringTests": true
+        }
+      ],
+      "focused": [
+        {
+          "framework": "net10.0",
+          "passed": 49,
+          "failed": 0,
+          "skipped": 0
+        }
+      ],
+      "sourceHead": "5800b68e06d4ff68e842a0712ccbc0a95d460b7e"
+    },
+    "workflowCorrectness": {
+      "status": "Passed",
+      "framework": "net10.0",
+      "scope": "XpsWorkflowTests; separate from full PDF suite",
+      "counters": {
+        "total": "14",
+        "executed": "14",
+        "passed": "14",
+        "failed": "0",
+        "error": "0",
+        "timeout": "0",
+        "aborted": "0",
+        "inconclusive": "0",
+        "passedButRunAborted": "0",
+        "notRunnable": "0",
+        "notExecuted": "0",
+        "disconnected": "0",
+        "warning": "0",
+        "completed": "0",
+        "inProgress": "0",
+        "pending": "0"
+      }
+    },
+    "packageAndNativeConsumers": {
+      "sourceHead": "5800b68e06d4ff68e842a0712ccbc0a95d460b7e",
+      "sourceBinding": {
+        "cleanCheckout": true,
+        "productTrees": {
+          "OfficeIMO.Core": "b58fdaacc54bb78d29812106a71951ecb2023f18",
+          "OfficeIMO.Pdf": "aecb1095864e3901aafb68100acc369d6a25d6e8",
+          "OfficeIMO.Html": "061160ce204ee6a52cec724760f444aa040c5d8b",
+          "OfficeIMO.Html.Pdf": "61bae61ce83a9b466077668d5de7b307a3569b97"
+        }
+      },
+      "version": "3.5.2-local.pdfreview.1",
+      "scope": "Unsigned isolated private packages; fourTF compilation/packing, real managedNET8/NET10 andosx-arm64NativeAOT execution. NoNET472/netstandard runtime execution orWindows signed/public publication.",
+      "result": "Passed",
+      "packages": [
+        {
+          "id": "OfficeIMO.Core",
+          "path": "feed/OfficeIMO.Core.3.5.2-local.pdfreview.1.nupkg",
+          "bytes": 8753389,
+          "sha256": "05bf799fd4942784c36f243b2a72ef66f945cce650dcf21ac9e933393f14927e",
+          "targetDllSha256": {
+            "lib/net10.0/OfficeIMO.Core.dll": "b5d993e731bb2878ef97e68d5bc36afdb2cd29287b53d2358432cf5256627b08",
+            "lib/net472/OfficeIMO.Core.dll": "3f1285e38b51b27d6496f38d422660003c77a66a7e6d7808d26f9a6febf2c00f",
+            "lib/net8.0/OfficeIMO.Core.dll": "c1d27f211912484b5bfc46bfc963c944da95e792b4455571f51a3538e73c89d6",
+            "lib/netstandard2.0/OfficeIMO.Core.dll": "6c11ee39ceeae3fc0661b96c1c379940f720c19a92008da487cb7228d89a625a"
+          },
+          "repositoryCommit": "5800b68e06d4ff68e842a0712ccbc0a95d460b7e"
+        },
+        {
+          "id": "OfficeIMO.Pdf",
+          "path": "feed/OfficeIMO.Pdf.3.5.2-local.pdfreview.1.nupkg",
+          "bytes": 13801218,
+          "sha256": "63cfd716bc28b6f0ee0e4d964f1bf8374ac5bc8e12d20ad63489c5b45178d754",
+          "targetDllSha256": {
+            "lib/net10.0/OfficeIMO.Pdf.dll": "64b5302697b96655b39f4b5bf6fe9a1931aedb52659a14c71c8cd4db4938c3e8",
+            "lib/net472/OfficeIMO.Pdf.dll": "949cf3ab26852fa6fc655295ad7ae3e8053601e2b2b41ba18d20955faf16fb5a",
+            "lib/net8.0/OfficeIMO.Pdf.dll": "57b805948feb8836244a6096bf1b6d839e4fc2ed5a190d2b71c955e7cb0c75cd",
+            "lib/netstandard2.0/OfficeIMO.Pdf.dll": "eedfd156448c70c5a2c049b4926262a39a8cdc4482058a90782decabbcb3036e"
+          },
+          "repositoryCommit": "5800b68e06d4ff68e842a0712ccbc0a95d460b7e"
+        }
+      ],
+      "managedConsumers": [
+        {
+          "framework": "net8.0",
+          "result": "Passed",
+          "actualLoadedAssemblies": [
+            {
+              "name": "OfficeIMO.Pdf",
+              "location": "review-remediation/packages/consumer-build/bin/PackedPdfConsumer/release_net8.0/OfficeIMO.Pdf.dll",
+              "sha256": "57B805948FEB8836244A6096BF1B6D839E4FC2ED5A190D2B71C955E7CB0C75CD"
+            },
+            {
+              "name": "OfficeIMO.Core",
+              "location": "review-remediation/packages/consumer-build/bin/PackedPdfConsumer/release_net8.0/OfficeIMO.Core.dll",
+              "sha256": "C1D27F211912484B5BFC46BFC963C944DA95E792B4455571F51A3538E73C89D6"
+            }
+          ],
+          "bindingSha256": "25a49238c74802331baefb790fd78d5fbc636dddb45264c8fc687846fdcd88b0"
+        },
+        {
+          "framework": "net10.0",
+          "result": "Passed",
+          "actualLoadedAssemblies": [
+            {
+              "name": "OfficeIMO.Pdf",
+              "location": "review-remediation/packages/consumer-build/bin/PackedPdfConsumer/release_net10.0/OfficeIMO.Pdf.dll",
+              "sha256": "64B5302697B96655B39F4B5BF6FE9A1931AEDB52659A14C71C8CD4DB4938C3E8"
+            },
+            {
+              "name": "OfficeIMO.Core",
+              "location": "review-remediation/packages/consumer-build/bin/PackedPdfConsumer/release_net10.0/OfficeIMO.Core.dll",
+              "sha256": "B5D993E731BB2878EF97E68D5BC36AFDB2CD29287B53D2358432CF5256627B08"
+            }
+          ],
+          "bindingSha256": "00c3139144e4e3301e4906cacb0a17f0cdbff2c0b4749936b05c1c83c5f04eb5"
+        }
+      ],
+      "nativeConsumer": {
+        "runtime": "osx-arm64",
+        "result": "Passed",
+        "executable": "native/PackedPdfConsumer",
+        "bytes": 27587104,
+        "sha256": "9fabd6c968ada14585cb967fae8627a228d5b71733d8df1112ca9711d78e7c2b",
+        "bindingSha256": "8f4e6d6dfd1b2859bf194e38e44b715c62be44b79ec0c530cdf8e351d66c8156"
+      },
+      "savedArtifacts": [
+        {
+          "path": "evidence/native/PdfUa1-first.pdf",
+          "bytes": 12641,
+          "sha256": "52a4a23ef4436df2987ba1f72cab58623a668f3336ea5a89058f1f802e5fc909"
+        },
+        {
+          "path": "evidence/native/PdfUa1-merged.pdf",
+          "bytes": 25551,
+          "sha256": "6795988b77b1b24e74d7c63e60fdac2d59b9971a33ad53f2e9c3275239a7c5fc"
+        },
+        {
+          "path": "evidence/native/PdfUa1-second.pdf",
+          "bytes": 13344,
+          "sha256": "f712e44ad1882542e5e3569b0ed4f63f1c1ea4efb53b5a5dbe69834c4973a597"
+        },
+        {
+          "path": "evidence/native/PdfUa2-first.pdf",
+          "bytes": 12819,
+          "sha256": "fbb067c432319fe1deba0a9e9fa6999cdee58bf7360cb606a21a267448deccf4"
+        },
+        {
+          "path": "evidence/native/PdfUa2-merged.pdf",
+          "bytes": 25958,
+          "sha256": "062f353ff3334c496a9394b4be52e87511e253e2ed64252309eaa4b3737959a6"
+        },
+        {
+          "path": "evidence/native/PdfUa2-second.pdf",
+          "bytes": 13522,
+          "sha256": "b1cef834032b365c30d082bb235bae7d9b81fa36473e867cabb5e190bce2e5b5"
+        },
+        {
+          "path": "evidence/native/docs/report.pdf",
+          "bytes": 3069,
+          "sha256": "5746b200bf90ef82e9683dfed3b6361315ae3b06c37c55a053cd85e591b62176"
+        },
+        {
+          "path": "evidence/native/docs/selected-pages.pdf",
+          "bytes": 2793,
+          "sha256": "4ce831ba5dbc805576e1492df5dedb55fc1eb923b4f50e60134b36e7c2798a5f"
+        },
+        {
+          "path": "evidence/native/first.pdf",
+          "bytes": 1702,
+          "sha256": "3bdd9d60fa762e41a28db94d7609a249f4f688d767db63c0eddb23dc6db4df39"
+        },
+        {
+          "path": "evidence/native/forms/completed.pdf",
+          "bytes": 7675,
+          "sha256": "dcf08d594fc047ddb54facc9d5864cae6271a1ed477af0d6292ddaf93a4df1f3"
+        },
+        {
+          "path": "evidence/native/forms/example.pdf",
+          "bytes": 5915,
+          "sha256": "3e29da818c65a6012e23e21da0f558008f5e339335104de1ad97566338126cff"
+        },
+        {
+          "path": "evidence/native/forms/record.pdf",
+          "bytes": 4276,
+          "sha256": "16dd3902688c424dfa5a52be2894eb97fe6120485470f5a86db3d7203e1a6842"
+        },
+        {
+          "path": "evidence/native/merged.pdf",
+          "bytes": 3069,
+          "sha256": "5746b200bf90ef82e9683dfed3b6361315ae3b06c37c55a053cd85e591b62176"
+        },
+        {
+          "path": "evidence/native/review/contract-redacted.pdf",
+          "bytes": 1581,
+          "sha256": "2bd5b75c7a0e57bf7a2f6339778955b2dad1505475ffe903aea2b7cfda7dc944"
+        },
+        {
+          "path": "evidence/native/review/contract.pdf",
+          "bytes": 1159,
+          "sha256": "522b27d2222e6679ca233ce8eaeccd2c64278c4a9c58d3976577206a0a89d15b"
+        },
+        {
+          "path": "evidence/native/second.pdf",
+          "bytes": 1700,
+          "sha256": "a975c164b7d41af55a7bc4ecab8c10f527ca44426668ad0e2529750b48c3744e"
+        },
+        {
+          "path": "evidence/native/weekly/example.pdf",
+          "bytes": 28494,
+          "sha256": "fdf3d56e20b250eec4ee9e1ad803aa5b5cb17ae44647cbc9004bcb463d45e9c5"
+        },
+        {
+          "path": "evidence/net10.0/PdfUa1-first.pdf",
+          "bytes": 12641,
+          "sha256": "52a4a23ef4436df2987ba1f72cab58623a668f3336ea5a89058f1f802e5fc909"
+        },
+        {
+          "path": "evidence/net10.0/PdfUa1-merged.pdf",
+          "bytes": 25551,
+          "sha256": "6795988b77b1b24e74d7c63e60fdac2d59b9971a33ad53f2e9c3275239a7c5fc"
+        },
+        {
+          "path": "evidence/net10.0/PdfUa1-second.pdf",
+          "bytes": 13344,
+          "sha256": "f712e44ad1882542e5e3569b0ed4f63f1c1ea4efb53b5a5dbe69834c4973a597"
+        },
+        {
+          "path": "evidence/net10.0/PdfUa2-first.pdf",
+          "bytes": 12819,
+          "sha256": "fbb067c432319fe1deba0a9e9fa6999cdee58bf7360cb606a21a267448deccf4"
+        },
+        {
+          "path": "evidence/net10.0/PdfUa2-merged.pdf",
+          "bytes": 25958,
+          "sha256": "062f353ff3334c496a9394b4be52e87511e253e2ed64252309eaa4b3737959a6"
+        },
+        {
+          "path": "evidence/net10.0/PdfUa2-second.pdf",
+          "bytes": 13522,
+          "sha256": "b1cef834032b365c30d082bb235bae7d9b81fa36473e867cabb5e190bce2e5b5"
+        },
+        {
+          "path": "evidence/net10.0/docs/report.pdf",
+          "bytes": 3069,
+          "sha256": "5746b200bf90ef82e9683dfed3b6361315ae3b06c37c55a053cd85e591b62176"
+        },
+        {
+          "path": "evidence/net10.0/docs/selected-pages.pdf",
+          "bytes": 2793,
+          "sha256": "4ce831ba5dbc805576e1492df5dedb55fc1eb923b4f50e60134b36e7c2798a5f"
+        },
+        {
+          "path": "evidence/net10.0/first.pdf",
+          "bytes": 1702,
+          "sha256": "3bdd9d60fa762e41a28db94d7609a249f4f688d767db63c0eddb23dc6db4df39"
+        },
+        {
+          "path": "evidence/net10.0/forms/completed.pdf",
+          "bytes": 7675,
+          "sha256": "dcf08d594fc047ddb54facc9d5864cae6271a1ed477af0d6292ddaf93a4df1f3"
+        },
+        {
+          "path": "evidence/net10.0/forms/example.pdf",
+          "bytes": 5915,
+          "sha256": "3e29da818c65a6012e23e21da0f558008f5e339335104de1ad97566338126cff"
+        },
+        {
+          "path": "evidence/net10.0/forms/record.pdf",
+          "bytes": 4276,
+          "sha256": "16dd3902688c424dfa5a52be2894eb97fe6120485470f5a86db3d7203e1a6842"
+        },
+        {
+          "path": "evidence/net10.0/merged.pdf",
+          "bytes": 3069,
+          "sha256": "5746b200bf90ef82e9683dfed3b6361315ae3b06c37c55a053cd85e591b62176"
+        },
+        {
+          "path": "evidence/net10.0/review/contract-redacted.pdf",
+          "bytes": 1581,
+          "sha256": "2bd5b75c7a0e57bf7a2f6339778955b2dad1505475ffe903aea2b7cfda7dc944"
+        },
+        {
+          "path": "evidence/net10.0/review/contract.pdf",
+          "bytes": 1159,
+          "sha256": "522b27d2222e6679ca233ce8eaeccd2c64278c4a9c58d3976577206a0a89d15b"
+        },
+        {
+          "path": "evidence/net10.0/second.pdf",
+          "bytes": 1700,
+          "sha256": "a975c164b7d41af55a7bc4ecab8c10f527ca44426668ad0e2529750b48c3744e"
+        },
+        {
+          "path": "evidence/net10.0/weekly/example.pdf",
+          "bytes": 28494,
+          "sha256": "fdf3d56e20b250eec4ee9e1ad803aa5b5cb17ae44647cbc9004bcb463d45e9c5"
+        },
+        {
+          "path": "evidence/net8.0/PdfUa1-first.pdf",
+          "bytes": 12517,
+          "sha256": "acc2e8858144e98230411bd74b6fad3a1a36451d9d01176309c14941482223d5"
+        },
+        {
+          "path": "evidence/net8.0/PdfUa1-merged.pdf",
+          "bytes": 25292,
+          "sha256": "a6754ac75a1e264ff1b6eff6eef6cb971754fc1ea895679b0d61488a51cf7e82"
+        },
+        {
+          "path": "evidence/net8.0/PdfUa1-second.pdf",
+          "bytes": 13209,
+          "sha256": "3d18126610ed00f7fc6eaeb04c65124cb6c74f63afa42a082c93b1f478d26eca"
+        },
+        {
+          "path": "evidence/net8.0/PdfUa2-first.pdf",
+          "bytes": 12695,
+          "sha256": "4e02bd63cd50e94e2fe88cb391b9d8e896c6ca45e2e76de4a44a915d8117cb96"
+        },
+        {
+          "path": "evidence/net8.0/PdfUa2-merged.pdf",
+          "bytes": 25699,
+          "sha256": "a2c458d7e650c81396b77f0105068ceebf336a3c8275f8f7c60a1f1925d9287e"
+        },
+        {
+          "path": "evidence/net8.0/PdfUa2-second.pdf",
+          "bytes": 13387,
+          "sha256": "c9057ed5033b96441f4809a2086d31de351e5670aafda3d926641cf7492c5d0e"
+        },
+        {
+          "path": "evidence/net8.0/docs/report.pdf",
+          "bytes": 3070,
+          "sha256": "7f7d7d34556255c0f33e6f09bd69f405bfd3d9f7db3f9c9f255adbddfcd00049"
+        },
+        {
+          "path": "evidence/net8.0/docs/selected-pages.pdf",
+          "bytes": 2794,
+          "sha256": "4b08fba65c2e828bdc508cccf68571ec2594b6af43624c1a662a33ec459b0bf7"
+        },
+        {
+          "path": "evidence/net8.0/first.pdf",
+          "bytes": 1702,
+          "sha256": "dca9085844ddb327ee0470a8e0235f39a940d3f70091bc0c5902bbd13362a621"
+        },
+        {
+          "path": "evidence/net8.0/forms/completed.pdf",
+          "bytes": 7647,
+          "sha256": "3d8bb80fb09fb0bb3f430b78d263fc09a8be09e0ffea88d189329da2e56d5f5e"
+        },
+        {
+          "path": "evidence/net8.0/forms/example.pdf",
+          "bytes": 5887,
+          "sha256": "34c1d086725ab68fa12c4ef50a258e4961e1a0ae30733945f07ed5b8b505bf01"
+        },
+        {
+          "path": "evidence/net8.0/forms/record.pdf",
+          "bytes": 4272,
+          "sha256": "6c890fe74bc78fb17d8fe7c293756768e546c8f074dfd1a597d3b894a601791d"
+        },
+        {
+          "path": "evidence/net8.0/merged.pdf",
+          "bytes": 3070,
+          "sha256": "7f7d7d34556255c0f33e6f09bd69f405bfd3d9f7db3f9c9f255adbddfcd00049"
+        },
+        {
+          "path": "evidence/net8.0/review/contract-redacted.pdf",
+          "bytes": 1581,
+          "sha256": "2bd5b75c7a0e57bf7a2f6339778955b2dad1505475ffe903aea2b7cfda7dc944"
+        },
+        {
+          "path": "evidence/net8.0/review/contract.pdf",
+          "bytes": 1159,
+          "sha256": "4f183440ceaf248d911b7270e0927fbb7f0eb257dbf5bcbe758829e79dbac3c6"
+        },
+        {
+          "path": "evidence/net8.0/second.pdf",
+          "bytes": 1701,
+          "sha256": "85937dd0e2a002647585fa6a1278b83dcfe3b9a5025d525ebd1793f9858f114a"
+        },
+        {
+          "path": "evidence/net8.0/weekly/example.pdf",
+          "bytes": 28276,
+          "sha256": "f506cdbeb62b8fb69f99b27a756d4637d9376a5b49a902df81806ffe30973911"
+        }
+      ],
+      "log": {
+        "path": "qualification.log",
+        "sha256": "dc4722539f03f1210d9102264a09f59caf1d9f53cf3f380502d97a714482bdca"
+      },
+      "recordedUtc": "2026-10-20T22:04:27.605935+00:00",
+      "validationHarnessWarnings": {
+        "IL3000": {
+          "count": 2,
+          "scope": "Private identity observer managed-only Assembly.Location branch; NativeAOT uses Environment.ProcessPath and actual native execution passed. No new product API or warning suppression."
+        }
+      },
+      "pathsRelativeTo": "review-remediation/packages"
+    },
+    "savedArtifactStandards": {
+      "status": "Passed",
+      "recordedHead": "5800b68e06d4ff68e842a0712ccbc0a95d460b7e",
+      "scope": "Saved NativeAOT examples, automated PDF/UA checks only; manual assistive-technology acceptance is not established.",
+      "pathsRelativeTo": "review-remediation/packages",
+      "syntax": [
+        {
+          "path": "evidence/native/PdfUa1-first.pdf",
+          "sha256": "52a4a23ef4436df2987ba1f72cab58623a668f3336ea5a89058f1f802e5fc909",
+          "exitCode": 0
+        },
+        {
+          "path": "evidence/native/PdfUa1-merged.pdf",
+          "sha256": "6795988b77b1b24e74d7c63e60fdac2d59b9971a33ad53f2e9c3275239a7c5fc",
+          "exitCode": 0
+        },
+        {
+          "path": "evidence/native/PdfUa1-second.pdf",
+          "sha256": "f712e44ad1882542e5e3569b0ed4f63f1c1ea4efb53b5a5dbe69834c4973a597",
+          "exitCode": 0
+        },
+        {
+          "path": "evidence/native/PdfUa2-first.pdf",
+          "sha256": "fbb067c432319fe1deba0a9e9fa6999cdee58bf7360cb606a21a267448deccf4",
+          "exitCode": 0
+        },
+        {
+          "path": "evidence/native/PdfUa2-merged.pdf",
+          "sha256": "062f353ff3334c496a9394b4be52e87511e253e2ed64252309eaa4b3737959a6",
+          "exitCode": 0
+        },
+        {
+          "path": "evidence/native/PdfUa2-second.pdf",
+          "sha256": "b1cef834032b365c30d082bb235bae7d9b81fa36473e867cabb5e190bce2e5b5",
+          "exitCode": 0
+        },
+        {
+          "path": "evidence/native/docs/report.pdf",
+          "sha256": "5746b200bf90ef82e9683dfed3b6361315ae3b06c37c55a053cd85e591b62176",
+          "exitCode": 0
+        },
+        {
+          "path": "evidence/native/docs/selected-pages.pdf",
+          "sha256": "4ce831ba5dbc805576e1492df5dedb55fc1eb923b4f50e60134b36e7c2798a5f",
+          "exitCode": 0
+        },
+        {
+          "path": "evidence/native/first.pdf",
+          "sha256": "3bdd9d60fa762e41a28db94d7609a249f4f688d767db63c0eddb23dc6db4df39",
+          "exitCode": 0
+        },
+        {
+          "path": "evidence/native/forms/completed.pdf",
+          "sha256": "dcf08d594fc047ddb54facc9d5864cae6271a1ed477af0d6292ddaf93a4df1f3",
+          "exitCode": 0
+        },
+        {
+          "path": "evidence/native/forms/example.pdf",
+          "sha256": "3e29da818c65a6012e23e21da0f558008f5e339335104de1ad97566338126cff",
+          "exitCode": 0
+        },
+        {
+          "path": "evidence/native/forms/record.pdf",
+          "sha256": "16dd3902688c424dfa5a52be2894eb97fe6120485470f5a86db3d7203e1a6842",
+          "exitCode": 0
+        },
+        {
+          "path": "evidence/native/merged.pdf",
+          "sha256": "5746b200bf90ef82e9683dfed3b6361315ae3b06c37c55a053cd85e591b62176",
+          "exitCode": 0
+        },
+        {
+          "path": "evidence/native/review/contract-redacted.pdf",
+          "sha256": "2bd5b75c7a0e57bf7a2f6339778955b2dad1505475ffe903aea2b7cfda7dc944",
+          "exitCode": 0
+        },
+        {
+          "path": "evidence/native/review/contract.pdf",
+          "sha256": "522b27d2222e6679ca233ce8eaeccd2c64278c4a9c58d3976577206a0a89d15b",
+          "exitCode": 0
+        },
+        {
+          "path": "evidence/native/second.pdf",
+          "sha256": "a975c164b7d41af55a7bc4ecab8c10f527ca44426668ad0e2529750b48c3744e",
+          "exitCode": 0
+        },
+        {
+          "path": "evidence/native/weekly/example.pdf",
+          "sha256": "fdf3d56e20b250eec4ee9e1ad803aa5b5cb17ae44647cbc9004bcb463d45e9c5",
+          "exitCode": 0
+        },
+        {
+          "path": "evidence/net10.0/PdfUa1-first.pdf",
+          "sha256": "52a4a23ef4436df2987ba1f72cab58623a668f3336ea5a89058f1f802e5fc909",
+          "exitCode": 0
+        },
+        {
+          "path": "evidence/net10.0/PdfUa1-merged.pdf",
+          "sha256": "6795988b77b1b24e74d7c63e60fdac2d59b9971a33ad53f2e9c3275239a7c5fc",
+          "exitCode": 0
+        },
+        {
+          "path": "evidence/net10.0/PdfUa1-second.pdf",
+          "sha256": "f712e44ad1882542e5e3569b0ed4f63f1c1ea4efb53b5a5dbe69834c4973a597",
+          "exitCode": 0
+        },
+        {
+          "path": "evidence/net10.0/PdfUa2-first.pdf",
+          "sha256": "fbb067c432319fe1deba0a9e9fa6999cdee58bf7360cb606a21a267448deccf4",
+          "exitCode": 0
+        },
+        {
+          "path": "evidence/net10.0/PdfUa2-merged.pdf",
+          "sha256": "062f353ff3334c496a9394b4be52e87511e253e2ed64252309eaa4b3737959a6",
+          "exitCode": 0
+        },
+        {
+          "path": "evidence/net10.0/PdfUa2-second.pdf",
+          "sha256": "b1cef834032b365c30d082bb235bae7d9b81fa36473e867cabb5e190bce2e5b5",
+          "exitCode": 0
+        },
+        {
+          "path": "evidence/net10.0/docs/report.pdf",
+          "sha256": "5746b200bf90ef82e9683dfed3b6361315ae3b06c37c55a053cd85e591b62176",
+          "exitCode": 0
+        },
+        {
+          "path": "evidence/net10.0/docs/selected-pages.pdf",
+          "sha256": "4ce831ba5dbc805576e1492df5dedb55fc1eb923b4f50e60134b36e7c2798a5f",
+          "exitCode": 0
+        },
+        {
+          "path": "evidence/net10.0/first.pdf",
+          "sha256": "3bdd9d60fa762e41a28db94d7609a249f4f688d767db63c0eddb23dc6db4df39",
+          "exitCode": 0
+        },
+        {
+          "path": "evidence/net10.0/forms/completed.pdf",
+          "sha256": "dcf08d594fc047ddb54facc9d5864cae6271a1ed477af0d6292ddaf93a4df1f3",
+          "exitCode": 0
+        },
+        {
+          "path": "evidence/net10.0/forms/example.pdf",
+          "sha256": "3e29da818c65a6012e23e21da0f558008f5e339335104de1ad97566338126cff",
+          "exitCode": 0
+        },
+        {
+          "path": "evidence/net10.0/forms/record.pdf",
+          "sha256": "16dd3902688c424dfa5a52be2894eb97fe6120485470f5a86db3d7203e1a6842",
+          "exitCode": 0
+        },
+        {
+          "path": "evidence/net10.0/merged.pdf",
+          "sha256": "5746b200bf90ef82e9683dfed3b6361315ae3b06c37c55a053cd85e591b62176",
+          "exitCode": 0
+        },
+        {
+          "path": "evidence/net10.0/review/contract-redacted.pdf",
+          "sha256": "2bd5b75c7a0e57bf7a2f6339778955b2dad1505475ffe903aea2b7cfda7dc944",
+          "exitCode": 0
+        },
+        {
+          "path": "evidence/net10.0/review/contract.pdf",
+          "sha256": "522b27d2222e6679ca233ce8eaeccd2c64278c4a9c58d3976577206a0a89d15b",
+          "exitCode": 0
+        },
+        {
+          "path": "evidence/net10.0/second.pdf",
+          "sha256": "a975c164b7d41af55a7bc4ecab8c10f527ca44426668ad0e2529750b48c3744e",
+          "exitCode": 0
+        },
+        {
+          "path": "evidence/net10.0/weekly/example.pdf",
+          "sha256": "fdf3d56e20b250eec4ee9e1ad803aa5b5cb17ae44647cbc9004bcb463d45e9c5",
+          "exitCode": 0
+        },
+        {
+          "path": "evidence/net8.0/PdfUa1-first.pdf",
+          "sha256": "acc2e8858144e98230411bd74b6fad3a1a36451d9d01176309c14941482223d5",
+          "exitCode": 0
+        },
+        {
+          "path": "evidence/net8.0/PdfUa1-merged.pdf",
+          "sha256": "a6754ac75a1e264ff1b6eff6eef6cb971754fc1ea895679b0d61488a51cf7e82",
+          "exitCode": 0
+        },
+        {
+          "path": "evidence/net8.0/PdfUa1-second.pdf",
+          "sha256": "3d18126610ed00f7fc6eaeb04c65124cb6c74f63afa42a082c93b1f478d26eca",
+          "exitCode": 0
+        },
+        {
+          "path": "evidence/net8.0/PdfUa2-first.pdf",
+          "sha256": "4e02bd63cd50e94e2fe88cb391b9d8e896c6ca45e2e76de4a44a915d8117cb96",
+          "exitCode": 0
+        },
+        {
+          "path": "evidence/net8.0/PdfUa2-merged.pdf",
+          "sha256": "a2c458d7e650c81396b77f0105068ceebf336a3c8275f8f7c60a1f1925d9287e",
+          "exitCode": 0
+        },
+        {
+          "path": "evidence/net8.0/PdfUa2-second.pdf",
+          "sha256": "c9057ed5033b96441f4809a2086d31de351e5670aafda3d926641cf7492c5d0e",
+          "exitCode": 0
+        },
+        {
+          "path": "evidence/net8.0/docs/report.pdf",
+          "sha256": "7f7d7d34556255c0f33e6f09bd69f405bfd3d9f7db3f9c9f255adbddfcd00049",
+          "exitCode": 0
+        },
+        {
+          "path": "evidence/net8.0/docs/selected-pages.pdf",
+          "sha256": "4b08fba65c2e828bdc508cccf68571ec2594b6af43624c1a662a33ec459b0bf7",
+          "exitCode": 0
+        },
+        {
+          "path": "evidence/net8.0/first.pdf",
+          "sha256": "dca9085844ddb327ee0470a8e0235f39a940d3f70091bc0c5902bbd13362a621",
+          "exitCode": 0
+        },
+        {
+          "path": "evidence/net8.0/forms/completed.pdf",
+          "sha256": "3d8bb80fb09fb0bb3f430b78d263fc09a8be09e0ffea88d189329da2e56d5f5e",
+          "exitCode": 0
+        },
+        {
+          "path": "evidence/net8.0/forms/example.pdf",
+          "sha256": "34c1d086725ab68fa12c4ef50a258e4961e1a0ae30733945f07ed5b8b505bf01",
+          "exitCode": 0
+        },
+        {
+          "path": "evidence/net8.0/forms/record.pdf",
+          "sha256": "6c890fe74bc78fb17d8fe7c293756768e546c8f074dfd1a597d3b894a601791d",
+          "exitCode": 0
+        },
+        {
+          "path": "evidence/net8.0/merged.pdf",
+          "sha256": "7f7d7d34556255c0f33e6f09bd69f405bfd3d9f7db3f9c9f255adbddfcd00049",
+          "exitCode": 0
+        },
+        {
+          "path": "evidence/net8.0/review/contract-redacted.pdf",
+          "sha256": "2bd5b75c7a0e57bf7a2f6339778955b2dad1505475ffe903aea2b7cfda7dc944",
+          "exitCode": 0
+        },
+        {
+          "path": "evidence/net8.0/review/contract.pdf",
+          "sha256": "4f183440ceaf248d911b7270e0927fbb7f0eb257dbf5bcbe758829e79dbac3c6",
+          "exitCode": 0
+        },
+        {
+          "path": "evidence/net8.0/second.pdf",
+          "sha256": "85937dd0e2a002647585fa6a1278b83dcfe3b9a5025d525ebd1793f9858f114a",
+          "exitCode": 0
+        },
+        {
+          "path": "evidence/net8.0/weekly/example.pdf",
+          "sha256": "f506cdbeb62b8fb69f99b27a756d4637d9376a5b49a902df81806ffe30973911",
+          "exitCode": 0
+        }
+      ],
+      "profiles": [
+        {
+          "path": "evidence/native/PdfUa1-first.pdf",
+          "sha256": "52a4a23ef4436df2987ba1f72cab58623a668f3336ea5a89058f1f802e5fc909",
+          "profile": "ua1",
+          "exitCode": 0,
+          "compliant": [
+            true
+          ]
+        },
+        {
+          "path": "evidence/native/PdfUa1-merged.pdf",
+          "sha256": "6795988b77b1b24e74d7c63e60fdac2d59b9971a33ad53f2e9c3275239a7c5fc",
+          "profile": "ua1",
+          "exitCode": 0,
+          "compliant": [
+            true
+          ]
+        },
+        {
+          "path": "evidence/native/PdfUa2-first.pdf",
+          "sha256": "fbb067c432319fe1deba0a9e9fa6999cdee58bf7360cb606a21a267448deccf4",
+          "profile": "ua2",
+          "exitCode": 0,
+          "compliant": [
+            true
+          ]
+        },
+        {
+          "path": "evidence/native/PdfUa2-merged.pdf",
+          "sha256": "062f353ff3334c496a9394b4be52e87511e253e2ed64252309eaa4b3737959a6",
+          "profile": "ua2",
+          "exitCode": 0,
+          "compliant": [
+            true
+          ]
+        },
+        {
+          "path": "evidence/native/weekly/example.pdf",
+          "sha256": "fdf3d56e20b250eec4ee9e1ad803aa5b5cb17ae44647cbc9004bcb463d45e9c5",
+          "profile": "ua1",
+          "exitCode": 0,
+          "compliant": [
+            true
+          ]
+        }
+      ]
+    },
+    "firstReviewWave": {
+      "baseHead": "7179a0ddd113fd43d513bb948c1bbc23acbac504",
+      "findingSummary": [
+        {
+          "contract": "archive-identity",
+          "priority": "P2",
+          "classification": "Introduced with isolated PdfPecker evidence support",
+          "reproduction": "Valid but different SHA512 archives passed both cross-platform gates",
+          "remediation": "Ordinal equality after format validation; equal/mismatch/case-only/malformed before-and-after probes"
+        },
+        {
+          "contract": "net472-replace",
+          "priority": "P2",
+          "classification": "Introduced in selected HTML integration test",
+          "reproduction": "Three-argument Replace does not compile on net472",
+          "remediation": "Two-argument replacement; actual complete net472 HTML test graph compiled with0errors"
+        },
+        {
+          "contract": "cancellable-result-validation",
+          "priority": "P2",
+          "classification": "Introduced new overload inconsistency",
+          "reproduction": "4null routes returned failed results instead of argument errors; empty selections returned successful0outputs",
+          "remediation": "Guards/empty result match ordinary routes,49focusedtests and actual binary-bound baseline/candidate probe"
+        },
+        {
+          "contract": "tagged-policy-admission",
+          "priority": "P2",
+          "classification": "Existing tag-editor limitation newly exposed by general tagged merge",
+          "reproduction": "Metadata/outline Drop or Combine and attachment rewrites failed after assembly via generic editor",
+          "remediation": "Explicit pre-assembly validation for existing unsupported policy paths; supported default/primary attachments/form policies retained; current limitation and open backlog documented"
+        },
+        {
+          "contract": "stream-boundaries",
+          "priority": "P1",
+          "classification": "Task-introduced exact-concat reader/import regression plus pre-existing exact joins in shared inspection/redaction",
+          "reproduction": "Native-valid content arrays lost lexical/operator boundaries; graphics state/geometry/imported paint could change",
+          "remediation": "Coherent LF sequence semantics through reader,import,compliance,redaction offsets,resource pruning; ISO/Pdf.js/MuPDF evidence,153focused and8native render matches; four malformed tests replaced by valid between-token contracts,9targetedpass; owner closure+confirmation accepted"
+        },
+        {
+          "contract": "form-budget-wording",
+          "priority": "P3",
+          "classification": "Ambiguous new documentation wording",
+          "reproduction": "Input admission versus allowance for generated appearances was unclear",
+          "remediation": "State source checks first, derived output budget second"
+        },
+        {
+          "contract": "xps-workflow-expectation",
+          "priority": "P2",
+          "classification": "Old test superseded by new supported tagged merge",
+          "reproduction": "4CIjobs expected tagged native assembly to fail",
+          "remediation": "Saved two-page tagged assembly now asserted with per-page text"
+        },
+        {
+          "contract": "ps-redaction-fixture",
+          "priority": "P2",
+          "classification": "Old rectangle overlapped neighboring glyphs; exposed by correct glyph geometry",
+          "reproduction": "Magic-height redaction area includes following line ascent despite retained-line assertion",
+          "remediation": "Font-derived fixture rectangle; independently verified removal plus both neighbors preserved; Pester remains actual CI gate"
+        },
+        {
+          "contract": "showcase-coherence",
+          "priority": "P2",
+          "classification": "Example source changed in task without refreshing source download",
+          "reproduction": "WeeklyBrief andEquipmentInspection card source downloads stale",
+          "remediation": "Canonical source-linked runner and Build-ShowcaseEvidence regenerated cards; source/discovery/manifest/qpdf/weeklyUA1 and inspected previews passed"
+        }
+      ],
+      "independentReview": {
+        "reviewer": "/root/pdf_review_closure",
+        "independence": "Fresh fork-none read-only agent; no builds, edits, nested reviews or remote writes",
+        "base": "7179a0ddd113fd43d513bb948c1bbc23acbac504",
+        "scope": "First external feedback wave: content stream lexical whitespace, reading/mutation offset consistency and resource scans; cancellation-result validation; tagged policy preflight; XPS saved-output contract and PS redaction rectangle",
+        "result": "Accepted, no actionable P0-P2",
+        "runtimeTestDiffFingerprint": "cd11973e056b010c46ba35c3754b492c0a6a49ee",
+        "newBoundaryTestBlob": "8e2d10dac8f4551f4b3860d61ace9654817f11ea",
+        "targetedConfirmation": {
+          "used": true,
+          "scope": "Four old malformed token split fixture corrections only, no production delta",
+          "result": "Passed, no findings; intended valid-input coordinate/redaction/resource-filter/decoder coverage retained",
+          "diffFingerprint": "208334183e6036f8a83b8497ef6bd578af9d7d3a"
+        },
+        "limits": [
+          "Not generic tagged catalog edit qualification",
+          "Not malformed token split support",
+          "Other Build/Website changes covered by their direct contract/artifact evidence",
+          "Whole-PR original review boundaries retained; broaderNET8/NET10 and externalCI separate"
+        ]
+      },
+      "archiveIdentity": {
+        "preFixInvocations": 8,
+        "postFixInvocations": 8,
+        "equalAccepted": true,
+        "validMismatchesRejectedAfterFix": true,
+        "caseOnlyBase64MismatchesRejectedAfterFix": true,
+        "malformedFormatStillRejected": true,
+        "bothPowerShellScriptsParsed": true,
+        "gitDiffCheckPassed": true,
+        "noBuildOrTimingRun": true,
+        "noNewGitCommitsOrRemoteWrites": true
+      },
+      "htmlNet472CrossCompile": {
+        "sourceSha256": "28cd3d5bc94d82f4fa192b677dadef4b6c07d6d884a332d98fe570260467aef7",
+        "sdk": "10.0.113",
+        "exitCode": 0,
+        "errors": 0,
+        "warnings": 4,
+        "proof": "Complete HTML test project and source dependencies cross-compiled for net472; runtime execution not attempted on macOS"
+      },
+      "showcase": {
+        "sourcesUnchangedDuringGeneration": true,
+        "manifestArtifactsVerified": 6,
+        "qpdfSyntaxPassed": 4,
+        "weeklyPdfUa1": {
+          "compliant": true,
+          "failedRules": 0
+        },
+        "checks": [
+          "Sync-ShowcaseWalkthroughs.ps1 -Check passed:67pages9excerpts",
+          "Test-DiscoveryEvidence.ps1 passed",
+          "git diff --check passed"
+        ],
+        "visual": {
+          "previews": [
+            "Website/static/downloads/showcase/workflows/pdf-weekly-brief/preview.png",
+            "Website/static/downloads/showcase/workflows/pdf-equipment-inspection/preview.png"
+          ],
+          "observed": "Both final onepage previews inspected; legible hierarchy, aligned forms/table, no clipping or overlap"
+        },
+        "psFixture": {
+          "path": "PowerShell/PSWriteOffice/Tests/Pdf.Tests.ps1",
+          "sha256": "c8aa5c3ac43f529ab0af7bdc941f9c0e275e2d5fdcb1fd002adb0c2eaa65b4fd",
+          "change": "Use selected source block FontSize-derived rectangle; original fixed rectangle overlapped neighboring glyph ascent",
+          "siblingSweep": "Only one BaselineY/fixed-height coordinate redaction fixture in Pdf.Tests.ps1",
+          "parse": "PowerShell7.5.4 passed",
+          "runtimeBoundary": "No staged local PSWriteOffice module; actual currentmodule Pester PS7 and WindowsPS5.1 remain CI proof",
+          "engineGeometryProofOwner": "stream_boundary_fix"
+        }
+      },
+      "nativeStreamEquivalence": {
+        "validTextObservations": 16,
+        "identicalRenderComparisons": 8,
+        "passed": true,
+        "boundary": "Hand-authored valid stream-boundary fixtures only. Original native-results also retains intentionally malformed cases; no blanket malformed-recovery acceptance."
+      },
+      "performanceBoundary": {
+        "measuredCheckpoint": "83efd2a3fae54cd66c10cd0cf77fe6751649d874",
+        "measuredFilesUnchanged": true,
+        "newTimingsRun": false,
+        "boundary": "No new timing claim. Original measured cohort stays bound to83efd and actual retained binaries; review fixes affect content reading/mutation/argument admission and benchmark validation, not the measured glyph/clip implementation."
+      },
+      "deliveryBoundary": "Local remediation proof does not establish current-head external CI, merge, public release or deployment; unsigned private packages are separate from signed Windows publication."
+    },
+    "productTrees": {
+      "OfficeIMO.Core": "b58fdaacc54bb78d29812106a71951ecb2023f18",
+      "OfficeIMO.Pdf": "aecb1095864e3901aafb68100acc369d6a25d6e8",
+      "OfficeIMO.Html": "061160ce204ee6a52cec724760f444aa040c5d8b",
+      "OfficeIMO.Html.Pdf": "61bae61ce83a9b466077668d5de7b307a3569b97",
+      "OfficeIMO.Pdf.Tests": "623a149e7ec6e9c94bd189f98eaaba70cb1211e4",
+      "OfficeIMO.Html.Tests": "b055a3854cfad9d289faf9d100ca9c52ed902f43",
+      "OfficeIMO.Examples": "99d42e7e38936231f190e09e26e6abe11b548b34",
+      "OfficeIMO.Pdf.Benchmarks.Comparisons": "47a31eba97fe18f6702377306bb1f50d6545d54b"
+    },
+    "evidenceAssembly": {
+      "assembledUtc": "2026-10-20T22:05:22.551470+00:00",
+      "priorRecordSha256": "32152625730f32f9c7375bd3f1f01097217635d486fdf69be4f725e1c16623b3",
+      "requirementsComplete": true
     }
   }
 }
