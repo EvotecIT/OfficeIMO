@@ -51,6 +51,9 @@ internal static class HtmlPdfComparisonRenderers {
         await session.Page.SetContentAsync(
             html,
             new PageSetContentOptions { WaitUntil = WaitUntilState.Load }).WaitAsync(cancellationToken).ConfigureAwait(false);
+        await HtmlBrowser.PreparePageForContentAsync(session.Page,
+            waitForFunction: "() => document.fonts.status === 'loaded' && document.fonts.check('12px Carlito') && document.fonts.check('bold 12px Carlito')",
+            cancellationToken: cancellationToken).ConfigureAwait(false);
     }
 
     internal static Task<byte[]> CaptureChromiumPageAsync(

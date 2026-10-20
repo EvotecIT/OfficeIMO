@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<title>spanner-keep-before-avoid-column</title>
+<style>
+@font-face{font-family:Witness;src:url(regular.ttf);font-weight:400}
+@font-face{font-family:Witness;src:url(bold.ttf);font-weight:700}
+@page{size:700px 140px;margin:20px}
+html,body{margin:0;background:white;font:14px/20px Witness}
+p{margin:0;orphans:1;widows:1}
+.columns{width:300px;column-count:2;column-gap:20px}
+.spanner{column-span:all;margin:0;font-weight:700;background:#eeeeee}
+</style>
+<p id="kbcol-e01">KBCOL-E01</p>
+<p id="kbcol-e02">KBCOL-E02</p>
+<section id="columns" class="columns" style="column-fill:auto">
+<p id="kbcol-p01">KBCOL-P01</p>
+<p id="kbcol-p02">KBCOL-P02</p>
+<p id="kbcol-p03">KBCOL-P03</p>
+<p id="kbcol-p04">KBCOL-P04</p>
+<div id="kbcol-spanner" class="spanner" style="break-before:avoid-column">
+<p id="kbcol-s01">KBCOL-S01</p>
+<p id="kbcol-s02">KBCOL-S02</p>
+</div>
+<p id="kbcol-t01">KBCOL-T01</p>
+<p id="kbcol-t02">KBCOL-T02</p>
+<p id="kbcol-t03">KBCOL-T03</p>
+<p id="kbcol-t04">KBCOL-T04</p>
+</section>
+<p id="after">KBCOL-AFTER</p>
+</html>

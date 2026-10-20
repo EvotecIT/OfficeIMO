@@ -1,0 +1,23 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<title>avoid-inside-fit</title>
+<style>
+@font-face{font-family:Witness;src:url(regular.ttf);font-weight:400}
+@font-face{font-family:Witness;src:url(bold.ttf);font-weight:700}
+@page{size:700px 140px;margin:20px}
+html,body{margin:0;background:white;font:14px/20px Witness}
+p{margin:0;orphans:1;widows:1}
+.columns{width:300px;column-count:2;column-gap:20px}
+</style>
+<section id="columns" class="columns" style="column-fill:auto;height:60px">
+<p id="malva-01">MALVA-01</p>
+<p id="malva-02">MALVA-02</p>
+<div id="malva-keep" style="break-inside:avoid-column">
+<p id="malva-03">MALVA-03</p>
+<p id="malva-04">MALVA-04</p>
+</div>
+<p id="malva-05">MALVA-05</p>
+</section>
+<p id="after">MALVA-AFTER</p>
+</html>

@@ -107,6 +107,7 @@ if (advancedRender.Pages.Count != 1
         + $"marks={advancedRender.Pages[0].PrintProduction?.Marks}, bleed={advancedRender.Pages[0].PrintProduction?.Bleed}.");
 }
 MarkerImageContract.Verify(advancedRender, advancedSvg, advancedSource.ToPng(advancedOptions), markerPng);
+ParallelTablePaginationContract.Verify();
 
 if (OfficeProtectionCapabilityCatalog.Current.SchemaVersion != 2
     || OfficeProtectionCapabilityCatalog.Current.Capabilities.Count == 0) {

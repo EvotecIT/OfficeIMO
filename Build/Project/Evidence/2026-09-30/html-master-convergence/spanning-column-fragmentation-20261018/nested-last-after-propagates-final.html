@@ -1,0 +1,23 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<title>nested-last-after-propagates-final</title>
+<style>
+@font-face{font-family:Witness;src:url(regular.ttf);font-weight:400}
+@font-face{font-family:Witness;src:url(bold.ttf);font-weight:700}
+@page{size:700px 140px;margin:20px}
+html,body{margin:0;background:white;font:14px/20px Witness}
+p{margin:0;orphans:1;widows:1}
+.columns{width:300px;column-count:2;column-gap:20px}
+.spanner{column-span:all;margin:0;font-weight:700;background:#eeeeee}
+</style>
+<section id="columns" class="columns" style="column-fill:auto">
+<p id="neron-s01" class="spanner">NERON-S01</p>
+<div id="neron-wrapper">
+<p id="neron-n01">NERON-N01</p>
+<p id="neron-n02" style="break-after:column">NERON-N02</p>
+</div>
+<p id="neron-t01">NERON-T01</p>
+</section>
+<p id="after">NERON-AFTER</p>
+</html>

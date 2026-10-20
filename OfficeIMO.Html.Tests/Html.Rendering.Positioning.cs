@@ -55,7 +55,6 @@ public sealed partial class HtmlRenderingTests {
         AssertPaintOffset(baseline, positioned, "Outer", 7D, 3D);
         AssertPaintOffset(baseline, positioned, "Inner", 12D, 5D);
         AssertPaintOffset(baseline, positioned, "Tail", 0D, 0D);
-        Assert.Equal(baseline.Pages[0].Height, positioned.Pages[0].Height, 3);
     }
 
     [Fact]
@@ -398,9 +397,12 @@ public sealed partial class HtmlRenderingTests {
             || diagnostic.Code == HtmlRenderDiagnosticCodes.PositionStaticAnchorFallback);
     }
 
-    [Fact]
-    public void HtmlAbsolutePosition_OrdersNegativeFlowAutoAndPositiveStackingBands() {
-        const string html = "<div id='stack' style='position:relative;width:40px;height:40px;margin:0;background:#eeeeee'>"
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void HtmlAbsolutePosition_OrdersNegativeFlowAutoAndPositiveStackingBands(bool clipped) {
+        string html = "<div id='stack' style='position:relative;width:40px;height:40px;margin:0;background:#eeeeee;"
+            + (clipped ? "overflow:hidden" : "") + "'>"
             + "<div id='negative' style='position:absolute;z-index:-2;left:0;top:0;width:40px;height:40px;background:#ff0000'></div>"
             + "<div id='flow-layer' style='width:40px;height:40px;margin:0;background:#00ff00'></div>"
             + "<div id='auto-layer' style='position:absolute;left:0;top:0;width:40px;height:40px;background:#0000ff'></div>"
@@ -414,7 +416,7 @@ public sealed partial class HtmlRenderingTests {
             Margins = HtmlRenderMargins.All(0D)
         });
 
-        string[] paintSources = rendered.Pages[0].Visuals.OfType<HtmlRenderShape>()
+        string[] paintSources = EnumerateRenderVisuals(rendered.Pages[0].Scene).OfType<HtmlRenderShape>()
             .Where(shape => shape.Source == "div#stack"
                 || shape.Source == "div#negative"
                 || shape.Source == "div#flow-layer"

@@ -1,0 +1,1814 @@
+{
+  "schema": "officeimo.html.auto-column-block-sizing-qualification/v1",
+  "status": "qualified-branch-checkpoint",
+  "recordedUtc": "2026-10-18T04:37:25.167754+00:00",
+  "milestone": "Indefinite auto-fill columns and intrinsic block allocation in selected ordinary, flex and grid flows",
+  "baseHead": "e12e278d606528abf30218b0fc11cd3054352cd6",
+  "qualifiedSourceHead": "dee9e3856e609e6891646ba5f5ea9080fe70bf4f",
+  "sourceTrees": {
+    "OfficeIMO.Html": "1169a98488848b7a2bca6902841a1af56ec5e531",
+    "OfficeIMO.Html.Core": "3804952eb46a7eb05a8976bb7f421fc8aa619d5e",
+    "OfficeIMO.Html.AngleSharp": "2b7f2b16754df243579efea6e88a9c35e0dce3a6",
+    "OfficeIMO.Core": "525d802ec173c3c71a40862ced43308f2b5fe779",
+    "OfficeIMO.Pdf": "b1b316ace5b668ccbc8e61cc5cb8ba59e32de68a",
+    "OfficeIMO.SharedSource": "dd1c89e2b292f90ebbf3107b130d377a8512306f",
+    "OfficeIMO.Html.Tests": "9f980bcedafefa1618cf1e657519a234b53897e6"
+  },
+  "publication": "Branch checkpoint scope only. No PR, merge, signing, package publication or deployment for this batch.",
+  "implementation": {
+    "owner": "OfficeIMO.Html shared column planner, flow-block allocation and ordinary/flex/grid consumers",
+    "publicApiChange": false,
+    "productionDependencyChange": false,
+    "changes": [
+      "Indefinite continuous auto-fill follows sequential content flow, with min/max height and box-sizing constraints handled by the existing size owner.",
+      "Selected flex and grid flows retain natural item allocation while physical-page column bands project their content.",
+      "Ordinary wrapper decoration and following flow retain their allocation through fragmented child projection.",
+      "Unsupported column break declarations preserve source content and produce typed fidelity diagnostics."
+    ]
+  },
+  "inputs": [
+    {
+      "case": "continuous-auto-6",
+      "fixture": "auto-column-sizing-20261018/continuous-auto-6.html",
+      "bytes": 409,
+      "sha256": "742faf05f494c883715d3815499d005506bee63fcca6466977cd734c9a3da7c9"
+    },
+    {
+      "case": "continuous-balance-6",
+      "fixture": "auto-column-sizing-20261018/continuous-balance-6.html",
+      "bytes": 438,
+      "sha256": "f9ea9e9d1766365aa8910b9fde8269c309304fb309de8969c3f5b44220d45236"
+    },
+    {
+      "case": "continuous-max60-6",
+      "fixture": "auto-column-sizing-20261018/continuous-max60-6.html",
+      "bytes": 434,
+      "sha256": "d554181d9348e1d1d4e793c4e2140667ded68dc0247bbfc1e395bb7dea07f601"
+    },
+    {
+      "case": "continuous-min80-6",
+      "fixture": "auto-column-sizing-20261018/continuous-min80-6.html",
+      "bytes": 434,
+      "sha256": "edc934e7d3e5de757244c7ed77b21ac382027ce9faadc207c59abb6712e79018"
+    },
+    {
+      "case": "neighbor-auto-min100-max60",
+      "fixture": "auto-column-sizing-20261018/neighbor-auto-min100-max60.html",
+      "bytes": 440,
+      "sha256": "d707d80da4a6603a98412630b6de600192e23e463fcb08bbf664afde6caa3397"
+    },
+    {
+      "case": "neighbor-balance-max30",
+      "fixture": "auto-column-sizing-20261018/neighbor-balance-max30.html",
+      "bytes": 426,
+      "sha256": "7fbe999283264e7d7d934ec54de537ea60c7d8f5b999c6bb1a3452a2d83b1b19"
+    },
+    {
+      "case": "neighbor-grid-wrapped",
+      "fixture": "auto-column-sizing-20261018/neighbor-grid-wrapped.html",
+      "bytes": 764,
+      "sha256": "c153fa2ad2374b8db35a2df4d996c6969819ef28742f4def0989d5d175f5342d"
+    },
+    {
+      "case": "neighbor-row-flex-stretch",
+      "fixture": "auto-column-sizing-20261018/neighbor-row-flex-stretch.html",
+      "bytes": 703,
+      "sha256": "3758ce75de74285b62c85e843cc034caa6029f755e5eca0b9f88f7eb21f6a8d5"
+    },
+    {
+      "case": "neighbor-wrapped-capacity19",
+      "fixture": "auto-column-sizing-20261018/neighbor-wrapped-capacity19.html",
+      "bytes": 788,
+      "sha256": "2e470910dc6facc5b9497945f4e3d987864ce880a71ccb57d0c71890d00afedd"
+    },
+    {
+      "case": "neighbor-wrapped-margins-no-insets",
+      "fixture": "auto-column-sizing-20261018/neighbor-wrapped-margins-no-insets.html",
+      "bytes": 727,
+      "sha256": "65a549b350ca9eaeb3290ad7aec8a28fd7044805dec28a70f43f0c6447144ca5"
+    },
+    {
+      "case": "neighbor-wrapped-positive-margin",
+      "fixture": "auto-column-sizing-20261018/neighbor-wrapped-positive-margin.html",
+      "bytes": 722,
+      "sha256": "aeb9eb5d4be9cb9cec68ebe38d4b54d28e919936430b17ffd441683914e3789b"
+    },
+    {
+      "case": "owner-auto-border-box-max60",
+      "fixture": "auto-column-sizing-20261018/owner-auto-border-box-max60.html",
+      "bytes": 481,
+      "sha256": "e6a36e75d81b95b57d8c4f29744d192bc6bfc184098ba5b022d547936d12fe4c"
+    },
+    {
+      "case": "owner-auto-flex-column-order",
+      "fixture": "auto-column-sizing-20261018/owner-auto-flex-column-order.html",
+      "bytes": 618,
+      "sha256": "d3474dbc21d32b385f1722fbf32e4da4e86bfce97d63ac5d6d68ba2606512cc1"
+    },
+    {
+      "case": "owner-auto-forced-break",
+      "fixture": "auto-column-sizing-20261018/owner-auto-forced-break.html",
+      "bytes": 435,
+      "sha256": "c5cfc367af543bca66da8b723901aace688d0fce9f300f62efed22fea695eb5e"
+    },
+    {
+      "case": "owner-auto-grid-intrinsic-row",
+      "fixture": "auto-column-sizing-20261018/owner-auto-grid-intrinsic-row.html",
+      "bytes": 504,
+      "sha256": "e418c05ca381963c5fd177b4b6f3eeace9f16a5d934ad943414b35ebd422331f"
+    },
+    {
+      "case": "owner-auto-height40",
+      "fixture": "auto-column-sizing-20261018/owner-auto-height40.html",
+      "bytes": 419,
+      "sha256": "07124e942b43ba9beb4c0180eac1820be7d085aff627ea75c98120e2ae702d27"
+    },
+    {
+      "case": "owner-auto-indefinite",
+      "fixture": "auto-column-sizing-20261018/owner-auto-indefinite.html",
+      "bytes": 407,
+      "sha256": "d9654d300b8d8250af3930ed8a125c5b09203f831707caf05f5e1c1f9d1e633e"
+    },
+    {
+      "case": "owner-auto-max100",
+      "fixture": "auto-column-sizing-20261018/owner-auto-max100.html",
+      "bytes": 424,
+      "sha256": "a48286d8e084a44d300af3e63a95a2f18d0166921dab620f6ce15e75dc87b24b"
+    },
+    {
+      "case": "owner-auto-max60-overflow",
+      "fixture": "auto-column-sizing-20261018/owner-auto-max60-overflow.html",
+      "bytes": 493,
+      "sha256": "4840acfff39c3001c38f8e8f564e2d752eb44f675e7c6228a02a0a7eb0093895"
+    },
+    {
+      "case": "owner-auto-max60",
+      "fixture": "auto-column-sizing-20261018/owner-auto-max60.html",
+      "bytes": 423,
+      "sha256": "bcf1e14557832f5e44221591af49584a63c52adcffb898a5a19c48e646e2ac63"
+    },
+    {
+      "case": "owner-auto-min100",
+      "fixture": "auto-column-sizing-20261018/owner-auto-min100.html",
+      "bytes": 424,
+      "sha256": "6f4b95aa8349fb724a27ff869f9e25a064d6680cb2962371cec563d5e2efa0db"
+    },
+    {
+      "case": "owner-auto-min60",
+      "fixture": "auto-column-sizing-20261018/owner-auto-min60.html",
+      "bytes": 423,
+      "sha256": "432b3fe5cc8c91dc2f6e5b80940accc45e19475bae8d7144e9d573c3c945bd7a"
+    },
+    {
+      "case": "owner-auto-nested-wrapper",
+      "fixture": "auto-column-sizing-20261018/owner-auto-nested-wrapper.html",
+      "bytes": 431,
+      "sha256": "3d736ab862454931a75d45497e3079ea18e3a0a333ad018ae271d355e9d39488"
+    },
+    {
+      "case": "owner-balance-indefinite",
+      "fixture": "auto-column-sizing-20261018/owner-balance-indefinite.html",
+      "bytes": 410,
+      "sha256": "4f6e761ab011cdb502dba6c4e533c988741b4f422dde07b5710280de2e455626"
+    },
+    {
+      "case": "owner-balance-max60",
+      "fixture": "auto-column-sizing-20261018/owner-balance-max60.html",
+      "bytes": 426,
+      "sha256": "0434da610303f8c873ccc7591b931015ac2ea7fcc82a98c6d29a350a4341d8a3"
+    },
+    {
+      "case": "owner-balance-min60",
+      "fixture": "auto-column-sizing-20261018/owner-balance-min60.html",
+      "bytes": 426,
+      "sha256": "378ae28a30f045a21e86689006e6ac0b0f603b0c86c8347a9fc8a4fd41087bcf"
+    },
+    {
+      "case": "owner-block-long-first",
+      "fixture": "auto-column-sizing-20261018/owner-block-long-first.html",
+      "bytes": 640,
+      "sha256": "83d7507ef3dcc3abe58f12b07dadb15e6887b1f963210e01aae2e4b10e26225c"
+    },
+    {
+      "case": "owner-flex-basis-length",
+      "fixture": "auto-column-sizing-20261018/owner-flex-basis-length.html",
+      "bytes": 598,
+      "sha256": "c15017e3b84f3429068a90fac80d329494e4f41ae2ede94b7434217287e67dcb"
+    },
+    {
+      "case": "owner-flex-basis-percent",
+      "fixture": "auto-column-sizing-20261018/owner-flex-basis-percent.html",
+      "bytes": 597,
+      "sha256": "e957a799372f4d7aa958a311dacc7a95a7216f87647694e1fc6d0c359be020b6"
+    },
+    {
+      "case": "owner-flex-long-first",
+      "fixture": "auto-column-sizing-20261018/owner-flex-long-first.html",
+      "bytes": 713,
+      "sha256": "dd780e32dff5c95154b93085ab7b26b6d77ad159a95bc01bf457f4910260e56e"
+    },
+    {
+      "case": "owner-flex-min-auto",
+      "fixture": "auto-column-sizing-20261018/owner-flex-min-auto.html",
+      "bytes": 504,
+      "sha256": "837a87c179f8e0fb819c5acd67cd03b8147294f5781a45d314372f8f21e307a8"
+    },
+    {
+      "case": "owner-flex-min-zero",
+      "fixture": "auto-column-sizing-20261018/owner-flex-min-zero.html",
+      "bytes": 517,
+      "sha256": "1c9f06402c8e9807ae71eb46899a3ca3a55c8f4b96a88369b31ba383f1260bb6"
+    },
+    {
+      "case": "owner-grid-fixed80-percent",
+      "fixture": "auto-column-sizing-20261018/owner-grid-fixed80-percent.html",
+      "bytes": 543,
+      "sha256": "50d01315db47a3f7a068dc9fc908892ff338427005b69d10ecacc52befa907b2"
+    },
+    {
+      "case": "owner-grid-long-first",
+      "fixture": "auto-column-sizing-20261018/owner-grid-long-first.html",
+      "bytes": 717,
+      "sha256": "c956c17b052cb3caf14221226c224881a9b98ed019cbc4a0c0bb5e9113bcaf51"
+    },
+    {
+      "case": "owner-grid-rows-fixed40",
+      "fixture": "auto-column-sizing-20261018/owner-grid-rows-fixed40.html",
+      "bytes": 597,
+      "sha256": "2546ceb933c7165b08c8ee5927bda60c1ecd93ae9064cbe057dd901887e4a415"
+    },
+    {
+      "case": "owner-grid-rows-fixed80",
+      "fixture": "auto-column-sizing-20261018/owner-grid-rows-fixed80.html",
+      "bytes": 597,
+      "sha256": "33a3a790d528fe943c72bc6f3643936e3e160f7b143bd7376808fc72c2cabc78"
+    },
+    {
+      "case": "owner-grid-rows-start",
+      "fixture": "auto-column-sizing-20261018/owner-grid-rows-start.html",
+      "bytes": 595,
+      "sha256": "534dc4a72e673c9fbd53549c4b516f3cee3e0f2d66297eff594e0e21a56e507e"
+    },
+    {
+      "case": "owner-grid-rows-stretch",
+      "fixture": "auto-column-sizing-20261018/owner-grid-rows-stretch.html",
+      "bytes": 597,
+      "sha256": "75730772b897c0314764e70560b4acc48930d56309c2740e698a36c048106f98"
+    },
+    {
+      "case": "owner-row-flex-auto-columns",
+      "fixture": "auto-column-sizing-20261018/owner-row-flex-auto-columns.html",
+      "bytes": 701,
+      "sha256": "19c081a651433678253fe69ebe251f3e80d674a4f4fc845e555876fc71db7a86"
+    },
+    {
+      "case": "owner-wrapped-column-flex-order-margins",
+      "fixture": "auto-column-sizing-20261018/owner-wrapped-column-flex-order-margins.html",
+      "bytes": 757,
+      "sha256": "021713e002038752415a222b547d2713bdbfae50776063ba0b584b4bbee9aa2f"
+    },
+    {
+      "case": "owner-wrapped-column-flex-order",
+      "fixture": "auto-column-sizing-20261018/owner-wrapped-column-flex-order.html",
+      "bytes": 740,
+      "sha256": "e090ead24faddf2f0fc5ccbd7a8895fabe7620ef287678acbcbd25f1248361bf"
+    },
+    {
+      "case": "sequential-block-4-4",
+      "fixture": "auto-column-sizing-20261018/sequential-block-4-4.html",
+      "bytes": 558,
+      "sha256": "38ffcbba78be156d46f2c33924406fa77955c0e36d881d43d39754e4dd6de7ec"
+    },
+    {
+      "case": "sequential-flex-4-12",
+      "fixture": "auto-column-sizing-20261018/sequential-flex-4-12.html",
+      "bytes": 645,
+      "sha256": "d171847d4b902929ad32e15d9fefa8ff838d923ae0859bd56afedc7c511c1858"
+    },
+    {
+      "case": "sequential-flex-4-24",
+      "fixture": "auto-column-sizing-20261018/sequential-flex-4-24.html",
+      "bytes": 777,
+      "sha256": "837d19313f813e62a10d1fe04a175b2702aab86b167fa35eaf3ecfb9eb764ae7"
+    },
+    {
+      "case": "sequential-flex-4-4",
+      "fixture": "auto-column-sizing-20261018/sequential-flex-4-4.html",
+      "bytes": 557,
+      "sha256": "c5a1d131f9d6acf3f4749fe8af2d76348dbd7cad4d7a6ba599de5abd4d2e5465"
+    },
+    {
+      "case": "sequential-flex-basis0",
+      "fixture": "auto-column-sizing-20261018/sequential-flex-basis0.html",
+      "bytes": 577,
+      "sha256": "1e2ba7fd5eb80b43240a4e5ca3250234f3bd8cad20845c51e639c4b6983fb2ba"
+    },
+    {
+      "case": "sequential-flex-definite200",
+      "fixture": "auto-column-sizing-20261018/sequential-flex-definite200.html",
+      "bytes": 570,
+      "sha256": "d8fee3c73e86112ec7306a034b95c4260b107c5006fc6eff32ac4b63f68b8b35"
+    },
+    {
+      "case": "sequential-flex-min0-4-4",
+      "fixture": "auto-column-sizing-20261018/sequential-flex-min0-4-4.html",
+      "bytes": 579,
+      "sha256": "4fa8ce1712b391334d2c36fecbc83048ed0193705ee75ea37e1b19c0cf559809"
+    },
+    {
+      "case": "sequential-grid-4-4",
+      "fixture": "auto-column-sizing-20261018/sequential-grid-4-4.html",
+      "bytes": 557,
+      "sha256": "b928493c2ef12388d1ecd5a25b48ec6e25de8c7e48c3eec32c1cc81a03745519"
+    },
+    {
+      "case": "sequential-grid-min0-4-4",
+      "fixture": "auto-column-sizing-20261018/sequential-grid-min0-4-4.html",
+      "bytes": 579,
+      "sha256": "277ae0b3e4629d4171fa2c2f621ba717731c7f2021158828c36d83d7a2dba6b5"
+    }
+  ],
+  "assetMap": {
+    "regular.ttf": {
+      "repositoryPath": "OfficeIMO.TestAssets/Fonts/OfficeIMOBaselineSans-Regular.ttf",
+      "bytes": 105592,
+      "sha256": "00aca2988771998ff27738ff97c2cc8e71eb3013f206de5f205986b7de326af3"
+    },
+    "bold.ttf": {
+      "repositoryPath": "OfficeIMO.TestAssets/Fonts/OfficeIMOBaselineSans-Bold.ttf",
+      "bytes": 120288,
+      "sha256": "20bb7ad2e23beb5020313119f46fbc50a5ded598aaa1be4df719d3c017914b6c"
+    }
+  },
+  "publicPath": "HtmlSiteBundle.Load -> HtmlRenderRequest.Create -> HtmlRenderEngine.Execute / bundle.RenderToPdfResult -> ExportImages; exact bundled fonts, Browser UA, portable resources, no host font fallback.",
+  "frameworks": {
+    "status": "passed",
+    "focused": {
+      "status": "passed",
+      "sourceHead": "dee9e3856e609e6891646ba5f5ea9080fe70bf4f",
+      "passed": 357,
+      "failed": 0,
+      "actualTrx": {
+        "path": "trx/wrapper-paint-focused-2/wrapper-paint-focused-2.trx",
+        "bytes": 543274,
+        "sha256": "6f30199567f2e62069579f806fa277a0f2a7c9d58928ba66012919da09aecdef"
+      }
+    },
+    "evidence": {
+      "path": "qualification-final-dee9e3856e60-results.json",
+      "bytes": 82921,
+      "sha256": "c58d908c442f22bd89eb3ee33d9716d89e8932787fdd4ca279db0d2e7cf5b57a"
+    },
+    "results": [
+      {
+        "framework": "net10.0",
+        "passed": 6816,
+        "failed": 0,
+        "actualTrx": {
+          "path": "retained-producers/qualification-final-dee9e3856e60/trx/net10.0/full-net10.0.trx",
+          "bytes": 10756440,
+          "sha256": "9cc91326f4cc2323df1962505f1491e5c64681de83ea0aa02489d21d56ac41be"
+        },
+        "subjectModules": 36
+      },
+      {
+        "framework": "net8.0",
+        "passed": 6816,
+        "failed": 0,
+        "actualTrx": {
+          "path": "retained-producers/qualification-final-dee9e3856e60/trx/net8.0/full-net8.0.trx",
+          "bytes": 10742807,
+          "sha256": "475f40862daca676d126319bbdb55968edca29350b781cfa795a03ad3695092d"
+        },
+        "subjectModules": 36
+      }
+    ],
+    "retainedSubjects": "retained-producers/qualification-final-dee9e3856e60",
+    "boundary": "Full Category!=Performance correctness suites pass on .NET8/.NET10. Actual subject modules and complete TRX retained; standalone full test hosts/build graphs are regenerable."
+  },
+  "review": {
+    "reviewedHead": "5150249b739edbc40ecb92483c152009c57e41ed",
+    "base": "e12e278d606528abf30218b0fc11cd3054352cd6",
+    "fullPasses": 1,
+    "targetedConfirmations": 1,
+    "boundary": "candidate-reviewed",
+    "findings": [
+      {
+        "priority": "P2",
+        "status": "fixed-and-independently-confirmed",
+        "contract": "Ordinary column-flex wrappers retain paint through the original allocated height after child columns project into physical page bands.",
+        "evidence": "The reviewed candidate retained the 124 px wrapper allocation but painted its box at 105 px: native page-3 bottom border Y=43, managed Y=24, with AFTER at Y=44 in both. The correction retains the full allocated paint height; final whole-page comparisons and 24 border-page controls pass.",
+        "owner": "OfficeIMO.Html/Rendering/HtmlRenderLayoutEngine.Flex.Columns.cs"
+      }
+    ],
+    "productApiDisposition": "Accept internal shape after wrapper correction and decisive proof; canonical HTML layout owner, no public API/dependency expansion.",
+    "validationGaps": [
+      "Thirteen controls lack native continuous DOM geometry; five controls remain outside native-parity acceptance.",
+      "External CI, Windows profiling and public release are outside this branch checkpoint."
+    ],
+    "recordedUtc": "2026-10-18T04:20:27.783024+00:00",
+    "remediationHead": "dee9e3856e609e6891646ba5f5ea9080fe70bf4f",
+    "unresolvedValidatedInScopeFindings": 0,
+    "confirmation": "Independent reviewer confirmed capacity19 bottom border now matches native, existing wrapped/grid/margin controls show no sibling regression; accept as shaped.",
+    "status": "passed"
+  },
+  "directRenderChecks": {
+    "status": "passed",
+    "sourceHead": "dee9e3856e609e6891646ba5f5ea9080fe70bf4f",
+    "cases": 50,
+    "profiles": 200,
+    "pngEqualsIndependentPdfReplayProfiles": 150,
+    "evidence": {
+      "path": "qualified-render-captures.json",
+      "bytes": 617313,
+      "sha256": "82dfd3b4889d10108232286017923dd01f08bc0a9990b471dc2e7114828475f7"
+    },
+    "boundary": "Canonical PNG matches independently generated, reopened PDF in print, screen-media paged and screen-snapshot profiles. Direct scene PNG is a separate renderer. Source labels are checked once in both paged PDFs and the continuous scene; snapshot PDFs embed a raster."
+  },
+  "native": {
+    "status": "passed-for-declared-scope",
+    "engine": "Microsoft Edge 155 on macOS through existing HtmlTinkerX 3.0.4 / Playwright 1.63 qualification tools",
+    "qualifiedCases": [
+      {
+        "case": "continuous-auto-6",
+        "profiles": [
+          {
+            "profile": "PrintPaged",
+            "nativePages": 2,
+            "candidatePages": 2,
+            "sourceOnce": true,
+            "allLabelPageAndBboxCoordinatesMatch": true,
+            "maxBboxDeltaCssPx": 0.0062386666666611745,
+            "rawRgbMae": 1.034771754636234,
+            "maxPageRawRgbMae": 1.8398410434073773
+          },
+          {
+            "profile": "ScreenMediaPaged",
+            "nativePages": 2,
+            "candidatePages": 2,
+            "sourceOnce": true,
+            "allLabelPageAndBboxCoordinatesMatch": true,
+            "maxBboxDeltaCssPx": 0.0062386666666611745,
+            "rawRgbMae": 1.034771754636234,
+            "maxPageRawRgbMae": 1.8398410434073773
+          }
+        ]
+      },
+      {
+        "case": "continuous-balance-6",
+        "profiles": [
+          {
+            "profile": "PrintPaged",
+            "nativePages": 1,
+            "candidatePages": 1,
+            "sourceOnce": true,
+            "allLabelPageAndBboxCoordinatesMatch": true,
+            "maxBboxDeltaCssPx": 0.0062386666666611745,
+            "rawRgbMae": 2.069543509272468,
+            "maxPageRawRgbMae": 2.069543509272468
+          },
+          {
+            "profile": "ScreenMediaPaged",
+            "nativePages": 1,
+            "candidatePages": 1,
+            "sourceOnce": true,
+            "allLabelPageAndBboxCoordinatesMatch": true,
+            "maxBboxDeltaCssPx": 0.0062386666666611745,
+            "rawRgbMae": 2.069543509272468,
+            "maxPageRawRgbMae": 2.069543509272468
+          }
+        ]
+      },
+      {
+        "case": "continuous-max60-6",
+        "profiles": [
+          {
+            "profile": "PrintPaged",
+            "nativePages": 1,
+            "candidatePages": 1,
+            "sourceOnce": true,
+            "allLabelPageAndBboxCoordinatesMatch": true,
+            "maxBboxDeltaCssPx": 0.0062386666666611745,
+            "rawRgbMae": 1.9282351742408803,
+            "maxPageRawRgbMae": 1.9282351742408803
+          },
+          {
+            "profile": "ScreenMediaPaged",
+            "nativePages": 1,
+            "candidatePages": 1,
+            "sourceOnce": true,
+            "allLabelPageAndBboxCoordinatesMatch": true,
+            "maxBboxDeltaCssPx": 0.0062386666666611745,
+            "rawRgbMae": 1.9282351742408803,
+            "maxPageRawRgbMae": 1.9282351742408803
+          }
+        ]
+      },
+      {
+        "case": "continuous-min80-6",
+        "profiles": [
+          {
+            "profile": "PrintPaged",
+            "nativePages": 2,
+            "candidatePages": 2,
+            "sourceOnce": true,
+            "allLabelPageAndBboxCoordinatesMatch": true,
+            "maxBboxDeltaCssPx": 0.0062386666666611745,
+            "rawRgbMae": 1.034771754636234,
+            "maxPageRawRgbMae": 1.8398410434073773
+          },
+          {
+            "profile": "ScreenMediaPaged",
+            "nativePages": 2,
+            "candidatePages": 2,
+            "sourceOnce": true,
+            "allLabelPageAndBboxCoordinatesMatch": true,
+            "maxBboxDeltaCssPx": 0.0062386666666611745,
+            "rawRgbMae": 1.034771754636234,
+            "maxPageRawRgbMae": 1.8398410434073773
+          }
+        ]
+      },
+      {
+        "case": "sequential-block-4-4",
+        "profiles": [
+          {
+            "profile": "PrintPaged",
+            "nativePages": 2,
+            "candidatePages": 2,
+            "sourceOnce": true,
+            "allLabelPageAndBboxCoordinatesMatch": true,
+            "maxBboxDeltaCssPx": 0.0062386666666611745,
+            "rawRgbMae": 0.7529549622987569,
+            "maxPageRawRgbMae": 0.9810372936621153
+          },
+          {
+            "profile": "ScreenMediaPaged",
+            "nativePages": 2,
+            "candidatePages": 2,
+            "sourceOnce": true,
+            "allLabelPageAndBboxCoordinatesMatch": true,
+            "maxBboxDeltaCssPx": 0.0062386666666611745,
+            "rawRgbMae": 0.7529549622987569,
+            "maxPageRawRgbMae": 0.9810372936621153
+          }
+        ]
+      },
+      {
+        "case": "sequential-flex-4-4",
+        "profiles": [
+          {
+            "profile": "PrintPaged",
+            "nativePages": 2,
+            "candidatePages": 2,
+            "sourceOnce": true,
+            "allLabelPageAndBboxCoordinatesMatch": true,
+            "maxBboxDeltaCssPx": 0.0062386666666611745,
+            "rawRgbMae": 0.7529549622987569,
+            "maxPageRawRgbMae": 0.9810372936621153
+          },
+          {
+            "profile": "ScreenMediaPaged",
+            "nativePages": 2,
+            "candidatePages": 2,
+            "sourceOnce": true,
+            "allLabelPageAndBboxCoordinatesMatch": true,
+            "maxBboxDeltaCssPx": 0.0062386666666611745,
+            "rawRgbMae": 0.7529549622987569,
+            "maxPageRawRgbMae": 0.9810372936621153
+          }
+        ]
+      },
+      {
+        "case": "sequential-flex-4-12",
+        "profiles": [
+          {
+            "profile": "PrintPaged",
+            "nativePages": 4,
+            "candidatePages": 4,
+            "sourceOnce": true,
+            "allLabelPageAndBboxCoordinatesMatch": true,
+            "maxBboxDeltaCssPx": 0.0062386666666611745,
+            "rawRgbMae": 0.6661682290605258,
+            "maxPageRawRgbMae": 1.453933156714897
+          },
+          {
+            "profile": "ScreenMediaPaged",
+            "nativePages": 4,
+            "candidatePages": 4,
+            "sourceOnce": true,
+            "allLabelPageAndBboxCoordinatesMatch": true,
+            "maxBboxDeltaCssPx": 0.0062386666666611745,
+            "rawRgbMae": 0.6661682290605258,
+            "maxPageRawRgbMae": 1.453933156714897
+          }
+        ]
+      },
+      {
+        "case": "sequential-flex-4-24",
+        "profiles": [
+          {
+            "profile": "PrintPaged",
+            "nativePages": 6,
+            "candidatePages": 6,
+            "sourceOnce": true,
+            "allLabelPageAndBboxCoordinatesMatch": true,
+            "maxBboxDeltaCssPx": 0.0062386666666611745,
+            "rawRgbMae": 0.7353899191631004,
+            "maxPageRawRgbMae": 1.453933156714897
+          },
+          {
+            "profile": "ScreenMediaPaged",
+            "nativePages": 6,
+            "candidatePages": 6,
+            "sourceOnce": true,
+            "allLabelPageAndBboxCoordinatesMatch": true,
+            "maxBboxDeltaCssPx": 0.0062386666666611745,
+            "rawRgbMae": 0.7353899191631004,
+            "maxPageRawRgbMae": 1.453933156714897
+          }
+        ]
+      },
+      {
+        "case": "sequential-flex-min0-4-4",
+        "profiles": [
+          {
+            "profile": "PrintPaged",
+            "nativePages": 2,
+            "candidatePages": 2,
+            "sourceOnce": true,
+            "allLabelPageAndBboxCoordinatesMatch": true,
+            "maxBboxDeltaCssPx": 0.0062386666666611745,
+            "rawRgbMae": 0.7529549622987569,
+            "maxPageRawRgbMae": 0.9810372936621153
+          },
+          {
+            "profile": "ScreenMediaPaged",
+            "nativePages": 2,
+            "candidatePages": 2,
+            "sourceOnce": true,
+            "allLabelPageAndBboxCoordinatesMatch": true,
+            "maxBboxDeltaCssPx": 0.0062386666666611745,
+            "rawRgbMae": 0.7529549622987569,
+            "maxPageRawRgbMae": 0.9810372936621153
+          }
+        ]
+      },
+      {
+        "case": "sequential-grid-4-4",
+        "profiles": [
+          {
+            "profile": "PrintPaged",
+            "nativePages": 2,
+            "candidatePages": 2,
+            "sourceOnce": true,
+            "allLabelPageAndBboxCoordinatesMatch": true,
+            "maxBboxDeltaCssPx": 0.0062386666666611745,
+            "rawRgbMae": 0.7529549622987569,
+            "maxPageRawRgbMae": 0.9810372936621153
+          },
+          {
+            "profile": "ScreenMediaPaged",
+            "nativePages": 2,
+            "candidatePages": 2,
+            "sourceOnce": true,
+            "allLabelPageAndBboxCoordinatesMatch": true,
+            "maxBboxDeltaCssPx": 0.0062386666666611745,
+            "rawRgbMae": 0.7529549622987569,
+            "maxPageRawRgbMae": 0.9810372936621153
+          }
+        ]
+      },
+      {
+        "case": "sequential-grid-min0-4-4",
+        "profiles": [
+          {
+            "profile": "PrintPaged",
+            "nativePages": 2,
+            "candidatePages": 2,
+            "sourceOnce": true,
+            "allLabelPageAndBboxCoordinatesMatch": true,
+            "maxBboxDeltaCssPx": 0.0062386666666611745,
+            "rawRgbMae": 0.7529549622987569,
+            "maxPageRawRgbMae": 0.9810372936621153
+          },
+          {
+            "profile": "ScreenMediaPaged",
+            "nativePages": 2,
+            "candidatePages": 2,
+            "sourceOnce": true,
+            "allLabelPageAndBboxCoordinatesMatch": true,
+            "maxBboxDeltaCssPx": 0.0062386666666611745,
+            "rawRgbMae": 0.7529549622987569,
+            "maxPageRawRgbMae": 0.9810372936621153
+          }
+        ]
+      },
+      {
+        "case": "sequential-flex-definite200",
+        "profiles": [
+          {
+            "profile": "PrintPaged",
+            "nativePages": 3,
+            "candidatePages": 3,
+            "sourceOnce": true,
+            "allLabelPageAndBboxCoordinatesMatch": true,
+            "maxBboxDeltaCssPx": 0.0062386666666611745,
+            "rawRgbMae": 0.5019699748658379,
+            "maxPageRawRgbMae": 0.9810372936621153
+          },
+          {
+            "profile": "ScreenMediaPaged",
+            "nativePages": 3,
+            "candidatePages": 3,
+            "sourceOnce": true,
+            "allLabelPageAndBboxCoordinatesMatch": true,
+            "maxBboxDeltaCssPx": 0.0062386666666611745,
+            "rawRgbMae": 0.5019699748658379,
+            "maxPageRawRgbMae": 0.9810372936621153
+          }
+        ]
+      },
+      {
+        "case": "sequential-flex-basis0",
+        "profiles": [
+          {
+            "profile": "PrintPaged",
+            "nativePages": 2,
+            "candidatePages": 2,
+            "sourceOnce": true,
+            "allLabelPageAndBboxCoordinatesMatch": true,
+            "maxBboxDeltaCssPx": 0.0062386666666611745,
+            "rawRgbMae": 0.7529549622987569,
+            "maxPageRawRgbMae": 0.9810372936621153
+          },
+          {
+            "profile": "ScreenMediaPaged",
+            "nativePages": 2,
+            "candidatePages": 2,
+            "sourceOnce": true,
+            "allLabelPageAndBboxCoordinatesMatch": true,
+            "maxBboxDeltaCssPx": 0.0062386666666611745,
+            "rawRgbMae": 0.7529549622987569,
+            "maxPageRawRgbMae": 0.9810372936621153
+          }
+        ]
+      },
+      {
+        "case": "owner-balance-indefinite",
+        "profiles": [
+          {
+            "profile": "PrintPaged",
+            "nativePages": 1,
+            "candidatePages": 1,
+            "sourceOnce": true,
+            "allLabelPageAndBboxCoordinatesMatch": true,
+            "maxBboxDeltaCssPx": 0.0062373333333312075,
+            "rawRgbMae": 1.1892194823721214,
+            "maxPageRawRgbMae": 1.1892194823721214
+          },
+          {
+            "profile": "ScreenMediaPaged",
+            "nativePages": 1,
+            "candidatePages": 1,
+            "sourceOnce": true,
+            "allLabelPageAndBboxCoordinatesMatch": true,
+            "maxBboxDeltaCssPx": 0.0062373333333312075,
+            "rawRgbMae": 1.1892194823721214,
+            "maxPageRawRgbMae": 1.1892194823721214
+          }
+        ]
+      },
+      {
+        "case": "owner-flex-basis-percent",
+        "profiles": [
+          {
+            "profile": "PrintPaged",
+            "nativePages": 2,
+            "candidatePages": 2,
+            "sourceOnce": true,
+            "allLabelPageAndBboxCoordinatesMatch": true,
+            "maxBboxDeltaCssPx": 0.0062386666666611745,
+            "rawRgbMae": 0.8736804564907276,
+            "maxPageRawRgbMae": 0.934613816996128
+          },
+          {
+            "profile": "ScreenMediaPaged",
+            "nativePages": 2,
+            "candidatePages": 2,
+            "sourceOnce": true,
+            "allLabelPageAndBboxCoordinatesMatch": true,
+            "maxBboxDeltaCssPx": 0.0062386666666611745,
+            "rawRgbMae": 0.8736804564907276,
+            "maxPageRawRgbMae": 0.934613816996128
+          }
+        ]
+      },
+      {
+        "case": "owner-grid-rows-start",
+        "profiles": [
+          {
+            "profile": "PrintPaged",
+            "nativePages": 2,
+            "candidatePages": 2,
+            "sourceOnce": true,
+            "allLabelPageAndBboxCoordinatesMatch": true,
+            "maxBboxDeltaCssPx": 0.0062386666666611745,
+            "rawRgbMae": 0.8736804564907276,
+            "maxPageRawRgbMae": 0.934613816996128
+          },
+          {
+            "profile": "ScreenMediaPaged",
+            "nativePages": 2,
+            "candidatePages": 2,
+            "sourceOnce": true,
+            "allLabelPageAndBboxCoordinatesMatch": true,
+            "maxBboxDeltaCssPx": 0.0062386666666611745,
+            "rawRgbMae": 0.8736804564907276,
+            "maxPageRawRgbMae": 0.934613816996128
+          }
+        ]
+      },
+      {
+        "case": "owner-auto-max100",
+        "profiles": [
+          {
+            "profile": "PrintPaged",
+            "nativePages": 1,
+            "candidatePages": 1,
+            "sourceOnce": true,
+            "allLabelPageAndBboxCoordinatesMatch": true,
+            "maxBboxDeltaCssPx": 0.0062386666666611745,
+            "rawRgbMae": 1.1892194823721214,
+            "maxPageRawRgbMae": 1.1892194823721214
+          },
+          {
+            "profile": "ScreenMediaPaged",
+            "nativePages": 1,
+            "candidatePages": 1,
+            "sourceOnce": true,
+            "allLabelPageAndBboxCoordinatesMatch": true,
+            "maxBboxDeltaCssPx": 0.0062386666666611745,
+            "rawRgbMae": 1.1892194823721214,
+            "maxPageRawRgbMae": 1.1892194823721214
+          }
+        ]
+      },
+      {
+        "case": "owner-balance-min60",
+        "profiles": [
+          {
+            "profile": "PrintPaged",
+            "nativePages": 1,
+            "candidatePages": 1,
+            "sourceOnce": true,
+            "allLabelPageAndBboxCoordinatesMatch": true,
+            "maxBboxDeltaCssPx": 0.0062386666666611745,
+            "rawRgbMae": 1.1892194823721214,
+            "maxPageRawRgbMae": 1.1892194823721214
+          },
+          {
+            "profile": "ScreenMediaPaged",
+            "nativePages": 1,
+            "candidatePages": 1,
+            "sourceOnce": true,
+            "allLabelPageAndBboxCoordinatesMatch": true,
+            "maxBboxDeltaCssPx": 0.0062386666666611745,
+            "rawRgbMae": 1.1892194823721214,
+            "maxPageRawRgbMae": 1.1892194823721214
+          }
+        ]
+      },
+      {
+        "case": "owner-balance-max60",
+        "profiles": [
+          {
+            "profile": "PrintPaged",
+            "nativePages": 1,
+            "candidatePages": 1,
+            "sourceOnce": true,
+            "allLabelPageAndBboxCoordinatesMatch": true,
+            "maxBboxDeltaCssPx": 0.0062373333333312075,
+            "rawRgbMae": 1.1892194823721214,
+            "maxPageRawRgbMae": 1.1892194823721214
+          },
+          {
+            "profile": "ScreenMediaPaged",
+            "nativePages": 1,
+            "candidatePages": 1,
+            "sourceOnce": true,
+            "allLabelPageAndBboxCoordinatesMatch": true,
+            "maxBboxDeltaCssPx": 0.0062373333333312075,
+            "rawRgbMae": 1.1892194823721214,
+            "maxPageRawRgbMae": 1.1892194823721214
+          }
+        ]
+      },
+      {
+        "case": "owner-flex-long-first",
+        "profiles": [
+          {
+            "profile": "PrintPaged",
+            "nativePages": 4,
+            "candidatePages": 4,
+            "sourceOnce": true,
+            "allLabelPageAndBboxCoordinatesMatch": true,
+            "maxBboxDeltaCssPx": 0.0062386666666611745,
+            "rawRgbMae": 0.9334700427960058,
+            "maxPageRawRgbMae": 1.8174954147136744
+          },
+          {
+            "profile": "ScreenMediaPaged",
+            "nativePages": 4,
+            "candidatePages": 4,
+            "sourceOnce": true,
+            "allLabelPageAndBboxCoordinatesMatch": true,
+            "maxBboxDeltaCssPx": 0.0062386666666611745,
+            "rawRgbMae": 0.9334700427960058,
+            "maxPageRawRgbMae": 1.8174954147136744
+          }
+        ]
+      },
+      {
+        "case": "owner-auto-indefinite",
+        "profiles": [
+          {
+            "profile": "PrintPaged",
+            "nativePages": 1,
+            "candidatePages": 1,
+            "sourceOnce": true,
+            "allLabelPageAndBboxCoordinatesMatch": true,
+            "maxBboxDeltaCssPx": 0.0062386666666611745,
+            "rawRgbMae": 1.1892194823721214,
+            "maxPageRawRgbMae": 1.1892194823721214
+          },
+          {
+            "profile": "ScreenMediaPaged",
+            "nativePages": 1,
+            "candidatePages": 1,
+            "sourceOnce": true,
+            "allLabelPageAndBboxCoordinatesMatch": true,
+            "maxBboxDeltaCssPx": 0.0062386666666611745,
+            "rawRgbMae": 1.1892194823721214,
+            "maxPageRawRgbMae": 1.1892194823721214
+          }
+        ]
+      },
+      {
+        "case": "owner-flex-min-auto",
+        "profiles": [
+          {
+            "profile": "PrintPaged",
+            "nativePages": 1,
+            "candidatePages": 1,
+            "sourceOnce": true,
+            "allLabelPageAndBboxCoordinatesMatch": true,
+            "maxBboxDeltaCssPx": 0.0062386666666611745,
+            "rawRgbMae": 0.9535561442836764,
+            "maxPageRawRgbMae": 0.9535561442836764
+          },
+          {
+            "profile": "ScreenMediaPaged",
+            "nativePages": 1,
+            "candidatePages": 1,
+            "sourceOnce": true,
+            "allLabelPageAndBboxCoordinatesMatch": true,
+            "maxBboxDeltaCssPx": 0.0062386666666611745,
+            "rawRgbMae": 0.9535561442836764,
+            "maxPageRawRgbMae": 0.9535561442836764
+          }
+        ]
+      },
+      {
+        "case": "owner-auto-min60",
+        "profiles": [
+          {
+            "profile": "PrintPaged",
+            "nativePages": 1,
+            "candidatePages": 1,
+            "sourceOnce": true,
+            "allLabelPageAndBboxCoordinatesMatch": true,
+            "maxBboxDeltaCssPx": 0.0062386666666611745,
+            "rawRgbMae": 1.1892194823721214,
+            "maxPageRawRgbMae": 1.1892194823721214
+          },
+          {
+            "profile": "ScreenMediaPaged",
+            "nativePages": 1,
+            "candidatePages": 1,
+            "sourceOnce": true,
+            "allLabelPageAndBboxCoordinatesMatch": true,
+            "maxBboxDeltaCssPx": 0.0062386666666611745,
+            "rawRgbMae": 1.1892194823721214,
+            "maxPageRawRgbMae": 1.1892194823721214
+          }
+        ]
+      },
+      {
+        "case": "owner-auto-max60",
+        "profiles": [
+          {
+            "profile": "PrintPaged",
+            "nativePages": 1,
+            "candidatePages": 1,
+            "sourceOnce": true,
+            "allLabelPageAndBboxCoordinatesMatch": true,
+            "maxBboxDeltaCssPx": 0.0062386666666611745,
+            "rawRgbMae": 1.071143264723864,
+            "maxPageRawRgbMae": 1.071143264723864
+          },
+          {
+            "profile": "ScreenMediaPaged",
+            "nativePages": 1,
+            "candidatePages": 1,
+            "sourceOnce": true,
+            "allLabelPageAndBboxCoordinatesMatch": true,
+            "maxBboxDeltaCssPx": 0.0062386666666611745,
+            "rawRgbMae": 1.071143264723864,
+            "maxPageRawRgbMae": 1.071143264723864
+          }
+        ]
+      },
+      {
+        "case": "owner-block-long-first",
+        "profiles": [
+          {
+            "profile": "PrintPaged",
+            "nativePages": 3,
+            "candidatePages": 3,
+            "sourceOnce": true,
+            "allLabelPageAndBboxCoordinatesMatch": true,
+            "maxBboxDeltaCssPx": 0.0062386666666611745,
+            "rawRgbMae": 1.2446267237280075,
+            "maxPageRawRgbMae": 1.8174954147136744
+          },
+          {
+            "profile": "ScreenMediaPaged",
+            "nativePages": 3,
+            "candidatePages": 3,
+            "sourceOnce": true,
+            "allLabelPageAndBboxCoordinatesMatch": true,
+            "maxBboxDeltaCssPx": 0.0062386666666611745,
+            "rawRgbMae": 1.2446267237280075,
+            "maxPageRawRgbMae": 1.8174954147136744
+          }
+        ]
+      },
+      {
+        "case": "owner-flex-min-zero",
+        "profiles": [
+          {
+            "profile": "PrintPaged",
+            "nativePages": 1,
+            "candidatePages": 1,
+            "sourceOnce": true,
+            "allLabelPageAndBboxCoordinatesMatch": true,
+            "maxBboxDeltaCssPx": 0.0062386666666611745,
+            "rawRgbMae": 1.05560423884247,
+            "maxPageRawRgbMae": 1.05560423884247
+          },
+          {
+            "profile": "ScreenMediaPaged",
+            "nativePages": 1,
+            "candidatePages": 1,
+            "sourceOnce": true,
+            "allLabelPageAndBboxCoordinatesMatch": true,
+            "maxBboxDeltaCssPx": 0.0062386666666611745,
+            "rawRgbMae": 1.05560423884247,
+            "maxPageRawRgbMae": 1.05560423884247
+          }
+        ]
+      },
+      {
+        "case": "owner-auto-grid-intrinsic-row",
+        "profiles": [
+          {
+            "profile": "PrintPaged",
+            "nativePages": 1,
+            "candidatePages": 1,
+            "sourceOnce": true,
+            "allLabelPageAndBboxCoordinatesMatch": true,
+            "maxBboxDeltaCssPx": 0.0062386666666611745,
+            "rawRgbMae": 1.1892194823721214,
+            "maxPageRawRgbMae": 1.1892194823721214
+          },
+          {
+            "profile": "ScreenMediaPaged",
+            "nativePages": 1,
+            "candidatePages": 1,
+            "sourceOnce": true,
+            "allLabelPageAndBboxCoordinatesMatch": true,
+            "maxBboxDeltaCssPx": 0.0062386666666611745,
+            "rawRgbMae": 1.1892194823721214,
+            "maxPageRawRgbMae": 1.1892194823721214
+          }
+        ]
+      },
+      {
+        "case": "owner-auto-height40",
+        "profiles": [
+          {
+            "profile": "PrintPaged",
+            "nativePages": 1,
+            "candidatePages": 1,
+            "sourceOnce": true,
+            "allLabelPageAndBboxCoordinatesMatch": true,
+            "maxBboxDeltaCssPx": 0.0062373333333312075,
+            "rawRgbMae": 1.1892194823721214,
+            "maxPageRawRgbMae": 1.1892194823721214
+          },
+          {
+            "profile": "ScreenMediaPaged",
+            "nativePages": 1,
+            "candidatePages": 1,
+            "sourceOnce": true,
+            "allLabelPageAndBboxCoordinatesMatch": true,
+            "maxBboxDeltaCssPx": 0.0062373333333312075,
+            "rawRgbMae": 1.1892194823721214,
+            "maxPageRawRgbMae": 1.1892194823721214
+          }
+        ]
+      },
+      {
+        "case": "owner-auto-nested-wrapper",
+        "profiles": [
+          {
+            "profile": "PrintPaged",
+            "nativePages": 1,
+            "candidatePages": 1,
+            "sourceOnce": true,
+            "allLabelPageAndBboxCoordinatesMatch": true,
+            "maxBboxDeltaCssPx": 0.0062386666666611745,
+            "rawRgbMae": 1.1892194823721214,
+            "maxPageRawRgbMae": 1.1892194823721214
+          },
+          {
+            "profile": "ScreenMediaPaged",
+            "nativePages": 1,
+            "candidatePages": 1,
+            "sourceOnce": true,
+            "allLabelPageAndBboxCoordinatesMatch": true,
+            "maxBboxDeltaCssPx": 0.0062386666666611745,
+            "rawRgbMae": 1.1892194823721214,
+            "maxPageRawRgbMae": 1.1892194823721214
+          }
+        ]
+      },
+      {
+        "case": "owner-grid-rows-stretch",
+        "profiles": [
+          {
+            "profile": "PrintPaged",
+            "nativePages": 2,
+            "candidatePages": 2,
+            "sourceOnce": true,
+            "allLabelPageAndBboxCoordinatesMatch": true,
+            "maxBboxDeltaCssPx": 0.0062386666666611745,
+            "rawRgbMae": 0.8736804564907276,
+            "maxPageRawRgbMae": 0.934613816996128
+          },
+          {
+            "profile": "ScreenMediaPaged",
+            "nativePages": 2,
+            "candidatePages": 2,
+            "sourceOnce": true,
+            "allLabelPageAndBboxCoordinatesMatch": true,
+            "maxBboxDeltaCssPx": 0.0062386666666611745,
+            "rawRgbMae": 0.8736804564907276,
+            "maxPageRawRgbMae": 0.934613816996128
+          }
+        ]
+      },
+      {
+        "case": "owner-auto-flex-column-order",
+        "profiles": [
+          {
+            "profile": "PrintPaged",
+            "nativePages": 2,
+            "candidatePages": 2,
+            "sourceOnce": true,
+            "allLabelPageAndBboxCoordinatesMatch": true,
+            "maxBboxDeltaCssPx": 0.0062386666666611745,
+            "rawRgbMae": 0.7529549622987569,
+            "maxPageRawRgbMae": 0.9810372936621153
+          },
+          {
+            "profile": "ScreenMediaPaged",
+            "nativePages": 2,
+            "candidatePages": 2,
+            "sourceOnce": true,
+            "allLabelPageAndBboxCoordinatesMatch": true,
+            "maxBboxDeltaCssPx": 0.0062386666666611745,
+            "rawRgbMae": 0.7529549622987569,
+            "maxPageRawRgbMae": 0.9810372936621153
+          }
+        ]
+      },
+      {
+        "case": "owner-auto-min100",
+        "profiles": [
+          {
+            "profile": "PrintPaged",
+            "nativePages": 2,
+            "candidatePages": 2,
+            "sourceOnce": true,
+            "allLabelPageAndBboxCoordinatesMatch": true,
+            "maxBboxDeltaCssPx": 0.0062386666666611745,
+            "rawRgbMae": 0.5946097411860607,
+            "maxPageRawRgbMae": 0.9595170165070308
+          },
+          {
+            "profile": "ScreenMediaPaged",
+            "nativePages": 2,
+            "candidatePages": 2,
+            "sourceOnce": true,
+            "allLabelPageAndBboxCoordinatesMatch": true,
+            "maxBboxDeltaCssPx": 0.0062386666666611745,
+            "rawRgbMae": 0.5946097411860607,
+            "maxPageRawRgbMae": 0.9595170165070308
+          }
+        ]
+      },
+      {
+        "case": "neighbor-auto-min100-max60",
+        "profiles": [
+          {
+            "profile": "PrintPaged",
+            "nativePages": 2,
+            "candidatePages": 2,
+            "sourceOnce": true,
+            "allLabelPageAndBboxCoordinatesMatch": true,
+            "maxBboxDeltaCssPx": 0.0062386666666611745,
+            "rawRgbMae": 0.5946097411860607,
+            "maxPageRawRgbMae": 0.9595170165070308
+          },
+          {
+            "profile": "ScreenMediaPaged",
+            "nativePages": 2,
+            "candidatePages": 2,
+            "sourceOnce": true,
+            "allLabelPageAndBboxCoordinatesMatch": true,
+            "maxBboxDeltaCssPx": 0.0062386666666611745,
+            "rawRgbMae": 0.5946097411860607,
+            "maxPageRawRgbMae": 0.9595170165070308
+          }
+        ]
+      },
+      {
+        "case": "neighbor-grid-wrapped",
+        "profiles": [
+          {
+            "profile": "PrintPaged",
+            "nativePages": 3,
+            "candidatePages": 3,
+            "sourceOnce": true,
+            "allLabelPageAndBboxCoordinatesMatch": true,
+            "maxBboxDeltaCssPx": 0.0062386666666611745,
+            "rawRgbMae": 0.6864275524760546,
+            "maxPageRawRgbMae": 0.7830751986957408
+          },
+          {
+            "profile": "ScreenMediaPaged",
+            "nativePages": 3,
+            "candidatePages": 3,
+            "sourceOnce": true,
+            "allLabelPageAndBboxCoordinatesMatch": true,
+            "maxBboxDeltaCssPx": 0.0062386666666611745,
+            "rawRgbMae": 0.6864275524760546,
+            "maxPageRawRgbMae": 0.7830751986957408
+          }
+        ]
+      },
+      {
+        "case": "neighbor-row-flex-stretch",
+        "profiles": [
+          {
+            "profile": "PrintPaged",
+            "nativePages": 3,
+            "candidatePages": 3,
+            "sourceOnce": true,
+            "allLabelPageAndBboxCoordinatesMatch": true,
+            "maxBboxDeltaCssPx": 0.0062386666666611745,
+            "rawRgbMae": 1.0383363901908838,
+            "maxPageRawRgbMae": 2.172600366822906
+          },
+          {
+            "profile": "ScreenMediaPaged",
+            "nativePages": 3,
+            "candidatePages": 3,
+            "sourceOnce": true,
+            "allLabelPageAndBboxCoordinatesMatch": true,
+            "maxBboxDeltaCssPx": 0.0062386666666611745,
+            "rawRgbMae": 1.0383363901908838,
+            "maxPageRawRgbMae": 2.172600366822906
+          }
+        ]
+      },
+      {
+        "case": "neighbor-wrapped-capacity19",
+        "profiles": [
+          {
+            "profile": "PrintPaged",
+            "nativePages": 3,
+            "candidatePages": 3,
+            "sourceOnce": true,
+            "allLabelPageAndBboxCoordinatesMatch": true,
+            "maxBboxDeltaCssPx": 0.0062386666666611745,
+            "rawRgbMae": 0.7900550234359078,
+            "maxPageRawRgbMae": 0.9027409822702263
+          },
+          {
+            "profile": "ScreenMediaPaged",
+            "nativePages": 3,
+            "candidatePages": 3,
+            "sourceOnce": true,
+            "allLabelPageAndBboxCoordinatesMatch": true,
+            "maxBboxDeltaCssPx": 0.0062386666666611745,
+            "rawRgbMae": 0.7900550234359078,
+            "maxPageRawRgbMae": 0.9027409822702263
+          }
+        ]
+      },
+      {
+        "case": "neighbor-wrapped-margins-no-insets",
+        "profiles": [
+          {
+            "profile": "PrintPaged",
+            "nativePages": 3,
+            "candidatePages": 3,
+            "sourceOnce": true,
+            "allLabelPageAndBboxCoordinatesMatch": true,
+            "maxBboxDeltaCssPx": 0.0062386666666611745,
+            "rawRgbMae": 0.6864275524760546,
+            "maxPageRawRgbMae": 0.7830751986957408
+          },
+          {
+            "profile": "ScreenMediaPaged",
+            "nativePages": 3,
+            "candidatePages": 3,
+            "sourceOnce": true,
+            "allLabelPageAndBboxCoordinatesMatch": true,
+            "maxBboxDeltaCssPx": 0.0062386666666611745,
+            "rawRgbMae": 0.6864275524760546,
+            "maxPageRawRgbMae": 0.7830751986957408
+          }
+        ]
+      },
+      {
+        "case": "neighbor-wrapped-positive-margin",
+        "profiles": [
+          {
+            "profile": "PrintPaged",
+            "nativePages": 2,
+            "candidatePages": 2,
+            "sourceOnce": true,
+            "allLabelPageAndBboxCoordinatesMatch": true,
+            "maxBboxDeltaCssPx": 0.0062386666666611745,
+            "rawRgbMae": 1.029641328714082,
+            "maxPageRawRgbMae": 1.374933768086407
+          },
+          {
+            "profile": "ScreenMediaPaged",
+            "nativePages": 2,
+            "candidatePages": 2,
+            "sourceOnce": true,
+            "allLabelPageAndBboxCoordinatesMatch": true,
+            "maxBboxDeltaCssPx": 0.0062386666666611745,
+            "rawRgbMae": 1.029641328714082,
+            "maxPageRawRgbMae": 1.374933768086407
+          }
+        ]
+      },
+      {
+        "case": "owner-grid-fixed80-percent",
+        "profiles": [
+          {
+            "profile": "PrintPaged",
+            "nativePages": 1,
+            "candidatePages": 1,
+            "sourceOnce": true,
+            "allLabelPageAndBboxCoordinatesMatch": true,
+            "maxBboxDeltaCssPx": 0.0062386666666611745,
+            "rawRgbMae": 0.9802017525983289,
+            "maxPageRawRgbMae": 0.9802017525983289
+          },
+          {
+            "profile": "ScreenMediaPaged",
+            "nativePages": 1,
+            "candidatePages": 1,
+            "sourceOnce": true,
+            "allLabelPageAndBboxCoordinatesMatch": true,
+            "maxBboxDeltaCssPx": 0.0062386666666611745,
+            "rawRgbMae": 0.9802017525983289,
+            "maxPageRawRgbMae": 0.9802017525983289
+          }
+        ]
+      },
+      {
+        "case": "owner-grid-long-first",
+        "profiles": [
+          {
+            "profile": "PrintPaged",
+            "nativePages": 4,
+            "candidatePages": 4,
+            "sourceOnce": true,
+            "allLabelPageAndBboxCoordinatesMatch": true,
+            "maxBboxDeltaCssPx": 0.0062386666666611745,
+            "rawRgbMae": 0.9334700427960058,
+            "maxPageRawRgbMae": 1.8174954147136744
+          },
+          {
+            "profile": "ScreenMediaPaged",
+            "nativePages": 4,
+            "candidatePages": 4,
+            "sourceOnce": true,
+            "allLabelPageAndBboxCoordinatesMatch": true,
+            "maxBboxDeltaCssPx": 0.0062386666666611745,
+            "rawRgbMae": 0.9334700427960058,
+            "maxPageRawRgbMae": 1.8174954147136744
+          }
+        ]
+      },
+      {
+        "case": "owner-grid-rows-fixed40",
+        "profiles": [
+          {
+            "profile": "PrintPaged",
+            "nativePages": 1,
+            "candidatePages": 1,
+            "sourceOnce": true,
+            "allLabelPageAndBboxCoordinatesMatch": true,
+            "maxBboxDeltaCssPx": 0.0062386666666611745,
+            "rawRgbMae": 1.7473609129814551,
+            "maxPageRawRgbMae": 1.7473609129814551
+          },
+          {
+            "profile": "ScreenMediaPaged",
+            "nativePages": 1,
+            "candidatePages": 1,
+            "sourceOnce": true,
+            "allLabelPageAndBboxCoordinatesMatch": true,
+            "maxBboxDeltaCssPx": 0.0062386666666611745,
+            "rawRgbMae": 1.7473609129814551,
+            "maxPageRawRgbMae": 1.7473609129814551
+          }
+        ]
+      },
+      {
+        "case": "owner-grid-rows-fixed80",
+        "profiles": [
+          {
+            "profile": "PrintPaged",
+            "nativePages": 2,
+            "candidatePages": 2,
+            "sourceOnce": true,
+            "allLabelPageAndBboxCoordinatesMatch": true,
+            "maxBboxDeltaCssPx": 0.0062386666666611745,
+            "rawRgbMae": 0.8736804564907276,
+            "maxPageRawRgbMae": 0.934613816996128
+          },
+          {
+            "profile": "ScreenMediaPaged",
+            "nativePages": 2,
+            "candidatePages": 2,
+            "sourceOnce": true,
+            "allLabelPageAndBboxCoordinatesMatch": true,
+            "maxBboxDeltaCssPx": 0.0062386666666611745,
+            "rawRgbMae": 0.8736804564907276,
+            "maxPageRawRgbMae": 0.934613816996128
+          }
+        ]
+      },
+      {
+        "case": "owner-row-flex-auto-columns",
+        "profiles": [
+          {
+            "profile": "PrintPaged",
+            "nativePages": 2,
+            "candidatePages": 2,
+            "sourceOnce": true,
+            "allLabelPageAndBboxCoordinatesMatch": true,
+            "maxBboxDeltaCssPx": 0.0062386666666611745,
+            "rawRgbMae": 1.5575045852863256,
+            "maxPageRawRgbMae": 2.172600366822906
+          },
+          {
+            "profile": "ScreenMediaPaged",
+            "nativePages": 2,
+            "candidatePages": 2,
+            "sourceOnce": true,
+            "allLabelPageAndBboxCoordinatesMatch": true,
+            "maxBboxDeltaCssPx": 0.0062386666666611745,
+            "rawRgbMae": 1.5575045852863256,
+            "maxPageRawRgbMae": 2.172600366822906
+          }
+        ]
+      },
+      {
+        "case": "owner-wrapped-column-flex-order",
+        "profiles": [
+          {
+            "profile": "PrintPaged",
+            "nativePages": 3,
+            "candidatePages": 3,
+            "sourceOnce": true,
+            "allLabelPageAndBboxCoordinatesMatch": true,
+            "maxBboxDeltaCssPx": 0.0062386666666611745,
+            "rawRgbMae": 0.6864275524760546,
+            "maxPageRawRgbMae": 0.7830751986957408
+          },
+          {
+            "profile": "ScreenMediaPaged",
+            "nativePages": 3,
+            "candidatePages": 3,
+            "sourceOnce": true,
+            "allLabelPageAndBboxCoordinatesMatch": true,
+            "maxBboxDeltaCssPx": 0.0062386666666611745,
+            "rawRgbMae": 0.6864275524760546,
+            "maxPageRawRgbMae": 0.7830751986957408
+          }
+        ]
+      },
+      {
+        "case": "owner-wrapped-column-flex-order-margins",
+        "profiles": [
+          {
+            "profile": "PrintPaged",
+            "nativePages": 3,
+            "candidatePages": 3,
+            "sourceOnce": true,
+            "allLabelPageAndBboxCoordinatesMatch": true,
+            "maxBboxDeltaCssPx": 0.0062386666666611745,
+            "rawRgbMae": 0.6864275524760546,
+            "maxPageRawRgbMae": 0.7830751986957408
+          },
+          {
+            "profile": "ScreenMediaPaged",
+            "nativePages": 3,
+            "candidatePages": 3,
+            "sourceOnce": true,
+            "allLabelPageAndBboxCoordinatesMatch": true,
+            "maxBboxDeltaCssPx": 0.0062386666666611745,
+            "rawRgbMae": 0.6864275524760546,
+            "maxPageRawRgbMae": 0.7830751986957408
+          }
+        ]
+      }
+    ],
+    "analysis": {
+      "path": "qualified-rendered-analysis/analysis.json",
+      "bytes": 6416058,
+      "sha256": "128efee673585e709fe1974eba64aa07f91f8d923fcd8dc5c8671ad759990ebf"
+    },
+    "findings": {
+      "path": "qualified-rendered-analysis/findings.json",
+      "bytes": 118771,
+      "sha256": "99ce8588c0d1b7d6073e1bb56a31e8cb908428c204401023eeb96a3c6a256b4e"
+    },
+    "pageComparisons": 184,
+    "maxBboxDeltaCssPx": 0.0062386666666611745,
+    "boundaryCases": [
+      {
+        "case": "neighbor-balance-max30",
+        "limitation": "Short balanced max-height creates more horizontal columns than fit the authored width; native continuous and paged overflow ownership differ. Managed source-preserving AFTER placement stays explicit; no native-parity acceptance claim.",
+        "nativeParityAccepted": false
+      },
+      {
+        "case": "owner-auto-max60-overflow",
+        "limitation": "Authored short max-height can overflow sideways; native paged output may clip or shrink off-page columns. No native-parity acceptance claim.",
+        "nativeParityAccepted": false
+      },
+      {
+        "case": "owner-auto-border-box-max60",
+        "limitation": "A short border-box max-height leaves less than a full pair of source lines per column; native paged overflow/clipping/scaling remains an explicit boundary.",
+        "nativeParityAccepted": false
+      },
+      {
+        "case": "owner-flex-basis-length",
+        "limitation": "A definite zero-length flex basis produces short-height horizontal overflow; native paged clipping/scaling remains an explicit boundary.",
+        "nativeParityAccepted": false
+      },
+      {
+        "case": "owner-auto-forced-break",
+        "limitation": "Pre-existing unsupported forced column break; the selected behavior is source-preserving typed fallback. Never count this case as native column-break support.",
+        "nativeParityAccepted": false
+      }
+    ],
+    "continuousDomEvidence": {
+      "status": "passed-for-declared-scope",
+      "casesWithoutDOM": [
+        "continuous-auto-6",
+        "continuous-balance-6",
+        "continuous-max60-6",
+        "continuous-min80-6",
+        "sequential-block-4-4",
+        "sequential-flex-4-4",
+        "sequential-flex-4-12",
+        "sequential-flex-4-24",
+        "sequential-flex-min0-4-4",
+        "sequential-grid-4-4",
+        "sequential-grid-min0-4-4",
+        "sequential-flex-definite200",
+        "sequential-flex-basis0"
+      ],
+      "casesWithoutDOMCount": 13,
+      "boundary": "These thirteen native captures contain no ID-based DOM boxes. They do not qualify native continuous geometry; paged PDF evidence is assessed separately.",
+      "observedCases": 37,
+      "qualifiedCases": 32,
+      "explicitBoundaryCases": 5,
+      "comparison": "ID-backed text positions and AFTER geometry within 0.1 CSS px. The thirteen initial inputs without IDs do not count as native continuous-geometry acceptance."
+    },
+    "method": "Use exact input/font bytes, source multiplicity, page/column and bbox checks, and unmasked raster comparisons. Native DOM geometry, native paged appearance and renderer replay remain separate proof. No pixel-parity claim.",
+    "svg": {
+      "status": "passed",
+      "evidence": {
+        "path": "qualified-svg-analysis/results.json",
+        "bytes": 3265960,
+        "sha256": "23efcd588b9438e1ed5632e322730c064cf91c77fa54117433ae4b8eb9cac9a4"
+      },
+      "pages": 36,
+      "searchableTextAndGeometryVerified": true,
+      "sourcePagesVector": true,
+      "maxBboxDeltaCssPx": 0.012237333333331435,
+      "rawRgbMae": 0.05462170444338775,
+      "maxPageRgbMae": 0.1746077032810271,
+      "visualInspection": {
+        "path": "qualified-svg-visual-inspection.json",
+        "bytes": 2357,
+        "sha256": "638ca7fc93928eae7aada9cc53b3f706e50319fa7491f8a0942710d2205e2247"
+      },
+      "lifecycle": {
+        "path": "qualified-archive-svg-runner.receipt.json",
+        "bytes": 3621,
+        "sha256": "d174b2d2230bba1020ffe53cef6e6be360efef185511821b194990af0c1559c3"
+      },
+      "boundary": "Exact public vector SVG bytes isolated as intrinsic-size image documents in Edge. Root inspected all36 pages in ten normal96dpi contact sheets; no pixel identity claim."
+    },
+    "wrapperPaint": {
+      "evidence": {
+        "path": "qualified-wrapper-paint.json",
+        "bytes": 15494,
+        "sha256": "d1884f50cec36ce9796bdbf17b4c11a4a4e278f2f6e715e5300ffa4d53e67aa1"
+      },
+      "pages": 24,
+      "maxInkBoundsDeltaPixels": 0,
+      "boundary": "Additional exact authored blue-border bounds/horizontal-edge check; unmasked whole-page raster differences are retained separately."
+    },
+    "visualInspection": {
+      "head": "dee9e3856e609e6891646ba5f5ea9080fe70bf4f",
+      "surfaces": [
+        "sequential-flex-4-12/print-contact-01.png",
+        "neighbor-wrapped-capacity19/print-contact-01.png",
+        "neighbor-row-flex-stretch/print-contact-01.png",
+        "owner-grid-long-first/print-contact-01.png"
+      ],
+      "root": "qualified-rendered-analysis",
+      "result": "Root inspected retained whole-page comparisons; independent reviewer inspected wrapper remediation and sibling controls. Small text-antialiasing differences remain; no pixel-identity claim."
+    }
+  },
+  "packages": {
+    "status": "passed",
+    "qualificationOnly": true,
+    "publicRelease": false,
+    "sourceHead": "dee9e3856e609e6891646ba5f5ea9080fe70bf4f",
+    "frameworkAssets": [
+      "net472",
+      "netstandard2.0",
+      "net8.0",
+      "net10.0"
+    ],
+    "packedHtml": {
+      "package": {
+        "path": "package-proof/feed/OfficeIMO.Html.3.5.1.nupkg",
+        "bytes": 4424270,
+        "sha256": "a4613570bea1681b48d3d3518a7a444128f7d2b5e73aeecff3feeb7e98ea7889"
+      },
+      "assets": {
+        "lib/net472/OfficeIMO.Html.dll": "92545d311a577eee842639415d002d9254543d5bd7d46ad96fcd53fde1b97bcb",
+        "lib/netstandard2.0/OfficeIMO.Html.dll": "a9ebb06a197c12cd868f0c3c89f67a62a1f6045b71ac2e3c237f11e2463d10ba",
+        "lib/net8.0/OfficeIMO.Html.dll": "1afcfe7141b4f18fc5e6c4bb34c1e0fb6b56976e2242f92317b2e012149b388c",
+        "lib/net10.0/OfficeIMO.Html.dll": "81f11ea456d1eccb64c35228a7f97d3aeadb20d3134d119d86deeeed6c22e3f6"
+      },
+      "sha512": "puzutBLuH1iio+uOsBPISWQSmfd+SrrNtTE+ZgfuICAtZ5S8ZFgKmPV/k8xmLrWE1QJJ+FZgE342LGwAad3yNg=="
+    },
+    "sourceSeal": {
+      "path": "package-proof/source-seal.json",
+      "bytes": 1061665,
+      "sha256": "ebd6e90dab6eb0ce7ac4cf3f37efef43ddf0c3289043c7b2e9c1e795ae7c1639"
+    },
+    "binding": {
+      "path": "package-proof/package-binding.json",
+      "bytes": 5181,
+      "sha256": "837a049bb8a52736c94adf56e83c52a819b2368693dc136736a6609e0e32d8b1"
+    },
+    "consumerBinding": {
+      "path": "package-proof/consumer-binding.json",
+      "bytes": 291604,
+      "sha256": "a25d4cd1137aa8f382f763c4c7a56c7204bb3ed20a1dc3e9a4ac35f3223f889f"
+    },
+    "consumers": [
+      {
+        "target": "net8",
+        "caseProfilePairs": 26,
+        "sourceOnce": true,
+        "pngEqualsIndependentPdfReplay": true
+      },
+      {
+        "target": "net10",
+        "caseProfilePairs": 26,
+        "sourceOnce": true,
+        "pngEqualsIndependentPdfReplay": true
+      },
+      {
+        "target": "aot",
+        "caseProfilePairs": 26,
+        "sourceOnce": true,
+        "pngEqualsIndependentPdfReplay": true
+      }
+    ],
+    "retainedResolutionGraphs": {
+      "path": "package-proof/retained-resolution-binding.json",
+      "bytes": 1401,
+      "sha256": "9d523c96f52670086decf92df4796f28e80cceeb99f9f31ffca08eedb1bb2972"
+    },
+    "retainedPackageAndRuntimeArchive": "package-proof/feed and package-proof/out retain actual qualified package bytes and executed managed/native consumers.",
+    "reusedOwnerSourceHead": "70714a2ba5d961d818fa750a77fc3b39146827ff",
+    "reusedOwners": [
+      "OfficeIMO.Core",
+      "OfficeIMO.Pdf",
+      "OfficeIMO.Html.Core",
+      "OfficeIMO.Html.AngleSharp"
+    ],
+    "boundary": "Only Html package is repacked at current source. Four dependency-owner trees and shared build inputs are unchanged; exact previously qualified private owner packages are reused. Legacy assets are built, not executed. No signing, package publication or Windows profiling."
+  },
+  "broaderReports": {
+    "status": "passed",
+    "sourceHead": "dee9e3856e609e6891646ba5f5ea9080fe70bf4f",
+    "cases": 4,
+    "profiles": 16,
+    "pngPages": 81,
+    "pngAndOrderedScenesUnchanged": true,
+    "evidence": {
+      "path": "report-regression-dee9e3856e60-comparison.json",
+      "bytes": 264047,
+      "sha256": "79a6005da501715312cc4edb6ccc4e8df3dff2bdac06bce05a57cca54fad8672"
+    },
+    "binding": {
+      "path": "report-regression-dee9e3856e60-captures.json",
+      "bytes": 10574,
+      "sha256": "1f758fa8780d1b0239db1a278f5eef3b9102b79e8a9d163bc807c9bc2af05cec"
+    },
+    "boundary": "Managed regression against protected prior reports; no new native report appearance acceptance."
+  },
+  "remainingBoundary": [
+    "The five named native boundary controls remain outside native-parity acceptance; the forced-column-break control exercises source-preserving typed fallback rather than column-break support.",
+    "Thirteen initial native captures have no DOM boxes and remain outside native continuous-geometry qualification.",
+    "Spanning and nested column regions, transformed/vertical regions, atomic/floating hosts, tall column notes and figures, changing page geometry and height-dependent alignment retain their separate qualification boundaries.",
+    "Native text antialiasing and general unfamiliar-page acceptance remain distinct from the selected geometry controls."
+  ],
+  "windowsProfiling": "Deferred by explicit user instruction.",
+  "storage": {
+    "status": "complete",
+    "logicalBytesRemoved": 4384393318,
+    "retainedApproximateBytes": 721118846,
+    "evidence": {
+      "path": "storage-result.json",
+      "bytes": 1923,
+      "sha256": "5a872e080abfc05b1e55e0234dbd8018659a13f013d13f19fc2a82c5bc71bd69"
+    },
+    "reason": "Actual source/fixture seals, exact native and qualified exports, decisive before/after failure, complete TRX and actual subject modules, private packages and executed managed/native consumers, report controls and reproducible helpers. Prior protected milestone roots remain untouched.",
+    "nextReview": "2026-10-25"
+  },
+  "machineEvidence": {
+    "root": "Machine-local scratch: html-auto-column-block-sizing under the configured development scratch root.",
+    "sourceSeal": {
+      "path": "qualified-source.json",
+      "bytes": 710496,
+      "sha256": "ce86946e02a321d9484bfb6da16943a854e3a537ddb2e6228ff0226d7a6c42ed"
+    },
+    "fixtureManifest": {
+      "path": "portable-fixture-manifest.json",
+      "bytes": 26241,
+      "sha256": "2b76f114728c730aea1961740aba318d8d3671d4897adf31c67595415ffae7f6"
+    },
+    "qualificationPath": "HtmlTinkerX browser oracle and OfficeIMO public API probes; no product browser/runtime dependency added.",
+    "actualRenderer": {
+      "path": "qualified-renderer-binding.json",
+      "bytes": 4504,
+      "sha256": "628973cb3f6d98f17a00da0102e1afd502874896f4b4e1f30505b2a74b22815f"
+    }
+  },
+  "reproduction": {
+    "fixtures": "Copy one selected checked-in HTML fixture and the two exact repository fonts from assetMap into a temporary directory as index.html, regular.ttf and bold.ttf. Serve over loopback for native capture or load the three entries into HtmlSiteBundle for managed execution.",
+    "managedProfiles": [
+      "PrintPaged",
+      "ScreenMediaPaged",
+      "ScreenFullPage",
+      "ScreenSnapshotPaged"
+    ],
+    "managedConfiguration": "Browser UA; exact bundled Witness regular/bold fonts; no host font fallback or external resources; ViewportWidth=800, ViewportHeight=1000; HonorCssPageRules; CSS page size 700 x 140 px with 20 px margins.",
+    "nativeConfiguration": "HtmlTinkerX BrowserProbe with Microsoft Edge 155; wait for document.fonts and images; collect print and screen-media CSS-paged PDFs and ID-based DOM geometry at 800 x 1000. Browser error arrays are empty and server/browser sessions are released.",
+    "pixelPolicy": "Poppler at 96 dpi; all bbox edges converted once from points to CSS pixels; full unmasked raw RGB comparisons. Text geometry tolerance is 0.1 CSS px; authored blue wrapper edges are also checked within one raster pixel. Glyph antialiasing remains consumer dependent."
+  },
+  "integratedMaster": "479670095ea9efb1e38681c8d244150551220db6"
+}

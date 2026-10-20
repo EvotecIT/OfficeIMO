@@ -1,0 +1,719 @@
+{
+  "schema": "officeimo.html-static-editable-ci-remediation/v1",
+  "capturedUtc": "2026-10-20T09:35:00.342762+00:00",
+  "qualifiedProductionHead": "8d1caa76b9d342e3a2a6752312a3adc535b9d649",
+  "publishedFailedHead": "fd00f15ea83ec117e371ed1c9449101edec365a4",
+  "scope": "CI remediation for shared/Core file-claim retry behavior and four test/fixture portability/guardrail paths; fresh source, package, public-consumer and saved-artifact archival proof.",
+  "sourceSeal": {
+    "path": "${HTML_CONSOLIDATION_EVIDENCE_ROOT}/ci-wave1/source-seal-8d1.json",
+    "bytes": 8835996,
+    "sha256": "680dee93115b32f3b8678da7dbded6d721b115b5cad7eac6bc8d8b4c6f82bfee"
+  },
+  "sealedInputCount": 41199,
+  "changedPaths": [
+    "OfficeIMO.Core/Internal/OfficeFileCommit.Claims.cs",
+    "OfficeIMO.Html.Tests/Html.Rendering.Tables.CollapsedGeometry.cs",
+    "OfficeIMO.Reader.Tests/Reader.FileCommitClaims.Windows.cs",
+    "OfficeIMO.Shared.Tests/PackageDependencyGuardrails.cs",
+    "OfficeIMO.SharedSource/IO/OfficeFileCommitClaim.cs",
+    "OfficeIMO.Visio.Tests/Visio.Justify.Rendering.cs"
+  ],
+  "unchangedPriorInputs": 41193,
+  "historicalQualification": {
+    "receipt": {
+      "repositoryPath": "Build/Project/Evidence/2026-09-30/html-master-convergence/static-editable-consolidation-20261020.json",
+      "bytes": 11288,
+      "sha256": "15f21064cdfc04b3c3327e8cfd9b5ab923ebbc77923ed0054fe1671170e2edbd",
+      "qualifiedProductionHead": "0930e36ac0ecbe4629632ec028d3f2497a092b97"
+    },
+    "scope": "Original full HTML/PDF/static Math/selected appearance evidence stays at its original qualified production head; it was not rerun or relabelled by this CI-remediation receipt.",
+    "continuitySourceSeal": {
+      "path": "${HTML_CONSOLIDATION_EVIDENCE_ROOT}/ci-wave1/source-seal-8d1.json",
+      "bytes": 8835996,
+      "sha256": "680dee93115b32f3b8678da7dbded6d721b115b5cad7eac6bc8d8b4c6f82bfee"
+    }
+  },
+  "sourceSuites": [
+    {
+      "name": "reader-claims-net10",
+      "reportedCounters": {
+        "total": 10,
+        "executed": 10,
+        "passed": 10,
+        "failed": 0,
+        "error": 0,
+        "timeout": 0,
+        "aborted": 0,
+        "inconclusive": 0,
+        "passedButRunAborted": 0,
+        "notRunnable": 0,
+        "notExecuted": 0,
+        "disconnected": 0,
+        "warning": 0,
+        "completed": 0,
+        "inProgress": 0,
+        "pending": 0
+      },
+      "reportedNotExecuted": 0,
+      "trx": {
+        "path": "${HTML_CONSOLIDATION_EVIDENCE_ROOT}/ci-wave1/trx/reader-claims-net10.trx",
+        "bytes": 17711,
+        "sha256": "df08c442d70306b96a90ffa401874694e350a7e8cbb0c36d4009bc43c23f1248"
+      },
+      "execution": {
+        "path": "${HTML_CONSOLIDATION_EVIDENCE_ROOT}/ci-wave1/reader-claims-net10-execution.json",
+        "bytes": 1806,
+        "sha256": "824a3dc8f462feaa973569c4fd2fae6013e0b41803d0a6e3296732be6ed868be"
+      },
+      "platformEvidence": {
+        "host": "macOS",
+        "reportedPasses": 10,
+        "crossPlatformChecksExercised": 6,
+        "windowsGuardedReportedPasses": 4,
+        "windowsGuardedBehaviourExecutedLocally": false,
+        "windowsGuardedEvidence": "compiled only; method bodies return before Windows behavior on macOS",
+        "windowsCaseNames": [
+          "OfficeIMO.Reader.Tests.ReaderWindowsFileCommitClaimTests.SharedClaimAcquisitionPreservesPersistentWindowsAccessFailures(coreClaim: True)",
+          "OfficeIMO.Reader.Tests.ReaderWindowsFileCommitClaimTests.SharedClaimAcquisitionRecoversWhenWindowsCompletesPendingDeletion(coreClaim: False)",
+          "OfficeIMO.Reader.Tests.ReaderWindowsFileCommitClaimTests.SharedClaimAcquisitionPreservesPersistentWindowsAccessFailures(coreClaim: False)",
+          "OfficeIMO.Reader.Tests.ReaderWindowsFileCommitClaimTests.SharedClaimAcquisitionRecoversWhenWindowsCompletesPendingDeletion(coreClaim: True)"
+        ],
+        "actualWindowsCI": "pending"
+      }
+    },
+    {
+      "name": "reader-claims-net8",
+      "reportedCounters": {
+        "total": 10,
+        "executed": 10,
+        "passed": 10,
+        "failed": 0,
+        "error": 0,
+        "timeout": 0,
+        "aborted": 0,
+        "inconclusive": 0,
+        "passedButRunAborted": 0,
+        "notRunnable": 0,
+        "notExecuted": 0,
+        "disconnected": 0,
+        "warning": 0,
+        "completed": 0,
+        "inProgress": 0,
+        "pending": 0
+      },
+      "reportedNotExecuted": 0,
+      "trx": {
+        "path": "${HTML_CONSOLIDATION_EVIDENCE_ROOT}/ci-wave1/trx/reader-claims-net8.trx",
+        "bytes": 17690,
+        "sha256": "c3cbabda4eb3cc4b5bd0c4c30fd08b3601069be3d4bdbc843d9d7588b71bd167"
+      },
+      "execution": {
+        "path": "${HTML_CONSOLIDATION_EVIDENCE_ROOT}/ci-wave1/reader-claims-net8-execution.json",
+        "bytes": 1807,
+        "sha256": "36200e731a2b37eddd7c1dbe63722d181e95b4d8c22a1c06167c6915a9d17f9f"
+      },
+      "platformEvidence": {
+        "host": "macOS",
+        "reportedPasses": 10,
+        "crossPlatformChecksExercised": 6,
+        "windowsGuardedReportedPasses": 4,
+        "windowsGuardedBehaviourExecutedLocally": false,
+        "windowsGuardedEvidence": "compiled only; method bodies return before Windows behavior on macOS",
+        "windowsCaseNames": [
+          "OfficeIMO.Reader.Tests.ReaderWindowsFileCommitClaimTests.SharedClaimAcquisitionRecoversWhenWindowsCompletesPendingDeletion(coreClaim: True)",
+          "OfficeIMO.Reader.Tests.ReaderWindowsFileCommitClaimTests.SharedClaimAcquisitionPreservesPersistentWindowsAccessFailures(coreClaim: False)",
+          "OfficeIMO.Reader.Tests.ReaderWindowsFileCommitClaimTests.SharedClaimAcquisitionPreservesPersistentWindowsAccessFailures(coreClaim: True)",
+          "OfficeIMO.Reader.Tests.ReaderWindowsFileCommitClaimTests.SharedClaimAcquisitionRecoversWhenWindowsCompletesPendingDeletion(coreClaim: False)"
+        ],
+        "actualWindowsCI": "pending"
+      }
+    },
+    {
+      "name": "shared-full-net10",
+      "reportedCounters": {
+        "total": 2253,
+        "executed": 2253,
+        "passed": 2253,
+        "failed": 0,
+        "error": 0,
+        "timeout": 0,
+        "aborted": 0,
+        "inconclusive": 0,
+        "passedButRunAborted": 0,
+        "notRunnable": 0,
+        "notExecuted": 0,
+        "disconnected": 0,
+        "warning": 0,
+        "completed": 0,
+        "inProgress": 0,
+        "pending": 0
+      },
+      "reportedNotExecuted": 0,
+      "trx": {
+        "path": "${HTML_CONSOLIDATION_EVIDENCE_ROOT}/ci-wave1/trx/shared-full-net10.trx",
+        "bytes": 3547147,
+        "sha256": "7262934bfe942ce15cc2dcd3224a965f08c5d631624b66ccc3fa732acd441c2d"
+      },
+      "execution": {
+        "path": "${HTML_CONSOLIDATION_EVIDENCE_ROOT}/ci-wave1/shared-full-net10-execution.json",
+        "bytes": 1711,
+        "sha256": "e8fafa2f11f05d75baea2981f7d668dc7d711d9ac0cf4e922e89ee78a33afbb3"
+      }
+    },
+    {
+      "name": "shared-full-net8",
+      "reportedCounters": {
+        "total": 2253,
+        "executed": 2253,
+        "passed": 2253,
+        "failed": 0,
+        "error": 0,
+        "timeout": 0,
+        "aborted": 0,
+        "inconclusive": 0,
+        "passedButRunAborted": 0,
+        "notRunnable": 0,
+        "notExecuted": 0,
+        "disconnected": 0,
+        "warning": 0,
+        "completed": 0,
+        "inProgress": 0,
+        "pending": 0
+      },
+      "reportedNotExecuted": 0,
+      "trx": {
+        "path": "${HTML_CONSOLIDATION_EVIDENCE_ROOT}/ci-wave1/trx/shared-full-net8.trx",
+        "bytes": 3542640,
+        "sha256": "052efc013e9db85e87fc9e956a487e7e88810269ea4910c2e70e89e61e6b4ad4"
+      },
+      "execution": {
+        "path": "${HTML_CONSOLIDATION_EVIDENCE_ROOT}/ci-wave1/shared-full-net8-execution.json",
+        "bytes": 1707,
+        "sha256": "7b0ab03333df0b235ce096aac5947b957067641a085d52a9c4ade6dacb527537"
+      }
+    },
+    {
+      "name": "drawing-space-net10",
+      "reportedCounters": {
+        "total": 42,
+        "executed": 42,
+        "passed": 42,
+        "failed": 0,
+        "error": 0,
+        "timeout": 0,
+        "aborted": 0,
+        "inconclusive": 0,
+        "passedButRunAborted": 0,
+        "notRunnable": 0,
+        "notExecuted": 0,
+        "disconnected": 0,
+        "warning": 0,
+        "completed": 0,
+        "inProgress": 0,
+        "pending": 0
+      },
+      "reportedNotExecuted": 0,
+      "trx": {
+        "path": "${HTML_CONSOLIDATION_EVIDENCE_ROOT}/ci-wave1/trx/drawing-space-net10.trx",
+        "bytes": 66999,
+        "sha256": "84d0198740eedaa597c24efdd18a42a0f8a0845bf2298933e79e8e59f80fe978"
+      },
+      "execution": {
+        "path": "${HTML_CONSOLIDATION_EVIDENCE_ROOT}/ci-wave1/drawing-space-net10-execution.json",
+        "bytes": 1813,
+        "sha256": "a97ed4fa49ccb801a4550dfd4c67450f5d95f5fdd8392e16ce65f5b7804ecb1b"
+      }
+    },
+    {
+      "name": "drawing-space-net8",
+      "reportedCounters": {
+        "total": 42,
+        "executed": 42,
+        "passed": 42,
+        "failed": 0,
+        "error": 0,
+        "timeout": 0,
+        "aborted": 0,
+        "inconclusive": 0,
+        "passedButRunAborted": 0,
+        "notRunnable": 0,
+        "notExecuted": 0,
+        "disconnected": 0,
+        "warning": 0,
+        "completed": 0,
+        "inProgress": 0,
+        "pending": 0
+      },
+      "reportedNotExecuted": 0,
+      "trx": {
+        "path": "${HTML_CONSOLIDATION_EVIDENCE_ROOT}/ci-wave1/trx/drawing-space-net8.trx",
+        "bytes": 66914,
+        "sha256": "f9fb1b54204acd69363fc006447e6faca2f389e98658b8cfbdfb198cae6c8dc9"
+      },
+      "execution": {
+        "path": "${HTML_CONSOLIDATION_EVIDENCE_ROOT}/ci-wave1/drawing-space-net8-execution.json",
+        "bytes": 1803,
+        "sha256": "79f975658371711280ee368a70268f7d6831c9c54a7cf546f111ea36bb518f48"
+      }
+    },
+    {
+      "name": "visio-justify-net10",
+      "reportedCounters": {
+        "total": 2,
+        "executed": 2,
+        "passed": 2,
+        "failed": 0,
+        "error": 0,
+        "timeout": 0,
+        "aborted": 0,
+        "inconclusive": 0,
+        "passedButRunAborted": 0,
+        "notRunnable": 0,
+        "notExecuted": 0,
+        "disconnected": 0,
+        "warning": 0,
+        "completed": 0,
+        "inProgress": 0,
+        "pending": 0
+      },
+      "reportedNotExecuted": 0,
+      "trx": {
+        "path": "${HTML_CONSOLIDATION_EVIDENCE_ROOT}/ci-wave1/trx/visio-justify-net10.trx",
+        "bytes": 4677,
+        "sha256": "26e540d8f93ece7aa1d294aff1b85d1567fefc67b2b09b03932f4016799346a4"
+      },
+      "execution": {
+        "path": "${HTML_CONSOLIDATION_EVIDENCE_ROOT}/ci-wave1/visio-justify-net10-execution.json",
+        "bytes": 1745,
+        "sha256": "b8ede4d868237079f6803a656693868c67aaa3ae24fb9bfe1579624bd340f17e"
+      }
+    },
+    {
+      "name": "visio-justify-net8",
+      "reportedCounters": {
+        "total": 2,
+        "executed": 2,
+        "passed": 2,
+        "failed": 0,
+        "error": 0,
+        "timeout": 0,
+        "aborted": 0,
+        "inconclusive": 0,
+        "passedButRunAborted": 0,
+        "notRunnable": 0,
+        "notExecuted": 0,
+        "disconnected": 0,
+        "warning": 0,
+        "completed": 0,
+        "inProgress": 0,
+        "pending": 0
+      },
+      "reportedNotExecuted": 0,
+      "trx": {
+        "path": "${HTML_CONSOLIDATION_EVIDENCE_ROOT}/ci-wave1/trx/visio-justify-net8.trx",
+        "bytes": 4672,
+        "sha256": "0d8bd98ddb1d917dd8a02891e207ef275515243b6f74154192615495f9422c09"
+      },
+      "execution": {
+        "path": "${HTML_CONSOLIDATION_EVIDENCE_ROOT}/ci-wave1/visio-justify-net8-execution.json",
+        "bytes": 1735,
+        "sha256": "5ab36421d30ea67ec252e39e1fc052aed3c5d121255180ed2f3770232ce14394"
+      }
+    },
+    {
+      "name": "drawing-full-net10",
+      "reportedCounters": {
+        "total": 6047,
+        "executed": 6042,
+        "passed": 6042,
+        "failed": 0,
+        "error": 0,
+        "timeout": 0,
+        "aborted": 0,
+        "inconclusive": 0,
+        "passedButRunAborted": 0,
+        "notRunnable": 0,
+        "notExecuted": 0,
+        "disconnected": 0,
+        "warning": 0,
+        "completed": 0,
+        "inProgress": 0,
+        "pending": 0
+      },
+      "reportedNotExecuted": 5,
+      "trx": {
+        "path": "${HTML_CONSOLIDATION_EVIDENCE_ROOT}/ci-wave1/trx/drawing-full-net10.trx",
+        "bytes": 9317402,
+        "sha256": "1f22a5912e583d73c0cca39346ac1bd6f3c4f25020affd175470fcb0d5a775df"
+      },
+      "execution": {
+        "path": "${HTML_CONSOLIDATION_EVIDENCE_ROOT}/ci-wave1/drawing-full-net10-execution.json",
+        "bytes": 1716,
+        "sha256": "e0f20d23318f3c099f8a03abdb629eac7830ede0bd8a7a4cf60bc681fd862d28"
+      }
+    },
+    {
+      "name": "drawing-full-net8",
+      "reportedCounters": {
+        "total": 6047,
+        "executed": 6042,
+        "passed": 6042,
+        "failed": 0,
+        "error": 0,
+        "timeout": 0,
+        "aborted": 0,
+        "inconclusive": 0,
+        "passedButRunAborted": 0,
+        "notRunnable": 0,
+        "notExecuted": 0,
+        "disconnected": 0,
+        "warning": 0,
+        "completed": 0,
+        "inProgress": 0,
+        "pending": 0
+      },
+      "reportedNotExecuted": 5,
+      "trx": {
+        "path": "${HTML_CONSOLIDATION_EVIDENCE_ROOT}/ci-wave1/trx/drawing-full-net8.trx",
+        "bytes": 9305307,
+        "sha256": "8638d671a245d33252d1df5cae0954a73a87997dcaad3f79c8a9ada96dc40135"
+      },
+      "execution": {
+        "path": "${HTML_CONSOLIDATION_EVIDENCE_ROOT}/ci-wave1/drawing-full-net8-execution.json",
+        "bytes": 1718,
+        "sha256": "69e40169cc98d90812bc21dfe07739998c1021e85c96aa61bcb9201d7207dcb6"
+      }
+    },
+    {
+      "name": "workflows-recovery-net10",
+      "reportedCounters": {
+        "total": 23,
+        "executed": 23,
+        "passed": 23,
+        "failed": 0,
+        "error": 0,
+        "timeout": 0,
+        "aborted": 0,
+        "inconclusive": 0,
+        "passedButRunAborted": 0,
+        "notRunnable": 0,
+        "notExecuted": 0,
+        "disconnected": 0,
+        "warning": 0,
+        "completed": 0,
+        "inProgress": 0,
+        "pending": 0
+      },
+      "reportedNotExecuted": 0,
+      "trx": {
+        "path": "${HTML_CONSOLIDATION_EVIDENCE_ROOT}/ci-wave1/trx/workflows-recovery-net10.trx",
+        "bytes": 38183,
+        "sha256": "67b40af15c396fbdd5708ba3beb28bd2ce8d72dec391595c477b85509e12280f"
+      },
+      "execution": {
+        "path": "${HTML_CONSOLIDATION_EVIDENCE_ROOT}/ci-wave1/workflows-recovery-net10-execution.json",
+        "bytes": 1766,
+        "sha256": "50f6d2a1ccb9cbe84c83626884f1dec26e6eea2e767f8c0d84a214e00c78a5d5"
+      }
+    }
+  ],
+  "net472CompileOnly": [
+    {
+      "name": "html-build-net472",
+      "framework": "net472",
+      "compilePassed": true,
+      "runtimeExecuted": false,
+      "execution": {
+        "path": "${HTML_CONSOLIDATION_EVIDENCE_ROOT}/ci-wave1/html-build-net472-execution.json",
+        "bytes": 1517,
+        "sha256": "99e2c43ca3889fa462ea5cabf812476e1ba31914b26c4c3c3910c0007bef8dab"
+      }
+    },
+    {
+      "name": "reader-build-net472",
+      "framework": "net472",
+      "compilePassed": true,
+      "runtimeExecuted": false,
+      "execution": {
+        "path": "${HTML_CONSOLIDATION_EVIDENCE_ROOT}/ci-wave1/reader-build-net472-execution.json",
+        "bytes": 1523,
+        "sha256": "0e49e83e9755bf4a500f222cfc8ac55a935db447c8954804e1424b54d0e18919"
+      }
+    },
+    {
+      "name": "shared-build-net472",
+      "framework": "net472",
+      "compilePassed": true,
+      "runtimeExecuted": false,
+      "execution": {
+        "path": "${HTML_CONSOLIDATION_EVIDENCE_ROOT}/ci-wave1/shared-build-net472-execution.json",
+        "bytes": 1524,
+        "sha256": "964e3e1aa4da809e782e873136d6fdcf86ba5b769912feca51018beae9a9057d"
+      }
+    },
+    {
+      "name": "visio-build-net472",
+      "framework": "net472",
+      "compilePassed": true,
+      "runtimeExecuted": false,
+      "execution": {
+        "path": "${HTML_CONSOLIDATION_EVIDENCE_ROOT}/ci-wave1/visio-build-net472-execution.json",
+        "bytes": 1516,
+        "sha256": "380c2a5d8b996cde313446f73486720ee6f943b9438bee57670a1edc32f7aa38"
+      }
+    }
+  ],
+  "privatePackages": {
+    "version": "3.5.4",
+    "freshPackages": 9,
+    "frameworkAssets": 36,
+    "reusedPackages": 0,
+    "packageBinding": {
+      "path": "${HTML_CONSOLIDATION_EVIDENCE_ROOT}/ci-wave1/packages/package-v2/package-binding.json",
+      "bytes": 46090,
+      "sha256": "c6bc69f17875255703473c2dd6cb6c7355b87e77b15548a24bffa49e4670c229"
+    },
+    "consumerBinding": {
+      "path": "${HTML_CONSOLIDATION_EVIDENCE_ROOT}/ci-wave1/packages/package-v2/consumer-binding.json",
+      "bytes": 343163,
+      "sha256": "d8f56553217b8475f39fbd0292cf3cc46dd1b1f6fa0ee501ce30f367606e3338"
+    },
+    "successfulCleanHeadCommands": 37,
+    "executionReceiptInventorySha256": "1ce141924bb15f059083678d173d8c113e9b2eb36f567230813c7aabe28905a9",
+    "publicConsumers": [
+      {
+        "name": "html-net8",
+        "result": {
+          "path": "${HTML_CONSOLIDATION_EVIDENCE_ROOT}/ci-wave1/packages/package-v2/results/html/net8/result.json",
+          "bytes": 258998,
+          "sha256": "a27ea4a466a10dd3e9dfcc9fb8b35fe8aa99853998ab94d3afe1e4cb7f937950"
+        },
+        "cases": 6,
+        "profilesPerCase": 4,
+        "r8Checks": 17,
+        "r9Checks": 4,
+        "r10Checks": 7
+      },
+      {
+        "name": "html-net10",
+        "result": {
+          "path": "${HTML_CONSOLIDATION_EVIDENCE_ROOT}/ci-wave1/packages/package-v2/results/html/net10/result.json",
+          "bytes": 259006,
+          "sha256": "0435bbf63bd1bab4c5392f6374ec4c0bb7f84c7112cd98b8a4efde259f85f0de"
+        },
+        "cases": 6,
+        "profilesPerCase": 4,
+        "r8Checks": 17,
+        "r9Checks": 4,
+        "r10Checks": 7
+      },
+      {
+        "name": "html-aot",
+        "result": {
+          "path": "${HTML_CONSOLIDATION_EVIDENCE_ROOT}/ci-wave1/packages/package-v2/results/html/aot/result.json",
+          "bytes": 257500,
+          "sha256": "c9e9f305f02e23278b8204800c36a9df1943c6b6499aadec95ab9cd17dec222c"
+        },
+        "cases": 6,
+        "profilesPerCase": 4,
+        "r8Checks": 17,
+        "r9Checks": 4,
+        "r10Checks": 7,
+        "nativeAotExecuted": true
+      },
+      {
+        "name": "invoice-net8.0",
+        "result": {
+          "path": "${HTML_CONSOLIDATION_EVIDENCE_ROOT}/ci-wave1/packages/package-v2/results/invoice/net8.0/summary.json",
+          "bytes": 548340,
+          "sha256": "0ae410db16184eeca99d189d2bf9d9731361f0bf03ef60c58f1c68d746dcb99f"
+        },
+        "pages": 2,
+        "exportParityRoutesPassed": 7
+      },
+      {
+        "name": "invoice-net10.0",
+        "result": {
+          "path": "${HTML_CONSOLIDATION_EVIDENCE_ROOT}/ci-wave1/packages/package-v2/results/invoice/net10.0/summary.json",
+          "bytes": 548340,
+          "sha256": "757fbc35eb83f975a7cc577f3385a76ea7586f70f7c0895b3cc5e282fd930a76"
+        },
+        "pages": 2,
+        "exportParityRoutesPassed": 7
+      },
+      {
+        "name": "archive-net8.0",
+        "result": {
+          "path": "${HTML_CONSOLIDATION_EVIDENCE_ROOT}/ci-wave1/packages/package-v2/results/archive/net8.0/observation.json",
+          "bytes": 68136,
+          "sha256": "ebaf1ca1b29c261d1d28454c49a7daf8b9b33e31988ccc2b0686a97ad3c2e719"
+        },
+        "pages": 2,
+        "ownPagedPngPdfPairs": 2
+      },
+      {
+        "name": "archive-net10.0",
+        "result": {
+          "path": "${HTML_CONSOLIDATION_EVIDENCE_ROOT}/ci-wave1/packages/package-v2/results/archive/net10.0/observation.json",
+          "bytes": 68151,
+          "sha256": "19939a6e39a48b8241d230a0133e018aa228b00f267a52777f5699eca7bf1c58"
+        },
+        "pages": 2,
+        "ownPagedPngPdfPairs": 2
+      },
+      {
+        "name": "word-net8.0",
+        "result": {
+          "path": "${HTML_CONSOLIDATION_EVIDENCE_ROOT}/ci-wave1/packages/package-v2/results/word/net8.0/result.json",
+          "bytes": 5496,
+          "sha256": "c51092708292eab838e682b2884cd0854dcba3d3886f7fb2bce0c2e71975b0ce"
+        },
+        "savedReopenedContracts": 4
+      },
+      {
+        "name": "word-net10.0",
+        "result": {
+          "path": "${HTML_CONSOLIDATION_EVIDENCE_ROOT}/ci-wave1/packages/package-v2/results/word/net10.0/result.json",
+          "bytes": 5511,
+          "sha256": "8505577883a09dd7c11e47feedb0f3282df086b8eb14370e55efba5c955ffac5"
+        },
+        "savedReopenedContracts": 4
+      },
+      {
+        "name": "ppt-net8.0",
+        "result": {
+          "path": "${HTML_CONSOLIDATION_EVIDENCE_ROOT}/ci-wave1/packages/package-v2/results/ppt/net8.0/result.json",
+          "bytes": 14844,
+          "sha256": "10f0f502520cbc921b23d99ca9139ce8719a5e8a833be5ff31c0f3948bf0fa54"
+        },
+        "savedReopenedContracts": 10
+      },
+      {
+        "name": "ppt-net10.0",
+        "result": {
+          "path": "${HTML_CONSOLIDATION_EVIDENCE_ROOT}/ci-wave1/packages/package-v2/results/ppt/net10.0/result.json",
+          "bytes": 14888,
+          "sha256": "486dac2a9325f529dbb1962f5ac81196956f93106a98c5e8588e51b7763f35e5"
+        },
+        "savedReopenedContracts": 10
+      }
+    ]
+  },
+  "archive": {
+    "qualification": {
+      "path": "${HTML_CONSOLIDATION_EVIDENCE_ROOT}/ci-wave1/archive-validator-v2/qualification.json",
+      "bytes": 6462,
+      "sha256": "8b94081877fb632b0163cf898cc72649f4d84b03ed1201435ede11394fecc31a"
+    },
+    "successfulCleanHeadCommands": 8,
+    "executionReceiptInventorySha256": "8c7e4f7c585d17169825c7e88e65107021172b143bf1970a9577ea7d63f66d97",
+    "currentPositiveProofs": 2,
+    "currentRejectedBindingNegatives": 6,
+    "frameworks": [
+      {
+        "framework": "net8.0",
+        "artifact": {
+          "path": "${HTML_CONSOLIDATION_EVIDENCE_ROOT}/ci-wave1/packages/package-v2/results/archive/net8.0/report.pdf",
+          "bytes": 48997,
+          "sha256": "0f77e0b8a4fca4cbc1433b8091985698a5db022317e5486c0671e94e2ebb7d5e"
+        },
+        "proof": {
+          "path": "${HTML_CONSOLIDATION_EVIDENCE_ROOT}/ci-wave1/archive-validator-v2/net8.0/proof/proof-observation.json",
+          "bytes": 14226,
+          "sha256": "f6f95e738ae8e515389b150a6049c57040bd319014125c5aeeaafc5d4e1ad5cc"
+        },
+        "validatorVersion": "1.30.0",
+        "CanClaimConformance": true,
+        "missingWrongArtifactWrongProfileRejected": true
+      },
+      {
+        "framework": "net10.0",
+        "artifact": {
+          "path": "${HTML_CONSOLIDATION_EVIDENCE_ROOT}/ci-wave1/packages/package-v2/results/archive/net10.0/report.pdf",
+          "bytes": 49184,
+          "sha256": "5d489f8955b32a4190ac5f1bd13304bb5bdd9a3c1584dff8b5a88fed5507e6b7"
+        },
+        "proof": {
+          "path": "${HTML_CONSOLIDATION_EVIDENCE_ROOT}/ci-wave1/archive-validator-v2/net10.0/proof/proof-observation.json",
+          "bytes": 14246,
+          "sha256": "4b80e5fdf0dfcb006dfb6e4febeb1f7bdc78ea0c7838b009908192677761c637"
+        },
+        "validatorVersion": "1.30.0",
+        "CanClaimConformance": true,
+        "missingWrongArtifactWrongProfileRejected": true
+      }
+    ]
+  },
+  "readOnlyClaimClosure": {
+    "receipt": {
+      "path": "${HTML_CONSOLIDATION_EVIDENCE_ROOT}/ci-wave1/readonly-claim-closure.json",
+      "bytes": 813,
+      "sha256": "aca0def69afde178fd717ab52e84e65e7ff834dffe7a7e0ba33363acfbcad484"
+    },
+    "fullPasses": 1,
+    "confirmationsUsed": 0,
+    "findings": [],
+    "disposition": "accept as shaped; no API/dependency approval gap",
+    "remainingValidationGap": "No direct ACLdenial/retryexhaustion case; persistentdirectoryerrorcontrol and boundedsourceinspection retained"
+  },
+  "retention": [
+    {
+      "receipt": {
+        "path": "${HTML_CONSOLIDATION_EVIDENCE_ROOT}/ci-wave1/source-runtime-retention.json",
+        "bytes": 645,
+        "sha256": "aae4480fad17c5cbd36998cfa23c10f8310200423f3babadabd7f68b157cd435"
+      },
+      "archive": {
+        "path": "${HTML_CONSOLIDATION_EVIDENCE_ROOT}/ci-wave1/source-runtimes-and-metadata.zip",
+        "bytes": 117706264,
+        "sha256": "a46f953206bc082f26bd3e12f7034508c17a3eb906ed3a0d1f359e6959ffd43c"
+      },
+      "source": "${HTML_CONSOLIDATION_EVIDENCE_ROOT}/ci-wave1/build",
+      "createdUtc": "2026-10-20T09:21:57.253131+00:00",
+      "historicalFileBindings": 8946,
+      "distinctObjects": 1778,
+      "allEntriesCRCAndHashReadback": true,
+      "preserves": "Actual compiled libraries, test executables and runtime/restore/build metadata; source fixtures remain tracked with original source seal",
+      "headAttribution": "Retention schema has no head field; actual graph source, current execution receipts and source seal provide attribution."
+    },
+    {
+      "receipt": {
+        "path": "${HTML_CONSOLIDATION_EVIDENCE_ROOT}/ci-wave1/package-runtime-retention.json",
+        "bytes": 769,
+        "sha256": "817e7d4d6b58f2ad60cac110d81b827a1538aa937a2bdd314d55aa9320c10bf8"
+      },
+      "archive": {
+        "path": "${HTML_CONSOLIDATION_EVIDENCE_ROOT}/ci-wave1/package-graphs-runtimes-and-metadata.zip",
+        "bytes": 85950999,
+        "sha256": "8ed213217457a4f1a06f30dfe4c63588b75c2442d82a608975d7717f3f8e6db1"
+      },
+      "source": "${HTML_CONSOLIDATION_EVIDENCE_ROOT}/ci-wave1/packages/package-v2",
+      "createdUtc": "2026-10-20T09:34:30.625917+00:00",
+      "historicalFileBindings": 775,
+      "distinctObjects": 399,
+      "allEntriesCRCAndHashReadback": true,
+      "preserves": "Actual package source-built libraries and consumer compile/restore metadata; fresh package archives, deployed consumers and render outputs remain separately retained",
+      "headAttribution": "Retention schema has no head field; actual graph source, current execution receipts and source seal provide attribution."
+    }
+  ],
+  "runtimeProviderForks": {
+    "branch": "feature/html-engine",
+    "head": "72130c73a64747bc7016da6f46c4f2607e91633f",
+    "included": false
+  },
+  "windowsProfiling": "deferred",
+  "limits": [
+    "Four Reader Windows-guarded cases per managed framework are reported Passed by TRX but compile-only on macOS; six cross-platform cases per framework exercise behavior locally.",
+    "net472 lanes establish compilation only; actual Windows CI remains pending.",
+    "Original full HTML/PDF/Math/appearance proof retains its original source/artifact binding. This receipt does not claim a fresh full-suite or native appearance run for those contracts.",
+    "Current archival conformance applies only to the two exact newly validated PDF artifacts; it does not establish broad appearance, manual accessibility, PDF/X or physical-print acceptance.",
+    "Runtime/provider forks remain excluded; Windows profiling remains deferred."
+  ],
+  "publication": {
+    "pullRequest": "https://github.com/EvotecIT/OfficeIMO/pull/3127",
+    "currentWindowsCI": "pending",
+    "mergePerformed": false,
+    "packagePublicationPerformed": false,
+    "releasePerformed": false
+  }
+}

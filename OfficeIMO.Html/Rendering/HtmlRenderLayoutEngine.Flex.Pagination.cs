@@ -95,7 +95,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
         for (int index = 0; index < items.Count; index++) {
             double start = contentY + items[index].MainOffset;
             HtmlRenderFlowBlock child = children[index];
-            if (child.AvoidBreakInside) ranges.Add(new HtmlRenderAvoidBreakRange(start, start + child.Height));
+            if (child.AvoidBreakInsideScope != HtmlFragmentationScope.None)
+                ranges.Add(new HtmlRenderAvoidBreakRange(start, start + child.Height, Scope: child.AvoidBreakInsideScope));
             ranges.AddRange(child.AvoidBreakRanges.Select(range => range.Translate(start)));
             AppendKeepWithNextRange(children, index, start, ranges,
                 index > 0 ? contentY + items[index - 1].MainOffset : null);
@@ -106,23 +107,25 @@ internal sealed partial class HtmlRenderLayoutEngine {
     // Margin truncation must observe the same direct and descendant forced
     // boundaries as a block flow. Parallel/reversed columns retain their
     // existing contract rather than borrowing a single flow's page changes.
-    private static IEnumerable<HtmlRenderForcedBreak> ResolveColumnFlexForcedBreaks(
+    private IReadOnlyList<HtmlRenderForcedBreak> ResolveColumnFlexForcedBreaks(
         IReadOnlyList<FlexLine> lines, HtmlRenderBoxStyle style, double contentY) {
-        if (lines.Count != 1 || style.FlexDirection != "column") yield break;
-        string? childPageName = lines[0].Items.FirstOrDefault()?.Block?.PageName;
-        foreach (FlexItem item in lines[0].Items) {
-            HtmlRenderFlowBlock child = item.Block!;
-            double start = contentY + item.MainOffset;
+        if (lines.Count != 1 || style.FlexDirection != "column") return Array.Empty<HtmlRenderForcedBreak>();
+        IReadOnlyList<FlexItem> items = lines[0].Items;
+        HtmlRenderFlowBlock[] children = items.Select(item => item.Block!).ToArray();
+        object[] boundaries = CreateFlowBoundaries(children);
+        var result = new List<HtmlRenderForcedBreak>();
+        string? childPageName = children.FirstOrDefault()?.PageName;
+        for (int index = 0; index < items.Count; index++) {
+            HtmlRenderFlowBlock child = children[index];
+            double start = contentY + items[index].MainOffset;
             if (!string.Equals(childPageName, child.PageName, StringComparison.Ordinal)) {
-                yield return new HtmlRenderForcedBreak(start, HtmlPageBreakTarget.Page, child.PageName, changesPageName: true);
+                result.Add(new HtmlRenderForcedBreak(start, HtmlPageBreakTarget.Page, child.PageName,
+                    changesPageName: true, boundary: boundaries[index]));
             }
             childPageName = child.PageName;
-            if (child.BreakBefore != HtmlPageBreakTarget.None)
-                yield return new HtmlRenderForcedBreak(start, child.BreakBefore);
-            foreach (HtmlRenderForcedBreak boundary in child.ForcedBreaks) yield return boundary.Translate(start);
-            if (child.BreakAfter != HtmlPageBreakTarget.None)
-                yield return new HtmlRenderForcedBreak(start + child.Height, child.BreakAfter);
+            AppendChildForcedBreaks(children, index, start, result, boundaries, afterAdvance: child.Height);
         }
+        return result;
     }
 
     private bool TryRelayoutBlockForFlexPagination(
@@ -155,7 +158,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         IElement root = _document.Body ?? _document.DocumentElement ?? block.OwnerElement;
         bool isRoot = ReferenceEquals(block.OwnerElement, root);
         if (!isRoot && !ReferenceEquals(block.OwnerElement.ParentElement, root)) return false;
-        HtmlRenderBoxStyle rootStyle = _styleResolver.Resolve(root, geometry.ContentWidth);
+        HtmlRenderBoxStyle rootStyle = ResolveRootStyle(root, geometry.ContentWidth);
         HtmlRenderBoxStyle style = isRoot
             ? rootStyle
             : _styleResolver.Resolve(block.OwnerElement, geometry.ContentWidth, rootStyle);
@@ -306,12 +309,13 @@ internal sealed partial class HtmlRenderLayoutEngine {
                     item.BreakOffsets.Where(offset => offset < item.Height - 0.0001D).DefaultIfEmpty().Max(),
                     item.RunningStringAssignments.Select(assignment => assignment.Offset).DefaultIfEmpty().Max(),
                     item.InlineBreakProgress.Select(progress => progress.Offset).DefaultIfEmpty().Max(),
-                    item.AvoidBreakRanges.Select(range => range.End).DefaultIfEmpty().Max()
+                    item.AvoidBreakRanges.Where(range => (range.Scope & HtmlFragmentationScope.Page) != 0)
+                        .Select(range => range.End).DefaultIfEmpty().Max()
                 }.Max();
                 bool absorbInStretchTail = !line.Items[index].HasExplicitCrossSize
                     && line.Items[index].Style.ExplicitHeight.HasValue
                     && retainedEnd + gap <= item.Height + 0.0001D;
-                line.Items[index].Block = InsertFlexItemBreakGap(item, cuts[index], gap, absorbInStretchTail);
+                line.Items[index].Block = InsertPagedSourceBreakGap(item, cuts[index], gap, absorbInStretchTail);
                 changed = true;
             }
 
@@ -323,10 +327,10 @@ internal sealed partial class HtmlRenderLayoutEngine {
         return changed;
     }
 
-    private static bool HasUnalignedSharedFlexRowBreak(FlexLine line, double cursor, double available, double pageHeight) {
+    private bool HasUnalignedSharedFlexRowBreak(FlexLine line, double cursor, double available, double pageHeight) {
         var atomicVisualBottoms = new Dictionary<HtmlRenderFlowBlock, double>();
         var atomicVisualRanges = new Dictionary<HtmlRenderFlowBlock, IReadOnlyList<(double Top, double Bottom)>>();
-        return line.Items.SelectMany(item => item.Block!.BreakOffsets)
+        bool discrete = line.Items.SelectMany(item => item.Block!.BreakOffsets)
             .Where(offset => offset > cursor + 0.0001D && offset <= cursor + available + 0.0001D)
             .Distinct()
             .Any(offset => line.Items.All(item => {
@@ -337,61 +341,20 @@ internal sealed partial class HtmlRenderLayoutEngine {
                         && offset > 0.0001D && offset < block.Height - 0.0001D)
                     && !BreaksAvoidedRangeThatFitsPage(block, cursor, offset, pageHeight, cursor + available);
             }));
+        if (discrete) return true;
+        double extent = line.Items.Max(item => item.Block!.PagedPaintExtent);
+        IReadOnlyList<HtmlRenderBreakRange> ranges = CollectSafeParallelBreakRanges(
+            line.Items.Select(item => (item.Block!, 0D)), extent, fullPageHeight: pageHeight);
+        if (ranges.Count == 0) return false;
+        var shared = new HtmlRenderFlowBlock(0D, extent, Array.Empty<HtmlRenderVisual>(),
+            HtmlPageBreakTarget.None, HtmlPageBreakTarget.None, false, "parallel-flex-breaks",
+            lineBreakGroups: line.Items.SelectMany(item => item.Block!.LineBreakGroups.Select(group => group.WithInteriorBreaks())),
+            avoidBreakRanges: line.Items.SelectMany(item => item.Block!.AvoidBreakRanges.Concat(
+                item.Block.AvoidBreakInsideScope != HtmlFragmentationScope.None
+                    ? new[] { new HtmlRenderAvoidBreakRange(0D, item.Block.Height, Scope: item.Block.AvoidBreakInsideScope) }
+                    : Array.Empty<HtmlRenderAvoidBreakRange>())),
+            safeBreakRanges: ranges);
+        return FindFragmentEnd(shared, cursor, available, fullPageHeight: pageHeight) > cursor + 0.0001D;
     }
 
-    private HtmlRenderFlowBlock InsertFlexItemBreakGap(HtmlRenderFlowBlock block, double cut, double gap,
-        bool absorbInStretchTail) {
-        IReadOnlyList<HtmlRenderVisual> before = SliceVisuals(block.Visuals, 0D, cut);
-        IReadOnlyList<HtmlRenderVisual> after = SliceVisuals(block.Visuals, cut, block.Height, includeEndAnchor: true);
-        List<HtmlRenderVisual> visuals = before
-            .Concat(after.Select((visual, index) => visual.Translate(0D, cut + gap, before.Count + index)))
-            .ToList();
-        double height = absorbInStretchTail ? block.Height : block.Height + gap;
-        if (absorbInStretchTail) visuals = SliceVisuals(visuals, 0D, height, includeEndAnchor: true).ToList();
-        double Shift(double offset) => offset >= cut - 0.0001D ? offset + gap : offset;
-
-        return new HtmlRenderFlowBlock(
-            block.Width,
-            height,
-            visuals,
-            block.BreakBefore,
-            block.BreakAfter,
-            block.AvoidBreakInside,
-            block.Source,
-            block.BreakOffsets.Select(Shift).Concat(new[] { cut, cut + gap }),
-            lineBreakGroups: block.LineBreakGroups.Select(group => new HtmlRenderLineBreakGroup(
-                group.Offsets.Select(Shift),
-                group.Orphans,
-                group.Widows,
-                group.HasImplicitFinalLine,
-                group.Start >= cut - 0.0001D ? group.Start + gap : group.Start,
-                group.End > cut + 0.0001D ? group.End + gap : group.End,
-                group.CheckInteriorBreaks,
-                group.FinalLineMarginBreak)),
-            pageName: block.PageName,
-            stackingZIndex: block.StackingZIndex,
-            stackingSourceOrder: block.StackingSourceOrder,
-            hasCollapsibleMargins: block.HasCollapsibleMargins,
-            collapsibleMarginTop: block.CollapsibleMarginTop,
-            collapsibleMarginBottom: block.CollapsibleMarginBottom,
-            ownerElement: block.OwnerElement,
-            collapsesThrough: block.CollapsesThrough,
-            unclampedHeight: absorbInStretchTail ? block.UnclampedHeight : block.UnclampedHeight + gap,
-            runningStringAssignments: block.RunningStringAssignments.Select(assignment =>
-                assignment.Offset >= cut - 0.0001D ? assignment.Translate(gap) : assignment),
-            inlineBreakProgress: block.InlineBreakProgress.Select(progress => new HtmlInlineBreakProgress(
-                Shift(progress.Offset), progress.LogicalCharacters, progress.OwnerElement,
-                progress.IsBlockEntry, progress.PageStartDiscardableMargin, progress.IsBlockExit, progress.IsFlexGap)),
-            inlineContinuationStart: block.InlineContinuationStart,
-            supportsInlineContinuationReflow: block.SupportsInlineContinuationReflow,
-            layoutViewportWidth: block.LayoutViewportWidth,
-            layoutViewportHeight: block.LayoutViewportHeight,
-            leadingFlowAdjustment: block.LeadingFlowAdjustment,
-            collapsibleMarginTopGroup: block.CollapsibleMarginTopGroup,
-            collapsibleMarginBottomGroup: block.CollapsibleMarginBottomGroup,
-            avoidBreakRanges: block.AvoidBreakRanges.Select(range => new HtmlRenderAvoidBreakRange(
-                range.Start >= cut - 0.0001D ? range.Start + gap : range.Start,
-                range.End > cut + 0.0001D ? range.End + gap : range.End,
-                range.Soft)));
-    }
 }

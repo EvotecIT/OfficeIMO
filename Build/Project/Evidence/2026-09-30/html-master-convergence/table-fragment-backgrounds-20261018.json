@@ -1,0 +1,768 @@
+{
+  "schema": 1,
+  "preparedDate": "2026-10-18",
+  "state": "Qualified bounded static-rendering checkpoint. Framework, native, package, report, review and cleanup evidence complete; branch backup only, no PR or publication.",
+  "scope": "Shared paged background closure, plain opaque auto-height table fragment fills, own solid separate-table sides and table/row-group/row/cell paint order, including formatting-context continuations and repeated footer reservation windows. Detached effect-owned repeat suppression and path-clip source text preservation keep unsupported repetition explicit.",
+  "source": {
+    "baseQualifiedCheckpoint": "dd9b01ea9c904e71f2e7c13d18dc67e15f01f882",
+    "frozenImplementationAndTests": "d8a9f84ad30c84f024c867ee36d94c5ee2e2f157",
+    "qualifiedImplementationAndTests": "d8a9f84ad30c84f024c867ee36d94c5ee2e2f157",
+    "sourceTrees": {
+      "OfficeIMO.Core": "525d802ec173c3c71a40862ced43308f2b5fe779",
+      "OfficeIMO.Html": "c19ef38b57b9fa410fdf33918cac8802186e6252",
+      "OfficeIMO.Html.Core": "3804952eb46a7eb05a8976bb7f421fc8aa619d5e",
+      "OfficeIMO.Html.AngleSharp": "2b7f2b16754df243579efea6e88a9c35e0dce3a6",
+      "OfficeIMO.Pdf": "b1b316ace5b668ccbc8e61cc5cb8ba59e32de68a",
+      "OfficeIMO.SharedSource": "dd1c89e2b292f90ebbf3107b130d377a8512306f",
+      "OfficeIMO.Html.Tests": "3f8d314384380d6d053ef73e439238aa973f42ef"
+    },
+    "sourceRuntimeBinding": {
+      "file": "final-source-runtime-binding.json",
+      "bytes": 2262,
+      "sha256": "42b360baba808bf705a181ebc8f2e0c1092f049ef59f2a883f9d75db1ecd4bbd"
+    },
+    "actualRuntimeHashes": {
+      "OfficeIMO.Html.Core.dll": "f57b5c36d01a5cc8a15b0878a9cac74c0b6dcc408c8b8b74c24a68a0f68fb088",
+      "OfficeIMO.Html.AngleSharp.dll": "8ecccae457192c329f81b3dec49d00fdd785b1ad429726fffcab92023fa31909",
+      "OfficeIMO.Core.dll": "56c3783df975154ad7fbca444e17ccefc116bc1a56b300b25ee9d8592e42378e",
+      "OfficeIMO.Pdf.dll": "d93208a5fd28fe52230954c9e6f607e7b8d87ea43f4529832bcb41e2d1c97b1e",
+      "OfficeIMO.Html.dll": "f3cbd0e397e3a0bac2e6913782ac9cc8f1105be1e221c1989fe9eb57d1d1c54c"
+    },
+    "branch": "fix/html-table-fragment-backgrounds",
+    "finalSourceState": "Qualified implementation/tests frozen at d8a9. Subsequent checkpoint changes only the evidence receipt and roadmap; production/package source remains unchanged.",
+    "expectedPublicApiChanges": false,
+    "expectedProductionDependencyChanges": false,
+    "providersOrWindowsChanges": false,
+    "actualProducerHashes": {
+      "final-runtime/TableBackgroundProbe.dll": "86aaed931dcfe7391cc3a73bd96b9d277ba017e4a7a3912545f13ccdab9079cc",
+      "final-runtime/ReportProbe.dll": "cc57e8f31496d5974f260b9934b1a77fb6f958101883f842e705d6fab5bee373",
+      "retained-producers/tests/net10.0/OfficeIMO.Html.Tests.dll": "2d050d0350191c371739da86896cc7ad3fe000566f9671631e41329fcbb7066c",
+      "retained-producers/tests/net8.0/OfficeIMO.Html.Tests.dll": "e07de0944401d39a9fdc2a396a911e8453077f91de77634330b29adc3ed5f2a2"
+    },
+    "frameworkRuntimeBinding": {
+      "file": "final-framework-runtime-binding.json",
+      "bytes": 2278,
+      "sha256": "6338367accfdafd1ee801a05faa588927872f5cd917f87431d8345931084d6d6"
+    },
+    "integrationBranchPreserved": {
+      "branch": "feature/html-engine",
+      "localHead": "72130c73a64747bc7016da6f46c4f2607e91633f"
+    },
+    "sealedPackageInputs": 3233
+  },
+  "contract": [
+    "Eligible table background paint covers unused space from a safe row cut to the continuing fragment boundary without adding flow height.",
+    "Only the table own solid left/right separate-border bands continue with that paint; collapsed grid rules remain at the row cut.",
+    "Table background stays below row-group, row and cell backgrounds, including rowspans, nested tables and formatting-context continuations.",
+    "Background-only extent reaches the repeated footer reservation window while retaining flow geometry. Final backdrop stops after the final footer; ordinary bordered blocks do not acquire table-specific slack paint.",
+    "Retain content once, repeated header/footer paint, link destinations, page geometry and source paint ownership.",
+    "Detached effect-owned tables retain original source paint. Unsafe independent header/footer repeats are suppressed with typed loss diagnostics and strict-loss behavior until a shared repetition effect owner is qualified; path-clip slicing retains source text once."
+  ],
+  "eligibility": {
+    "background": "Fully opaque rectangular border-box color; automatic height; static and untransformed.",
+    "excluded": "Explicit-height/aspect-ratio boxes, floats, transformed or individually scaled boxes, translucent/decorated fills, background images, shadows and extra clipping are outside this continuation subset.",
+    "separateSides": "Only painted solid own left/right table bands; no synthetic closing rule or extended cell/grid borders."
+  },
+  "tests": {
+    "state": "Current source d8a9 passed the 440-row focused closure and both complete .NET 8/10 suites: each 6729 actual rows passed, zero failed or skipped. Earlier 79af full-suite runs are not final-source acceptance.",
+    "rowspanSibling": "Both border models and formatting-wrapper variants pass in the final focused run; complete native/report qualification remains separate.",
+    "beforeFailureReceipt": {
+      "sourceHead": "79af8dd09690a3958d8654fcee2b004ccf4ef550",
+      "archivedHtmlSha256": "e94c75d7304cc5084a9cc10e05b3de9c8dc2bb283fdf1142bd0d7313df447d4f",
+      "total": 12,
+      "failed": 8,
+      "passed": 4,
+      "controlReceipt": {
+        "file": "effect-regression-control-final/receipt.json",
+        "bytes": 295,
+        "sha256": "774a8c7c4fb5041539b9e6126d2cf2d08e43f479f6783c2bef75607dec1a8ce0"
+      },
+      "actualTrx": {
+        "file": "trx/effect-before-regression-final/_evomini_2026-10-18_01_52_56.trx",
+        "bytes": 46843,
+        "sha256": "ccc45e3eab34159847a6d731eea9adc65e00e0063f8a05baf3f6c4d38a58adbf"
+      },
+      "boundary": "Four existing flex/grid region and ancestor opacity routes pass; detached item/effect/path-clip cases expose failures. Restored candidate Html hash is f3cbd0e397e3a0bac2e6913782ac9cc8f1105be1e221c1989fe9eb57d1d1c54c."
+    },
+    "focusedResults": {
+      "framework": "net10.0",
+      "total": 440,
+      "passed": 440,
+      "failed": 0,
+      "skipped": 0,
+      "actualTrx": {
+        "file": "trx/focused-effect-closure10/_evomini_2026-10-18_01_52_40.trx",
+        "bytes": 681456,
+        "sha256": "7a941f3fed843b1fe786bc5b2a20dbfa08a20b3adb7a672fbe57219aef7e779f"
+      }
+    },
+    "focusedCoverage": "Table background/layer and parallel-table closure, including effect-owned repetition loss, strict conversion, path-clip source text and protected parallel region/ancestor effect routes. Final full suites also cover the ordinary bordered-box control.",
+    "excludedProvisionalRun": "focused-bfc-phase10 used a stale ten-case test assembly during a prior build and is excluded from acceptance.",
+    "ownerResults": [
+      {
+        "framework": "net10.0",
+        "scope": "OfficeIMO.Html.Tests complete suite",
+        "runOutcome": "Completed",
+        "actualResultRows": 6729,
+        "passed": 6729,
+        "failed": 0,
+        "skipped": 0
+      },
+      {
+        "framework": "net8.0",
+        "scope": "OfficeIMO.Html.Tests complete suite",
+        "runOutcome": "Completed",
+        "actualResultRows": 6729,
+        "passed": 6729,
+        "failed": 0,
+        "skipped": 0
+      }
+    ],
+    "actualTrxIdentities": [
+      {
+        "framework": "net10.0",
+        "file": "trx/final-html10-full/_evomini_2026-10-18_01_55_27.trx",
+        "bytes": 10280838,
+        "sha256": "6f4decb6c21193446382d1634b9bb20092ec8263f4cb0589229570644cc41a38"
+      },
+      {
+        "framework": "net8.0",
+        "file": "trx/final-html8-full/_evomini_2026-10-18_01_57_04.trx",
+        "bytes": 10267379,
+        "sha256": "669ed8f5662550c89b8801b8300f569625a9f0f3e3387e0edc6bf2eca8f6fd9d"
+      }
+    ],
+    "frameworkReceipt": {
+      "file": "final-frameworks.json",
+      "bytes": 1372,
+      "sha256": "3a7861438cb200cb4475a7980b2709f9839ce01ebd49bd28f083a69800577207"
+    }
+  },
+  "native": {
+    "state": "Completed bounded native/SVG offline observations and coordinator visual inspection; retained media geometry and appearance limits remain explicit.",
+    "fixtureCases": [
+      "main-collapse",
+      "span-collapse",
+      "repeat-collapse",
+      "transparent-collapse",
+      "main-separate",
+      "span-separate",
+      "repeat-separate",
+      "transparent-separate",
+      "wrapped-collapse"
+    ],
+    "excludedAtlasCapture": "Original tall 50-panel capture/mapping is excluded. Five bounded atlas batches provide all 50 valid crops; 25 duplicate-source groups are consistent.",
+    "browserVersion": "155.0.4283.60",
+    "driverVersion": "1.63.0",
+    "sourceFontAndRuntimeBindings": {
+      "originalPaintHead": "79af8dd09690a3958d8654fcee2b004ccf4ef550",
+      "finalHead": "d8a9f84ad30c84f024c867ee36d94c5ee2e2f157",
+      "transfer": "150 actual byte-identical final/public PNG, scene PNG and SVG pairs; source, font and input hashes are bound in the observation receipt. Original qualified-source PDF Poppler rasters retain their original attribution."
+    },
+    "wholePageResults": {
+      "observations": {
+        "file": "qualified-svg-raster/observations.json",
+        "bytes": 677452,
+        "sha256": "fcb0c38dabbf760d63d22f539fb9e51660780536a6c6f1d88702ba312b86181a"
+      },
+      "svgFullRoi": {
+        "comparisons": 100,
+        "comparedPixels": 36992000,
+        "excludedPixels": 0,
+        "pixelsAnyChannelDeltaGt2": 242818,
+        "weightedMeanAbsoluteRgbDelta": 0.12088345227797004,
+        "maximumChannelDelta": 157
+      },
+      "nativePagedFullRoi": {
+        "comparisons": 128,
+        "comparedPixels": 16384000,
+        "excludedPixels": 0,
+        "pixelsAnyChannelDeltaGt2": 3126406,
+        "weightedMeanAbsoluteRgbDelta": 17.719751180013017,
+        "maximumChannelDelta": 255
+      },
+      "nativeWideFullRoi": {
+        "comparisons": 8,
+        "comparedPixels": 6400000,
+        "excludedPixels": 0,
+        "pixelsAnyChannelDeltaGt2": 69778,
+        "weightedMeanAbsoluteRgbDelta": 0.24975260416666673,
+        "maximumChannelDelta": 179
+      },
+      "printNonSvgPaintChecks": 496,
+      "printNonSvgPaintChecksAgree": 496,
+      "screenMediaGeometryWitnessMismatches": 43,
+      "pendingRequiredInputs": 0,
+      "boundary": "All original-size pixels are included without masks, alignment, rescaling or exclusions. These encoded-space metrics describe differences; they are not appearance-equivalence thresholds. Screen-media native repeated controls place rows/sections differently at print-declared witness coordinates."
+    },
+    "textLinkAndGeometryResults": {
+      "currentSourcePublicPdfs": [
+        {
+          "case": "main-collapse",
+          "receipt": {
+            "file": "final-main-collapse/content-links.json",
+            "bytes": 5051,
+            "sha256": "20ccb3ada75410d06ef3e7bdca2cd6b4bb4b4c673a8b301edceb0cab60748e44"
+          },
+          "pdfs": 3,
+          "bodyLabelsPerPdf": 29,
+          "internalLinksPerPdf": 7,
+          "allResolveToFinalPage": true
+        },
+        {
+          "case": "main-separate",
+          "receipt": {
+            "file": "final-main-separate/content-links.json",
+            "bytes": 5051,
+            "sha256": "20ccb3ada75410d06ef3e7bdca2cd6b4bb4b4c673a8b301edceb0cab60748e44"
+          },
+          "pdfs": 3,
+          "bodyLabelsPerPdf": 29,
+          "internalLinksPerPdf": 7,
+          "allResolveToFinalPage": true
+        }
+      ],
+      "boundary": "Current-source public PDF readback; broader ordered geometry and raw traversal permutations remain separately recorded."
+    },
+    "pngPdfParityResults": {
+      "finalManagedFixtureProfiles": 36,
+      "pagedProfilesWithExactReplay": 27,
+      "continuousProfilesNotApplicable": 9,
+      "boundary": "Producer PDF read-scene self-replay, separate from independent PDF/native residual observations."
+    },
+    "rasterImageCounts": {
+      "actualFinalSvgFiles": 50,
+      "svgImageElements": 0,
+      "boundary": "Source XML inspection of final SVG files covered by the unchanged-paint binding; full-region native SVG observations remain descriptive."
+    },
+    "completeReportComparison": {
+      "rawComparator": {
+        "file": "report-candidate-comparison.json",
+        "bytes": 499835,
+        "sha256": "4de7f05c02adff54b9539ffd2b3483818eb2ab1d8e6785d194a0b86401c9cff2"
+      },
+      "independentDisposition": {
+        "file": "report-candidate-delta-disposition.json",
+        "bytes": 275756,
+        "sha256": "2d6ccf107bb0299f554d28e05bcedf8c544e7a9be732ba7f4a4f0fcb53ea205c"
+      },
+      "profiles": 16,
+      "pairedPngPages": 81,
+      "pageCountsUnchanged": {
+        "parallel-portrait": {
+          "PrintPaged": 6,
+          "ScreenMediaPaged": 6,
+          "ScreenFullPage": 1,
+          "ScreenSnapshotPaged": 5
+        },
+        "parallel-landscape": {
+          "PrintPaged": 6,
+          "ScreenMediaPaged": 6,
+          "ScreenFullPage": 1,
+          "ScreenSnapshotPaged": 5
+        },
+        "grid-portrait": {
+          "PrintPaged": 7,
+          "ScreenMediaPaged": 7,
+          "ScreenFullPage": 1,
+          "ScreenSnapshotPaged": 6
+        },
+        "grid-landscape": {
+          "PrintPaged": 8,
+          "ScreenMediaPaged": 8,
+          "ScreenFullPage": 1,
+          "ScreenSnapshotPaged": 7
+        }
+      },
+      "orderedTextGeometryDiagnosticsDestinationsAndLinksExact": 16,
+      "protectedDeclaredLabels": {
+        "parallel": 326,
+        "grid": 303,
+        "boundary": "Exact prior/before/candidate ordered projections and multiplicity, gated by actual input/font bindings; duplicate semantic projections are retained, not interpreted as visible completeness."
+      },
+      "fullTableCellAndRecordedShapeCountersExact": 16,
+      "rawPagedTraversalOrderChanges": 8,
+      "recordCounterBoundary": "Complete table/cell records and duplicate multiplicities are preserved; only outer traversal order is ignored in this separately labeled disposition. Shape records cover geometry, not full fill/stroke payload. Raw positional deltas are retained.",
+      "pixelDeltas": {
+        "profiles": 16,
+        "profilesWithRawTraversalChanges": 8,
+        "fullTableRecordMultisetsExact": 16,
+        "fullCellRecordMultisetsExact": 16,
+        "pngPagesRecomputed": 81,
+        "changedPngFiles": 33,
+        "changedSvgFiles": 46,
+        "maximumChannelDelta": 5,
+        "pixelsAnyRgbaDeltaGt10": 0,
+        "maximumWholePageRgbMae": 0.0026366493133048174
+      },
+      "svgBoundary": "46 SVG byte changes retained; broader-report SVG bytes were not newly native-raster qualified. Fixture native SVG proof is separate.",
+      "visualInspection": {
+        "fourCaseOverview": "Coordinator inspected.",
+        "largestFullContact": "Root inspected the whole-page landscape print before/current/delta contact; the recorded narrow-rule differences remain explicit."
+      },
+      "boundary": "Managed impact comparison on the four retained synthetic reports; no new native/browser appearance, completeness, independent PDF consumer, platform or release qualification is inferred.",
+      "svgArchive": {
+        "file": "retained-report-svg-binding.json",
+        "bytes": 46740,
+        "sha256": "150c1a4981b51a98faa70c107008be93e2e7e4cc5fe01a8f3a8da530294a52d0"
+      },
+      "svgArchiveBoundary": "All162actual SVG bytes remain losslessly archived with exact SHA/path mapping; original expanded SVG paths were removed after verification. No new broader SVG raster claim."
+    },
+    "browserOwnershipReleased": true,
+    "appearanceBoundary": "Table fill and layer qualification does not establish full native visual parity. Final rowspan native fixtures author explicit row-group avoidance and use exact regular/bold fonts; unavoided native rowspans retain different fragmentation.",
+    "priorControlsReady": {
+      "file": "qualified-native-controls-ready.json",
+      "bytes": 1509,
+      "sha256": "8eeb2a379b08cda42562e6a1ca53c02130d0ea109587a466920ce10586e3b794"
+    },
+    "unchangedFixturePaint": {
+      "priorControlHead": "79af8dd09690a3958d8654fcee2b004ccf4ef550",
+      "currentHead": "d8a9f84ad30c84f024c867ee36d94c5ee2e2f157",
+      "actualArtifacts": 150,
+      "publicPngPages": 50,
+      "scenePngPages": 50,
+      "svgPages": 50,
+      "allByteIdentical": true,
+      "allActualHashesVerified": true,
+      "binding": {
+        "file": "final-unchanged-paint-binding.json",
+        "bytes": 41814,
+        "sha256": "7bd7a3044996cd7249d46548610a9c1b0c516bb282b93066f5263a3310c8723a"
+      },
+      "boundary": "Byte identity binds final-source fixture paint to retained 79af controls; it does not validate the excluded native tall atlas or establish independent consumer/native appearance."
+    },
+    "effectControls": {
+      "state": "Final-source effect controls have 20 native full-region observations, with original-source preservation and explicit repetition loss; appearance equivalence is not claimed.",
+      "cases": [
+        {
+          "case": "opacity",
+          "summary": {
+            "file": "effect-final-opacity/summary.json",
+            "bytes": 3527,
+            "sha256": "44ebc099395b0e9498eb79d9f161645e3659eeccd792aa974c273a30e11b76f1"
+          }
+        },
+        {
+          "case": "overflow",
+          "summary": {
+            "file": "effect-final-overflow/summary.json",
+            "bytes": 3527,
+            "sha256": "cb0545c8683567445e2f5d427d69877561872eadb1f1617cc5ed8638536c5c1b"
+          }
+        },
+        {
+          "case": "pathclip",
+          "summary": {
+            "file": "effect-final-pathclip/summary.json",
+            "bytes": 3527,
+            "sha256": "29cafbbd0fd7a1e96df7234dee81d3c794d76aac1dd8c157e8ebb69aa7730220"
+          }
+        }
+      ],
+      "profilePages": {
+        "PrintPaged": 2,
+        "ScreenMediaPaged": 2,
+        "ScreenFullPage": 1,
+        "ScreenSnapshotPaged": 1
+      },
+      "pagedDiagnostics": [
+        "HtmlRenderTableHeaderRepeatSuppressed",
+        "HtmlRenderTableFooterRepeatSuppressed"
+      ],
+      "producerParity": "All three non-continuous profiles recorded true in each case; ScreenFullPage is null.",
+      "boundary": "Effect-owned detached repetition is suppressed with explicit loss. Full common-effect repetition is not claimed.",
+      "nativeFullRoiComparisons": 20,
+      "pendingOptionalNativeScreenRasters": [
+        "native-opacity-before/screen-page-1.png",
+        "native-opacity-before/screen-page-2.png"
+      ]
+    },
+    "observedSvgPages": 50,
+    "visualInspection": {
+      "fixtureInspection": "Coordinator inspected representative whole-page contacts from all nine fixture families and effect controls.",
+      "broaderReportConfirmation": "Root inspected four-case overview and original-size largest-delta landscape whole-page before/current/delta contact; no missing content or changed layout observed. Raw full-page differences retained."
+    },
+    "capturedNativeUserAgent": "HeadlessChrome/155.0.0.0; Edg/155.0.0.0. Exact binary version is bound by the browser release receipt.",
+    "browserRelease": {
+      "receipt": {
+        "file": "final-browser-release.json",
+        "bytes": 4302,
+        "sha256": "598c430290495f1bee2cf0c4a114cfd66e8e99f0b932a462fcec38fc3f43b227"
+      },
+      "binarySha256": "1abec87b73a714cc3deb3e5b25db22d387f48e0c016bb99613dc12aa7e84d409",
+      "releasedRecordedOwnedCaptures": 25,
+      "owner": "Existing HtmlTinkerX3.0.4 BrowserProbe; no independent launcher"
+    },
+    "observedRoutes": [
+      "Native HTML screenshot/print PDF",
+      "Public managed PNG",
+      "Direct Drawing scene",
+      "Managed PDF readback and independent PDF consumers",
+      "Emitted SVG through native browser"
+    ],
+    "observedProfiles": [
+      "PrintPaged",
+      "ScreenMediaPaged",
+      "ScreenFullPage",
+      "ScreenSnapshotPaged"
+    ]
+  },
+  "remainingNativeObservation": {
+    "status": "Confirmed retained native page/canvas margin difference; complete bound final observations recorded.",
+    "finding": "Native Edge physical page margins are white while managed output paints the html background #eef2f6 there.",
+    "classification": "Separate native page/canvas background qualification; no production fix or full-page parity claim in this milestone.",
+    "machineEvidence": "qualified-svg-raster/observations.json"
+  },
+  "package": {
+    "state": "Five actual private packages, twenty DLL framework assets and all five consumer lanes passed; no publication.",
+    "ownedGraph": [
+      "OfficeIMO.Core",
+      "OfficeIMO.Html.Core",
+      "OfficeIMO.Html.AngleSharp",
+      "OfficeIMO.Pdf",
+      "OfficeIMO.Html"
+    ],
+    "changedPackage": "OfficeIMO.Html",
+    "actualAssetTargets": [
+      "net472",
+      "netstandard2.0",
+      "net8.0",
+      "net10.0"
+    ],
+    "plannedConsumerLanes": [
+      "net8",
+      "net10",
+      "legacy-net472",
+      "legacy-netstandard",
+      "osx-arm64 NativeAOT"
+    ],
+    "plan": {
+      "file": "package-proof/run-plan.json",
+      "bytes": 17300,
+      "sha256": "b31c1e70a4869b4675cda0fb1a8f9690c8f35d384a86f783f1014ed205f16546"
+    },
+    "packageBindings": {
+      "file": "package-proof/package-binding.json",
+      "bytes": 5531,
+      "sha256": "2f6d5d4dd0b1835d81ddeb078347267b89bfba8bfddd48ac2bcb924c15d0b041"
+    },
+    "consumerBindings": {
+      "file": "package-proof/consumer-binding.json",
+      "bytes": 5429,
+      "sha256": "e5f33e44cbf39326c9fcfa489e5083cbfb4464a38bb99f8adcef6ee46ab762ac"
+    },
+    "reuseCoreBoundary": "Reuse only the exact prior qualified Core package when its sealed source tree still matches; no repeat of unrelated Core/conic qualification.",
+    "legacyBoundary": "Packed legacy assets executed by .NET10/macOS would not establish native .NET Framework/Windows behavior.",
+    "releaseOrPublication": false,
+    "sourceSeal": {
+      "file": "package-proof/source-seal.json",
+      "bytes": 573192,
+      "sha256": "8c991a9c763e70ad25369341ec2c7db2bf290764917dcce052058375dcde9a73"
+    },
+    "ordinaryOwnedCacheUnchanged": true,
+    "privatePackageVersion": "3.5.1",
+    "actualPackageSha256": {
+      "OfficeIMO.Core": "e989ae843b6362ec65d3fb77eda661f0e8cfdfb12176cc6d3735644fd8de2897",
+      "OfficeIMO.Html.Core": "5f5cb3e5f8ac87d86d14ad86aec7b0d60454a681e0bd5352b86f02f6c660da6f",
+      "OfficeIMO.Html.AngleSharp": "9130cd6359c3745fe28e0bc78eee717c678a4eb40ed6321e91d3d8badce10b38",
+      "OfficeIMO.Pdf": "dc25145d319a8dff3e5242f2ce6de76d69d6e02b5181ffc975c7cbec772228c8",
+      "OfficeIMO.Html": "f0b5ef056845d0e71f41e8d7a8278b145144caafda950e1e535563525c712f53"
+    },
+    "actualDllAssets": {
+      "count": 20,
+      "allArchiveBytesAndHashesVerified": true,
+      "perPackageFrameworks": [
+        "net472",
+        "netstandard2.0",
+        "net8.0",
+        "net10.0"
+      ],
+      "identities": "All twenty asset hashes are bound in package-binding.json; all selected consumer assets are bound in consumer-binding.json."
+    },
+    "changedPackageDllSha256": {
+      "net10.0": "ba66ae9059abfa27d7ca7bee172068989ee933dae7ddaba5b2ed6e6877dadae8",
+      "net472": "fd9434e63c305816c303cfc08e658102bf3c97f4864f33ab5cd80d211816b1c2",
+      "net8.0": "4e477c1be31d3c3ea593d39223d52f3f8c6196b544450b021e912bd16fcbfc07",
+      "netstandard2.0": "884f8a9dbcb6da20efea0267c9736bc8979990a38f2e6772cd9f7cac3b6b8b26"
+    },
+    "dependencyRoles": {
+      "OfficeIMO.Core": "Exact reused qualified drawing/font package; no repeat of unchanged conic proof.",
+      "OfficeIMO.Html.Core": "Shared DOM, parser contracts and support types.",
+      "OfficeIMO.Html.AngleSharp": "Existing parser provider with AngleSharp and CodePages dependencies.",
+      "OfficeIMO.Pdf": "Existing writer/read-scene owner used by public table PNG/PDF conversion.",
+      "OfficeIMO.Html": "Changed static layout/fragmentation owner; AngleSharp and AngleSharp.Css retain existing roles."
+    },
+    "consumerSummarySha256": {
+      "net8": "ab549c83faea5bfe6626f7e2c0030f3206aa613193c6914a3cc24853d6e9fbba",
+      "net10": "12e14019ba8ab7019a06345575920cd9380c60fe457a15f1cc93fba66bc134b5",
+      "legacy-net472": "51ec76e2105012fbdeb0296f6058e0f110c1ce6baf9311c18a38011c255c1c50",
+      "legacy-netstandard": "4cc75758078bd89e2077c76ba929b722828b8b9b466fcce5571696ea7f49b159",
+      "aot": "b4cc6aa858956bb6cd6ec003ae48eedca5dddf118396db3ac7e4638da13f1c95"
+    },
+    "consumerContract": {
+      "consumers": 5,
+      "borderModelsPerConsumer": 2,
+      "pagesPerModel": 2,
+      "paintSamplesPerModel": 20,
+      "labelsOncePerModel": 29,
+      "headerLabelsRepeatedTwice": 4,
+      "linksPerModel": 7,
+      "allLinksReachFinalPage": true,
+      "allPublicPngEqualsPdfReplay": true
+    },
+    "nativeAot": {
+      "rid": "osx-arm64",
+      "architecture": "Arm64",
+      "executableSha256": "2a1044413ddfd77c3db3a33718f31472d73784d58cb9d65cec429d326c1c6275",
+      "boundary": "Actual native executable passed; embedded assemblies are bound through package/compiler inputs rather than loaded DLL identity."
+    },
+    "legacyProviders": {
+      "binding": {
+        "file": "package-proof/legacy-provider-binding.json",
+        "bytes": 3429,
+        "sha256": "43d910ae85a33ceddde9ccb74b4b5d3d69659f4b76ef89f438959c3eca38f4c1"
+      },
+      "actualAssets": {
+        "legacy-net472": {
+          "lib/net472/AngleSharp.dll": "23cb47717b278eaea8626cb4c4264912a2b85d6d848bf344ce63a055471b0744",
+          "lib/net472/AngleSharp.Css.dll": "c2989913b348627c79bffcbbc75814fd656783ea8f2fdc584497b1967ac97f70"
+        },
+        "legacy-netstandard": {
+          "lib/netstandard2.0/AngleSharp.dll": "d9dd0f346040e210f9f859ce90843351ba87acb0798f3fc8014809111e48a572",
+          "lib/netstandard2.0/AngleSharp.Css.dll": "f974c1e32a56e8dfa1470d620ec606944cce3a8d7a89971851dd9d835805d271"
+        }
+      },
+      "hostBclBoundary": "CodePages follows the .NET10 host framework/runtime. Only the two AngleSharp assets require explicit matching legacy references. This is not native .NETFramework execution.",
+      "nativeFrameworkWindowsProof": false
+    },
+    "harnessCorrections": {
+      "sourceMapping": {
+        "file": "package-proof/baseline-source-mapping-correction.json",
+        "bytes": 571,
+        "sha256": "652eca9b243bdcd081ff083fb6c20b15a1ca0625c2a09cc5657a184d4865dd76"
+      },
+      "legacyAssetMix": {
+        "file": "package-proof/legacy-asset-mix-control/binding.json",
+        "bytes": 555,
+        "sha256": "971f83eb92631330b2653e6ae8ba5668219702588f87ac14c7906faef5020897"
+      },
+      "boundary": "Initial source mapping omitted the existing Pdf 3.3.0 API-validation baseline; Source.NuGet.Config permits that baseline without disabling package validation. Initial mixed legacy Html/host-selected AngleSharp assets were corrected with two explicit matching provider references from the real legacy graph. Product source and ordinary owned cache are unchanged; excluded initial attempts remain retained.",
+      "hostBclCopyBoundary": "A metadata binder initially expected legacy CodePages to be copied into the .NET10-host lane. It is supplied by the host framework. Explicit legacy references were limited to the two AngleSharp assets before final legacy rebuild/run and final binding; earlier failed metadata attempt is excluded."
+    },
+    "completedPipeline": {
+      "plannedStages": 21,
+      "finalStageReceiptsExitZero": 21,
+      "additionalStage": "bind-legacy-providers is included in the current twenty-one-stage plan.",
+      "finalBindingStage": {
+        "file": "package-proof/receipts/bind-consumers.json",
+        "bytes": 727,
+        "sha256": "338878df1e84b4daa8e9e70567dd67935a85de1d270afd08dc939976cf5015cc"
+      },
+      "boundary": "Earlier failed/provisional receipt variants are not final success proof."
+    },
+    "consumerSource": {
+      "file": "package-proof/Program.cs",
+      "bytes": 8434,
+      "sha256": "899a5f443a78d4c3e21cda9babbb68a283ff132adbe2a50e8bda3d09d0ac5580"
+    },
+    "currentHarnessBoundary": "Only current source/asset-bound stage receipts count; failed mapping, BCL-copy expectation and mixed legacy attempts are retained separately. Native legacy Windows/.NETFramework execution remains unqualified."
+  },
+  "reproduction": {
+    "source": "Use the qualified source commit and pinned compatible SDK10.0.113, with one serialized pipeline and -m:3. Tests/dependencies rebuild from tracked sources; actual executed producer bytes and original-to-archive path maps remain retained.",
+    "focusedCommand": "dotnet test OfficeIMO.Html.Tests/OfficeIMO.Html.Tests.csproj -c Release -f net10.0 --filter \"FullyQualifiedName~HtmlTables_|FullyQualifiedName~HtmlFloatPagination_|FullyQualifiedName~HtmlParallel|FullyQualifiedName~Clip\" -m:3 --logger trx",
+    "nativeProcedure": "Use the frozen bounded-bundle inputs/fonts and existing QT probe. Inspect all rendered pages and compare table layers separately from page/canvas margins; retain complete-page metrics.",
+    "packageProcedure": "Recreate a fresh scratch lane from the recorded plan/source and exact package/producer hashes. Retained actual package assets, compiler-graph metadata and native executable preserve proof after expanded caches/build directories are removed.",
+    "stageResults": "Both complete framework TRXs, the current twenty-one-stage private package pipeline and final native/report artifact bindings are recorded above; no package publication was performed."
+  },
+  "machineEvidence": {
+    "root": "/Volumes/Samsung/Development/Scratch/html-table-fragment-backgrounds",
+    "pathBoundary": "Machine-local evidence only, not a portable default path. Exact source/runtime, fixture/font, TRX and decisive observation hashes identify the completed proof.",
+    "qualifiedFixtureAndFontBindings": {
+      "inputs": {
+        "inputs/table-background-collapse.html": "318c70029b2218ef897c6df774dabd447bff337e4505a1f6951ba7f7a12cf155",
+        "inputs/rowspan-background-collapse.html": "275c8f8149ee387189ff47fbc4d02deaf3ec14dd3bfdc506554f4b9fca511077",
+        "inputs/qualified-repeat-collapse.html": "ab9ecc74ad3ed6126b4625f52c810f606c4430a2a70e77ae62406fe0b39cfb87",
+        "inputs/qualified-transparent-collapse.html": "7a7b86c94f2547845b48bb255eadb3e01d9fa87379b5a227d65f89f3fe30e4a6",
+        "inputs/table-background-separate.html": "7c4aa306358b6b0cb4b29a945f78a1f528bb1b832576effd18db989d09fdac61",
+        "inputs/rowspan-background-separate.html": "243d3adc5dbdfe4150700a5538c19e12da83a367abcc6fe4b93850b6f318953c",
+        "inputs/qualified-repeat-separate.html": "69f3794d5938a4d6e563b6096bab52aa9529c93e985baa5ece7eded64d3e59bf",
+        "inputs/qualified-transparent-separate.html": "941ed406af7091a74d1d4c472a89258fd50dca5354078a8ac0df8320673e3f3b",
+        "inputs/qualified-wrapped-collapse.html": "3fd8906598cabcb4653f6ea5024d1dcfaf66f17ee141fce9643e36ce06f6cbb7"
+      },
+      "fonts": {
+        "inputs/regular.ttf": "00aca2988771998ff27738ff97c2cc8e71eb3013f206de5f205986b7de326af3",
+        "inputs/bold.ttf": "20bb7ad2e23beb5020313119f46fbc50a5ded598aaa1be4df719d3c017914b6c"
+      }
+    },
+    "finalDecisiveArtifacts": [
+      {
+        "file": "qualified-svg-raster/observations.json",
+        "bytes": 677452,
+        "sha256": "fcb0c38dabbf760d63d22f539fb9e51660780536a6c6f1d88702ba312b86181a"
+      },
+      {
+        "file": "report-candidate-delta-disposition.json",
+        "bytes": 275756,
+        "sha256": "2d6ccf107bb0299f554d28e05bcedf8c544e7a9be732ba7f4a4f0fcb53ea205c"
+      },
+      {
+        "file": "package-proof/consumer-binding.json",
+        "bytes": 5429,
+        "sha256": "e5f33e44cbf39326c9fcfa489e5083cbfb4464a38bb99f8adcef6ee46ab762ac"
+      },
+      {
+        "file": "final-browser-release.json",
+        "bytes": 4302,
+        "sha256": "598c430290495f1bee2cf0c4a114cfd66e8e99f0b932a462fcec38fc3f43b227"
+      },
+      {
+        "file": "retained-producer-archive.json",
+        "bytes": 27826,
+        "sha256": "8bf837c5e2ae0a915f91908768f68edfceba964109fc6d3a8573f965f7182e01"
+      },
+      {
+        "file": "owner-review-closure.json",
+        "bytes": 1928,
+        "sha256": "3d3118ee62d51c3a076ec9d650217926d7c4987ca3c10ba9a998feb4306b0ebc"
+      },
+      {
+        "file": "final-framework-runtime-binding.json",
+        "bytes": 2278,
+        "sha256": "6338367accfdafd1ee801a05faa588927872f5cd917f87431d8345931084d6d6"
+      },
+      {
+        "file": "retained-report-svg-binding.json",
+        "bytes": 46740,
+        "sha256": "150c1a4981b51a98faa70c107008be93e2e7e4cc5fe01a8f3a8da530294a52d0"
+      },
+      {
+        "file": "storage-final-summary.json",
+        "bytes": 459,
+        "sha256": "c24ee370754a66901c06653f4a952026732ff9e98674bbe7c76248e4cf2a9a87"
+      }
+    ],
+    "retainedProducerArchive": {
+      "metadata": {
+        "file": "retained-producer-archive.json",
+        "bytes": 27826,
+        "sha256": "8bf837c5e2ae0a915f91908768f68edfceba964109fc6d3a8573f965f7182e01"
+      },
+      "files": 69,
+      "logicalBytes": 97630108,
+      "pathMap": "Every original/archived path and hash is recorded in the archive metadata. Do not require cleaned original build/cache paths to remain present.",
+      "boundary": "Actual executed bytes and raw binding graphs retained; test dependencies/fixtures rebuild from tracked source. Native browser/driver separately installed. No standalone all-framework test bundle claim."
+    },
+    "retainedSvgArchive": {
+      "binding": {
+        "file": "retained-report-svg-binding.json",
+        "bytes": 46740,
+        "sha256": "150c1a4981b51a98faa70c107008be93e2e7e4cc5fe01a8f3a8da530294a52d0"
+      },
+      "archive": "retained-report-svg-payloads.zip",
+      "originalFiles": 162,
+      "uniquePayloads": 127,
+      "archiveBytes": 192252769
+    }
+  },
+  "remainingLimits": [
+    "Decorated/translucent backgrounds and unsupported fragment side styles remain outside the plain continuation contract.",
+    "Common-effect ownership across detached repeated table fragments remains open; current suppression preserves original effect-owned source paint and reports repetition loss instead of emitting opaque or unclipped repeats.",
+    "Complex collapsed-border junctions, three-dimensional shading, specialized table header styling and raster edge coverage retain their existing limits.",
+    "Percentage row groups, anonymous/rowspan percentage descendants, tall rowspans and mixed-font baseline work remain in the roadmap; native rowspans without authored group avoidance still fragment differently.",
+    "Native page/canvas margin backgrounds remain a separate open qualification.",
+    "43 ScreenMediaPaged paint witnesses reflect retained native row/section pagination geometry differences. Full-page metrics include these and all margin, text, edge and antialiasing residuals; exact browser appearance is not claimed.",
+    "Windows profiling, provider forks, PR, merge and release are outside this task."
+  ],
+  "review": {
+    "state": "Completed owner closure and targeted confirmation on the stable source: no remaining actionable invariant defect; bounded diagnosed fallback accepted.",
+    "sourceHead": "d8a9f84ad30c84f024c867ee36d94c5ee2e2f157",
+    "owner": "table_paint_owner_closure",
+    "allowance": "One closure and one targeted confirmation consumed; no new full review is implied.",
+    "evidenceSource": "Completed fresh read-only owner closure and one targeted confirmation; coordinator-authored compact disposition binds both source heads and consumed allowance.",
+    "receipt": {
+      "file": "owner-review-closure.json",
+      "bytes": 1928,
+      "sha256": "3d3118ee62d51c3a076ec9d650217926d7c4987ca3c10ba9a998feb4306b0ebc"
+    }
+  },
+  "storage": {
+    "state": "Cleanup complete: twenty build/cache/temp trees and one archived SVG expansion tree absent. Actual producers/packages/native/TRX and all raw SVG bytes retained; shared caches, prior evidence and active source worktree preserved.",
+    "logicalBytesRemoved": 4241127033,
+    "retainedApproximateLogicalBytes": 678287767,
+    "retainedPathsSizesAndReasons": [
+      {
+        "path": "/Volumes/Samsung/Development/Scratch/html-table-fragment-backgrounds/retained-report-svg-payloads.zip",
+        "logicalBytes": 192252769,
+        "reason": "Actual qualification evidence, producer, input, package or raw results; retention/classification in storage manifest."
+      },
+      {
+        "path": "/Volumes/Samsung/Development/Scratch/html-table-fragment-backgrounds/retained-producers",
+        "logicalBytes": 80793340,
+        "reason": "Actual qualification evidence, producer, input, package or raw results; retention/classification in storage manifest."
+      },
+      {
+        "path": "/Volumes/Samsung/Development/Scratch/html-table-fragment-backgrounds/trx",
+        "logicalBytes": 53344281,
+        "reason": "Actual qualification evidence, producer, input, package or raw results; retention/classification in storage manifest."
+      },
+      {
+        "path": "/Volumes/Samsung/Development/Scratch/html-table-fragment-backgrounds/package-proof",
+        "logicalBytes": 35147479,
+        "reason": "Actual qualification evidence, producer, input, package or raw results; retention/classification in storage manifest."
+      },
+      {
+        "path": "/Volumes/Samsung/Development/Scratch/html-table-fragment-backgrounds/final-runtime",
+        "logicalBytes": 26918134,
+        "reason": "Actual qualification evidence, producer, input, package or raw results; retention/classification in storage manifest."
+      },
+      {
+        "path": "/Volumes/Samsung/Development/Scratch/html-table-fragment-backgrounds/qualified-runtime",
+        "logicalBytes": 26880558,
+        "reason": "Actual qualification evidence, producer, input, package or raw results; retention/classification in storage manifest."
+      },
+      {
+        "path": "/Volumes/Samsung/Development/Scratch/html-table-fragment-backgrounds/before-runtime",
+        "logicalBytes": 26860677,
+        "reason": "Actual qualification evidence, producer, input, package or raw results; retention/classification in storage manifest."
+      },
+      {
+        "path": "/Volumes/Samsung/Development/Scratch/html-table-fragment-backgrounds/inputs",
+        "logicalBytes": 25766080,
+        "reason": "Actual qualification evidence, producer, input, package or raw results; retention/classification in storage manifest."
+      }
+    ],
+    "summary": {
+      "file": "storage-final-summary.json",
+      "bytes": 459,
+      "sha256": "c24ee370754a66901c06653f4a952026732ff9e98674bbe7c76248e4cf2a9a87"
+    },
+    "manifest": {
+      "file": "storage-manifest.json",
+      "bytes": 2753,
+      "sha256": "a0145b418ff5cec4a1b4f77d6689f2bf9fe7f0112dd82de915253939bd2225e2"
+    },
+    "cleanupReceipts": [
+      {
+        "file": "cleanup-interim-result.json",
+        "bytes": 2607,
+        "sha256": "0bbe1b26df59415e6531f9b4d3b7f16ec5a13838521412205ac3243f662cd877"
+      },
+      {
+        "file": "cleanup-final-result.json",
+        "bytes": 12009,
+        "sha256": "944ca4566977d4e951cc2f58fc162431f83a1113ed91f3b29ac15c6036d4478e"
+      },
+      {
+        "file": "cleanup-svg-result.json",
+        "bytes": 1277,
+        "sha256": "7892eccdf7d578a5525e513970daf72849ab8dd6ba47282d27961bb3e0c882cd"
+      }
+    ],
+    "svgArchive": {
+      "file": "retained-report-svg-binding.json",
+      "bytes": 46740,
+      "sha256": "150c1a4981b51a98faa70c107008be93e2e7e4cc5fe01a8f3a8da530294a52d0"
+    },
+    "boundary": "Logical bytes removed, not measured filesystem free-space gain. Lossless SVG archive is192252769bytes. Future cold-output review requires fresh checks."
+  }
+}

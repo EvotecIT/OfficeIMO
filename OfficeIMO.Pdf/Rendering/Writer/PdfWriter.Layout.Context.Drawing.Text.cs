@@ -11,6 +11,10 @@ internal static partial class PdfWriter {
     private sealed partial class LayoutContext {
         private void DrawDrawingTextAt(OfficeDrawingText text, double originX, double originTopY, OfficeDrawingTextMetrics textMetrics) {
             if (string.IsNullOrEmpty(text.Text)) return;
+            if (text.PreparedShaping is OfficePreparedTextShaping prepared) {
+                DrawPreparedDrawingTextAt(text, prepared, originX, originTopY);
+                return;
+            }
             text = currentOpts.ResolveDrawingFont(text);
             if (text.TextDirection == OfficeTextDirection.TopToBottom) {
                 if (!_suppressCanvasAccessibilityWrappers) {

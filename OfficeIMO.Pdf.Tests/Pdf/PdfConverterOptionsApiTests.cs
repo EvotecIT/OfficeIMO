@@ -34,14 +34,14 @@ public sealed class PdfConverterOptionsApiTests {
         Assert.Equal(PdfTextFallbackFeatures.Default, word.TextFallbacks);
         Assert.Equal(PdfTextFallbackFeatures.Default, excel.TextFallbacks);
         Assert.Equal(PdfTextFallbackFeatures.Default, powerPoint.TextFallbacks);
-        AssertBalancedDefault(markdown.ResourcePolicy);
-        AssertBalancedDefault(word.ResourcePolicy);
-        AssertBalancedDefault(excel.ResourcePolicy);
-        AssertBalancedDefault(powerPoint.ResourcePolicy);
-        AssertBalancedDefault(html.ResourcePolicy);
-        AssertBalancedDefault(rtf.ResourcePolicy);
-        AssertBalancedDefault(asciiDoc.MarkdownOptions.ResourcePolicy);
-        AssertBalancedDefault(latex.MarkdownOptions.ResourcePolicy);
+        AssertResourceDefaults(markdown.ResourcePolicy);
+        AssertResourceDefaults(word.ResourcePolicy);
+        AssertResourceDefaults(excel.ResourcePolicy);
+        AssertResourceDefaults(powerPoint.ResourcePolicy);
+        AssertResourceDefaults(html.ResourcePolicy, allowDocumentFonts: false);
+        AssertResourceDefaults(rtf.ResourcePolicy);
+        AssertResourceDefaults(asciiDoc.MarkdownOptions.ResourcePolicy);
+        AssertResourceDefaults(latex.MarkdownOptions.ResourcePolicy);
         AssertPortable(PdfResourcePolicy.CreatePortableDeterministic());
     }
 
@@ -268,9 +268,9 @@ public sealed class PdfConverterOptionsApiTests {
         Assert.True(policy.AllowEmbeddedPackageResources);
     }
 
-    private static void AssertBalancedDefault(PdfResourcePolicy policy) {
+    private static void AssertResourceDefaults(PdfResourcePolicy policy, bool allowDocumentFonts = true) {
         Assert.True(policy.AllowSystemFontEmbedding);
-        Assert.True(policy.AllowDocumentFontEmbedding);
+        Assert.Equal(allowDocumentFonts, policy.AllowDocumentFontEmbedding);
         Assert.False(policy.AllowLocalFileAccess);
         Assert.False(policy.AllowRemoteResourceResolution);
         Assert.True(policy.AllowDataUris);

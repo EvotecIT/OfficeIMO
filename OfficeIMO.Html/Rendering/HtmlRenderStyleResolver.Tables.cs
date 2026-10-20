@@ -1,6 +1,16 @@
 namespace OfficeIMO.Html;
 
 internal sealed partial class HtmlRenderStyleResolver {
+    /// <summary>Replaced layout-internal boxes use inline layout before anonymous table fixup.</summary>
+    private static string ResolveReplacedInternalDisplay(IElement element, string display) {
+        if (display is not ("table-cell" or "table-row" or "table-row-group" or "table-header-group"
+            or "table-footer-group" or "table-column" or "table-column-group" or "table-caption")) return display;
+        string tag = element.LocalName.ToLowerInvariant();
+        bool replaced = tag is "img" or "svg" or "iframe" or "input" or "select" or "textarea" or "progress" or "meter"
+            || tag == "button" && element.ChildElementCount == 0;
+        return replaced ? "inline" : display;
+    }
+
     private string ResolveTableInternalDimension(string value, HtmlRenderBoxStyle style) {
         if (style.Display is not ("table-column" or "table-column-group" or "table-row" or "table-row-group"
             or "table-header-group" or "table-footer-group" or "table-cell")) return value;

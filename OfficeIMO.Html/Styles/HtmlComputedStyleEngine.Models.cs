@@ -262,7 +262,8 @@ public static partial class HtmlComputedStyleEngine {
             double fontSize,
             double inheritedFontSize,
             double rootFontSize,
-            IReadOnlyDictionary<string, string> properties) {
+            IReadOnlyDictionary<string, string> properties,
+            HtmlFontSizeContext? fontSizeContext = null) {
             Names = names;
             Type = type;
             Width = width;
@@ -271,6 +272,7 @@ public static partial class HtmlComputedStyleEngine {
             InheritedFontSize = inheritedFontSize;
             RootFontSize = rootFontSize;
             Properties = properties;
+            FontSizeContext = fontSizeContext;
         }
 
         internal IReadOnlyList<string> Names { get; }
@@ -278,6 +280,7 @@ public static partial class HtmlComputedStyleEngine {
         internal double Width { get; }
         internal double? Height { get; }
         internal double FontSize { get; }
+        internal HtmlFontSizeContext? FontSizeContext { get; }
         internal double InheritedFontSize { get; }
         internal double RootFontSize { get; }
         internal IReadOnlyDictionary<string, string> Properties { get; }

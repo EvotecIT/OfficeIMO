@@ -35,8 +35,7 @@ internal static class OfficeOpenTypeCmap {
         for (int index = 0; index < text.Length;) {
             int glyph = ReadMappedGlyph(text, ref index, mapGlyph, mapVariationSequence, out int scalar);
             if (glyph < 0) continue;
-            if (glyph == 0 && (OfficeMissingSpaceMetrics.IsEmSpace(scalar) ||
-                !(scalar <= char.MaxValue && char.IsWhiteSpace((char)scalar))) &&
+            if (glyph == 0 && !OfficeTextElements.IsFontCoverageWhitespaceControl(scalar) &&
                 hasPaintedNotdef?.Invoke(scalar) != true) return false;
         }
         return true;

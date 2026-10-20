@@ -87,16 +87,12 @@ internal static class HtmlRenderScrollableOverflow {
             IReadOnlyList<HtmlRenderVisual>? retained = children == null ? null : RemoveLayoutBoxes(children, cancellationToken);
             if (children != null && !ReferenceEquals(children, retained)) {
                 changed = true;
-                result.Add(visual switch {
-                    HtmlRenderClipGroup clip => clip.ProjectPaint(retained!, 0D, 0D, visual.PaintOrder),
-                    HtmlRenderPathClipGroup path => path.ProjectPaint(retained!, 0D, 0D, visual.PaintOrder),
-                    HtmlRenderEffectGroup effect => effect.ProjectPaint(retained!, 0D, 0D, visual.PaintOrder),
-                    HtmlRenderSemanticGroup semantic => semantic.ProjectPaint(retained!, 0D, 0D, visual.PaintOrder),
-                    HtmlRenderLogicalTextGroup logical => logical.ProjectPaint(retained!, 0D, 0D, visual.PaintOrder, ownsLogicalText: true),
-                    HtmlRenderLayoutRegion region => region.ProjectPaint(retained!, 0D, 0D, visual.PaintOrder),
-                    HtmlRenderFormField form => form.ProjectPaint(retained!, 0D, 0D, visual.PaintOrder),
-                    _ => visual
-                });
+                // A temporary layout-only paint projection must not leave an
+                // empty clip/effect operation in the exported scene. Semantic,
+                // logical, navigation and form owners retain their own meaning.
+                if (children.Count > 0 && retained!.Count == 0
+                    && visual is HtmlRenderClipGroup or HtmlRenderPathClipGroup or HtmlRenderEffectGroup) continue;
+                result.Add(visual.ProjectPaintChildren(retained!, 0D, 0D, visual.PaintOrder));
             } else result.Add(visual);
         }
         return changed ? result : visuals;

@@ -6,14 +6,15 @@ namespace OfficeIMO.Html;
 internal sealed partial class HtmlRenderLayoutEngine {
     private ColumnNotePlan PlanColumnNotes(
         MultiColumnPlan body, IReadOnlyList<HtmlFootnoteEntry> entries, double width, double height,
-        ColumnNotePlan? previous, ColumnEdgeFloatPlan? floats = null) {
+        ColumnNotePlan? previous, ColumnEdgeFloatPlan? floats = null, ColumnPageBands? pageBands = null) {
         var chunks = new List<ColumnNoteChunk>();
         var reserved = new Dictionary<int, double>();
         var minimumCalls = new Dictionary<string, int>(StringComparer.Ordinal);
         foreach (HtmlFootnoteEntry entry in entries) {
             CheckCancellation();
             string callName = FootnoteCallDestination(entry.Number);
-            int column = FindColumnNoteCall(body, callName, height, out double callHeight);
+            double freshHeight = pageBands?.FreshHeight ?? height;
+            int column = FindColumnNoteCall(body, callName, freshHeight, out double callHeight);
             if (column < 0) continue;
             if (previous != null && previous.MinimumCalls.TryGetValue(callName, out int minimum)) column = Math.Max(column, minimum);
             minimumCalls[callName] = column;
@@ -24,17 +25,19 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 CheckCancellation();
                 ChargeLayoutOperation("column note reservation");
                 EnsureMultiColumnLimit(column + 1);
+                double columnHeight = pageBands?.Height(column) ?? height;
                 reserved.TryGetValue(column, out double occupied);
                 bool first = !reserved.ContainsKey(column);
                 double gap = first ? FootnoteSeparatorGap : 2D;
                 double minimumBody = column == callColumn
-                    ? Math.Min(height, Math.Max(callHeight,
-                        Math.Min(height * 0.5D, Math.Max(12D, _options.DefaultFontSize * 1.5D)))) : 0D;
-                double capacity = Math.Max(0D, height - minimumBody - occupied - gap - (floats?.Reserved(column) ?? 0D));
+                    ? Math.Min(columnHeight, Math.Max(callHeight,
+                        Math.Min(columnHeight * 0.5D, Math.Max(12D, _options.DefaultFontSize * 1.5D)))) : 0D;
+                double capacity = Math.Max(0D, columnHeight - minimumBody - occupied - gap - (floats?.Reserved(column) ?? 0D));
                 if (capacity <= 0.01D) { column++; continue; }
-                double end = FindFragmentEnd(entry.Block, offset, capacity, fullPageHeight: height);
+                double end = FindFragmentEnd(entry.Block, offset, capacity, fullPageHeight: freshHeight, fragmentationScope: HtmlFragmentationScope.Column);
                 if (end <= offset + 0.0001D) {
-                    if (column == callColumn || occupied > 0.0001D) { column++; continue; }
+                    if (column == callColumn || occupied > 0.0001D
+                        || columnHeight < freshHeight - 0.0001D) { column++; continue; }
                     // An atomic note fragment larger than a fresh column remains
                     // whole; the containing column set carries its paint extent.
                     end = FindNextColumnBreak(entry.Block, offset);
@@ -58,12 +61,13 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 .OfType<HtmlRenderNamedDestination>().FirstOrDefault(d => d.Name == callName);
             if (call == null) continue;
             double anchor = fragment.Start + call.LayoutY;
-            double before = FindFragmentEnd(fragment.Block, 0D, Math.Max(0D, anchor), anchor, fullPageHeight: height);
+            double before = FindFragmentEnd(fragment.Block, 0D, Math.Max(0D, anchor), anchor, fullPageHeight: height, fragmentationScope: HtmlFragmentationScope.Column);
             double after = FindNextColumnBreak(fragment.Block, anchor);
             callHeight = Math.Max(0D, after - before);
-            if (fragment.Block.AvoidBreakInside) callHeight = Math.Max(callHeight, fragment.Block.Height);
+            if ((fragment.Block.AvoidBreakInsideScope & HtmlFragmentationScope.Column) != 0) callHeight = Math.Max(callHeight, fragment.Block.Height);
             foreach (HtmlRenderAvoidBreakRange range in fragment.Block.AvoidBreakRanges) {
-                if (anchor >= range.Start && anchor < range.End && range.End - range.Start <= height)
+                if ((range.Scope & HtmlFragmentationScope.Column) != 0
+                    && anchor >= range.Start && anchor < range.End && range.End - range.Start <= height)
                     callHeight = Math.Max(callHeight, range.End - range.Start);
             }
             return fragment.Column;
@@ -79,7 +83,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
             if (!notes.MinimumCalls.TryGetValue(call.Name, out int minimum) || minimum <= column
                 || call.LayoutY < start - 0.0001D || call.LayoutY >= end - 0.0001D) continue;
             end = FindFragmentEnd(child, start, Math.Max(0D, call.LayoutY - start),
-                Math.Min(end, call.LayoutY), fullPageHeight: height);
+                Math.Min(end, call.LayoutY), fullPageHeight: height, fragmentationScope: HtmlFragmentationScope.Column);
         }
         return end;
     }
@@ -100,10 +104,12 @@ internal sealed partial class HtmlRenderLayoutEngine {
         }
     }
 
-    private MultiColumnPlan AppendColumnNoteFragments(MultiColumnPlan body, ColumnNotePlan notes, double width, double height) {
+    private MultiColumnPlan AppendColumnNoteFragments(MultiColumnPlan body, ColumnNotePlan notes, double width, double height,
+        ColumnPageBands? pageBands = null) {
         var fragments = new List<MultiColumnFragment>(body.Fragments);
         double extent = Math.Max(height, notes.Reservations.Values.DefaultIfEmpty(0D).Max());
-        var cursors = notes.Reservations.ToDictionary(pair => pair.Key, pair => extent - pair.Value);
+        var cursors = notes.Reservations.ToDictionary(pair => pair.Key,
+            pair => (pageBands?.Height(pair.Key) ?? extent) - pair.Value);
         foreach (ColumnNoteChunk note in notes.Chunks) {
             CheckCancellation();
             ChargeLayoutOperation("column note painting");
@@ -125,12 +131,18 @@ internal sealed partial class HtmlRenderLayoutEngine {
             double[] breaks = note.Entry.Block.BreakOffsets.Where(cut => cut > note.Start && cut <= note.End)
                 .Select(cut => gap + cut - note.Start).Concat(new[] { blockHeight }).Distinct().OrderBy(cut => cut).ToArray();
             var block = new HtmlRenderFlowBlock(width, blockHeight, visuals, HtmlPageBreakTarget.None,
-                HtmlPageBreakTarget.None, false, HtmlRenderStyleResolver.DescribeSource(note.Entry.Element) + ":column-note", breaks);
+                HtmlPageBreakTarget.None, false, HtmlRenderStyleResolver.DescribeSource(note.Entry.Element) + ":column-note", breaks,
+                lineBreakGroups: SliceColumnLineBreakGroups(note.Entry.Block.LineBreakGroups, note.Start, note.End, gap),
+                avoidBreakRanges: SliceColumnAvoidBreakRanges(note.Entry.Block, note.Start, note.End, gap),
+                safeBreakRanges: ProjectColumnTerminalSafeBreakRanges(
+                    SliceColumnSafeBreakRanges(note.Entry.Block.SafeBreakRanges, note.Start, note.End),
+                    note.End - note.Start, gap, blockHeight));
             fragments.Add(new MultiColumnFragment(block, 0D, blockHeight, note.Column, cursor));
             cursors[note.Column] += blockHeight;
         }
         int count = Math.Max(body.ColumnCount, notes.Reservations.Keys.DefaultIfEmpty(-1).Max() + 1);
-        return new MultiColumnPlan(fragments, count, Math.Max(body.UsedHeight, extent));
+        return new MultiColumnPlan(fragments, count, Math.Max(body.UsedHeight,
+            pageBands == null ? extent : fragments.Select(fragment => fragment.Y + fragment.Height).DefaultIfEmpty(0D).Max()));
     }
 
     private sealed record ColumnNoteChunk(HtmlFootnoteEntry Entry, int Column, double Start, double End, double Height, bool First);

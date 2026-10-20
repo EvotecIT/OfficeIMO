@@ -146,9 +146,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
 
     private HtmlRenderBoxStyle ResolveFormattingCellStyle(TableFormattingCell cell, double width) {
         if (cell.Nodes != null) return CreateAnonymousBoxStyle(cell.ParentStyle, "table-cell", "anonymous-table-cell");
-        HtmlRenderBoxStyle style = _styleResolver.Resolve(cell.Element, width, cell.ParentStyle);
-        return IsFormControlElement(cell.Element.LocalName) && !UsesButtonChildLayout(cell.Element)
-            && !IsInputType(cell.Element, "image") ? CreateFormControlStyle(cell.Element, style) : style;
+        return _styleResolver.Resolve(cell.Element, width, cell.ParentStyle);
     }
 
     /// <summary>Identifies an anonymous formatting box by its original owner and first source-node position, stable across reflow.</summary>

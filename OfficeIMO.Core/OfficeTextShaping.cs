@@ -465,6 +465,9 @@ public readonly struct OfficeShapedGlyph {
         int offsetX,
         int offsetY) => new OfficeShapedGlyph(glyphId, string.Empty, textIndex, advanceWidth, advanceHeight, offsetX, offsetY, allowEmptyUnicode: true);
 
+    internal OfficeShapedGlyph WithTextIndex(int textIndex) => new OfficeShapedGlyph(
+        GlyphId, UnicodeText, textIndex, AdvanceWidth, AdvanceHeight, OffsetX, OffsetY, allowEmptyUnicode: true);
+
     /// <summary>Font glyph identifier.</summary>
     public int GlyphId { get; }
 

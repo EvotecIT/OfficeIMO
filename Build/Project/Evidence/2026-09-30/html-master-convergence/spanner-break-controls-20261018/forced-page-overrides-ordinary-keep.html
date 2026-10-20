@@ -1,0 +1,22 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<title>forced-page-overrides-ordinary-keep</title>
+<style>
+@font-face{font-family:Witness;src:url(regular.ttf);font-weight:400}
+@font-face{font-family:Witness;src:url(bold.ttf);font-weight:700}
+@page{size:700px 140px;margin:20px}
+html,body{margin:0;background:white;font:14px/20px Witness}
+p{margin:0;orphans:1;widows:1}
+.columns{width:300px;column-count:2;column-gap:20px}
+.spanner{column-span:all;margin:0;font-weight:700;background:#eeeeee}
+</style>
+<section id="columns" class="columns" style="column-fill:auto">
+<p id="fpkpg-p01">FPKPG-P01</p>
+<p id="fpkpg-p02" style="break-after:avoid-page">FPKPG-P02</p>
+<p id="fpkpg-s01" class="spanner" style="break-before:page">FPKPG-S01</p>
+<p id="fpkpg-t01">FPKPG-T01</p>
+<p id="fpkpg-t02">FPKPG-T02</p>
+</section>
+<p id="after">FPKPG-AFTER</p>
+</html>

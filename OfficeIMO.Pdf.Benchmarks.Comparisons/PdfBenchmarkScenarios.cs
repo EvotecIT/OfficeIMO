@@ -62,5 +62,10 @@ internal static class PdfBenchmarkAssets {
         static () => File.ReadAllBytes(Path.Combine(AppContext.BaseDirectory, "Fonts", "Carlito-Regular.ttf")),
         isThreadSafe: true);
 
+    private static readonly Lazy<byte[]> BoldFont = new(
+        static () => File.ReadAllBytes(Path.Combine(AppContext.BaseDirectory, "Fonts", "Carlito-Bold.ttf")),
+        isThreadSafe: true);
+
     internal static byte[] CarlitoRegular => Font.Value;
+    internal static byte[] CarlitoBold => BoldFont.Value;
 }

@@ -1,0 +1,616 @@
+{
+  "schema": "officeimo.html.browser-font-defaults-qualification/v1",
+  "status": "bounded-browser-font-defaults-qualified-native-appearance-open",
+  "qualifiedUtc": "2026-10-19T20:28:46.888669+00:00",
+  "intendedRepositoryPath": "Build/Project/Evidence/2026-09-30/html-master-convergence/browser-font-defaults-20261019.json",
+  "pathContract": {
+    "syntax": "${NAME}/relative/path",
+    "roots": [
+      "R8_EVIDENCE_ROOT",
+      "R9_EVIDENCE_ROOT",
+      "REPOSITORY_ROOT"
+    ],
+    "machinePaths": "Resolve roots from the retained task state; machine paths are not committed here."
+  },
+  "source": {
+    "qualifiedProductionHead": "6ce0d750b78543750930724dcf8453169e5805bb",
+    "parentCheckpoint": "8ac357b8fcb5b232d7fa799cda9f138a269618d2",
+    "sourceSeal": {
+      "path": "${R9_EVIDENCE_ROOT}/package-r9-final-source.json",
+      "bytes": 910904,
+      "sha256": "56a304bf6a3a29e5acabd944541706126a9075bc22cf6c58aef2973c8e65ae21"
+    },
+    "unchangedOwnerContinuity": {
+      "path": "${R9_EVIDENCE_ROOT}/unchanged-owner-source-continuity-v2.json",
+      "bytes": 2253,
+      "sha256": "4987ae5b98ab450d5661d32cf7b4155908634b545e82fb4f6019c67c1a3c9a64"
+    }
+  },
+  "ownedContract": [
+    "Browser standard and sole-generic monospace mediums retain distinct defaults and size provenance through inheritance, root/rem and container evaluation.",
+    "The shared style owner supplies code/pre/kbd/samp and Math family defaults before inheritance and Browser ruby annotation size before descendants.",
+    "Authored family/size overrides remain authoritative; explicit family inherit/unset also reaches editable consumers without a literal inheritance token.",
+    "Document defaults retain their declared policy; the intended authored-family correction and every observed difference are retained for ROOT adjudication."
+  ],
+  "fullHtml": [
+    {
+      "framework": "net8.0",
+      "counters": {
+        "total": 7384,
+        "executed": 7384,
+        "passed": 7384,
+        "failed": 0,
+        "error": 0,
+        "timeout": 0,
+        "aborted": 0,
+        "inconclusive": 0,
+        "passedButRunAborted": 0,
+        "notRunnable": 0,
+        "notExecuted": 0,
+        "disconnected": 0,
+        "warning": 0,
+        "completed": 0,
+        "inProgress": 0,
+        "pending": 0
+      },
+      "execution": {
+        "path": "${R9_EVIDENCE_ROOT}/browser-font-closure-full-net8-v1-execution.json",
+        "bytes": 1778,
+        "sha256": "fc9951b3054a92bec84ad8f3d5e259fece88878eeb8e3e7afe39fc0bd92294be"
+      },
+      "trx": {
+        "path": "${R9_EVIDENCE_ROOT}/trx/browser-font-closure-full-net8-v1.trx",
+        "bytes": 11346937,
+        "sha256": "c8a13ddc897fe52feb34e81c4f18d4d557b26c067d9a9348b76ffa9e622f465b"
+      },
+      "elapsedSeconds": 156.229278167
+    },
+    {
+      "framework": "net10.0",
+      "counters": {
+        "total": 7384,
+        "executed": 7384,
+        "passed": 7384,
+        "failed": 0,
+        "error": 0,
+        "timeout": 0,
+        "aborted": 0,
+        "inconclusive": 0,
+        "passedButRunAborted": 0,
+        "notRunnable": 0,
+        "notExecuted": 0,
+        "disconnected": 0,
+        "warning": 0,
+        "completed": 0,
+        "inProgress": 0,
+        "pending": 0
+      },
+      "execution": {
+        "path": "${R9_EVIDENCE_ROOT}/browser-font-closure-full-net10-v3-execution.json",
+        "bytes": 1782,
+        "sha256": "45049ac6c873cd87eb97a57c12bc6250953fb73cb9f8e2375515b13b19d44916"
+      },
+      "trx": {
+        "path": "${R9_EVIDENCE_ROOT}/trx/browser-font-closure-full-net10-v3.trx",
+        "bytes": 11361706,
+        "sha256": "57a3f3f8b1e64410842b49a3d7fcd57c3d98cf05af1463397fab28f4fefe3254"
+      },
+      "elapsedSeconds": 144.776238667
+    }
+  ],
+  "publicAndNativeNumeric": {
+    "publicJobs": 36,
+    "ownExactPagePairs": 36,
+    "rawNumeric": {
+      "observations": 312,
+      "passes": 296,
+      "identityAmbiguities": 4,
+      "unmatchedPublicText": 12,
+      "controllerExitCode": 1
+    },
+    "separateIdentityAdjudication": {
+      "resolvedAmbiguousIdentities": 4,
+      "observedNativeCssSizeMatches": 300,
+      "unmeasuredMathDrawingText": 12,
+      "unchangedHistoricalDocumentEncodedPairs": 10,
+      "intentionalDocumentFamilyCorrectionProfiles": 2,
+      "boundary": "Twelve mtext node/media records are carried in HtmlRenderDrawing and remain outside this direct HTML-text inspector. Separate Math root width and query-paint controls are retained; per-token glyph/appearance agreement is not inferred."
+    },
+    "nativeAfterAdjudication": {
+      "path": "${R9_EVIDENCE_ROOT}/native-after-adjudication-v1.json",
+      "bytes": 20088,
+      "sha256": "0292c01326ce15580ced91f6f999775b5be83d3184cbeaf6b22e8ce8dd340c2d"
+    },
+    "rootFinalVisualAdjudication": {
+      "path": "${R9_EVIDENCE_ROOT}/root-final-visual-adjudication-v1.json",
+      "bytes": 6055,
+      "sha256": "edde0e0b55052a285e8445d88e6cb0aeaa34ea52c09779d278cb684d700d12ba"
+    },
+    "boundary": "Computed CSS and emitted text sizing are separate from physical font identity, glyph appearance and pagination. Own PNG/PDF equality does not establish native appearance."
+  },
+  "privatePackages": {
+    "owners": [
+      "OfficeIMO.Core",
+      "OfficeIMO.Html",
+      "OfficeIMO.Html.AngleSharp",
+      "OfficeIMO.Html.Core",
+      "OfficeIMO.Pdf"
+    ],
+    "frameworkAssets": 20,
+    "consumers": [
+      {
+        "consumer": "net8",
+        "framework": ".NET 8.0.23",
+        "architecture": "Arm64",
+        "result": {
+          "path": "${R9_EVIDENCE_ROOT}/packages/r9-final-v1/results/net8/result.json",
+          "bytes": 255865,
+          "sha256": "2633974e2776d67f13209c60b2b7050c5d073ef46ce8340bc6478fe3c883377b"
+        },
+        "historicalProfilePairs": 24,
+        "r8Checks": 17,
+        "r9Contracts": 4
+      },
+      {
+        "consumer": "net10",
+        "framework": ".NET 10.0.13",
+        "architecture": "Arm64",
+        "result": {
+          "path": "${R9_EVIDENCE_ROOT}/packages/r9-final-v1/results/net10/result.json",
+          "bytes": 255873,
+          "sha256": "73d7504e517f1d7caaf4cd32372416488836cf0b4ae0a6a56215a95992594dfc"
+        },
+        "historicalProfilePairs": 24,
+        "r8Checks": 17,
+        "r9Contracts": 4
+      },
+      {
+        "consumer": "aot",
+        "framework": ".NET 10.0.13",
+        "architecture": "Arm64",
+        "result": {
+          "path": "${R9_EVIDENCE_ROOT}/packages/r9-final-v1/results/aot/result.json",
+          "bytes": 254493,
+          "sha256": "6d37b664ae31123ae0c15f6ce886f7da2270291ade67b5ec89a71cc5d4152e97"
+        },
+        "historicalProfilePairs": 24,
+        "r8Checks": 17,
+        "r9Contracts": 4
+      }
+    ],
+    "packageBinding": {
+      "path": "${R9_EVIDENCE_ROOT}/packages/r9-final-v1/package-binding.json",
+      "bytes": 24885,
+      "sha256": "efc01f2874ef3ff75b11b5d9597ab8bf617c2fcdfa30efe5118569411702cb86"
+    },
+    "consumerBinding": {
+      "path": "${R9_EVIDENCE_ROOT}/packages/r9-final-v1/consumer-binding.json",
+      "bytes": 183767,
+      "sha256": "d1e63e8b31304072abb3eb7903df218b31a67dd6d4870f00655929881c043377"
+    },
+    "publicRelease": false,
+    "nativeAppearanceAccepted": false
+  },
+  "frozenRfc": {
+    "report": {
+      "path": "${R9_EVIDENCE_ROOT}/rfc-after-adjudication-v1.json",
+      "bytes": 4528,
+      "sha256": "676d04a7608d7412e09cc2985ebec21eec6901978e73faac3c605f515d90ef41"
+    },
+    "profileObservations": [
+      {
+        "profile": "browser-print",
+        "actual": {
+          "path": "${R9_EVIDENCE_ROOT}/rfc-after-v1/browser-print/observations.json",
+          "bytes": 98247,
+          "sha256": "be074e4b584099dab970288984d32df10d7b0a068b150ee091791fa8ebed7912"
+        },
+        "historical": {
+          "path": "${R8_EVIDENCE_ROOT}/frozen-image-replay-rfc-v2/print-browser/observations.json",
+          "bytes": 108502,
+          "sha256": "0eb75f07aefc0f1e827d76108d05b8177b1390502fad350db11216effaec0cbe"
+        },
+        "pages": 14,
+        "historicalPages": 18,
+        "allOwnPairsExact": true,
+        "logicalTextIdenticalToHistorical": true,
+        "historicalEncodedPngsExact": false
+      },
+      {
+        "profile": "browser-zero",
+        "actual": {
+          "path": "${R9_EVIDENCE_ROOT}/rfc-after-v1/browser-zero/observations.json",
+          "bytes": 95785,
+          "sha256": "f08ddc6821e4efb42941e72c59eb0b1388c719748e146919aeb81b440925014b"
+        },
+        "historical": {
+          "path": "${R8_EVIDENCE_ROOT}/frozen-image-replay-rfc-v2/zero-browser/observations.json",
+          "bytes": 103569,
+          "sha256": "4618b032e180de7635658a23926ef0dfb3a823451fc23a2f147186353f566859"
+        },
+        "pages": 13,
+        "historicalPages": 16,
+        "allOwnPairsExact": true,
+        "logicalTextIdenticalToHistorical": true,
+        "historicalEncodedPngsExact": false
+      },
+      {
+        "profile": "document-print",
+        "actual": {
+          "path": "${R9_EVIDENCE_ROOT}/rfc-after-v1/document-print/observations.json",
+          "bytes": 108129,
+          "sha256": "2ff92c97653f9ae6b74ecb0f70643c786e7e1963302f47cae49f1ab9a7bb2f4c"
+        },
+        "historical": {
+          "path": "${R8_EVIDENCE_ROOT}/frozen-image-replay-rfc-v2/print-document/observations.json",
+          "bytes": 108505,
+          "sha256": "6bde522c67ce34c9cb9c461717242ba90b609a51b62ab8d1daa467012ca182b8"
+        },
+        "pages": 18,
+        "historicalPages": 18,
+        "allOwnPairsExact": true,
+        "logicalTextIdenticalToHistorical": true,
+        "historicalEncodedPngsExact": true
+      },
+      {
+        "profile": "document-zero",
+        "actual": {
+          "path": "${R9_EVIDENCE_ROOT}/rfc-after-v1/document-zero/observations.json",
+          "bytes": 103195,
+          "sha256": "309bcaa4c58710e03d0186526be8e7c4cd48b327fc50a91f9aaa7ad48ee52fe7"
+        },
+        "historical": {
+          "path": "${R8_EVIDENCE_ROOT}/frozen-image-replay-rfc-v2/zero-document/observations.json",
+          "bytes": 103572,
+          "sha256": "e70e5ca6ee0150cd59c0d69be9d71ceb08a98e831c0821d0b71e5b06d1937b80"
+        },
+        "pages": 16,
+        "historicalPages": 16,
+        "allOwnPairsExact": true,
+        "logicalTextIdenticalToHistorical": true,
+        "historicalEncodedPngsExact": true
+      }
+    ],
+    "ownExactPagePairs": 61,
+    "edgeActualPageCount": 13,
+    "nativeAppearanceAccepted": false,
+    "limits": [
+      "Equal zero-fallback-margin page count does not establish page-break or visual identity.",
+      "Default-margin Browser14 pages vs native13; Document18/16 remains unchanged.",
+      "Source/logicaltext and every own public-image/PDF page are bound; native typographic/footer/flow acceptance remains open."
+    ],
+    "boundary": "Counts, diagnostics and source-order observations remain exactly those in the actual report. No page count or all-page native appearance acceptance is inferred."
+  },
+  "visualAcceptance": {
+    "nativeAppearanceAccepted": false,
+    "findings": [
+      {
+        "contract": "Browser CSS font sizing",
+        "result": "300 actual nativeCSS size matches;12mtext drawing-token sizes remain unmeasured. Four duplicate CODE matcher ambiguities separately resolved without replacing raw exit1."
+      },
+      {
+        "contract": "Physical fonts and flow",
+        "result": "At normal reading size, the paired pages visibly differ in mono stroke weight and some widths, line spacing, Ruby vertical spacing and Math drawing physical scale. These are retained programme acceptance gaps, not established native visual equivalence."
+      },
+      {
+        "contract": "RFC page layout",
+        "result": "Browser14/13 vs previous18/16; Document18/16 with34byte-identical historical own PNG pages. All61current own PNG/PDF pagepairs exact; logicaltext26910chars unchanged in eachprofile. Native13 has different footer alignment/pagebreaks, so equal zero-margin count is insufficient."
+      },
+      {
+        "contract": "Document defaults",
+        "result": "10fixtureprofiles byteidentical;2authoredfamilycorrection profiles change2font/widthrecords each while preserving sizes/positions. This is the intended explicitinherit/unset repair."
+      }
+    ],
+    "inspectedFiles": [
+      {
+        "path": "${R9_EVIDENCE_ROOT}/visual-after-v1/font-pairs-1.png",
+        "bytes": 234511,
+        "sha256": "3bded31e4211382ed9e656af347e71981fb8f61e400e292a8f878eb29832cfd2"
+      },
+      {
+        "path": "${R9_EVIDENCE_ROOT}/visual-after-v1/font-pairs-2.png",
+        "bytes": 201661,
+        "sha256": "3aa1355773538b83ee367293366256a53ee84eb786a8d3644230ce3e35faf29a"
+      },
+      {
+        "path": "${R9_EVIDENCE_ROOT}/visual-after-v1/font-pairs-3.png",
+        "bytes": 202436,
+        "sha256": "4e3d38c6fdf1994f8a7aadf0191456669be975960ad42c9dbff3befe6aa20aef"
+      },
+      {
+        "path": "${R9_EVIDENCE_ROOT}/visual-after-v1/font-defaults-supplement-edge-print.png",
+        "bytes": 55778,
+        "sha256": "b7d9c30268f340e847711ecceb1594e1fb94b17b9267f1dcc76a44dbcef21e2a"
+      },
+      {
+        "path": "${R9_EVIDENCE_ROOT}/public-after-v1/font-defaults-supplement-browser-print-1.png",
+        "bytes": 51947,
+        "sha256": "33e55ed379f1befda2b8d8cb7b6ec6247a839e4bc11267502828cb641030b043"
+      },
+      {
+        "path": "${R9_EVIDENCE_ROOT}/visual-after-v1/rfc-all-public-zero-pages.png",
+        "bytes": 222276,
+        "sha256": "409a023b4fb56f79b76d3a4c884bd8990c5e56b4969df568d0514fe937862523"
+      },
+      {
+        "path": "${R9_EVIDENCE_ROOT}/visual-after-v1/rfc-edge-001.png",
+        "bytes": 166670,
+        "sha256": "48d187c52edf5cc2930af91bff0f78bf994343cecc0fd8b214e328c2cf20696f"
+      },
+      {
+        "path": "${R9_EVIDENCE_ROOT}/rfc-after-v1/browser-zero/public-001.png",
+        "bytes": 157593,
+        "sha256": "9b677ba93f45ebda4ed14fbfdc9092d3cb713705664972a5933e83233f7ec454"
+      },
+      {
+        "path": "${R9_EVIDENCE_ROOT}/visual-after-v1/rfc-edge-013.png",
+        "bytes": 15613,
+        "sha256": "4ea90833c89bab151dea0a4d8b76a7bb8db9850b443517b0b8c9facaee993fc2"
+      },
+      {
+        "path": "${R9_EVIDENCE_ROOT}/rfc-after-v1/browser-zero/public-013.png",
+        "bytes": 75161,
+        "sha256": "b79109f32f2ee4caf45015d3d73886a676f3dd4ea1ee79ba45df6aa80d3277b2"
+      },
+      {
+        "path": "${R9_EVIDENCE_ROOT}/public-after-v1/ruby-defaults-browser-print-1.png",
+        "bytes": 28405,
+        "sha256": "f007927bf4ffe9f0d3e500c37f49fc0be7d23ace4283f64fa33e10bf4e799eca"
+      },
+      {
+        "path": "${R9_EVIDENCE_ROOT}/visual-after-v1/ruby-defaults-edge-print.png",
+        "bytes": 26551,
+        "sha256": "698caebf67f972647a6d3096762349b01bbf85c7784da6250315b7c768b6c2be"
+      }
+    ]
+  },
+  "reviewClosure": {
+    "path": "${R9_EVIDENCE_ROOT}/review/owner-closure-v3.json",
+    "bytes": 3870,
+    "sha256": "7aecb1effb96ed9f82bad6694d3ea4c2533e0812ddb18db6a0d3c75a0a98ed16"
+  },
+  "remainingAcceptance": [
+    "Physical generic/named font equivalence and broader scripts/platform preferences, including unqualified fractional/outside keyword-table settings.",
+    "Native line-height, Ruby vertical placement, Math drawing physical scale/operator spacing and professional-print acceptance.",
+    "Real-document page breaks/footer columns and remaining GOV/NASA resource/appearance gaps.",
+    "Windows profiling remains explicitly deferred; NET472/netstandard assets are not Windows execution."
+  ],
+  "deliveryBoundary": {
+    "checkpointOnly": true,
+    "newPullRequestOpened": false,
+    "mergeOrPackagePublication": false,
+    "runtimeProviderForks": "feature/html-engine retained",
+    "windowsProfiling": "deferred",
+    "goalPriority4": "Broader fonts/scripts/platforms, bounded MathML and professional print remain active."
+  },
+  "failedAttemptBoundary": "Actual failed executions and harness limitations remain retained and are never relabeled as successful qualification.",
+  "storage": {
+    "path": "${R9_EVIDENCE_ROOT}/storage-checkpoint-retention-v1.json",
+    "bytes": 11539,
+    "sha256": "0bdebac252fdbc07219b0ea17d9fb6ce69b9393c58700c07b150ea11a8549de2"
+  },
+  "evidenceIndex": [
+    {
+      "role": "sourceSeal",
+      "path": "${R9_EVIDENCE_ROOT}/package-r9-final-source.json",
+      "bytes": 910904,
+      "sha256": "56a304bf6a3a29e5acabd944541706126a9075bc22cf6c58aef2973c8e65ae21"
+    },
+    {
+      "role": "html-net8.0-execution",
+      "path": "${R9_EVIDENCE_ROOT}/browser-font-closure-full-net8-v1-execution.json",
+      "bytes": 1778,
+      "sha256": "fc9951b3054a92bec84ad8f3d5e259fece88878eeb8e3e7afe39fc0bd92294be"
+    },
+    {
+      "role": "html-net8.0-trx",
+      "path": "${R9_EVIDENCE_ROOT}/trx/browser-font-closure-full-net8-v1.trx",
+      "bytes": 11346937,
+      "sha256": "c8a13ddc897fe52feb34e81c4f18d4d557b26c067d9a9348b76ffa9e622f465b"
+    },
+    {
+      "role": "html-net10.0-execution",
+      "path": "${R9_EVIDENCE_ROOT}/browser-font-closure-full-net10-v3-execution.json",
+      "bytes": 1782,
+      "sha256": "45049ac6c873cd87eb97a57c12bc6250953fb73cb9f8e2375515b13b19d44916"
+    },
+    {
+      "role": "html-net10.0-trx",
+      "path": "${R9_EVIDENCE_ROOT}/trx/browser-font-closure-full-net10-v3.trx",
+      "bytes": 11361706,
+      "sha256": "57a3f3f8b1e64410842b49a3d7fcd57c3d98cf05af1463397fab28f4fefe3254"
+    },
+    {
+      "role": "publicBinding",
+      "path": "${R9_EVIDENCE_ROOT}/prep/qualification-v1/binding.json",
+      "bytes": 14905,
+      "sha256": "590a74501280cd41e88a0c647693c727b8b81589ada3590642cbb03b9b8b183e"
+    },
+    {
+      "role": "publicProducer",
+      "path": "${R9_EVIDENCE_ROOT}/prep/qualification-v1/producer.json",
+      "bytes": 116465,
+      "sha256": "57d38489f545fb4fc75a8f9b6ef6ec59ddb13ac35f6ff023e6d293fc0811a69d"
+    },
+    {
+      "role": "publicExecution",
+      "path": "${R9_EVIDENCE_ROOT}/browser-font-public-after-v1-execution.json",
+      "bytes": 1624,
+      "sha256": "da0076cc7e14c609be5bba0d4d389a15fd5f564ac421c878df5018ecfb4644d7"
+    },
+    {
+      "role": "publicAfter",
+      "path": "${R9_EVIDENCE_ROOT}/public-after-v1/observations.json",
+      "bytes": 347920,
+      "sha256": "59a3d8a41f42ecf52ff73c24b7a9262737a9f3912d5d43522845b283b65fd2eb"
+    },
+    {
+      "role": "nativeNumericComparison",
+      "path": "${R9_EVIDENCE_ROOT}/prep/qualification-v1/numeric-comparison.json",
+      "bytes": 127027,
+      "sha256": "f15a2c3091fe390ceb60acc566a64e229014ace3c3819fc0aab4801d70bfb210"
+    },
+    {
+      "role": "nativeNumericExecution",
+      "path": "${R9_EVIDENCE_ROOT}/browser-font-numeric-after-v1-execution.json",
+      "bytes": 1758,
+      "sha256": "c1ff8e5373293de0575a0f1ffb27cf03e278e9a6665c942215b10c0e6f78d3ea"
+    },
+    {
+      "role": "nativeAfterAdjudication",
+      "path": "${R9_EVIDENCE_ROOT}/native-after-adjudication-v1.json",
+      "bytes": 20088,
+      "sha256": "0292c01326ce15580ced91f6f999775b5be83d3184cbeaf6b22e8ce8dd340c2d"
+    },
+    {
+      "role": "packagePlan",
+      "path": "${R9_EVIDENCE_ROOT}/packages/r9-final-v1/plan.json",
+      "bytes": 46646,
+      "sha256": "5311ccadf9d57c5bad35347cc48f18dad4c1c3fb49537843779c40782797c936"
+    },
+    {
+      "role": "packageBinding",
+      "path": "${R9_EVIDENCE_ROOT}/packages/r9-final-v1/package-binding.json",
+      "bytes": 24885,
+      "sha256": "efc01f2874ef3ff75b11b5d9597ab8bf617c2fcdfa30efe5118569411702cb86"
+    },
+    {
+      "role": "consumerBinding",
+      "path": "${R9_EVIDENCE_ROOT}/packages/r9-final-v1/consumer-binding.json",
+      "bytes": 183767,
+      "sha256": "d1e63e8b31304072abb3eb7903df218b31a67dd6d4870f00655929881c043377"
+    },
+    {
+      "role": "ownerContinuity",
+      "path": "${R9_EVIDENCE_ROOT}/unchanged-owner-source-continuity-v2.json",
+      "bytes": 2253,
+      "sha256": "4987ae5b98ab450d5661d32cf7b4155908634b545e82fb4f6019c67c1a3c9a64"
+    },
+    {
+      "role": "reviewClosure",
+      "path": "${R9_EVIDENCE_ROOT}/review/owner-closure-v3.json",
+      "bytes": 3870,
+      "sha256": "7aecb1effb96ed9f82bad6694d3ea4c2533e0812ddb18db6a0d3c75a0a98ed16"
+    },
+    {
+      "role": "rootAdjudication",
+      "path": "${R9_EVIDENCE_ROOT}/root-final-visual-adjudication-v1.json",
+      "bytes": 6055,
+      "sha256": "edde0e0b55052a285e8445d88e6cb0aeaa34ea52c09779d278cb684d700d12ba"
+    },
+    {
+      "role": "frozenRfcReplay",
+      "path": "${R9_EVIDENCE_ROOT}/rfc-after-adjudication-v1.json",
+      "bytes": 4528,
+      "sha256": "676d04a7608d7412e09cc2985ebec21eec6901978e73faac3c605f515d90ef41"
+    },
+    {
+      "role": "storage",
+      "path": "${R9_EVIDENCE_ROOT}/storage-checkpoint-retention-v1.json",
+      "bytes": 11539,
+      "sha256": "0bdebac252fdbc07219b0ea17d9fb6ce69b9393c58700c07b150ea11a8549de2"
+    },
+    {
+      "role": "nativeReferences-1",
+      "path": "${R8_EVIDENCE_ROOT}/browser-monospace-before-edge-v1/native-before.json",
+      "bytes": 28991,
+      "sha256": "fc6144bd847b49543317e1c5a5eaab76f3b528c22f35cda3edecb3dcc444dd54"
+    },
+    {
+      "role": "nativeReferences-2",
+      "path": "${R9_EVIDENCE_ROOT}/native-supplement-v1/native-supplement.json",
+      "bytes": 6830,
+      "sha256": "6b0b29e0f04203e363a856475b2790f4fb53e36839b625c4658bd5a181749906"
+    },
+    {
+      "role": "nativeReferences-3",
+      "path": "${R9_EVIDENCE_ROOT}/native-ua-tags-v1/native-supplement.json",
+      "bytes": 6452,
+      "sha256": "1a16ecd826e3e665ed7834636d15f1fcbab9148e38df5947d6db57e3d2c342ce"
+    },
+    {
+      "role": "nativeReferences-4",
+      "path": "${R9_EVIDENCE_ROOT}/review-native-v1/native-supplement.json",
+      "bytes": 6691,
+      "sha256": "4e8daf38f7d05b49c8b6aa8273b495aa84df03e220f0a5a4a4e431acc250ce05"
+    },
+    {
+      "role": "nativeReferences-5",
+      "path": "${R9_EVIDENCE_ROOT}/ruby-defaults-native-v2/native-supplement.json",
+      "bytes": 6666,
+      "sha256": "a35c64e0f078b29976543959c40fb405342385ce5de64511d13ee49299713994"
+    },
+    {
+      "role": "nativeReferences-6",
+      "path": "${R9_EVIDENCE_ROOT}/custom-keywords-native-v3/observations.json",
+      "bytes": 53879,
+      "sha256": "fbedc1dade20bbd14fd866742ae7e70e87122ebb1a72d76b5eb6829da9bd291c"
+    },
+    {
+      "role": "beforeReferences-1",
+      "path": "${R8_EVIDENCE_ROOT}/browser-monospace-before-public-v2/observations.json",
+      "bytes": 163503,
+      "sha256": "e88ece1482ffb415e9cebf386f6de9352bab74d73e89a8c416e294a85ac0d1d8"
+    },
+    {
+      "role": "beforeReferences-2",
+      "path": "${R9_EVIDENCE_ROOT}/supplement-public-before-v1/observations.json",
+      "bytes": 56661,
+      "sha256": "7ffeca9557bff5e7edb8d1116cab1de3b5a30541cbcb1b1ffbf4b8575164b146"
+    },
+    {
+      "role": "failedAttempts-1",
+      "path": "${R9_EVIDENCE_ROOT}/browser-font-focused-review-fixes-net10-v1-execution.json",
+      "bytes": 2294,
+      "sha256": "9024b07dbff88679dd5d4bce04788d7d54b95a487304890257b3a97ccc1ec2d6"
+    },
+    {
+      "role": "failedAttempts-2",
+      "path": "${R9_EVIDENCE_ROOT}/browser-font-numeric-after-v1-execution.json",
+      "bytes": 1758,
+      "sha256": "c1ff8e5373293de0575a0f1ffb27cf03e278e9a6665c942215b10c0e6f78d3ea"
+    },
+    {
+      "role": "failedAttempts-3",
+      "path": "${R9_EVIDENCE_ROOT}/browser-font-owner-closure-repro-net10-v1-execution.json",
+      "bytes": 2052,
+      "sha256": "be711d19abef5f351178253c55e52f64d837ae11331b96fd87eaa68e559088bf"
+    },
+    {
+      "role": "failedAttempts-4",
+      "path": "${R9_EVIDENCE_ROOT}/browser-font-review-math-repro-net10-v2-execution.json",
+      "bytes": 1941,
+      "sha256": "6eb6fc730260247fff809557fd5229f7c30b9ff854a96da787c269068d6f3968"
+    },
+    {
+      "role": "failedAttempts-5",
+      "path": "${R9_EVIDENCE_ROOT}/browser-font-review-repro-net10-v1-execution.json",
+      "bytes": 1912,
+      "sha256": "f20b3511648c7cb9d47d32de9d4ae2ecdd582600bd7fcecbc1dd142c6687b9e3"
+    },
+    {
+      "role": "failedAttempts-6",
+      "path": "${R9_EVIDENCE_ROOT}/browser-font-semantic-repro-net10-v2-execution.json",
+      "bytes": 1973,
+      "sha256": "f1ef4eb517ac411f2e204098d9f6a5c8983cc4a51c2143b2911f1c76f7efe741"
+    },
+    {
+      "role": "failedAttempts-7",
+      "path": "${R9_EVIDENCE_ROOT}/browser-font-semantic-repro-net10-v3-execution.json",
+      "bytes": 1979,
+      "sha256": "04f0bdecefa3b41bb19b7f1689e3e52aea6c60b7d14299c6f37a64df1ca1a8c2"
+    },
+    {
+      "role": "failedAttempts-8",
+      "path": "${R9_EVIDENCE_ROOT}/custom-font-defaults-native-v1-execution.json",
+      "bytes": 1390,
+      "sha256": "f25e4551f3e7d56c8eba3c556135432dd53f14b34824f7de01aa00a44633446a"
+    },
+    {
+      "role": "failedAttempts-9",
+      "path": "${R9_EVIDENCE_ROOT}/custom-native-producer-build-v1-execution.json",
+      "bytes": 1647,
+      "sha256": "cb077b6b080ea212c0d2f4598ac95004c671b4ad297037d2b5b80518cb0ef1d3"
+    }
+  ]
+}

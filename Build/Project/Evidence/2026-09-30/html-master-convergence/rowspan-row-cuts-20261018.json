@@ -1,0 +1,507 @@
+{
+  "schema": "officeimo.html.rowspan-row-cuts-qualification/v1",
+  "recordedUtc": "2026-10-18T01:06:44.935261+00:00",
+  "milestone": "Safe ordinary rowspan row-boundary fragmentation",
+  "baseHead": "3eb6a236472f8d286b43814eeea2efbd0de4e92e",
+  "qualifiedProductionHead": "969714926261ee105d1acc6105b85debd158583a",
+  "publication": "Qualified checkpoint only; no PR, merge, signing or package publication authorized for this batch.",
+  "implementation": {
+    "changes": [
+      "Admit a row boundary only when every active spanning cell can preserve its source content, line carriers, atomic visuals and keeps.",
+      "Preserve authored cell/row/group and nested block keeps, sibling break-before/after avoidance, paragraph widows/orphans and original cell structure identity.",
+      "Keep new rowspan cuts out of row-target reflow progress; different page geometry retains source layout with the existing diagnostic.",
+      "Retain conservative boundaries for vertical/transformed cell content and nested tables; no new rowspan intra-row splitting."
+    ],
+    "owner": "OfficeIMO.Html shared layout/inline owners",
+    "publicApiChange": false,
+    "productionDependencyChange": false,
+    "consumerMigration": "No API migration required; public package and conversion consumers exercised."
+  },
+  "inputs": [
+    {
+      "case": "collapse",
+      "fixture": "rowspan-row-cuts-collapse-20261018.html",
+      "sha256": "b5dc1a98e9dfb6a9f256c0f53d8e6dd9c1246f466490f0ac6f2da7555feb2fee",
+      "bytes": 1161
+    },
+    {
+      "case": "separate",
+      "fixture": "rowspan-row-cuts-separate-20261018.html",
+      "sha256": "98b28a2e6e69b91e852b6b873cb9741fd832c104b4f9fc9ea58397f71a8ff434",
+      "bytes": 1161
+    },
+    {
+      "case": "kept-link",
+      "fixture": "rowspan-row-cuts-kept-link-20261018.html",
+      "sha256": "37a5d8e5a1b70979252c3a00be1f21fc28036cf60904d6890bc4601aff0bdad3",
+      "bytes": 1364
+    }
+  ],
+  "assetMap": {
+    "regular.ttf": {
+      "repositoryPath": "OfficeIMO.TestAssets/Fonts/OfficeIMOBaselineSans-Regular.ttf",
+      "sha256": "00aca2988771998ff27738ff97c2cc8e71eb3013f206de5f205986b7de326af3"
+    },
+    "bold.ttf": {
+      "repositoryPath": "OfficeIMO.TestAssets/Fonts/OfficeIMOBaselineSans-Bold.ttf",
+      "sha256": "20bb7ad2e23beb5020313119f46fbc50a5ded598aaa1be4df719d3c017914b6c"
+    }
+  },
+  "publicPath": "HtmlSiteBundle.Load -> HtmlRenderRequest.Create -> HtmlRenderEngine.Execute / bundle.RenderToPdfResult -> ExportImages; exact registered fonts, Browser UA, portable deterministic resources, no host fallback.",
+  "frameworks": {
+    "sourceHead": "969714926261ee105d1acc6105b85debd158583a",
+    "results": [
+      {
+        "framework": "net10.0",
+        "trx": "trx/final-full10/_evomini_2026-10-18_02_46_54.trx",
+        "sha256": "ab07408429eef60e2209530da26ab8181635b5f3102173cc7914c5d37e5a4426",
+        "counters": {
+          "total": "6747",
+          "executed": "6747",
+          "passed": "6747",
+          "failed": "0",
+          "error": "0",
+          "timeout": "0",
+          "aborted": "0",
+          "inconclusive": "0",
+          "passedButRunAborted": "0",
+          "notRunnable": "0",
+          "notExecuted": "0",
+          "disconnected": "0",
+          "warning": "0",
+          "completed": "0",
+          "inProgress": "0",
+          "pending": "0"
+        }
+      },
+      {
+        "framework": "net8.0",
+        "trx": "trx/final-full8/_evomini_2026-10-18_02_48_46.trx",
+        "sha256": "9612b8284b273780d8e91a274b8b6ddd285200f3013e9a2f3a05cc44b2fd521b",
+        "counters": {
+          "total": "6747",
+          "executed": "6747",
+          "passed": "6747",
+          "failed": "0",
+          "error": "0",
+          "timeout": "0",
+          "aborted": "0",
+          "inconclusive": "0",
+          "passedButRunAborted": "0",
+          "notRunnable": "0",
+          "notExecuted": "0",
+          "disconnected": "0",
+          "warning": "0",
+          "completed": "0",
+          "inProgress": "0",
+          "pending": "0"
+        }
+      }
+    ]
+  },
+  "focused": {
+    "passed": 50,
+    "trx": {
+      "path": "trx/keep-closure-focused10/_evomini_2026-10-18_02_44_47.trx",
+      "bytes": 76739,
+      "sha256": "73b9f3705efe405fb6390508c652f02ccc4e30f948f15ddd116d810a12143019"
+    },
+    "oldRendererControl": {
+      "rendererHead": "d8a9f84ad30c84f024c867ee36d94c5ee2e2f157",
+      "tested": 39,
+      "failed": 6,
+      "passed": 33,
+      "binding": {
+        "path": "before-test-runtime-binding.json",
+        "bytes": 1942,
+        "sha256": "7ea96bb040a0f6e0e7ccf8f199d2e5b48d833cd16b6cb163ad7e3331efe1cd07"
+      }
+    },
+    "reviewReproduction": {
+      "tested": 6,
+      "failedBefore": 6,
+      "trx": {
+        "path": "trx/review-reproduction/_evomini_2026-10-18_02_42_14.trx",
+        "bytes": 33996,
+        "sha256": "4c9cc8e9b40502dc1bb56956e659002ce6d65f64342a1c340fdb6099f59f0e8c"
+      }
+    }
+  },
+  "native": {
+    "engine": "Microsoft Edge155 via existing HtmlTinkerX3.0.4 and driver1.63.0",
+    "positiveControls": {
+      "authoredCases": 2,
+      "profiles": [
+        "PrintPaged",
+        "ScreenMediaPaged"
+      ],
+      "pagesEach": 2,
+      "perPageBodyLabelsAndRepeatedGroups": "All four case/profile controls agree; previous renderer deferred the third body row.",
+      "printAndScreenRasterBytesEqualForTheseInputs": true,
+      "observations": {
+        "path": "native-observations.json",
+        "bytes": 10031,
+        "sha256": "fb731a9a52b9e93c5777551853c1b06bde1053c4e436a73764f4cb80e33704f3"
+      }
+    },
+    "svg": {
+      "records": 8,
+      "distinctInputHashes": 4,
+      "observations": {
+        "path": "native-svg-observations.json",
+        "bytes": 4900,
+        "sha256": "50b3bfaea5878b724e316b528a0055bdde9b50c105d8a13adb7f70cf2f7d9688"
+      },
+      "allInputsContainNoImageElements": true
+    },
+    "remediationByteBinding": {
+      "path": "final-unchanged-native-binding.json",
+      "bytes": 6317,
+      "sha256": "1c1d8948d969912ca515771f3194a9f2759e72b2cc01d4649d9f7cd32b689cc2"
+    },
+    "inspection": "Root inspected every positive-control page, representative native SVG deltas and both kept-link residual pages.",
+    "retainedResidual": {
+      "case": "kept-link",
+      "observation": {
+        "native": {
+          "pages": 2,
+          "blockPage": 1,
+          "allFourLinesKeptOnce": true
+        },
+        "managed": {
+          "pages": 2,
+          "blockPage": 2,
+          "allFourLinesKeptOnce": true
+        },
+        "boundary": "Both retain the authored four-line keep intact. Native places it on page1 using space inside a row; managed conservatively moves the span pair to page2. Internal row fragmentation through rowspans remains unqualified, and this control is not included in exact native page-assignment acceptance."
+      },
+      "qualification": "Keep integrity and content pass; native body page assignment is not accepted for this residual control."
+    },
+    "pixelBoundary": "Full unmasked frame/canvas observations retained, including native PDF rounding row; no pixel or arbitrary-browser equivalence claim.",
+    "browserRelease": {
+      "sessions": 10,
+      "allOwnedBrowsersAndServersReleased": true,
+      "excludedAttempt": "Original screenshot step timed out; its browser/server were released. Successful PDF-only reference producer and actual SVG atlas supply accepted evidence."
+    }
+  },
+  "directRenderChecks": [
+    {
+      "case": "collapse",
+      "summary": {
+        "path": "final-collapse/summary.json",
+        "bytes": 3083,
+        "sha256": "5b830b203ac99cd08ad157683ca7680bc2270c30efe57dffc29ff2133e2e096c"
+      },
+      "profiles": [
+        {
+          "profile": "PrintPaged",
+          "pages": 2,
+          "parity": true,
+          "pageGeometry": [
+            {
+              "Width": 400,
+              "Height": 278
+            },
+            {
+              "Width": 400,
+              "Height": 278
+            }
+          ],
+          "diagnostics": []
+        },
+        {
+          "profile": "ScreenMediaPaged",
+          "pages": 2,
+          "parity": true,
+          "pageGeometry": [
+            {
+              "Width": 400,
+              "Height": 278
+            },
+            {
+              "Width": 400,
+              "Height": 278
+            }
+          ],
+          "diagnostics": []
+        },
+        {
+          "profile": "ScreenFullPage",
+          "pages": 1,
+          "parity": null,
+          "pageGeometry": [
+            {
+              "Width": 800,
+              "Height": 1000
+            }
+          ],
+          "diagnostics": []
+        },
+        {
+          "profile": "ScreenSnapshotPaged",
+          "pages": 1,
+          "parity": true,
+          "pageGeometry": [
+            {
+              "Width": 800,
+              "Height": 1000
+            }
+          ],
+          "diagnostics": []
+        }
+      ]
+    },
+    {
+      "case": "separate",
+      "summary": {
+        "path": "final-separate/summary.json",
+        "bytes": 3083,
+        "sha256": "b0eab1f30d4eee7394eafc20b3b2a6e740552c08b8dd8b3046c2ccb6311c02ed"
+      },
+      "profiles": [
+        {
+          "profile": "PrintPaged",
+          "pages": 2,
+          "parity": true,
+          "pageGeometry": [
+            {
+              "Width": 400,
+              "Height": 286
+            },
+            {
+              "Width": 400,
+              "Height": 286
+            }
+          ],
+          "diagnostics": []
+        },
+        {
+          "profile": "ScreenMediaPaged",
+          "pages": 2,
+          "parity": true,
+          "pageGeometry": [
+            {
+              "Width": 400,
+              "Height": 286
+            },
+            {
+              "Width": 400,
+              "Height": 286
+            }
+          ],
+          "diagnostics": []
+        },
+        {
+          "profile": "ScreenFullPage",
+          "pages": 1,
+          "parity": null,
+          "pageGeometry": [
+            {
+              "Width": 800,
+              "Height": 1000
+            }
+          ],
+          "diagnostics": []
+        },
+        {
+          "profile": "ScreenSnapshotPaged",
+          "pages": 1,
+          "parity": true,
+          "pageGeometry": [
+            {
+              "Width": 800,
+              "Height": 1000
+            }
+          ],
+          "diagnostics": []
+        }
+      ]
+    },
+    {
+      "case": "kept-link",
+      "summary": {
+        "path": "final-kept-link/summary.json",
+        "bytes": 3083,
+        "sha256": "58e3800edb747ba32fb03e6e2e289f310a37c16ed028bd633441441840dedb53"
+      },
+      "profiles": [
+        {
+          "profile": "PrintPaged",
+          "pages": 2,
+          "parity": true,
+          "pageGeometry": [
+            {
+              "Width": 400,
+              "Height": 286
+            },
+            {
+              "Width": 400,
+              "Height": 286
+            }
+          ],
+          "diagnostics": []
+        },
+        {
+          "profile": "ScreenMediaPaged",
+          "pages": 2,
+          "parity": true,
+          "pageGeometry": [
+            {
+              "Width": 400,
+              "Height": 286
+            },
+            {
+              "Width": 400,
+              "Height": 286
+            }
+          ],
+          "diagnostics": []
+        },
+        {
+          "profile": "ScreenFullPage",
+          "pages": 1,
+          "parity": null,
+          "pageGeometry": [
+            {
+              "Width": 800,
+              "Height": 1000
+            }
+          ],
+          "diagnostics": []
+        },
+        {
+          "profile": "ScreenSnapshotPaged",
+          "pages": 1,
+          "parity": true,
+          "pageGeometry": [
+            {
+              "Width": 800,
+              "Height": 1000
+            }
+          ],
+          "diagnostics": []
+        }
+      ]
+    }
+  ],
+  "packages": {
+    "qualificationOnly": true,
+    "htmlFrameworkAssets": [
+      "net472",
+      "netstandard2.0",
+      "net8.0",
+      "net10.0"
+    ],
+    "packageBinding": {
+      "path": "package-proof/package-binding.json",
+      "bytes": 1273,
+      "sha256": "d6bf961d753b0d605070916e97f8073af7e33ea7912f78130d9f77d6a9089f8f"
+    },
+    "sourceSeal": {
+      "path": "package-proof/source-seal.json",
+      "bytes": 565594,
+      "sha256": "0531bc2bbe865463c086c0d34b4a62e6f67839ea9d79dfbd8b1e2ed2486ffe85"
+    },
+    "consumers": {
+      "net8": {
+        "framework": ".NET 8.0.23",
+        "architecture": "Arm64",
+        "profileCases": 6,
+        "pages": 12,
+        "allPngEqualPdfReplay": true,
+        "sourceLabelsAndSpanningLinks": "Expected body labels once, repeated groups, source alignment and final-page links pass."
+      },
+      "net10": {
+        "framework": ".NET 10.0.13",
+        "architecture": "Arm64",
+        "profileCases": 6,
+        "pages": 12,
+        "allPngEqualPdfReplay": true,
+        "sourceLabelsAndSpanningLinks": "Expected body labels once, repeated groups, source alignment and final-page links pass."
+      },
+      "aot": {
+        "framework": ".NET 10.0.13",
+        "architecture": "Arm64",
+        "profileCases": 6,
+        "pages": 12,
+        "allPngEqualPdfReplay": true,
+        "sourceLabelsAndSpanningLinks": "Expected body labels once, repeated groups, source alignment and final-page links pass."
+      }
+    },
+    "consumerBinding": {
+      "path": "package-proof/consumer-binding.json",
+      "bytes": 12133,
+      "sha256": "d4e53818d0582ce62b3a5f268031180552264074e8ebfa22e37d1c9f18543644"
+    },
+    "boundary": "Four packed HTML framework assets compiled; net8/net10 and osx-arm64 AOT run exact new row-cut controls. Legacy assets compiled without Windows/.NET Framework execution claim. Four unchanged owner packages reused with identical source trees; no publication.",
+    "unchangedOwners": "Core, Pdf, Html.Core and Html.AngleSharp package/source trees unchanged from retained qualification; reused private packages are individually bound."
+  },
+  "broaderReports": {
+    "authoredCases": 4,
+    "profiles": 16,
+    "pngPages": 81,
+    "exactPngAndOrderedSceneRecordsUnchanged": true,
+    "observations": {
+      "path": "report-regression-comparison.json",
+      "bytes": 127249,
+      "sha256": "4b2014ce3b59a2aa6040eadd2e391e31d93d3db7ba0e284d1a06f09a71a7ce22"
+    },
+    "noChangeBinding": {
+      "path": "report-regression-no-change-binding.json",
+      "bytes": 127006,
+      "sha256": "13b020bd9173c4c4d2308bdac0f108d0d714b5f07fa5db7fc4f4c76896a7eed4"
+    },
+    "boundary": "Managed report regression against retained inputs. No new native report or SVG corpus claim."
+  },
+  "review": {
+    "base": "3eb6a236472f8d286b43814eeea2efbd0de4e92e",
+    "firstCandidate": "56e4ebace7dceb4fb3e2ce64b379223c62cdf7a6",
+    "confirmedCandidate": "969714926261ee105d1acc6105b85debd158583a",
+    "reviewer": "rowspan_cut_independent_review",
+    "mode": "one fresh read-only pass plus one targeted confirmation",
+    "findings": [
+      {
+        "priority": "P2",
+        "contract": "Cell flattening must retain sibling break-before/after avoidance.",
+        "reproduction": "Direct and inline-link paths; four executable cases failed before remediation.",
+        "disposition": "Existing shared keep helper now used in cell and interrupted-inline aggregation."
+      },
+      {
+        "priority": "P2",
+        "contract": "Inline links around blocks must retain child keeps and paragraph constraints.",
+        "reproduction": "Two executable cases failed before remediation.",
+        "disposition": "Shared interrupted-inline owner and reachable metadata copies retain those constraints; vertical spanning content stays conservative."
+      }
+    ],
+    "result": "All six review regressions reproduced before remediation; 50 focused checks pass afterwards; targeted confirmation found no remaining actionable issue.",
+    "scope": "New row-boundary cut owner and its metadata handoffs; prior table paint review not repeated.",
+    "allowance": "Fresh pass and targeted confirmation consumed."
+  },
+  "remaining": [
+    "Internal row fragmentation through rowspans and tall spans.",
+    "Fragment-specific middle/bottom alignment and width-changing span reflow.",
+    "Common effect-preserving repeated-group envelopes and other open canonical roadmap work."
+  ],
+  "runtimeProviderBranch": {
+    "branch": "feature/html-engine",
+    "heldHead": "72130c73a64747bc7016da6f46c4f2607e91633f",
+    "adoption": "Unchanged by this static milestone; runtime/provider forks remain outside this branch update."
+  },
+  "windowsProfiling": "Deferred per user. Legacy framework assets compiled on macOS; no Windows/.NET Framework runtime claim.",
+  "machineEvidence": {
+    "root": "/Volumes/Samsung/Development/Scratch/html-rowspan-fragmentation",
+    "retainedProducerArchive": {
+      "path": "retained-producer-archive.json",
+      "bytes": 41341,
+      "sha256": "c560d6e2d25602794d3ee38a86baf265fb34bfedeefdf7583fa317d7d1e8cb24"
+    },
+    "storageSummary": {
+      "path": "storage-final-summary.json",
+      "bytes": 1299,
+      "sha256": "61e7c4a5f6f00e5282f6465a135f18764c27430a985a0736795881802f71a83a"
+    },
+    "logicalBytesRemoved": 3441003144,
+    "retainedLogicalBytesAtCleanup": 355410793,
+    "reason": "Exact producer bytes, native/package evidence, raw TRX and all-page report proof deliberately retained; regenerable graphs/private caches/temp removed."
+  }
+}

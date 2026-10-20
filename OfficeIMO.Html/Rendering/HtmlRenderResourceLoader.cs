@@ -419,7 +419,7 @@ public sealed partial class HtmlResourceSession {
         if (MaxStylesheetImportDepth <= 0) throw new ArgumentOutOfRangeException(nameof(MaxStylesheetImportDepth));
     }
 
-    private static bool IsAcceptedContentType(HtmlResourceKind kind, string contentType) {
+    internal static bool IsAcceptedContentType(HtmlResourceKind kind, string contentType) {
         string normalized = contentType.Split(';')[0].Trim();
         if (kind == HtmlResourceKind.Image) return normalized.StartsWith("image/", StringComparison.OrdinalIgnoreCase);
         if (kind == HtmlResourceKind.Media) return normalized.StartsWith("audio/", StringComparison.OrdinalIgnoreCase) ||
@@ -428,7 +428,8 @@ public sealed partial class HtmlResourceSession {
             return normalized.StartsWith("font/", StringComparison.OrdinalIgnoreCase)
                 || normalized.StartsWith("application/font-", StringComparison.OrdinalIgnoreCase)
                 || normalized.StartsWith("application/x-font-", StringComparison.OrdinalIgnoreCase)
-                || string.Equals(normalized, "application/octet-stream", StringComparison.OrdinalIgnoreCase);
+                || string.Equals(normalized, "application/octet-stream", StringComparison.OrdinalIgnoreCase)
+                || string.Equals(normalized, "binary/octet-stream", StringComparison.OrdinalIgnoreCase);
         }
         return kind == HtmlResourceKind.Stylesheet
             && (string.Equals(normalized, "text/css", StringComparison.OrdinalIgnoreCase)

@@ -17,19 +17,23 @@ internal sealed class HtmlInlineLayout {
         IEnumerable<HtmlRenderContinuationGroup>? continuationGroups = null,
         IEnumerable<HtmlRenderTrailingGroup>? trailingGroups = null,
         double? pagedPaintExtent = null,
-        bool? hasInFlowLineBoxes = null) {
+        bool? hasInFlowLineBoxes = null,
+        IEnumerable<HtmlRenderAvoidBreakRange>? avoidBreakRanges = null,
+        IEnumerable<HtmlRenderBreakRange>? safeBreakRanges = null) {
         Visuals = new List<HtmlRenderVisual>(visuals);
         Height = height;
         NormalFlowHeight = normalFlowHeight ?? height;
         HasInFlowLineBoxes = hasInFlowLineBoxes;
         PagedPaintExtent = Math.Max(height, pagedPaintExtent ?? height);
         BreakOffsets = new List<double>(breakOffsets ?? Array.Empty<double>()).AsReadOnly();
+        SafeBreakRanges = HtmlRenderBreakRange.Normalize(safeBreakRanges ?? Array.Empty<HtmlRenderBreakRange>(), PagedPaintExtent);
         LineBreakOffsets = new List<double>(lineBreakOffsets ?? BreakOffsets).AsReadOnly();
         RunningStringAssignments = new List<HtmlCssRunningStringAssignment>(
             runningStringAssignments ?? Array.Empty<HtmlCssRunningStringAssignment>()).AsReadOnly();
         BreakProgress = new List<HtmlInlineBreakProgress>(breakProgress ?? Array.Empty<HtmlInlineBreakProgress>()).AsReadOnly();
         ForcedBreaks = forcedBreaks == null ? Array.Empty<HtmlRenderForcedBreak>() : new List<HtmlRenderForcedBreak>(forcedBreaks).AsReadOnly();
         LineBreakGroups = lineBreakGroups == null ? Array.Empty<HtmlRenderLineBreakGroup>() : new List<HtmlRenderLineBreakGroup>(lineBreakGroups).AsReadOnly();
+        AvoidBreakRanges = avoidBreakRanges == null ? Array.Empty<HtmlRenderAvoidBreakRange>() : new List<HtmlRenderAvoidBreakRange>(avoidBreakRanges).AsReadOnly();
         ContinuationGroups = continuationGroups == null ? Array.Empty<HtmlRenderContinuationGroup>() : new List<HtmlRenderContinuationGroup>(continuationGroups).AsReadOnly();
         TrailingGroups = trailingGroups == null ? Array.Empty<HtmlRenderTrailingGroup>() : new List<HtmlRenderTrailingGroup>(trailingGroups).AsReadOnly();
         SupportsContinuationReflow = supportsContinuationReflow;
@@ -47,6 +51,8 @@ internal sealed class HtmlInlineLayout {
     internal double PagedPaintExtent { get; }
     /// <summary>Page-break candidates; may exclude line ends inside a floated box.</summary>
     internal IReadOnlyList<double> BreakOffsets { get; }
+    /// <summary>Closed source-coordinate intervals that can supply page-break candidates.</summary>
+    internal IReadOnlyList<HtmlRenderBreakRange> SafeBreakRanges { get; }
     /// <summary>All line ends used to count widows and orphans, including lines beside floats.</summary>
     internal IReadOnlyList<double> LineBreakOffsets { get; }
     internal IReadOnlyList<HtmlCssRunningStringAssignment> RunningStringAssignments { get; }
@@ -58,6 +64,8 @@ internal sealed class HtmlInlineLayout {
     // Carry it once through wrappers instead of rediscovering shared placements.
     internal IReadOnlyList<HtmlRenderForcedBreak> ForcedBreaks { get; }
     internal IReadOnlyList<HtmlRenderLineBreakGroup> LineBreakGroups { get; }
+    // Block content flattened into a table cell retains its authored keeps.
+    internal IReadOnlyList<HtmlRenderAvoidBreakRange> AvoidBreakRanges { get; }
     internal IReadOnlyList<HtmlRenderContinuationGroup> ContinuationGroups { get; }
     internal IReadOnlyList<HtmlRenderTrailingGroup> TrailingGroups { get; }
 }

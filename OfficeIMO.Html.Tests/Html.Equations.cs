@@ -1,5 +1,7 @@
 using AngleSharp.Dom;
+using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Wordprocessing;
+using System.Xml.Linq;
 using OfficeIMO.Html;
 using OfficeIMO.Word;
 using OfficeIMO.Word.Html;
@@ -10,16 +12,54 @@ using Xunit;
 namespace OfficeIMO.Tests {
     public partial class Html {
         [Fact]
-        public void WordToHtml_ExportsStructuredEquationsAsMathMl() {
-            const string omml = "<m:oMathPara xmlns:m=\"http://schemas.openxmlformats.org/officeDocument/2006/math\"><m:oMath><m:f><m:num><m:r><m:t>a</m:t></m:r></m:num><m:den><m:r><m:t>b</m:t></m:r></m:den></m:f></m:oMath></m:oMathPara>";
-            using WordDocument document = WordDocument.Create();
-            document.AddEquation(omml);
+        public void WordToHtml_ExportedStructuredEquationsSurviveSavedWordRoundTrip() {
+            const string omml = "<m:oMath xmlns:m=\"http://schemas.openxmlformats.org/officeDocument/2006/math\">"
+                + "<m:f><m:num><m:sSup><m:e><m:r><m:t>a</m:t></m:r></m:e>"
+                + "<m:sup><m:r><m:t>2</m:t></m:r></m:sup></m:sSup></m:num>"
+                + "<m:den><m:rad><m:deg><m:r><m:t>3</m:t></m:r></m:deg>"
+                + "<m:e><m:r><m:t>b</m:t></m:r></m:e></m:rad></m:den></m:f></m:oMath>";
+            using WordDocument source = WordDocument.Create();
+            WordParagraph paragraph = source.AddParagraph("before ");
+            paragraph.AddEquation(omml);
+            paragraph.AddText(" after");
+            string expectedText = Assert.Single(source.Equations).Text;
+            Assert.Empty(source.ValidateDocument());
 
-            string html = document.ToHtml();
+            HtmlTextConversionResult export = source.ToHtmlResult();
+            string html = export.RequireValue();
+            IElement exportedMath = Assert.IsAssignableFrom<IElement>(
+                HtmlDocumentParser.ParseDocument(html).QuerySelector("math"));
+            Assert.NotNull(exportedMath.QuerySelector("mfrac"));
+            Assert.NotNull(exportedMath.QuerySelector("msup"));
+            Assert.NotNull(exportedMath.QuerySelector("mroot"));
+            Assert.False(string.IsNullOrWhiteSpace(exportedMath.GetAttribute("aria-label")));
 
-            Assert.Contains("<math", html, StringComparison.OrdinalIgnoreCase);
-            Assert.Contains("<mfrac", html, StringComparison.OrdinalIgnoreCase);
-            Assert.Contains("aria-label=\"(a)/(b)\"", html, StringComparison.OrdinalIgnoreCase);
+            HtmlToWordResult import = HtmlConversionDocument.Parse(html).ToWordDocumentResult();
+            using WordDocument imported = import.RequireValue();
+            using var artifact = new MemoryStream();
+            imported.Save(artifact);
+            byte[] bytes = artifact.ToArray();
+            using WordDocument reopened = WordDocument.Load(new MemoryStream(bytes),
+                new WordLoadOptions { AccessMode = OfficeIMO.DocumentAccessMode.ReadOnly });
+            WordEquation equation = Assert.Single(reopened.Equations);
+            Assert.Equal(WordEquationRepresentation.Omml, equation.Representation);
+            Assert.Equal(expectedText, equation.Text);
+            Assert.Empty(reopened.ValidateDocument());
+
+            XNamespace math = "http://schemas.openxmlformats.org/officeDocument/2006/math";
+            XNamespace word = "http://schemas.openxmlformats.org/wordprocessingml/2006/main";
+            XElement native = ReadSavedHtmlEquation(bytes);
+            XElement fraction = Assert.Single(native.Descendants(math + "f"));
+            XElement script = Assert.Single(fraction.Element(math + "num")!.Elements(math + "sSup"));
+            Assert.Equal("a", script.Element(math + "e")!.Value);
+            Assert.Equal("2", script.Element(math + "sup")!.Value);
+            XElement radical = Assert.Single(fraction.Element(math + "den")!.Elements(math + "rad"));
+            Assert.Equal("3", radical.Element(math + "deg")!.Value);
+            Assert.Equal("b", radical.Element(math + "e")!.Value);
+            XElement savedParagraph = Assert.Single(native.Ancestors(word + "p"));
+            Assert.Equal("before {equation} after", string.Concat(savedParagraph.Elements().Select(element =>
+                element.Name == math + "oMath" ? "{equation}"
+                    : string.Concat(element.Descendants(word + "t").Select(text => text.Value)))));
         }
 
         [Fact]
@@ -318,15 +358,54 @@ namespace OfficeIMO.Tests {
             Assert.Equal(2, html.Split(new[] { "(a)/(b)" }, StringSplitOptions.None).Length - 1);
         }
 
-        [Fact]
-        public void HtmlToWord_ImportsMathMlAsEditableOmmlTextFallback() {
-            const string html = "<p>Formula: <math aria-label=\"sqrt(x)\"><msqrt><mi>x</mi></msqrt></math></p>";
+        [Theory]
+        [InlineData(false)]
+        [InlineData(true)]
+        public void HtmlToWord_ImportsStructuredMathMlRadicalWithOptionalLabel(bool labeled) {
+            string label = labeled ? " aria-label='spoken radical'" : string.Empty;
+            string html = "<p>Formula: <math" + label + "><msqrt><mi>x</mi></msqrt></math></p>";
 
-            using WordDocument document = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToWordDocument();
+            using WordDocument document = HtmlConversionDocument.Parse(html).ToWordDocument();
 
             WordEquation equation = Assert.Single(document.Equations);
             Assert.Equal(WordEquationRepresentation.Omml, equation.Representation);
             Assert.Equal("sqrt(x)", equation.Text);
+            XNamespace math = "http://schemas.openxmlformats.org/officeDocument/2006/math";
+            XElement radical = Assert.Single(XElement.Parse(equation.Omml!).Descendants(math + "rad"));
+            Assert.Equal("x", radical.Element(math + "e")!.Value);
+            Assert.Empty(document.ValidateDocument());
+        }
+
+        [Theory]
+        [InlineData("<math aria-label='spoken fallback'></math>", "spoken fallback")]
+        [InlineData("<math>x + 1</math>", "x + 1")]
+        [InlineData("<math aria-label='annotation fallback'><semantics>"
+            + "<annotation encoding='application/x-tex'>ignored TeX</annotation>"
+            + "<annotation-xml encoding='application/mathml+xml'><math><mo lspace='.5em'>+</mo></math>"
+            + "</annotation-xml></semantics></math>", "annotation fallback")]
+        [InlineData("<math><semantics><annotation encoding='application/x-tex'>x + 1</annotation>"
+            + "</semantics></math>", "x + 1")]
+        public void HtmlToWord_PreservesEquationTextFallbackWhenNoPresentationProjectionExists(
+            string html, string expectedText) {
+            HtmlToWordResult result = HtmlConversionDocument.Parse(html).ToWordDocumentResult();
+            using WordDocument document = result.RequireValue();
+            using var artifact = new MemoryStream();
+            document.Save(artifact);
+            byte[] bytes = artifact.ToArray();
+            using WordDocument reopened = WordDocument.Load(new MemoryStream(bytes),
+                new WordLoadOptions { AccessMode = OfficeIMO.DocumentAccessMode.ReadOnly });
+
+            WordEquation equation = Assert.Single(reopened.Equations);
+            Assert.Equal(WordEquationRepresentation.Omml, equation.Representation);
+            Assert.Equal(expectedText, equation.Text);
+            XNamespace math = "http://schemas.openxmlformats.org/officeDocument/2006/math";
+            XElement native = ReadSavedHtmlEquation(bytes);
+            Assert.Equal(math + "r", Assert.Single(native.Elements()).Name);
+            Assert.Equal(expectedText, Assert.Single(native.Descendants(math + "t")).Value);
+            Assert.Empty(reopened.ValidateDocument());
+            Assert.DoesNotContain(result.Report.Diagnostics, diagnostic =>
+                diagnostic.Component == "OfficeIMO.Word.Html"
+                && diagnostic.Code == HtmlConversionDiagnosticCodes.ContentApproximated);
         }
 
         [Fact]
@@ -356,8 +435,8 @@ namespace OfficeIMO.Tests {
                 child => Assert.NotNull(Assert.IsType<Run>(child).RunProperties?.Bold),
                 child => Assert.IsType<M.OfficeMath>(child),
                 child => Assert.NotNull(Assert.IsType<Run>(child).RunProperties?.Italic));
-            Assert.Equal("prefix linked suffix", hyperlink.InnerText);
-            Assert.Single(document.Equations);
+            Assert.Equal("prefix x suffix", hyperlink.InnerText);
+            Assert.Equal("x", Assert.Single(document.Equations).Text);
             Assert.Empty(document.ValidateDocument());
         }
 
@@ -372,8 +451,16 @@ namespace OfficeIMO.Tests {
             Assert.Single(hyperlink.Elements<M.OfficeMath>());
             Assert.Empty(hyperlink.Elements<Run>());
             Assert.Equal("https://example.test/math", new WordHyperLink(document, paragraph._paragraph, hyperlink).Uri?.ToString());
-            Assert.Single(document.Equations);
+            Assert.Equal("x", Assert.Single(document.Equations).Text);
             Assert.Empty(document.ValidateDocument());
+        }
+
+        private static XElement ReadSavedHtmlEquation(byte[] bytes) {
+            using WordprocessingDocument package = WordprocessingDocument.Open(new MemoryStream(bytes), false);
+            using Stream documentXml = package.MainDocumentPart!.GetStream();
+            XDocument native = XDocument.Load(documentXml);
+            XNamespace math = "http://schemas.openxmlformats.org/officeDocument/2006/math";
+            return Assert.Single(native.Descendants(math + "oMath"));
         }
     }
 }

@@ -23,6 +23,8 @@ internal sealed class HtmlCssPageRuleSet {
 
     internal bool HasPageSpecificRules => _rules.Any(rule => rule.PageName != null || rule.Selector != HtmlCssPageSelector.Generic);
 
+    internal int RuleCount => _rules.Count;
+
     internal HtmlCssPageGeometry ResolveGeometry(int pageNumber, string? pageName, HtmlRenderOptions options) {
         return ResolveGeometry(MatchingRules(pageNumber, pageName), options);
     }

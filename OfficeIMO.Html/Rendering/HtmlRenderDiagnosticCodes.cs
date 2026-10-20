@@ -84,6 +84,8 @@ public static class HtmlRenderDiagnosticCodes {
     public const string MultiColumnValueUnsupported = "HtmlRenderMultiColumnValueUnsupported";
     /// <summary>Content without a safe page break was force-fragmented.</summary>
     public const string ForcedFragment = "HtmlRenderForcedFragment";
+    /// <summary>Overlapping constrained content retained shared pagination outside the supported independent source projection.</summary>
+    public const string ConstrainedOverflowPaginationPending = "HtmlRenderConstrainedOverflowPaginationPending";
     /// <summary>Grid layout used the documented normal-flow fallback.</summary>
     public const string GridLayoutPending = "HtmlRenderGridLayoutPending";
     /// <summary>A grid property value used a documented deterministic fallback.</summary>
@@ -297,6 +299,7 @@ public static class HtmlRenderDiagnosticCodes {
         MultiColumnLimitExceeded,
         MultiColumnValueUnsupported,
         ForcedFragment,
+        ConstrainedOverflowPaginationPending,
         GeneratedContentUnsupported,
         GeneratedCounterUnsupported,
         CounterRepresentationLimitExceeded,

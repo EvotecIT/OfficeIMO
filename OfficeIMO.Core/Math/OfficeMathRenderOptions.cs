@@ -48,9 +48,14 @@ public sealed class OfficeMathRenderOptions {
     // and serialization remain untouched; measurement and paint use the same glyphs.
     internal Func<OfficeMathExpression, string?>? TokenPaintText { get; set; }
 
+    // Document adapters whose scene unit is already one CSS pixel provide 1 here.
+    // Standalone point-sized math converts CSS pixels with Dpi / 96.
+    internal double? MathMlPixelScale { get; set; }
+
     /// <summary>Creates a detached copy.</summary>
     public OfficeMathRenderOptions Clone() => new OfficeMathRenderOptions {
         TokenPaintText = TokenPaintText,
+        MathMlPixelScale = MathMlPixelScale,
         Font = Font,
         Color = Color,
         BackgroundColor = BackgroundColor,
@@ -73,6 +78,7 @@ public sealed class OfficeMathRenderOptions {
         Positive(RuleThickness, nameof(RuleThickness));
         NonNegative(MatrixGap, nameof(MatrixGap));
         Positive(Dpi, nameof(Dpi));
+        if (MathMlPixelScale.HasValue) Positive(MathMlPixelScale.Value, nameof(MathMlPixelScale));
     }
 
     private static void Positive(double value, string name) {

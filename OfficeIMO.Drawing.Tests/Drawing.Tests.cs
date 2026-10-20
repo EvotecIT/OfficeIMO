@@ -3637,7 +3637,7 @@ public partial class DrawingTests {
     public void OfficeFontFaceCollectionPlansGraphemeSafeFallbackRunsByGlyphCoverage() {
         var fonts = new OfficeFontFaceCollection()
             .Add("Emoji Demo", CreateMinimalTrueTypeFont(CreateFormat12Cmap(0x1F600)))
-            .Add("Hebrew Demo", CreateMinimalTrueTypeFont(CreateFormat12Cmap(0x05D0)));
+            .Add("Hebrew Demo", CreateMinimalTrueTypeFont(CreateFormat12Cmap((0x0020, 0x0020, 1), (0x05D0, 0x05D0, 1))));
 
         IReadOnlyList<OfficeFontFallbackRun> runs = fonts.PlanFallbackRuns(
             char.ConvertFromUtf32(0x1F600) + "\u05D0 " + char.ConvertFromUtf32(0x1F600),

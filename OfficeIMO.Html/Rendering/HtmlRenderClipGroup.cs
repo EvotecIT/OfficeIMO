@@ -132,7 +132,10 @@ public sealed class HtmlRenderClipGroup : HtmlRenderVisual {
         double fragmentPaintOffsetY = 0D) =>
         new HtmlRenderClipGroup(
             ClipX + offsetX, ClipY + offsetY + fragmentPaintOffsetY, ClipWidth, ClipHeight,
-            ClipHorizontal, ClipVertical, visuals, paintOrder, Source, LayoutY, IsViewportOverflow, legacyClipOwnerNodeId: LegacyClipOwnerNodeId);
+            ClipHorizontal, ClipVertical, visuals, paintOrder, Source, LayoutY, IsViewportOverflow, legacyClipOwnerNodeId: LegacyClipOwnerNodeId) {
+            SemanticSourceOrder = SemanticSourceOrder,
+            SourceOrderScope = SourceOrderScope
+        };
 
     private static ClipGroupState CreateState(
         double clipX,

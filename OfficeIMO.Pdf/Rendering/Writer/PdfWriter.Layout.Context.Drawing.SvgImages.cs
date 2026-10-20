@@ -4,7 +4,7 @@ namespace OfficeIMO.Pdf;
 
 internal static partial class PdfWriter {
     private sealed partial class LayoutContext {
-        private bool TryDrawSvgImageAt(OfficeDrawingImage image, double originX, double originTopY) {
+        private bool TryDrawSvgImageAt(OfficeDrawingImage image, double originX, double originTopY, long? logicalOrder = null) {
             bool isSvg = OfficeImageInfo.FromMimeType(image.ContentType) == OfficeImageFormat.Svg ||
                 (OfficeImageReader.TryIdentifyByContent(image.EncodedBytes, null, out OfficeImageInfo info) && info.Format == OfficeImageFormat.Svg);
             if (!isSvg) return false;
@@ -14,13 +14,13 @@ internal static partial class PdfWriter {
                     "SVG image paint not supported by the PDF vector writer was rasterized.", PdfLayoutDiagnosticKind.SimplifiedContent);
                 byte[] png = RasterizeSvgImageForPdf(vector, image.Projection);
                 DrawDrawingImageAt(OfficeDrawingImage.CreateWithInterpolation(png, "image/png", image.Projection, image.Interpolate,
-                    image.AlternativeText, image.Opacity), originX, originTopY);
+                    image.AlternativeText, image.Opacity), originX, originTopY, logicalOrder);
                 return true;
             }
 
             OfficeImageProjection projection = image.Projection;
             bool markedContent;
-            AppendDrawingMarkedContentBegin(new PdfDrawingStyle { AlternativeText = image.AlternativeText }, out markedContent);
+            AppendDrawingMarkedContentBegin(new PdfDrawingStyle { AlternativeText = image.AlternativeText }, out markedContent, logicalOrder: logicalOrder);
             bool previousWrappers = _suppressCanvasAccessibilityWrappers;
             bool previousLinks = _suppressDrawingLinks;
             _suppressCanvasAccessibilityWrappers = true;

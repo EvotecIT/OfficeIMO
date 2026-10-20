@@ -409,7 +409,8 @@ public static partial class HtmlComputedStyleEngine {
                 options.MediaContext,
                 options.CssMediaWidth,
                 options.CssMediaHeight,
-                options.MediaFeatures),
+                options.MediaFeatures,
+                HtmlRenderingFontDefaults.ForRendering(options, document.CompatMode == "BackCompat")),
             true,
             false,
             limits);
@@ -439,7 +440,7 @@ public static partial class HtmlComputedStyleEngine {
                 budget, environment, environment.Width, environment.Height, Array.Empty<ContainerQueryContext>());
         }
 
-        return new HtmlComputedStyleSet(computed, pseudoElements);
+        return new HtmlComputedStyleSet(computed, pseudoElements, environment.FontDefaults);
     }
 
     /// <summary>
@@ -572,11 +573,11 @@ public static partial class HtmlComputedStyleEngine {
         // Store the HTML default in the computed snapshot so an explicit
         // display:inherit can copy a parent's tag default or hidden state.
         if (!resolvedProperties.ContainsKey("display")) resolvedProperties["display"] = HtmlElementDisplay.GetDefaultValue(element);
-        MaterializeInitialFontValues(resolvedProperties, resetProperties, originRevertedProperties, cascadeTraces);
+        MaterializeInitialFontValues(resolvedProperties, resetProperties, originRevertedProperties, cascadeTraces, environment.FontDefaults);
         ApplyHtmlWhiteSpaceDefaults(element, properties.ContainsKey("white-space"), resolvedProperties,
             inheritedProperties, resetProperties, originRevertedProperties, cascadePriorities, cascadeTraces);
         ApplyHtmlFontDefaults(element, properties, parentProperties, resolvedProperties,
-            inheritedProperties, resetProperties, originRevertedProperties, cascadePriorities, cascadeTraces);
+            inheritedProperties, resetProperties, originRevertedProperties, cascadePriorities, cascadeTraces, environment.FontDefaults);
         ApplyHtmlTableAlignmentDefault(element, properties.ContainsKey("text-align"), parentProperties, resolvedProperties,
             inheritedProperties, resetProperties, originRevertedProperties, cascadePriorities, cascadeTraces);
         HtmlComputedStyle style = HtmlComputedStyle.FromOwnedCollections(
@@ -584,10 +585,15 @@ public static partial class HtmlComputedStyleEngine {
             specifiedProperties, cascadePriorities, cascadeTraces);
         computed[element] = style;
 
-        double inheritedFontSize = containerContexts.Count == 0 ? 16D : containerContexts[containerContexts.Count - 1].FontSize;
-        double rootFontSize = containerContexts.Count == 0 ? 16D : containerContexts[0].RootFontSize;
+        double initialFontSize = environment.FontDefaults?.Initial.Pixels ?? 16D;
+        double inheritedFontSize = containerContexts.Count == 0 ? initialFontSize : containerContexts[containerContexts.Count - 1].FontSize;
+        double rootFontSize = containerContexts.Count == 0 ? initialFontSize : containerContexts[0].RootFontSize;
         ResolveContainerUnitDimensions(containerContexts, out double containerUnitWidth, out double containerUnitHeight);
-        double elementFontSize = ResolveContainerFontSize(style, environment, inheritedFontSize, rootFontSize, containerUnitWidth, containerUnitHeight);
+        HtmlFontSizeContext? inheritedFontContext = containerContexts.Count == 0
+            ? environment.FontDefaults?.Initial
+            : containerContexts[containerContexts.Count - 1].FontSizeContext;
+        double elementFontSize = ResolveContainerFontSize(style, environment, inheritedFontSize, rootFontSize,
+            containerUnitWidth, containerUnitHeight, element.LocalName, inheritedFontContext);
         style.ResolvedFontSizePoints = elementFontSize * 72D / 96D;
         if (containerContexts.Count == 0) rootFontSize = elementFontSize;
         double elementWidth = ResolveContainerElementWidth(style, containingWidth, elementFontSize, rootFontSize, environment, containerUnitWidth, containerUnitHeight);
@@ -694,7 +700,7 @@ public static partial class HtmlComputedStyleEngine {
             includeCascadeTraces,
             customPropertyRegistrations,
             enforceResolutionLimits: budget.HasDeclarationLimit);
-        MaterializeInitialFontValues(resolvedProperties, resetProperties, originRevertedProperties, cascadeTraces);
+        MaterializeInitialFontValues(resolvedProperties, resetProperties, originRevertedProperties, cascadeTraces, environment.FontDefaults);
         return HtmlComputedStyle.FromOwnedCollections(
             resolvedProperties, inheritedProperties, resetProperties, originRevertedProperties,
             specifiedProperties, cascadePriorities, cascadeTraces);

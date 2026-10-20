@@ -6,6 +6,41 @@ using Xunit;
 namespace OfficeIMO.Tests;
 
 public sealed class DrawingFontStyleSelectionTests {
+    [Fact]
+    public void SameFamilyMissingEmGraphemeKeepsThePrecedingEligibleStyledFace() {
+        var fonts = new OfficeFontFaceCollection()
+            .Add("Scoped", FontWithAdvance(600, 'B', 0x0301))
+            .Add("Scoped", FontWithAdvance(900, 'A', 0x0301), OfficeFontStyle.Bold);
+
+        Assert.True(fonts.TryMeasureText("B\u2003\u0301A", 20D, "Scoped", OfficeFontStyle.Bold, out double width));
+        Assert.Equal(62D, width, 6); // Regular B12 + EM20 + regular acute12 + bold A18.
+    }
+
+    [Theory]
+    [InlineData('\u2003')]
+    [InlineData('\u2001')]
+    public void SameFamilyMappedEmSpaceDoesNotReplaceThePrecedingStyledFace(char separator) {
+        var fonts = new OfficeFontFaceCollection()
+            .Add("Scoped", FontWithAdvance(600, 'A', 'B', separator))
+            .Add("Scoped", FontWithAdvance(900, 'A', 'C'), OfficeFontStyle.Bold);
+
+        Assert.True(fonts.TryMeasureText("A" + separator, 20D, "Scoped", OfficeFontStyle.Bold, out double width));
+        Assert.Equal(30D, width, 6); // Bold A18 + the registered regular separator12.
+    }
+
+    [Fact]
+    public void SameFamilyStyledGlyphFallbackKeepsTheSelectedFacesDuringMeasurement() {
+        var fonts = new OfficeFontFaceCollection()
+            .Add("Scoped", FontWithAdvance(600, 'A', 'B'))
+            .Add("Scoped", FontWithAdvance(900, 'A', 'C'), OfficeFontStyle.Bold);
+
+        Assert.True(fonts.TryMeasureText("ABA", 20D, "Scoped", OfficeFontStyle.Bold, out double width));
+        Assert.Equal(48D, width, 6); // Bold A18 + regular B12 + bold A18.
+        Assert.True(fonts.TryMeasureTextElements("ABA", new[] { "A", "B", "A" }, 20D,
+            "Scoped", OfficeFontStyle.Bold, out IReadOnlyList<double> elements));
+        Assert.Equal(new[] { 18D, 12D, 18D }, elements);
+    }
+
     [Theory]
     [InlineData(OfficeFontStyle.Regular, 400, 200, OfficeFontSlant.Normal)]
     [InlineData(OfficeFontStyle.Bold, 700, 800, OfficeFontSlant.Normal)]
@@ -68,8 +103,9 @@ public sealed class DrawingFontStyleSelectionTests {
         Assert.Equal(OfficeIMO.OfficeConversionLossKind.Approximation, diagnostic.LossKind);
     }
 
-    private static byte[] FontWithAdvance(ushort advance) {
-        byte[] font = ManagedTextShapingTestAssets.CreateFont('A');
+    private static byte[] FontWithAdvance(ushort advance, params int[] scalars) {
+        byte[] font = scalars.Length == 0 ? ManagedTextShapingTestAssets.CreateFont('A')
+            : ManagedTextShapingTestAssets.CreateFontWithDistinctGlyphs(scalars);
         int count = BinaryPrimitives.ReadUInt16BigEndian(font.AsSpan(4));
         for (int index = 0; index < count; index++) {
             int record = 12 + index * 16;

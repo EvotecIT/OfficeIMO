@@ -778,7 +778,7 @@ public partial class DrawingTests {
             "<text x='1' y='12' font-family='Scoped' fill='none' stroke='black'>A" + new string(' ', 4096) +
             "<tspan>B</tspan></text></svg>";
         var options = new OfficeSvgDrawingReaderOptions();
-        options.Fonts.Add("Scoped", ManagedTextShapingTestAssets.CreateFontWithDistinctGlyphs('A', 'B'));
+        options.Fonts.Add("Scoped", ManagedTextShapingTestAssets.CreateFontWithDistinctGlyphs('A', 'B', ' '));
 
         Assert.True(OfficeSvgDrawingReader.TryRead(Encoding.UTF8.GetBytes(svg), options, out OfficeDrawing? drawing, out int unsupported));
         Assert.Equal(0, unsupported);

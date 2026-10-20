@@ -103,12 +103,14 @@ internal sealed class HtmlRenderBoxStyle {
         get => Borders.IsUniform ? Borders.Top.Style : "mixed";
         set => Borders = Borders.WithUniformStyle(value);
     }
-    internal double BorderTopWidth => Borders.Top.LayoutWidth;
-    internal double BorderRightWidth => Borders.Right.LayoutWidth;
-    internal double BorderBottomWidth => Borders.Bottom.LayoutWidth;
-    internal double BorderLeftWidth => Borders.Left.LayoutWidth;
-    internal bool HasBorderLayout => Borders.HasLayout;
-    internal HtmlRenderBorderInsets BorderInsets => Borders.Insets;
+    /// <summary>Used half-width winning edges for collapsed tables; authored borders remain available for conflict resolution.</summary>
+    internal HtmlRenderBorderInsets? TableCollapsedBorderInsets;
+    internal double BorderTopWidth => BorderInsets.Top;
+    internal double BorderRightWidth => BorderInsets.Right;
+    internal double BorderBottomWidth => BorderInsets.Bottom;
+    internal double BorderLeftWidth => BorderInsets.Left;
+    internal bool HasBorderLayout => BorderInsets.Horizontal > 0D || BorderInsets.Vertical > 0D;
+    internal HtmlRenderBorderInsets BorderInsets => TableCollapsedBorderInsets ?? Borders.Insets;
     internal bool BorderDeclared;
     internal string UnsupportedBorderPaint = string.Empty;
     internal string BorderRadius = "0";
@@ -124,6 +126,7 @@ internal sealed class HtmlRenderBoxStyle {
     internal int GradientStopLimitExceededCount;
     internal IReadOnlyList<HtmlRenderBackgroundLayer> BackgroundImageLayers = Array.Empty<HtmlRenderBackgroundLayer>();
     internal OfficeFontInfo Font;
+    internal HtmlFontSizeContext? FontSizeContext;
     internal OfficeFontFaceDescriptor FontDescriptor = OfficeFontFaceDescriptor.Regular;
     internal OfficeTextDecorationStyle UnderlineStyle;
     internal OfficeTextDecorationStyle StrikethroughStyle;
@@ -141,6 +144,7 @@ internal sealed class HtmlRenderBoxStyle {
     internal HtmlRenderTextIndent? TextIndent;
     internal double CharacterAdvance = double.NaN;
     internal double LineHeight;
+    internal bool UsesNaturalLineHeight;
     // Keep the used alignment height separate from ordinary text paint and the
     // computed CSS value. Cloned styles retain the originating length's units.
     internal double? InlineAlignmentLineHeight;
@@ -162,6 +166,9 @@ internal sealed class HtmlRenderBoxStyle {
     internal string TablePercentageHeight = string.Empty;
     // Flex/grid stretching supplies a used height without changing the authored auto-height contract.
     internal bool AutoHeightLayoutStretch;
+    // A flex/grid allocation equal to the intrinsic column height still needs
+    // its definite percentage basis, but may fragment at physical page bands.
+    internal bool IntrinsicColumnHeightAllocation;
     internal double? MinWidth;
     internal double? MinWidthWithIndefiniteReference;
     internal double? MaxWidth;
@@ -245,6 +252,10 @@ internal sealed class HtmlRenderBoxStyle {
     internal bool AvoidBreakInside;
     internal bool AvoidBreakBefore;
     internal bool AvoidBreakAfter;
+    internal HtmlFragmentationScope AvoidBreakInsideScope;
+    internal HtmlFragmentationScope AvoidBreakBeforeScope;
+    internal HtmlFragmentationScope AvoidBreakAfterScope;
+    internal string UnsupportedColumnBreaks = string.Empty;
     internal int Orphans = 2;
     internal int Widows = 2;
     internal string? PageName;

@@ -1,0 +1,24 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<title>avoid-inside-oversized</title>
+<style>
+@font-face{font-family:Witness;src:url(regular.ttf);font-weight:400}
+@font-face{font-family:Witness;src:url(bold.ttf);font-weight:700}
+@page{size:700px 140px;margin:20px}
+html,body{margin:0;background:white;font:14px/20px Witness}
+p{margin:0;orphans:1;widows:1}
+.columns{width:300px;column-count:2;column-gap:20px}
+</style>
+<section id="columns" class="columns" style="column-fill:auto;height:60px">
+<p id="neria-01">NERIA-01</p>
+<div id="neria-oversized" style="break-inside:avoid-column">
+<p id="neria-02">NERIA-02</p>
+<p id="neria-03">NERIA-03</p>
+<p id="neria-04">NERIA-04</p>
+<p id="neria-05">NERIA-05</p>
+<p id="neria-06">NERIA-06</p>
+</div>
+</section>
+<p id="after">NERIA-AFTER</p>
+</html>

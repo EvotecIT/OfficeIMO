@@ -579,7 +579,7 @@ public sealed partial class HtmlRenderingTests {
 
         Assert.True(summary.HasResourceResolver);
         Assert.True(summary.AllowSystemFontEmbedding);
-        Assert.True(summary.AllowDocumentFontEmbedding);
+        Assert.False(summary.AllowDocumentFontEmbedding);
         Assert.False(summary.AllowLocalFileAccess);
         Assert.False(summary.AllowRemoteResourceResolution);
         Assert.True(summary.AllowDataUris);
@@ -2991,13 +2991,15 @@ public sealed partial class HtmlRenderingTests {
         Assert.Equal(3, overridden.Count);
         Assert.True(overridden[1].X < overridden[0].X);
         Assert.True(overridden[2].X < overridden[1].X);
-        HtmlDiagnostic bidiDiagnostic = Assert.Single(
-            rendered.Diagnostics,
-            diagnostic =>
-                diagnostic.Code == HtmlRenderDiagnosticCodes.BidiLayoutUnsupported ||
-                diagnostic.Code == HtmlRenderDiagnosticCodes.ComplexTextShapingUnsupported);
-        Assert.Equal(HtmlRenderDiagnosticCodes.ComplexTextShapingUnsupported, bidiDiagnostic.Code);
-        Assert.Equal("p#syriac", bidiDiagnostic.Source);
+        Assert.DoesNotContain(rendered.Diagnostics, diagnostic =>
+            diagnostic.Code == HtmlRenderDiagnosticCodes.BidiLayoutUnsupported);
+        HtmlDiagnostic[] shapingDiagnostics = rendered.Diagnostics.Where(diagnostic =>
+            diagnostic.Code == HtmlRenderDiagnosticCodes.ComplexTextShapingUnsupported).ToArray();
+        Assert.Equal(2, shapingDiagnostics.Length);
+        Assert.All(new[] { "h2#arabic", "p#syriac" }, source => {
+            HtmlDiagnostic diagnostic = Assert.Single(shapingDiagnostics, item => item.Source == source);
+            Assert.Equal(OfficeConversionLossKind.Approximation, diagnostic.LossKind);
+        });
         Assert.DoesNotContain(HtmlRenderDiagnosticCodes.BidiLayoutUnsupported, HtmlRenderDiagnosticCodes.All);
         Assert.Contains(HtmlRenderDiagnosticCodes.ComplexTextShapingUnsupported, HtmlRenderDiagnosticCodes.All);
         Assert.False(HtmlDiagnosticCatalog.TryGet(HtmlRenderDiagnosticCodes.BidiLayoutUnsupported, out _));
