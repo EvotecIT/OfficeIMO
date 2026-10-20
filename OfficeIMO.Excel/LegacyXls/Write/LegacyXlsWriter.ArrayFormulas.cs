@@ -39,6 +39,8 @@ internal static partial class LegacyXlsWriter {
                         throw new NotSupportedException($"Native XLS saving does not yet support array formula '{formula.Text}' at {ToA1Address(anchorRow, anchorColumn)}: {reason} Save as .xlsx or remove this formula before saving as .xls.");
                     }
 
+                    if (!ExcelNativeFormulaOperandTypes.TryApply(formulaTokens, binary12: false, ExcelNativeFormulaOperandTypes.Array, out reason))
+                        throw new NotSupportedException("The native array formula cannot be typed: " + reason);
                     EnsureSupportedArrayFormulaPayloadLength(formulaTokens, ToA1Address(anchorRow, anchorColumn));
                     var definition = new LegacyXlsArrayFormulaDefinition(
                         anchorRow,

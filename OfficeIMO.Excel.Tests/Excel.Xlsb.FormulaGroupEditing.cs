@@ -61,6 +61,23 @@ public sealed class ExcelXlsbFormulaGroupEditingTests {
         Assert.Equal(77D, copy.Sheets[0].CellAt(50, 20).GetValue<double>());
     }
 
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void First_off_origin_edit_updates_the_native_dimension_for_subsequent_saves(bool encryptedFirst) {
+        using var seed = ExcelDocument.Create(); seed.AddWorksheet("Empty");
+        using var document = ExcelDocument.Load(new MemoryStream(seed.ToBytes(ExcelFileFormat.Xlsb)));
+        document.Sheets[0].CellValue(7, 4, 12.5D);
+        using var first = new MemoryStream();
+        if (encryptedFirst) document.SaveEncrypted(first, "test-password", ExcelFileFormat.Xlsb); else document.Save(first, ExcelFileFormat.Xlsb);
+        document.Sheets[0].CellValue(8, 4, 13.5D);
+        using var second = new MemoryStream();
+        if (encryptedFirst) document.Save(second, ExcelFileFormat.Xlsb); else document.SaveEncrypted(second, "test-password", ExcelFileFormat.Xlsb);
+        using var copy = encryptedFirst ? ExcelDocument.Load(second) : ExcelDocument.LoadEncrypted(second, "test-password");
+        Assert.Equal(12.5D, copy.Sheets[0].CellAt(7, 4).GetValue<double>());
+        Assert.Equal(13.5D, copy.Sheets[0].CellAt(8, 4).GetValue<double>());
+    }
+
     [Fact]
     public void Replacing_the_owner_of_a_native_shared_group_preserves_other_relative_formulas() {
         using var seed = ExcelDocument.Create(); var sheet = seed.AddWorksheet("Data");

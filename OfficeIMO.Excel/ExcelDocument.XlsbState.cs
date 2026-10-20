@@ -281,6 +281,8 @@ namespace OfficeIMO.Excel {
                 var native = workbook.Worksheets.FirstOrDefault(item => item.Name == sheet.Name);
                 if (native == null) continue;
                 var root = sheet.WorksheetPart.Worksheet!;
+                if (native.UsedRange != null)
+                    root.SheetDimension = new DocumentFormat.OpenXml.Spreadsheet.SheetDimension { Reference = native.UsedRange.ToA1Reference() };
                 var nativeFormulas = native.Cells.Where(cell => cell.FormulaText != null).ToDictionary(cell => A1.CellReference(cell.Row, cell.Column));
                 foreach (var cell in root.Descendants<DocumentFormat.OpenXml.Spreadsheet.Cell>().Where(cell => cell.CellFormula != null))
                     if (nativeFormulas.TryGetValue(cell.CellReference?.Value ?? string.Empty, out var formula)) cell.CellFormula!.Text = formula.FormulaText!;

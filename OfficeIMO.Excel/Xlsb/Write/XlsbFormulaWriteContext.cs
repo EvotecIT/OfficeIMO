@@ -19,7 +19,7 @@ internal sealed class XlsbFormulaWriteContext {
         _document = document; _source = source; _structure = structure;
     }
 
-    internal bool TryEncode(string text, string sheetName, out byte[] payload, out string? reason) {
+    internal bool TryEncode(string text, string sheetName, out byte[] payload, out string? reason, bool arrayFormula = false) {
         var sheets = _document.Sheets.ToArray();
         _links ??= LegacyXlsExternSheetTable.Create(_document, sheets);
         if (_links.SupportingLinkRecords.Count > 1) throw new NotSupportedException("New external-workbook XLSB formulas require an external-link writer.");
@@ -40,7 +40,7 @@ internal sealed class XlsbFormulaWriteContext {
         }
         int sheetIndex = Array.FindIndex(sheets, sheet => sheet.Name == sheetName);
         bool result = XlsbFormulaEncoder.TryEncode(text, _names, sheetIndex,
-            MapReference, out payload, out reason);
+            MapReference, out payload, out reason, arrayFormula);
         return result;
     }
 

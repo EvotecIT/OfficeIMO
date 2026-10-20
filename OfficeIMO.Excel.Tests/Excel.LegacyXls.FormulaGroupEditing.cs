@@ -75,6 +75,33 @@ public sealed class ExcelLegacyFormulaGroupEditingTests {
         }
     }
 
+    [Theory]
+    [InlineData(false, false)]
+    [InlineData(true, false)]
+    [InlineData(false, true)]
+    [InlineData(true, true)]
+    public void Shared_RTD_functions_are_materialized_without_invoking_the_server(bool encrypted, bool nested) {
+        const string rtd = "RTD(\"ProgId\",\"Server\",\"Topic\")";
+        string expression = nested ? "IF(A1>0," + rtd + ",\"offline\")" : rtd;
+        using var document = ExcelDocument.Create(); var sheet = document.AddWorksheet("Data");
+        for (int row = 1; row <= 2; row++) {
+            sheet.CellValue(row, 1, (double)row); sheet.CellValue(row, 2, "snapshot");
+            sheet.CellFormula(row, 2, expression);
+            var formula = sheet.WorksheetPart.Worksheet!.Descendants<Cell>().Single(cell => cell.CellReference?.Value == "B" + row).CellFormula!;
+            formula.FormulaType = CellFormulaValues.Shared; formula.SharedIndex = 0;
+            if (row == 1) formula.Reference = "B1:B2"; else formula.Text = string.Empty;
+        }
+        using var output = new MemoryStream();
+        if (encrypted) document.SaveEncrypted(output, "test-password", ExcelFileFormat.Xls);
+        else document.Save(output, ExcelFileFormat.Xls);
+        var native = LegacyXlsWorkbook.Load(output.ToArray(), new() { Password = encrypted ? "test-password" : null });
+        Assert.DoesNotContain(BiffRecordReader.ReadRecords(native.SourceCompoundFile!.Streams["Workbook"], new()), record => record.Type == 0x04bc);
+        var formulas = native.Worksheets[0].Cells.Where(cell => cell.Column == 2).OrderBy(cell => cell.Row).ToArray();
+        Assert.Equal(expression, formulas[0].FormulaText);
+        Assert.Equal(expression.Replace("A1", "A2"), formulas[1].FormulaText);
+        Assert.All(formulas, cell => Assert.Equal("snapshot", cell.Value));
+    }
+
     [Fact]
     public void Clearing_array_caches_keeps_every_native_member_and_the_array_definition() {
         using var seed = ExcelDocument.Create(); var sheet = seed.AddWorksheet("Data");
@@ -108,7 +135,7 @@ public sealed class ExcelLegacyFormulaGroupEditingTests {
         foreach (var record in records) {
             byte[] payload = record.Payload;
             if (record.Type == 0x04bc) {
-                Assert.Contains(payload[10], new byte[] { 0x4c, 0x4d });
+                Assert.Contains(payload[10], new byte[] { 0x2c, 0x4c, 0x6c, 0x2d, 0x4d, 0x6d });
                 var rewritten = new byte[payload.Length + 2];
                 Buffer.BlockCopy(payload, 0, rewritten, 0, 10);
                 ushort count = (ushort)(BiffRecordReader.ReadUInt16(payload, 8) + 2);

@@ -11,6 +11,7 @@ namespace OfficeIMO.Excel.LegacyXls.Write {
             var scanned = new List<LegacyXlsFormulaTokenRecord>();
             BiffFormulaTokenScanner.ScanTokens(tokens, "SharedFormula", null, null, 0, 0x04bc, scanned);
             return scanned.Count > 0 && scanned.All(item => item.OperandByteCount != null
+                && !(item.FunctionId == 0x017b && item.FunctionIsCetab == false)
                 && item.Token is not (0x01 or 0x02 or 0x0f or 0x10 or 0x11 or 0x18)
                 && (item.Token < 0x20 || (item.Token & 0x1f) is not (0x00 or 0x06 or 0x07 or 0x08 or 0x09 or 0x0a or 0x0b or 0x19 or 0x1a or 0x1b or 0x1c or 0x1d)))
                 && scanned.Last().TokenOffset + 1 + scanned.Last().OperandByteCount == tokens.Length;

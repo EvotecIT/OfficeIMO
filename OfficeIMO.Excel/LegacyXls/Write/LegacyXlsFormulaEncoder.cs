@@ -17,6 +17,12 @@ namespace OfficeIMO.Excel.LegacyXls.Write {
             int formulaSheetIndex,
             out byte[] tokens,
             out string? reason) {
+            if (!TryEncodeUntyped(formulaText, nameIndex, formulaSheetIndex, out tokens, out reason)) return false;
+            return ExcelNativeFormulaOperandTypes.TryApply(tokens, binary12: false, ExcelNativeFormulaOperandTypes.Value, out reason);
+        }
+
+        private static bool TryEncodeUntyped(string formulaText, LegacyXlsFormulaNameIndex nameIndex, int formulaSheetIndex,
+            out byte[] tokens, out string? reason) {
             tokens = Array.Empty<byte>();
             reason = null;
 
@@ -195,40 +201,60 @@ namespace OfficeIMO.Excel.LegacyXls.Write {
                         offset += 8;
                         break;
                     case 0x39:
+                    case 0x59:
+                    case 0x79:
                         offset += 6;
                         break;
+                    case 0x21:
                     case 0x41:
+                    case 0x61:
                         offset += 2;
                         break;
+                    case 0x22:
                     case 0x42:
+                    case 0x62:
                         offset += 3;
                         break;
+                    case 0x23:
                     case 0x43:
+                    case 0x63:
                         offset += 4;
                         break;
+                    case 0x24:
                     case 0x44:
+                    case 0x64:
+                    case 0x2c:
                     case 0x4c:
+                    case 0x6c:
                         if (offset + 4 > relativeTokens.Length) return false;
-                        relativeTokens[tokenStart] = 0x4c;
+                        relativeTokens[tokenStart] = (byte)((token & 0x60) | 0x0c);
                         ConvertRelativeReference(relativeTokens, offset, offset + 2, anchorRow, anchorColumn);
                         offset += 4;
                         break;
+                    case 0x25:
                     case 0x45:
+                    case 0x65:
+                    case 0x2d:
                     case 0x4d:
+                    case 0x6d:
                         if (offset + 8 > relativeTokens.Length) return false;
-                        relativeTokens[tokenStart] = 0x4d;
+                        relativeTokens[tokenStart] = (byte)((token & 0x60) | 0x0d);
                         ConvertRelativeReference(relativeTokens, offset, offset + 4, anchorRow, anchorColumn);
                         ConvertRelativeReference(relativeTokens, offset + 2, offset + 6, anchorRow, anchorColumn);
                         offset += 8;
                         break;
+                    case 0x3a:
                     case 0x5a:
+                    case 0x7a:
                         if (offset + 6 > relativeTokens.Length) return false;
                         if (convert3dReferences) {
                             ConvertRelativeReference(relativeTokens, offset + 2, offset + 4, anchorRow, anchorColumn);
                         }
                         offset += 6;
                         break;
+                    case 0x3b:
                     case 0x5b:
+                    case 0x7b:
                         if (offset + 10 > relativeTokens.Length) return false;
                         if (convert3dReferences) {
                             ConvertRelativeReference(relativeTokens, offset + 2, offset + 6, anchorRow, anchorColumn);
@@ -400,7 +426,7 @@ namespace OfficeIMO.Excel.LegacyXls.Write {
                 return true;
             }
 
-            return TryEncode(argument, nameIndex, formulaSheetIndex, out tokens, out _);
+            return TryEncodeTerm(argument, allowArea, nameIndex, formulaSheetIndex, out tokens);
         }
 
         private static bool TrySplitFunctionArguments(string argumentText, out IReadOnlyList<string>? arguments) {
@@ -706,7 +732,7 @@ namespace OfficeIMO.Excel.LegacyXls.Write {
                 return false;
             }
 
-            if (!TryEncode(innerText!, nameIndex, formulaSheetIndex, out byte[] innerTokens, out _)) {
+            if (!TryEncodeUntyped(innerText!, nameIndex, formulaSheetIndex, out byte[] innerTokens, out _)) {
                 return false;
             }
 
@@ -725,7 +751,7 @@ namespace OfficeIMO.Excel.LegacyXls.Write {
                 return false;
             }
 
-            if (!TryEncode(innerText!, nameIndex, formulaSheetIndex, out byte[] innerTokens, out _)) {
+            if (!TryEncodeTerm(innerText!, allowArea, nameIndex, formulaSheetIndex, out byte[] innerTokens)) {
                 return false;
             }
 
@@ -793,7 +819,7 @@ namespace OfficeIMO.Excel.LegacyXls.Write {
                 return false;
             }
 
-            if (!TryEncode(operandText!, nameIndex, formulaSheetIndex, out byte[] operandTokens, out _)) {
+            if (!TryEncodeUntyped(operandText!, nameIndex, formulaSheetIndex, out byte[] operandTokens, out _)) {
                 return false;
             }
 
@@ -851,7 +877,7 @@ namespace OfficeIMO.Excel.LegacyXls.Write {
                 return false;
             }
 
-            if (!TryEncode(operandText!, nameIndex, formulaSheetIndex, out byte[] operandTokens, out _)) {
+            if (!TryEncodeUntyped(operandText!, nameIndex, formulaSheetIndex, out byte[] operandTokens, out _)) {
                 return false;
             }
 
@@ -954,8 +980,7 @@ namespace OfficeIMO.Excel.LegacyXls.Write {
             string normalized = NormalizeFormula(formulaText);
             if (normalized.IndexOf('{') >= 0
                 && TryEncodeArrayAwareFormula(normalized, nameIndex, formulaSheetIndex, out tokens, out extraData)) {
-                reason = null;
-                return true;
+                return ExcelNativeFormulaOperandTypes.TryApply(tokens, binary12: false, ExcelNativeFormulaOperandTypes.Value, out reason);
             }
 
             return TryEncode(formulaText, nameIndex, formulaSheetIndex, out tokens, out reason);

@@ -23,8 +23,8 @@ internal static partial class XlsbWorksheetCellExtractor {
             if (address.Row != top || address.Col != left || bottom > 1_048_576 || right > 16_384)
                 throw new NotSupportedException("The native XLSB array owner must be the top-left cell of a valid worksheet range.");
             string text = anchor.CellFormula.Text; byte[] payload; string? reason;
-            bool encoded = formulas == null ? XlsbFormulaEncoder.TryEncode(text, out payload, out reason)
-                : formulas.TryEncode(text, sheet.Name, out payload, out reason);
+            bool encoded = formulas == null ? XlsbFormulaEncoder.TryEncode(text, out payload, out reason, arrayFormula: true)
+                : formulas.TryEncode(text, sheet.Name, out payload, out reason, arrayFormula: true);
             if (!encoded) throw new NotSupportedException("The native XLSB array formula cannot be encoded: " + reason);
             byte[] definition = new byte[checked(17 + payload.Length - 2)];
             XlsbFormulaGroup.Put(definition, 0, checked((uint)(top - 1))); XlsbFormulaGroup.Put(definition, 4, checked((uint)(bottom - 1)));

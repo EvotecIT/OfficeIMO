@@ -143,6 +143,13 @@ and nested storage for subsequent native preservation saves. See the
 for security limits and the native XLSB profile. Workbook/sheet protection is a
 separate contract.
 
+The [native formula corpus](../OfficeIMO.TestAssets/Documents/ExcelFormulaOperandCorpus/manifest.json)
+qualifies 21 aggregate, range-returning, lookup, financial, IF and CHOOSE cases,
+plus a fixed array, in plain and password-encrypted XLS and XLSB. Excel recalculates
+the controls and saves readbacks with the expected values. Native operand classes
+retain whole-range and array semantics; unsupported writer grammar remains subject
+to the preflight described above.
+
 Native Excel opens the encrypted pivot control with its total of 13,210 and
 retained chart, and opens and saves a writable copy of the revision control.
 Revision-history UI editing is not qualified on macOS. Native Excel also opens
