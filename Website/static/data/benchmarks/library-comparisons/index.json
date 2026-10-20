@@ -839,10 +839,10 @@
       "comparisonId": "pdf-html-21k-payload-net10.0",
       "platform": "macos",
       "runMode": "quick",
-      "generatedUtc": "2026-10-20T19:48:28.190672+00:00",
+      "generatedUtc": "2026-10-20T20:33:57.704998+00:00",
       "publish": false,
       "resultPath": "/data/benchmarks/library-comparisons/pdf-html-21k-payload-net10.0-macos-quick.json",
-      "resultSha256": "5de38970d25c521a5f579ee804af596b0423167d6e2ba01d9b096e141a39f34a",
+      "resultSha256": "f97bc0708c24fab02ddae7dccb828a9143f467e8fdde9522fcfbd96dc79da21d",
       "artifactDestinationSha256": "d9f253616c41b5f3c0684ac100404594ef56a5cd380a4b0b39a7f713b7a09bac",
       "artifactFileName": "pdf-html-21k-payload-net10.0-macos-quick.json",
       "artifactRelativePath": "pdf-html-21k-payload-net10.0-macos-quick.json",
@@ -880,8 +880,8 @@
         "benchmark.package.peachpdf.version": "0.9.23",
         "benchmark.workload.framework": "net10.0",
         "benchmark.workload.id": "pdf-html-21k-payload-net10.0",
-        "benchmark.workload.sourceCommit": "2de6555cd9af5cfdc4b7b511f191d0c1a22749a5",
-        "gitSha": "2de6555cd9af5cfdc4b7b511f191d0c1a22749a5",
+        "benchmark.workload.sourceCommit": "e73fe92971ce63790b10f8f285fcd8e11e17dcb9",
+        "gitSha": "e73fe92971ce63790b10f8f285fcd8e11e17dcb9",
         "runMode": "quick"
       },
       "comparable": true,
@@ -1825,7 +1825,7 @@
       "runModes": [
         "quick"
       ],
-      "latestUtc": "2026-10-20T19:48:28.190672+00:00"
+      "latestUtc": "2026-10-20T20:33:57.704998+00:00"
     },
     {
       "comparisonId": "pdf-html-generation-net10.0",
