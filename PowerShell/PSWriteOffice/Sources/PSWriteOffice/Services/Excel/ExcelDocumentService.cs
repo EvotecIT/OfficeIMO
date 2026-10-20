@@ -1,5 +1,5 @@
 using System;
-using System.Collections.Concurrent;
+using System.Runtime.CompilerServices;
 using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
@@ -11,8 +11,18 @@ namespace PSWriteOffice.Services.Excel;
 
 internal static partial class ExcelDocumentService
 {
-    private static readonly ConcurrentDictionary<ExcelDocument, string> AssociatedPaths = new();
-    private static readonly ConcurrentDictionary<ExcelDocument, string> EncryptedSourcePaths = new();
+    private static readonly ConditionalWeakTable<ExcelDocument, DocumentAssociation> Associations = new();
+
+    private sealed class DocumentAssociation {
+        internal string Path { get; set; } = string.Empty;
+        internal bool Encrypted { get; set; }
+    }
+
+    public static ExcelDocument CreateFromTemplate(string templatePath, string destinationPath) {
+        var document = ExcelDocument.CreateFromTemplate(templatePath);
+        UpdateSaveAssociation(document, destinationPath, encrypted: false);
+        return document;
+    }
 
     public static ExcelDocument CreateDocument(string filePath, bool autoSave)
     {
@@ -80,8 +90,7 @@ internal static partial class ExcelDocumentService
         if (!string.IsNullOrEmpty(password))
         {
             var document = OfficeEncryptedPackageService.LoadExcel(resolvedPath, password!, readOnly, autoSave);
-            AssociatedPaths[document] = resolvedPath;
-            EncryptedSourcePaths[document] = resolvedPath;
+            UpdateSaveAssociation(document, resolvedPath, encrypted: true);
             return document;
         }
 
@@ -237,39 +246,19 @@ internal static partial class ExcelDocumentService
         }
         finally
         {
-            AssociatedPaths.TryRemove(document, out _);
-            EncryptedSourcePaths.TryRemove(document, out _);
+            Associations.Remove(document);
         }
     }
 
-    internal static string? GetAssociatedPath(ExcelDocument document)
-    {
-        if (AssociatedPaths.TryGetValue(document, out var associatedPath))
-        {
-            return associatedPath;
-        }
+    internal static string? GetAssociatedPath(ExcelDocument document) =>
+        Associations.TryGetValue(document, out var association) ? association.Path : document.FilePath;
 
-        if (!string.IsNullOrWhiteSpace(document.FilePath))
-        {
-            return document.FilePath;
-        }
+    internal static bool IsEncryptedSource(ExcelDocument document) =>
+        Associations.TryGetValue(document, out var association) && association.Encrypted;
 
-        return EncryptedSourcePaths.TryGetValue(document, out var path) ? path : null;
-    }
-
-    internal static bool IsEncryptedSource(ExcelDocument document) => EncryptedSourcePaths.ContainsKey(document);
-
-    internal static void UpdateSaveAssociation(ExcelDocument document, string path, bool encrypted)
-    {
-        var resolvedPath = Path.GetFullPath(path);
-        AssociatedPaths[document] = resolvedPath;
-        if (encrypted)
-        {
-            EncryptedSourcePaths[document] = resolvedPath;
-        }
-        else
-        {
-            EncryptedSourcePaths.TryRemove(document, out _);
-        }
+    internal static void UpdateSaveAssociation(ExcelDocument document, string path, bool encrypted) {
+        var association = Associations.GetValue(document, _ => new DocumentAssociation());
+        association.Path = Path.GetFullPath(path);
+        association.Encrypted = encrypted;
     }
 }

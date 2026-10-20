@@ -1,3 +1,4 @@
+using OfficeIMO.Core.Internal;
 using System.IO;
 using System.Management.Automation;
 using OfficeIMO.Latex;
@@ -53,7 +54,7 @@ public sealed class ConvertToOfficeLatexMarkdownCommand : PSCmdlet
             var output = SessionState.Path.GetUnresolvedProviderPathFromPSPath(OutputPath);
             if (!ShouldProcess(output, "Write converted Markdown")) return;
             Directory.CreateDirectory(System.IO.Path.GetDirectoryName(output) ?? SessionState.Path.CurrentFileSystemLocation.Path);
-            File.WriteAllText(output, result.Value.ToMarkdown());
+            OfficeFileOutput.Write(output, overwrite: true, temporaryPath => File.WriteAllText(temporaryPath, result.Value.ToMarkdown()));
         }
         WriteObject(result);
     }

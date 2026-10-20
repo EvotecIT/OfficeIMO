@@ -24,8 +24,8 @@ public sealed class GetOfficeExcelFormulaAnalysisCommand : PSCmdlet {
     private const string ParameterSetDocument = "Document";
 
     /// <summary>Workbook path.</summary>
-    [Parameter(Mandatory = true, Position = 0, ParameterSetName = ParameterSetPath)]
-    [Alias("InputPath", "FilePath")]
+    [Parameter(Mandatory = true, Position = 0, ParameterSetName = ParameterSetPath, ValueFromPipelineByPropertyName = true, ValueFromPipeline = true)]
+    [Alias("InputPath", "FilePath", "FullName", "LiteralPath")]
     public string Path { get; set; } = string.Empty;
 
     /// <summary>Workbook document.</summary>

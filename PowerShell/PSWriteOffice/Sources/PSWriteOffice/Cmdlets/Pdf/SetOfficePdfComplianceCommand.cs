@@ -16,18 +16,10 @@ namespace PSWriteOffice.Cmdlets.Pdf;
 /// Get-OfficePdfCompliance -Path $path -Profile PdfA3B</code>
 ///   <para>Applies OfficeIMO.Pdf compliance groundwork during composition, saves the PDF, then inspects the saved file.</para>
 /// </example>
-[Cmdlet(VerbsCommon.Set, "OfficePdfCompliance", DefaultParameterSetName = ParameterSetContext)]
+[Cmdlet(VerbsCommon.Set, "OfficePdfCompliance")]
 [Alias("PdfCompliance")]
-[OutputType(typeof(PdfDocument))]
 public sealed class SetOfficePdfComplianceCommand : PSCmdlet
 {
-    private const string ParameterSetContext = "Context";
-    private const string ParameterSetDocument = "Document";
-
-    /// <summary>Compatibility parameter. Compliance options must be declared inside New-OfficePdf.</summary>
-    [Parameter(Mandatory = true, ValueFromPipeline = true, ParameterSetName = ParameterSetDocument)]
-    public PdfDocument Document { get; set; } = null!;
-
     /// <summary>Requested generated PDF compliance profile.</summary>
     [Parameter(Mandatory = true)]
     public PdfComplianceProfile Profile { get; set; }
@@ -40,17 +32,9 @@ public sealed class SetOfficePdfComplianceCommand : PSCmdlet
     [Parameter]
     public string Language { get; set; } = "en-US";
 
-    /// <summary>Emit the updated document.</summary>
-    [Parameter]
-    public SwitchParameter PassThru { get; set; }
-
     /// <inheritdoc />
     protected override void ProcessRecord()
     {
-        if (ParameterSetName == ParameterSetDocument)
-        {
-            throw new PSNotSupportedException("Document-wide compliance options must be supplied before PDF creation. Use PdfCompliance inside New-OfficePdf.");
-        }
 
         PdfCommandUtilities.ConfigureOptions(this, options =>
         {

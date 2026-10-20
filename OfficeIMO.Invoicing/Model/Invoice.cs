@@ -2,6 +2,12 @@ namespace OfficeIMO.Invoicing;
 
 /// <summary>Editable semantic invoice shared by XML writers and presentation adapters.</summary>
 public sealed class Invoice {
+    /// <summary>Removes source-declared amounts so subsequent validation and serialization use calculated line, tax and document amounts.</summary>
+    public void ClearDeclaredAmounts() {
+        DeclaredTotals = null;
+        DeclaredTaxes.Clear();
+        foreach (var line in Lines) line.DeclaredNetAmount = null;
+    }
     private string _currency = "EUR";
     private string? _taxCurrency;
     /// <summary>Seller-assigned invoice number (BT-1).</summary>

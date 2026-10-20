@@ -1,3 +1,4 @@
+using OfficeIMO.Core.Internal;
 using System;
 using System.IO;
 using System.Linq;
@@ -41,7 +42,7 @@ internal static class OfficeImageExporter
         if (extension == ".csv" && document.Tables.Count != 1)
             throw new InvalidOperationException("CSV requires exactly one detected table. Use Excel or JSON to preserve multiple tables.");
         IOfficeConversionReport? report = null;
-        AtomicFileWriter.Write(outputPath, overwrite, temporaryPath =>
+        OfficeFileOutput.Write(outputPath, overwrite, temporaryPath =>
         {
             cancellationToken.ThrowIfCancellationRequested();
             switch (extension)

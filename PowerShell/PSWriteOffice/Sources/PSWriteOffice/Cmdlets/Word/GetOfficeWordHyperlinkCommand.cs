@@ -1,3 +1,4 @@
+using PSWriteOffice.Services;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -26,8 +27,8 @@ public sealed class GetOfficeWordHyperlinkCommand : PSCmdlet {
     private const string ParameterSetParagraph = "Paragraph";
 
     /// <summary>Path to the document.</summary>
-    [Parameter(Mandatory = true, Position = 0, ParameterSetName = ParameterSetPath)]
-    [Alias("InputPath", "FilePath")]
+    [Parameter(Mandatory = true, Position = 0, ParameterSetName = ParameterSetPath, ValueFromPipelineByPropertyName = true, ValueFromPipeline = true)]
+    [Alias("InputPath", "FilePath", "FullName", "LiteralPath")]
     public string Path { get; set; } = string.Empty;
 
     /// <summary>Document to inspect.</summary>
@@ -90,7 +91,7 @@ public sealed class GetOfficeWordHyperlinkCommand : PSCmdlet {
             case ParameterSetDocument:
                 return Document != null ? Document.HyperLinks : Array.Empty<WordHyperLink>();
             default:
-                var resolvedPath = SessionState.Path.GetUnresolvedProviderPathFromPSPath(Path);
+                var resolvedPath = OfficeFileCommandUtilities.ResolvePath(this, Path);
                 document = WordDocumentService.LoadDocument(resolvedPath, readOnly: true, autoSave: false);
                 dispose = true;
                 return document.HyperLinks;

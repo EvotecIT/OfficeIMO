@@ -1,3 +1,4 @@
+using OfficeIMO.Core.Internal;
 using System;
 using System.IO;
 using System.Management.Automation;
@@ -123,7 +124,7 @@ public sealed class ConvertFromOfficeOneNoteCommand : PSCmdlet
             _ => throw new InvalidOperationException("Unsupported OneNote source model.")
         };
         if (FailOnLoss.IsPresent) result.RequireNoLoss();
-        AtomicFileWriter.Write(output, new UTF8Encoding(false).GetBytes(result.Value.ToMarkdown()), Force.IsPresent);
+        OfficeFileOutput.Write(output, new UTF8Encoding(false).GetBytes(result.Value.ToMarkdown()), Force.IsPresent);
         return result.Report;
     }
 
@@ -136,7 +137,7 @@ public sealed class ConvertFromOfficeOneNoteCommand : PSCmdlet
             _ => throw new InvalidOperationException("Unsupported OneNote source model.")
         };
         if (FailOnLoss.IsPresent) result.RequireNoLoss();
-        AtomicFileWriter.Write(output, new UTF8Encoding(false).GetBytes(result.Value), Force.IsPresent);
+        OfficeFileOutput.Write(output, new UTF8Encoding(false).GetBytes(result.Value), Force.IsPresent);
         return result.Report;
     }
 
@@ -149,7 +150,7 @@ public sealed class ConvertFromOfficeOneNoteCommand : PSCmdlet
             OneNoteNotebook notebook => notebook.ToPdfDocumentResult(options),
             _ => throw new InvalidOperationException("Unsupported OneNote source model.")
         };
-        AtomicFileWriter.Write(output, Force.IsPresent, temporaryPath =>
+        OfficeFileOutput.Write(output, Force.IsPresent, temporaryPath =>
         {
             result.Save(temporaryPath).RequireSuccess();
             if (FailOnLoss.IsPresent) result.RequireNoLoss();

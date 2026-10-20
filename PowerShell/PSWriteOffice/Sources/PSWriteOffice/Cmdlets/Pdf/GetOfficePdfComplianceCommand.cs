@@ -27,8 +27,8 @@ public sealed class GetOfficePdfComplianceCommand : PSCmdlet
     public PdfDocument Document { get; set; } = null!;
 
     /// <summary>Existing PDF file path to assess after generation.</summary>
-    [Parameter(Mandatory = true, Position = 0, ValueFromPipelineByPropertyName = true, ParameterSetName = ParameterSetPath)]
-    [Alias("FilePath")]
+    [Parameter(Mandatory = true, Position = 0, ValueFromPipelineByPropertyName = true, ParameterSetName = ParameterSetPath, ValueFromPipeline = true)]
+    [Alias("FilePath", "FullName", "LiteralPath")]
     public string Path { get; set; } = string.Empty;
 
     /// <summary>Compliance profile to assess. When omitted, the document's configured profile is used.</summary>

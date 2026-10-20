@@ -1,3 +1,4 @@
+using PSWriteOffice.Services;
 using System;
 using System.Collections.Generic;
 using System.Management.Automation;
@@ -26,8 +27,8 @@ public sealed class GetOfficeWordShapeCommand : PSCmdlet {
     private const string ParameterSetParagraph = "Paragraph";
 
     /// <summary>Path to the document.</summary>
-    [Parameter(Mandatory = true, Position = 0, ParameterSetName = ParameterSetPath)]
-    [Alias("InputPath", "FilePath")]
+    [Parameter(Mandatory = true, Position = 0, ParameterSetName = ParameterSetPath, ValueFromPipelineByPropertyName = true, ValueFromPipeline = true)]
+    [Alias("InputPath", "FilePath", "FullName", "LiteralPath")]
     public string Path { get; set; } = string.Empty;
 
     /// <summary>Document to inspect.</summary>
@@ -62,7 +63,7 @@ public sealed class GetOfficeWordShapeCommand : PSCmdlet {
                     break;
                 default:
                     if (ParameterSetName == ParameterSetPath) {
-                        var resolvedPath = SessionState.Path.GetUnresolvedProviderPathFromPSPath(Path);
+                        var resolvedPath = OfficeFileCommandUtilities.ResolvePath(this, Path);
                         document = WordDocumentService.LoadDocument(resolvedPath, readOnly: true, autoSave: false);
                         dispose = true;
                     } else {

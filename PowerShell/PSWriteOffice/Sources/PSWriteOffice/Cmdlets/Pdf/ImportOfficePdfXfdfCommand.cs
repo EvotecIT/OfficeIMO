@@ -1,3 +1,4 @@
+using PSWriteOffice.Services;
 using System;
 using System.IO;
 using System.Management.Automation;
@@ -17,7 +18,8 @@ public sealed class ImportOfficePdfXfdfCommand : PSCmdlet
     private bool _hasPipelineXfdf;
 
     /// <summary>Source PDF path.</summary>
-    [Parameter(Mandatory = true, Position = 0)]
+    [Parameter(Mandatory = true, Position = 0, ValueFromPipelineByPropertyName = true, ValueFromPipeline = true)]
+    [Alias("FullName", "LiteralPath")]
     public string Path { get; set; } = string.Empty;
 
     /// <summary>XFDF XML.</summary>
@@ -69,11 +71,11 @@ public sealed class ImportOfficePdfXfdfCommand : PSCmdlet
     /// <inheritdoc />
     protected override void EndProcessing()
     {
-        var input = SessionState.Path.GetUnresolvedProviderPathFromPSPath(Path);
-        var output = SessionState.Path.GetUnresolvedProviderPathFromPSPath(OutputPath);
+        var input = OfficeFileCommandUtilities.ResolvePath(this, Path);
+        var output = OfficeFileCommandUtilities.ResolvePath(this, OutputPath);
         if (!ShouldProcess(output, "Import XFDF into PDF form fields")) return;
         var xml = ParameterSetName == "File"
-            ? ReadBoundedXfdfFile(SessionState.Path.GetUnresolvedProviderPathFromPSPath(XfdfPath))
+            ? ReadBoundedXfdfFile(OfficeFileCommandUtilities.ResolvePath(this, XfdfPath))
             : _pipelineXfdf.ToString();
         var result = PdfCommandUtilities.LoadDocument(
             input,

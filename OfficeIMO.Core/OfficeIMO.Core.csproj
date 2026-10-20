@@ -28,6 +28,8 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <InternalsVisibleTo Include="PSWriteOffice" />
+    <InternalsVisibleTo Include="PSWriteOffice.Tests" />
     <InternalsVisibleTo Include="OfficeIMO.Archives" />
     <InternalsVisibleTo Include="OfficeIMO.Archives.Tests" />
     <InternalsVisibleTo Include="OfficeIMO.Html" />

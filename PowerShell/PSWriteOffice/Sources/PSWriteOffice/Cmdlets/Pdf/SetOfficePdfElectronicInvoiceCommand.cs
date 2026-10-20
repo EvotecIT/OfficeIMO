@@ -14,18 +14,10 @@ namespace PSWriteOffice.Cmdlets.Pdf;
 /// }</code>
 ///   <para>Embeds the XML as canonical factur-x.xml, emits matching XMP metadata, and configures PDF/A-3 groundwork.</para>
 /// </example>
-[Cmdlet(VerbsCommon.Set, "OfficePdfElectronicInvoice", DefaultParameterSetName = ParameterSetContext)]
+[Cmdlet(VerbsCommon.Set, "OfficePdfElectronicInvoice")]
 [Alias("PdfElectronicInvoice")]
-[OutputType(typeof(PdfDocument))]
 public sealed class SetOfficePdfElectronicInvoiceCommand : PSCmdlet
 {
-    private const string ParameterSetContext = "Context";
-    private const string ParameterSetDocument = "Document";
-
-    /// <summary>Compatibility parameter. Electronic-invoice options must be declared inside New-OfficePdf.</summary>
-    [Parameter(Mandatory = true, ValueFromPipeline = true, ParameterSetName = ParameterSetDocument)]
-    public PdfDocument Document { get; set; } = null!;
-
     /// <summary>CrossIndustryInvoice XML file path to embed as canonical factur-x.xml.</summary>
     [Parameter(Mandatory = true, Position = 0)]
     [Alias("FilePath", "XmlPath", "InvoiceXmlPath")]
@@ -51,10 +43,6 @@ public sealed class SetOfficePdfElectronicInvoiceCommand : PSCmdlet
     [Parameter]
     public string? Description { get; set; } = "Factur-X/ZUGFeRD invoice XML";
 
-    /// <summary>Emit the updated document.</summary>
-    [Parameter]
-    public SwitchParameter PassThru { get; set; }
-
     /// <inheritdoc />
     protected override void ProcessRecord()
     {
@@ -63,10 +51,6 @@ public sealed class SetOfficePdfElectronicInvoiceCommand : PSCmdlet
             throw new PSArgumentException("Use -Profile FacturX or -Profile Zugferd for e-invoice groundwork.", nameof(Profile));
         }
 
-        if (ParameterSetName == ParameterSetDocument)
-        {
-            throw new PSNotSupportedException("Electronic-invoice options must be supplied before PDF creation. Use PdfElectronicInvoice inside New-OfficePdf.");
-        }
 
         var invoicePath = PdfCommandUtilities.ResolvePath(this, Path);
         PdfCommandUtilities.ConfigureOptions(this, options =>

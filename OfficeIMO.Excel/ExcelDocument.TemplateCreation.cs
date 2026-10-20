@@ -11,6 +11,18 @@ namespace OfficeIMO.Excel {
         private const string TemplateWorkbookContentType = "application/vnd.openxmlformats-officedocument.spreadsheetml.template.main+xml";
         private const string MacroEnabledTemplateWorkbookContentType = "application/vnd.ms-excel.template.macroEnabled.main+xml";
 
+        /// <summary>Creates an editable detached workbook from a template without writing or associating the source.</summary>
+        /// <param name="templatePath">Existing workbook or template package.</param>
+        /// <returns>A workbook that requires an explicit destination when saved.</returns>
+        public static ExcelDocument CreateFromTemplate(string templatePath) {
+            if (string.IsNullOrWhiteSpace(templatePath)) throw new ArgumentException("Template path cannot be empty.", nameof(templatePath));
+            using var source = File.OpenRead(templatePath);
+            return Load(source, new ExcelLoadOptions {
+                AccessMode = DocumentAccessMode.ReadWrite,
+                PersistenceMode = DocumentPersistenceMode.Explicit
+            });
+        }
+
         /// <summary>
         /// Creates an editable workbook by copying a template package to a destination path and loading the copy.
         /// Package parts such as styles, themes, drawings, tables, named ranges, and worksheet metadata are preserved.

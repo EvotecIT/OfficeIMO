@@ -1,3 +1,4 @@
+using PSWriteOffice.Services;
 using System;
 using System.IO;
 using System.Management.Automation;
@@ -25,8 +26,8 @@ public sealed class GetOfficeWordTableOfContentsCommand : PSCmdlet {
     private const string ParameterSetDocument = "Document";
 
     /// <summary>Path to the .docx file.</summary>
-    [Parameter(Mandatory = true, Position = 0, ParameterSetName = ParameterSetPath)]
-    [Alias("InputPath", "FilePath")]
+    [Parameter(Mandatory = true, Position = 0, ParameterSetName = ParameterSetPath, ValueFromPipelineByPropertyName = true, ValueFromPipeline = true)]
+    [Alias("InputPath", "FilePath", "FullName", "LiteralPath")]
     public string Path { get; set; } = string.Empty;
 
     /// <summary>Word document to read.</summary>
@@ -40,7 +41,7 @@ public sealed class GetOfficeWordTableOfContentsCommand : PSCmdlet {
 
         try {
             if (ParameterSetName == ParameterSetPath) {
-                var resolvedPath = SessionState.Path.GetUnresolvedProviderPathFromPSPath(Path);
+                var resolvedPath = OfficeFileCommandUtilities.ResolvePath(this, Path);
                 document = WordDocumentService.LoadDocument(resolvedPath, readOnly: true, autoSave: false);
                 dispose = true;
             } else {

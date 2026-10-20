@@ -1,3 +1,4 @@
+using PSWriteOffice.Services;
 using System;
 using System.IO;
 using System.Management.Automation;
@@ -21,8 +22,8 @@ public sealed class GetOfficeExcelCommand : AsyncPSCmdlet {
     private const string ParameterSetUri = "Uri";
 
     /// <summary>Path to the workbook to load.</summary>
-    [Parameter(Mandatory = true, Position = 0, ParameterSetName = ParameterSetPath)]
-    [Alias("InputPath", "FilePath")]
+    [Parameter(Mandatory = true, Position = 0, ParameterSetName = ParameterSetPath, ValueFromPipelineByPropertyName = true, ValueFromPipeline = true)]
+    [Alias("InputPath", "FilePath", "FullName", "LiteralPath")]
     public string Path { get; set; } = string.Empty;
 
     /// <summary>Remote workbook URI to load.</summary>
@@ -59,7 +60,7 @@ public sealed class GetOfficeExcelCommand : AsyncPSCmdlet {
             return;
         }
 
-        var resolvedPath = SessionState.Path.GetUnresolvedProviderPathFromPSPath(Path);
+        var resolvedPath = OfficeFileCommandUtilities.ResolvePath(this, Path);
         if (!File.Exists(resolvedPath)) {
             throw new FileNotFoundException($"File '{resolvedPath}' was not found.", resolvedPath);
         }

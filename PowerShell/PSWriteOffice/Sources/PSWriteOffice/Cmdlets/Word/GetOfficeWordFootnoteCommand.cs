@@ -1,3 +1,4 @@
+using PSWriteOffice.Services;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -27,8 +28,8 @@ public sealed class GetOfficeWordFootnoteCommand : PSCmdlet {
     private const string ParameterSetSection = "Section";
 
     /// <summary>Path to the document.</summary>
-    [Parameter(Mandatory = true, Position = 0, ParameterSetName = ParameterSetPath)]
-    [Alias("InputPath", "FilePath")]
+    [Parameter(Mandatory = true, Position = 0, ParameterSetName = ParameterSetPath, ValueFromPipelineByPropertyName = true, ValueFromPipeline = true)]
+    [Alias("InputPath", "FilePath", "FullName", "LiteralPath")]
     public string Path { get; set; } = string.Empty;
 
     /// <summary>Document to inspect.</summary>
@@ -50,7 +51,7 @@ public sealed class GetOfficeWordFootnoteCommand : PSCmdlet {
                 notes = Section?.FootNotes ?? Enumerable.Empty<WordFootNote>();
             } else {
                 document = ParameterSetName == ParameterSetPath
-                    ? WordDocumentService.LoadDocument(SessionState.Path.GetUnresolvedProviderPathFromPSPath(Path), readOnly: true, autoSave: false)
+                    ? WordDocumentService.LoadDocument(OfficeFileCommandUtilities.ResolvePath(this, Path), readOnly: true, autoSave: false)
                     : Document;
                 dispose = ParameterSetName == ParameterSetPath;
 

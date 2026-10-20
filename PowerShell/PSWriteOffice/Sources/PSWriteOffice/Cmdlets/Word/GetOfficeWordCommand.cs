@@ -1,3 +1,4 @@
+using PSWriteOffice.Services;
 using System.IO;
 using System.Management.Automation;
 using OfficeIMO.Word;
@@ -22,8 +23,8 @@ namespace PSWriteOffice.Cmdlets.Word;
 [Cmdlet(VerbsCommon.Get, "OfficeWord")]
 public sealed class GetOfficeWordCommand : PSCmdlet {
     /// <summary>Path to the .docx. Accepts PS paths.</summary>
-    [Parameter(Mandatory = true, Position = 0)]
-    [Alias("InputPath", "FilePath")]
+    [Parameter(Mandatory = true, Position = 0, ValueFromPipelineByPropertyName = true, ValueFromPipeline = true)]
+    [Alias("InputPath", "FilePath", "FullName", "LiteralPath")]
     public string Path { get; set; } = string.Empty;
 
     /// <summary>Open in read-only mode.</summary>
@@ -55,7 +56,7 @@ public sealed class GetOfficeWordCommand : PSCmdlet {
     }
 
     private string ResolvePath() {
-        var providerPath = SessionState.Path.GetUnresolvedProviderPathFromPSPath(Path);
+        var providerPath = OfficeFileCommandUtilities.ResolvePath(this, Path);
         return System.IO.Path.IsPathRooted(providerPath)
             ? providerPath
             : System.IO.Path.Combine(SessionState.Path.CurrentFileSystemLocation.Path, providerPath);

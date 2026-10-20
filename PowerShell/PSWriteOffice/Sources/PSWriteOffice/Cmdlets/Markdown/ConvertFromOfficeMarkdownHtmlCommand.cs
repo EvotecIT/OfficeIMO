@@ -1,3 +1,4 @@
+using OfficeIMO.Core.Internal;
 using System;
 using System.IO;
 using System.Management.Automation;
@@ -178,7 +179,7 @@ public sealed class ConvertFromOfficeMarkdownHtmlCommand : PSCmdlet
                     Directory.CreateDirectory(directory);
                 }
 
-                File.WriteAllText(resolvedOutput, markdown, new UTF8Encoding(encoderShouldEmitUTF8Identifier: false));
+                OfficeFileOutput.Write(resolvedOutput, overwrite: true, temporaryPath => File.WriteAllText(temporaryPath, markdown, new UTF8Encoding(encoderShouldEmitUTF8Identifier: false)));
                 if (PassThru.IsPresent) {
                     WriteObject(new FileInfo(resolvedOutput));
                 }

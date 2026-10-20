@@ -22,6 +22,15 @@ Windows, the module includes the PowerShell 7 and Windows PowerShell 5.1 assembl
 Unix validation builds the PowerShell 7 assembly. A public module release is built
 on Windows so both runtime payloads are present.
 
+Regenerate command Markdown and external help through the native documentation
+lane after editing cmdlet XML comments:
+
+```powershell
+./Build/Build-Module.ps1 -RunMode Documentation -IncludePackages:$false
+```
+
+This lane does not sign, package, publish, install, or advance release versions.
+
 For the combined package and module build:
 
 ```powershell
@@ -35,6 +44,20 @@ source. `Build/project.build.json` owns package selection, version bindings,
 and NuGet configuration.
 
 ## Coordinated publication
+
+Keep machine-specific credentials outside this checkout. Package publication
+uses `NUGET_API_KEY` and `GITHUB_TOKEN`. Module publication reads files named by
+`PSGALLERY_API_KEY_FILE` and `GITHUB_TOKEN_FILE`, or the explicit
+`-PowerShellGalleryApiKeyFile` and `-GitHubTokenFile` parameters. Defaults are
+`PowerShellGalleryAPI.txt` and `GitHubAPI.txt` below the user's
+`.config/EvotecIT/release` directory. Manifest and unsigned build modes do not
+read these files; the shared publisher resolves them during publication.
+
+PowerForge generates both packaged loaders and the source development
+bootstrapper. Development imports prefer Debug, then Release;
+`PSWRITEOFFICE_DEVELOPMENT_CONFIGURATION` selects a configuration explicitly.
+The build synchronizes the compiled module's project version with the manifest
+and derives command exports and help from the binary and XML comments.
 
 After the candidate has passed its required tests and reviews, an authorized
 release operator runs:

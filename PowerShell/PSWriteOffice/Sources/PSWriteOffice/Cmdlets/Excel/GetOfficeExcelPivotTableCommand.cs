@@ -1,3 +1,4 @@
+using PSWriteOffice.Services;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -26,8 +27,8 @@ public sealed class GetOfficeExcelPivotTableCommand : PSCmdlet {
     private const string ParameterSetDocument = "Document";
 
     /// <summary>Path to the workbook.</summary>
-    [Parameter(Mandatory = true, Position = 0, ParameterSetName = ParameterSetPath)]
-    [Alias("InputPath", "FilePath")]
+    [Parameter(Mandatory = true, Position = 0, ParameterSetName = ParameterSetPath, ValueFromPipelineByPropertyName = true, ValueFromPipeline = true)]
+    [Alias("InputPath", "FilePath", "FullName", "LiteralPath")]
     public string Path { get; set; } = string.Empty;
 
     /// <summary>Workbook to inspect.</summary>
@@ -53,7 +54,7 @@ public sealed class GetOfficeExcelPivotTableCommand : PSCmdlet {
 
         try {
             if (ParameterSetName == ParameterSetPath) {
-                var resolvedPath = SessionState.Path.GetUnresolvedProviderPathFromPSPath(Path);
+                var resolvedPath = OfficeFileCommandUtilities.ResolvePath(this, Path);
                 if (!File.Exists(resolvedPath)) {
                     throw new FileNotFoundException($"File '{resolvedPath}' was not found.", resolvedPath);
                 }

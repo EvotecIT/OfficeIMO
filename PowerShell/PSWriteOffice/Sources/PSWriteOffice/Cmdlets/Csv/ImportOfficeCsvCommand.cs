@@ -1,3 +1,4 @@
+using PSWriteOffice.Services;
 using System;
 using System.Collections;
 using System.Collections.Generic;
@@ -500,7 +501,7 @@ public sealed class ImportOfficeCsvCommand : PSCmdlet
         {
             foreach (var literalPath in LiteralPath ?? Array.Empty<string>())
             {
-                yield return SessionState.Path.GetUnresolvedProviderPathFromPSPath(literalPath);
+                yield return OfficeFileCommandUtilities.ResolvePath(this, literalPath);
             }
 
             yield break;
@@ -510,7 +511,7 @@ public sealed class ImportOfficeCsvCommand : PSCmdlet
         {
             if (!WildcardPattern.ContainsWildcardCharacters(path))
             {
-                yield return SessionState.Path.GetUnresolvedProviderPathFromPSPath(path);
+                yield return OfficeFileCommandUtilities.ResolvePath(this, path);
                 continue;
             }
 

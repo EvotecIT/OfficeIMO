@@ -151,7 +151,7 @@ public sealed class NewOfficeExcelCommand : PSCmdlet {
             return;
         }
 
-        if (!NoSave.IsPresent || !string.IsNullOrWhiteSpace(TemplatePath)) {
+        if (!NoSave.IsPresent) {
             var directory = System.IO.Path.GetDirectoryName(resolvedPath);
             if (!string.IsNullOrEmpty(directory) && !Directory.Exists(directory)) {
                 Directory.CreateDirectory(directory);
@@ -162,10 +162,8 @@ public sealed class NewOfficeExcelCommand : PSCmdlet {
             ? NoSave.IsPresent
                 ? ExcelDocumentService.CreateInMemoryDocument()
                 : ExcelDocumentService.CreateDocument(resolvedPath, autoSave: false)
-            : ExcelDocumentService.CreateDocumentFromTemplate(
-                SessionState.Path.GetUnresolvedProviderPathFromPSPath(TemplatePath!),
-                resolvedPath,
-                autoSave: false);
+            : ExcelDocumentService.CreateFromTemplate(
+                SessionState.Path.GetUnresolvedProviderPathFromPSPath(TemplatePath!), resolvedPath);
         var closed = false;
         try {
             if (NoSave.IsPresent) {

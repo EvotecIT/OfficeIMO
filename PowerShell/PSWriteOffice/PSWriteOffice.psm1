@@ -2,10 +2,10 @@
 $DevelopmentBasePath = Join-Path (Join-Path (Join-Path $PSScriptRoot 'Sources') 'PSWriteOffice') 'bin'
 $DevelopmentConfiguration = if ($env:PSWRITEOFFICE_DEVELOPMENT_CONFIGURATION -in @('Debug', 'Release')) {
     $env:PSWRITEOFFICE_DEVELOPMENT_CONFIGURATION
-} elseif (Test-Path (Join-Path $DevelopmentBasePath 'Release')) {
-    'Release'
-} else {
+} elseif (Test-Path (Join-Path $DevelopmentBasePath 'Debug')) {
     'Debug'
+} else {
+    'Release'
 }
 $DevelopmentPath = Join-Path $DevelopmentBasePath $DevelopmentConfiguration
 $DevelopmentFolderCore = "net8.0"

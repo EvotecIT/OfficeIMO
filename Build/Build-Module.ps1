@@ -11,11 +11,13 @@ only to skip package creation during local module iteration.
 ./Build/Build-Module.ps1 -RunMode Publish -SignModule:$true
 #>
 param(
-    [ValidateSet('Manifest', 'Build', 'Publish')]
+    [ValidateSet('Documentation', 'Manifest', 'Build', 'Publish')]
     [string] $RunMode = 'Build',
     [bool] $SignModule = $false,
     [bool] $IncludePackages = $true,
     [string] $StagingPath,
+    [string] $PowerShellGalleryApiKeyFile = $env:PSGALLERY_API_KEY_FILE,
+    [string] $GitHubTokenFile = $env:GITHUB_TOKEN_FILE,
     [switch] $JsonOnly,
     [string] $JsonPath,
     [switch] $ResumeIncompleteRelease,

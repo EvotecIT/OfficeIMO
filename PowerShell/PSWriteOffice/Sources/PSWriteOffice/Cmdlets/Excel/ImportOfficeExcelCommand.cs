@@ -44,8 +44,8 @@ public sealed class ImportOfficeExcelCommand : AsyncPSCmdlet
     private const string ParameterSetDocument = "Document";
 
     /// <summary>Workbook path to import.</summary>
-    [Parameter(Mandatory = true, Position = 0, ValueFromPipelineByPropertyName = true, ParameterSetName = ParameterSetPath)]
-    [Alias("FilePath", "InputPath", "FullName")]
+    [Parameter(Mandatory = true, Position = 0, ValueFromPipelineByPropertyName = true, ParameterSetName = ParameterSetPath, ValueFromPipeline = true)]
+    [Alias("FilePath", "InputPath", "FullName", "LiteralPath")]
     public string? Path { get; set; }
 
     /// <summary>Remote workbook URI to import.</summary>

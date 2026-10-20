@@ -1,3 +1,4 @@
+using PSWriteOffice.Services;
 using System.IO;
 using System.Management.Automation;
 using OfficeIMO;
@@ -18,8 +19,8 @@ namespace PSWriteOffice.Cmdlets.Security;
 public sealed class GetOfficePackageSecurityCommand : PSCmdlet
 {
     /// <summary>Path to an Open XML or compound Office package.</summary>
-    [Parameter(Mandatory = true, Position = 0, ValueFromPipeline = true)]
-    [Alias("FilePath")]
+    [Parameter(Mandatory = true, Position = 0, ValueFromPipeline = true, ValueFromPipelineByPropertyName = true)]
+    [Alias("FilePath", "FullName", "LiteralPath")]
     public string Path { get; set; } = string.Empty;
 
     /// <summary>Custom package size, expansion, and active-content policy.</summary>
@@ -42,7 +43,7 @@ public sealed class GetOfficePackageSecurityCommand : PSCmdlet
             throw new PSArgumentException("-Options and -Untrusted cannot be combined.");
         }
 
-        var path = SessionState.Path.GetUnresolvedProviderPathFromPSPath(Path);
+        var path = OfficeFileCommandUtilities.ResolvePath(this, Path);
         var options = Untrusted.IsPresent ? OfficePackageSecurityOptions.UntrustedDefaults : Options;
         using var stream = File.OpenRead(path);
         WriteObject(ThrowOnViolation.IsPresent

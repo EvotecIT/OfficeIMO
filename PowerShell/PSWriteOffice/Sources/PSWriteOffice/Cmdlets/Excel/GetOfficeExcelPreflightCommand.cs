@@ -23,8 +23,8 @@ public sealed class GetOfficeExcelPreflightCommand : PSCmdlet {
     private const string ParameterSetDocument = "Document";
 
     /// <summary>Path to the workbook.</summary>
-    [Parameter(Mandatory = true, Position = 0, ParameterSetName = ParameterSetPath)]
-    [Alias("InputPath", "FilePath")]
+    [Parameter(Mandatory = true, Position = 0, ParameterSetName = ParameterSetPath, ValueFromPipelineByPropertyName = true, ValueFromPipeline = true)]
+    [Alias("InputPath", "FilePath", "FullName", "LiteralPath")]
     public string Path { get; set; } = string.Empty;
 
     /// <summary>Workbook to inspect.</summary>

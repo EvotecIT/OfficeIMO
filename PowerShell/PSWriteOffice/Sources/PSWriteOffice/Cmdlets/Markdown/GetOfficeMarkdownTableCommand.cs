@@ -26,8 +26,8 @@ public sealed class GetOfficeMarkdownTableCommand : PSCmdlet
     public MarkdownDoc Document { get; set; } = null!;
 
     /// <summary>Path to the Markdown file.</summary>
-    [Parameter(Mandatory = true, Position = 0, ParameterSetName = ParameterSetPath)]
-    [Alias("InputPath", "FilePath")]
+    [Parameter(Mandatory = true, Position = 0, ParameterSetName = ParameterSetPath, ValueFromPipelineByPropertyName = true, ValueFromPipeline = true)]
+    [Alias("InputPath", "FilePath", "FullName", "LiteralPath")]
     public string Path { get; set; } = string.Empty;
 
     /// <summary>Markdown text to parse.</summary>

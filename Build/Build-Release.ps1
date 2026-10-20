@@ -11,10 +11,12 @@ ResumeIncompleteRelease reuses the shared publisher's release checkpoint.
 ./Build/Build-Release.ps1 -RunMode Publish -SignModule:$true
 #>
 param(
-    [ValidateSet('Manifest', 'Build', 'Publish')]
+    [ValidateSet('Documentation', 'Manifest', 'Build', 'Publish')]
     [string] $RunMode = 'Build',
     [bool] $SignModule = $false,
     [string] $StagingPath,
+    [string] $PowerShellGalleryApiKeyFile = $env:PSGALLERY_API_KEY_FILE,
+    [string] $GitHubTokenFile = $env:GITHUB_TOKEN_FILE,
     [switch] $JsonOnly,
     [string] $JsonPath,
     [switch] $ResumeIncompleteRelease,

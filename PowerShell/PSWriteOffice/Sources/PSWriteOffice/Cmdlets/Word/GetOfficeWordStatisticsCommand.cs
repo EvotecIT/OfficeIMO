@@ -1,3 +1,4 @@
+using PSWriteOffice.Services;
 using System;
 using System.IO;
 using System.Management.Automation;
@@ -26,8 +27,8 @@ public sealed class GetOfficeWordStatisticsCommand : PSCmdlet {
     private const string ParameterSetDocument = "Document";
 
     /// <summary>Path to the Word document.</summary>
-    [Parameter(Mandatory = true, Position = 0, ParameterSetName = ParameterSetPath)]
-    [Alias("InputPath", "FilePath")]
+    [Parameter(Mandatory = true, Position = 0, ParameterSetName = ParameterSetPath, ValueFromPipelineByPropertyName = true, ValueFromPipeline = true)]
+    [Alias("InputPath", "FilePath", "FullName", "LiteralPath")]
     public string Path { get; set; } = string.Empty;
 
     /// <summary>Document to inspect.</summary>
@@ -41,7 +42,7 @@ public sealed class GetOfficeWordStatisticsCommand : PSCmdlet {
 
         try {
             if (ParameterSetName == ParameterSetPath) {
-                var resolvedPath = SessionState.Path.GetUnresolvedProviderPathFromPSPath(Path);
+                var resolvedPath = OfficeFileCommandUtilities.ResolvePath(this, Path);
                 if (!File.Exists(resolvedPath)) {
                     throw new FileNotFoundException($"File {resolvedPath} doesn't exist.", resolvedPath);
                 }

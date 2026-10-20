@@ -3,10 +3,10 @@ using System.Globalization;
 using System.IO;
 using System.Text;
 
-namespace PSWriteOffice.Services;
+namespace OfficeIMO.Core.Internal;
 
 /// <summary>Commits task output through same-directory temporary files.</summary>
-internal static class AtomicFileWriter
+internal static class OfficeFileOutput
 {
     private const int MaxPortableFileNameLength = 255;
 
@@ -100,14 +100,8 @@ internal static class AtomicFileWriter
                 return;
             }
 
-            try
-            {
-                File.Move(temporaryPath, fullPath);
-            }
-            catch (IOException) when (File.Exists(fullPath))
-            {
-                File.Replace(temporaryPath, fullPath, destinationBackupFileName: null);
-            }
+            OfficeFileCommit.CommitTemporaryFileAtomically(temporaryPath, fullPath,
+                OfficeFileCommit.ConflictPolicy.Replace);
         }
         finally
         {

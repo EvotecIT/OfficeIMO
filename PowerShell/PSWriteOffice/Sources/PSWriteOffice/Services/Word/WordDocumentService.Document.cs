@@ -1,9 +1,8 @@
 using System;
 using System.Collections.Generic;
-using System.Collections.Concurrent;
+using System.Runtime.CompilerServices;
 using System.IO;
 using System.Linq;
-using System.Reflection;
 using System.Threading;
 using OfficeIMO.Drawing;
 using OfficeIMO.Word;
@@ -13,10 +12,17 @@ namespace PSWriteOffice.Services.Word;
 /// <summary>Bridges DSL cmdlets with OfficeIMO.Word document operations.</summary>
 public static partial class WordDocumentService
 {
-    private static readonly FieldInfo? DisposedField = typeof(WordDocument).GetField("_disposed", BindingFlags.Instance | BindingFlags.NonPublic);
-    private static readonly AsyncLocal<WordDocument[]?> TrackedDocuments = new();
-    private static readonly ConcurrentDictionary<WordDocument, string> AssociatedPaths = new();
-    private static readonly ConcurrentDictionary<WordDocument, string> EncryptedSourcePaths = new();
+    private static readonly AsyncLocal<WeakReference<WordDocument>[]?> TrackedDocuments = new();
+    private static readonly ConditionalWeakTable<WordDocument, DocumentAssociation> Associations = new();
+
+    private sealed class DocumentAssociation {
+        internal string Path { get; set; } = string.Empty;
+        internal bool Encrypted { get; set; }
+    }
+
+    /// <summary>Creates an editable detached copy without modifying the template.</summary>
+    public static WordDocument CreateFromTemplate(string templatePath) =>
+        RegisterDocument(WordDocument.CreateFromTemplate(templatePath));
 
     /// <summary>Loads an existing Word document.</summary>
     public static WordDocument LoadDocument(string filePath, bool readOnly, bool autoSave, string? password = null)
@@ -30,8 +36,7 @@ public static partial class WordDocumentService
         if (!string.IsNullOrEmpty(password))
         {
             var document = RegisterDocument(OfficeEncryptedPackageService.LoadWord(resolvedPath, password!, readOnly, autoSave));
-            AssociatedPaths[document] = resolvedPath;
-            EncryptedSourcePaths[document] = resolvedPath;
+            UpdateSaveAssociation(document, resolvedPath, encrypted: true);
             return document;
         }
 
@@ -74,8 +79,7 @@ public static partial class WordDocumentService
         }
         finally
         {
-            AssociatedPaths.TryRemove(document, out _);
-            EncryptedSourcePaths.TryRemove(document, out _);
+            Associations.Remove(document);
             UnregisterDocument(document);
         }
     }
@@ -111,7 +115,7 @@ public static partial class WordDocumentService
         }
         else
         {
-            if (EncryptedSourcePaths.ContainsKey(document))
+            if (IsEncryptedSource(document))
             {
                 throw new InvalidOperationException("Provide -Password when saving a document loaded from an encrypted package.");
             }
@@ -166,80 +170,37 @@ public static partial class WordDocumentService
         TrackedDocuments.Value = tracked
             .Where(existing => !ReferenceEquals(existing, document))
             .Append(document)
+            .Select(item => new WeakReference<WordDocument>(item))
             .ToArray();
         return document;
     }
 
-    private static void UnregisterDocument(WordDocument document)
-    {
-        var tracked = TrackedDocuments.Value;
-        if (tracked == null || tracked.Length == 0)
-        {
-            return;
-        }
-
-        TrackedDocuments.Value = tracked
+    private static void UnregisterDocument(WordDocument document) {
+        TrackedDocuments.Value = GetAliveTrackedDocuments()
             .Where(existing => !ReferenceEquals(existing, document))
+            .Select(item => new WeakReference<WordDocument>(item))
             .ToArray();
     }
 
-    private static WordDocument[] GetAliveTrackedDocuments()
-    {
-        var tracked = TrackedDocuments.Value ?? Array.Empty<WordDocument>();
-        var alive = tracked.Where(document => !IsDisposed(document)).ToArray();
-        if (alive.Length != tracked.Length)
-        {
-            TrackedDocuments.Value = alive;
-        }
-
+    private static WordDocument[] GetAliveTrackedDocuments() {
+        var alive = (TrackedDocuments.Value ?? Array.Empty<WeakReference<WordDocument>>())
+            .Select(reference => reference.TryGetTarget(out var document) ? document : null)
+            .Where(document => document != null && !document.IsDisposed)
+            .Cast<WordDocument>()
+            .ToArray();
+        TrackedDocuments.Value = alive.Select(item => new WeakReference<WordDocument>(item)).ToArray();
         return alive;
     }
 
-    private static bool IsDisposed(WordDocument document)
-    {
-        if (DisposedField == null)
-        {
-            return false;
-        }
+    internal static string? GetAssociatedPath(WordDocument document) =>
+        Associations.TryGetValue(document, out var association) ? association.Path : document.FilePath;
 
-        try
-        {
-            return (bool?)DisposedField.GetValue(document) ?? false;
-        }
-        catch
-        {
-            return false;
-        }
-    }
+    internal static bool IsEncryptedSource(WordDocument document) =>
+        Associations.TryGetValue(document, out var association) && association.Encrypted;
 
-    internal static string? GetAssociatedPath(WordDocument document)
-    {
-        if (AssociatedPaths.TryGetValue(document, out var associatedPath))
-        {
-            return associatedPath;
-        }
-
-        if (!string.IsNullOrWhiteSpace(document.FilePath))
-        {
-            return document.FilePath;
-        }
-
-        return EncryptedSourcePaths.TryGetValue(document, out var path) ? path : null;
-    }
-
-    internal static bool IsEncryptedSource(WordDocument document) => EncryptedSourcePaths.ContainsKey(document);
-
-    internal static void UpdateSaveAssociation(WordDocument document, string path, bool encrypted)
-    {
-        var resolvedPath = Path.GetFullPath(path);
-        AssociatedPaths[document] = resolvedPath;
-        if (encrypted)
-        {
-            EncryptedSourcePaths[document] = resolvedPath;
-        }
-        else
-        {
-            EncryptedSourcePaths.TryRemove(document, out _);
-        }
+    internal static void UpdateSaveAssociation(WordDocument document, string path, bool encrypted) {
+        var association = Associations.GetValue(document, _ => new DocumentAssociation());
+        association.Path = Path.GetFullPath(path);
+        association.Encrypted = encrypted;
     }
 }

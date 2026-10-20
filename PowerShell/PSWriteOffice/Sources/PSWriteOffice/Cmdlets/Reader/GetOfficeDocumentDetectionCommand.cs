@@ -16,7 +16,8 @@ namespace PSWriteOffice.Cmdlets.Reader;
 public sealed class GetOfficeDocumentDetectionCommand : OfficeDocumentReaderCommandBase
 {
     /// <summary>Path to inspect.</summary>
-    [Parameter(Mandatory = true, Position = 0, ValueFromPipeline = true)]
+    [Parameter(Mandatory = true, Position = 0, ValueFromPipeline = true, ValueFromPipelineByPropertyName = true)]
+    [Alias("FullName", "LiteralPath")]
     public string Path { get; set; } = string.Empty;
 
     /// <summary>Policy used to combine extension and content evidence.</summary>
