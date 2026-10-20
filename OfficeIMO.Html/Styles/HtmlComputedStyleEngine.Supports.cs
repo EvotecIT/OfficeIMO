@@ -361,10 +361,16 @@ public static partial class HtmlComputedStyleEngine {
             && length >= 0D;
     }
 
-    private static bool IsSupportedFontLength(string value) =>
-        HtmlRenderCssValues.HasExplicitLengthSyntax(value, allowPercentage: true, allowUnitlessZero: true)
-        && HtmlRenderCssValues.TryLength(value, 100D, 16D, 16D, 100D, 100D, 100D, 100D, out double length)
-        && length >= 0D;
+    private static bool IsSupportedFontLength(string value) {
+        if (!HtmlRenderCssValues.HasExplicitLengthSyntax(value, allowPercentage: true, allowUnitlessZero: true)) return false;
+        try {
+            OfficeIMO.Html.Css.HtmlCssMathParseResult parsed = OfficeIMO.Html.Css.HtmlCssMathParser.ParseLengthPercentage(value);
+            // Calculated ranges are clamped only after resolving the real font,
+            // viewport and query-container context. Negative literals are invalid.
+            return parsed.IsParsed && (parsed.Expression!.IsCalculated || parsed.Expression.Value >= 0D);
+        } catch (OfficeIMO.Html.Css.HtmlCssMathLimitException) { return false; }
+        catch (OfficeIMO.Html.Css.HtmlCssTokenizationLimitException) { return false; }
+    }
 
     /// <summary>Validates the owned static property subset before a declaration enters the cascade.</summary>
     internal static bool IsSupportedDeclarationValue(string propertyName, string value) {

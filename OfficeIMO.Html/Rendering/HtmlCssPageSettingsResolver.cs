@@ -3,17 +3,21 @@ using AngleSharp.Css.Parser;
 using AngleSharp.Dom;
 using AngleSharp.Html.Dom;
 using OfficeIMO.Drawing;
+using System.Threading;
 
 namespace OfficeIMO.Html;
 
 internal static partial class HtmlCssPageSettingsResolver {
-    internal static HtmlCssPageRuleSet Apply(IHtmlDocument document, HtmlRenderOptions options, HtmlDiagnosticReport diagnostics) {
+    internal static HtmlCssPageRuleSet Apply(IHtmlDocument document, HtmlRenderOptions options, HtmlDiagnosticReport diagnostics,
+        HtmlConversionLimits? limits = null, CancellationToken cancellationToken = default) {
+        cancellationToken.ThrowIfCancellationRequested();
+        var fontBudget = new HtmlCssProcessingBudget(limits);
         var pageRules = new HtmlCssPageRuleSet(options);
         if (options.Mode != HtmlRenderMode.Paged || !options.HonorCssPageRules) return pageRules;
         var layers = new CascadeLayerRegistry();
         foreach (IElement styleElement in document.QuerySelectorAll("style")) {
             if (!IsCssStyleElement(styleElement) || !IsApplicablePageMedia(styleElement.GetAttribute("media") ?? string.Empty, options)) continue;
-            ApplyRawPageRules(styleElement.TextContent, options, diagnostics, pageRules, layers);
+            ApplyRawPageRules(styleElement.TextContent, options, diagnostics, pageRules, layers, fontBudget, cancellationToken);
         }
         pageRules.ApplyGenericGeometry(options);
         return pageRules;
@@ -112,8 +116,9 @@ internal static partial class HtmlCssPageSettingsResolver {
         HtmlRenderOptions options,
         HtmlDiagnosticReport diagnostics,
         HtmlCssPageRuleSet pageRules,
-        CascadeLayerRegistry layers) =>
-        ScanRawRules(css, 0, css.Length, options, diagnostics, pageRules, layers, null, null);
+        CascadeLayerRegistry layers,
+        HtmlCssProcessingBudget fontBudget, CancellationToken cancellationToken) =>
+        ScanRawRules(css, 0, css.Length, options, diagnostics, pageRules, layers, null, null, fontBudget, cancellationToken);
 
     private static void ScanRawRules(
         string css,
@@ -124,9 +129,11 @@ internal static partial class HtmlCssPageSettingsResolver {
         HtmlCssPageRuleSet pageRules,
         CascadeLayerRegistry layers,
         string? layerPath,
-        CascadeLayerOrder? layerOrder) {
+        CascadeLayerOrder? layerOrder,
+        HtmlCssProcessingBudget fontBudget, CancellationToken cancellationToken) {
         int cursor = start;
         while (cursor < end) {
+            cancellationToken.ThrowIfCancellationRequested();
             if (IsCommentStart(css, cursor)) {
                 cursor = SkipComment(css, cursor + 2, end);
                 continue;
@@ -167,25 +174,26 @@ internal static partial class HtmlCssPageSettingsResolver {
             string prelude = css.Substring(nameEnd, boundary - nameEnd).Trim();
             if (string.Equals(name, "media", StringComparison.OrdinalIgnoreCase)) {
                 if (IsApplicablePageMedia(prelude, options)) {
-                    ScanRawRules(css, boundary + 1, closeBrace, options, diagnostics, pageRules, layers, layerPath, layerOrder);
+                    ScanRawRules(css, boundary + 1, closeBrace, options, diagnostics, pageRules, layers, layerPath, layerOrder, fontBudget, cancellationToken);
                 }
             } else if (string.Equals(name, "supports", StringComparison.OrdinalIgnoreCase)) {
                 if (HtmlComputedStyleEngine.IsApplicableSupports(prelude)) {
-                    ScanRawRules(css, boundary + 1, closeBrace, options, diagnostics, pageRules, layers, layerPath, layerOrder);
+                    ScanRawRules(css, boundary + 1, closeBrace, options, diagnostics, pageRules, layers, layerPath, layerOrder, fontBudget, cancellationToken);
                 }
             } else if (string.Equals(name, "layer", StringComparison.OrdinalIgnoreCase)) {
                 (string nestedPath, CascadeLayerOrder nestedOrder) = layers.RegisterBlock(prelude, layerPath);
-                ScanRawRules(css, boundary + 1, closeBrace, options, diagnostics, pageRules, layers, nestedPath, nestedOrder);
+                ScanRawRules(css, boundary + 1, closeBrace, options, diagnostics, pageRules, layers, nestedPath, nestedOrder, fontBudget, cancellationToken);
             } else if (string.Equals(name, "page", StringComparison.OrdinalIgnoreCase)) {
                 string body = css.Substring(boundary + 1, closeBrace - boundary - 1);
-                ApplyRawPageRule(prelude, body, options, diagnostics, pageRules, layerOrder);
+                ApplyRawPageRule(prelude, body, options, diagnostics, pageRules, layerOrder, fontBudget, cancellationToken);
             }
 
             cursor = closeBrace + 1;
         }
     }
 
-    private static void ApplyRawPageRule(string selectorText, string body, HtmlRenderOptions options, HtmlDiagnosticReport diagnostics, HtmlCssPageRuleSet pageRules, CascadeLayerOrder? layerOrder) {
+    private static void ApplyRawPageRule(string selectorText, string body, HtmlRenderOptions options, HtmlDiagnosticReport diagnostics, HtmlCssPageRuleSet pageRules, CascadeLayerOrder? layerOrder,
+        HtmlCssProcessingBudget fontBudget, CancellationToken cancellationToken) {
         if (!TryParsePageSelector(selectorText, out string? pageName, out HtmlCssPageSelector selector)) {
             diagnostics.Add("OfficeIMO.Html.Renderer", HtmlRenderDiagnosticCodes.PageSelectorPending, "A complex page selector could not be applied to individual pages.", HtmlDiagnosticSeverity.Warning, selectorText.Length == 0 ? "@page" : selectorText);
             return;
@@ -244,7 +252,7 @@ internal static partial class HtmlCssPageSettingsResolver {
         var production = new HtmlCssPageProductionDeclaration(
             FindTopLevelDeclarationWithPriority(body, "bleed", IsValidBleed),
             FindTopLevelDeclarationWithPriority(body, "marks", IsValidMarks));
-        IReadOnlyDictionary<HtmlCssPageMarginPosition, HtmlCssPageMarginRule> marginBoxes = ExtractMarginBoxes(body, selectorText, diagnostics);
+        IReadOnlyDictionary<HtmlCssPageMarginPosition, HtmlCssPageMarginRule> marginBoxes = ExtractMarginBoxes(body, selectorText, diagnostics, fontBudget, cancellationToken);
         if (marginBoxes.Count > 0 || !geometry.IsEmpty || !production.IsEmpty) {
             pageRules.Add(new HtmlCssPageRule(pageName, selector, marginBoxes, geometry, production, layerOrder));
         }
@@ -314,10 +322,12 @@ internal static partial class HtmlCssPageSettingsResolver {
         || FindTopLevelDeclaration(body, "margin-bottom").Length > 0
         || FindTopLevelDeclaration(body, "margin-left").Length > 0;
 
-    private static IReadOnlyDictionary<HtmlCssPageMarginPosition, HtmlCssPageMarginRule> ExtractMarginBoxes(string pageBody, string pageSelector, HtmlDiagnosticReport diagnostics) {
+    private static IReadOnlyDictionary<HtmlCssPageMarginPosition, HtmlCssPageMarginRule> ExtractMarginBoxes(string pageBody, string pageSelector, HtmlDiagnosticReport diagnostics,
+        HtmlCssProcessingBudget fontBudget, CancellationToken cancellationToken) {
         var boxes = new Dictionary<HtmlCssPageMarginPosition, HtmlCssPageMarginRule>();
         int cursor = 0;
         while (cursor < pageBody.Length) {
+            cancellationToken.ThrowIfCancellationRequested();
             if (IsCommentStart(pageBody, cursor)) {
                 cursor = SkipComment(pageBody, cursor + 2, pageBody.Length);
                 continue;
@@ -365,7 +375,7 @@ internal static partial class HtmlCssPageSettingsResolver {
             }
 
             ICssStyleDeclaration? style = new CssParser().ParseDeclaration(marginBody);
-            IReadOnlyDictionary<string, HtmlCssPageDeclaration> fontDeclarations = ReadMarginFontDeclarations(marginBody);
+            IReadOnlyDictionary<string, HtmlCssPageDeclaration> fontDeclarations = ReadMarginFontDeclarations(marginBody, fontBudget, cancellationToken);
             var marginRule = new HtmlCssPageMarginRule(
                 content,
                 ReadMarginFontDeclaration(fontDeclarations, "font-family", cursor),

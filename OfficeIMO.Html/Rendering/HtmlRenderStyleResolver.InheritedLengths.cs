@@ -64,9 +64,10 @@ internal sealed partial class HtmlRenderStyleResolver {
             multiplier = parsed;
             return fontSize * parsed;
         }
-        if (TryResolveLength(value, fontSize, fontSize, _rootFontSize, out double lineHeight) && lineHeight >= 0D) {
+        if (TryResolveLength(value, fontSize, fontSize, _rootFontSize, out double lineHeight, out bool calculated)
+            && (lineHeight >= 0D || calculated)) {
             multiplier = null;
-            return lineHeight;
+            return Math.Max(0D, lineHeight);
         }
         return fontSize * multiplier.Value;
     }

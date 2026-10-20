@@ -39,6 +39,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                     }
                     continue;
                 }
+                if (box.Font.Size <= 0D) continue;
                 ChargeLayoutOperations(box.Content.GetRenderedLength(page.PageNumber, pages.Count, page.RunningStrings),
                     marginBoxSource + " generated content");
                 string text = box.Content.Render(page.PageNumber, pages.Count, page.RunningStrings);

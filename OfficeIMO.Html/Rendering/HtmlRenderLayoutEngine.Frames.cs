@@ -135,7 +135,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         OfficeFontFaceCollection fonts = HtmlRenderFontFaceLoader.Load(
             document, _resources, options, _limits, _diagnostics, out HtmlRenderFontFaceUsage fontUsage);
         fonts.AddRange(options.Fonts);
-        HtmlCssPageRuleSet pageRules = HtmlCssPageSettingsResolver.Apply(document, options, _diagnostics);
+        HtmlCssPageRuleSet pageRules = HtmlCssPageSettingsResolver.Apply(document, options, _diagnostics, _limits, _cancellationToken);
         HtmlComputedStyleSet styles = HtmlComputedStyleEngine.ComputeForRendering(document, options, _limits);
         HtmlRenderSystemFontLoader.Load(document, styles, fonts, options, _resources, _diagnostics, _cancellationToken);
         _fonts.AddRange(fonts);

@@ -1,17 +1,26 @@
 using AngleSharp.Css.Parser;
 using OfficeIMO.Html.Css;
+using System.Threading;
 
 namespace OfficeIMO.Html;
 
 internal static partial class HtmlCssPageSettingsResolver {
     /// <summary>Replays the font family before the retained parser can collapse or discard declarations.</summary>
-    private static IReadOnlyDictionary<string, HtmlCssPageDeclaration> ReadMarginFontDeclarations(string body) {
+    private static IReadOnlyDictionary<string, HtmlCssPageDeclaration> ReadMarginFontDeclarations(string body,
+        HtmlCssProcessingBudget budget, CancellationToken cancellationToken) {
         var result = new Dictionary<string, HtmlCssPageDeclaration>(StringComparer.OrdinalIgnoreCase);
         int order = 0;
-        foreach (HtmlCssDeclaration declaration in HtmlCssSyntaxParser.ParseStyleBlock(body).Declarations) {
+        HtmlCssStyleBlock block;
+        try { block = HtmlCssSyntaxParser.ParseStyleBlock(body, budget.CreateInlineSyntaxOptions(), cancellationToken); }
+        catch (HtmlCssSyntaxLimitException exception) { throw budget.TranslateSyntaxLimit(exception); }
+        var boundedTokens = new HtmlCssTokenizationOptions { MaxInputCharacters = null, MaxTokens = null };
+        foreach (HtmlCssDeclaration declaration in block.Declarations) {
+            cancellationToken.ThrowIfCancellationRequested();
             string name = declaration.Name.ToLowerInvariant();
+            if (name != "font" && name != "font-size" && name != "line-height" && name != "font-family"
+                && name != "font-weight" && name != "font-style") { order++; continue; }
             string value = HtmlComputedStyleEngine.StripCssCommentsOutsideStrings(
-                HtmlCssPropertyParser.Parse(declaration).AuthoredValue).Trim();
+                HtmlCssPropertyParser.Parse(declaration, boundedTokens, cancellationToken).AuthoredValue).Trim();
             if (name == "font") {
                 if (HtmlComputedStyleEngine.TryExpandFontShorthand(value, out IReadOnlyList<KeyValuePair<string, string>> expanded)) {
                     foreach (KeyValuePair<string, string> item in expanded) Consider(item.Key, item.Value, declaration.IsImportant);

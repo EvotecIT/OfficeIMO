@@ -399,10 +399,11 @@ internal sealed class HtmlCssPageRuleSet {
             string family = HtmlRenderCssValues.FontFamilyList(fontFamilyValue.HasValue ? fontFamilyValue.Value : string.Empty, options.DefaultFontFamily);
             string fontSizeValue = fontSizeCascadeValue.HasValue ? fontSizeCascadeValue.Value : string.Empty;
             double fontSize = options.DefaultFontSize;
-            if (!HtmlRenderCssValues.TryLength(fontSizeValue, options.DefaultFontSize, options.DefaultFontSize, options.DefaultFontSize, viewportWidth, viewportHeight, out fontSize)
-                || fontSize <= 0D) {
+            if (!HtmlRenderCssValues.TryLength(fontSizeValue, options.DefaultFontSize, options.DefaultFontSize, options.DefaultFontSize, viewportWidth, viewportHeight, double.NaN, double.NaN, out fontSize, out bool calculatedSize)
+                || fontSize < 0D && !calculatedSize) {
                 fontSize = options.DefaultFontSize;
             }
+            fontSize = Math.Max(0D, fontSize);
 
             OfficeFontStyle fontStyle = OfficeFontStyle.Regular;
             string weight = fontWeightValue.HasValue ? fontWeightValue.Value : string.Empty;
