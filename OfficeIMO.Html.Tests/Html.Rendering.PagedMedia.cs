@@ -821,11 +821,11 @@ public sealed partial class HtmlRenderingTests {
         });
 
         Assert.Equal(2, rendered.Pages.Count);
-        IReadOnlyList<string> first = rendered.Pages[0].Visuals.OfType<HtmlRenderText>()
+        IReadOnlyList<string> first = EnumerateRenderVisuals(rendered.Pages[0].Scene).OfType<HtmlRenderText>()
             .Where(text => text.SemanticRole == "page-margin")
             .Select(text => text.Text)
             .ToList();
-        IReadOnlyList<string> second = rendered.Pages[1].Visuals.OfType<HtmlRenderText>()
+        IReadOnlyList<string> second = EnumerateRenderVisuals(rendered.Pages[1].Scene).OfType<HtmlRenderText>()
             .Where(text => text.SemanticRole == "page-margin")
             .Select(text => text.Text)
             .ToList();

@@ -13,6 +13,15 @@ internal sealed class HtmlCssGeneratedContentTemplate {
     internal bool IsEmpty => _segments.Count == 0;
     internal bool ContainsRunningElement => _segments.Any(segment => segment.RunningElementName != null);
 
+    /// <summary>Names whose assigned text can contribute to this margin template.</summary>
+    internal IEnumerable<string> ReferencedRunningStringNames {
+        get {
+            foreach (Segment segment in _segments) {
+                if (segment.RunningStringName != null) yield return segment.RunningStringName;
+            }
+        }
+    }
+
     internal bool TryGetRunningElement(out string name, out HtmlCssRunningStringPosition position) {
         name = string.Empty;
         position = HtmlCssRunningStringPosition.First;

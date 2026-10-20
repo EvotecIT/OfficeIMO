@@ -1,0 +1,1597 @@
+{
+  "schema": "officeimo.html.page-margin-typography-qualification/v1",
+  "status": "qualified-bounded-static-checkpoint",
+  "recordedUtc": "2026-10-20T16:42:03.512946+00:00",
+  "qualifiedSourceHead": "89bc9f47be94ff0b8ec8c09f60b1ea0bcfc93006",
+  "base": "a039964de4cc20594bbc3e68b0e97536c94b4d6d",
+  "implementation": {
+    "publicApiChange": false,
+    "productionDependencyChange": false,
+    "runtimeProviderForksIncluded": false,
+    "owners": [
+      "HTML page-rule cascade",
+      "ordinary selected-face line metrics and wrapped text paint",
+      "existing generated-content parser and referenced running values",
+      "operation-scoped font preparation and global positioned-request cache"
+    ],
+    "changes": [
+      "Generated margin text honors authored number, length, percentage and font-shorthand leading, natural selected-face metrics, and explicit caller defaults.",
+      "Complete wrapped generated text retains positive paint carriers, separate line advance, artifact ownership and explicit reserved-height clipping; the shared text-layout limit still reports typed omission.",
+      "Referenced running strings/elements and global absolute/fixed assignments enter the existing font choice before authoritative pagination; unused assignments do not select fonts.",
+      "Page-margin character units use the margin face and page context rather than the last body element."
+    ]
+  },
+  "sourceSeal": {
+    "path": "source-seal-89bc9f4.json",
+    "bytes": 8846768,
+    "sha256": "04d1889486b073c422477ce373cf898aa218451f380f0b03bab34ed70b5c27e1",
+    "inputs": 41251,
+    "scope": "Every prior master-convergence qualified input plus every added/changed non-receipt tracked input; newly introduced portable receipts excluded from circular binding."
+  },
+  "historicalReproduction": {
+    "masterHead": "a039964de4cc20594bbc3e68b0e97536c94b4d6d",
+    "originalFocused": {
+      "passed": 2,
+      "failed": 9,
+      "execution": {
+        "path": "baseline-margin-tests-net10-retry-execution.json",
+        "bytes": 1825,
+        "sha256": "917ff3ebcc5410e16c9282cc090761238254b2a72bf4b6ef8b7d83fb47a60c94"
+      }
+    },
+    "publicBaseline": {
+      "path": "baseline-v2/summary.json",
+      "bytes": 332950,
+      "sha256": "edc4a4f89228525da6a33d4e5c0df42056bb5b492d73563cc8e04059dcf59385"
+    },
+    "defaultFontBaseline": {
+      "path": "dynamic-font-baseline-v2-actual/summary.json",
+      "bytes": 314776,
+      "sha256": "d04d55be8b0ec0f0878b64b0c460f6a1e95f57b238b18bfff570a5172a240a30"
+    },
+    "globalPositionedBaseline": {
+      "path": "dynamic-positioned-font-baseline-v3/summary.json",
+      "bytes": 287673,
+      "sha256": "7f39c47be8a2ea973153adbd2b284d7839402c46ca1fa87d4afb9fe0ad7c4bed"
+    },
+    "interpretation": "Authored margin leading was ignored. Referenced dynamic Unicode was discovered after default-font selection and changed authoritative body geometry. Both were reproduced on merged master before production changes."
+  },
+  "tests": {
+    "focused": {
+      "execution": {
+        "receipt": {
+          "path": "margin-closure-net10-execution.json",
+          "bytes": 1809,
+          "sha256": "91b3613b40d3bc274262087253fc8e9db71d1de0b6d32425cb933bdda5346384"
+        },
+        "sourceHead": "89bc9f47be94ff0b8ec8c09f60b1ea0bcfc93006",
+        "elapsedSeconds": 120.375804417,
+        "argv": [
+          "$DOTNET_ROOT/dotnet",
+          "test",
+          "OfficeIMO.Html.Tests/OfficeIMO.Html.Tests.csproj",
+          "-c",
+          "Release",
+          "-f",
+          "net10.0",
+          "-m:3",
+          "-p:UseSharedCompilation=false",
+          "--artifacts-path",
+          "build/tests-baseline",
+          "--filter",
+          "FullyQualifiedName~PageMargin|FullyQualifiedName~ResolvesRunningStringsFromPageLocalAssignments|FullyQualifiedName~DiagnosesComplexPageSelectorsUnknownMarginPositionsAndGeneratedContent",
+          "--logger",
+          "trx;LogFileName=margin-closure-net10.trx",
+          "--results-directory",
+          "trx"
+        ],
+        "logSha256": "63a75bb1eabf92e880d109707b1f6c0607838cb7c0a638869ce77a00124ae4f8"
+      },
+      "result": {
+        "total": "37",
+        "executed": "37",
+        "passed": "37",
+        "failed": "0",
+        "error": "0",
+        "timeout": "0",
+        "aborted": "0",
+        "inconclusive": "0",
+        "passedButRunAborted": "0",
+        "notRunnable": "0",
+        "notExecuted": "0",
+        "disconnected": "0",
+        "warning": "0",
+        "completed": "0",
+        "inProgress": "0",
+        "pending": "0"
+      },
+      "actualTrx": {
+        "path": "trx/margin-closure-net10.trx",
+        "bytes": 58864,
+        "sha256": "b4320aef99294baab8e3d43f766e534fc33e80a7fd9a2f0366cd48a2f34de3af"
+      }
+    },
+    "fullNet10": {
+      "execution": {
+        "receipt": {
+          "path": "full-html-net10-final-execution.json",
+          "bytes": 1686,
+          "sha256": "925070be856671c015accbfbfb0258cd9dc4d5a1f488525a811ff61cd13bc35c"
+        },
+        "sourceHead": "89bc9f47be94ff0b8ec8c09f60b1ea0bcfc93006",
+        "elapsedSeconds": 137.523575792,
+        "argv": [
+          "$DOTNET_ROOT/dotnet",
+          "test",
+          "OfficeIMO.Html.Tests/OfficeIMO.Html.Tests.csproj",
+          "-c",
+          "Release",
+          "-f",
+          "net10.0",
+          "-m:3",
+          "-p:UseSharedCompilation=false",
+          "--no-build",
+          "--no-restore",
+          "--artifacts-path",
+          "build/tests-baseline",
+          "--filter",
+          "Category!=Performance",
+          "--logger",
+          "trx;LogFileName=full-html-net10-final.trx",
+          "--results-directory",
+          "trx"
+        ],
+        "logSha256": "49947a4ca629552c28e3f2dbe55a289553c12ce545bc43406c31e08ec385d0a4"
+      },
+      "result": {
+        "total": "7539",
+        "executed": "7539",
+        "passed": "7539",
+        "failed": "0",
+        "error": "0",
+        "timeout": "0",
+        "aborted": "0",
+        "inconclusive": "0",
+        "passedButRunAborted": "0",
+        "notRunnable": "0",
+        "notExecuted": "0",
+        "disconnected": "0",
+        "warning": "0",
+        "completed": "0",
+        "inProgress": "0",
+        "pending": "0"
+      },
+      "actualTrx": {
+        "path": "trx/full-html-net10-final.trx",
+        "bytes": 11639153,
+        "sha256": "fb3b5448bb82742a35383929b8d80e234d76464e6f92810c6c14ab744f7eea76"
+      }
+    },
+    "fullNet8": {
+      "execution": {
+        "receipt": {
+          "path": "full-html-net8-final-execution.json",
+          "bytes": 1644,
+          "sha256": "91317ec6e30af4d314279b2fa61029c73ef8ac349e339ce837f02efda6fb6832"
+        },
+        "sourceHead": "89bc9f47be94ff0b8ec8c09f60b1ea0bcfc93006",
+        "elapsedSeconds": 456.427709708,
+        "argv": [
+          "$DOTNET_ROOT/dotnet",
+          "test",
+          "OfficeIMO.Html.Tests/OfficeIMO.Html.Tests.csproj",
+          "-c",
+          "Release",
+          "-f",
+          "net8.0",
+          "-m:3",
+          "-p:UseSharedCompilation=false",
+          "--artifacts-path",
+          "build/tests-baseline",
+          "--filter",
+          "Category!=Performance",
+          "--logger",
+          "trx;LogFileName=full-html-net8-final.trx",
+          "--results-directory",
+          "trx"
+        ],
+        "logSha256": "4ecbd79308fe6f9db013accc70a5a973c8977e6143327bc657ceed81f7f96e62"
+      },
+      "result": {
+        "total": "7539",
+        "executed": "7539",
+        "passed": "7539",
+        "failed": "0",
+        "error": "0",
+        "timeout": "0",
+        "aborted": "0",
+        "inconclusive": "0",
+        "passedButRunAborted": "0",
+        "notRunnable": "0",
+        "notExecuted": "0",
+        "disconnected": "0",
+        "warning": "0",
+        "completed": "0",
+        "inProgress": "0",
+        "pending": "0"
+      },
+      "actualTrx": {
+        "path": "trx/full-html-net8-final.trx",
+        "bytes": 11624074,
+        "sha256": "cb908ef3337897a81fe6e421da9e67d206ecfb656ce6c7c787f9f052f8da9fcf"
+      }
+    },
+    "supersededFullNet10": {
+      "passed": 7537,
+      "failed": 3,
+      "execution": {
+        "path": "full-html-net10-execution.json",
+        "bytes": 1630,
+        "sha256": "399707db55634983cdedd8f32765ffbe4ebe6446c0e79368943bae7508608145"
+      },
+      "disposition": "Three old flat-list observers missed newly explicit overflowing clips; migrated to complete Scene traversal and actual reserved clip boundaries. No production change. The final full suite passes."
+    },
+    "removedFalsePositive": "One 10cqw theory row was removed because the retained CSS provider discards that declaration; equal fallback values provided no container-unit proof. The supported 2ch regression remains."
+  },
+  "publicSource": {
+    "execution": {
+      "receipt": {
+        "path": "candidate-final-observer-run-execution.json",
+        "bytes": 1532,
+        "sha256": "e2117e3309912fce600d4ab15957c74fe6dc631c1e17b1154dd6077d2245ceb2"
+      },
+      "sourceHead": "89bc9f47be94ff0b8ec8c09f60b1ea0bcfc93006",
+      "elapsedSeconds": 6.022246917,
+      "argv": [
+        "$DOTNET_ROOT/dotnet",
+        "graphs/candidate-final-current/bin/PageMarginProbe/release/PageMarginProbe.dll",
+        "inputs-v2",
+        "candidate-final",
+        "89bc9f47be94ff0b8ec8c09f60b1ea0bcfc93006"
+      ],
+      "logSha256": "aee04c0d4456675ed2ca40afd16521250190cab776872fa119fd1a431d9f8916"
+    },
+    "summary": {
+      "path": "candidate-final/summary.json",
+      "bytes": 525564,
+      "sha256": "6f0df1ff111d2b05ca06e34f2d7a9e9b44f66991c55b970fa0612a38414f513d"
+    },
+    "observations": 16,
+    "pageObservations": 48,
+    "ownPngEqualsSavedPdfReplay": true,
+    "reviewedSourceEquivalence": {
+      "path": "final-source-equivalence.json",
+      "bytes": 6714,
+      "sha256": "1ae06d3728be7825b762f4f8af39c645f8cde47e49a3c3d539ccbb136df355a0"
+    },
+    "net8Witness": {
+      "path": "candidate-final-net8/summary.json",
+      "bytes": 526103,
+      "sha256": "c1c6eb064bd938ab313ca04aaf6da7c5680cf03f8b22373a3f11faca6816df64"
+    },
+    "net8Execution": {
+      "receipt": {
+        "path": "candidate-final-net8-observer-run-execution.json",
+        "bytes": 1551,
+        "sha256": "e99c531e74c77ec2935275f06a7f8a83935da728e860e66bd4f54a399ecf4e1b"
+      },
+      "sourceHead": "89bc9f47be94ff0b8ec8c09f60b1ea0bcfc93006",
+      "elapsedSeconds": 11.375667624999998,
+      "argv": [
+        "$DOTNET_ROOT/dotnet",
+        "graphs/candidate-final-net8/bin/PageMarginProbe/release/PageMarginProbe.dll",
+        "inputs-v2",
+        "candidate-final-net8",
+        "89bc9f47be94ff0b8ec8c09f60b1ea0bcfc93006"
+      ],
+      "logSha256": "aee04c0d4456675ed2ca40afd16521250190cab776872fa119fd1a431d9f8916"
+    },
+    "frameworkPixelAndSceneEquivalence": {
+      "path": "cross-framework-source-equivalence.json",
+      "bytes": 12161,
+      "sha256": "5d3d012ff9dc1b73c8a3b471ed4b191393cb80f637cd6d8641859d7f91b4d633"
+    },
+    "frameworkBoundary": "All48sourcepageshaveidenticaldecodedRGBA,scenesandPDFtextacrossNET8/NET10. CompressedPNGbytesdiffer;packagedoutputscompareencodedbytesagainsttheirownframeworksourcewitness."
+  },
+  "nativeAndVisual": {
+    "approval": {
+      "receipt": {
+        "path": "visual-approval.json",
+        "bytes": 355016,
+        "sha256": "d9f83a92e82a65f2cbe406a6fa5868f6af758dd4d1fa5058243475282250b5d9"
+      },
+      "status": "bounded-visual-pass-with-explicit-holds",
+      "decision": {
+        "nativeSupportedFixtures": [
+          "01-numeric-shorthand",
+          "02-length-longhand",
+          "03-percent-longhand",
+          "04-normal-selected-face",
+          "07-tight-four-line-footer",
+          "08-zero-leading-footer",
+          "10-margin-unit-literal-30px"
+        ],
+        "profiles": [
+          "PrintPaged",
+          "ScreenMediaPaged"
+        ],
+        "qualifiedProfileRows": 14,
+        "qualifiedMatchedPages": 30,
+        "acceptedContract": "For the seven native-supported static fixtures, retained actual-PDF rasters show complete expected words, coherent margin/body placement and the intended wrapping/zero-leading/page-edge behavior within the case-specific extraction limits. Both profiles retain the same complete PDF word sequence. This is bounded appearance and content evidence, not pixel identity.",
+        "holds": [
+          {
+            "fixture": "09-margin-unit-context",
+            "status": "unqualified",
+            "heldContracts": [
+              "authored 10cqw declaration retention",
+              "container-unit margin line-height resolution",
+              "native declaration/layout/appearance equivalence"
+            ],
+            "reason": "The retained AngleSharp.Css 1.1.3 provider drops 10cqw before page-margin resolution. The current source scene uses natural LineHeight 19; the otherwise identical literal 30px control uses 30. Native CSSOM retains 10cqw and its saved-PDF positioning differs. This establishes a parser boundary, not a native-engine bug or 10cqw-versus-30px equivalence."
+          }
+        ],
+        "notEstablished": [
+          "Cross-engine pixel equality or identical font rasterization.",
+          "Universal CSS, browser runtime, interactive layout, accessibility or cross-platform appearance acceptance.",
+          "Native equivalence for running string()/element() or installed/default-font controls.",
+          "Package publication, deployment or acceptance of any source head beyond the explicitly bound ec9 observation and 89bc9f47 same-production equivalence bridge."
+        ]
+      },
+      "visualInspection": {
+        "method": "Direct viewing of five retained contact-sheet images in this same task; no recapture. All underlying individual PDF/PNG paths are hash-bound below. Native screen rasters were not separately viewed; their bytes were verified identical to the inspected print raster counterparts for all eight fixtures.",
+        "images": [
+          {
+            "path": "candidate-v2/all-print-pages-white-1.png",
+            "inspection": "visually-inspected-retained-image",
+            "observation": "Owned cases 01\u201304, all three PrintPaged pages per case; coherent wrapping, body witnesses and page counters."
+          },
+          {
+            "path": "candidate-v2/all-print-pages-white-2.png",
+            "inspection": "visually-inspected-retained-image",
+            "observation": "Owned 05/06 composite inspected; composite placement/clipping is not a pixel or missing-content oracle. Use individual artifacts and scene metadata for these owned controls."
+          },
+          {
+            "path": "candidate-boundaries/boundaries-and-default-font-controls.png",
+            "inspection": "visually-inspected-retained-image",
+            "observation": "Paired native/owned 07\u201310 and default-font dynamic controls inspected; 09 residual explicitly held, 07 page-edge clipping retained."
+          },
+          {
+            "path": "native-baseline/all-print-pages.png",
+            "inspection": "visually-inspected-retained-image",
+            "observation": "Actual Edge PDF rasters for 01\u201304, all three print pages per case inspected."
+          },
+          {
+            "path": "native-boundaries/all-print-pages.png",
+            "inspection": "visually-inspected-retained-image",
+            "observation": "Actual Edge PDF rasters for 07\u201309 inspected; literal control 10 is included in the separate paired boundary contact sheet."
+          }
+        ],
+        "result": "Bounded pass for 01\u201304,07,08,10 with the declared 07 clipping limit; case09 held. Dynamic sheets inspected as owned controls only."
+      }
+    },
+    "rawGeometry": {
+      "head": "ec9d528cbac2ac225cb38e95b3748cc9dba51b48",
+      "createdUtc": "2026-10-20T15:53:18.507219+00:00",
+      "boundary": "Same-font Edge155 actualPDF/Poppler word-start observations; container-unitcase09excludedfromnativequalifiedsubset, notwaivedaspassed. Cross-enginepixelsnotexpectedidentical.",
+      "rows": [
+        {
+          "fixture": "01-numeric-shorthand",
+          "profile": "PrintPaged",
+          "qualifiedNativeSubset": true,
+          "pages": 3,
+          "ownPngPdfReplayEqual": true,
+          "sameCompleteWordSequence": true,
+          "wordCount": 96,
+          "maxWordXStartDeltaCssPx": 0.49400399999999917,
+          "maxWordYStartDeltaCssPx": 0.0023933333333540454,
+          "sourceBbox": {
+            "path": "candidate-v2/01-numeric-shorthand/PrintPaged/qualified-bbox.html",
+            "bytes": 14217,
+            "sha256": "b9b68d75221be652a99b50d8559dac1ae8c714481ee392051ed10e957a636557"
+          },
+          "nativeBbox": {
+            "path": "native-baseline/01-numeric-shorthand/print-bbox.html",
+            "bytes": 14503,
+            "sha256": "04e3fa195740e8e15da8e53b3169bbf6a84c3e2125841181637a2cf01e670033"
+          }
+        },
+        {
+          "fixture": "01-numeric-shorthand",
+          "profile": "ScreenMediaPaged",
+          "qualifiedNativeSubset": true,
+          "pages": 3,
+          "ownPngPdfReplayEqual": true,
+          "sameCompleteWordSequence": true,
+          "wordCount": 96,
+          "maxWordXStartDeltaCssPx": 0.49400399999999917,
+          "maxWordYStartDeltaCssPx": 0.0023933333333540454,
+          "sourceBbox": {
+            "path": "candidate-v2/01-numeric-shorthand/ScreenMediaPaged/qualified-bbox.html",
+            "bytes": 14217,
+            "sha256": "b9b68d75221be652a99b50d8559dac1ae8c714481ee392051ed10e957a636557"
+          },
+          "nativeBbox": {
+            "path": "native-baseline/01-numeric-shorthand/screen-bbox.html",
+            "bytes": 14503,
+            "sha256": "04e3fa195740e8e15da8e53b3169bbf6a84c3e2125841181637a2cf01e670033"
+          }
+        },
+        {
+          "fixture": "02-length-longhand",
+          "profile": "PrintPaged",
+          "qualifiedNativeSubset": true,
+          "pages": 3,
+          "ownPngPdfReplayEqual": true,
+          "sameCompleteWordSequence": true,
+          "wordCount": 96,
+          "maxWordXStartDeltaCssPx": 0.49400399999999917,
+          "maxWordYStartDeltaCssPx": 0.0023933333333540454,
+          "sourceBbox": {
+            "path": "candidate-v2/02-length-longhand/PrintPaged/qualified-bbox.html",
+            "bytes": 14215,
+            "sha256": "54c0b7500bb6f1db1a21134a2fada2e404776d35bc664c20aa4335b75da19d3c"
+          },
+          "nativeBbox": {
+            "path": "native-baseline/02-length-longhand/print-bbox.html",
+            "bytes": 14501,
+            "sha256": "42d3b8964a245c44cd438521bc9c6ce0a5b19a64950efec5f55b00ab6c2a78cd"
+          }
+        },
+        {
+          "fixture": "02-length-longhand",
+          "profile": "ScreenMediaPaged",
+          "qualifiedNativeSubset": true,
+          "pages": 3,
+          "ownPngPdfReplayEqual": true,
+          "sameCompleteWordSequence": true,
+          "wordCount": 96,
+          "maxWordXStartDeltaCssPx": 0.49400399999999917,
+          "maxWordYStartDeltaCssPx": 0.0023933333333540454,
+          "sourceBbox": {
+            "path": "candidate-v2/02-length-longhand/ScreenMediaPaged/qualified-bbox.html",
+            "bytes": 14215,
+            "sha256": "54c0b7500bb6f1db1a21134a2fada2e404776d35bc664c20aa4335b75da19d3c"
+          },
+          "nativeBbox": {
+            "path": "native-baseline/02-length-longhand/screen-bbox.html",
+            "bytes": 14501,
+            "sha256": "42d3b8964a245c44cd438521bc9c6ce0a5b19a64950efec5f55b00ab6c2a78cd"
+          }
+        },
+        {
+          "fixture": "03-percent-longhand",
+          "profile": "PrintPaged",
+          "qualifiedNativeSubset": true,
+          "pages": 3,
+          "ownPngPdfReplayEqual": true,
+          "sameCompleteWordSequence": true,
+          "wordCount": 96,
+          "maxWordXStartDeltaCssPx": 0.49400399999999917,
+          "maxWordYStartDeltaCssPx": 0.0023933333333540454,
+          "sourceBbox": {
+            "path": "candidate-v2/03-percent-longhand/PrintPaged/qualified-bbox.html",
+            "bytes": 14216,
+            "sha256": "6c2a318af7825e8b0330fa9a7d9f5876d9cedecb0ba5884dfcc767aac73abd1a"
+          },
+          "nativeBbox": {
+            "path": "native-baseline/03-percent-longhand/print-bbox.html",
+            "bytes": 14502,
+            "sha256": "cd44ad56168e5b3e1f56756d994eb0330b21cb40241a78c2c8db38321cd72ade"
+          }
+        },
+        {
+          "fixture": "03-percent-longhand",
+          "profile": "ScreenMediaPaged",
+          "qualifiedNativeSubset": true,
+          "pages": 3,
+          "ownPngPdfReplayEqual": true,
+          "sameCompleteWordSequence": true,
+          "wordCount": 96,
+          "maxWordXStartDeltaCssPx": 0.49400399999999917,
+          "maxWordYStartDeltaCssPx": 0.0023933333333540454,
+          "sourceBbox": {
+            "path": "candidate-v2/03-percent-longhand/ScreenMediaPaged/qualified-bbox.html",
+            "bytes": 14216,
+            "sha256": "6c2a318af7825e8b0330fa9a7d9f5876d9cedecb0ba5884dfcc767aac73abd1a"
+          },
+          "nativeBbox": {
+            "path": "native-baseline/03-percent-longhand/screen-bbox.html",
+            "bytes": 14502,
+            "sha256": "cd44ad56168e5b3e1f56756d994eb0330b21cb40241a78c2c8db38321cd72ade"
+          }
+        },
+        {
+          "fixture": "04-normal-selected-face",
+          "profile": "PrintPaged",
+          "qualifiedNativeSubset": true,
+          "pages": 3,
+          "ownPngPdfReplayEqual": true,
+          "sameCompleteWordSequence": true,
+          "wordCount": 96,
+          "maxWordXStartDeltaCssPx": 0.49400399999999917,
+          "maxWordYStartDeltaCssPx": 0.004393333333306752,
+          "sourceBbox": {
+            "path": "candidate-v2/04-normal-selected-face/PrintPaged/qualified-bbox.html",
+            "bytes": 13608,
+            "sha256": "76ff2eee7e72bb4a635621e328b213ad4040fce6dfa25e96f935f90c60df616b"
+          },
+          "nativeBbox": {
+            "path": "native-baseline/04-normal-selected-face/print-bbox.html",
+            "bytes": 13894,
+            "sha256": "fa4554fac13fc02935184845f2b00b1fd2f941362c16fe0f1c33a537df10052d"
+          }
+        },
+        {
+          "fixture": "04-normal-selected-face",
+          "profile": "ScreenMediaPaged",
+          "qualifiedNativeSubset": true,
+          "pages": 3,
+          "ownPngPdfReplayEqual": true,
+          "sameCompleteWordSequence": true,
+          "wordCount": 96,
+          "maxWordXStartDeltaCssPx": 0.49400399999999917,
+          "maxWordYStartDeltaCssPx": 0.004393333333306752,
+          "sourceBbox": {
+            "path": "candidate-v2/04-normal-selected-face/ScreenMediaPaged/qualified-bbox.html",
+            "bytes": 13608,
+            "sha256": "76ff2eee7e72bb4a635621e328b213ad4040fce6dfa25e96f935f90c60df616b"
+          },
+          "nativeBbox": {
+            "path": "native-baseline/04-normal-selected-face/screen-bbox.html",
+            "bytes": 13894,
+            "sha256": "12a588f5234047e46812d01535fd9e428008dc2e8c0921d3630448e9a2dc3921"
+          }
+        },
+        {
+          "fixture": "07-tight-four-line-footer",
+          "profile": "PrintPaged",
+          "qualifiedNativeSubset": true,
+          "pages": 1,
+          "ownPngPdfReplayEqual": true,
+          "sameCompleteWordSequence": true,
+          "wordCount": 5,
+          "maxWordXStartDeltaCssPx": 2.800000000509802e-05,
+          "maxWordYStartDeltaCssPx": 2.90549066666667,
+          "sourceBbox": {
+            "path": "candidate-boundaries/07-tight-four-line-footer/PrintPaged/qualified-bbox.html",
+            "bytes": 1696,
+            "sha256": "27ea99599a81d5fbd5dbb7067f6a15a57b7439f94d9fdbfe84f64327995cb51e"
+          },
+          "nativeBbox": {
+            "path": "native-boundaries/07-tight-four-line-footer/print-bbox.html",
+            "bytes": 1883,
+            "sha256": "1ecd34aed7983e5d67511ff3c736cdda6124e3fe36eaaf95949e252c32d4bf03"
+          }
+        },
+        {
+          "fixture": "07-tight-four-line-footer",
+          "profile": "ScreenMediaPaged",
+          "qualifiedNativeSubset": true,
+          "pages": 1,
+          "ownPngPdfReplayEqual": true,
+          "sameCompleteWordSequence": true,
+          "wordCount": 5,
+          "maxWordXStartDeltaCssPx": 2.800000000509802e-05,
+          "maxWordYStartDeltaCssPx": 2.90549066666667,
+          "sourceBbox": {
+            "path": "candidate-boundaries/07-tight-four-line-footer/ScreenMediaPaged/qualified-bbox.html",
+            "bytes": 1696,
+            "sha256": "27ea99599a81d5fbd5dbb7067f6a15a57b7439f94d9fdbfe84f64327995cb51e"
+          },
+          "nativeBbox": {
+            "path": "native-boundaries/07-tight-four-line-footer/screen-bbox.html",
+            "bytes": 1883,
+            "sha256": "1658db2a3cb58fd4a24314b946a4d82d48120a3750b412a92f1ed5d0f6c1feb4"
+          }
+        },
+        {
+          "fixture": "08-zero-leading-footer",
+          "profile": "PrintPaged",
+          "qualifiedNativeSubset": true,
+          "pages": 1,
+          "ownPngPdfReplayEqual": true,
+          "sameCompleteWordSequence": true,
+          "wordCount": 2,
+          "maxWordXStartDeltaCssPx": 3.2000000004472895e-05,
+          "maxWordYStartDeltaCssPx": 0.0038426666666661427,
+          "sourceBbox": {
+            "path": "candidate-boundaries/08-zero-leading-footer/PrintPaged/qualified-bbox.html",
+            "bytes": 997,
+            "sha256": "8f60d7b0d21363464becc992edd7258e72dc289f14ac951e5241b44cc7845fde"
+          },
+          "nativeBbox": {
+            "path": "native-boundaries/08-zero-leading-footer/print-bbox.html",
+            "bytes": 1283,
+            "sha256": "f416771f32703b450f3b234793e9420619411e3be9168b9ff0178ddb16d8f583"
+          }
+        },
+        {
+          "fixture": "08-zero-leading-footer",
+          "profile": "ScreenMediaPaged",
+          "qualifiedNativeSubset": true,
+          "pages": 1,
+          "ownPngPdfReplayEqual": true,
+          "sameCompleteWordSequence": true,
+          "wordCount": 2,
+          "maxWordXStartDeltaCssPx": 3.2000000004472895e-05,
+          "maxWordYStartDeltaCssPx": 0.0038426666666661427,
+          "sourceBbox": {
+            "path": "candidate-boundaries/08-zero-leading-footer/ScreenMediaPaged/qualified-bbox.html",
+            "bytes": 997,
+            "sha256": "8f60d7b0d21363464becc992edd7258e72dc289f14ac951e5241b44cc7845fde"
+          },
+          "nativeBbox": {
+            "path": "native-boundaries/08-zero-leading-footer/screen-bbox.html",
+            "bytes": 1283,
+            "sha256": "75de700e55926d77f82177b3a62230858ee11f3417eedca152e513eb07edc872"
+          }
+        },
+        {
+          "fixture": "09-margin-unit-context",
+          "profile": "PrintPaged",
+          "qualifiedNativeSubset": false,
+          "pages": 1,
+          "ownPngPdfReplayEqual": true,
+          "sameCompleteWordSequence": true,
+          "wordCount": 2,
+          "maxWordXStartDeltaCssPx": 0.003525333333338191,
+          "maxWordYStartDeltaCssPx": 15.497617333333324,
+          "sourceBbox": {
+            "path": "candidate-boundaries/09-margin-unit-context/PrintPaged/qualified-bbox.html",
+            "bytes": 1016,
+            "sha256": "903a1be233f1a260f7293d76a7b9f4b21382dc0b7ead5bb888f95ddb0af87ceb"
+          },
+          "nativeBbox": {
+            "path": "native-boundaries/09-margin-unit-context/print-bbox.html",
+            "bytes": 1302,
+            "sha256": "70fc372fb85a52684072fb84c75da442e95c4974b03f7b9786b2801f0a72d6eb"
+          }
+        },
+        {
+          "fixture": "09-margin-unit-context",
+          "profile": "ScreenMediaPaged",
+          "qualifiedNativeSubset": false,
+          "pages": 1,
+          "ownPngPdfReplayEqual": true,
+          "sameCompleteWordSequence": true,
+          "wordCount": 2,
+          "maxWordXStartDeltaCssPx": 0.003525333333338191,
+          "maxWordYStartDeltaCssPx": 15.497617333333324,
+          "sourceBbox": {
+            "path": "candidate-boundaries/09-margin-unit-context/ScreenMediaPaged/qualified-bbox.html",
+            "bytes": 1016,
+            "sha256": "903a1be233f1a260f7293d76a7b9f4b21382dc0b7ead5bb888f95ddb0af87ceb"
+          },
+          "nativeBbox": {
+            "path": "native-boundaries/09-margin-unit-context/screen-bbox.html",
+            "bytes": 1302,
+            "sha256": "70fc372fb85a52684072fb84c75da442e95c4974b03f7b9786b2801f0a72d6eb"
+          }
+        },
+        {
+          "fixture": "10-margin-unit-literal-30px",
+          "profile": "PrintPaged",
+          "qualifiedNativeSubset": true,
+          "pages": 1,
+          "ownPngPdfReplayEqual": true,
+          "sameCompleteWordSequence": true,
+          "wordCount": 2,
+          "maxWordXStartDeltaCssPx": 0.003525333333338191,
+          "maxWordYStartDeltaCssPx": 0.004752000000001051,
+          "sourceBbox": {
+            "path": "candidate-boundaries/10-margin-unit-literal-30px/PrintPaged/qualified-bbox.html",
+            "bytes": 1016,
+            "sha256": "7dabe9aeac843a65cf53622d0b63f14527feb510b50ae122c6dc096ac48c84c5"
+          },
+          "nativeBbox": {
+            "path": "native-boundaries/10-margin-unit-literal-30px/print-bbox.html",
+            "bytes": 1302,
+            "sha256": "de97e899b1c239c2b1ce494cd70858f90dc600c953bc9156f69ff497835f1e2b"
+          }
+        },
+        {
+          "fixture": "10-margin-unit-literal-30px",
+          "profile": "ScreenMediaPaged",
+          "qualifiedNativeSubset": true,
+          "pages": 1,
+          "ownPngPdfReplayEqual": true,
+          "sameCompleteWordSequence": true,
+          "wordCount": 2,
+          "maxWordXStartDeltaCssPx": 0.003525333333338191,
+          "maxWordYStartDeltaCssPx": 0.004752000000001051,
+          "sourceBbox": {
+            "path": "candidate-boundaries/10-margin-unit-literal-30px/ScreenMediaPaged/qualified-bbox.html",
+            "bytes": 1016,
+            "sha256": "7dabe9aeac843a65cf53622d0b63f14527feb510b50ae122c6dc096ac48c84c5"
+          },
+          "nativeBbox": {
+            "path": "native-boundaries/10-margin-unit-literal-30px/screen-bbox.html",
+            "bytes": 1302,
+            "sha256": "1f269d1ad4bc5b3ad161b3cd78e4d5a01f2c2f052541fa01972114b106e94688"
+          }
+        }
+      ]
+    },
+    "boundary": "Actual installed Edge155/HtmlTinkerX3.0.4 same-font PDFs in Print and Screen media; only browser-supported literal/counter controls qualify native observations. Cross-engine pixel identity is not claimed."
+  },
+  "fontPreparation": {
+    "defaultControls": [
+      {
+        "name": "literal-vs-running-string",
+        "left": "01-literal/authored",
+        "right": "02-running-string/authored",
+        "comparable": true,
+        "pageCountEqual": true,
+        "bodyGeometryEqual": true,
+        "bodyPdfTextEqual": true,
+        "artifactInclusivePdfTextEqual": true
+      },
+      {
+        "name": "expanded-vs-running-element",
+        "left": "03-running-element/expanded-literal",
+        "right": "03-running-element/authored",
+        "comparable": true,
+        "pageCountEqual": true,
+        "bodyGeometryEqual": true,
+        "bodyPdfTextEqual": true,
+        "artifactInclusivePdfTextEqual": true
+      },
+      {
+        "name": "ascii-vs-unused-unicode-assignment",
+        "left": "04-unused-assignment/without-assignment",
+        "right": "04-unused-assignment/authored",
+        "comparable": true,
+        "pageCountEqual": true,
+        "bodyGeometryEqual": true,
+        "bodyPdfTextEqual": true,
+        "artifactInclusivePdfTextEqual": true
+      }
+    ],
+    "globalPositionedControls": [
+      {
+        "name": "01-absolute-string-literal-equivalence",
+        "left": "01-absolute-string/expanded-literal",
+        "right": "01-absolute-string/authored",
+        "comparable": true,
+        "pageCountEqual": true,
+        "bodyGeometryEqual": true,
+        "bodyPdfTextEqual": true,
+        "artifactInclusivePdfTextEqual": true
+      },
+      {
+        "name": "02-fixed-string-literal-equivalence",
+        "left": "02-fixed-string/expanded-literal",
+        "right": "02-fixed-string/authored",
+        "comparable": true,
+        "pageCountEqual": true,
+        "bodyGeometryEqual": true,
+        "bodyPdfTextEqual": true,
+        "artifactInclusivePdfTextEqual": true
+      },
+      {
+        "name": "03-absolute-capture-literal-equivalence",
+        "left": "03-absolute-capture/expanded-literal",
+        "right": "03-absolute-capture/authored",
+        "comparable": true,
+        "pageCountEqual": true,
+        "bodyGeometryEqual": true,
+        "bodyPdfTextEqual": true,
+        "artifactInclusivePdfTextEqual": true
+      },
+      {
+        "name": "04-fixed-capture-literal-equivalence",
+        "left": "04-fixed-capture/expanded-literal",
+        "right": "04-fixed-capture/authored",
+        "comparable": true,
+        "pageCountEqual": true,
+        "bodyGeometryEqual": true,
+        "bodyPdfTextEqual": true,
+        "artifactInclusivePdfTextEqual": true
+      }
+    ],
+    "defaultSummary": {
+      "path": "dynamic-font-candidate-v2/summary.json",
+      "bytes": 306456,
+      "sha256": "17a5cffb8d5b2a9fe233675b6b9581b639319bb8fac14db5dfe7aed392b3f82d"
+    },
+    "positionedSummary": {
+      "path": "dynamic-positioned-candidate-v3/summary.json",
+      "bytes": 387051,
+      "sha256": "42aa57442c9ab0784fbce1896c5db405e53258fd546efd378849cbffeaefb500"
+    },
+    "sourceBinding": "Observed at reviewed ec9d528; exact seven production owners unchanged at qualified source. Final source witness proves matching public scene/pixels.",
+    "boundary": "Seven literal/expanded/unused assignment pairs have equal body geometry and PDF text. All14 observations have ownPNG=PDF. Running-element style/alignment is retained, so whole-page PNG pairs need not match expanded literal text. Dynamic string()/element() browser support was absent; no native dynamic conformance claim."
+  },
+  "packages": {
+    "privateQualificationOnly": true,
+    "publicRelease": false,
+    "version": "3.5.6",
+    "frameworks": [
+      "net472",
+      "netstandard2.0",
+      "net8.0",
+      "net10.0"
+    ],
+    "actualSourceBuiltFrameworkAssets": 20,
+    "rebuiltForHarnessRevision": 0,
+    "reusedFromPriorMilestones": 0,
+    "packageBinding": {
+      "path": "packages/margin-v2/package-binding.json",
+      "bytes": 23591,
+      "sha256": "dc242276e336485aaa3a0dae5996ea707cf8ba58b970f31a4f0f103b0353b51e"
+    },
+    "consumerBinding": {
+      "path": "packages/margin-v2/consumer-binding.json",
+      "bytes": 58830,
+      "sha256": "ed8f870716e623137cf545f5cdd6de2fa926603bf69677cb8fc1d886b78bfb8d"
+    },
+    "owners": {
+      "OfficeIMO.Html": {
+        "archive": {
+          "path": "packages/margin-v1/feed/OfficeIMO.Html.3.5.6.nupkg",
+          "bytes": 4697469,
+          "sha256": "18d746ac89d7bd11d55e197702b1cd10eb105007a57c79e7644f049806ac29cc"
+        },
+        "assets": {
+          "lib/net472/OfficeIMO.Html.dll": "00b4734f8ed4c3709510614ec84b9f84b5df0c6627cadddc2c294cbd0c17925e",
+          "lib/netstandard2.0/OfficeIMO.Html.dll": "2011e04a74d00e70623711fa3c61bdf50c0ecabce04e94ce2abdc9a6a5aafe29",
+          "lib/net8.0/OfficeIMO.Html.dll": "633c5df852ade5870d15414a7d48e06345b67e391dab76214d0d5f4e453de09f",
+          "lib/net10.0/OfficeIMO.Html.dll": "29681fbd68fe820ee0c534c7ae51a399e1d589f6bd468415c1c448a81485506c"
+        }
+      },
+      "OfficeIMO.Html.Core": {
+        "archive": {
+          "path": "packages/margin-v1/feed/OfficeIMO.Html.Core.3.5.6.nupkg",
+          "bytes": 325276,
+          "sha256": "15251ce5f5aeef2107c18fc928fbeffa8f516fd9e2c735d73e2279ae38449188"
+        },
+        "assets": {
+          "lib/net472/OfficeIMO.Html.Core.dll": "110708f905b5e6f2fbc4a0ad38c413bb2ab93cae6ba318cabaa28c687dcee0c2",
+          "lib/netstandard2.0/OfficeIMO.Html.Core.dll": "88e6f4a29b303284af2b9c36a6284ae7b28c82313ca2b0764e4fa730fecec780",
+          "lib/net8.0/OfficeIMO.Html.Core.dll": "0b7bb217354406c0cde239d1e95e4d674b4a2f09c1c467468f06560e200a90fe",
+          "lib/net10.0/OfficeIMO.Html.Core.dll": "ab137033976b558b4c8d0b27fdab4cfa4da9c141c62687f96bc1dfee10260cee"
+        }
+      },
+      "OfficeIMO.Core": {
+        "archive": {
+          "path": "packages/margin-v1/feed/OfficeIMO.Core.3.5.6.nupkg",
+          "bytes": 8752895,
+          "sha256": "6ff11a2166bd7376657327c8b7340076017984879fdd3046f60b4bff49153d6b"
+        },
+        "assets": {
+          "lib/net472/OfficeIMO.Core.dll": "ae06fc7478300e7ee0424da05ed9c67d4b9e742ca261848c20ea74ac48b631d1",
+          "lib/netstandard2.0/OfficeIMO.Core.dll": "0d0e3a0c7ecf602b9d10ffad881d29114f3848cd7a528721dc470c2c2f890d09",
+          "lib/net8.0/OfficeIMO.Core.dll": "40363cf5d0c322423b506c1f9081a4fa7dc84483de143fcb06885c51ec025824",
+          "lib/net10.0/OfficeIMO.Core.dll": "20059fa6a159d5c531d8c44492526b2fbf3ebabd1d3ecf828de8d204441507e8"
+        }
+      },
+      "OfficeIMO.Html.AngleSharp": {
+        "archive": {
+          "path": "packages/margin-v1/feed/OfficeIMO.Html.AngleSharp.3.5.6.nupkg",
+          "bytes": 104169,
+          "sha256": "b95db9756e00100b3871a17e01dc44dee3edbf41c1200c4dc8c657970ed1e464"
+        },
+        "assets": {
+          "lib/net472/OfficeIMO.Html.AngleSharp.dll": "b78e8827683b62b21f23e00bb80cb42b481135f666d437b326dbfe2214299362",
+          "lib/netstandard2.0/OfficeIMO.Html.AngleSharp.dll": "375305c255bf7a8f550dce1333c9e400a1c9e4b246942e6e1ff50c3f61492ff2",
+          "lib/net8.0/OfficeIMO.Html.AngleSharp.dll": "5ca4cdf7b2bb9b523ae941e75f891fd9a6ef67e344a0dcfd2116fd078c0e0658",
+          "lib/net10.0/OfficeIMO.Html.AngleSharp.dll": "0b153da2974c653479006afc7a7e77be2a22c8a02028e9ae1c029d1524c9cc9c"
+        }
+      },
+      "OfficeIMO.Pdf": {
+        "archive": {
+          "path": "packages/margin-v1/feed/OfficeIMO.Pdf.3.5.6.nupkg",
+          "bytes": 13679217,
+          "sha256": "246075b4e5195698a5362570b946a9fecb0693dc2ee85619f06d77affd9a9b62"
+        },
+        "assets": {
+          "lib/net472/OfficeIMO.Pdf.dll": "8d3dc59e0c33f3d917bc1a22cdb46f8fd8c788a50e4d938c2ca7c64e83cf7bf6",
+          "lib/netstandard2.0/OfficeIMO.Pdf.dll": "d4cd7f21b98bb016731efa717056a82414c5ec9536e15939da6c0c9660aca994",
+          "lib/net8.0/OfficeIMO.Pdf.dll": "0290a356a5fd39f810b4656804805abc24f6c87280df2551ef0027dc1e1e7d26",
+          "lib/net10.0/OfficeIMO.Pdf.dll": "3207e06aeb8698f71f59db281dfafac98fc8dddbeee8b043e9b3c8fcba7b2068"
+        }
+      }
+    },
+    "executionStages": [
+      {
+        "receipt": {
+          "path": "margin-package-source-restore-execution.json",
+          "bytes": 2116,
+          "sha256": "68385bf182c5560e7e928eb5dd0c34029107ca5afa54fb070e1e19984879bbec"
+        },
+        "sourceHead": "89bc9f47be94ff0b8ec8c09f60b1ea0bcfc93006",
+        "elapsedSeconds": 1.795092334,
+        "argv": [
+          "$DOTNET_ROOT/dotnet",
+          "$DOTNET_ROOT/sdk/10.0.113/dotnet.dll",
+          "restore",
+          "OfficeIMO.Html/OfficeIMO.Html.csproj",
+          "-p:TargetFrameworks=\"net472;netstandard2.0;net8.0;net10.0\"",
+          "-p:PackageVersion=3.5.6",
+          "-p:RepositoryCommit=89bc9f47be94ff0b8ec8c09f60b1ea0bcfc93006",
+          "-p:SourceRevisionId=89bc9f47be94ff0b8ec8c09f60b1ea0bcfc93006",
+          "-p:ArtifactsPath=packages/margin-v1/source-graph",
+          "-p:RestoreConfigFile=prep/package/Source.NuGet.Config",
+          "-p:RestorePackagesPath=packages/margin-v1/candidate-cache",
+          "-m:3",
+          "--configfile",
+          "prep/package/Source.NuGet.Config"
+        ],
+        "logSha256": "f3a20491635f3ead17bb099124246772f1702f3aee057cb14a188cae3e4b8a6b"
+      },
+      {
+        "receipt": {
+          "path": "margin-package-source-build-execution.json",
+          "bytes": 2151,
+          "sha256": "b10b76ecc9a68698abbe9afdc755069d0dd27bc07c8d01614a307b39e6e0bfb3"
+        },
+        "sourceHead": "89bc9f47be94ff0b8ec8c09f60b1ea0bcfc93006",
+        "elapsedSeconds": 53.895523542,
+        "argv": [
+          "$DOTNET_ROOT/dotnet",
+          "$DOTNET_ROOT/sdk/10.0.113/dotnet.dll",
+          "build",
+          "OfficeIMO.Html/OfficeIMO.Html.csproj",
+          "-p:TargetFrameworks=\"net472;netstandard2.0;net8.0;net10.0\"",
+          "-p:PackageVersion=3.5.6",
+          "-p:RepositoryCommit=89bc9f47be94ff0b8ec8c09f60b1ea0bcfc93006",
+          "-p:SourceRevisionId=89bc9f47be94ff0b8ec8c09f60b1ea0bcfc93006",
+          "-p:ArtifactsPath=packages/margin-v1/source-graph",
+          "-p:RestoreConfigFile=prep/package/Source.NuGet.Config",
+          "-p:RestorePackagesPath=packages/margin-v1/candidate-cache",
+          "-m:3",
+          "-c",
+          "Release",
+          "--no-restore",
+          "-p:UseSharedCompilation=false",
+          "-p:EnableSourceControlManagerQueries=false",
+          "-p:EnableSourceLink=false"
+        ],
+        "logSha256": "978172de64ba5c1b7b8ee4e338a7b4d4e808ff08d5925b1b9ec43818fbfbab4c"
+      },
+      {
+        "receipt": {
+          "path": "margin-package-pack-officeimo-core-execution.json",
+          "bytes": 2167,
+          "sha256": "114c0f064a6799fca47e82b92b99f5b25a8e46fd29b2249eb5589e1d4248f3d1"
+        },
+        "sourceHead": "89bc9f47be94ff0b8ec8c09f60b1ea0bcfc93006",
+        "elapsedSeconds": 1.987560875,
+        "argv": [
+          "$DOTNET_ROOT/dotnet",
+          "$DOTNET_ROOT/sdk/10.0.113/dotnet.dll",
+          "pack",
+          "OfficeIMO.Core/OfficeIMO.Core.csproj",
+          "-p:TargetFrameworks=\"net472;netstandard2.0;net8.0;net10.0\"",
+          "-p:PackageVersion=3.5.6",
+          "-p:RepositoryCommit=89bc9f47be94ff0b8ec8c09f60b1ea0bcfc93006",
+          "-p:SourceRevisionId=89bc9f47be94ff0b8ec8c09f60b1ea0bcfc93006",
+          "-p:ArtifactsPath=packages/margin-v1/source-graph",
+          "-p:RestoreConfigFile=prep/package/Source.NuGet.Config",
+          "-p:RestorePackagesPath=packages/margin-v1/candidate-cache",
+          "-m:3",
+          "-c",
+          "Release",
+          "--no-build",
+          "--no-restore",
+          "-o",
+          "packages/margin-v1/feed"
+        ],
+        "logSha256": "36716592a9ba413fb28b07a8a259f0f20ffba25454dde20293725b433b8bd34a"
+      },
+      {
+        "receipt": {
+          "path": "margin-package-pack-officeimo-pdf-execution.json",
+          "bytes": 2163,
+          "sha256": "3678a1d83ccf6bdc81b4735049c2a5d9c9b214c516fc25f501a169913c88b349"
+        },
+        "sourceHead": "89bc9f47be94ff0b8ec8c09f60b1ea0bcfc93006",
+        "elapsedSeconds": 3.739811458,
+        "argv": [
+          "$DOTNET_ROOT/dotnet",
+          "$DOTNET_ROOT/sdk/10.0.113/dotnet.dll",
+          "pack",
+          "OfficeIMO.Pdf/OfficeIMO.Pdf.csproj",
+          "-p:TargetFrameworks=\"net472;netstandard2.0;net8.0;net10.0\"",
+          "-p:PackageVersion=3.5.6",
+          "-p:RepositoryCommit=89bc9f47be94ff0b8ec8c09f60b1ea0bcfc93006",
+          "-p:SourceRevisionId=89bc9f47be94ff0b8ec8c09f60b1ea0bcfc93006",
+          "-p:ArtifactsPath=packages/margin-v1/source-graph",
+          "-p:RestoreConfigFile=prep/package/Source.NuGet.Config",
+          "-p:RestorePackagesPath=packages/margin-v1/candidate-cache",
+          "-m:3",
+          "-c",
+          "Release",
+          "--no-build",
+          "--no-restore",
+          "-o",
+          "packages/margin-v1/feed"
+        ],
+        "logSha256": "5a8f3751eef598d3dc3d2388299f6331cfa396daa730f0b4475eb783a5dc92a3"
+      },
+      {
+        "receipt": {
+          "path": "margin-package-pack-officeimo-html-core-execution.json",
+          "bytes": 2187,
+          "sha256": "3e5e64a06a92d0a3d553ac5ddf828b8a5bcb25ea62fd84e5d214c68bda8771bb"
+        },
+        "sourceHead": "89bc9f47be94ff0b8ec8c09f60b1ea0bcfc93006",
+        "elapsedSeconds": 0.801868542,
+        "argv": [
+          "$DOTNET_ROOT/dotnet",
+          "$DOTNET_ROOT/sdk/10.0.113/dotnet.dll",
+          "pack",
+          "OfficeIMO.Html.Core/OfficeIMO.Html.Core.csproj",
+          "-p:TargetFrameworks=\"net472;netstandard2.0;net8.0;net10.0\"",
+          "-p:PackageVersion=3.5.6",
+          "-p:RepositoryCommit=89bc9f47be94ff0b8ec8c09f60b1ea0bcfc93006",
+          "-p:SourceRevisionId=89bc9f47be94ff0b8ec8c09f60b1ea0bcfc93006",
+          "-p:ArtifactsPath=packages/margin-v1/source-graph",
+          "-p:RestoreConfigFile=prep/package/Source.NuGet.Config",
+          "-p:RestorePackagesPath=packages/margin-v1/candidate-cache",
+          "-m:3",
+          "-c",
+          "Release",
+          "--no-build",
+          "--no-restore",
+          "-o",
+          "packages/margin-v1/feed"
+        ],
+        "logSha256": "de5cda17bc35178963314689d05f2c82fca77ce92a6f19294a446c6253dbf607"
+      },
+      {
+        "receipt": {
+          "path": "margin-package-pack-officeimo-html-anglesharp-execution.json",
+          "bytes": 2208,
+          "sha256": "e735791e45247a620c19b8df313ed573f97f9c968de52fbe0f40520cbbb71a4f"
+        },
+        "sourceHead": "89bc9f47be94ff0b8ec8c09f60b1ea0bcfc93006",
+        "elapsedSeconds": 0.853561,
+        "argv": [
+          "$DOTNET_ROOT/dotnet",
+          "$DOTNET_ROOT/sdk/10.0.113/dotnet.dll",
+          "pack",
+          "OfficeIMO.Html.AngleSharp/OfficeIMO.Html.AngleSharp.csproj",
+          "-p:TargetFrameworks=\"net472;netstandard2.0;net8.0;net10.0\"",
+          "-p:PackageVersion=3.5.6",
+          "-p:RepositoryCommit=89bc9f47be94ff0b8ec8c09f60b1ea0bcfc93006",
+          "-p:SourceRevisionId=89bc9f47be94ff0b8ec8c09f60b1ea0bcfc93006",
+          "-p:ArtifactsPath=packages/margin-v1/source-graph",
+          "-p:RestoreConfigFile=prep/package/Source.NuGet.Config",
+          "-p:RestorePackagesPath=packages/margin-v1/candidate-cache",
+          "-m:3",
+          "-c",
+          "Release",
+          "--no-build",
+          "--no-restore",
+          "-o",
+          "packages/margin-v1/feed"
+        ],
+        "logSha256": "367eab36d24ad0a207ccfcd5daf54d857059f724f7db85b43fc7830072deac70"
+      },
+      {
+        "receipt": {
+          "path": "margin-package-pack-officeimo-html-execution.json",
+          "bytes": 2167,
+          "sha256": "ea315024fd48bd0a5a10abcda3928703d5165c3fd5d7558369e264fca8a6b2db"
+        },
+        "sourceHead": "89bc9f47be94ff0b8ec8c09f60b1ea0bcfc93006",
+        "elapsedSeconds": 1.476251708,
+        "argv": [
+          "$DOTNET_ROOT/dotnet",
+          "$DOTNET_ROOT/sdk/10.0.113/dotnet.dll",
+          "pack",
+          "OfficeIMO.Html/OfficeIMO.Html.csproj",
+          "-p:TargetFrameworks=\"net472;netstandard2.0;net8.0;net10.0\"",
+          "-p:PackageVersion=3.5.6",
+          "-p:RepositoryCommit=89bc9f47be94ff0b8ec8c09f60b1ea0bcfc93006",
+          "-p:SourceRevisionId=89bc9f47be94ff0b8ec8c09f60b1ea0bcfc93006",
+          "-p:ArtifactsPath=packages/margin-v1/source-graph",
+          "-p:RestoreConfigFile=prep/package/Source.NuGet.Config",
+          "-p:RestorePackagesPath=packages/margin-v1/candidate-cache",
+          "-m:3",
+          "-c",
+          "Release",
+          "--no-build",
+          "--no-restore",
+          "-o",
+          "packages/margin-v1/feed"
+        ],
+        "logSha256": "47916fe6138bbd5e9f3830d32fef48e89090737a8e8d5a9ee2061d20b2c6d3ed"
+      },
+      {
+        "receipt": {
+          "path": "margin-package-v2-preflight-execution.json",
+          "bytes": 1248,
+          "sha256": "b95365b58f34785ebf3fcfa943f500cf44e3106e6bd0c05cddae10d4c66f8bb1"
+        },
+        "sourceHead": "89bc9f47be94ff0b8ec8c09f60b1ea0bcfc93006",
+        "elapsedSeconds": 0.351525375,
+        "argv": [
+          "python3",
+          "prep/package-v2/inspect.py",
+          "preflight"
+        ],
+        "logSha256": "e87215e0b235cff476f1d6e626ad93c41f9a6eb65f4b2d85b1e21604aa3e7330"
+      },
+      {
+        "receipt": {
+          "path": "margin-package-v2-inspect-packages-execution.json",
+          "bytes": 1261,
+          "sha256": "6cf8f6f0912af464b1078beb03e5a94de31caed72a846cf5496048725b50c198"
+        },
+        "sourceHead": "89bc9f47be94ff0b8ec8c09f60b1ea0bcfc93006",
+        "elapsedSeconds": 0.529969375,
+        "argv": [
+          "python3",
+          "prep/package-v2/inspect.py",
+          "packages"
+        ],
+        "logSha256": "cf747029aef9dbb31d8f24b75823b0d9d72bbdd6ec037500aea337444985150c"
+      },
+      {
+        "receipt": {
+          "path": "margin-package-v2-net8-build-execution.json",
+          "bytes": 1919,
+          "sha256": "5da317a15aee52081b3553f9c8c9481ecf6952e8adb1539a9a973508d06a6712"
+        },
+        "sourceHead": "89bc9f47be94ff0b8ec8c09f60b1ea0bcfc93006",
+        "elapsedSeconds": 2.216290542,
+        "argv": [
+          "$DOTNET_ROOT/dotnet",
+          "$DOTNET_ROOT/sdk/10.0.113/dotnet.dll",
+          "build",
+          "prep/package-v2/consumer/net8/Consumer.csproj",
+          "-c",
+          "Release",
+          "-m:3",
+          "-p:UseSharedCompilation=false",
+          "-p:RestoreConfigFile=prep/package-v2/NuGet.Config",
+          "-p:RestorePackagesPath=packages/margin-v1/candidate-cache",
+          "-p:ArtifactsPath=packages/margin-v2/consumer-graph/net8",
+          "-o",
+          "packages/margin-v2/out/net8"
+        ],
+        "logSha256": "4b7b4ba7c1b9acd985fa262fd46181b14c3915e8237117be9718da6a4877720e"
+      },
+      {
+        "receipt": {
+          "path": "margin-package-v2-net8-run-execution.json",
+          "bytes": 1575,
+          "sha256": "52fd79be33db00e776f8d80d3f2d8874748b6222bca654db15bb12e049067edc"
+        },
+        "sourceHead": "89bc9f47be94ff0b8ec8c09f60b1ea0bcfc93006",
+        "elapsedSeconds": 7.517254167,
+        "argv": [
+          "$DOTNET_ROOT/dotnet",
+          "packages/margin-v2/out/net8/PageMarginPackagenet8.dll",
+          "inputs-v2",
+          "packages/margin-v2/results/net8",
+          "prep/package-v2/acceptance.json"
+        ],
+        "logSha256": "aaafe100daa687bc2045ba475a50b45d53a1f8c8ed7844a8ee63d46b8a98c97a"
+      },
+      {
+        "receipt": {
+          "path": "margin-package-v2-net10-build-execution.json",
+          "bytes": 1922,
+          "sha256": "3730ddf0d291cb97fe37c0ab72a8780359331d257d8a1ff08d971d531b6a0d1b"
+        },
+        "sourceHead": "89bc9f47be94ff0b8ec8c09f60b1ea0bcfc93006",
+        "elapsedSeconds": 3.8315225,
+        "argv": [
+          "$DOTNET_ROOT/dotnet",
+          "$DOTNET_ROOT/sdk/10.0.113/dotnet.dll",
+          "build",
+          "prep/package-v2/consumer/net10/Consumer.csproj",
+          "-c",
+          "Release",
+          "-m:3",
+          "-p:UseSharedCompilation=false",
+          "-p:RestoreConfigFile=prep/package-v2/NuGet.Config",
+          "-p:RestorePackagesPath=packages/margin-v1/candidate-cache",
+          "-p:ArtifactsPath=packages/margin-v2/consumer-graph/net10",
+          "-o",
+          "packages/margin-v2/out/net10"
+        ],
+        "logSha256": "2ac153b32b431929d67f6ee7024bdc4d1a03af80be5a4211c5898a346fcd29a8"
+      },
+      {
+        "receipt": {
+          "path": "margin-package-v2-net10-run-execution.json",
+          "bytes": 1580,
+          "sha256": "0965b28f9eaedf8fd4085d22ab9833c121546c3bfe49386f5745b2d7148d5e84"
+        },
+        "sourceHead": "89bc9f47be94ff0b8ec8c09f60b1ea0bcfc93006",
+        "elapsedSeconds": 6.072461417,
+        "argv": [
+          "$DOTNET_ROOT/dotnet",
+          "packages/margin-v2/out/net10/PageMarginPackagenet10.dll",
+          "inputs-v2",
+          "packages/margin-v2/results/net10",
+          "prep/package-v2/acceptance.json"
+        ],
+        "logSha256": "aaafe100daa687bc2045ba475a50b45d53a1f8c8ed7844a8ee63d46b8a98c97a"
+      },
+      {
+        "receipt": {
+          "path": "margin-package-v2-aot-publish-execution.json",
+          "bytes": 1984,
+          "sha256": "714754fe67a34ef14b44179d03c6a429becee3b0fd6dc1b8a519cce75192574d"
+        },
+        "sourceHead": "89bc9f47be94ff0b8ec8c09f60b1ea0bcfc93006",
+        "elapsedSeconds": 68.051823959,
+        "argv": [
+          "$DOTNET_ROOT/dotnet",
+          "$DOTNET_ROOT/sdk/10.0.113/dotnet.dll",
+          "publish",
+          "prep/package-v2/consumer/aot/Consumer.csproj",
+          "-c",
+          "Release",
+          "-m:3",
+          "-p:UseSharedCompilation=false",
+          "-p:RestoreConfigFile=prep/package-v2/NuGet.Config",
+          "-p:RestorePackagesPath=packages/margin-v1/candidate-cache",
+          "-p:ArtifactsPath=packages/margin-v2/consumer-graph/aot",
+          "-o",
+          "packages/margin-v2/out/aot",
+          "-r",
+          "osx-arm64",
+          "--self-contained",
+          "true"
+        ],
+        "logSha256": "9c5cc57d00289d44220bc6c1daede6e6d7d355a025aaa039c5e6269f9b5ad35e"
+      },
+      {
+        "receipt": {
+          "path": "margin-package-v2-aot-run-execution.json",
+          "bytes": 1522,
+          "sha256": "7251840c93abef5d75f2a7f3e07b6c41884794e95cd740d8fbb931c0e2ce9d72"
+        },
+        "sourceHead": "89bc9f47be94ff0b8ec8c09f60b1ea0bcfc93006",
+        "elapsedSeconds": 6.752456542,
+        "argv": [
+          "packages/margin-v2/out/aot/PageMarginPackageaot",
+          "inputs-v2",
+          "packages/margin-v2/results/aot",
+          "prep/package-v2/acceptance.json"
+        ],
+        "logSha256": "aaafe100daa687bc2045ba475a50b45d53a1f8c8ed7844a8ee63d46b8a98c97a"
+      },
+      {
+        "receipt": {
+          "path": "margin-package-v2-inspect-consumers-execution.json",
+          "bytes": 1264,
+          "sha256": "d89f6be597f701b522ef0bd67b922e2c45fd0fb49e20c18b63f17e37db27aad7"
+        },
+        "sourceHead": "89bc9f47be94ff0b8ec8c09f60b1ea0bcfc93006",
+        "elapsedSeconds": 1.184225375,
+        "argv": [
+          "python3",
+          "prep/package-v2/inspect.py",
+          "consumers"
+        ],
+        "logSha256": "24f0b70bca30b8b8364a44752ce5dbe24d4b99e127600a485440ffd1439d7260"
+      }
+    ],
+    "consumers": [
+      {
+        "label": "net8",
+        "framework": "net8.0",
+        "result": {
+          "path": "packages/margin-v2/results/net8/result.json",
+          "bytes": 202852,
+          "sha256": "1caf4a9123b14813a7f02b14df49276a42aecfd6073460077528f5de5b5c5fbd"
+        }
+      },
+      {
+        "label": "net10",
+        "framework": "net10.0",
+        "result": {
+          "path": "packages/margin-v2/results/net10/result.json",
+          "bytes": 202973,
+          "sha256": "c16a22bf8c3832d46d661fb367171355f5f73581aecac60e180fc6a868908f84"
+        }
+      },
+      {
+        "label": "aot",
+        "framework": "net10.0",
+        "result": {
+          "path": "packages/margin-v2/results/aot/result.json",
+          "bytes": 201069,
+          "sha256": "6014f1dd96581062052d15ee9c0ac72565d3e7aec5f3331db8773305764ec7ca"
+        }
+      }
+    ],
+    "observations": 48,
+    "pageObservations": 144,
+    "ownPngEqualsPdfReplayAndFrameworkMatchedSource": true,
+    "supersededCrossFrameworkProbe": {
+      "execution": {
+        "path": "margin-package-net8-run-execution.json",
+        "bytes": 1567,
+        "sha256": "3317d49d5e0a1d1b27b6c5c93cb50697984508dd3c2ef82fe00b7ba4b0f34676"
+      },
+      "disposition": "Thev1consumercomparedNET8compressedPNGbytestoaNET10witness;all48decodedsourcepixels/scenes/PDFtextspansareequal. v2usesframework-matchedsourcewitnesseswithoutchangingproduction,rebuildingpackagesorlooseningexactownPNG/PDFreplay."
+    },
+    "nativeAot": "Executed osx-arm64 with dynamic code disabled; restore/package identities and actual binary are bound.",
+    "platformBoundary": "net472 and netstandard2.0 are actual cross-built package assets; native Windows behavior/profiling is not inferred."
+  },
+  "localReview": {
+    "base": "a039964de4cc20594bbc3e68b0e97536c94b4d6d",
+    "reviewedHead": "ec9d528cbac2ac225cb38e95b3748cc9dba51b48",
+    "fullReadOnlyPasses": 1,
+    "targetedConfirmations": 0,
+    "result": "No actionable correctness finding; production boundary remains current after test/docs-only cleanup. Actual source/native and default-font control images were supplied."
+  },
+  "remaining": [
+    "Generated page-margin container-query units require retained parser declaration support plus layout/native qualification. Case09 10cqw falls back to normal and is not qualified.",
+    "Edge does not implement these string()/element() controls; owned expansion/body/font controls do not establish browser conformance.",
+    "For the partially page-clipped DELTA control, extracted ActualText carrier bounds differ from native visible glyph bounds; no exact clipped-box geometry claim.",
+    "No universal font/platform, physical print or Windows profiling claim. Runtime/provider forks remain on feature/html-engine."
+  ],
+  "reproduction": {
+    "fixtures": [
+      {
+        "path": "inputs-v2/01-numeric-shorthand.html",
+        "bytes": 1569,
+        "sha256": "e616468c1347d2f38a4dfe3790b33204b5f8f2e0fff43e027cb77e7d3c652a6a",
+        "html": "<!doctype html><html><head><meta charset=\"utf-8\"><title>01-numeric-shorthand</title><style>@font-face{font-family:MetricWitness;src:url(regular.ttf);font-weight:400}@font-face{font-family:MetricWitness;src:url(bold.ttf);font-weight:700}@font-face{font-family:MetricGap;src:url(gap.ttf);font-weight:400}@page{size:360px 480px;margin:60px 24px 36px;@top-center{font:16px/1.75 MetricWitness;content:'HEADER Hgyp margin wraps with a retained FINAL MARKER';text-align:center}@bottom-center{font:16px/1.75 MetricWitness;content:'Page ' counter(page) ' of ' counter(pages) ' FOOTER END';text-align:center}}html,body{margin:0;padding:0}body{font:12px/18px MetricWitness;color:#000}.sheet{margin:0;padding:0}.sheet+.sheet{break-before:page}p{margin:0}.witness{font-family:MetricWitness;font-size:16px;line-height:1.75;width:312px;background:#eef3fa;text-align:center;margin:0;padding:0}</style></head><body data-probe-font=\"MetricWitness\"><section class=\"sheet\"><p id=\"body-start-1\">BODY PAGE 1 START</p><div id=\"witness-1\" class=\"witness\">HEADER Hgyp margin wraps with a retained FINAL MARKER</div><p id=\"body-end-1\">BODY PAGE 1 END</p></section><section class=\"sheet\"><p id=\"body-start-2\">BODY PAGE 2 START</p><div id=\"witness-2\" class=\"witness\">HEADER Hgyp margin wraps with a retained FINAL MARKER</div><p id=\"body-end-2\">BODY PAGE 2 END</p></section><section class=\"sheet\"><p id=\"body-start-3\">BODY PAGE 3 START</p><div id=\"witness-3\" class=\"witness\">HEADER Hgyp margin wraps with a retained FINAL MARKER</div><p id=\"body-end-3\">BODY PAGE 3 END</p></section></body></html>\n"
+      },
+      {
+        "path": "inputs-v2/02-length-longhand.html",
+        "bytes": 1625,
+        "sha256": "20091f0beec8bf6e5391ae1a7ad2ea62904f6b1d27678e821c86da3cc20b9764",
+        "html": "<!doctype html><html><head><meta charset=\"utf-8\"><title>02-length-longhand</title><style>@font-face{font-family:MetricWitness;src:url(regular.ttf);font-weight:400}@font-face{font-family:MetricWitness;src:url(bold.ttf);font-weight:700}@font-face{font-family:MetricGap;src:url(gap.ttf);font-weight:400}@page{size:360px 480px;margin:60px 24px 36px;@top-center{font-family:MetricWitness;font-size:16px;line-height:28px;content:'HEADER Hgyp margin wraps with a retained FINAL MARKER';text-align:center}@bottom-center{font-family:MetricWitness;font-size:16px;line-height:28px;content:'Page ' counter(page) ' of ' counter(pages) ' FOOTER END';text-align:center}}html,body{margin:0;padding:0}body{font:12px/18px MetricWitness;color:#000}.sheet{margin:0;padding:0}.sheet+.sheet{break-before:page}p{margin:0}.witness{font-family:MetricWitness;font-size:16px;line-height:28px;width:312px;background:#eef3fa;text-align:center;margin:0;padding:0}</style></head><body data-probe-font=\"MetricWitness\"><section class=\"sheet\"><p id=\"body-start-1\">BODY PAGE 1 START</p><div id=\"witness-1\" class=\"witness\">HEADER Hgyp margin wraps with a retained FINAL MARKER</div><p id=\"body-end-1\">BODY PAGE 1 END</p></section><section class=\"sheet\"><p id=\"body-start-2\">BODY PAGE 2 START</p><div id=\"witness-2\" class=\"witness\">HEADER Hgyp margin wraps with a retained FINAL MARKER</div><p id=\"body-end-2\">BODY PAGE 2 END</p></section><section class=\"sheet\"><p id=\"body-start-3\">BODY PAGE 3 START</p><div id=\"witness-3\" class=\"witness\">HEADER Hgyp margin wraps with a retained FINAL MARKER</div><p id=\"body-end-3\">BODY PAGE 3 END</p></section></body></html>\n"
+      },
+      {
+        "path": "inputs-v2/03-percent-longhand.html",
+        "bytes": 1626,
+        "sha256": "9840ed4ea243741ff636ea5b32857b0b977db3082bcabc93d62dd16f979c0f72",
+        "html": "<!doctype html><html><head><meta charset=\"utf-8\"><title>03-percent-longhand</title><style>@font-face{font-family:MetricWitness;src:url(regular.ttf);font-weight:400}@font-face{font-family:MetricWitness;src:url(bold.ttf);font-weight:700}@font-face{font-family:MetricGap;src:url(gap.ttf);font-weight:400}@page{size:360px 480px;margin:60px 24px 36px;@top-center{font-family:MetricWitness;font-size:16px;line-height:175%;content:'HEADER Hgyp margin wraps with a retained FINAL MARKER';text-align:center}@bottom-center{font-family:MetricWitness;font-size:16px;line-height:175%;content:'Page ' counter(page) ' of ' counter(pages) ' FOOTER END';text-align:center}}html,body{margin:0;padding:0}body{font:12px/18px MetricWitness;color:#000}.sheet{margin:0;padding:0}.sheet+.sheet{break-before:page}p{margin:0}.witness{font-family:MetricWitness;font-size:16px;line-height:175%;width:312px;background:#eef3fa;text-align:center;margin:0;padding:0}</style></head><body data-probe-font=\"MetricWitness\"><section class=\"sheet\"><p id=\"body-start-1\">BODY PAGE 1 START</p><div id=\"witness-1\" class=\"witness\">HEADER Hgyp margin wraps with a retained FINAL MARKER</div><p id=\"body-end-1\">BODY PAGE 1 END</p></section><section class=\"sheet\"><p id=\"body-start-2\">BODY PAGE 2 START</p><div id=\"witness-2\" class=\"witness\">HEADER Hgyp margin wraps with a retained FINAL MARKER</div><p id=\"body-end-2\">BODY PAGE 2 END</p></section><section class=\"sheet\"><p id=\"body-start-3\">BODY PAGE 3 START</p><div id=\"witness-3\" class=\"witness\">HEADER Hgyp margin wraps with a retained FINAL MARKER</div><p id=\"body-end-3\">BODY PAGE 3 END</p></section></body></html>\n"
+      },
+      {
+        "path": "inputs-v2/04-normal-selected-face.html",
+        "bytes": 1562,
+        "sha256": "9235bba54f87fa304cad6ef27ae6bdb8c0879f610344cd9d4203e1afced9b7de",
+        "html": "<!doctype html><html><head><meta charset=\"utf-8\"><title>04-normal-selected-face</title><style>@font-face{font-family:MetricWitness;src:url(regular.ttf);font-weight:400}@font-face{font-family:MetricWitness;src:url(bold.ttf);font-weight:700}@font-face{font-family:MetricGap;src:url(gap.ttf);font-weight:400}@page{size:360px 480px;margin:60px 24px 36px;@top-center{font:16px/normal MetricGap;content:'HEADER Hgyp margin wraps with a retained FINAL MARKER';text-align:center}@bottom-center{font:16px/normal MetricGap;content:'Page ' counter(page) ' of ' counter(pages) ' FOOTER END';text-align:center}}html,body{margin:0;padding:0}body{font:12px/18px MetricWitness;color:#000}.sheet{margin:0;padding:0}.sheet+.sheet{break-before:page}p{margin:0}.witness{font-family:MetricGap;font-size:16px;line-height:normal;width:312px;background:#eef3fa;text-align:center;margin:0;padding:0}</style></head><body data-probe-font=\"MetricGap\"><section class=\"sheet\"><p id=\"body-start-1\">BODY PAGE 1 START</p><div id=\"witness-1\" class=\"witness\">HEADER Hgyp margin wraps with a retained FINAL MARKER</div><p id=\"body-end-1\">BODY PAGE 1 END</p></section><section class=\"sheet\"><p id=\"body-start-2\">BODY PAGE 2 START</p><div id=\"witness-2\" class=\"witness\">HEADER Hgyp margin wraps with a retained FINAL MARKER</div><p id=\"body-end-2\">BODY PAGE 2 END</p></section><section class=\"sheet\"><p id=\"body-start-3\">BODY PAGE 3 START</p><div id=\"witness-3\" class=\"witness\">HEADER Hgyp margin wraps with a retained FINAL MARKER</div><p id=\"body-end-3\">BODY PAGE 3 END</p></section></body></html>\n"
+      },
+      {
+        "path": "inputs-v2/05-running-string-owned-expanded.html",
+        "bytes": 1731,
+        "sha256": "275b98c6c5858e179353914f475d41b847b30d17b440c65d2999c13f9a2644b5",
+        "html": "<!doctype html><html><head><meta charset=\"utf-8\"><title>05-running-string-owned</title><style>@font-face{font-family:MetricWitness;src:url(regular.ttf);font-weight:400}@font-face{font-family:MetricWitness;src:url(bold.ttf);font-weight:700}@font-face{font-family:MetricGap;src:url(gap.ttf);font-weight:400}@page{size:360px 480px;margin:60px 24px 36px;@top-center{font:16px/28px MetricWitness;content:'HEADER Hgyp margin wraps with a retained FINAL MARKER';text-align:center}@bottom-center{font:16px/28px MetricWitness;content:'Page ' counter(page) ' of ' counter(pages) ' FOOTER END';text-align:center}}html,body{margin:0;padding:0}body{font:12px/18px MetricWitness;color:#000}.sheet{margin:0;padding:0}.sheet+.sheet{break-before:page}p{margin:0}.witness{font-family:MetricWitness;font-size:16px;line-height:28px;width:312px;background:#eef3fa;text-align:center;margin:0;padding:0}h1{margin:0;font:12px/18px MetricWitness;string-set:chapter content()}</style></head><body data-probe-font=\"MetricWitness\"><h1 id=\"running-string-source\">HEADER Hgyp margin wraps with a retained FINAL MARKER</h1><section class=\"sheet\"><p id=\"body-start-1\">BODY PAGE 1 START</p><div id=\"witness-1\" class=\"witness\">HEADER Hgyp margin wraps with a retained FINAL MARKER</div><p id=\"body-end-1\">BODY PAGE 1 END</p></section><section class=\"sheet\"><p id=\"body-start-2\">BODY PAGE 2 START</p><div id=\"witness-2\" class=\"witness\">HEADER Hgyp margin wraps with a retained FINAL MARKER</div><p id=\"body-end-2\">BODY PAGE 2 END</p></section><section class=\"sheet\"><p id=\"body-start-3\">BODY PAGE 3 START</p><div id=\"witness-3\" class=\"witness\">HEADER Hgyp margin wraps with a retained FINAL MARKER</div><p id=\"body-end-3\">BODY PAGE 3 END</p></section></body></html>\n"
+      },
+      {
+        "path": "inputs-v2/05-running-string-owned.html",
+        "bytes": 1691,
+        "sha256": "0be0efba17db5efe1f62a86c18604f40d22e3ca5661871cec63e9a46d518645c",
+        "html": "<!doctype html><html><head><meta charset=\"utf-8\"><title>05-running-string-owned</title><style>@font-face{font-family:MetricWitness;src:url(regular.ttf);font-weight:400}@font-face{font-family:MetricWitness;src:url(bold.ttf);font-weight:700}@font-face{font-family:MetricGap;src:url(gap.ttf);font-weight:400}@page{size:360px 480px;margin:60px 24px 36px;@top-center{font:16px/28px MetricWitness;content:string(chapter);text-align:center}@bottom-center{font:16px/28px MetricWitness;content:'Page ' counter(page) ' of ' counter(pages) ' FOOTER END';text-align:center}}html,body{margin:0;padding:0}body{font:12px/18px MetricWitness;color:#000}.sheet{margin:0;padding:0}.sheet+.sheet{break-before:page}p{margin:0}.witness{font-family:MetricWitness;font-size:16px;line-height:28px;width:312px;background:#eef3fa;text-align:center;margin:0;padding:0}h1{margin:0;font:12px/18px MetricWitness;string-set:chapter content()}</style></head><body data-probe-font=\"MetricWitness\"><h1 id=\"running-string-source\">HEADER Hgyp margin wraps with a retained FINAL MARKER</h1><section class=\"sheet\"><p id=\"body-start-1\">BODY PAGE 1 START</p><div id=\"witness-1\" class=\"witness\">HEADER Hgyp margin wraps with a retained FINAL MARKER</div><p id=\"body-end-1\">BODY PAGE 1 END</p></section><section class=\"sheet\"><p id=\"body-start-2\">BODY PAGE 2 START</p><div id=\"witness-2\" class=\"witness\">HEADER Hgyp margin wraps with a retained FINAL MARKER</div><p id=\"body-end-2\">BODY PAGE 2 END</p></section><section class=\"sheet\"><p id=\"body-start-3\">BODY PAGE 3 START</p><div id=\"witness-3\" class=\"witness\">HEADER Hgyp margin wraps with a retained FINAL MARKER</div><p id=\"body-end-3\">BODY PAGE 3 END</p></section></body></html>\n"
+      },
+      {
+        "path": "inputs-v2/06-running-element-owned-expanded.html",
+        "bytes": 1769,
+        "sha256": "3c70387edff18dcdb9fd629ead30afb42b4656e0e07a53117a3ef5a2af67f303",
+        "html": "<!doctype html><html><head><meta charset=\"utf-8\"><title>06-running-element-owned</title><style>@font-face{font-family:MetricWitness;src:url(regular.ttf);font-weight:400}@font-face{font-family:MetricWitness;src:url(bold.ttf);font-weight:700}@font-face{font-family:MetricGap;src:url(gap.ttf);font-weight:400}@page{size:360px 480px;margin:60px 24px 36px;@top-center{font:16px/28px MetricWitness;content:'HEADER Hgyp margin wraps with a retained FINAL MARKER';text-align:center}@bottom-center{font:16px/28px MetricWitness;content:'Page ' counter(page) ' of ' counter(pages) ' FOOTER END';text-align:center}}html,body{margin:0;padding:0}body{font:12px/18px MetricWitness;color:#000}.sheet{margin:0;padding:0}.sheet+.sheet{break-before:page}p{margin:0}.witness{font-family:MetricWitness;font-size:16px;line-height:28px;width:312px;background:#eef3fa;text-align:center;margin:0;padding:0}header{position:running(report);margin:0;padding:0;font:16px/28px MetricWitness;text-align:center}</style></head><body data-probe-font=\"MetricWitness\"><header id=\"running-element-source\">HEADER Hgyp margin wraps with a retained FINAL MARKER</header><section class=\"sheet\"><p id=\"body-start-1\">BODY PAGE 1 START</p><div id=\"witness-1\" class=\"witness\">HEADER Hgyp margin wraps with a retained FINAL MARKER</div><p id=\"body-end-1\">BODY PAGE 1 END</p></section><section class=\"sheet\"><p id=\"body-start-2\">BODY PAGE 2 START</p><div id=\"witness-2\" class=\"witness\">HEADER Hgyp margin wraps with a retained FINAL MARKER</div><p id=\"body-end-2\">BODY PAGE 2 END</p></section><section class=\"sheet\"><p id=\"body-start-3\">BODY PAGE 3 START</p><div id=\"witness-3\" class=\"witness\">HEADER Hgyp margin wraps with a retained FINAL MARKER</div><p id=\"body-end-3\">BODY PAGE 3 END</p></section></body></html>\n"
+      },
+      {
+        "path": "inputs-v2/06-running-element-owned.html",
+        "bytes": 1729,
+        "sha256": "93f4a3060c5a01f570b4b489ca23483fc6ef1c79559cbbab7d646e00767d4878",
+        "html": "<!doctype html><html><head><meta charset=\"utf-8\"><title>06-running-element-owned</title><style>@font-face{font-family:MetricWitness;src:url(regular.ttf);font-weight:400}@font-face{font-family:MetricWitness;src:url(bold.ttf);font-weight:700}@font-face{font-family:MetricGap;src:url(gap.ttf);font-weight:400}@page{size:360px 480px;margin:60px 24px 36px;@top-center{font:16px/28px MetricWitness;content:element(report);text-align:center}@bottom-center{font:16px/28px MetricWitness;content:'Page ' counter(page) ' of ' counter(pages) ' FOOTER END';text-align:center}}html,body{margin:0;padding:0}body{font:12px/18px MetricWitness;color:#000}.sheet{margin:0;padding:0}.sheet+.sheet{break-before:page}p{margin:0}.witness{font-family:MetricWitness;font-size:16px;line-height:28px;width:312px;background:#eef3fa;text-align:center;margin:0;padding:0}header{position:running(report);margin:0;padding:0;font:16px/28px MetricWitness;text-align:center}</style></head><body data-probe-font=\"MetricWitness\"><header id=\"running-element-source\">HEADER Hgyp margin wraps with a retained FINAL MARKER</header><section class=\"sheet\"><p id=\"body-start-1\">BODY PAGE 1 START</p><div id=\"witness-1\" class=\"witness\">HEADER Hgyp margin wraps with a retained FINAL MARKER</div><p id=\"body-end-1\">BODY PAGE 1 END</p></section><section class=\"sheet\"><p id=\"body-start-2\">BODY PAGE 2 START</p><div id=\"witness-2\" class=\"witness\">HEADER Hgyp margin wraps with a retained FINAL MARKER</div><p id=\"body-end-2\">BODY PAGE 2 END</p></section><section class=\"sheet\"><p id=\"body-start-3\">BODY PAGE 3 START</p><div id=\"witness-3\" class=\"witness\">HEADER Hgyp margin wraps with a retained FINAL MARKER</div><p id=\"body-end-3\">BODY PAGE 3 END</p></section></body></html>\n"
+      },
+      {
+        "path": "inputs-boundaries/07-tight-four-line-footer.html",
+        "bytes": 571,
+        "sha256": "abc52896750a123462b9e46f524d788339d20193b68832b5502b8cb1c026f12e",
+        "html": "<!doctype html>\n<html><head><meta charset=\"utf-8\"><title>Tight four-line footer</title><style>\n@font-face{font-family:MetricWitness;src:url('./regular.ttf') format('truetype');font-weight:400;font-style:normal}\n@page{size:166px 160px;margin:20px 62px 32px;@bottom-left{font-family:MetricWitness;font-size:10px;line-height:8px;content:\"ALPHA BETA GAMMA DELTA\";text-align:left}}\nhtml,body{margin:0;padding:0}body{font:10px/16px MetricWitness;color:#000}p{margin:0;padding:0}\n</style></head><body data-probe-font=\"MetricWitness\"><p id=\"body-only\">BodyOnly</p></body></html>\n"
+      },
+      {
+        "path": "inputs-boundaries/08-zero-leading-footer.html",
+        "bytes": 548,
+        "sha256": "28408555be35db2bf8624ac4f8824183cb7797276130c50587fa37593a8e7a74",
+        "html": "<!doctype html>\n<html><head><meta charset=\"utf-8\"><title>Zero-leading footer</title><style>\n@font-face{font-family:MetricWitness;src:url('./regular.ttf') format('truetype');font-weight:400;font-style:normal}\n@page{size:166px 160px;margin:20px 62px 32px;@bottom-left{font-family:MetricWitness;font-size:10px;line-height:0;content:\"Hgyp\";text-align:left}}\nhtml,body{margin:0;padding:0}body{font:10px/16px MetricWitness;color:#000}p{margin:0;padding:0}\n</style></head><body data-probe-font=\"MetricWitness\"><p id=\"body-only\">BodyOnly</p></body></html>\n"
+      },
+      {
+        "path": "inputs-boundaries/09-margin-unit-context.html",
+        "bytes": 688,
+        "sha256": "54527db78773435e723ae67a771cce41694863242aa78d36deb783919b71496f",
+        "html": "<!doctype html>\n<html><head><meta charset=\"utf-8\"><title>Margin container-unit context</title><style>\n@font-face{font-family:MetricWitness;src:url('./regular.ttf') format('truetype');font-weight:400;font-style:normal}\n@page{size:300px 200px;margin:50px;@bottom-center{font-family:MetricWitness;font-size:16px;line-height:10cqw;content:\"Hgyp\";text-align:center}}\nhtml,body{margin:0;padding:0}body{font:10px/16px MetricWitness;color:#000}p{margin:0;padding:0}\n#body-container{container-type:size;width:100px;height:50px}#body-only{font:32px/20px MetricWitness}\n</style></head><body data-probe-font=\"MetricWitness\"><div id=\"body-container\"><p id=\"body-only\">BodyOnly</p></div></body></html>\n"
+      },
+      {
+        "path": "inputs-boundaries/10-margin-unit-literal-30px.html",
+        "bytes": 687,
+        "sha256": "5996323c798ebe640d6eb451c16399ef51b8f8eb120647897819aab679e7081f",
+        "html": "<!doctype html>\n<html><head><meta charset=\"utf-8\"><title>Margin container-unit context</title><style>\n@font-face{font-family:MetricWitness;src:url('./regular.ttf') format('truetype');font-weight:400;font-style:normal}\n@page{size:300px 200px;margin:50px;@bottom-center{font-family:MetricWitness;font-size:16px;line-height:30px;content:\"Hgyp\";text-align:center}}\nhtml,body{margin:0;padding:0}body{font:10px/16px MetricWitness;color:#000}p{margin:0;padding:0}\n#body-container{container-type:size;width:100px;height:50px}#body-only{font:32px/20px MetricWitness}\n</style></head><body data-probe-font=\"MetricWitness\"><div id=\"body-container\"><p id=\"body-only\">BodyOnly</p></div></body></html>\n"
+      }
+    ],
+    "fonts": [
+      {
+        "file": "bold.ttf",
+        "bytes": 120288,
+        "sha256": "20bb7ad2e23beb5020313119f46fbc50a5ded598aaa1be4df719d3c017914b6c"
+      },
+      {
+        "file": "gap.ttf",
+        "bytes": 773236,
+        "sha256": "525979822591a3447cfc49d943d6f7683508e25543407871c0ed8fed05fd2bd9"
+      },
+      {
+        "file": "regular.ttf",
+        "bytes": 105592,
+        "sha256": "00aca2988771998ff27738ff97c2cc8e71eb3013f206de5f205986b7de326af3"
+      }
+    ],
+    "fontProvenance": "regular/bold are OfficeIMO.TestAssets/Fonts/OfficeIMOBaselineSans-Regular.ttf and -Bold.ttf. MetricGap is the exact retained gap.ttf bound by normal-font-line-metrics-20261017.json; hashes and native bytes are unchanged.",
+    "observer": {
+      "path": "prep/proof-v2/current/Program.cs",
+      "sha256": "823b9602767d6685e06f77ced54be3bbc10f1e43afe173e08a2f73b85ac521b6",
+      "source": "using OfficeIMO.Drawing;\nusing OfficeIMO.Html;\nusing OfficeIMO.Html.Pdf;\nusing OfficeIMO.Pdf;\nusing System.Security.Cryptography;\nusing System.Text.Json;\n\n// Scratch v2 public observer; only exact copied local font resources are resolvable.\nstring inputs = Path.GetFullPath(args[0]);\nstring output = Path.GetFullPath(args[1]);\nstring sourceHead = args[2];\nif (args.Length != 3 && (args.Length != 5 || args[3] != \"--fixtures\"))\n    throw new ArgumentException(\"Usage: PageMarginProbe <inputs> <fresh-output> <source-sha> [--fixtures <case-id,...>]\");\nstring[] selectedFixtures = args.Length == 5\n    ? args[4].Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)\n    : Array.Empty<string>();\nstring[] inputFiles = Directory.GetFiles(inputs, \"*.html\").OrderBy(p => p, StringComparer.Ordinal).ToArray();\nbool Matches(string path, string selector) => Path.GetFileNameWithoutExtension(path) == selector\n    || Path.GetFileNameWithoutExtension(path) == selector + \"-expanded\";\nif (args.Length == 5 && (selectedFixtures.Length == 0 || selectedFixtures.Any(selector => !inputFiles.Any(path => Matches(path, selector)))))\n    throw new ArgumentException(\"Every --fixtures selector must match an existing case or exact variant name.\");\nif (selectedFixtures.Length > 0) inputFiles = inputFiles.Where(path => selectedFixtures.Any(selector => Matches(path, selector))).ToArray();\nif (Directory.Exists(output)) throw new IOException(\"Fresh output required; preserve prior observations.\");\nDirectory.CreateDirectory(output);\nbyte[] regular = File.ReadAllBytes(Path.Combine(inputs, \"regular.ttf\"));\nbyte[] bold = File.ReadAllBytes(Path.Combine(inputs, \"bold.ttf\"));\nbyte[] gap = File.ReadAllBytes(Path.Combine(inputs, \"gap.ttf\"));\nvar fontFiles = new Dictionary<string, (string Path, byte[] Bytes)>(StringComparer.Ordinal) {\n    [new Uri(Path.Combine(inputs, \"regular.ttf\")).AbsoluteUri] = (Path.Combine(inputs, \"regular.ttf\"), regular),\n    [new Uri(Path.Combine(inputs, \"bold.ttf\")).AbsoluteUri] = (Path.Combine(inputs, \"bold.ttf\"), bold),\n    [new Uri(Path.Combine(inputs, \"gap.ttf\")).AbsoluteUri] = (Path.Combine(inputs, \"gap.ttf\"), gap)\n};\nvar localFontPolicy = new HtmlUrlPolicy {\n    DisallowFileUrls = false, AllowDataUrls = false, AllowMailtoUrls = false,\n    AllowProtocolRelativeUrls = false, RestrictUrlSchemes = true\n};\nlocalFontPolicy.AllowedUrlSchemes.Clear();\nlocalFontPolicy.AllowedUrlSchemes.Add(Uri.UriSchemeFile);\nvar rows = new List<object>();\nforeach (string input in inputFiles) {\n    string name = Path.GetFileNameWithoutExtension(input);\n    Uri baseUri = new Uri(input);\n    var document = HtmlConversionDocument.Parse(File.ReadAllText(input), new HtmlConversionDocumentOptions {\n        BaseUri = baseUri, ResourceUrlPolicy = localFontPolicy\n    });\n    foreach (var profile in new[] { HtmlRenderIntentProfile.PrintPaged, HtmlRenderIntentProfile.ScreenMediaPaged }) {\n        string directory = Path.Combine(output, name, profile.ToString());\n        Directory.CreateDirectory(directory);\n        var resourceRequests = new List<object>();\n        string phase = \"Png\";\n        HtmlRenderResourceResolver exactFontResolver = (request, cancellationToken) => {\n            cancellationToken.ThrowIfCancellationRequested();\n            bool accepted = request.Kind == HtmlResourceKind.Font && request.Uri.IsFile\n                && fontFiles.TryGetValue(request.Uri.AbsoluteUri, out _);\n            lock (resourceRequests) resourceRequests.Add(new {\n                phase, uri = request.Uri.AbsoluteUri, kind = request.Kind.ToString(), accepted,\n                file = accepted ? FileBinding(fontFiles[request.Uri.AbsoluteUri].Path) : null\n            });\n            return Task.FromResult<HtmlResolvedResource?>(accepted\n                ? new HtmlResolvedResource(fontFiles[request.Uri.AbsoluteUri].Bytes, \"font/ttf\") : null);\n        };\n        var options = new HtmlToPdfOptions {\n            ViewportWidth = 360, ViewportHeight = 480,\n            PageSize = new OfficePageSize(360D / 96D, 480D / 96D),\n            Margins = HtmlRenderMargins.All(0),\n            DefaultFontFamily = \"MetricWitness\", AllowSystemFontFallback = false,\n            BaseUri = baseUri, ResourceUrlPolicy = localFontPolicy, ResourceResolver = exactFontResolver,\n            ResourcePolicy = new PdfResourcePolicy {\n                AllowLocalFileAccess = true, AllowDataUris = false, AllowEmbeddedPackageResources = false,\n                AllowSystemFontEmbedding = false, AllowDocumentFontEmbedding = false, AllowRemoteResourceResolution = false\n            },\n            UserAgentStyles = HtmlRenderUserAgentStyleMode.Browser,\n            FontFamily = new PdfEmbeddedFontFamily(\"MetricWitness\", regular, bold)\n        };\n        options.Fonts.Add(\"MetricWitness\", regular);\n        options.Fonts.Add(\"MetricWitness\", bold, OfficeFontStyle.Bold);\n        options.Fonts.Add(\"MetricGap\", gap);\n        var rendered = await HtmlRenderEngine.ExecuteAsync(document, HtmlRenderRequest.Create(profile, HtmlRenderEncoder.Png, options));\n        phase = \"Pdf\";\n        byte[] pdf = (await document.RenderToPdfResultAsync(HtmlRenderRequest.Create(profile, HtmlRenderEncoder.Pdf, options))).ToBytes();\n        string pdfPath = Path.Combine(directory, \"document.pdf\");\n        File.WriteAllBytes(pdfPath, pdf);\n        var direct = rendered.ExportImages();\n        var saved = PdfReadDocument.Open(pdf, new PdfLoadOptions { IncludeArtifactText = true });\n        var replay = saved.ExportImages(OfficeImageExportFormat.Png, new PdfImageExportOptions { Scale = 96D / 72D });\n        var images = new List<object>();\n        bool ownEqual = direct.Count == replay.Count;\n        for (int index = 0; index < direct.Count; index++) {\n            string directPath = Path.Combine(directory, $\"direct-{index + 1:D2}.png\");\n            File.WriteAllBytes(directPath, direct[index].Bytes);\n            bool equal = index < replay.Count && direct[index].Bytes.SequenceEqual(replay[index].Bytes);\n            ownEqual &= equal;\n            string replayPath = Path.Combine(directory, $\"pdf-replay-{index + 1:D2}.png\");\n            if (index < replay.Count) File.WriteAllBytes(replayPath, replay[index].Bytes);\n            images.Add(new { page = index + 1, direct = FileBinding(directPath), replay = index < replay.Count ? FileBinding(replayPath) : null, encodedBytesEqual = equal });\n        }\n        rows.Add(new {\n            fixture = name, profile = profile.ToString(), input = FileBinding(input),\n            baseUri = baseUri.AbsoluteUri, resourceRequests,\n            resourcePolicy = new { allowedSchemes = new[] { \"file\" }, exactFontFileCount = fontFiles.Count,\n                localFileAccess = true, systemFonts = false, documentHostFonts = false, remote = false },\n            pages = rendered.Document.Pages.Count, pdfPages = saved.Pages.Count,\n            ownPngPdfReplayEqual = ownEqual, pdf = FileBinding(pdfPath), images,\n            scene = rendered.Document.Pages.Select(page => new {\n                page.PageNumber, page.Width, page.Height, page.Margins,\n                text = Walk(page.Scene).OfType<HtmlRenderText>().Select(text => new {\n                    text.Source, text.SemanticRole, text.Text, text.X, text.Y, text.Width, text.Height,\n                    text.TextAdvanceWidth, text.TextPaintWidth, alignment = text.Alignment.ToString(),\n                    text.LineHeight, fontFamily = text.Font.FamilyName, fontSize = text.Font.Size,\n                    fontStyle = text.Font.Style.ToString(), text.Baseline, text.BaselineOffset\n                }).ToArray(),\n                drawingText = DrawingTextObservations(page.CreateDrawing(), \"page\", Array.Empty<object>()).ToArray()\n            }).ToArray(),\n            savedPdfSpans = saved.Pages.Select((page, index) => new {\n                page = index + 1, spans = page.GetTextSpans().Select(span => new { span.Text, span.X, span.Y, span.Advance }).ToArray()\n            }).ToArray(),\n            diagnostics = rendered.Document.Diagnostics.Select(d => new { d.Code, d.Source, d.Severity, d.LossKind }).ToArray()\n        });\n    }\n}\nvar runtime = AppDomain.CurrentDomain.GetAssemblies()\n    .Where(a => !a.IsDynamic && (a.GetName().Name!.StartsWith(\"OfficeIMO.\", StringComparison.Ordinal) || a.GetName().Name!.StartsWith(\"AngleSharp\", StringComparison.Ordinal)))\n    .Select(a => FileBinding(a.Location)).ToArray();\nFile.WriteAllText(Path.Combine(output, \"summary.json\"), JsonSerializer.Serialize(new {\n    declaredSourceHead = sourceHead, publicApiOnly = true, ambientFontFallbackEnabled = false,\n    selectedFixtures, selectedInputFiles = inputFiles.Select(FileBinding).ToArray(),\n    resourceBoundary = \"File BaseUri plus public async resolver accepting only the three exact copied font file URIs/snapshots. No remote, data or ambient font resources.\",\n    regular = FileBinding(Path.Combine(inputs, \"regular.ttf\")), bold = FileBinding(Path.Combine(inputs, \"bold.ttf\")),\n    gap = FileBinding(Path.Combine(inputs, \"gap.ttf\")), runtime, rows,\n    boundary = \"Observation only: actual author line-height/native comparisons require ROOT adjudication. PDF artifact text included; spatial spans are geometry observations.\"\n}, new JsonSerializerOptions { WriteIndented = true }));\nConsole.WriteLine($\"Captured {rows.Count} input/profile observations; failures remain visible in summary.json.\");\nstatic object FileBinding(string path) => new { path, bytes = new FileInfo(path).Length, sha256 = Convert.ToHexString(SHA256.HashData(File.ReadAllBytes(path))).ToLowerInvariant() };\nstatic IEnumerable<object> DrawingTextObservations(OfficeDrawing drawing, string path, IReadOnlyList<object> ancestors) {\n    for (int index = 0; index < drawing.Elements.Count; index++) {\n        var element = drawing.Elements[index];\n        string itemPath = path + \"/\" + index;\n        if (element is OfficeDrawingText text) {\n            yield return new {\n                path = itemPath, coordinateSpace = ancestors.Count == 0 ? \"page\" : \"nested-group-local\",\n                ancestors, text.Text, text.X, text.Y, text.Width, text.Height,\n                text.TextAdvanceWidth, alignment = text.Alignment.ToString(), text.LineHeight,\n                fontFamily = text.Font.FamilyName, fontSize = text.Font.Size\n            };\n        } else if (element is OfficeDrawingGroup group) {\n            object frame = new { kind = \"clip-group\", group.X, group.Y, group.ContentOffsetX, group.ContentOffsetY, group.FrameTransform };\n            foreach (var child in DrawingTextObservations(group.Drawing, itemPath, ancestors.Concat(new[] { frame }).ToArray())) yield return child;\n        } else if (element is OfficeDrawingEffectGroup effect) {\n            object frame = new { kind = \"effect-group\", effect.Transform, effect.Opacity };\n            foreach (var child in DrawingTextObservations(effect.Drawing, itemPath, ancestors.Concat(new[] { frame }).ToArray())) yield return child;\n        }\n    }\n}\nstatic IEnumerable<HtmlRenderVisual> Walk(IEnumerable<HtmlRenderVisual> source) {\n    foreach (var item in source) {\n        yield return item;\n        IEnumerable<HtmlRenderVisual>? children = item switch {\n            HtmlRenderClipGroup x => x.Visuals, HtmlRenderPathClipGroup x => x.Visuals,\n            HtmlRenderSemanticGroup x => x.Visuals, HtmlRenderEffectGroup x => x.Visuals,\n            HtmlRenderLogicalTextGroup x => x.Visuals, HtmlRenderLayoutRegion x => x.Visuals,\n            HtmlRenderFormField x => x.Visuals, _ => null\n        };\n        if (children != null) foreach (var child in Walk(children)) yield return child;\n    }\n}\n"
+    },
+    "packageConsumer": {
+      "path": "prep/package/consumer/Program.cs",
+      "sha256": "56044f5651e4c68bee77da72b9e7bc3002fc1dcfd035508d68160c1e091dc691",
+      "source": "using OfficeIMO.Drawing;\nusing OfficeIMO.Html;\nusing OfficeIMO.Html.Pdf;\nusing OfficeIMO.Pdf;\nusing System.Runtime.CompilerServices;\nusing System.Runtime.InteropServices;\nusing System.Security.Cryptography;\nusing System.Text.Json;\n\n// Qualification adapter only. Rendering and resource handling stay in the public owners.\nRequire(args.Length == 3, \"Usage: Consumer <inputs-v2> <fresh-output> <bound-acceptance.json>\");\nstring inputs = Path.GetFullPath(args[0]), output = Path.GetFullPath(args[1]);\nusing var acceptance = JsonDocument.Parse(File.ReadAllBytes(args[2]));\nvar contract = acceptance.RootElement;\nRequire(contract.GetProperty(\"schema\").GetString() == \"officeimo.html.page-margin-package-acceptance/v1\"\n    && contract.GetProperty(\"contractApproved\").GetBoolean(), \"ROOT must bind and approve the actual final contract first\");\nstring head = contract.GetProperty(\"sourceHead\").GetString()!;\nRequire(head.Length == 40, \"Exact source SHA required\");\nVerify(contract.GetProperty(\"sourceSeal\")); Verify(contract.GetProperty(\"sourceWitness\")); Verify(contract.GetProperty(\"visualApprovalEvidence\"));\nusing var seal = JsonDocument.Parse(File.ReadAllBytes(contract.GetProperty(\"sourceSeal\").GetProperty(\"path\").GetString()!));\nRequire((seal.RootElement.TryGetProperty(\"head\", out var sealedHead) ? sealedHead : seal.RootElement.GetProperty(\"headSha\")).GetString() == head, \"Source seal head differs\");\nusing var source = JsonDocument.Parse(File.ReadAllBytes(contract.GetProperty(\"sourceWitness\").GetProperty(\"path\").GetString()!));\nRequire(source.RootElement.GetProperty(\"declaredSourceHead\").GetString() == head, \"Approved public source witness head differs\");\nvar sourceRows = source.RootElement.GetProperty(\"rows\").EnumerateArray().ToArray();\nvar fixtures = contract.GetProperty(\"expectedInputs\").EnumerateArray().ToArray();\nRequire(fixtures.Length == 8 && sourceRows.Length == 16, \"Eight inputs and all sixteen source observations are required\");\nforeach (var fixture in fixtures) { Verify(fixture); Require(Path.GetDirectoryName(fixture.GetProperty(\"path\").GetString()) == inputs, \"Only the exact inputs-v2 directory is admitted\"); }\nforeach (var font in contract.GetProperty(\"fontAssets\").EnumerateArray()) Verify(font);\nRequire(!Directory.Exists(output) && !File.Exists(output), \"Fresh consumer output required\");\nDirectory.CreateDirectory(output);\n#if NATIVEAOT\nRequire(!RuntimeFeature.IsDynamicCodeSupported && RuntimeInformation.ProcessArchitecture == Architecture.Arm64\n    && RuntimeInformation.IsOSPlatform(OSPlatform.OSX),\n    \"The executed osx-arm64 NativeAOT lane must be native and Arm64\");\n#endif\nbyte[] regular = File.ReadAllBytes(Path.Combine(inputs, \"regular.ttf\"));\nbyte[] bold = File.ReadAllBytes(Path.Combine(inputs, \"bold.ttf\"));\nbyte[] gap = File.ReadAllBytes(Path.Combine(inputs, \"gap.ttf\"));\nvar fonts = new Dictionary<string, byte[]>(StringComparer.Ordinal) {\n    [new Uri(Path.Combine(inputs, \"regular.ttf\")).AbsoluteUri] = regular,\n    [new Uri(Path.Combine(inputs, \"bold.ttf\")).AbsoluteUri] = bold,\n    [new Uri(Path.Combine(inputs, \"gap.ttf\")).AbsoluteUri] = gap\n};\nvar resourcePolicy = new HtmlUrlPolicy { DisallowFileUrls = false, AllowDataUrls = false,\n    AllowMailtoUrls = false, AllowProtocolRelativeUrls = false, RestrictUrlSchemes = true };\nresourcePolicy.AllowedUrlSchemes.Clear(); resourcePolicy.AllowedUrlSchemes.Add(Uri.UriSchemeFile);\nusing var resultStream = File.Create(Path.Combine(output, \"result.json\"));\nusing var json = new Utf8JsonWriter(resultStream, new() { Indented = true });\njson.WriteStartObject(); json.WriteString(\"sourceHead\", head); json.WriteString(\"acceptanceSha256\", Hash(File.ReadAllBytes(args[2])));\njson.WriteString(\"framework\", RuntimeInformation.FrameworkDescription); json.WriteString(\"architecture\", RuntimeInformation.ProcessArchitecture.ToString());\njson.WriteBoolean(\"dynamicCodeSupported\", RuntimeFeature.IsDynamicCodeSupported);\njson.WriteBoolean(\"qualificationOnly\", true); json.WriteBoolean(\"nativeBrowserConformance\", false);\njson.WritePropertyName(\"executedBinary\"); FileRecord(json, Environment.ProcessPath!);\njson.WriteStartArray(\"rows\"); int observed = 0;\nforeach (var fixture in fixtures) {\n    string input = fixture.GetProperty(\"path\").GetString()!, name = Path.GetFileNameWithoutExtension(input);\n    Uri baseUri = new Uri(input);\n    var document = HtmlConversionDocument.Parse(File.ReadAllText(input), new HtmlConversionDocumentOptions {\n        BaseUri = baseUri, ResourceUrlPolicy = resourcePolicy\n    });\n    foreach (var profile in new[] { HtmlRenderIntentProfile.PrintPaged, HtmlRenderIntentProfile.ScreenMediaPaged }) {\n        var expected = sourceRows.Single(row => row.GetProperty(\"fixture\").GetString() == name && row.GetProperty(\"profile\").GetString() == profile.ToString());\n        string directory = Path.Combine(output, name, profile.ToString()); Directory.CreateDirectory(directory);\n        int acceptedResources = 0;\n        var options = new HtmlToPdfOptions {\n            ViewportWidth = 360, ViewportHeight = 480, PageSize = new OfficePageSize(360D / 96D, 480D / 96D),\n            Margins = HtmlRenderMargins.All(0), DefaultFontFamily = \"MetricWitness\", AllowSystemFontFallback = false,\n            BaseUri = baseUri, ResourceUrlPolicy = resourcePolicy,\n            ResourceResolver = (request, token) => {\n                token.ThrowIfCancellationRequested();\n                Require(request.Kind == HtmlResourceKind.Font && request.Uri.IsFile && fonts.ContainsKey(request.Uri.AbsoluteUri), \"Unexpected resource request\");\n                Interlocked.Increment(ref acceptedResources);\n                return Task.FromResult<HtmlResolvedResource?>(new HtmlResolvedResource(fonts[request.Uri.AbsoluteUri], \"font/ttf\"));\n            },\n            ResourcePolicy = new PdfResourcePolicy { AllowLocalFileAccess = true, AllowDataUris = false,\n                AllowEmbeddedPackageResources = false, AllowSystemFontEmbedding = false,\n                AllowDocumentFontEmbedding = false, AllowRemoteResourceResolution = false },\n            UserAgentStyles = HtmlRenderUserAgentStyleMode.Browser,\n            FontFamily = new PdfEmbeddedFontFamily(\"MetricWitness\", regular, bold)\n        };\n        options.Fonts.Add(\"MetricWitness\", regular); options.Fonts.Add(\"MetricWitness\", bold, OfficeFontStyle.Bold); options.Fonts.Add(\"MetricGap\", gap);\n        var rendered = await HtmlRenderEngine.ExecuteAsync(document, HtmlRenderRequest.Create(profile, HtmlRenderEncoder.Png, options));\n        var pdfResult = await document.RenderToPdfResultAsync(HtmlRenderRequest.Create(profile, HtmlRenderEncoder.Pdf, options));\n        Require(!rendered.Document.HasLoss && !pdfResult.RenderResult.Document.HasLoss, \"Loss-free bounded margin fixtures required\");\n        Require(acceptedResources > 0, \"The exact local font resource route must actually execute\");\n        Require(!rendered.Document.Diagnostics.Any(d => d.Code.Contains(\"Font\", StringComparison.OrdinalIgnoreCase)\n            && d.Severity is HtmlDiagnosticSeverity.Warning or HtmlDiagnosticSeverity.Error), \"Font preflight/resolution warnings are not accepted\");\n        byte[] pdf = pdfResult.ToBytes(); string pdfPath = Path.Combine(directory, \"document.pdf\"); File.WriteAllBytes(pdfPath, pdf);\n        var saved = PdfReadDocument.Open(File.ReadAllBytes(pdfPath), new PdfLoadOptions { IncludeArtifactText = true });\n        var direct = rendered.ExportImages(); var replay = saved.ExportImages(OfficeImageExportFormat.Png, new PdfImageExportOptions { Scale = 96D / 72D });\n        int pages = contract.GetProperty(\"expectedPages\").GetInt32();\n        Require(pages == 3 && rendered.Document.Pages.Count == pages && saved.Pages.Count == pages && direct.Count == pages && replay.Count == pages, \"Exactly three real pages and complete image replay required\");\n        json.WriteStartObject(); json.WriteString(\"fixture\", name); json.WriteString(\"profile\", profile.ToString()); json.WriteNumber(\"pages\", pages);\n        json.WriteNumber(\"acceptedFontResourceRequests\", acceptedResources); json.WriteBoolean(\"ownPngPdfReplayEqual\", true); json.WriteBoolean(\"approvedSourcePngEqual\", true);\n        json.WritePropertyName(\"input\"); FileRecord(json, input); json.WritePropertyName(\"pdf\"); FileRecord(json, pdfPath);\n        json.WriteStartArray(\"pagesEvidence\");\n        for (int index = 0; index < pages; index++) {\n            var page = rendered.Document.Pages[index]; Require(Near(page.Width, 360) && Near(page.Height, 480), \"Paper dimensions differ\");\n            Require(direct[index].Bytes.SequenceEqual(replay[index].Bytes), \"Every own direct PNG must equal actual saved-PDF replay\");\n            var sourceImage = expected.GetProperty(\"images\")[index].GetProperty(\"direct\"); Verify(sourceImage);\n            Require(Hash(direct[index].Bytes) == sourceImage.GetProperty(\"sha256\").GetString(), \"Packaged render differs from approved actual final source render\");\n            string directPath = Path.Combine(directory, $\"direct-{index + 1:D2}.png\"), replayPath = Path.Combine(directory, $\"pdf-replay-{index + 1:D2}.png\");\n            File.WriteAllBytes(directPath, direct[index].Bytes); File.WriteAllBytes(replayPath, replay[index].Bytes);\n            var sceneText = Walk(page.Scene).OfType<HtmlRenderText>().ToArray();\n            string header = Compact(string.Concat(sceneText.Where(t => t.Y < 60).Select(t => t.Text)));\n            string footer = Compact(string.Concat(sceneText.Where(t => t.Y >= 444).Select(t => t.Text)));\n            string wantedHeader = Compact(contract.GetProperty(\"headerText\").GetString()!);\n            string wantedFooter = $\"Page{index + 1}of3FOOTEREND\";\n            Require(header == wantedHeader && footer == wantedFooter, \"Complete source header/footer and actual counters required on every page\");\n            if (!name.StartsWith(\"04-\", StringComparison.Ordinal)) Require(sceneText.Where(t => t.Y < 60 || t.Y >= 444).All(t => Near(t.LineHeight, 28)), \"Authored equivalent numeric/length/percentage and owned line heights must remain28px\");\n            var spans = saved.Pages[index].GetTextSpans().ToArray();\n            Require(Compact(string.Concat(spans.Where(s => s.Y >= 315).Select(s => s.Text))) == wantedHeader, \"Actual saved PDF header content differs\");\n            Require(Compact(string.Concat(spans.Where(s => s.Y <= 27).Select(s => s.Text))) == wantedFooter, \"Actual saved PDF footer/counters differ\");\n            string all = Compact(string.Concat(spans.Select(s => s.Text)));\n            Require(all.Contains($\"BODYPAGE{index + 1}START\", StringComparison.Ordinal) && all.Contains($\"BODYPAGE{index + 1}END\", StringComparison.Ordinal), \"Actual saved PDF body markers lost\");\n            json.WriteStartObject(); json.WriteNumber(\"page\", index + 1); json.WritePropertyName(\"direct\"); FileRecord(json, directPath); json.WritePropertyName(\"replay\"); FileRecord(json, replayPath);\n            var marginScene = sceneText.Where(t => t.Y < 60 || t.Y >= 444).ToArray();\n            var sourceMargin = expected.GetProperty(\"scene\")[index].GetProperty(\"text\").EnumerateArray()\n                .Where(t => t.GetProperty(\"Y\").GetDouble() < 60 || t.GetProperty(\"Y\").GetDouble() >= 444).ToArray();\n            Require(marginScene.Length == sourceMargin.Length, \"Margin scene inventory differs from approved source\");\n            json.WriteStartArray(\"marginScene\");\n            for (int item = 0; item < marginScene.Length; item++) {\n                var text = marginScene[item]; var witness = sourceMargin[item];\n                Require(witness.GetProperty(\"Text\").GetString() == text.Text && Near(witness.GetProperty(\"LineHeight\").GetDouble(), text.LineHeight)\n                    && witness.GetProperty(\"fontFamily\").GetString() == text.Font.FamilyName && Near(witness.GetProperty(\"fontSize\").GetDouble(), text.Font.Size),\n                    \"Authored/selected-face margin font metrics differ from approved actual source witness\");\n                json.WriteStartObject(); json.WriteString(\"text\", text.Text); json.WriteString(\"source\", text.Source); json.WriteNumber(\"x\", text.X); json.WriteNumber(\"y\", text.Y);\n                json.WriteNumber(\"width\", text.Width); json.WriteNumber(\"height\", text.Height); json.WriteNumber(\"lineHeight\", text.LineHeight);\n                json.WriteString(\"fontFamily\", text.Font.FamilyName); json.WriteNumber(\"fontSize\", text.Font.Size); json.WriteString(\"alignment\", text.Alignment.ToString());\n                if (text.TextAdvanceWidth is double advance) json.WriteNumber(\"textAdvanceWidth\", advance); else json.WriteNull(\"textAdvanceWidth\");\n                if (text.TextPaintWidth is double paint) json.WriteNumber(\"textPaintWidth\", paint); else json.WriteNull(\"textPaintWidth\");\n                json.WriteEndObject();\n            }\n            json.WriteEndArray();\n            json.WriteStartArray(\"drawingText\"); var drawing = DrawingText(page.CreateDrawing(), \"page\").ToArray();\n            var expectedDrawing = expected.GetProperty(\"scene\")[index].GetProperty(\"drawingText\").EnumerateArray().ToArray();\n            Require(drawing.Length == expectedDrawing.Length, \"Public drawing text inventory differs from approved source witness\");\n            for (int item = 0; item < drawing.Length; item++) {\n                var actual = drawing[item]; var witness = expectedDrawing[item];\n                Require(witness.GetProperty(\"path\").GetString() == actual.Path && witness.GetProperty(\"Text\").GetString() == actual.Text.Text\n                    && Near(witness.GetProperty(\"X\").GetDouble(), actual.Text.X) && Near(witness.GetProperty(\"Y\").GetDouble(), actual.Text.Y)\n                    && Near(witness.GetProperty(\"Width\").GetDouble(), actual.Text.Width) && Near(witness.GetProperty(\"Height\").GetDouble(), actual.Text.Height)\n                    && NullableNear(witness.GetProperty(\"TextAdvanceWidth\"), actual.Text.TextAdvanceWidth)\n                    && witness.GetProperty(\"alignment\").GetString() == actual.Text.Alignment.ToString(), \"Public drawing width/alignment/position differs from approved source witness\");\n                json.WriteStartObject(); json.WriteString(\"path\", actual.Path); json.WriteString(\"text\", actual.Text.Text);\n                json.WriteNumber(\"x\", actual.Text.X); json.WriteNumber(\"y\", actual.Text.Y); json.WriteNumber(\"width\", actual.Text.Width); json.WriteNumber(\"height\", actual.Text.Height);\n                if (actual.Text.TextAdvanceWidth is double advance) json.WriteNumber(\"textAdvanceWidth\", advance); else json.WriteNull(\"textAdvanceWidth\");\n                json.WriteString(\"alignment\", actual.Text.Alignment.ToString()); json.WriteEndObject();\n            }\n            json.WriteEndArray(); json.WriteEndObject();\n        }\n        json.WriteEndArray(); json.WriteEndObject(); json.Flush(); observed++;\n    }\n}\nRequire(observed == 16, \"All sixteen current margin observations must execute\");\njson.WriteEndArray();\njson.WriteStartArray(\"runtime\");\n#if !NATIVEAOT\nforeach (var assembly in AppDomain.CurrentDomain.GetAssemblies().Where(a => !a.IsDynamic\n    && (a.GetName().Name!.StartsWith(\"OfficeIMO.\", StringComparison.Ordinal) || a.GetName().Name!.StartsWith(\"AngleSharp\", StringComparison.Ordinal)))) {\n    FileRecord(json, assembly.Location);\n}\n#endif\njson.WriteEndArray(); json.WriteNumber(\"observations\", observed); json.WriteBoolean(\"passed\", true); json.WriteEndObject(); json.Flush();\nConsole.WriteLine(\"Sixteen packed public margin observations passed: complete three-page content/counters, actual local fonts, authored metrics, approved source pixels/drawing geometry and own PNG/saved-PDF replay.\");\n\nstatic void Require(bool value, string message) { if (!value) throw new InvalidDataException(message); }\nstatic bool Near(double a, double b) => Math.Abs(a - b) <= .001D;\nstatic bool NullableNear(JsonElement expected, double? actual) => expected.ValueKind == JsonValueKind.Null ? actual == null : actual.HasValue && Near(expected.GetDouble(), actual.Value);\nstatic string Hash(byte[] bytes) => Convert.ToHexString(SHA256.HashData(bytes)).ToLowerInvariant();\nstatic string Compact(string value) => string.Concat(value.Where(c => !char.IsWhiteSpace(c)));\nstatic void Verify(JsonElement binding) {\n    string path = binding.GetProperty(\"path\").GetString()!; byte[] bytes = File.ReadAllBytes(path);\n    Require(bytes.LongLength == binding.GetProperty(\"bytes\").GetInt64() && Hash(bytes) == binding.GetProperty(\"sha256\").GetString(), \"Bound input/evidence changed: \" + path);\n}\nstatic void FileRecord(Utf8JsonWriter writer, string path) {\n    byte[] bytes = File.ReadAllBytes(path); writer.WriteStartObject(); writer.WriteString(\"path\", path); writer.WriteNumber(\"bytes\", bytes.LongLength); writer.WriteString(\"sha256\", Hash(bytes)); writer.WriteEndObject();\n}\nstatic IEnumerable<(string Path, OfficeDrawingText Text)> DrawingText(OfficeDrawing drawing, string path) {\n    for (int index = 0; index < drawing.Elements.Count; index++) {\n        string childPath = path + \"/\" + index; var element = drawing.Elements[index];\n        if (element is OfficeDrawingText text) yield return (childPath, text);\n        else if (element is OfficeDrawingGroup group) { foreach (var child in DrawingText(group.Drawing, childPath)) yield return child; }\n        else if (element is OfficeDrawingEffectGroup effect) { foreach (var child in DrawingText(effect.Drawing, childPath)) yield return child; }\n    }\n}\nstatic IEnumerable<HtmlRenderVisual> Walk(IEnumerable<HtmlRenderVisual> visuals) {\n    foreach (var visual in visuals) {\n        yield return visual;\n        IEnumerable<HtmlRenderVisual>? children = visual switch {\n            HtmlRenderClipGroup x => x.Visuals, HtmlRenderPathClipGroup x => x.Visuals, HtmlRenderSemanticGroup x => x.Visuals,\n            HtmlRenderEffectGroup x => x.Visuals, HtmlRenderLogicalTextGroup x => x.Visuals, HtmlRenderLayoutRegion x => x.Visuals,\n            HtmlRenderFormField x => x.Visuals, _ => null\n        };\n        if (children != null) foreach (var child in Walk(children)) yield return child;\n    }\n}\n"
+    }
+  },
+  "storage": {
+    "schema": "officeimo.task.storage-cleanup/v1",
+    "completedUtc": "2026-10-20T16:40:21.420919+00:00",
+    "task": "html-page-margin-typography",
+    "root": "$TASK_ROOT",
+    "ownerTask": "01a11a92-00a5-7873-aa1a-7bffe37b27b9",
+    "logicalBytesRemoved": 4162708136,
+    "phases": [
+      {
+        "receipt": "cleanup-prewarm-preflight.json",
+        "logicalBytesRemoved": 83722931,
+        "paths": [
+          "build/baseline"
+        ]
+      },
+      {
+        "receipt": "retained/baseline-runtime-retention.json",
+        "logicalBytesRemoved": 253779424,
+        "paths": [
+          "graphs/baseline-current",
+          "graphs/baseline-v2-runtime",
+          "graphs/dynamic-font-baseline-v1",
+          "graphs/dynamic-font-baseline-v2",
+          "graphs/dynamic-positioned-font-baseline-v3",
+          "graphs/typography-iteration-runtime"
+        ]
+      },
+      {
+        "receipt": "observer-cleanup-result.json",
+        "logicalBytesRemoved": 436480364
+      },
+      {
+        "receipt": "test-graph-cleanup-result.json",
+        "logicalBytesRemoved": 1740865457
+      },
+      {
+        "receipt": "net8-observer-cleanup-result.json",
+        "logicalBytesRemoved": 112183225
+      },
+      {
+        "receipt": "superseded-montage-cleanup-preflight.json",
+        "logicalBytesRemoved": 239632
+      },
+      {
+        "receipt": "final-removal-preflight.json",
+        "logicalBytesRemoved": 1535437103,
+        "targetsAbsent": 7
+      }
+    ],
+    "retainedRootLogicalBytesAtFinalPreflight": 718147378,
+    "retained": [
+      {
+        "path": "retained",
+        "logicalBytes": 413502941,
+        "files": 10,
+        "reason": "Actualbefore/current/native/test/package runtime and restore metadata CRC/hash verified archives"
+      },
+      {
+        "path": "packages/margin-v1/feed",
+        "logicalBytes": 27559026,
+        "files": 5,
+        "reason": "Five exact private qualification nupkgs;20 actual framework assets"
+      },
+      {
+        "path": "packages/margin-v2/out",
+        "logicalBytes": 189652877,
+        "files": 28,
+        "reason": "Executed managed consumers and osx-arm64 NativeAOT binary"
+      },
+      {
+        "path": "packages/margin-v2/results",
+        "logicalBytes": 8425552,
+        "files": 339,
+        "reason": "All48 actual packaged observations;144 ownPNG/PDF/source page checks"
+      },
+      {
+        "path": "trx",
+        "logicalBytes": 35125014,
+        "files": 9,
+        "reason": "Actual baseline/focused/full NET8/NET10 TRX;first failures remain historical"
+      },
+      {
+        "path": "native-baseline",
+        "logicalBytes": 1105213,
+        "files": 86,
+        "reason": "ActualEdge savedPDF/PNG/CSSOM/observer bindings"
+      },
+      {
+        "path": "native-boundaries",
+        "logicalBytes": 151498,
+        "files": 67,
+        "reason": "Native tight/zero/unit/literal controls including explicit held09"
+      },
+      {
+        "path": "candidate-final",
+        "logicalBytes": 3204642,
+        "files": 113,
+        "reason": "ExactfinalNET10 public source observations"
+      },
+      {
+        "path": "candidate-final-net8",
+        "logicalBytes": 2986605,
+        "files": 113,
+        "reason": "ExactfinalNET8 source observations/cross-framework compression diagnosis"
+      }
+    ],
+    "archives": [
+      {
+        "manifest": "retained/baseline-runtime-retention.json",
+        "archive": {
+          "path": "retained/baseline-runtimes.zip",
+          "bytes": 75997825,
+          "sha256": "f1f58a98aa88ed02736c0503033e5a4311c435004f9972af345515797d640286"
+        },
+        "crcAndAllContentHashesVerified": true
+      },
+      {
+        "manifest": "retained/net8-observer-retention.json",
+        "archive": {
+          "path": "retained/net8-observer-runtime-metadata.zip",
+          "bytes": 37620223,
+          "sha256": "632a9a7c179c2830a67263a663538237b00295a829782bb22a4c79cc4e4f1095"
+        },
+        "crcAndAllContentHashesVerified": true
+      },
+      {
+        "manifest": "retained/observer-runtime-retention.json",
+        "archive": {
+          "path": "retained/observer-runtimes-metadata.zip",
+          "bytes": 143791934,
+          "sha256": "ee0749228bad764254c6d026c9cef12389f358f89f21ca94e4f8c1138252132d"
+        },
+        "crcAndAllContentHashesVerified": true
+      },
+      {
+        "manifest": "retained/package-runtime-retention.json",
+        "archive": {
+          "path": "retained/package-runtime-metadata.zip",
+          "bytes": 85216054,
+          "sha256": "71903f76203bb62a8a32d3c699808ce4ab80e5c3c127faf28f361277838998fa"
+        },
+        "crcAndAllContentHashesVerified": true
+      },
+      {
+        "manifest": "retained/test-runtime-retention.json",
+        "archive": {
+          "path": "retained/test-runtime-metadata.zip",
+          "bytes": 70340434,
+          "sha256": "172edf8a4c677f2ccafbf183719a9132d90216a6122d6b9bf84d995bfc7b0462"
+        },
+        "crcAndAllContentHashesVerified": true
+      }
+    ],
+    "allDisposableGraphsPrivateCacheTempAndCliHomeAbsent": true,
+    "route": "Separatefreshcontainment/no-reparse/noGit/noholderschecks, nativePowerShell, boundedguardedDotNetrecoveryonlyafteractualhidden/systemfilesystemerrors;actualabsencerechecked.",
+    "lockedOrUncertainTargets": [],
+    "protected": "Activeworktree, providerbranch, primaryedits, priorprogramme/nativehistory/sharedcaches retained; oldmergedworktreeretirementrecordedseparately.",
+    "retiredCommands": "Frozenoldno-build/sourceGraph/privatecachereplaysmustnotbererunagainstabsentpaths;exactruntime/metadatarecoveryusesverifiedarchives.",
+    "nextColdReviewUtc": "2026-10-27T16:00:00Z"
+  }
+}

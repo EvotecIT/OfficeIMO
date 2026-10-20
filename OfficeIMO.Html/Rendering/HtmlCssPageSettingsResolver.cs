@@ -371,6 +371,7 @@ internal static class HtmlCssPageSettingsResolver {
                 ReadStyleDeclaration(style, marginBody, "font-size", cursor),
                 ReadStyleDeclaration(style, marginBody, "font-weight", cursor),
                 ReadStyleDeclaration(style, marginBody, "font-style", cursor),
+                ReadStyleDeclaration(style, marginBody, "line-height", cursor),
                 ReadStyleDeclaration(style, marginBody, "color", cursor),
                 ReadStyleDeclaration(style, marginBody, "text-align", cursor));
             if (!marginRule.IsEmpty) {
