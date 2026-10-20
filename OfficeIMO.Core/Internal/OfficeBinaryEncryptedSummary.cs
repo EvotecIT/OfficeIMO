@@ -6,7 +6,7 @@ using System.Threading;
 
 namespace OfficeIMO.Core.Internal {
     /// <summary>Decodes the MS-OFFCRYPTO encrypted stream and storage descriptor container.</summary>
-    internal static class OfficeBinaryEncryptedSummary {
+    internal static partial class OfficeBinaryEncryptedSummary {
         internal sealed class Entry {
             internal Entry(string name, bool isStream, byte[] bytes) { Name = name; IsStream = isStream; Bytes = bytes; }
             internal string Name { get; }
