@@ -10,10 +10,6 @@ param(
 
     [string] $StagingPath,
 
-    [string] $PowerShellGalleryApiKeyFile = $(if ($env:PSGALLERY_API_KEY_FILE) { $env:PSGALLERY_API_KEY_FILE } else { Join-Path ([Environment]::GetFolderPath('UserProfile')) '.config/EvotecIT/release/PowerShellGalleryAPI.txt' }),
-
-    [string] $GitHubTokenFile = $(if ($env:GITHUB_TOKEN_FILE) { $env:GITHUB_TOKEN_FILE } else { Join-Path ([Environment]::GetFolderPath('UserProfile')) '.config/EvotecIT/release/GitHubAPI.txt' }),
-
     [switch] $JsonOnly,
 
     [string] $JsonPath,
@@ -147,7 +143,7 @@ Build-Module -ModuleName 'PSWriteOffice' -Path "$PSScriptRoot/../.." -RunMode $R
     New-ConfigurationArtefact -Type Packed -Enable -Path 'Artefacts\Packed' -ArtefactName '<ModuleName>.v<ModuleVersion>.zip'
 
     # global options for publishing to github/psgallery
-    New-ConfigurationPublish -Type PowerShellGallery -FilePath $PowerShellGalleryApiKeyFile -Enabled:$true
-    New-ConfigurationPublish -Type GitHub -FilePath $GitHubTokenFile -UserName 'EvotecIT' -RepositoryName 'OfficeIMO' `
+    New-ConfigurationPublish -Type PowerShellGallery -FilePath 'C:\Support\Important\PowerShellGalleryAPI.txt' -Enabled:$true
+    New-ConfigurationPublish -Type GitHub -FilePath 'C:\Support\Important\GitHubAPI.txt' -UserName 'EvotecIT' -RepositoryName 'OfficeIMO' `
         -OverwriteTagName 'OfficeIMO-v{ModuleVersion}' -ReuseExistingRelease -Enabled:$true -GenerateReleaseNotes
 } -StagingPath $StagingPath -JsonOnly:$JsonOnly -JsonPath $JsonPath -SkipInstall:$SkipInstall -PassThru:$PassThru -ExitCode:(-not $PassThru)

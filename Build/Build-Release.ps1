@@ -15,8 +15,6 @@ param(
     [string] $RunMode = 'Build',
     [bool] $SignModule = $false,
     [string] $StagingPath,
-    [string] $PowerShellGalleryApiKeyFile = $env:PSGALLERY_API_KEY_FILE,
-    [string] $GitHubTokenFile = $env:GITHUB_TOKEN_FILE,
     [switch] $JsonOnly,
     [string] $JsonPath,
     [switch] $ResumeIncompleteRelease,
