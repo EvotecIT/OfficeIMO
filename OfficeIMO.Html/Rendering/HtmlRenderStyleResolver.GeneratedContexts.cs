@@ -32,7 +32,7 @@ internal sealed partial class HtmlRenderStyleResolver {
             _activeUprightVerticalText = false;
             _activeCharacterAdvance = ContainsCharacterUnit(computed.GetValue("font-size"))
                 ? _measureCharacterAdvance(parent) : double.NaN;
-            string family = ResolveFontFamily(string.Empty, computed, parent.Font.FamilyName);
+            string family = ResolveFontFamily(string.Empty, computed, parent.Font.FamilyName, _options.DefaultFontFamily);
             HtmlFontSizeContext? context = _fontDefaults.HasValue
                 ? ResolveBrowserFontSize(string.Empty, computed, family, parent, true, string.Empty) : null;
             double size = context?.Pixels ?? ResolveComputedFontSize(string.Empty, computed,

@@ -72,7 +72,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                         linkUri: null, source: marginBoxSource, semanticRole: "page-margin", layoutY: y,
                         semanticNodeId: null, textAdvanceWidth: null,
                         layoutHeight: Math.Max(0.01D, textHeight), paintTopOverflow: paintTopOverflow,
-                        ordinaryLineCarrier: true).WithWrappedLines(lines)
+                        ordinaryLineCarrier: true, fontDescriptor: box.Typography.FontDescriptor).WithWrappedLines(lines)
                 };
                 if (textHeight > height + 0.0001D) {
                     // The line advance determines admission, while the full selected-face

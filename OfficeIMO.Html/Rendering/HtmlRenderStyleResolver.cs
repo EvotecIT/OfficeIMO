@@ -188,7 +188,7 @@ internal sealed partial class HtmlRenderStyleResolver {
         // Document mode's code tags whose unstyled fallback remains monospace.
         if (computed.IsInheritedValue("font-family") && !computed.IsImplicitlyInheritedValue("font-family"))
             defaultFamily = parent?.Font.FamilyName ?? _options.DefaultFontFamily;
-        string family = ResolveFontFamily(fontTag, computed, defaultFamily);
+        string family = ResolveFontFamily(fontTag, computed, defaultFamily, _options.DefaultFontFamily);
         if (_fontDefaults.HasValue && HtmlFontSizePolicy.IsSoleGenericMonospace(family)) family = "monospace";
         HtmlFontSizeContext? fontSizeContext = _fontDefaults.HasValue
             ? ResolveBrowserFontSize(tag, computed, family, parent, pseudoElement, pseudoSemanticRole)

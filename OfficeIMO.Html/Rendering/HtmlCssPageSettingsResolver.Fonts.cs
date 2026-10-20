@@ -17,9 +17,9 @@ internal static partial class HtmlCssPageSettingsResolver {
             cancellationToken.ThrowIfCancellationRequested();
             string name = declaration.Name;
             if (name.StartsWith("--", StringComparison.Ordinal) || name.Equals("font", StringComparison.OrdinalIgnoreCase)
-                || name.Equals("all", StringComparison.OrdinalIgnoreCase)
                 || name.Equals("font-size", StringComparison.OrdinalIgnoreCase) || name.Equals("font-family", StringComparison.OrdinalIgnoreCase)
                 || name.Equals("font-weight", StringComparison.OrdinalIgnoreCase) || name.Equals("font-style", StringComparison.OrdinalIgnoreCase)
+                || name.Equals("font-stretch", StringComparison.OrdinalIgnoreCase)
                 || name.Equals("line-height", StringComparison.OrdinalIgnoreCase) || name.Equals("color", StringComparison.OrdinalIgnoreCase)
                 || name.Equals("text-align", StringComparison.OrdinalIgnoreCase)) {
                 string value = HtmlComputedStyleEngine.StripCssCommentsOutsideStrings(

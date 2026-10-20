@@ -88,14 +88,16 @@ internal sealed partial class HtmlRenderStyleResolver {
         return new OfficeFontFaceDescriptor(weight, stretch, slant, angle);
     }
 
-    internal static string ResolveFontFamily(string tag, HtmlComputedStyle computed, string inherited) {
+    internal static string ResolveFontFamily(string tag, HtmlComputedStyle computed, string inherited, string? initialFamily = null) {
         if (tag == "math") {
             if (!HasAuthoredValue(computed, "font-family")) return "math";
             if (computed.IsResetValue("font-family"))
                 return HtmlRenderCssValues.FontFamilyList(computed.GetValue("font-family"), "serif");
             if (computed.IsInheritedValue("font-family")) return inherited;
         }
-        return HtmlRenderCssValues.FontFamilyList(computed.GetValue("font-family"), inherited);
+        string fallback = computed.IsResetValue("font-family") && !computed.IsOriginRevertedValue("font-family")
+            ? initialFamily ?? inherited : inherited;
+        return HtmlRenderCssValues.FontFamilyList(computed.GetValue("font-family"), fallback);
     }
 
 }

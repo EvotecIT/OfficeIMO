@@ -35,14 +35,14 @@ internal sealed partial class HtmlCssPageRuleSet {
     /// <summary>Discovers page-only generic faces through the same cascade used for final painting.</summary>
     internal IEnumerable<(string Families, OfficeFontFaceDescriptor Descriptor)> EnumerateMarginFontRequests(
         HtmlComputedStyle root, HtmlComputedStyleSet styles, HtmlRenderOptions options, CancellationToken cancellationToken) {
-        string rootFamily = HtmlRenderStyleResolver.ResolveFontFamily(string.Empty, root, options.DefaultFontFamily);
+        string rootFamily = HtmlRenderStyleResolver.ResolveFontFamily(string.Empty, root, options.DefaultFontFamily, options.DefaultFontFamily);
         OfficeFontFaceDescriptor rootDescriptor = HtmlRenderStyleResolver.ResolveFontFaceDescriptor(string.Empty, root, OfficeFontFaceDescriptor.Regular);
         foreach (string? name in _rules.Select(rule => rule.PageName).Concat(new string?[] { null }).Distinct(StringComparer.Ordinal)) {
             for (int pageNumber = 1; pageNumber <= 3; pageNumber++) {
                 foreach (var context in ResolveMarginContexts(pageNumber, name, root, styles, cancellationToken)) {
-                    string pageFamily = HtmlRenderStyleResolver.ResolveFontFamily(string.Empty, context.Page, rootFamily);
+                    string pageFamily = HtmlRenderStyleResolver.ResolveFontFamily(string.Empty, context.Page, rootFamily, options.DefaultFontFamily);
                     OfficeFontFaceDescriptor pageDescriptor = HtmlRenderStyleResolver.ResolveFontFaceDescriptor(string.Empty, context.Page, rootDescriptor);
-                    yield return (HtmlRenderStyleResolver.ResolveFontFamily(string.Empty, context.Margin, pageFamily),
+                    yield return (HtmlRenderStyleResolver.ResolveFontFamily(string.Empty, context.Margin, pageFamily, options.DefaultFontFamily),
                         HtmlRenderStyleResolver.ResolveFontFaceDescriptor(string.Empty, context.Margin, pageDescriptor));
                 }
             }

@@ -28,7 +28,7 @@ internal static class HtmlRenderSystemFontLoader {
                 ? found : (options.DefaultFontFamily, OfficeFontFaceDescriptor.Regular);
             string tag = element.TagName.ToLowerInvariant();
             string fallback = tag is "code" or "pre" or "kbd" or "samp" ? "Consolas" : parent.Families;
-            string families = HtmlRenderStyleResolver.ResolveFontFamily(tag, computed, fallback);
+            string families = HtmlRenderStyleResolver.ResolveFontFamily(tag, computed, fallback, options.DefaultFontFamily);
             OfficeFontFaceDescriptor descriptor = HtmlRenderStyleResolver.ResolveFontFaceDescriptor(tag, computed, parent.Descriptor);
             inherited[element] = (families, descriptor);
             LoadList(families, descriptor);
