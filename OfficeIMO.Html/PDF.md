@@ -279,6 +279,77 @@ result.RequireNoLoss();
 result.Save("report.pdf").RequireNoLoss();
 ```
 
+## Accessibility validation
+
+HTML-to-PDF enables tagging by default. Use real headings, table headers with
+`scope`, list elements, image descriptions, a document title and a language on
+`html`. Accessible image names use the shared resolver, including
+`aria-labelledby`, `aria-label`, `alt`, and SVG `title`. Explicitly decorative
+images remain paint artifacts, including SVG with `role="presentation"` or
+`role="none"`.
+
+Validate the retained render result so source checks use the exact media,
+viewport, caller CSS and resolved stylesheets used by the operation:
+
+```csharp
+using OfficeIMO.Html;
+using OfficeIMO.Html.Pdf;
+
+HtmlConversionDocument source = HtmlConversionDocument.Parse("""
+    <!doctype html><html lang="en"><head><title>Service review</title></head>
+    <body><h1>Service review</h1><p>All scheduled checks are complete.</p></body></html>
+    """);
+HtmlPdfRenderRequestResult rendered = source.RenderToPdfResult(
+    HtmlRenderRequest.Create(HtmlRenderIntentProfile.PrintPaged, HtmlRenderEncoder.Pdf));
+HtmlPdfAccessibilityValidationResult validation = HtmlPdfAccessibilityValidator.Validate(rendered);
+if (!validation.IsValid) {
+    throw new InvalidOperationException(string.Join(Environment.NewLine,
+        validation.Issues.Select(issue => issue.Code + ": " + issue.Message)));
+}
+File.WriteAllBytes("service-review.pdf", rendered.ToBytes());
+```
+
+Validation does not load resources again or observe later changes to the caller's
+options. Source image-name checks cover CSS-visible source elements before page
+selection and clipping. Validate before editing the returned PDF. The older
+`Validate(source, pdfBytes)` overload assumes default print CSS without caller or
+externally resolved stylesheets; use the retained-result overload for generated
+documents. `Validate(pdfBytes)` checks the artifact alone and cannot recover
+source omissions that were not represented in its tags.
+
+The [accessible report example](../OfficeIMO.Examples/Converters/Html/HtmlAccessibleReport.cs)
+embeds the same regular and bold fonts for layout and PDF encoding, uses
+`PdfOptions.UsePdfUa(...)`, and checks the retained result. Its
+[HTML source](../OfficeIMO.Examples/Converters/Html/Content/Reports/accessibility-review.html)
+contains two pages, ordered and unordered lists, row and column table headers,
+a described figure, decorative SVG, an internal link, a labelled checkbox and
+two-column reading content. Run it from the repository root:
+
+```sh
+dotnet run --project OfficeIMO.Examples/OfficeIMO.Examples.csproj -f net10.0 -- --html-accessible
+```
+
+The example writes `HtmlAccessibleReport-PdfUa1.pdf` and
+`HtmlAccessibleReport-PdfUa2.pdf` to the examples runner's `Documents` directory.
+Validate the exact saved files independently, for example:
+
+```sh
+verapdf -f ua1 HtmlAccessibleReport-PdfUa1.pdf
+verapdf -f ua2 HtmlAccessibleReport-PdfUa2.pdf
+```
+
+The [reproducible report evidence](../Build/Project/Evidence/2026-10-20/html-pdf-accessibility.json)
+records the saved-file hashes, fonts, independent profile results and visual
+review. Manual assistive-technology acceptance remains separate.
+
+The bounded OfficeIMO validator and independent machine validation have different
+roles. Neither establishes the usefulness of descriptions or the complete
+assistive-technology experience. Record the PDF hash, PDF reader and screen-reader
+versions, then review heading navigation, table-header announcements, list order,
+the figure description, the internal link, the checkbox label and the order of
+the two reading groups. Check that the decorative rule and repeated page numbers
+do not interrupt reading. Record failures and untested tasks explicitly.
+
 ## Fonts and text shaping
 
 PDF and image export require glyph coverage in the selected embedded fonts. Missing glyphs produce a structured encoding failure, including under `AllowDiagnosedLoss`. Supply complete font files through `Fonts`, fallback packs or `@font-face`; use `TextShapingProvider` and `TextShapingLanguage` for scripts outside the managed shaping subset. Installed-font fallback depends on the host. Synthetic provider tests establish the API seam, while native script appearance needs separate rendered evidence.

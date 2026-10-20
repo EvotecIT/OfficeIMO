@@ -26,7 +26,7 @@ internal static class PdfOutlineDictionaryBuilder {
         int lastChildId,
         int descendantCount,
         int destinationPageId,
-        double destinationTop, double destinationLeft = 0D, string? uri = null) {
+        double destinationTop, double destinationLeft = 0D, string? uri = null, int? structureElementId = null) {
         Guard.NotNullOrWhiteSpace(title, nameof(title));
         Guard.OptionalUriAction(uri, nameof(uri));
         if (double.IsNaN(destinationLeft) || double.IsInfinity(destinationLeft)) throw new ArgumentOutOfRangeException(nameof(destinationLeft));
@@ -56,6 +56,11 @@ internal static class PdfOutlineDictionaryBuilder {
         }
 
         if (uri != null) item.Append(" /A << /S /URI /URI ").Append(PdfSyntaxEscaper.UriString(uri)).Append(" >> >>\n");
+        else if (structureElementId.HasValue) {
+            item.Append(" /A << /S /GoTo /D [").Append(PdfSyntaxEscaper.IndirectReference(destinationPageId))
+                .Append(" /XYZ ").Append(FormatCoordinate(destinationLeft)).Append(' ').Append(FormatCoordinate(destinationTop))
+                .Append(" 0] /SD [").Append(PdfSyntaxEscaper.IndirectReference(structureElementId.Value)).Append(" /Fit] >> >>\n");
+        }
         else item.Append(" /Dest [")
             .Append(PdfSyntaxEscaper.IndirectReference(destinationPageId))
             .Append(" /XYZ ").Append(FormatCoordinate(destinationLeft)).Append(' ')

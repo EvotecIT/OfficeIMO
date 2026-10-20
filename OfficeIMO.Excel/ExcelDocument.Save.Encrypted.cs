@@ -10,7 +10,7 @@ namespace OfficeIMO.Excel;
 
 public partial class ExcelDocument {
     /// <summary>
-    /// Encrypts a workbook in an explicitly selected physical format. XLS uses classic BIFF8 RC4 for legacy compatibility;
+    /// Encrypts a workbook in an explicitly selected physical format. XLS uses classic BIFF8 RC4 or retains CryptoAPI for protected auxiliary entries;
     /// XLSX and XLSB use the existing Office package encryption profile. XLS does not provide modern encryption strength.
     /// </summary>
     /// <param name="destination">Caller-owned writable destination, replaced after successful encoding.</param>

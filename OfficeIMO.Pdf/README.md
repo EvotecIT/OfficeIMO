@@ -2552,6 +2552,16 @@ Descendants inherit the span language. Set `Language = "en-US"` on a nested span
 to return to the document language. PDF 2.0 structure elements declare the PDF 2.0
 namespace, including the single Document child of the structure root.
 
+Tagged native lists declare their label style. For custom canvas lists, set
+`PdfCanvasStructureOptions.ListNumbering` on the `List` structure, for example
+`PdfListNumbering.UpperRoman`. List labels contain inline `Span` text. The
+`Ordered`, `Unordered` and `Description` styles require PDF 2.0.
+
+For PDF/UA-2 canvas navigation, add named destinations and outlines inside the
+`Structure` container that they target. The writer retains the page destination
+and adds the matching structure destination; a target outside tagged content is
+rejected when the strict PDF/UA-2 profile requires it.
+
 ### Generate and assess validator-backed PDF/A
 
 ```csharp

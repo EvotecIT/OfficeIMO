@@ -66,7 +66,8 @@ internal sealed partial class LegacyXlsPreservationSnapshot {
             bool preserveFormula = existed && exists && previous!.CacheMetadata == current!.CacheMetadata
                 && (previous.IsFormula && current.IsFormula || previous.Text == current.Text && previous.Kind == current.Kind);
             bool cacheOnly = preserveFormula && previous!.IsFormula && previous.Style == current!.Style;
-            edits.Add(new LegacyXlsCellEdit(name, key.Item2, exists ? (Cell)current!.Cell.CloneNode(true) : null, cacheOnly, preserveFormula));
+            edits.Add(new LegacyXlsCellEdit(name, key.Item2, exists ? (Cell)current!.Cell.CloneNode(true) : null,
+                cacheOnly, preserveFormula, existed && exists && previous!.Style == current!.Style));
             if (!existed || !exists || previous!.Metadata != current!.Metadata || previous.Style != current.Style || previous.IsFormula || current.IsFormula || current.Formatting.Length != 0) { literalOnly = false; continue; }
             var change = new LegacyXlsLiteralEdit(name, key.Item2, current.Text, current.Kind);
             if (!_source.CanApply(change)) literalOnly = false;
@@ -219,10 +220,9 @@ internal sealed class LegacyXlsPreservationPlan {
     internal byte[] Write(byte[]? filePass, long maximumBytes, CancellationToken token, ExcelNativeCalculationPolicy calculation = default) =>
         _changes != null && !calculation.ClearCachedResults && !calculation.RecalculateOnOpen ? _source.Write(_changes, filePass, maximumBytes, token)
             : _source.WriteEdits(_document, _edits, filePass, maximumBytes, token, bindings: _bindings, calculationChanged: _calculationChanged, calculation: calculation);
-    internal byte[] WriteEncrypted(byte[] filePass, string password, byte[] salt, long maximumBytes, ExcelNativeCalculationPolicy calculation = default) {
-        byte[] Encrypt(byte[] bytes) => OfficeIMO.Excel.LegacyXls.Biff.BiffRc4Encryption.EncryptWorkbookStream(bytes, password, salt);
+    internal byte[] WriteEncrypted(byte[] filePass, Func<byte[], byte[]> encrypt, long maximumBytes, ExcelNativeCalculationPolicy calculation = default) {
         return _changes != null && !calculation.ClearCachedResults && !calculation.RecalculateOnOpen
-            ? _source.Write(_changes, filePass, maximumBytes, CancellationToken.None, Encrypt)
-            : _source.WriteEdits(_document, _edits, filePass, maximumBytes, CancellationToken.None, Encrypt, _bindings, _calculationChanged, calculation);
+            ? _source.Write(_changes, filePass, maximumBytes, CancellationToken.None, encrypt)
+            : _source.WriteEdits(_document, _edits, filePass, maximumBytes, CancellationToken.None, encrypt, _bindings, _calculationChanged, calculation);
     }
 }

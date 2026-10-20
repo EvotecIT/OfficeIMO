@@ -28,7 +28,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
         }
         HtmlRenderFlowBlock listBlock = style.SemanticArtifact || style.SemanticGroupRoleOverride.HasValue
             ? block
-            : ApplyListSemantics(block, element, structureElementKey, GetSemanticSourceOrder(element));
+            : ApplyListSemantics(block, element, structureElementKey,
+                logicalOrder: GetSemanticSourceOrder(element), listStyleType: style.ListStyleType);
         HtmlRenderSemanticGroupRole role;
         if (style.SemanticArtifact) role = HtmlRenderSemanticGroupRole.Artifact;
         else if (style.SemanticGroupRoleOverride.HasValue) role = style.SemanticGroupRoleOverride.Value;
@@ -42,7 +43,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
             else return WrapEditableLayoutRegion(listBlock, element, style);
         }
         HtmlRenderFlowBlock semanticBlock = WrapSemanticBlock(listBlock, role,
-            HtmlRenderStyleResolver.DescribeSource(element), structureElementKey, GetSemanticSourceOrder(element));
+            HtmlRenderStyleResolver.DescribeSource(element), structureElementKey,
+            logicalOrder: GetSemanticSourceOrder(element), listStyleType: style.ListStyleType);
         return WrapEditableLayoutRegion(semanticBlock, element, style);
     }
 
@@ -135,7 +137,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
             ? HtmlRenderSemanticGroupRole.Artifact
             : style.SemanticGroupRoleOverride!.Value;
         HtmlRenderFlowBlock semanticBlock = WrapSemanticBlock(block, role,
-            HtmlRenderStyleResolver.DescribeSource(element), structureElementKey, GetSemanticSourceOrder(element));
+            HtmlRenderStyleResolver.DescribeSource(element), structureElementKey,
+            logicalOrder: GetSemanticSourceOrder(element), listStyleType: style.ListStyleType);
         return WrapEditableLayoutRegion(semanticBlock, element, style);
     }
 
@@ -271,19 +274,19 @@ internal sealed partial class HtmlRenderLayoutEngine {
 
         HtmlRenderFlowBlock semanticBlock = boundary.Style.SemanticArtifact || boundary.Style.SemanticGroupRoleOverride.HasValue
             ? block
-            : ApplyListSemantics(block, boundary.Element, boundary.StructureElementKey, logicalOrder);
+            : ApplyListSemantics(block, boundary.Element, boundary.StructureElementKey, logicalOrder, boundary.Style.ListStyleType);
         if (!boundary.Role.HasValue) return semanticBlock;
-        return WrapSemanticBlock(semanticBlock, boundary.Role.Value, boundary.Source, boundary.StructureElementKey, logicalOrder);
+        return WrapSemanticBlock(semanticBlock, boundary.Role.Value, boundary.Source, boundary.StructureElementKey, logicalOrder, boundary.Style.ListStyleType);
     }
 
     /// <summary>Preserves a semantic ancestor on ordinary, repeated-header and repeated-footer fragments.</summary>
     private static HtmlRenderFlowBlock WrapSemanticBlock(HtmlRenderFlowBlock block,
-        HtmlRenderSemanticGroupRole role, string? source, string? structureElementKey, int? logicalOrder = null) {
+        HtmlRenderSemanticGroupRole role, string? source, string? structureElementKey, int? logicalOrder = null, string? listStyleType = null) {
         IReadOnlyList<HtmlRenderVisual> Wrap(IReadOnlyList<HtmlRenderVisual> visuals, double height) =>
             new[] {
                 new HtmlRenderSemanticGroup(role, 0D, 0D,
                     Math.Max(0.01D, block.Width), Math.Max(0.01D, height), visuals,
-                    0, source, structureElementKey: structureElementKey, logicalOrder: logicalOrder)
+                    0, source, structureElementKey: structureElementKey, logicalOrder: logicalOrder, listStyleType: listStyleType)
             };
         return WrapSemanticFragments(block, Wrap);
     }

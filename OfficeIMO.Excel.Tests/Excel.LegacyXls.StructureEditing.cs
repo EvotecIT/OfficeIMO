@@ -7,6 +7,39 @@ using Xunit;
 namespace OfficeIMO.Tests;
 
 public sealed class ExcelLegacyStructureEditingTests {
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void Adding_empty_worksheets_preserves_row_and_column_layout_styles(bool explicitStyle) {
+        using var seed = ExcelDocument.Create();
+        var original = seed.AddWorksheet("Original");
+        original.CellValue(1, 1, 42);
+        original.CellAt(1, 1).SetNumberFormat("0.000");
+        using var document = ExcelDocument.Load(new MemoryStream(seed.ToBytes(ExcelFileFormat.Xls)));
+        uint style = explicitStyle
+            ? document.Sheets[0].WorksheetPart.Worksheet!.Descendants<Cell>().Single().StyleIndex!.Value : 0U;
+        var added = document.AddWorksheet("Layout only");
+        added.SetColumnWidth(2, 12.5);
+        added.SetRowHeight(3, 21);
+        if (explicitStyle) {
+            added.WorksheetPart.Worksheet!.GetFirstChild<Columns>()!.Elements<Column>().Single().Style = style;
+            var row = added.WorksheetPart.Worksheet.GetFirstChild<SheetData>()!.Elements<Row>().Single();
+            row.StyleIndex = style;
+            row.CustomFormat = true;
+        }
+        using var loaded = ExcelDocument.Load(new MemoryStream(document.ToBytes(ExcelFileFormat.Xls)));
+        var result = loaded.GetSheet("Layout only");
+        Assert.Equal(12.5, Assert.Single(result.GetColumnDefinitions()).Width);
+        Assert.Equal(21, Assert.Single(result.GetRowDefinitions()).Height);
+        var native = LegacyXlsWorkbook.Load(document.ToBytes(ExcelFileFormat.Xls));
+        var layout = native.Worksheets.Single(sheet => sheet.Name == "Layout only");
+        Assert.Empty(layout.Cells);
+        if (explicitStyle) {
+            Assert.Equal("0.000", native.CellFormats[Assert.Single(layout.Columns).StyleIndex].NumberFormatCode);
+            Assert.Equal("0.000", native.CellFormats[Assert.Single(layout.Rows).StyleIndex!.Value].NumberFormatCode);
+        }
+    }
+
     [Fact]
     public void Native_save_as_keeps_following_saves_on_the_selected_destination() {
         string root = Path.Combine(Path.GetTempPath(), "OfficeIMO-Xls-Association-" + Guid.NewGuid().ToString("N"));

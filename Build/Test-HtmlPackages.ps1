@@ -13,6 +13,7 @@ if (Test-Path -LiteralPath $workingPath) { throw "Choose a new artifact director
 $feedPath = Join-Path $workingPath 'feed'
 $configPath = Join-Path $workingPath 'nuget\nuget.config'
 $packagesPath = Join-Path $workingPath 'packages'
+$buildPath = Join-Path $workingPath 'build'
 New-Item -ItemType Directory -Path $feedPath -Force | Out-Null
 
 try {
@@ -41,9 +42,9 @@ try {
     # makes API compatibility compare its baseline against netstandard2.0 instead.
     $packFrameworks = '--property:TargetFrameworks="netstandard2.0;net8.0;net10.0;net472"'
     foreach ($project in $projects) {
-        dotnet restore $project $packFrameworks --no-http-cache
+        dotnet restore $project $packFrameworks --artifacts-path $buildPath --no-http-cache
         if ($LASTEXITCODE -ne 0) { throw "Restore failed for $project." }
-        dotnet pack $project --configuration Release --no-restore --output $feedPath --property:PackageVersion=$Version $packFrameworks
+        dotnet pack $project --configuration Release --artifacts-path $buildPath --no-restore --output $feedPath --property:PackageVersion=$Version $packFrameworks
         if ($LASTEXITCODE -ne 0) { throw "Pack failed for $project." }
     }
 
@@ -63,10 +64,10 @@ try {
     )
     $frameworks = if ($IsWindows) { @('net472', 'net8.0', 'net10.0') } else { @('net8.0', 'net10.0') }
     foreach ($projectPath in $consumerProjects) {
-        dotnet restore $projectPath @properties --configfile $configPath --packages $packagesPath --no-http-cache --force-evaluate
+        dotnet restore $projectPath @properties --artifacts-path $buildPath --configfile $configPath --packages $packagesPath --no-http-cache --force-evaluate
         if ($LASTEXITCODE -ne 0) { throw "Packed HTML consumer restore failed for $projectPath." }
         foreach ($framework in $frameworks) {
-            dotnet run --project $projectPath --configuration Release --framework $framework --no-restore @properties
+            dotnet run --project $projectPath --configuration Release --framework $framework --artifacts-path $buildPath --no-restore @properties
             if ($LASTEXITCODE -ne 0) { throw "Packed HTML consumer failed for $projectPath on $framework." }
         }
     }

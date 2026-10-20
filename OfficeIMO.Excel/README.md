@@ -500,7 +500,10 @@ document.SaveEncrypted(output, password, ExcelFileFormat.Xls);
 
 XLSX/XLSM and XLSB use Agile Office package encryption. XLSB contains a native
 BIFF12 package. XLS uses classic BIFF8 RC4/MD5 with a password of 1–15 UTF-16 code
-units. This legacy algorithm provides weak protection; choose XLSX or XLSB for
+units. Imported protected auxiliary entries retain RC4 CryptoAPI on encrypted
+saves, including password rotation, instead of becoming clear compound streams.
+Explicit plaintext output still restores those entries. These legacy algorithms
+provide weak protection; choose XLSX or XLSB for
 modern password-to-open encryption. XLS encryption does not encrypt VBA project
 streams or all compound-file metadata, as defined by the format. Retained pivot
 cache and revision BIFF streams are encrypted with their own stream positions and

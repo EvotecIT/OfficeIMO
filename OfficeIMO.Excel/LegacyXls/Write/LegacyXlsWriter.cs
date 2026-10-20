@@ -835,10 +835,11 @@ namespace OfficeIMO.Excel.LegacyXls.Write {
             LegacyXlsFormulaNameIndex formulaNameIndex,
             LegacyXlsSharedFormulaTable sharedFormulaTable,
             LegacyXlsArrayFormulaTable arrayFormulaTable,
-            LegacyXlsFontTable fontTable) {
+            LegacyXlsFontTable fontTable,
+            ushort? preservedStyleIndex = null) {
             DocumentFormat.OpenXml.Spreadsheet.CellValues? dataType = cell.DataType?.Value;
             string rawValue = cell.CellValue?.InnerText ?? string.Empty;
-            ushort styleIndex = styleTable.GetBiffStyleIndex(cell.StyleIndex?.Value);
+            ushort styleIndex = preservedStyleIndex ?? styleTable.GetBiffStyleIndex(cell.StyleIndex?.Value);
 
             if (cell.CellFormula != null) {
                 return ConvertFormulaCell(sheet, sheetIndex, cell, row, column, styleIndex, dateSystem, formulaNameIndex, sharedFormulaTable, arrayFormulaTable);

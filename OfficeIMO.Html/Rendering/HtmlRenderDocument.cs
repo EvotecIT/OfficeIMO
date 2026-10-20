@@ -13,7 +13,7 @@ public sealed class HtmlRenderDocument : global::OfficeIMO.IOfficeConversionRepo
     private readonly HtmlDiagnosticReport _diagnosticReport;
     private readonly IReadOnlyDictionary<int, HtmlRenderBookmarkDefinition>? _bookmarks;
 
-    internal HtmlRenderDocument(HtmlRenderMode mode, IEnumerable<HtmlRenderPage> pages, HtmlDiagnosticReport diagnostics, OfficeFontFaceCollection? fonts = null, HtmlRenderMetadata? metadata = null, IReadOnlyDictionary<int, HtmlRenderBookmarkDefinition>? bookmarks = null) {
+    internal HtmlRenderDocument(HtmlRenderMode mode, IEnumerable<HtmlRenderPage> pages, HtmlDiagnosticReport diagnostics, OfficeFontFaceCollection? fonts = null, HtmlRenderMetadata? metadata = null, IReadOnlyDictionary<int, HtmlRenderBookmarkDefinition>? bookmarks = null, int? sourceImagesMissingNames = null) {
         Mode = mode;
         _pages = new List<HtmlRenderPage>(pages ?? throw new ArgumentNullException(nameof(pages))).AsReadOnly();
         if (_pages.Count == 0) {
@@ -37,6 +37,7 @@ public sealed class HtmlRenderDocument : global::OfficeIMO.IOfficeConversionRepo
         }
         _fonts = fonts?.Clone() ?? new OfficeFontFaceCollection();
         _bookmarks = bookmarks;
+        SourceImagesMissingNames = sourceImagesMissingNames;
         Metadata = metadata ?? new HtmlRenderMetadata(null, null);
         _headings = BuildHeadings(_pages, bookmarks).AsReadOnly();
     }
@@ -70,6 +71,13 @@ public sealed class HtmlRenderDocument : global::OfficeIMO.IOfficeConversionRepo
 
     internal HtmlDiagnosticReport DiagnosticReport => _diagnosticReport;
 
+    // Captured before layout from the resolved source styles; selection and clipping
+    // do not change the source authoring contract. Null means no source was inspected.
+    internal int? SourceImagesMissingNames { get; }
+
+    internal HtmlRenderDocument WithSourceAccessibilityEvidence(int imagesMissingNames) =>
+        new(Mode, _pages, _diagnosticReport, _fonts, Metadata, _bookmarks, imagesMissingNames);
+
     /// <summary>Independent snapshot of scoped font faces retained for image and PDF backends.</summary>
     public OfficeFontFaceCollection Fonts => _fonts.Clone();
 
@@ -83,13 +91,13 @@ public sealed class HtmlRenderDocument : global::OfficeIMO.IOfficeConversionRepo
     public string Text => string.Join("\n", _pages.SelectMany(page => EnumerateLogicalText(page.Scene)));
 
     internal HtmlRenderDocument Project(IEnumerable<HtmlRenderPage> pages, HtmlRenderMode mode) =>
-        new(mode, pages, _diagnosticReport, _fonts, Metadata, _bookmarks);
+        new(mode, pages, _diagnosticReport, _fonts, Metadata, _bookmarks, SourceImagesMissingNames);
 
     internal HtmlRenderDocument WithAdditionalDiagnostics(IEnumerable<HtmlDiagnostic> diagnostics) {
         if (diagnostics == null) throw new ArgumentNullException(nameof(diagnostics));
         HtmlDiagnosticReport report = _diagnosticReport.Clone();
         report.AddRange(diagnostics);
-        return new HtmlRenderDocument(Mode, _pages, report, _fonts, Metadata, _bookmarks);
+        return new HtmlRenderDocument(Mode, _pages, report, _fonts, Metadata, _bookmarks, SourceImagesMissingNames);
     }
 
     private static IEnumerable<string> EnumerateLogicalText(IEnumerable<HtmlRenderVisual> visuals) {

@@ -1,0 +1,57 @@
+{
+  "schemaVersion": 1,
+  "producer": "Microsoft Excel for Mac",
+  "version": "16.113.4 (26100421)",
+  "locale": "pl-PL",
+  "generatedUtc": "2026-10-20T07:18:41.904123+00:00",
+  "method": "Self-authored QualifyNativeEmbedding run explicitly through native Macro dialog. Creates a separate workbook, inserts owned embedded-source.xlsx via OLEObjects.Add, saves plain XLS and CryptoAPI password-to-open XLS. Native output workbook has no macro project. No application security settings changed.",
+  "password": "test-password",
+  "expected": {
+    "title": "Native encrypted auxiliary control",
+    "subject": "Native encrypted nested storage",
+    "sheet": "Native",
+    "A1": "Native encrypted embedding control",
+    "B1": 42,
+    "B2": 8,
+    "B3": 50,
+    "B4": 1,
+    "sourcePackageMarker": "Owned embedded native control"
+  },
+  "encryptionProfile": {
+    "filePassVersion": "4.2",
+    "flags": "0x0c",
+    "propertyStreams": "plaintext",
+    "encryptedEntries": "one embedding storage; no document-property descriptors",
+    "nativeMirror": "same class/state and stream bytes outside encrypted container; root timestamps differ"
+  },
+  "limits": [
+    "Native-producer encrypted document properties are not qualified by this cohort. Both the explicit-provider and properties-only option calls returned error 5 (Invalid procedure call or argument); saved property streams are plaintext.",
+    "This qualifies an embedded XLSX package, not arbitrary OLE activation, links, ActiveX or every embedded server.",
+    "Stored marker and successful native SaveAs prove execution of the self-authored controller only."
+  ],
+  "regenerationSource": "Build/Verification/ExcelLegacyEmbeddingOracle.bas",
+  "files": {
+    "excel-native-embedding.plain.xls": "c629a05b1b6e25545ae00c9627064ef796c3d17b84c21aacc99407fe30977e5d",
+    "excel-native-embedding.encrypted.xls": "7a112d8517a597d73ac0222e1f79a0c35a457ea9e6c0d9a6b5e87f328d004307",
+    "embedded-source.xlsx": "1e62cd684583567846dcb3de30244b634d2d05022d841563d4eb9385e28bb85a",
+    "excel-embedding.edited-readback.xls": "179407fa00ced6a376d470048a9dba357832dd4bc32a01174bc0b1d97c34fb36",
+    "excel-embedding.rotated-readback.xls": "e54a2654e3503eb4a219e12b69c3cce54c114fd36e01b7258a5ec76df58c6c7f",
+    "excel-embedding.cryptoapi-readback.xls": "45b6c75f3ccda351a6c4b63a25b5e9541540b8623621964ebcc6a7273704e372"
+  },
+  "nativeConsumer": {
+    "sourceCandidate": "c7b307c104",
+    "operation": "OfficeIMO LoadEncrypted; add A2=Edited native embedding; replace B1 with formula 40+2 while retaining its native XF; save plain XLS and classic-RC4 XLS using new-password. Open each exact output in Excel without repair prompts, F9, SaveAs separate readback.",
+    "application": "Microsoft Excel for Mac 16.113.4 (26100421), pl-PL",
+    "observed": "Both opened without repair/file-error prompts. Public API readbacks retain A2, B1=42, B3=50, exact title/subject and the embedded XLSX marker/42.",
+    "encryptedReadbackPassword": "new-password",
+    "limits": "Accessibility observations and artifact readback; rendered geometry and embedded-server activation were not inspected."
+  },
+  "protectedOutputQualification": {
+    "operation": "Import native encrypted source; plain snapshot, cell/formula edits, SaveEncrypted using new-password retaining CryptoAPI and encrypted-only MBD. Exact output opened without repair in native Excel, active sheet recalculated and SaveAs readback verified through public API.",
+    "readback": "excel-embedding.cryptoapi-readback.xls",
+    "password": "new-password",
+    "beforeNative": "FilePass4.2; one encrypted storage descriptor; no clear MBD/Package streams; title/subject intentionally plaintext in source profile.",
+    "verified": "A2 exact edit, B1=42, B3=50, exact title/subject, embedded marker/42. Native readback may recreate a clear mirror.",
+    "excelRuntimeSha256": "74c5b34238d13769683b4dc1b960f620bc9ea5f596cc918501883c831978fc08"
+  }
+}

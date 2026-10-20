@@ -310,6 +310,8 @@ internal static partial class PdfWriter {
                                 markedContentId = RegisterTextStructureElement(structureType);
                             }
 
+                            if (line == 0 && currentOpts.CreateOutlineFromHeadings && currentPage!.Bookmarks.Count > 0)
+                                currentPage.Bookmarks[currentPage.Bookmarks.Count - 1].StructureElement = ResolveMarkedStructure(markedContentId);
                             AddHeadingLinkAnnotations(hb2, lines, headingFont, size, leading, xCol, wCol, firstBaseline, linkStructElementIndex, heights);
                             RecordFlowPlacement(yCol);
                             pageDirty = true;
@@ -387,6 +389,7 @@ internal static partial class PdfWriter {
                             int? listElementIndex = line == 0 || listItem.StructureElement == null
                                 ? EnsurePageStructureContainer("L", ref columnListStructureElementIndexes[ci], ref columnListStructurePages[ci])
                                 : null;
+                            if (listElementIndex.HasValue) currentPage!.StructElements[listElementIndex.Value].ListNumbering = listItem.ListNumbering;
                             int? listItemElementIndex = line == 0 || listItem.StructureElement == null
                                 ? RegisterStructureContainer("LI", listElementIndex)
                                 : null;
@@ -396,7 +399,7 @@ internal static partial class PdfWriter {
 
                             if (line == 0) {
                                 if (!string.IsNullOrEmpty(listItem.BookmarkName)) {
-                                    AddNamedDestinationName(listItem.BookmarkName!, yCol);
+                                    AddNamedDestinationName(listItem.BookmarkName!, yCol, listItem.StructureElement);
                                 }
 
                                 var markerLines = new System.Collections.Generic.List<string>(1) { listItem.Marker };
@@ -517,9 +520,10 @@ internal static partial class PdfWriter {
                             if (imageStyle.Align == PdfAlign.Center) xImg = xCol + Math.Max(0, (wCol - ciimg.Width) / 2);
                             else if (imageStyle.Align == PdfAlign.Right) xImg = xCol + Math.Max(0, wCol - ciimg.Width);
                             PageImage pageImage = CreatePageImage(ib2, imageStyle, xImg, yCol - ciimg.Height, ciimg.Width, ciimg.Height);
+                            RecordFlowPlacement(yCol);
+                            ReserveImageNavigationTarget(pageImage);
                             currentPage!.Images.Add(pageImage);
                             AddImageLinkAnnotation(ib2, imageStyle, pageImage, xImg, yCol - ciimg.Height, ciimg.Width, ciimg.Height);
-                            RecordFlowPlacement(yCol);
                             pageDirty = true;
                             yCol -= ciimg.Height + imageStyle.SpacingAfter; remain -= needed; consumed += needed; idx++;
                         } else if (it is ColShape cs) {
@@ -591,7 +595,6 @@ internal static partial class PdfWriter {
                             if (spacingBefore > 0) yCol -= spacingBefore;
                             double xField = GetAlignedObjectX(xCol, wCol, fieldWidth, GetFormFieldAlign(form.Block));
                             AddFormFieldAnnotation(form.Block, xField, yCol);
-                            RecordFlowPlacement(yCol);
                             pageDirty = true;
                             yCol -= fieldHeight + spacingAfter;
                             remain -= needed;

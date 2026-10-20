@@ -332,6 +332,7 @@ internal static partial class PdfWriter {
             pageImage.SuppressAccessibilityWrapper = _suppressCanvasAccessibilityWrappers;
             pageImage.StructureParentElement = _canvasStructureParentElement;
             pageImage.LogicalOrder = logicalOrder;
+            ReserveImageNavigationTarget(pageImage);
             currentPage!.Images.Add(pageImage);
             pageImage.InlineDrawToken = AllocateInlineImageDrawToken(currentPage);
             sb.Append(pageImage.InlineDrawToken);

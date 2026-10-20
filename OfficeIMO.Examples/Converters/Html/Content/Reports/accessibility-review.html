@@ -1,0 +1,67 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Service accessibility review</title>
+  <style>
+    @page { size: A4; margin: 42px; @bottom-center { content: "Page " counter(page) " of " counter(pages); } }
+    body { font: 12px Helvetica, sans-serif; line-height: 1.5; color: #233447; }
+    h1 { font-size: 26px; color: #163f63; }
+    h2 { font-size: 18px; margin-top: 24px; }
+    h3 { font-size: 14px; }
+    table { width: 100%; border-collapse: collapse; margin: 16px 0; }
+    th, td { border: 1px solid #a7b5c4; padding: 8px; text-align: left; }
+    thead { background: #edf3f8; }
+    figure { margin: 18px 0; }
+    figcaption { font-size: 11px; }
+    .next-page { break-before: page; }
+    .columns { columns: 2; column-gap: 28px; }
+    a { color: #164d8e; }
+  </style>
+</head>
+<body>
+<main>
+  <h1>Service accessibility review</h1>
+  <p>This report records three service checks and the next review actions.</p>
+  <h2 id="service-checks">Service checks</h2>
+  <table>
+    <caption>Checks completed this quarter</caption>
+    <thead><tr><th scope="col">Service</th><th scope="col">Owner</th><th scope="col">Status</th></tr></thead>
+    <tbody>
+      <tr><th scope="row">API</th><td>Engineering</td><td>Passed</td></tr>
+      <tr><th scope="row">Documents</th><td>Publishing</td><td>Passed</td></tr>
+      <tr><th scope="row">Support</th><td>Operations</td><td>Passed</td></tr>
+    </tbody>
+  </table>
+  <figure>
+    <svg role="img" aria-label="All three service checks passed" width="270" height="52" viewBox="0 0 270 52">
+      <rect x="0" y="4" width="78" height="40" fill="#24734b" />
+      <rect x="92" y="4" width="78" height="40" fill="#24734b" />
+      <rect x="184" y="4" width="78" height="40" fill="#24734b" />
+    </svg>
+    <figcaption>Three completed checks; the table gives each service and its owner.</figcaption>
+  </figure>
+  <svg role="presentation" width="400" height="2"><rect width="400" height="2" fill="#a7b5c4" /></svg>
+  <h2>Next actions</h2>
+  <ol>
+    <li>Review the report with assistive technology.</li>
+    <li>Confirm that table headers are announced with their cells.</li>
+    <li>Record the reader, screen reader and observed result.</li>
+  </ol>
+  <p><a href="#reading-review">Continue to the reading review</a>.</p>
+  <p><label for="reviewed">Reading review complete</label> <input type="checkbox" id="reviewed" name="reviewed"></p>
+  <section class="next-page" id="reading-review">
+    <h2>Reading review</h2>
+    <div class="columns">
+      <h3>First reading group</h3>
+      <p>Read this group before the second group. Column placement must retain the source reading sequence.</p>
+      <ul><li>Find the report heading.</li><li>Navigate to the service table.</li></ul>
+      <h3>Second reading group</h3>
+      <p>Read this group after the first group. <a href="#service-checks">Return to the service checks</a> if needed.</p>
+      <ul><li>Read the figure description.</li><li>Reach the labelled checkbox.</li></ul>
+    </div>
+    <p>Machine validation checks structure. A person still reviews reading order, descriptions and navigation.</p>
+  </section>
+</main>
+</body>
+</html>

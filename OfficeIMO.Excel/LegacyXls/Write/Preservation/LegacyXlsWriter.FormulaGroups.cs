@@ -68,7 +68,7 @@ internal static partial class LegacyXlsWriter {
                     if (result.TryGetValue(key, out var edit) && !edit.PreserveFormula) continue;
                     if (shared || preserveArray) {
                         encoding.NativeFormulaCells[key] = shared ? ExpandNativeSharedFormula(entry.Value, group.Record) : entry.Value;
-                        if (!result.ContainsKey(key)) result.Add(key, new LegacyXlsCellEdit(currentName, entry.Key, (Cell)cell.CloneNode(true), PreserveFormula: true));
+                        if (!result.ContainsKey(key)) result.Add(key, new LegacyXlsCellEdit(currentName, entry.Key, (Cell)cell.CloneNode(true), PreserveFormula: true, PreserveStyle: true));
                     }
                 }
                 if (!shared && !preserveArray) {
@@ -81,7 +81,7 @@ internal static partial class LegacyXlsWriter {
                         throw new NotSupportedException("Clear or replace the complete native array formula range before editing its members.");
                     foreach (var entry in cellIndex.Intersect(top, left, bottom, right))
                         if (!result.ContainsKey((currentName, entry.Key)))
-                            result.Add((currentName, entry.Key), new LegacyXlsCellEdit(currentName, entry.Key, (Cell)entry.Value.CloneNode(true)));
+                            result.Add((currentName, entry.Key), new LegacyXlsCellEdit(currentName, entry.Key, (Cell)entry.Value.CloneNode(true), PreserveStyle: true));
                 }
             }
             foreach (var edit in sheetEdits.Where(edit => edit.PreserveFormula))
@@ -108,7 +108,8 @@ internal static partial class LegacyXlsWriter {
                         if (!cells.TryGetValue(address, out var member)) throw new NotSupportedException("Every native array formula member requires a cell.");
                         var key = (sheet.Name, address);
                         encoding.NativeFormulaCells.Remove(key); encoding.FormulaCaches.Remove(key);
-                        result[key] = new LegacyXlsCellEdit(sheet.Name, address, (Cell)member.CloneNode(true));
+                        bool preserveStyle = !result.TryGetValue(key, out var previousEdit) || previousEdit.PreserveStyle;
+                        result[key] = new LegacyXlsCellEdit(sheet.Name, address, (Cell)member.CloneNode(true), PreserveStyle: preserveStyle);
                     }
                 }
             }

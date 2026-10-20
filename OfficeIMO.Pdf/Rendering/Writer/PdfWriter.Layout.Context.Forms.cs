@@ -15,7 +15,7 @@ internal static partial class PdfWriter {
             }
 
             double x = GetAlignedObjectX(containerX + currentOpts.MarginLeft - frameMarginLeft, containerWidth, block.Width, block.Align);
-            currentPage!.FormFields.Add(new FormFieldAnnotation {
+            AddFormFieldAnnotation(new FormFieldAnnotation {
                 X1 = x,
                 Y1 = y - block.Height,
                 X2 = x + block.Width,
@@ -26,7 +26,6 @@ internal static partial class PdfWriter {
                 FontSize = block.FontSize,
                 Style = block.Style
             });
-            RecordFlowPlacement(y);
             pageDirty = true;
             y -= block.Height + block.SpacingAfter;
         }
@@ -41,7 +40,7 @@ internal static partial class PdfWriter {
             }
 
             double x = GetAlignedObjectX(containerX + currentOpts.MarginLeft - frameMarginLeft, containerWidth, block.Size, block.Align);
-            currentPage!.FormFields.Add(new FormFieldAnnotation {
+            AddFormFieldAnnotation(new FormFieldAnnotation {
                 X1 = x,
                 Y1 = y - block.Size,
                 X2 = x + block.Size,
@@ -53,7 +52,6 @@ internal static partial class PdfWriter {
                 CheckedValueName = block.CheckedValueName,
                 Style = block.Style
             });
-            RecordFlowPlacement(y);
             pageDirty = true;
             y -= block.Size + block.SpacingAfter;
         }
@@ -68,7 +66,7 @@ internal static partial class PdfWriter {
             }
 
             double x = GetAlignedObjectX(containerX + currentOpts.MarginLeft - frameMarginLeft, containerWidth, block.Width, block.Align);
-            currentPage!.FormFields.Add(new FormFieldAnnotation {
+            AddFormFieldAnnotation(new FormFieldAnnotation {
                 X1 = x,
                 Y1 = y - block.Height,
                 X2 = x + block.Width,
@@ -83,7 +81,6 @@ internal static partial class PdfWriter {
                 AllowsMultipleSelection = block.AllowsMultipleSelection,
                 Style = block.Style
             });
-            RecordFlowPlacement(y);
             pageDirty = true;
             y -= block.Height + block.SpacingAfter;
         }
@@ -100,7 +97,7 @@ internal static partial class PdfWriter {
             }
 
             double x = GetAlignedObjectX(containerX + currentOpts.MarginLeft - frameMarginLeft, containerWidth, groupWidth, block.Align);
-            currentPage!.FormFields.Add(new FormFieldAnnotation {
+            AddFormFieldAnnotation(new FormFieldAnnotation {
                 X1 = x,
                 Y1 = y - height,
                 X2 = x + block.Size,
@@ -114,7 +111,6 @@ internal static partial class PdfWriter {
                 Style = block.Style
             });
             RenderRadioButtonLabels(block, x, y);
-            RecordFlowPlacement(y);
             pageDirty = true;
             y -= height + block.SpacingAfter;
         }
@@ -217,7 +213,7 @@ internal static partial class PdfWriter {
 
         private void AddFormFieldAnnotation(IPdfBlock block, double x, double topY) {
             if (block is TextFieldBlock textField) {
-                currentPage!.FormFields.Add(new FormFieldAnnotation {
+                AddFormFieldAnnotation(new FormFieldAnnotation {
                     X1 = x,
                     Y1 = topY - textField.Height,
                     X2 = x + textField.Width,
@@ -232,7 +228,7 @@ internal static partial class PdfWriter {
             }
 
             if (block is CheckBoxBlock checkBox) {
-                currentPage!.FormFields.Add(new FormFieldAnnotation {
+                AddFormFieldAnnotation(new FormFieldAnnotation {
                     X1 = x,
                     Y1 = topY - checkBox.Size,
                     X2 = x + checkBox.Size,
@@ -248,7 +244,7 @@ internal static partial class PdfWriter {
             }
 
             if (block is RadioButtonGroupBlock radioButtonGroup) {
-                currentPage!.FormFields.Add(new FormFieldAnnotation {
+                AddFormFieldAnnotation(new FormFieldAnnotation {
                     X1 = x,
                     Y1 = topY - radioButtonGroup.Height,
                     X2 = x + radioButtonGroup.Size,
@@ -266,7 +262,7 @@ internal static partial class PdfWriter {
             }
 
             ChoiceFieldBlock choice = (ChoiceFieldBlock)block;
-            currentPage!.FormFields.Add(new FormFieldAnnotation {
+            AddFormFieldAnnotation(new FormFieldAnnotation {
                 X1 = x,
                 Y1 = topY - choice.Height,
                 X2 = x + choice.Width,

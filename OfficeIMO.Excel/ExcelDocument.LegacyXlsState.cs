@@ -25,6 +25,7 @@ namespace OfficeIMO.Excel {
         private byte[]? _xlsbOriginalPackageBytes;
         private byte[]? _openXmlOriginalPackageBytes;
         private bool _legacyXlsWasEncryptedSource;
+        private readonly Dictionary<string, bool> _legacyXlsEncryptedSummaryEntries = new(StringComparer.OrdinalIgnoreCase);
         private XlsbWorkbook? _xlsbAdvancedWorkbook;
         private XlsbImportDiagnostic[] _xlsbImportDiagnostics = Array.Empty<XlsbImportDiagnostic>();
         private XlsbPreservedRecordInfo[] _xlsbPreservedRecords = Array.Empty<XlsbPreservedRecordInfo>();
@@ -124,6 +125,9 @@ namespace OfficeIMO.Excel {
 
         internal OfficeCompoundFile? LegacyXlsSourceCompoundFile => _legacyXlsSourceCompoundFile;
 
+        /// <summary>Keeps encryption intent across in-memory plaintext snapshots without retaining passwords or keys.</summary>
+        internal IReadOnlyDictionary<string, bool> LegacyXlsEncryptedSummaryEntries => _legacyXlsEncryptedSummaryEntries;
+
         internal void MarkLoadedFromLegacyXls(string? sourcePath, LegacyXlsWorkbook workbook, CancellationToken cancellationToken = default) {
             if (workbook == null) throw new ArgumentNullException(nameof(workbook));
 
@@ -137,6 +141,7 @@ namespace OfficeIMO.Excel {
             _legacyXlsCompoundFeatures = workbook.CompoundFeatureRecords.ToArray();
             _legacyXlsSourceCompoundFile = workbook.SourceCompoundFile;
             _legacyXlsWasEncryptedSource = workbook.WasEncryptedSource;
+            foreach (var entry in workbook.EncryptedSummaryEntries) _legacyXlsEncryptedSummaryEntries[entry.Key] = entry.Value;
             _packageDirty = false;
             _legacyXlsPreservationSnapshot = LegacyXlsPreservationSnapshot.Capture(this, workbook, cancellationToken);
             _openXmlOriginalPackageBytes = null;

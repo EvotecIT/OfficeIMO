@@ -14,7 +14,6 @@ internal static partial class LegacyXlsWriter {
         var fonts = LegacyXlsFontTable.CreatePreserving(document, source);
         if (source.Fonts.Count != records.Count(record => record.Type == 0x0031))
             throw new NotSupportedException("The original font table is incomplete.");
-        var styles = LegacyXlsStyleTable.CreatePreserving(document, sheets, fonts, records);
         var externs = LegacyXlsExternSheetTable.CreatePreserving(document, sheets, records, nativeSheets);
         var globals = new Dictionary<string, uint>(StringComparer.OrdinalIgnoreCase);
         var locals = new Dictionary<string, uint>(StringComparer.OrdinalIgnoreCase);
@@ -32,6 +31,40 @@ internal static partial class LegacyXlsWriter {
         var dummyStrings = new LegacyXlsSharedStringTable(Array.Empty<LegacyXlsSharedStringEntry>(), 0);
         foreach (var edit in edits.Where(edit => edit.CacheOnly)) result.FormulaCaches.Add((edit.Sheet, edit.Address), edit.Cell!);
         edits = ExpandFormulaGroups(document, source, records, edits.Where(edit => !edit.CacheOnly).ToArray(), result, token, structure);
+        var originalStyles = new Dictionary<(string Sheet, string Address), ushort>();
+        var requestedStyles = new Dictionary<string, Dictionary<(int Row, int Column), string>>(StringComparer.Ordinal);
+        foreach (var edit in edits.Where(edit => edit.PreserveStyle)) {
+            token.ThrowIfCancellationRequested();
+            ParseCellReference(edit.Address, out uint row, out int column);
+            if (!requestedStyles.TryGetValue(edit.Sheet, out var requested))
+                requestedStyles.Add(edit.Sheet, requested = new());
+            requested[(checked((int)row), column)] = edit.Address;
+        }
+        foreach (var sheet in source.Worksheets) {
+            string currentName = structure?.CurrentName(sheet.Name) ?? (structure == null ? sheet.Name : string.Empty);
+            if (!requestedStyles.TryGetValue(currentName, out var requested)) continue;
+            foreach (var cell in sheet.Cells) {
+                token.ThrowIfCancellationRequested();
+                if (requested.TryGetValue((cell.Row, cell.Column), out string? address))
+                    originalStyles[(currentName, address)] = cell.StyleIndex;
+            }
+        }
+        ushort? PreservedStyle(LegacyXlsCellEdit edit) => edit.PreserveStyle
+            && originalStyles.TryGetValue((edit.Sheet, edit.Address), out ushort index) ? index : null;
+        // Unchanged native XFs can carry opaque theme/font metadata. Only encode
+        // styles needed by new cells or actual style edits; retain native indices
+        // per cell, including distinct native XFs with identical projections.
+        var requiredStyles = new HashSet<uint>(edits.Where(edit => edit.Cell != null && !PreservedStyle(edit).HasValue)
+            .Select(edit => edit.Cell!.StyleIndex?.Value ?? 0U));
+        // New sheets serialize their layout as well as their cells. Row/column
+        // definitions can reference styles even when the sheet has no cells.
+        if (structure != null) foreach (var binding in structure.Bindings.Where(binding => binding.Original == null)) {
+            var sheet = sheets.Single(sheet => sheet.Name == binding.Name);
+            foreach (var column in sheet.GetColumnDefinitions()) requiredStyles.Add(column.StyleIndex ?? 0U);
+            foreach (var row in sheet.GetRowDefinitions()) requiredStyles.Add(row.StyleIndex ?? 0U);
+        }
+        var styles = LegacyXlsStyleTable.CreatePreserving(document, sheets, fonts, records,
+            requiredStyles);
         var convertedBySheet = new Dictionary<string, List<LegacyXlsCell>>(StringComparer.Ordinal);
         foreach (var group in edits.GroupBy(edit => edit.Sheet)) {
             int index = Array.FindIndex(sheets, sheet => sheet.Name == group.Key);
@@ -48,13 +81,14 @@ internal static partial class LegacyXlsWriter {
                     throw new NotSupportedException("Native XLS cells require rows 1–65536 and columns 1–256.");
                 if (result.NativeFormulaCells.TryGetValue((edit.Sheet, edit.Address), out var native)) {
                     var retained = native.ToArray(); byte[] payload = (byte[])retained[0].Payload.Clone();
-                    WriteUInt16(payload, 4, styles.GetBiffStyleIndex(edit.Cell.StyleIndex?.Value));
+                    WriteUInt16(payload, 4, PreservedStyle(edit) ?? styles.GetBiffStyleIndex(edit.Cell.StyleIndex?.Value));
                     retained[0] = new BiffRecord(retained[0].Type, retained[0].Offset, payload);
                     result.Cells.Add((edit.Sheet, edit.Address), EncodePreservedFormulaCache(sheet, edit.Cell, retained, document.DateSystem, structure?.NameIndexes));
                     continue;
                 }
                 var converted = ConvertCell(sheet, document.WorkbookPartRoot, index, edit.Cell,
-                    checked((ushort)(row - 1)), checked((ushort)(column - 1)), styles, document.DateSystem, names, shared, arrays, fonts);
+                    checked((ushort)(row - 1)), checked((ushort)(column - 1)), styles, document.DateSystem, names, shared, arrays, fonts,
+                    PreservedStyle(edit));
                 if (!converted.HasValue) { result.Cells.Add((edit.Sheet, edit.Address), Array.Empty<BiffRecord>()); continue; }
                 var cell = converted.Value;
                 if (cell.Kind == LegacyXlsCellKind.Text) {
@@ -103,7 +137,8 @@ internal static partial class LegacyXlsWriter {
         BuildDbCellPayload(firstRow, firstCells, position);
 }
 
-internal sealed record LegacyXlsCellEdit(string Sheet, string Address, Cell? Cell, bool CacheOnly = false, bool PreserveFormula = false);
+internal sealed record LegacyXlsCellEdit(string Sheet, string Address, Cell? Cell, bool CacheOnly = false,
+    bool PreserveFormula = false, bool PreserveStyle = false);
 internal sealed record LegacyXlsPreservedString(string Text, IReadOnlyList<LegacyXlsTextFormattingRun> Runs);
 internal sealed class LegacyXlsEditEncoding {
     internal LegacyXlsEditEncoding(LegacyXlsExternSheetTable externs) { Externs = externs; }

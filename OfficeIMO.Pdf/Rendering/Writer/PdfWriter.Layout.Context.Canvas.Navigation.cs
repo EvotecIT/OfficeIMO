@@ -12,7 +12,8 @@ internal static partial class PdfWriter {
                 Title = item.Title,
                 Y = point.Y,
                 OutlineState = item.State,
-                DocumentOrder = item.DocumentOrder, X = point.X, Uri = item.Uri
+                DocumentOrder = item.DocumentOrder, X = point.X, Uri = item.Uri,
+                StructureElement = _canvasStructureParentElement, StructureElementKey = item.StructureElementKey
             });
             pageDirty = true;
         }
@@ -21,7 +22,7 @@ internal static partial class PdfWriter {
             EnsurePage();
             OfficePoint point = _canvasEffectToPage.TransformPoint(
                 new OfficePoint(item.X, currentOpts.PageHeight - item.Y));
-            currentPage!.NamedDestinations.Add(new PageNamedDestination { Name = item.Name, X = point.X, Y = point.Y });
+            currentPage!.NamedDestinations.Add(new PageNamedDestination { Name = item.Name, X = point.X, Y = point.Y, StructureElement = _canvasStructureParentElement });
         }
 
     }
