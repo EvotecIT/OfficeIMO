@@ -102,7 +102,10 @@ public sealed class WorkflowContractCmdletTests {
                 $invoice | Save-OfficeInvoice -Path $xml
                 $invoice = Get-OfficeInvoice -Path $xml
                 $invoice | Get-OfficeInvoiceLine -Id 1 | Set-OfficeInvoiceLine -Quantity 3
+                $invoice | Set-OfficeInvoice -TaxCurrency PLN -TaxAmountInAccountingCurrency 200
                 $invoice | Set-OfficeInvoice -RecalculateTotals
+                if ($null -ne $invoice.TaxAmountInAccountingCurrency) { throw 'Stale accounting VAT survived recalculation' }
+                $invoice | Set-OfficeInvoice -TaxCurrency $null
                 $invoice | Export-OfficeInvoicePdf -Path $pdf -WhatIf
                 if (Test-Path -LiteralPath $pdf) { throw 'WhatIf wrote a hybrid PDF' }
                 $invoice | Export-OfficeInvoicePdf -Path $pdf
@@ -136,6 +139,11 @@ public sealed class WorkflowContractCmdletTests {
                     $rejected = $false
                     try { Get-OfficeEpub -Path 'Env:/PATH' -ErrorAction Stop } catch { $rejected = $_.Exception.Message -like '*filesystem*' }
                     if (-not $rejected) { throw 'Non-filesystem provider was accepted' }
+                    foreach ($command in 'Get-OfficeCsv', 'Import-OfficeCsv', 'Get-OfficeDocumentBatch') {
+                        $rejected = $false
+                        try { & $command -Path 'Env:/*' -ErrorAction Stop } catch { $rejected = $_.Exception.Message -like '*filesystem*' }
+                        if (-not $rejected) { throw "$command accepted a non-filesystem discovery provider" }
+                    }
                 } finally { Remove-PSDrive AuditFiles }
                 """);
             var output = shell.Invoke();

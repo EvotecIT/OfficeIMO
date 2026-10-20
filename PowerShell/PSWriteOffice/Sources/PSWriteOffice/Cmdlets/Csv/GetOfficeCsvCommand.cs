@@ -388,7 +388,7 @@ public sealed class GetOfficeCsvCommand : PSCmdlet
                 continue;
             }
 
-            var resolvedPaths = SessionState.Path.GetResolvedProviderPathFromPSPath(path, out _);
+            var resolvedPaths = OfficeFileCommandUtilities.ResolveWildcardPaths(this, path);
             foreach (var resolvedPath in resolvedPaths)
             {
                 yield return resolvedPath;

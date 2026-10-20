@@ -8,6 +8,28 @@ namespace PSWriteOffice.Tests;
 
 [Collection(PowerShellRunspaceCollection.Name)]
 public sealed class NativeFamilyCmdletTests {
+    [Fact]
+    public void InvoiceLineIdentityGenerationAvoidsExistingNonSequentialIds() {
+        using var runspace = CreateRunspace();
+        using var shell = PowerShell.Create();
+        shell.Runspace = runspace;
+        shell.AddScript("""
+            $seller = New-OfficeInvoiceParty -Name Seller -CountryCode DE
+            $buyer = New-OfficeInvoiceParty -Name Buyer -CountryCode DE
+            $invoice = New-OfficeInvoice -Number INV-001 -IssueDate 2026-10-20 -Seller $seller -Buyer $buyer
+            $invoice | Add-OfficeInvoiceLine -Id 1 -Name First -Quantity 1 -UnitPrice 10 -TaxRate 19
+            $invoice | Add-OfficeInvoiceLine -Id 3 -Name Third -Quantity 1 -UnitPrice 10 -TaxRate 19
+            $invoice | Add-OfficeInvoiceLine -Name Automatic -Quantity 1 -UnitPrice 10 -TaxRate 19
+            $rejected = $false
+            try { $invoice | Add-OfficeInvoiceLine -Id 1 -Name Duplicate -Quantity 1 -UnitPrice 10 -ErrorAction Stop } catch { $rejected = $true }
+            if (-not $rejected) { throw 'Duplicate identity was accepted' }
+            $invoice | Get-OfficeInvoiceLine
+            """);
+        var output = shell.Invoke();
+        Assert.Empty(shell.Streams.Error);
+        Assert.Equal(new[] { "1", "3", "2" }, output.Select(item => Assert.IsType<InvoiceLine>(item.BaseObject).Id));
+    }
+
     [Theory]
     [InlineData("Accdb", ".accdb")]
     [InlineData("Mdb", ".mdb")]

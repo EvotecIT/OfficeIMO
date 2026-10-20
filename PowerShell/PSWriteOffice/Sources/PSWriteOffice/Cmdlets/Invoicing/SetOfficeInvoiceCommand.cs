@@ -32,6 +32,14 @@ public sealed class SetOfficeInvoiceCommand : PSCmdlet {
     [Parameter]
     public string? Currency { get; set; }
 
+    /// <summary>Accounting VAT currency. Changing it invalidates its previously declared amount.</summary>
+    [Parameter]
+    public string? TaxCurrency { get; set; }
+
+    /// <summary>Explicit VAT amount in the accounting currency; no exchange rate is inferred.</summary>
+    [Parameter]
+    public decimal? TaxAmountInAccountingCurrency { get; set; }
+
     /// <summary>Replacement seller.</summary>
     [Parameter]
     public InvoiceParty? Seller { get; set; }
@@ -58,6 +66,8 @@ public sealed class SetOfficeInvoiceCommand : PSCmdlet {
         if (RecalculateTotals.IsPresent) {
             Invoice.ClearDeclaredAmounts();
         }
+        if (MyInvocation.BoundParameters.ContainsKey(nameof(TaxCurrency))) Invoice.TaxCurrency = TaxCurrency;
+        if (MyInvocation.BoundParameters.ContainsKey(nameof(TaxAmountInAccountingCurrency))) Invoice.TaxAmountInAccountingCurrency = TaxAmountInAccountingCurrency;
         if (PassThru.IsPresent) WriteObject(Invoice);
     }
 }

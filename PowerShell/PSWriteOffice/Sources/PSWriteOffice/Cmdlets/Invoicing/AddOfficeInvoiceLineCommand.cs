@@ -55,11 +55,11 @@ public sealed class AddOfficeInvoiceLineCommand : PSCmdlet {
     /// <inheritdoc />
     protected override void ProcessRecord() {
         var line = new InvoiceLine {
-            Id = Id ?? (Invoice.Lines.Count + 1).ToString(System.Globalization.CultureInfo.InvariantCulture),
+            Id = Id ?? string.Empty,
             Name = Name, Quantity = Quantity, UnitPrice = UnitPrice,
             Tax = new InvoiceTaxCategory { Code = TaxCategory, Rate = TaxRate, ExemptionReason = ExemptionReason }
         };
-        Invoice.Lines.Add(line);
+        Invoice.AddLine(line);
         if (PassThru.IsPresent) WriteObject(line);
     }
 }

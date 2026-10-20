@@ -23,7 +23,7 @@ internal static class ReaderCommandUtilities
     {
         try
         {
-            var resolved = cmdlet.SessionState.Path.GetResolvedProviderPathFromPSPath(path, out _);
+            var resolved = OfficeFileCommandUtilities.ResolveWildcardPaths(cmdlet, path);
             return resolved.Count > 0
                 ? resolved.ToArray()
                 : new[] { ResolvePath(cmdlet, path) };

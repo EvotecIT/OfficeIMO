@@ -70,13 +70,6 @@ public static partial class WordDocumentService
         {
             document.Dispose();
         }
-        catch (Exception ex)
-        {
-            if (ex.InnerException?.Message != "Memory stream is not expandable.")
-            {
-                throw;
-            }
-        }
         finally
         {
             Associations.Remove(document);
