@@ -86,7 +86,7 @@ public static partial class WordPdfConverterExtensions {
             if (!CanProjectNativePageNoteReference(reference) ||
                 reference.Ancestors<W.SdtRun>().Any(control => !CanProjectNativePageNoteControl(control)) ||
                 reference.Ancestors<W.Paragraph>().FirstOrDefault()?.Descendants<DocumentFormat.OpenXml.Math.OfficeMath>().Any() == true ||
-                !CanProjectNativePageNote(source)) {
+                !CanProjectNativePageNote(source, section, defaults, fonts)) {
                 qualified = false;
             }
             NativeNoteKey key = GetNativeFootnoteKey(id);
@@ -101,8 +101,9 @@ public static partial class WordPdfConverterExtensions {
         }
         W.Footnote? separator = part?.Elements<W.Footnote>().FirstOrDefault(note => note.Type?.Value == W.FootnoteEndnoteValues.Separator);
         W.Footnote? continuation = part?.Elements<W.Footnote>().FirstOrDefault(note => note.Type?.Value == W.FootnoteEndnoteValues.ContinuationSeparator);
-        if (separator != null && !CanProjectNativePageNote(separator) ||
-            continuation != null && !CanProjectNativePageNote(continuation)) {
+        if (separator != null && !CanProjectNativePageNote(separator, section, defaults, fonts) ||
+            continuation != null && !CanProjectNativePageNote(continuation, section, defaults, fonts)) {
+            notes.ReportPlacementFallback();
             foreach (var source in sources) ReportNativeFootnoteFallbackContent(source.Source, options);
             if (separator != null) ReportNativeFootnoteFallbackContent(separator, options);
             if (continuation != null) ReportNativeFootnoteFallbackContent(continuation, options);
@@ -175,7 +176,8 @@ public static partial class WordPdfConverterExtensions {
         IsNativeSimpleTextContentControl(control) &&
         (control.SdtProperties == null || !IsNativePropertyBoundStructuredBlock(control.SdtProperties));
 
-    private static bool CanProjectNativePageNote(W.Footnote note) {
+    private static bool CanProjectNativePageNote(W.Footnote note, WordSection section,
+        NativeDocumentDefaults defaults, NativeFontMap fonts) {
         // This profile is ordinary paragraph flow with inline images and links.
         // Native tables, floating objects, recursive notes and active fields retain
         // the explicitly reported section-flow fallback until their owner qualifies them.
@@ -195,6 +197,13 @@ public static partial class WordPdfConverterExtensions {
                     data.Elements<DocumentFormat.OpenXml.Drawing.Pictures.Picture>().Count() != 1) return false;
             }
         }
+        defaults = CreateNativeNoteStoryDefaults(defaults, section, label: null);
+        foreach (W.Paragraph source in note.Elements<W.Paragraph>()) {
+            // Match the style actually sent to the PDF owner, including the
+            // paragraph's inherited style and explicit false overrides.
+            PdfCore.PdfParagraphStyle style = CreateNativeParagraphStyle(new WordParagraph(section._document, source), defaults, fonts);
+            if (style.KeepWithNext || style.AnchoredCanvas != null) return false;
+        }
         return true;
     }
 
@@ -208,8 +217,7 @@ public static partial class WordPdfConverterExtensions {
     private static void RenderNativeNoteStory(PdfCore.PdfContentBuilder content, W.Footnote source,
         WordSection section, NativeNoteNumbering notes, WordToPdfOptions? options,
         NativeDocumentDefaults defaults, NativeFontMap fonts, string? label) {
-        defaults = defaults with { NoteContentSection = section, NoteBodyLabel = label,
-            BodyTextInkTopOffset = null, RunningContentContext = null, RunningContentSection = null };
+        defaults = CreateNativeNoteStoryDefaults(defaults, section, label);
         IReadOnlyList<W.Paragraph> paragraphs = source.Elements<W.Paragraph>().ToList();
         double previousAfter = 0D;
         for (int index = 0; index < paragraphs.Count; index++) {
@@ -243,4 +251,10 @@ public static partial class WordPdfConverterExtensions {
             content.Paragraph(builder => builder.Runs(projected), ResolveNativeParagraphAlign(paragraph, allowJustify: true), style: style);
         }
     }
+
+    private static NativeDocumentDefaults CreateNativeNoteStoryDefaults(NativeDocumentDefaults defaults,
+        WordSection section, string? label) => defaults with {
+            NoteContentSection = section, NoteBodyLabel = label,
+            BodyTextInkTopOffset = null, RunningContentContext = null, RunningContentSection = null
+        };
 }

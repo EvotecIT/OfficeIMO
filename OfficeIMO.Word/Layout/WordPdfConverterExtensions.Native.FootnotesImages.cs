@@ -108,7 +108,7 @@ namespace OfficeIMO.Word.Pdf {
                 .Elements<W.Footnote>().FirstOrDefault(note => note.Id?.Value == referenceId);
             footnotes.Add(new PdfFootnote {
                 Label = footnoteNumbersById.Add(key, endnote: false),
-                Text = string.Join(" ", source?.Descendants<W.Paragraph>().Select(p => p.InnerText)
+                Text = string.Join(" ", source?.Descendants<W.Paragraph>().Select(WordParagraph.ReadVisibleText)
                     ?? Enumerable.Empty<string>())
             });
         }
@@ -130,7 +130,7 @@ namespace OfficeIMO.Word.Pdf {
                 .Elements<W.Endnote>().FirstOrDefault(note => note.Id?.Value == referenceId);
             footnotes.Add(new PdfFootnote {
                 Label = footnoteNumbersById.Add(key, endnote: true),
-                Text = string.Join(" ", source?.Descendants<W.Paragraph>().Select(p => p.InnerText)
+                Text = string.Join(" ", source?.Descendants<W.Paragraph>().Select(WordParagraph.ReadVisibleText)
                     ?? Enumerable.Empty<string>()),
                 IsEndnote = true
             });
