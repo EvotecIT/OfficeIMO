@@ -93,6 +93,7 @@ export function operationalSummary(count) {
  * Build one report from caller-owned summary metadata and a single-use selected row source.
  * Hosts can pass the returned blocks/options to either PDF delivery API. Graphics are supplied
  * by their existing owner; this example does not render charts or inspect a live grid.
+ * Column keys identify service roles; display headings may be translated or renamed.
  */
 export async function serviceReliabilityDocument(api, { input, rows, signal, onProgress, columns = reportColumns }) {
   if (!input.fonts?.regular || !input.fonts?.bold) throw new TypeError("PDF requires the example's embedded regular and bold fonts.");
@@ -101,8 +102,9 @@ export async function serviceReliabilityDocument(api, { input, rows, signal, onP
   for (const key of ["total", "Healthy", "Attention", "Offline"])
     if (!Number.isSafeInteger(summary[key]) || summary[key] < 0) throw new TypeError("Report summary requires nonnegative integer service counts.");
   if (summary.Healthy + summary.Attention + summary.Offline !== summary.total) throw new TypeError("Report summary counts must match its total.");
-  const statusColumn = columns.findIndex(column => column.header === "Status");
-  if (statusColumn < 0) throw new TypeError("The service report requires its Status column.");
+  const statusColumns = columns.map((column, index) => column.key === "status" ? index : -1).filter(index => index >= 0);
+  if (statusColumns.length !== 1) throw new TypeError("The service report requires one selected column with key 'status'.");
+  const statusColumn = statusColumns[0];
   const fonts = { regular: await api.PdfFont.create(input.fonts.regular, { signal }), bold: await api.PdfFont.create(input.fonts.bold, { signal }) };
   const decimal = new Intl.NumberFormat("en", { minimumFractionDigits: 1, maximumFractionDigits: 1 });
   const percent = new Intl.NumberFormat("en", { style: "percent", minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -142,10 +144,10 @@ export async function serviceReliabilityDocument(api, { input, rows, signal, onP
       formatRuns(value, context) {
         if (context.columnIndex === statusColumn) return [{ text: String(value), bold: true,
           color: value === "Offline" ? "991B1B" : value === "Attention" ? "92400E" : "166534" }];
-        const header = columns[context.columnIndex].header;
+        const key = columns[context.columnIndex].key;
         return [{ text: value instanceof Date ? value.toISOString().slice(0, 16).replace("T", " ")
-          : header === "Latency (ms)" && typeof value === "number" ? decimal.format(value)
-          : header === "Availability" && typeof value === "number" ? percent.format(value) : String(value ?? "") }];
+          : key === "latency" && typeof value === "number" ? decimal.format(value)
+          : key === "availability" && typeof value === "number" ? percent.format(value) : String(value ?? "") }];
       } }), caption: { text: "Table 1. Selected service inventory; check times are UTC.", style: "caption" } };
     yield { kind: "section", title: "Next actions", level: 2, headingStyle: "sectionHeading" };
     yield { kind: "paragraph", style: "body", text: "Assign an owner to each unresolved finding, retain the selected inventory, and compare the next review against the same scope." };
