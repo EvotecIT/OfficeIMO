@@ -145,9 +145,12 @@ separate contract.
 
 Native Excel opens the encrypted pivot control with its total of 13,210 and
 retained chart, and opens and saves a writable copy of the revision control.
-Revision-history UI editing is not qualified on macOS. CryptoAPI encrypted-summary
-metadata and nested storage have bounded synthetic and independent cipher-vector
-coverage; native-producer qualification of that metadata profile is not included.
+Revision-history UI editing is not qualified on macOS. Native Excel also opens
+and saves the encrypted CryptoAPI document-property control, retaining its title,
+subject, charts and plaintext VBA hosts. Generic encrypted nested-storage
+restoration has bounded synthetic and independent cipher-vector coverage;
+native-producer qualification of encrypted metadata and native encrypted
+nested-storage qualification are not included.
 
 ## Detailed import assessment
 

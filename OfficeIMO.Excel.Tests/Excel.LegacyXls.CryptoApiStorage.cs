@@ -11,10 +11,13 @@ namespace OfficeIMO.Tests;
 
 public sealed class ExcelLegacyCryptoApiStorageTests {
     [Fact]
-    public void Encrypted_summary_restores_VBA_storage_metadata_and_supports_plaintext_save_and_password_rotation() {
+    public void Encrypted_summary_restores_nested_storage_metadata_and_supports_plaintext_save_and_password_rotation() {
         string path = Path.Combine(RepositoryTestPaths.Find(), "OfficeIMO.TestAssets", "Documents", "ExcelPreservationCorpus", "excel-populated-macro.xls");
         byte[] source = File.ReadAllBytes(path);
         byte[] encrypted = EncryptWithSummary(source, out OfficeCompoundFile original, out Guid storageClassId);
+        Assert.True(OfficeCompoundFileReader.TryRead(encrypted, out OfficeCompoundFile? encryptedCompound, out string? encryptedError), encryptedError);
+        foreach (var stream in original.Streams.Where(item => item.Key.StartsWith("_VBA_PROJECT_CUR/", StringComparison.OrdinalIgnoreCase)))
+            Assert.Equal(stream.Value, encryptedCompound!.Streams[stream.Key]);
         using var document = ExcelDocument.LoadEncrypted(new MemoryStream(encrypted), "test-password");
         document.Sheets[0].CellValue(1, 1, "CryptoAPI restored storage");
         byte[] plain = document.ToBytes(ExcelFileFormat.Xls);
@@ -23,9 +26,10 @@ public sealed class ExcelLegacyCryptoApiStorageTests {
         Assert.DoesNotContain(BiffRecordReader.ReadRecords(result.Streams["Workbook"], new()), item => item.Type == 0x002f);
         foreach (var stream in original.Streams.Where(item => item.Key.StartsWith("_VBA_PROJECT_CUR/", StringComparison.OrdinalIgnoreCase)))
             Assert.Equal(stream.Value, result.Streams[stream.Key]);
-        var storage = Assert.Single(result.Entries, entry => entry.Path == "_VBA_PROJECT_CUR");
+        var storage = Assert.Single(result.Entries, entry => entry.Path == "ProofStorage");
         Assert.Equal(storageClassId, storage.ClassId);
         Assert.Equal(0x12345678U, storage.StateBits);
+        Assert.Equal(Encoding.UTF8.GetBytes("Inert encrypted nested payload"), result.Streams["ProofStorage/Nested/Contents"]);
         using var output = new MemoryStream(); document.SaveEncrypted(output, "new-password", ExcelFileFormat.Xls);
         using var reloaded = ExcelDocument.LoadEncrypted(output, "new-password");
         Assert.Equal("CryptoAPI restored storage", reloaded.Sheets[0].CellAt(1, 1).GetValue<string>());
@@ -41,6 +45,30 @@ public sealed class ExcelLegacyCryptoApiStorageTests {
         Assert.Throws<InvalidDataException>(() => ExcelDocument.LoadEncrypted(new MemoryStream(damaged), "test-password"));
     }
 
+    [Theory]
+    [InlineData("officeimo-cryptoapi-summary.xls")]
+    [InlineData("excel-cryptoapi-summary-readback.xls")]
+    public void Native_consumer_readback_retains_encrypted_property_values_and_inert_VBA(string filename) {
+        string path = Path.Combine(RepositoryTestPaths.Find(), "OfficeIMO.TestAssets", "Documents", "ExcelPreservationCorpus", filename);
+        byte[] bytes = File.ReadAllBytes(path);
+        Assert.True(OfficeCompoundFileReader.TryRead(bytes, out OfficeCompoundFile? raw, out string? error), error);
+        Assert.All(raw!.Streams.Keys.Where(name => name.StartsWith("_VBA_PROJECT_CUR/", StringComparison.OrdinalIgnoreCase)),
+            name => Assert.NotEmpty(raw.Streams[name]));
+        if (filename.StartsWith("officeimo", StringComparison.Ordinal)) {
+            Assert.True(raw.Streams.ContainsKey("encryption"));
+            Assert.False(raw.Streams.ContainsKey("\u0005SummaryInformation"));
+        }
+        using var document = ExcelDocument.LoadEncrypted(new MemoryStream(bytes), "test-password");
+        Assert.Equal("Encrypted summary native control", document.BuiltinDocumentProperties.Title);
+        Assert.Equal("Nested inert VBA storage acceptance", document.BuiltinDocumentProperties.Subject);
+        Assert.Equal(10, document.Sheets.Count); Assert.Equal(4, document.LegacyXlsChartSheets.Count);
+        var native = LegacyXlsWorkbook.Load(bytes, new() { Password = "test-password" });
+        var projectStorage = OfficeCompoundStorage.Extract(native.SourceCompoundFile!, "_VBA_PROJECT_CUR");
+        var project = OfficeIMO.OfficeVbaProject.Load(OfficeCompoundFileWriter.Rewrite(projectStorage, new Dictionary<string, byte[]>()));
+        Assert.Contains(project.Modules, module => module.Name == "PreservationNotes");
+        Assert.Contains(project.Modules, module => module.Name == "DataCode1");
+    }
+
     private static byte[] EncryptWithSummary(byte[] bytes, out OfficeCompoundFile original, out Guid storageClassId) {
         Assert.True(OfficeCompoundFileReader.TryRead(bytes, out OfficeCompoundFile? compound, out string? error), error);
         original = compound!;
@@ -52,14 +80,15 @@ public sealed class ExcelLegacyCryptoApiStorageTests {
         byte[] prepared = new LegacyXlsPreservingWorkbook(model, CancellationToken.None)
             .Write(Array.Empty<LegacyXlsLiteralEdit>(), filePass, int.MaxValue, CancellationToken.None);
         Assert.True(OfficeCompoundFileReader.TryRead(prepared, out OfficeCompoundFile? withDescriptor, out error), error);
-        const string storageName = "_VBA_PROJECT_CUR";
+        // VBA stays in the clear under MS-XLS 2.2.10. Exercise the generic
+        // encrypted-summary storage container with inert opaque test data.
+        const string storageName = "ProofStorage";
         storageClassId = new Guid("6842D9E3-032D-448D-B646-BDA84BDE218A");
-        var storageEntries = original.Entries.Where(entry => entry.Path.StartsWith(storageName + "/", StringComparison.OrdinalIgnoreCase))
-            .Select(entry => new OfficeCompoundFileEntry(entry.Name, entry.Path.Substring(storageName.Length + 1), entry.ObjectType,
-                entry.Size, classId: entry.ClassId, stateBits: entry.StateBits, creationTime: entry.CreationTime, modifiedTime: entry.ModifiedTime)).ToList();
+        var storageEntries = new List<OfficeCompoundFileEntry> {
+            new("Nested", "Nested", 1, 0), new("Contents", "Nested/Contents", 2, 30)
+        };
         var root = new OfficeCompoundFileEntry("Root Entry", "", 5, 0, classId: storageClassId, stateBits: 0x12345678);
-        var storageStreams = original.Streams.Where(item => item.Key.StartsWith(storageName + "/", StringComparison.OrdinalIgnoreCase))
-            .ToDictionary(item => item.Key.Substring(storageName.Length + 1), item => item.Value);
+        var storageStreams = new Dictionary<string, byte[]> { ["Nested/Contents"] = Encoding.UTF8.GetBytes("Inert encrypted nested payload") };
         byte[] nested = OfficeCompoundFileWriter.Rewrite(new OfficeCompoundFile(storageStreams, storageEntries, root), new Dictionary<string, byte[]>());
         var entries = new[] { (storageName, false, nested), ("\u0005SummaryInformation", true, original.Streams["\u0005SummaryInformation"]),
             ("\u0005DocumentSummaryInformation", true, original.Streams["\u0005DocumentSummaryInformation"]) };

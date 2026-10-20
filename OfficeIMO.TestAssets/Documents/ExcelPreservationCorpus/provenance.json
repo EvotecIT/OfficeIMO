@@ -21,7 +21,9 @@
     "excel-lifecycle-readback.xls": "b732173656d91ce69f1a2a1b904ceb7b94948e9695385688a6b054c46436db41",
     "excel-lifecycle-readback.xlsb": "08882d88401b81b5f083f180c6e47c90ad95a51be2051e7a0cc131a2838b21b2",
     "excel-array-readback.xls": "843903af6a5ec2cde5d2346b3ee7efb3b06e468d2f51ff29a0b0d064e3136e35",
-    "excel-array-readback.xlsb": "0efb094181d9df0fecdcfc730e69acd0d95e852ed56113499a7f7e813ac849d4"
+    "excel-array-readback.xlsb": "0efb094181d9df0fecdcfc730e69acd0d95e852ed56113499a7f7e813ac849d4",
+    "officeimo-cryptoapi-summary.xls": "105dc57d71a10918b69727a62c48581e5a46ec398d07bb14a597e0fbc36c7e0a",
+    "excel-cryptoapi-summary-readback.xls": "3a11419c3a68de33f55e4b8d4c7cc73a8e539e3e1155483dc37588638c232b59"
   },
   "populatedChartControl": {
     "source": "populated-chart-control.xlsm extends the inert XLSM control with one constant bar series: Alpha=10, Beta=20, Gamma=30. The chart target was resolved from the drawing relationship; no source VBA was changed.",
@@ -40,5 +42,13 @@
     "arrays": "Fresh two-cell B1:B2 array SUM(A1:A2), inputs2/3 and caches5; import, bold B2, unrelated A4 edit, then clear caches on native plain/encrypted writes. Native Excel accepts all four, F9 computes both5 and recognizes B2 as an array member. Native plain readbacks retain the owner/range and cached results.",
     "password": "test-password",
     "limits": "No macro execution, arbitrary chart editing, or revision-history UI editing qualification."
+  },
+  "encryptedSummaryControl": {
+    "nativeConsumer": "Microsoft Excel for Mac16.113.4(26100421), macros disabled",
+    "input": "Owned populated XLS control with a CryptoAPI FilePass and encrypted SummaryInformation/DocumentSummaryInformation in encryption stream. Title=Encrypted summary native control; subject=Nested inert VBA storage acceptance. VBA storage remains plaintext as required by MS-XLS2.2.10.",
+    "method": "Native Excel opens without repair, shows the populated Alpha10/Beta20/Gamma30 chart and saves excel-cryptoapi-summary-readback.xls. Independent readback preserves title/subject, ten worksheets, four chart sheets and inert VBA modules. Native output uses CryptoAPI with plaintext property streams (flags0x0c); it is not a native-produced encrypted-summary cohort.",
+    "password": "test-password",
+    "specification": "https://learn.microsoft.com/en-us/openspecs/office_file_formats/ms-xls/0f2ea0a1-9fc8-468d-97aa-9d333b72d106",
+    "scope": "Native consumer qualification for encrypted document properties; generic nested-storage restoration remains synthetic. No macros executed."
   }
 }

@@ -42,3 +42,10 @@ Excel recognizes both array members and recalculates them to 5. These fixtures
 protect native group import and cache/identity contracts; they do not establish
 unrestricted array calculation. Exact procedures and hashes are in
 `provenance.json`.
+
+`officeimo-cryptoapi-summary.xls` encrypts the two document-property streams in
+its CryptoAPI `encryption` stream and keeps the inert VBA storage plaintext.
+Excel opens it without repair and saves `excel-cryptoapi-summary-readback.xls`;
+the native readback retains the title, subject, charts and VBA hosts. Its property
+streams are plaintext, so this proves native consumption of encrypted metadata,
+not native production of that metadata profile. Both use `test-password`.
