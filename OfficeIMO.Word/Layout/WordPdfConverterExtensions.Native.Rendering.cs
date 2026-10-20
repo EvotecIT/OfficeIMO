@@ -180,7 +180,7 @@ namespace OfficeIMO.Word.Pdf {
                 CreateNativeBodyInlineImages(paragraph, runs, !hasEquationContent, options);
             renderedFlowObject |= RenderNativeParagraphImages(pdf, paragraph, runs, objectAlign, options, style, groupedImageCount, objectSpacing, inlineImages,
                 nativeDefaults.RunningContentSection);
-            needsAnchorLine = style.AnchoredCanvas != null &&
+            needsAnchorLine = style.AnchoredCanvas != null && inlineImages.Count == 0 &&
                 !runs.Any(run => IsNativeRenderableTextRun(run, paragraph) && !string.IsNullOrWhiteSpace(run.Text)) &&
                 string.IsNullOrWhiteSpace(renderContent) && marker == null && paragraphFootnoteNumbers.Count == 0;
             RenderNativeRunCharts(pdf, runChartDrawings, objectAlign,
@@ -712,13 +712,16 @@ namespace OfficeIMO.Word.Pdf {
             bool needsParagraphMark = NeedsNativeParagraphMarkStrut(builder.CurrentRuns.Skip(bodyRunStart), marker != null);
             bool hasBodyPicture = inlineImages?.Values.Any(run =>
                 run.InlineElement is PdfCore.PdfInlineImage { AllowFrameOverflow: true }) == true;
-            if (needsParagraphMark || hasBodyPicture) {
+            bool pictureNeedsMinimumMark = hasBodyPicture && !builder.CurrentRuns.Skip(bodyRunStart).Any(run =>
+                run.InlineElement is PdfCore.PdfInlineFormWidget ||
+                (run.InlineElement == null && !run.IsLineBoxStrut && !string.IsNullOrWhiteSpace(run.Text)));
+            if (needsParagraphMark || pictureNeedsMinimumMark) {
                 PdfCore.PdfTextRun mark = CreateNativeParagraphMarkStrut(paragraph,
                     NativeTableStyleDefaults.Empty, nativeDefaults, nativeFontMap);
                 // A nonprinting mark supplies the minimum text ascent without
                 // adding descent to an image-dominated line. Real text and
                 // explicit trailing line breaks retain their ordinary metrics.
-                if (!needsParagraphMark && hasBodyPicture) mark.ContributesLineBoxDescent = false;
+                if (!needsParagraphMark && pictureNeedsMinimumMark) mark.ContributesLineBoxDescent = false;
                 builder.Runs(new[] { mark });
             }
         }

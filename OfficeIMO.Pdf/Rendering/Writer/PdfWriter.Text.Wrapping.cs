@@ -390,7 +390,8 @@ internal static partial class PdfWriter {
                 PrepareLineFrame(RunLineHeight(runFontSize));
                 lines[lines.Count - 1].Add(new RichSeg(string.Empty, bold, italic, false, false,
                     null, null, null, null, null, fontForRun, runFontSize, baseline, 0D,
-                    namedFont: currentRunNamedFont, isLineBoxStrut: true, formField: run.FormField));
+                    namedFont: currentRunNamedFont, contributesLineBoxDescent: currentRunContributesDescent,
+                    isLineBoxStrut: true, formField: run.FormField));
                 RegisterLineHeight(runFontSize);
                 continue;
             }
