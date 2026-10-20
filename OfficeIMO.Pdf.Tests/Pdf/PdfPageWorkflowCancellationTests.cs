@@ -158,6 +158,60 @@ public class PdfPageWorkflowCancellationTests {
     }
 
     [Fact]
+    public void PageUtilitiesValidateTheDestinationBeforeConsumingCallerInput() {
+        byte[] source = CreateSource();
+        foreach (var route in StreamRoutes(null)) {
+            using var input = new ControlledInput(source, 0, false);
+            using var output = new MemoryStream(new byte[] { 42 }, writable: false);
+            Assert.Throws<ArgumentException>(() => route(input, output, CancellationToken.None));
+            Assert.Equal(0, input.BytesConsumed);
+            Assert.True(input.CanRead);
+            Assert.Equal(new byte[] { 42 }, output.ToArray());
+        }
+    }
+
+    [Fact]
+    public void PageFileDestinationsAndFileInputsAreValidatedBeforeInputConsumption() {
+        byte[] source = CreateSource();
+        string directory = Path.Combine(Path.GetTempPath(), "officeimo-page-destination-" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(directory);
+        string missingInput = Path.Combine(directory, "missing.pdf");
+        Action<Stream, string>[] toFile = {
+            (input, output) => PdfPageEditor.DeletePages(input, output, null, CancellationToken.None, 1),
+            (input, output) => PdfPageEditor.ReorderPages(input, output, null, CancellationToken.None, 2, 1),
+            (input, output) => PdfPageEditor.DuplicatePages(input, output, null, CancellationToken.None, 1),
+            (input, output) => PdfPageEditor.MovePages(input, output, 3, null, CancellationToken.None, 1),
+            (input, output) => PdfPageEditor.RotatePages(input, output, 90, null, CancellationToken.None, 1)
+        };
+        Action<string, Stream>[] fromFile = {
+            (input, output) => PdfPageEditor.DeletePages(input, output, null, CancellationToken.None, 1),
+            (input, output) => PdfPageEditor.ReorderPages(input, output, null, CancellationToken.None, 2, 1),
+            (input, output) => PdfPageEditor.DuplicatePages(input, output, null, CancellationToken.None, 1),
+            (input, output) => PdfPageEditor.MovePages(input, output, 3, null, CancellationToken.None, 1),
+            (input, output) => PdfPageEditor.RotatePages(input, output, 90, null, CancellationToken.None, 1)
+        };
+        Action<string, string>[] files = {
+            (input, output) => PdfPageEditor.DeletePages(input, output, null, CancellationToken.None, 1),
+            (input, output) => PdfPageEditor.ReorderPages(input, output, null, CancellationToken.None, 2, 1),
+            (input, output) => PdfPageEditor.DuplicatePages(input, output, null, CancellationToken.None, 1),
+            (input, output) => PdfPageEditor.MovePages(input, output, 3, null, CancellationToken.None, 1),
+            (input, output) => PdfPageEditor.RotatePages(input, output, 90, null, CancellationToken.None, 1)
+        };
+        try {
+            for (int index = 0; index < toFile.Length; index++) {
+                using var input = new ControlledInput(source, 0, false);
+                Assert.Throws<ArgumentException>(() => toFile[index](input, directory));
+                Assert.Equal(0, input.BytesConsumed);
+                using var output = new MemoryStream(new byte[] { 42 }, writable: false);
+                Assert.Throws<ArgumentException>(() => fromFile[index](missingInput, output));
+                Assert.Throws<ArgumentException>(() => files[index](missingInput, directory));
+            }
+        } finally {
+            Directory.Delete(directory, true);
+        }
+    }
+
+    [Fact]
     public void PageUtilitiesRejectOversizedInputBeforeChangingAnyDestination() {
         byte[] source = CreateSource();
         var options = new PdfLoadOptions { Limits = new PdfReadLimits { MaxInputBytes = source.Length - 1 } };
