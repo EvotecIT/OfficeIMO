@@ -38,6 +38,10 @@ public static partial class WordPdfConverterExtensions {
             .OfType<W.FootnoteReference>().Distinct();
 
     private static IEnumerable<OpenXmlElement> EnumerateNativeVisibleNoteReferences(WordParagraph paragraph, int textBoxDepth = 0) {
+        // Note-free paragraphs need no recursive inventory. In particular, do
+        // not impose note traversal limits on an otherwise supported cell box.
+        if (paragraph._paragraph == null || !paragraph._paragraph.Descendants()
+            .Any(element => element is W.FootnoteReference or W.EndnoteReference)) yield break;
         if (textBoxDepth > MaximumNativeHeaderFooterTextBoxNestingDepth)
             throw new InvalidDataException($"Text-box nesting exceeds the supported limit of {MaximumNativeHeaderFooterTextBoxNestingDepth} levels.");
         List<WordParagraph> runs = GetNativeRuns(paragraph, includeInlineContentControls: true);
