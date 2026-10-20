@@ -68,6 +68,8 @@ Layout and master placeholder prompts are not slide content. Create a concrete s
 
 ## Office conversion fonts and Word page images
 
+`WordParagraph.AddFootNote` rejects header and footer paragraphs, including their table cells, with `InvalidOperationException` before changing the document. Place footnote references in body paragraphs or body table cells. Earlier calls in running stories could produce invalid DOCX; existing malformed inputs remain subject to conversion loss reporting.
+
 The balanced PDF resource policy embeds installed document fonts by default for Word, Excel, PowerPoint, HTML and Markdown. Fonts supplied by installed Office applications on macOS are discoverable. Output sizes, line breaks and pagination can change as source fonts replace standard Helvetica fallbacks. Review substitution diagnostics and the `font-embedding-cost` entries for the actual font payload cost. Set `ResourcePolicy = PdfResourcePolicy.CreatePortableDeterministic()` or supply a fixed rendering profile when output must not depend on host fonts.
 
 Word image export (`ToPng`, `ToJpeg`, `ToSvg`, `ExportImages`, and their fluent builders) now uses the same page layout and font policy as Word-to-PDF. Regenerate preview baselines: page counts, line breaks, styles and borders can change, and the preview renderer no longer shortens text with an ellipsis. Set `WordImageExportOptions.LayoutOptions` to the same `WordToPdfOptions` used for PDF export when customizing layout.

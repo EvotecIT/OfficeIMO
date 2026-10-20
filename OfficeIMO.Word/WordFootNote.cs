@@ -91,6 +91,10 @@ namespace OfficeIMO.Word {
         }
 
         internal static WordParagraph AddFootNote(WordDocument document, WordParagraph wordParagraph, WordParagraph footerWordParagraph) {
+            if (wordParagraph._paragraph.Ancestors().Any(ancestor => ancestor is Header || ancestor is Footer)) {
+                throw new InvalidOperationException("Footnotes cannot be added to header or footer paragraphs.");
+            }
+
             var footerReferenceId = GetNextFootNotesReferenceId(document);
 
             var newWordParagraph = new WordParagraph(document, wordParagraph._paragraph, true);
