@@ -29,32 +29,18 @@ public sealed partial class PdfReadPage {
         PageContentBudget budget) {
         var cancellationToken = budget.CancellationToken;
         cancellationToken.ThrowIfCancellationRequested();
-        var frame = GetTextFrame(span.FontSize, 0D, 0D, span.FontSize, span.Text.Length, span.Advance);
-        // Local text has its baseline at FontSize. Its actual source baseline is
-        // already in page space, including text rise and Form/page transforms.
-        OfficeTransform localToPage = OfficeTransform.Translate(0D, -span.FontSize).Then(linear)
-            .Then(OfficeTransform.Translate(span.X, pageHeight - span.Y));
-        (double Left, double Top, double Right, double Bottom) localPaint;
-        if (measuredPaint.HasValue) {
-            // Spaced glyphs have already paid for and cached their outline
-            // measurement. An inverse bounding box conservatively retains that
-            // paint without measuring every repeated glyph a second time.
-            var paint = measuredPaint.Value;
-            localPaint = localToPage.Invert().TransformRectangleBounds(paint.Left, paint.Top,
-                paint.Right - paint.Left, paint.Bottom - paint.Top);
-        } else {
-            budget.ChargePositionedTextWorkCharacters(span.Text.Length);
-            localPaint = MeasureTextPaintBounds(OfficeDrawingTextLayout.CreateMetrics(drawing, cancellationToken),
-                span.Text, span, frame, span.FontSize, span.Advance, applyFrameTransform: false);
-        }
-        var pagePaint = measuredPaint ?? localToPage.TransformRectangleBounds(localPaint.Left, localPaint.Top,
-            localPaint.Right - localPaint.Left, localPaint.Bottom - localPaint.Top);
+        var frame = GetTextFrame(pageHeight, span.X, span.Y, span.FontSize, span.Text.Length, span.Advance);
+        double baseline = pageHeight - span.Y;
+        OfficeTransform glyphTransform = OfficeTransform.Translate(-span.X, -baseline).Then(linear)
+            .Then(OfficeTransform.Translate(span.X, baseline));
+        // Spaced glyphs already paid for their cached outline measurement.
+        var pagePaint = measuredPaint ?? GetTextPaintBounds(drawing, span, frame, baseline, budget);
         double strokePadding = Math.Max(0D, span.VisibleStrokePadding);
         if (strokePadding > 0D) {
-            double xPadding = strokePadding * (Math.Abs(linear.M11) + Math.Abs(linear.M21));
-            double yPadding = strokePadding * (Math.Abs(linear.M12) + Math.Abs(linear.M22));
-            pagePaint = (pagePaint.Left - xPadding, pagePaint.Top - yPadding,
-                pagePaint.Right + xPadding, pagePaint.Bottom + yPadding);
+            // This envelope is already in CTM/page space. Applying the text
+            // matrix again can shrink a visible pen at the destination clip.
+            pagePaint = (pagePaint.Left - strokePadding, pagePaint.Top - strokePadding,
+                pagePaint.Right + strokePadding, pagePaint.Bottom + strokePadding);
         }
         PdfPageClipPath clip = span.ClipPath ?? PdfPageClipPath.Rectangle(0D, 0D, drawing.Width, drawing.Height);
         OfficeClipPath? officeClip = clip.ToOfficeClipPath(clip.X, clip.Y);
@@ -66,30 +52,10 @@ public sealed partial class PdfReadPage {
         if (!TryFitClipToDrawing(clip, drawing.Width, drawing.Height, out clip) ||
             clip.Width <= 0D || clip.Height <= 0D || !HasPaintOverlap(drawing, pagePaint, clip)) return;
 
-        double left = Math.Floor(Math.Min(0D, localPaint.Left) - strokePadding);
-        double top = Math.Floor(Math.Min(0D, localPaint.Top) - strokePadding);
-        double right = Math.Ceiling(Math.Max(frame.Width, localPaint.Right) + strokePadding);
-        double bottom = Math.Ceiling(Math.Max(frame.Height, localPaint.Bottom) + strokePadding);
-        budget.ChargeClippedTextFontCopyWork(drawing.Fonts.Faces.Count);
-        var child = new OfficeDrawing(right - left, bottom - top) {
-            TextShapingProvider = drawing.TextShapingProvider,
-            TextShapingLanguage = drawing.TextShapingLanguage
-        };
-        child.Fonts.AddRange(drawing.Fonts);
-        child.AddPositionedTextWithResolvedDirection(span.Text, -left, -top, frame.Width, frame.Height,
-            ToOfficeFontInfo(span.BaseFont, span.FontSize, span.DrawingFontFamily, span.IsBold, span.IsItalic),
-            span.Color ?? OfficeColor.Black, lineHeight: null,
-            textAdvanceWidth: TryGetSafePositionedAdvance(span, out double advance) ? advance : null,
-            textDirection: OfficeTextDirection.Auto);
-        // These helpers annotate the text element itself. An affine wrapper is
-        // intentionally added afterward so logical/painted glyphs and stroked
-        // text do not disappear behind an extra level of drawing hierarchy.
-        MarkPaintedGlyphs(child, span);
-        OfficeTransform childToPage = OfficeTransform.Translate(left, top).Then(localToPage);
         cancellationToken.ThrowIfCancellationRequested();
         if (clip.IsRectangle && pagePaint.Left >= clip.X && pagePaint.Top >= clip.Y &&
             pagePaint.Right <= clip.X + clip.Width && pagePaint.Bottom <= clip.Y + clip.Height) {
-            drawing.AddEffectDrawing(child, childToPage);
+            AddAffinePositionedText(drawing, span, frame.X, frame.Y, frame.Width, frame.Height, glyphTransform);
             return;
         }
 
@@ -100,9 +66,22 @@ public sealed partial class PdfReadPage {
             TextShapingProvider = drawing.TextShapingProvider,
             TextShapingLanguage = drawing.TextShapingLanguage
         };
-        clipped.AddEffectDrawing(child, childToPage.Then(OfficeTransform.Translate(-clip.X, -clip.Y)));
-        // PDF clipping is expressed in destination coordinates. Put it outside
-        // the affine paint, rather than shearing the clip together with the text.
+        OfficeTransform localGlyph = OfficeTransform.Translate(clip.X, clip.Y).Then(glyphTransform)
+            .Then(OfficeTransform.Translate(-clip.X, -clip.Y));
+        AddAffinePositionedText(clipped, span, frame.X - clip.X, frame.Y - clip.Y, frame.Width, frame.Height, localGlyph);
+        // The glyph transform precedes stroking in Core. The independent PDF
+        // destination clip still encloses both the filled glyphs and their pen.
         drawing.AddClippedDrawing(clipped, clip.X, clip.Y, officeClip);
+    }
+
+    private static void AddAffinePositionedText(OfficeDrawing drawing, PdfTextSpan span,
+        double x, double y, double width, double height, OfficeTransform transform) {
+        drawing.AddPositionedTextWithResolvedDirection(span.Text, x, y, width, height,
+            ToOfficeFontInfo(span.BaseFont, span.FontSize, span.DrawingFontFamily, span.IsBold, span.IsItalic),
+            span.Color ?? OfficeColor.Black, lineHeight: null,
+            textAdvanceWidth: TryGetSafePositionedAdvance(span, out double advance) ? advance : null,
+            textDirection: OfficeTextDirection.Auto);
+        MarkPaintedGlyphs(drawing, span);
+        drawing.SetLastTextGlyphTransform(transform);
     }
 }

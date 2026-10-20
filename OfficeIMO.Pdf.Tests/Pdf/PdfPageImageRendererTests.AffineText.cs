@@ -45,6 +45,7 @@ public partial class PdfPageImageRendererTests {
             AddAffineOutlinePolygon(expected, AffineOutlineCorners(a, b, c, d, 0D, 12D));
         }
         AssertAffineOutlineRaster(scenario, pdf, page, expected);
+        if (scenario == "shear") AssertAffineOutlineSvgRaster(scenario, page, expected);
     }
 
     [Fact]
@@ -86,14 +87,71 @@ public partial class PdfPageImageRendererTests {
         }
     }
 
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void RenderPage_AffineGlyphStrokeUsesDestinationWidthAndDash(bool dashed) {
+        byte[] pdf = BuildAffineOutlineTextPdf(1D, 0D, 0.5D, 1D, "B", strokeOnly: true,
+            strokeWidth: 8D, strokeDash: dashed ? "[9 5] 2" : "[] 0");
+        PdfReadPage page = PdfReadDocument.Open(pdf).Pages[0];
+        OfficePoint[] points = AffineOutlineCorners(1D, 0D, 0.5D, 1D, 0D, 12D)
+            .Select(point => new OfficePoint(point.X, 200D - point.Y)).ToArray();
+        // Text-matrix geometry changes the outline before the PDF pen is
+        // applied. The eight-point pen and its dash lengths stay in page units.
+        var shape = OfficeShape.Polygon(points);
+        shape.FillColor = null;
+        shape.StrokeColor = OfficeColor.Blue;
+        shape.StrokeWidth = 8D;
+        shape.StrokeLineCap = OfficeStrokeLineCap.Butt;
+        shape.StrokeLineJoin = OfficeStrokeLineJoin.Miter;
+        shape.StrokeMiterLimit = 10D;
+        if (dashed) shape.SetStrokeDashArray(new[] { 9D, 5D }, 2D);
+        var expected = new OfficeDrawing(240D, 200D).AddShape(shape,
+            points.Min(point => point.X), points.Min(point => point.Y));
+        string scenario = dashed ? "stroke-dashed" : "stroke-solid";
+        AssertAffineOutlineRaster(scenario, pdf, page, expected);
+        AssertAffineOutlineSvgRaster(scenario, page, expected);
+    }
+
+    [Fact]
+    public void ReauthoringAffineGlyphDrawingFailsExplicitlyWhileOrdinaryTextRemainsSupported() {
+        OfficeDrawing Read(double shear) => PdfReadDocument.Open(
+            BuildAffineOutlineTextPdf(1D, 0D, shear, 1D, "B")).Pages[0].ToDrawing();
+        byte[] Write(OfficeDrawing drawing) => PdfDocument.Create(new PdfOptions {
+            PageWidth = 240D, PageHeight = 200D, MarginLeft = 0D, MarginRight = 0D, MarginTop = 0D, MarginBottom = 0D
+        }).Canvas(canvas => canvas.Drawing(drawing, 0D, 0D, 240D, 200D)).ToBytes();
+
+        Assert.Throws<NotSupportedException>(() => Write(Read(0.5D)));
+        byte[] ordinary = Write(Read(0D));
+        Assert.Equal("B", PdfReadDocument.Open(ordinary).Pages[0].ExtractText().Trim());
+    }
+
+    [Fact]
+    public void RenderPage_AffineStrokeDrawingPreservesPaintWhenNestedAndClonedWithAnOffset() {
+        byte[] pdf = BuildAffineOutlineTextPdf(1D, 0D, 0.5D, 1D, "B", strokeOnly: true,
+            strokeWidth: 8D, strokeDash: "[] 0");
+        OfficeDrawing source = PdfReadDocument.Open(pdf).Pages[0].ToDrawing();
+        var target = new OfficeDrawing(280D, 230D).AddDrawing(source, 15D, 10D).Clone();
+        OfficeRasterImage expected = OfficeDrawingRasterRenderer.Render(source, 2D, OfficeColor.White);
+        OfficeRasterImage actual = OfficeDrawingRasterRenderer.Render(target, 2D, OfficeColor.White);
+        int blueInk = 0;
+        for (int y = 0; y < expected.Height; y++) for (int x = 0; x < expected.Width; x++) {
+            OfficeColor pixel = expected.GetPixel(x, y);
+            if (pixel.R < 100 && pixel.G < 100 && pixel.B > 200) blueInk++;
+            Assert.Equal(pixel, actual.GetPixel(x + 30, y + 20));
+        }
+        Assert.True(blueInk > 50, "The source must paint a visible affine blue outline before it is nested.");
+    }
+
     private static byte[] BuildAffineOutlineTextPdf(double a, double b, double c, double d, string text,
         bool clipped = false, string logicalB = "0042", double characterSpacing = 0D, double wordSpacing = 0D,
-        bool strokeOnly = false) {
+        bool strokeOnly = false, double strokeWidth = 0.75D, string? strokeDash = null) {
         string Number(double value) => value.ToString("0.###", CultureInfo.InvariantCulture);
         int[] widths = new int[35];
         widths[0] = 250; widths[33] = 500; widths[34] = 500;
         string content = (clipped ? "66 100 8 12 re W n " : string.Empty) +
-            (strokeOnly ? "0 0 1 RG .75 w [2 1] .5 d " : string.Empty) +
+            (strokeOnly ? "0 0 1 RG " + Number(strokeWidth) + " w " + (strokeDash ?? "[2 1] .5") +
+                " d 0 J 0 j 10 M " : string.Empty) +
             "BT /F1 20 Tf " + (strokeOnly ? "1 Tr " : string.Empty) +
             Number(characterSpacing) + " Tc " + Number(wordSpacing) + " Tw " +
             $"{Number(a)} {Number(b)} {Number(c)} {Number(d)} 60 100 Tm ({text}) Tj ET";
@@ -159,11 +217,30 @@ public partial class PdfPageImageRendererTests {
             File.WriteAllBytes(Path.Combine(directory, scenario + "-reference.png"), OfficePngWriter.Encode(reference));
             File.WriteAllBytes(Path.Combine(directory, scenario + "-managed.png"), exported.Bytes);
         }
+        AssertAffineRasterPixels(reference, actual);
+    }
+
+    private static void AssertAffineOutlineSvgRaster(string scenario, PdfReadPage page, OfficeDrawing expected) {
+        OfficeImageExportResult svg = page.ExportImage(OfficeImageExportFormat.Svg, new PdfImageExportOptions());
+        Assert.True(OfficeSvgDrawingReader.TryRead(svg.Bytes, out OfficeDrawing? reopened, out int unsupported));
+        Assert.Equal(0, unsupported);
+        OfficeRasterImage actual = OfficeDrawingRasterRenderer.Render(reopened!, 2D, OfficeColor.White);
+        string? output = Environment.GetEnvironmentVariable("OFFICEIMO_PDF_VISUAL_REVIEW_OUTPUT");
+        if (!string.IsNullOrWhiteSpace(output)) {
+            string directory = Path.Combine(output, "affine-text");
+            Directory.CreateDirectory(directory);
+            File.WriteAllBytes(Path.Combine(directory, scenario + ".svg"), svg.Bytes);
+            File.WriteAllBytes(Path.Combine(directory, scenario + "-svg-managed.png"), OfficePngWriter.Encode(actual));
+        }
+        AssertAffineRasterPixels(OfficeDrawingRasterRenderer.Render(expected, 2D, OfficeColor.White), actual);
+    }
+
+    private static void AssertAffineRasterPixels(OfficeRasterImage reference, OfficeRasterImage actual) {
         Assert.Equal(reference.Width, actual.Width);
         Assert.Equal(reference.Height, actual.Height);
         bool IsInk(OfficeRasterImage image, int x, int y) {
             OfficeColor pixel = image.GetPixel(x, y);
-            return pixel.R < 100 && pixel.G < 100 && pixel.B < 100;
+            return pixel.R < 100 || pixel.G < 100 || pixel.B < 100;
         }
         int Missing(OfficeRasterImage wanted, OfficeRasterImage found) {
             int missing = 0;

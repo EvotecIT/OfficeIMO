@@ -313,15 +313,13 @@ public sealed partial class PdfReadPage {
     }
 
     private static (double Left, double Top, double Right, double Bottom) MeasureTextPaintBounds(OfficeRasterCanvas metrics, string text, PdfTextSpan span,
-        (double X, double Y, double Width, double Height) frame, double baseline, double advance, bool includeEmptyFrame = true,
-        bool applyFrameTransform = true) {
+        (double X, double Y, double Width, double Height) frame, double baseline, double advance, bool includeEmptyFrame = true) {
         metrics.PreservePaintedGlyphOrder = PreservesPaintedGlyphs(span);
         var bounds = metrics.MeasurePositionedTextBounds(text, frame.X, frame.Y, frame.Width, frame.Height, Math.Max(1D, span.FontSize),
             ToOfficeFontInfo(span.BaseFont, span.FontSize, span.DrawingFontFamily, span.IsBold, span.IsItalic),
             advance > 0D ? advance : frame.Width, OfficeTextAlignment.Left, OfficeTextFeatureSettings.Default, "", Math.Max(1D, span.FontSize),
             OfficeTextDecorationStyle.None, OfficeTextDecorationStyle.None);
         if (!bounds.HasInk && !includeEmptyFrame) return (0D, 0D, 0D, 0D);
-        if (!applyFrameTransform) return (bounds.Left, bounds.Top, bounds.Right, bounds.Bottom);
         if (TryGetAffineTextLinearTransform(span, out OfficeTransform affineText)) {
             return OfficeTransform.Translate(-frame.X, -baseline).Then(affineText)
                 .Then(OfficeTransform.Translate(frame.X, baseline))
