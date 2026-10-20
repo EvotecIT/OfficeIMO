@@ -1536,19 +1536,129 @@
       "sha256": "992ecbae2732972d9ecd758f8b1d406fff3646bb086c88155614cd9aa8323ea2"
     },
     {
-      "record": "review-wave2/packages/evidence/native/runtime-binding.json",
-      "bytes": 240,
-      "sha256": "dddf2a49fdf30492c3a99271decec67f00bef7dc499694b22a4126dfe3684284"
+      "record": "review-wave2/object-growth-check/cleanup-result.json",
+      "bytes": 456,
+      "sha256": "9a87540b62fe0d243374efc61dba6f1342b23fc1286fe62053c8d2426e5f37ad"
     },
     {
-      "record": "review-wave2/packages/evidence/net10.0/runtime-binding.json",
-      "bytes": 669,
-      "sha256": "c52faa70f613401a057f3fc00dde7a8d3e1246a110cac91405aed321fcf9198c"
+      "record": "review-wave2/object-growth-check/finding.json",
+      "bytes": 1891,
+      "sha256": "ca79ed20d37b919c22712df5fa72968b2daf73918132525b7b24b1595c1ca347"
     },
     {
-      "record": "review-wave2/packages/evidence/net8.0/runtime-binding.json",
-      "bytes": 667,
-      "sha256": "be1f6003b80852dd059f87ffe55f8cedeef5552fc9f4d12009a0d779cd5ef76d"
+      "record": "review-wave2/object-growth-check/package-bindings.json",
+      "bytes": 4335,
+      "sha256": "f5f7739ae563adc7415be13547d8e09ae96eaf79661dc91c12f081770c03b126"
+    },
+    {
+      "record": "review-wave2/object-growth-check/result.json",
+      "bytes": 3634,
+      "sha256": "48f7d8f086f3a99f5376dedab449e25caf5240ec36dbf04dc491226ca6cdb0db"
+    },
+    {
+      "record": "review-wave2/object-growth-final/finding-closure.json",
+      "bytes": 1439,
+      "sha256": "c165e9ad4b1967c5ce2e286d6d820b800cd143b84a1c63f298ed74f6932697f2"
+    },
+    {
+      "record": "review-wave2/object-growth-final/packages/evidence/native/runtime-binding.json",
+      "bytes": 260,
+      "sha256": "fbb09dbd11b4d22ba400d839f070be01b3d1864fc864c36a19e60bd3eb06dfe6"
+    },
+    {
+      "record": "review-wave2/object-growth-final/packages/evidence/net10.0/runtime-binding.json",
+      "bytes": 709,
+      "sha256": "ad9beb4551a020c40f06198700dbe42bb6887b1e4eb470ddf57be382faf1daa9"
+    },
+    {
+      "record": "review-wave2/object-growth-final/packages/evidence/net8.0/runtime-binding.json",
+      "bytes": 707,
+      "sha256": "cf942b3edfc57fbcd21c649638653528438e3e09c5cb23b0ccf10e2fae538e20"
+    },
+    {
+      "record": "review-wave2/object-growth-final/packages/qualification-state.json",
+      "bytes": 13200,
+      "sha256": "6cb76a84b234695712c812e3bfa47622e21f5979c6b8470b709d20d6c009aaf4"
+    },
+    {
+      "record": "review-wave2/object-growth-final/packages/qualification.log",
+      "bytes": 6284,
+      "sha256": "1e3f4d058f4ba5b3a8da8fa4edb0fa6643fc94a13ace8285ce67a6cc854582c2"
+    },
+    {
+      "record": "review-wave2/object-growth-final/packages/standards/PdfUa1-first.pdf.json",
+      "bytes": 1661,
+      "sha256": "b6cb297b8abd08f96fe831860ffb46778d38731bbf082e14cfdd6e5561d53d57"
+    },
+    {
+      "record": "review-wave2/object-growth-final/packages/standards/PdfUa1-merged.pdf.json",
+      "bytes": 1662,
+      "sha256": "23d55467f504578a58c0b6a9fa488d089400904cdd8e2ecb0ed624d34ea2b5aa"
+    },
+    {
+      "record": "review-wave2/object-growth-final/packages/standards/PdfUa2-first.pdf.json",
+      "bytes": 1675,
+      "sha256": "f9712495afd835b4279d0708c9d2876578264d58a755f9f9a498bb57096f94dc"
+    },
+    {
+      "record": "review-wave2/object-growth-final/packages/standards/PdfUa2-merged.pdf.json",
+      "bytes": 1676,
+      "sha256": "2db2a6b425ce6016b26fe51e96fd9fdb6c9c30eb3bffce5e408cbb23ec6fdda7"
+    },
+    {
+      "record": "review-wave2/object-growth-final/packages/standards/qualification.json",
+      "bytes": 27665,
+      "sha256": "fbb5fcf95c03efed519033260671f619cf80792e2d631039fef475a4cd74d59c"
+    },
+    {
+      "record": "review-wave2/object-growth-final/packages/standards/weekly-example.pdf.json",
+      "bytes": 1664,
+      "sha256": "7f91241aaa43ab18de1d76edb1e9ccc415f6a71abb45e4f455305a2523ba4220"
+    },
+    {
+      "record": "review-wave2/object-growth-final/qualification.json",
+      "bytes": 1082593,
+      "sha256": "0d055c645e371897e52569cd16a90a3e8ebbac2adcade4cee52c9ef08837ab89"
+    },
+    {
+      "record": "review-wave2/object-growth-final/results/build-net10.0.log",
+      "bytes": 36563,
+      "sha256": "6caed7d71b0372ff97e03269960175d833cd328cd31494918b81e43e19fb9d45"
+    },
+    {
+      "record": "review-wave2/object-growth-final/results/build-net8.0.log",
+      "bytes": 29127,
+      "sha256": "3180db9c93177c1b0c7dc2241b1dece68935708def2fc83aae8e3e0a73994e22"
+    },
+    {
+      "record": "review-wave2/object-growth-final/results/focused-net10.0.log",
+      "bytes": 625,
+      "sha256": "7599aff5b50e574ed915701459042d33e2aebbb9cd4089e46eb1baf1e95e9473"
+    },
+    {
+      "record": "review-wave2/object-growth-final/results/focused-net10.0.trx",
+      "bytes": 115331,
+      "sha256": "f4435acd3c8b53693830bebbc22c8c8347cf2cd2a0df216572de82c0a520f18c"
+    },
+    {
+      "record": "review-wave2/object-growth-final/results/full-net10.0.log",
+      "bytes": 627,
+      "sha256": "bfde1fe0238c5ad1b53b6d6d7c3ac8b13dcce43038dae201f9ebaa36d1397e13"
+    },
+    {
+      "record": "review-wave2/object-growth-final/results/full-net10.0.trx",
+      "bytes": 18966916,
+      "sha256": "12ee338ffcefbdce9125105ea63d34a934fb31a426045522cd9ab3f2a71110e5"
+    },
+    {
+      "record": "review-wave2/object-growth-final/results/full-net8.0.log",
+      "bytes": 623,
+      "sha256": "a8f0b132cab3370a2c7109ffbf25462cf368df6041d5a375bd4684a290951d74"
+    },
+    {
+      "record": "review-wave2/object-growth-final/results/full-net8.0.trx",
+      "bytes": 18943305,
+      "sha256": "44571e769af0befd9f8d952c9d1c9b301eddbcb8286039cf5fffd422958d8e15"
     },
     {
       "record": "review-wave2/packages/qualification-state.json",
@@ -1556,84 +1666,14 @@
       "sha256": "897dd62ccde5a99d3cde33c2f2a0892bb2974bf0ad2ba322f082b16ea68d4307"
     },
     {
-      "record": "review-wave2/packages/qualification.log",
-      "bytes": 5845,
-      "sha256": "2e9169b34fe51c596589dafd41ce3738adaa6bd46c2a50aa5ab2562f74d6244f"
-    },
-    {
-      "record": "review-wave2/packages/standards/PdfUa1-first.pdf.json",
-      "bytes": 1641,
-      "sha256": "9e5269b33bb04776adf62d299b62e4018f4fe8d6f62be500be8f24e93d735324"
-    },
-    {
-      "record": "review-wave2/packages/standards/PdfUa1-merged.pdf.json",
-      "bytes": 1642,
-      "sha256": "dbb0206064ad85709af002692c9a605a4a1f0f419e5b14b1b6b32786b33fc124"
-    },
-    {
-      "record": "review-wave2/packages/standards/PdfUa2-first.pdf.json",
-      "bytes": 1655,
-      "sha256": "1a12191e439a2ccd3ee1f91b05b673f37a085342f0c1f24b43a60198ced1d69d"
-    },
-    {
-      "record": "review-wave2/packages/standards/PdfUa2-merged.pdf.json",
-      "bytes": 1656,
-      "sha256": "0114ac8ea1393a4377b5eb63841061e8f29c584409c4dd5a835dd88fa40bc873"
-    },
-    {
       "record": "review-wave2/packages/standards/qualification.json",
       "bytes": 26645,
       "sha256": "f6476fdd5715b28735a6fddd8befdcefee42e8019f952f0c6bbba623ad960b49"
     },
     {
-      "record": "review-wave2/packages/standards/weekly-example.pdf.json",
-      "bytes": 1644,
-      "sha256": "b02cd401d8a91469404694648ef4076d35c4d3efbb4af558f9782e57b3c1ad08"
-    },
-    {
       "record": "review-wave2/qualification.json",
       "bytes": 1082282,
       "sha256": "03726ce7329728c2eb276c2c334739ea99e85d22f760a5a6fce85bfad856b85d"
-    },
-    {
-      "record": "review-wave2/results/build-net10.0.log",
-      "bytes": 28261,
-      "sha256": "ae19b2e67c0d6beee8dd742389d4024dd1e6fb00f3f0bddb3b8f4a02dcad0ced"
-    },
-    {
-      "record": "review-wave2/results/build-net8.0.log",
-      "bytes": 28167,
-      "sha256": "22828c1c03faa46d789db6ffd60203ea80901e7cfcd0ed26b214aa5c84eaa614"
-    },
-    {
-      "record": "review-wave2/results/focused-net10.0.log",
-      "bytes": 588,
-      "sha256": "48a0ce5a303428d6d5b93ededbe507a8b5365ea12c297cea31cef3871434eb28"
-    },
-    {
-      "record": "review-wave2/results/focused-net10.0.trx",
-      "bytes": 110968,
-      "sha256": "14c1ca6bcee7f9fccd9165af941d01db7ea2b86147c1e30bae577db6b6ac843b"
-    },
-    {
-      "record": "review-wave2/results/full-net10.0.log",
-      "bytes": 587,
-      "sha256": "957ceeacd0178386cefdcc81916a4d845e98eb798f0c6fb3b9711fac5f7227a8"
-    },
-    {
-      "record": "review-wave2/results/full-net10.0.trx",
-      "bytes": 18493153,
-      "sha256": "ef746d108fbd11aa99fd2d92d1703ef67e9925f91cba1caa8ad80a75369f60ef"
-    },
-    {
-      "record": "review-wave2/results/full-net8.0.log",
-      "bytes": 583,
-      "sha256": "c5c63a6955c3d4e87363d9360cf69389b350d3e96fc5d79235b947b114dda012"
-    },
-    {
-      "record": "review-wave2/results/full-net8.0.trx",
-      "bytes": 18469544,
-      "sha256": "91e02bac6bbfd85a7270b83b00f03f2f5a464c2dda61f418e27d1260a15bdb9d"
     },
     {
       "record": "review-wave2/storage-manifest.json",
@@ -8208,52 +8248,53 @@
     }
   },
   "finalCandidate": {
-    "productSourceHead": "9ebd7d3bc3027ff7512422f6545a1ae0db7e0814",
+    "productSourceHead": "d59a569d186d0199bdf7e8f9769c77d4595674e8",
     "status": "Completed selected second-wave local qualification; external delivery gates remain separate",
     "sourceBinding": {
-      "testedBuildBaseHead": "a863e405f08e4821d9ae9c443b57d8c558400525",
-      "sourceFileCount": 4115,
-      "sourceManifestSha256": "71064ad225d8b3af453f28332fe6dff35f4ce5951ac548aa4dc802f44e22936d",
+      "testedBuildBaseHead": "d59a569d186d0199bdf7e8f9769c77d4595674e8",
+      "precompileCheckoutClean": true,
+      "sourceFileCount": 4116,
+      "sourceManifestSha256": "d6a28785a9b804e6775e5e590452be100756133fd355a2db0594063e53d5a8c0",
       "sourceFilesUnchangedDuringValidation": true,
-      "boundary": "Validation started from uncommitted candidate sources over recorded baseHead. Matching committed source bytes are proven separately; no clean-precompile or uniform embedded assembly-commit claim is made. Actual package and managed/native executable bytes are bound independently.",
+      "boundary": "Validation started from the clean committed source. All before/after source hashes match that commit. Actual test binary identity is captured before/after each no-build test run; no continuing graph-retention or uniform embedded assembly-commit claim is made. Package and managed/native execution bytes are bound independently.",
       "consolidatedCommitComparison": {
-        "fileCount": 4115,
-        "manifestSha256": "71064ad225d8b3af453f28332fe6dff35f4ce5951ac548aa4dc802f44e22936d",
+        "fileCount": 4116,
+        "manifestSha256": "d6a28785a9b804e6775e5e590452be100756133fd355a2db0594063e53d5a8c0",
         "matchesFinalCommit": true,
         "mismatchedPaths": []
       }
     },
     "fullPdfCorrectness": {
       "status": "Passed",
-      "sourceHead": "9ebd7d3bc3027ff7512422f6545a1ae0db7e0814",
+      "sourceHead": "d59a569d186d0199bdf7e8f9769c77d4595674e8",
       "frameworks": [
         {
           "framework": "net8.0",
           "status": "Passed",
-          "passed": 11804,
+          "passed": 11805,
           "failed": 0,
           "skipped": 0,
-          "total": 11804,
+          "total": 11805,
           "binarySha256": {
-            "qualification-build/bin/OfficeIMO.Core/release_net8.0/OfficeIMO.Core.dll": "d5a9c772ba5a6d5809637a9723784327982f4b1bf11adf01f9ba22b1fa2ac3b5",
-            "qualification-build/bin/OfficeIMO.Pdf/release_net8.0/OfficeIMO.Pdf.dll": "10afc0a690152b1f9e843a99df2f8f5db5aed2557b4ac82f9ba48909422e8356",
-            "qualification-build/bin/OfficeIMO.Pdf.Tests/release_net8.0/OfficeIMO.Pdf.Tests.dll": "44a792e628db09c817733316893dd0e54b958927e54156706c009766396e6438",
-            "qualification-build/bin/OfficeIMO.Pdf.Tests/release_net8.0/OfficeIMO.Pdf.dll": "10afc0a690152b1f9e843a99df2f8f5db5aed2557b4ac82f9ba48909422e8356"
+            "qualification-build/bin/OfficeIMO.Core/release_net8.0/OfficeIMO.Core.dll": "f8cd1ea777cd0a89c18985f52672605e8bdd6a102cbf91c2f7dbbc82b4861f47",
+            "qualification-build/bin/OfficeIMO.Pdf/release_net8.0/OfficeIMO.Pdf.dll": "4e5b1d2657ae893b840db5caf0c7cf78588cd9b73b2818c787b6ca8b5c762ace",
+            "qualification-build/bin/OfficeIMO.Pdf.Tests/release_net8.0/OfficeIMO.Pdf.Tests.dll": "0c800dc9934415bbcf8085eaf7b74687fff5b1cf5bc684578494144bafb72bc0",
+            "qualification-build/bin/OfficeIMO.Pdf.Tests/release_net8.0/OfficeIMO.Pdf.dll": "4e5b1d2657ae893b840db5caf0c7cf78588cd9b73b2818c787b6ca8b5c762ace"
           },
           "binaryHashesUnchangedDuringTests": true
         },
         {
           "framework": "net10.0",
           "status": "Passed",
-          "passed": 11804,
+          "passed": 11805,
           "failed": 0,
           "skipped": 0,
-          "total": 11804,
+          "total": 11805,
           "binarySha256": {
-            "qualification-build/bin/OfficeIMO.Core/release_net10.0/OfficeIMO.Core.dll": "c4012938fdd6de72c3bbdfc0721555a5e95ae317d8d75a6eb6ab3239197e7317",
-            "qualification-build/bin/OfficeIMO.Pdf/release_net10.0/OfficeIMO.Pdf.dll": "8b23b6d45944b3cd27bb6e10eb4dbb00d4096f39d1b688e7372bac8dd134a6e7",
-            "qualification-build/bin/OfficeIMO.Pdf.Tests/release_net10.0/OfficeIMO.Pdf.Tests.dll": "b59ce8abaf87a87ddbeaea4767ace94539bf033ab3c1874ca17410b649b2cd71",
-            "qualification-build/bin/OfficeIMO.Pdf.Tests/release_net10.0/OfficeIMO.Pdf.dll": "8b23b6d45944b3cd27bb6e10eb4dbb00d4096f39d1b688e7372bac8dd134a6e7"
+            "qualification-build/bin/OfficeIMO.Core/release_net10.0/OfficeIMO.Core.dll": "eb09747b80a68a478449f00f1f44f27ea6375f1b8948e771dd044efde5c45c0a",
+            "qualification-build/bin/OfficeIMO.Pdf/release_net10.0/OfficeIMO.Pdf.dll": "a73922329fb216d24799ef1708d08d4433820c2a6fdb4ca0b292900be7b46970",
+            "qualification-build/bin/OfficeIMO.Pdf.Tests/release_net10.0/OfficeIMO.Pdf.Tests.dll": "929b742fcad7ac4dd64155d7c716866afcec5f12e97fbab48cdba8c69cc12c78",
+            "qualification-build/bin/OfficeIMO.Pdf.Tests/release_net10.0/OfficeIMO.Pdf.dll": "a73922329fb216d24799ef1708d08d4433820c2a6fdb4ca0b292900be7b46970"
           },
           "binaryHashesUnchangedDuringTests": true
         }
@@ -8261,59 +8302,59 @@
       "focused": [
         {
           "framework": "net10.0",
-          "passed": 69,
+          "passed": 70,
           "failed": 0,
           "skipped": 0,
           "binarySha256": {
-            "qualification-build/bin/OfficeIMO.Core/release_net10.0/OfficeIMO.Core.dll": "c4012938fdd6de72c3bbdfc0721555a5e95ae317d8d75a6eb6ab3239197e7317",
-            "qualification-build/bin/OfficeIMO.Pdf/release_net10.0/OfficeIMO.Pdf.dll": "8b23b6d45944b3cd27bb6e10eb4dbb00d4096f39d1b688e7372bac8dd134a6e7",
-            "qualification-build/bin/OfficeIMO.Pdf.Tests/release_net10.0/OfficeIMO.Pdf.Tests.dll": "b59ce8abaf87a87ddbeaea4767ace94539bf033ab3c1874ca17410b649b2cd71",
-            "qualification-build/bin/OfficeIMO.Pdf.Tests/release_net10.0/OfficeIMO.Pdf.dll": "8b23b6d45944b3cd27bb6e10eb4dbb00d4096f39d1b688e7372bac8dd134a6e7"
+            "qualification-build/bin/OfficeIMO.Core/release_net10.0/OfficeIMO.Core.dll": "eb09747b80a68a478449f00f1f44f27ea6375f1b8948e771dd044efde5c45c0a",
+            "qualification-build/bin/OfficeIMO.Pdf/release_net10.0/OfficeIMO.Pdf.dll": "a73922329fb216d24799ef1708d08d4433820c2a6fdb4ca0b292900be7b46970",
+            "qualification-build/bin/OfficeIMO.Pdf.Tests/release_net10.0/OfficeIMO.Pdf.Tests.dll": "929b742fcad7ac4dd64155d7c716866afcec5f12e97fbab48cdba8c69cc12c78",
+            "qualification-build/bin/OfficeIMO.Pdf.Tests/release_net10.0/OfficeIMO.Pdf.dll": "a73922329fb216d24799ef1708d08d4433820c2a6fdb4ca0b292900be7b46970"
           },
           "binaryHashesUnchangedDuringTests": true
         }
       ]
     },
     "packageAndNativeConsumers": {
-      "sourceHead": "9ebd7d3bc3027ff7512422f6545a1ae0db7e0814",
+      "sourceHead": "d59a569d186d0199bdf7e8f9769c77d4595674e8",
       "sourceBinding": {
         "cleanCheckout": true,
         "productTrees": {
           "OfficeIMO.Core": "b58fdaacc54bb78d29812106a71951ecb2023f18",
-          "OfficeIMO.Pdf": "25dee4cf954fca680cfee6950cb993f809fabef6",
+          "OfficeIMO.Pdf": "bcd994b15d89ba847ceae903da6e7263736b7303",
           "OfficeIMO.Html": "061160ce204ee6a52cec724760f444aa040c5d8b",
           "OfficeIMO.Html.Pdf": "61bae61ce83a9b466077668d5de7b307a3569b97"
         }
       },
-      "version": "3.5.2-local.pdfreview.2",
+      "version": "3.5.2-local.pdfreview.3",
       "scope": "Unsigned isolated private packages; fourTF compilation/packing, real managedNET8/NET10 andosx-arm64NativeAOT execution. NoNET472/netstandard runtime execution orWindows signed/public publication.",
       "result": "Passed",
       "packages": [
         {
           "id": "OfficeIMO.Core",
-          "path": "feed/OfficeIMO.Core.3.5.2-local.pdfreview.2.nupkg",
-          "bytes": 8753410,
-          "sha256": "7e2fe487b4709d49cb6e62f8cefb34f9389f82f25c68e5fb15d05e7d6cd2875e",
+          "path": "feed/OfficeIMO.Core.3.5.2-local.pdfreview.3.nupkg",
+          "bytes": 8753468,
+          "sha256": "7f7aac532ff12009dbc766c0912d9b762ec61af256a39f0a7a038a93a156fb4c",
           "targetDllSha256": {
-            "lib/net10.0/OfficeIMO.Core.dll": "74f29a9440974e87e0a38c3abf05cc735a122d6e16ed64112ec1566c1d09d2a7",
-            "lib/net472/OfficeIMO.Core.dll": "e24b5ca2a1243b5837556e9e15130451b2ecd99415e91e2460081e271f5047f4",
-            "lib/net8.0/OfficeIMO.Core.dll": "5fa945b17f0e87f0973c5df2af4c740e9bd9c90c422d93139bf8e9c0653e6cea",
-            "lib/netstandard2.0/OfficeIMO.Core.dll": "d011482d046a0924d961df967792bd314174b580694d03c041d577476d5bc5a6"
+            "lib/net10.0/OfficeIMO.Core.dll": "eb09747b80a68a478449f00f1f44f27ea6375f1b8948e771dd044efde5c45c0a",
+            "lib/net472/OfficeIMO.Core.dll": "c202ed6c1bdb129d62ee41edb7280e952ff0d6c969ff45ed32e16ca969725416",
+            "lib/net8.0/OfficeIMO.Core.dll": "f8cd1ea777cd0a89c18985f52672605e8bdd6a102cbf91c2f7dbbc82b4861f47",
+            "lib/netstandard2.0/OfficeIMO.Core.dll": "a790df8eea35a2801b8fa42379ca3c95e7a61d9adb7ed03d1eb50b0542188d5b"
           },
-          "repositoryCommit": "9ebd7d3bc3027ff7512422f6545a1ae0db7e0814"
+          "repositoryCommit": "d59a569d186d0199bdf7e8f9769c77d4595674e8"
         },
         {
           "id": "OfficeIMO.Pdf",
-          "path": "feed/OfficeIMO.Pdf.3.5.2-local.pdfreview.2.nupkg",
-          "bytes": 13804122,
-          "sha256": "53cd53f04798b4cba395f75215f77ae8e77ee30cb62618124eeaae0fe38c236c",
+          "path": "feed/OfficeIMO.Pdf.3.5.2-local.pdfreview.3.nupkg",
+          "bytes": 13804252,
+          "sha256": "70e5d26676cfc0d43901fcd9428b7071132d281667795ea03b7ba4415f5dc6f8",
           "targetDllSha256": {
-            "lib/net10.0/OfficeIMO.Pdf.dll": "6767e08c06953be7eec2db0831d8afdf8cc8ee523762fc2bc5cd987bb4efd958",
-            "lib/net472/OfficeIMO.Pdf.dll": "d49651a4c4446c5577f214d5aa44533984e586f27b8cf252946eab0a00485f94",
-            "lib/net8.0/OfficeIMO.Pdf.dll": "7b889a063ca2c5f9de84f16fab7e9e8a9ce35d023f281e403c3de77fd013381a",
-            "lib/netstandard2.0/OfficeIMO.Pdf.dll": "31ea6a051abfcd1328a2ca9dfec369078878d87ab793b40ca093ec9558a60e8e"
+            "lib/net10.0/OfficeIMO.Pdf.dll": "a73922329fb216d24799ef1708d08d4433820c2a6fdb4ca0b292900be7b46970",
+            "lib/net472/OfficeIMO.Pdf.dll": "8c2687d9d1690c4ef732b563978dfc9de7ba5e245f3fc11323e89692ef54e034",
+            "lib/net8.0/OfficeIMO.Pdf.dll": "4e5b1d2657ae893b840db5caf0c7cf78588cd9b73b2818c787b6ca8b5c762ace",
+            "lib/netstandard2.0/OfficeIMO.Pdf.dll": "3f7d0339f5f00f2067884671698b2641d1d366d985af447dbb45fdf41c0ffd77"
           },
-          "repositoryCommit": "9ebd7d3bc3027ff7512422f6545a1ae0db7e0814"
+          "repositoryCommit": "d59a569d186d0199bdf7e8f9769c77d4595674e8"
         }
       ],
       "managedConsumers": [
@@ -8323,16 +8364,16 @@
           "actualLoadedAssemblies": [
             {
               "name": "OfficeIMO.Pdf",
-              "location": "review-wave2/packages/consumer-build/bin/PackedPdfConsumer/release_net8.0/OfficeIMO.Pdf.dll",
-              "sha256": "7B889A063CA2C5F9DE84F16FAB7E9E8A9CE35D023F281E403C3DE77FD013381A"
+              "location": "review-wave2/object-growth-final/packages/consumer-build/bin/PackedPdfConsumer/release_net8.0/OfficeIMO.Pdf.dll",
+              "sha256": "4E5B1D2657AE893B840DB5CAF0C7CF78588CD9B73B2818C787B6CA8B5C762ACE"
             },
             {
               "name": "OfficeIMO.Core",
-              "location": "review-wave2/packages/consumer-build/bin/PackedPdfConsumer/release_net8.0/OfficeIMO.Core.dll",
-              "sha256": "5FA945B17F0E87F0973C5DF2AF4C740E9BD9C90C422D93139BF8E9C0653E6CEA"
+              "location": "review-wave2/object-growth-final/packages/consumer-build/bin/PackedPdfConsumer/release_net8.0/OfficeIMO.Core.dll",
+              "sha256": "F8CD1EA777CD0A89C18985F52672605E8BDD6A102CBF91C2F7DBBC82B4861F47"
             }
           ],
-          "bindingSha256": "be1f6003b80852dd059f87ffe55f8cedeef5552fc9f4d12009a0d779cd5ef76d"
+          "bindingSha256": "cf942b3edfc57fbcd21c649638653528438e3e09c5cb23b0ccf10e2fae538e20"
         },
         {
           "framework": "net10.0",
@@ -8340,16 +8381,16 @@
           "actualLoadedAssemblies": [
             {
               "name": "OfficeIMO.Pdf",
-              "location": "review-wave2/packages/consumer-build/bin/PackedPdfConsumer/release_net10.0/OfficeIMO.Pdf.dll",
-              "sha256": "6767E08C06953BE7EEC2DB0831D8AFDF8CC8EE523762FC2BC5CD987BB4EFD958"
+              "location": "review-wave2/object-growth-final/packages/consumer-build/bin/PackedPdfConsumer/release_net10.0/OfficeIMO.Pdf.dll",
+              "sha256": "A73922329FB216D24799EF1708D08D4433820C2A6FDB4CA0B292900BE7B46970"
             },
             {
               "name": "OfficeIMO.Core",
-              "location": "review-wave2/packages/consumer-build/bin/PackedPdfConsumer/release_net10.0/OfficeIMO.Core.dll",
-              "sha256": "74F29A9440974E87E0A38C3ABF05CC735A122D6E16ED64112EC1566C1D09D2A7"
+              "location": "review-wave2/object-growth-final/packages/consumer-build/bin/PackedPdfConsumer/release_net10.0/OfficeIMO.Core.dll",
+              "sha256": "EB09747B80A68A478449F00F1F44F27EA6375F1B8948E771DD044EFDE5C45C0A"
             }
           ],
-          "bindingSha256": "c52faa70f613401a057f3fc00dde7a8d3e1246a110cac91405aed321fcf9198c"
+          "bindingSha256": "ad9beb4551a020c40f06198700dbe42bb6887b1e4eb470ddf57be382faf1daa9"
         }
       ],
       "nativeConsumer": {
@@ -8357,8 +8398,8 @@
         "result": "Passed",
         "executable": "native/PackedPdfConsumer",
         "bytes": 27603632,
-        "sha256": "f7d8176a817ec48339a88c6f573f4886c0226a39df9fa4caab7e5f06d8fc32bd",
-        "bindingSha256": "dddf2a49fdf30492c3a99271decec67f00bef7dc499694b22a4126dfe3684284"
+        "sha256": "8365810668eca22db552bce47b369a20432dd9eb58a3e86331d22f6d5a1155c6",
+        "bindingSha256": "fbb09dbd11b4d22ba400d839f070be01b3d1864fc864c36a19e60bd3eb06dfe6"
       },
       "savedArtifacts": [
         {
@@ -8619,10 +8660,11 @@
       ],
       "log": {
         "path": "qualification.log",
-        "sha256": "2e9169b34fe51c596589dafd41ce3738adaa6bd46c2a50aa5ab2562f74d6244f"
+        "sha256": "1e3f4d058f4ba5b3a8da8fa4edb0fa6643fc94a13ace8285ce67a6cc854582c2"
       },
-      "recordedUtc": "2026-10-20T23:14:24.131043+00:00",
-      "pathsRelativeTo": "review-wave2/packages",
+      "recordedUtc": "2026-10-20T23:29:31.185165+00:00",
+      "pathsRelativeTo": "review-wave2/object-growth-final/packages",
+      "pathRules": "Package path, executable, savedArtifacts.path and log.path are relative to pathsRelativeTo; actualLoadedAssemblies.location is relative to the evidence bundle root.",
       "assemblyTimeByteVerification": {
         "packageArchives": 2,
         "packageTargetDlls": 8,
@@ -8634,9 +8676,9 @@
     },
     "savedArtifactStandards": {
       "status": "Passed",
-      "sourceHead": "9ebd7d3bc3027ff7512422f6545a1ae0db7e0814",
+      "sourceHead": "d59a569d186d0199bdf7e8f9769c77d4595674e8",
       "scope": "Saved NativeAOT examples, automated PDF/UA checks only; manual assistive-technology acceptance is not established.",
-      "pathsRelativeTo": "review-wave2/packages",
+      "pathsRelativeTo": "review-wave2/object-growth-final/packages",
       "syntax": [
         {
           "path": "evidence/native/PdfUa1-first.pdf",
@@ -8943,7 +8985,7 @@
       ]
     },
     "secondReviewWave": {
-      "baseHead": "a863e405f08e4821d9ae9c443b57d8c558400525",
+      "baseHead": "d59a569d186d0199bdf7e8f9769c77d4595674e8",
       "scope": "Tagged /K and /C recursion/depth safeguards across reader and organizer; class-array emission invariants; source-version selection; generated showcase/API cross-links.",
       "reproductionBoundary": {
         "classification": "Source-confirmed recursion/depth and class-array emission defects",
@@ -8973,6 +9015,33 @@
         ],
         "validation": "Primary online specification/errata text inspected; no complete spec downloaded or retained."
       },
+      "objectCountAdmissionCorrection": {
+        "sourceHead": "d59a569d186d0199bdf7e8f9769c77d4595674e8",
+        "classification": "P2 remediation-introduced output-admission regression",
+        "baseline": {
+          "sourceHead": "9ebd7d3bc3027ff7512422f6545a1ae0db7e0814",
+          "packageVersion": "3.5.2-local.pdfreview.2",
+          "sourceObjectsEach": 91,
+          "inputClassOwnersEach": 40,
+          "tightBudgets": "Fail: IndirectObjects observed183 maximum182",
+          "sameInputsDefaultBudget": "Pass:219objects4pages80classowners",
+          "rawReceipt": "../object-growth-check/result.json"
+        },
+        "correction": "CompleteTaggedMerge reports its post-mutation indirect-object count back to WriteMerged. Composed output admits generated class-list clones; source input limits stay unchanged.",
+        "directRegression": {
+          "case": "MergeAccountsForGeneratedClassObjectsAfterAdmittingBoundedSources",
+          "result": "Passed as part of70focused and11805full cases eachNET8/NET10",
+          "observables": [
+            "bounded-source merge succeeds",
+            "same bytes as default merge",
+            "all80class owners and pages retained",
+            "input and loaded source bytes unchanged"
+          ]
+        },
+        "reviewDecision": "No fresh full pass or additional targeted confirmation: narrow private count plumbing, pre-fix observed failure and directly proven fixed public workflow. Prior scoped traversal closure plus single confirmation remain recorded for unchanged reviewed files.",
+        "recordedUtc": "2026-10-20T23:30:17.656356+00:00"
+      },
+      "preCountDiagnosticBoundary": "Unpublished9ebd/private pdfreview.2 receipts are retained only as the observed pre-count-correction diagnostic. They are not a published historical candidate or final qualification.",
       "scopedIndependentReview": {
         "review_kind": "focused defect-class closure after second material feedback wave",
         "reviewer": "/root/tagged_traversal_closure",
@@ -9071,7 +9140,7 @@
           "source_unchanged_during_confirmation": true
         },
         "candidate_binding": {
-          "sourceCommit": "9ebd7d3bc3027ff7512422f6545a1ae0db7e0814",
+          "sourceCommit": "d59a569d186d0199bdf7e8f9769c77d4595674e8",
           "targetedReviewedFileBlobsMatch": {
             "OfficeIMO.Pdf/Manipulation/PdfTaggedPageOrganizer.ImportStructure.cs": true,
             "OfficeIMO.Pdf.Tests/Pdf/PdfTaggedMergeTests.Traversal.cs": true,
@@ -9079,7 +9148,7 @@
           }
         }
       },
-      "reviewBoundary": "This material-wave closure and its single targeted confirmation retain their recorded scope. Earlier independent coverage remains in historical lanes.",
+      "reviewBoundary": "This material-wave closure and its single targeted confirmation retain their recorded scope for the unchanged reviewed files. The later narrow private output-object count plumbing is qualified by its observed pre-fix failure and direct fixed-workflow regression; it did not receive a new independent review pass. Earlier independent coverage remains in historical lanes.",
       "websiteCrossLinks": {
         "headBeforeRepair": "a863e405f08e4821d9ae9c443b57d8c558400525",
         "rootCause": "API cross-link manifests were not regenerated after WeeklyBrief/EquipmentInspection canonical source changes; same failure locally at Build-ApiCrossLinks.ps1:361",
@@ -9131,16 +9200,17 @@
     },
     "productTrees": {
       "OfficeIMO.Core": "b58fdaacc54bb78d29812106a71951ecb2023f18",
-      "OfficeIMO.Pdf": "25dee4cf954fca680cfee6950cb993f809fabef6",
+      "OfficeIMO.Pdf": "bcd994b15d89ba847ceae903da6e7263736b7303",
       "OfficeIMO.Html": "061160ce204ee6a52cec724760f444aa040c5d8b",
       "OfficeIMO.Html.Pdf": "61bae61ce83a9b466077668d5de7b307a3569b97",
-      "OfficeIMO.Pdf.Tests": "792f4ee13810d0ba179d31bf80601ce0ebd19e29",
+      "OfficeIMO.Pdf.Tests": "d73d7fbdbcd01493d0d6858239080058b98fa5ae",
       "OfficeIMO.Html.Tests": "b055a3854cfad9d289faf9d100ca9c52ed902f43",
       "OfficeIMO.Examples": "99d42e7e38936231f190e09e26e6abe11b548b34",
       "OfficeIMO.Pdf.Benchmarks.Comparisons": "47a31eba97fe18f6702377306bb1f50d6545d54b"
     },
     "evidenceAssembly": {
-      "preparedUtc": "2026-10-20T23:15:29.448511+00:00",
+      "preparedUtc": "2026-10-20T23:35:16.264084+00:00",
+      "publishedBaselineCommit": "a863e405f08e4821d9ae9c443b57d8c558400525",
       "originalPortableReceiptSha256": "d3fbeade2826dbcf6fa06e21e112cd309ac18dd57aaeedba8e5dc1ab6c8809d8",
       "coordinatorConfirmedCorrectedQualification": true,
       "pendingRequirements": []
