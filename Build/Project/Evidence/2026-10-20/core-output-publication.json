@@ -1,233 +1,669 @@
 {
-  "schema": "officeimo.core-output-publication-evidence/v1",
-  "qualifiedUtc": "2026-10-20T22:35:01.890981+00:00",
+  "schema": "officeimo.core-output-composition-evidence/v1",
+  "qualifiedUtc": "2026-10-20T22:51:29.507715+00:00",
   "purpose": "Preserve successful concurrent file publications and route PowerShell output through the shared Core commit policy.",
-  "source": {
-    "base": "33d062b583cb7beb8b13e86fb54bd45f563037b0",
-    "qualifiedCommit": "8c39c5cbe1edeafc9ed62bd13eea147495289efc",
-    "newPublicApi": false,
-    "newProductionDependencies": false,
-    "changedPaths": [
-      "OfficeIMO.Core/Internal/OfficeFileOutput.cs",
-      "PowerShell/PSWriteOffice/Sources/PSWriteOffice.Tests/AtomicFileWriterTests.cs",
-      "PowerShell/PSWriteOffice/Sources/PSWriteOffice.Tests/ExcelDataReaderOutputTests.cs",
-      "PowerShell/PSWriteOffice/Sources/PSWriteOffice/Services/Excel/ExcelDocumentService.DataReaderPackage.cs"
-    ],
-    "changedSourceFiles": [
+  "earlierSourceQualification": {
+    "schema": "officeimo.core-output-publication-evidence/v1",
+    "qualifiedUtc": "2026-10-20T22:35:01.890981+00:00",
+    "purpose": "Preserve successful concurrent file publications and route PowerShell output through the shared Core commit policy.",
+    "source": {
+      "base": "33d062b583cb7beb8b13e86fb54bd45f563037b0",
+      "qualifiedCommit": "8c39c5cbe1edeafc9ed62bd13eea147495289efc",
+      "newPublicApi": false,
+      "newProductionDependencies": false,
+      "changedPaths": [
+        "OfficeIMO.Core/Internal/OfficeFileOutput.cs",
+        "PowerShell/PSWriteOffice/Sources/PSWriteOffice.Tests/AtomicFileWriterTests.cs",
+        "PowerShell/PSWriteOffice/Sources/PSWriteOffice.Tests/ExcelDataReaderOutputTests.cs",
+        "PowerShell/PSWriteOffice/Sources/PSWriteOffice/Services/Excel/ExcelDocumentService.DataReaderPackage.cs"
+      ],
+      "changedSourceFiles": [
+        {
+          "path": "OfficeIMO.Core/Internal/OfficeFileOutput.cs",
+          "bytes": 8530,
+          "sha256": "3d53fa1a4695574c43a304bc5676b0dfb1edbe2f66100bb57c8178202992a382"
+        },
+        {
+          "path": "PowerShell/PSWriteOffice/Sources/PSWriteOffice.Tests/AtomicFileWriterTests.cs",
+          "bytes": 16363,
+          "sha256": "b6b2ca7682d32135217bea93b1a3c01d691470f7b91efe2347e695acc88d2886"
+        },
+        {
+          "path": "PowerShell/PSWriteOffice/Sources/PSWriteOffice.Tests/ExcelDataReaderOutputTests.cs",
+          "bytes": 7233,
+          "sha256": "d543d7de1efebd8b831c7c68953908221a04ae8f7f730b0a9502edcc38503d75"
+        },
+        {
+          "path": "PowerShell/PSWriteOffice/Sources/PSWriteOffice/Services/Excel/ExcelDocumentService.DataReaderPackage.cs",
+          "bytes": 2336,
+          "sha256": "120608f40f82d4e0ac5b6284571cdea66fd8eecfa1f7af96e2a1bd9eb8df6d13"
+        }
+      ]
+    },
+    "actualBaseline": {
+      "sourceCommit": "33d062b583cb7beb8b13e86fb54bd45f563037b0",
+      "runtime": ".NET 10 macOS arm64",
+      "failedBursts": 104,
+      "totalBursts": 128,
+      "writersPerBurst": 12,
+      "coreSha256": "703A41B9419B3BD2093C4383A2F78F60DC148C26183F6F83D8C17F01B99DB295",
+      "summarySha256": "812a0ef2bdec953946561532c92044ea9b1b9945cb788090bb2bfbe4a52462ed",
+      "contract": "Distinct completed payloads race at the existing serialization barrier; failures identify duplicate returned paths or lost successful-writer bytes, not a timing budget."
+    },
+    "actualSourceConsumerTests": [
       {
-        "path": "OfficeIMO.Core/Internal/OfficeFileOutput.cs",
-        "bytes": 8530,
+        "role": "excel-after-and-core-focused-net8",
+        "passed": 21,
+        "failed": 0,
+        "skipped": 0,
+        "actualFilter": "FullyQualifiedName~AtomicFileWriterTests|FullyQualifiedName~ExcelDataReaderOutputTests",
+        "trxSha256": "acc1dc958b71a80797da53fa415db5f9fdfec89575e0faed6e1f83d3b37e3baa"
+      },
+      {
+        "role": "pswriteoffice-full-net8-8c39",
+        "passed": 66,
+        "failed": 0,
+        "skipped": 0,
+        "actualFilter": null,
+        "trxSha256": "b8453b7df77aff4a84120ee651bc84bc6ce6a0515cb80a41a0dabca872ff10c9"
+      }
+    ],
+    "package": {
+      "privateVersion": "3.5.11",
+      "publicRelease": false,
+      "signed": false,
+      "packageSha256": "8a73cf91e7e847032cb3e68f9fde0cf1cd3e753f08bbbfab86078d4b5516eecc",
+      "repositoryCommit": "8c39c5cbe1edeafc9ed62bd13eea147495289efc",
+      "assets": [
+        {
+          "entry": "lib/net472/OfficeIMO.Core.dll",
+          "bytes": 4974592,
+          "sha256": "d50468a89f086c2efbc4ad13ecd52fe15bf2e1368db33aba9489de8aa263cae0"
+        },
+        {
+          "entry": "lib/netstandard2.0/OfficeIMO.Core.dll",
+          "bytes": 4973568,
+          "sha256": "8fa7b5b2e2c82b8dada8d7c173278eecf16056acf6e81460cf7b5b629cae33ee"
+        },
+        {
+          "entry": "lib/net8.0/OfficeIMO.Core.dll",
+          "bytes": 5018624,
+          "sha256": "a4e5369314b3c38761506d9692f834fe2673d51f1377b6077d75c611d372b4ad"
+        },
+        {
+          "entry": "lib/net10.0/OfficeIMO.Core.dll",
+          "bytes": 5021696,
+          "sha256": "3a2af1d5b2911ad7d81aca66efdc919fc02d17a033f254af0130b486200d8a16"
+        }
+      ],
+      "nugetDependencies": [],
+      "frameworkAssemblies": [
+        {
+          "assemblyName": "System.IO.Compression",
+          "targetFramework": ".NETFramework4.7.2"
+        },
+        {
+          "assemblyName": "System.Net.Http",
+          "targetFramework": ".NETFramework4.7.2"
+        },
+        {
+          "assemblyName": "System.Numerics",
+          "targetFramework": ".NETFramework4.7.2"
+        }
+      ],
+      "compileOnlyFrameworks": [
+        "net472",
+        "netstandard2.0"
+      ]
+    },
+    "actualPackagedInternalOwnerRuns": [
+      {
+        "framework": "net8",
+        "runtime": ".NET 8.0.23",
+        "architecture": "Arm64",
+        "bursts": 128,
+        "failedBursts": 0,
+        "writersPerBurst": 12,
+        "lanes": [
+          {
+            "lane": "helper-fail",
+            "rounds": 32,
+            "successfulWrites": 32,
+            "failedBursts": 0
+          },
+          {
+            "lane": "helper-unique",
+            "rounds": 32,
+            "successfulWrites": 384,
+            "failedBursts": 0
+          },
+          {
+            "lane": "mixed-fail",
+            "rounds": 32,
+            "successfulWrites": 32,
+            "failedBursts": 0
+          },
+          {
+            "lane": "mixed-unique",
+            "rounds": 32,
+            "successfulWrites": 199,
+            "failedBursts": 0
+          }
+        ],
+        "coreSha256": "a4e5369314b3c38761506d9692f834fe2673d51f1377b6077d75c611d372b4ad",
+        "coreMvid": "c43745b9-6899-4de8-a671-c6280f52db75",
+        "coreInformationalVersion": "3.5.1+8c39c5cbe1edeafc9ed62bd13eea147495289efc",
+        "summarySha256": "f0453d5abc513fffe5cfdcf40d3d51fc9bd3926d2a8dea285f5906579d502599"
+      },
+      {
+        "framework": "net10",
+        "runtime": ".NET 10.0.13",
+        "architecture": "Arm64",
+        "bursts": 128,
+        "failedBursts": 0,
+        "writersPerBurst": 12,
+        "lanes": [
+          {
+            "lane": "helper-fail",
+            "rounds": 32,
+            "successfulWrites": 32,
+            "failedBursts": 0
+          },
+          {
+            "lane": "helper-unique",
+            "rounds": 32,
+            "successfulWrites": 384,
+            "failedBursts": 0
+          },
+          {
+            "lane": "mixed-fail",
+            "rounds": 32,
+            "successfulWrites": 32,
+            "failedBursts": 0
+          },
+          {
+            "lane": "mixed-unique",
+            "rounds": 32,
+            "successfulWrites": 198,
+            "failedBursts": 0
+          }
+        ],
+        "coreSha256": "3a2af1d5b2911ad7d81aca66efdc919fc02d17a033f254af0130b486200d8a16",
+        "coreMvid": "5b52f0f6-007a-40a5-a32e-c516c912d136",
+        "coreInformationalVersion": "3.5.1+8c39c5cbe1edeafc9ed62bd13eea147495289efc",
+        "summarySha256": "f2ffd03e63fcd37172f7c896b8ab594088f44c14f06009b30edb157468a544db"
+      }
+    ],
+    "localReview": {
+      "independentFullPasses": 1,
+      "actionableFindings": 0,
+      "targetedConfirmationUsed": false,
+      "productApiDependencyDisposition": "acceptasshaped; no new publicAPI/dependency, canonicalownerreused"
+    },
+    "validationSetup": {
+      "originalNet8ProbeRestoreFailure": "NETSDK1005; setup-only failure retained. Explicit-net8 scratch project then built the same frozen Program.cs against the extracted package DLL.",
+      "failedAttemptReceiptSha256": "3fdecc1aae6d0d9b3dddbf8ade332014b17c30cdb420c64e85b1b82b90a28993",
+      "effectivePackageStageCount": 6,
+      "effectiveStagesAllPassed": true
+    },
+    "limits": [
+      "Runtime behavior observed on macOS arm64 .NET8/.NET10 only; no Windows native execution or profiling claim.",
+      "net472/netstandard2.0 are compile/package assets, not older-runtime execution proof.",
+      "Private package probes exercise internal publication owner; full PowerShell source consumer is separate evidence, not a public package-restore/API consumer.",
+      "No package publication, PR, merge or release is established by these local results.",
+      "Cooperating in-process writers only; arbitrary external writers and unsupported filesystem locking are outside this proof."
+    ],
+    "proofCollection": {
+      "path": "$TASK_ROOT/prep/retention-8c39/proof.final.json",
+      "bytes": 18933,
+      "sha256": "5dc9dfa379c8372b12e962f16a3161b93e9c15a351a47d77b2d4abb11ea32b72"
+    },
+    "storage": {
+      "status": "complete-scoped-cleanup",
+      "logicalBytesRemoved": 2992466406,
+      "retainedApproxBytes": 73048064,
+      "cleanup": {
+        "path": "$TASK_ROOT/cleanup-8c39-result.json",
+        "bytes": 6760,
+        "sha256": "62ff7b207637d8e71707ad12d7453f3aa347b0df308955d7384a43a0f32e1676"
+      },
+      "ledgerAppend": {
+        "path": "$TASK_ROOT/prep/storage-ledger-8c39/append-receipt.json",
+        "bytes": 2919,
+        "sha256": "4ad520fc3f289cf5cbdd35925f44f63b7587118b857d8018bd283e153266bb9d"
+      },
+      "boundary": "Exact task graphs/private caches/successful synthetic burst expansions only. Before defect evidence, final package/assets/probe runtime, actual TRX and archives retained; shared caches and history untouched."
+    }
+  },
+  "combinedQualification": {
+    "sourceHead": "6237675265afedcdabf64a42315642e455673ff6",
+    "mergeParents": [
+      "4b1819600eb67a9f4a53609fb1c49fb3c5bc7d92",
+      "a863e405f08e4821d9ae9c443b57d8c558400525"
+    ],
+    "wholeCoreTreeUnchanged": false,
+    "unchangedPublicationFiles": [
+      {
+        "repositoryPath": "OfficeIMO.Core/Internal/OfficeFileOutput.cs",
+        "priorGitBlob": "a081f1d97008806a31cd80695795b59dff65e402",
+        "currentGitBlob": "a081f1d97008806a31cd80695795b59dff65e402",
         "sha256": "3d53fa1a4695574c43a304bc5676b0dfb1edbe2f66100bb57c8178202992a382"
       },
       {
-        "path": "PowerShell/PSWriteOffice/Sources/PSWriteOffice.Tests/AtomicFileWriterTests.cs",
-        "bytes": 16363,
+        "repositoryPath": "PowerShell/PSWriteOffice/Sources/PSWriteOffice.Tests/AtomicFileWriterTests.cs",
+        "priorGitBlob": "ac36a208b42b139f24461b7851c9d79923e07e55",
+        "currentGitBlob": "ac36a208b42b139f24461b7851c9d79923e07e55",
         "sha256": "b6b2ca7682d32135217bea93b1a3c01d691470f7b91efe2347e695acc88d2886"
       },
       {
-        "path": "PowerShell/PSWriteOffice/Sources/PSWriteOffice.Tests/ExcelDataReaderOutputTests.cs",
-        "bytes": 7233,
+        "repositoryPath": "PowerShell/PSWriteOffice/Sources/PSWriteOffice.Tests/ExcelDataReaderOutputTests.cs",
+        "priorGitBlob": "c655fb88eb22c8b91e31e4bf10980837a53d3676",
+        "currentGitBlob": "c655fb88eb22c8b91e31e4bf10980837a53d3676",
         "sha256": "d543d7de1efebd8b831c7c68953908221a04ae8f7f730b0a9502edcc38503d75"
       },
       {
-        "path": "PowerShell/PSWriteOffice/Sources/PSWriteOffice/Services/Excel/ExcelDocumentService.DataReaderPackage.cs",
-        "bytes": 2336,
+        "repositoryPath": "PowerShell/PSWriteOffice/Sources/PSWriteOffice/Services/Excel/ExcelDocumentService.DataReaderPackage.cs",
+        "priorGitBlob": "83138075fc62db422121d9ba85788bd83e1e25d6",
+        "currentGitBlob": "83138075fc62db422121d9ba85788bd83e1e25d6",
         "sha256": "120608f40f82d4e0ac5b6284571cdea66fd8eecfa1f7af96e2a1bd9eb8df6d13"
       }
-    ]
-  },
-  "actualBaseline": {
-    "sourceCommit": "33d062b583cb7beb8b13e86fb54bd45f563037b0",
-    "runtime": ".NET 10 macOS arm64",
-    "failedBursts": 104,
-    "totalBursts": 128,
-    "writersPerBurst": 12,
-    "coreSha256": "703A41B9419B3BD2093C4383A2F78F60DC148C26183F6F83D8C17F01B99DB295",
-    "summarySha256": "812a0ef2bdec953946561532c92044ea9b1b9945cb788090bb2bfbe4a52462ed",
-    "contract": "Distinct completed payloads race at the existing serialization barrier; failures identify duplicate returned paths or lost successful-writer bytes, not a timing budget."
-  },
-  "actualSourceConsumerTests": [
-    {
-      "role": "excel-after-and-core-focused-net8",
-      "passed": 21,
-      "failed": 0,
-      "skipped": 0,
-      "actualFilter": "FullyQualifiedName~AtomicFileWriterTests|FullyQualifiedName~ExcelDataReaderOutputTests",
-      "trxSha256": "acc1dc958b71a80797da53fa415db5f9fdfec89575e0faed6e1f83d3b37e3baa"
-    },
-    {
-      "role": "pswriteoffice-full-net8-8c39",
+    ],
+    "unchangedCanonicalCommitOwners": [
+      {
+        "repositoryPath": "OfficeIMO.Core/Internal/OfficeFileCommit.cs",
+        "priorGitBlob": "bb38253fa47f36bba0b7534767a73d41522ce014",
+        "currentGitBlob": "bb38253fa47f36bba0b7534767a73d41522ce014"
+      },
+      {
+        "repositoryPath": "OfficeIMO.Core/Internal/OfficeFileCommit.AtomicWrite.cs",
+        "priorGitBlob": "7bb1f8a103621ce9ff1356c1fb007934d960fd67",
+        "currentGitBlob": "7bb1f8a103621ce9ff1356c1fb007934d960fd67"
+      },
+      {
+        "repositoryPath": "OfficeIMO.Core/Internal/OfficeFileCommit.Claims.cs",
+        "priorGitBlob": "42386f28d91da35fbb0beccf5a0aff33dd125546",
+        "currentGitBlob": "42386f28d91da35fbb0beccf5a0aff33dd125546"
+      },
+      {
+        "repositoryPath": "OfficeIMO.Core/Internal/OfficeFileCommit.GuardedWrite.cs",
+        "priorGitBlob": "b29b163356bc22f2a199900db2a0ca15d933297d",
+        "currentGitBlob": "b29b163356bc22f2a199900db2a0ca15d933297d"
+      },
+      {
+        "repositoryPath": "OfficeIMO.Core/Internal/OfficeFileCommit.Permissions.cs",
+        "priorGitBlob": "324c3d47d28c8275c439668376d256bd26e8a604",
+        "currentGitBlob": "324c3d47d28c8275c439668376d256bd26e8a604"
+      },
+      {
+        "repositoryPath": "OfficeIMO.SharedSource/IO/OfficeFileCommitClaim.cs",
+        "priorGitBlob": "4e840de829cd79ad65dcbff1b7fb31ee58a9d2d2",
+        "currentGitBlob": "4e840de829cd79ad65dcbff1b7fb31ee58a9d2d2"
+      }
+    ],
+    "adoptedCoreRasterChanges": [
+      {
+        "repositoryPath": "OfficeIMO.Core/Raster/OfficeRasterCanvas.Clipping.Coverage.cs",
+        "currentGitBlob": "ff57e64e9ae17a56be816f789bdfdccc9669ff03"
+      },
+      {
+        "repositoryPath": "OfficeIMO.Core/Raster/OfficeRasterCanvas.Clipping.cs",
+        "currentGitBlob": "4d1d4f8c56aceb8874ccff5e23ad9408aaebd961"
+      },
+      {
+        "repositoryPath": "OfficeIMO.Core/Raster/OfficeTextInkClip.Paths.cs",
+        "currentGitBlob": "4741dd9112ab9e19be1c307c03a30b0b5225c04a"
+      }
+    ],
+    "actualSourceConsumer": {
+      "role": "core-c1-full-ps-net8",
       "passed": 66,
       "failed": 0,
       "skipped": 0,
       "actualFilter": null,
-      "trxSha256": "b8453b7df77aff4a84120ee651bc84bc6ce6a0515cb80a41a0dabca872ff10c9"
-    }
-  ],
-  "package": {
-    "privateVersion": "3.5.11",
-    "publicRelease": false,
-    "signed": false,
-    "packageSha256": "8a73cf91e7e847032cb3e68f9fde0cf1cd3e753f08bbbfab86078d4b5516eecc",
-    "repositoryCommit": "8c39c5cbe1edeafc9ed62bd13eea147495289efc",
-    "assets": [
-      {
-        "entry": "lib/net472/OfficeIMO.Core.dll",
-        "bytes": 4974592,
-        "sha256": "d50468a89f086c2efbc4ad13ecd52fe15bf2e1368db33aba9489de8aa263cae0"
+      "trx": {
+        "path": "$TASK_ROOT/convergence/trx/core-c1-full-ps-net8/core-c1-full-ps-net8.trx",
+        "bytes": 100419,
+        "sha256": "e8b952875a8afd03884e7f0c206446e947618e3488514172c125983322f99acb"
       },
-      {
-        "entry": "lib/netstandard2.0/OfficeIMO.Core.dll",
-        "bytes": 4973568,
-        "sha256": "8fa7b5b2e2c82b8dada8d7c173278eecf16056acf6e81460cf7b5b629cae33ee"
-      },
-      {
-        "entry": "lib/net8.0/OfficeIMO.Core.dll",
-        "bytes": 5018624,
-        "sha256": "a4e5369314b3c38761506d9692f834fe2673d51f1377b6077d75c611d372b4ad"
-      },
-      {
-        "entry": "lib/net10.0/OfficeIMO.Core.dll",
-        "bytes": 5021696,
-        "sha256": "3a2af1d5b2911ad7d81aca66efdc919fc02d17a033f254af0130b486200d8a16"
+      "actualTestmoduleCodeBases": [
+        "$TASK_ROOT/convergence/build-tests-c1/bin/PSWriteOffice.Tests/release/PSWriteOffice.Tests.dll"
+      ],
+      "archiveReceipt": {
+        "path": "$TASK_ROOT/convergence/retained/c1-test-runtime-metadata.json",
+        "bytes": 10470,
+        "sha256": "dae29a2d7b6eacfb955354b55774b6b13c1a16770c7892569590955777626243"
       }
-    ],
-    "nugetDependencies": [],
-    "frameworkAssemblies": [
-      {
-        "assemblyName": "System.IO.Compression",
-        "targetFramework": ".NETFramework4.7.2"
-      },
-      {
-        "assemblyName": "System.Net.Http",
-        "targetFramework": ".NETFramework4.7.2"
-      },
-      {
-        "assemblyName": "System.Numerics",
-        "targetFramework": ".NETFramework4.7.2"
+    },
+    "actualNet472ModuleCompile": {
+      "role": "core-c1-ps-net472-crossbuild",
+      "targetFramework": "net472",
+      "globalTargetFrameworksOverride": "net472",
+      "warnings": 0,
+      "errors": 0,
+      "elapsedSeconds": 58.930433416,
+      "compileOnly": true,
+      "windowsRuntimeExecutionClaim": false,
+      "archiveReceipt": {
+        "path": "$TASK_ROOT/convergence/retained/c1-net472-module-metadata.json",
+        "bytes": 7339,
+        "sha256": "1970bd4bc54a652d9668ce48ebf4f080ba62a464f2fc3f68c786b127756f0b13"
       }
-    ],
-    "compileOnlyFrameworks": [
-      "net472",
-      "netstandard2.0"
-    ]
-  },
-  "actualPackagedInternalOwnerRuns": [
-    {
-      "framework": "net8",
-      "runtime": ".NET 8.0.23",
-      "architecture": "Arm64",
-      "bursts": 128,
-      "failedBursts": 0,
-      "writersPerBurst": 12,
-      "lanes": [
+    },
+    "package": {
+      "privateVersion": "3.5.12",
+      "publicRelease": false,
+      "package": {
+        "path": "$TASK_ROOT/convergence/private-package/feed/OfficeIMO.Core.3.5.12.nupkg",
+        "bytes": 8759760,
+        "sha256": "b4c2b5186fd008ae861e8fbddcc97298d3cec1134361beedb313023edbca4c4f"
+      },
+      "inspection": {
+        "path": "$TASK_ROOT/convergence/private-package/package-inspection-c1.json",
+        "bytes": 2778,
+        "sha256": "860170542e311b789812968f4c9f989a1dfdbdc81c1cab569aed571d921d5d47"
+      },
+      "assets": [
         {
-          "lane": "helper-fail",
-          "rounds": 32,
-          "successfulWrites": 32,
-          "failedBursts": 0
+          "entry": "lib/net472/OfficeIMO.Core.dll",
+          "path": "$TASK_ROOT/convergence/private-package/assets/net472/OfficeIMO.Core.dll",
+          "bytes": 4974592,
+          "sha256": "7dc6aaf188784b1e6ea00c7e87e2d42a2adf251414b210a5ae881aa5be096b8b"
         },
         {
-          "lane": "helper-unique",
-          "rounds": 32,
-          "successfulWrites": 384,
-          "failedBursts": 0
+          "entry": "lib/netstandard2.0/OfficeIMO.Core.dll",
+          "path": "$TASK_ROOT/convergence/private-package/assets/netstandard2.0/OfficeIMO.Core.dll",
+          "bytes": 4973568,
+          "sha256": "d14248d90d88cf3326c403426594353aca3188368470b339cdec55f411c90c5c"
         },
         {
-          "lane": "mixed-fail",
-          "rounds": 32,
-          "successfulWrites": 32,
-          "failedBursts": 0
+          "entry": "lib/net8.0/OfficeIMO.Core.dll",
+          "path": "$TASK_ROOT/convergence/private-package/assets/net8.0/OfficeIMO.Core.dll",
+          "bytes": 5018624,
+          "sha256": "d0197c49cd30520c8ea520356f023d19a9afa3de9c3d48227e3d9affa7c0c6cd"
         },
         {
-          "lane": "mixed-unique",
-          "rounds": 32,
-          "successfulWrites": 199,
-          "failedBursts": 0
+          "entry": "lib/net10.0/OfficeIMO.Core.dll",
+          "path": "$TASK_ROOT/convergence/private-package/assets/net10.0/OfficeIMO.Core.dll",
+          "bytes": 5021696,
+          "sha256": "4b124bac704f284642df3f651401b4ea42f7662bbf6258e4ba621e58387c00df"
         }
       ],
-      "coreSha256": "a4e5369314b3c38761506d9692f834fe2673d51f1377b6077d75c611d372b4ad",
-      "coreMvid": "c43745b9-6899-4de8-a671-c6280f52db75",
-      "coreInformationalVersion": "3.5.1+8c39c5cbe1edeafc9ed62bd13eea147495289efc",
-      "summarySha256": "f0453d5abc513fffe5cfdcf40d3d51fc9bd3926d2a8dea285f5906579d502599"
-    },
-    {
-      "framework": "net10",
-      "runtime": ".NET 10.0.13",
-      "architecture": "Arm64",
-      "bursts": 128,
-      "failedBursts": 0,
-      "writersPerBurst": 12,
-      "lanes": [
+      "packageDependencies": [],
+      "frameworkAssemblies": [
         {
-          "lane": "helper-fail",
-          "rounds": 32,
-          "successfulWrites": 32,
-          "failedBursts": 0
+          "assemblyName": "System.IO.Compression",
+          "targetFramework": ".NETFramework4.7.2"
         },
         {
-          "lane": "helper-unique",
-          "rounds": 32,
-          "successfulWrites": 384,
-          "failedBursts": 0
+          "assemblyName": "System.Net.Http",
+          "targetFramework": ".NETFramework4.7.2"
         },
         {
-          "lane": "mixed-fail",
-          "rounds": 32,
-          "successfulWrites": 32,
-          "failedBursts": 0
-        },
-        {
-          "lane": "mixed-unique",
-          "rounds": 32,
-          "successfulWrites": 198,
-          "failedBursts": 0
+          "assemblyName": "System.Numerics",
+          "targetFramework": ".NETFramework4.7.2"
         }
       ],
-      "coreSha256": "3a2af1d5b2911ad7d81aca66efdc919fc02d17a033f254af0130b486200d8a16",
-      "coreMvid": "5b52f0f6-007a-40a5-a32e-c516c912d136",
-      "coreInformationalVersion": "3.5.1+8c39c5cbe1edeafc9ed62bd13eea147495289efc",
-      "summarySha256": "f2ffd03e63fcd37172f7c896b8ab594088f44c14f06009b30edb157468a544db"
+      "packageSignaturePresent": false,
+      "buildArchiveReceipt": {
+        "path": "$TASK_ROOT/convergence/retained/c1-package-build-metadata.json",
+        "bytes": 8991,
+        "sha256": "f2446e31896ee291a02bd82bede860c795de9e15adefe1de5e6c20487e0a04cd"
+      }
+    },
+    "actualPackagedInternalOwnerRuns": [
+      {
+        "role": "core-c1-probe-net8-128-bursts",
+        "summary": {
+          "path": "$TASK_ROOT/convergence/retained/c1-package-net8-summary.json",
+          "bytes": 5043,
+          "sha256": "f44c5d589679943f405d1ee95d1489dbb51cdcfd253eedf2575c4cfbb21cc065"
+        },
+        "originalSummary": {
+          "path": "$TASK_ROOT/convergence/package-bursts/net8/summary.json",
+          "bytes": 5043,
+          "sha256": "f44c5d589679943f405d1ee95d1489dbb51cdcfd253eedf2575c4cfbb21cc065"
+        },
+        "subjectCore": {
+          "path": "$TASK_ROOT/convergence/private-package/assets/net8.0/OfficeIMO.Core.dll",
+          "bytes": 5018624,
+          "sha256": "d0197c49cd30520c8ea520356f023d19a9afa3de9c3d48227e3d9affa7c0c6cd"
+        },
+        "deployedCore": {
+          "path": "$TASK_ROOT/convergence/package-probe-runtime/net8/OfficeIMO.Core.dll",
+          "bytes": 5018624,
+          "sha256": "d0197c49cd30520c8ea520356f023d19a9afa3de9c3d48227e3d9affa7c0c6cd"
+        },
+        "coreMvid": "0b793974-cbbc-4562-8441-27f0cc5647d8",
+        "coreInformationalVersion": "3.5.1+6237675265afedcdabf64a42315642e455673ff6",
+        "runtime": ".NET 8.0.23",
+        "os": "Darwin 27.0.0 Darwin Kernel Version 27.0.0: Tue Aug 11 21:02:57 PDT 2026; root:xnu-13432.1.9~1/RELEASE_ARM64_T8132",
+        "architecture": "Arm64",
+        "totalBursts": 128,
+        "failedBursts": 0,
+        "lanes": [
+          {
+            "lane": "helper-fail",
+            "rounds": 32,
+            "successfulWrites": 32,
+            "failedBursts": 0
+          },
+          {
+            "lane": "helper-unique",
+            "rounds": 32,
+            "successfulWrites": 384,
+            "failedBursts": 0
+          },
+          {
+            "lane": "mixed-fail",
+            "rounds": 32,
+            "successfulWrites": 32,
+            "failedBursts": 0
+          },
+          {
+            "lane": "mixed-unique",
+            "rounds": 32,
+            "successfulWrites": 202,
+            "failedBursts": 0
+          }
+        ]
+      },
+      {
+        "role": "core-c1-probe-net10-128-bursts",
+        "summary": {
+          "path": "$TASK_ROOT/convergence/retained/c1-package-net10-summary.json",
+          "bytes": 4971,
+          "sha256": "9696c63a11cfa45e503b120c7779195145c930062f7dc5d81be49a23fc74bec3"
+        },
+        "originalSummary": {
+          "path": "$TASK_ROOT/convergence/package-bursts/net10/summary.json",
+          "bytes": 4971,
+          "sha256": "9696c63a11cfa45e503b120c7779195145c930062f7dc5d81be49a23fc74bec3"
+        },
+        "subjectCore": {
+          "path": "$TASK_ROOT/convergence/private-package/assets/net10.0/OfficeIMO.Core.dll",
+          "bytes": 5021696,
+          "sha256": "4b124bac704f284642df3f651401b4ea42f7662bbf6258e4ba621e58387c00df"
+        },
+        "deployedCore": {
+          "path": "$TASK_ROOT/convergence/package-probe-runtime/net10/OfficeIMO.Core.dll",
+          "bytes": 5021696,
+          "sha256": "4b124bac704f284642df3f651401b4ea42f7662bbf6258e4ba621e58387c00df"
+        },
+        "coreMvid": "90aacda5-816e-425d-b8fc-a83a65b85164",
+        "coreInformationalVersion": "3.5.1+6237675265afedcdabf64a42315642e455673ff6",
+        "runtime": ".NET 10.0.13",
+        "os": "macOS 27.0.1",
+        "architecture": "Arm64",
+        "totalBursts": 128,
+        "failedBursts": 0,
+        "lanes": [
+          {
+            "lane": "helper-fail",
+            "rounds": 32,
+            "successfulWrites": 32,
+            "failedBursts": 0
+          },
+          {
+            "lane": "helper-unique",
+            "rounds": 32,
+            "successfulWrites": 384,
+            "failedBursts": 0
+          },
+          {
+            "lane": "mixed-fail",
+            "rounds": 32,
+            "successfulWrites": 32,
+            "failedBursts": 0
+          },
+          {
+            "lane": "mixed-unique",
+            "rounds": 32,
+            "successfulWrites": 210,
+            "failedBursts": 0
+          }
+        ]
+      }
+    ],
+    "actualExecutionRoleCount": 8,
+    "executionReceipts": [
+      {
+        "role": "core-c1-full-ps-net8",
+        "execution": {
+          "path": "$TASK_ROOT/convergence/core-c1-full-ps-net8-execution.json",
+          "bytes": 1722,
+          "sha256": "b23dc0ae4e986cb68d7afc821c8b8f294a4ca6e95cbb87a06faa46b0e1d44db5"
+        },
+        "log": {
+          "path": "$TASK_ROOT/convergence/logs/core-c1-full-ps-net8.log",
+          "bytes": 41421,
+          "sha256": "ad80feaf7bef0f5b387674a9db91c42229bede67219c8b5652f6a12e7857a756"
+        }
+      },
+      {
+        "role": "core-c1-four-framework-pack",
+        "execution": {
+          "path": "$TASK_ROOT/convergence/core-c1-four-framework-pack-execution.json",
+          "bytes": 2506,
+          "sha256": "2acd6ceff76bf8e9753e5ce33130a41eb9923fe162b644b9be7eb4a20c08bc72"
+        },
+        "log": {
+          "path": "$TASK_ROOT/convergence/logs/core-c1-four-framework-pack.log",
+          "bytes": 983,
+          "sha256": "5c3fea9a68318139548f8a59b84bb49dd7a0742c23e713c69283e48311eef52f"
+        }
+      },
+      {
+        "role": "core-c1-package-inspect-extract",
+        "execution": {
+          "path": "$TASK_ROOT/convergence/core-c1-package-inspect-extract-execution.json",
+          "bytes": 1644,
+          "sha256": "627f69d45f5d888aeecabd8950ee12340275740730b9784153d9897dbfbf18d1"
+        },
+        "log": {
+          "path": "$TASK_ROOT/convergence/logs/core-c1-package-inspect-extract.log",
+          "bytes": 309,
+          "sha256": "e432b5035c7d8dd6fcc7e2f68dc4505c0a97967333c20ec580a9ac0a02bf9f28"
+        }
+      },
+      {
+        "role": "core-c1-probe-net8-build",
+        "execution": {
+          "path": "$TASK_ROOT/convergence/core-c1-probe-net8-build-execution.json",
+          "bytes": 2522,
+          "sha256": "b9a2fcc1d740d0f4aaa06852a4580d7fd1238d864ef008fb4bee909d3a4635a4"
+        },
+        "log": {
+          "path": "$TASK_ROOT/convergence/logs/core-c1-probe-net8-build.log",
+          "bytes": 413,
+          "sha256": "2c2e34be35159d06fbd6f800cdcec7c3332f7a55cb0adcf6efd1c67504718411"
+        }
+      },
+      {
+        "role": "core-c1-probe-net8-128-bursts",
+        "execution": {
+          "path": "$TASK_ROOT/convergence/core-c1-probe-net8-128-bursts-execution.json",
+          "bytes": 2129,
+          "sha256": "eb60e518d72f472e239aebd71ac9f12acf65299ef184b6d6a691340f14ee5959"
+        },
+        "log": {
+          "path": "$TASK_ROOT/convergence/logs/core-c1-probe-net8-128-bursts.log",
+          "bytes": 222,
+          "sha256": "47a2c0b6d7e0cdb46f413b608846947d3f5fa3fe9686012cbe1002739966aad9"
+        }
+      },
+      {
+        "role": "core-c1-probe-net10-build",
+        "execution": {
+          "path": "$TASK_ROOT/convergence/core-c1-probe-net10-build-execution.json",
+          "bytes": 2536,
+          "sha256": "e3b81399e2d5219945a3127e4f1d36663949846f6a3657142a62bdc8e027f9b1"
+        },
+        "log": {
+          "path": "$TASK_ROOT/convergence/logs/core-c1-probe-net10-build.log",
+          "bytes": 397,
+          "sha256": "e20cfac29d0d0f8fc0d16c3626457e60e8933d9acc04bfcbf72799fd28064ecc"
+        }
+      },
+      {
+        "role": "core-c1-probe-net10-128-bursts",
+        "execution": {
+          "path": "$TASK_ROOT/convergence/core-c1-probe-net10-128-bursts-execution.json",
+          "bytes": 2133,
+          "sha256": "4b39b992f65b3910e77e64e8cccb182ac5f2bee22364c26b06acc5545409ec76"
+        },
+        "log": {
+          "path": "$TASK_ROOT/convergence/logs/core-c1-probe-net10-128-bursts.log",
+          "bytes": 222,
+          "sha256": "47a2c0b6d7e0cdb46f413b608846947d3f5fa3fe9686012cbe1002739966aad9"
+        }
+      },
+      {
+        "role": "core-c1-ps-net472-crossbuild",
+        "execution": {
+          "path": "$TASK_ROOT/convergence/core-c1-ps-net472-crossbuild-execution.json",
+          "bytes": 1560,
+          "sha256": "69d3c7819411ecad245b40f0900455b089d5da163bc6110f609b4adbf8053672"
+        },
+        "log": {
+          "path": "$TASK_ROOT/convergence/logs/core-c1-ps-net472-crossbuild.log",
+          "bytes": 34676,
+          "sha256": "eece1ce35361a7ff41c1db268b2cabc718389ee3c79509da4222b12b91f1088e"
+        }
+      }
+    ],
+    "ownerReview": {
+      "reviewedSource": "8c39c5cbe1edeafc9ed62bd13eea147495289efc",
+      "actionableFindings": 0,
+      "newPassForShaChange": false,
+      "basis": "Retained independent owner review plus exact unchanged output-owner/test blobs and fresh combined proof."
+    },
+    "limits": [
+      "Private unsigned standard-CLI package and internal-owner runtime qualification; no public release or public API consumer claim.",
+      "Actual source PS consumer full suite is separate from reflection-based packaged internal-owner burst runs.",
+      "net472 and netstandard2.0 are package asset/metadata proof only; actual managed burst execution was .NET 8 and .NET 10 on this macOS Arm64 host.",
+      "No Windows-native, cross-process, or unrelated external-writer claim."
+    ],
+    "proofCollection": {
+      "path": "$TASK_ROOT/convergence/prep/retention-c1/proof-c1.final.json",
+      "bytes": 32905,
+      "sha256": "e5f88669c166faf0d570a8bf1bd88c673c49eae5a9788a352b143909f1dae6ea"
+    },
+    "storage": {
+      "status": "complete-scoped-cleanup",
+      "logicalBytesRemoved": 5358430617,
+      "cumulativeCoreLogicalBytesRemoved": 8350897023,
+      "retainedCurrentGenerationApproxBytes": 53000000,
+      "cleanup": {
+        "path": "$TASK_ROOT/convergence/cleanup-c1-result.json",
+        "bytes": 6944,
+        "sha256": "e3e9e3f418fc6d49ec8c3edbc49bf5e43ffdbb8d175f533d372fde56da3bccfb"
+      },
+      "ledgerAppend": {
+        "path": "$TASK_ROOT/convergence/prep/storage-ledger-c1/append-receipt.json",
+        "bytes": 2976,
+        "sha256": "2b4f2f9f304c2ac9fbe418c6c680d8ef96f45e0b571464ce500388715fcf1d9e"
+      },
+      "boundary": "Eleven completed C1 graphs/private cache/temp roots removed;54 archived identities and46 proof bindings verified. Prior8c history/receipts and all global SDK processes/shared caches remain unchanged."
     }
-  ],
-  "localReview": {
-    "independentFullPasses": 1,
-    "actionableFindings": 0,
-    "targetedConfirmationUsed": false,
-    "productApiDependencyDisposition": "acceptasshaped; no new publicAPI/dependency, canonicalownerreused"
-  },
-  "validationSetup": {
-    "originalNet8ProbeRestoreFailure": "NETSDK1005; setup-only failure retained. Explicit-net8 scratch project then built the same frozen Program.cs against the extracted package DLL.",
-    "failedAttemptReceiptSha256": "3fdecc1aae6d0d9b3dddbf8ade332014b17c30cdb420c64e85b1b82b90a28993",
-    "effectivePackageStageCount": 6,
-    "effectiveStagesAllPassed": true
-  },
-  "limits": [
-    "Runtime behavior observed on macOS arm64 .NET8/.NET10 only; no Windows native execution or profiling claim.",
-    "net472/netstandard2.0 are compile/package assets, not older-runtime execution proof.",
-    "Private package probes exercise internal publication owner; full PowerShell source consumer is separate evidence, not a public package-restore/API consumer.",
-    "No package publication, PR, merge or release is established by these local results.",
-    "Cooperating in-process writers only; arbitrary external writers and unsupported filesystem locking are outside this proof."
-  ],
-  "proofCollection": {
-    "path": "$TASK_ROOT/prep/retention-8c39/proof.final.json",
-    "bytes": 18933,
-    "sha256": "5dc9dfa379c8372b12e962f16a3161b93e9c15a351a47d77b2d4abb11ea32b72"
-  },
-  "storage": {
-    "status": "complete-scoped-cleanup",
-    "logicalBytesRemoved": 2992466406,
-    "retainedApproxBytes": 73048064,
-    "cleanup": {
-      "path": "$TASK_ROOT/cleanup-8c39-result.json",
-      "bytes": 6760,
-      "sha256": "62ff7b207637d8e71707ad12d7453f3aa347b0df308955d7384a43a0f32e1676"
-    },
-    "ledgerAppend": {
-      "path": "$TASK_ROOT/prep/storage-ledger-8c39/append-receipt.json",
-      "bytes": 2919,
-      "sha256": "4ad520fc3f289cf5cbdd35925f44f63b7587118b857d8018bd283e153266bb9d"
-    },
-    "boundary": "Exact task graphs/private caches/successful synthetic burst expansions only. Before defect evidence, final package/assets/probe runtime, actual TRX and archives retained; shared caches and history untouched."
   }
 }
