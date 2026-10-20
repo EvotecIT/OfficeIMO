@@ -154,10 +154,17 @@ Native Excel opens the encrypted pivot control with its total of 13,210 and
 retained chart, and opens and saves a writable copy of the revision control.
 Revision-history UI editing is not qualified on macOS. Native Excel also opens
 and saves the encrypted CryptoAPI document-property control, retaining its title,
-subject, charts and plaintext VBA hosts. Generic encrypted nested-storage
-restoration has bounded synthetic and independent cipher-vector coverage;
-native-producer qualification of encrypted metadata and native encrypted
-nested-storage qualification are not included.
+subject, charts and plaintext VBA hosts. The [native encryption corpus](../OfficeIMO.TestAssets/Documents/ExcelNativeEncryptionCorpus/README.md)
+qualifies a Mac Excel-produced CryptoAPI workbook containing an embedded XLSX
+package. Import restores its encrypted compound storage, accepts an identical
+native clear mirror, and rejects conflicting copies. Plain and password-rotated
+edits open in Excel without repair prompts; native recalculation and SaveAs
+readbacks retain values, formulas, properties and the embedded package. Unchanged
+cell formatting retains original native XF indices, including opaque theme/font
+metadata. This cohort does not qualify arbitrary embedded-server activation.
+Native-producer encrypted document properties remain unqualified: Mac Excel
+rejects the encryption-option calls and saves plaintext property streams. The
+corpus guide records the remaining Windows producer checks.
 
 ## Detailed import assessment
 

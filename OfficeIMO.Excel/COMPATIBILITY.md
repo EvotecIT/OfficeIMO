@@ -73,8 +73,12 @@ Password-to-open XLS import supports the documented XOR, classic RC4 and RC4
 CryptoAPI variants. `SaveEncrypted` can write native XLS using classic RC4,
 native XLSB using Agile package encryption, and encrypted Open XML workbooks.
 Retained XLS pivot caches and revision logs are encrypted under the native stream
-rules. Encrypted-property input is accepted by native Excel; native-producer
-encrypted-summary and nested-storage qualification remain explicit evidence gaps.
+rules. Encrypted-property input is accepted by native Excel. The
+[native encryption corpus](../OfficeIMO.TestAssets/Documents/ExcelNativeEncryptionCorpus/README.md)
+qualifies import, cell/formula editing and password rotation of a Mac Excel-produced
+CryptoAPI XLS with an embedded XLSX package, including native SaveAs readbacks.
+Native-producer encrypted summary properties remain an explicit evidence gap;
+Mac Excel saves those properties in plaintext.
 
 ## Performance evidence
 

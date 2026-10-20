@@ -12,6 +12,23 @@ public sealed class ExcelLegacyNativeEncryptionTests {
     [Theory]
     [InlineData(false)]
     [InlineData(true)]
+    public void Native_readbacks_retain_edited_values_recalculated_formulas_properties_and_embedding(bool encrypted) {
+        string path = Path.Combine(Corpus, encrypted ? "excel-embedding.rotated-readback.xls" : "excel-embedding.edited-readback.xls");
+        using var document = encrypted ? ExcelDocument.LoadEncrypted(path, "new-password") : ExcelDocument.Load(path);
+        Assert.Equal("Edited native embedding", document.Sheets[0].CellAt(2, 1).GetValue<string>());
+        Assert.Equal(42, document.Sheets[0].CellAt(1, 2).GetValue<double>());
+        Assert.Equal(50, document.Sheets[0].CellAt(3, 2).GetValue<double>());
+        Assert.Equal("Native encrypted auxiliary control", document.BuiltinDocumentProperties.Title);
+        Assert.Equal("Native encrypted nested storage", document.BuiltinDocumentProperties.Subject);
+        var compound = ReadCompound(document.ToBytes(ExcelFileFormat.Xls));
+        using var embedded = ExcelDocument.Load(new MemoryStream(compound.Streams[EmbeddingName(compound) + "/Package"]));
+        Assert.Equal("Owned embedded native control", embedded.Sheets[0].CellAt(1, 1).GetValue<string>());
+        Assert.Equal(42, embedded.Sheets[0].CellAt(1, 2).GetValue<double>());
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
     public void Native_encrypted_embedding_retains_properties_and_survives_edit_and_password_rotation(bool removeClearMirror) {
         byte[] bytes = File.ReadAllBytes(Path.Combine(Corpus, "excel-native-embedding.encrypted.xls"));
         OfficeCompoundFile raw = ReadCompound(bytes);

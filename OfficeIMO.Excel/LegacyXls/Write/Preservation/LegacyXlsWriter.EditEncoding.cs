@@ -44,9 +44,17 @@ internal static partial class LegacyXlsWriter {
         // Unchanged native XFs can carry opaque theme/font metadata. Only encode
         // styles needed by new cells or actual style edits; retain native indices
         // per cell, including distinct native XFs with identical projections.
+        var requiredStyles = new HashSet<uint>(edits.Where(edit => edit.Cell != null && !PreservedStyle(edit).HasValue)
+            .Select(edit => edit.Cell!.StyleIndex?.Value ?? 0U));
+        // New sheets serialize their layout as well as their cells. Row/column
+        // definitions can reference styles even when the sheet has no cells.
+        if (structure != null) foreach (var binding in structure.Bindings.Where(binding => binding.Original == null)) {
+            var sheet = sheets.Single(sheet => sheet.Name == binding.Name);
+            foreach (var column in sheet.GetColumnDefinitions()) requiredStyles.Add(column.StyleIndex ?? 0U);
+            foreach (var row in sheet.GetRowDefinitions()) requiredStyles.Add(row.StyleIndex ?? 0U);
+        }
         var styles = LegacyXlsStyleTable.CreatePreserving(document, sheets, fonts, records,
-            edits.Where(edit => edit.Cell != null && !PreservedStyle(edit).HasValue)
-                .Select(edit => edit.Cell!.StyleIndex?.Value ?? 0U));
+            requiredStyles);
         var convertedBySheet = new Dictionary<string, List<LegacyXlsCell>>(StringComparer.Ordinal);
         foreach (var group in edits.GroupBy(edit => edit.Sheet)) {
             int index = Array.FindIndex(sheets, sheet => sheet.Name == group.Key);
