@@ -106,16 +106,15 @@ internal sealed partial class HtmlRenderLayoutEngine {
     private double ResolveGridMinContentContribution(FlexItem item, double availableSize, int depth = 1) =>
         ResolveGridContentContributions(item, availableSize, depth).Minimum;
 
-    private (double Minimum, double Maximum) ResolveGridContentContributions(FlexItem item, double availableSize, int depth,
-        bool includeDescendantInsets = false, Func<string, IntrinsicTextRun, double>? measure = null) {
+    private (double Minimum, double Maximum) ResolveGridContentContributions(FlexItem item, double availableSize, int depth, bool includeDescendantInsets = false) {
         HtmlRenderBoxStyle style = item.Style;
         if (!style.HasIntrinsicWidths && TryResolveDefiniteGridContribution(item, availableSize, out double definite)) return (definite, definite);
         IReadOnlyList<IntrinsicTextRun> textRuns = ResolveInFlowIntrinsicTextRuns(item, availableSize, depth,
             includeDescendantInsets: includeDescendantInsets || style.HasIntrinsicWidths);
         double replaced = ResolveDescendantReplacedGridContribution(item, availableSize);
-        double minimum = Math.Max(textRuns.Count == 0 ? 1D : MeasureMinContentRuns(textRuns, measure),
+        double minimum = Math.Max(textRuns.Count == 0 ? 1D : MeasureMinContentRuns(textRuns),
             ResolveDescendantReplacedGridContribution(item, availableSize, minimum: true));
-        double maximum = Math.Max(textRuns.Count == 0 ? 1D : MeasureMaxContentRuns(textRuns, measure), replaced);
+        double maximum = Math.Max(textRuns.Count == 0 ? 1D : MeasureMaxContentRuns(textRuns), replaced);
         return style.HasIntrinsicWidths ? ResolveOrdinaryIntrinsicContributions(style, minimum, maximum, availableSize)
             : (ResolveGridMeasuredContribution(style, minimum), ResolveGridMeasuredContribution(style, maximum));
     }
@@ -163,6 +162,12 @@ internal sealed partial class HtmlRenderLayoutEngine {
 
     private bool TryResolveDefiniteGridContribution(FlexItem item, double availableSize, out double contribution) {
         HtmlRenderBoxStyle style = item.Style;
+        // Controls own their value/option/column sizing and UA box edges even
+        // when they are the root of an intrinsic request rather than a child run.
+        if (item.Element != null && IsFormControlElement(item.TagName) && !UsesButtonChildLayout(item.Element)) {
+            contribution = ResolveFormControlIntrinsicOuterWidth(item.Element, style, availableSize);
+            return true;
+        }
         if (style.ExplicitWidth.HasValue && !style.ExplicitWidthUsesPercentage) {
             double boxWidth = style.ExplicitWidth.Value + (style.BorderBox ? 0D : style.HorizontalInsets);
             if (style.MaxWidth.HasValue) boxWidth = Math.Min(boxWidth, style.MaxWidth.Value + (style.BorderBox ? 0D : style.HorizontalInsets));

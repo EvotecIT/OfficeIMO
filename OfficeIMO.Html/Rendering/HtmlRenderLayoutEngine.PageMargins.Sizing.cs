@@ -112,6 +112,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
         if (snapshot.Block.Visuals.Count == 0) return new PageMarginIntrinsicSize(true, 0D, 0D);
         CheckCancellation();
         ChargeLayoutOperation("@page @" + GetMarginBoxName(box.Position) + " running intrinsic sizing");
+        using var measurementBudget = new IntrinsicTextMeasurementBudgetScope(this,
+            "@page @" + GetMarginBoxName(box.Position) + " running intrinsic text measurement");
         HtmlRenderBoxStyle style = _styleResolver.Resolve(snapshot.Element, availableWidth, snapshot.ParentStyle).Clone();
         style.Position = "static";
         style.ZIndex = "auto";
@@ -119,13 +121,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         NormalizeFlexIntrinsicConstraints(item);
         (double minimum, double maximum) = item.Style.Display is "table" or "inline-table"
             ? ResolveIntrinsicTableOuterWidths(snapshot.Element, item.Style, availableWidth, snapshot.Depth)
-            : ResolveGridContentContributions(item, availableWidth, snapshot.Depth, includeDescendantInsets: true,
-                measure: (value, run) => {
-                    CheckCancellation();
-                    ChargeLayoutOperations(value.Length,
-                        "@page @" + GetMarginBoxName(box.Position) + " running text measurement");
-                    return MeasureInlineText(value, run.Style, run);
-                });
+            : ResolveGridContentContributions(item, availableWidth, snapshot.Depth, includeDescendantInsets: true);
         CheckCancellation();
         return new PageMarginIntrinsicSize(true, minimum, maximum);
     }

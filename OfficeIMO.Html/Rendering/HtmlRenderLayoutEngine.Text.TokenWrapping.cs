@@ -224,16 +224,14 @@ internal sealed partial class HtmlRenderLayoutEngine {
         return CharUnicodeInfo.GetUnicodeCategory(text, previous);
     }
 
-    private double MeasureTabExpandedText(string value, HtmlRenderBoxStyle style, double currentWidth,
-        Func<string, double>? measure = null) {
-        double Measure(string text) => measure != null ? measure(text) : MeasureInlineText(text, style);
-        if (value.IndexOf('\t') < 0) return Measure(value);
-        double spaceWidth = Math.Max(0.01D, Measure(" "));
+    private double MeasureTabExpandedText(string value, HtmlRenderBoxStyle style, double currentWidth) {
+        if (value.IndexOf('\t') < 0) return MeasureInlineText(value, style);
+        double spaceWidth = Math.Max(0.01D, MeasureInlineText(" ", style));
         double stopWidth = style.TabSizeIsLength ? style.TabSize : style.TabSize * spaceWidth;
         double cursor = currentWidth;
         foreach (char character in value) {
             if (character != '\t') {
-                cursor += Measure(character.ToString());
+                cursor += MeasureInlineText(character.ToString(), style);
                 continue;
             }
             if (stopWidth <= 0D) continue;

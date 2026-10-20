@@ -182,11 +182,11 @@ internal sealed partial class HtmlRenderLayoutEngine {
         IReadOnlyList<IntrinsicTextRun> runs;
         if (cell.Nodes == null) {
             runs = ResolveInFlowIntrinsicTextRuns(new FlexItem(cell.Element, style, 0), containingWidth, depth,
-                skipSizedNestedTables: true, includeDescendantInsets: true);
+                includeDescendantInsets: true);
         } else {
             var rawRuns = new List<IntrinsicTextRun>();
             AppendInFlowIntrinsicTextRuns(cell.Element, style, containingWidth, depth, rawRuns,
-                skipSizedNestedTables: true, includeDescendantInsets: true, sourceNodes: cell.Nodes);
+                includeDescendantInsets: true, sourceNodes: cell.Nodes);
             runs = NormalizeIntrinsicTextRuns(rawRuns);
         }
         double insets = style.HorizontalInsets;
