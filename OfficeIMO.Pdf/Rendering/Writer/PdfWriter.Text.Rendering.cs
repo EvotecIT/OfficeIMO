@@ -66,9 +66,21 @@ internal static partial class PdfWriter {
 
         if (inlineElement is PdfInlineFormWidget inlineWidget) {
             if (page == null) throw new InvalidOperationException("Inline form fields require an active output page.");
-            FormFieldAnnotation annotation = CreateInlineFormAnnotation(inlineWidget.Field, x, bottom,
-                x + inlineWidget.Width, bottom + inlineWidget.Height, parentElementIndex);
-            annotation.InlineWidgetBaseline = -inlineWidget.BaselineOffset;
+            PrepareInlineCheckBoxGlyphUsage(inlineWidget.Field, options);
+            double left = x, right = x + inlineWidget.Width, top = bottom + inlineWidget.Height;
+            if (inlineWidget.SourceRun is { } source) {
+                double cursor = x;
+                foreach (PdfTextRun run in NormalizeFallbackRuns(new[] { source }, ChooseNormal(options.DefaultFont), options)) {
+                    RichSeg segment = CreateInlineAppearanceSegment(run, options);
+                    IncludeInlineFormPaintBounds(page, segment, cursor, baseline, options,
+                        ref left, ref bottom, ref right, ref top);
+                    cursor += GetRichSegmentWidth(segment);
+                }
+            }
+            FormFieldAnnotation annotation = CreateInlineFormAnnotation(inlineWidget.Field, left, bottom,
+                right, top, parentElementIndex);
+            annotation.InlineWidgetBaseline = baseline - bottom;
+            annotation.InlineWidgetTextX = x - left;
             page.FormFields.Add(annotation);
             return;
         }
@@ -206,7 +218,7 @@ internal static partial class PdfWriter {
                         double gapBaseline = lineY + TextRiseForBaseline(s.FontSize, s.Baseline) + s.LineAlignmentRise;
                         double gapAscent = GetAscenderForOptions(s.Font, s.NamedFont, gapFontSize, opts);
                         double gapDescent = GetDescenderForOptions(s.Font, s.NamedFont, gapFontSize, opts);
-                        double gapPad = Math.Max(0.45D, gapFontSize * 0.05D);
+                        double gapPad = GetRichTextBackgroundPadding(gapFontSize).Vertical;
                         AddBackground(lineXOrigin + dx + backgroundBidi.GapX[si], gapBaseline - gapDescent - gapPad,
                             leadingAdvance, gapAscent + gapDescent + gapPad * 2D, s.BackgroundColor.Value);
                     }
@@ -218,8 +230,7 @@ internal static partial class PdfWriter {
                     double textRise = TextRiseForBaseline(s.FontSize, s.Baseline) + s.LineAlignmentRise;
                     double asc = GetAscenderForOptions(s.Font, s.NamedFont, runFontSize, opts);
                     double desc = GetDescenderForOptions(s.Font, s.NamedFont, runFontSize, opts);
-                    double padX = Math.Max(1.4D, runFontSize * 0.14D);
-                    double padY = Math.Max(0.45D, runFontSize * 0.05D);
+                    var (padX, padY) = GetRichTextBackgroundPadding(runFontSize);
                     double baselineY = lineY + textRise;
                     AddBackground(
                         lineXOrigin + xCursor - leadingAdvance - padX,
@@ -352,7 +363,12 @@ internal static partial class PdfWriter {
                             .Add((lineXOrigin + xCursor, lineXOrigin + xCursor + gap, underlineY, underlineColor, s.LeadingUnderlineStyle));
                     }
 
-                    if (s.LeadingTabLeader != PdfTabLeaderStyle.None) {
+                    if (s.InlineElement is PdfInlineFormWidget) {
+                        // A control's measured separator has no ink. Icon-only
+                        // fonts need not contain a SPACE glyph to advance it.
+                        xCursor += gap;
+                        content.BreakTextRun().TextMatrix(lineXOrigin + xCursor, lineY);
+                    } else if (s.LeadingTabLeader != PdfTabLeaderStyle.None) {
                         string leader = BuildTabLeaderText(gap, s, opts);
                         // Tab stops stay explicit text positions so readers keep the columns.
                         content.BreakTextRun();
@@ -403,7 +419,7 @@ internal static partial class PdfWriter {
                             : sb,
                         s.InlineElement,
                         inlineX,
-                        lineY,
+                        s.InlineElement is PdfInlineFormWidget ? lineY + s.LineAlignmentRise : lineY,
                         opts,
                         structurePage,
                         textStructElementIndex);

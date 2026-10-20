@@ -12,6 +12,8 @@ internal sealed class PdfInlineFormField {
         if (field.Kind != PdfCanvasFormFieldKind.CheckBox &&
             (checkedAppearanceRun != null || uncheckedAppearanceRun != null))
             throw new ArgumentException("State glyph appearances require a check box field.", nameof(field));
+        if (checkedAppearanceRun?.BackgroundColor != null || uncheckedAppearanceRun?.BackgroundColor != null)
+            throw new NotSupportedException("An inline state appearance cannot preserve a run background beneath surrounding page text. Keep the source run static.");
         CheckedAppearanceRun = checkedAppearanceRun?.SnapshotForInlineAppearance();
         UncheckedAppearanceRun = uncheckedAppearanceRun?.SnapshotForInlineAppearance();
         Field = field.Kind switch {
@@ -43,6 +45,8 @@ internal sealed class PdfInlineFormWidget : PdfInlineElement {
         Guard.NotNull(field, nameof(field));
         if (sourceRun?.InlineElement != null)
             throw new ArgumentException("A form widget's source line metrics require a text run.", nameof(sourceRun));
+        if (sourceRun?.BackgroundColor != null)
+            throw new NotSupportedException("An inline widget cannot preserve a run background beneath surrounding page text. Keep the source run static.");
         Field = field;
         SourceRun = sourceRun;
     }

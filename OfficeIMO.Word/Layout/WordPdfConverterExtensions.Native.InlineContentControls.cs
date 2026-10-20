@@ -49,6 +49,7 @@ public static partial class WordPdfConverterExtensions {
     private sealed class NativeInlineContentControlProjection {
         private readonly Dictionary<W.SdtRun, PdfCore.PdfInlineFormField> _fields = new();
         private readonly HashSet<W.SdtRun> _paintedCheckBoxes = new();
+        private readonly Dictionary<W.SdtRun, bool> _staticBackgroundControls = new();
         private readonly bool _tableCell;
 
         internal NativeInlineContentControlProjection(bool tableCell) => _tableCell = tableCell;
@@ -59,6 +60,22 @@ public static partial class WordPdfConverterExtensions {
             result = Array.Empty<PdfCore.PdfTextRun>();
             W.SdtRun? control = run._run?.Ancestors<W.SdtRun>().FirstOrDefault(CanProjectNativeInlineContentControl);
             if (control == null || nativeDefaults.RunningContentContext != null) return false;
+            if (!_staticBackgroundControls.TryGetValue(control, out bool staticBackground)) {
+                // PDF widgets paint above page text. A run background belongs
+                // beneath that text and can overlap neighboring glyphs. Keep
+                // the whole source control in ordinary paragraph paint rather
+                // than moving only part of its cache into an overlay widget.
+                staticBackground = control.SdtContentRun!.Descendants<W.Run>().Any(source => {
+                    var candidate = new WordParagraph(run._document, run._paragraph!, source);
+                    return !IsNativeHiddenTextRun(candidate) && ResolveNativeTextRunStyle(candidate,
+                        tableRunStyleDefaults: tableStyleDefaults.RunStyle, nativeDefaults: nativeDefaults,
+                        nativeFontMap: fontMap).BackgroundColor.HasValue;
+                });
+                _staticBackgroundControls.Add(control, staticBackground);
+                if (staticBackground) fontMap?.ReportInlineControlStaticBackground(
+                    GetNativeContentControlFieldName(control, _staticBackgroundControls.Count - 1, "ContentControl"));
+            }
+            if (staticBackground) return false;
             NativeResolvedTextStyle style = ResolveNativeTextRunStyle(run, tableRunStyleDefaults: tableStyleDefaults.RunStyle,
                 nativeDefaults: nativeDefaults, nativeFontMap: fontMap);
             double size = style.EffectiveFontSize;

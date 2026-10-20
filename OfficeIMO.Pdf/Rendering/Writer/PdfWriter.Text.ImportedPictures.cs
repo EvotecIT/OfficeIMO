@@ -5,7 +5,10 @@ internal static partial class PdfWriter {
     private static bool HasImportedOverflowPicture(IReadOnlyList<RichSeg> line) =>
         line.Any(segment => segment.InlineElement is PdfInlineImage { AllowFrameOverflow: true });
 
-    /// <summary>Exact-height paragraphs crop picture paint above their segment without clipping adjacent text.</summary>
+    /// <summary>
+    /// Matches Word's paragraph-segment clip, including pictures on later exact-height lines.
+    /// Word can paint over earlier lines in the same paragraph; their individual line tops are not clip boundaries.
+    /// </summary>
     private static bool BeginImportedPictureClip(StringBuilder output, PdfInlineElement element,
         PdfLineSpacing? spacing, double x, double baseline, double paragraphTop, double pageWidth) {
         if (element is not PdfInlineImage { AllowFrameOverflow: true } || spacing?.IsExact != true) return false;

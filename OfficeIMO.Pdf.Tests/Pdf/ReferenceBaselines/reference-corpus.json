@@ -812,6 +812,624 @@
           "meanLuminanceError": 0.4419393612774451
         }
       }
+    },
+    {
+      "id": "word-header-anchor-explicit-defaults",
+      "converterId": "word",
+      "producer": "Microsoft Word",
+      "producerVersion": "16.0.20430.20182",
+      "exportPreset": "standard-print-export",
+      "sourcePath": "header-anchor-explicit-defaults.docx",
+      "sourceSha256": "ae78c420a799a46b421b571ce7ea24e6cbb4278fe297bf5f5c67cd2db3aa8de8",
+      "referencePdfPath": "microsoft-word-windows-header-anchor-explicit-defaults.pdf",
+      "referencePdfSha256": "6441784ee93e0a6439baaddede2b02639f7fef2c0d6b4cef5e8d5029cedef97d",
+      "producerEnvironment": {
+        "suite": "Microsoft Word for Microsoft 365",
+        "productVersion": "16.0.20430.20182",
+        "operatingSystem": "Windows 11"
+      },
+      "sanitization": {
+        "source": "Repository-authored standalone synthetic OOXML control; no customer parts or copied package carrier.",
+        "replacements": "Generic text and original labeled quadrant image where applicable; source core properties absent; native PDF personal metadata empty."
+      },
+      "qualification": "Column/paragraph anchored picture and right-tab title with explicit paragraph defaults. Source validated with Open XML SDK 3.5.1 before read-only native export; same input hash retained. Native output qualifies finite visual layout; editable PDF field semantics have separate regression assertions.",
+      "pages": [
+        {
+          "number": 1,
+          "widthPoints": 612.0,
+          "heightPoints": 792.0,
+          "rasterWidth": 612,
+          "rasterHeight": 792,
+          "measuredDifferentPixelRatio": 0.014315953654188949,
+          "measuredMeanAbsoluteError": 0.04243001914570542,
+          "measuredRootMeanSquareError": 1.6097932021311872,
+          "measuredMeanLuminanceError": 0.055234350448933836
+        }
+      ],
+      "platformComparisonMeasurements": {
+        "Windows": {
+          "differentPixelRatio": 0.014315953654188949,
+          "meanAbsoluteError": 0.04243001914570542,
+          "rootMeanSquareError": 1.6097932021311872,
+          "meanLuminanceError": 0.055234350448933836
+        },
+        "Linux": {
+          "differentPixelRatio": 0.019213788208886248,
+          "meanAbsoluteError": 0.5406794662309368,
+          "rootMeanSquareError": 8.932035215709362,
+          "meanLuminanceError": 0.6989923887568495
+        }
+      },
+      "maximumDifferentPixelRatio": 0.023,
+      "maximumMeanAbsoluteError": 0.75,
+      "maximumRootMeanSquareError": 11.0,
+      "maximumMeanLuminanceError": 1.0,
+      "calibrationNotes": "Windows Poppler 26.07.0 and WSL Linux Poppler 24.02.0 at 72 dpi. Each platform compares the native reference and candidate with its own rasterizer. Linux substitutes Liberation Sans for the unavailable Arial and Calibri source families. Page counts match on both platforms. Candidate picture pages of 400 by 500 pixels are padded to the native reference size of 400 by 501 pixels on opaque white."
+    },
+    {
+      "id": "word-header-anchor-explicit-defaults-preceding-line",
+      "converterId": "word",
+      "producer": "Microsoft Word",
+      "producerVersion": "16.0.20430.20182",
+      "exportPreset": "standard-print-export",
+      "sourcePath": "header-anchor-explicit-defaults-preceding-line.docx",
+      "sourceSha256": "af7e9b8076978b751657b526549b546e3b9379bc6e7b8514be75535f594d80a7",
+      "referencePdfPath": "microsoft-word-windows-header-anchor-explicit-defaults-preceding-line.pdf",
+      "referencePdfSha256": "969bbbf0445c3961e6741d9cae489b91a7986545485efeab305ae4ccab6437ba",
+      "producerEnvironment": {
+        "suite": "Microsoft Word for Microsoft 365",
+        "productVersion": "16.0.20430.20182",
+        "operatingSystem": "Windows 11"
+      },
+      "sanitization": {
+        "source": "Repository-authored standalone synthetic OOXML control; no customer parts or copied package carrier.",
+        "replacements": "Generic text and original labeled quadrant image where applicable; source core properties absent; native PDF personal metadata empty."
+      },
+      "qualification": "Paragraph-relative anchor after an exact-height header line; native body reservation. Source validated with Open XML SDK 3.5.1 before read-only native export; same input hash retained. Native output qualifies finite visual layout; editable PDF field semantics have separate regression assertions.",
+      "pages": [
+        {
+          "number": 1,
+          "widthPoints": 612.0,
+          "heightPoints": 792.0,
+          "rasterWidth": 612,
+          "rasterHeight": 792,
+          "measuredDifferentPixelRatio": 0.014216924143394732,
+          "measuredMeanAbsoluteError": 0.04416045669109395,
+          "measuredRootMeanSquareError": 1.6254593748668233,
+          "measuredMeanLuminanceError": 0.058175245510662235
+        }
+      ],
+      "platformComparisonMeasurements": {
+        "Windows": {
+          "differentPixelRatio": 0.014216924143394732,
+          "meanAbsoluteError": 0.04416045669109395,
+          "rootMeanSquareError": 1.6254593748668233,
+          "meanLuminanceError": 0.058175245510662235
+        },
+        "Linux": {
+          "differentPixelRatio": 0.01845456195946392,
+          "meanAbsoluteError": 0.5596596066877929,
+          "rootMeanSquareError": 9.129344140085013,
+          "meanLuminanceError": 0.7116462290387536
+        }
+      },
+      "maximumDifferentPixelRatio": 0.023,
+      "maximumMeanAbsoluteError": 0.8,
+      "maximumRootMeanSquareError": 11.0,
+      "maximumMeanLuminanceError": 1.0,
+      "calibrationNotes": "Windows Poppler 26.07.0 and WSL Linux Poppler 24.02.0 at 72 dpi. Each platform compares the native reference and candidate with its own rasterizer. Linux substitutes Liberation Sans for the unavailable Arial and Calibri source families. Page counts match on both platforms. Candidate picture pages of 400 by 500 pixels are padded to the native reference size of 400 by 501 pixels on opaque white."
+    },
+    {
+      "id": "word-table-legacy50-grid479-m10",
+      "converterId": "word",
+      "producer": "Microsoft Word",
+      "producerVersion": "16.0.20430.20182",
+      "exportPreset": "standard-print-export",
+      "sourcePath": "table-legacy50-grid479-m10.docx",
+      "sourceSha256": "a934f3c9c2f35433355e44a3fb63fbe9566593921a3b15aa5e209f2454b51158",
+      "referencePdfPath": "microsoft-word-windows-table-legacy50-grid479-m10.pdf",
+      "referencePdfSha256": "27177d198a546ae7faec388a56761f05ca625a7c72c66cdc7801477996482266",
+      "producerEnvironment": {
+        "suite": "Microsoft Word for Microsoft 365",
+        "productVersion": "16.0.20430.20182",
+        "operatingSystem": "Windows 11"
+      },
+      "sanitization": {
+        "source": "Repository-authored standalone synthetic OOXML control; no customer parts or copied package carrier.",
+        "replacements": "Generic text and original labeled quadrant image where applicable; source core properties absent; native PDF personal metadata empty."
+      },
+      "qualification": "Legacy table at 50 percent with 10 pt cell margins in body/header/footer. Source validated with Open XML SDK 3.5.1 before read-only native export; same input hash retained. Native output qualifies finite visual layout; editable PDF field semantics have separate regression assertions.",
+      "pages": [
+        {
+          "number": 1,
+          "widthPoints": 612.0,
+          "heightPoints": 792.0,
+          "rasterWidth": 612,
+          "rasterHeight": 792,
+          "measuredDifferentPixelRatio": 0.0033216148412226845,
+          "measuredMeanAbsoluteError": 0.03046962682379349,
+          "measuredRootMeanSquareError": 1.173815781110656,
+          "measuredMeanLuminanceError": 0.03940993224730969
+        }
+      ],
+      "platformComparisonMeasurements": {
+        "Windows": {
+          "differentPixelRatio": 0.0033216148412226845,
+          "meanAbsoluteError": 0.03046962682379349,
+          "rootMeanSquareError": 1.173815781110656,
+          "meanLuminanceError": 0.03940993224730969
+        },
+        "Linux": {
+          "differentPixelRatio": 0.004247953390110253,
+          "meanAbsoluteError": 0.06358107215950354,
+          "rootMeanSquareError": 1.6051374569469734,
+          "meanLuminanceError": 0.08209986383442265
+        }
+      },
+      "maximumDifferentPixelRatio": 0.007,
+      "maximumMeanAbsoluteError": 0.2,
+      "maximumRootMeanSquareError": 3.0,
+      "maximumMeanLuminanceError": 0.28,
+      "calibrationNotes": "Windows Poppler 26.07.0 and WSL Linux Poppler 24.02.0 at 72 dpi. Each platform compares the native reference and candidate with its own rasterizer. Linux substitutes Liberation Sans for the unavailable Arial and Calibri source families. Page counts match on both platforms. Candidate picture pages of 400 by 500 pixels are padded to the native reference size of 400 by 501 pixels on opaque white."
+    },
+    {
+      "id": "word-table-modern100-grid479-m575",
+      "converterId": "word",
+      "producer": "Microsoft Word",
+      "producerVersion": "16.0.20430.20182",
+      "exportPreset": "standard-print-export",
+      "sourcePath": "table-modern100-grid479-m575.docx",
+      "sourceSha256": "ee7ceae3b9db68a485d5f0474b532624d415bcce818548df6ab640921283eca5",
+      "referencePdfPath": "microsoft-word-windows-table-modern100-grid479-m575.pdf",
+      "referencePdfSha256": "e22f84873afd0ef82c4615efbdd8497cfa150fcbf45476dc56cf41068c860ce7",
+      "producerEnvironment": {
+        "suite": "Microsoft Word for Microsoft 365",
+        "productVersion": "16.0.20430.20182",
+        "operatingSystem": "Windows 11"
+      },
+      "sanitization": {
+        "source": "Repository-authored standalone synthetic OOXML control; no customer parts or copied package carrier.",
+        "replacements": "Generic text and original labeled quadrant image where applicable; source core properties absent; native PDF personal metadata empty."
+      },
+      "qualification": "Modern compatibility mode table at 100 percent with 5.75 pt cell margins in body/header/footer. Source validated with Open XML SDK 3.5.1 before read-only native export; same input hash retained. Native output qualifies finite visual layout; editable PDF field semantics have separate regression assertions.",
+      "pages": [
+        {
+          "number": 1,
+          "widthPoints": 612.0,
+          "heightPoints": 792.0,
+          "rasterWidth": 612,
+          "rasterHeight": 792,
+          "measuredDifferentPixelRatio": 0.0032122697563874035,
+          "measuredMeanAbsoluteError": 0.025196821152703507,
+          "measuredRootMeanSquareError": 1.0623350593724914,
+          "measuredMeanLuminanceError": 0.03295237670825906
+        }
+      ],
+      "platformComparisonMeasurements": {
+        "Windows": {
+          "differentPixelRatio": 0.0032122697563874035,
+          "meanAbsoluteError": 0.025196821152703507,
+          "rootMeanSquareError": 1.0623350593724914,
+          "meanLuminanceError": 0.03295237670825906
+        },
+        "Linux": {
+          "differentPixelRatio": 0.004270647653000594,
+          "meanAbsoluteError": 0.059851992143658814,
+          "rootMeanSquareError": 1.5315336941105626,
+          "meanLuminanceError": 0.0775798450188156
+        }
+      },
+      "maximumDifferentPixelRatio": 0.007,
+      "maximumMeanAbsoluteError": 0.2,
+      "maximumRootMeanSquareError": 3.0,
+      "maximumMeanLuminanceError": 0.28,
+      "calibrationNotes": "Windows Poppler 26.07.0 and WSL Linux Poppler 24.02.0 at 72 dpi. Each platform compares the native reference and candidate with its own rasterizer. Linux substitutes Liberation Sans for the unavailable Arial and Calibri source families. Page counts match on both platforms. Candidate picture pages of 400 by 500 pixels are padded to the native reference size of 400 by 501 pixels on opaque white."
+    },
+    {
+      "id": "word-picture-wide-margin-explicit-defaults",
+      "converterId": "word",
+      "producer": "Microsoft Word",
+      "producerVersion": "16.0.20430.20182",
+      "exportPreset": "standard-print-export",
+      "sourcePath": "picture-wide-margin-explicit-defaults.docx",
+      "sourceSha256": "34fef1837327a8d409ba8da5ede4c06f47994e5448b74edaee87466aa558a57c",
+      "referencePdfPath": "microsoft-word-windows-picture-wide-margin-explicit-defaults.pdf",
+      "referencePdfSha256": "1ca47c125c0781117338ef5caea96528fa9c2cecd4344caed3f3aeb5d2c493d9",
+      "producerEnvironment": {
+        "suite": "Microsoft Word for Microsoft 365",
+        "productVersion": "16.0.20430.20182",
+        "operatingSystem": "Windows 11"
+      },
+      "sanitization": {
+        "source": "Repository-authored standalone synthetic OOXML control; no customer parts or copied package carrier.",
+        "replacements": "Generic text and original labeled quadrant image where applicable; source core properties absent; native PDF personal metadata empty."
+      },
+      "qualification": "Authored flow picture wider than the body; native margin overflow and physical-page clipping. Source validated with Open XML SDK 3.5.1 before read-only native export; same input hash retained. Native output qualifies finite visual layout; editable PDF field semantics have separate regression assertions.",
+      "pages": [
+        {
+          "number": 1,
+          "widthPoints": 399.9599914550781,
+          "heightPoints": 500.0400085449219,
+          "rasterWidth": 400,
+          "rasterHeight": 501,
+          "measuredDifferentPixelRatio": 0.004780439121756487,
+          "measuredMeanAbsoluteError": 0.2809693113772455,
+          "measuredRootMeanSquareError": 7.407764931976794,
+          "measuredMeanLuminanceError": 0.37611514670658674
+        }
+      ],
+      "platformComparisonMeasurements": {
+        "Windows": {
+          "differentPixelRatio": 0.004780439121756487,
+          "meanAbsoluteError": 0.2809693113772455,
+          "rootMeanSquareError": 7.407764931976794,
+          "meanLuminanceError": 0.37611514670658674
+        },
+        "Linux": {
+          "differentPixelRatio": 0.005923153692614771,
+          "meanAbsoluteError": 0.3245995508982036,
+          "rootMeanSquareError": 7.54329693123732,
+          "meanLuminanceError": 0.4342887994011975
+        }
+      },
+      "maximumDifferentPixelRatio": 0.009,
+      "maximumMeanAbsoluteError": 0.55,
+      "maximumRootMeanSquareError": 9.0,
+      "maximumMeanLuminanceError": 0.7,
+      "calibrationNotes": "Windows Poppler 26.07.0 and WSL Linux Poppler 24.02.0 at 72 dpi. Each platform compares the native reference and candidate with its own rasterizer. Linux substitutes Liberation Sans for the unavailable Arial and Calibri source families. Page counts match on both platforms. Candidate picture pages of 400 by 500 pixels are padded to the native reference size of 400 by 501 pixels on opaque white."
+    },
+    {
+      "id": "word-picture-tall-explicit-defaults",
+      "converterId": "word",
+      "producer": "Microsoft Word",
+      "producerVersion": "16.0.20430.20182",
+      "exportPreset": "standard-print-export",
+      "sourcePath": "picture-tall-explicit-defaults.docx",
+      "sourceSha256": "dffc085355310238da8b0e5dac33792923d6fa59827189a026d14d063e6e0351",
+      "referencePdfPath": "microsoft-word-windows-picture-tall-explicit-defaults.pdf",
+      "referencePdfSha256": "e9349db86f8cd8e15a7cba0ee2bc135cd0326ed2c3ddad5647c16e3a6ba93dcc",
+      "producerEnvironment": {
+        "suite": "Microsoft Word for Microsoft 365",
+        "productVersion": "16.0.20430.20182",
+        "operatingSystem": "Windows 11"
+      },
+      "sanitization": {
+        "source": "Repository-authored standalone synthetic OOXML control; no customer parts or copied package carrier.",
+        "replacements": "Generic text and original labeled quadrant image where applicable; source core properties absent; native PDF personal metadata empty."
+      },
+      "qualification": "Tall flow picture advances once, retains its frame, and leaves following text on a later page. Source validated with Open XML SDK 3.5.1 before read-only native export; same input hash retained. Native output qualifies finite visual layout; editable PDF field semantics have separate regression assertions.",
+      "pages": [
+        {
+          "number": 1,
+          "widthPoints": 399.9599914550781,
+          "heightPoints": 500.0400085449219,
+          "rasterWidth": 400,
+          "rasterHeight": 501,
+          "measuredDifferentPixelRatio": 0.0014820359281437125,
+          "measuredMeanAbsoluteError": 0.005486526946107784,
+          "measuredRootMeanSquareError": 0.19005987080659073,
+          "measuredMeanLuminanceError": 0.007315369261477043
+        },
+        {
+          "number": 2,
+          "widthPoints": 399.9599914550781,
+          "heightPoints": 500.0400085449219,
+          "rasterWidth": 400,
+          "rasterHeight": 501,
+          "measuredDifferentPixelRatio": 0.08368263473053893,
+          "measuredMeanAbsoluteError": 0.4345122255489022,
+          "measuredRootMeanSquareError": 9.193308159751835,
+          "measuredMeanLuminanceError": 0.4713222804391223
+        },
+        {
+          "number": 3,
+          "widthPoints": 399.9599914550781,
+          "heightPoints": 500.0400085449219,
+          "rasterWidth": 400,
+          "rasterHeight": 501,
+          "measuredDifferentPixelRatio": 0.0015518962075848303,
+          "measuredMeanAbsoluteError": 0.023690119760479043,
+          "measuredRootMeanSquareError": 1.075527304179642,
+          "measuredMeanLuminanceError": 0.03158682634730539
+        }
+      ],
+      "platformComparisonMeasurements": {
+        "Windows": {
+          "differentPixelRatio": 0.08368263473053893,
+          "meanAbsoluteError": 0.4345122255489022,
+          "rootMeanSquareError": 9.193308159751835,
+          "meanLuminanceError": 0.4713222804391223
+        },
+        "Linux": {
+          "differentPixelRatio": 0.08368263473053893,
+          "meanAbsoluteError": 0.4345122255489022,
+          "rootMeanSquareError": 9.193308159751835,
+          "meanLuminanceError": 0.4713222804391223
+        }
+      },
+      "maximumDifferentPixelRatio": 0.1,
+      "maximumMeanAbsoluteError": 0.7,
+      "maximumRootMeanSquareError": 11.0,
+      "maximumMeanLuminanceError": 0.75,
+      "calibrationNotes": "Windows Poppler 26.07.0 and WSL Linux Poppler 24.02.0 at 72 dpi. Each platform compares the native reference and candidate with its own rasterizer. Linux substitutes Liberation Sans for the unavailable Arial and Calibri source families. Page counts match on both platforms. Candidate picture pages of 400 by 500 pixels are padded to the native reference size of 400 by 501 pixels on opaque white."
+    },
+    {
+      "id": "word-picture-wide-mixed-exact24-explicit-defaults",
+      "converterId": "word",
+      "producer": "Microsoft Word",
+      "producerVersion": "16.0.20430.20182",
+      "exportPreset": "standard-print-export",
+      "sourcePath": "picture-wide-mixed-exact24-explicit-defaults.docx",
+      "sourceSha256": "245ad188ba8c47c4ad48a3c2d489119771192e359822a456a6f9e34e2316154b",
+      "referencePdfPath": "microsoft-word-windows-picture-wide-mixed-exact24-explicit-defaults.pdf",
+      "referencePdfSha256": "87104add02639af7a63b88746b4255092cb8d9e46de80f145c9f2c3c2bda6e5c",
+      "producerEnvironment": {
+        "suite": "Microsoft Word for Microsoft 365",
+        "productVersion": "16.0.20430.20182",
+        "operatingSystem": "Windows 11"
+      },
+      "sanitization": {
+        "source": "Repository-authored standalone synthetic OOXML control; no customer parts or copied package carrier.",
+        "replacements": "Generic text and original labeled quadrant image where applicable; source core properties absent; native PDF personal metadata empty."
+      },
+      "qualification": "Exact 24 pt mixed-text paragraph clips picture paint while retaining its authored image transformation. Source validated with Open XML SDK 3.5.1 before read-only native export; same input hash retained. Native output qualifies finite visual layout; editable PDF field semantics have separate regression assertions.",
+      "pages": [
+        {
+          "number": 1,
+          "widthPoints": 399.9599914550781,
+          "heightPoints": 500.0400085449219,
+          "rasterWidth": 400,
+          "rasterHeight": 501,
+          "measuredDifferentPixelRatio": 0.004171656686626747,
+          "measuredMeanAbsoluteError": 0.04159805389221557,
+          "measuredRootMeanSquareError": 1.3289569206734988,
+          "measuredMeanLuminanceError": 0.05546407185628743
+        }
+      ],
+      "platformComparisonMeasurements": {
+        "Windows": {
+          "differentPixelRatio": 0.004171656686626747,
+          "meanAbsoluteError": 0.04159805389221557,
+          "rootMeanSquareError": 1.3289569206734988,
+          "meanLuminanceError": 0.05546407185628743
+        },
+        "Linux": {
+          "differentPixelRatio": 0.005828343313373253,
+          "meanAbsoluteError": 0.09922155688622754,
+          "rootMeanSquareError": 2.0753309381864886,
+          "meanLuminanceError": 0.13229540918163668
+        }
+      },
+      "maximumDifferentPixelRatio": 0.009,
+      "maximumMeanAbsoluteError": 0.25,
+      "maximumRootMeanSquareError": 3.5,
+      "maximumMeanLuminanceError": 0.35,
+      "calibrationNotes": "Windows Poppler 26.07.0 and WSL Linux Poppler 24.02.0 at 72 dpi. Each platform compares the native reference and candidate with its own rasterizer. Linux substitutes Liberation Sans for the unavailable Arial and Calibri source families. Page counts match on both platforms. Candidate picture pages of 400 by 500 pixels are padded to the native reference size of 400 by 501 pixels on opaque white."
+    },
+    {
+      "id": "word-header-blank-vs-visible-lines",
+      "converterId": "word",
+      "producer": "Microsoft Word",
+      "producerVersion": "16.0.20430.20182",
+      "exportPreset": "standard-print-export",
+      "sourcePath": "header-blank-vs-visible-lines.docx",
+      "sourceSha256": "ec7c2dc6c312a8094a443ad164e99c1740206a9e3d279eb909cf8e72447bd969",
+      "referencePdfPath": "microsoft-word-windows-header-blank-vs-visible-lines.pdf",
+      "referencePdfSha256": "66ad84e7c7a8b07506fd8cf6e206a498a7af7a58b4f470f06541c7a5ca8488dc",
+      "producerEnvironment": {
+        "suite": "Microsoft Word for Microsoft 365",
+        "productVersion": "16.0.20430.20182",
+        "operatingSystem": "Windows 11"
+      },
+      "sanitization": {
+        "source": "Repository-authored standalone synthetic OOXML control; no customer parts or copied package carrier.",
+        "replacements": "Generic text and original labeled quadrant image where applicable; source core properties absent; native PDF personal metadata empty."
+      },
+      "qualification": "Three empty Calibri 12 header paragraphs have the same native height as three visible paragraphs. Source validated with Open XML SDK 3.5.1 before read-only native export; same input hash retained. Native output qualifies finite visual layout; editable PDF field semantics have separate regression assertions.",
+      "pages": [
+        {
+          "number": 1,
+          "widthPoints": 612.0,
+          "heightPoints": 792.0,
+          "rasterWidth": 612,
+          "rasterHeight": 792,
+          "measuredDifferentPixelRatio": 0.00017330164388987919,
+          "measuredMeanAbsoluteError": 0.00556422063775005,
+          "measuredRootMeanSquareError": 0.5506280286957281,
+          "measuredMeanLuminanceError": 0.0074189608503334
+        },
+        {
+          "number": 2,
+          "widthPoints": 612.0,
+          "heightPoints": 792.0,
+          "rasterWidth": 612,
+          "rasterHeight": 792,
+          "measuredDifferentPixelRatio": 0.00016711229946524063,
+          "measuredMeanAbsoluteError": 0.0050164636561695385,
+          "measuredRootMeanSquareError": 0.5260177207123977,
+          "measuredMeanLuminanceError": 0.006688618208226051
+        }
+      ],
+      "platformComparisonMeasurements": {
+        "Windows": {
+          "differentPixelRatio": 0.00017330164388987919,
+          "meanAbsoluteError": 0.00556422063775005,
+          "rootMeanSquareError": 0.5506280286957281,
+          "meanLuminanceError": 0.0074189608503334
+        },
+        "Linux": {
+          "differentPixelRatio": 0.004602809137122863,
+          "meanAbsoluteError": 0.3650970489205783,
+          "rootMeanSquareError": 7.724395912388811,
+          "meanLuminanceError": 0.4867960652274378
+        }
+      },
+      "maximumDifferentPixelRatio": 0.007,
+      "maximumMeanAbsoluteError": 0.6,
+      "maximumRootMeanSquareError": 9.5,
+      "maximumMeanLuminanceError": 0.7,
+      "calibrationNotes": "Windows Poppler 26.07.0 and WSL Linux Poppler 24.02.0 at 72 dpi. Each platform compares the native reference and candidate with its own rasterizer. Linux substitutes Liberation Sans for the unavailable Arial and Calibri source families. Page counts match on both platforms. Candidate picture pages of 400 by 500 pixels are padded to the native reference size of 400 by 501 pixels on opaque white."
+    },
+    {
+      "id": "word-inline-placeholder-date",
+      "converterId": "word",
+      "producer": "Microsoft Word",
+      "producerVersion": "16.0.20430.20182",
+      "exportPreset": "standard-print-export",
+      "sourcePath": "inline-placeholder-date.docx",
+      "sourceSha256": "145bb29e561de2f1549352ec809c4cbc25956c9233ff5b0f2cbbc3b004194337",
+      "referencePdfPath": "microsoft-word-windows-inline-placeholder-date.pdf",
+      "referencePdfSha256": "576e28d6b275cab54baf968fc404ebfdd8d2204006b7568149e0510bdc079ef5",
+      "producerEnvironment": {
+        "suite": "Microsoft Word for Microsoft 365",
+        "productVersion": "16.0.20430.20182",
+        "operatingSystem": "Windows 11"
+      },
+      "sanitization": {
+        "source": "Repository-authored standalone synthetic OOXML control; no customer parts or copied package carrier.",
+        "replacements": "Generic text and original labeled quadrant image where applicable; source core properties absent; native PDF personal metadata empty."
+      },
+      "qualification": "Same schema-valid standalone synthetic DOCX exported read-only by native Word and the first-party converter. Complete-page raster distance measures this finite control; focused field, glyph and geometry regressions cover their own contracts. Initial appearance preserves cached formatting and surrounding text; filled-field behavior is qualified separately.",
+      "pages": [
+        {
+          "number": 1,
+          "widthPoints": 612.0,
+          "heightPoints": 792.0,
+          "rasterWidth": 612,
+          "rasterHeight": 792,
+          "measuredDifferentPixelRatio": 0.0031462500825245924,
+          "measuredMeanAbsoluteError": 0.042940124282036043,
+          "measuredRootMeanSquareError": 1.3984993186010317,
+          "measuredMeanLuminanceError": 0.05725349904271472
+        }
+      ],
+      "platformComparisonMeasurements": {
+        "Windows": {
+          "differentPixelRatio": 0.0031462500825245924,
+          "meanAbsoluteError": 0.042940124282036043,
+          "rootMeanSquareError": 1.3984993186010317,
+          "meanLuminanceError": 0.05725349904271472
+        },
+        "Linux": {
+          "differentPixelRatio": 0.00522380669439493,
+          "meanAbsoluteError": 0.08294340463458111,
+          "rootMeanSquareError": 1.8455626393416746,
+          "meanLuminanceError": 0.11059120617944145
+        }
+      },
+      "maximumDifferentPixelRatio": 0.0083,
+      "maximumMeanAbsoluteError": 0.25,
+      "maximumRootMeanSquareError": 3.215,
+      "maximumMeanLuminanceError": 0.333,
+      "calibrationNotes": "Poppler 26.07.0 on Windows and Poppler 24.02.0 on WSL Linux, at 72 dpi. Both platforms preserve the expected one-page content and field structure with no rasterizer syntax or resource diagnostics. Raster budgets use the largest measured platform distance with the existing 20 percent plus fixed-headroom convention. Windows embeds the source Arial faces; Linux substitutes Liberation Sans."
+    },
+    {
+      "id": "word-inline-interleaved-checkboxes",
+      "converterId": "word",
+      "producer": "Microsoft Word",
+      "producerVersion": "16.0.20430.20182",
+      "exportPreset": "standard-print-export",
+      "sourcePath": "inline-interleaved-checkboxes.docx",
+      "sourceSha256": "6a5610edfd2227a53907831815528b64ed818f585163914ff4db10ac070b002f",
+      "referencePdfPath": "microsoft-word-windows-inline-interleaved-checkboxes.pdf",
+      "referencePdfSha256": "5e00a7d60a33b26db7611cd62e6bce2cf9fe821e08af98d6e5d233613c653c35",
+      "producerEnvironment": {
+        "suite": "Microsoft Word for Microsoft 365",
+        "productVersion": "16.0.20430.20182",
+        "operatingSystem": "Windows 11"
+      },
+      "sanitization": {
+        "source": "Repository-authored standalone synthetic OOXML control; no customer parts or copied package carrier.",
+        "replacements": "Generic text and original labeled quadrant image where applicable; source core properties absent; native PDF personal metadata empty."
+      },
+      "qualification": "Same schema-valid standalone synthetic DOCX exported read-only by native Word and the first-party converter. Complete-page raster distance measures this finite control; focused field, glyph and geometry regressions cover their own contracts. Initial appearance preserves cached formatting and surrounding text; filled-field behavior is qualified separately.",
+      "pages": [
+        {
+          "number": 1,
+          "widthPoints": 612.0,
+          "heightPoints": 792.0,
+          "rasterWidth": 612,
+          "rasterHeight": 792,
+          "measuredDifferentPixelRatio": 0.011499801940978412,
+          "measuredMeanAbsoluteError": 1.0359198603683897,
+          "measuredRootMeanSquareError": 13.145121284411848,
+          "measuredMeanLuminanceError": 1.3812264804911865
+        }
+      ],
+      "platformComparisonMeasurements": {
+        "Windows": {
+          "differentPixelRatio": 0.011499801940978412,
+          "meanAbsoluteError": 1.0359198603683897,
+          "rootMeanSquareError": 13.145121284411848,
+          "meanLuminanceError": 1.3812264804911865
+        },
+        "Linux": {
+          "differentPixelRatio": 0.012044464250346604,
+          "meanAbsoluteError": 1.1562515473361061,
+          "rootMeanSquareError": 13.98335541356238,
+          "meanLuminanceError": 1.5416687297814748
+        }
+      },
+      "maximumDifferentPixelRatio": 0.0165,
+      "maximumMeanAbsoluteError": 1.538,
+      "maximumRootMeanSquareError": 17.78,
+      "maximumMeanLuminanceError": 2.05,
+      "calibrationNotes": "Poppler 26.07.0 on Windows and Poppler 24.02.0 on WSL Linux, at 72 dpi. Both platforms preserve the expected one-page content and field structure with no rasterizer syntax or resource diagnostics. Raster budgets use the largest measured platform distance with the existing 20 percent plus fixed-headroom convention. Windows embeds Arial and MS Gothic; Linux embeds Liberation Sans and uses DejaVu Sans for the checkbox glyphs.",
+      "knownLimitations": "Automatic line spacing in this ordinary mixed Latin/East Asian font sample retains a measured difference from Word in natural line height and following-text placement, even when source fonts are available and glyphs share a baseline. This is independent of the content-control wrapper. The raster distance alone does not establish glyph or filled-state equivalence.",
+      "contractGuide": "../../../OfficeIMO.Word.Pdf/README.md"
+    },
+    {
+      "id": "word-inline-wrapped-mixed-choice",
+      "converterId": "word",
+      "producer": "Microsoft Word",
+      "producerVersion": "16.0.20430.20182",
+      "exportPreset": "standard-print-export",
+      "sourcePath": "inline-wrapped-mixed-choice.docx",
+      "sourceSha256": "d9bdcc7dff7382244c8587d4dd4252bd8aa5866e8385388e85074d315ac75293",
+      "referencePdfPath": "microsoft-word-windows-inline-wrapped-mixed-choice.pdf",
+      "referencePdfSha256": "a6cf7fcedaabb6a544837b5195c336f8934fd84d53b3cdc4262bcf067e342355",
+      "producerEnvironment": {
+        "suite": "Microsoft Word for Microsoft 365",
+        "productVersion": "16.0.20430.20182",
+        "operatingSystem": "Windows 11"
+      },
+      "sanitization": {
+        "source": "Repository-authored standalone synthetic OOXML control; no customer parts or copied package carrier.",
+        "replacements": "Generic text and original labeled quadrant image where applicable; source core properties absent; native PDF personal metadata empty."
+      },
+      "qualification": "Same schema-valid standalone synthetic DOCX exported read-only by native Word and the first-party converter. Complete-page raster distance measures this finite control; focused field, glyph and geometry regressions cover their own contracts. Initial appearance preserves cached formatting and surrounding text; filled-field behavior is qualified separately.",
+      "pages": [
+        {
+          "number": 1,
+          "widthPoints": 219.9600067138672,
+          "heightPoints": 399.9599914550781,
+          "rasterWidth": 220,
+          "rasterHeight": 400,
+          "measuredDifferentPixelRatio": 0.04268181818181818,
+          "measuredMeanAbsoluteError": 0.44359943181818184,
+          "measuredRootMeanSquareError": 4.315506856884621,
+          "measuredMeanLuminanceError": 0.591465909090909
+        }
+      ],
+      "platformComparisonMeasurements": {
+        "Windows": {
+          "differentPixelRatio": 0.04268181818181818,
+          "meanAbsoluteError": 0.44359943181818184,
+          "rootMeanSquareError": 4.315506856884621,
+          "meanLuminanceError": 0.591465909090909
+        },
+        "Linux": {
+          "differentPixelRatio": 0.05782954545454545,
+          "meanAbsoluteError": 1.2965113636363637,
+          "rootMeanSquareError": 8.424992244398911,
+          "meanLuminanceError": 1.7286818181818178
+        }
+      },
+      "maximumDifferentPixelRatio": 0.0714,
+      "maximumMeanAbsoluteError": 1.706,
+      "maximumRootMeanSquareError": 11.11,
+      "maximumMeanLuminanceError": 2.274,
+      "calibrationNotes": "Poppler 26.07.0 on Windows and Poppler 24.02.0 on WSL Linux, at 72 dpi. Both platforms preserve the expected one-page content and field structure with no rasterizer syntax or resource diagnostics. Raster budgets use the largest measured platform distance with the existing 20 percent plus fixed-headroom convention. Windows embeds the source Arial faces; Linux substitutes Liberation Sans."
     }
   ]
 }

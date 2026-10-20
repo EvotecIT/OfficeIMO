@@ -93,6 +93,43 @@ public partial class Word {
     }
 
     [Theory]
+    [InlineData("picture-exact24-explicit-line2.docx", 2, -14.8D, 0, 0, 255, 129.26D)]
+    [InlineData("picture-exact24-explicit-line3.docx", 3, 9.2D, 255, 0, 0, 153.29D)]
+    public void SaveAsPdf_ExactHeightPictureOnLaterLinesRetainsNativeParagraphClip(
+        string fixture, int pictureLine, double pictureTop, byte red, byte green, byte blue, double followingBaseline) {
+        // Native Word exports of both explicit-break controls clip at the
+        // paragraph top, allowing the picture to cover earlier paragraph lines.
+        // A clip at the current line top would discard this qualified paint.
+        byte[] bytes = ConvertQualifiedFlowPicture(fixture);
+        using var pdf = PdfPigDocument.Open(bytes);
+        Page page = Assert.Single(pdf.GetPages());
+        var picture = Assert.Single(page.GetImages());
+        Assert.InRange(Math.Abs(page.Height - picture.BoundingBox.Top - pictureTop), 0D, .15D);
+        Assert.Equal(360D, picture.BoundingBox.Width, 3);
+        Assert.Equal(120D, picture.BoundingBox.Height, 3);
+        string text = FlowPictureText(page);
+        Assert.Contains("BEFOREPICTUREFIRSTLINE", text);
+        if (pictureLine == 3) Assert.Contains("SECONDLINE", text);
+        Assert.Contains("AFTERINLINEAFTERPICTURE", text);
+        var following = Assert.Single(page.GetWords(), word => word.Text == "INLINE");
+        Assert.InRange(Math.Abs(page.Height - following.Letters[0].StartBaseLine.Y - followingBaseline), 0D, .15D);
+
+        var bitmap = RenderFlowPicture(bytes, 1);
+        AssertFlowPicturePixel(bitmap, 100, 65, red, green, blue);
+        AssertFlowPicturePixel(bitmap, 100, 61, 255, 255, 255);
+        AssertFlowPicturePixel(bitmap, 300, 50, 255, 255, 255);
+        AssertFlowPicturePixel(bitmap, 300, (int)Math.Ceiling(pictureTop + 120D) + 4, 255, 255, 255);
+        int followingTextPixels = 0;
+        for (int y = (int)followingBaseline - 9; y < (int)followingBaseline + 2; y++) {
+            for (int x = 50; x < 140; x++) {
+                var pixel = bitmap.GetPixel(x, y);
+                if (pixel.R < 40 && pixel.G < 40 && pixel.B < 40) followingTextPixels++;
+            }
+        }
+        Assert.True(followingTextPixels > 20, "Text after the image must remain visible outside its clipping rectangle.");
+    }
+
+    [Theory]
     [InlineData(1)]
     [InlineData(2)]
     public void SaveAsPdf_DecoratedBodyPictureRetainsNaturalSizeAcrossColumnAdmission(int columns) {

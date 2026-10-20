@@ -1041,7 +1041,7 @@ internal static partial class PdfWriter {
 
                     AnnotationStructureReference? formWidgetStructureReference = RegisterAnnotationStructureReference(page, markInfo, ref nextStructParentIndex, "Form", field.StructureParentElementIndex, field.StructureParentElement, logicalOrder: field.Style.LogicalOrder, reservedElement: field.NavigationTarget);
                     if (field.Kind == FormFieldAnnotationKind.CheckBox) {
-                        bool hasOffGlyph = TryBuildInlineCheckBoxAppearance(field, false, pageOpts, EnsureFont, EnsureNamedFont,
+                        bool hasOffGlyph = TryBuildInlineCheckBoxAppearance(field, false, page, pageOpts, EnsureFont, EnsureNamedFont,
                             out string offAppearance, out IReadOnlyList<(string Name, int Id)> offFonts);
                         if (!hasOffGlyph) offAppearance = PdfAcroFormDictionaryBuilder.BuildCheckBoxAppearanceContent(appearanceWidth, appearanceHeight, selected: false, field.Style);
                         byte[] offAppearanceBytes = PdfEncoding.Latin1GetBytes(offAppearance);
@@ -1050,7 +1050,7 @@ internal static partial class PdfWriter {
                             : PdfAcroFormDictionaryBuilder.BuildCheckBoxAppearanceStreamDictionary(appearanceWidth, appearanceHeight, offAppearanceBytes.Length);
                         int offAppearanceId = AddStreamObject(objects, offAppearanceDictionary, offAppearanceBytes);
 
-                        bool hasCheckedGlyph = TryBuildInlineCheckBoxAppearance(field, true, pageOpts, EnsureFont, EnsureNamedFont,
+                        bool hasCheckedGlyph = TryBuildInlineCheckBoxAppearance(field, true, page, pageOpts, EnsureFont, EnsureNamedFont,
                             out string checkedAppearance, out IReadOnlyList<(string Name, int Id)> checkedFonts);
                         if (!hasCheckedGlyph) checkedAppearance = PdfAcroFormDictionaryBuilder.BuildCheckBoxAppearanceContent(appearanceWidth, appearanceHeight, selected: true, field.Style);
                         byte[] checkedAppearanceBytes = PdfEncoding.Latin1GetBytes(checkedAppearance);

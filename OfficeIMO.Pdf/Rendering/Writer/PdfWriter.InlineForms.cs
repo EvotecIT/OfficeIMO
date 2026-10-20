@@ -63,14 +63,17 @@ internal static partial class PdfWriter {
         // it arrived as its own whitespace fragment.
         double appearanceLeading = field != null || whitespaceOnly ? leadingAdvance : 0D;
         double fragmentX = x - appearanceLeading;
+        double left = fragmentX;
+        IncludeInlineFormPaintBounds(page, segment, x, baseline, options,
+            ref left, ref bottom, ref right, ref top);
         if (field == null) {
-            field = CreateInlineFormAnnotation(segment.FormField!, fragmentX, bottom, right, top, parentElementIndex);
+            field = CreateInlineFormAnnotation(segment.FormField!, left, bottom, right, top, parentElementIndex);
             field.InlineAppearance = new InlineFormAppearance {
-                Left = fragmentX, Bottom = bottom, Right = right, Top = top, Baseline = baseline
+                Left = left, Bottom = bottom, Right = right, Top = top, Baseline = baseline
             };
             page.FormFields.Add(field);
         } else {
-            field.X1 = Math.Min(field.X1, fragmentX);
+            field.X1 = Math.Min(field.X1, left);
             field.Y1 = Math.Min(field.Y1, bottom);
             field.X2 = Math.Max(field.X2, right);
             field.Y2 = Math.Max(field.Y2, top);
@@ -110,7 +113,7 @@ internal static partial class PdfWriter {
     }
 
     private static bool TryBuildInlineCheckBoxAppearance(FormFieldAnnotation field, bool isChecked,
-        PdfOptions options, Func<PdfStandardFont, PdfOptions, int> ensureFont,
+        LayoutResult.Page page, PdfOptions options, Func<PdfStandardFont, PdfOptions, int> ensureFont,
         Func<PdfNamedFontFace, PdfOptions, int> ensureNamedFont, out string content,
         out IReadOnlyList<(string Name, int Id)> fontResources) {
         PdfTextRun? source = isChecked ? field.InlineField?.CheckedAppearanceRun
@@ -128,9 +131,9 @@ internal static partial class PdfWriter {
             Top = (field.Y2 - field.Y1) / field.AppearanceScale,
             Baseline = field.InlineWidgetBaseline.Value
         };
-        double x = 0D;
+        double x = field.InlineWidgetTextX;
         foreach (PdfTextRun run in NormalizeFallbackRuns(new[] { source }, ChooseNormal(options.DefaultFont), options)) {
-            RichSeg segment = CreatePositionedTextSegment(run, options.DefaultFontSize, options);
+            RichSeg segment = CreateInlineAppearanceSegment(run, options);
             appearance.Fragments.Add(new InlineFormTextFragment {
                 Segment = segment, X = x, Baseline = appearance.Baseline,
                 DefaultColor = field.Style.MarkColor
@@ -140,23 +143,8 @@ internal static partial class PdfWriter {
         content = BuildInlineFormAppearanceContent(new FormFieldAnnotation { InlineAppearance = appearance },
             options, ensureFont, ensureNamedFont, out fontResources);
         if (isChecked != field.IsChecked && MeasurePositionedTextBox(source, options) is { } measured) {
-            // A PDF button has a fixed rectangle after editing. Fit a wider or
-            // taller alternate glyph to that rectangle without changing the
-            // source state's appearance, surrounding flow, or text baseline.
-            double scaleX = measured.Width > appearance.Right ? appearance.Right / measured.Width : 1D;
-            double scaleY = 1D;
-            if (measured.Ascent > appearance.Top - appearance.Baseline)
-                scaleY = Math.Min(scaleY, (appearance.Top - appearance.Baseline) / measured.Ascent);
-            if (measured.Descent > appearance.Baseline)
-                scaleY = Math.Min(scaleY, appearance.Baseline / measured.Descent);
-            if (scaleX < 1D || scaleY < 1D) {
-                var fitted = new StringBuilder();
-                new ContentStreamBuilder(fitted).SaveState().TransformMatrix(scaleX, 0D, 0D, scaleY,
-                    0D, appearance.Baseline * (1D - scaleY), preciseCoordinates: true);
-                fitted.Append(content);
-                new ContentStreamBuilder(fitted).RestoreState();
-                content = fitted.ToString();
-            }
+            content = FitInlineCheckBoxAppearance(content, appearance, field.InlineWidgetTextX,
+                measured, page, options);
         }
         return true;
     }

@@ -11,7 +11,7 @@ using Xunit;
 
 namespace OfficeIMO.Tests;
 
-public sealed class WordPdfInlineContentControlTests {
+public sealed partial class WordPdfInlineContentControlTests {
     [Theory]
     [InlineData(false)]
     [InlineData(true)]
@@ -160,7 +160,8 @@ public sealed class WordPdfInlineContentControlTests {
         var initialGlyph = Assert.Single(initialPage.GetWords(), word => word.Text == currentGlyph);
         var expectedGlyph = Assert.Single(expected.GetPage(1).GetWords(), word => word.Text == currentGlyph);
         Assert.DoesNotContain(initialPage.GetWords(), word => word.Text == nextGlyph);
-        Assert.Contains("Arial", initialGlyph.Letters[0].FontName, StringComparison.OrdinalIgnoreCase);
+        Assert.Equal(ResolvedInlineControlFontName(expectedGlyph.Letters[0].FontName),
+            ResolvedInlineControlFontName(initialGlyph.Letters[0].FontName));
         Assert.Equal(10D, initialGlyph.Letters[0].FontSize, 2);
         Assert.InRange(Math.Abs(initialGlyph.BoundingBox.Width - expectedGlyph.BoundingBox.Width), 0D, .05D);
         Assert.InRange(Math.Abs(initialGlyph.BoundingBox.Height - expectedGlyph.BoundingBox.Height), 0D, .05D);
@@ -180,7 +181,8 @@ public sealed class WordPdfInlineContentControlTests {
         var filledPage = filled.GetPage(1);
         var filledGlyph = Assert.Single(filledPage.GetWords(), word => word.Text == nextGlyph);
         Assert.DoesNotContain(filledPage.GetWords(), word => word.Text == currentGlyph);
-        Assert.Contains("Arial", filledGlyph.Letters[0].FontName, StringComparison.OrdinalIgnoreCase);
+        Assert.Equal(ResolvedInlineControlFontName(expectedGlyph.Letters[0].FontName),
+            ResolvedInlineControlFontName(filledGlyph.Letters[0].FontName));
         Assert.Equal(10D, filledGlyph.Letters[0].FontSize, 2);
         Assert.InRange(filledGlyph.Letters[0].BoundingBox.Left, widget.X1 - .05D, widget.X2);
         Assert.InRange(filledGlyph.Letters[0].BoundingBox.Right, widget.X1, widget.X2 + .05D);
@@ -316,6 +318,13 @@ public sealed class WordPdfInlineContentControlTests {
         Assert.True(field.WidgetCount >= 2);
         Assert.All(field.Widgets, widget => Assert.Equal(1, widget.PageNumber));
     }
+
+    // PDF subset identifiers vary with the glyph inventory. Compare the
+    // resolved font face while retaining every non-subset part of its name.
+    private static string ResolvedInlineControlFontName(string fontName) =>
+        fontName.Length > 7 && fontName[6] == '+' &&
+            fontName.Take(6).All(character => character >= 'A' && character <= 'Z')
+                ? fontName.Substring(7) : fontName;
 
     private static WordDocument CreateDocument(bool inTable, out WordParagraph paragraph, int tableWidth = 9000) {
         WordDocument document = WordDocument.Create();

@@ -35,6 +35,13 @@ namespace OfficeIMO.Word.Pdf {
                     "The authored " + (isChecked ? "checked" : "unchecked") +
                     " glyph could not be represented by the available PDF fonts; the field uses the standard check box appearance for that state."));
 
+            public void ReportInlineControlStaticBackground(string fieldName) =>
+                _report?.Add(new PdfCore.PdfConversionWarning("OfficeIMO.Word.Pdf",
+                    "NativeInlineControlBackgroundStatic", "word:contentControl[" + fieldName + "]",
+                    "The content control retains static text so its run background stays beneath surrounding paragraph text; it is not an editable PDF field.",
+                    severity: PdfCore.PdfConversionWarningSeverity.Warning,
+                    lossKind: OfficeIMO.OfficeConversionLossKind.Omission));
+
             public PdfCore.PdfWriter.CanvasTextBoxMeasurement? MeasureCanvasTextBox(
                 IReadOnlyList<PdfCore.PdfTextRun> runs, double width, double height, PdfCore.PdfCanvasTextBoxStyle style) =>
                 _resolvedOptions == null ? null : PdfCore.PdfWriter.MeasureCanvasTextBox(runs, width, height, style, _resolvedOptions);

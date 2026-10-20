@@ -6,6 +6,8 @@ public sealed partial class PdfTextRun {
 
     internal PdfTextRun WithFormField(PdfInlineFormField field) {
         Guard.NotNull(field, nameof(field));
+        if (BackgroundColor.HasValue)
+            throw new NotSupportedException("An inline field appearance cannot preserve a run background beneath surrounding page text. Keep the source run static.");
         // The run's visual state is immutable outside its copy helpers; preserve every
         // existing run property, including inline spacers and shaped glyph metadata.
         var copy = (PdfTextRun)MemberwiseClone();
