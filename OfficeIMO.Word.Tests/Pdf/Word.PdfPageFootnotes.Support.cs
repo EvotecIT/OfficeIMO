@@ -59,11 +59,16 @@ public partial class WordPdfPageFootnoteTests {
         string[] faces = rendered.GetPages().SelectMany(page => page.Letters).Select(letter => letter.FontName ?? string.Empty)
             .Distinct(StringComparer.Ordinal).OrderBy(name => name, StringComparer.Ordinal).ToArray();
         PdfConversionWarning[] substitutions = result.Warnings.Where(warning =>
-            warning.Code == "NativeFontFamilySubstituted").ToArray();
+            warning.Code is "NativeFontFamilySubstituted" or "font-family-substitution").ToArray();
         foreach (PdfConversionWarning warning in substitutions) {
             Assert.Equal("Arial", warning.Details["fontFamily"]);
             Assert.Equal("FontUnavailable", warning.Details["substitutionReason"]);
             Assert.True(warning.Details.ContainsKey("fallbackSlot") || warning.Details.ContainsKey("resolvedFontFamily"));
+            if (warning.Code == "font-family-substitution") {
+                Assert.Equal("font:Arial", warning.Source);
+                Assert.Equal("OfficeDocumentFonts", warning.Details["substitutionPolicy"]);
+                Assert.Equal("NotPerformed", warning.Details["fontMetricsVerification"]);
+            }
             _output.WriteLine("{0}: font degradation: {1}; details={2}", id, warning.Message,
                 string.Join(", ", warning.Details.Select(detail => detail.Key + "=" + detail.Value)));
         }
