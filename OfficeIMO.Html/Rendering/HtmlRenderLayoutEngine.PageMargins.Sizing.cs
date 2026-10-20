@@ -119,7 +119,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         style.ZIndex = "auto";
         var item = new FlexItem(snapshot.Element, style, 0);
         NormalizeFlexIntrinsicConstraints(item);
-        (double minimum, double maximum) = item.Style.Display is "table" or "inline-table"
+        (double minimum, double maximum) = UsesTableIntrinsicSizing(snapshot.Element, item.Style)
             ? ResolveIntrinsicTableOuterWidths(snapshot.Element, item.Style, availableWidth, snapshot.Depth)
             : ResolveGridContentContributions(item, availableWidth, snapshot.Depth, includeDescendantInsets: true);
         CheckCancellation();

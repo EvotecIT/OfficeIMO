@@ -356,7 +356,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
             if (includeDescendantInsets && !IsReplacedImageElement(child) && !IsFormControlElement(child.LocalName)) {
                 childStyle = _styleResolver.ResolveIntrinsicMeasurementStyle(child, childStyle);
             }
-            if (childStyle.Display is "table" or "inline-table") {
+            if (UsesTableIntrinsicSizing(child, childStyle)) {
                 bool blockTable = childStyle.Display == "table";
                 if (blockTable) result.Add(IntrinsicTextRun.ForcedBreak(childStyle));
                 (double Minimum, double Maximum) widths = ResolveIntrinsicTableOuterWidths(child, childStyle, availableSize, depth + 1);

@@ -103,6 +103,12 @@ internal sealed partial class HtmlRenderLayoutEngine {
         }
     }
 
+    /// <summary>Keeps specialized image and native control sizing ahead of authored table display, matching element layout.</summary>
+    private static bool UsesTableIntrinsicSizing(IElement element, HtmlRenderBoxStyle style) =>
+        style.Display is "table" or "inline-table"
+        && !IsReplacedImageElement(element)
+        && (!IsFormControlElement(element.LocalName) || UsesButtonChildLayout(element));
+
     /// <summary>Measures a table as one atomic box using source columns, without painting or feeding layout widths back into measurement.</summary>
     private (double Minimum, double Maximum) ResolveIntrinsicTableOuterWidths(IElement table,
         HtmlRenderBoxStyle style, double availableWidth, int depth) {

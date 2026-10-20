@@ -34,7 +34,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
             return style.ExplicitWidth.Value + (style.BorderBox ? 0D : style.HorizontalInsets);
         }
 
-        if (item.Element != null && style.Display is "table" or "inline-table") {
+        if (item.Element != null && UsesTableIntrinsicSizing(item.Element, style)) {
             // The table's source columns and caption determine its auto basis;
             // flex allocation can then grow or shrink that border box normally.
             double outerWidth = ResolveIntrinsicTableOuterWidths(item.Element, style, availableWidth, intrinsicDepth + 1).Maximum;
@@ -113,7 +113,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         double minimum;
         if (IsReplacedImageElementTag(item.TagName) && item.Element != null) {
             minimum = ResolveReplacedImageBoxWidth(item.Element, style);
-        } else if (item.Element != null && style.Display is "table" or "inline-table") {
+        } else if (item.Element != null && UsesTableIntrinsicSizing(item.Element, style)) {
             // Measure the content suggestion independently of an authored width.
             // The ordinary specified-size cap below still permits a narrow table
             // to shrink, while each source column contributes its own minimum.

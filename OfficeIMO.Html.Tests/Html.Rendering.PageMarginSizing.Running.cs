@@ -1,6 +1,7 @@
 using OfficeIMO.Drawing;
 using OfficeIMO.Html;
 using OfficeIMO.TestAssets;
+using OfficeIMO.Tests.Pdf;
 using Xunit;
 
 namespace OfficeIMO.Tests;
@@ -26,7 +27,7 @@ public sealed partial class HtmlRenderingTests {
             + "@page{size:800px 900px;margin:300px 20px 40px;"
             + "@top-center{content:" + (margin ? "element(heading)" : "none") + "}}</style>" + running + body;
 
-        HtmlRenderOptions options = RunningMarginReviewOptions(budget, configuredProvider);
+        HtmlRenderOptions options = RunningMarginSizingOptions(budget, configuredProvider);
         // Capturing the same source and laying out all body pages fits the limit.
         // Only the newly repeated intrinsic traversal should exhaust this ledger.
         HtmlRenderDocument captureOnly = HtmlRenderEngine.Render(HtmlConversionDocument.Parse(Source(false)), options);
@@ -52,9 +53,9 @@ public sealed partial class HtmlRenderingTests {
     [InlineData(false, true)]
     public void HtmlPageMarginSizing_WrappedTableUsesTheWholeColumnGridWithoutClippingItsLastCell(
         bool cssDisplay, bool nestedFlex) {
-        string table = RunningMarginReviewTable(cssDisplay);
+        string table = RunningMarginSizingTable(cssDisplay);
         if (nestedFlex) table = "<div style='display:flex'><div>" + table + "</div></div>";
-        string source = "<style>" + RunningMarginReviewTableStyles + "#running{overflow:hidden}</style>"
+        string source = "<style>" + RunningMarginSizingTableStyles + "#running{overflow:hidden}</style>"
             + "<div id='running' style='position:running(heading)'>" + table
             + "</div><p>BODY</p>";
         HtmlRenderDocument rendered = RenderMarginSizing(900D,
@@ -66,7 +67,7 @@ public sealed partial class HtmlRenderingTests {
 
         Assert.Equal(6300D / 17D, running.Width, 6);
         Assert.Equal(2700D / 17D, PageMarginTypographyText(page, "top-center").Width, 6);
-        Assert.Equal(RunningMarginReviewColumns, cells.Select(cell => cell.Text).ToArray());
+        Assert.Equal(RunningMarginSizingColumns, cells.Select(cell => cell.Text).ToArray());
         Assert.All(cells, cell => Assert.InRange(cell.X + cell.Width, running.X, running.X + running.Width));
         rendered.RequireNoLoss();
     }
@@ -138,26 +139,109 @@ public sealed partial class HtmlRenderingTests {
         string formatting = display == "grid"
             ? "#container{display:grid;grid-template-columns:max-content}"
             : "#container{display:flex}#measured{flex:0 0 auto}";
-        string source = "<style>" + RunningMarginReviewTableStyles
+        string source = "<style>" + RunningMarginSizingTableStyles
             + formatting + "#measured{background:red}</style>"
-            + "<div id='container'><div id='measured'>" + RunningMarginReviewTable(cssDisplay) + "</div></div>";
+            + "<div id='container'><div id='measured'>" + RunningMarginSizingTable(cssDisplay) + "</div></div>";
         HtmlRenderDocument rendered = RenderMarginSizing(900D, "", body: source);
 
         Assert.Equal(280D, NaturalLineShape(rendered, "div#measured").Width, 6);
         rendered.RequireNoLoss();
     }
 
-    private static readonly string[] RunningMarginReviewColumns = { "COLAAAA", "COLBBBB", "COLCCCC", "COLDDDD" };
-    private const string RunningMarginReviewTableStyles =
-        "table,.review-table{display:table;border-collapse:collapse;border-spacing:0;border:0;padding:0}"
-        + "tr,.review-row{display:table-row}td,.review-cell{display:table-cell;border:0;padding:0;white-space:nowrap}";
+    [Theory]
+    [InlineData("table", false)]
+    [InlineData("inline-table", false)]
+    [InlineData("table", true)]
+    [InlineData("inline-table", true)]
+    public void HtmlPageMarginSizing_TableDisplayInputKeepsItsNativeControlSizing(string display, bool wrapped) {
+        const string label = "HEADER LABEL REQUIRES ROOM";
+        string Control(bool running) => "<input id='control' type='button' value='" + label
+            + "' style=\"display:" + display + ";" + (running ? "position:running(heading);" : "")
+            + "font:20px/20px '" + ManagedTextShapingTestAssets.FamilyName + "';padding:0;border:1px solid black\">";
+        string running = wrapped
+            ? "<div style='position:running(heading);overflow:hidden'>" + Control(false) + "</div>"
+            : Control(true);
+        HtmlRenderDocument rendered = RenderMarginSizing(900D,
+            "@top-left{content:element(heading)}@top-center{content:'CENTRE TITLE'}@top-right{content:'R'}",
+            body: running + "<p>BODY</p>");
+        HtmlRenderDocument ordinary = RenderMarginSizing(900D, "", body: Control(false));
+        HtmlRenderSemanticGroup group = RunningMarginSizingGroup(rendered);
+        HtmlRenderShape border = NaturalLineShape(rendered, "input#control");
+        HtmlRenderText text = Assert.Single(EnumerateRenderVisuals(group.Visuals).OfType<HtmlRenderText>());
 
-    private static string RunningMarginReviewTable(bool cssDisplay) => cssDisplay
-        ? "<div class='review-table'><div class='review-row'>"
-            + string.Concat(RunningMarginReviewColumns.Select(value => "<div class='review-cell'>" + value + "</div>")) + "</div></div>"
-        : "<table><tbody><tr>" + string.Concat(RunningMarginReviewColumns.Select(value => "<td>" + value + "</td>")) + "</tr></tbody></table>";
+        Assert.Equal(NaturalLineShape(ordinary, "input#control").Width, border.Width, 6);
+        Assert.Equal(label.Length * 10D + 14D, border.Width, 6);
+        Assert.InRange(border.X, group.X, group.X + group.Width);
+        Assert.InRange(border.X + border.Width, group.X, group.X + group.Width);
+        Assert.Equal(label, text.Text);
+        Assert.Equal(20D, text.Font.Size, 6);
+        Assert.True(text.Width >= label.Length * 10D);
+        Assert.InRange(text.X, border.X, border.X + border.Width);
+        Assert.InRange(text.X + text.Width, border.X, border.X + border.Width);
+        rendered.RequireNoLoss();
+        ordinary.RequireNoLoss();
+    }
 
-    private static HtmlRenderOptions RunningMarginReviewOptions(int budget, bool configuredProvider) {
+    [Theory]
+    [InlineData("table", false)]
+    [InlineData("inline-table", false)]
+    [InlineData("table", true)]
+    [InlineData("inline-table", true)]
+    public void HtmlPageMarginSizing_TableDisplayImageKeepsItsNaturalDimensions(string display, bool wrapped) {
+        string data = Convert.ToBase64String(PdfPngTestImages.CreateRgbPng(180, 24));
+        string Image(string imageDisplay, bool running) => "<img id='image' alt='Header mark' src='data:image/png;base64,"
+            + data + "' style='display:" + imageDisplay + ";" + (running ? "position:running(heading)" : "") + "'>";
+        string Running(string imageDisplay) => wrapped
+            ? "<div style='position:running(heading);overflow:hidden'>" + Image(imageDisplay, false) + "</div>"
+            : Image(imageDisplay, true);
+        const string boxes = "@top-left{content:element(heading)}@top-center{content:'CENTRE TITLE'}@top-right{content:'R'}";
+        HtmlRenderDocument rendered = RenderMarginSizing(900D, boxes, body: Running(display) + "<p>BODY</p>");
+        HtmlRenderDocument ordinaryDisplay = RenderMarginSizing(900D, boxes, body: Running("block") + "<p>BODY</p>");
+        HtmlRenderSemanticGroup group = RunningMarginSizingGroup(rendered);
+        HtmlRenderImage image = Assert.Single(EnumerateRenderVisuals(group.Visuals).OfType<HtmlRenderImage>());
+
+        Assert.Equal(RunningMarginSizingGroup(ordinaryDisplay).Width, group.Width, 6);
+        Assert.True(group.Width >= 180D);
+        Assert.Equal(180D, image.Width, 6);
+        Assert.Equal(24D, image.Height, 6);
+        Assert.InRange(image.X, group.X, group.X + group.Width);
+        Assert.InRange(image.X + image.Width, group.X, group.X + group.Width);
+        rendered.RequireNoLoss();
+        ordinaryDisplay.RequireNoLoss();
+    }
+
+    [Theory]
+    [InlineData("table")]
+    [InlineData("inline-table")]
+    public void HtmlPageMarginSizing_TableDisplayDoesNotChangeAnOrdinaryFlexControlMinimum(string display) {
+        string Content(string controlDisplay) => "<div style='display:flex;width:120px'>"
+            + "<input id='control' type='button' value='HEADER LABEL REQUIRES ROOM' style=\"display:" + controlDisplay
+            + ";flex:1 1 auto;font:20px/20px '" + ManagedTextShapingTestAssets.FamilyName
+            + "';padding:0;border:1px solid black\"><div style='width:40px;flex-shrink:0'></div></div>";
+        HtmlRenderDocument rendered = RenderMarginSizing(900D, "", body: Content(display));
+        HtmlRenderDocument ordinaryDisplay = RenderMarginSizing(900D, "", body: Content("inline-block"));
+
+        Assert.Equal(NaturalLineShape(ordinaryDisplay, "input#control").Width,
+            NaturalLineShape(rendered, "input#control").Width, 6);
+        rendered.RequireNoLoss();
+        ordinaryDisplay.RequireNoLoss();
+    }
+
+    private static HtmlRenderSemanticGroup RunningMarginSizingGroup(HtmlRenderDocument rendered) => Assert.Single(
+        Assert.Single(rendered.Pages).Scene.OfType<HtmlRenderSemanticGroup>(),
+        group => group.Source == "@page @top-left element(heading)");
+
+    private static readonly string[] RunningMarginSizingColumns = { "COLAAAA", "COLBBBB", "COLCCCC", "COLDDDD" };
+    private const string RunningMarginSizingTableStyles =
+        "table,.sizing-table{display:table;border-collapse:collapse;border-spacing:0;border:0;padding:0}"
+        + "tr,.sizing-row{display:table-row}td,.sizing-cell{display:table-cell;border:0;padding:0;white-space:nowrap}";
+
+    private static string RunningMarginSizingTable(bool cssDisplay) => cssDisplay
+        ? "<div class='sizing-table'><div class='sizing-row'>"
+            + string.Concat(RunningMarginSizingColumns.Select(value => "<div class='sizing-cell'>" + value + "</div>")) + "</div></div>"
+        : "<table><tbody><tr>" + string.Concat(RunningMarginSizingColumns.Select(value => "<td>" + value + "</td>")) + "</tr></tbody></table>";
+
+    private static HtmlRenderOptions RunningMarginSizingOptions(int budget, bool configuredProvider) {
         var options = new HtmlRenderOptions {
             Mode = HtmlRenderMode.Paged, HonorCssPageRules = true,
             ViewportWidth = 800D, ViewportHeight = 900D,
