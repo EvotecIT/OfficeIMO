@@ -93,7 +93,7 @@ public sealed class ExcelLegacyCryptoApiStorageTests {
         Assert.Contains(project.Modules, module => module.Name == "DataCode1");
     }
 
-    private static byte[] EncryptWithSummary(byte[] bytes, out OfficeCompoundFile original, out Guid storageClassId) {
+    internal static byte[] EncryptWithSummary(byte[] bytes, out OfficeCompoundFile original, out Guid storageClassId) {
         Assert.True(OfficeCompoundFileReader.TryRead(bytes, out OfficeCompoundFile? compound, out string? error), error);
         original = compound!;
         var session = OfficeBinaryRc4CryptoApiSession.Create("test-password", 128, true, out byte[] header);
@@ -117,12 +117,17 @@ public sealed class ExcelLegacyCryptoApiStorageTests {
         var entries = new[] { (storageName, false, nested), ("\u0005SummaryInformation", true, original.Streams["\u0005SummaryInformation"]),
             ("\u0005DocumentSummaryInformation", true, original.Streams["\u0005DocumentSummaryInformation"]) };
         byte[] summary = EncodeSummary(entries, session);
-        return OfficeCompoundFileWriter.Rewrite(withDescriptor!, new Dictionary<string, byte[]> {
-            ["Workbook"] = BiffRc4RecordStreamCipher.Transform(withDescriptor!.Streams["Workbook"], session),
+        string workbookName = withDescriptor!.Streams.ContainsKey("Workbook") ? "Workbook" : "Book";
+        var replacements = new Dictionary<string, byte[]> {
+            [workbookName] = BiffRc4RecordStreamCipher.Transform(withDescriptor.Streams[workbookName], session),
             ["encryption"] = summary,
             ["\u0005DocumentSummaryInformation"] = OfficeOlePropertySetWriter.CreatePropertySet((OfficeOlePropertySetWriter.DocumentSummaryInformationFormatId,
                 OfficeOlePropertySetWriter.CreateSection(Array.Empty<OfficeOleProperty>())))
-        }, removedPaths: new[] { storageName, "\u0005SummaryInformation" });
+        };
+        foreach (var item in withDescriptor.Streams)
+            if (OfficeIMO.Excel.LegacyXls.Compound.LegacyXlsCompoundEncryption.IsAuxiliaryBiffStream(item.Key))
+                replacements[item.Key] = BiffRc4RecordStreamCipher.Transform(item.Value, session);
+        return OfficeCompoundFileWriter.Rewrite(withDescriptor, replacements, removedPaths: new[] { storageName, "\u0005SummaryInformation" });
     }
 
     internal static byte[] EncodeSummary((string Name, bool IsStream, byte[] Bytes)[] entries, OfficeBinaryRc4CryptoApiSession session) {
