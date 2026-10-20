@@ -48,11 +48,19 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 if (!TryGetMarginBoxBounds(page, box.Position, populatedPositions, lineHeight, out _, out _, out double availableWidth, out _)) continue;
                 // Retain the generated text and alignment in the public scene,
                 // reserving enough height for its measured wrapped lines.
-                IReadOnlyList<OfficeTextLine> lines = OfficeTextLayoutEngine.WrapLines(text, box.Font.Size, availableWidth,
+                OfficeTextBlockLayout measured = OfficeTextLayoutEngine.LayoutTextBlock(text, box.Font.Size,
+                    availableWidth, double.MaxValue, 1D, box.Font.Size,
                     (value, _) => {
                         ChargeLayoutOperations(value?.Length ?? 0, marginBoxSource + " text measurement");
                         return MeasureText(value ?? string.Empty, box.Font, OfficeFontFaceDescriptor.FromStyle(box.Font.Style));
-                    });
+                    }, wrap: true, forceSingleLine: false, shrinkToFit: false,
+                    overflowBehavior: OfficeTextOverflowBehavior.Clip);
+                IReadOnlyList<OfficeTextLine> lines = measured.Lines;
+                if (measured.Clipped && _reportedMarginTextOverflow.Add(marginBoxSource + " text-layout-limit")) {
+                    _diagnostics.Add(ComponentName, HtmlRenderDiagnosticCodes.GeneratedContentUnsupported,
+                        "Generated page-margin text exceeded the shared text-layout limits and was truncated.",
+                        HtmlDiagnosticSeverity.Warning, marginBoxSource, "text-layout-limit", OfficeConversionLossKind.Omission);
+                }
                 double textHeight = lines.Count * lineHeight;
                 if (!TryGetMarginBoxBounds(page, box.Position, populatedPositions, textHeight, out double x, out double y, out double width, out double height)) continue;
                 _fontUsage?.Observe(text, box.Font.FamilyName, OfficeFontFaceDescriptor.FromStyle(box.Font.Style));
@@ -97,7 +105,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
 
     private void ResolvePageMarginTextMetrics(HtmlCssPageMarginTemplate box, string text,
         out double lineHeight, out double baseline, out double paintHeight, out double paintTopOverflow) {
-        double computed = _styleResolver.ResolveGeneratedLineHeight(box.LineHeight, box.Font.Size,
+        double computed = _styleResolver.ResolveGeneratedLineHeight(box.LineHeight, box.Font,
             out double alignmentLineHeight, out bool natural);
         var style = new HtmlRenderBoxStyle {
             Font = box.Font,

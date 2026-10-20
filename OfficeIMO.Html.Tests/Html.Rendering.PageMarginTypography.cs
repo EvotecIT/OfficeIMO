@@ -119,11 +119,11 @@ public sealed partial class HtmlRenderingTests {
         Assert.Equal(HtmlRenderSemanticGroupRole.Artifact, artifact.Role);
         Assert.Equal("BodyOnly", rendered.Text.Trim());
 
-        OfficeDrawingText[] painted = page.CreateDrawing().Elements.OfType<OfficeDrawingText>()
-            .Where(text => text.Y >= page.Height - page.Margins.Bottom - margin.Font.Size
-                && text.X >= margin.X - 0.001D && text.X < margin.X + margin.Width - 0.001D)
-            .OrderBy(text => text.Y).ToArray();
-        Assert.True(painted.Length >= 3);
+        // The final glyph frame crosses the physical page and uses a clip group.
+        // Walk that public drawing too; its children have local coordinates.
+        string[] words = footer.Split(' ');
+        OfficeDrawingText[] painted = PageMarginTypographyDrawingText(page.CreateDrawing())
+            .Where(text => words.Contains(text.Text)).ToArray();
         Assert.Equal(PageMarginTypographyCompact(footer),
             PageMarginTypographyCompact(string.Concat(painted.Select(text => text.Text))));
 
@@ -167,6 +167,35 @@ public sealed partial class HtmlRenderingTests {
         Assert.Equal("Hgyp", text.Text);
     }
 
+    [Theory]
+    [InlineData("2ch")]
+    [InlineData("10cqw")]
+    public void HtmlPageMarginTypography_LengthUnitsDoNotInheritTheLastBodyContainer(string leading) {
+        double Measure(string body) {
+            string html = "<style>@page{size:300px 200px;margin:50px;"
+                + "@bottom-center{content:'Hgyp';font:16px/" + leading + " Pinned}}"
+                + "body,p{margin:0;font:16px/20px Pinned}</style>" + body;
+            HtmlRenderPage page = Assert.Single(HtmlRenderEngine.Render(
+                HtmlConversionDocument.Parse(html), PageMarginTypographyOptions()).Pages);
+            return PageMarginTypographyText(page).LineHeight;
+        }
+        Assert.Equal(Measure("<p>Body</p>"), Measure(
+            "<div style='container-type:size;width:100px;height:50px'>"
+            + "<p style='font:32px/20px Pinned;margin-left:1ch'>Body</p></div>"), 6);
+    }
+
+    [Fact]
+    public void HtmlPageMarginTypography_ZeroLeadingStillReportsTheSharedLineLimit() {
+        string footer = string.Concat(Enumerable.Repeat("A ", 4100)) + "FINAL";
+        string html = "<style>@page{size:28px 60px;margin:10px;@bottom-center{content:'"
+            + footer + "';font:10px/0 Pinned}}body,p{margin:0}</style><p>B</p>";
+        HtmlRenderDocument rendered = HtmlRenderEngine.Render(HtmlConversionDocument.Parse(html),
+            PageMarginTypographyOptions());
+        Assert.Contains(rendered.Diagnostics, diagnostic => diagnostic.Source == "@page @bottom-center"
+            && diagnostic.Code == HtmlRenderDiagnosticCodes.GeneratedContentUnsupported
+            && diagnostic.LossKind == OfficeConversionLossKind.Omission);
+    }
+
     private static HtmlRenderOptions PageMarginTypographyOptions() {
         HtmlRenderOptions options = NaturalLineOptions();
         options.Mode = HtmlRenderMode.Paged;
@@ -184,4 +213,15 @@ public sealed partial class HtmlRenderingTests {
 
     private static string PageMarginTypographyCompact(string text) =>
         string.Concat(text.Where(character => !char.IsWhiteSpace(character)));
+
+    private static IEnumerable<OfficeDrawingText> PageMarginTypographyDrawingText(OfficeDrawing drawing) {
+        foreach (OfficeDrawingElement element in drawing.Elements) {
+            if (element is OfficeDrawingText text) yield return text;
+            OfficeDrawing? nested = element is OfficeDrawingGroup group ? group.Drawing
+                : element is OfficeDrawingEffectGroup effect ? effect.Drawing : null;
+            if (nested != null) {
+                foreach (OfficeDrawingText child in PageMarginTypographyDrawingText(nested)) yield return child;
+            }
+        }
+    }
 }
