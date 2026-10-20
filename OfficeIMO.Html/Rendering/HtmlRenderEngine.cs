@@ -206,6 +206,7 @@ public static class HtmlRenderEngine {
         }
         HtmlRenderSystemFontLoader.Load(document, styles, fonts, resolved, resources, diagnostics, cancellationToken);
         cancellationToken.ThrowIfCancellationRequested();
+        int imagesMissingNames = HtmlAccessibilitySourceInspection.CountImagesMissingNames(document, styles.Elements, cancellationToken);
         HtmlRenderDocument rendered = new HtmlRenderLayoutEngine(
             document,
             styles,
@@ -217,7 +218,7 @@ public static class HtmlRenderEngine {
             limits: limits,
             operationBudget: operationBudget,
             cancellationToken: cancellationToken, fontUsage: fontUsage).Render();
-        return CompleteRender(rendered, resolved);
+        return CompleteRender(rendered.WithSourceAccessibilityEvidence(imagesMissingNames), resolved);
     }
 
     /// <summary>
@@ -387,9 +388,10 @@ public static class HtmlRenderEngine {
         }
         HtmlRenderSystemFontLoader.Load(document, styles, fonts, resolved, resources, diagnostics, cancellationToken);
         cancellationToken.ThrowIfCancellationRequested();
+        int imagesMissingNames = HtmlAccessibilitySourceInspection.CountImagesMissingNames(document, styles.Elements, cancellationToken);
         HtmlRenderDocument rendered = new HtmlRenderLayoutEngine(document, styles, resolved, diagnostics, resources, pageRules, fonts,
             limits: limits, operationBudget: operationBudget, cancellationToken: cancellationToken, fontUsage: fontUsage).Render();
-        return CompleteRender(rendered, resolved);
+        return CompleteRender(rendered.WithSourceAccessibilityEvidence(imagesMissingNames), resolved);
     }
 
     internal static HtmlRenderDocument RenderHtml(this string html, HtmlRenderOptions? options = null) => Render(html, options);

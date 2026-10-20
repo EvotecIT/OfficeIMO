@@ -1,6 +1,6 @@
 # HTML conversion examples
 
-This folder contains runnable HTML conversion examples for `OfficeIMO.Word.Html`.
+This folder contains runnable HTML-to-Office and managed HTML-to-PDF examples.
 
 ## Run
 
@@ -21,5 +21,6 @@ dotnet run --project ..\..\OfficeIMO.Examples.csproj -f net10.0
 - `Html08_SemanticsAndCitations`: semantic HTML and citations.
 - `Html09_CodePreWhitespace`: code, preformatted text, and whitespace handling.
 - `Html10_OptionsAndAsync`: additional head tags, style options, and async round-trip.
+- `HtmlAccessibleReport`: a two-page tagged PDF report with embedded fonts, source-aware validation, table headers, lists, a described figure, decorative SVG, internal navigation and a labelled form control. Run `dotnet run --project OfficeIMO.Examples/OfficeIMO.Examples.csproj -f net10.0 -- --html-accessible` from the repository root. The [HTML/PDF guide](../../../OfficeIMO.Html/PDF.md#accessibility-validation) describes independent validation and reading review.
 
-All examples share the `Example(string folderPath, bool openWord)` signature and write outputs to the runner's Documents folder.
+The examples write outputs to the runner's `Documents` folder. The accessible report opens generated PDFs only when `--open-pdf` is supplied.

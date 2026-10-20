@@ -147,6 +147,15 @@ if (explicitPdf.RenderResult.Request.CssMedia != HtmlCssMediaContext.Screen ||
     explicitPdfBytes.Length < 4 || System.Text.Encoding.ASCII.GetString(explicitPdfBytes, 0, 4) != "%PDF")
     throw new InvalidOperationException("Packed explicit HTML-to-PDF request contract failed.");
 
+var accessibilitySource = HtmlConversionDocument.Parse(
+    "<html lang='en'><body><h1>Accessible package</h1><svg width='10' height='10'><rect width='10' height='10'/></svg></body></html>");
+var accessibilityOptions = new HtmlToPdfOptions();
+accessibilityOptions.AdditionalStylesheets.Add("svg {display:none}");
+var accessiblePdf = accessibilitySource.RenderToPdfResult(HtmlRenderRequest.Create(
+    HtmlRenderIntentProfile.PrintPaged, HtmlRenderEncoder.Pdf, accessibilityOptions));
+if (!HtmlPdfAccessibilityValidator.Validate(accessiblePdf).IsValid)
+    throw new InvalidOperationException("Packed PDF accessibility validation lost the operation's CSS context.");
+
 var tracedDocument = HtmlConversionDocument.Parse(
     "<style>@namespace svg url('http://www.w3.org/2000/svg');" +
     "[data-tone='IMPORTANT' i] { & > .missing, & > .notice:last-child:is(.notice):not(.blocked) " +

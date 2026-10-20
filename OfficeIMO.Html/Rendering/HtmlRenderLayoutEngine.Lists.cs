@@ -3,12 +3,13 @@ using AngleSharp.Dom;
 namespace OfficeIMO.Html;
 
 internal sealed partial class HtmlRenderLayoutEngine {
-    private static HtmlRenderFlowBlock ApplyListSemantics(HtmlRenderFlowBlock block, IElement element, string? structureElementKey = null, int? logicalOrder = null) {
+    private static HtmlRenderFlowBlock ApplyListSemantics(HtmlRenderFlowBlock block, IElement element, string? structureElementKey = null, int? logicalOrder = null, string? listStyleType = null) {
         string tag = element.TagName.ToLowerInvariant();
         string source = HtmlRenderStyleResolver.DescribeSource(element);
         if (tag == "ul" || tag == "ol") {
             return WrapSemanticBlock(block, HtmlRenderSemanticGroupRole.List, source,
-                structureElementKey == null ? null : structureElementKey + ":list", logicalOrder);
+                structureElementKey == null ? null : structureElementKey + ":list", logicalOrder,
+                string.IsNullOrWhiteSpace(listStyleType) ? tag == "ol" ? "decimal" : "disc" : listStyleType);
         }
 
         if (tag != "li") return block;
@@ -148,7 +149,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 semantic.RowSpan,
                 semantic.HeaderScope,
                 semantic.LayoutY,
-                semantic.StructureElementKey, semantic.LayoutHeight, semantic.AlternativeText, semantic.MathMlSource, semantic.LogicalOrder);
+                semantic.StructureElementKey, semantic.LayoutHeight, semantic.AlternativeText, semantic.MathMlSource, semantic.LogicalOrder, semantic.ListStyleType);
         }
 
 

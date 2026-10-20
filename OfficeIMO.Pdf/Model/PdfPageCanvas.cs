@@ -45,11 +45,11 @@ public sealed partial class PdfPageCanvas {
         AddOutline(title, level, y, state, documentOrder: null);
 
     /// <summary>Adds an adapter-owned outline entry whose logical order may differ from its destination-page order.</summary>
-    internal PdfPageCanvas Outline(string title, int level, double y, PdfOutlineState state, int documentOrder) {
+    internal PdfPageCanvas Outline(string title, int level, double y, PdfOutlineState state, int documentOrder, string? structureElementKey = null) {
         if (documentOrder < 0) {
             throw new ArgumentOutOfRangeException(nameof(documentOrder), "Canvas outline document order cannot be negative.");
         }
-        return AddOutline(title, level, y, state, documentOrder);
+        return AddOutline(title, level, y, state, documentOrder, structureElementKey: structureElementKey);
     }
 
     internal PdfPageCanvas OutlineNavigation(string title, int level, double x, double y, string? uri, int documentOrder) {
@@ -58,7 +58,7 @@ public sealed partial class PdfPageCanvas {
         return AddOutline(title, level, y, PdfOutlineState.Default, documentOrder, x, uri);
     }
 
-    private PdfPageCanvas AddOutline(string title, int level, double y, PdfOutlineState state, int? documentOrder, double x = 0D, string? uri = null) {
+    private PdfPageCanvas AddOutline(string title, int level, double y, PdfOutlineState state, int? documentOrder, double x = 0D, string? uri = null, string? structureElementKey = null) {
         Guard.NotNull(title, nameof(title));
         if (string.IsNullOrWhiteSpace(title)) {
             throw new ArgumentException("Canvas outline titles cannot be empty or whitespace.", nameof(title));
@@ -72,7 +72,7 @@ public sealed partial class PdfPageCanvas {
         if (state != PdfOutlineState.Default && state != PdfOutlineState.Open && state != PdfOutlineState.Closed) {
             throw new ArgumentOutOfRangeException(nameof(state));
         }
-        _items.Add(new PdfCanvasOutlineItem(title.Trim(), level, y, state, documentOrder, x, uri));
+        _items.Add(new PdfCanvasOutlineItem(title.Trim(), level, y, state, documentOrder, x, uri, structureElementKey));
         return this;
     }
 
@@ -641,12 +641,12 @@ internal abstract class PdfCanvasItem {
 }
 
 internal sealed class PdfCanvasOutlineItem : PdfCanvasItem {
-    public PdfCanvasOutlineItem(string title, int level, double y, PdfOutlineState state, int? documentOrder, double x = 0D, string? uri = null)
+    public PdfCanvasOutlineItem(string title, int level, double y, PdfOutlineState state, int? documentOrder, double x = 0D, string? uri = null, string? structureElementKey = null)
         : base(x, y) {
         Title = title;
         Level = level;
         State = state;
-        DocumentOrder = documentOrder; Uri = uri;
+        DocumentOrder = documentOrder; Uri = uri; StructureElementKey = structureElementKey;
     }
 
     public string Title { get; }
@@ -654,6 +654,7 @@ internal sealed class PdfCanvasOutlineItem : PdfCanvasItem {
     public PdfOutlineState State { get; }
     public int? DocumentOrder { get; }
     public string? Uri { get; }
+    internal string? StructureElementKey { get; }
 }
 
 internal sealed class PdfCanvasNamedDestinationItem : PdfCanvasItem {
