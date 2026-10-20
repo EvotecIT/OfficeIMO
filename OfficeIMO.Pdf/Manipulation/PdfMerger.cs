@@ -670,7 +670,7 @@ internal static partial class PdfMerger {
         outputObjectCount = objects.Count;
         PdfFileVersion fileVersion = sources.Max(source => source.FileVersion);
         byte[] merged = PdfPageExtractor.Assemble(objects, catalogId, infoId, fileVersion, cancellationToken);
-        return CompleteTaggedMerge(merged, sources, primarySourceIndex, pagesId, catalogId, infoId, fileVersion, cancellationToken);
+        return CompleteTaggedMerge(merged, sources, primarySourceIndex, pagesId, catalogId, infoId, fileVersion, ref outputObjectCount, cancellationToken);
     }
 
     private static void GetMergeCollectionCounts(
