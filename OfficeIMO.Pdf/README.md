@@ -57,6 +57,13 @@ PdfDocument.Create(pdf => pdf.Content(content => content
 - [Create an invoice and matching XML](../OfficeIMO.Invoicing.Pdf/README.md).
 - [Render HTML as PDF](../OfficeIMO.Html/PDF.md).
 
+For complete workflows, see the [weekly brief](../OfficeIMO.Examples/Showcase/Workflows/WeeklyBrief.cs),
+[equipment inspection](../OfficeIMO.Examples/Showcase/Workflows/EquipmentInspection.cs),
+and [branded invoice](../OfficeIMO.Examples/Showcase/Workflows/BrandedInvoice.cs).
+They create a report with embedded fonts and tags, an editable form with a permanent
+record, and matching invoice XML and PDF. The [examples guide](../OfficeIMO.Examples/README.md#run)
+shows how to run each workflow.
+
 Keep the original file when editing. Page and form operations return a new document; signed,
 protected or unsupported inputs can restrict which changes are allowed. Read the
 operation result before publishing the output.
@@ -77,6 +84,8 @@ selected.Save("selected-pages.pdf", stop.Token).RequireSuccess();
 Input streams are read from their current position and remain open. Cancellation
 throws `OperationCanceledException`. File output is staged before publication;
 when writing to a caller-owned stream, cancellation can leave a written prefix.
+Returned documents carry the selected read policy into subsequent operations;
+an explicit per-operation override applies to the result without changing the source.
 Splitting to several files prepares every part before saving. Cancellation stops
 that preparation; once saving begins, the prepared files are published one at a time.
 
@@ -1896,7 +1905,8 @@ File.WriteAllBytes("duplex-scan.pdf", interleaved.ToBytes());
 
 Page-addressed form fields and named links follow the selected pages and their
 final output ownership; structures that belong only to excluded pages are not
-carried into the composed document.
+carried into the composed document. Tagged sources are rejected by interleaving;
+use `Merge` to combine complete tagged documents in source order.
 
 Production splitting can combine page-count, text-boundary, and target-size
 rules. Every part reports its source pages, termination reason, byte size, and
