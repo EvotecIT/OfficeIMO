@@ -51,6 +51,42 @@ public sealed class ExcelXlsbStyleEditingTests {
         }
     }
 
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void Native_locale_number_format_records_survive_appended_styles(bool encrypted) {
+        using var seed = ExcelDocument.Create();
+        var sheet = seed.AddWorksheet("Data"); sheet.CellValue(1, 1, 12.5D); sheet.CellItalic(1, 1);
+        var styles = seed.WorkbookPartRoot.WorkbookStylesPart!.Stylesheet!;
+        styles.NumberingFormats ??= new NumberingFormats();
+        styles.NumberingFormats.Append(new NumberingFormat { NumberFormatId = 5, FormatCode = "\"PLN\" #,##0.00" });
+        styles.NumberingFormats.Count = (uint)styles.NumberingFormats.ChildElements.Count;
+        byte[] original = seed.ToBytes(ExcelFileFormat.Xlsb);
+        using var document = ExcelDocument.Load(new MemoryStream(original));
+        document.Sheets[0].CellBold(1, 1);
+        using var output = new MemoryStream();
+        if (encrypted) document.SaveEncrypted(output, "test-password", ExcelFileFormat.Xlsb);
+        else document.Save(output, ExcelFileFormat.Xlsb);
+        using var copy = encrypted ? ExcelDocument.LoadEncrypted(output, "test-password") : ExcelDocument.Load(output);
+        Assert.True(copy.Sheets[0].CellAt(1, 1).GetStyle().Bold);
+        var retained = Assert.Single(copy.WorkbookPartRoot.WorkbookStylesPart!.Stylesheet!.NumberingFormats!.Elements<NumberingFormat>());
+        Assert.Equal(5U, retained.NumberFormatId!.Value);
+        Assert.Equal("\"PLN\" #,##0.00", retained.FormatCode!.Value);
+    }
+
+    [Fact]
+    public void Projected_native_chartsheets_have_valid_sheet_views() {
+        string fixture = Path.Combine(RepositoryTestPaths.Find(), "OfficeIMO.TestAssets", "Documents", "ExcelPreservationCorpus", "excel-populated-macro.xlsb");
+        using var document = ExcelDocument.Load(fixture);
+        var parts = document.WorkbookPartRoot.ChartsheetParts.ToArray();
+        Assert.NotEmpty(parts);
+        var validator = new DocumentFormat.OpenXml.Validation.OpenXmlValidator();
+        foreach (var part in parts) {
+            Assert.Equal(0U, Assert.Single(part.Chartsheet!.GetFirstChild<ChartSheetViews>()!.Elements<ChartSheetView>()).WorkbookViewId!.Value);
+            Assert.Empty(validator.Validate(part.Chartsheet));
+        }
+    }
+
     private static byte[] Read(ZipArchiveEntry entry) {
         using var input = entry.Open(); using var output = new MemoryStream(); input.CopyTo(output); return output.ToArray();
     }

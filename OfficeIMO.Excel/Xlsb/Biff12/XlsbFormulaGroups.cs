@@ -69,13 +69,18 @@ internal sealed class XlsbFormulaGroup {
             } else if (record.Type is 426 or 427) {
                 if (!previousFormula) throw new InvalidDataException("The XLSB formula group has no preceding formula owner.");
                 var group = new XlsbFormulaGroup(record.Type, record.Data, row, column);
-                if (groups.Any(old => old.Range.FirstRow <= group.Range.LastRow && old.Range.LastRow >= group.Range.FirstRow
-                    && old.Range.FirstColumn <= group.Range.LastColumn && old.Range.LastColumn >= group.Range.FirstColumn))
-                    throw new InvalidDataException("The XLSB formula group ranges overlap.");
                 groups.Add(group); previousFormula = false;
             } else previousFormula = false;
         }
-        foreach (var group in groups) group.SourceMemberCount = formulas.Count(cell => group.Contains(cell.Row, cell.Column));
+        var groupIndex = new ExcelCellRangeIndex<XlsbFormulaGroup>(groups.Select(group =>
+            (group.Range.FirstRow, group.Range.FirstColumn, group.Range.LastRow, group.Range.LastColumn, group)));
+        foreach (var group in groups)
+            if (groupIndex.Intersect(group.Range.FirstRow, group.Range.FirstColumn, group.Range.LastRow, group.Range.LastColumn).Skip(1).Any())
+                throw new InvalidDataException("The XLSB formula group ranges overlap.");
+        foreach (var cell in formulas) {
+            var group = groupIndex.At(cell.Row, cell.Column).FirstOrDefault();
+            if (group != null) group.SourceMemberCount++;
+        }
         return groups;
     }
     internal static bool IsGroupReference(byte[]? payload) => payload != null && payload.Length >= 15 && Read(payload, 2) == 5 && payload[6] == 1;

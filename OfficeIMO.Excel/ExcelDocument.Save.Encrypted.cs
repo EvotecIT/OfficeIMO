@@ -59,8 +59,12 @@ public partial class ExcelDocument {
             EnsureLegacyXlsSaveDoesNotDropImportedContent(options, includeProjectedChartSheets: true, preserveLinkedVbaProject: true, preserveNativeRecords: true);
             EnsureXlsbStringStorageSupported(isXlsbTarget: false, options);
             var calculation = PrepareNativeCalculationForSave(options);
-            if (!CanPreserveNativeLegacyXls(options)) PrepareWorkbookForSave(options, applyCalculationPolicy: false);
-            byte[] legacy = LegacyXlsWriter.WriteEncryptedWorkbook(this, password, maximumBytes, calculation);
+            if (!CanPreserveNativeLegacyXls(options)) {
+                EnsureLegacyXlsSaveDoesNotDropImportedContent(options, preserveLinkedVbaProject: true);
+                PrepareWorkbookForSave(options, applyCalculationPolicy: false);
+                EnsureLegacyXlsSaveDoesNotDropImportedContent(options, preserveLinkedVbaProject: true);
+            }
+            byte[] legacy = LegacyXlsWriter.WriteEncryptedWorkbook(this, password, maximumBytes, calculation, options);
             ThrowIfPackageMaterializationExceedsLimit(legacy.LongLength, options);
             return new PreparedEncryptedBinaryWorkbook(legacy, PrepareNativeLegacyXlsAdoption(legacy, CancellationToken.None, password), null);
         }

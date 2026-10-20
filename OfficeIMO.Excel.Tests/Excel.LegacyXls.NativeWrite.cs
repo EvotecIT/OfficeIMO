@@ -3907,7 +3907,7 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void LegacyXls_NativeSave_RebasesSharedFormula3DReferences() {
+        public void LegacyXls_NativeSave_MaterializesSharedFormula3DReferences() {
             string openXmlPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".xlsx");
             string xlsOutputPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".xls");
 
@@ -3938,14 +3938,14 @@ namespace OfficeIMO.Tests {
                     document.Save(xlsOutputPath);
                 }
 
-                byte[] sharedFormulaPayload = Assert.Single(GetBiffRecordPayloads(xlsOutputPath, 0x04bc));
-                byte[] formulaTokens = new byte[ReadUInt16(sharedFormulaPayload, 8)];
-                Buffer.BlockCopy(sharedFormulaPayload, 10, formulaTokens, 0, formulaTokens.Length);
-
-                int ref3dOffset = Array.IndexOf(formulaTokens, (byte)0x5a);
-                Assert.True(ref3dOffset >= 0);
-                Assert.Equal((ushort)0, ReadUInt16(formulaTokens, ref3dOffset + 3));
-                Assert.Equal((ushort)0xffff, ReadUInt16(formulaTokens, ref3dOffset + 5));
+                Assert.Empty(GetBiffRecordPayloads(xlsOutputPath, 0x04bc));
+                using ExcelDocument readback = ExcelDocument.Load(xlsOutputPath);
+                ExcelSheet formulas = readback.GetSheet("Shared Formula");
+                Assert.Equal("'Data'!A1+5", formulas.GetFormulaText(1, 2));
+                Assert.Equal("'Data'!A2+5", formulas.GetFormulaText(2, 2));
+                formulas.RecalculateSupportedFormulas();
+                Assert.Equal(15D, formulas.CellAt(1, 2).GetValue<double>());
+                Assert.Equal(25D, formulas.CellAt(2, 2).GetValue<double>());
             } finally {
                 TryDelete(openXmlPath);
                 TryDelete(xlsOutputPath);

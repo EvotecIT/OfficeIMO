@@ -63,10 +63,12 @@ namespace OfficeIMO.Excel {
                     .Select(formula => formula.Reference?.Value).Where(reference => reference != null)
                     .Select(reference => A1.TryParseRange(reference!, out int top, out int left, out int bottom, out int right)
                         ? (Top: top, Left: left, Bottom: bottom, Right: right) : default).ToArray();
+                var arrayIndex = new ExcelCellRangeIndex<bool>(arrays.Select(range => (range.Top, range.Left, range.Bottom, range.Right, true)));
                 foreach (var cell in WorksheetRoot.Descendants<Cell>()) {
-                    bool arrayMember = cell.CellReference?.Value is string address
+                    bool arrayMember = cell.CellFormula == null && arrays.Length != 0
+                        && cell.CellReference?.Value is string address
                         && TryParseCellReference(address, out int row, out int column)
-                        && arrays.Any(range => row >= range.Top && row <= range.Bottom && column >= range.Left && column <= range.Right);
+                        && arrayIndex.At(row, column).Any();
                     if (cell.CellFormula == null && !arrayMember) continue;
                     if (cell.CellValue != null || cell.ValueMetaIndex != null) {
                         cell.CellValue = null;

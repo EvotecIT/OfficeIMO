@@ -7,8 +7,8 @@ This matrix describes the current workbook contract. “Partial” means useful 
 | Format | Current contract | Boundary |
 | --- | --- | --- |
 | XLSX/XLSM/XLTX/XLTM | Native create, load, inspect, edit, preserve, and save through the normal `ExcelDocument` surface | Unknown or preservation-sensitive package parts are reported before edit-heavy workflows |
-| XLS | First-party BIFF8 import, supported native writer subset, guarded XLS/XLSX conversion, feature reporting, package security, and password-to-open support for XOR, classic RC4, and RC4 CryptoAPI | Unsupported encryption, drawings, complete chart visuals, pivots, tables, connections, VBA/OLE, and signatures are diagnosed or blocked |
-| XLSB | First-party BIFF12 import, supported native writer subset, byte-identical unchanged save, preservation-aware supported cell rewrite, and XLSB-to-XLSX conversion | Unsupported mutations and save-time transforms fail before output; XLSX bytes are never mislabeled as XLSB |
+| XLS | First-party BIFF8 import, supported native cell/style/formula and worksheet lifecycle editing, chart/VBA preservation, guarded XLS/XLSX conversion, package security, XOR/classic RC4/RC4 CryptoAPI password-to-open import and classic RC4 output | Native records and compound streams are preserved within the documented edit subset; arbitrary chart, pivot, VBA/OLE and signature authoring remain outside it |
+| XLSB | First-party BIFF12 import, supported native writer subset, byte-identical unchanged save, native cell/style/formula and worksheet lifecycle editing, chart/VBA preservation, Agile password-to-open output, and XLSB-to-XLSX conversion | Unsupported mutations and save-time transforms fail before output; XLSX bytes are never mislabeled as XLSB |
 | XML Spreadsheet 2003 | Explicit `ImportSpreadsheetXml` and `ExportSpreadsheetXml` data interchange over the existing workbook model | Typed cells, ordinary formulas/caches, inherited styles, supported rich text, column/merge geometry, scoped names, comments, links, ordinary print/view settings and selected protection flags. Font metrics and native font-colour limits are diagnosed; unsupported workbook features remain explicit. |
 
 The detailed legacy contracts are documented in [XLS/XLSX compatibility](../Docs/officeimo.excel.legacy-xls-compatibility.md) and [Word/Excel interoperability](../Docs/officeimo.word-excel-interoperability.md).
@@ -63,17 +63,18 @@ PDF output uses the Excel print model and the shared PDF/Drawing owners. Route e
 
 Unknown or preservation-sensitive content is inspected before mutation. Relationship-backed drawings, workbook structures, charts, modern-chart parts, pivot/query metadata, and template bindings are retained through load/clone/edit/save paths covered by the package-preservation corpus. A successful save is not treated as evidence that every feature became editable.
 
-Native XLS saving can retain an imported compound VBA project when the workbook
-fits the writer subset. This does not establish complete macro-workbook
-preservation: chart-sheet parts, macro/dialog sheet kinds and other unsupported
-features can still block the save. The independent OpenPreserve `valid.xls`
-fixture demonstrates the chart-sheet rejection before destination mutation.
-VBA execution is never part of this contract.
+Native XLS and XLSB saves retain supported imported chart sheets, embedded charts,
+and inert or active VBA carriers through the documented cell, formula, style and
+worksheet lifecycle edits. Macro/dialog sheet kinds, signed VBA host changes and
+other unsupported mutations can still block saving before destination changes.
+VBA execution and arbitrary chart or macro authoring are outside this contract.
 
-Password-to-open XLS import supports the documented XOR/RC4 variants. Encrypted
-native XLS output is rejected; `SaveEncrypted` writes Office Open XML packages.
-Do not infer legacy encrypted-output support from worksheet protection or
-encrypted-input support.
+Password-to-open XLS import supports the documented XOR, classic RC4 and RC4
+CryptoAPI variants. `SaveEncrypted` can write native XLS using classic RC4,
+native XLSB using Agile package encryption, and encrypted Open XML workbooks.
+Retained XLS pivot caches and revision logs are encrypted under the native stream
+rules. Encrypted-property input is accepted by native Excel; native-producer
+encrypted-summary and nested-storage qualification remain explicit evidence gaps.
 
 ## Performance evidence
 

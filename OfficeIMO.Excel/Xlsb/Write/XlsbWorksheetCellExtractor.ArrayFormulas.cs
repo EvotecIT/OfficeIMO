@@ -11,6 +11,11 @@ internal static partial class XlsbWorksheetCellExtractor {
         if (arrays.Length == 0) return cells;
         var result = cells.ToDictionary(cell => (cell.Row, cell.Column));
         var occupied = new HashSet<(int, int)>();
+        var memberIndex = new ExcelCellRangeIndex<Cell>(sheet.WorksheetPart.Worksheet.Descendants<Cell>()
+            .Where(cell => cell.CellReference?.Value != null).Select(cell => {
+                var position = A1.ParseCellRef(cell.CellReference!.Value!);
+                return (position.Row, position.Col, position.Row, position.Col, cell);
+            }));
         foreach (var anchor in arrays) {
             if (!A1.TryParseRange(anchor.CellFormula!.Reference?.Value ?? string.Empty, out int top, out int left, out int bottom, out int right))
                 throw new NotSupportedException("The native XLSB array formula requires a rectangular range.");
@@ -30,10 +35,8 @@ internal static partial class XlsbWorksheetCellExtractor {
             XlsbFormulaGroup.Put(reference, 7, checked((uint)(top - 1))); XlsbFormulaGroup.Put(reference, 11, 4); XlsbFormulaGroup.Put(reference, 15, checked((uint)(left - 1)));
             long expected = (long)(bottom - top + 1) * (right - left + 1);
             var members = new List<XlsbWriteCell>();
-            foreach (var member in sheet.WorksheetPart.Worksheet.Descendants<Cell>()) {
-                if (member.CellReference?.Value == null) continue;
-                var position = A1.ParseCellRef(member.CellReference.Value);
-                if (position.Row < top || position.Row > bottom || position.Col < left || position.Col > right) continue;
+            foreach (var member in memberIndex.Intersect(top, left, bottom, right)) {
+                var position = A1.ParseCellRef(member.CellReference!.Value!);
                 if ((position.Row != top || position.Col != left) && member.CellFormula != null)
                     throw new NotSupportedException("The native XLSB array cannot contain another formula inside its range.");
                 members.Add(result.TryGetValue((position.Row, position.Col), out var existing) ? existing

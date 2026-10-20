@@ -939,9 +939,14 @@ namespace OfficeIMO.Excel.LegacyXls.Write {
                 }
 
                 formulaText = sharedDefinition.FormulaText;
-                sharedFormulaPayload = sharedDefinition.AnchorRow == row && sharedDefinition.AnchorColumn == column
-                    ? sharedDefinition.Payload
-                    : null;
+                if (sharedDefinition.Payload.Length == 0) {
+                    formulaText = sheet.TranslateSharedFormula(formulaText, row - sharedDefinition.AnchorRow, column - sharedDefinition.AnchorColumn);
+                    isSharedFormula = false;
+                } else {
+                    sharedFormulaPayload = sharedDefinition.AnchorRow == row && sharedDefinition.AnchorColumn == column
+                        ? sharedDefinition.Payload
+                        : null;
+                }
             }
 
             bool isArrayFormula = formulaType == DocumentFormat.OpenXml.Spreadsheet.CellFormulaValues.Array;
@@ -2086,110 +2091,6 @@ namespace OfficeIMO.Excel.LegacyXls.Write {
         }
 
 
-
-        private sealed class LegacyXlsSharedFormulaTable {
-            private readonly Dictionary<uint, LegacyXlsSharedFormulaDefinition> _definitions;
-
-            private LegacyXlsSharedFormulaTable(Dictionary<uint, LegacyXlsSharedFormulaDefinition> definitions) {
-                _definitions = definitions;
-            }
-
-            internal static LegacyXlsSharedFormulaTable Create(ExcelSheet sheet, int sheetIndex, LegacyXlsFormulaNameIndex formulaNameIndex) {
-                SheetData? sheetData = sheet.WorksheetPart.Worksheet?.GetFirstChild<SheetData>();
-                var definitions = new Dictionary<uint, LegacyXlsSharedFormulaDefinition>();
-                if (sheetData == null) {
-                    return new LegacyXlsSharedFormulaTable(definitions);
-                }
-
-                foreach (Row row in sheetData.Elements<Row>()) {
-                    uint rowIndex = row.RowIndex?.Value ?? 0U;
-                    int sequentialColumn = 1;
-                    foreach (Cell cell in row.Elements<Cell>()) {
-                        CellFormula? formula = cell.CellFormula;
-                        if (formula?.FormulaType?.Value != DocumentFormat.OpenXml.Spreadsheet.CellFormulaValues.Shared) {
-                            if (!string.IsNullOrEmpty(cell.CellReference?.Value)) {
-                                ParseCellReference(cell.CellReference!.Value!, out _, out sequentialColumn);
-                            }
-
-                            sequentialColumn++;
-                            continue;
-                        }
-
-                        uint effectiveRow = rowIndex;
-                        int effectiveColumn = sequentialColumn;
-                        if (!string.IsNullOrEmpty(cell.CellReference?.Value)) {
-                            ParseCellReference(cell.CellReference!.Value!, out effectiveRow, out effectiveColumn);
-                        }
-
-                        sequentialColumn = effectiveColumn + 1;
-                        if (effectiveRow == 0 || effectiveColumn <= 0 || formula.SharedIndex == null || string.IsNullOrWhiteSpace(formula.Text)) {
-                            continue;
-                        }
-
-                        uint sharedIndex = formula.SharedIndex.Value;
-                        if (definitions.ContainsKey(sharedIndex)) {
-                            throw new NotSupportedException($"Native XLS saving found duplicate shared formula definition index {sharedIndex} on worksheet '{sheet.Name}'. Save as .xlsx or remove this formula before saving as .xls.");
-                        }
-
-                        ushort anchorRow = checked((ushort)(effectiveRow - 1U));
-                        ushort anchorColumn = checked((ushort)(effectiveColumn - 1));
-                        if (!TryParseFormulaRange(formula.Reference?.Value, out ushort firstRow, out ushort firstColumn, out ushort lastRow, out ushort lastColumn)
-                            || anchorRow < firstRow
-                            || anchorRow > lastRow
-                            || anchorColumn < firstColumn
-                            || anchorColumn > lastColumn) {
-                            throw new NotSupportedException($"Native XLS saving does not support shared formula range '{formula.Reference?.Value}' at {ToA1Address(anchorRow, anchorColumn)}. Save as .xlsx or remove this formula before saving as .xls.");
-                        }
-
-                        if (!LegacyXlsFormulaEncoder.TryEncode(formula.Text, formulaNameIndex, sheetIndex, out byte[] formulaTokens, out string? reason)) {
-                            throw new NotSupportedException($"Native XLS saving does not yet support shared formula '{formula.Text}' at {ToA1Address(anchorRow, anchorColumn)}: {reason} Save as .xlsx or remove this formula before saving as .xls.");
-                        }
-
-                        if (!TryBuildSharedFormulaTokens(formulaTokens, anchorRow, anchorColumn, out byte[] sharedFormulaTokens)) {
-                            throw new NotSupportedException($"Native XLS saving does not yet support shared formula token conversion for '{formula.Text}' at {ToA1Address(anchorRow, anchorColumn)}. Save as .xlsx or remove this formula before saving as .xls.");
-                        }
-
-                        EnsureSupportedSharedFormulaPayloadLength(sharedFormulaTokens, ToA1Address(anchorRow, anchorColumn));
-                        EnsureSupportedSharedFormulaCellCount(firstRow, firstColumn, lastRow, lastColumn, ToA1Address(anchorRow, anchorColumn));
-                        definitions[sharedIndex] = new LegacyXlsSharedFormulaDefinition(
-                            anchorRow,
-                            anchorColumn,
-                            formula.Text,
-                            BuildSharedFormulaPayload(firstRow, firstColumn, lastRow, lastColumn, sharedFormulaTokens));
-                    }
-                }
-
-                return new LegacyXlsSharedFormulaTable(definitions);
-            }
-
-            internal bool TryGetDefinition(uint? sharedIndex, out LegacyXlsSharedFormulaDefinition definition) {
-                definition = default;
-                return sharedIndex.HasValue && _definitions.TryGetValue(sharedIndex.Value, out definition);
-            }
-
-            private static void EnsureSupportedSharedFormulaCellCount(ushort firstRow, ushort firstColumn, ushort lastRow, ushort lastColumn, string address) {
-                if (GetSharedFormulaCellCount(firstRow, firstColumn, lastRow, lastColumn) > byte.MaxValue) {
-                    throw new NotSupportedException($"Native XLS saving does not yet support shared formula ranges with more than 255 cells at {address}. Save as .xlsx or split this shared formula before saving as .xls.");
-                }
-            }
-        }
-
-        private readonly struct LegacyXlsSharedFormulaDefinition {
-            internal LegacyXlsSharedFormulaDefinition(ushort anchorRow, ushort anchorColumn, string formulaText, byte[] payload) {
-                AnchorRow = anchorRow;
-                AnchorColumn = anchorColumn;
-                FormulaText = formulaText;
-                Payload = payload;
-            }
-
-            internal ushort AnchorRow { get; }
-
-            internal ushort AnchorColumn { get; }
-
-            internal string FormulaText { get; }
-
-            internal byte[] Payload { get; }
-        }
 
         private sealed class LegacyXlsWorksheetLayout {
             internal LegacyXlsWorksheetLayout(

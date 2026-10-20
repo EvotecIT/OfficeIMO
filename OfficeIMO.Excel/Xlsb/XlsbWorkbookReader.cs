@@ -486,6 +486,7 @@ namespace OfficeIMO.Excel.Xlsb {
             ref int totalRowDefinitions,
             ref int totalMergedRanges,
             ref int totalHyperlinks) {
+            int sheetIndex = workbook.Sheets.ToList().IndexOf(worksheet);
             IReadOnlyList<XlsbRecord> records = ReadRecords(bytes, options, recordBudget);
             if (records.Count < 2 || records[0].Type != BrtBeginSheet || records[records.Count - 1].Type != BrtEndSheet) {
                 throw new InvalidDataException($"The XLSB worksheet part '{partName}' is missing its BrtBeginSheet/BrtEndSheet boundaries.");
@@ -761,7 +762,7 @@ namespace OfficeIMO.Excel.Xlsb {
                             throw new InvalidDataException($"The XLSB workbook exceeds the configured limit of {options.MaxCells} populated cells.");
                         }
 
-                        XlsbCell cell = XlsbWorksheetCellReader.Read(record, currentRow.Row - 1, sharedStrings, options, workbook, partName);
+                        XlsbCell cell = XlsbWorksheetCellReader.Read(record, currentRow.Row - 1, sharedStrings, options, workbook, partName, sheetIndex);
                         if (!currentRow.ContainsZeroBasedColumn(cell.Column - 1)) {
                             throw new InvalidDataException($"The XLSB cell at row {cell.Row}, column {cell.Column} is not covered by its BrtRowHdr column spans.");
                         }
@@ -791,12 +792,15 @@ namespace OfficeIMO.Excel.Xlsb {
             }
 
             worksheet.FormulaGroups = XlsbFormulaGroup.ReadGroups(records);
-            foreach (var group in worksheet.FormulaGroups) {
-                foreach (var member in worksheet.Cells.Where(cell => group.Contains(cell.Row, cell.Column) && XlsbFormulaGroup.IsGroupReference(cell.FormulaPayloadBytes))) {
+            var groupIndex = new ExcelCellRangeIndex<XlsbFormulaGroup>(worksheet.FormulaGroups.Select(group =>
+                (group.Range.FirstRow, group.Range.FirstColumn, group.Range.LastRow, group.Range.LastColumn, group)));
+            foreach (var member in worksheet.Cells.Where(cell => XlsbFormulaGroup.IsGroupReference(cell.FormulaPayloadBytes))) {
+                var group = groupIndex.At(member.Row, member.Column).FirstOrDefault();
+                if (group != null) {
                     try {
                         byte[] materialized = group.Materialize(member.Row, member.Column);
                         int count = checked((int)XlsbFormulaGroup.Read(materialized, 2));
-                        if (XlsbFormulaTextReader.TryRead(materialized.Skip(6).Take(count).ToArray(), out string? text, workbook, workbook.Sheets.ToList().IndexOf(worksheet))) member.FormulaText = text;
+                        if (XlsbFormulaTextReader.TryRead(materialized.Skip(6).Take(count).ToArray(), out string? text, workbook, sheetIndex)) member.FormulaText = text;
                     } catch (NotSupportedException) {
                         workbook.AddDiagnostic(new XlsbImportDiagnostic("XLSB-FORMULA-PRESERVED", XlsbImportDiagnosticSeverity.Warning,
                             "Preserved an unsupported grouped formula and its cached result.", partName));

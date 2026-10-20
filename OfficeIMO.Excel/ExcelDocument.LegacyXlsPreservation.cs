@@ -15,9 +15,9 @@ public partial class ExcelDocument {
             properties.LastPrinted?.ToString("O", System.Globalization.CultureInfo.InvariantCulture));
     }
 
-    internal bool TryGetLegacyXlsPreservationPlan(out LegacyXlsPreservationPlan? plan) {
+    internal bool TryGetLegacyXlsPreservationPlan(ExcelSaveOptions? options, out LegacyXlsPreservationPlan? plan) {
         plan = null;
-        return SourceFormat == ExcelFileFormat.Xls && !HasLegacyPreservationTransforms(null) && _legacyXlsPreservationSnapshot?.TryCreatePlan(this, out plan) == true;
+        return SourceFormat == ExcelFileFormat.Xls && !HasLegacyPreservationTransforms(options) && _legacyXlsPreservationSnapshot?.TryCreatePlan(this, out plan) == true;
     }
 
     private bool CanPreserveNativeLegacyXls(ExcelSaveOptions? options) =>
@@ -35,6 +35,7 @@ public partial class ExcelDocument {
             long maximumBytes = Math.Min(GetPackageMaterializationLimit(options) ?? int.MaxValue, int.MaxValue);
             return plan!.Write(null, maximumBytes, cancellationToken, calculation);
         }
+        EnsureLegacyXlsSaveDoesNotDropImportedContent(options, preserveLinkedVbaProject: true);
         if (TryBuildDirectTabularLegacyXls(options, cancellationToken, out byte[] bytes)) { direct = true; return bytes; }
         PrepareWorkbookForSave(options, applyCalculationPolicy: false);
         cancellationToken.ThrowIfCancellationRequested();

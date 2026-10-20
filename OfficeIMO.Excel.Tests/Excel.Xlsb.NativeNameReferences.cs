@@ -61,25 +61,27 @@ public sealed class ExcelXlsbNativeNameReferencesTests {
             Assert.True(XlsbFormulaTextReader.TryRead(tokens, out string? text, loaded));
             Assert.Equal("RetainedValue>0", text);
         }
-        Assert.Equal(new byte[] { 0xAB, 0xCD }, actual.Single(record => record.Type == 0x3FFE).Data.TakeLast(2));
+        Assert.Equal(new byte[] { 0xAB, 0xCD }, actual.Single(record => record.Type == 0x3FFE).Data.Skip(actual.Single(record => record.Type == 0x3FFE).Data.Length - 2));
     }
+
+    private static void Write(Stream output, byte[] bytes) => output.Write(bytes, 0, bytes.Length);
 
     private static byte[] Parsed(byte[] tokens) => BitConverter.GetBytes(tokens.Length).Concat(tokens).Concat(new byte[4]).ToArray();
     private static byte[] Validation(byte[] tokens) {
         using var output = new MemoryStream();
-        output.Write(BitConverter.GetBytes(7)); output.Write(BitConverter.GetBytes(1)); output.Write(new byte[16]);
-        for (int index = 0; index < 4; index++) output.Write(BitConverter.GetBytes(uint.MaxValue));
-        output.Write(Parsed(tokens)); output.Write(Parsed(Array.Empty<byte>())); return output.ToArray();
+        Write(output, BitConverter.GetBytes(7)); Write(output, BitConverter.GetBytes(1)); Write(output, new byte[16]);
+        for (int index = 0; index < 4; index++) Write(output, BitConverter.GetBytes(uint.MaxValue));
+        Write(output, Parsed(tokens)); Write(output, Parsed(Array.Empty<byte>())); return output.ToArray();
     }
     private static byte[] Condition(byte[] tokens) {
         using var output = new MemoryStream(); byte[] header = new byte[42];
         BitConverter.GetBytes(2).CopyTo(header, 0); BitConverter.GetBytes(1).CopyTo(header, 12); BitConverter.GetBytes(tokens.Length).CopyTo(header, 30);
-        output.Write(header); output.Write(BitConverter.GetBytes(uint.MaxValue)); output.Write(Parsed(tokens)); return output.ToArray();
+        Write(output, header); Write(output, BitConverter.GetBytes(uint.MaxValue)); Write(output, Parsed(tokens)); return output.ToArray();
     }
     private static byte[] Future(byte[] tokens) {
         using var output = new MemoryStream();
-        output.Write(BitConverter.GetBytes(4)); output.Write(BitConverter.GetBytes(1)); output.Write(BitConverter.GetBytes(2));
-        output.Write(BitConverter.GetBytes(tokens.Length)); output.Write(new byte[4]); output.Write(tokens); output.Write(new byte[] { 0xAB, 0xCD });
+        Write(output, BitConverter.GetBytes(4)); Write(output, BitConverter.GetBytes(1)); Write(output, BitConverter.GetBytes(2));
+        Write(output, BitConverter.GetBytes(tokens.Length)); Write(output, new byte[4]); Write(output, tokens); Write(output, new byte[] { 0xAB, 0xCD });
         return output.ToArray();
     }
 }

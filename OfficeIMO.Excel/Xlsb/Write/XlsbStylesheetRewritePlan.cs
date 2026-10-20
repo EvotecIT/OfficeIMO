@@ -69,9 +69,10 @@ namespace OfficeIMO.Excel.Xlsb.Write {
                 throw new NotSupportedException("The XLSB formatting collection exceeds its native index limit.");
             ValidateAddedCellFormats(xfs, fontCount, fillCount, borderCount, sourceWorkbook.Stylesheet.CellStyleFormats.Count);
             var ids = new HashSet<uint>();
+            var appended = new HashSet<NumberingFormat>(formats);
             foreach (var format in current.NumberingFormats?.Elements<NumberingFormat>() ?? Enumerable.Empty<NumberingFormat>()) {
                 uint id = format.NumberFormatId?.Value ?? 0;
-                if (id < 164 || !ids.Add(id)) throw new NotSupportedException("Custom XLSB number formats require unique ids from 164 through 65535.");
+                if (id > ushort.MaxValue || (appended.Contains(format) && id < 164) || !ids.Add(id)) throw new NotSupportedException("XLSB number format ids must be unique and at most 65535; appended formats require ids of at least 164.");
             }
             if (xfs.Any(format => (format.NumberFormatId?.Value ?? 0) >= 164 && !ids.Contains(format.NumberFormatId!.Value)))
                 throw new NotSupportedException("An appended XLSB cell format refers to an undefined custom number format.");

@@ -33,6 +33,34 @@ public sealed class ExcelXlsbFormulaGroupEditingTests {
         using var final = ExcelDocument.Load(new MemoryStream(removed)); Assert.Equal(99D, final.Sheets[0].CellAt(1, 2).GetValue<double>());
     }
 
+    [Theory]
+    [InlineData(ExcelFileFormat.Xls)]
+    [InlineData(ExcelFileFormat.Xlsb)]
+    public void Disjoint_array_groups_keep_followers_and_unrelated_cells_when_caches_are_cleared(ExcelFileFormat format) {
+        using var seed = ExcelDocument.Create(); var sheet = seed.AddWorksheet("Arrays");
+        var ranges = new List<(int Row, int Column)>();
+        for (int group = 0; group < 12; group++) {
+            int row = 1 + group / 4 * 100, column = 2 + group % 4 * 4;
+            ranges.Add((row, column));
+            sheet.SetArrayFormula(A1.CellReference(row, column) + ":" + A1.CellReference(row + 1, column), "2+3");
+            sheet.CellValue(row, column, 5D); sheet.CellValue(row + 1, column, 5D);
+        }
+        sheet.CellValue(50, 20, 77D);
+        using var document = ExcelDocument.Load(new MemoryStream(seed.ToBytes(format)));
+        document.Sheets[0].CellBold(202, 14);
+        byte[] output = document.ToBytes(format, new() { ClearCachedFormulaResultsBeforeSave = true });
+        using var copy = ExcelDocument.Load(new MemoryStream(output));
+        var cells = copy.Sheets[0].WorksheetPart.Worksheet!.Descendants<Cell>().ToDictionary(cell => cell.CellReference!.Value!);
+        foreach (var position in ranges) {
+            var owner = cells[A1.CellReference(position.Row, position.Column)];
+            Assert.Equal(CellFormulaValues.Array, owner.CellFormula?.FormulaType?.Value);
+            Assert.True(string.IsNullOrEmpty(owner.CellValue?.Text));
+            Assert.True(string.IsNullOrEmpty(cells[A1.CellReference(position.Row + 1, position.Column)].CellValue?.Text));
+        }
+        Assert.True(copy.Sheets[0].CellAt(202, 14).GetStyle().Bold);
+        Assert.Equal(77D, copy.Sheets[0].CellAt(50, 20).GetValue<double>());
+    }
+
     [Fact]
     public void Replacing_the_owner_of_a_native_shared_group_preserves_other_relative_formulas() {
         using var seed = ExcelDocument.Create(); var sheet = seed.AddWorksheet("Data");

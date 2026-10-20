@@ -11,6 +11,7 @@ internal static partial class LegacyXlsWriter {
         IReadOnlyList<BiffRecord> records, IReadOnlyList<LegacyXlsCellEdit> edits, LegacyXlsEditEncoding encoding,
         CancellationToken token, LegacyXlsSheetStructure? structure) {
         var result = edits.ToDictionary(edit => (edit.Sheet, edit.Address));
+        var recordIndexes = records.Select((record, index) => (record.Offset, Index: index)).ToDictionary(item => item.Offset, item => item.Index);
         foreach (var sheet in source.Worksheets) {
             string currentName = structure?.CurrentName(sheet.Name) ?? (structure == null ? sheet.Name : string.Empty);
             var current = document.Sheets.FirstOrDefault(item => item.Name == currentName);
@@ -19,7 +20,7 @@ internal static partial class LegacyXlsWriter {
                 .Where(cell => cell.CellReference?.Value != null).ToDictionary(cell => cell.CellReference!.Value!, StringComparer.Ordinal);
             var nativeCells = new Dictionary<string, List<BiffRecord>>(StringComparer.Ordinal);
             var groups = new List<(BiffRecord Record, string Anchor)>();
-            int start = records.ToList().FindIndex(record => record.Offset == sheet.StreamOffset), depth = 0;
+            int start = recordIndexes[sheet.StreamOffset], depth = 0;
             List<BiffRecord>? previous = null; string? previousAddress = null;
             for (int i = start; i < records.Count; i++) {
                 token.ThrowIfCancellationRequested(); var record = records[i];
@@ -34,16 +35,34 @@ internal static partial class LegacyXlsWriter {
                     if (record.Type is 0x04bc or 0x0221 && record.Payload.Length >= 6) groups.Add((record, previousAddress!));
                 } else { previous = null; previousAddress = null; }
             }
+            if (groups.Count == 0) {
+                foreach (var edit in edits.Where(edit => edit.Sheet == currentName && edit.PreserveFormula))
+                    if (nativeCells.TryGetValue(edit.Address, out var native)) encoding.NativeFormulaCells[(currentName, edit.Address)] = native;
+                continue;
+            }
+            var cellIndex = new ExcelCellRangeIndex<KeyValuePair<string, Cell>>(currentCells.Select(entry => {
+                var position = A1.ParseCellRef(entry.Key);
+                return (position.Row, position.Col, position.Row, position.Col, entry);
+            }));
+            var nativeIndex = new ExcelCellRangeIndex<KeyValuePair<string, List<BiffRecord>>>(nativeCells.Select(entry => {
+                var position = A1.ParseCellRef(entry.Key);
+                return (position.Row, position.Col, position.Row, position.Col, entry);
+            }));
+            var sheetEdits = edits.Where(edit => edit.Sheet == currentName).ToArray();
+            var editIndex = new ExcelCellRangeIndex<LegacyXlsCellEdit>(sheetEdits.Select(edit => {
+                var position = A1.ParseCellRef(edit.Address);
+                return (position.Row, position.Col, position.Row, position.Col, edit);
+            }));
             foreach (var group in groups) {
                 var payload = group.Record.Payload;
                 int top = BiffRecordReader.ReadUInt16(payload, 0) + 1, bottom = BiffRecordReader.ReadUInt16(payload, 2) + 1;
                 int left = payload[4] + 1, right = payload[5] + 1;
-                bool Within(string address) { var (row, column) = A1.ParseCellRef(address); return row >= top && row <= bottom && column >= left && column <= right; }
-                var affected = edits.Where(edit => edit.Sheet == currentName && Within(edit.Address)).ToArray();
+                var affected = editIndex.Intersect(top, left, bottom, right).ToArray();
+                var nativeMembers = nativeIndex.Intersect(top, left, bottom, right).ToArray();
                 if (affected.Length == 0) continue;
                 bool shared = group.Record.Type == 0x04bc;
                 bool preserveArray = !shared && affected.All(edit => edit.PreserveFormula);
-                foreach (var entry in nativeCells.Where(entry => Within(entry.Key))) {
+                foreach (var entry in nativeMembers) {
                     if (!currentCells.TryGetValue(entry.Key, out var cell)) continue;
                     var key = (currentName, entry.Key);
                     if (result.TryGetValue(key, out var edit) && !edit.PreserveFormula) continue;
@@ -58,14 +77,14 @@ internal static partial class LegacyXlsWriter {
                     bool typedArray = currentCells.TryGetValue(group.Anchor, out var anchor)
                         && anchor.CellFormula?.FormulaType?.Value == CellFormulaValues.Array;
                     if (!typedArray && !sheet.ArrayFormulaRecords.Any(array => array.FirstRow == top && array.FirstColumn == left && array.FormulaTextProjected)
-                        && nativeCells.Keys.Where(Within).Any(address => !result.ContainsKey((currentName, address))))
+                        && nativeMembers.Any(entry => !result.ContainsKey((currentName, entry.Key))))
                         throw new NotSupportedException("Clear or replace the complete native array formula range before editing its members.");
-                    foreach (var entry in currentCells.Where(entry => Within(entry.Key)))
+                    foreach (var entry in cellIndex.Intersect(top, left, bottom, right))
                         if (!result.ContainsKey((currentName, entry.Key)))
                             result.Add((currentName, entry.Key), new LegacyXlsCellEdit(currentName, entry.Key, (Cell)entry.Value.CloneNode(true)));
                 }
             }
-            foreach (var edit in edits.Where(edit => edit.Sheet == currentName && edit.PreserveFormula))
+            foreach (var edit in sheetEdits.Where(edit => edit.PreserveFormula))
                 if (!encoding.NativeFormulaCells.ContainsKey((currentName, edit.Address)) && nativeCells.TryGetValue(edit.Address, out var native))
                     encoding.NativeFormulaCells[(currentName, edit.Address)] = native;
         }
@@ -110,10 +129,14 @@ internal static partial class LegacyXlsWriter {
         int row = BiffRecordReader.ReadUInt16(formula, 0), column = BiffRecordReader.ReadUInt16(formula, 2);
         foreach (var item in scanned) {
             byte kind = (byte)(item.Token & 0x1f);
-            if (item.Token < 0x20 || kind is not 0x0c and not 0x0d) continue;
+            if (item.Token < 0x20 || kind is not 0x0c and not 0x0d and not 0x1a and not 0x1b) continue;
             int offset = item.TokenOffset + 1;
-            tokens[item.TokenOffset] = (byte)(item.Token - 8); // RefN/AreaN -> Ref/Area, retaining the operand class.
-            if (kind == 0x0c) Resolve(offset, offset + 2);
+            if (kind is 0x0c or 0x0d) {
+                tokens[item.TokenOffset] = (byte)(item.Token - 8); // RefN/AreaN -> Ref/Area, retaining the operand class.
+            } else {
+                offset += 2; // 3D operands retain their token and external-sheet index.
+            }
+            if (kind is 0x0c or 0x1a) Resolve(offset, offset + 2);
             else { Resolve(offset, offset + 4); Resolve(offset + 2, offset + 6); }
         }
         byte[] expanded = new byte[checked(22 + shared.Length - 10)];

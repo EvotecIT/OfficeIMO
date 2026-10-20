@@ -1,4 +1,5 @@
 using System.Data;
+using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.Xml;
 using System.Xml.Linq;
@@ -120,6 +121,7 @@ internal static class ExcelXmlTableCodec {
             _ => throw new InvalidDataException("Unsupported XML table scalar type.") };
     }
 
+    [return: DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicFields | DynamicallyAccessedMemberTypes.PublicProperties)]
     private static Type DataType(ExcelXmlTableValueType type) => type switch {
         ExcelXmlTableValueType.Text => typeof(string), ExcelXmlTableValueType.Number => typeof(double),
         ExcelXmlTableValueType.Boolean => typeof(bool), ExcelXmlTableValueType.DateTime => typeof(DateTime),

@@ -22,6 +22,7 @@ internal sealed class XlsbRelatedPartProjector {
         var part = workbook.AddNewPart<ChartsheetPart>();
         part.Chartsheet = new Chartsheet();
         if (!string.IsNullOrEmpty(source.ChartCodeName)) part.Chartsheet.Append(new ChartSheetProperties { CodeName = source.ChartCodeName });
+        part.Chartsheet.Append(new ChartSheetViews(new ChartSheetView { WorkbookViewId = 0 }));
         string id = source.DrawingRelationshipId!;
         var drawing = source.Relationships[id];
         Copy(part, XlsbPackagePartReader.ResolveTarget(source.PartName!, drawing.Target), drawing.Type, id);

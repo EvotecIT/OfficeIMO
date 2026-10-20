@@ -6,6 +6,7 @@ using OfficeIMO.Excel;
 
 string path = Path.Combine(Path.GetTempPath(), "OfficeIMO-AotSmoke-" + Guid.NewGuid().ToString("N") + ".xlsx");
 try {
+    XmlTableSmoke.Run();
     using (var asyncRows = new MemoryStream()) {
         ExcelDataSetImportResult result = await ExcelDocument.WriteRowsAsync(
             asyncRows,

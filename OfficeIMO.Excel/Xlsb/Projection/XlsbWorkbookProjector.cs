@@ -49,15 +49,13 @@ namespace OfficeIMO.Excel.Xlsb.Projection {
                         }
                     });
 
-                    foreach (var group in sourceSheet.FormulaGroups.Where(group => group.Type == 426)) {
-                        var anchor = sourceSheet.Cells.FirstOrDefault(cell => cell.Row == group.AnchorRow && cell.Column == group.AnchorColumn);
+                    var arrays = sourceSheet.FormulaGroups.Where(group => group.Type == 426).ToArray();
+                    var sourceCells = arrays.Length == 0 ? new Dictionary<(int Row, int Column), XlsbCell>()
+                        : sourceSheet.Cells.Where(cell => !string.IsNullOrWhiteSpace(cell.FormulaText)).ToDictionary(cell => (cell.Row, cell.Column));
+                    foreach (var group in arrays) {
+                        sourceCells.TryGetValue((group.AnchorRow, group.AnchorColumn), out var anchor);
                         if (string.IsNullOrWhiteSpace(anchor?.FormulaText)) continue;
                         targetSheet.SetLegacyArrayFormula(group.Range.ToA1Reference(), anchor!.FormulaText!);
-                        foreach (var cell in targetSheet.WorksheetPart.Worksheet!.Descendants<DocumentFormat.OpenXml.Spreadsheet.Cell>()) {
-                            if (cell.CellReference?.Value == null) continue;
-                            var position = A1.ParseCellRef(cell.CellReference.Value);
-                            if (group.Contains(position.Row, position.Col) && (position.Row != group.AnchorRow || position.Col != group.AnchorColumn)) cell.CellFormula = null;
-                        }
                     }
                     XlsbWorksheetPropertiesProjector.Apply(targetSheet, sourceSheet.Properties);
                     XlsbWorksheetGeometryProjector.Apply(targetSheet, sourceSheet);

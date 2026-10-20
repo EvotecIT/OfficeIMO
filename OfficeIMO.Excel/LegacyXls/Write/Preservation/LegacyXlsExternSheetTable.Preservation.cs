@@ -27,15 +27,20 @@ internal sealed partial class LegacyXlsExternSheetTable {
             }
             nativeEntries.Add(entry);
         }
-        var bookMap = new Dictionary<ushort, ushort>(); var links = new List<SupportingLinkRecord>(); int generatedBook = -1;
+        var bookMap = new Dictionary<ushort, ushort>(); var links = new List<SupportingLinkRecord>(); int generatedBook = -1, appendedBooks = 0;
+        bool reuseSelf = needsSelf && selfBooks.Count > 0;
         foreach (var record in generated.SupportingLinkRecords) {
             if (record.RecordType == 0x01ae) {
                 generatedBook++;
+                if (generatedBook == 0 && reuseSelf) {
+                    bookMap.Add(0, checked((ushort)selfBooks.Min()));
+                    continue;
+                }
                 if (generatedBook == 0 && !needsSelf) continue;
-                bookMap.Add(checked((ushort)generatedBook), checked((ushort)(books.Length + bookMap.Count)));
+                bookMap.Add(checked((ushort)generatedBook), checked((ushort)(books.Length + appendedBooks++)));
             }
             byte[] payload = record.Payload;
-            if (generatedBook == 0 && !needsSelf) continue;
+            if (generatedBook == 0 && (!needsSelf || reuseSelf)) continue;
             if (generatedBook == 0 && record.RecordType == 0x01ae) {
                 payload = (byte[])payload.Clone(); payload[0] = (byte)nativeSheets.Count; payload[1] = checked((byte)(nativeSheets.Count >> 8));
             }

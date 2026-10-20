@@ -39,7 +39,7 @@ internal static partial class SpreadsheetXmlStyles {
             XElement? format = element.Element(Ss + "NumberFormat");
             if (format != null) {
                 context.Inspect(format, Array.Empty<string>(), new[] { "Format" });
-                cell.NumberFormatId = NumberFormat(styles, (string?)format.Attribute(Ss + "Format") ?? "General");
+                cell.NumberFormatId = NumberFormat(styles, (string?)format.Attribute(Ss + "Format") ?? "General", context);
                 cell.ApplyNumberFormat = true;
             }
             if (name == "Default" && cell.FontId != null) {
@@ -58,14 +58,24 @@ internal static partial class SpreadsheetXmlStyles {
         Stylesheet styles = EnsureStyles(workbook);
         var format = (CellFormat)styles.CellFormats!.Elements<CellFormat>().ElementAt((int)original).CloneNode(true);
         if ((format.NumberFormatId?.Value ?? 0) != 0) return original;
-        format.NumberFormatId = NumberFormat(styles, "yyyy-mm-dd\\Thh:mm:ss"); format.ApplyNumberFormat = true;
+        format.NumberFormatId = NumberFormat(styles, "yyyy-mm-dd\\Thh:mm:ss", context); format.ApplyNumberFormat = true;
         return context.DateStyles[original] = AppendUnique(styles.CellFormats, format);
     }
 
-    private static uint NumberFormat(Stylesheet styles, string code) {
+    private static uint NumberFormat(Stylesheet styles, string code, SpreadsheetXmlContext context) {
         if (code.Length > 255) throw new InvalidDataException("XML Spreadsheet number format is too long.");
-        if (code.Length == 0 || code == "General") return 0;
-        code = code == "Short Date" ? "m/d/yy" : code == "Long Date" ? "dddd, mmmm dd, yyyy" : code == "General Date" ? "m/d/yy h:mm" : code;
+        string name = code.ToLowerInvariant();
+        if (code.Length == 0 || name is "general" or "general number") return 0;
+        if (name is "currency" or "euro currency")
+            context.Approximate("Locale-dependent XML Spreadsheet " + code + " number format uses an explicit currency code.");
+        code = name switch {
+            "short date" => "m/d/yy", "long date" => "dddd, mmmm dd, yyyy", "general date" => "m/d/yy h:mm",
+            "medium date" => "dd-mmm-yy", "short time" => "h:mm", "medium time" => "h:mm AM/PM", "long time" => "h:mm:ss",
+            "fixed" => "0.00", "standard" => "#,##0.00", "percent" => "0.00%", "scientific" => "0.00E+00",
+            "yes/no" => "\"Yes\";\"Yes\";\"No\"", "true/false" => "\"True\";\"True\";\"False\"", "on/off" => "\"On\";\"On\";\"Off\"",
+            "currency" => "\"$\"#,##0.00", "euro currency" => "\"€\"#,##0.00",
+            _ => code
+        };
         NumberingFormats formats = styles.NumberingFormats ??= new NumberingFormats();
         NumberingFormat? existing = formats.Elements<NumberingFormat>().FirstOrDefault(item => item.FormatCode?.Value == code);
         if (existing != null) return existing.NumberFormatId!.Value;
