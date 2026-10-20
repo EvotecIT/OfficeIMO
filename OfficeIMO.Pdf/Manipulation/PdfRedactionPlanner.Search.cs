@@ -80,7 +80,7 @@ internal static partial class PdfRedactionPlanner {
                         textBlocks.Any(block => block.PageNumber == hit.PageNumber && block.IsTableContent &&
                             Intersects(GetTextBlockBounds(block, logical.Pages[hit.PageNumber - 1]), whole));
                     bool embeddedBreakHit = embeddedBreakSpans.TryGetValue(hit.PageNumber, out PdfTextSpan[]? sourceSpans) &&
-                        sourceSpans.Any(span => Intersects(PdfTextSpanGeometry.GetAxisAlignedBounds(span), whole));
+                        sourceSpans.Any(span => Intersects(PdfTextSpanGeometry.GetRedactionBounds(span), whole));
                     if (!tableHit && !embeddedBreakHit) continue;
                     foreach (PdfSelectionQuad line in hit.VisualLineBounds) {
                         PdfVisualBounds bounds = page.TransformVisualBoundsToUser(line.Left, line.Top, line.Right, line.Bottom);

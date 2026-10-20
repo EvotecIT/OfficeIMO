@@ -68,7 +68,7 @@ cancellation token through each operation:
 using var stop = new CancellationTokenSource(TimeSpan.FromSeconds(30));
 using var input = File.OpenRead("report.pdf");
 PdfDocument report = PdfDocument.Load(input, new PdfLoadOptions {
-    MaxInputBytes = 32L * 1024 * 1024
+    Limits = new PdfReadLimits { MaxInputBytes = 32L * 1024 * 1024 }
 }, stop.Token);
 PdfDocument selected = report.Pages.Extract(stop.Token, 1, 2);
 selected.Save("selected-pages.pdf", stop.Token).RequireSuccess();
@@ -77,6 +77,8 @@ selected.Save("selected-pages.pdf", stop.Token).RequireSuccess();
 Input streams are read from their current position and remain open. Cancellation
 throws `OperationCanceledException`. File output is staged before publication;
 when writing to a caller-owned stream, cancellation can leave a written prefix.
+Splitting to several files prepares every part before saving. Cancellation stops
+that preparation; once saving begins, the prepared files are published one at a time.
 
 ## Output size and images
 
