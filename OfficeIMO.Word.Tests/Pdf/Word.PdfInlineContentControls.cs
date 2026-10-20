@@ -182,8 +182,8 @@ public sealed class WordPdfInlineContentControlTests {
         Assert.DoesNotContain(filledPage.GetWords(), word => word.Text == currentGlyph);
         Assert.Contains("Arial", filledGlyph.Letters[0].FontName, StringComparison.OrdinalIgnoreCase);
         Assert.Equal(10D, filledGlyph.Letters[0].FontSize, 2);
-        Assert.InRange(filledGlyph.Letters[0].GlyphRectangle.Left, widget.X1 - .05D, widget.X2);
-        Assert.InRange(filledGlyph.Letters[0].GlyphRectangle.Right, widget.X1, widget.X2 + .05D);
+        Assert.InRange(filledGlyph.Letters[0].BoundingBox.Left, widget.X1 - .05D, widget.X2);
+        Assert.InRange(filledGlyph.Letters[0].BoundingBox.Right, widget.X1, widget.X2 + .05D);
         Assert.InRange(Math.Abs(filledGlyph.Letters[0].StartBaseLine.Y - initialGlyph.Letters[0].StartBaseLine.Y), 0D, .05D);
         foreach (string marker in new[] { "LEAD", "TAIL", "FOLLOW" }) {
             var initialWord = Assert.Single(initialPage.GetWords(), word => word.Text == marker);
