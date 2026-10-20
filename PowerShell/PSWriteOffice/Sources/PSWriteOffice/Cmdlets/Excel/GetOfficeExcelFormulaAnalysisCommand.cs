@@ -16,7 +16,7 @@ namespace PSWriteOffice.Cmdlets.Excel;
 ///     Format-Table SheetName,Address,Formula,IsVolatile,HasExternalReference</code>
 ///   <para>Uses OfficeIMO formula analysis so scripts can review volatile functions and external workbook references without parsing package XML themselves.</para>
 /// </example>
-[Cmdlet(VerbsCommon.Get, "OfficeExcelFormulaAnalysis", DefaultParameterSetName = ParameterSetPath)]
+[Cmdlet(VerbsCommon.Get, "OfficeExcelFormulaAnalysis")]
 [Alias("ExcelFormulaAnalysis", "ExcelFormulaAudit")]
 [OutputType(typeof(PSObject))]
 public sealed class GetOfficeExcelFormulaAnalysisCommand : PSCmdlet {

@@ -19,7 +19,7 @@ namespace PSWriteOffice.Cmdlets.Word;
 ///     Format-Table -AutoSize</code>
 ///   <para>Finds unchecked approval checkboxes by tag so a review workflow can show what is still pending.</para>
 /// </example>
-[Cmdlet(VerbsCommon.Get, "OfficeWordCheckBox", DefaultParameterSetName = ParameterSetPath)]
+[Cmdlet(VerbsCommon.Get, "OfficeWordCheckBox")]
 [Alias("WordCheckBoxes")]
 [OutputType(typeof(WordCheckBox))]
 public sealed class GetOfficeWordCheckBoxCommand : PSCmdlet {

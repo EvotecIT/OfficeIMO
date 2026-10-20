@@ -18,7 +18,7 @@ namespace PSWriteOffice.Cmdlets.Markdown;
 ///   <code>Get-OfficeMarkdown -Path .\README.md | Get-OfficeMarkdownHeading -MinLevel 2</code>
 ///   <para>Returns headings from an existing Markdown document object.</para>
 /// </example>
-[Cmdlet(VerbsCommon.Get, "OfficeMarkdownHeading", DefaultParameterSetName = ParameterSetPath)]
+[Cmdlet(VerbsCommon.Get, "OfficeMarkdownHeading")]
 [OutputType(typeof(MarkdownDoc.HeadingInfo))]
 public sealed class GetOfficeMarkdownHeadingCommand : PSCmdlet
     , IMarkdownReaderOptionSource {

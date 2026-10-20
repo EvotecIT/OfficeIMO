@@ -35,7 +35,7 @@ namespace PSWriteOffice.Cmdlets.Excel;
 ///     Select-Object -ExpandProperty Values</code>
 ///   <para>Returns one object per column with the column name, 1-based column index, and the column values as an array.</para>
 /// </example>
-[Cmdlet(VerbsData.Import, "OfficeExcel", DefaultParameterSetName = ParameterSetPath)]
+[Cmdlet(VerbsData.Import, "OfficeExcel")]
 [Alias("ExcelImport")]
 public sealed class ImportOfficeExcelCommand : AsyncPSCmdlet
 {

@@ -18,7 +18,7 @@ namespace PSWriteOffice.Cmdlets.Excel;
 ///     Export-Csv -Path .\ExcelTables.csv -NoTypeInformation</code>
 ///   <para>Returns table metadata for workbook documentation or generated-artifact proof.</para>
 /// </example>
-[Cmdlet(VerbsCommon.Get, "OfficeExcelTable", DefaultParameterSetName = ParameterSetPath)]
+[Cmdlet(VerbsCommon.Get, "OfficeExcelTable")]
 [OutputType(typeof(PSObject))]
 public sealed class GetOfficeExcelTableCommand : AsyncPSCmdlet {
     private const string ParameterSetPath = "Path";

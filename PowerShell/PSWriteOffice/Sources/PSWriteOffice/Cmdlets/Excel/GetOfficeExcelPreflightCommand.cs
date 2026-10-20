@@ -15,7 +15,7 @@ namespace PSWriteOffice.Cmdlets.Excel;
 ///     Where-Object Passed -eq $false</code>
 ///   <para>Returns reusable OfficeIMO capability diagnostics and discovered workbook features.</para>
 /// </example>
-[Cmdlet(VerbsCommon.Get, "OfficeExcelPreflight", DefaultParameterSetName = ParameterSetPath)]
+[Cmdlet(VerbsCommon.Get, "OfficeExcelPreflight")]
 [Alias("ExcelPreflight")]
 [OutputType(typeof(PSObject), typeof(string))]
 public sealed class GetOfficeExcelPreflightCommand : PSCmdlet {

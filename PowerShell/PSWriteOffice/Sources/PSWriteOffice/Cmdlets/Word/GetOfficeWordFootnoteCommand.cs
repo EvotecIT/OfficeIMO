@@ -19,7 +19,7 @@ namespace PSWriteOffice.Cmdlets.Word;
 ///     Export-Csv -Path .\Footnotes.csv -NoTypeInformation</code>
 ///   <para>Reads footnotes from the document and exports the PowerShell-friendly note snapshot.</para>
 /// </example>
-[Cmdlet(VerbsCommon.Get, "OfficeWordFootnote", DefaultParameterSetName = ParameterSetPath)]
+[Cmdlet(VerbsCommon.Get, "OfficeWordFootnote")]
 [Alias("WordFootnotes")]
 [OutputType(typeof(WordNoteInfo))]
 public sealed class GetOfficeWordFootnoteCommand : PSCmdlet {

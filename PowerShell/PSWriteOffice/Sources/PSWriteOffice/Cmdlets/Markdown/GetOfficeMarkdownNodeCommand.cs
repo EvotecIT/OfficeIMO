@@ -22,7 +22,7 @@ namespace PSWriteOffice.Cmdlets.Markdown;
 ///   <code>Get-OfficeMarkdown -Path .\README.md | Get-OfficeMarkdownNode -NodeType '*Table*'</code>
 ///   <para>Returns matching nodes from an existing Markdown document.</para>
 /// </example>
-[Cmdlet(VerbsCommon.Get, "OfficeMarkdownNode", DefaultParameterSetName = ParameterSetPath)]
+[Cmdlet(VerbsCommon.Get, "OfficeMarkdownNode")]
 [OutputType(typeof(PSObject), typeof(MarkdownObject))]
 public sealed class GetOfficeMarkdownNodeCommand : PSCmdlet
     , IMarkdownReaderOptionSource {

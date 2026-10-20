@@ -19,7 +19,7 @@ namespace PSWriteOffice.Cmdlets.Word;
 ///     Format-List</code>
 ///   <para>Reads OfficeIMO.Word statistics and displays the structural counts that matter for a release artifact.</para>
 /// </example>
-[Cmdlet(VerbsCommon.Get, "OfficeWordStatistics", DefaultParameterSetName = ParameterSetPath)]
+[Cmdlet(VerbsCommon.Get, "OfficeWordStatistics")]
 [Alias("WordStatistics")]
 [OutputType(typeof(WordDocumentStatisticsInfo))]
 public sealed class GetOfficeWordStatisticsCommand : PSCmdlet {

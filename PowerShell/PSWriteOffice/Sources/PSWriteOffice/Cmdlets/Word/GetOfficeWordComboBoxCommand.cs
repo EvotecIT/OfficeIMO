@@ -19,7 +19,7 @@ namespace PSWriteOffice.Cmdlets.Word;
 ///     Format-Table -AutoSize</code>
 ///   <para>Filters combo box content controls so template owners can verify the expected owner fields exist.</para>
 /// </example>
-[Cmdlet(VerbsCommon.Get, "OfficeWordComboBox", DefaultParameterSetName = ParameterSetPath)]
+[Cmdlet(VerbsCommon.Get, "OfficeWordComboBox")]
 [Alias("WordComboBoxes")]
 [OutputType(typeof(WordComboBox))]
 public sealed class GetOfficeWordComboBoxCommand : PSCmdlet {

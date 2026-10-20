@@ -19,7 +19,7 @@ namespace PSWriteOffice.Cmdlets.Word;
 ///     Select-Object -First 5 -Property Text</code>
 ///   <para>Gets a specific section by zero-based index and pipes it to another thin Word reader.</para>
 /// </example>
-[Cmdlet(VerbsCommon.Get, "OfficeWordSection", DefaultParameterSetName = ParameterSetPath)]
+[Cmdlet(VerbsCommon.Get, "OfficeWordSection")]
 [OutputType(typeof(WordSection))]
 public sealed class GetOfficeWordSectionCommand : PSCmdlet {
     private const string ParameterSetPath = "Path";

@@ -19,7 +19,7 @@ namespace PSWriteOffice.Cmdlets.Word;
 ///     Format-Table -AutoSize</code>
 ///   <para>Finds dropdown list content controls used for status capture in a Word form.</para>
 /// </example>
-[Cmdlet(VerbsCommon.Get, "OfficeWordDropDownList", DefaultParameterSetName = ParameterSetPath)]
+[Cmdlet(VerbsCommon.Get, "OfficeWordDropDownList")]
 [Alias("WordDropDownLists")]
 [OutputType(typeof(WordDropDownList))]
 public sealed class GetOfficeWordDropDownListCommand : PSCmdlet {

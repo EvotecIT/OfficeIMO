@@ -13,7 +13,7 @@ namespace PSWriteOffice.Cmdlets.Markdown;
 ///   <code>Get-OfficeMarkdown -Path .\Report.md | Get-OfficeMarkdownTable -AsObject</code>
 ///   <para>Returns table rows as PowerShell objects using the Markdown header row as property names.</para>
 /// </example>
-[Cmdlet(VerbsCommon.Get, "OfficeMarkdownTable", DefaultParameterSetName = ParameterSetPath)]
+[Cmdlet(VerbsCommon.Get, "OfficeMarkdownTable")]
 [OutputType(typeof(TableBlock), typeof(PSObject))]
 public sealed class GetOfficeMarkdownTableCommand : PSCmdlet
     , IMarkdownReaderOptionSource {

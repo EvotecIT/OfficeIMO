@@ -25,7 +25,7 @@ namespace PSWriteOffice.Cmdlets.Excel;
 ///     Select-Object -Property Name, State, UsedRange</code>
 ///   <para>Returns workbook-level counts plus per-sheet tables, charts, pivots, links, comments, and used ranges.</para>
 /// </example>
-[Cmdlet(VerbsCommon.Get, "OfficeExcelSummary", DefaultParameterSetName = ParameterSetPath)]
+[Cmdlet(VerbsCommon.Get, "OfficeExcelSummary")]
 [Alias("ExcelSummary")]
 [OutputType(typeof(PSObject))]
 public sealed class GetOfficeExcelSummaryCommand : PSCmdlet {

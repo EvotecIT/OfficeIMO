@@ -20,7 +20,7 @@ namespace PSWriteOffice.Cmdlets.Excel;
 ///     Format-Table -AutoSize</code>
 ///   <para>Returns named ranges so workbook navigation and formulas can be reviewed.</para>
 /// </example>
-[Cmdlet(VerbsCommon.Get, "OfficeExcelNamedRange", DefaultParameterSetName = ParameterSetPath)]
+[Cmdlet(VerbsCommon.Get, "OfficeExcelNamedRange")]
 [OutputType(typeof(PSObject))]
 public sealed class GetOfficeExcelNamedRangeCommand : AsyncPSCmdlet {
     private const string ParameterSetPath = "Path";

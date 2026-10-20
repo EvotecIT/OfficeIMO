@@ -8,6 +8,28 @@ BeforeAll {
 }
 
 Describe 'Authenticated PDF automation' {
+    It 'imports XFDF text lines and one piped PDF but rejects multiple source PDFs before writing' {
+        $source = Join-Path $TestDrive 'xfdf-source.pdf'
+        $second = Join-Path $TestDrive 'xfdf-second.pdf'
+        $output = Join-Path $TestDrive 'xfdf-imported.pdf'
+        $xfdfPath = Join-Path $TestDrive 'fields.xfdf'
+        New-OfficePdf -Path $source {
+            PdfParagraph 'Pipeline form'
+            PdfFormField -Name Name -Type Text -Value Ada
+        } | Out-Null
+        Copy-Item -LiteralPath $source -Destination $second
+        $xfdf = (Export-OfficePdfXfdf -Path $source) -replace '>Ada<', '>Grace<'
+        [IO.File]::WriteAllText($xfdfPath, $xfdf)
+        Get-Item -LiteralPath $source | Import-OfficePdfXfdf -XfdfPath $xfdfPath -OutputPath $output
+        (Get-OfficePdfFormField -Path $output | Where-Object Name -eq Name).Value | Should -Be 'Grace'
+        $original = [Convert]::ToBase64String([IO.File]::ReadAllBytes($output))
+        { Get-Item -LiteralPath $source, $second | Import-OfficePdfXfdf -XfdfPath $xfdfPath -OutputPath $output -ErrorAction Stop } |
+            Should -Throw '*exactly one source PDF*'
+        [Convert]::ToBase64String([IO.File]::ReadAllBytes($output)) | Should -Be $original
+        $xfdf -split '\r?\n' | Import-OfficePdfXfdf -Path $source -OutputPath $output
+        (Get-OfficePdfFormField -Path $output | Where-Object Name -eq Name).Value | Should -Be 'Grace'
+    }
+
     It 'exposes an explicit authenticated permission override on PDF readers' {
         foreach ($name in @(
             'Add-OfficePdfCanvas',

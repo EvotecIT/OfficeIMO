@@ -28,8 +28,8 @@ public sealed class GeneralConversionCmdletTests {
             shell.AddScript("""
                 ConvertTo-OfficeDocument -InputPath $sourcePath -OutputPath $outputPath -WhatIf
                 if (Test-Path -LiteralPath $outputPath) { throw 'WhatIf wrote a PDF' }
-                $single = ConvertTo-OfficeDocument -InputPath $sourcePath -OutputPath $outputPath
-                Get-Item -LiteralPath $sourcePath | ConvertTo-OfficeDocument -OutputDirectory $batchPath -TargetExtension pdf -ItemResults -SummaryVariable batchSummary
+                $single = ConvertTo-OfficeDocument -InputPath $sourcePath -OutputPath $outputPath -ConflictPolicy fail -OutputProfile faithful
+                Get-Item -LiteralPath $sourcePath | ConvertTo-OfficeDocument -OutputDirectory $batchPath -TargetExtension pdf -ConflictPolicy rEpLaCe -OutputProfile fAiThFuL -ItemResults -SummaryVariable batchSummary
                 """);
             var items = shell.Invoke();
             Assert.False(shell.HadErrors, string.Join(Environment.NewLine, shell.Streams.Error));

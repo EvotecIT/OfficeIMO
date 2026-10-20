@@ -15,7 +15,7 @@ namespace PSWriteOffice.Cmdlets.Excel;
 /// }</code>
 ///   <para>Separates preserved connection/query/data-model parts from executable refresh behavior so automation can decide whether Excel refresh is required.</para>
 /// </example>
-[Cmdlet(VerbsCommon.Get, "OfficeExcelDataModel", DefaultParameterSetName = ParameterSetPath)]
+[Cmdlet(VerbsCommon.Get, "OfficeExcelDataModel")]
 [Alias("ExcelDataModel", "ExcelPowerQuery")]
 [OutputType(typeof(PSObject))]
 public sealed class GetOfficeExcelDataModelCommand : PSCmdlet {

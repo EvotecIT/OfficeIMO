@@ -15,7 +15,7 @@ namespace PSWriteOffice.Cmdlets.Pdf;
 /// $pdf | Get-OfficePdfCompliance -Profile PdfA3B</code>
 ///   <para>Returns the OfficeIMO.Pdf readiness report before saving.</para>
 /// </example>
-[Cmdlet(VerbsCommon.Get, "OfficePdfCompliance", DefaultParameterSetName = ParameterSetDocument)]
+[Cmdlet(VerbsCommon.Get, "OfficePdfCompliance")]
 [OutputType(typeof(PdfComplianceReadinessReport), typeof(PdfComplianceProofReport))]
 public sealed class GetOfficePdfComplianceCommand : PSCmdlet
 {

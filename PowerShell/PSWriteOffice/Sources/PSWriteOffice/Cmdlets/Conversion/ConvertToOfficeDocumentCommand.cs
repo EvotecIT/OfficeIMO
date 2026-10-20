@@ -156,8 +156,8 @@ public sealed class ConvertToOfficeDocumentCommand : AsyncPSCmdlet {
         var options = ConversionOptions?.Clone() ?? new OfficeWorkflowConversionOptions();
         if (MyInvocation.BoundParameters.ContainsKey(nameof(Password))) options.SourcePassword = Password;
         var runner = OfficeWorkflowCommandUtilities.CreateRunner();
-        var conflict = (OfficeWorkflowConflictPolicy)Enum.Parse(typeof(OfficeWorkflowConflictPolicy), ConflictPolicy);
-        var profile = (OfficeWorkflowOutputProfile)Enum.Parse(typeof(OfficeWorkflowOutputProfile), OutputProfile);
+        var conflict = (OfficeWorkflowConflictPolicy)Enum.Parse(typeof(OfficeWorkflowConflictPolicy), ConflictPolicy, ignoreCase: true);
+        var profile = (OfficeWorkflowOutputProfile)Enum.Parse(typeof(OfficeWorkflowOutputProfile), OutputProfile, ignoreCase: true);
         if (ParameterSetName == "File") {
             if (_inputs.Count != 1) throw new PSArgumentException("Select exactly one source file.");
             string output = OfficeFileCommandUtilities.ResolvePath(this, OutputPath);

@@ -19,7 +19,7 @@ namespace PSWriteOffice.Cmdlets.Word;
 ///     Format-Table -AutoSize</code>
 ///   <para>Filters picture content controls used as image placeholders in a Word template.</para>
 /// </example>
-[Cmdlet(VerbsCommon.Get, "OfficeWordPictureControl", DefaultParameterSetName = ParameterSetPath)]
+[Cmdlet(VerbsCommon.Get, "OfficeWordPictureControl")]
 [Alias("WordPictureControls")]
 [OutputType(typeof(WordPictureControl))]
 public sealed class GetOfficeWordPictureControlCommand : PSCmdlet {

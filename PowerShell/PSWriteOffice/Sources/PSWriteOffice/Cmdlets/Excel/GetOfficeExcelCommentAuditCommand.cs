@@ -15,7 +15,7 @@ namespace PSWriteOffice.Cmdlets.Excel;
 /// $audit.Issues | Format-Table Severity,Category,SheetName,Address,Message</code>
 ///   <para>Returns workbook-level note/threaded-comment counts, optional comment records, and metadata issues such as missing authors or orphaned threaded replies.</para>
 /// </example>
-[Cmdlet(VerbsCommon.Get, "OfficeExcelCommentAudit", DefaultParameterSetName = ParameterSetPath)]
+[Cmdlet(VerbsCommon.Get, "OfficeExcelCommentAudit")]
 [Alias("ExcelCommentAudit", "ExcelCommentsAudit")]
 [OutputType(typeof(PSObject))]
 public sealed class GetOfficeExcelCommentAuditCommand : PSCmdlet {

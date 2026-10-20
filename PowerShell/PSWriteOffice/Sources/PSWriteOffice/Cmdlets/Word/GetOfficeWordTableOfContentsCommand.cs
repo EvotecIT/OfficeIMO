@@ -19,7 +19,7 @@ namespace PSWriteOffice.Cmdlets.Word;
 /// }</code>
 ///   <para>Gets the TOC from an open document, updates it, and saves a variant.</para>
 /// </example>
-[Cmdlet(VerbsCommon.Get, "OfficeWordTableOfContents", DefaultParameterSetName = ParameterSetPath)]
+[Cmdlet(VerbsCommon.Get, "OfficeWordTableOfContents")]
 [OutputType(typeof(WordTableOfContent))]
 public sealed class GetOfficeWordTableOfContentsCommand : PSCmdlet {
     private const string ParameterSetPath = "Path";

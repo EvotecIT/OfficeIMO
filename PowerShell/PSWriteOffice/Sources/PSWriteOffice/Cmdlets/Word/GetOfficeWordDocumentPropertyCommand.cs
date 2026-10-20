@@ -19,7 +19,7 @@ namespace PSWriteOffice.Cmdlets.Word;
 ///     Format-Table -AutoSize</code>
 ///   <para>Returns selected built-in and custom properties for a document metadata check.</para>
 /// </example>
-[Cmdlet(VerbsCommon.Get, "OfficeWordDocumentProperty", DefaultParameterSetName = ParameterSetPath)]
+[Cmdlet(VerbsCommon.Get, "OfficeWordDocumentProperty")]
 [OutputType(typeof(WordDocumentPropertyInfo))]
 public sealed class GetOfficeWordDocumentPropertyCommand : PSCmdlet {
     private const string ParameterSetPath = "Path";

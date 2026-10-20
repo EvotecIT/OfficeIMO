@@ -18,7 +18,7 @@ namespace PSWriteOffice.Cmdlets.Word;
 ///     Export-Csv -Path .\ReportLinks.csv -NoTypeInformation</code>
 ///   <para>Filters external hyperlinks and exports them for link validation or review.</para>
 /// </example>
-[Cmdlet(VerbsCommon.Get, "OfficeWordHyperlink", DefaultParameterSetName = ParameterSetPath)]
+[Cmdlet(VerbsCommon.Get, "OfficeWordHyperlink")]
 [OutputType(typeof(WordHyperLink))]
 public sealed class GetOfficeWordHyperlinkCommand : PSCmdlet {
     private const string ParameterSetPath = "Path";

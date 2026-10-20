@@ -19,7 +19,7 @@ namespace PSWriteOffice.Cmdlets.Word;
 ///     Format-Table -AutoSize</code>
 ///   <para>Loads the document read-only, filters bookmark names with wildcards, and displays the matching navigation targets.</para>
 /// </example>
-[Cmdlet(VerbsCommon.Get, "OfficeWordBookmark", DefaultParameterSetName = ParameterSetPath)]
+[Cmdlet(VerbsCommon.Get, "OfficeWordBookmark")]
 [OutputType(typeof(WordBookmark))]
 public sealed class GetOfficeWordBookmarkCommand : PSCmdlet {
     private const string ParameterSetPath = "Path";

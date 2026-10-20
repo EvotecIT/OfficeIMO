@@ -19,7 +19,7 @@ namespace PSWriteOffice.Cmdlets.Word;
 ///     Format-Table -AutoSize</code>
 ///   <para>Filters date picker content controls by tag before a form validation pass.</para>
 /// </example>
-[Cmdlet(VerbsCommon.Get, "OfficeWordDatePicker", DefaultParameterSetName = ParameterSetPath)]
+[Cmdlet(VerbsCommon.Get, "OfficeWordDatePicker")]
 [Alias("WordDatePickers")]
 [OutputType(typeof(WordDatePicker))]
 public sealed class GetOfficeWordDatePickerCommand : PSCmdlet {

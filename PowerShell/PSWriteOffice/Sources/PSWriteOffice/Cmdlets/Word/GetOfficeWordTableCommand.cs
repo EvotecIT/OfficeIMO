@@ -19,7 +19,7 @@ namespace PSWriteOffice.Cmdlets.Word;
 /// }</code>
 ///   <para>Reads tables from the document and includes nested tables when validating a composed report.</para>
 /// </example>
-[Cmdlet(VerbsCommon.Get, "OfficeWordTable", DefaultParameterSetName = ParameterSetPath)]
+[Cmdlet(VerbsCommon.Get, "OfficeWordTable")]
 [OutputType(typeof(WordTable))]
 public sealed class GetOfficeWordTableCommand : PSCmdlet {
     private const string ParameterSetPath = "Path";

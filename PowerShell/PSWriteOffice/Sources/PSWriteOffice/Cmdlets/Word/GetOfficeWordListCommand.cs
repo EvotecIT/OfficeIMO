@@ -33,7 +33,7 @@ namespace PSWriteOffice.Cmdlets.Word;
 /// $doc | Close-OfficeWord -Save</code>
 ///   <para>Inspects list objects directly when the caller wants custom selection logic.</para>
 /// </example>
-[Cmdlet(VerbsCommon.Get, "OfficeWordList", DefaultParameterSetName = ParameterSetPath)]
+[Cmdlet(VerbsCommon.Get, "OfficeWordList")]
 [OutputType(typeof(WordList))]
 public sealed class GetOfficeWordListCommand : PSCmdlet {
     private const string ParameterSetPath = "Path";

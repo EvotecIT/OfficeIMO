@@ -19,7 +19,7 @@ namespace PSWriteOffice.Cmdlets.Excel;
 ///     Format-List</code>
 ///   <para>Returns pivot table metadata so generated reports can prove the pivot source and layout.</para>
 /// </example>
-[Cmdlet(VerbsCommon.Get, "OfficeExcelPivotTable", DefaultParameterSetName = ParameterSetPath)]
+[Cmdlet(VerbsCommon.Get, "OfficeExcelPivotTable")]
 [Alias("ExcelPivotTables")]
 [OutputType(typeof(PSObject))]
 public sealed class GetOfficeExcelPivotTableCommand : PSCmdlet {

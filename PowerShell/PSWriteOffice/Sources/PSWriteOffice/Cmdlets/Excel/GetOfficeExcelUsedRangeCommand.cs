@@ -20,7 +20,7 @@ namespace PSWriteOffice.Cmdlets.Excel;
 ///     Select-Object -Property Name, Count</code>
 ///   <para>Reads the sheet's used range, treats the first row as headers, and summarizes a status column.</para>
 /// </example>
-[Cmdlet(VerbsCommon.Get, "OfficeExcelUsedRange", DefaultParameterSetName = ParameterSetPath)]
+[Cmdlet(VerbsCommon.Get, "OfficeExcelUsedRange")]
 [OutputType(typeof(PSObject), typeof(System.Collections.Hashtable), typeof(DataTable))]
 public sealed class GetOfficeExcelUsedRangeCommand : AsyncPSCmdlet {
     private const string ParameterSetPath = "Path";

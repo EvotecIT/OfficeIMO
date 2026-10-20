@@ -19,7 +19,7 @@ namespace PSWriteOffice.Cmdlets.Excel;
 ///     Format-Table Name, Value, Scope</code>
 ///   <para>Returns matching built-in, application, and custom workbook properties as structured objects.</para>
 /// </example>
-[Cmdlet(VerbsCommon.Get, "OfficeExcelDocumentProperty", DefaultParameterSetName = ParameterSetPath)]
+[Cmdlet(VerbsCommon.Get, "OfficeExcelDocumentProperty")]
 [OutputType(typeof(ExcelDocumentPropertyInfo))]
 public sealed class GetOfficeExcelDocumentPropertyCommand : PSCmdlet {
     private const string ParameterSetPath = "Path";

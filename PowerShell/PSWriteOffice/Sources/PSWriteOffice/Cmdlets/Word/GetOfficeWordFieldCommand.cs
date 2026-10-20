@@ -20,7 +20,7 @@ namespace PSWriteOffice.Cmdlets.Word;
 ///     Format-Table -AutoSize</code>
 ///   <para>Filters Word fields by field-code text before running a field or table-of-contents refresh.</para>
 /// </example>
-[Cmdlet(VerbsCommon.Get, "OfficeWordField", DefaultParameterSetName = ParameterSetPath)]
+[Cmdlet(VerbsCommon.Get, "OfficeWordField")]
 [OutputType(typeof(WordField))]
 public sealed class GetOfficeWordFieldCommand : PSCmdlet {
     private const string ParameterSetPath = "Path";

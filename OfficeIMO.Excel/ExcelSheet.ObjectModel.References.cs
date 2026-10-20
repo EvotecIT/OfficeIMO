@@ -35,6 +35,15 @@ namespace OfficeIMO.Excel {
             if (separator >= 0) {
                 if (!TryParseCellReferencePart(reference.Text, start, separator - start, out int r1, out int c1)
                     || !TryParseCellReferencePart(reference.Text, separator + 1, end - separator - 1, out int r2, out int c2)) {
+                    string range = reference.Text.Substring(start, length);
+                    if (A1.TryParseWholeColumnRange(range, out c1, out c2)) {
+                        bounds = (1, c1, A1.MaxRows, c2);
+                        return true;
+                    }
+                    if (A1.TryParseWholeRowRange(range, out r1, out r2)) {
+                        bounds = (r1, 1, r2, A1.MaxColumns);
+                        return true;
+                    }
                     bounds = default;
                     return false;
                 }

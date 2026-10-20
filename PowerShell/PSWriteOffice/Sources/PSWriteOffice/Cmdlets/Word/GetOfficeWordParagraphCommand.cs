@@ -19,7 +19,7 @@ namespace PSWriteOffice.Cmdlets.Word;
 ///     Set-Content -Path .\ReportParagraphs.txt</code>
 ///   <para>Enumerates document paragraphs and writes their text for a lightweight review workflow.</para>
 /// </example>
-[Cmdlet(VerbsCommon.Get, "OfficeWordParagraph", DefaultParameterSetName = ParameterSetPath)]
+[Cmdlet(VerbsCommon.Get, "OfficeWordParagraph")]
 [OutputType(typeof(WordParagraph))]
 public sealed class GetOfficeWordParagraphCommand : PSCmdlet {
     private const string ParameterSetPath = "Path";

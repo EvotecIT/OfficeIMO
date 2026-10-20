@@ -19,7 +19,7 @@ namespace PSWriteOffice.Cmdlets.Word;
 ///     Export-Csv -Path .\Endnotes.csv -NoTypeInformation</code>
 ///   <para>Reads endnotes from the document and exports the PowerShell-friendly note snapshot.</para>
 /// </example>
-[Cmdlet(VerbsCommon.Get, "OfficeWordEndnote", DefaultParameterSetName = ParameterSetPath)]
+[Cmdlet(VerbsCommon.Get, "OfficeWordEndnote")]
 [Alias("WordEndnotes")]
 [OutputType(typeof(WordNoteInfo))]
 public sealed class GetOfficeWordEndnoteCommand : PSCmdlet {

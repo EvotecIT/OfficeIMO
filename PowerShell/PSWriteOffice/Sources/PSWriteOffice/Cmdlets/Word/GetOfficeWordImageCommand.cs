@@ -17,7 +17,7 @@ namespace PSWriteOffice.Cmdlets.Word;
 ///     Format-Table -AutoSize</code>
 ///   <para>Reads images from a document so metadata and sizing can be reviewed before publication.</para>
 /// </example>
-[Cmdlet(VerbsCommon.Get, "OfficeWordImage", DefaultParameterSetName = ParameterSetPath)]
+[Cmdlet(VerbsCommon.Get, "OfficeWordImage")]
 [Alias("WordImages")]
 [OutputType(typeof(WordImage))]
 public sealed class GetOfficeWordImageCommand : PSCmdlet {

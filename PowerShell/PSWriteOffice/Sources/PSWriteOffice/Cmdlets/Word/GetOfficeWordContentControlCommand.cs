@@ -19,7 +19,7 @@ namespace PSWriteOffice.Cmdlets.Word;
 ///     Select-Object -Property Name, Count</code>
 ///   <para>Returns structured document tags matching the template tag convention and summarizes their counts.</para>
 /// </example>
-[Cmdlet(VerbsCommon.Get, "OfficeWordContentControl", DefaultParameterSetName = ParameterSetPath)]
+[Cmdlet(VerbsCommon.Get, "OfficeWordContentControl")]
 [Alias("WordContentControls")]
 [OutputType(typeof(WordStructuredDocumentTag))]
 public sealed class GetOfficeWordContentControlCommand : PSCmdlet {

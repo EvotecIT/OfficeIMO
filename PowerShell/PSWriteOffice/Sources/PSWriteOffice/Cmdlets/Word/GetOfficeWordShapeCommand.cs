@@ -17,7 +17,7 @@ namespace PSWriteOffice.Cmdlets.Word;
 ///     Format-Table -AutoSize</code>
 ///   <para>Reads OfficeIMO Word shapes from the document so styling and alternate text can be audited.</para>
 /// </example>
-[Cmdlet(VerbsCommon.Get, "OfficeWordShape", DefaultParameterSetName = ParameterSetPath)]
+[Cmdlet(VerbsCommon.Get, "OfficeWordShape")]
 [Alias("WordShapes")]
 [OutputType(typeof(WordShape))]
 public sealed class GetOfficeWordShapeCommand : PSCmdlet {

@@ -19,7 +19,7 @@ namespace PSWriteOffice.Cmdlets.Word;
 ///     Format-Table -AutoSize</code>
 ///   <para>Finds repeating sections used for repeatable rows in a document template.</para>
 /// </example>
-[Cmdlet(VerbsCommon.Get, "OfficeWordRepeatingSection", DefaultParameterSetName = ParameterSetPath)]
+[Cmdlet(VerbsCommon.Get, "OfficeWordRepeatingSection")]
 [Alias("WordRepeatingSections")]
 [OutputType(typeof(WordRepeatingSection))]
 public sealed class GetOfficeWordRepeatingSectionCommand : PSCmdlet {
