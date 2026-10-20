@@ -1,0 +1,92 @@
+{
+  "provenance": "OfficeIMO-owned deterministic synthetic OOXML; no user documents, external fixture carriers or assets.",
+  "producer": "Microsoft Word for Microsoft 365 16.0.20430.20182 on Windows",
+  "compatibilityMode": 15,
+  "captured": "2026-10-20",
+  "font": {
+    "family": "Arial",
+    "version": "7.06",
+    "regular_sha256": "b3658eadae55e682b5f69eb64c439c1ecc8f196c0bb8d4756d145d13bc86476a",
+    "bold_sha256": "e8f4e3baf6cc35fed6fcce3a540e8b39e8f6cda1d22a28f2ec8f526fef7a43f5"
+  },
+  "export": "Read-only open and native PDF export with macros forced off; no repair, save, trusted location or external-field update. All source hashes remained unchanged.",
+  "inert_source_parts": [
+    "[Content_Types].xml", "_rels/.rels", "word/document.xml", "word/styles.xml",
+    "word/settings.xml", "word/footnotes.xml", "word/_rels/document.xml.rels"
+  ],
+  "privacy": "Sources contain no document properties, VBA, external relationships, embedded objects, altChunk, field instructions or external assets.",
+  "common_profile": {
+    "sections": 1,
+    "columns": 1,
+    "footnotePosition": "pageBottom",
+    "pagePt": [400, 500],
+    "marginsPt": [50, 50, 50, 50],
+    "bodyAndNoteDirectArialPt": 12,
+    "bodyAndNoteExactLinePt": 14,
+    "normalExactLinePt": 14,
+    "docDefaultsArialPt": 12,
+    "noteParagraphs": 55,
+    "nativeNoteParagraphsPerPage": [25, 27, 3],
+    "nativeFollowingBodyPage": 3
+  },
+  "native_synthesized_stories": {
+    "separatorId": -1,
+    "continuationSeparatorId": 0,
+    "paragraphsPerStory": 1,
+    "content": "A single separator or continuationSeparator mark in a run",
+    "paragraphStyle": null,
+    "runProperties": null,
+    "paragraphSpacingLine": 240,
+    "paragraphSpacingLineRule": "auto"
+  },
+  "native_observations": [
+    "Absent typed separator stories were synthesized by Word using the recorded mark-only story profile.",
+    "The stored native-equivalent stories and absent-story base produced identical native page rasters.",
+    "Changing FootnoteText from Arial10/exact12 to Arial20/exact32 left native page rasters and fixed body/note glyph geometry unchanged.",
+    "Changing Normal from Arial12 to Arial18 changed separator glyph/rule ink; fixed body/note glyph geometry and pagination remained unchanged."
+  ],
+  "limits": [
+    "This cohort qualifies these source/native pairs. It does not establish a generic allocated separator-height formula or a constant height.",
+    "Normal paragraph line height and document paragraph defaults were not varied independently; painted separator ink does not establish its allocated advance.",
+    "The explicit control is mark-only. Empty paragraphs, empty stories and zero-paragraph stories have no native-equivalence qualification from this cohort.",
+    "Native pagination requires the recorded Arial font programs. Portable checks cover retained content, source order, source immutability, frame admission and within-renderer geometry equivalence; no native-versus-converter coordinate budget is added."
+  ],
+  "cases": [
+    {
+      "id": "implicit-base",
+      "input": "implicit-base.docx",
+      "input_sha256": "d6dab1ace0debe528f11f9c77c298aa42eb42d60b1c0cb793a5aec09eb45fe29",
+      "schema_errors": 0,
+      "reference": "implicit-base.microsoft-word.pdf",
+      "reference_sha256": "5e743ba6509aedabe0e522d2edb7e387366d1a3d5974e4dc67a87d03723851d0",
+      "profile": { "specialStories": "absent", "normalArialPt": 12, "footnoteTextArialPt": 10, "footnoteTextExactLinePt": 12 }
+    },
+    {
+      "id": "implicit-footnote-style20-line32",
+      "input": "implicit-footnote-style20-line32.docx",
+      "input_sha256": "21a9909cae57254f91e878074fe5842d3bb53f2408f45a5096d0d64e3377c8d1",
+      "schema_errors": 0,
+      "reference": "implicit-footnote-style20-line32.microsoft-word.pdf",
+      "reference_sha256": "4825248165086d8b6f53641672053350ca6779aa9d8e57ff2a78ba608749fd48",
+      "profile": { "specialStories": "absent", "normalArialPt": 12, "footnoteTextArialPt": 20, "footnoteTextExactLinePt": 32 }
+    },
+    {
+      "id": "implicit-normal-font18",
+      "input": "implicit-normal-font18.docx",
+      "input_sha256": "2b1cfeed99b0febc2c6f934648f381df72f6b969affaa5fc58a7f3596a4a4cdc",
+      "schema_errors": 0,
+      "reference": "implicit-normal-font18.microsoft-word.pdf",
+      "reference_sha256": "38799ec6192dd2f41baab6a83f94c0712e3c4cfc2aa7f0da22e4b1b57d786054",
+      "profile": { "specialStories": "absent", "normalArialPt": 18, "footnoteTextArialPt": 10, "footnoteTextExactLinePt": 12 }
+    },
+    {
+      "id": "implicit-explicit-equivalent",
+      "input": "implicit-explicit-equivalent.docx",
+      "input_sha256": "d913290a16c8b4a2cb51ec87933131af4a21ddffda0cb762b94d96c8386fea8a",
+      "schema_errors": 0,
+      "reference": "implicit-explicit-equivalent.microsoft-word.pdf",
+      "reference_sha256": "5ea9886b695898648d6c5a4cc3e6a0ecf2baedc4b8213844861a72b8b09f9671",
+      "profile": { "specialStories": "explicit native-equivalent", "normalArialPt": 12, "footnoteTextArialPt": 10, "footnoteTextExactLinePt": 12 }
+    }
+  ]
+}

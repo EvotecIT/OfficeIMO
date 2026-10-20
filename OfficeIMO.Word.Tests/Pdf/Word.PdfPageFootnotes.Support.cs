@@ -55,10 +55,33 @@ public partial class WordPdfPageFootnoteTests {
         byte[] actual = result.ToBytes();
         Assert.Equal("%PDF", Encoding.ASCII.GetString(actual, 0, 4));
         Assert.Equal(input, File.ReadAllBytes(inputPath));
+        var qualification = QualifyPageFootnoteNativeArial(id, actual, result.Warnings);
+
+        PdfConversionWarning[] separators = result.Warnings.Where(warning => warning.Code == SeparatorWarningCode).ToArray();
+        if (frame.HasSeparatorMark) {
+            PdfConversionWarning warning = Assert.Single(separators);
+            Assert.Equal("footnote separator", warning.Source);
+            Assert.Equal(OfficeConversionLossKind.Omission, warning.LossKind);
+            _output.WriteLine("{0}: known separator paint gap: {1}", id, warning.Message);
+            Assert.True(result.HasLoss);
+        } else Assert.Empty(separators);
+        Assert.DoesNotContain(result.Warnings, warning => warning.Code == "NativeFootnotePlacementApproximated");
+        Assert.All(result.SourceConversionReports, report => Assert.False(report.HasLoss));
+        foreach (PdfConversionWarning warning in result.Warnings.Where(warning => warning.LossKind != OfficeConversionLossKind.None)) {
+            bool knownSeparator = frame.HasSeparatorMark && warning.Code == SeparatorWarningCode &&
+                warning.Source == "footnote separator" && warning.LossKind == OfficeConversionLossKind.Omission;
+            bool knownFont = qualification.Substitutions.Contains(warning) && warning.LossKind == OfficeConversionLossKind.Approximation;
+            Assert.True(knownSeparator || knownFont, $"Unexpected conversion loss: {warning}");
+        }
+        return new PageFootnoteArtifact(actual, reference, frame, qualification.Qualified, qualification.Qualification);
+    }
+
+    private (bool Qualified, string Qualification, PdfConversionWarning[] Substitutions) QualifyPageFootnoteNativeArial(
+        string id, byte[] actual, IReadOnlyList<PdfConversionWarning> warnings) {
         using var rendered = PdfPigDocument.Open(actual);
         string[] faces = rendered.GetPages().SelectMany(page => page.Letters).Select(letter => letter.FontName ?? string.Empty)
             .Distinct(StringComparer.Ordinal).OrderBy(name => name, StringComparer.Ordinal).ToArray();
-        PdfConversionWarning[] substitutions = result.Warnings.Where(warning =>
+        PdfConversionWarning[] substitutions = warnings.Where(warning =>
             warning.Code is "NativeFontFamilySubstituted" or "font-family-substitution").ToArray();
         foreach (PdfConversionWarning warning in substitutions) {
             Assert.Equal("Arial", warning.Details["fontFamily"]);
@@ -82,24 +105,7 @@ public partial class WordPdfPageFootnoteTests {
             declaredArial && substitutions.Length == 0;
         string qualification = $"Arial7.06 regular={regularHash}, bold={boldHash}; faces={string.Join(", ", faces)}; substitutions={substitutions.Length}";
         _output.WriteLine("{0}: native profile {1}: {2}", id, qualified ? "qualified" : "not qualified", qualification);
-
-        PdfConversionWarning[] separators = result.Warnings.Where(warning => warning.Code == SeparatorWarningCode).ToArray();
-        if (frame.HasSeparatorMark) {
-            PdfConversionWarning warning = Assert.Single(separators);
-            Assert.Equal("footnote separator", warning.Source);
-            Assert.Equal(OfficeConversionLossKind.Omission, warning.LossKind);
-            _output.WriteLine("{0}: known separator paint gap: {1}", id, warning.Message);
-            Assert.True(result.HasLoss);
-        } else Assert.Empty(separators);
-        Assert.DoesNotContain(result.Warnings, warning => warning.Code == "NativeFootnotePlacementApproximated");
-        Assert.All(result.SourceConversionReports, report => Assert.False(report.HasLoss));
-        foreach (PdfConversionWarning warning in result.Warnings.Where(warning => warning.LossKind != OfficeConversionLossKind.None)) {
-            bool knownSeparator = frame.HasSeparatorMark && warning.Code == SeparatorWarningCode &&
-                warning.Source == "footnote separator" && warning.LossKind == OfficeConversionLossKind.Omission;
-            bool knownFont = substitutions.Contains(warning) && warning.LossKind == OfficeConversionLossKind.Approximation;
-            Assert.True(knownSeparator || knownFont, $"Unexpected conversion loss: {warning}");
-        }
-        return new PageFootnoteArtifact(actual, reference, frame, qualified, qualification);
+        return (qualified, qualification, substitutions);
     }
 
     private static string PageFootnoteFixturePath(string file) =>
