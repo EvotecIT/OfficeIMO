@@ -44,7 +44,7 @@ internal static partial class PdfWriter {
             double characterSpacing = 0D, double fontMetricScale = 1D,
             int leadingSpaceCount = 1, double leadingSpaceRemainder = 0, double leadingSpaceUnitAdvance = 0,
             bool contributesLineBoxDescent = true, bool isLineBoxStrut = false,
-            bool preservesPaintedGlyphs = false, PdfInlineFormField? formField = null) {
+            bool preservesPaintedGlyphs = false, PdfInlineFormField? formField = null, PdfFootnoteDefinition? footnoteReference = null) {
             Text = text;
             Bold = bold;
             Italic = italic;
@@ -93,6 +93,7 @@ internal static partial class PdfWriter {
             IsLineBoxStrut = isLineBoxStrut;
             PreservesPaintedGlyphs = preservesPaintedGlyphs;
             FormField = formField;
+            FootnoteReference = footnoteReference;
         }
 
         public string Text { get; }
@@ -141,6 +142,7 @@ internal static partial class PdfWriter {
             LineAlignmentRise = source.LineAlignmentRise;
             PreservesPaintedGlyphs = source.PreservesPaintedGlyphs;
             FormField = source.FormField;
+            FootnoteReference = source.FootnoteReference;
             return this;
         }
 
@@ -171,6 +173,7 @@ internal static partial class PdfWriter {
 
         public PdfInlineElement? InlineElement { get; }
         public PdfInlineFormField? FormField { get; private set; }
+        public PdfFootnoteDefinition? FootnoteReference { get; private set; }
 
         public PdfNamedFontFace? NamedFont { get; }
 

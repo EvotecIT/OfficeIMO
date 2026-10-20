@@ -562,7 +562,7 @@ namespace OfficeIMO.Word.Pdf {
             IReadOnlyList<W.SdtRun> repeatingSectionControls = GetNativeRepeatingSectionControls(paragraph);
             var inlineControls = new NativeInlineContentControlProjection(tableCell: true);
 
-            if ((hasRenderableRuns || hasInlineImages) && !hasEquationContent) {
+            if ((hasRenderableRuns || hasInlineImages || runs.Any(run => HasNativePageNoteContent(run, footnoteNumbersById, nativeDefaults))) && !hasEquationContent) {
                 foreach (WordParagraph run in runs) {
                     if (IsNativeHiddenTextRun(run, paragraph)) {
                         continue;
@@ -586,7 +586,9 @@ namespace OfficeIMO.Word.Pdf {
                         continue;
                     }
 
-                    AddNativeCellRun(result, run, tableStyleDefaults, nativeDefaults, nativeFontMap, tabStops, ref tabIndex);
+                    if (!TryAddNativePageNoteCellRun(result, run, footnoteNumbersById, tableStyleDefaults,
+                        nativeDefaults, nativeFontMap, tabStops, ref tabIndex))
+                        AddNativeCellRun(result, run, tableStyleDefaults, nativeDefaults, nativeFontMap, tabStops, ref tabIndex);
                 }
 
                 string? supplementalText = GetNativeSupplementalTextAfterRuns(content, runs);
@@ -732,6 +734,7 @@ namespace OfficeIMO.Word.Pdf {
         private static bool CanMergeNativeCellTextRuns(PdfCore.PdfTextRun left, PdfCore.PdfTextRun right) =>
             ReferenceEquals(left.FormField, right.FormField) &&
             left.LinkUri == null &&
+            left.FootnoteReference == null && right.FootnoteReference == null &&
             left.LinkDestinationName == null &&
             right.LinkUri == null &&
             right.LinkDestinationName == null &&

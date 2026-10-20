@@ -22,7 +22,7 @@ public static partial class WordPdfConverterExtensions {
         int imageLimit = options?.MaxImagesPerParagraph ?? 1_000;
         if (imageLimit <= 0) throw new ArgumentOutOfRangeException(nameof(WordToPdfOptions.MaxImagesPerParagraph));
         int imageCount = 0;
-        var emittedNoteKeys = new HashSet<long>();
+        var emittedNoteKeys = new HashSet<NativeNoteKey>();
         var pending = new List<WordParagraph>();
         var paragraphStyle = CreateNativeParagraphStyle(paragraph, defaults, fontMap);
         if (paragraphStyle.SpacingBefore is > 0D)
@@ -110,10 +110,10 @@ public static partial class WordPdfConverterExtensions {
     }
 
     private static List<int> GetNativeMixedTextBoxNoteNumbers(IReadOnlyList<WordParagraph> runs,
-        NativeNoteNumbering notes, HashSet<long> emittedKeys) {
+        NativeNoteNumbering notes, HashSet<NativeNoteKey> emittedKeys) {
         var numbers = new List<int>();
         foreach (OpenXmlElement child in runs.SelectMany(run => run.EnumerateEffectiveRunContent())) {
-            long? key = child is W.FootnoteReference footnote && footnote.Id?.Value is long footnoteId
+            NativeNoteKey? key = child is W.FootnoteReference footnote && footnote.Id?.Value is long footnoteId
                 ? GetNativeFootnoteKey(footnoteId)
                 : child is W.EndnoteReference endnote && endnote.Id?.Value is long endnoteId
                     ? GetNativeEndnoteKey(endnoteId) : null;

@@ -59,6 +59,28 @@ The page-context overload supplies visible and physical page numbers, section-re
 
 Running stories are marked as pagination artifacts. Their fonts, images, drawing resources and links use the document's normal PDF resource owners. A later `Text` or `Zones` call replaces rich content for that variant.
 
+## Page-associated footnotes
+
+Define a note with the ordinary flow builder, then associate a styled reference run with that definition:
+
+```csharp
+using OfficeIMO.Pdf;
+
+var document = PdfDocument.Create();
+PdfFootnoteDefinition note = document.Content.DefineFootnote(
+    body => body.Text("1. Additional information about this paragraph."));
+document.Content.Paragraph(paragraph => paragraph
+    .Text("The report includes a page note")
+    .Runs(new[] { PdfTextRun.Superscript("1").WithFootnoteReference(note) }));
+document.Save("report.pdf");
+```
+
+The reference and the first legal note fragment stay on the same page. Notes reserve space before later body content, can continue across pages, and retain rich paragraph text, inline images and links. References in split table rows attach to the page containing the actual reference fragment. Definitions belong to their document; each serialization has independent pagination state.
+
+`PdfFootnoteOptions.Placement` defaults to `BottomOfPage`, above any running footer. `BeneathText` places the note below the page's body text. The optional `Separator` and `ContinuationSeparator` callbacks capture ordinary flow content; the engine creates no separator when they are omitted. Visible numbering is authored text, so the reference and note can use the labels and formatting your application needs.
+
+Page notes require single-column body flow. Multi-column or row composition, page canvases, references in running stories, floating or non-flow tables, rotated reference cells, repeating table-header references, recursive notes and unsupported note-flow constraints fail explicitly. An active note continuation cannot cross a change in usable page width. A reference and first note fragment that cannot fit in a fresh page body fail with a fitting error; `MaxGeneratedPages` also bounds continuation output.
+
 ## Literal text to PDF
 
 `PdfPlainTextConverter` renders TXT content without interpreting Markdown or HTML:

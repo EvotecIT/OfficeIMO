@@ -70,11 +70,11 @@ internal static partial class PdfWriter {
         // cannot carry a link target, and it does not need a separate annotation.
         RichSeg spaceStyle = segment.WithoutLink();
         if (segment.LeadingSpaceCount > 0)
-            runs.Add(BuildTextRunFromWrappedSegment(new string(' ', segment.LeadingSpaceCount), spaceStyle));
+            runs.Add(BuildTextRunFromWrappedSegment(new string(' ', segment.LeadingSpaceCount), spaceStyle, preserveFootnote: false));
         if (segment.LeadingSpaceRemainder > 0.001D) {
             // A literal space can straddle a frame edge. Its remainder has the
             // same font/decorations and only the advance that this fragment owns.
-            runs.Add(BuildTextRunFromWrappedSegment(" ", spaceStyle).WithCharacterSpacing(
+            runs.Add(BuildTextRunFromWrappedSegment(" ", spaceStyle, preserveFootnote: false).WithCharacterSpacing(
                 segment.CharacterSpacing + segment.LeadingSpaceRemainder - segment.LeadingSpaceUnitAdvance));
         }
     }

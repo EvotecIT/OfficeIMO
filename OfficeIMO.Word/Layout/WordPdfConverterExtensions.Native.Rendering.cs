@@ -667,7 +667,7 @@ namespace OfficeIMO.Word.Pdf {
             int tabIndex = 0;
             bool hasEquationContent = !projectedContentOnly && WordEquation.GetOccurrences(paragraph._document, paragraph._paragraph).Count > 0;
             var inlineControls = new NativeInlineContentControlProjection(tableCell: false);
-            if (hasRenderableRuns && !hasEquationContent) {
+            if ((hasRenderableRuns || runs.Any(run => HasNativePageNoteContent(run, footnoteNumbersById, nativeDefaults))) && !hasEquationContent) {
                 foreach (WordParagraph run in runs) {
                     if (IsNativeHiddenTextRun(run, paragraph)) continue;
                     if (inlineControls.TryCreateRuns(run, NativeTableStyleDefaults.Empty, nativeDefaults,
@@ -693,7 +693,9 @@ namespace OfficeIMO.Word.Pdf {
                         continue;
                     }
 
-                    AddNativeRun(builder, run, paragraph, tabStops, ref tabIndex, options, nativeDefaults, nativeFontMap);
+                    if (!TryAddNativePageNoteRun(builder, run, paragraph, footnoteNumbersById,
+                        tabStops, ref tabIndex, options, nativeDefaults, nativeFontMap))
+                        AddNativeRun(builder, run, paragraph, tabStops, ref tabIndex, options, nativeDefaults, nativeFontMap);
                 }
 
                 string? supplementalText = GetNativeSupplementalTextAfterRuns(content, runs);

@@ -51,7 +51,7 @@ internal static partial class PdfWriter {
             }
 
             double fitNeeded = spacingBefore + MeasureRichLinesFrameFitHeight(lines, lineHeights, leading) + spacingAfter;
-            if (y < frameStart - 0.001 && y - fitNeeded < currentOpts.MarginBottom) {
+            if (y < frameStart - 0.001 && y - fitNeeded < FootnoteBodyBottom) {
                 NewHeadingFrame();
                 spacingBefore = headingStyle?.ApplySpacingBeforeAtTop == true ? headingStyle.SpacingBefore : 0D;
                 needed = spacingBefore + textHeight + spacingAfter;
@@ -60,7 +60,7 @@ internal static partial class PdfWriter {
                 NewHeadingFrame();
                 spacingBefore = headingStyle?.ApplySpacingBeforeAtTop == true ? headingStyle.SpacingBefore : 0D;
             }
-            if (lineHeights.Count > 0 && spacingBefore + GetRichLineFrameFitHeight(lines[0], lineHeights[0]) > frameStart - currentOpts.MarginBottom + 0.001)
+            if (lineHeights.Count > 0 && spacingBefore + GetRichLineFrameFitHeight(lines[0], lineHeights[0]) > frameStart - FootnoteBodyBottom + 0.001)
                 throw new ArgumentException("Heading spacing and first line exceed the available page content height.");
             if (spacingBefore > 0) {
                 y -= spacingBefore;
@@ -68,7 +68,7 @@ internal static partial class PdfWriter {
 
             PageStructElement? logicalHeading = null;
             while (lineIndex < lines.Count) {
-                double available = y - currentOpts.MarginBottom;
+                double available = y - FootnoteBodyBottom;
                 int take = 0;
                 double heightSum = 0;
                 for (int index = lineIndex; index < lines.Count; index++) {
@@ -78,6 +78,10 @@ internal static partial class PdfWriter {
                     heightSum += lineHeight;
                     take++;
                 }
+                bool noteSliceFits = ConstrainFootnoteSlice(lines, lineHeights, lineIndex, 1, 0, 0D, GetClosingTextPadding(spacingAfter), ref take, ref heightSum);
+                if (!noteSliceFits && !HasCurrentPageBodyContent())
+                    throw new ArgumentException("The heading reference and first footnote fragment exceed the available page body height.");
+                if (!noteSliceFits) { NewHeadingFrame(); continue; }
                 if (take == 0) {
                     if (!ShouldAdvanceForBlockHeight(GetRichLineFrameFitHeight(lines[lineIndex], lineHeights[lineIndex]) + (lineIndex == lines.Count - 1 ? GetClosingTextPadding(spacingAfter) : 0D)))
                         throw new ArgumentException("Heading line height exceeds the available page content height.");
@@ -86,6 +90,8 @@ internal static partial class PdfWriter {
                 }
                 var sliceLines = lines.GetRange(lineIndex, take);
                 var sliceHeights = lineHeights.GetRange(lineIndex, take);
+                bool admittedNewFootnote = HasUnscheduledFootnote(sliceLines.SelectMany(line => line));
+                RequireFootnoteSlice(lines, lineIndex, take, y - heightSum - (lineIndex + take == lines.Count ? GetClosingTextPadding(spacingAfter) : 0D));
                 EnsurePage();
                 RecordFlowPlacement(y);
                 if (firstLogicalLine) captureFirstPlacement?.Invoke();
@@ -127,7 +133,7 @@ internal static partial class PdfWriter {
                 y -= heightSum;
                 lineIndex += take;
                 firstLogicalLine = false;
-                if (lineIndex < lines.Count) NewHeadingFrame();
+                if (lineIndex < lines.Count && (!admittedNewFootnote || y - GetRichLineFrameFitHeight(lines[lineIndex], lineHeights[lineIndex]) < FootnoteBodyBottom - .001D)) NewHeadingFrame();
             }
             y -= spacingAfter;
         }
@@ -178,7 +184,7 @@ internal static partial class PdfWriter {
                     return false;
                 }
                 return !(activeColumnFlow is { Options.BalanceKeptParagraphLines: true } && IsBalancedColumnFrame() &&
-                    lineHeights.Sum() > GetCurrentFramePageStartY() - currentOpts.MarginBottom + .001D);
+                    lineHeights.Sum() > GetCurrentFramePageStartY() - FootnoteBodyBottom + .001D);
             }
             if (paragraphStyle?.KeepWithNext == true && nextBlock != null && lines.Count > 0 &&
                 (ReservesWholeKeepGroup() || IsKeptInCurrentFrame())) {
@@ -249,11 +255,11 @@ internal static partial class PdfWriter {
                         simulatedTop = lineBaseTop;
                         onOriginalPage = lineBaseOriginalPage;
                         floatingPageStarts.Remove(index);
-                        if (simulatedTop - requiredHeight < currentOpts.MarginBottom) { simulatedTop = frameStart; onOriginalPage = false; floatingPageStarts.Add(index); }
+                        if (simulatedTop - requiredHeight < FootnoteBodyBottom) { simulatedTop = frameStart; onOriginalPage = false; floatingPageStarts.Add(index); }
                         double left = index == 0 ? textFrame.FirstLineX : textFrame.X;
                         double availableWidth = index == 0 ? textFrame.FirstLineWidth : textFrame.Width;
                         var frame = onOriginalPage ? GetFloatingTextFrame(left, availableWidth, simulatedTop, requiredHeight, minimumWidth) : (X: left, Width: availableWidth, Gap: 0D);
-                        if (simulatedTop - frame.Gap - requiredHeight < currentOpts.MarginBottom) {
+                        if (simulatedTop - frame.Gap - requiredHeight < FootnoteBodyBottom) {
                             frame = (left, availableWidth, 0D);
                             simulatedTop = frameStart;
                             onOriginalPage = false;
@@ -275,9 +281,9 @@ internal static partial class PdfWriter {
                 double fitHeight = (y < frameStart - 0.001 ? spacingBefore : 0D) +
                     MeasureRichLinesFrameFitHeight(lines, lineHeights, leading, floatingLineGaps);
                 bool mustMove = IsKeptInCurrentFrame() &&
-                    (simulatedPageBreak || fitHeight > y - currentOpts.MarginBottom + 0.001);
-                mustMove |= nextHeight > 0 && (simulatedPageBreak || actualHeight + spacingAfter + nextHeight > y - currentOpts.MarginBottom + 0.001) &&
-                    originalLineHeights.Sum() + spacingAfter + nextHeight <= frameStart - currentOpts.MarginBottom + 0.001;
+                    (simulatedPageBreak || fitHeight > y - FootnoteBodyBottom + 0.001);
+                mustMove |= nextHeight > 0 && (simulatedPageBreak || actualHeight + spacingAfter + nextHeight > y - FootnoteBodyBottom + 0.001) &&
+                    originalLineHeights.Sum() + spacingAfter + nextHeight <= frameStart - FootnoteBodyBottom + 0.001;
                 if (mustMove) { NewPage(); RestoreUnobstructedWrapping(); }
             }
 
@@ -360,7 +366,7 @@ internal static partial class PdfWriter {
                         !CanOverlapRunningFooterWithFirstLine(paragraphStyle, minimumLineHeight))
                         throw new ArgumentException("Paragraph line height exceeds the available page content height.");
                 }
-                double available = y - currentOpts.MarginBottom;
+                double available = y - FootnoteBodyBottom;
                 if (available <= 0) {
                     NewParagraphPage();
                     firstSegment = false;
@@ -374,7 +380,7 @@ internal static partial class PdfWriter {
                         CanOverlapRunningFooterWithFirstLine(paragraphStyle, minimumLineHeight)))) {
                     NewParagraphPage();
                     minimumLineHeight = GetRichLineFrameFitHeight(lines[lineIndex], lineHeights[lineIndex], floatingLineGaps?[lineIndex] ?? 0D) + (lineIndex == lines.Count - 1 ? GetClosingTextPadding(spacingAfter) : 0D);
-                    available = y - currentOpts.MarginBottom;
+                    available = y - FootnoteBodyBottom;
                     if (y >= frameStart - 0.001) {
                         segmentSpacingBefore = 0;
                     }
@@ -404,6 +410,13 @@ internal static partial class PdfWriter {
                     take = 1;
                     heightSum = lineHeights[lineIndex];
                 }
+                bool noteSliceFits = ConstrainFootnoteSlice(lines, lineHeights, lineIndex,
+                    IsKeptInCurrentFrame() ? lines.Count - lineIndex : paragraphStyle == null ? 1 : ResolveMinimumOrphanLines(paragraphStyle),
+                    paragraphStyle == null ? 0 : ResolveMinimumWidowLines(paragraphStyle), segmentSpacingBefore,
+                    GetClosingTextPadding(spacingAfter), ref take, ref heightSum);
+                if (!noteSliceFits && !HasCurrentPageBodyContent())
+                    throw new ArgumentException("The paragraph reference and first footnote fragment exceed the available page body height.");
+                if (!noteSliceFits) { NewParagraphPage(); firstSegment = false; continue; }
                 ReserveBalancedKeepNextTail(lineHeights, lineIndex, lines.Count, spacingAfter, roomForText, blockList,
                     blockIndex, paragraphStyle?.KeepWithNext == true, paragraphStyle == null ? 1 : ResolveMinimumWidowLines(paragraphStyle),
                     ref take, ref heightSum);
@@ -435,6 +448,8 @@ internal static partial class PdfWriter {
                 if (segmentSpacingBefore > 0) {
                     y -= segmentSpacingBefore;
                 }
+                bool admittedNewFootnote = HasUnscheduledFootnote(lines.Skip(lineIndex).Take(take).SelectMany(line => line));
+                RequireFootnoteSlice(lines, lineIndex, take, y - heightSum - (lineIndex + take == lines.Count ? GetClosingTextPadding(spacingAfter) : 0D));
 
                 var sliceLines = new System.Collections.Generic.List<System.Collections.Generic.List<RichSeg>>();
                 var sliceHeights = new System.Collections.Generic.List<double>();
@@ -465,7 +480,7 @@ internal static partial class PdfWriter {
                 firstSegment = false;
                 firstLogicalLine = false;
                 if (lineIndex < lines.Count) {
-                    NewParagraphPage();
+                    if (!admittedNewFootnote || y - GetRichLineFrameFitHeight(lines[lineIndex], lineHeights[lineIndex]) < FootnoteBodyBottom - .001D) NewParagraphPage();
                 } else {
                     y -= spacingAfter;
                 }

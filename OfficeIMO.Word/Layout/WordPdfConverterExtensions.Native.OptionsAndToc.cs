@@ -318,6 +318,9 @@ namespace OfficeIMO.Word.Pdf {
                 }
             }
 
+            RegisterNativePageFootnoteFonts(document, pdfOptions, registeredFamilies, registeredFontSlots,
+                allowSystemFontEmbedding, nativeFontMap);
+
             return registeredFontSlots;
         }
 

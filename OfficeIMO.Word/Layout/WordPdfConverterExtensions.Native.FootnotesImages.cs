@@ -40,26 +40,13 @@ namespace OfficeIMO.Word.Pdf {
                     AddNativeEndnote(endNote, footnotes, footnoteNumbersById);
                     break;
                 case WordParagraph paragraph:
-                    WordFootNote? paragraphFootnote = paragraph.FootNote;
-                    if (paragraphFootnote != null) {
-                        AddNativeFootnote(paragraphFootnote, footnotes, footnoteNumbersById);
-                    }
-
-                    WordEndNote? paragraphEndnote = paragraph.EndNote;
-                    if (paragraphEndnote != null) {
-                        AddNativeEndnote(paragraphEndnote, footnotes, footnoteNumbersById);
-                    }
-
-                    foreach (WordParagraph run in paragraph.GetRuns()) {
-                        WordFootNote? runFootnote = run.FootNote;
-                        if (runFootnote != null) {
-                            AddNativeFootnote(runFootnote, footnotes, footnoteNumbersById);
-                        }
-
-                        WordEndNote? runEndnote = run.EndNote;
-                        if (runEndnote != null) {
-                            AddNativeEndnote(runEndnote, footnotes, footnoteNumbersById);
-                        }
+                    // Read actual reference children: a single Word run can carry several
+                    // notes, or a note between text siblings, and SDTs retain this order.
+                    foreach (var reference in EnumerateNativeVisibleNoteReferences(paragraph)) {
+                        if (reference is W.FootnoteReference foot && foot.Id?.Value is long footId && footId != 0)
+                            AddNativeFootnote(paragraph._document, footId, footnotes, footnoteNumbersById);
+                        else if (reference is W.EndnoteReference end && end.Id?.Value is long endId && endId != 0)
+                            AddNativeEndnote(paragraph._document, endId, footnotes, footnoteNumbersById);
                     }
 
                     break;
@@ -88,6 +75,7 @@ namespace OfficeIMO.Word.Pdf {
                     break;
                 case WordStructuredDocumentTag structuredDocumentTag:
                     EnsureNativeStructuredDocumentTagDepth(structuredDocumentTagDepth);
+                    if (TryGetNativeStructuredBlockPropertyValue(structuredDocumentTag.Document, structuredDocumentTag.SdtBlock, out _)) break;
                     foreach (WordElement structuredElement in GetNativeStructuredBlockElements(structuredDocumentTag.Document, structuredDocumentTag.SdtBlock)) {
                         CollectNativeFootnotes(structuredElement, footnotes, footnoteNumbersById, structuredDocumentTagDepth + 1, tableDepth);
                     }
@@ -109,14 +97,19 @@ namespace OfficeIMO.Word.Pdf {
                 return;
             }
 
-            long key = GetNativeFootnoteKey(referenceId.Value);
-            if (footnoteNumbersById.ContainsKey(key)) {
-                return;
-            }
+            AddNativeFootnote(footNote.Paragraphs?.FirstOrDefault()?._document, referenceId.Value, footnotes, footnoteNumbersById);
+        }
 
+        private static void AddNativeFootnote(WordDocument? document, long referenceId,
+            List<PdfFootnote> footnotes, NativeNoteNumbering footnoteNumbersById) {
+            NativeNoteKey key = GetNativeFootnoteKey(referenceId);
+            if (footnoteNumbersById.ContainsKey(key)) return;
+            W.Footnote? source = document?._wordprocessingDocument.MainDocumentPart?.FootnotesPart?.Footnotes?
+                .Elements<W.Footnote>().FirstOrDefault(note => note.Id?.Value == referenceId);
             footnotes.Add(new PdfFootnote {
                 Label = footnoteNumbersById.Add(key, endnote: false),
-                Text = GetNativeFootnoteText(footNote)
+                Text = string.Join(" ", source?.Descendants<W.Paragraph>().Select(p => p.InnerText)
+                    ?? Enumerable.Empty<string>())
             });
         }
 
@@ -126,45 +119,28 @@ namespace OfficeIMO.Word.Pdf {
                 return;
             }
 
-            long key = GetNativeEndnoteKey(referenceId.Value);
-            if (footnoteNumbersById.ContainsKey(key)) {
-                return;
-            }
+            AddNativeEndnote(endNote.Paragraphs?.FirstOrDefault()?._document, referenceId.Value, footnotes, footnoteNumbersById);
+        }
 
+        private static void AddNativeEndnote(WordDocument? document, long referenceId,
+            List<PdfFootnote> footnotes, NativeNoteNumbering footnoteNumbersById) {
+            NativeNoteKey key = GetNativeEndnoteKey(referenceId);
+            if (footnoteNumbersById.ContainsKey(key)) return;
+            W.Endnote? source = document?._wordprocessingDocument.MainDocumentPart?.EndnotesPart?.Endnotes?
+                .Elements<W.Endnote>().FirstOrDefault(note => note.Id?.Value == referenceId);
             footnotes.Add(new PdfFootnote {
                 Label = footnoteNumbersById.Add(key, endnote: true),
-                Text = GetNativeEndnoteText(endNote),
+                Text = string.Join(" ", source?.Descendants<W.Paragraph>().Select(p => p.InnerText)
+                    ?? Enumerable.Empty<string>()),
                 IsEndnote = true
             });
         }
 
-        private static string GetNativeFootnoteText(WordFootNote footNote) {
-            var parts = new List<string>();
-            foreach (WordParagraph paragraph in footNote.Paragraphs ?? Enumerable.Empty<WordParagraph>()) {
-                if (!string.IsNullOrWhiteSpace(paragraph.Text)) {
-                    parts.Add(paragraph.Text);
-                }
-            }
-
-            return string.Join(" ", parts);
-        }
-
-        private static string GetNativeEndnoteText(WordEndNote endNote) {
-            var parts = new List<string>();
-            foreach (WordParagraph paragraph in endNote.Paragraphs ?? Enumerable.Empty<WordParagraph>()) {
-                if (!string.IsNullOrWhiteSpace(paragraph.Text)) {
-                    parts.Add(paragraph.Text);
-                }
-            }
-
-            return string.Join(" ", parts);
-        }
-
-        private static IReadOnlyList<int> GetNativeFootnoteNumbersForElement(IReadOnlyList<WordElement> elements, int index, NativeNoteNumbering footnoteNumbersById, HashSet<long>? seenKeys = null) {
+        private static IReadOnlyList<int> GetNativeFootnoteNumbersForElement(IReadOnlyList<WordElement> elements, int index, NativeNoteNumbering footnoteNumbersById, HashSet<NativeNoteKey>? seenKeys = null) {
             var numbers = new List<int>();
-            seenKeys ??= new HashSet<long>();
+            seenKeys ??= new HashSet<NativeNoteKey>();
             for (int i = index + 1; i < elements.Count && (elements[i] is WordFootNote || elements[i] is WordEndNote); i++) {
-                long? key = GetNativeNoteKey(elements[i]);
+                NativeNoteKey? key = GetNativeNoteKey(elements[i]);
                 if (key.HasValue && footnoteNumbersById.TryGetValue(key.Value, out int number) && seenKeys.Add(key.Value)) {
                     numbers.Add(number);
                 }
@@ -175,7 +151,7 @@ namespace OfficeIMO.Word.Pdf {
 
         private static List<int> GetNativeParagraphFootnoteNumbers(WordParagraph paragraph, IReadOnlyList<WordParagraph> runs, IReadOnlyList<int> followingFootnoteNumbers, NativeNoteNumbering footnoteNumbersById) {
             var numbers = new List<int>();
-            var seenKeys = new HashSet<long>();
+            var seenKeys = new HashSet<NativeNoteKey>();
             AddNativeParagraphFootnoteNumber(paragraph, numbers, footnoteNumbersById, seenKeys);
             foreach (WordParagraph run in runs) {
                 AddNativeParagraphFootnoteNumber(run, numbers, footnoteNumbersById, seenKeys);
@@ -191,21 +167,19 @@ namespace OfficeIMO.Word.Pdf {
             return numbers;
         }
 
-        private static void AddNativeParagraphFootnoteNumber(WordParagraph paragraph, List<int> numbers, NativeNoteNumbering footnoteNumbersById, HashSet<long> seenKeys) {
-            WordFootNote? footNote = paragraph.FootNote;
-            long? footnoteKey = footNote?.ReferenceId.HasValue == true && footNote.ReferenceId.Value != 0 ? GetNativeFootnoteKey(footNote.ReferenceId.Value) : null;
-            if (footnoteKey.HasValue && footnoteNumbersById.TryGetValue(footnoteKey.Value, out int number) && seenKeys.Add(footnoteKey.Value)) {
-                numbers.Add(number);
-            }
-
-            WordEndNote? endNote = paragraph.EndNote;
-            long? endnoteKey = endNote?.ReferenceId.HasValue == true && endNote.ReferenceId.Value != 0 ? GetNativeEndnoteKey(endNote.ReferenceId.Value) : null;
-            if (endnoteKey.HasValue && footnoteNumbersById.TryGetValue(endnoteKey.Value, out number) && seenKeys.Add(endnoteKey.Value)) {
-                numbers.Add(number);
+        private static void AddNativeParagraphFootnoteNumber(WordParagraph paragraph, List<int> numbers, NativeNoteNumbering footnoteNumbersById, HashSet<NativeNoteKey> seenKeys) {
+            if (IsNativeHiddenTextRun(paragraph)) return;
+            foreach (var child in paragraph.EnumerateEffectiveRunContent().SelectMany(element => element.Descendants().Prepend(element))) {
+                NativeNoteKey? key = child is W.FootnoteReference foot && foot.Id?.Value is long footId && footId != 0
+                    ? GetNativeFootnoteKey(footId)
+                    : child is W.EndnoteReference end && end.Id?.Value is long endId && endId != 0
+                        ? GetNativeEndnoteKey(endId) : null;
+                if (key.HasValue && footnoteNumbersById.TryGetValue(key.Value, out int number) && seenKeys.Add(key.Value))
+                    numbers.Add(number);
             }
         }
 
-        private static long? GetNativeNoteKey(WordElement element) {
+        private static NativeNoteKey? GetNativeNoteKey(WordElement element) {
             switch (element) {
                 case WordFootNote footNote when footNote.ReferenceId.HasValue && footNote.ReferenceId.Value != 0:
                     return GetNativeFootnoteKey(footNote.ReferenceId.Value);
@@ -216,9 +190,9 @@ namespace OfficeIMO.Word.Pdf {
             }
         }
 
-        private static long GetNativeFootnoteKey(long referenceId) => referenceId;
+        private static NativeNoteKey GetNativeFootnoteKey(long referenceId) => new(NativeNoteKind.Footnote, referenceId);
 
-        private static long GetNativeEndnoteKey(long referenceId) => -referenceId;
+        private static NativeNoteKey GetNativeEndnoteKey(long referenceId) => new(NativeNoteKind.Endnote, referenceId);
 
         private static void RenderNativeFootnotes(INativePdfFlow pdf, IReadOnlyList<PdfFootnote> footnotes) {
             if (footnotes.Count == 0) {

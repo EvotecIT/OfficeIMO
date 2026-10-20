@@ -6,9 +6,13 @@ namespace OfficeIMO.Word.Pdf;
 
 public static partial class WordPdfConverterExtensions {
     /// <summary>Keeps reference identity distinct from labels that can repeat between note kinds or sections.</summary>
+    private enum NativeNoteKind { Footnote, Endnote }
+    private readonly record struct NativeNoteKey(NativeNoteKind Kind, long Id);
+
     private sealed class NativeNoteNumbering {
-        private readonly Dictionary<long, int> tokensById = new();
+        private readonly Dictionary<NativeNoteKey, int> tokensById = new();
         private readonly Dictionary<int, string> labelsByToken = new();
+        private readonly WordDocument document;
         private readonly W.Settings? settings;
         private readonly WordToPdfOptions? options;
         private int? nextFootnote;
@@ -20,15 +24,37 @@ public static partial class WordPdfConverterExtensions {
         private bool footnotePageRestart;
         private bool endnotePageRestart;
         private bool pageRestartReported;
+        private bool placementFallbackReported;
+        private bool separatorMarkOmissionReported;
+        private WordSection? currentSection;
+        private readonly Dictionary<NativeNoteKey, NativePageFootnoteSource> pageFootnotes = new();
         internal bool EndnotesAtDocumentEnd { get; }
+        internal bool TryGetPageFootnote(NativeNoteKey key, out OfficeIMO.Pdf.PdfFootnoteDefinition? definition) =>
+            TryGetPageFootnoteDefinition(key, out definition);
+        private bool TryGetPageFootnoteDefinition(NativeNoteKey key, out OfficeIMO.Pdf.PdfFootnoteDefinition? definition) {
+            bool found = pageFootnotes.TryGetValue(key, out NativePageFootnoteSource? source);
+            definition = found && ReferenceEquals(source!.Section, currentSection) ? source.Definition : null;
+            return definition != null;
+        }
+        internal void SetPageFootnote(NativePageFootnoteSource source) => pageFootnotes[source.Key] = source;
 
         internal NativeNoteNumbering(WordDocument document, WordToPdfOptions? options) {
+            this.document = document;
             settings = document._wordprocessingDocument?.MainDocumentPart?.DocumentSettingsPart?.Settings;
             this.options = options;
             EndnotesAtDocumentEnd = document.EndnoteSettings.Position == WordEndnotePosition.DocumentEnd;
         }
 
+        internal NativeNoteNumbering CreateRunningReferenceSnapshot(WordSection section) {
+            var snapshot = new NativeNoteNumbering(document, null);
+            snapshot.BeginSection(section);
+            foreach (var pair in tokensById) snapshot.tokensById.Add(pair.Key, pair.Value);
+            foreach (var pair in labelsByToken) snapshot.labelsByToken.Add(pair.Key, pair.Value);
+            return snapshot;
+        }
+
         internal void BeginSection(WordSection section) {
+            currentSection = section;
             W.FootnoteProperties? foot = section._sectionProperties.GetFirstChild<W.FootnoteProperties>();
             W.EndnoteProperties? end = section._sectionProperties.GetFirstChild<W.EndnoteProperties>();
             W.FootnoteDocumentWideProperties? documentFoot = settings?.GetFirstChild<W.FootnoteDocumentWideProperties>();
@@ -45,12 +71,26 @@ public static partial class WordPdfConverterExtensions {
             endnotePageRestart = endRestart == W.RestartNumberValues.EachPage;
         }
 
-        internal bool ContainsKey(long key) => tokensById.ContainsKey(key);
-        internal bool TryGetValue(long key, out int token) => tokensById.TryGetValue(key, out token);
+        internal void ReportSeparatorMarkOmission() {
+            if (separatorMarkOmissionReported || options == null) return;
+            separatorMarkOmissionReported = true;
+            AddNativeExportWarning(options, "NativeFootnoteSeparatorMarkOmitted", "footnote separator",
+                "The source separator paragraph and its spacing are retained, but its separator rule mark is not painted because the native rule geometry is not qualified.");
+        }
+
+        internal void ReportPlacementFallback(string? reason = null) {
+            if (placementFallbackReported || options == null) return;
+            placementFallbackReported = true;
+            AddNativeExportWarning(options, "NativeFootnotePlacementApproximated", "footnotes",
+                "This footnote profile uses plain text in document flow after its section. Page placement and original note formatting are approximated." +
+                (reason == null ? string.Empty : " " + reason));
+        }
+
+        internal bool ContainsKey(NativeNoteKey key) => tokensById.ContainsKey(key);
+        internal bool TryGetValue(NativeNoteKey key, out int token) => tokensById.TryGetValue(key, out token);
         internal string GetLabel(int token) => labelsByToken[token];
 
-        internal string Add(long key, bool endnote) {
-            bool reportFootnotePlacement = !endnote && !hasFootnotes;
+        internal string Add(NativeNoteKey key, bool endnote) {
             int number = (endnote ? nextEndnote : nextFootnote) ?? 1;
             if (endnote) { nextEndnote = checked(number + 1); hasEndnotes = true; }
             else { nextFootnote = checked(number + 1); hasFootnotes = true; }
@@ -68,7 +108,7 @@ public static partial class WordPdfConverterExtensions {
             }
             if ((endnote ? endnotePageRestart : footnotePageRestart) && !pageRestartReported && options != null) {
                 AddNativeExportWarning(options, "NativeNotePageRestartApproximated", "notes",
-                    "Page-based note numbering restart requires note pagination; numbering continues through the section.");
+                    "Page-based note numbering restart is not applied; note labels continue through the section.");
                 pageRestartReported = true;
             }
             // Word permits a zero DOCX note start. Decimal displays 0; Roman and
@@ -79,9 +119,6 @@ public static partial class WordPdfConverterExtensions {
             int token = tokensById.Count + 1;
             tokensById.Add(key, token);
             labelsByToken.Add(token, label);
-            if (reportFootnotePlacement && options != null)
-                AddNativeExportWarning(options, "NativeFootnotePlacementApproximated", "footnotes",
-                    "Footnotes are rendered as plain text in document flow after their section's body content. Page-associated placement and original note formatting are approximated.");
             return label;
         }
     }

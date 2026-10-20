@@ -123,19 +123,19 @@ namespace OfficeIMO.Word.Pdf {
         }
 
         private static IReadOnlyList<int> GetNativeStructuredBlockFootnoteNumbersForElement(IReadOnlyList<WordElement> elements, int index, NativeNoteNumbering footnoteNumbersById) {
-            var seenKeys = new HashSet<long>();
+            var seenKeys = new HashSet<NativeNoteKey>();
             var numbers = GetNativeFootnoteNumbersForElement(elements, index, footnoteNumbersById, seenKeys).ToList();
-            var leadingKeys = new List<long>();
+            var leadingKeys = new List<NativeNoteKey>();
             int previousIndex = index - 1;
             while (previousIndex >= 0 && (elements[previousIndex] is WordFootNote || elements[previousIndex] is WordEndNote)) {
-                long? key = GetNativeNoteKey(elements[previousIndex]);
+                NativeNoteKey? key = GetNativeNoteKey(elements[previousIndex]);
                 if (key.HasValue) leadingKeys.Add(key.Value);
 
                 previousIndex--;
             }
 
             if (previousIndex < 0) {
-                foreach (long key in leadingKeys) {
+                foreach (NativeNoteKey key in leadingKeys) {
                     if (footnoteNumbersById.TryGetValue(key, out int number) && seenKeys.Add(key)) numbers.Add(number);
                 }
             }

@@ -216,9 +216,8 @@ public partial class Word {
         }
 
         string text = PdfTextExtractor.ExtractAllText(pdfPath);
-        string normalized = System.Text.RegularExpressions.Regex.Replace(text, @"\s+", " ");
-        Assert.Contains("1 Structured block footnote", normalized);
-        Assert.Contains("1 Structured block footnote text", normalized);
+        using var pdf = PdfPigDocument.Open(pdfPath);
+        AssertPdfFootnoteAssociation(pdf, "Structured block footnote", "Structured block footnote text", "1");
         Assert.Contains("After structured footnote block", text);
     }
 

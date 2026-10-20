@@ -15,7 +15,7 @@ internal static partial class PdfWriter {
             }
 
             IReadOnlyList<IPdfBlock> blocks = MaterializeFlow(flow, context);
-            double available = y - currentOpts.MarginBottom;
+            double available = y - FootnoteBodyBottom;
             if (flow.Options.MinimumRemainingHeight > 0D && available + 0.001D < flow.Options.MinimumRemainingHeight && y < GetCurrentFramePageStartY() - 0.001D) {
                 NewBlockFrame();
                 context = CreateFlowContext();
@@ -101,6 +101,8 @@ internal static partial class PdfWriter {
             }
 
             int startPageNumber = pages.Count + 1;
+            if (flow.Options.KeepTogether && measuredHeight.HasValue)
+                ReserveAtomicFootnoteGroup(blocks, () => MeasureFlowBlocks(blocks) ?? measuredHeight.Value, () => NewBlockFrame());
             double startY = y;
             PdfOptions startOptions = currentOpts;
             var paintedRegions = new FloatingFlowCapture();

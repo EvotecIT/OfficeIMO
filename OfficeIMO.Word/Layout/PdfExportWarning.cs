@@ -61,6 +61,8 @@ namespace OfficeIMO.Word.Pdf {
             "NativeHeaderFooterShapeUnsupported" or
             "NativeHeaderFooterSmartArtUnsupported" or
             "NativeHeaderFooterTextBoxUnsupported" or
+            "NativeFootnoteContentOmitted" or
+            "NativeFootnoteSeparatorMarkOmitted" or
             "NativeMixedDrawableUnsupported" or
             "NativeShapeGroupUnsupported" or
             "NativeWatermarkImageUnsupported" or
