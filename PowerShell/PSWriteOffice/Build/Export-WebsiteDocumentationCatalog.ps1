@@ -75,12 +75,6 @@ $familyDefinitions = @(
         match = { param($name) $name -match 'OfficePowerPoint' }
     }
     [ordered]@{
-        id = 'conversion'; title = 'Conversion routes'; description = 'Inspect conversion contracts, fidelity limits, owning APIs, and batch PDF availability in the current host.'
-        docs = 'conversion-routes'; api = '/api/powershell/'; examples = 'https://github.com/EvotecIT/OfficeIMO/tree/master/PowerShell/PSWriteOffice/Examples'
-        samples = @('Get-OfficeConversionRoute')
-        match = { param($name) $name -eq 'Get-OfficeConversionRoute' }
-    }
-    [ordered]@{
         id = 'pdf'; title = 'PDF'; description = 'Author, inspect, transform, sign, annotate, extract, preflight, and combine PDF files.'
         docs = 'pdf'; api = '/api/powershell/'; examples = 'https://github.com/EvotecIT/OfficeIMO/tree/master/PowerShell/PSWriteOffice/Examples/Pdf'
         samples = @('New-OfficePdf', 'Join-OfficePdf', 'Get-OfficePdfPreflight', 'Set-OfficePdfSignature')

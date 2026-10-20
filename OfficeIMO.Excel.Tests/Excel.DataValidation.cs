@@ -28,7 +28,7 @@ namespace OfficeIMO.Tests {
             var validation = Assert.Single(sheet.GetDataValidations(cell));
             Assert.Equal("Choose a value", validation.Prompt);
             Assert.Equal("Existing error", validation.ErrorTitle);
-            Assert.True(validation.ShowInputMessage);
+            Assert.False(validation.ShowInputMessage);
 
             sheet.RemoveDataValidations(cell);
             Assert.Empty(sheet.GetDataValidations(cell));

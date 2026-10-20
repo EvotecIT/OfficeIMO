@@ -7,9 +7,24 @@ Locale: en-US
 ---
 # PSWriteOffice Module
 ## Description
-PowerShell module to create, convert, read, inspect, and export Office, PDF, iWork, OneNote, OpenDocument, email, Markdown, AsciiDoc, LaTeX, CSV, Visio, and Confluence content without Microsoft Office installed. Powered by OfficeIMO.*.
+PowerShell document automation for Office, PDF, Project, Access, EPUB, electronic invoices, iWork, OneNote, OpenDocument, email, and text formats. Create, edit, inspect, and convert through OfficeIMO without Microsoft Office installed.
 
 ## PSWriteOffice Cmdlets
+### [Add-OfficeAccessColumn](Add-OfficeAccessColumn.md)
+Adds a typed field before rows are appended.
+
+### [Add-OfficeAccessRow](Add-OfficeAccessRow.md)
+Appends PowerShell objects or dictionaries using the declared field types.
+
+### [Add-OfficeAccessTable](Add-OfficeAccessTable.md)
+Adds a table to a newly created native database model.
+
+### [Add-OfficeEpubChapter](Add-OfficeEpubChapter.md)
+Adds chapter content, reading order and a navigation entry.
+
+### [Add-OfficeEpubResource](Add-OfficeEpubResource.md)
+Adds an image, font, stylesheet or media payload without executing it.
+
 ### [Add-OfficeExcelAutoFilter](Add-OfficeExcelAutoFilter.md)
 Adds an AutoFilter to the current worksheet.
 
@@ -132,6 +147,9 @@ Adds a whole-number data validation rule to a worksheet range.
 
 ### [Add-OfficeExcelVisual](Add-OfficeExcelVisual.md)
 Adds a ChartForgeX artifact, portable SVG, or converted Office visual to an Excel worksheet.
+
+### [Add-OfficeInvoiceLine](Add-OfficeInvoiceLine.md)
+Adds an invoice line with explicit quantity, price and VAT.
 
 ### [Add-OfficeMarkdownCallout](Add-OfficeMarkdownCallout.md)
 Adds a Markdown callout block.
@@ -307,6 +325,18 @@ Adds a text box to a slide.
 ### [Add-OfficePowerPointVisual](Add-OfficePowerPointVisual.md)
 Adds a ChartForgeX artifact, portable SVG, or converted Office visual to a PowerPoint slide.
 
+### [Add-OfficeProjectAssignment](Add-OfficeProjectAssignment.md)
+Assigns a project resource to a task by stable UID.
+
+### [Add-OfficeProjectDependency](Add-OfficeProjectDependency.md)
+Adds a finish-to-start relationship between two tasks.
+
+### [Add-OfficeProjectResource](Add-OfficeProjectResource.md)
+Adds a work resource with an optional standard rate.
+
+### [Add-OfficeProjectTask](Add-OfficeProjectTask.md)
+Adds a task or summary with a duration expressed in working days.
+
 ### [Add-OfficeVisioConnector](Add-OfficeVisioConnector.md)
 Adds a connector between two Visio shapes.
 
@@ -460,11 +490,17 @@ Clears workbook write-reservation metadata.
 ### [Clear-OfficePdfBackgroundShape](Clear-OfficePdfBackgroundShape.md)
 Clears generated PDF page background shapes.
 
+### [Close-OfficeAccess](Close-OfficeAccess.md)
+Closes a native database without implicitly saving it.
+
 ### [Close-OfficeExcel](Close-OfficeExcel.md)
 Closes an Excel workbook and optionally saves it.
 
 ### [Close-OfficePowerPoint](Close-OfficePowerPoint.md)
 Closes a PowerPoint presentation and optionally saves it.
+
+### [Close-OfficeProject](Close-OfficeProject.md)
+Closes a project without implicitly saving it.
 
 ### [Close-OfficeWord](Close-OfficeWord.md)
 Closes one or more tracked Word documents, optionally saving them.
@@ -523,6 +559,9 @@ Converts AsciiDoc to Markdown with fidelity diagnostics.
 ### [ConvertTo-OfficeCsv](ConvertTo-OfficeCsv.md)
 Converts objects or a CSV document into CSV text.
 
+### [ConvertTo-OfficeDocument](ConvertTo-OfficeDocument.md)
+Converts a file or file batch through the canonical OfficeIMO workflow runner.
+
 ### [ConvertTo-OfficeExcelHtml](ConvertTo-OfficeExcelHtml.md)
 Converts an Excel workbook to an HTML review document.
 
@@ -579,6 +618,9 @@ Reconstructs editable Word content from a PDF.
 
 ### [ConvertTo-OfficePowerPointHtml](ConvertTo-OfficePowerPointHtml.md)
 Converts a PowerPoint deck to an HTML review document.
+
+### [ConvertTo-OfficeProjectTable](ConvertTo-OfficeProjectTable.md)
+Maps PowerShell rows to a bounded project entity table.
 
 ### [ConvertTo-OfficeRtf](ConvertTo-OfficeRtf.md)
 Converts Word, HTML, PDF, or Markdown input to RTF.
@@ -643,6 +685,9 @@ Exports one worksheet range as an image file.
 ### [Export-OfficeHtmlImage](Export-OfficeHtmlImage.md)
 Exports an HTML render surface as PNG or SVG with structured diagnostics.
 
+### [Export-OfficeInvoicePdf](Export-OfficeInvoicePdf.md)
+Creates a visible PDF and embedded invoice XML from the same captured model.
+
 ### [Export-OfficePdfImage](Export-OfficePdfImage.md)
 Exports PDF pages through the shared PNG, JPEG, TIFF, SVG, or WebP image contract.
 
@@ -654,6 +699,12 @@ Exports readable PDF form field values as XFDF.
 
 ### [Export-OfficePowerPointImage](Export-OfficePowerPointImage.md)
 Exports presentation slides as PNG or SVG images with one result per slide.
+
+### [Export-OfficeProjectReport](Export-OfficeProjectReport.md)
+Exports a captured Project report through the shared PDF, HTML, Word, Excel or PowerPoint adapters.
+
+### [Export-OfficeProjectTable](Export-OfficeProjectTable.md)
+Returns mapped project tables and explicit projection-loss notices.
 
 ### [Export-OfficeVisioImage](Export-OfficeVisioImage.md)
 Exports selected Visio pages through the format-neutral OfficeIMO image pipeline.
@@ -687,6 +738,15 @@ Finds Word lists containing matching list-item text.
 
 ### [Find-OfficeWordTable](Find-OfficeWordTable.md)
 Finds Word tables containing matching cell text.
+
+### [Get-OfficeAccess](Get-OfficeAccess.md)
+Reads a native database without running queries, macros, or linked connections.
+
+### [Get-OfficeAccessRow](Get-OfficeAccessRow.md)
+Streams native or modeled table rows as PowerShell objects.
+
+### [Get-OfficeAccessTable](Get-OfficeAccessTable.md)
+Lists native table definitions and schema without executing their content.
 
 ### [Get-OfficeAsciiDoc](Get-OfficeAsciiDoc.md)
 Parses an AsciiDoc file or source string into OfficeIMO's native document model.
@@ -744,6 +804,12 @@ Reads a native EML, EMLX, MSG, or TNEF artifact with bounded diagnostics.
 
 ### [Get-OfficeEmailMailbox](Get-OfficeEmailMailbox.md)
 Reads a native mbox mailbox with bounded per-message diagnostics.
+
+### [Get-OfficeEpub](Get-OfficeEpub.md)
+Loads a publication for package-preserving inspection or editing.
+
+### [Get-OfficeEpubChapter](Get-OfficeEpubChapter.md)
+Projects chapters to searchable PowerShell objects.
 
 ### [Get-OfficeExcel](Get-OfficeExcel.md)
 Opens an existing Excel workbook.
@@ -825,6 +891,15 @@ Recognizes an image as editable text, reading order and detected tables, with re
 
 ### [Get-OfficeImageText](Get-OfficeImageText.md)
 Recognizes text in an image with automatic local OCR runtime discovery.
+
+### [Get-OfficeInvoice](Get-OfficeInvoice.md)
+Reads CII or UBL while retaining unmapped-source evidence for later saves.
+
+### [Get-OfficeInvoiceLine](Get-OfficeInvoiceLine.md)
+Returns editable invoice lines, optionally selected by their stable identifier.
+
+### [Get-OfficeInvoiceTarget](Get-OfficeInvoiceTarget.md)
+Lists exact supported invoice authoring contracts from the engine.
 
 ### [Get-OfficeIWork](Get-OfficeIWork.md)
 Reads a modern Apple Pages, Numbers, or Keynote package without launching iWork.
@@ -946,6 +1021,24 @@ Gets theme information for a PowerPoint presentation master.
 ### [Get-OfficePrinter](Get-OfficePrinter.md)
 Lists system printer queues, or the paper sources of a named queue. Requires PowerShell 7.4 or newer.
 
+### [Get-OfficeProject](Get-OfficeProject.md)
+Loads a project without calculating or executing its content.
+
+### [Get-OfficeProjectAssignment](Get-OfficeProjectAssignment.md)
+Returns project assignments.
+
+### [Get-OfficeProjectDependency](Get-OfficeProjectDependency.md)
+Returns project dependencies.
+
+### [Get-OfficeProjectResource](Get-OfficeProjectResource.md)
+Returns project resources.
+
+### [Get-OfficeProjectTask](Get-OfficeProjectTask.md)
+Returns project tasks as pipeline objects.
+
+### [Get-OfficeProjectView](Get-OfficeProjectView.md)
+Captures a portable report from a current calculated schedule.
+
 ### [Get-OfficeProtectionCapability](Get-OfficeProtectionCapability.md)
 Returns OfficeIMO's machine-readable protected-content support contract.
 
@@ -1054,6 +1147,9 @@ Imports bounded DTD-free XFDF through the validated PDF form filler.
 ### [Import-OfficePowerPointSlide](Import-OfficePowerPointSlide.md)
 Imports a slide from another PowerPoint presentation.
 
+### [Import-OfficeProjectTable](Import-OfficeProjectTable.md)
+Imports explicitly mapped tables into a new project without changing existing documents.
+
 ### [Import-OfficeVisioStencil](Import-OfficeVisioStencil.md)
 Registers a stencil catalog with the active Visio DSL scope.
 
@@ -1078,6 +1174,9 @@ Repeats an Excel template worksheet for pipeline data and applies markers in eac
 ### [Invoke-OfficePdfOcrMerge](Invoke-OfficePdfOcrMerge.md)
 Runs an external OCR provider and merges recognized words with native PDF text.
 
+### [Invoke-OfficeProjectSchedule](Invoke-OfficeProjectSchedule.md)
+Explicitly calculates a schedule and optionally applies its dates.
+
 ### [Invoke-OfficeWordMailMerge](Invoke-OfficeWordMailMerge.md)
 Executes a simple mail merge against MERGEFIELD values in a Word document.
 
@@ -1099,8 +1198,14 @@ Moves a worksheet to a new workbook position.
 ### [Move-OfficePdfPage](Move-OfficePdfPage.md)
 Moves selected pages before another page and writes a new PDF.
 
+### [New-OfficeAccess](New-OfficeAccess.md)
+Creates a native Access database model without a provider, seed file, or execution.
+
 ### [New-OfficeConfluenceSession](New-OfficeConfluenceSession.md)
 Creates an in-memory Confluence Cloud session.
+
+### [New-OfficeConversionOptions](New-OfficeConversionOptions.md)
+Creates discoverable renderer and reconstruction settings for general conversion jobs.
 
 ### [New-OfficeDocumentReader](New-OfficeDocumentReader.md)
 Creates an immutable fully configured OfficeIMO document reader.
@@ -1119,6 +1224,9 @@ Creates bounded email-store reader settings without requiring .NET constructor s
 
 ### [New-OfficeEmailWriterOptions](New-OfficeEmailWriterOptions.md)
 Creates deterministic email writer settings through ordinary PowerShell parameters.
+
+### [New-OfficeEpub](New-OfficeEpub.md)
+Creates an EPUB publication with native navigation and metadata.
 
 ### [New-OfficeExcel](New-OfficeExcel.md)
 Creates a new Excel workbook using the DSL.
@@ -1146,6 +1254,12 @@ Creates typed HTML rendering options for Export-OfficeDocumentPdf.
 
 ### [New-OfficeHtmlRenderOptions](New-OfficeHtmlRenderOptions.md)
 Creates discoverable layout, resource-limit, and rendering settings for HTML image export.
+
+### [New-OfficeInvoice](New-OfficeInvoice.md)
+Creates an editable invoice without serializing or declaring standards compliance.
+
+### [New-OfficeInvoiceParty](New-OfficeInvoiceParty.md)
+Creates a seller or buyer from ordinary party and address parameters.
 
 ### [New-OfficeMarkdown](New-OfficeMarkdown.md)
 Creates a Markdown document using a DSL scriptblock.
@@ -1203,6 +1317,9 @@ Creates PowerPoint/OpenDocument conversion settings.
 
 ### [New-OfficePowerPointPdfOptions](New-OfficePowerPointPdfOptions.md)
 Creates discoverable PowerPoint-to-PDF conversion options for Export-OfficeDocumentPdf.
+
+### [New-OfficeProject](New-OfficeProject.md)
+Creates a live project with an optional standard working calendar.
 
 ### [New-OfficeReaderHierarchyOptions](New-OfficeReaderHierarchyOptions.md)
 Creates discoverable token and hierarchy settings for Get-OfficeDocumentHierarchy.
@@ -1297,6 +1414,9 @@ Runs OfficeIMO safe workbook repairs for common package, table, view, print, dra
 ### [Resolve-OfficeWordRevision](Resolve-OfficeWordRevision.md)
 Accepts or rejects filtered Word revisions and returns an operation report.
 
+### [Save-OfficeAccess](Save-OfficeAccess.md)
+Writes a qualified native database with strict loss protection.
+
 ### [Save-OfficeAsciiDoc](Save-OfficeAsciiDoc.md)
 Saves an OfficeIMO AsciiDoc document.
 
@@ -1306,8 +1426,14 @@ Saves an email document as EML, EMLX, MSG, or TNEF with fidelity diagnostics.
 ### [Save-OfficeEmailMailbox](Save-OfficeEmailMailbox.md)
 Saves a native mbox mailbox with output diagnostics.
 
+### [Save-OfficeEpub](Save-OfficeEpub.md)
+Writes a validated EPUB package with explicit conflict and loss policies.
+
 ### [Save-OfficeExcel](Save-OfficeExcel.md)
 Saves an Excel workbook without disposing it.
+
+### [Save-OfficeInvoice](Save-OfficeInvoice.md)
+Saves CII or UBL with strict source and target loss handling.
 
 ### [Save-OfficeLatex](Save-OfficeLatex.md)
 Saves an OfficeIMO LaTeX document.
@@ -1323,6 +1449,9 @@ Saves an OfficeIMO.Pdf document.
 
 ### [Save-OfficePowerPoint](Save-OfficePowerPoint.md)
 Saves a presentation without disposing it.
+
+### [Save-OfficeProject](Save-OfficeProject.md)
+Saves a project through the qualified native codec with loss protection.
 
 ### [Save-OfficeVisio](Save-OfficeVisio.md)
 Saves an OfficeIMO.Visio document.
@@ -1341,6 +1470,9 @@ Prepares PDF sheets and submits them to an explicitly named printer. Requires Po
 
 ### [Set-OfficeConfluenceManagedSection](Set-OfficeConfluenceManagedSection.md)
 Safely replaces one marker-delimited section in a Confluence storage body.
+
+### [Set-OfficeEpubMetadata](Set-OfficeEpubMetadata.md)
+Updates the primary title, language or creator through the package model.
 
 ### [Set-OfficeExcelActiveSheet](Set-OfficeExcelActiveSheet.md)
 Sets the worksheet that opens as the active sheet.
@@ -1474,6 +1606,12 @@ Sets worksheet view options such as gridlines, direction, zoom, and view mode.
 ### [Set-OfficeExcelWriteReservation](Set-OfficeExcelWriteReservation.md)
 Sets workbook write-reservation metadata.
 
+### [Set-OfficeInvoice](Set-OfficeInvoice.md)
+Updates common invoice header and party fields.
+
+### [Set-OfficeInvoiceLine](Set-OfficeInvoiceLine.md)
+Edits selected line fields while retaining other invoice content.
+
 ### [Set-OfficeOpenDocumentCell](Set-OfficeOpenDocumentCell.md)
 Sets a typed zero-based cell value in an OpenDocument spreadsheet.
 
@@ -1567,6 +1705,9 @@ Sets PowerPoint theme fonts.
 ### [Set-OfficePowerPointThemeName](Set-OfficePowerPointThemeName.md)
 Sets the PowerPoint theme name.
 
+### [Set-OfficeProjectTask](Set-OfficeProjectTask.md)
+Updates selected task fields without implicitly recalculating its schedule.
+
 ### [Set-OfficeVisioShapeLayout](Set-OfficeVisioShapeLayout.md)
 Applies OfficeIMO Visio selection layout and layer operations to shapes.
 
@@ -1608,6 +1749,9 @@ Validates Excel template markers against supplied bindings before applying a tem
 
 ### [Test-OfficeExcelWorkbook](Test-OfficeExcelWorkbook.md)
 Runs OfficeIMO workbook diagnostics and optional safe repairs.
+
+### [Test-OfficeInvoice](Test-OfficeInvoice.md)
+Validates an invoice model or exact XML bytes against caller-supplied authority rules.
 
 ### [Test-OfficePdfRewrite](Test-OfficePdfRewrite.md)
 Creates a proof report for user-visible signals preserved by a PDF rewrite.

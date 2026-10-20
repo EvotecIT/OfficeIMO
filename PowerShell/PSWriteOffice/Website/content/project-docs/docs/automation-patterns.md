@@ -36,6 +36,28 @@ For object workflows, create with `-NoSave`, apply the complete change set, then
 
 For Reader and conversion batches, limit concurrency based on document size and native-memory pressure. Capture failures per file so one malformed input does not erase evidence for the rest of the batch.
 
-## Use the generated surface
+## Convert one file or a selected batch
+
+`ConvertTo-OfficeDocument` uses the shared OfficeIMO runner. A destination extension selects the single-file target; a batch uses `-TargetExtension`. Existing output is preserved by default. Choose `Rename` or `Replace` explicitly when a job needs a different conflict policy. General conversion jobs require PowerShell 7.4 or newer.
+
+```powershell
+Import-Module PSWriteOffice
+ConvertTo-OfficeDocument -InputPath ./report.pdf -OutputPath ./report.docx
+Get-ChildItem ./reports -Filter *.pdf |
+    ConvertTo-OfficeDocument -OutputDirectory ./word -TargetExtension docx -ItemResults
+```
+
+Use `-CheckpointDirectory` for resumable directory jobs and retain the per-file results. `Get-OfficeConversionRoute -Executable` lists routes registered by the current host; their loss policies still apply.
+
+## Work with native document families
+
+Project tasks, Access rows, EPUB chapters and invoice lines accept ordinary PowerShell parameters and object pipelines. The [native document example](https://github.com/EvotecIT/OfficeIMO/blob/master/PowerShell/PSWriteOffice/Examples/Workflows/Example-NativeDocumentFamilies.ps1) creates and reads these artifacts without constructing .NET option objects.
+
+- Use `New-OfficeProject`, task/resource/assignment commands and `Invoke-OfficeProjectSchedule` to prepare a schedule. XML preserves the supported scheduling model; native MPP saves assess generation-specific loss. Inspect `-ReportVariable` and opt into `-AllowLoss` only after reviewing the reported reductions.
+- Use `New-OfficeAccess` and table/column/row commands for a native MDB or ACCDB table database. The file operations remain inert: they do not start ACE, run SQL, or execute database code.
+- Use `New-OfficeEpub`, `Add-OfficeEpubChapter` and `Add-OfficeEpubResource` to compose a publication. Plain chapter text is escaped; XHTML and Markdown are explicit alternatives.
+- Use `New-OfficeInvoiceParty`, `New-OfficeInvoice` and `Add-OfficeInvoiceLine` for XML and hybrid PDF output. Editing an imported invoice retains source evidence. `Set-OfficeInvoice -RecalculateTotals` explicitly clears captured amounts so the owner can recompute them; currency conversion is never inferred. File-based authority validation needs caller-supplied pinned rule archives and any required external validator.
+
+## Find exact parameters
 
 The [command reference](/api/powershell/) is the authoritative parameter contract. The [examples](https://github.com/EvotecIT/OfficeIMO/tree/master/PowerShell/PSWriteOffice/Examples) demonstrate complete job shapes. Pin the module version in production automation and review release notes before changing that pin.

@@ -9,14 +9,9 @@ schema: 2.0.0
 Configures Factur-X/ZUGFeRD e-invoice groundwork on a generated PDF document.
 
 ## SYNTAX
-### Context (Default)
+### __AllParameterSets
 ```powershell
-Set-OfficePdfElectronicInvoice [-Path] <string> [-Profile <PdfComplianceProfile>] [-ConformanceLevel <string>] [-Version <string>] [-Relationship <PdfAssociatedFileRelationship>] [-Description <string>] [-PassThru] [<CommonParameters>]
-```
-
-### Document
-```powershell
-Set-OfficePdfElectronicInvoice [-Path] <string> -Document <PdfDocument> [-Profile <PdfComplianceProfile>] [-ConformanceLevel <string>] [-Version <string>] [-Relationship <PdfAssociatedFileRelationship>] [-Description <string>] [-PassThru] [<CommonParameters>]
+Set-OfficePdfElectronicInvoice [-Path] <string> [-Profile <PdfComplianceProfile>] [-ConformanceLevel <string>] [-Version <string>] [-Relationship <PdfAssociatedFileRelationship>] [-Description <string>] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
@@ -41,7 +36,7 @@ Factur-X/ZUGFeRD conformance level written to XMP metadata.
 
 ```yaml
 Type: String
-Parameter Sets: Context, Document
+Parameter Sets: __AllParameterSets
 Aliases: None
 Possible values:
 
@@ -57,39 +52,7 @@ Optional human-readable attachment description.
 
 ```yaml
 Type: String
-Parameter Sets: Context, Document
-Aliases: None
-Possible values:
-
-Required: False
-Position: named
-Default value: None
-Accept pipeline input: False
-Accept wildcard characters: False
-```
-
-### -Document
-Compatibility parameter. Electronic-invoice options must be declared inside New-OfficePdf.
-
-```yaml
-Type: PdfDocument
-Parameter Sets: Document
-Aliases: None
-Possible values:
-
-Required: True
-Position: named
-Default value: None
-Accept pipeline input: True (ByValue)
-Accept wildcard characters: False
-```
-
-### -PassThru
-Emit the updated document.
-
-```yaml
-Type: SwitchParameter
-Parameter Sets: Context, Document
+Parameter Sets: __AllParameterSets
 Aliases: None
 Possible values:
 
@@ -105,7 +68,7 @@ CrossIndustryInvoice XML file path to embed as canonical factur-x.xml.
 
 ```yaml
 Type: String
-Parameter Sets: Context, Document
+Parameter Sets: __AllParameterSets
 Aliases: FilePath, XmlPath, InvoiceXmlPath
 Possible values:
 
@@ -121,7 +84,7 @@ E-invoice profile to prepare.
 
 ```yaml
 Type: PdfComplianceProfile
-Parameter Sets: Context, Document
+Parameter Sets: __AllParameterSets
 Aliases: None
 Possible values: None, PdfA2B, PdfA2U, PdfA2A, PdfA3B, PdfA3U, PdfA3A, PdfUa1, FacturX, Zugferd, PdfA4, PdfA4E, PdfA4F, PdfUa2, PdfX1A2003, PdfX4
 
@@ -137,7 +100,7 @@ Associated-file relationship for the embedded XML payload.
 
 ```yaml
 Type: PdfAssociatedFileRelationship
-Parameter Sets: Context, Document
+Parameter Sets: __AllParameterSets
 Aliases: None
 Possible values: Unspecified, Source, Data, Alternative, Supplement, C2paManifest
 
@@ -153,7 +116,7 @@ Factur-X/ZUGFeRD schema version written to XMP metadata.
 
 ```yaml
 Type: String
-Parameter Sets: Context, Document
+Parameter Sets: __AllParameterSets
 Aliases: None
 Possible values:
 
@@ -169,11 +132,11 @@ This cmdlet supports the common parameters: -Debug, -ErrorAction, -ErrorVariable
 
 ## INPUTS
 
-- `OfficeIMO.Pdf.PdfDocument`
+- `None`
 
 ## OUTPUTS
 
-- `OfficeIMO.Pdf.PdfDocument`
+- `None`
 
 ## RELATED LINKS
 
