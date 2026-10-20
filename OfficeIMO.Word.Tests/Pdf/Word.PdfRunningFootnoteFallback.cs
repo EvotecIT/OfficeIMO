@@ -92,7 +92,7 @@ public partial class Word {
             Assert.Equal("footnoteReference", error.NodeName);
         });
         Assert.Equal(authoredHeaders.Select(part => part.Uri.ToString()).OrderBy(uri => uri, StringComparer.Ordinal),
-            errors.Select(error => error.PartUri).OrderBy(uri => uri, StringComparer.Ordinal));
+            errors.Select(error => Assert.IsType<string>(error.PartUri)).OrderBy(uri => uri, StringComparer.Ordinal));
     }
 
     private static WordDocument CreateMalformedRunningFootnoteInput(bool activeReference) {
