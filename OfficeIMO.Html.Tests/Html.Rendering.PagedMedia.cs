@@ -729,20 +729,24 @@ public sealed partial class HtmlRenderingTests {
     }
 
     [Fact]
-    public void HtmlPagedMedia_ResolvesMarginBoxViewportUnitsAgainstMatchedPageMaster() {
+    public void HtmlPagedMedia_ResolvesMarginBoxViewportUnitsAgainstConfiguredPrintPaper() {
         const string html = """
             <style>
               @page { size:300px 180px; margin:30px; }
-              @page report { size:200px 120px; @top-center { content:"Report"; font-size:10vw; } }
+              @page report { size:200px 120px; @top-center { content:"Report"; font-size:5vw; } }
             </style>
             <section style="page:report">Body</section>
             """;
 
-        HtmlRenderPage page = Assert.Single(HtmlRenderTestDriver.Render(html, new HtmlRenderOptions { Mode = HtmlRenderMode.Paged }).Pages);
+        var options = new HtmlRenderOptions {
+            Mode = HtmlRenderMode.Paged,
+            PageSize = new OfficePageSize(360D / 96D, 480D / 96D)
+        };
+        HtmlRenderPage page = Assert.Single(HtmlRenderTestDriver.Render(html, options).Pages);
         HtmlRenderText margin = Assert.Single(page.Visuals.OfType<HtmlRenderText>(), text => text.SemanticRole == "page-margin" && text.Text == "Report");
 
         Assert.Equal(200D, page.Width);
-        Assert.Equal(20D, margin.Font.Size, 3);
+        Assert.Equal(18D, margin.Font.Size, 3);
     }
 
     [Fact]

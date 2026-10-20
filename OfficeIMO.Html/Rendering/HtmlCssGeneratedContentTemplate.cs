@@ -101,12 +101,12 @@ internal sealed class HtmlCssGeneratedContentTemplate {
         while (cursor < value.Length) {
             char current = value[cursor++];
             if (current == quote) {
-                text = result.ToString();
+                text = HtmlCssEscapeDecoder.Decode(result.ToString());
                 return true;
             }
 
-            if (current == '\\' && cursor < value.Length) current = value[cursor++];
-            result.Append(current);
+            if (current == '\\' && cursor < value.Length) result.Append(current).Append(value[cursor++]);
+            else result.Append(current);
         }
 
         text = string.Empty;
