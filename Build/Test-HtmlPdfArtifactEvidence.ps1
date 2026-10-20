@@ -23,10 +23,18 @@ $browserCommit = $null
 $inputHash = $null
 $inputSize = $null
 $commonTextLength = $null
+$evidenceSchemaVersion = $null
+# Schema 2 is retained only for these unchanged committed archive payloads.
+# Hashes cover UTF-8 JSON with LF newlines; source freshness checks still apply.
+$archivedSchema2SummaryHashes = @{
+    windows = '209fa7a7c5a234e424c68494b98247ddb4c1e791f92c3b57ce1c2ee12d99c190'
+    linux = '3103b6ca59634827daf2dc380acfcc293ce1d14739499fc96e1ab3b46a63ef28'
+}
 
 foreach ($platform in @('windows', 'linux')) {
     $path = Join-Path $resolvedEvidenceRoot "html-pdf-artifact-evidence-net10.0-$platform-high.json"
-    $summary = Get-Content -LiteralPath $path -Raw | ConvertFrom-Json
+    $summaryJson = Get-Content -LiteralPath $path -Raw
+    $summary = $summaryJson | ConvertFrom-Json
     $report = $summary.report
     if ($summary.schemaVersion -ne 1 -or
         [string] $summary.format -ne 'officeimo.html-pdf-artifact-evidence-summary' -or
@@ -57,14 +65,37 @@ foreach ($platform in @('windows', 'linux')) {
     }
 
     $expectedOs = $platform -eq 'windows' ? 'windows' : 'linux|ubuntu'
-    if ($report.schemaVersion -ne 2 -or
+    if (($report.schemaVersion -isnot [int] -and $report.schemaVersion -isnot [long]) -or
+        $report.schemaVersion -notin @(2, 3) -or
         [string] $report.scale -ne 'High' -or
         [int] $report.iterations -ne 3 -or
         [string] $report.environment.osDescription -notmatch "(?i)$expectedOs" -or
         [string] $report.environment.externalRasterizer -notmatch '^pdftoppm version ' -or
         $report.provenance.officeIMO.worktreeClean -ne $true -or
         $report.provenance.htmlTinkerX.worktreeClean -ne $true) {
-        throw "Committed $platform HTML/PDF artifact report has invalid scale, environment, or provenance."
+        throw "Committed $platform HTML/PDF artifact report has invalid schema, scale, environment, or provenance."
+    }
+
+    $currentSchemaVersion = [int] $report.schemaVersion
+    if ($null -eq $evidenceSchemaVersion) {
+        $evidenceSchemaVersion = $currentSchemaVersion
+    } elseif ($evidenceSchemaVersion -ne $currentSchemaVersion) {
+        throw 'Windows and Linux HTML/PDF artifact evidence must use the same report schema.'
+    }
+    if ($currentSchemaVersion -eq 2) {
+        $archiveHash = [Convert]::ToHexString(
+            [System.Security.Cryptography.SHA256]::HashData(
+                [System.Text.Encoding]::UTF8.GetBytes($summaryJson.Replace("`r`n", "`n")))).ToLowerInvariant()
+        if ($archiveHash -ne $archivedSchema2SummaryHashes[$platform]) {
+            throw "Schema-2 $platform evidence must match the unchanged committed archive."
+        }
+    } else {
+        $allEnginesComparable = $report.PSObject.Properties['allEnginesComparable']
+        if ($null -eq $allEnginesComparable -or
+            $allEnginesComparable.Value -isnot [bool] -or
+            $allEnginesComparable.Value -ne $true) {
+            throw "Committed $platform schema-3 evidence has not admitted all engines for comparison."
+        }
     }
 
     $currentOfficeCommit = [string] $report.provenance.officeIMO.commit
@@ -94,6 +125,28 @@ foreach ($platform in @('windows', 'linux')) {
 
     foreach ($engineName in $expectedEngines) {
         $engine = @($engines | Where-Object engine -eq $engineName)[0]
+        if ($currentSchemaVersion -eq 3) {
+            foreach ($propertyName in @('status', 'requestedIterations', 'notRunAfterRejection',
+                    'timingComparable', 'memoryComparable', 'failures', 'determinism')) {
+                $property = $engine.PSObject.Properties[$propertyName]
+                if ($null -eq $property -or $null -eq $property.Value) {
+                    throw "Committed $platform $engineName schema-3 evidence lacks '$propertyName'."
+                }
+            }
+            if ($engine.status -cne 'Passed' -or
+                ($engine.requestedIterations -isnot [int] -and $engine.requestedIterations -isnot [long]) -or
+                $engine.requestedIterations -ne $report.iterations -or
+                ($engine.notRunAfterRejection -isnot [int] -and $engine.notRunAfterRejection -isnot [long]) -or
+                $engine.notRunAfterRejection -ne 0 -or
+                $engine.timingComparable -isnot [bool] -or
+                $engine.timingComparable -ne $true -or
+                $engine.memoryComparable -isnot [bool] -or
+                $engine.memoryComparable -ne $true -or
+                $engine.failures -isnot [array] -or
+                $engine.failures.Count -ne 0) {
+                throw "Committed $platform $engineName schema-3 evidence is rejected, incomplete, or noncomparable."
+            }
+        }
         $cancellation = $expectedCancellation[$engineName]
         if ($engine.memoryComparable -ne $true -or
             $engine.cancellation.apiSupportsCancellation -ne $cancellation.Supports -or
@@ -108,11 +161,14 @@ foreach ($platform in @('windows', 'linux')) {
         }
 
         $outputs = @($engine.outputs)
-        if ($outputs.Count -ne 3) {
-            throw "Committed $platform $engineName evidence must contain three fresh-worker outputs."
+        $actualIterations = @($outputs | Sort-Object iteration | ForEach-Object { $_.iteration }) -join '|'
+        $expectedIterations = @(1..$report.iterations) -join '|'
+        if ($outputs.Count -ne $report.iterations -or $actualIterations -cne $expectedIterations) {
+            throw "Committed $platform $engineName evidence must contain exactly iterations $expectedIterations."
         }
         foreach ($output in $outputs) {
-            if ($output.durationMilliseconds -le 0 -or
+            if (($output.iteration -isnot [int] -and $output.iteration -isnot [long]) -or
+                $output.durationMilliseconds -le 0 -or
                 $output.sizeBytes -le 0 -or
                 $output.managedAllocatedBytes -le 0 -or
                 [string] $output.sha256 -notmatch '^[0-9a-f]{64}$' -or
@@ -182,4 +238,5 @@ if ($untrackedMeasuredPaths.Count -ne 0) {
     throw "Measured HTML/PDF artifact sources contain untracked files: $($untrackedMeasuredPaths -join ', ')"
 }
 
-Write-Host "Current-source Windows/Linux HTML/PDF artifact evidence verified at OfficeIMO $officeCommit and HtmlTinkerX $browserCommit."
+$schemaDescription = if ($evidenceSchemaVersion -eq 2) { 'archived schema-2 contract' } else { 'schema-3 admission contract' }
+Write-Host "Current-source Windows/Linux HTML/PDF artifact evidence verified with $schemaDescription at OfficeIMO $officeCommit and HtmlTinkerX $browserCommit."

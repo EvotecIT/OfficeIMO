@@ -8,47 +8,23 @@ internal sealed partial class HtmlRenderLayoutEngine {
         ICollection<HtmlRenderVisual> visuals,
         IElement table,
         HtmlRenderBoxStyle tableStyle,
+        CollapsedTableBorderLayout? borderLayout,
         IReadOnlyList<TableRowLayout> rows,
         IReadOnlyList<double> columnWidths,
         IReadOnlyList<double> columnOffsets,
         double x,
         double y) {
-        var winners = new Dictionary<CollapsedBorderKey, CollapsedBorderCandidate>();
-        int sourceOrder = 0;
+        if (borderLayout == null) return;
         bool rtl = tableStyle.Direction == "rtl";
         double gridWidth = columnWidths.Sum();
-        AddHorizontalBorderRange(winners, 0, 0, columnWidths.Count, tableStyle.Borders.Top, CollapsedBorderOrigin.Table, ref sourceOrder);
-        AddHorizontalBorderRange(winners, rows.Count, 0, columnWidths.Count, tableStyle.Borders.Bottom, CollapsedBorderOrigin.Table, ref sourceOrder);
-        AddVerticalBorderRange(winners, rtl ? columnWidths.Count : 0, 0, rows.Count, tableStyle.Borders.Left, CollapsedBorderOrigin.Table, ref sourceOrder);
-        AddVerticalBorderRange(winners, rtl ? 0 : columnWidths.Count, 0, rows.Count, tableStyle.Borders.Right, CollapsedBorderOrigin.Table, ref sourceOrder);
-
-        AddCollapsedColumnBorders(winners, table, tableStyle, rows.Count, columnWidths.Count, gridWidth, ref sourceOrder);
-        AddCollapsedRowGroupBorders(winners, rows, columnWidths.Count, rtl, ref sourceOrder);
-        for (int rowIndex = 0; rowIndex < rows.Count; rowIndex++) {
-            HtmlRenderBorderEdges rowBorders = rows[rowIndex].Style.Borders;
-            AddHorizontalBorderRange(winners, rowIndex, 0, columnWidths.Count, rowBorders.Top, CollapsedBorderOrigin.Row, ref sourceOrder);
-            AddHorizontalBorderRange(winners, rowIndex + 1, 0, columnWidths.Count, rowBorders.Bottom, CollapsedBorderOrigin.Row, ref sourceOrder);
-            AddVerticalBorderRange(winners, rtl ? columnWidths.Count : 0, rowIndex, rowIndex + 1, rowBorders.Left, CollapsedBorderOrigin.Row, ref sourceOrder);
-            AddVerticalBorderRange(winners, rtl ? 0 : columnWidths.Count, rowIndex, rowIndex + 1, rowBorders.Right, CollapsedBorderOrigin.Row, ref sourceOrder);
-            foreach (TableCellLayout cell in rows[rowIndex].Cells) {
-                for (int column = cell.Column; column < cell.Column + cell.Span && column < columnWidths.Count; column++) {
-                    AddCollapsedBorderCandidate(winners, new CollapsedBorderKey(true, rowIndex, column), cell.Style.Borders.Top, CollapsedBorderOrigin.Cell, sourceOrder++, cell.Column, rowIndex);
-                    AddCollapsedBorderCandidate(winners, new CollapsedBorderKey(true, rowIndex + cell.RowSpan, column), cell.Style.Borders.Bottom, CollapsedBorderOrigin.Cell, sourceOrder++, cell.Column, rowIndex);
-                }
-                for (int row = rowIndex; row < rowIndex + cell.RowSpan && row < rows.Count; row++) {
-                    AddCollapsedBorderCandidate(winners, new CollapsedBorderKey(false, rtl ? cell.Column + cell.Span : cell.Column, row), cell.Style.Borders.Left, CollapsedBorderOrigin.Cell, sourceOrder++, cell.Column, rowIndex);
-                    AddCollapsedBorderCandidate(winners, new CollapsedBorderKey(false, rtl ? cell.Column : cell.Column + cell.Span, row), cell.Style.Borders.Right, CollapsedBorderOrigin.Cell, sourceOrder++, cell.Column, rowIndex);
-                }
-            }
-        }
-
         double[] rowOffsets = new double[rows.Count + 1];
         for (int row = 1; row < rowOffsets.Length; row++) rowOffsets[row] = rowOffsets[row - 1] + rows[row - 1].Height;
         string source = HtmlRenderStyleResolver.DescribeSource(table) + ":collapsed-border";
-        foreach (KeyValuePair<CollapsedBorderKey, CollapsedBorderCandidate> entry in winners
+        foreach (KeyValuePair<CollapsedBorderKey, CollapsedBorderCandidate> entry in borderLayout.Winners
             .OrderBy(pair => pair.Key.Horizontal ? 0 : 1)
             .ThenBy(pair => pair.Key.Boundary)
             .ThenBy(pair => pair.Key.Segment)) {
+            CheckCancellation();
             HtmlRenderBorderSide border = entry.Value.Border;
             if (!border.IsPainted) continue;
             CollapsedBorderKey key = entry.Key;
@@ -75,6 +51,29 @@ internal sealed partial class HtmlRenderLayoutEngine {
                     border,
                     source + "-v-" + key.Boundary + "-" + key.Segment);
             }
+        }
+    }
+
+    /// <summary>Retains a resumed body's original grid edge alongside a separately repeated row group.</summary>
+    private void AddCollapsedTableHorizontalBoundary(
+        ICollection<HtmlRenderVisual> visuals,
+        CollapsedTableBorderLayout sourceBorders,
+        int boundary,
+        IReadOnlyList<double> columnWidths,
+        IReadOnlyList<double> columnOffsets,
+        double x,
+        double y,
+        bool rtl,
+        string source) {
+        double gridWidth = columnWidths.Sum();
+        for (int segment = 0; segment < columnWidths.Count; segment++) {
+            CheckCancellation();
+            if (!sourceBorders.Winners.TryGetValue(new CollapsedBorderKey(true, boundary, segment),
+                out CollapsedBorderCandidate winner) || !winner.Border.IsPainted) continue;
+            AddCollapsedBorderLine(visuals, horizontal: true,
+                x + (rtl ? gridWidth - columnOffsets[segment] - columnWidths[segment] : columnOffsets[segment]),
+                y, columnWidths[segment], winner.Border,
+                source + ":collapsed-border-h-continuation-" + boundary + "-" + segment);
         }
     }
 
@@ -173,7 +172,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
 
     private void AddCollapsedRowGroupBorders(
         IDictionary<CollapsedBorderKey, CollapsedBorderCandidate> winners,
-        IReadOnlyList<TableRowLayout> rows,
+        IReadOnlyList<TableFormattingRow> rows,
         int columnCount,
         bool rtl,
         ref int sourceOrder) {
@@ -229,6 +228,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
         int sourceOrder,
         int inlineStart = 0,
         int blockStart = 0) {
+        CheckCancellation();
+        ChargeLayoutOperation("collapsed-table-border");
         if (border.Style == "none") return;
         var candidate = new CollapsedBorderCandidate(border, origin, sourceOrder, inlineStart, blockStart);
         if (winners.TryGetValue(key, out CollapsedBorderCandidate current)) {
@@ -303,11 +304,11 @@ internal sealed partial class HtmlRenderLayoutEngine {
             AddCollapsedBorderStroke(
                 visuals, horizontal, horizontal ? x : x - offset, horizontal ? y - offset : y, length,
                 ResolveThreeDimensionalColor(border.Color, border.Style, edge, inner: false),
-                threeDimensionalStrokeWidth, "solid", source + "-outer");
+                threeDimensionalStrokeWidth, "solid", source + "-outer", y);
             AddCollapsedBorderStroke(
                 visuals, horizontal, horizontal ? x : x + offset, horizontal ? y + offset : y, length,
                 ResolveThreeDimensionalColor(border.Color, border.Style, edge, inner: true),
-                threeDimensionalStrokeWidth, "solid", source + "-inner");
+                threeDimensionalStrokeWidth, "solid", source + "-inner", y);
             return;
         }
         if (border.Style != "double") {
@@ -315,9 +316,11 @@ internal sealed partial class HtmlRenderLayoutEngine {
             return;
         }
         double strokeWidth = Math.Max(0.01D, border.Width / 3D);
-        AddCollapsedBorderStroke(visuals, horizontal, x, y, length, border.Color, strokeWidth, "solid", source + "-outer");
-        double inset = border.Width * 2D / 3D;
-        AddCollapsedBorderStroke(visuals, horizontal, horizontal ? x : x + inset, horizontal ? y + inset : y, length, border.Color, strokeWidth, "solid", source + "-inner");
+        double doubleOffset = border.Width / 3D;
+        AddCollapsedBorderStroke(visuals, horizontal, horizontal ? x : x - doubleOffset, horizontal ? y - doubleOffset : y,
+            length, border.Color, strokeWidth, "solid", source + "-outer", y);
+        AddCollapsedBorderStroke(visuals, horizontal, horizontal ? x : x + doubleOffset, horizontal ? y + doubleOffset : y,
+            length, border.Color, strokeWidth, "solid", source + "-inner", y);
     }
 
     private static void AddCollapsedBorderStroke(
@@ -329,20 +332,23 @@ internal sealed partial class HtmlRenderLayoutEngine {
         OfficeColor color,
         double width,
         string style,
-        string source) {
+        string source,
+        double? horizontalBoundaryY = null) {
         OfficeShape shape = horizontal
             ? OfficeShape.Line(0D, 0D, length, 0.0001D)
             : OfficeShape.Line(0D, 0D, 0.0001D, length);
         shape.StrokeColor = color;
         shape.StrokeWidth = width;
         shape.StrokeDashStyle = MapStrokeDashStyle(style);
+        shape.StrokeLineCap = style == "dotted" ? OfficeStrokeLineCap.Round : OfficeStrokeLineCap.Butt;
         shape.FillColor = null;
         // The painted horizontal line is almost flat, but pagination must retain
         // its stroke extent when a table is sliced between rows.
         double layoutHeight = horizontal ? Math.Max(0.01D, width) : shape.Height;
         double layoutY = horizontal ? y - layoutHeight / 2D : y;
         visuals.Add(new HtmlRenderShape(shape, x, y, visuals.Count, source: source,
-            layoutY: layoutY, layoutHeight: layoutHeight));
+            layoutY: layoutY, layoutHeight: layoutHeight, isCollapsedTableBorder: true,
+            collapsedBorderBoundaryY: horizontal ? horizontalBoundaryY ?? y : null));
     }
 
     private enum CollapsedBorderOrigin {

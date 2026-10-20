@@ -292,30 +292,59 @@ public sealed partial class HtmlRenderingTests {
     }
 
     [Theory]
-    [InlineData("break-before:page", 200D)]
-    [InlineData("page:next", 300D)]
-    public void HtmlTablePercentageHeights_FinalRepeatedFooterHonorsFollowingPageBoundaries(string followingStyle, double followingPageWidth) {
-        string html = TableGeometrySource("<style>@page{size:200px 250px;margin:0}@page next{size:300px 250px;margin:0}</style>"
+    [InlineData("break-before:page", 200D, 3)]
+    [InlineData("page:next", 300D, 3)]
+    [InlineData("page:same", 200D, 3)]
+    [InlineData("break-before:right", 200D, 3)]
+    [InlineData("break-before:left", 200D, 4)]
+    public void HtmlTablePercentageHeights_FinalRepeatedFooterHonorsFollowingPageBoundaries(
+        string followingStyle, double followingPageWidth, int expectedPages) {
+        string html = FinalRepeatedFooterBoundarySource(
+            "<div id='next' style='height:20px;background:red;" + followingStyle + "'>Next</div>");
+        var options = TableGeometryOptions();
+        options.Mode = HtmlRenderMode.Paged;
+        options.HonorCssPageRules = true;
+        options.MaxPageCount = expectedPages;
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, options);
+
+        Assert.Equal(expectedPages, rendered.Pages.Count);
+        Assert.Equal(followingPageWidth, rendered.Pages[expectedPages - 1].Width, 3);
+        Assert.Equal(0D, TableGeometryShape(rendered, "div#next").Y, 3);
+        Assert.Single(rendered.Pages[expectedPages - 1].Visuals.OfType<HtmlRenderText>(), text => text.Text == "Next");
+        Assert.Equal(2, rendered.Pages.SelectMany(page => page.Visuals).OfType<HtmlRenderText>().Count(text => text.Text == "Header"));
+        Assert.Equal(2, rendered.Pages.SelectMany(page => page.Visuals).OfType<HtmlRenderText>().Count(text => text.Text == "Footer"));
+        rendered.RequireNoLoss();
+    }
+
+    [Fact]
+    public void HtmlTablePercentageHeights_FinalFooterRetainsDistinctEmptySuccessorBoundaries() {
+        string html = FinalRepeatedFooterBoundarySource(
+            "<div style='break-before:page;break-after:page'></div><div id='next'>Next</div>");
+        var options = TableGeometryOptions();
+        options.Mode = HtmlRenderMode.Paged;
+        options.HonorCssPageRules = true;
+        options.MaxPageCount = 4;
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, options);
+
+        Assert.Equal(4, rendered.Pages.Count);
+        Assert.Empty(rendered.Pages[2].Visuals.OfType<HtmlRenderText>());
+        Assert.Single(rendered.Pages[3].Visuals.OfType<HtmlRenderText>(), text => text.Text == "Next");
+        Assert.Equal(2, rendered.Pages.SelectMany(page => page.Visuals).OfType<HtmlRenderText>().Count(text => text.Text == "Header"));
+        Assert.Equal(2, rendered.Pages.SelectMany(page => page.Visuals).OfType<HtmlRenderText>().Count(text => text.Text == "Footer"));
+        foreach (string text in new[] { "Body1", "Body2", "Body3", "Next" })
+            Assert.Single(rendered.Pages.SelectMany(page => page.Visuals).OfType<HtmlRenderText>(), item => item.Text == text);
+        rendered.RequireNoLoss();
+    }
+
+    private static string FinalRepeatedFooterBoundarySource(string following) =>
+        TableGeometrySource("<style>@page{size:200px 250px;margin:0}"
+            + "@page next{size:300px 250px;margin:0}@page same{size:200px 250px;margin:0}</style>"
             + "<table style='height:400px;width:180px;margin:0;border-spacing:0'>"
             + "<thead><tr style='height:20px'><th style='padding:0'>Header</th></tr></thead><tbody>"
             + "<tr style='height:80px'><td style='padding:0'>Body1</td></tr>"
             + "<tr style='height:120px'><td style='padding:0'>Body2</td></tr>"
             + "<tr style='height:160px'><td style='padding:0'>Body3</td></tr></tbody>"
-            + "<tfoot><tr style='height:20px'><td style='padding:0'>Footer</td></tr></tfoot></table>"
-            + "<div id='next' style='height:20px;background:red;" + followingStyle + "'>Next</div>");
-        var options = TableGeometryOptions();
-        options.Mode = HtmlRenderMode.Paged;
-        options.HonorCssPageRules = true;
-        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, options);
-
-        Assert.Equal(3, rendered.Pages.Count);
-        Assert.Equal(followingPageWidth, rendered.Pages[2].Width, 3);
-        Assert.Equal(0D, TableGeometryShape(rendered, "div#next").Y, 3);
-        Assert.Single(rendered.Pages[2].Visuals.OfType<HtmlRenderText>(), text => text.Text == "Next");
-        Assert.Equal(2, rendered.Pages.SelectMany(page => page.Visuals).OfType<HtmlRenderText>().Count(text => text.Text == "Header"));
-        Assert.Equal(2, rendered.Pages.SelectMany(page => page.Visuals).OfType<HtmlRenderText>().Count(text => text.Text == "Footer"));
-        rendered.RequireNoLoss();
-    }
+            + "<tfoot><tr style='height:20px'><td style='padding:0'>Footer</td></tr></tfoot></table>" + following);
 
     [Fact]
     public void HtmlTablePercentageHeights_FollowingInlineContentAndRunningStringStayOnTheFinalFooterPage() {

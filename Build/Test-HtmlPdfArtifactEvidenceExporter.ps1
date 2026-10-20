@@ -7,12 +7,14 @@ $osDescription = $isWindowsHost ? 'Windows contract-test host' : 'Linux contract
 $temporaryRoot = Join-Path ([System.IO.Path]::GetTempPath()) (
     'officeimo-html-pdf-artifact-exporter-' + [Guid]::NewGuid().ToString('N'))
 $pdfProjectPath = Join-Path $PSScriptRoot '../OfficeIMO.Pdf/OfficeIMO.Pdf.csproj'
-$pdfAssemblyPath = Join-Path $PSScriptRoot '../OfficeIMO.Pdf/bin/Release/net10.0/OfficeIMO.Pdf.dll'
+if ([System.Environment]::Version.Major -lt 8) { throw 'PDF artifact inspection requires PowerShell on .NET 8 or later.' }
+$inspectionFramework = [System.Environment]::Version.Major -ge 10 ? 'net10.0' : 'net8.0'
+$pdfAssemblyPath = Join-Path $PSScriptRoot "../OfficeIMO.Pdf/bin/Release/$inspectionFramework/OfficeIMO.Pdf.dll"
 if (-not (Test-Path -LiteralPath $pdfAssemblyPath -PathType Leaf)) {
-    & dotnet build $pdfProjectPath -c Release -f net10.0 --nologo
+    & dotnet build $pdfProjectPath -c Release -f $inspectionFramework --nologo
     if ($LASTEXITCODE -ne 0) { throw 'Could not build OfficeIMO.Pdf for artifact-exporter contracts.' }
 }
-Add-Type -Path (Join-Path $PSScriptRoot '../OfficeIMO.Pdf/bin/Release/net10.0/OfficeIMO.Core.dll')
+Add-Type -Path (Join-Path $PSScriptRoot "../OfficeIMO.Pdf/bin/Release/$inspectionFramework/OfficeIMO.Core.dll")
 Add-Type -Path $pdfAssemblyPath
 
 function New-TestPdfBytes {
@@ -185,6 +187,11 @@ try {
             )
             [ordered]@{
                 engine = $engineName
+                status = 'Passed'
+                requestedIterations = 3
+                notRunAfterRejection = 0
+                timingComparable = $true
+                failures = @()
                 cancellation = [ordered]@{
                     apiSupportsCancellation = $engineName -in @('OfficeIMO', 'Chromium')
                     status = $engineName -in @('OfficeIMO', 'Chromium') ? 'Passed' : 'Unsupported'
@@ -208,9 +215,10 @@ try {
         }
     )
     $report = [ordered]@{
-        schemaVersion = 2
+        schemaVersion = 3
         scale = 'High'
         iterations = 3
+        allEnginesComparable = $true
         environment = [ordered]@{
             osFamily = $isWindowsHost ? 'Windows' : 'Linux'
             osDescription = $osDescription
@@ -242,6 +250,50 @@ try {
 
     $json = ($report | ConvertTo-Json -Depth 20).Replace("`r`n", "`n") + "`n"
     [System.IO.File]::WriteAllText($reportPath, $json, [System.Text.UTF8Encoding]::new($false))
+
+    # Admission rejections happen before reopening the already created fixtures.
+    $admittedReport = $report
+    $admittedJson = $report | ConvertTo-Json -Depth 20
+    $admissionCases = @(
+        @{ Name = 'legacy schema for new export'; Pattern = 'schema-v3'; Mutate = { param($value) $value.schemaVersion = 2 } }
+        @{ Name = 'false aggregate'; Pattern = 'aggregate comparison'; Mutate = { param($value) $value.allEnginesComparable = $false } }
+        @{ Name = 'missing aggregate'; Pattern = 'aggregate comparison'; Mutate = { param($value) $value.PSObject.Properties.Remove('allEnginesComparable') } }
+        @{ Name = 'rejected engine'; Pattern = 'not admitted'; Mutate = { param($value) $value.engines[0].status = 'Rejected' } }
+        @{ Name = 'failed engine'; Pattern = 'not admitted'; Mutate = { param($value) $value.engines[0].status = 'Failed' } }
+        @{ Name = 'requested iteration mismatch'; Pattern = 'not admitted'; Mutate = { param($value) $value.engines[0].requestedIterations = 4 } }
+        @{ Name = 'unrun iteration'; Pattern = 'not admitted'; Mutate = { param($value) $value.engines[0].notRunAfterRejection = 1 } }
+        @{ Name = 'null unrun count'; Pattern = 'not admitted'; Mutate = { param($value) $value.engines[0].notRunAfterRejection = $null } }
+        @{ Name = 'fractional requested iterations'; Pattern = 'not admitted'; Mutate = { param($value) $value.engines[0].requestedIterations = 3.1 } }
+        @{ Name = 'retained rejection'; Pattern = 'not admitted'; Mutate = { param($value) $value.engines[0].failures = @([pscustomobject]@{ iteration = 1; stage = 'ContractValidation' }) } }
+        @{ Name = 'missing failures'; Pattern = 'not admitted'; Mutate = { param($value) $value.engines[0].PSObject.Properties.Remove('failures') } }
+        @{ Name = 'null failures'; Pattern = 'not admitted'; Mutate = { param($value) $value.engines[0].failures = $null } }
+        @{ Name = 'noncomparable timing'; Pattern = 'not admitted'; Mutate = { param($value) $value.engines[0].timingComparable = $false } }
+        @{ Name = 'missing timing admission'; Pattern = 'not admitted'; Mutate = { param($value) $value.engines[0].PSObject.Properties.Remove('timingComparable') } }
+        @{ Name = 'noncomparable memory'; Pattern = 'not admitted'; Mutate = { param($value) $value.engines[0].memoryComparable = $false } }
+        @{ Name = 'null determinism'; Pattern = 'not admitted'; Mutate = { param($value) $value.engines[0].determinism = $null } }
+        @{ Name = 'duplicate iteration'; Pattern = 'exactly one output'; Mutate = { param($value) $value.engines[0].outputs[1].iteration = 1 } }
+        @{ Name = 'fractional output iteration'; Pattern = 'exactly one output'; Mutate = { param($value) $value.engines[0].outputs[2].iteration = 3.1 } }
+    )
+    foreach ($admissionCase in $admissionCases) {
+        $report = $admittedJson | ConvertFrom-Json
+        & $admissionCase.Mutate $report
+        $json = ($report | ConvertTo-Json -Depth 20).Replace("`r`n", "`n") + "`n"
+        [System.IO.File]::WriteAllText($reportPath, $json, [System.Text.UTF8Encoding]::new($false))
+        $rejected = $false
+        try {
+            & "$PSScriptRoot/Export-HtmlPdfArtifactEvidence.ps1" `
+                -EvidencePath $evidenceRoot `
+                -Platform $platform `
+                -OutputPath $outputPath
+        } catch {
+            if ($_.Exception.Message -notmatch $admissionCase.Pattern) { throw }
+            $rejected = $true
+        }
+        if (-not $rejected) {
+            throw "HTML/PDF artifact exporter accepted $($admissionCase.Name)."
+        }
+    }
+    $report = $admittedReport
 
     $report.provenance.officeIMO.worktreeClean = $false
     $json = ($report | ConvertTo-Json -Depth 20).Replace("`r`n", "`n") + "`n"

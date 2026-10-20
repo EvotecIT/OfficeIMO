@@ -3,33 +3,12 @@ using AngleSharp.Dom;
 namespace OfficeIMO.Html;
 
 internal sealed partial class HtmlRenderLayoutEngine {
-    private static bool IsSpecializedTableCell(IElement element) => IsReplacedImageElement(element)
-        || IsFormControlElement(element.LocalName) && !UsesButtonChildLayout(element);
-
     private HtmlInlineLayout LayoutTableCellContent(
         TableFormattingCell cell,
         double contentWidth,
         HtmlRenderBoxStyle style,
-        int depth,
-        bool paintSeparateBorders) {
-        if (cell.Nodes == null && IsSpecializedTableCell(cell.Element)) {
-            HtmlRenderBoxStyle boxStyle = style.Clone();
-            // Keep border layout insets here; the table retains the original
-            // edges for conflict resolution and owns their collapsed paint.
-            if (!paintSeparateBorders) boxStyle.Borders = boxStyle.Borders.WithUniformColor(OfficeIMO.Drawing.OfficeColor.Transparent);
-            boxStyle.MarginLeft = boxStyle.MarginRight = boxStyle.MarginTop = boxStyle.MarginBottom = 0D;
-            boxStyle.ExplicitWidth = contentWidth + (boxStyle.BorderBox ? boxStyle.HorizontalInsets : 0D);
-            boxStyle.ExplicitWidthUsesPercentage = false;
-            HtmlRenderFlowBlock box = IsReplacedImageElement(cell.Element)
-                ? LayoutImage(cell.Element, contentWidth + style.HorizontalInsets, boxStyle)
-                : LayoutFormControl(cell.Element, contentWidth + style.HorizontalInsets, boxStyle);
-            // The specialized renderer owns its complete box. Table content is
-            // translated from the content origin, so remove its inset once here.
-            double x = -style.BorderLeftWidth - style.PaddingLeft;
-            double y = -style.BorderTopWidth - style.PaddingTop;
-            return new HtmlInlineLayout(box.Visuals.Select(visual => visual.Translate(x, y, visual.PaintOrder)).ToArray(),
-                Math.Max(0D, box.Height - style.VerticalInsets), Array.Empty<double>(), box.RunningStringAssignments);
-        }
+        int depth) {
+        using var pageBoundaries = new DescendantPageBoundaryScope(this, retainsPageBoundaries: false);
         if (cell.Nodes == null && !HasBlockChildren(cell.Element, contentWidth, style, depth)) {
             return LayoutInlineNodes(cell.Element.ChildNodes, contentWidth, style, depth, null, cell.Element);
         }
@@ -40,15 +19,35 @@ internal sealed partial class HtmlRenderLayoutEngine {
         var visuals = new List<HtmlRenderVisual>();
         var paintLayers = new List<FlowPaintLayer>();
         var breakOffsets = new SortedSet<double>();
+        var safeBreakRanges = new List<HtmlRenderBreakRange>();
+        var avoidBreakRanges = new List<HtmlRenderAvoidBreakRange>();
+        var lineBreakGroups = new List<HtmlRenderLineBreakGroup>();
         double height = 0D;
-        foreach (HtmlRenderFlowBlock block in blocks) {
+        double paintExtent = 0D;
+        for (int index = 0; index < blocks.Count; index++) {
+            CheckCancellation();
+            ChargeLayoutOperation("table cell fragmentation metadata");
+            HtmlRenderFlowBlock block = blocks[index];
             double blockStart = height;
+            AppendKeepWithNextRange(blocks, index, blockStart, avoidBreakRanges);
             paintLayers.Add(new FlowPaintLayer(block, 0D, blockStart, paintLayers.Count));
             foreach (double offset in block.BreakOffsets) {
                 double translated = blockStart + offset;
                 if (translated > 0D) breakOffsets.Add(translated);
             }
-            height += block.Height;
+            safeBreakRanges.AddRange(block.SafeBreakRanges.Select(range => range.Translate(blockStart)));
+            paintExtent = Math.Max(paintExtent, blockStart + ResolveNormalFlowPaintExtent(block));
+            height += block.NormalFlowAdvance;
+            if (block.AvoidBreakInsideScope != HtmlFragmentationScope.None)
+                avoidBreakRanges.Add(new HtmlRenderAvoidBreakRange(blockStart, height, Scope: block.AvoidBreakInsideScope));
+            foreach (HtmlRenderAvoidBreakRange range in block.AvoidBreakRanges) {
+                ChargeLayoutOperation("table cell keep ranges");
+                avoidBreakRanges.Add(range.Translate(blockStart));
+            }
+            foreach (HtmlRenderLineBreakGroup group in block.LineBreakGroups) {
+                ChargeLayoutOperation("table cell line groups");
+                lineBreakGroups.Add(group.Translate(blockStart));
+            }
         }
 
         AppendFlowPaintLayers(visuals, paintLayers);
@@ -57,6 +56,10 @@ internal sealed partial class HtmlRenderLayoutEngine {
             height,
             breakOffsets,
             paintLayers.SelectMany(layer =>
-                layer.Block.RunningStringAssignments.Select(assignment => assignment.Translate(layer.Y))));
+                layer.Block.RunningStringAssignments.Select(assignment => assignment.Translate(layer.Y))),
+            lineBreakGroups: lineBreakGroups,
+            avoidBreakRanges: avoidBreakRanges,
+            pagedPaintExtent: paintExtent,
+            safeBreakRanges: safeBreakRanges);
     }
 }

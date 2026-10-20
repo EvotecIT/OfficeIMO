@@ -9,8 +9,12 @@ internal static class PdfHtmlScenarioBuilder {
     internal static string Create(PdfBenchmarkScenario scenario) {
         var html = new StringBuilder();
         AppendLine(html, "<!doctype html><html lang=\"en-US\"><head><meta charset=\"utf-8\"><style>");
+        AppendLine(html, "@font-face { font-family: Carlito; font-weight: 400; src: url(data:font/ttf;base64,"
+            + Convert.ToBase64String(PdfBenchmarkAssets.CarlitoRegular) + ") format('truetype'); }");
+        AppendLine(html, "@font-face { font-family: Carlito; font-weight: 700; src: url(data:font/ttf;base64,"
+            + Convert.ToBase64String(PdfBenchmarkAssets.CarlitoBold) + ") format('truetype'); }");
         AppendLine(html, "@page { size: A4; margin: 12mm; }");
-        AppendLine(html, "body { font-family: sans-serif; font-size: 9pt; color: #172033; margin: 0; }");
+        AppendLine(html, "body { font-family: Carlito; font-size: 9pt; color: #172033; margin: 0; }");
         AppendLine(html, ".report-page { break-after: page; page-break-after: always; }");
         AppendLine(html, ".report-page:last-child { break-after: auto; page-break-after: auto; }");
         AppendLine(html, "h1 { font-size: 18pt; margin: 0 0 8pt; } p { margin: 0 0 5pt; }");

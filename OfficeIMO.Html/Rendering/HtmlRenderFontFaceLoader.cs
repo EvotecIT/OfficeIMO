@@ -162,7 +162,7 @@ internal static class HtmlRenderFontFaceLoader {
                 continue;
             }
 
-            if (!IsFontContentType(contentType)) {
+            if (!HtmlResourceSession.IsAcceptedContentType(HtmlResourceKind.Font, contentType)) {
                 Report(HtmlRenderDiagnosticCodes.ResourceContentTypeRejected, "A font face source declared an incompatible media type.", source, contentType);
                 continue;
             }
@@ -295,14 +295,6 @@ internal static class HtmlRenderFontFaceLoader {
                 out obliqueAngle)
             && obliqueAngle > -90D
             && obliqueAngle < 90D;
-    }
-
-    private static bool IsFontContentType(string contentType) {
-        string normalized = (contentType ?? string.Empty).Split(';')[0].Trim();
-        return normalized.StartsWith("font/", StringComparison.OrdinalIgnoreCase)
-            || normalized.StartsWith("application/font-", StringComparison.OrdinalIgnoreCase)
-            || normalized.StartsWith("application/x-font-", StringComparison.OrdinalIgnoreCase)
-            || string.Equals(normalized, "application/octet-stream", StringComparison.OrdinalIgnoreCase);
     }
 
     private static bool IsCssStyleElement(IElement styleElement) {

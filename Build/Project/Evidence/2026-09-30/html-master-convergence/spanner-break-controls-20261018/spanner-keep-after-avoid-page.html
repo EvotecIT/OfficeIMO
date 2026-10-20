@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<title>spanner-keep-after-avoid-page</title>
+<style>
+@font-face{font-family:Witness;src:url(regular.ttf);font-weight:400}
+@font-face{font-family:Witness;src:url(bold.ttf);font-weight:700}
+@page{size:700px 140px;margin:20px}
+html,body{margin:0;background:white;font:14px/20px Witness}
+p{margin:0;orphans:1;widows:1}
+.columns{width:300px;column-count:2;column-gap:20px}
+.spanner{column-span:all;margin:0;font-weight:700;background:#eeeeee}
+</style>
+<p id="kapag-e01">KAPAG-E01</p>
+<p id="kapag-e02">KAPAG-E02</p>
+<section id="columns" class="columns" style="column-fill:auto">
+<p id="kapag-p01">KAPAG-P01</p>
+<p id="kapag-p02">KAPAG-P02</p>
+<p id="kapag-p03">KAPAG-P03</p>
+<p id="kapag-p04">KAPAG-P04</p>
+<p id="kapag-s01" class="spanner" style="break-after:avoid-page">KAPAG-S01</p>
+<p id="kapag-t01">KAPAG-T01</p>
+<p id="kapag-t02">KAPAG-T02</p>
+<p id="kapag-t03">KAPAG-T03</p>
+<p id="kapag-t04">KAPAG-T04</p>
+</section>
+<p id="after">KAPAG-AFTER</p>
+</html>

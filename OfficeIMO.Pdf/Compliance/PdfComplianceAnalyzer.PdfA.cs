@@ -49,7 +49,7 @@ internal static partial class PdfComplianceAnalyzer {
                 "Use PDF/A-3 or PDF/A-4f for arbitrary embedded files; PDF/A-2 embedded PDF/A validation is not supported by this generation gate.");
         }
         if (profile == PdfComplianceProfile.PdfA4F) {
-            Add(requirements, "pdfa4f-embedded-files", "PDF/A-4f embedded files", options.EmbeddedFileSnapshots.Any(),
+            Add(requirements, "pdfa4f-embedded-files", "PDF/A-4f embedded files", attachments.Length > 0,
                 "The catalog EmbeddedFiles tree contains an attachment.",
                 "PDF/A-4f requires an EmbeddedFiles catalog entry. Add at least one embedded file.");
         }

@@ -6,10 +6,12 @@ internal sealed partial class HtmlRenderLayoutEngine {
         double offset,
         IDictionary<HtmlRenderFlowBlock, double> atomicVisualBottoms,
         IDictionary<HtmlRenderFlowBlock, IReadOnlyList<(double Top, double Bottom)>> atomicVisualRanges,
-        double fullPageHeight = 0D) {
+        double fullPageHeight = 0D,
+        bool keepsAlreadyQualified = false) {
         if (offset <= 0.0001D || offset >= item.PagedPaintExtent - 0.0001D) return true;
         int precedingBreakIndex = UpperBound(item.BreakOffsets, offset + 0.0001D) - 1;
         if (precedingBreakIndex >= 0 && Math.Abs(item.BreakOffsets[precedingBreakIndex] - offset) <= 0.0001D) return true;
+        if (ContainsSafeBreakRange(item.SafeBreakRanges, offset)) return true;
         // A stretched item can have a large painted but content-free tail. Its background
         // may fragment while the neighboring column supplies the actual page break.
         if (!atomicVisualBottoms.TryGetValue(item, out double bottom)) {
@@ -22,10 +24,11 @@ internal sealed partial class HtmlRenderLayoutEngine {
         // sibling's legal break can also split this item in its unpainted space
         // between line boxes or child blocks, provided its own break constraints
         // and atomic visuals remain intact.
-        if ((item.AvoidBreakInside && (fullPageHeight <= 0D || item.PagedPaintExtent <= fullPageHeight + 0.0001D))
+        if (!keepsAlreadyQualified && ((item.AvoidBreakInside && (fullPageHeight <= 0D || item.PagedPaintExtent <= fullPageHeight + 0.0001D))
             || item.AvoidBreakRanges.Any(range =>
-                offset > range.Start + 0.0001D && offset < range.End - 0.0001D
-                && (fullPageHeight <= 0D || range.End - range.Start <= fullPageHeight + 0.0001D))) return false;
+                (range.Scope & HtmlFragmentationScope.Page) != 0
+                && offset > range.Start + 0.0001D && offset < range.End - 0.0001D
+                && (fullPageHeight <= 0D || range.End - range.Start <= fullPageHeight + 0.0001D)))) return false;
         if (!atomicVisualRanges.TryGetValue(item, out IReadOnlyList<(double Top, double Bottom)>? ranges)) {
             ranges = CollectAtomicParallelVisualRanges(item.Visuals);
             atomicVisualRanges[item] = ranges;
@@ -37,6 +40,17 @@ internal sealed partial class HtmlRenderLayoutEngine {
         int previousBreakIndex = UpperBound(item.BreakOffsets, offset - 0.0001D) - 1;
         if (previousBreakIndex < 0 || item.BreakOffsets[previousBreakIndex] <= 0.0001D) return false;
         return !CrossesAtomicParallelVisual(ranges, offset);
+    }
+
+    private static bool ContainsSafeBreakRange(IReadOnlyList<HtmlRenderBreakRange> ranges, double offset) {
+        int low = 0;
+        int high = ranges.Count;
+        while (low < high) {
+            int middle = low + ((high - low) >> 1);
+            if (ranges[middle].Start <= offset + 0.0001D) low = middle + 1;
+            else high = middle;
+        }
+        return low > 0 && ranges[low - 1].End >= offset - 0.0001D;
     }
 
     private static double LastAtomicParallelVisualBottom(IEnumerable<HtmlRenderVisual> visuals,

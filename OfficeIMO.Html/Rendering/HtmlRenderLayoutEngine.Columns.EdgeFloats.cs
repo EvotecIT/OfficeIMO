@@ -32,6 +32,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
             HtmlRenderFlowBlock body;
             _layingOutColumnEdgeFloatBody = true;
             try {
+                using var pageBoundaries = new DescendantPageBoundaryScope(this, retainsPageBoundaries: false);
                 body = LayoutElementWithoutEditableRegionMarker(element, _activeColumnWidth, bodyStyle,
                     parentStyle, depth + 1).ForPagination();
             } finally {
@@ -65,11 +66,11 @@ internal sealed partial class HtmlRenderLayoutEngine {
 
     /// <summary>Reserves only the anchor's column; monotonically defers figures when that column cannot contain them.</summary>
     private ColumnEdgeFloatPlan PlanColumnEdgeFloats(MultiColumnPlan body, IReadOnlyList<ColumnEdgeFloatEntry> entries,
-        double height, ColumnEdgeFloatPlan? previous, ColumnNotePlan? notes) {
+        double height, ColumnEdgeFloatPlan? previous, ColumnNotePlan? notes, ColumnPageBands? pageBands = null) {
         var placements = new Dictionary<string, ColumnEdgeFloatPlacement>(StringComparer.Ordinal);
         var reservations = new Dictionary<int, double>();
         foreach (ColumnEdgeFloatEntry entry in entries) {
-            int column = FindColumnFloatAnchor(body, entry.Anchor, height, out double anchorHeight);
+            int column = FindColumnFloatAnchor(body, entry.Anchor, pageBands?.FreshHeight ?? height, out double anchorHeight);
             int anchorColumn = column;
             if (column < 0) throw new InvalidOperationException("A column float lost its source anchor during fragmentation.");
             if (previous != null && previous.Placements.TryGetValue(entry.Anchor, out ColumnEdgeFloatPlacement? old))
@@ -79,7 +80,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 ChargeLayoutOperation("column float reservation");
                 EnsureMultiColumnLimit(column + 1);
                 reservations.TryGetValue(column, out double occupied);
-                double capacity = height - (notes?.Reserved(column) ?? 0D)
+                double capacity = (pageBands?.Height(column) ?? height) - (notes?.Reserved(column) ?? 0D)
                     - (column == anchorColumn ? anchorHeight : 0D);
                 if (occupied + entry.Body.Height <= capacity + 0.0001D) {
                     reservations[column] = occupied + entry.Body.Height;
@@ -102,9 +103,9 @@ internal sealed partial class HtmlRenderLayoutEngine {
             if (anchor == null) continue;
             if (fragment.Block.Height > 0.0001D) {
                 double offset = fragment.Start + anchor.LayoutY;
-                double before = FindFragmentEnd(fragment.Block, 0D, Math.Max(0D, offset), offset, fullPageHeight: height);
+                double before = FindFragmentEnd(fragment.Block, 0D, Math.Max(0D, offset), offset, fullPageHeight: height, fragmentationScope: HtmlFragmentationScope.Column);
                 anchorHeight = Math.Max(0D, FindNextColumnBreak(fragment.Block, offset) - before);
-                if (fragment.Block.AvoidBreakInside) anchorHeight = Math.Max(anchorHeight, fragment.Block.Height);
+                if ((fragment.Block.AvoidBreakInsideScope & HtmlFragmentationScope.Column) != 0) anchorHeight = Math.Max(anchorHeight, fragment.Block.Height);
             }
             return fragment.Column;
         }
@@ -112,7 +113,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
     }
 
     private MultiColumnPlan AppendColumnEdgeFloatFragments(MultiColumnPlan body, ColumnEdgeFloatPlan floats,
-        ColumnNotePlan notes, double height) {
+        ColumnNotePlan notes, double height, ColumnPageBands? pageBands = null) {
         if (floats.Placements.Count == 0) return body;
         var fragments = new List<MultiColumnFragment>(body.Fragments);
         var top = new Dictionary<int, double>();
@@ -124,13 +125,14 @@ internal sealed partial class HtmlRenderLayoutEngine {
             bool atTop = placement.Entry.Side == "top";
             Dictionary<int, double> cursors = atTop ? top : bottom;
             if (!cursors.TryGetValue(column, out double y))
-                y = atTop ? 0D : height - notes.Reserved(column) - floats.Bottom(column);
+                y = atTop ? 0D : (pageBands?.Height(column) ?? height) - notes.Reserved(column) - floats.Bottom(column);
             HtmlRenderFlowBlock block = placement.Entry.Body;
             fragments.Add(new MultiColumnFragment(block, 0D, block.Height, column, y));
             cursors[column] = y + block.Height;
         }
         int count = Math.Max(body.ColumnCount, floats.Placements.Values.Max(p => p.Column) + 1);
-        return new MultiColumnPlan(fragments, count, Math.Max(body.UsedHeight, height));
+        return new MultiColumnPlan(fragments, count, Math.Max(body.UsedHeight,
+            pageBands == null ? height : fragments.Select(fragment => fragment.Y + fragment.Height).DefaultIfEmpty(0D).Max()));
     }
 
     private sealed record ColumnEdgeFloatEntry(IElement Element, IElement Owner, string Side, HtmlRenderFlowBlock Body, string Anchor);

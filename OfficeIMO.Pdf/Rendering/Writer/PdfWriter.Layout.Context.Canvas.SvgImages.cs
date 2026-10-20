@@ -25,7 +25,7 @@ internal static partial class PdfWriter {
                 var raster = new ImageBlock(prepared.Data, block.Width, block.Height, prepared.Info, style,
                     block.LinkUri, block.LinkContents, useDataSnapshot: true, preparedStream: prepared.PreparedStream);
                 RenderCanvasImage(new PdfCanvasImageItem(raster, item.X, item.Y, item.RotationAngle,
-                    item.HorizontalFlip, item.VerticalFlip, foreground: true, foregroundZOrder: item.ForegroundZOrder));
+                    item.HorizontalFlip, item.VerticalFlip, foreground: true, foregroundZOrder: item.ForegroundZOrder, logicalOrder: item.LogicalOrder));
                 return;
             }
 
@@ -38,7 +38,7 @@ internal static partial class PdfWriter {
             try {
                 OfficeDrawingImage image = OfficeDrawingImage.CreateWithInterpolation(block.Data, "image/svg+xml",
                     projection, interpolate: true, alternativeText: style.AlternativeText);
-                TryDrawSvgImageAt(image, 0D, currentOpts.PageHeight);
+                TryDrawSvgImageAt(image, 0D, currentOpts.PageHeight, item.LogicalOrder);
             } finally {
                 if (clip != null) new ContentStreamBuilder(sb).RestoreState();
             }

@@ -1,0 +1,156 @@
+{
+  "schema_version": 1,
+  "qualified_utc": "2026-10-18T08:15:39.852290+00:00",
+  "purpose": "Preserve every concurrent image export and reject collisions without replacing another publisher",
+  "source": {
+    "base": "479670095ea9efb1e38681c8d244150551220db6",
+    "qualified_commit": "4baf733c2797fb71bb4c5353cb900b332657b791",
+    "sealed_input_count": 32744,
+    "core_tree": "94637e9cffcbea6d2ebd8c401e8f76ef8ac9e995",
+    "production_changes": [
+      "OfficeIMO.Core/Internal/OfficeFileCommit.cs",
+      "OfficeIMO.Core/Internal/OfficeFileCommit.Claims.cs"
+    ],
+    "new_public_api": false,
+    "new_production_dependencies": false
+  },
+  "behavior": {
+    "unix": "Acquire/reuse the claim through the exclusive OpenOrCreate handle and let DeleteOnClose remove it before unlock; prefer ReadWrite and recover readable stale claims through Read when necessary",
+    "windows": "Retain the existing CreateNew, stale-claim recovery and pathname-deletion behavior",
+    "preserved": [
+      "existing replacement behavior",
+      "live claims",
+      "staging retry and ownership",
+      "cancellation before publication",
+      "Unix destination permissions"
+    ]
+  },
+  "tests": [
+    {
+      "suite": "owner-final-net10-exact",
+      "passed": 35,
+      "failed": 0,
+      "skipped": 0,
+      "actual_trx_sha256": "d27b7d8c6a89ce36d5682b26a0e5d62f93027ad175fd56eee671fe2b752e4c22"
+    },
+    {
+      "suite": "owner-final-net8",
+      "passed": 35,
+      "failed": 0,
+      "skipped": 0,
+      "actual_trx_sha256": "eedf3a1a079582398acffd33a0a3654e8cf3bb513bd64225a4146666a5852d9b"
+    },
+    {
+      "suite": "drawing-full-net10",
+      "passed": 5730,
+      "failed": 0,
+      "skipped": 4,
+      "actual_trx_sha256": "3d45ca9eb6d367069a2309079ffb2bdab3eb44597e99a856bf7bc8e5e3b4de27"
+    },
+    {
+      "suite": "drawing-full-net8",
+      "passed": 5730,
+      "failed": 0,
+      "skipped": 4,
+      "actual_trx_sha256": "74d2c64c7ada4fae6a8027eb3f3f8ab5e8ef0bb9f21d3e440c1774cc9335ce86"
+    }
+  ],
+  "before_after": {
+    "harness": "128 bursts;12 synchronized writers;64 sync and64 async;distinct valid1x1PNG payloads;assert returned paths and every writers own bytes",
+    "master_failures": 4,
+    "qualified_failures": 0,
+    "master_core_sha256": "47B5D8D7C9AC8EE57ADABEA46DCDCEC26AD58BCFEA4A47817F841CA278F84B84",
+    "qualified_core_sha256": "7DAFFF66986B80D43DDF587AACFEC54813259AFF1DEE8FF7B2796D14157A23EE"
+  },
+  "independent_processes": [
+    {
+      "framework": "net8.0",
+      "runtime": ".NET 8.0.23",
+      "trials": 24,
+      "writers_per_trial": 12,
+      "policies": [
+        "CreateUnique",
+        "FailIfExists"
+      ],
+      "modes": [
+        "sync",
+        "async",
+        "mixed"
+      ],
+      "passed": true,
+      "actual_core_sha256": "B11EA07213CBEB540D0102764925FC1414AD5E0993A2E8765F7DEA27D7BBDF29"
+    },
+    {
+      "framework": "net10.0",
+      "runtime": ".NET 10.0.13",
+      "trials": 24,
+      "writers_per_trial": 12,
+      "policies": [
+        "CreateUnique",
+        "FailIfExists"
+      ],
+      "modes": [
+        "sync",
+        "async",
+        "mixed"
+      ],
+      "passed": true,
+      "actual_core_sha256": "7DAFFF66986B80D43DDF587AACFEC54813259AFF1DEE8FF7B2796D14157A23EE"
+    }
+  ],
+  "package": {
+    "version": "3.5.1-unique-qualified",
+    "private_unsigned_qualification_only": true,
+    "package_sha256": "4e92087633b9c15b7eed989c513207ede813a0984125f4072f4de26374ab6ee3",
+    "assets": [
+      "lib/net10.0/OfficeIMO.Core.dll",
+      "lib/net472/OfficeIMO.Core.dll",
+      "lib/net8.0/OfficeIMO.Core.dll",
+      "lib/netstandard2.0/OfficeIMO.Core.dll"
+    ],
+    "consumers": [
+      {
+        "framework": "net8.0",
+        "unique_saves": 36,
+        "passed": true
+      },
+      {
+        "framework": "net10.0",
+        "unique_saves": 36,
+        "passed": true
+      },
+      {
+        "framework": "net10.0",
+        "native_aot": "osx-arm64",
+        "unique_saves": 36,
+        "passed": true
+      }
+    ],
+    "additional_consumer_contracts": [
+      "replacement",
+      "existing-destination collision preserves bytes",
+      "readable non-writable stale claims across all3 public conflict policies"
+    ]
+  },
+  "local_review": {
+    "independent_full_passes": 1,
+    "targeted_confirmations": 1,
+    "findings_addressed": [
+      "Windows delete-on-close symlink-target deletion risk avoided by retaining original Windows code path",
+      "readable non-writable stale-claim recovery restored and tested"
+    ],
+    "unresolved_validated_in_scope_findings": 0
+  },
+  "limits": [
+    "Runtime proof is macOS arm64 on .NET8.0.23 and.NET10.0.13",
+    "net472 andnetstandard2.0 compile/package proof does not establish older-runtime execution",
+    "Windows implementation preserved; no new Windows runtime proof or profiling",
+    "No universal claim for disabled/unsupported advisory locks, Linux NFS read-only fallback, or non-cooperating writers"
+  ],
+  "evidence_retention": {
+    "actual_producer_test_modules_and_TRX": true,
+    "before_and_after_outputs": true,
+    "package_and_executed_consumers": true,
+    "regenerable_logical_bytes_removed": 1074537849
+  }
+}

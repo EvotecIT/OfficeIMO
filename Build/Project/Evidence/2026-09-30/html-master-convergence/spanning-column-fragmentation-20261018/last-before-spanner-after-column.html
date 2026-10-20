@@ -1,0 +1,22 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<title>last-before-spanner-after-column</title>
+<style>
+@font-face{font-family:Witness;src:url(regular.ttf);font-weight:400}
+@font-face{font-family:Witness;src:url(bold.ttf);font-weight:700}
+@page{size:700px 140px;margin:20px}
+html,body{margin:0;background:white;font:14px/20px Witness}
+p{margin:0;orphans:1;widows:1}
+.columns{width:300px;column-count:2;column-gap:20px}
+.spanner{column-span:all;margin:0;font-weight:700;background:#eeeeee}
+</style>
+<section id="columns" class="columns" style="column-fill:auto">
+<p id="orvan-p01">ORVAN-P01</p>
+<p id="orvan-p02" style="break-after:column">ORVAN-P02</p>
+<p id="orvan-s01" class="spanner">ORVAN-S01</p>
+<p id="orvan-t01">ORVAN-T01</p>
+<p id="orvan-t02">ORVAN-T02</p>
+</section>
+<p id="after">ORVAN-AFTER</p>
+</html>

@@ -11,14 +11,14 @@ public sealed partial class OfficeFontFaceCollection {
     /// </summary>
     private static OfficeFontFace? ResolveSynthesizedSpaceFace(
         string element,
-        string? currentFamily,
+        OfficeFontFace? currentFace,
         IReadOnlyList<OfficeFontFace> candidates,
         HashSet<string> explicitlySelectedFaces) {
         OfficeFontFace? firstEligible = null;
         foreach (OfficeFontFace candidate in candidates) {
             bool explicitlySelected = explicitlySelectedFaces.Contains(candidate.ResourceFamilyName);
             if (!CoversPlannedText(candidate, element, requireUnicodeRange: !explicitlySelected, allowSpaceSynthesis: true)) continue;
-            if (string.Equals(candidate.ResourceFamilyName, currentFamily, StringComparison.OrdinalIgnoreCase)) return candidate;
+            if (ReferenceEquals(candidate, currentFace)) return candidate;
             firstEligible ??= candidate;
         }
         return firstEligible;
@@ -26,22 +26,24 @@ public sealed partial class OfficeFontFaceCollection {
 
     private static bool CanInheritWhitespace(
         string element,
-        string? currentFamily,
-        IReadOnlyList<OfficeFontFace> candidates,
+        OfficeFontFace? currentFace,
         HashSet<string> explicitlySelectedFaces) {
-        if (currentFamily == null || !IsWhitespace(element)) return false;
-        if (!OfficeMissingSpaceMetrics.ContainsEmSpace(element)) return true;
-        foreach (OfficeFontFace candidate in candidates) {
-            if (!string.Equals(candidate.ResourceFamilyName, currentFamily, StringComparison.OrdinalIgnoreCase)) continue;
-            bool explicitlySelected = explicitlySelectedFaces.Contains(candidate.ResourceFamilyName);
-            if (explicitlySelected ? candidate.HasGlyphs(element) : candidate.Covers(element)) return true;
-        }
-        return false;
+        if (currentFace == null || !IsWhitespace(element)) return false;
+        if (IsWhitespaceControl(element)) return true;
+        bool explicitlySelected = explicitlySelectedFaces.Contains(currentFace.ResourceFamilyName);
+        return explicitlySelected ? currentFace.HasGlyphs(element) : currentFace.Covers(element);
     }
 
     private static bool IsWhitespace(string value) {
         for (int index = 0; index < value.Length; index++) {
             if (!char.IsWhiteSpace(value[index])) return false;
+        }
+        return value.Length > 0;
+    }
+
+    private static bool IsWhitespaceControl(string value) {
+        for (int index = 0; index < value.Length; index++) {
+            if (!OfficeTextElements.IsFontCoverageWhitespaceControl(value[index])) return false;
         }
         return value.Length > 0;
     }
@@ -52,7 +54,7 @@ public sealed partial class OfficeFontFaceCollection {
         bool requireUnicodeRange,
         bool allowSpaceSynthesis = false) {
         foreach (string element in OfficeTextElements.Enumerate(text)) {
-            if (IsWhitespace(element) && !OfficeMissingSpaceMetrics.ContainsEmSpace(element)) continue;
+            if (IsWhitespaceControl(element)) continue;
             if (requireUnicodeRange ? face.Covers(element) : face.HasGlyphs(element)) continue;
             if (!allowSpaceSynthesis || requireUnicodeRange && !face.UnicodeRanges.ContainsFontCoverageText(element) ||
                 !OfficeMissingSpaceMetrics.CoversWithSynthesis(face.Program, element)) return false;

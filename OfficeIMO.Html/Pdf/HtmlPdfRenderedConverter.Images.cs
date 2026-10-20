@@ -29,7 +29,8 @@ internal static partial class HtmlPdfRenderedConverter {
             style,
             linkUri: suppressLink || fragmentLink ? null : visual.LinkUri,
             linkContents: suppressLink || visual.LinkUri == null || fragmentLink ? null : visual.Source,
-            alternativeText: string.IsNullOrWhiteSpace(visual.AlternativeText) ? null : visual.AlternativeText);
+            alternativeText: string.IsNullOrWhiteSpace(visual.AlternativeText) ? null : visual.AlternativeText,
+            logicalOrder: visual.SemanticSourceOrder);
         if (fragmentLink) {
             canvas.LinkToNamedDestination(
                 MapNamedDestination(visual.LinkUri!.Substring(1)),

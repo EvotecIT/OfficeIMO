@@ -178,11 +178,13 @@ public sealed class OfficeDrawingText : OfficeDrawingElement {
     public string Text { get; private set; }
     /// <summary>Exact painted glyph names used by the raster renderer when a PDF scene preserves editable source text.</summary>
     internal string RasterText { get; private set; } = string.Empty;
+    internal OfficePreparedTextShaping? PreparedShaping { get; set; }
     // Math density scales drawing geometry without changing the authored font size.
     internal double FontMetricScale { get; set; } = 1D;
     internal void SetPaintedText(string logicalText, string paintedText) {
         Text = logicalText;
         RasterText = paintedText;
+        PreparedShaping = null;
     }
 
     /// <summary>Text box horizontal position inside the drawing.</summary>
@@ -299,6 +301,8 @@ public sealed class OfficeDrawingText : OfficeDrawingElement {
     internal OfficeDrawingText CloneWithFont(OfficeFontInfo font) => new OfficeDrawingText(Text, X, Y, Width, Height, font, Color, Alignment, LineHeight, VerticalAlignment, RotationDegrees, RotationCenterX, RotationCenterY, WrapText, ShrinkToFit, StackedText, FlipHorizontal, FlipVertical, Padding, ParagraphIndent, OverflowBehavior, TextAdvanceWidth, UnderlineStyle, StrikethroughStyle, Baseline, BaselineLevel, BaselineScale, BaselineOffset, DecorationColor, FeatureSettings, FontPalette, TextDirection) {
         PreservesPaintedGlyphs = PreservesPaintedGlyphs,
         RasterText = RasterText,
+        PreparedShaping = string.Equals(font.FamilyName, Font.FamilyName, StringComparison.OrdinalIgnoreCase)
+            && font.Face.Equals(Font.Face) ? PreparedShaping : null,
         FontMetricScale = FontMetricScale,
         ClipToFrame = ClipToFrame,
         OutlineStrokeColor = OutlineStrokeColor,

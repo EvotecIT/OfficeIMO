@@ -120,8 +120,11 @@ internal sealed partial class HtmlRenderLayoutEngine {
         _limits = (limits ?? HtmlConversionLimits.CreateUntrustedProfile()).Clone();
         _initialLogicalTextOrder = Math.Max(0, logicalTextOrderStart);
         _initialSemanticNodeId = Math.Max(0, semanticNodeIdStart);
+        _nextLogicalTextOrder = _initialLogicalTextOrder;
+        _nextSemanticNodeId = _initialSemanticNodeId;
         _operationBudget = operationBudget ?? new HtmlRenderOperationBudget();
         _computedStyles = computedStyles;
+        InitializeSemanticSourceOrder(document);
         int documentOrder = 0;
         foreach (IElement element in document.QuerySelectorAll("*")) {
             _documentOrderByElement[element] = documentOrder++;
@@ -214,6 +217,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         CheckCancellation();
         IdentifyStaticRadioGroups();
         HtmlRenderDocument rendered = RenderSinglePass();
+        if (_fontLayoutRebuilt) return rendered;
         if (_options.Mode != HtmlRenderMode.Paged) return rendered;
 
         int maximumConvergencePasses = Math.Min(
@@ -252,6 +256,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
             _pageFloatPlan = pageFloatPlan;
             ResetLayoutPassState();
             rendered = RenderSinglePass();
+            if (_fontLayoutRebuilt) return rendered;
         }
         return rendered;
     }
@@ -265,7 +270,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         SetActivePageGeometry(initialGeometry);
         double surfaceWidth = initialGeometry.Width;
         double contentWidth = initialGeometry.ContentWidth;
-        HtmlRenderBoxStyle rootStyle = _styleResolver.Resolve(root, contentWidth);
+        HtmlRenderBoxStyle rootStyle = ResolveRootStyle(root, contentWidth);
         _layoutStyles[root] = rootStyle.Clone();
         ConfigureRootSurface(root, rootStyle, contentWidth);
 
@@ -279,7 +284,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 ResetLayoutPassState();
                 SetActivePageGeometry(namedGeometry);
                 contentWidth = namedGeometry.ContentWidth;
-                rootStyle = _styleResolver.Resolve(root, contentWidth);
+                rootStyle = ResolveRootStyle(root, contentWidth);
                 _layoutStyles[root] = rootStyle.Clone();
                 ConfigureRootSurface(root, rootStyle, contentWidth);
                 blocks = rootStyle.Display == "none"
@@ -288,6 +293,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 blocks = AddDocumentTopDestination(blocks, contentWidth);
             }
         }
+        if (TryRebuildWithPreparedFontMetrics(blocks, out HtmlRenderDocument prepared)) return prepared;
         HtmlRenderDocument rendered = _options.Mode == HtmlRenderMode.Paged
             ? RenderPaged(blocks)
             : RenderContinuous(blocks);
@@ -300,7 +306,13 @@ internal sealed partial class HtmlRenderLayoutEngine {
         double contentWidth,
         HtmlRenderBoxStyle rootStyle) {
         if (rootStyle.Display == "none") return Array.Empty<HtmlRenderFlowBlock>();
-        if (rootStyle.Display == "contents") return BuildChildBlocks(root, contentWidth, rootStyle, 0);
+        if (rootStyle.Display == "contents") {
+            IReadOnlyList<HtmlRenderFlowBlock> children = BuildChildBlocks(root, contentWidth, rootStyle, 0);
+            return _options.Mode == HtmlRenderMode.Paged
+                && (HasSignedFlowAllocation(children) || RequiresConstrainedEntryProjectionSurface(children))
+                ? new[] { BuildNormalFlowSurface(children, contentWidth, root, retainsRootReflow: true) } : children;
+        }
+        if (HasMultiColumnLayout(rootStyle)) return new[] { LayoutRootElement(root, contentWidth, rootStyle) };
         bool pagedColumnBody = _options.Mode == HtmlRenderMode.Paged
             && (rootStyle.Display == "flex" || rootStyle.Display == "inline-flex")
             && rootStyle.FlexDirection == "column"
@@ -326,7 +338,9 @@ internal sealed partial class HtmlRenderLayoutEngine {
             // Overflowing top-level siblings must share one positioned paint
             // surface; paginating them separately would move later siblings.
             if (_options.Mode == HtmlRenderMode.Paged
-                && children.Any(child => child.PagedPaintExtent > child.Height + 0.0001D)) {
+                && (HasSignedFlowAllocation(children)
+                    || children.Any(child => child.PagedPaintExtent > child.Height + 0.0001D)
+                    || RequiresConstrainedEntryProjectionSurface(children))) {
                 return new[] { LayoutRootElement(root, contentWidth, rootStyle) };
             }
             return children;
@@ -349,7 +363,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         foreach (IElement element in root.QuerySelectorAll("*")) {
             CheckCancellation();
             if (!_computedStyles.Elements.TryGetValue(element, out HtmlComputedStyle? computed)) continue;
-            if (IsPageDirective(computed.GetValue("page"))
+            if (IsPageDirective(computed.GetValue("page"), namedPage: true)
                 || IsPageDirective(computed.GetValue("break-before"))
                 || IsPageDirective(computed.GetValue("page-break-before"))
                 || IsPageDirective(computed.GetValue("break-after"))
@@ -358,11 +372,9 @@ internal sealed partial class HtmlRenderLayoutEngine {
         return false;
     }
 
-    private static bool IsPageDirective(string value) =>
-        !string.IsNullOrWhiteSpace(value)
-        && !string.Equals(value, "auto", StringComparison.OrdinalIgnoreCase)
-        && !string.Equals(value, "avoid", StringComparison.OrdinalIgnoreCase)
-        && !string.Equals(value, "avoid-page", StringComparison.OrdinalIgnoreCase);
+    private static bool IsPageDirective(string value, bool namedPage = false) =>
+        namedPage ? !string.IsNullOrWhiteSpace(value) && !string.Equals(value, "auto", StringComparison.OrdinalIgnoreCase)
+            : value.Trim().ToLowerInvariant() is "page" or "always" or "left" or "right" or "recto" or "verso";
 
     private bool HasAuthoredRootBoxGeometry(IElement root, HtmlRenderBoxStyle style) {
         bool effectiveGeometry = style.ExplicitWidth.HasValue
@@ -459,6 +471,9 @@ internal sealed partial class HtmlRenderLayoutEngine {
         && Math.Abs(left.Margins.Bottom - right.Margins.Bottom) <= 0.0001D;
 
     private void ResetLayoutPassState() {
+        ResetColumnPagination();
+        ResetParallelTablePagination();
+        ResetConstrainedSourceProjection();
         _pagedRowFlexElements.Clear();
         _pagedRowFlexEligibleElements.Clear();
         _pagedRowFlexBlocks.Clear();
@@ -485,6 +500,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         _inlineStackingElements.Clear();
         _suppressedEditableLayoutRegionMarkers.Clear();
         _layoutStyles.Clear();
+        _columnSpannerContainingOwners.Clear();
         _containsInFlowFloatCache.Clear();
         _inlineFloatOverhangs.Clear();
         _rootStackingPaintOrders.Clear();
@@ -538,7 +554,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         foreach (HtmlRenderFlowBlock block in blocks) {
             CheckCancellation();
             placements.Add(new FlowPaintLayer(block, _options.Margins.Left, y, placements.Count));
-            y += block.Height;
+            y += block.NormalFlowAdvance;
         }
 
         if (!_options.ClipContinuousSurfaceToViewport) {
@@ -554,8 +570,17 @@ internal sealed partial class HtmlRenderLayoutEngine {
         double height = y + _options.Margins.Bottom;
         if (_options.ClipContinuousSurfaceToViewport) {
             height = _options.ViewportHeight ?? throw new InvalidOperationException("A bounded viewport requires an explicit height.");
-        } else if (_options.ViewportHeight.HasValue) {
-            height = Math.Max(height, _options.ViewportHeight.Value);
+        } else {
+            // A negative margin can move the final flow cursor above an earlier
+            // painted tail. Size the full-page surface from that retained paint
+            // as well, respecting the same clipping owner as positioned content.
+            foreach (FlowPaintLayer placement in placements) {
+                CheckCancellation();
+                height = Math.Max(height, placement.Y
+                    + MaximumScrollBottom(placement.Block.Visuals) + _options.Margins.Bottom);
+            }
+            if (_options.ViewportHeight.HasValue)
+                height = Math.Max(height, _options.ViewportHeight.Value);
         }
         height = Math.Max(1D, height);
         double viewportHeight = _options.ViewportHeight ?? height;
@@ -664,14 +689,14 @@ internal sealed partial class HtmlRenderLayoutEngine {
         }
         IElement root = _document.Body ?? _document.DocumentElement ?? block.OwnerElement;
         if (ReferenceEquals(block.OwnerElement, root)) {
-            HtmlRenderBoxStyle bodyStyle = _styleResolver.Resolve(root, geometry.ContentWidth);
+            HtmlRenderBoxStyle bodyStyle = ResolveRootStyle(root, geometry.ContentWidth);
             return LayoutRootElement(root, geometry.ContentWidth, bodyStyle);
         }
         if (!ReferenceEquals(block.OwnerElement.ParentElement, root)) {
             ReportPageContinuationReflowPending(block, geometry);
             return block;
         }
-        HtmlRenderBoxStyle rootStyle = _styleResolver.Resolve(root, geometry.ContentWidth);
+        HtmlRenderBoxStyle rootStyle = ResolveRootStyle(root, geometry.ContentWidth);
         HtmlRenderBoxStyle style = _styleResolver.Resolve(block.OwnerElement, geometry.ContentWidth, rootStyle);
         return LayoutElement(block.OwnerElement, geometry.ContentWidth, style, rootStyle, 1);
     }
@@ -722,14 +747,14 @@ internal sealed partial class HtmlRenderLayoutEngine {
         if (source.OwnerElement == null || continuation.OwnerElement == null) return false;
         IElement root = _document.Body ?? _document.DocumentElement ?? source.OwnerElement;
         if (ReferenceEquals(source.OwnerElement, root) && ContainsElementOrSelf(root, continuation.OwnerElement)) {
-            HtmlRenderBoxStyle bodyStyle = _styleResolver.Resolve(root, geometry.ContentWidth);
+            HtmlRenderBoxStyle bodyStyle = ResolveRootStyle(root, geometry.ContentWidth);
             reflowed = LayoutRootElement(root, geometry.ContentWidth, bodyStyle,
                 continuation.OwnerElement, continuation.LogicalCharacters);
             return true;
         }
         if (!ReferenceEquals(source.OwnerElement.ParentElement, root)) return false;
         if (!ContainsElementOrSelf(source.OwnerElement, continuation.OwnerElement)) return false;
-        HtmlRenderBoxStyle rootStyle = _styleResolver.Resolve(root, geometry.ContentWidth);
+        HtmlRenderBoxStyle rootStyle = ResolveRootStyle(root, geometry.ContentWidth);
         HtmlRenderBoxStyle style = _styleResolver.Resolve(source.OwnerElement, geometry.ContentWidth, rootStyle);
         reflowed = LayoutElement(
             source.OwnerElement,

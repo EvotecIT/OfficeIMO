@@ -1,0 +1,405 @@
+{
+  "schema": "officeimo.html.auto-table-column-qualification",
+  "qualifiedUtc": "2026-10-17T14:42:47.007308+00:00",
+  "source": {
+    "base": "5294ccf9f6911646143548d390db1073f86e963b",
+    "productionHead": "6f504ca449814e91cb0ccb6b1eb27f49048c5611",
+    "branch": "fix/html-auto-table-columns",
+    "sdk": "10.0.113",
+    "selectedInputs": 3717,
+    "selectedInputSealSha256": "3f15403dc5a4a9c04de4a5f0ddda386515e9a60dc573ef0aafe9b8aaff6fd219",
+    "sealScope": "Selected changed HTML owner/test and shared production source, compatibility inputs and font fixtures; actual executed runtime hashes supplement this source seal",
+    "runtimeProviderForksIncluded": false
+  },
+  "implemented": [
+    "Preferred-content proportional surplus with authored length and percentage priorities",
+    "Unbreakable content minima and native percentage overconstraint allocation",
+    "Empty columns without invented content width and zero-width semantic containers",
+    "Spanning-content width guesses preserve percentage/auto priorities and proportional contributions independently of source-row order",
+    "Spanning allocation observes cancellation and the existing operation budget before allocation"
+  ],
+  "native": {
+    "sourceHead": "6f504ca449814e91cb0ccb6b1eb27f49048c5611",
+    "cases": 36,
+    "profiles": 4,
+    "tableComparisons": 144,
+    "columnComparisons": 350,
+    "maximumDelta": 0.021591207103256238,
+    "layoutTolerance": 0.03125,
+    "pagedPdfPngByteParity": 9,
+    "snapshotBoundary": "Zero-area nonpaint semantic containers are omitted by existing snapshot clipping",
+    "nativeSessionsReleased": true,
+    "comparison": {
+      "file": "final-column-comparison.json",
+      "bytes": 74360,
+      "sha256": "234353438cbf75c0117f567af5cd830505cb27a817d7aaccd4230fb27a75de5e"
+    },
+    "geometryScope": "Table and cell widths; this is not full row-height, paint or browser conformance",
+    "fontControls": "Same checked-in regular/bold font bytes; kern/liga disabled to isolate allocation",
+    "fonts": {
+      "regular.ttf": "00aca2988771998ff27738ff97c2cc8e71eb3013f206de5f205986b7de326af3",
+      "bold.ttf": "20bb7ad2e23beb5020313119f46fbc50a5ded598aaa1be4df719d3c017914b6c"
+    },
+    "inputs": [
+      {
+        "file": "inputs/tables-no-kern.html",
+        "bytes": 4111,
+        "sha256": "ddceda424478b823cc4a3f960e3769be506b5ef76216a1880c76b4c21998b006"
+      },
+      {
+        "file": "inputs/overconstraint-complete.html",
+        "bytes": 1642,
+        "sha256": "43c2fdf50feb952e3017630433a76d7a275da5e3c5be36ebcd2b4ede221e635d"
+      },
+      {
+        "file": "inputs/percentage-spans-complete.html",
+        "bytes": 3020,
+        "sha256": "b4e1c6f4d43d6fa2000b20d42b8106e0996647884de5e615bda92c662f5b191d"
+      }
+    ],
+    "sessionReceipts": [
+      {
+        "file": "native-no-kern-receipt.json",
+        "bytes": 264,
+        "sha256": "b170548d15b7f926952bc3d6ca3e04c8e60a88c0cc4cbca57f79e45bfc8f3468"
+      },
+      {
+        "file": "native-overconstraint-complete-receipt.json",
+        "bytes": 264,
+        "sha256": "2b1b0dbd6089261bdb873603205a0c8852618fc3075068003551733f7a8e5fff"
+      },
+      {
+        "file": "native-spans-complete-receipt.json",
+        "bytes": 264,
+        "sha256": "54a525a76cee9d0cc4208abdfbe9e861e607605662216747d024266a441b9994"
+      }
+    ]
+  },
+  "invoice": {
+    "record": {
+      "file": "final-invoice/summary.json",
+      "bytes": 527080,
+      "sha256": "a4982b8b8b08db8175075094e35c356f2ec3c47941ce22a553219874d9586e94"
+    },
+    "inputSha256": "cbbe7bf0c1c38a4578c66966df148c28a8c2302d5ea41283222259f219b3c9df",
+    "pages": 2,
+    "edgePages": 2,
+    "all21ItemRowsRetained": true,
+    "orderedRowEvidence": {
+      "file": "invoice-row-order.json",
+      "bytes": 447,
+      "sha256": "dc78ea5a410ac5cb12699493a99b6c33c2dc0b7d37932b09f3f848a215aeda6f"
+    },
+    "itemRowSplit": [
+      17,
+      4
+    ],
+    "edgeItemRowSplit": [
+      18,
+      3
+    ],
+    "arabicContextForms": 9,
+    "parity": [
+      {
+        "route": "direct/PDF",
+        "format": 0,
+        "pages": 2,
+        "byteIdentical": true
+      },
+      {
+        "route": "direct/PDF",
+        "format": 2,
+        "pages": 2,
+        "byteIdentical": true
+      },
+      {
+        "route": "direct/PDF",
+        "format": 1,
+        "pages": 2,
+        "byteIdentical": true
+      },
+      {
+        "route": "retained/PDF",
+        "format": 0,
+        "pages": 2,
+        "byteIdentical": true
+      },
+      {
+        "route": "async/PDF",
+        "format": 0,
+        "pages": 2,
+        "byteIdentical": true
+      },
+      {
+        "route": "archive/PDF",
+        "format": 0,
+        "pages": 2,
+        "byteIdentical": true
+      },
+      {
+        "route": "site-bundle/PDF",
+        "format": 0,
+        "pages": 2,
+        "byteIdentical": true
+      }
+    ],
+    "visibleCjkAndRtlInspection": {
+      "file": "visual-inspection.json",
+      "bytes": 1667,
+      "sha256": "7a816efe7dfd3d2ebaa16e67638ef6f16b17a8434ad3bc4ae0cc6262f7e88555"
+    },
+    "warningCodes": [
+      "HtmlRenderOpenTypeFeatureUnsupported",
+      "unsupported-bidirectional-text-layout",
+      "unsupported-complex-script-shaping"
+    ]
+  },
+  "managed": [
+    {
+      "framework": "net10.0",
+      "passed": 6588,
+      "failed": 0,
+      "skipped": 0,
+      "file": "trx/OfficeIMO.Html.Tests-final-net10.0/_evomini_2026-10-17_16_16_54.trx",
+      "bytes": 9953489,
+      "sha256": "a62dff4e64e67249ad2cadd2ec98a9aaf82bc73b0d7d987261b852c186495d82"
+    },
+    {
+      "framework": "net8.0",
+      "passed": 6588,
+      "failed": 0,
+      "skipped": 0,
+      "file": "trx/OfficeIMO.Html.Tests-final-net8.0/_evomini_2026-10-17_16_19_18.trx",
+      "bytes": 9940312,
+      "sha256": "51a3f70925d13874ad5b0bb6c20808c26d65bcf035f1eb18ee0c349b31062dd7"
+    }
+  ],
+  "packages": {
+    "artifacts": [
+      {
+        "file": "OfficeIMO.Pdf.99.0.0-html-auto-columns.nupkg",
+        "bytes": 13040929,
+        "sha256": "daf0a9d7784378655d7d015e11217872b5ff7243db322ad772e661e462b89e5a",
+        "assets": [
+          "lib/net10.0/OfficeIMO.Pdf.dll",
+          "lib/net472/OfficeIMO.Pdf.dll",
+          "lib/net8.0/OfficeIMO.Pdf.dll",
+          "lib/netstandard2.0/OfficeIMO.Pdf.dll"
+        ]
+      },
+      {
+        "file": "OfficeIMO.Html.Core.99.0.0-html-auto-columns.nupkg",
+        "bytes": 324926,
+        "sha256": "ee444fce8c0461a122b438cdb86020c90d435ec9cdb747c365c1da50b713525c",
+        "assets": [
+          "lib/net10.0/OfficeIMO.Html.Core.dll",
+          "lib/net472/OfficeIMO.Html.Core.dll",
+          "lib/net8.0/OfficeIMO.Html.Core.dll",
+          "lib/netstandard2.0/OfficeIMO.Html.Core.dll"
+        ]
+      },
+      {
+        "file": "OfficeIMO.Html.99.0.0-html-auto-columns.nupkg",
+        "bytes": 4239189,
+        "sha256": "876a59204a61e7bdba80d061e13cab452f9b01aab79f7508c8b3e1af2085cf24",
+        "assets": [
+          "lib/net10.0/OfficeIMO.Html.dll",
+          "lib/net472/OfficeIMO.Html.dll",
+          "lib/net8.0/OfficeIMO.Html.dll",
+          "lib/netstandard2.0/OfficeIMO.Html.dll"
+        ]
+      },
+      {
+        "file": "OfficeIMO.Html.AngleSharp.99.0.0-html-auto-columns.nupkg",
+        "bytes": 103860,
+        "sha256": "dec078b9794d5913f0e47d05dc34440b9c10edc6065b5f6f16f71d842e639ace",
+        "assets": [
+          "lib/net10.0/OfficeIMO.Html.AngleSharp.dll",
+          "lib/net472/OfficeIMO.Html.AngleSharp.dll",
+          "lib/net8.0/OfficeIMO.Html.AngleSharp.dll",
+          "lib/netstandard2.0/OfficeIMO.Html.AngleSharp.dll"
+        ]
+      },
+      {
+        "file": "OfficeIMO.Html.Pdf.99.0.0-html-auto-columns.nupkg",
+        "bytes": 207699,
+        "sha256": "d427a06feab76f643f63dd72b1d9836f5170202abb3d1fe5e0784cb06431b0c8",
+        "assets": [
+          "lib/net10.0/OfficeIMO.Html.Pdf.dll",
+          "lib/net472/OfficeIMO.Html.Pdf.dll",
+          "lib/net8.0/OfficeIMO.Html.Pdf.dll",
+          "lib/netstandard2.0/OfficeIMO.Html.Pdf.dll"
+        ]
+      },
+      {
+        "file": "OfficeIMO.Core.99.0.0-html-auto-columns.nupkg",
+        "bytes": 8440904,
+        "sha256": "ab96dd1310b859efcc2b91335c9067b8abbe7630718eb98b164540d6a8fa63b9",
+        "assets": [
+          "lib/net10.0/OfficeIMO.Core.dll",
+          "lib/net472/OfficeIMO.Core.dll",
+          "lib/net8.0/OfficeIMO.Core.dll",
+          "lib/netstandard2.0/OfficeIMO.Core.dll"
+        ]
+      }
+    ],
+    "isolatedConsumerCache": "/Volumes/Samsung/Development/Scratch/html-auto-table-columns/package-qualification-v2/packages",
+    "executedConsumers": 4,
+    "compileFrameworks": [
+      "netstandard2.0",
+      "net8.0",
+      "net10.0",
+      "net472"
+    ]
+  },
+  "nativeAot": {
+    "sourceHead": "6f504ca449814e91cb0ccb6b1eb27f49048c5611",
+    "archiveSha256": "19010ae135dd3d785cfd813bd7fb01abede2a95b52b58d32857f92e03443ded5",
+    "binarySha256": "2fc3cd360a83ea3a64a2f73201c864654bd5bc51c50a86a7cb619f2f423ac217",
+    "binaryBytes": 32606808
+  },
+  "runtimeBindings": {
+    "record": {
+      "file": "qualified-runtime-identity.json",
+      "bytes": 25211,
+      "sha256": "c48617e795bbcb5f04ca9476d8cc769b32d47505e619ca6d027b50f05fa65542"
+    },
+    "archive": {
+      "file": "qualified-runtimes.zip",
+      "bytes": 55595647,
+      "sha256": "998198e792449cdd84410ded671cf7ae1d7f4fad3bc6a2a86dcd41ff35a9774f"
+    },
+    "actualTrxArchive": {
+      "file": "actual-trx.zip",
+      "bytes": 4381283,
+      "sha256": "c39511490e4c29ea0b11918e2c4511b2d96b8428593235804a6d8015999eb6d2"
+    },
+    "actualTrxRecord": {
+      "file": "actual-trx-archive-receipt.json",
+      "bytes": 4949,
+      "sha256": "f88d3259be95fa057f9666fe15d0840a5cf8942ee1f758dfa4040d0084519c8c"
+    },
+    "consumerRecord": {
+      "file": "qualified-consumer-identity.json",
+      "bytes": 10208,
+      "sha256": "4beda96efd4fe92b4c56977645eb67e359df04c03df28e36fe7f827d2e19b587"
+    },
+    "consumerArchive": {
+      "file": "qualified-consumers.zip",
+      "bytes": 26136650,
+      "sha256": "8fceeef1d20355a35ab17687b5de5bdcb5c72d22a99543a77c086d3a4e9569f6"
+    }
+  },
+  "review": {
+    "independentHead": "248b02484801443d654a800ce643f69cc85c3603",
+    "targetedConfirmationHead": "5d722d1b9eb2b574abcb2f87651347464cb9d9ea",
+    "allowance": "One independent read-only pass and one targeted confirmation",
+    "boundary": "candidate-reviewed",
+    "disposition": "Percentage-overconstraint regression reproduced and fixed. Empty-column priority and predicted two-percentage span regression disproved against native output. Confirmed pre-existing percentage/auto span gap and proportional span siblings fixed and qualified by primary. No known unresolved validated in-scope finding.",
+    "manualHostedReviewRequested": false
+  },
+  "limits": [
+    "Native appearance qualification is limited to the recorded same-font width controls and inspected invoice; row heights, border rasterization and antialiasing retain separate limits.",
+    "Normal font metrics checkpoint33887b361cf55c601d06a5e2b7f9d7c08860367a is held separately and is not included; currentinvoice row split17/4 differs fromEdge18/3.",
+    "Cyclic percentages and general spanning percentage declarations remain unqualified.",
+    "Retain parent5294 shared-owner qualification; no new Core/PDF production code is included. Full RTL writer follow-through remains with the coordinated PDF quality branch.",
+    "Windows profiling remains deferred; new Windows/Linux runtime CI is not claimed for this checkpoint."
+  ],
+  "publication": {
+    "scope": "Checkpoint branch only; no PR, merge or package publication authorized",
+    "privatePackageVersion": "99.0.0-html-auto-columns",
+    "branchCi": "Normal test workflow runs on master pushes and PRs; this checkpoint does not claim hosted CI"
+  },
+  "evidenceRoot": {
+    "path": "/Volumes/Samsung/Development/Scratch/html-auto-table-columns",
+    "machineLocal": true
+  },
+  "storage": {
+    "completedUtc": "2026-10-17T14:42:12.249378+00:00",
+    "logicalBytesRemoved": 3556219945,
+    "retainedRoot": "/Volumes/Samsung/Development/Scratch/html-auto-table-columns",
+    "retainedLogicalBytes": 177408999,
+    "retentionReason": "Qualified packages, exact executed runtime/consumer/AOT archives, actualTRX, frozen inputs, final/native/baseline/review witnesses and compact reproduction/state records",
+    "removedTargets": [
+      {
+        "path": "/Volumes/Samsung/Development/Scratch/html-auto-table-columns/tests-graph",
+        "logicalBytes": 1625133742,
+        "files": 2750,
+        "purpose": "Completed task-generated build graph; qualified runtime/actualTRX archived before deletion",
+        "archive": "/Volumes/Samsung/Development/Scratch/html-auto-table-columns/qualified-runtimes.zip"
+      },
+      {
+        "path": "/Volumes/Samsung/Development/Scratch/html-auto-table-columns/probe-graph",
+        "logicalBytes": 160869933,
+        "files": 254,
+        "purpose": "Completed task-generated build graph; qualified runtime/actualTRX archived before deletion",
+        "archive": "/Volumes/Samsung/Development/Scratch/html-auto-table-columns/qualified-runtimes.zip"
+      },
+      {
+        "path": "/Volumes/Samsung/Development/Scratch/html-auto-table-columns/browser-graph",
+        "logicalBytes": 155190129,
+        "files": 163,
+        "purpose": "Completed task-generated build graph; qualified runtime/actualTRX archived before deletion",
+        "archive": "/Volumes/Samsung/Development/Scratch/html-auto-table-columns/qualified-runtimes.zip"
+      },
+      {
+        "path": "/Volumes/Samsung/Development/Scratch/html-auto-table-columns/package-qualification-v2/graph",
+        "logicalBytes": 427075592,
+        "files": 586,
+        "reason": "Completed task-generated qualification graph/private cache/temp; exact qualified packages/consumers/runtimes/nativeAOT/actualTRX retained"
+      },
+      {
+        "path": "/Volumes/Samsung/Development/Scratch/html-auto-table-columns/package-qualification-v2/packages",
+        "logicalBytes": 406938775,
+        "files": 1555,
+        "reason": "Completed task-generated qualification graph/private cache/temp; exact qualified packages/consumers/runtimes/nativeAOT/actualTRX retained"
+      },
+      {
+        "path": "/Volumes/Samsung/Development/Scratch/html-auto-table-columns/package-qualification-v2/consumer-graph",
+        "logicalBytes": 112120180,
+        "files": 213,
+        "reason": "Completed task-generated qualification graph/private cache/temp; exact qualified packages/consumers/runtimes/nativeAOT/actualTRX retained"
+      },
+      {
+        "path": "/Volumes/Samsung/Development/Scratch/html-auto-table-columns/aot-graph",
+        "logicalBytes": 510459370,
+        "files": 403,
+        "reason": "Completed task-generated qualification graph/private cache/temp; exact qualified packages/consumers/runtimes/nativeAOT/actualTRX retained"
+      },
+      {
+        "path": "/Volumes/Samsung/Development/Scratch/html-auto-table-columns/aot-publish",
+        "logicalBytes": 154474616,
+        "files": 16,
+        "reason": "Completed task-generated qualification graph/private cache/temp; exact qualified packages/consumers/runtimes/nativeAOT/actualTRX retained"
+      },
+      {
+        "path": "/Volumes/Samsung/Development/Scratch/html-auto-table-columns/tmp",
+        "logicalBytes": 290742,
+        "files": 22,
+        "reason": "Completed task-generated qualification graph/private cache/temp; exact qualified packages/consumers/runtimes/nativeAOT/actualTRX retained"
+      },
+      {
+        "path": "/Volumes/Samsung/Development/Scratch/html-auto-table-columns/cli-home",
+        "logicalBytes": 1230,
+        "files": 7,
+        "reason": "Completed task-generated qualification graph/private cache/temp; exact qualified packages/consumers/runtimes/nativeAOT/actualTRX retained"
+      },
+      {
+        "path": "/Volumes/Samsung/Development/Scratch/html-auto-table-columns/candidate",
+        "logicalBytes": 1780385,
+        "files": 12,
+        "reason": "Superseded iteration render output; final, original baseline and reviewed-source witnesses retained; failed zero-width regression preserved in actualTRX archive"
+      },
+      {
+        "path": "/Volumes/Samsung/Development/Scratch/html-auto-table-columns/candidate-controlled",
+        "logicalBytes": 1885251,
+        "files": 12,
+        "reason": "Superseded iteration render output; final, original baseline and reviewed-source witnesses retained; failed zero-width regression preserved in actualTRX archive"
+      }
+    ],
+    "sharedCachesChanged": false,
+    "activeWorktreeRetained": true,
+    "noOwnedBrowserServerBuildTestProcesses": true,
+    "method": "Guarded native PowerShell deletion; fresh guarded DotNet recovery only after actual hidden/read-only filesystem errors; exact absence verified"
+  }
+}

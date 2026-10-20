@@ -4,5 +4,6 @@ internal enum HtmlPageBreakTarget {
     None,
     Page,
     Left,
-    Right
+    Right,
+    Column
 }

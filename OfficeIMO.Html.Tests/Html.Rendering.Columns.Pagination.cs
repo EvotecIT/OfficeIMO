@@ -7,7 +7,7 @@ public sealed partial class HtmlRenderingTests {
     [Theory]
     [InlineData(0)]
     [InlineData(40)]
-    public void HtmlColumns_PagedOverflowContinuesInsidePageBoundsAtAuthoredTextSize(int precedingHeight) {
+    public void HtmlColumns_PagedShortDefiniteHeightRetainsInlineOverflowAtAuthoredTextSize(int precedingHeight) {
         string html = "<style>@page{size:240px 180px;margin:10px}body{margin:0;font:12px/20px Arial}p{margin:0}</style>"
             + "<div style='height:" + precedingHeight + "px'></div>"
             + "<section style='height:60px;column-count:2;column-gap:20px;column-fill:auto;column-rule:1px solid blue'>"
@@ -17,7 +17,7 @@ public sealed partial class HtmlRenderingTests {
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, new HtmlRenderOptions {
             Mode = HtmlRenderMode.Paged, HonorCssPageRules = true
         });
-        Assert.True(rendered.Pages.Count >= 2);
+        Assert.Single(rendered.Pages);
         for (int index = 0; index < 12; index++) {
             HtmlRenderText text = Assert.Single(rendered.Pages.SelectMany(page => page.Visuals).OfType<HtmlRenderText>(),
                 item => item.Text == "Line" + index.ToString("D2"));
@@ -25,12 +25,10 @@ public sealed partial class HtmlRenderingTests {
             Assert.Equal(12D, text.Font.Size, 3);
         }
         Assert.Single(rendered.Pages.SelectMany(page => page.Visuals).OfType<HtmlRenderText>(), item => item.Text == "AfterColumns");
-        Assert.All(rendered.Pages, page => {
-            Assert.All(page.Visuals.OfType<HtmlRenderText>(), text => {
-                Assert.True(text.X >= 10D - 0.001D && text.X + text.Width <= page.Width - 10D + 0.001D);
-                Assert.True(text.Y >= 10D - 0.001D && text.Y + text.Height <= page.Height - 10D + 0.001D);
-            });
-        });
+        HtmlRenderPage page = rendered.Pages[0];
+        Assert.True(Assert.Single(page.Visuals.OfType<HtmlRenderText>(), text => text.Text == "Line06").X >= page.Width);
+        Assert.Equal(70D + precedingHeight,
+            Assert.Single(page.Visuals.OfType<HtmlRenderText>(), text => text.Text == "AfterColumns").LayoutY, 3);
     }
 
     [Fact]

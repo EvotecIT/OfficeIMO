@@ -17,8 +17,12 @@ public sealed class VisioJustifyRenderingTests {
         VisioPage left = NativeParagraph(connector, alignment: 0).Pages[0];
         VisioPage justified = NativeParagraph(connector, alignment: 3).Pages[0];
         byte[] font = ManagedTextShapingTestAssets.CreateFont('A', 'B', 'C', 'D', 'E', 'F', 'G');
+        byte[] spaceFont = ManagedTextShapingTestAssets.CreateFontWithEmptyGlyphs(2, ' ');
+        const string spaceFamily = "OfficeIMO Justification Spaces";
+        // Keep separator metrics in the fixture so host fallback cannot change wrapped-line slack.
         var svgOptions = new VisioSvgSaveOptions { ResolveConnectorLabelOverlaps = false };
-        svgOptions.Fonts.Add(ManagedTextShapingTestAssets.FamilyName, font);
+        svgOptions.Fonts.Add(ManagedTextShapingTestAssets.FamilyName, font)
+            .Add(spaceFamily, spaceFont).AddFallbackFamily(spaceFamily);
         XElement[][] leftLines = SvgLines(left, svgOptions);
         XElement[][] justifiedLines = SvgLines(justified, svgOptions);
 
@@ -33,14 +37,15 @@ public sealed class VisioJustifyRenderingTests {
         Assert.InRange(Number(justifiedLines[1].Last(), "x") - Number(leftLines[1].Last(), "x"), -.002D, .002D);
 
         var pngOptions = new VisioPngSaveOptions { Supersampling = 1, ResolveConnectorLabelOverlaps = false };
-        pngOptions.Fonts.Add(ManagedTextShapingTestAssets.FamilyName, font);
+        pngOptions.Fonts.Add(ManagedTextShapingTestAssets.FamilyName, font)
+            .Add(spaceFamily, spaceFont).AddFallbackFamily(spaceFamily);
         (int Left, int Right)[] leftInk = RasterLineBounds(left.ToPng(pngOptions));
         (int Left, int Right)[] justifiedInk = RasterLineBounds(justified.ToPng(pngOptions));
         Assert.Equal(2, leftInk.Length);
         Assert.Equal(leftInk.Length, justifiedInk.Length);
         Assert.Equal(leftInk[0].Left, justifiedInk[0].Left);
         Assert.True(justifiedInk[0].Right > leftInk[0].Right + 3,
-            "PNG must paint the widened spacing rather than merely retain the alignment metadata.");
+            $"PNG must paint the widened spacing rather than merely retain the alignment metadata. Left ink: {leftInk[0]}; justified ink: {justifiedInk[0]}.");
         Assert.Equal(leftInk[1], justifiedInk[1]);
     }
 

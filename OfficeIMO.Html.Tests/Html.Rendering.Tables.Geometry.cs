@@ -156,7 +156,7 @@ public sealed partial class HtmlRenderingTests {
         Assert.Equal(100D, shared.X, 3);
         HtmlRenderShape firstOuter = Assert.Single(rendered.Pages[0].Visuals.OfType<HtmlRenderShape>(),
             shape => shape.Source == "table#edges:collapsed-border-v-0-0");
-        Assert.Equal(direction == "rtl" ? 200D : 0D, firstOuter.X, 3);
+        Assert.Equal(direction == "rtl" ? 199D : 1D, firstOuter.X, 3);
         Assert.Equal(OfficeColor.Red, firstOuter.Shape.StrokeColor);
     }
 

@@ -322,11 +322,13 @@ public sealed partial class HtmlRenderingTests {
         Assert.True(rendered.HasLoss);
     }
 
-    [Fact]
-    public async Task HtmlRenderAsync_DiagnosesUnsupportedWebFontFormatsWithoutAddingCodecs() {
+    [Theory]
+    [InlineData("font/woff2")]
+    [InlineData("binary/octet-stream")]
+    public async Task HtmlRenderAsync_DiagnosesUnsupportedWebFontFormatsWithoutAddingCodecs(string contentType) {
         var options = new HtmlRenderOptions {
             ResourceResolver = (request, cancellationToken) => Task.FromResult<HtmlResolvedResource?>(
-                new HtmlResolvedResource(new byte[] { 0x77, 0x4F, 0x46, 0x32, 1, 2, 3, 4 }, "font/woff2"))
+                new HtmlResolvedResource(new byte[] { 0x77, 0x4F, 0x46, 0x32, 1, 2, 3, 4 }, contentType))
         };
 
         HtmlRenderDocument rendered = await HtmlRenderTestDriver.RenderAsync(
@@ -338,14 +340,18 @@ public sealed partial class HtmlRenderingTests {
         Assert.Contains(rendered.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.FontFaceUnavailable);
     }
 
-    [Fact]
-    public async Task HtmlRenderAsync_ActivatesBoundedWoffFontThroughTheSharedDrawingDecoder() {
+    [Theory]
+    [InlineData("font/woff")]
+    [InlineData("application/octet-stream")]
+    [InlineData("binary/octet-stream")]
+    [InlineData("BiNaRy/OcTeT-StReAm; profile=font")]
+    public async Task HtmlRenderAsync_ActivatesBoundedWoffFontThroughTheSharedDrawingDecoder(string contentType) {
         string marker = char.ConvertFromUtf32(0x1F600);
         byte[] fontData = ManagedTextShapingTestAssets.CreateFont(0x1F600);
         byte[] woff = ManagedTextShapingTestAssets.CreateWoff(fontData);
         var options = new HtmlRenderOptions {
             ResourceResolver = (request, cancellationToken) => Task.FromResult<HtmlResolvedResource?>(
-                new HtmlResolvedResource(woff, "font/woff"))
+                new HtmlResolvedResource(woff, contentType))
         };
 
         HtmlRenderDocument rendered = await HtmlRenderTestDriver.RenderAsync(
@@ -355,6 +361,9 @@ public sealed partial class HtmlRenderingTests {
         OfficeFontFace face = Assert.Single(rendered.Fonts.Faces);
         Assert.Equal("WoffDemo", face.FamilyName);
         Assert.Equal(OfficeFontContainerFormat.OpenType, OfficeFontContainerDecoder.Detect(face.Data));
+        Assert.True(rendered.Fonts.TryMeasureText(marker, 12D, "WoffDemo", OfficeFontStyle.Regular, out double width));
+        Assert.True(width > 0D);
+        Assert.DoesNotContain(rendered.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.ResourceContentTypeRejected);
         Assert.DoesNotContain(rendered.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.FontFormatUnsupported);
         Assert.DoesNotContain(rendered.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.FontFaceUnavailable);
     }

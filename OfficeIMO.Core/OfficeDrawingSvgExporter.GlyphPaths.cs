@@ -12,33 +12,42 @@ public static partial class OfficeDrawingSvgExporter {
     // simple logical runs shaped by the shared managed/host shaping provider.
     // Unsupported layouts retain text and their registered fonts.
     private static bool TryAppendGlyphPaths(StringBuilder output, OfficeDrawingText text, OfficeRasterCanvas metrics, bool textAsPaths) {
-        if ((!text.PreservesPaintedGlyphs && !textAsPaths) || text.WrapText || text.ShrinkToFit || text.StackedText || text.HasPadding ||
+        OfficePreparedTextShaping? prepared = text.PreparedShaping;
+        if ((prepared == null && !text.PreservesPaintedGlyphs && !textAsPaths) || text.WrapText || text.ShrinkToFit || text.StackedText || text.HasPadding ||
             text.VerticalAlignment != OfficeTextVerticalAlignment.Top || text.TextDirection == OfficeTextDirection.TopToBottom ||
             text.Font.IsUnderline || text.Font.IsStrikethrough || text.UnderlineStyle != OfficeTextDecorationStyle.None ||
             text.StrikethroughStyle != OfficeTextDecorationStyle.None || text.FontMetricScale != 1D ||
             text.RasterText.IndexOfAny(new[] { '\r', '\n' }) >= 0 ||
-            text.FeatureSettings is { IsDefault: false } ||
-            !string.IsNullOrEmpty(text.FontPalette) && text.FontPalette != "normal") return false;
-        bool logical = !text.PreservesPaintedGlyphs;
+            prepared == null && text.FeatureSettings is { IsDefault: false } ||
+            !string.IsNullOrEmpty(text.FontPalette) && text.FontPalette != "normal") {
+            if (prepared != null) throw new NotSupportedException(
+                "Prepared SVG glyphs require one unwrapped horizontal monochrome slice without decorations or specialized text geometry.");
+            return false;
+        }
+        bool logical = prepared == null && !text.PreservesPaintedGlyphs;
         // Bound the first opt-in logical-text slice to printable ASCII. Complex
         // scripts, controls and bidi remain with the browser's shaping stack.
         if (logical && (text.TextDirection == OfficeTextDirection.RightToLeft ||
             text.RasterText.Any(character => character < ' ' || character > '~'))) return false;
         double sourceSize = text.Font.Size > 0D ? text.Font.Size : 10D;
         double size = sourceSize * text.BaselineScale;
-        if (metrics.Fonts == null) return false;
-        // Match the raster/text formatter's per-element fallback plan. A face
-        // covering the whole string may still be a lower-priority fallback for
-        // some glyphs; outlining it would silently replace the primary glyphs.
-        IReadOnlyList<OfficeFontFallbackRun> fallbackRuns = metrics.Fonts.PlanFallbackRuns(
-            text.RasterText, text.Font.FamilyName, text.Font.Face);
-        if (fallbackRuns.Count != 1) return false;
-        if (!metrics.Fonts.TryResolveFaceForText(text.RasterText, fallbackRuns[0].FamilyRequest,
-                text.Font.Face, size, out OfficeFontFace? face) || face == null ||
-            face.Program is not IOfficeBoundedFontProgram font ||
-            face.Style != OfficeFontFace.NormalizeStyle(text.Font.Style)) return false;
+        IOfficeBoundedFontProgram font;
+        if (prepared != null) font = (IOfficeBoundedFontProgram)prepared.Program;
+        else {
+            if (metrics.Fonts == null) return false;
+            // The normal route resolves fonts per complete text element. Retained glyph ids
+            // already belong to their pinned program and must bypass that resolution.
+            IReadOnlyList<OfficeFontFallbackRun> fallbackRuns = metrics.Fonts.PlanFallbackRuns(
+                text.RasterText, text.Font.FamilyName, text.Font.Face);
+            if (fallbackRuns.Count != 1) return false;
+            if (!metrics.Fonts.TryResolveFaceForText(text.RasterText, fallbackRuns[0].FamilyRequest,
+                    text.Font.Face, size, out OfficeFontFace? face) || face == null ||
+                face.Program is not IOfficeBoundedFontProgram resolved ||
+                face.Style != OfficeFontFace.NormalizeStyle(text.Font.Style)) return false;
+            font = resolved;
+        }
         var token = metrics.CancellationToken;
-        OfficeTextShapingResult? shaped = null;
+        OfficeTextShapingResult? shaped = prepared?.Result;
         if (logical) {
             IOfficeTextShapingProvider provider = metrics.TextShapingProvider ?? OfficeManagedTextShapingProvider.Instance;
             token.ThrowIfCancellationRequested();
@@ -54,7 +63,7 @@ public static partial class OfficeDrawingSvgExporter {
             if (shaped == null || shaped.Direction is OfficeTextDirection.RightToLeft or OfficeTextDirection.TopToBottom) return false;
         }
         // Color glyphs need their layered/bitmap paint, rather than monochrome contours.
-        if (face.Program is IOfficeColorFontProgram colorFont) {
+        if (font is IOfficeColorFontProgram colorFont) {
             if (shaped != null && shaped.Glyphs.Any(glyph => colorFont.HasColorGlyph(glyph.GlyphId))) return false;
             for (int index = 0; index < text.RasterText.Length; index++) {
                 int scalar = char.IsHighSurrogate(text.RasterText[index]) && index + 1 < text.RasterText.Length &&
@@ -63,9 +72,10 @@ public static partial class OfficeDrawingSvgExporter {
                 if (font.TryGetGlyphMetrics(scalar, out int glyph, out _) && colorFont.HasColorGlyph(glyph)) return false;
             }
         }
-        double advance = shaped == null ? font.Measure(text.RasterText, size) : font.MeasureShapedText(text.RasterText, shaped, size);
-        if (advance <= 0D || double.IsNaN(advance) || double.IsInfinity(advance)) return false;
-        double scaleX = text.TextAdvanceWidth.HasValue ? text.TextAdvanceWidth.Value / advance : 1D;
+        double advance = prepared?.Measure(size) ?? (shaped == null
+            ? font.Measure(text.RasterText, size) : font.MeasureShapedText(text.RasterText, shaped, size));
+        if (advance < 0D || advance == 0D && prepared == null || double.IsNaN(advance) || double.IsInfinity(advance)) return false;
+        double scaleX = text.TextAdvanceWidth.HasValue && advance > 0D ? text.TextAdvanceWidth.Value / advance : 1D;
         double width = advance * scaleX;
         double x = text.X + (text.Alignment == OfficeTextAlignment.Center ? (text.Width - width) / 2D :
             text.Alignment == OfficeTextAlignment.Right ? text.Width - width : 0D);
@@ -74,7 +84,10 @@ public static partial class OfficeDrawingSvgExporter {
             ? baselineMetrics.BaselineOffset(size) : font.LineHeight(size) * .8D;
         const int MaximumOutlinePoints = 1_000_000;
         List<List<OfficePoint>> contours;
-        if (shaped == null) {
+        if (prepared != null) {
+            contours = prepared.GetContours(0D, -baseline, size, MaximumOutlinePoints, token,
+                new OfficeCffOperationBudget());
+        } else if (shaped == null) {
             contours = font is IOfficeCffBoundedFontProgram cff
                 ? cff.GetTextContoursBounded(text.RasterText, 0D, -baseline, size, MaximumOutlinePoints, token,
                     new OfficeCffOperationBudget())

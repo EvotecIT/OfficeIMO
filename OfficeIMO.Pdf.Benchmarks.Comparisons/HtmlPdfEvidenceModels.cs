@@ -5,6 +5,7 @@ internal sealed record HtmlPdfEvidenceReport(
     DateTimeOffset GeneratedUtc,
     string Scale,
     int Iterations,
+    bool AllEnginesComparable,
     HtmlPdfEvidenceEnvironment Environment,
     HtmlPdfEvidenceProvenance Provenance,
     HtmlPdfEvidenceInput Input,
@@ -41,11 +42,28 @@ internal sealed record HtmlPdfEngineEvidence(
     string Owner,
     string AssemblyVersion,
     string ExecutionKind,
+    string Status,
+    int RequestedIterations,
+    int NotRunAfterRejection,
+    bool TimingComparable,
     HtmlPdfCancellationEvidence Cancellation,
-    HtmlPdfDeterminismEvidence Determinism,
+    HtmlPdfDeterminismEvidence? Determinism,
     string MemoryScope,
     bool MemoryComparable,
-    IReadOnlyList<HtmlPdfOutputEvidence> Outputs);
+    IReadOnlyList<HtmlPdfOutputEvidence> Outputs,
+    IReadOnlyList<HtmlPdfAttemptFailure> Failures);
+
+internal sealed record HtmlPdfAttemptFailure(
+    int Iteration,
+    string Stage,
+    string ExceptionType,
+    string Detail,
+    IReadOnlyList<HtmlPdfRetainedArtifactEvidence> RetainedArtifacts);
+
+internal sealed record HtmlPdfRetainedArtifactEvidence(
+    string RelativePath,
+    long SizeBytes,
+    string Sha256);
 
 internal sealed record HtmlPdfCancellationEvidence(
     bool ApiSupportsCancellation,

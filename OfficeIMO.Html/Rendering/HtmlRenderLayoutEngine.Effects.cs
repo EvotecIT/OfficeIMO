@@ -10,7 +10,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         double containingWidth,
         IElement element,
         out bool createsStackingContext) =>
-        ApplyPaintEffects(block, style, containingWidth, HtmlRenderStyleResolver.DescribeSource(element), out createsStackingContext, style.Clip != "auto" ? GetSemanticNodeId(element) : null);
+        ApplyPaintEffects(block, ColumnFragmentPaintStyle(element, style), containingWidth, HtmlRenderStyleResolver.DescribeSource(element), out createsStackingContext, style.Clip != "auto" ? GetSemanticNodeId(element) : null);
 
     private HtmlRenderFlowBlock ApplyPaintEffects(
         HtmlRenderFlowBlock block,
@@ -171,6 +171,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         IReadOnlyList<HtmlRenderVisual> visuals,
         bool decorate = true) {
         if (bounds == null) return visuals;
+        style = ColumnFragmentPaintStyle(element, style);
         IReadOnlyList<HtmlRenderVisual> decoratedVisuals = decorate
             ? ApplyInlineBoxDecoration(element, style, bounds, visuals) : visuals;
         string source = HtmlRenderStyleResolver.DescribeSource(element);
@@ -292,7 +293,9 @@ internal sealed partial class HtmlRenderLayoutEngine {
         InlineContainingRect bounds,
         IReadOnlyList<HtmlRenderVisual> content,
         ICollection<HtmlRenderVisual>? deferredOutlines = null) {
-        if (!HasInlineBoxPaint(style) || bounds.Fragments.Count == 0) return content;
+        // Replaced images already own their full border box in LayoutImage.
+        // Inline envelopes still apply effects, but must not paint a second box.
+        if (IsReplacedImageElement(element) || !HasInlineBoxPaint(style) || bounds.Fragments.Count == 0) return content;
 
         var backgroundsAndBorders = new List<HtmlRenderVisual>();
         var outlines = new List<HtmlRenderVisual>();

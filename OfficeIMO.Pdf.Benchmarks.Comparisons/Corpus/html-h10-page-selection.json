@@ -1,0 +1,443 @@
+{
+  "schemaVersion": 1,
+  "selectionDate": "2026-09-23",
+  "purpose": "First H10 expansion beyond the two documentation pages selected in the initial comparison, before inspecting OfficeIMO output for these sources.",
+  "capture": {
+    "viewportWidthCssPixels": 816,
+    "viewportHeightCssPixels": 900,
+    "liveReadiness": "DOMContentLoaded plus 1000 ms",
+    "offlineReference": "Chromium MHTML replay with network disabled",
+    "maximumArchiveBytes": 33554432,
+    "archiveStorage": "Ignored task-owned directory; do not commit third-party page bytes"
+  },
+  "pages": [
+    {
+      "id": "w3c-html-guide-legacy",
+      "sourceClass": "legacy-markup",
+      "role": "development",
+      "url": "https://www.w3.org/MarkUp/Guide/",
+      "rightsUrl": "https://www.w3.org/copyright/",
+      "requiredVisibleMarkers": ["Getting started with HTML", "Dave Raggett"],
+      "reason": "A long-lived HTML 4-era instructional page with old structural markup and little script dependence."
+    },
+    {
+      "id": "nasa-svs-voyager-gallery",
+      "sourceClass": "resource-heavy-gallery",
+      "role": "development",
+      "url": "https://svs.gsfc.nasa.gov/gallery/voyager/",
+      "rightsUrl": "https://svs.gsfc.nasa.gov/",
+      "requiredVisibleMarkers": ["Voyager", "Overview"],
+      "reason": "A NASA image gallery with repeated media cards and a longer scrolling layout. Its first capture exposed renderer failures and informed fixes, so it no longer qualifies as held-out."
+    },
+    {
+      "id": "playwright-todomvc-scripted",
+      "sourceClass": "scripted-application",
+      "role": "development",
+      "url": "https://demo.playwright.dev/todomvc/",
+      "rightsUrl": "https://github.com/tastejs/todomvc/blob/master/license.md",
+      "requiredVisibleMarkers": ["todos", "What needs to be done?"],
+      "reason": "A small JavaScript-created application surface whose frozen post-load DOM can be compared with static MHTML and the browser-backed route."
+    },
+    {
+      "id": "nps-yellowstone-photo-galleries",
+      "sourceClass": "resource-heavy-gallery",
+      "role": "development",
+      "selectionDate": "2026-09-24",
+      "url": "https://www.nps.gov/yell/learn/photosmultimedia/photogallery.htm",
+      "rightsUrl": "https://www.nps.gov/aboutus/disclaimer.htm",
+      "rightsNotes": "NPS-created material is generally public domain; third-party content and government marks are exceptions. Retain source bytes only in ignored local evidence and record any excluded resource after capture.",
+      "requiredVisibleMarkers": ["Photo Galleries", "Yellowstone National Park", "Wildlife Photos"],
+      "pdfIntentSelectionDate": "2026-09-29",
+      "pdfIntents": [
+        {"intent": "print-reflow", "inspect": ["breadcrumb and gallery order", "photo and caption pairing", "all-page footer flow", "link destinations"]},
+        {"intent": "screen-media-pagination", "inspect": ["gallery card grouping and image placement", "off-canvas controls", "page-boundary integrity"]},
+        {"intent": "screen-snapshot-pagination", "inspect": ["frozen 816-by-900 viewport slices", "gallery and footer visibility", "slice-boundary image integrity"]}
+      ],
+      "editableTargetSelectionDate": "2026-09-24",
+      "editableTargets": [
+        {
+          "target": "Word",
+          "profile": "semantic document",
+          "inspect": ["heading hierarchy", "gallery image and caption pairing", "link destinations", "survey text", "saved and reopened content"]
+        },
+        {
+          "target": "Excel",
+          "profile": "generic editable grid",
+          "inspect": ["gallery card text and picture placement", "saved and reopened cells and images"],
+          "scope": "Visual/editable projection; no typed table or formula claim for this source."
+        },
+        {
+          "target": "PowerPoint",
+          "profile": "generic editable slides",
+          "inspect": ["heading and card grouping", "editable text and pictures", "saved and reopened slide order"]
+        },
+        {
+          "target": "OneNote",
+          "profile": "generic semantic pages",
+          "inspect": ["heading and paragraph flow", "links and images", "saved and reopened section content"]
+        },
+        {
+          "target": "RTF",
+          "profile": "editable semantic document",
+          "inspect": ["heading and paragraph flow", "links and images", "saved and reopened content"]
+        },
+        {
+          "target": "Markdown",
+          "profile": "semantic text",
+          "inspect": ["heading hierarchy", "gallery image references and captions", "link destinations", "serialized and reparsed content"]
+        }
+      ],
+      "reason": "An independently published, image-card-rich government gallery on a different site and stylesheet system from NASA. Its CSS-cap, layout, resource and breadcrumb failures have informed renderer work, so it is now a development regression rather than an untouched held-out case."
+    },
+    {
+      "id": "noaa-pacific-coral-surveys-2026",
+      "sourceClass": "substantial-illustrated-article",
+      "role": "development",
+      "selectionDate": "2026-09-25",
+      "url": "https://www.fisheries.noaa.gov/feature-story/2026-pacific-coral-surveys-complete",
+      "rightsUrl": "https://www.fisheries.noaa.gov/national/about-us/website-policies-and-disclaimers",
+      "rightsNotes": "NOAA Fisheries states that U.S.-government-created information is not subject to U.S. copyright; third-party material, agency marks and external destinations require separate treatment. Retain the page archive only in ignored local evidence, record resource credits and omissions, and do not present the replay as an official NOAA page.",
+      "requiredVisibleMarkers": ["2026 Pacific Coral Surveys Complete", "By the Numbers", "1,006 scuba dives", "Blue marlin larva"],
+      "editableTargetSelectionDate": "2026-09-25",
+      "editableTargets": [
+        {
+          "target": "Word",
+          "profile": "semantic document",
+          "inspect": ["title and section hierarchy", "image and credit pairing", "numbered findings", "link destinations", "saved and reopened content"]
+        },
+        {
+          "target": "Excel",
+          "profile": "generic editable grid",
+          "inspect": ["survey-number labels and values", "article text and image placement", "saved and reopened cells and images"],
+          "scope": "Visual/editable projection; the source has a bullet list of measurements, not a typed table or formula."
+        },
+        {
+          "target": "PowerPoint",
+          "profile": "generic editable slides",
+          "inspect": ["title and section grouping", "editable text and credited pictures", "saved and reopened slide order"]
+        },
+        {
+          "target": "OneNote",
+          "profile": "generic semantic pages",
+          "inspect": ["heading and paragraph flow", "links and credited images", "saved and reopened section content"]
+        },
+        {
+          "target": "RTF",
+          "profile": "editable semantic document",
+          "inspect": ["heading and paragraph flow", "links and images", "saved and reopened content"]
+        },
+        {
+          "target": "Markdown",
+          "profile": "semantic text",
+          "inspect": ["heading hierarchy", "measurement list", "image references and credits", "link destinations", "serialized and reparsed content"]
+        }
+      ],
+      "reason": "Selected independently before the first render. Its frozen PowerPoint output exposed overlapping long paragraphs and missing loss diagnostics, so it is now a development regression before that owner fix."
+    },
+    {
+      "id": "usgs-atmosphere-water-cycle",
+      "sourceClass": "substantial-illustrated-article-with-data-table",
+      "role": "acquisition-blocked",
+      "selectionDate": "2026-09-25",
+      "url": "https://www.usgs.gov/water-science-school/science/atmosphere-and-water-cycle",
+      "rightsUrl": "https://www.usgs.gov/information-policies-and-instructions/copyrights-and-credits",
+      "rightsNotes": "USGS-authored content is generally U.S. public-domain material, but this page credits a Wikimedia/Creative Commons image. Keep the capture only in ignored local evidence; record image provenance and exclude any third-party visual from checked-in output unless its specific reuse terms are verified.",
+      "requiredVisibleMarkers": ["The Atmosphere and the Water Cycle", "How much does a cloud weigh?", "Global distribution of atmospheric water", "3,094"],
+      "editableTargetSelectionDate": "2026-09-25",
+      "editableTargets": [
+        {
+          "target": "Word",
+          "profile": "semantic document",
+          "inspect": ["title and section hierarchy", "data table", "links and image credit", "saved and reopened content"]
+        },
+        {
+          "target": "Excel",
+          "profile": "typed data table and editable article grid",
+          "inspect": ["source table labels and numeric measurements", "article text and image placement", "saved and reopened cells and images"]
+        },
+        {
+          "target": "PowerPoint",
+          "profile": "generic editable slides",
+          "inspect": ["ordered article sections", "visible non-overlapping text and table", "editable picture and credit", "saved and reopened slide order"]
+        },
+        {
+          "target": "OneNote",
+          "profile": "generic semantic pages",
+          "inspect": ["heading and paragraph flow", "table, links and credited image", "saved and reopened section content"]
+        },
+        {
+          "target": "RTF",
+          "profile": "editable semantic document",
+          "inspect": ["heading and paragraph flow", "table, links and image credit", "saved and reopened content"]
+        },
+        {
+          "target": "Markdown",
+          "profile": "semantic text",
+          "inspect": ["heading hierarchy", "data table", "links and image credit", "serialized and reparsed content"]
+        }
+      ],
+      "reason": "Selected from source content only before OfficeIMO capture, rendering or conversion. The declared Chromium acquisition received HTTP 403 before any archive was created, so this page cannot serve as a frozen held-out case under the current capture policy."
+    },
+    {
+      "id": "cdc-global-drinking-water",
+      "sourceClass": "substantial-illustrated-article-with-definition-table",
+      "role": "development",
+      "selectionDate": "2026-09-25",
+      "url": "https://www.cdc.gov/global-water-sanitation-hygiene/about/global-drinking-water.html",
+      "rightsUrl": "https://www.cdc.gov/other/agencymaterials.html",
+      "rightsNotes": "CDC-authored material is generally public domain in the United States, but individual photographs, marks and licensed material can have restrictions. Keep the archive only in ignored local evidence and exclude the article photograph and agency marks from checked-in visual output until their specific reuse terms are verified. Public excerpts must credit CDC and not imply endorsement.",
+      "requiredVisibleMarkers": ["Global Drinking Water", "Why it's important", "Terms to know", "Safely managed water service level"],
+      "editableTargetSelectionDate": "2026-09-25",
+      "editableTargets": [
+        {
+          "target": "Word",
+          "profile": "semantic document",
+          "inspect": ["title and section hierarchy", "service-level definition table", "links and article image credit", "saved and reopened content"]
+        },
+        {
+          "target": "Excel",
+          "profile": "editable term-and-definition table",
+          "inspect": ["service-level rows and definitions in separate cells", "article text and picture placement", "saved and reopened cells and images"]
+        },
+        {
+          "target": "PowerPoint",
+          "profile": "generic editable slides",
+          "inspect": ["ordered article sections", "visible non-overlapping text and service-level table", "editable article picture", "saved and reopened slide order"]
+        },
+        {
+          "target": "OneNote",
+          "profile": "generic semantic pages",
+          "inspect": ["heading and paragraph flow", "table, links and article picture", "saved and reopened section content"]
+        },
+        {
+          "target": "RTF",
+          "profile": "editable semantic document",
+          "inspect": ["heading and paragraph flow", "table, links and article picture", "saved and reopened content"]
+        },
+        {
+          "target": "Markdown",
+          "profile": "semantic text",
+          "inspect": ["heading hierarchy", "service-level definition table", "links and image reference", "serialized and reparsed content"]
+        }
+      ],
+      "reason": "A CDC article with explanatory prose, a five-row term/definition table, links and an article image on a different publisher and stylesheet system from the earlier development pages. Selected before capture, but its print and editable findings have since informed renderer and adapter fixes, so it is now a development regression."
+    },
+    {
+      "id": "nws-chicago-climate-normals",
+      "sourceClass": "long-data-tables",
+      "role": "development",
+      "selectionDate": "2026-09-26",
+      "url": "https://www.weather.gov/lot/chicago_normals",
+      "rightsUrl": "https://www.weather.gov/disclaimer",
+      "rightsNotes": "NWS says its web-page information is public domain unless noted otherwise. Keep captured bytes in ignored local evidence, identify the source and date, and do not imply NOAA/NWS endorsement or present altered output as official material. Check individual third-party resources and protected marks before publishing visual excerpts.",
+      "requiredVisibleMarkers": ["Daily, Monthly, and Annual Climate Normals", "January:", "Day of Month", "Precipitation", "MONTH"],
+      "pdfIntents": [
+        {"intent": "print-reflow", "inspect": ["all monthly table sections", "column heading and numeric cell alignment", "page-boundary row integrity", "text and link preservation"]},
+        {"intent": "screen-media-pagination", "inspect": ["all monthly table sections", "wide-table overflow and clipping", "page-boundary row integrity"]},
+        {"intent": "screen-snapshot-pagination", "inspect": ["frozen 816-by-900 viewport slices", "table continuation across slices", "visible navigation and numeric data"]}
+      ],
+      "editableTargets": [
+        {"target": "Word", "profile": "editable report", "inspect": ["monthly section headings", "daily tables and numeric cells", "links", "saved and reopened content"]},
+        {"target": "Excel", "profile": "typed daily data tables", "inspect": ["day and measurement columns in separate cells", "monthly totals", "saved and reopened numeric values"]},
+        {"target": "PowerPoint", "profile": "editable summary slides", "inspect": ["ordered month sections", "readable non-overlapping table content", "saved and reopened slide order"]},
+        {"target": "OneNote", "profile": "editable semantic pages", "inspect": ["section headings", "tables and links", "saved and reopened content"]},
+        {"target": "RTF", "profile": "editable report", "inspect": ["section headings", "table rows and numeric cells", "links", "saved and reopened content"]},
+        {"target": "Markdown", "profile": "semantic text and tables", "inspect": ["month headings", "table headers and daily rows", "links", "serialized and reparsed content"]}
+      ],
+      "reason": "A public data page with twelve month tabs in its source; the frozen browser state displays January's daily table. Its first conversion exposed a quoted-tab intrinsic-sizing failure in opt-in local-font PDF intents, which informed an owner fix, so it is now a development regression."
+    },
+    {
+      "id": "nps-cuyahoga-beaver-marsh",
+      "sourceClass": "illustrated-park-article",
+      "role": "acquisition-blocked",
+      "selectionDate": "2026-09-26",
+      "url": "https://www.nps.gov/cuva/planyourvisit/the-beaver-marsh.htm",
+      "rightsUrl": "https://www.nps.gov/aboutus/disclaimer.htm",
+      "rightsNotes": "NPS-created material is generally public domain, but third-party content and government marks are exceptions. Keep capture bytes in ignored local evidence and check each credited image before publishing visual excerpts; do not imply NPS endorsement.",
+      "requiredVisibleMarkers": ["The Beaver Marsh", "Cuyahoga Valley National Park", "Observing throughout the year", "Over 50 bird species", "Visiting and volunteering"],
+      "pdfIntents": [
+        {"intent": "print-reflow", "inspect": ["article title and seasonal paragraphs", "image and credit pairing", "visiting tips", "all-page header and footer flow"]},
+        {"intent": "screen-media-pagination", "inspect": ["article and image placement", "seasonal section flow", "off-canvas navigation exclusion"]},
+        {"intent": "screen-snapshot-pagination", "inspect": ["frozen 816-by-900 viewport slices", "article and image visibility", "slice-boundary image integrity"]}
+      ],
+      "editableTargets": [
+        {"target": "Word", "profile": "semantic illustrated article", "inspect": ["title and section hierarchy", "picture and caption or credit pairing", "links", "saved and reopened content"]},
+        {"target": "Excel", "profile": "generic editable grid", "inspect": ["seasonal section text and picture placement", "visiting-tip grouping", "saved and reopened cells and images"], "scope": "No typed data-table or formula claim for this page."},
+        {"target": "PowerPoint", "profile": "editable illustrated slides", "inspect": ["ordered article sections", "editable pictures and captions", "visible non-overlapping text", "saved and reopened slide order"]},
+        {"target": "OneNote", "profile": "editable semantic pages", "inspect": ["heading and paragraph flow", "links and credited pictures", "saved and reopened content"]},
+        {"target": "RTF", "profile": "editable illustrated document", "inspect": ["heading and paragraph flow", "links and images", "saved and reopened content"]},
+        {"target": "Markdown", "profile": "semantic text", "inspect": ["heading hierarchy", "image references and credits", "link destinations", "serialized and reparsed content"]}
+      ],
+      "reason": "Selected before conversion as an illustrated park article, but the bounded live capture left one image pending and failed readiness. Its default CSS exceeded the 10,000-rule safety cap, as did the earlier NPS gallery. The incomplete archive is diagnostic only; this page is not a qualified held-out case."
+    },
+    {
+      "id": "epa-drinking-water-contaminants",
+      "sourceClass": "prose-and-regulatory-table",
+      "role": "development",
+      "selectionDate": "2026-09-26",
+      "url": "https://www.epa.gov/sdwa/drinking-water-regulations-and-contaminants",
+      "rightsUrl": "https://www.epa.gov/web-policies-and-procedures/image-guidance",
+      "rightsNotes": "EPA pages can contain third-party images or other licensed material. Keep the source archive in ignored local evidence, identify EPA as source, and verify individual asset rights before publishing any visual excerpt or mark.",
+      "requiredVisibleMarkers": ["Drinking Water Regulations and Contaminants", "National Primary Drinking Water Regulations", "List of National Secondary Drinking Water Regulations", "Fluoride", "Total Dissolved Solids"],
+      "pdfIntents": [
+        {"intent": "print-reflow", "inspect": ["primary and secondary section headings", "complete contaminant/standard table", "row and column alignment", "page-boundary row integrity", "source links"]},
+        {"intent": "screen-media-pagination", "inspect": ["visible article and table", "table width and clipping", "page-boundary row integrity"]},
+        {"intent": "screen-snapshot-pagination", "inspect": ["frozen 816-by-900 viewport slices", "table and heading visibility", "slice-boundary integrity"]}
+      ],
+      "editableTargets": [
+        {"target": "Word", "profile": "editable regulatory article", "inspect": ["heading hierarchy", "contaminant/standard rows", "source links", "saved and reopened content"]},
+        {"target": "Excel", "profile": "typed contaminant/standard table", "inspect": ["contaminant and standard in separate cells", "units and values", "saved and reopened cells"]},
+        {"target": "PowerPoint", "profile": "editable article slides", "inspect": ["ordered sections", "readable non-overlapping table", "saved and reopened slide order"]},
+        {"target": "OneNote", "profile": "editable semantic pages", "inspect": ["headings and paragraphs", "table and links", "saved and reopened content"]},
+        {"target": "RTF", "profile": "editable article", "inspect": ["headings", "table rows and cells", "links", "saved and reopened content"]},
+        {"target": "Markdown", "profile": "semantic article and table", "inspect": ["heading hierarchy", "contaminant/standard table", "source links", "serialized and reparsed content"]}
+      ],
+      "reason": "Selected before OfficeIMO capture as an article with an explicit contaminant table. Its print float, border, character-unit and editable-table findings then informed engine changes, so it is now a development regression rather than untouched held-out proof."
+    },
+    {
+      "id": "fws-wetland-dependent-wildlife",
+      "sourceClass": "illustrated-species-article",
+      "role": "development",
+      "selectionDate": "2026-09-26",
+      "url": "https://www.fws.gov/story/2026-05/wetland-dependent-wildlife",
+      "rightsUrl": "https://www.fws.gov/disclaimer",
+      "rightsNotes": "FWS says some site images and graphics are licensed and its official logo has restricted use. Keep the archive in ignored local evidence; inspect each image credit before publishing an excerpt and do not imply agency endorsement.",
+      "requiredVisibleMarkers": ["Wetland Dependent Wildlife", "Florida salt marsh vole", "Image Details", "wetlands"],
+      "pdfIntents": [
+        {"intent": "print-reflow", "inspect": ["species section order", "picture and caption or credit pairing", "all-page body and footer flow", "link destinations"]},
+        {"intent": "screen-media-pagination", "inspect": ["article and picture placement", "off-canvas menu exclusion", "page-boundary image integrity"]},
+        {"intent": "screen-snapshot-pagination", "inspect": ["frozen 816-by-900 viewport slices", "species and image visibility", "slice-boundary image integrity"]}
+      ],
+      "editableTargets": [
+        {"target": "Word", "profile": "editable illustrated article", "inspect": ["title and species headings", "credited pictures", "links", "saved and reopened content"]},
+        {"target": "Excel", "profile": "generic editable grid", "inspect": ["species labels and descriptions", "picture placement", "saved and reopened cells and images"], "scope": "No typed source table or formula claim for this page."},
+        {"target": "PowerPoint", "profile": "editable illustrated slides", "inspect": ["species order", "editable pictures and credits", "visible non-overlapping text", "saved and reopened slide order"]},
+        {"target": "OneNote", "profile": "editable semantic pages", "inspect": ["headings and paragraph flow", "credited pictures and links", "saved and reopened content"]},
+        {"target": "RTF", "profile": "editable illustrated document", "inspect": ["species headings and paragraphs", "images and links", "saved and reopened content"]},
+        {"target": "Markdown", "profile": "semantic article", "inspect": ["species headings", "image references and credits", "links", "serialized and reparsed content"]}
+      ],
+      "reason": "Selected before OfficeIMO capture as a multi-species illustrated article. Its archived WebP and CSS-cost findings informed owner changes, so it is now a development regression rather than untouched held-out proof."
+    },
+    {
+      "id": "nist-si-guide-chapter-4",
+      "sourceClass": "long-scientific-tables",
+      "role": "development",
+      "selectionDate": "2026-09-28",
+      "url": "https://www.nist.gov/pml/special-publication-811/nist-guide-si-chapter-4-two-classes-si-units-and-si-prefixes",
+      "rightsUrl": "https://www.nist.gov/copyrights-disclaimers",
+      "rightsNotes": "NIST-authored federal material is generally public domain in the United States; inspect individual credits and marks before publishing any visual excerpt. Keep the full capture in ignored local evidence and do not imply NIST endorsement.",
+      "requiredVisibleMarkers": ["SI base units", "SI derived units", "SI prefixes", "kelvin", "watt"],
+      "pdfIntents": [
+        {"intent": "print-reflow", "inspect": ["chapter and section order", "all five SI tables with headings and numeric or symbolic cells", "row integrity at page boundaries", "source links"]},
+        {"intent": "screen-media-pagination", "inspect": ["wide scientific table overflow", "cell alignment", "page-boundary row integrity"]},
+        {"intent": "screen-snapshot-pagination", "inspect": ["frozen 816-by-900 viewport slices", "table continuation and clipped content", "visible navigation and symbols"]}
+      ],
+      "editableTargets": [
+        {"target": "Word", "profile": "editable scientific chapter", "inspect": ["section headings", "five unit and prefix tables", "symbols and links", "saved and reopened content"]},
+        {"target": "Excel", "profile": "typed SI unit tables", "inspect": ["quantity, unit and symbol in separate cells", "all five table boundaries, order and symbols", "saved and reopened cells"]},
+        {"target": "PowerPoint", "profile": "editable chapter slides", "inspect": ["ordered sections", "readable non-overlapping tables", "saved and reopened slide order"]},
+        {"target": "OneNote", "profile": "editable semantic chapter", "inspect": ["section order", "tables and links", "saved and reopened content"]},
+        {"target": "RTF", "profile": "editable scientific chapter", "inspect": ["headings", "table rows and cells", "symbols and links", "saved and reopened content"]},
+        {"target": "Markdown", "profile": "semantic text and tables", "inspect": ["section hierarchy", "five unit and prefix tables", "symbols and links", "serialized and reparsed content"]}
+      ],
+      "reason": "An independently authored federal guide with multi-column scientific tables, symbols and long prose on a new publisher. Source content, reuse policy and HTTP 200 were checked before any OfficeIMO capture or output inspection. Its first editable replay exposed and drove an OneNote native table fix, so it now serves as development evidence rather than a held-out acceptance page."
+    },
+    {
+      "id": "noaa-nos-hydrography",
+      "sourceClass": "illustrated-science-article",
+      "role": "reference-incomplete",
+      "selectionDate": "2026-09-28",
+      "url": "https://oceanservice.noaa.gov/facts/hydrography.html",
+      "rightsUrl": "https://oceanservice.noaa.gov/about/faq.html",
+      "rightsNotes": "NOAA National Ocean Service says its articles and images are generally public domain unless credited otherwise. Preserve source and individual image credits, keep the full archive only in ignored local evidence, and do not imply NOAA endorsement or publish agency marks as OfficeIMO assets.",
+      "requiredVisibleMarkers": ["What is hydrography?", "multibeam sonar", "Office of Coast Survey", "Kachemak Bay"],
+      "pdfIntents": [
+        {"intent": "print-reflow", "inspect": ["article heading and paragraph order", "infographic and hydrographer image with credits", "all-page flow and links"]},
+        {"intent": "screen-media-pagination", "inspect": ["image and text placement", "navigation exclusion", "image integrity at page boundaries"]},
+        {"intent": "screen-snapshot-pagination", "inspect": ["frozen 816-by-900 viewport slices", "image and caption visibility", "slice-boundary integrity"]}
+      ],
+      "editableTargets": [
+        {"target": "Word", "profile": "semantic illustrated article", "inspect": ["heading and paragraphs", "image and credit pairing", "links", "saved and reopened content"]},
+        {"target": "Excel", "profile": "generic editable grid", "inspect": ["article text and picture placement", "caption grouping", "saved and reopened cells and images"], "scope": "No typed data-table or formula claim for this page."},
+        {"target": "PowerPoint", "profile": "editable illustrated slides", "inspect": ["ordered article sections", "editable pictures and credits", "non-overlapping text", "saved and reopened slide order"]},
+        {"target": "OneNote", "profile": "editable semantic article", "inspect": ["heading and paragraph flow", "images and links", "saved and reopened content"]},
+        {"target": "RTF", "profile": "editable illustrated document", "inspect": ["heading and paragraph flow", "images and links", "saved and reopened content"]},
+        {"target": "Markdown", "profile": "semantic text", "inspect": ["heading hierarchy", "image references and credits", "link destinations", "serialized and reparsed content"]}
+      ],
+      "reason": "Selected before OfficeIMO output inspection. Frozen and fresh live Chromium print both create four pages, but the last three contain only the printed URL footer and omit the later article and hydrographer image. OfficeIMO default print also omits later article content. Preserve this case as a print-reference failure and resource/flow diagnostic, not a held-out all-page print acceptance oracle."
+    },
+    {
+      "id": "noaa-nos-chesapeake-bathymetry",
+      "sourceClass": "illustrated-news-article",
+      "role": "held-out",
+      "selectionDate": "2026-09-29",
+      "url": "https://oceanservice.noaa.gov/news/july26/bathymetric-data.html",
+      "rightsUrl": "https://oceanservice.noaa.gov/about/disclaimer.html",
+      "rightsNotes": "NOAA identifies the page as public information, but both photographs credit William & Mary's VIMS and Batten School. Keep archive and converted images only in ignored local evidence, preserve those credits and NOAA identifiers, and do not redistribute or imply endorsement.",
+      "requiredVisibleMarkers": ["How Removing Lost Crab Traps Is Helping Map the Chesapeake Bay", "TRAP program", "bathymetric data", "National Centers for Environmental Information", "Office of Coast Survey"],
+      "pdfIntents": [
+        {"intent": "print-reflow", "inspect": ["title and article text in order", "both credited photographs with captions", "last article paragraph and links", "no content-free trailing sheets"]},
+        {"intent": "screen-media-pagination", "inspect": ["article and image flow", "navigation and sidebar placement", "image integrity at page boundaries"]},
+        {"intent": "screen-snapshot-pagination", "inspect": ["frozen 816-by-900 viewport slices", "title, photos and final paragraph visibility", "slice-boundary integrity"]}
+      ],
+      "editableTargets": [
+        {"target": "Word", "profile": "semantic illustrated article", "inspect": ["title and paragraph order", "two photographs and credits", "links", "saved and reopened content"]},
+        {"target": "Excel", "profile": "generic editable grid", "inspect": ["article text and picture placement", "credit pairing", "saved and reopened cells and images"], "scope": "No typed data-table or formula claim for this page."},
+        {"target": "PowerPoint", "profile": "editable illustrated slides", "inspect": ["article order", "editable non-overlapping text and credited photographs", "saved and reopened slide order"]},
+        {"target": "OneNote", "profile": "editable semantic article", "inspect": ["heading and paragraph flow", "photographs and links", "saved and reopened content"]},
+        {"target": "RTF", "profile": "editable illustrated document", "inspect": ["paragraph order", "photographs and links", "saved and reopened content"]},
+        {"target": "Markdown", "profile": "semantic text", "inspect": ["heading and paragraph order", "image references and credits", "link destinations", "serialized and reparsed content"]}
+      ],
+      "reason": "Selected from the official article title, substantial prose, two credited media surfaces, and public-information notice before local capture or OfficeIMO conversion. It replaces the hydrography page as the held-out NOAA all-page print case; the browser reference must retain the final paragraph before any OfficeIMO acceptance decision."
+    },
+    {
+      "id": "nasa-solar-system-terrestrial-planets",
+      "sourceClass": "planetary-data-table",
+      "role": "development",
+      "selectionDate": "2026-09-28",
+      "url": "https://science.nasa.gov/learn/basics-of-space-flight/chapter1-2/",
+      "rightsUrl": "https://www.nasa.gov/nasa-brand-center/images-and-media/",
+      "rightsNotes": "NASA-authored text and media can generally be used under NASA's media guidelines; identify third-party credits, protect NASA identifiers, keep the full archive in ignored local evidence, and do not imply endorsement.",
+      "requiredVisibleMarkers": ["The Terrestrial Planets", "Mean distance from Sun", "Equatorial radius", "The Jovian Planets", "Satellites of the Jovian Planets"],
+      "pdfIntents": [
+        {"intent": "print-reflow", "inspect": ["chapter and section order", "terrestrial planet data table with labels and values", "row and column integrity at page boundaries", "credited figures and links"]},
+        {"intent": "print-reflow-zero-margin", "inspect": ["same zero-margin A4 sheet as frozen Chromium print", "chapter text and 24 PDF images without omission", "Jovian figure and Saturn continuation on page 7", "later-page and footer flow"]},
+        {"intent": "screen-media-pagination", "inspect": ["planet table width and cells", "section flow", "figure placement"]},
+        {"intent": "screen-snapshot-pagination", "inspect": ["frozen 816-by-900 viewport slices", "table continuation and clipped content", "visible navigation and figures"]}
+      ],
+      "editableTargets": [
+        {"target": "Word", "profile": "editable science chapter", "inspect": ["section headings", "planet table labels and values", "figures and links", "saved and reopened content"]},
+        {"target": "Excel", "profile": "typed planetary data table", "inspect": ["planet values in separate columns", "numeric and textual cell values", "saved and reopened cells"]},
+        {"target": "PowerPoint", "profile": "editable chapter slides", "inspect": ["ordered sections", "readable non-overlapping table", "saved and reopened slide order"]},
+        {"target": "OneNote", "profile": "editable semantic chapter", "inspect": ["section order", "table cells and links", "saved and reopened content"]},
+        {"target": "RTF", "profile": "editable science chapter", "inspect": ["headings", "table rows and cells", "figures and links", "saved and reopened content"]},
+        {"target": "Markdown", "profile": "semantic text and table", "inspect": ["section hierarchy", "planet data rows and values", "links", "serialized and reparsed content"]}
+      ],
+      "reason": "A NASA-hosted chapter with a five-column planetary comparison table, long science prose and credited figures. It was selected before capture as a NIST replacement, but its first PDF replay exposed severe prose/sidebar flex sizing and informed renderer work, so it now serves as development evidence rather than an untouched held-out page."
+    },
+    {
+      "id": "nasa-reference-systems",
+      "sourceClass": "illustrated-reference-chapter",
+      "role": "development-regression",
+      "selectionDate": "2026-09-29",
+      "url": "https://science.nasa.gov/learn/basics-of-space-flight/chapter2-1/",
+      "rightsUrl": "https://www.nasa.gov/nasa-brand-center/images-and-media/",
+      "rightsNotes": "Keep the full archive in ignored local evidence, identify third-party media credits and NASA identifiers, and do not imply agency endorsement.",
+      "requiredVisibleMarkers": ["Chapter 2: Reference Systems", "Terrestrial Coordinates", "Rotation and Revolution", "Precession", "Epochs"],
+      "pdfIntents": [
+        {"intent": "print-reflow", "inspect": ["chapter and section order", "coordinate illustrations and captions", "all-page prose flow", "links and figure placement"]},
+        {"intent": "screen-media-pagination", "inspect": ["section and figure flow", "sidebar and prose proportions", "page-boundary figure integrity"]},
+        {"intent": "screen-snapshot-pagination", "inspect": ["frozen 816-by-900 viewport slices", "illustration and heading visibility", "slice-boundary integrity"]}
+      ],
+      "editableTargets": [
+        {"target": "Word", "profile": "editable illustrated chapter", "inspect": ["heading hierarchy", "figures and captions", "links", "saved and reopened content"]},
+        {"target": "Excel", "profile": "generic editable grid", "inspect": ["section text and picture placement", "saved and reopened cells and images"], "scope": "No typed data-table or formula claim for this page."},
+        {"target": "PowerPoint", "profile": "editable chapter slides", "inspect": ["ordered sections", "editable non-overlapping text and pictures", "saved and reopened slide order"]},
+        {"target": "OneNote", "profile": "editable semantic chapter", "inspect": ["heading and paragraph flow", "images and links", "saved and reopened content"]},
+        {"target": "RTF", "profile": "editable illustrated document", "inspect": ["heading and paragraph flow", "figures and links", "saved and reopened content"]},
+        {"target": "Markdown", "profile": "semantic text", "inspect": ["heading hierarchy", "image references and captions", "links", "serialized and reparsed content"]}
+      ],
+      "reason": "Selected independently before capture; its later responsive-image, footer, decoration and generated-box findings informed owner fixes, so it now serves as development-regression evidence. Chesapeake remains the predeclared held-out page."
+    }
+  ]
+}

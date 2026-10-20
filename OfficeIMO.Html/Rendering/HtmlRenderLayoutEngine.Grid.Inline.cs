@@ -13,6 +13,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         double inheritedPaintOffsetX,
         double inheritedPaintOffsetY,
         ICollection<HtmlInlineRun> runs) {
+        using var pageBoundaries = new DescendantPageBoundaryScope(this, retainsPageBoundaries: false);
         HtmlRenderBoxStyle gridStyle = BlockifyFlexItemStyle(inlineStyle);
         double outerWidth = ResolveInlineGridWidth(element, availableWidth, gridStyle, depth + 1);
         if (!gridStyle.ExplicitWidth.HasValue) {

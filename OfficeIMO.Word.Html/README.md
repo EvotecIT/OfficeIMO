@@ -79,6 +79,18 @@ Each named profile uses the shared responsive OfficeIMO document shell and accep
 - Stylesheets, inline CSS, local/remote resources, image policies, resource limits, and diagnostics through explicit options.
 - Document language metadata between HTML `lang` and Word settings.
 
+Supported MathML structure imports as editable Word equations even when the
+formula has an `aria-label`, including HTML exported from Word. The label remains
+an equation-text fallback when no presentation content can be projected.
+
+MathML operators with a recognized `form` or nonblank `lspace`/`rspace` produce
+`ContentApproximated` diagnostics with `LossKind.Approximation`: editable Word
+math does not retain their authored form and spacing. This also applies to
+formulas with an accessibility label and to side syntax outside the shared
+renderer's supported grammar. Inspect `ToWordDocumentResult(...).Report.Diagnostics`
+before accepting that approximation. Retain HTML/MathML or use the shared drawing
+renderer when exact operator spacing is required.
+
 Imported tables use a default column grid that fits the section text area or containing table cell. Authored table, column, and cell widths retain their native preferred-width meaning.
 
 ## Import profiles

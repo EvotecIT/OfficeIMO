@@ -9,6 +9,39 @@ namespace OfficeIMO.Tests;
 
 public sealed partial class HtmlRenderingTests {
     [Theory]
+    [InlineData("", 0)]
+    [InlineData(":first", 0)]
+    [InlineData(":right", 0)]
+    [InlineData(":left", 1)]
+    [InlineData(" Report", 0)]
+    public void HtmlPdf_LibraryDefaultMeasuresUnicodePageTextBeforeRetainingWrappedLines(string selector, int pageIndex) {
+        string? installedFamily = PdfCore.PdfOptions.DefaultDocumentFontFamilyFallback.Split(',')
+            .Select(candidate => candidate.Trim())
+            .FirstOrDefault(candidate => PdfCore.PdfEmbeddedFontFamily.TryFromSystem(candidate, out _));
+        // This is a system-font integration contract; portable registered-font
+        // metrics are covered independently by the natural-line tests.
+        if (installedFamily == null) return;
+        var family = PdfCore.PdfEmbeddedFontFamily.FromSystem(installedFamily);
+        const string header = "łłłłłłłłłłłł";
+        string html = "<style>@page{size:100px 200px;margin:60px 0 0}@page" + selector + "{"
+            + "@top-center{font:16px Arial;content:'" + header + "'}}"
+            + "body{margin:0;font:16px Arial}</style><div style='"
+            + (selector == " Report" ? "page:Report" : "") + "'>ASCII body</div>"
+            + (pageIndex == 1 ? "<div style='break-before:page'>Second page</div>" : "");
+        HtmlConversionDocument document = HtmlConversionDocument.Parse(html);
+        HtmlPdfRenderResult automatic = HtmlPdfRenderedConverter.Convert(document, new HtmlToPdfOptions());
+        HtmlPdfRenderResult explicitFont = HtmlPdfRenderedConverter.Convert(document,
+            new HtmlToPdfOptions { FontFamily = family });
+        HtmlRenderText MarginText(HtmlPdfRenderResult result) => Assert.Single(
+            result.RenderResult!.Document.Pages[pageIndex].Visuals.OfType<HtmlRenderText>(),
+            text => text.SemanticRole == "page-margin");
+
+        Assert.Equal(MarginText(explicitFont).Height, MarginText(automatic).Height, 6);
+        Assert.Equal(MarginText(explicitFont).Y, MarginText(automatic).Y, 6);
+        Assert.Equal(header, MarginText(automatic).Text);
+    }
+
+    [Theory]
     [InlineData(false, false, false)]
     [InlineData(true, false, false)]
     [InlineData(true, true, false)]

@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<title>avoid-inside-pre-spanner-set</title>
+<style>
+@font-face{font-family:Witness;src:url(regular.ttf);font-weight:400}
+@font-face{font-family:Witness;src:url(bold.ttf);font-weight:700}
+@page{size:700px 140px;margin:20px}
+html,body{margin:0;background:white;font:14px/20px Witness}
+p{margin:0;orphans:1;widows:1}
+.columns{width:300px;column-count:2;column-gap:20px}
+.spanner{column-span:all;margin:0;font-weight:700;background:#eeeeee}
+</style>
+<section id="columns" class="columns" style="column-fill:auto">
+<p id="irven-p01">IRVEN-P01</p>
+<p id="irven-p02">IRVEN-P02</p>
+<div id="irven-group" style="break-inside:avoid-column">
+<p id="irven-g01">IRVEN-G01</p>
+<p id="irven-g02">IRVEN-G02</p>
+</div>
+<p id="irven-q01">IRVEN-Q01</p>
+<p id="irven-s01" class="spanner">IRVEN-S01</p>
+<p id="irven-t01">IRVEN-T01</p>
+</section>
+<p id="after">IRVEN-AFTER</p>
+</html>

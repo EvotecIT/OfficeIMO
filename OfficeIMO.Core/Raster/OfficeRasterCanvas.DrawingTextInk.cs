@@ -93,6 +93,7 @@ public sealed partial class OfficeRasterCanvas {
         }
 
         void InspectText(OfficeDrawingText text, OfficeRasterCanvas canvas, OfficeTransform placement) {
+            using var preparedScope = canvas.PushPreparedShaping(text.PreparedShaping);
             if (text.RasterText.Length == 0 || (text.Color ?? OfficeColor.Black).A == 0) return;
             if (text.TextDirection == OfficeTextDirection.TopToBottom) {
                 ChargeLayout(text.RasterText.Length);

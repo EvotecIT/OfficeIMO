@@ -8,6 +8,10 @@ public sealed partial class OfficeRasterCanvas {
 
     private IOfficeFontProgram? ResolveTextFont(string? text, string? fontFamily, OfficeFontStyle style, double size, out OfficeFontStyle resolvedStyle) {
         resolvedStyle = OfficeFontStyle.Regular;
+        if (_preparedShaping != null && string.Equals(text, _preparedShaping.Text, StringComparison.Ordinal)) {
+            resolvedStyle = style;
+            return ResolvePreparedFont();
+        }
         if (_fonts != null) {
             IOfficeFontProgram? scoped = _fonts.ResolveForText(text ?? string.Empty, fontFamily, RequestedTextFace(style), size / FontMetricScale, out resolvedStyle);
             if (scoped != null) {

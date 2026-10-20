@@ -574,7 +574,9 @@ public sealed partial class PdfDocument {
 
     private static void AddRunTextShapingDiagnostics(IEnumerable<PdfTextRun> runs, PdfOptions options, PdfStandardFont defaultFont, string source) {
         foreach (PdfTextRun run in runs) {
-            if (run == null || string.Equals(run.Text, "\n", StringComparison.Ordinal) || string.Equals(run.Text, "\t", StringComparison.Ordinal)) {
+            // Adapter-owned runs already carry contextual forms and visual order. The writer
+            // preserves those glyphs, while the separate encoding pass still validates coverage.
+            if (run == null || run.PreservesPaintedGlyphs || string.Equals(run.Text, "\n", StringComparison.Ordinal) || string.Equals(run.Text, "\t", StringComparison.Ordinal)) {
                 continue;
             }
 

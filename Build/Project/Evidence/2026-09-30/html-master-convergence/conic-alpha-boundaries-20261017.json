@@ -1,0 +1,582 @@
+{
+  "schema": 1,
+  "qualifiedUtc": "2026-10-17T22:10:08.031278+00:00",
+  "scope": "Bounded shared conic refinement for narrow authored transitions and neighboring plateaus; not universal native appearance or release qualification.",
+  "source": {
+    "base": "18bd0d65f63dee52afeb9662c24998b71c56ec65",
+    "qualifiedImplementationAndTests": "8cfcb7b7d346d8be4315b4428d417cb86a99bf64",
+    "branch": "fix/html-conic-alpha-boundaries",
+    "owners": {
+      "OfficeIMO.Core": "839e793314462464dd423810f851a6fe1e1c8a9c",
+      "OfficeIMO.SharedSource": "dd1c89e2b292f90ebbf3107b130d377a8512306f",
+      "OfficeIMO.Drawing.Tests": "926c377428c398236f36b74eab62fc003b22e6c4",
+      "OfficeIMO.Html": "cf374c0a03f18e37c83ef41076524b4a5bba8578",
+      "OfficeIMO.Html.Core": "3804952eb46a7eb05a8976bb7f421fc8aa619d5e",
+      "OfficeIMO.Html.AngleSharp": "2b7f2b16754df243579efea6e88a9c35e0dce3a6",
+      "OfficeIMO.Html.Tests": "3dbcd76b2e27121051303e3ecf6dc40afff64ecc",
+      "OfficeIMO.Pdf": "b1b316ace5b668ccbc8e61cc5cb8ba59e32de68a",
+      "OfficeIMO.Pdf.Tests": "b14c5f426bd0debbcbaa59b393a1043801616d61"
+    },
+    "selectedTrackedInputs": 36202,
+    "inputManifestSha256": "3599e417126ead56e5a4a7e3636f9d0cf0b391b7056adbe5416abcb089ae1ced",
+    "publicApiChanges": false,
+    "productionDependencyChanges": false
+  },
+  "behavior": [
+    "Clamp solid-region overlap to local cells and authored spans, including continuous stops.",
+    "Refine eligible spans of at most 90 degrees cumulatively from an equal-color neighboring plateau; sample one-sided endpoint colors.",
+    "Keep color and alpha paint topology coupled.",
+    "Redistribute unused flat-cell capacity into steep narrow transitions with a measured premultiplied-channel sampling heuristic. Added endpoint/refinement fans remain within the original uniform-plus-authored interval budget."
+  ],
+  "regressions": {
+    "before": {
+      "failed": 4,
+      "passed": 0
+    },
+    "after": {
+      "failed": 0,
+      "passed": 4
+    },
+    "defaultQuality": 360,
+    "angularInteriorSamplesPerRamp": 333,
+    "maximumInteriorRgbError": 2,
+    "adjacentPlateauRgba": "exact; nonempty complete bands",
+    "interiorBandBoundary": "Radius 30 to 85, at least 2 pixels from authored edges. This unit-oracle band does not exclude pixels from native comparisons."
+  },
+  "native": {
+    "browser": "Microsoft Edge 155.0.4283.60",
+    "browserOwner": "HtmlTinkerX 3.0.4, test only; existing compatible driver 1.63.0",
+    "mainViewportCssPixels": [
+      800,
+      1000
+    ],
+    "mainCases": 9,
+    "mediaContexts": [
+      "print",
+      "screen"
+    ],
+    "mainWholeRegionRows": 18,
+    "supplementViewportCssPixels": [
+      420,
+      420
+    ],
+    "supplementCases": 4,
+    "supplementQualities": [
+      12,
+      360,
+      4096
+    ],
+    "supplementWholeRegionRows": 24,
+    "pixelsPerRegion": 32400,
+    "nativeAngularOrCenterExclusions": [],
+    "nativeThreshold2IsDescriptiveNotAcceptance": true,
+    "mainProfiles": 4,
+    "mainPagesPerProfile": 1,
+    "mainPagedPngPdfEquivalentSets": 3,
+    "supplementPagedPngPdfEquivalentSets": 1,
+    "supplementExactPlateauCases": 12,
+    "diagnostics": [],
+    "pdfRasterImages": 0,
+    "svgRasterImages": 0,
+    "browserErrors": [],
+    "actualFinalContactsInspected": [
+      "candidate2-plateau-early-contact.png",
+      "candidate2-plateau-late-contact.png",
+      "candidate2-smooth-rotated-contact.png",
+      "diagnostic-design/candidate2-early-rotated-contact.png",
+      "diagnostic-design/candidate2-late-rotated-contact.png",
+      "diagnostic-design/candidate2-early-subpixel-contact.png",
+      "diagnostic-design/candidate2-late-subpixel-contact.png",
+      "diagnostic-design/native/print.png",
+      "diagnostic-design/candidate2/core-q4096.png"
+    ],
+    "routesCompared": [
+      "Native HTML screenshot",
+      "Native PDF through Poppler",
+      "Native PDF through CoreGraphics",
+      "Managed public PNG",
+      "Managed scene raster",
+      "Managed PDF through Poppler",
+      "Managed PDF through CoreGraphics",
+      "Managed SVG through Edge"
+    ]
+  },
+  "wholeRegionNarrowRampObservations": [
+    {
+      "case": "plateau-early",
+      "wholeRegionPixels": 32400,
+      "routes": {
+        "managedPng": {
+          "before": {
+            "pixels": 32400,
+            "meanAbsoluteChannelDelta": 0.14929012345679013,
+            "maxChannelDelta": 70,
+            "pixelsAnyChannelDeltaGt2": 754,
+            "pixelsGreenDeficitGt2": 654,
+            "worstLocalPixel": [
+              90,
+              87
+            ]
+          },
+          "after": {
+            "pixels": 32400,
+            "meanAbsoluteChannelDelta": 0.07354938271604938,
+            "maxChannelDelta": 102,
+            "pixelsAnyChannelDeltaGt2": 118,
+            "pixelsGreenDeficitGt2": 29,
+            "worstLocalPixel": [
+              90,
+              88
+            ]
+          }
+        },
+        "managedScene": {
+          "before": {
+            "pixels": 32400,
+            "meanAbsoluteChannelDelta": 0.14924897119341562,
+            "maxChannelDelta": 70,
+            "pixelsAnyChannelDeltaGt2": 754,
+            "pixelsGreenDeficitGt2": 654,
+            "worstLocalPixel": [
+              90,
+              87
+            ]
+          },
+          "after": {
+            "pixels": 32400,
+            "meanAbsoluteChannelDelta": 0.07363168724279835,
+            "maxChannelDelta": 102,
+            "pixelsAnyChannelDeltaGt2": 118,
+            "pixelsGreenDeficitGt2": 29,
+            "worstLocalPixel": [
+              90,
+              88
+            ]
+          }
+        },
+        "managedSvgEdge": {
+          "before": {
+            "pixels": 32400,
+            "meanAbsoluteChannelDelta": 0.13443415637860082,
+            "maxChannelDelta": 49,
+            "pixelsAnyChannelDeltaGt2": 746,
+            "pixelsGreenDeficitGt2": 658,
+            "worstLocalPixel": [
+              90,
+              87
+            ]
+          },
+          "after": {
+            "pixels": 32400,
+            "meanAbsoluteChannelDelta": 0.028076131687242798,
+            "maxChannelDelta": 49,
+            "pixelsAnyChannelDeltaGt2": 155,
+            "pixelsGreenDeficitGt2": 23,
+            "worstLocalPixel": [
+              90,
+              87
+            ]
+          }
+        },
+        "managedPdfPoppler": {
+          "before": {
+            "pixels": 32400,
+            "meanAbsoluteChannelDelta": 0.1529320987654321,
+            "maxChannelDelta": 68,
+            "pixelsAnyChannelDeltaGt2": 769,
+            "pixelsGreenDeficitGt2": 661,
+            "worstLocalPixel": [
+              90,
+              89
+            ]
+          },
+          "after": {
+            "pixels": 32400,
+            "meanAbsoluteChannelDelta": 0.08407407407407408,
+            "maxChannelDelta": 70,
+            "pixelsAnyChannelDeltaGt2": 222,
+            "pixelsGreenDeficitGt2": 49,
+            "worstLocalPixel": [
+              105,
+              4
+            ]
+          }
+        },
+        "managedPdfQuartz": {
+          "before": {
+            "pixels": 32400,
+            "meanAbsoluteChannelDelta": 0.14746913580246915,
+            "maxChannelDelta": 76,
+            "pixelsAnyChannelDeltaGt2": 762,
+            "pixelsGreenDeficitGt2": 654,
+            "worstLocalPixel": [
+              90,
+              87
+            ]
+          },
+          "after": {
+            "pixels": 32400,
+            "meanAbsoluteChannelDelta": 0.0769238683127572,
+            "maxChannelDelta": 108,
+            "pixelsAnyChannelDeltaGt2": 132,
+            "pixelsGreenDeficitGt2": 20,
+            "worstLocalPixel": [
+              90,
+              88
+            ]
+          }
+        }
+      }
+    },
+    {
+      "case": "plateau-late",
+      "wholeRegionPixels": 32400,
+      "routes": {
+        "managedPng": {
+          "before": {
+            "pixels": 32400,
+            "meanAbsoluteChannelDelta": 0.30676954732510286,
+            "maxChannelDelta": 67,
+            "pixelsAnyChannelDeltaGt2": 726,
+            "pixelsGreenDeficitGt2": 705,
+            "worstLocalPixel": [
+              89,
+              87
+            ]
+          },
+          "after": {
+            "pixels": 32400,
+            "meanAbsoluteChannelDelta": 0.2225102880658436,
+            "maxChannelDelta": 82,
+            "pixelsAnyChannelDeltaGt2": 130,
+            "pixelsGreenDeficitGt2": 82,
+            "worstLocalPixel": [
+              89,
+              88
+            ]
+          }
+        },
+        "managedScene": {
+          "before": {
+            "pixels": 32400,
+            "meanAbsoluteChannelDelta": 0.3067283950617284,
+            "maxChannelDelta": 67,
+            "pixelsAnyChannelDeltaGt2": 726,
+            "pixelsGreenDeficitGt2": 705,
+            "worstLocalPixel": [
+              89,
+              87
+            ]
+          },
+          "after": {
+            "pixels": 32400,
+            "meanAbsoluteChannelDelta": 0.2225102880658436,
+            "maxChannelDelta": 82,
+            "pixelsAnyChannelDeltaGt2": 130,
+            "pixelsGreenDeficitGt2": 82,
+            "worstLocalPixel": [
+              89,
+              88
+            ]
+          }
+        },
+        "managedSvgEdge": {
+          "before": {
+            "pixels": 32400,
+            "meanAbsoluteChannelDelta": 0.2978909465020576,
+            "maxChannelDelta": 26,
+            "pixelsAnyChannelDeltaGt2": 728,
+            "pixelsGreenDeficitGt2": 712,
+            "worstLocalPixel": [
+              89,
+              87
+            ]
+          },
+          "after": {
+            "pixels": 32400,
+            "meanAbsoluteChannelDelta": 0.1880246913580247,
+            "maxChannelDelta": 25,
+            "pixelsAnyChannelDeltaGt2": 124,
+            "pixelsGreenDeficitGt2": 38,
+            "worstLocalPixel": [
+              89,
+              87
+            ]
+          }
+        },
+        "managedPdfPoppler": {
+          "before": {
+            "pixels": 32400,
+            "meanAbsoluteChannelDelta": 0.35917695473251027,
+            "maxChannelDelta": 92,
+            "pixelsAnyChannelDeltaGt2": 830,
+            "pixelsGreenDeficitGt2": 810,
+            "worstLocalPixel": [
+              89,
+              87
+            ]
+          },
+          "after": {
+            "pixels": 32400,
+            "meanAbsoluteChannelDelta": 0.27584362139917695,
+            "maxChannelDelta": 51,
+            "pixelsAnyChannelDeltaGt2": 467,
+            "pixelsGreenDeficitGt2": 161,
+            "worstLocalPixel": [
+              89,
+              84
+            ]
+          }
+        },
+        "managedPdfQuartz": {
+          "before": {
+            "pixels": 32400,
+            "meanAbsoluteChannelDelta": 0.29867283950617285,
+            "maxChannelDelta": 62,
+            "pixelsAnyChannelDeltaGt2": 717,
+            "pixelsGreenDeficitGt2": 694,
+            "worstLocalPixel": [
+              89,
+              87
+            ]
+          },
+          "after": {
+            "pixels": 32400,
+            "meanAbsoluteChannelDelta": 0.22578189300411522,
+            "maxChannelDelta": 80,
+            "pixelsAnyChannelDeltaGt2": 195,
+            "pixelsGreenDeficitGt2": 73,
+            "worstLocalPixel": [
+              89,
+              88
+            ]
+          }
+        }
+      }
+    }
+  ],
+  "tests": {
+    "affectedHtml": [
+      {
+        "framework": "net8",
+        "passed": 271,
+        "failed": 0,
+        "skipped": 0
+      },
+      {
+        "framework": "net10",
+        "passed": 271,
+        "failed": 0,
+        "skipped": 0
+      }
+    ],
+    "drawing": [
+      {
+        "framework": "net10",
+        "passed": 5740,
+        "failed": 1,
+        "existingSkipped": 4,
+        "conic": {
+          "total": 31,
+          "failed": 0,
+          "passed": 31
+        },
+        "trxSha256": "2abaec8b5e101a12ee0a4387f64d8482468e050f3bd8784941cc2e1775579f46"
+      },
+      {
+        "framework": "net8",
+        "passed": 5741,
+        "failed": 0,
+        "existingSkipped": 4,
+        "conic": {
+          "total": 31,
+          "failed": 0,
+          "passed": 31
+        },
+        "trxSha256": "739692af89a2e90d980c46b4f1ffc1f91d73dee5bdbb212eff3669b2775d776c"
+      }
+    ],
+    "broaderNet10IsGreen": false,
+    "broaderNet10Failure": "Pre-existing CreateUnique concurrent-save race. The archived before-code producer reproduced duplicate paths and loss of distinct content in 7 of 128 bursts of 12 simultaneous writers. The shared saving owner is unchanged by this conic fix; separate handling was requested.",
+    "skipReason": "Four existing delayed cancellation samples require DrawingPerformanceEvidence=true. Performance measurements excluded from ordinary correctness."
+  },
+  "packedCore": {
+    "id": "OfficeIMO.Core",
+    "version": "3.5.1",
+    "packageBytes": 8447058,
+    "packageSha256": "3e76bddafb96aaf8a4ad211dcfdb8fea82f7327a8b2df062be0e66d77f781a7d",
+    "runtimeDependencies": [],
+    "frameworkAssets": {
+      "lib/net10.0/OfficeIMO.Core.dll": {
+        "bytes": 4864000,
+        "sha256": "c1e6b1e7b0eb22c3e62ed00537d756a24e31348e618133ab0118a980d7ff5d0b"
+      },
+      "lib/net472/OfficeIMO.Core.dll": {
+        "bytes": 4814848,
+        "sha256": "d9734812921f2d8b9d889a985c5a51ef0b66d510f338bb80600e9be187b6f7bf"
+      },
+      "lib/net8.0/OfficeIMO.Core.dll": {
+        "bytes": 4861440,
+        "sha256": "222205a2bcea2242771008992c33d288fffb2feb9f775c17fe1859f8c52a49eb"
+      },
+      "lib/netstandard2.0/OfficeIMO.Core.dll": {
+        "bytes": 4813824,
+        "sha256": "3b40b78afa473ae6bc64ceb7397fa60bc00840da5b8a7077cf50c6604a29c6dd"
+      }
+    },
+    "consumerCount": 5,
+    "consumers": [
+      {
+        "name": "net8",
+        "kind": "package",
+        "selectedAsset": "lib/net8.0/OfficeIMO.Core.dll",
+        "assetSha256": "222205a2bcea2242771008992c33d288fffb2feb9f775c17fe1859f8c52a49eb",
+        "summarySha256": "25e0b9b1b2a2039682bd7504741adece6c42730a5554f3fb85cf1698b1e48c98",
+        "boundary": null
+      },
+      {
+        "name": "net10",
+        "kind": "package",
+        "selectedAsset": "lib/net10.0/OfficeIMO.Core.dll",
+        "assetSha256": "c1e6b1e7b0eb22c3e62ed00537d756a24e31348e618133ab0118a980d7ff5d0b",
+        "summarySha256": "1cd6659ffc937d1e4adc2ee39e6ec6790106dcfed748f44d592b3570c53e91d8",
+        "boundary": null
+      },
+      {
+        "name": "legacy-netstandard",
+        "kind": "direct-packed-asset",
+        "selectedAsset": "lib/netstandard2.0/OfficeIMO.Core.dll",
+        "assetSha256": "3b40b78afa473ae6bc64ceb7397fa60bc00840da5b8a7077cf50c6604a29c6dd",
+        "summarySha256": "178489a6694f5ab7606808d0120881dfedf881773de16336aad00fd58a19a409",
+        "boundary": "Legacy asset executed on .NET10/macOS; not native .NETFramework/Windows evidence"
+      },
+      {
+        "name": "legacy-net472",
+        "kind": "direct-packed-asset",
+        "selectedAsset": "lib/net472/OfficeIMO.Core.dll",
+        "assetSha256": "d9734812921f2d8b9d889a985c5a51ef0b66d510f338bb80600e9be187b6f7bf",
+        "summarySha256": "59a9f05ba44cc84f8296e0bd30dc574cb2572180cfd20b61e1e2b55a2a2cb004",
+        "boundary": "Legacy asset executed on .NET10/macOS; not native .NETFramework/Windows evidence"
+      },
+      {
+        "name": "aot",
+        "kind": "NativeAOT",
+        "selectedAsset": "lib/net10.0/OfficeIMO.Core.dll",
+        "assetSha256": "c1e6b1e7b0eb22c3e62ed00537d756a24e31348e618133ab0118a980d7ff5d0b",
+        "summarySha256": "98740785862d9f31ea17cf0cfb0f45ef90ad5cc7af3b85e2691f94ae79e7ece2",
+        "boundary": null
+      }
+    ],
+    "ordinaryCoreCacheUnchanged": true,
+    "nativeAot": "The macOS arm64 executable using the actual private package passed. Package/compiler asset graphs and the executed native binary are retained with hashes.",
+    "legacyBoundary": "The net472 and netstandard2.0 packed assets executed on .NET 10/macOS. This is not native Windows .NET Framework execution evidence.",
+    "publication": "Private qualification only; no public package publication."
+  },
+  "review": {
+    "kind": "One fresh-context independent read-only local pass",
+    "sourceHead": "8cfcb7b7d346d8be4315b4428d417cb86a99bf64",
+    "findings": [],
+    "boundary": "current",
+    "confirmationUsed": false,
+    "disposition": "Accept as shaped for bounded source checkpoint; no merge or release readiness claim."
+  },
+  "limits": [
+    "Origin and wrap antialiasing remain vector approximations. Some worst-pixel differences increased while full-region narrow-ramp error decreased.",
+    "More subdivisions do not guarantee lower error: cumulative fractional coverage can bias samples. Supplemental quality 4096 retains larger ramp error than 360, though below the before-code raw RGBA maximum.",
+    "Some smooth-gradient PDF replay metrics worsen slightly. Poppler and CoreGraphics remain separate consumers; neither substitutes for native HTML and SVG evidence.",
+    "No universal browser-appearance threshold is asserted. Every native comparison includes the entire region, wrap and center.",
+    "Windows profiling remains deferred. No Windows/Linux NativeAOT or native .NET Framework execution evidence was added.",
+    "The broader .NET 10 Drawing run has a validated pre-existing saving failure. Only the selected conic, affected HTML and package contracts are qualified."
+  ],
+  "evidence": [
+    {
+      "file": "baseline-source-runtime-binding.json",
+      "bytes": 5382,
+      "sha256": "92d36dada947ee6de2cc6b90615bfbacef4cfc6926915689949c102f66bea6ef"
+    },
+    {
+      "file": "candidate-source-seal.json",
+      "bytes": 7802999,
+      "sha256": "60702ecc60d2e2806d16dd42031329ab27fd5fe29f61a8356f1791cdbb1a44e4"
+    },
+    {
+      "file": "before-regressions.json",
+      "bytes": 1067,
+      "sha256": "77c67e0e7534d7ac658427403d511a4eed01aa9910c9d86d53a4d85d1f288af7"
+    },
+    {
+      "file": "baseline-comparison.json",
+      "bytes": 241148,
+      "sha256": "abeb41116051827fc7750c774632db6767a5bcde701875e67519de02608eb4dd"
+    },
+    {
+      "file": "candidate2-comparison.json",
+      "bytes": 241178,
+      "sha256": "0d2af86c598db42e3deb76241c9535ff16881b78ba68ab593e7aa191034205cb"
+    },
+    {
+      "file": "diagnostic-design/candidate2-comparison.json",
+      "bytes": 76555,
+      "sha256": "b5ab10d7da65bd6d2ccb80a66921f58359af82a17adc9253193ba74e9126cbcd"
+    },
+    {
+      "file": "diagnostic-design/candidate2/summary.json",
+      "bytes": 6524,
+      "sha256": "f0927a5b84dac74252e7b47fbec8cbb0bfa6eaea3ea29f2d8187e158569bd291"
+    },
+    {
+      "file": "test-results-summary.json",
+      "bytes": 9587,
+      "sha256": "f683fe3363b6fa5061a7beeed2a64252f1e7641e900898c7d2ce2bd237b17773"
+    },
+    {
+      "file": "package-proof/package-binding.json",
+      "bytes": 1666,
+      "sha256": "3bc9218471a414036e305156336d624137f0bd7c653593637e4caad5abc68e1d"
+    },
+    {
+      "file": "package-proof/consumer-binding.json",
+      "bytes": 7788,
+      "sha256": "fbcea811959ec77c386e0ec663765a5ac5489f2cba19d020800523c1934ceae3"
+    },
+    {
+      "file": "independent-review.json",
+      "bytes": 857,
+      "sha256": "d798cc7822f6e444d9627d6eb2713eb663f563b9ad20052e744387a24db82f9c"
+    },
+    {
+      "file": "runtime-archives/manifest.json",
+      "bytes": 62041,
+      "sha256": "17c96d8590c892d8fffff8aaf2a7a7275a4d6a21e2dad9ae360301fbd511fcd9"
+    },
+    {
+      "file": "runtime-archives/affected-test-producers.json",
+      "bytes": 403082,
+      "sha256": "0b63b2013959abb9e0cf0d91d52634fb308924250459f7725620ca9c15bc4cac"
+    },
+    {
+      "file": "cleanup-receipt.json",
+      "bytes": 7374,
+      "sha256": "0fdb9f6e70c89859d277e54c7050f53b49b5f7e619f711a872aef03134b1659b"
+    },
+    {
+      "file": "adjacent-save-race.json",
+      "bytes": 1553,
+      "sha256": "9fce7b706749c17102327372550415e6a06b6f556ac6e6e9a725cb8abfad76b6"
+    }
+  ],
+  "storage": {
+    "logicalBytesRemoved": 3272676274,
+    "retainedApproximateBytes": 220171191,
+    "retainedPurpose": "Executed producers, packages, TRX, native comparisons and the separate saving-race reproduction. Completed build, temporary and private-cache expansions were removed.",
+    "protectedPriorEvidenceAndSourceWorktreesPreserved": true
+  },
+  "delivery": {
+    "checkpointOnly": true,
+    "pullRequestOpened": false,
+    "mergeAuthorized": false,
+    "packagePublished": false,
+    "windowsProfiling": "deferred",
+    "runtimeProviderForks": "Remain on feature/html-engine; not integrated into this batch."
+  }
+}

@@ -34,6 +34,37 @@ internal sealed partial class HtmlRenderStyleResolver {
                 tag == "html" && !pseudoElement ? _options.DefaultFontSize : _rootFontSize);
     }
 
+    /// <summary>Resolves Browser sizing with the same provenance policy used by computed container values.</summary>
+    private HtmlFontSizeContext ResolveBrowserFontSize(
+        string tag,
+        HtmlComputedStyle computed,
+        string family,
+        HtmlRenderBoxStyle? parent,
+        bool pseudoElement,
+        string pseudoSemanticRole) {
+        HtmlRenderingFontDefaults defaults = _fontDefaults!.Value;
+        HtmlFontSizeContext inherited = parent?.FontSizeContext
+            ?? (parent == null ? defaults.Initial : new HtmlFontSizeContext(parent.Font.Size, true, string.Empty, false));
+        HtmlFontSizeContext fallback = pseudoElement ? inherited : HtmlFontSizePolicy.ResolveHtmlDefault(tag, inherited, browser: true);
+        if (pseudoElement && pseudoSemanticRole == "footnote-call" && !HasAuthoredValue(computed, "font-size")) {
+            fallback = inherited.WithRelativeSize(ResolveDefaultFootnoteCallFontSize(inherited.Pixels));
+        }
+        return HtmlFontSizePolicy.Resolve(computed, inherited, family, defaults, fallback,
+            new OfficeIMO.Html.Css.HtmlCssLengthResolutionContext {
+                PercentageReference = inherited.Pixels,
+                FontSize = inherited.Pixels,
+                RootFontSize = tag == "html" && !pseudoElement ? defaults.Initial.Pixels : _rootFontSize,
+                ViewportWidth = _viewportWidth,
+                ViewportHeight = _viewportHeight,
+                ContainerWidth = double.IsNaN(_activeContainerWidth) ? null : _activeContainerWidth,
+                ContainerHeight = double.IsNaN(_activeContainerHeight) ? null : _activeContainerHeight,
+                ContainerInlineSize = double.IsNaN(_activeContainerWidth) ? null : _activeContainerWidth,
+                ContainerBlockSize = double.IsNaN(_activeContainerHeight) ? null : _activeContainerHeight,
+                CharacterAdvance = double.IsNaN(_activeCharacterAdvance) ? null : _activeCharacterAdvance,
+                UprightVerticalText = _activeUprightVerticalText
+            });
+    }
+
     internal static OfficeFontFaceDescriptor ResolveFontFaceDescriptor(
         string tag,
         HtmlComputedStyle computed,
@@ -60,7 +91,8 @@ internal sealed partial class HtmlRenderStyleResolver {
     internal static string ResolveFontFamily(string tag, HtmlComputedStyle computed, string inherited) {
         if (tag == "math") {
             if (!HasAuthoredValue(computed, "font-family")) return "math";
-            if (computed.IsResetValue("font-family")) return "serif";
+            if (computed.IsResetValue("font-family"))
+                return HtmlRenderCssValues.FontFamilyList(computed.GetValue("font-family"), "serif");
             if (computed.IsInheritedValue("font-family")) return inherited;
         }
         return HtmlRenderCssValues.FontFamilyList(computed.GetValue("font-family"), inherited);

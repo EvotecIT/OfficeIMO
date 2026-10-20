@@ -60,10 +60,12 @@ internal sealed partial class HtmlRenderLayoutEngine {
         string diagnosticSourceDescription,
         string visualSourceDescription) {
         if (!style.PaintVisible) return;
+        int backgroundStart = visuals.Count;
         HtmlResolvedBorderRadii radii = ResolveBoxRadii(style, width, height, source, diagnosticSourceDescription);
         AddOuterBoxShadows(visuals, style, x, y, width, height, radii, source, diagnosticSourceDescription);
         AddBoxBackgroundCore(visuals, style, x, y, width, height, HtmlRenderBorderInsets.Uniform(borderWidth), radii, source, diagnosticSourceDescription, visualSourceDescription);
         AddInsetBoxShadows(visuals, style, x, y, width, height, HtmlRenderBorderInsets.Uniform(borderWidth), radii, source, diagnosticSourceDescription);
+        foreach (HtmlRenderVisual visual in visuals.Skip(backgroundStart)) visual.PaintPhase = HtmlRenderPaintPhase.BlockBackground;
     }
 
     private void AddBoxBackgroundCore(
@@ -88,8 +90,12 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 OfficeShape fill = CreateBoxShape(colorBox.Width, colorBox.Height, colorBox.Radii);
                 fill.FillColor = style.BackgroundColor;
                 fill.StrokeWidth = 0D;
+                bool canExtend = CanExtendBoxBackgroundThroughFragmentSlack(style, fill);
                 visuals.Add(new HtmlRenderShape(fill, colorBox.X, colorBox.Y, visuals.Count, source: visualSourceDescription,
-                    canExtendFragmentBackground: CanExtendBoxBackgroundThroughFragmentSlack(style, fill)));
+                    canExtendFragmentBackground: canExtend,
+                    fragmentSideBorders: canExtend && (style.Display == "table" && style.BorderCollapse == "separate"
+                        || CanExtendOrdinarySliceSides(style))
+                        ? style.Borders : null));
             }
         }
 

@@ -1,0 +1,495 @@
+{
+  "schema": "officeimo.html.spanning-table-percentage-qualification",
+  "qualifiedUtc": "2026-10-17T16:41:20.607099+00:00",
+  "source": {
+    "base": "945fdacb7e416e412d7d1f5598b7bf0fa4e9d1c8",
+    "productionHead": "5ebe588fcf4a097b87ef1316cde0232b856ebf49",
+    "branch": "fix/html-spanning-table-percentages",
+    "sdk": "10.0.113",
+    "selectedInputs": 36158,
+    "selectedInputSeal": {
+      "file": "source-seal.json",
+      "bytes": 6105703,
+      "sha256": "8a01697843ea721392c78bd8d51970cc9b8ef094f567f74d957c3306eab6ff36"
+    },
+    "sealScope": "Tracked HTML/Core/PDF owner and test roots, compatibility/project inputs, generated support contract and shared font assets. The full Git commit pins other integration inputs.",
+    "runtimeProviderForksIncluded": false,
+    "heldNormalFontMetricsIncluded": false
+  },
+  "implemented": [
+    "Infer percentage requests from spanning cells in increasing span order, retaining percentages already assigned to their columns.",
+    "Distribute only the remaining request among prior-zero columns by their non-spanning preferred widths, or equally when empty.",
+    "Fit requests within 100% in source-column order while preserving content minima and existing width priorities.",
+    "Reuse the table sizing-guess allocator for spanning percentage requests; count existing operation work and observe cancellation before span traversal and snapshot allocation."
+  ],
+  "reproduction": {
+    "html": "<style>table{width:600px;border-collapse:collapse}td{padding:0;height:20px}</style><table><tr><td></td><td></td><td></td></tr><tr><td colspan=\"2\" style=\"width:75%\"></td><td></td></tr></table>",
+    "before": {
+      "tableWidth": 600,
+      "firstRowColumnWidths": [
+        300,
+        300,
+        0
+      ],
+      "spanningCellWidth": 600
+    },
+    "qualified": {
+      "tableWidth": 600,
+      "firstRowColumnWidths": [
+        225,
+        225,
+        150
+      ],
+      "spanningCellWidth": 450
+    },
+    "edge": {
+      "tableWidth": 600,
+      "firstRowColumnWidths": [
+        225,
+        225,
+        150
+      ],
+      "spanningCellWidth": 450
+    },
+    "additionalOverconstraint": "Replacing 75% with 120% keeps the table at 600px with tracks 360/240/0; the prior owner expanded it to 720px.",
+    "publicRoute": "HtmlConversionDocument.Parse(html); HtmlRenderEngine.Execute(document, HtmlRenderRequest.Create(HtmlRenderIntentProfile.PrintPaged, HtmlRenderEncoder.Png, options)). Inspect table/cell semantic scene bounds or the emitted PDF/image.",
+    "standardReferences": [
+      "https://drafts.csswg.org/css-tables-3/#intrinsic-percentage-width-of-a-column",
+      "https://drafts.csswg.org/css-tables-3/#width-distribution"
+    ]
+  },
+  "native": {
+    "browser": "Microsoft Edge 155 (headless Chromium), macOS arm64",
+    "browserOwner": "HtmlTinkerX 3.0.4, isolated disposable validation runner",
+    "cases": 33,
+    "profiles": [
+      "PrintPaged",
+      "ScreenMediaPaged",
+      "ScreenFullPage",
+      "ScreenSnapshotPaged"
+    ],
+    "nativeMedia": [
+      "print",
+      "screen"
+    ],
+    "tableComparisons": 132,
+    "cellComparisons": 676,
+    "numericCases": 19,
+    "numericMaximumWidthDeltaCssPx": 0.015624999999943157,
+    "numericLayoutToleranceCssPx": 0.03125,
+    "textDerivedMaximumWidthDeltaCssPx": 0.0982016637668437,
+    "textDerivedBoundary": "Raw observations, not acceptance under a widened geometry tolerance. Nominal hmtx advances and Chromium text-range/layout precision differ; these measurements do not close typography or normal-line-metric work.",
+    "fontAdvanceDiagnosis": {
+      "file": "font-advance-diagnosis.json",
+      "bytes": 583,
+      "sha256": "47fe5c47e91a3622f5997fd8e489287a10540a1046a1dda2e24015555a5b875a"
+    },
+    "allFixtureProfilesOnePage": true,
+    "pagedPdfPngByteEquivalentSets": 6,
+    "snapshotBoundary": "The existing intersecting-node snapshot projection omits four empty zero-area cells: two in the empty 100% control and two in the empty 120% control. The other three profiles retain them; comparisons explicitly record these omissions. No universal semantic preservation claim is made.",
+    "geometryScope": "Table/cell width allocation only; this does not certify full row heights, paint, typography or browser conformance.",
+    "comparison": {
+      "file": "final-column-comparison.json",
+      "bytes": 63987,
+      "sha256": "44ceb3020b5a9978a61b8db92cfde744ba7cfefb80dad3afcc3a41f8c5458b5c"
+    },
+    "inputs": [
+      {
+        "file": "inputs/percentages.html",
+        "bytes": 3921,
+        "sha256": "97b988adf7d16e94f327f21af54b5ee80d28e5e42c71f0bcd480d847674b5fca"
+      },
+      {
+        "file": "inputs/siblings.html",
+        "bytes": 5470,
+        "sha256": "5f4f8bc2561dae2093312dfbf5f55dfb9721b2d6de6c50352facff3fb7c85477"
+      }
+    ],
+    "fontControls": {
+      "regular": {
+        "file": "inputs/regular.ttf",
+        "bytes": 105592,
+        "sha256": "00aca2988771998ff27738ff97c2cc8e71eb3013f206de5f205986b7de326af3"
+      },
+      "bold": {
+        "file": "inputs/bold.ttf",
+        "bytes": 120288,
+        "sha256": "20bb7ad2e23beb5020313119f46fbc50a5ded598aaa1be4df719d3c017914b6c"
+      },
+      "policy": "Identical checked-in font bytes; kern/liga disabled to isolate allocation."
+    },
+    "sessionsReleased": true,
+    "sessionReceipts": [
+      {
+        "file": "native-percentages-visual-receipt.json",
+        "bytes": 264,
+        "sha256": "f20ffe95680d857836becc0ba163f2f3c61799b865361ea9e66ffab61c5ea09c"
+      },
+      {
+        "file": "native-siblings-visual-receipt.json",
+        "bytes": 264,
+        "sha256": "580a1c44e164ac6650be26baedeb1363fb31d048f5e7c13e6ac047b903e801c3"
+      }
+    ],
+    "visualInspection": {
+      "file": "visual-inspection.json",
+      "bytes": 1398,
+      "sha256": "072dc6fdd50afc43df83fb4ff234812b1f762fff2ea26056ce1a013062358b56"
+    },
+    "beforeRuntimeBinding": {
+      "file": "baseline-runtime-binding.json",
+      "bytes": 643,
+      "sha256": "ccf34736108cd10fea44f722ed621d5d9d6f1d60fdae95e1535034d58052be5f"
+    },
+    "currentRuntimeBinding": {
+      "file": "managed-producer-runtime-binding.json",
+      "bytes": 1821,
+      "sha256": "7d4a34230a739bfccff5bebf30c101247220e6d42e6dae58add6674b29b6a57b"
+    }
+  },
+  "invoice": {
+    "input": {
+      "file": "inputs/h1-invoice.html",
+      "bytes": 38517,
+      "sha256": "cbbe7bf0c1c38a4578c66966df148c28a8c2302d5ea41283222259f219b3c9df"
+    },
+    "record": {
+      "file": "final-invoice/summary.json",
+      "bytes": 527080,
+      "sha256": "c35b12d8bab27596690fc71b15b1560f08967c87ecb4139f78e86c0f91776ffa"
+    },
+    "pages": 2,
+    "freshEdgePages": 2,
+    "itemRowSplit": [
+      17,
+      4
+    ],
+    "freshEdgeItemRowSplit": [
+      18,
+      3
+    ],
+    "orderedManagedRows": {
+      "file": "invoice-row-order.json",
+      "bytes": 447,
+      "sha256": "d5b43bcd94f009c201be30fadf8ddbc439da5f9c14278be7bcab3316d8f10b7c"
+    },
+    "orderedEdgeRows": {
+      "file": "native-invoice/row-order.json",
+      "bytes": 391,
+      "sha256": "643c80bae628798ffd95faae27a6bf11e16ea711555a463e5c4509919e8494f9"
+    },
+    "all21ItemRowsRetained": true,
+    "arabicContextForms": 9,
+    "multilingualBoundary": "Logical text retained and visible CJK/Arabic inspected; this is not full script/typography conformance.",
+    "parity": [
+      {
+        "route": "direct/PDF",
+        "format": 0,
+        "pages": 2,
+        "byteIdentical": true
+      },
+      {
+        "route": "direct/PDF",
+        "format": 2,
+        "pages": 2,
+        "byteIdentical": true
+      },
+      {
+        "route": "direct/PDF",
+        "format": 1,
+        "pages": 2,
+        "byteIdentical": true
+      },
+      {
+        "route": "retained/PDF",
+        "format": 0,
+        "pages": 2,
+        "byteIdentical": true
+      },
+      {
+        "route": "async/PDF",
+        "format": 0,
+        "pages": 2,
+        "byteIdentical": true
+      },
+      {
+        "route": "archive/PDF",
+        "format": 0,
+        "pages": 2,
+        "byteIdentical": true
+      },
+      {
+        "route": "site-bundle/PDF",
+        "format": 0,
+        "pages": 2,
+        "byteIdentical": true
+      }
+    ],
+    "continuousModeImages": 1,
+    "edgeSessionReleased": true,
+    "edgeSession": {
+      "file": "native-invoice-receipt.json",
+      "bytes": 264,
+      "sha256": "b872be4e0765f6210b7decf93646ce946963e0ca5b61ea1558198c59681d004b"
+    },
+    "visualEvidence": [
+      {
+        "file": "contact-invoice-page-1.png",
+        "bytes": 426293,
+        "sha256": "1b7f64ca1c256412967b5a4300dc7e015f224d6d24f262ee3d4bcf94cb1c1d44"
+      },
+      {
+        "file": "contact-invoice-page-2.png",
+        "bytes": 212122,
+        "sha256": "413c782841e5c2eb41f4303bcfbe1fc93c109bdb77436d789572ebb218f12923"
+      }
+    ],
+    "remaining": "Normal font/line metrics, remaining font-derived columns and baseline differences remain outside this milestone. Equal page counts do not establish native appearance."
+  },
+  "tests": [
+    {
+      "scope": "focused-stable-net10.0",
+      "passed": 163,
+      "failed": 0,
+      "skipped": 0,
+      "actualTrx": {
+        "file": "trx/focused-stable-net10.0/_evomini_2026-10-17_18_17_51.trx",
+        "bytes": 255037,
+        "sha256": "6f804d6ad76827d6e6dbe02b4fffeff92be747a70df28ed99d31ecb5ad7a516a"
+      }
+    },
+    {
+      "scope": "full-net8.0",
+      "passed": 6606,
+      "failed": 0,
+      "skipped": 0,
+      "actualTrx": {
+        "file": "trx/full-net8.0/_evomini_2026-10-17_18_27_06.trx",
+        "bytes": 10073997,
+        "sha256": "b52d9b31574f3e806d053606614b7912e6e4a64cc75aa8f966768bc589554c91"
+      }
+    },
+    {
+      "scope": "full-net10.0",
+      "passed": 6606,
+      "failed": 0,
+      "skipped": 0,
+      "actualTrx": {
+        "file": "trx/full-net10.0/_evomini_2026-10-17_18_23_58.trx",
+        "bytes": 10087210,
+        "sha256": "b55a8f3faea82b9a7ad12664780805ab69d5d7918e80b4c2abdc0be152afca8b"
+      }
+    }
+  ],
+  "packages": {
+    "privateVersion": "99.0.0-html-spanning-percentages",
+    "packages": 6,
+    "frameworkAssets": [
+      "netstandard2.0",
+      "net8.0",
+      "net10.0",
+      "net472"
+    ],
+    "executedConsumers": 4,
+    "consumerRoutes": [
+      "OfficeIMO.Html direct package on net8.0/net10.0",
+      "OfficeIMO.Html.Pdf reverse adapter on net8.0/net10.0"
+    ],
+    "legacyCompileConsumers": [
+      "netstandard2.0",
+      "net472"
+    ],
+    "consumerContract": "Packed table allocation for ordinary and spanning-content controls plus empty 75%/120% spanning requests and shared PNG/PDF bytes.",
+    "isolatedCandidateCache": true,
+    "artifacts": [
+      {
+        "file": "OfficeIMO.Html.Core.99.0.0-html-spanning-percentages.nupkg",
+        "bytes": 325010,
+        "sha256": "31abe951c4d120b3a28fb3621471aee195c91c4cb09ac6d1763946c8c027977f",
+        "assets": [
+          "lib/net10.0/OfficeIMO.Html.Core.dll",
+          "lib/net472/OfficeIMO.Html.Core.dll",
+          "lib/net8.0/OfficeIMO.Html.Core.dll",
+          "lib/netstandard2.0/OfficeIMO.Html.Core.dll"
+        ]
+      },
+      {
+        "file": "OfficeIMO.Html.99.0.0-html-spanning-percentages.nupkg",
+        "bytes": 4242711,
+        "sha256": "b3c68ef298f20d23bb4be6fee3410fc6796efb6e8a9a8387d7e603f8296967be",
+        "assets": [
+          "lib/net10.0/OfficeIMO.Html.dll",
+          "lib/net472/OfficeIMO.Html.dll",
+          "lib/net8.0/OfficeIMO.Html.dll",
+          "lib/netstandard2.0/OfficeIMO.Html.dll"
+        ]
+      },
+      {
+        "file": "OfficeIMO.Core.99.0.0-html-spanning-percentages.nupkg",
+        "bytes": 8440987,
+        "sha256": "ec1748e924b1a4301cf22ec44b3107492b785a7c6e516264ab78ae3d8c08b06f",
+        "assets": [
+          "lib/net10.0/OfficeIMO.Core.dll",
+          "lib/net472/OfficeIMO.Core.dll",
+          "lib/net8.0/OfficeIMO.Core.dll",
+          "lib/netstandard2.0/OfficeIMO.Core.dll"
+        ]
+      },
+      {
+        "file": "OfficeIMO.Html.AngleSharp.99.0.0-html-spanning-percentages.nupkg",
+        "bytes": 103914,
+        "sha256": "f37b8a46f08ad0940b0db17aa1a2259e127147ec71a23c53c761a619b2261f23",
+        "assets": [
+          "lib/net10.0/OfficeIMO.Html.AngleSharp.dll",
+          "lib/net472/OfficeIMO.Html.AngleSharp.dll",
+          "lib/net8.0/OfficeIMO.Html.AngleSharp.dll",
+          "lib/netstandard2.0/OfficeIMO.Html.AngleSharp.dll"
+        ]
+      },
+      {
+        "file": "OfficeIMO.Html.Pdf.99.0.0-html-spanning-percentages.nupkg",
+        "bytes": 207745,
+        "sha256": "bb965a5c2ed8cf749a00609e5bd77e7a09dc28cc126560f2572d51b3383bebcd",
+        "assets": [
+          "lib/net10.0/OfficeIMO.Html.Pdf.dll",
+          "lib/net472/OfficeIMO.Html.Pdf.dll",
+          "lib/net8.0/OfficeIMO.Html.Pdf.dll",
+          "lib/netstandard2.0/OfficeIMO.Html.Pdf.dll"
+        ]
+      },
+      {
+        "file": "OfficeIMO.Pdf.99.0.0-html-spanning-percentages.nupkg",
+        "bytes": 13041042,
+        "sha256": "8552bd0cdcbf627e640baddeec4831af1bd5cb3f9df88a66d6ea3ebd034d10ca",
+        "assets": [
+          "lib/net10.0/OfficeIMO.Pdf.dll",
+          "lib/net472/OfficeIMO.Pdf.dll",
+          "lib/net8.0/OfficeIMO.Pdf.dll",
+          "lib/netstandard2.0/OfficeIMO.Pdf.dll"
+        ]
+      }
+    ],
+    "runReceipt": {
+      "file": "package-qualification-v2/run-receipt.json",
+      "bytes": 7336,
+      "sha256": "dc4fa16298ae0ed25da626867b10e0144165f08981148e4f803263c2318eb420"
+    },
+    "actualConsumerRuntimeHashes": {
+      "file": "package-consumer-runtime-hashes.json",
+      "bytes": 18532,
+      "sha256": "5a29d4a1ab7370b661ea498d8ced8becb5790c3403ba3f51c729db7928c42c33"
+    },
+    "publication": false,
+    "signing": "Private unsigned validation artifacts; no release-signing claim."
+  },
+  "nativeAot": {
+    "rid": "osx-arm64",
+    "existingPublicSmokePublish": "pass",
+    "execution": "pass",
+    "boundary": "Existing public HTML NativeAOT smoke; the new spanning controls are exercised by managed package consumers, not a new dedicated AOT test.",
+    "artifactReceipt": {
+      "file": "aot-artifact-receipt.json",
+      "bytes": 2773,
+      "sha256": "30c0c3134281e0c39998eb9bfe850ef756f7c24733253dcb9c6d621f36ae4db9"
+    },
+    "runReceipt": {
+      "file": "package-aot-receipt.json",
+      "bytes": 1203,
+      "sha256": "8afb687cb1e5bb8fe76f1702db726539a41da851265d40d4888aa36c7341b1a4"
+    }
+  },
+  "review": {
+    "mode": "One fresh strictly read-only independent local review",
+    "head": "5ebe588fcf4a097b87ef1316cde0232b856ebf49",
+    "actionableProductionFindings": 0,
+    "disposition": "accept as shaped",
+    "record": {
+      "file": "independent-review.json",
+      "bytes": 1458,
+      "sha256": "e716411711c2f664789fe7d624656254701e6ea5200091c6c0d15198818f7e2f"
+    },
+    "coverage": [
+      "percentage distribution and priorities",
+      "content minima and same-span row independence",
+      "source order and RTL placement",
+      "intrinsic/auto sizing and fixed-layout separation",
+      "cancellation/work accounting and surrounding allocators",
+      "representative observed visual evidence",
+      "owner/API/dependency fit"
+    ],
+    "confirmationPassRequired": false
+  },
+  "proofBoundaries": [
+    "No new public API or production dependency.",
+    "Core, PDF and other production owner trees remain unchanged from the parent checkpoint; their existing full/affected qualification is retained. Full HTML is rerun on both current frameworks.",
+    "Cyclic percentages and nested intrinsic-table interactions remain unqualified open roadmap work.",
+    "Native text-derived precision differences, invoice normal font/line metrics and conic PDF-consumer appearance remain open.",
+    "Windows profiling is deferred. This checkpoint does not establish Windows timing or new platform acceptance.",
+    "Runtime/provider forks remain on feature/html-engine; this branch is a static checkpoint, not a current-master release qualification."
+  ],
+  "documentation": {
+    "currentContract": "OfficeIMO.Html/README.md",
+    "generatedContract": "Docs/officeimo.html-support-matrix.md, regenerated through HtmlSupportMatrixWriter",
+    "openWork": "Docs/ROADMAP.md"
+  },
+  "evidence": {
+    "machineLocalRoot": "/Volumes/Samsung/Development/Scratch/html-spanning-table-percentages",
+    "index": {
+      "file": "qualified-artifact-index.json",
+      "bytes": 26047,
+      "sha256": "b01087cf5e7f53dab093436bc6a78bbaa737542828963a8d3c42ea44229bc58e"
+    },
+    "archives": [
+      {
+        "file": "qualified-browser-runner.zip",
+        "bytes": 49242184,
+        "sha256": "f834864b1fd0d1e80b58bc1e033b87cf4ddcd6b2af931bd7b052679669258d72"
+      },
+      {
+        "file": "qualified-native-aot.zip",
+        "bytes": 32682444,
+        "sha256": "f3acd184612bd98daa9c3e920df4e24e1577b6cc2388b4170802a86b9ed95213"
+      },
+      {
+        "file": "qualified-package-consumers.zip",
+        "bytes": 40798094,
+        "sha256": "d86fc340d6adc85c2b2fcd8ef31ca8079720bb838df65c0c0948e0fb6cf69938"
+      },
+      {
+        "file": "qualified-producer.zip",
+        "bytes": 18132261,
+        "sha256": "039c37ae922b8b53f27b6991e57c56b4d83e68d0478e9eed68b3ce9cd2178854"
+      },
+      {
+        "file": "qualified-test-assemblies.zip",
+        "bytes": 40462909,
+        "sha256": "b8dd7e48227998209640d1d222c656850a85d9e19bb180652f17add4cff0ffb3"
+      },
+      {
+        "file": "reproduction-inputs-and-probes.zip",
+        "bytes": 1266963,
+        "sha256": "fc2eb7ec5d50aedeb85a4becb7e55a1cf716ab03e3e8f2a4de398874b8271e9b"
+      }
+    ],
+    "actualTrxRetained": true
+  },
+  "storage": {
+    "logicalBytesRemoved": 3587821144,
+    "retainedApproximateBytes": 248000000,
+    "retainedReason": "Frozen controls, normal-size native/current/before visual evidence, exact packages and archived qualified runtimes, actual TRX and compact state. Completed build, private cache and temp expansions removed.",
+    "receipt": {
+      "file": "cleanup-receipt.json",
+      "bytes": 11579,
+      "sha256": "62f84dcd2d0993605f79505f54d7e41c04acf73eff70c7507133af16d59c88ff"
+    },
+    "activeWorktreePreserved": true,
+    "previousEvidenceAndSharedCachesPreserved": true
+  },
+  "publication": {
+    "checkpointPushAuthorized": true,
+    "prOpened": false,
+    "mergeAuthorized": false,
+    "packagePublication": false,
+    "normalPrCiMatrix": "Not run for this branch-only checkpoint; configured ordinary test workflow runs on master pushes and PRs."
+  }
+}
