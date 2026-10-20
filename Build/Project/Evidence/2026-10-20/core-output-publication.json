@@ -1,0 +1,233 @@
+{
+  "schema": "officeimo.core-output-publication-evidence/v1",
+  "qualifiedUtc": "2026-10-20T22:35:01.890981+00:00",
+  "purpose": "Preserve successful concurrent file publications and route PowerShell output through the shared Core commit policy.",
+  "source": {
+    "base": "33d062b583cb7beb8b13e86fb54bd45f563037b0",
+    "qualifiedCommit": "8c39c5cbe1edeafc9ed62bd13eea147495289efc",
+    "newPublicApi": false,
+    "newProductionDependencies": false,
+    "changedPaths": [
+      "OfficeIMO.Core/Internal/OfficeFileOutput.cs",
+      "PowerShell/PSWriteOffice/Sources/PSWriteOffice.Tests/AtomicFileWriterTests.cs",
+      "PowerShell/PSWriteOffice/Sources/PSWriteOffice.Tests/ExcelDataReaderOutputTests.cs",
+      "PowerShell/PSWriteOffice/Sources/PSWriteOffice/Services/Excel/ExcelDocumentService.DataReaderPackage.cs"
+    ],
+    "changedSourceFiles": [
+      {
+        "path": "OfficeIMO.Core/Internal/OfficeFileOutput.cs",
+        "bytes": 8530,
+        "sha256": "3d53fa1a4695574c43a304bc5676b0dfb1edbe2f66100bb57c8178202992a382"
+      },
+      {
+        "path": "PowerShell/PSWriteOffice/Sources/PSWriteOffice.Tests/AtomicFileWriterTests.cs",
+        "bytes": 16363,
+        "sha256": "b6b2ca7682d32135217bea93b1a3c01d691470f7b91efe2347e695acc88d2886"
+      },
+      {
+        "path": "PowerShell/PSWriteOffice/Sources/PSWriteOffice.Tests/ExcelDataReaderOutputTests.cs",
+        "bytes": 7233,
+        "sha256": "d543d7de1efebd8b831c7c68953908221a04ae8f7f730b0a9502edcc38503d75"
+      },
+      {
+        "path": "PowerShell/PSWriteOffice/Sources/PSWriteOffice/Services/Excel/ExcelDocumentService.DataReaderPackage.cs",
+        "bytes": 2336,
+        "sha256": "120608f40f82d4e0ac5b6284571cdea66fd8eecfa1f7af96e2a1bd9eb8df6d13"
+      }
+    ]
+  },
+  "actualBaseline": {
+    "sourceCommit": "33d062b583cb7beb8b13e86fb54bd45f563037b0",
+    "runtime": ".NET 10 macOS arm64",
+    "failedBursts": 104,
+    "totalBursts": 128,
+    "writersPerBurst": 12,
+    "coreSha256": "703A41B9419B3BD2093C4383A2F78F60DC148C26183F6F83D8C17F01B99DB295",
+    "summarySha256": "812a0ef2bdec953946561532c92044ea9b1b9945cb788090bb2bfbe4a52462ed",
+    "contract": "Distinct completed payloads race at the existing serialization barrier; failures identify duplicate returned paths or lost successful-writer bytes, not a timing budget."
+  },
+  "actualSourceConsumerTests": [
+    {
+      "role": "excel-after-and-core-focused-net8",
+      "passed": 21,
+      "failed": 0,
+      "skipped": 0,
+      "actualFilter": "FullyQualifiedName~AtomicFileWriterTests|FullyQualifiedName~ExcelDataReaderOutputTests",
+      "trxSha256": "acc1dc958b71a80797da53fa415db5f9fdfec89575e0faed6e1f83d3b37e3baa"
+    },
+    {
+      "role": "pswriteoffice-full-net8-8c39",
+      "passed": 66,
+      "failed": 0,
+      "skipped": 0,
+      "actualFilter": null,
+      "trxSha256": "b8453b7df77aff4a84120ee651bc84bc6ce6a0515cb80a41a0dabca872ff10c9"
+    }
+  ],
+  "package": {
+    "privateVersion": "3.5.11",
+    "publicRelease": false,
+    "signed": false,
+    "packageSha256": "8a73cf91e7e847032cb3e68f9fde0cf1cd3e753f08bbbfab86078d4b5516eecc",
+    "repositoryCommit": "8c39c5cbe1edeafc9ed62bd13eea147495289efc",
+    "assets": [
+      {
+        "entry": "lib/net472/OfficeIMO.Core.dll",
+        "bytes": 4974592,
+        "sha256": "d50468a89f086c2efbc4ad13ecd52fe15bf2e1368db33aba9489de8aa263cae0"
+      },
+      {
+        "entry": "lib/netstandard2.0/OfficeIMO.Core.dll",
+        "bytes": 4973568,
+        "sha256": "8fa7b5b2e2c82b8dada8d7c173278eecf16056acf6e81460cf7b5b629cae33ee"
+      },
+      {
+        "entry": "lib/net8.0/OfficeIMO.Core.dll",
+        "bytes": 5018624,
+        "sha256": "a4e5369314b3c38761506d9692f834fe2673d51f1377b6077d75c611d372b4ad"
+      },
+      {
+        "entry": "lib/net10.0/OfficeIMO.Core.dll",
+        "bytes": 5021696,
+        "sha256": "3a2af1d5b2911ad7d81aca66efdc919fc02d17a033f254af0130b486200d8a16"
+      }
+    ],
+    "nugetDependencies": [],
+    "frameworkAssemblies": [
+      {
+        "assemblyName": "System.IO.Compression",
+        "targetFramework": ".NETFramework4.7.2"
+      },
+      {
+        "assemblyName": "System.Net.Http",
+        "targetFramework": ".NETFramework4.7.2"
+      },
+      {
+        "assemblyName": "System.Numerics",
+        "targetFramework": ".NETFramework4.7.2"
+      }
+    ],
+    "compileOnlyFrameworks": [
+      "net472",
+      "netstandard2.0"
+    ]
+  },
+  "actualPackagedInternalOwnerRuns": [
+    {
+      "framework": "net8",
+      "runtime": ".NET 8.0.23",
+      "architecture": "Arm64",
+      "bursts": 128,
+      "failedBursts": 0,
+      "writersPerBurst": 12,
+      "lanes": [
+        {
+          "lane": "helper-fail",
+          "rounds": 32,
+          "successfulWrites": 32,
+          "failedBursts": 0
+        },
+        {
+          "lane": "helper-unique",
+          "rounds": 32,
+          "successfulWrites": 384,
+          "failedBursts": 0
+        },
+        {
+          "lane": "mixed-fail",
+          "rounds": 32,
+          "successfulWrites": 32,
+          "failedBursts": 0
+        },
+        {
+          "lane": "mixed-unique",
+          "rounds": 32,
+          "successfulWrites": 199,
+          "failedBursts": 0
+        }
+      ],
+      "coreSha256": "a4e5369314b3c38761506d9692f834fe2673d51f1377b6077d75c611d372b4ad",
+      "coreMvid": "c43745b9-6899-4de8-a671-c6280f52db75",
+      "coreInformationalVersion": "3.5.1+8c39c5cbe1edeafc9ed62bd13eea147495289efc",
+      "summarySha256": "f0453d5abc513fffe5cfdcf40d3d51fc9bd3926d2a8dea285f5906579d502599"
+    },
+    {
+      "framework": "net10",
+      "runtime": ".NET 10.0.13",
+      "architecture": "Arm64",
+      "bursts": 128,
+      "failedBursts": 0,
+      "writersPerBurst": 12,
+      "lanes": [
+        {
+          "lane": "helper-fail",
+          "rounds": 32,
+          "successfulWrites": 32,
+          "failedBursts": 0
+        },
+        {
+          "lane": "helper-unique",
+          "rounds": 32,
+          "successfulWrites": 384,
+          "failedBursts": 0
+        },
+        {
+          "lane": "mixed-fail",
+          "rounds": 32,
+          "successfulWrites": 32,
+          "failedBursts": 0
+        },
+        {
+          "lane": "mixed-unique",
+          "rounds": 32,
+          "successfulWrites": 198,
+          "failedBursts": 0
+        }
+      ],
+      "coreSha256": "3a2af1d5b2911ad7d81aca66efdc919fc02d17a033f254af0130b486200d8a16",
+      "coreMvid": "5b52f0f6-007a-40a5-a32e-c516c912d136",
+      "coreInformationalVersion": "3.5.1+8c39c5cbe1edeafc9ed62bd13eea147495289efc",
+      "summarySha256": "f2ffd03e63fcd37172f7c896b8ab594088f44c14f06009b30edb157468a544db"
+    }
+  ],
+  "localReview": {
+    "independentFullPasses": 1,
+    "actionableFindings": 0,
+    "targetedConfirmationUsed": false,
+    "productApiDependencyDisposition": "acceptasshaped; no new publicAPI/dependency, canonicalownerreused"
+  },
+  "validationSetup": {
+    "originalNet8ProbeRestoreFailure": "NETSDK1005; setup-only failure retained. Explicit-net8 scratch project then built the same frozen Program.cs against the extracted package DLL.",
+    "failedAttemptReceiptSha256": "3fdecc1aae6d0d9b3dddbf8ade332014b17c30cdb420c64e85b1b82b90a28993",
+    "effectivePackageStageCount": 6,
+    "effectiveStagesAllPassed": true
+  },
+  "limits": [
+    "Runtime behavior observed on macOS arm64 .NET8/.NET10 only; no Windows native execution or profiling claim.",
+    "net472/netstandard2.0 are compile/package assets, not older-runtime execution proof.",
+    "Private package probes exercise internal publication owner; full PowerShell source consumer is separate evidence, not a public package-restore/API consumer.",
+    "No package publication, PR, merge or release is established by these local results.",
+    "Cooperating in-process writers only; arbitrary external writers and unsupported filesystem locking are outside this proof."
+  ],
+  "proofCollection": {
+    "path": "$TASK_ROOT/prep/retention-8c39/proof.final.json",
+    "bytes": 18933,
+    "sha256": "5dc9dfa379c8372b12e962f16a3161b93e9c15a351a47d77b2d4abb11ea32b72"
+  },
+  "storage": {
+    "status": "complete-scoped-cleanup",
+    "logicalBytesRemoved": 2992466406,
+    "retainedApproxBytes": 73048064,
+    "cleanup": {
+      "path": "$TASK_ROOT/cleanup-8c39-result.json",
+      "bytes": 6760,
+      "sha256": "62ff7b207637d8e71707ad12d7453f3aa347b0df308955d7384a43a0f32e1676"
+    },
+    "ledgerAppend": {
+      "path": "$TASK_ROOT/prep/storage-ledger-8c39/append-receipt.json",
+      "bytes": 2919,
+      "sha256": "4ad520fc3f289cf5cbdd35925f44f63b7587118b857d8018bd283e153266bb9d"
+    },
+    "boundary": "Exact task graphs/private caches/successful synthetic burst expansions only. Before defect evidence, final package/assets/probe runtime, actual TRX and archives retained; shared caches and history untouched."
+  }
+}
