@@ -10,7 +10,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         foreach (HtmlRenderPage page in pages) {
             var geometry = new HtmlCssPageGeometry(page.Width, page.Height, page.Margins, page.PrintProduction);
             SetActivePageGeometry(geometry);
-            IReadOnlyDictionary<HtmlCssPageMarginPosition, HtmlCssPageMarginTemplate> boxes = _pageRules.ResolveMarginBoxes(page.PageNumber, page.PageName, geometry, _options);
+            IReadOnlyDictionary<HtmlCssPageMarginPosition, HtmlCssPageMarginTemplate> boxes = _pageRules.ResolveMarginBoxes(page.PageNumber, page.PageName, geometry, _options, _styleResolver);
             if (boxes.Count == 0) {
                 rendered.Add(page);
                 continue;
@@ -53,7 +53,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                     availableWidth, double.MaxValue, 1D, box.Font.Size,
                     (value, _) => {
                         ChargeLayoutOperations(value?.Length ?? 0, marginBoxSource + " text measurement");
-                        return MeasureText(value ?? string.Empty, box.Font, OfficeFontFaceDescriptor.FromStyle(box.Font.Style));
+                        return MeasureText(value ?? string.Empty, box.Font, box.Typography.FontDescriptor);
                     }, wrap: true, forceSingleLine: false, shrinkToFit: false,
                     overflowBehavior: OfficeTextOverflowBehavior.Clip);
                 IReadOnlyList<OfficeTextLine> lines = measured.Lines;
@@ -64,7 +64,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 }
                 double textHeight = lines.Count * lineHeight;
                 if (!TryGetMarginBoxBounds(page, box.Position, populatedPositions, textHeight, out double x, out double y, out double width, out double height)) continue;
-                _fontUsage?.Observe(text, box.Font.FamilyName, OfficeFontFaceDescriptor.FromStyle(box.Font.Style));
+                _fontUsage?.Observe(text, box.Font.FamilyName, box.Typography.FontDescriptor);
                 IReadOnlyList<HtmlRenderVisual> marginVisuals = new HtmlRenderVisual[] {
                     new HtmlRenderText(text, x, y + baseline - box.Font.Size, width,
                         Math.Max(0.01D, (lines.Count - 1) * lineHeight + linePaintHeight),
@@ -106,16 +106,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
 
     private void ResolvePageMarginTextMetrics(HtmlCssPageMarginTemplate box, string text,
         out double lineHeight, out double baseline, out double paintHeight, out double paintTopOverflow) {
-        double computed = _styleResolver.ResolveGeneratedLineHeight(box.LineHeight, box.Font,
-            _pageRules.InitialPageWidth ?? _options.PageWidth, _pageRules.InitialPageHeight ?? _options.PageHeight,
-            out double alignmentLineHeight, out bool natural);
-        var style = new HtmlRenderBoxStyle {
-            Font = box.Font,
-            FontDescriptor = OfficeFontFaceDescriptor.FromStyle(box.Font.Style),
-            LineHeight = computed,
-            InlineAlignmentLineHeight = alignmentLineHeight,
-            UsesNaturalLineHeight = natural
-        };
+        HtmlRenderBoxStyle style = box.Typography;
         InlineTextLineMetrics metrics = ResolveTextLineMetrics(text, style, allowShortLine: true);
         lineHeight = metrics.Height;
         baseline = metrics.Baseline;

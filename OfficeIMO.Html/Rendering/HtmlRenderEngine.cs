@@ -204,7 +204,7 @@ public static class HtmlRenderEngine {
             resolved.Validate();
             styles = HtmlComputedStyleEngine.ComputeForRendering(document, resolved, limits);
         }
-        HtmlRenderSystemFontLoader.Load(document, styles, fonts, resolved, resources, diagnostics, cancellationToken);
+        HtmlRenderSystemFontLoader.Load(document, styles, fonts, resolved, resources, diagnostics, cancellationToken, pageRules);
         cancellationToken.ThrowIfCancellationRequested();
         int imagesMissingNames = HtmlAccessibilitySourceInspection.CountImagesMissingNames(document, styles.Elements, cancellationToken);
         HtmlRenderDocument rendered = new HtmlRenderLayoutEngine(
@@ -386,7 +386,7 @@ public static class HtmlRenderEngine {
             resolved.Validate();
             styles = HtmlComputedStyleEngine.ComputeForRendering(document, resolved, limits);
         }
-        HtmlRenderSystemFontLoader.Load(document, styles, fonts, resolved, resources, diagnostics, cancellationToken);
+        HtmlRenderSystemFontLoader.Load(document, styles, fonts, resolved, resources, diagnostics, cancellationToken, pageRules);
         cancellationToken.ThrowIfCancellationRequested();
         int imagesMissingNames = HtmlAccessibilitySourceInspection.CountImagesMissingNames(document, styles.Elements, cancellationToken);
         HtmlRenderDocument rendered = new HtmlRenderLayoutEngine(document, styles, resolved, diagnostics, resources, pageRules, fonts,

@@ -88,7 +88,7 @@ internal sealed class HtmlCssProcessingBudget {
         }
     }
 
-    internal void ValidateRegistrationFanout(int registrations, int elements) {
+    internal void ValidateRegistrationFanout(int registrations, long elements) {
         if (!_limits.MaxCssDeclarations.HasValue) return;
         long applications = (long)registrations * elements;
         if (applications > _limits.MaxCssDeclarations.Value) {

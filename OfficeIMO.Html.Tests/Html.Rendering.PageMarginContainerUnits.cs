@@ -1,4 +1,3 @@
-using AngleSharp.Html.Parser;
 using OfficeIMO.Drawing;
 using OfficeIMO.Html;
 using Xunit;
@@ -21,13 +20,13 @@ public sealed partial class HtmlRenderingTests {
     public void HtmlPageMarginContainerUnits_PreserveValidDeclarationsAndTheirCascade(
         string declarations, string expected) {
         var options = PageMarginTypographyOptions();
-        using var document = new HtmlParser().ParseDocument(PageMarginTypographySource(declarations));
-        HtmlCssPageRuleSet rules = HtmlCssPageSettingsResolver.Apply(document, options, new HtmlDiagnosticReport());
-        HtmlCssPageGeometry geometry = rules.ResolveGeometry(1, null, options);
+        options.PageSize = new OfficePageSize(360D / 96D, 480D / 96D);
+        HtmlRenderPage page = Assert.Single(HtmlRenderEngine.Render(
+            HtmlConversionDocument.Parse(PageMarginTypographySource(declarations)), options).Pages);
+        HtmlRenderText margin = PageMarginTypographyText(page);
 
-        HtmlCssPageMarginTemplate margin = Assert.Single(rules.ResolveMarginBoxes(1, null, geometry, options)).Value;
-
-        Assert.Equal(expected, margin.LineHeight);
+        double expectedLeading = expected == "10cqw" ? 36D : expected == "22px" ? 22D : 19D;
+        Assert.Equal(expectedLeading, margin.LineHeight, 6);
         Assert.Equal(16D, margin.Font.Size, 6);
     }
 

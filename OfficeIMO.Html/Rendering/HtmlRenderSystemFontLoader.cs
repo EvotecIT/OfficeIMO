@@ -14,7 +14,7 @@ internal static class HtmlRenderSystemFontLoader {
 
     internal static void Load(IHtmlDocument document, HtmlComputedStyleSet styles,
         OfficeFontFaceCollection fonts, HtmlRenderOptions options, HtmlResourceSession resources,
-        HtmlDiagnosticReport diagnostics, CancellationToken cancellationToken) {
+        HtmlDiagnosticReport diagnostics, CancellationToken cancellationToken, HtmlCssPageRuleSet? pageRules = null) {
         if (!options.AllowSystemFontFallback) return;
         var inherited = new Dictionary<IElement, (string Families, OfficeFontFaceDescriptor Descriptor)>();
         var attempted = new Dictionary<(string Family, int Weight, OfficeFontSlant Slant), bool>();
@@ -37,6 +37,11 @@ internal static class HtmlRenderSystemFontLoader {
                 LoadList(HtmlRenderCssValues.FontFamilyList(pseudo.GetValue("font-family"), families),
                     HtmlRenderStyleResolver.ResolveFontFaceDescriptor(string.Empty, pseudo, descriptor));
             }
+        }
+
+        if (pageRules != null && document.DocumentElement is IElement root && styles.Elements.TryGetValue(root, out HtmlComputedStyle? rootStyle)) {
+            foreach (var request in pageRules.EnumerateMarginFontRequests(rootStyle, styles, options, cancellationToken))
+                LoadList(request.Families, request.Descriptor);
         }
 
         void LoadList(string familyNames, OfficeFontFaceDescriptor descriptor) {

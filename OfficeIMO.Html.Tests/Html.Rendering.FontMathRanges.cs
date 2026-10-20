@@ -1,4 +1,3 @@
-using AngleSharp.Html.Parser;
 using OfficeIMO.Drawing;
 using OfficeIMO.Html;
 using Xunit;
@@ -31,12 +30,6 @@ public sealed partial class HtmlRenderingTests {
         var options = PageMarginTypographyOptions();
         options.PageSize = new OfficePageSize(360D / 96D, 480D / 96D);
         string html = PageMarginTypographySource("font:16px/22px Pinned;font-size:" + size, "Hgyp");
-        using var parsed = new HtmlParser().ParseDocument(html);
-        HtmlCssPageRuleSet rules = HtmlCssPageSettingsResolver.Apply(parsed, options.Clone(), new HtmlDiagnosticReport());
-        HtmlCssPageMarginTemplate margin = Assert.Single(rules.ResolveMarginBoxes(
-            1, null, rules.ResolveGeometry(1, null, options), options)).Value;
-        Assert.Equal(expected, margin.Font.Size, 6);
-
         HtmlRenderDocument rendered = HtmlRenderEngine.Render(HtmlConversionDocument.Parse(html), options);
         HtmlRenderPage page = Assert.Single(rendered.Pages);
         if (expected == 0D) {
