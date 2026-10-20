@@ -11,7 +11,7 @@ Lists conversion contracts from the installed OfficeIMO catalog and their availa
 ## SYNTAX
 ### __AllParameterSets
 ```powershell
-Get-OfficeConversionRoute [-Id <string[]>] [-SourceExtension <string>] [-TargetExtension <string>] [-PdfBatch] [<CommonParameters>]
+Get-OfficeConversionRoute [-Id <string[]>] [-SourceExtension <string>] [-TargetExtension <string>] [-PdfBatch] [-Executable] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
@@ -43,6 +43,22 @@ PS> 'docx-pdf', 'pdf-docx' | Get-OfficeConversionRoute
 The pipeline also accepts objects with an Id property.
 
 ## PARAMETERS
+
+### -Executable
+Return only file routes executable by ConvertTo-OfficeDocument in the current host.
+
+```yaml
+Type: SwitchParameter
+Parameter Sets: __AllParameterSets
+Aliases: None
+Possible values:
+
+Required: False
+Position: named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
 
 ### -Id
 Exact route identifiers, for example docx-pdf or pdf-docx. Unknown identifiers return no rows.

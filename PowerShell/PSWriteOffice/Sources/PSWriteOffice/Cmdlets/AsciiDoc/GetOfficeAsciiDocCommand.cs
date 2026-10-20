@@ -1,3 +1,4 @@
+using PSWriteOffice.Services;
 using System.IO;
 using System.Management.Automation;
 using OfficeIMO.AsciiDoc;
@@ -13,8 +14,8 @@ public sealed class GetOfficeAsciiDocCommand : PSCmdlet
     private const string ParameterSetText = "Text";
 
     /// <summary>Path to an AsciiDoc file.</summary>
-    [Parameter(Mandatory = true, Position = 0, ParameterSetName = ParameterSetPath)]
-    [Alias("FilePath")]
+    [Parameter(Mandatory = true, Position = 0, ParameterSetName = ParameterSetPath, ValueFromPipelineByPropertyName = true, ValueFromPipeline = true)]
+    [Alias("FilePath", "FullName", "LiteralPath")]
     public string Path { get; set; } = string.Empty;
 
     /// <summary>AsciiDoc source text.</summary>
@@ -35,7 +36,7 @@ public sealed class GetOfficeAsciiDocCommand : PSCmdlet
         AsciiDocParseResult result;
         if (ParameterSetName == ParameterSetPath)
         {
-            var path = SessionState.Path.GetUnresolvedProviderPathFromPSPath(Path);
+            var path = OfficeFileCommandUtilities.ResolvePath(this, Path);
             if (!File.Exists(path)) throw new FileNotFoundException($"File '{path}' was not found.", path);
             result = AsciiDocDocument.LoadResult(path, Options);
         }

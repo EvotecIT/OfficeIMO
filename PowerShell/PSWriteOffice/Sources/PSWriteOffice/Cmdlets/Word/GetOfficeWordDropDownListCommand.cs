@@ -1,3 +1,4 @@
+using PSWriteOffice.Services;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -18,7 +19,7 @@ namespace PSWriteOffice.Cmdlets.Word;
 ///     Format-Table -AutoSize</code>
 ///   <para>Finds dropdown list content controls used for status capture in a Word form.</para>
 /// </example>
-[Cmdlet(VerbsCommon.Get, "OfficeWordDropDownList", DefaultParameterSetName = ParameterSetPath)]
+[Cmdlet(VerbsCommon.Get, "OfficeWordDropDownList")]
 [Alias("WordDropDownLists")]
 [OutputType(typeof(WordDropDownList))]
 public sealed class GetOfficeWordDropDownListCommand : PSCmdlet {
@@ -26,8 +27,8 @@ public sealed class GetOfficeWordDropDownListCommand : PSCmdlet {
     private const string ParameterSetDocument = "Document";
 
     /// <summary>Path to the .docx file.</summary>
-    [Parameter(Mandatory = true, Position = 0, ParameterSetName = ParameterSetPath)]
-    [Alias("InputPath", "FilePath")]
+    [Parameter(Mandatory = true, Position = 0, ParameterSetName = ParameterSetPath, ValueFromPipelineByPropertyName = true, ValueFromPipeline = true)]
+    [Alias("InputPath", "FilePath", "FullName", "LiteralPath")]
     public string Path { get; set; } = string.Empty;
 
     /// <summary>Word document to read.</summary>
@@ -51,7 +52,7 @@ public sealed class GetOfficeWordDropDownListCommand : PSCmdlet {
 
         try {
             if (ParameterSetName == ParameterSetPath) {
-                var resolvedPath = SessionState.Path.GetUnresolvedProviderPathFromPSPath(Path);
+                var resolvedPath = OfficeFileCommandUtilities.ResolvePath(this, Path);
                 document = WordDocumentService.LoadDocument(resolvedPath, readOnly: true, autoSave: false);
                 dispose = true;
             } else {

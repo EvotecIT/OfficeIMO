@@ -1,3 +1,4 @@
+using PSWriteOffice.Services;
 using System.IO;
 using System.Management.Automation;
 using OfficeIMO.Markdown;
@@ -27,8 +28,8 @@ public sealed class GetOfficeMarkdownCommand : PSCmdlet
     private const string ParameterSetText = "Text";
 
     /// <summary>Path to the Markdown file.</summary>
-    [Parameter(Mandatory = true, Position = 0, ParameterSetName = ParameterSetPath)]
-    [Alias("InputPath", "FilePath")]
+    [Parameter(Mandatory = true, Position = 0, ParameterSetName = ParameterSetPath, ValueFromPipelineByPropertyName = true, ValueFromPipeline = true)]
+    [Alias("InputPath", "FilePath", "FullName", "LiteralPath")]
     public string Path { get; set; } = string.Empty;
 
     /// <summary>Markdown text to parse.</summary>
@@ -88,7 +89,7 @@ public sealed class GetOfficeMarkdownCommand : PSCmdlet
 
         MarkdownDoc document;
         if (ParameterSetName == ParameterSetPath) {
-            var resolvedPath = SessionState.Path.GetUnresolvedProviderPathFromPSPath(Path);
+            var resolvedPath = OfficeFileCommandUtilities.ResolvePath(this, Path);
             if (!File.Exists(resolvedPath)) {
                 throw new FileNotFoundException($"File '{resolvedPath}' was not found.", resolvedPath);
             }

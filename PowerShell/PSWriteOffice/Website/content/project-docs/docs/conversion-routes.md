@@ -34,7 +34,21 @@ $route.KnownLimitations
 Export-OfficeDocumentPdf -InputPath ./Review.docx -Path ./Review.pdf
 ```
 
-## Validate your input and output
+## Run a general conversion job
+
+`Get-OfficeConversionRoute -Executable` filters to routes registered by the shared runner in this host. `ConvertTo-OfficeDocument` uses that runner for a single destination or a selected-file/directory batch. These jobs require PowerShell 7.4 or newer and include registered first-party iWork routes.
+
+```powershell
+Get-OfficeConversionRoute -Executable -SourceExtension pdf |
+    Select-Object Id, TargetExtension, Fidelity, KnownLimitations
+ConvertTo-OfficeDocument -InputPath ./Review.pdf -OutputPath ./Review.docx
+Get-ChildItem ./reviews -Filter *.pdf |
+    ConvertTo-OfficeDocument -OutputDirectory ./editable -TargetExtension docx -ItemResults
+```
+
+Existing destinations are preserved by default. Set `-ConflictPolicy Rename` or `Replace` explicitly when appropriate. Use `New-OfficeConversionOptions` for renderer settings, `-RequireNoLoss` to reject reported reductions, and `-CheckpointDirectory` with directory jobs that need resumable state. Route registration does not guarantee that an individual file, optional provider or credential will satisfy the operation.
+
+## Check the result
 
 The catalog describes the installed engine's contracts. It does not probe optional providers, fonts, credentials, encryption passwords, or an individual input document. Test representative files and inspect the generated output before relying on a conversion workflow. Review conversion warnings when fidelity matters.
 

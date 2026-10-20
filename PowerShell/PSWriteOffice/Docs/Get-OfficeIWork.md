@@ -68,13 +68,13 @@ Path to a modern Pages, Numbers, or Keynote package or directory bundle.
 ```yaml
 Type: String
 Parameter Sets: __AllParameterSets
-Aliases: FilePath
+Aliases: FilePath, FullName, LiteralPath
 Possible values:
 
 Required: True
 Position: 0
 Default value: None
-Accept pipeline input: True (ByValue)
+Accept pipeline input: True (ByValue, ByPropertyName)
 Accept wildcard characters: False
 ```
 

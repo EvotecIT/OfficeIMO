@@ -1,3 +1,4 @@
+using OfficeIMO.Core.Internal;
 using System;
 using System.IO;
 using System.Management.Automation;
@@ -166,7 +167,7 @@ public sealed class ConvertToOfficePowerPointHtmlCommand : PSCmdlet
         }
 
         PdfCommandUtilities.EnsureDirectory(outputPath);
-        File.WriteAllText(outputPath, html, new UTF8Encoding(encoderShouldEmitUTF8Identifier: false));
+        OfficeFileOutput.Write(outputPath, overwrite: true, temporaryPath => File.WriteAllText(temporaryPath, html, new UTF8Encoding(encoderShouldEmitUTF8Identifier: false)));
         if (PassThru.IsPresent)
         {
             WriteObject(new FileInfo(outputPath));

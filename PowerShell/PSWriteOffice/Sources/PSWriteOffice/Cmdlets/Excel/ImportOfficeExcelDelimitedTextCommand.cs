@@ -1,3 +1,4 @@
+using PSWriteOffice.Services;
 #pragma warning disable CS1591
 using System;
 using System.Globalization;
@@ -31,8 +32,8 @@ public sealed class ImportOfficeExcelDelimitedTextCommand : PSCmdlet {
     private const string ParameterSetDocument = "Document";
 
     /// <summary>Workbook path.</summary>
-    [Parameter(Mandatory = true, Position = 0, ParameterSetName = ParameterSetPath)]
-    [Alias("InputPath", "FilePath")]
+    [Parameter(Mandatory = true, Position = 0, ParameterSetName = ParameterSetPath, ValueFromPipelineByPropertyName = true, ValueFromPipeline = true)]
+    [Alias("InputPath", "FilePath", "FullName", "LiteralPath")]
     public string Path { get; set; } = string.Empty;
 
     /// <summary>Workbook document.</summary>
@@ -70,7 +71,7 @@ public sealed class ImportOfficeExcelDelimitedTextCommand : PSCmdlet {
     public SwitchParameter PassThru { get; set; }
 
     protected override void ProcessRecord() {
-        var source = SessionState.Path.GetUnresolvedProviderPathFromPSPath(SourcePath);
+        var source = OfficeFileCommandUtilities.ResolvePath(this, SourcePath);
         if (!File.Exists(source)) {
             throw new FileNotFoundException($"Delimited text file '{source}' was not found.", source);
         }
@@ -128,7 +129,7 @@ public sealed class ImportOfficeExcelDelimitedTextCommand : PSCmdlet {
             return Document.FilePath;
         }
 
-        return SessionState.Path.GetUnresolvedProviderPathFromPSPath(Path);
+        return OfficeFileCommandUtilities.ResolvePath(this, Path);
     }
 
     private ExcelWorkbookCommandScope ResolveWorkbook(string? targetPath) {

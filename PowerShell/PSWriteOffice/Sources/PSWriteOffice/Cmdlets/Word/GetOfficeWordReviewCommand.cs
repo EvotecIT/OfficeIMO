@@ -1,3 +1,4 @@
+using PSWriteOffice.Services;
 using System.Management.Automation;
 using OfficeIMO.Word;
 using PSWriteOffice.Services.Word;
@@ -16,7 +17,8 @@ namespace PSWriteOffice.Cmdlets.Word;
 public sealed class GetOfficeWordReviewCommand : PSCmdlet
 {
     /// <summary>Path to the Word document.</summary>
-    [Parameter(Mandatory = true, Position = 0, ParameterSetName = "Path")]
+    [Parameter(Mandatory = true, Position = 0, ParameterSetName = "Path", ValueFromPipelineByPropertyName = true, ValueFromPipeline = true)]
+    [Alias("FullName", "LiteralPath")]
     public string Path { get; set; } = string.Empty;
 
     /// <summary>Open Word document instance.</summary>
@@ -33,7 +35,7 @@ public sealed class GetOfficeWordReviewCommand : PSCmdlet
             if (ParameterSetName == "Path")
             {
                 owned = WordDocumentService.LoadDocument(
-                    SessionState.Path.GetUnresolvedProviderPathFromPSPath(Path), readOnly: true, autoSave: false);
+                    OfficeFileCommandUtilities.ResolvePath(this, Path), readOnly: true, autoSave: false);
                 document = owned;
             }
             WriteObject(document.InspectReviewReport());

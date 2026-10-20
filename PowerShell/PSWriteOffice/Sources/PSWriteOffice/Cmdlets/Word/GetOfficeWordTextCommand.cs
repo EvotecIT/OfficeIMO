@@ -1,3 +1,4 @@
+using PSWriteOffice.Services;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -35,8 +36,8 @@ public sealed class GetOfficeWordTextCommand : PSCmdlet {
     public WordDocument Document { get; set; } = null!;
 
     /// <summary>Path to the document.</summary>
-    [Parameter(Mandatory = true, Position = 0, ParameterSetName = ParameterSetPath)]
-    [Alias("InputPath", "FilePath")]
+    [Parameter(Mandatory = true, Position = 0, ParameterSetName = ParameterSetPath, ValueFromPipelineByPropertyName = true, ValueFromPipeline = true)]
+    [Alias("InputPath", "FilePath", "FullName", "LiteralPath")]
     public string Path { get; set; } = string.Empty;
 
     /// <inheritdoc />
@@ -57,7 +58,7 @@ public sealed class GetOfficeWordTextCommand : PSCmdlet {
                         : Array.Empty<WordParagraph>();
                     break;
                 case ParameterSetPath:
-                    var resolvedPath = SessionState.Path.GetUnresolvedProviderPathFromPSPath(Path);
+                    var resolvedPath = OfficeFileCommandUtilities.ResolvePath(this, Path);
                     document = WordDocumentService.LoadDocument(resolvedPath, readOnly: true, autoSave: false);
                     dispose = true;
                     paragraphs = document.Paragraphs;

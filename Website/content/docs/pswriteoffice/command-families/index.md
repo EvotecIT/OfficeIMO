@@ -13,7 +13,11 @@ The PSWriteOffice website catalog groups every exported cmdlet into exactly one 
 | Excel | 162 | [Excel automation](/docs/pswriteoffice/excel/) |
 | Word | 97 | [Word automation](/docs/pswriteoffice/word/) |
 | PDF | 96 | [PDF automation](/docs/pswriteoffice/pdf/) |
-| Conversion routes | 1 | [Choose a conversion route](/docs/pswriteoffice/conversion-routes/) |
+| Conversion jobs | 3 | [Conversion jobs](/docs/pswriteoffice/automation-patterns/) |
+| Project | 19 | [Native document workflows](/docs/pswriteoffice/automation-patterns/) |
+| Access | 9 | [Native document workflows](/docs/pswriteoffice/automation-patterns/) |
+| EPUB | 7 | [Native document workflows](/docs/pswriteoffice/automation-patterns/) |
+| Electronic invoicing | 11 | [Native document workflows](/docs/pswriteoffice/automation-patterns/) |
 | PowerPoint | 61 | [PowerPoint automation](/docs/pswriteoffice/powerpoint/) |
 | Markdown | 26 | [Open and text formats](/docs/pswriteoffice/open-text-formats/) |
 | Visio | 24 | [Visio diagrams](/docs/pswriteoffice/visio/) |
@@ -39,7 +43,7 @@ Use this conceptual catalog to choose a family. Use the generated [command refer
 
 ## Evidence contract
 
-The machine-readable catalog lives at `WebsiteArtifacts/documentation/command-catalog.json` in the PSWriteOffice repository. A Pester contract verifies:
+The machine-readable catalog lives at `PowerShell/PSWriteOffice/WebsiteArtifacts/documentation/command-catalog.json` in the OfficeIMO repository. A Pester contract verifies:
 
 - command and alias totals match the module manifest;
 - family counts add up to the full exported command count;

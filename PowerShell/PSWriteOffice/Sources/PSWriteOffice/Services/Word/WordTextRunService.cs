@@ -2,7 +2,6 @@ using System;
 using System.Globalization;
 using System.Linq;
 using System.Management.Automation;
-using System.Reflection;
 using DocumentFormat.OpenXml.Wordprocessing;
 using OfficeIMO.Word;
 using PSWriteOffice.Services;
@@ -94,99 +93,14 @@ internal static class WordTextRunService
 
     private static void ApplyHyperlinkStyle(WordHyperLink? hyperlink, OfficeTextRunSpec spec, WordUnderlineStyle? underline)
     {
-        var run = GetHyperlinkRun(hyperlink);
-        if (run == null)
-        {
-            return;
+        if (hyperlink == null) return;
+        foreach (var run in hyperlink.Runs) {
+            if (spec.Bold) run.SetBold();
+            if (spec.Italic) run.SetItalic();
+            if (underline.HasValue) run.Underline = underline;
+            ApplyAdditionalStyle(run, spec.Strike, spec.Color, spec.BackgroundColor, spec.FontSize, spec.FontName);
+            ApplyBaseline(run, spec.Baseline);
         }
-
-        var properties = EnsureRunProperties(run);
-        if (spec.Bold)
-        {
-            properties.Bold = new Bold();
-        }
-
-        if (spec.Italic)
-        {
-            properties.Italic = new Italic();
-        }
-
-        if (underline.HasValue)
-        {
-            if (!OpenXmlValueParser.TryParse<UnderlineValues>(underline.Value.ToString(), out var openXmlUnderline))
-            {
-                throw new InvalidOperationException($"Cannot map Word underline style '{underline.Value}' to OpenXML.");
-            }
-            properties.Underline = new Underline { Val = openXmlUnderline };
-        }
-
-        if (spec.Strike)
-        {
-            properties.Strike = new Strike();
-        }
-
-        var rgb = OfficeColorUtilities.ToRgbHex(spec.Color);
-        if (!string.IsNullOrWhiteSpace(rgb))
-        {
-            properties.Color = new Color { Val = rgb! };
-        }
-
-        ApplyBackground(properties, spec.BackgroundColor);
-
-        if (spec.FontSize.HasValue)
-        {
-            var halfPoints = ToHalfPoints(spec.FontSize.Value).ToString(CultureInfo.InvariantCulture);
-            properties.FontSize = new FontSize { Val = halfPoints };
-        }
-
-        if (!string.IsNullOrWhiteSpace(spec.FontName))
-        {
-            properties.RunFonts = new RunFonts
-            {
-                Ascii = spec.FontName,
-                HighAnsi = spec.FontName,
-                EastAsia = spec.FontName,
-                ComplexScript = spec.FontName
-            };
-        }
-
-        ApplyBaseline(properties, spec.Baseline);
-    }
-
-    private static Run? GetHyperlinkRun(WordHyperLink? hyperlink)
-    {
-        if (hyperlink == null)
-        {
-            return null;
-        }
-
-        // OfficeIMO exposes hyperlink metadata publicly, but not the formatted inner run.
-        var field = typeof(WordHyperLink).GetField("_hyperlink", BindingFlags.Instance | BindingFlags.NonPublic);
-        return field?.GetValue(hyperlink) is Hyperlink element
-            ? element.Elements<Run>().FirstOrDefault()
-            : null;
-    }
-
-    private static RunProperties EnsureRunProperties(Run run)
-    {
-        if (run.RunProperties != null)
-        {
-            return run.RunProperties;
-        }
-
-        var properties = new RunProperties();
-        run.PrependChild(properties);
-        return properties;
-    }
-
-    private static int ToHalfPoints(double fontSize)
-    {
-        if (double.IsNaN(fontSize) || double.IsInfinity(fontSize) || fontSize < 0D || fontSize > int.MaxValue / 2D)
-        {
-            throw new ArgumentOutOfRangeException(nameof(fontSize));
-        }
-
-        return checked((int)Math.Round(fontSize * 2D, MidpointRounding.AwayFromZero));
     }
 
     private static void ApplyAdditionalStyle(WordParagraph run, bool strike, string? color, string? backgroundColor, double? fontSize, string? fontName)
@@ -235,15 +149,6 @@ internal static class WordTextRunService
         }
     }
 
-    private static void ApplyBaseline(RunProperties properties, string? baseline)
-    {
-        var value = ResolveBaseline(baseline);
-        if (value.HasValue)
-        {
-            properties.VerticalTextAlignment = new VerticalTextAlignment { Val = value.Value };
-        }
-    }
-
     private static VerticalPositionValues? ResolveBaseline(string? baseline)
     {
         if (string.IsNullOrWhiteSpace(baseline))
@@ -287,27 +192,6 @@ internal static class WordTextRunService
         {
             run.ShadingFillColorHex = rgb!;
             run.ShadingPattern = WordShadingPattern.Clear;
-        }
-    }
-
-    private static void ApplyBackground(RunProperties properties, string? backgroundColor)
-    {
-        if (string.IsNullOrWhiteSpace(backgroundColor))
-        {
-            return;
-        }
-
-        var highlightName = ResolveHighlightName(backgroundColor);
-        if (highlightName != null && OpenXmlValueParser.TryParse(highlightName, out HighlightColorValues highlight))
-        {
-            properties.Highlight = new Highlight { Val = highlight };
-            return;
-        }
-
-        var rgb = OfficeColorUtilities.ToRgbHex(backgroundColor);
-        if (!string.IsNullOrWhiteSpace(rgb))
-        {
-            properties.Shading = new Shading { Fill = rgb!, Val = ShadingPatternValues.Clear };
         }
     }
 

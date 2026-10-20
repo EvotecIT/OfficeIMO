@@ -1,3 +1,4 @@
+using PSWriteOffice.Services;
 using System.Management.Automation;
 using OfficeIMO.OneNote;
 
@@ -15,8 +16,8 @@ namespace PSWriteOffice.Cmdlets.OneNote;
 public sealed class GetOfficeOneNoteCommand : PSCmdlet
 {
     /// <summary>Path to a .one section, .onetoc2 notebook index, or .onepkg archive.</summary>
-    [Parameter(Mandatory = true, Position = 0, ValueFromPipeline = true)]
-    [Alias("FilePath")]
+    [Parameter(Mandatory = true, Position = 0, ValueFromPipeline = true, ValueFromPipelineByPropertyName = true)]
+    [Alias("FilePath", "FullName", "LiteralPath")]
     public string Path { get; set; } = string.Empty;
 
     /// <summary>Bounded section and revision-store read options.</summary>
@@ -30,7 +31,7 @@ public sealed class GetOfficeOneNoteCommand : PSCmdlet
     /// <inheritdoc />
     protected override void ProcessRecord()
     {
-        var path = SessionState.Path.GetUnresolvedProviderPathFromPSPath(Path);
+        var path = OfficeFileCommandUtilities.ResolvePath(this, Path);
         WriteObject(OneNoteCommandUtilities.Read(path, Options, NotebookOptions));
     }
 }

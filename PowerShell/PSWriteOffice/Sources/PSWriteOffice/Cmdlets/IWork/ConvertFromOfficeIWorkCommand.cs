@@ -1,3 +1,4 @@
+using OfficeIMO.Core.Internal;
 using System;
 using System.IO;
 using System.Management.Automation;
@@ -81,21 +82,21 @@ public sealed class ConvertFromOfficeIWorkCommand : PSCmdlet
                 using (var result = source.ToWordDocumentResult(ConversionOptions))
                 {
                     if (FailOnLoss.IsPresent) result.RequireNoLoss();
-                    AtomicFileWriter.Write(output, Force.IsPresent, temporaryPath => result.Value.Save(temporaryPath));
+                    OfficeFileOutput.Write(output, Force.IsPresent, temporaryPath => result.Value.Save(temporaryPath));
                     return result.Report;
                 }
             case IWorkDocumentKind.Numbers:
                 using (var result = source.ToExcelDocumentResult(ConversionOptions))
                 {
                     if (FailOnLoss.IsPresent) result.RequireNoLoss();
-                    AtomicFileWriter.Write(output, Force.IsPresent, temporaryPath => result.Value.Save(temporaryPath));
+                    OfficeFileOutput.Write(output, Force.IsPresent, temporaryPath => result.Value.Save(temporaryPath));
                     return result.Report;
                 }
             case IWorkDocumentKind.Keynote:
                 using (var result = source.ToPowerPointPresentationResult(ConversionOptions))
                 {
                     if (FailOnLoss.IsPresent) result.RequireNoLoss();
-                    AtomicFileWriter.Write(output, Force.IsPresent, temporaryPath => result.Value.Save(temporaryPath));
+                    OfficeFileOutput.Write(output, Force.IsPresent, temporaryPath => result.Value.Save(temporaryPath));
                     return result.Report;
                 }
             default:

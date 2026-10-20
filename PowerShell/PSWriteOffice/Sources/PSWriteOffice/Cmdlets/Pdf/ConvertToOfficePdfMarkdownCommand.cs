@@ -1,3 +1,4 @@
+using OfficeIMO.Core.Internal;
 using System.IO;
 using System.Management.Automation;
 using OfficeIMO.Pdf;
@@ -59,7 +60,7 @@ public sealed class ConvertToOfficePdfMarkdownCommand : PSCmdlet
             }
 
             PdfCommandUtilities.EnsureDirectory(outputPath);
-            File.WriteAllText(outputPath, markdown);
+            OfficeFileOutput.Write(outputPath, overwrite: true, temporaryPath => File.WriteAllText(temporaryPath, markdown));
             WriteObject(new FileInfo(outputPath));
             return;
         }

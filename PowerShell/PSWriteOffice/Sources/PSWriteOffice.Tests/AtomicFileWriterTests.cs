@@ -1,3 +1,4 @@
+using OfficeIMO.Core.Internal;
 using System.Text;
 using PSWriteOffice.Services;
 using PSWriteOffice.Services.Pdf;
@@ -6,6 +7,25 @@ namespace PSWriteOffice.Tests;
 
 public sealed class AtomicFileWriterTests
 {
+    [Fact]
+    public void FailedStagingPreservesExistingOutputAndRemovesPartialFile() {
+        var directory = Path.Combine(Path.GetTempPath(), $"OfficeIMO-output-{Guid.NewGuid():N}");
+        Directory.CreateDirectory(directory);
+        try {
+            var output = Path.Combine(directory, "report.txt");
+            File.WriteAllText(output, "existing report");
+            Assert.Throws<InvalidOperationException>(() =>
+                OfficeFileOutput.Write(output, overwrite: true, temporaryPath => {
+                    File.WriteAllText(temporaryPath, "incomplete report");
+                    throw new InvalidOperationException("serialization failed");
+                }));
+            Assert.Equal("existing report", File.ReadAllText(output));
+            Assert.Equal(new[] { output }, Directory.GetFiles(directory));
+        } finally {
+            Directory.Delete(directory, true);
+        }
+    }
+
     [Fact]
     public void WriteUnique_writes_payload_once_when_names_collide()
     {
@@ -18,7 +38,7 @@ public sealed class AtomicFileWriterTests
             File.WriteAllText(Path.Combine(directory, "report-2.txt"), "existing-2");
             var writeCount = 0;
 
-            var outputPath = AtomicFileWriter.WriteUnique(directory, "report.txt", temporaryPath =>
+            var outputPath = OfficeFileOutput.WriteUnique(directory, "report.txt", temporaryPath =>
             {
                 writeCount++;
                 File.WriteAllText(temporaryPath, "new-payload", new UTF8Encoding(false));
@@ -45,7 +65,7 @@ public sealed class AtomicFileWriterTests
         try
         {
             Assert.Throws<InvalidOperationException>(() =>
-                AtomicFileWriter.WriteUnique(directory, "report.txt", temporaryPath =>
+                OfficeFileOutput.WriteUnique(directory, "report.txt", temporaryPath =>
                 {
                     File.WriteAllText(temporaryPath, "partial");
                     throw new InvalidOperationException("writer failed");
@@ -69,7 +89,7 @@ public sealed class AtomicFileWriterTests
         {
             var fileName = new string('a', 220) + ".bin";
 
-            var outputPath = AtomicFileWriter.WriteUnique(directory, fileName, Encoding.UTF8.GetBytes("payload"));
+            var outputPath = OfficeFileOutput.WriteUnique(directory, fileName, Encoding.UTF8.GetBytes("payload"));
 
             Assert.Equal(fileName, Path.GetFileName(outputPath));
             Assert.Equal("payload", File.ReadAllText(outputPath));
@@ -90,7 +110,7 @@ public sealed class AtomicFileWriterTests
         {
             var fileName = new string('a', 260) + ".bin";
 
-            var outputPath = AtomicFileWriter.WriteUnique(directory, fileName, Encoding.UTF8.GetBytes("payload"));
+            var outputPath = OfficeFileOutput.WriteUnique(directory, fileName, Encoding.UTF8.GetBytes("payload"));
             var outputName = Path.GetFileName(outputPath);
 
             Assert.Equal(255, outputName.Length);
@@ -114,7 +134,7 @@ public sealed class AtomicFileWriterTests
         {
             var fileName = new string('\u00e9', 130) + ".bin";
 
-            var outputPath = AtomicFileWriter.WriteUnique(directory, fileName, Encoding.UTF8.GetBytes("payload"));
+            var outputPath = OfficeFileOutput.WriteUnique(directory, fileName, Encoding.UTF8.GetBytes("payload"));
             var outputName = Path.GetFileName(outputPath);
 
             Assert.True(Encoding.UTF8.GetByteCount(outputName) <= 255);
@@ -165,7 +185,7 @@ public sealed class AtomicFileWriterTests
             var fileName = new string('a', 251) + ".bin";
             File.WriteAllText(Path.Combine(directory, fileName), "existing");
 
-            var outputPath = AtomicFileWriter.WriteUnique(directory, fileName, Encoding.UTF8.GetBytes("payload"));
+            var outputPath = OfficeFileOutput.WriteUnique(directory, fileName, Encoding.UTF8.GetBytes("payload"));
             var outputName = Path.GetFileName(outputPath);
 
             Assert.Equal(255, outputName.Length);
@@ -191,7 +211,7 @@ public sealed class AtomicFileWriterTests
             var fileName = new string('\u00e9', 125) + ".bin";
             File.WriteAllText(Path.Combine(directory, fileName), "existing");
 
-            var outputPath = AtomicFileWriter.WriteUnique(directory, fileName, Encoding.UTF8.GetBytes("payload"));
+            var outputPath = OfficeFileOutput.WriteUnique(directory, fileName, Encoding.UTF8.GetBytes("payload"));
             var outputName = Path.GetFileName(outputPath);
 
             Assert.True(Encoding.UTF8.GetByteCount(outputName) <= 255);
@@ -216,7 +236,7 @@ public sealed class AtomicFileWriterTests
             var fileName = new string('a', 220) + ".pdf";
             var outputPath = Path.Combine(directory, fileName);
 
-            AtomicFileWriter.Write(outputPath, Encoding.UTF8.GetBytes("payload"), overwrite: false);
+            OfficeFileOutput.Write(outputPath, Encoding.UTF8.GetBytes("payload"), overwrite: false);
 
             Assert.Equal("payload", File.ReadAllText(outputPath));
         }

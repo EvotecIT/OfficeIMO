@@ -708,7 +708,7 @@
       "contract": {
         "capabilityCount": 48,
         "categoryCount": 17,
-        "hasUnimplementedCoverage": true,
+        "hasUnimplementedCoverage": false,
         "operations": [
           {
             "id": "representability",
@@ -772,19 +772,13 @@
                 "state": "Native",
                 "label": "Native",
                 "description": "Represented directly in the destination format.",
-                "count": 17
+                "count": 18
               },
               {
                 "state": "NotApplicable",
                 "label": "Not applicable",
                 "description": "The operation does not apply to this feature or format direction.",
                 "count": 2
-              },
-              {
-                "state": "NotImplemented",
-                "label": "Not implemented",
-                "description": "The contract explicitly records a path that is not implemented yet.",
-                "count": 1
               }
             ]
           },
@@ -820,7 +814,7 @@
                 "state": "Blocked",
                 "label": "Blocked",
                 "description": "Operation refused when proceeding would silently misrepresent the result.",
-                "count": 9
+                "count": 8
               },
               {
                 "state": "EmbeddedSource",
@@ -832,7 +826,7 @@
                 "state": "Native",
                 "label": "Native",
                 "description": "Represented directly in the destination format.",
-                "count": 17
+                "count": 18
               },
               {
                 "state": "Rasterized",
@@ -886,7 +880,7 @@
           ],
           "capabilityCount": 28,
           "categoryCount": 16,
-          "hasUnimplementedCoverage": true,
+          "hasUnimplementedCoverage": false,
           "operations": [
             {
               "id": "representability",
@@ -950,18 +944,12 @@
                   "state": "Native",
                   "label": "Native",
                   "description": "Represented directly in the destination format.",
-                  "count": 8
+                  "count": 9
                 },
                 {
                   "state": "NotApplicable",
                   "label": "Not applicable",
                   "description": "The operation does not apply to this feature or format direction.",
-                  "count": 1
-                },
-                {
-                  "state": "NotImplemented",
-                  "label": "Not implemented",
-                  "description": "The contract explicitly records a path that is not implemented yet.",
                   "count": 1
                 }
               ]
@@ -998,7 +986,7 @@
                   "state": "Blocked",
                   "label": "Blocked",
                   "description": "Operation refused when proceeding would silently misrepresent the result.",
-                  "count": 5
+                  "count": 4
                 },
                 {
                   "state": "EmbeddedSource",
@@ -1010,7 +998,7 @@
                   "state": "Native",
                   "label": "Native",
                   "description": "Represented directly in the destination format.",
-                  "count": 8
+                  "count": 9
                 },
                 {
                   "state": "Rasterized",
@@ -2794,7 +2782,7 @@
               "id": "Supported",
               "label": "Supported",
               "description": "Implemented and backed by named evidence.",
-              "count": 48
+              "count": 49
             },
             {
               "id": "Partial",
@@ -2806,7 +2794,7 @@
               "id": "Rejected",
               "label": "Rejected",
               "description": "The operation deliberately fails to prevent unsafe or misleading output.",
-              "count": 9
+              "count": 8
             }
           ]
         },
@@ -2817,7 +2805,7 @@
               "id": "Supported",
               "label": "Supported",
               "description": "Implemented and backed by named evidence.",
-              "count": 21
+              "count": 22
             },
             {
               "id": "Partial",
@@ -2835,7 +2823,7 @@
               "id": "Unsupported",
               "label": "Unsupported",
               "description": "The operation is not implemented.",
-              "count": 2
+              "count": 1
             },
             {
               "id": "NotApplicable",
@@ -3147,11 +3135,12 @@
     {
       "id": "OfficeIMO.Html",
       "slug": "html",
-      "capabilityCount": 13,
+      "capabilityCount": 14,
       "formats": [
         "HTML",
         "Html.Native",
         "JPEG",
+        "PDF",
         "PNG",
         "SVG",
         "TIFF",
@@ -3163,6 +3152,17 @@
         "OfficeIMO.Provenance"
       ],
       "operations": [
+        {
+          "id": "Convert",
+          "states": [
+            {
+              "id": "Supported",
+              "label": "Supported",
+              "description": "Implemented and backed by named evidence.",
+              "count": 1
+            }
+          ]
+        },
         {
           "id": "Create",
           "states": [
@@ -3256,7 +3256,7 @@
     {
       "id": "OfficeIMO.Html.Pdf",
       "slug": "html-pdf",
-      "capabilityCount": 2,
+      "capabilityCount": 1,
       "formats": [
         "HTML",
         "PDF"
@@ -3268,12 +3268,6 @@
         {
           "id": "Convert",
           "states": [
-            {
-              "id": "Supported",
-              "label": "Supported",
-              "description": "Implemented and backed by named evidence.",
-              "count": 1
-            },
             {
               "id": "Partial",
               "label": "Partial",

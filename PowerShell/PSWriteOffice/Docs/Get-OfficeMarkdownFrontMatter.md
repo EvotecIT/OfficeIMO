@@ -9,14 +9,14 @@ schema: 2.0.0
 Gets YAML front matter entries from a Markdown document.
 
 ## SYNTAX
-### Path (Default)
-```powershell
-Get-OfficeMarkdownFrontMatter [-Path] <string> [-Options <MarkdownReaderOptions>] [-Profile <MarkdownDialectProfile>] [-BaseUri <string>] [-MaxInputCharacters <Int32>] [-NormalizeInput <MarkdownInputNormalizationPreset>] [-DisallowFileUrls <Boolean>] [-AllowDataUrls <Boolean>] [-AllowMailtoUrls <Boolean>] [-AllowProtocolRelativeUrls <Boolean>] [-RestrictUrlSchemes <Boolean>] [-AllowedUrlScheme <string[]>] [-Key <string>] [-CaseSensitive] [<CommonParameters>]
-```
-
 ### Document
 ```powershell
 Get-OfficeMarkdownFrontMatter -Document <MarkdownDoc> [-Options <MarkdownReaderOptions>] [-Profile <MarkdownDialectProfile>] [-BaseUri <string>] [-MaxInputCharacters <Int32>] [-NormalizeInput <MarkdownInputNormalizationPreset>] [-DisallowFileUrls <Boolean>] [-AllowDataUrls <Boolean>] [-AllowMailtoUrls <Boolean>] [-AllowProtocolRelativeUrls <Boolean>] [-RestrictUrlSchemes <Boolean>] [-AllowedUrlScheme <string[]>] [-Key <string>] [-CaseSensitive] [<CommonParameters>]
+```
+
+### Path
+```powershell
+Get-OfficeMarkdownFrontMatter [-Path] <string> [-Options <MarkdownReaderOptions>] [-Profile <MarkdownDialectProfile>] [-BaseUri <string>] [-MaxInputCharacters <Int32>] [-NormalizeInput <MarkdownInputNormalizationPreset>] [-DisallowFileUrls <Boolean>] [-AllowDataUrls <Boolean>] [-AllowMailtoUrls <Boolean>] [-AllowProtocolRelativeUrls <Boolean>] [-RestrictUrlSchemes <Boolean>] [-AllowedUrlScheme <string[]>] [-Key <string>] [-CaseSensitive] [<CommonParameters>]
 ```
 
 ### Text
@@ -55,7 +55,7 @@ Allow data URLs while parsing Markdown links and images.
 
 ```yaml
 Type: Boolean
-Parameter Sets: Path, Document, Text
+Parameter Sets: Document, Path, Text
 Aliases: None
 Possible values:
 
@@ -71,7 +71,7 @@ Allowed URL schemes when URL scheme restriction is enabled.
 
 ```yaml
 Type: String[]
-Parameter Sets: Path, Document, Text
+Parameter Sets: Document, Path, Text
 Aliases: None
 Possible values:
 
@@ -87,7 +87,7 @@ Allow mailto URLs while parsing Markdown links.
 
 ```yaml
 Type: Boolean
-Parameter Sets: Path, Document, Text
+Parameter Sets: Document, Path, Text
 Aliases: None
 Possible values:
 
@@ -103,7 +103,7 @@ Allow protocol-relative URLs while parsing Markdown links and images.
 
 ```yaml
 Type: Boolean
-Parameter Sets: Path, Document, Text
+Parameter Sets: Document, Path, Text
 Aliases: None
 Possible values:
 
@@ -119,7 +119,7 @@ Base URI used to resolve and restrict relative Markdown links and images.
 
 ```yaml
 Type: String
-Parameter Sets: Path, Document, Text
+Parameter Sets: Document, Path, Text
 Aliases: None
 Possible values:
 
@@ -135,7 +135,7 @@ Use case-sensitive matching for key filters.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: Path, Document, Text
+Parameter Sets: Document, Path, Text
 Aliases: None
 Possible values:
 
@@ -151,7 +151,7 @@ Block file URLs while parsing Markdown links and images.
 
 ```yaml
 Type: Boolean
-Parameter Sets: Path, Document, Text
+Parameter Sets: Document, Path, Text
 Aliases: None
 Possible values:
 
@@ -183,7 +183,7 @@ Optional wildcard pattern matched against front matter keys.
 
 ```yaml
 Type: String
-Parameter Sets: Path, Document, Text
+Parameter Sets: Document, Path, Text
 Aliases: None
 Possible values:
 
@@ -199,7 +199,7 @@ Maximum Markdown input length accepted by the reader.
 
 ```yaml
 Type: Int32
-Parameter Sets: Path, Document, Text
+Parameter Sets: Document, Path, Text
 Aliases: None
 Possible values:
 
@@ -215,7 +215,7 @@ Applies a built-in Markdown input normalization preset before parsing.
 
 ```yaml
 Type: MarkdownInputNormalizationPreset
-Parameter Sets: Path, Document, Text
+Parameter Sets: Document, Path, Text
 Aliases: None
 Possible values: None, IntelligenceXTranscript, IntelligenceXTranscriptStrict, DocsLoose
 
@@ -231,7 +231,7 @@ Optional reader options used when parsing path or text input.
 
 ```yaml
 Type: MarkdownReaderOptions
-Parameter Sets: Path, Document, Text
+Parameter Sets: Document, Path, Text
 Aliases: ReaderOptions
 Possible values:
 
@@ -248,13 +248,13 @@ Path to the Markdown file.
 ```yaml
 Type: String
 Parameter Sets: Path
-Aliases: InputPath, FilePath
+Aliases: InputPath, FilePath, FullName, LiteralPath
 Possible values:
 
 Required: True
 Position: 0
 Default value: None
-Accept pipeline input: False
+Accept pipeline input: True (ByValue, ByPropertyName)
 Accept wildcard characters: False
 ```
 
@@ -263,7 +263,7 @@ Named reader profile used when Options is not supplied.
 
 ```yaml
 Type: MarkdownDialectProfile
-Parameter Sets: Path, Document, Text
+Parameter Sets: Document, Path, Text
 Aliases: None
 Possible values: OfficeIMO, CommonMark, GitHubFlavoredMarkdown, Portable
 
@@ -279,7 +279,7 @@ Restrict parsed URL schemes to the allow-list.
 
 ```yaml
 Type: Boolean
-Parameter Sets: Path, Document, Text
+Parameter Sets: Document, Path, Text
 Aliases: None
 Possible values:
 
@@ -312,6 +312,7 @@ This cmdlet supports the common parameters: -Debug, -ErrorAction, -ErrorVariable
 ## INPUTS
 
 - `OfficeIMO.Markdown.MarkdownDoc`
+- `System.String`
 
 ## OUTPUTS
 

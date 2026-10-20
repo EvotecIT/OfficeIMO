@@ -1,3 +1,4 @@
+using PSWriteOffice.Services;
 using System.Management.Automation;
 using OfficeIMO.Email;
 
@@ -15,7 +16,8 @@ namespace PSWriteOffice.Cmdlets.Email;
 public sealed class GetOfficeEmailMailboxCommand : PSCmdlet
 {
     /// <summary>Path to an mbox or mbx file.</summary>
-    [Parameter(Mandatory = true, Position = 0, ValueFromPipeline = true)]
+    [Parameter(Mandatory = true, Position = 0, ValueFromPipeline = true, ValueFromPipelineByPropertyName = true)]
+    [Alias("FullName", "LiteralPath")]
     public string Path { get; set; } = string.Empty;
 
     /// <summary>Optional mailbox variant and input limits.</summary>
@@ -30,7 +32,7 @@ public sealed class GetOfficeEmailMailboxCommand : PSCmdlet
     protected override void ProcessRecord()
     {
         var result = new EmailMailboxReader(Options ?? EmailMailboxReaderOptions.Default).Read(
-            SessionState.Path.GetUnresolvedProviderPathFromPSPath(Path));
+            OfficeFileCommandUtilities.ResolvePath(this, Path));
         WriteObject(AsResult.IsPresent ? result : result.Mailbox);
     }
 }

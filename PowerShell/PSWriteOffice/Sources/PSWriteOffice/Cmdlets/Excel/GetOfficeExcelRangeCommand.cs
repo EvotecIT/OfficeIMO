@@ -1,3 +1,4 @@
+using PSWriteOffice.Services;
 using System;
 using System.Data;
 using System.IO;
@@ -19,7 +20,7 @@ namespace PSWriteOffice.Cmdlets.Excel;
 ///     Select-Object Name, Count</code>
 ///   <para>Uses the first row as headers, returns row objects, and keeps numeric values decimal-friendly.</para>
 /// </example>
-[Cmdlet(VerbsCommon.Get, "OfficeExcelRange", DefaultParameterSetName = ParameterSetPath)]
+[Cmdlet(VerbsCommon.Get, "OfficeExcelRange")]
 [OutputType(typeof(PSObject), typeof(System.Collections.Hashtable), typeof(DataTable))]
 public sealed class GetOfficeExcelRangeCommand : AsyncPSCmdlet {
     private const string ParameterSetPath = "Path";
@@ -27,8 +28,8 @@ public sealed class GetOfficeExcelRangeCommand : AsyncPSCmdlet {
     private const string ParameterSetDocument = "Document";
 
     /// <summary>Path to the workbook.</summary>
-    [Parameter(Mandatory = true, Position = 0, ParameterSetName = ParameterSetPath)]
-    [Alias("InputPath", "FilePath")]
+    [Parameter(Mandatory = true, Position = 0, ParameterSetName = ParameterSetPath, ValueFromPipelineByPropertyName = true, ValueFromPipeline = true)]
+    [Alias("InputPath", "FilePath", "FullName", "LiteralPath")]
     public string Path { get; set; } = string.Empty;
 
     /// <summary>Remote workbook URI to read.</summary>
@@ -97,7 +98,7 @@ public sealed class GetOfficeExcelRangeCommand : AsyncPSCmdlet {
                 .ConfigureAwait(false);
         }
 
-        var resolvedPath = SessionState.Path.GetUnresolvedProviderPathFromPSPath(Path);
+        var resolvedPath = OfficeFileCommandUtilities.ResolvePath(this, Path);
         if (!File.Exists(resolvedPath)) {
             throw new FileNotFoundException($"File '{resolvedPath}' was not found.", resolvedPath);
         }
