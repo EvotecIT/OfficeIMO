@@ -2,6 +2,8 @@ using System;
 using System.IO;
 using System.Linq;
 using ChartForgeX.Topology;
+using ChartForgeX.Primitives;
+using ChartForgeX.Themes;
 using ChartForgeX.VisualArtifacts;
 using OfficeIMO.Visio;
 using Xunit;
@@ -67,8 +69,8 @@ public sealed partial class OfficeVisioVisualIntegrationTests {
 
     [Fact]
     public void ThemeLossesIdentifyTheArtifactInsteadOfANode() {
-        var chart = TopologyChart.Create().WithTheme(TopologyTheme.Light()).AddNode("service", "Service", 100, 100);
-        chart.Theme!.Foreground = "rgba(1,2,3,0.5)";
+        TopologyChart chart = TopologyChart.Create().WithThemeMode(VisualThemeMode.Light).AddNode("service", "Service", 100, 100);
+        chart.ConfigureTheme(theme => theme.Light.Foreground = ChartColor.FromRgba(1, 2, 3, 128));
         var envelope = chart.ToVisualArtifact().ToInterchangeEnvelope();
         var result = envelope.ToOfficeVisio();
         var losses = result.Report.Diagnostics.Where(item => item.Code == OfficeVisioVisualDiagnosticCode.ColorNotProjected).ToArray();
@@ -81,7 +83,7 @@ public sealed partial class OfficeVisioVisualIntegrationTests {
 
     [Fact]
     public void RejectedTypedProjectionIncludesAllRequestedFeatureLosses() {
-        var chart = TopologyChart.Create().WithTheme(TopologyTheme.Light()).AddAutoNode("service", "Service");
+        TopologyChart chart = TopologyChart.Create().WithThemeMode(VisualThemeMode.Light).AddAutoNode("service", "Service");
         var artifact = chart.ToVisualArtifact().WithWatermarks(VisualWatermark.FromText("CONFIDENTIAL"));
         var error = Assert.Throws<OfficeVisioVisualFidelityException>(() => artifact.ToOfficeVisio(
             new OfficeVisioVisualOptions { RequireLossless = true }));

@@ -71,7 +71,7 @@ namespace OfficeIMO.Word.Pdf {
                         bool rendered = false;
                         canvas.Effect(OfficeTransform.Translate(x, y), 1D, target =>
                             rendered = RenderNativeVmlCoverChildren(target, paragraph._document, fallback.ChildElements,
-                                frame, pdf.PageSize.Width, pdf.PageSize.Height));
+                                frame, pdf.PageSize.Width, pdf.PageSize.Height, options?.CancellationToken ?? default));
                         if (!rendered) {
                             WarnNativeGroup(options, "NativeShapeGroupUnsupported", "The shape group's VML fallback produced no visible content.");
                             continue;
@@ -118,7 +118,7 @@ namespace OfficeIMO.Word.Pdf {
             var frame = new NativeVmlFrame(0D, 0D, pdf.PageSize.Width, pdf.PageSize.Height,
                 pdf.PageSize.Width, pdf.PageSize.Height, 0D, 0D);
             var canvas = new PdfCore.PdfPageCanvas();
-            if (RenderNativeVmlGroup(canvas, paragraph._document, group, frame, pdf.PageSize.Width, pdf.PageSize.Height))
+            if (RenderNativeVmlGroup(canvas, paragraph._document, group, frame, pdf.PageSize.Width, pdf.PageSize.Height, options?.CancellationToken ?? default))
                 AddNativeGroupCanvas(style, canvas, paragraphRelative: !pageY, zOrder: zIndex);
             else WarnNativeGroup(options, "NativeShapeGroupUnsupported", "The legacy shape group produced no visible content.");
         }

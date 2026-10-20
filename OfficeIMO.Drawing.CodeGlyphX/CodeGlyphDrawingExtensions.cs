@@ -27,7 +27,7 @@ public static class CodeGlyphDrawingExtensions {
         }
         BitMatrix modules = qrCode.Modules;
         string svg = SvgQrRenderer.Render(modules, renderOptions);
-        int elementsPerCell = renderOptions.ModuleShape == global::CodeGlyphX.Rendering.Png.QrPngModuleShape.DotGrid ? 4 : 1;
+        int elementsPerCell = renderOptions.ModuleShape == global::CodeGlyphX.Rendering.QrModuleShape.DotGrid ? 4 : 1;
         return ReadSvg(svg, ResolveMaximumElements(modules, elementsPerCell), out unsupportedFeatureCount);
     }
 

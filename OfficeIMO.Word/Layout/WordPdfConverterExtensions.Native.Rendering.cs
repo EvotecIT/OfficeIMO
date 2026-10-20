@@ -572,10 +572,7 @@ namespace OfficeIMO.Word.Pdf {
         }
 
         private static void AddNativeTableCellImage(List<PdfCore.PdfTableCellImage> images, WordImage image, WordToPdfOptions? options) {
-            if (!TryGetNativeBodyImageBytes(image, options, "table cell image", out byte[] bytes)) return;
-            if (!TryPrepareNativePdfImageBytes(bytes, out byte[] preparedBytes, out _)) {
-                return;
-            }
+            if (!TryPrepareNativeBodyImage(image, options, "table cell image", out byte[] preparedBytes)) return;
 
             double width = image.Width.HasValue ? image.Width.Value * 72D / 96D : 144D;
             double height = image.Height.HasValue ? image.Height.Value * 72D / 96D : 144D;

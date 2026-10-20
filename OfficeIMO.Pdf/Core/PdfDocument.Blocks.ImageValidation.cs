@@ -7,7 +7,7 @@ namespace OfficeIMO.Pdf;
 
 public sealed partial class PdfDocument {
     private const string SupportedImageMessage =
-        "PdfDocument.Image accepts JPEG and the raster formats decoded by OfficeIMO.Drawing. JPEG and writer-safe PNG payloads are embedded directly; other supported raster payloads are normalized to PNG once before PDF serialization.";
+        "PdfDocument.Image accepts JPEG, supported SVG, and the raster formats decoded by OfficeIMO.Drawing. JPEG and writer-safe PNG payloads are embedded directly; other supported payloads are normalized to PNG once before PDF serialization.";
     private static readonly ConditionalWeakTable<byte[], PreparedImageCacheEntry> PreparedImageCache = new();
 
     // Prepared images by source content: the array-keyed cache above misses whenever the same image arrives in a
@@ -95,10 +95,19 @@ public sealed partial class PdfDocument {
 
     /// <summary>
     /// Prepares source image bytes for first-party PDF embedding. Writer-safe JPEG and PNG data is retained;
-    /// other raster formats supported by <see cref="OfficeRasterImageDecoder"/> are normalized to PNG.
+    /// supported SVG and other raster formats supported by <see cref="OfficeRasterImageDecoder"/> are normalized to PNG.
     /// </summary>
     public static bool TryPrepareImageBytes(
         byte[] data,
+        out byte[] preparedBytes,
+        out OfficeImageInfo? imageInfo,
+        out bool wasTranscoded,
+        out string? unsupportedReason) =>
+        TryPrepareImageBytes(data, CancellationToken.None, out preparedBytes, out imageInfo, out wasTranscoded, out unsupportedReason);
+
+    internal static bool TryPrepareImageBytes(
+        byte[] data,
+        CancellationToken cancellationToken,
         out byte[] preparedBytes,
         out OfficeImageInfo? imageInfo,
         out bool wasTranscoded,
@@ -108,8 +117,8 @@ public sealed partial class PdfDocument {
         wasTranscoded = false;
         unsupportedReason = null;
         try {
-            PreparedImage prepared = PrepareImageBytes(data);
-            preparedBytes = (byte[])prepared.Data.Clone();
+            PreparedImage prepared = PrepareImageBytes(data, cancellationToken);
+            preparedBytes = CloneWithCancellation(prepared.Data, cancellationToken);
             imageInfo = prepared.Info;
             wasTranscoded = prepared.WasTranscoded;
             return true;
@@ -117,6 +126,9 @@ public sealed partial class PdfDocument {
             unsupportedReason = ex.Message;
             return false;
         } catch (ArgumentException ex) {
+            unsupportedReason = ex.Message;
+            return false;
+        } catch (OfficeImageExportLimitException ex) {
             unsupportedReason = ex.Message;
             return false;
         }
@@ -295,9 +307,18 @@ public sealed partial class PdfDocument {
             throw new NotSupportedException(SupportedImageMessage + " " + transcodeLimitReason);
         }
 
-        if (!OfficeImagePngConverter.TryConvertToPng(data,
+        byte[] normalizedPng;
+        if (sourceInfo.Format == OfficeImageFormat.Svg) {
+            OfficeDrawing vector = PdfSvgImageReader.Read(data, cancellationToken);
+            normalizedPng = OfficeDrawingRasterRenderer.ToPng(vector, new OfficeDrawingRasterRenderOptions {
+                Background = OfficeColor.Transparent,
+                MaximumRasterPixels = OfficeImagePdfCompatibility.DefaultMaximumTranscodePixels,
+                ThrowOnImageDecodeFailure = true,
+                CancellationToken = cancellationToken
+            });
+        } else if (!OfficeImagePngConverter.TryConvertToPng(data,
                 new OfficeRasterDecodeOptions { ApplyExifOrientation = false, CancellationToken = cancellationToken },
-                out byte[] normalizedPng, out _)) {
+                out normalizedPng, out _)) {
             throw new NotSupportedException(
                 $"{SupportedImageMessage} Detected {sourceInfo.Format} ({sourceInfo.MimeType}), but it could not be normalized.");
         }

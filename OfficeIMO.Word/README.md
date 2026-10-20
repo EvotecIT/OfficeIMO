@@ -339,6 +339,12 @@ header, footer, or document. The destination owns its image relationships and fr
 identifiers. Cloning preserves VML shapes and their referenced definitions, and remaps
 embedded SVG extension resources along with the primary image.
 
+Managed page previews and PDF export prefer an embedded SVG, including Word's
+`asvg:svgBlip` extension. If the SVG is unavailable or uses unsupported features,
+the renderer uses the image's bitmap fallback when one is present. SVG support
+uses the shared managed drawing engine; images with neither a supported vector
+nor a usable fallback remain visible in conversion diagnostics.
+
 Optimize embedded images before saving a separate copy:
 
 ```csharp

@@ -16,7 +16,12 @@ also share storage while retaining each page occurrence. Output keeps classic cr
 tables; compact object/xref streams remain available through `Optimization`.
 
 Supported PNG/JPEG ICC profiles are retained as ICCBased image resources. Indexed PNGs
-keep their palette and transparency mask. EXIF rotation and mirroring use placement matrices, and layout uses the oriented
+keep their palette and transparency mask. Supported SVG input to `Image(...)` and
+`TryPrepareImageBytes(...)` is rendered through the shared managed drawing engine
+and normalized to PNG within the image transcode pixel limit. Unsupported SVG
+features are rejected rather than silently omitted.
+
+EXIF rotation and mirroring use placement matrices, and layout uses the oriented
 dimensions. JPEG DCT payloads, PNG sample depth, profiles, transparency masks and
 repeated-image sharing survive orientation changes. Sixteen-bit PNG colour and alpha
 samples are retained with PDF 1.5+ output; PDF 1.4 rounds them to eight bits. Visible

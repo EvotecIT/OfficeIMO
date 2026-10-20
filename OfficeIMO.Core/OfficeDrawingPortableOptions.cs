@@ -12,7 +12,7 @@ public sealed class OfficeDrawingPortableOptions {
         FontFamily = fontFamily.Trim();
     }
 
-    /// <summary>Exact family name accepted for every text element, ignoring case.</summary>
+    /// <summary>Exact primary family required for every text element, ignoring case. SVG family lists may append fallbacks; the registered primary face must cover the complete run.</summary>
     public string FontFamily { get; }
     /// <summary>Maximum source and generated drawing elements, including clip groups.</summary>
     public int MaximumElements { get; set; } = 10000;
