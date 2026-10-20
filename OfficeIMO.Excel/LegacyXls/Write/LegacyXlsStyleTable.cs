@@ -4,7 +4,7 @@ using OfficeIMO.Excel.LegacyXls.Biff;
 using System.Text;
 
 namespace OfficeIMO.Excel.LegacyXls.Write {
-    internal sealed class LegacyXlsStyleTable {
+    internal sealed partial class LegacyXlsStyleTable {
         private readonly Dictionary<uint, ushort> _styleIndexMap;
 
         private LegacyXlsStyleTable(

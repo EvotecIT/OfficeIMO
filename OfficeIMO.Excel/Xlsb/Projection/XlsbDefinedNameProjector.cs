@@ -50,6 +50,15 @@ namespace OfficeIMO.Excel.Xlsb.Projection {
             return true;
         }
 
+        /// <summary>Reflects native reference normalization after a successful write, including references to deleted sheets.</summary>
+        internal static void SynchronizeExisting(ExcelDocument document, IReadOnlyList<XlsbDefinedName> names) {
+            foreach (var current in document.WorkbookRoot.DefinedNames?.Elements<DefinedName>() ?? Enumerable.Empty<DefinedName>()) {
+                var source = names.FirstOrDefault(name => ToOpenXmlName(name) == current.Name?.Value
+                    && name.LocalSheetIndex == (current.LocalSheetId?.Value ?? uint.MaxValue));
+                if (source?.FormulaText != null) current.Text = source.FormulaText;
+            }
+        }
+
         private static DefinedNames GetOrCreateDefinedNames(Workbook workbook) {
             DefinedNames? existing = workbook.GetFirstChild<DefinedNames>();
             if (existing != null) return existing;

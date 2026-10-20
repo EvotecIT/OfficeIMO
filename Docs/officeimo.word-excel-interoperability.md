@@ -15,7 +15,7 @@ preserves content but does not offer a complete editing model.
 | DOCX/DOCM | Supported | Supported for the documented Word model | Advanced package parts may be preserved rather than editable. Signed packages are blocked on save unless signature invalidation is explicitly allowed. |
 | DOC | Supported subset | Native first-party writer for the supported subset; DOCX conversion is available | Import reports identify unsupported and preserve-only binary features. Loss is blocked by default. |
 | XLSX/XLSM | Supported | Supported for the documented Excel model | Feature preflight distinguishes editable, partially editable, preserved, and unsupported package content. |
-| XLS | Supported BIFF8 subset | Native first-party writer for the supported subset; XLSX conversion is available | Import reports identify non-projected BIFF records and legacy-only features. Loss is blocked by default. |
+| XLS | Supported BIFF8 subset | Native first-party writer plus original-record preservation for qualified existing literal edits; XLSX conversion is available | The preserving profile retains chart sheets and compound VBA/OLE streams. Other changes use the writer preflight; conversion loss remains blocked by default. |
 | XLSB | Supported BIFF12 subset | New-workbook writing and preservation-aware native rewrite for supported mutations; XLSX conversion is available | Unknown records and unmodified package parts are preserved. Unsupported mutations and save-time transforms fail before output is written. |
 
 "Preserved" is intentionally different from "editable." For example, a macro
@@ -121,6 +121,15 @@ the native BIFF12 rewrite path while retaining other package parts. New
 workbooks can also be saved as `.xlsb` through the first-party writer. If the
 requested mutation or save-time transform is outside that writer's contract,
 OfficeIMO throws before creating mislabeled or partially rewritten output.
+
+Chart sheets and VBA projects retain their bounded related-part graphs, including
+external relationship metadata without activation. Supported worksheet edits
+preserve the original chart/VBA package parts and host identities. Native XLSB
+output rejects mutations to those parts or sheet bindings. Chart-sheet records
+that are not projected, such as view and print metadata, still require an
+explicit loss decision for conversion to another format. The
+[populated native controls](../OfficeIMO.TestAssets/Documents/ExcelPreservationCorpus/README.md)
+separate encoded-part preservation from chart appearance and macro execution.
 
 ## Import or convert DOC and XLS with an approved loss decision
 

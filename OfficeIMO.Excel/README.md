@@ -43,7 +43,7 @@ sheet.CellValue(1, 1, "Name");
 sheet.CellValue(1, 2, "Value");
 sheet.CellValue(2, 1, "Alpha");
 sheet.CellValue(2, 2, 42);
-sheet.AddTable("A1:B2", hasHeader: true, name: "DataTable", style: TableStyle.TableStyleMedium9);
+sheet.AddTable("A1:B2", hasHeader: true, name: "DataTable", style: ExcelTableStyle.TableStyleMedium9);
 sheet.AutoFitColumns();
 
 document.Save();
@@ -181,6 +181,16 @@ unprojected BIFF records are reported through the legacy import diagnostics
 instead of being silently dropped.
 
 Native `.xls` save uses the same `Save("*.xls")` path as other OfficeIMO saves.
+Imported BIFF8 workbooks retain their native chart sheets, VBA streams, embedded
+content and other compound streams during supported cell and worksheet edits.
+The preserving writer supports new and deleted cells, value/type changes,
+encodable formulas, rich text and styles, worksheet rename/add/remove/reorder,
+and save-time calculation policies. Plain and supported encrypted sources use
+the same path, with plain or password-to-open output. Worksheet structure edits
+keep native references, local-name scopes, chart carriers and VBA document-host
+identities coherent. Signed sources and unsupported feature edits remain guarded.
+See the [preserving profile](../Docs/officeimo.excel.legacy-xls-compatibility.md#preserve-imported-biff8-workbooks)
+for format limits, retained-content boundaries and native Excel evidence.
 When a workbook contains a feature outside the supported BIFF8 writer subset,
 OfficeIMO throws a preflight error with the unsupported feature name so the
 caller can save as `.xlsx`, remove the feature, or choose a different workflow.
@@ -191,6 +201,93 @@ only after reviewing that loss. See
 [XLS and XLSX compatibility](../Docs/officeimo.excel.legacy-xls-compatibility.md) for
 the current capability matrix and safety contract. Use the
 [migration guide](../MIGRATION.md#legacy-doc-and-xls-api-changes) for canonical API replacements.
+
+### XML Spreadsheet 2003 data interchange
+
+Use the explicit XML APIs for standalone XML Spreadsheet 2003 files. They share
+the normal editable workbook model; `Load` and `Save` retain their existing
+XLSX/XLSM, XLS and XLSB routes.
+
+```csharp
+using OfficeIMO.Excel;
+
+var imported = ExcelDocument.ImportSpreadsheetXml("archive.xml");
+using var workbook = imported.Value;
+foreach (var diagnostic in imported.Report.FidelityDiagnostics)
+    Console.WriteLine(diagnostic.Message);
+imported.Report.RequireNoLoss(); // Optional strict admission, before editing or saving.
+workbook.Save("editable.xlsx");
+
+var exported = workbook.ExportSpreadsheetXml();
+exported.Report.RequireNoLoss(); // Review omissions before publishing the XML bytes.
+File.WriteAllBytes("exchange.xml", exported.Value);
+```
+
+Import accepts paths, bytes and caller-owned streams. Stream import starts at
+the current position, advances it and leaves the stream open. Export returns
+UTF-8 XML bytes, supports read-only workbooks and retains the workbook's file
+association. The result's workbook is caller-owned, including when strict
+admission rejects its report.
+
+The workbook profile carries multiple worksheets, sparse coordinates, typed cells,
+ordinary formulas with cached values, date serials and number formats. It maps
+inherited fonts, pattern fills, borders, alignment and cell protection into the
+existing workbook style model. It also carries row heights, column widths and
+styles, hidden rows/columns/sheets, merged cells, scoped names, comments,
+hyperlinks, ordinary print settings and frozen panes. The supported rich-text
+subset includes bold, italic, underline, strike, subscript/superscript and font
+name, size and colour. The shared syntax owner converts ordinary R1C1 formulas
+to A1 on import and back on export without calculating them. Dates use the
+workbook's 1900 or 1904 epoch.
+
+Review the operation's diagnostics before accepting conversion. Charts, pivots,
+modern Excel tables, conditional formatting and other unimplemented metadata
+are reported as omissions. Theme colours are resolved to RGB; theme identity
+is reported as lost. Native Excel can quantize XML font colours to its legacy
+palette even when the XML retains the requested RGB. This is not a general
+pixel-fidelity or complete XML Spreadsheet feature claim.
+
+Column dimensions in XML are points; Open XML stores font-dependent character
+widths. Installed default-font metrics drive the conversion. If that font is
+unavailable, the report identifies the seven-pixel approximation. Set
+`ExcelSpreadsheetXmlOptions.DefaultFontMaximumDigitWidthPixels` when the target
+font's measured maximum digit width at 96 DPI is known. The native fixture
+cohort uses its observed eight-pixel width; that observation is not a universal
+font default.
+
+Native XML Spreadsheet coordinates are limited to 65,536 rows and 256 columns.
+An invalid or overlapping merge is rejected before returning a workbook.
+Export rejects covered merged-cell data that the target format would discard.
+`ExcelSpreadsheetXmlOptions` bounds bytes, stored cells, worksheets, styles,
+XML elements and depth, and accepts cancellation. DTDs and external XML entity
+resolution are disabled. The [fixture corpus](../OfficeIMO.TestAssets/Documents/SpreadsheetXmlCorpus/README.md)
+distinguishes native producer, native consumer and managed round-trip evidence.
+
+### Exchange XML tables
+
+`ExcelSheet.FromXml` inserts an XML table through the existing DataTable path;
+`ToXml` exports an explicit bounded A1 range using cached cell values. This is
+separate from XML Spreadsheet workbook conversion. The default schema is
+`Table` containing `Row` elements with repeated `Data` children. Text stays
+literal, so leading zeroes and formula-looking strings are retained.
+
+```csharp
+using var workbook = ExcelDocument.Create();
+var sheet = workbook.AddWorksheet("Orders");
+sheet.FromXml("<Table><Row><Data>00127</Data><Data>Ready</Data></Row></Table>");
+string xml = sheet.ToXml("A1:B1");
+```
+
+For named elements or row attributes, supply ordered `ExcelXmlTableColumn`
+mappings through `ExcelXmlTableOptions.Columns`. Configure the root/row names
+and namespace explicitly. Each column selects text, finite number, XML Boolean
+or date/time conversion. Unmapped fields are outside the selected table;
+repeated matches and nested scalar markup are rejected. Missing named fields
+remain blank. Positional export uses `xsi:nil` to distinguish missing cells from
+empty strings. The complete XML is parsed and converted before insertion;
+existing worksheet insertion cancellation semantics apply while cells are written.
+Caller streams remain open. Byte, row, column, rectangular-cell, element and
+depth limits apply; external schemas, DTDs and XML entities are never resolved.
 
 ### Import additional legacy spreadsheet formats
 
@@ -278,6 +375,19 @@ merges, names, and hyperlinks while retaining unknown BIFF12 records and
 unmodified package parts. Supported cell edits use a native preservation-aware
 rewrite. Unsupported mutations and save-time transforms fail before output is
 written, so `.xlsx` bytes are never disguised as `.xlsb`.
+
+Chart-sheet drawing/chart parts and linked VBA project parts are projected through
+their original relationships without executing macros or following external links.
+Native cell, formula, style and worksheet rename/add/remove/reorder operations
+retain chart and VBA carriers. Structure edits update references, scoped names,
+chart formulas and VBA document-host identities. Shared formula groups and fixed
+array formulas retain their native semantics; save-time calculation options can
+evaluate supported formulas, clear caches or request native recalculation.
+Editing the retained artwork or other unsupported package content remains guarded;
+use macro-compatible Open XML output for those edits. Unprojected chart-sheet view, protection and print records remain visible
+in `XlsbPreservedRecords`; native preservation does not imply lossless conversion.
+`MaxRelatedParts` and `MaxRelationshipDepth` bound imported chart/VBA graphs in
+addition to the existing decompressed-part and package budgets.
 
 New XLSB workbooks use inline text cells by default. To deduplicate repeated
 text across worksheets, save with `new ExcelSaveOptions { XlsbUseSharedStrings = true }`.
@@ -374,6 +484,45 @@ await foreach (InvoiceRow row in reader.RowsAsAsync<InvoiceRow>(cancellationToke
     await ProcessAsync(row, cancellationToken);
 }
 ```
+
+### Password-to-open output
+
+`SaveEncrypted(path, password)` selects XLSX/XLSM, XLSB or XLS from the destination
+extension. For a stream, select the physical format explicitly:
+
+```csharp
+using var document = ExcelDocument.Create();
+document.AddWorksheet("Data").CellValue(1, 1, "Protected workbook");
+document.SaveEncrypted("protected.xlsb", password);
+using var output = new MemoryStream();
+document.SaveEncrypted(output, password, ExcelFileFormat.Xls);
+```
+
+XLSX/XLSM and XLSB use Agile Office package encryption. XLSB contains a native
+BIFF12 package. XLS uses classic BIFF8 RC4/MD5 with a password of 1–15 UTF-16 code
+units. This legacy algorithm provides weak protection; choose XLSX or XLSB for
+modern password-to-open encryption. XLS encryption does not encrypt VBA project
+streams or all compound-file metadata, as defined by the format. Retained pivot
+cache and revision BIFF streams are encrypted with their own stream positions and
+record-specific plaintext fields. Supported encrypted-source metadata is decoded
+for preservation; passwords are used for the operation and are not retained by
+the document. An explicit encrypted save can rotate the password.
+
+Encryption retains each native encoder's feature and loss-policy limits.
+`MaxInMemoryPackageBytes` also bounds native BIFF serialization and XLSB
+intermediate parts before their output buffers grow; it is not a total process
+memory budget. The
+included XLS/XLSB worksheet controls and imported chart/macro preservation controls
+open in native Excel without repair with macros disabled. This qualifies the
+documented edit profiles; macro execution and arbitrary workbook features remain
+separate. Password-to-modify
+and worksheet/workbook protection are separate from password-to-open encryption.
+
+After encrypting the associated file or stream, automatic persistence is disabled
+so disposal cannot replace the encrypted output with plaintext. No password is
+retained. Use `SaveEncrypted` explicitly for later changes; an ordinary explicit
+`Save` writes an unencrypted file. Exporting to a different stream keeps the
+original destination's persistence policy.
 
 `OpenEncryptedDataReader` opens Office Open XML workbooks protected by Agile
 encryption from a file, byte array, or the remaining bytes of a readable stream.
@@ -735,7 +884,7 @@ sheet.CellValue(4, 2, 24);
 sheet.CellValue(5, 1, "Q4");
 sheet.CellValue(5, 2, 30);
 
-sheet.AddTable("A1:B5", hasHeader: true, name: "RevenueTable", style: TableStyle.TableStyleMedium2);
+sheet.AddTable("A1:B5", hasHeader: true, name: "RevenueTable", style: ExcelTableStyle.TableStyleMedium2);
 sheet.ChartFromTable("RevenueTable")
     .RevenueTrend("Revenue trend")
     .Size(640, 320)
@@ -819,7 +968,7 @@ sheet.CellValue(4, 1, "APAC");
 sheet.CellValue(4, 2, "Alpha");
 sheet.CellValue(4, 3, "Q2");
 sheet.CellValue(4, 4, 141000);
-sheet.AddTable("A1:D4", hasHeader: true, name: "SalesTable", style: TableStyle.TableStyleMedium4);
+sheet.AddTable("A1:D4", hasHeader: true, name: "SalesTable", style: ExcelTableStyle.TableStyleMedium4);
 
 sheet.Pivot("A1:D4")
     .Rows("Region")
@@ -1113,6 +1262,30 @@ ExcelQueryRefreshResult refresh = await document.RefreshQueryAsync(
 OfficeIMO stores the native connection, table, and query-table relationship chain but does not ship a database or network provider. The application-owned `IExcelQueryExecutionHost` interprets the opaque command and returns rows. OfficeIMO applies row, column, cell, and character budgets before a transactional table replacement. Commands loaded from imported workbooks require the separate `AllowImportedCommands` opt-in.
 
 ### Formula inspection and calculation policy
+
+`RATE`, `IRR`, `XIRR` and `XNPV` calculate annuity rates and periodic or dated
+cash flows. Cash-flow vectors accept worksheet ranges, names, simple structured
+references and rectangular literal arrays. IRR ignores text, Booleans and blanks
+in its series; XIRR retains blank cash-flow positions as zero. Dated functions
+truncate date serials, use a 365-day year, and require dates no earlier than the
+first date. XNPV requires a positive discount rate. RATE/IRR use at most 20
+iterations per attempt and XIRR at most 100. An unsuccessful nondefault guess
+gets one retry from 10%; non-convergence returns `#NUM!`. Guesses select
+among possible roots, so a cash-flow schedule does not imply a unique rate.
+The shared 100,000-cell resolution budget applies across paired vectors.
+Saved Microsoft Excel references cover successful rates, multiple roots,
+negative returns, date fractions, input coercions and error results.
+
+`IPMT` and `PPMT` calculate the interest and principal portions of a
+constant-rate annuity payment, including beginning-of-period payments and
+omitted optional future-value/payment-type arguments. For example,
+`IPMT(0.1/12,1,36,8000)` calculates the first month's interest. These scalar
+functions use the same `PMT`/`FV` owner; typed errors propagate through references
+and `IFERROR`. The qualified rate domain is greater than -1, zero payment type
+means end-of-period and nonzero means beginning-of-period, and the selected
+period is between 1 and the positive period count.
+Invalid qualified domains produce `#NUM!`; unsupported signatures and operands
+retain their existing cached result rather than inventing a value.
 
 Scalar calculation supports parentheses, unary signs, percentages, powers,
 arithmetic precedence, text concatenation, comparisons, and expressions inside
@@ -1860,14 +2033,14 @@ This table is generated from the package-neutral OfficeIMO operation catalog. Th
 
 | Operation | Supported | Partial | Preserved | Rejected | Unsupported | Not applicable |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: |
-| Create | 21 | 13 | 0 | 15 | 2 | 2 |
+| Create | 22 | 13 | 0 | 15 | 1 | 2 |
 | Read | 34 | 0 | 17 | 0 | 0 | 2 |
 | Edit | 11 | 0 | 39 | 2 | 1 | 0 |
 | Preserve | 10 | 0 | 39 | 0 | 0 | 0 |
 | Inspect | 6 | 0 | 0 | 0 | 0 | 0 |
 | Validate | 4 | 0 | 0 | 0 | 0 | 2 |
 | Remove | 4 | 0 | 0 | 0 | 1 | 0 |
-| Convert | 48 | 40 | 0 | 9 | 0 | 0 |
+| Convert | 49 | 40 | 0 | 8 | 0 | 0 |
 | Export | 5 | 0 | 0 | 0 | 0 | 0 |
 
 The complete rows for `OfficeIMO.Excel` are published in the [generated operation contract](https://github.com/EvotecIT/OfficeIMO/blob/master/Docs/Compatibility/generated/package-operations.md).

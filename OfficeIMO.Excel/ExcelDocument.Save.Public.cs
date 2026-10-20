@@ -109,7 +109,8 @@ namespace OfficeIMO.Excel {
             var originalFilePath = FilePath;
             EnsureLegacyXlsSaveDoesNotDropImportedContent(
                 options,
-                preserveLinkedVbaProject: ExcelDocumentLoadRouting.HasLegacyXlsExtension(path));
+                preserveLinkedVbaProject: ExcelDocumentLoadRouting.HasLegacyXlsExtension(path),
+                preserveNativeRecords: ExcelDocumentLoadRouting.HasLegacyXlsExtension(path));
             EnsureLegacyBinaryExcelSaveTargetSupported(path, allowNativeXls: true, options);
             EnsureXlsbFileTargetSupported(path, options);
 
@@ -177,7 +178,9 @@ namespace OfficeIMO.Excel {
         }
 
         /// <summary>
-        /// Saves the workbook as a password-encrypted Office Open XML package.
+        /// Saves the workbook with password-to-open encryption selected by its destination extension.
+        /// XLSX/XLSM use Office package encryption, XLSB encrypts a native BIFF12 package, and XLS uses classic BIFF8 RC4.
+        /// An associated encrypted destination requires explicit persistence; no password is retained for SaveOnDispose.
         /// </summary>
         /// <param name="filePath">Destination path. When empty, uses the original <see cref="FilePath"/>.</param>
         /// <param name="password">Password used to encrypt the workbook package.</param>
@@ -191,6 +194,7 @@ namespace OfficeIMO.Excel {
 
             string path = string.IsNullOrEmpty(filePath) ? FilePath! : filePath;
             var originalFilePath = FilePath;
+            if (TrySaveEncryptedBinaryToFile(path, password, saveOptions)) return;
             EnsureLegacyXlsSaveDoesNotDropImportedContent(saveOptions);
             EnsureLegacyBinaryEncryptedSaveTargetSupported(path);
             EnsureXlsbFileTargetSupported(path, saveOptions, allowUnchangedCopy: false);
@@ -206,6 +210,7 @@ namespace OfficeIMO.Excel {
                 CommitPreparedPackageToFile(path, encryptedBytes);
                 ReloadFromBytes(finalizedBytes);
                 FilePath = path;
+                DisableImplicitPersistenceAfterEncryptedSave();
                 LastSaveDiagnostics = ExcelSaveDiagnostics.Standard("Encrypted saves use the standard package finalization path.");
             } catch {
                 TryRestoreDocumentState(payload);
@@ -262,7 +267,8 @@ namespace OfficeIMO.Excel {
             var originalFilePath = FilePath;
             EnsureLegacyXlsSaveDoesNotDropImportedContent(
                 options,
-                preserveLinkedVbaProject: ExcelDocumentLoadRouting.HasLegacyXlsExtension(target));
+                preserveLinkedVbaProject: ExcelDocumentLoadRouting.HasLegacyXlsExtension(target),
+                preserveNativeRecords: ExcelDocumentLoadRouting.HasLegacyXlsExtension(target));
             EnsureLegacyBinaryExcelSaveTargetSupported(target, allowNativeXls: true, options);
             EnsureXlsbFileTargetSupported(target, options);
             EnsureDestinationFileWritable(target);
@@ -372,7 +378,8 @@ namespace OfficeIMO.Excel {
             EnsureWritableForSave();
             EnsureLegacyXlsSaveDoesNotDropImportedContent(
                 options,
-                preserveLinkedVbaProject: format == ExcelFileFormat.Xls);
+                preserveLinkedVbaProject: format == ExcelFileFormat.Xls,
+                preserveNativeRecords: format == ExcelFileFormat.Xls);
 
 #if NETFRAMEWORK
             if (!destination.CanSeek) {
@@ -445,6 +452,7 @@ namespace OfficeIMO.Excel {
 
         /// <summary>
         /// Saves the workbook as a password-encrypted Office Open XML package to a stream.
+        /// Use the format overload for native XLS or XLSB output. Encrypting the associated stream disables implicit persistence.
         /// </summary>
         /// <param name="destination">Writable stream that receives the encrypted workbook.</param>
         /// <param name="password">Password used to encrypt the workbook package.</param>
@@ -459,7 +467,7 @@ namespace OfficeIMO.Excel {
 
             if (CanUseUnchangedPackageFastPath(saveOptions) && _unchangedPackageBytes != null) {
                 ThrowIfPackageMaterializationExceedsLimit(_unchangedPackageBytes.LongLength, saveOptions);
-                OfficeEncryption.EncryptPackageToStream(_unchangedPackageBytes, password, destination);
+                WriteEncryptedWorkbookToStream(destination, OfficeEncryption.EncryptPackage(_unchangedPackageBytes, password));
                 LastSaveDiagnostics = ExcelSaveDiagnostics.UnchangedPackage();
                 return;
             }
@@ -468,7 +476,7 @@ namespace OfficeIMO.Excel {
             try {
                 var finalizedBytes = FinalizePackageBytes(payload, saveOptions);
                 ThrowIfOpenXmlValidationFails(finalizedBytes, saveOptions);
-                OfficeEncryption.EncryptPackageToStream(finalizedBytes, password, destination);
+                WriteEncryptedWorkbookToStream(destination, OfficeEncryption.EncryptPackage(finalizedBytes, password));
                 LastSaveDiagnostics = ExcelSaveDiagnostics.Standard("Encrypted saves use the standard package finalization path.");
             } catch {
                 TryRestoreDocumentState(payload);
@@ -512,7 +520,8 @@ namespace OfficeIMO.Excel {
             EnsureWritableForSave();
             EnsureLegacyXlsSaveDoesNotDropImportedContent(
                 options,
-                preserveLinkedVbaProject: format == ExcelFileFormat.Xls);
+                preserveLinkedVbaProject: format == ExcelFileFormat.Xls,
+                preserveNativeRecords: format == ExcelFileFormat.Xls);
 
 #if NETFRAMEWORK
             if (!destination.CanSeek) {

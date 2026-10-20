@@ -1,0 +1,15 @@
+{
+  "createdUtc": "2026-10-19",
+  "xmlProducer": "OfficeIMO.Excel explicit ExportSpreadsheetXml data profile",
+  "consumer": "LibreOffice 26.8.1.1 bf6ef2662401c7d6dce671ab4deb26ee0af3a7c1",
+  "consumerCommand": "soffice --headless --convert-to \"xlsx:Calc MS Excel 2007 XML\" officeimo-data.xml",
+  "evidence": {
+    "textNumbersDatesAndFinancialFormulaCaches": "retained in consumer XLSX",
+    "boolean": "consumer omitted C1; not qualified by this readback",
+    "nativeExcelXml": "not qualified"
+  },
+  "sha256": {
+    "officeimo-data.xml": "efa1161d111d7cf2e2666b9b6a810e021f7dcb3558612ab2c635b7057f36469d",
+    "libreoffice-readback.xlsx": "76266ce71ce7d03da90310f8681aa01871174ca3a426150e3f1780c91dee6434"
+  }
+}

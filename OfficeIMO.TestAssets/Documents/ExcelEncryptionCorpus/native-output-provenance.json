@@ -1,0 +1,12 @@
+{
+  "consumer": "Microsoft Excel for Mac 16.113.4 (26100421), pl-PL",
+  "createdUtc": "2026-10-19",
+  "producer": "OfficeIMO.Excel SaveEncrypted native XLS/XLSB encoders",
+  "password": "test-password",
+  "method": "Each exact fixture opened through the native password prompt without repair. Five visible cells checked: Native encrypted control; 12.5; TRUE; Łódź 00127; cached A2*2 result 25. XLS recalculated with F9. Files not resaved. Excel exited, resource reservation released.",
+  "limits": "Simple worksheet acceptance only. Does not qualify every workbook feature, VBA execution, or all encryption profiles. XLS uses classic RC4/MD5; XLSB uses Agile Office package encryption.",
+  "files": {
+    "encrypted-native-control.xls": "c52fd3099c8abc61da9582c611fcbbf9ce5839e1e4f66d60de5152d32e2efb1d",
+    "encrypted-native-control.xlsb": "e6ecf182e466f6b7dccdcdf7ba420302c8ef57eb3c99d26dea0dd535435e6035"
+  }
+}

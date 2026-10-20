@@ -5,7 +5,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
     /// <summary>
     /// Scans BIFF parsed-formula token streams for import-report diagnostics without evaluating the formula.
     /// </summary>
-    internal static class BiffFormulaTokenScanner {
+    internal static partial class BiffFormulaTokenScanner {
         internal static void ScanLengthPrefixed(
             byte[] formulaPayload,
             int parsedFormulaOffset,

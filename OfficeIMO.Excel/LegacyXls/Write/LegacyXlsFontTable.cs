@@ -6,7 +6,7 @@ using System.Globalization;
 using System.Text;
 
 namespace OfficeIMO.Excel.LegacyXls.Write {
-    internal sealed class LegacyXlsFontTable {
+    internal sealed partial class LegacyXlsFontTable {
         private const ushort AutomaticColorIndex = 0x7fff;
         private const string DefaultFontName = "Calibri";
         private const double DefaultFontSize = 11d;
@@ -19,9 +19,9 @@ namespace OfficeIMO.Excel.LegacyXls.Write {
         private readonly LegacyXlsThemeColorResolver _themeColors;
         private List<string>? _paletteColors;
 
-        private LegacyXlsFontTable(LegacyXlsThemeColorResolver themeColors) {
+        private LegacyXlsFontTable(LegacyXlsThemeColorResolver themeColors, bool addDefaults = true) {
             _themeColors = themeColors ?? throw new ArgumentNullException(nameof(themeColors));
-            AddRequiredDefaultFonts();
+            if (addDefaults) AddRequiredDefaultFonts();
         }
 
         internal IReadOnlyList<byte[]> FontRecords => _entries.Select(BuildFontPayload).ToArray();
@@ -298,7 +298,7 @@ namespace OfficeIMO.Excel.LegacyXls.Write {
                     || string.Equals(_paletteColors[paletteSlot], argb, StringComparison.OrdinalIgnoreCase)) {
                     _reservedPaletteSlots.Add(paletteSlot);
                     if (_paletteColors != null) {
-                        _paletteColors[paletteSlot] = argb;
+                        ReplacePaletteColor(paletteSlot, argb);
                     }
 
                     return true;
@@ -313,6 +313,7 @@ namespace OfficeIMO.Excel.LegacyXls.Write {
         private bool TryAssignPaletteColor(string argb, out ushort colorIndex, out string? reason) {
             reason = null;
             if (_customColorIndexes.TryGetValue(argb, out colorIndex)) {
+                _reservedPaletteSlots.Add(colorIndex - 8);
                 return true;
             }
 
@@ -323,15 +324,22 @@ namespace OfficeIMO.Excel.LegacyXls.Write {
                 }
 
                 _reservedPaletteSlots.Add(slot);
-                _paletteColors[slot] = argb;
+                ReplacePaletteColor(slot, argb);
                 colorIndex = checked((ushort)(8 + slot));
-                _customColorIndexes.Add(argb, colorIndex);
                 return true;
             }
 
-            reason = "more than 56 distinct non-built-in rich-text comment font colors";
+            reason = "no safely reusable slot in the 56-color BIFF8 palette (retained native features may reserve palette entries)";
             colorIndex = AutomaticColorIndex;
             return false;
+        }
+
+        private void ReplacePaletteColor(int slot, string argb) {
+            _paletteColors![slot] = argb;
+            _customColorIndexes.Clear();
+            for (int index = 0; index < _paletteColors.Count; index++)
+                if (!_customColorIndexes.ContainsKey(_paletteColors[index]))
+                    _customColorIndexes.Add(_paletteColors[index], checked((ushort)(index + 8)));
         }
 
         private static string? NormalizeArgb(string value) {

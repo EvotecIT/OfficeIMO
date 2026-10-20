@@ -87,3 +87,12 @@ vectors rather than Microsoft Office producer evidence.
 | --- | ---: | --- |
 | agile-password-sha1-aes256.xlsx | 14336 | 56EF3FA8F2FA7FC39FA70CB87C7C34845405B939151399930E5EBD547318C777 |
 | agile-password-sha256-aes192.xlsx | 14336 | 6650F541BA13727FA07C4202C404EB590DF68EC83997F80B2EBCF415938BCEC0 |
+
+## Native consumer controls
+
+`encrypted-native-control.xls` and `encrypted-native-control.xlsb` are synthetic
+OfficeIMO outputs with public password `test-password`. Both exact files opened
+in Microsoft Excel for Mac without repair and displayed the recorded values.
+`native-output-provenance.json` records the consumer version, hashes, checks and
+qualification limits. These are native-consumer evidence, not independent
+cryptographic producer fixtures.

@@ -55,7 +55,7 @@ namespace OfficeIMO.Excel.Xlsb.Write {
             IReadOnlyList<XlsbWriteCell> cells,
             int cellFormatCount,
             IReadOnlyList<XlsbGeneratedRecord> hyperlinkRecords,
-            XlsbSharedStringTable? sharedStrings = null) {
+            XlsbSharedStringTable? sharedStrings = null, long maximumBytes = int.MaxValue, string? codeName = null) {
             if (sheet == null) throw new ArgumentNullException(nameof(sheet));
             if (cells == null) throw new ArgumentNullException(nameof(cells));
             if (hyperlinkRecords == null) throw new ArgumentNullException(nameof(hyperlinkRecords));
@@ -67,11 +67,13 @@ namespace OfficeIMO.Excel.Xlsb.Write {
                 .ToDictionary(group => group.Key, group => (IReadOnlyList<XlsbWriteCell>)group.OrderBy(cell => cell.Column).ToArray());
             int[] rowIndexes = cellsByRow.Keys.Concat(geometry.RowProperties.Keys).Distinct().OrderBy(row => row).ToArray();
 
-            using var output = new MemoryStream(Math.Max(256, cells.Count * 24));
+            using var output = new OfficeIMO.Core.Internal.OfficeBoundedMemoryStream(maximumBytes);
             XlsbRecordWriter.Write(output, 129); // BrtBeginSheet
             Worksheet worksheet = sheet.WorksheetPart.Worksheet
                 ?? throw new InvalidDataException($"Worksheet '{sheet.Name}' has no worksheet root.");
-            XlsbWorksheetPropertiesWriter.Write(output, worksheet.GetFirstChild<SheetProperties>(), sheet.Name);
+            var properties = worksheet.GetFirstChild<SheetProperties>();
+            if (codeName != null) { properties = properties == null ? new SheetProperties() : (SheetProperties)properties.CloneNode(true); properties.CodeName = codeName; }
+            XlsbWorksheetPropertiesWriter.Write(output, properties, sheet.Name);
             XlsbRecordWriter.Write(output, BrtWsDim, geometry.DimensionPayload);
             foreach (XlsbGeneratedRecord record in geometry.PrefixRecords) {
                 XlsbRecordWriter.Write(output, record.Type, record.Payload);
@@ -125,7 +127,7 @@ namespace OfficeIMO.Excel.Xlsb.Write {
             IReadOnlyList<XlsbGeneratedRecord> autoFilterRecords,
             bool rewriteAutoFilter,
             IReadOnlyList<XlsbGeneratedRecord> hyperlinkRecords,
-            bool rewriteHyperlinks) {
+            bool rewriteHyperlinks, long maximumBytes = int.MaxValue) {
             if (originalPart == null) throw new ArgumentNullException(nameof(originalPart));
             if (cells == null) throw new ArgumentNullException(nameof(cells));
             if (autoFilterRecords == null) throw new ArgumentNullException(nameof(autoFilterRecords));
@@ -142,6 +144,11 @@ namespace OfficeIMO.Excel.Xlsb.Write {
                 throw new InvalidDataException("The XLSB worksheet has an invalid sheet-data boundary order.");
             }
 
+            cells = PrepareRetainedFormulaGroups(records, cells);
+            var groupData = new HashSet<byte[]>(XlsbFormulaGroup.ReadGroups(records).Select(group => group.Data));
+            records = records.Where(record => !groupData.Contains(record.Data)).ToArray();
+            beginIndex = FindSingleRecord(records, BrtBeginSheetData, "BrtBeginSheetData");
+            endIndex = FindSingleRecord(records, BrtEndSheetData, "BrtEndSheetData");
             XlsbSheetDataLayout layout = ParseSheetDataLayout(records, beginIndex + 1, endIndex);
             IReadOnlyDictionary<int, IReadOnlyList<XlsbWriteCell>> cellsByRow = cells
                 .GroupBy(cell => cell.Row - 1)
@@ -155,7 +162,7 @@ namespace OfficeIMO.Excel.Xlsb.Write {
                 ? FindAutoFilterBounds(records, endIndex)
                 : (-1, -1);
 
-            using var output = new MemoryStream(originalPart.Length + Math.Max(256, cells.Count * 24));
+            using var output = new OfficeIMO.Core.Internal.OfficeBoundedMemoryStream(maximumBytes);
             for (int index = 0; index <= beginIndex; index++) {
                 if (records[index].Type == BrtWsDim && dimensionPayload != null) {
                     XlsbRecordWriter.Write(output, BrtWsDim, dimensionPayload);
@@ -454,6 +461,7 @@ namespace OfficeIMO.Excel.Xlsb.Write {
         private static void WriteCell(Stream output, XlsbWriteCell cell, XlsbSharedStringTable? sharedStrings = null) {
             if (cell.SourceRecordType.HasValue && cell.SourceRecordData != null) {
                 XlsbRecordWriter.Write(output, cell.SourceRecordType.Value, cell.SourceRecordData);
+                if (cell.FormulaGroup != null) XlsbRecordWriter.Write(output, cell.FormulaGroup.Type, cell.FormulaGroup.Payload);
                 return;
             }
 
@@ -516,6 +524,7 @@ namespace OfficeIMO.Excel.Xlsb.Write {
             }
 
             XlsbRecordWriter.Write(output, recordType, payload.ToArray());
+            if (cell.FormulaGroup != null) XlsbRecordWriter.Write(output, cell.FormulaGroup.Type, cell.FormulaGroup.Payload);
         }
 
         private static void WriteSimpleCellHeader(Stream output, int recordType, int payloadLength, XlsbWriteCell cell) {

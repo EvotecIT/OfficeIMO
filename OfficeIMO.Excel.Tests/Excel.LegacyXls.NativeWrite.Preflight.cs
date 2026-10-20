@@ -1078,10 +1078,9 @@ namespace OfficeIMO.Tests {
         public void LegacyXls_NativeSave_BlocksUnsupportedWorkbookCalculationPropertiesBeforeWriting() {
             AssertNativeXlsSaveNotSupported("workbook calculation properties", (document, sheet) => {
                 sheet.CellValue(1, 1, "Workbook calculation");
-                document.WorkbookRoot.Append(new CalculationProperties {
-                    FullCalculationOnLoad = true,
-                    ForceFullCalculation = true
-                });
+                var properties = new CalculationProperties { FullCalculationOnLoad = true };
+                properties.SetAttribute(new OpenXmlAttribute("unsupported", string.Empty, "1"));
+                document.WorkbookRoot.Append(properties);
                 document.WorkbookRoot.Save();
             });
         }

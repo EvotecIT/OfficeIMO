@@ -1,0 +1,23 @@
+using OfficeIMO.Excel.LegacyXls.Biff;
+using OfficeIMO.Excel.LegacyXls.Compound;
+using System.Security.Cryptography;
+
+namespace OfficeIMO.Excel.LegacyXls.Write;
+
+internal static partial class LegacyXlsWriter {
+    internal static void ValidateEncryptionPassword(string password) {
+        if (password == null) throw new ArgumentNullException(nameof(password));
+        if (password.Length < 1 || password.Length > 15) throw new ArgumentException("Classic XLS encryption requires 1–15 UTF-16 password code units.", nameof(password));
+    }
+
+    internal static byte[] WriteEncryptedWorkbook(ExcelDocument document, string password, long maximumBytes, ExcelNativeCalculationPolicy calculation = default, ExcelSaveOptions? options = null) {
+        ValidateEncryptionPassword(password);
+        var salt = new byte[16]; var verifier = new byte[16];
+        using (var random = RandomNumberGenerator.Create()) { random.GetBytes(salt); random.GetBytes(verifier); }
+        byte[] filePass = BiffRc4Encryption.CreateFilePassPayload(password, salt, verifier);
+        if (document.TryGetLegacyXlsPreservationPlan(options, out var plan)) return plan!.WriteEncrypted(filePass, password, salt, maximumBytes, calculation);
+        byte[] workbook = BuildWorkbookStream(document, filePass, maximumBytes);
+        return BuildCompoundFile(document, BiffRc4Encryption.EncryptWorkbookStream(workbook, password, salt), maximumBytes,
+            bytes => BiffRc4Encryption.EncryptWorkbookStream(bytes, password, salt));
+    }
+}

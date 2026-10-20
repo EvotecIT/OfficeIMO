@@ -1,7 +1,7 @@
 {
   "id":"OfficeIMO.Excel.LegacyXls",
   "schemaVersion":1,
-  "hasUnimplementedCoverage":true,
+  "hasUnimplementedCoverage":false,
   "capabilities": [
     {
       "id":"Excel.Xls.Lifecycle.File",
@@ -386,12 +386,12 @@
       "description":"BIFF8 XOR, classic RC4, and RC4 CryptoAPI password-to-open encryption.",
       "representability":"Native",
       "legacyImport":"Native",
-      "newLegacyWrite":"NotImplemented",
+      "newLegacyWrite":"Native",
       "legacyRoundTrip":"PreservedOpaque",
-      "modernToLegacy":"Blocked",
+      "modernToLegacy":"Native",
       "legacyToModern":"Dropped",
       "affectedFidelity":"Carrier, Security",
-      "note":"Supported encrypted XLS input can be loaded with a password. Cross-generation conversion reports that password protection is removed and blocks by default; first-party encrypted XLS authoring remains incomplete."
+      "note":"XOR, classic RC4 and supported CryptoAPI input can be loaded with a password. Classic BIFF8 RC4/MD5 output includes retained pivot-cache and revision streams; VBA and format-exempt metadata stay unencrypted. Cross-generation conversion reports removal of password protection and blocks by default."
     },
     {
       "id":"Excel.Xls.Preservation.UnknownRecords",

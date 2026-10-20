@@ -4,7 +4,8 @@ using System.Threading;
 
 namespace OfficeIMO.Excel.LegacyXls.Biff {
     internal static class LegacyBiffWorkbookParser {
-        internal static LegacyXlsWorkbook Parse(byte[] workbookStream, LegacyXlsImportOptions options) {
+        internal static LegacyXlsWorkbook Parse(byte[] workbookStream, LegacyXlsImportOptions options, out byte[] decodedSource) {
+            decodedSource = workbookStream;
             options.CancellationToken.ThrowIfCancellationRequested();
             var workbook = new LegacyXlsWorkbook {
                 PreserveExternalWorkbookLinks = options.PreserveExternalWorkbookLinks
@@ -38,7 +39,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                     return workbook;
                 }
 
-                if (!TryDecryptFilePass(workbookStream, filePass, options.Password!, workbook.MutableDiagnostics, out workbookStream)) {
+                if (!TryDecryptRecordStream(workbookStream, filePass, options.Password!, workbook.MutableDiagnostics, out workbookStream)) {
                     if (!workbook.MutableDiagnostics.Any(diagnostic => diagnostic.Code == "XLS-BIFF-FILEPASS-PASSWORD-INVALID")) {
                         AddFilePassBlocker(workbook, filePass);
                     }
@@ -51,6 +52,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                     workbook.MutableDiagnostics,
                     options.CancellationToken);
                 decryptedFilePass = true;
+                decodedSource = workbookStream;
             }
 
             ushort workbookGlobalsBiffVersion = GetWorkbookGlobalsBiffVersion(records);
@@ -76,6 +78,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                         workbookCodePage,
                         workbook.MutableDiagnostics);
                     if (sheet != null) {
+                        workbook.NativeSheetOrder[sheet.StreamOffset] = boundSheetNames.Count;
                         boundSheetNames.Add(sheet.Name);
                     }
 
@@ -281,7 +284,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
             return workbook;
         }
 
-        private static bool TryDecryptFilePass(
+        internal static bool TryDecryptRecordStream(
             byte[] workbookStream,
             BiffRecord filePass,
             string password,
@@ -636,7 +639,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
             }
         }
 
-        private static bool TryReadDefinedNameTableEntry(byte[] payload, out string? name) {
+        internal static bool TryReadDefinedNameTableEntry(byte[] payload, out string? name) {
             name = null;
             try {
                 if (payload.Length < 14) {
@@ -1221,7 +1224,9 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
         }
 
         private static int[] MoveDialogSheetsToUnsupported(byte[] workbookStream, LegacyXlsWorkbook workbook, LegacyXlsImportOptions options) {
-            bool[] removedWorksheetIndexes = new bool[workbook.MutableWorksheets.Count];
+            var projectedOffsets = workbook.Worksheets.Select(sheet => sheet.StreamOffset).Concat(workbook.ChartSheets.Select(sheet => sheet.StreamOffset))
+                .OrderBy(offset => workbook.NativeSheetOrder.TryGetValue(offset, out int order) ? order : offset).ToArray();
+            var removedOffsets = new HashSet<int>();
             for (int i = workbook.MutableWorksheets.Count - 1; i >= 0; i--) {
                 LegacyXlsWorksheet sheet = workbook.MutableWorksheets[i];
                 if (!TryReadDialogSheetFlag(workbookStream, sheet, out bool isDialogSheet, out int wsBoolOffset) || !isDialogSheet) {
@@ -1229,7 +1234,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                 }
 
                 workbook.MutableWorksheets.RemoveAt(i);
-                removedWorksheetIndexes[i] = true;
+                removedOffsets.Add(sheet.StreamOffset);
                 LegacyXlsUnsupportedSheet unsupportedSheet = ToUnsupportedSheet(sheet, LegacyXlsUnsupportedSheetKind.DialogSheet);
                 workbook.MutableUnsupportedSheets.Add(unsupportedSheet);
                 workbook.MutableUnsupportedFeatures.Add(BiffUnsupportedRecordDiagnostics.CreateUnsupportedDialogSheetFeature(wsBoolOffset, unsupportedSheet));
@@ -1238,10 +1243,10 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                 }
             }
 
-            int[] worksheetIndexMap = new int[removedWorksheetIndexes.Length];
+            int[] worksheetIndexMap = new int[projectedOffsets.Length];
             int nextWorksheetIndex = 0;
-            for (int i = 0; i < removedWorksheetIndexes.Length; i++) {
-                if (removedWorksheetIndexes[i]) {
+            for (int i = 0; i < projectedOffsets.Length; i++) {
+                if (removedOffsets.Contains(projectedOffsets[i])) {
                     worksheetIndexMap[i] = -1;
                 } else {
                     worksheetIndexMap[i] = nextWorksheetIndex++;

@@ -26,17 +26,18 @@ namespace OfficeIMO.Excel.LegacyXls.Write {
 
             using var stream = new MemoryStream();
             stream.Write(conditionTokens, 0, conditionTokens.Length);
-            WriteAttribute(stream, 0x02, checked((ushort)(trueTokens.Length + 3)));
+            WriteAttribute(stream, 0x02, checked((ushort)(trueTokens.Length + 4)));
             stream.Write(trueTokens, 0, trueTokens.Length);
             if (arguments.Count == 3) {
                 if (!TryEncodeFunctionArgument(arguments[2], allowArea: false, nameIndex, formulaSheetIndex, out byte[] falseTokens)) {
                     return false;
                 }
 
-                WriteAttribute(stream, 0x08, checked((ushort)falseTokens.Length));
+                WriteAttribute(stream, 0x08, checked((ushort)(falseTokens.Length + 7)));
                 stream.Write(falseTokens, 0, falseTokens.Length);
             }
 
+            WriteAttribute(stream, 0x08, 3); // Skip the trailing four-byte IF function token.
             stream.WriteByte(0x42);
             stream.WriteByte(checked((byte)arguments.Count));
             WriteUInt16(stream, 0x0001);
@@ -98,7 +99,7 @@ namespace OfficeIMO.Excel.LegacyXls.Write {
             WriteUInt16(stream, checked((ushort)choiceTokens.Count));
 
             WriteUInt16(stream, checked((ushort)((choiceTokens.Count + 1) * 2)));
-            int cumulativeChoiceBytes = 0;
+            int cumulativeChoiceBytes = checked((choiceTokens.Count + 1) * 2);
             for (int i = 0; i < choiceTokens.Count; i++) {
                 cumulativeChoiceBytes = checked(cumulativeChoiceBytes + choiceTokens[i].Length + 4);
                 WriteUInt16(stream, checked((ushort)cumulativeChoiceBytes));

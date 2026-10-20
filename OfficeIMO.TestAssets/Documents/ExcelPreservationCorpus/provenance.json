@@ -1,0 +1,54 @@
+{
+  "createdUtc": "2026-10-19",
+  "nativeProducer": "Microsoft Excel for Mac 16.113.4 (26100421), pl-PL",
+  "source": "OfficeIMO projection of CC0 OpenPreserve valid.xls, original SHA256 4fe7b0d3552075601233a95e61782e7c7e90c1f948d70cc6afd706a6af8dd453; original VBA replaced with a newly authored inert project",
+  "vba": "Document modules carry matching workbook/worksheet/chart identities and comments only. PreservationNotes contains comments only. No procedures or event handlers. Native workbook opened with macros disabled; no VBA execution.",
+  "method": "Corrected inert-macro-control.xlsm opened without repair; native Save As XLSB, then XLS. Both saved URLs observed. Native UI lists 14 sheets including chart sheets. Chart appearance and VBA execution not qualified. Excel exited, process absence verified, resource board released.",
+  "files": {
+    "inert-macro-control.xlsm": "eb07142b8e1f796a0bd16d4063141cbb44ed8e63fd5a4d2002c2b49182f1ffcd",
+    "excel-inert-macro.xls": "39ce06f6896f2800c19a992cc2636188b7d64b0233dd39afe7db56c74ce6648b",
+    "excel-inert-macro.xlsb": "db6d83ff73820368416527df6f33c841a58aeef8ccc719bf520717f928654e38",
+    "populated-chart-control.xlsm": "7b38362823c38f792c7cd135a2977f109f5f681937605f62ef8688be8dc2998c",
+    "excel-populated-macro.xlsb": "bd906e36e15c82e793999ee7169e96bba606efd806dfe20b59976bf7daca30fe",
+    "excel-populated-macro.xls": "9e8d4df75a4dc02e85dd5c1e576c4677d6733d0e2df4547a11474e13635772a3",
+    "officeimo-populated-edited.xlsb": "91537d01d68ff7279eef8bd48e01594011c065e02421973c255d1334be17c685",
+    "officeimo-populated-edited.xls": "7b78a24b1ddee6793337d91b7bb2cd23c79a52895355eea5dc46eadff591b78f",
+    "officeimo-populated-encrypted.xls": "a68d76964280fba3fa765809577d4e59680b61c7a9d2ba5f5544507a843e5d39",
+    "officeimo-lifecycle.xls": "0d77b3344af92b1ff3fcc05f259efe533337a0fd1f4915ad3d46e3a2057f6590",
+    "officeimo-lifecycle-encrypted.xls": "bd4d11ee48921dfb7e641788e52c6950d593f3ba33da08b29a32137ca72cdb1f",
+    "officeimo-lifecycle.xlsb": "0f0a24496a52bbeafae905698b2a4c2249de3d164ca0e7b537a7c775c71584ae",
+    "officeimo-lifecycle-encrypted.xlsb": "3c2dad5451e51259f86440889674788270b398e598b7758ecbdb67c3d36f1a73",
+    "excel-lifecycle-readback.xls": "b732173656d91ce69f1a2a1b904ceb7b94948e9695385688a6b054c46436db41",
+    "excel-lifecycle-readback.xlsb": "08882d88401b81b5f083f180c6e47c90ad95a51be2051e7a0cc131a2838b21b2",
+    "excel-array-readback.xls": "843903af6a5ec2cde5d2346b3ee7efb3b06e468d2f51ff29a0b0d064e3136e35",
+    "excel-array-readback.xlsb": "0efb094181d9df0fecdcfc730e69acd0d95e852ed56113499a7f7e813ac849d4",
+    "officeimo-cryptoapi-summary.xls": "105dc57d71a10918b69727a62c48581e5a46ec398d07bb14a597e0fbc36c7e0a",
+    "excel-cryptoapi-summary-readback.xls": "3a11419c3a68de33f55e4b8d4c7cc73a8e539e3e1155483dc37588638c232b59"
+  },
+  "populatedChartControl": {
+    "source": "populated-chart-control.xlsm extends the inert XLSM control with one constant bar series: Alpha=10, Beta=20, Gamma=30. The chart target was resolved from the drawing relationship; no source VBA was changed.",
+    "method": "Native Excel opened without repair and with macros disabled, displayed b_chart with three blue bars and category labels, then saved excel-populated-macro.xlsb and excel-populated-macro.xls. Saved URLs observed. Worksheet-edit readback qualification is recorded separately when completed.",
+    "editedReadback": "OfficeIMO changed graphs2!A1 to Edited inert preservation value and saved native XLSB. Only xl/worksheets/sheet1.bin changed; all other ZIP entry bytes match the native source. Excel reopened without repair with macros disabled, displayed the same b_chart bars Alpha=10/Beta=20/Gamma=30 and the edited A1 text. Navigation changes discarded; Excel quit and process absence verified.",
+    "xlsEditedReadback": {
+      "method": "OfficeIMO loaded the unencrypted native XLS source in memory, changed graphs2!A1 to Edited inert preservation value, and wrote plain and classic RC4/MD5 encrypted XLS outputs. Exact generated read-only copies opened in Microsoft Excel for Mac 16.113.4 without repair. Macros disabled in both. The b_chart three blue bars Alpha=10/Beta=20/Gamma=30 and edited A1 text were observed. Output hashes verified unchanged after closure. Navigation changes discarded; Excel process absence verified and resource claim released.",
+      "password": "test-password",
+      "scope": "Existing text literal edit with chart-sheet and compound VBA stream preservation. Other chart sheets retained structurally; no chart editing or macro execution qualification."
+    }
+  },
+  "extendedNativeEditing": {
+    "dateUtc": "2026-10-19/20",
+    "sourceCandidate": "c3f2e8b872",
+    "lifecycle": "OfficeIMO loads excel-populated-macro.xls/xlsb; renames graphs2 to Sales Łódź and changes A1 to42; reorders it last; removes graphs1; adds Added data with text A1 and formula A2=Sales Łódź!A1+1. Native Excel accepts the exact plain/encrypted controls without repair with macros disabled, displays the Alpha10/Beta20/Gamma30 chart, and explicitly recalculates A2 to43. XLSB corrected view flags select only b_chart, not Added data. Native readbacks saved before tab navigation preserve original order and host identities.",
+    "arrays": "Fresh two-cell B1:B2 array SUM(A1:A2), inputs2/3 and caches5; import, bold B2, unrelated A4 edit, then clear caches on native plain/encrypted writes. Native Excel accepts all four, F9 computes both5 and recognizes B2 as an array member. Native plain readbacks retain the owner/range and cached results.",
+    "password": "test-password",
+    "limits": "No macro execution, arbitrary chart editing, or revision-history UI editing qualification."
+  },
+  "encryptedSummaryControl": {
+    "nativeConsumer": "Microsoft Excel for Mac16.113.4(26100421), macros disabled",
+    "input": "Owned populated XLS control with a CryptoAPI FilePass and encrypted SummaryInformation/DocumentSummaryInformation in encryption stream. Title=Encrypted summary native control; subject=Nested inert VBA storage acceptance. VBA storage remains plaintext as required by MS-XLS2.2.10.",
+    "method": "Native Excel opens without repair, shows the populated Alpha10/Beta20/Gamma30 chart and saves excel-cryptoapi-summary-readback.xls. Independent readback preserves title/subject, ten worksheets, four chart sheets and inert VBA modules. Native output uses CryptoAPI with plaintext property streams (flags0x0c); it is not a native-produced encrypted-summary cohort.",
+    "password": "test-password",
+    "specification": "https://learn.microsoft.com/en-us/openspecs/office_file_formats/ms-xls/0f2ea0a1-9fc8-468d-97aa-9d333b72d106",
+    "scope": "Native consumer qualification for encrypted document properties; generic nested-storage restoration remains synthetic. No macros executed."
+  }
+}

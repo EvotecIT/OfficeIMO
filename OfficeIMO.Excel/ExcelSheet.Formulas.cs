@@ -58,7 +58,18 @@ namespace OfficeIMO.Excel {
         public void ClearCachedFormulaResults() {
             WriteLock(() => {
                 bool changed = false;
-                foreach (var cell in WorksheetRoot.Descendants<Cell>().Where(c => c.CellFormula != null)) {
+                var arrays = WorksheetRoot.Descendants<CellFormula>()
+                    .Where(formula => formula.FormulaType?.Value == CellFormulaValues.Array)
+                    .Select(formula => formula.Reference?.Value).Where(reference => reference != null)
+                    .Select(reference => A1.TryParseRange(reference!, out int top, out int left, out int bottom, out int right)
+                        ? (Top: top, Left: left, Bottom: bottom, Right: right) : default).ToArray();
+                var arrayIndex = new ExcelCellRangeIndex<bool>(arrays.Select(range => (range.Top, range.Left, range.Bottom, range.Right, true)));
+                foreach (var cell in WorksheetRoot.Descendants<Cell>()) {
+                    bool arrayMember = cell.CellFormula == null && arrays.Length != 0
+                        && cell.CellReference?.Value is string address
+                        && TryParseCellReference(address, out int row, out int column)
+                        && arrayIndex.At(row, column).Any();
+                    if (cell.CellFormula == null && !arrayMember) continue;
                     if (cell.CellValue != null || cell.ValueMetaIndex != null) {
                         cell.CellValue = null;
                         ClearCellValueMetadataAttribute(cell);
@@ -590,7 +601,9 @@ namespace OfficeIMO.Excel {
             WriteLock(() => {
                 for (int row = r1; row <= r2; row++) {
                     for (int column = c1; column <= c2; column++) {
-                        ClearCellValueMetadata(GetCell(row, column));
+                        var member = GetCell(row, column);
+                        ClearCellValueMetadata(member);
+                        if (row != r1 || column != c1) member.CellFormula = null;
                     }
                 }
                 var topLeft = GetCell(r1, c1);
@@ -675,6 +688,8 @@ namespace OfficeIMO.Excel {
                     if (function is "INT" or "MOD" or "SQRT" or "SIGN" or "TRUNC" or "ROUNDUP" or "ROUNDDOWN" or "EXP" or "LN" or "LOG" or "LOG10" or "CEILING" or "FLOOR" or "EVEN" or "ODD" or "FACT" or "COMBIN") return TryEvaluateScalarMathValue(function, args, out result);
                     if (function is "GCD" or "LCM") return TryEvaluateIntegerAggregateValue(function, args, out result);
                     if (function == "PROB") return TryEvaluateProbabilityValue(args, out result);
+                    if (function is "IPMT" or "PPMT") return TryEvaluatePaymentSplitValue(function, args, out result);
+                    if (function is "RATE" or "IRR" or "XIRR" or "XNPV") return TryEvaluateCashFlowValue(function, args, out result);
                     if (function == "RANDBETWEEN") return TryEvaluateRandomBetweenValue(args, out result);
                     if (function == "OFFSET") return TryEvaluateOffsetValue(args, out result);
                     if (function == "GETPIVOTDATA") return TryEvaluatePivotDataValue(args, out result);
@@ -885,6 +900,16 @@ namespace OfficeIMO.Excel {
 
                     if (function == "PMT" || function == "PV" || function == "FV" || function == "NPER" || function == "NPV") {
                         return TryEvaluateFinancialFunction(function, args, out result);
+                    }
+
+                    if (function is "IPMT" or "PPMT" or "RATE" or "IRR" or "XIRR" or "XNPV") {
+                        bool evaluated = function is "IPMT" or "PPMT"
+                            ? TryEvaluatePaymentSplitValue(function, args, out FormulaArgumentValue paymentResult)
+                            : TryEvaluateCashFlowValue(function, args, out paymentResult);
+                        if (!evaluated) return false;
+                        if (paymentResult.IsError) { error = paymentResult; return false; }
+                        result = paymentResult.Number!.Value;
+                        return true;
                     }
 
                     if (function == "VLOOKUP" || function == "HLOOKUP" || function == "XLOOKUP") {

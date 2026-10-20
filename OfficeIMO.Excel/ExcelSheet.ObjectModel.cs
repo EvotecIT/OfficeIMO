@@ -23,6 +23,7 @@ namespace OfficeIMO.Excel {
         public ExcelTable Table(string nameOrRange) => new ExcelTable(this, nameOrRange);
 
         internal ExcelCellData GetCellValueSnapshot(int row, int column) {
+            MaterializeDeferredDataSetImportIfNeeded();
             var cell = TryGetExistingCell(row, column);
             return GetCellValueSnapshot(cell);
         }

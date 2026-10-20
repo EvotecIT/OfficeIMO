@@ -20,7 +20,7 @@ namespace OfficeIMO.Excel.Xlsb.Write {
 
         internal static XlsbWorksheetAutoFilterPlan Create(
             ExcelSheet sheet,
-            XlsbWorksheet sourceSheet) {
+            XlsbSheet sourceSheet) {
             if (sheet == null) throw new ArgumentNullException(nameof(sheet));
             if (sourceSheet == null) throw new ArgumentNullException(nameof(sourceSheet));
             if (XlsbWorksheetAutoFilterProjector.Matches(sheet, sourceSheet.AutoFilter)) {

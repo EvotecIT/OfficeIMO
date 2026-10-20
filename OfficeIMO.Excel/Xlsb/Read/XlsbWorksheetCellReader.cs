@@ -24,7 +24,7 @@ namespace OfficeIMO.Excel.Xlsb.Read {
             IReadOnlyList<string> sharedStrings,
             XlsbImportOptions options,
             XlsbWorkbook workbook,
-            string partName) {
+            string partName, int sheetIndex) {
             var cursor = new XlsbBinaryCursor(record.Data);
             int zeroBasedColumn = cursor.ReadInt32();
             uint styleIndex = cursor.ReadUInt32() & 0x00FFFFFFU;
@@ -68,16 +68,16 @@ namespace OfficeIMO.Excel.Xlsb.Read {
                     cell = new XlsbCell(row, column, XlsbCellValueKind.Text, richText, styleIndex);
                     break;
                 case BrtFmlaNum:
-                    cell = ReadFormula(record, cursor, row, column, styleIndex, XlsbCellValueKind.Number, cursor.ReadDouble(), options, workbook, partName);
+                    cell = ReadFormula(record, cursor, row, column, styleIndex, XlsbCellValueKind.Number, cursor.ReadDouble(), options, workbook, partName, sheetIndex);
                     break;
                 case BrtFmlaBool:
-                    cell = ReadFormula(record, cursor, row, column, styleIndex, XlsbCellValueKind.Boolean, cursor.ReadByte() != 0, options, workbook, partName);
+                    cell = ReadFormula(record, cursor, row, column, styleIndex, XlsbCellValueKind.Boolean, cursor.ReadByte() != 0, options, workbook, partName, sheetIndex);
                     break;
                 case BrtFmlaError:
-                    cell = ReadFormula(record, cursor, row, column, styleIndex, XlsbCellValueKind.Error, BiffErrorValue.ToText(cursor.ReadByte()), options, workbook, partName);
+                    cell = ReadFormula(record, cursor, row, column, styleIndex, XlsbCellValueKind.Error, BiffErrorValue.ToText(cursor.ReadByte()), options, workbook, partName, sheetIndex);
                     break;
                 case BrtFmlaString:
-                    cell = ReadFormula(record, cursor, row, column, styleIndex, XlsbCellValueKind.Text, cursor.ReadWideString(options.MaxStringCharacters), options, workbook, partName);
+                    cell = ReadFormula(record, cursor, row, column, styleIndex, XlsbCellValueKind.Text, cursor.ReadWideString(options.MaxStringCharacters), options, workbook, partName, sheetIndex);
                     break;
                 default:
                     throw new InvalidOperationException($"Unsupported XLSB cell record type {record.Type}.");
@@ -102,7 +102,7 @@ namespace OfficeIMO.Excel.Xlsb.Read {
             object? cachedValue,
             XlsbImportOptions options,
             XlsbWorkbook workbook,
-            string partName) {
+            string partName, int sheetIndex) {
             int formulaPayloadOffset = cursor.Position;
             cursor.ReadUInt16(); // grbit flags
             uint tokenCount = cursor.ReadUInt32();
@@ -115,9 +115,9 @@ namespace OfficeIMO.Excel.Xlsb.Read {
                 FormulaBytes = tokens,
                 FormulaPayloadBytes = CopyTail(record.Data, formulaPayloadOffset)
             };
-            if (XlsbFormulaTextReader.TryRead(tokens, out string? formulaText)) {
+            if (XlsbFormulaTextReader.TryRead(tokens, out string? formulaText, workbook, sheetIndex)) {
                 cell.FormulaText = formulaText;
-            } else {
+            } else if (!(tokens.Length == 5 && tokens[0] == 1)) {
                 workbook.AddDiagnostic(new XlsbImportDiagnostic(
                     "XLSB-FORMULA-PRESERVED",
                     XlsbImportDiagnosticSeverity.Warning,

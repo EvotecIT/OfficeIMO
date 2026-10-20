@@ -179,7 +179,7 @@ namespace OfficeIMO.Excel.Xlsb.Write {
             }
 
             SheetView view = sheetViews[0];
-            EnsureOnlyAttributes(view, sheetName, "workbookViewId", "showGridLines");
+            EnsureOnlyAttributes(view, sheetName, "workbookViewId", "showGridLines", "tabSelected");
             if ((view.WorkbookViewId?.Value ?? 0U) != 0U) {
                 throw new NotSupportedException($"Native XLSB generation supports workbookViewId 0 on worksheet '{sheetName}'.");
             }
@@ -256,7 +256,7 @@ namespace OfficeIMO.Excel.Xlsb.Write {
 
         private static byte[] CreateSheetViewPayload(SheetView view) {
             return new byte[] {
-                view.ShowGridLines?.Value == false ? (byte)0xD8 : (byte)0xDC, 0x03, 0x00, 0x00,
+                (byte)((view.ShowGridLines?.Value == false ? 0x98 : 0x9C) | (view.TabSelected?.Value == true ? 0x40 : 0)), 0x03, 0x00, 0x00,
                 0x00, 0x00, 0x00, 0x00,
                 0x00, 0x00, 0x00, 0x00,
                 0x00, 0x00, 0x40, 0x00,

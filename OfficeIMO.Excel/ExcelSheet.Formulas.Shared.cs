@@ -273,7 +273,8 @@ namespace OfficeIMO.Excel {
                 && column <= lastColumn;
         }
 
-        private string TranslateSharedFormula(string formula, int rowOffset, int columnOffset) {
+        /// <summary>Relocates a shared formula for evaluation and native serialization through the same reference rules.</summary>
+        internal string TranslateSharedFormula(string formula, int rowOffset, int columnOffset) {
             if (formula.Length == 0 || formula.Length > MaxSupportedFormulaLength
                 || (rowOffset == 0 && columnOffset == 0)) {
                 return formula;

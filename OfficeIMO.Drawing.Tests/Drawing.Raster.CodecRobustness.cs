@@ -20,10 +20,31 @@ public sealed class DrawingRasterCodecRobustnessTests {
         Assert.Equal(0, input.Position);
     }
 
+    [Theory]
+    [InlineData(0)]
+    [InlineData(1)]
+    [InlineData(2)]
+    [InlineData(3)]
+    [InlineData(4)]
+    public void PngUnfilterRejectsCancellationBeforeChangingTheScanline(int filter) {
+        byte[] current = { 1, 2, 3, 4 };
+        byte[] original = (byte[])current.Clone();
+        var token = new CancellationToken(canceled: true);
+        OperationCanceledException error = Assert.Throws<OperationCanceledException>(() =>
+            OfficePngReader.Unfilter(current, new byte[current.Length], 1, filter, token));
+        Assert.Equal(token, error.CancellationToken);
+        Assert.Equal(original, current);
+    }
+
+#if DRAWING_PERFORMANCE_EVIDENCE
     [Fact]
+    [Trait("Category", "Performance")]
+#else
+    [Fact(Skip = "In-flight scanline cancellation sampling requires DrawingPerformanceEvidence=true.")]
+#endif
     public void PngUnfilterObservesCancellationAfterPixelsChange() {
-        // Observe an actual production-owned work buffer, as in the APNG composition
-        // regression, instead of guessing when work starts from a timer.
+        // Observe an actual production-owned work buffer. This remains a scheduling
+        // sample: a loaded host can finish the scanline before the observer runs.
         var current = new byte[32 * 1024 * 1024];
         for (int index = 0; index < current.Length; index++) current[index] = 1;
         using var cancellation = new CancellationTokenSource();

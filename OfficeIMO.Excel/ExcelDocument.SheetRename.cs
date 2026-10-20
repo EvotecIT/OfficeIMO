@@ -142,13 +142,10 @@ namespace OfficeIMO.Excel {
         }
 
         private void UpdateChartReferences(string oldSheetName, string newSheetName) {
-            foreach (var worksheetPart in WorkbookPartRoot.WorksheetParts) {
-                var drawingsPart = worksheetPart.DrawingsPart;
-                if (drawingsPart?.WorksheetDrawing == null) {
-                    continue;
-                }
-
-                foreach (var chartPart in drawingsPart.ChartParts) {
+            var drawings = WorkbookPartRoot.WorksheetParts.Select(part => part.DrawingsPart)
+                .Concat(WorkbookPartRoot.ChartsheetParts.Select(part => part.DrawingsPart));
+            foreach (var drawingsPart in drawings.Where(part => part != null).Distinct()) {
+                foreach (var chartPart in drawingsPart!.ChartParts) {
                     var chartSpace = chartPart.ChartSpace;
                     if (chartSpace == null) {
                         continue;

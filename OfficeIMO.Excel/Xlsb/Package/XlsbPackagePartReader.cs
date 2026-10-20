@@ -6,7 +6,7 @@ using System.Xml.Linq;
 
 namespace OfficeIMO.Excel.Xlsb.Package {
     /// <summary>Reads bounded package parts and OPC relationships from an XLSB archive.</summary>
-    internal sealed class XlsbPackagePartReader {
+    internal sealed partial class XlsbPackagePartReader {
         private const int PartReadBufferSize = 81920;
         private readonly XlsbImportOptions _options;
         private readonly Dictionary<string, ZipArchiveEntry> _entries;

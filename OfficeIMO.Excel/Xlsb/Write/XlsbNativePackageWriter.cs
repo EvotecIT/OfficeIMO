@@ -9,7 +9,7 @@ namespace OfficeIMO.Excel.Xlsb.Write {
     /// <summary>
     /// Rewrites supported worksheet cells, AutoFilters, and hyperlinks in an existing XLSB package while copying every other part.
     /// </summary>
-    internal static class XlsbNativePackageWriter {
+    internal static partial class XlsbNativePackageWriter {
         private const int MaxWorksheetPartBytes = 128 * 1024 * 1024;
         private const string HyperlinkRelationshipSuffix = "/hyperlink";
         private static readonly DateTimeOffset ReproducibleEntryTime =
@@ -18,13 +18,16 @@ namespace OfficeIMO.Excel.Xlsb.Write {
         internal static byte[] Rewrite(
             ExcelDocument document,
             byte[] sourcePackageBytes,
-            XlsbWorkbook sourceWorkbook) {
+            XlsbWorkbook sourceWorkbook, long maximumBytes = int.MaxValue, ExcelNativeCalculationPolicy calculation = default) {
             if (document == null) throw new ArgumentNullException(nameof(document));
             if (sourcePackageBytes == null) throw new ArgumentNullException(nameof(sourcePackageBytes));
             if (sourceWorkbook == null) throw new ArgumentNullException(nameof(sourceWorkbook));
 
-            ThrowIfUnsupportedWorkbookMutation(document, sourceWorkbook, sourcePackageBytes);
+            document.ValidateNativeXlsbProjection();
+            var structure = new XlsbSheetStructure(document, sourceWorkbook);
+            ThrowIfUnsupportedWorkbookMutation(document, sourceWorkbook, sourcePackageBytes, structure);
             ExcelSheet[] sheets = document.Sheets.ToArray();
+            var formulas = new XlsbFormulaWriteContext(document, sourceWorkbook, structure);
             var replacements = new Dictionary<string, byte[]>(StringComparer.OrdinalIgnoreCase);
             var deletions = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
             using (var packageStream = new MemoryStream(sourcePackageBytes, writable: false))
@@ -33,48 +36,67 @@ namespace OfficeIMO.Excel.Xlsb.Write {
                 if (!string.IsNullOrWhiteSpace(sourceWorkbook.StylesheetPartName)) {
                     ZipArchiveEntry sourceStylesEntry = FindEntry(archive, sourceWorkbook.StylesheetPartName!)
                         ?? throw new InvalidDataException($"The source XLSB styles part '{sourceWorkbook.StylesheetPartName}' is missing.");
-                    sourceStylesPart = ReadEntry(sourceStylesEntry, sourceWorkbook.MaxPartBytes);
+                    sourceStylesPart = ReadEntry(sourceStylesEntry, (int)Math.Min(maximumBytes, sourceWorkbook.MaxPartBytes));
                 }
                 XlsbStylesheetRewritePlan stylesheetPlan = XlsbStylesheetRewritePlan.Create(
                     document,
                     sourceWorkbook,
-                    sourceStylesPart);
+                    sourceStylesPart, maximumBytes);
                 if (stylesheetPlan.Replacement != null) {
                     replacements.Add(stylesheetPlan.PartName!, stylesheetPlan.Replacement);
                 }
 
-                for (int index = 0; index < sheets.Length; index++) {
-                    XlsbWorksheet sourceSheet = sourceWorkbook.Worksheets[index];
+                if (!XlsbPackageDetector.TryFindWorkbookPart(archive, out string? workbookPart) || workbookPart == null)
+                    throw new InvalidDataException("The source XLSB workbook part is missing.");
+                byte[] ReadPart(string path) => ReadEntry(FindEntry(archive, path) ?? throw new InvalidDataException("Missing XLSB package part: " + path), sourceWorkbook.MaxPartBytes);
+                structure.PreparePackage(document, workbookPart, archive.Entries.Select(entry => entry.FullName).ToArray(),
+                    ReadPart(workbookPart), ReadPart(XlsbSheetStructure.RelationshipPartName(workbookPart)), ReadPart("[Content_Types].xml"), replacements, deletions, maximumBytes);
+                CopyRenamedRelatedParts(document, sourceWorkbook, replacements);
+                foreach (var sheet in sheets) {
+                    var binding = structure.Bindings.Single(item => ReferenceEquals(item.Part, sheet.WorksheetPart));
+                    if (binding.Original == null) {
+                        var newCells = XlsbWorksheetCellExtractor.ExtractNew(document, sheet, formulas);
+                        var hyperlinks = XlsbWorksheetHyperlinkPlan.Create(sheet, pruneOrphanedRelationships: true);
+                        if (hyperlinks.Relationships.Count > 0) replacements[XlsbSheetStructure.RelationshipPartName(structure.PartNames[binding.Part.Uri.OriginalString])] = hyperlinks.CreateRelationshipPart();
+                        structure.NewCodeNames.TryGetValue(binding.Name, out string? codeName);
+                        byte[] createdPart = XlsbWorksheetPartWriter.Create(sheet, newCells,
+                            stylesheetPlan.CellFormatCount, hyperlinks.Records, maximumBytes: maximumBytes, codeName: codeName);
+                        replacements.Add(structure.PartNames[binding.Part.Uri.OriginalString], ApplyFormulaCachePolicy(createdPart, calculation, maximumBytes));
+                        continue;
+                    }
+                    XlsbSheet sourceSheet = sourceWorkbook.Sheets[binding.Original.NativeIndex];
                     string partName = sourceSheet.PartName
                         ?? throw new InvalidDataException($"The source XLSB worksheet '{sourceSheet.Name}' has no resolved package part.");
                     ZipArchiveEntry sourceEntry = FindEntry(archive, partName)
                         ?? throw new InvalidDataException($"The source XLSB worksheet part '{partName}' is missing.");
-                    byte[] originalPart = ReadEntry(sourceEntry, MaxWorksheetPartBytes);
+                    byte[] originalPart = ReadEntry(sourceEntry, (int)Math.Min(maximumBytes, MaxWorksheetPartBytes));
+                    byte[] reboundPart = XlsbFormulaRecordRebinder.RebindPart(originalPart, structure.NameIndexes, maximumBytes);
                     IReadOnlyList<XlsbWriteCell> cells = XlsbWorksheetCellExtractor.Extract(
                         document,
-                        sheets[index],
+                        sheet,
                         sourceSheet,
-                        stylesheetPlan.CellFormatCount);
+                        stylesheetPlan.CellFormatCount, formulas);
                     XlsbWorksheetAutoFilterPlan autoFilterPlan =
-                        XlsbWorksheetAutoFilterPlan.Create(sheets[index], sourceSheet);
-                    bool rewriteHyperlinks = !XlsbWorksheetHyperlinkProjector.Matches(sheets[index], sourceSheet);
+                        XlsbWorksheetAutoFilterPlan.Create(sheet, sourceSheet);
+                    bool rewriteHyperlinks = !XlsbWorksheetHyperlinkProjector.Matches(sheet, sourceSheet);
                     string[] reservedRelationshipIds = sourceSheet.Relationships.Values
                         .Where(relationship => !relationship.Type.EndsWith(HyperlinkRelationshipSuffix, StringComparison.Ordinal))
                         .Select(relationship => relationship.Id)
                         .ToArray();
                     XlsbWorksheetHyperlinkPlan? hyperlinkPlan = rewriteHyperlinks
                         ? XlsbWorksheetHyperlinkPlan.Create(
-                            sheets[index],
+                            sheet,
                             pruneOrphanedRelationships: true,
                             reservedRelationshipIds)
                         : null;
                     byte[] rewrittenPart = XlsbWorksheetPartWriter.Rewrite(
-                        originalPart,
+                        reboundPart,
                         cells,
                         autoFilterPlan.Records,
                         autoFilterPlan.Rewrite,
                         hyperlinkPlan?.Records ?? Array.Empty<XlsbGeneratedRecord>(),
-                        rewriteHyperlinks);
+                        rewriteHyperlinks, maximumBytes);
+                    rewrittenPart = ApplyFormulaCachePolicy(rewrittenPart, calculation, maximumBytes);
                     if (!originalPart.SequenceEqual(rewrittenPart)) {
                         replacements.Add(partName, rewrittenPart);
                     }
@@ -89,6 +111,10 @@ namespace OfficeIMO.Excel.Xlsb.Write {
                         }
                     }
                 }
+                byte[] currentWorkbook = replacements.TryGetValue(workbookPart, out byte[]? replacementWorkbook) ? replacementWorkbook : ReadPart(workbookPart);
+                byte[] completedWorkbook = RewriteCalculationProperties(document, sourceWorkbook, formulas.CompleteWorkbook(currentWorkbook, maximumBytes), maximumBytes);
+                if (!ReferenceEquals(currentWorkbook, completedWorkbook)) replacements[workbookPart] = completedWorkbook;
+                RebindTableFormulas(archive, structure, replacements, deletions, sourceWorkbook.MaxPartBytes, maximumBytes);
             }
 
             if (replacements.Count == 0 && deletions.Count == 0) return sourcePackageBytes;
@@ -97,7 +123,7 @@ namespace OfficeIMO.Excel.Xlsb.Write {
                 replacements,
                 sourceWorkbook.MaxPartBytes,
                 sourceWorkbook.MaxPackageBytes,
-                deletions);
+                deletions, maximumBytes);
             if (!XlsbPackageDetector.TryFindWorkbookPart(rewritten, out _)) {
                 throw new InvalidDataException("The rewritten package no longer satisfies the XLSB package contract.");
             }
@@ -110,7 +136,7 @@ namespace OfficeIMO.Excel.Xlsb.Write {
         private static void ThrowIfUnsupportedWorkbookMutation(
             ExcelDocument document,
             XlsbWorkbook sourceWorkbook,
-            byte[] sourcePackageBytes) {
+            byte[] sourcePackageBytes, XlsbSheetStructure structure) {
             if (document.HasPackagePropertiesDirty) {
                 throw new NotSupportedException("Native XLSB rewriting currently accepts cell-value edits only. Document-property changes must be saved as .xlsx.");
             }
@@ -128,23 +154,8 @@ namespace OfficeIMO.Excel.Xlsb.Write {
 
             ValidateWorkbookProperties(document, sourceWorkbook);
             ValidateWorkbookProtection(document, sourceWorkbook);
-            ValidateDefinedNames(document, sourceWorkbook);
+            ValidateDefinedNames(document, sourceWorkbook, structure);
             ValidateCalculationProperties(document, sourceWorkbook);
-            ExcelSheet[] sheets = document.Sheets.ToArray();
-            if (sheets.Length != sourceWorkbook.Worksheets.Count) {
-                throw new NotSupportedException("Native XLSB rewriting currently requires the original worksheet set and order. Save workbook structure changes as .xlsx.");
-            }
-
-            for (int index = 0; index < sheets.Length; index++) {
-                XlsbWorksheet sourceSheet = sourceWorkbook.Worksheets[index];
-                ExcelSheet currentSheet = sheets[index];
-                uint currentState = currentSheet.VeryHidden ? 2U : currentSheet.Hidden ? 1U : 0U;
-                if (!string.Equals(currentSheet.Name, sourceSheet.Name, StringComparison.Ordinal)
-                    || currentState != sourceSheet.State) {
-                    throw new NotSupportedException("Native XLSB rewriting currently requires original worksheet names, order, and visibility. Save workbook structure changes as .xlsx.");
-                }
-            }
-
             using var packageStream = new MemoryStream(sourcePackageBytes, writable: false);
             using var archive = new ZipArchive(packageStream, ZipArchiveMode.Read, leaveOpen: false);
             if (archive.Entries.Any(entry => entry.FullName.StartsWith("_xmlsignatures/", StringComparison.OrdinalIgnoreCase))) {
@@ -155,7 +166,7 @@ namespace OfficeIMO.Excel.Xlsb.Write {
         private static void ValidateWorkbookProperties(ExcelDocument document, XlsbWorkbook sourceWorkbook) {
             WorkbookProperties? properties = document.WorkbookRoot.GetFirstChild<WorkbookProperties>();
             if (properties == null) {
-                if (sourceWorkbook.Uses1904DateSystem) {
+                if (sourceWorkbook.Uses1904DateSystem || !string.IsNullOrEmpty(sourceWorkbook.CodeName)) {
                     throw new NotSupportedException("Native XLSB rewriting cannot change the workbook date system. Save the workbook as .xlsx.");
                 }
                 return;
@@ -163,19 +174,17 @@ namespace OfficeIMO.Excel.Xlsb.Write {
 
             bool hasOnlyProjectedDateSystem = !properties.HasChildren
                 && properties.GetAttributes().All(attribute =>
-                    string.Equals(attribute.LocalName, "date1904", StringComparison.Ordinal)
+                    (string.Equals(attribute.LocalName, "date1904", StringComparison.Ordinal) || string.Equals(attribute.LocalName, "codeName", StringComparison.Ordinal))
                     && string.Equals(attribute.NamespaceUri, string.Empty, StringComparison.Ordinal));
             bool uses1904 = properties.Date1904?.Value == true;
-            if (!hasOnlyProjectedDateSystem || uses1904 != sourceWorkbook.Uses1904DateSystem) {
+            if (!hasOnlyProjectedDateSystem || uses1904 != sourceWorkbook.Uses1904DateSystem
+                || !string.Equals(properties.CodeName?.Value ?? string.Empty, sourceWorkbook.CodeName ?? string.Empty, StringComparison.Ordinal)) {
                 throw new NotSupportedException("Native XLSB rewriting currently cannot change workbook properties or the workbook date system. Save the workbook as .xlsx.");
             }
         }
 
         private static void ValidateCalculationProperties(ExcelDocument document, XlsbWorkbook sourceWorkbook) {
-            CalculationProperties? properties = document.WorkbookRoot.GetFirstChild<CalculationProperties>();
-            if (!XlsbCalculationPropertiesProjector.Matches(properties, sourceWorkbook.CalculationProperties)) {
-                throw new NotSupportedException("Native XLSB rewriting preserves but cannot modify workbook calculation properties. Save that change as .xlsx.");
-            }
+            XlsbCalculationPropertiesWriter.Validate(document.WorkbookRoot.CalculationProperties);
         }
 
         private static void ValidateWorkbookProtection(ExcelDocument document, XlsbWorkbook sourceWorkbook) {
@@ -185,9 +194,13 @@ namespace OfficeIMO.Excel.Xlsb.Write {
             }
         }
 
-        private static void ValidateDefinedNames(ExcelDocument document, XlsbWorkbook sourceWorkbook) {
-            DefinedNames? definedNames = document.WorkbookRoot.GetFirstChild<DefinedNames>();
-            if (!XlsbDefinedNameProjector.Matches(definedNames, sourceWorkbook.DefinedNames)) {
+        private static void ValidateDefinedNames(ExcelDocument document, XlsbWorkbook sourceWorkbook, XlsbSheetStructure structure) {
+            DefinedNames? names = document.WorkbookRoot.GetFirstChild<DefinedNames>();
+            DefinedNames? definedNames = names == null ? null : (DefinedNames)OfficeIMO.Excel.Utilities.ExcelPackageReferenceNormalizer.Copy(names, document.NativeXlsbPreservation.ReverseRenames(document));
+            var expected = sourceWorkbook.DefinedNames.Where(name => name.LocalSheetIndex == uint.MaxValue || structure.Map(checked((int)name.LocalSheetIndex)) >= 0)
+                .Select(name => new XlsbDefinedName(name.Flags, name.ShortcutKey, name.LocalSheetIndex == uint.MaxValue ? uint.MaxValue : checked((uint)structure.Map((int)name.LocalSheetIndex)),
+                    name.Name, name.FormulaTokens, name.FormulaExtraBytes, name.Comment, name.RecordOffset, name.PayloadLength) { FormulaText = name.FormulaText }).ToArray();
+            if (!XlsbDefinedNameProjector.Matches(definedNames, expected)) {
                 throw new NotSupportedException("Native XLSB rewriting preserves but cannot modify workbook defined names. Save that change as .xlsx.");
             }
         }
@@ -208,7 +221,7 @@ namespace OfficeIMO.Excel.Xlsb.Write {
             IReadOnlyDictionary<string, byte[]> replacements,
             int maxPartBytes,
             long maxPackageBytes,
-            ISet<string>? deletions) {
+            ISet<string>? deletions, long maximumBytes = int.MaxValue) {
             if (sourcePackageBytes == null) throw new ArgumentNullException(nameof(sourcePackageBytes));
             if (replacements == null) throw new ArgumentNullException(nameof(replacements));
 
@@ -236,7 +249,7 @@ namespace OfficeIMO.Excel.Xlsb.Write {
 
             using var sourceStream = new MemoryStream(sourcePackageBytes, writable: false);
             using var sourceArchive = new ZipArchive(sourceStream, ZipArchiveMode.Read, leaveOpen: false);
-            using var destinationStream = new MemoryStream(sourcePackageBytes.Length + 4096);
+            using var destinationStream = new OfficeIMO.Core.Internal.OfficeBoundedMemoryStream(maximumBytes);
             long decompressedBytes = 0;
             byte[] buffer = new byte[81920];
             var writtenReplacements = new HashSet<string>(StringComparer.OrdinalIgnoreCase);

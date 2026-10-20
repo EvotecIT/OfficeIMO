@@ -145,7 +145,7 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void LegacyXls_NativeSave_BlocksLossyImportedXlsWithoutExplicitOptIn() {
+        public void LegacyXls_NativeSave_PreservesUnchangedChartWorkbookWithoutLossOptIn() {
             string sourcePath = Path.Combine(
                 GetTestsProjectRoot(),
                 "Documents",
@@ -160,9 +160,13 @@ namespace OfficeIMO.Tests {
                 Assert.Empty(document.LegacyXlsUnsupportedFeatures);
                 Assert.NotEmpty(document.LegacyXlsChartSheets);
 
-                NotSupportedException exception = Assert.Throws<NotSupportedException>(() => document.Save(xlsOutputPath));
-                Assert.Contains(nameof(ExcelSaveOptions.LossPolicy), exception.Message);
-                Assert.False(File.Exists(xlsOutputPath));
+                document.Save(xlsOutputPath);
+                using ExcelDocument saved = ExcelDocument.Load(xlsOutputPath);
+                Assert.Equal(document.LegacyXlsChartSheets.Count, saved.LegacyXlsChartSheets.Count);
+                Assert.True(OfficeIMO.Core.Internal.OfficeCompoundFileReader.TryRead(File.ReadAllBytes(sourcePath), out OfficeIMO.Core.Internal.OfficeCompoundFile? before, out string? error), error);
+                Assert.True(OfficeIMO.Core.Internal.OfficeCompoundFileReader.TryRead(File.ReadAllBytes(xlsOutputPath), out OfficeIMO.Core.Internal.OfficeCompoundFile? after, out error), error);
+                foreach (var stream in before!.Streams.Where(item => !item.Key.Equals("Workbook", StringComparison.OrdinalIgnoreCase)))
+                    Assert.Equal(stream.Value, after!.Streams[stream.Key]);
             } finally {
                 TryDelete(xlsOutputPath);
             }
@@ -3650,15 +3654,6 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void LegacyXls_NativeSave_BlocksFormulaWithoutNumericCachedResult() {
-            AssertNativeXlsSaveNotSupported("cached result", (document, sheet) => {
-                sheet.CellValue(1, 1, 2d);
-                sheet.CellValue(2, 1, 3d);
-                sheet.CellFormula(3, 1, "A1+A2");
-            });
-        }
-
-        [Fact]
         public void LegacyXls_NativeSave_WritesExternalWorkbookFormulaReferences() {
             string openXmlPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".xlsx");
             string xlsOutputPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".xls");
@@ -3864,15 +3859,6 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void LegacyXls_NativeSave_BlocksMultiCellArrayFormulaWithoutCachedResultsBeforeWriting() {
-            AssertNativeXlsSaveNotSupported("cached results for every cell", (document, sheet) => {
-                sheet.CellValue(1, 1, 2d);
-                sheet.CellValue(2, 1, 3d);
-                sheet.SetArrayFormula("A3:A4", "SUM(A1:A2)");
-            });
-        }
-
-        [Fact]
         public void LegacyXls_NativeSave_WritesSharedFormulaRecords() {
             string openXmlPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".xlsx");
             string xlsOutputPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".xls");
@@ -3921,7 +3907,7 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void LegacyXls_NativeSave_RebasesSharedFormula3DReferences() {
+        public void LegacyXls_NativeSave_MaterializesSharedFormula3DReferences() {
             string openXmlPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".xlsx");
             string xlsOutputPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".xls");
 
@@ -3952,14 +3938,14 @@ namespace OfficeIMO.Tests {
                     document.Save(xlsOutputPath);
                 }
 
-                byte[] sharedFormulaPayload = Assert.Single(GetBiffRecordPayloads(xlsOutputPath, 0x04bc));
-                byte[] formulaTokens = new byte[ReadUInt16(sharedFormulaPayload, 8)];
-                Buffer.BlockCopy(sharedFormulaPayload, 10, formulaTokens, 0, formulaTokens.Length);
-
-                int ref3dOffset = Array.IndexOf(formulaTokens, (byte)0x5a);
-                Assert.True(ref3dOffset >= 0);
-                Assert.Equal((ushort)0, ReadUInt16(formulaTokens, ref3dOffset + 3));
-                Assert.Equal((ushort)0xffff, ReadUInt16(formulaTokens, ref3dOffset + 5));
+                Assert.Empty(GetBiffRecordPayloads(xlsOutputPath, 0x04bc));
+                using ExcelDocument readback = ExcelDocument.Load(xlsOutputPath);
+                ExcelSheet formulas = readback.GetSheet("Shared Formula");
+                Assert.Equal("'Data'!A1+5", formulas.GetFormulaText(1, 2));
+                Assert.Equal("'Data'!A2+5", formulas.GetFormulaText(2, 2));
+                formulas.RecalculateSupportedFormulas();
+                Assert.Equal(15D, formulas.CellAt(1, 2).GetValue<double>());
+                Assert.Equal(25D, formulas.CellAt(2, 2).GetValue<double>());
             } finally {
                 TryDelete(openXmlPath);
                 TryDelete(xlsOutputPath);

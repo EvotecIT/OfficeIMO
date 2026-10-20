@@ -51,12 +51,12 @@ namespace OfficeIMO.Excel {
                 return true;
             }
 
-            double factor = Math.Pow(1d + rate, periods);
-            if (!IsFinite(factor) || Math.Abs(factor - 1d) < double.Epsilon) {
+            if (!TryFinancialAnnuityFactors(rate, periods, out double factor, out double annuity, out _)
+                || annuity == 0 || 1 + rate * type == 0) {
                 return false;
             }
 
-            result = -(rate * (futureValue + presentValue * factor)) / ((1d + rate * type) * (factor - 1d));
+            result = -(futureValue + presentValue * factor) / ((1d + rate * type) * annuity);
             return IsFinite(result);
         }
 
@@ -79,12 +79,11 @@ namespace OfficeIMO.Excel {
                 return true;
             }
 
-            double factor = Math.Pow(1d + rate, periods);
-            if (!IsFinite(factor) || Math.Abs(factor) < double.Epsilon) {
+            if (!TryFinancialAnnuityFactors(rate, periods, out double factor, out double annuity, out _) || factor == 0) {
                 return false;
             }
 
-            result = -(futureValue + payment * (1d + rate * type) * ((factor - 1d) / rate)) / factor;
+            result = -(futureValue + payment * (1d + rate * type) * annuity) / factor;
             return IsFinite(result);
         }
 
@@ -107,12 +106,11 @@ namespace OfficeIMO.Excel {
                 return true;
             }
 
-            double factor = Math.Pow(1d + rate, periods);
-            if (!IsFinite(factor)) {
+            if (!TryFinancialAnnuityFactors(rate, periods, out double factor, out double annuity, out _)) {
                 return false;
             }
 
-            result = -(presentValue * factor + payment * (1d + rate * type) * ((factor - 1d) / rate));
+            result = -(presentValue * factor + payment * (1d + rate * type) * annuity);
             return IsFinite(result);
         }
 
@@ -151,7 +149,8 @@ namespace OfficeIMO.Excel {
                 return false;
             }
 
-            result = Math.Log(ratio) / Math.Log(1d + rate);
+            double difference = -(futureValue + presentValue) * rate / denominator;
+            result = (Math.Abs(difference) < 0.0001 ? FinancialLog1p(difference) : Math.Log(ratio)) / FinancialLog1p(rate);
             return IsFinite(result);
         }
 
@@ -189,11 +188,9 @@ namespace OfficeIMO.Excel {
                 return true;
             }
 
-            if (!TryGetWholeNumber(numbers[index], out type)) {
-                return false;
-            }
-
-            return type == 0 || type == 1;
+            if (!IsFinite(numbers[index])) return false;
+            type = numbers[index] == 0 ? 0 : 1;
+            return true;
         }
 
         private static bool IsFinite(double value) {

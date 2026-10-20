@@ -91,7 +91,7 @@ namespace OfficeIMO.Excel.LegacyXls.Write {
 
             using var tokenStream = new MemoryStream();
             tokenStream.Write(conditionTokens, 0, conditionTokens.Length);
-            WriteAttribute(tokenStream, 0x02, checked((ushort)(trueTokens.Length + 3)));
+            WriteAttribute(tokenStream, 0x02, checked((ushort)(trueTokens.Length + 4)));
             tokenStream.Write(trueTokens, 0, trueTokens.Length);
 
             byte[] falseExtra = Array.Empty<byte>();
@@ -100,10 +100,11 @@ namespace OfficeIMO.Excel.LegacyXls.Write {
                     return false;
                 }
 
-                WriteAttribute(tokenStream, 0x08, checked((ushort)falseTokens.Length));
+                WriteAttribute(tokenStream, 0x08, checked((ushort)(falseTokens.Length + 7)));
                 tokenStream.Write(falseTokens, 0, falseTokens.Length);
             }
 
+            WriteAttribute(tokenStream, 0x08, 3); // Skip the trailing four-byte IF function token.
             tokenStream.WriteByte(0x42);
             tokenStream.WriteByte(checked((byte)arguments.Count));
             WriteUInt16(tokenStream, 0x0001);

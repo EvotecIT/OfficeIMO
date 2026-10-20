@@ -84,60 +84,12 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
                 throw new InvalidDataException(
                     "The RC4 CryptoAPI encryption header requires an EncryptedSummary stream.");
             }
-            if (encrypted.Length < 12) {
-                throw new InvalidDataException(
-                    "The EncryptedSummary stream is truncated.");
-            }
-
-            byte[] header = CopyBytes(encrypted, 0, 8);
-            session.TransformInPlace(header, 0, header.Length,
-                blockNumber: 0, cancellationToken);
-            uint descriptorOffsetValue = ReadUInt32(header, 0);
-            uint descriptorSizeValue = ReadUInt32(header, 4);
-            if (descriptorOffsetValue < 8
-                || descriptorOffsetValue > int.MaxValue
-                || descriptorSizeValue < 4
-                || descriptorSizeValue > int.MaxValue) {
-                throw new InvalidDataException(
-                    "The EncryptedSummary descriptor location is invalid.");
-            }
-            int descriptorOffset = unchecked((int)descriptorOffsetValue);
-            int descriptorSize = unchecked((int)descriptorSizeValue);
-            if (descriptorOffset > encrypted.Length - descriptorSize) {
-                throw new InvalidDataException(
-                    "The EncryptedSummary descriptor array extends beyond the stream.");
-            }
-
-            byte[] descriptors = CopyBytes(encrypted, descriptorOffset,
-                descriptorSize);
-            session.TransformInPlace(descriptors, 0, descriptors.Length,
-                blockNumber: 0, cancellationToken);
-            IReadOnlyList<EncryptedStreamDescriptor> entries =
-                ReadDescriptors(descriptors, descriptorOffset,
-                    cancellationToken);
-            var replacements = new Dictionary<string, byte[]>(
-                StringComparer.OrdinalIgnoreCase);
-            foreach (EncryptedStreamDescriptor entry in entries) {
-                cancellationToken.ThrowIfCancellationRequested();
-                if (entry.StreamOffset < 8
-                    || entry.StreamOffset > descriptorOffset
-                    || entry.StreamSize > descriptorOffset - entry.StreamOffset) {
-                    throw new InvalidDataException(
-                        $"EncryptedSummary entry '{entry.Name}' has an invalid data range.");
-                }
-                if (!entry.IsStream) {
-                    decodedStorageBudget.Consume(entry.StreamSize);
-                }
-                byte[] data = CopyBytes(encrypted, entry.StreamOffset,
-                    entry.StreamSize);
-                session.TransformInPlace(data, 0, data.Length,
-                    entry.BlockNumber, cancellationToken);
-                if (entry.IsStream) {
-                    AddReplacement(replacements, entry.Name, data);
-                } else {
-                    AddStorageReplacements(replacements, entry.Name, data,
-                        options, decodedStorageBudget, cancellationToken);
-                }
+            var replacements = new Dictionary<string, byte[]>(StringComparer.OrdinalIgnoreCase);
+            foreach (var entry in OfficeBinaryEncryptedSummary.Decrypt(encrypted, session, long.MaxValue,
+                (isStream, size) => { if (!isStream) decodedStorageBudget.Consume(size); }, cancellationToken)) {
+                if (entry.IsStream) AddReplacement(replacements, entry.Name, entry.Bytes);
+                else AddStorageReplacements(replacements, entry.Name, entry.Bytes,
+                    options, decodedStorageBudget, cancellationToken);
             }
 
             cancellationToken.ThrowIfCancellationRequested();
@@ -181,66 +133,6 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
             return output.ToArray();
         }
 
-        private static IReadOnlyList<EncryptedStreamDescriptor>
-            ReadDescriptors(byte[] bytes, int descriptorOffset,
-                CancellationToken cancellationToken) {
-            cancellationToken.ThrowIfCancellationRequested();
-            uint countValue = ReadUInt32(bytes, 0);
-            if (countValue > int.MaxValue
-                || countValue > unchecked((uint)((bytes.Length - 4) / 18))) {
-                throw new InvalidDataException(
-                    "The EncryptedSummary descriptor count is invalid.");
-            }
-            int count = unchecked((int)countValue);
-            var entries = new List<EncryptedStreamDescriptor>(count);
-            var names = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-            int position = 4;
-            for (int index = 0; index < count; index++) {
-                cancellationToken.ThrowIfCancellationRequested();
-                if (position > bytes.Length - 18) {
-                    throw new InvalidDataException(
-                        "An EncryptedSummary descriptor is truncated.");
-                }
-                uint offsetValue = ReadUInt32(bytes, position);
-                uint sizeValue = ReadUInt32(bytes, position + 4);
-                ushort block = ReadUInt16(bytes, position + 8);
-                int nameLength = bytes[position + 10];
-                byte flags = bytes[position + 11];
-                position += 16;
-                int nameByteLength = checked(nameLength * 2);
-                if (nameLength == 0
-                    || position > bytes.Length - nameByteLength - 2) {
-                    throw new InvalidDataException(
-                        "An EncryptedSummary descriptor has an invalid stream name.");
-                }
-                string name = Encoding.Unicode.GetString(bytes, position,
-                    nameByteLength);
-                position += nameByteLength;
-                if (ReadUInt16(bytes, position) != 0
-                    || name.IndexOf('\0') >= 0
-                    || name.IndexOf('/') >= 0
-                    || name.IndexOf('\\') >= 0
-                    || !names.Add(name)) {
-                    throw new InvalidDataException(
-                        "An EncryptedSummary descriptor has an invalid or duplicate stream name.");
-                }
-                position += 2;
-                if (offsetValue > int.MaxValue || sizeValue > int.MaxValue
-                    || offsetValue >= unchecked((uint)descriptorOffset)) {
-                    throw new InvalidDataException(
-                        $"EncryptedSummary entry '{name}' has an invalid data location.");
-                }
-                entries.Add(new EncryptedStreamDescriptor(
-                    unchecked((int)offsetValue),
-                    unchecked((int)sizeValue), block,
-                    (flags & 0x01) != 0, name));
-            }
-            if (position != bytes.Length) {
-                throw new InvalidDataException(
-                    "The EncryptedSummary descriptor array has trailing data.");
-            }
-            return entries;
-        }
 
         internal static void AddStorageReplacements(
             IDictionary<string, byte[]> replacements, string storageName,
@@ -318,13 +210,6 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
             Buffer.BlockCopy(source, offset, result, 0, length);
             return result;
         }
-
-        private static ushort ReadUInt16(byte[] bytes, int offset) =>
-            unchecked((ushort)(bytes[offset] | bytes[offset + 1] << 8));
-
-        private static uint ReadUInt32(byte[] bytes, int offset) =>
-            unchecked((uint)(bytes[offset] | bytes[offset + 1] << 8
-                | bytes[offset + 2] << 16 | bytes[offset + 3] << 24));
 
         private static void WriteUInt32(byte[] bytes, int offset,
             uint value) {

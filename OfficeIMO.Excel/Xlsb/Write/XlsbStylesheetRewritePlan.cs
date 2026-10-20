@@ -29,7 +29,7 @@ namespace OfficeIMO.Excel.Xlsb.Write {
         internal static XlsbStylesheetRewritePlan Create(
             ExcelDocument document,
             XlsbWorkbook sourceWorkbook,
-            byte[]? sourcePartBytes) {
+            byte[]? sourcePartBytes, long maximumBytes = int.MaxValue) {
             if (document == null) throw new ArgumentNullException(nameof(document));
             if (sourceWorkbook == null) throw new ArgumentNullException(nameof(sourceWorkbook));
 
@@ -56,57 +56,50 @@ namespace OfficeIMO.Excel.Xlsb.Write {
             }
 
             ValidateRootAndUnchangedCollections(current, expected);
-            Font[] addedFonts = GetAppendedItems<Font>(current.Fonts, expected.Fonts, "fonts");
-            CellFormat[] addedCellFormats = GetAppendedItems<CellFormat>(current.CellFormats, expected.CellFormats, "cell formats");
-            if (addedFonts.Length == 0 && addedCellFormats.Length == 0) {
-                throw new NotSupportedException("Native XLSB rewriting found an unsupported workbook style-table mutation. Save style changes as .xlsx.");
+            Font[] fonts = GetAppendedItems<Font>(current.Fonts, expected.Fonts, "fonts");
+            Fill[] fills = GetAppendedItems<Fill>(current.Fills, expected.Fills, "fills");
+            Border[] borders = GetAppendedItems<Border>(current.Borders, expected.Borders, "borders");
+            NumberingFormat[] formats = GetAppendedItems<NumberingFormat>(current.NumberingFormats, expected.NumberingFormats, "number formats");
+            CellFormat[] xfs = GetAppendedItems<CellFormat>(current.CellFormats, expected.CellFormats, "cell formats");
+            int fontCount = checked(sourceWorkbook.Stylesheet.Fonts.Count + fonts.Length);
+            int fillCount = checked(sourceWorkbook.Stylesheet.Fills.Count + fills.Length);
+            int borderCount = checked(sourceWorkbook.Stylesheet.Borders.Count + borders.Length);
+            int cellFormatCount = checked(sourceWorkbook.Stylesheet.CellFormats.Count + xfs.Length);
+            if (fontCount > MaximumFonts || cellFormatCount > MaximumCellFormats || fillCount > ushort.MaxValue || borderCount > ushort.MaxValue)
+                throw new NotSupportedException("The XLSB formatting collection exceeds its native index limit.");
+            ValidateAddedCellFormats(xfs, fontCount, fillCount, borderCount, sourceWorkbook.Stylesheet.CellStyleFormats.Count);
+            var ids = new HashSet<uint>();
+            var appended = new HashSet<NumberingFormat>(formats);
+            foreach (var format in current.NumberingFormats?.Elements<NumberingFormat>() ?? Enumerable.Empty<NumberingFormat>()) {
+                uint id = format.NumberFormatId?.Value ?? 0;
+                if (id > ushort.MaxValue || (appended.Contains(format) && id < 164) || !ids.Add(id)) throw new NotSupportedException("XLSB number format ids must be unique and at most 65535; appended formats require ids of at least 164.");
             }
-
-            int fontCount = checked(sourceWorkbook.Stylesheet.Fonts.Count + addedFonts.Length);
-            int cellFormatCount = checked(sourceWorkbook.Stylesheet.CellFormats.Count + addedCellFormats.Length);
-            if (fontCount > MaximumFonts) {
-                throw new NotSupportedException($"Native XLSB rewriting supports at most {MaximumFonts:N0} fonts.");
-            }
-            if (cellFormatCount > MaximumCellFormats) {
-                throw new NotSupportedException($"Native XLSB rewriting supports at most {MaximumCellFormats:N0} cell formats.");
-            }
-            ValidateAddedCellFormats(
-                addedCellFormats,
-                fontCount,
-                sourceWorkbook.Stylesheet.Fills.Count,
-                sourceWorkbook.Stylesheet.Borders.Count,
-                sourceWorkbook.Stylesheet.CellStyleFormats.Count);
-
-            XlsbGeneratedRecord[] fontRecords = addedFonts
-                .Select(XlsbStylesheetPartWriter.CreateFontRecord)
-                .ToArray();
-            XlsbGeneratedRecord[] cellFormatRecords = addedCellFormats
-                .Select(format => XlsbStylesheetPartWriter.CreateCellFormatRecord(format))
-                .ToArray();
-            byte[] replacement = RewriteCollections(
-                sourcePartBytes,
-                sourceWorkbook.Stylesheet.Fonts.Count,
-                sourceWorkbook.Stylesheet.CellFormats.Count,
-                fontRecords,
-                cellFormatRecords);
+            if (xfs.Any(format => (format.NumberFormatId?.Value ?? 0) >= 164 && !ids.Contains(format.NumberFormatId!.Value)))
+                throw new NotSupportedException("An appended XLSB cell format refers to an undefined custom number format.");
+            var collections = new[] {
+                new Collection(615, 616, sourceWorkbook.Stylesheet.NumberFormats.Count, formats.Select(XlsbStylesheetPartWriter.CreateNumberFormatRecord).ToArray()),
+                new Collection(BrtBeginFonts, BrtEndFonts, sourceWorkbook.Stylesheet.Fonts.Count, fonts.Select(XlsbStylesheetPartWriter.CreateFontRecord).ToArray()),
+                new Collection(603, 604, sourceWorkbook.Stylesheet.Fills.Count, fills.Select(XlsbStylesheetPartWriter.CreateFillRecord).ToArray()),
+                new Collection(613, 614, sourceWorkbook.Stylesheet.Borders.Count, borders.Select(XlsbStylesheetPartWriter.CreateBorderRecord).ToArray()),
+                new Collection(BrtBeginCellXfs, BrtEndCellXfs, sourceWorkbook.Stylesheet.CellFormats.Count, xfs.Select(format => XlsbStylesheetPartWriter.CreateCellFormatRecord(format)).ToArray())
+            };
+            byte[] replacement = RewriteCollections(sourcePartBytes, collections, maximumBytes);
             return new XlsbStylesheetRewritePlan(sourceWorkbook.StylesheetPartName, replacement, cellFormatCount);
         }
 
         private static void ValidateRootAndUnchangedCollections(Stylesheet current, Stylesheet expected) {
             if (!AttributesMatch(current, expected, ignoreCount: false)) ThrowUnsupportedMutation();
-            OpenXmlElement[] currentChildren = current.ChildElements.ToArray();
-            OpenXmlElement[] expectedChildren = expected.ChildElements.ToArray();
+            static bool Editable(OpenXmlElement element) => element is Fonts or Fills or Borders or NumberingFormats or CellFormats;
+            if (current.ChildElements.Where(Editable).GroupBy(element => element.GetType()).Any(group => group.Count() != 1)) ThrowUnsupportedMutation();
+            OpenXmlElement[] currentChildren = current.ChildElements.Where(element => !Editable(element)).ToArray();
+            OpenXmlElement[] expectedChildren = expected.ChildElements.Where(element => !Editable(element)).ToArray();
             if (currentChildren.Length != expectedChildren.Length) ThrowUnsupportedMutation();
-
-            for (int index = 0; index < currentChildren.Length; index++) {
-                OpenXmlElement actual = currentChildren[index];
-                OpenXmlElement baseline = expectedChildren[index];
-                if (actual.GetType() != baseline.GetType()) ThrowUnsupportedMutation();
-                if (actual is Fonts || actual is CellFormats) {
-                    if (!AttributesMatch(actual, baseline, ignoreCount: true)) ThrowUnsupportedMutation();
-                    continue;
-                }
-                if (!string.Equals(actual.OuterXml, baseline.OuterXml, StringComparison.Ordinal)) ThrowUnsupportedMutation();
+            for (int index = 0; index < currentChildren.Length; index++)
+                if (currentChildren[index].OuterXml != expectedChildren[index].OuterXml) ThrowUnsupportedMutation();
+            foreach (var actual in current.ChildElements.Where(Editable)) {
+                var baseline = expected.ChildElements.FirstOrDefault(element => element.GetType() == actual.GetType());
+                if (baseline != null && !AttributesMatch(actual, baseline, ignoreCount: true)) ThrowUnsupportedMutation();
+                if (baseline == null && actual.GetAttributes().Any(attribute => attribute.LocalName != "count")) ThrowUnsupportedMutation();
             }
         }
 
@@ -164,50 +157,42 @@ namespace OfficeIMO.Excel.Xlsb.Write {
             }
         }
 
-        private static byte[] RewriteCollections(
-            byte[] sourcePartBytes,
-            int sourceFontCount,
-            int sourceCellFormatCount,
-            IReadOnlyList<XlsbGeneratedRecord> addedFonts,
-            IReadOnlyList<XlsbGeneratedRecord> addedCellFormats) {
-            IReadOnlyList<XlsbRecord> records;
-            using (var input = new MemoryStream(sourcePartBytes, writable: false)) {
-                records = XlsbRecordReader.ReadAll(input);
-            }
-            int beginFonts = FindSingleRecord(records, BrtBeginFonts, "BrtBeginFonts");
-            int endFonts = FindSingleRecord(records, BrtEndFonts, "BrtEndFonts");
-            int beginCellFormats = FindSingleRecord(records, BrtBeginCellXfs, "BrtBeginCellXFs");
-            int endCellFormats = FindSingleRecord(records, BrtEndCellXfs, "BrtEndCellXFs");
-            ValidateDeclaredCount(records[beginFonts], sourceFontCount, "font");
-            ValidateDeclaredCount(records[beginCellFormats], sourceCellFormatCount, "cell format");
+        private sealed record Collection(int Begin, int End, int OriginalCount, IReadOnlyList<XlsbGeneratedRecord> Added);
 
-            using var output = new MemoryStream(sourcePartBytes.Length + (addedFonts.Count + addedCellFormats.Count) * 64);
-            for (int index = 0; index < records.Count; index++) {
-                XlsbRecord record = records[index];
-                if (index == beginFonts) {
-                    WriteCountRecord(output, record.Type, checked(sourceFontCount + addedFonts.Count));
-                    continue;
-                }
-                if (index == beginCellFormats) {
-                    WriteCountRecord(output, record.Type, checked(sourceCellFormatCount + addedCellFormats.Count));
-                    continue;
-                }
-                if (index == endFonts) WriteGeneratedRecords(output, addedFonts);
-                if (index == endCellFormats) WriteGeneratedRecords(output, addedCellFormats);
-                XlsbRecordWriter.Write(output, record.Type, record.Data);
+        private static byte[] RewriteCollections(byte[] sourcePartBytes, IReadOnlyList<Collection> collections, long maximumBytes) {
+            using var input = new MemoryStream(sourcePartBytes, writable: false);
+            var records = XlsbRecordReader.ReadAll(input);
+            var missing = new HashSet<int>();
+            foreach (var collection in collections) {
+                var begins = records.Select((record, index) => (record, index)).Where(item => item.record.Type == collection.Begin).ToArray();
+                var ends = records.Select((record, index) => (record, index)).Where(item => item.record.Type == collection.End).ToArray();
+                if (begins.Length == 0 && ends.Length == 0 && collection.OriginalCount == 0) { missing.Add(collection.Begin); continue; }
+                if (begins.Length != 1 || ends.Length != 1 || begins[0].index >= ends[0].index)
+                    throw new InvalidDataException("The XLSB formatting collection has invalid framing.");
+                ValidateDeclaredCount(begins[0].record, collection.OriginalCount, "formatting");
             }
+            using var output = new OfficeIMO.Core.Internal.OfficeBoundedMemoryStream(maximumBytes);
+            // Fmts is optional and precedes fonts. Other core collections are mandatory in a projected source.
+            foreach (var record in records) {
+                if (record.Type == BrtBeginFonts && missing.Contains(615)) {
+                    var formats = collections[0];
+                    if (formats.Added.Count > 0) {
+                        WriteCountRecord(output, formats.Begin, formats.Added.Count);
+                        WriteGeneratedRecords(output, formats.Added);
+                        XlsbRecordWriter.Write(output, formats.End, Array.Empty<byte>());
+                    }
+                }
+                var begin = collections.FirstOrDefault(collection => collection.Begin == record.Type);
+                var end = collections.FirstOrDefault(collection => collection.End == record.Type);
+                if (begin != null) WriteCountRecord(output, record.Type, checked(begin.OriginalCount + begin.Added.Count));
+                else {
+                    if (end != null) WriteGeneratedRecords(output, end.Added);
+                    XlsbRecordWriter.Write(output, record.Type, record.Data);
+                }
+            }
+            if (collections.Any(collection => collection.Begin != 615 && missing.Contains(collection.Begin) && collection.Added.Count > 0))
+                throw new InvalidDataException("The source XLSB stylesheet is missing a required formatting collection.");
             return output.ToArray();
-        }
-
-        private static int FindSingleRecord(IReadOnlyList<XlsbRecord> records, int type, string name) {
-            int found = -1;
-            for (int index = 0; index < records.Count; index++) {
-                if (records[index].Type != type) continue;
-                if (found >= 0) throw new InvalidDataException($"The XLSB styles part contains more than one {name} record.");
-                found = index;
-            }
-            if (found < 0) throw new InvalidDataException($"The XLSB styles part is missing its {name} record.");
-            return found;
         }
 
         private static void ValidateDeclaredCount(XlsbRecord record, int expected, string description) {
@@ -240,6 +225,6 @@ namespace OfficeIMO.Excel.Xlsb.Write {
         }
 
         private static void ThrowUnsupportedMutation() =>
-            throw new NotSupportedException("Native XLSB rewriting supports only append-only font and cell-format additions to the workbook style table. Save other style changes as .xlsx.");
+            throw new NotSupportedException("Native XLSB rewriting supports append-only font, fill, border, number-format and cell-format additions to the workbook style table. Save other style changes as .xlsx.");
     }
 }

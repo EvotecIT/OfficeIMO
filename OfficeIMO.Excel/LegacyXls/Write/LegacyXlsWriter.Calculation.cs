@@ -38,9 +38,10 @@ namespace OfficeIMO.Excel.LegacyXls.Write {
                 properties?.CalculationOnSave?.Value == false ? (ushort)0 : (ushort)1));
         }
 
-        private static void WriteWorksheetCalculationRecords(Stream stream, ExcelSheet sheet) {
+        private static void WriteWorksheetCalculationRecords(Stream stream, ExcelDocument document, ExcelSheet sheet) {
             SheetCalculationProperties? properties = sheet.WorksheetPart.Worksheet?.GetFirstChild<SheetCalculationProperties>();
-            if (properties?.FullCalculationOnLoad?.Value == true) {
+            if (properties?.FullCalculationOnLoad?.Value == true || document.WorkbookRoot.CalculationProperties?.FullCalculationOnLoad?.Value == true
+                || document.WorkbookRoot.CalculationProperties?.ForceFullCalculation?.Value == true) {
                 WriteRecord(stream, 0x005e, BuildUInt16Payload(0));
             }
         }

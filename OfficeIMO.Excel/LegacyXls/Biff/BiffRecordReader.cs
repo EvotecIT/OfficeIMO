@@ -2,10 +2,11 @@ using OfficeIMO.Excel.LegacyXls.Diagnostics;
 
 namespace OfficeIMO.Excel.LegacyXls.Biff {
     internal static class BiffRecordReader {
-        internal static IReadOnlyList<BiffRecord> ReadRecords(byte[] bytes, List<LegacyXlsImportDiagnostic> diagnostics) {
+        internal static IReadOnlyList<BiffRecord> ReadRecords(byte[] bytes, List<LegacyXlsImportDiagnostic> diagnostics, System.Threading.CancellationToken cancellationToken = default) {
             var records = new List<BiffRecord>();
             int offset = 0;
             while (offset < bytes.Length) {
+                cancellationToken.ThrowIfCancellationRequested();
                 if (offset + 4 > bytes.Length) {
                     diagnostics.Add(new LegacyXlsImportDiagnostic(
                         LegacyXlsDiagnosticSeverity.Error,

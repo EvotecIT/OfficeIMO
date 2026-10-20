@@ -95,13 +95,13 @@ namespace OfficeIMO.Excel.LegacyXls.Write {
                 return false;
             }
 
-            internal void WriteRecords(Stream stream, CancellationToken cancellationToken = default) {
+            internal void WriteRecords(Stream stream, CancellationToken cancellationToken = default, long maximumBytes = int.MaxValue) {
                 cancellationToken.ThrowIfCancellationRequested();
                 if (_entries.Count == 0) {
                     return;
                 }
 
-                var writer = new LegacyXlsStringSegmentWriter();
+                var writer = new LegacyXlsStringSegmentWriter(maximumBytes);
                 writer.WriteUInt32(_totalCount);
                 writer.WriteUInt32(checked((uint)_entries.Count));
                 var stringPositions = new List<LegacyXlsStringPosition>(_entries.Count);
@@ -150,7 +150,7 @@ namespace OfficeIMO.Excel.LegacyXls.Write {
                     LegacyXlsStringPosition position = stringPositions[stringIndex];
                     ushort recordRelativeOffset = checked((ushort)(position.Offset + 4));
                     uint containingRecordOffset = checked((uint)recordOffsets[position.SegmentIndex]);
-                    WriteUInt32(payload, containingRecordOffset);
+                    WriteUInt32(payload, checked(containingRecordOffset + recordRelativeOffset));
                     WriteUInt16(payload, recordRelativeOffset);
                     WriteUInt16(payload, 0);
                 }
@@ -191,7 +191,20 @@ namespace OfficeIMO.Excel.LegacyXls.Write {
         }
 
         private sealed class LegacyXlsStringSegmentWriter {
-            private readonly List<MemoryStream> _segments = new List<MemoryStream> { new MemoryStream() };
+            private readonly List<MemoryStream> _segments = new();
+            private readonly long _maximumBytes;
+            private long _completedBytes;
+
+            internal LegacyXlsStringSegmentWriter(long maximumBytes = int.MaxValue) {
+                _maximumBytes = maximumBytes;
+                AddBoundedSegment();
+            }
+
+            private void AddBoundedSegment() {
+                long remaining = _maximumBytes - _completedBytes - 4;
+                if (remaining <= 0) throw OfficeIMO.Core.Internal.OfficeOutputLimit.Create("Native XLS shared strings exceed the in-memory save limit.");
+                _segments.Add(new OfficeIMO.Core.Internal.OfficeBoundedMemoryStream(Math.Min(BiffMaxRecordDataLength, remaining)));
+            }
 
             private MemoryStream Current => _segments[_segments.Count - 1];
 
@@ -278,7 +291,8 @@ namespace OfficeIMO.Excel.LegacyXls.Write {
                     return;
                 }
 
-                _segments.Add(new MemoryStream());
+                _completedBytes = checked(_completedBytes + Current.Length + 4);
+                AddBoundedSegment();
             }
         }
 

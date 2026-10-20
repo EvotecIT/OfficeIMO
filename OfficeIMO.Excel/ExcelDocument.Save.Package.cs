@@ -18,7 +18,8 @@ using System.Linq;
 namespace OfficeIMO.Excel {
     public partial class ExcelDocument : IDisposable, IAsyncDisposable {
 
-        private void PrepareWorkbookForSave(ExcelSaveOptions? options, bool skipDirectFastSaveSheetPreparation = false) {
+        private void PrepareWorkbookForSave(ExcelSaveOptions? options, bool skipDirectFastSaveSheetPreparation = false,
+            bool applyCalculationPolicy = true) {
             ApplySignatureMutationPolicy(options);
             Stopwatch? stageWatch = Execution.OnTiming == null ? null : Stopwatch.StartNew();
             if (skipDirectFastSaveSheetPreparation) {
@@ -32,7 +33,7 @@ namespace OfficeIMO.Excel {
                 : null;
 
             // Ensure all worksheets have up-to-date dimensions and proper element ordering before saving
-            ApplyCalculationPolicyBeforeSave(options);
+            if (applyCalculationPolicy) ApplyCalculationPolicyBeforeSave(options);
             ReportSaveTiming(stageWatch, "Save.PrepareWorkbook.ApplyCalculationPolicy");
 
             var sheets = Sheets;

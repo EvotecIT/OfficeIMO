@@ -6,6 +6,9 @@ namespace OfficeIMO.Excel.LegacyXls.Write {
             int formulaSheetIndex,
             out byte[] tokens) {
             tokens = Array.Empty<byte>();
+            // A concrete qualified area already owns its entire sheet scope;
+            // splitting its colon would bind an unqualified endpoint to this sheet.
+            if (TryEncodeSheetQualifiedReference(formulaText, allowArea: true, nameIndex, out tokens)) return true;
             if (TryGetParenthesizedInnerText(formulaText, out string? innerText)
                 && TryEncodeReferenceOperator(innerText!, nameIndex, formulaSheetIndex, out byte[] innerTokens)) {
                 tokens = ShouldPreserveReferenceParentheses(innerTokens)

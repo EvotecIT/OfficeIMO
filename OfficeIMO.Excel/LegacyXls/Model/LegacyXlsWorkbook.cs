@@ -43,6 +43,8 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
         private readonly LegacyXlsCalculationSettings _calculationSettings = new();
 
         /// <summary>Gets the private source container retained for same-format compound rewriting.</summary>
+        internal Dictionary<int, int> NativeSheetOrder { get; } = new();
+
         internal OfficeCompoundFile? SourceCompoundFile { get; private set; }
 
         /// <summary>Gets whether the workbook stream was successfully decrypted from password-to-open protection.</summary>
@@ -690,7 +692,11 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
             }
 
             options.CancellationToken.ThrowIfCancellationRequested();
-            LegacyXlsWorkbook parsedWorkbook = LegacyBiffWorkbookParser.Parse(workbookStream, options);
+            LegacyXlsWorkbook parsedWorkbook = LegacyBiffWorkbookParser.Parse(workbookStream, options, out byte[] decodedSource);
+            if (parsedWorkbook.WasEncryptedSource && !ReferenceEquals(workbookStream, decodedSource)) {
+                compoundFile = LegacyXlsCompoundEncryption.RestorePlaintextStreams(compoundFile,
+                    workbookStream, decodedSource, options, parsedWorkbook.MutableDiagnostics);
+            }
             parsedWorkbook.SourceCompoundFile = compoundFile;
             options.CancellationToken.ThrowIfCancellationRequested();
             LegacyOleDocumentPropertyReader.AddDocumentProperties(compoundFile, parsedWorkbook, options);

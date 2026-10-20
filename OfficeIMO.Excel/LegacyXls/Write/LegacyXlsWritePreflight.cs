@@ -67,7 +67,7 @@ namespace OfficeIMO.Excel.LegacyXls.Write {
             }
         }
 
-        private static void ThrowIfUnsupported(
+        internal static void ThrowIfUnsupported(
             ExcelSheet sheet,
             int sheetIndex,
             WorkbookPart workbookPart,
@@ -403,7 +403,7 @@ namespace OfficeIMO.Excel.LegacyXls.Write {
             return true;
         }
 
-        private static bool SupportsWorkbookCalculationProperties(Workbook workbook, out string? reason) {
+        internal static bool SupportsWorkbookCalculationProperties(Workbook workbook, out string? reason) {
             reason = null;
             CalculationProperties? properties = workbook.GetFirstChild<CalculationProperties>();
             if (properties == null) {
@@ -427,7 +427,9 @@ namespace OfficeIMO.Excel.LegacyXls.Write {
         }
 
         private static bool IsSupportedWorkbookCalculationAttribute(string localName) {
-            return string.Equals(localName, "calcMode", StringComparison.Ordinal)
+            return string.Equals(localName, "fullCalcOnLoad", StringComparison.Ordinal)
+                || string.Equals(localName, "forceFullCalc", StringComparison.Ordinal)
+                || string.Equals(localName, "calcMode", StringComparison.Ordinal)
                 || string.Equals(localName, "iterateCount", StringComparison.Ordinal)
                 || string.Equals(localName, "fullPrecision", StringComparison.Ordinal)
                 || string.Equals(localName, "refMode", StringComparison.Ordinal)
@@ -788,7 +790,7 @@ namespace OfficeIMO.Excel.LegacyXls.Write {
             return value.Length;
         }
 
-        private static bool SupportsWorksheetCalculationProperties(SheetCalculationProperties properties) {
+        internal static bool SupportsWorksheetCalculationProperties(SheetCalculationProperties properties) {
             if (properties.HasChildren) {
                 return false;
             }

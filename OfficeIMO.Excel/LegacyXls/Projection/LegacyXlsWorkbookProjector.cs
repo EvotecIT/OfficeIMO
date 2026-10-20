@@ -107,7 +107,11 @@ namespace OfficeIMO.Excel.LegacyXls.Projection {
                 sheets.Add(new LegacyXlsSheetProjectionEntry(chartSheet.StreamOffset, null, chartSheet));
             }
 
-            sheets.Sort((left, right) => left.StreamOffset.CompareTo(right.StreamOffset));
+            sheets.Sort((left, right) => {
+                int first = workbook.NativeSheetOrder.TryGetValue(left.StreamOffset, out int leftOrder) ? leftOrder : left.StreamOffset;
+                int second = workbook.NativeSheetOrder.TryGetValue(right.StreamOffset, out int rightOrder) ? rightOrder : right.StreamOffset;
+                return first.CompareTo(second);
+            });
             return sheets;
         }
 
@@ -392,37 +396,6 @@ namespace OfficeIMO.Excel.LegacyXls.Projection {
             }
         }
 
-        private static void ProjectCodeNames(
-            LegacyXlsWorkbook workbook,
-            ExcelDocument document,
-            CancellationToken cancellationToken) {
-            if (!string.IsNullOrWhiteSpace(workbook.CodeName)) {
-                WorkbookProperties properties = GetOrCreateWorkbookProperties(document);
-                properties.CodeName = workbook.CodeName;
-            }
-
-            for (int i = 0; i < workbook.Worksheets.Count && i < document.Sheets.Count; i++) {
-                cancellationToken.ThrowIfCancellationRequested();
-                string? codeName = workbook.Worksheets[i].CodeName;
-                if (string.IsNullOrWhiteSpace(codeName)) {
-                    continue;
-                }
-
-                Worksheet worksheet = document.Sheets[i].WorksheetPart.Worksheet!;
-                SheetProperties properties = worksheet.GetFirstChild<SheetProperties>() ?? new SheetProperties();
-                if (properties.Parent == null) {
-                    SheetDimension? dimension = worksheet.GetFirstChild<SheetDimension>();
-                    if (dimension != null) {
-                        worksheet.InsertBefore(properties, dimension);
-                    } else {
-                        worksheet.InsertAt(properties, 0);
-                    }
-                }
-
-                properties.CodeName = codeName;
-            }
-        }
-
         private static WorkbookProperties GetOrCreateWorkbookProperties(ExcelDocument document) {
             WorkbookProperties properties = document.WorkbookRoot.GetFirstChild<WorkbookProperties>() ?? new WorkbookProperties();
             if (properties.Parent == null) {
@@ -521,50 +494,6 @@ namespace OfficeIMO.Excel.LegacyXls.Projection {
             if (settings.RecalculateBeforeSave.HasValue) {
                 properties.CalculationOnSave = settings.RecalculateBeforeSave.Value;
             }
-        }
-
-        private static void ProjectWorkbookWindow(
-            LegacyXlsWorkbook workbook,
-            ExcelDocument document,
-            CancellationToken cancellationToken) {
-            if (workbook.Windows.Count == 0) {
-                return;
-            }
-
-            LegacyXlsWorkbookWindow window = workbook.Windows[0];
-            if (window.ActiveSheetIndex < workbook.Worksheets.Count) {
-                LegacyXlsWorksheet activeSheet = workbook.Worksheets[window.ActiveSheetIndex];
-                if (activeSheet.Visibility == 0) {
-                    document.SetActiveWorksheet(window.ActiveSheetIndex);
-                }
-            }
-
-            BookViews workbookViews = GetOrCreateWorkbookViews(document);
-            workbookViews.RemoveAllChildren<WorkbookView>();
-            foreach (LegacyXlsWorkbookWindow legacyWindow in workbook.Windows) {
-                cancellationToken.ThrowIfCancellationRequested();
-                WorkbookView workbookView = workbookViews.AppendChild(new WorkbookView());
-                ProjectWorkbookWindowView(workbook, legacyWindow, workbookView);
-            }
-        }
-
-        private static void ProjectWorkbookWindowView(LegacyXlsWorkbook workbook, LegacyXlsWorkbookWindow window, WorkbookView workbookView) {
-            workbookView.XWindow = window.HorizontalPositionTwips;
-            workbookView.YWindow = window.VerticalPositionTwips;
-            workbookView.WindowWidth = checked((uint)Math.Max(0, (int)window.WidthTwips));
-            workbookView.WindowHeight = checked((uint)Math.Max(0, (int)window.HeightTwips));
-            workbookView.Visibility = ToWorkbookViewVisibility(window);
-            workbookView.Minimized = window.Minimized;
-            workbookView.ActiveTab = window.ActiveSheetIndex < workbook.Worksheets.Count
-                ? window.ActiveSheetIndex
-                : 0U;
-            workbookView.FirstSheet = window.FirstVisibleSheetTabIndex < workbook.Worksheets.Count
-                ? (uint)window.FirstVisibleSheetTabIndex
-                : window.ActiveSheetIndex < workbook.Worksheets.Count ? window.ActiveSheetIndex : 0U;
-            workbookView.ShowHorizontalScroll = window.HorizontalScrollBarVisible;
-            workbookView.ShowVerticalScroll = window.VerticalScrollBarVisible;
-            workbookView.ShowSheetTabs = window.SheetTabsVisible;
-            workbookView.TabRatio = window.SheetTabRatio;
         }
 
         private static BookViews GetOrCreateWorkbookViews(ExcelDocument document) {
@@ -1736,34 +1665,6 @@ namespace OfficeIMO.Excel.LegacyXls.Projection {
             }
 
             definedNames.Append(openXmlName);
-        }
-
-        private static void ProjectAutoFilters(
-            LegacyXlsWorkbook workbook,
-            ExcelDocument document,
-            CancellationToken cancellationToken) {
-            IReadOnlyDictionary<int, int> worksheetIndexByProjectedSheetIndex =
-                CreateWorksheetIndexByProjectedSheetIndex(workbook, cancellationToken);
-            for (int i = 0; i < workbook.Worksheets.Count && i < document.Sheets.Count; i++) {
-                cancellationToken.ThrowIfCancellationRequested();
-                LegacyXlsWorksheet legacySheet = workbook.Worksheets[i];
-                if (legacySheet.AutoFilterCriteria.Count == 0) {
-                    continue;
-                }
-
-                ExcelSheet sheet = document.Sheets[i];
-                if (!TryGetAutoFilterRange(
-                    workbook,
-                    sheet,
-                    i,
-                    worksheetIndexByProjectedSheetIndex,
-                    cancellationToken,
-                    out string autoFilterRange)) {
-                    continue;
-                }
-
-                LegacyXlsAutoFilterProjector.Project(sheet, autoFilterRange, legacySheet.AutoFilterCriteria);
-            }
         }
 
         private static bool TryGetAutoFilterRange(

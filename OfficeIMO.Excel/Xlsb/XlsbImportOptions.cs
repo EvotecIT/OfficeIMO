@@ -51,8 +51,16 @@ namespace OfficeIMO.Excel.Xlsb {
         /// <summary>Gets or sets the token observed while reading and projecting workbook records.</summary>
         public System.Threading.CancellationToken CancellationToken { get; set; }
 
+        /// <summary>Gets or sets the largest chart/VBA related-part graph projected from one workbook.</summary>
+        public int MaxRelatedParts { get; set; } = 100_000;
+
+        /// <summary>Gets or sets the largest relationship depth projected from chart and VBA carriers.</summary>
+        public int MaxRelationshipDepth { get; set; } = 64;
+
         internal void Validate() {
             CancellationToken.ThrowIfCancellationRequested();
+            if (MaxRelatedParts <= 0) throw new ArgumentOutOfRangeException(nameof(MaxRelatedParts));
+            if (MaxRelationshipDepth <= 0) throw new ArgumentOutOfRangeException(nameof(MaxRelationshipDepth));
             if (MaxPartBytes <= 0) throw new ArgumentOutOfRangeException(nameof(MaxPartBytes));
             if (MaxPackageBytes <= 0) throw new ArgumentOutOfRangeException(nameof(MaxPackageBytes));
             if (MaxRecordBytes <= 0) throw new ArgumentOutOfRangeException(nameof(MaxRecordBytes));

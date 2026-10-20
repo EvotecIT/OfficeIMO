@@ -9,7 +9,10 @@ namespace OfficeIMO.Excel.Utilities {
         /// Uses the workbook's font-zero digit advances when that installed face is available.
         /// Grid dimensions use whole-pixel digit widths; missing faces retain the seven-pixel fallback.
         /// </summary>
-        internal static double GetMaximumDigitWidth(WorksheetPart? worksheetPart) {
+        internal static double GetMaximumDigitWidth(WorksheetPart? worksheetPart) => GetMaximumDigitWidth(worksheetPart, out _);
+
+        internal static double GetMaximumDigitWidth(WorksheetPart? worksheetPart, out bool resolved) {
+            resolved = false;
             WorkbookPart? workbook = worksheetPart?.GetParentParts().OfType<WorkbookPart>().FirstOrDefault();
             Font? font = workbook?.WorkbookStylesPart?.Stylesheet?.Fonts?.Elements<Font>().FirstOrDefault();
             string? family = font?.GetFirstChild<FontName>()?.Val?.Value;
@@ -25,6 +28,7 @@ namespace OfficeIMO.Excel.Utilities {
             if (size <= 0D || double.IsNaN(size) || double.IsInfinity(size)) return 7D;
             double maximum = 0D;
             for (char digit = '0'; digit <= '9'; digit++) maximum = Math.Max(maximum, program.Measure(digit.ToString(), size * 96D / 72D));
+            resolved = maximum > 0D && !double.IsNaN(maximum) && !double.IsInfinity(maximum);
             return maximum > 0D && !double.IsNaN(maximum) && !double.IsInfinity(maximum)
                 ? Math.Max(1D, Math.Round(maximum, MidpointRounding.AwayFromZero)) : 7D;
         }

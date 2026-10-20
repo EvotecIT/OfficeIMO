@@ -36,10 +36,10 @@ namespace OfficeIMO.Excel.Xlsb.Write {
         private const int BrtStyle = 48;
 
         /// <summary>Defines style zero even when a new workbook has no explicit formatting.</summary>
-        internal static byte[] CreateForNewWorkbook(Stylesheet? stylesheet, out int cellFormatCount) =>
-            Create(stylesheet ?? ExcelDocument.CreateDefaultStylesheet(), out cellFormatCount);
+        internal static byte[] CreateForNewWorkbook(Stylesheet? stylesheet, out int cellFormatCount, long maximumBytes = int.MaxValue) =>
+            Create(stylesheet ?? ExcelDocument.CreateDefaultStylesheet(), out cellFormatCount, maximumBytes);
 
-        internal static byte[] Create(Stylesheet stylesheet, out int cellFormatCount) {
+        internal static byte[] Create(Stylesheet stylesheet, out int cellFormatCount, long maximumBytes = int.MaxValue) {
             if (stylesheet == null) throw new ArgumentNullException(nameof(stylesheet));
             ValidateUnsupportedCollections(stylesheet);
 
@@ -55,7 +55,7 @@ namespace OfficeIMO.Excel.Xlsb.Write {
             ValidateCellFormatReferences(styleFormats, fonts.Length, fills.Length, borders.Length, isStyleFormat: true);
             ValidateCellFormatReferences(cellFormats, fonts.Length, fills.Length, borders.Length, isStyleFormat: false, styleFormats.Length);
 
-            using var output = new MemoryStream(1024 + (fonts.Length + fills.Length + borders.Length + cellFormats.Length) * 80);
+            using var output = new OfficeIMO.Core.Internal.OfficeBoundedMemoryStream(maximumBytes);
             XlsbRecordWriter.Write(output, BrtBeginStyleSheet);
             if (numberFormats.Length > 0) {
                 WriteCollection(output, BrtBeginFmts, BrtEndFmts, numberFormats, WriteNumberFormat);
@@ -139,6 +139,14 @@ namespace OfficeIMO.Excel.Xlsb.Write {
             XlsbRecordWriter.Write(output, endRecord);
         }
 
+        internal static XlsbGeneratedRecord CreateNumberFormatRecord(NumberingFormat value) {
+            using var output = new MemoryStream();
+            WriteNumberFormat(output, value);
+            output.Position = 0;
+            var record = XlsbRecordReader.ReadAll(output).Single();
+            return new XlsbGeneratedRecord(record.Type, record.Data);
+        }
+
         private static void WriteNumberFormat(Stream output, NumberingFormat format) {
             uint id = format.NumberFormatId?.Value
                 ?? throw new NotSupportedException("Native XLSB generation requires every custom number format to have an id.");
@@ -192,6 +200,14 @@ namespace OfficeIMO.Excel.Xlsb.Write {
             return new XlsbGeneratedRecord(BrtFont, payload.ToArray());
         }
 
+        internal static XlsbGeneratedRecord CreateFillRecord(Fill value) {
+            using var output = new MemoryStream();
+            WriteFill(output, value);
+            output.Position = 0;
+            var record = XlsbRecordReader.ReadAll(output).Single();
+            return new XlsbGeneratedRecord(record.Type, record.Data);
+        }
+
         private static void WriteFill(Stream output, Fill fill) {
             GradientFill? gradient = fill.GetFirstChild<GradientFill>();
             if (gradient != null) {
@@ -207,6 +223,14 @@ namespace OfficeIMO.Excel.Xlsb.Write {
             for (int index = 0; index < 5; index++) WriteDouble(payload, 0D);
             WriteUInt32(payload, 0);
             XlsbRecordWriter.Write(output, BrtFill, payload.ToArray());
+        }
+
+        internal static XlsbGeneratedRecord CreateBorderRecord(Border value) {
+            using var output = new MemoryStream();
+            WriteBorder(output, value);
+            output.Position = 0;
+            var record = XlsbRecordReader.ReadAll(output).Single();
+            return new XlsbGeneratedRecord(record.Type, record.Data);
         }
 
         private static void WriteBorder(Stream output, Border border) {

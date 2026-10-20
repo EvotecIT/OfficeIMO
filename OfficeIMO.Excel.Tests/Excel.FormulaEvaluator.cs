@@ -726,16 +726,16 @@ namespace OfficeIMO.Tests {
 
                 ExcelFormulaInspection before = sheet.InspectFormulas();
                 Assert.Equal(11, before.TotalFormulas);
-                Assert.Equal(9, before.SupportedFormulas);
+                Assert.Equal(10, before.SupportedFormulas);
                 Assert.Contains("PMT", before.Capabilities.SupportedFunctions);
                 Assert.Contains("PV", before.Capabilities.SupportedFunctions);
                 Assert.Contains("FV", before.Capabilities.SupportedFunctions);
                 Assert.Contains("NPER", before.Capabilities.SupportedFunctions);
                 Assert.Contains("NPV", before.Capabilities.SupportedFunctions);
-                Assert.Contains(before.Formulas, formula => formula.CellReference == "D10" && !formula.IsSupportedByOfficeIMO);
+                Assert.Contains(before.Formulas, formula => formula.CellReference == "D10" && formula.IsSupportedByOfficeIMO);
                 Assert.Contains(before.Formulas, formula => formula.CellReference == "D11" && !formula.IsSupportedByOfficeIMO);
 
-                Assert.Equal(9, document.Calculate());
+                Assert.Equal(10, document.Calculate());
                 ExcelFormulaInspection after = document.InspectFormulas();
                 AssertCachedNumber(after, "D1", -1342.05405753035d, precision: 8);
                 AssertCachedNumber(after, "D2", 250000d, precision: 8);
@@ -746,6 +746,7 @@ namespace OfficeIMO.Tests {
                 AssertCachedNumber(after, "D7", 1200d);
                 AssertCachedNumber(after, "D8", 1200d);
                 AssertCachedNumber(after, "D9", -1336.48536849495d, precision: 8);
+                AssertCachedNumber(after, "D10", -1336.48536849495d, precision: 8);
                 document.Save();
             }
 
