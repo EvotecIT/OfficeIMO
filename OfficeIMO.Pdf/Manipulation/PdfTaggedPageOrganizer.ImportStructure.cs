@@ -6,7 +6,7 @@ internal static partial class PdfTaggedPageOrganizer {
     private static readonly HashSet<string> ImportableStructureRootKeys = new(new[] {
         "Type", "K", "ParentTree", "ParentTreeNextKey", "IDTree", "RoleMap", "ClassMap", "Namespaces", "AF"
     }, StringComparer.Ordinal);
-    private static void MergeImportedStructure(Dictionary<int, PdfIndirectObject> objects, PdfDictionary catalog,
+    internal static void MergeImportedStructure(Dictionary<int, PdfIndirectObject> objects, PdfDictionary catalog,
         PdfDictionary importedCatalog, IEnumerable<int> importedNumbers, int[] originalPages, int insertBeforePage, CancellationToken token) {
         if (!importedCatalog.Items.TryGetValue("StructTreeRoot", out var sourceRootValue) || PdfObjectLookup.Resolve(objects, sourceRootValue) is not PdfDictionary sourceRoot) return;
         // Catalog language inheritance ends when roots move to another catalog.

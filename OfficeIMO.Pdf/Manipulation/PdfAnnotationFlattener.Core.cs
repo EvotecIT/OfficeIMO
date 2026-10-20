@@ -7,6 +7,8 @@ internal static partial class PdfAnnotationFlattener {
         PdfAnnotationFlattenOptions? options,
         Dictionary<int, int> pageNumbers,
         out PdfGeneratedOutputGrowth generatedGrowth) {
+        var cancellationToken = options?.CancellationToken ?? default;
+        cancellationToken.ThrowIfCancellationRequested();
         int flattenedCount = 0;
         int maximumContentBytes = 0;
         long totalContentBytes = 0L;
@@ -15,6 +17,7 @@ internal static partial class PdfAnnotationFlattener {
         int addedContentContexts = 0;
         int totalContentOperations = 0;
         foreach (var entry in objects.OrderBy(pair => pair.Key).ToArray()) {
+            cancellationToken.ThrowIfCancellationRequested();
             if (entry.Value.Value is not PdfDictionary page ||
                 page.Get<PdfName>("Type")?.Name != "Page" ||
                 !page.Items.TryGetValue("Annots", out var annotsObject) ||
@@ -28,6 +31,7 @@ internal static partial class PdfAnnotationFlattener {
             var flattenedAnnotationObjectNumbers = new HashSet<int>();
             int flattenedOnPage = 0;
             for (int i = 0; i < annots.Items.Count; i++) {
+                cancellationToken.ThrowIfCancellationRequested();
                 PdfObject annotObject = annots.Items[i];
                 PdfDictionary? annotation = ResolveDictionary(objects, annotObject);
                 if (annotation == null || TryReadName(objects, annotation, "Subtype") is not string subtype ||
@@ -93,6 +97,7 @@ internal static partial class PdfAnnotationFlattener {
             maximumContentOperands = Math.Max(maximumContentOperands, SaturatingMultiply(pageAnnotations.Count, 7));
         }
 
+        cancellationToken.ThrowIfCancellationRequested();
         generatedGrowth = new PdfGeneratedOutputGrowth(
             minimumRawStreamBytes: maximumContentBytes,
             minimumDecodedStreamBytes: maximumContentBytes,

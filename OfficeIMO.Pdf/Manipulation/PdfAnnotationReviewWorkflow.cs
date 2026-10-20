@@ -1,7 +1,12 @@
+using System.Threading;
+
 namespace OfficeIMO.Pdf;
 
 /// <summary>Options for adding a reply to an existing annotation.</summary>
 public sealed class PdfAnnotationReplyOptions {
+    /// <summary>Cancels PDF processing and review-catalog construction.</summary>
+    public CancellationToken CancellationToken { get; set; }
+
     /// <summary>Reply author stored in /T.</summary>
     public string? Author { get; set; }
 
@@ -32,6 +37,9 @@ public sealed class PdfAnnotationReplyOptions {
 
 /// <summary>Resource limits for building annotation reply-thread trees.</summary>
 public sealed class PdfAnnotationReviewCatalogOptions {
+    /// <summary>Cancels PDF processing and review-catalog construction.</summary>
+    public CancellationToken CancellationToken { get; set; }
+
     /// <summary>Maximum nested reply depth. Defaults to 128 and cannot exceed 512.</summary>
     public int MaximumThreadDepth { get; set; } = 128;
 
@@ -98,7 +106,7 @@ public sealed class PdfAnnotationReviewCatalog {
         PdfLoadOptions? readOptions = null,
         PdfAnnotationReviewCatalogOptions? options = null) {
         Guard.NotNull(pdf, nameof(pdf));
-        return Build(PdfInspector.Inspect(pdf, readOptions).Annotations, options);
+        return Build(PdfInspector.Inspect(pdf, PdfReadDocument.Open(pdf, readOptions, options?.CancellationToken ?? default), options?.CancellationToken ?? default).Annotations, options);
     }
 
     /// <summary>Builds reply threads from already-read annotations.</summary>
@@ -107,6 +115,8 @@ public sealed class PdfAnnotationReviewCatalog {
         PdfAnnotationReviewCatalogOptions? options = null) {
         Guard.NotNull(annotations, nameof(annotations));
         PdfAnnotationReviewCatalogOptions effectiveOptions = options ?? new PdfAnnotationReviewCatalogOptions();
+        var cancellationToken = effectiveOptions.CancellationToken;
+        cancellationToken.ThrowIfCancellationRequested();
         if (effectiveOptions.MaximumThreadDepth <= 0 || effectiveOptions.MaximumThreadDepth > 512) {
             throw new ArgumentOutOfRangeException(nameof(options), "Maximum annotation thread depth must be between 1 and 512.");
         }
@@ -127,6 +137,7 @@ public sealed class PdfAnnotationReviewCatalog {
         int relationshipCount = 0;
         int replyCount = 0;
         foreach (PdfAnnotation annotation in ordered) {
+            cancellationToken.ThrowIfCancellationRequested();
             PdfAnnotationReviewInfo? review = annotation.Review;
             if (review?.InReplyToObjectNumber.HasValue == true) {
                 relationshipCount++;
@@ -148,6 +159,7 @@ public sealed class PdfAnnotationReviewCatalog {
         var visited = new HashSet<PdfAnnotation>();
         var threads = new List<PdfAnnotationReviewThread>();
         foreach (PdfAnnotation annotation in ordered) {
+            cancellationToken.ThrowIfCancellationRequested();
             bool isReply = annotation.Review?.IsReply == true;
             int? parentObjectNumber = isReply ? annotation.Review!.InReplyToObjectNumber : null;
             bool hasValidParent = parentObjectNumber.HasValue &&
@@ -155,18 +167,20 @@ public sealed class PdfAnnotationReviewCatalog {
                 byObjectNumber.ContainsKey(parentObjectNumber.Value);
             if (hasValidParent) continue;
             threads.Add(new PdfAnnotationReviewThread(
-                BuildEntry(annotation, children, visited, new HashSet<int>(), effectiveOptions.MaximumThreadDepth),
+                BuildEntry(annotation, children, visited, new HashSet<int>(), effectiveOptions.MaximumThreadDepth, cancellationToken),
                 isReply && parentObjectNumber.HasValue));
         }
 
         foreach (PdfAnnotation annotation in ordered) {
+            cancellationToken.ThrowIfCancellationRequested();
             if (visited.Contains(annotation)) continue;
             threads.Add(new PdfAnnotationReviewThread(
-                BuildEntry(annotation, children, visited, new HashSet<int>(), effectiveOptions.MaximumThreadDepth),
+                BuildEntry(annotation, children, visited, new HashSet<int>(), effectiveOptions.MaximumThreadDepth, cancellationToken),
                 isOrphanedReply: true));
         }
 
         int orphanCount = threads.Count(static thread => thread.IsOrphanedReply);
+        cancellationToken.ThrowIfCancellationRequested();
         return new PdfAnnotationReviewCatalog(threads.AsReadOnly(), ordered.Count, replyCount, orphanCount);
     }
 
@@ -175,7 +189,8 @@ public sealed class PdfAnnotationReviewCatalog {
         IReadOnlyDictionary<int, List<PdfAnnotation>> children,
         HashSet<PdfAnnotation> visited,
         HashSet<int> path,
-        int maximumThreadDepth) {
+        int maximumThreadDepth, CancellationToken cancellationToken) {
+        cancellationToken.ThrowIfCancellationRequested();
         visited.Add(annotation);
         if (!annotation.ObjectNumber.HasValue || !path.Add(annotation.ObjectNumber.Value)) {
             return new PdfAnnotationReviewEntry(annotation, Array.Empty<PdfAnnotationReviewEntry>());
@@ -188,7 +203,7 @@ public sealed class PdfAnnotationReviewCatalog {
             }
             foreach (PdfAnnotation candidate in candidates) {
                 if (candidate.ObjectNumber.HasValue && path.Contains(candidate.ObjectNumber.Value)) continue;
-                replies.Add(BuildEntry(candidate, children, visited, new HashSet<int>(path), maximumThreadDepth));
+                replies.Add(BuildEntry(candidate, children, visited, new HashSet<int>(path), maximumThreadDepth, cancellationToken));
             }
         }
         return new PdfAnnotationReviewEntry(annotation, replies.AsReadOnly());
@@ -208,11 +223,13 @@ public static class PdfAnnotationReviewEditor {
         Guard.PositiveInteger(parentObjectNumber, nameof(parentObjectNumber));
         if (string.IsNullOrWhiteSpace(contents)) throw new ArgumentException("Reply contents cannot be empty.", nameof(contents));
 
+        var cancellationToken = options?.CancellationToken ?? default;
+        cancellationToken.ThrowIfCancellationRequested();
         PdfMutationPlan mutationPlan = PdfMutationPlanner.Require(
             pdf,
             PdfMutationOperation.ModifyAnnotations,
             readOptions,
-            executionPreference: options?.ExecutionPreference ?? PdfMutationExecutionPreference.Automatic);
+            executionPreference: options?.ExecutionPreference ?? PdfMutationExecutionPreference.Automatic, cancellationToken: cancellationToken);
         PdfAnnotation? parent = mutationPlan.Preflight.UncheckedDocumentInfo?.Annotations
             .FirstOrDefault(annotation => annotation.ObjectNumber == parentObjectNumber);
         if (parent is null || !parent.PageNumber.HasValue) {
@@ -227,6 +244,7 @@ public static class PdfAnnotationReviewEditor {
             parent.Y1 + 18D
         };
         return PdfAnnotationEditor.AddAnnotation(pdf, new PdfAnnotationCreateOptions {
+            CancellationToken = cancellationToken,
             PageNumber = parent.PageNumber.Value,
             Subtype = "Text",
             Rectangle = rectangle,
@@ -252,8 +270,15 @@ public static class PdfAnnotationReviewEditor {
         PdfAnnotationReviewState state,
         PdfMutationExecutionPreference executionPreference = PdfMutationExecutionPreference.Automatic,
         bool allowResidualDataInAppendOnly = false,
-        PdfLoadOptions? readOptions = null) {
+        PdfLoadOptions? readOptions = null) =>
+        SetState(pdf, annotationObjectNumber, state, executionPreference, allowResidualDataInAppendOnly, readOptions, CancellationToken.None);
+
+    /// <summary>Sets a review state and validates readback with cooperative cancellation.</summary>
+    public static PdfAnnotationEditResult SetState(byte[] pdf, int annotationObjectNumber, PdfAnnotationReviewState state,
+        PdfMutationExecutionPreference executionPreference, bool allowResidualDataInAppendOnly,
+        PdfLoadOptions? readOptions, CancellationToken cancellationToken) {
         return PdfAnnotationEditor.UpdateAnnotation(pdf, annotationObjectNumber, new PdfAnnotationUpdateOptions {
+            CancellationToken = cancellationToken,
             ReviewState = state,
             ExecutionPreference = executionPreference,
             AllowResidualDataInAppendOnly = allowResidualDataInAppendOnly

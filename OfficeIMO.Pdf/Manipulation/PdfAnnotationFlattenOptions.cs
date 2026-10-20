@@ -2,6 +2,9 @@ namespace OfficeIMO.Pdf;
 
 /// <summary>Selects visual annotations to paint into page content and remove as live annotations.</summary>
 public sealed class PdfAnnotationFlattenOptions {
+    /// <summary>Cancellation observed during source parsing, annotation traversal and output serialization.</summary>
+    public System.Threading.CancellationToken CancellationToken { get; set; }
+
     /// <summary>Optional exact indirect annotation object number.</summary>
     public int? ObjectNumber { get; set; }
     /// <summary>Optional one-based page number.</summary>

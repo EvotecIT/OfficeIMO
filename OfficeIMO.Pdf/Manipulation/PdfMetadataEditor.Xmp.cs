@@ -1,3 +1,5 @@
+using System.Threading;
+
 namespace OfficeIMO.Pdf;
 
 internal static partial class PdfMetadataEditor {
@@ -22,11 +24,13 @@ internal static partial class PdfMetadataEditor {
         string? subject,
         string? keywords,
         bool createXmpMetadata,
-        PdfLoadOptions? readOptions) {
+        PdfLoadOptions? readOptions,
+        CancellationToken cancellationToken = default) {
         Guard.NotNull(pdf, nameof(pdf));
-        _ = PdfMutationPlanner.RequireFullRewrite(pdf, PdfMutationOperation.SynchronizeMetadata, readOptions);
+        cancellationToken.ThrowIfCancellationRequested();
+        _ = PdfMutationPlanner.RequireFullRewrite(pdf, PdfMutationOperation.SynchronizeMetadata, readOptions, cancellationToken: cancellationToken);
 
-        PdfDocumentInfo documentInfo = PdfInspector.Inspect(pdf, readOptions);
+        PdfDocumentInfo documentInfo = PdfInspector.Inspect(pdf, PdfReadDocument.Open(pdf, readOptions, cancellationToken), cancellationToken);
         PdfMetadata existing = documentInfo.Metadata;
         PdfXmpMetadataInfo? existingXmp = documentInfo.XmpMetadata;
         var updated = new PdfMetadata {
@@ -44,7 +48,8 @@ internal static partial class PdfMetadataEditor {
             pdf,
             sourceReadOptions: readOptions,
             outputEncryption: null,
-            (objects, security) => SynchronizeObjectGraph(objects, security, existingXmp, updated, createXmpMetadata));
+            (objects, security) => SynchronizeObjectGraph(objects, security, existingXmp, updated, createXmpMetadata),
+            cancellationToken: cancellationToken);
     }
 
     /// <summary>Synchronizes Info and XMP metadata from the current position of a readable stream.</summary>
@@ -55,7 +60,7 @@ internal static partial class PdfMetadataEditor {
         string? subject = null,
         string? keywords = null,
         bool createXmpMetadata = true) {
-        return SynchronizeMetadata(ReadStream(stream), title, author, subject, keywords, createXmpMetadata);
+        return SynchronizeMetadata(stream, readOptions: null, CancellationToken.None, title, author, subject, keywords, createXmpMetadata);
     }
 
     /// <summary>Writes a PDF with synchronized Info and XMP metadata to a writable stream.</summary>

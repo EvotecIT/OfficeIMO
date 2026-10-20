@@ -1,8 +1,10 @@
+using System.Threading;
+
 namespace OfficeIMO.Pdf;
 
 internal static partial class PdfMerger {
     private static readonly char[] ViewerPreferenceSeparators = { ' ' };
-    private static byte[] ApplyViewerPolicy(byte[] merged, IReadOnlyList<ImportedSource> sources, int primarySourceIndex, PdfMergeStructureMode mode, List<PdfMergeDecision> decisions, PdfLoadOptions readOptions, int[]? outputSourceIndexes) {
+    private static byte[] ApplyViewerPolicy(byte[] merged, IReadOnlyList<ImportedSource> sources, int primarySourceIndex, PdfMergeStructureMode mode, List<PdfMergeDecision> decisions, PdfLoadOptions readOptions, int[]? outputSourceIndexes, CancellationToken cancellationToken) {
         int incoming = sources.Where((source, index) => index != primarySourceIndex && HasViewerState(source)).Count();
         if (mode == PdfMergeStructureMode.KeepPrimary) { decisions.Add(new PdfMergeDecision("ViewerPreferences", mode, "Kept primary viewer preferences and initial view.", droppedCount: incoming)); return merged; }
         if (mode == PdfMergeStructureMode.RejectIncoming) {
@@ -21,7 +23,7 @@ internal static partial class PdfMerger {
             openAction = FirstOpenAction(sources, primarySourceIndex, outputSourceIndexes);
         }
 
-        PdfReadDocument? mergedDocument = openAction is null ? null : PdfReadDocument.Open(merged, readOptions);
+        PdfReadDocument? mergedDocument = openAction is null ? null : PdfReadDocument.Open(merged, readOptions, cancellationToken);
         byte[] output = PdfDocumentObjectGraphRewriter.Rewrite(merged, readOptions, null, (objects, security) => {
             PdfDictionary catalog = RequireCatalog(objects, security);
             catalog.Items.Remove("ViewerPreferences"); catalog.Items.Remove("PageMode"); catalog.Items.Remove("PageLayout"); catalog.Items.Remove("OpenAction");
@@ -32,12 +34,12 @@ internal static partial class PdfMerger {
                 if (openAction != null) catalog.Items["OpenAction"] = BuildDestinationArray(mergedDocument!, openAction);
             }
             return security.InfoObjectNumber.HasValue && objects.ContainsKey(security.InfoObjectNumber.Value) ? security.InfoObjectNumber : null;
-        });
+        }, cancellationToken: cancellationToken);
         decisions.Add(new PdfMergeDecision("ViewerPreferences", mode, mode == PdfMergeStructureMode.Drop ? "Removed viewer preferences and initial-view state." : "Combined compatible viewer preferences with primary values winning conflicts." , incoming));
         return output;
     }
 
-    private static byte[] ApplyCatalogStatePolicy(byte[] merged, IReadOnlyList<ImportedSource> sources, int primarySourceIndex, PdfMergeStructureMode mode, List<PdfMergeDecision> decisions, PdfLoadOptions readOptions) {
+    private static byte[] ApplyCatalogStatePolicy(byte[] merged, IReadOnlyList<ImportedSource> sources, int primarySourceIndex, PdfMergeStructureMode mode, List<PdfMergeDecision> decisions, PdfLoadOptions readOptions, CancellationToken cancellationToken) {
         int incoming = sources.Where((source, index) => index != primarySourceIndex && HasCatalogState(source)).Count();
         bool incomingOptionalContent = sources.Where((source, index) => index != primarySourceIndex)
             .Any(static source => source.CatalogState.OptionalContent != null);
@@ -74,7 +76,7 @@ internal static partial class PdfMerger {
                 if (intents.Items.Count > 0) catalog.Items["OutputIntents"] = intents;
             }
             return security.InfoObjectNumber.HasValue && objects.ContainsKey(security.InfoObjectNumber.Value) ? security.InfoObjectNumber : null;
-        });
+        }, cancellationToken: cancellationToken);
         string action = mode == PdfMergeStructureMode.Drop
             ? "Removed version, language, URI, output-intent, and optional-content catalog state."
             : "Combined compatible scalar, URI, and output-intent state after rejecting sources with optional-content configurations.";

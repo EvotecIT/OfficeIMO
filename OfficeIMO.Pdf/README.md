@@ -3,9 +3,82 @@
 [![nuget version](https://img.shields.io/nuget/v/OfficeIMO.Pdf)](https://www.nuget.org/packages/OfficeIMO.Pdf)
 [![nuget downloads](https://img.shields.io/nuget/dt/OfficeIMO.Pdf?label=nuget%20downloads)](https://www.nuget.org/packages/OfficeIMO.Pdf)
 
-`OfficeIMO.Pdf` is the first-party PDF package for OfficeIMO. It creates, reads, inspects, edits, merges, splits, stamps, exports, signs, and validates PDFs. PDF mechanics, password security, signature structure, and rendering remain first-party. Certificate-based CMS, RFC 3161, and X.509 operations use an explicitly supplied provider from the optional `OfficeIMO.Security` package.
+Create reports, read existing PDFs, fill forms, and combine or split pages from .NET. `OfficeIMO.Pdf` runs in your application without Microsoft Office or a browser. It also supports editing, stamps, redaction, optimization, attachments, and PDF standards checks. Optional packages add certificate-based signing and OCR.
 
 If OfficeIMO saves you time, please consider supporting the work through [GitHub Sponsors](https://github.com/sponsors/PrzemyslawKlys) or [PayPal](https://paypal.me/PrzemyslawKlys). PowerShell users should use [PSWriteOffice](https://github.com/EvotecIT/PSWriteOffice) for the PowerShell-facing experience.
+
+## Install
+
+```powershell
+dotnet add package OfficeIMO.Pdf
+```
+
+Install the security provider only when the application creates or cryptographically validates certificate-based PDF
+signatures:
+
+```powershell
+dotnet add package OfficeIMO.Security
+```
+
+Install `OfficeIMO.Pdf.Ocr` plus a provider only when the application recognizes scanned pages or creates searchable PDFs. The base PDF package has no OCR runtime dependency.
+
+## Quick start
+
+```csharp
+using OfficeIMO.Pdf;
+
+PdfDocument.Create(pdf => pdf.Content(content => content
+        .H1("Service review")
+        .Paragraph(p => p
+            .Text("The team completed the monthly review. ")
+            .Bold("All scheduled checks passed.")
+            .Text(" The table below lists the next steps."))
+        .Table(new[] {
+            new[] { "Task", "Owner" },
+            new[] { "Send the report", "Operations" },
+            new[] { "Review next month", "Service team" }
+        })), new PdfOptions {
+            DefaultFont = PdfStandardFont.Helvetica,
+            DefaultFontSize = 11
+        })
+    .Meta(title: "Monthly service review", author: "Operations")
+    .Save("service-review.pdf");
+```
+
+`document.Content.Heading(level, text)` accepts authored heading levels from 1 through 9 in document, page, column and container flow. The `H1`, `H2` and `H3` shortcuts retain their existing presets. Deeper headings accept the same `PdfHeadingStyle` overrides. Enable tagged output with `new PdfOptions().EnableTaggedPdfCatalogMarkers()` when creating the document to retain explicit numeric levels during semantic reading, including skipped levels. Levels 7–9 use `H7`–`H9` tags mapped to the standard `H6` role. Bookmarks preserve the parent-child hierarchy; without tags, semantic reading uses their nesting depth and cannot recover skipped numeric levels.
+
+## Find your next task
+
+- [Read text and tables](#load-once-and-build-one-semantic-read-result).
+- [Extract or split pages](#split-and-extract-pages).
+- [Combine and organize PDFs](#merge-reorder-delete-duplicate-move-and-rotate).
+- [Fill a form or make its values permanent](#fill-and-flatten-a-pdf-form).
+- [Review and remove sensitive content](#review-apply-and-verify-redactions).
+- [Create an invoice and matching XML](../OfficeIMO.Invoicing.Pdf/README.md).
+- [Render HTML as PDF](../OfficeIMO.Html/PDF.md).
+
+Keep the original file when editing. Page and form operations return a new document; signed,
+protected or unsupported inputs can restrict which changes are allowed. Read the
+operation result before publishing the output.
+
+For a batch job or an uploaded file, set an input limit and pass the job's
+cancellation token through each operation:
+
+```csharp
+using var stop = new CancellationTokenSource(TimeSpan.FromSeconds(30));
+using var input = File.OpenRead("report.pdf");
+PdfDocument report = PdfDocument.Load(input, new PdfLoadOptions {
+    MaxInputBytes = 32L * 1024 * 1024
+}, stop.Token);
+PdfDocument selected = report.Pages.Extract(stop.Token, 1, 2);
+selected.Save("selected-pages.pdf", stop.Token).RequireSuccess();
+```
+
+Input streams are read from their current position and remain open. Cancellation
+throws `OperationCanceledException`. File output is staged before publication;
+when writing to a caller-owned stream, cancellation can leave a written prefix.
+
+## Output size and images
 
 Page content is Flate-compressed by default, including direct `PdfDocument.Create`
 authoring. `PdfOptions.CompressContentStreams = false` keeps page operators plain.
@@ -75,46 +148,6 @@ conversion.SaveResult("report.pdf").RequireSuccess();
 The converter detects UTF-8, UTF-16 and UTF-32 byte order marks and otherwise decodes strict UTF-8. `EncodingName` selects an explicit encoding available in the host; a conflicting BOM or invalid byte sequence fails conversion. Seekable input position is restored and the caller's stream remains open.
 
 Lines, blank lines and repeated spaces are preserved. Tabs advance to source-column stops, form feeds start pages, long lines wrap, and empty input produces one blank page. Defaults are ten-point Courier, 16 million decoded/expanded characters and 10,000 generated pages. `PdfPlainTextOptions.PdfOptions` controls fonts and page geometry. Supply embedded font bytes for characters outside the selected font's coverage; unsupported glyphs fail output rather than publishing replacement text.
-
-## Install
-
-```powershell
-dotnet add package OfficeIMO.Pdf
-```
-
-Install the security provider only when the application creates or cryptographically validates certificate-based PDF
-signatures:
-
-```powershell
-dotnet add package OfficeIMO.Security
-```
-
-Install `OfficeIMO.Pdf.Ocr` plus a provider only when the application recognizes scanned pages or creates searchable PDFs. The base PDF package has no OCR runtime dependency.
-
-## Quick start
-
-```csharp
-using OfficeIMO.Pdf;
-
-PdfDocument.Create(pdf => pdf.Content(content => content
-        .H1("OfficeIMO.Pdf")
-        .Paragraph(p => p
-            .Text("A first-party PDF builder with ")
-            .Bold("rich text")
-            .Text(", links, tables, images, and document operations."))
-        .Table(new[] {
-            new[] { "Area", "Status" },
-            new[] { "Optional signature provider", "OfficeIMO.Security" },
-            new[] { "License", "MIT" }
-        })), new PdfOptions {
-            DefaultFont = PdfStandardFont.Helvetica,
-            DefaultFontSize = 11
-        })
-    .Meta(title: "Hello PDF", author: "OfficeIMO")
-    .Save("hello.pdf");
-```
-
-`document.Content.Heading(level, text)` accepts authored heading levels from 1 through 9 in document, page, column and container flow. The `H1`, `H2` and `H3` shortcuts retain their existing presets. Deeper headings accept the same `PdfHeadingStyle` overrides. Enable tagged output with `new PdfOptions().EnableTaggedPdfCatalogMarkers()` when creating the document to retain explicit numeric levels during semantic reading, including skipped levels. Levels 7–9 use `H7`–`H9` tags mapped to the standard `H6` role. Bookmarks preserve the parent-child hierarchy; without tags, semantic reading uses their nesting depth and cannot recover skipped numeric levels.
 
 ## Paragraph font size and line spacing
 
@@ -1751,6 +1784,17 @@ PdfDocument merged = PdfDocument.MergeBytes(sources);
 merged.Save("merged.pdf");
 ```
 
+Tagged inputs keep their existing headings, reading order, language and page
+relationships. Repeated inputs receive separate structure identities. Plain pages
+stay plain: adding them does not create accessibility tags. A primary document
+that declares PDF/UA rejects untagged additions. Validate the saved result against
+the intended profile and review its reading and navigation behavior.
+
+When combining tagged forms, choose `Forms = PdfMergeStructureMode.Combine` and
+`FormFieldCollisions = PdfMergeCollisionMode.RenameIncoming` in `PdfMergePolicy`.
+Policies that discard tagged widgets are rejected so their accessibility links
+cannot silently point to removed fields.
+
 Encrypted merge inputs keep independent authentication settings. Owner
 authorization is honored automatically. A user password follows the PDF
 permission bits unless the caller explicitly opts into ignoring those
@@ -2465,6 +2509,16 @@ PdfDocument.Load("application-form.pdf")
     .Save("application-form-filled.pdf");
 ```
 
+Use `Forms.Fill` to retain editable fields, or `Forms.FillAndFlatten` to make the
+values part of the page. Both return a new document. Pass
+`new PdfFormFillerOptions { CancellationToken = token }` as the second argument
+to cancel a job. Text and choice appearances share the same placement rules for
+new fields, filled copies and appended revisions; flattening also retains inherited
+left, center or right alignment when a source field has no saved appearance.
+
+The [equipment inspection example](../OfficeIMO.Examples/Showcase/Workflows/EquipmentInspection.cs)
+saves a blank template, a completed editable copy and a permanent record.
+
 `Forms.FillResult` chooses the revision itself. When a full rewrite would break a
 signature, it appends the values as a new revision after the original bytes. This
 covers certified forms whose DocMDP level allows fill-in, and Reader-extended forms
@@ -2979,6 +3033,27 @@ Vertical `OfficeDrawing` text retains its logical string through PDF `/ActualTex
 For the current capability inventory, ownership boundaries, premium conversion
 contract, and remaining general engine work, read
 [Docs/officeimo.pdf.current-state.md](../Docs/officeimo.pdf.current-state.md).
+
+## Choose a deployment path
+
+Install only the packages your application needs:
+
+| What you need | Package or provider | What to deploy |
+| --- | --- | --- |
+| Create, read, fill forms and organize PDFs | `OfficeIMO.Pdf` | Managed .NET libraries; no Office installation or browser |
+| Render saved HTML templates | `OfficeIMO.Html` | Managed renderer and its HTML/CSS parser packages; provide fonts for your document's languages |
+| Full OpenType text shaping | Optional `OfficeIMO.Drawing.HarfBuzz` | The provider's native files for your operating system and architecture |
+| Capture a live website that uses JavaScript | Optional `OfficeIMO.Html.Pdf.Browser` | HtmlTinkerX and a supported Chromium installation |
+| Read scanned text | Optional `OfficeIMO.Pdf.Ocr` and an OCR provider | The selected provider and its language resources; Tesseract uses a separate process |
+| Sign or check certificate-based signatures | Optional `OfficeIMO.Security` | The selected security provider and the signing or trust configuration your application requires |
+
+NativeAOT, browser and container checks apply to the particular packages and
+workflows exercised. They do not guarantee every optional provider works in every
+host. See the [NativeAOT scenarios](../Build/Test-AotScenarios.ps1),
+[HTML deployment guide](../OfficeIMO.Html/README.md), and
+[PDF capability guide](../Docs/officeimo.pdf.current-state.md) for the tested routes
+and remaining limits. Browser rendering is an explicit choice; the managed PDF
+and template paths do not download or start a browser automatically.
 
 ## Targets and license
 

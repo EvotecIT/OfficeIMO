@@ -14,11 +14,11 @@ internal static partial class PdfFormFiller {
     /// Returns a new PDF with simple AcroForm field values updated by fully qualified field name.
     /// </summary>
     public static byte[] FillFields(byte[] pdf, IReadOnlyDictionary<string, string> fieldValues, PdfFormFillerOptions? options) {
-        return FillFields(pdf, ToFormFieldValues(fieldValues), options, readOptions: null);
+        return FillFields(pdf, ToFormFieldValues(fieldValues, GetCancellationToken(options)), options, readOptions: null);
     }
 
     internal static byte[] FillFields(byte[] pdf, IReadOnlyDictionary<string, string> fieldValues, PdfFormFillerOptions? options, PdfLoadOptions? readOptions) =>
-        FillFields(pdf, ToFormFieldValues(fieldValues), options, readOptions);
+        FillFields(pdf, ToFormFieldValues(fieldValues, GetCancellationToken(options)), options, readOptions);
 
     /// <summary>
     /// Returns a new PDF with simple AcroForm field values updated by fully qualified field name.
@@ -43,9 +43,10 @@ internal static partial class PdfFormFiller {
     }
 
     private static byte[] FillFieldsCore(byte[] pdf, IReadOnlyDictionary<string, PdfFormFieldValue> fieldValues, PdfFormFillerOptions? options, PdfLoadOptions? readOptions, bool requireMutationPlan, CancellationToken cancellationToken = default) {
+        using var linkedCancellation = LinkCancellation(options?.CancellationToken ?? default, ref cancellationToken);
         Guard.NotNull(pdf, nameof(pdf));
         cancellationToken.ThrowIfCancellationRequested();
-        ValidateFieldValues(fieldValues);
+        ValidateFieldValues(fieldValues, cancellationToken);
         RejectPushButtonFillValues(pdf, fieldValues.Keys, readOptions, cancellationToken);
         if (requireMutationPlan) _ = PdfMutationPlanner.RequireFullRewrite(pdf, PdfMutationOperation.FillFormFields, readOptions,
             fieldNames: fieldValues.Keys, cancellationToken);
@@ -102,7 +103,7 @@ internal static partial class PdfFormFiller {
     /// Returns a new PDF with simple AcroForm field values updated from the current position of a readable stream.
     /// </summary>
     public static byte[] FillFields(Stream stream, IReadOnlyDictionary<string, string> fieldValues, PdfFormFillerOptions? options) {
-        return FillFields(ReadStream(stream, nameof(stream)), fieldValues, options);
+        return FillFields(stream, fieldValues, options, readOptions: null);
     }
 
     /// <summary>
@@ -116,7 +117,7 @@ internal static partial class PdfFormFiller {
     /// Returns a new PDF with simple AcroForm field values updated from the current position of a readable stream.
     /// </summary>
     public static byte[] FillFields(Stream stream, IReadOnlyDictionary<string, PdfFormFieldValue> fieldValues, PdfFormFillerOptions? options) {
-        return FillFields(ReadStream(stream, nameof(stream)), fieldValues, options);
+        return FillFields(stream, fieldValues, options, readOptions: null);
     }
 
     /// <summary>
@@ -130,7 +131,7 @@ internal static partial class PdfFormFiller {
     /// Writes a new PDF with simple AcroForm field values updated.
     /// </summary>
     public static void FillFields(byte[] pdf, Stream outputStream, IReadOnlyDictionary<string, string> fieldValues, PdfFormFillerOptions? options) {
-        WriteOutput(outputStream, FillFields(pdf, fieldValues, options));
+        WriteOutput(outputStream, FillFields(pdf, fieldValues, options), options);
     }
 
     /// <summary>
@@ -144,7 +145,7 @@ internal static partial class PdfFormFiller {
     /// Writes a new PDF with simple AcroForm field values updated.
     /// </summary>
     public static void FillFields(byte[] pdf, Stream outputStream, IReadOnlyDictionary<string, PdfFormFieldValue> fieldValues, PdfFormFillerOptions? options) {
-        WriteOutput(outputStream, FillFields(pdf, fieldValues, options));
+        WriteOutput(outputStream, FillFields(pdf, fieldValues, options), options);
     }
 
     /// <summary>
@@ -158,7 +159,7 @@ internal static partial class PdfFormFiller {
     /// Writes a new PDF with simple AcroForm field values updated from the current position of a readable stream.
     /// </summary>
     public static void FillFields(Stream inputStream, Stream outputStream, IReadOnlyDictionary<string, string> fieldValues, PdfFormFillerOptions? options) {
-        WriteOutput(outputStream, FillFields(inputStream, fieldValues, options));
+        WriteOutput(outputStream, FillFields(inputStream, fieldValues, options), options);
     }
 
     /// <summary>
@@ -172,7 +173,7 @@ internal static partial class PdfFormFiller {
     /// Writes a new PDF with simple AcroForm field values updated from the current position of a readable stream.
     /// </summary>
     public static void FillFields(Stream inputStream, Stream outputStream, IReadOnlyDictionary<string, PdfFormFieldValue> fieldValues, PdfFormFillerOptions? options) {
-        WriteOutput(outputStream, FillFields(inputStream, fieldValues, options));
+        WriteOutput(outputStream, FillFields(inputStream, fieldValues, options), options);
     }
 
     /// <summary>
@@ -188,10 +189,10 @@ internal static partial class PdfFormFiller {
     public static void FillFields(string inputPath, string outputPath, IReadOnlyDictionary<string, string> fieldValues, PdfFormFillerOptions? options) {
         Guard.NotNullOrWhiteSpace(inputPath, nameof(inputPath));
         string fullOutputPath = ValidateOutputPath(outputPath);
-        byte[] bytes = FillFields(ReadPath(inputPath), fieldValues, options);
+        byte[] bytes = FillFields(ReadPath(inputPath, options), fieldValues, options);
         var directory = Path.GetDirectoryName(fullOutputPath);
         if (!string.IsNullOrEmpty(directory)) Directory.CreateDirectory(directory);
-        OfficeFileCommit.WriteAllBytes(fullOutputPath, bytes);
+        OfficeFileCommit.Write(fullOutputPath, output => WriteOutput(output, bytes, options), GetCancellationToken(options));
     }
 
     /// <summary>
@@ -207,10 +208,10 @@ internal static partial class PdfFormFiller {
     public static void FillFields(string inputPath, string outputPath, IReadOnlyDictionary<string, PdfFormFieldValue> fieldValues, PdfFormFillerOptions? options) {
         Guard.NotNullOrWhiteSpace(inputPath, nameof(inputPath));
         string fullOutputPath = ValidateOutputPath(outputPath);
-        byte[] bytes = FillFields(ReadPath(inputPath), fieldValues, options);
+        byte[] bytes = FillFields(ReadPath(inputPath, options), fieldValues, options);
         var directory = Path.GetDirectoryName(fullOutputPath);
         if (!string.IsNullOrEmpty(directory)) Directory.CreateDirectory(directory);
-        OfficeFileCommit.WriteAllBytes(fullOutputPath, bytes);
+        OfficeFileCommit.Write(fullOutputPath, output => WriteOutput(output, bytes, options), GetCancellationToken(options));
     }
 
     /// <summary>
@@ -227,8 +228,8 @@ internal static partial class PdfFormFiller {
         Guard.NotNullOrWhiteSpace(inputPath, nameof(inputPath));
         ValidateWritableOutputStream(outputStream);
 
-        byte[] bytes = FillFields(ReadPath(inputPath), fieldValues, options);
-        WriteOutput(outputStream, bytes);
+        byte[] bytes = FillFields(ReadPath(inputPath, options), fieldValues, options);
+        WriteOutput(outputStream, bytes, options);
     }
 
     /// <summary>
@@ -245,8 +246,8 @@ internal static partial class PdfFormFiller {
         Guard.NotNullOrWhiteSpace(inputPath, nameof(inputPath));
         ValidateWritableOutputStream(outputStream);
 
-        byte[] bytes = FillFields(ReadPath(inputPath), fieldValues, options);
-        WriteOutput(outputStream, bytes);
+        byte[] bytes = FillFields(ReadPath(inputPath, options), fieldValues, options);
+        WriteOutput(outputStream, bytes, options);
     }
 
     /// <summary>
@@ -261,7 +262,7 @@ internal static partial class PdfFormFiller {
     /// </summary>
     public static byte[] FillFieldsToBytes(string inputPath, IReadOnlyDictionary<string, string> fieldValues, PdfFormFillerOptions? options) {
         Guard.NotNullOrWhiteSpace(inputPath, nameof(inputPath));
-        return FillFields(ReadPath(inputPath), fieldValues, options);
+        return FillFieldsToBytes(inputPath, fieldValues, options, readOptions: null);
     }
 
     /// <summary>
@@ -276,151 +277,7 @@ internal static partial class PdfFormFiller {
     /// </summary>
     public static byte[] FillFieldsToBytes(string inputPath, IReadOnlyDictionary<string, PdfFormFieldValue> fieldValues, PdfFormFillerOptions? options) {
         Guard.NotNullOrWhiteSpace(inputPath, nameof(inputPath));
-        return FillFields(ReadPath(inputPath), fieldValues, options);
-    }
-
-    /// <summary>
-    /// Returns a new PDF with simple text, choice, and button AcroForm widgets painted into page content and removed from the form tree.
-    /// </summary>
-    public static byte[] FlattenFields(byte[] pdf) {
-        return FlattenFields(pdf, options: null, readOptions: null);
-    }
-
-    /// <summary>
-    /// Returns a new PDF with simple text, choice, and button AcroForm widgets painted into page content and removed from the form tree.
-    /// </summary>
-    public static byte[] FlattenFields(byte[] pdf, PdfFormFillerOptions? options) {
-        return FlattenFields(pdf, options, readOptions: null);
-    }
-
-    internal static byte[] FlattenFields(byte[] pdf, PdfFormFillerOptions? options, PdfLoadOptions? readOptions) {
-        Guard.NotNull(pdf, nameof(pdf));
-        _ = PdfMutationPlanner.RequireFullRewrite(pdf, PdfMutationOperation.FlattenFormFields, readOptions);
-
-        var (objects, trailerRaw) = PdfSyntax.ParseObjects(pdf, readOptions);
-        int catalogObjectNumber = FindCatalogObjectNumber(objects, trailerRaw);
-        if (catalogObjectNumber == 0 ||
-            objects[catalogObjectNumber].Value is not PdfDictionary catalog ||
-            !catalog.Items.TryGetValue("AcroForm", out var acroFormObject) ||
-            ResolveDictionary(objects, acroFormObject) is not PdfDictionary acroForm ||
-            !acroForm.Items.TryGetValue("Fields", out var fieldsObject) ||
-            ResolveObject(objects, fieldsObject) is not PdfArray fields) {
-            throw new ArgumentException("PDF does not contain a readable AcroForm field tree.", nameof(pdf));
-        }
-
-        int nextObjectNumber = objects.Keys.Count == 0 ? 1 : objects.Keys.Max() + 1;
-        PdfDictionary? acroFormDefaultResources = TryReadDefaultResources(objects, acroForm);
-        string? acroFormDefaultAppearance = TryReadText(objects, acroForm, "DA");
-        var widgets = new Dictionary<int, FlattenWidgetState>();
-        var removableObjects = new HashSet<int>();
-        for (int i = 0; i < fields.Items.Count; i++) {
-            CollectFlattenWidgets(objects, fields.Items[i], null, 0, null, acroFormDefaultResources, acroFormDefaultAppearance, null, null, null, null, options, widgets, removableObjects, new HashSet<int>(), ref nextObjectNumber);
-        }
-
-        if (widgets.Count == 0) {
-            throw new NotSupportedException(UnsupportedFlattenWidgetMessage);
-        }
-
-        int flattenedWidgetCount = FlattenPageWidgets(objects, widgets, ref nextObjectNumber);
-        if (flattenedWidgetCount != widgets.Count) {
-            throw new NotSupportedException(UnsupportedFlattenAnnotationMessage);
-        }
-
-        catalog.Items.Remove("AcroForm");
-        if (acroFormObject is PdfReference acroFormReference) {
-            removableObjects.Add(acroFormReference.ObjectNumber);
-        }
-
-        PdfStructureTreeAnnotationPruner.RemoveAnnotationReferences(objects, widgets.Keys);
-        foreach (int objectNumber in removableObjects) {
-            objects.Remove(objectNumber);
-        }
-
-        PdfObjectGraphPruner.PruneUnreachableObjects(objects, catalogObjectNumber);
-        return RewriteAllObjects(objects, catalogObjectNumber, PdfReadDocument.Open(pdf, readOptions), pdf);
-    }
-
-    /// <summary>
-    /// Returns a new PDF with only the named simple text, choice, and button AcroForm fields painted into page content and removed from the form tree.
-    /// </summary>
-    public static byte[] FlattenFields(byte[] pdf, IReadOnlyCollection<string> fieldNames, PdfFormFillerOptions? options = null) {
-        return FlattenFieldsCore(pdf, fieldNames, options, readOptions: null, requireMutationPlan: true);
-    }
-
-    internal static byte[] FlattenFields(byte[] pdf, IReadOnlyCollection<string> fieldNames, PdfFormFillerOptions? options, PdfLoadOptions? readOptions) =>
-        FlattenFieldsCore(pdf, fieldNames, options, readOptions, requireMutationPlan: true);
-
-    internal static byte[] FlattenFieldsWithinPlannedRewrite(byte[] pdf, IReadOnlyCollection<string> fieldNames, PdfFormFillerOptions? options = null, PdfLoadOptions? readOptions = null, System.Threading.CancellationToken cancellationToken = default) {
-        cancellationToken.ThrowIfCancellationRequested();
-        return FlattenFieldsCore(pdf, fieldNames, options, readOptions, requireMutationPlan: false, cancellationToken);
-    }
-
-    private static byte[] FlattenFieldsCore(byte[] pdf, IReadOnlyCollection<string> fieldNames, PdfFormFillerOptions? options, PdfLoadOptions? readOptions, bool requireMutationPlan, System.Threading.CancellationToken cancellationToken = default) {
-        cancellationToken.ThrowIfCancellationRequested();
-        Guard.NotNull(pdf, nameof(pdf));
-        ValidateFlattenFieldNames(fieldNames, cancellationToken);
-        if (requireMutationPlan) _ = PdfMutationPlanner.RequireFullRewriteDocument(pdf, PdfMutationOperation.FlattenFormFields, readOptions, fieldNames: fieldNames, cancellationToken: cancellationToken);
-
-        var (objects, trailerRaw) = PdfSyntax.ParseObjects(pdf, readOptions, out _, out _, cancellationToken);
-        int catalogObjectNumber = FindCatalogObjectNumber(objects, trailerRaw);
-        if (catalogObjectNumber == 0 ||
-            objects[catalogObjectNumber].Value is not PdfDictionary catalog ||
-            !catalog.Items.TryGetValue("AcroForm", out var acroFormObject) ||
-            ResolveDictionary(objects, acroFormObject) is not PdfDictionary acroForm ||
-            !acroForm.Items.TryGetValue("Fields", out var fieldsObject) ||
-            ResolveObject(objects, fieldsObject) is not PdfArray fields) {
-            throw new ArgumentException("PDF does not contain a readable AcroForm field tree.", nameof(pdf));
-        }
-
-        var requested = new HashSet<string>(fieldNames, StringComparer.Ordinal);
-        var matched = new HashSet<string>(StringComparer.Ordinal);
-        var widgets = new Dictionary<int, FlattenWidgetState>();
-        var removableObjects = new HashSet<int>();
-        int nextObjectNumber = objects.Keys.Count == 0 ? 1 : objects.Keys.Max() + 1;
-        CollectSelectedFlattenFields(
-            objects,
-            fields,
-            requested,
-            matched,
-            inheritedFieldType: null,
-            inheritedFlags: 0,
-            inheritedMaxLength: null,
-            inheritedDefaultResources: TryReadDefaultResources(objects, acroForm),
-            inheritedDefaultAppearance: TryReadText(objects, acroForm, "DA"),
-            inheritedDisplayValue: null,
-            inheritedRichAppearanceRuns: null,
-            inheritedName: null,
-            inheritedChoiceOptions: null,
-            options,
-            widgets,
-            removableObjects,
-            ref nextObjectNumber, cancellationToken);
-
-        if (matched.Count != requested.Count) {
-            throw new ArgumentException("PDF form field was not found: " + string.Join(", ", requested.Where(name => !matched.Contains(name))), nameof(fieldNames));
-        }
-        if (widgets.Count == 0) {
-            throw new NotSupportedException(UnsupportedFlattenWidgetMessage);
-        }
-
-        int flattenedWidgetCount = FlattenPageWidgets(objects, widgets, ref nextObjectNumber, cancellationToken);
-        if (flattenedWidgetCount != widgets.Count) {
-            throw new NotSupportedException(UnsupportedFlattenAnnotationMessage);
-        }
-
-        FilterCalculationOrder(objects, acroForm, removableObjects, cancellationToken);
-        if (fields.Items.Count == 0) {
-            catalog.Items.Remove("AcroForm");
-            if (acroFormObject is PdfReference acroFormReference) removableObjects.Add(acroFormReference.ObjectNumber);
-        }
-
-        PdfStructureTreeAnnotationPruner.RemoveAnnotationReferences(objects, widgets.Keys, cancellationToken);
-        foreach (int objectNumber in removableObjects) {
-            cancellationToken.ThrowIfCancellationRequested();
-            objects.Remove(objectNumber);
-        }
-        PdfObjectGraphPruner.PruneUnreachableObjects(objects, catalogObjectNumber, cancellationToken);
-        return RewriteAllObjects(objects, catalogObjectNumber, PdfReadDocument.Open(pdf, readOptions, cancellationToken), pdf, cancellationToken);
+        return FillFields(ReadPath(inputPath, options), fieldValues, options);
     }
 
     /// <summary>
@@ -434,7 +291,7 @@ internal static partial class PdfFormFiller {
     /// Returns a new PDF with simple text, choice, and button AcroForm widgets flattened from the current position of a readable stream.
     /// </summary>
     public static byte[] FlattenFields(Stream stream, PdfFormFillerOptions? options) {
-        return FlattenFields(ReadStream(stream, nameof(stream)), options);
+        return FlattenFields(stream, options, readOptions: null);
     }
 
     /// <summary>
@@ -448,7 +305,7 @@ internal static partial class PdfFormFiller {
     /// Writes a new PDF with simple text, choice, and button AcroForm widgets flattened.
     /// </summary>
     public static void FlattenFields(byte[] pdf, Stream outputStream, PdfFormFillerOptions? options) {
-        WriteOutput(outputStream, FlattenFields(pdf, options));
+        WriteOutput(outputStream, FlattenFields(pdf, options), options);
     }
 
     /// <summary>
@@ -462,7 +319,7 @@ internal static partial class PdfFormFiller {
     /// Writes a new PDF with simple text, choice, and button AcroForm widgets flattened from the current position of a readable stream.
     /// </summary>
     public static void FlattenFields(Stream inputStream, Stream outputStream, PdfFormFillerOptions? options) {
-        WriteOutput(outputStream, FlattenFields(inputStream, options));
+        WriteOutput(outputStream, FlattenFields(inputStream, options), options);
     }
 
     /// <summary>
@@ -478,10 +335,10 @@ internal static partial class PdfFormFiller {
     public static void FlattenFields(string inputPath, string outputPath, PdfFormFillerOptions? options) {
         Guard.NotNullOrWhiteSpace(inputPath, nameof(inputPath));
         string fullOutputPath = ValidateOutputPath(outputPath);
-        byte[] bytes = FlattenFields(ReadPath(inputPath), options);
+        byte[] bytes = FlattenFields(ReadPath(inputPath, options), options);
         var directory = Path.GetDirectoryName(fullOutputPath);
         if (!string.IsNullOrEmpty(directory)) Directory.CreateDirectory(directory);
-        OfficeFileCommit.WriteAllBytes(fullOutputPath, bytes);
+        OfficeFileCommit.Write(fullOutputPath, output => WriteOutput(output, bytes, options), GetCancellationToken(options));
     }
 
     /// <summary>
@@ -498,8 +355,8 @@ internal static partial class PdfFormFiller {
         Guard.NotNullOrWhiteSpace(inputPath, nameof(inputPath));
         ValidateWritableOutputStream(outputStream);
 
-        byte[] bytes = FlattenFields(ReadPath(inputPath), options);
-        WriteOutput(outputStream, bytes);
+        byte[] bytes = FlattenFields(ReadPath(inputPath, options), options);
+        WriteOutput(outputStream, bytes, options);
     }
 
     /// <summary>
@@ -514,7 +371,7 @@ internal static partial class PdfFormFiller {
     /// </summary>
     public static byte[] FlattenFieldsToBytes(string inputPath, PdfFormFillerOptions? options) {
         Guard.NotNullOrWhiteSpace(inputPath, nameof(inputPath));
-        return FlattenFields(ReadPath(inputPath), options);
+        return FlattenFieldsToBytes(inputPath, options, readOptions: null);
     }
 
     /// <summary>
@@ -566,7 +423,7 @@ internal static partial class PdfFormFiller {
     /// Returns a new PDF with simple AcroForm field values updated and flattened from the current position of a readable stream.
     /// </summary>
     public static byte[] FillAndFlattenFields(Stream stream, IReadOnlyDictionary<string, string> fieldValues, PdfFormFillerOptions? options) {
-        return FillAndFlattenFields(ReadStream(stream, nameof(stream)), fieldValues, options);
+        return FillAndFlattenFields(stream, fieldValues, options, readOptions: null);
     }
 
     /// <summary>
@@ -580,7 +437,7 @@ internal static partial class PdfFormFiller {
     /// Returns a new PDF with simple AcroForm field values updated and flattened from the current position of a readable stream.
     /// </summary>
     public static byte[] FillAndFlattenFields(Stream stream, IReadOnlyDictionary<string, PdfFormFieldValue> fieldValues, PdfFormFillerOptions? options) {
-        return FillAndFlattenFields(ReadStream(stream, nameof(stream)), fieldValues, options);
+        return FillAndFlattenFields(stream, fieldValues, options, readOptions: null);
     }
 
     /// <summary>
@@ -594,7 +451,7 @@ internal static partial class PdfFormFiller {
     /// Writes a new PDF with simple AcroForm field values updated and flattened.
     /// </summary>
     public static void FillAndFlattenFields(byte[] pdf, Stream outputStream, IReadOnlyDictionary<string, string> fieldValues, PdfFormFillerOptions? options) {
-        WriteOutput(outputStream, FillAndFlattenFields(pdf, fieldValues, options));
+        WriteOutput(outputStream, FillAndFlattenFields(pdf, fieldValues, options), options);
     }
 
     /// <summary>
@@ -608,7 +465,7 @@ internal static partial class PdfFormFiller {
     /// Writes a new PDF with simple AcroForm field values updated and flattened.
     /// </summary>
     public static void FillAndFlattenFields(byte[] pdf, Stream outputStream, IReadOnlyDictionary<string, PdfFormFieldValue> fieldValues, PdfFormFillerOptions? options) {
-        WriteOutput(outputStream, FillAndFlattenFields(pdf, fieldValues, options));
+        WriteOutput(outputStream, FillAndFlattenFields(pdf, fieldValues, options), options);
     }
 
     /// <summary>
@@ -622,7 +479,7 @@ internal static partial class PdfFormFiller {
     /// Writes a new PDF with simple AcroForm field values updated and flattened from the current position of a readable stream.
     /// </summary>
     public static void FillAndFlattenFields(Stream inputStream, Stream outputStream, IReadOnlyDictionary<string, string> fieldValues, PdfFormFillerOptions? options) {
-        WriteOutput(outputStream, FillAndFlattenFields(inputStream, fieldValues, options));
+        WriteOutput(outputStream, FillAndFlattenFields(inputStream, fieldValues, options), options);
     }
 
     /// <summary>
@@ -636,7 +493,7 @@ internal static partial class PdfFormFiller {
     /// Writes a new PDF with simple AcroForm field values updated and flattened from the current position of a readable stream.
     /// </summary>
     public static void FillAndFlattenFields(Stream inputStream, Stream outputStream, IReadOnlyDictionary<string, PdfFormFieldValue> fieldValues, PdfFormFillerOptions? options) {
-        WriteOutput(outputStream, FillAndFlattenFields(inputStream, fieldValues, options));
+        WriteOutput(outputStream, FillAndFlattenFields(inputStream, fieldValues, options), options);
     }
 
     /// <summary>
@@ -652,10 +509,10 @@ internal static partial class PdfFormFiller {
     public static void FillAndFlattenFields(string inputPath, string outputPath, IReadOnlyDictionary<string, string> fieldValues, PdfFormFillerOptions? options) {
         Guard.NotNullOrWhiteSpace(inputPath, nameof(inputPath));
         string fullOutputPath = ValidateOutputPath(outputPath);
-        byte[] bytes = FillAndFlattenFields(ReadPath(inputPath), fieldValues, options);
+        byte[] bytes = FillAndFlattenFields(ReadPath(inputPath, options), fieldValues, options);
         var directory = Path.GetDirectoryName(fullOutputPath);
         if (!string.IsNullOrEmpty(directory)) Directory.CreateDirectory(directory);
-        OfficeFileCommit.WriteAllBytes(fullOutputPath, bytes);
+        OfficeFileCommit.Write(fullOutputPath, output => WriteOutput(output, bytes, options), GetCancellationToken(options));
     }
 
     /// <summary>
@@ -671,10 +528,10 @@ internal static partial class PdfFormFiller {
     public static void FillAndFlattenFields(string inputPath, string outputPath, IReadOnlyDictionary<string, PdfFormFieldValue> fieldValues, PdfFormFillerOptions? options) {
         Guard.NotNullOrWhiteSpace(inputPath, nameof(inputPath));
         string fullOutputPath = ValidateOutputPath(outputPath);
-        byte[] bytes = FillAndFlattenFields(ReadPath(inputPath), fieldValues, options);
+        byte[] bytes = FillAndFlattenFields(ReadPath(inputPath, options), fieldValues, options);
         var directory = Path.GetDirectoryName(fullOutputPath);
         if (!string.IsNullOrEmpty(directory)) Directory.CreateDirectory(directory);
-        OfficeFileCommit.WriteAllBytes(fullOutputPath, bytes);
+        OfficeFileCommit.Write(fullOutputPath, output => WriteOutput(output, bytes, options), GetCancellationToken(options));
     }
 
     /// <summary>
@@ -691,8 +548,8 @@ internal static partial class PdfFormFiller {
         Guard.NotNullOrWhiteSpace(inputPath, nameof(inputPath));
         ValidateWritableOutputStream(outputStream);
 
-        byte[] bytes = FillAndFlattenFields(ReadPath(inputPath), fieldValues, options);
-        WriteOutput(outputStream, bytes);
+        byte[] bytes = FillAndFlattenFields(ReadPath(inputPath, options), fieldValues, options);
+        WriteOutput(outputStream, bytes, options);
     }
 
     /// <summary>
@@ -709,8 +566,8 @@ internal static partial class PdfFormFiller {
         Guard.NotNullOrWhiteSpace(inputPath, nameof(inputPath));
         ValidateWritableOutputStream(outputStream);
 
-        byte[] bytes = FillAndFlattenFields(ReadPath(inputPath), fieldValues, options);
-        WriteOutput(outputStream, bytes);
+        byte[] bytes = FillAndFlattenFields(ReadPath(inputPath, options), fieldValues, options);
+        WriteOutput(outputStream, bytes, options);
     }
 
     /// <summary>
@@ -725,7 +582,7 @@ internal static partial class PdfFormFiller {
     /// </summary>
     public static byte[] FillAndFlattenFieldsToBytes(string inputPath, IReadOnlyDictionary<string, string> fieldValues, PdfFormFillerOptions? options) {
         Guard.NotNullOrWhiteSpace(inputPath, nameof(inputPath));
-        return FillAndFlattenFields(ReadPath(inputPath), fieldValues, options);
+        return FillAndFlattenFieldsToBytes(inputPath, fieldValues, options, readOptions: null);
     }
 
     /// <summary>
@@ -740,6 +597,6 @@ internal static partial class PdfFormFiller {
     /// </summary>
     public static byte[] FillAndFlattenFieldsToBytes(string inputPath, IReadOnlyDictionary<string, PdfFormFieldValue> fieldValues, PdfFormFillerOptions? options) {
         Guard.NotNullOrWhiteSpace(inputPath, nameof(inputPath));
-        return FillAndFlattenFields(ReadPath(inputPath), fieldValues, options);
+        return FillAndFlattenFields(ReadPath(inputPath, options), fieldValues, options);
     }
 }

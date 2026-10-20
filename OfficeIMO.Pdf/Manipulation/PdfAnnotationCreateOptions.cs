@@ -2,6 +2,9 @@ namespace OfficeIMO.Pdf;
 
 /// <summary>Creates a standard annotation on an existing PDF page.</summary>
 public sealed class PdfAnnotationCreateOptions {
+    /// <summary>Cancels input reading, PDF processing, and output publication for this operation.</summary>
+    public System.Threading.CancellationToken CancellationToken { get; set; }
+
     /// <summary>One-based target page number.</summary>
     public int PageNumber { get; set; } = 1;
     /// <summary>PDF annotation subtype such as Text, FreeText, Highlight, Line, Square, Circle, Polygon, PolyLine, Ink, Stamp, or Caret.</summary>

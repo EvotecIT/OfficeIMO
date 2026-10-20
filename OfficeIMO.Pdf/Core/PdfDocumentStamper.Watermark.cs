@@ -1,9 +1,14 @@
+using System.Threading;
+
 namespace OfficeIMO.Pdf;
 
 public sealed partial class PdfDocumentStamper {
     /// <summary>Reads editable settings for watermarks created by this API, with their current page selections.</summary>
     public IReadOnlyList<PdfWatermarkOptions> ReadWatermarks(PdfLoadOptions? readOptions = null) =>
-        PdfStamper.ReadWatermarks(_document.ToBytes(), readOptions ?? _document.ReadOptions);
+        ReadWatermarks(readOptions, CancellationToken.None);
+    /// <summary>Reads editable watermark settings with cooperative cancellation.</summary>
+    public IReadOnlyList<PdfWatermarkOptions> ReadWatermarks(PdfLoadOptions? readOptions, CancellationToken cancellationToken) =>
+        PdfStamper.ReadWatermarks(_document.GetBytesForOperation(cancellationToken), readOptions ?? _document.ReadOptions, cancellationToken);
     /// <summary>
     /// Adds or revises a text or image watermark with a centered rotation origin and common opacity,
     /// placement, and page-selection options. Reusing an identifier replaces that watermark on the
@@ -12,6 +17,7 @@ public sealed partial class PdfDocumentStamper {
     /// </summary>
     public PdfDocument Watermark(PdfWatermarkOptions options, PdfLoadOptions? readOptions = null) {
         Guard.NotNull(options, nameof(options));
+        options.CancellationToken.ThrowIfCancellationRequested();
         PdfWatermarkOptions snapshot = options.Clone();
         snapshot.Validate();
         return Content((canvas, page) => {
@@ -29,6 +35,7 @@ public sealed partial class PdfDocumentStamper {
                     }, -snapshot.RotationDegrees);
             }
         }, new PdfCanvasStampOptions {
+            CancellationToken = snapshot.CancellationToken,
             ContentIdentifier = snapshot.Id,
             WatermarkSettings = snapshot,
             TargetPages = snapshot.TargetPages, Opacity = snapshot.Opacity, BehindContent = snapshot.BehindContent

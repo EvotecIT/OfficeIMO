@@ -1,3 +1,5 @@
+using System.Threading;
+
 namespace OfficeIMO.Pdf;
 
 internal static partial class PdfPageEditor {
@@ -9,17 +11,21 @@ internal static partial class PdfPageEditor {
         return MovePagesWithReadOptions(pdf, insertBeforePageNumber, readOptions: null, pageNumbers);
     }
 
-    internal static byte[] MovePagesWithReadOptions(byte[] pdf, int insertBeforePageNumber, PdfLoadOptions? readOptions, params int[] pageNumbers) {
+    internal static byte[] MovePagesWithReadOptions(byte[] pdf, int insertBeforePageNumber, PdfLoadOptions? readOptions, params int[] pageNumbers) =>
+        MovePagesWithReadOptions(pdf, insertBeforePageNumber, readOptions, default, pageNumbers);
+
+    internal static byte[] MovePagesWithReadOptions(byte[] pdf, int insertBeforePageNumber, PdfLoadOptions? readOptions, CancellationToken cancellationToken, params int[] pageNumbers) {
         Guard.NotNull(pdf, nameof(pdf));
         Guard.NotNull(pageNumbers, nameof(pageNumbers));
-        var (_, document) = PdfMutationPlanner.RequireFullRewriteDocument(pdf, PdfMutationOperation.OrganizePages, readOptions);
+        cancellationToken.ThrowIfCancellationRequested();
+        var (_, document) = PdfMutationPlanner.RequireFullRewriteDocument(pdf, PdfMutationOperation.OrganizePages, readOptions, cancellationToken: cancellationToken);
 
         if (pageNumbers.Length == 0) {
             throw new ArgumentException("At least one page number must be specified.", nameof(pageNumbers));
         }
 
         var plan = PdfPageReorderPlan.Move(document.Pages.Count, insertBeforePageNumber, pageNumbers);
-        return PdfTaggedPageOrganizer.Rewrite(pdf, document, plan.SourcePageNumbers, readOptions);
+        return PdfTaggedPageOrganizer.Rewrite(pdf, document, plan.SourcePageNumbers, readOptions, token: cancellationToken);
     }
 
     /// <summary>

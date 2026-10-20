@@ -1,3 +1,5 @@
+using System.Threading;
+
 namespace OfficeIMO.Pdf;
 
 internal static partial class PdfMerger {
@@ -8,7 +10,7 @@ internal static partial class PdfMerger {
         PdfMergeStructureMode mode,
         PdfMergeCollisionMode collisionMode,
         List<PdfMergeDecision> decisions,
-        PdfLoadOptions readOptions) {
+        PdfLoadOptions readOptions, CancellationToken cancellationToken) {
         ValidateXfaFormPolicy(sources, primarySourceIndex, mode);
         int totalCount = sources.Sum(static source => source.FormFieldCount);
         int incomingCount = sources.Where((source, index) => index != primarySourceIndex).Sum(static source => source.FormFieldCount);
@@ -26,8 +28,8 @@ internal static partial class PdfMerger {
         var renamed = new List<string>();
         int dropped = 0;
         IReadOnlyList<string> expectedNames;
-        byte[] output = RewriteForms(merged, sources, primarySourceIndex, mode, collisionMode, renamed, ref dropped, out expectedNames, readOptions);
-        ValidateFormReadback(output, expectedNames, RefreshOwnedOutputReadOptions(readOptions, output));
+        byte[] output = RewriteForms(merged, sources, primarySourceIndex, mode, collisionMode, renamed, ref dropped, out expectedNames, readOptions, cancellationToken);
+        ValidateFormReadback(output, expectedNames, RefreshOwnedOutputReadOptions(readOptions, output), cancellationToken);
         string action;
         int imported = 0;
         switch (mode) {
@@ -202,8 +204,8 @@ internal static partial class PdfMerger {
         List<string> renamed,
         ref int dropped,
         out IReadOnlyList<string> expectedNames,
-        PdfLoadOptions readOptions) {
-        PdfReadDocument document = PdfReadDocument.Open(merged, readOptions);
+        PdfLoadOptions readOptions, CancellationToken cancellationToken) {
+        PdfReadDocument document = PdfReadDocument.Open(merged, readOptions, cancellationToken);
         var names = new List<string>();
         int localDropped = dropped;
         byte[] output = PdfDocumentObjectGraphRewriter.Rewrite(merged, readOptions, null, (objects, security) => {
@@ -214,6 +216,7 @@ internal static partial class PdfMerger {
             var droppedWidgetObjectNumbers = new HashSet<int>();
 
             foreach (MergedFormRoot root in roots) {
+                cancellationToken.ThrowIfCancellationRequested();
                 bool include = mode == PdfMergeStructureMode.Combine ||
                     ((mode == PdfMergeStructureMode.KeepPrimary || mode == PdfMergeStructureMode.RejectIncoming) && root.SourceIndex == primarySourceIndex);
                 if (!include) { foreach (int widget in root.WidgetObjectNumbers) droppedWidgetObjectNumbers.Add(widget); continue; }
@@ -240,7 +243,7 @@ internal static partial class PdfMerger {
             catalog.Items.Remove("AcroForm");
             if (selected.Count > 0) catalog.Items["AcroForm"] = BuildMergedAcroForm(selected, sources[primarySourceIndex].Document);
             return security.InfoObjectNumber.HasValue && objects.ContainsKey(security.InfoObjectNumber.Value) ? security.InfoObjectNumber : null;
-        });
+        }, cancellationToken: cancellationToken);
         dropped = localDropped;
         expectedNames = names.OrderBy(static name => name, StringComparer.Ordinal).ToArray();
         return output;
@@ -453,8 +456,8 @@ internal static partial class PdfMerger {
         return acroForm;
     }
 
-    private static void ValidateFormReadback(byte[] output, IReadOnlyList<string> expectedNames, PdfLoadOptions readOptions) {
-        string[] actual = PdfReadDocument.Open(output, readOptions).FormFields.Select(static field => field.Name ?? string.Empty).OrderBy(static name => name, StringComparer.Ordinal).ToArray();
+    private static void ValidateFormReadback(byte[] output, IReadOnlyList<string> expectedNames, PdfLoadOptions readOptions, CancellationToken cancellationToken) {
+        string[] actual = PdfReadDocument.Open(output, readOptions, cancellationToken).FormFields.Select(static field => field.Name ?? string.Empty).OrderBy(static name => name, StringComparer.Ordinal).ToArray();
         if (!actual.SequenceEqual(expectedNames, StringComparer.Ordinal)) throw new InvalidOperationException("PDF AcroForm merge validation failed; the artifact was not returned.");
     }
 

@@ -2,6 +2,9 @@ namespace OfficeIMO.Pdf;
 
 /// <summary>Controls arbitrary visual canvas content stamped onto existing PDF pages.</summary>
 public sealed class PdfCanvasStampOptions {
+    /// <summary>Cancels input reading, PDF processing, and output publication for this operation.</summary>
+    public System.Threading.CancellationToken CancellationToken { get; set; }
+
     internal string? ContentIdentifier { get; set; }
     internal PdfWatermarkOptions? WatermarkSettings { get; set; }
     private double _opacity = 1D;

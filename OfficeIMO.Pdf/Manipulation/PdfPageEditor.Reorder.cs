@@ -1,3 +1,5 @@
+using System.Threading;
+
 namespace OfficeIMO.Pdf;
 
 internal static partial class PdfPageEditor {
@@ -9,22 +11,25 @@ internal static partial class PdfPageEditor {
     }
 
     internal static byte[] ReorderPagesWithReadOptions(byte[] pdf, PdfLoadOptions? readOptions, params int[] pageNumbers) {
-        return ReorderPagesCore(pdf, readOptions, pageNumbers, null);
+        return ReorderPagesCore(pdf, readOptions, pageNumbers, null, default);
     }
 
-    internal static (byte[] Bytes, IReadOnlyDictionary<int, int> Map) ReorderPagesWithMapping(byte[] pdf, PdfLoadOptions? readOptions, int[] pageNumbers) {
+    internal static byte[] ReorderPagesWithReadOptions(byte[] pdf, PdfLoadOptions? readOptions, CancellationToken cancellationToken, params int[] pageNumbers) =>
+        ReorderPagesCore(pdf, readOptions, pageNumbers, null, cancellationToken);
+
+    internal static (byte[] Bytes, IReadOnlyDictionary<int, int> Map) ReorderPagesWithMapping(byte[] pdf, PdfLoadOptions? readOptions, int[] pageNumbers, CancellationToken cancellationToken = default) {
         IReadOnlyDictionary<int, int>? mapping = null;
-        byte[] bytes = ReorderPagesCore(pdf, readOptions, pageNumbers, value => mapping = value);
+        byte[] bytes = ReorderPagesCore(pdf, readOptions, pageNumbers, value => mapping = value, cancellationToken);
         return (bytes, mapping!);
     }
 
     private static byte[] ReorderPagesCore(byte[] pdf, PdfLoadOptions? readOptions, int[] pageNumbers,
-        Action<IReadOnlyDictionary<int, int>>? captureObjectNumbers) {
+        Action<IReadOnlyDictionary<int, int>>? captureObjectNumbers, CancellationToken cancellationToken) {
         Guard.NotNull(pdf, nameof(pdf));
         Guard.NotNull(pageNumbers, nameof(pageNumbers));
-        var (_, document) = PdfMutationPlanner.RequireFullRewriteDocument(pdf, PdfMutationOperation.OrganizePages, readOptions);
+        var (_, document) = PdfMutationPlanner.RequireFullRewriteDocument(pdf, PdfMutationOperation.OrganizePages, readOptions, cancellationToken: cancellationToken);
         ValidateReorderPageNumbers(pageNumbers, document.Pages.Count, nameof(pageNumbers));
-        return PdfTaggedPageOrganizer.Rewrite(pdf, document, pageNumbers, readOptions, captureObjectNumbers: captureObjectNumbers);
+        return PdfTaggedPageOrganizer.Rewrite(pdf, document, pageNumbers, readOptions, captureObjectNumbers: captureObjectNumbers, token: cancellationToken);
     }
 
     /// <summary>

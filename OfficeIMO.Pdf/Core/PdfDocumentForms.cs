@@ -68,7 +68,7 @@ public sealed class PdfDocumentForms {
                 ? AppendRevisionWithReadOptions(fieldValues, CreateIncrementalOptions(formOptions), readOptions ?? _document.ReadOptions)
                 : FillWithReadOptions(fieldValues, formOptions, readOptions ?? _document.ReadOptions),
             fieldValues.Keys,
-            readOptions);
+            readOptions, cancellationToken: formOptions.CancellationToken);
     }
 
     /// <summary>
@@ -115,7 +115,7 @@ public sealed class PdfDocumentForms {
                 ? AppendRevisionWithReadOptions(fieldValues, CreateIncrementalOptions(formOptions), readOptions ?? _document.ReadOptions)
                 : FillWithReadOptions(fieldValues, formOptions, readOptions ?? _document.ReadOptions),
             fieldValues.Keys,
-            readOptions);
+            readOptions, cancellationToken: formOptions.CancellationToken);
     }
 
     /// <summary>
@@ -159,7 +159,7 @@ public sealed class PdfDocumentForms {
             _ => AppendRevisionWithReadOptions(fieldValues, formOptions, readOptions ?? _document.ReadOptions),
             fieldValues.Keys,
             readOptions,
-            PdfMutationExecutionPreference.RequireAppendOnly);
+            PdfMutationExecutionPreference.RequireAppendOnly, cancellationToken: formOptions?.CancellationToken ?? default);
     }
 
     /// <summary>
@@ -203,7 +203,7 @@ public sealed class PdfDocumentForms {
             _ => AppendRevisionWithReadOptions(fieldValues, formOptions, readOptions ?? _document.ReadOptions),
             fieldValues.Keys,
             readOptions,
-            PdfMutationExecutionPreference.RequireAppendOnly);
+            PdfMutationExecutionPreference.RequireAppendOnly, cancellationToken: formOptions?.CancellationToken ?? default);
     }
 
     /// <summary>
@@ -241,7 +241,8 @@ public sealed class PdfDocumentForms {
     /// Attempts to create a new PDF with simple form fields flattened, returning diagnostics when blocked or failed.
     /// </summary>
     public PdfOperationResult<PdfDocument> FlattenResult(PdfFormFillerOptions formOptions, PdfLoadOptions? readOptions) {
-        return _document.TryMutationOperation("Flatten form fields", PdfPreflightCapability.FlattenSimpleFormFields, PdfMutationOperation.FlattenFormFields, () => FlattenWithReadOptions(formOptions, readOptions ?? _document.ReadOptions), readOptions);
+        Guard.NotNull(formOptions, nameof(formOptions));
+        return _document.TryMutationOperation("Flatten form fields", PdfPreflightCapability.FlattenSimpleFormFields, PdfMutationOperation.FlattenFormFields, () => FlattenWithReadOptions(formOptions, readOptions ?? _document.ReadOptions), readOptions, cancellationToken: formOptions.CancellationToken);
     }
 
     /// <summary>
@@ -269,7 +270,8 @@ public sealed class PdfDocumentForms {
     /// Attempts to create a new PDF with simple form fields filled and flattened, returning diagnostics when blocked or failed.
     /// </summary>
     public PdfOperationResult<PdfDocument> FillAndFlattenResult(IReadOnlyDictionary<string, string> fieldValues, PdfFormFillerOptions formOptions, PdfLoadOptions? readOptions) {
-        return _document.TryMutationOperation("Fill and flatten form fields", PdfPreflightCapability.FillAndFlattenSimpleFormFields, PdfMutationOperation.FillAndFlattenFormFields, () => FillAndFlattenWithReadOptions(fieldValues, formOptions, readOptions ?? _document.ReadOptions), readOptions);
+        Guard.NotNull(formOptions, nameof(formOptions));
+        return _document.TryMutationOperation("Fill and flatten form fields", PdfPreflightCapability.FillAndFlattenSimpleFormFields, PdfMutationOperation.FillAndFlattenFormFields, () => FillAndFlattenWithReadOptions(fieldValues, formOptions, readOptions ?? _document.ReadOptions), readOptions, cancellationToken: formOptions.CancellationToken);
     }
 
     /// <summary>
@@ -297,7 +299,8 @@ public sealed class PdfDocumentForms {
     /// Attempts to create a new PDF with simple form fields filled and flattened, including multi-value fields, returning diagnostics when blocked or failed.
     /// </summary>
     public PdfOperationResult<PdfDocument> FillAndFlattenResult(IReadOnlyDictionary<string, PdfFormFieldValue> fieldValues, PdfFormFillerOptions formOptions, PdfLoadOptions? readOptions) {
-        return _document.TryMutationOperation("Fill and flatten form fields", PdfPreflightCapability.FillAndFlattenSimpleFormFields, PdfMutationOperation.FillAndFlattenFormFields, () => FillAndFlattenWithReadOptions(fieldValues, formOptions, readOptions ?? _document.ReadOptions), readOptions);
+        Guard.NotNull(formOptions, nameof(formOptions));
+        return _document.TryMutationOperation("Fill and flatten form fields", PdfPreflightCapability.FillAndFlattenSimpleFormFields, PdfMutationOperation.FillAndFlattenFormFields, () => FillAndFlattenWithReadOptions(fieldValues, formOptions, readOptions ?? _document.ReadOptions), readOptions, cancellationToken: formOptions.CancellationToken);
     }
 
     /// <summary>Exports readable field values as a typed data set.</summary>
@@ -307,10 +310,10 @@ public sealed class PdfDocumentForms {
     public string ExportXfdf() => ExportData().ToXfdf();
 
     /// <summary>Imports a typed data set through the validated form filler.</summary>
-    public PdfDocument ImportData(PdfFormDataSet data, PdfFormFillerOptions? options = null) => _document.ApplyMutation(input => PdfFormData.Import(input, data, options, _document.ReadOptions));
+    public PdfDocument ImportData(PdfFormDataSet data, PdfFormFillerOptions? options = null) => _document.ApplyMutation(input => PdfFormData.Import(input, data, options, _document.ReadOptions), cancellationToken: options?.CancellationToken ?? default);
 
     /// <summary>Imports XFDF through the validated form filler.</summary>
-    public PdfDocument ImportXfdf(string xfdf, PdfFormFillerOptions? options = null) => _document.ApplyMutation(input => PdfFormData.ImportXfdf(input, xfdf, options, _document.ReadOptions));
+    public PdfDocument ImportXfdf(string xfdf, PdfFormFillerOptions? options = null) => _document.ApplyMutation(input => PdfFormData.ImportXfdf(input, xfdf, options, _document.ReadOptions), cancellationToken: options?.CancellationToken ?? default);
 
     /// <summary>Transactionally creates or edits fields, widgets, ordering, and selective flattening.</summary>
     public PdfAcroFormEditResult Edit(Action<PdfAcroFormEditSession> edit) => PdfAcroFormEditor.Edit(_document.GetBytesForOperation(), edit, _document.ReadOptions);
@@ -335,7 +338,8 @@ public sealed class PdfDocumentForms {
 
         return new PdfIncrementalFormFieldUpdateOptions {
             KeepNeedAppearances = formOptions?.KeepNeedAppearances ?? false,
-            GenerateAppearanceStreams = true
+            GenerateAppearanceStreams = true,
+            CancellationToken = formOptions?.CancellationToken ?? default
         };
     }
 
@@ -350,25 +354,30 @@ public sealed class PdfDocumentForms {
         PdfLoadOptions? readOptions) => _document.ApplyMutation(
             input => PdfFormFiller.FillFields(input, fieldValues, formOptions, readOptions),
             readOptions,
-            operationName: "Fill");
+            operationName: "Fill",
+            cancellationToken: formOptions?.CancellationToken ?? default);
 
     /// <summary>Fills reviewed values through the canonical mutation and readback owners with cooperative cancellation.</summary>
     internal PdfDocument FillWithReadOptions(
         IReadOnlyDictionary<string, PdfFormFieldValue> fieldValues,
         PdfFormFillerOptions? formOptions,
         PdfLoadOptions? readOptions,
-        CancellationToken cancellationToken = default) => _document.ApplyMutation(
+        CancellationToken cancellationToken = default) {
+        using var linkedCancellation = PdfFormFiller.LinkCancellation(formOptions?.CancellationToken ?? default, ref cancellationToken);
+        return _document.ApplyMutation(
             input => PdfFormFiller.FillFields(input, fieldValues, formOptions, readOptions, cancellationToken),
             readOptions,
             operationName: "Fill",
             cancellationToken);
+    }
 
     private PdfDocument FlattenWithReadOptions(
         PdfFormFillerOptions? formOptions,
         PdfLoadOptions? readOptions) => _document.ApplyMutation(
             input => PdfFormFiller.FlattenFields(input, formOptions, readOptions),
             readOptions,
-            operationName: "Flatten");
+            operationName: "Flatten",
+            cancellationToken: formOptions?.CancellationToken ?? default);
 
     private PdfDocument FlattenWithReadOptions(
         IReadOnlyCollection<string> fieldNames,
@@ -376,7 +385,8 @@ public sealed class PdfDocumentForms {
         PdfLoadOptions? readOptions) => _document.ApplyMutation(
             input => PdfFormFiller.FlattenFields(input, fieldNames, formOptions, readOptions),
             readOptions,
-            operationName: "Flatten");
+            operationName: "Flatten",
+            cancellationToken: formOptions?.CancellationToken ?? default);
 
     private PdfDocument FillAndFlattenWithReadOptions(
         IReadOnlyDictionary<string, string> fieldValues,
@@ -384,7 +394,8 @@ public sealed class PdfDocumentForms {
         PdfLoadOptions? readOptions) => _document.ApplyMutation(
             input => PdfFormFiller.FillAndFlattenFields(input, fieldValues, formOptions, readOptions),
             readOptions,
-            operationName: "FillAndFlatten");
+            operationName: "FillAndFlatten",
+            cancellationToken: formOptions?.CancellationToken ?? default);
 
     private PdfDocument FillAndFlattenWithReadOptions(
         IReadOnlyDictionary<string, PdfFormFieldValue> fieldValues,
@@ -392,7 +403,8 @@ public sealed class PdfDocumentForms {
         PdfLoadOptions? readOptions) => _document.ApplyMutation(
             input => PdfFormFiller.FillAndFlattenFields(input, fieldValues, formOptions, readOptions),
             readOptions,
-            operationName: "FillAndFlatten");
+            operationName: "FillAndFlatten",
+            cancellationToken: formOptions?.CancellationToken ?? default);
 
     private PdfDocument AppendRevisionWithReadOptions(
         IReadOnlyDictionary<string, string> fieldValues,
@@ -400,16 +412,20 @@ public sealed class PdfDocumentForms {
         PdfLoadOptions? readOptions) => _document.ApplyMutation(
             input => PdfIncrementalUpdater.UpdateFormFields(input, fieldValues, formOptions, readOptions),
             readOptions,
-            operationName: "AppendRevision");
+            operationName: "AppendRevision",
+            cancellationToken: formOptions?.CancellationToken ?? default);
 
     /// <summary>Appends reviewed values through the canonical mutation and readback owners with cooperative cancellation.</summary>
     internal PdfDocument AppendRevisionWithReadOptions(
         IReadOnlyDictionary<string, PdfFormFieldValue> fieldValues,
         PdfIncrementalFormFieldUpdateOptions? formOptions,
         PdfLoadOptions? readOptions,
-        CancellationToken cancellationToken = default) => _document.ApplyMutation(
+        CancellationToken cancellationToken = default) {
+        using var linkedCancellation = PdfFormFiller.LinkCancellation(formOptions?.CancellationToken ?? default, ref cancellationToken);
+        return _document.ApplyMutation(
             input => PdfIncrementalUpdater.UpdateFormFields(input, fieldValues, formOptions, readOptions, cancellationToken),
             readOptions,
             operationName: "AppendRevision",
             cancellationToken);
+    }
 }

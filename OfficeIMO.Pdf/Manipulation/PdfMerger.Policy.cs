@@ -14,6 +14,7 @@ internal static partial class PdfMerger {
         cancellationToken.ThrowIfCancellationRequested();
         PdfMergePolicy policy = options?.Policy ?? new PdfMergePolicy();
         Guard.NotNull(policy, nameof(policy));
+        ValidateTaggedFormMergePolicy(sources, primarySourceIndex, policy);
         if (outputSourceIndexes is not null && outputSourceIndexes.Length != sources.Sum(static source => source.PageObjectNumbers.Length)) {
             throw new InvalidOperationException("PDF merge output page ownership does not match the imported page count.");
         }
@@ -48,28 +49,28 @@ internal static partial class PdfMerger {
         // Form imports rely on the source-to-output object map produced by the initial merge.
         // Apply them before any policy editor can rewrite and renumber the object graph.
         PdfLoadOptions currentReadOptions = outputReadOptions;
-        merged = ApplyFormPolicy(merged, sources, primarySourceIndex, policy.Forms, policy.FormFieldCollisions, decisions, currentReadOptions);
+        merged = ApplyFormPolicy(merged, sources, primarySourceIndex, policy.Forms, policy.FormFieldCollisions, decisions, currentReadOptions, cancellationToken);
         cancellationToken.ThrowIfCancellationRequested();
         currentReadOptions = RefreshOwnedOutputReadOptions(currentReadOptions, merged);
-        merged = ApplyCatalogStatePolicy(merged, sources, primarySourceIndex, policy.CatalogState, decisions, currentReadOptions);
+        merged = ApplyCatalogStatePolicy(merged, sources, primarySourceIndex, policy.CatalogState, decisions, currentReadOptions, cancellationToken);
         cancellationToken.ThrowIfCancellationRequested();
         currentReadOptions = RefreshOwnedOutputReadOptions(currentReadOptions, merged);
-        merged = ApplyMetadataPolicy(merged, sources, primarySourceIndex, policy.Metadata, decisions, currentReadOptions);
+        merged = ApplyMetadataPolicy(merged, sources, primarySourceIndex, policy.Metadata, decisions, currentReadOptions, cancellationToken);
         cancellationToken.ThrowIfCancellationRequested();
         currentReadOptions = RefreshOwnedOutputReadOptions(currentReadOptions, merged);
-        merged = ApplyNamedDestinationPolicy(merged, sources, primarySourceIndex, policy.NamedDestinations, policy.NamedDestinationCollisions, decisions, currentReadOptions, outputSourceIndexes);
+        merged = ApplyNamedDestinationPolicy(merged, sources, primarySourceIndex, policy.NamedDestinations, policy.NamedDestinationCollisions, decisions, currentReadOptions, outputSourceIndexes, cancellationToken);
         cancellationToken.ThrowIfCancellationRequested();
         currentReadOptions = RefreshOwnedOutputReadOptions(currentReadOptions, merged);
-        merged = ApplyPageLabelPolicy(merged, sources, primarySourceIndex, policy.PageLabels, decisions, currentReadOptions);
+        merged = ApplyPageLabelPolicy(merged, sources, primarySourceIndex, policy.PageLabels, decisions, currentReadOptions, cancellationToken);
         cancellationToken.ThrowIfCancellationRequested();
         currentReadOptions = RefreshOwnedOutputReadOptions(currentReadOptions, merged);
-        merged = ApplyOutlinePolicy(merged, sources, primarySourceIndex, policy.Outlines, decisions, currentReadOptions);
+        merged = ApplyOutlinePolicy(merged, sources, primarySourceIndex, policy.Outlines, decisions, currentReadOptions, cancellationToken);
         cancellationToken.ThrowIfCancellationRequested();
         currentReadOptions = RefreshOwnedOutputReadOptions(currentReadOptions, merged);
-        merged = ApplyAttachmentPolicy(merged, sources, primarySourceIndex, policy.Attachments, policy.AttachmentCollisions, decisions, currentReadOptions);
+        merged = ApplyAttachmentPolicy(merged, sources, primarySourceIndex, policy.Attachments, policy.AttachmentCollisions, decisions, currentReadOptions, cancellationToken);
         cancellationToken.ThrowIfCancellationRequested();
         currentReadOptions = RefreshOwnedOutputReadOptions(currentReadOptions, merged);
-        merged = ApplyViewerPolicy(merged, sources, primarySourceIndex, policy.ViewerPreferences, decisions, currentReadOptions, outputSourceIndexes);
+        merged = ApplyViewerPolicy(merged, sources, primarySourceIndex, policy.ViewerPreferences, decisions, currentReadOptions, outputSourceIndexes, cancellationToken);
         cancellationToken.ThrowIfCancellationRequested();
         currentReadOptions = RefreshOwnedOutputReadOptions(currentReadOptions, merged);
 
@@ -105,7 +106,7 @@ internal static partial class PdfMerger {
         int primarySourceIndex,
         PdfMergeStructureMode mode,
         List<PdfMergeDecision> decisions,
-        PdfLoadOptions readOptions) {
+        PdfLoadOptions readOptions, CancellationToken cancellationToken) {
         PdfMetadata primary = sources[primarySourceIndex].Metadata;
         switch (mode) {
             case PdfMergeStructureMode.KeepPrimary:
@@ -113,7 +114,7 @@ internal static partial class PdfMerger {
                 return merged;
             case PdfMergeStructureMode.Drop:
                 decisions.Add(new PdfMergeDecision("Metadata", mode, "Removed document information and synchronized XMP metadata."));
-                return PdfMetadataEditor.ReplaceMetadata(merged, new PdfMetadata(), readOptions);
+                return PdfMetadataEditor.ReplaceMetadata(merged, new PdfMetadata(), readOptions, cancellationToken);
             case PdfMergeStructureMode.RejectIncoming:
                 int conflicts = sources.Where((source, index) => index != primarySourceIndex && HasMetadata(source.Metadata)).Count();
                 if (conflicts > 0) throw new InvalidOperationException("PDF merge policy rejected incoming metadata from " + conflicts + " source(s).");
@@ -123,7 +124,7 @@ internal static partial class PdfMerger {
                 PdfMetadata combined = CombineMetadata(primary, sources, primarySourceIndex);
                 int supplied = sources.Where((source, index) => index != primarySourceIndex && HasMetadata(source.Metadata)).Count();
                 decisions.Add(new PdfMergeDecision("Metadata", mode, "Filled empty primary metadata values from later sources.", supplied));
-                return PdfMetadataEditor.ReplaceMetadata(merged, combined, readOptions);
+                return PdfMetadataEditor.ReplaceMetadata(merged, combined, readOptions, cancellationToken);
             default:
                 throw new ArgumentOutOfRangeException(nameof(mode));
         }
@@ -135,7 +136,7 @@ internal static partial class PdfMerger {
         int primarySourceIndex,
         PdfMergeStructureMode mode,
         List<PdfMergeDecision> decisions,
-        PdfLoadOptions readOptions) {
+        PdfLoadOptions readOptions, CancellationToken cancellationToken) {
         int incomingCount = sources.Where((source, index) => index != primarySourceIndex).Sum(static source => source.OutlineCount);
         switch (mode) {
             case PdfMergeStructureMode.KeepPrimary:
@@ -146,7 +147,7 @@ internal static partial class PdfMerger {
                 decisions.Add(new PdfMergeDecision("Outlines", mode, "No incoming outline nodes were present."));
                 return merged;
             case PdfMergeStructureMode.Drop:
-                merged = PdfBookmarkEditor.Edit(merged, session => RemoveAllBookmarks(session), readOptions).ToBytes();
+                merged = PdfBookmarkEditor.Edit(merged, session => RemoveAllBookmarks(session), readOptions, cancellationToken).ToBytes();
                 decisions.Add(new PdfMergeDecision("Outlines", mode, "Removed all outline trees."));
                 return merged;
             case PdfMergeStructureMode.Combine:
@@ -154,7 +155,7 @@ internal static partial class PdfMerger {
                 merged = PdfBookmarkEditor.EditAllowingBrokenSourceDestinations(merged, session => {
                     RemoveAllBookmarks(session);
                     foreach (MergedOutlineNode root in roots) AddBookmark(session, root, null);
-                }, readOptions).ToBytes();
+                }, readOptions, cancellationToken: cancellationToken).ToBytes();
                 decisions.Add(new PdfMergeDecision("Outlines", mode, "Appended source outline roots in source order and retargeted them to merged pages.", incomingCount));
                 return merged;
             default:
@@ -169,14 +170,14 @@ internal static partial class PdfMerger {
         PdfMergeStructureMode mode,
         PdfMergeCollisionMode collisionMode,
         List<PdfMergeDecision> decisions,
-        PdfLoadOptions readOptions) {
+        PdfLoadOptions readOptions, CancellationToken cancellationToken) {
         int[] sourceAttachmentCounts = sources.Select(static source => source.Document.Attachments.Count).ToArray();
         int incomingCount = sourceAttachmentCounts.Where((_, index) => index != primarySourceIndex).Sum();
         switch (mode) {
             case PdfMergeStructureMode.KeepPrimary:
                 if (incomingCount > 0) {
-                    IReadOnlyList<PdfExtractedAttachment> primaryAttachments = PdfAttachmentExtractor.ExtractAttachments(sources[primarySourceIndex].Document);
-                    merged = ReplaceAttachments(merged, ConvertAttachments(primaryAttachments), readOptions);
+                    IReadOnlyList<PdfExtractedAttachment> primaryAttachments = sources[primarySourceIndex].Document.ExtractAttachments(cancellationToken);
+                    merged = ReplaceAttachments(merged, ConvertAttachments(primaryAttachments), readOptions, cancellationToken);
                 }
                 decisions.Add(new PdfMergeDecision("Attachments", mode, "Kept primary attachments.", droppedCount: incomingCount));
                 return merged;
@@ -185,15 +186,15 @@ internal static partial class PdfMerger {
                 decisions.Add(new PdfMergeDecision("Attachments", mode, "No incoming attachments were present."));
                 return merged;
             case PdfMergeStructureMode.Drop:
-                if (sourceAttachmentCounts.Sum() > 0) merged = ReplaceAttachments(merged, Array.Empty<PdfEmbeddedFile>(), readOptions);
+                if (sourceAttachmentCounts.Sum() > 0) merged = ReplaceAttachments(merged, Array.Empty<PdfEmbeddedFile>(), readOptions, cancellationToken);
                 decisions.Add(new PdfMergeDecision("Attachments", mode, "Removed embedded and associated files."));
                 return merged;
             case PdfMergeStructureMode.Combine:
-                IReadOnlyList<PdfExtractedAttachment>[] sourceAttachments = sources.Select(source => PdfAttachmentExtractor.ExtractAttachments(source.Document)).ToArray();
+                IReadOnlyList<PdfExtractedAttachment>[] sourceAttachments = sources.Select(source => source.Document.ExtractAttachments(cancellationToken)).ToArray();
                 var renamed = new List<string>();
                 int dropped = 0;
                 IReadOnlyList<PdfEmbeddedFile> combined = CombineAttachments(sourceAttachments, collisionMode, renamed, ref dropped);
-                merged = ReplaceAttachments(merged, combined, readOptions);
+                merged = ReplaceAttachments(merged, combined, readOptions, cancellationToken);
                 decisions.Add(new PdfMergeDecision("Attachments", mode, "Combined attachments and validated payload and metadata readback.", incomingCount - dropped, dropped, renamed.AsReadOnly()));
                 return merged;
             default:
@@ -237,11 +238,11 @@ internal static partial class PdfMerger {
         }
     }
 
-    private static byte[] ReplaceAttachments(byte[] merged, IReadOnlyList<PdfEmbeddedFile> attachments, PdfLoadOptions readOptions) {
+    private static byte[] ReplaceAttachments(byte[] merged, IReadOnlyList<PdfEmbeddedFile> attachments, PdfLoadOptions readOptions, CancellationToken cancellationToken) {
         return PdfAttachmentEditor.Edit(merged, session => {
             foreach (PdfEmbeddedFile attachment in session.Attachments.ToArray()) session.Remove(attachment.FileName);
             foreach (PdfEmbeddedFile attachment in attachments) session.Add(attachment);
-        }, readOptions).ToBytes();
+        }, readOptions, cancellationToken: cancellationToken).ToBytes();
     }
 
     private static System.Collections.ObjectModel.ReadOnlyCollection<PdfEmbeddedFile> ConvertAttachments(IReadOnlyList<PdfExtractedAttachment> attachments) {

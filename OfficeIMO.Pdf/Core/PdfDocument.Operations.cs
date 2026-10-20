@@ -167,7 +167,7 @@ public sealed partial class PdfDocument {
         PdfSignatureProfile? signatureProfile,
         CancellationToken cancellationToken) {
         var snapshot = GetPreflightSnapshot(options, cancellationToken);
-        return PdfMutationPlanner.Plan(snapshot.Preflight, snapshot.Bytes, operation, fieldNames, executionPreference, snapshot.Options, signatureProfile);
+        return PdfMutationPlanner.Plan(snapshot.Preflight, snapshot.Bytes, operation, fieldNames, executionPreference, snapshot.Options, signatureProfile, cancellationToken);
     }
 
     /// <summary>
@@ -249,7 +249,7 @@ public sealed partial class PdfDocument {
 
     /// <summary>Applies dependency-free lossless optimization and returns the candidate with action and preservation reports.</summary>
     internal PdfOptimizationActionResult Optimize(PdfOptimizationOptions? options = null) =>
-        PdfOptimizer.Optimize(GetBytesForOperation(), options, ReadOptions);
+        PdfOptimizer.Optimize(GetBytesForOperation(options?.CancellationToken ?? default), options, ReadOptions);
 
     /// <summary>Applies a named deterministic lossless optimization profile.</summary>
     internal PdfOptimizationActionResult Optimize(PdfOptimizationProfile profile) =>
@@ -270,11 +270,11 @@ public sealed partial class PdfDocument {
     /// Unsupported text mappings fall back to removal of the complete PDF text object.
     /// </summary>
     internal PdfDocument ApplyRedactions(IEnumerable<PdfRedactionArea> areas, PdfRedactionApplyOptions? applyOptions = null, PdfTextLayoutOptions? layoutOptions = null, PdfLoadOptions? options = null) {
-        return ApplyMutation(input => PdfRedactionApplier.Apply(input, areas, applyOptions, layoutOptions, options ?? ReadOptions), options);
+        return ApplyMutation(input => PdfRedactionApplier.Apply(input, areas, applyOptions, layoutOptions, options ?? ReadOptions), options, cancellationToken: applyOptions?.CancellationToken ?? default);
     }
 
     /// <summary>Applies a reviewed redaction plan, including exact field removal for field-derived areas.</summary>
-    internal PdfDocument ApplyRedactions(PdfRedactionPlan plan, PdfRedactionApplyOptions? applyOptions = null, PdfTextLayoutOptions? layoutOptions = null, PdfLoadOptions? options = null) => ApplyMutation(input => PdfRedactionApplier.Apply(input, plan, applyOptions, layoutOptions, options ?? ReadOptions), options);
+    internal PdfDocument ApplyRedactions(PdfRedactionPlan plan, PdfRedactionApplyOptions? applyOptions = null, PdfTextLayoutOptions? layoutOptions = null, PdfLoadOptions? options = null) => ApplyMutation(input => PdfRedactionApplier.Apply(input, plan, applyOptions, layoutOptions, options ?? ReadOptions), options, cancellationToken: applyOptions?.CancellationToken ?? default);
 
     /// <summary>Applies a reviewed redaction plan and returns source-bound post-rewrite evidence.</summary>
     internal PdfRedactionApplyResult ApplyRedactionsWithEvidence(
@@ -699,15 +699,27 @@ public sealed partial class PdfDocument {
     /// <summary>
     /// Creates a new PDF with visual annotation appearance streams painted into page content where supported.
     /// </summary>
-    public PdfDocument FlattenVisualAnnotations() {
-        return ApplyMutation(input => PdfAnnotationFlattener.FlattenVisualAnnotations(input, options: null, readOptions: ReadOptions));
+    public PdfDocument FlattenVisualAnnotations() => FlattenVisualAnnotations(CancellationToken.None);
+
+    /// <summary>Flattens supported annotation appearances with cooperative cancellation.</summary>
+    public PdfDocument FlattenVisualAnnotations(CancellationToken cancellationToken) {
+        return ApplyMutation(input => PdfAnnotationFlattener.FlattenVisualAnnotations(input,
+            new PdfAnnotationFlattenOptions { CancellationToken = cancellationToken }, ReadOptions),
+            cancellationToken: cancellationToken);
     }
 
     /// <summary>
     /// Attempts to flatten visual annotation appearance streams, returning diagnostics when blocked or failed.
     /// </summary>
-    public PdfOperationResult<PdfDocument> FlattenVisualAnnotationsResult(PdfLoadOptions? options = null) {
-        return TryMutationOperation("Flatten visual annotations", PdfPreflightCapability.ManipulatePages, PdfMutationOperation.ModifyAnnotations, _ => FlattenVisualAnnotations(), options: options);
+    public PdfOperationResult<PdfDocument> FlattenVisualAnnotationsResult(PdfLoadOptions? options = null) =>
+        FlattenVisualAnnotationsResult(options, CancellationToken.None);
+
+    /// <summary>Attempts to flatten supported annotation appearances with cooperative cancellation.</summary>
+    public PdfOperationResult<PdfDocument> FlattenVisualAnnotationsResult(PdfLoadOptions? options, CancellationToken cancellationToken) {
+        return TryMutationOperation("Flatten visual annotations", PdfPreflightCapability.ManipulatePages, PdfMutationOperation.ModifyAnnotations,
+            _ => ApplyMutation(input => PdfAnnotationFlattener.FlattenVisualAnnotations(input,
+                new PdfAnnotationFlattenOptions { CancellationToken = cancellationToken }, options ?? ReadOptions), options,
+                cancellationToken: cancellationToken), options: options, cancellationToken: cancellationToken);
     }
 
     /// <summary>
@@ -747,7 +759,8 @@ public sealed partial class PdfDocument {
         string? subject,
         string? keywords,
         PdfLoadOptions? readOptions,
-        bool createXmpMetadata = false) {
+        bool createXmpMetadata = false,
+        CancellationToken cancellationToken = default) {
         return ApplyMutation(
             input => PdfIncrementalUpdater.UpdateMetadata(
                 input,
@@ -756,8 +769,9 @@ public sealed partial class PdfDocument {
                 subject,
                 keywords,
                 readOptions,
-                createXmpMetadata),
-            readOptions);
+                createXmpMetadata,
+                cancellationToken),
+            readOptions, cancellationToken: cancellationToken);
     }
 
     /// <summary>
@@ -808,8 +822,9 @@ public sealed partial class PdfDocument {
         return UpdateMetadata(title, author, subject, keywords, ReadOptions);
     }
 
-    private PdfDocument UpdateMetadata(string? title, string? author, string? subject, string? keywords, PdfLoadOptions? readOptions) =>
-        ApplyMutation(input => PdfMetadataEditor.UpdateMetadata(input, title, author, subject, keywords, readOptions), readOptions);
+    private PdfDocument UpdateMetadata(string? title, string? author, string? subject, string? keywords, PdfLoadOptions? readOptions, CancellationToken cancellationToken = default) =>
+        ApplyMutation(input => PdfMetadataEditor.UpdateMetadata(input, title, author, subject, keywords, readOptions, cancellationToken),
+            readOptions, cancellationToken: cancellationToken);
 
     /// <summary>
     /// Creates a normalized full-rewrite PDF whose Info dictionary and XMP packet share the supplied common fields.
@@ -830,8 +845,10 @@ public sealed partial class PdfDocument {
         string? subject,
         string? keywords,
         bool createXmpMetadata,
-        PdfLoadOptions? readOptions) => ApplyMutation(input => PdfMetadataEditor.SynchronizeMetadata(
-            input, title, author, subject, keywords, createXmpMetadata, readOptions), readOptions);
+        PdfLoadOptions? readOptions,
+        CancellationToken cancellationToken = default) => ApplyMutation(input => PdfMetadataEditor.SynchronizeMetadata(
+            input, title, author, subject, keywords, createXmpMetadata, readOptions, cancellationToken),
+            readOptions, cancellationToken: cancellationToken);
 
     /// <summary>
     /// Attempts an Info/XMP synchronization through the planner-selected full-rewrite or append-only path.
@@ -864,12 +881,12 @@ public sealed partial class PdfDocument {
 
     /// <summary>Removes or quarantines active content and embedded payloads through a proven full rewrite.</summary>
     public PdfSanitizationResult Sanitize(PdfSanitizationOptions? options = null) {
-        return PdfSanitizer.Sanitize(GetBytesForOperation(), options, ReadOptions);
+        return PdfSanitizer.Sanitize(GetBytesForOperation(options?.CancellationToken ?? default), options, ReadOptions);
     }
 
     /// <summary>Inspects what the supplied sanitization policy would remove without modifying the PDF.</summary>
     public PdfSanitizationReport InspectSanitization(PdfSanitizationOptions? options = null) {
-        return PdfSanitizer.Inspect(GetBytesForOperation(), options, ReadOptions);
+        return PdfSanitizer.Inspect(GetBytesForOperation(options?.CancellationToken ?? default), options, ReadOptions);
     }
 
     /// <summary>
@@ -894,8 +911,9 @@ public sealed partial class PdfDocument {
         return ReplaceMetadata(metadata, ReadOptions);
     }
 
-    private PdfDocument ReplaceMetadata(PdfMetadata metadata, PdfLoadOptions? readOptions) =>
-        ApplyMutation(input => PdfMetadataEditor.ReplaceMetadata(input, metadata, readOptions), readOptions);
+    private PdfDocument ReplaceMetadata(PdfMetadata metadata, PdfLoadOptions? readOptions, CancellationToken cancellationToken = default) =>
+        ApplyMutation(input => PdfMetadataEditor.ReplaceMetadata(input, metadata, readOptions, cancellationToken),
+            readOptions, cancellationToken: cancellationToken);
 
     /// <summary>
     /// Attempts to create a new PDF with exactly the supplied metadata, returning diagnostics when blocked or failed.

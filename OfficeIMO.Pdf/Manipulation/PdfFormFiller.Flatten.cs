@@ -6,6 +6,7 @@ internal static partial class PdfFormFiller {
         PdfObject fieldObject,
         string? inheritedFieldType,
         int inheritedFlags,
+        int? inheritedQuadding,
         int? inheritedMaxLength,
         PdfDictionary? inheritedDefaultResources,
         string? inheritedDefaultAppearance,
@@ -39,6 +40,7 @@ internal static partial class PdfFormFiller {
         string? fullName = CombineFieldName(inheritedName, partialName);
         string? fieldType = TryReadName(objects, field, "FT") ?? inheritedFieldType;
         int fieldFlags = ReadFieldFlags(objects, field, inheritedFlags);
+        int? fieldQuadding = ReadFieldQuadding(objects, field, inheritedQuadding);
         int? fieldMaxLength = ReadFieldMaxLength(objects, field, inheritedMaxLength);
         PdfDictionary? defaultResources = TryReadDefaultResources(objects, field) ?? inheritedDefaultResources;
         string? defaultAppearance = TryReadText(objects, field, "DA") ?? inheritedDefaultAppearance;
@@ -78,7 +80,7 @@ internal static partial class PdfFormFiller {
             } else {
                 PdfDictionary? widgetAppearanceResources = TryReadNormalAppearanceResources(objects, field);
                 PdfDictionary? widgetPageResources = TryReadWidgetPageResources(objects, field);
-                PdfFormFieldStyle widgetStyle = ReadWidgetAppearanceStyle(objects, field, fieldFlags, inheritedMaxLength: fieldMaxLength, inheritedDefaultAppearance: defaultAppearance);
+                PdfFormFieldStyle widgetStyle = ReadWidgetAppearanceStyle(objects, field, fieldFlags, fieldQuadding, fieldMaxLength, defaultAppearance);
                 if (isMultiSelectChoice) {
                     widgetStyle.IsMultiline = true;
                 }
@@ -98,7 +100,7 @@ internal static partial class PdfFormFiller {
 
         for (int i = 0; i < kids.Items.Count; i++) {
             cancellationToken.ThrowIfCancellationRequested();
-            CollectFlattenWidgets(objects, kids.Items[i], fieldType, fieldFlags, fieldMaxLength, defaultResources, defaultAppearance, appearanceValue, richAppearanceRuns, fullName, choiceOptions, options, widgets, removableObjects, visited, ref nextObjectNumber, cancellationToken);
+            CollectFlattenWidgets(objects, kids.Items[i], fieldType, fieldFlags, fieldQuadding, fieldMaxLength, defaultResources, defaultAppearance, appearanceValue, richAppearanceRuns, fullName, choiceOptions, options, widgets, removableObjects, visited, ref nextObjectNumber, cancellationToken);
         }
     }
 

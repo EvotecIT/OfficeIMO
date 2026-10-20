@@ -1,4 +1,5 @@
 using OfficeIMO.Core.Internal;
+using System.Threading;
 namespace OfficeIMO.Pdf;
 
 /// <summary>
@@ -23,23 +24,26 @@ internal static partial class PdfMetadataEditor {
         string? author,
         string? subject,
         string? keywords,
-        PdfLoadOptions? readOptions) {
+        PdfLoadOptions? readOptions,
+        CancellationToken cancellationToken = default) {
         Guard.NotNull(pdf, nameof(pdf));
-        _ = PdfMutationPlanner.RequireFullRewrite(pdf, PdfMutationOperation.UpdateMetadata, readOptions);
+        cancellationToken.ThrowIfCancellationRequested();
+        _ = PdfMutationPlanner.RequireFullRewrite(pdf, PdfMutationOperation.UpdateMetadata, readOptions, cancellationToken: cancellationToken);
 
-        var document = PdfReadDocument.Open(pdf, readOptions);
+        var document = PdfReadDocument.Open(pdf, readOptions, cancellationToken);
+        PdfMetadata existing = document.GetUncheckedMetadata(cancellationToken);
         var metadata = new PdfMetadata {
-            Title = title ?? document.UncheckedMetadata.Title,
-            Author = author ?? document.UncheckedMetadata.Author,
-            Subject = subject ?? document.UncheckedMetadata.Subject,
-            Keywords = keywords ?? document.UncheckedMetadata.Keywords,
-            TrappingStatus = document.UncheckedMetadata.TrappingStatus,
-            PdfXVersion = document.UncheckedMetadata.PdfXVersion,
-            PdfXConformance = document.UncheckedMetadata.PdfXConformance
+            Title = title ?? existing.Title,
+            Author = author ?? existing.Author,
+            Subject = subject ?? existing.Subject,
+            Keywords = keywords ?? existing.Keywords,
+            TrappingStatus = existing.TrappingStatus,
+            PdfXVersion = existing.PdfXVersion,
+            PdfXConformance = existing.PdfXConformance
         };
-        metadata.CopySourceDatesFrom(document.UncheckedMetadata);
+        metadata.CopySourceDatesFrom(existing);
 
-        return RewriteWithMetadata(pdf, metadata, readOptions);
+        return RewriteWithMetadata(pdf, metadata, readOptions, cancellationToken);
     }
 
     /// <summary>
@@ -51,7 +55,7 @@ internal static partial class PdfMetadataEditor {
         string? author = null,
         string? subject = null,
         string? keywords = null) {
-        return UpdateMetadata(ReadStream(stream), title, author, subject, keywords);
+        return UpdateMetadata(stream, readOptions: null, CancellationToken.None, title, author, subject, keywords);
     }
 
     /// <summary>
@@ -135,20 +139,20 @@ internal static partial class PdfMetadataEditor {
         return ReplaceMetadata(pdf, metadata, readOptions: null);
     }
 
-    internal static byte[] ReplaceMetadata(byte[] pdf, PdfMetadata metadata, PdfLoadOptions? readOptions) {
+    internal static byte[] ReplaceMetadata(byte[] pdf, PdfMetadata metadata, PdfLoadOptions? readOptions, CancellationToken cancellationToken = default) {
         Guard.NotNull(pdf, nameof(pdf));
         Guard.NotNull(metadata, nameof(metadata));
-        _ = PdfMutationPlanner.RequireFullRewrite(pdf, PdfMutationOperation.UpdateMetadata, readOptions);
+        cancellationToken.ThrowIfCancellationRequested();
+        _ = PdfMutationPlanner.RequireFullRewrite(pdf, PdfMutationOperation.UpdateMetadata, readOptions, cancellationToken: cancellationToken);
 
-        return RewriteWithMetadata(pdf, metadata, readOptions);
+        return RewriteWithMetadata(pdf, metadata, readOptions, cancellationToken);
     }
 
     /// <summary>
     /// Creates a new PDF with exactly the supplied document metadata from the current position of a readable stream.
     /// </summary>
     public static byte[] ReplaceMetadata(Stream stream, PdfMetadata metadata) {
-        Guard.NotNull(metadata, nameof(metadata));
-        return ReplaceMetadata(ReadStream(stream), metadata);
+        return ReplaceMetadata(stream, metadata, readOptions: null, CancellationToken.None);
     }
 
     /// <summary>
@@ -199,24 +203,27 @@ internal static partial class PdfMetadataEditor {
         return ReplaceMetadata(PdfDocumentSource.FromPath(inputPath, null).Bytes, metadata);
     }
 
-    private static byte[] RewriteWithMetadata(byte[] pdf, PdfMetadata metadata, PdfLoadOptions? readOptions) {
-        var (objects, trailerRaw) = PdfSyntax.ParseObjects(pdf, readOptions);
-        var document = PdfReadDocument.Open(pdf, readOptions);
+    private static byte[] RewriteWithMetadata(byte[] pdf, PdfMetadata metadata, PdfLoadOptions? readOptions, CancellationToken cancellationToken) {
+        var (objects, trailerRaw) = PdfSyntax.ParseObjects(pdf, readOptions, out _, out _, cancellationToken);
+        var document = PdfReadDocument.Open(pdf, readOptions, cancellationToken);
         if (document.Pages.Count == 0) {
             throw new ArgumentException("PDF does not contain any pages.", nameof(pdf));
         }
 
-        var pageObjectNumbers = document.Pages.Select(page => page.ObjectNumber).ToArray();
+        var pageObjectNumbers = new int[document.Pages.Count];
+        for (int index = 0; index < pageObjectNumbers.Length; index++) {
+            cancellationToken.ThrowIfCancellationRequested();
+            pageObjectNumbers[index] = document.Pages[index].ObjectNumber;
+        }
         PdfFileVersion fileVersion = PdfPageExtractor.GetSourceFileVersion(pdf);
-        return PdfPageExtractor.ExtractPages(objects, metadata, pageObjectNumbers, catalogState: PdfPageExtractor.ExtractCatalogRewriteState(objects, trailerRaw, document), fileVersion: fileVersion);
+        return PdfPageExtractor.ExtractPages(objects, metadata, pageObjectNumbers,
+            catalogState: PdfPageExtractor.ExtractCatalogRewriteState(objects, trailerRaw, document, cancellationToken),
+            fileVersion: fileVersion, cancellationToken: cancellationToken);
     }
 
-    private static byte[] ReadStream(Stream stream) =>
-        PdfDocumentSource.FromRemainingStream(stream, null).Bytes;
-
-    private static void WriteOutput(Stream outputStream, byte[] bytes) {
+    private static void WriteOutput(Stream outputStream, byte[] bytes, CancellationToken cancellationToken = default) {
         ValidateWritableOutputStream(outputStream);
-        outputStream.Write(bytes, 0, bytes.Length);
+        OfficeStreamWriter.CopyBytes(outputStream, bytes, cancellationToken);
     }
 
     private static void ValidateWritableOutputStream(Stream outputStream) {
@@ -226,11 +233,11 @@ internal static partial class PdfMetadataEditor {
         }
     }
 
-    private static void WriteOutput(string outputPath, byte[] bytes) {
+    private static void WriteOutput(string outputPath, byte[] bytes, CancellationToken cancellationToken = default) {
         string fullPath = ValidateOutputPath(outputPath);
         var directory = Path.GetDirectoryName(fullPath);
         if (!string.IsNullOrEmpty(directory)) Directory.CreateDirectory(directory);
-        OfficeFileCommit.WriteAllBytes(fullPath, bytes);
+        OfficeFileCommit.Write(fullPath, stream => OfficeStreamWriter.CopyBytes(stream, bytes, cancellationToken), cancellationToken);
     }
 
     private static string ValidateOutputPath(string outputPath) {
