@@ -399,7 +399,7 @@ internal static partial class PdfWriter {
 
                             if (line == 0) {
                                 if (!string.IsNullOrEmpty(listItem.BookmarkName)) {
-                                    AddNamedDestinationName(listItem.BookmarkName!, yCol);
+                                    AddNamedDestinationName(listItem.BookmarkName!, yCol, listItem.StructureElement);
                                 }
 
                                 var markerLines = new System.Collections.Generic.List<string>(1) { listItem.Marker };

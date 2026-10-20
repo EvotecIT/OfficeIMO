@@ -131,7 +131,7 @@ internal static partial class PdfWriter {
                     }
 
                     if (!string.IsNullOrEmpty(bookmarkName)) {
-                        AddNamedDestinationName(bookmarkName!, y);
+                        AddNamedDestinationName(bookmarkName!, y, listItemElement);
                     }
 
                     var markerLines = new System.Collections.Generic.List<string>(1) { marker };

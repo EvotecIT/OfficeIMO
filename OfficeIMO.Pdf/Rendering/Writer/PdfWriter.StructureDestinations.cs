@@ -9,12 +9,11 @@ internal static partial class PdfWriter {
             foreach (var link in page.Annotations) {
                 if (string.IsNullOrEmpty(link.DestinationName)) continue;
                 PageStructElement? target = targets[link.DestinationName!].StructureElement;
-                if (target?.ObjectId > 0) {
-                    ReplaceObject(objects, link.ObjectId, PdfAnnotationDictionaryBuilder.BuildGoToNamedDestinationLinkAnnotation(
-                        link.X1, link.Y1, link.X2, link.Y2, link.DestinationName!, link.Contents, link.StructParentIndex, target.ObjectId));
-                } else if (required) {
+                int? structureId = target?.ObjectId > 0 ? target.ObjectId : null;
+                if (!structureId.HasValue && required)
                     throw new InvalidOperationException("PDF/UA-2 internal links require a named destination inside tagged content: " + link.DestinationName);
-                }
+                ReplaceObject(objects, link.ObjectId, PdfAnnotationDictionaryBuilder.BuildGoToNamedDestinationLinkAnnotation(
+                    link.X1, link.Y1, link.X2, link.Y2, link.DestinationName!, link.Contents, link.StructParentIndex, structureId));
             }
         }
     }
@@ -33,7 +32,7 @@ internal static partial class PdfWriter {
         // The same object is added to the structure tree when its paint/annotation is serialized.
         private PageStructElement? ReservePendingStructureDestination(string role) {
             if (_suppressCanvasStructureRegistration || !emitGeneratedStructure || currentPage == null ||
-                !currentPage.NamedDestinations.Any(destination => destination.AttachToNextStructure && destination.StructureElement == null)) return null;
+                !currentPage.NamedDestinations.Any(destination => destination.AttachToNextStructure)) return null;
             var target = new PageStructElement { StructureType = role };
             BindPendingStructureDestinations(target);
             return target;
@@ -55,8 +54,25 @@ internal static partial class PdfWriter {
             currentPage!.FormFields.Add(field);
         }
 
+        /// <summary>Retargets a clipped flow destination to its first surviving source admission, including siblings already laid out.</summary>
+        private void ReleasePendingStructureDestination(PageStructElement? element) {
+            if (element == null || currentPage == null) return;
+            element.NavigationSourceRemoved = true;
+            PageStructElement? next = element.NextNavigationSource;
+            while (next?.NavigationSourceRemoved == true) next = next.NextNavigationSource;
+            // Collapse discarded chains before the next reverse clipping removal.
+            element.NextNavigationSource = next;
+            foreach (var destination in currentPage.NamedDestinations) {
+                if (destination.AttachToNextStructure && ReferenceEquals(destination.StructureElement, element))
+                    destination.StructureElement = next;
+            }
+        }
+
         private void BindPendingStructureDestinations(PageStructElement element) {
             if (currentPage == null) return;
+            if (currentPage.LastNavigationSource is { } previous && !ReferenceEquals(previous, element))
+                previous.NextNavigationSource = element;
+            currentPage.LastNavigationSource = element;
             foreach (var destination in currentPage.NamedDestinations) {
                 if (destination.AttachToNextStructure && destination.StructureElement == null)
                     destination.StructureElement = element;

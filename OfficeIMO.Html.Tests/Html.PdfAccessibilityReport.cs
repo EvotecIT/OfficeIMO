@@ -1,4 +1,5 @@
 using OfficeIMO.Html.Pdf;
+using OfficeIMO.Tests.Pdf;
 using OfficeIMO.Pdf;
 using Xunit;
 
@@ -32,6 +33,26 @@ public sealed class HtmlPdfAccessibilityReportTests {
         Assert.DoesNotContain(tags, element => element.StructureType == "Figure");
         Assert.Contains(tags, element => element.StructureType == "Link" && element.ObjectReferenceCount > 0);
         Assert.Contains("Service details", PdfReadDocument.Open(bytes).ExtractText());
+    }
+
+    [Theory]
+    [InlineData(false, false)]
+    [InlineData(false, true)]
+    [InlineData(true, false)]
+    [InlineData(true, true)]
+    public void DecorativeImageOnlyAnchorsRetainTheirNamedLink(bool raster, bool internalLink) {
+        string image = raster
+            ? "<img width='40' height='20' alt='' src='data:image/png;base64," + Convert.ToBase64String(PdfPngTestImages.CreateRgbPng(2, 2)) + "'>"
+            : "<svg width='40' height='20' role='presentation'><rect width='40' height='20' fill='green'/></svg>";
+        string href = internalLink ? "#target" : "https://example.test/home";
+        var rendered = CreateReport("<p><a aria-label='Home' href='" + href + "'>" + image + "</a></p><p id='target'>Target</p>");
+        var read = PdfReadDocument.Open(rendered.ToBytes());
+        var tags = read.TaggedContent!.StructureElements;
+        Assert.DoesNotContain(tags, element => element.StructureType == "Figure");
+        Assert.Contains(tags, element => element.StructureType == "Link" && element.ObjectReferenceCount > 0);
+        var link = Assert.Single(read.RawStructure().Objects, item => item.Value.Entries.TryGetValue("Subtype", out var type) && type.Text == "Link");
+        Assert.Equal("Home", link.Value.Entries["Contents"].Text);
+        Assert.Equal(internalLink ? "GoTo" : "URI", link.Value.Entries["A"].Entries["S"].Text);
     }
 
     private static HtmlPdfRenderRequestResult CreateReport(string body) =>
@@ -75,6 +96,12 @@ public sealed class HtmlPdfAccessibilityReportTests {
         Assert.Contains(tags, element => element.StructureType == "Figure" && element.AlternateText == "All three service checks passed");
         Assert.Contains(tags, element => element.StructureType == "Link" && element.ObjectReferenceCount > 0);
         Assert.Contains(tags, element => element.StructureType == "Form" && element.ObjectReferenceCount > 0);
+        var read = PdfReadDocument.Open(pdf);
+        Assert.Equal(new int?[] { 1, 2 }, read.NamedDestinations.Select(destination => destination.PageNumber).OrderBy(page => page));
+        var raw = read.RawStructure();
+        foreach (var destination in read.NamedDestinations)
+            Assert.Contains(raw.Objects, item => item.Value.Entries.TryGetValue("Subtype", out var subtype) && subtype.Text == "Link"
+                && item.Value.Entries["A"].Entries["D"].Text == destination.Name);
 
         string text = PdfDocument.Load(pdf).Read().Text;
         Assert.Contains("Engineering", text);

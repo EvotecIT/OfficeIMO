@@ -158,6 +158,7 @@ internal static partial class PdfWriter {
         int infoId = 0, catalogId = 0;
         int pagesId = ReserveObject(objects);
         bool markInfo = opts.TaggedStructureMode == PdfTaggedStructureMode.CatalogMarkers;
+        bool structuredDestinations = markInfo && serializationFileVersion >= PdfFileVersion.Pdf20;
         int structTreeRootId = markInfo ? ReserveObject(objects) : 0;
         var pageIds = new List<int>();
         var formFieldIds = new List<int>();
@@ -829,7 +830,10 @@ internal static partial class PdfWriter {
                         throw new ArgumentException("PDF link annotations require a URI or named destination target.");
                     }
 
-                    int annId = AddObject(objects, annot);
+                    // Structure object IDs are assigned after page annotations. Reserve named
+                    // links so a forward-only store materializes each annotation just once.
+                    int annId = structuredDestinations && !string.IsNullOrEmpty(a.DestinationName)
+                        ? ReserveObject(objects) : AddObject(objects, annot);
                     a.ObjectId = annId;
                     if (markInfo && a.StructParentIndex.HasValue) {
                         if (!a.StructElementIndex.HasValue && a.LinkedImage?.StructElementIndex.HasValue == true) {
@@ -1127,7 +1131,6 @@ internal static partial class PdfWriter {
             BuildGeneratedStructTree(objects, layout.Pages, pageIds, structTreeRootId, opts.Language, pdf20: serializationFileVersion >= PdfFileVersion.Pdf20);
         }
 
-        bool structuredDestinations = markInfo && serializationFileVersion >= PdfFileVersion.Pdf20;
         bool requireStructureDestinations = opts.ComplianceProfile == PdfComplianceProfile.PdfUa2;
         if (structuredDestinations) CompleteStructureDestinations(objects, layout.Pages, requireStructureDestinations);
         int outlinesId = BuildOutlines(objects, layout.Pages, pageIds, opts.OutlineExpansionLevelSnapshot, structuredDestinations, requireStructureDestinations);

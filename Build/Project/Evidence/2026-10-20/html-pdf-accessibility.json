@@ -10,7 +10,7 @@
   },
   "sample": {
     "html": "OfficeIMO.Examples/Converters/Html/Content/Reports/accessibility-review.html",
-    "htmlSha256": "3a073b91db3f5868f459ed2dc83456df901e061de4328e41f6027ffba6c0c803",
+    "htmlSha256": "463c85682525095b6e321527d369558c7a847ad5e2e873d45767520723449ad9",
     "generator": "OfficeIMO.Examples/Converters/Html/HtmlAccessibleReport.cs",
     "command": "dotnet run --project OfficeIMO.Examples/OfficeIMO.Examples.csproj -c Release -f net10.0 -- --html-accessible",
     "generatorSha256": "fc7f22835cfa230d34413d01a5cdb98adb7fbc9f684d39e77682e4f27123dca2",
@@ -29,33 +29,33 @@
   "profiles": [
     {
       "profile": "PdfUa1",
-      "sha256": "93a0d8a5993b1ade2464fc49c9a66351a504e0bd5141af692a9f0199802404b8",
-      "bytes": 109483,
+      "sha256": "ba695f6bd455ae0197de7ac13b508506e0f3f18c090a0347a6cfa3325ed6d56b",
+      "bytes": 110316,
       "pages": 2,
-      "structureElements": 104,
+      "structureElements": 107,
       "independentValidation": {
         "tool": "veraPDF CLI 1.30.0",
         "profile": "PDF/UA-1 validation profile",
         "compliant": true,
         "passedRules": 106,
         "failedRules": 0,
-        "passedChecks": 3892,
+        "passedChecks": 3943,
         "failedChecks": 0
       }
     },
     {
       "profile": "PdfUa2",
-      "sha256": "86741b5757a5eea50a7e84e7887a59ed6aba9d6ef51a6667ef3cb28edec2110e",
-      "bytes": 111217,
+      "sha256": "97d1dd8b86ee713c5bb76eece1b1320e7dc908e89438aa5c3e6c5caaa721ab4a",
+      "bytes": 112134,
       "pages": 2,
-      "structureElements": 104,
+      "structureElements": 107,
       "independentValidation": {
         "tool": "veraPDF CLI 1.30.0",
         "profile": "PDF/UA-2 + Tagged PDF validation profile",
         "compliant": true,
         "passedRules": 1728,
         "failedRules": 0,
-        "passedChecks": 6888,
+        "passedChecks": 6985,
         "failedChecks": 0
       }
     }
@@ -71,7 +71,7 @@
       },
       {
         "page": 2,
-        "sha256": "e69469d34782ece1b6f32286e868807c4ae3e5f7701fcab6522d24c04d5f16fa"
+        "sha256": "caa288d1e710d90b8da52a7d72b247ab5216b6f68d1808a0d8dbc4beb5fccfef"
       }
     ],
     "observed": [
@@ -79,7 +79,8 @@
       "Table borders, headers and all three body rows visible",
       "Named figure and decorative rule remain painted",
       "Checkbox and internal-link text remain visible",
-      "Two column groups remain legible without overlap"
+      "Two column groups remain legible without overlap",
+      "Return link on page two is visible; both cross-page named targets and link actions are checked through the public reader"
     ]
   },
   "manualAssistiveTechnology": {
@@ -99,7 +100,7 @@
     "optionalBrowserOwner": "HtmlTinkerX 3.0.5",
     "newProductionDependencies": []
   },
-  "implementationPatchSha256": "32227c04b2974f1e4f4a60f22ce16fcda44842df59bcf88d776d06a5e56fde08",
+  "implementationPatchSha256": "603c44447b5e58ba751859ee225b5b60084599c11e1509fb1e272e257b24d267",
   "implementationPatchScope": [
     "OfficeIMO.Html",
     "OfficeIMO.Pdf"
@@ -140,14 +141,15 @@
     "fullReadOnlyPass": "completed; two navigation binding findings reproduced and fixed",
     "targetedConfirmation": "completed; no additional actionable findings",
     "regressions": "10 failing cases before remediation; 69 focused checks passed afterward",
-    "status": "candidate-reviewed"
+    "status": "initial candidate reviewed; subsequent defect-class closure recorded under reviewRemediation",
+    "scopeHead": "7f2141f223c3ec598a8eded7b39974390c8690f6"
   },
   "tests": [
     {
       "project": "OfficeIMO.Html.Tests",
       "framework": "net10.0",
       "filter": "Category!=Performance",
-      "passed": 6637,
+      "passed": 6641,
       "failed": 0,
       "skipped": 0
     },
@@ -155,7 +157,7 @@
       "project": "OfficeIMO.Pdf.Tests",
       "framework": "net10.0",
       "filter": "Category!=Performance",
-      "passed": 11557,
+      "passed": 11571,
       "failed": 0,
       "skipped": 0
     }
@@ -255,6 +257,29 @@
       "OfficeIMO.Html.Document.PackageSmoke",
       "OfficeIMO.Html.PackageSmoke"
     ],
-    "limitation": "net472 was compiled and packed, not executed on macOS."
-  }
+    "limitation": "net472 was compiled and packed, not executed on macOS.",
+    "sourceHead": "7f2141f223c3ec598a8eded7b39974390c8690f6",
+    "implementationPatchSha256": "32227c04b2974f1e4f4a60f22ce16fcda44842df59bcf88d776d06a5e56fde08",
+    "scope": "Packed public API baseline before review remediation; later native writer behavior is exercised by the current managed regression suites and report artifacts."
+  },
+  "reviewRemediation": {
+    "baseHead": "7f2141f223c3ec598a8eded7b39974390c8690f6",
+    "reproducedFailingRegressions": 16,
+    "focusedHtmlPassed": 22,
+    "focusedPdfPassed": 39,
+    "closure": "Completed one bounded read-only closure pass. Its mixed-child clipping finding was reproduced in six strict-UA2 cases and fixed with source-admission links; surviving siblings are retained without text or geometry matching. Primary full-suite and refreshed artifact qualification is recorded in this report.",
+    "contracts": [
+      "Decorative raster and SVG image-only anchors retain named URI or internal links outside artifact paint",
+      "Native list item bookmarks target LI in normal and row-column flow",
+      "Forward-only PDF 2.0 named-link objects are reserved and completed once, including optional missing structure targets",
+      "Clipped images and form/radio widgets fall forward through actual source admissions to the first surviving sibling, including siblings already laid out inside the same clip",
+      "Explicit canvas artifacts classify raster paint as decorative for compliance evidence",
+      "Browser publish paths use the same absolute target for collision checking and publishing",
+      "The report has return navigation to service checks"
+    ],
+    "pathGuard": "Reproduced from outside the repository, then verified rejection of the existing resolved target before dotnet runs.",
+    "frozenReviewPatchGitBlob": "903279e5989f58d55212f2bd5cab9498a7915334",
+    "finalSourceExampleBytes": "Both final-source CLI outputs match the independently validated profile hashes exactly."
+  },
+  "implementationPatchCommand": "git diff --binary --full-index <sourceBase> -- OfficeIMO.Html OfficeIMO.Pdf"
 }

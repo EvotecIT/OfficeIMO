@@ -152,6 +152,7 @@ internal static partial class PdfWriter {
             public System.Collections.Generic.List<PageSection> Sections { get; } = new();
             public System.Collections.Generic.List<PdfLayerDefinition> Layers { get; } = new();
             public System.Collections.Generic.List<PageStructElement> StructElements { get; } = new();
+            public PageStructElement? LastNavigationSource { get; set; }
             public System.Collections.Generic.List<PdfGeneratedDrawingAccessibilityEvidence> Drawings { get; } = new();
             internal SearchableFontSet SearchableFonts { get; } = new();
             public System.Collections.Generic.HashSet<PdfStandardFont> UsedFonts { get; } = new();
@@ -390,6 +391,9 @@ internal static partial class PdfWriter {
     }
 
     private sealed class PageStructElement {
+        // Source admission order survives deferred serialization and clipping.
+        public PageStructElement? NextNavigationSource { get; set; }
+        public bool NavigationSourceRemoved { get; set; }
         public PdfListNumbering? ListNumbering { get; set; }
         public string? StructureElementKey { get; set; }
         public string? Language { get; set; }

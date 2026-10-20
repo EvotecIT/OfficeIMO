@@ -9,6 +9,13 @@ param(
 
 $ErrorActionPreference = 'Stop'
 Set-StrictMode -Version Latest
+$repositoryRoot = (Resolve-Path -LiteralPath (Join-Path $PSScriptRoot '..')).Path
+if (-not [string]::IsNullOrWhiteSpace($PublishPath)) {
+    if (-not [System.IO.Path]::IsPathRooted($PublishPath)) {
+        $PublishPath = Join-Path $repositoryRoot $PublishPath
+    }
+    $PublishPath = [System.IO.Path]::GetFullPath($PublishPath)
+}
 if (-not [string]::IsNullOrWhiteSpace($PublishPath) -and (Test-Path -LiteralPath $PublishPath)) {
     throw "Choose a new publish directory: $PublishPath"
 }
@@ -83,7 +90,6 @@ function Assert-HtmlTinkerXIdentity {
     }
 }
 
-$repositoryRoot = (Resolve-Path -LiteralPath (Join-Path $PSScriptRoot '..')).Path
 $browserProjectPath = Join-Path $repositoryRoot 'OfficeIMO.Html.Pdf.Browser/OfficeIMO.Html.Pdf.Browser.csproj'
 [xml] $browserProject = Get-Content -LiteralPath $browserProjectPath -Raw
 $configuredVersionText = [string] $browserProject.Project.PropertyGroup.HtmlTinkerXVersion
