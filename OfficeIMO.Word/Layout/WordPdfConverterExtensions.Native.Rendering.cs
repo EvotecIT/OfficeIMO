@@ -214,7 +214,13 @@ namespace OfficeIMO.Word.Pdf {
             PdfCore.PdfAlign align = ResolveNativeParagraphAlign(paragraph);
             PdfCore.PdfColor? defaultColor = ResolveNativeParagraphDefaultColor(paragraph);
             int headingLevel = GetHeadingLevel(paragraph);
-            if ((headingLevel <= 0 || marker != null || needsAnchorLine) && RenderNativeDocumentStartSpacing(pdf, paragraph, style.SpacingBefore))
+            string headingText = !needsAnchorLine && headingLevel > 0 && marker == null
+                ? GetNativeHeadingText(renderContent, runs, paragraph, nativeFontMap, hasEquationContent)
+                : string.Empty;
+            // A heading style without visible heading text still needs ordinary
+            // paragraph flow for its pictures and other inline content.
+            bool renderHeading = !string.IsNullOrWhiteSpace(headingText);
+            if (!renderHeading && RenderNativeDocumentStartSpacing(pdf, paragraph, style.SpacingBefore))
                 style.SpacingBefore = 0D;
             PdfCore.PdfColor? headingColor = GetNativeHeadingColor(headingLevel, defaultColor);
             PdfCore.PdfHorizontalRuleStyle? topBorderRuleStyle = marker == null ? CreateNativeTopBorderRuleStyle(paragraph, style) : null;
@@ -224,14 +230,13 @@ namespace OfficeIMO.Word.Pdf {
                 pdf.HR(style: topBorderRuleStyle);
             }
 
-            if (!needsAnchorLine && headingLevel > 0 && marker == null) {
+            if (renderHeading) {
                 if (paragraph._paragraph != null &&
                     string.IsNullOrEmpty(paragraph.Bookmark?.Name) &&
                     headingDestinations.TryGetValue(paragraph._paragraph, out string? generatedDestinationName)) {
                     pdf.Bookmark(generatedDestinationName);
                 }
 
-                string headingText = GetNativeHeadingText(renderContent, runs, paragraph, nativeFontMap, hasEquationContent);
                 RenderNativeHeading(pdf, headingLevel, headingText,
                     builder => AddNativeParagraphContent(builder, paragraph, null, runs, hasRenderableRuns || inlineImages.Count > 0,
                         renderContent, paragraphFootnoteNumbers, footnoteNumbersById, options, nativeDefaults, nativeFontMap, inlineImages: inlineImages),
