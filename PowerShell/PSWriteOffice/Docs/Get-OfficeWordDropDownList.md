@@ -9,7 +9,7 @@ schema: 2.0.0
 Gets dropdown list content controls from a Word document.
 
 ## SYNTAX
-### Path (Default)
+### Path
 ```powershell
 Get-OfficeWordDropDownList [-Path] <string> [-Alias <string[]>] [-Tag <string[]>] [<CommonParameters>]
 ```
@@ -74,13 +74,13 @@ Path to the .docx file.
 ```yaml
 Type: String
 Parameter Sets: Path
-Aliases: InputPath, FilePath
+Aliases: InputPath, FilePath, FullName, LiteralPath
 Possible values:
 
 Required: True
 Position: 0
 Default value: None
-Accept pipeline input: False
+Accept pipeline input: True (ByValue, ByPropertyName)
 Accept wildcard characters: False
 ```
 
@@ -105,6 +105,7 @@ This cmdlet supports the common parameters: -Debug, -ErrorAction, -ErrorVariable
 
 ## INPUTS
 
+- `System.String`
 - `OfficeIMO.Word.WordDocument`
 
 ## OUTPUTS

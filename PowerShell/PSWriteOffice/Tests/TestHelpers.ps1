@@ -1,4 +1,4 @@
-if (-not ('System.IO.Compression.ZipFile' -as [type])) {
+﻿if (-not ('System.IO.Compression.ZipFile' -as [type])) {
     Add-Type -AssemblyName System.IO.Compression.FileSystem -ErrorAction Stop
 }
 
@@ -245,109 +245,19 @@ function Start-TestHttpFileServer {
 
         [string] $ContentType = 'application/octet-stream',
 
+        [ValidateRange(1, 10000)]
         [int] $RequestCount = 1
     )
 
-    $probe = [System.Net.Sockets.TcpListener]::new([System.Net.IPAddress]::Loopback, 0)
-    $probe.Start()
-    try {
-        $port = ([System.Net.IPEndPoint] $probe.LocalEndpoint).Port
-    } finally {
-        $probe.Stop()
+    if (-not ('OfficeIMOTestHttpFileServer' -as [type])) {
+        Add-Type -Path (Join-Path $PSScriptRoot 'Support/HttpFileServer.cs')
     }
 
-    $fileName = [System.IO.Path]::GetFileName($FilePath)
-    if ([string]::IsNullOrWhiteSpace($fileName)) {
-        $fileName = 'file.bin'
-    }
-
-    $url = "http://127.0.0.1:$port/$fileName"
-    $readyPath = [System.IO.Path]::Combine([System.IO.Path]::GetTempPath(), "PSWriteOffice-HttpServer-$([guid]::NewGuid()).ready")
-    $job = Start-Job -ScriptBlock {
-        param(
-            [int] $JobPort,
-            [string] $JobFilePath,
-            [string] $JobContentType,
-            [int] $JobRequestCount,
-            [string] $JobReadyPath
-        )
-
-        $listener = [System.Net.Sockets.TcpListener]::new([System.Net.IPAddress]::Loopback, $JobPort)
-        $listener.Start()
-        [System.IO.File]::WriteAllText($JobReadyPath, 'ready')
-
-        try {
-            for ($requestIndex = 0; $requestIndex -lt $JobRequestCount; $requestIndex++) {
-                try {
-                    $client = $listener.AcceptTcpClient()
-                } catch {
-                    return
-                }
-
-                try {
-                    $bytes = [System.IO.File]::ReadAllBytes($JobFilePath)
-                    $stream = $client.GetStream()
-                    try {
-                        $stream.ReadTimeout = 5000
-                        $stream.WriteTimeout = 5000
-
-                        $requestBuffer = New-Object byte[] 4096
-                        $requestBytes = 0
-                        do {
-                            $read = $stream.Read($requestBuffer, $requestBytes, $requestBuffer.Length - $requestBytes)
-                            if ($read -le 0) {
-                                break
-                            }
-
-                            $requestBytes += $read
-                            if ($requestBytes -ge 4) {
-                                $requestText = [System.Text.Encoding]::ASCII.GetString($requestBuffer, 0, $requestBytes)
-                                if ($requestText.Contains("`r`n`r`n")) {
-                                    break
-                                }
-                            }
-                        } while ($requestBytes -lt $requestBuffer.Length)
-
-                        $header = "HTTP/1.1 200 OK`r`nContent-Type: $JobContentType`r`nContent-Length: $($bytes.Length)`r`nConnection: close`r`n`r`n"
-                        $headerBytes = [System.Text.Encoding]::ASCII.GetBytes($header)
-                        $stream.Write($headerBytes, 0, $headerBytes.Length)
-                        $stream.Write($bytes, 0, $bytes.Length)
-                        $stream.Flush()
-                    } finally {
-                        $stream.Dispose()
-                    }
-                } finally {
-                    $client.Dispose()
-                }
-            }
-        } finally {
-            try {
-                $listener.Stop()
-            } catch {
-            }
-        }
-    } -ArgumentList $port, $FilePath, $ContentType, $RequestCount, $readyPath
-
-    $readyDeadline = [DateTime]::UtcNow.AddSeconds(5)
-    while (-not (Test-Path -LiteralPath $readyPath)) {
-        if ($job.State -ne 'Running') {
-            throw "Test HTTP file server job exited before listening on port $port."
-        }
-
-        if ([DateTime]::UtcNow -gt $readyDeadline) {
-            Stop-Job -Job $job -ErrorAction SilentlyContinue | Out-Null
-            Remove-Job -Job $job -Force -ErrorAction SilentlyContinue | Out-Null
-            throw "Timed out waiting for test HTTP file server to listen on port $port."
-        }
-
-        Start-Sleep -Milliseconds 50
-    }
-
-    Remove-Item -LiteralPath $readyPath -Force -ErrorAction SilentlyContinue
-
-    [PSCustomObject]@{
-        Url = $url
-        Job = $job
+    $server = [OfficeIMOTestHttpFileServer]::new($FilePath, $ContentType, $RequestCount)
+    $fileName = [uri]::EscapeDataString([IO.Path]::GetFileName($FilePath))
+    [pscustomobject]@{
+        Url = "http://127.0.0.1:$($server.Port)/$fileName"
+        Server = $server
     }
 }
 
@@ -357,21 +267,9 @@ function Stop-TestHttpFileServer {
         $Server
     )
 
-    if ($Server.Job) {
-        try {
-            Wait-Job -Job $Server.Job -Timeout 2 | Out-Null
-        } catch {
-        }
-
-        try {
-            Stop-Job -Job $Server.Job -ErrorAction SilentlyContinue | Out-Null
-        } catch {
-        }
-
-        try {
-            Remove-Job -Job $Server.Job -Force -ErrorAction SilentlyContinue | Out-Null
-        } catch {
-        }
+    $Server.Server.Dispose()
+    if ($Server.Server.Failure) {
+        throw $Server.Server.Failure
     }
 }
 

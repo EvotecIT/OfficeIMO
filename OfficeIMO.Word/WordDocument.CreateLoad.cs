@@ -105,6 +105,18 @@ namespace OfficeIMO.Word {
             return word;
         }
 
+        /// <summary>Creates an editable detached document from a template without writing or associating the source.</summary>
+        /// <param name="templatePath">Existing Word package to copy into memory.</param>
+        /// <returns>A document that requires an explicit destination when saved.</returns>
+        public static WordDocument CreateFromTemplate(string templatePath) {
+            if (string.IsNullOrWhiteSpace(templatePath)) throw new ArgumentException("Template path cannot be empty.", nameof(templatePath));
+            using var source = File.OpenRead(templatePath);
+            return Load(source, new WordLoadOptions {
+                AccessMode = DocumentAccessMode.ReadWrite,
+                PersistenceMode = DocumentPersistenceMode.Explicit
+            });
+        }
+
         private static WordprocessingDocumentType GetDocumentType(string? filePath) {
             if (string.IsNullOrEmpty(filePath)) {
                 return WordprocessingDocumentType.Document;

@@ -21,8 +21,8 @@ public sealed class GetOfficeRtfCommand : PSCmdlet
     private const string ParameterSetText = "Text";
 
     /// <summary>RTF file path.</summary>
-    [Parameter(Mandatory = true, Position = 0, ValueFromPipeline = true, ParameterSetName = ParameterSetPath)]
-    [Alias("FilePath")]
+    [Parameter(Mandatory = true, Position = 0, ValueFromPipeline = true, ParameterSetName = ParameterSetPath, ValueFromPipelineByPropertyName = true)]
+    [Alias("FilePath", "FullName", "LiteralPath")]
     public string Path { get; set; } = string.Empty;
 
     /// <summary>Raw RTF text.</summary>

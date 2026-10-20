@@ -1,3 +1,4 @@
+using PSWriteOffice.Services;
 using System.IO;
 using System.Management.Automation;
 using OfficeIMO.Latex;
@@ -13,7 +14,8 @@ public sealed class GetOfficeLatexCommand : PSCmdlet
     private const string ParameterSetText = "Text";
 
     /// <summary>Path to a LaTeX file.</summary>
-    [Parameter(Mandatory = true, Position = 0, ParameterSetName = ParameterSetPath)]
+    [Parameter(Mandatory = true, Position = 0, ParameterSetName = ParameterSetPath, ValueFromPipelineByPropertyName = true, ValueFromPipeline = true)]
+    [Alias("FullName", "LiteralPath")]
     public string Path { get; set; } = string.Empty;
 
     /// <summary>LaTeX source text.</summary>
@@ -34,7 +36,7 @@ public sealed class GetOfficeLatexCommand : PSCmdlet
         LatexParseResult result;
         if (ParameterSetName == ParameterSetPath)
         {
-            var path = SessionState.Path.GetUnresolvedProviderPathFromPSPath(Path);
+            var path = OfficeFileCommandUtilities.ResolvePath(this, Path);
             if (!File.Exists(path)) throw new FileNotFoundException($"File '{path}' was not found.", path);
             result = LatexDocument.LoadResult(path, Options);
         }

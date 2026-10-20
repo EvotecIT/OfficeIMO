@@ -1,3 +1,4 @@
+using PSWriteOffice.Services;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -18,15 +19,15 @@ namespace PSWriteOffice.Cmdlets.Word;
 ///     Format-Table -AutoSize</code>
 ///   <para>Loads the document read-only, filters bookmark names with wildcards, and displays the matching navigation targets.</para>
 /// </example>
-[Cmdlet(VerbsCommon.Get, "OfficeWordBookmark", DefaultParameterSetName = ParameterSetPath)]
+[Cmdlet(VerbsCommon.Get, "OfficeWordBookmark")]
 [OutputType(typeof(WordBookmark))]
 public sealed class GetOfficeWordBookmarkCommand : PSCmdlet {
     private const string ParameterSetPath = "Path";
     private const string ParameterSetDocument = "Document";
 
     /// <summary>Path to the .docx file.</summary>
-    [Parameter(Mandatory = true, Position = 0, ParameterSetName = ParameterSetPath)]
-    [Alias("InputPath", "FilePath")]
+    [Parameter(Mandatory = true, Position = 0, ParameterSetName = ParameterSetPath, ValueFromPipelineByPropertyName = true, ValueFromPipeline = true)]
+    [Alias("InputPath", "FilePath", "FullName", "LiteralPath")]
     public string Path { get; set; } = string.Empty;
 
     /// <summary>Word document to read.</summary>
@@ -45,7 +46,7 @@ public sealed class GetOfficeWordBookmarkCommand : PSCmdlet {
 
         try {
             if (ParameterSetName == ParameterSetPath) {
-                var resolvedPath = SessionState.Path.GetUnresolvedProviderPathFromPSPath(Path);
+                var resolvedPath = OfficeFileCommandUtilities.ResolvePath(this, Path);
                 document = WordDocumentService.LoadDocument(resolvedPath, readOnly: true, autoSave: false);
                 dispose = true;
             } else {

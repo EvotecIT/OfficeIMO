@@ -1,3 +1,4 @@
+using PSWriteOffice.Services;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -18,7 +19,7 @@ namespace PSWriteOffice.Cmdlets.Word;
 ///     Set-Content -Path .\ReportParagraphs.txt</code>
 ///   <para>Enumerates document paragraphs and writes their text for a lightweight review workflow.</para>
 /// </example>
-[Cmdlet(VerbsCommon.Get, "OfficeWordParagraph", DefaultParameterSetName = ParameterSetPath)]
+[Cmdlet(VerbsCommon.Get, "OfficeWordParagraph")]
 [OutputType(typeof(WordParagraph))]
 public sealed class GetOfficeWordParagraphCommand : PSCmdlet {
     private const string ParameterSetPath = "Path";
@@ -26,8 +27,8 @@ public sealed class GetOfficeWordParagraphCommand : PSCmdlet {
     private const string ParameterSetSection = "Section";
 
     /// <summary>Path to the document.</summary>
-    [Parameter(Mandatory = true, Position = 0, ParameterSetName = ParameterSetPath)]
-    [Alias("InputPath", "FilePath")]
+    [Parameter(Mandatory = true, Position = 0, ParameterSetName = ParameterSetPath, ValueFromPipelineByPropertyName = true, ValueFromPipeline = true)]
+    [Alias("InputPath", "FilePath", "FullName", "LiteralPath")]
     public string Path { get; set; } = string.Empty;
 
     /// <summary>Document to inspect.</summary>
@@ -52,7 +53,7 @@ public sealed class GetOfficeWordParagraphCommand : PSCmdlet {
                     : Array.Empty<WordParagraph>();
             } else {
                 if (ParameterSetName == ParameterSetPath) {
-                    var resolvedPath = SessionState.Path.GetUnresolvedProviderPathFromPSPath(Path);
+                    var resolvedPath = OfficeFileCommandUtilities.ResolvePath(this, Path);
                     document = WordDocumentService.LoadDocument(resolvedPath, readOnly: true, autoSave: false);
                     dispose = true;
                 } else {

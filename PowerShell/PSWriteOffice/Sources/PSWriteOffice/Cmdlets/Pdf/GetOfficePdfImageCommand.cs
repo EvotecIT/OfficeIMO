@@ -1,3 +1,4 @@
+using OfficeIMO.Core.Internal;
 using System.IO;
 using System.Management.Automation;
 using OfficeIMO.Pdf;
@@ -22,8 +23,8 @@ namespace PSWriteOffice.Cmdlets.Pdf;
 public sealed class GetOfficePdfImageCommand : PSCmdlet
 {
     /// <summary>PDF file path.</summary>
-    [Parameter(Mandatory = true, Position = 0, ValueFromPipeline = true)]
-    [Alias("FilePath")]
+    [Parameter(Mandatory = true, Position = 0, ValueFromPipeline = true, ValueFromPipelineByPropertyName = true)]
+    [Alias("FilePath", "FullName", "LiteralPath")]
     public string Path { get; set; } = string.Empty;
 
     /// <summary>Optional page ranges such as 1-3,5.</summary>
@@ -71,7 +72,7 @@ public sealed class GetOfficePdfImageCommand : PSCmdlet
                 savedIndex++;
                 string extension = image.FileExtension!.TrimStart('.');
                 string fileName = $"{BaseName}-{savedIndex:D4}.{extension}";
-                string outputPath = AtomicFileWriter.WriteUnique(outputDirectory, fileName, image.Bytes);
+                string outputPath = OfficeFileOutput.WriteUnique(outputDirectory, fileName, image.Bytes);
                 WriteObject(new FileInfo(outputPath));
             }
 

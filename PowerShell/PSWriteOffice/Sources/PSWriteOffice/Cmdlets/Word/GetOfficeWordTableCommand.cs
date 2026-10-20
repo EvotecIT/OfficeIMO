@@ -1,3 +1,4 @@
+using PSWriteOffice.Services;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -18,7 +19,7 @@ namespace PSWriteOffice.Cmdlets.Word;
 /// }</code>
 ///   <para>Reads tables from the document and includes nested tables when validating a composed report.</para>
 /// </example>
-[Cmdlet(VerbsCommon.Get, "OfficeWordTable", DefaultParameterSetName = ParameterSetPath)]
+[Cmdlet(VerbsCommon.Get, "OfficeWordTable")]
 [OutputType(typeof(WordTable))]
 public sealed class GetOfficeWordTableCommand : PSCmdlet {
     private const string ParameterSetPath = "Path";
@@ -26,8 +27,8 @@ public sealed class GetOfficeWordTableCommand : PSCmdlet {
     private const string ParameterSetSection = "Section";
 
     /// <summary>Path to the document.</summary>
-    [Parameter(Mandatory = true, Position = 0, ParameterSetName = ParameterSetPath)]
-    [Alias("InputPath", "FilePath")]
+    [Parameter(Mandatory = true, Position = 0, ParameterSetName = ParameterSetPath, ValueFromPipelineByPropertyName = true, ValueFromPipeline = true)]
+    [Alias("InputPath", "FilePath", "FullName", "LiteralPath")]
     public string Path { get; set; } = string.Empty;
 
     /// <summary>Document to inspect.</summary>
@@ -60,7 +61,7 @@ public sealed class GetOfficeWordTableCommand : PSCmdlet {
                 }
             } else {
                 if (ParameterSetName == ParameterSetPath) {
-                    var resolvedPath = SessionState.Path.GetUnresolvedProviderPathFromPSPath(Path);
+                    var resolvedPath = OfficeFileCommandUtilities.ResolvePath(this, Path);
                     document = WordDocumentService.LoadDocument(resolvedPath, readOnly: true, autoSave: false);
                     dispose = true;
                 } else {

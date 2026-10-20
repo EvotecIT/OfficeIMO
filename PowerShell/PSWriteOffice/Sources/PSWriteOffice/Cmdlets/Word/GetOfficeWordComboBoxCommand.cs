@@ -1,3 +1,4 @@
+using PSWriteOffice.Services;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -18,7 +19,7 @@ namespace PSWriteOffice.Cmdlets.Word;
 ///     Format-Table -AutoSize</code>
 ///   <para>Filters combo box content controls so template owners can verify the expected owner fields exist.</para>
 /// </example>
-[Cmdlet(VerbsCommon.Get, "OfficeWordComboBox", DefaultParameterSetName = ParameterSetPath)]
+[Cmdlet(VerbsCommon.Get, "OfficeWordComboBox")]
 [Alias("WordComboBoxes")]
 [OutputType(typeof(WordComboBox))]
 public sealed class GetOfficeWordComboBoxCommand : PSCmdlet {
@@ -26,8 +27,8 @@ public sealed class GetOfficeWordComboBoxCommand : PSCmdlet {
     private const string ParameterSetDocument = "Document";
 
     /// <summary>Path to the .docx file.</summary>
-    [Parameter(Mandatory = true, Position = 0, ParameterSetName = ParameterSetPath)]
-    [Alias("InputPath", "FilePath")]
+    [Parameter(Mandatory = true, Position = 0, ParameterSetName = ParameterSetPath, ValueFromPipelineByPropertyName = true, ValueFromPipeline = true)]
+    [Alias("InputPath", "FilePath", "FullName", "LiteralPath")]
     public string Path { get; set; } = string.Empty;
 
     /// <summary>Word document to read.</summary>
@@ -51,7 +52,7 @@ public sealed class GetOfficeWordComboBoxCommand : PSCmdlet {
 
         try {
             if (ParameterSetName == ParameterSetPath) {
-                var resolvedPath = SessionState.Path.GetUnresolvedProviderPathFromPSPath(Path);
+                var resolvedPath = OfficeFileCommandUtilities.ResolvePath(this, Path);
                 document = WordDocumentService.LoadDocument(resolvedPath, readOnly: true, autoSave: false);
                 dispose = true;
             } else {

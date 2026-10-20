@@ -9,7 +9,7 @@ schema: 2.0.0
 Gets built-in and custom document properties from a Word document.
 
 ## SYNTAX
-### Path (Default)
+### Path
 ```powershell
 Get-OfficeWordDocumentProperty [-Path] <string> [-Name <string[]>] [-BuiltIn] [-Custom] [<CommonParameters>]
 ```
@@ -106,13 +106,13 @@ Path to the document.
 ```yaml
 Type: String
 Parameter Sets: Path
-Aliases: InputPath, FilePath
+Aliases: InputPath, FilePath, FullName, LiteralPath
 Possible values:
 
 Required: True
 Position: 0
 Default value: None
-Accept pipeline input: False
+Accept pipeline input: True (ByValue, ByPropertyName)
 Accept wildcard characters: False
 ```
 
@@ -121,6 +121,7 @@ This cmdlet supports the common parameters: -Debug, -ErrorAction, -ErrorVariable
 
 ## INPUTS
 
+- `System.String`
 - `OfficeIMO.Word.WordDocument`
 
 ## OUTPUTS

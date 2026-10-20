@@ -15,7 +15,7 @@ namespace PSWriteOffice.Cmdlets.Excel;
 /// }</code>
 ///   <para>Separates preserved connection/query/data-model parts from executable refresh behavior so automation can decide whether Excel refresh is required.</para>
 /// </example>
-[Cmdlet(VerbsCommon.Get, "OfficeExcelDataModel", DefaultParameterSetName = ParameterSetPath)]
+[Cmdlet(VerbsCommon.Get, "OfficeExcelDataModel")]
 [Alias("ExcelDataModel", "ExcelPowerQuery")]
 [OutputType(typeof(PSObject))]
 public sealed class GetOfficeExcelDataModelCommand : PSCmdlet {
@@ -23,8 +23,8 @@ public sealed class GetOfficeExcelDataModelCommand : PSCmdlet {
     private const string ParameterSetDocument = "Document";
 
     /// <summary>Workbook path.</summary>
-    [Parameter(Mandatory = true, Position = 0, ParameterSetName = ParameterSetPath)]
-    [Alias("InputPath", "FilePath")]
+    [Parameter(Mandatory = true, Position = 0, ParameterSetName = ParameterSetPath, ValueFromPipelineByPropertyName = true, ValueFromPipeline = true)]
+    [Alias("InputPath", "FilePath", "FullName", "LiteralPath")]
     public string Path { get; set; } = string.Empty;
 
     /// <summary>Workbook document.</summary>

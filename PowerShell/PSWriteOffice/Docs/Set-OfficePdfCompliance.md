@@ -9,14 +9,9 @@ schema: 2.0.0
 Sets generated PDF compliance profile and readiness groundwork.
 
 ## SYNTAX
-### Context (Default)
+### __AllParameterSets
 ```powershell
-Set-OfficePdfCompliance -Profile <PdfComplianceProfile> [-Groundwork] [-Language <string>] [-PassThru] [<CommonParameters>]
-```
-
-### Document
-```powershell
-Set-OfficePdfCompliance -Document <PdfDocument> -Profile <PdfComplianceProfile> [-Groundwork] [-Language <string>] [-PassThru] [<CommonParameters>]
+Set-OfficePdfCompliance -Profile <PdfComplianceProfile> [-Groundwork] [-Language <string>] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
@@ -38,28 +33,12 @@ Applies OfficeIMO.Pdf compliance groundwork during composition, saves the PDF, t
 
 ## PARAMETERS
 
-### -Document
-Compatibility parameter. Compliance options must be declared inside New-OfficePdf.
-
-```yaml
-Type: PdfDocument
-Parameter Sets: Document
-Aliases: None
-Possible values:
-
-Required: True
-Position: named
-Default value: None
-Accept pipeline input: True (ByValue)
-Accept wildcard characters: False
-```
-
 ### -Groundwork
 Configure common PDF/A or PDF/UA groundwork for the selected profile.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: Context, Document
+Parameter Sets: __AllParameterSets
 Aliases: None
 Possible values:
 
@@ -75,23 +54,7 @@ Catalog language used by compliance groundwork.
 
 ```yaml
 Type: String
-Parameter Sets: Context, Document
-Aliases: None
-Possible values:
-
-Required: False
-Position: named
-Default value: None
-Accept pipeline input: False
-Accept wildcard characters: False
-```
-
-### -PassThru
-Emit the updated document.
-
-```yaml
-Type: SwitchParameter
-Parameter Sets: Context, Document
+Parameter Sets: __AllParameterSets
 Aliases: None
 Possible values:
 
@@ -107,7 +70,7 @@ Requested generated PDF compliance profile.
 
 ```yaml
 Type: PdfComplianceProfile
-Parameter Sets: Context, Document
+Parameter Sets: __AllParameterSets
 Aliases: None
 Possible values: None, PdfA2B, PdfA2U, PdfA2A, PdfA3B, PdfA3U, PdfA3A, PdfUa1, FacturX, Zugferd, PdfA4, PdfA4E, PdfA4F, PdfUa2, PdfX1A2003, PdfX4
 
@@ -123,11 +86,11 @@ This cmdlet supports the common parameters: -Debug, -ErrorAction, -ErrorVariable
 
 ## INPUTS
 
-- `OfficeIMO.Pdf.PdfDocument`
+- `None`
 
 ## OUTPUTS
 
-- `OfficeIMO.Pdf.PdfDocument`
+- `None`
 
 ## RELATED LINKS
 

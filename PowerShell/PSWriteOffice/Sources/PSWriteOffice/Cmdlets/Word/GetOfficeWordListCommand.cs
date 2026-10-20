@@ -1,3 +1,4 @@
+using PSWriteOffice.Services;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -32,7 +33,7 @@ namespace PSWriteOffice.Cmdlets.Word;
 /// $doc | Close-OfficeWord -Save</code>
 ///   <para>Inspects list objects directly when the caller wants custom selection logic.</para>
 /// </example>
-[Cmdlet(VerbsCommon.Get, "OfficeWordList", DefaultParameterSetName = ParameterSetPath)]
+[Cmdlet(VerbsCommon.Get, "OfficeWordList")]
 [OutputType(typeof(WordList))]
 public sealed class GetOfficeWordListCommand : PSCmdlet {
     private const string ParameterSetPath = "Path";
@@ -40,8 +41,8 @@ public sealed class GetOfficeWordListCommand : PSCmdlet {
     private const string ParameterSetSection = "Section";
 
     /// <summary>Path to the document to open read-only for list inspection.</summary>
-    [Parameter(Mandatory = true, Position = 0, ParameterSetName = ParameterSetPath)]
-    [Alias("InputPath", "FilePath")]
+    [Parameter(Mandatory = true, Position = 0, ParameterSetName = ParameterSetPath, ValueFromPipelineByPropertyName = true, ValueFromPipeline = true)]
+    [Alias("InputPath", "FilePath", "FullName", "LiteralPath")]
     public string Path { get; set; } = string.Empty;
 
     /// <summary>Open document to inspect. The caller controls the document lifetime.</summary>
@@ -70,7 +71,7 @@ public sealed class GetOfficeWordListCommand : PSCmdlet {
                     : Array.Empty<WordList>();
             } else {
                 if (ParameterSetName == ParameterSetPath) {
-                    var resolvedPath = SessionState.Path.GetUnresolvedProviderPathFromPSPath(Path);
+                    var resolvedPath = OfficeFileCommandUtilities.ResolvePath(this, Path);
                     document = WordDocumentService.LoadDocument(resolvedPath, readOnly: true, autoSave: false);
                     dispose = true;
                 } else {

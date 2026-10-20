@@ -1,3 +1,4 @@
+using PSWriteOffice.Services;
 using System.Collections.Generic;
 using System;
 using System.IO;
@@ -24,7 +25,8 @@ public sealed class GetOfficeExcelDataCommand : PSCmdlet
     public ExcelDocument? Document { get; set; }
 
     /// <summary>Path to the workbook when no <see cref="Document"/> is supplied.</summary>
-    [Parameter(Position = 0)]
+    [Parameter(Position = 0, ValueFromPipelineByPropertyName = true, ValueFromPipeline = true)]
+    [Alias("FullName", "LiteralPath")]
     public string? Path { get; set; }
 
     /// <summary>Worksheet name to read; defaults to the first sheet.</summary>
@@ -56,7 +58,7 @@ public sealed class GetOfficeExcelDataCommand : PSCmdlet
                 throw new PSArgumentException("Specify -Path or provide an ExcelDocument on the pipeline.");
             }
 
-            var resolved = SessionState.Path.GetUnresolvedProviderPathFromPSPath(Path);
+            var resolved = OfficeFileCommandUtilities.ResolvePath(this, Path);
             if (!File.Exists(resolved))
             {
                 throw new FileNotFoundException($"File '{resolved}' was not found.", resolved);

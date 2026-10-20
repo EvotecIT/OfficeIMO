@@ -13,6 +13,9 @@ namespace OfficeIMO.Word {
     // Provides functionality for creating, loading and manipulating Word documents.
     public partial class WordDocument : IDisposable {
 
+        /// <summary>Whether this document has released its package and owned resources.</summary>
+        public bool IsDisposed => _disposed;
+
         /// <summary>
         /// This moves section within body from top to bottom to allow footers/headers to move
         /// Needs more work, but this is what Word does all the time

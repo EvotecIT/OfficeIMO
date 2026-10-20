@@ -1,18 +1,12 @@
 using System;
 using System.Management.Automation;
-using System.Reflection;
 using OfficeIMO.PowerPoint;
 using PSWriteOffice.Services.Text;
-using A = DocumentFormat.OpenXml.Drawing;
 
 namespace PSWriteOffice.Services.PowerPoint;
 
 internal static class PowerPointTextRunService
 {
-    private static readonly PropertyInfo? OpenXmlRunProperty = typeof(PowerPointTextRun).GetProperty(
-        "Run",
-        BindingFlags.Instance | BindingFlags.NonPublic);
-
     internal static void ValidateRuns(object[] runs, bool allowHyperlinks)
         => ValidateRuns(OfficeTextRunParser.ParseMany(runs), allowHyperlinks);
 
@@ -126,19 +120,7 @@ internal static class PowerPointTextRunService
     private static void ApplyBaseline(PowerPointTextRun run, string? baseline)
     {
         var value = ResolveBaseline(baseline);
-        var openXmlRun = (A.Run?)OpenXmlRunProperty?.GetValue(run);
-        if (openXmlRun == null)
-        {
-            if (value.HasValue)
-            {
-                throw new PSArgumentException("PowerPoint run baselines require access to the underlying OpenXML run.", nameof(baseline));
-            }
-
-            return;
-        }
-
-        var properties = openXmlRun.RunProperties ??= new A.RunProperties();
-        properties.Baseline = value;
+        run.BaselinePercent = value.HasValue ? value.Value / 1000D : null;
     }
 
     private static int? ResolveBaseline(string? baseline)

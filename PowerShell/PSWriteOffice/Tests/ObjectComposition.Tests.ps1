@@ -167,27 +167,29 @@ Describe 'Object-style document composition' {
         }
     }
 
-    It 'removes saved-path associations when a NoSave DSL block fails' {
-        $assembly = (Get-Command New-OfficeExcel).ImplementingType.Assembly
-        $flags = [System.Reflection.BindingFlags]::NonPublic -bor [System.Reflection.BindingFlags]::Static
-        $excelField = $assembly.GetType('PSWriteOffice.Services.Excel.ExcelDocumentService').GetField('AssociatedPaths', $flags)
-        $wordField = $assembly.GetType('PSWriteOffice.Services.Word.WordDocumentService').GetField('AssociatedPaths', $flags)
-        $excelCount = $excelField.GetValue($null).Count
-        $wordCount = $wordField.GetValue($null).Count
+    It 'preserves existing destinations when a NoSave DSL block fails' {
+        $excelPath = Join-Path $TestDrive 'Failed.xlsx'
+        $wordPath = Join-Path $TestDrive 'Failed.docx'
+        [IO.File]::WriteAllText($excelPath, 'Existing Excel destination')
+        [IO.File]::WriteAllText($wordPath, 'Existing Word destination')
 
         {
-            New-OfficeExcel -Path (Join-Path $TestDrive 'Failed.xlsx') -NoSave {
+            New-OfficeExcel -Path $excelPath -NoSave {
                 throw 'Expected Excel DSL failure'
             }
         } | Should -Throw '*Expected Excel DSL failure*'
 
         {
-            New-OfficeWord -Path (Join-Path $TestDrive 'Failed.docx') -NoSave {
+            New-OfficeWord -Path $wordPath -NoSave {
                 throw 'Expected Word DSL failure'
             }
         } | Should -Throw '*Expected Word DSL failure*'
 
-        $excelField.GetValue($null).Count | Should -Be $excelCount
-        $wordField.GetValue($null).Count | Should -Be $wordCount
+        [IO.File]::ReadAllText($excelPath) | Should -Be 'Existing Excel destination'
+        [IO.File]::ReadAllText($wordPath) | Should -Be 'Existing Word destination'
+        foreach ($path in @($excelPath, $wordPath)) {
+            $exclusive = [IO.File]::Open($path, [IO.FileMode]::Open, [IO.FileAccess]::ReadWrite, [IO.FileShare]::None)
+            $exclusive.Dispose()
+        }
     }
 }

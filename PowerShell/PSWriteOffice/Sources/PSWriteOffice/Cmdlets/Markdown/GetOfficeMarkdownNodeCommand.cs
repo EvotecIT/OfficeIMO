@@ -1,3 +1,4 @@
+using PSWriteOffice.Services;
 using System;
 using System.IO;
 using System.Management.Automation;
@@ -21,7 +22,7 @@ namespace PSWriteOffice.Cmdlets.Markdown;
 ///   <code>Get-OfficeMarkdown -Path .\README.md | Get-OfficeMarkdownNode -NodeType '*Table*'</code>
 ///   <para>Returns matching nodes from an existing Markdown document.</para>
 /// </example>
-[Cmdlet(VerbsCommon.Get, "OfficeMarkdownNode", DefaultParameterSetName = ParameterSetPath)]
+[Cmdlet(VerbsCommon.Get, "OfficeMarkdownNode")]
 [OutputType(typeof(PSObject), typeof(MarkdownObject))]
 public sealed class GetOfficeMarkdownNodeCommand : PSCmdlet
     , IMarkdownReaderOptionSource {
@@ -34,8 +35,8 @@ public sealed class GetOfficeMarkdownNodeCommand : PSCmdlet
     public MarkdownDoc Document { get; set; } = null!;
 
     /// <summary>Path to the Markdown file.</summary>
-    [Parameter(Mandatory = true, Position = 0, ParameterSetName = ParameterSetPath)]
-    [Alias("InputPath", "FilePath")]
+    [Parameter(Mandatory = true, Position = 0, ParameterSetName = ParameterSetPath, ValueFromPipelineByPropertyName = true, ValueFromPipeline = true)]
+    [Alias("InputPath", "FilePath", "FullName", "LiteralPath")]
     public string Path { get; set; } = string.Empty;
 
     /// <summary>Markdown text to parse.</summary>
@@ -128,7 +129,7 @@ public sealed class GetOfficeMarkdownNodeCommand : PSCmdlet
 
         string markdown;
         if (ParameterSetName == ParameterSetPath) {
-            var resolvedPath = SessionState.Path.GetUnresolvedProviderPathFromPSPath(Path);
+            var resolvedPath = OfficeFileCommandUtilities.ResolvePath(this, Path);
             if (!File.Exists(resolvedPath)) {
                 throw new FileNotFoundException($"File '{resolvedPath}' was not found.", resolvedPath);
             }

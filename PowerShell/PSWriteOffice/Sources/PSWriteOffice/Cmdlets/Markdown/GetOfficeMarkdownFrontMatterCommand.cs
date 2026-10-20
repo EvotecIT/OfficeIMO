@@ -22,7 +22,7 @@ namespace PSWriteOffice.Cmdlets.Markdown;
 ///     Select-Object -Property Key, Value</code>
 ///   <para>Parses Markdown text directly when the document has not been saved yet.</para>
 /// </example>
-[Cmdlet(VerbsCommon.Get, "OfficeMarkdownFrontMatter", DefaultParameterSetName = ParameterSetPath)]
+[Cmdlet(VerbsCommon.Get, "OfficeMarkdownFrontMatter")]
 [OutputType(typeof(FrontMatterBlock.Entry))]
 public sealed class GetOfficeMarkdownFrontMatterCommand : PSCmdlet
     , IMarkdownReaderOptionSource {
@@ -35,8 +35,8 @@ public sealed class GetOfficeMarkdownFrontMatterCommand : PSCmdlet
     public MarkdownDoc Document { get; set; } = null!;
 
     /// <summary>Path to the Markdown file.</summary>
-    [Parameter(Mandatory = true, Position = 0, ParameterSetName = ParameterSetPath)]
-    [Alias("InputPath", "FilePath")]
+    [Parameter(Mandatory = true, Position = 0, ParameterSetName = ParameterSetPath, ValueFromPipelineByPropertyName = true, ValueFromPipeline = true)]
+    [Alias("InputPath", "FilePath", "FullName", "LiteralPath")]
     public string Path { get; set; } = string.Empty;
 
     /// <summary>Markdown text to parse.</summary>

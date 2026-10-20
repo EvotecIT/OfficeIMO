@@ -9,7 +9,7 @@ schema: 2.0.0
 Gets a generated PDF document compliance readiness report.
 
 ## SYNTAX
-### Document (Default)
+### Document
 ```powershell
 Get-OfficePdfCompliance [-Document <PdfDocument>] [-Profile <PdfComplianceProfile>] [-Proof] [-ExternalValidator <PdfExternalValidatorKind[]>] [-ExternalValidation <PdfExternalValidationResult[]>] [-ExternalStatus <PdfExternalValidationStatus>] [-ExternalProfile <string>] [-ExternalDiagnostic <string>] [-ExternalValidatorName <string>] [-ExternalValidatorVersion <string>] [-ExternalExitCode <Int32>] [-ExternalSuccessExitCode <int>] [-ExternalExecutablePath <string>] [-ExternalArguments <string>] [<CommonParameters>]
 ```
@@ -268,13 +268,13 @@ Existing PDF file path to assess after generation.
 ```yaml
 Type: String
 Parameter Sets: Path
-Aliases: FilePath
+Aliases: FilePath, FullName, LiteralPath
 Possible values:
 
 Required: True
 Position: 0
 Default value: None
-Accept pipeline input: True (ByPropertyName)
+Accept pipeline input: True (ByValue, ByPropertyName)
 Accept wildcard characters: False
 ```
 

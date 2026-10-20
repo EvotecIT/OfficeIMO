@@ -1,3 +1,4 @@
+using OfficeIMO.Core.Internal;
 using System.IO;
 using System.Management.Automation;
 using System.Text;
@@ -60,7 +61,7 @@ public sealed class SaveOfficeMarkdownCommand : PSCmdlet
         }
 
         PdfCommandUtilities.EnsureDirectory(fullPath);
-        File.WriteAllText(fullPath, Document.ToMarkdown(MarkdownOptionUtilities.BuildWriteOptions(this)), new UTF8Encoding(encoderShouldEmitUTF8Identifier: false));
+        OfficeFileOutput.Write(fullPath, overwrite: true, temporaryPath => File.WriteAllText(temporaryPath, Document.ToMarkdown(MarkdownOptionUtilities.BuildWriteOptions(this)), new UTF8Encoding(encoderShouldEmitUTF8Identifier: false)));
 
         if (PassThru.IsPresent) {
             WriteObject(Document);

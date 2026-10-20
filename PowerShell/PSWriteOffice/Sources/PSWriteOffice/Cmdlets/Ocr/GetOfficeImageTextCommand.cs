@@ -25,8 +25,8 @@ namespace PSWriteOffice.Cmdlets.Ocr;
 public sealed class GetOfficeImageTextCommand : OfficeOcrCmdlet
 {
     /// <summary>PNG, JPEG, TIFF, BMP, GIF, WebP, or JPEG 2000 image path.</summary>
-    [Parameter(Mandatory = true, Position = 0, ValueFromPipeline = true)]
-    [Alias("FilePath")]
+    [Parameter(Mandatory = true, Position = 0, ValueFromPipeline = true, ValueFromPipelineByPropertyName = true)]
+    [Alias("FilePath", "FullName", "LiteralPath")]
     public string Path { get; set; } = string.Empty;
 
     /// <summary>Return the complete OCR result instead of recognized text only.</summary>

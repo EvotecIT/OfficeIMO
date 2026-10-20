@@ -1,3 +1,4 @@
+using OfficeIMO.Core.Internal;
 using System;
 using System.Collections;
 using System.Collections.Generic;
@@ -14,17 +15,8 @@ namespace PSWriteOffice.Services.Pdf;
 internal static class PdfCommandUtilities
 {
     internal static string ResolvePath(PSCmdlet cmdlet, string path)
-    {
-        if (string.IsNullOrWhiteSpace(path))
-        {
-            throw new PSArgumentException("Path cannot be empty.", nameof(path));
-        }
+        => OfficeFileCommandUtilities.ResolvePath(cmdlet, path);
 
-        var providerPath = cmdlet.SessionState.Path.GetUnresolvedProviderPathFromPSPath(path);
-        return Path.IsPathRooted(providerPath)
-            ? providerPath
-            : Path.Combine(cmdlet.SessionState.Path.CurrentFileSystemLocation.Path, providerPath);
-    }
 
     internal static string ResolveExistingFilePath(PSCmdlet cmdlet, string path)
     {
@@ -89,7 +81,7 @@ internal static class PdfCommandUtilities
 
     internal static string GetSafeFileName(string fileName)
     {
-        return AtomicFileWriter.GetSafeFileName(fileName, "attachment.bin");
+        return OfficeFileOutput.GetSafeFileName(fileName, "attachment.bin");
     }
 
     internal static string GetUniquePath(string directory, string fileName)
@@ -105,7 +97,7 @@ internal static class PdfCommandUtilities
         var stem = Path.GetFileNameWithoutExtension(safeName);
         for (var index = 2; ; index++)
         {
-            path = Path.Combine(directory, AtomicFileWriter.CreateCollisionCandidateName(stem, extension, index));
+            path = Path.Combine(directory, OfficeFileOutput.CreateCollisionCandidateName(stem, extension, index));
             if (!File.Exists(path))
             {
                 return path;

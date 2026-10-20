@@ -1,5 +1,5 @@
 param(
-    [ValidateSet('Manifest', 'Build', 'Publish')]
+    [ValidateSet('Documentation', 'Manifest', 'Build', 'Publish')]
     [string] $RunMode = 'Build',
 
     [bool] $SignModule = $false,
@@ -48,7 +48,7 @@ Build-Module -ModuleName 'PSWriteOffice' -Path "$PSScriptRoot/../.." -RunMode $R
         # Copyright statement for this module
         Copyright              = "(c) 2011 - $((Get-Date).Year) Przemyslaw Klys @ Evotec. All rights reserved."
         # Description of the functionality provided by this module
-        Description            = 'PowerShell module to create, convert, read, inspect, and export Office, PDF, iWork, OneNote, OpenDocument, email, Markdown, AsciiDoc, LaTeX, CSV, Visio, and Confluence content without Microsoft Office installed. Powered by OfficeIMO.*.'
+        Description            = 'PowerShell document automation for Office, PDF, Project, Access, EPUB, electronic invoices, iWork, OneNote, OpenDocument, email, and text formats. Create, edit, inspect, and convert through OfficeIMO without Microsoft Office installed.'
         # Tags applied to this module. These help with module discovery in online galleries.
         Tags                   = @('officeimo', 'word', 'excel', 'powerpoint', 'pdf', 'iwork', 'pages', 'numbers', 'keynote', 'onenote', 'ocr', 'provenance', 'security', 'opendocument', 'email', 'markdown', 'asciidoc', 'latex', 'csv', 'confluence', 'adf', 'atlassian', 'docx', 'xlsx', 'pptx', 'openxml', 'windows', 'linux', 'macos')
         # A URL to the main website for this project.
@@ -113,7 +113,7 @@ Build-Module -ModuleName 'PSWriteOffice' -Path "$PSScriptRoot/../.." -RunMode $R
 
     $newConfigurationBuildSplat = @{
         Enable                            = $true
-        # Release and local builds sign by default; CI smoke builds opt out explicitly.
+        # Unsigned validation and signed publication share the same build configuration.
         SignModule                        = $SignModule
         MergeModuleOnBuild                = $true
         MergeFunctionsFromApprovedModules = $true
@@ -126,11 +126,15 @@ Build-Module -ModuleName 'PSWriteOffice' -Path "$PSScriptRoot/../.." -RunMode $R
         NETHandleAssemblyWithSameName     = $true
         NETProjectPath                    = 'Sources\PSWriteOffice\PSWriteOffice.csproj'
         NETAssemblyLoadContext            = $true
+        NETDevelopmentBinaries            = $true
+        NETDevelopmentBinariesMode        = 'Auto'
+        NETDevelopmentSourceBootstrapperMode = 'ReplaceSingleFile'
         #NETMergeLibraryDebugging          = $true
         DotSourceLibraries                = $true
         DotSourceClasses                  = $true
         DeleteTargetModuleBeforeBuild     = $true
         NETBinaryModuleDocumentation      = $true
+        SyncNETProjectVersion             = $true
     }
 
     New-ConfigurationBuild @newConfigurationBuildSplat

@@ -1,3 +1,4 @@
+using OfficeIMO.Core.Internal;
 using System.IO;
 using System.Management.Automation;
 using OfficeIMO.Pdf;
@@ -53,7 +54,7 @@ public sealed class ConvertToOfficePdfSanitizedCommand : PSCmdlet
                 Password,
                 IgnorePermissionRestrictions.IsPresent)).Sanitize(Options);
         Directory.CreateDirectory(System.IO.Path.GetDirectoryName(output) ?? SessionState.Path.CurrentFileSystemLocation.Path);
-        File.WriteAllBytes(output, result.ToBytes());
+        OfficeFileOutput.Write(output, overwrite: true, temporaryPath => File.WriteAllBytes(temporaryPath, result.ToBytes()));
         WriteObject(result);
     }
 }

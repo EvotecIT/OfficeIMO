@@ -453,14 +453,6 @@ Describe 'Expanded OfficeIMO support' {
     }
 
     It 'releases path-loaded Office documents after OpenDocument conversion' {
-        $flags = [System.Reflection.BindingFlags]'NonPublic, Static'
-        $wordServiceType = Get-TestPSWriteOfficeType -AssemblyName 'PSWriteOffice' -TypeName 'PSWriteOffice.Services.Word.WordDocumentService' -CommandName 'ConvertTo-OfficeOpenDocument'
-        $excelServiceType = Get-TestPSWriteOfficeType -AssemblyName 'PSWriteOffice' -TypeName 'PSWriteOffice.Services.Excel.ExcelDocumentService' -CommandName 'ConvertTo-OfficeOpenDocument'
-        $wordDocuments = $wordServiceType.GetField('AssociatedPaths', $flags).GetValue($null)
-        $excelDocuments = $excelServiceType.GetField('AssociatedPaths', $flags).GetValue($null)
-        $beforeWord = $wordDocuments.Count
-        $beforeExcel = $excelDocuments.Count
-
         $wordPath = Join-Path $TestDrive 'convert.docx'
         $excelPath = Join-Path $TestDrive 'convert.xlsx'
         $powerPointPath = Join-Path $TestDrive 'convert.pptx'
@@ -472,8 +464,10 @@ Describe 'Expanded OfficeIMO support' {
         ConvertTo-OfficeOpenDocument -Path $excelPath -OutputPath (Join-Path $TestDrive 'convert.ods') | Out-Null
         ConvertTo-OfficeOpenDocument -Path $powerPointPath -OutputPath (Join-Path $TestDrive 'convert.odp') | Out-Null
 
-        $wordDocuments.Count | Should -Be $beforeWord
-        $excelDocuments.Count | Should -Be $beforeExcel
+        foreach ($source in @($wordPath, $excelPath, $powerPointPath)) {
+            $exclusive = [IO.File]::Open($source, [IO.FileMode]::Open, [IO.FileAccess]::ReadWrite, [IO.FileShare]::None)
+            $exclusive.Dispose()
+        }
         $movedPowerPointPath = Join-Path $TestDrive 'convert-moved.pptx'
         Move-Item -LiteralPath $powerPointPath -Destination $movedPowerPointPath
         Test-Path -LiteralPath $movedPowerPointPath | Should -BeTrue
