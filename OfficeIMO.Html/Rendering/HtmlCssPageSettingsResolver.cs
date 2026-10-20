@@ -6,7 +6,7 @@ using OfficeIMO.Drawing;
 
 namespace OfficeIMO.Html;
 
-internal static class HtmlCssPageSettingsResolver {
+internal static partial class HtmlCssPageSettingsResolver {
     internal static HtmlCssPageRuleSet Apply(IHtmlDocument document, HtmlRenderOptions options, HtmlDiagnosticReport diagnostics) {
         var pageRules = new HtmlCssPageRuleSet(options);
         if (options.Mode != HtmlRenderMode.Paged || !options.HonorCssPageRules) return pageRules;
@@ -365,13 +365,14 @@ internal static class HtmlCssPageSettingsResolver {
             }
 
             ICssStyleDeclaration? style = new CssParser().ParseDeclaration(marginBody);
+            IReadOnlyDictionary<string, HtmlCssPageDeclaration> fontDeclarations = ReadMarginFontDeclarations(marginBody);
             var marginRule = new HtmlCssPageMarginRule(
                 content,
-                ReadStyleDeclaration(style, marginBody, "font-family", cursor),
-                ReadStyleDeclaration(style, marginBody, "font-size", cursor),
-                ReadStyleDeclaration(style, marginBody, "font-weight", cursor),
-                ReadStyleDeclaration(style, marginBody, "font-style", cursor),
-                ReadStyleDeclaration(style, marginBody, "line-height", cursor),
+                ReadMarginFontDeclaration(fontDeclarations, "font-family", cursor),
+                ReadMarginFontDeclaration(fontDeclarations, "font-size", cursor),
+                ReadMarginFontDeclaration(fontDeclarations, "font-weight", cursor),
+                ReadMarginFontDeclaration(fontDeclarations, "font-style", cursor),
+                ReadMarginFontDeclaration(fontDeclarations, "line-height", cursor),
                 ReadStyleDeclaration(style, marginBody, "color", cursor),
                 ReadStyleDeclaration(style, marginBody, "text-align", cursor));
             if (!marginRule.IsEmpty) {

@@ -6,9 +6,10 @@ namespace OfficeIMO.Html;
 public static partial class HtmlComputedStyleEngine {
     /// <summary>
     /// Keeps owned length/math values intact while the retained parser assigns
-    /// position and size components. Markers are local to this one declaration.
+    /// shorthand components. Markers are local to this one declaration.
     /// </summary>
-    private static string PreserveBackgroundProviderLengths(string layer, out IReadOnlyDictionary<string, string> originals) {
+    private static string PreserveProviderLengths(string layer, out IReadOnlyDictionary<string, string> originals,
+        Func<HtmlCssMathExpression, bool>? shouldPreserve = null) {
         var replacements = new Dictionary<string, string>(StringComparer.Ordinal);
         var result = new StringBuilder(layer.Length);
         IReadOnlyList<HtmlCssToken> tokens = HtmlCssTokenizer.Tokenize(layer, UnboundedPropertyTokenization);
@@ -27,8 +28,10 @@ public static partial class HtmlComputedStyleEngine {
             } else if (token.Kind == HtmlCssTokenKind.Dimension) value = token.GetText(layer);
             else continue;
             bool valid;
-            try { valid = HtmlCssMathParser.ParseLengthPercentage(value).Status == HtmlCssMathParseStatus.Parsed; }
-            catch (HtmlCssMathLimitException) { valid = false; }
+            try {
+                HtmlCssMathParseResult parsed = HtmlCssMathParser.ParseLengthPercentage(value);
+                valid = parsed.IsParsed && (shouldPreserve == null || shouldPreserve(parsed.Expression!));
+            } catch (HtmlCssMathLimitException) { valid = false; }
             if (!valid) continue;
             string replacement;
             do { replacement = (marker++).ToString(System.Globalization.CultureInfo.InvariantCulture) + "px"; }
@@ -42,7 +45,7 @@ public static partial class HtmlComputedStyleEngine {
         return result.Append(layer, copied, layer.Length - copied).ToString();
     }
 
-    private static string RestoreBackgroundProviderLengths(string value, IReadOnlyDictionary<string, string> originals) {
+    private static string RestoreProviderLengths(string value, IReadOnlyDictionary<string, string> originals) {
         foreach (KeyValuePair<string, string> original in originals) value = value.Replace(original.Key, original.Value);
         return value;
     }

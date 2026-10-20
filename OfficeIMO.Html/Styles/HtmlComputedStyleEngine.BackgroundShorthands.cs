@@ -40,7 +40,7 @@ public static partial class HtmlComputedStyleEngine {
                 return false;
             }
             string layer = PreserveManagedGradientFunctions(layers[index], preserveBackgroundImages: true);
-            layer = PreserveBackgroundProviderLengths(layer, out IReadOnlyDictionary<string, string> originalLengths);
+            layer = PreserveProviderLengths(layer, out IReadOnlyDictionary<string, string> originalLengths);
             var parsed = new CssParser().ParseDeclaration("background:" + layer);
             if (parsed == null || parsed.Length == 0) {
                 // Drawing owns supported Color 4 syntax. Normalize only a colour
@@ -73,7 +73,7 @@ public static partial class HtmlComputedStyleEngine {
                 if (string.IsNullOrWhiteSpace(component) || string.Equals(component, "initial", StringComparison.OrdinalIgnoreCase)) {
                     component = BackgroundInitialValue(name);
                 }
-                components[name].Add(RestoreBackgroundProviderLengths(RestoreManagedGradientFunctions(component), originalLengths));
+                components[name].Add(RestoreProviderLengths(RestoreManagedGradientFunctions(component), originalLengths));
             }
         }
         longhands = layers.Count == 0 ? Array.Empty<KeyValuePair<string, string>>()

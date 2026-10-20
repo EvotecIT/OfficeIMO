@@ -366,7 +366,7 @@ public static partial class HtmlComputedStyleEngine {
         && HtmlRenderCssValues.TryLength(value, 100D, 16D, 16D, 100D, 100D, 100D, 100D, out double length)
         && length >= 0D;
 
-    private static bool IsSupportedDeclarationValue(string propertyName, string value) {
+    internal static bool IsSupportedDeclarationValue(string propertyName, string value) {
         if (propertyName.StartsWith("--", StringComparison.Ordinal) && !string.IsNullOrWhiteSpace(value)) {
             return true;
         }

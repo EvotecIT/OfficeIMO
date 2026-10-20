@@ -23,18 +23,19 @@ internal sealed partial class HtmlRenderStyleResolver {
     }
 
     /// <summary>Resolves generated text through the same CSS leading owner as ordinary inline text.</summary>
-    internal double ResolveGeneratedLineHeight(string value, OfficeFontInfo font,
+    internal double ResolveGeneratedLineHeight(string value, OfficeFontInfo font, double viewportWidth, double viewportHeight,
         out double alignmentLineHeight, out bool usesNaturalLineHeight) {
         value = value.Trim();
         usesNaturalLineHeight = UsesNaturalLineHeight(value);
         double previousWidth = _activeContainerWidth, previousHeight = _activeContainerHeight;
+        double previousViewportWidth = _viewportWidth, previousViewportHeight = _viewportHeight;
         double previousAdvance = _activeCharacterAdvance;
         bool previousUpright = _activeUprightVerticalText;
         try {
             // Page-margin text has no ancestor query container or body writing mode.
-            // Its units belong to this page and this face, not the last body element.
-            _activeContainerWidth = _viewportWidth;
-            _activeContainerHeight = _viewportHeight;
+            // Its viewport fallback uses the print paper and its own selected face.
+            _viewportWidth = _activeContainerWidth = viewportWidth;
+            _viewportHeight = _activeContainerHeight = viewportHeight;
             _activeUprightVerticalText = false;
             _activeCharacterAdvance = ContainsCharacterUnit(value)
                 ? _measureCharacterAdvance(new HtmlRenderBoxStyle {
@@ -44,6 +45,8 @@ internal sealed partial class HtmlRenderStyleResolver {
             alignmentLineHeight = HtmlRenderCssValues.ResolveInlineAlignmentLineHeight(lineHeight, font.Size, multiplier);
             return lineHeight;
         } finally {
+            _viewportWidth = previousViewportWidth;
+            _viewportHeight = previousViewportHeight;
             _activeContainerWidth = previousWidth;
             _activeContainerHeight = previousHeight;
             _activeCharacterAdvance = previousAdvance;

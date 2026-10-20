@@ -25,6 +25,10 @@ internal sealed class HtmlCssPageRuleSet {
 
     internal int RuleCount => _rules.Count;
 
+    // Page-context viewport fallback uses the caller's print paper, before @page overrides.
+    internal double? InitialPageWidth => _baseWidth;
+    internal double? InitialPageHeight => _baseHeight;
+
     internal HtmlCssPageGeometry ResolveGeometry(int pageNumber, string? pageName, HtmlRenderOptions options) {
         return ResolveGeometry(MatchingRules(pageNumber, pageName), options);
     }
@@ -195,7 +199,7 @@ internal sealed class HtmlCssPageRuleSet {
 
         var resolved = new Dictionary<HtmlCssPageMarginPosition, HtmlCssPageMarginTemplate>();
         foreach (KeyValuePair<HtmlCssPageMarginPosition, HtmlCssPageMarginCascade> pair in cascaded) {
-            if (pair.Value.TryBuild(pair.Key, geometry, options, out HtmlCssPageMarginTemplate? template)) {
+            if (pair.Value.TryBuild(pair.Key, _baseWidth ?? geometry.Width, _baseHeight ?? geometry.Height, options, out HtmlCssPageMarginTemplate? template)) {
                 resolved[pair.Key] = template!;
             }
         }
@@ -380,7 +384,7 @@ internal sealed class HtmlCssPageRuleSet {
             HtmlCssPageRuleSet.Consider(ref _textAlign, marginRule.TextAlign, pageRule);
         }
 
-        internal bool TryBuild(HtmlCssPageMarginPosition position, HtmlCssPageGeometry geometry, HtmlRenderOptions options, out HtmlCssPageMarginTemplate? template) {
+        internal bool TryBuild(HtmlCssPageMarginPosition position, double viewportWidth, double viewportHeight, HtmlRenderOptions options, out HtmlCssPageMarginTemplate? template) {
             template = null;
             HtmlCssPageCascadeValue contentValue = ResolveLayerRevert(_content);
             HtmlCssPageCascadeValue fontFamilyValue = ResolveLayerRevert(_fontFamily);
@@ -395,7 +399,7 @@ internal sealed class HtmlCssPageRuleSet {
             string family = HtmlRenderCssValues.FontFamilyList(fontFamilyValue.HasValue ? fontFamilyValue.Value : string.Empty, options.DefaultFontFamily);
             string fontSizeValue = fontSizeCascadeValue.HasValue ? fontSizeCascadeValue.Value : string.Empty;
             double fontSize = options.DefaultFontSize;
-            if (!HtmlRenderCssValues.TryLength(fontSizeValue, options.DefaultFontSize, options.DefaultFontSize, options.DefaultFontSize, geometry.Width, geometry.Height, out fontSize)
+            if (!HtmlRenderCssValues.TryLength(fontSizeValue, options.DefaultFontSize, options.DefaultFontSize, options.DefaultFontSize, viewportWidth, viewportHeight, out fontSize)
                 || fontSize <= 0D) {
                 fontSize = options.DefaultFontSize;
             }
