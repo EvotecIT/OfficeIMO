@@ -11,6 +11,7 @@ internal static partial class PdfAnnotationFlattener {
         cancellationToken.ThrowIfCancellationRequested();
         int flattenedCount = 0;
         int maximumContentBytes = 0;
+        int maximumPageContentBytes = 0;
         long totalContentBytes = 0L;
         int maximumContentOperations = 0;
         int maximumContentOperands = 0;
@@ -84,16 +85,20 @@ internal static partial class PdfAnnotationFlattener {
             int contentObjectNumber = nextObjectNumber++;
             PdfStream contentStream = CreateContentStream(content);
             objects[contentObjectNumber] = new PdfIndirectObject(contentObjectNumber, 0, contentStream);
-            addedContentContexts++;
+            int isolationBytes = PdfPageContentIsolation.Append(objects, page, contentObjectNumber,
+                ref nextObjectNumber, cancellationToken);
+            addedContentContexts += isolationBytes == 0 ? 1 : 3;
             int addedOperations = SaturatingMultiply(pageAnnotations.Count, 4);
+            if (isolationBytes != 0) addedOperations = addedOperations > int.MaxValue - 2 ? int.MaxValue : addedOperations + 2;
             totalContentOperations = totalContentOperations > int.MaxValue - addedOperations
                 ? int.MaxValue : totalContentOperations + addedOperations;
-            AppendPageContent(objects, page, contentObjectNumber);
-            maximumContentBytes = Math.Max(maximumContentBytes, contentStream.Data.Length);
-            totalContentBytes = totalContentBytes > long.MaxValue - contentStream.Data.LongLength
+            maximumContentBytes = Math.Max(maximumContentBytes, Math.Max(contentStream.Data.Length, isolationBytes == 0 ? 0 : 3));
+            long addedBytes = contentStream.Data.LongLength + isolationBytes;
+            maximumPageContentBytes = (int)Math.Max(maximumPageContentBytes, Math.Min(int.MaxValue, addedBytes));
+            totalContentBytes = totalContentBytes > long.MaxValue - addedBytes
                 ? long.MaxValue
-                : totalContentBytes + contentStream.Data.LongLength;
-            maximumContentOperations = Math.Max(maximumContentOperations, SaturatingMultiply(pageAnnotations.Count, 4));
+                : totalContentBytes + addedBytes;
+            maximumContentOperations = Math.Max(maximumContentOperations, addedOperations);
             maximumContentOperands = Math.Max(maximumContentOperands, SaturatingMultiply(pageAnnotations.Count, 7));
         }
 
@@ -102,7 +107,7 @@ internal static partial class PdfAnnotationFlattener {
             minimumRawStreamBytes: maximumContentBytes,
             minimumDecodedStreamBytes: maximumContentBytes,
             additionalTotalDecodedStreamBytes: totalContentBytes,
-            additionalPageContentBytes: maximumContentBytes,
+            additionalPageContentBytes: maximumPageContentBytes,
             additionalRetainedContentBytes: totalContentBytes,
             additionalContentOperations: maximumContentOperations,
             additionalContentOperands: maximumContentOperands,

@@ -304,8 +304,9 @@ internal static partial class PdfStamper {
             }
             if (remainingContentBytes.HasValue && decoded.LongLength + 1L > remainingContentBytes.Value - builder.Length)
                 throw new InvalidDataException("Imposed page content exceeds the configured output limit.");
-            builder.Append(PdfEncoding.Latin1GetString(decoded)).Append('\n');
+            builder.Append(PdfEncoding.Latin1GetString(decoded));
         }
+        builder.Append('\n');
         content.RestoreState();
         if (remainingContentBytes.HasValue && builder.Length > remainingContentBytes.Value)
             throw new InvalidDataException("Imposed page content exceeds the configured output limit.");

@@ -142,7 +142,7 @@ internal static partial class PdfFormFiller {
             string content = BuildFlattenContent(objects, page, pageWidgets, cancellationToken);
             int contentObjectNumber = nextObjectNumber++;
             objects[contentObjectNumber] = new PdfIndirectObject(contentObjectNumber, 0, CreateContentStream(content));
-            AppendPageContent(objects, page, contentObjectNumber, cancellationToken);
+            PdfPageContentIsolation.Append(objects, page, contentObjectNumber, ref nextObjectNumber, cancellationToken);
         }
 
         return flattenedWidgetCount;
@@ -195,47 +195,4 @@ internal static partial class PdfFormFiller {
         return new PdfStream(dictionary, PdfEncoding.Latin1GetBytes(content));
     }
 
-    private static void AppendPageContent(Dictionary<int, PdfIndirectObject> objects, PdfDictionary page, int contentObjectNumber, System.Threading.CancellationToken cancellationToken = default) {
-        cancellationToken.ThrowIfCancellationRequested();
-        var newReference = new PdfReference(contentObjectNumber, 0);
-        if (!page.Items.TryGetValue("Contents", out var contents)) {
-            page.Items["Contents"] = newReference;
-            return;
-        }
-
-        if (contents is PdfArray contentsArray) {
-            contentsArray.Items.Add(newReference);
-            return;
-        }
-
-        var array = new PdfArray();
-        AppendContentEntries(objects, array, contents, cancellationToken);
-        array.Items.Add(newReference);
-        page.Items["Contents"] = array;
-    }
-
-    private static void AppendContentEntries(Dictionary<int, PdfIndirectObject> objects, PdfArray target, PdfObject contents, System.Threading.CancellationToken cancellationToken = default) {
-        cancellationToken.ThrowIfCancellationRequested();
-        if (contents is PdfArray directArray) {
-            foreach (var item in directArray.Items) {
-                cancellationToken.ThrowIfCancellationRequested();
-                target.Items.Add(item);
-            }
-
-            return;
-        }
-
-        if (contents is PdfReference reference &&
-            PdfObjectLookup.TryGet(objects, reference, out var indirect) &&
-            indirect.Value is PdfArray referencedArray) {
-            foreach (var item in referencedArray.Items) {
-                cancellationToken.ThrowIfCancellationRequested();
-                target.Items.Add(item);
-            }
-
-            return;
-        }
-
-        target.Items.Add(contents);
-    }
 }
