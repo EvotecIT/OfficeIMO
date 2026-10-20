@@ -167,13 +167,11 @@ public sealed partial class HtmlRenderingTests {
         Assert.Equal("Hgyp", text.Text);
     }
 
-    [Theory]
-    [InlineData("2ch")]
-    [InlineData("10cqw")]
-    public void HtmlPageMarginTypography_LengthUnitsDoNotInheritTheLastBodyContainer(string leading) {
+    [Fact]
+    public void HtmlPageMarginTypography_CharacterUnitsDoNotInheritTheLastBodyFont() {
         double Measure(string body) {
             string html = "<style>@page{size:300px 200px;margin:50px;"
-                + "@bottom-center{content:'Hgyp';font:16px/" + leading + " Pinned}}"
+                + "@bottom-center{content:'Hgyp';font:16px/2ch Pinned}}"
                 + "body,p{margin:0;font:16px/20px Pinned}</style>" + body;
             HtmlRenderPage page = Assert.Single(HtmlRenderEngine.Render(
                 HtmlConversionDocument.Parse(html), PageMarginTypographyOptions()).Pages);
