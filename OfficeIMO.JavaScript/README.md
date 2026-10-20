@@ -859,9 +859,9 @@ overview.addChart({
   data: { kind: "range", sheet: overview, rowCount: 3, categoryColumn: "status", series: [{ column: "count" }] },
   row: 6, column: 1, width: 640, height: 340, legend: false
 });
-await overview.addRows(statuses.map(status => [status,
-  new FormulaCell(range ? `COUNTIF(${range},"${status}")` : "0", counts[status])
-]));
+await overview.addRows(statuses.map(status => ({ status,
+  count: new FormulaCell(range ? `COUNTIF(${range},"${status}")` : "0", counts[status])
+})));
 saveBlob(await book.toBlob(), "service-analysis.xlsx");
 ```
 
