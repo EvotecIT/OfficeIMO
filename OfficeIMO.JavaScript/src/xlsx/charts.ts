@@ -3,12 +3,24 @@ import { NotSupportedError, OfficeIMOError } from "../core/errors.js";
 import { cleanXml } from "../xml/index.js";
 import type { InvalidCharacterPolicy } from "../xml/index.js";
 import { copyDrawingAnchor } from "./attachments.js";
-import type { WorksheetChart, ChartDataLabels, ChartType } from "./chart-types.js";
+import { captureChartRange, prepareChartBinding } from "./chart-bindings.js";
+import type { PreparedChartBinding, ResolvedChartBinding } from "./chart-bindings.js";
+import type { WorksheetChart, ChartData, ChartRangeData, ChartDataLabels, ChartType } from "./chart-types.js";
 
 /** @internal Captured chart data never retains the caller's arrays or options. */
-export interface PreparedChart extends WorksheetChart { readonly points: number; readonly textCharacters: number; }
+export interface PreparedChart extends Omit<WorksheetChart, "data"> {
+  readonly data: ChartData;
+  readonly binding?: PreparedChartBinding;
+  readonly points: number;
+  readonly textCharacters: number;
+}
 /** @internal Workbook-unique identities bind the drawing, chart and source worksheet. */
 export interface RegisteredChart extends PreparedChart { readonly id: number; readonly dataSheetName: string; }
+/** @internal Workbook checks identity/lifecycle, resolves its range and owns the cumulative text reservation. */
+export type ResolveChartBinding = (input: ChartRangeData) => {
+  readonly descriptor: ResolvedChartBinding;
+  readonly retainText: (characters: number) => void;
+};
 
 function fields(value: unknown, allowed: readonly string[], context: string): asserts value is Record<string, unknown> {
   if (!value || typeof value !== "object" || Array.isArray(value)) throw new TypeError(context + " must be an object.");
@@ -21,17 +33,21 @@ function snapshot<T extends object>(value: T, allowed: readonly string[], contex
 }
 
 /** @internal Preflight bounds before copying any chart data. Failed registration reserves nothing. */
-export function prepareChart(input: WorksheetChart, policy: InvalidCharacterPolicy, availablePoints: number, availableText: number, signal?: AbortSignal): PreparedChart {
+export function prepareChart(input: WorksheetChart, policy: InvalidCharacterPolicy, availablePoints: number, availableText: number,
+  signal?: AbortSignal, resolveBinding?: ResolveChartBinding): PreparedChart {
   checkAbort(signal);
   input = snapshot(input, ["type", "data", "row", "column", "width", "height", "description", "title", "legend", "dataLabels", "categoryAxis", "valueAxis"], "chart");
   if (!["columnClustered", "barClustered", "line", "pie"].includes(input.type)) throw new NotSupportedError("chart type " + input.type);
   const type: ChartType = input.type;
-  const { categories, series } = snapshot(input.data, ["categories", "series"], "chart.data");
-  if (!Array.isArray(categories) || !categories.length) throw new TypeError("Chart categories must be a nonempty array of strings.");
+  const requested = snapshot(input.data as unknown as Record<string, unknown>, ["kind", "sheet", "firstRow", "rowCount", "categoryColumn", "categories", "series"], "chart.data");
+  const bound = requested.kind === "range" ? captureChartRange(requested) : undefined;
+  if (!bound) fields(requested, ["categories", "series"], "chart.data");
+  const categories = bound ? undefined : requested.categories, series = bound?.series ?? requested.series;
+  if (!bound && (!Array.isArray(categories) || !categories.length)) throw new TypeError("Chart categories must be a nonempty array of strings.");
   if (!Array.isArray(series) || !series.length || series.length > 255) throw new RangeError("A chart needs from 1 through 255 series.");
-  if (categories.length > 1048575) throw new RangeError("Chart data must fit Excel's rows including its header.");
+  if (!bound && (categories as readonly unknown[]).length > 1048575) throw new RangeError("Chart data must fit Excel's rows including its header.");
   if (type === "pie" && series.length !== 1) throw new TypeError("A pie chart supports exactly one series.");
-  const points = categories.length * series.length;
+  const points = (bound?.rowCount ?? (categories as readonly unknown[]).length) * series.length;
   if (points > availablePoints) throw new OfficeIMOError("RESOURCE_LIMIT", "maxChartPoints exceeded.");
   let textCharacters = 0;
   const text = (value: unknown, context: string): string => {
@@ -72,13 +88,24 @@ export function prepareChart(input: WorksheetChart, policy: InvalidCharacterPoli
     if (numberFormat !== undefined && !numberFormat.trim()) throw new TypeError("Value axis number format cannot be blank.");
     valueAxis = Object.freeze({ ...axis, ...(axisTitle === undefined ? {} : { title: axisTitle }), ...(numberFormat === undefined ? {} : { numberFormat }) });
   }
+  const common = { ...anchor, type,
+    ...(title === undefined ? {} : { title }), ...(description === undefined ? {} : { description }),
+    ...(input.legend === undefined ? {} : { legend: input.legend }), ...(dataLabels === undefined ? {} : { dataLabels }),
+    ...(categoryAxis === undefined ? {} : { categoryAxis }), ...(valueAxis === undefined ? {} : { valueAxis }) };
+  if (bound) {
+    if (!resolveBinding) throw new TypeError("A chart range must belong to the current workbook.");
+    const { descriptor, retainText } = resolveBinding(bound);
+    const binding = prepareChartBinding(bound, descriptor, { availablePoints, availableText: availableText - textCharacters, retainText, policy }, signal, type);
+    return Object.freeze({ ...common, data: binding.data, binding, points, textCharacters: textCharacters + binding.textCharacters });
+  }
   // Length budgets precede allocation; each source property/array element is read once.
+  const categoryValues = categories as readonly unknown[];
   const copiedCategories: string[] = [], copiedSeries = [];
-  for (let i = 0; i < categories.length; i++) { if ((i & 255) === 0) checkAbort(signal); copiedCategories.push(text(categories[i], "Chart category")); }
+  for (let i = 0; i < categoryValues.length; i++) { if ((i & 255) === 0) checkAbort(signal); copiedCategories.push(text(categoryValues[i], "Chart category")); }
   for (const item of series) {
     const captured = snapshot(item, ["name", "values", "color"], "chart.series");
     const name = text(captured.name, "Chart series name"), values = captured.values, color = captured.color;
-    if (!Array.isArray(values) || values.length !== categories.length) throw new TypeError("Chart series values must match the category count.");
+    if (!Array.isArray(values) || values.length !== categoryValues.length) throw new TypeError("Chart series values must match the category count.");
     if (color !== undefined && (typeof color !== "string" || !/^#?[0-9a-fA-F]{6}$/.test(color))) throw new TypeError("Chart colors must be opaque six-digit RGB hex values.");
     let positive = false;
     const copiedValues: number[] = [];
@@ -93,9 +120,7 @@ export function prepareChart(input: WorksheetChart, policy: InvalidCharacterPoli
     if (type === "pie" && !positive) throw new RangeError("A pie chart needs at least one positive value.");
     copiedSeries.push(Object.freeze({ name, values: Object.freeze(copiedValues), ...(color === undefined ? {} : { color: color.replace(/^#/, "").toUpperCase() }) }));
   }
-  return Object.freeze({ ...anchor, type,
+  return Object.freeze({ ...common,
     data: Object.freeze({ categories: Object.freeze(copiedCategories), series: Object.freeze(copiedSeries) }),
-    ...(title === undefined ? {} : { title }), ...(description === undefined ? {} : { description }),
-    ...(input.legend === undefined ? {} : { legend: input.legend }), ...(dataLabels === undefined ? {} : { dataLabels }),
-    ...(categoryAxis === undefined ? {} : { categoryAxis }), ...(valueAxis === undefined ? {} : { valueAxis }), points, textCharacters });
+    points, textCharacters });
 }

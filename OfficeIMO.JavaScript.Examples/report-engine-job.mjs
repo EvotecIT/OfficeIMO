@@ -24,41 +24,61 @@ export function* operationalRows(count) {
 export async function writeOperationalReport(api, { input, rows, sink, signal, onProgress }) {
   const options = { signal, onProgress, limits: { maxRows: 100000, maxCells: 700000, maxOutputBytes: 96 * 1024 * 1024 } };
   if (input.format === "csv") return api.writeCsvTo(rows, sink, { ...options, columns: reportColumns, bom: true });
-  let count = 0;
-  const statuses = { Healthy: 0, Attention: 0, Offline: 0 };
-  async function* track() {
-    for await (const row of rows) {
-      count++;
-      if (!(row[2] in statuses)) throw new TypeError("Unexpected service status.");
-      statuses[row[2]]++;
-      yield row;
-    }
-  }
-  if (input.format === "xlsx") {
-    const book = new api.Workbook({ ...options, sink, dateMode: "utc", creator: "OfficeIMO report workbench" });
-    try {
-      const sheet = book.addWorksheet("Services", {
-        columns: reportColumns, title: { text: "Service health report", height: 32 },
-        freezeHeader: true, freezeColumns: 1, table: { name: "Services", style: "TableStyleMedium9" },
-        autoSize: { sampleRows: 128 }, rowHeight: 22, print: { repeatHeaders: true },
-        footer: { values: ["Services"], totals: { latency: "average", availability: "average" } },
-        cellStyle: ({ column, value }) => column.key === "status" && value !== "Healthy"
-          ? { font: { bold: true, color: value === "Offline" ? "991B1B" : "92400E" }, fill: { color: value === "Offline" ? "FEE2E2" : "FEF3C7" } } : undefined
-      });
-      await sheet.addRows(track()); await sheet.close();
-      const summary = book.addWorksheet("Overview", { columns: [{ header: "Status", width: 20 }, { header: "Services", width: 14, type: "number" }] });
-      await summary.addRows(Object.entries(statuses));
-      summary.addChart({ type: "columnClustered", title: "Service health", row: 6, column: 1, width: 640, height: 340,
-        data: { categories: Object.keys(statuses), series: [{ name: "Services", values: Object.values(statuses), color: "2563EB" }] },
-        legend: false, dataLabels: { showValue: true }, valueAxis: { title: "Services", minimum: 0 },
-        description: "Editable service counts by status, backed by worksheet cells" });
-      const result = await book.finish();
-      return { rows: count, columns: reportColumns.length, bytes: result.bytes };
-    } catch (error) { await book.discard(error); throw error; }
-  }
+  if (input.format === "xlsx") return writeServiceAnalysis(api, { input, rows, sink, signal, onProgress });
   if (input.format !== "pdf") throw new TypeError("Choose Excel, PDF or CSV.");
   const document = await serviceReliabilityDocument(api, { input, rows, signal, onProgress });
   return api.writePdfDocumentTo(document.blocks, sink, document.options);
+}
+
+/**
+ * Export one selected portable capture as an editable analysis workbook. Initial counts are
+ * collected in one pass; Excel recalculates the explicit formulas after an inventory edit.
+ * Counts cover every exported row, including rows later hidden by an Excel filter.
+ * Omitting sink returns a Blob; a supplied destination receives ordinary completion counts.
+ */
+export async function writeServiceAnalysis(api, { input = {}, rows, columns = reportColumns, sink, signal, onProgress }) {
+  const statuses = ["Healthy", "Attention", "Offline"], counts = { Healthy: 0, Attention: 0, Offline: 0 };
+  const statusColumns = columns.map((column, index) => column.key === "status" ? index : -1).filter(index => index >= 0);
+  if (statusColumns.length !== 1) throw new TypeError("Service analysis requires one selected column with key 'status'.");
+  const statusColumn = statusColumns[0];
+  const colors = { Healthy: { color: "166534", background: "DCFCE7" }, Attention: { color: "92400E", background: "FEF3C7" }, Offline: { color: "991B1B", background: "FEE2E2" } };
+  let count = 0;
+  async function* track() {
+    for await (const row of rows) {
+      const cell = row[statusColumn], status = cell instanceof api.ExportCell ? cell.value : cell;
+      if (!Object.hasOwn(counts, status)) throw new TypeError("Unexpected service status.");
+      if (count === 100000) throw new RangeError("Service analysis supports at most 100,000 selected services.");
+      counts[status]++; count++; yield row;
+    }
+  }
+  const book = new api.Workbook({ sink, signal, dateMode: "utc", compression: input.compression ?? "auto", creator: "OfficeIMO report workbench",
+    limits: { maxRows: 100003, maxCells: 700006, maxOutputBytes: 96 * 1024 * 1024 },
+    onProgress: event => event.phase === "rows" && event.sheetName !== "Services" ? undefined : onProgress?.({ ...event, rows: count }) });
+  try {
+    const totals = Object.fromEntries(["latency", "availability"].filter(key => columns.some(column => column.key === key)).map(key => [key, "average"]));
+    const services = book.addWorksheet("Services", { columns, title: { text: "Service health report", height: 32 },
+      freezeHeader: true, freezeColumns: 1, table: { name: "Services", style: "TableStyleMedium9" },
+      autoSize: { sampleRows: 128 }, rowHeight: 22, print: { repeatHeaders: true },
+      footer: { values: ["Services"], totals },
+      dataValidation: [{ type: "list", column: "status", items: statuses, allowBlank: false, showErrorMessage: true,
+        errorStyle: "stop", errorTitle: "Choose a service status", errorMessage: "Choose Healthy, Attention or Offline." }],
+      conditionalFormats: statuses.map(status => ({ type: "cellIs", range: { column: "status" }, operator: "equal", value: status,
+        style: { font: { color: colors[status].color, bold: status !== "Healthy" }, fill: { color: colors[status].background } }, stopIfTrue: true }))
+    });
+    await services.addRows(track()); await services.close();
+    const sourceRange = services.dataRange("status");
+    const overview = book.addWorksheet("Overview", { columns: [
+      { header: "Status", key: "status", width: 20 }, { header: "Services", key: "count", width: 14, type: "number" }
+    ] });
+    overview.addChart({ type: "columnClustered", title: "Service health", row: 6, column: 1, width: 640, height: 340,
+      data: { kind: "range", sheet: overview, rowCount: 3, categoryColumn: "status", series: [{ column: "count", color: "2563EB" }] },
+      legend: false, dataLabels: { showValue: true }, valueAxis: { title: "Services", minimum: 0 },
+      description: "Service counts calculated from the exported inventory; edit Services status to update this chart" });
+    await overview.addRows(statuses.map(status => [status,
+      new api.FormulaCell(sourceRange ? "COUNTIF(" + sourceRange + ",\"" + status + "\")" : "0", counts[status])]));
+    if (sink === undefined) return await book.toBlob();
+    const result = await book.finish(); return { rows: count, columns: columns.length, bytes: result.bytes };
+  } catch (error) { await book.discard(error); throw error; }
 }
 
 /** Constant-space summary for the illustrative source, without opening or consuming its iterator. */

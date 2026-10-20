@@ -828,9 +828,54 @@ sheet.addChart({
 saveBlob(await book.toBlob(), "controllers.xlsx");
 ```
 
-The chart captures its categories, series and options at `addChart`. Later caller mutations cannot change the export. Each chart gets one hidden source worksheet with a workbook-unique name, separate from the report table. Unhide that worksheet in Excel to edit the chart's data; changing the visible report cells does not update this snapshot. Hidden source sheets count in the result's `sheets`; source rows do not count as report `rows` or row progress. Images and native charts can share the same worksheet, in Blob or streamed output.
+A snapshot chart captures its categories, series and options at `addChart`. Later caller mutations cannot change the export. The snapshot form above gets one hidden source worksheet with a workbook-unique name, separate from the report table. Unhide that worksheet in Excel to edit the chart's data; changing the visible report cells does not update this snapshot. Hidden source sheets count in the result's `sheets`; source rows do not count as report `rows` or row progress. Images and native charts can share the same worksheet, in Blob or streamed output.
 
 Categories are strings; every series has the same number of finite numeric values. Series colors accept opaque six-digit RGB hex. Legends support `right` (the default), `bottom`, `left`, `top` or `false`. Column/bar/line charts support category/value axis titles, value bounds and number formats. Pie charts require one nonnegative series with at least one positive value and reject axes. Percent labels are available only for pie charts. Unsupported chart kinds, options and label positions fail explicitly; stacking, secondary axes, trendlines and arbitrary chart styles are outside this contract.
+
+## Editable analysis workbooks
+
+The advanced `Workbook` API writes authored numeric formulas, inline-list editing rules and native charts linked to visible worksheet data. Excel recalculates formulas when the workbook opens or values change; OfficeIMO writes the initial numeric caches supplied by the report producer.
+
+```ts
+import { Workbook, FormulaCell, saveBlob } from "@evotecit/officeimo/xlsx";
+
+const statuses = ["Healthy", "Attention", "Offline"] as const;
+const counts = { Healthy: 2, Attention: 0, Offline: 1 };
+const book = new Workbook();
+const services = book.addWorksheet("Services", {
+  columns: [{ header: "Status", key: "status" }],
+  table: { name: "Services" },
+  dataValidation: [{ type: "list", column: "status", items: statuses, allowBlank: false }]
+});
+await services.addRows([{ status: "Healthy" }, { status: "Offline" }, { status: "Healthy" }]);
+await services.close();
+const range = services.dataRange("status");
+
+const overview = book.addWorksheet("Overview", {
+  columns: [{ header: "Status", key: "status" }, { header: "Services", key: "count", type: "number" }]
+});
+overview.addChart({
+  type: "columnClustered", title: "Service health",
+  data: { kind: "range", sheet: overview, rowCount: 3, categoryColumn: "status", series: [{ column: "count" }] },
+  row: 6, column: 1, width: 640, height: 340, legend: false
+});
+await overview.addRows(statuses.map(status => [status,
+  new FormulaCell(range ? `COUNTIF(${range},"${status}")` : "0", counts[status])
+]));
+saveBlob(await book.toBlob(), "service-analysis.xlsx");
+```
+
+Changing a service status in Excel updates the summary and its chart. If Excel uses manual calculation, recalculate to refresh them. The executable [service report job](../OfficeIMO.JavaScript.Examples/report-engine-job.mjs) computes initial caches during the same pass that writes the selected source rows. Its counts cover all exported records; filtering those records later in Excel does not change the `COUNTIF` summaries.
+
+`FormulaCell(formula, cachedValue, style?)` accepts an explicit invariant Excel expression, a finite numeric initial result and an optional workbook-local style index. An optional leading `=` is removed. Expressions contain 1–8,192 UTF-16 units and reject XML-invalid characters even under the text-strip policy. Direct external-workbook and DDE references are unsupported. The author owns the expression's Excel semantics and cache accuracy; this is formula authoring, not a formula evaluator or sandbox. Ordinary strings remain literal values. Formula cells are supported in advanced worksheet rows, getters, custom-writer results and `footer.values`; portable table/CSV/PDF inputs and structured heading/footer matrices continue to accept resolved values. An explicit formula input cannot also pass through a custom column writer; return the formula from that writer instead.
+
+`worksheet.dataRange(column)` returns a quoted, absolute, finite A1 reference after the worksheet closes, or `undefined` for empty data. Select a unique declared column key or one-based column number. Titles, heading matrices and footers are excluded. The reference describes the exported rows and does not expand when users add rows later.
+
+A chart's `data: { kind: "range", sheet, rowCount, categoryColumn, series }` binds existing chart types to a visible worksheet in the same workbook. Register it while the source is idle, before its first selected row is serialized. Optional `firstRow` is a zero-based data-row offset; column numbers are one-based. Categories require strings and numeric series require finite numbers or numeric formula caches. The writer captures only the declared cache during its ordinary row pass. It emits references to actual source cells and creates no duplicate hidden source sheet. A series name uses the emitted matching leaf heading when available, or a literal supplied name. Bound charts omit hidden/filtered source points in Excel; snapshot charts retain their separate hidden-data behavior. Missing, truncated, foreign or late-bound sources fail explicitly.
+
+`dataValidation` contains inline-list rules targeting a declared data column. Each rule supplies `type: "list"`, `column` and nonempty `items`. Items cannot contain commas, and the quoted list expression must fit Excel's 255 UTF-16-unit inline-source limit. `allowBlank` defaults to true; `showErrorMessage` defaults to true and `errorStyle` to `"stop"`. Optional `errorTitle` and `errorMessage` fit 32 and 255 UTF-16 units respectively. Rules follow the final exported data range, excluding headings and totals; empty sheets emit no validation elements. Excel validation is an editing aid, not a security boundary.
+
+Workbook limits include `maxFormulaCharacters` (1,000,000 authored UTF-16 units), `maxDataValidations` (1,000 captured rules) and `maxValidationTextCharacters` (1,000,000 captured UTF-16 units). Bound caches share `maxChartPoints` and `maxChartTextCharacters`; formula expressions also consume the general text budget. These limits apply across the workbook, including editing rules declared on empty sources.
 
 ## Live Excel conditional formatting
 
@@ -862,7 +907,7 @@ A column target uses an unambiguous declared key or a one-based column number. O
 
 | Rule type | Contract |
 | --- | --- |
-| `cellIs` | `equal`, `notEqual`, `greaterThan`, `greaterThanOrEqual`, `lessThan` or `lessThanOrEqual` with one finite numeric `value`; `between` or `notBetween` with an ordered pair of numeric `values`. Dates can be compared using Excel serial numbers or an expression. |
+| `cellIs` | `equal`, `notEqual`, `greaterThan`, `greaterThanOrEqual`, `lessThan` or `lessThanOrEqual` with one finite numeric `value`; `equal` and `notEqual` also accept literal text. `between` or `notBetween` with an ordered pair of numeric `values`. Dates can be compared using Excel serial numbers or an expression. |
 | `expression` | An Excel formula and a differential `style`. Relative references are anchored to the top-left cell of the target range; use the first data row appropriate to your title/heading layout. |
 | `colorScale` | Two or three `stops`, each with a hex `color` and `threshold`. |
 | `dataBar` | A hex `color`, optional `minimum`/`maximum` thresholds and `showValue`, default true. Writes standard gradient data bars. |
@@ -996,7 +1041,7 @@ const blob = await workbook.toBlob();
 
 Column writers synchronously convert a domain column type to a supported scalar or styled `Cell`. They receive the column, zero-based `rowIndex`/`columnIndex`, one-based `worksheetRow` and `sheetName`. They cannot inject raw cell XML. Extra parts can carry custom XML, a valid theme or other schema-owned content. An optional internal relationship defaults to `/xl/workbook.xml`; supply `source` for another existing part. Part/relationship definitions are copied when registered; producer iterables remain caller-owned until consumed.
 
-`dataValidation` is a reserved worksheet option. Supplying it, including an empty array, throws `NotSupportedError` instead of silently ignoring it. There is no DOCX, PPTX, reader or formula engine in this package's current writer contract. Grid-specific selection and rendering belong to optional integrations such as the DataTables entry. Row/cell callbacks resolve highlighting during export; `conditionalFormats` separately writes the supported native rules for Excel to evaluate. The [roadmap](../Docs/ROADMAP.md#officeimo-javascript) records the remaining work.
+`dataValidation` supports the [inline-list editing profile](#editable-analysis-workbooks). There is no DOCX, PPTX, reader or formula evaluation engine in this package's current writer contract. Grid-specific selection and rendering belong to optional integrations such as the DataTables entry. Row/cell callbacks resolve highlighting during export; `conditionalFormats` separately writes the supported native rules for Excel to evaluate. The [roadmap](../Docs/ROADMAP.md#officeimo-javascript) records the remaining work.
 
 ## Portable classic scripts and the .NET asset package
 

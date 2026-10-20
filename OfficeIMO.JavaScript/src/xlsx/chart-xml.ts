@@ -65,14 +65,16 @@ function* chartXml(chart: RegisteredChart, policy: InvalidCharacterPolicy): Gene
   for (let i = 0; i < chart.data.series.length; i++) {
     const series = chart.data.series[i]!, column = "$" + columnName(i + 2);
     yield '<c:ser><c:idx val="' + i + '"/><c:order val="' + i + '"/><c:tx>';
-    yield* reference("str", source + column + "$1", [series.name], policy);
+    const nameFormula = chart.binding ? chart.binding.references.names[i] : source + column + "$1";
+    if (nameFormula === undefined) yield '<c:v>' + escapeXml(series.name, policy) + '</c:v>';
+    else yield* reference("str", nameFormula, [series.name], policy);
     yield '</c:tx>';
     if (series.color) yield '<c:spPr>' + (line ? '<a:ln w="25400">' : "") + '<a:solidFill><a:srgbClr val="' + series.color + '"/></a:solidFill>' + (line ? '</a:ln>' : "") + '</c:spPr>';
     if (!line && !pie) yield '<c:invertIfNegative val="0"/>';
     yield '<c:cat>';
-    yield* reference("str", source + '$A$2:$A$' + end, chart.data.categories, policy);
+    yield* reference("str", chart.binding?.references.categories ?? source + '$A$2:$A$' + end, chart.data.categories, policy);
     yield '</c:cat><c:val>';
-    yield* reference("num", source + column + "$2:" + column + "$" + end, series.values, policy);
+    yield* reference("num", chart.binding?.references.values[i] ?? source + column + "$2:" + column + "$" + end, series.values, policy);
     yield '</c:val>' + (line ? '<c:smooth val="0"/>' : "") + '</c:ser>';
   }
   yield labelsXml(chart, policy);
@@ -85,8 +87,8 @@ function* chartXml(chart: RegisteredChart, policy: InvalidCharacterPolicy): Gene
     const position = { right: "r", bottom: "b", left: "l", top: "t" }[chart.legend ?? "right"];
     yield '<c:legend><c:legendPos val="' + position + '"/><c:layout/><c:overlay val="0"/></c:legend>';
   }
-  // Data sheets are hidden by design; Excel must still plot their source cells.
-  yield '<c:plotVisOnly val="0"/><c:dispBlanksAs val="gap"/><c:showDLblsOverMax val="0"/></c:chart></c:chartSpace>';
+  // Snapshot data sheets are hidden; bound sources remain visible and respect native visibility.
+  yield '<c:plotVisOnly val="' + (chart.binding ? 1 : 0) + '"/><c:dispBlanksAs val="gap"/><c:showDLblsOverMax val="0"/></c:chart></c:chartSpace>';
 }
 
 /** @internal Stream cache points through the existing bounded, cancellation-aware XML sink. */

@@ -21,9 +21,7 @@ test("registered fonts/fills/borders/formats and custom column writers produce u
   assert.equal(book.worksheets[0].rowCount, 2);
 });
 
-test("reserved options fail explicitly and XML reject policy reaches worksheet text", async () => {
-  for (const feature of ["dataValidation"])
-    assert.throws(() => new Workbook().addWorksheet("Pending", { [feature]: [] }), { code: "NOT_SUPPORTED", feature });
+test("XML reject policy reaches worksheet text and registered styles", async () => {
   const book = new Workbook({ invalidCharacterPolicy: "reject" });
   assert.throws(() => new Workbook({ invalidCharacterPolicy: "reject", creator: "bad\u0001" }), { code: "INVALID_XML" });
   assert.throws(() => book.styles.addFont({ name: "bad\u0001" }), { code: "INVALID_XML" });

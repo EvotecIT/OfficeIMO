@@ -1944,12 +1944,110 @@ _modules.set("bf7ec82677b616a41d07306ba385b32456bc03509817c13bbe65a1ba390a6253",
 return _exports;
 })();
 
-const _m26 = _modules.get("2fc8ea56cd5198019f1ebdcdf4f64f3213afad57ca5d7bac6050143c15a320fb") ?? (() => {
+const _m27 = _modules.get("6b6b066276866a53d5e8b76537b8360cc27870ea4280fbd68288a565aec2a2fa") ?? (() => {
+const { NotSupportedError } = _m2;
+
+const { cleanXml, escapeXml } = _m19;
+
+const formulaCells = new WeakSet();
+/** @internal Reject direct external-workbook and DDE references without interpreting Excel expressions. */
+function localReferences(formula) {
+    for (let i = 0; i < formula.length; i++) {
+        const character = formula[i];
+        if (character === '"') {
+            // Excel string literals double their embedded quotes. Their text is not a reference token.
+            while (++i < formula.length)
+                if (formula[i] === '"') {
+                    if (formula[i + 1] !== '"')
+                        break;
+                    i++;
+                }
+        }
+        else if (character === "'") {
+            let quoted = "";
+            while (++i < formula.length) {
+                if (formula[i] === "'") {
+                    if (formula[i + 1] !== "'")
+                        break;
+                    i++;
+                }
+                quoted += formula[i];
+            }
+            if (formula.slice(i + 1).trimStart().startsWith("!") && /[\[\]]/.test(quoted))
+                throw new NotSupportedError("external-workbook formulas");
+        }
+        else if (character === "[") {
+            let depth = 1;
+            while (++i < formula.length && depth) {
+                // Apostrophes escape special characters in table-column captions.
+                if (formula[i] === "'") {
+                    i++;
+                    continue;
+                }
+                if (formula[i] === "[")
+                    depth++;
+                else if (formula[i] === "]")
+                    depth--;
+            }
+            if (/^[A-Za-z0-9_.]*!/.test(formula.slice(i)))
+                throw new NotSupportedError("external-workbook formulas");
+            i--;
+        }
+        else if (character === "|")
+            throw new NotSupportedError("DDE formulas");
+    }
+}
+/** @internal Excel invariant expression text, stored without its optional leading equals sign. */
+function formulaText(value) {
+    if (typeof value !== "string")
+        throw new TypeError("Formula text must be a string.");
+    const text = value.trim().replace(/^=/, "");
+    if (!text.trim() || text.length > 8192)
+        throw new RangeError("Formulas require 1 through 8,192 characters.");
+    // Text stripping could change a calculation, so formulas always reject invalid XML characters.
+    cleanXml(text, "reject");
+    localReferences(text);
+    return text;
+}
+/** An authored Excel formula and its initial numeric result. The writer stores both without evaluating the expression. */
+class FormulaCell {
+    cachedValue;
+    style;
+    static [Symbol.hasInstance](value) {
+        return value !== null && typeof value === "object" && formulaCells.has(value);
+    }
+    formula;
+    constructor(formula, cachedValue, style) {
+        this.cachedValue = cachedValue;
+        this.style = style;
+        this.formula = formulaText(formula);
+        if (typeof cachedValue !== "number" || !Number.isFinite(cachedValue))
+            throw new TypeError("Formula caches must be finite numbers.");
+        if (style !== undefined && (!Number.isSafeInteger(style) || style < 0))
+            throw new RangeError("Formula style indexes must be nonnegative safe integers.");
+        formulaCells.add(this);
+        Object.freeze(this);
+    }
+}
+/** @internal The worksheet owns the cell coordinate, style and cumulative formula budget. */
+function formulaXml(cell) {
+    if (!(cell instanceof FormulaCell))
+        throw new TypeError("Formula cells must be created with FormulaCell.");
+    return "<f>" + escapeXml(cell.formula, "reject") + "</f><v>" + cell.cachedValue + "</v>";
+}
+const _exports = Object.freeze({ formulaText: formulaText, FormulaCell: FormulaCell, formulaXml: formulaXml });
+_modules.set("6b6b066276866a53d5e8b76537b8360cc27870ea4280fbd68288a565aec2a2fa", _exports);
+return _exports;
+})();
+
+const _m26 = _modules.get("1ec7332298524a4ebb085184f798f0edb11a90cbdadc3c35aef1932c740f04c9") ?? (() => {
 const { cleanXml, escapeXml } = _m19;
 
 const { ExportCell, assertExportValue, assertScalar } = _m5;
 
 const { isDate } = _m6;
+
+const { FormulaCell } = _m27;
 
 /** A typed value plus a workbook-local style index. */
 class Cell {
@@ -1962,6 +2060,8 @@ class Cell {
 }
 /** @internal Advanced worksheets admit cells registered on their owning workbook. */
 function assertXlsxValue(value) {
+    if (value instanceof FormulaCell)
+        return;
     if (value instanceof Cell)
         assertScalar(value.value);
     else
@@ -2034,11 +2134,11 @@ function excelDate(date, mode) {
     return (time - Date.UTC(1899, 11, 31)) / 86400000 + (time >= Date.UTC(1900, 2, 1) ? 1 : 0);
 }
 const _exports = Object.freeze({ Cell: Cell, assertXlsxValue: assertXlsxValue, copyValue: copyValue, cellText: cellText, inlineText: inlineText, columnName: columnName, sheetName: sheetName, excelDate: excelDate });
-_modules.set("2fc8ea56cd5198019f1ebdcdf4f64f3213afad57ca5d7bac6050143c15a320fb", _exports);
+_modules.set("1ec7332298524a4ebb085184f798f0edb11a90cbdadc3c35aef1932c740f04c9", _exports);
 return _exports;
 })();
 
-const _m29 = _modules.get("ea02b79ade5d92619647886de6a2e7e0ef96b093d7de4a7149687bfae9712b00") ?? (() => {
+const _m30 = _modules.get("32c5c31d807fd3866e38cb482395cd78c862d47eef52a7a5e14161902ceac92c") ?? (() => {
 const { ChunkedTextSink } = _m3;
 
 const { escapeXml, xmlDeclaration } = _m19;
@@ -2105,16 +2205,20 @@ function* chartXml(chart, policy) {
     for (let i = 0; i < chart.data.series.length; i++) {
         const series = chart.data.series[i], column = "$" + columnName(i + 2);
         yield '<c:ser><c:idx val="' + i + '"/><c:order val="' + i + '"/><c:tx>';
-        yield* reference("str", source + column + "$1", [series.name], policy);
+        const nameFormula = chart.binding ? chart.binding.references.names[i] : source + column + "$1";
+        if (nameFormula === undefined)
+            yield '<c:v>' + escapeXml(series.name, policy) + '</c:v>';
+        else
+            yield* reference("str", nameFormula, [series.name], policy);
         yield '</c:tx>';
         if (series.color)
             yield '<c:spPr>' + (line ? '<a:ln w="25400">' : "") + '<a:solidFill><a:srgbClr val="' + series.color + '"/></a:solidFill>' + (line ? '</a:ln>' : "") + '</c:spPr>';
         if (!line && !pie)
             yield '<c:invertIfNegative val="0"/>';
         yield '<c:cat>';
-        yield* reference("str", source + '$A$2:$A$' + end, chart.data.categories, policy);
+        yield* reference("str", chart.binding?.references.categories ?? source + '$A$2:$A$' + end, chart.data.categories, policy);
         yield '</c:cat><c:val>';
-        yield* reference("num", source + column + "$2:" + column + "$" + end, series.values, policy);
+        yield* reference("num", chart.binding?.references.values[i] ?? source + column + "$2:" + column + "$" + end, series.values, policy);
         yield '</c:val>' + (line ? '<c:smooth val="0"/>' : "") + '</c:ser>';
     }
     yield labelsXml(chart, policy);
@@ -2130,8 +2234,8 @@ function* chartXml(chart, policy) {
         const position = { right: "r", bottom: "b", left: "l", top: "t" }[chart.legend ?? "right"];
         yield '<c:legend><c:legendPos val="' + position + '"/><c:layout/><c:overlay val="0"/></c:legend>';
     }
-    // Data sheets are hidden by design; Excel must still plot their source cells.
-    yield '<c:plotVisOnly val="0"/><c:dispBlanksAs val="gap"/><c:showDLblsOverMax val="0"/></c:chart></c:chartSpace>';
+    // Snapshot data sheets are hidden; bound sources remain visible and respect native visibility.
+    yield '<c:plotVisOnly val="' + (chart.binding ? 1 : 0) + '"/><c:dispBlanksAs val="gap"/><c:showDLblsOverMax val="0"/></c:chart></c:chartSpace>';
 }
 /** @internal Stream cache points through the existing bounded, cancellation-aware XML sink. */
 async function writeChartXml(chart, destination, policy, signal) {
@@ -2142,18 +2246,18 @@ async function writeChartXml(chart, destination, policy, signal) {
     await text.close();
 }
 const _exports = Object.freeze({ chartNamespace: chartNamespace, chartContentType: chartContentType, chartAnchorXml: chartAnchorXml, writeChartXml: writeChartXml });
-_modules.set("ea02b79ade5d92619647886de6a2e7e0ef96b093d7de4a7149687bfae9712b00", _exports);
+_modules.set("32c5c31d807fd3866e38cb482395cd78c862d47eef52a7a5e14161902ceac92c", _exports);
 return _exports;
 })();
 
-const _m28 = _modules.get("0cef50c0eff423e7dd98b56f8c1b8159ca99f968f6fb1e701fd7e8741be41537") ?? (() => {
+const _m29 = _modules.get("a8333adf2e40cddf96382bb50711012f400f68793e2a46dc897b0e525e28fbe6") ?? (() => {
 const { cleanXml, escapeXml, escapeOoxmlAttribute, xmlDeclaration } = _m19;
 
 const { copyExportLink } = _m7;
 
 const { officeRelationshipsNamespace } = _m16;
 
-const { chartAnchorXml } = _m29;
+const { chartAnchorXml } = _m30;
 
 /** @internal Native charts and images use the same drawing coordinate policy. */
 function copyDrawingAnchor(anchor, policy) {
@@ -2213,14 +2317,14 @@ function drawingXml(images, policy, charts = []) {
 }
 const drawingContentType = "application/vnd.openxmlformats-officedocument.drawing+xml";
 const _exports = Object.freeze({ copyDrawingAnchor: copyDrawingAnchor, cellPosition: cellPosition, copyHyperlink: copyHyperlink, copyImage: copyImage, hyperlinksXml: hyperlinksXml, drawingXml: drawingXml, drawingContentType: drawingContentType });
-_modules.set("0cef50c0eff423e7dd98b56f8c1b8159ca99f968f6fb1e701fd7e8741be41537", _exports);
+_modules.set("a8333adf2e40cddf96382bb50711012f400f68793e2a46dc897b0e525e28fbe6", _exports);
 return _exports;
 })();
 
-const _m31 = _modules.get("c0e4a6c4bab44498fc627762244c2600d17ba4810f2d1ed333691f570ead2705") ?? (() => {
+const _m32 = _modules.get("578d52f9437eaf6c65cccc4a1aead5963bfcf98284670c6d0469bcf87236d5fe") ?? (() => {
 const { OfficeIMOError } = _m2;
 
-const { cellPosition } = _m28;
+const { cellPosition } = _m29;
 
 function indexRows(regions) {
     if (!regions.length)
@@ -2318,11 +2422,11 @@ class MergeRegions {
         throw new RangeError("Merged ranges must stay within exported rows."); }
 }
 const _exports = Object.freeze({ MergeRegions: MergeRegions });
-_modules.set("c0e4a6c4bab44498fc627762244c2600d17ba4810f2d1ed333691f570ead2705", _exports);
+_modules.set("578d52f9437eaf6c65cccc4a1aead5963bfcf98284670c6d0469bcf87236d5fe", _exports);
 return _exports;
 })();
 
-const _m32 = _modules.get("c9fde2c438e186da56f740105fcd41c265fdfdd855a4f1b811d556a02387479b") ?? (() => {
+const _m33 = _modules.get("c9fde2c438e186da56f740105fcd41c265fdfdd855a4f1b811d556a02387479b") ?? (() => {
 class NumericAggregate {
     operation;
     count = 0;
@@ -2370,7 +2474,7 @@ _modules.set("c9fde2c438e186da56f740105fcd41c265fdfdd855a4f1b811d556a02387479b",
 return _exports;
 })();
 
-const _m33 = _modules.get("7890dcb24eff04483f2289b8268c2c53eaf55d4556a64c4532b06591fc754537") ?? (() => {
+const _m34 = _modules.get("d6d86725631b46eb239dbcac8f1c2475a99221d9c754adf220999c5f6d925b43") ?? (() => {
 const { ExportCell } = _m5;
 
 const { tableSpans } = _m13;
@@ -2403,26 +2507,28 @@ class StructuredRows {
     }
 }
 const _exports = Object.freeze({ StructuredRows: StructuredRows });
-_modules.set("7890dcb24eff04483f2289b8268c2c53eaf55d4556a64c4532b06591fc754537", _exports);
+_modules.set("d6d86725631b46eb239dbcac8f1c2475a99221d9c754adf220999c5f6d925b43", _exports);
 return _exports;
 })();
 
-const _m30 = _modules.get("ae0b2483866ff6ffa5a136fe693edcf3389987b83e90a6bda509dddbc998828e") ?? (() => {
+const _m31 = _modules.get("707152d0737b5e9c29e88f21e29ba68eeb923918e211aa2abfe158a231f500f9") ?? (() => {
 const { ExportCell } = _m5;
 
 const { isDate } = _m6;
 
 const { Cell, cellText, columnName } = _m26;
 
+const { FormulaCell } = _m27;
+
 const { escapeOoxmlAttribute } = _m19;
 
-const { MergeRegions } = _m31;
+const { MergeRegions } = _m32;
 
 const { OfficeIMOError } = _m2;
 
-const { createTotals } = _m32;
+const { createTotals } = _m33;
 
-const { StructuredRows } = _m33;
+const { StructuredRows } = _m34;
 
 /** @internal A computed formula with a numeric cache; no public arbitrary-formula input. */
 class ComputedTotal {
@@ -2543,7 +2649,7 @@ class ReportLayout {
         values.forEach((value, i) => {
             if (!this.columns[i] || this.columns[i].width !== undefined)
                 return;
-            const raw = value instanceof ExportCell ? value.text ?? value.value : value instanceof Cell ? value.value : value;
+            const raw = value instanceof FormulaCell ? value.cachedValue : value instanceof ExportCell ? value.text ?? value.value : value instanceof Cell ? value.value : value;
             const text = isDate(raw) ? Number.isFinite(raw.getTime()) ? raw.toISOString() : "" : raw == null ? "" : String(raw);
             // Inspect at most a small prefix. A single long value cannot make a huge sampling allocation.
             const length = Math.max(0, ...text.slice(0, Math.ceil(max * 4)).split(/\r?\n/).map(line => [...line].length));
@@ -2602,20 +2708,53 @@ function printXml(options, policy) {
             (options.footer === undefined ? "" : '<oddFooter>' + escapeOoxmlAttribute("&C" + options.footer.replace(/&/g, "&&"), policy) + '</oddFooter>') + '</headerFooter>' : "");
 }
 const _exports = Object.freeze({ ComputedTotal: ComputedTotal, ReportLayout: ReportLayout, totalFormula: totalFormula, printXml: printXml });
-_modules.set("ae0b2483866ff6ffa5a136fe693edcf3389987b83e90a6bda509dddbc998828e", _exports);
+_modules.set("707152d0737b5e9c29e88f21e29ba68eeb923918e211aa2abfe158a231f500f9", _exports);
 return _exports;
 })();
 
-const _m34 = _modules.get("fcb4f12d509c946dd3abe7e32787a59178a80f61f9156228570bcf97bd47e1f6") ?? (() => {
+const _m36 = _modules.get("d93873d14badf1390f0f48046c7925a92f088321f6a7907f5c3c3790b34956bd") ?? (() => {
+const { columnName } = _m26;
+
+/** @internal Data-column selectors use stable keys or one-based worksheet columns. */
+function resolveDataColumn(columns, value, context = "Data") {
+    if (typeof value === "string") {
+        const matches = columns.flatMap((column, index) => column.key === value ? [index + 1] : []);
+        if (matches.length !== 1)
+            throw new TypeError(context + " column keys must identify exactly one declared column.");
+        return matches[0];
+    }
+    if (!Number.isInteger(value) || value < 1 || value > columns.length)
+        throw new RangeError(context + " column numbers must be one-based and within declared columns.");
+    return value;
+}
+/** @internal Formula references use literal final worksheet names and finite physical coordinates. */
+function qualifiedColumnRange(sheetName, column, firstRow, rows) {
+    if (!Number.isSafeInteger(firstRow) || firstRow < 1 || !Number.isSafeInteger(rows) || rows < 1 || firstRow + rows - 1 > 1048576)
+        throw new RangeError("A data range must fit within Excel's worksheet rows.");
+    const letter = columnName(column);
+    return "'" + sheetName.replace(/'/g, "''") + "'!$" + letter + "$" + firstRow + ":$" + letter + "$" + (firstRow + rows - 1);
+}
+/** @internal A series header is a single cell rather than a one-cell range. */
+function qualifiedCell(sheetName, column, row) {
+    return qualifiedColumnRange(sheetName, column, row, 1).split(":")[0];
+}
+const _exports = Object.freeze({ resolveDataColumn: resolveDataColumn, qualifiedColumnRange: qualifiedColumnRange, qualifiedCell: qualifiedCell });
+_modules.set("d93873d14badf1390f0f48046c7925a92f088321f6a7907f5c3c3790b34956bd", _exports);
+return _exports;
+})();
+
+const _m35 = _modules.get("465c9fbfa6e0d104e6130eb7222074a9167cdc57770d4e3858d087332da1a5c8") ?? (() => {
 const { cleanXml, escapeXml, escapeOoxmlAttribute } = _m19;
 
-const { cellPosition } = _m28;
+const { cellPosition } = _m29;
 
 const { columnName } = _m26;
 
 const { colorArgb } = _m24;
 
 const { fields, optionalBoolean, differentialXml } = _m25;
+
+const { resolveDataColumn } = _m36;
 
 function target(range, columns) {
     if (typeof range === "string") {
@@ -2628,18 +2767,7 @@ function target(range, columns) {
         return { first: first.column, last: last.column, reference: range, bottom: last.row };
     }
     fields(range, ["column", "through"], "conditional data range");
-    function resolve(value) {
-        if (typeof value === "string") {
-            const matches = columns.flatMap((column, i) => column.key === value ? [i + 1] : []);
-            if (matches.length !== 1)
-                throw new TypeError("Conditional column keys must identify exactly one declared column.");
-            return matches[0];
-        }
-        if (!Number.isInteger(value) || value < 1 || value > columns.length)
-            throw new RangeError("Conditional column numbers must be one-based and within declared columns.");
-        return value;
-    }
-    const first = resolve(range.column), last = range.through === undefined ? first : resolve(range.through);
+    const first = resolveDataColumn(columns, range.column, "Conditional"), last = range.through === undefined ? first : resolveDataColumn(columns, range.through, "Conditional");
     if (last < first)
         throw new RangeError("Conditional data ranges require ordered columns.");
     return { first, last };
@@ -2648,6 +2776,19 @@ function finite(value) {
     if (typeof value !== "number" || !Number.isFinite(value))
         throw new TypeError("Conditional values must be finite numbers.");
     return String(value);
+}
+function comparisonValue(value, operator) {
+    if (typeof value !== "string")
+        return finite(value);
+    if (operator !== "equal" && operator !== "notEqual")
+        throw new TypeError("Text conditional comparisons support only equal and notEqual.");
+    if (value.length > 8190)
+        throw new RangeError("Conditional comparison formulas must fit 8,192 characters including quotes.");
+    cleanXml(value, "reject");
+    const literal = '"' + value.replace(/"/g, '""') + '"';
+    if (literal.length > 8192)
+        throw new RangeError("Conditional comparison formulas must fit 8,192 characters including quotes.");
+    return literal;
 }
 function formula(value) {
     if (typeof value !== "string")
@@ -2718,7 +2859,7 @@ function prepareConditionalFormats(rules, columns, policy) {
                 else {
                     if ("values" in rule || !("value" in rule))
                         throw new TypeError("A conditional comparison requires one value.");
-                    body = '<formula>' + finite(rule.value) + '</formula>';
+                    body = '<formula>' + escapeXml(comparisonValue(rule.value, rule.operator), "reject") + '</formula>';
                 }
                 attributes += ' operator="' + rule.operator + '"';
             }
@@ -2768,16 +2909,120 @@ class ConditionalFormats {
     }
 }
 const _exports = Object.freeze({ prepareConditionalFormats: prepareConditionalFormats, ConditionalFormats: ConditionalFormats });
-_modules.set("fcb4f12d509c946dd3abe7e32787a59178a80f61f9156228570bcf97bd47e1f6", _exports);
+_modules.set("465c9fbfa6e0d104e6130eb7222074a9167cdc57770d4e3858d087332da1a5c8", _exports);
 return _exports;
 })();
 
-const _m27 = _modules.get("e9ddb4bada24e9d7f30ba7dc8d6b94b236c08d4d5119bd974b491e2f248dae29") ?? (() => {
+const _m37 = _modules.get("dd961c65252d6f4d231b796e251d533e66937e67efadce5d4ec9674f3695d939") ?? (() => {
+const { OfficeIMOError } = _m2;
+
+const { checkAbort } = _m4;
+
+const { cleanXml, escapeOoxmlAttribute, escapeXml } = _m19;
+
+const { fields, optionalBoolean } = _m25;
+
+const { columnName } = _m26;
+
+const { resolveDataColumn } = _m36;
+
+function message(value, maximum, name) {
+    if (value === undefined)
+        return undefined;
+    if (typeof value !== "string")
+        throw new TypeError(name + " must be text.");
+    if (value.length > maximum)
+        throw new RangeError(name + " exceeds " + maximum + " UTF-16 units.");
+    return cleanXml(value, "reject");
+}
+/** @internal Snapshot and validate before any source iteration or workbook registration. */
+function prepareDataValidations(rules, columns, availableCount = 1000, availableText = 1000000, signal) {
+    checkAbort(signal);
+    if (rules === undefined)
+        return Object.freeze({ rules: Object.freeze([]), count: 0, textCharacters: 0 });
+    if (!Array.isArray(rules))
+        throw new TypeError("dataValidation must be an array.");
+    const count = rules.length;
+    if (count > availableCount)
+        throw new OfficeIMOError("RESOURCE_LIMIT", "maxDataValidations exceeded.");
+    const prepared = [];
+    const usedColumns = new Set();
+    let textCharacters = 0;
+    const acceptText = (length) => {
+        if (textCharacters + length > availableText)
+            throw new OfficeIMOError("RESOURCE_LIMIT", "maxValidationTextCharacters exceeded.");
+        textCharacters += length;
+    };
+    for (let index = 0; index < count; index++) {
+        checkAbort(signal);
+        const rule = rules[index];
+        fields(rule, ["type", "column", "items", "allowBlank", "showErrorMessage", "errorStyle", "errorTitle", "errorMessage"], "data validation");
+        const { type, column, items, allowBlank, showErrorMessage, errorStyle, errorTitle, errorMessage } = rule;
+        if (type !== "list")
+            throw new TypeError("Only inline-list data validation is supported.");
+        const selected = resolveDataColumn(columns, column, "Validation");
+        if (usedColumns.has(selected))
+            throw new TypeError("A data column cannot have multiple validation rules.");
+        usedColumns.add(selected);
+        optionalBoolean(allowBlank, "allowBlank");
+        optionalBoolean(showErrorMessage, "showErrorMessage");
+        if (errorStyle !== undefined && !["stop", "warning", "information"].includes(errorStyle))
+            throw new TypeError("Unsupported validation error style.");
+        if (!Array.isArray(items))
+            throw new TypeError("Inline validation lists require a nonempty string array.");
+        // Even empty choices need separators. Bound the loop before observing any item getters.
+        const itemCount = items.length;
+        if (!itemCount)
+            throw new TypeError("Inline validation lists require a nonempty string array.");
+        if (itemCount > 254)
+            throw new RangeError("Inline validation lists must fit 255 UTF-16 units including quotes and separators.");
+        let formula = '"';
+        for (let item = 0; item < itemCount; item++) {
+            checkAbort(signal);
+            const value = items[item];
+            if (typeof value !== "string")
+                throw new TypeError("Inline validation choices must be strings.");
+            if (value.length > 253 || value.includes(","))
+                throw new RangeError("Inline validation choices cannot contain commas and must fit the 255-character list source.");
+            cleanXml(value, "reject");
+            const escaped = value.replace(/"/g, '""');
+            if (formula.length + (item ? 1 : 0) + escaped.length + 1 > 255)
+                throw new RangeError("Inline validation lists must fit 255 UTF-16 units including quotes and separators.");
+            formula += (item ? "," : "") + escaped;
+        }
+        formula += '"';
+        const title = message(errorTitle, 32, "Validation error title"), error = message(errorMessage, 255, "Validation error message");
+        acceptText(formula.length + (title?.length ?? 0) + (error?.length ?? 0));
+        const attributes = ' type="list" allowBlank="' + (allowBlank === false ? 0 : 1) + '" showErrorMessage="' + (showErrorMessage === false ? 0 : 1) +
+            '" errorStyle="' + (errorStyle ?? "stop") + '"' + (title === undefined ? "" : ' errorTitle="' + escapeOoxmlAttribute(title, "reject") + '"') +
+            (error === undefined ? "" : ' error="' + escapeOoxmlAttribute(error, "reject") + '"');
+        prepared.push(Object.freeze({ column: selected, attributes, formula }));
+    }
+    checkAbort(signal);
+    return Object.freeze({ rules: Object.freeze(prepared), count, textCharacters });
+}
+/** @internal Empty sources do not create validation over headings, totals or an artificial blank row. */
+function* dataValidationsXml(prepared, headerRows, dataRows) {
+    if (!prepared.count || !dataRows)
+        return;
+    yield '<dataValidations count="' + prepared.count + '">';
+    for (const rule of prepared.rules) {
+        const column = columnName(rule.column), reference = column + (headerRows + 1) + ":" + column + (headerRows + dataRows);
+        yield '<dataValidation' + rule.attributes + ' sqref="' + reference + '"><formula1>' + escapeXml(rule.formula, "reject") + '</formula1></dataValidation>';
+    }
+    yield '</dataValidations>';
+}
+const _exports = Object.freeze({ prepareDataValidations: prepareDataValidations, dataValidationsXml: dataValidationsXml });
+_modules.set("dd961c65252d6f4d231b796e251d533e66937e67efadce5d4ec9674f3695d939", _exports);
+return _exports;
+})();
+
+const _m28 = _modules.get("16329423bc4d873c96334d204a6ce54ce3b6f40ba289285aa89fbc63839b739d") ?? (() => {
 const { checkAbort, consumeRows, inputRows, pause, taskYieldDue } = _m4;
 
 const { ChunkedTextSink, BlobByteSink } = _m3;
 
-const { NotSupportedError, OfficeIMOError } = _m2;
+const { OfficeIMOError } = _m2;
 
 const { notifyProgress } = _m8;
 
@@ -2793,17 +3038,23 @@ const { Cell, cellText, columnName, inlineText, excelDate, copyValue } = _m26;
 
 const { spreadsheetNamespace, colorArgb, validateStylePatch, copyStylePatch } = _m23;
 
-const { copyHyperlink, copyImage, hyperlinksXml, cellPosition } = _m28;
+const { copyHyperlink, copyImage, hyperlinksXml, cellPosition } = _m29;
 
 const { ExportCell, assertScalar } = _m5;
 
-const { ReportLayout, ComputedTotal, printXml } = _m30;
+const { ReportLayout, ComputedTotal, printXml } = _m31;
 
 const { cleanXml } = _m19;
 
-const { ConditionalFormats, prepareConditionalFormats } = _m34;
+const { ConditionalFormats, prepareConditionalFormats } = _m35;
 
 const { isDate } = _m6;
+
+const { FormulaCell, formulaXml } = _m27;
+
+const { prepareDataValidations, dataValidationsXml } = _m37;
+
+const { qualifiedCell, qualifiedColumnRange, resolveDataColumn } = _m36;
 
 const maximumHyperlinks = 65530;
 function checkHyperlinkCount(count) {
@@ -2816,6 +3067,7 @@ class Worksheet {
     table;
     preserved;
     chartData;
+    validations;
     columns;
     project;
     /** Final unique workbook name, captured before row projection begins. */
@@ -2845,11 +3097,14 @@ class Worksheet {
     pictures = [];
     nativeCharts = [];
     conditional;
-    constructor(book, name, options, table, preserved = false, conditional = [], chartData = false) {
+    completed = false;
+    chartSources = [];
+    constructor(book, name, options, table, preserved = false, conditional = [], chartData = false, validations = { rules: [], count: 0, textCharacters: 0 }) {
         this.book = book;
         this.table = table;
         this.preserved = preserved;
         this.chartData = chartData;
+        this.validations = validations;
         this.columns = copyColumns(options.columns ?? [], true).map(c => Object.freeze(c));
         const alternate = options.alternatingRowStyle;
         this.options = { ...options, ...(options.autoSize ? { autoSize: { ...options.autoSize } } : {}),
@@ -2881,17 +3136,15 @@ class Worksheet {
         this.project = createRowProjector(this.columns, { sheetName: this.name, firstDataRow: this.headerRows + 1 }, book.settings.signal, book.valueValidator);
     }
     /** @internal */
-    static create(book, name, options, table, preserved = false, conditional) { return new Worksheet(book, name, options, table, preserved, conditional); }
+    static create(book, name, options, table, preserved = false, conditional, validations) { return new Worksheet(book, name, options, table, preserved, conditional, false, validations); }
     /** @internal Generated source cells use the normal worksheet serializer and budgets. */
     static createChartData(book, chart) {
         return new Worksheet(book, chart.dataSheetName, { columns: [{ header: "Category" }, ...chart.data.series.map(series => ({ header: series.name, type: "number" }))] }, undefined, false, [], true);
     }
     /** @internal Validate before allocating native compressor resources or registering the sheet name. */
     static validate(book, options) {
-        for (const feature of ["dataValidation"])
-            if (options[feature] !== undefined)
-                throw new NotSupportedError(feature);
         const columns = copyColumns(options.columns ?? [], true);
+        const validations = prepareDataValidations(options.dataValidation, columns, book.availableDataValidations, book.availableValidationTextCharacters, book.settings.signal);
         book.checkConditionalFormats(options.conditionalFormats?.length ?? 0);
         const conditional = prepareConditionalFormats(options.conditionalFormats, columns, book.settings.invalidCharacterPolicy);
         book.styles.checkDifferentials(conditional.flatMap(rule => rule.style ? [rule.style] : []));
@@ -2953,38 +3206,48 @@ class Worksheet {
             if (c.format !== undefined && (typeof c.format !== "string" || c.format.length > 255))
                 throw new TypeError("Column format must be a string of at most 255 characters.");
         }
-        return conditional;
+        return { conditional, validations };
     }
     cell(value, i, row, header = false, rowStyle, context, rowStyles, footer = false, title = false) {
         const col = this.declared[i];
         const total = value instanceof ComputedTotal ? value : undefined;
         if (total)
             value = total.value;
+        let formula = value instanceof FormulaCell ? value : undefined;
+        if (formula)
+            value = formula.cachedValue;
         let presentation = value instanceof ExportCell ? value.presentation : undefined;
         let link = value instanceof ExportCell ? value.link : undefined;
         if (value instanceof ExportCell)
             value = value.value;
-        const suppliedStyle = value instanceof Cell ? value.style : undefined;
+        const suppliedStyle = formula?.style ?? (value instanceof Cell ? value.style : undefined);
         const covered = (this.completedRegions ?? this.layout.regions).covered(i + 1, row);
         const input = value instanceof Cell ? value.value : value, emptyCovered = covered && (input == null || input === "");
         if (!header && !footer && col.column.type && !emptyCovered) {
             const writer = this.book.writerFor(col.column.type);
-            if (writer)
+            if (writer) {
+                if (formula)
+                    throw new TypeError("An explicit FormulaCell cannot also pass through a custom cell value writer; return it from the writer instead.");
                 value = writer(value instanceof Cell ? value.value : value, { column: col.column, rowIndex: row - this.headerRows - 1, worksheetRow: row, columnIndex: i, sheetName: this.name });
+            }
+        }
+        if (value instanceof FormulaCell) {
+            formula = value;
+            value = formula.cachedValue;
         }
         if (value instanceof ExportCell) {
             presentation = value.presentation;
             link = value.link;
             value = value.value;
         }
-        const explicitStyle = value instanceof Cell ? value.style ?? suppliedStyle : suppliedStyle;
+        const explicitStyle = formula?.style ?? (value instanceof Cell ? value.style ?? suppliedStyle : suppliedStyle);
         if (value instanceof Cell)
             value = value.value;
         assertScalar(value);
         if (covered) {
             if (link)
                 throw new TypeError("Hyperlinks cannot address a covered merged cell.");
-            if (total || (value != null && value !== ""))
+            if (formula || total || (value != null && value !== ""))
                 throw new TypeError("A merged range would hide the value at " + col.letter + row + "; covered cells must be empty.");
             value = undefined; // An empty string in a covered typed column is an empty cell, not a type mismatch.
         }
@@ -3049,8 +3312,15 @@ class Worksheet {
             value = excelDate(value, this.book.settings.dateMode);
         if (!header && !footer)
             this.layout.accept(i, value);
+        if (!header && !footer && this.chartSources.length)
+            for (const binding of this.chartSources)
+                binding.observe(row - this.headerRows - 1, i + 1, value);
         const prefix = '<c r="' + col.letter + row + '" s="' + style + '"';
-        this.book.budget.cell(value, reservedCharacters);
+        if (formula)
+            this.book.retainFormula(formula.formula.length);
+        this.book.budget.cell(formula ? formula.formula : value, reservedCharacters);
+        if (formula)
+            return prefix + '>' + formulaXml(formula) + '</c>';
         if (total)
             return prefix + (value === null ? ' t="str"' : "") + '><f>' + total.formula.replace(/"/g, "&quot;") + '</f><v>' + (value ?? "") + '</v></c>';
         if (value == null || (type === "number" && !Number.isFinite(value)))
@@ -3068,7 +3338,7 @@ class Worksheet {
     *rowXml(values, number, header, footer = false, title = false) {
         const height = title ? this.options.title?.height ?? 28 : header ? this.options.headerHeight : this.options.rowHeight;
         const context = !header && !footer && (this.options.rowStyle || this.options.cellStyle) ? Object.freeze({ rowIndex: number - this.headerRows - 1, worksheetRow: number, sheetName: this.name,
-            values: Object.freeze(this.columns.map((_, i) => values[i] instanceof Cell || values[i] instanceof ExportCell ? values[i].value : values[i])) }) : undefined;
+            values: Object.freeze(this.columns.map((_, i) => values[i] instanceof FormulaCell ? values[i].cachedValue : values[i] instanceof Cell || values[i] instanceof ExportCell ? values[i].value : values[i])) }) : undefined;
         const rowStyle = context && this.options.rowStyle?.(context);
         if (rowStyle !== undefined)
             validateStylePatch(rowStyle);
@@ -3251,6 +3521,27 @@ class Worksheet {
     progress() { if (!this.preserved && !this.chartData)
         notifyProgress(this.book.settings.onProgress, { phase: "rows", rows: this.book.rowCount, sheetRows: this.count, sheetName: this.name }); }
     get rowCount() { return this.count; }
+    /** A finite formula reference to a completed data column, excluding report decorations. Empty data returns undefined. */
+    dataRange(column) {
+        if (this.failed)
+            throw this.error;
+        if (!this.completed)
+            throw new OfficeIMOError("INVALID_STATE", "Close the worksheet before resolving its data range.");
+        const selected = resolveDataColumn(this.columns, column);
+        return this.count ? qualifiedColumnRange(this.name, selected, this.headerRows + 1, this.count) : undefined;
+    }
+    /** @internal Immutable schema plus current source timing, used only by workbook-owned chart registration. */
+    get chartBindingMetadata() {
+        const leaf = this.layout.headings.at(-1);
+        return { name: this.name, columns: this.columns, headerRows: this.headerRows, rows: this.count, closed: this.completed || !!this.completion,
+            headerReferences: this.columns.map((column, index) => {
+                const cell = leaf?.[index], raw = cell instanceof ExportCell ? cell.value : cell;
+                return this.layout.firstHeaderRow && raw === column.header && !this.layout.regions.covered(index + 1, this.headerRows)
+                    ? qualifiedCell(this.name, index + 1, this.headerRows) : undefined;
+            }) };
+    }
+    /** @internal Only the workbook may attach a preflighted, bounded source observer. */
+    retainChartBinding(binding) { this.chartSources.push(binding); }
     /** @internal Preservation records are metadata, not report data rows. */
     get reportRowCount() { return this.preserved || this.chartData ? 0 : this.count; }
     /** @internal Chart data is editable through Excel's Unhide worksheet command. */
@@ -3318,6 +3609,8 @@ class Worksheet {
     get mergeCount() { return this.layout.mergeCount; }
     /** @internal */
     get conditionalFormatCount() { return this.conditional.count; }
+    /** @internal Captured editing metadata reserves workbook-wide limits even for empty data. */
+    get dataValidations() { return this.validations; }
     /** @internal */
     get totalRows() { return Math.max(1, this.headerRows + this.count + this.layout.footerRows); }
     /** @internal */
@@ -3349,6 +3642,9 @@ class Worksheet {
             try {
                 const regions = this.completedRegions = this.layout.finalRegions(this.count, this.book.settings.limits?.maxMergedRanges ?? 10000);
                 regions.validateRows(this.totalRows);
+                for (const binding of this.chartSources)
+                    binding.finish();
+                this.chartSources.length = 0;
                 for (const link of this.links) {
                     const position = cellPosition(link.cell);
                     if (position.column > this.columns.length || position.row > this.totalRows)
@@ -3376,6 +3672,8 @@ class Worksheet {
                     await this.buffer.write('<mergeCells count="' + regions.references.length + '">' + regions.references.map(ref => '<mergeCell ref="' + ref + '"/>').join("") + '</mergeCells>');
                 for (const xml of this.conditional.xml(this.headerRows, this.count, this.totalRows))
                     await this.buffer.write(xml);
+                for (const xml of dataValidationsXml(this.validations, this.headerRows, this.count))
+                    await this.buffer.write(xml);
                 if (this.links.length || this.internalLinks.length)
                     await this.buffer.write(hyperlinksXml(this.links, this.book.settings.invalidCharacterPolicy, this.internalLinks));
                 await this.buffer.write(printXml(this.options.print, this.book.settings.invalidCharacterPolicy));
@@ -3388,6 +3686,7 @@ class Worksheet {
                 const info = await this.entry.close();
                 if (!this.book.settings.sink && !this.failed)
                     this.prepared = { ...info, chunks: this.output.takeChunks() };
+                this.completed = true;
             }
             catch (error) {
                 await this.discard(error);
@@ -3398,14 +3697,14 @@ class Worksheet {
     /** @internal */
     takePrepared() { const prepared = this.prepared; this.prepared = undefined; return prepared; }
     /** @internal */
-    async discard(error) { this.failed = true; this.error = error; this.pending = []; this.pendingCharacters = 0; this.prepared = undefined; this.buffer = undefined; this.nativeCharts.length = 0; this.output.discard(); await this.entry?.discard(error); }
+    async discard(error) { this.failed = true; this.error = error; this.pending = []; this.pendingCharacters = 0; this.prepared = undefined; this.buffer = undefined; this.nativeCharts.length = 0; this.chartSources.length = 0; this.output.discard(); await this.entry?.discard(error); }
 }
 const _exports = Object.freeze({ Worksheet: Worksheet });
-_modules.set("e9ddb4bada24e9d7f30ba7dc8d6b94b236c08d4d5119bd974b491e2f248dae29", _exports);
+_modules.set("16329423bc4d873c96334d204a6ce54ce3b6f40ba289285aa89fbc63839b739d", _exports);
 return _exports;
 })();
 
-const _m35 = _modules.get("693daae385ad72efcf3a18fa8e11359ab7092d805f229d8e59831d8bfd35679c") ?? (() => {
+const _m38 = _modules.get("5fdfce13ab2c7c4360ece817465c5b1e4d0fe48fbffd981ec5b5fe9253a84625") ?? (() => {
 const { escapeOoxmlAttribute, escapeXml, xmlDeclaration } = _m19;
 
 const { cellText, columnName } = _m26;
@@ -3416,7 +3715,7 @@ const { ExportCell } = _m5;
 
 const { Cell } = _m26;
 
-const { totalFormula } = _m30;
+const { totalFormula } = _m31;
 
 function defineTable(id, options, columns, policy) {
     const name = options.name ?? "Table" + id;
@@ -3448,11 +3747,11 @@ function tableXml(table, rowCount, policy, headerRow = 1, footer) {
         '" showColumnStripes="' + (options.bandedColumns ? 1 : 0) + '"/></table>';
 }
 const _exports = Object.freeze({ defineTable: defineTable, tableXml: tableXml });
-_modules.set("693daae385ad72efcf3a18fa8e11359ab7092d805f229d8e59831d8bfd35679c", _exports);
+_modules.set("5fdfce13ab2c7c4360ece817465c5b1e4d0fe48fbffd981ec5b5fe9253a84625", _exports);
 return _exports;
 })();
 
-const _m36 = _modules.get("9c165af1760666d37381c410b96136694d28d86e1e5fcf4847f2d1087bb952f4") ?? (() => {
+const _m39 = _modules.get("9c165af1760666d37381c410b96136694d28d86e1e5fcf4847f2d1087bb952f4") ?? (() => {
 const { OfficeIMOError } = _m2;
 
 const { cleanXml } = _m19;
@@ -3520,14 +3819,146 @@ _modules.set("9c165af1760666d37381c410b96136694d28d86e1e5fcf4847f2d1087bb952f4",
 return _exports;
 })();
 
-const _m37 = _modules.get("e6b4de6356ddf3b8617ac5b85106bfd6e7f5e2b3d5cd1676b358f8433e6b60d3") ?? (() => {
+const _m41 = _modules.get("8f80a11f802734d2d686ba3e39a1c60bcaa55314e5e32d49b8a833e3dddc18ea") ?? (() => {
 const { checkAbort } = _m4;
 
 const { NotSupportedError, OfficeIMOError } = _m2;
 
 const { cleanXml } = _m19;
 
-const { copyDrawingAnchor } = _m28;
+function record(value, allowed, context) {
+    if (!value || typeof value !== "object" || Array.isArray(value))
+        throw new TypeError(context + " must be an object.");
+    for (const key of Object.keys(value))
+        if (!allowed.includes(key))
+            throw new NotSupportedError(context + "." + key);
+    return { ...value };
+}
+function column(value) {
+    if (typeof value === "string" ? !value.length : typeof value !== "number" || !Number.isInteger(value) || value < 1 || value > 16384)
+        throw new TypeError("Chart columns require a declared key or a one-based column number.");
+}
+/** @internal Capture each caller property once before resolving workbook identities. */
+function captureChartRange(input) {
+    const value = record(input, ["kind", "sheet", "firstRow", "rowCount", "categoryColumn", "series"], "chart.data");
+    if (value.kind !== "range")
+        throw new TypeError("A chart range must declare kind: range.");
+    if (!value.sheet || typeof value.sheet !== "object" || Array.isArray(value.sheet))
+        throw new TypeError("A chart range needs its owning worksheet.");
+    const firstRow = value.firstRow === undefined ? 0 : value.firstRow, rowCount = value.rowCount;
+    if (!Number.isSafeInteger(firstRow) || firstRow < 0 || !Number.isSafeInteger(rowCount) || rowCount < 1 ||
+        firstRow + rowCount > 1048576)
+        throw new RangeError("Chart data rows must form a nonempty finite Excel range.");
+    column(value.categoryColumn);
+    if (!Array.isArray(value.series) || value.series.length < 1 || value.series.length > 255)
+        throw new RangeError("A chart needs from 1 through 255 series.");
+    const series = value.series.map(item => {
+        const copy = record(item, ["column", "name", "color"], "chart.data.series");
+        column(copy.column);
+        if (copy.name !== undefined && typeof copy.name !== "string")
+            throw new TypeError("Chart series name must be a string.");
+        if (copy.color !== undefined && (typeof copy.color !== "string" || !/^#?[0-9a-fA-F]{6}$/.test(copy.color)))
+            throw new TypeError("Chart colors must be opaque six-digit RGB hex values.");
+        return Object.freeze(copy);
+    });
+    return Object.freeze({ kind: "range", sheet: value.sheet, firstRow, rowCount, categoryColumn: value.categoryColumn, series: Object.freeze(series) });
+}
+/**
+ * @internal Retain only the declared finite cache while the owning sheet writes once.
+ * Initial series-name text is returned for registration; category text is charged
+ * before copying through retainText. The workbook resolves source identity and A1.
+ */
+function prepareChartBinding(input, descriptor, budgets, signal, type = "columnClustered") {
+    checkAbort(signal);
+    const count = input.rowCount, first = input.firstRow ?? 0, points = count * input.series.length, categoryColumn = descriptor.categoryColumn;
+    if (points > budgets.availablePoints)
+        throw new OfficeIMOError("RESOURCE_LIMIT", "maxChartPoints exceeded.");
+    if (descriptor.source !== input.sheet || !Number.isInteger(descriptor.headerRows) || descriptor.headerRows < 0 || descriptor.headerRows + first + count > 1048576 ||
+        descriptor.seriesColumns.length !== input.series.length || descriptor.seriesNames.length !== input.series.length ||
+        descriptor.valueFormulas.length !== input.series.length || descriptor.nameFormulas.length !== input.series.length)
+        throw new TypeError("Resolved chart range does not match its declared columns and data rows.");
+    for (const index of [descriptor.categoryColumn, ...descriptor.seriesColumns])
+        if (!Number.isInteger(index) || index < 1 || index > 16384)
+            throw new RangeError("Resolved chart columns must be one-based Excel columns.");
+    if (descriptor.seriesColumns.includes(categoryColumn))
+        throw new TypeError("Chart category and numeric series must use different columns.");
+    let textCharacters = 0;
+    const names = input.series.map((series, i) => {
+        const name = series.name ?? descriptor.seriesNames[i];
+        if (typeof name !== "string" || name.length > 32767)
+            throw new TypeError("Chart series names must fit Excel text cells.");
+        textCharacters += name.length;
+        if (textCharacters > budgets.availableText)
+            throw new OfficeIMOError("RESOURCE_LIMIT", "maxChartTextCharacters exceeded.");
+        return cleanXml(name, budgets.policy);
+    });
+    const colors = input.series.map(series => series.color?.replace(/^#/, "").toUpperCase());
+    const categories = new Array(count), values = input.series.map(() => new Array(count));
+    const captured = input.series.map(() => 0), positive = input.series.map(() => false);
+    let categoryCount = 0, completed;
+    const finish = () => {
+        checkAbort(signal);
+        if (completed)
+            return;
+        if (categoryCount !== count || captured.some(value => value !== count))
+            throw new TypeError("Chart range did not receive every declared data row and numeric value.");
+        if (type === "pie" && !positive[0])
+            throw new RangeError("A pie chart needs at least one positive value.");
+        completed = Object.freeze({ categories: Object.freeze(categories), series: Object.freeze(values.map((points, i) => Object.freeze({
+                name: names[i], values: Object.freeze(points), ...(colors[i] === undefined ? {} : { color: colors[i] })
+            }))) });
+    };
+    const data = Object.freeze({ get categories() { finish(); return completed.categories; }, get series() { finish(); return completed.series; } });
+    const seriesByColumn = new Map();
+    descriptor.seriesColumns.forEach((index, i) => { const indexes = seriesByColumn.get(index) ?? []; indexes.push(i); seriesByColumn.set(index, indexes); });
+    return Object.freeze({ source: descriptor.source, points, textCharacters, data,
+        references: Object.freeze({ categories: descriptor.categoryFormula, values: Object.freeze([...descriptor.valueFormulas]),
+            names: Object.freeze(descriptor.nameFormulas.map((formula, i) => input.series[i].name === undefined ? formula : undefined)) }),
+        observe(dataRowIndex, columnIndex, value) {
+            checkAbort(signal);
+            const position = dataRowIndex - first;
+            if (position < 0 || position >= count)
+                return;
+            if (completed)
+                throw new OfficeIMOError("INVALID_STATE", "Chart cache is already finalized.");
+            if (columnIndex === categoryColumn) {
+                if (typeof value !== "string" || value.length > 32767)
+                    throw new TypeError("Chart category cells must contain strings of at most 32,767 UTF-16 units.");
+                if (categories[position] !== undefined)
+                    throw new OfficeIMOError("INVALID_STATE", "A chart category cell was observed more than once.");
+                budgets.retainText(value.length);
+                categories[position] = cleanXml(value, budgets.policy);
+                categoryCount++;
+            }
+            for (const i of seriesByColumn.get(columnIndex) ?? []) {
+                if (typeof value !== "number" || !Number.isFinite(value))
+                    throw new TypeError("Chart series cells require finite numbers or numeric formula caches.");
+                if (type === "pie" && value < 0)
+                    throw new RangeError("Pie charts require nonnegative values.");
+                if (values[i][position] !== undefined)
+                    throw new OfficeIMOError("INVALID_STATE", "A chart value cell was observed more than once.");
+                values[i][position] = value;
+                captured[i] = captured[i] + 1;
+                if (value > 0)
+                    positive[i] = true;
+            }
+        }, finish });
+}
+const _exports = Object.freeze({ captureChartRange: captureChartRange, prepareChartBinding: prepareChartBinding });
+_modules.set("8f80a11f802734d2d686ba3e39a1c60bcaa55314e5e32d49b8a833e3dddc18ea", _exports);
+return _exports;
+})();
+
+const _m40 = _modules.get("7fb4bc4d0a01575e88a13820ea520c78688e4e955cf89e2bc0194b6a6ff3a008") ?? (() => {
+const { checkAbort } = _m4;
+
+const { NotSupportedError, OfficeIMOError } = _m2;
+
+const { cleanXml } = _m19;
+
+const { copyDrawingAnchor } = _m29;
+
+const { captureChartRange, prepareChartBinding } = _m41;
 
 function fields(value, allowed, context) {
     if (!value || typeof value !== "object" || Array.isArray(value))
@@ -3541,22 +3972,26 @@ function snapshot(value, allowed, context) {
     return { ...value };
 }
 /** @internal Preflight bounds before copying any chart data. Failed registration reserves nothing. */
-function prepareChart(input, policy, availablePoints, availableText, signal) {
+function prepareChart(input, policy, availablePoints, availableText, signal, resolveBinding) {
     checkAbort(signal);
     input = snapshot(input, ["type", "data", "row", "column", "width", "height", "description", "title", "legend", "dataLabels", "categoryAxis", "valueAxis"], "chart");
     if (!["columnClustered", "barClustered", "line", "pie"].includes(input.type))
         throw new NotSupportedError("chart type " + input.type);
     const type = input.type;
-    const { categories, series } = snapshot(input.data, ["categories", "series"], "chart.data");
-    if (!Array.isArray(categories) || !categories.length)
+    const requested = snapshot(input.data, ["kind", "sheet", "firstRow", "rowCount", "categoryColumn", "categories", "series"], "chart.data");
+    const bound = requested.kind === "range" ? captureChartRange(requested) : undefined;
+    if (!bound)
+        fields(requested, ["categories", "series"], "chart.data");
+    const categories = bound ? undefined : requested.categories, series = bound?.series ?? requested.series;
+    if (!bound && (!Array.isArray(categories) || !categories.length))
         throw new TypeError("Chart categories must be a nonempty array of strings.");
     if (!Array.isArray(series) || !series.length || series.length > 255)
         throw new RangeError("A chart needs from 1 through 255 series.");
-    if (categories.length > 1048575)
+    if (!bound && categories.length > 1048575)
         throw new RangeError("Chart data must fit Excel's rows including its header.");
     if (type === "pie" && series.length !== 1)
         throw new TypeError("A pie chart supports exactly one series.");
-    const points = categories.length * series.length;
+    const points = (bound?.rowCount ?? categories.length) * series.length;
     if (points > availablePoints)
         throw new OfficeIMOError("RESOURCE_LIMIT", "maxChartPoints exceeded.");
     let textCharacters = 0;
@@ -3611,17 +4046,29 @@ function prepareChart(input, policy, availablePoints, availableText, signal) {
             throw new TypeError("Value axis number format cannot be blank.");
         valueAxis = Object.freeze({ ...axis, ...(axisTitle === undefined ? {} : { title: axisTitle }), ...(numberFormat === undefined ? {} : { numberFormat }) });
     }
+    const common = { ...anchor, type,
+        ...(title === undefined ? {} : { title }), ...(description === undefined ? {} : { description }),
+        ...(input.legend === undefined ? {} : { legend: input.legend }), ...(dataLabels === undefined ? {} : { dataLabels }),
+        ...(categoryAxis === undefined ? {} : { categoryAxis }), ...(valueAxis === undefined ? {} : { valueAxis }) };
+    if (bound) {
+        if (!resolveBinding)
+            throw new TypeError("A chart range must belong to the current workbook.");
+        const { descriptor, retainText } = resolveBinding(bound);
+        const binding = prepareChartBinding(bound, descriptor, { availablePoints, availableText: availableText - textCharacters, retainText, policy }, signal, type);
+        return Object.freeze({ ...common, data: binding.data, binding, points, textCharacters: textCharacters + binding.textCharacters });
+    }
     // Length budgets precede allocation; each source property/array element is read once.
+    const categoryValues = categories;
     const copiedCategories = [], copiedSeries = [];
-    for (let i = 0; i < categories.length; i++) {
+    for (let i = 0; i < categoryValues.length; i++) {
         if ((i & 255) === 0)
             checkAbort(signal);
-        copiedCategories.push(text(categories[i], "Chart category"));
+        copiedCategories.push(text(categoryValues[i], "Chart category"));
     }
     for (const item of series) {
         const captured = snapshot(item, ["name", "values", "color"], "chart.series");
         const name = text(captured.name, "Chart series name"), values = captured.values, color = captured.color;
-        if (!Array.isArray(values) || values.length !== categories.length)
+        if (!Array.isArray(values) || values.length !== categoryValues.length)
             throw new TypeError("Chart series values must match the category count.");
         if (color !== undefined && (typeof color !== "string" || !/^#?[0-9a-fA-F]{6}$/.test(color)))
             throw new TypeError("Chart colors must be opaque six-digit RGB hex values.");
@@ -3643,18 +4090,16 @@ function prepareChart(input, policy, availablePoints, availableText, signal) {
             throw new RangeError("A pie chart needs at least one positive value.");
         copiedSeries.push(Object.freeze({ name, values: Object.freeze(copiedValues), ...(color === undefined ? {} : { color: color.replace(/^#/, "").toUpperCase() }) }));
     }
-    return Object.freeze({ ...anchor, type,
+    return Object.freeze({ ...common,
         data: Object.freeze({ categories: Object.freeze(copiedCategories), series: Object.freeze(copiedSeries) }),
-        ...(title === undefined ? {} : { title }), ...(description === undefined ? {} : { description }),
-        ...(input.legend === undefined ? {} : { legend: input.legend }), ...(dataLabels === undefined ? {} : { dataLabels }),
-        ...(categoryAxis === undefined ? {} : { categoryAxis }), ...(valueAxis === undefined ? {} : { valueAxis }), points, textCharacters });
+        points, textCharacters });
 }
 const _exports = Object.freeze({ prepareChart: prepareChart });
-_modules.set("e6b4de6356ddf3b8617ac5b85106bfd6e7f5e2b3d5cd1676b358f8433e6b60d3", _exports);
+_modules.set("7fb4bc4d0a01575e88a13820ea520c78688e4e955cf89e2bc0194b6a6ff3a008", _exports);
 return _exports;
 })();
 
-const _m15 = _modules.get("6f9e3ad7f4ea0a06e08b881a053e43dcc6bd384b93dc15e3890d97f4fa514746") ?? (() => {
+const _m15 = _modules.get("8afb3b96d1075d98be059c200b3e9c7ad9ac9f646b9d714573b62f1b2f0d920d") ?? (() => {
 const { beginTask, checkAbort, pause, taskYieldDue } = _m4;
 
 const { OfficeIMOError } = _m2;
@@ -3675,17 +4120,19 @@ const { sheetName, assertXlsxValue } = _m26;
 
 const { assertExportValue } = _m5;
 
-const { Worksheet } = _m27;
+const { Worksheet } = _m28;
 
-const { defineTable, tableXml } = _m35;
+const { defineTable, tableXml } = _m38;
 
-const { drawingXml, drawingContentType } = _m28;
+const { drawingXml, drawingContentType } = _m29;
 
-const { TextOverflow } = _m36;
+const { TextOverflow } = _m39;
 
-const { prepareChart } = _m37;
+const { prepareChart } = _m40;
 
-const { chartContentType, writeChartXml } = _m29;
+const { qualifiedColumnRange, resolveDataColumn } = _m36;
+
+const { chartContentType, writeChartXml } = _m30;
 
 const xlsxMime = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
 const formatType = (name) => "application/vnd.openxmlformats-officedocument.spreadsheetml." + name + "+xml";
@@ -3718,7 +4165,12 @@ class Workbook {
     bufferedBytes = 0;
     mergedRanges = 0;
     conditionalFormats = 0;
+    dataValidationCount = 0;
+    validationTextCharacters = 0;
+    formulaCharacters = 0;
+    hasAuthoredFormulas = false;
     nativeCharts = [];
+    chartSourceSheets = 0;
     chartPoints = 0;
     chartTextCharacters = 0;
     registering = false;
@@ -3782,7 +4234,7 @@ class Workbook {
                 const quoted = "'" + s.name.replace(/'/g, "''") + "'!";
                 return s.printSettings ? '<definedName name="_xlnm.Print_Area" localSheetId="' + i + '">' + escapeOoxmlAttribute(quoted + '$A$1:$' + s.lastColumn + '$' + s.totalRows, this.settings.invalidCharacterPolicy) + '</definedName>' +
                     (s.printSettings.repeatHeaders && s.firstHeaderRow ? '<definedName name="_xlnm.Print_Titles" localSheetId="' + i + '">' + escapeOoxmlAttribute(quoted + '$' + s.firstHeaderRow + ':$' + s.headerRowCount, this.settings.invalidCharacterPolicy) + '</definedName>' : "") : "";
-            }).join("") + '</definedNames>' : "") + '</workbook>';
+            }).join("") + '</definedNames>' : "") + (this.hasAuthoredFormulas ? '<calcPr calcMode="auto" fullCalcOnLoad="1" forceFullCalc="1"/>' : "") + '</workbook>';
     }
     /** @internal */
     assertOpen() {
@@ -3805,7 +4257,7 @@ class Workbook {
         if (this.settings.oversizedText !== "preserve")
             throw new RangeError("Excel cell text exceeds 32,767 UTF-16 code units.");
         if (!this.overflow) {
-            this.checkSheetLimit(this.sheets.length + this.nativeCharts.length + 1);
+            this.checkSheetLimit(this.sheets.length + this.chartSourceSheets + 1);
             this.budget.reserve(5, "SheetCellPartTextParts".length);
             this.overflow = new TextOverflow(sheetName("Text overflow", this.names, this.settings.invalidCharacterPolicy), this.settings.limits?.maxOverflowCharacters ?? 4000000, this.settings.invalidCharacterPolicy, (cells, characters, rows) => { this.budget.row(rows); this.budget.reserve(cells, characters); });
         }
@@ -3842,21 +4294,63 @@ class Workbook {
     /** @internal */
     checkConditionalFormats(count) { if (this.conditionalFormats + count > (this.settings.limits?.maxConditionalFormats ?? 1000))
         throw new OfficeIMOError("RESOURCE_LIMIT", "maxConditionalFormats exceeded."); }
+    /** @internal Remaining immutable editing-rule budgets, checked before capture allocation. */
+    get availableDataValidations() { return (this.settings.limits?.maxDataValidations ?? 1000) - this.dataValidationCount; }
+    /** @internal */
+    get availableValidationTextCharacters() { return (this.settings.limits?.maxValidationTextCharacters ?? 1000000) - this.validationTextCharacters; }
+    /** @internal Authored formula text is counted once when its cell is serialized. */
+    retainFormula(characters) {
+        if (this.formulaCharacters + characters > (this.settings.limits?.maxFormulaCharacters ?? 1000000))
+            throw new OfficeIMOError("RESOURCE_LIMIT", "maxFormulaCharacters exceeded.");
+        this.formulaCharacters += characters;
+        this.hasAuthoredFormulas = true;
+    }
+    checkChartText(characters) {
+        if (this.chartTextCharacters + characters > (this.settings.limits?.maxChartTextCharacters ?? 1000000))
+            throw new OfficeIMOError("RESOURCE_LIMIT", "maxChartTextCharacters exceeded.");
+    }
+    /** @internal Category caches consume the same cumulative budget as chart metadata. */
+    retainChartText(characters) {
+        this.checkChartText(characters);
+        this.chartTextCharacters += characters;
+    }
+    resolveChartBinding(input) {
+        const source = input.sheet;
+        if (!this.sheets.includes(source) || source.hidden)
+            throw new TypeError("Bound charts require a visible worksheet in the same workbook.");
+        const metadata = source.chartBindingMetadata, first = input.firstRow ?? 0;
+        if (source.isBusy || metadata.closed || first < metadata.rows)
+            throw new OfficeIMOError("INVALID_STATE", "Register a chart before its first selected data row is written, while the source worksheet is idle.");
+        const category = resolveDataColumn(metadata.columns, input.categoryColumn, "Chart");
+        const series = input.series.map(item => resolveDataColumn(metadata.columns, item.column, "Chart"));
+        const start = metadata.headerRows + first + 1;
+        return { descriptor: { source, sheetName: metadata.name, headerRows: metadata.headerRows, categoryColumn: category, seriesColumns: series,
+                seriesNames: series.map(column => metadata.columns[column - 1].header),
+                categoryFormula: qualifiedColumnRange(metadata.name, category, start, input.rowCount),
+                valueFormulas: series.map(column => qualifiedColumnRange(metadata.name, column, start, input.rowCount)),
+                nameFormulas: series.map((column, index) => input.series[index].name === undefined
+                    ? metadata.headerReferences[column - 1] : undefined) }, retainText: characters => this.retainChartText(characters) };
+    }
     /** @internal Reserve chart snapshots and their source-sheet names before any output is generated. */
     registerChart(input) {
         return this.registration(() => {
             if (this.nativeCharts.length >= (this.settings.limits?.maxCharts ?? 100))
                 throw new OfficeIMOError("RESOURCE_LIMIT", "maxCharts exceeded.");
-            this.checkSheetLimit(this.sheets.length + this.nativeCharts.length + 1 + (this.overflow ? 1 : 0));
-            const chart = prepareChart(input, this.settings.invalidCharacterPolicy, (this.settings.limits?.maxChartPoints ?? 100000) - this.chartPoints, (this.settings.limits?.maxChartTextCharacters ?? 1000000) - this.chartTextCharacters, this.settings.signal);
+            const chart = prepareChart(input, this.settings.invalidCharacterPolicy, (this.settings.limits?.maxChartPoints ?? 100000) - this.chartPoints, (this.settings.limits?.maxChartTextCharacters ?? 1000000) - this.chartTextCharacters, this.settings.signal, value => this.resolveChartBinding(value));
             this.assertOpen();
+            // Input getters may write categories into an existing bound chart's cache.
+            this.checkChartText(chart.textCharacters);
             // Input getters may append rows to an existing sheet and allocate text preservation.
-            this.checkSheetLimit(this.sheets.length + this.nativeCharts.length + 1 + (this.overflow ? 1 : 0));
+            this.checkSheetLimit(this.sheets.length + this.chartSourceSheets + (chart.binding ? 0 : 1) + (this.overflow ? 1 : 0));
             const registered = Object.freeze({ ...chart, id: this.nativeCharts.length + 1,
-                dataSheetName: sheetName("Chart data " + (this.nativeCharts.length + 1), this.names, this.settings.invalidCharacterPolicy) });
+                dataSheetName: chart.binding ? chart.binding.source.name : sheetName("Chart data " + (this.nativeCharts.length + 1), this.names, this.settings.invalidCharacterPolicy) });
             this.nativeCharts.push(registered);
             this.chartPoints += chart.points;
             this.chartTextCharacters += chart.textCharacters;
+            if (chart.binding)
+                chart.binding.source.retainChartBinding(chart.binding);
+            else
+                this.chartSourceSheets++;
             return registered;
         });
     }
@@ -3884,27 +4378,29 @@ class Workbook {
     get rowCount() { return this.sheets.reduce((sum, sheet) => sum + sheet.reportRowCount, 0); }
     addWorksheet(name, options = {}) {
         return this.registration(() => {
-            this.checkSheetLimit(this.sheets.length + this.nativeCharts.length + 1 + (this.overflow ? 1 : 0));
+            this.checkSheetLimit(this.sheets.length + this.chartSourceSheets + 1 + (this.overflow ? 1 : 0));
             // Validation/serialization use erased column metadata; projection later receives T rows.
-            const metadata = options;
-            const conditional = Worksheet.validate(this, metadata);
-            let tableOptions = options.table;
+            const metadata = { ...options };
+            const prepared = Worksheet.validate(this, metadata);
+            let tableOptions = metadata.table;
             if (tableOptions && tableOptions.name === undefined) {
                 let suffix = this.tableCount + 1;
                 while (this.tableNames.has(("Table" + suffix).toLowerCase()))
                     suffix++;
                 tableOptions = { ...tableOptions, name: "Table" + suffix };
             }
-            const table = tableOptions ? defineTable(this.tableCount + 1, tableOptions, options.columns ?? [], this.settings.invalidCharacterPolicy) : undefined;
+            const table = tableOptions ? defineTable(this.tableCount + 1, tableOptions, metadata.columns ?? [], this.settings.invalidCharacterPolicy) : undefined;
             if (table && this.tableNames.has(table.name.toLowerCase()))
                 throw new TypeError("Duplicate Excel table name: " + table.name);
             sheetName(name, this.names, this.settings.invalidCharacterPolicy, false);
-            const sheet = Worksheet.create(this, () => sheetName(name, this.names, this.settings.invalidCharacterPolicy, false), metadata, table, false, conditional);
+            const sheet = Worksheet.create(this, () => sheetName(name, this.names, this.settings.invalidCharacterPolicy, false), metadata, table, false, prepared.conditional, prepared.validations);
             this.assertOpen();
-            this.checkSheetLimit(this.sheets.length + this.nativeCharts.length + 1 + (this.overflow ? 1 : 0));
+            this.checkSheetLimit(this.sheets.length + this.chartSourceSheets + 1 + (this.overflow ? 1 : 0));
             this.names.add(sheet.name.toLowerCase());
             this.mergedRanges += sheet.mergeCount;
             this.conditionalFormats += sheet.conditionalFormatCount;
+            this.dataValidationCount += sheet.dataValidations.count;
+            this.validationTextCharacters += sheet.dataValidations.textCharacters;
             if (table) {
                 this.tableNames.add(table.name.toLowerCase());
                 this.tableCount++;
@@ -3996,6 +4492,8 @@ class Workbook {
                 }
                 for (const chart of this.nativeCharts) {
                     checkAbort(this.settings.signal);
+                    if (chart.binding)
+                        continue;
                     const sheet = Worksheet.createChartData(this, chart);
                     this.sheets.push(sheet);
                     function* rows() { for (let i = 0; i < chart.data.categories.length; i++)
@@ -4048,11 +4546,11 @@ class Workbook {
     }
 }
 const _exports = Object.freeze({ Workbook: Workbook });
-_modules.set("6f9e3ad7f4ea0a06e08b881a053e43dcc6bd384b93dc15e3890d97f4fa514746", _exports);
+_modules.set("8afb3b96d1075d98be059c200b3e9c7ad9ac9f646b9d714573b62f1b2f0d920d", _exports);
 return _exports;
 })();
 
-const _m39 = _modules.get("7d71d7c188ee5bebaddb23ed313c597285a187c3f62e49244b7788154fdc6960") ?? (() => {
+const _m43 = _modules.get("7d71d7c188ee5bebaddb23ed313c597285a187c3f62e49244b7788154fdc6960") ?? (() => {
 const { ExportCell, assertScalar } = _m5;
 
 function style(patch) {
@@ -4099,14 +4597,14 @@ _modules.set("7d71d7c188ee5bebaddb23ed313c597285a187c3f62e49244b7788154fdc6960",
 return _exports;
 })();
 
-const _m38 = _modules.get("19f4c032d84e673269ebd3f83aef7d516c1a2bffc847f78fca6fc0e88c2262be") ?? (() => {
+const _m42 = _modules.get("b77eab8afd80a16bcc6b820a8b9f9a0de235d9d2c0c66372ab848239b5da55cc") ?? (() => {
 const { withDestination } = _m3;
 
 const { copyColumns } = _m11;
 
 const { Workbook } = _m15;
 
-const { portableSheet, portableWorkbook } = _m39;
+const { portableSheet, portableWorkbook } = _m43;
 
 function prepare(options) {
     const columns = copyColumns(options?.columns);
@@ -4149,18 +4647,18 @@ async function writeXlsxTo(rows, destination, configuration) {
     });
 }
 const _exports = Object.freeze({ writeXlsx: writeXlsx, writeXlsxTo: writeXlsxTo });
-_modules.set("19f4c032d84e673269ebd3f83aef7d516c1a2bffc847f78fca6fc0e88c2262be", _exports);
+_modules.set("b77eab8afd80a16bcc6b820a8b9f9a0de235d9d2c0c66372ab848239b5da55cc", _exports);
 return _exports;
 })();
 
-const _m14 = _modules.get("f59e791c3eb76e77cfcd056f6974802c061b6f6c0c955ee190e772312d40d2ab") ?? (() => {
+const _m14 = _modules.get("34db864643ed55bf759163e5a59758fa3135cf0773606f109295ca0036c9a4a9") ?? (() => {
 
-const _exports = Object.freeze({ Workbook: _m15.Workbook, writeXlsx: _m38.writeXlsx, writeXlsxTo: _m38.writeXlsxTo, Worksheet: _m27.Worksheet, Cell: _m26.Cell, StyleRegistry: _m23.StyleRegistry, NumberFormats: _m23.NumberFormats, saveBlob: _m1.saveBlob, ExportCell: _m5.ExportCell });
-_modules.set("f59e791c3eb76e77cfcd056f6974802c061b6f6c0c955ee190e772312d40d2ab", _exports);
+const _exports = Object.freeze({ Workbook: _m15.Workbook, writeXlsx: _m42.writeXlsx, writeXlsxTo: _m42.writeXlsxTo, Worksheet: _m28.Worksheet, Cell: _m26.Cell, FormulaCell: _m27.FormulaCell, StyleRegistry: _m23.StyleRegistry, NumberFormats: _m23.NumberFormats, saveBlob: _m1.saveBlob, ExportCell: _m5.ExportCell });
+_modules.set("34db864643ed55bf759163e5a59758fa3135cf0773606f109295ca0036c9a4a9", _exports);
 return _exports;
 })();
 
-const _m44 = _modules.get("d789b68418bcb7e6c25c814c3f0a49eb90d4e9830dfe00ada9a382072f4ea802") ?? (() => {
+const _m48 = _modules.get("d789b68418bcb7e6c25c814c3f0a49eb90d4e9830dfe00ada9a382072f4ea802") ?? (() => {
 /** Pure validation shared by document settings and named paragraph styles. */
 function positive(value, name, max = 14400) {
     if (!Number.isFinite(value) || value <= 0 || value > max)
@@ -4193,10 +4691,10 @@ _modules.set("d789b68418bcb7e6c25c814c3f0a49eb90d4e9830dfe00ada9a382072f4ea802",
 return _exports;
 })();
 
-const _m43 = _modules.get("277073b2f994d88db9eadaf0c63734f154ae8613aa7f68119afd19fc79a2c257") ?? (() => {
+const _m47 = _modules.get("277073b2f994d88db9eadaf0c63734f154ae8613aa7f68119afd19fc79a2c257") ?? (() => {
 const { OfficeIMOError } = _m2;
 
-const { positive, presentation } = _m44;
+const { positive, presentation } = _m48;
 
 const fields = ["fontSize", "presentation", "keepTogether", "keepWithNext", "spaceBefore", "spaceAfter"];
 const presentationFields = ["bold", "italic", "color", "alignment"];
@@ -4267,7 +4765,7 @@ _modules.set("277073b2f994d88db9eadaf0c63734f154ae8613aa7f68119afd19fc79a2c257",
 return _exports;
 })();
 
-const _m42 = _modules.get("907ed12500413110f765600d0e6aac45300e5e6e40e4d5f2e557aa53e6ff135d") ?? (() => {
+const _m46 = _modules.get("907ed12500413110f765600d0e6aac45300e5e6e40e4d5f2e557aa53e6ff135d") ?? (() => {
 const { OfficeIMOError } = _m2;
 
 const { ExportBudget } = _m10;
@@ -4276,9 +4774,9 @@ const { copyColumns } = _m11;
 
 const { tableSpans } = _m13;
 
-const { captureParagraphStyles } = _m43;
+const { captureParagraphStyles } = _m47;
 
-const { positive, color, presentation } = _m44;
+const { positive, color, presentation } = _m48;
 
 
 
@@ -4387,12 +4885,12 @@ function settings(input, document = false) {
     return { options: { ...options, paragraphStyles }, paragraphStyles, page, margins, fontSize, padding,
         limits: { ...limits, ...(maxImageWorkingBytes === undefined ? {} : { maxImageWorkingBytes }) }, budget };
 }
-const _exports = Object.freeze({ positive: _m44.positive, color: _m44.color, presentation: _m44.presentation, settings: settings });
+const _exports = Object.freeze({ positive: _m48.positive, color: _m48.color, presentation: _m48.presentation, settings: settings });
 _modules.set("907ed12500413110f765600d0e6aac45300e5e6e40e4d5f2e557aa53e6ff135d", _exports);
 return _exports;
 })();
 
-const _m46 = _modules.get("5424d3dd13b6ba1c76052de820b3d99e9bac24c012ea36e41b04fd99c779ee8c") ?? (() => {
+const _m50 = _modules.get("5424d3dd13b6ba1c76052de820b3d99e9bac24c012ea36e41b04fd99c779ee8c") ?? (() => {
 const { checkAbort, withAbort, pause, taskYieldDue } = _m4;
 
 const { OfficeIMOError } = _m2;
@@ -4543,7 +5041,7 @@ _modules.set("5424d3dd13b6ba1c76052de820b3d99e9bac24c012ea36e41b04fd99c779ee8c",
 return _exports;
 })();
 
-const _m50 = _modules.get("1e169e6ecdeceff319b5da4bf01f4c653c1a3d9e8ad696b141bf8ac52d9f446c") ?? (() => {
+const _m54 = _modules.get("1e169e6ecdeceff319b5da4bf01f4c653c1a3d9e8ad696b141bf8ac52d9f446c") ?? (() => {
 /** @internal Bounded big-endian reader used for caller-provided TrueType programs. */
 class FontReader {
     bytes;
@@ -4573,8 +5071,8 @@ _modules.set("1e169e6ecdeceff319b5da4bf01f4c653c1a3d9e8ad696b141bf8ac52d9f446c",
 return _exports;
 })();
 
-const _m51 = _modules.get("0534e48516ba3859978bb5f21d4ddfb17b4276c5e4650a7c7d6d384c25f6b681") ?? (() => {
-const { align4 } = _m50;
+const _m55 = _modules.get("0534e48516ba3859978bb5f21d4ddfb17b4276c5e4650a7c7d6d384c25f6b681") ?? (() => {
+const { align4 } = _m54;
 
 const { checkAbort, pause, taskYieldDue } = _m4;
 
@@ -4798,12 +5296,12 @@ _modules.set("0534e48516ba3859978bb5f21d4ddfb17b4276c5e4650a7c7d6d384c25f6b681",
 return _exports;
 })();
 
-const _m49 = _modules.get("77a2a9756cb6f59426300e1b3e601bd68acacdd40e6c30fbeb3cc99607c84891") ?? (() => {
+const _m53 = _modules.get("77a2a9756cb6f59426300e1b3e601bd68acacdd40e6c30fbeb3cc99607c84891") ?? (() => {
 const { NotSupportedError } = _m2;
 
-const { FontReader } = _m50;
+const { FontReader } = _m54;
 
-const { subsetTrueType, subsetTrueTypeCooperatively } = _m51;
+const { subsetTrueType, subsetTrueTypeCooperatively } = _m55;
 
 const { checkAbort, pause, taskYieldDue } = _m4;
 
@@ -5043,8 +5541,8 @@ _modules.set("77a2a9756cb6f59426300e1b3e601bd68acacdd40e6c30fbeb3cc99607c84891",
 return _exports;
 })();
 
-const _m48 = _modules.get("832d36356946811343532af7b630ef1c2016b6a48d0897282f4be774e20a1de2") ?? (() => {
-const { TrueTypeFont } = _m49;
+const _m52 = _modules.get("832d36356946811343532af7b630ef1c2016b6a48d0897282f4be774e20a1de2") ?? (() => {
+const { TrueTypeFont } = _m53;
 
 const { beginTask, checkAbort } = _m4;
 
@@ -5107,7 +5605,7 @@ _modules.set("832d36356946811343532af7b630ef1c2016b6a48d0897282f4be774e20a1de2",
 return _exports;
 })();
 
-const _m53 = _modules.get("1ed4965a6e2963a91190baa8a58ada8ce0edde8fe653bcb6609002e872af0d61") ?? (() => {
+const _m57 = _modules.get("1ed4965a6e2963a91190baa8a58ada8ce0edde8fe653bcb6609002e872af0d61") ?? (() => {
 // Generated by scripts/pdf-widths.mjs from OfficeIMO.Pdf's Adobe AFM-derived metrics.
 const helveticaWidths = new Map([
     [32, [278, 278]],
@@ -5430,12 +5928,12 @@ _modules.set("1ed4965a6e2963a91190baa8a58ada8ce0edde8fe653bcb6609002e872af0d61",
 return _exports;
 })();
 
-const _m52 = _modules.get("cb116ec8bc322f9c03d14c60009ac989d78b64636b24d77b44f5eece758dfbde") ?? (() => {
+const _m56 = _modules.get("cb116ec8bc322f9c03d14c60009ac989d78b64636b24d77b44f5eece758dfbde") ?? (() => {
 const { OfficeIMOError } = _m2;
 
-const { PdfFont, fontProgram } = _m48;
+const { PdfFont, fontProgram } = _m52;
 
-const { helveticaWidths } = _m53;
+const { helveticaWidths } = _m57;
 
 const winAnsiExtras = new Map([0x20ac, 0, 0x201a, 0x192, 0x201e, 0x2026, 0x2020, 0x2021, 0x2c6, 0x2030, 0x160, 0x2039, 0x152, 0, 0x17d, 0, 0, 0x2018, 0x2019, 0x201c, 0x201d, 0x2022, 0x2013, 0x2014, 0x2dc, 0x2122, 0x161, 0x203a, 0x153, 0, 0x17e, 0x178].map((cp, i) => [cp, i + 128]));
 /** @internal Called after scalar support succeeds when encoding a standard-font run. */
@@ -5499,14 +5997,14 @@ _modules.set("cb116ec8bc322f9c03d14c60009ac989d78b64636b24d77b44f5eece758dfbde",
 return _exports;
 })();
 
-const _m47 = _modules.get("1b9b0585e9faa850e57fc123c307e79711fd1fb6e877b9f14dff1995a019d5b4") ?? (() => {
+const _m51 = _modules.get("1b9b0585e9faa850e57fc123c307e79711fd1fb6e877b9f14dff1995a019d5b4") ?? (() => {
 const { NotSupportedError, OfficeIMOError } = _m2;
 
-const { fontProgram } = _m48;
+const { fontProgram } = _m52;
 
-const { resolveScalar, selectFont, standardCode, validateFonts } = _m52;
+const { resolveScalar, selectFont, standardCode, validateFonts } = _m56;
 
-const { pdfNumber, unicodeHex } = _m46;
+const { pdfNumber, unicodeHex } = _m50;
 
 const { checkAbort, pause, taskYieldDue } = _m4;
 
@@ -5711,7 +6209,7 @@ _modules.set("1b9b0585e9faa850e57fc123c307e79711fd1fb6e877b9f14dff1995a019d5b4",
 return _exports;
 })();
 
-const _m55 = _modules.get("09b0023640f16a7eb1ea3762a8de7028f1a9906f39669f424c9296b119359ac5") ?? (() => {
+const _m59 = _modules.get("09b0023640f16a7eb1ea3762a8de7028f1a9906f39669f424c9296b119359ac5") ?? (() => {
 const { OfficeIMOError } = _m2;
 
 const { ExportCell, assertExportValue } = _m5;
@@ -5816,7 +6314,7 @@ _modules.set("09b0023640f16a7eb1ea3762a8de7028f1a9906f39669f424c9296b119359ac5",
 return _exports;
 })();
 
-const _m57 = _modules.get("1a586388978acf7fd9edef2207a526d0d36336e55020e79c863580e612e9d775") ?? (() => {
+const _m61 = _modules.get("1a586388978acf7fd9edef2207a526d0d36336e55020e79c863580e612e9d775") ?? (() => {
 const { NotSupportedError, OfficeIMOError } = _m2;
 
 const { checkAbort, pause, taskYieldDue, withAbort } = _m4;
@@ -6029,18 +6527,18 @@ _modules.set("1a586388978acf7fd9edef2207a526d0d36336e55020e79c863580e612e9d775",
 return _exports;
 })();
 
-const _m56 = _modules.get("2528ef13105f42f640046c3b57f05656b29e36be81958add3a768c54fc3db306") ?? (() => {
+const _m60 = _modules.get("2528ef13105f42f640046c3b57f05656b29e36be81958add3a768c54fc3db306") ?? (() => {
 const { NotSupportedError, OfficeIMOError } = _m2;
 
 const { copyExportLink } = _m7;
 
 const { checkAbort, pause, taskYieldDue } = _m4;
 
-const { presentation, color } = _m42;
+const { presentation, color } = _m46;
 
-const { wrapShapedPdfText } = _m57;
+const { wrapShapedPdfText } = _m61;
 
-const { PdfFont } = _m48;
+const { PdfFont } = _m52;
 
 /** @internal A run list is a PDF presentation value, never an alternate shared table value model. */
 function capturePdfText(value, base, settings, fonts, countEmpty = true) {
@@ -6183,20 +6681,20 @@ _modules.set("2528ef13105f42f640046c3b57f05656b29e36be81958add3a768c54fc3db306",
 return _exports;
 })();
 
-const _m54 = _modules.get("d1fafaaa8b97139655ad4226050bce9f5afb6e978645cb6c6e5927e419233a2a") ?? (() => {
+const _m58 = _modules.get("d1fafaaa8b97139655ad4226050bce9f5afb6e978645cb6c6e5927e419233a2a") ?? (() => {
 const { ExportCell } = _m5;
 
 const { copyExportLink } = _m7;
 
 const { tableSpans } = _m13;
 
-const { createTotals } = _m32;
+const { createTotals } = _m33;
 
-const { presentation, positive } = _m42;
+const { presentation, positive } = _m46;
 
-const { displayText } = _m55;
+const { displayText } = _m59;
 
-const { capturePdfText, wrapPdfText } = _m56;
+const { capturePdfText, wrapPdfText } = _m60;
 
 class PdfTableLayout {
     settings;
@@ -6348,10 +6846,10 @@ _modules.set("d1fafaaa8b97139655ad4226050bce9f5afb6e978645cb6c6e5927e419233a2a",
 return _exports;
 })();
 
-const _m59 = _modules.get("c5f5a4892d01de11258381c667d72e97f69410f87c8ddb307be3a7bbb3d6857a") ?? (() => {
+const _m63 = _modules.get("c5f5a4892d01de11258381c667d72e97f69410f87c8ddb307be3a7bbb3d6857a") ?? (() => {
 const { OfficeIMOError } = _m2;
 
-const { pdfNumber, unicodeHex } = _m46;
+const { pdfNumber, unicodeHex } = _m50;
 
 const encoder = new TextEncoder();
 /** @internal URI actions are byte strings; tooltips are Unicode PDF text strings. */
@@ -6394,10 +6892,10 @@ _modules.set("c5f5a4892d01de11258381c667d72e97f69410f87c8ddb307be3a7bbb3d6857a",
 return _exports;
 })();
 
-const _m60 = _modules.get("c96c0d1447d047ab9d1d03612cf6618933273fb72bc145d7d77efafdf0f6c95f") ?? (() => {
+const _m64 = _modules.get("c96c0d1447d047ab9d1d03612cf6618933273fb72bc145d7d77efafdf0f6c95f") ?? (() => {
 const { OfficeIMOError } = _m2;
 
-const { unicodeHex } = _m46;
+const { unicodeHex } = _m50;
 
 /** @internal Capture bookmark metadata before source enumeration or cooperative layout. */
 function captureBookmark(value, settings) {
@@ -6441,8 +6939,8 @@ _modules.set("c96c0d1447d047ab9d1d03612cf6618933273fb72bc145d7d77efafdf0f6c95f",
 return _exports;
 })();
 
-const _m61 = _modules.get("54166f13e5fa6fe71eeb3b0aefd566a1bf0741cf1f7eee31d767c83d83013c9f") ?? (() => {
-const { settings } = _m42;
+const _m65 = _modules.get("54166f13e5fa6fe71eeb3b0aefd566a1bf0741cf1f7eee31d767c83d83013c9f") ?? (() => {
+const { settings } = _m46;
 
 /** @internal Every section derives from captured document defaults, never the preceding section. */
 function sectionSettings(base, section) {
@@ -6460,24 +6958,24 @@ _modules.set("54166f13e5fa6fe71eeb3b0aefd566a1bf0741cf1f7eee31d767c83d83013c9f",
 return _exports;
 })();
 
-const _m58 = _modules.get("b127d1938ffe939bdbe958e2c9c266fb284d39b0e23f578d9233b34d81a7eac1") ?? (() => {
+const _m62 = _modules.get("b127d1938ffe939bdbe958e2c9c266fb284d39b0e23f578d9233b34d81a7eac1") ?? (() => {
 const { OfficeIMOError } = _m2;
 
 const { checkAbort } = _m4;
 
-const { pdfNumber } = _m46;
+const { pdfNumber } = _m50;
 
-const { color } = _m42;
+const { color } = _m46;
 
-const { wrapText, wrapTextCooperatively, synchronousText } = _m55;
+const { wrapText, wrapTextCooperatively, synchronousText } = _m59;
 
-const { linkAnnotation } = _m59;
+const { linkAnnotation } = _m63;
 
-const { unicodeHex } = _m46;
+const { unicodeHex } = _m50;
 
-const { captureSection, captureBookmark } = _m60;
+const { captureSection, captureBookmark } = _m64;
 
-const { sectionSettings } = _m61;
+const { sectionSettings } = _m65;
 
 /** @internal One page of drawing commands and O(page count) references, never the complete report body. */
 class PdfPages {
@@ -6973,7 +7471,7 @@ _modules.set("b127d1938ffe939bdbe958e2c9c266fb284d39b0e23f578d9233b34d81a7eac1",
 return _exports;
 })();
 
-const _m63 = _modules.get("7a58e8ccb5164de51db14e39ca9695af6487c354df909509f0ae6bfac8ae3887") ?? (() => {
+const _m67 = _modules.get("7a58e8ccb5164de51db14e39ca9695af6487c354df909509f0ae6bfac8ae3887") ?? (() => {
 /** @internal Incremental PDF number tree: at most 64 entries/children per retained level. */
 class PdfParentTree {
     objects;
@@ -7036,14 +7534,14 @@ _modules.set("7a58e8ccb5164de51db14e39ca9695af6487c354df909509f0ae6bfac8ae3887",
 return _exports;
 })();
 
-const _m62 = _modules.get("2cd5f38c92477650ddc26f5e7372fb391c6f73ae494885e2f782ff89a278bf91") ?? (() => {
+const _m66 = _modules.get("2cd5f38c92477650ddc26f5e7372fb391c6f73ae494885e2f782ff89a278bf91") ?? (() => {
 const { OfficeIMOError } = _m2;
 
 const { checkAbort } = _m4;
 
-const { unicodeHex } = _m46;
+const { unicodeHex } = _m50;
 
-const { PdfParentTree } = _m63;
+const { PdfParentTree } = _m67;
 
 /** @internal Only open logical elements retain content; completed subtrees retain compact parent references. */
 class PdfStructure {
@@ -7216,12 +7714,12 @@ _modules.set("2cd5f38c92477650ddc26f5e7372fb391c6f73ae494885e2f782ff89a278bf91",
 return _exports;
 })();
 
-const _m64 = _modules.get("17b4517717b5af10b7d5ee3b55a2a3283703a52f715041a491f16fcb0efc19d6") ?? (() => {
+const _m68 = _modules.get("17b4517717b5af10b7d5ee3b55a2a3283703a52f715041a491f16fcb0efc19d6") ?? (() => {
 const { OfficeIMOError } = _m2;
 
 const { checkAbort } = _m4;
 
-const { pdfNumber, unicodeHex } = _m46;
+const { pdfNumber, unicodeHex } = _m50;
 
 /** @internal Bounded native bookmarks; destinations are captured only when their content is painted. */
 class PdfOutlines {
@@ -7275,18 +7773,18 @@ _modules.set("17b4517717b5af10b7d5ee3b55a2a3283703a52f715041a491f16fcb0efc19d6",
 return _exports;
 })();
 
-const _m45 = _modules.get("a89e9a8eebca0152b7e89a3e88b00e7913a48093ebd116a90f86e6ccdc9251af") ?? (() => {
-const { PdfObjects, unicodeHex } = _m46;
+const _m49 = _modules.get("a89e9a8eebca0152b7e89a3e88b00e7913a48093ebd116a90f86e6ccdc9251af") ?? (() => {
+const { PdfObjects, unicodeHex } = _m50;
 
-const { PdfFontResources } = _m47;
+const { PdfFontResources } = _m51;
 
-const { PdfTableLayout } = _m54;
+const { PdfTableLayout } = _m58;
 
-const { PdfPages } = _m58;
+const { PdfPages } = _m62;
 
-const { PdfStructure } = _m62;
+const { PdfStructure } = _m66;
 
-const { PdfOutlines } = _m64;
+const { PdfOutlines } = _m68;
 
 /** One resource/catalog owner shared by table convenience exports and composed documents. */
 class PdfWriteSession {
@@ -7340,7 +7838,7 @@ _modules.set("a89e9a8eebca0152b7e89a3e88b00e7913a48093ebd116a90f86e6ccdc9251af",
 return _exports;
 })();
 
-const _m41 = _modules.get("096969f492433bce37929fc472974586917b76e58adf0b32960d3357f589aeb7") ?? (() => {
+const _m45 = _modules.get("096969f492433bce37929fc472974586917b76e58adf0b32960d3357f589aeb7") ?? (() => {
 const { BlobByteSink, withDestination } = _m3;
 
 const { beginTask, checkAbort, consumeRows, pause, taskYieldDue } = _m4;
@@ -7349,9 +7847,9 @@ const { notifyProgress } = _m8;
 
 const { createRowProjector } = _m11;
 
-const { settings } = _m42;
+const { settings } = _m46;
 
-const { PdfWriteSession } = _m45;
+const { PdfWriteSession } = _m49;
 
 async function writePdf(rows, configuration) {
     const sink = new BlobByteSink();
@@ -7407,7 +7905,7 @@ _modules.set("096969f492433bce37929fc472974586917b76e58adf0b32960d3357f589aeb7",
 return _exports;
 })();
 
-const _m67 = _modules.get("93cd0a0782cf8422936851ade68f30471906ea3d2d31fc8f5c5ff8be267c9f7e") ?? (() => {
+const _m71 = _modules.get("93cd0a0782cf8422936851ade68f30471906ea3d2d31fc8f5c5ff8be267c9f7e") ?? (() => {
 const { NotSupportedError, OfficeIMOError } = _m2;
 
 const { checkAbort, pause, taskYieldDue, withAbort } = _m4;
@@ -7630,12 +8128,12 @@ _modules.set("93cd0a0782cf8422936851ade68f30471906ea3d2d31fc8f5c5ff8be267c9f7e",
 return _exports;
 })();
 
-const _m66 = _modules.get("d5b31c21eb17feaf02518fddbbf7d0a45c0159e8473b08eb4a8be0a7a45cb654") ?? (() => {
+const _m70 = _modules.get("d5b31c21eb17feaf02518fddbbf7d0a45c0159e8473b08eb4a8be0a7a45cb654") ?? (() => {
 const { NotSupportedError, OfficeIMOError } = _m2;
 
 const { checkAbort, pause, taskYieldDue } = _m4;
 
-const { pngPixels } = _m67;
+const { pngPixels } = _m71;
 
 /** Shared document image resources; source objects are captured on first consumption. */
 class PdfDocumentImages {
@@ -7764,14 +8262,14 @@ _modules.set("d5b31c21eb17feaf02518fddbbf7d0a45c0159e8473b08eb4a8be0a7a45cb654",
 return _exports;
 })();
 
-const _m68 = _modules.get("59e3dddc332e88560fc8a9afaccea6a9570bee73d4f796a30afa1f16335cb5d5") ?? (() => {
+const _m72 = _modules.get("59e3dddc332e88560fc8a9afaccea6a9570bee73d4f796a30afa1f16335cb5d5") ?? (() => {
 const { OfficeIMOError } = _m2;
 
 const { checkAbort, pause, taskYieldDue } = _m4;
 
-const { color, positive } = _m42;
+const { color, positive } = _m46;
 
-const { pdfNumber: n } = _m46;
+const { pdfNumber: n } = _m50;
 
 /** Capture and serialize one bounded display path, with no markup parser or resource loading. */
 async function vectorCommands(block, settings, used) {
@@ -7851,14 +8349,14 @@ _modules.set("59e3dddc332e88560fc8a9afaccea6a9570bee73d4f796a30afa1f16335cb5d5",
 return _exports;
 })();
 
-const _m69 = _modules.get("719070871035dc1a374b6429131ac5573cfc912895ed40675bce157edb2ab529") ?? (() => {
+const _m73 = _modules.get("719070871035dc1a374b6429131ac5573cfc912895ed40675bce157edb2ab529") ?? (() => {
 const { NotSupportedError, OfficeIMOError } = _m2;
 
 const { checkAbort, pause, taskYieldDue } = _m4;
 
-const { color, positive } = _m42;
+const { color, positive } = _m46;
 
-const { pdfNumber: n } = _m46;
+const { pdfNumber: n } = _m50;
 
 /** Portable drawings are an exact schema: unsupported data must never be silently discarded. */
 function record(value, keys, name) {
@@ -8098,16 +8596,16 @@ _modules.set("719070871035dc1a374b6429131ac5573cfc912895ed40675bce157edb2ab529",
 return _exports;
 })();
 
-const _m70 = _modules.get("2178161dd9caa05f2a5355f8068d9fde9ca25b53dee3c4247331656acb612349") ?? (() => {
+const _m74 = _modules.get("2178161dd9caa05f2a5355f8068d9fde9ca25b53dee3c4247331656acb612349") ?? (() => {
 const { OfficeIMOError } = _m2;
 
-const { capturePdfText, wrapPdfText } = _m56;
+const { capturePdfText, wrapPdfText } = _m60;
 
-const { positive } = _m42;
+const { positive } = _m46;
 
-const { resolveParagraphStyle } = _m43;
+const { resolveParagraphStyle } = _m47;
 
-const { captureBookmark } = _m60;
+const { captureBookmark } = _m64;
 
 /** @internal Copy public paragraph input before any cooperative layout or source enumeration. */
 function captureParagraph(block, settings, fonts) {
@@ -8173,12 +8671,12 @@ _modules.set("2178161dd9caa05f2a5355f8068d9fde9ca25b53dee3c4247331656acb612349",
 return _exports;
 })();
 
-const _m71 = _modules.get("82baa9eab44aa86421b1858fbde215c07b542a24b11a2da2da77f80582b37568") ?? (() => {
-const { capturePdfText, wrapPdfText } = _m56;
+const _m75 = _modules.get("82baa9eab44aa86421b1858fbde215c07b542a24b11a2da2da77f80582b37568") ?? (() => {
+const { capturePdfText, wrapPdfText } = _m60;
 
-const { captureParagraph, prepareParagraph } = _m70;
+const { captureParagraph, prepareParagraph } = _m74;
 
-const { resolveParagraphStyle } = _m43;
+const { resolveParagraphStyle } = _m47;
 
 function captureListOptions(block, settings) {
     const { items, ordered = false, start: inputStart, itemStyle, indent, markerGap } = block;
@@ -8231,7 +8729,7 @@ _modules.set("82baa9eab44aa86421b1858fbde215c07b542a24b11a2da2da77f80582b37568",
 return _exports;
 })();
 
-const _m65 = _modules.get("3b16bca6174e1901d80bc63b62b000f2162a9e068817a9b8bd086f0196721b45") ?? (() => {
+const _m69 = _modules.get("3b16bca6174e1901d80bc63b62b000f2162a9e068817a9b8bd086f0196721b45") ?? (() => {
 const { BlobByteSink, withDestination } = _m3;
 
 const { OfficeIMOError } = _m2;
@@ -8242,27 +8740,27 @@ const { notifyProgress } = _m8;
 
 const { copyColumns, createRowProjector } = _m11;
 
-const { settings } = _m42;
+const { settings } = _m46;
 
-const { pdfNumber: n } = _m46;
+const { pdfNumber: n } = _m50;
 
-const { PdfTableLayout } = _m54;
+const { PdfTableLayout } = _m58;
 
-const { PdfWriteSession } = _m45;
+const { PdfWriteSession } = _m49;
 
-const { PdfDocumentImages } = _m66;
+const { PdfDocumentImages } = _m70;
 
-const { vectorCommands } = _m68;
+const { vectorCommands } = _m72;
 
-const { graphicAlternative } = _m62;
+const { graphicAlternative } = _m66;
 
-const { checkDrawingBlock, prepareDrawing } = _m69;
+const { checkDrawingBlock, prepareDrawing } = _m73;
 
-const { captureParagraph, captureCaption, prepareParagraph, checkParagraphBuffer, paragraphStartHeight } = _m70;
+const { captureParagraph, captureCaption, prepareParagraph, checkParagraphBuffer, paragraphStartHeight } = _m74;
 
-const { captureListOptions, prepareListItem } = _m71;
+const { captureListOptions, prepareListItem } = _m75;
 
-const { captureSection } = _m60;
+const { captureSection } = _m64;
 
 /** Capture typed columns for a single-use table source in a composed document. */
 function pdfTable(rows, options) {
@@ -8497,10 +8995,10 @@ _modules.set("3b16bca6174e1901d80bc63b62b000f2162a9e068817a9b8bd086f0196721b45",
 return _exports;
 })();
 
-const _m72 = _modules.get("6ac9b32affc9008e5bd8620fd3792022dfdcd4e0fe51c678bb2ba26bcbe95fd9") ?? (() => {
-const { fontProgram } = _m48;
+const _m76 = _modules.get("6ac9b32affc9008e5bd8620fd3792022dfdcd4e0fe51c678bb2ba26bcbe95fd9") ?? (() => {
+const { fontProgram } = _m52;
 
-const { resolveScalar, selectFont, validateFonts } = _m52;
+const { resolveScalar, selectFont, validateFonts } = _m56;
 
 /**
  * Check one text run against the writer's selected font and scalar-layout rules.
@@ -8537,14 +9035,14 @@ _modules.set("6ac9b32affc9008e5bd8620fd3792022dfdcd4e0fe51c678bb2ba26bcbe95fd9",
 return _exports;
 })();
 
-const _m40 = _modules.get("022a09a49701f5d594b4fbf17bb482425b341803d8b5b368e62a418cc44024ad") ?? (() => {
+const _m44 = _modules.get("022a09a49701f5d594b4fbf17bb482425b341803d8b5b368e62a418cc44024ad") ?? (() => {
 
-const _exports = Object.freeze({ writePdf: _m41.writePdf, writePdfTo: _m41.writePdfTo, writePdfDocument: _m65.writePdfDocument, writePdfDocumentTo: _m65.writePdfDocumentTo, pdfTable: _m65.pdfTable, PdfFont: _m48.PdfFont, preflightPdfText: _m72.preflightPdfText, ExportCell: _m5.ExportCell, saveBlob: _m1.saveBlob });
+const _exports = Object.freeze({ writePdf: _m45.writePdf, writePdfTo: _m45.writePdfTo, writePdfDocument: _m69.writePdfDocument, writePdfDocumentTo: _m69.writePdfDocumentTo, pdfTable: _m69.pdfTable, PdfFont: _m52.PdfFont, preflightPdfText: _m76.preflightPdfText, ExportCell: _m5.ExportCell, saveBlob: _m1.saveBlob });
 _modules.set("022a09a49701f5d594b4fbf17bb482425b341803d8b5b368e62a418cc44024ad", _exports);
 return _exports;
 })();
 
-const _m73 = _modules.get("e37eb5f0298d8bc9492db790f163f4a1d6d8b4293981cfdacfcd9d9810ec9b7f") ?? (() => {
+const _m77 = _modules.get("e37eb5f0298d8bc9492db790f163f4a1d6d8b4293981cfdacfcd9d9810ec9b7f") ?? (() => {
 /** @internal Runtime-checked calls across the optional third-party API boundary. */
 function call(owner, name, ...args) {
     const fn = member(owner, name);
@@ -8577,12 +9075,12 @@ _modules.set("e37eb5f0298d8bc9492db790f163f4a1d6d8b4293981cfdacfcd9d9810ec9b7f",
 return _exports;
 })();
 
-const _m74 = _modules.get("c46e682d13bf0e86d2fc54020ab3c0db604a2afc8cb9176c1859e1ac194a58a7") ?? (() => {
+const _m78 = _modules.get("c46e682d13bf0e86d2fc54020ab3c0db604a2afc8cb9176c1859e1ac194a58a7") ?? (() => {
 const { ExportCell, assertExportValue } = _m5;
 
 const { tableSpans } = _m13;
 
-const { member } = _m73;
+const { member } = _m77;
 
 /** @internal */
 function value(input) {
@@ -8651,14 +9149,14 @@ _modules.set("c46e682d13bf0e86d2fc54020ab3c0db604a2afc8cb9176c1859e1ac194a58a7",
 return _exports;
 })();
 
-const _m75 = _modules.get("a9140403b66b3da06f21ffc7587028c865e6d23d4c5fba5deabf888e29f83a34") ?? (() => {
+const _m79 = _modules.get("a9140403b66b3da06f21ffc7587028c865e6d23d4c5fba5deabf888e29f83a34") ?? (() => {
 const { checkAbort, pause, rowsFromBatches, taskYieldDue } = _m4;
 
 const { ExportBudget } = _m10;
 
-const { array, call, indexes, member } = _m73;
+const { array, call, indexes, member } = _m77;
 
-const { headings, text, value } = _m74;
+const { headings, text, value } = _m78;
 
 function safeOptions(options) {
     const format = options.format ? { ...options.format } : undefined, customize = options.customizeData;
@@ -8858,7 +9356,7 @@ _modules.set("a9140403b66b3da06f21ffc7587028c865e6d23d4c5fba5deabf888e29f83a34",
 return _exports;
 })();
 
-const _m0 = _modules.get("b7718f2f866083d0ec231569b35b5d06d194a451e7376a3ce15c27c9c95a89a6") ?? (() => {
+const _m0 = _modules.get("00072f1f1650bc5be85a0190e78b508d8c47e146f447d8654b2d3c494e42e5f6") ?? (() => {
 const { BlobByteSink, checkAbort, saveBlob } = _m1;
 
 const { notifyProgress } = _m8;
@@ -8867,15 +9365,15 @@ const { writeCsvTo } = _m9;
 
 const { writeXlsxTo } = _m14;
 
-const { writePdfTo } = _m40;
+const { writePdfTo } = _m44;
 
-const { portableSheet, portableWorkbook } = _m39;
+const { portableSheet, portableWorkbook } = _m43;
 
-const { call, member } = _m73;
+const { call, member } = _m77;
 
-const { value } = _m74;
+const { value } = _m78;
 
-const { captureDataTablesExport } = _m75;
+const { captureDataTablesExport } = _m79;
 
 
 
@@ -9012,8 +9510,8 @@ function registerDataTablesButtons(host, options = {}) {
         };
     }
 }
-const _exports = Object.freeze({ createDataTablesExport: _m75.createDataTablesExport, ExportCell: _m5.ExportCell, PdfFont: _m48.PdfFont, writeDataTableTo: writeDataTableTo, exportDataTable: exportDataTable, registerDataTablesButtons: registerDataTablesButtons });
-_modules.set("b7718f2f866083d0ec231569b35b5d06d194a451e7376a3ce15c27c9c95a89a6", _exports);
+const _exports = Object.freeze({ createDataTablesExport: _m79.createDataTablesExport, ExportCell: _m5.ExportCell, PdfFont: _m52.PdfFont, writeDataTableTo: writeDataTableTo, exportDataTable: exportDataTable, registerDataTablesButtons: registerDataTablesButtons });
+_modules.set("00072f1f1650bc5be85a0190e78b508d8c47e146f447d8654b2d3c494e42e5f6", _exports);
 return _exports;
 })();
 Object.assign(officeimo, _m0);

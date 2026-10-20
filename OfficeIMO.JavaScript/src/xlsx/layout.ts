@@ -3,6 +3,7 @@ import type { ProjectionColumn } from "../internal/columns.js";
 import { ExportCell } from "../core/presentation.js";
 import { isDate } from "../core/dates.js";
 import { Cell, cellText, columnName } from "./values.js";
+import { FormulaCell } from "./formula.js";
 import { escapeOoxmlAttribute } from "../xml/index.js";
 import type { InvalidCharacterPolicy } from "../xml/index.js";
 import type { SheetOptions, TotalOperation, PrintOptions } from "./types.js";
@@ -92,7 +93,7 @@ export class ReportLayout {
     const min = this.options.autoSize?.minWidth ?? 8, max = this.options.autoSize?.maxWidth ?? 60;
     values.forEach((value, i) => {
       if (!this.columns[i] || this.columns[i]!.width !== undefined) return;
-      const raw = value instanceof ExportCell ? value.text ?? value.value : value instanceof Cell ? value.value : value;
+      const raw = value instanceof FormulaCell ? value.cachedValue : value instanceof ExportCell ? value.text ?? value.value : value instanceof Cell ? value.value : value;
       const text = isDate(raw) ? Number.isFinite(raw.getTime()) ? raw.toISOString() : "" : raw == null ? "" : String(raw);
       // Inspect at most a small prefix. A single long value cannot make a huge sampling allocation.
       const length = Math.max(0, ...text.slice(0, Math.ceil(max * 4)).split(/\r?\n/).map(line => [...line].length));

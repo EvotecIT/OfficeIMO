@@ -16,7 +16,9 @@ import { TextOverflow } from "./preservation.js";
 import type { CellValueWriter, WorkbookOptions, SheetOptions, ExtraPart, XlsxExportResult } from "./types.js";
 import { prepareChart } from "./charts.js";
 import type { RegisteredChart } from "./charts.js";
-import type { WorksheetChart } from "./chart-types.js";
+import type { WorksheetChart, ChartRangeData } from "./chart-types.js";
+import type { ResolvedChartBinding } from "./chart-bindings.js";
+import { qualifiedColumnRange, resolveDataColumn } from "./ranges.js";
 import { chartContentType, writeChartXml } from "./chart-xml.js";
 
 const xlsxMime = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
@@ -49,7 +51,12 @@ export class Workbook {
   private bufferedBytes = 0;
   private mergedRanges = 0;
   private conditionalFormats = 0;
+  private dataValidationCount = 0;
+  private validationTextCharacters = 0;
+  private formulaCharacters = 0;
+  private hasAuthoredFormulas = false;
   private readonly nativeCharts: RegisteredChart[] = [];
+  private chartSourceSheets = 0;
   private chartPoints = 0;
   private chartTextCharacters = 0;
   private registering = false;
@@ -99,7 +106,7 @@ export class Workbook {
         const quoted = "'" + s.name.replace(/'/g, "''") + "'!";
         return s.printSettings ? '<definedName name="_xlnm.Print_Area" localSheetId="' + i + '">' + escapeOoxmlAttribute(quoted + '$A$1:$' + s.lastColumn + '$' + s.totalRows, this.settings.invalidCharacterPolicy) + '</definedName>' +
           (s.printSettings.repeatHeaders && s.firstHeaderRow ? '<definedName name="_xlnm.Print_Titles" localSheetId="' + i + '">' + escapeOoxmlAttribute(quoted + '$' + s.firstHeaderRow + ':$' + s.headerRowCount, this.settings.invalidCharacterPolicy) + '</definedName>' : "") : "";
-      }).join("") + '</definedNames>' : "") + '</workbook>';
+      }).join("") + '</definedNames>' : "") + (this.hasAuthoredFormulas ? '<calcPr calcMode="auto" fullCalcOnLoad="1" forceFullCalc="1"/>' : "") + '</workbook>';
   }
   /** @internal */
   assertOpen(): void {
@@ -114,7 +121,7 @@ export class Workbook {
   preserveText(sheet: string, cell: string, text: string): { preview: string; location: string } {
     if (this.settings.oversizedText !== "preserve") throw new RangeError("Excel cell text exceeds 32,767 UTF-16 code units.");
     if (!this.overflow) {
-      this.checkSheetLimit(this.sheets.length + this.nativeCharts.length + 1);
+      this.checkSheetLimit(this.sheets.length + this.chartSourceSheets + 1);
       this.budget.reserve(5, "SheetCellPartTextParts".length);
       this.overflow = new TextOverflow(sheetName("Text overflow", this.names, this.settings.invalidCharacterPolicy), this.settings.limits?.maxOverflowCharacters ?? 4000000, this.settings.invalidCharacterPolicy, (cells, characters, rows) => { this.budget.row(rows); this.budget.reserve(cells, characters); });
     }
@@ -145,19 +152,58 @@ export class Workbook {
   checkMerges(count: number): void { if (this.mergedRanges + count > (this.settings.limits?.maxMergedRanges ?? 10000)) throw new OfficeIMOError("RESOURCE_LIMIT", "maxMergedRanges exceeded."); }
   /** @internal */
   checkConditionalFormats(count: number): void { if (this.conditionalFormats + count > (this.settings.limits?.maxConditionalFormats ?? 1000)) throw new OfficeIMOError("RESOURCE_LIMIT", "maxConditionalFormats exceeded."); }
+  /** @internal Remaining immutable editing-rule budgets, checked before capture allocation. */
+  get availableDataValidations(): number { return (this.settings.limits?.maxDataValidations ?? 1000) - this.dataValidationCount; }
+  /** @internal */
+  get availableValidationTextCharacters(): number { return (this.settings.limits?.maxValidationTextCharacters ?? 1000000) - this.validationTextCharacters; }
+  /** @internal Authored formula text is counted once when its cell is serialized. */
+  retainFormula(characters: number): void {
+    if (this.formulaCharacters + characters > (this.settings.limits?.maxFormulaCharacters ?? 1000000))
+      throw new OfficeIMOError("RESOURCE_LIMIT", "maxFormulaCharacters exceeded.");
+    this.formulaCharacters += characters; this.hasAuthoredFormulas = true;
+  }
+  private checkChartText(characters: number): void {
+    if (this.chartTextCharacters + characters > (this.settings.limits?.maxChartTextCharacters ?? 1000000))
+      throw new OfficeIMOError("RESOURCE_LIMIT", "maxChartTextCharacters exceeded.");
+  }
+  /** @internal Category caches consume the same cumulative budget as chart metadata. */
+  private retainChartText(characters: number): void {
+    this.checkChartText(characters);
+    this.chartTextCharacters += characters;
+  }
+  private resolveChartBinding(input: ChartRangeData): { descriptor: ResolvedChartBinding; retainText: (characters: number) => void } {
+    const source = input.sheet;
+    if (!this.sheets.includes(source) || source.hidden)
+      throw new TypeError("Bound charts require a visible worksheet in the same workbook.");
+    const metadata = source.chartBindingMetadata, first = input.firstRow ?? 0;
+    if (source.isBusy || metadata.closed || first < metadata.rows)
+      throw new OfficeIMOError("INVALID_STATE", "Register a chart before its first selected data row is written, while the source worksheet is idle.");
+    const category = resolveDataColumn(metadata.columns, input.categoryColumn, "Chart");
+    const series = input.series.map(item => resolveDataColumn(metadata.columns, item.column, "Chart"));
+    const start = metadata.headerRows + first + 1;
+    return { descriptor: { source, sheetName: metadata.name, headerRows: metadata.headerRows, categoryColumn: category, seriesColumns: series,
+      seriesNames: series.map(column => metadata.columns[column - 1]!.header),
+      categoryFormula: qualifiedColumnRange(metadata.name, category, start, input.rowCount),
+      valueFormulas: series.map(column => qualifiedColumnRange(metadata.name, column, start, input.rowCount)),
+      nameFormulas: series.map((column, index) => input.series[index]!.name === undefined
+        ? metadata.headerReferences[column - 1] : undefined) }, retainText: characters => this.retainChartText(characters) };
+  }
   /** @internal Reserve chart snapshots and their source-sheet names before any output is generated. */
   registerChart(input: WorksheetChart): RegisteredChart {
     return this.registration(() => {
       if (this.nativeCharts.length >= (this.settings.limits?.maxCharts ?? 100)) throw new OfficeIMOError("RESOURCE_LIMIT", "maxCharts exceeded.");
-      this.checkSheetLimit(this.sheets.length + this.nativeCharts.length + 1 + (this.overflow ? 1 : 0));
       const chart = prepareChart(input, this.settings.invalidCharacterPolicy, (this.settings.limits?.maxChartPoints ?? 100000) - this.chartPoints,
-        (this.settings.limits?.maxChartTextCharacters ?? 1000000) - this.chartTextCharacters, this.settings.signal);
+        (this.settings.limits?.maxChartTextCharacters ?? 1000000) - this.chartTextCharacters, this.settings.signal, value => this.resolveChartBinding(value));
       this.assertOpen();
+      // Input getters may write categories into an existing bound chart's cache.
+      this.checkChartText(chart.textCharacters);
       // Input getters may append rows to an existing sheet and allocate text preservation.
-      this.checkSheetLimit(this.sheets.length + this.nativeCharts.length + 1 + (this.overflow ? 1 : 0));
+      this.checkSheetLimit(this.sheets.length + this.chartSourceSheets + (chart.binding ? 0 : 1) + (this.overflow ? 1 : 0));
       const registered = Object.freeze({ ...chart, id: this.nativeCharts.length + 1,
-        dataSheetName: sheetName("Chart data " + (this.nativeCharts.length + 1), this.names, this.settings.invalidCharacterPolicy) });
+        dataSheetName: chart.binding ? (chart.binding.source as Worksheet).name : sheetName("Chart data " + (this.nativeCharts.length + 1), this.names, this.settings.invalidCharacterPolicy) });
       this.nativeCharts.push(registered); this.chartPoints += chart.points; this.chartTextCharacters += chart.textCharacters;
+      if (chart.binding) (chart.binding.source as Worksheet).retainChartBinding(chart.binding);
+      else this.chartSourceSheets++;
       return registered;
     });
   }
@@ -183,25 +229,27 @@ export class Workbook {
   get rowCount(): number { return this.sheets.reduce((sum, sheet) => sum + sheet.reportRowCount, 0); }
   addWorksheet<T = never>(name: string, options: SheetOptions<T> = {}): Worksheet<T> {
     return this.registration(() => {
-      this.checkSheetLimit(this.sheets.length + this.nativeCharts.length + 1 + (this.overflow ? 1 : 0));
+      this.checkSheetLimit(this.sheets.length + this.chartSourceSheets + 1 + (this.overflow ? 1 : 0));
       // Validation/serialization use erased column metadata; projection later receives T rows.
-      const metadata = options as unknown as SheetOptions;
-      const conditional = Worksheet.validate(this, metadata);
-      let tableOptions = options.table;
+      const metadata = { ...options } as unknown as SheetOptions;
+      const prepared = Worksheet.validate(this, metadata);
+      let tableOptions = metadata.table;
       if (tableOptions && tableOptions.name === undefined) {
         let suffix = this.tableCount + 1;
         while (this.tableNames.has(("Table" + suffix).toLowerCase())) suffix++;
         tableOptions = { ...tableOptions, name: "Table" + suffix };
       }
-      const table = tableOptions ? defineTable(this.tableCount + 1, tableOptions, options.columns ?? [], this.settings.invalidCharacterPolicy) : undefined;
+      const table = tableOptions ? defineTable(this.tableCount + 1, tableOptions, metadata.columns ?? [], this.settings.invalidCharacterPolicy) : undefined;
       if (table && this.tableNames.has(table.name.toLowerCase())) throw new TypeError("Duplicate Excel table name: " + table.name);
       sheetName(name, this.names, this.settings.invalidCharacterPolicy, false);
-      const sheet = Worksheet.create(this, () => sheetName(name, this.names, this.settings.invalidCharacterPolicy, false), metadata, table, false, conditional);
+      const sheet = Worksheet.create(this, () => sheetName(name, this.names, this.settings.invalidCharacterPolicy, false), metadata, table, false, prepared.conditional, prepared.validations);
       this.assertOpen();
-      this.checkSheetLimit(this.sheets.length + this.nativeCharts.length + 1 + (this.overflow ? 1 : 0));
+      this.checkSheetLimit(this.sheets.length + this.chartSourceSheets + 1 + (this.overflow ? 1 : 0));
       this.names.add(sheet.name.toLowerCase());
       this.mergedRanges += sheet.mergeCount;
       this.conditionalFormats += sheet.conditionalFormatCount;
+      this.dataValidationCount += sheet.dataValidations.count;
+      this.validationTextCharacters += sheet.dataValidations.textCharacters;
       if (table) { this.tableNames.add(table.name.toLowerCase()); this.tableCount++; }
       this.sheets.push(sheet); return sheet;
     });
@@ -271,6 +319,7 @@ export class Workbook {
         }
         for (const chart of this.nativeCharts) {
           checkAbort(this.settings.signal);
+          if (chart.binding) continue;
           const sheet = Worksheet.createChartData(this, chart);
           this.sheets.push(sheet);
           function* rows() { for (let i = 0; i < chart.data.categories.length; i++) yield [chart.data.categories[i]!, ...chart.data.series.map(series => series.values[i]!)]; }

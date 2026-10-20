@@ -59,7 +59,7 @@ internal static class ReportEngineVerifier {
         using var zip = ZipFile.OpenRead(path);
         XDocument Read(string name) { using var stream = zip.GetEntry(name)?.Open() ?? throw new InvalidDataException("Missing " + name); return XDocument.Load(stream); }
         var sheets = Read("xl/workbook.xml").Descendants(Sheet + "sheet").ToArray();
-        Require(sheets.Length == 3 && (string?)sheets[0].Attribute("name") == "Services" && (string?)sheets[1].Attribute("name") == "Overview" && (string?)sheets[2].Attribute("state") == "hidden", "XLSX report/chart sheet identities differ.");
+        Require(sheets.Length == 2 && (string?)sheets[0].Attribute("name") == "Services" && (string?)sheets[1].Attribute("name") == "Overview" && sheets.All(sheet => sheet.Attribute("state") is null), "XLSX report/chart sheet identities differ.");
         var service = Read("xl/worksheets/sheet1.xml");
         Require((string?)service.Descendants(Sheet + "pane").Single().Attribute("topLeftCell") == "B3", "XLSX frozen headings differ.");
         if (count > 0) {
@@ -74,18 +74,25 @@ internal static class ReportEngineVerifier {
         } else Require(!zip.Entries.Any(e => e.FullName.StartsWith("xl/tables/", StringComparison.Ordinal)), "Empty XLSX invented a data table.");
         var chart = Read("xl/charts/chart1.xml");
         Require(chart.Descendants(Chart + "barChart").Count() == 1 && (string?)chart.Descendants(Chart + "barDir").Single().Attribute("val") == "col", "Native clustered column chart missing.");
-        Require((string?)chart.Descendants(Chart + "plotVisOnly").Single().Attribute("val") == "0", "Hidden source data would not plot.");
+        Require((string?)chart.Descendants(Chart + "plotVisOnly").Single().Attribute("val") == "1", "Visible source chart filtering policy differs.");
         int[] counts = new[] { "Healthy", "Attention", "Offline" }.Select(status => Enumerable.Range(0, count).Count(i => Status(i) == status)).ToArray();
         Require(chart.Descendants(Chart + "numCache").Single().Elements(Chart + "pt").Select(p => int.Parse(p.Element(Chart + "v")!.Value, CultureInfo.InvariantCulture)).SequenceEqual(counts), "Chart numeric cache differs.");
-        var source = Read("xl/worksheets/sheet3.xml");
+        var source = Read("xl/worksheets/sheet2.xml");
         string Cell(string reference) => source.Descendants(Sheet + "c").Single(c => (string?)c.Attribute("r") == reference).Element(Sheet + "v")?.Value ??
             string.Concat(source.Descendants(Sheet + "c").Single(c => (string?)c.Attribute("r") == reference).Descendants(Sheet + "t").Select(t => t.Value));
         Require(Enumerable.Range(2, 3).Select(i => int.Parse(Cell("B" + i), CultureInfo.InvariantCulture)).SequenceEqual(counts), "Chart backing source values differ.");
-        string prefix = "'" + sheets[2].Attribute("name")!.Value.Replace("'", "''", StringComparison.Ordinal) + "'!";
+        for (int index = 0; index < 3; index++) {
+            string status = new[] { "Healthy", "Attention", "Offline" }[index];
+            XElement summary = source.Descendants(Sheet + "c").Single(cell => (string?)cell.Attribute("r") == "B" + (index + 2));
+            string expected = count == 0 ? "0" : "COUNTIF('Services'!$C$3:$C$" + (count + 2) + ",\"" + status + "\")";
+            Require(summary.Element(Sheet + "f")?.Value == expected, "Live service summary formula differs.");
+        }
+        if (count > 0) Require((string?)service.Descendants(Sheet + "dataValidation").Single().Attribute("sqref") == "C3:C" + (count + 2), "Status editing validation range differs.");
+        string prefix = "'" + sheets[1].Attribute("name")!.Value.Replace("'", "''", StringComparison.Ordinal) + "'!";
         Require(chart.Descendants(Chart + "f").Select(f => f.Value).SequenceEqual(new[] { prefix + "$B$1", prefix + "$A$2:$A$4", prefix + "$B$2:$B$4" }), "Chart source formulas differ.");
         Require(chart.Descendants(Chart + "cat").Single().Descendants(Chart + "v").Select(v => v.Value).SequenceEqual(new[] { "Healthy", "Attention", "Offline" }) &&
             Enumerable.Range(2, 3).Select(i => Cell("A" + i)).SequenceEqual(new[] { "Healthy", "Attention", "Offline" }), "Chart categories differ from source cells.");
-        return new { file = Path.GetFileName(path), rows = count, columns = Headers.Length, sheets = 3, charts = 1, bytes = new FileInfo(path).Length, readers = 2, openXml = true, formulasAndCaches = true, typedDates = "UTC clock" };
+        return new { file = Path.GetFileName(path), rows = count, columns = Headers.Length, sheets = 2, charts = 1, bytes = new FileInfo(path).Length, readers = 2, openXml = true, formulasAndCaches = true, typedDates = "UTC clock" };
     }
 
     private static object VerifyPdf(string path, int count) {

@@ -2,6 +2,8 @@ param(
     [Parameter(Mandatory)][string] $BaselineBundle,
     [Parameter(Mandatory)][string] $OutputRoot,
     [string[]] $Cases,
+    [ValidateSet('baseline','current')][string[]] $Engine = @('baseline','current'),
+    [bool] $Compare = $true,
     [int] $WarmupCount = 1,
     [int] $IterationCount = 3,
     [switch] $Plan
@@ -17,10 +19,13 @@ $selection = @()
 if ($Cases) { $selection = @('--cases', ($Cases -join ',')) }
 & $node $helper prepare --baseline (Resolve-Path -LiteralPath $BaselineBundle).Path --current (Join-Path $repository 'OfficeIMO.JavaScript/bundles/officeimo.mjs') --evidence $evidence @selection
 if ($LASTEXITCODE -ne 0) { throw 'Workload preparation failed.' }
+if (@((Get-Content -LiteralPath $manifest -Raw | ConvertFrom-Json).cases | Where-Object currentOnly).Count -gt 0 -and ($Compare -or $Engine -contains 'baseline')) {
+    throw 'Editable-analysis diagnostics require -Engine current -Compare:$false; the old snapshot report is not equivalent work.'
+}
 $variables = @{ Node = $node; Helper = $helper; Manifest = $manifest; Evidence = $evidence
     Qpdf = (Get-Command qpdf -ErrorAction Stop).Source; Pdftotext = (Get-Command pdftotext -ErrorAction Stop).Source
-    Python = (Get-Command python3 -ErrorAction Stop).Source }
-$result = Invoke-BenchmarkSuite -Path (Join-Path $PSScriptRoot 'report-workloads.benchmark.ps1') -OutputRoot $evidence -Variable $variables -WarmupCount $WarmupCount -IterationCount $IterationCount -Plan:$Plan
+    Python = (Get-Command python3 -ErrorAction Stop).Source; Compare = $Compare }
+$result = Invoke-BenchmarkSuite -Path (Join-Path $PSScriptRoot 'report-workloads.benchmark.ps1') -OutputRoot $evidence -Variable $variables -Engine $Engine -WarmupCount $WarmupCount -IterationCount $IterationCount -Plan:$Plan
 if ($Plan) { $result | Select-Object Scenario,Engine,Operation,IsSkipped; return }
 # Shared-runner warmups skip validation; qualify those actual outputs outside timing too.
 foreach ($file in Get-ChildItem -LiteralPath $evidence -Filter 'sample.*' -Recurse -File) {

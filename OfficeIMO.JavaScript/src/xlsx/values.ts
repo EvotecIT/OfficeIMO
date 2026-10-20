@@ -3,6 +3,7 @@ import type { InvalidCharacterPolicy } from "../xml/index.js";
 import type { CellValue } from "../core/index.js";
 import { ExportCell, assertExportValue, assertScalar } from "../core/presentation.js";
 import { isDate } from "../core/dates.js";
+import { FormulaCell } from "./formula.js";
 
 /** A typed value plus a workbook-local style index. */
 export class Cell {
@@ -10,6 +11,7 @@ export class Cell {
 }
 /** @internal Advanced worksheets admit cells registered on their owning workbook. */
 export function assertXlsxValue(value: unknown): void {
+  if (value instanceof FormulaCell) return;
   if (value instanceof Cell) assertScalar(value.value);
   else assertExportValue(value);
 }

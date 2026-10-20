@@ -5,16 +5,18 @@ $qpdf = Get-BenchmarkInput Qpdf -Required
 $pdftotext = Get-BenchmarkInput Pdftotext -Required
 $python = Get-BenchmarkInput Python -Required
 $evidence = Get-BenchmarkInput Evidence -Required
+$compare = Get-BenchmarkInput Compare $true -Bool
 $cases = (Get-Content -LiteralPath $manifest -Raw | ConvertFrom-Json).cases
 
 New-BenchmarkSuite 'officeimo-complete-report-workloads' -OutputRoot $evidence {
     Set-BenchmarkPolicy -Warmup 1 -Iteration 3 -Order Rotated -OutlierMode None
-    Add-BenchmarkMetadata Contract 'Deterministic six-column inventory and assessment reports. Lazy row construction is included; import/setup/validation excluded. Every cell is independently read back; tagged PDF also checks all data-cell structure elements.'
+    Add-BenchmarkMetadata Contract 'Deterministic six-column inventory and assessment reports. Lazy row construction is included; import/setup/validation excluded. Every cell is independently read back; tagged PDF also checks all data-cell structure elements. Explicit current-only editable-analysis cases use the shared example and have no baseline ranking.'
     Add-BenchmarkMetadata DeliveryBoundary 'Sink cases include awaited regular-file writes (OS page cache applies). Blob cases time complete Blob generation and exclude subsequent Blob read/file copying. Do not compare sink and Blob lanes as equivalent memory contracts.'
     Add-BenchmarkMetadata FirstDeliveryMs 'First accepted sink write for sink cases. For Blob cases, completed Blob availability; raw firstByteMs is null because no earlier bytes are exposed.'
     Add-BenchmarkMetadata MemoryBoundary 'Fresh Node lifetime peakRSS through operation end includes imports/native memory. Sampled JS heap and external memory can miss synchronous peaks and are not additive. PowerForge host allocation metrics describe PowerShell, not the Node engine.'
     Add-BenchmarkMetadata LoadBoundary 'Normal development host and platform scheduler; no affinity or priority changes. Per-sample load averages are retained. Rotated warmups/iterations and all losses remain visible.'
     Add-BenchmarkMetadata ManifestSha256 (Get-FileHash -LiteralPath $manifest -Algorithm SHA256).Hash
+    Add-BenchmarkMetadata ComparisonEnabled $compare
     Add-BenchmarkCaseSource { foreach ($fixture in $cases) { [pscustomobject]@{ Name = $fixture.name; Format = $fixture.format } } }
     Set-BenchmarkSetup {
         param($case, $run)
@@ -50,6 +52,6 @@ New-BenchmarkSuite 'officeimo-complete-report-workloads' -OutputRoot $evidence {
     Add-BenchmarkMetric SampledHeapBytes { param($case, $run) $run.Measurement.maxSampledHeapBytes }
     Add-BenchmarkMetric MaxTimerGapMs { param($case, $run) $run.Measurement.maxTimerGapMs }
     Add-BenchmarkMetric OutputBytes { param($case, $run) $run.Measurement.outputBytes }
-    Add-BenchmarkComparison -Baseline baseline -Metric EngineMs,FirstDeliveryMs,NodePeakRssBytes,SampledHeapBytes,MaxTimerGapMs,OutputBytes
+    if ($compare) { Add-BenchmarkComparison -Baseline baseline -Metric EngineMs,FirstDeliveryMs,NodePeakRssBytes,SampledHeapBytes,MaxTimerGapMs,OutputBytes }
     Set-BenchmarkArtifacts Json,Csv,Markdown
 }

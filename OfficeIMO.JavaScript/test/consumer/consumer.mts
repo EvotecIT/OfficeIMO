@@ -3,7 +3,7 @@ import { BlobByteSink, ChunkedTextSink, detectFeatures, NotSupportedError } from
 import { ZipWriter, Crc32 } from "@evotecit/officeimo/zip";
 import { XmlWriter, escapeXml } from "@evotecit/officeimo/xml";
 import { OpcPackage, relationshipTypes, partUri, ContentTypes } from "@evotecit/officeimo/opc";
-import { Workbook, Worksheet, Cell, StyleRegistry, NumberFormats, saveBlob } from "@evotecit/officeimo/xlsx";
+import { Workbook, Worksheet, Cell, FormulaCell, StyleRegistry, NumberFormats, saveBlob } from "@evotecit/officeimo/xlsx";
 import { writeCsv, writeCsvTo } from "@evotecit/officeimo/csv";
 import { writePdf, writePdfTo, writePdfDocument, writePdfDocumentTo, pdfTable, PdfFont, preflightPdfText } from "@evotecit/officeimo/pdf";
 import type { PdfTextPreflightOptions, PdfTextPreflightResult, PdfTextIssueCode, PdfTaggedOptions } from "@evotecit/officeimo/pdf";
@@ -12,7 +12,7 @@ import type { PdfPngImage } from "@evotecit/officeimo/pdf";
 import type { PdfPngImage as RootPdfPngImage } from "@evotecit/officeimo";
 import type { Column, Rows } from "@evotecit/officeimo/core";
 import type { XlsxColumn } from "@evotecit/officeimo/xlsx";
-import type { ConditionalFormat } from "@evotecit/officeimo/xlsx";
+import type { ConditionalFormat, ListValidation, ChartRangeData } from "@evotecit/officeimo/xlsx";
 import { createDataTablesExport, exportDataTable, writeDataTableTo, registerDataTablesButtons } from "@evotecit/officeimo/integrations/datatables";
 import type { DataTablesApi, DataTablesHost } from "@evotecit/officeimo/integrations/datatables";
 import type { ExportLink } from "@evotecit/officeimo";
@@ -166,6 +166,7 @@ const rows: Rows = [{ name: "Łódź", seen: new Date() }];
 const book: Workbook = new Workbook({ signal: new AbortController().signal, onProgress: p => console.log(p.rows) });
 const style = book.styles.add({ font: { bold: true }, fill: { color: "ABCDEF" }, border: { bottom: { style: "thin" } }, numberFormat: NumberFormats.Date });
 const conditional: readonly ConditionalFormat[] = [
+  { type: "cellIs", range: { column: "name" }, operator: "equal", value: "Łódź", style: { font: { bold: true } } },
   { type: "expression", range: { column: "name", through: "seen" }, formula: '$A3="Łódź"', style: { fill: { color: "C6EFCE" } }, stopIfTrue: true },
   { type: "cellIs", range: { column: "seen" }, operator: "between", values: [45000, 50000], style: { font: { bold: true } } },
   { type: "colorScale", range: { column: "seen" }, stops: [{ threshold: { type: "min" }, color: "F8696B" }, { threshold: { type: "max" }, color: "63BE7B" }] },
@@ -319,7 +320,7 @@ const unsupportedChartKind: import("@evotecit/officeimo/xlsx").ChartType = "scat
 // @ts-expect-error native chart values are numeric
 const invalidChartSeries: import("@evotecit/officeimo/xlsx").ChartSeries = { name: "Controllers", values: ["12.5"] };
 // @ts-expect-error chart input snapshots are readonly
-nativeChart.data.categories[0] = "changed";
+nativeChartData.categories[0] = "changed";
 // @ts-expect-error arbitrary styling is outside the native chart contract
 const unsupportedChartStyle: import("@evotecit/officeimo/xlsx").WorksheetChart = { ...nativeChart, stacking: true };
 void [unsupportedChartKind, invalidChartSeries, unsupportedChartStyle];
@@ -343,3 +344,53 @@ async function professionalPdfReport(rows: AsyncIterable<{ service: string; late
   return writePdfDocumentTo(blocks, destination, options);
 }
 void professionalPdfReport;
+
+async function editableAnalysisReport(worker: Worker) {
+  const validation: ListValidation = { type: "list", column: "status", items: ["Healthy", "Offline"], allowBlank: false,
+    showErrorMessage: true, errorStyle: "stop", errorTitle: "Choose status", errorMessage: "Select a listed status." };
+  const rootValidation: import("@evotecit/officeimo").ListValidation = validation;
+  const analysis = new Workbook({ limits: { maxFormulaCharacters: 10000, maxDataValidations: 8, maxValidationTextCharacters: 1000 },
+    cellValueWriters: { doubled: value => new FormulaCell("1+1", Number(value) * 2) } });
+  const services = analysis.addWorksheet("Services", { columns: [{ header: "Status", key: "status" }], dataValidation: [rootValidation] });
+  await services.addRows([{ status: "Healthy" }, { status: "Offline" }]); await services.close();
+  const statusRange: string | undefined = services.dataRange("status");
+  const count = new FormulaCell(statusRange ? `COUNTIF(${statusRange},"Healthy")` : "0", statusRange ? 1 : 0);
+  const rootFormula: import("@evotecit/officeimo").FormulaCell = count;
+  interface SummaryRow { readonly status: string; readonly count: FormulaCell; }
+  const formulaColumns: readonly XlsxColumn<SummaryRow>[] = [{ header: "Status", key: "status" }, { header: "Services", key: "count", type: "number" }];
+  const summary = analysis.addWorksheet<SummaryRow>("Overview", { columns: formulaColumns, table: {}, footer: { values: ["Total", new FormulaCell("SUM(B2:B3)", 2)] } });
+  const boundData: ChartRangeData = { kind: "range", sheet: summary, rowCount: 2, categoryColumn: "status", series: [{ column: "count", color: "2563EB" }] };
+  const rootBoundData: import("@evotecit/officeimo").ChartRangeData = boundData;
+  summary.addChart({ type: "columnClustered", data: rootBoundData, row: 6, column: 1, width: 640, height: 360 });
+  await summary.addRows([{ status: "Healthy", count: rootFormula }, { status: "Offline", count: new FormulaCell("1", 1) }]);
+  const interfaceRows: readonly SummaryRow[] = [{ status: "Healthy", count: rootFormula }];
+  const interfaceColumns: readonly XlsxColumn[] = [{ header: "Status", key: "status" }, { header: "Services", key: "count", type: "number" }];
+  const interfaceSheet = analysis.addWorksheet("Interface summary", { columns: interfaceColumns });
+  await interfaceSheet.addRows(interfaceRows);
+  await analysis.finish();
+  // @ts-expect-error formula caches are supplied as finite numeric results, not text
+  new FormulaCell("1+1", "2");
+  // @ts-expect-error authored formula definitions are immutable
+  count.cachedValue = 2;
+  // @ts-expect-error workbook-local formulas do not enter the portable XLSX table contract
+  writeXlsx([[count]], { columns: [{ header: "Count" }] });
+  // @ts-expect-error CSV values remain portable scalars or ExportCells
+  writeCsv([[count]], { columns: [{ header: "Count" }] });
+  // @ts-expect-error PDF does not evaluate workbook formulas
+  writePdf([[count]], { columns: [{ header: "Count" }] });
+  // @ts-expect-error worker row bridges carry portable values; the worker job constructs its FormulaCells
+  executeWorkerExport(worker, [[count]], new WritableStream<Uint8Array>());
+  // @ts-expect-error a FormulaCell cannot be nested inside a scalar styled Cell
+  new Cell(count);
+  // @ts-expect-error only literal inline-list validation is supported
+  const unsupportedValidation: ListValidation = { type: "decimal", column: 1, items: ["1"] };
+  // @ts-expect-error validation choices are strings rather than raw numeric values
+  const numericChoices: ListValidation = { type: "list", column: 1, items: [1, 2] };
+  // @ts-expect-error chart bindings identify their source Worksheet, not a caller-owned range string
+  const externalChartSource: ChartRangeData = { kind: "range", sheet: "Services", rowCount: 2, categoryColumn: 1, series: [{ column: 2 }] };
+  void [unsupportedValidation, numericChoices, externalChartSource];
+}
+void editableAnalysisReport;
+
+// @ts-expect-error text comparison supports equality operators only
+const unsupportedTextOrdering: ConditionalFormat = { type: "cellIs", range: { column: "name" }, operator: "lessThan", value: "Łódź", style: {} };

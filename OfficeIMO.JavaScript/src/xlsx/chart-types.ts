@@ -1,4 +1,5 @@
 import type { WorksheetAnchor } from "./attachments.js";
+import type { Worksheet } from "./worksheet.js";
 
 /** Native, editable Excel chart families. Names follow OfficeIMO's shared chart vocabulary. */
 export type ChartType = "columnClustered" | "barClustered" | "line" | "pie";
@@ -15,6 +16,33 @@ export interface ChartSeries {
 export interface ChartData {
   readonly categories: readonly string[];
   readonly series: readonly ChartSeries[];
+}
+
+/** A declared column key or a one-based worksheet column number. */
+export type ChartColumn = string | number;
+
+/** One numeric series read from the visible worksheet during its ordinary writer pass. */
+export interface ChartRangeSeries {
+  readonly column: ChartColumn;
+  /** Uses the declared column heading when omitted. */
+  readonly name?: string;
+  readonly color?: string;
+}
+
+/**
+ * A finite vertical range in a visible worksheet of this workbook. Register the chart
+ * before the first selected data row is written. Data-row offsets exclude report
+ * titles, headings and footers; numeric series require finite numbers or numeric
+ * formula caches, and category cells require strings.
+ */
+export interface ChartRangeData {
+  readonly kind: "range";
+  readonly sheet: Worksheet;
+  /** Zero-based offset into the worksheet's data rows; defaults to zero. */
+  readonly firstRow?: number;
+  readonly rowCount: number;
+  readonly categoryColumn: ChartColumn;
+  readonly series: readonly ChartRangeSeries[];
 }
 
 /** Labels are native Excel labels and remain editable after export. */
@@ -39,7 +67,7 @@ export interface ChartValueAxis {
 /** A native chart placed in worksheet coordinates, separate from PNG or portable drawing rendering. */
 export interface WorksheetChart extends WorksheetAnchor {
   readonly type: ChartType;
-  readonly data: ChartData;
+  readonly data: ChartData | ChartRangeData;
   readonly title?: string;
   /** The legend is on the right by default. */
   readonly legend?: "right" | "bottom" | "left" | "top" | false;

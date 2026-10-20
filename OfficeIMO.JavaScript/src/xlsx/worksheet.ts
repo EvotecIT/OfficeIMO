@@ -1,6 +1,6 @@
 import { checkAbort, consumeRows, inputRows, pause, taskYieldDue } from "../core/iteration.js";
 import { ChunkedTextSink, BlobByteSink } from "../core/sinks.js";
-import { NotSupportedError, OfficeIMOError } from "../core/errors.js";
+import { OfficeIMOError } from "../core/errors.js";
 import { notifyProgress } from "../core/progress.js";
 import type { CellValue } from "../core/index.js";
 import { copyColumns, createRowProjector } from "../internal/rows.js";
@@ -28,6 +28,11 @@ import { isDate } from "../core/dates.js";
 import type { WorksheetChart } from "./chart-types.js";
 import type { RegisteredChart } from "./charts.js";
 import type { MergeRegions } from "./regions.js";
+import { FormulaCell, formulaXml } from "./formula.js";
+import { prepareDataValidations, dataValidationsXml } from "./validation.js";
+import type { PreparedValidations } from "./validation.js";
+import { qualifiedCell, qualifiedColumnRange, resolveDataColumn } from "./ranges.js";
+import type { PreparedChartBinding } from "./chart-bindings.js";
 
 const maximumHyperlinks = 65530;
 function checkHyperlinkCount(count: number): void {
@@ -65,7 +70,9 @@ export class Worksheet<T = never> {
   private readonly pictures: WorksheetImage[] = [];
   private readonly nativeCharts: RegisteredChart[] = [];
   private readonly conditional: ConditionalFormats;
-  private constructor(private readonly book: Workbook, name: string | (() => string), options: SheetOptions, private readonly table?: TableDefinition, private readonly preserved = false, conditional: readonly PreparedRule[] = [], private readonly chartData = false) {
+  private completed = false;
+  private readonly chartSources: PreparedChartBinding[] = [];
+  private constructor(private readonly book: Workbook, name: string | (() => string), options: SheetOptions, private readonly table?: TableDefinition, private readonly preserved = false, conditional: readonly PreparedRule[] = [], private readonly chartData = false, private readonly validations: PreparedValidations = { rules: [], count: 0, textCharacters: 0 }) {
     this.columns = copyColumns(options.columns ?? [], true).map(c => Object.freeze(c));
     const alternate = options.alternatingRowStyle;
     this.options = { ...options, ...(options.autoSize ? { autoSize: { ...options.autoSize } } : {}),
@@ -96,16 +103,15 @@ export class Worksheet<T = never> {
     this.project = createRowProjector(this.columns, { sheetName: this.name, firstDataRow: this.headerRows + 1 }, book.settings.signal, book.valueValidator);
   }
   /** @internal */
-  static create(book: Workbook, name: string | (() => string), options: SheetOptions, table?: TableDefinition, preserved = false, conditional?: readonly PreparedRule[]): Worksheet { return new Worksheet(book, name, options, table, preserved, conditional); }
+  static create(book: Workbook, name: string | (() => string), options: SheetOptions, table?: TableDefinition, preserved = false, conditional?: readonly PreparedRule[], validations?: PreparedValidations): Worksheet { return new Worksheet(book, name, options, table, preserved, conditional, false, validations); }
   /** @internal Generated source cells use the normal worksheet serializer and budgets. */
   static createChartData(book: Workbook, chart: RegisteredChart): Worksheet {
     return new Worksheet(book, chart.dataSheetName, { columns: [{ header: "Category" }, ...chart.data.series.map(series => ({ header: series.name, type: "number" }))] }, undefined, false, [], true);
   }
   /** @internal Validate before allocating native compressor resources or registering the sheet name. */
-  static validate(book: Workbook, options: SheetOptions): readonly PreparedRule[] {
-    for (const feature of ["dataValidation"] as const)
-      if (options[feature] !== undefined) throw new NotSupportedError(feature);
+  static validate(book: Workbook, options: SheetOptions): { conditional: readonly PreparedRule[]; validations: PreparedValidations } {
     const columns = copyColumns(options.columns ?? [], true);
+    const validations = prepareDataValidations(options.dataValidation, columns, book.availableDataValidations, book.availableValidationTextCharacters, book.settings.signal);
     book.checkConditionalFormats(options.conditionalFormats?.length ?? 0);
     const conditional = prepareConditionalFormats(options.conditionalFormats, columns, book.settings.invalidCharacterPolicy);
     book.styles.checkDifferentials(conditional.flatMap(rule => rule.style ? [rule.style] : []));
@@ -145,30 +151,36 @@ export class Worksheet<T = never> {
       if (c.style !== undefined) book.styles.validateStyle(c.style);
       if (c.format !== undefined && (typeof c.format !== "string" || c.format.length > 255)) throw new TypeError("Column format must be a string of at most 255 characters.");
     }
-    return conditional;
+    return { conditional, validations };
   }
   private cell(value: unknown, i: number, row: number, header = false, rowStyle?: CellStyle, context?: RowStyleContext, rowStyles?: Map<number, number>, footer = false, title = false): string {
     const col = this.declared[i]!;
     const total = value instanceof ComputedTotal ? value : undefined;
     if (total) value = total.value;
+    let formula = value instanceof FormulaCell ? value : undefined;
+    if (formula) value = formula.cachedValue;
     let presentation = value instanceof ExportCell ? value.presentation : undefined;
     let link = value instanceof ExportCell ? value.link : undefined;
     if (value instanceof ExportCell) value = value.value;
-    const suppliedStyle = value instanceof Cell ? value.style : undefined;
+    const suppliedStyle = formula?.style ?? (value instanceof Cell ? value.style : undefined);
     const covered = (this.completedRegions ?? this.layout.regions).covered(i + 1, row);
     const input = value instanceof Cell ? value.value : value, emptyCovered = covered && (input == null || input === "");
     if (!header && !footer && col.column.type && !emptyCovered) {
       const writer = this.book.writerFor(col.column.type);
-      if (writer) value = writer(value instanceof Cell ? value.value : value as CellValue,
-        { column: col.column, rowIndex: row - this.headerRows - 1, worksheetRow: row, columnIndex: i, sheetName: this.name });
+      if (writer) {
+        if (formula) throw new TypeError("An explicit FormulaCell cannot also pass through a custom cell value writer; return it from the writer instead.");
+        value = writer(value instanceof Cell ? value.value : value as CellValue,
+          { column: col.column, rowIndex: row - this.headerRows - 1, worksheetRow: row, columnIndex: i, sheetName: this.name });
+      }
     }
+    if (value instanceof FormulaCell) { formula = value; value = formula.cachedValue; }
     if (value instanceof ExportCell) { presentation = value.presentation; link = value.link; value = value.value; }
-    const explicitStyle = value instanceof Cell ? value.style ?? suppliedStyle : suppliedStyle;
+    const explicitStyle = formula?.style ?? (value instanceof Cell ? value.style ?? suppliedStyle : suppliedStyle);
     if (value instanceof Cell) value = value.value;
     assertScalar(value);
     if (covered) {
       if (link) throw new TypeError("Hyperlinks cannot address a covered merged cell.");
-      if (total || (value != null && value !== "")) throw new TypeError("A merged range would hide the value at " + col.letter + row + "; covered cells must be empty.");
+      if (formula || total || (value != null && value !== "")) throw new TypeError("A merged range would hide the value at " + col.letter + row + "; covered cells must be empty.");
       value = undefined; // An empty string in a covered typed column is an empty cell, not a type mismatch.
     }
     const type = isDate(value) ? "date" : typeof value;
@@ -214,8 +226,12 @@ export class Worksheet<T = never> {
     if (link) this.appendHyperlink({ cell: col.letter + row, ...link });
     if (type === "date") value = excelDate(value as Date, this.book.settings.dateMode);
     if (!header && !footer) this.layout.accept(i, value as CellValue);
+    if (!header && !footer && this.chartSources.length)
+      for (const binding of this.chartSources) binding.observe(row - this.headerRows - 1, i + 1, value);
     const prefix = '<c r="' + col.letter + row + '" s="' + style + '"';
-    this.book.budget.cell(value, reservedCharacters);
+    if (formula) this.book.retainFormula(formula.formula.length);
+    this.book.budget.cell(formula ? formula.formula : value, reservedCharacters);
+    if (formula) return prefix + '>' + formulaXml(formula) + '</c>';
     if (total) return prefix + (value === null ? ' t="str"' : "") + '><f>' + total.formula.replace(/"/g, "&quot;") + '</f><v>' + (value ?? "") + '</v></c>';
     if (value == null || (type === "number" && !Number.isFinite(value))) return prefix + '/>';
     if (value == null) return prefix + '/>';
@@ -227,7 +243,7 @@ export class Worksheet<T = never> {
   private *rowXml(values: readonly unknown[], number: number, header: boolean, footer = false, title = false): Generator<string> {
     const height = title ? this.options.title?.height ?? 28 : header ? this.options.headerHeight : this.options.rowHeight;
     const context = !header && !footer && (this.options.rowStyle || this.options.cellStyle) ? Object.freeze({ rowIndex: number - this.headerRows - 1, worksheetRow: number, sheetName: this.name,
-      values: Object.freeze(this.columns.map((_, i) => values[i] instanceof Cell || values[i] instanceof ExportCell ? (values[i] as Cell | ExportCell).value : values[i])) as readonly CellValue[] }) : undefined;
+      values: Object.freeze(this.columns.map((_, i) => values[i] instanceof FormulaCell ? (values[i] as FormulaCell).cachedValue : values[i] instanceof Cell || values[i] instanceof ExportCell ? (values[i] as Cell | ExportCell).value : values[i])) as readonly CellValue[] }) : undefined;
     const rowStyle = context && this.options.rowStyle?.(context);
     if (rowStyle !== undefined) validateStylePatch(rowStyle);
     const rowStyles = !header && (rowStyle || this.options.alternatingRowStyle) ? new Map<number, number>() : undefined;
@@ -321,7 +337,7 @@ export class Worksheet<T = never> {
     this.pending = []; this.pendingCharacters = 0;
   }
   addRows(rows: [T] extends [never] ? XlsxRows : Iterable<T> | AsyncIterable<T>): Promise<void>;
-  addRows<U extends { readonly [K in keyof U]: ExportValue | Cell }>(rows: [T] extends [never] ? Iterable<U> | AsyncIterable<U> : never): Promise<void>;
+  addRows<U extends { readonly [K in keyof U]: ExportValue | Cell | FormulaCell }>(rows: [T] extends [never] ? Iterable<U> | AsyncIterable<U> : never): Promise<void>;
   async addRows(rows: Iterable<unknown> | AsyncIterable<unknown>): Promise<void> {
     this.book.assertOpen();
     if (this.completion) throw new OfficeIMOError("INVALID_STATE", "Worksheet is closed.");
@@ -353,6 +369,25 @@ export class Worksheet<T = never> {
   }
   private progress(): void { if (!this.preserved && !this.chartData) notifyProgress(this.book.settings.onProgress, { phase: "rows", rows: this.book.rowCount, sheetRows: this.count, sheetName: this.name }); }
   get rowCount(): number { return this.count; }
+  /** A finite formula reference to a completed data column, excluding report decorations. Empty data returns undefined. */
+  dataRange(column: string | number): string | undefined {
+    if (this.failed) throw this.error;
+    if (!this.completed) throw new OfficeIMOError("INVALID_STATE", "Close the worksheet before resolving its data range.");
+    const selected = resolveDataColumn(this.columns, column);
+    return this.count ? qualifiedColumnRange(this.name, selected, this.headerRows + 1, this.count) : undefined;
+  }
+  /** @internal Immutable schema plus current source timing, used only by workbook-owned chart registration. */
+  get chartBindingMetadata(): { name: string; columns: readonly XlsxColumn[]; headerRows: number; rows: number; closed: boolean; headerReferences: readonly (string | undefined)[] } {
+    const leaf = this.layout.headings.at(-1);
+    return { name: this.name, columns: this.columns, headerRows: this.headerRows, rows: this.count, closed: this.completed || !!this.completion,
+      headerReferences: this.columns.map((column, index) => {
+        const cell = leaf?.[index], raw = cell instanceof ExportCell ? cell.value : cell;
+        return this.layout.firstHeaderRow && raw === column.header && !this.layout.regions.covered(index + 1, this.headerRows)
+          ? qualifiedCell(this.name, index + 1, this.headerRows) : undefined;
+      }) };
+  }
+  /** @internal Only the workbook may attach a preflighted, bounded source observer. */
+  retainChartBinding(binding: PreparedChartBinding): void { this.chartSources.push(binding); }
   /** @internal Preservation records are metadata, not report data rows. */
   get reportRowCount(): number { return this.preserved || this.chartData ? 0 : this.count; }
   /** @internal Chart data is editable through Excel's Unhide worksheet command. */
@@ -409,6 +444,8 @@ export class Worksheet<T = never> {
   get mergeCount(): number { return this.layout.mergeCount; }
   /** @internal */
   get conditionalFormatCount(): number { return this.conditional.count; }
+  /** @internal Captured editing metadata reserves workbook-wide limits even for empty data. */
+  get dataValidations(): PreparedValidations { return this.validations; }
   /** @internal */
   get totalRows(): number { return Math.max(1, this.headerRows + this.count + this.layout.footerRows); }
   /** @internal */
@@ -430,6 +467,8 @@ export class Worksheet<T = never> {
     return this.completion = (async () => { try {
       const regions = this.completedRegions = this.layout.finalRegions(this.count, this.book.settings.limits?.maxMergedRanges ?? 10000);
       regions.validateRows(this.totalRows);
+      for (const binding of this.chartSources) binding.finish();
+      this.chartSources.length = 0;
       for (const link of this.links) {
         const position = cellPosition(link.cell);
         if (position.column > this.columns.length || position.row > this.totalRows) throw new RangeError("Hyperlinks must address cells within the exported rows and columns.");
@@ -446,6 +485,7 @@ export class Worksheet<T = never> {
       if (this.options.autoFilter && this.headerRows && !this.tableDefinition) await this.buffer!.write('<autoFilter ref="A' + this.headerRows + ':' + columnName(this.columns.length) + (this.count + this.headerRows) + '"/>');
       if (regions.references.length) await this.buffer!.write('<mergeCells count="' + regions.references.length + '">' + regions.references.map(ref => '<mergeCell ref="' + ref + '"/>').join("") + '</mergeCells>');
       for (const xml of this.conditional.xml(this.headerRows, this.count, this.totalRows)) await this.buffer!.write(xml);
+      for (const xml of dataValidationsXml(this.validations, this.headerRows, this.count)) await this.buffer!.write(xml);
       if (this.links.length || this.internalLinks.length) await this.buffer!.write(hyperlinksXml(this.links, this.book.settings.invalidCharacterPolicy, this.internalLinks));
       await this.buffer!.write(printXml(this.options.print, this.book.settings.invalidCharacterPolicy));
       if (this.pictures.length || this.nativeCharts.length) await this.buffer!.write('<drawing r:id="drawing"/>');
@@ -453,10 +493,11 @@ export class Worksheet<T = never> {
       await this.buffer!.write('</worksheet>'); await this.buffer!.close();
       const info = await this.entry!.close();
       if (!this.book.settings.sink && !this.failed) this.prepared = { ...info, chunks: this.output.takeChunks() };
+      this.completed = true;
     } catch (error) { await this.discard(error); throw error; } })();
   }
   /** @internal */
   takePrepared(): PreparedEntry | undefined { const prepared = this.prepared; this.prepared = undefined; return prepared; }
   /** @internal */
-  async discard(error: unknown): Promise<void> { this.failed = true; this.error = error; this.pending = []; this.pendingCharacters = 0; this.prepared = undefined; this.buffer = undefined; this.nativeCharts.length = 0; this.output.discard(); await this.entry?.discard(error); }
+  async discard(error: unknown): Promise<void> { this.failed = true; this.error = error; this.pending = []; this.pendingCharacters = 0; this.prepared = undefined; this.buffer = undefined; this.nativeCharts.length = 0; this.chartSources.length = 0; this.output.discard(); await this.entry?.discard(error); }
 }

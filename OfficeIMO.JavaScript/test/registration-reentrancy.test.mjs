@@ -69,10 +69,11 @@ test("worksheet naming commits after option capture can allocate a preservation 
   const report = book.addWorksheet("Report", { columns: [{ header: "Value" }], autoSize: { sampleRows: 1 } });
   let reads = 0, pending;
   const outer = book.addWorksheet("Text overflow", { get columns() {
-    if (++reads === 2) pending = report.addRows([["x".repeat(32768)]]);
+    reads++; pending = report.addRows([["x".repeat(32768)]]);
     return [{ header: "Sheet", value: (_row, context) => context.sheetName }, { header: "Value", key: "value" }];
   } });
   await pending; await outer.addRows([{ value: 42 }]);
+  assert.equal(reads, 1, "worksheet option properties are captured once before registration");
   assert.equal(outer.name, "Text overflow (2)");
   const zip = await readZip(await book.toBlob()), xml = zip.get("xl/workbook.xml").content;
   const names = [...xml.matchAll(/<sheet name="([^"]+)"/g)].map(match => match[1]);
@@ -80,4 +81,27 @@ test("worksheet naming commits after option capture can allocate a preservation 
   assert.equal(new Set(names.map(name => name.toLowerCase())).size, names.length);
   assert.match(zip.get("xl/worksheets/sheet2.xml").content, /Text overflow \(2\)/);
   assert.match(zip.get("xl/worksheets/sheet2.xml").content, /<v>42<\/v>/);
+});
+
+test("chart capture rechecks category text charged by input getters without retaining a rejected chart", async () => {
+  for (const kind of ["snapshot", "range"]) {
+    const book = new Workbook({ limits: { maxChartTextCharacters: 5 } });
+    const source = book.addWorksheet("Bound", { columns: [{ header: "Category", key: "category" }, { header: "S", key: "value" }], autoSize: { sampleRows: 1 } });
+    const future = book.addWorksheet("Future", { columns: [{ header: "Category", key: "category" }, { header: "LONG", key: "value" }] });
+    const target = book.addWorksheet("Report"), placement = { type: "line", row: 1, column: 1, width: 200, height: 100 };
+    source.addChart({ ...placement, data: { kind: "range", sheet: source, rowCount: 1, categoryColumn: "category", series: [{ column: "value" }] } });
+    let pending, reads = 0;
+    assert.throws(() => target.addChart({ ...placement, get data() {
+      reads++; pending = source.addRows([{ category: "AB", value: 1 }]);
+      return kind === "snapshot" ? { categories: ["ABC"], series: [{ name: "S", values: [1] }] }
+        : { kind: "range", sheet: future, rowCount: 1, categoryColumn: "category", series: [{ column: "value" }] };
+    } }), error => error.code === "RESOURCE_LIMIT" && /maxChartTextCharacters/.test(error.message));
+    await pending; assert.equal(reads, 1);
+    target.addChart({ ...placement, data: { categories: ["Z"], series: [{ name: "S", values: [2] }] } });
+    const zip = await readZip(await book.toBlob());
+    assert.ok(zip.has("xl/charts/chart1.xml")); assert.ok(zip.has("xl/charts/chart2.xml")); assert.ok(!zip.has("xl/charts/chart3.xml"));
+    assert.match(zip.get("xl/charts/chart1.xml").content, /<c:v(?: [^>]*)?>AB<\/c:v>/);
+    assert.match(zip.get("xl/charts/chart2.xml").content, /<c:v(?: [^>]*)?>Z<\/c:v>/);
+    assert.equal((zip.get("xl/workbook.xml").content.match(/state="hidden"/g) ?? []).length, 1);
+  }
 });
