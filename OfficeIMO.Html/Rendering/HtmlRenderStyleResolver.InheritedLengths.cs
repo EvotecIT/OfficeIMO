@@ -7,8 +7,7 @@ internal sealed partial class HtmlRenderStyleResolver {
     private double ResolveComputedLineHeight(HtmlComputedStyle computed, double fontSize, HtmlRenderBoxStyle? parent,
         out double alignmentLineHeight, out bool usesNaturalLineHeight) {
         string value = computed.GetValue("line-height").Trim();
-        usesNaturalLineHeight = !_options.HasExplicitDefaultLineHeight
-            && (value.Length == 0 || value.Equals("normal", StringComparison.OrdinalIgnoreCase));
+        usesNaturalLineHeight = UsesNaturalLineHeight(value);
         // Numbers and normal remain font-relative; explicit lengths and percentages
         // inherit their computed value, including across more than one font change.
         if (computed.IsInheritedValue("line-height") && parent != null
@@ -22,6 +21,19 @@ internal sealed partial class HtmlRenderStyleResolver {
         alignmentLineHeight = HtmlRenderCssValues.ResolveInlineAlignmentLineHeight(lineHeight, fontSize, multiplier);
         return lineHeight;
     }
+
+    /// <summary>Resolves generated text through the same CSS leading owner as ordinary inline text.</summary>
+    internal double ResolveGeneratedLineHeight(string value, double fontSize,
+        out double alignmentLineHeight, out bool usesNaturalLineHeight) {
+        value = value.Trim();
+        usesNaturalLineHeight = UsesNaturalLineHeight(value);
+        double lineHeight = ResolveLineHeight(value, fontSize, out double? multiplier);
+        alignmentLineHeight = HtmlRenderCssValues.ResolveInlineAlignmentLineHeight(lineHeight, fontSize, multiplier);
+        return lineHeight;
+    }
+
+    private bool UsesNaturalLineHeight(string value) => !_options.HasExplicitDefaultLineHeight
+        && (value.Length == 0 || value.Equals("normal", StringComparison.OrdinalIgnoreCase));
 
     private double ResolveLineHeight(string value, double fontSize, out double? multiplier) {
         multiplier = _options.DefaultLineHeight;
