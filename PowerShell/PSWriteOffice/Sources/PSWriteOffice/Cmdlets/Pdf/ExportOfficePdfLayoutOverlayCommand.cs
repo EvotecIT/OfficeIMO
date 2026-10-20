@@ -1,3 +1,4 @@
+using OfficeIMO.Core.Internal;
 using System.IO;
 using System.Management.Automation;
 using OfficeIMO.Drawing;
@@ -81,7 +82,7 @@ public sealed class ExportOfficePdfLayoutOverlayCommand : PSCmdlet
             _ => throw new PSArgumentException("PDF layout overlays support only PNG and SVG output.", nameof(Format))
         };
         Directory.CreateDirectory(System.IO.Path.GetDirectoryName(output) ?? SessionState.Path.CurrentFileSystemLocation.Path);
-        File.WriteAllBytes(output, bytes);
+        OfficeFileOutput.Write(output, overwrite: true, temporaryPath => File.WriteAllBytes(temporaryPath, bytes));
         var result = new OfficeImageExportResult(Format,
             checked((int)System.Math.Ceiling(drawing.Width * Scale)),
             checked((int)System.Math.Ceiling(drawing.Height * Scale)),

@@ -9,17 +9,8 @@ namespace PSWriteOffice.Services.Visio;
 internal static class VisioCommandUtilities
 {
     internal static string ResolvePath(PSCmdlet cmdlet, string path)
-    {
-        if (string.IsNullOrWhiteSpace(path))
-        {
-            throw new PSArgumentException("Path cannot be empty.", nameof(path));
-        }
+        => OfficeFileCommandUtilities.ResolvePath(cmdlet, path);
 
-        var providerPath = cmdlet.SessionState.Path.GetUnresolvedProviderPathFromPSPath(path);
-        return Path.IsPathRooted(providerPath)
-            ? providerPath
-            : Path.Combine(cmdlet.SessionState.Path.CurrentFileSystemLocation.Path, providerPath);
-    }
 
     internal static void EnsureDirectory(string path)
     {

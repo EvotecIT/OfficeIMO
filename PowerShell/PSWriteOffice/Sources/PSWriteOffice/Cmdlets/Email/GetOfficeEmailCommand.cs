@@ -1,3 +1,4 @@
+using PSWriteOffice.Services;
 using System;
 using System.IO;
 using System.Linq;
@@ -19,7 +20,8 @@ namespace PSWriteOffice.Cmdlets.Email;
 public sealed class GetOfficeEmailCommand : PSCmdlet
 {
     /// <summary>Path to an EML, EMLX, MSG, TNEF, or winmail.dat file.</summary>
-    [Parameter(Mandatory = true, Position = 0, ValueFromPipeline = true)]
+    [Parameter(Mandatory = true, Position = 0, ValueFromPipeline = true, ValueFromPipelineByPropertyName = true)]
+    [Alias("FullName", "LiteralPath")]
     public string Path { get; set; } = string.Empty;
 
     /// <summary>Optional format detection, compound-file, MIME, attachment, and size limits.</summary>
@@ -37,7 +39,7 @@ public sealed class GetOfficeEmailCommand : PSCmdlet
     /// <inheritdoc />
     protected override void ProcessRecord()
     {
-        var input = SessionState.Path.GetUnresolvedProviderPathFromPSPath(Path);
+        var input = OfficeFileCommandUtilities.ResolvePath(this, Path);
         if (string.Equals(System.IO.Path.GetExtension(input), ".emlx", StringComparison.OrdinalIgnoreCase))
         {
             var storeResult = new EmailStoreReader(StoreOptions ?? CreateStoreOptions()).Read(input);

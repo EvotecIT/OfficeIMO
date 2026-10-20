@@ -17,7 +17,8 @@ namespace PSWriteOffice.Cmdlets.Reader;
 public sealed class GetOfficeDocumentHierarchyCommand : OfficeDocumentReaderCommandBase
 {
     /// <summary>Path to read.</summary>
-    [Parameter(Mandatory = true, Position = 0, ValueFromPipeline = true)]
+    [Parameter(Mandatory = true, Position = 0, ValueFromPipeline = true, ValueFromPipelineByPropertyName = true)]
+    [Alias("FullName", "LiteralPath")]
     public string Path { get; set; } = string.Empty;
 
     /// <summary>Optional source-reading limits and format behavior.</summary>

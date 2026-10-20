@@ -1,3 +1,4 @@
+using OfficeIMO.Core.Internal;
 using System.IO;
 using System.Linq;
 using System.Management.Automation;
@@ -21,8 +22,8 @@ namespace PSWriteOffice.Cmdlets.Pdf;
 public sealed class GetOfficePdfTextCommand : PSCmdlet
 {
     /// <summary>PDF file path.</summary>
-    [Parameter(Mandatory = true, Position = 0, ValueFromPipeline = true)]
-    [Alias("FilePath")]
+    [Parameter(Mandatory = true, Position = 0, ValueFromPipeline = true, ValueFromPipelineByPropertyName = true)]
+    [Alias("FilePath", "FullName", "LiteralPath")]
     public string Path { get; set; } = string.Empty;
 
     /// <summary>Optional page ranges such as 1-3,5.</summary>
@@ -86,7 +87,7 @@ public sealed class GetOfficePdfTextCommand : PSCmdlet
                 }
 
                 PdfCommandUtilities.EnsureDirectory(outputPath);
-                File.WriteAllLines(outputPath, blocks.Select(block => block.Text));
+                OfficeFileOutput.Write(outputPath, overwrite: true, temporaryPath => File.WriteAllLines(temporaryPath, blocks.Select(block => block.Text)));
                 WriteObject(new FileInfo(outputPath));
                 return;
             }
@@ -114,7 +115,7 @@ public sealed class GetOfficePdfTextCommand : PSCmdlet
                 }
 
                 PdfCommandUtilities.EnsureDirectory(outputPath);
-                File.WriteAllText(outputPath, string.Join("\f", pages.Select(page => page.Text)));
+                OfficeFileOutput.Write(outputPath, overwrite: true, temporaryPath => File.WriteAllText(temporaryPath, string.Join("\f", pages.Select(page => page.Text))));
                 WriteObject(new FileInfo(outputPath));
                 return;
             }
@@ -141,7 +142,7 @@ public sealed class GetOfficePdfTextCommand : PSCmdlet
             }
 
             PdfCommandUtilities.EnsureDirectory(outputPath);
-            File.WriteAllText(outputPath, text);
+            OfficeFileOutput.Write(outputPath, overwrite: true, temporaryPath => File.WriteAllText(temporaryPath, text));
             WriteObject(new FileInfo(outputPath));
             return;
         }

@@ -39,6 +39,10 @@ namespace OfficeIMO.Word {
         internal readonly Hyperlink _hyperlink;
         private readonly Run? _activeRun;
 
+        /// <summary>Gets editable formatted text runs belonging to this hyperlink.</summary>
+        public IReadOnlyList<WordParagraph> Runs => _hyperlink.Descendants<Run>()
+            .Select(run => new WordParagraph(_document, _paragraph, run)).ToArray();
+
         /// <summary>
         /// Gets or sets the URI of the hyperlink.
         /// </summary>

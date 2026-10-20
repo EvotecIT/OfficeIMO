@@ -926,7 +926,7 @@ Describe 'Excel DSL surface' {
         (Get-Command Get-OfficeExcel).Parameters.Keys | Should -Not -Contain 'AutoSave'
     }
 
-    It 'clears encrypted workbook associations after HTML conversion' {
+    It 'converts encrypted workbooks to HTML without changing or retaining the source' {
         if (-not (Test-OfficeLoadedMethod -TypeName 'OfficeIMO.Excel.ExcelDocument' -MethodName 'LoadEncrypted')) {
             (Get-Command ConvertTo-OfficeExcelHtml).Parameters.Keys | Should -Contain 'Password'
             return
@@ -940,19 +940,15 @@ Describe 'Excel DSL surface' {
             }
         }
 
-        $assembly = (Get-Command Get-OfficeExcel).ImplementingType.Assembly
-        $flags = [System.Reflection.BindingFlags]::NonPublic -bor [System.Reflection.BindingFlags]::Static
-        $serviceType = $assembly.GetType('PSWriteOffice.Services.Excel.ExcelDocumentService')
-        $associatedPaths = $serviceType.GetField('AssociatedPaths', $flags)
-        $encryptedPaths = $serviceType.GetField('EncryptedSourcePaths', $flags)
-        $associatedCount = $associatedPaths.GetValue($null).Count
-        $encryptedCount = $encryptedPaths.GetValue($null).Count
+        $original = [Convert]::ToBase64String([IO.File]::ReadAllBytes($path))
 
         ConvertTo-OfficeExcelHtml -Path $path -Password 'secret' -OutputPath $htmlPath
 
         Test-Path -LiteralPath $htmlPath | Should -BeTrue
-        $associatedPaths.GetValue($null).Count | Should -Be $associatedCount
-        $encryptedPaths.GetValue($null).Count | Should -Be $encryptedCount
+        Get-Content -LiteralPath $htmlPath -Raw | Should -Match 'Encrypted HTML value'
+        [Convert]::ToBase64String([IO.File]::ReadAllBytes($path)) | Should -Be $original
+        $exclusive = [IO.File]::Open($path, [IO.FileMode]::Open, [IO.FileAccess]::ReadWrite, [IO.FileShare]::None)
+        $exclusive.Dispose()
     }
 
     It 'configures Excel execution policy from PowerShell' {

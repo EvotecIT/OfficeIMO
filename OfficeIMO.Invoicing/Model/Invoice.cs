@@ -2,6 +2,30 @@ namespace OfficeIMO.Invoicing;
 
 /// <summary>Editable semantic invoice shared by XML writers and presentation adapters.</summary>
 public sealed class Invoice {
+    /// <summary>Adds a line, assigning an unused positive numeric identifier when its identifier is empty.</summary>
+    /// <param name="line">Caller-created line. An explicit duplicate identifier is rejected before the collection changes.</param>
+    /// <returns>The added line.</returns>
+    public InvoiceLine AddLine(InvoiceLine line) {
+        if (line == null) throw new ArgumentNullException(nameof(line));
+        var identifiers = new HashSet<string>(Lines.Select(item => item.Id), StringComparer.Ordinal);
+        if (string.IsNullOrWhiteSpace(line.Id)) {
+            int number = 1;
+            while (identifiers.Contains(number.ToString(System.Globalization.CultureInfo.InvariantCulture))) number++;
+            line.Id = number.ToString(System.Globalization.CultureInfo.InvariantCulture);
+        } else if (identifiers.Contains(line.Id)) {
+            throw new ArgumentException("An invoice line with this identifier already exists.", nameof(line));
+        }
+        Lines.Add(line);
+        return line;
+    }
+
+    /// <summary>Removes source-declared amounts so subsequent validation and serialization use calculated line, tax and document amounts.</summary>
+    public void ClearDeclaredAmounts() {
+        DeclaredTotals = null;
+        DeclaredTaxes.Clear();
+        TaxAmountInAccountingCurrency = null;
+        foreach (var line in Lines) line.DeclaredNetAmount = null;
+    }
     private string _currency = "EUR";
     private string? _taxCurrency;
     /// <summary>Seller-assigned invoice number (BT-1).</summary>

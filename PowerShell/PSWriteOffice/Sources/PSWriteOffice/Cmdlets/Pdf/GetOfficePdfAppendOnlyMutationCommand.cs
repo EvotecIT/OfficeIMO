@@ -18,8 +18,8 @@ namespace PSWriteOffice.Cmdlets.Pdf;
 public sealed class GetOfficePdfAppendOnlyMutationCommand : PSCmdlet
 {
     /// <summary>PDF file path.</summary>
-    [Parameter(Mandatory = true, Position = 0, ValueFromPipeline = true)]
-    [Alias("FilePath")]
+    [Parameter(Mandatory = true, Position = 0, ValueFromPipeline = true, ValueFromPipelineByPropertyName = true)]
+    [Alias("FilePath", "FullName", "LiteralPath")]
     public string Path { get; set; } = string.Empty;
 
     /// <summary>Password used to authenticate an encrypted PDF.</summary>

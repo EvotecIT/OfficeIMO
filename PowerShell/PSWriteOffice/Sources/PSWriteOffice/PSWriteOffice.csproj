@@ -6,11 +6,11 @@
   <PropertyGroup>
     <Company>Evotec</Company>
     <Authors>Przemyslaw Klys</Authors>
-    <VersionPrefix>1.0.1</VersionPrefix>
+    <VersionPrefix>3.0.9</VersionPrefix>
     <TargetFrameworks>net8.0</TargetFrameworks>
     <TargetFrameworks Condition="$([MSBuild]::IsOSPlatform('Windows'))">net472;net8.0</TargetFrameworks>
     <AssemblyName>PSWriteOffice</AssemblyName>
-    <Copyright>(c) 2011 - 2022 Przemyslaw Klys @ Evotec. All rights reserved.</Copyright>
+    <Copyright>(c) Przemyslaw Klys @ Evotec. All rights reserved.</Copyright>
     <LangVersion>latest</LangVersion>
     <Nullable>enable</Nullable>
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
@@ -34,12 +34,17 @@
     <!-- PowerForge enriches module help from the compiler XML documentation file. -->
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
   </PropertyGroup>
-  <PropertyGroup Condition=" '$(TargetFramework)' == 'net472' ">
-    <DefineConstants>$(DefineConstants);FRAMEWORK</DefineConstants>
-  </PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="$(OfficeIMORoot)\OfficeIMO.Workflows\OfficeIMO.Workflows.csproj" Condition="'$(TargetFramework)' != 'net472'" />
+    <ProjectReference Include="$(OfficeIMORoot)\OfficeIMO.Workflows.IWork\OfficeIMO.Workflows.IWork.csproj" Condition="'$(TargetFramework)' != 'net472'" />
     <ProjectReference Include="$(OfficeIMORoot)\OfficeIMO.Core\OfficeIMO.Core.csproj" />
+    <ProjectReference Include="$(OfficeIMORoot)\OfficeIMO.Project\OfficeIMO.Project.csproj" />
+    <ProjectReference Include="$(OfficeIMORoot)\OfficeIMO.Access\OfficeIMO.Access.csproj" />
+    <ProjectReference Include="$(OfficeIMORoot)\OfficeIMO.Epub\OfficeIMO.Epub.csproj" />
+    <ProjectReference Include="$(OfficeIMORoot)\OfficeIMO.Invoicing\OfficeIMO.Invoicing.csproj" />
+    <ProjectReference Include="$(OfficeIMORoot)\OfficeIMO.Invoicing.Validation\OfficeIMO.Invoicing.Validation.csproj" Condition="'$(TargetFramework)' != 'net472'" />
+    <ProjectReference Include="$(OfficeIMORoot)\OfficeIMO.Invoicing.Pdf\OfficeIMO.Invoicing.Pdf.csproj" />
+
     <ProjectReference Include="$(OfficeIMORoot)\OfficeIMO.Adf\OfficeIMO.Adf.csproj" />
     <ProjectReference Include="$(OfficeIMORoot)\OfficeIMO.Confluence\OfficeIMO.Confluence.csproj" />
     <ProjectReference Include="$(OfficeIMORoot)\OfficeIMO.Word\OfficeIMO.Word.csproj" />
