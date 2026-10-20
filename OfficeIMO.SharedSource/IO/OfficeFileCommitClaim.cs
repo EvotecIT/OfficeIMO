@@ -20,11 +20,12 @@ namespace OfficeIMO.Core.Internal.IO {
             _windowsClaimPath = windowsClaimPath;
         }
 
-        /// <summary>Acquires a destination claim without waiting for a live owner.</summary>
+        /// <summary>Acquires a destination claim with bounded Windows deletion-pending retries.</summary>
         internal static OfficeFileCommitClaim Acquire(string destinationPath) {
             string claimPath = CreatePath(destinationPath);
             bool windows = RuntimeInformation.IsOSPlatform(OSPlatform.Windows);
-            while (true) {
+            const int maximumRetries = 9;
+            for (int attempt = 0; ; attempt++) {
                 try {
                     FileStream stream = windows
                         // Preserve Windows sharing and pathname-deletion semantics. DeleteOnClose
@@ -32,9 +33,16 @@ namespace OfficeIMO.Core.Internal.IO {
                         ? new FileStream(claimPath, FileMode.CreateNew, FileAccess.ReadWrite, FileShare.None)
                         : OpenUnixClaim(claimPath);
                     return new OfficeFileCommitClaim(stream, windows ? claimPath : null);
-                } catch (Exception exception) when (windows && IsExistingClaimContention(exception, claimPath)
+                } catch (Exception exception) when (attempt < maximumRetries && windows && IsExistingClaimContention(exception, claimPath)
                     && TryDeleteAbandonedWindowsClaim(claimPath)) {
                     // The stale Windows claim was removed; retry the exclusive create.
+                } catch (UnauthorizedAccessException exception) when (windows && attempt < maximumRetries &&
+                    IsPossiblePendingDeletion(exception, claimPath)) {
+                    // DeleteFile leaves the pathname pending until the reclamation handle closes.
+                    // During that interval CreateNew reports access denied and File.Exists may
+                    // report false. Retry this ambiguous Windows error for a bounded interval;
+                    // persistent ACL, read-only, and directory failures retain their exception.
+                    Thread.Sleep(1);
                 }
             }
         }
@@ -45,6 +53,19 @@ namespace OfficeIMO.Core.Internal.IO {
 
         private static bool IsExistingClaimContention(Exception exception, string claimPath) =>
             (exception is IOException || exception is UnauthorizedAccessException) && File.Exists(claimPath);
+
+        private static bool IsPossiblePendingDeletion(UnauthorizedAccessException exception, string claimPath) {
+            if (exception.HResult != unchecked((int)0x80070005) || Directory.Exists(claimPath)) return false;
+            try {
+                return (File.GetAttributes(claimPath) & (FileAttributes.ReadOnly | FileAttributes.Directory)) == 0;
+            } catch (IOException) {
+                return true;
+            } catch (UnauthorizedAccessException) {
+                // Attribute lookup also fails while deletion is pending. An ACL failure is
+                // indistinguishable here, but retains its original exception after nine pauses.
+                return true;
+            }
+        }
 
         private static FileStream OpenUnixClaim(string claimPath) {
             // The runtime checks the opened inode against the pathname and unlinks it before

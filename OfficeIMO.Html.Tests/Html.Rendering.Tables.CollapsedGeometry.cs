@@ -233,8 +233,8 @@ public sealed partial class HtmlRenderingTests {
 
         HtmlRenderPage followingPage = Assert.Single(rendered.Pages, page => CollapsedGeometryPageVisuals(page).OfType<HtmlRenderText>()
             .Any(item => item.Text == "After"));
-        Assert.True(followingPage.PageNumber >= bodyPages[^1].PageNumber);
-        if (followingPage.PageNumber == bodyPages[^1].PageNumber) {
+        Assert.True(followingPage.PageNumber >= bodyPages[bodyPages.Length - 1].PageNumber);
+        if (followingPage.PageNumber == bodyPages[bodyPages.Length - 1].PageNumber) {
             HtmlRenderShape foot = Assert.Single(CollapsedGeometryPageVisuals(followingPage).OfType<HtmlRenderShape>(),
                 item => item.Source == "td#foot" && item.Shape.FillColor.HasValue);
             HtmlRenderShape following = Assert.Single(CollapsedGeometryPageVisuals(followingPage).OfType<HtmlRenderShape>(),
