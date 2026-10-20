@@ -98,4 +98,31 @@ public sealed partial class HtmlRenderingTests {
         Assert.Equal(400, text.FontDescriptor.Weight);
     }
 
+    [Fact]
+    public void HtmlPageMarginInheritance_PseudoInitialFamilyPreparesTheSameInstalledFaceAsAnExplicitFamily() {
+        if (!System.IO.File.Exists("/System/Library/Fonts/SFNS.ttf")) return;
+        HtmlRenderDocument Render(string family) {
+            HtmlRenderOptions options = PageMarginTypographyOptions();
+            options.UserAgentStyles = HtmlRenderUserAgentStyleMode.Document;
+            options.DefaultFontFamily = "system-ui";
+            options.AllowSystemFontFallback = true;
+            return HtmlRenderEngine.Render(HtmlConversionDocument.Parse(
+                "<style>html,body,p{font:20px Pinned;margin:0}p::before{font-family:"
+                + family + ";content:'A'}</style><p>Body</p>"), options);
+        }
+        HtmlRenderDocument control = Render("system-ui");
+        Assert.Contains(control.Diagnostics, item => item.Code == "InstalledFontResolved" && item.Source == "system-ui");
+
+        HtmlRenderDocument inheritedReset = Render("initial");
+
+        Assert.Contains(inheritedReset.Diagnostics, item => item.Code == "InstalledFontResolved" && item.Source == "system-ui");
+        Assert.Equal(control.Fonts.Faces.Count, inheritedReset.Fonts.Faces.Count);
+        HtmlRenderText expected = Assert.Single(EnumerateRenderVisuals(Assert.Single(control.Pages).Scene)
+            .OfType<HtmlRenderText>(), item => item.Text == "A");
+        HtmlRenderText actual = Assert.Single(EnumerateRenderVisuals(Assert.Single(inheritedReset.Pages).Scene)
+            .OfType<HtmlRenderText>(), item => item.Text == "A");
+        Assert.Equal(expected.Width, actual.Width, 6);
+        Assert.Equal(expected.LineHeight, actual.LineHeight, 6);
+    }
+
 }

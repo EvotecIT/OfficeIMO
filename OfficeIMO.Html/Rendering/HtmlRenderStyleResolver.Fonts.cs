@@ -88,6 +88,13 @@ internal sealed partial class HtmlRenderStyleResolver {
         return new OfficeFontFaceDescriptor(weight, stretch, slant, angle);
     }
 
+    /// <summary>Preserves Document mode's semantic monospace defaults when a font family is reset.</summary>
+    internal static string ResolveInitialFontFamily(string tag, HtmlRenderOptions options) =>
+        UsesDocumentMonospaceFamily(tag, options) ? "Consolas" : options.DefaultFontFamily;
+
+    internal static bool UsesDocumentMonospaceFamily(string tag, HtmlRenderOptions options) =>
+        options.UserAgentStyles == HtmlRenderUserAgentStyleMode.Document && tag is "code" or "pre" or "kbd" or "samp";
+
     internal static string ResolveFontFamily(string tag, HtmlComputedStyle computed, string inherited, string? initialFamily = null) {
         if (tag == "math") {
             if (!HasAuthoredValue(computed, "font-family")) return "math";

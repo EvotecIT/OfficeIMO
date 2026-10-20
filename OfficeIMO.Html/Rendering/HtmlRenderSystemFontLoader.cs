@@ -27,14 +27,14 @@ internal static class HtmlRenderSystemFontLoader {
                 && inherited.TryGetValue(element.ParentElement, out var found)
                 ? found : (options.DefaultFontFamily, OfficeFontFaceDescriptor.Regular);
             string tag = element.TagName.ToLowerInvariant();
-            string fallback = tag is "code" or "pre" or "kbd" or "samp" ? "Consolas" : parent.Families;
-            string families = HtmlRenderStyleResolver.ResolveFontFamily(tag, computed, fallback, options.DefaultFontFamily);
+            string fallback = HtmlRenderStyleResolver.UsesDocumentMonospaceFamily(tag, options) ? HtmlRenderStyleResolver.ResolveInitialFontFamily(tag, options) : parent.Families;
+            string families = HtmlRenderStyleResolver.ResolveFontFamily(tag, computed, fallback, HtmlRenderStyleResolver.ResolveInitialFontFamily(tag, options));
             OfficeFontFaceDescriptor descriptor = HtmlRenderStyleResolver.ResolveFontFaceDescriptor(tag, computed, parent.Descriptor);
             inherited[element] = (families, descriptor);
             LoadList(families, descriptor);
             foreach (HtmlPseudoElementKind kind in Pseudos) {
                 if (!styles.TryGetPseudoStyle(element, kind, out HtmlComputedStyle pseudo)) continue;
-                LoadList(HtmlRenderCssValues.FontFamilyList(pseudo.GetValue("font-family"), families),
+                LoadList(HtmlRenderStyleResolver.ResolveFontFamily(string.Empty, pseudo, families, options.DefaultFontFamily),
                     HtmlRenderStyleResolver.ResolveFontFaceDescriptor(string.Empty, pseudo, descriptor));
             }
         }
