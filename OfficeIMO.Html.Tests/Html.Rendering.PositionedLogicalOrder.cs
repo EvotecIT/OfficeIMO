@@ -154,6 +154,29 @@ public sealed partial class HtmlRenderingTests {
     }
 
     [Theory]
+    [InlineData("absolute", false)]
+    [InlineData("fixed", false)]
+    [InlineData("absolute", true)]
+    [InlineData("fixed", true)]
+    public void HtmlPositionedText_AuthoredFootnoteCallPrecedesPlainAndMixedMarker(string position, bool mixedMarker) {
+        string marker = "'M'" + (mixedMarker ? " url('data:image/png;base64," + ZeroFontFootnotePixel + "')" : string.Empty);
+        string html = PositionedLogicalStyles + "<style>.note{float:footnote}"
+            + ".note::footnote-call{content:'C'}.note::footnote-marker{content:" + marker + "}</style>"
+            + "<p>Lead<span class='note'>Note</span></p>"
+            + PositionedLogicalElement(position, "span", "Positioned", 80) + "<p>Tail</p>";
+        HtmlRenderOptions options = PositionedLogicalOptions();
+        options.Mode = HtmlRenderMode.Paged;
+        options.ResourceUrlPolicy = HtmlUrlPolicy.CreateEmbeddedResourceProfile();
+
+        HtmlRenderDocument rendered = HtmlRenderEngine.Render(HtmlConversionDocument.Parse(html), options);
+
+        Assert.Single(rendered.Pages);
+        Assert.Equal("LeadCMNotePositionedTail", WithoutPositionedLogicalWhitespace(rendered.Text));
+        Assert.Equal(mixedMarker ? 1 : 0,
+            rendered.Pages.SelectMany(page => EnumerateRenderVisuals(page.Scene)).OfType<HtmlRenderImage>().Count());
+    }
+
+    [Theory]
     [InlineData(HtmlRenderIntentProfile.ScreenFullPage)]
     [InlineData(HtmlRenderIntentProfile.PrintPaged)]
     [InlineData(HtmlRenderIntentProfile.ScreenSnapshotPaged)]

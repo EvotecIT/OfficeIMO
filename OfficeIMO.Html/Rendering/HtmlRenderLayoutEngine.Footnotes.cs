@@ -15,6 +15,11 @@ internal sealed partial class HtmlRenderLayoutEngine {
         HtmlRenderBoxStyle style,
         ICollection<HtmlInlineRun> runs) {
         if (!_footnoteNumbers.TryGetValue(element, out int number)) number = _footnoteEntries.Count + 1;
+        // Calls and markers share their originating DOM coordinate. Reserve the
+        // preceding flow and call orders before note layout discovers a marker.
+        AssignLogicalTextOrders(runs);
+        List<HtmlInlineRun> callRuns = CreateFootnoteCallRuns(element, number, containingWidth, parentStyle);
+        AssignLogicalTextOrders(callRuns);
         if (!_footnoteEntries.ContainsKey(element)) {
             using var pageBoundaries = new DescendantPageBoundaryScope(this, retainsPageBoundaries: false);
             HtmlRenderBoxStyle noteStyle = style.Clone();
@@ -85,6 +90,16 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 columnOwner);
         }
 
+        foreach (HtmlInlineRun callRun in callRuns) runs.Add(callRun);
+    }
+
+    /// <summary>Creates a note call and its destination without depending on body or marker layout.</summary>
+    private List<HtmlInlineRun> CreateFootnoteCallRuns(
+        IElement element,
+        int number,
+        double containingWidth,
+        HtmlRenderBoxStyle parentStyle) {
+        var runs = new List<HtmlInlineRun>();
         bool hasCallStyle = _styleResolver.TryResolvePseudo(
             element,
             HtmlPseudoElementKind.FootnoteCall,
@@ -99,7 +114,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         AddFootnoteCallDestination(element, number, callStyle, source, runs);
         if (callStyle.Display == "none"
             || _generatedContent.Suppresses(element, HtmlPseudoElementKind.FootnoteCall)) {
-            return;
+            return runs;
         }
         if (!hasCallStyle || !_styleResolver.IsPseudoPropertyAuthored(element, HtmlPseudoElementKind.FootnoteCall, "vertical-align")) {
             callStyle.Baseline = OfficeTextBaseline.Superscript;
@@ -110,15 +125,16 @@ internal sealed partial class HtmlRenderLayoutEngine {
         string? link = "#" + FootnoteNoteDestination(number);
         if (_generatedContent.TryGetContent(element, HtmlPseudoElementKind.FootnoteCall, out HtmlGeneratedContent authoredCall)) {
             AddGeneratedInlineFragments(authoredCall, element, callStyle, link, source, containingWidth, 0D, 0D, runs);
-            return;
+            return runs;
         }
-        if (callStyle.Font.Size <= 0D) return;
+        if (callStyle.Font.Size <= 0D) return runs;
         runs.Add(new HtmlInlineRun(
             number.ToString(System.Globalization.CultureInfo.InvariantCulture),
             callStyle,
             link,
             source,
             ownerElement: element) { SemanticSourceOrder = GetSemanticSourceOrder(element) });
+        return runs;
     }
 
     private void AddFootnoteCallDestination(

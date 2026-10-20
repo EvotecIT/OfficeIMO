@@ -127,9 +127,11 @@ internal sealed partial class HtmlRenderLayoutEngine {
             AddInlineNamedDestinationRun(element, style, inheritedPaintOffsetX, inheritedPaintOffsetY, runs);
         }
         if (style.FloatSide != "none") {
-            AssignLogicalTextOrders(runs);
             if (style.FloatSide == "footnote") AddFootnoteRun(element, width, inheritedStyle, depth, style, runs);
-            else AddFloatingRun(element, width, inheritedStyle, depth, style, link, runs);
+            else {
+                AssignLogicalTextOrders(runs);
+                AddFloatingRun(element, width, inheritedStyle, depth, style, link, runs);
+            }
             return;
         }
 
