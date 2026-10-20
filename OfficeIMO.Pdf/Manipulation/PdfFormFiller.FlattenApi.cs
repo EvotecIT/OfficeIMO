@@ -27,6 +27,8 @@ internal static partial class PdfFormFiller {
         Guard.NotNull(pdf, nameof(pdf));
         _ = PdfMutationPlanner.RequireFullRewrite(pdf, PdfMutationOperation.FlattenFormFields, readOptions, cancellationToken: cancellationToken);
 
+        PdfReadDocument source = PdfReadDocument.Open(pdf, readOptions, cancellationToken);
+        PdfFlattenedContentGrowth.ValidateSourceAppearances(source, cancellationToken);
         var (objects, trailerRaw) = PdfSyntax.ParseObjects(pdf, readOptions, out _, out _, cancellationToken);
         int catalogObjectNumber = FindCatalogObjectNumber(objects, trailerRaw);
         if (catalogObjectNumber == 0 ||
@@ -70,7 +72,7 @@ internal static partial class PdfFormFiller {
         }
 
         PdfObjectGraphPruner.PruneUnreachableObjects(objects, catalogObjectNumber, cancellationToken);
-        return RewriteAllObjects(objects, catalogObjectNumber, PdfReadDocument.Open(pdf, readOptions, cancellationToken), pdf, generatedGrowth, out outputReadOptions, cancellationToken);
+        return RewriteAllObjects(objects, catalogObjectNumber, source, pdf, generatedGrowth, out outputReadOptions, cancellationToken);
     }
 
     /// <summary>
@@ -104,6 +106,8 @@ internal static partial class PdfFormFiller {
         ValidateFlattenFieldNames(fieldNames, cancellationToken);
         if (requireMutationPlan) _ = PdfMutationPlanner.RequireFullRewriteDocument(pdf, PdfMutationOperation.FlattenFormFields, readOptions, fieldNames: fieldNames, cancellationToken: cancellationToken);
 
+        PdfReadDocument source = PdfReadDocument.Open(pdf, readOptions, cancellationToken);
+        PdfFlattenedContentGrowth.ValidateSourceAppearances(source, cancellationToken);
         var (objects, trailerRaw) = PdfSyntax.ParseObjects(pdf, readOptions, out _, out _, cancellationToken);
         int catalogObjectNumber = FindCatalogObjectNumber(objects, trailerRaw);
         if (catalogObjectNumber == 0 ||
@@ -165,7 +169,7 @@ internal static partial class PdfFormFiller {
             objects.Remove(objectNumber);
         }
         PdfObjectGraphPruner.PruneUnreachableObjects(objects, catalogObjectNumber, cancellationToken);
-        return RewriteAllObjects(objects, catalogObjectNumber, PdfReadDocument.Open(pdf, readOptions, cancellationToken), pdf, generatedGrowth, out outputReadOptions, cancellationToken);
+        return RewriteAllObjects(objects, catalogObjectNumber, source, pdf, generatedGrowth, out outputReadOptions, cancellationToken);
     }
 
 }

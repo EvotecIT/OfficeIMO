@@ -22,17 +22,21 @@ internal static partial class PdfAcroFormEditor {
         PdfMutationPlan plan = PdfMutationPlanner.RequireFullRewriteDocument(pdf, PdfMutationOperation.ModifyAcroForm,
             source, readOptions, fieldNames, cancellationToken).Plan;
 
+        PdfFlattenedContentGrowth.ValidateSourceAppearances(source, cancellationToken);
+        PdfGeneratedOutputGrowth generatedGrowth = default;
         var refillValues = new Dictionary<string, string>(StringComparer.Ordinal);
         var flattenNames = new List<string>();
         var operations = new List<string>(session.Commands.Count);
         int[] pageObjectNumbers = source.Pages.Select(static page => page.ObjectNumber).ToArray();
         byte[] output = PdfDocumentObjectGraphRewriter.Rewrite(pdf, readOptions, null, (objects, security) => {
+            int firstGeneratedObject = objects.Keys.Max() + 1;
             ApplyCommands(objects, security, pageObjectNumbers, session.Commands, refillValues, flattenNames, operations,
                 appearanceOptions, source.ReadOptions.Limits, cancellationToken);
+            generatedGrowth = PdfFormFiller.GetFilledAppearanceGrowth(objects, firstGeneratedObject, cancellationToken);
             return security.InfoObjectNumber.HasValue && objects.ContainsKey(security.InfoObjectNumber.Value) ? security.InfoObjectNumber : null;
-        }, cancellationToken: cancellationToken);
+        }, cancellationToken: cancellationToken, getGeneratedOutputGrowth: () => generatedGrowth);
 
-        PdfLoadOptions savedReadOptions = PdfLoadOptions.WithMinimumInputBytes(source.ReadOptions, output.LongLength);
+        PdfLoadOptions savedReadOptions = PdfLoadOptions.ForGeneratedOutput(source.ReadOptions, pdf, output, generatedGrowth);
         _ = PdfReadDocument.Open(output, savedReadOptions, cancellationToken).FormWidgetJavaScriptCount;
         if (refillValues.Count > 0) {
             PdfReadDocument rewrittenDocument = PdfReadDocument.Open(output, savedReadOptions, cancellationToken);

@@ -86,6 +86,8 @@ throws `OperationCanceledException`. File output is staged before publication;
 when writing to a caller-owned stream, cancellation can leave a written prefix.
 Returned documents carry the selected read policy into subsequent operations;
 an explicit per-operation override applies to the result without changing the source.
+Filling or flattening forms checks existing visible appearances against these input limits
+before allowing for generated output.
 Splitting to several files prepares every part before saving. Cancellation stops
 that preparation; once saving begins, the prepared files are published one at a time.
 

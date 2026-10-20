@@ -1,4 +1,3 @@
-using OfficeIMO.Pdf.Filters;
 using System.Threading;
 
 namespace OfficeIMO.Pdf;
@@ -7,10 +6,10 @@ namespace OfficeIMO.Pdf;
 internal sealed class PdfFlattenedContentGrowth {
     private readonly Dictionary<int, PdfIndirectObject> _objects;
     private readonly PdfReadLimits _limits;
-    private readonly int _firstGeneratedObject;
+    private readonly int? _firstGeneratedObject;
     private readonly CancellationToken _cancellationToken;
     private readonly Dictionary<PdfStream, byte[]> _decoded = new();
-    private long _sourceDecodedBytes;
+    private readonly PdfDecodedStreamBudget _sourceDecodeBudget;
     private long _totalPageBytes;
     private int _maximumPageBytes;
     private int _maximumRawGeneratedBytes;
@@ -23,11 +22,31 @@ internal sealed class PdfFlattenedContentGrowth {
     private int _sourceContexts;
 
     internal PdfFlattenedContentGrowth(Dictionary<int, PdfIndirectObject> objects, PdfLoadOptions? readOptions,
-        int firstGeneratedObject, CancellationToken cancellationToken) {
+        int? firstGeneratedObject, CancellationToken cancellationToken, PdfDecodedStreamBudget? sourceDecodeBudget = null) {
         _objects = objects;
         _limits = PdfLoadOptions.Resolve(readOptions).Limits;
         _firstGeneratedObject = firstGeneratedObject;
+        _sourceDecodeBudget = sourceDecodeBudget ?? new PdfDecodedStreamBudget(_limits);
         _cancellationToken = cancellationToken;
+    }
+
+    /// <summary>Admits retained normal appearances before generated output can increase shared read limits.</summary>
+    internal static void ValidateSourceAppearances(PdfReadDocument source, CancellationToken cancellationToken) {
+        var inspection = new PdfFlattenedContentGrowth(source.Objects, source.ReadOptions, firstGeneratedObject: null, cancellationToken, source.DecodedStreamBudget);
+        foreach (PdfReadPage page in source.Pages) {
+            cancellationToken.ThrowIfCancellationRequested();
+            page.VisitNormalAppearanceStreams((stream, resources) => {
+                byte[] decoded = source.DecodedStreamBudget.Decode(stream, source.Objects,
+                    source.ReadOptions.Limits.MaxDecodedStreamBytes, cancellationToken);
+                if (++inspection._sourceContexts > inspection._limits.MaxPrintProductionContexts)
+                    throw PdfReadLimitException.Create(PdfReadLimitKind.PrintProductionContexts,
+                        inspection._limits.MaxPrintProductionContexts, inspection._sourceContexts);
+                long bytes = 0;
+                int operations = 0, operands = 0;
+                inspection.VisitContent(PdfEncoding.Latin1GetString(decoded), resources, generated: false, depth: 0,
+                    new HashSet<PdfStream> { stream }, ref bytes, ref operations, ref operands);
+            }, cancellationToken);
+        }
     }
 
     internal void AddPage(PdfDictionary page, PdfStream addedStream, int isolationBytes) {
@@ -69,7 +88,13 @@ internal sealed class PdfFlattenedContentGrowth {
                     !xObjects.Items.TryGetValue(name, out PdfObject? xObject) ||
                     PdfObjectLookup.ResolveChainCancellable(_objects, xObject, _cancellationToken) is not PdfStream stream ||
                     stream.Dictionary.Get<PdfName>("Subtype")?.Name != "Form") return;
-                invoked.Add((stream, xObject is PdfReference reference && reference.ObjectNumber >= _firstGeneratedObject));
+                // A nested form clipped to an empty box paints nothing and needs no stream decoding.
+                if (stream.Dictionary.Items.ContainsKey("BBox") &&
+                    !PdfAppearancePlacement.TryRead(stream.Dictionary,
+                        value => PdfObjectLookup.ResolveChainCancellable(_objects, value, _cancellationToken),
+                        0D, 0D, 1D, 1D, out _, out _)) return;
+                invoked.Add((stream, _firstGeneratedObject.HasValue && xObject is PdfReference reference &&
+                    reference.ObjectNumber >= _firstGeneratedObject.Value));
             }, maxNestingDepth: _limits.MaxContentNestingDepth,
             maxOperands: generated ? Math.Max(1, content.Length) : _limits.MaxContentOperands);
         if (generated) {
@@ -81,14 +106,10 @@ internal sealed class PdfFlattenedContentGrowth {
             if (!active.Add(invocation.Stream)) continue;
             try {
                 if (!_decoded.TryGetValue(invocation.Stream, out byte[]? decoded)) {
-                    decoded = StreamDecoder.Decode(invocation.Stream, _objects,
-                        invocation.Generated ? Math.Max(_limits.MaxDecodedStreamBytes, invocation.Stream.Data.Length) : _limits.MaxDecodedStreamBytes,
-                        _cancellationToken);
-                    if (!invocation.Generated) {
-                        _sourceDecodedBytes = checked(_sourceDecodedBytes + decoded.LongLength);
-                        if (_sourceDecodedBytes > _limits.MaxTotalDecodedStreamBytes)
-                            throw PdfReadLimitException.Create(PdfReadLimitKind.TotalDecodedStreamBytes, _limits.MaxTotalDecodedStreamBytes, _sourceDecodedBytes);
-                    }
+                    decoded = invocation.Generated
+                        ? Filters.StreamDecoder.Decode(invocation.Stream, _objects,
+                            Math.Max(_limits.MaxDecodedStreamBytes, invocation.Stream.Data.Length), _cancellationToken)
+                        : _sourceDecodeBudget.Decode(invocation.Stream, _objects, _limits.MaxDecodedStreamBytes, _cancellationToken);
                     _decoded.Add(invocation.Stream, decoded);
                     if (invocation.Generated) _maximumDecodedGeneratedBytes = Math.Max(_maximumDecodedGeneratedBytes, decoded.Length);
                 }

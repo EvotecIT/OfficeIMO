@@ -63,9 +63,10 @@ internal static partial class PdfFormFiller {
         Guard.NotNull(pdf, nameof(pdf));
         cancellationToken.ThrowIfCancellationRequested();
         ValidateFieldValues(fieldValues, cancellationToken);
-        RejectPushButtonFillValues(pdf, fieldValues.Keys, readOptions, cancellationToken);
+        PdfReadDocument source = RejectPushButtonFillValues(pdf, fieldValues.Keys, readOptions, cancellationToken);
         if (requireMutationPlan) _ = PdfMutationPlanner.RequireFullRewrite(pdf, PdfMutationOperation.FillFormFields, readOptions,
             fieldNames: fieldValues.Keys, cancellationToken);
+        PdfFlattenedContentGrowth.ValidateSourceAppearances(source, cancellationToken);
 
         var (objects, trailerRaw) = PdfSyntax.ParseObjects(pdf, readOptions, out _, out _, cancellationToken);
         int catalogObjectNumber = FindCatalogObjectNumber(objects, trailerRaw);
@@ -95,10 +96,10 @@ internal static partial class PdfFormFiller {
 
         acroForm.Items["NeedAppearances"] = new PdfBoolean(options?.KeepNeedAppearances == true);
         PdfGeneratedOutputGrowth growth = GetFilledAppearanceGrowth(objects, firstGeneratedObject, cancellationToken);
-        return RewriteAllObjects(objects, catalogObjectNumber, PdfReadDocument.Open(pdf, readOptions, cancellationToken), pdf, growth, out outputReadOptions, cancellationToken);
+        return RewriteAllObjects(objects, catalogObjectNumber, source, pdf, growth, out outputReadOptions, cancellationToken);
     }
 
-    private static void RejectPushButtonFillValues(byte[] pdf, IEnumerable<string> fieldNames, PdfLoadOptions? readOptions,
+    private static PdfReadDocument RejectPushButtonFillValues(byte[] pdf, IEnumerable<string> fieldNames, PdfLoadOptions? readOptions,
         CancellationToken cancellationToken) {
         PdfReadDocument document = PdfReadDocument.Open(pdf, readOptions, cancellationToken);
         IReadOnlyDictionary<string, PdfFormField> fields = PdfInspector.Inspect(pdf, document, cancellationToken).FormFieldsByName;
@@ -108,6 +109,7 @@ internal static partial class PdfFormFiller {
                 throw new ArgumentException("Push-button fields do not have a fillable value: " + fieldName, nameof(fieldNames));
             }
         }
+        return document;
     }
 
     /// <summary>

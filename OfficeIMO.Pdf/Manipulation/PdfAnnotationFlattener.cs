@@ -47,6 +47,7 @@ internal static partial class PdfAnnotationFlattener {
 
         int nextObjectNumber = objects.Keys.Count == 0 ? 1 : objects.Keys.Max() + 1;
         PdfReadDocument read = PdfReadDocument.Open(pdf, readOptions, cancellationToken);
+        PdfFlattenedContentGrowth.ValidateSourceAppearances(read, cancellationToken);
         var pageNumbers = new Dictionary<int, int>();
         for (int i = 0; i < read.Pages.Count; i++) {
             cancellationToken.ThrowIfCancellationRequested();

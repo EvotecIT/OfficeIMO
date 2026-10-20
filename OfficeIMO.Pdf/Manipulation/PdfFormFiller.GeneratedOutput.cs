@@ -4,7 +4,7 @@ namespace OfficeIMO.Pdf;
 
 internal static partial class PdfFormFiller {
     /// <summary>Reserves work represented by appearance and font objects created by this fill operation.</summary>
-    private static PdfGeneratedOutputGrowth GetFilledAppearanceGrowth(Dictionary<int, PdfIndirectObject> objects,
+    internal static PdfGeneratedOutputGrowth GetFilledAppearanceGrowth(Dictionary<int, PdfIndirectObject> objects,
         int firstGeneratedObject, CancellationToken cancellationToken) {
         cancellationToken.ThrowIfCancellationRequested();
         int[] generated = objects.Keys.Where(number => number >= firstGeneratedObject).ToArray();
