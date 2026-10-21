@@ -30,6 +30,7 @@ public partial class Word {
         string bodyBefore = main.Document.OuterXml;
         string notesBefore = main.FootnotesPart!.Footnotes!.OuterXml;
         string stylesBefore = main.StyleDefinitionsPart!.Styles!.OuterXml;
+        string settingsBefore = main.DocumentSettingsPart!.Settings!.OuterXml;
         var result = document.ToPdfDocumentResult(FootnoteDiagnosticOptions());
 
         for (int serialization = 0; serialization < 2; serialization++) {
@@ -47,6 +48,7 @@ public partial class Word {
         Assert.Equal(bodyBefore, main.Document.OuterXml);
         Assert.Equal(notesBefore, main.FootnotesPart.Footnotes.OuterXml);
         Assert.Equal(stylesBefore, main.StyleDefinitionsPart.Styles.OuterXml);
+        Assert.Equal(settingsBefore, main.DocumentSettingsPart.Settings.OuterXml);
         Assert.Empty(document.ValidateDocument());
     }
 
@@ -62,12 +64,14 @@ public partial class Word {
         Assert.Empty(source.ValidateDocument());
         var main = source._wordprocessingDocument.MainDocumentPart!;
         string notesBefore = main.FootnotesPart!.Footnotes!.OuterXml;
+        string settingsBefore = main.DocumentSettingsPart!.Settings!.OuterXml;
         var result = source.ToPdfDocumentResult(FootnoteDiagnosticOptions());
         using var pdf = PdfPigDocument.Open(result.ToBytes());
         string text = string.Concat(pdf.GetPages().Select(page => page.Text));
         Assert.Single(System.Text.RegularExpressions.Regex.Matches(text, "NOTEBODY"));
         Assert.DoesNotContain(result.Warnings, warning => warning.Code == "NativeFootnotePlacementApproximated");
         Assert.Equal(notesBefore, main.FootnotesPart.Footnotes.OuterXml);
+        Assert.Equal(settingsBefore, main.DocumentSettingsPart.Settings.OuterXml);
         Assert.Empty(source.ValidateDocument());
     }
 
@@ -80,6 +84,19 @@ public partial class Word {
             "continuation" => notes.Elements<W.Footnote>().Single(item => item.Type?.Value == W.FootnoteEndnoteValues.ContinuationSeparator),
             _ => throw new ArgumentOutOfRangeException(nameof(story))
         };
+        if (story != "note") {
+            // Admission must inspect a loaded special story, rather than an
+            // unregistered stored definition replaced by the implicit default.
+            W.Settings settings = main.DocumentSettingsPart!.Settings!;
+            W.FootnoteDocumentWideProperties? footnotes = settings.GetFirstChild<W.FootnoteDocumentWideProperties>();
+            if (footnotes == null) {
+                footnotes = new W.FootnoteDocumentWideProperties();
+                settings.AddChild(footnotes, true);
+            }
+            long id = note.Id!.Value;
+            if (!footnotes.Elements<W.FootnoteSpecialReference>().Any(reference => reference.Id?.Value == id))
+                footnotes.Append(new W.FootnoteSpecialReference { Id = id });
+        }
         W.ParagraphProperties properties = note.Elements<W.Paragraph>().First().ParagraphProperties ??= new W.ParagraphProperties();
         if (inherited) {
             main.StyleDefinitionsPart!.Styles!.Append(new W.Style(new W.StyleName { Val = "Note keep parent" },

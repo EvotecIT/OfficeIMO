@@ -3,6 +3,7 @@ using System.Globalization;
 using System.Linq;
 using System.Text.RegularExpressions;
 using OfficeIMO.Pdf;
+using OfficeIMO.TestAssets;
 using PdfPigDocument = UglyToad.PdfPig.PdfDocument;
 using Xunit;
 
@@ -115,6 +116,27 @@ public sealed class PdfInlineRuleTests {
         Assert.Equal(reference.NumberOfPages, actual.NumberOfPages);
         Assert.Equal(Assert.Single(reference.GetPage(1).Letters, letter => letter.Value == "B").StartBaseLine.Y,
             Assert.Single(actual.GetPage(1).Letters, letter => letter.Value == "B").StartBaseLine.Y, 3);
+    }
+
+    [Theory]
+    [InlineData(PdfStandardFont.Helvetica, false, 120D, 1)]
+    [InlineData(PdfStandardFont.TimesRoman, true, 120D, 1)]
+    [InlineData(PdfStandardFont.Helvetica, false, 65D, 2)]
+    public void PublicInlineBuilderRetainsSelectedTypographyForFollowingLinesAndPages(
+        PdfStandardFont font, bool boldItalic, double pageHeight, int expectedPages) {
+        byte[] reference = RenderBuilderFontMetrics(rule: false, font, boldItalic, pageHeight);
+        byte[] actual = RenderBuilderFontMetrics(rule: true, font, boldItalic, pageHeight);
+        AssertBuilderFollowingLineMatches(reference, actual, expectedPages);
+    }
+
+    [Fact]
+    public void PublicInlineBuilderRetainsRegisteredNamedFontLineMetrics() {
+        byte[] font = ManagedTextShapingTestAssets.CreateFontWithLineBoxMetrics(
+            1000, -400, 150, 400, 'R');
+        var family = new PdfEmbeddedFontFamily("Builder rule metrics", font);
+        byte[] reference = RenderBuilderFontMetrics(rule: false, PdfStandardFont.Helvetica, false, 120D, family);
+        byte[] actual = RenderBuilderFontMetrics(rule: true, PdfStandardFont.Helvetica, false, 120D, family);
+        AssertBuilderFollowingLineMatches(reference, actual, expectedPages: 1);
     }
 
     [Theory]
@@ -276,6 +298,41 @@ public sealed class PdfInlineRuleTests {
     private static PdfParagraphStyle Style() => new() {
         FontSize = 10D, LineSpacing = PdfLineSpacing.Multiple(1.2D), SpacingBefore = 0D, SpacingAfter = 0D
     };
+
+    private static byte[] RenderBuilderFontMetrics(bool rule, PdfStandardFont font, bool boldItalic,
+        double pageHeight, PdfEmbeddedFontFamily? family = null) {
+        var options = new PdfOptions {
+            PageWidth = 200D, PageHeight = pageHeight, MarginLeft = 10D, MarginRight = 10D,
+            MarginTop = 10D, MarginBottom = 10D, CompressContentStreams = false
+        };
+        if (family is not null) options.RegisterNamedFontFamily(family);
+        var document = PdfDocument.Create(options);
+        document.Content.Paragraph(p => {
+            p.FontSize(24D).Bold(boldItalic).Italic(boldItalic);
+            if (family is null) p.Font(font);
+            else p.FontFamily(family.FamilyName);
+            if (rule) p.Inline(new PdfInlineRule(.5D, RuleColor));
+            else p.Text("R");
+            p.ResetFontSize().ResetFont().Bold(false).Italic(false).Text("\nB");
+        });
+        return document.ToBytes();
+    }
+
+    private static void AssertBuilderFollowingLineMatches(byte[] referenceBytes, byte[] actualBytes, int expectedPages) {
+        using var reference = PdfPigDocument.Open(referenceBytes);
+        using var actual = PdfPigDocument.Open(actualBytes);
+        Assert.Equal(expectedPages, reference.NumberOfPages);
+        Assert.Equal(reference.NumberOfPages, actual.NumberOfPages);
+        var expectedPage = Assert.Single(reference.GetPages(), page => page.Letters.Any(letter => letter.Value == "B"));
+        var actualPage = Assert.Single(actual.GetPages(), page => page.Letters.Any(letter => letter.Value == "B"));
+        Assert.Equal(expectedPage.Number, actualPage.Number);
+        Assert.Equal(Assert.Single(expectedPage.Letters, letter => letter.Value == "B").StartBaseLine.Y,
+            Assert.Single(actualPage.Letters, letter => letter.Value == "B").StartBaseLine.Y, 3);
+        Assert.Equal("B", string.Concat(actual.GetPages().SelectMany(page => page.Letters).Select(letter => letter.Value)));
+        var band = Assert.Single(ReadBands(actualBytes));
+        Assert.Equal(180D, band.Width, 3);
+        Assert.Equal(.5D, band.Height, 3);
+    }
 
     private static byte[] RenderFontMetrics(string frame, bool rule) {
         var source = PdfTextRun.Normal(rule ? string.Empty : "R", fontSize: 24D, font: PdfStandardFont.Helvetica);

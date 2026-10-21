@@ -97,8 +97,14 @@ public sealed partial class PdfParagraphBuilder {
     public PdfParagraphBuilder Tab(PdfTabLeaderStyle leader) => Tab(leader, PdfTabAlignment.Left);
     /// <summary>Adds an aligned paragraph tab using the current style flags.</summary>
     public PdfParagraphBuilder Tab(PdfTabLeaderStyle leader = PdfTabLeaderStyle.None, PdfTabAlignment alignment = PdfTabAlignment.Left) { AddRun(new PdfTextRun("\t", _currentBold, _currentUnderline, _currentColor, _currentItalic, _currentStrike, fontSize: _currentFontSize, font: _currentFont, baseline: _currentBaseline, tabLeader: leader, tabAlignment: alignment, backgroundColor: _currentBackgroundColor, fontFamily: _currentFontFamily, underlineStyle: _currentUnderlineStyle, strikeStyle: _currentStrikeStyle)); return this; }
-    /// <summary>Adds a fixed-size visual that participates in paragraph wrapping.</summary>
-    public PdfParagraphBuilder Inline(PdfInlineElement element) { Guard.NotNull(element, nameof(element)); AddRun(PdfTextRun.Inline(element)); return this; }
+    /// <summary>Adds an inline visual; flexible rules retain the current run's typography.</summary>
+    public PdfParagraphBuilder Inline(PdfInlineElement element) {
+        Guard.NotNull(element, nameof(element));
+        AddRun(element is PdfInlineRule
+            ? PdfTextRun.Inline(element, CreateCurrentStyleTemplate())
+            : PdfTextRun.Inline(element));
+        return this;
+    }
     /// <summary>Adds an image that participates in paragraph wrapping.</summary>
     public PdfParagraphBuilder InlineImage(byte[] imageBytes, double width, double height, string? alternativeText = null, OfficeIMO.Drawing.OfficeImageFit fit = OfficeIMO.Drawing.OfficeImageFit.Contain, double baselineOffset = 0D) =>
         Inline(new PdfInlineImage(imageBytes, width, height, alternativeText, fit, baselineOffset));
