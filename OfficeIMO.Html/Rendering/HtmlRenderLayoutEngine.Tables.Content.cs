@@ -12,10 +12,16 @@ internal sealed partial class HtmlRenderLayoutEngine {
         if (cell.Nodes == null && !HasBlockChildren(cell.Element, contentWidth, style, depth)) {
             return LayoutInlineNodes(cell.Element.ChildNodes, contentWidth, style, depth, null, cell.Element);
         }
+        if (cell.Nodes != null && cell.HasGeneratedContent
+            && !HasBlockChildren(cell.Element, contentWidth, style, depth, cell.Nodes, cell.GeneratedBefore, cell.GeneratedAfter)) {
+            return LayoutInlineNodes(cell.Nodes, contentWidth, style, depth, null, cell.Element,
+                includeGeneratedBefore: cell.GeneratedBefore, includeGeneratedAfter: cell.GeneratedAfter);
+        }
 
         IReadOnlyList<HtmlRenderFlowBlock> blocks = cell.Nodes == null
             ? BuildChildBlocks(cell.Element, contentWidth, style, depth)
-            : BuildChildBlocks(cell.Element, cell.Nodes, contentWidth, style, depth, includeGeneratedBefore: false, includeGeneratedAfter: false);
+            : BuildChildBlocks(cell.Element, cell.Nodes, contentWidth, style, depth,
+                includeGeneratedBefore: cell.GeneratedBefore, includeGeneratedAfter: cell.GeneratedAfter);
         var visuals = new List<HtmlRenderVisual>();
         var paintLayers = new List<FlowPaintLayer>();
         var breakOffsets = new SortedSet<double>();

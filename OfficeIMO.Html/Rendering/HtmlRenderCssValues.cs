@@ -82,7 +82,16 @@ internal static class HtmlRenderCssValues {
         double containerHeight,
         out double result,
         out bool isCalculated,
-        double characterAdvance = double.NaN, bool uprightVerticalText = false) {
+        double characterAdvance = double.NaN, bool uprightVerticalText = false,
+        HtmlRenderLengthExpressionCache? expressionCache = null) {
+        result = 0D;
+        isCalculated = false;
+        // Common non-length defaults need no numeric resolution context. Other
+        // tokens still go through the authoritative bounded CSS math parser.
+        if (string.IsNullOrWhiteSpace(value)
+            || string.Equals(value, "auto", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(value, "none", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(value, "normal", StringComparison.OrdinalIgnoreCase)) return false;
         var context = new HtmlCssLengthResolutionContext {
                 PercentageReference = FiniteOrNull(reference),
                 FontSize = FiniteOrNull(fontSize),
@@ -96,7 +105,7 @@ internal static class HtmlRenderCssValues {
                 ContainerInlineSize = FiniteOrNull(containerWidth),
                 ContainerBlockSize = FiniteOrNull(containerHeight)
         };
-        return TryLength(value, context, out result, out isCalculated, out _);
+        return TryLength(value, context, out result, out isCalculated, out _, expressionCache);
     }
 
     /// <summary>Resolves through the existing numeric owner while retaining typed root metadata for font provenance.</summary>
@@ -105,13 +114,15 @@ internal static class HtmlRenderCssValues {
         HtmlCssLengthResolutionContext context,
         out double result,
         out bool isCalculated,
-        out HtmlCssMathExpression? expression) {
+        out HtmlCssMathExpression? expression,
+        HtmlRenderLengthExpressionCache? expressionCache = null) {
         result = 0D;
         isCalculated = false;
         expression = null;
         if (string.IsNullOrWhiteSpace(value)) return false;
         try {
-            HtmlCssMathParseResult parsed = HtmlCssMathParser.ParseLengthPercentage(value!);
+            HtmlCssMathParseResult parsed = expressionCache?.Parse(value!)
+                ?? HtmlCssMathParser.ParseLengthPercentage(value!);
             if (!parsed.IsParsed) return false;
             expression = parsed.Expression!;
             isCalculated = expression.IsCalculated;

@@ -57,39 +57,6 @@ internal sealed partial class HtmlRenderStyleResolver {
         _viewportHeight = height;
     }
 
-    private bool TryResolveLength(string? value, double reference, double fontSize, double rootFontSize, out double result) =>
-        HtmlRenderCssValues.TryLength(
-            value,
-            reference,
-            fontSize,
-            rootFontSize,
-            _viewportWidth,
-            _viewportHeight,
-            _activeContainerWidth,
-            _activeContainerHeight,
-            out result,
-            _activeCharacterAdvance, _activeUprightVerticalText);
-
-    private bool TryResolveLength(
-        string? value,
-        double reference,
-        double fontSize,
-        double rootFontSize,
-        out double result,
-        out bool isCalculated) =>
-        HtmlRenderCssValues.TryLength(
-            value,
-            reference,
-            fontSize,
-            rootFontSize,
-            _viewportWidth,
-            _viewportHeight,
-            _activeContainerWidth,
-            _activeContainerHeight,
-            out result,
-            out isCalculated,
-            _activeCharacterAdvance, _activeUprightVerticalText);
-
     internal HtmlRenderBoxStyle Resolve(IElement element, double containingWidth, HtmlRenderBoxStyle? parent = null) {
         HtmlComputedStyle computed = _computedStyles.Elements.TryGetValue(element, out HtmlComputedStyle? found)
             ? found
