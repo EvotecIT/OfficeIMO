@@ -131,7 +131,7 @@ internal sealed partial class OfficeOpenTypeSubstitution {
         Ensure(subtable, 6);
         if (_reader.ReadUInt16(subtable) != 1) return 0;
         int coverage = Relative(subtable, _reader.ReadUInt16(subtable + 2), 4);
-        int coverageIndex = CoverageIndex(coverage, glyphs[index].GlyphId);
+        int coverageIndex = CoverageIndex(coverage, glyphs[index].GlyphId, ref operations);
         int sequenceCount = _reader.ReadUInt16(subtable + 4);
         if (sequenceCount > MaximumCoverageGlyphs || coverageIndex < 0 || coverageIndex >= sequenceCount) return 0;
         Ensure(subtable + 6, checked(sequenceCount * 2));
@@ -175,7 +175,7 @@ internal sealed partial class OfficeOpenTypeSubstitution {
         Ensure(subtable + 6, checked(glyphCount * 2 + recordCount * 4));
         for (int input = 0; input < glyphCount; input++) {
             int coverage = Relative(subtable, _reader.ReadUInt16(subtable + 6 + input * 2), 4);
-            if (CoverageIndex(coverage, glyphs[index + input].GlyphId) < 0) return 0;
+            if (CoverageIndex(coverage, glyphs[index + input].GlyphId, ref operations) < 0) return 0;
         }
         int countBefore = glyphs.Count;
         ApplyLookupRecords(glyphs, index, subtable + 6 + glyphCount * 2, recordCount, featureValue, cancellationToken, ref operations, recursionDepth);
@@ -199,7 +199,7 @@ internal sealed partial class OfficeOpenTypeSubstitution {
         if (index < backtrackCount) return 0;
         for (int backtrack = 0; backtrack < backtrackCount; backtrack++) {
             int coverage = Relative(subtable, _reader.ReadUInt16(cursor + backtrack * 2), 4);
-            if (CoverageIndex(coverage, glyphs[index - backtrack - 1].GlyphId) < 0) return 0;
+            if (CoverageIndex(coverage, glyphs[index - backtrack - 1].GlyphId, ref operations) < 0) return 0;
         }
         cursor += backtrackCount * 2;
         int inputCount = ReadBoundedCount(cursor);
@@ -208,7 +208,7 @@ internal sealed partial class OfficeOpenTypeSubstitution {
         if (inputCount <= 0 || index > glyphs.Count - inputCount) return 0;
         for (int input = 0; input < inputCount; input++) {
             int coverage = Relative(subtable, _reader.ReadUInt16(cursor + input * 2), 4);
-            if (CoverageIndex(coverage, glyphs[index + input].GlyphId) < 0) return 0;
+            if (CoverageIndex(coverage, glyphs[index + input].GlyphId, ref operations) < 0) return 0;
         }
         cursor += inputCount * 2;
         int lookaheadCount = ReadBoundedCount(cursor);
@@ -217,7 +217,7 @@ internal sealed partial class OfficeOpenTypeSubstitution {
         if (index + inputCount + lookaheadCount > glyphs.Count) return 0;
         for (int lookahead = 0; lookahead < lookaheadCount; lookahead++) {
             int coverage = Relative(subtable, _reader.ReadUInt16(cursor + lookahead * 2), 4);
-            if (CoverageIndex(coverage, glyphs[index + inputCount + lookahead].GlyphId) < 0) return 0;
+            if (CoverageIndex(coverage, glyphs[index + inputCount + lookahead].GlyphId, ref operations) < 0) return 0;
         }
         cursor += lookaheadCount * 2;
         int recordCount = _reader.ReadUInt16(cursor);
@@ -257,11 +257,11 @@ internal sealed partial class OfficeOpenTypeSubstitution {
         for (int index = glyphs.Count - 1; index >= 0; index--) {
             cancellationToken.ThrowIfCancellationRequested();
             if (++operations > MaximumOperations) throw new InvalidDataException("GSUB shaping exceeded the managed operation budget.");
-            int coverageIndex = CoverageIndex(coverage, glyphs[index].GlyphId);
+            int coverageIndex = CoverageIndex(coverage, glyphs[index].GlyphId, ref operations);
             if (coverageIndex < 0 || coverageIndex >= substituteCount || index < backtrackCount || index + 1 + lookaheadCount > glyphs.Count) continue;
             bool matches = true;
-            for (int i = 0; i < backtrackCount && matches; i++) matches = CoverageIndex(backtrack[i], glyphs[index - i - 1].GlyphId) >= 0;
-            for (int i = 0; i < lookaheadCount && matches; i++) matches = CoverageIndex(lookahead[i], glyphs[index + i + 1].GlyphId) >= 0;
+            for (int i = 0; i < backtrackCount && matches; i++) matches = CoverageIndex(backtrack[i], glyphs[index - i - 1].GlyphId, ref operations) >= 0;
+            for (int i = 0; i < lookaheadCount && matches; i++) matches = CoverageIndex(lookahead[i], glyphs[index + i + 1].GlyphId, ref operations) >= 0;
             int replacement = _reader.ReadUInt16(cursor + coverageIndex * 2);
             if (matches && replacement > 0 && replacement < _reader.GlyphCount) glyphs[index] = glyphs[index].WithGlyph(replacement);
         }
@@ -336,9 +336,9 @@ internal sealed partial class OfficeOpenTypeSubstitution {
         List<GlyphToken> glyphs, int index, int lookupType, int subtable, int featureValue,
         CancellationToken cancellationToken, ref int operations, int recursionDepth) {
         if (index < 0 || index >= glyphs.Count) return 0;
-        if (lookupType == 1) return ApplySingle(glyphs, index, subtable) ? 1 : 0;
+        if (lookupType == 1) return ApplySingle(glyphs, index, subtable, ref operations) ? 1 : 0;
         if (lookupType == 2) return ApplyMultiple(glyphs, index, subtable, ref operations);
-        if (lookupType == 3) return ApplyAlternate(glyphs, index, subtable, featureValue) ? 1 : 0;
+        if (lookupType == 3) return ApplyAlternate(glyphs, index, subtable, featureValue, ref operations) ? 1 : 0;
         if (lookupType == 4) return ApplyLigature(glyphs, index, subtable, ref operations) ? 1 : 0;
         if (lookupType == 5) return ApplyContextual(glyphs, index, subtable, featureValue, cancellationToken, ref operations, recursionDepth);
         if (lookupType == 6) return ApplyChainedContextual(glyphs, index, subtable, featureValue, cancellationToken, ref operations, recursionDepth);
