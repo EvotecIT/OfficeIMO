@@ -26,8 +26,15 @@ public sealed partial class PdfDocument {
         }
 
         var diagnostics = new List<PdfTextEncodingDiagnostic>();
+        ValidateFootnoteDocument();
         AnalyzeOptionsText(_options, diagnostics, string.Empty, cancellationToken);
         AnalyzeBlocks(_blocks, _options, diagnostics, string.Empty, cancellationToken);
+        foreach (PdfFootnoteDefinition note in _blocks.SelectMany(PdfFootnoteTraversal.References).Distinct()) {
+            cancellationToken.ThrowIfCancellationRequested();
+            AnalyzeBlocks(note.Blocks, _options, diagnostics, "Footnote", cancellationToken);
+            AnalyzeBlocks(note.Separator, _options, diagnostics, "FootnoteSeparator", cancellationToken);
+            AnalyzeBlocks(note.ContinuationSeparator, _options, diagnostics, "FootnoteContinuationSeparator", cancellationToken);
+        }
         cancellationToken.ThrowIfCancellationRequested();
         return diagnostics.AsReadOnly();
     }

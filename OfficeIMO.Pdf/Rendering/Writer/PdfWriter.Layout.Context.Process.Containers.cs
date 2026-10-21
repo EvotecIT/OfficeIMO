@@ -105,6 +105,11 @@ internal static partial class PdfWriter {
                 }
             }
 
+            if (style.KeepTogether) {
+                ReserveAtomicFootnoteGroup(new[] { container },
+                    () => MeasureWholeBlockHeight(container, parentLeft, parentWidth, currentOpts.DefaultFontSize) ?? 0D,
+                    () => { NewBlockFrame(); spacingBefore = 0D; parentLeft = currentOpts.MarginLeft; parentWidth = width; });
+            }
             y -= spacingBefore;
             if (style.AnchoredCanvas is { } anchoredCanvas) RenderParagraphCanvas(anchoredCanvas, y);
             if (style.TopPadding > 0) RecordFlowPlacement(y);

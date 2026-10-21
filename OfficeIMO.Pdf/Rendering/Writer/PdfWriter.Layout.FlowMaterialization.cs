@@ -9,6 +9,7 @@ internal static partial class PdfWriter {
         private readonly double _contentWidth;
         private readonly double _pageWidth;
         private readonly double _pageHeight;
+        private readonly bool _isAtPageTop;
 
         public FlowMaterializationKey(FlowBlock flow, PdfFlowContext context) {
             _flow = flow;
@@ -18,6 +19,7 @@ internal static partial class PdfWriter {
             _contentWidth = context.ContentWidth;
             _pageWidth = context.PageWidth;
             _pageHeight = context.PageHeight;
+            _isAtPageTop = context.IsAtPageTop;
         }
 
         public bool Equals(FlowMaterializationKey other) =>
@@ -27,7 +29,8 @@ internal static partial class PdfWriter {
             _fullContentHeight.Equals(other._fullContentHeight) &&
             _contentWidth.Equals(other._contentWidth) &&
             _pageWidth.Equals(other._pageWidth) &&
-            _pageHeight.Equals(other._pageHeight);
+            _pageHeight.Equals(other._pageHeight) &&
+            _isAtPageTop == other._isAtPageTop;
 
         public override bool Equals(object? obj) => obj is FlowMaterializationKey other && Equals(other);
 
@@ -40,6 +43,7 @@ internal static partial class PdfWriter {
                 hash = (hash * 397) ^ _contentWidth.GetHashCode();
                 hash = (hash * 397) ^ _pageWidth.GetHashCode();
                 hash = (hash * 397) ^ _pageHeight.GetHashCode();
+                hash = (hash * 397) ^ _isAtPageTop.GetHashCode();
                 return hash;
             }
         }

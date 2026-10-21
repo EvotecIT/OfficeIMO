@@ -6,6 +6,9 @@ using W = DocumentFormat.OpenXml.Wordprocessing;
 namespace OfficeIMO.Word.Pdf {
     public static partial class WordPdfConverterExtensions {
         private readonly record struct NativeDocumentDefaults(string? FontFamily, string? Language, double FontSize, double ParagraphLineHeight, double ParagraphSpacingBefore, bool ParagraphSpacingBeforeDeclared, double ParagraphSpacingAfter, bool ParagraphSpacingAfterDeclared, bool ParagraphWidowControl, double? DefaultTabStopWidth) {
+            public NativeNoteNumbering? NoteNumbering { get; init; }
+            public WordSection? NoteContentSection { get; init; }
+            public string? NoteBodyLabel { get; init; }
             public NativeLatinFontFamilies FontFamilies { get; init; }
             public NativeComplexScriptDefaults ComplexScript { get; init; }
             public NativeTextSpacing TextSpacing { get; init; }

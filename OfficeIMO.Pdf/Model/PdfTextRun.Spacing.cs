@@ -37,6 +37,7 @@ public sealed partial class PdfTextRun {
         PreservesPaintedGlyphs = source.PreservesPaintedGlyphs;
         RelativeTabStop = source.RelativeTabStop;
         FormField = source.FormField;
+        FootnoteReference = source.FootnoteReference;
         return this;
     }
 

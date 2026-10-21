@@ -7,6 +7,7 @@ internal static partial class PdfWriter {
     private sealed partial class LayoutContext {
         private void ProcessBlocks(System.Collections.Generic.IEnumerable<IPdfBlock> sequence, IPdfBlock? owner = null) {
             var blockList = sequence as System.Collections.Generic.IList<IPdfBlock> ?? sequence.ToList();
+            RegisterFootnoteSourceOrder(blockList as IReadOnlyList<IPdfBlock> ?? blockList.ToList());
             var sequenceScope = new BlockSequenceScope(blockList, owner);
             activeBlockSequences.Add(sequenceScope);
             try {
@@ -58,6 +59,7 @@ internal static partial class PdfWriter {
                 }
 
                 EnsurePage();
+                ReserveFootnoteKeepChain(blockList, blockIndex);
 
                 if (HasFloatingTables && (block is HeadingBlock || block is PdfListBlock || block is ImageBlock ||
                     block is HorizontalRuleBlock || block is TextAnnotationBlock || block is FreeTextAnnotationBlock || block is HighlightAnnotationBlock || block is TextFieldBlock || block is CheckBoxBlock ||

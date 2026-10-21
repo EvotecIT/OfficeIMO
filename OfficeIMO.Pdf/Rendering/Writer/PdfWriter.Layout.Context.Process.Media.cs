@@ -45,7 +45,7 @@ internal static partial class PdfWriter {
             double needed = imageSpacingBefore + imageBox.Height + imageStyle.SpacingAfter;
             EnsureFixedFlowBlockFits("Image", imageBox.Width, imageBox.Height + imageStyle.SpacingAfter, GetMaximumFixedFlowWidth(contentWidth), GetClosingContainerPadding());
             while (true) {
-                bool advance = imageBox.Width > contentWidth + .001D || y - needed - GetClosingContainerPadding() < currentOpts.MarginBottom - .001D;
+                bool advance = imageBox.Width > contentWidth + .001D || y - needed - GetClosingContainerPadding() < FootnoteBodyBottom - .001D;
                 if (!advance && imageStyle.KeepWithNext && nextBlock != null) {
                     double nextHeight = MeasureKeepWithNextChainHeight(blockList, blockIndex + 1, currentOpts.MarginLeft, width, currentOpts.DefaultFontSize, needed);
                     double keepHeight = needed + nextHeight;

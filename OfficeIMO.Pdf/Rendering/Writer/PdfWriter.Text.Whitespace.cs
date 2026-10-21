@@ -43,7 +43,8 @@ internal static partial class PdfWriter {
                 horizontalTextScaling: source.HorizontalTextScaling, characterSpacing: source.CharacterSpacing,
                 fontMetricScale: source.FontMetricScale, leadingSpaceCount: count,
                 leadingSpaceRemainder: remainder, leadingSpaceUnitAdvance: unit,
-                contributesLineBoxDescent: source.ContributesLineBoxDescent, formField: source.FormField));
+                contributesLineBoxDescent: source.ContributesLineBoxDescent, formField: source.FormField,
+                footnoteReference: source.TakeFootnoteReference()).WithFootnoteReferenceOrigin(source));
             remaining -= consumed;
             fragment.Advance -= consumed;
             if (fragment.Advance <= 0.001D) pending.RemoveAt(0);
@@ -63,18 +64,19 @@ internal static partial class PdfWriter {
             textDirection: style.TextDirection, leadingTabStop: stop, leadingIsTab: true,
             leadingTabAlignment: alignment, horizontalTextScaling: style.HorizontalTextScaling,
             characterSpacing: style.CharacterSpacing, fontMetricScale: style.FontMetricScale,
-            leadingSpaceCount: 0, contributesLineBoxDescent: style.ContributesLineBoxDescent, formField: style.FormField);
+            leadingSpaceCount: 0, contributesLineBoxDescent: style.ContributesLineBoxDescent, formField: style.FormField,
+            footnoteReference: style.TakeFootnoteReference()).WithFootnoteReferenceOrigin(style);
 
     private static void AppendPreservedSpaceRuns(List<PdfTextRun> runs, RichSeg segment) {
         // Links remain on their visible text. A whitespace-only public run
         // cannot carry a link target, and it does not need a separate annotation.
         RichSeg spaceStyle = segment.WithoutLink();
         if (segment.LeadingSpaceCount > 0)
-            runs.Add(BuildTextRunFromWrappedSegment(new string(' ', segment.LeadingSpaceCount), spaceStyle));
+            runs.Add(BuildTextRunFromWrappedSegment(new string(' ', segment.LeadingSpaceCount), spaceStyle, preserveFootnote: false));
         if (segment.LeadingSpaceRemainder > 0.001D) {
             // A literal space can straddle a frame edge. Its remainder has the
             // same font/decorations and only the advance that this fragment owns.
-            runs.Add(BuildTextRunFromWrappedSegment(" ", spaceStyle).WithCharacterSpacing(
+            runs.Add(BuildTextRunFromWrappedSegment(" ", spaceStyle, preserveFootnote: false).WithCharacterSpacing(
                 segment.CharacterSpacing + segment.LeadingSpaceRemainder - segment.LeadingSpaceUnitAdvance));
         }
     }

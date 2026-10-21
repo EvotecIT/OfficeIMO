@@ -21,7 +21,7 @@ internal static partial class PdfWriter {
                     }
 
                     string text = segment.Text;
-                    if (text.Length == 0 && !segment.IsLineBoxStrut) {
+                    if (text.Length == 0 && !segment.IsLineBoxStrut && segment.FootnoteReference == null) {
                         continue;
                     }
 
@@ -29,12 +29,12 @@ internal static partial class PdfWriter {
                 }
 
                 if (line.Count > 0 && line[line.Count - 1].EndsWithHardBreak) {
-                    runs.Add(BuildTextRunFromWrappedSegment("\n", line[line.Count - 1]));
+                    runs.Add(BuildTextRunFromWrappedSegment("\n", line[line.Count - 1], preserveFootnote: false));
                 } else if (lineIndex + 1 < count) {
                     if (line.Count == 0) {
                         runs.Add(PdfTextRun.LineBreak());
                     } else if (line[line.Count - 1].EndsWithTextSeparator) {
-                        runs.Add(BuildTextRunFromWrappedSegment(" ", line[line.Count - 1].WithoutLink()));
+                        runs.Add(BuildTextRunFromWrappedSegment(" ", line[line.Count - 1].WithoutLink(), preserveFootnote: false));
                     }
                 }
             }
@@ -42,7 +42,7 @@ internal static partial class PdfWriter {
             return runs;
         }
 
-        private static PdfTextRun BuildTextRunFromWrappedSegment(string text, RichSeg segment) {
+        private static PdfTextRun BuildTextRunFromWrappedSegment(string text, RichSeg segment, bool preserveFootnote = true) {
             var run = new PdfTextRun(
                 text,
                 segment.Bold,
@@ -70,6 +70,7 @@ internal static partial class PdfWriter {
             run.ContributesLineBoxDescent = segment.ContributesLineBoxDescent;
             run.IsLineBoxStrut = segment.IsLineBoxStrut;
             if (segment.FormField != null) run = run.WithFormField(segment.FormField);
+            if (preserveFootnote && segment.FootnoteReference != null && text == segment.Text) run = run.WithFootnoteReference(segment.FootnoteReference);
             return run;
         }
 

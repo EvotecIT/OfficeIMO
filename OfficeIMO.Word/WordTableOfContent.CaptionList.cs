@@ -381,11 +381,11 @@ namespace OfficeIMO.Word {
         }
 
         private static bool IsVisibleNote(Footnote footnote) {
-            return footnote.Type == null || footnote.Type.Value == FootnoteEndnoteValues.Normal;
+            return WordNoteResolver.IsOrdinary(footnote);
         }
 
         private static bool IsVisibleNote(Endnote endnote) {
-            return endnote.Type == null || endnote.Type.Value == FootnoteEndnoteValues.Normal;
+            return WordNoteResolver.IsOrdinary(endnote);
         }
 
         private static string NormalizeCaptionSequenceIdentifier(string sequenceIdentifier) {
