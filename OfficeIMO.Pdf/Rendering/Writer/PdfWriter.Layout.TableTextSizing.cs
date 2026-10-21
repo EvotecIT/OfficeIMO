@@ -193,7 +193,7 @@ internal static partial class PdfWriter {
                 // passing them to a font encoder or scaling their point offsets.
                 preparedLines[lineIndex] = new TableTextLineWidthMeasurement(Array.Empty<TableRunWidthMeasurement>(),
                     (fontSize, scale, minimumSize) => {
-                        var layout = WrapRichRunsCore(ScaleTableRunsForShrink(sourceRuns, scale, minimumSize),
+                        var layout = WrapRichRunsIntrinsic(ScaleTableRunsForShrink(sourceRuns, scale, minimumSize),
                             double.MaxValue, fontSize, baseFont, fontSize * 1.2D, null, DefaultParagraphTabStopWidth, options);
                         return layout.Lines.Count == 0 ? 0D : layout.Lines.Max(line => MeasureRichLineWidth(line, options));
                     });

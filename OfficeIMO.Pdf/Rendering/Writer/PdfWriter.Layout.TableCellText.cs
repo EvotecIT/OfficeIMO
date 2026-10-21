@@ -3,7 +3,7 @@ using OfficeIMO.Drawing;
 namespace OfficeIMO.Pdf;
 
 internal static partial class PdfWriter {
-    private static TableCellTextLayout CreateTableCellTextLayout(TableCellLayout cell, double innerWidth, PdfStandardFont baseFont, double fontSize, double leading, PdfOptions? options, double runFontSizeScale = 1D, double minimumShrinkFontSize = 0D, bool wrapOversizedNoWrap = false) {
+    private static TableCellTextLayout CreateTableCellTextLayout(TableCellLayout cell, double innerWidth, PdfStandardFont baseFont, double fontSize, double leading, PdfOptions? options, double runFontSizeScale = 1D, double minimumShrinkFontSize = 0D, bool wrapOversizedNoWrap = false, RichWrapPurpose purpose = RichWrapPurpose.Layout) {
         if (cell.ShrinkTextToFit && fontSize > 0D) {
             minimumShrinkFontSize = minimumShrinkFontSize > 0D ? minimumShrinkFontSize : 6D;
             TableRowTextSizing sizing = ResolveTableCellsTextSizing(new[] { cell }, fontSize,
@@ -15,10 +15,12 @@ internal static partial class PdfWriter {
         }
         double wrapWidth = ResolveImportedTableCellWrapWidth(cell, innerWidth, baseFont, fontSize, options, runFontSizeScale, minimumShrinkFontSize, wrapOversizedNoWrap);
         if (cell.Paragraphs.Count > 0) {
-            return CreateTableCellParagraphTextLayout(ScaleTableCellParagraphsForShrink(cell.Paragraphs, runFontSizeScale, minimumShrinkFontSize), wrapWidth, innerWidth, baseFont, fontSize, leading, options);
+            return CreateTableCellParagraphTextLayout(ScaleTableCellParagraphsForShrink(cell.Paragraphs, runFontSizeScale, minimumShrinkFontSize), wrapWidth, innerWidth, baseFont, fontSize, leading, options, purpose);
         }
 
-        var wrap = WrapRichRunsCore(ScaleTableRunsForShrink(cell.Runs, runFontSizeScale, minimumShrinkFontSize), wrapWidth, fontSize, baseFont, leading, null, DefaultParagraphTabStopWidth, options);
+        var wrap = WrapRichRunsCoreWithFirstLineOrigin(ScaleTableRunsForShrink(cell.Runs, runFontSizeScale, minimumShrinkFontSize),
+            wrapWidth, fontSize, baseFont, leading, null, null, DefaultParagraphTabStopWidth, options,
+            purpose: purpose, inlineRuleWidth: innerWidth);
         if (wrap.Lines.Count == 0) {
             wrap.Lines.Add(new System.Collections.Generic.List<RichSeg>());
         }
@@ -37,14 +39,14 @@ internal static partial class PdfWriter {
 
         var scaledRuns = new System.Collections.Generic.List<PdfTextRun>(runs.Count);
         foreach (PdfTextRun run in runs) {
-            if (run.InlineElement != null) {
+            if (run.InlineElement != null && run.InlineElement is not PdfInlineRule) {
                 scaledRuns.Add(run);
                 continue;
             }
 
             double? scaledFontSize = ScaleTableFontSizeForShrink(run.FontSize, runFontSizeScale, minimumShrinkFontSize);
 
-            scaledRuns.Add(new PdfTextRun(
+            var scaledRun = new PdfTextRun(
                 run.Text,
                 run.Bold,
                 run.Underline,
@@ -65,7 +67,8 @@ internal static partial class PdfWriter {
                 run.StrikeStyle,
                 run.DecorationColor)
                 .WithSpacingFrom(run).WithFeatureSettings(run.FeatureSettings)
-                .WithTextDirection(run.TextDirection));
+                .WithTextDirection(run.TextDirection);
+            scaledRuns.Add(run.InlineElement is PdfInlineRule rule ? PdfTextRun.Inline(rule, scaledRun) : scaledRun);
         }
 
         return scaledRuns.AsReadOnly();
@@ -104,7 +107,7 @@ internal static partial class PdfWriter {
     private static double GetTableCellWrapWidth(double innerWidth, bool noWrap) =>
         noWrap ? TableCellNoWrapWidth : innerWidth;
 
-    private static TableCellTextLayout CreateTableCellParagraphTextLayout(System.Collections.Generic.IReadOnlyList<PdfTableCellParagraph> paragraphs, double wrapWidth, double cellInnerWidth, PdfStandardFont baseFont, double fontSize, double leading, PdfOptions? options) {
+    private static TableCellTextLayout CreateTableCellParagraphTextLayout(System.Collections.Generic.IReadOnlyList<PdfTableCellParagraph> paragraphs, double wrapWidth, double cellInnerWidth, PdfStandardFont baseFont, double fontSize, double leading, PdfOptions? options, RichWrapPurpose purpose = RichWrapPurpose.Layout) {
         var lines = new System.Collections.Generic.List<System.Collections.Generic.List<RichSeg>>();
         var lineHeights = new System.Collections.Generic.List<double>();
         var lineAlignments = new System.Collections.Generic.List<PdfAlign?>();
@@ -133,7 +136,8 @@ internal static partial class PdfWriter {
                 paragraphFrame.FirstLineX - paragraphFrame.X,
                 GetParagraphTabStopWidth(paragraphStyle),
                 options,
-                paragraphStyle.TabStops.ToArray(), lineSpacing: paragraphStyle.LineSpacing);
+                paragraphStyle.TabStops.ToArray(), lineSpacing: paragraphStyle.LineSpacing, purpose: purpose,
+                inlineRuleWidth: alignmentFrame.Width, firstLineInlineRuleWidth: alignmentFrame.FirstLineWidth);
             if (wrap.Lines.Count == 0) {
                 wrap.Lines.Add(new System.Collections.Generic.List<RichSeg>());
             }

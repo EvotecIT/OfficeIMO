@@ -31,8 +31,11 @@ public sealed class PdfFormOcrRemediationTests {
         }, new OcrEngineCapabilities { SupportsConcurrentRequests = concurrent, SupportsOrientationDetection = orientation });
         var preparation = source.PrepareFormOcrAsync(engine, new() { Dpi = 72, DetectOrientation = orientation }, cancellation.Token);
         try {
-            Assert.Same(entered.Task, await Task.WhenAny(entered.Task, Task.Delay(TimeSpan.FromSeconds(10)))); await entered.Task; cancellation.Cancel();
-            Assert.Same(cleaning.Task, await Task.WhenAny(cleaning.Task, Task.Delay(TimeSpan.FromSeconds(10)))); await cleaning.Task; await Task.Delay(100);
+            // Check the signal when execution resumes, even if the guard completed first on a loaded host.
+            await Task.WhenAny(entered.Task, Task.Delay(TimeSpan.FromSeconds(10)));
+            Assert.True(entered.Task.IsCompleted, "Form OCR provider did not enter."); await entered.Task; cancellation.Cancel();
+            await Task.WhenAny(cleaning.Task, Task.Delay(TimeSpan.FromSeconds(10)));
+            Assert.True(cleaning.Task.IsCompleted, "Form OCR provider cleanup did not start."); await cleaning.Task; await Task.Delay(100);
             Assert.False(preparation.IsCompleted);
             Assert.Equal(orientation ? OcrOperation.DetectOrientation : OcrOperation.RecognizeText, actual);
             release.TrySetResult(true); await Assert.ThrowsAnyAsync<OperationCanceledException>(() => preparation);

@@ -42,7 +42,10 @@ public partial class WordPdfPageFootnoteTests {
             Page page = actual.GetPage(PageFootnoteTokenPage(actual, token));
             Assert.All(PageFootnoteToken(page, token), letter => Assert.Equal(12D, letter.PointSize, 3));
         }
-        AssertPageFootnoteNativeProfile(bytes, () => AssertImplicitFootnoteNativePartition(actual));
+        AssertPageFootnoteNativeProfile(bytes, () => {
+            AssertImplicitFootnoteNativePartition(actual);
+            AssertImplicitFootnoteNativeRuleBands(actual, reference, bytes.Frame);
+        });
     }
 
     [Fact]
@@ -72,6 +75,10 @@ public partial class WordPdfPageFootnoteTests {
         using WordDocument document = WordDocument.Load(new MemoryStream(input));
         Assert.Empty(document.ValidateDocument());
         var main = document._wordprocessingDocument.MainDocumentPart!;
+        // These simple fixtures have no table borders that could be mistaken
+        // for the native default separator's thin black filled band.
+        Assert.Empty(main.Document.Descendants<W.Table>());
+        Assert.Empty(main.FootnotesPart!.Footnotes!.Descendants<W.Table>());
         string bodyBefore = main.Document.OuterXml;
         string notesBefore = main.FootnotesPart!.Footnotes!.OuterXml;
         string stylesBefore = main.StyleDefinitionsPart!.Styles!.OuterXml;
@@ -96,17 +103,41 @@ public partial class WordPdfPageFootnoteTests {
         Assert.Equal(settingsBefore, main.DocumentSettingsPart.Settings.OuterXml);
         Assert.Empty(document.ValidateDocument());
 
-        PdfConversionWarning separator = Assert.Single(result.Warnings, warning => warning.Code == SeparatorWarningCode);
-        Assert.Equal("footnote separator", separator.Source);
-        Assert.Equal(OfficeConversionLossKind.Omission, separator.LossKind);
-        Assert.True(result.HasLoss);
-        Assert.All(result.SourceConversionReports, report => Assert.False(report.HasLoss));
         var qualification = QualifyPageFootnoteNativeArial(id, actual, result.Warnings);
-        Assert.All(qualification.Substitutions, warning => Assert.Equal(OfficeConversionLossKind.Approximation, warning.LossKind));
-        Assert.All(result.Warnings.Where(warning => warning.LossKind != OfficeConversionLossKind.None),
-            warning => Assert.True(warning == separator || qualification.Substitutions.Contains(warning),
-            $"Unexpected conversion diagnostic: {warning}"));
+        AssertPageFootnoteAcceptedLosses(id, result, qualification.Qualified, qualification.Substitutions);
         return new PageFootnoteArtifact(actual, reference, frame, qualification.Qualified, qualification.Qualification);
+    }
+
+    private static void AssertImplicitFootnoteNativeRuleBands(PdfPigDocument actual, PdfPigDocument reference,
+        PageFootnoteFrame frame) {
+        foreach (int pageNumber in ImplicitFootnoteParagraphs.Select(token => PageFootnoteTokenPage(reference, token))
+            .Distinct().OrderBy(number => number)) {
+            string firstNote = ImplicitFootnoteParagraphs.First(token => PageFootnoteTokenPage(reference, token) == pageNumber);
+            var expected = ImplicitFootnoteRuleBand(reference.GetPage(pageNumber), firstNote, frame);
+            var observed = ImplicitFootnoteRuleBand(actual.GetPage(pageNumber), firstNote, frame);
+            // A 600-dpi native device pixel is .12pt. Keep one-pixel print
+            // precision plus .03pt for exported coordinates, independently of
+            // the existing text geometry and pagination budgets.
+            Assert.InRange(Math.Abs(observed.Left - expected.Left), 0D, .15D);
+            Assert.InRange(Math.Abs(observed.Top - expected.Top), 0D, .15D);
+            Assert.InRange(Math.Abs(observed.Width - expected.Width), 0D, .15D);
+            Assert.InRange(Math.Abs(observed.Height - expected.Height), 0D, .15D);
+        }
+    }
+
+    private static UglyToad.PdfPig.Core.PdfRectangle ImplicitFootnoteRuleBand(Page page, string firstNote,
+        PageFootnoteFrame frame) {
+        double noteInkTop = PageFootnoteToken(page, firstNote).Max(letter => letter.BoundingBox.Top);
+        // Select each producer's band independently, above its first note and
+        // within the authored story frame. Do not choose the nearest path or
+        // filter by the eventual native-coordinate comparison budget.
+        return Assert.Single(page.Paths.Where(path => path.IsFilled &&
+                path.FillColor.ToRGBValues() == (0D, 0D, 0D))
+            .Select(path => path.GetBoundingRectangle())
+            .Where(bounds => bounds.HasValue && Math.Abs(bounds.Value.Width - 144D) <= .15D &&
+                bounds.Value.Height > 0D && bounds.Value.Height < 2D &&
+                bounds.Value.Bottom > noteInkTop && bounds.Value.Top <= (double)page.Height - frame.MarginTop)
+            .Select(bounds => bounds!.Value));
     }
 
     private static void AssertImplicitFootnoteContent(PdfPigDocument pdf) {

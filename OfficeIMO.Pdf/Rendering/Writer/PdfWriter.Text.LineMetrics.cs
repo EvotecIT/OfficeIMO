@@ -32,7 +32,7 @@ internal static partial class PdfWriter {
                     bodyAscent = Math.Max(bodyAscent, runAscent);
                     descent = Math.Max(descent, runDescent);
                 }
-            } else if (segment.InlineElement is { } inline) {
+            } else if (segment.InlineElement is { } inline && !UsesInlineRunTextMetrics(inline)) {
                 ascent = Math.Max(ascent, inline.BaselineOffset + inline.Height);
                 inlineAscent = Math.Max(inlineAscent, inline.BaselineOffset + inline.Height);
                 descent = Math.Max(descent, -inline.BaselineOffset);
@@ -129,6 +129,15 @@ internal static partial class PdfWriter {
         foreach (RichSeg segment in line) {
             if (segment.IsLineBoxStrut) continue;
             if (segment.InlineElement is { } inline) {
+                if (inline is PdfInlineBox { SourceRule: { } rule } box) {
+                    if (box.Width > 0D) {
+                        foreach (PdfInlineRule.InkBand band in rule.Bands) {
+                            ascender = Math.Max(ascender, segment.LineAlignmentRise + band.BaselineOffset + band.Height);
+                            descender = Math.Max(descender, -band.BaselineOffset - segment.LineAlignmentRise);
+                        }
+                    }
+                    continue;
+                }
                 ascender = Math.Max(ascender, inline.BaselineOffset + inline.Height);
                 descender = Math.Max(descender, -inline.BaselineOffset);
             } else {

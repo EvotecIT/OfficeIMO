@@ -8,7 +8,7 @@ internal static partial class PdfWriter {
         // grids reserve cross-axis line boxes, including authored spacing,
         // rather than expanding the column for the entire horizontal string.
         TableCellTextLayout layout = CreateTableCellTextLayout(cell, TableCellNoWrapWidth,
-            font, size, leading, options);
+            font, size, leading, options, purpose: RichWrapPurpose.IntrinsicMeasurement);
         return MeasureTableCellTextHeight(layout, 0, layout.LineCount, leading);
     }
 }

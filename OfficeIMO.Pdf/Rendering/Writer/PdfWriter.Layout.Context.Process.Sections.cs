@@ -6,9 +6,9 @@ internal static partial class PdfWriter {
     private sealed partial class LayoutContext {
         private void RenderSectionBlock(SectionBlock section) {
             encounteredSectionDefinitions.Add(section);
-            if (section.Options.StartOnNewPage && (pageDirty || HasCurrentPageNonContentObjects())) {
+            if (section.Options.StartOnNewPage && (pageDirty || HasCurrentPageNonContentObjects() || HasPageFootnotes)) {
                 pendingFloatingBookmarks.Clear();
-                NewPage();
+                NewPageAfterFootnoteContinuations();
             }
 
             void CaptureSectionPlacement() {

@@ -103,7 +103,16 @@ internal static partial class PdfWriter {
         }
 
         ContentStreamBuilder boxContent = new ContentStreamBuilder(sb).SaveState();
-        if (inlineBox.Background.HasValue) {
+        if (inlineBox.SourceRule is { } rule) {
+            if (inlineBox.Width > 0D) {
+                foreach (PdfInlineRule.InkBand band in rule.Bands) {
+                    boxContent
+                        .FillColor(band.Color)
+                        .Rectangle(x, baseline + band.BaselineOffset, inlineBox.Width, band.Height)
+                        .FillPath();
+                }
+            }
+        } else if (inlineBox.Background.HasValue) {
             boxContent
                 .FillColor(inlineBox.Background.Value)
                 .Rectangle(x, bottom, inlineBox.Width, inlineBox.Height)
@@ -126,7 +135,10 @@ internal static partial class PdfWriter {
         }
     }
 
-    private static void WriteRichParagraph(StringBuilder sb, RichParagraphBlock block, System.Collections.Generic.List<System.Collections.Generic.List<RichSeg>> lines, System.Collections.Generic.List<double> lineHeights, PdfOptions opts, double startY, double fontSize, double defaultLeading, System.Collections.Generic.List<LinkAnnotation> annots, double? xOverride = null, double? widthOverride = null, double? firstLineXOverride = null, double? firstLineWidthOverride = null, string? structureType = null, int? markedContentId = null, LayoutResult.Page? structurePage = null, System.Collections.Generic.IReadOnlyList<PdfAlign?>? lineAlignments = null, System.Collections.Generic.IReadOnlyList<double>? lineXOffsets = null, System.Collections.Generic.IReadOnlyList<double>? lineWidths = null, bool suppressActualText = false, System.Collections.Generic.IReadOnlyList<double>? lineTopGaps = null, PdfStandardFont? baselineFont = null, string? foregroundGraphicsState = null, string? decorationGraphicsState = null, bool captureInlineForms = true, bool hasFollowingParagraphLines = false) {
+    private static void WriteRichParagraph(StringBuilder sb, RichParagraphBlock block, System.Collections.Generic.List<System.Collections.Generic.List<RichSeg>> lines, System.Collections.Generic.List<double> lineHeights, PdfOptions opts, double startY, double fontSize, double defaultLeading, System.Collections.Generic.List<LinkAnnotation> annots, double? xOverride = null, double? widthOverride = null, double? firstLineXOverride = null, double? firstLineWidthOverride = null, string? structureType = null, int? markedContentId = null, LayoutResult.Page? structurePage = null, System.Collections.Generic.IReadOnlyList<PdfAlign?>? lineAlignments = null, System.Collections.Generic.IReadOnlyList<double>? lineXOffsets = null, System.Collections.Generic.IReadOnlyList<double>? lineWidths = null, bool suppressActualText = false, System.Collections.Generic.IReadOnlyList<double>? lineTopGaps = null, PdfStandardFont? baselineFont = null, string? foregroundGraphicsState = null, string? decorationGraphicsState = null, bool captureInlineForms = true, bool hasFollowingParagraphLines = false, LayoutResult.Page? fontPage = null) {
+        // Canvas artifacts can suppress accessibility structure while still
+        // owning page glyphs and their font resources.
+        fontPage ??= structurePage;
         double widthContent = opts.PageWidth - opts.MarginLeft - opts.MarginRight;
         double widthUsed = widthOverride ?? widthContent;
         System.Collections.Generic.List<(double X1, double X2, double Y, PdfColor Color, OfficeIMO.Drawing.OfficeTextDecorationStyle Style)>? underlines = null;
@@ -318,16 +330,28 @@ internal static partial class PdfWriter {
                 double runFontSize = EffectiveRichFontSize(s.FontSize, s.Baseline);
                 double textRise = TextRiseForBaseline(s.FontSize, s.Baseline) + s.LineAlignmentRise;
                 bool syntheticOblique = opts.NeedsSyntheticOblique(s.Font, s.NamedFont);
-                content.Font(fontRes, runFontSize, syntheticOblique);
-                if (Math.Abs(textRise - currentTextRise) > 0.0001) {
-                    content.TextRise(textRise);
-                    currentTextRise = textRise;
+                bool inlineSeparator = s.InlineElement != null && s.InlineElement is not PdfInlineFormWidget && s.LeadingSpace;
+                string? inlineLeader = inlineSeparator && s.LeadingTabLeader != PdfTabLeaderStyle.None
+                    ? BuildTabLeaderText(s.LeadingAdvance + (s.LeadingSpaceIsExpandable ? wordSpacing * s.LeadingSpaceCount : 0D), s, opts)
+                    : null;
+                bool paintsPageText = s.InlineElement == null || inlineSeparator &&
+                    (s.LeadingTabLeader == PdfTabLeaderStyle.None || inlineLeader!.Length > 0);
+                if (paintsPageText) {
+                    // Inline geometry needs font metrics, but only a real page
+                    // glyph needs a Tf resource. Its separator may own that glyph.
+                    if (s.InlineElement != null && fontPage != null)
+                        MarkPageRichTextFont(fontPage, opts, s.Font, s.NamedFont);
+                    content.Font(fontRes, runFontSize, syntheticOblique);
+                    if (Math.Abs(textRise - currentTextRise) > 0.0001) {
+                        content.TextRise(textRise);
+                        currentTextRise = textRise;
+                    }
                 }
 
                 var color = s.Color ?? block.DefaultColor ?? opts.DefaultTextColor;
                 content.FillColor(color ?? PdfColor.Black);
                 bool hasLinkTarget = !string.IsNullOrEmpty(s.Uri) || !string.IsNullOrEmpty(s.DestinationName);
-                if (!hasLinkTarget || s.LeadingSpace) {
+                if (paintsPageText && (!hasLinkTarget || s.LeadingSpace)) {
                     EnsureTextMarkedContentOpen(
                         sb,
                         ref content,
@@ -369,7 +393,7 @@ internal static partial class PdfWriter {
                         xCursor += gap;
                         content.BreakTextRun().TextMatrix(lineXOrigin + xCursor, lineY);
                     } else if (s.LeadingTabLeader != PdfTabLeaderStyle.None) {
-                        string leader = BuildTabLeaderText(gap, s, opts);
+                        string leader = inlineLeader ?? BuildTabLeaderText(gap, s, opts);
                         // Tab stops stay explicit text positions so readers keep the columns.
                         content.BreakTextRun();
                         if (leader.Length > 0) {
@@ -419,7 +443,8 @@ internal static partial class PdfWriter {
                             : sb,
                         s.InlineElement,
                         inlineX,
-                        s.InlineElement is PdfInlineFormWidget ? lineY + s.LineAlignmentRise : lineY,
+                        s.InlineElement is PdfInlineFormWidget or PdfInlineBox { UsesRunTextMetrics: true }
+                            ? lineY + s.LineAlignmentRise : lineY,
                         opts,
                         structurePage,
                         textStructElementIndex);
@@ -575,6 +600,8 @@ internal static partial class PdfWriter {
 
             if (segs.Count > 0 && segs.Any(seg => seg.EndsWithTextSeparator)) {
                 RichSeg last = segs[segs.Count - 1];
+                if (last.InlineElement != null && fontPage != null)
+                    MarkPageRichTextFont(fontPage, opts, last.Font, last.NamedFont);
                 string separatorFontResource = GetFontResourceName(last.Font, last.NamedFont, ChooseNormal(opts.DefaultFont));
                 double separatorFontSize = EffectiveRichFontSize(last.FontSize, last.Baseline);
                 double separatorTextRise = TextRiseForBaseline(last.FontSize, last.Baseline) + last.LineAlignmentRise;

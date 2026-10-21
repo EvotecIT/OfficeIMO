@@ -94,8 +94,13 @@ internal static partial class PdfWriter {
                             foreach (var glyph in DiagnosticGlyphContours(segment, leader, gapX, runY)) Paint(glyph.Contours, nominalGlyphBounds: glyph.NominalBounds);
                         }
                         if (segment.InlineElement is PdfInlineBox box) {
-                            double bottom = lineY + box.BaselineOffset;
-                            if (box.Background.HasValue) Paint(DiagnosticRectangle(x, bottom, box.Width, box.Height));
+                            double bottom = lineY + box.BaselineOffset + (box.UsesRunTextMetrics ? segment.LineAlignmentRise : 0D);
+                            if (box.SourceRule is { } rule) {
+                                if (box.Width > 0D) {
+                                    foreach (PdfInlineRule.InkBand band in rule.Bands)
+                                        Paint(DiagnosticRectangle(x, lineY + segment.LineAlignmentRise + band.BaselineOffset, box.Width, band.Height));
+                                }
+                            } else if (box.Background.HasValue) Paint(DiagnosticRectangle(x, bottom, box.Width, box.Height));
                             if (box.BorderColor.HasValue && box.BorderWidth > 0D) {
                                 double half = box.BorderWidth / 2D;
                                 var ring = DiagnosticRectangle(x - half, bottom - half, box.Width + box.BorderWidth, box.Height + box.BorderWidth);

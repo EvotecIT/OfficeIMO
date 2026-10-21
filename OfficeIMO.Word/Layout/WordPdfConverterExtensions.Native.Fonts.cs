@@ -29,6 +29,14 @@ namespace OfficeIMO.Word.Pdf {
             public PdfCore.PdfWriter.PositionedTextBoxMeasurement? MeasureTextBox(PdfCore.PdfTextRun run) => _resolvedOptions == null
                 ? null : PdfCore.PdfWriter.MeasurePositionedTextBox(run, _resolvedOptions);
 
+            public PdfCore.PdfWriter.TextDecorationMeasurement? MeasureStrikethrough(PdfCore.PdfTextRun run,
+                double pointsPerPixel) => _resolvedOptions == null ? null :
+                    PdfCore.PdfWriter.MeasureStrikethrough(run, _resolvedOptions, pointsPerPixel);
+
+            public PdfCore.PdfWriter.TextDecorationMeasurement? MeasureUnderline(PdfCore.PdfTextRun run,
+                double pointsPerPixel) => _resolvedOptions == null ? null :
+                    PdfCore.PdfWriter.MeasureUnderline(run, _resolvedOptions, pointsPerPixel);
+
             public void ReportCheckBoxAppearanceFallback(string fieldName, bool isChecked) =>
                 _report?.Add(new PdfCore.PdfConversionWarning("OfficeIMO.Word.Pdf",
                     "NativeCheckBoxGlyphAppearanceUnavailable", "word:contentControl[" + fieldName + "]",
@@ -215,7 +223,7 @@ namespace OfficeIMO.Word.Pdf {
         }
 
         private static W.RunFonts? GetNativeEmptyParagraphMarkFonts(WordParagraph paragraph, IReadOnlyList<WordParagraph> runs) =>
-            runs.Any(run => !run.IsImage && !IsNativeHiddenTextRun(run, paragraph) && !string.IsNullOrWhiteSpace(run.Text))
+            runs.Any(run => IsNativeParagraphMetricBearingRun(run, paragraph, paragraph._paragraph.Ancestors<W.Footnote>().Any()))
                 ? null : paragraph._paragraph.ParagraphProperties?.ParagraphMarkRunProperties?.GetFirstChild<W.RunFonts>();
 
         private static void RegisterNativeThemeStyleFonts(

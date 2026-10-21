@@ -3,10 +3,10 @@ using OfficeIMO.Drawing;
 namespace OfficeIMO.Pdf;
 
 /// <summary>
-/// Base class for a fixed-size visual that participates in rich-paragraph wrapping.
+/// Base class for a visual that participates in rich-paragraph wrapping.
 /// </summary>
 public abstract class PdfInlineElement {
-    /// <summary>Width of the inline element in points.</summary>
+    /// <summary>Intrinsic width of the inline element in points. Flexible rules resolve their zero intrinsic width during wrapping.</summary>
     public double Width { get; }
 
     /// <summary>Height of the inline element in points.</summary>
@@ -18,8 +18,11 @@ public abstract class PdfInlineElement {
     /// <summary>Alternative text used when the element is emitted into a tagged document.</summary>
     public string? AlternativeText { get; }
 
-    private protected PdfInlineElement(double width, double height, double baselineOffset, string? alternativeText) {
-        Guard.Positive(width, nameof(width));
+    private protected PdfInlineElement(double width, double height, double baselineOffset, string? alternativeText)
+        : this(width, height, baselineOffset, alternativeText, flexibleWidth: false) { }
+
+    private protected PdfInlineElement(double width, double height, double baselineOffset, string? alternativeText, bool flexibleWidth) {
+        if (!flexibleWidth || width != 0D) Guard.Positive(width, nameof(width));
         Guard.Positive(height, nameof(height));
         if (double.IsNaN(baselineOffset) || double.IsInfinity(baselineOffset)) {
             throw new ArgumentException("Inline element baseline offset must be finite.", nameof(baselineOffset));
@@ -102,6 +105,15 @@ public sealed class PdfInlineBox : PdfInlineElement {
     // minimum automatic table width; ordinary inline visuals can wrap alone.
     internal bool IsTextSpacer { get; set; }
 
+    // Resolved flexible rules paint a narrow band but retain the surrounding
+    // run's font baseline and line-box policy.
+    internal bool UsesRunTextMetrics => SourceRule != null;
+    internal PdfInlineRule? SourceRule { get; private set; }
+
+    internal static PdfInlineBox FromRule(PdfInlineRule rule, double width) =>
+        new PdfInlineBox(width, rule.Height, width > 0D ? rule.Color : null,
+            null, 0D, null, rule.BaselineOffset, flexibleWidth: true) { SourceRule = rule };
+
     /// <summary>Optional fill color.</summary>
     public PdfColor? Background { get; }
 
@@ -120,7 +132,11 @@ public sealed class PdfInlineBox : PdfInlineElement {
         double borderWidth = 0.5D,
         string? alternativeText = null,
         double baselineOffset = 0D)
-        : base(width, height, baselineOffset, alternativeText) {
+        : this(width, height, background, borderColor, borderWidth, alternativeText, baselineOffset, flexibleWidth: false) { }
+
+    private PdfInlineBox(double width, double height, PdfColor? background, PdfColor? borderColor,
+        double borderWidth, string? alternativeText, double baselineOffset, bool flexibleWidth)
+        : base(width, height, baselineOffset, alternativeText, flexibleWidth) {
         if (borderWidth < 0D || double.IsNaN(borderWidth) || double.IsInfinity(borderWidth)) {
             throw new ArgumentException("Inline box border width must be a non-negative finite value.", nameof(borderWidth));
         }

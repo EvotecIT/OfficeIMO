@@ -743,6 +743,7 @@ namespace OfficeIMO.Word.Pdf {
         }
 
         private static bool CanMergeNativeCellTextRuns(PdfCore.PdfTextRun left, PdfCore.PdfTextRun right) =>
+            left.InlineElement == null && right.InlineElement == null &&
             ReferenceEquals(left.FormField, right.FormField) &&
             left.LinkUri == null &&
             left.FootnoteReference == null && right.FootnoteReference == null &&

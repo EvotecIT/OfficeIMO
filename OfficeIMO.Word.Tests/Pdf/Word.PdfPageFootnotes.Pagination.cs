@@ -64,9 +64,12 @@ public partial class WordPdfPageFootnoteTests {
             Assert.Equal(finalNotePage, PageFootnoteTokenPage(actual, token));
         }
         AssertPageFootnoteBodyDoesNotOverlapNotes(actual, new[] { "BEGIN LONG", "LONG REFERENCE" }.Concat(followingBody), paragraphs);
-        // Only the first-page separator is asserted. This fixture does not
-        // prescribe universal selection of custom continuation separators.
-        Assert.Contains("START SEPARATOR", actual.GetPage(1).Text, StringComparison.Ordinal);
+        // This mode-15 source uses its ordinary separator on every note page.
+        // The compatibility-specific selection also holds without native fonts.
+        foreach (var page in actual.GetPages().Concat(reference.GetPages())) {
+            PageFootnoteToken(page, "START SEPARATOR");
+            Assert.DoesNotContain("CONTINUATIONSEPARATOR", PageFootnoteCompact(page.Text), StringComparison.Ordinal);
+        }
         AssertPageFootnoteNativeProfile(bytes, () => {
             Assert.Equal(3, reference.NumberOfPages);
             Assert.Equal(reference.NumberOfPages, actual.NumberOfPages);
