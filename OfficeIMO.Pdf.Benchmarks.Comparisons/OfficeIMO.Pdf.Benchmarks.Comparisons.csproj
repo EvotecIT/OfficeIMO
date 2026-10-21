@@ -8,7 +8,7 @@
     <LangVersion>Latest</LangVersion>
     <IsPackable>false</IsPackable>
     <PeachPdfBenchmarkVersion>0.9.23</PeachPdfBenchmarkVersion>
-    <PdfPeckerBenchmarkVersion>1.16.0</PdfPeckerBenchmarkVersion>
+    <PdfPeckerBenchmarkVersion>1.17.0</PdfPeckerBenchmarkVersion>
     <QuestPdfBenchmarkVersion Condition="'$(QuestPdfBenchmarkVersion)' == ''">2026.5.0</QuestPdfBenchmarkVersion>
     <QuestPdfInternalAuthorization Condition="'$(QuestPdfInternalAuthorization)' == ''">false</QuestPdfInternalAuthorization>
     <HtmlTinkerXProjectPath Condition="'$(HtmlTinkerXProjectPath)' == '' and '$(HTMLTINKERX_PROJECT_PATH)' != ''">$(HTMLTINKERX_PROJECT_PATH)</HtmlTinkerXProjectPath>
