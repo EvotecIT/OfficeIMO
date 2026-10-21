@@ -1,28 +1,21 @@
 {
   "schema": "officeimo.core-output-composition-proof/v1",
-  "state": "QUALIFIED_FINAL_POST_HTML_COMPOSITION",
-  "createdUtc": "2026-10-21T04:25:15.069179+00:00",
-  "sourceHead": "35f6e5873a3fe22053dd60db9ddb7e8110d5b4ae",
-  "privateVersion": "3.5.18",
+  "createdUtc": "2026-10-21T13:03:18.862096+00:00",
+  "sourceHead": "981a13257d87bbca8ab4bd8a41d29b4c646c75ef",
+  "privateVersion": "3.5.22",
   "sourceSeal": {
-    "path": "/Volumes/Samsung/Development/Scratch/core-output-publication/final-composition/prep/qualification-final/source-seal-35f6e58.json",
+    "path": "$POST_LANDING_ROOT/source-seal-981a132.json",
     "bytes": 9599,
-    "sha256": "907eff89d8c6619b3749672170fa86add624d6cdc743e98b44f92fb8cf88fd52"
+    "sha256": "dd811ad1e2fd5a2abf5ec1508c85958947422c30dc2752e3f094f2aa0b0159dd"
   },
-  "htmlCheckpoint": "bbcd63ac7012946cea72a58eeacd38ef7745ece6",
-  "earlierQualifiedSource": "6237675265afedcdabf64a42315642e455673ff6",
-  "earlierProof": {
-    "path": "/Volumes/Samsung/Development/Scratch/core-output-publication/convergence/portable-core-output-composition.json",
-    "bytes": 27039,
-    "sha256": "1cd1f8329bb7b1b5aa8b6df314987b52b721255dac45e4b2cb2acea44d8de7b1"
-  },
+  "htmlCheckpoint": "107ddda07d2106cef2f98ab35bd8d4187f324671",
   "composition": {
     "wholeCoreTreeUnchanged": false,
     "tenOwnerAndRepairBlobsVerified": 10,
     "verification": {
-      "path": "/Volumes/Samsung/Development/Scratch/core-output-publication/final-composition/prep/qualification-final/source-seal-35f6e58.json",
-      "bytes": 9599,
-      "sha256": "907eff89d8c6619b3749672170fa86add624d6cdc743e98b44f92fb8cf88fd52"
+      "path": "$POST_LANDING_ROOT/owner-matrix.json",
+      "bytes": 12276,
+      "sha256": "a4c675ee70499e3ba2c5df05c75ec72561a442c64a213235184a0bd824a14cd9"
     },
     "unchangedRepairSourceAndTests": true,
     "additionalCoreFontParserChangesAdoptedThroughQualifiedHtml": true,
@@ -30,68 +23,68 @@
     "newProductionDependencies": false
   },
   "actualCombinedConsumer": {
-    "role": "core-final-full-ps-net8",
+    "role": "core-postlanding-full-ps-net8",
     "passed": 66,
     "failed": 0,
     "skipped": 0,
     "includesFocusedCases": 21,
     "actualFilter": null,
     "trx": {
-      "path": "/Volumes/Samsung/Development/Scratch/core-output-publication/final-composition/trx/core-final-full-ps-net8/core-final-full-ps-net8.trx",
+      "path": "$POST_LANDING_ROOT/trx/core-postlanding-full-ps-net8/core-postlanding-full-ps-net8.trx",
       "bytes": 100815,
-      "sha256": "8c6cb13724c0dd42eb504d29e376846fc5dafc447ac49688772338ef8e171c44"
+      "sha256": "20498c1eff1189b302fd8aca8363e0493c0f67a822f5eef3c96d153d18285f5e"
     },
     "actualTestmoduleCodeBases": [
-      "/Volumes/Samsung/Development/Scratch/core-output-publication/final-composition/build-tests/bin/PSWriteOffice.Tests/release/PSWriteOffice.Tests.dll"
+      "$POST_LANDING_ROOT/build-tests/bin/PSWriteOffice.Tests/release/PSWriteOffice.Tests.dll"
     ]
   },
   "actualNet472ModuleCompile": {
-    "role": "core-final-ps-net472-crossbuild",
+    "role": "core-postlanding-ps-net472-crossbuild",
     "targetFramework": "net472",
     "globalTargetFrameworksOverride": "net472",
     "warnings": 0,
     "errors": 0,
-    "elapsedSeconds": 53.268687875,
+    "elapsedSeconds": 116.084920166,
     "compileOnly": true,
     "windowsRuntimeExecutionClaim": false
   },
   "package": {
-    "privateVersion": "3.5.18",
+    "privateVersion": "3.5.22",
     "publicRelease": false,
     "package": {
-      "path": "/Volumes/Samsung/Development/Scratch/core-output-publication/final-composition/private-package/feed/OfficeIMO.Core.3.5.18.nupkg",
-      "bytes": 8770287,
-      "sha256": "64aaf7deab1e45a97ee4f4afae5d9ce7f62504ddfcc08ee08e40fd8f2fbb2134"
+      "path": "$POST_LANDING_ROOT/private-package/feed/OfficeIMO.Core.3.5.22.nupkg",
+      "bytes": 8770835,
+      "sha256": "f20e9bbc212092d73ceb4914c4554d27d2a40e0ba2641b2530f9877b9c22aa71"
     },
     "inspection": {
-      "path": "/Volumes/Samsung/Development/Scratch/core-output-publication/final-composition/private-package/package-inspection-final.json",
+      "path": "$POST_LANDING_ROOT/private-package/package-inspection-final.json",
       "bytes": 2808,
-      "sha256": "7005490845818ff978ac5b04f665118a3167203bea0598d395956458670e00c0"
+      "sha256": "1f2694ffbf77c8ae204876667ee745bca6ff3326531fc22e51cdc2568ecf12b9"
     },
     "assets": [
       {
         "entry": "lib/net472/OfficeIMO.Core.dll",
-        "path": "/Volumes/Samsung/Development/Scratch/core-output-publication/final-composition/private-package/assets/net472/OfficeIMO.Core.dll",
-        "bytes": 4978176,
-        "sha256": "c691ee014580f5e6c598ac76a5bc3f7105ca4a3f4bf7d9ac8e501fe4418b04db"
+        "path": "$POST_LANDING_ROOT/private-package/assets/net472/OfficeIMO.Core.dll",
+        "bytes": 4978688,
+        "sha256": "cbbd8fabea0b9cb10599aca5999fe643e7e9bbf04fcb5ba86f0067a651fa6778"
       },
       {
         "entry": "lib/netstandard2.0/OfficeIMO.Core.dll",
-        "path": "/Volumes/Samsung/Development/Scratch/core-output-publication/final-composition/private-package/assets/netstandard2.0/OfficeIMO.Core.dll",
+        "path": "$POST_LANDING_ROOT/private-package/assets/netstandard2.0/OfficeIMO.Core.dll",
         "bytes": 4977664,
-        "sha256": "bdc093ee78d0f004dbd6f3c037029433dbc8fcf6657f0ba37f4e0ef19948a739"
+        "sha256": "2e829ebc3acf3e584601bbd369d329f35948299b816fa9982716ff2b20511017"
       },
       {
         "entry": "lib/net8.0/OfficeIMO.Core.dll",
-        "path": "/Volumes/Samsung/Development/Scratch/core-output-publication/final-composition/private-package/assets/net8.0/OfficeIMO.Core.dll",
-        "bytes": 5022208,
-        "sha256": "10c5e93adb7117fa5a86760fdcd76ea86a762dc6f4eb55dc155dcd5ecec72fbf"
+        "path": "$POST_LANDING_ROOT/private-package/assets/net8.0/OfficeIMO.Core.dll",
+        "bytes": 5022720,
+        "sha256": "7e985c01789cb6dd82766b6d1ba88b835ad2e908ac5dd4d56adddd39ababca2e"
       },
       {
         "entry": "lib/net10.0/OfficeIMO.Core.dll",
-        "path": "/Volumes/Samsung/Development/Scratch/core-output-publication/final-composition/private-package/assets/net10.0/OfficeIMO.Core.dll",
-        "bytes": 5025280,
-        "sha256": "b1dc7e1a6ed3fff05f4f3ada3af50d2461ea9c3d1667571646ebe4996167b4cf"
+        "path": "$POST_LANDING_ROOT/private-package/assets/net10.0/OfficeIMO.Core.dll",
+        "bytes": 5025792,
+        "sha256": "cce44b2f769101cef388f673cff792def4a0c21fc23698115836a5437a3bcb6d"
       }
     ],
     "packageDependencies": [],
@@ -113,24 +106,24 @@
   },
   "actualPackagedInternalOwnerRuns": [
     {
-      "role": "core-final-probe-net8-128-bursts",
+      "role": "core-postlanding-probe-net8-128-bursts",
       "summary": {
-        "path": "/Volumes/Samsung/Development/Scratch/core-output-publication/final-composition/package-bursts/net8/summary.json",
+        "path": "$POST_LANDING_ROOT/package-bursts/net8/summary.json",
         "bytes": 5055,
-        "sha256": "9e13307681e998cbcd7c81384727b88e19d5fd2451541765b6a33f44d83baf32"
+        "sha256": "373532c504f61ee5ea5fd7f0dcfe219c695befdd09c4ac9aa0dd9753860f0c2a"
       },
       "subjectCore": {
-        "path": "/Volumes/Samsung/Development/Scratch/core-output-publication/final-composition/private-package/assets/net8.0/OfficeIMO.Core.dll",
-        "bytes": 5022208,
-        "sha256": "10c5e93adb7117fa5a86760fdcd76ea86a762dc6f4eb55dc155dcd5ecec72fbf"
+        "path": "$POST_LANDING_ROOT/private-package/assets/net8.0/OfficeIMO.Core.dll",
+        "bytes": 5022720,
+        "sha256": "7e985c01789cb6dd82766b6d1ba88b835ad2e908ac5dd4d56adddd39ababca2e"
       },
       "deployedCore": {
-        "path": "/Volumes/Samsung/Development/Scratch/core-output-publication/final-composition/package-probe-runtime/net8/OfficeIMO.Core.dll",
-        "bytes": 5022208,
-        "sha256": "10c5e93adb7117fa5a86760fdcd76ea86a762dc6f4eb55dc155dcd5ecec72fbf"
+        "path": "$POST_LANDING_ROOT/package-probe-runtime/net8/OfficeIMO.Core.dll",
+        "bytes": 5022720,
+        "sha256": "7e985c01789cb6dd82766b6d1ba88b835ad2e908ac5dd4d56adddd39ababca2e"
       },
-      "coreMvid": "3f80e805-4dd6-482c-9e21-9fbe71747338",
-      "coreInformationalVersion": "3.5.1+35f6e5873a3fe22053dd60db9ddb7e8110d5b4ae",
+      "coreMvid": "d550c31e-2fb1-4eb2-9180-94315b096686",
+      "coreInformationalVersion": "3.5.1+981a13257d87bbca8ab4bd8a41d29b4c646c75ef",
       "runtime": ".NET 8.0.23",
       "os": "Darwin 27.0.0 Darwin Kernel Version 27.0.0: Tue Aug 11 21:02:57 PDT 2026; root:xnu-13432.1.9~1/RELEASE_ARM64_T8132",
       "architecture": "Arm64",
@@ -158,30 +151,30 @@
         {
           "lane": "mixed-unique",
           "rounds": 32,
-          "successfulWrites": 197,
+          "successfulWrites": 207,
           "failedBursts": 0
         }
       ]
     },
     {
-      "role": "core-final-probe-net10-128-bursts",
+      "role": "core-postlanding-probe-net10-128-bursts",
       "summary": {
-        "path": "/Volumes/Samsung/Development/Scratch/core-output-publication/final-composition/package-bursts/net10/summary.json",
-        "bytes": 4982,
-        "sha256": "a6cf014ae85b2a5aca886bd771f34510e3803d28dd34086b5c31b7c44afd7217"
+        "path": "$POST_LANDING_ROOT/package-bursts/net10/summary.json",
+        "bytes": 4983,
+        "sha256": "0a78cb8848d2189034c12f8dbc4358cbfafeef503ac796fe0f39f0ef008f04f6"
       },
       "subjectCore": {
-        "path": "/Volumes/Samsung/Development/Scratch/core-output-publication/final-composition/private-package/assets/net10.0/OfficeIMO.Core.dll",
-        "bytes": 5025280,
-        "sha256": "b1dc7e1a6ed3fff05f4f3ada3af50d2461ea9c3d1667571646ebe4996167b4cf"
+        "path": "$POST_LANDING_ROOT/private-package/assets/net10.0/OfficeIMO.Core.dll",
+        "bytes": 5025792,
+        "sha256": "cce44b2f769101cef388f673cff792def4a0c21fc23698115836a5437a3bcb6d"
       },
       "deployedCore": {
-        "path": "/Volumes/Samsung/Development/Scratch/core-output-publication/final-composition/package-probe-runtime/net10/OfficeIMO.Core.dll",
-        "bytes": 5025280,
-        "sha256": "b1dc7e1a6ed3fff05f4f3ada3af50d2461ea9c3d1667571646ebe4996167b4cf"
+        "path": "$POST_LANDING_ROOT/package-probe-runtime/net10/OfficeIMO.Core.dll",
+        "bytes": 5025792,
+        "sha256": "cce44b2f769101cef388f673cff792def4a0c21fc23698115836a5437a3bcb6d"
       },
-      "coreMvid": "3e9c9eda-669f-49fd-bab7-daf37680a8ba",
-      "coreInformationalVersion": "3.5.1+35f6e5873a3fe22053dd60db9ddb7e8110d5b4ae",
+      "coreMvid": "127c1676-bd00-4202-a823-71d1deb5af8b",
+      "coreInformationalVersion": "3.5.1+981a13257d87bbca8ab4bd8a41d29b4c646c75ef",
       "runtime": ".NET 10.0.13",
       "os": "macOS 27.0.1",
       "architecture": "Arm64",
@@ -209,7 +202,7 @@
         {
           "lane": "mixed-unique",
           "rounds": 32,
-          "successfulWrites": 203,
+          "successfulWrites": 199,
           "failedBursts": 0
         }
       ]
@@ -217,20 +210,20 @@
   ],
   "actualExecutions": [
     {
-      "role": "core-final-full-ps-net8",
+      "role": "core-postlanding-full-ps-net8",
       "execution": {
-        "path": "/Volumes/Samsung/Development/Scratch/core-output-publication/final-composition/core-final-full-ps-net8-execution.json",
-        "bytes": 1755,
-        "sha256": "05c9d292f34c18541920937d9ecf4673804eb3613d6e80e6a1d0fac2fb655e8a"
+        "path": "$POST_LANDING_ROOT/core-postlanding-full-ps-net8-execution.json",
+        "bytes": 1773,
+        "sha256": "ddf3a49b095983870748a669e9214bd1674cf0315b7bb07408afddd046ffdabe"
       },
       "log": {
-        "path": "/Volumes/Samsung/Development/Scratch/core-output-publication/final-composition/logs/core-final-full-ps-net8.log",
-        "bytes": 41792,
-        "sha256": "d047f8b11a269e806a71e244184c5e126812f2b02000836f5d589c7430c10f9d"
+        "path": "$POST_LANDING_ROOT/logs/core-postlanding-full-ps-net8.log",
+        "bytes": 41826,
+        "sha256": "efa8b246a347938d10669c5a6afb6c978c30603baf545bb74b54be9c9a0aa149"
       },
-      "elapsedSeconds": 115.06378870900001,
+      "elapsedSeconds": 328.28971075,
       "actualArgv": [
-        "/Users/przemyslawklys/.dotnet/dotnet",
+        "$USER_HOME/.dotnet/dotnet",
         "test",
         "PowerShell/PSWriteOffice/Sources/PSWriteOffice.Tests/PSWriteOffice.Tests.csproj",
         "-c",
@@ -240,31 +233,31 @@
         "-m:3",
         "-nr:false",
         "--artifacts-path",
-        "/Volumes/Samsung/Development/Scratch/core-output-publication/final-composition/build-tests",
+        "$POST_LANDING_ROOT/build-tests",
         "-p:UseSharedCompilation=false",
         "-p:NuGetAudit=false",
         "--logger",
-        "trx;LogFileName=core-final-full-ps-net8.trx",
+        "trx;LogFileName=core-postlanding-full-ps-net8.trx",
         "--results-directory",
-        "/Volumes/Samsung/Development/Scratch/core-output-publication/final-composition/trx/core-final-full-ps-net8"
+        "$POST_LANDING_ROOT/trx/core-postlanding-full-ps-net8"
       ],
-      "endUtc": "2026-10-21T04:25:08.369915+00:00"
+      "endUtc": "2026-10-21T13:04:38.669815+00:00"
     },
     {
-      "role": "core-final-ps-net472-crossbuild",
+      "role": "core-postlanding-ps-net472-crossbuild",
       "execution": {
-        "path": "/Volumes/Samsung/Development/Scratch/core-output-publication/final-composition/core-final-ps-net472-crossbuild-execution.json",
-        "bytes": 1584,
-        "sha256": "c95c0f3f588889a972e866f4a001f4d0904bedbd1f1de1d5e35c5fefe4ad22a7"
+        "path": "$POST_LANDING_ROOT/core-postlanding-ps-net472-crossbuild-execution.json",
+        "bytes": 1597,
+        "sha256": "de3d0561fc338be770259f9ee57d9596cebfbd3f142bac797e47a7fed63effa5"
       },
       "log": {
-        "path": "/Volumes/Samsung/Development/Scratch/core-output-publication/final-composition/logs/core-final-ps-net472-crossbuild.log",
-        "bytes": 35288,
-        "sha256": "d933ceec0bb2377fa55a42de4e3abbd6fa80416ba106993d364bfe97cbe59bad"
+        "path": "$POST_LANDING_ROOT/logs/core-postlanding-ps-net472-crossbuild.log",
+        "bytes": 35205,
+        "sha256": "4f82cc87e368e3f57d16e4e839233febcf7294c676c9380f9414dd208a57ade9"
       },
-      "elapsedSeconds": 53.268687875,
+      "elapsedSeconds": 116.084920166,
       "actualArgv": [
-        "/Users/przemyslawklys/.dotnet/dotnet",
+        "$USER_HOME/.dotnet/dotnet",
         "build",
         "PowerShell/PSWriteOffice/Sources/PSWriteOffice/PSWriteOffice.csproj",
         "-c",
@@ -275,33 +268,33 @@
         "-m:3",
         "-nr:false",
         "--artifacts-path",
-        "/Volumes/Samsung/Development/Scratch/core-output-publication/final-composition/build-ps-net472",
+        "$POST_LANDING_ROOT/build-ps-net472",
         "-p:UseSharedCompilation=false",
         "-p:NuGetAudit=false"
       ],
-      "endUtc": "2026-10-21T04:26:01.903474+00:00"
+      "endUtc": "2026-10-21T13:06:35.452807+00:00"
     },
     {
-      "role": "core-final-four-framework-pack",
+      "role": "core-postlanding-four-framework-pack",
       "execution": {
-        "path": "/Volumes/Samsung/Development/Scratch/core-output-publication/final-composition/core-final-four-framework-pack-execution.json",
-        "bytes": 2575,
-        "sha256": "939a14095d462828e288e5405e71bf3f7531d5a6ee436ed24ebd865f35f712b1"
+        "path": "$POST_LANDING_ROOT/core-postlanding-four-framework-pack-execution.json",
+        "bytes": 2475,
+        "sha256": "8a418bec6feb3f73a824bbe97c1f54a0d045b6310658baada296d24e52509ea1"
       },
       "log": {
-        "path": "/Volumes/Samsung/Development/Scratch/core-output-publication/final-composition/logs/core-final-four-framework-pack.log",
-        "bytes": 1013,
-        "sha256": "cddade193b2ad19f4e647f5daf491cc906c0f8fb6b605bdfc41d85bdbe00d194"
+        "path": "$POST_LANDING_ROOT/logs/core-postlanding-four-framework-pack.log",
+        "bytes": 1012,
+        "sha256": "fc7782c17258cef2f22a33074faef206d5827c2d2997b2bd8ed2442d5b61f645"
       },
-      "elapsedSeconds": 13.759563959000001,
+      "elapsedSeconds": 25.902446375,
       "actualArgv": [
         "/usr/bin/env",
-        "NUGET_PACKAGES=/Volumes/Samsung/Development/Scratch/core-output-publication/final-composition/private-package/candidate-cache",
-        "NUGET_HTTP_CACHE_PATH=/Volumes/Samsung/Development/Scratch/core-output-publication/final-composition/private-package/http-cache",
-        "NUGET_SCRATCH=/Volumes/Samsung/Development/Scratch/core-output-publication/final-composition/private-package/nuget-scratch",
+        "NUGET_PACKAGES=$POST_LANDING_ROOT/private-package/candidate-cache",
+        "NUGET_HTTP_CACHE_PATH=$DEVELOPMENT_ROOT/Caches/NuGet/http-cache",
+        "NUGET_SCRATCH=$DEVELOPMENT_ROOT/Temp/przemyslawklys/NuGetScratch",
         "DOTNET_PROCESSOR_COUNT=3",
-        "TMPDIR=/Volumes/Samsung/Development/Scratch/core-output-publication/final-composition/tmp",
-        "/Users/przemyslawklys/.dotnet/dotnet",
+        "TMPDIR=$POST_LANDING_ROOT/tmp",
+        "$USER_HOME/.dotnet/dotnet",
         "pack",
         "OfficeIMO.Core/OfficeIMO.Core.csproj",
         "-c",
@@ -309,280 +302,297 @@
         "-m:3",
         "-nr:false",
         "--artifacts-path",
-        "/Volumes/Samsung/Development/Scratch/core-output-publication/final-composition/build-package",
+        "$POST_LANDING_ROOT/build-package",
         "-p:TargetFrameworks=\"net472;netstandard2.0;net8.0;net10.0\"",
-        "-p:PackageVersion=3.5.18",
-        "-p:RepositoryCommit=35f6e5873a3fe22053dd60db9ddb7e8110d5b4ae",
-        "-p:SourceRevisionId=35f6e5873a3fe22053dd60db9ddb7e8110d5b4ae",
+        "-p:PackageVersion=3.5.22",
+        "-p:RepositoryCommit=981a13257d87bbca8ab4bd8a41d29b4c646c75ef",
+        "-p:SourceRevisionId=981a13257d87bbca8ab4bd8a41d29b4c646c75ef",
         "-p:UseSharedCompilation=false",
         "-p:NuGetAudit=false",
         "-o",
-        "/Volumes/Samsung/Development/Scratch/core-output-publication/final-composition/private-package/feed",
-        "-p:RestoreConfigFile=/Volumes/Samsung/Development/Scratch/core-output-publication/final-composition/prep/qualification-final/NuGet.Config",
+        "$POST_LANDING_ROOT/private-package/feed",
+        "-p:RestoreConfigFile=$POST_LANDING_ROOT/prep/qualification/NuGet.Config",
         "-p:RestoreFallbackFolders="
       ],
-      "endUtc": "2026-10-21T04:26:15.929839+00:00"
+      "endUtc": "2026-10-21T13:07:01.850408+00:00"
     },
     {
-      "role": "core-final-package-inspect-extract",
+      "role": "core-postlanding-package-inspect-extract",
       "execution": {
-        "path": "/Volumes/Samsung/Development/Scratch/core-output-publication/final-composition/core-final-package-inspect-extract-execution.json",
-        "bytes": 1682,
-        "sha256": "05c5dd035ff135456ebced6b4d40d7792fe9c1ed50af640cc2377addf877b273"
+        "path": "$POST_LANDING_ROOT/core-postlanding-package-inspect-extract-execution.json",
+        "bytes": 1698,
+        "sha256": "90ef7e6b4bdbdbe0019d7fa36d8608a06d308c31451a21374ee9c1adb261aa7f"
       },
       "log": {
-        "path": "/Volumes/Samsung/Development/Scratch/core-output-publication/final-composition/logs/core-final-package-inspect-extract.log",
+        "path": "$POST_LANDING_ROOT/logs/core-postlanding-package-inspect-extract.log",
         "bytes": 318,
-        "sha256": "76332c40a33c8c13537583b91af5fec85e651654303ae105faa9e5521797cf19"
+        "sha256": "2b39ca1067bca51a8bb5d6565d5d771401c30d8428cf17e97507cf2b59ac9fe3"
       },
-      "elapsedSeconds": 0.1001735,
+      "elapsedSeconds": 0.14455900000000002,
       "actualArgv": [
         "python3",
-        "/Volumes/Samsung/Development/Scratch/core-output-publication/final-composition/prep/qualification-final/inspect-private-package.py",
-        "/Volumes/Samsung/Development/Scratch/core-output-publication/final-composition/private-package/feed/OfficeIMO.Core.3.5.18.nupkg",
-        "/Volumes/Samsung/Development/Scratch/core-output-publication/final-composition/private-package/assets",
-        "/Volumes/Samsung/Development/Scratch/core-output-publication/final-composition/private-package/package-inspection-final.json"
+        "$POST_LANDING_ROOT/prep/qualification/inspect-private-package.py",
+        "$POST_LANDING_ROOT/private-package/feed/OfficeIMO.Core.3.5.22.nupkg",
+        "$POST_LANDING_ROOT/private-package/assets",
+        "$POST_LANDING_ROOT/private-package/package-inspection-final.json"
       ],
-      "endUtc": "2026-10-21T04:26:16.289164+00:00"
+      "endUtc": "2026-10-21T13:07:02.405099+00:00"
     },
     {
-      "role": "core-final-probe-net8-build",
+      "role": "core-postlanding-probe-net8-build",
       "execution": {
-        "path": "/Volumes/Samsung/Development/Scratch/core-output-publication/final-composition/core-final-probe-net8-build-execution.json",
-        "bytes": 2600,
-        "sha256": "10a84d38e994630578c5a61235d55174dd60361bf24a78e15897fa86ec00ae0a"
+        "path": "$POST_LANDING_ROOT/core-postlanding-probe-net8-build-execution.json",
+        "bytes": 2493,
+        "sha256": "3540ddf2ce47329d6e2555168dd676c1c8c0ad060d36fb970cb8965d77cec7aa"
       },
       "log": {
-        "path": "/Volumes/Samsung/Development/Scratch/core-output-publication/final-composition/logs/core-final-probe-net8-build.log",
-        "bytes": 428,
-        "sha256": "247bb853aa1eff415955da86ee040d868d873becb53eff17f34d15f6ee659ead"
+        "path": "$POST_LANDING_ROOT/logs/core-postlanding-probe-net8-build.log",
+        "bytes": 422,
+        "sha256": "14d45023e46ae7fc50661df02b264ec438e04007a5e4b84eb5d08f779856eb39"
       },
-      "elapsedSeconds": 1.8929119589999999,
+      "elapsedSeconds": 2.743395791,
       "actualArgv": [
         "/usr/bin/env",
-        "NUGET_PACKAGES=/Volumes/Samsung/Development/Scratch/core-output-publication/final-composition/private-package/candidate-cache",
-        "NUGET_HTTP_CACHE_PATH=/Volumes/Samsung/Development/Scratch/core-output-publication/final-composition/private-package/http-cache",
-        "NUGET_SCRATCH=/Volumes/Samsung/Development/Scratch/core-output-publication/final-composition/private-package/nuget-scratch",
+        "NUGET_PACKAGES=$POST_LANDING_ROOT/private-package/candidate-cache",
+        "NUGET_HTTP_CACHE_PATH=$DEVELOPMENT_ROOT/Caches/NuGet/http-cache",
+        "NUGET_SCRATCH=$DEVELOPMENT_ROOT/Temp/przemyslawklys/NuGetScratch",
         "DOTNET_PROCESSOR_COUNT=3",
-        "TMPDIR=/Volumes/Samsung/Development/Scratch/core-output-publication/final-composition/tmp",
-        "/Users/przemyslawklys/.dotnet/dotnet",
+        "TMPDIR=$POST_LANDING_ROOT/tmp",
+        "$USER_HOME/.dotnet/dotnet",
         "build",
-        "/Volumes/Samsung/Development/Scratch/core-output-publication/final-composition/prep/qualification-final/net8/CoreOutputRaceProbe.csproj",
+        "$POST_LANDING_ROOT/prep/qualification/net8/CoreOutputRaceProbe.csproj",
         "-c",
         "Release",
         "-m:3",
         "-nr:false",
         "--artifacts-path",
-        "/Volumes/Samsung/Development/Scratch/core-output-publication/final-composition/build-package-probe-net8",
-        "-p:SubjectCore=/Volumes/Samsung/Development/Scratch/core-output-publication/final-composition/private-package/assets/net8.0/OfficeIMO.Core.dll",
+        "$POST_LANDING_ROOT/build-package-probe-net8",
+        "-p:SubjectCore=$POST_LANDING_ROOT/private-package/assets/net8.0/OfficeIMO.Core.dll",
         "-p:UseSharedCompilation=false",
         "-p:NuGetAudit=false",
         "-o",
-        "/Volumes/Samsung/Development/Scratch/core-output-publication/final-composition/package-probe-runtime/net8",
-        "-p:RestoreConfigFile=/Volumes/Samsung/Development/Scratch/core-output-publication/final-composition/prep/qualification-final/NuGet.Config",
+        "$POST_LANDING_ROOT/package-probe-runtime/net8",
+        "-p:RestoreConfigFile=$POST_LANDING_ROOT/prep/qualification/NuGet.Config",
         "-p:RestoreFallbackFolders="
       ],
-      "endUtc": "2026-10-21T04:26:18.442504+00:00"
+      "endUtc": "2026-10-21T13:07:05.499902+00:00"
     },
     {
-      "role": "core-final-probe-net8-128-bursts",
+      "role": "core-postlanding-probe-net8-128-bursts",
       "execution": {
-        "path": "/Volumes/Samsung/Development/Scratch/core-output-publication/final-composition/core-final-probe-net8-128-bursts-execution.json",
-        "bytes": 2189,
-        "sha256": "b8c228a57f6b31a5ef75fa72af3851b0d3d72e8238f9028f8ffb877ab7a9c000"
+        "path": "$POST_LANDING_ROOT/core-postlanding-probe-net8-128-bursts-execution.json",
+        "bytes": 2101,
+        "sha256": "c45fe289347d0652c66d8126a67d98248a9b1126a790d12221e1438026f38f0b"
       },
       "log": {
-        "path": "/Volumes/Samsung/Development/Scratch/core-output-publication/final-composition/logs/core-final-probe-net8-128-bursts.log",
+        "path": "$POST_LANDING_ROOT/logs/core-postlanding-probe-net8-128-bursts.log",
         "bytes": 222,
         "sha256": "47a2c0b6d7e0cdb46f413b608846947d3f5fa3fe9686012cbe1002739966aad9"
       },
-      "elapsedSeconds": 31.018132208,
+      "elapsedSeconds": 20.404866667,
       "actualArgv": [
         "/usr/bin/env",
-        "NUGET_PACKAGES=/Volumes/Samsung/Development/Scratch/core-output-publication/final-composition/private-package/candidate-cache",
-        "NUGET_HTTP_CACHE_PATH=/Volumes/Samsung/Development/Scratch/core-output-publication/final-composition/private-package/http-cache",
-        "NUGET_SCRATCH=/Volumes/Samsung/Development/Scratch/core-output-publication/final-composition/private-package/nuget-scratch",
+        "NUGET_PACKAGES=$POST_LANDING_ROOT/private-package/candidate-cache",
+        "NUGET_HTTP_CACHE_PATH=$DEVELOPMENT_ROOT/Caches/NuGet/http-cache",
+        "NUGET_SCRATCH=$DEVELOPMENT_ROOT/Temp/przemyslawklys/NuGetScratch",
         "DOTNET_PROCESSOR_COUNT=3",
-        "TMPDIR=/Volumes/Samsung/Development/Scratch/core-output-publication/final-composition/tmp",
-        "/Users/przemyslawklys/.dotnet/dotnet",
-        "/Volumes/Samsung/Development/Scratch/core-output-publication/final-composition/package-probe-runtime/net8/CoreOutputRaceProbe.dll",
-        "/Volumes/Samsung/Development/Scratch/core-output-publication/final-composition/private-package/assets/net8.0/OfficeIMO.Core.dll",
-        "/Volumes/Samsung/Development/Scratch/core-output-publication/final-composition/package-bursts/net8",
-        "35f6e5873a3fe22053dd60db9ddb7e8110d5b4ae",
+        "TMPDIR=$POST_LANDING_ROOT/tmp",
+        "$USER_HOME/.dotnet/dotnet",
+        "$POST_LANDING_ROOT/package-probe-runtime/net8/CoreOutputRaceProbe.dll",
+        "$POST_LANDING_ROOT/private-package/assets/net8.0/OfficeIMO.Core.dll",
+        "$POST_LANDING_ROOT/package-bursts/net8",
+        "981a13257d87bbca8ab4bd8a41d29b4c646c75ef",
         "32",
         "12"
       ],
-      "endUtc": "2026-10-21T04:26:49.740869+00:00"
+      "endUtc": "2026-10-21T13:07:26.349710+00:00"
     },
     {
-      "role": "core-final-probe-net10-build",
+      "role": "core-postlanding-probe-net10-build",
       "execution": {
-        "path": "/Volumes/Samsung/Development/Scratch/core-output-publication/final-composition/core-final-probe-net10-build-execution.json",
-        "bytes": 2611,
-        "sha256": "95385865afd1735c6658c8c2f34921efe10f0b7c04f67511325ed302f11cce79"
+        "path": "$POST_LANDING_ROOT/core-postlanding-probe-net10-build-execution.json",
+        "bytes": 2519,
+        "sha256": "da75c6e4953f9e7099925672d5ecec3040f5a20f7ec4e72c6b90a198152771f5"
       },
       "log": {
-        "path": "/Volumes/Samsung/Development/Scratch/core-output-publication/final-composition/logs/core-final-probe-net10-build.log",
+        "path": "$POST_LANDING_ROOT/logs/core-postlanding-probe-net10-build.log",
         "bytes": 409,
-        "sha256": "860a808583cc9ce5a395475d98fd9503208bcf9cbe71ebf82bc25b77c3b78c0a"
+        "sha256": "6da906342b6ae6f353ae89e9f6e86a5ad7915c1f02ef96dba9c9c6e78f395fe2"
       },
-      "elapsedSeconds": 1.4261185,
+      "elapsedSeconds": 2.994853958,
       "actualArgv": [
         "/usr/bin/env",
-        "NUGET_PACKAGES=/Volumes/Samsung/Development/Scratch/core-output-publication/final-composition/private-package/candidate-cache",
-        "NUGET_HTTP_CACHE_PATH=/Volumes/Samsung/Development/Scratch/core-output-publication/final-composition/private-package/http-cache",
-        "NUGET_SCRATCH=/Volumes/Samsung/Development/Scratch/core-output-publication/final-composition/private-package/nuget-scratch",
+        "NUGET_PACKAGES=$POST_LANDING_ROOT/private-package/candidate-cache",
+        "NUGET_HTTP_CACHE_PATH=$DEVELOPMENT_ROOT/Caches/NuGet/http-cache",
+        "NUGET_SCRATCH=$DEVELOPMENT_ROOT/Temp/przemyslawklys/NuGetScratch",
         "DOTNET_PROCESSOR_COUNT=3",
-        "TMPDIR=/Volumes/Samsung/Development/Scratch/core-output-publication/final-composition/tmp",
-        "/Users/przemyslawklys/.dotnet/dotnet",
+        "TMPDIR=$POST_LANDING_ROOT/tmp",
+        "$USER_HOME/.dotnet/dotnet",
         "build",
-        "/Volumes/Samsung/Development/Scratch/core-output-publication/final-composition/prep/probe/CoreOutputRaceProbe.csproj",
+        "$POST_LANDING_ROOT/prep/probe/CoreOutputRaceProbe.csproj",
         "-c",
         "Release",
         "-m:3",
         "-nr:false",
         "-p:TargetFramework=net10.0",
         "--artifacts-path",
-        "/Volumes/Samsung/Development/Scratch/core-output-publication/final-composition/build-package-probe-net10",
-        "-p:SubjectCore=/Volumes/Samsung/Development/Scratch/core-output-publication/final-composition/private-package/assets/net10.0/OfficeIMO.Core.dll",
+        "$POST_LANDING_ROOT/build-package-probe-net10",
+        "-p:SubjectCore=$POST_LANDING_ROOT/private-package/assets/net10.0/OfficeIMO.Core.dll",
         "-p:UseSharedCompilation=false",
         "-p:NuGetAudit=false",
         "-o",
-        "/Volumes/Samsung/Development/Scratch/core-output-publication/final-composition/package-probe-runtime/net10",
-        "-p:RestoreConfigFile=/Volumes/Samsung/Development/Scratch/core-output-publication/final-composition/prep/qualification-final/NuGet.Config",
+        "$POST_LANDING_ROOT/package-probe-runtime/net10",
+        "-p:RestoreConfigFile=$POST_LANDING_ROOT/prep/qualification/NuGet.Config",
         "-p:RestoreFallbackFolders="
       ],
-      "endUtc": "2026-10-21T04:26:51.433774+00:00"
+      "endUtc": "2026-10-21T13:07:29.854468+00:00"
     },
     {
-      "role": "core-final-probe-net10-128-bursts",
+      "role": "core-postlanding-probe-net10-128-bursts",
       "execution": {
-        "path": "/Volumes/Samsung/Development/Scratch/core-output-publication/final-composition/core-final-probe-net10-128-bursts-execution.json",
-        "bytes": 2193,
-        "sha256": "834fa85f983a21140c8b78afa5588a6706403d327b54a4d195544528b201b1ee"
+        "path": "$POST_LANDING_ROOT/core-postlanding-probe-net10-128-bursts-execution.json",
+        "bytes": 2112,
+        "sha256": "c792c35552999185e33d82fcafe1e293242a7a45d2591a4703cefce3e5439d09"
       },
       "log": {
-        "path": "/Volumes/Samsung/Development/Scratch/core-output-publication/final-composition/logs/core-final-probe-net10-128-bursts.log",
+        "path": "$POST_LANDING_ROOT/logs/core-postlanding-probe-net10-128-bursts.log",
         "bytes": 222,
         "sha256": "47a2c0b6d7e0cdb46f413b608846947d3f5fa3fe9686012cbe1002739966aad9"
       },
-      "elapsedSeconds": 9.835585834,
+      "elapsedSeconds": 11.692255166999999,
       "actualArgv": [
         "/usr/bin/env",
-        "NUGET_PACKAGES=/Volumes/Samsung/Development/Scratch/core-output-publication/final-composition/private-package/candidate-cache",
-        "NUGET_HTTP_CACHE_PATH=/Volumes/Samsung/Development/Scratch/core-output-publication/final-composition/private-package/http-cache",
-        "NUGET_SCRATCH=/Volumes/Samsung/Development/Scratch/core-output-publication/final-composition/private-package/nuget-scratch",
+        "NUGET_PACKAGES=$POST_LANDING_ROOT/private-package/candidate-cache",
+        "NUGET_HTTP_CACHE_PATH=$DEVELOPMENT_ROOT/Caches/NuGet/http-cache",
+        "NUGET_SCRATCH=$DEVELOPMENT_ROOT/Temp/przemyslawklys/NuGetScratch",
         "DOTNET_PROCESSOR_COUNT=3",
-        "TMPDIR=/Volumes/Samsung/Development/Scratch/core-output-publication/final-composition/tmp",
-        "/Users/przemyslawklys/.dotnet/dotnet",
-        "/Volumes/Samsung/Development/Scratch/core-output-publication/final-composition/package-probe-runtime/net10/CoreOutputRaceProbe.dll",
-        "/Volumes/Samsung/Development/Scratch/core-output-publication/final-composition/private-package/assets/net10.0/OfficeIMO.Core.dll",
-        "/Volumes/Samsung/Development/Scratch/core-output-publication/final-composition/package-bursts/net10",
-        "35f6e5873a3fe22053dd60db9ddb7e8110d5b4ae",
+        "TMPDIR=$POST_LANDING_ROOT/tmp",
+        "$USER_HOME/.dotnet/dotnet",
+        "$POST_LANDING_ROOT/package-probe-runtime/net10/CoreOutputRaceProbe.dll",
+        "$POST_LANDING_ROOT/private-package/assets/net10.0/OfficeIMO.Core.dll",
+        "$POST_LANDING_ROOT/package-bursts/net10",
+        "981a13257d87bbca8ab4bd8a41d29b4c646c75ef",
         "32",
         "12"
       ],
-      "endUtc": "2026-10-21T04:27:01.544225+00:00"
+      "endUtc": "2026-10-21T13:07:42.026809+00:00"
     }
   ],
   "independentOwnerReview": {
     "qualifiedOwnerSource": "8c39c5cbe1edeafc9ed62bd13eea147495289efc",
     "existingReadOnlyPassFindings": 0,
     "tenPublicationOwnerRepairBlobsUnchanged": true,
-    "noNewReviewSolelyForSha": true,
-    "priorProof": {
-      "path": "/Volumes/Samsung/Development/Scratch/core-output-publication/convergence/portable-core-output-composition.json",
-      "bytes": 27039,
-      "sha256": "1cd1f8329bb7b1b5aa8b6df314987b52b721255dac45e4b2cb2acea44d8de7b1"
-    }
+    "noNewReviewSolelyForSha": true
   },
-  "retentionPlan": {
-    "path": "/Volumes/Samsung/Development/Scratch/core-output-publication/final-composition/prep/retention-final-v2/retention-plan.final.json",
-    "bytes": 51376,
-    "sha256": "5b26252e16ad423dbe3344d87207a35731b05c5a293f5780c426fb84db5fa27c"
-  },
+  "retentionPlan": "$POST_LANDING_ROOT/prep/retention/retention-plan.template.json",
   "archiveReadback": [
     {
-      "path": "/Volumes/Samsung/Development/Scratch/core-output-publication/final-composition/retained/final-test-runtime-metadata-v2.json",
-      "bytes": 10516,
-      "sha256": "73331377c4dd405ee5bf84aabc08963730e702d2fb2e3c72404648ecfc03e63a"
+      "path": "$POST_LANDING_ROOT/retained/postlanding-test-runtime-metadata.json",
+      "bytes": 10525,
+      "sha256": "9a0cee653fb36afb33af29644c7ac7136bd3d9a938565232fc97cfd0f0a53a6d"
     },
     {
-      "path": "/Volumes/Samsung/Development/Scratch/core-output-publication/final-composition/retained/final-net472-module-metadata-v2.json",
-      "bytes": 6973,
-      "sha256": "19e9e4e01d71817325e8f5c60095237b3aedecfaae9fbd4977480b4076d61e6e"
+      "path": "$POST_LANDING_ROOT/retained/postlanding-net472-module-metadata.json",
+      "bytes": 6982,
+      "sha256": "32666eb454319f40db0cb6d5023d8cfb1d5ee3ac422d9f4300da746b1c10b77a"
     },
     {
-      "path": "/Volumes/Samsung/Development/Scratch/core-output-publication/final-composition/retained/final-package-build-metadata-v2.json",
-      "bytes": 9169,
-      "sha256": "24ee7159e2b076f15993973e092036c68fed344c51fad6833bc9ebf106bf7dc4"
+      "path": "$POST_LANDING_ROOT/retained/postlanding-package-build-metadata.json",
+      "bytes": 9178,
+      "sha256": "64f2ebcf1fa2e211c37440d432abd1f78e3c2084c4a43c34173eaaf452863739"
     }
   ],
   "activitySnapshot": {
-    "path": "/Volumes/Samsung/Development/Scratch/core-output-publication/final-composition/prep/retention-final-v2/candidate-idle-snapshot-final.json",
-    "bytes": 7789,
-    "sha256": "bba2cc3ba5acc3494a9063c0949a4cc967703cf2a212b09c25967645939bf230"
+    "path": "$POST_LANDING_ROOT/prep/retention/candidate-idle-snapshot-final.json",
+    "bytes": 4582,
+    "sha256": "3e9d015da1203373bfc0c3088db2c8bb5137d0e03b9910e1bfd69264aa118a1f"
+  },
+  "priorReceipt": {
+    "path": "Build/Project/Evidence/2026-10-20/core-output-publication.json",
+    "bytes": 28386,
+    "sha256": "29f9e82cb226d3dc78cd9c19cec7194a64973082ebbf7fbc7376e8d0545b73a6"
+  },
+  "state": "QUALIFIED_FINAL_POST_HTML_COMPOSITION",
+  "finalizedUtc": "2026-10-21T13:10:58.004516+00:00",
+  "actualLandedMaster": "107ddda07d2106cef2f98ab35bd8d4187f324671",
+  "ownerMatrix": {
+    "path": "$POST_LANDING_ROOT/owner-matrix.json",
+    "bytes": 12276,
+    "sha256": "a4c675ee70499e3ba2c5df05c75ec72561a442c64a213235184a0bd824a14cd9"
   },
   "cleanupPerformed": true,
-  "limits": [
-    "Private packaged internalowner burst proof is separate from full actualPS source-consumer suite.",
-    "NET472/netstandard2.0 compile assets only; no Windows-native execution/profiling claim.",
-    "SeparateCore PR remains held for agreed HTML settlement/publication sequence.",
-    "Original33d baseline104failed/128bursts remains at its original binary/source binding; prior8c/C1 greenproof is not relabelled current35f6."
-  ],
   "preparedOnlyNoArchiveDeleteOrJournal": false,
-  "completedUtc": "2026-10-21T04:32:27.003388+00:00",
   "noDeletionOrLedgerPerformed": false,
-  "finalizedUtc": "2026-10-21T04:34:16.375890+00:00",
   "storage": {
     "cleanup": {
-      "path": "/Volumes/Samsung/Development/Scratch/core-output-publication/final-composition/cleanup-final-result.json",
-      "bytes": 4531,
-      "sha256": "e54904518e939f49ea0907fd8ba007427c1d4c053510d83beea20cb52f854b03"
+      "path": "$POST_LANDING_ROOT/cleanup-result.json",
+      "bytes": 4360,
+      "sha256": "6efbf8e9e290b87259fb2edad0812e431d8c21703521295abc3d49acd531a97c"
     },
     "safeLedgerAppend": {
-      "path": "/Volumes/Samsung/Development/Scratch/core-output-publication/final-composition/prep/storage-ledger-final/append-receipt.json",
-      "bytes": 3066,
-      "sha256": "01319db3e31b6dce633e9a25b58a50e12b8e77b59c8e1ded41148d834889da2c"
+      "path": "$POST_LANDING_ROOT/prep/storage-ledger/append-receipt.json",
+      "bytes": 3171,
+      "sha256": "82cf4eb6eea593fedf262781464efea0089b338be0b2f172b0d6fbfeee466852"
     },
-    "logicalBytesRemovedThisPass": 5367838889,
-    "priorAlreadyRecordedBytesExcluded": 8350897023,
-    "retainedApproxAllocatedBytes": 72216576,
-    "boundary": "Currenttenchildgraphs removed; earlierCore8350897023bytes remain separate receipts. Exactprivatepackage/fourassets/twodeployedruntimes/actualTRX/logs/CRC-SHA-mode54entrymetadata retained. No sharedcache/nativehistory/worktree/source cleanup."
-  },
-  "retentionMaterialization": {
-    "actualSucceeded": {
-      "path": "/Volumes/Samsung/Development/Scratch/core-output-publication/final-composition/core-final-retention-materialize-v2-execution.json",
-      "bytes": 1334,
-      "sha256": "cb6cfbf0958b223f0e30b48f81fd4af8fbef51bc529dd72dce152253f22854cb"
-    },
-    "failedOriginal": {
-      "path": "/Volumes/Samsung/Development/Scratch/core-output-publication/final-composition/core-final-retention-materialize-execution.json",
-      "bytes": 1332,
-      "sha256": "a8a5ab79c7982b3daad4e14c0954450670d6a82905e6b78b48a8c23c7e992979"
-    },
-    "originalAttemptArchives": [
+    "logicalBytesRemovedThisPass": 5337516499,
+    "retained": [
       {
-        "path": "/Volumes/Samsung/Development/Scratch/core-output-publication/final-composition/retained/final-test-runtime-metadata.zip",
-        "bytes": 6964277,
-        "sha256": "bd069f7519954d059c53ca01767f564ae57a66f8824755e16d8d0d4fad21bf48"
+        "path": "$POST_LANDING_ROOT/private-package/feed",
+        "logicalBytes": 8770835,
+        "reason": "Exact private3.5.22 nupkg; not public release"
       },
       {
-        "path": "/Volumes/Samsung/Development/Scratch/core-output-publication/final-composition/retained/final-test-runtime-metadata.json",
-        "bytes": 10513,
-        "sha256": "ac83d590341b6c8756b019436755f5c1b00132fa614a2616125038cfd03cb450"
+        "path": "$POST_LANDING_ROOT/private-package/assets",
+        "logicalBytes": 20004864,
+        "reason": "Four exact inspected DLL assets"
       },
       {
-        "path": "/Volumes/Samsung/Development/Scratch/core-output-publication/final-composition/retained/final-net472-module-metadata.zip",
-        "bytes": 6501320,
-        "sha256": "02534146662019658754509f547ecfb8f22004de84e17ac4251a51d0bb01700a"
+        "path": "$POST_LANDING_ROOT/private-package/package-inspection-final.json",
+        "logicalBytes": 2808,
+        "reason": "Actual package4assets/nuspec/commit/dependencies/hash inspection"
       },
       {
-        "path": "/Volumes/Samsung/Development/Scratch/core-output-publication/final-composition/retained/final-net472-module-metadata.json",
-        "bytes": 6970,
-        "sha256": "9bf831a2f322a443ba6eb15a2c228c641041d67ae478251c27bbec3af37eb81e"
+        "path": "$POST_LANDING_ROOT/package-probe-runtime",
+        "logicalBytes": 10382596,
+        "reason": "Two actual executed NET8/NET10 runtime folders and all their DLL/deps/runtimeconfig identities"
+      },
+      {
+        "path": "$POST_LANDING_ROOT/package-bursts",
+        "logicalBytes": 178572,
+        "reason": "Both actual result summaries and small successful payload observations; retain this generation rather than deleting outcome payloads"
+      },
+      {
+        "path": "$POST_LANDING_ROOT/trx",
+        "logicalBytes": 100815,
+        "reason": "Actual complete full PS TRX; preserve failures if any"
+      },
+      {
+        "path": "$POST_LANDING_ROOT/logs",
+        "logicalBytes": 79636,
+        "reason": "All eight actual execution logs"
+      },
+      {
+        "path": "$POST_LANDING_ROOT/prep",
+        "logicalBytes": 221442,
+        "reason": "Frozen runner/plan/probe/config/source seal and this compact metadata"
+      },
+      {
+        "path": "$POST_LANDING_ROOT/retained",
+        "logicalBytes": 13521473,
+        "reason": "Future54entry narrow archives and every-entry readback receipts"
       }
     ],
-    "amendment": "Only staleprivate3.5.12nuspecselection correctedtoactual3.5.18 innewv2metadatahelper; all54literalpaths checkedbeforewriting. Eightengine/package outcomes unchanged; originalpartialarchives/failedhelperreceipt retained."
-  }
+    "boundary": "Current task-owned graphs only. Retained package, four assets, two executed runtimes, actual TRX/logs and 54 CRC/hash/mode-verified metadata entries. Shared caches, source, worktrees and prior evidence are preserved."
+  },
+  "retentionMaterialization": {
+    "path": "$POST_LANDING_ROOT/prep/retention/materialization-result.json",
+    "bytes": 2956,
+    "sha256": "9a33050997009c157cca7d45ed2039228c5ffe33fa8396a414c4261cb5e93809"
+  },
+  "limits": [
+    "Private packaged internal-owner bursts and the full PS source-consumer suite are separate actual proofs.",
+    "NET472/netstandard2.0 assets are compile proof; no Windows runtime execution or profiling is claimed.",
+    "This receipt proves local source/package behavior, not hosted CI, merge, public package publication or release.",
+    "Prior history is referenced by the existing repository receipt and retains its original source bindings."
+  ]
 }
