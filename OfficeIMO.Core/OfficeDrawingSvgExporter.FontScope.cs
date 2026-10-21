@@ -7,11 +7,11 @@ using System.Xml.Linq;
 namespace OfficeIMO.Drawing;
 
 public static partial class OfficeDrawingSvgExporter {
-    // Inline SVG styles share the host document's font namespace. Scope both
-    // registrations and references, including rich text and nested drawing groups.
+    // Font references are CSS values even in standalone SVG. Quote embedded
+    // names when necessary, and scope them for inline pages sharing a document.
     private static string ScopeEmbeddedFontFamilies(string svg, OfficeFontFaceCollection fonts,
         string prefix, CancellationToken cancellationToken) {
-        if (prefix.Length == 0 || fonts.Faces.Count == 0) return svg;
+        if (fonts.Faces.Count == 0) return svg;
         var families = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
         foreach (var face in fonts.Faces) {
             families[face.ResourceFamilyName] = prefix + face.ResourceFamilyName;
@@ -25,7 +25,7 @@ public static partial class OfficeDrawingSvgExporter {
             if (attribute == null) continue;
             var names = OfficeFontFamilyParser.Parse(attribute.Value).ToArray();
             if (!names.Any(families.ContainsKey)) continue;
-            attribute.Value = string.Join(", ", names.Select(name => families.TryGetValue(name, out var scoped)
+            attribute.Value = string.Join(", ", names.Select(name => prefix.Length > 0 && families.TryGetValue(name, out var scoped)
                 ? QuoteCssFamily(scoped)
                 : RequiresQuotedCssFamily(name) ? QuoteCssFamily(name) : name));
         }

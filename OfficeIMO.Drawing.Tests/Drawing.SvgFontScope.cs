@@ -7,6 +7,38 @@ namespace OfficeIMO.Tests;
 
 public sealed class DrawingSvgFontScopeTests {
     [Theory]
+    [InlineData("ABCDEF+Subset-Regular", "\"ABCDEF+Subset-Regular\"")]
+    [InlineData("3 of 9 Barcode", "\"3 of 9 Barcode\"")]
+    [InlineData("initial", "\"initial\"")]
+    [InlineData("Shared Font", "Shared Font")]
+    public void StandaloneSvgUsesCssSafeEmbeddedFontReferences(string family, string expectedReference) {
+        var drawing = new OfficeDrawing(100, 40);
+        drawing.Fonts.Add(family, ManagedTextShapingTestAssets.CreateFont('A'));
+        drawing.AddText("A", 2, 2, 90, 30, new OfficeFontInfo(family, 12));
+
+        var svg = XElement.Parse(OfficeDrawingSvgExporter.ToSvg(drawing));
+
+        Assert.Equal(expectedReference,
+            svg.Descendants().Single(x => x.Name.LocalName == "text").Attribute("font-family")!.Value);
+        Assert.Contains("font-family:\"" + family + "\"",
+            svg.Descendants().Single(x => x.Name.LocalName == "style").Value);
+        Assert.Equal(family, drawing.Fonts.Faces[0].FamilyName);
+    }
+
+    [Fact]
+    public void StandaloneSvgPreservesQuotedFallbackNamesAndGenericFamilies() {
+        var drawing = new OfficeDrawing(100, 40);
+        drawing.Fonts.Add("ABCDEF+Subset-Regular", ManagedTextShapingTestAssets.CreateFont('A'));
+        drawing.AddText("A", 2, 2, 90, 30,
+            new OfficeFontInfo("\"Missing, Family\", ABCDEF+Subset-Regular, sans-serif", 12));
+
+        var svg = XElement.Parse(OfficeDrawingSvgExporter.ToSvg(drawing));
+
+        Assert.Equal("\"Missing, Family\", \"ABCDEF+Subset-Regular\", sans-serif",
+            svg.Descendants().Single(x => x.Name.LocalName == "text").Attribute("font-family")!.Value);
+    }
+
+    [Theory]
     [InlineData("\"ACME, Sans\", Arial", "ACME, Sans", "Arial")]
     [InlineData("'ACME, Sans', Arial", "ACME, Sans", "Arial")]
     [InlineData("ACME\\, Sans, Arial", "ACME, Sans", "Arial")]
