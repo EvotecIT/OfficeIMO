@@ -1233,5 +1233,596 @@
       "bytes": 1500,
       "sha256": "c3c72ccd0483f1cb82299217da276ab509dc0f424f85055ea228eba40a577026"
     }
+  },
+  "currentMasterIntegration": {
+    "schema": "officeimo.html.page-margin-current-master-integration/v1",
+    "status": "qualified-current-master-source-integration",
+    "sourceHead": "fb3d4c57fd9510ef08e79833c0774622babff8e1",
+    "adoptedMaster": "4543902a9d2715877dac912220ecdd804f2bdb4b",
+    "originalQualifiedProductionHead": "dc5f8122ed8d222c1b64a6e96117354844df4b44",
+    "correctedBaseReceipt": {
+      "path": "$CHECKOUT/Build/Project/Evidence/2026-09-30/html-master-convergence/page-margin-geometry-20261021.json",
+      "bytes": 51274,
+      "sha256": "fcb8cc750429bf86d1415c98e1980b61afe6dff0d59f728583816009608e1470"
+    },
+    "ownerComposition": {
+      "path": "$INTEGRATION_ROOT/composition-owner-binding.json",
+      "bytes": 5823,
+      "sha256": "a4394f8e3d954e23f1d04e8aa0e377c8bb31d71811a124fb27010ae3078842ab"
+    },
+    "unchangedGeometryBlobs": [
+      {
+        "path": "OfficeIMO.Html.Tests/Html.Rendering.PageMarginGeometry.Remediation.cs",
+        "originalQualifiedBlob": "da2e031c851b393f534b603a1c382281ad308f27",
+        "currentBlob": "da2e031c851b393f534b603a1c382281ad308f27"
+      },
+      {
+        "path": "OfficeIMO.Html.Tests/Html.Rendering.PageMarginGeometry.cs",
+        "originalQualifiedBlob": "50454cb5ff369bd7d5a96c2d8527b2dbfd643a2c",
+        "currentBlob": "50454cb5ff369bd7d5a96c2d8527b2dbfd643a2c"
+      },
+      {
+        "path": "OfficeIMO.Html/Rendering/HtmlCssPageRuleSet.Typography.cs",
+        "originalQualifiedBlob": "e1376d9bcb9794bbb809dd18352a09eef069fab9",
+        "currentBlob": "e1376d9bcb9794bbb809dd18352a09eef069fab9"
+      },
+      {
+        "path": "OfficeIMO.Html/Rendering/HtmlCssPageRuleSet.cs",
+        "originalQualifiedBlob": "d43430e6a4c60ec099bc3362f4044eb55d8dace8",
+        "currentBlob": "d43430e6a4c60ec099bc3362f4044eb55d8dace8"
+      },
+      {
+        "path": "OfficeIMO.Html/Rendering/HtmlCssPageSettingsResolver.Fonts.cs",
+        "originalQualifiedBlob": "eb3e358cec0cc93a4e153be806d9f465bd96add2",
+        "currentBlob": "eb3e358cec0cc93a4e153be806d9f465bd96add2"
+      },
+      {
+        "path": "OfficeIMO.Html/Rendering/HtmlRenderLayoutEngine.Borders.cs",
+        "originalQualifiedBlob": "e5822e7db5b5a9bad248a9bbf2e9162139619170",
+        "currentBlob": "e5822e7db5b5a9bad248a9bbf2e9162139619170"
+      },
+      {
+        "path": "OfficeIMO.Html/Rendering/HtmlRenderLayoutEngine.PageMargins.Geometry.cs",
+        "originalQualifiedBlob": "99d827373caa0e17910f31f7c799aabb200a31c5",
+        "currentBlob": "99d827373caa0e17910f31f7c799aabb200a31c5"
+      },
+      {
+        "path": "OfficeIMO.Html/Rendering/HtmlRenderLayoutEngine.PageMargins.PaintBounds.cs",
+        "originalQualifiedBlob": "85c3c207aeb1729416536e6623f86b443c634705",
+        "currentBlob": "85c3c207aeb1729416536e6623f86b443c634705"
+      },
+      {
+        "path": "OfficeIMO.Html/Rendering/HtmlRenderLayoutEngine.PageMargins.Sizing.cs",
+        "originalQualifiedBlob": "dae3e081420f19a04e5ee60d5980bd54a13f9860",
+        "currentBlob": "dae3e081420f19a04e5ee60d5980bd54a13f9860"
+      },
+      {
+        "path": "OfficeIMO.Html/Rendering/HtmlRenderLayoutEngine.PageMargins.Widths.cs",
+        "originalQualifiedBlob": "328b9dbdae0b016bfebfc4c443a60d1640a400ef",
+        "currentBlob": "328b9dbdae0b016bfebfc4c443a60d1640a400ef"
+      },
+      {
+        "path": "OfficeIMO.Html/Rendering/HtmlRenderLayoutEngine.PageMargins.cs",
+        "originalQualifiedBlob": "c4860e2b13b751ac657d437556d910f05caaebb3",
+        "currentBlob": "c4860e2b13b751ac657d437556d910f05caaebb3"
+      },
+      {
+        "path": "OfficeIMO.Html/Rendering/HtmlRenderStyleResolver.PageMarginGeometry.cs",
+        "originalQualifiedBlob": "ca3d85f4d9d0e3cf15f61a0d8020074cb8d1212c",
+        "currentBlob": "ca3d85f4d9d0e3cf15f61a0d8020074cb8d1212c"
+      }
+    ],
+    "sourceFingerprints": {
+      "trackedFiles": 58406,
+      "gitTree": "a3db655992fee3875af51aeaf60f1c116649d64a",
+      "trackedIndexSha256": "56eaf8153c51f532fb63e52ee8573340985b9b4a860c87db45fce2e9fb1e840c",
+      "trackedContentSha256": "5538622436b6e30241ef6236d20220c66d84978e9fa9e647f1f3f0cba6e1bb8e"
+    },
+    "integrationObservations": {
+      "path": "$INTEGRATION_ROOT/integration-observations.json",
+      "bytes": 51789,
+      "sha256": "540cd24614e33512041eed5f45f3f8a1e0cba5f1a42c26121f931f9fb55e7aaa"
+    },
+    "focusedTests": {
+      "total": 568,
+      "passed": 568,
+      "failed": 0,
+      "skipped": 0,
+      "actualResults": [
+        {
+          "role": "integration-drawing-focused-net80",
+          "total": 63,
+          "passed": 63,
+          "failed": 0,
+          "skipped": 0,
+          "actualTrx": {
+            "path": "$INTEGRATION_ROOT/trx/integration-drawing-focused-net80/integration-drawing-focused-net80.trx",
+            "bytes": 98866,
+            "sha256": "0da3e28a7b4965c777de0ad05527ec263b83783535bb060cee30082d4509a521"
+          }
+        },
+        {
+          "role": "integration-drawing-focused-net100",
+          "total": 63,
+          "passed": 63,
+          "failed": 0,
+          "skipped": 0,
+          "actualTrx": {
+            "path": "$INTEGRATION_ROOT/trx/integration-drawing-focused-net100/integration-drawing-focused-net100.trx",
+            "bytes": 98993,
+            "sha256": "7468873ff3857c6ab3230a32305b3efebcb5225d0cf972d67dc0efddf3113b94"
+          }
+        },
+        {
+          "role": "integration-html-focused-net80",
+          "total": 217,
+          "passed": 217,
+          "failed": 0,
+          "skipped": 0,
+          "actualTrx": {
+            "path": "$INTEGRATION_ROOT/trx/integration-html-focused-net80/integration-html-focused-net80.trx",
+            "bytes": 357237,
+            "sha256": "62270d9c239b1a96cdd2ae6f5702e7ecf5845ba51c9e8b5d004a92b02a73331f"
+          }
+        },
+        {
+          "role": "integration-html-focused-net100",
+          "total": 217,
+          "passed": 217,
+          "failed": 0,
+          "skipped": 0,
+          "actualTrx": {
+            "path": "$INTEGRATION_ROOT/trx/integration-html-focused-net100/integration-html-focused-net100.trx",
+            "bytes": 357672,
+            "sha256": "00de59a1cc784d0cbf4e6d3c915e505e058b80f709000756dff7fe72dd33a3fa"
+          }
+        },
+        {
+          "role": "integration-pdf-focused-net80",
+          "total": 4,
+          "passed": 4,
+          "failed": 0,
+          "skipped": 0,
+          "actualTrx": {
+            "path": "$INTEGRATION_ROOT/trx/integration-pdf-focused-net80/integration-pdf-focused-net80.trx",
+            "bytes": 7694,
+            "sha256": "8edd33fea6f9514edf1f72962a81d9f33b1beb10f2dd442ee209906aa760134f"
+          }
+        },
+        {
+          "role": "integration-pdf-focused-net100",
+          "total": 4,
+          "passed": 4,
+          "failed": 0,
+          "skipped": 0,
+          "actualTrx": {
+            "path": "$INTEGRATION_ROOT/trx/integration-pdf-focused-net100/integration-pdf-focused-net100.trx",
+            "bytes": 7703,
+            "sha256": "ebfc6fd5990836d09e009fb24e089dce651816cfe124eb51f1c1dec7cbb64fef"
+          }
+        }
+      ]
+    },
+    "net472TransitiveHtmlCompilation": {
+      "logicalRole": "integration-html-compile-net472",
+      "name": "integration-html-compile-net472",
+      "receipt": {
+        "path": "$INTEGRATION_ROOT/receipts/integration-html-compile-net472.json",
+        "bytes": 2931,
+        "sha256": "1e2b231ba2ed92e2a438a4e0d34907139e533ba890a703bdaea195120a2e6d07"
+      },
+      "log": {
+        "path": "$INTEGRATION_ROOT/logs/integration-html-compile-net472.log",
+        "bytes": 14695,
+        "sha256": "05487289eb39f34b584c5259ee9a65d511abc32dd6bb700d04da28a8a098eb12"
+      }
+    },
+    "rendering": {
+      "observations": 48,
+      "ownPngPdfPairsEqual": 52,
+      "sameFrameworkPriorPngPairsEqual": 52,
+      "summaries": [
+        {
+          "current": {
+            "path": "$INTEGRATION_ROOT/output/main-net8/summary.json",
+            "bytes": 362870,
+            "sha256": "d819c233c9d0028473651056eab01e44ec378c2f8c1c3a85dae609f7119fe68a"
+          },
+          "original": {
+            "path": "$TASK_ROOT/qualified/net8/summary.json",
+            "bytes": 361475,
+            "sha256": "03eae57452a1785a939e1219cf34d255745be89d2982bd7315d9e50fbf13092d"
+          }
+        },
+        {
+          "current": {
+            "path": "$INTEGRATION_ROOT/output/insets-net8/summary.json",
+            "bytes": 33213,
+            "sha256": "46a93868340e2f6bed97309e70a698aae02a70e48b85ea8278f4dd7a7f9aa089"
+          },
+          "original": {
+            "path": "$TASK_ROOT/qualified/supplemental-net8/summary.json",
+            "bytes": 32988,
+            "sha256": "25885fd71c28a48340ec1e0b7a56293a344f195cb61ec0e09d35f8a9a0cc8272"
+          }
+        },
+        {
+          "current": {
+            "path": "$INTEGRATION_ROOT/output/loss-net8/summary.json",
+            "bytes": 52906,
+            "sha256": "42331847cadcde1a8536254ccf16eb5a5de1f3cc6ceb1e99799b06db8d8f6161"
+          },
+          "original": {
+            "path": "$TASK_ROOT/qualified/loss-net8/summary.json",
+            "bytes": 52417,
+            "sha256": "4f90a181ae5c5e5dda638e7c835ad5b83a74f2e151fb63587ed36c4b834398d8"
+          }
+        },
+        {
+          "current": {
+            "path": "$INTEGRATION_ROOT/output/main-net10/summary.json",
+            "bytes": 362929,
+            "sha256": "d54d2f3807b532c76a45bf8d5f2f130a7bb2702bd481da538556c99a296168a3"
+          },
+          "original": {
+            "path": "$TASK_ROOT/qualified/net10/summary.json",
+            "bytes": 361534,
+            "sha256": "850f2a39997b8d5d630477e46189769506ff8da6f877ee318c6d3dc6afd65efd"
+          }
+        },
+        {
+          "current": {
+            "path": "$INTEGRATION_ROOT/output/insets-net10/summary.json",
+            "bytes": 33226,
+            "sha256": "3d69d4985bfc60261dda7f78a738b857a1f68f47f3c06fa1430c01baea2d4472"
+          },
+          "original": {
+            "path": "$TASK_ROOT/qualified/supplemental-net10/summary.json",
+            "bytes": 33001,
+            "sha256": "f3785c340ef470c93be571da057bb1f448ab660d19b61e988ae181bbdfdc4de7"
+          }
+        },
+        {
+          "current": {
+            "path": "$INTEGRATION_ROOT/output/loss-net10/summary.json",
+            "bytes": 52931,
+            "sha256": "5c793833e9e72194b05a2833f384ac550e0fa358973a4c3817a1a15a0cabc2f5"
+          },
+          "original": {
+            "path": "$TASK_ROOT/qualified/loss-net10/summary.json",
+            "bytes": 52442,
+            "sha256": "94f83572448b54917c6a94ecdb8a4637a2d5337fc2fa0e987d0ec54c4eb846e3"
+          }
+        }
+      ]
+    },
+    "qualifiedRoles": [
+      {
+        "logicalRole": "integration-drawing-focused-net80",
+        "name": "integration-drawing-focused-net80",
+        "receipt": {
+          "path": "$INTEGRATION_ROOT/receipts/integration-drawing-focused-net80.json",
+          "bytes": 3312,
+          "sha256": "0b9035d64c10b2485c449930951847a7a44371c9a6bd5e8edda4e7bb5ca795d5"
+        },
+        "log": {
+          "path": "$INTEGRATION_ROOT/logs/integration-drawing-focused-net80.log",
+          "bytes": 13537,
+          "sha256": "4c954e4c57d10bc869154b2a2447b2d48b5c33a427fd89cee197e5f23361ebbb"
+        }
+      },
+      {
+        "logicalRole": "integration-drawing-focused-net100",
+        "name": "integration-drawing-focused-net100",
+        "receipt": {
+          "path": "$INTEGRATION_ROOT/receipts/integration-drawing-focused-net100.json",
+          "bytes": 3323,
+          "sha256": "571b5716867b724d1024ead2ba23052787b5a43126abd1e1e7d5bd39f1e6d7c1"
+        },
+        "log": {
+          "path": "$INTEGRATION_ROOT/logs/integration-drawing-focused-net100.log",
+          "bytes": 10775,
+          "sha256": "f7a26c0bb0fd0fa5e94dfe627a3128303c236456a8820bcc7c511efc261d8d43"
+        }
+      },
+      {
+        "logicalRole": "integration-html-focused-net80",
+        "name": "integration-html-focused-net80",
+        "receipt": {
+          "path": "$INTEGRATION_ROOT/receipts/integration-html-focused-net80.json",
+          "bytes": 3482,
+          "sha256": "3ca7420753de0514e406ecbafb27dc0ff8dd8cd9ea40447413acb08bebeecb65"
+        },
+        "log": {
+          "path": "$INTEGRATION_ROOT/logs/integration-html-focused-net80.log",
+          "bytes": 12468,
+          "sha256": "293525e0bc6c2d738480efa0f610ff9e587dd3ea66ac16500444b4d9073d6714"
+        }
+      },
+      {
+        "logicalRole": "integration-html-focused-net100",
+        "name": "integration-html-focused-net100",
+        "receipt": {
+          "path": "$INTEGRATION_ROOT/receipts/integration-html-focused-net100.json",
+          "bytes": 3486,
+          "sha256": "76b2cbb3b4de8162744fa8c8b14746b62d573c86b9f2786a8039dde6a5d57585"
+        },
+        "log": {
+          "path": "$INTEGRATION_ROOT/logs/integration-html-focused-net100.log",
+          "bytes": 8292,
+          "sha256": "9d0e81350d6d988b8e63822a40f2be3f7bb7eb7e75cfedd0409f7a1c761c594f"
+        }
+      },
+      {
+        "logicalRole": "integration-pdf-focused-net80",
+        "name": "integration-pdf-focused-net80",
+        "receipt": {
+          "path": "$INTEGRATION_ROOT/receipts/integration-pdf-focused-net80.json",
+          "bytes": 3356,
+          "sha256": "419f8bcadaca38d4b47228175feaf443d927c02d30e6f04a104bc435c02cb599"
+        },
+        "log": {
+          "path": "$INTEGRATION_ROOT/logs/integration-pdf-focused-net80.log",
+          "bytes": 23173,
+          "sha256": "9a1ffcd2a8bc122435e30ae2c3c9d2ad50bd9baca67814c8daf683a7856e1118"
+        }
+      },
+      {
+        "logicalRole": "integration-pdf-focused-net100",
+        "name": "integration-pdf-focused-net100",
+        "receipt": {
+          "path": "$INTEGRATION_ROOT/receipts/integration-pdf-focused-net100.json",
+          "bytes": 3361,
+          "sha256": "1917d100e08a19f2d4aac2c67add709adeb2b810ef5a133c8304d6c4104e5fd5"
+        },
+        "log": {
+          "path": "$INTEGRATION_ROOT/logs/integration-pdf-focused-net100.log",
+          "bytes": 19215,
+          "sha256": "001d095a4c60312694d3614432dfc51cb0b6f90177921ce9be2cd51ef8416f57"
+        }
+      },
+      {
+        "logicalRole": "integration-html-compile-net472",
+        "name": "integration-html-compile-net472",
+        "receipt": {
+          "path": "$INTEGRATION_ROOT/receipts/integration-html-compile-net472.json",
+          "bytes": 2931,
+          "sha256": "1e2b231ba2ed92e2a438a4e0d34907139e533ba890a703bdaea195120a2e6d07"
+        },
+        "log": {
+          "path": "$INTEGRATION_ROOT/logs/integration-html-compile-net472.log",
+          "bytes": 14695,
+          "sha256": "05487289eb39f34b584c5259ee9a65d511abc32dd6bb700d04da28a8a098eb12"
+        }
+      },
+      {
+        "logicalRole": "integration-observer-net8-build",
+        "name": "integration-observer-net8-build-v2",
+        "receipt": {
+          "path": "$INTEGRATION_ROOT/receipts/integration-observer-net8-build-v2.json",
+          "bytes": 3232,
+          "sha256": "4bfe9f035eee468310930df3e36986bec9c9d6a01263cf17bd6304a196f1f0ea"
+        },
+        "log": {
+          "path": "$INTEGRATION_ROOT/logs/integration-observer-net8-build-v2.log",
+          "bytes": 1906,
+          "sha256": "d4707dd6911d579c93820927e09e2dca6a0ab99cafa35ad94d2bec4cc78d55e2"
+        }
+      },
+      {
+        "logicalRole": "integration-observer-net8-main-run",
+        "name": "integration-observer-net8-main-run-v2",
+        "receipt": {
+          "path": "$INTEGRATION_ROOT/receipts/integration-observer-net8-main-run-v2.json",
+          "bytes": 2892,
+          "sha256": "4a990ef107c30ed974c69ffdc07d97bfceb1b1f4313d97b26c165fcec4f2f769"
+        },
+        "log": {
+          "path": "$INTEGRATION_ROOT/logs/integration-observer-net8-main-run-v2.log",
+          "bytes": 116,
+          "sha256": "14878d31414454ea43f2c5e4e49f5dcb49e28c0a06c9f353cd46bdeef3305837"
+        }
+      },
+      {
+        "logicalRole": "integration-observer-net8-insets-run",
+        "name": "integration-observer-net8-insets-run-v2",
+        "receipt": {
+          "path": "$INTEGRATION_ROOT/receipts/integration-observer-net8-insets-run-v2.json",
+          "bytes": 2963,
+          "sha256": "a38e34d04ddfd468e53d41772584cfb8c272bd5ffca802b16a9fb2ee58458185"
+        },
+        "log": {
+          "path": "$INTEGRATION_ROOT/logs/integration-observer-net8-insets-run-v2.log",
+          "bytes": 115,
+          "sha256": "4a9496bdb8e121ed2f3ba044700217b1b473bd37103a53e21a0379af6dd72860"
+        }
+      },
+      {
+        "logicalRole": "integration-observer-net8-loss-run",
+        "name": "integration-observer-net8-loss-run-v2",
+        "receipt": {
+          "path": "$INTEGRATION_ROOT/receipts/integration-observer-net8-loss-run-v2.json",
+          "bytes": 2898,
+          "sha256": "534b628a85653d37a11e1004d3ceadb4d1e69eedb0601b38d08028ff59582d8d"
+        },
+        "log": {
+          "path": "$INTEGRATION_ROOT/logs/integration-observer-net8-loss-run-v2.log",
+          "bytes": 115,
+          "sha256": "70ea1003910f784c727ac97f6f6602fb9f9a32c7e23c0d451624d9286c63247f"
+        }
+      },
+      {
+        "logicalRole": "integration-observer-net10-build",
+        "name": "integration-observer-net10-build-v2",
+        "receipt": {
+          "path": "$INTEGRATION_ROOT/receipts/integration-observer-net10-build-v2.json",
+          "bytes": 3238,
+          "sha256": "8b37059e42ecb2a2a8fdc15e2f723547b5983b12c0e9f2e140ab4d37517c7a2f"
+        },
+        "log": {
+          "path": "$INTEGRATION_ROOT/logs/integration-observer-net10-build-v2.log",
+          "bytes": 1914,
+          "sha256": "72479841e2e14fec1b98b5b4bc994dcd5476fdcbee797495bf748e8ffc586b51"
+        }
+      },
+      {
+        "logicalRole": "integration-observer-net10-main-run",
+        "name": "integration-observer-net10-main-run-v2",
+        "receipt": {
+          "path": "$INTEGRATION_ROOT/receipts/integration-observer-net10-main-run-v2.json",
+          "bytes": 2898,
+          "sha256": "b208bb7b7d62a32c84736eb9ecdb3a666fb02c827c499df31bada27964aa4dad"
+        },
+        "log": {
+          "path": "$INTEGRATION_ROOT/logs/integration-observer-net10-main-run-v2.log",
+          "bytes": 117,
+          "sha256": "c229ff3210e7f91d2839284430905ea06ba8dac5278e58dd8ffcfb920893c965"
+        }
+      },
+      {
+        "logicalRole": "integration-observer-net10-insets-run",
+        "name": "integration-observer-net10-insets-run-v2",
+        "receipt": {
+          "path": "$INTEGRATION_ROOT/receipts/integration-observer-net10-insets-run-v2.json",
+          "bytes": 2968,
+          "sha256": "01a52ada03394e809cfabe2ad22aa496770a2119f6da617813ffa6b544ca2f38"
+        },
+        "log": {
+          "path": "$INTEGRATION_ROOT/logs/integration-observer-net10-insets-run-v2.log",
+          "bytes": 116,
+          "sha256": "5d2a0ffe309ad64f2489670e41b0ac3c7ee1b9aa0583e002143e2607411aa86d"
+        }
+      },
+      {
+        "logicalRole": "integration-observer-net10-loss-run",
+        "name": "integration-observer-net10-loss-run-v2",
+        "receipt": {
+          "path": "$INTEGRATION_ROOT/receipts/integration-observer-net10-loss-run-v2.json",
+          "bytes": 2903,
+          "sha256": "1285dd99d82118c1e8447ab258318b782fe0e1685b606e97c313dfa00dbbbbc8"
+        },
+        "log": {
+          "path": "$INTEGRATION_ROOT/logs/integration-observer-net10-loss-run-v2.log",
+          "bytes": 116,
+          "sha256": "abfdebf516e108fc21b7cf2bff47f1367c25db333672812c9c78500c4d99433d"
+        }
+      }
+    ],
+    "executionComposition": {
+      "qualifiedLogicalRoles": 15,
+      "actualEngineInvocations": 16,
+      "originalSuccessfulTestAndCompileRolesRetained": 7,
+      "freshObserverContinuationRoles": 8,
+      "continuationPlan": {
+        "path": "$INTEGRATION_ROOT/prep/process-probe-v2-plan.json",
+        "bytes": 17251,
+        "sha256": "e8b4b7c7a1b68a4eba70ddc1600e309863a3c59c0f9854f897a98b08c2be702a"
+      },
+      "excludedOriginalObserverBuild": {
+        "path": "$INTEGRATION_ROOT/receipts/integration-observer-net8-build.json",
+        "bytes": 3222,
+        "sha256": "c42349aa9f435244b615b61e435b218ae2f4d563d06b82dcf11f5aab0d9462ed"
+      },
+      "originalProbeFailureClosure": {
+        "path": "$INTEGRATION_ROOT/process-probe-failure-live-inspection.json",
+        "bytes": 269,
+        "sha256": "67413cf0fb355a0b8746fec90c768824b905861583a89d80e09fd6e6f4f316f6"
+      },
+      "sourceTrackedContentSha256": "5538622436b6e30241ef6236d20220c66d84978e9fa9e647f1f3f0cba6e1bb8e",
+      "sessions": [
+        {
+          "session": "2026-10-21T194618.820587_0000-18180",
+          "exitCode": 1,
+          "error": "[Errno 1] Operation not permitted",
+          "sourceBefore": {
+            "atUtc": "2026-10-21T19:46:27.297307+00:00",
+            "head": "fb3d4c57fd9510ef08e79833c0774622babff8e1",
+            "gitTree": "a3db655992fee3875af51aeaf60f1c116649d64a",
+            "trackedIndexSha256": "56eaf8153c51f532fb63e52ee8573340985b9b4a860c87db45fce2e9fb1e840c",
+            "status": "",
+            "trackedFiles": 58406,
+            "trackedContentSha256": "5538622436b6e30241ef6236d20220c66d84978e9fa9e647f1f3f0cba6e1bb8e",
+            "manifest": "$INTEGRATION_ROOT/receipts/session-2026-10-21T194618.820587_0000-18180/source-before.json",
+            "manifestSha256": "1f932e05e49c639bfd45899b4925c372736697d857ff93a5f2f08e7daf39066e"
+          },
+          "sourceAfter": {
+            "atUtc": "2026-10-21T19:51:07.596620+00:00",
+            "head": "fb3d4c57fd9510ef08e79833c0774622babff8e1",
+            "gitTree": "a3db655992fee3875af51aeaf60f1c116649d64a",
+            "trackedIndexSha256": "56eaf8153c51f532fb63e52ee8573340985b9b4a860c87db45fce2e9fb1e840c",
+            "status": "",
+            "trackedFiles": 58406,
+            "trackedContentSha256": "5538622436b6e30241ef6236d20220c66d84978e9fa9e647f1f3f0cba6e1bb8e",
+            "manifest": "$INTEGRATION_ROOT/receipts/session-2026-10-21T194618.820587_0000-18180/source-after.json",
+            "manifestSha256": "8895d6823ae0bf8aaee9e562fd6c5b22794e89a74f574771c9bda2babd1d58ab"
+          }
+        },
+        {
+          "session": "2026-10-21T195509.176668_0000-22863",
+          "exitCode": 0,
+          "error": null,
+          "sourceBefore": {
+            "atUtc": "2026-10-21T19:55:16.614614+00:00",
+            "head": "fb3d4c57fd9510ef08e79833c0774622babff8e1",
+            "gitTree": "a3db655992fee3875af51aeaf60f1c116649d64a",
+            "trackedIndexSha256": "56eaf8153c51f532fb63e52ee8573340985b9b4a860c87db45fce2e9fb1e840c",
+            "status": "",
+            "trackedFiles": 58406,
+            "trackedContentSha256": "5538622436b6e30241ef6236d20220c66d84978e9fa9e647f1f3f0cba6e1bb8e",
+            "manifest": "$INTEGRATION_ROOT/receipts/session-2026-10-21T195509.176668_0000-22863/source-before.json",
+            "manifestSha256": "82cbc2ac82898518080d11fdca7fc445bdaa40b46a948314137ac306654be162"
+          },
+          "sourceAfter": {
+            "atUtc": "2026-10-21T19:56:10.631189+00:00",
+            "head": "fb3d4c57fd9510ef08e79833c0774622babff8e1",
+            "gitTree": "a3db655992fee3875af51aeaf60f1c116649d64a",
+            "trackedIndexSha256": "56eaf8153c51f532fb63e52ee8573340985b9b4a860c87db45fce2e9fb1e840c",
+            "status": "",
+            "trackedFiles": 58406,
+            "trackedContentSha256": "5538622436b6e30241ef6236d20220c66d84978e9fa9e647f1f3f0cba6e1bb8e",
+            "manifest": "$INTEGRATION_ROOT/receipts/session-2026-10-21T195509.176668_0000-22863/source-after.json",
+            "manifestSha256": "233a2bab19d20917aa849233a921ab511d4378f1d198fdebb1d9bc2cddb6c921"
+          }
+        }
+      ],
+      "boundary": "The initial wrapper session failed its signal-zero liveness probe after a successful observer compile. That observer role is excluded and its record is preserved. An independent exact PID/group scan confirmed closure. A new read-only ps-based wrapper freshly rebuilt both observers and completed all eight observer roles; tests and Framework compilation were not repeated. No production source changed."
+    },
+    "failedSessionAcceptedAsSuccessfulSession": false,
+    "rootVisualReview": {
+      "contactsViewed": 4,
+      "printPagesViewed": 13,
+      "acceptanceReceipt": {
+        "path": "$INTEGRATION_ROOT/root-render-acceptance.json",
+        "bytes": 2887,
+        "sha256": "b572323a35e05c5665c69fdb4f0bfd7199b221e601e1700d8bba13e749039f72"
+      }
+    },
+    "storage": {
+      "cleanupReceipt": {
+        "path": "$INTEGRATION_ROOT/prep/storage-closeout/cleanup-result.json",
+        "bytes": 5437,
+        "sha256": "d44c53072eadb455a3fac9a197bbd3f37598c57df23940a6281e9ad726324236"
+      },
+      "ledgerAppendReceipt": {
+        "path": "$INTEGRATION_ROOT/prep/storage-closeout/storage-ledger-receipt.json",
+        "bytes": 3232,
+        "sha256": "690895f11e6fa6298b432005acce4a5c26e75bd0ae2c2043a400ae46239f5732"
+      },
+      "retentionManifest": {
+        "path": "$INTEGRATION_ROOT/storage-manifest.json",
+        "bytes": 4948,
+        "sha256": "583587b976a7f34212471eea2b4a2aa0da56be1146f10af7d5308ea9eec45802"
+      },
+      "logicalBytesRemoved": 4430884639,
+      "retainedCoreLogicalBytes": 137095049,
+      "journalRows": {
+        "before": 5347,
+        "after": 5348,
+        "appended": 1,
+        "allPriorRowsPreserved": true
+      }
+    },
+    "evidenceBoundary": "Fresh source integration only. Original full suites, private packages, actual AOT and same-font Edge observations retain their original source/artifact bindings. No new package/native/physical-print acceptance. Original native differences 04, 06-bottom and 09 remain.",
+    "preservation": "Every pre-existing receipt field, including all five corrected prose strings and original full-suite/package/actual-AOT/native bindings, remains unchanged. This additive section qualifies current-master source integration only."
   }
 }
