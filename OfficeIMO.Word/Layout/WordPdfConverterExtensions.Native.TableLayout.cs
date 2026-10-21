@@ -7,20 +7,6 @@ namespace OfficeIMO.Word.Pdf {
     public static partial class WordPdfConverterExtensions {
         private const double NativeAutoFitGridMinimumScale = 0.8D;
 
-        /// <summary>Percentage widths reserve the effective outer half-border paint before scaling the text area.</summary>
-        private static void ApplyNativeFixedTablePercentageWidth(WordTable table, TableLayout layout,
-            PdfCore.PdfTableStyle style, double? contentWidth, NativeTableStyleDefaults defaults) {
-            if (style.AutoFitColumns || !style.AllowWidthBeyondFrame || !contentWidth.HasValue) return;
-            W.TableWidth? sourceWidth = table._tableProperties?.TableWidth;
-            if (!GetNativeTablePreferredWidth(sourceWidth, contentWidth).HasValue) sourceWidth = defaults.PreferredWidth;
-            if (ResolveNativeTablePreferredWidthType(sourceWidth) != W.TableWidthUnitValues.Pct || sourceWidth == null) return;
-            double? percent = GetNativeTablePreferredWidthPercent(sourceWidth);
-            if (!percent.HasValue) return;
-            var (left, right) = GetNativeTableOuterBorderInsets(layout, style);
-            double width = (contentWidth.Value - left - right) * percent.Value;
-            if (width > 0D) style.MaxWidth = width;
-        }
-
         private static (double Left, double Right) GetNativeTableOuterBorderInsets(TableLayout layout, PdfCore.PdfTableStyle style) {
             if (style.BorderFrame?.Border is { } perimeter) {
                 return ((GetNativeFrameSide(perimeter, top: null)?.PaintThickness ?? 0D) / 2D,
@@ -652,7 +638,7 @@ namespace OfficeIMO.Word.Pdf {
 
         private static W.TableRowAlignmentValues? ResolveNativeTableAlignment(WordTable table, NativeTableStyleDefaults tableStyleDefaults) =>
             ResolveNativeTablePositionAlignment(table._tableProperties?.TablePositionProperties) ??
-            table.Alignment.ToOpenXml() ??
+            WordTableAlignmentResolver.Read(table._tableProperties?.TableJustification, tableStyleDefaults.RightToLeft) ??
             tableStyleDefaults.Alignment;
 
         private static W.TableRowAlignmentValues? ResolveNativeTablePositionAlignment(W.TablePositionProperties? position) {

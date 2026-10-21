@@ -57,11 +57,11 @@ public static partial class WordPdfConverterExtensions {
                 ? new[] { paragraph }.Concat(element.Descendants<W.Paragraph>()) : element.Descendants<W.Paragraph>())) {
                 var paragraph = new WordParagraph(story.Document, source);
                 hasParagraph = true;
-                // Ordinary inline pictures use the same measured flow as body
-                // pictures. Fixed header images cannot reserve their line height
-                // or keep following paragraphs below a tall picture.
-                // Anchors and other drawings retain the bounded projection.
-                ordinaryStoriesSupported &= source.Descendants<W.Drawing>().All(IsNativeRunningInlinePictureDrawing) &&
+                // Inline pictures retain their measured line height; supported
+                // non-wrapping anchors retain paragraph/page placement without
+                // reserving their paint frame as flowing header/footer content.
+                ordinaryStoriesSupported &= source.Descendants<W.Drawing>()
+                    .All(drawing => IsNativeRunningPictureDrawing(drawing, section, options, margins)) &&
                     !source.Descendants<W.Picture>().Any() && !source.Descendants<W.EmbeddedObject>().Any() &&
                     !source.Descendants<AlternateContent>().Any() && !HasNativePageBreakBefore(paragraph) &&
                     !source.Descendants<W.Break>().Any(item => item.Type?.Value == W.BreakValues.Page ||
@@ -98,13 +98,17 @@ public static partial class WordPdfConverterExtensions {
         return hasNumberedParagraph || (hasParagraph && ordinaryStoriesSupported);
     }
 
-    private static bool IsNativeRunningInlinePictureDrawing(W.Drawing drawing) {
-        var inline = drawing.Inline;
-        var graphicData = inline?.Graphic?.GraphicData;
-        return inline != null && drawing.Anchor == null &&
-            graphicData != null && graphicData.Uri?.Value == "http://schemas.openxmlformats.org/drawingml/2006/picture" &&
-            graphicData.Elements<DocumentFormat.OpenXml.Drawing.Pictures.Picture>().Count() == 1 &&
-            !drawing.Ancestors<W.SdtRun>().Any(IsNativePictureControl);
+    private static bool IsNativeRunningPictureDrawing(W.Drawing drawing, WordSection section,
+        WordToPdfOptions? options, PdfCore.PageMargins margins) {
+        var graphicData = drawing.Inline?.Graphic?.GraphicData ??
+            drawing.Anchor?.GetFirstChild<DocumentFormat.OpenXml.Drawing.Graphic>()?.GraphicData;
+        if (graphicData?.Uri?.Value != "http://schemas.openxmlformats.org/drawingml/2006/picture" ||
+            graphicData.Elements<DocumentFormat.OpenXml.Drawing.Pictures.Picture>().Count() != 1 ||
+            drawing.Ancestors<W.SdtRun>().Any(IsNativePictureControl)) return false;
+        if (drawing.Inline != null) return drawing.Anchor == null;
+        return WordDrawingLayoutReader.TryRead(drawing, out WordDrawingLayoutSnapshot layout) &&
+            TryResolveNativeAnchoredImagePlacement(layout, section, GetNativePageSize(section, options), margins,
+                layout.WidthPoints, layout.HeightPoints, out _);
     }
 
     /// <summary>

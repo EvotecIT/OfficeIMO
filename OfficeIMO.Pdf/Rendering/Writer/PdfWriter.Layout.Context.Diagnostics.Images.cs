@@ -20,7 +20,7 @@ internal static partial class PdfWriter {
                 image.TableTextRotation == 0 ? image.Width : image.Height,
                 image.TableTextRotation == 0 ? image.Height : image.Width);
             if (image.TableTextRotation != 0) {
-                placed.RotationAngle = -image.TableTextRotation;
+                placed.RotationAngle -= image.TableTextRotation;
                 placed.RotationCenterX = x + image.Width / 2D;
                 placed.RotationCenterY = bottom + image.Height / 2D;
             }

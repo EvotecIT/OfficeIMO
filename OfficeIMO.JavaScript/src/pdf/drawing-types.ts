@@ -1,4 +1,4 @@
-import type { PdfPathCommand } from "./document-types.js";
+import type { PdfCaption, PdfPathCommand } from "./document-types.js";
 
 /** Versioned portable drawing. Lengths are points, with a top-left origin and downward y axis. */
 export interface PdfDrawing {
@@ -45,4 +45,5 @@ export interface PdfDrawingBlock {
   readonly alignment?: "left" | "center" | "right";
   readonly alternativeText?: string;
   readonly decorative?: boolean;
+  readonly caption?: PdfCaption;
 }

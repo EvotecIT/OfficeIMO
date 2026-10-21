@@ -18,7 +18,7 @@ internal static partial class PdfWriter {
                 featureSettings: run.FeatureSettings, textDirection: run.TextDirection,
                 horizontalTextScaling: run.HorizontalTextScaling, characterSpacing: run.CharacterSpacing,
                 contributesLineBoxDescent: run.ContributesLineBoxDescent,
-                preservesPaintedGlyphs: run.PreservesPaintedGlyphs);
+                preservesPaintedGlyphs: run.PreservesPaintedGlyphs, formField: run.FormField);
         }
         new RichRunKerning(options).Apply(segments);
         return segments;

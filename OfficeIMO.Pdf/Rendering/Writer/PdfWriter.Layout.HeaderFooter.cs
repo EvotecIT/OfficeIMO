@@ -40,6 +40,8 @@ internal static partial class PdfWriter {
             ClipHeight = targetHeight,
             SourceCrop = sourceCrop?.Clone(),
             RotationAngle = style.RotationAngle,
+            HorizontalFlip = style.HorizontalFlip,
+            VerticalFlip = style.VerticalFlip,
             RotationCenterX = targetX + targetWidth / 2D,
             RotationCenterY = targetBottomY + targetHeight / 2D,
             AlternativeText = style.AlternativeText

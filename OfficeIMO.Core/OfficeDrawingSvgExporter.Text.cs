@@ -21,7 +21,25 @@ public static partial class OfficeDrawingSvgExporter {
         string idPrefix, ref int clipPathId, bool textAsPaths) {
         using var metricScope = textMetrics.PushFontMetricScale(text.FontMetricScale);
         using var faceScope = textMetrics.PushTextFace(text.Font.Face);
-        if (TryAppendGlyphPaths(sb, text, textMetrics, textAsPaths)) return;
+        if (TryAppendGlyphPaths(sb, text, textMetrics, textAsPaths || text.GlyphTransform.HasValue)) return;
+        if (text.GlyphTransform is { } glyphTransform) {
+            if (text.OutlineStrokeColor.HasValue) throw new NotSupportedException(
+                "Stroked affine glyphs require a resolved single-font outline run for SVG export.");
+            // Filled text can retain the existing SVG font/fallback path when a
+            // color or unsupported outline run cannot be emitted as contours.
+            // A stroked run cannot use this post-paint transform: it would also
+            // change its destination pen, so that unsupported profile is explicit.
+            OfficeDrawingText local = text.Clone();
+            local.GlyphTransform = null;
+            if (text.HasFrameTransform) {
+                OfficeTransform frame = text.CreateFrameTransform().CreateDestinationTransform();
+                glyphTransform = frame.Invert().Then(glyphTransform).Then(frame);
+            }
+            sb.Append("<g").Append(BuildMatrixTransformAttribute(glyphTransform, 0D, 0D)).Append('>');
+            AppendTextCore(sb, local, textMetrics, idPrefix, ref clipPathId, textAsPaths);
+            sb.Append("</g>");
+            return;
+        }
         if (text.OutlineStrokeColor.HasValue) {
             var fragment = new StringBuilder(Math.Min(256, sb.MaxCapacity - sb.Length), sb.MaxCapacity - sb.Length);
             AppendTextContent(fragment, text, textMetrics, idPrefix, ref clipPathId);

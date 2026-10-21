@@ -142,16 +142,20 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_FluentImageCrop() {
             string filePath = Path.Combine(_directoryWithFiles, "FluentImageCrop.docx");
-            string imagePath = Path.Combine(_directoryWithImages, "Kulek.jpg");
 
             using (var document = WordDocument.Create(filePath)) {
                 document.AsFluent()
-                    .Image(i => i.Add(imagePath).Crop(1, 2, 3, 4))
+                    .Image(i => i.Add(CreatePhysicalCropTestImage(), "crop.png").Size(720, 480).Crop(.9525, .635, 1.905, 1.27))
                     .End();
-                Assert.Equal(1, document.Images[0].CropLeftCentimeters);
-                Assert.Equal(2, document.Images[0].CropTopCentimeters);
-                Assert.Equal(3, document.Images[0].CropRightCentimeters);
-                Assert.Equal(4, document.Images[0].CropBottomCentimeters);
+                using var input = new MemoryStream(document.ToBytes());
+                using var reopened = WordDocument.Load(input);
+                var image = Assert.Single(reopened.Images);
+                Assert.Equal(.9525, image.CropLeftCentimeters!.Value, 5);
+                Assert.Equal(.635, image.CropTopCentimeters!.Value, 5);
+                Assert.Equal(1.905, image.CropRightCentimeters!.Value, 5);
+                Assert.Equal(1.27, image.CropBottomCentimeters!.Value, 5);
+                Assert.Equal(504D, image.Width!.Value, 3);
+                Assert.Equal(336D, image.Height!.Value, 3);
             }
         }
 

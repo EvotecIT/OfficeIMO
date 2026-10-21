@@ -1,67 +1,98 @@
-import type { CellPresentation } from "../core/index.js";
 import { OfficeIMOError } from "../core/errors.js";
 import { ExportBudget } from "../core/limits.js";
 import { copyColumns } from "../internal/rows.js";
-import { tableSpans } from "../internal/table-spans.js";
-import type { TableSpanRows } from "../core/index.js";
-import type { PdfOptions, PdfMargins, PdfPageSize, PdfLimits } from "./types.js";
-
-export function positive(value: number, name: string, max = 14400): number {
-  if (!Number.isFinite(value) || value <= 0 || value > max) throw new RangeError(name + " must be positive and at most " + max + ".");
-  return value;
-}
-export function color(value: string): string {
-  if (typeof value !== "string" || !/^#?[0-9a-f]{6}$/i.test(value)) throw new TypeError("PDF colors must be six-digit RGB hex strings.");
-  const hex = value.replace(/^#/, "");
-  return [0, 2, 4].map(i => String(Math.round(parseInt(hex.slice(i, i + 2), 16) / 255 * 10000) / 10000)).join(" ");
-}
-export function presentation(value: CellPresentation = {}): Readonly<CellPresentation> {
-  if (!value || typeof value !== "object") throw new TypeError("PDF presentation must be an object.");
-  const snapshot = { ...value };
-  if (snapshot.background !== undefined) color(snapshot.background);
-  if (snapshot.color !== undefined) color(snapshot.color);
-  for (const key of ["bold", "italic", "wrapText"] as const) if (snapshot[key] !== undefined && typeof snapshot[key] !== "boolean") throw new TypeError("PDF presentation " + key + " must be boolean.");
-  if (snapshot.alignment !== undefined && !["left", "center", "right"].includes(snapshot.alignment)) throw new TypeError("PDF table alignment supports left, center and right.");
-  return Object.freeze(snapshot);
-}
+import { captureTableSpans } from "../internal/table-spans.js";
+import { copyExportValue } from "../internal/export-values.js";
+import { captureFields } from "../internal/capture.js";
+import type { PdfOptions, PdfMargins, PdfPageSize, PdfLimits, PdfTableFooter } from "./types.js";
+import type { PdfDocumentOptions, PdfParagraphStyle } from "./document-types.js";
+import { captureParagraphStyles } from "./paragraph-styles.js";
+import { captureBooleanText } from "../core/value-text.js";
+import { positive, color, presentation } from "./presentation-settings.js";
+export { positive, color, presentation } from "./presentation-settings.js";
 const sizes: Readonly<Record<string, PdfPageSize>> = {
   A3: { width: 841.89, height: 1190.551 }, A4: { width: 595.276, height: 841.89 }, A5: { width: 419.528, height: 595.276 },
   LETTER: { width: 612, height: 792 }, LEGAL: { width: 612, height: 1008 }, TABLOID: { width: 792, height: 1224 }
 };
+/** @internal Shared capture schema for thin format adapters and the grouped writer. */
+export const pdfOptionFields = ["columns", "signal", "onProgress", "limits", "textShaper", "textDirection", "pageSize", "orientation", "margins", "fonts", "tagged", "fontSize",
+  "title", "messageTop", "messageBottom", "includeHeader", "headerRows", "footer", "headerPresentation", "footerPresentation", "alternateRowColor", "padding",
+  "columnWidths", "wideTable", "pageHeader", "pageFooter", "pageNumbers", "pageNumberLabels", "booleanText", "formatValue", "formatRuns", "compression", "paragraphStyles"] as const;
+/** @internal Complete PDF limit schema used when a host combines format and shared limits. */
+export const pdfLimitFields = ["maxRows", "maxCells", "maxTextCharacters", "maxOutputBytes", "maxPages", "maxColumns", "maxCellCharacters", "maxTextRuns", "maxGroupBlocks", "maxRowLines",
+  "maxFontBytes", "maxPageBytes", "maxHyperlinks", "maxImageBytes", "maxImagePixels", "maxImageWorkingBytes", "maxVectorCommands", "maxDrawingElements", "maxStructureElements",
+  "maxMarkedContentReferences", "maxSections", "maxBookmarks", "maxListItems", "maxParagraphStyles"] as const;
+
+/** @internal Capture supported structural properties once, including class-based options with prototype accessors. */
+export function capturePdfOptions<T extends object>(input: T): T {
+  if (!input || typeof input !== "object" || Array.isArray(input)) throw new TypeError("PDF options must be an object.");
+  return captureFields(input, pdfOptionFields as unknown as readonly (keyof T)[]);
+}
+/** @internal Capture the complete PDF budget before an adapter adds its shared row/output limits. */
+export function capturePdfLimits(input: PdfLimits): Readonly<PdfLimits> {
+  if (!input || typeof input !== "object" || Array.isArray(input)) throw new TypeError("PDF limits must be an object.");
+  const captured = captureFields(input, pdfLimitFields);
+  for (const [key, value] of Object.entries(captured))
+    if (value !== undefined && (!Number.isSafeInteger(value) || value < 0)) throw new RangeError(key + " must be a nonnegative safe integer.");
+  return Object.freeze(captured);
+}
+function captureFooter(input: PdfTableFooter, columns: number): Readonly<PdfTableFooter> {
+  if (!input || typeof input !== "object" || Array.isArray(input)) throw new TypeError("PDF footer must be an object.");
+  const { values, totals, rows } = input;
+  if (values !== undefined && !Array.isArray(values)) throw new TypeError("PDF footer values must be an array.");
+  return Object.freeze({ ...(values === undefined ? {} : { values: Object.freeze(values.map(copyExportValue)) }),
+    ...(totals === undefined ? {} : { totals: Object.freeze({ ...totals }) }),
+    ...(rows === undefined ? {} : { rows: captureTableSpans(rows, columns) }) });
+}
 export interface PdfSettings {
-  readonly options: PdfOptions;
+  readonly options: PdfOptions & Pick<PdfDocumentOptions, "paragraphStyles">;
+  readonly paragraphStyles: Readonly<Record<string, Readonly<PdfParagraphStyle>>>;
   readonly page: PdfPageSize;
   readonly margins: PdfMargins;
   readonly fontSize: number;
   readonly padding: number;
-  readonly limits: Required<Pick<PdfLimits, "maxPages" | "maxColumns" | "maxCellCharacters" | "maxRowLines" | "maxFontBytes" | "maxPageBytes" | "maxHyperlinks" | "maxImageBytes" | "maxImagePixels" | "maxVectorCommands" | "maxDrawingElements" | "maxStructureElements" | "maxMarkedContentReferences">>;
+  readonly limits: Required<Pick<PdfLimits, "maxPages" | "maxColumns" | "maxCellCharacters" | "maxTextRuns" | "maxGroupBlocks" | "maxRowLines" | "maxFontBytes" | "maxPageBytes" | "maxHyperlinks" | "maxImageBytes" | "maxImagePixels" | "maxVectorCommands" | "maxDrawingElements" | "maxStructureElements" | "maxMarkedContentReferences" | "maxListItems" | "maxParagraphStyles" | "maxSections" | "maxBookmarks">> & Pick<PdfLimits, "maxImageWorkingBytes">;
   readonly budget: ExportBudget;
 }
-export function settings(configuration: PdfOptions, document = false): PdfSettings {
-  const columns = copyColumns(configuration?.columns).map(c => Object.freeze(c));
-  if (!columns.length && !document) throw new TypeError("PDF tables need at least one declared column.");
-  function copySpans(rows: TableSpanRows): TableSpanRows {
-    tableSpans(rows, columns.length);
-    return Object.freeze(rows.map(row => Object.freeze(row.map(cell => cell ? Object.freeze({ ...cell }) : null))));
+export function settings(input: PdfOptions & Pick<PdfDocumentOptions, "paragraphStyles">, document = false): PdfSettings {
+  const configuration = { ...capturePdfOptions(input) };
+  configuration.booleanText = captureBooleanText(configuration.booleanText);
+  if (configuration.limits !== undefined) configuration.limits = capturePdfLimits(configuration.limits);
+  if (configuration.pageSize && typeof configuration.pageSize === "object") configuration.pageSize = Object.freeze(captureFields(configuration.pageSize, ["width", "height"]));
+  if (configuration.margins && typeof configuration.margins === "object") configuration.margins = Object.freeze(captureFields(configuration.margins, ["top", "right", "bottom", "left"]));
+  if (configuration.pageNumberLabels !== undefined) {
+    const labels = configuration.pageNumberLabels;
+    if (!labels || typeof labels !== "object" || Array.isArray(labels)) throw new TypeError("pageNumberLabels must provide literal text.");
+    const { prefix = "Page ", separator = " of ", suffix = "" } = labels;
+    if ([prefix, separator, suffix].some(value => typeof value !== "string")) throw new TypeError("Page-number labels must be text.");
+    configuration.pageNumberLabels = Object.freeze({ prefix, separator, suffix });
   }
-  const options: PdfOptions = { ...configuration, columns,
-    ...(configuration.tagged ? { tagged: Object.freeze({ ...configuration.tagged }) } : {}),
-    ...(configuration.headerRows ? { headerRows: copySpans(configuration.headerRows) } : {}),
-    ...(configuration.fonts ? { fonts: Object.freeze({ ...configuration.fonts }) } : {}),
+  const textShaper = configuration.textShaper, shapeLine = textShaper?.shapeLine;
+  if (textShaper !== undefined && (!textShaper || typeof shapeLine !== "function")) throw new TypeError("textShaper must provide shapeLine.");
+  if (configuration.textDirection !== undefined && !["auto", "ltr", "rtl"].includes(configuration.textDirection))
+    throw new TypeError("textDirection must be auto, ltr or rtl.");
+  const columns = document ? [] : copyColumns(configuration.columns).map(c => Object.freeze(c));
+  if (document) configuration.includeHeader = false;
+  if (!columns.length && !document) throw new TypeError("PDF tables need at least one declared column.");
+  const capturedFonts = configuration.fonts === undefined ? undefined : captureFields(configuration.fonts, ["regular", "bold", "italic", "boldItalic"]);
+  const options: PdfOptions & Pick<PdfDocumentOptions, "paragraphStyles"> = { ...configuration, columns,
+    ...(textShaper ? { textShaper: Object.freeze({ shapeLine: shapeLine!.bind(textShaper) }) } : {}),
+    ...(configuration.tagged ? { tagged: Object.freeze(captureFields(configuration.tagged, ["language"])) } : {}),
+    ...(configuration.headerRows ? { headerRows: captureTableSpans(configuration.headerRows, columns.length) } : {}),
+    ...(capturedFonts ? { fonts: Object.freeze(capturedFonts) } : {}),
     ...(configuration.columnWidths ? { columnWidths: Object.freeze([...configuration.columnWidths]) } : {}),
-    ...(configuration.footer ? { footer: Object.freeze({ ...configuration.footer,
-      ...(configuration.footer.rows ? { rows: copySpans(configuration.footer.rows) } : {}),
-      ...(configuration.footer.values ? { values: Object.freeze([...configuration.footer.values]) } : {}),
-      ...(configuration.footer.totals ? { totals: Object.freeze({ ...configuration.footer.totals }) } : {}) }) } : {}),
-    headerPresentation: presentation({ background: "e7edf5", bold: true, ...configuration.headerPresentation }),
-    footerPresentation: presentation({ background: "eef2f6", bold: true, ...configuration.footerPresentation }) };
+    ...(configuration.footer === undefined ? {} : { footer: captureFooter(configuration.footer, columns.length) }),
+    headerPresentation: Object.freeze({ background: "e7edf5", bold: true, ...presentation(configuration.headerPresentation) }),
+    footerPresentation: Object.freeze({ background: "eef2f6", bold: true, ...presentation(configuration.footerPresentation) }) };
   const budget = new ExportBudget(options.limits);
-  const limits = { maxPages: 10000, maxColumns: 1024, maxCellCharacters: 1000000, maxRowLines: 100000, maxFontBytes: 16 * 1024 * 1024, maxPageBytes: 8 * 1024 * 1024, maxHyperlinks: 100000,
+  const limits = { maxPages: 10000, maxColumns: 1024, maxCellCharacters: 1000000, maxTextRuns: 10000, maxGroupBlocks: 256, maxRowLines: 100000, maxFontBytes: 16 * 1024 * 1024, maxPageBytes: 8 * 1024 * 1024, maxHyperlinks: 100000,
     maxImageBytes: 32 * 1024 * 1024, maxImagePixels: 16 * 1024 * 1024, maxVectorCommands: 100000, maxDrawingElements: 100000,
-    maxStructureElements: 1000000, maxMarkedContentReferences: 2000000 };
+    maxStructureElements: 1000000, maxMarkedContentReferences: 2000000,
+    maxListItems: 100000, maxParagraphStyles: 256, maxSections: 1000, maxBookmarks: 10000 };
   for (const key of Object.keys(limits) as (keyof typeof limits)[]) {
     const override = options.limits?.[key]; if (override !== undefined) limits[key] = override;
   }
+  const paragraphStyles = captureParagraphStyles(options.paragraphStyles, limits.maxParagraphStyles);
   if (columns.length > limits.maxColumns) throw new OfficeIMOError("RESOURCE_LIMIT", "maxColumns exceeded.");
   const size = typeof options.pageSize === "string" || options.pageSize === undefined ? sizes[options.pageSize ?? "A4"] : options.pageSize;
   if (!size) throw new TypeError("Unsupported PDF page size.");
@@ -76,7 +107,8 @@ export function settings(configuration: PdfOptions, document = false): PdfSettin
   if (options.wideTable !== undefined && !["fit", "reject"].includes(options.wideTable)) throw new TypeError("wideTable must be fit or reject.");
   for (const key of ["title", "messageTop", "messageBottom"] as const) if (options[key] !== undefined && typeof options[key] !== "string") throw new TypeError(key + " must be text.");
   for (const key of ["pageHeader", "pageFooter"] as const) if (options[key] !== undefined && typeof options[key] !== "string" && typeof options[key] !== "function") throw new TypeError(key + " must be text or a synchronous callback.");
-  if (options.formatValue !== undefined && typeof options.formatValue !== "function") throw new TypeError("formatValue must be a synchronous function.");
+  for (const key of ["formatValue", "formatRuns"] as const)
+    if (options[key] !== undefined && typeof options[key] !== "function") throw new TypeError(key + " must be a synchronous function.");
   for (const key of ["compression", "includeHeader", "pageNumbers"] as const) if (options[key] !== undefined && typeof options[key] !== "boolean") throw new TypeError(key + " must be boolean.");
   if (options.alternateRowColor !== undefined) color(options.alternateRowColor);
   if (options.footer?.values && options.footer.values.length > columns.length) throw new RangeError("Footer has more values than declared columns.");
@@ -90,5 +122,7 @@ export function settings(configuration: PdfOptions, document = false): PdfSettin
     if (options.headerRows || columns.some(column => column.groups?.length) || options.footer?.rows)
       throw new TypeError("Tagged PDF supports leaf column headings and ordinary footer cells; grouped headings and span matrices are unsupported.");
   }
-  return { options, page, margins, fontSize, padding, limits, budget };
+  const maxImageWorkingBytes = options.limits?.maxImageWorkingBytes;
+  return { options: { ...options, paragraphStyles }, paragraphStyles, page, margins, fontSize, padding,
+    limits: { ...limits, ...(maxImageWorkingBytes === undefined ? {} : { maxImageWorkingBytes }) }, budget };
 }

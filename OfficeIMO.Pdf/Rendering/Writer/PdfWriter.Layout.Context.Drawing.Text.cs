@@ -11,6 +11,8 @@ internal static partial class PdfWriter {
     private sealed partial class LayoutContext {
         private void DrawDrawingTextAt(OfficeDrawingText text, double originX, double originTopY, OfficeDrawingTextMetrics textMetrics) {
             if (string.IsNullOrEmpty(text.Text)) return;
+            if (text.GlyphTransform.HasValue) throw new NotSupportedException(
+                "PDF drawing export does not support affine positioned glyphs; render the drawing to an image or SVG instead.");
             if (text.PreparedShaping is OfficePreparedTextShaping prepared) {
                 DrawPreparedDrawingTextAt(text, prepared, originX, originTopY);
                 return;

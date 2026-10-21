@@ -70,6 +70,12 @@ public static partial class OfficeDrawingRasterRenderer {
     private static void RenderPositionedTextLines(OfficeRasterCanvas canvas, OfficeDrawingText text, double scale,
         double x, double y, double width, double height) {
         using var preparedScope = canvas.PushPreparedShaping(text.PreparedShaping);
+        OfficeTransform? glyph = text.GlyphTransform;
+        if (glyph.HasValue && text.HasFrameTransform) glyph = glyph.Value.Then(text.CreateFrameTransform().CreateDestinationTransform());
+        using IDisposable? glyphScope = glyph.HasValue
+            ? canvas.PushPositionedGlyphTransform(OfficeTransform.Scale(1D / scale, 1D / scale).Then(glyph.Value)
+                .Then(OfficeTransform.Scale(scale, scale)))
+            : null;
         IReadOnlyList<double>? dash = text.OutlineStrokeDashPattern;
         if (dash != null && scale != 1D) {
             var scaled = new double[dash.Count];
@@ -232,6 +238,12 @@ public static partial class OfficeDrawingRasterRenderer {
                     }
                 }
             }
+        }
+
+        if (text.GlyphTransform.HasValue && !text.WrapText && !text.ShrinkToFit && !text.StackedText &&
+            !text.HasPadding && text.VerticalAlignment == OfficeTextVerticalAlignment.Top) {
+            RenderPositionedTextLines(canvas, text, scale, contentX, contentY, contentWidth, contentHeight);
+            return;
         }
 
         if (text.HasFrameTransform && text.TextAdvanceWidth.HasValue && !text.WrapText && !text.ShrinkToFit &&

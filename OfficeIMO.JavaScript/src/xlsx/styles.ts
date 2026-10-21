@@ -154,6 +154,10 @@ export class StyleRegistry {
       ...(typeof overlay.border === "object" ? { border: { ...this.borders[source.border], ...overlay.border } } : {})
     });
   }
+  /** @internal Typed headings retain header appearance and the column's date number format. */
+  dateHeader(base: number, dateStyle: number): number {
+    return this.compose(base, { numberFormat: this.styles[this.validateStyle(dateStyle)]!.numberFormat });
+  }
   /** @internal Column shorthand and header style composition. */
   forColumn(column: XlsxColumn, header = false, fill?: string, date = false): number {
     const base = !header && column.style !== undefined ? this.styles[this.validateStyle(column.style)] : undefined;

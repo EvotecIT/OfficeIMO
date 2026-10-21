@@ -100,6 +100,59 @@ public sealed class WordPdfKerningTests {
         Assert.Equal(5D, ligature.Width, 3);
     }
 
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void CompatibleCellRunMergingRetainsExplicitOpenTypeFeatures(bool ligatures) {
+        Letter[] reference = RenderCompatibleCellRuns(split: false, ligatures);
+        Letter[] split = RenderCompatibleCellRuns(split: true, ligatures);
+        if (ligatures) {
+            Letter referenceLigature = Assert.Single(reference);
+            Assert.Equal("fi", referenceLigature.Value);
+            Assert.Equal(5D, referenceLigature.Width, 3);
+        } else {
+            AssertAdvance(reference, 4.6D);
+        }
+
+        Assert.Equal(reference.Length, split.Length);
+        for (int index = 0; index < reference.Length; index++) {
+            Assert.Equal(reference[index].Value, split[index].Value);
+            Assert.Equal(reference[index].StartBaseLine.X, split[index].StartBaseLine.X, 3);
+            Assert.Equal(reference[index].StartBaseLine.Y, split[index].StartBaseLine.Y, 3);
+            Assert.Equal(reference[index].Width, split[index].Width, 3);
+        }
+    }
+
+    private static Letter[] RenderCompatibleCellRuns(bool split, bool ligatures) {
+        using WordDocument source = WordDocument.Create();
+        WordTable table = source.AddTable(1, 1);
+        table._tableProperties!.TableStyle = null;
+        WordParagraph paragraph = table.Rows[0].Cells[0].Paragraphs[0];
+        paragraph._paragraph.RemoveAllChildren<Run>();
+        string text = ligatures ? "fi" : "AV";
+        var properties = new RunProperties(new RunFonts {
+            Ascii = ManagedTextShapingTestAssets.FamilyName, HighAnsi = ManagedTextShapingTestAssets.FamilyName
+        }, new Kern { Val = 2U }, new FontSize { Val = "20" });
+        properties.Append(new DocumentFormat.OpenXml.Office2010.Word.Ligatures {
+            Val = DocumentFormat.OpenXml.Office2010.Word.LigaturesValues.Standard
+        });
+        foreach (string fragment in split ? text.Select(character => character.ToString()) : new[] { text })
+            paragraph._paragraph.Append(new Run(properties.CloneNode(true), new Text(fragment)));
+        source._wordprocessingDocument.MainDocumentPart!.DocumentSettingsPart!.Settings!
+            .GetFirstChild<Compatibility>()!.Append(new CompatibilitySetting {
+                Name = new DocumentFormat.OpenXml.EnumValue<CompatSettingNameValues> { InnerText = "enableOpenTypeFeatures" },
+                Uri = "http://schemas.microsoft.com/office/word", Val = "1"
+            });
+        using WordDocument document = WordDocument.Load(new MemoryStream(source.ToBytes()));
+        Assert.Empty(document.ValidateDocument());
+        PdfOptions options = FontOptions(ligatures
+            ? ManagedTextShapingTestAssets.CreateFontWithLigature('f', 'i', scriptTag: "latn")
+            : ManagedTextShapingTestAssets.CreateFontWithPairPositioning('A', 'V'));
+        options.UseManagedTextShaping();
+        using var pdf = PdfPigDocument.Open(document.ToPdfBytes(ConversionOptions(options)));
+        return Assert.Single(pdf.GetPages()).Letters.ToArray();
+    }
+
     private static void AssertAdvance(Letter[] letters, double expected) {
         Assert.Equal("AV", string.Concat(letters.Select(letter => letter.Value)));
         Assert.Equal(letters[0].StartBaseLine.Y, letters[1].StartBaseLine.Y, 3);

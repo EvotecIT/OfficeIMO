@@ -51,8 +51,9 @@ public sealed partial class OfficeRasterCanvas {
             return;
         }
         if (!stroke.FillSuppressed) FillTextContours(contours, fill, emboldenOffset);
-        var outlines = new List<OfficeFlattenedPathContour>(contours.Count);
-        foreach (List<OfficePoint> contour in contours) if (contour.Count >= 2) outlines.Add(new OfficeFlattenedPathContour(contour, true));
+        var painted = TransformPositionedGlyphContours(contours);
+        var outlines = new List<OfficeFlattenedPathContour>(painted.Count);
+        foreach (List<OfficePoint> contour in painted) if (contour.Count >= 2) outlines.Add(new OfficeFlattenedPathContour(contour, true));
         if (outlines.Count == 0) return;
         OfficeColor strokeColor = stroke.Color;
         StrokeContours(outlines, stroke.Width > 0D ? stroke.Width : 1E-9D, OfficeStrokeLineCap.Butt, OfficeStrokeLineJoin.Miter, 10D,

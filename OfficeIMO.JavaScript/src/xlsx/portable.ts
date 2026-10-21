@@ -2,6 +2,8 @@ import { ExportCell, assertScalar } from "../core/presentation.js";
 import type { ExportValue } from "../core/presentation.js";
 import type { CellStyle, Font, Fill, Border } from "./styles.js";
 import type { WorkbookOptions, SheetOptions, CellWriterContext, RowStyleContext, CellStyleContext, ReportTitle, FooterOptions } from "./types.js";
+import { captureWorkbookOptions, sheetOptionFields } from "./options.js";
+import { captureFields } from "../internal/capture.js";
 
 /** Style definitions that do not refer to a workbook's component indexes. */
 export interface PortableCellStyle extends Omit<CellStyle, "font" | "fill" | "border" | "numberFormat"> {
@@ -30,6 +32,7 @@ function value<T extends ExportValue>(result: T): T {
 }
 /** @internal Qualify the portable boundary before source/destination activity. */
 export function portableSheet(options: PortableSheetOptions = {}): PortableSheetOptions {
+  options = captureFields(options, sheetOptionFields as readonly (keyof PortableSheetOptions)[]);
   if ((options as { headerStyle?: unknown }).headerStyle !== undefined)
     throw new TypeError("Workbook-local header styles require the advanced Workbook API; use boldHeader and headerFill.");
   style(options.alternatingRowStyle); style(options.title?.style); style(options.footer?.style);
@@ -41,6 +44,7 @@ export function portableSheet(options: PortableSheetOptions = {}): PortableSheet
 }
 /** @internal Keep custom writers inside the same portable value contract. */
 export function portableWorkbook(options: PortableWorkbookOptions = {}): PortableWorkbookOptions {
+  options = captureWorkbookOptions(options);
   const writers = options.cellValueWriters;
   if (!writers) return options;
   const wrapped: Record<string, (value: import("../core/index.js").CellValue, context: CellWriterContext) => ExportValue> = Object.create(null);

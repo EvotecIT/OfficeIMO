@@ -57,6 +57,15 @@ foreach ($converter in @($scenarioManifest.converterCatalog)) {
     }
 }
 $supportLines.Add('')
+$contractGuides = @($scenarioManifest.converterCatalog | Where-Object { $null -ne $_.contractGuide })
+if ($contractGuides.Count -gt 0) {
+    $supportLines.Add('## Detailed Conversion Contracts')
+    $supportLines.Add('')
+    foreach ($converter in $contractGuides) {
+        $supportLines.Add("- [$($converter.contractGuide.title)]($($converter.contractGuide.path))")
+    }
+    $supportLines.Add('')
+}
 $supportLines.Add('## Current Direct And Composed Routes')
 $supportLines.Add('')
 $supportLines.Add('| Route | Formats | Status | Implementation owner | Contract evidence | Diagnostic contract |')

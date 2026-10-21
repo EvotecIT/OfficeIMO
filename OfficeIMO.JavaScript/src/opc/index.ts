@@ -13,6 +13,7 @@ import { OfficeIMOError } from "../core/errors.js";
 import { escapeXml, xmlDeclaration } from "../xml/index.js";
 import type { InvalidCharacterPolicy } from "../xml/index.js";
 import { checkAbort, pause, taskYieldDue } from "../core/iteration.js";
+import { captureFields } from "../internal/capture.js";
 
 export const relationshipsNamespace = "http://schemas.openxmlformats.org/package/2006/relationships";
 export const officeRelationshipsNamespace = "http://schemas.openxmlformats.org/officeDocument/2006/relationships";
@@ -74,7 +75,11 @@ export class OpcPackage {
   private state = "open";
   private result: Promise<number> | undefined;
   private readonly zip: ZipWriter;
-  constructor(private readonly options: OpcPackageOptions = {}) { this.zip = new ZipWriter(options.sink, options); }
+  private readonly options: Readonly<OpcPackageOptions>;
+  constructor(options: OpcPackageOptions = {}) {
+    this.options = Object.freeze(captureFields(options, ["compression", "signal", "maxOutputBytes", "invalidCharacterPolicy", "sink"]));
+    this.zip = new ZipWriter(this.options.sink, this.options);
+  }
   private open(): void { if (this.state !== "open") throw new OfficeIMOError("INVALID_STATE", "OPC package is finalized."); }
   private reserve(uri: string, type: string): string {
     this.open(); uri = partUri(uri);

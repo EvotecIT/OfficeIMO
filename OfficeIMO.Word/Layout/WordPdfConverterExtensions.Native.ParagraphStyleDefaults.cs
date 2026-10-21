@@ -34,6 +34,7 @@ namespace OfficeIMO.Word.Pdf {
             bool? ContextualSpacing,
             string? ShadingFillColorHex,
             NativeParagraphBorders Borders) {
+            public bool? SmallCaps { get; init; }
             public NativeLatinFontFamilies FontFamilies { get; init; }
             public NativeComplexScriptDefaults ComplexScript { get; init; }
             public NativeTextSpacing TextSpacing { get; init; }
@@ -69,6 +70,7 @@ namespace OfficeIMO.Word.Pdf {
             W.VerticalPositionValues? Baseline,
             string? ColorHex,
             W.HighlightColorValues? Highlight) {
+            public bool? SmallCaps { get; init; }
             public NativeLatinFontFamilies FontFamilies { get; init; }
             public NativeComplexScriptDefaults ComplexScript { get; init; }
             public NativeTextSpacing TextSpacing { get; init; }
@@ -99,6 +101,7 @@ namespace OfficeIMO.Word.Pdf {
             OfficeTextDecorationStyle? strikeStyle = null;
             bool? hidden = null;
             bool? allCaps = null;
+            bool? smallCaps = null;
             W.VerticalPositionValues? baseline = null;
             string? colorHex = null;
             W.HighlightColorValues? highlight = null;
@@ -133,7 +136,8 @@ namespace OfficeIMO.Word.Pdf {
                 underlineStyle = MapNativeUnderlineStyle(runProperties?.GetFirstChild<W.Underline>()) ?? underlineStyle;
                 strikeStyle = MapNativeStrikeStyle(runProperties) ?? strikeStyle;
                 hidden = ReadNativeOnOff(runProperties?.GetFirstChild<W.Vanish>()) ?? hidden;
-                allCaps = ReadNativeOnOff(runProperties?.GetFirstChild<W.Caps>()) ?? ReadNativeOnOff(runProperties?.GetFirstChild<W.SmallCaps>()) ?? allCaps;
+                allCaps = ReadNativeOnOff(runProperties?.GetFirstChild<W.Caps>()) ?? allCaps;
+                smallCaps = ReadNativeOnOff(runProperties?.GetFirstChild<W.SmallCaps>()) ?? smallCaps;
                 baseline = runProperties?.GetFirstChild<W.VerticalTextAlignment>()?.Val?.Value ?? baseline;
                 colorHex = runProperties?.GetFirstChild<W.Color>()?.Val?.Value ?? colorHex;
                 highlight = runProperties?.GetFirstChild<W.Highlight>()?.Val?.Value ?? highlight;
@@ -215,7 +219,7 @@ namespace OfficeIMO.Word.Pdf {
                 widowControl,
                 contextualSpacing,
                 shadingFillColorHex,
-                borders) { FontFamilies = fontFamilies, ComplexScript = complexScript, TextSpacing = textSpacing, LineSpacing = authoredLineSpacing, ParagraphSpacing = paragraphSpacing };
+                borders) { SmallCaps = smallCaps, FontFamilies = fontFamilies, ComplexScript = complexScript, TextSpacing = textSpacing, LineSpacing = authoredLineSpacing, ParagraphSpacing = paragraphSpacing };
             if (cache != null && !string.IsNullOrWhiteSpace(resolvedStyleId)) {
                 cache.ParagraphDefaults[resolvedStyleId!] = result;
             }
@@ -272,6 +276,7 @@ namespace OfficeIMO.Word.Pdf {
             OfficeTextDecorationStyle? strikeStyle = null;
             bool? hidden = null;
             bool? allCaps = null;
+            bool? smallCaps = null;
             W.VerticalPositionValues? baseline = null;
             string? colorHex = null;
             W.HighlightColorValues? highlight = null;
@@ -288,7 +293,8 @@ namespace OfficeIMO.Word.Pdf {
                 underlineStyle = MapNativeUnderlineStyle(styleRunProperties?.GetFirstChild<W.Underline>()) ?? underlineStyle;
                 strikeStyle = MapNativeStrikeStyle(styleRunProperties) ?? strikeStyle;
                 hidden = ReadNativeOnOff(styleRunProperties?.GetFirstChild<W.Vanish>()) ?? hidden;
-                allCaps = ReadNativeOnOff(styleRunProperties?.GetFirstChild<W.Caps>()) ?? ReadNativeOnOff(styleRunProperties?.GetFirstChild<W.SmallCaps>()) ?? allCaps;
+                allCaps = ReadNativeOnOff(styleRunProperties?.GetFirstChild<W.Caps>()) ?? allCaps;
+                smallCaps = ReadNativeOnOff(styleRunProperties?.GetFirstChild<W.SmallCaps>()) ?? smallCaps;
                 baseline = styleRunProperties?.GetFirstChild<W.VerticalTextAlignment>()?.Val?.Value ?? baseline;
                 colorHex = styleRunProperties?.GetFirstChild<W.Color>()?.Val?.Value ?? colorHex;
                 highlight = styleRunProperties?.GetFirstChild<W.Highlight>()?.Val?.Value ?? highlight;
@@ -305,7 +311,7 @@ namespace OfficeIMO.Word.Pdf {
                 allCaps,
                 baseline,
                 colorHex,
-                highlight) { FontFamilies = fontFamilies, ComplexScript = complexScript, TextSpacing = textSpacing };
+                highlight) { SmallCaps = smallCaps, FontFamilies = fontFamilies, ComplexScript = complexScript, TextSpacing = textSpacing };
             if (cache != null && !string.IsNullOrWhiteSpace(styleId)) {
                 cache.CharacterDefaults[styleId!] = result;
             }

@@ -2,7 +2,8 @@ namespace OfficeIMO.Pdf;
 
 internal static partial class PdfWriter {
     private static double ResolveRichRunLineAlignmentRise(RichSeg segment, PdfOptions? options, PdfLineSpacing? spacing) {
-        if (spacing == null || spacing.FontAlignment == PdfFontLineAlignment.Baseline || segment.InlineElement != null) return 0D;
+        if (spacing == null || spacing.FontAlignment == PdfFontLineAlignment.Baseline ||
+            segment.InlineElement != null && segment.InlineElement is not PdfInlineFormWidget { SourceRun: not null }) return 0D;
         return ResolveFontLineAlignmentRise(segment.Font, segment.NamedFont,
             EffectiveRichFontSize(segment.FontSize, segment.Baseline), options, spacing);
     }

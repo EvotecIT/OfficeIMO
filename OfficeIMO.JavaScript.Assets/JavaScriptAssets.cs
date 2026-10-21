@@ -27,6 +27,12 @@ public static class JavaScriptAssets {
     /// <summary>The standalone PDF document ES module.</summary>
     public static JavaScriptAsset PdfModule { get; } = new JavaScriptAsset("officeimo-pdf.mjs");
 
+    /// <summary>Optional bounded worker transport; the host owns worker creation and the export operation.</summary>
+    public static JavaScriptAsset ExecutionScript { get; } = new JavaScriptAsset("officeimo-execution.js");
+
+    /// <summary>Standalone bounded worker transport ES module.</summary>
+    public static JavaScriptAsset ExecutionModule { get; } = new JavaScriptAsset("officeimo-execution.mjs");
+
     /// <summary>The optional DataTables Excel/CSV/PDF integration, including its document writers.</summary>
     public static JavaScriptAsset DataTablesScript { get; } = new JavaScriptAsset("officeimo-datatables.js");
 

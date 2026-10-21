@@ -21,6 +21,7 @@ public sealed partial class OfficeRasterCanvas {
         double top = y + ResolveStrokeTextTop(size, height, baselineFontSize);
         double horizontalScale = advance / measured;
         var transform = new OfficeTransform(horizontalScale, 0D, 0D, 1D, textX * (1D - horizontalScale), 0D);
+        if (_positionedGlyphTransform.HasValue) transform = transform.Then(_positionedGlyphTransform.Value);
         DrawAffineStrokeText(value, textX, top + size / 2D, size, color,
             (style & OfficeFontStyle.Bold) != 0, (style & OfficeFontStyle.Italic) != 0,
             OfficeTextAlignment.Left, transform);

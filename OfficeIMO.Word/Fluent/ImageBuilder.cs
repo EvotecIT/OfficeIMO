@@ -109,18 +109,16 @@ namespace OfficeIMO.Word.Fluent {
         }
 
         /// <summary>
-        /// Crops the image by the specified amounts in centimeters.
+        /// Sets all four crop edges in centimeters of the original image, before displayed scaling.
         /// </summary>
-        /// <param name="left">Amount to crop from the left.</param>
-        /// <param name="top">Amount to crop from the top.</param>
-        /// <param name="right">Amount to crop from the right.</param>
-        /// <param name="bottom">Amount to crop from the bottom.</param>
+        /// <param name="left">Left crop in original-image centimeters; negative values add an empty margin.</param>
+        /// <param name="top">Top crop in original-image centimeters; negative values add an empty margin.</param>
+        /// <param name="right">Right crop in original-image centimeters; negative values add an empty margin.</param>
+        /// <param name="bottom">Bottom crop in original-image centimeters; negative values add an empty margin.</param>
+        /// <remarks>Uses the embedded image's dimensions and DPI. Preserves its displayed scale while resizing the retained frame. Both axes are validated before the crop is applied.</remarks>
         public ImageBuilder Crop(double left, double top, double right, double bottom) {
             if (_image != null) {
-                _image.CropLeftCentimeters = left;
-                _image.CropTopCentimeters = top;
-                _image.CropRightCentimeters = right;
-                _image.CropBottomCentimeters = bottom;
+                _image.SetCropCentimeters(left, top, right, bottom);
             }
             return this;
         }

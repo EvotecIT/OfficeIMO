@@ -1,4 +1,4 @@
-import type { ColumnSettings, CellValue, StreamOptions } from "../core/index.js";
+import type { ColumnSettings, CellValue, StreamOptions, TableSpanRows } from "../core/index.js";
 import type { ProjectedColumn } from "../internal/columns.js";
 import type { ExportLimits } from "../core/limits.js";
 import type { InvalidCharacterPolicy } from "../xml/index.js";
@@ -10,18 +10,28 @@ import type { CellStyle } from "./styles.js";
 import type { Hyperlink } from "./attachments.js";
 import type { ExportValue } from "../core/presentation.js";
 import type { ConditionalFormat } from "./conditional-types.js";
+import type { FormulaCell } from "./formula.js";
+import type { ListValidation } from "./validation-types.js";
 
-export type XlsxRow = readonly (ExportValue | Cell)[] | Readonly<Record<string, ExportValue | Cell>>;
+export type XlsxRow = readonly (ExportValue | Cell | FormulaCell)[] | Readonly<Record<string, ExportValue | Cell | FormulaCell>>;
 export type XlsxRows = Iterable<XlsxRow> | AsyncIterable<XlsxRow>;
 /** Advanced worksheet column with an optional style registered on its owning workbook. */
 interface XlsxColumnSettings extends ColumnSettings { readonly style?: number; }
-export type XlsxColumn<T = never> = ProjectedColumn<T, ExportValue | Cell> & XlsxColumnSettings;
+export type XlsxColumn<T = never> = ProjectedColumn<T, ExportValue | Cell | FormulaCell> & XlsxColumnSettings;
 export interface CellWriterContext { readonly column: XlsxColumn; readonly rowIndex: number; readonly worksheetRow: number; readonly columnIndex: number; readonly sheetName: string; }
 /** Convert domain column values to plain values or styled Cells; raw XML is never accepted. */
-export type CellValueWriter = (value: CellValue, context: CellWriterContext) => ExportValue | Cell;
+export type CellValueWriter = (value: CellValue, context: CellWriterContext) => ExportValue | Cell | FormulaCell;
 /** Data indexes are zero-based. worksheetRow is the explicit one-based Excel coordinate. */
 export interface RowStyleContext { readonly rowIndex: number; readonly worksheetRow: number; readonly values: readonly CellValue[]; readonly sheetName: string; }
 export interface CellStyleContext extends RowStyleContext { readonly value: CellValue; readonly column: XlsxColumn; readonly columnIndex: number; }
+/** Native Excel outline metadata for a serialized worksheet data row. */
+export interface RowOutline {
+  /** Zero is a summary row; Excel supports at most seven nested detail levels. */
+  readonly level?: number;
+  readonly hidden?: boolean;
+  /** Marks a summary row whose preceding detail rows are initially hidden. */
+  readonly collapsed?: boolean;
+}
 /** A real Excel table over this worksheet's header and data rows. Empty exports retain headers without a table part. */
 export interface TableOptions {
   readonly name?: string;
@@ -60,11 +70,25 @@ export interface WorkbookLimits extends ExportLimits {
   readonly maxConditionalFormats?: number;
   /** Unique conditional differential styles across the workbook; defaults to 1,000. */
   readonly maxDifferentialStyles?: number;
+  /** Native charts across the workbook; defaults to 100. Snapshot charts also own a hidden data sheet. */
+  readonly maxCharts?: number;
+  /** Numeric cached data points across all chart series; defaults to 100,000. */
+  readonly maxChartPoints?: number;
+  /** Captured category/name/title/axis/label text across all charts; defaults to 1,000,000 UTF-16 units. */
+  readonly maxChartTextCharacters?: number;
+  /** Authored formula text across all cells; defaults to 1,000,000 UTF-16 units. */
+  readonly maxFormulaCharacters?: number;
+  /** Inline-list rules across all worksheets, including empty sources; defaults to 1,000. */
+  readonly maxDataValidations?: number;
+  /** Captured list items and messages across all rules; defaults to 1,000,000 UTF-16 units. */
+  readonly maxValidationTextCharacters?: number;
 }
 export interface XlsxExportResult { readonly rows: number; readonly sheets: number; readonly bytes: number; }
 export interface SheetOptions<T = never> {
   readonly columns?: readonly XlsxColumn<T>[];
   readonly includeHeader?: boolean;
+  /** Replaces inferred group/leaf headings with a rectangular matrix; covered positions are null. */
+  readonly headerRows?: TableSpanRows;
   readonly freezeHeader?: boolean;
   readonly autoFilter?: boolean;
   readonly boldHeader?: boolean;
@@ -74,6 +98,10 @@ export interface SheetOptions<T = never> {
   readonly alternatingRowStyle?: CellStyle;
   readonly rowStyle?: (context: RowStyleContext) => CellStyle | undefined;
   readonly cellStyle?: (context: CellStyleContext) => CellStyle | undefined;
+  /** Native row outlines, captured once during serialization. Requires an explicit maximum level. */
+  readonly rowOutline?: (context: RowStyleContext) => RowOutline | undefined;
+  /** Declared outline upper bound, from zero through seven; emitted before streamed rows. */
+  readonly maxOutlineLevel?: number;
   readonly rowHeight?: number;
   readonly headerHeight?: number;
   /** Fallback width in characters. Native tables default to 20 when no column width is supplied. */
@@ -88,7 +116,7 @@ export interface SheetOptions<T = never> {
   readonly mergedCells?: readonly string[];
   readonly hyperlinks?: readonly Hyperlink[];
   readonly conditionalFormats?: readonly ConditionalFormat[];
-  readonly dataValidation?: readonly unknown[];
+  readonly dataValidation?: readonly ListValidation[];
 }
 /** A single merged report title above grouped/leaf headings. Print repetition includes headings only. */
 export interface ReportTitle { readonly text: string; readonly style?: CellStyle; readonly height?: number; }
@@ -101,8 +129,10 @@ export interface AutoSizeOptions {
 }
 export type TotalOperation = "sum" | "count" | "average" | "min" | "max";
 export interface FooterOptions {
+  /** Explicit rectangular footer, outside the native table. Cannot accompany values or totals. */
+  readonly rows?: TableSpanRows;
   /** One explicit value per declared column; computed totals replace the corresponding value. */
-  readonly values?: readonly (ExportValue | Cell)[];
+  readonly values?: readonly (ExportValue | Cell | FormulaCell)[];
   readonly totals?: Readonly<Record<string, TotalOperation>>;
   readonly style?: import("./styles.js").CellStyle;
 }

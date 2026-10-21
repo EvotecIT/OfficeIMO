@@ -15,7 +15,8 @@ internal static partial class PdfWriter {
                         AppendPreservedSpaceRuns(runs, segment);
                     }
                     if (segment.InlineElement != null) {
-                        runs.Add(PdfTextRun.Inline(segment.InlineElement));
+                        PdfTextRun inline = PdfTextRun.Inline(segment.InlineElement);
+                        runs.Add(segment.FormField == null ? inline : inline.WithFormField(segment.FormField));
                         continue;
                     }
 
@@ -68,6 +69,7 @@ internal static partial class PdfWriter {
                 run = run.WithTextDirection(segment.TextDirection);
             run.ContributesLineBoxDescent = segment.ContributesLineBoxDescent;
             run.IsLineBoxStrut = segment.IsLineBoxStrut;
+            if (segment.FormField != null) run = run.WithFormField(segment.FormField);
             return run;
         }
 

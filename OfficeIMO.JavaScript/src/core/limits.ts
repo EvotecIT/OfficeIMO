@@ -1,5 +1,6 @@
 import { OfficeIMOError } from "./errors.js";
 import type { ByteSink } from "./sinks.js";
+import { captureFields } from "../internal/capture.js";
 
 /** Hard ceilings: rows are data rows per sheet; cells and text are totals including headers. */
 export interface ExportLimits {
@@ -17,9 +18,13 @@ export class ExportBudget {
   private reservedText = 0;
   readonly limits: Readonly<ExportLimits>;
   constructor(limits: ExportLimits = {}) {
-    for (const [key, value] of Object.entries(limits))
+    if (!limits || typeof limits !== "object" || Array.isArray(limits)) throw new TypeError("Export limits must be an object.");
+    // Capture before validation. Supported class getters are ordinary structural
+    // options too, and an accessor must not change the ceiling after validation.
+    const captured = captureFields(limits, ["maxRows", "maxCells", "maxTextCharacters", "maxOutputBytes"]);
+    for (const [key, value] of Object.entries(captured))
       if (value !== undefined && (!Number.isSafeInteger(value) || value < 0)) throw new RangeError(key + " must be a nonnegative safe integer.");
-    this.limits = Object.freeze({ ...limits });
+    this.limits = Object.freeze(captured);
   }
   check(kind: keyof ExportLimits, value: number): void {
     const maximum = this.limits[kind];

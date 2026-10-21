@@ -617,24 +617,32 @@ namespace OfficeIMO.Tests {
         public void Test_ImageCropping() {
             var filePath = Path.Combine(_directoryWithFiles, "DocumentImageCrop.docx");
             using (var document = WordDocument.Create(filePath)) {
-            var paragraph = document.AddParagraph();
-            paragraph.AddImage(Path.Combine(_directoryWithImages, "Kulek.jpg"), 100, 100);
-            var image = paragraph.Image;
-            Assert.NotNull(image);
+                var paragraph = document.AddParagraph();
+                using var pixels = new MemoryStream(CreatePhysicalCropTestImage());
+                paragraph.AddImage(pixels, "crop.png", 720, 480);
+                var image = paragraph.Image;
+                Assert.NotNull(image);
 
-            image!.CropTopCentimeters = 1;
-            image.CropBottomCentimeters = 2;
-            image.CropLeftCentimeters = 3;
-            image.CropRightCentimeters = 4;
+                image!.CropTopCentimeters = .635;
+                image.CropBottomCentimeters = 1.27;
+                image.CropLeftCentimeters = .9525;
+                image.CropRightCentimeters = 1.905;
 
                 document.Save();
             }
 
             using (var document = WordDocument.Load(filePath)) {
-                Assert.Equal(1, document.Images[0].CropTopCentimeters);
-                Assert.Equal(2, document.Images[0].CropBottomCentimeters);
-                Assert.Equal(3, document.Images[0].CropLeftCentimeters);
-                Assert.Equal(4, document.Images[0].CropRightCentimeters);
+                var image = Assert.Single(document.Images);
+                Assert.Equal(.635, image.CropTopCentimeters!.Value, 5);
+                Assert.Equal(1.27, image.CropBottomCentimeters!.Value, 5);
+                Assert.Equal(.9525, image.CropLeftCentimeters!.Value, 5);
+                Assert.Equal(1.905, image.CropRightCentimeters!.Value, 5);
+                Assert.Equal(10000, image.CropLeft);
+                Assert.Equal(20000, image.CropRight);
+                Assert.Equal(10000, image.CropTop);
+                Assert.Equal(20000, image.CropBottom);
+                Assert.Equal(504D, image.Width!.Value, 3);
+                Assert.Equal(336D, image.Height!.Value, 3);
             }
         }
 

@@ -68,23 +68,26 @@ internal static partial class PdfWriter {
                 return states;
             }
 
-            double? rowContentHeightCache = null;
-            double GetRowContentHeight() {
-                if (rowContentHeightCache.HasValue) {
-                    return rowContentHeightCache.Value;
+            (double FlowAdvance, double PaintExtent)? rowMeasurementCache = null;
+            (double FlowAdvance, double PaintExtent) GetRowMeasurement() {
+                if (rowMeasurementCache.HasValue) {
+                    return rowMeasurementCache.Value;
                 }
 
-                double measuredHeight = 0D;
+                double advance = 0D;
+                double paint = 0D;
                 foreach (var items in colItems) {
-                    measuredHeight = Math.Max(measuredHeight, MeasureRowKeepTogetherHeight(items));
+                    var measurement = MeasureColumnSequence(items);
+                    advance = Math.Max(advance, measurement.FlowAdvance);
+                    paint = Math.Max(paint, measurement.PaintExtent);
                 }
 
-                rowContentHeightCache = measuredHeight;
-                return measuredHeight;
+                rowMeasurementCache = (advance, paint);
+                return rowMeasurementCache.Value;
             }
 
             if (rowStyle?.KeepTogether == true) {
-                double rowContentHeight = GetRowContentHeight();
+                double rowContentHeight = GetRowMeasurement().PaintExtent;
                 double rowKeepHeight = rowSpacingBefore + rowContentHeight + rowSpacingAfter;
                 double availableHeight = GetFullPageContentHeight();
                 if (rowKeepHeight > availableHeight + 0.001) {
@@ -98,10 +101,11 @@ internal static partial class PdfWriter {
             }
 
             if (rowStyle?.KeepWithNext == true && nextBlock != null) {
-                double rowContentHeight = GetRowContentHeight();
-                double rowHeight = rowSpacingBefore + rowContentHeight + rowSpacingAfter;
-                double nextHeight = MeasureKeepWithNextChainHeight(blockList, blockIndex + 1, currentOpts.MarginLeft, width, currentOpts.DefaultFontSize, rowHeight);
-                double keepHeight = rowHeight + nextHeight;
+                var measurement = GetRowMeasurement();
+                double rowHeight = rowSpacingBefore + measurement.PaintExtent + rowSpacingAfter;
+                double flowHeight = rowSpacingBefore + measurement.FlowAdvance + rowSpacingAfter;
+                double nextHeight = MeasureKeepWithNextChainHeight(blockList, blockIndex + 1, currentOpts.MarginLeft, width, currentOpts.DefaultFontSize, flowHeight);
+                double keepHeight = Math.Max(rowHeight, flowHeight + nextHeight);
                 double availableHeight = GetFullPageContentHeight();
                 if (nextHeight > 0.001 && rowHeight <= availableHeight + 0.001 && keepHeight <= availableHeight + 0.001 && y < GetCurrentFramePageStartY() - 0.001 && y - keepHeight < currentOpts.MarginBottom) {
                     NewPage();
@@ -200,14 +204,17 @@ internal static partial class PdfWriter {
                                 }
                             }
 
-                            if (paragraphStyle?.KeepTogether == true && line == 0) {
+                            if (paragraphStyle?.KeepTogether == true && line == 0 &&
+                                !(lines.Count == 1 && CanOverflowImportedPictureLine(lines[0]))) {
                                 double paragraphHeight = spacingBefore + heights.Sum() + spacingAfter;
                                 double availableHeight = GetFullPageContentHeight() - activeGroups.Sum(group => (group.Style?.FullFragmentPaddingReservation ?? 0D));
-                                if (paragraphHeight > availableHeight + 0.001) {
+                                bool importedPictureOverflow = paragraphHeight > availableHeight + .001D &&
+                                    lines.Any(HasImportedOverflowPicture);
+                                if (paragraphHeight > availableHeight + 0.001 && !importedPictureOverflow) {
                                     throw new ArgumentException("Paragraph height exceeds the available page content height.");
                                 }
 
-                                if (paragraphHeight > remain + 0.001) {
+                                if (paragraphHeight > remain + 0.001 && !importedPictureOverflow) {
                                     if (consumed > 0) break;
                                     remain = 0;
                                     break;
@@ -231,6 +238,10 @@ internal static partial class PdfWriter {
 
                             double resumedTopPadding = activeGroups.Sum(group => group.Style?.GetFragmentTopPadding(isContinuation: true) ?? 0D);
                             bool canMoveParagraph = consumed > resumedTopPadding + 0.001D || y < GetCurrentFramePageStartY() - 0.001D;
+                            if (take == 0 && !canMoveParagraph && CanOverflowImportedPictureLine(lines[start])) {
+                                take = 1;
+                                hsum = heights[start];
+                            }
                             if (TryApplyWidowControl(paragraphStyle, lines.Count, start, ref take, ref hsum, heights, canMoveParagraph)) {
                                 break;
                             }

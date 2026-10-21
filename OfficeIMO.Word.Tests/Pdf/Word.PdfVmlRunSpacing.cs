@@ -9,6 +9,25 @@ using Xunit;
 namespace OfficeIMO.Tests;
 
 public partial class Word {
+    [Fact]
+    public void VmlSmallCapsRetainsInheritedFullSizeForOriginalCapitals() {
+        using WordDocument document = WordDocument.Create();
+        var styles = document._wordprocessingDocument.MainDocumentPart!.StyleDefinitionsPart!.Styles!;
+        styles.DocDefaults = new DocDefaults(new RunPropertiesDefault(new RunPropertiesBaseStyle(
+            new RunFonts { Ascii = "Arial", HighAnsi = "Arial" }, new FontSize { Val = "24" })));
+        var paragraph = new Paragraph(new Run(new RunProperties(new SmallCaps()), new Text("aB")));
+        var shape = new V.Shape(new V.TextBox(new TextBoxContent(paragraph))) {
+            Id = "InheritedSmallCaps", Type = "#_x0000_t202",
+            Style = "position:absolute;left:72pt;top:72pt;width:360pt;height:120pt"
+        };
+        document._document.Body!.Append(CreateNativeCoverPageBlockWithChildren(new Paragraph(new Run(new Picture(shape)))));
+        using var pdf = PdfPigDocument.Open(document.ToPdfBytes(new WordToPdfOptions {
+            IncludePageNumbers = false, ResourcePolicy = OfficeIMO.Pdf.PdfResourcePolicy.CreatePortableDeterministic()
+        }));
+        Assert.Equal("AB", pdf.GetPage(1).Text);
+        Assert.Equal(new[] { 9.5D, 12D }, pdf.GetPage(1).Letters.Select(letter => letter.PointSize));
+    }
+
     [Theory]
     [InlineData(50, -10, false)]
     [InlineData(200, 20, false)]
