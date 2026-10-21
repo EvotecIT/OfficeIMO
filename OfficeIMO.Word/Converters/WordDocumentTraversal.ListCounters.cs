@@ -6,7 +6,11 @@ namespace OfficeIMO.Word {
         /// Builds portable marker details for all effective list paragraphs in the document.
         /// </summary>
         internal static Dictionary<WordParagraph, ResolvedListMarker> BuildResolvedListMarkers(WordDocument document,
-            CancellationToken cancellationToken = default) {
+            CancellationToken cancellationToken = default) =>
+            BuildResolvedListMarkers(document, EnumerateListStories(document), cancellationToken);
+
+        private static Dictionary<WordParagraph, ResolvedListMarker> BuildResolvedListMarkers(WordDocument document,
+            IEnumerable<IEnumerable<WordParagraph>> stories, CancellationToken cancellationToken) {
             Dictionary<WordParagraph, ResolvedListMarker> result = new(ParagraphReferenceComparer.Instance);
             int totalMarkerCharacters = 0;
             VisitListCounters(document, cancellationToken, (paragraph, info, index, counters, formats) => {
@@ -19,7 +23,7 @@ namespace OfficeIMO.Word {
                     throw new InvalidDataException("Word generated list markers exceed the supported document character budget.");
                 totalMarkerCharacters += marker.Length;
                 result[paragraph] = new ResolvedListMarker(info, index, marker, useTextFont);
-            });
+            }, stories);
             return result;
         }
 
@@ -35,9 +39,10 @@ namespace OfficeIMO.Word {
         }
 
         private static void VisitListCounters(WordDocument document, CancellationToken cancellationToken,
-            Action<WordParagraph, ListInfo, int, Dictionary<int, long>, Dictionary<int, WordNumberFormat?>> visit) {
+            Action<WordParagraph, ListInfo, int, Dictionary<int, long>, Dictionary<int, WordNumberFormat?>> visit,
+            IEnumerable<IEnumerable<WordParagraph>>? stories = null) {
             WordListNumberingResolver.StyleCatalog catalog = WordListNumberingResolver.CreateStyleCatalog(document);
-            foreach (IEnumerable<WordParagraph> story in EnumerateListStories(document)) {
+            foreach (IEnumerable<WordParagraph> story in stories ?? EnumerateListStories(document)) {
                 // A numbering instance selects formatting and optional restarts. Instances
                 // sharing an abstract definition otherwise advance one story-local sequence.
                 var states = new Dictionary<(bool IsDefinition, int Id), ListCounterState>();

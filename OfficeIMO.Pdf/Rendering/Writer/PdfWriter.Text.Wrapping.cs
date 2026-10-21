@@ -13,7 +13,7 @@ internal static partial class PdfWriter {
         }
 
         return tabStops
-            .Where(tabStop => tabStop.Position > 0 && !double.IsNaN(tabStop.Position) && !double.IsInfinity(tabStop.Position))
+            .Where(tabStop => !double.IsNaN(tabStop.Position) && !double.IsInfinity(tabStop.Position))
             .OrderBy(tabStop => tabStop.Position)
             .Select(tabStop => tabStop.Clone())
             .ToArray();

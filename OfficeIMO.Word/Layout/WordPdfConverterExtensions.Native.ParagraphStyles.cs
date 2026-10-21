@@ -86,23 +86,9 @@ namespace OfficeIMO.Word.Pdf {
                 style.SpacingAfter = nativeDefaults.ParagraphSpacingAfter;
             }
 
-            foreach (WordTabStop tabStop in GetNativeParagraphEffectiveTabStops(paragraph)
-                .Where(tabStop => tabStop.Position > 0 && IsNativeRenderableTextTabStop(tabStop.Alignment))
-                .OrderBy(tabStop => tabStop.Position)) {
-                double? position = ConvertNativeTwipsToPoints(tabStop.Position);
-                if (!position.HasValue) {
-                    continue;
-                }
-
-                double framePosition = position.Value - style.LeftIndent;
-                if (framePosition <= 0D) {
-                    continue;
-                }
-
-                style.TabStops.Add(new PdfCore.PdfTabStop(
-                    framePosition,
-                    MapNativeTabAlignment(tabStop.Alignment),
-                    MapNativeTabLeader(tabStop.Leader)) { DecimalSeparator = GetNativeDecimalTabSeparator(paragraph) });
+            foreach (PdfCore.PdfTabStop tabStop in ResolveNativeParagraphTabStops(
+                paragraph, style.LeftIndent, style.FirstLineIndent)) {
+                style.TabStops.Add(tabStop);
             }
 
             style.KeepTogether = ReadNativeDirectParagraphOnOff<W.KeepLines>(paragraph) ?? styleDefaults.KeepTogether ?? false;
@@ -110,6 +96,7 @@ namespace OfficeIMO.Word.Pdf {
                 ? PdfCore.PdfKeepTogetherOverflowBehavior.SplitAcrossPages : PdfCore.PdfKeepTogetherOverflowBehavior.SplitAcrossFrames;
             style.KeepWithNext = ReadNativeDirectParagraphOnOff<W.KeepNext>(paragraph) ?? styleDefaults.KeepWithNext ?? false;
             style.WidowControl = ReadNativeDirectParagraphOnOff<W.WidowControl>(paragraph) ?? styleDefaults.WidowControl ?? nativeDefaults.ParagraphWidowControl;
+            ApplyNativeParagraphJustification(style, paragraph);
             return style;
         }
 
@@ -330,9 +317,7 @@ namespace OfficeIMO.Word.Pdf {
             return MapNativeParagraphAlign(alignment, allowJustify);
         }
 
-        private static bool IsNativeBiDiParagraph(WordParagraph paragraph) =>
-            paragraph.BiDi ||
-            paragraph._paragraph?.ParagraphProperties?.GetFirstChild<W.BiDi>() != null;
+        private static bool IsNativeBiDiParagraph(WordParagraph paragraph) => paragraph.BiDi;
 
         private static PdfCore.PdfColumnAlign ResolveNativeColumnAlign(WordParagraph paragraph) =>
             MapNativeColumnAlign(ResolveNativeParagraphJustification(paragraph));

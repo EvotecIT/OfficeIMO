@@ -9,6 +9,7 @@ public sealed partial class PdfOptions {
         // membership must be private because automatic fallback may register a family.
         view._embeddedFonts = _embeddedFonts == null ? null : new Dictionary<PdfStandardFont, PdfEmbeddedFont>(_embeddedFonts);
         view._namedFontFamilies = _namedFontFamilies == null ? null : new Dictionary<string, PdfEmbeddedFontFamily>(_namedFontFamilies, StringComparer.Ordinal);
+        view._namedFallbackPlanBindings = _namedFallbackPlanBindings == null ? null : new Dictionary<object, PdfEmbeddedFontFallbackCandidate>(_namedFallbackPlanBindings);
         view._embeddedFontPrograms = null;
         view._embeddedOpenTypeCffFontPrograms = null;
         view._namedFontPrograms = null;

@@ -23,24 +23,34 @@ public static partial class WordPdfConverterExtensions {
     }
 
     private static W.Footnote ResolveNativeLoadedFootnoteStory(W.Footnotes? source,
-        ISet<long> registered, bool continuation) {
+        ISet<long> registered, bool continuation) => ResolveNativeLoadedNoteStory(
+            source?.Elements<W.Footnote>(), registered, continuation);
+
+    private static TNote ResolveNativeLoadedNoteStory<TNote>(IEnumerable<TNote>? source,
+        ISet<long> registered, bool continuation) where TNote : W.FootnoteEndnoteType, new() {
         W.FootnoteEndnoteValues type = continuation
             ? W.FootnoteEndnoteValues.ContinuationSeparator : W.FootnoteEndnoteValues.Separator;
-        W.Footnote? stored = FindNativeLoadedFootnoteStory(source, registered, type);
+        TNote? stored = FindNativeLoadedNoteStory(source, registered, type);
         if (stored != null) return stored;
         // Registration decides which stored definitions Word loads. Unregistered
         // definitions must not supply content, font dependencies or admission
         // restrictions. Construct the existing default without editing the part.
         OpenXmlElement mark = continuation ? new W.ContinuationSeparatorMark() : new W.SeparatorMark();
-        return new W.Footnote(new W.Paragraph(
+        var implicitStory = new TNote { Type = type, Id = continuation ? 0 : -1 };
+        implicitStory.Append(new W.Paragraph(
             new W.ParagraphProperties(new W.SpacingBetweenLines { Line = "240", LineRule = W.LineSpacingRuleValues.Auto }),
-            new W.Run(mark))) { Type = type, Id = continuation ? 0 : -1 };
+            new W.Run(mark)));
+        return implicitStory;
     }
 
     // Notices are optional in both compatibility profiles. A missing or
     // unregistered notice remains absent instead of acquiring an implicit story.
     private static W.Footnote? FindNativeLoadedFootnoteStory(W.Footnotes? source,
-        ISet<long> registered, W.FootnoteEndnoteValues type) => source?.Elements<W.Footnote>()
-            .FirstOrDefault(note => note.Type?.Value == type &&
+        ISet<long> registered, W.FootnoteEndnoteValues type) =>
+        FindNativeLoadedNoteStory(source?.Elements<W.Footnote>(), registered, type);
+
+    private static TNote? FindNativeLoadedNoteStory<TNote>(IEnumerable<TNote>? source,
+        ISet<long> registered, W.FootnoteEndnoteValues type) where TNote : W.FootnoteEndnoteType =>
+        source?.FirstOrDefault(note => note.Type?.Value == type &&
                 note.Id?.Value is long id && registered.Contains(id));
 }

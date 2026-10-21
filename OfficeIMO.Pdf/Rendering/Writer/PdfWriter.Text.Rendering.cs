@@ -170,8 +170,15 @@ internal static partial class PdfWriter {
         double backgroundYOffset = 0D;
         double xOrigin = xOverride ?? opts.MarginLeft;
         int?[] bidiParagraphLevels = ResolveRichParagraphBidiLevels(lines);
+        var justification = new RichLineJustification[lines.Count];
+        for (int index = 0; index < lines.Count; index++) {
+            justification[index] = PlanRichLineJustification(lines[index], ResolveRichLineAlignment(block.Align, lineAlignments, index),
+                block.Style ?? opts.DefaultParagraphStyleSnapshot,
+                ResolveRichLineWidth(widthUsed, firstLineWidthOverride, lineWidths, index),
+                index == lines.Count - 1 && !hasFollowingParagraphLines, opts);
+        }
         for (int li = 0; li < lines.Count; li++) {
-            var segs = lines[li];
+            var segs = justification[li].Segments;
             bool hasLineBackground = false;
             for (int si = 0; si < segs.Count; si++) {
                 if (segs[si].BackgroundColor.HasValue && (!captureInlineForms || segs[si].FormField == null)) {
@@ -188,25 +195,9 @@ internal static partial class PdfWriter {
             double lineY = AdjustRichLineBaseline(startY - backgroundYOffset - (lineTopGaps != null ? lineTopGaps[li] : 0D), lines[li], opts, fontSize, baselineFont);
             double lineWidthUsed = ResolveRichLineWidth(widthUsed, firstLineWidthOverride, lineWidths, li);
             double lineXOrigin = ResolveRichLineXOrigin(xOrigin, firstLineXOverride, lineXOffsets, li);
-            double baseLineW = 0;
-            int gapsCount = 0;
-            foreach (var seg in segs) {
-                double w = GetRichSegmentWidth(seg);
-                if (seg.LeadingSpace) {
-                    w += seg.LeadingAdvance;
-                    if (seg.LeadingSpaceIsExpandable) {
-                        gapsCount += seg.LeadingSpaceCount;
-                    }
-                }
-
-                baseLineW += w;
-            }
-
-            bool lineEndsWithHardBreak = segs.Any(seg => seg.EndsWithHardBreak);
             PdfAlign lineAlign = ResolveRichLineAlignment(block.Align, lineAlignments, li);
-            bool justify = lineAlign == PdfAlign.Justify && !lineEndsWithHardBreak && (li != lines.Count - 1 || hasFollowingParagraphLines) && gapsCount > 0 && lineWidthUsed > baseLineW;
-            double wordSpacing = justify ? (lineWidthUsed - baseLineW) / gapsCount : 0;
-            double lineWForAlign = justify ? lineWidthUsed : baseLineW;
+            double wordSpacing = justification[li].WordSpacing;
+            double lineWForAlign = justification[li].Width;
             double dx = 0;
             if (lineAlign == PdfAlign.Center) dx = Math.Max(0, (lineWidthUsed - lineWForAlign) / 2);
             else if (lineAlign == PdfAlign.Right) dx = Math.Max(0, lineWidthUsed - lineWForAlign);
@@ -290,29 +281,12 @@ internal static partial class PdfWriter {
             double lineY = AdjustRichLineBaseline(startY - yOffset - (lineTopGaps != null ? lineTopGaps[li] : 0D), lines[li], opts, fontSize, baselineFont);
             double lineWidthUsed = ResolveRichLineWidth(widthUsed, firstLineWidthOverride, lineWidths, li);
             double lineXOrigin = ResolveRichLineXOrigin(xOrigin, firstLineXOverride, lineXOffsets, li);
-            var segs = lines[li];
-            double baseLineW = 0;
-            int gapsCount = 0;
-            for (int si = 0; si < segs.Count; si++) {
-                var seg = segs[si];
-                double w = GetRichSegmentWidth(seg);
-                if (seg.LeadingSpace) {
-                    w += seg.LeadingAdvance;
-                    if (seg.LeadingSpaceIsExpandable) {
-                        gapsCount += seg.LeadingSpaceCount;
-                    }
-                }
-                baseLineW += w;
-            }
-            bool lineEndsWithHardBreak = segs.Any(seg => seg.EndsWithHardBreak);
+            var segs = justification[li].Segments;
             PdfAlign lineAlign = ResolveRichLineAlignment(block.Align, lineAlignments, li);
-            bool justify = lineAlign == PdfAlign.Justify && !lineEndsWithHardBreak && (li != lines.Count - 1 || hasFollowingParagraphLines) && gapsCount > 0 && lineWidthUsed > baseLineW;
-            double wordSpacing = justify ? (lineWidthUsed - baseLineW) / gapsCount : 0;
-            // Tw applies only to single-byte code 32. Composite-font lines are positioned
-            // explicitly, and several readers misapply Tw to the two-byte code 0x0020.
+            double wordSpacing = justification[li].WordSpacing;
+            // Tw applies only to single-byte code 32. Composite-font lines are positioned explicitly.
             double pdfWordSpacing = wordSpacing != 0D && !segs.All(seg => UsesSimpleFontText(seg, opts)) ? 0D : wordSpacing;
-
-            double lineWForAlign = justify ? lineWidthUsed : baseLineW;
+            double lineWForAlign = justification[li].Width;
             double dx = 0;
             if (lineAlign == PdfAlign.Center) dx = Math.Max(0, (lineWidthUsed - lineWForAlign) / 2);
             else if (lineAlign == PdfAlign.Right) dx = Math.Max(0, lineWidthUsed - lineWForAlign);
@@ -449,7 +423,7 @@ internal static partial class PdfWriter {
                         structurePage,
                         textStructElementIndex);
                     if (pictureClip) new ContentStreamBuilder(sb).RestoreState();
-                    xCursor += s.InlineElement.Width;
+                    xCursor += s.InlineElement.Width + s.JustificationAdvance;
                     content = new ContentStreamBuilder(sb)
                         .BeginText()
                         .TextLeading(defaultLeading)
@@ -546,35 +520,9 @@ internal static partial class PdfWriter {
                     double yLine = baselineY - runFontSize * 0.15;
                     underlines ??= new System.Collections.Generic.List<(double X1, double X2, double Y, PdfColor Color, OfficeIMO.Drawing.OfficeTextDecorationStyle Style)>();
                     if (s.UnderlineStyle == OfficeIMO.Drawing.OfficeTextDecorationStyle.Words) {
-                        if (textCommand.VisualGlyphs is { Count: > 0 } glyphs) {
-                            double advance = 0;
-                            double? wordStart = null;
-                            double trackingAdvance = GetIntrinsicGlyphTrackingAdvance(textCommand, runFontSize);
-                            for (int glyphIndex = 0; glyphIndex < glyphs.Count; glyphIndex++) {
-                                PdfGlyphInfo glyph = glyphs[glyphIndex];
-                                bool whitespace = glyph.TextIndex >= 0 && glyph.TextIndex < s.Text.Length && char.IsWhiteSpace(s.Text[glyph.TextIndex]);
-                                if (whitespace) {
-                                    if (wordStart.HasValue) {
-                                        underlines.Add((lineXOrigin + segmentStartX + wordStart.Value, lineXOrigin + segmentStartX + advance, yLine, ulColor, OfficeIMO.Drawing.OfficeTextDecorationStyle.Single));
-                                        wordStart = null;
-                                    }
-                                } else if (!wordStart.HasValue) {
-                                    wordStart = advance;
-                                }
-                                double glyphAdvance = glyph.AdvanceWidth1000 * runFontSize / 1000D;
-                                if (textCommand.TrackingBoundaries?[glyphIndex] == true) glyphAdvance += trackingAdvance;
-                                advance += glyphAdvance * s.HorizontalTextScaling / 100D + s.CharacterSpacing;
-                            }
-                            if (wordStart.HasValue) {
-                                underlines.Add((lineXOrigin + segmentStartX + wordStart.Value, lineXOrigin + segmentStartX + advance, yLine, ulColor, OfficeIMO.Drawing.OfficeTextDecorationStyle.Single));
-                            }
-                        } else {
-                            VisitWordDecorationAdvances(s.Text,
-                                span => MeasurePositionedTextWidth(span, s.Font, s.NamedFont, s.FontSize, s.Baseline, opts, s.FeatureSettings, s.TextDirection, s.HorizontalTextScaling, s.CharacterSpacing, s.FontMetricScale,
-                                    s.PreservesPaintedGlyphs),
-                                (start, end) => underlines.Add((lineXOrigin + segmentStartX + start,
-                                    lineXOrigin + segmentStartX + end, yLine, ulColor, OfficeIMO.Drawing.OfficeTextDecorationStyle.Single)));
-                        }
+                        VisitRichWordDecorationAdvances(s, textCommand, opts,
+                            (start, end) => underlines.Add((lineXOrigin + segmentStartX + start,
+                                lineXOrigin + segmentStartX + end, yLine, ulColor, OfficeIMO.Drawing.OfficeTextDecorationStyle.Single)));
                     } else {
                         underlines.Add((lineXOrigin + segmentStartX, lineXOrigin + segmentStartX + wSeg, yLine, ulColor, s.UnderlineStyle));
                     }

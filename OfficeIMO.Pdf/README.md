@@ -161,7 +161,7 @@ document.Content.Paragraph(paragraph => paragraph
 document.Save("report.pdf");
 ```
 
-The reference and the first legal note fragment stay on the same page. Notes reserve space before later body content, can continue across pages, and retain rich paragraph text, inline images and links. References in split table rows attach to the page containing the actual reference fragment. Definitions belong to their document; each serialization has independent pagination state.
+The reference and the first legal note fragment stay on the same page. Notes reserve space before later body content, can continue across pages, and retain rich paragraph text, inline images and links. Ordinary flow lists and decorated panels can also appear in note definitions. Their markers, borders, backgrounds and fragment boundaries pass through the shared note layout. Paragraph, list and panel keep constraints participate in choosing legal fragments; the fitting and continuation limits below still apply. References in split table rows attach to the page containing the actual reference fragment. Definitions belong to their document; each serialization has independent pagination state.
 
 `PdfFootnoteOptions.Placement` defaults to `BottomOfPage`, above any running footer. `BeneathText` places the note below the page's body text. The optional `Separator` and `ContinuationSeparator` callbacks capture ordinary flow content before the first note and continued notes respectively; the engine creates no separator when they are omitted. Visible numbering is authored text, so the reference and note can use the labels and formatting your application needs.
 
@@ -257,6 +257,40 @@ including inside columns, table cells and canvas text boxes.
 `PdfParagraphBuilder.LineBreak()` retains the current run style. A larger font
 on a blank line can expand proportional or minimum spacing; exact spacing keeps
 its fixed advance.
+
+## Paragraph justification
+
+`PdfAlign.Justify` uses `PdfParagraphStyle.JustificationMode` to select expandable boundaries. `Words`, the default, distributes extra width between word separators. `Characters` distributes it uniformly between shaped grapheme clusters, keeping combining sequences and shaped ligatures together. `JustifyExplicitLineBreaks` and `JustifyLastLine` independently select expansion for explicit-break and final lines; both default to `false`.
+
+```csharp
+var style = new PdfParagraphStyle {
+    JustificationMode = PdfJustificationMode.Characters,
+    JustifyExplicitLineBreaks = true,
+    JustifyLastLine = true
+};
+var document = PdfDocument.Create();
+document.Content.Paragraph(paragraph => paragraph
+    .Text("Distributed first line").LineBreak().Text("Final line"),
+    PdfAlign.Justify, style: style);
+document.Save("distributed-text.pdf");
+```
+
+Paragraph fragments retain the source line policy across page, column and table-cell boundaries. Page-note paragraphs retain it across their supported continuation pages. A tab fixes its field anchor in both modes: earlier fields retain their advances, and only word separators after the last tab expand. Character distribution adds positive page-point spacing after layout; it does not compress ordinary spaces, admit additional words to a line or reproduce a native application's nonuniform character-expansion weights. Available fonts and the selected shaping provider still determine the original glyph metrics.
+
+## Paragraph tab stops
+
+Explicit tab positions are finite point coordinates relative to the paragraph's continuation text frame. Zero is that frame's origin; negative positions can be reached from a hanging first line. A line consumes only stops ahead of its current cursor and skips earlier stops after a line break.
+
+```csharp
+var style = new PdfParagraphStyle { LeftIndent = 36, FirstLineIndent = -36 };
+style.AddTabStop(-18);
+PdfDocument.Create()
+    .Paragraph(paragraph => paragraph.Text("1.\tFirst field").LineBreak()
+        .Text("Continuation\tLater field"), style: style)
+    .Save("hanging-tabs.pdf");
+```
+
+The negative stop is eighteen points before the continuation text origin. Following lines retain that origin and their default tab interval. NaN and infinite positions are rejected.
 
 ## Decimal tab alignment
 
@@ -2821,7 +2855,9 @@ The text-capable adapters also expose `TextFallbacks`. `PdfTextFallbackFeatures.
 
 On Windows, local font discovery includes fonts Office has already cached in its cloud-font folders. Numeric filenames are resolved through family folders and font metadata. The selected fonts follow the same resource and embedding rules.
 
-`PdfOptions.RegisterEmbeddedFontFallbacks` preserves caller-registered embedded fonts in compatibility slots. It fills vacant slots and chooses an available replacement when a fallback segment needs an occupied slot. Replacing the fallback set refreshes slots still owned by the previous set while preserving later caller registrations. Named fallback families use their own registrations. `PdfEmbeddedFontFallbackSet.RegisterFonts` explicitly installs the supplied slot mapping. Coverage scans inspect candidates in priority order; later candidates remain unparsed when an earlier candidate covers the text. A candidate that must be inspected still needs valid font data.
+`PdfOptions.RegisterEmbeddedFontFallbacks` preserves caller-registered embedded fonts in compatibility slots. It fills vacant slots and chooses an available replacement when a fallback segment needs an occupied slot. Replacing the fallback set refreshes slots still owned by the previous set while preserving later caller registrations. It also preserves caller-owned named families, including their bold and italic faces, when a fallback candidate requests the same normalized family name. The fallback uses a separate resource, and runs from the reusable fallback plan resolve that resource through the current `PdfOptions`; callers do not need to rewrite the planned run's family name. A later explicit family registration retains caller ownership.
+
+`PdfEmbeddedFontFallbackSet.RegisterFonts` installs the supplied slot and named-family mappings directly and can replace those mappings. Coverage scans inspect candidates in priority order; later candidates remain unparsed when an earlier candidate covers the text. A candidate that must be inspected still needs valid font data. Missing-font substitution can change glyph metrics and line breaks even when the substitute covers every character.
 
 ### Inspect and remove content provenance
 

@@ -78,6 +78,10 @@ public sealed class PdfTextFallbackPlan {
         }, styleTemplate);
     }
 
+    internal IReadOnlyList<PdfTextRun> ToNamedFallbackTextRuns(IReadOnlyList<string> fontFamilyNames,
+        IReadOnlyList<PdfEmbeddedFontFallbackCandidate> candidates, PdfTextRun? styleTemplate) =>
+        ToNamedTextRuns(index => fontFamilyNames[index], styleTemplate, candidates);
+
     private System.Collections.ObjectModel.ReadOnlyCollection<PdfTextRun> ToTextRuns(Func<int, PdfStandardFont> resolveFont, PdfTextRun? styleTemplate) {
         if (!IsFullyCovered) {
             throw new InvalidOperationException("Cannot convert an incomplete embedded-font fallback plan to renderable text runs. Inspect Diagnostics and add fallback font coverage first.");
@@ -105,7 +109,8 @@ public sealed class PdfTextFallbackPlan {
         return runs.AsReadOnly();
     }
 
-    private System.Collections.ObjectModel.ReadOnlyCollection<PdfTextRun> ToNamedTextRuns(Func<int, string> resolveFontFamily, PdfTextRun? styleTemplate) {
+    private System.Collections.ObjectModel.ReadOnlyCollection<PdfTextRun> ToNamedTextRuns(Func<int, string> resolveFontFamily,
+        PdfTextRun? styleTemplate, IReadOnlyList<PdfEmbeddedFontFallbackCandidate>? candidates = null) {
         if (!IsFullyCovered) {
             throw new InvalidOperationException("Cannot convert an incomplete embedded-font fallback plan to renderable text runs. Inspect Diagnostics and add fallback font coverage first.");
         }
@@ -120,7 +125,9 @@ public sealed class PdfTextFallbackPlan {
                     styleTemplate);
             }
 
-            runs.Add(CreateStyledNamedRun(segment.Text, resolveFontFamily(segment.FontIndex), styleTemplate));
+            PdfTextRun run = CreateStyledNamedRun(segment.Text, resolveFontFamily(segment.FontIndex), styleTemplate);
+            if (candidates != null) run.WithPlannedFontFallback(candidates[segment.FontIndex]);
+            runs.Add(run);
             cursor = segment.StartIndex + segment.Length;
         }
 
@@ -174,7 +181,7 @@ public sealed class PdfTextFallbackPlan {
             underlineStyle: styleTemplate.UnderlineStyle,
             strikeStyle: styleTemplate.StrikeStyle,
             decorationColor: styleTemplate.DecorationColor)
-            .WithSpacingFrom(styleTemplate).WithFeatureSettings(styleTemplate.FeatureSettings)
+            .WithSpacingFrom(styleTemplate).WithPlannedFontFallback(null).WithFeatureSettings(styleTemplate.FeatureSettings)
             .WithHorizontalOffset(styleTemplate.HorizontalOffset)
             .WithTextDirection(styleTemplate.TextDirection);
     }
@@ -205,7 +212,7 @@ public sealed class PdfTextFallbackPlan {
             underlineStyle: styleTemplate.UnderlineStyle,
             strikeStyle: styleTemplate.StrikeStyle,
             decorationColor: styleTemplate.DecorationColor)
-            .WithSpacingFrom(styleTemplate).WithFeatureSettings(styleTemplate.FeatureSettings)
+            .WithSpacingFrom(styleTemplate).WithPlannedFontFallback(null).WithFeatureSettings(styleTemplate.FeatureSettings)
             .WithHorizontalOffset(styleTemplate.HorizontalOffset)
             .WithTextDirection(styleTemplate.TextDirection);
     }

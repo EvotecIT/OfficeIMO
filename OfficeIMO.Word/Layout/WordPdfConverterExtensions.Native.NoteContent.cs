@@ -11,7 +11,7 @@ public static partial class WordPdfConverterExtensions {
     private static bool HasNativeNoteContent(WordParagraph run, NativeNoteNumbering? notes,
         NativeDocumentDefaults defaults) => run.EnumerateEffectiveRunContent().Any(child =>
             GetNativeNoteReferenceKey(child) is NativeNoteKey key && notes?.TryGetValue(key, out _) == true ||
-            child is W.FootnoteReferenceMark && defaults.NoteBodyLabel != null ||
+            (child is W.FootnoteReferenceMark or W.EndnoteReferenceMark) && defaults.NoteBodyLabel != null ||
             (child is W.SeparatorMark or W.ContinuationSeparatorMark) && defaults.NoteContentSection != null);
 
     private static bool TryAddNativeNoteRun(PdfCore.PdfParagraphBuilder builder, WordParagraph run,
@@ -69,16 +69,16 @@ public static partial class WordPdfConverterExtensions {
         if (key.HasValue && notes != null && notes.TryGetValue(key.Value, out int token)) {
             label = notes.GetLabel(token);
             noteToken = token;
-            if (notes.TryGetPageFootnote(key.Value, out definition))
-                destination = string.IsNullOrEmpty(label) ? null : GetNativePageNoteDestination(key.Value);
-        } else if (child is W.FootnoteReferenceMark && defaults.NoteBodyLabel != null) {
+            notes.TryGetPageFootnote(key.Value, out definition);
+            destination = string.IsNullOrEmpty(label) ? null : GetNativePageNoteDestination(key.Value);
+        } else if ((child is W.FootnoteReferenceMark or W.EndnoteReferenceMark) && defaults.NoteBodyLabel != null) {
             label = defaults.NoteBodyLabel;
         } else return false;
         NativeResolvedTextStyle style = ResolveNativeTextRunStyle(source, paragraph, table, defaults, fonts);
         marker = style.ApplyTo(new PdfCore.PdfTextRun(label, bold: style.Bold,
             underline: style.Underline, italic: style.Italic, strike: style.Strike,
             color: style.Color, fontSize: style.FontSize ?? (configuredTypography ? null : defaults.FontSize),
-            font: style.Font, fontFamily: style.FontFamily, baseline: PdfCore.PdfTextBaseline.Superscript,
+            font: style.Font, fontFamily: style.FontFamily, baseline: style.Baseline,
             backgroundColor: style.BackgroundColor, underlineStyle: style.UnderlineStyle,
             strikeStyle: style.StrikeStyle, linkDestinationName: destination));
         if (definition != null) marker = marker.WithFootnoteReference(definition);
@@ -92,5 +92,6 @@ public static partial class WordPdfConverterExtensions {
     };
 
     private static string GetNativePageNoteDestination(NativeNoteKey key) =>
-        "OfficeIMO.Footnote." + key.Id.ToString(System.Globalization.CultureInfo.InvariantCulture);
+        (key.Kind == NativeNoteKind.Endnote ? "OfficeIMO.Endnote." : "OfficeIMO.Footnote.") +
+        key.Id.ToString(System.Globalization.CultureInfo.InvariantCulture);
 }

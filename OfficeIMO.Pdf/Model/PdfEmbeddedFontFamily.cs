@@ -73,8 +73,8 @@ public sealed partial class PdfEmbeddedFontFamily {
 
     internal PdfEmbeddedFontFamily Clone() => this;
 
-    internal PdfEmbeddedFontFamily CreateCoverageStableFallbackSnapshot() =>
-        new PdfEmbeddedFontFamily(FamilyName, _regular, _regularHasPhysicalSlant);
+    internal PdfEmbeddedFontFamily CreateCoverageStableFallbackSnapshot(string? familyName = null) =>
+        new PdfEmbeddedFontFamily(familyName ?? FamilyName, _regular, _regularHasPhysicalSlant);
 
     private PdfEmbeddedFontFamily(string familyName, byte[] regular, bool hasPhysicalSlant) {
         FamilyName = familyName;

@@ -284,9 +284,9 @@ public sealed partial class PdfOptions {
         var namedCandidates = new List<PdfEmbeddedFontFallbackCandidate>(candidates.Count);
         foreach (PdfEmbeddedFontFallbackCandidate candidate in candidates) {
             string name = CreatePromotedFallbackFamilyName(candidate.FontName, PdfStandardFont.Helvetica, prospectiveFamilies);
-            namedCandidates.Add(new PdfEmbeddedFontFallbackCandidate(
-                name, candidate.DataSnapshot, candidate.UnicodeRanges, candidate.Style, candidate.PlannerFamilyName));
-            prospectiveFamilies.Add(NormalizeNamedFontFamilyKey(name), new PdfEmbeddedFontFamily(name, candidate.DataSnapshot));
+            PdfEmbeddedFontFallbackCandidate namedCandidate = candidate.WithRegisteredFamilyName(name);
+            namedCandidates.Add(namedCandidate);
+            prospectiveFamilies.Add(NormalizeNamedFontFamilyKey(name), namedCandidate.FontFamilySnapshot);
         }
         RegisterEmbeddedFontFallbacks(new PdfEmbeddedFontFallbackSet(namedCandidates));
         // Only these automatic registrations belong to the fallback lifecycle.

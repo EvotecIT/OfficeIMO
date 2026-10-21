@@ -437,6 +437,7 @@ public sealed partial class PdfOptions {
                 replacingAutomaticFallbacks: true);
         }
         if (prepared.UsesNamedFontFamilies) {
+            prepared = PrepareCallerNamedFallbacks(prepared);
             ValidateRenderingProfileFamilyCapacity(
                 Array.Empty<PdfEmbeddedFontFamily>(),
                 prepared,

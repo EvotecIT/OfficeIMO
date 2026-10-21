@@ -33,16 +33,20 @@ public sealed partial class PdfDocument {
                     PdfParagraphStyle? paragraphStyle = paragraph.Style ?? options.DefaultParagraphStyleSnapshot;
                     if (paragraphStyle?.AnchoredCanvas != null || paragraph.Runs.Any(run => run.FootnoteReference != null || run.FormField != null))
                         throw new NotSupportedException("Footnotes cannot contain recursive references, form fields, or anchored canvas content.");
-                    if (paragraphStyle?.KeepWithNext == true)
-                        throw new NotSupportedException("Footnote paragraphs do not support keep-with-next chains. Use paragraph keep-together or widow/orphan constraints.");
                     break;
-                case HorizontalRuleBlock rule:
-                    if ((rule.Style ?? options.DefaultHorizontalRuleStyleSnapshot)?.KeepWithNext == true)
-                        throw new NotSupportedException("Footnote horizontal rules do not support keep-with-next chains.");
+                case HorizontalRuleBlock:
                     break;
-                case ImageBlock image:
-                    if ((image.Style ?? options.DefaultImageStyleSnapshot)?.KeepWithNext == true)
-                        throw new NotSupportedException("Footnote images do not support keep-with-next chains.");
+                case ImageBlock:
+                    break;
+                case PdfListBlock list:
+                    if (list.RichItems.SelectMany(item => item.Runs).Any(run => run.FootnoteReference != null || run.FormField != null))
+                        throw new NotSupportedException("Footnote lists cannot contain recursive references or form fields.");
+                    break;
+                case ContainerBlock container:
+                    PdfPanelStyle panelStyle = container.UseDefaultPanelStyle ? options.DefaultPanelStyleSnapshot ?? container.Style : container.Style;
+                    if (container.FrameTable != null || panelStyle.AnchoredCanvas != null)
+                        throw new NotSupportedException("Footnote panels require static flow without framed tables or anchored canvas content.");
+                    ValidateFootnoteBlocks(container.Blocks, options);
                     break;
                 case SpacerBlock:
                 case BookmarkBlock:
@@ -54,7 +58,7 @@ public sealed partial class PdfDocument {
                     ValidateFootnoteBlocks(children, options);
                     break;
                 default:
-                    throw new NotSupportedException("Footnote flow does not support " + block.GetType().Name + ". Use paragraphs, images, rules, and spacers.");
+                    throw new NotSupportedException("Footnote flow does not support " + block.GetType().Name + ". Use paragraphs, lists, static panels, images, rules, and spacers.");
             }
         }
     }

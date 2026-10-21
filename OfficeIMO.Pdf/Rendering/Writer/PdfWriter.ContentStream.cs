@@ -423,7 +423,16 @@ internal sealed partial class ContentStreamBuilder {
 
         if (!command.HasPositioning) {
             OpenShow(fontSize);
-            if (command.SimpleFontKerning is { } kerning) {
+            if (command.JustificationBoundaries != null && command.GlyphCount > 0) {
+                string hex = command.GlyphHex;
+                int codeLength = hex.Length / command.GlyphCount;
+                for (int index = 0; index < command.GlyphCount; index++) {
+                    ShowHexElement(hex.Substring(index * codeLength, codeLength));
+                    double adjustment = command.SimpleFontKerning?[index] ?? 0D;
+                    adjustment += command.GetJustificationAdvance(index) * 1000D / fontSize / _textScale;
+                    if (adjustment != 0D) ShowNumberElement(-adjustment);
+                }
+            } else if (command.SimpleFontKerning is { } kerning) {
                 string hex = command.GlyphHex;
                 for (int index = 0; index < kerning.Length && index * 2 + 1 < hex.Length; index++) {
                     ShowHexElement(hex.Substring(index * 2, 2));
@@ -436,7 +445,7 @@ internal sealed partial class ContentStreamBuilder {
         } else {
             double tracking1000 = (command.Tracking?.GetAdjustment(fontSize / command.FontMetricScale) ?? 0D) * 1000D / command.UnitsPerEm;
             AppendPositionedGlyphs(command.PositionedGlyphs!, fontSize, currentTextRise,
-                command.NegativeTracking ? -tracking1000 : tracking1000, command.TrackingBoundaries);
+                command.NegativeTracking ? -tracking1000 : tracking1000, command.TrackingBoundaries, command);
         }
 
         if (marked) {
@@ -448,7 +457,8 @@ internal sealed partial class ContentStreamBuilder {
             double trackingAdvance = (command.Tracking?.GetAdjustment(fontSize / command.FontMetricScale) ?? 0D)
                 * fontSize / command.UnitsPerEm * (command.TrackingBoundaries?.Count(boundary => boundary) ?? 0);
             AdvanceTrackedText(command.AdvanceWidth1000.Value * fontSize / 1000D
-                + (command.NegativeTracking ? -trackingAdvance : trackingAdvance) + command.WordSpaceCount * _textWordSpacing + command.GlyphCount * _textCharacterSpacing);
+                + (command.NegativeTracking ? -trackingAdvance : trackingAdvance) + command.WordSpaceCount * _textWordSpacing + command.GlyphCount * _textCharacterSpacing
+                + (command.JustificationBoundaries?.Count(boundary => boundary) ?? 0) * command.JustificationTracking / _textScale);
         } else {
             _positionKnown = false;
         }
@@ -456,7 +466,7 @@ internal sealed partial class ContentStreamBuilder {
     }
 
     private void AppendPositionedGlyphs(IReadOnlyList<PdfGlyphInfo> glyphs, double fontSize, double baseTextRise,
-        double tracking1000 = 0D, bool[]? trackingBoundaries = null) {
+        double tracking1000 = 0D, bool[]? trackingBoundaries = null, PdfTextShowCommand? command = null) {
         int currentOffsetY1000 = 0;
         bool open = false;
         for (int index = 0; index < glyphs.Count; index++) {
@@ -477,7 +487,8 @@ internal sealed partial class ContentStreamBuilder {
             if (glyph.OffsetX1000 != 0) ShowNumberElement(-glyph.OffsetX1000);
             ShowGlyphElement(glyph.GlyphId);
             ShowNumberElement(glyph.OffsetX1000 + glyph.NominalWidth1000 - glyph.AdvanceWidth1000
-                - (trackingBoundaries?[index] == true ? tracking1000 : 0D));
+                - (trackingBoundaries?[index] == true ? tracking1000 : 0D)
+                - (command?.GetJustificationAdvance(index) ?? 0D) * 1000D / fontSize / _textScale);
         }
 
         if (open) CloseShow();

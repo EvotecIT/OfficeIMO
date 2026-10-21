@@ -85,6 +85,7 @@ public sealed class PdfEmbeddedFontFallbackSet {
         if (UsesNamedFontFamilies) {
             foreach (PdfEmbeddedFontFallbackCandidate candidate in _candidates) {
                 options.RegisterNamedFontFamily(candidate.FontFamilySnapshot);
+                options.RegisterNamedFallbackPlan(candidate);
             }
 
             return options;
@@ -183,8 +184,11 @@ public sealed class PdfEmbeddedFontFallbackSet {
     /// <summary>Plans text runs with an explicit text shaping mode.</summary>
     public IReadOnlyList<PdfTextRun> PlanTextRuns(string text, string source = "", PdfTextRun? styleTemplate = null, PdfTextShapingMode shapingMode = PdfTextShapingMode.UnicodeScalar) =>
         UsesNamedFontFamilies
-            ? PlanText(text, source, shapingMode).ToNamedTextRuns(_fontFamilyNames, styleTemplate)
+            ? CreateNamedTextRuns(PlanText(text, source, shapingMode), styleTemplate)
             : PlanText(text, source, shapingMode).ToTextRuns(_fontSlots, styleTemplate);
+
+    internal IReadOnlyList<PdfTextRun> CreateNamedTextRuns(PdfTextFallbackPlan plan, PdfTextRun? styleTemplate) =>
+        plan.ToNamedFallbackTextRuns(_fontFamilyNames, _candidates, styleTemplate);
 
     /// <summary>
     /// Plans text and returns renderable rich text runs only when every non-layout scalar is covered.
@@ -226,7 +230,7 @@ public sealed class PdfEmbeddedFontFallbackSet {
         }
 
         runs = UsesNamedFontFamilies
-            ? plan.ToNamedTextRuns(_fontFamilyNames, styleTemplate)
+            ? CreateNamedTextRuns(plan, styleTemplate)
             : plan.ToTextRuns(_fontSlots, styleTemplate);
         return true;
     }

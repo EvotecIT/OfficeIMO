@@ -223,7 +223,7 @@ namespace OfficeIMO.Word.Pdf {
         }
 
         private static W.RunFonts? GetNativeEmptyParagraphMarkFonts(WordParagraph paragraph, IReadOnlyList<WordParagraph> runs) =>
-            runs.Any(run => IsNativeParagraphMetricBearingRun(run, paragraph, paragraph._paragraph.Ancestors<W.Footnote>().Any()))
+            runs.Any(run => IsNativeParagraphMetricBearingRun(run, paragraph, paragraph._paragraph.Ancestors<W.FootnoteEndnoteType>().Any()))
                 ? null : paragraph._paragraph.ParagraphProperties?.ParagraphMarkRunProperties?.GetFirstChild<W.RunFonts>();
 
         private static void RegisterNativeThemeStyleFonts(

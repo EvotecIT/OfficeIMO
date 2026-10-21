@@ -2316,7 +2316,6 @@ public partial class PdfFontFamilyTests {
         options.RegisterFontFamily(PdfStandardFont.Helvetica, new PdfEmbeddedFontFamily("Document Sans", font));
         options.RegisterFontFamily(PdfStandardFont.TimesRoman, new PdfEmbeddedFontFamily("Document Serif", font));
         options.RegisterFontFamily(PdfStandardFont.Courier, new PdfEmbeddedFontFamily("Document Mono", font));
-        options.RegisterNamedFontFamily(new PdfEmbeddedFontFamily("Portable Fallback", new byte[] { 0 }));
         options.RegisterEmbeddedFontFallbacks(fallbackSet);
 
         Assert.True(options.TryResolveNamedFontFace("Portable Fallback", bold: false, italic: false, out PdfNamedFontFace fallbackFace));

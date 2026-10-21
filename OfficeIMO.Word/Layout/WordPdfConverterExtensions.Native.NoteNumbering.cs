@@ -90,7 +90,7 @@ public static partial class WordPdfConverterExtensions {
             if (placementFallbackReported || options == null) return;
             placementFallbackReported = true;
             AddNativeExportWarning(options, "NativeFootnotePlacementApproximated", "footnotes",
-                "This footnote profile uses plain text in document flow after its section. Page placement and original note formatting are approximated." +
+                "This footnote profile is placed in document flow after its section. Supported paragraph formatting is retained; page placement is approximated, and unsupported content is reported separately." +
                 (reason == null ? string.Empty : " " + reason));
         }
 

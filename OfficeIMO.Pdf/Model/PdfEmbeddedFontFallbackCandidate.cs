@@ -78,6 +78,22 @@ public sealed class PdfEmbeddedFontFallbackCandidate {
 
     internal string PlannerFamilyName { get; }
 
+    // A registration may need a different resource name, but a reusable plan
+    // still selects the same immutable candidate in every options snapshot.
+    internal object RegistrationIdentity { get; } = new object();
+
+    private PdfEmbeddedFontFallbackCandidate(PdfEmbeddedFontFallbackCandidate source, string registeredFamilyName) {
+        FontName = registeredFamilyName;
+        PlannerFamilyName = source.PlannerFamilyName;
+        _fontFamily = source._fontFamily.CreateCoverageStableFallbackSnapshot(registeredFamilyName);
+        UnicodeRanges = source.UnicodeRanges;
+        Style = source.Style;
+        RegistrationIdentity = source.RegistrationIdentity;
+    }
+
+    internal PdfEmbeddedFontFallbackCandidate WithRegisteredFamilyName(string familyName) =>
+        new(this, familyName);
+
     internal byte[] DataSnapshot => _fontFamily.RegularSnapshot;
 
     internal PdfEmbeddedFontFamily FontFamilySnapshot => _fontFamily;

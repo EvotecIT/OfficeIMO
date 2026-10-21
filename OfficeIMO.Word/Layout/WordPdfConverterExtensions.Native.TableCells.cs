@@ -351,11 +351,14 @@ namespace OfficeIMO.Word.Pdf {
                             GetNativeParagraphStyleDefaults(finalParagraph), nativeDefaults, tableStyleDefaults).KeepWithNext
                     };
                 }
-                IReadOnlyList<PdfCore.PdfTabStop> tabStops = ResolveNativeTableCellParagraphTabStops(paragraph, indentation.Left);
+                IReadOnlyList<PdfCore.PdfTabStop> tabStops = ResolveNativeParagraphTabStops(paragraph, indentation.Left, indentation.FirstLine);
+                W.JustificationValues? alignment = ResolveNativeTableCellParagraphJustification(paragraph, tableStyleDefaults);
+                var justification = new PdfCore.PdfParagraphStyle();
+                ApplyNativeParagraphJustification(justification, paragraph, alignment);
                 paragraphs.Add(new PdfCore.PdfTableCellParagraph(
                     paragraphRuns,
                     spacingAfter,
-                    MapNativeParagraphAlign(ResolveNativeTableCellParagraphJustification(paragraph, tableStyleDefaults)),
+                    MapNativeParagraphAlign(alignment),
                     spacingBefore,
                     indentation.Left,
                     indentation.Right,
@@ -364,7 +367,8 @@ namespace OfficeIMO.Word.Pdf {
                     nativeDefaults.DefaultTabStopWidth,
                     tabStops,
                     paragraphFontSize,
-                    lineSpacing, pagination.WidowControl, pagination.KeepTogether ?? false, pagination.KeepWithNext ?? false));
+                    lineSpacing, pagination.WidowControl, pagination.KeepTogether ?? false, pagination.KeepWithNext ?? false,
+                    justification.JustificationMode, justification.JustifyExplicitLineBreaks, justification.JustifyLastLine));
                 pendingSpacingAfter = declaredSpacingAfter;
                 i = lastIndex;
             }
@@ -460,30 +464,6 @@ namespace OfficeIMO.Word.Pdf {
             double tableFontSize = ResolveNativeTableCellParagraphFontSize(paragraph, nativeDefaults, styleDefaults, tableStyleDefaults);
             double paragraphFontSize = ResolveNativeParagraphEffectiveFontSize(paragraph, nativeDefaults, styleDefaults, tableStyleDefaults.RunStyle);
             return Math.Max(tableFontSize, paragraphFontSize);
-        }
-
-        private static IReadOnlyList<PdfCore.PdfTabStop> ResolveNativeTableCellParagraphTabStops(WordParagraph paragraph, double leftIndent) {
-            var result = new List<PdfCore.PdfTabStop>();
-            foreach (WordTabStop tabStop in GetNativeParagraphEffectiveTabStops(paragraph)
-                .Where(tabStop => tabStop.Position > 0 && IsNativeRenderableTextTabStop(tabStop.Alignment))
-                .OrderBy(tabStop => tabStop.Position)) {
-                double? position = ConvertNativeTwipsToPoints(tabStop.Position);
-                if (!position.HasValue) {
-                    continue;
-                }
-
-                double framePosition = position.Value - leftIndent;
-                if (framePosition <= 0D) {
-                    continue;
-                }
-
-                result.Add(new PdfCore.PdfTabStop(
-                    framePosition,
-                    MapNativeTabAlignment(tabStop.Alignment),
-                    MapNativeTabLeader(tabStop.Leader)) { DecimalSeparator = GetNativeDecimalTabSeparator(paragraph) });
-            }
-
-            return result;
         }
 
         private static double GetNativeCellParagraphSpacingBefore(

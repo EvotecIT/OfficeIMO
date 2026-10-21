@@ -580,13 +580,14 @@ public sealed partial class PdfDocument {
             PdfStandardFont.CourierBoldOblique;
 
     private static void AddRunTextShapingDiagnostics(IEnumerable<PdfTextRun> runs, PdfOptions options, PdfStandardFont defaultFont, string source) {
-        foreach (PdfTextRun run in runs) {
+        foreach (PdfTextRun sourceRun in runs) {
             // Adapter-owned runs already carry contextual forms and visual order. The writer
             // preserves those glyphs, while the separate encoding pass still validates coverage.
-            if (run == null || run.PreservesPaintedGlyphs || string.Equals(run.Text, "\n", StringComparison.Ordinal) || string.Equals(run.Text, "\t", StringComparison.Ordinal)) {
+            if (sourceRun == null || sourceRun.PreservesPaintedGlyphs || string.Equals(sourceRun.Text, "\n", StringComparison.Ordinal) || string.Equals(sourceRun.Text, "\t", StringComparison.Ordinal)) {
                 continue;
             }
 
+            PdfTextRun run = options.ResolvePlannedNamedFallbackRun(sourceRun);
             PdfStandardFont runFont = ResolveDiagnosticRunFont(defaultFont, run);
             options.AddTextShapingDiagnostics(
                 PdfTextDiagnostics.AnalyzeAdvancedTextLayout(run.Text, source),
