@@ -92,8 +92,6 @@ public static partial class OfficeDrawingSvgExporter {
         value.Equals("ui-monospace", StringComparison.OrdinalIgnoreCase) ||
         value.Equals("ui-rounded", StringComparison.OrdinalIgnoreCase) ||
         value.Equals("math", StringComparison.OrdinalIgnoreCase) ||
-        value.Equals("emoji", StringComparison.OrdinalIgnoreCase) ||
-        value.Equals("fangsong", StringComparison.OrdinalIgnoreCase) ||
         IsFunctionalGenericCssFamily(value);
 
     // CSS Fonts 4 script-specific generics are functions, not literal family names.

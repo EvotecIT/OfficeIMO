@@ -73,6 +73,27 @@ public sealed class DrawingSvgFontScopeTests {
     }
 
     [Theory]
+    [InlineData("fangsong", "fangsong")]
+    [InlineData("fangsong", "FaNgSoNg")]
+    [InlineData("emoji", "emoji")]
+    [InlineData("emoji", "EmOjI")]
+    public void InlineSvgScopesOrdinaryFamilyNamesThatAreNotGenericKeywords(string family, string request) {
+        var drawing = new OfficeDrawing(100, 40);
+        drawing.Fonts.Add(family, ManagedTextShapingTestAssets.CreateFont('A'));
+        drawing.AddText("A", 2, 2, 90, 30,
+            new OfficeFontInfo(request + ", generic(fangsong), serif", 12));
+
+        var svg = XElement.Parse(OfficeDrawingSvgExporter.ToSvg(
+            drawing, 1, OfficeSvgSizeUnit.Point, null, "page-1-"));
+
+        Assert.Equal("\"page-1-" + family + "\", generic(fangsong), serif",
+            svg.Descendants().Single(e => e.Name.LocalName == "text").Attribute("font-family")!.Value);
+        Assert.Contains("font-family:\"page-1-" + family + "\";",
+            svg.Descendants().Single(e => e.Name.LocalName == "style").Value, StringComparison.Ordinal);
+        Assert.Equal(family, drawing.Fonts.Faces[0].FamilyName);
+    }
+
+    [Theory]
     [InlineData("")]
     [InlineData("page-1-")]
     public void SvgKeepsLiteralAndGenericFallbacksDistinct(string prefix) {
