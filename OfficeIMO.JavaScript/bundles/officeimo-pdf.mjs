@@ -2925,10 +2925,13 @@ class PdfTableLayout {
     lineHeight;
     headings;
     totals;
+    repeatedColumns;
+    structuredBandRows = new WeakMap();
     constructor(settings, fonts) {
         this.settings = settings;
         this.fonts = fonts;
         const { options, padding, fontSize, page, margins } = settings, columns = options.columns, available = page.width - margins.left - margins.right;
+        this.repeatedColumns = new Set(typeof options.wideTable === "object" ? options.wideTable.repeatColumns : []);
         let digit;
         if (options.columnWidths && options.columnWidths.length !== columns.length)
             throw new RangeError("columnWidths must declare one point width per column.");
@@ -3046,10 +3049,38 @@ class PdfTableLayout {
         return cells.map((row, r) => ({ cells: row.map(c => ({ ...c, height: heights.slice(r, r + c.rowSpan).reduce((n, h) => n + h, 0) })),
             lines: Math.max(1, Math.ceil((heights[r] - this.settings.padding * 2) / this.lineHeight)), lineHeight: this.lineHeight, height: heights[r], structured: true }));
     }
-    /** Project already captured table cells; data widths stay invariant across every band. */
+    /** Repeated identifiers stay complete on every vertical fragment at the row's shared line height. */
+    minimumRowLines(row) {
+        let lines = 1;
+        if (this.bands)
+            for (const cell of row.cells)
+                if (this.repeatedColumns.has(cell.first))
+                    lines = Math.max(lines, cell.lines.length);
+        return lines;
+    }
+    minimumRowHeight(row) { return this.minimumRowLines(row) * row.lineHeight + this.settings.padding * 2; }
+    repeatedColumn(index) { return this.repeatedColumns.has(index); }
+    /** Measure the physical block before kept content is painted. Structured band projections are
+     * shared with the painter, so measurement cannot disagree with narrower span intersections. */
+    async blockHeight(rows) {
+        const physical = this.bands ? (await this.bandRows(rows, true))[0] : rows;
+        return physical.reduce((height, row) => height + row.height, 0);
+    }
+    /** Project already captured cells. Cache only bounded structured headings/footer matrices;
+     * ordinary data windows remain owned and released by PdfTableBandFlow. */
     async bandRows(rows, structured = false) {
         if (!this.bands)
             throw new Error("Horizontal bands were not planned.");
+        if (!structured)
+            return this.projectBandRows(rows, false);
+        let prepared = this.structuredBandRows.get(rows);
+        if (!prepared) {
+            prepared = this.projectBandRows(rows, true);
+            this.structuredBandRows.set(rows, prepared);
+        }
+        return prepared;
+    }
+    async projectBandRows(rows, structured) {
         const projected = [];
         for (const band of this.bands)
             projected.push(await projectBandRows(rows, band, this.widths, this.settings, this.fonts));
@@ -3124,30 +3155,36 @@ class PdfTableBandFlow {
             await this.flush();
     }
     async row(row) {
-        const { padding, options } = this.layout.settings;
+        const { padding, options } = this.layout.settings, minimumLines = this.layout.minimumRowLines(row), minimumHeight = this.layout.minimumRowHeight(row);
+        if (minimumHeight > this.painter.firstFullCapacity + .001 || minimumHeight > this.painter.continuationCapacity + .001)
+            throw new RangeError("Repeated PDF identifiers must fit intact below the first and continued band headings/context.");
         // A normal row remains intact whenever it fits below a fresh set of repeated context/headings.
         if (this.entries.length && row.height <= this.painter.continuationCapacity + .001 && row.height > this.capacity - this.height + .001)
             await this.flush();
         let first = 0;
         while (first < row.lines) {
             checkAbort(options.signal);
-            let lines = Math.min(row.lines - first, Math.floor((this.capacity - this.height - padding * 2 + .001) / row.lineHeight));
-            if (lines < 1) {
+            if (this.entries.length && this.capacity - this.height + .001 < minimumHeight)
                 await this.flush();
-                lines = Math.min(row.lines - first, Math.floor((this.capacity - padding * 2 + .001) / row.lineHeight));
+            if (this.firstWindow && !this.entries.length && this.capacity + .001 < minimumHeight) {
+                await this.painter.moveFirstToFreshPage();
+                this.firstCapacity = this.painter.firstFullCapacity;
             }
+            if (this.capacity - this.height + .001 < minimumHeight)
+                throw new RangeError("PDF band window cannot fit its complete repeated identifiers.");
+            const lines = Math.min(row.lines - first, Math.floor((this.capacity - this.height - padding * 2 + .001) / row.lineHeight));
             if (lines < 1)
                 throw new RangeError("PDF page cannot fit a table line below horizontal band headings.");
+            const paintedLines = Math.max(lines, minimumLines), height = paintedLines * row.lineHeight + padding * 2;
             const projected = await this.layout.bandRows([row]);
-            const repeats = new Set(typeof options.wideTable === "object" ? options.wideTable.repeatColumns : []);
-            const fragments = projected.map((rows, index) => [{ ...rows[0], lines, height: lines * row.lineHeight + padding * 2,
+            const fragments = projected.map((rows, index) => [{ ...rows[0], lines: paintedLines, height,
                     cells: rows[0].cells.map(cell => {
                         const source = this.layout.bands[index].columns[cell.first];
-                        const visible = first > 0 && repeats.has(source) && cell.lines.length <= lines ? cell.lines : cell.lines.slice(first, first + lines);
+                        const visible = this.layout.repeatedColumn(source) ? cell.lines : cell.lines.slice(first, first + lines);
                         const { height: _height, ...plain } = cell;
                         return { ...plain, lines: visible };
                     }) }]);
-            await this.accept({ rows: fragments, height: lines * row.lineHeight + padding * 2, count: 1 });
+            await this.accept({ rows: fragments, height, count: 1 });
             first += lines;
             if (first < row.lines)
                 await this.flush();
@@ -5538,7 +5575,7 @@ async function renderGroupedPdfTable(block, context) {
     if (operation.signal?.aborted)
         abort();
     try {
-        const headings = await layout.headers(), headingHeight = headings.reduce((height, row) => height + row.height, 0);
+        const headings = await layout.headers(), headingHeight = await layout.blockHeight(headings);
         let path = [], started = false, firstFragment = false, firstBundleOversized = false;
         let pending;
         const closing = [];
@@ -5583,7 +5620,7 @@ async function renderGroupedPdfTable(block, context) {
             const bundleHeight = row.height + closing.reduce((height, summary) => height + summary.height, 0);
             const available = table.page.height - table.margins.top - table.margins.bottom - headingHeight - Math.max(caption.height, continuation.height);
             firstBundleOversized = closing.length > 0 && bundleHeight > available + .001;
-            const minimum = closing.length > 0 && !firstBundleOversized ? bundleHeight : row.lineHeight + table.padding * 2;
+            const minimum = closing.length > 0 && !firstBundleOversized ? bundleHeight : layout.minimumRowHeight(row);
             await context.flushParagraphs(caption.height + headingHeight + minimum);
             await pages.beginTable(layout, headings, minimum, caption, continuation);
             started = true;
@@ -5609,8 +5646,8 @@ async function renderGroupedPdfTable(block, context) {
             }
             if (!completeHeadings.length && !total)
                 return;
-            const minimum = total ? total.lineHeight + table.padding * 2 : 0;
-            await context.flushParagraphs(completeHeadings.reduce((height, row) => height + row.height, 0) + minimum);
+            const minimum = total ? completeLayout.minimumRowHeight(total) : 0;
+            await context.flushParagraphs(await completeLayout.blockHeight(completeHeadings) + minimum);
             await pages.beginTable(completeLayout, completeHeadings, minimum, undefined, undefined, summary.rows !== 0);
             if (total)
                 await pages.row(total);
@@ -5835,12 +5872,12 @@ async function writePdfDocumentTo(blocks, destination, configuration = {}) {
                         const project = createRowProjector(table.options.columns, undefined, options.signal);
                         let count = 0, started = false;
                         columns = Math.max(columns, table.options.columns.length);
-                        const headings = await layout.headers(), headingHeight = headings.reduce((height, row) => height + row.height, 0);
+                        const headings = await layout.headers(), headingHeight = await layout.blockHeight(headings);
                         await consumeRows(source, options.signal, async (row) => {
                             budget.row(++budgetRows);
                             const laidOut = await layout.data(project(row, count), count), keptHeading = !started && (pending.length > 0 || !!caption?.lines.length);
                             if (!started) {
-                                const minimum = laidOut.lineHeight + table.padding * 2;
+                                const minimum = layout.minimumRowHeight(laidOut);
                                 await flushParagraphs((caption?.height ?? 0) + headingHeight + minimum);
                                 await pages.beginTable(layout, headings, minimum, caption, continuationCaption);
                                 started = true;
@@ -5858,8 +5895,8 @@ async function writePdfDocumentTo(blocks, destination, configuration = {}) {
                         if (!started) {
                             if (!headings.length && !footer?.length)
                                 break;
-                            const minimum = footer?.length ? table.options.footer?.rows ? footer.reduce((height, row) => height + row.height, 0) :
-                                footer[0].lineHeight + table.padding * 2 : 0;
+                            const minimum = footer?.length ? table.options.footer?.rows ? await layout.blockHeight(footer) :
+                                layout.minimumRowHeight(footer[0]) : 0;
                             await flushParagraphs((caption?.height ?? 0) + headingHeight + minimum);
                             await pages.beginTable(layout, headings, minimum, caption, continuationCaption);
                         }

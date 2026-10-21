@@ -36,25 +36,32 @@ export class PdfTableBandFlow {
     if (this.count >= this.layout.settings.limits.maxTableWindowRows) await this.flush();
   }
   async row(row: PdfLayoutRow): Promise<void> {
-    const { padding, options } = this.layout.settings;
+    const { padding, options } = this.layout.settings, minimumLines = this.layout.minimumRowLines(row), minimumHeight = this.layout.minimumRowHeight(row);
+    if (minimumHeight > this.painter.firstFullCapacity + .001 || minimumHeight > this.painter.continuationCapacity + .001)
+      throw new RangeError("Repeated PDF identifiers must fit intact below the first and continued band headings/context.");
     // A normal row remains intact whenever it fits below a fresh set of repeated context/headings.
     if (this.entries.length && row.height <= this.painter.continuationCapacity + .001 && row.height > this.capacity - this.height + .001) await this.flush();
     let first = 0;
     while (first < row.lines) {
       checkAbort(options.signal);
-      let lines = Math.min(row.lines - first, Math.floor((this.capacity - this.height - padding * 2 + .001) / row.lineHeight));
-      if (lines < 1) { await this.flush(); lines = Math.min(row.lines - first, Math.floor((this.capacity - padding * 2 + .001) / row.lineHeight)); }
+      if (this.entries.length && this.capacity - this.height + .001 < minimumHeight) await this.flush();
+      if (this.firstWindow && !this.entries.length && this.capacity + .001 < minimumHeight) {
+        await this.painter.moveFirstToFreshPage(); this.firstCapacity = this.painter.firstFullCapacity;
+      }
+      if (this.capacity - this.height + .001 < minimumHeight)
+        throw new RangeError("PDF band window cannot fit its complete repeated identifiers.");
+      const lines = Math.min(row.lines - first, Math.floor((this.capacity - this.height - padding * 2 + .001) / row.lineHeight));
       if (lines < 1) throw new RangeError("PDF page cannot fit a table line below horizontal band headings.");
+      const paintedLines = Math.max(lines, minimumLines), height = paintedLines * row.lineHeight + padding * 2;
       const projected = await this.layout.bandRows([row]);
-      const repeats = new Set(typeof options.wideTable === "object" ? options.wideTable.repeatColumns : []);
-      const fragments = projected.map((rows, index) => [{ ...rows[0]!, lines, height: lines * row.lineHeight + padding * 2,
+      const fragments = projected.map((rows, index) => [{ ...rows[0]!, lines: paintedLines, height,
         cells: rows[0]!.cells.map(cell => {
           const source = this.layout.bands![index]!.columns[cell.first]!;
-          const visible = first > 0 && repeats.has(source) && cell.lines.length <= lines ? cell.lines : cell.lines.slice(first, first + lines);
+          const visible = this.layout.repeatedColumn(source) ? cell.lines : cell.lines.slice(first, first + lines);
           const { height: _height, ...plain } = cell;
           return { ...plain, lines: visible };
         }) }]);
-      await this.accept({ rows: fragments, height: lines * row.lineHeight + padding * 2, count: 1 }); first += lines;
+      await this.accept({ rows: fragments, height, count: 1 }); first += lines;
       if (first < row.lines) await this.flush();
     }
   }

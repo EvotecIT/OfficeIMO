@@ -39,8 +39,11 @@ export class PdfTableLayout {
   readonly lineHeight: number;
   readonly headings: readonly (readonly HeadingCell[])[];
   readonly totals: readonly NumericAggregate[];
+  private readonly repeatedColumns: ReadonlySet<number>;
+  private readonly structuredBandRows = new WeakMap<readonly PdfLayoutRow[], Promise<readonly (readonly PdfLayoutRow[])[]>>();
   constructor(readonly settings: PdfSettings, readonly fonts: PdfFontResources) {
     const { options, padding, fontSize, page, margins } = settings, columns = options.columns, available = page.width - margins.left - margins.right;
+    this.repeatedColumns = new Set(typeof options.wideTable === "object" ? options.wideTable.repeatColumns : []);
     let digit: number | undefined;
     if (options.columnWidths && options.columnWidths.length !== columns.length) throw new RangeError("columnWidths must declare one point width per column.");
     const minimum = typeof options.wideTable === "object" ? options.wideTable.minimumColumnWidth ?? 72 : 0;
@@ -141,11 +144,32 @@ export class PdfTableLayout {
     return cells.map((row, r) => ({ cells: row.map(c => ({ ...c, height: heights.slice(r, r + c.rowSpan).reduce((n, h) => n + h, 0) })),
       lines: Math.max(1, Math.ceil((heights[r]! - this.settings.padding * 2) / this.lineHeight)), lineHeight: this.lineHeight, height: heights[r]!, structured: true }));
   }
-  /** Project already captured table cells; data widths stay invariant across every band. */
+  /** Repeated identifiers stay complete on every vertical fragment at the row's shared line height. */
+  minimumRowLines(row: PdfLayoutRow): number {
+    let lines = 1;
+    if (this.bands) for (const cell of row.cells) if (this.repeatedColumns.has(cell.first)) lines = Math.max(lines, cell.lines.length);
+    return lines;
+  }
+  minimumRowHeight(row: PdfLayoutRow): number { return this.minimumRowLines(row) * row.lineHeight + this.settings.padding * 2; }
+  repeatedColumn(index: number): boolean { return this.repeatedColumns.has(index); }
+  /** Measure the physical block before kept content is painted. Structured band projections are
+   * shared with the painter, so measurement cannot disagree with narrower span intersections. */
+  async blockHeight(rows: readonly PdfLayoutRow[]): Promise<number> {
+    const physical = this.bands ? (await this.bandRows(rows, true))[0]! : rows;
+    return physical.reduce((height, row) => height + row.height, 0);
+  }
+  /** Project already captured cells. Cache only bounded structured headings/footer matrices;
+   * ordinary data windows remain owned and released by PdfTableBandFlow. */
   async bandRows(rows: readonly PdfLayoutRow[], structured = false): Promise<readonly (readonly PdfLayoutRow[])[]> {
     if (!this.bands) throw new Error("Horizontal bands were not planned.");
+    if (!structured) return this.projectBandRows(rows, false);
+    let prepared = this.structuredBandRows.get(rows);
+    if (!prepared) { prepared = this.projectBandRows(rows, true); this.structuredBandRows.set(rows, prepared); }
+    return prepared;
+  }
+  private async projectBandRows(rows: readonly PdfLayoutRow[], structured: boolean): Promise<readonly (readonly PdfLayoutRow[])[]> {
     const projected = [];
-    for (const band of this.bands) projected.push(await projectBandRows(rows, band, this.widths, this.settings, this.fonts));
+    for (const band of this.bands!) projected.push(await projectBandRows(rows, band, this.widths, this.settings, this.fonts));
     return structured ? alignBandBlocks(projected, this.settings) : projected;
   }
   async data(values: readonly ExportValue[], index: number, footer = false): Promise<PdfLayoutRow> {

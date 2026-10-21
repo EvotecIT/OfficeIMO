@@ -53,7 +53,7 @@ export async function writeAnalyticalReport(api, { input = {}, rows, columns, si
   }
   const report = api.createGroupedReport(records(), { columns: selectedColumns, totals, signal,
     groupBy: keys.map((key, level) => columns.some(column => column.key === key) ? key : { key, value: record => record[columns.length + level] }),
-    maxGroups: 4000, limits: { maxRows: 100000, maxCells: 100000 * columns.length, maxTextCharacters: 16000000 } });
+    maxGroups: 4000, limits: { maxRows: 100000, maxCells: 100001 * columns.length, maxTextCharacters: 16000000 } });
   const labels = { labelColumn: { header: text.group, width: 26 },
     subtotalLabel: group => `${text.subtotal} · ${group.label} · ${group.rows.toLocaleString(language)}`,
     grandTotalLabel: summary => `${text.total} · ${summary.rows.toLocaleString(language)}`,

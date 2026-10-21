@@ -9,7 +9,8 @@ export interface PdfTableBands {
   readonly mode: "bands";
   /** Minimum point width when columnWidths is absent. Default 72; shared Column.width can increase it. */
   readonly minimumColumnWidth?: number;
-  /** Sorted unique zero-based source indices, repeated as a prefix on every band. Grouped tables include their leading label column. */
+  /** Sorted unique zero-based source indices, repeated as a prefix on every band. Grouped tables include their leading label column.
+   * Repeated cell contents must fit below the headings/context on one fresh page. */
   readonly repeatColumns?: readonly number[];
 }
 /** PDF lengths are points (72 points per inch). */

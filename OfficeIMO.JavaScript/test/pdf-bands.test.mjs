@@ -112,3 +112,54 @@ test("long logical rows split into identical band windows and repeat short ident
   for (const page of pdf.pages) assert.ok(page.lines.includes("ID-0"), "The same identifier remains visible on every horizontal/vertical fragment");
   assert.deepEqual(pdf.pages.flatMap(page => page.lines).filter(line => /^Line-/.test(line)), lines);
 });
+
+test("kept headings reserve projected span geometry for ordinary, grouped and footer-only band tables", async () => {
+  const spanning = "Shared analytical heading with descriptive context repeated across narrow readable horizontal bands";
+  const headerRows = [[{ value: spanning, columnSpan: 7 }, null, null, null, null, null, null], columns.map(column => ({ value: column.header }))];
+  for (const profile of ["ordinary", "grouped", "footer"]) for (const precedingLines of [12, 16, 20, 24]) {
+    const row = { ...data(1)[0], c0: "ROW-ID" };
+    let table;
+    if (profile === "grouped") {
+      const report = createGroupedReport([row], { columns: columns.map(column => ({ ...column, groups: [spanning] })),
+        groupBy: [{ key: "region", value: () => "REGION-CONTEXT" }] });
+      table = pdfGroupedTable(report, { labelColumn: { header: "Summary" }, subtotalLabel: () => "Subtotal", grandTotalLabel: () => "Grand",
+        includeGrandTotal: false, columnWidths: Array(8).fill(80), wideTable: { mode: "bands", repeatColumns: [0, 1] } });
+    } else table = pdfTable(profile === "ordinary" ? [row] : [], { columns, columnWidths: columns.map(() => 80),
+      wideTable: { mode: "bands", repeatColumns: [0] }, ...(profile === "ordinary" ? { headerRows } : {
+        includeHeader: false, footer: { rows: [[{ value: "FOOTER-MARK " + spanning, columnSpan: 7 }, null, null, null, null, null, null]] }
+      }) });
+    const pdf = await inspectPdf(await writePdfDocument([
+      { kind: "paragraph", text: Array.from({ length: precedingLines }, (_, index) => `Preceding-${index}`).join("\n"), spaceAfter: 0 },
+      { kind: "paragraph", text: "KEPT TABLE HEADING", keepWithNext: true, keepTogether: true, spaceAfter: 4 }, table
+    ], { pageSize: base.pageSize, margins: base.margins, fontSize: base.fontSize, padding: base.padding, pageNumbers: false, compression: false }));
+    const headingPage = pdf.pages.findIndex(page => page.lines.includes("KEPT TABLE HEADING"));
+    const bodyPage = pdf.pages.findIndex(page => page.lines.some(line => profile === "footer" ? line.startsWith("FOOTER-MARK") : line === "ROW-ID"));
+    assert.ok(bodyPage >= 0, profile + " emitted its visible table body");
+    assert.equal(headingPage, bodyPage, `${profile}: kept heading must share its first physical table fragment after ${precedingLines} preceding lines`);
+  }
+});
+
+test("multiline repeated identifiers remain intact on short final fragments and reserve kept first fragments", async () => {
+  const identifier = ["KEY-ALPHA", "KEY-BETA", "KEY-GAMMA", "KEY-DELTA"];
+  const selected = [{ header: "Identifier", key: "id" }, { header: "Detail", key: "detail" }, { header: "Metric", key: "metric" }];
+  const detail = Array.from({ length: 50 }, (_, index) => `Detail-${index}`);
+  const row = { id: identifier.join("\n"), detail: detail.join("\n"), metric: "Metric-only" };
+  const tableOptions = { columns: selected, columnWidths: [80, 100, 100], wideTable: { mode: "bands", repeatColumns: [0] } };
+  const geometry = { pageSize: base.pageSize, margins: base.margins, fontSize: base.fontSize, padding: base.padding, pageNumbers: false, compression: false };
+  const pdf = await inspectPdf(await writePdf([row], { ...geometry, ...tableOptions }));
+  assert.ok(pdf.pages.length >= 4); assert.equal(pdf.pages.length % 2, 0);
+  for (const page of pdf.pages) assert.deepEqual(page.lines.filter(line => /^KEY-/.test(line)), identifier, "Every band/window retains the full repeated identity");
+  assert.deepEqual(pdf.pages.flatMap(page => page.lines).filter(line => /^Detail-/.test(line)), detail, "Padding a short last fragment never duplicates or skips logical detail lines");
+  for (const precedingLines of [19, 22, 24]) {
+    const composed = await inspectPdf(await writePdfDocument([
+      { kind: "paragraph", text: Array.from({ length: precedingLines }, () => "Preceding").join("\n"), spaceAfter: 0 },
+      { kind: "paragraph", text: "KEPT ID HEADING", keepWithNext: true, keepTogether: true, spaceAfter: 4 }, pdfTable([row], tableOptions)
+    ], geometry));
+    const headingPage = composed.pages.findIndex(page => page.lines.includes("KEPT ID HEADING"));
+    const firstIdentityPage = composed.pages.findIndex(page => page.lines.includes(identifier[0]));
+    assert.equal(headingPage, firstIdentityPage, "Kept content reserves the entire repeated identifier before painting");
+    for (const page of composed.pages.slice(firstIdentityPage)) assert.deepEqual(page.lines.filter(line => /^KEY-/.test(line)), identifier);
+  }
+  const oversized = { ...row, id: Array.from({ length: 40 }, (_, index) => `ID-${index}`).join("\n") };
+  await assert.rejects(writePdf([oversized], { ...geometry, ...tableOptions }), error => error instanceof RangeError && /Repeated PDF identifiers must fit intact/.test(error.message));
+});
