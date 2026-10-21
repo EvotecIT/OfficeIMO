@@ -30,7 +30,7 @@
   "rapidOcr": {
     "version": "3.9.2",
     "onnxRuntimeVersion": "1.29.0",
-    "payloadSha256": "c5e05a11655451ae6770fda80a978b38cdf6e37a3c024245ad2be29ee9ded59c",
+    "payloadSha256": "88499ae6ceb5b02e6a04f996056ed9e119b52acaa37138ea758b4460c5e32036",
     "payloadEntryCount": 2161,
     "distributions": {
       "PyYAML": "6.0.3",

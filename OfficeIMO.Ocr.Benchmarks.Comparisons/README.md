@@ -49,8 +49,10 @@ Normal comparison runs use the checked-in fixtures and do not require `fixture-p
 
 Install the isolated Python payload from [`requirements.lock.txt`](requirements.lock.txt); the benchmark wrapper additionally requires its complete tree to match the digest in `environment.lock.json`, so version-equivalent but modified files fail closed.
 
+The locked Python payload was qualified in an Ubuntu 24.04 amd64 container under emulation using system Python 3.12.3 at `/usr/bin/python3`, pip 24.0, setuptools 68.1.2, and wheel 0.42.0. Use those versions when preparing this exact payload. The tree includes installer-generated command scripts and package metadata, so changing the Python executable path or installer tools can change its digest even when package versions agree. Keep the whole-tree check enabled; qualify and rebind a differently prepared payload before measuring it.
+
 ```powershell
-wsl.exe -- python3 -m pip install --no-compile --target /mnt/c/path/to/rapid-packages --requirement /mnt/c/path/to/requirements.lock.txt
+wsl.exe -- /usr/bin/python3 -m pip install --no-compile --target /mnt/c/path/to/rapid-packages --requirement /mnt/c/path/to/requirements.lock.txt
 ```
 
 No benchmark dependency belongs in the solution or a runtime project. After preparing that ignored environment:
