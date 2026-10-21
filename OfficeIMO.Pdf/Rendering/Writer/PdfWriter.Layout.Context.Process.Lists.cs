@@ -66,6 +66,8 @@ internal static partial class PdfWriter {
             }
 
             int? listStructureElementIndex = null;
+            if (prepared.Style?.KeepTogether == true && listHeight <= GetMaximumBlockContinuationHeight() + .001D)
+                ReserveAtomicFootnoteGroup(new[] { list }, () => MeasurePreparedListHeight(prepared), () => NewListStartFrame());
             LayoutResult.Page? listStructurePage = null;
             for (int itemIndex = 0; itemIndex < prepared.Items.Count; itemIndex++) {
                 if (activeColumnFlow != null && Math.Abs(preparedWidth - width) > 0.001D) {

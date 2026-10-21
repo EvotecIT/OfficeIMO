@@ -14,6 +14,9 @@ public partial class Word {
     [InlineData("control")]
     public void SaveAsPdf_ReferencedFootnoteFlowFallbackReportsApproximationOnce(string context) {
         using WordDocument source = CreateFootnoteDiagnosticDocument();
+        // Multiple columns remain outside the qualified page-footnote profile;
+        // exercise the real fallback without treating supported notes as lossy.
+        source.Sections[0].ColumnCount = 2;
         WordParagraph paragraph = context == "table"
             ? source.AddTable(1, 1, WordTableStyle.TableNormal).Rows[0].Cells[0].Paragraphs[0].SetText("BODY")
             : source.AddParagraph("BODY");

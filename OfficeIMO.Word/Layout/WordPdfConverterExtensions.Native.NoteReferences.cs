@@ -9,10 +9,16 @@ namespace OfficeIMO.Word.Pdf {
         private static IEnumerable<PdfCore.PdfTextRun> CreateNativeNoteReferenceRuns(
             WordParagraph paragraph, IReadOnlyList<int> numbers, NativeNoteNumbering numbersById,
             NativeDocumentDefaults defaults, NativeFontMap? fontMap,
-            NativeTableRunStyleDefaults tableDefaults = default, bool useConfiguredTypography = false) {
-            var sourceKeys = new HashSet<long>();
+            NativeTableRunStyleDefaults tableDefaults = default, bool useConfiguredTypography = false,
+            ISet<int>? emittedNoteTokens = null) {
+            var sourceKeys = new HashSet<NativeNoteKey>();
             foreach (int number in numbers) {
-                bool Matches(long key) => numbersById.TryGetValue(key, out int value) && value == number && sourceKeys.Add(key);
+                if (emittedNoteTokens?.Contains(number) == true) continue;
+                if (paragraph._paragraph.Descendants<W.FootnoteReference>().Any(reference =>
+                    reference.Id?.Value is long id && numbersById.TryGetPageFootnote(GetNativeFootnoteKey(id), out _) &&
+                    numbersById.TryGetValue(GetNativeFootnoteKey(id), out int token) && token == number)) continue;
+                bool Matches(NativeNoteKey key) => !numbersById.TryGetPageFootnote(key, out _) &&
+                    numbersById.TryGetValue(key, out int value) && value == number && sourceKeys.Add(key);
                 WordParagraph? source = null;
                 foreach (W.Run run in paragraph._paragraph.Descendants<W.Run>()) {
                     bool matches = run.Elements<W.FootnoteReference>().Any(reference =>

@@ -56,6 +56,7 @@ namespace OfficeIMO.Word.Pdf {
         }
 
         private interface INativePdfFlow {
+            PdfCore.PdfFootnoteDefinition DefineFootnote(Action<PdfCore.PdfContentBuilder> build, PdfCore.PdfFootnoteOptions options);
             bool SupportsPositionedTables { get; }
             PdfCore.PageSize PageSize { get; }
             void PageBreak(bool preserveEmptyPage = false);
@@ -82,6 +83,7 @@ namespace OfficeIMO.Word.Pdf {
         }
 
         private sealed class NativePdfDocumentFlow : INativePdfFlow {
+            public PdfCore.PdfFootnoteDefinition DefineFootnote(Action<PdfCore.PdfContentBuilder> build, PdfCore.PdfFootnoteOptions options) => _pdf.DefineFootnote(build, options);
             public bool SupportsPositionedTables => true;
             private readonly PdfCore.PdfDocument _pdf;
 
@@ -119,6 +121,7 @@ namespace OfficeIMO.Word.Pdf {
         }
 
         private sealed class NativePdfColumnFlow : INativePdfFlow {
+            public PdfCore.PdfFootnoteDefinition DefineFootnote(Action<PdfCore.PdfContentBuilder> build, PdfCore.PdfFootnoteOptions options) => _column.DefineFootnote(build, options);
             public bool SupportsPositionedTables => false;
             private readonly PdfCore.PdfPageBuilder? _page;
             private readonly PdfCore.PdfContentBuilder _column;
@@ -214,7 +217,10 @@ namespace OfficeIMO.Word.Pdf {
                 RunningTextBoxStoryPeers = GetNativeRunningTextBoxStoryPeers(document, options)
             };
             var footnoteNumbersById = new NativeNoteNumbering(document, options);
+            nativeDefaults = nativeDefaults with { NoteNumbering = footnoteNumbersById };
             IReadOnlyList<WordSection> sections = document.Sections;
+            string? pageFootnoteBodyProfileGap = null;
+            bool pageFootnoteBodyProfileChecked = false;
             var documentEndnotes = new List<PdfFootnote>();
             for (int sectionIndex = 0; sectionIndex < sections.Count;) {
                 cancellationToken.ThrowIfCancellationRequested();
@@ -242,6 +248,16 @@ namespace OfficeIMO.Word.Pdf {
                         footnoteNumbersById.BeginSection(section);
                         IReadOnlyList<WordElement> elements = CollapseNativeParagraphElements(section.Elements);
                         List<PdfFootnote> footnotes = CollectNativeFootnotes(elements, footnoteNumbersById, documentEndnotes);
+                        if (!pageFootnoteBodyProfileChecked && footnotes.Any(note => !note.IsEndnote)) {
+                            pageFootnoteBodyProfileGap = GetNativePageFootnoteBodyProfileGap(sections, options);
+                            pageFootnoteBodyProfileChecked = true;
+                        }
+                        if (TryPrepareNativePageFootnotes(flow, section, elements, footnoteNumbersById, options, nativeDefaults, nativeFontMap,
+                            pageFootnoteBodyProfileGap, HasNativeStableFootnoteContinuationWidth(sections, currentSectionIndex, options)))
+                            footnotes.RemoveAll(note => !note.IsEndnote);
+                        else if (footnotes.Any(note => !note.IsEndnote))
+                            footnoteNumbersById.ReportPlacementFallback();
+                        CollectNativeRunningFootnoteFallback(section, footnotes, footnoteNumbersById, options);
                         if (currentSectionIndex + 1 == sections.Count) footnotes.AddRange(documentEndnotes);
 
                         if (TryRenderNativeEmptySectionMark(flow, section, elements, nativeDefaults, nativeFontMap)) {

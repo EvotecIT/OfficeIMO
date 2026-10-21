@@ -69,7 +69,7 @@ internal static partial class PdfWriter {
             PageStructElement? listItemElement = null;
             spacingBefore = ResolveTopLevelSpacingBefore(spacingBefore);
             if (spacingBefore > 0) {
-                if (y - spacingBefore < currentOpts.MarginBottom) {
+                if (y - spacingBefore < FootnoteBodyBottom) {
                     NewListFrame();
                     spacingBefore = 0D;
                 }
@@ -78,7 +78,7 @@ internal static partial class PdfWriter {
             }
 
             while (lineIndex < lines.Count) {
-                double available = y - currentOpts.MarginBottom;
+                double available = y - FootnoteBodyBottom;
                 double closingPadding = itemIndex == prepared.Items.Count - 1 ? GetClosingContainerPadding() : 0D;
                 if (closingPadding > 0D) closingPadding += spacingAfter;
                 double firstLineHeight = GetRichLineFrameFitHeight(lines[lineIndex], GetRichLineHeight(lineHeights, lineIndex, leading)) + (lineIndex == lines.Count - 1 ? closingPadding : 0D);
@@ -88,7 +88,7 @@ internal static partial class PdfWriter {
                     if (!ShouldAdvanceForBlockHeight(firstLineHeight))
                         throw new ArgumentException("List line height exceeds the available page content height.");
                     NewListFrame();
-                    available = y - currentOpts.MarginBottom;
+                    available = y - FootnoteBodyBottom;
                     firstLineHeight = GetRichLineFrameFitHeight(lines[lineIndex], GetRichLineHeight(lineHeights, lineIndex, leading)) + (lineIndex == lines.Count - 1 ? closingPadding : 0D);
                     if (firstLineHeight > GetMaximumBlockContinuationHeight() + .001D) {
                         throw new ArgumentException("List line height exceeds the available page content height.");
@@ -107,6 +107,10 @@ internal static partial class PdfWriter {
                     take++;
                 }
 
+                bool noteSliceFits = ConstrainFootnoteSlice(lines, lineHeights, lineIndex, 1, 0, 0D, closingPadding, ref take, ref heightSum);
+                if (!noteSliceFits && !HasCurrentPageBodyContent())
+                    throw new ArgumentException("The list reference and first footnote fragment exceed the available page body height.");
+                if (!noteSliceFits) { NewListFrame(); continue; }
                 ReserveBalancedKeepNextTail(lineHeights, lineIndex, lines.Count, spacingAfter, available, blockList, blockIndex,
                     itemIndex == prepared.Items.Count - 1 && prepared.Style?.KeepWithNext == true, 1, ref take, ref heightSum);
                 if (take == 0) {
@@ -122,6 +126,8 @@ internal static partial class PdfWriter {
                 }
 
                 double baselineY = FirstTextBaselineFromTop(listFont, size, y);
+                bool admittedNewFootnote = HasUnscheduledFootnote(segmentLines.SelectMany(line => line));
+                RequireFootnoteSlice(lines, lineIndex, take, y - heightSum - (lineIndex + take == lines.Count ? closingPadding : 0D));
                 int? listElementIndex = firstSegment ? EnsurePageStructureContainer("L", ref listStructureElementIndex, ref listStructurePage) : null;
                 SetListNumbering(listElementIndex, prepared.Block);
                 int? listItemElementIndex = firstSegment ? RegisterStructureContainer("LI", listElementIndex) : null;
@@ -169,13 +175,14 @@ internal static partial class PdfWriter {
                 int? bodyMarkedContentId = firstSegment || listItemElement == null
                     ? RegisterTextStructureElement("LBody", listItemElementIndex)
                     : RegisterTextStructureElement("LBody", listItemElement);
-                WriteRichParagraph(sb, new RichParagraphBlock(runs, textAlign, color), segmentLines, segmentHeights, currentOpts, baselineY, size, leading, currentPage!.Annotations, currentOpts.MarginLeft + textOffset, textWidth, structureType: "LBody", markedContentId: bodyMarkedContentId, structurePage: currentPage);
+                WriteRichParagraph(sb, new RichParagraphBlock(runs, textAlign, color), segmentLines, segmentHeights, currentOpts, baselineY, size, leading, currentPage!.Annotations, currentOpts.MarginLeft + textOffset, textWidth, structureType: "LBody", markedContentId: bodyMarkedContentId, structurePage: currentPage,
+                    hasFollowingParagraphLines: lineIndex + take < lines.Count);
                 MarkRichFonts(runs);
                 y -= heightSum;
                 lineIndex += take;
                 firstSegment = false;
                 if (lineIndex < lines.Count) {
-                    NewListFrame();
+                    if (!admittedNewFootnote || y - GetRichLineFrameFitHeight(lines[lineIndex], GetRichLineHeight(lineHeights, lineIndex, leading)) < FootnoteBodyBottom - .001D) NewListFrame();
                 } else {
                     y -= spacingAfter;
                 }

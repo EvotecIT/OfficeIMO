@@ -9,6 +9,11 @@ namespace OfficeIMO.Pdf;
 public sealed class PdfContentBuilder {
     private readonly PdfDocument _doc;
     internal PdfContentBuilder(PdfDocument doc) { _doc = doc; }
+    /// <summary>Captures reusable footnote flow without inserting it into the body. Associate its handle with a styled text run.</summary>
+    /// <param name="build">Paragraphs, images, rules, and spacers forming the footnote.</param>
+    /// <param name="options">Placement and optional separator flow, snapshotted during this call.</param>
+    /// <returns>An immutable handle belonging to this document.</returns>
+    public PdfFootnoteDefinition DefineFootnote(Action<PdfContentBuilder> build, PdfFootnoteOptions? options = null) => _doc.DefineFootnote(build, options);
     internal PdfContentBuilder Heading(int level, string title, System.Action<PdfParagraphBuilder> build, PdfAlign align, PdfColor? color, PdfHeadingStyle? style) {
         _doc.Heading(level, title, build, align, color, style);
         return this;

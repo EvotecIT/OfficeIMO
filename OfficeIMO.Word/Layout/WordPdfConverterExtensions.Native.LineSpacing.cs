@@ -80,7 +80,7 @@ namespace OfficeIMO.Word.Pdf {
             if (paragraph._paragraph.Ancestors<W.TableCell>().Any() && ReadNativeOnOff(paragraph._document
                 ._wordprocessingDocument.MainDocumentPart?.DocumentSettingsPart?.Settings?
                 .GetFirstChild<W.Compatibility>()?.GetFirstChild<W.AdjustLineHeightInTable>()) != true) return null;
-            return GetNativeSectionLineGridPitch(paragraph);
+            return GetNativeSectionLineGridPitch(paragraph, documentDefaults.NoteContentSection);
         }
 
         // A paragraph mark or a large run on another line must not impose a

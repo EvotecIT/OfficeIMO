@@ -380,32 +380,26 @@ namespace OfficeIMO.Word {
         }
 
         /// <summary>
-        /// Gets all end notes within the section.
+        /// Gets endnotes referenced in the section's body, including tables and content controls, in source order.
         /// </summary>
         public List<WordEndNote> EndNotes {
             get {
                 List<WordEndNote> list = new List<WordEndNote>();
-                var paragraphs = Paragraphs.Where(p => p.IsEndNote).ToList();
-                foreach (var paragraph in paragraphs) {
-                    if (paragraph.EndNote != null) {
-                        list.Add(paragraph.EndNote);
-                    }
+                foreach (var note in EnumerateNoteReferences<EndnoteReference>()) {
+                    list.Add(new WordEndNote(_document, note.Paragraph, note.Run, note.Reference));
                 }
                 return list;
             }
         }
 
         /// <summary>
-        /// Gets all foot notes within the section.
+        /// Gets footnotes referenced in the section's body, including tables and content controls, in source order.
         /// </summary>
         public List<WordFootNote> FootNotes {
             get {
                 List<WordFootNote> list = new List<WordFootNote>();
-                var paragraphs = Paragraphs.Where(p => p.IsFootNote).ToList();
-                foreach (var paragraph in paragraphs) {
-                    if (paragraph.FootNote != null) {
-                        list.Add(paragraph.FootNote);
-                    }
+                foreach (var note in EnumerateNoteReferences<FootnoteReference>()) {
+                    list.Add(new WordFootNote(_document, note.Paragraph, note.Run, note.Reference));
                 }
                 return list;
             }

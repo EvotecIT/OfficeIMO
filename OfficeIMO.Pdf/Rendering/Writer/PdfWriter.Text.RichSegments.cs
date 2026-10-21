@@ -44,7 +44,7 @@ internal static partial class PdfWriter {
             double characterSpacing = 0D, double fontMetricScale = 1D,
             int leadingSpaceCount = 1, double leadingSpaceRemainder = 0, double leadingSpaceUnitAdvance = 0,
             bool contributesLineBoxDescent = true, bool isLineBoxStrut = false,
-            bool preservesPaintedGlyphs = false, PdfInlineFormField? formField = null) {
+            bool preservesPaintedGlyphs = false, PdfInlineFormField? formField = null, PdfFootnoteDefinition? footnoteReference = null) {
             Text = text;
             Bold = bold;
             Italic = italic;
@@ -93,6 +93,7 @@ internal static partial class PdfWriter {
             IsLineBoxStrut = isLineBoxStrut;
             PreservesPaintedGlyphs = preservesPaintedGlyphs;
             FormField = formField;
+            FootnoteReference = footnoteReference;
         }
 
         public string Text { get; }
@@ -141,6 +142,8 @@ internal static partial class PdfWriter {
             LineAlignmentRise = source.LineAlignmentRise;
             PreservesPaintedGlyphs = source.PreservesPaintedGlyphs;
             FormField = source.FormField;
+            FootnoteReference = source.FootnoteReference;
+            FootnoteReferenceOrigin = source.FootnoteReferenceOrigin;
             return this;
         }
 
@@ -171,6 +174,21 @@ internal static partial class PdfWriter {
 
         public PdfInlineElement? InlineElement { get; }
         public PdfInlineFormField? FormField { get; private set; }
+        public PdfFootnoteDefinition? FootnoteReference { get; private set; }
+        public RichSeg? FootnoteReferenceOrigin { get; private set; }
+
+        public RichSeg WithFootnoteReferenceOrigin(RichSeg source) {
+            if (FootnoteReference != null) FootnoteReferenceOrigin = source.FootnoteReferenceOrigin ?? source;
+            return this;
+        }
+
+        // A buffered authored separator can split across lines. Its association
+        // transfers to the first emitted fragment, rather than every space slice.
+        public PdfFootnoteDefinition? TakeFootnoteReference() {
+            PdfFootnoteDefinition? reference = FootnoteReference;
+            FootnoteReference = null;
+            return reference;
+        }
 
         public PdfNamedFontFace? NamedFont { get; }
 

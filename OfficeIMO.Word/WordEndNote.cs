@@ -10,46 +10,28 @@ namespace OfficeIMO.Word {
         private readonly WordDocument _document;
         private readonly Paragraph _paragraph;
         private readonly Run _run;
+        private readonly EndnoteReference? _reference;
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="WordEndNote"/> class.
+        /// Initializes a note handle for an exact reference child, or the run's first reference
+        /// when a paragraph's singular note property creates the handle.
         /// </summary>
-        internal WordEndNote(WordDocument document, Paragraph paragraph, Run run) {
+        internal WordEndNote(WordDocument document, Paragraph paragraph, Run run, EndnoteReference? reference = null) {
             this._document = document;
             this._paragraph = paragraph;
             this._run = run;
+            this._reference = reference ?? run.Elements<EndnoteReference>().FirstOrDefault();
         }
 
         /// <summary>
-        /// List of Paragraphs for given EndNote
-        /// As there can be multiple paragraphs with different formatting it's required to provide a list
-        /// Zero based object should be skipped, as it's EndNoteReference
-        /// However for sake of completion and potential ability to modify it we expose it as well
+        /// Gets the paragraphs of the referenced ordinary endnote, or null when its body cannot be resolved.
+        /// A note can contain multiple paragraphs with different formatting.
         /// </summary>
         public List<WordParagraph>? Paragraphs {
             get {
-                if (_paragraph != null && _run != null) {
-                    long referenceId = 0;
-                    var endNoteReference = _run.ChildElements.OfType<EndnoteReference>().FirstOrDefault();
-                    if (endNoteReference?.Id != null) {
-                        referenceId = endNoteReference.Id.Value;
-                    }
-
-                    if (referenceId != 0) {
-                        var endNotesPart = _document._wordprocessingDocument.MainDocumentPart?.EndnotesPart;
-                        var endNotes = endNotesPart?.Endnotes?.ChildElements.OfType<Endnote>().ToList();
-                        if (endNotes != null) {
-                            foreach (var endNote in endNotes) {
-                                if (endNote != null) {
-                                    if (endNote.Id == referenceId.ToString()) {
-                                        return WordSection.ConvertParagraphsToWordParagraphs(_document, endNote.OfType<Paragraph>());
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-                return null;
+                Endnote? endnote = WordNoteResolver.FindEndnote(
+                    _document._wordprocessingDocument.MainDocumentPart, _reference?.Id?.Value);
+                return endnote == null ? null : WordSection.ConvertParagraphsToWordParagraphs(_document, endnote.Elements<Paragraph>());
             }
         }
 
@@ -72,9 +54,8 @@ namespace OfficeIMO.Word {
         public long? ReferenceId {
             get {
                 if (_paragraph != null && _run != null) {
-                    var endNoteReference = _run.ChildElements.OfType<EndnoteReference>().FirstOrDefault();
-                    if (endNoteReference?.Id != null) {
-                        return endNoteReference.Id.Value;
+                    if (_reference?.Id != null) {
+                        return _reference.Id.Value;
                     }
                 }
                 return null;
@@ -82,26 +63,17 @@ namespace OfficeIMO.Word {
         }
 
         /// <summary>
-        /// Removes the endnote and its reference from the document.
+        /// Removes this endnote and its reference, preserving other content in the reference run.
         /// </summary>
         public void Remove() {
-            long referenceId = 0;
-            var endNoteReference = _run.ChildElements.OfType<EndnoteReference>().FirstOrDefault();
-            if (endNoteReference?.Id != null) {
-                referenceId = endNoteReference.Id.Value;
-            }
-            var endNotesPart = _document._wordprocessingDocument.MainDocumentPart?.EndnotesPart;
-            var footNotes = endNotesPart?.Endnotes?.ChildElements.OfType<Endnote>().ToList();
-            if (footNotes != null) {
-                foreach (var footNote in footNotes) {
-                    if (footNote != null) {
-                        if (footNote.Id == referenceId.ToString()) {
-                            footNote.Remove();
-                        }
-                    }
+            WordNoteResolver.FindEndnote(
+                _document._wordprocessingDocument.MainDocumentPart, _reference?.Id?.Value)?.Remove();
+            if (_reference?.Parent == _run) {
+                _reference.Remove();
+                if (_run.Parent != null && _run.ChildElements.All(child => child is RunProperties)) {
+                    _run.Remove();
                 }
             }
-            this._run.Remove();
         }
 
 

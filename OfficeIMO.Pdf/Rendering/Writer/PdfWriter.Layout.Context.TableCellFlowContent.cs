@@ -14,30 +14,19 @@ internal static partial class PdfWriter {
             double textClipBleed = style.ClipTextToCellBounds ? 0D : TableCellClipBleed;
             double cellPadLeft = GetTableCellPaddingLeft(style, rowIndex, c);
             double cellPadRight = GetTableCellPaddingRight(style, rowIndex, c);
-            double cellPadTop = GetTableCellPaddingTop(style, rowIndex, c);
-            double cellPadBottom = GetTableCellPaddingBottom(style, rowIndex, c);
-            TableCellContentFrame contentFrame = GetTableCellContentFrame(cell, cellX, cellTop, cellWidth, cellHeight);
-            double innerW = contentFrame.Width - cellPadLeft - cellPadRight;
+            FlowTableCellTextFrame textFrame = PrepareFlowTableCellTextFrame(style, cell, lines, rowIndex,
+                sourceStartLine, requestedLineCount, cellX, cellTop, cellWidth, cellHeight, rowSize,
+                rowLeading, rowUsesBold, verticalOffsetOverride);
+            TableCellContentFrame contentFrame = textFrame.Content;
+            double innerW = textFrame.InnerWidth;
             double cellBottom = cellTop - cellHeight;
             PdfColumnAlign align = GetTableCellAlignment(style, rowIndex, c, cell.Text);
-            PdfCellVerticalAlign verticalAlign = GetTableCellVerticalAlignment(style, rowIndex, c);
-
             var cellFont = GetTableRowFont(currentOpts, rowUsesBold);
-            double availableTextHeight = Math.Max(0, contentFrame.Height - cellPadTop - cellPadBottom - (verticalOffsetOverride ?? 0D));
             // A neighboring horizontal cell can continue the row after the
             // turned cell's content has already been painted on its first fragment.
-            int visibleLineCount = cell.TextRotation != 0 ? (sourceStartLine == 0 ? 1 : 0) : LimitTableCellLineCountToHeight(lines, sourceStartLine, requestedLineCount, rowLeading, availableTextHeight, style.PreservePartialCellLines);
-            double verticalOffset = verticalOffsetOverride ?? 0D;
-            double visibleTextHeight = 0D;
-            if (visibleLineCount > 0) {
-                visibleTextHeight = MeasureTableCellTextHeight(lines, sourceStartLine, visibleLineCount, rowLeading);
-                double visibleContentHeight = MeasureTableCellContentHeight(cell, lines, sourceStartLine, visibleLineCount, rowLeading, innerW);
-                double unusedTextHeight = Math.Max(0, availableTextHeight - visibleContentHeight);
-                if (!verticalOffsetOverride.HasValue) {
-                    if (verticalAlign == PdfCellVerticalAlign.Middle) verticalOffset = unusedTextHeight / 2;
-                    else if (verticalAlign == PdfCellVerticalAlign.Bottom) verticalOffset = unusedTextHeight;
-                }
-            }
+            int visibleLineCount = textFrame.VisibleLineCount;
+            double verticalOffset = textFrame.VerticalOffset;
+            double visibleTextHeight = textFrame.VisibleTextHeight;
 
             // Deferred row spans consume only the lines actually admitted and resume the rest.
             if (!verticalOffsetOverride.HasValue)
@@ -45,7 +34,7 @@ internal static partial class PdfWriter {
                     visibleLineCount, cellX, cellTop, cellWidth, cellHeight, rowLeading, innerW,
                     verticalOffset, includeObjects: !suppressCellObjects);
 
-            double firstBaseline = contentFrame.Top - cellPadTop - verticalOffset - (sourceStartLine == 0 ? lines.TopSpacing : 0D) - GetAscenderForOptions(cellFont, rowSize, currentOpts) + style.RowBaselineOffset;
+            double firstBaseline = textFrame.FirstBaseline;
 
             pageDirty = true;
             MarkRichFonts(cell.Runs, forceBold: rowUsesBold);
@@ -117,7 +106,7 @@ internal static partial class PdfWriter {
                 if (CanRenderTableCellCheckBoxInline(cell, lines, sourceStartLine, visibleLineCount)) {
                     RenderTableCellInlineCheckBox(currentPage!, cell, align, lines.Lines[sourceStartLine], cellX + cellPadLeft, innerW, AdjustRichLineBaseline(firstBaseline, lines.Lines[sourceStartLine], currentOpts, rowSize, cellFont));
                 } else {
-                    double formFieldTop = contentFrame.Top - cellPadTop - verticalOffset - (string.IsNullOrEmpty(cell.Text) ? 0D : visibleTextHeight + TableCellCheckBoxGap);
+                    double formFieldTop = textFrame.ContentTop - (string.IsNullOrEmpty(cell.Text) ? 0D : visibleTextHeight + TableCellCheckBoxGap);
                     TableCellContentFrame? clip = cell.Viewport == null ? null : new TableCellContentFrame(cellX, cellTop, cellWidth, cellHeight);
                     RenderTableCellObjects(currentPage!, cell, align, contentFrame.Left + cellPadLeft, innerW, formFieldTop,
                         clip.HasValue ? image => WriteTableCellViewportImage(image, clip) : null, clip);

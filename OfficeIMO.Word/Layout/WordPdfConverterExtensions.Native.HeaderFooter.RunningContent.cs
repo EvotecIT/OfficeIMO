@@ -8,6 +8,7 @@ namespace OfficeIMO.Word.Pdf;
 public static partial class WordPdfConverterExtensions {
     private static bool RequiresNativeRunningStory(WordHeaderFooter? story) => story != null &&
         (story.ChildElements.Any(element => element is W.Table || element.Descendants<W.Table>().Any()) ||
+        EnumerateNativeRunningFootnoteReferences(story).Any() ||
         NativeRunningStoryUsesSectionPageCount(story) ||
         story.ChildElements.Any(element => element.Descendants<DocumentFormat.OpenXml.Drawing.GraphicData>()
             .Any(data => data.Uri?.Value == "http://schemas.openxmlformats.org/drawingml/2006/diagram")));
@@ -18,13 +19,16 @@ public static partial class WordPdfConverterExtensions {
             .Any(paragraph => GetNativeHeaderFooterVisibleTextRuns(new WordParagraph(story.Document, paragraph))
                 .Any(item => item.IsField && item.Text == "{sectionpages}"));
 
-    private static bool UsesNativeSectionPageCounts(WordSection section) =>
+    private static IEnumerable<WordHeaderFooter> EnumerateNativeActiveRunningStories(WordSection section) =>
         new WordHeaderFooter?[] { section.ResolveDefaultHeader(), section.ResolveDefaultFooter(),
             section.DifferentFirstPage ? section.ResolveFirstHeader() : null,
             section.DifferentFirstPage ? section.ResolveFirstFooter() : null,
             section.DocumentOddEvenSettingEnabled ? section.ResolveEvenHeader() : null,
             section.DocumentOddEvenSettingEnabled ? section.ResolveEvenFooter() : null }
-        .Any(NativeRunningStoryUsesSectionPageCount);
+        .Where(story => story != null).Cast<WordHeaderFooter>();
+
+    private static bool UsesNativeSectionPageCounts(WordSection section) =>
+        EnumerateNativeActiveRunningStories(section).Any(NativeRunningStoryUsesSectionPageCount);
 
     private static bool UsesNativeRunningHeader(WordSection section, WordToPdfOptions? options) => UsesNativeRunningStories(section, options, false,
         section.ResolveDefaultHeader(), section.DifferentFirstPage ? section.ResolveFirstHeader() : null,
@@ -206,7 +210,8 @@ public static partial class WordPdfConverterExtensions {
             NativeDocumentDefaults runningDefaults = defaults with { RunningContentContext = context, RunningContentSection = section };
             if (story != null && !story.ChildElements.Any())
                 RenderNativeImplicitRunningParagraph(flow, story, runningDefaults, fontMap);
-            var notes = new NativeNoteNumbering(section._document, options);
+            NativeNoteNumbering notes = defaults.NoteNumbering?.CreateRunningReferenceSnapshot(section)
+                ?? new NativeNoteNumbering(section._document, options);
             notes.BeginSection(section);
             var destinations = new Dictionary<W.Paragraph, string>();
             for (int index = 0; index < elements.Count; index++) {

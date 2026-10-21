@@ -664,7 +664,7 @@ internal static partial class PdfWriter {
         private void ConsumeSpacer(double height) {
             double remaining = height;
             while (remaining > 0.001D) {
-                double available = y - currentOpts.MarginBottom;
+                double available = y - FootnoteBodyBottom;
                 double closingPadding = GetClosingContainerPadding();
                 if (remaining <= available && remaining + closingPadding > available) available -= closingPadding;
                 if (available <= 0.5D) {
@@ -680,7 +680,7 @@ internal static partial class PdfWriter {
                     !HasCurrentPageNonContentObjects() && sb.Length == 0 &&
                     activeLayers.Count == 0 && activeContainerScopes.Count == 0 &&
                     activeFloatingFlowCaptures.Count == 0 && pendingFloatingBookmarks.Count == 0 &&
-                    behindTextCanvases.Count == 0 && !HasFloatingTables) {
+                    behindTextCanvases.Count == 0 && !HasFloatingTables && !HasPageFootnotes) {
                     double completePages = System.Math.Floor((remaining - 0.001D) / available);
                     if (completePages >= 2D) {
                         if (completePages > long.MaxValue - startedPageCount)

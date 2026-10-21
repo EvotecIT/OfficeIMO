@@ -15,7 +15,7 @@ internal static partial class PdfWriter {
             }
 
             IReadOnlyList<IPdfBlock> blocks = MaterializeFlow(flow, context);
-            double available = y - currentOpts.MarginBottom;
+            double available = y - FootnoteBodyBottom;
             if (flow.Options.MinimumRemainingHeight > 0D && available + 0.001D < flow.Options.MinimumRemainingHeight && y < GetCurrentFramePageStartY() - 0.001D) {
                 NewBlockFrame();
                 context = CreateFlowContext();
@@ -23,7 +23,7 @@ internal static partial class PdfWriter {
                     blocks = MaterializeFlow(flow, context);
                 }
 
-                available = y - currentOpts.MarginBottom;
+                available = y - FootnoteBodyBottom;
             }
 
             double? measuredHeight = MeasureFlowBlocks(blocks);
@@ -41,7 +41,7 @@ internal static partial class PdfWriter {
                 // Clearance changes page-top spacing and can change replayed content.
                 // Recheck the complete group against any lower floating regions.
                 measuredHeight = MeasureFlowBlocks(blocks);
-                available = y - currentOpts.MarginBottom;
+                available = y - FootnoteBodyBottom;
             }
             if (!measuredHeight.HasValue &&
                 (flow.Options.KeepTogether || flow.Options.OverflowBehavior != PdfFlowOverflowBehavior.Continue)) {
@@ -72,7 +72,7 @@ internal static partial class PdfWriter {
 
                 measuredHeight = MeasureFlowBlocks(blocks);
                 fullPageMeasuredHeight = measuredHeight;
-                available = y - currentOpts.MarginBottom;
+                available = y - FootnoteBodyBottom;
                 beforeFloatClearanceY = y;
                 cannotFitCurrentPage = measuredHeight.HasValue && measuredHeight.Value > available + 0.001D;
                 fitsFullPage = measuredHeight.HasValue && measuredHeight.Value <= GetMaximumBlockContinuationHeight() + .001D;
@@ -101,6 +101,8 @@ internal static partial class PdfWriter {
             }
 
             int startPageNumber = pages.Count + 1;
+            if (flow.Options.KeepTogether && measuredHeight.HasValue)
+                ReserveAtomicFootnoteGroup(blocks, () => MeasureFlowBlocks(blocks) ?? measuredHeight.Value, () => NewBlockFrame());
             double startY = y;
             PdfOptions startOptions = currentOpts;
             var paintedRegions = new FloatingFlowCapture();
@@ -115,20 +117,26 @@ internal static partial class PdfWriter {
             var key = new FlowMaterializationKey(flow, context);
             if (!deferredMaterializations.TryGetValue(key, out IReadOnlyList<IPdfBlock>? blocks)) {
                 blocks = flow.Materialize(context);
+                if (blocks.SelectMany(PdfFootnoteTraversal.References).Any())
+                    throw new NotSupportedException("Page-associated footnote references are not supported in replayable flow. Use a static flow group.");
                 deferredMaterializations.Add(key, blocks);
             }
 
+            if (footnoteSourceOrdinals.Count > 0)
+                foreach (IPdfBlock block in blocks) PdfDocument.ValidateFootnoteBodyProfile(block, currentOpts);
             return blocks;
         }
 
         private PdfFlowContext CreateFlowContext() {
+            // Reserved notes reduce body room without advancing the frame cursor.
             return new PdfFlowContext(
                 pages.Count + 1,
-                y - currentOpts.MarginBottom,
+                y - FootnoteBodyBottom,
                 GetFullPageContentHeight(),
                 width,
                 currentOpts.PageWidth,
-                currentOpts.PageHeight);
+                currentOpts.PageHeight,
+                y >= GetCurrentFramePageStartY() - 0.001D);
         }
 
         private double GetFullPageContentHeight() {
