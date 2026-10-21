@@ -128,13 +128,15 @@ internal static partial class PdfWriter {
         }
 
         private PdfFlowContext CreateFlowContext() {
+            // Reserved notes reduce body room without advancing the frame cursor.
             return new PdfFlowContext(
                 pages.Count + 1,
                 y - FootnoteBodyBottom,
                 GetFullPageContentHeight(),
                 width,
                 currentOpts.PageWidth,
-                currentOpts.PageHeight);
+                currentOpts.PageHeight,
+                y >= GetCurrentFramePageStartY() - 0.001D);
         }
 
         private double GetFullPageContentHeight() {

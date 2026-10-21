@@ -2,13 +2,14 @@ namespace OfficeIMO.Pdf;
 
 /// <summary>Read-only layout context supplied to conditional and replayable flow callbacks.</summary>
 public sealed class PdfFlowContext {
-    internal PdfFlowContext(int pageNumber, double availableHeight, double fullContentHeight, double contentWidth, double pageWidth, double pageHeight) {
+    internal PdfFlowContext(int pageNumber, double availableHeight, double fullContentHeight, double contentWidth, double pageWidth, double pageHeight, bool isAtPageTop) {
         PageNumber = pageNumber;
         AvailableHeight = availableHeight;
         FullContentHeight = fullContentHeight;
         ContentWidth = contentWidth;
         PageWidth = pageWidth;
         PageHeight = pageHeight;
+        IsAtPageTop = isAtPageTop;
     }
 
     /// <summary>Current one-based physical output page number.</summary>
@@ -24,5 +25,5 @@ public sealed class PdfFlowContext {
     /// <summary>Current page height in points.</summary>
     public double PageHeight { get; }
     /// <summary>True when layout is at the top of the current flow frame.</summary>
-    public bool IsAtPageTop => AvailableHeight >= FullContentHeight - 0.001D;
+    public bool IsAtPageTop { get; }
 }

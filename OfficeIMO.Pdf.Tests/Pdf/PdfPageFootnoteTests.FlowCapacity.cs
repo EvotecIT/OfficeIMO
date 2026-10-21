@@ -57,21 +57,34 @@ public partial class PdfPageFootnoteTests {
         var capture = new PdfLayoutPositionCapture();
         document.Content.Deferred(context => {
             factories.Add(context);
-            return body => body.Text("ContextPage" + context.PageNumber, style: Style());
+            return body => body.Text("ContextPage" + context.PageNumber + "AtTop" + context.IsAtPageTop, style: Style());
         }, new PdfFlowOptions {
             MinimumRemainingHeight = 20,
             ShowIf = context => { predicates.Add(context); return true; }
         }, capture);
+        var followingContexts = new List<PdfFlowContext>();
+        document.Content.Flow(body => body.Text("AfterContextBody", style: Style()), new PdfFlowOptions {
+            ShowIf = context => { followingContexts.Add(context); return !context.IsAtPageTop; }
+        });
 
         using var pdf = PdfPigDocument.Open(document.ToBytes());
         AssertContinuationCapacityNoteInventory(pdf);
-        Assert.Contains("ContextPage3", pdf.GetPage(3).Text, StringComparison.Ordinal);
+        Assert.Contains("ContextPage3AtTopTrue", pdf.GetPage(3).Text, StringComparison.Ordinal);
+        Assert.Contains("AfterContextBody", pdf.GetPage(3).Text, StringComparison.Ordinal);
         Assert.DoesNotContain("ContextPage2", string.Concat(pdf.GetPages().Select(page => page.Text)), StringComparison.Ordinal);
         Assert.Contains(predicates, context => context.PageNumber == 1 && Math.Abs(context.AvailableHeight) < .001D);
         Assert.Contains(factories, context => context.PageNumber == 1 && Math.Abs(context.AvailableHeight) < .001D);
         Assert.Contains(factories, context => context.PageNumber == 2 && Math.Abs(context.AvailableHeight) < .001D);
         Assert.Contains(factories, context => context.PageNumber == 3 && Math.Abs(context.AvailableHeight - 40D) < .001D);
         Assert.All(factories, context => Assert.Equal(100D, context.FullContentHeight, 3));
+        Assert.All(predicates, context => Assert.False(context.IsAtPageTop));
+        Assert.All(factories, context => Assert.Equal(context.PageNumber > 1, context.IsAtPageTop));
+        Assert.All(followingContexts, context => {
+            Assert.Equal(3, context.PageNumber);
+            Assert.Equal(30D, context.AvailableHeight, 3);
+            Assert.False(context.IsAtPageTop);
+        });
+        Assert.NotEmpty(followingContexts);
         Assert.Equal(3, Assert.Single(capture.Regions).PageNumber);
     }
 
